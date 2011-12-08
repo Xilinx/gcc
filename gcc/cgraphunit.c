@@ -1711,7 +1711,6 @@ assemble_thunk (struct cgraph_node *node)
         VEC_quick_push (tree, vargs, arg);
       call = gimple_build_call_vec (build_fold_addr_expr_loc (0, alias), vargs);
       VEC_free (tree, heap, vargs);
-      gimple_call_set_cannot_inline (call, true);
       gimple_call_set_from_thunk (call, true);
       if (restmp)
         gimple_call_set_lhs (call, restmp);
@@ -2334,6 +2333,8 @@ cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
 	  version.  */
        cgraph_redirect_edge_callee (e, new_version);
      }
+
+   cgraph_call_node_duplication_hooks (old_version, new_version);
 
    return new_version;
  }

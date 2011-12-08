@@ -45,11 +45,13 @@ package body Ada.Containers.Indefinite_Hashed_Maps is
    procedure Free_Element is
       new Ada.Unchecked_Deallocation (Element_Type, Element_Access);
 
-   type Iterator is new
-     Map_Iterator_Interfaces.Forward_Iterator with record
-        Container : Map_Access;
-        Node      : Node_Access;
-     end record;
+   type Iterator is new Limited_Controlled and
+     Map_Iterator_Interfaces.Forward_Iterator with
+   record
+      Container : Map_Access;
+   end record;
+
+   overriding procedure Finalize (Object : in out Iterator);
 
    overriding function First (Object : Iterator) return Cursor;
 
@@ -422,6 +424,17 @@ package body Ada.Containers.Indefinite_Hashed_Maps is
       HT_Ops.Finalize (Container.HT);
    end Finalize;
 
+   procedure Finalize (Object : in out Iterator) is
+   begin
+      if Object.Container /= null then
+         declare
+            B : Natural renames Object.Container.all.HT.Busy;
+         begin
+            B := B - 1;
+         end;
+      end if;
+   end Finalize;
+
    ----------
    -- Find --
    ----------
@@ -434,7 +447,7 @@ package body Ada.Containers.Indefinite_Hashed_Maps is
          return No_Element;
       end if;
 
-      return Cursor'(Container'Unchecked_Access, Node);
+      return Cursor'(Container'Unrestricted_Access, Node);
    end Find;
 
    --------------------
@@ -466,24 +479,17 @@ package body Ada.Containers.Indefinite_Hashed_Maps is
 
    function First (Container : Map) return Cursor is
       Node : constant Node_Access := HT_Ops.First (Container.HT);
-
    begin
       if Node = null then
          return No_Element;
+      else
+         return Cursor'(Container'Unrestricted_Access, Node);
       end if;
-
-      return Cursor'(Container'Unchecked_Access, Node);
    end First;
 
    function First (Object : Iterator) return Cursor is
-      M : constant Map_Access  := Object.Container;
-      N : constant Node_Access := HT_Ops.First (M.HT);
    begin
-      if N = null then
-         return No_Element;
-      else
-         return Cursor'(Object.Container.all'Unchecked_Access, N);
-      end if;
+      return Object.Container.First;
    end First;
 
    ----------
@@ -694,10 +700,10 @@ package body Ada.Containers.Indefinite_Hashed_Maps is
 
       procedure Process_Node (Node : Node_Access) is
       begin
-         Process (Cursor'(Container'Unchecked_Access, Node));
+         Process (Cursor'(Container'Unrestricted_Access, Node));
       end Process_Node;
 
-      B : Natural renames Container'Unrestricted_Access.HT.Busy;
+      B : Natural renames Container'Unrestricted_Access.all.HT.Busy;
 
    --  Start of processing Iterate
 
@@ -715,13 +721,17 @@ package body Ada.Containers.Indefinite_Hashed_Maps is
       B := B - 1;
    end Iterate;
 
-   function Iterate (Container : Map)
-      return Map_Iterator_Interfaces.Forward_Iterator'class
+   function Iterate
+     (Container : Map) return Map_Iterator_Interfaces.Forward_Iterator'Class
    is
-      Node : constant Node_Access := HT_Ops.First (Container.HT);
-      It   : constant Iterator := (Container'Unrestricted_Access, Node);
+      B  : Natural renames Container'Unrestricted_Access.all.HT.Busy;
    begin
-      return It;
+      return It : constant Iterator :=
+                    (Limited_Controlled with
+                       Container => Container'Unrestricted_Access)
+      do
+         B := B + 1;
+      end return;
    end Iterate;
 
    ---------
@@ -797,23 +807,27 @@ package body Ada.Containers.Indefinite_Hashed_Maps is
       declare
          HT   : Hash_Table_Type renames Position.Container.HT;
          Node : constant Node_Access := HT_Ops.Next (HT, Position.Node);
-
       begin
          if Node = null then
             return No_Element;
+         else
+            return Cursor'(Position.Container, Node);
          end if;
-
-         return Cursor'(Position.Container, Node);
       end;
    end Next;
 
    function Next (Object : Iterator; Position : Cursor) return Cursor is
    begin
-      if Position.Node = null then
+      if Position.Container = null then
          return No_Element;
-      else
-         return (Object.Container, Next (Position).Node);
       end if;
+
+      if Position.Container /= Object.Container then
+         raise Program_Error with
+           "Position cursor of Next designates wrong map";
+      end if;
+
+      return Next (Position);
    end Next;
 
    -------------------

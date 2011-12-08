@@ -52,7 +52,7 @@ var conversionTests = []conversionTest{
 	{s: "256", d: &scanuint8, wanterr: `string "256" overflows uint8`},
 	{s: "256", d: &scanuint16, wantuint: 256},
 	{s: "-1", d: &scanint, wantint: -1},
-	{s: "foo", d: &scanint, wanterr: `converting string "foo" to a int: parsing "foo": Invalid argument`},
+	{s: "foo", d: &scanint, wanterr: `converting string "foo" to a int: parsing "foo": invalid syntax`},
 }
 
 func intValue(intptr interface{}) int64 {
@@ -68,7 +68,7 @@ func TestConversions(t *testing.T) {
 		err := convertAssign(ct.d, ct.s)
 		errstr := ""
 		if err != nil {
-			errstr = err.String()
+			errstr = err.Error()
 		}
 		errf := func(format string, args ...interface{}) {
 			base := fmt.Sprintf("convertAssign #%d: for %v (%T) -> %T, ", n, ct.s, ct.s, ct.d)

@@ -349,14 +349,6 @@ can_inline_edge_p (struct cgraph_edge *e, bool report)
 	}
     }
 
-  /* Be sure that the cannot_inline_p flag is up to date.  */
-  gcc_checking_assert (!e->call_stmt
-		       || (gimple_call_cannot_inline_p (e->call_stmt)
-		           == e->call_stmt_cannot_inline_p)
-		       /* In -flto-partition=none mode we really keep things out of
-			  sync because call_stmt_cannot_inline_p is set at cgraph
-			  merging when function bodies are not there yet.  */
-		       || (in_lto_p && !gimple_call_cannot_inline_p (e->call_stmt)));
   if (!inlinable && report)
     report_inline_failed_reason (e);
   return inlinable;
@@ -1963,8 +1955,10 @@ early_inliner (void)
 		= estimate_num_insns (edge->call_stmt, &eni_size_weights);
 	      es->call_stmt_time
 		= estimate_num_insns (edge->call_stmt, &eni_time_weights);
-	      edge->call_stmt_cannot_inline_p
-		= gimple_call_cannot_inline_p (edge->call_stmt);
+	      if (edge->callee->decl
+		  && !gimple_check_call_matching_types (edge->call_stmt,
+							edge->callee->decl))
+		edge->call_stmt_cannot_inline_p = true;
 	    }
 	  timevar_pop (TV_INTEGRATION);
 	  iterations++;

@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"json"
-	"os"
 	"strings"
 	"template"
 	"template/parse"
@@ -17,14 +16,14 @@ import (
 
 type badMarshaler struct{}
 
-func (x *badMarshaler) MarshalJSON() ([]byte, os.Error) {
+func (x *badMarshaler) MarshalJSON() ([]byte, error) {
 	// Keys in valid JSON must be double quoted as must all strings.
 	return []byte("{ foo: 'not quite valid JSON' }"), nil
 }
 
 type goodMarshaler struct{}
 
-func (x *goodMarshaler) MarshalJSON() ([]byte, os.Error) {
+func (x *goodMarshaler) MarshalJSON() ([]byte, error) {
 	return []byte(`{ "<foo>": "O'Reilly" }`), nil
 }
 
@@ -783,7 +782,7 @@ func TestEscapeSet(t *testing.T) {
 
 	// pred is a template function that returns the predecessor of a
 	// natural number for testing recursive templates.
-	fns := template.FuncMap{"pred": func(a ...interface{}) (interface{}, os.Error) {
+	fns := template.FuncMap{"pred": func(a ...interface{}) (interface{}, error) {
 		if len(a) == 1 {
 			if i, _ := a[0].(int); i > 0 {
 				return i - 1, nil
@@ -807,7 +806,7 @@ func TestEscapeSet(t *testing.T) {
 		var b bytes.Buffer
 
 		if err := s.Execute(&b, "main", data); err != nil {
-			t.Errorf("%q executing %v", err.String(), s.Template("main"))
+			t.Errorf("%q executing %v", err.Error(), s.Template("main"))
 			continue
 		}
 		if got := b.String(); test.want != got {
@@ -962,7 +961,7 @@ func TestErrors(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		var err os.Error
+		var err error
 		if strings.HasPrefix(test.input, "{{define") {
 			var s template.Set
 			_, err = s.Parse(test.input)
@@ -977,7 +976,7 @@ func TestErrors(t *testing.T) {
 		}
 		var got string
 		if err != nil {
-			got = err.String()
+			got = err.Error()
 		}
 		if test.err == "" {
 			if got != "" {
@@ -1549,8 +1548,8 @@ func TestEnsurePipelineContains(t *testing.T) {
 	}
 }
 
-func expectExecuteFailure(t *testing.T, b *bytes.Buffer) {
-	if x := recover(); x != nil {
+func expectExecuteFailure(t *testing.T, b *bytes.Buffer, err error) {
+	if err != nil {
 		if b.Len() != 0 {
 			t.Errorf("output on buffer: %q", b.String())
 		}
@@ -1563,8 +1562,8 @@ func TestEscapeErrorsNotIgnorable(t *testing.T) {
 	var b bytes.Buffer
 	tmpl := template.Must(template.New("dangerous").Parse("<a"))
 	Escape(tmpl)
-	defer expectExecuteFailure(t, &b)
-	tmpl.Execute(&b, nil)
+	err := tmpl.Execute(&b, nil)
+	expectExecuteFailure(t, &b, err)
 }
 
 func TestEscapeSetErrorsNotIgnorable(t *testing.T) {
@@ -1574,8 +1573,8 @@ func TestEscapeSetErrorsNotIgnorable(t *testing.T) {
 	}
 	EscapeSet(s, "t")
 	var b bytes.Buffer
-	defer expectExecuteFailure(t, &b)
-	s.Execute(&b, "t", nil)
+	err = s.Execute(&b, "t", nil)
+	expectExecuteFailure(t, &b, err)
 }
 
 func TestRedundantFuncs(t *testing.T) {

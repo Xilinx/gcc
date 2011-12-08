@@ -57,10 +57,12 @@ am__aclocal_m4_deps = $(top_srcdir)/../config/acx.m4 \
 	$(top_srcdir)/../config/multi.m4 \
 	$(top_srcdir)/../config/override.m4 \
 	$(top_srcdir)/../config/stdint.m4 \
-	$(top_srcdir)/../config/tls.m4 $(top_srcdir)/../ltoptions.m4 \
-	$(top_srcdir)/../ltsugar.m4 $(top_srcdir)/../ltversion.m4 \
-	$(top_srcdir)/../lt~obsolete.m4 $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/../libtool.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/../config/tls.m4 \
+	$(top_srcdir)/../config/weakref.m4 \
+	$(top_srcdir)/../ltoptions.m4 $(top_srcdir)/../ltsugar.m4 \
+	$(top_srcdir)/../ltversion.m4 $(top_srcdir)/../lt~obsolete.m4 \
+	$(top_srcdir)/acinclude.m4 $(top_srcdir)/../libtool.m4 \
+	$(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -359,15 +361,18 @@ AM_LDFLAGS = $(XLDFLAGS) $(SECTION_LDFLAGS) $(OPT_LDFLAGS)
 toolexeclib_LTLIBRARIES = libitm.la
 nodist_toolexeclib_HEADERS = libitm.spec
 @LIBITM_BUILD_VERSIONED_SHLIB_FALSE@libitm_version_script = 
-@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@libitm_version_script = -Wl,--version-script,$(top_srcdir)/libitm.map
+@LIBITM_BUILD_VERSIONED_SHLIB_GNU_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@libitm_version_script = -Wl,--version-script,$(top_srcdir)/libitm.map
+@LIBITM_BUILD_VERSIONED_SHLIB_SUN_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@libitm_version_script = -Wl,-M,libitm.map-sun
+@LIBITM_BUILD_VERSIONED_SHLIB_FALSE@libitm_version_dep = 
+@LIBITM_BUILD_VERSIONED_SHLIB_GNU_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@libitm_version_dep = $(top_srcdir)/libitm.map
+@LIBITM_BUILD_VERSIONED_SHLIB_SUN_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@libitm_version_dep = libitm.map-sun
 libitm_version_info = -version-info $(libtool_VERSION)
 
 # Force link with C, not C++.  For now, while we're using C++ we don't
 # want or need libstdc++.
-libitm_la_LINK = $(LINK)
-libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
-        -no-undefined
-
+libitm_la_DEPENDENCIES = $(libitm_version_dep)
+libitm_la_LINK = $(LINK) $(libitm_la_LDFLAGS)
+libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script)
 libitm_la_SOURCES = aatree.cc alloc.cc alloc_c.cc alloc_cpp.cc \
 	barrier.cc beginend.cc clone.cc eh_cpp.cc local.cc query.cc \
 	retry.cc rwlock.cc useraction.cc util.cc sjlj.S tls.cc \
@@ -1258,6 +1263,15 @@ uninstall-am: uninstall-dvi-am uninstall-html-am uninstall-info-am \
 
 
 vpath % $(strip $(search_path))
+@LIBITM_BUILD_VERSIONED_SHLIB_SUN_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@libitm.map-sun : $(top_srcdir)/libitm.map \
+@LIBITM_BUILD_VERSIONED_SHLIB_SUN_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@		$(top_srcdir)/../contrib/make_sunver.pl \
+@LIBITM_BUILD_VERSIONED_SHLIB_SUN_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@		$(libitm_la_OBJECTS) $(libitm_la_LIBADD)
+@LIBITM_BUILD_VERSIONED_SHLIB_SUN_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@	perl $(top_srcdir)/../contrib/make_sunver.pl \
+@LIBITM_BUILD_VERSIONED_SHLIB_SUN_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@	  $(top_srcdir)/libitm.map \
+@LIBITM_BUILD_VERSIONED_SHLIB_SUN_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@	  $(libitm_la_OBJECTS:%.lo=.libs/%.o) \
+@LIBITM_BUILD_VERSIONED_SHLIB_SUN_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@	 `echo $(libitm_la_LIBADD) | \
+@LIBITM_BUILD_VERSIONED_SHLIB_SUN_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@	    sed 's,/\([^/.]*\)\.la,/.libs/\1.a,g'` \
+@LIBITM_BUILD_VERSIONED_SHLIB_SUN_TRUE@@LIBITM_BUILD_VERSIONED_SHLIB_TRUE@	 > $@ || (rm -f $@ ; exit 1)
 @ARCH_X86_TRUE@x86_sse.lo : XCFLAGS += -msse
 @ARCH_X86_AVX_TRUE@x86_avx.lo : XCFLAGS += -mavx
 

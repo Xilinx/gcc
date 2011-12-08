@@ -7,6 +7,7 @@ package html
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,7 +16,7 @@ import (
 	"testing"
 )
 
-func pipeErr(err os.Error) io.Reader {
+func pipeErr(err error) io.Reader {
 	pr, pw := io.Pipe()
 	pw.CloseWithError(err)
 	return pr
@@ -69,28 +70,37 @@ func readDat(filename string, c chan io.Reader) {
 	}
 }
 
-func dumpLevel(w io.Writer, n *Node, level int) os.Error {
+func dumpIndent(w io.Writer, level int) {
 	io.WriteString(w, "| ")
 	for i := 0; i < level; i++ {
 		io.WriteString(w, "  ")
 	}
+}
+
+func dumpLevel(w io.Writer, n *Node, level int) error {
+	dumpIndent(w, level)
 	switch n.Type {
 	case ErrorNode:
-		return os.NewError("unexpected ErrorNode")
+		return errors.New("unexpected ErrorNode")
 	case DocumentNode:
-		return os.NewError("unexpected DocumentNode")
+		return errors.New("unexpected DocumentNode")
 	case ElementNode:
 		fmt.Fprintf(w, "<%s>", n.Data)
+		for _, a := range n.Attr {
+			io.WriteString(w, "\n")
+			dumpIndent(w, level+1)
+			fmt.Fprintf(w, `%s="%s"`, a.Key, a.Val)
+		}
 	case TextNode:
 		fmt.Fprintf(w, "%q", n.Data)
 	case CommentNode:
-		return os.NewError("COMMENT")
+		fmt.Fprintf(w, "<!-- %s -->", n.Data)
 	case DoctypeNode:
 		fmt.Fprintf(w, "<!DOCTYPE %s>", n.Data)
 	case scopeMarkerNode:
-		return os.NewError("unexpected scopeMarkerNode")
+		return errors.New("unexpected scopeMarkerNode")
 	default:
-		return os.NewError("unknown node type")
+		return errors.New("unknown node type")
 	}
 	io.WriteString(w, "\n")
 	for _, c := range n.Child {
@@ -101,7 +111,7 @@ func dumpLevel(w io.Writer, n *Node, level int) os.Error {
 	return nil
 }
 
-func dump(n *Node) (string, os.Error) {
+func dump(n *Node) (string, error) {
 	if n == nil || len(n.Child) == 0 {
 		return "", nil
 	}
@@ -123,7 +133,7 @@ func TestParser(t *testing.T) {
 		rc := make(chan io.Reader)
 		go readDat(filename, rc)
 		// TODO(nigeltao): Process all test cases, not just a subset.
-		for i := 0; i < 27; i++ {
+		for i := 0; i < 80; i++ {
 			// Parse the #data section.
 			b, err := ioutil.ReadAll(<-rc)
 			if err != nil {
@@ -151,6 +161,9 @@ func TestParser(t *testing.T) {
 				t.Errorf("%s test #%d %q, got vs want:\n----\n%s----\n%s----", filename, i, text, got, want)
 				continue
 			}
+			if renderTestBlacklist[text] {
+				continue
+			}
 			// Check that rendering and re-parsing results in an identical tree.
 			pr, pw := io.Pipe()
 			go func() {
@@ -170,4 +183,16 @@ func TestParser(t *testing.T) {
 			}
 		}
 	}
+}
+
+// Some test input result in parse trees are not 'well-formed' despite
+// following the HTML5 recovery algorithms. Rendering and re-parsing such a
+// tree will not result in an exact clone of that tree. We blacklist such
+// inputs from the render test.
+var renderTestBlacklist = map[string]bool{
+	// The second <a> will be reparented to the first <table>'s parent. This
+	// results in an <a> whose parent is an <a>, which is not 'well-formed'.
+	`<a><table><td><a><table></table><a></tr><a></table><b>X</b>C<a>Y`: true,
+	// The second <a> will be reparented, similar to the case above.
+	`<a href="blah">aba<table><a href="foo">br<tr><td></td></tr>x</table>aoe`: true,
 }

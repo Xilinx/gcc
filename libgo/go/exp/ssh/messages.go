@@ -8,7 +8,6 @@ import (
 	"big"
 	"bytes"
 	"io"
-	"os"
 	"reflect"
 )
 
@@ -144,19 +143,6 @@ type channelOpenFailureMsg struct {
 	Language string
 }
 
-// See RFC 4254, section 5.2.
-type channelData struct {
-	PeersId uint32
-	Payload []byte `ssh:"rest"`
-}
-
-// See RFC 4254, section 5.2.
-type channelExtendedData struct {
-	PeersId  uint32
-	Datatype uint32
-	Data     string
-}
-
 type channelRequestMsg struct {
 	PeersId             uint32
 	Request             string
@@ -205,7 +191,7 @@ type userAuthPubKeyOkMsg struct {
 // unmarshal parses the SSH wire data in packet into out using reflection.
 // expectedType is the expected SSH message type. It either returns nil on
 // success, or a ParseError or UnexpectedMessageError on error.
-func unmarshal(out interface{}, packet []byte, expectedType uint8) os.Error {
+func unmarshal(out interface{}, packet []byte, expectedType uint8) error {
 	if len(packet) == 0 {
 		return ParseError{expectedType}
 	}
@@ -612,10 +598,6 @@ func decode(packet []byte) interface{} {
 		msg = new(channelOpenFailureMsg)
 	case msgChannelWindowAdjust:
 		msg = new(windowAdjustMsg)
-	case msgChannelData:
-		msg = new(channelData)
-	case msgChannelExtendedData:
-		msg = new(channelExtendedData)
 	case msgChannelEOF:
 		msg = new(channelEOFMsg)
 	case msgChannelClose:

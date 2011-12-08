@@ -334,6 +334,10 @@ namespace __debug
       }
 
       iterator
+      erase(iterator __it)
+      { return erase(const_iterator(__it)); }
+
+      iterator
       erase(const_iterator __first, const_iterator __last)
       {
 	__glibcxx_check_erase_range(__first, __last);
@@ -391,11 +395,11 @@ namespace __debug
 
       static _Base_local_iterator
       _S_to_local(_Base_iterator __it)
-      { return _Base_local_iterator(__it._M_cur_node); }
+      { return _Base_local_iterator(__it._M_cur); }
 
       static _Base_const_local_iterator
       _S_to_local(_Base_const_iterator __it)
-      { return _Base_const_local_iterator(__it._M_cur_node); }
+      { return _Base_const_local_iterator(__it._M_cur); }
     };
 
   template<typename _Key, typename _Tp, typename _Hash,
@@ -709,6 +713,10 @@ namespace __debug
       }
 
       iterator
+      erase(iterator __it)
+      { return erase(const_iterator(__it)); }
+
+      iterator
       erase(const_iterator __first, const_iterator __last)
       {
 	__glibcxx_check_erase_range(__first, __last);
@@ -766,11 +774,11 @@ namespace __debug
 
       static _Base_local_iterator
       _S_to_local(_Base_iterator __it)
-      { return _Base_local_iterator(__it._M_cur_node); }
+      { return _Base_local_iterator(__it._M_cur); }
 
       static _Base_const_local_iterator
       _S_to_local(_Base_const_iterator __it)
-      { return _Base_const_local_iterator(__it._M_cur_node); }
+      { return _Base_const_local_iterator(__it._M_cur); }
     };
 
   template<typename _Key, typename _Tp, typename _Hash,

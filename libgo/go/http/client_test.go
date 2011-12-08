@@ -7,13 +7,14 @@
 package http_test
 
 import (
+	"crypto/tls"
+	"errors"
 	"fmt"
 	. "http"
 	"http/httptest"
 	"io"
 	"io/ioutil"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -59,9 +60,9 @@ type recordingTransport struct {
 	req *Request
 }
 
-func (t *recordingTransport) RoundTrip(req *Request) (resp *Response, err os.Error) {
+func (t *recordingTransport) RoundTrip(req *Request) (resp *Response, err error) {
 	t.req = req
-	return nil, os.NewError("dummy impl")
+	return nil, errors.New("dummy impl")
 }
 
 func TestGetRequestFormat(t *testing.T) {
@@ -184,9 +185,9 @@ func TestRedirects(t *testing.T) {
 		t.Errorf("with default client Do, expected error %q, got %q", e, g)
 	}
 
-	var checkErr os.Error
+	var checkErr error
 	var lastVia []*Request
-	c = &Client{CheckRedirect: func(_ *Request, via []*Request) os.Error {
+	c = &Client{CheckRedirect: func(_ *Request, via []*Request) error {
 		lastVia = via
 		return checkErr
 	}}
@@ -202,7 +203,7 @@ func TestRedirects(t *testing.T) {
 		t.Errorf("expected lastVia to have contained %d elements; got %d", e, g)
 	}
 
-	checkErr = os.NewError("no redirects allowed")
+	checkErr = errors.New("no redirects allowed")
 	res, err = c.Get(ts.URL)
 	finalUrl = res.Request.URL.String()
 	if e, g := "Get /?n=1: no redirects allowed", fmt.Sprintf("%v", err); e != g {
@@ -243,7 +244,7 @@ func TestStreamingGet(t *testing.T) {
 	}
 	close(say)
 	_, err = io.ReadFull(res.Body, buf[0:1])
-	if err != os.EOF {
+	if err != io.EOF {
 		t.Fatalf("at end expected EOF, got %v", err)
 	}
 }
@@ -253,7 +254,7 @@ type writeCountingConn struct {
 	count *int
 }
 
-func (c *writeCountingConn) Write(p []byte) (int, os.Error) {
+func (c *writeCountingConn) Write(p []byte) (int, error) {
 	*c.count++
 	return c.Conn.Write(p)
 }
@@ -266,7 +267,7 @@ func TestClientWrites(t *testing.T) {
 	defer ts.Close()
 
 	writes := 0
-	dialer := func(netz string, addr string) (net.Conn, os.Error) {
+	dialer := func(netz string, addr string) (net.Conn, error) {
 		c, err := net.Dial(netz, addr)
 		if err == nil {
 			c = &writeCountingConn{c, &writes}
@@ -290,5 +291,28 @@ func TestClientWrites(t *testing.T) {
 	}
 	if writes != 1 {
 		t.Errorf("Post request did %d Write calls, want 1", writes)
+	}
+}
+
+func TestClientInsecureTransport(t *testing.T) {
+	ts := httptest.NewTLSServer(HandlerFunc(func(w ResponseWriter, r *Request) {
+		w.Write([]byte("Hello"))
+	}))
+	defer ts.Close()
+
+	// TODO(bradfitz): add tests for skipping hostname checks too?
+	// would require a new cert for testing, and probably
+	// redundant with these tests.
+	for _, insecure := range []bool{true, false} {
+		tr := &Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: insecure,
+			},
+		}
+		c := &Client{Transport: tr}
+		_, err := c.Get(ts.URL)
+		if (err == nil) != insecure {
+			t.Errorf("insecure=%v: got unexpected err=%v", insecure, err)
+		}
 	}
 }

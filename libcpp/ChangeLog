@@ -1,3 +1,21 @@
+2011-12-03  Dodji Seketeli  <dodji@redhat.com>
+
+	* macro.c (tokens_buff_remove_last_token)
+	(tokens_buff_put_token_to): Add an 'inline' function specifier to
+	the prototype.
+
+2011-11-22   Diego Novillo  <dnovillo@google.com>
+
+	* include/line-map.h (linemap_dump): Declare.
+	(line_table_dump): Declare.
+	* line-map.c (linemap_dump): New.
+	(line_table_dump): New.
+
+2011-11-21  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	PR c++/50958
+	* expr.c (cpp_userdef_char_remove_type): Fix typo.
+
 2011-11-03  Michael Matz  <matz@suse.de>
 
 	PR bootstrap/50857

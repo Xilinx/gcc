@@ -6606,7 +6606,7 @@ init_sync_libfuncs_1 (optab tab, const char *base, int max)
   buf[len + 2] = '\0';
 
   mode = QImode;
-  for (i = 1; i < max; i *= 2)
+  for (i = 1; i <= max; i *= 2)
     {
       buf[len + 1] = '0' + i;
       set_optab_libfunc (tab, mode, buf);
@@ -6624,14 +6624,14 @@ init_sync_libfuncs (int max)
 
   init_sync_libfuncs_1 (sync_old_add_optab, "__sync_fetch_and_add", max);
   init_sync_libfuncs_1 (sync_old_sub_optab, "__sync_fetch_and_sub", max);
-  init_sync_libfuncs_1 (sync_old_ior_optab, "__sync_fetch_and_ior", max);
+  init_sync_libfuncs_1 (sync_old_ior_optab, "__sync_fetch_and_or", max);
   init_sync_libfuncs_1 (sync_old_and_optab, "__sync_fetch_and_and", max);
   init_sync_libfuncs_1 (sync_old_xor_optab, "__sync_fetch_and_xor", max);
   init_sync_libfuncs_1 (sync_old_nand_optab, "__sync_fetch_and_nand", max);
 
   init_sync_libfuncs_1 (sync_new_add_optab, "__sync_add_and_fetch", max);
   init_sync_libfuncs_1 (sync_new_sub_optab, "__sync_sub_and_fetch", max);
-  init_sync_libfuncs_1 (sync_new_ior_optab, "__sync_ior_and_fetch", max);
+  init_sync_libfuncs_1 (sync_new_ior_optab, "__sync_or_and_fetch", max);
   init_sync_libfuncs_1 (sync_new_and_optab, "__sync_and_and_fetch", max);
   init_sync_libfuncs_1 (sync_new_xor_optab, "__sync_xor_and_fetch", max);
   init_sync_libfuncs_1 (sync_new_nand_optab, "__sync_nand_and_fetch", max);
@@ -6932,9 +6932,9 @@ can_vec_perm_for_code_p (enum tree_code code, enum machine_mode mode,
 	  break;
 
 	case VEC_INTERLEAVE_HIGH_EXPR:
-	  alt = nelt / 2;
-	  /* FALLTHRU */
 	case VEC_INTERLEAVE_LOW_EXPR:
+	  if ((BYTES_BIG_ENDIAN != 0) ^ (code == VEC_INTERLEAVE_HIGH_EXPR))
+	    alt = nelt / 2;
 	  for (i = 0; i < nelt / 2; ++i)
 	    {
 	      data[i * 2] = i + alt;
@@ -7325,17 +7325,12 @@ expand_compare_and_swap_loop (rtx mem, rtx old_reg, rtx new_reg, rtx seq)
 }
 
 
-/* This function expands the atomic exchange operation:
-   atomically store VAL in MEM and return the previous value in MEM.
-
-   MEMMODEL is the memory model variant to use.
-   TARGET is an optional place to stick the return value.  
-   USE_TEST_AND_SET indicates whether __sync_lock_test_and_set should be used
-   as a fall back if the atomic_exchange pattern does not exist.  */
-
-rtx
-expand_atomic_exchange (rtx target, rtx mem, rtx val, enum memmodel model,
-			bool use_test_and_set)			
+/* This function tries to emit an atomic_exchange intruction.  VAL is written
+   to *MEM using memory model MODEL. The previous contents of *MEM are returned,
+   using TARGET if possible.  */
+   
+static rtx
+maybe_emit_atomic_exchange (rtx target, rtx mem, rtx val, enum memmodel model)
 {
   enum machine_mode mode = GET_MODE (mem);
   enum insn_code icode;
@@ -7355,65 +7350,78 @@ expand_atomic_exchange (rtx target, rtx mem, rtx val, enum memmodel model,
 	return ops[0].value;
     }
 
-  /* Legacy sync_lock_test_and_set works the same, but is only defined as an 
-     acquire barrier.  If the pattern exists, and the memory model is stronger
-     than acquire, add a release barrier before the instruction.
-     The barrier is not needed if sync_lock_test_and_set doesn't exist since
-     it will expand into a compare-and-swap loop.
+  return NULL_RTX;
+}
 
-     Some targets have non-compliant test_and_sets, so it would be incorrect
-     to emit a test_and_set in place of an __atomic_exchange.  The test_and_set
-     builtin shares this expander since exchange can always replace the
-     test_and_set.  */
+/* This function tries to implement an atomic exchange operation using
+   __sync_lock_test_and_set. VAL is written to *MEM using memory model MODEL.
+   The previous contents of *MEM are returned, using TARGET if possible.
+   Since this instructionn is an acquire barrier only, stronger memory
+   models may require additional barriers to be emitted.  */
 
-  if (use_test_and_set)
+static rtx
+maybe_emit_sync_lock_test_and_set (rtx target, rtx mem, rtx val,
+				   enum memmodel model)
+{
+  enum machine_mode mode = GET_MODE (mem);
+  enum insn_code icode;
+  rtx last_insn = get_last_insn ();
+
+  icode = optab_handler (sync_lock_test_and_set_optab, mode);
+
+  /* Legacy sync_lock_test_and_set is an acquire barrier.  If the pattern
+     exists, and the memory model is stronger than acquire, add a release 
+     barrier before the instruction.  */
+
+  if (model == MEMMODEL_SEQ_CST
+      || model == MEMMODEL_RELEASE
+      || model == MEMMODEL_ACQ_REL)
+    expand_mem_thread_fence (model);
+
+  if (icode != CODE_FOR_nothing)
     {
-      icode = optab_handler (sync_lock_test_and_set_optab, mode);
+      struct expand_operand ops[3];
+      create_output_operand (&ops[0], target, mode);
+      create_fixed_operand (&ops[1], mem);
+      /* VAL may have been promoted to a wider mode.  Shrink it if so.  */
+      create_convert_operand_to (&ops[2], val, mode, true);
+      if (maybe_expand_insn (icode, 3, ops))
+	return ops[0].value;
+    }
 
-      if (icode != CODE_FOR_nothing)
+  /* If an external test-and-set libcall is provided, use that instead of
+     any external compare-and-swap that we might get from the compare-and-
+     swap-loop expansion later.  */
+  if (!can_compare_and_swap_p (mode, false))
+    {
+      rtx libfunc = optab_libfunc (sync_lock_test_and_set_optab, mode);
+      if (libfunc != NULL)
 	{
-	  struct expand_operand ops[3];
-	  rtx last_insn = get_last_insn ();
+	  rtx addr;
 
-	  if (model == MEMMODEL_SEQ_CST
-	      || model == MEMMODEL_RELEASE
-	      || model == MEMMODEL_ACQ_REL)
-	    expand_builtin_mem_thread_fence (model);
-
-	  create_output_operand (&ops[0], target, mode);
-	  create_fixed_operand (&ops[1], mem);
-	  /* VAL may have been promoted to a wider mode.  Shrink it if so.  */
-	  create_convert_operand_to (&ops[2], val, mode, true);
-	  if (maybe_expand_insn (icode, 3, ops))
-	    return ops[0].value;
-
-	  delete_insns_since (last_insn);
-	}
-
-      /* If an external test-and-set libcall is provided, use that instead of
-	 any external compare-and-swap that we might get from the compare-and-
-	 swap-loop expansion below.  */
-      if (!can_compare_and_swap_p (mode, false))
-	{
-	  rtx libfunc = optab_libfunc (sync_lock_test_and_set_optab, mode);
-	  if (libfunc != NULL)
-	    {
-	      rtx addr;
-
-	      if (model == MEMMODEL_SEQ_CST
-		  || model == MEMMODEL_RELEASE
-		  || model == MEMMODEL_ACQ_REL)
-		expand_builtin_mem_thread_fence (model);
-
-	      addr = convert_memory_address (ptr_mode, XEXP (mem, 0));
-	      return emit_library_call_value (libfunc, target, LCT_NORMAL,
-					      mode, 2, addr, ptr_mode,
-					      val, mode);
-	    }
+	  addr = convert_memory_address (ptr_mode, XEXP (mem, 0));
+	  return emit_library_call_value (libfunc, target, LCT_NORMAL,
+					  mode, 2, addr, ptr_mode,
+					  val, mode);
 	}
     }
 
-  /* Otherwise, use a compare-and-swap loop for the exchange.  */
+  /* If the test_and_set can't be emitted, eliminate any barrier that might
+     have been emitted.  */
+  delete_insns_since (last_insn);
+  return NULL_RTX;
+}
+
+/* This function tries to implement an atomic exchange operation using a 
+   compare_and_swap loop. VAL is written to *MEM.  The previous contents of
+   *MEM are returned, using TARGET if possible.  No memory model is required
+   since a compare_and_swap loop is seq-cst.  */
+
+static rtx 
+maybe_emit_compare_and_swap_exchange_loop (rtx target, rtx mem, rtx val)
+{
+  enum machine_mode mode = GET_MODE (mem);
+
   if (can_compare_and_swap_p (mode, true))
     {
       if (!target || !register_operand (target, mode))
@@ -7425,6 +7433,105 @@ expand_atomic_exchange (rtx target, rtx mem, rtx val, enum memmodel model,
     }
 
   return NULL_RTX;
+}
+
+#ifndef HAVE_atomic_test_and_set
+#define HAVE_atomic_test_and_set 0
+#define gen_atomic_test_and_set(x,y,z)  (gcc_unreachable (), NULL_RTX)
+#endif
+
+/* This function expands the legacy _sync_lock test_and_set operation which is
+   generally an atomic exchange.  Some limited targets only allow the
+   constant 1 to be stored.  This is an ACQUIRE operation. 
+
+   TARGET is an optional place to stick the return value.  
+   MEM is where VAL is stored.  */
+
+rtx
+expand_sync_lock_test_and_set (rtx target, rtx mem, rtx val)
+{
+  rtx ret;
+
+  /* Try an atomic_exchange first.  */
+  ret = maybe_emit_atomic_exchange (target, mem, val, MEMMODEL_ACQUIRE);
+
+  if (!ret)
+    ret = maybe_emit_sync_lock_test_and_set (target, mem, val,
+					     MEMMODEL_ACQUIRE);
+  if (!ret)
+    ret = maybe_emit_compare_and_swap_exchange_loop (target, mem, val);
+
+  /* If there are no other options, try atomic_test_and_set if the value
+     being stored is 1.  */
+  if (!ret && val == const1_rtx && HAVE_atomic_test_and_set)
+    {
+      ret = gen_atomic_test_and_set (target, mem, GEN_INT (MEMMODEL_ACQUIRE));
+      emit_insn (ret);
+    }
+
+  return ret;
+}
+
+/* This function expands the atomic test_and_set operation:
+   atomically store a boolean TRUE into MEM and return the previous value.
+
+   MEMMODEL is the memory model variant to use.
+   TARGET is an optional place to stick the return value.  */
+
+rtx
+expand_atomic_test_and_set (rtx target, rtx mem, enum memmodel model)
+{
+  enum machine_mode mode = GET_MODE (mem);
+  rtx ret = NULL_RTX;
+
+  if (target == NULL_RTX)
+    target = gen_reg_rtx (mode);
+
+  if (HAVE_atomic_test_and_set)
+    {
+      ret = gen_atomic_test_and_set (target, mem, GEN_INT (MEMMODEL_ACQUIRE));
+      emit_insn (ret);
+      return ret;
+    }
+
+  /* If there is no test and set, try exchange, then a compare_and_swap loop,
+     then __sync_test_and_set.  */
+  ret = maybe_emit_atomic_exchange (target, mem, const1_rtx, model);
+
+  if (!ret)
+    ret = maybe_emit_compare_and_swap_exchange_loop (target, mem, const1_rtx);
+
+  if (!ret)
+    ret = maybe_emit_sync_lock_test_and_set (target, mem, const1_rtx, model);
+
+  if (ret)
+    return ret;
+
+  /* Failing all else, assume a single threaded environment and simply perform
+     the operation.  */
+  emit_move_insn (target, mem);
+  emit_move_insn (mem, const1_rtx);
+  return target;
+}
+
+/* This function expands the atomic exchange operation:
+   atomically store VAL in MEM and return the previous value in MEM.
+
+   MEMMODEL is the memory model variant to use.
+   TARGET is an optional place to stick the return value.  */
+
+rtx
+expand_atomic_exchange (rtx target, rtx mem, rtx val, enum memmodel model)
+{
+  rtx ret;
+
+  ret = maybe_emit_atomic_exchange (target, mem, val, model);
+
+  /* Next try a compare-and-swap loop for the exchange.  */
+  if (!ret)
+    ret = maybe_emit_compare_and_swap_exchange_loop (target, mem, val);
+
+  return ret;
 }
 
 /* This function expands the atomic compare exchange operation:
@@ -7556,6 +7663,76 @@ expand_atomic_compare_and_swap (rtx *ptarget_bool, rtx *ptarget_oval,
   return true;
 }
 
+/* Generate asm volatile("" : : : "memory") as the memory barrier.  */
+
+static void
+expand_asm_memory_barrier (void)
+{
+  rtx asm_op, clob;
+
+  asm_op = gen_rtx_ASM_OPERANDS (VOIDmode, empty_string, empty_string, 0,
+				 rtvec_alloc (0), rtvec_alloc (0),
+				 rtvec_alloc (0), UNKNOWN_LOCATION);
+  MEM_VOLATILE_P (asm_op) = 1;
+
+  clob = gen_rtx_SCRATCH (VOIDmode);
+  clob = gen_rtx_MEM (BLKmode, clob);
+  clob = gen_rtx_CLOBBER (VOIDmode, clob);
+
+  emit_insn (gen_rtx_PARALLEL (VOIDmode, gen_rtvec (2, asm_op, clob)));
+}
+
+/* This routine will either emit the mem_thread_fence pattern or issue a 
+   sync_synchronize to generate a fence for memory model MEMMODEL.  */
+
+#ifndef HAVE_mem_thread_fence
+# define HAVE_mem_thread_fence 0
+# define gen_mem_thread_fence(x) (gcc_unreachable (), NULL_RTX)
+#endif
+#ifndef HAVE_memory_barrier
+# define HAVE_memory_barrier 0
+# define gen_memory_barrier()  (gcc_unreachable (), NULL_RTX)
+#endif
+
+void
+expand_mem_thread_fence (enum memmodel model)
+{
+  if (HAVE_mem_thread_fence)
+    emit_insn (gen_mem_thread_fence (GEN_INT (model)));
+  else if (model != MEMMODEL_RELAXED)
+    {
+      if (HAVE_memory_barrier)
+	emit_insn (gen_memory_barrier ());
+      else if (synchronize_libfunc != NULL_RTX)
+	emit_library_call (synchronize_libfunc, LCT_NORMAL, VOIDmode, 0);
+      else
+	expand_asm_memory_barrier ();
+    }
+}
+
+/* This routine will either emit the mem_signal_fence pattern or issue a 
+   sync_synchronize to generate a fence for memory model MEMMODEL.  */
+
+#ifndef HAVE_mem_signal_fence
+# define HAVE_mem_signal_fence 0
+# define gen_mem_signal_fence(x) (gcc_unreachable (), NULL_RTX)
+#endif
+
+void
+expand_mem_signal_fence (enum memmodel model)
+{
+  if (HAVE_mem_signal_fence)
+    emit_insn (gen_mem_signal_fence (GEN_INT (model)));
+  else if (model != MEMMODEL_RELAXED)
+    {
+      /* By default targets are coherent between a thread and the signal
+	 handler running on the same thread.  Thus this really becomes a
+	 compiler barrier, in that stores must not be sunk past
+	 (or raised above) a given point.  */
+      expand_asm_memory_barrier ();
+    }
+}
+
 /* This function expands the atomic load operation:
    return the atomically loaded value in MEM.
 
@@ -7598,13 +7775,13 @@ expand_atomic_load (rtx target, rtx mem, enum memmodel model)
     target = gen_reg_rtx (mode);
 
   /* Emit the appropriate barrier before the load.  */
-  expand_builtin_mem_thread_fence (model);
+  expand_mem_thread_fence (model);
 
   emit_move_insn (target, mem);
 
   /* For SEQ_CST, also emit a barrier after the load.  */
   if (model == MEMMODEL_SEQ_CST)
-    expand_builtin_mem_thread_fence (model);
+    expand_mem_thread_fence (model);
 
   return target;
 }
@@ -7645,7 +7822,7 @@ expand_atomic_store (rtx mem, rtx val, enum memmodel model, bool use_release)
 	    {
 	      /* lock_release is only a release barrier.  */
 	      if (model == MEMMODEL_SEQ_CST)
-		expand_builtin_mem_thread_fence (model);
+		expand_mem_thread_fence (model);
 	      return const0_rtx;
 	    }
 	}
@@ -7656,7 +7833,9 @@ expand_atomic_store (rtx mem, rtx val, enum memmodel model, bool use_release)
      the result.  If that doesn't work, don't do anything.  */
   if (GET_MODE_PRECISION(mode) > BITS_PER_WORD)
     {
-      rtx target = expand_atomic_exchange (NULL_RTX, mem, val, model, false);
+      rtx target = maybe_emit_atomic_exchange (NULL_RTX, mem, val, model);
+      if (!target)
+        target = maybe_emit_compare_and_swap_exchange_loop (NULL_RTX, mem, val);
       if (target)
         return const0_rtx;
       else
@@ -7665,13 +7844,13 @@ expand_atomic_store (rtx mem, rtx val, enum memmodel model, bool use_release)
 
   /* If there is no mem_store, default to a move with barriers */
   if (model == MEMMODEL_SEQ_CST || model == MEMMODEL_RELEASE)
-    expand_builtin_mem_thread_fence (model);
+    expand_mem_thread_fence (model);
 
   emit_move_insn (mem, val);
 
   /* For SEQ_CST, also emit a barrier after the load.  */
   if (model == MEMMODEL_SEQ_CST)
-    expand_builtin_mem_thread_fence (model);
+    expand_mem_thread_fence (model);
 
   return const0_rtx;
 }
@@ -7764,6 +7943,41 @@ get_atomic_op_for_code (struct atomic_op_functions *op, enum rtx_code code)
     }
 }
 
+/* See if there is a more optimal way to implement the operation "*MEM CODE VAL"
+   using memory order MODEL.  If AFTER is true the operation needs to return
+   the value of *MEM after the operation, otherwise the previous value.  
+   TARGET is an optional place to place the result.  The result is unused if
+   it is const0_rtx.
+   Return the result if there is a better sequence, otherwise NULL_RTX.  */
+
+static rtx
+maybe_optimize_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
+			 enum memmodel model, bool after)
+{
+  /* If the value is prefetched, or not used, it may be possible to replace
+     the sequence with a native exchange operation.  */
+  if (!after || target == const0_rtx)
+    {
+      /* fetch_and (&x, 0, m) can be replaced with exchange (&x, 0, m).  */
+      if (code == AND && val == const0_rtx)
+        {
+	  if (target == const0_rtx)
+	    target = gen_reg_rtx (GET_MODE (mem));
+	  return maybe_emit_atomic_exchange (target, mem, val, model);
+	}
+
+      /* fetch_or (&x, -1, m) can be replaced with exchange (&x, -1, m).  */
+      if (code == IOR && val == constm1_rtx)
+        {
+	  if (target == const0_rtx)
+	    target = gen_reg_rtx (GET_MODE (mem));
+	  return maybe_emit_atomic_exchange (target, mem, val, model);
+	}
+    }
+
+  return NULL_RTX;
+}
+
 /* Try to emit an instruction for a specific operation varaition. 
    OPTAB contains the OP functions.
    TARGET is an optional place to return the result. const0_rtx means unused.
@@ -7849,6 +8063,11 @@ expand_atomic_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
 
   get_atomic_op_for_code (&optab, code);
 
+  /* Check to see if there are any better instructions.  */
+  result = maybe_optimize_fetch_op (target, mem, val, code, model, after);
+  if (result)
+    return result;
+
   /* Check for the case where the result isn't used and try those patterns.  */
   if (unused_result)
     {
@@ -7889,7 +8108,7 @@ expand_atomic_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
 	{
 	  /* If the result isn't used, no need to do compensation code.  */
 	  if (unused_result)
-	    return target;
+	    return result;
 
 	  /* Issue compensation code.  Fetch_after  == fetch_before OP val.
 	     Fetch_before == after REVERSE_OP val.  */
@@ -7931,9 +8150,7 @@ expand_atomic_fetch_op (rtx target, rtx mem, rtx val, enum rtx_code code,
 	  result = emit_library_call_value (libfunc, NULL, LCT_NORMAL, mode,
 					    2, addr, ptr_mode, val, mode);
 
-	  if (unused_result)
-	    return target;
-	  if (fixup)
+	  if (!unused_result && fixup)
 	    result = expand_simple_binop (mode, code, result, val, target,
 					  true, OPTAB_LIB_WIDEN);
 	  return result;

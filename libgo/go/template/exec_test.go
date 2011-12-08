@@ -98,7 +98,7 @@ var tVal = &T{
 	Empty3:            []int{7, 8},
 	Empty4:            &U{"UinEmpty"},
 	NonEmptyInterface: new(T),
-	Str:               os.NewError("foozle"),
+	Str:               bytes.NewBuffer([]byte("foozle")),
 	PI:                newInt(23),
 	PSI:               newIntSlice(21, 22, 23),
 	Tmpl:              Must(New("x").Parse("test template")), // "x" is the value of .X
@@ -158,8 +158,8 @@ func (t *T) MSort(m map[string]int) []string {
 	return keys
 }
 
-// EPERM returns a value and an os.Error according to its argument.
-func (t *T) EPERM(error bool) (bool, os.Error) {
+// EPERM returns a value and an error according to its argument.
+func (t *T) EPERM(error bool) (bool, error) {
 	if error {
 		return true, os.EPERM
 	}
@@ -548,7 +548,7 @@ func TestExecuteError(t *testing.T) {
 	err = tmpl.Execute(b, tVal)
 	if err == nil {
 		t.Errorf("expected error; got none")
-	} else if !strings.Contains(err.String(), os.EPERM.String()) {
+	} else if !strings.Contains(err.Error(), os.EPERM.Error()) {
 		if *debug {
 			fmt.Printf("test execute error: %s\n", err)
 		}
@@ -644,7 +644,7 @@ func TestTree(t *testing.T) {
 	if err != nil {
 		t.Fatal("exec error:", err)
 	}
-	stripSpace := func(r int) int {
+	stripSpace := func(r rune) rune {
 		if r == '\t' || r == '\n' {
 			return -1
 		}

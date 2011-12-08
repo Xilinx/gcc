@@ -7,7 +7,6 @@ package json
 import (
 	"bytes"
 	"math"
-	"os"
 	"rand"
 	"reflect"
 	"testing"
@@ -140,7 +139,7 @@ func TestIndentBig(t *testing.T) {
 
 type indentErrorTest struct {
 	in  string
-	err os.Error
+	err error
 }
 
 var indentErrorTests = []indentErrorTest{
@@ -261,13 +260,13 @@ func genValue(n int) interface{} {
 
 func genString(stddev float64) string {
 	n := int(math.Abs(rand.NormFloat64()*stddev + stddev/2))
-	c := make([]int, n)
+	c := make([]rune, n)
 	for i := range c {
 		f := math.Abs(rand.NormFloat64()*64 + 32)
 		if f > 0x10ffff {
 			f = 0x10ffff
 		}
-		c[i] = int(f)
+		c[i] = rune(f)
 	}
 	return string(c)
 }

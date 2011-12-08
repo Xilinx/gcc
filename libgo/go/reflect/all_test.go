@@ -11,7 +11,7 @@ import (
 	"io"
 	"os"
 	. "reflect"
-/*	"runtime" */
+	/*	"runtime" */
 	"testing"
 	"unsafe"
 )
@@ -434,7 +434,7 @@ func TestInterfaceGet(t *testing.T) {
 	inter.E = 123.456
 	v1 := ValueOf(&inter)
 	v2 := v1.Elem().Field(0)
-	assert(t, v2.Type().String(), "interface { }")
+	assert(t, v2.Type().String(), "interface {}")
 	i2 := v2.Interface()
 	v3 := ValueOf(i2)
 	assert(t, v3.Type().String(), "float64")
@@ -447,7 +447,7 @@ func TestInterfaceValue(t *testing.T) {
 	inter.E = 123.456
 	v1 := ValueOf(&inter)
 	v2 := v1.Elem().Field(0)
-	assert(t, v2.Type().String(), "interface { }")
+	assert(t, v2.Type().String(), "interface {}")
 	v3 := v2.Elem()
 	assert(t, v3.Type().String(), "float64")
 
@@ -631,7 +631,7 @@ var deepEqualTests = []DeepEqualTest{
 	{make([]int, 10), make([]int, 10), true},
 	{&[3]int{1, 2, 3}, &[3]int{1, 2, 3}, true},
 	{Basic{1, 0.5}, Basic{1, 0.5}, true},
-	{os.Error(nil), os.Error(nil), true},
+	{error(nil), error(nil), true},
 	{map[int]string{1: "one", 2: "two"}, map[int]string{2: "two", 1: "one"}, true},
 
 	// Inequalities

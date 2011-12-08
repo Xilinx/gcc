@@ -7,9 +7,9 @@
 package big
 
 import (
+	"errors"
 	"fmt"
 	"io"
-	"os"
 	"rand"
 	"strings"
 )
@@ -58,22 +58,24 @@ func NewInt(x int64) *Int {
 
 // Set sets z to x and returns z.
 func (z *Int) Set(x *Int) *Int {
-	z.abs = z.abs.set(x.abs)
-	z.neg = x.neg
+	if z != x {
+		z.abs = z.abs.set(x.abs)
+		z.neg = x.neg
+	}
 	return z
 }
 
 // Abs sets z to |x| (the absolute value of x) and returns z.
 func (z *Int) Abs(x *Int) *Int {
-	z.abs = z.abs.set(x.abs)
+	z.Set(x)
 	z.neg = false
 	return z
 }
 
 // Neg sets z to -x and returns z.
 func (z *Int) Neg(x *Int) *Int {
-	z.abs = z.abs.set(x.abs)
-	z.neg = len(z.abs) > 0 && !x.neg // 0 has no sign
+	z.Set(x)
+	z.neg = len(z.abs) > 0 && !z.neg // 0 has no sign
 	return z
 }
 
@@ -174,7 +176,7 @@ func (z *Int) Quo(x, y *Int) *Int {
 // If y == 0, a division-by-zero run-time panic occurs.
 // Rem implements truncated modulus (like Go); see QuoRem for more details.
 func (z *Int) Rem(x, y *Int) *Int {
-	_, z.abs = nat(nil).div(z.abs, x.abs, y.abs)
+	_, z.abs = nat{}.div(z.abs, x.abs, y.abs)
 	z.neg = len(z.abs) > 0 && x.neg // 0 has no sign
 	return z
 }
@@ -300,7 +302,7 @@ func (x *Int) String() string {
 	return x.abs.decimalString()
 }
 
-func charset(ch int) string {
+func charset(ch rune) string {
 	switch ch {
 	case 'b':
 		return lowercaseDigits[0:2]
@@ -337,7 +339,7 @@ func writeMultiple(s fmt.State, text string, count int) {
 // output field width, space or zero padding, and left or
 // right justification.
 //
-func (x *Int) Format(s fmt.State, ch int) {
+func (x *Int) Format(s fmt.State, ch rune) {
 	cs := charset(ch)
 
 	// special cases
@@ -422,19 +424,19 @@ func (x *Int) Format(s fmt.State, ch int) {
 // scan sets z to the integer value corresponding to the longest possible prefix
 // read from r representing a signed integer number in a given conversion base.
 // It returns z, the actual conversion base used, and an error, if any. In the
-// error case, the value of z is undefined. The syntax follows the syntax of
-// integer literals in Go.
+// error case, the value of z is undefined but the returned value is nil. The
+// syntax follows the syntax of integer literals in Go.
 //
 // The base argument must be 0 or a value from 2 through MaxBase. If the base
 // is 0, the string prefix determines the actual conversion base. A prefix of
 // ``0x'' or ``0X'' selects base 16; the ``0'' prefix selects base 8, and a
 // ``0b'' or ``0B'' prefix selects base 2. Otherwise the selected base is 10.
 //
-func (z *Int) scan(r io.RuneScanner, base int) (*Int, int, os.Error) {
+func (z *Int) scan(r io.RuneScanner, base int) (*Int, int, error) {
 	// determine sign
 	ch, _, err := r.ReadRune()
 	if err != nil {
-		return z, 0, err
+		return nil, 0, err
 	}
 	neg := false
 	switch ch {
@@ -448,7 +450,7 @@ func (z *Int) scan(r io.RuneScanner, base int) (*Int, int, os.Error) {
 	// determine mantissa
 	z.abs, base, err = z.abs.scan(r, base)
 	if err != nil {
-		return z, base, err
+		return nil, base, err
 	}
 	z.neg = len(z.abs) > 0 && neg // 0 has no sign
 
@@ -458,7 +460,7 @@ func (z *Int) scan(r io.RuneScanner, base int) (*Int, int, os.Error) {
 // Scan is a support routine for fmt.Scanner; it sets z to the value of
 // the scanned number. It accepts the formats 'b' (binary), 'o' (octal),
 // 'd' (decimal), 'x' (lowercase hexadecimal), and 'X' (uppercase hexadecimal).
-func (z *Int) Scan(s fmt.ScanState, ch int) os.Error {
+func (z *Int) Scan(s fmt.ScanState, ch rune) error {
 	s.SkipSpace() // skip leading space characters
 	base := 0
 	switch ch {
@@ -473,7 +475,7 @@ func (z *Int) Scan(s fmt.ScanState, ch int) os.Error {
 	case 's', 'v':
 		// let scan determine the base
 	default:
-		return os.NewError("Int.Scan: invalid verb")
+		return errors.New("Int.Scan: invalid verb")
 	}
 	_, _, err := z.scan(s, base)
 	return err
@@ -497,7 +499,7 @@ func (x *Int) Int64() int64 {
 
 // SetString sets z to the value of s, interpreted in the given base,
 // and returns z and a boolean indicating success. If SetString fails,
-// the value of z is undefined.
+// the value of z is undefined but the returned value is nil.
 //
 // The base argument must be 0 or a value from 2 through MaxBase. If the base
 // is 0, the string prefix determines the actual conversion base. A prefix of
@@ -508,10 +510,13 @@ func (z *Int) SetString(s string, base int) (*Int, bool) {
 	r := strings.NewReader(s)
 	_, _, err := z.scan(r, base)
 	if err != nil {
-		return z, false
+		return nil, false
 	}
 	_, _, err = r.ReadRune()
-	return z, err == os.EOF // err == os.EOF => scan consumed all of s
+	if err != io.EOF {
+		return nil, false
+	}
+	return z, true // err == os.EOF => scan consumed all of s
 }
 
 // SetBytes interprets buf as the bytes of a big-endian unsigned
@@ -842,7 +847,7 @@ func (z *Int) Not(x *Int) *Int {
 const intGobVersion byte = 1
 
 // GobEncode implements the gob.GobEncoder interface.
-func (z *Int) GobEncode() ([]byte, os.Error) {
+func (z *Int) GobEncode() ([]byte, error) {
 	buf := make([]byte, 1+len(z.abs)*_S) // extra byte for version and sign bit
 	i := z.abs.bytes(buf) - 1            // i >= 0
 	b := intGobVersion << 1              // make space for sign bit
@@ -854,13 +859,13 @@ func (z *Int) GobEncode() ([]byte, os.Error) {
 }
 
 // GobDecode implements the gob.GobDecoder interface.
-func (z *Int) GobDecode(buf []byte) os.Error {
+func (z *Int) GobDecode(buf []byte) error {
 	if len(buf) == 0 {
-		return os.NewError("Int.GobDecode: no data")
+		return errors.New("Int.GobDecode: no data")
 	}
 	b := buf[0]
 	if b>>1 != intGobVersion {
-		return os.NewError(fmt.Sprintf("Int.GobDecode: encoding version %d not supported", b>>1))
+		return errors.New(fmt.Sprintf("Int.GobDecode: encoding version %d not supported", b>>1))
 	}
 	z.neg = b&1 != 0
 	z.abs = z.abs.setBytes(buf[1:])

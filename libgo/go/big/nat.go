@@ -19,8 +19,8 @@ package big
 // and rationals.
 
 import (
+	"errors"
 	"io"
-	"os"
 	"rand"
 )
 
@@ -35,7 +35,7 @@ import (
 // During arithmetic operations, denormalized values may occur but are
 // always normalized before returning the final result. The normalized
 // representation of 0 is the empty or nil slice (length = 0).
-
+//
 type nat []Word
 
 var (
@@ -447,10 +447,10 @@ func (z nat) mulRange(a, b uint64) nat {
 	case a == b:
 		return z.setUint64(a)
 	case a+1 == b:
-		return z.mul(nat(nil).setUint64(a), nat(nil).setUint64(b))
+		return z.mul(nat{}.setUint64(a), nat{}.setUint64(b))
 	}
 	m := (a + b) / 2
-	return z.mul(nat(nil).mulRange(a, m), nat(nil).mulRange(m+1, b))
+	return z.mul(nat{}.mulRange(a, m), nat{}.mulRange(m+1, b))
 }
 
 // q = (x-r)/y, with 0 <= r < y
@@ -589,16 +589,15 @@ func (x nat) bitLen() int {
 // MaxBase is the largest number base accepted for string conversions.
 const MaxBase = 'z' - 'a' + 10 + 1 // = hexValue('z') + 1
 
-
-func hexValue(ch int) Word {
+func hexValue(ch rune) Word {
 	d := MaxBase + 1 // illegal base
 	switch {
 	case '0' <= ch && ch <= '9':
-		d = ch - '0'
+		d = int(ch - '0')
 	case 'a' <= ch && ch <= 'z':
-		d = ch - 'a' + 10
+		d = int(ch - 'a' + 10)
 	case 'A' <= ch && ch <= 'Z':
-		d = ch - 'A' + 10
+		d = int(ch - 'A' + 10)
 	}
 	return Word(d)
 }
@@ -614,10 +613,10 @@ func hexValue(ch int) Word {
 // ``0x'' or ``0X'' selects base 16; the ``0'' prefix selects base 8, and a
 // ``0b'' or ``0B'' prefix selects base 2. Otherwise the selected base is 10.
 //
-func (z nat) scan(r io.RuneScanner, base int) (nat, int, os.Error) {
+func (z nat) scan(r io.RuneScanner, base int) (nat, int, error) {
 	// reject illegal bases
 	if base < 0 || base == 1 || MaxBase < base {
-		return z, 0, os.NewError("illegal number base")
+		return z, 0, errors.New("illegal number base")
 	}
 
 	// one char look-ahead
@@ -645,7 +644,7 @@ func (z nat) scan(r io.RuneScanner, base int) (nat, int, os.Error) {
 						return z, 0, err
 					}
 				}
-			case os.EOF:
+			case io.EOF:
 				return z.make(0), 10, nil
 			default:
 				return z, 10, err
@@ -677,7 +676,7 @@ func (z nat) scan(r io.RuneScanner, base int) (nat, int, os.Error) {
 		}
 
 		if ch, _, err = r.ReadRune(); err != nil {
-			if err != os.EOF {
+			if err != io.EOF {
 				return z, int(b), err
 			}
 			break
@@ -694,7 +693,7 @@ func (z nat) scan(r io.RuneScanner, base int) (nat, int, os.Error) {
 		return z, 10, nil
 	case base != 0 || b != 8:
 		// there was neither a mantissa digit nor the octal prefix 0
-		return z, int(b), os.NewError("syntax error scanning number")
+		return z, int(b), errors.New("syntax error scanning number")
 	}
 
 	return z.norm(), int(b), nil
@@ -786,7 +785,7 @@ func (x nat) string(charset string) string {
 	}
 
 	// preserve x, create local copy for use in repeated divisions
-	q := nat(nil).set(x)
+	q := nat{}.set(x)
 	var r Word
 
 	// convert
@@ -1192,11 +1191,11 @@ func (n nat) probablyPrime(reps int) bool {
 		return false
 	}
 
-	nm1 := nat(nil).sub(n, natOne)
+	nm1 := nat{}.sub(n, natOne)
 	// 1<<k * q = nm1;
 	q, k := nm1.powersOfTwoDecompose()
 
-	nm3 := nat(nil).sub(nm1, natTwo)
+	nm3 := nat{}.sub(nm1, natTwo)
 	rand := rand.New(rand.NewSource(int64(n[0])))
 
 	var x, y, quotient nat
