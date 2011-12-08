@@ -1,5 +1,10 @@
 
 2011-12-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-modes.melt (rundebug_docmd)
+	(translatetomodule_docmd, translatedebug_docmd)
+	(translatequickly_docmd): Better but still messy...
+
+2011-12-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_version_str): MELT_REVISION is a
 	preprocessor string, so don't stringify it.
 

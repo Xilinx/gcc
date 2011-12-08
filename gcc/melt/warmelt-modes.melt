@@ -132,6 +132,8 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	      (errormsg_plain "invalid rundebug mode")
 	      (return)
 	      )))
+	   (modsrcbase
+	     (make_string_without_suffix discr_string modsrcname  ".c"))
 	   (basnam (cond
 		    ( (is_string outarg) (make_string_nakedbasename discr_string outarg))
 		    ( (is_string inarg) (make_string_nakedbasename discr_string inarg))
@@ -146,7 +148,8 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 		  (add2sbuf_strconst dbgnambuf ".debugnoline.so")
 		  (strbuf2string discr_string dbgnambuf))))
 	   )
-      (translate_to_c_one_or_more_melt_files inarg modsrcname curenv)
+      (debug "rundebug_docmd before translation to c inarg=" inarg " modsrcbase=" modsrcbase)
+      (translate_to_c_one_or_more_melt_files inarg modsrcbase curenv)
       (debug "after compilation rundebug_mode modsrcname=" modsrcname 
 	     " dbgmodulnam=" dbgmodulnam)
       (generate_debug_melt_module modsrcname dbgmodulnam)
@@ -3448,9 +3451,10 @@ melt_scanning (melt_ptr_t p)
 	   (outnam (or outarg basnam))
 	   (rawsrcnam (or coutarg
 			  (make_string_nakedbasename discr_string outnam)))
+	   (outbase (make_string_without_suffix discr_string outnam  ".c"))
 	   )
-      (debug "translatetomodule_docmd basnam=" basnam " rawsrcnam=" rawsrcnam)
-      (translate_to_c_one_or_more_melt_files inarg rawsrcnam curenv)
+      (debug "translatetomodule_docmd basnam=" basnam " rawsrcnam=" rawsrcnam " outbase=" outbase)
+      (translate_to_c_one_or_more_melt_files inarg outbase curenv)
       (generate_melt_module rawsrcnam outnam)
       )))
 
@@ -3494,15 +3498,17 @@ melt_scanning (melt_ptr_t p)
 	      (add2sbuf_string srcnambuf basnam)
 	      (add2sbuf_strconst srcnambuf ".c")
 	      (strbuf2string discr_string srcnambuf))))
+	   (srcbase 
+	     (make_string_without_suffix discr_string srcnam  ".c"))
 	   (dbgmodulnam
 	    (or outarg
 		(let ( (dbgnambuf (make_strbuf discr_strbuf)) )
 		  (add2sbuf_string dbgnambuf basnam)
-		  (add2sbuf_strconst dbgnambuf ".n.so")
+		  (add2sbuf_strconst dbgnambuf ".debugnoline.so")
 		  (strbuf2string discr_string dbgnambuf))))
 	   )
-      (debug "translatedebug_docmd basnam=" basnam " srcnam=" srcnam)
-      (translate_to_c_one_or_more_melt_files inarg srcnam curenv)
+      (debug "translatedebug_docmd basnam=" basnam " srcnam=" srcnam " srcbase=" srcbase)
+      (translate_to_c_one_or_more_melt_files inarg srcbase curenv)
       (debug "translatedebug_docmd dbgmodulnam=" dbgmodulnam)
       (generate_melt_module srcnam dbgmodulnam)
       )))
@@ -3548,17 +3554,19 @@ ASSERT_MSG) is enabled"
 	      (add2sbuf_string srcnambuf basnam)
 	      (add2sbuf_strconst srcnambuf ".c")
 	      (strbuf2string discr_string srcnambuf))))
-	   (dbgmodulnam
+	   (srcbase 
+	     (make_string_without_suffix discr_string srcnam  ".c"))
+	   (quimodulnam
 	    (or outarg
 		(let ( (dbgnambuf (make_strbuf discr_strbuf)) )
 		  (add2sbuf_string dbgnambuf basnam)
-		  (add2sbuf_strconst dbgnambuf ".q.so")
+		  (add2sbuf_strconst dbgnambuf ".quicklybuilt.so")
 		  (strbuf2string discr_string dbgnambuf))))
 	   )
-      (debug "translatequickly_docmd basnam=" basnam " srcnam=" srcnam)
-      (translate_to_c_one_or_more_melt_files inarg srcnam curenv)
-      (debug "translatequickly_docmd dbgmodulnam=" dbgmodulnam)
-      (generate_quickly_melt_module srcnam dbgmodulnam)
+      (debug "translatequickly_docmd basnam=" basnam " srcnam=" srcnam " srcbase=" srcbase)
+      (translate_to_c_one_or_more_melt_files inarg srcbase curenv)
+      (debug "translatequickly_docmd quimodulnam=" quimodulnam)
+      (generate_quickly_melt_module srcnam quimodulnam)
       )))
 
 
