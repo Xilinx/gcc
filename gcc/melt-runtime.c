@@ -305,8 +305,10 @@ const char* melt_version_str (void)
 #ifndef MELT_REVISION
 #error MELT_REVISION not defined at command line compilation
 #endif
-#define MELT_STRINGIFY(X) #X
-  return MELT_VERSION_STRING " " MELT_STRINGIFY(MELT_REVISION);
+  /* MELT_REVISION is always a preprocessor constant string, because
+     this file is compiled with something like
+     -DMELT_REVISION='"foobar"' .... */ 
+  return MELT_VERSION_STRING  " "  MELT_REVISION;
 }
 
 

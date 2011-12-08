@@ -1,4 +1,8 @@
 
+2011-12-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_version_str): MELT_REVISION is a
+	preprocessor string, so don't stringify it.
+
 2011-12-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-module.mk: Remove @echo for debugging
 
