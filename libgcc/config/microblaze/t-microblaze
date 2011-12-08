@@ -1,3 +1,5 @@
+EXTRA_PARTS += crti$(objext) crtn$(objext)
+
 LIB2ADD += \
         $(srcdir)/config/microblaze/divsi3.asm \
         $(srcdir)/config/microblaze/moddi3.asm \
@@ -10,3 +12,10 @@ LIB2ADD += \
         $(srcdir)/config/microblaze/divsi3_table.c
 
 MULTILIB_OPTIONS = mxl-barrel-shift mno-xl-soft-mul mxl-multiply-high
+
+# Assemble startup files
+$(T)crti$(objext): $(gcc_srcdir)/config/microblaze/crti.s
+	$(GCC_FOR_TARGET) $(MULTILIB_CFLAGS) -c $(gcc_srcdir)/config/microblaze/crti.s -o $(T)crti$(objext)
+
+$(T)crtn$(objext): $(gcc_srcdir)/config/microblaze/crtn.s
+	$(GCC_FOR_TARGET) $(MULTILIB_CFLAGS) -c $(gcc_srcdir)/config/microblaze/crtn.s -o $(T)crtn$(objext)
