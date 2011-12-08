@@ -1,5 +1,9 @@
 
 2011-12-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt
+	(translate_to_c_one_or_more_melt_files): Give an error with the
+	source name when it has a suffix.
+2011-12-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-modes.melt (rundebug_docmd)
 	(translatetomodule_docmd, translatedebug_docmd)
 	(translatequickly_docmd): Better but still messy...
