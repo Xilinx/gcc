@@ -1,3 +1,8 @@
+2011-12-05   Dmitriy Vyukov  <dvyukov@google.com>
+
+	Fix taking address of SSA_NAME in ThreadSanitizer pass.
+        * gcc/tree-tsan.c (handle_expr): Add the additional check.
+
 2011-11-30   Dmitriy Vyukov  <dvyukov@google.com>
 
 	Add directives to run ThreadSanitizer tests

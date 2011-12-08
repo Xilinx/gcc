@@ -726,13 +726,20 @@ handle_expr (gimple_stmt_iterator gsi, tree expr, int is_store,
   struct mop_desc mop;
   unsigned fld_off;
   unsigned fld_size;
+  tree base;
+
+
+  base = get_base_address (expr);
+  if (base == NULL_TREE
+      || TREE_CODE (base) == SSA_NAME
+      || TREE_CODE (base) == STRING_CST)
+    return;
 
   tcode = TREE_CODE (expr);
 
   /* Below are things we do not instrument
      (no possibility of races or not implemented yet).  */
   if ((func_ignore & (tsan_ignore_mop | tsan_ignore_rec))
-      || get_base_address (expr) == NULL
       /* Compiler-emitted artificial variables.  */
       || (DECL_P (expr) && DECL_ARTIFICIAL (expr))
       /* The var does not live in memory -> no possibility of races.  */
