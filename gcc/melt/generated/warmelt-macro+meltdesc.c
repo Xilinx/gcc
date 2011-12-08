@@ -1,8 +1,8 @@
 /** GENERATED MELT DESCRIPTOR FILE MELT-STAGE-ZERO/warmelt-macro+meltdesc.c - ** NEVER EDIT OR MOVE THIS, IT IS GENERATED & PARSED! **/
 /* These identifiers are generated in warmelt-outobj.melt & handled in melt-runtime.c carefully. */
 /* version of the GCC compiler & MELT runtime generating this */
-const char melt_genversionstr[]="4.7.0 20111202 (experimental) [melt-branch revision 181905] MELT_0.9.2";
-const char melt_versionmeltstr[]="0.9.2 MELT_REVISION";
+const char melt_genversionstr[]="4.7.0 20111207 (experimental) [melt-branch revision 182122] MELT_0.9.2";
+const char melt_versionmeltstr[]="0.9.2 [melt-branch_revision_182122]";
 
 /* source name & real path of the module */
 /*MELTMODULENAME MELT-STAGE-ZERO/warmelt-macro */
@@ -11,14 +11,14 @@ const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown
 
 /* MELT generation timestamp */
 /*MELT BOOTSTRAP*/
-const char melt_gen_timestamp[]="Fri Dec  2 15:59:13 2011 CET";
-const long long melt_gen_timenum=1322837953;
+const char melt_gen_timestamp[]="Thu Dec  8 19:22:00 2011 MET";
+const long long melt_gen_timenum=1323368520;
 const char melt_build_timestamp[]= __DATE__ "@" __TIME__;
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="17d75061248f99740d9b2e0df5cc2d7a";
+const char melt_prepromd5meltrun[]="6305ac1d84fc25796d38a59488b049ff";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="a5df0fdfef01960489308509ee384007";
+const char melt_primaryhexmd5[]="ef217ba0b4723fcbe7ab397df97a7b97";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
@@ -35,5 +35,5 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=4;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="cc2037f3231510779ef7cea82a3d63d0";
+const char melt_cumulated_hexmd5[]="67066482bf1931bddd7713364fc3453f";
 /* end of melt descriptor file */

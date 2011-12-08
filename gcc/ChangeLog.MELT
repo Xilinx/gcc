@@ -1,5 +1,36 @@
 
 2011-12-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Regenerated}}
+	* melt/generated/meltrunsup-inc.c: Regenerate.
+	* melt/generated/meltrunsup.h: Regenerate.
+	* melt/generated/warmelt-base+01.c: Regenerate.
+	* melt/generated/warmelt-base+02.c: Regenerate.
+	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-base.c: Regenerate.
+	* melt/generated/warmelt-debug+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-debug.c: Regenerate.
+	* melt/generated/warmelt-first+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-first.c: Regenerate.
+	* melt/generated/warmelt-genobj+03.c: Regenerate.
+	* melt/generated/warmelt-genobj+05.c: Regenerate.
+	* melt/generated/warmelt-genobj+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-genobj.c: Regenerate.
+	* melt/generated/warmelt-macro+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-macro.c: Regenerate.
+	* melt/generated/warmelt-modes+01.c: Regenerate.
+	* melt/generated/warmelt-modes+02.c: Regenerate.
+	* melt/generated/warmelt-modes+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-modes.c: Regenerate.
+	* melt/generated/warmelt-normal+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normal.c: Regenerate.
+	* melt/generated/warmelt-normatch+03.c: Regenerate.
+	* melt/generated/warmelt-normatch+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normatch.c: Regenerate.
+	* melt/generated/warmelt-outobj+04.c: Regenerate.
+	* melt/generated/warmelt-outobj+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-outobj.c: Regenerate.
+
+2011-12-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.2.b
 
 	* melt/warmelt-base.melt (generate_optimized_melt_module, generate_flavored_melt_module) new.
