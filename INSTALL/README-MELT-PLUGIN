@@ -142,9 +142,9 @@ welcome by email to <basile@starynkevitch.net> [please mention MELT in
 the subject line]
 
 #######################################################################
-NEWS for 0.9.2 MELT plugin for gcc-4.6 (and future gcc-4.7)
+NEWS for 0.9.2.b MELT plugin for gcc-4.6 (and future gcc-4.7)
 
-December XXth, 2011: Release of MELT plugin 0.9.2 for gcc-4.6 (& future gcc-4.7)
+December 08th, 2011: Release of MELT plugin 0.9.2 for gcc-4.6 (& future gcc-4.7)
 	dedicated to the memory of John McCarthy
         http://en.wikipedia.org/wiki/John_McCarthy_(computer_scientist)
 
@@ -226,6 +226,13 @@ MELT functions can be register for PLUGIN_ALL_PASSES_START,
   More runtime code generated
   ===========================
 More runtime code is generated internally.
+
+  Additional translating MELT modes
+  =================================
+
+The translatetomodule mode produces all three flavors (.quicklybuilt.so, .debugnoline.so, .optimized.so) of modules
+
+The translateoptimized mode produces .optimized.so flavor of modules
 
 #######################################################################
 NEWS for 0.9.1 MELT plugin for gcc-4.6
