@@ -2135,7 +2135,7 @@ ifeq ($(strip $(filter-out %x32 linux%,$(arch) $(osys))),)
   g-sercom.adb<g-sercom-linux.adb \
   $(ATOMICS_TARGET_PAIRS) \
   $(X86_64_TARGET_PAIRS) \
-  system.ads<system-linux-x32.ads
+  system.ads<system-linux-x86.ads
 
   TOOLS_TARGET_PAIRS =  \
     mlib-tgt-specific.adb<mlib-tgt-specific-linux.adb \

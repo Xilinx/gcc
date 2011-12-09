@@ -5,8 +5,6 @@
 
 	* link.c (__gnat_default_libgcc_subdir): set to libx32 for x32.
 
-	* system-linux-x32.ads: New.
-
 	* gcc-interface/Makefile.in (arch): Set to x32 if MULTISUBDIR
 	is /x32.
 	Support x32.
