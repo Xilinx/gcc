@@ -159,6 +159,7 @@ static GTY(()) section *debug_loc_section;
 static GTY(()) section *debug_pubnames_section;
 static GTY(()) section *debug_pubtypes_section;
 static GTY(()) section *debug_str_section;
+static GTY(()) section *debug_str_offsets_section;
 static GTY(()) section *debug_ranges_section;
 static GTY(()) section *debug_frame_section;
 
@@ -3531,8 +3532,11 @@ static void gen_scheduled_generic_parms_dies (void);
 #ifndef DEBUG_PUBTYPES_SECTION
 #define DEBUG_PUBTYPES_SECTION	".debug_pubtypes"
 #endif
+#ifndef DEBUG_STR_OFFSETS_SECTION
+#define DEBUG_STR_OFFSETS_SECTION ".debug_str_offsets"
+#endif
 #ifndef DEBUG_STR_SECTION
-#define DEBUG_STR_SECTION	".debug_str"
+#define DEBUG_STR_SECTION   ".debug_str"
 #endif
 #ifndef DEBUG_RANGES_SECTION
 #define DEBUG_RANGES_SECTION	".debug_ranges"
@@ -3545,8 +3549,8 @@ static void gen_scheduled_generic_parms_dies (void);
 
 /* Section flags for .debug_str section.  */
 #define DEBUG_STR_SECTION_FLAGS \
-  (HAVE_GAS_SHF_MERGE && flag_merge_debug_strings		\
-   ? SECTION_DEBUG | SECTION_MERGE | SECTION_STRINGS | 1	\
+  (HAVE_GAS_SHF_MERGE && flag_merge_debug_strings && !dwarf_split_debug_info \
+   ? SECTION_DEBUG | SECTION_MERGE | SECTION_STRINGS | 1                \
    : SECTION_DEBUG)
 
 /* Labels we insert at beginning sections we can reference instead of
@@ -4197,6 +4201,8 @@ dwarf_form_name (unsigned int form)
       return "DW_FORM_sdata";
     case DW_FORM_strp:
       return "DW_FORM_strp";
+    case DW_FORM_GNU_str_index:
+      return "DW_FORM_str_index";
     case DW_FORM_udata:
       return "DW_FORM_udata";
     case DW_FORM_ref_addr:
@@ -4498,7 +4504,23 @@ AT_string_form (dw_attr_ref a)
   ++dw2_string_counter;
   node->label = xstrdup (label);
 
-  return node->form = DW_FORM_strp;
+  node->form = (!dwarf_split_debug_info) ? DW_FORM_strp : DW_FORM_GNU_str_index;
+
+  return node->form;
+}
+
+/* Report whether or not the string will be emitted inline or in an
+   indirect section.  */
+
+static inline bool
+is_indirect_string (dw_attr_ref a)
+{
+  struct indirect_string_node *node;
+
+  gcc_assert (a && AT_class (a) == dw_val_class_str);
+  AT_string_form (a);
+  node = a->dw_attr_val.v.val_str;
+  return (node->form == DW_FORM_strp) || (node->form == DW_FORM_GNU_str_index);
 }
 
 /* Add a DIE reference attribute value to a DIE.  */
@@ -7776,7 +7798,7 @@ size_of_die (dw_die_ref die)
 	  size += DWARF_OFFSET_SIZE;
 	  break;
 	case dw_val_class_str:
-	  if (AT_string_form (a) == DW_FORM_strp)
+	  if (is_indirect_string (a))
 	    size += DWARF_OFFSET_SIZE;
 	  else
 	    size += strlen (a->dw_attr_val.v.val_str->str) + 1;
@@ -8503,7 +8525,7 @@ output_die (dw_die_ref die)
 	  break;
 
 	case dw_val_class_str:
-	  if (AT_string_form (a) == DW_FORM_strp)
+	  if (is_indirect_string (a))
 	    dw2_asm_output_offset (DWARF_OFFSET_SIZE,
 				   a->dw_attr_val.v.val_str->label,
 				   debug_str_section,
@@ -20937,6 +20959,7 @@ output_macinfo_op (macinfo_entry *ref)
     case DW_MACRO_GNU_define_indirect:
     case DW_MACRO_GNU_undef_indirect:
       node = find_AT_string (ref->info);
+      /* FIXME: needs to change for dwarf_split_debug_info.  */
       if (node->form != DW_FORM_strp)
 	{
 	  char label[32];
@@ -21293,12 +21316,15 @@ dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
                                                  SECTION_DEBUG, NULL);
       debug_skeleton_abbrev_section = get_section (DEBUG_ABBREV_SECTION,
                                                    SECTION_DEBUG, NULL);
+
       /* Somewhat confusing detail: The skeleton_[abbrev|info] sections stay in
          the main .o, but the skeleton_line goes into the split off dwo.  */
       debug_skeleton_line_section = get_section (DEBUG_DWO_LINE_SECTION,
                                                  SECTION_DEBUG, NULL);
       ASM_GENERATE_INTERNAL_LABEL (debug_skeleton_line_section_label,
                                    DEBUG_SKELETON_LINE_SECTION_LABEL, 0);
+      debug_str_offsets_section = get_section (DEBUG_STR_OFFSETS_SECTION,
+                                               DEBUG_STR_SECTION_FLAGS, NULL);
     }
   debug_aranges_section = get_section (DEBUG_ARANGES_SECTION,
 				       SECTION_DEBUG, NULL);
@@ -21315,7 +21341,7 @@ dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
   debug_pubtypes_section = get_section (DEBUG_PUBTYPES_SECTION,
 					SECTION_DEBUG, NULL);
   debug_str_section = get_section (DEBUG_STR_SECTION,
-				   DEBUG_STR_SECTION_FLAGS, NULL);
+                                   DEBUG_STR_SECTION_FLAGS, NULL);
   debug_ranges_section = get_section (DEBUG_RANGES_SECTION,
 				      SECTION_DEBUG, NULL);
   debug_frame_section = get_section (DEBUG_FRAME_SECTION,
@@ -21380,6 +21406,20 @@ output_indirect_string (void **h, void *v ATTRIBUTE_UNUSED)
     {
       switch_to_section (debug_str_section);
       ASM_OUTPUT_LABEL (asm_out_file, node->label);
+      assemble_string (node->str, strlen (node->str) + 1);
+    }
+  else if (node->form == DW_FORM_GNU_str_index)
+    {
+      char label[32];
+      switch_to_section (debug_str_offsets_section);
+      ASM_OUTPUT_LABEL (asm_out_file, node->label);
+      ASM_GENERATE_INTERNAL_LABEL (label, "LASF", dw2_string_counter);
+      dw2_string_counter++;
+      dw2_asm_output_offset (DWARF_OFFSET_SIZE, label,
+                             debug_str_offsets_section, "indexed string: %s",
+                             node->str);
+      switch_to_section (debug_str_section);
+      ASM_OUTPUT_LABEL (asm_out_file, label);
       assemble_string (node->str, strlen (node->str) + 1);
     }
 
@@ -23039,8 +23079,7 @@ dwarf2out_finish (const char *filename)
       ASM_OUTPUT_LABEL (asm_out_file, debug_skeleton_line_section_label);
     }
 
-  /* If we emitted any DW_FORM_strp form attribute, output the string
-     table too.  */
+  /* If we emitted any indirect strings, output the string table too.  */
   if (debug_str_hash)
     htab_traverse (debug_str_hash, output_indirect_string, NULL);
 }
