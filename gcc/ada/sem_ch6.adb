@@ -331,6 +331,10 @@ package body Sem_Ch6 is
         and then Comes_From_Source (Prev)
       then
          Set_Has_Completion (Prev, False);
+
+         --  For navigation purposes, indicate that the function is a body
+
+         Generate_Reference (Prev, Defining_Entity (N), 'b', Force => True);
          Rewrite (N, New_Body);
          Analyze (N);
 
@@ -1487,7 +1491,7 @@ package body Sem_Ch6 is
          if Returns_Object then
             if Nkind (N) = N_Extended_Return_Statement then
                Error_Msg_N
-                 ("extended return statements cannot be nested; use `RETURN;`",
+                 ("extended return statement cannot be nested (use `RETURN;`)",
                   N);
 
             --  Case of a simple return statement with a value inside extended
@@ -1496,7 +1500,7 @@ package body Sem_Ch6 is
             else
                Error_Msg_N
                  ("return nested in extended return statement cannot return " &
-                  "value; use `RETURN;`", N);
+                  "value (use `RETURN;`)", N);
             end if;
          end if;
 
@@ -8936,7 +8940,7 @@ package body Sem_Ch6 is
                               Set_Is_Immediately_Visible (E, False);
                            else
                               --  Work done in Override_Dispatching_Operation,
-                              --  so nothing else need to be done here.
+                              --  so nothing else needs to be done here.
 
                               null;
                            end if;

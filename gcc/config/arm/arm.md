@@ -268,7 +268,7 @@
 ; can be placed.  If the distance is zero, then this insn will never
 ; reference the pool.
 ; NEG_POOL_RANGE is nonzero for insns that can reference a constant pool entry
-; before its address.
+; before its address.  It is set to <max_range> - (8 + <data_size>).
 (define_attr "arm_pool_range" "" (const_int 0))
 (define_attr "thumb2_pool_range" "" (const_int 0))
 (define_attr "arm_neg_pool_range" "" (const_int 0))
@@ -354,6 +354,13 @@
 	 (eq_attr "insn" "smulxy,smlaxy,smlalxy,smulwy,smlawx,mul,muls,mla,mlas,umull,umulls,umlal,umlals,smull,smulls,smlal,smlals")
 	 (const_string "mult")
 	 (const_string "alu")))
+
+; Is this an (integer side) multiply with a 64-bit result?
+(define_attr "mul64" "no,yes"
+	     (if_then_else
+	       (eq_attr "insn" "smlalxy,umull,umulls,umlal,umlals,smull,smulls,smlal,smlals")
+	       (const_string "yes")
+	       (const_string "no")))
 
 ; Load scheduling, set from the arm_ld_sched variable
 ; initialized by arm_option_override()
@@ -518,7 +525,7 @@
 
 (define_attr "generic_sched" "yes,no"
   (const (if_then_else
-          (ior (eq_attr "tune" "fa526,fa626,fa606te,fa626te,fmp626,fa726te,arm926ejs,arm1020e,arm1026ejs,arm1136js,arm1136jfs,cortexa5,cortexa8,cortexa9,cortexm4")
+          (ior (eq_attr "tune" "fa526,fa626,fa606te,fa626te,fmp626,fa726te,arm926ejs,arm1020e,arm1026ejs,arm1136js,arm1136jfs,cortexa5,cortexa8,cortexa9,cortexa15,cortexm4")
 	       (eq_attr "tune_cortexr4" "yes"))
           (const_string "no")
           (const_string "yes"))))
@@ -544,6 +551,7 @@
 (include "cortex-a5.md")
 (include "cortex-a8.md")
 (include "cortex-a9.md")
+(include "cortex-a15.md")
 (include "cortex-r4.md")
 (include "cortex-r4f.md")
 (include "cortex-m4.md")
@@ -3405,7 +3413,7 @@
     bool need_else;
 
     if (which_alternative != 0 || operands[3] != const0_rtx
-        || (code != PLUS && code != MINUS && code != IOR && code != XOR))
+        || (code != PLUS && code != IOR && code != XOR))
       need_else = true;
     else
       need_else = false;
@@ -5223,7 +5231,7 @@
   [(set_attr "length" "8,12,16,8,8")
    (set_attr "type" "*,*,*,load2,store2")
    (set_attr "arm_pool_range" "*,*,*,1020,*")
-   (set_attr "arm_neg_pool_range" "*,*,*,1008,*")
+   (set_attr "arm_neg_pool_range" "*,*,*,1004,*")
    (set_attr "thumb2_pool_range" "*,*,*,4096,*")
    (set_attr "thumb2_neg_pool_range" "*,*,*,0,*")]
 )
@@ -6583,7 +6591,7 @@
   [(set_attr "length" "8,12,16,8,8")
    (set_attr "type" "*,*,*,load2,store2")
    (set_attr "pool_range" "*,*,*,1020,*")
-   (set_attr "arm_neg_pool_range" "*,*,*,1008,*")
+   (set_attr "arm_neg_pool_range" "*,*,*,1004,*")
    (set_attr "thumb2_neg_pool_range" "*,*,*,0,*")]
 )
 

@@ -719,7 +719,7 @@ c_finish_incomplete_decl (tree decl)
 
 	  complete_array_type (&TREE_TYPE (decl), NULL_TREE, true);
 
-	  layout_decl (decl, 0);
+	  relayout_decl (decl);
 	}
     }
 }
@@ -1196,7 +1196,7 @@ pop_scope (void)
 	      DECL_CHAIN (p) = BLOCK_VARS (block);
 	      BLOCK_VARS (block) = p;
 	    }
-	  else if (VAR_OR_FUNCTION_DECL_P (p))
+	  else if (VAR_OR_FUNCTION_DECL_P (p) && scope != file_scope)
 	    {
 	      /* For block local externs add a special
 		 DECL_EXTERNAL decl for debug info generation.  */
@@ -4311,7 +4311,7 @@ finish_decl (tree decl, location_t init_loc, tree init,
       if (DECL_INITIAL (decl))
 	TREE_TYPE (DECL_INITIAL (decl)) = type;
 
-      layout_decl (decl, 0);
+      relayout_decl (decl);
     }
 
   if (TREE_CODE (decl) == VAR_DECL)

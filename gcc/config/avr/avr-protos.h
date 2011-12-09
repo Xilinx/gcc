@@ -92,6 +92,7 @@ extern const char* avr_out_plus_noclobber (rtx*, int*, int*);
 extern const char* avr_out_addto_sp (rtx*, int*);
 extern const char* avr_out_xload (rtx, rtx*, int*);
 extern const char* avr_out_movmem (rtx, rtx*, int*);
+extern const char* avr_out_map_bits (rtx, rtx*, int*);
 extern bool avr_popcount_each_byte (rtx, int, int);
 
 extern int extra_constraint_Q (rtx x);
@@ -142,6 +143,7 @@ extern void avr_log_set_avr_log (void);
 typedef struct
 {
   unsigned address_cost :1;
+  unsigned builtin :1;
   unsigned constraints :1;
   unsigned legitimate_address_p :1;
   unsigned legitimize_address :1;

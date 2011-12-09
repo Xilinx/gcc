@@ -370,7 +370,6 @@ gimple_build_call_from_tree (tree t)
   /* Carry all the CALL_EXPR flags to the new GIMPLE_CALL.  */
   gimple_call_set_chain (call, CALL_EXPR_STATIC_CHAIN (t));
   gimple_call_set_tail (call, CALL_EXPR_TAILCALL (t));
-  gimple_call_set_cannot_inline (call, CALL_CANNOT_INLINE_P (t));
   gimple_call_set_return_slot_opt (call, CALL_EXPR_RETURN_SLOT_OPT (t));
   if (fndecl
       && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
@@ -2480,69 +2479,6 @@ gimple_has_side_effects (const_gimple s)
 	return true;
 
       return false;
-    }
-
-  return false;
-}
-
-/* Return true if the RHS of statement S has side effects.
-   We may use it to determine if it is admissable to replace
-   an assignment or call with a copy of a previously-computed
-   value.  In such cases, side-effects due to the LHS are
-   preserved.  */
-
-bool
-gimple_rhs_has_side_effects (const_gimple s)
-{
-  unsigned i;
-
-  if (is_gimple_call (s))
-    {
-      unsigned nargs = gimple_call_num_args (s);
-      tree fn;
-
-      if (!(gimple_call_flags (s) & (ECF_CONST | ECF_PURE)))
-        return true;
-
-      /* We cannot use gimple_has_volatile_ops here,
-         because we must ignore a volatile LHS.  */
-      fn = gimple_call_fn (s);
-      if (fn && (TREE_SIDE_EFFECTS (fn) || TREE_THIS_VOLATILE (fn)))
-	{
-	  gcc_assert (gimple_has_volatile_ops (s));
-	  return true;
-	}
-
-      for (i = 0; i < nargs; i++)
-        if (TREE_SIDE_EFFECTS (gimple_call_arg (s, i))
-            || TREE_THIS_VOLATILE (gimple_call_arg (s, i)))
-          return true;
-
-      return false;
-    }
-  else if (is_gimple_assign (s))
-    {
-      /* Skip the first operand, the LHS. */
-      for (i = 1; i < gimple_num_ops (s); i++)
-	if (TREE_SIDE_EFFECTS (gimple_op (s, i))
-            || TREE_THIS_VOLATILE (gimple_op (s, i)))
-	  {
-	    gcc_assert (gimple_has_volatile_ops (s));
-	    return true;
-	  }
-    }
-  else if (is_gimple_debug (s))
-    return false;
-  else
-    {
-      /* For statements without an LHS, examine all arguments.  */
-      for (i = 0; i < gimple_num_ops (s); i++)
-	if (TREE_SIDE_EFFECTS (gimple_op (s, i))
-            || TREE_THIS_VOLATILE (gimple_op (s, i)))
-	  {
-	    gcc_assert (gimple_has_volatile_ops (s));
-	    return true;
-	  }
     }
 
   return false;

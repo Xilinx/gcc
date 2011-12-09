@@ -2893,6 +2893,8 @@ finish_id_expression (tree id_expression,
 		      const char **error_msg,
 		      location_t location)
 {
+  decl = strip_using_decl (decl);
+
   /* Initialize the output parameters.  */
   *idk = CP_ID_KIND_NONE;
   *error_msg = NULL;
@@ -3401,7 +3403,7 @@ finish_underlying_type (tree type)
 
   if (TREE_CODE (type) != ENUMERAL_TYPE)
     {
-      error ("%qE is not an enumeration type", type);
+      error ("%qT is not an enumeration type", type);
       return error_mark_node;
     }
 
@@ -8802,7 +8804,7 @@ is_normal_capture_proxy (tree decl)
 /* VAR is a capture proxy created by build_capture_proxy; add it to the
    current function, which is the operator() for the appropriate lambda.  */
 
-static inline void
+void
 insert_capture_proxy (tree var)
 {
   cp_binding_level *b;

@@ -7,8 +7,9 @@
 package sql
 
 import (
+	"errors"
+	"exp/sql/driver"
 	"fmt"
-	"os"
 	"reflect"
 	"strconv"
 )
@@ -16,7 +17,7 @@ import (
 // convertAssign copies to dest the value in src, converting it if possible.
 // An error is returned if the copy would result in loss of information.
 // dest should be a pointer type.
-func convertAssign(dest, src interface{}) os.Error {
+func convertAssign(dest, src interface{}) error {
 	// Common cases, without reflect.  Fall through.
 	switch s := src.(type) {
 	case string:
@@ -36,10 +37,11 @@ func convertAssign(dest, src interface{}) os.Error {
 		}
 	}
 
-	sv := reflect.ValueOf(src)
+	var sv reflect.Value
 
 	switch d := dest.(type) {
 	case *string:
+		sv = reflect.ValueOf(src)
 		switch sv.Kind() {
 		case reflect.Bool,
 			reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
@@ -48,6 +50,12 @@ func convertAssign(dest, src interface{}) os.Error {
 			*d = fmt.Sprintf("%v", src)
 			return nil
 		}
+	case *bool:
+		bv, err := driver.Bool.ConvertValue(src)
+		if err == nil {
+			*d = bv.(bool)
+		}
+		return err
 	}
 
 	if scanner, ok := dest.(ScannerInto); ok {
@@ -56,7 +64,11 @@ func convertAssign(dest, src interface{}) os.Error {
 
 	dpv := reflect.ValueOf(dest)
 	if dpv.Kind() != reflect.Ptr {
-		return os.NewError("destination not a pointer")
+		return errors.New("destination not a pointer")
+	}
+
+	if !sv.IsValid() {
+		sv = reflect.ValueOf(src)
 	}
 
 	dv := reflect.Indirect(dpv)
@@ -67,40 +79,49 @@ func convertAssign(dest, src interface{}) os.Error {
 
 	switch dv.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		if s, ok := asString(src); ok {
-			i64, err := strconv.Atoi64(s)
-			if err != nil {
-				return fmt.Errorf("converting string %q to a %s: %v", s, dv.Kind(), err)
-			}
-			if dv.OverflowInt(i64) {
-				return fmt.Errorf("string %q overflows %s", s, dv.Kind())
-			}
-			dv.SetInt(i64)
-			return nil
+		s := asString(src)
+		i64, err := strconv.Atoi64(s)
+		if err != nil {
+			return fmt.Errorf("converting string %q to a %s: %v", s, dv.Kind(), err)
 		}
+		if dv.OverflowInt(i64) {
+			return fmt.Errorf("string %q overflows %s", s, dv.Kind())
+		}
+		dv.SetInt(i64)
+		return nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		if s, ok := asString(src); ok {
-			u64, err := strconv.Atoui64(s)
-			if err != nil {
-				return fmt.Errorf("converting string %q to a %s: %v", s, dv.Kind(), err)
-			}
-			if dv.OverflowUint(u64) {
-				return fmt.Errorf("string %q overflows %s", s, dv.Kind())
-			}
-			dv.SetUint(u64)
-			return nil
+		s := asString(src)
+		u64, err := strconv.Atoui64(s)
+		if err != nil {
+			return fmt.Errorf("converting string %q to a %s: %v", s, dv.Kind(), err)
 		}
+		if dv.OverflowUint(u64) {
+			return fmt.Errorf("string %q overflows %s", s, dv.Kind())
+		}
+		dv.SetUint(u64)
+		return nil
+	case reflect.Float32, reflect.Float64:
+		s := asString(src)
+		f64, err := strconv.Atof64(s)
+		if err != nil {
+			return fmt.Errorf("converting string %q to a %s: %v", s, dv.Kind(), err)
+		}
+		if dv.OverflowFloat(f64) {
+			return fmt.Errorf("value %q overflows %s", s, dv.Kind())
+		}
+		dv.SetFloat(f64)
+		return nil
 	}
 
 	return fmt.Errorf("unsupported driver -> Scan pair: %T -> %T", src, dest)
 }
 
-func asString(src interface{}) (s string, ok bool) {
+func asString(src interface{}) string {
 	switch v := src.(type) {
 	case string:
-		return v, true
+		return v
 	case []byte:
-		return string(v), true
+		return string(v)
 	}
-	return "", false
+	return fmt.Sprintf("%v", src)
 }

@@ -3473,6 +3473,29 @@ remove_unreachable_handlers (void)
 #endif
 }
 
+/* Remove unreachable handlers if any landing pads have been removed after
+   last ehcleanup pass (due to gimple_purge_dead_eh_edges).  */
+
+void
+maybe_remove_unreachable_handlers (void)
+{
+  eh_landing_pad lp;
+  int i;
+
+  if (cfun->eh == NULL)
+    return;
+              
+  for (i = 1; VEC_iterate (eh_landing_pad, cfun->eh->lp_array, i, lp); ++i)
+    if (lp && lp->post_landing_pad)
+      {
+	if (label_to_block (lp->post_landing_pad) == NULL)
+	  {
+	    remove_unreachable_handlers ();
+	    return;
+	  }
+      }
+}
+
 /* Remove regions that do not have landing pads.  This assumes
    that remove_unreachable_handlers has already been run, and
    that we've just manipulated the landing pads since then.  */
@@ -3629,6 +3652,22 @@ cleanup_empty_eh_merge_phis (basic_block new_bb, basic_block old_bb,
   edge e;
   bitmap rename_virts;
   bitmap ophi_handled;
+
+  /* The destination block must not be a regular successor for any
+     of the preds of the landing pad.  Thus, avoid turning
+        <..>
+	 |  \ EH
+	 |  <..>
+	 |  /
+	<..>
+     into
+        <..>
+	|  | EH
+	<..>
+     which CFG verification would choke on.  See PR45172 and PR51089.  */
+  FOR_EACH_EDGE (e, ei, old_bb->preds)
+    if (find_edge (e->src, new_bb))
+      return false;
 
   FOR_EACH_EDGE (e, ei, old_bb->preds)
     redirect_edge_var_map_clear (e);
@@ -3792,8 +3831,6 @@ cleanup_empty_eh_unsplit (basic_block bb, edge e_out, eh_landing_pad lp)
 {
   gimple_stmt_iterator gsi;
   tree lab;
-  edge_iterator ei;
-  edge e;
 
   /* We really ought not have totally lost everything following
      a landing pad label.  Given that BB is empty, there had better
@@ -3815,22 +3852,6 @@ cleanup_empty_eh_unsplit (basic_block bb, edge e_out, eh_landing_pad lp)
       if (lp_nr && get_eh_region_from_lp_number (lp_nr) != lp->region)
 	return false;
     }
-
-  /* The destination block must not be a regular successor for any
-     of the preds of the landing pad.  Thus, avoid turning
-        <..>
-	 |  \ EH
-	 |  <..>
-	 |  /
-	<..>
-     into
-        <..>
-	|  | EH
-	<..>
-     which CFG verification would choke on.  See PR45172.  */
-  FOR_EACH_EDGE (e, ei, bb->preds)
-    if (find_edge (e->src, e_out->dest))
-      return false;
 
   /* Attempt to move the PHIs into the successor block.  */
   if (cleanup_empty_eh_merge_phis (e_out->dest, bb, e_out, false))

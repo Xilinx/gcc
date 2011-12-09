@@ -1,21 +1,26 @@
-/* Provide the runtime intrastructure the transactional memory lib.
+/* Provide the runtime infrastructure for the transactional memory lib.
    Copyright (C) 2011 Free Software Foundation, Inc.
    Contributed by Iain Sandoe <iains@gcc.gnu.org>
 
    This file is part of GCC.
 
-GCC is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3, or (at your option)
-any later version.
+GCC is free software; you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 3, or (at your option) any later
+version.
 
-GCC is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+GCC is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
 
-You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING3.  If not see
+Under Section 7 of GPL version 3, you are granted additional
+permissions described in the GCC Runtime Library Exception, version
+3.1, as published by the Free Software Foundation.
+
+You should have received a copy of the GNU General Public License and
+a copy of the GCC Runtime Library Exception along with this program;
+see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
 #include <mach-o/dyld.h>
@@ -24,10 +29,6 @@ along with GCC; see the file COPYING3.  If not see
 extern char * getsectdata (const char*,const char*,unsigned long*); 
 
 #define WEAK __attribute__((weak))
-
-#ifndef ATTRIBUTE_UNUSED
-#define ATTRIBUTE_UNUSED __attribute__((unused))
-#endif
 
 extern void _ITM_registerTMCloneTable (void *, size_t) WEAK;
 extern void _ITM_deregisterTMCloneTable (void *) WEAK;
@@ -73,11 +74,4 @@ void __doTMdeRegistrations (void)
 
 }
 
-/* Provide dumy funcs for the weak ones - needed on most Darwin versions
-   for now.  */
-
-void _ITM_registerTMCloneTable (void *n ATTRIBUTE_UNUSED, size_t s ATTRIBUTE_UNUSED)
-{}
-void _ITM_deregisterTMCloneTable (void *n ATTRIBUTE_UNUSED)
-{}
 #endif

@@ -5242,7 +5242,12 @@ is the only -gnatw switch that affects the handling of style check messages.
 @cindex @option{-gnatw.e} (@command{gcc})
 @cindex Warnings, activate every optional warning
 This switch activates all optional warnings, including those which
-are not activated by @code{-gnatwa}.
+are not activated by @code{-gnatwa}. The use of this switch is not
+recommended for normal use. If you turn this switch on, it is almost
+certain that you will get large numbers of useless warnings. The
+warnings that are excluded from @code{-gnatwa} are typically highly
+specialized warnings that are suitable for use only in code that has
+been specifically designed according to specialized coding rules.
 
 @item -gnatwf
 @emph{Activate warnings on unreferenced formals.}
@@ -8660,6 +8665,9 @@ This is because in the default static elaboration mode, all necessary
 These implicit pragmas are still respected by the binder in
 @option{^-p^/PESSIMISTIC_ELABORATION^} mode, so a
 safe elaboration order is assured.
+
+Note that @option{^-p^/PESSIMISTIC_ELABORATION^} is not intended for
+production use; it is more for debugging/experimental use.
 @end table
 
 @node Output Control
@@ -13190,20 +13198,21 @@ setting.
 
 @cindex @option{^-nt@var{x}^/TYPE_CASING^} (@command{gnatpp})
 @item ^-neD^/TYPE_CASING=AS_DECLARED^
-Type and subtype name casing for defining occurrences are as they appear in
-the source file. Overrides ^-n^/NAME_CASING^ casing setting.
+Names introduced by type and subtype declarations are always
+cased as they appear in the declaration in the source file.
+Overrides ^-n^/NAME_CASING^ casing setting.
 
 @item ^-ntU^/TYPE_CASING=UPPER_CASE^
-Type and subtype names are in upper case. Overrides ^-n^/NAME_CASING^ casing
-setting.
+Names introduced by type and subtype declarations are always in
+upper case. Overrides ^-n^/NAME_CASING^ casing setting.
 
 @item ^-ntL^/TYPE_CASING=LOWER_CASE^
-Type and subtype names are in lower case. Overrides ^-n^/NAME_CASING^ casing
-setting.
+Names introduced by type and subtype declarations are always in
+lower case. Overrides ^-n^/NAME_CASING^ casing setting.
 
 @item ^-ntM^/TYPE_CASING=MIXED_CASE^
-Type and subtype names are in mixed case. Overrides ^-n^/NAME_CASING^ casing
-setting.
+Names introduced by type and subtype declarations are always in
+mixed case. Overrides ^-n^/NAME_CASING^ casing setting.
 
 @cindex @option{^-p@var{x}^/PRAGMA_CASING^} (@command{gnatpp})
 @item ^-pL^/PRAGMA_CASING=LOWER_CASE^
@@ -26370,7 +26379,7 @@ of the methodological principle known as the ``contract model'',
 the generic declaration explicitly indicates whether
 or not such instantiations are permitted.  If a generic formal parameter
 has explicit unknown discriminants, indicated by using @code{(<>)} after the
-type name, then it can be instantiated with indefinite types, but no
+subtype name, then it can be instantiated with indefinite types, but no
 stand-alone variables can be declared of this type.  Any attempt to declare
 such a variable will result in an illegality at the time the generic is
 declared.  If the @code{(<>)} notation is not used, then it is illegal

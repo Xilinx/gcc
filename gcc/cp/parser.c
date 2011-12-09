@@ -3554,7 +3554,7 @@ lookup_literal_operator (tree name, VEC(tree,gc) *args)
 {
   tree decl, fns;
   decl = lookup_name (name);
-  if (!decl || decl == error_mark_node)
+  if (!decl || !is_overloaded_fn (decl))
     return error_mark_node;
 
   for (fns = decl; fns; fns = OVL_NEXT (fns))
@@ -11321,6 +11321,7 @@ static void
 cp_parser_mem_initializer_list (cp_parser* parser)
 {
   tree mem_initializer_list = NULL_TREE;
+  tree target_ctor = error_mark_node;
   cp_token *token = cp_lexer_peek_token (parser->lexer);
 
   /* Let the semantic analysis code know that we are starting the
@@ -11358,6 +11359,27 @@ cp_parser_mem_initializer_list (cp_parser* parser)
           if (mem_initializer != error_mark_node)
             mem_initializer = make_pack_expansion (mem_initializer);
         }
+      if (target_ctor != error_mark_node
+	  && mem_initializer != error_mark_node)
+	{
+	  error ("mem-initializer for %qD follows constructor delegation",
+		 TREE_PURPOSE (mem_initializer));
+	  mem_initializer = error_mark_node;
+	}
+      /* Look for a target constructor. */
+      if (mem_initializer != error_mark_node
+	  && TYPE_P (TREE_PURPOSE (mem_initializer))
+	  && same_type_p (TREE_PURPOSE (mem_initializer), current_class_type))
+	{
+	  maybe_warn_cpp0x (CPP0X_DELEGATING_CTORS);
+	  if (mem_initializer_list)
+	    {
+	      error ("constructor delegation follows mem-initializer for %qD",
+		     TREE_PURPOSE (mem_initializer_list));
+	      mem_initializer = error_mark_node;
+	    }
+	  target_ctor = mem_initializer;
+	}
       /* Add it to the list, unless it was erroneous.  */
       if (mem_initializer != error_mark_node)
 	{
@@ -16055,18 +16077,20 @@ cp_parser_direct_declarator (cp_parser* parser,
 						 &non_constant_p);
 	      if (!non_constant_p)
 		/* OK */;
-	      /* Normally, the array bound must be an integral constant
-		 expression.  However, as an extension, we allow VLAs
-		 in function scopes as long as they aren't part of a
-		 parameter declaration.  */
+	      else if (error_operand_p (bounds))
+		/* Already gave an error.  */;
 	      else if (!parser->in_function_body
 		       || current_binding_level->kind == sk_function_parms)
 		{
+		  /* Normally, the array bound must be an integral constant
+		     expression.  However, as an extension, we allow VLAs
+		     in function scopes as long as they aren't part of a
+		     parameter declaration.  */
 		  cp_parser_error (parser,
 				   "array bound is not an integer constant");
 		  bounds = error_mark_node;
 		}
-	      else if (processing_template_decl && !error_operand_p (bounds))
+	      else if (processing_template_decl)
 		{
 		  /* Remember this wasn't a constant-expression.  */
 		  bounds = build_nop (TREE_TYPE (bounds), bounds);
@@ -17713,7 +17737,8 @@ cp_parser_initializer_list (cp_parser* parser, bool* non_constant_p)
 	  designator = cp_parser_constant_expression (parser, false, NULL);
 	  cp_parser_require (parser, CPP_CLOSE_SQUARE, RT_CLOSE_SQUARE);
 	  cp_parser_require (parser, CPP_EQ, RT_EQ);
-	  cp_parser_parse_definitely (parser);
+	  if (!cp_parser_parse_definitely (parser))
+	    designator = NULL_TREE;
 	}
       else
 	designator = NULL_TREE;
@@ -22520,10 +22545,14 @@ static void
 cp_parser_check_class_key (enum tag_types class_key, tree type)
 {
   if ((TREE_CODE (type) == UNION_TYPE) != (class_key == union_type))
-    permerror (input_location, "%qs tag used in naming %q#T",
-	    class_key == union_type ? "union"
-	     : class_key == record_type ? "struct" : "class",
-	     type);
+    {
+      permerror (input_location, "%qs tag used in naming %q#T",
+		 class_key == union_type ? "union"
+		 : class_key == record_type ? "struct" : "class",
+		 type);
+      inform (DECL_SOURCE_LOCATION (TYPE_NAME (type)),
+	      "%q#T was previously declared here", type);
+    }
 }
 
 /* Issue an error message if DECL is redeclared with different

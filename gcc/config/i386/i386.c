@@ -10567,9 +10567,9 @@ ix86_emit_leave (void)
       add_reg_note (insn, REG_CFA_DEF_CFA,
 		    plus_constant (stack_pointer_rtx, m->fs.sp_offset));
       RTX_FRAME_RELATED_P (insn) = 1;
-      ix86_add_cfa_restore_note (insn, hard_frame_pointer_rtx,
-				 m->fs.fp_offset);
     }
+  ix86_add_cfa_restore_note (insn, hard_frame_pointer_rtx,
+			     m->fs.fp_offset);
 }
 
 /* Emit code to restore saved registers using MOV insns.
@@ -16354,7 +16354,6 @@ distance_non_agu_define_in_bb (unsigned int regno1, unsigned int regno2,
   basic_block bb = start ? BLOCK_FOR_INSN (start) : NULL;
   rtx prev = start;
   rtx next = NULL;
-  enum attr_type insn_type;
 
   *found = false;
 
@@ -16367,8 +16366,8 @@ distance_non_agu_define_in_bb (unsigned int regno1, unsigned int regno2,
 	  distance = increase_distance (prev, next, distance);
 	  if (insn_defines_reg (regno1, regno2, prev))
 	    {
-	      insn_type = get_attr_type (prev);
-	      if (insn_type != TYPE_LEA)
+	      if (recog_memoized (prev) < 0
+		  || get_attr_type (prev) != TYPE_LEA)
 		{
 		  *found = true;
 		  return distance;

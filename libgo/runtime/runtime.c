@@ -16,6 +16,9 @@ static Lock paniclk;
 void
 runtime_startpanic(void)
 {
+	M *m;
+
+	m = runtime_m();
 	if(m->dying) {
 		runtime_printf("panic during panic\n");
 		runtime_exit(3);
@@ -67,6 +70,19 @@ runtime_throw(const char *s)
 	runtime_exit(1);	// even more not reached
 }
 
+void
+runtime_panicstring(const char *s)
+{
+	Eface err;
+	
+	if(runtime_m()->gcing) {
+		runtime_printf("panic: %s\n", s);
+		runtime_throw("panic during gc");
+	}
+	runtime_newErrorString(runtime_gostringnocopy((const byte*)s), &err);
+	runtime_panic(err);
+}
+
 static int32	argc;
 static byte**	argv;
 
@@ -92,7 +108,7 @@ runtime_goargs(void)
 
 	s = runtime_malloc(argc*sizeof s[0]);
 	for(i=0; i<argc; i++)
-		s[i] = runtime_gostringnocopy((byte*)argv[i]);
+		s[i] = runtime_gostringnocopy((const byte*)argv[i]);
 	os_Args.__values = (void*)s;
 	os_Args.__count = argc;
 	os_Args.__capacity = argc;
@@ -156,8 +172,10 @@ runtime_atoi(const byte *p)
 uint32
 runtime_fastrand1(void)
 {
+	M *m;
 	uint32 x;
 
+	m = runtime_m();
 	x = m->fastrand;
 	x += x;
 	if(x & 0x80000000L)

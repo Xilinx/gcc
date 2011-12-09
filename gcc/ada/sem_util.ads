@@ -1492,13 +1492,6 @@ package Sem_Util is
    --  Return a unique name for entity E, which could be used to identify E
    --  across compilation units.
 
-   function Unit_Declaration_Node (Unit_Id : Entity_Id) return Node_Id;
-   --  Unit_Id is the simple name of a program unit, this function returns the
-   --  corresponding xxx_Declaration node for the entity. Also applies to the
-   --  body entities for subprograms, tasks and protected units, in which case
-   --  it returns the subprogram, task or protected body node for it. The unit
-   --  may be a child unit with any number of ancestors.
-
    function Unit_Is_Visible (U : Entity_Id) return Boolean;
    --  Determine whether a compilation unit is visible in the current context,
    --  because there is a with_clause that makes the unit available. Used to

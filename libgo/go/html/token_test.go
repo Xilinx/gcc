@@ -6,7 +6,7 @@ package html
 
 import (
 	"bytes"
-	"os"
+	"io"
 	"strings"
 	"testing"
 )
@@ -424,11 +424,10 @@ func TestTokenizer(t *testing.T) {
 loop:
 	for _, tt := range tokenTests {
 		z := NewTokenizer(strings.NewReader(tt.html))
-		z.ReturnComments = true
 		if tt.golden != "" {
 			for i, s := range strings.Split(tt.golden, "$") {
 				if z.Next() == ErrorToken {
-					t.Errorf("%s token %d: want %q got error %v", tt.desc, i, s, z.Error())
+					t.Errorf("%s token %d: want %q got error %v", tt.desc, i, s, z.Err())
 					continue loop
 				}
 				actual := z.Token().String()
@@ -439,8 +438,8 @@ loop:
 			}
 		}
 		z.Next()
-		if z.Error() != os.EOF {
-			t.Errorf("%s: want EOF got %q", tt.desc, z.Token().String())
+		if z.Err() != io.EOF {
+			t.Errorf("%s: want EOF got %q", tt.desc, z.Err())
 		}
 	}
 }
@@ -544,8 +543,8 @@ loop:
 		tt := z.Next()
 		switch tt {
 		case ErrorToken:
-			if z.Error() != os.EOF {
-				t.Error(z.Error())
+			if z.Err() != io.EOF {
+				t.Error(z.Err())
 			}
 			break loop
 		case TextToken:

@@ -3,6 +3,8 @@
 // license that can be found in the LICENSE file.
 
 #include <errno.h>
+#include <signal.h>
+
 #include "runtime.h"
 #include "go-assert.h"
 
@@ -71,3 +73,20 @@ __sync_fetch_and_add_4 (uint32* ptr, uint32 add)
 }
 
 #endif
+
+// Called to initialize a new m (including the bootstrap m).
+void
+runtime_minit(void)
+{
+	byte* stack;
+	size_t stacksize;
+	stack_t ss;
+
+	// Initialize signal handling.
+	runtime_m()->gsignal = runtime_malg(32*1024, &stack, &stacksize);	// OS X wants >=8K, Linux >=2K
+	ss.ss_sp = stack;
+	ss.ss_flags = 0;
+	ss.ss_size = stacksize;
+	if(sigaltstack(&ss, nil) < 0)
+		*(int *)0xf1 = 0xf1;
+}

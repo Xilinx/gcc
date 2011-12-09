@@ -533,9 +533,6 @@ struct GTY(()) tree_common {
        CASE_HIGH_SEEN in
            CASE_LABEL_EXPR
 
-       CALL_CANNOT_INLINE_P in
-           CALL_EXPR
- 
        ENUM_IS_SCOPED in
 	   ENUMERAL_TYPE
 
@@ -1244,9 +1241,6 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
    CASE_HIGH operand has been processed.  */
 #define CASE_HIGH_SEEN(NODE) \
   (CASE_LABEL_EXPR_CHECK (NODE)->base.static_flag)
-
-/* Used to mark a CALL_EXPR as not suitable for inlining.  */
-#define CALL_CANNOT_INLINE_P(NODE) (CALL_EXPR_CHECK (NODE)->base.static_flag)
 
 /* Used to mark scoped enums.  */
 #define ENUM_IS_SCOPED(NODE) (ENUMERAL_TYPE_CHECK (NODE)->base.static_flag)
@@ -5460,10 +5454,10 @@ extern tree build_va_arg_indirect_ref (tree);
 extern tree build_string_literal (int, const char *);
 extern bool validate_arglist (const_tree, ...);
 extern rtx builtin_memset_read_str (void *, HOST_WIDE_INT, enum machine_mode);
-extern bool is_builtin_name (const char *);
 extern bool is_builtin_fn (tree);
 extern unsigned int get_object_alignment_1 (tree, unsigned HOST_WIDE_INT *);
 extern unsigned int get_object_alignment (tree);
+extern unsigned int get_object_or_type_alignment (tree);
 extern unsigned int get_pointer_alignment (tree);
 extern tree fold_call_stmt (gimple, bool);
 extern tree gimple_fold_builtin_snprintf_chk (gimple, tree, enum built_in_function);

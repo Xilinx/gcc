@@ -227,7 +227,7 @@ static void expand_builtin_sync_synchronize (void);
 
 /* Return true if NAME starts with __builtin_ or __sync_.  */
 
-bool
+static bool
 is_builtin_name (const char *name)
 {
   if (strncmp (name, "__builtin_", 10) == 0)
@@ -448,6 +448,31 @@ get_object_alignment (tree exp)
 
   if (bitpos != 0)
     align = (bitpos & -bitpos);
+
+  return align;
+}
+
+/* Return the alignment of object EXP, also considering its type when we do
+   not know of explicit misalignment.  Only handle MEM_REF and TARGET_MEM_REF.
+
+   ??? Note that, in the general case, the type of an expression is not kept
+   consistent with misalignment information by the front-end, for example when
+   taking the address of a member of a packed structure.  However, in most of
+   the cases, expressions have the alignment of their type so we optimistically
+   fall back to this alignment when we cannot compute a misalignment.  */
+
+unsigned int
+get_object_or_type_alignment (tree exp)
+{
+  unsigned HOST_WIDE_INT misalign;
+  unsigned int align = get_object_alignment_1 (exp, &misalign);
+
+  gcc_assert (TREE_CODE (exp) == MEM_REF || TREE_CODE (exp) == TARGET_MEM_REF);
+
+  if (misalign != 0)
+    align = (misalign & -misalign);
+  else
+    align = MAX (TYPE_ALIGN (TREE_TYPE (exp)), align);
 
   return align;
 }
@@ -4523,8 +4548,8 @@ expand_builtin_alloca (tree exp, bool cannot_accumulate)
   bool alloca_with_align = (DECL_FUNCTION_CODE (get_callee_fndecl (exp))
 			    == BUILT_IN_ALLOCA_WITH_ALIGN);
 
-  /* Emit normal call if marked not-inlineable.  */
-  if (CALL_CANNOT_INLINE_P (exp))
+  /* Emit normal call if we use mudflap.  */
+  if (flag_mudflap)
     return NULL_RTX;
 
   valid_arglist
@@ -5227,7 +5252,7 @@ expand_builtin_sync_lock_test_and_set (enum machine_mode mode, tree exp,
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_atomic_exchange (target, mem, val, MEMMODEL_ACQUIRE, true);
+  return expand_sync_lock_test_and_set (target, mem, val);
 }
 
 /* Expand the __sync_lock_release intrinsic.  EXP is the CALL_EXPR.  */
@@ -5291,7 +5316,7 @@ expand_builtin_atomic_exchange (enum machine_mode mode, tree exp, rtx target)
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_atomic_exchange (target, mem, val, model, false);
+  return expand_atomic_exchange (target, mem, val, model);
 }
 
 /* Expand the __atomic_compare_exchange intrinsic:
@@ -5482,6 +5507,11 @@ expand_builtin_atomic_fetch_op (enum machine_mode mode, tree exp, rtx target,
 }
 
 
+#ifndef HAVE_atomic_clear
+# define HAVE_atomic_clear 0
+# define gen_atomic_clear(x,y) (gcc_unreachable (), NULL_RTX)
+#endif
+
 /* Expand an atomic clear operation.
 	void _atomic_clear (BOOL *obj, enum memmodel)
    EXP is the call expression.  */
@@ -5503,6 +5533,12 @@ expand_builtin_atomic_clear (tree exp)
       return const0_rtx;
     }
 
+  if (HAVE_atomic_clear)
+    {
+      emit_insn (gen_atomic_clear (mem, model));
+      return const0_rtx;
+    }
+
   /* Try issuing an __atomic_store, and allow fallback to __sync_lock_release.
      Failing that, a store is issued by __atomic_store.  The only way this can
      fail is if the bool type is larger than a word size.  Unlikely, but
@@ -5519,9 +5555,9 @@ expand_builtin_atomic_clear (tree exp)
    EXP is the call expression.  */
 
 static rtx
-expand_builtin_atomic_test_and_set (tree exp)
+expand_builtin_atomic_test_and_set (tree exp, rtx target)
 {
-  rtx mem, ret;
+  rtx mem;
   enum memmodel model;
   enum machine_mode mode;
 
@@ -5529,20 +5565,7 @@ expand_builtin_atomic_test_and_set (tree exp)
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   model = get_memmodel (CALL_EXPR_ARG (exp, 1));
 
-  /* Try issuing an exchange.  If it is lock free, or if there is a limited
-     functionality __sync_lock_test_and_set, this will utilize it.  */
-  ret = expand_atomic_exchange (NULL_RTX, mem, const1_rtx, model, true);
-  if (ret)
-    return ret;
-
-  /* Otherwise, there is no lock free support for test and set.  Simply
-     perform a load and a store.  Since this presumes a non-atomic architecture,
-     also assume single threadedness and don't issue barriers either. */
-
-  ret = gen_reg_rtx (mode);
-  emit_move_insn (ret, mem);
-  emit_move_insn (mem, const1_rtx);
-  return ret;
+  return expand_atomic_test_and_set (target, mem, model);
 }
 
 
@@ -6711,7 +6734,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       break;
 
     case BUILT_IN_ATOMIC_TEST_AND_SET:
-      return expand_builtin_atomic_test_and_set (exp);
+      return expand_builtin_atomic_test_and_set (exp, target);
 
     case BUILT_IN_ATOMIC_CLEAR:
       return expand_builtin_atomic_clear (exp);

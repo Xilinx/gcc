@@ -5,16 +5,16 @@
 package x509
 
 import (
-	"asn1"
 	"bytes"
-	"big"
 	"crypto/dsa"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
+	"math/big"
 	"testing"
 	"time"
 )
@@ -243,10 +243,11 @@ func TestCreateSelfSignedCertificate(t *testing.T) {
 		return
 	}
 
+	commonName := "test.example.com"
 	template := Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
-			CommonName:   "test.example.com",
+			CommonName:   commonName,
 			Organization: []string{"Acme Co"},
 		},
 		NotBefore: time.SecondsToUTC(1000),
@@ -281,6 +282,14 @@ func TestCreateSelfSignedCertificate(t *testing.T) {
 
 	if len(cert.PermittedDNSDomains) != 2 || cert.PermittedDNSDomains[0] != ".example.com" || cert.PermittedDNSDomains[1] != "example.com" {
 		t.Errorf("Failed to parse name constraints: %#v", cert.PermittedDNSDomains)
+	}
+
+	if cert.Subject.CommonName != commonName {
+		t.Errorf("Subject wasn't correctly copied from the template. Got %s, want %s", cert.Subject.CommonName, commonName)
+	}
+
+	if cert.Issuer.CommonName != commonName {
+		t.Errorf("Issuer wasn't correctly copied from the template. Got %s, want %s", cert.Issuer.CommonName, commonName)
 	}
 
 	err = cert.CheckSignatureFrom(cert)

@@ -168,7 +168,6 @@ extern bool arm_pad_arg_upward (enum machine_mode, const_tree);
 extern bool arm_pad_reg_upward (enum machine_mode, tree, int);
 #endif
 extern int arm_apply_result_size (void);
-extern rtx aapcs_libcall_value (enum machine_mode);
 
 #endif /* RTX_CODE */
 
@@ -242,6 +241,7 @@ struct tune_params
 };
 
 extern const struct tune_params *current_tune;
+extern int vfp3_const_double_for_fract_bits (rtx);
 #endif /* RTX_CODE */
 
 #endif /* ! GCC_ARM_PROTOS_H */

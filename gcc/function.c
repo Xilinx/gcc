@@ -5670,6 +5670,7 @@ convert_jumps_to_returns (basic_block last_bb, bool simple_p,
 
       /* Fix up the CFG for the successful change we just made.  */
       redirect_edge_succ (e, EXIT_BLOCK_PTR);
+      e->flags &= ~EDGE_CROSSING;
     }
   VEC_free (basic_block, heap, src_bbs);
   return unconverted;
@@ -5892,6 +5893,9 @@ thread_prologue_and_epilogue_insns (void)
       if (pic_offset_table_rtx)
 	add_to_hard_reg_set (&set_up_by_prologue, Pmode,
 			     PIC_OFFSET_TABLE_REGNUM);
+      if (stack_realign_drap && crtl->drap_reg)
+	add_to_hard_reg_set (&set_up_by_prologue, GET_MODE (crtl->drap_reg),
+			     REGNO (crtl->drap_reg));
 
       /* We don't use a different max size depending on
 	 optimize_bb_for_speed_p because increasing shrink-wrapping

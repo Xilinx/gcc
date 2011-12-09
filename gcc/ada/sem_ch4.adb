@@ -576,10 +576,12 @@ package body Sem_Ch4 is
                --  and the allocated object is unconstrained.
 
                elsif Ada_Version >= Ada_2005
-                 and then Has_Constrained_Partial_View (Base_Typ)
+                 and then Effectively_Has_Constrained_Partial_View
+                            (Typ  => Base_Typ,
+                             Scop => Current_Scope)
                then
                   Error_Msg_N
-                    ("constraint no allowed when type " &
+                    ("constraint not allowed when type " &
                       "has a constrained partial view", Constraint (E));
                end if;
 
@@ -6231,7 +6233,7 @@ package body Sem_Ch4 is
                   Remove_Interp (I);
                   exit;
 
-               --  In Ada 2005, this operation does not participate in Overload
+               --  In Ada 2005, this operation does not participate in overload
                --  resolution. If the operation is defined in a predefined
                --  unit, it is one of the operations declared abstract in some
                --  variants of System, and it must be removed as well.

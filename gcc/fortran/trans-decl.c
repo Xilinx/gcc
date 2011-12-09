@@ -718,7 +718,7 @@ gfc_get_module_backend_decl (gfc_symbol *sym)
 	}
       else if (s->backend_decl)
 	{
-	  if (sym->ts.type == BT_DERIVED)
+	  if (sym->ts.type == BT_DERIVED || sym->ts.type == BT_CLASS)
 	    gfc_copy_dt_decls_ifequal (s->ts.u.derived, sym->ts.u.derived,
 				       true);
 	  else if (sym->ts.type == BT_CHARACTER)
@@ -1670,6 +1670,11 @@ gfc_get_extern_function_decl (gfc_symbol * sym)
       gfc_find_symbol (sym->name, gsym->ns, 0, &s);
       if (s && s->backend_decl)
 	{
+	  if (sym->ts.type == BT_DERIVED || sym->ts.type == BT_CLASS)
+	    gfc_copy_dt_decls_ifequal (s->ts.u.derived, sym->ts.u.derived,
+				       true);
+	  else if (sym->ts.type == BT_CHARACTER)
+	    sym->ts.u.cl->backend_decl = s->ts.u.cl->backend_decl;
 	  sym->backend_decl = s->backend_decl;
 	  return sym->backend_decl;
 	}
@@ -4690,8 +4695,10 @@ add_argument_checking (stmtblock_t *block, gfc_symbol *sym)
 	   if the actual argument is (part of) an array, but only if the
 	   dummy argument is an array. (See "Sequence association" in
 	   Section 12.4.1.4 for F95 and 12.4.1.5 for F2003.)  */
-	if (fsym->attr.pointer || fsym->attr.allocatable
-	    || (fsym->as && fsym->as->type == AS_ASSUMED_SHAPE))
+	if (fsym->ts.deferred)
+	  continue;
+	else if (fsym->attr.pointer || fsym->attr.allocatable
+		 || (fsym->as && fsym->as->type == AS_ASSUMED_SHAPE))
 	  {
 	    comparison = NE_EXPR;
 	    message = _("Actual string length does not match the declared one"

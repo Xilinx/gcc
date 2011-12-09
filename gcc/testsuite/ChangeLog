@@ -1,3 +1,669 @@
+2011-12-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51318
+	* g++.dg/template/cond8.C: New.
+
+	PR c++/51459
+	* g++.dg/cpp0x/lambda/lambda-template4.C: New.
+
+2011-12-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51466
+	* gcc.c-torture/execute/pr51466.c: New test.
+
+2011-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50815
+	* gfortran.dg/bounds_check_16.f90: New.
+
+2011-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51378
+	* gfortran.dg/private_type_14.f90: New.
+
+2011-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51407
+	* gfortran.dg/io_real_boz_3.f90: New.
+	* gfortran.dg/io_real_boz_4.f90: New.
+	* gfortran.dg/io_real_boz_5.f90: New.
+
+2011-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51448
+	* gfortran.dg/realloc_on_assign_8.f90: New.
+
+2011-12-08  Teresa Johnson  <tejohnson@google.com>
+
+	* gcc.target/i386/movdi-rex64.c: Remove unnecessary
+	unused label.
+
+2011-12-08  Teresa Johnson  <tejohnson@google.com>
+
+	* gcc.target/i386/movdi-rex64.c: Remove unnecessary
+	-Wwrite-strings option.
+
+2011-12-08  Teresa Johnson  <tejohnson@google.com>
+
+	* gcc.target/i386/movdi-rex64.c: New.
+
+2011-12-08  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/volatile3.c: New testcase.
+
+2011-12-08  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR tree-optimization/51315
+	* gcc.c-torture/execute/20111208-1.c (int16_t): Use __INT16_TYPE__
+	for typedef.
+	(int32_t): Use __INT32_TYPE__ for typedef.
+
+2011-12-08  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR tree-optimization/51315
+	* gcc.c-torture/execute/20111208-1.c: Fix wrong assumption
+	sizeof(int)==4.
+
+2011-12-08  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/50747
+	* g++.dg/opt/pr50747-1_0.C: New testcase.
+	* g++.dg/opt/pr50747-2_0.C: Likewise.
+
+2011-12-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/execute/20111208-1.c: New test.
+
+2011-12-08  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/48437
+	* gcc.dg/lto/20111207-2_0.c: New testcase.
+	* gcc.dg/guality/pr48437.c: Likewise.
+
+2011-12-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/51401
+	* g++.dg/cpp0x/auto7.C: Adjust expected error message.
+	* g++.dg/cpp0x/auto29.C: New test.
+
+	PR c++/51429
+	* g++.dg/parse/error45.C: New test.
+
+	PR c++/51229
+	* g++.dg/ext/desig3.C: New test.
+
+	PR c++/51369
+	* g++.dg/cpp0x/constexpr-51369.C: New test.
+
+2011-12-07  Andrew Pinski  <apinski@cavium.com>
+
+	PR middle-end/45416
+	* gcc.dg/pr45416.c: New testcase.
+
+2011-12-07  Ed Smith-Rowland <3dw4rd@verizon.net>
+
+	PR c++/51420
+	* g++.dg/cpp0x/pr51420.C: New.
+
+2011-12-07  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/48100
+	* gcc.dg/lto/20111207-1_0.c: New testcase.
+	* gcc.dg/lto/20111207-1_1.c: Likewise.
+	* gcc.dg/lto/20111207-1_2.c: Likewise.
+	* gcc.dg/lto/20111207-1_3.c: Likewise.
+
+2011-12-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50823
+	* gcc.dg/torture/pr50823.c: New testcase.
+
+2011-12-07  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/50744
+	* gcc.dg/ipa/pr50744.c: New test.
+
+2011-12-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/51430
+	* g++.dg/template/static32.C: New test.
+
+2011-12-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* g++.dg/opt/pr51396.C: Use dg-additional-options.
+
+2011-12-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51435
+	* gfortran.dg/default_initialization_5.f90: New.
+
+2011-12-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/51354
+	* gcc.c-torture/compile/pr51354.c: New test.
+
+2011-12-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51431
+	* g++.dg/other/abstract3.C: New.
+
+2011-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49997
+	* gcc.dg/torture/pr49997.c: New testcase.
+
+2011-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51436
+	* g++.dg/torture/pr51436.C: New testcase.
+
+2011-12-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51245
+	* gcc.dg/torture/pr51245.c: New testcase.
+
+2011-12-06  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51427
+	* g++.dg/diagnostic/wrong-tag-1.C
+
+2011-12-05  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/51319
+	* g++.dg/lookup/using50.C: New.
+	* g++.dg/lookup/using51.C: New.
+
+2011-12-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51396
+	* g++.dg/opt/pr51396.C: New test.
+
+	PR debug/51410
+	* gcc.dg/debug/dwarf2/pr51410.c: New test.
+
+	PR c/51339
+	* gcc.dg/gomp/pr51339.c: New test.
+
+2011-12-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51399
+	* g++.dg/cpp0x/initlist62.C: New.
+
+2011-12-05  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/51338
+	* gfortran.dg/assumed_charlen_substring_1.f90:  New test.
+
+2011-12-05  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* g++.dg/debug/pr46338.C: Add dg-require-profiling.
+	* g++.dg/torture/pr39732.C: Likewise.
+	* g++.dg/torture/pr40642.C: Likewise.
+	* gcc.c-torture/compile/pr44686.c: Likewise.
+	* gcc.dg/20050309-1.c: Likewise.
+	* gcc.dg/20050330-2.c: Likewise.
+	* gcc.dg/20051201-1.c: Likewise.
+	* gcc.dg/gomp/pr27573.c: Likewise.
+	* gcc.dg/pr46255.c: Likewise.
+	* gcc.dg/profile-dir-1.c: Likewise.
+	* gcc.dg/profile-dir-2.c: Likewise.
+	* gcc.dg/profile-dir-3.c: Likewise.
+	* gcc.dg/profile-generate-1.c: Likewise.
+	* gfortran.dg/gomp/pr27573.f90: Likewise.
+	* gcc.dg/profile-generate-3.c: Be specific about the type of
+	profiling required.
+
+2011-12-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51414
+	* g++.dg/ext/underlying_type11.C: New.
+
+2011-12-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/51128
+	* gcc.dg/torture/pr23821.c: Skip if -fno-fat-lto-objects was passed.
+	* gcc.dg/torture/pr39074.c: Ditto.
+	* gcc.dg/torture/pr39074-2.c: Ditto.
+	* gcc.dg/torture/pr42898.c: Ditto.
+	* gcc.dg/torture/pr42898-2.c: Ditto.
+	* gcc.dg/torture/pr45704.c: Ditto.
+	* gcc.dg/torture/pr50472.c: Ditto.
+	* gcc.dg/torture/pta-callused-1.c: Ditto.
+	* gcc.dg/torture/pta-ptrarith-1.c: Ditto.
+	* gcc.dg/torture/pta-ptrarith-2.c: Ditto.
+	* gcc.dg/torture/pta-ptrarith-3.c: Ditto.
+	* gcc.dg/torture/pta-escape-1.c: Ditto.
+	* gcc.dg/torture/ipa-pta-1.c: Ditto.
+	* gcc.dg/torture/ssa-pta-fn-1.c: Ditto.
+
+2011-12-05  Kazu Hirata  <kazu@codesourcery.com>
+
+	PR target/51408
+	* gcc.dg/pr51408.c: New.
+
+2011-12-05  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/dc6.C: New.
+
+2011-12-05  Ville Voutilainen  <ville.voutilainen@gmail.com>
+	    Pedro Lamarão <pedro.lamarao@gmail.com>
+
+	* g++.dg/cpp0x/dc1.C: New test.
+	* g++.dg/cpp0x/dc2.C: New test.
+	* g++.dg/cpp0x/dc3.C: New test.
+	* g++.dg/cpp0x/dc4.C: New test.
+	* g++.dg/cpp0x/dc5.C: New test.
+	* g++.dg/template/meminit1.C: Adjust expected error.
+
+2011-12-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51404
+	* g++.dg/cpp0x/auto28.C: New.
+
+2011-12-05  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	* gcc.dg/torture/vec-cvt-1.c (FLTTEST): Call rand instead of random.
+
+2011-12-05  Jakub Jelinek  <jakub@redhat.com>
+	    Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/51323
+	PR middle-end/50074
+	* gcc.c-torture/execute/pr51323.c: New test.
+
+2011-12-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51383
+	* gfortran.dg/associate_10.f90: New.
+
+2011-12-04  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR middle-end/51285
+	* gfortran.dg/vect/pr51285.f90: New test.
+
+2011-12-04  Uros Bizjak  <ubizjak@gmail.com>
+	    Jérémie Detrey  <Jeremie.Detrey@loria.fr>
+
+	PR target/51393
+	* gcc.target/i386/pr51393.c: New test.
+
+2011-12-03  Dominique d'Humieres  <dominiq@lps.ens.fr>
+
+	PR obj-c++/51349
+	* obj-c++.dg/naming-3.mm: Adjust for changing error messages.
+	* obj-c++.dg/naming-4.mm: Likewise.
+
+2011-12-03  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* gcc.dg/darwin-segaddr.c: Use -no-pie.
+
+2011-12-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51313
+	* g++.dg/cpp0x/pr51313.C: New.
+
+2011-12-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/48887
+	* gfortran.dg/select_type_24.f90: New.
+	* gfortran.dg/select_type_23.f03: Add dg-error.
+	* gfortran.dg/class_45a.f03: Add missing TARGET attribute.
+
+2011-12-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/vect/vect-122.c: New test.
+
+2011-12-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50684
+	* gfortran.dg/move_alloc_8.f90: New.
+
+2011-12-03  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/select_type_23.f03: Revert Rev. 181801,
+	i.e. remove the dg-error line.
+	* gfortran.dg/move_alloc_5.f90: Ditto and change back to dg-do run.
+	* gfortran.dg/move_alloc_9.f90: New.
+	* gfortran.dg/move_alloc_10.f90: New
+
+2011-12-02  Nathan Sidwell  <nathan@acm.org>
+
+	* lib/gcov.exp (verify-lines): Allow = as a count char.
+	* g++.dg/gcov/gcov-13.C: New.
+
+2011-12-02  Michael Zolotukhin  <michael.v.zolotukhin@intel.com>
+
+	* gcc.dg/vect/slp-13.c: Increase array size, add initialization.
+	* gcc.dg/vect/slp-24.c: Ditto.
+	* gcc.dg/vect/slp-3.c: Likewise and fix scans.
+	* gcc.dg/vect/slp-34.c: Ditto.
+	* gcc.dg/vect/slp-4.c: Ditto.
+	* gcc.dg/vect/slp-cond-2.c: Ditto.
+	* gcc.dg/vect/slp-multitypes-11.c: Ditto.
+	* gcc.dg/vect/vect-1.c: Ditto.
+	* gcc.dg/vect/vect-10.c: Ditto.
+	* gcc.dg/vect/vect-105.c: Ditto.
+	* gcc.dg/vect/vect-112.c: Ditto.
+	* gcc.dg/vect/vect-15.c: Ditto.
+	* gcc.dg/vect/vect-2.c: Ditto.
+	* gcc.dg/vect/vect-31.c: Ditto.
+	* gcc.dg/vect/vect-32.c: Ditto.
+	* gcc.dg/vect/vect-33.c: Ditto.
+	* gcc.dg/vect/vect-34.c: Ditto.
+	* gcc.dg/vect/vect-35.c: Ditto.
+	* gcc.dg/vect/vect-36.c: Ditto.
+	* gcc.dg/vect/vect-6.c: Ditto.
+	* gcc.dg/vect/vect-73.c: Ditto.
+	* gcc.dg/vect/vect-74.c: Ditto.
+	* gcc.dg/vect/vect-75.c: Ditto.
+	* gcc.dg/vect/vect-76.c: Ditto.
+	* gcc.dg/vect/vect-80.c: Ditto.
+	* gcc.dg/vect/vect-85.c: Ditto.
+	* gcc.dg/vect/vect-89.c: Ditto.
+	* gcc.dg/vect/vect-97.c: Ditto.
+	* gcc.dg/vect/vect-98.c: Ditto.
+	* gcc.dg/vect/vect-all.c: Ditto.
+	* gcc.dg/vect/vect-double-reduc-6.c: Ditto.
+	* gcc.dg/vect/vect-iv-8.c: Ditto.
+	* gcc.dg/vect/vect-iv-8a.c: Ditto.
+	* gcc.dg/vect/vect-outer-1.c: Ditto.
+	* gcc.dg/vect/vect-outer-1a.c: Ditto.
+	* gcc.dg/vect/vect-outer-1b.c: Ditto.
+	* gcc.dg/vect/vect-outer-2.c: Ditto.
+	* gcc.dg/vect/vect-outer-2a.c: Ditto.
+	* gcc.dg/vect/vect-outer-2c.c: Ditto.
+	* gcc.dg/vect/vect-outer-3.c: Ditto.
+	* gcc.dg/vect/vect-outer-3a.c: Ditto.
+	* gcc.dg/vect/vect-outer-4a.c: Ditto.
+	* gcc.dg/vect/vect-outer-4b.c: Ditto.
+	* gcc.dg/vect/vect-outer-4c.c: Ditto.
+	* gcc.dg/vect/vect-outer-4d.c: Ditto.
+	* gcc.dg/vect/vect-outer-4m.c: Ditto.
+	* gcc.dg/vect/vect-outer-fir-lb.c: Ditto.
+	* gcc.dg/vect/vect-outer-fir.c: Ditto.
+	* gcc.dg/vect/vect-over-widen-1.c: Ditto.
+	* gcc.dg/vect/vect-over-widen-2.c: Ditto.
+	* gcc.dg/vect/vect-over-widen-3.c: Ditto.
+	* gcc.dg/vect/vect-over-widen-4.c: Ditto.
+	* gcc.dg/vect/vect-reduc-1char.c: Ditto.
+	* gcc.dg/vect/vect-reduc-2char.c: Ditto.
+	* gcc.dg/vect/vect-reduc-pattern-1b.c: Ditto.
+	* gcc.dg/vect/vect-reduc-pattern-1c.c: Ditto.
+	* gcc.dg/vect/vect-reduc-pattern-2b.c: Ditto.
+	* gcc.dg/vect/vect-shift-2.c: Ditto.
+	* gcc.dg/vect/vect-strided-a-u8-i8-gap2.c: Ditto.
+	* gcc.dg/vect/vect-strided-a-u8-i8-gap7.c: Ditto.
+	* gcc.dg/vect/vect-strided-u8-i8-gap2.c: Ditto.
+	* gcc.dg/vect/vect-strided-u8-i8-gap4.c: Ditto.
+	* gcc.dg/vect/vect-strided-u8-i8-gap7.c: Ditto.
+
+2011-12-02  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.c-torture/execute/vector-subscript-1.c (main): Fix
+	__builtin_memcpy arguments to honor sizeof(a).
+
+2011-12-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.c-torture/execute/doloop-1.c,
+	gcc.c-torture/execute/doloop-2.c: New tests.
+
+2011-12-02  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/50622
+	* g++.dg/tree-ssa/pr50622.C: New test.
+
+2011-12-01  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/initlist61.C: New.
+
+2011-12-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51326
+	* g++.dg/inherit/crash3.C: New.
+
+2011-12-01  Nathan Sidwell  <nathan@acm.org>
+
+	PR gcov-profile/51113
+	* lib/gcov.exp (verify-lines): Add support for xfailing.
+	(run-gcov): Likewise.
+	* gcc.misc-tests/gcov-13.c: Xfail weak function.
+	* gcc.misc-tests/gcov-16.c: Remove.
+	* gcc.misc-tests/gcov-17.c: Remove.
+	* g++.dg/gcov-8.C: Remove.
+	* g++.dg/gcov-9.C: Remove.
+	* g++.dg/gcovpart-12b.C: New.
+	* g++.dg/gcov-12.C: New.
+
+2011-12-01  Andrew Pinski  <apinski@cavium.com>
+
+	PR lto/51198
+	* g++.dg/torture/pr51198.C: New testcase.
+
+2011-12-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51246
+	* gcc.c-torture/compile/pr51246.c: New test.
+
+	PR rtl-optimization/51014
+	* g++.dg/opt/pr51014.C: New test.
+
+2011-12-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51367
+	* g++.dg/template/error47.C: New.
+
+2011-11-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51009
+	* g++.dg/init/aggr8.C: New.
+
+2011-11-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/50725
+	* gcc.target/i386/pr50725.c: New test.
+
+	PR middle-end/51089
+	* gfortran.dg/gomp/pr51089.f90: New test.
+
+2011-11-30  Andrew Pinski  <apinski@cavium.com>
+
+	* gcc.dg/pr51321.c: New testcase.
+
+2011-11-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/48721
+	* gcc.target/i386/pr48721.c: New test.
+
+2011-11-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51299
+	* g++.dg/warn/Wzero-as-null-pointer-constant-4.C: New.
+
+2011-11-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51247
+	* gcc.c-torture/compile/pr51247.c: New test.
+
+2011-11-29  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR target/50123
+	* gcc.dg/atomic-op-optimize.c: New.  Test for optimizations.
+
+2011-11-29  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/ppc-target-4.c: New file to test target
+	specific functions enabling target specific builtins.
+
+2011-11-29  Yufeng Zhang  <yufeng.zhang@arm.com>
+
+	Use complex floating-point constant in CDBL.
+
+	* gcc.dg/compat/compat-common.h (CDBL): Replace 1i with 1.0i.
+
+2011-11-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51306
+	PR fortran/48700
+	* gfortran.dg/move_alloc_5.f90: Add dg-error.
+	* gfortran.dg/select_type_23.f03: Add dg-error.
+	* gfortran.dg/move_alloc_6.f90: New.
+	* gfortran.dg/move_alloc_7.f90: New.
+
+2011-11-29  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/51301
+	* gcc.dg/vect/pr51301.c: New test.
+
+2011-11-28  Uros Bizjak  <ubizjak@gmail.com>
+
+	* g++.dg/cdce3.C: Use dg-additional-options.
+
+2011-11-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/50907
+	* gcc.dg/tree-prof/pr50907.c: New test.
+
+	PR tree-optimization/50078
+	* gcc.dg/pr50078.c: New test.
+
+	PR tree-optimization/50682
+	* g++.dg/opt/pr50682.C: New test.
+
+2011-11-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51308
+	* gfortran.dg/iso_c_binding_compiler_4.f90: New.
+
+2011-11-27  Aldy Hernandez  <aldyh@redhat.com>
+	    Iain Sandoe  <iains@gcc.gnu.org>
+
+	* gcc.dg/lto/trans-mem-2_0.c: Add dg-lto-do link.  Add dummy
+	functions for _ITM_registerTMCloneTable, _ITM_deregisterTMCloneTable.
+	* gcc.dg/lto/trans-mem-1_0.c: Add dg-lto-do link.
+	* gcc.dg/lto/trans-mem-1_1.c:  Add dummy functions for
+	_ITM_registerTMCloneTable, _ITM_deregisterTMCloneTable.
+
+2011-11-27  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/mult-2.c, gcc.target/mips/mult-3.c,
+	gcc.target/mips/mult-4.c, gcc.target/mips/mult-5.c,
+	gcc.target/mips/mult-6.c, gcc.target/mips/mult-7.c,
+	gcc.target/mips/mult-8.c, gcc.target/mips/mult-9.c,
+	gcc.target/mips/mult-10.c, gcc.target/mips/mult-11.c,
+	gcc.target/mips/mult-12.c, gcc.target/mips/mult-13.c,
+	gcc.target/mips/mult-14.c, gcc.target/mips/mult-15.c,
+	gcc.target/mips/mult-16.c, gcc.target/mips/mult-17.c,
+	gcc.target/mips/mult-18.c, gcc.target/mips/mult-19.c,
+	gcc.target/mips/div-1.c, gcc.target/mips/div-2.c,
+	gcc.target/mips/div-3.c, gcc.target/mips/div-4.c,
+	gcc.target/mips/div-5.c, gcc.target/mips/div-6.c,
+	gcc.target/mips/div-7.c, gcc.target/mips/div-8.c,
+	gcc.target/mips/div-9.c, gcc.target/mips/div-10.c,
+	gcc.target/mips/div-11.c, gcc.target/mips/div-12.c: New tests.
+	* gcc.target/mips/fix-r4000-1.c (foo, bar): Add NOMIPS16.
+	* gcc.target/mips/fix-r4000-2.c (foo): Likewise.
+	* gcc.target/mips/fix-r4000-3.c (foo): Likewise.
+	* gcc.target/mips/fix-r4000-4.c (foo): Likewise.
+	* gcc.target/mips/fix-r4000-5.c (foo): Likewise.
+	* gcc.target/mips/fix-r4000-6.c (foo): Likewise.
+	* gcc.target/mips/fix-r4000-7.c (foo): Likewise.
+	* gcc.target/mips/fix-r4000-8.c (foo): Likewise.
+	* gcc.target/mips/fix-r4000-9.c (foo): Likewise.
+	* gcc.target/mips/fix-r4000-10.c (foo): Likewise.
+	* gcc.target/mips/fix-r4000-11.c (foo): Likewise.
+	* gcc.target/mips/fix-r4000-12.c (foo): Likewise.
+
+2011-11-27  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/mips.exp (mips-dg-options): Make -mno-dsp
+	imply -mno-dspr2.
+	* gcc.target/mips/no-dsp-1.c: New test.
+	* gcc.target/mips/soft-float-1.c: Likewise.
+
+2011-11-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/49912
+	* g++.dg/other/pr49912.C: New test.
+
+2011-11-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/vect/fast-math-vect-call-2.c: Require vect_double
+	effective target.
+	* gcc.dg/vect/fast-math-bb-slp-call-2.c: Ditto.
+
+2011-11-25  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/51250
+	PR fortran/43829
+	* gfortran.dg/inline_sum_3.f90: New test.
+
+2011-11-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/51258
+	* lib/target-supports.exp
+	(check_effective_target_sync_long_long): Also supported on 32bit
+	x86 targets.  Add comment about required dg-options.
+	Add alpha*-*-* targets.
+	(check_effective_target_sync_long_long_runtime): Ditto.
+
+	* gcc.dg/atomic-op-4.c (dg-options): Add -march=pentium for
+	32bit x86 targets.
+	* gcc.dg/atomic-compare-exchange-4.c: Ditto.
+	* gcc.dg/atomic-exchange-4.c: Ditto.
+	* gcc.dg/atomic-load-4.c: Ditto.
+	* gcc.dg/atomic-store-4.c: Ditto.
+	* gcc.dg/di-longlong64-sync-1.c: Ditto.
+	* gcc.dg/di-sync-multithread.c: Ditto.
+	* gcc.dg/simulate-thread/atomic-load-longlong.c: Ditto.
+	* gcc.dg/simulate-thread/atomic-other-longlong.c: Ditto.
+
+2011-11-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/51258
+	* lib/target-supports.exp
+	(check_effective_target_sync_int_128_runtime): New procedure.
+	(check_effective_target_sync_long_long_runtime): Ditto.
+	(check_effective_target_sync_long_long): Add arm*-*-*.
+	(check_effective_target_sync_longlong): Remove.
+
+	* gcc.dg/atomic-op-5.c: Require sync_int_128_runtime effective target.
+	* gcc.dg/atomic-compare-exchange-5.c: Ditto.
+	* gcc.dg/atomic-exchange-5.c: Ditto.
+	* gcc.dg/atomic-load-5.c: Ditto.
+	* gcc.dg/atomic-store-5.c: Ditto.
+	* gcc.dg/simulate-thread/atomic-load-int128.c: Ditto.
+	* gcc.dg/simulate-thread/atomic-other-int128.c: Ditto.
+	* gcc.dg/atomic-op-4.c: Require sync_long_long_runtime
+	effective target.
+	* gcc.dg/atomic-compare-exchange-4.c: Ditto.
+	* gcc.dg/atomic-exchange-4.c: Ditto.
+	* gcc.dg/atomic-load-4.c: Ditto.
+	* gcc.dg/atomic-store-4.c: Ditto.
+	* gcc.dg/di-longlong64-sync-1.c: Ditto.
+	* gcc.dg/di-sync-multithread.c: Ditto.
+	* gcc.dg/simulate-thread/atomic-load-longlong.c: Ditto.
+	* gcc.dg/simulate-thread/atomic-other-longlong.c: Ditto.
+
+2011-11-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50408
+	* gfortran.dg/whole_file_35.f90: New.
+
+2011-11-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51302
+	* gfortran.dg/volatile13.f90: New.
+
+2011-11-24  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR c/51256
+	* gcc.dg/atomic-pr51256.c: New.  Test error conditions.
+
+2011-11-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51227
+	* g++.dg/cpp0x/lambda/lambda-ice5.C: New.
+
 2011-11-24  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/51134
@@ -84,8 +750,8 @@
 
 2011-11-22  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
 
-        * gcc.dg/vshift-1.c (main): Call rand instead of random.
-        * gcc.dg/vshift-3.c (main): Likewise.
+	* gcc.dg/vshift-1.c (main): Call rand instead of random.
+	* gcc.dg/vshift-3.c (main): Likewise.
 
 2011-11-22  Iain Sandoe  <iains@gcc.gnu.org>
 
@@ -3274,7 +3940,7 @@
 
 	* gcc.dg/tree-ssa/foldconst-3.c: Don't use short enums.
 
-2011-09-15   Diego Novillo  <dnovillo@google.com>
+2011-09-15  Diego Novillo  <dnovillo@google.com>
 
 	* lib/g++.exp (g++_init): Add $TEST_ALWAYS_FLAGS to
 	ALWAYS_CXXFLAGS, if defined.
@@ -8228,7 +8894,7 @@
 
 2011-06-06  Nicola Pero  <nicola.pero@meta-innovation.com>
 
-	PR objc-++/48275
+	PR obj-c++/48275
 	* obj-c++.dg/property/cxx-property-1.mm: New.
 	* obj-c++.dg/property/cxx-property-2.mm: New.
 
