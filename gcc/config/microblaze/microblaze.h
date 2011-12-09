@@ -562,7 +562,7 @@ typedef struct microblaze_args
 
 /* Define this, so that when PIC, reload won't try to reload invalid
    addresses which require two reload registers.  */
-#define LEGITIMATE_PIC_OPERAND_P(X)  (!pic_address_needs_scratch (X))
+#define LEGITIMATE_PIC_OPERAND_P(X)  microblaze_legitimate_pic_operand (X)
 
 /* At present, GAS doesn't understand li.[sd], so don't allow it
    to be generated at present.  */
