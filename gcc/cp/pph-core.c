@@ -586,7 +586,8 @@ pph_is_valid_here (const char *name, location_t loc)
      the original text file.  */
   if (scope_chain->x_brace_nesting > 0)
     {
-      error_at (loc, "PPH file %s not included at global scope", name);
+      warning_at (loc, OPT_Winvalid_pph,
+		  "PPH file %s not included at global scope", name);
       return false;
     }
 
@@ -626,22 +627,22 @@ pph_include_handler (cpp_reader *reader,
       && pph_is_valid_here (name, loc)
       && !cpp_included_before (reader, name, input_location))
     {
-      pph_stream *include;
+      pph_stream *include = pph_read_file (pph_file);
+      if (include)
+	{
+	  /* If we are generating a new PPH image, add the stream we
+	     just read to the list of includes.   This way, the parser
+	     will be able to resolve references to symbols in INCLUDE
+	     and its children.  */
+	  if (pph_writer_enabled_p ())
+	    pph_writer_add_include (include);
 
-      /* Hack. We do this to mimic what the non-pph compiler does in
-	_cpp_stack_include as our goal is to have identical line_tables.  */
-      line_table->highest_location--;
-
-      include = pph_read_file (pph_file);
-
-      /* If we are generating a new PPH image, add the stream we just
-	 read to the list of includes.   This way, the parser will be
-	 able to resolve references to symbols in INCLUDE and its
-	 children.  */
-      if (pph_writer_enabled_p ())
-	pph_writer_add_include (include);
-
-      read_text_file_p = false;
+	  read_text_file_p = false;
+	}
+      else
+	warning_at (input_location, OPT_Wmissing_pph,
+		    "cannot open PPH file %s for reading: %m\n"
+		    "using original header %s", pph_file, name);
     }
 
   return read_text_file_p;

@@ -1,3 +1,7 @@
+2011-12-09   Diego Novillo  <dnovillo@google.com>
+
+	* c.opt (Winvalid-pph, Wmissing-pph): New flags.
+
 2011-11-13   Diego Novillo  <dnovillo@google.com>
 
 	* c.opt (fpph-include-tree): New.

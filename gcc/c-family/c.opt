@@ -448,6 +448,11 @@ Winvalid-pch
 C ObjC C++ ObjC++ Warning
 Warn about PCH files that are found but not used
 
+Winvalid-pph
+C++ Warning
+Warn about PPH files that are found but cannot used
+
+
 Wjump-misses-init
 C ObjC Var(warn_jump_misses_init) Init(-1) Warning
 Warn when a jump misses a variable initialization
@@ -491,6 +496,10 @@ Warn about function parameters declared without a type specifier in K&R-style fu
 Wmissing-prototypes
 C ObjC Var(warn_missing_prototypes) Warning
 Warn about global functions without prototypes
+
+Wmissing-pph
+C++ Warning
+Warn about missing PPH files
 
 Wmultichar
 C ObjC C++ ObjC++ Warning

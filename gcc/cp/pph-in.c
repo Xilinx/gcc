@@ -2900,10 +2900,15 @@ pph_stream *
 pph_read_file (const char *filename)
 {
   pph_stream *stream = pph_stream_open (filename, "rb");
-  if (stream == NULL)
-    fatal_error ("cannot open PPH file %s for reading: %m", filename);
+  if (stream)
+    {
+      /* FIXME pph.  We do this to mimic what the non-pph compiler
+	 does in _cpp_stack_include as our goal is to have identical
+	 line_tables.  */
+      line_table->highest_location--;
 
-  pph_read_file_1 (stream);
+      pph_read_file_1 (stream);
+    }
 
   return stream;
 }

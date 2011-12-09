@@ -1,3 +1,12 @@
+2011-12-09   Diego Novillo  <dnovillo@google.com>
+
+	* pph-core.c (pph_is_valid_here): Call warning_at instead of
+	error_at.
+	(pph_include_handler): If pph_read_file returns NULL, emit
+	warning and proceed with textual header parsing.
+	* pph-in.c (pph_read_file): Do not call fatal_error if
+	FILENAME is not found.
+
 2011-12-08   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer.h (struct pph_stream): Add field HEADER_NAME.
