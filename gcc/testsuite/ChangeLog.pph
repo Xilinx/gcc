@@ -1,3 +1,8 @@
+2011-12-09   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/d1symnotinc.cc: Expect warning.
+	* g++.dg/pph/y8inc-nmspc.cc: Likewise.
+
 2011-12-05   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x1namespace-alias1.cc: Rename from x1namespace-alias.cc
