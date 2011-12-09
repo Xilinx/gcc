@@ -1,3 +1,8 @@
+2011-12-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* init.c (__gnat_adjust_context_for_raise): Properly check x32
+	probe pattern.
+
 2011-12-08  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* init.c (__gnat_adjust_context_for_raise): Also check
