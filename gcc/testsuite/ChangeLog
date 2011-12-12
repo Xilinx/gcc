@@ -1,3 +1,377 @@
+2011-12-12  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/51262
+	* g++.dg/opt/pr51262.C: New testcase.
+
+2011-12-12  Revital Eres  <revital.eres@linaro.org>
+
+	PR rtl-optimization/47013
+	* gcc.dg/sms-2.c: Change scan-tree-dump-times and the code itself
+	to preserve the function.
+	* gcc.dg/sms-6.c: Add --param sms-min-sc=1. Add dg-options for
+	powerpc*-*-*.  Avoid superfluous spaces in dg-final.
+	* gcc.dg/sms-3.c: Add --param sms-min-sc=1 and
+	-fmodulo-sched-allow-regmoves flags.
+	* gcc.dg/sms-7.c: Likewise. Remove dg-final for powerpc*-*-*
+	and avoid superfluous spaces in dg-final for spu-*-*.
+	* gcc.dg/sms-4.c: Add dg-options for powerpc*-*-*.
+	* gcc.dg/sms-8.c: Add --param sms-min-sc=1.  Add dg-options and
+	change scan-rtl-dump-times for powerpc*-*-*.
+	* gcc.dg/sms-5.c: Add --param sms-min-sc=1 flag, remove
+	powerpc*-*-* from dg-final and avoid superfluous spaces in
+	dg-final.
+	* gcc.dg/sms-9.c: Remove -fno-auto-inc-dec.
+
+2011-12-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51485
+	* g++.dg/vect/pr51485.cc: New test.
+
+2011-12-11  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50923
+	* gfortran.dg/warn_function_without_result_2.f90: New.
+
+2011-12-11  Paul Thomas  <pault@gcc.gnu.org>
+	Tobias Burnus  <burnus@gcc.gnu.org>
+
+	PR fortran/41539
+	PR fortran/43214
+	PR fortran/43969
+	PR fortran/44568
+	PR fortran/46356
+	PR fortran/46990
+	PR fortran/49074
+	* gfortran.dg/class_array_1.f03: New.
+	* gfortran.dg/class_array_2.f03: New.
+	* gfortran.dg/class_array_3.f03: New.
+	* gfortran.dg/class_array_4.f03: New.
+	* gfortran.dg/class_array_5.f03: New.
+	* gfortran.dg/class_array_6.f03: New.
+	* gfortran.dg/class_array_7.f03: New.
+	* gfortran.dg/class_array_8.f03: New.
+	* gfortran.dg/coarray_poly_1.f90: New.
+	* gfortran.dg/coarray_poly_2.f90: New.
+	* gfortran.dg/coarray/poly_run_1.f90: New.
+	* gfortran.dg/coarray/poly_run_2.f90: New.
+	* gfortran.dg/class_to_type_1.f03: New.
+	* gfortran.dg/type_to_class_1.f03: New.
+	* gfortran.dg/typebound_assignment_3.f03: Remove the error.
+	* gfortran.dg/auto_dealloc_2.f90: Occurences of __builtin_free
+	now 2.
+	* gfortran.dg/class_19.f03: Occurences of __builtin_free now 8.
+
+2011-12-11  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/50690
+	* gfortran.dg/gomp/workshare2.f90:  New test.
+	* gfortran.dg/gomp/workshare3.f90:  New test.
+
+2011-12-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/elab3.ads: New test.
+
+2011-12-10  Richard Henderson  <rth@redhat.com>
+
+	* gcc.target/powerpc/altivec-perm-1.c: New.
+	* gcc.target/powerpc/altivec-perm-2.c: New.
+	* gcc.target/powerpc/altivec-perm-4.c: New.
+
+2011-12-10  Joern Rennecke <joern.rennecke@embecosm.com>
+
+	* gcc.target/epiphany/interrupt.c: Add dg-options "-g".
+	Add a scan-assembler-time clause to test for the interupt vector jump.
+	(f): Rename to ...
+	(dma0_handler): ... this.
+
+2011-12-10  Nathan Sidwell  <nathan@acm.org>
+
+	PR gcov-profile/51449
+	* g++.dg/gcov/gcov-14.C: New.
+
+2011-12-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/compile/20111209-1.c: New test.
+
+2011-12-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51151
+	* g++.dg/warn/Woverflow-4.C: New.
+
+2011-12-09  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51289
+	* g++.dg/cpp0x/alias-decl-17.C: New test.
+
+2011-12-09  Michael Meissner  <meissner@the-meissners.org>
+
+	* gcc.target/powerpc/recip-5.c: Disable running on any system that
+	does not support VSX.
+
+	* gcc.target/powerpc/ppc-target-4.c: New file to test target
+	specific functions enabling target specific builtins.
+
+2011-12-09  Michael Zolotukhin  <michael.v.zolotukhin@intel.com>
+
+	* gcc.dg/vect/slp-13.c: Array size increase reverted.
+	* gcc.dg/vect/slp-24.c: Ditto.
+	* gcc.dg/vect/slp-3.c: Ditto.
+	* gcc.dg/vect/slp-34.c: Ditto.
+	* gcc.dg/vect/slp-4.c: Ditto.
+	* gcc.dg/vect/slp-cond-2.c: Ditto.
+	* gcc.dg/vect/slp-multitypes-11.c: Ditto.
+	* gcc.dg/vect/vect-1.c: Ditto.
+	* gcc.dg/vect/vect-10.c: Ditto.
+	* gcc.dg/vect/vect-105.c: Ditto.
+	* gcc.dg/vect/vect-112.c: Ditto.
+	* gcc.dg/vect/vect-15.c: Ditto.
+	* gcc.dg/vect/vect-2.c: Ditto.
+	* gcc.dg/vect/vect-31.c: Ditto.
+	* gcc.dg/vect/vect-32.c: Ditto.
+	* gcc.dg/vect/vect-33.c: Ditto.
+	* gcc.dg/vect/vect-34.c: Ditto.
+	* gcc.dg/vect/vect-35.c: Ditto.
+	* gcc.dg/vect/vect-36.c: Ditto.
+	* gcc.dg/vect/vect-6.c: Ditto.
+	* gcc.dg/vect/vect-73.c: Ditto.
+	* gcc.dg/vect/vect-74.c: Ditto.
+	* gcc.dg/vect/vect-75.c: Ditto.
+	* gcc.dg/vect/vect-76.c: Ditto.
+	* gcc.dg/vect/vect-80.c: Ditto.
+	* gcc.dg/vect/vect-85.c: Ditto.
+	* gcc.dg/vect/vect-89.c: Ditto.
+	* gcc.dg/vect/vect-97.c: Ditto.
+	* gcc.dg/vect/vect-98.c: Ditto.
+	* gcc.dg/vect/vect-all.c: Ditto.
+	* gcc.dg/vect/vect-double-reduc-6.c: Ditto.
+	* gcc.dg/vect/vect-iv-8.c: Ditto.
+	* gcc.dg/vect/vect-iv-8a.c: Ditto.
+	* gcc.dg/vect/vect-outer-1.c: Ditto.
+	* gcc.dg/vect/vect-outer-1a.c: Ditto.
+	* gcc.dg/vect/vect-outer-1b.c: Ditto.
+	* gcc.dg/vect/vect-outer-2.c: Ditto.
+	* gcc.dg/vect/vect-outer-2a.c: Ditto.
+	* gcc.dg/vect/vect-outer-2c.c: Ditto.
+	* gcc.dg/vect/vect-outer-3.c: Ditto.
+	* gcc.dg/vect/vect-outer-3a.c: Ditto.
+	* gcc.dg/vect/vect-outer-4a.c: Ditto.
+	* gcc.dg/vect/vect-outer-4b.c: Ditto.
+	* gcc.dg/vect/vect-outer-4c.c: Ditto.
+	* gcc.dg/vect/vect-outer-4d.c: Ditto.
+	* gcc.dg/vect/vect-outer-4m.c: Ditto.
+	* gcc.dg/vect/vect-outer-fir-lb.c: Ditto.
+	* gcc.dg/vect/vect-outer-fir.c: Ditto.
+	* gcc.dg/vect/vect-over-widen-1.c: Ditto.
+	* gcc.dg/vect/vect-over-widen-2.c: Ditto.
+	* gcc.dg/vect/vect-over-widen-3.c: Ditto.
+	* gcc.dg/vect/vect-over-widen-4.c: Ditto.
+	* gcc.dg/vect/vect-reduc-1char.c: Ditto.
+	* gcc.dg/vect/vect-reduc-2char.c: Ditto.
+	* gcc.dg/vect/vect-reduc-pattern-1b.c: Ditto.
+	* gcc.dg/vect/vect-reduc-pattern-1c.c: Ditto.
+	* gcc.dg/vect/vect-reduc-pattern-2b.c: Ditto.
+	* gcc.dg/vect/vect-shift-2.c: Ditto.
+	* gcc.dg/vect/vect-strided-a-u8-i8-gap2.c: Ditto.
+	* gcc.dg/vect/vect-strided-a-u8-i8-gap7.c: Ditto.
+	* gcc.dg/vect/vect-strided-u8-i8-gap2.c: Ditto.
+	* gcc.dg/vect/vect-strided-u8-i8-gap4.c: Ditto.
+	* gcc.dg/vect/vect-strided-u8-i8-gap7.c: Ditto.
+	* gcc.dg/vect/slp-13-big-array.c: New test.
+	* gcc.dg/vect/slp-24-big-array.c: Ditto.
+	* gcc.dg/vect/slp-3-big-array.c: Ditto.
+	* gcc.dg/vect/slp-34-big-array.c: Ditto.
+	* gcc.dg/vect/slp-4-big-array.c: Ditto.
+	* gcc.dg/vect/slp-cond-2-big-array.c: Ditto.
+	* gcc.dg/vect/slp-multitypes-11-big-array.c: Ditto.
+	* gcc.dg/vect/vect-1-big-array.c: Ditto.
+	* gcc.dg/vect/vect-10-big-array.c: Ditto.
+	* gcc.dg/vect/vect-105-big-array.c: Ditto.
+	* gcc.dg/vect/vect-112-big-array.c: Ditto.
+	* gcc.dg/vect/vect-15-big-array.c: Ditto.
+	* gcc.dg/vect/vect-2-big-array.c: Ditto.
+	* gcc.dg/vect/vect-31-big-array.c: Ditto.
+	* gcc.dg/vect/vect-32-big-array.c: Ditto.
+	* gcc.dg/vect/vect-33-big-array.c: Ditto.
+	* gcc.dg/vect/vect-34-big-array.c: Ditto.
+	* gcc.dg/vect/vect-35-big-array.c: Ditto.
+	* gcc.dg/vect/vect-36-big-array.c: Ditto.
+	* gcc.dg/vect/vect-6-big-array.c: Ditto.
+	* gcc.dg/vect/vect-73-big-array.c: Ditto.
+	* gcc.dg/vect/vect-74-big-array.c: Ditto.
+	* gcc.dg/vect/vect-75-big-array.c: Ditto.
+	* gcc.dg/vect/vect-76-big-array.c: Ditto.
+	* gcc.dg/vect/vect-80-big-array.c: Ditto.
+	* gcc.dg/vect/vect-85-big-array.c: Ditto.
+	* gcc.dg/vect/vect-89-big-array.c: Ditto.
+	* gcc.dg/vect/vect-97-big-array.c: Ditto.
+	* gcc.dg/vect/vect-98-big-array.c: Ditto.
+	* gcc.dg/vect/vect-all-big-array.c: Ditto.
+	* gcc.dg/vect/vect-double-reduc-6-big-array.c: Ditto.
+	* gcc.dg/vect/vect-iv-8-big-array.c: Ditto.
+	* gcc.dg/vect/vect-iv-8a-big-array.c: Ditto.
+	* gcc.dg/vect/vect-outer-1-big-array.c: Ditto.
+	* gcc.dg/vect/vect-outer-1a-big-array.c: Ditto.
+	* gcc.dg/vect/vect-outer-1b-big-array.c: Ditto.
+	* gcc.dg/vect/vect-outer-2-big-array.c: Ditto.
+	* gcc.dg/vect/vect-outer-2a-big-array.c: Ditto.
+	* gcc.dg/vect/vect-outer-2c-big-array.c: Ditto.
+	* gcc.dg/vect/vect-outer-3-big-array.c: Ditto.
+	* gcc.dg/vect/vect-outer-3a-big-array.c: Ditto.
+	* gcc.dg/vect/vect-outer-4a-big-array.c: Ditto.
+	* gcc.dg/vect/vect-outer-4b-big-array.c: Ditto.
+	* gcc.dg/vect/vect-outer-4c-big-array.c: Ditto.
+	* gcc.dg/vect/vect-outer-4d-big-array.c: Ditto.
+	* gcc.dg/vect/vect-outer-4m-big-array.c: Ditto.
+	* gcc.dg/vect/vect-outer-fir-lb-big-array.c: Ditto.
+	* gcc.dg/vect/vect-outer-fir-big-array.c: Ditto.
+	* gcc.dg/vect/vect-over-widen-1-big-array.c: Ditto.
+	* gcc.dg/vect/vect-over-widen-2-big-array.c: Ditto.
+	* gcc.dg/vect/vect-over-widen-3-big-array.c: Ditto.
+	* gcc.dg/vect/vect-over-widen-4-big-array.c: Ditto.
+	* gcc.dg/vect/vect-reduc-1char-big-array.c: Ditto.
+	* gcc.dg/vect/vect-reduc-2char-big-array.c: Ditto.
+	* gcc.dg/vect/vect-reduc-pattern-1b-big-array.c: Ditto.
+	* gcc.dg/vect/vect-reduc-pattern-1c-big-array.c: Ditto.
+	* gcc.dg/vect/vect-reduc-pattern-2b-big-array.c: Ditto.
+	* gcc.dg/vect/vect-shift-2-big-array.c: Ditto.
+	* gcc.dg/vect/vect-strided-a-u8-i8-gap2-big-array.c: Ditto.
+	* gcc.dg/vect/vect-strided-a-u8-i8-gap7-big-array.c: Ditto.
+	* gcc.dg/vect/vect-strided-u8-i8-gap2-big-array.c: Ditto.
+	* gcc.dg/vect/vect-strided-u8-i8-gap4-big-array.c: Ditto.
+	* gcc.dg/vect/vect-strided-u8-i8-gap7-big-array.c: Ditto.
+
+2011-12-09  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/48042
+	* g++.dg/lto/pr48042_0.C: New testcase.
+
+2011-12-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51482
+	* g++.dg/torture/pr51482.C: New testcase.
+
+2011-12-08  Andrew Pinski  <apinski@cavium.com>
+
+	* gcc.target/mips/mult-1.c: Forbid all Octeon processors.
+	* gcc.target/mips/dmult-1.c: Likewise.
+	* gcc.target/mips/branch-1.c: Likewise.
+	* gcc.target/mips/extend-1.c: Likewise.
+
+2011-12-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51318
+	* g++.dg/template/cond8.C: New.
+
+	PR c++/51459
+	* g++.dg/cpp0x/lambda/lambda-template4.C: New.
+
+2011-12-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51466
+	* gcc.c-torture/execute/pr51466.c: New test.
+
+2011-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50815
+	* gfortran.dg/bounds_check_16.f90: New.
+
+2011-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51378
+	* gfortran.dg/private_type_14.f90: New.
+
+2011-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51407
+	* gfortran.dg/io_real_boz_3.f90: New.
+	* gfortran.dg/io_real_boz_4.f90: New.
+	* gfortran.dg/io_real_boz_5.f90: New.
+
+2011-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51448
+	* gfortran.dg/realloc_on_assign_8.f90: New.
+
+2011-12-08  Teresa Johnson  <tejohnson@google.com>
+
+	* gcc.target/i386/movdi-rex64.c: Remove unnecessary
+	unused label.
+
+2011-12-08  Teresa Johnson  <tejohnson@google.com>
+
+	* gcc.target/i386/movdi-rex64.c: Remove unnecessary
+	-Wwrite-strings option.
+
+2011-12-08  Teresa Johnson  <tejohnson@google.com>
+
+	* gcc.target/i386/movdi-rex64.c: New.
+
+2011-12-08  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/volatile3.c: New testcase.
+
+2011-12-08  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR tree-optimization/51315
+	* gcc.c-torture/execute/20111208-1.c (int16_t): Use __INT16_TYPE__
+	for typedef.
+	(int32_t): Use __INT32_TYPE__ for typedef.
+
+2011-12-08  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR tree-optimization/51315
+	* gcc.c-torture/execute/20111208-1.c: Fix wrong assumption
+	sizeof(int)==4.
+
+2011-12-08  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/50747
+	* g++.dg/opt/pr50747-1_0.C: New testcase.
+	* g++.dg/opt/pr50747-2_0.C: Likewise.
+
+2011-12-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/execute/20111208-1.c: New test.
+
+2011-12-08  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/48437
+	* gcc.dg/lto/20111207-2_0.c: New testcase.
+	* gcc.dg/guality/pr48437.c: Likewise.
+
+2011-12-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/51401
+	* g++.dg/cpp0x/auto7.C: Adjust expected error message.
+	* g++.dg/cpp0x/auto29.C: New test.
+
+	PR c++/51429
+	* g++.dg/parse/error45.C: New test.
+
+	PR c++/51229
+	* g++.dg/ext/desig3.C: New test.
+
+	PR c++/51369
+	* g++.dg/cpp0x/constexpr-51369.C: New test.
+
+2011-12-07  Andrew Pinski  <apinski@cavium.com>
+
+	PR middle-end/45416
+	* gcc.dg/pr45416.c: New testcase.
+
+2011-12-07  Ed Smith-Rowland <3dw4rd@verizon.net>
+
+	PR c++/51420
+	* g++.dg/cpp0x/pr51420.C: New.
+
+2011-12-07  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/48100
+	* gcc.dg/lto/20111207-1_0.c: New testcase.
+	* gcc.dg/lto/20111207-1_1.c: Likewise.
+	* gcc.dg/lto/20111207-1_2.c: Likewise.
+	* gcc.dg/lto/20111207-1_3.c: Likewise.
+
 2011-12-07  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/50823
@@ -373,11 +747,6 @@
 
 	PR target/50123
 	* gcc.dg/atomic-op-optimize.c: New.  Test for optimizations.
-
-2011-11-29  Michael Meissner  <meissner@linux.vnet.ibm.com>
-
-	* gcc.target/powerpc/ppc-target-4.c: New file to test target
-	specific functions enabling target specific builtins.
 
 2011-11-29  Yufeng Zhang  <yufeng.zhang@arm.com>
 

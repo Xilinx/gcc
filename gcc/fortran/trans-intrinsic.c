@@ -5028,6 +5028,9 @@ gfc_conv_intrinsic_size (gfc_se * se, gfc_expr * expr)
   gfc_init_se (&argse, NULL);
   actual = expr->value.function.actual;
 
+  if (actual->expr->ts.type == BT_CLASS)
+    gfc_add_class_array_ref (actual->expr);
+
   ss = gfc_walk_expr (actual->expr);
   gcc_assert (ss != gfc_ss_terminator);
   argse.want_pointer = 1;
@@ -5667,14 +5670,24 @@ gfc_conv_allocated (gfc_se *se, gfc_expr *expr)
 
   gfc_init_se (&arg1se, NULL);
   arg1 = expr->value.function.actual;
+
+  if (arg1->expr->ts.type == BT_CLASS)
+    {
+      /* Make sure that class array expressions have both a _data
+	 component reference and an array reference....  */
+      if (CLASS_DATA (arg1->expr)->attr.dimension)
+	gfc_add_class_array_ref (arg1->expr);
+      /* .... whilst scalars only need the _data component.  */
+      else
+	gfc_add_data_component (arg1->expr);
+    }
+
   ss1 = gfc_walk_expr (arg1->expr);
 
   if (ss1 == gfc_ss_terminator)
     {
       /* Allocatable scalar.  */
       arg1se.want_pointer = 1;
-      if (arg1->expr->ts.type == BT_CLASS)
-	gfc_add_data_component (arg1->expr);
       gfc_conv_expr (&arg1se, arg1->expr);
       tmp = arg1se.expr;
     }
@@ -6015,7 +6028,7 @@ gfc_conv_intrinsic_repeat (gfc_se * se, gfc_expr * expr)
 			  build_int_cst (ncopies_type, 0));
   gfc_trans_runtime_check (true, false, cond, &se->pre, &expr->where,
 			   "Argument NCOPIES of REPEAT intrinsic is negative "
-			   "(its value is %lld)",
+			   "(its value is %ld)",
 			   fold_convert (long_integer_type_node, ncopies));
 
   /* If the source length is zero, any non negative value of NCOPIES
@@ -6998,6 +7011,9 @@ gfc_add_intrinsic_ss_code (gfc_loopinfo * loop ATTRIBUTE_UNUSED, gfc_ss * ss)
 static gfc_ss *
 gfc_walk_intrinsic_bound (gfc_ss * ss, gfc_expr * expr)
 {
+  if (expr->value.function.actual->expr->ts.type == BT_CLASS)
+    gfc_add_class_array_ref (expr->value.function.actual->expr);
+
   /* The two argument version returns a scalar.  */
   if (expr->value.function.actual->next->expr)
     return ss;

@@ -1293,7 +1293,12 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 	  && DECL_CONTEXT (sym->backend_decl) != current_function_decl)
 	gfc_nonlocal_dummy_array_decl (sym);
 
-      return sym->backend_decl;
+      if (sym->ts.type == BT_CLASS && sym->backend_decl)
+	GFC_DECL_CLASS(sym->backend_decl) = 1;
+
+      if (sym->ts.type == BT_CLASS && sym->backend_decl)
+	GFC_DECL_CLASS(sym->backend_decl) = 1;
+     return sym->backend_decl;
     }
 
   if (sym->backend_decl)
@@ -1314,7 +1319,11 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 	&& !intrinsic_array_parameter
 	&& sym->module
 	&& gfc_get_module_backend_decl (sym))
-    return sym->backend_decl;
+    {
+      if (sym->ts.type == BT_CLASS && sym->backend_decl)
+	GFC_DECL_CLASS(sym->backend_decl) = 1;
+      return sym->backend_decl;
+    }
 
   if (sym->attr.flavor == FL_PROCEDURE)
     {
@@ -1430,6 +1439,9 @@ gfc_get_symbol_decl (gfc_symbol * sym)
       GFC_DECL_SPAN (decl) = span;
       GFC_TYPE_ARRAY_SPAN (TREE_TYPE (decl)) = span;
     }
+
+  if (sym->ts.type == BT_CLASS)
+	GFC_DECL_CLASS(decl) = 1;
 
   sym->backend_decl = decl;
 
@@ -3656,6 +3668,10 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	    gfc_trans_deferred_array (sym, block);
 	}
       else if ((!sym->attr.dummy || sym->ts.deferred)
+		&& (sym->ts.type == BT_CLASS
+		&& CLASS_DATA (sym)->attr.pointer))
+	break;
+      else if ((!sym->attr.dummy || sym->ts.deferred)
 		&& (sym->attr.allocatable
 		    || (sym->ts.type == BT_CLASS
 			&& CLASS_DATA (sym)->attr.allocatable)))
@@ -3669,8 +3685,26 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 		gfc_add_data_component (e);
 
 	      gfc_init_se (&se, NULL);
-	      se.want_pointer = 1;
-	      gfc_conv_expr (&se, e);
+	      if (sym->ts.type != BT_CLASS
+		  || sym->ts.u.derived->attr.dimension
+		  || sym->ts.u.derived->attr.codimension)
+		{
+		  se.want_pointer = 1;
+		  gfc_conv_expr (&se, e);
+		}
+	      else if (sym->ts.type == BT_CLASS
+		       && !CLASS_DATA (sym)->attr.dimension
+		       && !CLASS_DATA (sym)->attr.codimension)
+		{
+		  se.want_pointer = 1;
+		  gfc_conv_expr (&se, e);
+		}
+	      else
+		{
+		  gfc_conv_expr (&se, e);
+		  se.expr = gfc_conv_descriptor_data_addr (se.expr);
+		  se.expr = build_fold_indirect_ref_loc (input_location, se.expr);
+		}
 	      gfc_free_expr (e);
 
 	      gfc_save_backend_locus (&loc);
@@ -4510,10 +4544,16 @@ generate_local_decl (gfc_symbol * sym)
 			     "declared INTENT(OUT) but was not set and "
 			     "does not have a default initializer",
 			     sym->name, &sym->declared_at);
+	      if (sym->backend_decl != NULL_TREE)
+		TREE_NO_WARNING(sym->backend_decl) = 1;
 	    }
 	  else if (gfc_option.warn_unused_dummy_argument)
-	    gfc_warning ("Unused dummy argument '%s' at %L", sym->name,
+	    {
+	      gfc_warning ("Unused dummy argument '%s' at %L", sym->name,
 			 &sym->declared_at);
+	      if (sym->backend_decl != NULL_TREE)
+		TREE_NO_WARNING(sym->backend_decl) = 1;
+	    }
 	}
 
       /* Warn for unused variables, but not if they're inside a common
@@ -4521,11 +4561,19 @@ generate_local_decl (gfc_symbol * sym)
       else if (warn_unused_variable
 	       && !(sym->attr.in_common || sym->attr.use_assoc || sym->mark
 		    || sym->attr.in_namelist))
-	gfc_warning ("Unused variable '%s' declared at %L", sym->name,
-		     &sym->declared_at);
+	{
+	  gfc_warning ("Unused variable '%s' declared at %L", sym->name,
+		       &sym->declared_at);
+	  if (sym->backend_decl != NULL_TREE)
+	    TREE_NO_WARNING(sym->backend_decl) = 1;
+	}
       else if (warn_unused_variable && sym->attr.use_only)
-	gfc_warning ("Unused module variable '%s' which has been explicitly "
-		     "imported at %L", sym->name, &sym->declared_at);
+	{
+	  gfc_warning ("Unused module variable '%s' which has been explicitly "
+		       "imported at %L", sym->name, &sym->declared_at);
+	  if (sym->backend_decl != NULL_TREE)
+	    TREE_NO_WARNING(sym->backend_decl) = 1;
+	}
 
       /* For variable length CHARACTER parameters, the PARM_DECL already
 	 references the length variable, so force gfc_get_symbol_decl
@@ -4561,11 +4609,6 @@ generate_local_decl (gfc_symbol * sym)
 	mark the symbol now, as well as in traverse_ns, to prevent
 	getting stuck in a circular dependency.  */
       sym->mark = 1;
-
-      /* We do not want the middle-end to warn about unused parameters
-         as this was already done above.  */
-      if (sym->attr.dummy && sym->backend_decl != NULL_TREE)
-	  TREE_NO_WARNING(sym->backend_decl) = 1;
     }
   else if (sym->attr.flavor == FL_PARAMETER)
     {
@@ -4672,7 +4715,8 @@ add_argument_checking (stmtblock_t *block, gfc_symbol *sym)
   gfc_formal_arglist *formal;
 
   for (formal = sym->formal; formal; formal = formal->next)
-    if (formal->sym && formal->sym->ts.type == BT_CHARACTER)
+    if (formal->sym && formal->sym->ts.type == BT_CHARACTER
+	&& !formal->sym->ts.deferred)
       {
 	enum tree_code comparison;
 	tree cond;
@@ -5288,11 +5332,11 @@ gfc_generate_function_code (gfc_namespace * ns)
       if (result == NULL_TREE)
 	{
 	  /* TODO: move to the appropriate place in resolve.c.  */
-	  if (warn_return_type && !sym->attr.referenced && sym == sym->result)
+	  if (warn_return_type && sym == sym->result)
 	    gfc_warning ("Return value of function '%s' at %L not set",
 			 sym->name, &sym->declared_at);
-
-	  TREE_NO_WARNING(sym->backend_decl) = 1;
+	  if (warn_return_type)
+	    TREE_NO_WARNING(sym->backend_decl) = 1;
 	}
       else
 	gfc_add_expr_to_block (&body, gfc_generate_return ());

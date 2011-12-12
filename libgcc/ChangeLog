@@ -1,3 +1,13 @@
+2011-12-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sol2-unwind.h: Use #ifdef directive consistently.
+
+2011-12-09  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49313
+	* config/avr/t-avr (LIB1ASMFUNCS): Add _muldi3.
+	* config/avr/lib1funcs.S (__muldi3): New function.
+
 2011-12-06  Andrew Pinski  <apinski@cavium.com>
 
 	* crtstuff.c (__do_global_dtors_aux_fini_array_entry): Align to the

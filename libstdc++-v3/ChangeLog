@@ -1,3 +1,93 @@
+2011-12-11  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/abi.xml: Replace gcc-x.y.z with GCC x.y.z or x.y,
+	remove excessive duplication of version information.
+	* doc/html/*: Regenerate.
+
+2011-12-10  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/doxygen/user.cfg.in: Add macros, directories.
+	* include/bits/locale_classes.h: Remove doxygen warnings, fix markup.
+	* include/bits/locale_classes.tcc: Same.
+	* include/bits/shared_ptr.h: Same.
+	* include/bits/stl_algo.h: Same.
+	* include/bits/stl_list.h: Same.
+	* include/bits/stl_numeric.h: Same.
+	* include/debug/safe_base.h: Same.
+	* include/parallel/equally_split.h: Same.
+	* include/std/bitset: Same.
+	* include/std/complex: Same.
+	* include/std/fstream: Same.
+	* include/std/istream: Same.
+	* include/std/ostream: Same.
+	* include/tr2/dynamic_bitset: Same.
+	* scripts/run_doxygen: Remove munging for names that no longer exist.
+
+	* testsuite/23_containers/list/requirements/dr438/assign_neg.cc:
+	Adjust line numbers.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_1_neg.cc: Same.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_2_neg.cc: Same.
+	* testsuite/23_containers/list/requirements/dr438/insert_neg.cc: Same.
+
+2011-12-10  François Dumont <fdumont@gcc.gnu.org>
+
+	* include/profile/unordered_set: Minor formatting changes.
+	(unordered_set<>::_M_profile_destruct,
+	unordered_multiset<>::_M_profile_destruct): Fix implementation to not
+	rely on normal implementation details anymore.
+	(unordered_set<>::_M_profile_resize,
+	unordered_multiset<>::_M_profile_resize): Implement consistently
+	accross all unordered containers.
+	(unordered_set<>::emplace, unordered_set<>::emplace_hint,
+	unordered_multiset<>::emplace, unordered_multset<>::emplace_hint): Add
+	to signal rehash to profiling system.
+	* include/profile/unordered_map: Likewise for unordered_map<> and
+	unordered_multimap<>.
+
+2011-12-09  François Dumont <fdumont@gcc.gnu.org>
+
+	PR libstdc++/44436 (unordered containers emplace, emplace_hint bits)
+	* include/bits/hashtable.h (_Hashtable<>::emplace,
+	_Hashtable<>::emplace_hint): Add.
+	* include/debug/unordered_set (unordered_set<>::emplace,
+	unordered_set<>::emplace_hint, unordered_multiset<>::emplace,
+	unordered_multiset<>::emplace_hint): Add.
+	* include/profile/unordered_set: Likewise.
+	* include/debug/unordered_map (unordered_map<>::emplace,
+	unordered_map<>::emplace_hint, unordered_multimap<>::emplace,
+	unordered_multimap<>::emplace_hint): Add.
+	* include/profile/unordered_map: Likewise.
+	* testsuite/23_containers/unordered_map/modifiers/emplace.cc: New.
+	* testsuite/23_containers/unordered_multimap/modifiers/emplace.cc:
+	New.
+	* testsuite/23_containers/unordered_set/modifiers/emplace.cc: New.
+	* testsuite/23_containers/unordered_multiset/modifiers/emplace.cc:
+	New.
+	* testsuite/util/testsuite_container_traits.h
+	(traits_base::has_emplace): Add and defined as std::true_type for
+	unordered containers.
+	* testsuite/util/exception/safety.h (emplace, emplace_hint): Add and
+	use them in basic_safety exception test case.
+	* doc/xml/manual/status_cxx2011.xml: Update unordered containers
+	status.
+
+2011-12-08  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/atomic_base.h (__calculate_memory_order): Rename to...
+	(__cmpexch_failure_order): This, and rewrite as constexpr function.
+	(compare_exchange_strong, compare_exchange_weak): Use it.
+	* include/std/atomic (compare_exchange_strong, compare_exchange_weak):
+	Likewise.
+
+2011-12-07  François Dumont <fdumont@gcc.gnu.org>
+
+	PR libstdc++/51386
+	* include/bits/hashtable_policy.h (_Prime_rehash_policy::_M_next_bkt):
+	Fix computation of _M_prev_resize so that hashtable do not keep on
+	being rehashed when _M_max_load_factor is lower than 1.
+
 2011-12-06  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/51438
@@ -63,7 +153,7 @@
 	Likewise.
 
 2011-12-04  Markus Trippelsdorf <markus@trippelsdorf.de>
-            Jonathan Wakely  <jwakely.gcc@gmail.com>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* include/bits/stl_heap.h (pop_heap): Check for non-empty range in
 	overload taking a predicate.
@@ -89,37 +179,37 @@
 
 2011-11-30  Benjamin Kosnik  <bkoz@redhat.com>
 
-        * acinclude.m4 (GLIBCXX_ENABLE_ATOMIC_BUILTINS): Remove
-        size-specific macros. _GLIBCXX_ATOMIC_BUILTINS_1,
-        _GLIBCXX_ATOMIC_BUILTINS_2, _GLIBCXX_ATOMIC_BUILTINS_4,
-        _GLIBCXX_ATOMIC_BUILTINS_8. Use _GLIBCXX_ATOMIC_BUILTINS to
-        indicate use of C++11 atomic builtins.
-        * config.h.in: Regenerate.
-        * configure: Regenerate.
-        * include/Makefile.am (bits_sup_headers): Add atomic_lockfree_defines.h.
-        * include/Makefile.in: Regenerate.
-        * libsupc++/Makefile.am: Compile C++11 support with -std=gnu++0x.
-        * libsupc++/Makefile.in: Regenerate.
+	* acinclude.m4 (GLIBCXX_ENABLE_ATOMIC_BUILTINS): Remove
+	size-specific macros. _GLIBCXX_ATOMIC_BUILTINS_1,
+	_GLIBCXX_ATOMIC_BUILTINS_2, _GLIBCXX_ATOMIC_BUILTINS_4,
+	_GLIBCXX_ATOMIC_BUILTINS_8. Use _GLIBCXX_ATOMIC_BUILTINS to
+	indicate use of C++11 atomic builtins.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+	* include/Makefile.am (bits_sup_headers): Add atomic_lockfree_defines.h.
+	* include/Makefile.in: Regenerate.
+	* libsupc++/Makefile.am: Compile C++11 support with -std=gnu++0x.
+	* libsupc++/Makefile.in: Regenerate.
 
-        * include/bits/atomic_base.h: Move lock-free property macros...
-        * libsupc++/atomic_lockfree_defines.h: ...here.
-        * include/std/future: Use C++11 macros.
-        * libsupc++/eh_ptr.cc: Same.
-        * libsupc++/eh_throw.cc: Same.
-        * libsupc++/exception: Same.
-        * libsupc++/exception_ptr.h: Same.
-        * libsupc++/guard.cc: Same.
-        * libsupc++/nested_exception.cc: Same.
-        * libsupc++/nested_exception.h: Same.
-        * src/future.cc: Same.
+	* include/bits/atomic_base.h: Move lock-free property macros...
+	* libsupc++/atomic_lockfree_defines.h: ...here.
+	* include/std/future: Use C++11 macros.
+	* libsupc++/eh_ptr.cc: Same.
+	* libsupc++/eh_throw.cc: Same.
+	* libsupc++/exception: Same.
+	* libsupc++/exception_ptr.h: Same.
+	* libsupc++/guard.cc: Same.
+	* libsupc++/nested_exception.cc: Same.
+	* libsupc++/nested_exception.h: Same.
+	* src/future.cc: Same.
 
-        * include/ext/atomicity.h: Use _GLIBCXX_ATOMIC_BUILTINS.
+	* include/ext/atomicity.h: Use _GLIBCXX_ATOMIC_BUILTINS.
 
-        * doc/doxygen/user.cfg.in
-        * doc/xml/manual/concurrency_extensions.xml
+	* doc/doxygen/user.cfg.in: Adjust.
+	* doc/xml/manual/concurrency_extensions.xml: Add note.
 
-        * testsuite/18_support/exception_ptr/lifespan.cc
-        * testsuite/lib/libstdc++.exp
+	* testsuite/18_support/exception_ptr/lifespan.cc: Tweak.
+	* testsuite/lib/libstdc++.exp: Same.
 
 2011-11-29  François Dumont <fdumont@gcc.gnu.org>
 

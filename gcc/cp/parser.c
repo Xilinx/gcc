@@ -3554,7 +3554,7 @@ lookup_literal_operator (tree name, VEC(tree,gc) *args)
 {
   tree decl, fns;
   decl = lookup_name (name);
-  if (!decl || decl == error_mark_node)
+  if (!decl || !is_overloaded_fn (decl))
     return error_mark_node;
 
   for (fns = decl; fns; fns = OVL_NEXT (fns))
@@ -17737,7 +17737,8 @@ cp_parser_initializer_list (cp_parser* parser, bool* non_constant_p)
 	  designator = cp_parser_constant_expression (parser, false, NULL);
 	  cp_parser_require (parser, CPP_CLOSE_SQUARE, RT_CLOSE_SQUARE);
 	  cp_parser_require (parser, CPP_EQ, RT_EQ);
-	  cp_parser_parse_definitely (parser);
+	  if (!cp_parser_parse_definitely (parser))
+	    designator = NULL_TREE;
 	}
       else
 	designator = NULL_TREE;
@@ -26304,7 +26305,7 @@ cp_parser_omp_for_loop (cp_parser *parser, tree clauses, tree *par_clauses)
 	  /* If decl is an iterator, preserve the operator on decl
 	     until finish_omp_for.  */
 	  if (decl
-	      && ((type_dependent_expression_p (decl)
+	      && ((processing_template_decl
 		   && !POINTER_TYPE_P (TREE_TYPE (decl)))
 		  || CLASS_TYPE_P (TREE_TYPE (decl))))
 	    incr = cp_parser_omp_for_incr (parser, decl);
