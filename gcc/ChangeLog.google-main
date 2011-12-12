@@ -1,3 +1,12 @@
+2011-12-12  Teresa Johnson  <tejohnson@google.com>
+
+	Limit unrolling of loops with LCP stalling instructions on Core i7
+	so that they will fit into the LSD.
+	* loop-unroll.c (decide_unroll_constant_iterations): Call loop
+	unroll target hook.
+	* config/i386/i386.c (ix86_loop_unroll_adjust): New function.
+	(TARGET_LOOP_UNROLL_ADJUST): Define hook for x86.
+
 2011-12-09   Dmitriy Vyukov  <dvyukov@google.com>
 
 	Fix ThreadSanitizer pass required properties.
