@@ -1,5 +1,9 @@
 
 2011-12-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-opengpu.melt (opengpu_increment_ssaname): Still
+	incomplete.
+
+2011-12-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt
 	(opengpu_candidate_induction_variables): Use
 	opengpu_increment_ssaname.
