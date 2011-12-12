@@ -1,5 +1,10 @@
 
 2011-12-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-opengpu.melt
+	(opengpu_candidate_induction_variables): Use
+	opengpu_increment_ssaname.
+
+2011-12-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.2+
 
 2011-12-08  Basile Starynkevitch  <basile@starynkevitch.net>
