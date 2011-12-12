@@ -5,28 +5,32 @@
 
 /* Check ignore file handling. */
 
-int
+void
 foo (int *p)
 {
   p [0] = 1;
 }
 
-int bar (int *p)
+void
+bar (int *p)
 {
   p [0] = 1;
 }
 
-int baz (int *p)
+void
+baz (int *p)
 {
   p [0] = 1;
 }
 
-int bla (int *p)
+void
+bla (int *p)
 {
   p [0] = 1;
 }
 
-int xxx (int *p)
+void
+xxx (int *p)
 {
   p [0] = 1;
 }

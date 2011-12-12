@@ -1,3 +1,10 @@
+2011-12-12  Dmitry Vyukov  <dvyukov@google.com>
+
+	* gcc.dg/tsan.h: Fix compiler warnings.
+	* gcc.dg/tsan-ignore.c: Fix compiler warnings.
+	* gcc.dg/tsan-ignore.h: Fix compiler warnings.
+	* gcc.dg/tsan-mop.c: Fix compiler warnings.
+
 2011-10-17  Dehao Chen  <dehao@google.com>
 
 	* gcc.dg/record-gcc-switches-in-elf-1.c: New test.

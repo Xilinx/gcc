@@ -15,7 +15,7 @@ __thread int pad[1024];
 __thread int mop_expect = 0;
 __thread int mop_depth = 0;
 __thread void* mop_addr = 0;
-__thread unsigned long long mop_pc = 0;
+__thread unsigned long mop_pc = 0;
 __thread unsigned mop_flags = 0;
 __thread unsigned mop_line = 0;
 
@@ -40,15 +40,16 @@ __tsan_expect_mop (int depth, void const volatile *addr, int is_store,
 {
   if (mop_expect)
     {
-      printf ("missed mop: addr=%p pc=%d line=%d\n", mop_addr, mop_pc, mop_line);
+      printf ("missed mop: addr=%p pc=%p line=%d\n",
+              mop_addr, (void*)mop_pc, mop_line);
       exit (1);
     }
 
   mop_expect = 1;
   mop_depth = depth;
   mop_addr = (void*)addr;
-  mop_pc = (unsigned long long)__builtin_return_address(0);
-  mop_flags = !!is_sblock | (!!is_store << 1) | ((size - 1) << 2);
+  mop_pc = (unsigned long)__builtin_return_address(0);
+  mop_flags = (!!is_sblock) | ((!!is_store) << 1) | ((size - 1) << 2);
   mop_line = line;
 }
 
@@ -57,7 +58,7 @@ __tsan_expect_mop (int depth, void const volatile *addr, int is_store,
 void
 __tsan_handle_mop (void *addr, unsigned flags)
 {
-  unsigned long long pc;
+  unsigned long pc;
   int depth;
 
   printf ("mop: addr=%p flags=%x called from %p line=%d\n",
@@ -74,7 +75,7 @@ __tsan_handle_mop (void *addr, unsigned flags)
       exit (1);
     }
 
-  pc = (unsigned long long)__builtin_return_address(0);
+  pc = (unsigned long)__builtin_return_address(0);
   if (pc < mop_pc - 100 || pc > mop_pc + 100)
     {
       printf ("incorrect mop pc: %p/%p line=%d\n",

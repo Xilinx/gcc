@@ -28,7 +28,7 @@ void teststructp (P *p)
 
   __tsan_expect_mop(2, &p->x, 0, 1, sizeof(p->x), __LINE__);
   tmp = p->x;
-
+  (void)tmp;
 }
 
 void testfor (P *p)
@@ -54,6 +54,7 @@ teststruct (void)
 
   __tsan_expect_mop(1, &p.x, 0, 1, sizeof(p.x), __LINE__);
   tmp = p.x;
+  (void)tmp;
 
   __tsan_expect_mop(1, &p.cp, 1, 1, sizeof(p.cp), __LINE__);
   p.cp = &p.c;
