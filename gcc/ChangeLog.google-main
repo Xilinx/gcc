@@ -1,3 +1,8 @@
+2011-12-09   Dmitriy Vyukov  <dvyukov@google.com>
+
+	Fix ThreadSanitizer pass required properties.
+        * gcc/tree-tsan.c (pass_tsan): Replace PROP_trees with PROP_ssa.
+
 2011-12-05   Dmitriy Vyukov  <dvyukov@google.com>
 
 	Fix taking address of SSA_NAME in ThreadSanitizer pass.

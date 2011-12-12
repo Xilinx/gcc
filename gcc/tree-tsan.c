@@ -1111,7 +1111,7 @@ struct gimple_opt_pass pass_tsan = {{
   NULL,                                 /* next  */
   0,                                    /* static_pass_number  */
   TV_NONE,                              /* tv_id  */
-  PROP_trees | PROP_cfg,                /* properties_required  */
+  PROP_ssa | PROP_cfg,                  /* properties_required  */
   0,                                    /* properties_provided  */
   0,                                    /* properties_destroyed  */
   0,                                    /* todo_flags_start  */
