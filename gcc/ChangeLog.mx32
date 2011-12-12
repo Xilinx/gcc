@@ -1,3 +1,8 @@
+2011-12-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: Check --with-multilib-list for x86-64 Linux targets
+	only if multilib is enabled. 
+
 2011-12-07  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/biarch64.h (TARGET_64BIT_DEFAULT): Re-order.
