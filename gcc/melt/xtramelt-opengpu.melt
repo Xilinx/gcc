@@ -171,6 +171,7 @@
   (debug "opengpu_candidate_induction_variables start loopval=" loopval)
   (if (not (is_loop loopval))
       (return))
+  (shortbacktrace_dbg "opengpu_candidate_induction_variables" 12)
   (let (
 	(:loop curloop (loop_content loopval))
 	(curloopbodytuple (loop_body_tuple discr_multiple curloop)) 
