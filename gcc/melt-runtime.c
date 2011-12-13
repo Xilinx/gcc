@@ -12357,7 +12357,7 @@ meltgc_gimple_execute (void)
     meltgc_run_meltpass_after_hook ();
   }
  end:
-  debugeprintf ("meltgc_gimple_execute pass %s ended res=%ud", current_pass->name, res);
+  debugeprintf ("meltgc_gimple_execute pass %s ended res=%u", current_pass->name, res);
   MELT_EXITFRAME();
   return res;
 #undef passv        

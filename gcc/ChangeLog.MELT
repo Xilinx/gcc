@@ -1,5 +1,8 @@
 
 2011-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_gimple_execute): Typo in format of debugeprintf.
+
+2011-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt (opengpu_increment_ssaname): sort out
 	duplicate increments.
 
