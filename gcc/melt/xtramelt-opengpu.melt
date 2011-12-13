@@ -141,6 +141,29 @@
 	  (assert_msg "opengpu_increment_ssaname bad trssa" ()))))
 
 
+;; utility function to return the minimum and maximum of a tuple of increments
+(defun mini+maxi_increment (incrtup)
+  (assert_msg "check incrtup" (is_multiple_or_null incrtup))
+  (let ( (mininc ())
+	 (maxinc ())
+	 )
+    (foreach_in_multiple
+     (incrtup)
+     (curincrv :long ix)
+     (assert_msg "check curincrv" (is_integerbox curincrv))
+     (if (or (null mininc)
+	     (<iv curincrv mininc))
+	 (setq mininc curincrv)	 
+       )
+     (if (or (null maxinc)
+	     (>iv curincrv mininc))
+	 (setq maxinc curincrv)	 
+       )
+     )
+    (return mininc maxinc)
+    ))
+
+
 
 ;; utility function to return the tuple of possible induction
 ;; variables inside a loop
@@ -162,7 +185,8 @@
     (foreach_in_multiple
      (curloopexitedgetuple)
      (exitedgev :long edgix)
-     (debug "opengpu_candidate_induction_variables exitedgev=" exitedgev " edgix=" edgix)
+     (debug "opengpu_candidate_induction_variables exitedgev=" exitedgev " edgix=" edgix
+	    " old ivlist=" ivlist)
      (let ( (:edge exitedg (edge_content exitedgev))
 	    (:basic_block bbexitsrc (edge_src_bb exitedg))
 	    (:basic_block bbexitdst (edge_dest_bb exitedg))
@@ -181,40 +205,74 @@
 		 (debug "opengpu_candidate_induction_variables last <= lvar=" lvar
 			" lvers=" lvers " lhs=" lhs
 			" rvar=" rvar " rvers=" rvers " rhs=" rhs)
-		 (let ( (incrl (opengpu_increment_ssaname () lhs))
+		 (let ( (incrtup (opengpu_increment_ssaname () lhs))
 			)
-		   (debug "opengpu_candidate_induction_variables opengpu_increment_ssaname incrl=" incrl)
-		   ))
+		   (multicall 
+		    (minv maxv)
+		    (mini+maxi_increment incrtup)
+		    (debug "opengpu_candidate_induction_variables gave incrtup=" incrtup
+			   " minv=" minv " maxv=" maxv)
+		    )))
 	      ( ?(gimple_cond_lessequal ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers))
-					      ?(tree_integer_cst ?rlim))
+					?(tree_integer_cst ?rlim))
 		 (debug "opengpu_candidate_induction_variables last <= lvar=" lvar
 			" lvers=" lvers " const rlim=" rlim)
-		 (let ( (incrl (opengpu_increment_ssaname () lhs))
+		 (let ( (incrtup (opengpu_increment_ssaname () lhs))
 			)
-		   (debug "opengpu_candidate_induction_variables opengpu_increment_ssaname gave incrl=" incrl)
-		   ))
+		   (multicall 
+		    (minv maxv)
+		    (mini+maxi_increment incrtup)
+		    (debug "opengpu_candidate_induction_variables gave incrtup=" incrtup
+			   " minv=" minv " maxv=" maxv " lvar=" lvar)
+		    (if (>iv minv '0)
+			(list_append ivlist (make_tree discr_tree lvar))
+		      (progn
+			(debug "opengpu_candidate_induction_variables negative increment")
+			(return)))
+		    )))
 	      ( ?(gimple_cond_less ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers))
 				   ?(tree_simple_ssa_name ?rvar ?rvers))
 		 (debug "opengpu_candidate_induction_variables last < lvar=" lvar
 			" lvers=" lvers " rvar=" rvar " rvers=" rvers)
-		 (let ( (incrl (opengpu_increment_ssaname () lhs))
+		 (let ( (incrtup (opengpu_increment_ssaname () lhs))
 			)
-		   (debug "opengpu_candidate_induction_variables opengpu_increment_ssaname gave incrl=" incrl)
-		   ))
+		   (multicall 
+		    (minv maxv)
+		    (mini+maxi_increment incrtup)
+		    (debug "opengpu_candidate_induction_variables gave incrtup=" incrtup
+			   " minv=" minv " maxv=" maxv " lvar=" lvar)
+		    (if (>iv minv '0)
+			(list_append ivlist (make_tree discr_tree lvar))
+		      (progn
+			(debug "opengpu_candidate_induction_variables negative increment")
+			(return)))
+		    )))
 	      ( ?(gimple_cond_less ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers))
 				   ?(tree_integer_cst ?rlim))
 		 (debug "opengpu_candidate_induction_variables last < lvar=" lvar
 			" lvers=" lvers	" const rlim=" rlim)
-		 (let ( (incrl (opengpu_increment_ssaname () lhs))
+		 (let ( (incrtup (opengpu_increment_ssaname () lhs))
 			)
-		   (debug "opengpu_candidate_induction_variables opengpu_increment_ssaname gave incrl=" incrl)
-		   ))
+		   (multicall 
+		    (minv maxv)
+		    (mini+maxi_increment incrtup)
+		    (debug "opengpu_candidate_induction_variables gave incrtup=" incrtup
+			   " minv=" minv " maxv=" maxv " lvar=" lvar)
+		    (if (>iv minv '0)
+			(list_append ivlist (make_tree discr_tree lvar))
+		      (progn
+			(debug "opengpu_candidate_induction_variables negative increment")
+			(return)))
+		    )))
 	      ( ?_ 
 		(debug "opengpu_candidate_induction_variables unexpected gimplastsrc=" gimplastsrc)
+		(return)
 		))
        )
+     (debug "opengpu_candidate_induction_variables updated ivlist=" ivlist  " edgix=" edgix)
      )
-    (debug "opengpu_candidate_induction_variables after curloopexitedgetuple loop ivlist=" ivlist)
+    (debug "opengpu_candidate_induction_variables return ivlist=" ivlist)
+    (return ivlist)
     ))
 
 (defun opengpudetect_handle_parallel_loop (gpudata curloopval :long loopix :tree fundecl)

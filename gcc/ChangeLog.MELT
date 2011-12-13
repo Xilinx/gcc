@@ -1,5 +1,9 @@
 
 2011-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-opengpu.melt (mini+maxi_increment): New utility function.
+	(opengpu_candidate_induction_variables): Use it.
+
+2011-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_gimple_execute): Typo in format of debugeprintf.
 
 2011-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
