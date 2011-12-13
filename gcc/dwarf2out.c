@@ -23013,9 +23013,8 @@ dwarf2out_finish (const char *filename)
     }
 
   /* Output public names table if necessary.  */
-  if (!VEC_empty (pubname_entry, pubname_table))
+  if (!VEC_empty (pubname_entry, pubname_table) && info_section_emitted == true)
     {
-      gcc_assert (info_section_emitted);
       switch_to_section (debug_pubnames_section);
       output_pubnames (pubname_table);
     }
@@ -23024,9 +23023,8 @@ dwarf2out_finish (const char *filename)
   /* ??? Only defined by DWARF3, but emitted by Darwin for DWARF2.
      It shouldn't hurt to emit it always, since pure DWARF2 consumers
      simply won't look for the section.  */
-  if (!pubtypes_section_empty ())
+  if (!pubtypes_section_empty () && info_section_emitted == true)
     {
-      gcc_assert (info_section_emitted);
       switch_to_section (debug_pubtypes_section);
       output_pubnames (pubtype_table);
     }
