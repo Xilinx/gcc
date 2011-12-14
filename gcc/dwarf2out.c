@@ -22979,7 +22979,10 @@ dwarf2out_finish (const char *filename)
     optimize_location_lists (comp_unit_die ());
 
   if (dwarf_split_debug_info)
-    output_skeleton_debug_sections ();
+    {
+      add_AT_unsigned (comp_unit_die (), DW_AT_GNU_dwo_id, 0);
+      output_skeleton_debug_sections ();
+    }
 
   /* Output all of the compilation units.  We put the main one last so that
      the offsets are available to output_pubnames.  */
