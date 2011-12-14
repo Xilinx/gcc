@@ -164,6 +164,12 @@
     ))
 
 
+(defclass class_opengpu_induction_variable
+  :super class_proped
+  :doc #{Class representing OpenGpu induction variables, with $OPGPUIV_TVAR
+  being the boxed tree and $OPGPUIV_INCR being the increment tuple.}#
+  :fields (opgpuiv_tvar opgpuiv_incr)
+)
 
 ;; utility function to return the tuple of possible induction
 ;; variables inside a loop
@@ -213,6 +219,17 @@
 		    (mini+maxi_increment incrtup)
 		    (debug "opengpu_candidate_induction_variables gave incrtup=" incrtup
 			   " minv=" minv " maxv=" maxv)
+		    (if (>iv minv '0)
+			(let ( (newiv (instance class_opengpu_induction_variable
+						:opgpuiv_tvar (make_tree discr_tree lvar)
+						:opgpuiv_incr incrtup))
+			       )
+			  (list_append ivlist newiv)
+			  (debug "opengpu_candidate_induction_variables newiv=" newiv)
+			  )
+		      (progn
+			(debug "opengpu_candidate_induction_variables negative increment")
+			(return)))
 		    )))
 	      ( ?(gimple_cond_lessequal ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers))
 					?(tree_integer_cst ?rlim))
@@ -226,7 +243,13 @@
 		    (debug "opengpu_candidate_induction_variables gave incrtup=" incrtup
 			   " minv=" minv " maxv=" maxv " lvar=" lvar)
 		    (if (>iv minv '0)
-			(list_append ivlist (make_tree discr_tree lvar))
+			(let ( (newiv (instance class_opengpu_induction_variable
+						:opgpuiv_tvar (make_tree discr_tree lvar)
+						:opgpuiv_incr incrtup))
+			       )
+			  (list_append ivlist newiv)
+			  (debug "opengpu_candidate_induction_variables newiv=" newiv)
+			  )
 		      (progn
 			(debug "opengpu_candidate_induction_variables negative increment")
 			(return)))
@@ -243,7 +266,13 @@
 		    (debug "opengpu_candidate_induction_variables gave incrtup=" incrtup
 			   " minv=" minv " maxv=" maxv " lvar=" lvar)
 		    (if (>iv minv '0)
-			(list_append ivlist (make_tree discr_tree lvar))
+			(let ( (newiv (instance class_opengpu_induction_variable
+						:opgpuiv_tvar (make_tree discr_tree lvar)
+						:opgpuiv_incr incrtup))
+			       )
+			  (list_append ivlist newiv)
+			  (debug "opengpu_candidate_induction_variables newiv=" newiv)
+			  )
 		      (progn
 			(debug "opengpu_candidate_induction_variables negative increment")
 			(return)))
@@ -260,7 +289,13 @@
 		    (debug "opengpu_candidate_induction_variables gave incrtup=" incrtup
 			   " minv=" minv " maxv=" maxv " lvar=" lvar)
 		    (if (>iv minv '0)
-			(list_append ivlist (make_tree discr_tree lvar))
+			(let ( (newiv (instance class_opengpu_induction_variable
+						:opgpuiv_tvar (make_tree discr_tree lvar)
+						:opgpuiv_incr incrtup))
+			       )
+			  (list_append ivlist newiv)
+			  (debug "opengpu_candidate_induction_variables newiv=" newiv)
+			  )
 		      (progn
 			(debug "opengpu_candidate_induction_variables negative increment")
 			(return)))
@@ -272,9 +307,10 @@
        )
      (debug "opengpu_candidate_induction_variables updated ivlist=" ivlist  " edgix=" edgix)
      )
-    (debug "opengpu_candidate_induction_variables return ivlist=" ivlist)
-    (return ivlist)
-    ))
+    (let ( (ivtup (list_to_multiple ivlist discr_multiple)) )
+      (debug "opengpu_candidate_induction_variables return ivlist=" ivtup)
+      (return ivtup)
+      )))
 
 (defun opengpudetect_handle_parallel_loop (gpudata curloopval :long loopix :tree fundecl)
   (debug "opengpudetect_handle_parallel_loop start gpudata=" gpudata
@@ -294,7 +330,8 @@
 	   " curloopexitedgetuple=" curloopexitedgetuple " loopix=" loopix)
     (let ( (inductionvars (opengpu_candidate_induction_variables curloopval))
 	  )
-      (debug "opengpudetect_handle_parallel_loop inductionvars=" inductionvars)
+      (debug "opengpudetect_handle_parallel_loop inductionvars=" inductionvars
+	     " bbloophead=" bbloophead)
       ;; loop into tree-parloops.c & tree-ssa-loop-manip.c &
       ;; tree-ssa-loop-niter.c function try_get_loop_niter &
       ;; canonicalize_loop_ivs & number_of_iterations_exit

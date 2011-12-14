@@ -1,5 +1,11 @@
 
 2011-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-opengpu.melt (class_opengpu_induction_variable):
+	New class with opgpuiv_* fields.
+	(opengpu_candidate_induction_variables): Make a tuple of instances
+	of class_opengpu_induction_variable.
+
+2011-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt (opengpu_candidate_induction_variables): 
 	display short backtrace.
 
