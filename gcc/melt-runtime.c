@@ -476,19 +476,8 @@ melt_argument (const char* argname)
     return NULL;
   else if (!strcmp (argname, "mode")) {
     if (melt_mode_string && melt_mode_string[0]) {
-      if (melt_old_mode_string && melt_old_mode_string[0])
-	error("-fmelt=<mode> is obsolete and cannot be given with -fmelt-mode=<mode> which is prefered");
       return melt_mode_string;
     }
-    if (melt_old_mode_string && melt_old_mode_string[0]) {
-      static int warncount;
-      if (warncount++ <= 0)
-	warning(0, 
-		"-fmelt=<mode> option is deprecated; use -fmelt-mode=<mode> instead\n"
-		"\t e.g. -fmelt-mode=help.");
-      return melt_old_mode_string;
-    }
-    return NULL;
   }
   else if (!strcmp (argname, "arg"))
     return melt_argument_string;
@@ -571,11 +560,6 @@ melt_argument (const char* argname)
 #pragma GCC poison melt_mode_string 
 #endif /* melt_mode_string */
 
-#ifdef melt_old_mode_string
-#undef melt_old_mode_string
-#else
-#pragma GCC poison melt_old_mode_string
-#endif
 
 #ifdef melt_argument_string 
 #undef melt_argument_string

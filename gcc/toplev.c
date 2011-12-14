@@ -2013,8 +2013,7 @@ toplev_main (int argc, char **argv)
 
   /* initialize melt if needed */
   if ((melt_mode_string && melt_mode_string[0])
-      || melt_print_settings_string
-      || (melt_old_mode_string && melt_old_mode_string[0]))
+      || melt_print_settings_string)
     melt_initialize ();
 
   if (version_flag)
@@ -2029,8 +2028,7 @@ toplev_main (int argc, char **argv)
 
   /* finalize melt if needed */
   if ((melt_mode_string && melt_mode_string[0])
-      || melt_print_settings_string
-      || (melt_old_mode_string && melt_old_mode_string[0]))
+      || melt_print_settings_string)
     melt_finalize();
 
   if (warningcount || errorcount)

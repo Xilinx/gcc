@@ -1,5 +1,17 @@
 
 2011-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* common.opt (-fmelt=,melt_old_mode_string): Remove.
+	* melt-runtime.c (melt_old_mode_string): Remove.
+	(melt_argument): Don't use it.
+	* toplev.c (toplev_main): Ditto.
+
+2011-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-opengpu.melt (class_opengpu_induction_variable):
+	New class with opgpuiv_* fields.
+	(opengpu_candidate_induction_variables): Make a tuple of instances
+	of class_opengpu_induction_variable.
+
+2011-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt (class_opengpu_induction_variable):
 	New class with opgpuiv_* fields.
 	(opengpu_candidate_induction_variables): Make a tuple of instances
