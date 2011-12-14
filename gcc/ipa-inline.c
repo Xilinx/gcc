@@ -343,14 +343,6 @@ can_inline_edge_p (struct cgraph_edge *e, bool report)
 	}
     }
 
-  /* Be sure that the cannot_inline_p flag is up to date.  */
-  gcc_checking_assert (!e->call_stmt
-		       || (gimple_call_cannot_inline_p (e->call_stmt)
-		           == e->call_stmt_cannot_inline_p)
-		       /* In -flto-partition=none mode we really keep things out of
-			  sync because call_stmt_cannot_inline_p is set at cgraph
-			  merging when function bodies are not there yet.  */
-		       || (in_lto_p && !gimple_call_cannot_inline_p (e->call_stmt)));
   if (!inlinable && report)
     report_inline_failed_reason (e);
   return inlinable;
@@ -816,7 +808,6 @@ edge_badness (struct cgraph_edge *edge, bool dump)
   else if (flag_guess_branch_prob)
     {
       int div = edge->frequency * (1<<10) / CGRAPH_FREQ_MAX;
-      int growth_for_all;
 
       div = MAX (div, 1);
       gcc_checking_assert (edge->frequency <= CGRAPH_FREQ_MAX);
@@ -854,14 +845,12 @@ edge_badness (struct cgraph_edge *edge, bool dump)
 	  if (dump)
 	    fprintf (dump_file, "Badness overflow\n");
 	}
-      growth_for_all = estimate_growth (callee);
-      badness += growth_for_all;
       if (dump)
 	{
 	  fprintf (dump_file,
-		   "      %i: guessed profile. frequency %f, overall growth %i,"
+		   "      %i: guessed profile. frequency %f,"
 		   " benefit %f%%, divisor %i\n",
-		   (int) badness, (double)edge->frequency / CGRAPH_FREQ_BASE, growth_for_all,
+		   (int) badness, (double)edge->frequency / CGRAPH_FREQ_BASE,
 		   relative_time_benefit (callee_info, edge, time_growth) * 100 / 256.0, div);
 	}
     }
@@ -1954,8 +1943,10 @@ early_inliner (void)
 		= estimate_num_insns (edge->call_stmt, &eni_size_weights);
 	      es->call_stmt_time
 		= estimate_num_insns (edge->call_stmt, &eni_time_weights);
-	      edge->call_stmt_cannot_inline_p
-		= gimple_call_cannot_inline_p (edge->call_stmt);
+	      if (edge->callee->decl
+		  && !gimple_check_call_matching_types (edge->call_stmt,
+							edge->callee->decl))
+		edge->call_stmt_cannot_inline_p = true;
 	    }
 	  timevar_pop (TV_INTEGRATION);
 	  iterations++;

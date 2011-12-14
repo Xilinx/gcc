@@ -1087,7 +1087,7 @@ gfc_trans_create_temp_array (stmtblock_t * pre, stmtblock_t * post, gfc_ss * ss,
     for (s = ss; s; s = s->parent)
       for (n = 0; n < s->loop->dimen; n++)
 	{
-	  dim = get_scalarizer_dim_for_array_dim (ss, ss->dim[n]);
+	  dim = get_scalarizer_dim_for_array_dim (ss, s->dim[n]);
 
 	  /* For a callee allocated array express the loop bounds in terms
 	     of the descriptor fields.  */
@@ -4341,9 +4341,9 @@ set_loop_bounds (gfc_loopinfo *loop)
 	}
 
       /* Transform everything so we have a simple incrementing variable.  */
-      if (n < loop->dimen && integer_onep (info->stride[dim]))
+      if (integer_onep (info->stride[dim]))
 	info->delta[dim] = gfc_index_zero_node;
-      else if (n < loop->dimen)
+      else
 	{
 	  /* Set the delta for this section.  */
 	  info->delta[dim] = gfc_evaluate_now (loop->from[n], &loop->pre);
@@ -7428,7 +7428,16 @@ get_std_lbound (gfc_expr *expr, tree desc, int dim, bool assumed_size)
 			      gfc_array_index_type, cond,
 			      lbound, gfc_index_one_node);
     }
-  else if (expr->expr_type == EXPR_VARIABLE)
+
+  if (expr->expr_type == EXPR_FUNCTION)
+    {
+      /* A conversion function, so use the argument.  */
+      gcc_assert (expr->value.function.isym
+		  && expr->value.function.isym->conversion);
+      expr = expr->value.function.actual->expr;
+    }
+
+  if (expr->expr_type == EXPR_VARIABLE)
     {
       tmp = TREE_TYPE (expr->symtree->n.sym->backend_decl);
       for (ref = expr->ref; ref; ref = ref->next)
@@ -7440,15 +7449,6 @@ get_std_lbound (gfc_expr *expr, tree desc, int dim, bool assumed_size)
 	    tmp = TREE_TYPE (ref->u.c.component->backend_decl);
 	}
       return GFC_TYPE_ARRAY_LBOUND(tmp, dim);
-    }
-  else if (expr->expr_type == EXPR_FUNCTION)
-    {
-      /* A conversion function, so use the argument.  */
-      expr = expr->value.function.actual->expr;
-      if (expr->expr_type != EXPR_VARIABLE)
-	return gfc_index_one_node;
-      desc = TREE_TYPE (expr->symtree->n.sym->backend_decl);
-      return get_std_lbound (expr, desc, dim, assumed_size);
     }
 
   return gfc_index_one_node;

@@ -11,7 +11,7 @@ This package does not support ZIP64 or disk spanning.
 */
 package zip
 
-import "os"
+import "errors"
 import "time"
 
 // Compression methods.
@@ -60,10 +60,10 @@ type directoryEnd struct {
 	comment            string
 }
 
-func recoverError(err *os.Error) {
+func recoverError(errp *error) {
 	if e := recover(); e != nil {
-		if osErr, ok := e.(os.Error); ok {
-			*err = osErr
+		if err, ok := e.(error); ok {
+			*errp = err
 			return
 		}
 		panic(e)
@@ -96,11 +96,11 @@ func (h *FileHeader) Mtime_ns() int64 {
 
 // Mode returns the permission and mode bits for the FileHeader.
 // An error is returned in case the information is not available.
-func (h *FileHeader) Mode() (mode uint32, err os.Error) {
+func (h *FileHeader) Mode() (mode uint32, err error) {
 	if h.CreatorVersion>>8 == creatorUnix {
 		return h.ExternalAttrs >> 16, nil
 	}
-	return 0, os.NewError("file mode not available")
+	return 0, errors.New("file mode not available")
 }
 
 // SetMode changes the permission and mode bits for the FileHeader.

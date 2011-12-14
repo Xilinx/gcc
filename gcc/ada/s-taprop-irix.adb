@@ -45,6 +45,7 @@ with Interfaces.C;
 with System.Task_Info;
 with System.Tasking.Debug;
 with System.Interrupt_Management;
+with System.OS_Constants;
 with System.OS_Primitives;
 with System.IO;
 
@@ -56,6 +57,7 @@ with System.Soft_Links;
 
 package body System.Task_Primitives.Operations is
 
+   package OSC renames System.OS_Constants;
    package SSL renames System.Soft_Links;
 
    use System.Tasking;
@@ -88,8 +90,6 @@ package body System.Task_Primitives.Operations is
 
    Dispatching_Policy : Character;
    pragma Import (C, Dispatching_Policy, "__gl_task_dispatching_policy");
-
-   Real_Time_Clock_Id : constant clockid_t := CLOCK_REALTIME;
 
    Unblocked_Signal_Mask : aliased sigset_t;
 
@@ -572,7 +572,7 @@ package body System.Task_Primitives.Operations is
       TS     : aliased timespec;
       Result : Interfaces.C.int;
    begin
-      Result := clock_gettime (Real_Time_Clock_Id, TS'Unchecked_Access);
+      Result := clock_gettime (OSC.CLOCK_RT_Ada, TS'Unchecked_Access);
       pragma Assert (Result = 0);
       return To_Duration (TS);
    end Monotonic_Clock;
@@ -583,7 +583,7 @@ package body System.Task_Primitives.Operations is
 
    function RT_Resolution return Duration is
    begin
-      --  The clock_getres (Real_Time_Clock_Id) function appears to return
+      --  The clock_getres (OSC.CLOCK_RT_Ada) function appears to return
       --  the interrupt resolution of the realtime clock and not the actual
       --  resolution of reading the clock. Even though this last value is
       --  only guaranteed to be 100 Hz, at least the Origin 200 appears to

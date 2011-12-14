@@ -2977,6 +2977,20 @@ find_parameter_packs_r (tree *tp, int *walk_subtrees, void* data)
     (struct find_parameter_pack_data*)data;
   bool parameter_pack_p = false;
 
+  /* Handle type aliases/typedefs.  */
+  if (TYPE_P (t)
+      && TYPE_NAME (t)
+      && TREE_CODE (TYPE_NAME (t)) == TYPE_DECL
+      && TYPE_DECL_ALIAS_P (TYPE_NAME (t)))
+    {
+      if (TYPE_TEMPLATE_INFO (t))
+	cp_walk_tree (&TYPE_TI_ARGS (t),
+		      &find_parameter_packs_r,
+		      ppd, ppd->visited);
+      *walk_subtrees = 0;
+      return NULL_TREE;
+    }
+
   /* Identify whether this is a parameter pack or not.  */
   switch (TREE_CODE (t))
     {
@@ -4906,7 +4920,10 @@ push_template_decl_real (tree decl, bool is_friend)
       if (check_for_bare_parameter_packs (TYPE_RAISES_EXCEPTIONS (type)))
 	TYPE_RAISES_EXCEPTIONS (type) = NULL_TREE;
     }
-  else if (check_for_bare_parameter_packs (TREE_TYPE (decl)))
+  else if (check_for_bare_parameter_packs ((TREE_CODE (decl) == TYPE_DECL
+					    && TYPE_DECL_ALIAS_P (decl))
+					   ? DECL_ORIGINAL_TYPE (decl)
+					   : TREE_TYPE (decl)))
     {
       TREE_TYPE (decl) = error_mark_node;
       return error_mark_node;
@@ -5502,9 +5519,16 @@ static int
 unify_inconsistency (bool explain_p, tree parm, tree first, tree second)
 {
   if (explain_p)
-    inform (input_location,
-	    "  conflicting deductions for parameter %qE (%qE and %qE)",
-	    parm, first, second);
+    {
+      if (TYPE_P (parm))
+	inform (input_location,
+		"  deduced conflicting types for parameter %qT (%qT and %qT)",
+		parm, first, second);
+      else
+	inform (input_location,
+		"  deduced conflicting values for non-type parameter "
+		"%qE (%qE and %qE)", parm, first, second);
+    }
   return 1;
 }
 
@@ -9104,14 +9128,20 @@ instantiate_class_template_1 (tree type)
 
   if (CLASSTYPE_LAMBDA_EXPR (type))
     {
-      tree lambda = CLASSTYPE_LAMBDA_EXPR (type);
-      if (LAMBDA_EXPR_DEDUCE_RETURN_TYPE_P (lambda))
+      tree decl = lambda_function (type);
+      if (decl)
 	{
-	  apply_lambda_return_type (lambda, void_type_node);
-	  LAMBDA_EXPR_RETURN_TYPE (lambda) = NULL_TREE;
+	  tree lambda = CLASSTYPE_LAMBDA_EXPR (type);
+	  if (LAMBDA_EXPR_DEDUCE_RETURN_TYPE_P (lambda))
+	    {
+	      apply_lambda_return_type (lambda, void_type_node);
+	      LAMBDA_EXPR_RETURN_TYPE (lambda) = NULL_TREE;
+	    }
+	  instantiate_decl (decl, false, false);
+	  maybe_add_lambda_conv_op (type);
 	}
-      instantiate_decl (lambda_function (type), false, false);
-      maybe_add_lambda_conv_op (type);
+      else
+	gcc_assert (errorcount);
     }
 
   /* Set the file and line number information to whatever is given for
@@ -10610,7 +10640,9 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	      type = DECL_ORIGINAL_TYPE (t);
 	    else
 	      type = TREE_TYPE (t);
-	    if (TREE_CODE (t) == VAR_DECL && VAR_HAD_UNKNOWN_BOUND (t))
+	    if (TREE_CODE (t) == VAR_DECL
+		&& VAR_HAD_UNKNOWN_BOUND (t)
+		&& type != error_mark_node)
 	      type = strip_array_domain (type);
 	    type = tsubst (type, args, complain, in_decl);
 	  }
@@ -12796,6 +12828,11 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 		    && ANON_AGGR_TYPE_P (TREE_TYPE (decl)))
 		  /* Anonymous aggregates are a special case.  */
 		  finish_anon_union (decl);
+		else if (is_capture_proxy (DECL_EXPR_DECL (t)))
+		  {
+		    DECL_CONTEXT (decl) = current_function_decl;
+		    insert_capture_proxy (decl);
+		  }
 		else
 		  {
 		    int const_init = false;

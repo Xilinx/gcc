@@ -15162,11 +15162,6 @@ rm -f core conftest.err conftest.$ac_objext \
 
 fi
 
-  if test $glibcxx_cv_atomic_bool = yes; then
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_1 1" >>confdefs.h
-
-  fi
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $glibcxx_cv_atomic_bool" >&5
 $as_echo "$glibcxx_cv_atomic_bool" >&6; }
 
@@ -15208,11 +15203,6 @@ rm -f core conftest.err conftest.$ac_objext \
 
 fi
 
-  if test $glibcxx_cv_atomic_short = yes; then
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_2 1" >>confdefs.h
-
-  fi
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $glibcxx_cv_atomic_short" >&5
 $as_echo "$glibcxx_cv_atomic_short" >&6; }
 
@@ -15254,11 +15244,6 @@ rm -f core conftest.err conftest.$ac_objext \
 
 fi
 
-  if test $glibcxx_cv_atomic_int = yes; then
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_4 1" >>confdefs.h
-
-  fi
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $glibcxx_cv_atomic_int" >&5
 $as_echo "$glibcxx_cv_atomic_int" >&6; }
 
@@ -15300,11 +15285,6 @@ rm -f core conftest.err conftest.$ac_objext \
 
 fi
 
-  if test $glibcxx_cv_atomic_long_long = yes; then
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_8 1" >>confdefs.h
-
-  fi
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $glibcxx_cv_atomic_long_long" >&5
 $as_echo "$glibcxx_cv_atomic_long_long" >&6; }
 
@@ -15318,7 +15298,7 @@ $as_echo "$glibcxx_cv_atomic_long_long" >&6; }
   # Fake what AC_TRY_COMPILE does.
 
     cat > conftest.$ac_ext << EOF
-#line 15321 "configure"
+#line 15301 "configure"
 int main()
 {
   typedef bool atomic_type;
@@ -15344,9 +15324,6 @@ $as_echo_n "checking for atomic builtins for bool... " >&6; }
       if grep __sync_ conftest.s >/dev/null 2>&1 ; then
 	glibcxx_cv_atomic_bool=no
       else
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_1 1" >>confdefs.h
-
 	glibcxx_cv_atomic_bool=yes
       fi
     fi
@@ -15355,7 +15332,7 @@ $as_echo "$glibcxx_cv_atomic_bool" >&6; }
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 15358 "configure"
+#line 15335 "configure"
 int main()
 {
   typedef short atomic_type;
@@ -15381,9 +15358,6 @@ $as_echo_n "checking for atomic builtins for short... " >&6; }
       if grep __sync_ conftest.s >/dev/null 2>&1 ; then
 	glibcxx_cv_atomic_short=no
       else
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_2 1" >>confdefs.h
-
 	glibcxx_cv_atomic_short=yes
       fi
     fi
@@ -15392,7 +15366,7 @@ $as_echo "$glibcxx_cv_atomic_short" >&6; }
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 15395 "configure"
+#line 15369 "configure"
 int main()
 {
   // NB: _Atomic_word not necessarily int.
@@ -15419,9 +15393,6 @@ $as_echo_n "checking for atomic builtins for int... " >&6; }
       if grep __sync_ conftest.s >/dev/null 2>&1 ; then
 	glibcxx_cv_atomic_int=no
       else
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_4 1" >>confdefs.h
-
 	glibcxx_cv_atomic_int=yes
       fi
     fi
@@ -15430,7 +15401,7 @@ $as_echo "$glibcxx_cv_atomic_int" >&6; }
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 15433 "configure"
+#line 15404 "configure"
 int main()
 {
   typedef long long atomic_type;
@@ -15456,9 +15427,6 @@ $as_echo_n "checking for atomic builtins for long long... " >&6; }
       if grep __sync_ conftest.s >/dev/null 2>&1 ; then
 	glibcxx_cv_atomic_long_long=no
       else
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_8 1" >>confdefs.h
-
 	glibcxx_cv_atomic_long_long=yes
       fi
     fi
@@ -15478,6 +15446,9 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
   # Set atomicity_dir to builtins if either of above tests pass.
   if test $glibcxx_cv_atomic_int = yes || test $glibcxx_cv_atomic_bool = yes ; then
+
+$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS 1" >>confdefs.h
+
     atomicity_dir=cpu/generic/atomicity_builtins
   fi
 
@@ -15506,7 +15477,7 @@ $as_echo "$as_me: WARNING: Performance of certain classes will degrade as a resu
   # unnecessary for this test.
 
     cat > conftest.$ac_ext << EOF
-#line 15509 "configure"
+#line 15480 "configure"
 int main()
 {
   _Decimal32 d1;
@@ -15548,7 +15519,7 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
   # unnecessary for this test.
 
     cat > conftest.$ac_ext << EOF
-#line 15551 "configure"
+#line 15522 "configure"
 template<typename T1, typename T2>
   struct same
   { typedef T2 type; };
@@ -15582,7 +15553,7 @@ $as_echo "$enable_int128" >&6; }
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 15585 "configure"
+#line 15556 "configure"
 template<typename T1, typename T2>
   struct same
   { typedef T2 type; };

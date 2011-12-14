@@ -404,7 +404,9 @@ typedef enum cpp0x_warn_str
   /* non-static data member initializers */
   CPP0X_NSDMI,
   /* user defined literals */
-  CPP0X_USER_DEFINED_LITERALS
+  CPP0X_USER_DEFINED_LITERALS,
+  /* delegating constructors */
+  CPP0X_DELEGATING_CTORS
 } cpp0x_warn_str;
   
 /* The various kinds of operation used by composite_pointer_type. */
@@ -2557,6 +2559,7 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 #define TYPE_ALIAS_P(NODE)			\
   (TYPE_P (NODE)				\
    && TYPE_NAME (NODE)				\
+   && TREE_CODE (TYPE_NAME (NODE)) == TYPE_DECL	\
    && TYPE_DECL_ALIAS_P (TYPE_NAME (NODE)))
 
 /* For a class type: if this structure has many fields, we'll sort them
@@ -2609,17 +2612,24 @@ extern void decl_shadowed_for_var_insert (tree, tree);
   (LANG_TYPE_CLASS_CHECK (BOUND_TEMPLATE_TEMPLATE_PARM_TYPE_CHECK (NODE)) \
    ->template_info)
 
-/* Template information for an ENUMERAL_, RECORD_, or UNION_TYPE.  */
+/* Template information for an ENUMERAL_, RECORD_, UNION_TYPE, or
+   BOUND_TEMPLATE_TEMPLATE_PARM type.  Note that if NODE is a
+   specialization of an alias template, this accessor returns the
+   template info for the alias template, not the one (if any) for the
+   template of the underlying type.  */
 #define TYPE_TEMPLATE_INFO(NODE)					\
-  (TREE_CODE (NODE) == ENUMERAL_TYPE					\
-   ? ENUM_TEMPLATE_INFO (NODE) :					\
-   (TREE_CODE (NODE) == BOUND_TEMPLATE_TEMPLATE_PARM			\
-    ? TEMPLATE_TEMPLATE_PARM_TEMPLATE_INFO (NODE) :			\
-    ((CLASS_TYPE_P (NODE) && !TYPE_ALIAS_P (NODE))			\
-     ? CLASSTYPE_TEMPLATE_INFO (NODE)					\
-     : ((TYPE_NAME (NODE) && DECL_LANG_SPECIFIC (TYPE_NAME (NODE)))	\
-	? (DECL_TEMPLATE_INFO (TYPE_NAME (NODE)))			\
-	: NULL_TREE))))
+  (TYPE_ALIAS_P (NODE)							\
+   ? ((TYPE_NAME (NODE) && DECL_LANG_SPECIFIC (TYPE_NAME (NODE)))	\
+      ? DECL_TEMPLATE_INFO (TYPE_NAME (NODE))				\
+      : NULL_TREE)							\
+   : ((TREE_CODE (NODE) == ENUMERAL_TYPE)				\
+      ? ENUM_TEMPLATE_INFO (NODE)					\
+      : ((TREE_CODE (NODE) == BOUND_TEMPLATE_TEMPLATE_PARM)		\
+	 ? TEMPLATE_TEMPLATE_PARM_TEMPLATE_INFO (NODE)			\
+	 : (CLASS_TYPE_P (NODE)						\
+	    ? CLASSTYPE_TEMPLATE_INFO (NODE)				\
+	    : NULL_TREE))))
+
 
 /* Set the template information for an ENUMERAL_, RECORD_, or
    UNION_TYPE to VAL.  */
@@ -5600,6 +5610,7 @@ extern void apply_lambda_return_type            (tree, tree);
 extern tree add_capture                         (tree, tree, tree, bool, bool);
 extern tree add_default_capture                 (tree, tree, tree);
 extern tree build_capture_proxy			(tree);
+extern void insert_capture_proxy		(tree);
 extern void insert_pending_capture_proxies	(void);
 extern bool is_capture_proxy			(tree);
 extern bool is_normal_capture_proxy             (tree);

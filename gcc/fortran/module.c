@@ -194,6 +194,8 @@ static char module_name[GFC_MAX_SYMBOL_LEN + 1];
 static bool specified_nonint, specified_int;
 
 static int module_line, module_column, only_flag;
+static int prev_module_line, prev_module_column, prev_character;
+
 static enum
 { IO_INPUT, IO_OUTPUT }
 iomode;
@@ -433,7 +435,7 @@ resolve_fixups (fixup_t *f, void *gp)
    to convert the symtree name of a derived-type to the symbol name or to
    the name of the associated generic function.  */
 
-const char *
+static const char *
 dt_lower_string (const char *name)
 {
   if (name[0] != (char) TOLOWER ((unsigned char) name[0]))
@@ -448,7 +450,7 @@ dt_lower_string (const char *name)
    symtree/symbol name of the associated generic function start with a lower-
    case character.  */
 
-const char *
+static const char *
 dt_upper_string (const char *name)
 {
   if (name[0] != (char) TOUPPER ((unsigned char) name[0]))
@@ -1036,6 +1038,10 @@ module_char (void)
   if (c == EOF)
     bad_module ("Unexpected EOF");
 
+  prev_module_line = module_line;
+  prev_module_column = module_column;
+  prev_character = c;
+
   if (c == '\n')
     {
       module_line++;
@@ -1046,6 +1052,16 @@ module_char (void)
   return c;
 }
 
+/* Unget a character while remembering the line and column.  Works for
+   a single character only.  */
+
+static void
+module_unget_char (void)
+{
+  module_line = prev_module_line;
+  module_column = prev_module_column;
+  ungetc (prev_character, module_fp);
+}
 
 /* Parse a string constant.  The delimiter is guaranteed to be a
    single quote.  */
@@ -1053,51 +1069,37 @@ module_char (void)
 static void
 parse_string (void)
 {
-  module_locus start;
-  int len, c;
-  char *p;
+  int c;
+  size_t cursz = 30;
+  size_t len = 0;
 
-  get_module_locus (&start);
+  atom_string = XNEWVEC (char, cursz);
 
-  len = 0;
-
-  /* See how long the string is.  */
   for ( ; ; )
     {
       c = module_char ();
-      if (c == EOF)
-	bad_module ("Unexpected end of module in string constant");
 
-      if (c != '\'')
-	{
-	  len++;
-	  continue;
-	}
-
-      c = module_char ();
       if (c == '\'')
 	{
-	  len++;
-	  continue;
+	  int c2 = module_char ();
+	  if (c2 != '\'')
+	    {
+	      module_unget_char ();
+	      break;
+	    }
 	}
 
-      break;
+      if (len >= cursz)
+	{
+	  cursz *= 2;
+	  atom_string = XRESIZEVEC (char, atom_string, cursz);
+	}
+      atom_string[len] = c;
+      len++;
     }
 
-  set_module_locus (&start);
-
-  atom_string = p = XCNEWVEC (char, len + 1);
-
-  for (; len > 0; len--)
-    {
-      c = module_char ();
-      if (c == '\'')
-	module_char ();		/* Guaranteed to be another \'.  */
-      *p++ = c;
-    }
-
-  module_char ();		/* Terminating \'.  */
-  *p = '\0';			/* C-style string for debug purposes.  */
+  atom_string = XRESIZEVEC (char, atom_string, len + 1);
+  atom_string[len] = '\0'; 	/* C-style string for debug purposes.  */
 }
 
 
@@ -1106,24 +1108,22 @@ parse_string (void)
 static void
 parse_integer (int c)
 {
-  module_locus m;
-
   atom_int = c - '0';
 
   for (;;)
     {
-      get_module_locus (&m);
-
       c = module_char ();
       if (!ISDIGIT (c))
-	break;
+	{
+	  module_unget_char ();
+	  break;
+	}
 
       atom_int = 10 * atom_int + c - '0';
       if (atom_int > 99999999)
 	bad_module ("Integer overflow");
     }
 
-  set_module_locus (&m);
 }
 
 
@@ -1132,7 +1132,6 @@ parse_integer (int c)
 static void
 parse_name (int c)
 {
-  module_locus m;
   char *p;
   int len;
 
@@ -1141,13 +1140,14 @@ parse_name (int c)
   *p++ = c;
   len = 1;
 
-  get_module_locus (&m);
-
   for (;;)
     {
       c = module_char ();
       if (!ISALNUM (c) && c != '_' && c != '-')
-	break;
+	{
+	  module_unget_char ();
+	  break;
+	}
 
       *p++ = c;
       if (++len > GFC_MAX_SYMBOL_LEN)
@@ -1156,11 +1156,6 @@ parse_name (int c)
 
   *p = '\0';
 
-  fseek (module_fp, -1, SEEK_CUR);
-  module_column = m.column + len - 1;
-
-  if (c == '\n')
-    module_line--;
 }
 
 
@@ -1270,17 +1265,99 @@ parse_atom (void)
 static atom_type
 peek_atom (void)
 {
-  module_locus m;
-  atom_type a;
+  int c;
 
-  get_module_locus (&m);
+  do
+    {
+      c = module_char ();
+    }
+  while (c == ' ' || c == '\r' || c == '\n');
 
-  a = parse_atom ();
-  if (a == ATOM_STRING)
-    free (atom_string);
+  switch (c)
+    {
+    case '(':
+      module_unget_char ();
+      return ATOM_LPAREN;
 
-  set_module_locus (&m);
-  return a;
+    case ')':
+      module_unget_char ();
+      return ATOM_RPAREN;
+
+    case '\'':
+      module_unget_char ();
+      return ATOM_STRING;
+
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      module_unget_char ();
+      return ATOM_INTEGER;
+
+    case 'a':
+    case 'b':
+    case 'c':
+    case 'd':
+    case 'e':
+    case 'f':
+    case 'g':
+    case 'h':
+    case 'i':
+    case 'j':
+    case 'k':
+    case 'l':
+    case 'm':
+    case 'n':
+    case 'o':
+    case 'p':
+    case 'q':
+    case 'r':
+    case 's':
+    case 't':
+    case 'u':
+    case 'v':
+    case 'w':
+    case 'x':
+    case 'y':
+    case 'z':
+    case 'A':
+    case 'B':
+    case 'C':
+    case 'D':
+    case 'E':
+    case 'F':
+    case 'G':
+    case 'H':
+    case 'I':
+    case 'J':
+    case 'K':
+    case 'L':
+    case 'M':
+    case 'N':
+    case 'O':
+    case 'P':
+    case 'Q':
+    case 'R':
+    case 'S':
+    case 'T':
+    case 'U':
+    case 'V':
+    case 'W':
+    case 'X':
+    case 'Y':
+    case 'Z':
+      module_unget_char ();
+      return ATOM_NAME;
+
+    default:
+      bad_module ("Bad name");
+    }
 }
 
 
@@ -1290,11 +1367,12 @@ peek_atom (void)
 static void
 require_atom (atom_type type)
 {
-  module_locus m;
   atom_type t;
   const char *p;
+  int column, line;
 
-  get_module_locus (&m);
+  column = module_column;
+  line = module_line;
 
   t = parse_atom ();
   if (t != type)
@@ -1320,7 +1398,8 @@ require_atom (atom_type type)
 	  gfc_internal_error ("require_atom(): bad atom type required");
 	}
 
-      set_module_locus (&m);
+      module_column = column;
+      module_line = line;
       bad_module (p);
     }
 }

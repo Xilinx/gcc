@@ -1,7 +1,560 @@
+2011-12-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils2.c (gnat_build_constructor): Test the TREE_STATIC
+	flag of elements to compute that of the constructor.
+
+2011-12-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_param): Set the restrict qualifier
+	on references built for parameters which aren't specifically by-ref.
+
+2011-12-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <object>: If there is an
+	alignment set on a renaming, assert that the renamed object is aligned
+	enough as to make it possible to honor it.
+
+2011-12-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (gigi): Initialize the linemap earlier.
+
+2011-12-06  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* gcc-interface/Makefile.in (LIBGNAT_TARGET_PAIRS [windows targets]):
+	Correctly detect cygwin, which no longer has the '32' suffix, and use
+	appropriate implementations of the sockets and memory packages.
+	* sysdep.c (WIN_SETMODE): New define to choose the correct spelling of
+	setmode/_setmode for MinGW and Cygwin, respectively.
+	(__gnat_set_binary_mode [windows targets]): Use the above, and enable
+	the windows version for Cygwin as well as MinGW.
+	(__gnat_set_text_mode [windows targets]): Likewise.
+	(__gnat_ttyname [windows targets]): Provide a Cygwin implementation
+	in addition to the MinGW version.
+	(__gnat_is_windows_xp): Make available to Cygwin as well as MinGW.
+	(__gnat_get_stack_bounds): Likewise.
+
+2011-12-05  Bob Duff  <duff@adacore.com>
+
+	* sem_ch4.adb: Minor comment fix.
+
+2011-12-05  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_ugn.texi: Add documentation for -gnatw.e.
+
+2011-12-05  Bob Duff  <duff@adacore.com>
+
+	* treepr.adb (pn): Print something useful for
+	Elmt_Ids. Add Write_Eol to 'when others' case, so the output
+	will be seen immediately in gdb.
+
+2011-12-05  Ed Schonberg  <schonberg@adacore.com>
+
+	* lib-writ.adb (Output_Main_Program_Line): A generic subprogram
+	is never a main program.
+
+2011-12-05  Thomas Quinot  <quinot@adacore.com>
+
+	* par_sco.adb: Various minor adjustments to dominance markers
+	generation.
+
+2011-12-05  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Analyze_Expression_Function): If the function is
+	a completion, generate a body reference for its defining entity,
+	before rewriting the node as a body.
+	* sem_util.adb (Defining_Entity): Add entry for expression
+	function.
+
+2011-12-05  Bob Duff  <duff@adacore.com>
+
+	* sem_ch3.adb (Derive_Progenitor_Subprograms): Add Ultimate_Alias
+	to the Comes_From_Source check, to deal properly with the case
+	of indirect inheritance of "=".
+
+2011-12-05  Thomas Quinot  <quinot@adacore.com>
+
+	PR ada/51307
+	* s-oscons-tmplt.c: On HP-UX, CLOCK_REALTIME is an enum literal,
+	not a macro.
+
+2011-12-05  Thomas Quinot  <quinot@adacore.com>
+
+	* par_sco.adb, scos.ads, put_scos.adb, get_scos.adb: Generate dominance
+	information in SCOs.
+
+2011-12-02  Eric Botcazou  <ebotcazou@adacore.com>
+	    Thomas Quinot <quinot@adacore.com>
+
+	* gcc-interface/Makefile.in (INCLUDES): Remove $(srcdir)/config.
+	(INCLUDES_FOR_SUBDIR): Add $(fsrcdir) except for VxWorks.
+	Add thread.c to LIBGNAT_SRCS so that a symlink is created in ada/rts,
+	which allows the file to be installed in adainclude.
+	* gcc-interface/Make-lang.in: Update dependencies.
+
+2011-12-02  Javier Miranda  <miranda@adacore.com>
+
+	* sem_ch3.adb (Constrain_Access): Undo previous
+	patch for this routine. Required since the RM rule 3.7.1(7/3)
+	applies to all access types.
+
+2011-12-02  Bob Duff  <duff@adacore.com>
+
+	* sem_ch6.adb: Minor comment fix.
+
+2011-12-02  Joel Sherrill <joel.sherrill@oarcorp.com>
+
+	* s-tpopsp-rtems.adb: Use ATCB_Key rather than RTEMS_Ada_Self variable
+	for consistency with other ports.
+	* s-osinte-rtems.adb: Add body for dummy implementation of
+	pthread_rwlockattr_setkind_np().
+	* s-osinte-rtems.ads: Add missing clock and rwlock bindings.
+	* terminals.c: Add __rtems__ conditionals to account for differences
+	in termios implementation.
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch3.adb, sem_attr.adb, a-comutr.adb, a-cbmutr.adb,
+	a-cbmutr.ads: Minor reformatting.
+
+2011-12-02  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_dbug.adb: Comment reformatting.
+	(Get_External_Name): Use Reset_Buffers to reset the contents of
+	Name_Buffer and Homonym_Numbers.
+	(Qualify_All_Entity_Names): Reset the contents of Name_Buffer and
+	Homonym_Numbers before creating a new qualified name for a particular
+	entity.
+	(Reset_Buffers): New routine.
+
+2011-12-02  Matthew Heaney  <heaney@adacore.com>
+
+	* a-cbmutr.ads (No_Node): Moved declaration from body to spec
+	* a-comutr.adb, a-cimutr.adb, a-cbmutr.adb (Iterator): Derives
+	from Root_Iterator.
+	(Child_Iterator): Derives from Root_Iterator.
+	(Finalize): Implemented as an override operation for Root_Iterator.
+	(First): Return value depends on Subtree component.
+	(Last): Component was renamed from Parent to Subtree.
+	(Next): Checks parameter value, and uses simplified loop.
+	(Iterate): Forwards to Iterate_Subtree.
+	(Iterate_Children): Component was renamed from Parent to Subtree.
+	(Iterate_Subtree): Checks parameter value
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* usage.adb: Add lines for -gnatw.n and -gnatw.N
+	(atomic sync info msgs).
+
+2011-12-02  Steve Baird  <baird@adacore.com>
+
+	* sem_ch3.adb (Check_Completion): An Ada 2012
+	generic formal type doesn't require a completion.
+
+2011-12-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* sem_util.adb (Set_Debug_Info_Needed): Also set the flag on the
+	packed array type if it is to be set on the array type used to
+	represent it.
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_rm.texi: Eliminate confusing use of type name.
+
+2011-12-02  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_ch10.adb (Analyze_Compilation_Unit): For a library subprogram
+	body that acts as spec, do not create a shallow copy of the context
+	clause for the synthetized spec (instead, use the same list as
+	in the body).
+
+2011-12-02  Bob Duff  <duff@adacore.com>
+
+	* gnat_ugn.texi: Clarify usage of -p binder switch.
+
+2011-12-02  Javier Miranda  <miranda@adacore.com>
+
+	* sem_util.ads, sem_util.adb, sem_aux.ads, sem_aux.adb
+	(Effectively_Has_Constrained_Partial_View): Moved to sem_aux
+	(In_Generic_Body): Moved to sem_aux.
+	(Unit_Declaration_Node): Moved to sem_aux.
+	* einfo.ads (Effectively_Has_Constrained_Partial_View): Complete
+	documentation.
+	* exp_attr.adb, live.adb, sem_ch10.adb, checks.adb, sem.adb,
+	rtsfind.adb, sem_attr.adb, sem_elab.adb, exp_ch4.adb, sem_ch4.adb,
+	exp_ch13.adb: Add with-clause on Sem_Aux.
+
+2011-12-02  Yannick Moy  <moy@adacore.com>
+
+	* sem_util.adb (Unique_Name): Reach through Unique_Entity to
+	get the name of the entity.
+	(Unique_Entity): Correct case for subprogram stubs.
+
+2011-12-02  Yannick Moy  <moy@adacore.com>
+
+	* sem_ch3.adb (Check_Initialization): Do not emit warning on
+	initialization of limited type object in Alfa mode.
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* sinfo.ads: Minor reformatting.
+	* gnat_ugn.texi: Fix confusion in use of term "type name".
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch6.adb: Minor change in error message.
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch9.adb, prj-part.adb, vms_data.ads, sem_ch8.adb: Minor
+	reformatting.
+
+2011-12-02  Javier Miranda  <miranda@adacore.com>
+
+	* sem_ch3.adb (Constrain_Access): Enable on Ada 2005 mode the
+	static check of the rule of general access types whose designated
+	type has discriminants.
+	* sem_util.ads, sem_util.adb
+	(Effectively_Has_Constrained_Partial_View): New subprogram.
+	(In_Generic_Body): New subprogram.
+	* einfo.ads (Has_Constrained_Partial_View): Adding documentation.
+	* sem_prag.adb (Inside_Generic_Body): Removed. Replaced by new
+	subprogram In_Generic_Body.
+	* exp_attr.adb, checks.adb, sem_attr.adb, exp_ch4.adb,
+	sem_ch4.adb: In addition, this patch replaces the occurrences of
+	Has_Constrained_Partial_View by
+	Effectively_Has_Constrained_Partial_View.
+
+2011-12-02  Matthew Heaney  <heaney@adacore.com>
+
+	* a-comutr.adb, a-cimutr.adb, a-cbmutr.adb (Iterator): Rename
+	Position component.
+	(Finalize): Remove unnecessary access check.
+	(First): Forward to First_Child.
+	(Last): Forward to Last_Child.
+	(Iterate): Check preconditions for parent node parameter.
+	(Next): Forward to Next_Sibling.
+	(Previous): Forward to Previous_Sibling.
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* a-coinve.adb, a-coorma.adb, freeze.adb, a-coorse.adb, a-comutr.adb,
+	a-coormu.adb, a-convec.adb: Minor reformatting.
+
+2011-12-02  Matthew Heaney  <heaney@adacore.com>
+
+	* a-coormu.ads, a-ciormu.ads: Declare iterator factory function.
+	* a-ciormu.adb, a-ciormu.adb (Iterator): Declare concrete
+	Iterator type.
+	(Finalize): Decrement busy counter.
+	(First, Last): Cursor return value depends on iterator node value.
+	(Iterate): Use start position as iterator node value.
+	(Next, Previous): Forward to corresponding cursor-based operation.
+
+2011-12-02  Robert Dewar  <dewar@adacore.com>
+
+	* a-cborma.adb, a-cbhama.adb, a-cbdlli.adb, a-cbmutr.adb,
+	a-cbhase.adb, a-cdlili.adb, a-cihama.adb, a-ciorse.adb, a-cidlli.adb,
+	a-cimutr.adb, a-cihase.adb, a-cohama.adb, a-cborse.adb,
+	a-ciorma.adb, a-cobove.adb: Minor reformatting.
+
+2011-12-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/51201
+	* gcc-interface/Make-lang.in: Initialize RTS_DIR with = instead of :=.
+
+2011-11-24  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* s-taprop-tru64.adb (Create_Task): Use Unrestricted_Access.
+
+2011-11-23  Thomas Quinot  <quinot@adacore.com>
+
+	* thread.c, s-oscons-tmplt.c: Generate __gnat_pthread_condattr_setup
+	only on platforms where this is required, as determined by
+	s-oscons.h.
+
+2011-11-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch9.adb: No check on entry index if error on index.
+
+2011-11-23  Gary Dismukes  <dismukes@adacore.com>
+
+	* sem_ch6.adb (Analyze_Return_Statement): Improve error messages for
+	return statements nested inside an extended_return_statement.
+	* gcc-interface/Make-lang.in: Update dependencies.
+	* gcc-interface/Makefile.in (MISCLIB): Add -lutil for BSD targets.
+
+2011-11-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* freeze.adb (Freeze_All_Ent): An incomplete type is not
+	frozen by a subprogram body that does not come from source.
+
+2011-11-23  Pascal Obry  <obry@adacore.com>
+
+	* s-oscons-tmplt.c: Add PTY_Library constant. It contains
+	the library for pseudo terminal support.
+	* g-exptty.ads: Add pseudo-terminal library into a Linker_Options
+	pragma.
+
+2011-11-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch9.adb: No check on entry family index if generic.
+
+2011-11-23  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_ch9.adb, s-taprop.ads, s-taprop-hpux-dce.adb, s-taprop-irix.adb,
+	s-taprop-posix.adb, s-taprop-rtx.adb, s-taprop-solaris.adb,
+	s-taprop-tru64.adb, s-taprop-vxworks.adb: Move dependency on
+	System.OS_Constants from shared spec of
+	System.Tasking.Primitive_Operations to the specific body variants
+	that really require this dependency.
+
+2011-11-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch8.adb (Analyze_Subprogram_Renaming_Declaration):
+	If the declaration has aspects, analyze them so they can be
+	properly rejected.
+
+2011-11-23  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* a-comutr.adb, a-coorma.adb, a-coorse.adb, a-convec.adb, a-cihase.adb,
+	a-cimutr.adb, a-coinve.adb, a-ciorma.adb, a-ciorse.adb, a-cobove.adb,
+	a-cohama.adb, a-cihama.adb, a-cidlli.adb, a-cdlili.adb, a-cbhama.adb,
+	a-cbhase.adb, a-cbmutr.adb, a-cborma.adb, a-cborse.adb, a-cbdlli.adb:
+	Add with and use clause for Ada.Finalization. Type
+	Iterator and Child_Iterator are now derived from Limited_Controlled.
+	(Finalize): New routine.
+	(Iterate): Add a renaming of counter Busy and
+	increment it. Update the return aggregate.
+	(Iterate_Children): Add a renaming of
+	counter Busy and increment it. Update the return aggregate.
+	(Iterate_Subtree): Add a renaming of counter Busy and increment
+	it. Update the return aggregate.
+	* a-cdlili.ads, a-cidlli.ads: Type List_Access is now a general access
+	type.
+	* a-cihama.ads: Type Map_Access is now a general access type.
+	* a-comutr.ads, a-cimutr.ads: Use type Natural for the two locks
+	associated with the tree.
+	* a-cohama.ads: Type Map_Access is now a general access type.
+	* a-coinve.ads, a-convec.ads: Type Vector_Access is now a general
+	access type.
+	* exp_ch5.adb (Expand_Iterator_Loop): Do not create a block
+	to wrap the loop as this is done at an earlier step, during
+	analysis. The declarations of the iterator and the cursor use
+	the usual Insert_Action mechanism when added into the tree.
+	* sem_ch5.adb (Analyze_Loop_Statement): Remove local constant
+	Loop_Statement and replace all respective uses by N. Add local
+	constant Loc. Preanalyze the loop iterator to discover whether
+	it is a container iterator and if it is, wrap the loop in a
+	block. This ensures that any controlled temporaries produced
+	by the iteration scheme share the same lifetime of the loop.
+	(Is_Container_Iterator): New routine.
+	(Is_Wrapped_In_Block): New routine.
+	(Pre_Analyze_Range): Move spec and body to the library level.
+
+2011-11-23  Sergey Rybin  <rybin@adacore.com frybin>
+
+	* gnat_ugn.texi, vms_data.ads: Add documentation for new gnatpp option
+	that controls casing of type and subtype names.
+
+2011-11-23  Yannick Moy  <moy@adacore.com>
+
+	* sem_ch3.adb: Minor addition of comments.
+
+2011-11-23  Thomas Quinot  <quinot@adacore.com>
+
+	* prj-part.adb (Extension_Withs): New global variable,
+	contains the head of the list of WITH clauses from the EXTENDS
+	ALL projects for which virtual packages are being created.
+	(Look_For_Virtual_Projects_For): When recursing through
+	an EXTENDS ALL, add the WITH clauses of the extending
+	project to Extension_Withs.  When adding a project to the
+	Virtual_Hash, record the associated Extension_Withs list.
+	(Create_Virtual_Extending_Project): Add a copy of the appropriate
+	Extension_Withs to the virtual project.
+
+2011-11-23  Thomas Quinot  <quinot@adacore.com>
+
+	* mlib-tgt-specific-vxworks.adb: Minor reformatting.
+
+2011-11-23  Thomas Quinot  <quinot@adacore.com>
+
+	* Make-generated.in (Sdefault.Target_Name): Set to
+	$(target_noncanonical) instead of $(target) for consistency.
+
+2011-11-23  Matthew Heaney  <heaney@adacore.com>
+
+	* a-cdlili.adb, a-cidlli.adb, a-cbdlli.adb (Iterator): Declared
+	Iterator type as limited (First, Last): Cursor return value
+	depends on iterator node value (Iterate): Use start position as
+	iterator node value (Next, Previous): Forward to corresponding
+	cursor-based operation.
+
+2011-11-23  Matthew Heaney  <heaney@adacore.com>
+
+	* a-coorse.ads, a-ciorse.ads, a-cborse.ads (Set_Iterator_Interfaces):
+	Renamed from Ordered_Set_Iterator_Interfaces.
+	* a-coorse.adb, a-ciorse.adb, a-cborse.adb (Iterator): Declared
+	Iterator type as limited (First, Last): Cursor return value
+	depends on iterator node value (Iterate): Use start position as
+	iterator node value (Next, Previous): Forward to corresponding
+	cursor-based operation.
+	* a-cohase.ads, a-cohase.adb: Implemented forward iterator.
+	* a-cihase.adb, a-cbhase.adb (Iterator): Removed unnecessary
+	node component (First, Next): Forward call to corresponding
+	cursor-based operation (Iterate): Representation of iterator no
+	longer has node component
+
+2011-11-23  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_intr.adb (Expand_Unc_Deallocation): Ensure that the
+	dereference has a proper type before the side effect removal
+	mechanism kicks in.
+	* sem_ch3.adb (Analyze_Subtype_Declaration): Handle a rare case
+	where the base type of the subtype is a private itype created
+	to act as the partial view of a constrained record type. This
+	scenario manifests with equivalent class-wide types for records
+	with unknown discriminants.
+
+2011-11-23  Jerome Guitton  <guitton@adacore.com>
+
+	* s-osprim-vxworks.adb (Clock): Use Clock_RT_Ada.
+
+2011-11-23  Thomas Quinot  <quinot@adacore.com>
+
+	* s-oscons-tmplt.c: Fix unbalanced preprocessor directives Minor
+	reformatting/reorganization.
+
+2011-11-23  Thomas Quinot  <quinot@adacore.com>
+
+	* g-htable.ads: Remove old comments.
+
+2011-11-23  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_imgv.adb: Minor reformatting.
+
+2011-11-23  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch9.adb (Analyze_Entry_Declaration): Check for entry
+	family bounds out of range.
+
+2011-11-23  Matthew Heaney  <heaney@adacore.com>
+
+	* a-cohama.adb, a-cihama.adb, a-cbhama.adb (Iterator): Declare
+	type as limited, and remove node component.
+	(First, Next): Forward call to corresponding cursor-based operation.
+	(Iterate): Representation of iterator no longer has node component.
+
+2011-11-23  Yannick Moy  <moy@adacore.com>
+
+	* exp_util.adb: Revert previous change to remove side-effects in Alfa
+	mode, which is not the correct thing to do for renamings.
+
+2011-11-23  Thomas Quinot  <quinot@adacore.com>
+
+	* s-osinte-hpux.ads, s-taprop-vxworks.adb, s-taprop-tru64.adb,
+	s-osinte-vxworks.ads, s-osinte-aix.ads, s-osinte-lynxos.ads,
+	s-osinte-solaris-posix.ads, s-taprop-solaris.adb, a-exetim-posix.adb,
+	s-osinte-irix.ads, s-osinte-solaris.ads, s-oscons-tmplt.c,
+	s-taprop-irix.adb, s-osinte-hpux-dce.ads, Makefile.rtl,
+	s-osinte-tru64.ads, s-osinte-darwin.ads, s-taprop.ads,
+	s-osinte-freebsd.ads, s-osinte-lynxos-3.ads, s-taprop-hpux-dce.adb,
+	s-taprop-posix.adb: Remove hard-coded clock ids;
+	instead, generate them in System.OS_Constants.
+	(System.OS_Constants.CLOCK_RT_Ada): New constant denoting the
+	id of the clock providing Ada.Real_Time.Monotonic_Clock.
+	* thread.c: New file.
+	(__gnat_pthread_condattr_setup): New function. For platforms where
+	CLOCK_RT_Ada is not CLOCK_REALTIME, set appropriate condition
+	variable attribute.
+
+2011-11-23  Yannick Moy  <moy@adacore.com>
+
+	* sem_ch3.adb: Restore the use of Expander_Active instead of
+	Full_Expander_Active, so that the evaluation is forced in Alfa
+	mode too. Otherwise, we end up with an unexpected insertion in a
+	place where it is not supposed to happen, on default parameters
+	of a call.
+
+2011-11-23  Thomas Quinot  <quinot@adacore.com>
+
+	* prj-pp.adb, prj-pp.ads: Minor new addition: wrapper procedure "wpr"
+	for Pretty_Print, for use from within gdb.
+
+2011-11-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch5.adb (Expand_Iterator_Loop): Wrap the expanded loop
+	and the cursor declarations in a block, so that the loop variable
+	is local to the construct.
+
+2011-11-23  Matthew Heaney  <heaney@adacore.com>
+
+	* a-coorma.ads, a-ciorma.ads, a-cborma.ads (Iterate): Returns
+	type Reversible_Iterator'Class.
+	* a-coorma.adb, a-ciorma.adb, a-cborma.adb (Iterator):
+	Declare type as limited.
+	(First, Last): Return value depends on iterator's start node value.
+	(Next, Previous): Call corresponding Cursor-based operation.
+	(Iterate): Indicate whether complete or partial iteration
+
+2011-11-23  Robert Dewar  <dewar@adacore.com>
+
+	* errout.adb: Minor reformattin (Finalize): Take templates into
+	account for warning suppression.
+	* errout.ads (Set_Specific_Warning_Off): Add Used parameter.
+	* erroutc.adb: Minor reformatting (Finalize): Take generic
+	templates into account for warning suppress.
+	* erroutc.ads (Set_Specific_Warning_Off): Add Used parameter.
+	* sem_prag.adb: Minor reformatting (Analyze_Pragma,
+	case Warnings): Provide Used parameter in call to
+	Set_Specific_Warnings_Off (to deal with generic template case).
+
+2011-11-23  Pascal Obry  <obry@adacore.com>
+
+	* sem_prag.adb (Process_Convention): Better error message for
+	stdcall convention on dispatching calls.
+
+2011-11-23  Gary Dismukes  <dismukes@adacore.com>
+
+	* sem_ch4.adb, sem_ch13.adb: Minor reformatting.
+
+2011-11-23  Javier Miranda  <miranda@adacore.com>
+
+	* exp_ch6.adb (Expand_Simple_Function_Return): Add missing
+	implicit type conversion when the returned object is allocated
+	in the secondary stack and the type of the returned object is
+	an interface. Done to force generation of displacement of the
+	"this" pointer.
+
+2011-11-23  Pascal Obry  <obry@adacore.com>
+
+	* impunit.adb: Add g-exptty and g-tty units.
+
+2011-11-23  Robert Dewar  <dewar@adacore.com>
+
+	* exp_imgv.adb: Minor code reorganization (use Make_Temporary).
+
+2011-11-23  Robert Dewar  <dewar@adacore.com>
+
+	* exp_util.adb, par-ch6.adb, sem_res.adb, par-util.adb: Minor
+	reformatting.
+
+2011-11-23  Yannick Moy  <moy@adacore.com>
+
+	* sem_ch13.adb (Analyze_Aspect_Specifications): Place error on
+	line of precondition/ postcondition/invariant.
+
+2011-11-23  Pascal Obry  <obry@adacore.com>
+
+	* g-exptty.ads, g-exptty.adb, g-tty.ads, g-tty.adb,
+	terminals.c: New files.
+	Makefile.rtl: Add these new files.
+	* gnat_rm.texi: Add documentation for GNAT.Expect.TTY.
+	* gcc-interface/Makefile.in: Add g-exptty, g-tty, terminals.o
+	* gcc-interface/Make-lang.in: Update dependencies.
+
 2011-11-21  Robert Dewar  <dewar@adacore.com>
 
-	* exp_imgv.adb (Expand_Width_Attribute): Handle case of
-	Discard_Names.
+	* exp_imgv.adb (Expand_Width_Attribute): Handle case of Discard_Names.
 	* sem_attr.adb (Eval_Attribute, case Width): Ditto.
 
 2011-11-21  Thomas Quinot  <quinot@adacore.com>

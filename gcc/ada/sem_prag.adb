@@ -1314,34 +1314,6 @@ package body Sem_Prag is
                      Subtype_Indication (Component_Definition (Comp));
          Typ     : constant Entity_Id := Etype (Comp_Id);
 
-         function Inside_Generic_Body (Id : Entity_Id) return Boolean;
-         --  Determine whether entity Id appears inside a generic body.
-         --  Shouldn't this be in a more general place ???
-
-         -------------------------
-         -- Inside_Generic_Body --
-         -------------------------
-
-         function Inside_Generic_Body (Id : Entity_Id) return Boolean is
-            S : Entity_Id;
-
-         begin
-            S := Id;
-            while Present (S) and then S /= Standard_Standard loop
-               if Ekind (S) = E_Generic_Package
-                 and then In_Package_Body (S)
-               then
-                  return True;
-               end if;
-
-               S := Scope (S);
-            end loop;
-
-            return False;
-         end Inside_Generic_Body;
-
-      --  Start of processing for Check_Component
-
       begin
          --  Ada 2005 (AI-216): If a component subtype is subject to a per-
          --  object constraint, then the component type shall be an Unchecked_
@@ -1363,7 +1335,7 @@ package body Sem_Prag is
          --  the formal part of the generic unit.
 
          elsif Ada_Version >= Ada_2012
-           and then Inside_Generic_Body (UU_Typ)
+           and then In_Generic_Body (UU_Typ)
            and then In_Variant_Part
            and then Is_Private_Type (Typ)
            and then Is_Generic_Type (Typ)
@@ -3526,30 +3498,37 @@ package body Sem_Prag is
 
          --  Stdcall case
 
-         if C = Convention_Stdcall
+         if C = Convention_Stdcall then
+
+            --  A dispatching call is not allowed. A dispatching subprogram
+            --  cannot be used to interface to the Win32 API, so in fact this
+            --  check does not impose any effective restriction.
+
+            if Is_Dispatching_Operation (E) then
+
+               Error_Pragma
+                 ("dispatching subprograms cannot use Stdcall convention");
 
             --  Subprogram is allowed, but not a generic subprogram, and not a
-            --  dispatching operation. A dispatching subprogram cannot be used
-            --  to interface to the Win32 API, so in fact this check does not
-            --  impose any effective restriction.
+            --  dispatching operation.
 
-           and then
-             ((not Is_Subprogram (E) and then not Is_Generic_Subprogram (E))
-                or else Is_Dispatching_Operation (E))
+            elsif not Is_Subprogram (E)
+              and then not Is_Generic_Subprogram (E)
 
-            --  A variable is OK
+              --  A variable is OK
 
-           and then Ekind (E) /= E_Variable
+              and then Ekind (E) /= E_Variable
 
-           --  An access to subprogram is also allowed
+              --  An access to subprogram is also allowed
 
-           and then not
-             (Is_Access_Type (E)
-               and then Ekind (Designated_Type (E)) = E_Subprogram_Type)
-         then
-            Error_Pragma_Arg
-              ("second argument of pragma% must be subprogram (type)",
-               Arg2);
+              and then not
+                (Is_Access_Type (E)
+                  and then Ekind (Designated_Type (E)) = E_Subprogram_Type)
+            then
+               Error_Pragma_Arg
+                 ("second argument of pragma% must be subprogram (type)",
+                  Arg2);
+            end if;
          end if;
 
          if not Is_Subprogram (E)
@@ -14521,7 +14500,7 @@ package body Sem_Prag is
                      end;
                   end if;
 
-                  --  Two or more arguments (must be two)
+               --  Two or more arguments (must be two)
 
                else
                   Check_Arg_Is_One_Of (Arg1, Name_On, Name_Off);
@@ -14540,8 +14519,7 @@ package body Sem_Prag is
                      --  the formal may be wrapped in a conversion if the
                      --  actual is a conversion. Retrieve the real entity name.
 
-                     if (In_Instance_Body
-                          or else In_Inlined_Body)
+                     if (In_Instance_Body or else In_Inlined_Body)
                        and then Nkind (E_Id) = N_Unchecked_Type_Conversion
                      then
                         E_Id := Expression (E_Id);
@@ -14605,10 +14583,21 @@ package body Sem_Prag is
                         --  In any other case, an error will be signalled (ON
                         --  with no matching OFF).
 
+                        --  Note: We set Used if we are inside a generic to
+                        --  disable the test that the non-config case actually
+                        --  cancels a warning. That's because we can't be sure
+                        --  there isn't an instantiation in some other unit
+                        --  where a warning is suppressed.
+
+                        --  We could do a little better here by checking if the
+                        --  generic unit we are inside is public, but for now
+                        --  we don't bother with that refinement.
+
                         if Chars (Argx) = Name_Off then
                            Set_Specific_Warning_Off
                              (Loc, Name_Buffer (1 .. Name_Len),
-                              Config => Is_Configuration_Pragma);
+                              Config => Is_Configuration_Pragma,
+                              Used   => Inside_A_Generic or else In_Instance);
 
                         elsif Chars (Argx) = Name_On then
                            Set_Specific_Warning_On

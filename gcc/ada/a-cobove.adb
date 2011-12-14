@@ -28,16 +28,20 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Generic_Array_Sort;
+with Ada.Finalization; use Ada.Finalization;
 
 with System; use type System.Address;
 
 package body Ada.Containers.Bounded_Vectors is
 
-   type Iterator is new
-     Vector_Iterator_Interfaces.Reversible_Iterator with record
-        Container : Vector_Access;
-        Index     : Index_Type;
-     end record;
+   type Iterator is new Limited_Controlled and
+     Vector_Iterator_Interfaces.Reversible_Iterator with
+   record
+      Container : Vector_Access;
+      Index     : Index_Type;
+   end record;
+
+   overriding procedure Finalize (Object : in out Iterator);
 
    overriding function First (Object : Iterator) return Cursor;
    overriding function Last  (Object : Iterator) return Cursor;
@@ -657,6 +661,21 @@ package body Ada.Containers.Bounded_Vectors is
          return Position.Container.Element (Position.Index);
       end if;
    end Element;
+
+   --------------
+   -- Finalize --
+   --------------
+
+   procedure Finalize (Object : in out Iterator) is
+   begin
+      if Object.Container /= null then
+         declare
+            B : Natural renames Object.Container.all.Busy;
+         begin
+            B := B - 1;
+         end;
+      end if;
+   end Finalize;
 
    ----------
    -- Find --
@@ -1607,8 +1626,7 @@ package body Ada.Containers.Bounded_Vectors is
      (Container : Vector;
       Process   : not null access procedure (Position : Cursor))
    is
-      V : Vector renames Container'Unrestricted_Access.all;
-      B : Natural renames V.Busy;
+      B : Natural renames Container'Unrestricted_Access.all.Busy;
 
    begin
       B := B + 1;
@@ -1630,8 +1648,15 @@ package body Ada.Containers.Bounded_Vectors is
      (Container : Vector)
       return Vector_Iterator_Interfaces.Reversible_Iterator'Class
    is
+      B : Natural renames Container'Unrestricted_Access.all.Busy;
    begin
-      return Iterator'(Container'Unrestricted_Access, Index_Type'First);
+      return It : constant Iterator :=
+                    Iterator'(Limited_Controlled with
+                                Container => Container'Unrestricted_Access,
+                                Index     => Index_Type'First)
+      do
+         B := B + 1;
+      end return;
    end Iterate;
 
    function Iterate
@@ -1639,8 +1664,15 @@ package body Ada.Containers.Bounded_Vectors is
       Start     : Cursor)
       return Vector_Iterator_Interfaces.Reversible_Iterator'class
    is
+      B : Natural renames Container'Unrestricted_Access.all.Busy;
    begin
-      return Iterator'(Container'Unrestricted_Access, Start.Index);
+      return It : constant Iterator :=
+                    Iterator'(Limited_Controlled with
+                                Container => Container'Unrestricted_Access,
+                                Index     => Start.Index)
+      do
+         B := B + 1;
+      end return;
    end Iterate;
 
    ----------
@@ -1749,7 +1781,8 @@ package body Ada.Containers.Bounded_Vectors is
            "attempt to tamper with cursors (Source is busy)";
       end if;
 
-      --  Clear Target now, in case element assignment fails.
+      --  Clear Target now, in case element assignment fails
+
       Target.Last := No_Index;
 
       Target.Elements (1 .. Source.Length) :=
@@ -1958,8 +1991,10 @@ package body Ada.Containers.Bounded_Vectors is
    ---------------
 
    function Constant_Reference
-     (Container : Vector; Position : Cursor)    --  SHOULD BE ALIASED
-   return Constant_Reference_Type is
+     (Container : Vector;
+      Position  : Cursor)    --  SHOULD BE ALIASED
+      return Constant_Reference_Type
+   is
    begin
       pragma Unreferenced (Container);
 
@@ -1978,8 +2013,10 @@ package body Ada.Containers.Bounded_Vectors is
    end Constant_Reference;
 
    function Constant_Reference
-     (Container : Vector; Position : Index_Type)
-   return Constant_Reference_Type is
+     (Container : Vector;
+      Position  : Index_Type)
+      return Constant_Reference_Type
+   is
    begin
       if (Position) > Container.Last then
          raise Constraint_Error with "Index is out of range";
@@ -1989,8 +2026,11 @@ package body Ada.Containers.Bounded_Vectors is
                 Container.Elements (To_Array_Index (Position))'Access);
    end Constant_Reference;
 
-   function Reference (Container : Vector; Position : Cursor)
-   return Reference_Type is
+   function Reference
+     (Container : Vector;
+      Position  : Cursor)
+      return Reference_Type
+   is
    begin
       pragma Unreferenced (Container);
 
@@ -2008,8 +2048,11 @@ package body Ada.Containers.Bounded_Vectors is
              (To_Array_Index (Position.Index))'Access);
    end Reference;
 
-   function Reference (Container : Vector; Position : Index_Type)
-   return Reference_Type is
+   function Reference
+     (Container : Vector;
+      Position  : Index_Type)
+      return Reference_Type
+   is
    begin
       if Position > Container.Last then
          raise Constraint_Error with "Index is out of range";

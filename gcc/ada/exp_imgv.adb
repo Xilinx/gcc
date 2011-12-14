@@ -245,7 +245,7 @@ package body Exp_Imgv is
    --  Snn (1 .. Pnn) then occurs as in the other cases. A special case is
    --  when pragma Discard_Names applies, in which case we replace expr by:
 
-   --     (rt'pos (expr))'Img
+   --     (rt'Pos (expr))'Img
 
    --  So that the result is a space followed by the decimal value for the
    --  position of the enumeration value in the enumeration type.
@@ -1191,10 +1191,7 @@ package body Exp_Imgv is
 
          if Discard_Names (Rtyp) then
             declare
-               Tnn : constant Entity_Id :=
-                       Make_Defining_Identifier (Loc,
-                         Chars => New_Internal_Name ('T'));
-
+               Tnn   : constant Entity_Id := Make_Temporary (Loc, 'T');
                Cexpr : Node_Id;
                P     : Int;
                M     : Int;

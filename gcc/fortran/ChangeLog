@@ -1,3 +1,163 @@
+2011-12-10  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-decl.c (add_argument_checking): Fix syntax.
+
+2011-12-10  Tobias Burnus  <burnus@net-b.de>
+	    Kai Tietz  <ktietz@redhat.com>
+
+	* trans-decl.c (add_argument_checking): Check ts.deferred earlier.
+	* trans-intrinsic.c (gfc_conv_intrinsic_repeat): Use %ld with long.
+
+2011-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50815
+	* trans-decl.c (add_argument_checking): Skip bound checking
+	for deferred-length strings.
+
+2011-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51378
+	* symbol.c (gfc_find_component): Fix access check of parent
+	components.
+
+2011-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51407
+	* io/transfer.c (require_numeric_type): New function.
+	(formatted_transfer_scalar_read, formatted_transfer_scalar_write):
+	Use it, allow BOZ edit descriptors with F2008.
+
+2011-12-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51448
+	* fortran/trans-array.c (get_std_lbound): Fix handling of
+	conversion functions.
+
+2011-12-08  Toon Moene  <toon@moene.org>
+
+	PR fortran/51310
+	* invoke.texi: Itemize the cases for which
+	-finit-<type>=<constant> doesn't work.
+
+2011-12-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51435
+	* expr.c (gfc_has_default_initializer): Fix handling of
+	DT with initialized pointer components.
+
+2011-12-05  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/51338
+	* dependency.c (are_identical_variables):  Handle case where
+	end fields of substring references are NULL.
+
+2011-12-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51383
+	* resolve.c (find_array_spec): Use ref->u.c.component
+	directly without starting from ts.u.derived.
+
+2011-12-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/48887
+	* match.c (select_type_set_tmp): Don't set allocatable/pointer
+	attribute.
+	* class.c (gfc_build_class_symbol): Handle
+	attr.select_type_temporary.
+
+2011-12-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50684
+	* check.c (variable_check): Fix intent(in) check.
+
+2011-12-03  Tobias Burnus  <burnus@net-b.de>
+
+	* check.c (gfc_check_move_alloc): Allow nonpolymorphic
+	FROM with polymorphic TO.
+	* trans-intrinsic.c (conv_intrinsic_move_alloc): Handle
+	nonpolymorphic FROM with polymorphic TO.
+
+2011-12-01  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* module.c (dt_lower_string): Make static.
+	(dt_upper_string): Likewise.
+
+2011-12-01  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/25708
+	* module.c (parse_string): Read string into resizable array
+	instead of parsing twice and seeking.
+	(peek_atom): New implementation avoiding seeks.
+	(require_atom): Save and set column and line explicitly for error
+	handling.
+
+2011-12-01  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* misc.c (gfc_open_file): Don't call stat.
+
+2011-11-29  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/40958
+	* module.c (prev_module_line):  New variable.
+	(prev_module_column):  New variable.
+	(prev_character):  New variable.
+	(module_char):  Update the new variables.
+	(module_unget_char):  New function.
+	(parse_string):  Use module_unget_char.
+	(parse_integer):  Likewise.
+	(parse_name):  Likewise.
+
+2011-11-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51306
+	PR fortran/48700
+	* check.c (gfc_check_move_alloc): Make sure that from/to
+	are both polymorphic or neither.
+	* trans-intrinsic.c (conv_intrinsic_move_alloc): Cleanup,
+	generate inline code.
+
+2011-11-28  Tobias Burnus  <burnus@net-b.de>
+	    Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/51308
+	* symbol.c (check_conflict): Ignore BIND(C) + PARAMETER
+	conflicts for ISO_C_BINDING variables.
+	(gen_special_c_interop_ptr): Don't mark c_ptr_null/c_funptr_null
+	as SAVE.
+
+2011-11-25  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-array.c (set_loop_bounds): Remove dead conditions.
+
+2011-11-25  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/51250
+	PR fortran/43829
+	* trans-array.c (gfc_trans_create_temp_array): Get dimension from
+	the right gfc_ss struct.
+
+2011-11-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50408
+	* trans-decl.c (gfc_get_module_backend_decl): Also copy
+	ts.u.derived from the gsym if the ts.type is BT_CLASS.
+	(gfc_get_extern_function_decl): Copy also the backend_decl
+	for the symbol's ts.u.{derived,cl} from the gsym.
+	* trans-types.c (gfc_copy_dt_decls_ifequal): Directly
+	return if "from" and "to" are the same.
+
+2011-11-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51302
+	* trans-stmt.c (gfc_trans_simple_do): Add a fold_convert.
+
+2011-11-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51218
+	* resolve.c (pure_subroutine): If called subroutine is
+	impure, unset implicit_pure.
+	(resolve_function): Move impure check to simplify code.
+
 2011-11-19  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/51207

@@ -1,3 +1,9 @@
+2011-12-12   Diego Novillo  <dnovillo@google.com>
+
+	* pph-out.c (pph_out_global_binding): Do not assert that
+	scope_chain->x_stmt_tree.x_stmts_are_full_exprs_p is
+	false.
+
 2011-12-09   Diego Novillo  <dnovillo@google.com>
 
 	* pph-core.c (pph_include_handler): Use LOC instead of
