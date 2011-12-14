@@ -1221,6 +1221,12 @@ DEFHOOK
  tree, (tree fndecl, int n_args, tree *argp, bool ignore),
  hook_tree_tree_int_treep_bool_null)
 
+/* Returns true if unaligned vector loads/stores are slow.  */
+DEFHOOK
+(slow_unaligned_vector_memop,
+ "",
+ bool, (void), NULL)
+
 /* Returns a code for a target-specific builtin that implements
    reciprocal of the function, or NULL_TREE if not available.  */
 DEFHOOK

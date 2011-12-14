@@ -10984,6 +10984,11 @@ The result is another tree containing a simplified expression for the
 call's result.  If @var{ignore} is true the value will be ignored.
 @end deftypefn
 
+@deftypefn {Target Hook} bool TARGET_SLOW_UNALIGNED_VECTOR_MEMOP (void)
+Return true if unaligned vector memory load/store is a slow operation
+on this target.
+@end deftypefn
+
 @deftypefn {Target Hook} {const char *} TARGET_INVALID_WITHIN_DOLOOP (const_rtx @var{insn})
 
 Take an instruction in @var{insn} and return NULL if it is valid within a

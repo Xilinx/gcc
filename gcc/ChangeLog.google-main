@@ -1,3 +1,18 @@
+2011-12-14  Sriraman Tallam  <tmsriram@google.com>
+
+	Do not vectorize loops on Core2 that need to use unaligned
+	vector load/stores.
+	* tree-vect-stmts.c (is_vector_load_store_slow): New function.
+	(vectorizable_load): Return false if the load
+	is unaligned and slow.
+	(vectorizable_store): Ditto.
+	* target.def (TARGET_SLOW_UNALIGNED_VECTOR_MEMOP): New target hook.
+	* doc/m.texi.in: Document new target hook:
+	TARGET_SLOW_UNALIGNED_VECTOR_MEMOP
+	* doc/m.texi: Regenerate.
+	* config/i386/i386.c (ix86_slow_unaligned_vector_memop): New function.
+	(TARGET_SLOW_UNALIGNED_VECTOR_MEMOP): New macro. 
+
 2011-12-12  Teresa Johnson  <tejohnson@google.com>
 
 	Limit unrolling of loops with LCP stalling instructions on Core i7
