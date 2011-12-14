@@ -2495,7 +2495,8 @@ package body Sem_Ch13 is
          --  Alignment attribute definition clause
 
          when Attribute_Alignment => Alignment : declare
-            Align : constant Uint := Get_Alignment_Value (Expr);
+            Align     : constant Uint := Get_Alignment_Value (Expr);
+            Max_Align : constant Uint := UI_From_Int (Maximum_Alignment);
 
          begin
             FOnly := True;
@@ -2511,7 +2512,14 @@ package body Sem_Ch13 is
 
             elsif Align /= No_Uint then
                Set_Has_Alignment_Clause (U_Ent);
-               Set_Alignment            (U_Ent, Align);
+
+               if Is_Tagged_Type (U_Ent) and then Align > Max_Align then
+                  Error_Msg_N
+                    ("?alignment for & set to Maximum_Aligment", Nam);
+                  Set_Alignment (U_Ent, Max_Align);
+               else
+                  Set_Alignment (U_Ent, Align);
+               end if;
 
                --  For an array type, U_Ent is the first subtype. In that case,
                --  also set the alignment of the anonymous base type so that
@@ -5872,7 +5880,17 @@ package body Sem_Ch13 is
       --  All other cases
 
       else
-         Preanalyze_Spec_Expression (End_Decl_Expr, T);
+         --  In a generic context the aspect expressions have not been
+         --  preanalyzed, so do it now. There are no conformance checks
+         --  to perform in this case.
+
+         if No (T) then
+            Check_Aspect_At_Freeze_Point (ASN);
+            return;
+         else
+            Preanalyze_Spec_Expression (End_Decl_Expr, T);
+         end if;
+
          Err := not Fully_Conformant_Expressions (End_Decl_Expr, Freeze_Expr);
       end if;
 

@@ -3322,7 +3322,7 @@ Type_conversion_expression::do_lower(Gogo*, Named_object*,
       mpfr_clear(imag);
     }
 
-  if (type->is_slice_type() && type->named_type() == NULL)
+  if (type->is_slice_type())
     {
       Type* element_type = type->array_type()->element_type()->forwarded();
       bool is_byte = element_type == Type::lookup_integer_type("uint8");
@@ -3621,20 +3621,11 @@ Type_conversion_expression::do_get_tree(Translate_context* context)
 			       integer_type_node,
 			       fold_convert(integer_type_node, expr_tree));
     }
-  else if (type->is_string_type()
-	   && (expr_type->array_type() != NULL
-	       || (expr_type->points_to() != NULL
-		   && expr_type->points_to()->array_type() != NULL)))
+  else if (type->is_string_type() && expr_type->is_slice_type())
     {
-      Type* t = expr_type;
-      if (t->points_to() != NULL)
-	{
-	  t = t->points_to();
-	  expr_tree = build_fold_indirect_ref(expr_tree);
-	}
       if (!DECL_P(expr_tree))
 	expr_tree = save_expr(expr_tree);
-      Array_type* a = t->array_type();
+      Array_type* a = expr_type->array_type();
       Type* e = a->element_type()->forwarded();
       go_assert(e->integer_type() != NULL);
       tree valptr = fold_convert(const_ptr_type_node,
@@ -3678,7 +3669,7 @@ Type_conversion_expression::do_get_tree(Translate_context* context)
       if (e->integer_type()->is_unsigned()
 	  && e->integer_type()->bits() == 8)
 	{
-	  static tree string_to_byte_array_fndecl;
+	  tree string_to_byte_array_fndecl = NULL_TREE;
 	  ret = Gogo::call_builtin(&string_to_byte_array_fndecl,
 				   this->location(),
 				   "__go_string_to_byte_array",
@@ -3690,7 +3681,7 @@ Type_conversion_expression::do_get_tree(Translate_context* context)
       else
 	{
 	  go_assert(e == Type::lookup_integer_type("int"));
-	  static tree string_to_int_array_fndecl;
+	  tree string_to_int_array_fndecl = NULL_TREE;
 	  ret = Gogo::call_builtin(&string_to_int_array_fndecl,
 				   this->location(),
 				   "__go_string_to_int_array",

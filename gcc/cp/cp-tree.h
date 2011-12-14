@@ -130,6 +130,7 @@ c-common.h, not after.
       DECL_TEMPLATE_INSTANTIATED (in a VAR_DECL or a FUNCTION_DECL)
       DECL_MEMBER_TEMPLATE_P (in TEMPLATE_DECL)
       FUNCTION_PARAMETER_PACK_P (in PARM_DECL)
+      USING_DECL_TYPENAME_P (in USING_DECL)
    2: DECL_THIS_EXTERN (in VAR_DECL or FUNCTION_DECL).
       DECL_IMPLICIT_TYPEDEF_P (in a TYPE_DECL)
    3: DECL_IN_AGGR_P.
@@ -2521,6 +2522,9 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 /* The decls named by a using decl.  */
 #define USING_DECL_DECLS(NODE) DECL_INITIAL (USING_DECL_CHECK (NODE))
 
+/* Non zero if the using decl refers to a dependent type.  */
+#define USING_DECL_TYPENAME_P(NODE) DECL_LANG_FLAG_1 (USING_DECL_CHECK (NODE))
+
 /* In a VAR_DECL, true if we have a shadowed local variable
    in the shadowed var table for this VAR_DECL.  */
 #define DECL_HAS_SHADOWED_FOR_VAR_P(NODE) \
@@ -3015,6 +3019,11 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 /* Indicates that a VEC_INIT_EXPR is expressing value-initialization.  */
 #define VEC_INIT_EXPR_VALUE_INIT(NODE) \
   TREE_LANG_FLAG_1 (VEC_INIT_EXPR_CHECK (NODE))
+
+/* The condition under which this MUST_NOT_THROW_EXPR actually blocks
+   exceptions.  NULL_TREE means 'true'.  */
+#define MUST_NOT_THROW_COND(NODE) \
+  TREE_OPERAND (MUST_NOT_THROW_EXPR_CHECK (NODE), 1)
 
 /* The TYPE_MAIN_DECL for a class template type is a TYPE_DECL, not a
    TEMPLATE_DECL.  This macro determines whether or not a given class
@@ -5148,6 +5157,7 @@ extern bool type_noexcept_p			(const_tree);
 extern bool type_throw_all_p			(const_tree);
 extern tree build_noexcept_spec			(tree, int);
 extern void choose_personality_routine		(enum languages);
+extern tree build_must_not_throw_expr		(tree,tree);
 extern tree eh_type_info			(tree);
 extern tree begin_eh_spec_block			(void);
 extern void finish_eh_spec_block		(tree, tree);
@@ -5581,8 +5591,8 @@ extern void finish_omp_barrier			(void);
 extern void finish_omp_flush			(void);
 extern void finish_omp_taskwait			(void);
 extern tree begin_transaction_stmt		(location_t, tree *, int);
-extern void finish_transaction_stmt		(tree, tree, int);
-extern tree build_transaction_expr		(location_t, tree, int);
+extern void finish_transaction_stmt		(tree, tree, int, tree);
+extern tree build_transaction_expr		(location_t, tree, int, tree);
 extern void finish_omp_taskyield		(void);
 extern bool cxx_omp_create_clause_info		(tree, tree, bool, bool, bool);
 extern tree baselink_for_fns                    (tree);

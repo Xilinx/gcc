@@ -596,7 +596,7 @@ namespace __cxxabiv1
 
   // Throw the exception.
   void
-  __cxa_throw(void*, std::type_info*, void (*) (void *)) 
+  __cxa_throw(void*, std::type_info*, void (*) (void *))
   __attribute__((__noreturn__));
 
   // Used to implement exception handlers.

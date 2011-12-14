@@ -13,16 +13,26 @@ import (
 	"unicode"
 )
 
-// Tree is the representation of a parsed template.
+// Tree is the representation of a single parsed template.
 type Tree struct {
-	Name string    // Name is the name of the template.
-	Root *ListNode // Root is the top-level root of the parse tree.
+	Name string    // name of the template represented by the tree.
+	Root *ListNode // top-level root of the tree.
 	// Parsing only; cleared after parse.
 	funcs     []map[string]interface{}
 	lex       *lexer
 	token     [2]item // two-token lookahead for parser.
 	peekCount int
 	vars      []string // variables defined at the moment.
+}
+
+// Parse returns a map from template name to parse.Tree, created by parsing the
+// templates described in the argument string. The top-level template will be
+// given the specified name. If an error is encountered, parsing stops and an
+// empty map is returned with the error.
+func Parse(name, text, leftDelim, rightDelim string, funcs ...map[string]interface{}) (treeSet map[string]*Tree, err error) {
+	treeSet = make(map[string]*Tree)
+	_, err = New(name).Parse(text, leftDelim, rightDelim, treeSet, funcs...)
+	return
 }
 
 // next returns the next token.
@@ -58,7 +68,7 @@ func (t *Tree) peek() item {
 
 // Parsing.
 
-// New allocates a new template with the given name.
+// New allocates a new parse tree with the given name.
 func New(name string, funcs ...map[string]interface{}) *Tree {
 	return &Tree{
 		Name:  name,
@@ -87,6 +97,15 @@ func (t *Tree) expect(expected itemType, context string) item {
 	return token
 }
 
+// expectEither consumes the next token and guarantees it has one of the required types.
+func (t *Tree) expectOneOf(expected1, expected2 itemType, context string) item {
+	token := t.next()
+	if token.typ != expected1 && token.typ != expected2 {
+		t.errorf("expected %s or %s in %s; got %s", expected1, expected2, context, token)
+	}
+	return token
+}
+
 // unexpected complains about the token and terminates processing.
 func (t *Tree) unexpected(token item, context string) {
 	t.errorf("unexpected %s in %s", token, context)
@@ -107,7 +126,7 @@ func (t *Tree) recover(errp *error) {
 	return
 }
 
-// startParse starts the template parsing from the lexer.
+// startParse initializes the parser, using the lexer.
 func (t *Tree) startParse(funcs []map[string]interface{}, lex *lexer) {
 	t.Root = nil
 	t.lex = lex
@@ -143,32 +162,77 @@ func (t *Tree) atEOF() bool {
 	return false
 }
 
-// Parse parses the template definition string to construct an internal
-// representation of the template for execution. If either action delimiter
-// string is empty, the default ("{{" or "}}") is used.
-func (t *Tree) Parse(s, leftDelim, rightDelim string, funcs ...map[string]interface{}) (tree *Tree, err error) {
+// Parse parses the template definition string to construct a representation of
+// the template for execution. If either action delimiter string is empty, the
+// default ("{{" or "}}") is used. Embedded template definitions are added to
+// the treeSet map.
+func (t *Tree) Parse(s, leftDelim, rightDelim string, treeSet map[string]*Tree, funcs ...map[string]interface{}) (tree *Tree, err error) {
 	defer t.recover(&err)
 	t.startParse(funcs, lex(t.Name, s, leftDelim, rightDelim))
-	t.parse(true)
+	t.parse(treeSet)
+	t.add(treeSet)
 	t.stopParse()
 	return t, nil
 }
 
-// parse is the helper for Parse.
-// It triggers an error if we expect EOF but don't reach it.
-func (t *Tree) parse(toEOF bool) (next Node) {
-	t.Root, next = t.itemList(true)
-	if toEOF && next != nil {
-		t.errorf("unexpected %s", next)
+// add adds tree to the treeSet.
+func (t *Tree) add(treeSet map[string]*Tree) {
+	if _, present := treeSet[t.Name]; present {
+		t.errorf("template: multiple definition of template %q", t.Name)
 	}
-	return next
+	treeSet[t.Name] = t
+}
+
+// parse is the top-level parser for a template, essentially the same
+// as itemList except it also parses {{define}} actions.
+// It runs to EOF.
+func (t *Tree) parse(treeSet map[string]*Tree) (next Node) {
+	t.Root = newList()
+	for t.peek().typ != itemEOF {
+		if t.peek().typ == itemLeftDelim {
+			delim := t.next()
+			if t.next().typ == itemDefine {
+				newT := New("definition") // name will be updated once we know it.
+				newT.startParse(t.funcs, t.lex)
+				newT.parseDefinition(treeSet)
+				continue
+			}
+			t.backup2(delim)
+		}
+		n := t.textOrAction()
+		if n.Type() == nodeEnd {
+			t.errorf("unexpected %s", n)
+		}
+		t.Root.append(n)
+	}
+	return nil
+}
+
+// parseDefinition parses a {{define}} ...  {{end}} template definition and
+// installs the definition in the treeSet map.  The "define" keyword has already
+// been scanned.
+func (t *Tree) parseDefinition(treeSet map[string]*Tree) {
+	const context = "define clause"
+	name := t.expectOneOf(itemString, itemRawString, context)
+	var err error
+	t.Name, err = strconv.Unquote(name.val)
+	if err != nil {
+		t.error(err)
+	}
+	t.expect(itemRightDelim, context)
+	var end Node
+	t.Root, end = t.itemList()
+	if end.Type() != nodeEnd {
+		t.errorf("unexpected %s in %s", end, context)
+	}
+	t.stopParse()
+	t.add(treeSet)
 }
 
 // itemList:
 //	textOrAction*
-// Terminates at EOF and at {{end}} or {{else}}, which is returned separately.
-// The toEOF flag tells whether we expect to reach EOF.
-func (t *Tree) itemList(toEOF bool) (list *ListNode, next Node) {
+// Terminates at {{end}} or {{else}}, returned separately.
+func (t *Tree) itemList() (list *ListNode, next Node) {
 	list = newList()
 	for t.peek().typ != itemEOF {
 		n := t.textOrAction()
@@ -178,10 +242,8 @@ func (t *Tree) itemList(toEOF bool) (list *ListNode, next Node) {
 		}
 		list.append(n)
 	}
-	if !toEOF {
-		t.unexpected(t.next(), "input")
-	}
-	return list, nil
+	t.errorf("unexpected EOF")
+	return
 }
 
 // textOrAction:
@@ -276,11 +338,11 @@ func (t *Tree) parseControl(context string) (lineNum int, pipe *PipeNode, list, 
 	defer t.popVars(len(t.vars))
 	pipe = t.pipeline(context)
 	var next Node
-	list, next = t.itemList(false)
+	list, next = t.itemList()
 	switch next.Type() {
 	case nodeEnd: //done
 	case nodeElse:
-		elseList, next = t.itemList(false)
+		elseList, next = t.itemList()
 		if next.Type() != nodeEnd {
 			t.errorf("expected end; found %s", next)
 		}

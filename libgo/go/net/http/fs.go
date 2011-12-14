@@ -22,13 +22,19 @@ import (
 
 // A Dir implements http.FileSystem using the native file
 // system restricted to a specific directory tree.
+//
+// An empty Dir is treated as ".".
 type Dir string
 
 func (d Dir) Open(name string) (File, error) {
 	if filepath.Separator != '/' && strings.IndexRune(name, filepath.Separator) >= 0 {
 		return nil, errors.New("http: invalid character in file path")
 	}
-	f, err := os.Open(filepath.Join(string(d), filepath.FromSlash(path.Clean("/"+name))))
+	dir := string(d)
+	if dir == "" {
+		dir = "."
+	}
+	f, err := os.Open(filepath.Join(dir, filepath.FromSlash(path.Clean("/"+name))))
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +52,7 @@ type FileSystem interface {
 // served by the FileServer implementation.
 type File interface {
 	Close() error
-	Stat() (*os.FileInfo, error)
+	Stat() (os.FileInfo, error)
 	Readdir(count int) ([]os.FileInfo, error)
 	Read([]byte) (int, error)
 	Seek(offset int64, whence int) (int64, error)
@@ -87,8 +93,8 @@ func dirList(w ResponseWriter, f File) {
 			break
 		}
 		for _, d := range dirs {
-			name := d.Name
-			if d.IsDirectory() {
+			name := d.Name()
+			if d.IsDir() {
 				name += "/"
 			}
 			// TODO htmlescape
@@ -129,7 +135,7 @@ func serveFile(w ResponseWriter, r *Request, fs FileSystem, name string, redirec
 		// redirect to canonical path: / at end of directory url
 		// r.URL.Path always begins with /
 		url := r.URL.Path
-		if d.IsDirectory() {
+		if d.IsDir() {
 			if url[len(url)-1] != '/' {
 				localRedirect(w, r, path.Base(url)+"/")
 				return
@@ -142,14 +148,14 @@ func serveFile(w ResponseWriter, r *Request, fs FileSystem, name string, redirec
 		}
 	}
 
-	if t, _ := time.Parse(TimeFormat, r.Header.Get("If-Modified-Since")); t != nil && d.Mtime_ns/1e9 <= t.Seconds() {
+	if t, err := time.Parse(TimeFormat, r.Header.Get("If-Modified-Since")); err == nil && !d.ModTime().After(t) {
 		w.WriteHeader(StatusNotModified)
 		return
 	}
-	w.Header().Set("Last-Modified", time.SecondsToUTC(d.Mtime_ns/1e9).Format(TimeFormat))
+	w.Header().Set("Last-Modified", d.ModTime().UTC().Format(TimeFormat))
 
 	// use contents of index.html for directory, if present
-	if d.IsDirectory() {
+	if d.IsDir() {
 		index := name + indexPage
 		ff, err := fs.Open(index)
 		if err == nil {
@@ -163,13 +169,13 @@ func serveFile(w ResponseWriter, r *Request, fs FileSystem, name string, redirec
 		}
 	}
 
-	if d.IsDirectory() {
+	if d.IsDir() {
 		dirList(w, f)
 		return
 	}
 
 	// serve file
-	size := d.Size
+	size := d.Size()
 	code := StatusOK
 
 	// If Content-Type isn't set, use the file's extension to find it.
@@ -209,7 +215,7 @@ func serveFile(w ResponseWriter, r *Request, fs FileSystem, name string, redirec
 		}
 		size = ra.length
 		code = StatusPartialContent
-		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", ra.start, ra.start+ra.length-1, d.Size))
+		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", ra.start, ra.start+ra.length-1, d.Size()))
 	}
 
 	w.Header().Set("Accept-Ranges", "bytes")

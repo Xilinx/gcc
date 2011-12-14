@@ -1,3 +1,239 @@
+2011-12-13  Cesar Strauss  <cestrauss@gmail.com>
+	    Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/49084
+	* types.h (Byte): Change typedef to 'unsigned char'.
+	* atree.h (struct Flag_Word): Use Byte for 'convention' field.
+
+2011-12-12  Robert Dewar  <dewar@adacore.com>
+
+	* s-taprop-mingw.adb: Minor reformatting.
+
+2011-12-12  Nicolas Roche  <roche@adacore.com>
+
+	* gcc-interface/Make-lang.in: Update dependencies.
+	Add gnattools4 target when building tools in canadian mode
+
+2011-12-12  Javier Miranda  <miranda@adacore.com>
+
+	* exp_disp.adb (Make_VM_TSD): Complete previous patch.
+
+2011-12-12  Bob Duff  <duff@adacore.com>
+
+	* s-tpobop.adb: Use named notation.
+	* g-bytswa.ads, s-taprop.ads: Minor comment fix.
+
+2011-12-12  Arnaud Charlet  <charlet@adacore.com>
+
+	* make.adb: Minor comment update.
+
+2011-12-12  Robert Dewar  <dewar@adacore.com>
+
+	* freeze.adb, s-taprop-mingw.adb, exp_disp.adb, sem_ch13.adb: Minor
+	reformatting.
+
+2011-12-12  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch6.adb, gnatls.adb: Minor reformatting.
+
+2011-12-12  Ed Schonberg  <schonberg@adacore.com>
+
+	* freeze.adb (Freeze_Entity): If a type declared in a generic
+	context has predicates, generate a freeze node for it.
+	* sem_ch13.adb (Check_Aspect_At_End_Of_Declarations): If expression
+	has not been analyzed yet, entity has not been frozen, so analyze
+	it now.
+
+2011-12-12  Javier Miranda  <miranda@adacore.com>
+
+	* exp_disp.adb (Make_VM_TSD): Generate code to store the value of
+	'alignment in the TSD.
+
+2011-12-12  Bob Duff  <duff@adacore.com>
+
+	* s-taprop-mingw.adb (Yield): Do not delay 1 millisecond in Annex D
+	mode.
+
+2011-12-12  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_ch4.adb (Expand_N_Allocator): Update the master of an
+	anonymous access-to-controlled type to utilize the heterogeneous
+	master associated with the current unit.
+
+2011-12-12  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Analyze_Expression_Function): If the function
+	is not a completion, pre-analyze the expression now to prevent
+	spurious visibility on later entities. The body is inserted at
+	the end of the current declaration list or package to prevent
+	early freezing, but the visibility is established at the point
+	of definition.
+
+2011-12-12  Bob Duff  <duff@adacore.com>
+
+	* sem.adb, sem.ads: Add debugging routines.
+
+2011-12-12  Tristan Gingold  <gingold@adacore.com>
+
+	* gnatls.adb: (gnatls): Also add the objects dir in search list.
+
+2011-12-12  Robert Dewar  <dewar@adacore.com>
+
+	* exp_atag.adb, exp_atag.ads, exp_util.adb, exp_attr.adb,
+	sem_ch13.adb: Minor reformatting.
+
+2011-12-12  Gary Dismukes  <dismukes@adacore.com>
+
+	* sem_ch7.adb (Uninstall_Declarations): Don't
+	apply check for incomplete types used as a result type for an
+	access-to-function type when compiling for Ada 2012 or later.
+	* sem_ch6.adb (Analyze_Subprogram_Declaration):
+	Specialize error message for interface subprograms that are
+	not declared abstract nor null (functions can't be declared as
+	null). Also, remove "(Ada 2005)" from message.
+
+2011-12-12  Robert Dewar  <dewar@adacore.com>
+
+	* sem_prag.adb (GNAT_Pragma): Check comes from source.
+
+2011-12-12  Robert Dewar  <dewar@adacore.com>
+
+	* gnatls.adb: Minor reformatting.
+
+2011-12-12  Javier Miranda  <miranda@adacore.com>
+
+	* a-tags.ads (Alignment): New TSD field.
+	(Max_Predef_Prims): Value lowered to 15 (or 9 in case of
+	configurable runtime) Update documentation of predefined
+	primitives since Alignment has been removed.
+	* exp_disp.ads Update documentation of slots of dispatching
+	primitives.
+	* exp_disp.adb (Default_Prim_Op_Position): Update slot
+	values since alignment is no longer a predefined primitive.
+	(Is_Predefined_Dispatch_Operation): Remove _alignment.
+	(Is_Predefined_Internal_Operation): Remove _alignment.
+	(Make_DT): Update static test on the value stored in a-tags.ads
+	for Max_Predef_Prims; store the value of 'alignment in the TSD.
+	* exp_atag.ads, exp_atag.adb (Build_Get_Alignment): New subprogram
+	that retrieves the alignment from the TSD
+	* exp_util.adb (Build_Allocated_Deallocate_Proc): For deallocation
+	of class-wide types obtain the value of alignment from the TSD.
+	* exp_attr.adb (Expand_N_Attribute_Reference): For 'alignment
+	applied to a class-wide type invoke Build_Get_Alignment to
+	generate code which retrieves the value of the alignment from
+	the TSD.
+	* rtsfind.ads (RE_Alignment): New Ada.Tags entity
+	* sem_ch13.adb (Analyze_Attribute_Definition_Clause): For tagged
+	types if the value of the alignment is bigger than the Maximum
+	alignment then set the value of the alignment to the Maximum
+	alignment and report a warning.
+	* exp_ch3.adb (Make_Predefined_Primitive_Specs): Do not generate
+	spec of _alignment.
+	(Predefined_Primitive_Bodies): Do not generate body of _alignment.
+
+2011-12-12  Gary Dismukes  <dismukes@adacore.com>
+
+	* freeze.adb (Freeze_Expression): Allow freezing of static
+	scalar subtypes that are prefixes of an attribute, even if not
+	yet marked static. Such attributes will get marked as static
+	later in Eval_Attribute (as called from Resolve_Attribute).
+	* sem_attr.adb (Eval_Attribute): Remove wrong code that does an
+	early return for attribute prefixes that are unfrozen source-level
+	types. This code was incorrectly bypassing folding of unfrozen
+	static subtype attributes in default expressions (the executable
+	example in the now-deleted comment was in fact illegal).
+
+2011-12-12  Robert Dewar  <dewar@adacore.com>
+
+	* a-coinve.adb, sem_res.adb, prj-nmsc.adb, a-cobove.adb, a-convec.adb,
+	gnatls.adb, sem_ch13.adb, prj-env.adb, prj-env.ads: Minor reformatting.
+
+2011-12-12  Tristan Gingold  <gingold@adacore.com>
+
+	* gsocket.h: Adjust previous patch.
+
+2011-12-12  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_disp.adb: Minor reformatting.
+
+2011-12-12  Tristan Gingold  <gingold@adacore.com>
+
+	* gnatls.adb (Search_RTS): New procedure.
+	(Scan_Ls_Arg): Move code that search the RTS.
+	(Gnatls): search the RTS later.
+	* prj-env.ads, prj-env.adb (Get_Runtime_Path): New function.
+
+2011-12-12  Ed Falis  <falis@adacore.com>
+
+	* sysdep.c: Fix treatment of VxWorks task options so that run-times
+	built with __SPE__ get option VX_SPE_TASK while others get VX_FP_TASK.
+
+2011-12-12  Bob Duff  <duff@adacore.com>
+
+	* sem_type.adb, sem_type.ads, sem_ch4.adb, treepr.adb, treepr.ads:
+	Minor cleanup and fiddling with debug printouts.
+
+2011-12-12  Vincent Celier  <celier@adacore.com>
+
+	* prj-nmsc.adb (Get_Directories): For a non extending project,
+	always get a declared object and/or exec directory if it already
+	exists, even when there are no sources, but do not create them.
+
+2011-12-12  Bob Duff  <duff@adacore.com>
+
+	* sem_res.adb (Resolve): Deal with the case where an abstract
+	operator is called with operands of type universal_integer.
+
+2011-12-12  Thomas Quinot  <quinot@adacore.com>
+
+	* par_sco.adb: Minor fix to dominance marker referencing WHILE
+	decision.
+
+2011-12-12  Tristan Gingold  <gingold@adacore.com>
+
+	* mlib-tgt-specific-xi.adb: (Get_Target_Prefix): Simplify code.
+
+2011-12-12  Thomas Quinot  <quinot@adacore.com>
+
+	* par_sco.adb: Adjust dominant marker for branches of CASE
+	statements.
+
+2011-12-12  Thomas Quinot  <quinot@adacore.com>
+
+	* gsocket.h, s-oscons-tmplt.c: Ensure we do not include any system
+	header file prior to redefining FD_SETSIZE.
+
+2011-12-12  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch13.adb (Check_Aspect_At_End_Of_Declarations): In
+	a generic context the aspect expressions may not have been
+	preanalyzed if there was no previous freeze point, so the
+	expressions must be preanalyzed now, and there is no conformance
+	to check for visibility changes.
+
+2011-12-12  Matthew Heaney  <heaney@adacore.com>
+
+	* a-convec.adb, a-coinve.adb, a-cobove.adb (Iterator): Use
+	subtype Index_Type'Base for Index component (Finalize): Remove
+	unnecessary access check (First, Last): Cursor return value
+	depends on iterator index value (Iterate): Use start position as
+	iterator index value (Next, Previous): Forward to corresponding
+	cursor-based operation.
+	* a-cborma.adb (Iterate): Properly initialize iterator object (with 0
+	as node index).
+
+2011-12-12  Robert Dewar  <dewar@adacore.com>
+
+	* par_sco.adb, scos.ads, put_scos.adb, get_scos.adb: Minor reformatting.
+
+2011-12-12  Steve Baird  <baird@adacore.com>
+
+	* sem_ch3.adb (Check_Completion): Improve a comment.
+
+2011-12-12  Tristan Gingold  <gingold@adacore.com>
+
+	* cstand.adb: Minor comment fix.
+
 2011-12-11  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/utils2.c (gnat_build_constructor): Test the TREE_STATIC

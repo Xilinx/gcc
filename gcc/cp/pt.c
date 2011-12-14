@@ -13246,19 +13246,32 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 
         if (TRANSACTION_EXPR_IS_STMT (t))
           {
+	    tree body = TRANSACTION_EXPR_BODY (t);
+	    tree noex = NULL_TREE;
+	    if (TREE_CODE (body) == MUST_NOT_THROW_EXPR)
+	      {
+		noex = MUST_NOT_THROW_COND (body);
+		if (noex == NULL_TREE)
+		  noex = boolean_true_node;
+		body = TREE_OPERAND (body, 0);
+	      }
             stmt = begin_transaction_stmt (input_location, NULL, flags);
-            RECUR (TRANSACTION_EXPR_BODY (t));
-            finish_transaction_stmt (stmt, NULL, flags);
+            RECUR (body);
+            finish_transaction_stmt (stmt, NULL, flags, RECUR (noex));
           }
         else
           {
             stmt = build_transaction_expr (EXPR_LOCATION (t),
 					   RECUR (TRANSACTION_EXPR_BODY (t)),
-					   flags);
+					   flags, NULL_TREE);
             return stmt;
           }
       }
       break;
+
+    case MUST_NOT_THROW_EXPR:
+      return build_must_not_throw_expr (RECUR (TREE_OPERAND (t, 0)),
+					RECUR (MUST_NOT_THROW_COND (t)));
 
     case EXPR_PACK_EXPANSION:
       error ("invalid use of pack expansion expression");

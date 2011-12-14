@@ -1,3 +1,62 @@
+2011-12-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51406
+	PR c++/51161
+	* typeck.c (build_static_cast_1): Fix cast of lvalue to
+	base rvalue reference.
+
+2011-12-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51464
+	* semantics.c (begin_lambda_type): Check begin_class_definition return
+	value for error_mark_node.
+	* parser.c (cp_parser_lambda_expression): Check begin_lambda_type
+	return value for error_mark_node.
+
+2011-12-13  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/14258
+	* cp-tree.h (USING_DECL_TYPENAME_P): New macro.
+	* parser.c (cp_parser_nonclass_name): Handle using declarations
+	that refer to a dependent type.
+	(cp_parser_using_declaration): Set USING_DECL_TYPENAME_P to 1 if
+	the using declaration refers to a dependent type.
+
+2011-12-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/51496
+	* parser.c (cp_parser_omp_for_loop): When determining whether
+	to use cp_parser_omp_for_incr or cp_parser_expression and when
+	calling cp_parser_omp_for_incr, use real_decl instead of decl.
+
+2011-12-12  Torvald Riegel  <triegel@redhat.com>
+
+	* semantics.c (finish_transaction_stmt, build_transaction_expr):
+	Accept new noexcept parameter and handle it.
+	* cp-tree.h (finish_transaction_stmt, build_transaction_expr): Adapt
+	declarations.
+	* parser.c (cp_parser_exception_specification_opt): Extract
+	noexcept-specification parsing to ...
+	(cp_parser_noexcept_specification_opt): ...here.  Allow for parsing
+	non-constexpr noexcept arguments.
+	(cp_parser_transaction, cp_parser_transaction_expression): Parse
+	and handle noexcept-specifications.
+	(cp_parser_function_transaction): Adapt to finish_transaction_stmt
+	change.
+	* pt.c (tsubst_expr): Adapt to new noexcept parameters when
+	building transactions.
+
+2011-12-12  Torvald Riegel  <triegel@redhat.com>
+
+	* cp-tree.def (MUST_NOT_THROW_EXPR): Add condition parameter.
+	* cp-tree.h (MUST_NOT_THROW_COND): New.
+	(build_must_not_throw_expr): Declare.
+	* dump.c (cp_dump_tree): Dump MUST_NOT_THROW_EXPR condition.
+	* except.c (build_must_not_throw_expr): New.
+	(initialize_handler_parm): Use it.
+	(begin_eh_spec_block, wrap_cleanups_r): Adapt to condition.
+	* pt.c (tsubst_expr): Handle MUST_NOT_THROW_EXPR.
+
 2011-12-12  Richard Guenther  <rguenther@suse.de>
 
 	PR lto/51262

@@ -1,3 +1,204 @@
+2011-12-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* lto-streamer-out.c (write_symbol): Use proper 64-bit host type.
+	* lto-cgraph.c (input_cgraph_opt_section): Use 'int' for offsets.
+	* lto-streamer-in.c (lto_read_body): Likewise.
+	(lto_input_toplevel_asms): Likewise.
+	* lto-section-in.c (lto_create_simple_input_block): Likewise.
+	* ipa-inline-analysis.c (inline_read_section): Likewise.
+	* ipa-prop.c (ipa_prop_read_section): Likewise.
+
+	* df.h (DF_NOTE): Fix typo in comment.
+
+2011-12-13  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (ipa_tm_create_version_alias): Set DECL_CONTEXT and
+	DECL_LANG_SPECIFIC.
+
+2011-12-13  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* regmove.c (fixup_match_2): Only access call_used_regs with hard
+	regs.
+
+2011-12-13  Andrew Pinski  <apinski@cavium.com>
+            Adam Nemet  <anemet@caviumnetworks.com>
+
+	* config/mips/mips-cpus.def: Add Octeon2.
+	* config/mips/mips-tables.opt: Regenerate.
+	* config/mips/mips.md (define_attr "cpu"): Add Octeon2.
+	* config/mips/driver-native.c (host_detect_local_cpu): Support Octeon2.
+	* config/mips/octeon.md (octeon_arith): Add Octeon2.
+	(octeon_condmove): Likewise.
+	(octeon_load): Rename to ..
+	(octeon_load_o1): this.
+	(octeon_load_o2): New reserve.
+	(octeon_cop_o2): New reserve.
+	(octeon_store):  Match Octeon2 also.
+	(octeon_brj): Rename to ..
+	(octeon_brj_o1): this.
+	(octeon_brj_o2): New reserve.
+	(octeon_imul3): Rename to ...
+	(octeon_imul3_o1): this.
+	(octeon_imul3_o2): New reserve.
+	(octeon_imul): Rename to ...
+	(octeon_imul_o1): this.
+	(octeon_imul_o2): New reserve.
+	(octeon_mfhilo): Rename to ...
+	(octeon_mfhilo_o1): This.
+	(octeon_mfhilo_o2): New reserve.
+	(octeon_imadd): Rename to ...
+	(octeon_imadd_o1): this.
+	(octeon_imadd_o2): New reserve.
+	(octeon_idiv): Rename to ..
+	(octeon_idiv_o1): This.
+	(octeon_idiv_o2_si): New reserve.
+	(octeon_idiv_o2_di): Likewise.
+	(octeon_unknown): Match Octeon2 also.
+	* config/mips/mips.c (mips_rtx_cost_data): Add Octeon2 cost data.
+	(mips_issue_rate): Octeon2 can issue 2 at a time.
+	* config/mips/mips.h (TARGET_OCTEON): Match Octeon2 also.
+	(TARGET_OCTEON2): New define.
+	(TUNE_OCTEON): Match Octeon2 also.
+
+2011-12-13  Richard Henderson  <rth@redhat.com>
+
+	* config/sparc/tso.h: New file.
+	* config.gcc (sparc-*-linux*, sparc*-*-solaris2*): Use it.
+	* config/sparc/sparc.c (sparc_option_override): Honor
+	SUBTARGET_DEFAULT_MEMORY_MODEL.
+	* config/sparc/sparc.h (SUBTARGET_DEFAULT_MEMORY_MODEL): New.
+
+2011-12-13  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR middle-end/51443
+	* trans-mem.c (struct diagnose_tm): Remove saw_unsafe.
+	(diagnose_tm_1): Same.
+	(ipa_tm_execute): Do not test tm_may_enter_irr before we set it.
+	(ipa_tm_scan_irr_function): Return gracefully when no
+	DECL_STRUCT_FUNCTION.
+	(ipa_tm_scan_irr_block): Believe the user on TM attributes.
+
+2011-12-13  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/50628
+	* tree-sra.c (propagate_subaccesses_across_link): Do not propagate
+	sub-accesses of scalar accesses.
+
+2011-12-13  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/51362
+	* ipa-cp.c (estimate_local_effects): When estimated size of a
+	specialized clone is zero, bump it to one.
+
+2011-12-13  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/48354
+	* tree.c (find_decls_types_r): Also walk DECL_ORIGINAL_TYPE.
+	* tree-streamer-in.c (lto_input_ts_decl_non_common_tree_pointers):
+	Stream DECL_ORIGINAL_TYPE.
+	* tree-streamer-out.c (write_ts_decl_non_common_tree_pointers):
+	Likewise.
+
+2011-12-13  Jakub Jelinek  <jakub@redhat.com>
+
+	Revert
+	2011-12-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51481
+	* gimple-fold.c (gimple_fold_call): Call
+	maybe_clean_or_replace_eh_stmt.  Avoid optimization if stmt has EH
+	edges, but gimple_fold_builtin result can't throw.
+
+2011-12-13  Jakub Jelinek  <jakub@redhat.com>
+	    Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/51117
+	* tree-eh.c (sink_clobbers): New function.
+	(execute_lower_eh_dispatch): Call it for BBs ending with
+	internally throwing RESX.
+	* cfgexpand.c (add_scope_conflicts_1): Add all conflicts only
+	at the first real instruction.
+
+2011-12-13  Tristan Gingold  <gingold@adacore.com>
+
+	* final.c (final_scan_insn): Guard the call to begin_epilogue
+	debug hook.
+
+2011-12-13  Tristan Gingold  <gingold@adacore.com>
+
+	* vmsdbgout.c (vmsdbgout_write_source_line): New function.
+	(vmsdbgout_end_prologue): Call vmsdbgout_write_source_line.
+	(vmsdbgout_begin_epilogue): Likewise.
+	(vmsdbgout_end_epilogue): Likewise.
+	(vmsdbgout_source_line): Move code to vmsdbgout_write_source_line.
+
+2011-12-13  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51481
+	* tree-cfg.c (replace_uses_by): Pass proper arguments to
+	maybe_clean_or_replace_eh_stmt.
+
+2011-12-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51519
+	* ipa-inline.c (edge_badness): Use edge growth in non-guessed
+	branch probability case as well.
+
+2011-12-13  Revital Eres  <revital.eres@linaro.org>
+
+	* modulo-sched.c (mark_loop_unsched): Free bbs.
+
+2011-12-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/51495
+	* function.c (thread_prologue_and_epilogue_insns): Don't add
+	to bb_tail basic blocks that have EDGE_COMPLEX predecessor edges
+	from basic blocks not needing prologue.
+
+	PR tree-optimization/51481
+	* gimple-fold.c (gimple_fold_call): Call
+	maybe_clean_or_replace_eh_stmt.  Avoid optimization if stmt has EH
+	edges, but gimple_fold_builtin result can't throw.
+
+2011-12-12  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/21617
+	* ira-color.c (bucket_allocno_compare_func): Don't compare
+	allocno classes.  Compare number of hard registers needed.
+
+2011-12-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/50569
+	* tree-sra.c (build_ref_for_model): Replicate a chain of COMPONENT_REFs
+	in the expression of MODEL instead of just the last one.
+
+2011-12-12  Dmitry Vyukov  <dvyukov@google.com>
+
+	* cgraphunit.c (init_lowered_empty_function): Fix flags for new edges.
+
+2011-12-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/51510
+	* calls.c (internal_arg_pointer_based_exp_scan): Don't use
+	VEC_safe_grow_cleared if idx is smaller than VEC_length.
+
+2011-12-12  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	PR middle-end/50873
+	* optabs.c (maybe_legitimize_operand_same_code): Use copy_to_mode_reg
+	instead of force_reg.  Do nothing if the address is already a
+	non-virtual pseudo register.
+
+2011-12-12  Torvald Riegel  <triegel@redhat.com>
+
+	* gimplify.c (voidify_wrapper_expr): Add default handling for
+	outermost wrapper.
+
+2011-12-12  Torvald Riegel  <triegel@redhat.com>
+
+	* tree-ssa-tail-merge.c (gimple_equal_p): Don't treat transaction
+	commits as equal.
+
 2011-12-12  Iain Sandoe  <iains@gcc.gnu.org>
 
 	* config/darwin-sections.def (zobj_const_data_section): Fix over-

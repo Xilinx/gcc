@@ -281,6 +281,7 @@ package body Sem_Ch6 is
       New_Body : Node_Id;
       New_Decl : Node_Id;
       New_Spec : Node_Id;
+      Ret      : Node_Id;
 
    begin
       --  This is one of the occasions on which we transform the tree during
@@ -302,15 +303,15 @@ package body Sem_Ch6 is
          Prev     := Find_Corresponding_Spec (N);
       end if;
 
+      Ret := Make_Simple_Return_Statement (LocX, Expression (N));
+
       New_Body :=
         Make_Subprogram_Body (Loc,
           Specification              => New_Spec,
           Declarations               => Empty_List,
           Handled_Statement_Sequence =>
             Make_Handled_Sequence_Of_Statements (LocX,
-              Statements => New_List (
-                Make_Simple_Return_Statement (LocX,
-                  Expression => Expression (N)))));
+              Statements => New_List (Ret)));
 
       if Present (Prev) and then Ekind (Prev) = E_Generic_Function then
 
@@ -362,10 +363,13 @@ package body Sem_Ch6 is
 
          --  To prevent premature freeze action, insert the new body at the end
          --  of the current declarations, or at the end of the package spec.
+         --  However, resolve usage names now, to prevent spurious visibility
+         --  on later entities.
 
          declare
-            Decls : List_Id          := List_Containing (N);
-            Par   : constant Node_Id := Parent (Decls);
+            Decls : List_Id            := List_Containing (N);
+            Par   : constant Node_Id   := Parent (Decls);
+            Id    : constant Entity_Id := Defining_Entity (New_Decl);
 
          begin
             if Nkind (Par) = N_Package_Specification
@@ -377,6 +381,10 @@ package body Sem_Ch6 is
             end if;
 
             Insert_After (Last (Decls), New_Body);
+            Push_Scope (Id);
+            Install_Formals (Id);
+            Preanalyze_Spec_Expression (Expression  (Ret), Etype (Id));
+            End_Scope;
          end;
       end if;
 
@@ -3256,9 +3264,16 @@ package body Sem_Ch6 is
                               and then Null_Present (Specification (N)))
             then
                Error_Msg_Name_1 := Chars (Defining_Entity (N));
-               Error_Msg_N
-                 ("(Ada 2005) interface subprogram % must be abstract or null",
-                  N);
+
+               --  Specialize error message based on procedures vs. functions,
+               --  since functions can't be null subprograms.
+
+               if Ekind (Designator) = E_Procedure then
+                  Error_Msg_N
+                    ("interface procedure % must be abstract or null", N);
+               else
+                  Error_Msg_N ("interface function % must be abstract", N);
+               end if;
             end if;
          end;
       end if;

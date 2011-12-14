@@ -149,11 +149,13 @@ type writerOnly struct {
 }
 
 func (w *response) ReadFrom(src io.Reader) (n int64, err error) {
-	// Flush before checking w.chunking, as Flush will call
-	// WriteHeader if it hasn't been called yet, and WriteHeader
-	// is what sets w.chunking.
-	w.Flush()
+	// Call WriteHeader before checking w.chunking if it hasn't
+	// been called yet, since WriteHeader is what sets w.chunking.
+	if !w.wroteHeader {
+		w.WriteHeader(StatusOK)
+	}
 	if !w.chunking && w.bodyAllowed() && !w.needSniff {
+		w.Flush()
 		if rf, ok := w.conn.rwc.(io.ReaderFrom); ok {
 			n, err = rf.ReadFrom(src)
 			w.written += n
@@ -345,7 +347,7 @@ func (w *response) WriteHeader(code int) {
 	}
 
 	if _, ok := w.header["Date"]; !ok {
-		w.Header().Set("Date", time.UTC().Format(TimeFormat))
+		w.Header().Set("Date", time.Now().UTC().Format(TimeFormat))
 	}
 
 	te := w.header.Get("Transfer-Encoding")
@@ -465,7 +467,7 @@ func (w *response) Write(data []byte) (n int, err error) {
 		// determine the content type.  Accumulate the
 		// initial writes in w.conn.body.
 		// Cap m so that append won't allocate.
-		m := cap(w.conn.body) - len(w.conn.body)
+		m = cap(w.conn.body) - len(w.conn.body)
 		if m > len(data) {
 			m = len(data)
 		}
@@ -1011,8 +1013,8 @@ func (srv *Server) Serve(l net.Listener) error {
 //	package main
 //
 //	import (
-//		"http"
 //		"io"
+//		"net/http"
 //		"log"
 //	)
 //
@@ -1042,8 +1044,8 @@ func ListenAndServe(addr string, handler Handler) error {
 // A trivial example server is:
 //
 //	import (
-//		"http"
 //		"log"
+//		"net/http"
 //	)
 //
 //	func handler(w http.ResponseWriter, req *http.Request) {
@@ -1082,7 +1084,6 @@ func (s *Server) ListenAndServeTLS(certFile, keyFile string) error {
 	}
 	config := &tls.Config{
 		Rand:       rand.Reader,
-		Time:       time.Seconds,
 		NextProtos: []string{"http/1.1"},
 	}
 
@@ -1110,9 +1111,9 @@ func (s *Server) ListenAndServeTLS(certFile, keyFile string) error {
 // (If msg is empty, a suitable default message will be sent.)
 // After such a timeout, writes by h to its ResponseWriter will return
 // ErrHandlerTimeout.
-func TimeoutHandler(h Handler, ns int64, msg string) Handler {
-	f := func() <-chan int64 {
-		return time.After(ns)
+func TimeoutHandler(h Handler, dt time.Duration, msg string) Handler {
+	f := func() <-chan time.Time {
+		return time.After(dt)
 	}
 	return &timeoutHandler{h, f, msg}
 }
@@ -1123,7 +1124,7 @@ var ErrHandlerTimeout = errors.New("http: Handler timeout")
 
 type timeoutHandler struct {
 	handler Handler
-	timeout func() <-chan int64 // returns channel producing a timeout
+	timeout func() <-chan time.Time // returns channel producing a timeout
 	body    string
 }
 

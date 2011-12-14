@@ -1,3 +1,103 @@
+2011-12-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51406
+	PR c++/51161
+	* g++.dg/cpp0x/rv-cast3.C: New.
+	* g++.dg/cpp0x/rv-cast4.C: New.
+
+2011-12-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51464
+	* g++.dg/cpp0x/lambda/lambda-ice6.C: New.
+
+2011-12-13  Andrew Pinski  <apinski@cavium.com>
+            Adam Nemet  <anemet@caviumnetworks.com>
+
+	* gcc.target/mips/mips.exp (mips_option_groups): Fix debug.  Add
+	-fdump-* options.
+	* gcc.target/mips/octeon2-pipe-1.c: New testcase.
+	* gcc.target/mips/octeon-pipe-1.c: New testcase.
+
+2011-12-11  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/14258
+	* g++.dg/template/using16.C: New.
+	* g++.dg/template/using17.C: New.
+
+2011-12-13  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/51362
+	* gcc.dg/ipa/pr51362.c: New test.
+
+2011-12-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/51524
+	* gcc.target/i386/bmi2-mulx32-1.c (gen_mulx): Add attribute regparm(2).
+	* gcc.target/i386/bmi2-mulx32-2.c (calc_mulx_u32): Ditto.
+
+2011-12-13  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/48354
+	* g++.dg/lto/pr48354-1_0.C: New testcase.
+
+2011-12-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51519
+	* gcc.dg/pr51519.c: New testcase.
+
+2011-12-13  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/lto/20111213-1_0.c: New testcase.
+
+2011-12-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/vect1.ad[sb]: Add more tests.
+	* gnat.dg/vect2.ad[sb]: Likewise.
+	* gnat.dg/vect3.ad[sb]: Likewise.
+	* gnat.dg/vect4.ad[sb]: Likewise.
+	* gnat.dg/vect5.ad[sb]: Likewise.
+	* gnat.dg/vect6.ad[sb]: Likewise.
+
+2011-12-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/51495
+	* gcc.c-torture/compile/pr51495.c: New test.
+
+	PR tree-optimization/51481
+	* gcc.dg/pr51481.c: New test.
+
+2011-12-12  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR tree-optimization/45830
+	* gcc.c-torture/execute/pr45830.c: Move from here to...
+	* gcc.dg/torture/pr45830.c: ...this new file.  Add dg-do and
+	dg-additional-options magic.
+
+2011-12-12  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* gfortran.dg/nested_modules_2.f90: Tighten test.
+
+2011-12-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/execute/20111212-1.c: New test.
+
+2011-12-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/51511
+	* gcc.dg/pr45819.c: Add -w to dg-options.
+
+2011-12-12  Torvald Riegel  <triegel@redhat.com>
+
+	* g++.dg/tm/noexcept-1.C: New test.
+	* g++.dg/tm/noexcept-2.C: New test.
+	* g++.dg/tm/noexcept-3.C: New test.
+	* g++.dg/tm/noexcept-4.C: New test.
+	* g++.dg/tm/noexcept-5.C: New test.
+
+2011-12-12  Torvald Riegel  <triegel@redhat.com>
+
+	* c-c++-common/tm/20111206.c: New test.
+
 2011-12-12  Richard Guenther  <rguenther@suse.de>
 
 	PR lto/51262
@@ -18,8 +118,7 @@
 	* gcc.dg/sms-8.c: Add --param sms-min-sc=1.  Add dg-options and
 	change scan-rtl-dump-times for powerpc*-*-*.
 	* gcc.dg/sms-5.c: Add --param sms-min-sc=1 flag, remove
-	powerpc*-*-* from dg-final and avoid superfluous spaces in
-	dg-final.
+	powerpc*-*-* from dg-final and avoid superfluous spaces in dg-final.
 	* gcc.dg/sms-9.c: Remove -fno-auto-inc-dec.
 
 2011-12-11  Jakub Jelinek  <jakub@redhat.com>
@@ -33,7 +132,7 @@
 	* gfortran.dg/warn_function_without_result_2.f90: New.
 
 2011-12-11  Paul Thomas  <pault@gcc.gnu.org>
-	Tobias Burnus  <burnus@gcc.gnu.org>
+	    Tobias Burnus  <burnus@gcc.gnu.org>
 
 	PR fortran/41539
 	PR fortran/43214
@@ -57,8 +156,7 @@
 	* gfortran.dg/class_to_type_1.f03: New.
 	* gfortran.dg/type_to_class_1.f03: New.
 	* gfortran.dg/typebound_assignment_3.f03: Remove the error.
-	* gfortran.dg/auto_dealloc_2.f90: Occurences of __builtin_free
-	now 2.
+	* gfortran.dg/auto_dealloc_2.f90: Occurences of __builtin_free now 2.
 	* gfortran.dg/class_19.f03: Occurences of __builtin_free now 8.
 
 2011-12-11  Thomas Koenig  <tkoenig@gcc.gnu.org>
@@ -294,8 +392,7 @@
 
 2011-12-08  Teresa Johnson  <tejohnson@google.com>
 
-	* gcc.target/i386/movdi-rex64.c: Remove unnecessary
-	unused label.
+	* gcc.target/i386/movdi-rex64.c: Remove unnecessary unused label.
 
 2011-12-08  Teresa Johnson  <tejohnson@google.com>
 
