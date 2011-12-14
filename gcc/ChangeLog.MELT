@@ -1,5 +1,11 @@
 
 2011-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* common.opt (count_melt_debugskip_string): Rename as
+	melt_count_debugskip_string for -fmelt-debugskip= &
+	-fmelt-debug-skip=
+	* melt-runtime.c (melt_argument): Ditto.
+
+2011-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* common.opt (-fmelt=,melt_old_mode_string): Remove.
 	* melt-runtime.c (melt_old_mode_string): Remove.
 	(melt_argument): Don't use it.

@@ -892,12 +892,12 @@ Depth of melt debug printing (should be between 2 and 20)
 
 ; debug skip for above analysis
 fmelt-debugskip=
-Common Report Var(count_melt_debugskip_string) RejectNegative Joined
+Common Report Var(melt_count_debugskip_string) RejectNegative Joined
 Counter of debug prints to skip for -fmelt-debug
 
 ; debug skip for above analysis
 fmelt-debug-skip=
-Common Report Var(count_melt_debugskip_string) RejectNegative Joined
+Common Report Var(melt_count_debugskip_string) RejectNegative Joined
 Counter of debug prints to skip for -fmelt-debug, synonym -fmelt-debugskip
 
 ; dynamic module path for MELT

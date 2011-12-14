@@ -494,7 +494,7 @@ melt_argument (const char* argname)
   else if (!strcmp (argname, "bootstrapping"))
     return flag_melt_bootstrapping?"yes":NULL;
   else if (!strcmp (argname, "debugskip") || !strcmp (argname, "debug-skip"))
-    return count_melt_debugskip_string;
+    return melt_count_debugskip_string;
   else if (!strcmp (argname, "debug-depth"))
     return melt_debug_depth_string;
   else if (!strcmp (argname, "module-path"))
@@ -580,10 +580,10 @@ melt_argument (const char* argname)
 #pragma GCC poison melt_compile_script_string 
 #endif
 
-#ifdef count_melt_debugskip_string
-#undef count_melt_debugskip_string
+#ifdef melt_count_debugskip_string
+#undef melt_count_debugskip_string
 #else
-#pragma GCC poison count_melt_debugskip_string
+#pragma GCC poison melt_count_debugskip_string
 #endif
 
 #ifdef melt_dynmodpath_string
