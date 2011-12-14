@@ -1,3 +1,4 @@
+EXTRA_MULTILIB_PARTS = crtbegin$(objext) crtend$(objext)
 EXTRA_PARTS += crti$(objext) crtn$(objext)
 
 LIB2ADD += \
