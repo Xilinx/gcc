@@ -202,6 +202,7 @@ struct GTY(()) indirect_string_node {
   unsigned int refcount;
   enum dwarf_form form;
   char *label;
+  unsigned int index;
 };
 
 static GTY ((param_is (struct indirect_string_node))) htab_t debug_str_hash;
@@ -4469,6 +4470,12 @@ AT_string (dw_attr_ref a)
   return a->dw_attr_val.v.val_str->str;
 }
 
+/* A vector for a table of strings in the form DW_FORM_GNU_index_str.  */
+typedef struct indirect_string_node indirect_string_node;
+DEF_VEC_O(indirect_string_node);
+DEF_VEC_ALLOC_O(indirect_string_node, gc);
+static GTY (()) VEC (indirect_string_node, gc) *index_string_table;
+
 /* Find out whether a string should be output inline in DIE
    or out-of-line in .debug_str section.  */
 
@@ -4504,23 +4511,18 @@ AT_string_form (dw_attr_ref a)
   ++dw2_string_counter;
   node->label = xstrdup (label);
 
-  node->form = (!dwarf_split_debug_info) ? DW_FORM_strp : DW_FORM_GNU_str_index;
+  if (!dwarf_split_debug_info)
+    node->form = DW_FORM_strp;
+  else
+    {
+      static unsigned int index_string_count = 0;
+      node->form = DW_FORM_GNU_str_index;
+      node->index = index_string_count;
+      index_string_count++;
+      VEC_safe_push (indirect_string_node, gc, index_string_table, node);
+    }
 
   return node->form;
-}
-
-/* Report whether or not the string will be emitted inline or in an
-   indirect section.  */
-
-static inline bool
-is_indirect_string (dw_attr_ref a)
-{
-  struct indirect_string_node *node;
-
-  gcc_assert (a && AT_class (a) == dw_val_class_str);
-  AT_string_form (a);
-  node = a->dw_attr_val.v.val_str;
-  return (node->form == DW_FORM_strp) || (node->form == DW_FORM_GNU_str_index);
 }
 
 /* Add a DIE reference attribute value to a DIE.  */
@@ -7798,8 +7800,11 @@ size_of_die (dw_die_ref die)
 	  size += DWARF_OFFSET_SIZE;
 	  break;
 	case dw_val_class_str:
-	  if (is_indirect_string (a))
+          AT_string_form (a);
+          if (a->dw_attr_val.v.val_str->form == DW_FORM_strp)
 	    size += DWARF_OFFSET_SIZE;
+	  else if (a->dw_attr_val.v.val_str->form == DW_FORM_GNU_str_index)
+            size += size_of_uleb128 (a->dw_attr_val.v.val_str->index);
 	  else
 	    size += strlen (a->dw_attr_val.v.val_str->str) + 1;
 	  break;
@@ -8525,12 +8530,16 @@ output_die (dw_die_ref die)
 	  break;
 
 	case dw_val_class_str:
-	  if (is_indirect_string (a))
+	  if (a->dw_attr_val.v.val_str->form == DW_FORM_strp)
 	    dw2_asm_output_offset (DWARF_OFFSET_SIZE,
 				   a->dw_attr_val.v.val_str->label,
 				   debug_str_section,
 				   "%s: \"%s\"", name, AT_string (a));
-	  else
+	  else if (a->dw_attr_val.v.val_str->form == DW_FORM_GNU_str_index)
+            dw2_asm_output_data_uleb128 (a->dw_attr_val.v.val_str->index,
+                                         "indexed string: \"%s\"",
+                                         AT_string (a));
+          else
 	    dw2_asm_output_nstring (AT_string (a), -1, "%s", name);
 	  break;
 
@@ -21408,22 +21417,36 @@ output_indirect_string (void **h, void *v ATTRIBUTE_UNUSED)
       ASM_OUTPUT_LABEL (asm_out_file, node->label);
       assemble_string (node->str, strlen (node->str) + 1);
     }
-  else if (node->form == DW_FORM_GNU_str_index)
-    {
-      char label[32];
-      switch_to_section (debug_str_offsets_section);
-      ASM_OUTPUT_LABEL (asm_out_file, node->label);
-      ASM_GENERATE_INTERNAL_LABEL (label, "LASF", dw2_string_counter);
-      dw2_string_counter++;
-      dw2_asm_output_offset (DWARF_OFFSET_SIZE, label,
-                             debug_str_offsets_section, "indexed string: %s",
-                             node->str);
-      switch_to_section (debug_str_section);
-      ASM_OUTPUT_LABEL (asm_out_file, label);
-      assemble_string (node->str, strlen (node->str) + 1);
-    }
 
   return 1;
+}
+
+static void
+output_index_strings (void)
+{
+  unsigned int i;
+  struct indirect_string_node *node;
+
+  if (VEC_empty (indirect_string_node, index_string_table))
+    return;
+
+  switch_to_section (debug_str_offsets_section);
+  for (i = 0; VEC_iterate (indirect_string_node, index_string_table, i, node);
+       i++)
+    {
+      gcc_assert (node->form == DW_FORM_GNU_str_index);
+      gcc_assert (i == node->index);
+      dw2_asm_output_offset (DWARF_OFFSET_SIZE, node->label,
+                             debug_str_offsets_section,
+                             "indexed string %d: %s", node->index, node->str);
+    }
+  switch_to_section (debug_str_section);
+  for (i = 0; VEC_iterate (indirect_string_node, index_string_table, i, node);
+       i++)
+    {
+      ASM_OUTPUT_LABEL (asm_out_file, node->label);
+      assemble_string (node->str, strlen (node->str) + 1);
+    }
 }
 
 #if ENABLE_ASSERT_CHECKING
@@ -23075,6 +23098,7 @@ dwarf2out_finish (const char *filename)
     {
       switch_to_section (debug_skeleton_line_section);
       ASM_OUTPUT_LABEL (asm_out_file, debug_skeleton_line_section_label);
+      output_index_strings ();
     }
 
   /* If we emitted any indirect strings, output the string table too.  */
