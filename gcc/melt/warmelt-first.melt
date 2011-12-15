@@ -1136,7 +1136,7 @@ an integer $I if $I is greater than $N.}#
   :doc #{Short debug backtrace with message $MSG up to $MAXDEPTH.}#
   #{ 
 #if MELT_HAVE_DEBUG
-  if (flag_melt_debug)
+  if (melt_flag_debug)
     melt_dbgshortbacktrace(($msg), ($maxdepth));
 #endif
 }#)

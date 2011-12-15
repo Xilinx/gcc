@@ -286,7 +286,7 @@
 (defprimitive debugloop (:loop lo :cstring msg) :void
   #{#warning DEBUGLOOP primitive is obsolete; use DEBUG in your MELT code
 do {debugeprintfnonl("debugloop %s @%p ", $MSG, (void*)$LO);
-  if (flag_melt_debug) { if ($LO) flow_loop_dump($LO, stderr, NULL, 1); }
+  if (melt_flag_debug) { if ($LO) flow_loop_dump($LO, stderr, NULL, 1); }
   fputc('\n',stderr); 
  }while(0)  }#
 )
@@ -2407,7 +2407,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 (defprimitive debug_dominance_info (:cstring msg) :void
   :doc #{Debug-print the dominance information.}#
   ;; be careful to keep the __LINE__ on the first line of the macrostring.
-  #{ if (flag_melt_debug) { const int thislineno = __LINE__ ;
+  #{ if (melt_flag_debug) { const int thislineno = __LINE__ ;
        extern void debug_dominance_info (enum cdi_direction);
        if (dom_info_available_p(CDI_DOMINATORS)) {
          debugeprintflinenonl (thislineno,
@@ -2422,7 +2422,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 (defprimitive debug_post_dominance_info (:cstring msg) :void
   :doc #{Debug-print the post dominance information.}#
   ;; be careful to keep the __LINE__ on the first line of the macrostring.
-  #{ if (flag_melt_debug) { const int thislineno = __LINE__ ;
+  #{ if (melt_flag_debug) { const int thislineno = __LINE__ ;
        extern void debug_dominance_info (enum cdi_direction);
        if (dom_info_available_p(CDI_POST_DOMINATORS)) {
          debugeprintflinenonl (thislineno, 
@@ -2872,7 +2872,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 
 (defprimitive debug_ppl_coefficient
   (:cstring msg :ppl_coefficient coef) :void
-#{  if (flag_melt_debug)  {char*s=0; 
+#{  if (melt_flag_debug)  {char*s=0; 
      if ($coef) ppl_io_asprint_Coefficient(&s, $coef); 
      debugeprintf("debug_ppl_coefficient %s @%p %s", $msg, (void*)$coef, s); 
      free(s);}
@@ -2880,21 +2880,21 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 
 (defprimitive debug_ppl_linear_expression
   (:cstring msg :ppl_linear_expression liex) :void
- #{ if (flag_melt_debug)   {char*s=0; 
+ #{ if (melt_flag_debug)   {char*s=0; 
     if ($liex) ppl_io_asprint_Linear_Expression(&s, $liex); 
     debugeprintf("debug_ppl_linear_expression %s @%p %s", 
 		 $msg, (void*)$liex, s); free(s);}
  }#)
 
 (defprimitive debug_ppl_constraint (:cstring msg :ppl_constraint cons) :void
- #{if (flag_melt_debug) { char*s=0; 
+ #{if (melt_flag_debug) { char*s=0; 
   if ($cons) ppl_io_asprint_Constraint(&s, $cons); 
   debugeprintf("debug_ppl_constraint %s @%p %s", $msg, (void*)$cons, s); 
   free(s);}
  }#)
 
 (defprimitive debug_ppl_polyhedron (:cstring msg :ppl_polyhedron poly) :void
-#{ if (flag_melt_debug) {  char*s = 0; 
+#{ if (melt_flag_debug) {  char*s = 0; 
      debugeprintfnonl("debug_ppl_polyhedron %s @%p ", $msg, $poly);
      if ($poly) ppl_io_asprint_Polyhedron(&s, $poly);
      debugeprintf_raw("%s\n", s);
@@ -3354,7 +3354,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   #{#warning debugtree primitive is obsolete; use DEBUG in your MELT code
 do {debugeprintfnonl("debugtree %s @%p /%s ", $msg, (void*)$tr, 
 		       ($tr)?tree_code_name[TREE_CODE($tr)]:" *niltree*");
-  if (flag_melt_debug) debug_tree($tr);}while(0)
+  if (melt_flag_debug) debug_tree($tr);}while(0)
   }#
 )
 
@@ -3363,7 +3363,7 @@ do {debugeprintfnonl("debugtree %s @%p /%s ", $msg, (void*)$tr,
 (defprimitive debugedge (:cstring msg :edge eg) :void
   #{#warning debugedge primitive is obsolete; use DEBUG in your MELT code
  do {debugeprintfnonl("debugedge %s @%p ", $msg, (void*)$eg);
-  if (flag_melt_debug) { if ($eg) dump_edge_info(stderr,$eg,1);
+  if (melt_flag_debug) { if ($eg) dump_edge_info(stderr,$eg,1);
   fputc('\n',stderr); }
  }while(0)  }#
 )
@@ -3404,19 +3404,19 @@ do{debugeprintfnonl("debuggimple %s @%p /%s ", $msg , (void*)$g,
   if ($g && gimple_location($g))
     debugeprintf_raw("{%s:%d} ", LOCATION_FILE(gimple_location($g)), 
 		     LOCATION_LINE(gimple_location($g)));
-  if (flag_melt_debug) debug_gimple_stmt($g);} while(0)
+  if (melt_flag_debug) debug_gimple_stmt($g);} while(0)
 }# )
 
 (defprimitive debuggimpleseq(:cstring msg :gimple_seq gs) :void
   #{#warning debuggimpleseq is obsolete; use DEBUG in your MELT code
  do{debugeprintf("debuggimpleseq %s @%p", $msg, (void*)$gs);
-  if (flag_melt_debug && $gs) debug_gimple_seq($gs);}while(0) 
+  if (melt_flag_debug && $gs) debug_gimple_seq($gs);}while(0) 
   }#)
 
 (defprimitive debugbasicblock(:cstring msg :basic_block bb) :void
   #{#warning debugbasicblock is obsolete; use DEBUG in your MELT code
 do{debugeprintf("debugbasicblock %s @%p", $msg, (void*)$bb);
-  if (flag_melt_debug && $bb) debug_bb($bb);}while(0) 
+  if (melt_flag_debug && $bb) debug_bb($bb);}while(0) 
 }#
 )
 

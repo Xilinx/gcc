@@ -3910,12 +3910,12 @@
      genrpathch
      #{ /* output_melt_descriptor $GENRPATHCH + */
      char* lrp = lrealpath (melt_string_str ($MODNAMSTR)) ;
-     if (!flag_melt_bootstrapping && !IS_ABSOLUTE_PATH(lrp)) {
+     if (!melt_flag_bootstrapping && !IS_ABSOLUTE_PATH(lrp)) {
        meltgc_add_strbuf_cstr ($DEBUF, getpwd()) ;
        meltgc_add_strbuf ($DEBUF, "/")	       ;
        meltgc_add_strbuf_cstr ($DEBUF, lrp) ;
      }
-     else if (flag_melt_bootstrapping) {
+     else if (melt_flag_bootstrapping) {
        meltgc_add_strbuf_cstr ($DEBUF, melt_module_dir) ;
        meltgc_add_strbuf ($DEBUF, "/")	       ;
        meltgc_add_strbuf_cstr ($DEBUF, lbasename (lrp)) ;
@@ -3939,7 +3939,7 @@
      time (&now)						   ;
      memset (nowbuf, 0, sizeof(nowbuf))				   ;
      strftime (nowbuf, sizeof(nowbuf)-1, "%c %Z", localtime(&now)) ;
-     if (flag_melt_bootstrapping)
+     if (melt_flag_bootstrapping)
         meltgc_add_strbuf ($DEBUF, "/*MELT BOOTSTRAP*/\n");
      meltgc_add_strbuf ($DEBUF, 
 			"const char melt_gen_timestamp[]=\"") ;
@@ -4050,7 +4050,7 @@
      if (fclose (descfil))
      melt_fatal_error ("failed to close descriptor file %s - %m",
 		       descfilpath)	;
-     if (flag_melt_bootstrapping)
+     if (melt_flag_bootstrapping)
      inform (UNKNOWN_LOCATION, "MELT generated descriptor file %s",
 			       descfilpath) ;
      free (descfilpath)			    ;

@@ -155,17 +155,17 @@ int melt_debug_depth(void);
 #ifdef MELT_IS_PLUGIN
 /* It may happen that options flags are macros defined in generated
    file options.h as fields of global_options variable. */
-#ifndef flag_melt_debug
-extern int flag_melt_debug;
+#ifndef melt_flag_debug
+extern int melt_flag_debug;
 #endif
-#ifndef flag_melt_bootstrapping
-extern int flag_melt_bootstrapping;
+#ifndef melt_flag_bootstrapping
+extern int melt_flag_bootstrapping;
 #endif
 #endif
 
 #if MELT_HAVE_DEBUG
 
-#define debugeprintf_raw(Fmt,...) do{if (flag_melt_debug) \
+#define debugeprintf_raw(Fmt,...) do{if (melt_flag_debug) \
       {fprintf(stderr, Fmt, ##__VA_ARGS__); fflush(stderr);}}while(0)
 /* Sometimes we need to pass an explicit line number.  */
 #define debugeprintfline(Lin,Fmt,...) \
@@ -180,12 +180,12 @@ extern int flag_melt_bootstrapping;
 #define debugeprintfnonl(Fmt,...) \
   debugeprintflinenonl(__LINE__, Fmt, ##__VA_ARGS__)
 
-#define debugeprintvalue(Msg,Val) do{if (flag_melt_debug){	\
+#define debugeprintvalue(Msg,Val) do{if (melt_flag_debug){	\
       void* __val = (Val);					\
       fprintf(stderr,"!@%s:%d:\n@! %s @%p= ",			\
               lbasename(__FILE__), __LINE__, (Msg), __val);	\
       melt_dbgeprint(__val); }} while(0)
-#define debugebacktrace(Msg,Depth)  do{if (flag_melt_debug){	\
+#define debugebacktrace(Msg,Depth)  do{if (melt_flag_debug){	\
       void* __val = (Val);					\
       fprintf(stderr,"!@%s:%d: %s **backtrace** ",		\
               lbasename(__FILE__), __LINE__, (Msg));		\
@@ -195,14 +195,14 @@ extern int flag_melt_bootstrapping;
 static inline int 
 melt_need_debug (int depth) {
   return 
-    flag_melt_debug && melt_dbgcounter>=melt_debugskipcount 
+    melt_flag_debug && melt_dbgcounter>=melt_debugskipcount 
     && depth >= 0 && depth < MELTDBG_MAXDEPTH;
 }
 
 static inline int 
 melt_need_debug_limit (int depth, int lim) {
   return 
-    flag_melt_debug && melt_dbgcounter>=melt_debugskipcount 
+    melt_flag_debug && melt_dbgcounter>=melt_debugskipcount 
     && depth >= 0 && depth < lim;
 }
 
@@ -2799,7 +2799,7 @@ debugeputs_at (const char *fil, int lin, const char *msg)
 static inline void
 debugvalue_at (const char *fil, int lin, const char *msg, void *val)
 {
-  if (flag_melt_debug)
+  if (melt_flag_debug)
     {
       fprintf (stderr, "!@%s:%d:\n@! %s @%p/%d= ",
 	       basename (fil), lin, (msg), val, melt_magic_discr ((melt_ptr_t)val));
@@ -2814,7 +2814,7 @@ void meltgc_debugmsgval(void* val, const char*msg, long count);
 
 static inline void
 debugmsgval_at (const char*fil, int lin, const char* msg, void*val, long count) {
-  if (flag_melt_debug)
+  if (melt_flag_debug)
     {
       fprintf (stderr, "!@%s:%d:\n",
 	       basename (fil), lin);
@@ -2828,7 +2828,7 @@ debugmsgval_at (const char*fil, int lin, const char* msg, void*val, long count) 
 static inline void
 debugbacktrace_at (const char *fil, int lin, const char *msg, int depth)
 {
-  if (flag_melt_debug)
+  if (melt_flag_debug)
     {
       fprintf (stderr, "\n!@%s:%d: %s ** BACKTRACE** ",
 	       basename (fil), lin, msg);
@@ -2919,6 +2919,10 @@ void melt_sparebreakpoint_2_at (const char*fil, int lin, void*ptr, const char*ms
 #define LOCATION_COLUMN(LOC) ((expand_location (LOC)).column)
 
 extern const char melt_run_preprocessed_md5[]; /* defined in generated file melt-run-md5.h */
+
+/* compatibility with old stuff */
+#define flag_melt_bootstrapping melt_flag_bootstrapping
+#define flag_melt_debug melt_flag_debug
 
 #endif /*MELT_INCLUDED_ */
 

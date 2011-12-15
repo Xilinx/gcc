@@ -1,4 +1,23 @@
 
+2011-12-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* common.opt: use melt_flag_ instead of flag_melt_
+	(-fmelt-debugging=,melt_debugging_string): New.
+	* melt-runtime.h (flag_melt_debug): Renamed as
+	(melt_flag_debug).
+	(flag_melt_bootstrapping): Renamed as
+	(melt_flag_bootstrapping).
+	(flag_melt_debug,flag_melt_bootstrapping): macro-defined for
+	compatibility.
+	* melt-runtime.c (melt_debugging_after_mode): New static variable.
+	(melt_argument): Handle "debugging".
+	(melt_really_initialize): Set melt_debugging_after_mode.
+	(meltgc_do_initial_mode): handle it.
+
+	* melt/warmelt-first.melt: Use melt_flag_debug....
+	* melt/warmelt-base.melt: Use melt_flag_debug....
+	* melt/warmelt-outobj.melt: Use melt_flag_debug....
+	* melt/xtramelt-ana-base.melt: Use melt_flag_debug....
+
 2011-12-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* common.opt (count_melt_debugskip_string): Rename as
 	melt_count_debugskip_string for -fmelt-debugskip= &

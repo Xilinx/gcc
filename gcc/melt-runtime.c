@@ -158,6 +158,8 @@ const char melt_runtime_build_date[] = __DATE__;
 int melt_debug_garbcoll; /* Can be set in GDB, and is used by
 			    melt_debuggc_eprintf!  */
 
+static int melt_debugging_after_mode;
+
 /* the generating GGC marking routine */
 extern void gt_ggc_mx_melt_un (void *);
 
@@ -165,12 +167,12 @@ extern void gt_ggc_mx_melt_un (void *);
 
 /* It may happen that options flags are macros defined in generated
    file options.h as fields of global_options variable. */
-#ifndef flag_melt_debug
-int flag_melt_debug;
+#ifndef melt_flag_debug
+int melt_flag_debug;
 #endif
 
-#ifndef flag_melt_bootstrapping
-int flag_melt_bootstrapping;
+#ifndef melt_flag_bootstrapping
+int melt_flag_bootstrapping;
 #endif
 
 /**
@@ -488,11 +490,13 @@ melt_argument (const char* argname)
   else if (!strcmp (argname, "module-make-command"))
     return melt_module_make_command_string;
   else if (!strcmp (argname, "debug"))
-    return flag_melt_debug?"yes":NULL;
+    return melt_flag_debug?"yes":NULL;
+  else if (!strcmp (argname, "debugging"))
+    return melt_debugging_string;
   else if (!strcmp (argname, "inhibit-auto-build"))
-    return flag_melt_inhibit_auto_build?"yes":NULL;
+    return melt_flag_inhibit_auto_build?"yes":NULL;
   else if (!strcmp (argname, "bootstrapping"))
-    return flag_melt_bootstrapping?"yes":NULL;
+    return melt_flag_bootstrapping?"yes":NULL;
   else if (!strcmp (argname, "debugskip") || !strcmp (argname, "debug-skip"))
     return melt_count_debugskip_string;
   else if (!strcmp (argname, "debug-depth"))
@@ -573,7 +577,7 @@ melt_argument (const char* argname)
 #pragma GCC poison melt_arglist_string
 #endif
 
-/* don't poison flag_melt_debug or flag_melt_bootstrapping */
+/* don't poison melt_flag_debug or melt_flag_bootstrapping */
 #ifdef melt_compile_script_string
 #undef melt_compile_script_string
 #else
@@ -632,7 +636,7 @@ int melt_debug_depth (void)
 #define MELT_MINIMAL_DEBUG_DEPTH 2
 #define MELT_MAXIMAL_DEBUG_DEPTH 25
   static int d;
-  if (!flag_melt_debug)
+  if (!melt_flag_debug)
     return 0;
   if (MELT_UNLIKELY(!d))
     {
@@ -4973,7 +4977,7 @@ melt_run_make_for_plugin (const char*ourmakecommand, const char*ourmakefile, con
   obstack_grow (&cmd_obstack, ourmakecommand, strlen(ourmakecommand));
   obstack_1grow (&cmd_obstack, ' ');
   /* silent make if not debugging */
-  if (!flag_melt_debug)
+  if (!melt_flag_debug)
     obstack_grow (&cmd_obstack, "-s ", 3);
   /* add -f with spaces */
   obstack_grow (&cmd_obstack, "-f ", 3);
@@ -5050,7 +5054,7 @@ melt_run_make_for_plugin (const char*ourmakecommand, const char*ourmakefile, con
   obstack_1grow (&cmd_obstack, (char) 0);
   cmdstr = XOBFINISH (&cmd_obstack, char *);
   debugeprintf("melt_run_make_for_plugin cmdstr= %s", cmdstr);
-  if (!quiet_flag || flag_melt_bootstrapping) 
+  if (!quiet_flag || melt_flag_bootstrapping) 
     printf ("MELT plugin running: %s\n", cmdstr);
   fflush (NULL);
   err = system (cmdstr);
@@ -5100,7 +5104,7 @@ melt_run_make_for_branch (const char*ourmakecommand, const char*ourmakefile, con
   argv[argc++] = ourmakecommand;
   debugeprintf("melt_run_make_for_branch arg ourmakecommand %s", ourmakecommand);
   /* silent make if not debugging */
-  if (!flag_melt_debug && quiet_flag)
+  if (!melt_flag_debug && quiet_flag)
     argv[argc++] = "-s";
 
   /* the -f argument, and then the makefile */
@@ -5155,13 +5159,13 @@ melt_run_make_for_branch (const char*ourmakecommand, const char*ourmakefile, con
   argv[argc] = NULL;
   gcc_assert ((int) argc < (int) (sizeof(argv)/sizeof(*argv)));
     
-  if (flag_melt_debug) {
+  if (melt_flag_debug) {
     int i;
     debugeprintf("melt_run_make_for_branch before pex_run argc=%d", argc);
     for (i=0; i<argc; i++) 
       debugeprintf ("melt_run_make_for_branch pex_run argv[%d]=%s", i, argv[i]);
   }
-  if (!quiet_flag || flag_melt_bootstrapping) {
+  if (!quiet_flag || melt_flag_bootstrapping) {
     int i = 0;
     char* cmdbuf = 0;
     struct obstack cmd_obstack;
@@ -5325,7 +5329,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 
    ourcflags = melt_argument ("module-cflags");
    if (!ourcflags || !ourcflags[0])
-     ourcflags = flag_melt_bootstrapping?NULL
+     ourcflags = melt_flag_bootstrapping?NULL
        :(getenv ("GCCMELT_MODULE_CFLAGS"));
    if (!ourcflags || !ourcflags[0]) 
      ourcflags = melt_module_cflags;
@@ -7603,7 +7607,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
   FILE *fil = 0;
   struct reading_st *rd = 0;
   char *filnamdup = 0;
-  const char* envpath = flag_melt_bootstrapping?NULL:(getenv ("GCCMELT_SOURCE_PATH"));
+  const char* envpath = melt_flag_bootstrapping?NULL:(getenv ("GCCMELT_SOURCE_PATH"));
   const char* srcpathstr = melt_argument ("source-path");
   MELT_ENTERFRAME (3, NULL);
 #define valv      meltfram__.mcfr_varptr[0]
@@ -7629,7 +7633,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
       MELT_FIND_FILE (filnam, 
 		      MELT_FILE_IN_PATH, srcpathstr, 
 		      MELT_FILE_IN_PATH, envpath, 
-		      MELT_FILE_IN_DIRECTORY, flag_melt_bootstrapping?NULL:melt_source_dir,
+		      MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:melt_source_dir,
 		      NULL);
     debugeprintf ("meltgc_read_file filenamdup %s", filnamdup);
     if (filnamdup) 
@@ -8735,7 +8739,7 @@ melt_load_module_index (const char*srcbase, const char*flavor)
     warning (0,
 	     "MELT module name %s in MELT descriptive file %s not as expected", 
 	     descmodulename, srcpath);
-  if (!flag_melt_bootstrapping 
+  if (!melt_flag_bootstrapping 
       && strcmp(descversionmelt, melt_version_str ()))
     warning (0,
 	     "MELT descriptive file %s for MELT version %s, but this MELT runtime is version %s",
@@ -8756,14 +8760,14 @@ melt_load_module_index (const char*srcbase, const char*flavor)
      /* Search using the GCCMELT_MODULE_PATH environment variable.  */
      MELT_FILE_IN_PATH, getenv ("GCCMELT_MODULE_PATH"),
      /* Search in the built-in MELT module directory.  */
-     MELT_FILE_IN_DIRECTORY, flag_melt_bootstrapping?NULL:melt_module_dir,
+     MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:melt_module_dir,
      /* Since the path is a complete path with an md5um in it, we also
 	search in the current directory.  */
      MELT_FILE_IN_DIRECTORY, ".",
      NULL);
   debugeprintf ("melt_load_module_index sopath %s", sopath);
   /* Build the module if not found and the auto-build is not inhibited. */
-  if (!sopath && !flag_melt_bootstrapping
+  if (!sopath && !melt_flag_bootstrapping
       && !melt_argument ("inhibit-auto-build")) 
     {
       const char* worktmpdir = NULL;
@@ -8821,7 +8825,7 @@ melt_load_module_index (const char*srcbase, const char*flavor)
   MELTDESCR_OPTIONAL_LIST;
 
 #undef MELTDESCR_OPTIONAL_SYMBOL
-  if (flag_melt_bootstrapping) {
+  if (melt_flag_bootstrapping) {
     debugeprintf ("melt_load_module_index validh %d bootstrapping melt_modulename %s descmodulename %s",
 		  validh, MELTDESCR_REQUIRED (melt_modulename), descmodulename);
     validh = validh
@@ -8846,7 +8850,7 @@ melt_load_module_index (const char*srcbase, const char*flavor)
      unless bootstrapping.  Issue only warnings if something is
      wrong, because intrepid users might fail these checks on
      purpose.  */
-  if (validh && !flag_melt_bootstrapping)
+  if (validh && !melt_flag_bootstrapping)
     {
       FILE *sfil = 0;
       char *curpath = 0;
@@ -8955,7 +8959,7 @@ melt_load_module_index (const char*srcbase, const char*flavor)
       melt_module_info_t minf = { 0, NULL, NULL, NULL, NULL };
       ix = VEC_length (melt_module_info_t, melt_modinfvec);
       gcc_assert (ix > 0);
-      if (ix > 32 && flag_melt_bootstrapping) 
+      if (ix > 32 && melt_flag_bootstrapping) 
 	melt_fatal_error("too big module index %d when bootstrapping", ix);
       minf.mmi_dlh = dlh;
       minf.mmi_descrbase = xstrdup (srcbase);
@@ -8965,7 +8969,7 @@ melt_load_module_index (const char*srcbase, const char*flavor)
       VEC_safe_push (melt_module_info_t, heap, melt_modinfvec, &minf);
       debugeprintf ("melt_load_module_index successful ix %d srcbase %s sopath %s flavor %s", 
 		    ix, srcbase, sopath, flavor);
-      if (!quiet_flag || flag_melt_debug) { 
+      if (!quiet_flag || melt_flag_debug) { 
 	if (MELTDESCR_OPTIONAL(melt_modulerealpath))
 	  inform (UNKNOWN_LOCATION, 
 		  "MELT loading module #%d for %s [realpath %s] with %s generated at %s built %s",
@@ -9130,10 +9134,10 @@ meltgc_load_flavored_module (const char*modulbase, const char*flavor)
   descrpath = 
     MELT_FIND_FILE (descrfull,
 		    MELT_FILE_IN_DIRECTORY, tempdirpath,
-		    MELT_FILE_IN_DIRECTORY, flag_melt_bootstrapping?NULL:".",
+		    MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:".",
 		    MELT_FILE_IN_PATH, srcpathstr,
 		    MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
-		    MELT_FILE_IN_DIRECTORY, flag_melt_bootstrapping?NULL:melt_source_dir,
+		    MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:melt_source_dir,
 		    NULL);
   debugeprintf ("meltgc_load_flavored_module descrpath %s dupmodul %s", 
 		descrpath, dupmodul);
@@ -9148,7 +9152,7 @@ meltgc_load_flavored_module (const char*modulbase, const char*flavor)
 	inform (UNKNOWN_LOCATION,
 		"GCCMELT_SOURCE_PATH from environment %s", 
 		getenv ("GCCMELT_SOURCE_PATH"));
-      if (!flag_melt_bootstrapping)
+      if (!melt_flag_bootstrapping)
 	inform (UNKNOWN_LOCATION,
 		"builtin MELT source directory %s", melt_source_dir);
       melt_fatal_error ("failed to find MELT module %s", dupmodul);
@@ -9359,7 +9363,7 @@ meltgc_load_module_list (int depth, const char *modlistbase)
 		    MELT_FILE_IN_DIRECTORY, ".",
 		    MELT_FILE_IN_PATH, srcpathstr,
 		    MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
-		    MELT_FILE_IN_DIRECTORY, flag_melt_bootstrapping?NULL:melt_source_dir,
+		    MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:melt_source_dir,
 		    NULL);
   debugeprintf ("meltgc_load_module_list modlistpath %s", modlistpath);
   if (!modlistpath)
@@ -9372,7 +9376,7 @@ meltgc_load_module_list (int depth, const char *modlistbase)
 	inform (UNKNOWN_LOCATION,
 		"GCCMELT_SOURCE_PATH from environment %s", 
 		getenv("GCCMELT_SOURCE_PATH"));
-      if (!flag_melt_bootstrapping)
+      if (!melt_flag_bootstrapping)
 	inform (UNKNOWN_LOCATION,
 		"builtin MELT source directory %s", melt_source_dir);
       melt_fatal_error ("MELT failed to load module list %s", modlistfull);
@@ -9459,6 +9463,8 @@ meltgc_do_initial_mode (melt_ptr_t modata_p, const char* modstr)
 #define cmdv      meltfram__.mcfr_varptr[4]
   modatav = modata_p;
   modstr = melt_argument ("mode");
+  if (melt_debugging_after_mode)
+    melt_flag_debug = 1;
   debugeprintf ("meltgc_do_initial_mode mode_string %s modatav %p",
 		modstr, (void *) modatav);
   if (!modstr || !modstr[0]) 
@@ -9816,23 +9822,39 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 #ifdef MELT_IS_PLUGIN
   /* when MELT is a plugin, we need to process the debug
      argument. When MELT is a branch, the melt_argument function is
-     using flag_melt_debug for "debug" so we don't want this. */
+     using melt_flag_debug for "debug" so we don't want this. */
   { 
     const char *dbgstr = melt_argument ("debug");
+    const char *debuggingstr = melt_argument ("debugging");
     /* debug=n or debug=0 is handled as no debug */
     if (dbgstr && (!dbgstr[0] || !strchr("Nn0", dbgstr[0])))
-      flag_melt_debug = 1;
+      melt_flag_debug = 1;
+    if (debuggingstr && *debuggingstr && strncasecmp(debuggingstr, "no", 2))
+      melt_flag_debug = 1;
   }
   /* when MELT is a plugin, we need to process the bootstrapping
      argument. When MELT is a branch, the melt_argument function is
-     using flag_melt_bootstrapping for "bootstrapping" so we don't want this. */
+     using melt_flag_bootstrapping for "bootstrapping" so we don't want this. */
   { 
     const char *bootstr = melt_argument ("bootstrapping");
     /* debug=n or debug=0 is handled as no debug */
     if (bootstr && (!bootstr[0] || !strchr("Nn0", bootstr[0])))
-      flag_melt_bootstrapping = 1;
+      melt_flag_bootstrapping = 1;
   }
 #endif  /* MELT_IS_PLUGIN */
+
+  if (melt_flag_debug) 
+    {
+      const char* debuggingstr = melt_argument ("debugging");
+      if (strcasecmp(debuggingstr, "mode")) 
+	{
+	  /* We forcibly clear the melt_flag_debug, which will be set
+	     in meltgc_do_initial_mode. */
+	  melt_flag_debug = 0;
+	  melt_debugging_after_mode = 1;
+	  inform (UNKNOWN_LOCATION, "MELT will give debugging messages after mode processing");
+	}
+    }
 
   /* Ensure that melt_source_dir & melt_module_dir are non-empty paths
      and accessible directories.  Otherwise, this file has been
@@ -9843,19 +9865,19 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   debugeprintf ("melt_really_initialize builtin melt_source_dir %s", melt_source_dir);
   debugeprintf ("melt_really_initialize builtin melt_module_dir %s", melt_module_dir);
   memset (&mystat, 0, sizeof(mystat));
-  if (!flag_melt_bootstrapping
+  if (!melt_flag_bootstrapping
       && ((errno=ENOTDIR), (stat(melt_source_dir, &mystat) || !S_ISDIR(mystat.st_mode))))
     warning (0, "MELT with bad builtin source directory %s : %s", 
 	     melt_source_dir, xstrerror (errno));
   memset (&mystat, 0, sizeof(mystat));
-  if (!flag_melt_bootstrapping
+  if (!melt_flag_bootstrapping
       && ((errno=ENOTDIR), (stat(melt_module_dir, &mystat) || !S_ISDIR(mystat.st_mode))))
     warning (0, "MELT with bad builtin module directory %s : %s", 
 	     melt_module_dir, xstrerror (errno));
   /* Ensure that the module makefile exists.  */
   gcc_assert (melt_module_make_command[0]);
   gcc_assert (melt_module_makefile[0]);
-  if (!flag_melt_bootstrapping && access(melt_module_makefile, R_OK))
+  if (!melt_flag_bootstrapping && access(melt_module_makefile, R_OK))
     warning (0, "MELT cannot access module makefile %s : %s",
 	     melt_module_makefile, xstrerror (errno));
   errno = 0;
@@ -9944,7 +9966,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 	      curlocale);
   }
 
-  if (flag_melt_bootstrapping) 
+  if (melt_flag_bootstrapping) 
     {
       char* envpath = NULL;
       inform  (UNKNOWN_LOCATION,
@@ -12299,7 +12321,7 @@ meltgc_gimple_execute (void)
     debugeprintf
       ("gimple_execute passname %s dbgcounter %ld cfun %p ",
        current_pass->name, melt_dbgcounter, (void *) cfun);
-    if (cfun && flag_melt_debug)
+    if (cfun && melt_flag_debug)
       debug_tree (cfun->decl);
     debugeprintf ("gimple_execute passname %s before apply",
 		  current_pass->name);

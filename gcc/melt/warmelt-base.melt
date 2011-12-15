@@ -969,7 +969,7 @@ Returns a boxed integer.}#
 ;; test if MELT is bootstrapping
 (defprimitive melt_is_bootstrapping () :long
   :doc #{Test if MELT is bootstrapping. Only for MELT implementation gurus.}#
-  #{(flag_melt_bootstrapping)}#
+  #{(melt_flag_bootstrapping)}#
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

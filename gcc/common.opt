@@ -877,12 +877,18 @@ Command (a GNU make utility) used to build MELT module with a Makefile
 
 ; debug flag for MELT
 fmelt-debug
-Common Report Var(flag_melt_debug)
-Gives lots of debugging stuff for -fmelt analysis
+Common Report Var(melt_flag_debug)
+Gives lots of debugging stuff for -fmelt analysis. Same as -fmelt-debugging=mode
+
+; debugging style for MELT
+fmelt-debugging=
+Common Report Var(melt_debugging_string)  RejectNegative Joined 
+Debugging message style for MELT [none|mode|full]
+
 
 ; bootstrapping flag for MELT
 fmelt-bootstrapping
-Common Report Var(flag_melt_bootstrapping)
+Common Report Var(melt_flag_bootstrapping)
 Only used to bootstrap the MELT translator
 
 ; debug depth for MELT
@@ -966,7 +972,7 @@ Print wired builtin settings to the given file or to stdout.
 
 ; inhibit automatic build of a MELT module
 fmelt-inhibit-auto-build
-Common Report Var(flag_melt_inhibit_auto_build) 
+Common Report Var(melt_flag_inhibit_auto_build) 
 Inhibit the automatic build, by make, using its generated C files, of a MELT module when it is not found
 
 ;;;;;;;;;; end of Basile's MELT stuff
