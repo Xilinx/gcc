@@ -5293,6 +5293,11 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    MELT_LOCATION_HERE_PRINTF (curlocbuf,
 			      "melt_compile_source srcbase %s binbase %s flavor %s", 
 			      srcbase, binbase, flavor);
+   if (getenv("IFS"))
+     /* Having an IFS is a huge security risk for shells. */
+     melt_fatal_error
+       ("MELT cannot compile source base %s of flavor %s with an $IFS (probable security risk)",
+	srcbase, flavor);
    if (!srcbase) 
      {
        warning (0, "no source base given to compile");

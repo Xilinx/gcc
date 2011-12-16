@@ -1,4 +1,8 @@
 
+2011-12-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_compile_source): Refuse to have an IFS
+	environment variable.
+
 2011-12-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* common.opt: use melt_flag_ instead of flag_melt_
 	(-fmelt-debugging=,melt_debugging_string): New.
