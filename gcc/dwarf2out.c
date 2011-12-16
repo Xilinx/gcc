@@ -4482,6 +4482,7 @@ static GTY (()) VEC (indirect_string_node, gc) *index_string_table;
 static enum dwarf_form
 AT_string_form (dw_attr_ref a)
 {
+  static unsigned int index_string_count = 0;
   struct indirect_string_node *node;
   unsigned int len;
   char label[32];
@@ -4515,7 +4516,6 @@ AT_string_form (dw_attr_ref a)
     node->form = DW_FORM_strp;
   else
     {
-      static unsigned int index_string_count = 0;
       node->form = DW_FORM_GNU_str_index;
       node->index = index_string_count;
       index_string_count++;
@@ -7705,6 +7705,7 @@ size_of_die (dw_die_ref die)
   unsigned long size = 0;
   dw_attr_ref a;
   unsigned ix;
+  dwarf_form form;
 
   size += size_of_uleb128 (die->die_abbrev);
   FOR_EACH_VEC_ELT (dw_attr_node, die->die_attr, ix, a)
@@ -7800,10 +7801,10 @@ size_of_die (dw_die_ref die)
 	  size += DWARF_OFFSET_SIZE;
 	  break;
 	case dw_val_class_str:
-          AT_string_form (a);
-          if (a->dw_attr_val.v.val_str->form == DW_FORM_strp)
+          form = AT_string_form (a);
+          if (form == DW_FORM_strp)
 	    size += DWARF_OFFSET_SIZE;
-	  else if (a->dw_attr_val.v.val_str->form == DW_FORM_GNU_str_index)
+	  else if (form == DW_FORM_GNU_str_index)
             size += size_of_uleb128 (a->dw_attr_val.v.val_str->index);
 	  else
 	    size += strlen (a->dw_attr_val.v.val_str->str) + 1;
@@ -8702,21 +8703,21 @@ add_top_level_skeleton_die_attrs (dw_die_ref die)
   /* The splitter will fill in the file name.  It would be good to allocate
      a fairly large string here to make it easy for the splitter though.  */
   const char *dwo_file_name = "<current file>";
+  dw_attr_ref attr;
 
   add_AT_lineptr (die, DW_AT_stmt_list, debug_line_section_label);
   add_comp_dir_attribute (die);
   add_AT_string (die, DW_AT_GNU_dwo_name, dwo_file_name);
   /* The specification requires that these attributes be inline to avoid
-     having a .debug_str section.  */
-  get_AT (die, DW_AT_GNU_dwo_name)->dw_attr_val.v.val_str->form
-      = DW_FORM_string;
-  get_AT (die, DW_AT_comp_dir)->dw_attr_val.v.val_str->form = DW_FORM_string;
-  /* FIXME: Fill in this value correctly.  */
+     having a .debug_str section.  We know that they exist in the die because
+     we just added them.  */
+  attr = get_AT (die, DW_AT_GNU_dwo_name);
+  attr->dw_attr_val.v.val_str->form = DW_FORM_string;
+  attr = get_AT (die, DW_AT_comp_dir);
+  attr->dw_attr_val.v.val_str->form = DW_FORM_string;
+  /* The post compile splitter will fill in this value.  */
   add_AT_unsigned (die, DW_AT_GNU_dwo_id, 0);
   add_AT_pubnames (die);
-  /* add_AT_ref_base (comp_unit, DW_AT_GNU_ref_base, 0);
-     add_AT_addr_base (comp_unit, DW_AT_GNU_addr_base, 0);
-   */
 }
 
 /* Output skeleton debug sections that point to the dwo file.  */
@@ -8899,6 +8900,7 @@ add_pubname (tree decl, dw_die_ref die)
       || is_cu_die (die->die_parent) || is_namespace_die (die->die_parent))
     {
       const char *name = dwarf2_name (decl, 1);
+
       if (name)
 	add_pubname_string (name, die);
     }
@@ -22740,7 +22742,6 @@ optimize_location_lists (dw_die_ref die)
   htab_delete (htab);
 }
 
-
 /* Output stuff that dwarf requires at the end of every file,
    and generate the DWARF-2 debugging info.  */
 
@@ -22980,6 +22981,9 @@ dwarf2out_finish (const char *filename)
 
   if (dwarf_split_debug_info)
     {
+      /* Add a place-holder for the dwo_id to the comp-unit die.  Similarly, the
+         skeleton die gets a placeholder inside
+         output_skeleton_debug_sections.  */
       add_AT_unsigned (comp_unit_die (), DW_AT_GNU_dwo_id, 0);
       output_skeleton_debug_sections ();
     }
@@ -23003,9 +23007,9 @@ dwarf2out_finish (const char *filename)
          attributes.  */
       if (debug_info_level >= DINFO_LEVEL_NORMAL)
         add_AT_lineptr (ctnode->root_die, DW_AT_stmt_list,
-                        !dwarf_split_debug_info
-                        ? debug_line_section_label
-                        : debug_skeleton_line_section_label);
+                        (!dwarf_split_debug_info
+                         ? debug_line_section_label
+                         : debug_skeleton_line_section_label));
 
       output_comdat_type_unit (ctnode);
       *slot = ctnode;
@@ -23039,7 +23043,7 @@ dwarf2out_finish (const char *filename)
     }
 
   /* Output public names table if necessary.  */
-  if (!VEC_empty (pubname_entry, pubname_table) && info_section_emitted == true)
+  if (!VEC_empty (pubname_entry, pubname_table) && info_section_emitted)
     {
       switch_to_section (debug_pubnames_section);
       output_pubnames (pubname_table);
@@ -23049,7 +23053,7 @@ dwarf2out_finish (const char *filename)
   /* ??? Only defined by DWARF3, but emitted by Darwin for DWARF2.
      It shouldn't hurt to emit it always, since pure DWARF2 consumers
      simply won't look for the section.  */
-  if (!pubtypes_section_empty () && info_section_emitted == true)
+  if (!pubtypes_section_empty () && info_section_emitted)
     {
       switch_to_section (debug_pubtypes_section);
       output_pubnames (pubtype_table);
