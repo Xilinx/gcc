@@ -173,9 +173,19 @@ are_identical_variables (gfc_expr *e1, gfc_expr *e2)
 	  break;
 
 	case REF_SUBSTRING:
-	  if (gfc_dep_compare_expr (r1->u.ss.start, r2->u.ss.start) != 0
-	      || gfc_dep_compare_expr (r1->u.ss.end, r2->u.ss.end) != 0)
+	  if (gfc_dep_compare_expr (r1->u.ss.start, r2->u.ss.start) != 0)
 	    return false;
+
+	  /* If both are NULL, the end length compares equal, because we
+	     are looking at the same variable. This can only happen for
+	     assumed- or deferred-length character arguments.  */ 
+
+	  if (r1->u.ss.end == NULL && r2->u.ss.end == NULL)
+	    break;
+
+	  if (gfc_dep_compare_expr (r1->u.ss.end, r2->u.ss.end) != 0)
+	    return false;
+	  
 	  break;
 
 	default:
@@ -713,6 +723,17 @@ gfc_check_argument_var_dependency (gfc_expr *var, sym_intent intent,
 	    return gfc_check_fncall_dependency (var, intent, NULL,
 						expr->value.function.actual,
 						ELEM_CHECK_VARIABLE);
+
+	  if (gfc_inline_intrinsic_function_p (expr))
+	    {
+	      /* The TRANSPOSE case should have been caught in the
+		 noncopying intrinsic case above.  */
+	      gcc_assert (expr->value.function.isym->id != GFC_ISYM_TRANSPOSE);
+
+	      return gfc_check_fncall_dependency (var, intent, NULL,
+						  expr->value.function.actual,
+						  ELEM_CHECK_VARIABLE);
+	    }
 	}
       return 0;
 

@@ -268,14 +268,20 @@ package body Sem_Ch6 is
    procedure Analyze_Expression_Function (N : Node_Id) is
       Loc      : constant Source_Ptr := Sloc (N);
       LocX     : constant Source_Ptr := Sloc (Expression (N));
-      Def_Id   : constant Entity_Id  := Defining_Entity (Specification (N));
       Expr     : constant Node_Id    := Expression (N);
+      Spec     : constant Node_Id    := Specification (N);
+
+      Def_Id :  Entity_Id;
+      pragma Unreferenced (Def_Id);
+
+      Prev :  Entity_Id;
+      --  If the expression is a completion, Prev is the entity whose
+      --  declaration is completed. Def_Id is needed to analyze the spec.
+
       New_Body : Node_Id;
       New_Decl : Node_Id;
-
-      Prev : constant Entity_Id := Current_Entity_In_Scope (Def_Id);
-      --  If the expression is a completion, Prev is the entity whose
-      --  declaration is completed.
+      New_Spec : Node_Id;
+      Ret      : Node_Id;
 
    begin
       --  This is one of the occasions on which we transform the tree during
@@ -286,16 +292,26 @@ package body Sem_Ch6 is
       --  determine whether this is possible.
 
       Inline_Processing_Required := True;
+      New_Spec := Copy_Separate_Tree (Spec);
+      Prev     := Current_Entity_In_Scope (Defining_Entity (Spec));
+
+      --  If there are previous overloadable entities with the same name,
+      --  check whether any of them is completed by the expression function.
+
+      if Present (Prev) and then Is_Overloadable (Prev) then
+         Def_Id   := Analyze_Subprogram_Specification (Spec);
+         Prev     := Find_Corresponding_Spec (N);
+      end if;
+
+      Ret := Make_Simple_Return_Statement (LocX, Expression (N));
 
       New_Body :=
         Make_Subprogram_Body (Loc,
-          Specification              => Copy_Separate_Tree (Specification (N)),
+          Specification              => New_Spec,
           Declarations               => Empty_List,
           Handled_Statement_Sequence =>
             Make_Handled_Sequence_Of_Statements (LocX,
-              Statements => New_List (
-                Make_Simple_Return_Statement (LocX,
-                  Expression => Expression (N)))));
+              Statements => New_List (Ret)));
 
       if Present (Prev) and then Ekind (Prev) = E_Generic_Function then
 
@@ -307,6 +323,7 @@ package body Sem_Ch6 is
 
          Insert_After (N, New_Body);
          Rewrite (N, Make_Null_Statement (Loc));
+         Set_Has_Completion (Prev, False);
          Analyze (N);
          Analyze (New_Body);
          Set_Is_Inlined (Prev);
@@ -314,6 +331,11 @@ package body Sem_Ch6 is
       elsif Present (Prev)
         and then Comes_From_Source (Prev)
       then
+         Set_Has_Completion (Prev, False);
+
+         --  For navigation purposes, indicate that the function is a body
+
+         Generate_Reference (Prev, Defining_Entity (N), 'b', Force => True);
          Rewrite (N, New_Body);
          Analyze (N);
 
@@ -333,8 +355,7 @@ package body Sem_Ch6 is
 
       else
          New_Decl :=
-           Make_Subprogram_Declaration (Loc,
-             Specification => Specification (N));
+           Make_Subprogram_Declaration (Loc, Specification => Spec);
 
          Rewrite (N, New_Decl);
          Analyze (N);
@@ -342,10 +363,13 @@ package body Sem_Ch6 is
 
          --  To prevent premature freeze action, insert the new body at the end
          --  of the current declarations, or at the end of the package spec.
+         --  However, resolve usage names now, to prevent spurious visibility
+         --  on later entities.
 
          declare
-            Decls : List_Id          := List_Containing (N);
-            Par   : constant Node_Id := Parent (Decls);
+            Decls : List_Id            := List_Containing (N);
+            Par   : constant Node_Id   := Parent (Decls);
+            Id    : constant Entity_Id := Defining_Entity (New_Decl);
 
          begin
             if Nkind (Par) = N_Package_Specification
@@ -357,6 +381,10 @@ package body Sem_Ch6 is
             end if;
 
             Insert_After (Last (Decls), New_Body);
+            Push_Scope (Id);
+            Install_Formals (Id);
+            Preanalyze_Spec_Expression (Expression  (Ret), Etype (Id));
+            End_Scope;
          end;
       end if;
 
@@ -1469,9 +1497,19 @@ package body Sem_Ch6 is
          --  extended_return_statement.
 
          if Returns_Object then
-            Error_Msg_N
-              ("extended_return_statement cannot return value; " &
-               "use `""RETURN;""`", N);
+            if Nkind (N) = N_Extended_Return_Statement then
+               Error_Msg_N
+                 ("extended return statement cannot be nested (use `RETURN;`)",
+                  N);
+
+            --  Case of a simple return statement with a value inside extended
+            --  return statement.
+
+            else
+               Error_Msg_N
+                 ("return nested in extended return statement cannot return " &
+                  "value (use `RETURN;`)", N);
+            end if;
          end if;
 
       else
@@ -1641,10 +1679,13 @@ package body Sem_Ch6 is
 
                   --  The type must be completed in the current package. This
                   --  is checked at the end of the package declaraton, when
-                  --  Taft amemdment types are identified.
+                  --  Taft-amendment types are identified. If the return type
+                  --  is class-wide, there is no required check, the type can
+                  --  be a bona fide TAT.
 
                   if Ekind (Scope (Current_Scope)) = E_Package
                     and then In_Private_Part (Scope (Current_Scope))
+                    and then not Is_Class_Wide_Type (Typ)
                   then
                      Append_Elmt (Designator, Private_Dependents (Typ));
                   end if;
@@ -3223,9 +3264,16 @@ package body Sem_Ch6 is
                               and then Null_Present (Specification (N)))
             then
                Error_Msg_Name_1 := Chars (Defining_Entity (N));
-               Error_Msg_N
-                 ("(Ada 2005) interface subprogram % must be abstract or null",
-                  N);
+
+               --  Specialize error message based on procedures vs. functions,
+               --  since functions can't be null subprograms.
+
+               if Ekind (Designator) = E_Procedure then
+                  Error_Msg_N
+                    ("interface procedure % must be abstract or null", N);
+               else
+                  Error_Msg_N ("interface function % must be abstract", N);
+               end if;
             end if;
          end;
       end if;
@@ -3415,14 +3463,17 @@ package body Sem_Ch6 is
 
          --  Ada 2005 (AI-251): If the return type is abstract, verify that
          --  the subprogram is abstract also. This does not apply to renaming
-         --  declarations, where abstractness is inherited.
+         --  declarations, where abstractness is inherited, and to subprogram
+         --  bodies generated for stream operations, which become renamings as
+         --  bodies.
 
          --  In case of primitives associated with abstract interface types
          --  the check is applied later (see Analyze_Subprogram_Declaration).
 
-         if not Nkind_In (Parent (N), N_Subprogram_Renaming_Declaration,
-                                      N_Abstract_Subprogram_Declaration,
-                                      N_Formal_Abstract_Subprogram_Declaration)
+         if not Nkind_In (Original_Node (Parent (N)),
+                            N_Subprogram_Renaming_Declaration,
+                            N_Abstract_Subprogram_Declaration,
+                            N_Formal_Abstract_Subprogram_Declaration)
          then
             if Is_Abstract_Type (Etype (Designator))
               and then not Is_Interface (Etype (Designator))
@@ -8530,19 +8581,19 @@ package body Sem_Ch6 is
            and then In_Private_Part (Current_Scope)
          then
             Priv_Decls :=
-              Private_Declarations (
-                Specification (Unit_Declaration_Node (Current_Scope)));
+              Private_Declarations
+                (Specification (Unit_Declaration_Node (Current_Scope)));
 
             return In_Package_Body (Current_Scope)
               or else
                 (Is_List_Member (Decl)
-                   and then List_Containing (Decl) = Priv_Decls)
+                  and then List_Containing (Decl) = Priv_Decls)
               or else (Nkind (Parent (Decl)) = N_Package_Specification
-                         and then not
-                           Is_Compilation_Unit
-                             (Defining_Entity (Parent (Decl)))
-                         and then List_Containing (Parent (Parent (Decl)))
-                                    = Priv_Decls);
+                        and then not
+                          Is_Compilation_Unit
+                            (Defining_Entity (Parent (Decl)))
+                        and then List_Containing (Parent (Parent (Decl))) =
+                                                                Priv_Decls);
          else
             return False;
          end if;
@@ -8904,7 +8955,7 @@ package body Sem_Ch6 is
                               Set_Is_Immediately_Visible (E, False);
                            else
                               --  Work done in Override_Dispatching_Operation,
-                              --  so nothing else need to be done here.
+                              --  so nothing else needs to be done here.
 
                               null;
                            end if;
@@ -9556,6 +9607,15 @@ package body Sem_Ch6 is
       --  or IN OUT parameters of the subprogram, or (for a function) if the
       --  return value has an invariant.
 
+      function Is_Public_Subprogram_For (T : Entity_Id) return Boolean;
+      --  T is the entity for a private type for which invariants are defined.
+      --  This function returns True if the procedure corresponding to the
+      --  value of Designator is a public procedure from the point of view of
+      --  this type (i.e. its spec is in the visible part of the package that
+      --  contains the declaration of the private type). A True value means
+      --  that an invariant check is required (for an IN OUT parameter, or
+      --  the returned value of a function.
+
       --------------
       -- Grab_PPC --
       --------------
@@ -9682,6 +9742,45 @@ package body Sem_Ch6 is
 
          return False;
       end Invariants_Or_Predicates_Present;
+
+      ------------------------------
+      -- Is_Public_Subprogram_For --
+      ------------------------------
+
+      --  The type T is a private type, its declaration is therefore in
+      --  the list of public declarations of some package. The test for a
+      --  public subprogram is that its declaration is in this same list
+      --  of declarations for the same package (note that all the public
+      --  declarations are in one list, and all the private declarations
+      --  in another, so this deals with the public/private distinction).
+
+      function Is_Public_Subprogram_For (T : Entity_Id) return Boolean is
+         DD : constant Node_Id := Unit_Declaration_Node (Designator);
+         --  The subprogram declaration for the subprogram in question
+
+         TL : constant List_Id :=
+                Visible_Declarations
+                  (Specification (Unit_Declaration_Node (Scope (T))));
+         --  The list of declarations containing the private declaration of
+         --  the type. We know it is a private type, so we know its scope is
+         --  the package in question, and we know it must be in the visible
+         --  declarations of this package.
+
+      begin
+         --  If the subprogram declaration is not a list member, it must be
+         --  an Init_Proc, in which case we want to consider it to be a
+         --  public subprogram, since we do get initializations to deal with.
+
+         if not Is_List_Member (DD) then
+            return True;
+
+         --  Otherwise we test whether the subprogram is declared in the
+         --  visible declarations of the package containing the type.
+
+         else
+            return TL = List_Containing (DD);
+         end if;
+      end Is_Public_Subprogram_For;
 
    --  Start of processing for Process_PPCs
 
@@ -9979,10 +10078,13 @@ package body Sem_Ch6 is
                      Parameter_Type      => New_Occurrence_Of (Ftyp, Loc),
                      Defining_Identifier => Rent));
 
-               --  Add invariant call if returning type with invariants
+               --  Add invariant call if returning type with invariants and
+               --  this is a public function, i.e. a function declared in the
+               --  visible part of the package defining the private type.
 
                if Has_Invariants (Etype (Rent))
                  and then Present (Invariant_Procedure (Etype (Rent)))
+                 and then Is_Public_Subprogram_For (Etype (Rent))
                then
                   Append_To (Plist,
                     Make_Invariant_Call (New_Occurrence_Of (Rent, Loc)));
@@ -10011,6 +10113,7 @@ package body Sem_Ch6 is
 
                   if Has_Invariants (Ftype)
                     and then Present (Invariant_Procedure (Ftype))
+                    and then Is_Public_Subprogram_For (Ftype)
                   then
                      Append_To (Plist,
                        Make_Invariant_Call

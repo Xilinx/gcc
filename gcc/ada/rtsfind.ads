@@ -570,6 +570,7 @@ package Rtsfind is
      RE_Unbounded_String,                -- Ada.Strings.Unbounded
 
      RE_Access_Level,                    -- Ada.Tags
+     RE_Alignment,                       -- Ada.Tags
      RE_Address_Array,                   -- Ada.Tags
      RE_Addr_Ptr,                        -- Ada.Tags
      RE_Base_Address,                    -- Ada.Tags
@@ -1353,6 +1354,7 @@ package Rtsfind is
 
      RE_Allocate_Any_Controlled,         -- System.Storage_Pools.Subpools
      RE_Deallocate_Any_Controlled,       -- System.Storage_Pools.Subpools
+     RE_Header_Size_With_Padding,        -- System.Storage_Pools.Subpools
      RE_Root_Storage_Pool_With_Subpools, -- System.Storage_Pools.Subpools
      RE_Root_Subpool,                    -- System.Storage_Pools.Subpools
      RE_Subpool_Handle,                  -- System.Storage_Pools.Subpools
@@ -1767,6 +1769,7 @@ package Rtsfind is
      RE_Unbounded_String                 => Ada_Strings_Unbounded,
 
      RE_Access_Level                     => Ada_Tags,
+     RE_Alignment                        => Ada_Tags,
      RE_Address_Array                    => Ada_Tags,
      RE_Addr_Ptr                         => Ada_Tags,
      RE_Base_Address                     => Ada_Tags,
@@ -2550,6 +2553,7 @@ package Rtsfind is
 
      RE_Allocate_Any_Controlled          => System_Storage_Pools_Subpools,
      RE_Deallocate_Any_Controlled        => System_Storage_Pools_Subpools,
+     RE_Header_Size_With_Padding         => System_Storage_Pools_Subpools,
      RE_Root_Storage_Pool_With_Subpools  => System_Storage_Pools_Subpools,
      RE_Root_Subpool                     => System_Storage_Pools_Subpools,
      RE_Subpool_Handle                   => System_Storage_Pools_Subpools,

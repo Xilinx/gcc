@@ -70,6 +70,7 @@ match_subscript (gfc_array_ref *ar, int init, bool match_star)
 
   i = ar->dimen + ar->codimen;
 
+  gfc_gobble_whitespace ();
   ar->c_where[i] = gfc_current_locus;
   ar->start[i] = ar->end[i] = ar->stride[i] = NULL;
 
@@ -2111,6 +2112,9 @@ gfc_array_dimen_size (gfc_expr *array, int dimen, mpz_t *result)
   gfc_ref *ref;
   int i;
 
+  if (array->ts.type == BT_CLASS)
+    return FAILURE;
+
   if (dimen < 0 || array == NULL || dimen > array->rank - 1)
     gfc_internal_error ("gfc_array_dimen_size(): Bad dimension");
 
@@ -2188,6 +2192,9 @@ gfc_array_size (gfc_expr *array, mpz_t *result)
   gfc_ref *ref;
   int i;
   gfc_try t;
+
+  if (array->ts.type == BT_CLASS)
+    return FAILURE;
 
   switch (array->expr_type)
     {

@@ -73,6 +73,7 @@ c-common.h, not after.
       VEC_INIT_EXPR_IS_CONSTEXPR (in VEC_INIT_EXPR)
       DECL_OVERRIDE_P (in FUNCTION_DECL)
       IMPLICIT_CONV_EXPR_DIRECT_INIT (in IMPLICIT_CONV_EXPR)
+      TRANSACTION_EXPR_IS_STMT (in TRANSACTION_EXPR)
    1: IDENTIFIER_VIRTUAL_P (in IDENTIFIER_NODE)
       TI_PENDING_TEMPLATE_FLAG.
       TEMPLATE_PARMS_FOR_INLINE.
@@ -129,6 +130,7 @@ c-common.h, not after.
       DECL_TEMPLATE_INSTANTIATED (in a VAR_DECL or a FUNCTION_DECL)
       DECL_MEMBER_TEMPLATE_P (in TEMPLATE_DECL)
       FUNCTION_PARAMETER_PACK_P (in PARM_DECL)
+      USING_DECL_TYPENAME_P (in USING_DECL)
    2: DECL_THIS_EXTERN (in VAR_DECL or FUNCTION_DECL).
       DECL_IMPLICIT_TYPEDEF_P (in a TYPE_DECL)
    3: DECL_IN_AGGR_P.
@@ -139,6 +141,7 @@ c-common.h, not after.
    5: DECL_INTERFACE_KNOWN.
    6: DECL_THIS_STATIC (in VAR_DECL or FUNCTION_DECL).
       DECL_FIELD_IS_BASE (in FIELD_DECL)
+      TYPE_DECL_ALIAS_P (in TYPE_DECL)
    7: DECL_DEAD_FOR_LOCAL (in VAR_DECL).
       DECL_THUNK_P (in a member FUNCTION_DECL)
       DECL_NORMAL_CAPTURE_P (in FIELD_DECL)
@@ -400,7 +403,11 @@ typedef enum cpp0x_warn_str
   /* override controls, override/final */
   CPP0X_OVERRIDE_CONTROLS,
   /* non-static data member initializers */
-  CPP0X_NSDMI
+  CPP0X_NSDMI,
+  /* user defined literals */
+  CPP0X_USER_DEFINED_LITERALS,
+  /* delegating constructors */
+  CPP0X_DELEGATING_CTORS
 } cpp0x_warn_str;
   
 /* The various kinds of operation used by composite_pointer_type. */
@@ -740,6 +747,7 @@ enum cp_tree_node_structure_enum {
   TS_CP_TRAIT_EXPR,
   TS_CP_LAMBDA_EXPR,
   TS_CP_TEMPLATE_INFO,
+  TS_CP_USERDEF_LITERAL,
   LAST_TS_CP_ENUM
 };
 
@@ -765,6 +773,8 @@ union GTY((desc ("cp_tree_node_structure (&%h)"),
     lambda_expression;
   struct tree_template_info GTY ((tag ("TS_CP_TEMPLATE_INFO")))
     template_info;
+  struct tree_userdef_literal GTY ((tag ("TS_CP_USERDEF_LITERAL")))
+    userdef_literal;
 };
 
 
@@ -2512,6 +2522,9 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 /* The decls named by a using decl.  */
 #define USING_DECL_DECLS(NODE) DECL_INITIAL (USING_DECL_CHECK (NODE))
 
+/* Non zero if the using decl refers to a dependent type.  */
+#define USING_DECL_TYPENAME_P(NODE) DECL_LANG_FLAG_1 (USING_DECL_CHECK (NODE))
+
 /* In a VAR_DECL, true if we have a shadowed local variable
    in the shadowed var table for this VAR_DECL.  */
 #define DECL_HAS_SHADOWED_FOR_VAR_P(NODE) \
@@ -2535,6 +2548,19 @@ extern void decl_shadowed_for_var_insert (tree, tree);
    function.  */
 #define DECL_PENDING_INLINE_INFO(NODE) \
   (LANG_DECL_FN_CHECK (NODE)->u.pending_inline_info)
+
+/* Nonzero for TYPE_DECL means that it was written 'using name = type'.  */
+#define TYPE_DECL_ALIAS_P(NODE) \
+  DECL_LANG_FLAG_6 (TYPE_DECL_CHECK (NODE))
+
+/* Nonzero for a type which is an alias for another type; i.e, a type
+   which declaration was written 'using name-of-type =
+   another-type'.  */
+#define TYPE_ALIAS_P(NODE)			\
+  (TYPE_P (NODE)				\
+   && TYPE_NAME (NODE)				\
+   && TREE_CODE (TYPE_NAME (NODE)) == TYPE_DECL	\
+   && TYPE_DECL_ALIAS_P (TYPE_NAME (NODE)))
 
 /* For a class type: if this structure has many fields, we'll sort them
    and put them into a TREE_VEC.  */
@@ -2586,22 +2612,33 @@ extern void decl_shadowed_for_var_insert (tree, tree);
   (LANG_TYPE_CLASS_CHECK (BOUND_TEMPLATE_TEMPLATE_PARM_TYPE_CHECK (NODE)) \
    ->template_info)
 
-/* Template information for an ENUMERAL_, RECORD_, or UNION_TYPE.  */
-#define TYPE_TEMPLATE_INFO(NODE)			\
-  (TREE_CODE (NODE) == ENUMERAL_TYPE			\
-   ? ENUM_TEMPLATE_INFO (NODE) :			\
-   (TREE_CODE (NODE) == BOUND_TEMPLATE_TEMPLATE_PARM	\
-    ? TEMPLATE_TEMPLATE_PARM_TEMPLATE_INFO (NODE) :	\
-    (TYPE_LANG_SPECIFIC (NODE)				\
-     ? CLASSTYPE_TEMPLATE_INFO (NODE)			\
-     : NULL_TREE)))
+/* Template information for an ENUMERAL_, RECORD_, UNION_TYPE, or
+   BOUND_TEMPLATE_TEMPLATE_PARM type.  Note that if NODE is a
+   specialization of an alias template, this accessor returns the
+   template info for the alias template, not the one (if any) for the
+   template of the underlying type.  */
+#define TYPE_TEMPLATE_INFO(NODE)					\
+  (TYPE_ALIAS_P (NODE)							\
+   ? ((TYPE_NAME (NODE) && DECL_LANG_SPECIFIC (TYPE_NAME (NODE)))	\
+      ? DECL_TEMPLATE_INFO (TYPE_NAME (NODE))				\
+      : NULL_TREE)							\
+   : ((TREE_CODE (NODE) == ENUMERAL_TYPE)				\
+      ? ENUM_TEMPLATE_INFO (NODE)					\
+      : ((TREE_CODE (NODE) == BOUND_TEMPLATE_TEMPLATE_PARM)		\
+	 ? TEMPLATE_TEMPLATE_PARM_TEMPLATE_INFO (NODE)			\
+	 : (CLASS_TYPE_P (NODE)						\
+	    ? CLASSTYPE_TEMPLATE_INFO (NODE)				\
+	    : NULL_TREE))))
+
 
 /* Set the template information for an ENUMERAL_, RECORD_, or
    UNION_TYPE to VAL.  */
-#define SET_TYPE_TEMPLATE_INFO(NODE, VAL)	\
-  (TREE_CODE (NODE) == ENUMERAL_TYPE		\
-   ? (ENUM_TEMPLATE_INFO (NODE) = (VAL))	\
-   : (CLASSTYPE_TEMPLATE_INFO (NODE) = (VAL)))
+#define SET_TYPE_TEMPLATE_INFO(NODE, VAL)				\
+  (TREE_CODE (NODE) == ENUMERAL_TYPE					\
+   ? (ENUM_TEMPLATE_INFO (NODE) = (VAL))				\
+   : ((CLASS_TYPE_P (NODE) && !TYPE_ALIAS_P (NODE))			\
+      ? (CLASSTYPE_TEMPLATE_INFO (NODE) = (VAL))			\
+      : (DECL_TEMPLATE_INFO (TYPE_NAME (NODE)) = (VAL))))
 
 #define TI_TEMPLATE(NODE) TREE_TYPE (TEMPLATE_INFO_CHECK (NODE))
 #define TI_ARGS(NODE) TREE_CHAIN (TEMPLATE_INFO_CHECK (NODE))
@@ -2790,7 +2827,14 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 #define PACK_EXPANSION_PARAMETER_PACKS(NODE)		\
   *(TREE_CODE (NODE) == EXPR_PACK_EXPANSION		\
     ? &TREE_OPERAND (NODE, 1)				\
-    : &TREE_CHAIN (TYPE_PACK_EXPANSION_CHECK (NODE)))
+    : &TYPE_MINVAL (TYPE_PACK_EXPANSION_CHECK (NODE)))
+
+/* Any additional template args to be applied when substituting into
+   the pattern, set by tsubst_pack_expansion for partial instantiations.  */
+#define PACK_EXPANSION_EXTRA_ARGS(NODE)		\
+  *(TREE_CODE (NODE) == TYPE_PACK_EXPANSION	\
+    ? &TYPE_MAXVAL (NODE)			\
+    : &TREE_OPERAND ((NODE), 2))
 
 /* Determine if this is an argument pack.  */
 #define ARGUMENT_PACK_P(NODE)                          \
@@ -2975,6 +3019,11 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 /* Indicates that a VEC_INIT_EXPR is expressing value-initialization.  */
 #define VEC_INIT_EXPR_VALUE_INIT(NODE) \
   TREE_LANG_FLAG_1 (VEC_INIT_EXPR_CHECK (NODE))
+
+/* The condition under which this MUST_NOT_THROW_EXPR actually blocks
+   exceptions.  NULL_TREE means 'true'.  */
+#define MUST_NOT_THROW_COND(NODE) \
+  TREE_OPERAND (MUST_NOT_THROW_EXPR_CHECK (NODE), 1)
 
 /* The TYPE_MAIN_DECL for a class template type is a TYPE_DECL, not a
    TEMPLATE_DECL.  This macro determines whether or not a given class
@@ -3200,8 +3249,9 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 
 /* [dcl.init.aggr]
 
-   An aggregate is an array or a class with no user-declared
-   constructors, no private or protected non-static data members, no
+   An aggregate is an array or a class with no user-provided
+   constructors, no brace-or-equal-initializers for non-static data
+   members, no private or protected non-static data members, no
    base classes, and no virtual functions.
 
    As an extension, we also treat vectors as aggregates.  Keep these
@@ -3614,13 +3664,24 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
    && !DECL_UNBOUND_CLASS_TEMPLATE_P (NODE) \
    && TREE_CODE (DECL_TEMPLATE_RESULT (NODE)) == FUNCTION_DECL)
 
-/* Nonzero for a DECL that represents a template class.  */
-#define DECL_CLASS_TEMPLATE_P(NODE)				\
+/* Nonzero for a DECL that represents a class template or alias
+   template.  */
+#define DECL_TYPE_TEMPLATE_P(NODE)				\
   (TREE_CODE (NODE) == TEMPLATE_DECL				\
    && DECL_TEMPLATE_RESULT (NODE) != NULL_TREE			\
+   && TREE_CODE (DECL_TEMPLATE_RESULT (NODE)) == TYPE_DECL)
+
+/* Nonzero for a DECL that represents a class template.  */
+#define DECL_CLASS_TEMPLATE_P(NODE)				\
+  (DECL_TYPE_TEMPLATE_P (NODE)					\
    && DECL_IMPLICIT_TYPEDEF_P (DECL_TEMPLATE_RESULT (NODE)))
 
-/* Nonzero if NODE which declares a type.  */
+/* Nonzero for a TEMPLATE_DECL that represents an alias template.  */
+#define DECL_ALIAS_TEMPLATE_P(NODE)			\
+  (DECL_TYPE_TEMPLATE_P (NODE)				\
+   && !DECL_ARTIFICIAL (DECL_TEMPLATE_RESULT (NODE)))
+
+/* Nonzero for a NODE which declares a type.  */
 #define DECL_DECLARES_TYPE_P(NODE) \
   (TREE_CODE (NODE) == TYPE_DECL || DECL_CLASS_TEMPLATE_P (NODE))
 
@@ -3856,6 +3917,10 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 #define CP_OMP_CLAUSE_INFO(NODE) \
   TREE_TYPE (OMP_CLAUSE_RANGE_CHECK (NODE, OMP_CLAUSE_PRIVATE, \
 				     OMP_CLAUSE_COPYPRIVATE))
+
+/* Nonzero if this transaction expression's body contains statements.  */
+#define TRANSACTION_EXPR_IS_STMT(NODE) \
+   TREE_LANG_FLAG_0 (TRANSACTION_EXPR_CHECK (NODE))
 
 /* These macros provide convenient access to the various _STMT nodes
    created when parsing template declarations.  */
@@ -4228,6 +4293,17 @@ extern GTY(()) VEC(tree,gc) *local_classes;
              LAMBDANAME_PREFIX, \
 	     sizeof (LAMBDANAME_PREFIX) - 1))
 
+#define UDLIT_OP_ANSI_PREFIX "operator\"\" "
+#define UDLIT_OP_ANSI_FORMAT UDLIT_OP_ANSI_PREFIX "%s"
+#define UDLIT_OP_MANGLED_PREFIX "li"
+#define UDLIT_OP_MANGLED_FORMAT UDLIT_OP_MANGLED_PREFIX "%s"
+#define UDLIT_OPER_P(ID_NODE) \
+  (!strncmp (IDENTIFIER_POINTER (ID_NODE), \
+             UDLIT_OP_ANSI_PREFIX, \
+	     sizeof (UDLIT_OP_ANSI_PREFIX) - 1))
+#define UDLIT_OP_SUFFIX(ID_NODE) \
+  (IDENTIFIER_POINTER (ID_NODE) + sizeof (UDLIT_OP_ANSI_PREFIX) - 1)
+
 #if !defined(NO_DOLLAR_IN_LABEL) || !defined(NO_DOT_IN_LABEL)
 
 #define VTABLE_NAME_P(ID_NODE) (IDENTIFIER_POINTER (ID_NODE)[1] == 'v' \
@@ -4563,6 +4639,7 @@ typedef enum cp_decl_spec {
   ds_explicit,
   ds_friend,
   ds_typedef,
+  ds_alias,
   ds_constexpr,
   ds_complex,
   ds_thread,
@@ -4794,9 +4871,9 @@ extern tree cxx_type_promotes_to		(tree);
 extern tree type_passed_as			(tree);
 extern tree convert_for_arg_passing		(tree, tree);
 extern bool is_properly_derived_from		(tree, tree);
-extern tree set_up_extended_ref_temp		(tree, tree, tree *, tree *);
-extern tree initialize_reference		(tree, tree, tree, tree *, int,
+extern tree initialize_reference		(tree, tree, int,
 						 tsubst_flags_t);
+extern tree extend_ref_init_temps		(tree, tree, VEC(tree,gc)**);
 extern tree make_temporary_var_for_ref_to_temp	(tree, tree);
 extern tree strip_top_quals			(tree);
 extern bool reference_related_p			(tree, tree);
@@ -5032,7 +5109,7 @@ extern tree build_offset_ref_call_from_tree	(tree, VEC(tree,gc) **);
 extern bool decl_constant_var_p			(tree);
 extern bool decl_maybe_constant_var_p		(tree);
 extern void check_default_args			(tree);
-extern void mark_used				(tree);
+extern bool mark_used				(tree);
 extern void finish_static_data_member_decl	(tree, tree, bool, tree, int);
 extern tree cp_build_parm_decl			(tree, tree);
 extern tree get_guard				(tree);
@@ -5080,6 +5157,7 @@ extern bool type_noexcept_p			(const_tree);
 extern bool type_throw_all_p			(const_tree);
 extern tree build_noexcept_spec			(tree, int);
 extern void choose_personality_routine		(enum languages);
+extern tree build_must_not_throw_expr		(tree,tree);
 extern tree eh_type_info			(tree);
 extern tree begin_eh_spec_block			(void);
 extern void finish_eh_spec_block		(tree, tree);
@@ -5266,6 +5344,8 @@ extern tree build_non_dependent_expr		(tree);
 extern void make_args_non_dependent		(VEC(tree,gc) *);
 extern bool reregister_specialization		(tree, tree, tree);
 extern tree fold_non_dependent_expr		(tree);
+extern bool alias_type_or_template_p            (tree);
+extern bool alias_template_specialization_p     (tree);
 extern bool explicit_class_specialization_p     (tree);
 extern int push_tinst_level                     (tree);
 extern void pop_tinst_level                     (void);
@@ -5312,9 +5392,11 @@ extern tree lookup_field_1			(tree, tree, bool);
 extern tree lookup_field			(tree, tree, int, bool);
 extern int lookup_fnfields_1			(tree, tree);
 extern tree lookup_fnfields_slot		(tree, tree);
+extern tree lookup_fnfields_slot_nolazy		(tree, tree);
 extern int class_method_index_for_fn		(tree, tree);
 extern tree lookup_fnfields			(tree, tree, int);
-extern tree lookup_member			(tree, tree, int, bool);
+extern tree lookup_member			(tree, tree, int, bool,
+						 tsubst_flags_t);
 extern int look_for_overrides			(tree, tree);
 extern void get_pure_virtuals			(tree);
 extern void maybe_suppress_debug_info		(tree);
@@ -5372,6 +5454,7 @@ extern int stmts_are_full_exprs_p		(void);
 extern void init_cp_semantics			(void);
 extern tree do_poplevel				(tree);
 extern void add_decl_expr			(tree);
+extern tree maybe_cleanup_point_expr_void	(tree);
 extern tree finish_expr_stmt			(tree);
 extern tree begin_if_stmt			(void);
 extern void finish_if_stmt_cond			(tree, tree);
@@ -5507,6 +5590,9 @@ extern void finish_omp_atomic			(enum tree_code, enum tree_code,
 extern void finish_omp_barrier			(void);
 extern void finish_omp_flush			(void);
 extern void finish_omp_taskwait			(void);
+extern tree begin_transaction_stmt		(location_t, tree *, int);
+extern void finish_transaction_stmt		(tree, tree, int, tree);
+extern tree build_transaction_expr		(location_t, tree, int, tree);
 extern void finish_omp_taskyield		(void);
 extern bool cxx_omp_create_clause_info		(tree, tree, bool, bool, bool);
 extern tree baselink_for_fns                    (tree);
@@ -5525,6 +5611,7 @@ extern void apply_lambda_return_type            (tree, tree);
 extern tree add_capture                         (tree, tree, tree, bool, bool);
 extern tree add_default_capture                 (tree, tree, tree);
 extern tree build_capture_proxy			(tree);
+extern void insert_capture_proxy		(tree);
 extern void insert_pending_capture_proxies	(void);
 extern bool is_capture_proxy			(tree);
 extern bool is_normal_capture_proxy             (tree);
@@ -5758,6 +5845,8 @@ extern tree convert_ptrmem			(tree, tree, bool, bool,
 extern int lvalue_or_else			(tree, enum lvalue_use,
                                                  tsubst_flags_t);
 extern void check_template_keyword		(tree);
+extern bool check_raw_literal_operator		(const_tree decl);
+extern bool check_literal_operator_args		(const_tree, bool *, bool *);
 
 /* in typeck2.c */
 extern void require_complete_eh_spec_types	(tree, tree);
@@ -5773,7 +5862,7 @@ extern void complete_type_check_abstract	(tree);
 extern int abstract_virtuals_error		(tree, tree);
 extern int abstract_virtuals_error_sfinae	(tree, tree, tsubst_flags_t);
 
-extern tree store_init_value			(tree, tree, int);
+extern tree store_init_value			(tree, tree, VEC(tree,gc)**, int);
 extern void check_narrowing			(tree, tree);
 extern tree digest_init				(tree, tree, tsubst_flags_t);
 extern tree digest_init_flags			(tree, tree, int);
@@ -5825,7 +5914,8 @@ extern void cxx_omp_finish_clause		(tree);
 extern bool cxx_omp_privatize_by_reference	(const_tree);
 
 /* in name-lookup.c */
-extern void suggest_alternatives_for (location_t, tree);
+extern void suggest_alternatives_for            (location_t, tree);
+extern tree strip_using_decl                    (tree);
 
 /* -- end of C++ */
 

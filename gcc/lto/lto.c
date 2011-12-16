@@ -267,7 +267,7 @@ lto_read_in_decl_state (struct data_in *data_in, const uint32_t *data,
   uint32_t ix;
   tree decl;
   uint32_t i, j;
-  
+
   ix = *data++;
   decl = streamer_tree_cache_get (data_in->reader_cache, ix);
   if (TREE_CODE (decl) != FUNCTION_DECL)
@@ -381,6 +381,13 @@ lto_ft_decl_non_common (tree t)
   LTO_FIXUP_TREE (DECL_ARGUMENT_FLD (t));
   LTO_FIXUP_TREE (DECL_RESULT_FLD (t));
   LTO_FIXUP_TREE (DECL_VINDEX (t));
+  /* The C frontends may create exact duplicates for DECL_ORIGINAL_TYPE
+     like for 'typedef enum foo foo'.  We have no way of avoiding to
+     merge them and dwarf2out.c cannot deal with this,
+     so fix this up by clearing DECL_ORIGINAL_TYPE in this case.  */
+  if (TREE_CODE (t) == TYPE_DECL
+      && DECL_ORIGINAL_TYPE (t) == TREE_TYPE (t))
+    DECL_ORIGINAL_TYPE (t) = NULL_TREE;
 }
 
 /* Fix up fields of a decl_non_common T.  */
@@ -879,9 +886,9 @@ lto_read_decls (struct lto_file_decl_data *decl_data, const void *data,
 		VEC(ld_plugin_symbol_resolution_t,heap) *resolutions)
 {
   const struct lto_decl_header *header = (const struct lto_decl_header *) data;
-  const int32_t decl_offset = sizeof (struct lto_decl_header);
-  const int32_t main_offset = decl_offset + header->decl_state_size;
-  const int32_t string_offset = main_offset + header->main_size;
+  const int decl_offset = sizeof (struct lto_decl_header);
+  const int main_offset = decl_offset + header->decl_state_size;
+  const int string_offset = main_offset + header->main_size;
   struct lto_input_block ib_main;
   struct data_in *data_in;
   unsigned int i;
@@ -932,17 +939,20 @@ lto_read_decls (struct lto_file_decl_data *decl_data, const void *data,
 
   if (data_ptr != data_end)
     internal_error ("bytecode stream: garbage at the end of symbols section");
-  
+
   /* Set the current decl state to be the global state. */
   decl_data->current_decl_state = decl_data->global_decl_state;
 
   lto_data_in_delete (data_in);
 }
 
-/* strtoll is not portable. */
-int64_t
-lto_parse_hex (const char *p) {
-  uint64_t ret = 0;
+/* Custom version of strtoll, which is not portable.  */
+
+static HOST_WIDEST_INT
+lto_parse_hex (const char *p)
+{
+  HOST_WIDEST_INT ret = 0;
+
   for (; *p != '\0'; ++p)
     {
       char c = *p;
@@ -958,6 +968,7 @@ lto_parse_hex (const char *p) {
         internal_error ("could not parse hex number");
       ret |= part;
     }
+
   return ret;
 }
 
@@ -993,7 +1004,7 @@ lto_resolution_read (splay_tree file_ids, FILE *resolution, lto_file *file)
     {
       int t;
       char offset_p[17];
-      int64_t offset;
+      HOST_WIDEST_INT offset;
       t = fscanf (resolution, "@0x%16s", offset_p);
       if (t != 1)
         internal_error ("could not parse file offset");
@@ -1481,6 +1492,8 @@ add_varpool_node_to_partition (ltrans_partition part, struct varpool_node *vnode
 {
   varpool_node_set_iterator vsi;
 
+  vnode = varpool_variable_node (vnode, NULL);
+
   /* If NODE is already there, we have nothing to do.  */
   vsi = varpool_node_set_find (part->varpool_set, vnode);
   if (!vsi_end_p (vsi))
@@ -1665,6 +1678,23 @@ lto_1_to_1_map (void)
 						 ltrans_partitions);
 }
 
+/* Helper function for qsort; sort nodes by order.  */
+static int
+node_cmp (const void *pa, const void *pb)
+{
+  const struct cgraph_node *a = *(const struct cgraph_node * const *) pa;
+  const struct cgraph_node *b = *(const struct cgraph_node * const *) pb;
+  return b->order - a->order;
+}
+
+/* Helper function for qsort; sort nodes by order.  */
+static int
+varpool_node_cmp (const void *pa, const void *pb)
+{
+  const struct varpool_node *a = *(const struct varpool_node * const *) pa;
+  const struct varpool_node *b = *(const struct varpool_node * const *) pb;
+  return b->order - a->order;
+}
 
 /* Group cgraph nodes into equally-sized partitions.
 
@@ -1708,9 +1738,11 @@ static void
 lto_balanced_map (void)
 {
   int n_nodes = 0;
+  int n_varpool_nodes = 0, varpool_pos = 0;
   struct cgraph_node **postorder =
     XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
   struct cgraph_node **order = XNEWVEC (struct cgraph_node *, cgraph_max_uid);
+  struct varpool_node **varpool_order = NULL;
   int i, postorder_len;
   struct cgraph_node *node;
   int total_size = 0, best_total_size = 0;
@@ -1722,6 +1754,7 @@ lto_balanced_map (void)
   int best_n_nodes = 0, best_n_varpool_nodes = 0, best_i = 0, best_cost =
     INT_MAX, best_internal = 0;
   int npartitions;
+  int current_order = -1;
 
   for (vnode = varpool_nodes; vnode; vnode = vnode->next)
     gcc_assert (!vnode->aux);
@@ -1731,6 +1764,7 @@ lto_balanced_map (void)
      multiple partitions, this is just an estimate of real size.  This is why
      we keep partition_size updated after every partition is finalized.  */
   postorder_len = ipa_reverse_postorder (postorder);
+    
   for (i = 0; i < postorder_len; i++)
     {
       node = postorder[i];
@@ -1741,6 +1775,23 @@ lto_balanced_map (void)
 	}
     }
   free (postorder);
+
+  if (!flag_toplevel_reorder)
+    {
+      qsort (order, n_nodes, sizeof (struct cgraph_node *), node_cmp);
+
+      for (vnode = varpool_nodes; vnode; vnode = vnode->next)
+	if (partition_varpool_node_p (vnode))
+	  n_varpool_nodes++;
+      varpool_order = XNEWVEC (struct varpool_node *, n_varpool_nodes);
+
+      n_varpool_nodes = 0;
+      for (vnode = varpool_nodes; vnode; vnode = vnode->next)
+	if (partition_varpool_node_p (vnode))
+	  varpool_order[n_varpool_nodes++] = vnode;
+      qsort (varpool_order, n_varpool_nodes, sizeof (struct varpool_node *),
+	     varpool_node_cmp);
+    }
 
   /* Compute partition size and create the first partition.  */
   partition_size = total_size / PARAM_VALUE (PARAM_LTO_PARTITIONS);
@@ -1756,8 +1807,20 @@ lto_balanced_map (void)
     {
       if (order[i]->aux)
 	continue;
+
+      current_order = order[i]->order;
+
+      if (!flag_toplevel_reorder)
+	while (varpool_pos < n_varpool_nodes && varpool_order[varpool_pos]->order < current_order)
+	  {
+	    if (!varpool_order[varpool_pos]->aux)
+	      add_varpool_node_to_partition (partition, varpool_order[varpool_pos]);
+	    varpool_pos++;
+	  }
+
       add_cgraph_node_to_partition (partition, order[i]);
       total_size -= inline_summary (order[i])->size;
+	  
 
       /* Once we added a new node to the partition, we also want to add
          all referenced variables unless they was already added into some
@@ -1796,7 +1859,7 @@ lto_balanced_map (void)
 
 	      gcc_assert (node->analyzed);
 
-	      /* Compute boundary cost of callgrpah edges.  */
+	      /* Compute boundary cost of callgraph edges.  */
 	      for (edge = node->callees; edge; edge = edge->next_callee)
 		if (edge->callee->analyzed)
 		  {
@@ -1848,7 +1911,8 @@ lto_balanced_map (void)
 		vnode = ipa_ref_varpool_node (ref);
 		if (!vnode->finalized)
 		  continue;
-		if (!vnode->aux && partition_varpool_node_p (vnode))
+		if (!vnode->aux && flag_toplevel_reorder
+		    && partition_varpool_node_p (vnode))
 		  add_varpool_node_to_partition (partition, vnode);
 		vsi = varpool_node_set_find (partition->varpool_set, vnode);
 		if (!vsi_end_p (vsi)
@@ -1878,7 +1942,8 @@ lto_balanced_map (void)
 
 		vnode = ipa_ref_refering_varpool_node (ref);
 		gcc_assert (vnode->finalized);
-		if (!vnode->aux && partition_varpool_node_p (vnode))
+		if (!vnode->aux && flag_toplevel_reorder
+		    && partition_varpool_node_p (vnode))
 		  add_varpool_node_to_partition (partition, vnode);
 		vsi = varpool_node_set_find (partition->varpool_set, vnode);
 		if (!vsi_end_p (vsi)
@@ -1967,9 +2032,22 @@ lto_balanced_map (void)
     }
 
   /* Varables that are not reachable from the code go into last partition.  */
-  for (vnode = varpool_nodes; vnode; vnode = vnode->next)
-    if (partition_varpool_node_p (vnode) && !vnode->aux)
-      add_varpool_node_to_partition (partition, vnode);
+  if (flag_toplevel_reorder)
+    {
+      for (vnode = varpool_nodes; vnode; vnode = vnode->next)
+        if (partition_varpool_node_p (vnode) && !vnode->aux)
+	  add_varpool_node_to_partition (partition, vnode);
+    }
+  else
+    {
+      while (varpool_pos < n_varpool_nodes)
+	{
+	  if (!varpool_order[varpool_pos]->aux)
+	    add_varpool_node_to_partition (partition, varpool_order[varpool_pos]);
+	  varpool_pos++;
+	}
+      free (varpool_order);
+    }
   free (order);
 }
 
@@ -2134,13 +2212,35 @@ static lto_file *current_lto_file;
    longest compilation being executed too late.  */
 
 static int
-cmp_partitions (const void *a, const void *b)
+cmp_partitions_size (const void *a, const void *b)
 {
   const struct ltrans_partition_def *pa
      = *(struct ltrans_partition_def *const *)a;
   const struct ltrans_partition_def *pb
      = *(struct ltrans_partition_def *const *)b;
   return pb->insns - pa->insns;
+}
+
+/* Helper for qsort; compare partitions and return one with smaller order.  */
+
+static int
+cmp_partitions_order (const void *a, const void *b)
+{
+  const struct ltrans_partition_def *pa
+     = *(struct ltrans_partition_def *const *)a;
+  const struct ltrans_partition_def *pb
+     = *(struct ltrans_partition_def *const *)b;
+  int ordera = -1, orderb = -1;
+
+  if (VEC_length (cgraph_node_ptr, pa->cgraph_set->nodes))
+    ordera = VEC_index (cgraph_node_ptr, pa->cgraph_set->nodes, 0)->order;
+  else if (VEC_length (varpool_node_ptr, pa->varpool_set->nodes))
+    ordera = VEC_index (varpool_node_ptr, pa->varpool_set->nodes, 0)->order;
+  if (VEC_length (cgraph_node_ptr, pb->cgraph_set->nodes))
+    orderb = VEC_index (cgraph_node_ptr, pb->cgraph_set->nodes, 0)->order;
+  else if (VEC_length (varpool_node_ptr, pb->varpool_set->nodes))
+    orderb = VEC_index (varpool_node_ptr, pb->varpool_set->nodes, 0)->order;
+  return orderb - ordera;
 }
 
 /* Write all output files in WPA mode and the file with the list of
@@ -2191,7 +2291,12 @@ lto_wpa_write_files (void)
   blen = strlen (temp_filename);
 
   n_sets = VEC_length (ltrans_partition, ltrans_partitions);
-  VEC_qsort (ltrans_partition, ltrans_partitions, cmp_partitions);
+
+  /* Sort partitions by size so small ones are compiled last.
+     FIXME: Even when not reordering we may want to output one list for parallel make
+     and other for final link command.  */
+  VEC_qsort (ltrans_partition, ltrans_partitions,
+	    flag_toplevel_reorder ? cmp_partitions_size : cmp_partitions_order);
   for (i = 0; i < n_sets; i++)
     {
       size_t len;
@@ -2398,60 +2503,6 @@ lto_fixup_decls (struct lto_file_decl_data **files)
 
       htab_traverse (file->function_decl_states, lto_fixup_state_aux, NULL);
     }
-}
-
-/* Read the options saved from each file in the command line.  Called
-   from lang_hooks.post_options which is called by process_options
-   right before all the options are used to initialize the compiler.
-   This assumes that decode_options has already run, so the
-   num_in_fnames and in_fnames are properly set.
-
-   Note that this assumes that all the files had been compiled with
-   the same options, which is not a good assumption.  In general,
-   options ought to be read from all the files in the set and merged.
-   However, it is still unclear what the merge rules should be.  */
-
-void
-lto_read_all_file_options (void)
-{
-  size_t i;
-
-  /* Clear any file options currently saved.  */
-  lto_clear_file_options ();
-
-  /* Set the hooks to read ELF sections.  */
-  lto_set_in_hooks (NULL, get_section_data, free_section_data);
-  if (!quiet_flag)
-    fprintf (stderr, "Reading command line options:");
-
-  for (i = 0; i < num_in_fnames; i++)
-    {
-      struct lto_file_decl_data *file_data;
-      lto_file *file = lto_obj_file_open (in_fnames[i], false);
-      if (!file)
-	break;
-      if (!quiet_flag)
-	{
-	  fprintf (stderr, " %s", in_fnames[i]);
-	  fflush (stderr);
-	}
-
-      file_data = XCNEW (struct lto_file_decl_data);
-      file_data->file_name = file->filename;
-      file_data->section_hash_table = lto_obj_build_section_table (file, NULL);
-
-      lto_read_file_options (file_data);
-
-      lto_obj_file_close (file);
-      htab_delete (file_data->section_hash_table);
-      free (file_data);
-    }
-
-  if (!quiet_flag)
-    fprintf (stderr, "\n");
-
-  /* Apply globally the options read from all the files.  */
-  lto_reissue_options ();
 }
 
 static GTY((length ("lto_stats.num_input_files + 1"))) struct lto_file_decl_data **all_file_decl_data;
@@ -2827,6 +2878,7 @@ lto_init (void)
   lto_process_name ();
   lto_streamer_hooks_init ();
   lto_reader_init ();
+  lto_set_in_hooks (NULL, get_section_data, free_section_data);
   memset (&lto_stats, 0, sizeof (lto_stats));
   bitmap_obstack_initialize (NULL);
   gimple_register_cfg_hooks ();

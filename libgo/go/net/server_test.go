@@ -8,10 +8,10 @@ import (
 	"flag"
 	"io"
 	"os"
+	"runtime"
 	"strings"
 	"syscall"
 	"testing"
-	"runtime"
 )
 
 // Do not test empty datagrams by default.
@@ -55,7 +55,7 @@ func runServe(t *testing.T, network, addr string, listening chan<- string, done 
 
 func connect(t *testing.T, network, addr string, isEmpty bool) {
 	var fd Conn
-	var err os.Error
+	var err error
 	if network == "unixgram" {
 		fd, err = DialUnix(network, &UnixAddr{addr + ".local", network}, &UnixAddr{addr, network})
 	} else {
@@ -115,7 +115,9 @@ func doTest(t *testing.T, network, listenaddr, dialaddr string) {
 }
 
 func TestTCPServer(t *testing.T) {
-	doTest(t, "tcp", "", "127.0.0.1")
+	if syscall.OS != "openbsd" {
+		doTest(t, "tcp", "", "127.0.0.1")
+	}
 	doTest(t, "tcp", "0.0.0.0", "127.0.0.1")
 	doTest(t, "tcp", "127.0.0.1", "127.0.0.1")
 	doTest(t, "tcp4", "", "127.0.0.1")

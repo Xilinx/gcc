@@ -439,7 +439,6 @@ package body Errout is
                      Error_Msg_Internal
                        ("?in inlined body #",
                         Actual_Error_Loc, Flag_Location, Msg_Cont_Status);
-
                   else
                      Error_Msg_Internal
                        ("error in inlined body #",
@@ -453,7 +452,6 @@ package body Errout is
                      Error_Msg_Internal
                        ("?in instantiation #",
                         Actual_Error_Loc, Flag_Location, Msg_Cont_Status);
-
                   else
                      Error_Msg_Internal
                        ("instantiation error #",
@@ -1288,30 +1286,37 @@ package body Errout is
 
       Cur := First_Error_Msg;
       while Cur /= No_Error_Msg loop
-         if not Errors.Table (Cur).Deleted
-           and then Warning_Specifically_Suppressed
-                      (Errors.Table (Cur).Sptr, Errors.Table (Cur).Text)
-         then
-            Delete_Warning (Cur);
+         declare
+            CE : Error_Msg_Object renames Errors.Table (Cur);
 
-            --  If this is a continuation, delete previous messages
+         begin
+            if not CE.Deleted
+              and then
+                (Warning_Specifically_Suppressed (CE.Sptr, CE.Text)
+                   or else
+                 Warning_Specifically_Suppressed (CE.Optr, CE.Text))
+            then
+               Delete_Warning (Cur);
 
-            F := Cur;
-            while Errors.Table (F).Msg_Cont loop
-               F := Errors.Table (F).Prev;
-               Delete_Warning (F);
-            end loop;
+               --  If this is a continuation, delete previous messages
 
-            --  Delete any following continuations
+               F := Cur;
+               while Errors.Table (F).Msg_Cont loop
+                  F := Errors.Table (F).Prev;
+                  Delete_Warning (F);
+               end loop;
 
-            F := Cur;
-            loop
-               F := Errors.Table (F).Next;
-               exit when F = No_Error_Msg;
-               exit when not Errors.Table (F).Msg_Cont;
-               Delete_Warning (F);
-            end loop;
-         end if;
+               --  Delete any following continuations
+
+               F := Cur;
+               loop
+                  F := Errors.Table (F).Next;
+                  exit when F = No_Error_Msg;
+                  exit when not Errors.Table (F).Msg_Cont;
+                  Delete_Warning (F);
+               end loop;
+            end if;
+         end;
 
          Cur := Errors.Table (Cur).Next;
       end loop;

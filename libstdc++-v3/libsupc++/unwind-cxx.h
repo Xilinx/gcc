@@ -1,6 +1,6 @@
 // -*- C++ -*- Exception handling and frame unwind runtime interface routines.
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-// Free Software Foundation, Inc.
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+// 2011  Free Software Foundation, Inc.
 //
 // This file is part of GCC.
 //
@@ -51,7 +51,7 @@ struct __cxa_exception
 {
   // Manage the exception object itself.
   std::type_info *exceptionType;
-  void (*exceptionDestructor)(void *); 
+  void (*exceptionDestructor)(void *);
 
   // The C++ standard has entertaining rules wrt calling set_terminate
   // and set_unexpected in the middle of the exception cleanup process.
@@ -166,6 +166,9 @@ extern "C" __cxa_type_match_result __cxa_type_match(_Unwind_Exception*,
 extern "C" bool __cxa_begin_cleanup (_Unwind_Exception*);
 extern "C" void __cxa_end_cleanup (void);
 #endif
+
+// Handles cleanup from transactional memory restart.
+extern "C" void __cxa_tm_cleanup (void *, void *, unsigned int) throw();
 
 // Invokes given handler, dying appropriately if the user handler was
 // so inconsiderate as to return.

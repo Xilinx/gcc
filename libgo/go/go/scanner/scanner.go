@@ -27,7 +27,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"unicode"
-	"utf8"
+	"unicode/utf8"
 )
 
 // A Scanner holds the scanner's internal state while processing
@@ -43,7 +43,7 @@ type Scanner struct {
 	mode uint         // scanning mode
 
 	// scanning state
-	ch         int  // current character
+	ch         rune // current character
 	offset     int  // character offset
 	rdOffset   int  // reading offset (position after current character)
 	lineOffset int  // current line offset
@@ -63,7 +63,7 @@ func (S *Scanner) next() {
 			S.lineOffset = S.offset
 			S.file.AddLine(S.offset)
 		}
-		r, w := int(S.src[S.rdOffset]), 1
+		r, w := rune(S.src[S.rdOffset]), 1
 		switch {
 		case r == 0:
 			S.error(S.offset, "illegal character NUL")
@@ -90,9 +90,8 @@ func (S *Scanner) next() {
 // They control scanner behavior.
 //
 const (
-	ScanComments      = 1 << iota // return comments as COMMENT tokens
-	AllowIllegalChars             // do not report an error for illegal chars
-	InsertSemis                   // automatically insert semicolons
+	ScanComments = 1 << iota // return comments as COMMENT tokens
+	InsertSemis              // automatically insert semicolons
 )
 
 // Init prepares the scanner S to tokenize the text src by setting the
@@ -152,7 +151,7 @@ func (S *Scanner) interpretLineComment(text []byte) {
 					filename = filepath.Join(S.dir, filename)
 				}
 				// update scanner position
-				S.file.AddLineInfo(S.lineOffset, filename, line-1) // -1 since comment applies to next line
+				S.file.AddLineInfo(S.lineOffset+len(text)+1, filename, line) // +len(text)+1 since comment applies to next line
 			}
 		}
 	}
@@ -233,11 +232,11 @@ func (S *Scanner) findLineEnd() bool {
 	return false
 }
 
-func isLetter(ch int) bool {
+func isLetter(ch rune) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch >= 0x80 && unicode.IsLetter(ch)
 }
 
-func isDigit(ch int) bool {
+func isDigit(ch rune) bool {
 	return '0' <= ch && ch <= '9' || ch >= 0x80 && unicode.IsDigit(ch)
 }
 
@@ -249,14 +248,14 @@ func (S *Scanner) scanIdentifier() token.Token {
 	return token.Lookup(S.src[offs:S.offset])
 }
 
-func digitVal(ch int) int {
+func digitVal(ch rune) int {
 	switch {
 	case '0' <= ch && ch <= '9':
-		return ch - '0'
+		return int(ch - '0')
 	case 'a' <= ch && ch <= 'f':
-		return ch - 'a' + 10
+		return int(ch - 'a' + 10)
 	case 'A' <= ch && ch <= 'F':
-		return ch - 'A' + 10
+		return int(ch - 'A' + 10)
 	}
 	return 16 // larger than any legal digit val
 }
@@ -338,7 +337,7 @@ exit:
 	return tok
 }
 
-func (S *Scanner) scanEscape(quote int) {
+func (S *Scanner) scanEscape(quote rune) {
 	offs := S.offset
 
 	var i, base, max uint32
@@ -463,7 +462,7 @@ func (S *Scanner) switch2(tok0, tok1 token.Token) token.Token {
 	return tok0
 }
 
-func (S *Scanner) switch3(tok0, tok1 token.Token, ch2 int, tok2 token.Token) token.Token {
+func (S *Scanner) switch3(tok0, tok1 token.Token, ch2 rune, tok2 token.Token) token.Token {
 	if S.ch == '=' {
 		S.next()
 		return tok1
@@ -475,7 +474,7 @@ func (S *Scanner) switch3(tok0, tok1 token.Token, ch2 int, tok2 token.Token) tok
 	return tok0
 }
 
-func (S *Scanner) switch4(tok0, tok1 token.Token, ch2 int, tok2, tok3 token.Token) token.Token {
+func (S *Scanner) switch4(tok0, tok1 token.Token, ch2 rune, tok2, tok3 token.Token) token.Token {
 	if S.ch == '=' {
 		S.next()
 		return tok1
@@ -652,9 +651,7 @@ scanAgain:
 		case '|':
 			tok = S.switch3(token.OR, token.OR_ASSIGN, '|', token.LOR)
 		default:
-			if S.mode&AllowIllegalChars == 0 {
-				S.error(offs, fmt.Sprintf("illegal character %#U", ch))
-			}
+			S.error(offs, fmt.Sprintf("illegal character %#U", ch))
 			insertSemi = S.insertSemi // preserve insertSemi info
 		}
 	}

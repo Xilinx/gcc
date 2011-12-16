@@ -1461,7 +1461,22 @@ package body Exp_Ch5 is
                   end if;
 
                   if Is_Unchecked_Union (Base_Type (R_Typ)) then
-                     Insert_Action (N, Make_Field_Assign (CF, True));
+
+                     --  Within an initialization procedure this is the
+                     --  assignment to an unchecked union component, in which
+                     --  case there is no discriminant to initialize.
+
+                     if Inside_Init_Proc then
+                        null;
+
+                     else
+                        --  The assignment is part of a conversion from a
+                        --  derived unchecked union type with an inferable
+                        --  discriminant, to a parent type.
+
+                        Insert_Action (N, Make_Field_Assign (CF, True));
+                     end if;
+
                   else
                      Insert_Action (N, Make_Field_Assign (CF));
                   end if;
@@ -3105,32 +3120,32 @@ package body Exp_Ch5 is
                   end loop;
 
                   --  Generate:
-                  --    Id : Element_Type renames Pack.Element (Cursor);
+                  --    Id : Element_Type renames Container (Cursor);
+                  --  This assumes that the container type has an indexing
+                  --  operation with Cursor. The check that this operation
+                  --  exists is performed in Check_Container_Indexing.
 
                   Decl :=
                     Make_Object_Renaming_Declaration (Loc,
                       Defining_Identifier => Id,
-                      Subtype_Mark        =>
+                      Subtype_Mark     =>
                         New_Reference_To (Element_Type, Loc),
-                      Name                =>
+                      Name             =>
                         Make_Indexed_Component (Loc,
-                          Prefix      => Make_Selected_Component (Loc,
-                              Prefix        => New_Reference_To (Pack, Loc),
-                              Selector_Name =>
-                                Make_Identifier (Loc, Chars => Name_Element)),
+                          Prefix      => Relocate_Node (Container_Arg),
                           Expressions =>
                             New_List (New_Occurrence_Of (Cursor, Loc))));
 
                   --  If the container holds controlled objects, wrap the loop
                   --  statements and element renaming declaration with a block.
-                  --  This ensures that the result of Element (Iterator) is
+                  --  This ensures that the result of Element (Cusor) is
                   --  cleaned up after each iteration of the loop.
 
                   if Needs_Finalization (Element_Type) then
 
                      --  Generate:
                      --    declare
-                     --       Id : Element_Type := Pack.Element (Iterator);
+                     --       Id : Element_Type := Pack.Element (curosr);
                      --    begin
                      --       <original loop statements>
                      --    end;
@@ -3163,11 +3178,13 @@ package body Exp_Ch5 is
             --  Determine the advancement and initialization steps for the
             --  cursor.
 
-            --  Must verify that the container has a reverse iterator ???
+            --  Analysis of the expanded loop will verify that the container
+            --  has a reverse iterator.
 
             if Reverse_Present (I_Spec) then
                Name_Init := Name_Last;
                Name_Step := Name_Previous;
+
             else
                Name_Init := Name_First;
                Name_Step := Name_Next;
@@ -3216,7 +3233,7 @@ package body Exp_Ch5 is
                           Make_Selected_Component (Loc,
                            Prefix => New_Occurrence_Of (Pack, Loc),
                            Selector_Name =>
-                             Make_Identifier (Loc,  Name_Has_Element)),
+                             Make_Identifier (Loc, Name_Has_Element)),
 
                         Parameter_Associations =>
                           New_List (
@@ -3233,20 +3250,19 @@ package body Exp_Ch5 is
             --    I : Iterator_Type renames Container;
             --    C : Pack.Cursor_Type := Container.[First | Last];
 
+            Insert_Action (N,
+              Make_Object_Renaming_Declaration (Loc,
+                Defining_Identifier => Iterator,
+                Subtype_Mark  => New_Occurrence_Of (Iter_Type, Loc),
+                Name          => Relocate_Node (Name (I_Spec))));
+
+            --  Create declaration for cursor
+
             declare
-               Decl1 : Node_Id;
-               Decl2 : Node_Id;
+               Decl : Node_Id;
 
             begin
-               Decl1 :=
-                 Make_Object_Renaming_Declaration (Loc,
-                   Defining_Identifier => Iterator,
-                   Subtype_Mark  => New_Occurrence_Of (Iter_Type, Loc),
-                   Name          => Relocate_Node (Name (I_Spec)));
-
-               --  Create declaration for cursor
-
-               Decl2 :=
+               Decl :=
                  Make_Object_Declaration (Loc,
                    Defining_Identifier => Cursor,
                    Object_Definition   =>
@@ -3257,16 +3273,15 @@ package body Exp_Ch5 is
                        Selector_Name =>
                          Make_Identifier (Loc, Name_Init)));
 
-               Set_Assignment_OK (Decl2);
+               --  The cursor is only modified in expanded code, so it appears
+               --  as unassigned to the warning machinery. We must suppress
+               --  this spurious warning explicitly.
 
-               Insert_Actions (N, New_List (Decl1, Decl2));
+               Set_Warnings_Off (Cursor);
+               Set_Assignment_OK (Decl);
+
+               Insert_Action (N, Decl);
             end;
-
-            --  The Iterator is not modified in the source, but of course will
-            --  be updated in the generated code. Indicate that it is actually
-            --  set to prevent spurious warnings.
-
-            Set_Never_Set_In_Source (Iterator, False);
 
             --  If the range of iteration is given by a function call that
             --  returns a container, the finalization actions have been saved
@@ -3460,7 +3475,7 @@ package body Exp_Ch5 is
                    End_Label => End_Label (N)));
 
                --  The loop parameter's entity must be removed from the loop
-               --  scope's entity list, since itw will now be located in the
+               --  scope's entity list, since it will now be located in the
                --  new block scope. Any other entities already associated with
                --  the loop scope, such as the loop parameter's subtype, will
                --  remain there.

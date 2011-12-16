@@ -37,14 +37,17 @@ pragma Elaborate_All (Ada.Containers.Hash_Tables.Generic_Keys);
 
 with Ada.Containers.Prime_Numbers;
 
-with System;  use type System.Address;
+with System; use type System.Address;
 
 package body Ada.Containers.Indefinite_Hashed_Sets is
 
-   type Iterator is new Set_Iterator_Interfaces.Forward_Iterator with record
+   type Iterator is new Limited_Controlled and
+     Set_Iterator_Interfaces.Forward_Iterator with
+   record
       Container : Set_Access;
-      Position  : Cursor;
    end record;
+
+   overriding procedure Finalize (Object : in out Iterator);
 
    overriding function First (Object : Iterator) return Cursor;
 
@@ -173,6 +176,16 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
       Free_Element (X);
    end Assign;
 
+   procedure Assign (Target : in out Set; Source : Set) is
+   begin
+      if Target'Address = Source'Address then
+         return;
+      end if;
+
+      Target.Clear;
+      Target.Union (Source);
+   end Assign;
+
    --------------
    -- Capacity --
    --------------
@@ -199,6 +212,34 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
    begin
       return Find (Container, Item) /= No_Element;
    end Contains;
+
+   ----------
+   -- Copy --
+   ----------
+
+   function Copy
+     (Source   : Set;
+      Capacity : Count_Type := 0) return Set
+   is
+      C : Count_Type;
+
+   begin
+      if Capacity = 0 then
+         C := Source.Length;
+
+      elsif Capacity >= Source.Length then
+         C := Capacity;
+
+      else
+         raise Capacity_Error
+           with "Requested capacity is less than Source length";
+      end if;
+
+      return Target : Set do
+         Target.Reserve_Capacity (C);
+         Target.Assign (Source);
+      end return;
+   end Copy;
 
    ---------------
    -- Copy_Node --
@@ -531,6 +572,17 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
       HT_Ops.Finalize (Container.HT);
    end Finalize;
 
+   procedure Finalize (Object : in out Iterator) is
+   begin
+      if Object.Container /= null then
+         declare
+            B : Natural renames Object.Container.all.HT.Busy;
+         begin
+            B := B - 1;
+         end;
+      end if;
+   end Finalize;
+
    ----------
    -- Find --
    ----------
@@ -611,10 +663,8 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
    end First;
 
    function First (Object : Iterator) return Cursor is
-      Node : constant Node_Access := HT_Ops.First (Object.Container.HT);
    begin
-      return (if Node = null then No_Element
-              else Cursor'(Object.Container, Node));
+      return Object.Container.First;
    end First;
 
    ----------
@@ -952,7 +1002,7 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
          Process (Cursor'(Container'Unrestricted_Access, Node));
       end Process_Node;
 
-      B : Natural renames Container'Unrestricted_Access.HT.Busy;
+      B : Natural renames Container'Unrestricted_Access.all.HT.Busy;
 
    --  Start of processing for Iterate
 
@@ -971,9 +1021,16 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
    end Iterate;
 
    function Iterate (Container : Set)
-     return Set_Iterator_Interfaces.Forward_Iterator'Class is
+     return Set_Iterator_Interfaces.Forward_Iterator'Class
+   is
+      B : Natural renames Container'Unrestricted_Access.all.HT.Busy;
    begin
-      return Iterator'(Container'Unrestricted_Access, First (Container));
+      return It : constant Iterator :=
+                    Iterator'(Limited_Controlled with
+                                Container => Container'Unrestricted_Access)
+      do
+         B := B + 1;
+      end return;
    end Iterate;
 
    ------------
@@ -1034,12 +1091,16 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
       Position : Cursor) return Cursor
    is
    begin
-      if Position.Container /= Object.Container then
-         raise Program_Error with
-           "Position cursor designates wrong set";
+      if Position.Container = null then
+         return No_Element;
       end if;
 
-      return (if Position.Node = null then No_Element else Next (Position));
+      if Position.Container /= Object.Container then
+         raise Program_Error with
+           "Position cursor of Next designates wrong set";
+      end if;
+
+      return Next (Position);
    end Next;
 
    -------------
@@ -1857,7 +1918,7 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
          Key_Keys.Delete_Key_Sans_Free (Container.HT, Key, X);
 
          if X = null then
-            raise Constraint_Error with "key not in map";
+            raise Constraint_Error with "key not in map";  --  ??? "set"
          end if;
 
          Free (X);
@@ -1875,7 +1936,7 @@ package body Ada.Containers.Indefinite_Hashed_Sets is
 
       begin
          if Node = null then
-            raise Constraint_Error with "key not in map";
+            raise Constraint_Error with "key not in map";  --  ??? "set"
          end if;
 
          return Node.Element.all;

@@ -4544,27 +4544,6 @@ get_bit_range (unsigned HOST_WIDE_INT *bitstart,
     }
 }
 
-/* Return the alignment of the object EXP, also considering its type
-   when we do not know of explicit misalignment.
-   ???  Note that, in the general case, the type of an expression is not kept
-   consistent with misalignment information by the front-end, for
-   example when taking the address of a member of a packed structure.
-   However, in most of the cases, expressions have the alignment of
-   their type, so we optimistically fall back to the alignment of the
-   type when we cannot compute a misalignment.  */
-
-static unsigned int
-get_object_or_type_alignment (tree exp)
-{
-  unsigned HOST_WIDE_INT misalign;
-  unsigned int align = get_object_alignment_1 (exp, &misalign);
-  if (misalign != 0)
-    align = (misalign & -misalign);
-  else
-    align = MAX (TYPE_ALIGN (TREE_TYPE (exp)), align);
-  return align;
-}
-
 /* Expand an assignment that stores the value of FROM into TO.  If NONTEMPORAL
    is true, try generating a nontemporal store.  */
 
@@ -7452,7 +7431,8 @@ expand_expr_addr_expr_1 (tree exp, rtx target, enum machine_mode tmode,
 	    }
 
 	  if (modifier != EXPAND_INITIALIZER
-	      && modifier != EXPAND_CONST_ADDRESS)
+	      && modifier != EXPAND_CONST_ADDRESS
+	      && modifier != EXPAND_SUM)
 	    result = force_operand (result, target);
 	  return result;
 	}
@@ -8667,27 +8647,9 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
 
     case VEC_EXTRACT_EVEN_EXPR:
     case VEC_EXTRACT_ODD_EXPR:
-      {
-        expand_operands (treeop0,  treeop1,
-                         NULL_RTX, &op0, &op1, EXPAND_NORMAL);
-        this_optab = optab_for_tree_code (code, type, optab_default);
-        temp = expand_binop (mode, this_optab, op0, op1, target, unsignedp,
-                             OPTAB_WIDEN);
-        gcc_assert (temp);
-        return temp;
-      }
-
     case VEC_INTERLEAVE_HIGH_EXPR:
     case VEC_INTERLEAVE_LOW_EXPR:
-      {
-        expand_operands (treeop0,  treeop1,
-                         NULL_RTX, &op0, &op1, EXPAND_NORMAL);
-        this_optab = optab_for_tree_code (code, type, optab_default);
-        temp = expand_binop (mode, this_optab, op0, op1, target, unsignedp,
-                             OPTAB_WIDEN);
-        gcc_assert (temp);
-        return temp;
-      }
+      goto binop;
 
     case VEC_LSHIFT_EXPR:
     case VEC_RSHIFT_EXPR:
@@ -8752,9 +8714,28 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
       goto binop;
 
     case VEC_PERM_EXPR:
-      target = expand_vec_perm_expr (type, treeop0, treeop1, treeop2, target);
-      gcc_assert (target);
-      return target;
+      expand_operands (treeop0, treeop1, target, &op0, &op1, EXPAND_NORMAL);
+      op2 = expand_normal (treeop2);
+
+      /* Careful here: if the target doesn't support integral vector modes,
+	 a constant selection vector could wind up smooshed into a normal
+	 integral constant.  */
+      if (CONSTANT_P (op2) && GET_CODE (op2) != CONST_VECTOR)
+	{
+	  tree sel_type = TREE_TYPE (treeop2);
+	  enum machine_mode vmode
+	    = mode_for_vector (TYPE_MODE (TREE_TYPE (sel_type)),
+			       TYPE_VECTOR_SUBPARTS (sel_type));
+	  gcc_assert (GET_MODE_CLASS (vmode) == MODE_VECTOR_INT);
+	  op2 = simplify_subreg (vmode, op2, TYPE_MODE (sel_type), 0);
+	  gcc_assert (op2 && GET_CODE (op2) == CONST_VECTOR);
+	}
+      else
+        gcc_assert (GET_MODE_CLASS (GET_MODE (op2)) == MODE_VECTOR_INT);
+
+      temp = expand_vec_perm (mode, op0, op1, op2, target);
+      gcc_assert (temp);
+      return temp;
 
     case DOT_PROD_EXPR:
       {
@@ -9756,11 +9737,16 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		&& modifier != EXPAND_CONST_ADDRESS
 		&& modifier != EXPAND_INITIALIZER)
 	    /* If the field is volatile, we always want an aligned
-	       access.  Only do this if the access is not already naturally
+	       access.  Do this in following two situations:
+	       1. the access is not already naturally
 	       aligned, otherwise "normal" (non-bitfield) volatile fields
-	       become non-addressable.  */
+	       become non-addressable.
+	       2. the bitsize is narrower than the access size. Need
+	       to extract bitfields from the access.  */
 	    || (volatilep && flag_strict_volatile_bitfields > 0
-		&& (bitpos % GET_MODE_ALIGNMENT (mode) != 0))
+		&& (bitpos % GET_MODE_ALIGNMENT (mode) != 0 
+		    || (mode1 != BLKmode
+		        && bitsize < GET_MODE_SIZE (mode1) * BITS_PER_UNIT)))
 	    /* If the field isn't aligned enough to fetch as a memref,
 	       fetch it as a bit field.  */
 	    || (mode1 != BLKmode
@@ -10573,15 +10559,22 @@ do_store_flag (sepops ops, rtx target, enum machine_mode mode)
      so we just call into the folder and expand its result.  */
 
   if ((code == NE || code == EQ)
-      && TREE_CODE (arg0) == BIT_AND_EXPR && integer_zerop (arg1)
-      && integer_pow2p (TREE_OPERAND (arg0, 1))
+      && integer_zerop (arg1)
       && (TYPE_PRECISION (ops->type) != 1 || TYPE_UNSIGNED (ops->type)))
     {
-      tree type = lang_hooks.types.type_for_mode (mode, unsignedp);
-      return expand_expr (fold_single_bit_test (loc,
-						code == NE ? NE_EXPR : EQ_EXPR,
-						arg0, arg1, type),
-			  target, VOIDmode, EXPAND_NORMAL);
+      gimple srcstmt = get_def_for_expr (arg0, BIT_AND_EXPR);
+      if (srcstmt
+	  && integer_pow2p (gimple_assign_rhs2 (srcstmt)))
+	{
+	  enum tree_code tcode = code == NE ? NE_EXPR : EQ_EXPR;
+	  tree type = lang_hooks.types.type_for_mode (mode, unsignedp);
+	  tree temp = fold_build2_loc (loc, BIT_AND_EXPR, TREE_TYPE (arg1),
+				       gimple_assign_rhs1 (srcstmt),
+				       gimple_assign_rhs2 (srcstmt));
+	  temp = fold_single_bit_test (loc, tcode, temp, arg1, type);
+	  if (temp)
+	    return expand_expr (temp, target, VOIDmode, EXPAND_NORMAL);
+	}
     }
 
   if (! get_subtarget (target)

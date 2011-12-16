@@ -456,6 +456,7 @@ ao_ref_init (ao_ref *r, tree ref)
   r->max_size = -1;
   r->ref_alias_set = -1;
   r->base_alias_set = -1;
+  r->volatile_p = ref ? TREE_THIS_VOLATILE (ref) : false;
 }
 
 /* Returns the base object of the memory reference *REF.  */
@@ -525,6 +526,7 @@ ao_ref_init_from_ptr_and_size (ao_ref *ref, tree ptr, tree size)
     ref->max_size = ref->size = -1;
   ref->ref_alias_set = 0;
   ref->base_alias_set = 0;
+  ref->volatile_p = false;
 }
 
 /* Return 1 if TYPE1 and TYPE2 are to be considered equivalent for the
@@ -1021,6 +1023,11 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
       || TREE_CODE (base2) == LABEL_DECL)
     return true;
 
+  /* Two volatile accesses always conflict.  */
+  if (ref1->volatile_p
+      && ref2->volatile_p)
+    return true;
+
   /* Defer to simple offset based disambiguation if we have
      references based on two decls.  Do this before defering to
      TBAA to handle must-alias cases in conformance with the
@@ -1144,6 +1151,11 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
   if (!base)
     return true;
 
+  /* A call that is not without side-effects might involve volatile
+     accesses and thus conflicts with all other volatile accesses.  */
+  if (ref->volatile_p)
+    return true;
+
   /* If the reference is based on a decl that is not aliased the call
      cannot possibly use it.  */
   if (DECL_P (base)
@@ -1182,6 +1194,8 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 	case BUILT_IN_MEMPCPY:
 	case BUILT_IN_STPCPY:
 	case BUILT_IN_STPNCPY:
+	case BUILT_IN_TM_MEMCPY:
+	case BUILT_IN_TM_MEMMOVE:
 	  {
 	    ao_ref dref;
 	    tree size = NULL_TREE;
@@ -1228,6 +1242,32 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 					   size);
 	    return refs_may_alias_p_1 (&dref, ref, false);
 	  }
+
+	/* The following functions read memory pointed to by their
+	   first argument.  */
+	CASE_BUILT_IN_TM_LOAD (1):
+	CASE_BUILT_IN_TM_LOAD (2):
+	CASE_BUILT_IN_TM_LOAD (4):
+	CASE_BUILT_IN_TM_LOAD (8):
+	CASE_BUILT_IN_TM_LOAD (FLOAT):
+	CASE_BUILT_IN_TM_LOAD (DOUBLE):
+	CASE_BUILT_IN_TM_LOAD (LDOUBLE):
+	CASE_BUILT_IN_TM_LOAD (M64):
+	CASE_BUILT_IN_TM_LOAD (M128):
+	CASE_BUILT_IN_TM_LOAD (M256):
+	case BUILT_IN_TM_LOG:
+	case BUILT_IN_TM_LOG_1:
+	case BUILT_IN_TM_LOG_2:
+	case BUILT_IN_TM_LOG_4:
+	case BUILT_IN_TM_LOG_8:
+	case BUILT_IN_TM_LOG_FLOAT:
+	case BUILT_IN_TM_LOG_DOUBLE:
+	case BUILT_IN_TM_LOG_LDOUBLE:
+	case BUILT_IN_TM_LOG_M64:
+	case BUILT_IN_TM_LOG_M128:
+	case BUILT_IN_TM_LOG_M256:
+	  return ptr_deref_may_alias_ref_p_1 (gimple_call_arg (call, 0), ref);
+
 	/* These read memory pointed to by the first argument.  */
 	case BUILT_IN_STRDUP:
 	case BUILT_IN_STRNDUP:
@@ -1250,6 +1290,7 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 	case BUILT_IN_STACK_SAVE:
 	case BUILT_IN_STACK_RESTORE:
 	case BUILT_IN_MEMSET:
+	case BUILT_IN_TM_MEMSET:
 	case BUILT_IN_MEMSET_CHK:
 	case BUILT_IN_FREXP:
 	case BUILT_IN_FREXPF:
@@ -1448,6 +1489,11 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
       || CONSTANT_CLASS_P (base))
     return false;
 
+  /* A call that is not without side-effects might involve volatile
+     accesses and thus conflicts with all other volatile accesses.  */
+  if (ref->volatile_p)
+    return true;
+
   /* If the reference is based on a decl that is not aliased the call
      cannot possibly clobber it.  */
   if (DECL_P (base)
@@ -1480,6 +1526,19 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	case BUILT_IN_STRCAT:
 	case BUILT_IN_STRNCAT:
 	case BUILT_IN_MEMSET:
+	case BUILT_IN_TM_MEMSET:
+	CASE_BUILT_IN_TM_STORE (1):
+	CASE_BUILT_IN_TM_STORE (2):
+	CASE_BUILT_IN_TM_STORE (4):
+	CASE_BUILT_IN_TM_STORE (8):
+	CASE_BUILT_IN_TM_STORE (FLOAT):
+	CASE_BUILT_IN_TM_STORE (DOUBLE):
+	CASE_BUILT_IN_TM_STORE (LDOUBLE):
+	CASE_BUILT_IN_TM_STORE (M64):
+	CASE_BUILT_IN_TM_STORE (M128):
+	CASE_BUILT_IN_TM_STORE (M256):
+	case BUILT_IN_TM_MEMCPY:
+	case BUILT_IN_TM_MEMMOVE:
 	  {
 	    ao_ref dref;
 	    tree size = NULL_TREE;

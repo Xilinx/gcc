@@ -11,8 +11,10 @@ This package does not support ZIP64 or disk spanning.
 */
 package zip
 
-import "os"
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 // Compression methods.
 const (
@@ -28,6 +30,9 @@ const (
 	directoryHeaderLen       = 46 // + filename + extra + comment
 	directoryEndLen          = 22 // + comment
 	dataDescriptorLen        = 12
+
+	// Constants for the first byte in CreatorVersion
+	creatorUnix = 3
 )
 
 type FileHeader struct {
@@ -42,6 +47,7 @@ type FileHeader struct {
 	CompressedSize   uint32
 	UncompressedSize uint32
 	Extra            []byte
+	ExternalAttrs    uint32 // Meaning depends on CreatorVersion
 	Comment          string
 }
 
@@ -56,10 +62,10 @@ type directoryEnd struct {
 	comment            string
 }
 
-func recoverError(err *os.Error) {
+func recoverError(errp *error) {
 	if e := recover(); e != nil {
-		if osErr, ok := e.(os.Error); ok {
-			*err = osErr
+		if err, ok := e.(error); ok {
+			*errp = err
 			return
 		}
 		panic(e)
@@ -70,22 +76,39 @@ func recoverError(err *os.Error) {
 // The resolution is 2s.
 // See: http://msdn.microsoft.com/en-us/library/ms724247(v=VS.85).aspx
 func msDosTimeToTime(dosDate, dosTime uint16) time.Time {
-	return time.Time{
+	return time.Date(
 		// date bits 0-4: day of month; 5-8: month; 9-15: years since 1980
-		Year:  int64(dosDate>>9 + 1980),
-		Month: int(dosDate >> 5 & 0xf),
-		Day:   int(dosDate & 0x1f),
+		int(dosDate>>9+1980),
+		time.Month(dosDate>>5&0xf),
+		int(dosDate&0x1f),
 
 		// time bits 0-4: second/2; 5-10: minute; 11-15: hour
-		Hour:   int(dosTime >> 11),
-		Minute: int(dosTime >> 5 & 0x3f),
-		Second: int(dosTime & 0x1f * 2),
-	}
+		int(dosTime>>11),
+		int(dosTime>>5&0x3f),
+		int(dosTime&0x1f*2),
+		0, // nanoseconds
+
+		time.UTC,
+	)
 }
 
-// Mtime_ns returns the modified time in ns since epoch.
+// ModTime returns the modification time.
 // The resolution is 2s.
-func (h *FileHeader) Mtime_ns() int64 {
-	t := msDosTimeToTime(h.ModifiedDate, h.ModifiedTime)
-	return t.Seconds() * 1e9
+func (h *FileHeader) ModTime() time.Time {
+	return msDosTimeToTime(h.ModifiedDate, h.ModifiedTime)
+}
+
+// Mode returns the permission and mode bits for the FileHeader.
+// An error is returned in case the information is not available.
+func (h *FileHeader) Mode() (mode uint32, err error) {
+	if h.CreatorVersion>>8 == creatorUnix {
+		return h.ExternalAttrs >> 16, nil
+	}
+	return 0, errors.New("file mode not available")
+}
+
+// SetMode changes the permission and mode bits for the FileHeader.
+func (h *FileHeader) SetMode(mode uint32) {
+	h.CreatorVersion = h.CreatorVersion&0xff | creatorUnix<<8
+	h.ExternalAttrs = mode << 16
 }

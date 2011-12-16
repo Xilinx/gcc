@@ -75,7 +75,9 @@ GNATRTL_TASKING_OBJS= \
   s-tpoben$(objext) \
   s-tpobop$(objext) \
   s-tposen$(objext) \
-  s-tratas$(objext) $(EXTRA_GNATRTL_TASKING_OBJS)
+  s-tratas$(objext) \
+  thread$(objext) \
+  $(EXTRA_GNATRTL_TASKING_OBJS)
 
 # Objects needed for non-tasking.
 GNATRTL_NONTASKING_OBJS= \
@@ -122,6 +124,7 @@ GNATRTL_NONTASKING_OBJS= \
   a-ciormu$(objext) \
   a-ciorse$(objext) \
   a-clrefi$(objext) \
+  a-cogeso$(objext) \
   a-cohama$(objext) \
   a-cohase$(objext) \
   a-cohata$(objext) \
@@ -214,9 +217,15 @@ GNATRTL_NONTASKING_OBJS= \
   a-rbtgbo$(objext) \
   a-rbtgbk$(objext) \
   a-rbtgso$(objext) \
+  a-sbecin$(objext) \
+  a-sbhcin$(objext) \
+  a-sblcin$(objext) \
   a-scteio$(objext) \
   a-secain$(objext) \
   a-sequio$(objext) \
+  a-sfecin$(objext) \
+  a-sfhcin$(objext) \
+  a-sflcin$(objext) \
   a-sfteio$(objext) \
   a-sfwtio$(objext) \
   a-sfztio$(objext) \
@@ -261,10 +270,13 @@ GNATRTL_NONTASKING_OBJS= \
   a-stzsea$(objext) \
   a-stzsup$(objext) \
   a-stzunb$(objext) \
+  a-suecin$(objext) \
   a-suenco$(objext) \
   a-suenst$(objext) \
   a-suewst$(objext) \
   a-suezst$(objext) \
+  a-suhcin$(objext) \
+  a-sulcin$(objext) \
   a-suteio$(objext) \
   a-swbwha$(objext) \
   a-swfwha$(objext) \
@@ -394,6 +406,7 @@ GNATRTL_NONTASKING_OBJS= \
   g-except$(objext) \
   g-exctra$(objext) \
   g-expect$(objext) \
+  g-exptty$(objext) \
   g-flocon$(objext) \
   g-heasor$(objext) \
   g-hesora$(objext) \
@@ -440,6 +453,7 @@ GNATRTL_NONTASKING_OBJS= \
   g-timsta$(objext) \
   g-traceb$(objext) \
   g-trasym$(objext) \
+  g-tty$(objext) \
   g-u3spch$(objext) \
   g-utf_32$(objext) \
   g-wispch$(objext) \

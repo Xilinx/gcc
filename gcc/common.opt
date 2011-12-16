@@ -554,6 +554,10 @@ Winline
 Common Var(warn_inline) Warning
 Warn when an inlined function cannot be inlined
 
+Winvalid-memory-model
+Common Var(warn_invalid_memory_model) Init(1) Warning
+Warn when an atomic memory model parameter is known to be outside the valid range.
+
 Wlarger-than-
 Common RejectNegative Joined Warning Undocumented Alias(Wlarger-than=)
 
@@ -1232,6 +1236,10 @@ floop-block
 Common Report Var(flag_loop_block) Optimization
 Enable Loop Blocking transformation
 
+fgnu-tm
+Common Report Var(flag_tm)
+Enable support for GNU transactional memory
+
 floop-flatten
 Common Report Var(flag_loop_flatten) Optimization
 Enable Loop Flattening transformation
@@ -1308,6 +1316,10 @@ finline-limit=
 Common RejectNegative Joined UInteger
 -finline-limit=<number>	Limit the size of inlined functions to <number>
 
+finline-atomics
+Common Report Var(flag_inline_atomics) Init(1) Optimization
+Inline __atomic operations when a lock free instruction sequence is available.
+
 finstrument-functions
 Common Report Var(flag_instrument_function_entry_exit)
 Instrument function entry and exit with profiling calls
@@ -1367,7 +1379,7 @@ EnumValue
 Enum(ira_algorithm) String(priority) Value(IRA_ALGORITHM_PRIORITY)
 
 fira-region=
-Common Joined RejectNegative Enum(ira_region) Var(flag_ira_region) Init(IRA_REGION_MIXED)
+Common Joined RejectNegative Enum(ira_region) Var(flag_ira_region) Init(IRA_REGION_AUTODETECT)
 -fira-region=[one|all|mixed] Set regions for IRA
 
 Enum

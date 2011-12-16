@@ -925,10 +925,7 @@ next_insn_tests_no_inequality (rtx insn)
    it has.
 
    The main use of this function is as a predicate in match_operand
-   expressions in the machine description.
-
-   For an explanation of this function's behavior for registers of
-   class NO_REGS, see the comment for `register_operand'.  */
+   expressions in the machine description.  */
 
 int
 general_operand (rtx op, enum machine_mode mode)
@@ -998,9 +995,8 @@ general_operand (rtx op, enum machine_mode mode)
     }
 
   if (code == REG)
-    /* A register whose class is NO_REGS is not a general operand.  */
     return (REGNO (op) >= FIRST_PSEUDO_REGISTER
-	    || REGNO_REG_CLASS (REGNO (op)) != NO_REGS);
+	    || in_hard_reg_set_p (operand_reg_set, GET_MODE (op), REGNO (op)));
 
   if (code == MEM)
     {
@@ -1033,15 +1029,7 @@ address_operand (rtx op, enum machine_mode mode)
    If MODE is VOIDmode, accept a register in any mode.
 
    The main use of this function is as a predicate in match_operand
-   expressions in the machine description.
-
-   As a special exception, registers whose class is NO_REGS are
-   not accepted by `register_operand'.  The reason for this change
-   is to allow the representation of special architecture artifacts
-   (such as a condition code register) without extending the rtl
-   definitions.  Since registers of class NO_REGS cannot be used
-   as registers in any case where register classes are examined,
-   it is most consistent to keep this function from accepting them.  */
+   expressions in the machine description.  */
 
 int
 register_operand (rtx op, enum machine_mode mode)
@@ -1080,11 +1068,10 @@ register_operand (rtx op, enum machine_mode mode)
       op = sub;
     }
 
-  /* We don't consider registers whose class is NO_REGS
-     to be a register operand.  */
   return (REG_P (op)
 	  && (REGNO (op) >= FIRST_PSEUDO_REGISTER
-	      || REGNO_REG_CLASS (REGNO (op)) != NO_REGS));
+	      || in_hard_reg_set_p (operand_reg_set,
+				    GET_MODE (op), REGNO (op))));
 }
 
 /* Return 1 for a register in Pmode; ignore the tested mode.  */
@@ -1203,11 +1190,10 @@ nonmemory_operand (rtx op, enum machine_mode mode)
       op = SUBREG_REG (op);
     }
 
-  /* We don't consider registers whose class is NO_REGS
-     to be a register operand.  */
   return (REG_P (op)
 	  && (REGNO (op) >= FIRST_PSEUDO_REGISTER
-	      || REGNO_REG_CLASS (REGNO (op)) != NO_REGS));
+	      || in_hard_reg_set_p (operand_reg_set,
+				    GET_MODE (op), REGNO (op))));
 }
 
 /* Return 1 if OP is a valid operand that stands for pushing a
@@ -2281,7 +2267,8 @@ preprocess_constraints (void)
 		case 'p':
 		  op_alt[j].is_address = 1;
 		  op_alt[j].cl = reg_class_subunion[(int) op_alt[j].cl]
-		      [(int) base_reg_class (VOIDmode, ADDRESS, SCRATCH)];
+		      [(int) base_reg_class (VOIDmode, ADDR_SPACE_GENERIC,
+					     ADDRESS, SCRATCH)];
 		  break;
 
 		case 'g':
@@ -2302,8 +2289,8 @@ preprocess_constraints (void)
 		      op_alt[j].cl
 			= (reg_class_subunion
 			   [(int) op_alt[j].cl]
-			   [(int) base_reg_class (VOIDmode, ADDRESS,
-						  SCRATCH)]);
+			   [(int) base_reg_class (VOIDmode, ADDR_SPACE_GENERIC,
+						  ADDRESS, SCRATCH)]);
 		      break;
 		    }
 
@@ -3287,6 +3274,7 @@ peep2_attempt (basic_block bb, rtx insn, int match_len, rtx attempt)
 	  {
 	  case REG_NORETURN:
 	  case REG_SETJMP:
+	  case REG_TM:
 	    add_reg_note (new_insn, REG_NOTE_KIND (note),
 			  XEXP (note, 0));
 	    break;

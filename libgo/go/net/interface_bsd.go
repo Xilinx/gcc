@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// +build darwin freebsd openbsd
+
 // Network interface identification for BSD variants
 
 package net
@@ -15,21 +17,21 @@ import (
 // If the ifindex is zero, interfaceTable returns mappings of all
 // network interfaces.  Otheriwse it returns a mapping of a specific
 // interface.
-func interfaceTable(ifindex int) ([]Interface, os.Error) {
+func interfaceTable(ifindex int) ([]Interface, error) {
 	var (
 		tab  []byte
-		e    int
+		e    error
 		msgs []syscall.RoutingMessage
 		ift  []Interface
 	)
 
 	tab, e = syscall.RouteRIB(syscall.NET_RT_IFLIST, ifindex)
-	if e != 0 {
+	if e != nil {
 		return nil, os.NewSyscallError("route rib", e)
 	}
 
 	msgs, e = syscall.ParseRoutingMessage(tab)
-	if e != 0 {
+	if e != nil {
 		return nil, os.NewSyscallError("route message", e)
 	}
 
@@ -49,11 +51,11 @@ func interfaceTable(ifindex int) ([]Interface, os.Error) {
 	return ift, nil
 }
 
-func newLink(m *syscall.InterfaceMessage) ([]Interface, os.Error) {
+func newLink(m *syscall.InterfaceMessage) ([]Interface, error) {
 	var ift []Interface
 
 	sas, e := syscall.ParseRoutingSockaddr(m)
-	if e != 0 {
+	if e != nil {
 		return nil, os.NewSyscallError("route sockaddr", e)
 	}
 
@@ -105,21 +107,21 @@ func linkFlags(rawFlags int32) Flags {
 // If the ifindex is zero, interfaceAddrTable returns addresses
 // for all network interfaces.  Otherwise it returns addresses
 // for a specific interface.
-func interfaceAddrTable(ifindex int) ([]Addr, os.Error) {
+func interfaceAddrTable(ifindex int) ([]Addr, error) {
 	var (
 		tab  []byte
-		e    int
+		e    error
 		msgs []syscall.RoutingMessage
 		ifat []Addr
 	)
 
 	tab, e = syscall.RouteRIB(syscall.NET_RT_IFLIST, ifindex)
-	if e != 0 {
+	if e != nil {
 		return nil, os.NewSyscallError("route rib", e)
 	}
 
 	msgs, e = syscall.ParseRoutingMessage(tab)
-	if e != 0 {
+	if e != nil {
 		return nil, os.NewSyscallError("route message", e)
 	}
 
@@ -139,16 +141,15 @@ func interfaceAddrTable(ifindex int) ([]Addr, os.Error) {
 	return ifat, nil
 }
 
-func newAddr(m *syscall.InterfaceAddrMessage) ([]Addr, os.Error) {
+func newAddr(m *syscall.InterfaceAddrMessage) ([]Addr, error) {
 	var ifat []Addr
 
 	sas, e := syscall.ParseRoutingSockaddr(m)
-	if e != 0 {
+	if e != nil {
 		return nil, os.NewSyscallError("route sockaddr", e)
 	}
 
 	for _, s := range sas {
-
 		switch v := s.(type) {
 		case *syscall.SockaddrInet4:
 			ifa := &IPAddr{IP: IPv4(v.Addr[0], v.Addr[1], v.Addr[2], v.Addr[3])}

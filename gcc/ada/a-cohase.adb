@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -40,6 +40,17 @@ with Ada.Containers.Prime_Numbers;
 with System; use type System.Address;
 
 package body Ada.Containers.Hashed_Sets is
+
+   type Iterator is limited new
+     Set_Iterator_Interfaces.Forward_Iterator with record
+        Container : Set_Access;
+     end record;
+
+   overriding function First (Object : Iterator) return Cursor;
+
+   overriding function Next
+     (Object   : Iterator;
+      Position : Cursor) return Cursor;
 
    -----------------------
    -- Local Subprograms --
@@ -159,6 +170,16 @@ package body Ada.Containers.Hashed_Sets is
       Node.Element := Item;
    end Assign;
 
+   procedure Assign (Target : in out Set; Source : Set) is
+   begin
+      if Target'Address = Source'Address then
+         return;
+      end if;
+
+      Target.Clear;
+      Target.Union (Source);
+   end Assign;
+
    --------------
    -- Capacity --
    --------------
@@ -185,6 +206,34 @@ package body Ada.Containers.Hashed_Sets is
    begin
       return Find (Container, Item) /= No_Element;
    end Contains;
+
+   ----------
+   -- Copy --
+   ----------
+
+   function Copy
+     (Source   : Set;
+      Capacity : Count_Type := 0) return Set
+   is
+      C : Count_Type;
+
+   begin
+      if Capacity = 0 then
+         C := Source.Length;
+
+      elsif Capacity >= Source.Length then
+         C := Capacity;
+
+      else
+         raise Capacity_Error
+           with "Requested capacity is less than Source length";
+      end if;
+
+      return Target : Set do
+         Target.Reserve_Capacity (C);
+         Target.Assign (Source);
+      end return;
+   end Copy;
 
    ---------------
    -- Copy_Node --
@@ -563,6 +612,11 @@ package body Ada.Containers.Hashed_Sets is
       return Cursor'(Container'Unrestricted_Access, Node);
    end First;
 
+   function First (Object : Iterator) return Cursor is
+   begin
+      return Object.Container.First;
+   end First;
+
    ----------
    -- Free --
    ----------
@@ -882,6 +936,13 @@ package body Ada.Containers.Hashed_Sets is
       B := B - 1;
    end Iterate;
 
+   function Iterate
+     (Container : Set) return Set_Iterator_Interfaces.Forward_Iterator'Class
+   is
+   begin
+      return Iterator'(Container => Container'Unrestricted_Access);
+   end Iterate;
+
    ------------
    -- Length --
    ------------
@@ -933,6 +994,23 @@ package body Ada.Containers.Hashed_Sets is
    procedure Next (Position : in out Cursor) is
    begin
       Position := Next (Position);
+   end Next;
+
+   function Next
+     (Object   : Iterator;
+      Position : Cursor) return Cursor
+   is
+   begin
+      if Position.Container = null then
+         return No_Element;
+      end if;
+
+      if Position.Container /= Object.Container then
+         raise Program_Error with
+           "Position cursor of Next designates wrong set";
+      end if;
+
+      return Next (Position);
    end Next;
 
    -------------
@@ -1657,7 +1735,7 @@ package body Ada.Containers.Hashed_Sets is
 
       begin
          if Node = null then
-            raise Constraint_Error with "key not in map";
+            raise Constraint_Error with "key not in map";  -- ??? "set"
          end if;
 
          return Node.Element;

@@ -3330,21 +3330,6 @@ next_label (rtx insn)
   return insn;
 }
 
-/* Return the last CODE_LABEL before the insn INSN, or 0 if there is none.  */
-
-rtx
-prev_label (rtx insn)
-{
-  while (insn)
-    {
-      insn = PREV_INSN (insn);
-      if (insn == 0 || LABEL_P (insn))
-	break;
-    }
-
-  return insn;
-}
-
 /* Return the last label to mark the same position as LABEL.  Return LABEL
    itself if it is null or any return rtx.  */
 
@@ -3610,6 +3595,7 @@ try_split (rtx pat, rtx trial, int last)
 
 	case REG_NORETURN:
 	case REG_SETJMP:
+	case REG_TM:
 	  for (insn = insn_last; insn != NULL_RTX; insn = PREV_INSN (insn))
 	    {
 	      if (CALL_P (insn))
@@ -5017,6 +5003,17 @@ set_unique_reg_note (rtx insn, enum reg_note kind, rtx datum)
     }
 
   return REG_NOTES (insn);
+}
+
+/* Like set_unique_reg_note, but don't do anything unless INSN sets DST.  */
+rtx
+set_dst_reg_note (rtx insn, enum reg_note kind, rtx datum, rtx dst)
+{
+  rtx set = single_set (insn);
+
+  if (set && SET_DEST (set) == dst)
+    return set_unique_reg_note (insn, kind, datum);
+  return NULL_RTX;
 }
 
 /* Return an indication of which type of insn should have X as a body.

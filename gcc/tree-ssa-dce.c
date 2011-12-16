@@ -351,6 +351,12 @@ mark_stmt_if_obviously_necessary (gimple stmt, bool aggressive)
 	mark_stmt_necessary (stmt, true);
       break;
 
+    case GIMPLE_ASSIGN:
+      if (TREE_CODE (gimple_assign_lhs (stmt)) == SSA_NAME
+	  && TREE_CLOBBER_P (gimple_assign_rhs1 (stmt)))
+	return;
+      break;
+
     default:
       break;
     }
@@ -917,19 +923,17 @@ propagate_necessity (struct edge_list *el)
 	  else if (gimple_assign_single_p (stmt))
 	    {
 	      tree rhs;
-	      bool rhs_aliased = false;
 	      /* If this is a load mark things necessary.  */
 	      rhs = gimple_assign_rhs1 (stmt);
 	      if (TREE_CODE (rhs) != SSA_NAME
-		  && !is_gimple_min_invariant (rhs))
+		  && !is_gimple_min_invariant (rhs)
+		  && TREE_CODE (rhs) != CONSTRUCTOR)
 		{
 		  if (!ref_may_be_aliased (rhs))
 		    mark_aliased_reaching_defs_necessary (stmt, rhs);
 		  else
-		    rhs_aliased = true;
+		    mark_all_reaching_defs_necessary (stmt);
 		}
-	      if (rhs_aliased)
-		mark_all_reaching_defs_necessary (stmt);
 	    }
 	  else if (gimple_code (stmt) == GIMPLE_RETURN)
 	    {
@@ -937,7 +941,8 @@ propagate_necessity (struct edge_list *el)
 	      /* A return statement may perform a load.  */
 	      if (rhs
 		  && TREE_CODE (rhs) != SSA_NAME
-		  && !is_gimple_min_invariant (rhs))
+		  && !is_gimple_min_invariant (rhs)
+		  && TREE_CODE (rhs) != CONSTRUCTOR)
 		{
 		  if (!ref_may_be_aliased (rhs))
 		    mark_aliased_reaching_defs_necessary (stmt, rhs);
@@ -955,6 +960,7 @@ propagate_necessity (struct edge_list *el)
 		  tree op = TREE_VALUE (gimple_asm_input_op (stmt, i));
 		  if (TREE_CODE (op) != SSA_NAME
 		      && !is_gimple_min_invariant (op)
+		      && TREE_CODE (op) != CONSTRUCTOR
 		      && !ref_may_be_aliased (op))
 		    mark_aliased_reaching_defs_necessary (stmt, op);
 		}
@@ -1207,6 +1213,26 @@ remove_dead_stmt (gimple_stmt_iterator *i, basic_block bb)
 	  }
 	else
 	  ei_next (&ei);
+    }
+
+  /* If this is a store into a variable that is being optimized away,
+     add a debug bind stmt if possible.  */
+  if (MAY_HAVE_DEBUG_STMTS
+      && gimple_assign_single_p (stmt)
+      && is_gimple_val (gimple_assign_rhs1 (stmt)))
+    {
+      tree lhs = gimple_assign_lhs (stmt);
+      if ((TREE_CODE (lhs) == VAR_DECL || TREE_CODE (lhs) == PARM_DECL)
+	  && !DECL_IGNORED_P (lhs)
+	  && is_gimple_reg_type (TREE_TYPE (lhs))
+	  && !is_global_var (lhs)
+	  && !DECL_HAS_VALUE_EXPR_P (lhs))
+	{
+	  tree rhs = gimple_assign_rhs1 (stmt);
+	  gimple note
+	    = gimple_build_debug_bind (lhs, unshare_expr (rhs), stmt);
+	  gsi_insert_after (i, note, GSI_SAME_STMT);
+	}
     }
 
   unlink_stmt_vdef (stmt);

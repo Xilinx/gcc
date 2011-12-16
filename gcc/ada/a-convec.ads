@@ -202,7 +202,12 @@ package Ada.Containers.Vectors is
    function Reference (Container : Vector; Position : Index_Type)
    return Reference_Type;
 
+   procedure Assign (Target : in out Vector; Source : Vector);
+
+   function Copy (Source : Vector; Capacity : Count_Type := 0) return Vector;
+
    procedure Move (Target : in out Vector; Source : in out Vector);
+
    procedure Insert
      (Container : in out Vector;
       Before    : Extended_Index;
@@ -405,7 +410,7 @@ private
       Lock     : Natural := 0;
    end record;
 
-   type Vector_Access is access constant Vector;
+   type Vector_Access is access all Vector;
    for Vector_Access'Storage_Size use 0;
 
    type Cursor is record

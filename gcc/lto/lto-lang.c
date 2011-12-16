@@ -46,6 +46,9 @@ static tree handle_nonnull_attribute (tree *, tree, tree, int, bool *);
 static tree handle_nothrow_attribute (tree *, tree, tree, int, bool *);
 static tree handle_sentinel_attribute (tree *, tree, tree, int, bool *);
 static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
+static tree handle_transaction_pure_attribute (tree *, tree, tree, int, bool *);
+static tree ignore_attribute (tree *, tree, tree, int, bool *);
+
 static tree handle_format_attribute (tree *, tree, tree, int, bool *);
 static tree handle_format_arg_attribute (tree *, tree, tree, int, bool *);
 
@@ -75,6 +78,12 @@ const struct attribute_spec lto_attribute_table[] =
 			      handle_sentinel_attribute, false },
   { "type generic",           0, 0, false, true, true,
 			      handle_type_generic_attribute, false },
+  { "transaction_pure",	      0, 0, false, true, true,
+			      handle_transaction_pure_attribute, false },
+  /* For internal use only.  The leading '*' both prevents its usage in
+     source code and signals that it may be overridden by machine tables.  */
+  { "*tm regparm",            0, 0, false, true, true,
+			      ignore_attribute, false },
   { NULL,                     0, 0, false, false, false, NULL, false }
 };
 
@@ -402,6 +411,32 @@ handle_type_generic_attribute (tree *node, tree ARG_UNUSED (name),
   return NULL_TREE;
 }
 
+/* Handle a "transaction_pure" attribute.  */
+
+static tree
+handle_transaction_pure_attribute (tree *node, tree ARG_UNUSED (name),
+				   tree ARG_UNUSED (args),
+				   int ARG_UNUSED (flags),
+				   bool * ARG_UNUSED (no_add_attrs))
+{
+  /* Ensure we have a function type.  */
+  gcc_assert (TREE_CODE (*node) == FUNCTION_TYPE);
+
+  return NULL_TREE;
+}
+
+/* Ignore the given attribute.  Used when this attribute may be usefully
+   overridden by the target, but is not used generically.  */
+
+static tree
+ignore_attribute (tree * ARG_UNUSED (node), tree ARG_UNUSED (name),
+		  tree ARG_UNUSED (args), int ARG_UNUSED (flags),
+		  bool *no_add_attrs)
+{
+  *no_add_attrs = true;
+  return NULL_TREE;
+}
+
 /* Handle a "format" attribute; arguments as in
    struct attribute_spec.handler.  */
 
@@ -691,8 +726,6 @@ lto_post_options (const char **pfilename ATTRIBUTE_UNUSED)
   /* Excess precision other than "fast" requires front-end
      support.  */
   flag_excess_precision_cmdline = EXCESS_PRECISION_FAST;
-
-  lto_read_all_file_options ();
 
   /* Initialize the compiler back end.  */
   return false;

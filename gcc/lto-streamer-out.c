@@ -129,6 +129,26 @@ tree_is_indexable (tree t)
   else if (TREE_CODE (t) == VAR_DECL && decl_function_context (t)
 	   && !TREE_STATIC (t))
     return false;
+  /* If this is a decl generated for block local externs for
+     debug info generation, stream it unshared alongside BLOCK_VARS.  */
+  else if (VAR_OR_FUNCTION_DECL_P (t)
+	   /* ???  The following tests are a literal match on what
+	      c-decl.c:pop_scope does.  */
+	   && TREE_PUBLIC (t)
+	   && DECL_EXTERNAL (t)
+	   && DECL_CONTEXT (t)
+	   && TREE_CODE (DECL_CONTEXT (t)) == FUNCTION_DECL)
+    return false;
+  /* Variably modified types need to be streamed alongside function
+     bodies because they can refer to local entities.  Together with
+     them we have to localize their members as well.
+     ???  In theory that includes non-FIELD_DECLs as well.  */
+  else if (TYPE_P (t)
+	   && variably_modified_type_p (t, NULL_TREE))
+    return false;
+  else if (TREE_CODE (t) == FIELD_DECL
+	   && variably_modified_type_p (DECL_CONTEXT (t), NULL_TREE))
+    return false;
   else
     return (TYPE_P (t) || DECL_P (t) || TREE_CODE (t) == SSA_NAME);
 }
@@ -1270,7 +1290,7 @@ write_symbol (struct streamer_tree_cache_d *cache,
   enum gcc_plugin_symbol_kind kind;
   enum gcc_plugin_symbol_visibility visibility;
   unsigned slot_num;
-  uint64_t size;
+  unsigned HOST_WIDEST_INT size;
   const char *comdat;
   unsigned char c;
 
@@ -1328,7 +1348,7 @@ write_symbol (struct streamer_tree_cache_d *cache,
      when symbol has attribute (visibility("hidden")) specified.
      targetm.binds_local_p check DECL_VISIBILITY_SPECIFIED and gets this
      right. */
-     
+
   if (DECL_EXTERNAL (t)
       && !targetm.binds_local_p (t))
     visibility = GCCPV_DEFAULT;
@@ -1350,14 +1370,9 @@ write_symbol (struct streamer_tree_cache_d *cache,
       }
 
   if (kind == GCCPK_COMMON
-      && DECL_SIZE (t)
-      && TREE_CODE (DECL_SIZE (t)) == INTEGER_CST)
-    {
-      size = (HOST_BITS_PER_WIDE_INT >= 64)
-	? (uint64_t) int_size_in_bytes (TREE_TYPE (t))
-	: (((uint64_t) TREE_INT_CST_HIGH (DECL_SIZE_UNIT (t))) << 32)
-		| TREE_INT_CST_LOW (DECL_SIZE_UNIT (t));
-    }
+      && DECL_SIZE_UNIT (t)
+      && TREE_CODE (DECL_SIZE_UNIT (t)) == INTEGER_CST)
+    size = TREE_INT_CST_LOW (DECL_SIZE_UNIT (t));
   else
     size = 0;
 
@@ -1430,11 +1445,7 @@ produce_symtab (struct output_block *ob,
 	 them indirectly or via vtables.  Do not output them to symbol
 	 table: they end up being undefined and just consume space.  */
       if (!node->address_taken && !node->callers)
-	{
-	  gcc_assert (node->analyzed);
-	  gcc_assert (DECL_DECLARED_INLINE_P (node->decl));
-	  continue;
-	}
+	continue;
       if (DECL_COMDAT (node->decl)
 	  && cgraph_comdat_can_be_unshared_p (node))
 	continue;

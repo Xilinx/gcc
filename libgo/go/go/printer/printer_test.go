@@ -7,10 +7,10 @@ package printer
 import (
 	"bytes"
 	"flag"
-	"io/ioutil"
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io/ioutil"
 	"path/filepath"
 	"testing"
 	"time"
@@ -62,7 +62,7 @@ func runcheck(t *testing.T, source, golden string, mode checkMode) {
 
 	// format source
 	var buf bytes.Buffer
-	if _, err := cfg.Fprint(&buf, fset, prog); err != nil {
+	if err := cfg.Fprint(&buf, fset, prog); err != nil {
 		t.Error(err)
 	}
 	res := buf.Bytes()
@@ -190,5 +190,17 @@ func TestLineComments(t *testing.T) {
 	const expected = 3
 	if nlines < expected {
 		t.Errorf("got %d, expected %d\n", nlines, expected)
+	}
+}
+
+// Verify that the printer can be invoked during initialization.
+func init() {
+	const name = "foobar"
+	var buf bytes.Buffer
+	if err := Fprint(&buf, fset, &ast.Ident{Name: name}); err != nil {
+		panic(err)
+	}
+	if s := buf.String(); s != name {
+		panic("got " + s + ", want " + name)
 	}
 }

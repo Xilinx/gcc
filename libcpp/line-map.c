@@ -588,14 +588,14 @@ linemap_macro_map_lookup (struct line_maps *set, source_location line)
       mn = 0;
     }
 
-  do 
+  while (mn < mx)
     {
       md = (mx + mn) / 2;
       if (MAP_START_LOCATION (LINEMAPS_MACRO_MAP_AT (set, md)) > line)
-	mn = md;
+	mn = md + 1;
       else
 	mx = md;
-    } while (mx - mn > 1);
+    }
 
   LINEMAPS_MACRO_CACHE (set) = mx;
   result = LINEMAPS_MACRO_MAP_AT (set, LINEMAPS_MACRO_CACHE (set));
@@ -755,11 +755,11 @@ linemap_location_in_system_header_p (struct line_maps *set,
 {
   const struct line_map *map = NULL;
 
-  if (location < RESERVED_LOCATION_COUNT)
-    return false;
-
   location =
     linemap_resolve_location (set, location, LRK_SPELLING_LOCATION, &map);
+
+  if (location < RESERVED_LOCATION_COUNT)
+    return false;
 
   return LINEMAP_SYSP (map);
 }
@@ -1039,7 +1039,10 @@ linemap_macro_loc_to_exp_point (struct line_maps *set,
    LRK_SPELLING_LOCATION.
 
    If MAP is non-NULL, *MAP is set to the map of the resolved
-   location.  */
+   location.  Note that if the resturned location wasn't originally
+   encoded by a map, the *MAP is set to NULL.  This can happen if LOC
+   resolves to a location reserved for the client code, like
+   UNKNOWN_LOCATION or BUILTINS_LOCATION in GCC.  */
 
 source_location
 linemap_resolve_location (struct line_maps *set,
@@ -1047,7 +1050,15 @@ linemap_resolve_location (struct line_maps *set,
 			  enum location_resolution_kind lrk,
 			  const struct line_map **map)
 {
-  linemap_assert (set && loc >= RESERVED_LOCATION_COUNT);
+  if (loc < RESERVED_LOCATION_COUNT)
+    {
+      /* A reserved location wasn't encoded in a map.  Let's return a
+	 NULL map here, just like what linemap_ordinary_map_lookup
+	 does.  */
+      if (map)
+	*map = NULL;
+      return loc;
+    }
 
   switch (lrk)
     {
@@ -1101,39 +1112,97 @@ linemap_unwind_toward_expansion (struct line_maps *set,
 }
 
 /* Expand source code location LOC and return a user readable source
-   code location.  LOC must be a spelling (non-virtual) location.  */
+   code location.  LOC must be a spelling (non-virtual) location.  If
+   it's a location < RESERVED_LOCATION_COUNT a zeroed expanded source
+   location is returned.  */
 
 expanded_location
-linemap_expand_location (const struct line_map *map,
+linemap_expand_location (struct line_maps *set,
+			 const struct line_map *map,
 			 source_location loc)
 
 {
   expanded_location xloc;
 
-  xloc.file = LINEMAP_FILE (map);
-  xloc.line = SOURCE_LINE (map, loc);
-  xloc.column = SOURCE_COLUMN (map, loc);
-  xloc.sysp = LINEMAP_SYSP (map) != 0;
+  memset (&xloc, 0, sizeof (xloc));
+
+  if (loc < RESERVED_LOCATION_COUNT)
+    /* The location for this token wasn't generated from a line map.
+       It was probably a location for a builtin token, chosen by some
+       client code.  Let's not try to expand the location in that
+       case.  */;
+  else if (map == NULL)
+    /* We shouldn't be getting a NULL map with a location that is not
+       reserved by the client code.  */
+    abort ();
+  else
+    {
+      /* MAP must be an ordinary map and LOC must be non-virtual,
+	 encoded into this map, obviously; the accessors used on MAP
+	 below ensure it is ordinary.  Let's just assert the
+	 non-virtualness of LOC here.  */
+      if (linemap_location_from_macro_expansion_p (set, loc))
+	abort ();
+
+      xloc.file = LINEMAP_FILE (map);
+      xloc.line = SOURCE_LINE (map, loc);
+      xloc.column = SOURCE_COLUMN (map, loc);
+      xloc.sysp = LINEMAP_SYSP (map) != 0;
+    }
 
   return xloc;
 }
 
-/* Expand source code location LOC and return a user readable source
-   code location.  LOC can be a virtual location.  The LRK parameter
-   is the same as for linemap_resolve_location.  */
 
-expanded_location
-linemap_expand_location_full (struct line_maps *set,
-			      source_location loc,
-			      enum location_resolution_kind lrk)
+/* Dump line map at index IX in line table SET to STREAM.  If STREAM
+   is NULL, use stderr.  IS_MACRO is true if the caller wants to
+   dump a macro map, false otherwise.  */
+
+void
+linemap_dump (FILE *stream, struct line_maps *set, unsigned ix, bool is_macro)
 {
-  const struct line_map *map;
-  expanded_location xloc;
+  const char *lc_reasons_v[LC_ENTER_MACRO + 1]
+      = { "LC_ENTER", "LC_LEAVE", "LC_RENAME", "LC_RENAME_VERBATIM",
+	  "LC_ENTER_MACRO" };
+  const char *reason;
+  struct line_map *map;
 
-  loc = linemap_resolve_location (set, loc, lrk, &map);
-  xloc = linemap_expand_location (map, loc);
-  return xloc;
+  if (stream == NULL)
+    stream = stderr;
+
+  if (!is_macro)
+    map = LINEMAPS_ORDINARY_MAP_AT (set, ix);
+  else
+    map = LINEMAPS_MACRO_MAP_AT (set, ix);
+
+  reason = (map->reason <= LC_ENTER_MACRO) ? lc_reasons_v[map->reason] : "???";
+
+  fprintf (stream, "Map #%u [%p] - LOC: %u - REASON: %s - SYSP: %s\n",
+	   ix, (void *) map, map->start_location, reason,
+	   (!is_macro && ORDINARY_MAP_IN_SYSTEM_HEADER_P (map)) ? "yes" : "no");
+  if (!is_macro)
+    {
+      unsigned includer_ix;
+      struct line_map *includer_map;
+
+      includer_ix = ORDINARY_MAP_INCLUDER_FILE_INDEX (map);
+      includer_map = includer_ix < LINEMAPS_ORDINARY_USED (set)
+		     ? LINEMAPS_ORDINARY_MAP_AT (set, includer_ix)
+		     : NULL;
+
+      fprintf (stream, "File: %s:%d\n", ORDINARY_MAP_FILE_NAME (map),
+	       ORDINARY_MAP_STARTING_LINE_NUMBER (map));
+      fprintf (stream, "Included from: [%d] %s\n", includer_ix,
+	       includer_map ? ORDINARY_MAP_FILE_NAME (includer_map) : "None");
+    }
+  else
+    fprintf (stream, "Macro: %s (%u tokens)\n",
+	     linemap_map_get_macro_name (map),
+	     MACRO_MAP_NUM_MACRO_TOKENS (map));
+
+  fprintf (stream, "\n");
 }
+
 
 /* Dump debugging information about source location LOC into the file
    stream STREAM. SET is the line map set LOC comes from.  */
@@ -1145,32 +1214,37 @@ linemap_dump_location (struct line_maps *set,
 {
   const struct line_map *map;
   source_location location;
-  const char *path, *from;
-  int l,c,s,e;
+  const char *path = "", *from = "";
+  int l = -1, c = -1, s = -1, e = -1;
 
   if (loc == 0)
     return;
 
   location =
     linemap_resolve_location (set, loc, LRK_MACRO_DEFINITION_LOCATION, &map);
-  path = LINEMAP_FILE (map);
 
-  l = SOURCE_LINE (map, location);
-  c = SOURCE_COLUMN (map, location);
-  s = LINEMAP_SYSP (map) != 0;
-  e = location != loc;
-
-  if (e)
-    from = "N/A";
+  if (map == NULL)
+    /* Only reserved locations can be tolerated in this case.  */
+    linemap_assert (location < RESERVED_LOCATION_COUNT);
   else
-    from = (INCLUDED_FROM (set, map))
-      ? LINEMAP_FILE (INCLUDED_FROM (set, map))
-      : "<NULL>";
+    {
+      path = LINEMAP_FILE (map);
+      l = SOURCE_LINE (map, location);
+      c = SOURCE_COLUMN (map, location);
+      s = LINEMAP_SYSP (map) != 0;
+      e = location != loc;
+      if (e)
+	from = "N/A";
+      else
+	from = (INCLUDED_FROM (set, map))
+	  ? LINEMAP_FILE (INCLUDED_FROM (set, map))
+	  : "<NULL>";
+    }
 
   /* P: path, L: line, C: column, S: in-system-header, M: map address,
-     E: macro expansion?.   */
-  fprintf (stream, "{P:%s;F:%s;L:%d;C:%d;S:%d;M:%p;E:%d,LOC:%d}",
-	   path, from, l, c, s, (void*)map, e, loc);
+     E: macro expansion?, LOC: original location, R: resolved location   */
+  fprintf (stream, "{P:%s;F:%s;L:%d;C:%d;S:%d;M:%p;E:%d,LOC:%d,R:%d}",
+	   path, from, l, c, s, (void*)map, e, loc, location);
 }
 
 /* Compute and return statistics about the memory consumption of some
@@ -1230,4 +1304,43 @@ linemap_get_statistics (struct line_maps *set,
   s->macro_maps_used_size = macro_maps_used_size;
   s->duplicated_macro_maps_locations_size =
     duplicated_macro_maps_locations_size;
+}
+
+
+/* Dump line table SET to STREAM.  If STREAM is NULL, stderr is used.
+   NUM_ORDINARY specifies how many ordinary maps to dump.  NUM_MACRO
+   specifies how many macro maps to dump.  */
+
+void
+line_table_dump (FILE *stream, struct line_maps *set, unsigned int num_ordinary,
+		 unsigned int num_macro)
+{
+  unsigned int i;
+
+  if (set == NULL)
+    return;
+
+  if (stream == NULL)
+    stream = stderr;
+
+  fprintf (stream, "# of ordinary maps:  %d\n", LINEMAPS_ORDINARY_USED (set));
+  fprintf (stream, "# of macro maps:     %d\n", LINEMAPS_MACRO_USED (set));
+  fprintf (stream, "Include stack depth: %d\n", set->depth);
+  fprintf (stream, "Highest location:    %u\n", set->highest_location);
+
+  if (num_ordinary)
+    {
+      fprintf (stream, "\nOrdinary line maps\n");
+      for (i = 0; i < num_ordinary && i < LINEMAPS_ORDINARY_USED (set); i++)
+	linemap_dump (stream, set, i, false);
+      fprintf (stream, "\n");
+    }
+
+  if (num_macro)
+    {
+      fprintf (stream, "\nMacro line maps\n");
+      for (i = 0; i < num_macro && i < LINEMAPS_MACRO_USED (set); i++)
+	linemap_dump (stream, set, i, true);
+      fprintf (stream, "\n");
+    }
 }

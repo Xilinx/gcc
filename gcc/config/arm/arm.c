@@ -147,8 +147,9 @@ static enum machine_mode arm_promote_function_mode (const_tree,
 						    const_tree, int);
 static bool arm_return_in_memory (const_tree, const_tree);
 static rtx arm_function_value (const_tree, const_tree, bool);
+static rtx arm_libcall_value_1 (enum machine_mode);
 static rtx arm_libcall_value (enum machine_mode, const_rtx);
-
+static bool arm_function_value_regno_p (const unsigned int);
 static void arm_internal_label (FILE *, const char *, unsigned long);
 static void arm_output_mi_thunk (FILE *, tree, HOST_WIDE_INT, HOST_WIDE_INT,
 				 tree);
@@ -184,6 +185,7 @@ static void arm_function_arg_advance (cumulative_args_t, enum machine_mode,
 static unsigned int arm_function_arg_boundary (enum machine_mode, const_tree);
 static rtx aapcs_allocate_return_reg (enum machine_mode, const_tree,
 				      const_tree);
+static rtx aapcs_libcall_value (enum machine_mode);
 static int aapcs_select_return_coproc (const_tree, const_tree);
 
 #ifdef OBJECT_FORMAT_ELF
@@ -382,6 +384,9 @@ static const struct attribute_spec arm_attribute_table[] =
 
 #undef  TARGET_LIBCALL_VALUE
 #define TARGET_LIBCALL_VALUE arm_libcall_value
+
+#undef TARGET_FUNCTION_VALUE_REGNO_P
+#define TARGET_FUNCTION_VALUE_REGNO_P arm_function_value_regno_p
 
 #undef  TARGET_ASM_OUTPUT_MI_THUNK
 #define TARGET_ASM_OUTPUT_MI_THUNK arm_output_mi_thunk
@@ -1096,6 +1101,10 @@ arm_set_fixed_conv_libfunc (convert_optab optable, enum machine_mode to,
 static void
 arm_init_libfuncs (void)
 {
+  /* For Linux, we have access to kernel support for atomic operations.  */
+  if (arm_abi == ARM_ABI_AAPCS_LINUX)
+    init_sync_libfuncs (2 * UNITS_PER_WORD);
+
   /* There are no special library functions unless we are using the
      ARM BPABI.  */
   if (!TARGET_BPABI)
@@ -3588,7 +3597,7 @@ arm_function_value(const_tree type, const_tree func,
 	}
     }
 
-  return LIBCALL_VALUE (mode);
+  return arm_libcall_value_1 (mode);
 }
 
 static int
@@ -3678,7 +3687,32 @@ arm_libcall_uses_aapcs_base (const_rtx libcall)
   return libcall && htab_find (libcall_htab, libcall) != NULL;
 }
 
-rtx
+static rtx
+arm_libcall_value_1 (enum machine_mode mode)
+{
+  if (TARGET_AAPCS_BASED)
+    return aapcs_libcall_value (mode);
+  else if (TARGET_32BIT
+	   && TARGET_HARD_FLOAT_ABI
+	   && TARGET_FPA
+	   && GET_MODE_CLASS (mode) == MODE_FLOAT)
+    return gen_rtx_REG (mode, FIRST_FPA_REGNUM);
+  else if (TARGET_32BIT
+	   && TARGET_HARD_FLOAT_ABI
+	   && TARGET_MAVERICK
+	   && GET_MODE_CLASS (mode) == MODE_FLOAT)
+    return gen_rtx_REG (mode, FIRST_CIRRUS_FP_REGNUM);
+  else if (TARGET_IWMMXT_ABI
+	   && arm_vector_mode_supported_p (mode))
+    return gen_rtx_REG (mode, FIRST_IWMMXT_REGNUM);
+  else
+    return gen_rtx_REG (mode, ARG_REGISTER (1));
+}
+
+/* Define how to find the value returned by a library function
+   assuming the value has mode MODE.  */
+
+static rtx
 arm_libcall_value (enum machine_mode mode, const_rtx libcall)
 {
   if (TARGET_AAPCS_BASED && arm_pcs_default != ARM_PCS_AAPCS
@@ -3691,7 +3725,33 @@ arm_libcall_value (enum machine_mode mode, const_rtx libcall)
 
     }
 
-  return LIBCALL_VALUE (mode);
+  return arm_libcall_value_1 (mode);
+}
+
+/* Implement TARGET_FUNCTION_VALUE_REGNO_P.  */
+
+static bool
+arm_function_value_regno_p (const unsigned int regno)
+{
+  if (regno == ARG_REGISTER (1)
+      || (TARGET_32BIT
+	  && TARGET_AAPCS_BASED
+	  && TARGET_VFP
+	  && TARGET_HARD_FLOAT
+	  && regno == FIRST_VFP_REGNUM)
+      || (TARGET_32BIT
+	  && TARGET_HARD_FLOAT_ABI
+	  && TARGET_MAVERICK
+	  && regno == FIRST_CIRRUS_FP_REGNUM)
+      || (TARGET_IWMMXT_ABI
+	  && regno == FIRST_IWMMXT_REGNUM)
+      || (TARGET_32BIT
+	  && TARGET_HARD_FLOAT_ABI
+	  && TARGET_FPA
+	  && regno == FIRST_FPA_REGNUM))
+    return true;
+
+  return false;
 }
 
 /* Determine the amount of memory needed to store the possible return
@@ -4509,7 +4569,7 @@ aapcs_allocate_return_reg (enum machine_mode mode, const_tree type,
   return gen_rtx_REG (mode, R0_REGNUM);
 }
 
-rtx
+static rtx
 aapcs_libcall_value (enum machine_mode mode)
 {
   if (BYTES_BIG_ENDIAN && ALL_FIXED_POINT_MODE_P (mode)
@@ -10247,6 +10307,9 @@ store_multiple_sequence (rtx *operands, int nops, int nops_total,
   rtx base_reg_rtx = NULL;
   int i, stm_case;
 
+  /* Write back of base register is currently only supported for Thumb 1.  */
+  int base_writeback = TARGET_THUMB1;
+
   /* Can only handle up to MAX_LDM_STM_OPS insns at present, though could be
      easily extended if required.  */
   gcc_assert (nops >= 2 && nops <= MAX_LDM_STM_OPS);
@@ -10304,7 +10367,9 @@ store_multiple_sequence (rtx *operands, int nops, int nops_total,
 	  /* If it isn't an integer register, then we can't do this.  */
 	  if (unsorted_regs[i] < 0
 	      || (TARGET_THUMB1 && unsorted_regs[i] > LAST_LO_REGNUM)
-	      || (TARGET_THUMB2 && unsorted_regs[i] == base_reg)
+	      /* The effects are unpredictable if the base register is
+		 both updated and stored.  */
+	      || (base_writeback && unsorted_regs[i] == base_reg)
 	      || (TARGET_THUMB2 && unsorted_regs[i] == SP_REGNUM)
 	      || unsorted_regs[i] > 14)
 	    return 0;
@@ -17606,6 +17671,11 @@ arm_print_operand (FILE *stream, rtx x, int code)
       }
       return;
 
+    case 'v':
+	gcc_assert (GET_CODE (x) == CONST_DOUBLE);
+	fprintf (stream, "#%d", vfp3_const_double_for_fract_bits (x));
+	return;
+
     /* Register specifier for vld1.16/vst1.16.  Translate the S register
        number into a D register number and element index.  */
     case 'z':
@@ -20723,39 +20793,34 @@ neon_emit_pair_result_insn (enum machine_mode mode,
   emit_move_insn (mem, tmp2);
 }
 
-/* Set up operands for a register copy from src to dest, taking care not to
-   clobber registers in the process.
-   FIXME: This has rather high polynomial complexity (O(n^3)?) but shouldn't
-   be called with a large N, so that should be OK.  */
+/* Set up OPERANDS for a register copy from SRC to DEST, taking care
+   not to early-clobber SRC registers in the process.
 
+   We assume that the operands described by SRC and DEST represent a
+   decomposed copy of OPERANDS[1] into OPERANDS[0].  COUNT is the
+   number of components into which the copy has been decomposed.  */
 void
 neon_disambiguate_copy (rtx *operands, rtx *dest, rtx *src, unsigned int count)
 {
-  unsigned int copied = 0, opctr = 0;
-  unsigned int done = (1 << count) - 1;
-  unsigned int i, j;
+  unsigned int i;
 
-  while (copied != done)
+  if (!reg_overlap_mentioned_p (operands[0], operands[1])
+      || REGNO (operands[0]) < REGNO (operands[1]))
     {
       for (i = 0; i < count; i++)
-        {
-          int good = 1;
-
-          for (j = 0; good && j < count; j++)
-            if (i != j && (copied & (1 << j)) == 0
-                && reg_overlap_mentioned_p (src[j], dest[i]))
-              good = 0;
-
-          if (good)
-            {
-              operands[opctr++] = dest[i];
-              operands[opctr++] = src[i];
-              copied |= 1 << i;
-            }
-        }
+	{
+	  operands[2 * i] = dest[i];
+	  operands[2 * i + 1] = src[i];
+	}
     }
-
-  gcc_assert (opctr == count * 2);
+  else
+    {
+      for (i = 0; i < count; i++)
+	{
+	  operands[2 * i] = dest[count - i - 1];
+	  operands[2 * i + 1] = src[count - i - 1];
+	}
+    }
 }
 
 /* Expand an expression EXP that calls a built-in function,
@@ -21652,7 +21717,8 @@ thumb_unexpanded_epilogue (void)
   if (extra_pop > 0)
     {
       unsigned long extra_mask = (1 << extra_pop) - 1;
-      live_regs_mask |= extra_mask << (size / UNITS_PER_WORD);
+      live_regs_mask |= extra_mask << ((size + UNITS_PER_WORD - 1) 
+				       / UNITS_PER_WORD);
     }
 
   /* The prolog may have pushed some high registers to use as
@@ -22215,6 +22281,8 @@ thumb1_expand_epilogue (void)
   gcc_assert (amount >= 0);
   if (amount)
     {
+      emit_insn (gen_blockage ());
+
       if (amount < 512)
 	emit_insn (gen_addsi3 (stack_pointer_rtx, stack_pointer_rtx,
 			       GEN_INT (amount)));
@@ -23494,7 +23562,7 @@ arm_small_register_classes_for_mode_p (enum machine_mode mode ATTRIBUTE_UNUSED)
 
 /* Implement TARGET_SHIFT_TRUNCATION_MASK.  SImode shifts use normal
    ARM insns and therefore guarantee that the shift count is modulo 256.
-   DImode shifts (those implemented by lib1funcs.asm or by optabs.c)
+   DImode shifts (those implemented by lib1funcs.S or by optabs.c)
    guarantee no particular behavior for out-of-range counts.  */
 
 static unsigned HOST_WIDE_INT
@@ -24120,6 +24188,9 @@ arm_issue_rate (void)
 {
   switch (arm_tune)
     {
+    case cortexa15:
+      return 3;
+
     case cortexr4:
     case cortexr4f:
     case cortexr5:
@@ -24972,4 +25043,27 @@ arm_count_output_move_double_insns (rtx *operands)
   return count;
 }
 
+int
+vfp3_const_double_for_fract_bits (rtx operand)
+{
+  REAL_VALUE_TYPE r0;
+  
+  if (GET_CODE (operand) != CONST_DOUBLE)
+    return 0;
+  
+  REAL_VALUE_FROM_CONST_DOUBLE (r0, operand);
+  if (exact_real_inverse (DFmode, &r0))
+    {
+      if (exact_real_truncate (DFmode, &r0))
+	{
+	  HOST_WIDE_INT value = real_to_integer (&r0);
+	  value = value & 0xffffffff;
+	  if ((value != 0) && ( (value & (value - 1)) == 0))
+	    return int_log2 (value);
+	}
+    }
+  return 0;
+}
+
 #include "gt-arm.h"
+

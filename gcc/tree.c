@@ -1525,6 +1525,7 @@ build_real_from_int_cst (tree type, const_tree i)
 
 /* Return a newly constructed STRING_CST node whose value is
    the LEN characters at STR.
+   Note that for a C string literal, LEN should include the trailing NUL.
    The TREE_TYPE is not initialized.  */
 
 tree
@@ -4520,9 +4521,6 @@ free_lang_data_in_type (tree type)
 	  && TREE_CODE (TYPE_CONTEXT (type)) != FUNCTION_DECL
 	  && TREE_CODE (TYPE_CONTEXT (type)) != NAMESPACE_DECL))
     TYPE_CONTEXT (type) = NULL_TREE;
-
-  if (debug_info_level < DINFO_LEVEL_TERSE)
-    TYPE_STUB_DECL (type) = NULL_TREE;
 }
 
 
@@ -4599,11 +4597,6 @@ free_lang_data_in_decl (tree decl)
   if (TREE_CODE (decl) == FIELD_DECL)
     free_lang_data_in_one_sizepos (&DECL_FIELD_OFFSET (decl));
 
- /* DECL_FCONTEXT is only used for debug info generation.  */
- if (TREE_CODE (decl) == FIELD_DECL
-     && debug_info_level < DINFO_LEVEL_TERSE)
-   DECL_FCONTEXT (decl) = NULL_TREE;
-
  if (TREE_CODE (decl) == FUNCTION_DECL)
     {
       if (gimple_has_body_p (decl))
@@ -4650,7 +4643,8 @@ free_lang_data_in_decl (tree decl)
 	  || (decl_function_context (decl) && !TREE_STATIC (decl)))
 	DECL_INITIAL (decl) = NULL_TREE;
     }
-  else if (TREE_CODE (decl) == TYPE_DECL)
+  else if (TREE_CODE (decl) == TYPE_DECL
+	   || TREE_CODE (decl) == FIELD_DECL)
     DECL_INITIAL (decl) = NULL_TREE;
   else if (TREE_CODE (decl) == TRANSLATION_UNIT_DECL
            && DECL_INITIAL (decl)
@@ -4799,6 +4793,7 @@ find_decls_types_r (tree *tp, int *ws, void *data)
 	{
 	  fld_worklist_push (DECL_ARGUMENT_FLD (t), fld);
 	  fld_worklist_push (DECL_VINDEX (t), fld);
+	  fld_worklist_push (DECL_ORIGINAL_TYPE (t), fld);
 	}
       else if (TREE_CODE (t) == FIELD_DECL)
 	{
@@ -4883,7 +4878,7 @@ find_decls_types_r (tree *tp, int *ws, void *data)
 	    }
 	}
 
-      fld_worklist_push (TREE_CHAIN (t), fld);
+      fld_worklist_push (TYPE_STUB_DECL (t), fld);
       *ws = 0;
     }
   else if (TREE_CODE (t) == BLOCK)
@@ -6993,7 +6988,6 @@ iterative_hash_expr (const_tree t, hashval_t val)
 	      val = iterative_hash_expr (TREE_OPERAND (t, i), val);
 	}
       return val;
-      break;
     }
 }
 
@@ -9427,6 +9421,8 @@ local_define_builtin (const char *name, tree type, enum built_in_function code,
   if (ecf_flags & ECF_LEAF)
     DECL_ATTRIBUTES (decl) = tree_cons (get_identifier ("leaf"),
 					NULL, DECL_ATTRIBUTES (decl));
+  if ((ecf_flags & ECF_TM_PURE) && flag_tm)
+    apply_tm_attr (decl, get_identifier ("transaction_pure"));
 
   set_builtin_decl (code, decl, true);
 }
@@ -9439,6 +9435,7 @@ void
 build_common_builtin_nodes (void)
 {
   tree tmp, ftype;
+  int ecf_flags;
 
   if (!builtin_decl_explicit_p (BUILT_IN_MEMCPY)
       || !builtin_decl_explicit_p (BUILT_IN_MEMMOVE))
@@ -9591,8 +9588,12 @@ build_common_builtin_nodes (void)
      its value in the landing pad.  */
   ftype = build_function_type_list (ptr_type_node,
 				    integer_type_node, NULL_TREE);
+  ecf_flags = ECF_PURE | ECF_NOTHROW | ECF_LEAF;
+  /* Only use TM_PURE if we we have TM language support.  */
+  if (builtin_decl_explicit_p (BUILT_IN_TM_LOAD_1))
+    ecf_flags |= ECF_TM_PURE;
   local_define_builtin ("__builtin_eh_pointer", ftype, BUILT_IN_EH_POINTER,
-			"__builtin_eh_pointer", ECF_PURE | ECF_NOTHROW | ECF_LEAF);
+			"__builtin_eh_pointer", ecf_flags);
 
   tmp = lang_hooks.types.type_for_mode (targetm.eh_return_filter_mode (), 0);
   ftype = build_function_type_list (tmp, integer_type_node, NULL_TREE);
@@ -11139,6 +11140,37 @@ tree_strip_sign_nop_conversions (tree exp)
   while (tree_sign_nop_conversion (exp))
     exp = TREE_OPERAND (exp, 0);
   return exp;
+}
+
+/* Strip out all handled components that produce invariant
+   offsets.  */
+
+const_tree
+strip_invariant_refs (const_tree op)
+{
+  while (handled_component_p (op))
+    {
+      switch (TREE_CODE (op))
+	{
+	case ARRAY_REF:
+	case ARRAY_RANGE_REF:
+	  if (!is_gimple_constant (TREE_OPERAND (op, 1))
+	      || TREE_OPERAND (op, 2) != NULL_TREE
+	      || TREE_OPERAND (op, 3) != NULL_TREE)
+	    return NULL;
+	  break;
+
+	case COMPONENT_REF:
+	  if (TREE_OPERAND (op, 2) != NULL_TREE)
+	    return NULL;
+	  break;
+
+	default:;
+	}
+      op = TREE_OPERAND (op, 0);
+    }
+
+  return op;
 }
 
 static GTY(()) tree gcc_eh_personality_decl;

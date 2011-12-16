@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2004-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -34,6 +34,7 @@
 private with Ada.Containers.Hash_Tables;
 private with Ada.Streams;
 private with Ada.Finalization;
+with Ada.Iterator_Interfaces;
 
 generic
    type Element_Type is private;
@@ -49,7 +50,11 @@ package Ada.Containers.Hashed_Sets is
    pragma Preelaborate;
    pragma Remote_Types;
 
-   type Set is tagged private;
+   type Set is tagged private
+   with
+      Default_Iterator  => Iterate,
+      Iterator_Element  => Element_Type;
+
    pragma Preelaborable_Initialization (Set);
 
    type Cursor is private;
@@ -62,6 +67,12 @@ package Ada.Containers.Hashed_Sets is
    No_Element : constant Cursor;
    --  Cursor objects declared without an initialization expression are
    --  initialized to the value No_Element.
+
+   function Has_Element (Position : Cursor) return Boolean;
+   --  Equivalent to Position /= No_Element
+
+   package Set_Iterator_Interfaces is new
+     Ada.Iterator_Interfaces (Cursor, Has_Element);
 
    function "=" (Left, Right : Set) return Boolean;
    --  For each element in Left, set equality attempts to find the equal
@@ -132,6 +143,10 @@ package Ada.Containers.Hashed_Sets is
       Process  : not null access procedure (Element : Element_Type));
    --  Calls Process with the element (having only a constant view) of the node
    --  designed by the cursor.
+
+   procedure Assign (Target : in out Set; Source : Set);
+
+   function Copy (Source : Set; Capacity : Count_Type := 0) return Set;
 
    procedure Move (Target : in out Set; Source : in out Set);
    --  Clears Target (if it's not empty), and then moves (not copies) the
@@ -299,9 +314,6 @@ package Ada.Containers.Hashed_Sets is
    function Contains (Container : Set; Item : Element_Type) return Boolean;
    --  Equivalent to Find (Container, Item) /= No_Element
 
-   function Has_Element (Position : Cursor) return Boolean;
-   --  Equivalent to Position /= No_Element
-
    function Equivalent_Elements (Left, Right : Cursor) return Boolean;
    --  Returns the result of calling Equivalent_Elements with the elements of
    --  the nodes designated by cursors Left and Right.
@@ -322,6 +334,9 @@ package Ada.Containers.Hashed_Sets is
      (Container : Set;
       Process   : not null access procedure (Position : Cursor));
    --  Calls Process for each node in the set
+
+   function Iterate
+     (Container : Set) return Set_Iterator_Interfaces.Forward_Iterator'Class;
 
    generic
       type Key_Type (<>) is private;

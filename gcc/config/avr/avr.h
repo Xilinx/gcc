@@ -23,7 +23,8 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Names to predefine in the preprocessor for this target machine.  */
 
-struct base_arch_s {
+struct base_arch_s
+{
   /* Assembler only.  */
   int asm_only;
 
@@ -53,6 +54,13 @@ struct base_arch_s {
   
   /* Default start of data section address for architecture.  */
   int default_data_section_start;
+
+  /* Offset between SFR address and RAM address:
+     SFR-address = RAM-address - sfr_offset  */
+  int sfr_offset;
+
+  /* Number of 64k segments in the flash.  */
+  int n_segments;
 
   const char *const macro;
   
@@ -125,12 +133,48 @@ extern const struct mcu_type_s *avr_current_device;
 extern const struct mcu_type_s avr_mcu_types[];
 extern const struct base_arch_s avr_arch_types[];
 
+typedef struct
+{
+  /* Id of the address space as used in c_register_addr_space */
+  unsigned char id;
+
+  /* Flavour of memory: 0 = RAM, 1 = Flash */
+  int memory_class;
+
+  /* Width of pointer (in bytes) */
+  int pointer_size;
+
+  /* Name of the address space as visible to the user */
+  const char *name;
+
+  /* Segment (i.e. 64k memory chunk) number.  */
+  int segment;
+} avr_addrspace_t;
+
+extern const avr_addrspace_t avr_addrspace[];
+
+/* Known address spaces */
+
+enum
+  {
+    ADDR_SPACE_RAM,
+    ADDR_SPACE_PGM,
+    ADDR_SPACE_PGM1,
+    ADDR_SPACE_PGM2,
+    ADDR_SPACE_PGM3,
+    ADDR_SPACE_PGM4,
+    ADDR_SPACE_PGM5,
+    ADDR_SPACE_PGMX
+  };
+
 #define TARGET_CPU_CPP_BUILTINS()	avr_cpu_cpp_builtins (pfile)
 
 #define AVR_HAVE_JMP_CALL (avr_current_arch->have_jmp_call && !TARGET_SHORT_CALLS)
 #define AVR_HAVE_MUL (avr_current_arch->have_mul)
 #define AVR_HAVE_MOVW (avr_current_arch->have_movw_lpmx)
 #define AVR_HAVE_LPMX (avr_current_arch->have_movw_lpmx)
+#define AVR_HAVE_ELPM (avr_current_arch->have_elpm)
+#define AVR_HAVE_ELPMX (avr_current_arch->have_elpmx)
 #define AVR_HAVE_RAMPZ (avr_current_arch->have_elpm)
 #define AVR_HAVE_EIJMP_EICALL (avr_current_arch->have_eijmp_eicall)
 #define AVR_HAVE_8BIT_SP (avr_current_device->short_sp || TARGET_TINY_STACK)
@@ -308,13 +352,13 @@ enum reg_class {
 
 #define REGNO_REG_CLASS(R) avr_regno_reg_class(R)
 
-#define MODE_CODE_BASE_REG_CLASS(mode, outer_code, index_code) \
-  avr_mode_code_base_reg_class (mode, outer_code, index_code)
+#define MODE_CODE_BASE_REG_CLASS(mode, as, outer_code, index_code)   \
+  avr_mode_code_base_reg_class (mode, as, outer_code, index_code)
 
 #define INDEX_REG_CLASS NO_REGS
 
-#define REGNO_MODE_CODE_OK_FOR_BASE_P(num, mode, outer_code, index_code) \
-  avr_regno_mode_code_ok_for_base_p (num, mode, outer_code, index_code)
+#define REGNO_MODE_CODE_OK_FOR_BASE_P(num, mode, as, outer_code, index_code) \
+  avr_regno_mode_code_ok_for_base_p (num, mode, as, outer_code, index_code)
 
 #define REGNO_OK_FOR_INDEX_P(NUM) 0
 
@@ -324,7 +368,7 @@ enum reg_class {
 
 #define STACK_GROWS_DOWNWARD
 
-#define STARTING_FRAME_OFFSET 1
+#define STARTING_FRAME_OFFSET avr_starting_frame_offset()
 
 #define STACK_POINTER_OFFSET 1
 
@@ -375,7 +419,7 @@ typedef struct avr_args {
 
 #define LEGITIMIZE_RELOAD_ADDRESS(X,MODE,OPNUM,TYPE,IND_L,WIN)          \
   do {                                                                  \
-    rtx new_x = avr_legitimize_reload_address (X, MODE, OPNUM, TYPE,    \
+    rtx new_x = avr_legitimize_reload_address (&(X), MODE, OPNUM, TYPE, \
                                                ADDR_TYPE (TYPE),        \
                                                IND_L, make_memloc);     \
     if (new_x)                                                          \
@@ -385,11 +429,16 @@ typedef struct avr_args {
       }                                                                 \
   } while (0)
 
-#define BRANCH_COST(speed_p, predictable_p) 0
+#define BRANCH_COST(speed_p, predictable_p) avr_branch_cost
 
 #define SLOW_BYTE_ACCESS 0
 
 #define NO_FUNCTION_CSE
+
+#define REGISTER_TARGET_PRAGMAS()                                       \
+  do {                                                                  \
+    avr_register_target_pragmas();                                      \
+  } while (0)
 
 #define TEXT_SECTION_ASM_OP "\t.text"
 
@@ -635,3 +684,7 @@ struct GTY(()) machine_function
 /* AVR does not round pushes, but the existance of this macro is
    required in order for pushes to be generated.  */
 #define PUSH_ROUNDING(X)	(X)
+
+#define ACCUMULATE_OUTGOING_ARGS avr_accumulate_outgoing_args()
+
+#define INIT_EXPANDERS avr_init_expanders()

@@ -140,7 +140,7 @@ package Opt is
    --  or internal units, so it reflects the Ada version explicitly set
    --  using configuration pragmas or compiler switches (or if neither
    --  appears, it remains set to Ada_Version_Default). This is used in
-   --  the rare cases (notably for pragmas Preelaborate_05 and Pure_05)
+   --  the rare cases (notably for pragmas Preelaborate_05 and Pure_05/12)
    --  where in the run-time we want the explicit version set.
 
    Ada_Version_Runtime : Ada_Version_Type := Ada_2012;
@@ -1448,6 +1448,11 @@ package Opt is
    --  with literals or S'Length, presumably assuming a lower bound of one. Set
    --  False by -gnatwW.
 
+   Warn_On_Atomic_Synchronization : Boolean := False;
+   --  GNAT
+   --  Set to True to generate information messages for atomic synchronization.
+   --  Set True by use of -gnatw.n.
+
    Warn_On_Bad_Fixed_Value : Boolean := False;
    --  GNAT
    --  Set to True to generate warnings for static fixed-point expression
@@ -1825,6 +1830,9 @@ package Opt is
    --  this flag, see package Expander. Indeed this flag might more logically
    --  be in the spec of Expander, but it is referenced by Errout, and it
    --  really seems wrong for Errout to depend on Expander.
+   --
+   --  Note: for many purposes, it is more appropriate to test the flag
+   --  Full_Expander_Active, which also checks that Alfa mode is not active.
 
    Static_Dispatch_Tables : Boolean := True;
    --  This flag indicates if the backend supports generation of statically

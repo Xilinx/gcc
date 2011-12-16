@@ -726,12 +726,32 @@ package body Sem_Ch3 is
 
       --  If the access definition is the return type of another access to
       --  function, scope is the current one, because it is the one of the
-      --  current type declaration.
+      --  current type declaration, except for the pathological case below.
 
       if Nkind_In (Related_Nod, N_Object_Declaration,
                                 N_Access_Function_Definition)
       then
          Anon_Scope := Current_Scope;
+
+         --  A pathological case: function returning access functions that
+         --  return access functions, etc. Each anonymous access type created
+         --  is in the enclosing scope of the outermost function.
+
+         declare
+            Par : Node_Id;
+
+         begin
+            Par := Related_Nod;
+            while Nkind_In (Par, N_Access_Function_Definition,
+                                 N_Access_Definition)
+            loop
+               Par := Parent (Par);
+            end loop;
+
+            if Nkind (Par) = N_Function_Specification then
+               Anon_Scope := Scope (Defining_Entity (Par));
+            end if;
+         end;
 
       --  For the anonymous function result case, retrieve the scope of the
       --  function specification's associated entity rather than using the
@@ -1876,7 +1896,9 @@ package body Sem_Ch3 is
             --  (Ada 2005: AI-230): Accessibility check for anonymous
             --  components
 
-            if Type_Access_Level (Etype (E)) > Type_Access_Level (T) then
+            if Type_Access_Level (Etype (E)) >
+               Deepest_Type_Access_Level (T)
+            then
                Error_Msg_N
                  ("expression has deeper access level than component " &
                   "(RM 3.10.2 (12.2))", E);
@@ -2664,8 +2686,8 @@ package body Sem_Ch3 is
       --  Process expression, replacing error by integer zero, to avoid
       --  cascaded errors or aborts further along in the processing
 
-      --  Replace Error by integer zero, which seems least likely to
-      --  cause cascaded errors.
+      --  Replace Error by integer zero, which seems least likely to cause
+      --  cascaded errors.
 
       if E = Error then
          Rewrite (E, Make_Integer_Literal (Sloc (E), Uint_0));
@@ -4041,6 +4063,19 @@ package body Sem_Ch3 is
       end if;
 
       T := Process_Subtype (Subtype_Indication (N), N, Id, 'P');
+
+      --  Class-wide equivalent types of records with unknown discriminants
+      --  involve the generation of an itype which serves as the private view
+      --  of a constrained record subtype. In such cases the base type of the
+      --  current subtype we are processing is the private itype. Use the full
+      --  of the private itype when decorating various attributes.
+
+      if Is_Itype (T)
+        and then Is_Private_Type (T)
+        and then Present (Full_View (T))
+      then
+         T := Full_View (T);
+      end if;
 
       --  Inherit common attributes
 
@@ -9491,6 +9526,7 @@ package body Sem_Ch3 is
          --  In case of previous errors, other expansion actions that provide
          --  bodies for null procedures with not be invoked, so inhibit message
          --  in those cases.
+
          --  Note that E_Operator is not in the list that follows, because
          --  this kind is reserved for predefined operators, that are
          --  intrinsic and do not need completion.
@@ -9548,8 +9584,12 @@ package body Sem_Ch3 is
                May_Need_Implicit_Body (E);
             end if;
 
+         --  A formal incomplete type (Ada 2012) does not require a completion;
+         --  other incomplete type declarations do.
+
          elsif Ekind (E) = E_Incomplete_Type
            and then No (Underlying_Type (E))
+           and then not Is_Generic_Type (E)
          then
             Post_Error;
 
@@ -9669,9 +9709,25 @@ package body Sem_Ch3 is
                  ("?cannot initialize entities of limited type!", Exp);
 
             elsif Ada_Version < Ada_2005 then
-               Error_Msg_N
-                 ("cannot initialize entities of limited type", Exp);
-               Explain_Limited_Type (T, Exp);
+
+               --  The side effect removal machinery may generate illegal Ada
+               --  code to avoid the usage of access types and 'reference in
+               --  Alfa mode. Since this is legal code with respect to theorem
+               --  proving, do not emit the error.
+
+               if Alfa_Mode
+                 and then Nkind (Exp) = N_Function_Call
+                 and then Nkind (Parent (Exp)) = N_Object_Declaration
+                 and then not Comes_From_Source
+                                (Defining_Identifier (Parent (Exp)))
+               then
+                  null;
+
+               else
+                  Error_Msg_N
+                    ("cannot initialize entities of limited type", Exp);
+                  Explain_Limited_Type (T, Exp);
+               end if;
 
             else
                --  Specialize error message according to kind of illegal
@@ -10639,24 +10695,24 @@ package body Sem_Ch3 is
             return;
          end if;
 
+         --  Enforce rule that the constraint is illegal if there is an
+         --  unconstrained view of the designated type. This means that the
+         --  partial view (either a private type declaration or a derivation
+         --  from a private type) has no discriminants. (Defect Report
+         --  8652/0008, Technical Corrigendum 1, checked by ACATS B371001).
+
+         --  Rule updated for Ada 2005: the private type is said to have
+         --  a constrained partial view, given that objects of the type
+         --  can be declared. Furthermore, the rule applies to all access
+         --  types, unlike the rule concerning default discriminants (see
+         --  RM 3.7.1(7/3))
+
          if (Ekind (T) = E_General_Access_Type
               or else Ada_Version >= Ada_2005)
            and then Has_Private_Declaration (Desig_Type)
            and then In_Open_Scopes (Scope (Desig_Type))
            and then Has_Discriminants (Desig_Type)
          then
-            --  Enforce rule that the constraint is illegal if there is
-            --  an unconstrained view of the designated type. This means
-            --  that the partial view (either a private type declaration or
-            --  a derivation from a private type) has no discriminants.
-            --  (Defect Report 8652/0008, Technical Corrigendum 1, checked
-            --  by ACATS B371001).
-
-            --  Rule updated for Ada 2005: the private type is said to have
-            --  a constrained partial view, given that objects of the type
-            --  can be declared. Furthermore, the rule applies to all access
-            --  types, unlike the rule concerning default discriminants.
-
             declare
                Pack  : constant Node_Id :=
                          Unit_Declaration_Node (Scope (Desig_Type));
@@ -10684,9 +10740,8 @@ package body Sem_Ch3 is
                      then
                         if No (Discriminant_Specifications (Decl)) then
                            Error_Msg_N
-                            ("cannot constrain general access type if " &
-                               "designated type has constrained partial view",
-                                S);
+                            ("cannot constrain access type if designated " &
+                               "type has constrained partial view", S);
                         end if;
 
                         exit;
@@ -11764,6 +11819,11 @@ package body Sem_Ch3 is
          --  needed, since checks may cause duplication of the expressions
          --  which must not be reevaluated.
 
+         --  The forced evaluation removes side effects from expressions,
+         --  which should occur also in Alfa mode. Otherwise, we end up with
+         --  unexpected insertions of actions at places where this is not
+         --  supposed to occur, e.g. on default parameters of a call.
+
          if Expander_Active then
             Force_Evaluation (Low_Bound (R));
             Force_Evaluation (High_Bound (R));
@@ -12761,14 +12821,15 @@ package body Sem_Ch3 is
                Iface_Subp := Node (Prim_Elmt);
 
                --  Exclude derivation of predefined primitives except those
-               --  that come from source. Required to catch declarations of
-               --  equality operators of interfaces. For example:
+               --  that come from source, or are inherited from one that comes
+               --  from source. Required to catch declarations of equality
+               --  operators of interfaces. For example:
 
                --     type Iface is interface;
                --     function "=" (Left, Right : Iface) return Boolean;
 
                if not Is_Predefined_Dispatching_Operation (Iface_Subp)
-                 or else Comes_From_Source (Iface_Subp)
+                 or else Comes_From_Source (Ultimate_Alias (Iface_Subp))
                then
                   E := Find_Primitive_Covering_Interface
                          (Tagged_Type => Tagged_Type,
@@ -13318,18 +13379,18 @@ package body Sem_Ch3 is
 
       --  Check for case of a derived subprogram for the instantiation of a
       --  formal derived tagged type, if so mark the subprogram as dispatching
-      --  and inherit the dispatching attributes of the parent subprogram. The
+      --  and inherit the dispatching attributes of the actual subprogram. The
       --  derived subprogram is effectively renaming of the actual subprogram,
       --  so it needs to have the same attributes as the actual.
 
       if Present (Actual_Subp)
-        and then Is_Dispatching_Operation (Parent_Subp)
+        and then Is_Dispatching_Operation (Actual_Subp)
       then
          Set_Is_Dispatching_Operation (New_Subp);
 
-         if Present (DTC_Entity (Parent_Subp)) then
-            Set_DTC_Entity (New_Subp, DTC_Entity (Parent_Subp));
-            Set_DT_Position (New_Subp, DT_Position (Parent_Subp));
+         if Present (DTC_Entity (Actual_Subp)) then
+            Set_DTC_Entity (New_Subp, DTC_Entity (Actual_Subp));
+            Set_DT_Position (New_Subp, DT_Position (Actual_Subp));
          end if;
       end if;
 
@@ -16178,19 +16239,41 @@ package body Sem_Ch3 is
       elsif not Comes_From_Source (Original_Comp) then
          return True;
 
-      --  If we are in the body of an instantiation, the component is visible
-      --  even when the parent type (possibly defined in an enclosing unit or
-      --  in a parent unit) might not.
-
-      elsif In_Instance_Body then
-         return True;
-
       --  Discriminants are always visible
 
       elsif Ekind (Original_Comp) = E_Discriminant
         and then not Has_Unknown_Discriminants (Original_Scope)
       then
          return True;
+
+      --  If we are in the body of an instantiation, the component is visible
+      --  if the parent type is non-private, or in  an enclosing scope. The
+      --  scope stack is not present when analyzing an instance body, so we
+      --  must inspect the chain of scopes explicitly.
+
+      elsif In_Instance_Body then
+         if not Is_Private_Type (Scope (C)) then
+            return True;
+
+         else
+            declare
+               S : Entity_Id;
+
+            begin
+               S := Current_Scope;
+               while Present (S)
+                 and then S /= Standard_Standard
+               loop
+                  if S = Type_Scope then
+                     return True;
+                  end if;
+
+                  S := Scope (S);
+               end loop;
+
+               return False;
+            end;
+         end if;
 
       --  If the component has been declared in an ancestor which is currently
       --  a private type, then it is not visible. The same applies if the
@@ -18282,6 +18365,11 @@ package body Sem_Ch3 is
             --  if needed, before applying checks, since checks may cause
             --  duplication of the expression without forcing evaluation.
 
+            --  The forced evaluation removes side effects from expressions,
+            --  which should occur also in Alfa mode. Otherwise, we end up with
+            --  unexpected insertions of actions at places where this is not
+            --  supposed to occur, e.g. on default parameters of a call.
+
             if Expander_Active then
                Force_Evaluation (Lo);
                Force_Evaluation (Hi);
@@ -18391,6 +18479,11 @@ package body Sem_Ch3 is
          end if;
 
       --  Case of other than an explicit N_Range node
+
+      --  The forced evaluation removes side effects from expressions, which
+      --  should occur also in Alfa mode. Otherwise, we end up with unexpected
+      --  insertions of actions at places where this is not supposed to occur,
+      --  e.g. on default parameters of a call.
 
       elsif Expander_Active then
          Get_Index_Bounds (R, Lo, Hi);
@@ -19570,17 +19663,16 @@ package body Sem_Ch3 is
    --  do not know the exact end points at the time of the declaration. This
    --  is true for three reasons:
 
-   --     A size clause may affect the fudging of the end-points
-   --     A small clause may affect the values of the end-points
-   --     We try to include the end-points if it does not affect the size
+   --     A size clause may affect the fudging of the end-points.
+   --     A small clause may affect the values of the end-points.
+   --     We try to include the end-points if it does not affect the size.
 
-   --  This means that the actual end-points must be established at the point
-   --  when the type is frozen. Meanwhile, we first narrow the range as
-   --  permitted (so that it will fit if necessary in a small specified size),
-   --  and then build a range subtree with these narrowed bounds.
-
-   --  Set_Fixed_Range constructs the range from real literal values, and sets
-   --  the range as the Scalar_Range of the given fixed-point type entity.
+   --  This means that the actual end-points must be established at the
+   --  point when the type is frozen. Meanwhile, we first narrow the range
+   --  as permitted (so that it will fit if necessary in a small specified
+   --  size), and then build a range subtree with these narrowed bounds.
+   --  Set_Fixed_Range constructs the range from real literal values, and
+   --  sets the range as the Scalar_Range of the given fixed-point type entity.
 
    --  The parent of this range is set to point to the entity so that it is
    --  properly hooked into the tree (unlike normal Scalar_Range entries for
@@ -19605,6 +19697,12 @@ package body Sem_Ch3 is
    begin
       Set_Scalar_Range (E, S);
       Set_Parent (S, E);
+
+      --  Before the freeze point, the bounds of a fixed point are universal
+      --  and carry the corresponding type.
+
+      Set_Etype (Low_Bound (S),  Universal_Real);
+      Set_Etype (High_Bound (S), Universal_Real);
    end Set_Fixed_Range;
 
    ----------------------------------

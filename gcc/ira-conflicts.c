@@ -116,8 +116,8 @@ build_conflict_bit_table (void)
 	  = ((OBJECT_MAX (obj) - OBJECT_MIN (obj) + IRA_INT_BITS)
 	     / IRA_INT_BITS);
 	allocated_words_num += conflict_bit_vec_words_num;
-	if ((unsigned long long) allocated_words_num * sizeof (IRA_INT_TYPE)
-	    > (unsigned long long) IRA_MAX_CONFLICT_TABLE_SIZE * 1024 * 1024)
+	if ((unsigned HOST_WIDEST_INT) allocated_words_num * sizeof (IRA_INT_TYPE)
+	    > (unsigned HOST_WIDEST_INT) IRA_MAX_CONFLICT_TABLE_SIZE * 1024 * 1024)
 	  {
 	    if (internal_flag_ira_verbose > 0 && ira_dump_file != NULL)
 	      fprintf
@@ -845,6 +845,7 @@ ira_debug_conflicts (bool reg_p)
 void
 ira_build_conflicts (void)
 {
+  enum reg_class base;
   ira_allocno_t a;
   ira_allocno_iterator ai;
   HARD_REG_SET temp_hard_reg_set;
@@ -874,13 +875,12 @@ ira_build_conflicts (void)
 	  ira_free (conflicts);
 	}
     }
-  if (! targetm.class_likely_spilled_p (base_reg_class (VOIDmode, ADDRESS,
-							SCRATCH)))
+  base = base_reg_class (VOIDmode, ADDR_SPACE_GENERIC, ADDRESS, SCRATCH);
+  if (! targetm.class_likely_spilled_p (base))
     CLEAR_HARD_REG_SET (temp_hard_reg_set);
   else
     {
-      COPY_HARD_REG_SET (temp_hard_reg_set,
-			 reg_class_contents[base_reg_class (VOIDmode, ADDRESS, SCRATCH)]);
+      COPY_HARD_REG_SET (temp_hard_reg_set, reg_class_contents[base]);
       AND_COMPL_HARD_REG_SET (temp_hard_reg_set, ira_no_alloc_regs);
       AND_HARD_REG_SET (temp_hard_reg_set, call_used_reg_set);
     }

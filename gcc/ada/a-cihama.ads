@@ -134,6 +134,10 @@ package Ada.Containers.Indefinite_Hashed_Maps is
    --  Calls Process with the key (with only a constant view) and element (with
    --  a variable view) of the node designed by the cursor.
 
+   procedure Assign (Target : in out Map; Source : Map);
+
+   function Copy (Source : Map; Capacity : Count_Type := 0) return Map;
+
    procedure Move (Target : in out Map; Source : in out Map);
    --  Clears Target (if it's not empty), and then moves (not copies) the
    --  buckets array and nodes from Source to Target.
@@ -337,11 +341,10 @@ private
    use HT_Types;
    use Ada.Finalization;
 
-   overriding procedure Adjust (Container : in out Map);
-
+   overriding procedure Adjust   (Container : in out Map);
    overriding procedure Finalize (Container : in out Map);
 
-   type Map_Access is access constant Map;
+   type Map_Access is access all Map;
    for Map_Access'Storage_Size use 0;
 
    type Cursor is record

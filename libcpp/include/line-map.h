@@ -651,7 +651,10 @@ enum location_resolution_kind
    LRK_SPELLING_LOCATION.
 
    If LOC_MAP is not NULL, *LOC_MAP is set to the map encoding the
-   returned location.  */
+   returned location.  Note that if the resturned location wasn't originally
+   encoded by a map, the *MAP is set to NULL.  This can happen if LOC
+   resolves to a location reserved for the client code, like
+   UNKNOWN_LOCATION or BUILTINS_LOCATION in GCC.  */
 
 source_location linemap_resolve_location (struct line_maps *,
 					  source_location loc,
@@ -670,18 +673,12 @@ source_location linemap_unwind_toward_expansion (struct line_maps *,
 						 const struct line_map **loc_map);
 
 /* Expand source code location LOC and return a user readable source
-   code location.  LOC must be a spelling (non-virtual) location.  */
-
-expanded_location linemap_expand_location (const struct line_map *,
+   code location.  LOC must be a spelling (non-virtual) location.  If
+   it's a location < RESERVED_LOCATION_COUNT a zeroed expanded source
+   location is returned.  */
+expanded_location linemap_expand_location (struct line_maps *,
+					   const struct line_map *,
 					   source_location loc);
-
-/* Expand source code location LOC and return a user readable source
-   code location.  LOC can be a virtual location.  The LRK parameter
-   is the same as for linemap_resolve_location.  */
-
-expanded_location linemap_expand_location_full (struct line_maps *,
-						source_location loc,
-						enum location_resolution_kind lrk);
 
 /* Statistics about maps allocation and usage as returned by
    linemap_get_statistics.  */
@@ -707,5 +704,15 @@ void linemap_get_statistics (struct line_maps *, struct linemap_stats *);
 /* Dump debugging information about source location LOC into the file
    stream STREAM. SET is the line map set LOC comes from.  */
 void linemap_dump_location (struct line_maps *, source_location, FILE *);
+
+/* Dump line map at index IX in line table SET to STREAM.  If STREAM
+   is NULL, use stderr.  IS_MACRO is true if the caller wants to
+   dump a macro map, false otherwise.  */
+void linemap_dump (FILE *, struct line_maps *, unsigned, bool);
+
+/* Dump line table SET to STREAM.  If STREAM is NULL, stderr is used.
+   NUM_ORDINARY specifies how many ordinary maps to dump.  NUM_MACRO
+   specifies how many macro maps to dump.  */
+void line_table_dump (FILE *, struct line_maps *, unsigned int, unsigned int);
 
 #endif /* !LIBCPP_LINE_MAP_H  */
