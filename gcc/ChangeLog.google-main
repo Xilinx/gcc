@@ -1,3 +1,10 @@
+2011-12-16  Dehao Chen  <dehao@google.com>
+
+	* ipa-inline-transform.c (dump_inline_decision): New function.
+	(cgraph_node_call_chain): New function.
+	(cgraph_node_opt_info): New function.
+	(cgraph_mark_inline_edge): Dump inline decisions to stderr.
+
 2011-12-14  Sriraman Tallam  <tmsriram@google.com>
 
 	Do not vectorize loops on Core2 that need to use unaligned
