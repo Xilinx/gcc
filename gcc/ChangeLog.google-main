@@ -1,3 +1,7 @@
+2011-12-16   Dmitriy Vyukov  <dvyukov@google.com>
+
+        * tree-tsan.c (tsan_ignore): Add check for thunks.
+
 2011-12-16  Dehao Chen  <dehao@google.com>
 
 	* ipa-inline-transform.c (dump_inline_decision): New function.

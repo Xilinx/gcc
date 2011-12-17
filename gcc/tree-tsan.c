@@ -426,6 +426,10 @@ tsan_ignore (void)
       ignore_init = 1;
     }
 
+  /* Must be some artificial thunk function.  */
+  if (DECL_ARTIFICIAL (cfun->decl) && DECL_IGNORED_P (cfun->decl))
+    return tsan_ignore_func;
+
   src_name = expand_location (cfun->function_start_locus).file;
   if (src_name == NULL)
     src_name = "";
