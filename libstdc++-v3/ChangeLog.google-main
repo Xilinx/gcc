@@ -1,3 +1,14 @@
+2011-12-17   Easwaran Raman  <eraman@google.com>
+
+	* libsupc++/del_op.cc (delete): Define a new variant
+	  void operator delete(void*, std::size_t).
+	* libsupc++/new (delete): Declare
+	  void operator delete(void*, std::size_t) throw();
+	* testsuite/util/testsuite_abi.cc (check_version): Add new
+	  known version GLIBCXX_3.4.18.
+	* config/abi/pre/gnu.ver: Add new symbol _ZdlPv[jmy] at version
+	  GLIBCXX_3.4.18.
+
 2011-05-02  Ollie Wild  <aaw@google.com>
 
 	* include/ext/sso_string_base.h (__sso_string_base<>::_M_construct):

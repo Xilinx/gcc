@@ -5408,8 +5408,22 @@ build_op_delete_call (enum tree_code code, tree addr, tree size,
 	       usual deallocation function."
 
 	       So (void*) beats (void*, size_t).  */
-	    if (FUNCTION_ARG_CHAIN (fn) == void_list_node)
-	      break;
+            /* If type is not void, pick (void*, size_t) version (which comes
+               first).  */
+	    if (!flag_sized_delete || TREE_CODE (type) == VOID_TYPE )
+              {
+                /* If -fsized-delete is not passed or if a void * is deleted,
+                   prefer delete (void *) version.  */
+                if (FUNCTION_ARG_CHAIN (fn) == void_list_node)
+                  break;
+              }
+            else
+              {
+                /* If -fsized-delete is passed and it is not a void *,
+                   prefer delete (void *, size_t) version.  */
+                if (FUNCTION_ARG_CHAIN (fn) != void_list_node)
+                  break;
+              }
 	  }
       }
 

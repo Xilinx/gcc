@@ -46,3 +46,11 @@ operator delete(void* ptr) throw ()
   if (ptr)
     std::free(ptr);
 }
+
+_GLIBCXX_WEAK_DEFINITION void
+operator delete(void* ptr,
+                std::size_t bytes __attribute__((__unused__))) throw ()
+{
+  if (ptr)
+    std::free(ptr);
+}

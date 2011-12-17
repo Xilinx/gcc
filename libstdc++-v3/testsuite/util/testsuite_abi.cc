@@ -195,6 +195,7 @@ check_version(symbol& test, bool added)
       known_versions.push_back("GLIBCXX_3.4.15");
       known_versions.push_back("GLIBCXX_3.4.16");
       known_versions.push_back("GLIBCXX_3.4.17");
+      known_versions.push_back("GLIBCXX_3.4.18");
       known_versions.push_back("GLIBCXX_LDBL_3.4");
       known_versions.push_back("GLIBCXX_LDBL_3.4.7");
       known_versions.push_back("GLIBCXX_LDBL_3.4.10");
@@ -561,4 +562,3 @@ demangle(const std::string& mangled)
     }
   return name;
 }
-

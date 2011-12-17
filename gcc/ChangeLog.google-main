@@ -1,6 +1,10 @@
+2011-12-17   Easwaran Raman  <eraman@google.com>
+
+	* common.opt (fsized-delete): New option.
+
 2011-12-16   Dmitriy Vyukov  <dvyukov@google.com>
 
-        * tree-tsan.c (tsan_ignore): Add check for thunks.
+	* tree-tsan.c (tsan_ignore): Add check for thunks.
 
 2011-12-16  Dehao Chen  <dehao@google.com>
 

@@ -1,3 +1,11 @@
+2011-12-17   Easwaran Raman  <eraman@google.com>
+
+	* decl.c (cxx_init_decl_processing): Specify a function that
+	  takes a void* and size_t for DELETE_EXPR.
+	* call.c (build_op_delete_call): If fsized-delete is used, use
+	  the variant that takes size_t as the second parameter except
+	  when deleteting a pointer of type void *.
+
 2011-09-15   Diego Novillo  <dnovillo@google.com>
 
 	* init.c (perform_member_init): Move check for self-assignment
@@ -6,7 +14,7 @@
 2011-07-21  David Li  <davidxl@google.com>
 
 	* decl2.c (cp_write_global_declarations): Call
-        cgraph_process_same_body_aliases.
+	cgraph_process_same_body_aliases.
 
 2011-07-21  Diego Novillo  <dnovillo@google.com>
 

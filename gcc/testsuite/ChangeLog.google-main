@@ -1,3 +1,7 @@
+2011-12-17   Easwaran Raman  <eraman@google.com>
+
+	* g++.dg/other/sized-delete-1.C: New test.
+
 2011-12-16  Dehao Chen  <dehao@google.com>
 
 	* gcc.dg/inline-dump.c: New test.

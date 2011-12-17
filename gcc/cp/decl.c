@@ -3552,6 +3552,7 @@ cxx_init_decl_processing (void)
 {
   tree void_ftype;
   tree void_ftype_ptr;
+  tree void_ftype_ptr_sizetype;
 
   /* Create all the identifiers we need.  */
   initialize_predefined_identifiers ();
@@ -3613,8 +3614,14 @@ cxx_init_decl_processing (void)
   void_ftype = build_function_type_list (void_type_node, NULL_TREE);
   void_ftype_ptr = build_function_type_list (void_type_node,
 					     ptr_type_node, NULL_TREE);
+  void_ftype_ptr_sizetype = build_function_type_list (void_type_node,
+                                                      ptr_type_node,
+                                                      size_type_node,
+                                                      NULL_TREE);
   void_ftype_ptr
     = build_exception_variant (void_ftype_ptr, empty_except_spec);
+  void_ftype_ptr_sizetype
+    = build_exception_variant (void_ftype_ptr_sizetype, empty_except_spec);
 
   /* C++ extensions */
 
@@ -3669,7 +3676,7 @@ cxx_init_decl_processing (void)
 
   {
     tree newattrs;
-    tree newtype, deltype;
+    tree newtype, deltype, deltype2;
     tree ptr_ftype_sizetype;
     tree new_eh_spec;
 
@@ -3704,8 +3711,10 @@ cxx_init_decl_processing (void)
     newtype = cp_build_type_attribute_variant (ptr_ftype_sizetype, newattrs);
     newtype = build_exception_variant (newtype, new_eh_spec);
     deltype = build_exception_variant (void_ftype_ptr, empty_except_spec);
+    deltype2 = build_exception_variant (void_ftype_ptr_sizetype, empty_except_spec);
     push_cp_library_fn (NEW_EXPR, newtype);
     push_cp_library_fn (VEC_NEW_EXPR, newtype);
+    push_cp_library_fn (DELETE_EXPR, deltype2);
     global_delete_fndecl = push_cp_library_fn (DELETE_EXPR, deltype);
     push_cp_library_fn (VEC_DELETE_EXPR, deltype);
 

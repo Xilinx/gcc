@@ -1304,6 +1304,13 @@ GLIBCXX_3.4.17 {
 
 } GLIBCXX_3.4.16;
 
+GLIBCXX_3.4.18 {
+
+    # operator delete(void*, , unsigned long)
+    _ZdlPv[jmy];
+
+} GLIBCXX_3.4.17;
+
 # Symbols in the support library (libsupc++) have their own tag.
 CXXABI_1.3 {
 
