@@ -1,5 +1,12 @@
 
 2011-12-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-opengpu.melt (class_opengpu_linear_composition): New.
+	(class_opengpu_induction_variable): Add :opgpuiv_bound field.
+	(opengpu_candidate_induction_variables): Fill it.
+	(opengpu_affine_accessed_array): New.
+	(opengpudetect_handle_parallel_loop): Removed old code... adding new...
+
+2011-12-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_do_initial_mode): Inform when no mode is given.
 	(melt_really_initialize): inform that -fplugin-arg-melt-debug or
 	-fmelt-debug is becoming obsolete, suggest -fmelt-debugging=...
