@@ -1,3 +1,8 @@
+2011-12-19  Sterling Augustine <saugustine@google.com>
+
+	* c-pretty-print.c (pp_c_specifier_qualifier_list): Move conditional
+	from beginning to end.
+
 2011-10-17  Dehao Chen  <dehao@google.com>
 
 	* c-opts.c (c_common_parse_file): Write the options to

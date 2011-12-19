@@ -1,3 +1,8 @@
+2011-12-19  Sterling Augustine <saugustine@google.com>
+
+	* error.c (dump_decl): Reformat return value to "(anonymous namespace)".
+	(lang_decl_name): Return "(anonymous namespace)" when appropriate.
+
 2011-12-17   Easwaran Raman  <eraman@google.com>
 
 	* decl.c (cxx_init_decl_processing): Specify a function that
