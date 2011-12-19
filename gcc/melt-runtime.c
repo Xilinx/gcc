@@ -9469,11 +9469,15 @@ meltgc_do_initial_mode (melt_ptr_t modata_p, const char* modstr)
   modatav = modata_p;
   modstr = melt_argument ("mode");
   if (melt_debugging_after_mode)
-    melt_flag_debug = 1;
+    {
+      inform (UNKNOWN_LOCATION, "MELT enabling debug messages after mode %s", modstr?modstr:"*none*");
+      melt_flag_debug = 1;
+    }
   debugeprintf ("meltgc_do_initial_mode mode_string %s modatav %p",
 		modstr, (void *) modatav);
   if (!modstr || !modstr[0]) 
     {
+      inform (UNKNOWN_LOCATION, "MELT don't do anything because no mode is given");
       debugeprintf("meltgc_do_initial_mode do nothing without mode modata %p",
 		   modatav);
       goto end;
@@ -9833,7 +9837,12 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     const char *debuggingstr = melt_argument ("debugging");
     /* debug=n or debug=0 is handled as no debug */
     if (dbgstr && (!dbgstr[0] || !strchr("Nn0", dbgstr[0])))
-      melt_flag_debug = 1;
+      {
+	inform (UNKNOWN_LOCATION,
+		"MELT option -fplugin-arg-melt-debug will become obsolete, same as -fplugin-arg-melt-debugging=mode");
+	melt_flag_debug = 0;
+	melt_debugging_after_mode = 1;
+      }
     if (debuggingstr && *debuggingstr && strncasecmp(debuggingstr, "no", 2))
       melt_flag_debug = 1;
   }
@@ -9846,8 +9855,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     if (bootstr && (!bootstr[0] || !strchr("Nn0", bootstr[0])))
       melt_flag_bootstrapping = 1;
   }
-#endif  /* MELT_IS_PLUGIN */
-
+#else /*!MELT_IS_PLUGIN*/
   if (melt_flag_debug) 
     {
       const char* debuggingstr = melt_argument ("debugging");
@@ -9859,7 +9867,15 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 	  melt_debugging_after_mode = 1;
 	  inform (UNKNOWN_LOCATION, "MELT will give debugging messages after mode processing");
 	}
+     if (!debuggingstr) 
+       {
+	inform (UNKNOWN_LOCATION,
+		"MELT option -fmelt-debug will become obsolete, same as -fmelt-debugging=mode");
+	melt_flag_debug = 0;
+	melt_debugging_after_mode = 1;
+       }
     }
+#endif  /* MELT_IS_PLUGIN */
 
   /* Ensure that melt_source_dir & melt_module_dir are non-empty paths
      and accessible directories.  Otherwise, this file has been

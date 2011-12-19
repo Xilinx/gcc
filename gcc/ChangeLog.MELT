@@ -1,5 +1,10 @@
 
 2011-12-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_do_initial_mode): Inform when no mode is given.
+	(melt_really_initialize): inform that -fplugin-arg-melt-debug or
+	-fmelt-debug is becoming obsolete, suggest -fmelt-debugging=...
+
+2011-12-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_really_initialize): Test debuggingstr is
 	not null before strcasecmp-ing it.
 
