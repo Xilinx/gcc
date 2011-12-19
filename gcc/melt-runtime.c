@@ -9851,7 +9851,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   if (melt_flag_debug) 
     {
       const char* debuggingstr = melt_argument ("debugging");
-      if (strcasecmp(debuggingstr, "mode")) 
+      if (debuggingstr && !strcasecmp(debuggingstr, "mode")) 
 	{
 	  /* We forcibly clear the melt_flag_debug, which will be set
 	     in meltgc_do_initial_mode. */
