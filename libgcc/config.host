@@ -393,10 +393,6 @@ mcore-*-elf)
 	;;
 mcore-*-pe*)
 	;;
-microblaze*-*-elf)
-	extra_parts="crtbegin.o crtend.o crti.o crtn.o"
-        tmake_file="microblaze/t-microblaze t-fdpbit"
-	;;
 microblaze*-*-*)
         tmake_file="microblaze/t-microblaze"
 	;;
