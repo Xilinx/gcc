@@ -1,3 +1,31 @@
+2011-12-17  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config.host (mips*-sde-elf*, mipsisa64sr71k-*-elf*): Add to
+	tmake_file rather replacing it.
+
+2011-12-15  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/rs6000/darwin-world.S (toplevel): Make it clear that this
+	function is not used for PPC64.  
+	(save_world): Amend comments.  Update the VRsave mask to reflect the
+	saved regs.
+	(rest_world): Update comments, do not  clobber r10, do not use r8.
+	(eh_rest_world_r10): Amend comments, do not use r8.
+	(rest_world_eh_r7r8): Rename as local Lrest_world_eh_r7, since r8 is
+	no longer used, move restore of CR and target address to the end of
+	the routine.
+
+2011-12-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* generic-morestack.c (__generic_morestack_set_initial_sp): Check
+	__GLIBC__ instead of __linux__ when using __SIGRTMIN.
+
+2011-12-14  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49313
+	* config/avr/t-avr (LIB1ASMSRC): Add _mulpsi3, _mulsqipsi3.
+	* config/avr/lib1funcs.S (__mulpsi3, __mulsqipsi3): New functions.
+
 2011-12-11  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* config/sparc/sol2-unwind.h: Use #ifdef directive consistently.

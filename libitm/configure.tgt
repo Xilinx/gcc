@@ -48,6 +48,8 @@ fi
 case "${target_cpu}" in
   alpha*)	ARCH=alpha ;;
 
+  arm*)		ARCH=arm ;;
+
   i[3456]86)
 	case " ${CC} ${CFLAGS} " in
 	  *" -m64 "*)
@@ -60,6 +62,8 @@ case "${target_cpu}" in
 	esac
 	ARCH=x86
 	;;
+
+  sh*)		ARCH=sh ;;
 
   x86_64)
 	case " ${CC} ${CFLAGS} " in

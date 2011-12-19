@@ -1,3 +1,163 @@
+2011-12-19  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/coarray_poly_3.f90: New.
+	* coarray/poly_run_1.f90: Enable some previously commented code.
+
+2011-12-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51489
+	* g++.dg/cpp0x/constexpr-ptrsub.C: New.
+
+2011-12-18  Hans-Peter Nilsson  <hp@axis.com>
+
+	* gcc.dg/pr51491-2.c: Fix "cleanup-treee-dump" typo.
+
+2011-12-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51588
+	* g++.dg/parse/enum7.C: New.
+
+	PR c++/51586
+	* g++.dg/lookup/nested2.C: New.
+
+	PR c++/51587
+	* g++.dg/parse/enum6.C: New.
+
+2011-12-17  Tom de Vries  <tom@codesourcery.com>
+
+	PR tree-optimization/51491
+	* gcc.dg/pr51491.c: New test.
+	* gcc.dg/pr51491-2.c: Same.
+
+2011-12-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51416
+	* g++.dg/cpp0x/auto31.C: New.
+
+2011-12-16  Ian Lance Taylor  <iant@google.com>
+
+	PR middle-end/51592
+	* gcc.dg/20111216-1.c: New test.
+
+2011-12-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51461
+	* g++.dg/init/static4.C: New.
+
+2011-12-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51331
+	* g++.dg/init/value10.C: New.
+
+2011-12-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/50803
+	* gcc.dg/ipa/inline-5.c: XFAIL for 32-bit hppa.
+
+	PR tree-optimization/51575
+	* g++.dg/opt/pr51575.C: New test.
+
+	PR debug/51557
+	* gcc.dg/pr51557.c: New test.
+
+2011-12-16  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/51572
+	* gcc.dg/lto/pr51572-1_0.c: New testcase.
+
+2011-12-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51458
+	* g++.dg/ext/desig4.C: New.
+
+2011-12-15  Paul Thomas  <pault@gcc.gnu.org>
+
+	* gfortran.dg/class_array_3.f03: Remove explicit indexing of
+	A%disp() to use scalarizer.
+	* gfortran.dg/class_array_9.f03: New.
+
+2011-12-15  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/vect/vect-sdivmod-1.c: New test.
+
+	PR c++/51463
+	* g++.dg/cpp0x/pr51463.C: New test.
+
+	PR c/51360
+	* c-c++-common/gomp/pr51360.c: New test.
+	* g++.dg/gomp/pr51360.C: New test.
+
+	PR middle-end/49806
+	* gcc.dg/tree-ssa/vrp47.c: Add -fdump-tree-dom2 to dg-options.
+	Check for x_? & y in dom2 dump and xfail the check in dom1 dump.
+
+	PR tree-optimization/51117
+	* g++.dg/opt/pr51117.C: New test.
+
+2011-12-15  Romain Geissler  <romain.geissler@gmail.com>
+
+	* gcc.c-torture/execute/builtins/chk.h (stpncpy, stpncpy_disallowed):
+	New definitions.
+	* gcc.c-torture/execute/builtins/lib/chk.c (stpncpy_disallowed):
+	Likewise.
+	(stpncpy, __stpncpy_chk): New functions.
+	* gcc.c-torture/execute/builtins/stpncpy-chk-lib.c: New file.
+	* gcc.c-torture/execute/builtins/stpncpy-chk.c: Likewise.
+
+2011-12-15  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/51567
+	* g++.dg/lto/pr51567-1_0.C: New testcase.
+
+2011-12-15  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51473
+	* g++.dg/cpp0x/auto30.C: New test.
+
+2011-12-15  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/coarray/poly_run_3.f90: New.
+	* gfortran.dg/coarray/poly_run_2.f90: Enable comment-out test.
+
+2011-12-15  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/51564
+	* g++.dg/lto/pr51564-1_0.C: New testcase.
+
+2011-12-15  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/51365
+	* g++.dg/ext/is_final.C: New.
+
+2012-12-15  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/48508
+	* g++.dg/lto/pr48508-1_0.C: New testcase.
+	* g++.dg/lto/pr48508-1_1.C: Likewise.
+
+2011-12-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51554
+	* g++.dg/init/constant1.C: New.
+
+	PR c++/51248
+	* g++.dg/other/enum2.C: New.
+
+2011-12-14  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51475
+	* g++.dg/cpp0x/initlist63.C: New test.
+
+2011-12-14  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/50931
+	* gcc.target/avr/torture/int24-mul.c: New.
+
+2011-12-14  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51476
+	* g++.dg/cpp0x/ptrmem-cst-arg1.C: New test.
+
 2011-12-13  Jason Merrill  <jason@redhat.com>
 
 	PR c++/51406
@@ -11,7 +171,7 @@
 	* g++.dg/cpp0x/lambda/lambda-ice6.C: New.
 
 2011-12-13  Andrew Pinski  <apinski@cavium.com>
-            Adam Nemet  <anemet@caviumnetworks.com>
+	    Adam Nemet  <anemet@caviumnetworks.com>
 
 	* gcc.target/mips/mips.exp (mips_option_groups): Fix debug.  Add
 	-fdump-* options.

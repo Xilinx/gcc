@@ -3854,6 +3854,7 @@ cp_parser_translation_unit (cp_parser* parser)
      __is_convertible_to ( type-id , type-id )     
      __is_empty ( type-id )
      __is_enum ( type-id )
+     __is_final ( type-id )
      __is_literal_type ( type-id )
      __is_pod ( type-id )
      __is_polymorphic ( type-id )
@@ -4199,6 +4200,7 @@ cp_parser_primary_expression (cp_parser *parser,
 	case RID_IS_CONVERTIBLE_TO:
 	case RID_IS_EMPTY:
 	case RID_IS_ENUM:
+	case RID_IS_FINAL:
 	case RID_IS_LITERAL_TYPE:
 	case RID_IS_POD:
 	case RID_IS_POLYMORPHIC:
@@ -7867,6 +7869,9 @@ cp_parser_trait_expr (cp_parser* parser, enum rid keyword)
       break;
     case RID_IS_ENUM:
       kind = CPTK_IS_ENUM;
+      break;
+    case RID_IS_FINAL:
+      kind = CPTK_IS_FINAL;
       break;
     case RID_IS_LITERAL_TYPE:
       kind = CPTK_IS_LITERAL_TYPE;
@@ -16443,6 +16448,9 @@ cp_parser_ptr_operator (cp_parser* parser,
 
 	  if (TREE_CODE (parser->scope) == NAMESPACE_DECL)
 	    error_at (token->location, "%qD is a namespace", parser->scope);
+	  else if (TREE_CODE (parser->scope) == ENUMERAL_TYPE)
+	    error_at (token->location, "cannot form pointer to member of "
+		      "non-class %q#T", parser->scope);
 	  else
 	    {
 	      /* The type of which the member is a member is given by the
@@ -21848,6 +21856,9 @@ cp_parser_late_parse_one_default_arg (cp_parser *parser, tree decl,
   tree parsed_arg;
   bool dummy;
 
+  if (default_arg == error_mark_node)
+    return error_mark_node;
+
   /* Push the saved tokens for the default argument onto the parser's
      lexer stack.  */
   tokens = DEFARG_TOKENS (default_arg);
@@ -22616,6 +22627,8 @@ cp_parser_token_is_class_key (cp_token* token)
 static void
 cp_parser_check_class_key (enum tag_types class_key, tree type)
 {
+  if (type == error_mark_node)
+    return;
   if ((TREE_CODE (type) == UNION_TYPE) != (class_key == union_type))
     {
       permerror (input_location, "%qs tag used in naming %q#T",

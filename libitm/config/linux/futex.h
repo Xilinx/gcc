@@ -29,8 +29,6 @@
 
 namespace GTM HIDDEN {
 
-#include "futex_bits.h"
-
 extern void futex_wait (int *addr, int val);
 extern long futex_wake (int *addr, int count);
 

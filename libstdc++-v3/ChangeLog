@@ -1,3 +1,31 @@
+2011-12-18  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/iterators.xml: Replace "sect1" with "section".
+	* doc/xml/manual/algorithms.xml: Likewise.
+	* doc/html/manual/iterators.html: Likewise.
+	* doc/html/manual/algorithms.html: Likewise.
+
+2011-12-15  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/51558
+	* include/bits/functional_hash.h (struct hash): Add static_assert.
+	* src/compatibility-c++0x.cc: Adjust compatibility definitions.
+	* testsuite/23_containers/unordered_map/erase/51142.cc: Adjust.
+	* testsuite/23_containers/unordered_set/erase/51142.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/erase/51142.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/erase/51142.cc: Likewise.
+
+2011-12-15  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/22_locale/num_put/put/char/9780-2.cc: Add test for "C"
+	locale, add sanity checks in case of grouping.
+
+2011-12-15  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/51540
+	* include/bits/stl_numeric.h (partial_sum): Adjust doxygen comments.
+
 2011-12-12  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	Revert:

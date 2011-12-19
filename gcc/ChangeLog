@@ -1,3 +1,247 @@
+2011-12-18  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/ia64/ia64.h (REG_OK_FOR_BASE_P, REG_OK_FOR_INDEX_P,
+	LEGITIMATE_ADDRESS_REG, LEGITIMATE_ADDRESS_DISP,
+	GO_IF_LEGITIMATE_ADDRESS): Remove macros.
+	* config/ia64/ia64.c (TARGET_LEGITIMATE_ADDRESS_P): Define.
+	(ia64_reg_ok_for_base_p, ia64_legitimate_address_reg,
+	ia64_legitimate_address_disp, ia64_legitimate_address_p): New
+	functions.
+
+2011-12-17  Tom de Vries  <tom@codesourcery.com>
+
+	PR tree-optimization/51491
+	* tree-ssa-ccp.c (insert_clobber_before_stack_restore)
+	(gsi_prev_dom_bb_nondebug, insert_clobbers_for_var): New function.
+	(ccp_fold_stmt): Use insert_clobbers_for_var after a successful
+	fold_builtin_alloca_with_align.
+	(ccp_visit_stmt): Calculate and free dominator info.
+
+2011-12-16  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.md (UNSPEC_FRAME_BLOCKAGE): New constant.
+	(frame_blockage): New expander.
+	(frame_blockage<P:mode>): New instruction.
+	* config/sparc/sparc.c (sparc_expand_prologue): When the sequence of
+	instructions establishing the frame isn't atomic, emit frame blockage.
+
+2011-12-16  Tristan Gingold  <gingold@adacore.com>
+
+	* config/alpha/vms.h (USE_TM_CLONE_REGISTRY): Define.
+
+2011-12-16  Tristan Gingold  <gingold@adacore.com>
+
+	* config/alpha/alpha.c (alpha_use_linkage): Follow transparent alias.
+	(alpha_write_one_linkage): Use assemble_name to emit linkage name.
+
+2011-12-16  Tristan Gingold  <gingold@adacore.com>
+
+	* config/vms/t-vms (vms.o, vms-c.o): Force output filename.
+
+2011-12-16  Tristan Gingold  <gingold@adacore.com>
+
+	* config/vms/vms.c (VMS_CRTL_GLOBAL): Define.
+	(vms_patch_builtins): Handle.
+	* config/vms/vms-crtlmap.map: Add an entry for environ.
+
+2011-12-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/51557
+	* sel-sched-ir.c (create_copy_of_insn_rtx): Copy all notes
+	other than REG_EQUAL, REG_EQUIV and REG_LABEL_OPERAND.
+
+	PR tree-optimization/51576
+	* tree-cfg.c (replace_uses_by): Call maybe_clean_or_replace_eh_stmt
+	even if fold_stmt didn't change anything.
+
+2011-12-16  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/51572
+	* dwarf2out.c (gen_type_die_with_usage): Use the context of
+	the TYPE_DECL as well if it is file-scope.
+
+2011-12-15  DJ Delorie  <dj@redhat.com>
+
+	* config/rl78/rl78.md (return): Rename to rl78_return.
+	* config/rl78/rl78.c (rl78_expand_epilogue): Use new name.
+	(rl78_expand_eh_epilogue): Use new name.
+	(rl78_calculate_death_notes): Likewise.
+
+2011-12-15  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-vectorizer.h (struct _stmt_vec_info): Remove pattern_def_stmt
+	field, add pattern_def_seq.
+	(STMT_VINFO_PATTERN_DEF_STMT): Remove.
+	(STMT_VINFO_PATTERN_DEF_SEQ): Define.
+	(NUM_PATTERNS): Bump to 10.
+	* tree-vect-loop.c (vect_determine_vectorization_factor,
+	vect_transform_loop): Adjust for pattern def changing from a single
+	gimple stmt to gimple_seq.
+	* tree-vect-stmts.c (vect_analyze_stmt, new_stmt_vec_info,
+	free_stmt_vec_info): Likewise.
+	* tree-vect-patterns.c (vect_recog_over_widening_pattern,
+	vect_recog_vector_vector_shift_pattern,
+	vect_recog_mixed_size_cond_pattern, adjust_bool_pattern_cast,
+	adjust_bool_pattern, vect_mark_pattern_stmts): Likewise.
+	(vect_recog_sdivmod_pow2_pattern): New function.
+	(vect_vect_recog_func_ptrs): Add it.
+
+	* config/i386/sse.md (vcond<V_256:mode><VI_256:mode>,
+	vcond<V_128:mode><VI124_128:mode>, vcond<VI8F_128:mode>v2di):
+	Use general_operand instead of nonimmediate_operand for
+	operand 5 and no predicate for operands 1 and 2.
+	* config/i386/i386.c (ix86_expand_int_vcond): Optimize
+	x < 0 ? -1 : 0 and x < 0 ? 1 : 0 into vector arithmetic
+	resp. logical shift.
+
+2011-12-15  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr-protos.h (print_operand): Remove.
+	(print_operand_address): Remove.
+	* config/avr/avr.h (PRINT_OPERAND): Remove.
+	(PRINT_OPERAND_ADDRESS): Remove.
+	(PRINT_OPERAND_PUNCT_VALID_P): Remove.
+	* config/avr/avr.c (TARGET_PRINT_OPERAND): New hook define.
+	(TARGET_PRINT_OPERAND_ADDRESS): New hook define.
+	(TARGET_PRINT_OPERAND_PUNCT_VALID_P): New hook define.
+	(print_operand_address): Rename to...
+	(avr_print_operand_address): ...this and make static.
+	(print_operand): Rename to...
+	(avr_print_operand): ...this and make static.
+	(avr_print_operand_punct_valid_p): New static function.
+
+2011-12-15  Andreas Tobler  <andreast@fgznet.ch>
+
+	* config/i386/freebsd.h (TARGET_ASM_FILE_END): Define.
+
+2011-12-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/51360
+	* c-parser.c (c_parser_omp_clause_num_threads,
+	c_parser_omp_clause_schedule): Call mark_exp_read.
+
+2011-12-15  Romain Geissler  <romain.geissler@gmail.com>
+
+	* builtins.def (BUILT_IN_STPNCPY_CHK): New definition.
+	* builtins.c (expand_builtin, fold_builtin_4, maybe_emit_chk_warning):
+	Add BUILT_IN_STPNCPY_CHK case.
+	* gimple-fold.c (gimple_fold_builtin): Likewise.
+	* tree-object-size.c (pass_through_call): Likewise.
+	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1,
+	call_may_clobber_ref_p_1): Likewise.
+	* tree-ssa-structalias.c (find_func_aliases_for_builtin_call,
+	find_func_clobbers): Likewise.
+	* tree.h (fold_builtin_strncpy_chk): Rename to fold_builtin_stxncpy_chk
+	* builtins.c (fold_builtin_strncpy_chk): Likewise.
+	Rewrite stpncpy_chk calls to strncpy_chk calls if returned value is
+	ignored.
+
+2011-12-15  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/51567
+	* gimple.c (compare_type_names_p): Also compare the TREE_CODE.
+	(iterative_hash_name): Also hash the TREE_CODE.
+	(gimple_types_compatible_p_1): For types with a TYPE_DECL
+	name and a type DECL_CONTEXT recurse to that type.
+	(iterative_hash_gimple_type): Likewise.
+
+2011-12-15  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/rs6000/rs6000.c  (rs6000_emit_prologue): Move update of
+	VRSave mask to save_world() when that is in use.
+
+2011-12-15  Richard Guenther  <rguenther@suse.de>
+
+	* lto-wrapper.c (run_gcc): In non-parallel mode remove
+	ltrans inputs immediately after processing them.  In parallel
+	mode truncate the ltrans inputs in the make rule that processes
+	them if temporary files are not to be preserved.
+
+2011-12-15  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/arm/arm.h (REGISTER_MOVE_COST, MEMORY_MOVE_COST): Remove.
+	* config/arm/arm.c (arm_memory_move_cost, arm_register_move_cost):
+	New functions.
+	(TARGET_REGISTER_MOVE_COST, TARGET_MEMORY_MOVE_COST): Define.
+
+2011-12-15  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/51564
+	* tree.h (REGISTER_DEFS_IN_THIS_STMT, NECESSARY,
+	STMT_IN_SSA_EDGE_WORKLIST): Remove no longer existing flag
+	uses documentation.
+	(TREE_ASM_WRITTEN): Update documentation to mention its use
+	on TYPE_DECLs from debug info generation.
+	* tree-streamer-out.c (pack_ts_base_value_fields): Stream
+	TREE_ASM_WRITTEN as always zero for TYPE_DECLs, similar to
+	all other types.
+
+2011-12-15  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/51050
+	* config/avr/avr.c (expand_epilogue): Don't build SUBREG of fp.
+	(avr_prologue_setup_frame): Ditto.
+
+2011-12-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/51517
+	* tree-ssa-coalesce.c (coalesce_ssa_name): For !optimize, test
+	!DECL_IGNORED_P instead of !DECL_ARTIFICIAL.
+
+2012-12-15  Richard Guenther  <rguenther@suse.de>
+
+	Revert
+	PR lto/48437
+	* lto-streamer-out.c (tree_is_indexable): Exclude block-local
+	extern declarations.
+
+	PR lto/48508
+	PR lto/48437
+	* tree-streamer-out.c (streamer_write_chain): Stream DECL_EXTERNAL
+	VAR_DECLs and FUNCTION_DECLs locally.
+
+2011-12-14  Richard Henderson  <rth@redhat.com>
+
+	* config/arm/arm.md (*addsi3_compare0_scratch): Set predicable.
+	(*compare_negsi_si, *compare_addsi2_op0): Likewise.
+	(*compare_addsi2_op1, *zeroextractsi_compare0_scratch): Likewise.
+	(*compareqi_eq0, *arm_cmpsi_insn, *arm_cmpsi_negshiftsi_si): Likewise.
+
+2011-12-14  Richard Guenther  <rguenther@suse.de>
+
+	* tree-cfg.c (replace_uses_by): Fixup TREE_CONSTANT for
+	propagating all kinds of constants.
+
+2011-12-14  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/51497
+	* lto-streamer-in.c (lto_read_body): Fixup local types
+	TYPE_CANONICAL and variant chain.
+
+2011-12-14  Richard Guenther  <rguenther@suse.de>
+
+	* tree.c (free_lang_data_in_type): Do not clear fields
+	dependent on debuginfo level setting.
+	(find_decls_types_r): Use TYPE_STUB_DECL rathern than TREE_CHAIN.
+	* tree.h (TYPE_STUB_DECL): Properly check that we access a type.
+
+2011-12-14  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/50931
+	* config/avr/avr.md (mulpsi3): New expander.
+	(*umulqihipsi3, *umulhiqipsi3): New insns.
+	(*mulsqipsi3.libgcc, *mulpsi3.libgcc): New insns.
+	(mulsqipsi3, *mulpsi3): New insn-and-splits.
+	(ashlpsi3): Turn to expander.  Move insn code to...
+	(*ashlpsi3): ...this new insn.
+
+2011-12-14  Richard Guenther  <rguenther@suse.de>
+
+	* tree-cfg.c (replace_uses_by): Only mark blocks altered
+	that will make a difference.  Only recompute ADDR_EXPR
+	invariantness if it could possibly have changed.  Do so
+	before folding the statement.
+
 2011-12-13  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* lto-streamer-out.c (write_symbol): Use proper 64-bit host type.
@@ -17,11 +261,10 @@
 
 2011-12-13  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
 
-	* regmove.c (fixup_match_2): Only access call_used_regs with hard
-	regs.
+	* regmove.c (fixup_match_2): Only access call_used_regs with hard regs.
 
 2011-12-13  Andrew Pinski  <apinski@cavium.com>
-            Adam Nemet  <anemet@caviumnetworks.com>
+	    Adam Nemet  <anemet@caviumnetworks.com>
 
 	* config/mips/mips-cpus.def: Add Octeon2.
 	* config/mips/mips-tables.opt: Regenerate.
@@ -172,10 +415,6 @@
 	* tree-sra.c (build_ref_for_model): Replicate a chain of COMPONENT_REFs
 	in the expression of MODEL instead of just the last one.
 
-2011-12-12  Dmitry Vyukov  <dvyukov@google.com>
-
-	* cgraphunit.c (init_lowered_empty_function): Fix flags for new edges.
-
 2011-12-12  Jakub Jelinek  <jakub@redhat.com>
 
 	PR middle-end/51510
@@ -217,8 +456,7 @@
 
 2011-12-11  Patrick Marlier  <patrick.marlier@gmail.com>
 
-	* trans-mem.c (ipa_tm_transform_calls_redirect): Do not remove
-	edge.
+	* trans-mem.c (ipa_tm_transform_calls_redirect): Do not remove edge.
 
 2011-12-10  Richard Henderson  <rth@redhat.com>
 
@@ -381,8 +619,7 @@
 
 	* ira-color.c (print_hard_regs_subforest): Use
 	HOST_WIDEST_INT_PRINT_DEC instead of %lld.
-	(allocno_hard_regs): Change type of cost member
-	to HOST_WIDEST_INT.
+	(allocno_hard_regs): Change type of cost member to HOST_WIDEST_INT.
 	(add_allocno_hard_regs): Change type of argument cost
 	to HOST_WIDEST_INT.
 	* ira-conflict.c (build_conflict_bit_table): Replace use
@@ -405,8 +642,7 @@
 
 	PR tree-optimization/51482
 	* tree-vect-stmts.c (get_vectype_for_scalar_type_and_size):
-	Make sure to only create REAL_TYPE and INTEGER_TYPE component
-	vectors.
+	Make sure to only create REAL_TYPE and INTEGER_TYPE component vectors.
 
 2011-12-09  Kai Tietz  <ktietz@redhat.com>
 
@@ -456,8 +692,7 @@
 2011-12-08  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/49772
-	* tree-inline.c (optimize_inline_calls): Remove bail out
-	on errors.
+	* tree-inline.c (optimize_inline_calls): Remove bail out on errors.
 
 2011-12-08  Richard Guenther  <rguenther@suse.de>
 
@@ -559,7 +794,7 @@
 	* config/avr/avr.c (avr_addrspace): New variable.
 	(avr_out_lpm, avr_pgm_check_var_decl, avr_insert_attributes,
 	avr_asm_named_section, avr_section_type_flags,
-	avr_asm_select_section, avr_addr_space_address_mode, 
+	avr_asm_select_section, avr_addr_space_address_mode,
 	avr_addr_space_convert, avr_emit_movmemhi): Use it.
 	(avr_addr_space_pointer_mode): Forward to avr_addr_space_address_mode.
 	(avr_pgm_segment): Remove.
@@ -574,17 +809,15 @@
 2011-12-06  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/51436
-	* gimple-fold.c (gimplify_and_update_call_from_tree): Guard
-	vdef check for the fact we do not have virtual operands when
-	not optimizing.
+	* gimple-fold.c (gimplify_and_update_call_from_tree): Guard vdef check
+	for the fact we do not have virtual operands when not optimizing.
 
 2011-12-06  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/51245
 	* tree-ssa-sccvn.c (vn_reference_lookup_or_insert_constant_for_pieces):
 	New function.
-	(vn_reference_lookup_3): Use it.  Properly valueize all refs
-	we create.
+	(vn_reference_lookup_3): Use it.  Properly valueize all refs we create.
 
 2011-12-06  Iain Sandoe  <iains@gcc.gnu.org>
 
@@ -663,8 +896,7 @@
 	(struct allocno_color_data): Add new member last_process.  Move
 	profitable_hard_regs, hard_regs_node, and hard_regs_subnodes_start
 	from object_color_data.
-	(object_color_data_t, object_color_data, OBJECT_COLOR_DATA):
-	Remove.
+	(object_color_data_t, object_color_data, OBJECT_COLOR_DATA): Remove.
 	(curr_allocno_process): New static variable.
 	(object_hard_regs_eq, object_hard_regs_htab): Rename to
 	allocno_hard_regs_eq and allocno_hard_regs_htab.
@@ -677,29 +909,36 @@
 	(add_new_object_hard_regs_node_to_forest): Rename to
 	add_new_allocno_hard_regs_node_to_forest.
 	(add_object_hard_regs_to_forest, collect_object_hard_regs_cover):
-	Rename to add_allocno_hard_regs_to_forest and collect_allocno_hard_regs_cover.
-	(setup_object_hard_regs_nodes_parent): Rename to setup_allocno_hard_regs_nodes_parent.
-	(remove_unused_object_hard_regs_nodes): Rename to remove_unused_allocno_hard_regs_nodes.
+	Rename to add_allocno_hard_regs_to_forest and
+	collect_allocno_hard_regs_cover.
+	(setup_object_hard_regs_nodes_parent): Rename to
+	setup_allocno_hard_regs_nodes_parent.
+	(remove_unused_object_hard_regs_nodes): Rename to
+	remove_unused_allocno_hard_regs_nodes.
 	(enumerate_object_hard_regs_nodes, object_hard_regs_nodes_num):
-	Rename to enumerate_allocno_hard_regs_nodes and allocno_hard_regs_nodes_num.
+	Rename to enumerate_allocno_hard_regs_nodes and
+	allocno_hard_regs_nodes_num.
 	(object_hard_regs_nodes, object_hard_regs_subnode_t): Rename to
 	allocno_hard_regs_nodes and allocno_hard_regs_subnode_t.
 	(object_hard_regs_subnode, object_hard_regs_subnodes): Rename to
 	allocno_hard_regs_subnode and allocno_hard_regs_subnodes.
-	(object_hard_regs_subnode_index): Rename to allocno_hard_regs_subnode_index.
+	(object_hard_regs_subnode_index): Rename to
+	allocno_hard_regs_subnode_index.
 	(setup_object_hard_regs_subnode_index): Rename to
 	setup_allocno_hard_regs_subnode_index.
-	(get_object_hard_regs_subnodes_num): Rename to get_allocno_hard_regs_subnodes_num.
-	(form_object_hard_regs_nodes_forest): Rename to form_allocno_hard_regs_nodes_forest.
-	(finish_object_hard_regs_nodes_tree): Rename to form_allocno_hard_regs_nodes_forest
+	(get_object_hard_regs_subnodes_num): Rename to
+	get_allocno_hard_regs_subnodes_num.
+	(form_object_hard_regs_nodes_forest): Rename to
+	form_allocno_hard_regs_nodes_forest.
+	(finish_object_hard_regs_nodes_tree): Rename to
+	form_allocno_hard_regs_nodes_forest
 	(finish_object_hard_regs_nodes_forest): Rename to
 	finish_allocno_hard_regs_nodes_forest.
-	(setup_left_conflict_sizes_p): Use allocno data instead of object
-	ones.  Process conflict allocnos once.
+	(setup_left_conflict_sizes_p): Use allocno data instead of object ones.
+	Process conflict allocnos once.
 	(update_left_conflict_sizes_p): Use allocno data instead of object
 	ones.  Change prototype signature.
-	(empty_profitable_hard_regs): Use allocno data instead of object
-	ones.
+	(empty_profitable_hard_regs): Use allocno data instead of object ones.
 	(setup_profitable_hard_regs): Ditto.
 	(get_conflict_profitable_regs): Rename to
 	get_conflict_and_start_profitable_regs.  Use allocno data for
@@ -734,8 +973,7 @@
 	(struct vop_to_refs_elt, vtoe_hash, vtoe_eq, vtoe_free,
 	record_vop_access, get_vop_accesses, get_vop_stores,
 	add_vop_ref_mapping): Remove.
-	(create_vop_ref_mapping_loop): Adjust to simply record all
-	stores.
+	(create_vop_ref_mapping_loop): Adjust to simply record all stores.
 	(analyze_memory_references): Adjust.
 	(refs_independent_p): Check for not analyzable refs.
 	(can_sm_ref_p): Likewise.
@@ -760,9 +998,8 @@
 
 2011-12-05  Richard Guenther  <rguenther@suse.de>
 
-	* tree-ssa.c (verify_ssa): Verify SSA names in the loop
-	over all SSA names.  Remove SSA operand checking, call
-	verify_ssa_operands.
+	* tree-ssa.c (verify_ssa): Verify SSA names in the loop over all SSA
+	names.  Remove SSA operand checking, call verify_ssa_operands.
 	* tree-ssa-operands.h (verify_ssa_operands): Declare.
 	* tree-ssa-operands.c (verify_ssa_operands): New function.
 
@@ -785,8 +1022,7 @@
 	(cgraph_make_edge_direct): Likewise.
 	* gimple-streamer-in.c (input_gimple_stmt): Do not
 	call gimple_call_set_cannot_inline.
-	* gimple.h (enum gf_mask): Remove GF_CALL_CANNOT_INLINE, shift
-	values.
+	* gimple.h (enum gf_mask): Remove GF_CALL_CANNOT_INLINE, shift values.
 	(gimple_call_set_cannot_inline): Remove.
 	(gimple_call_cannot_inline_p): Likewise.
 	* ipa-inline-analysis.c (initialize_inline_failed): Look
@@ -838,8 +1074,7 @@
 	(coverage_begin_function): ... here.
 	* coverage.c (struct function_list): Rename to ...
 	(struct coverage_data): ... this.  Update all uses.
-	(gcov_info_var, gcov_fn_info_type, gcov_fn_info_ptr_type): New
-	globals.
+	(gcov_info_var, gcov_fn_info_type, gcov_fn_info_ptr_type): New globals.
 	(bbg_file_opened, bbg_function_announced): Remove.
 	(get_coverage_counts): Adjust message.
 	(coverage_begin_ouput): Rename to ...
@@ -929,8 +1164,7 @@
 	(process_file): Call find_exception_blocks if necessary.
 	(read_graph_file): Adjust.  Note if an exceptional edge is seen.
 	(find_exception_blocks): New.
-	(add_line_counts): Set line's unexceptional flag if not
-	exceptional.
+	(add_line_counts): Set line's unexceptional flag if not exceptional.
 	(output_branch_count): Note exceptional arcs, lines and blocks.
 	* gcov-dump.c (tag_arcs): Decode arc flags.
 	* doc/gcov.texi: Document '=====' lines.

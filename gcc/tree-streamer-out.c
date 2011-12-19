@@ -88,7 +88,8 @@ pack_ts_base_value_fields (struct bitpack_d *bp, tree expr)
   else
     bp_pack_value (bp, 0, 1);
   /* We write debug info two times, do not confuse the second one.  */
-  bp_pack_value (bp, TYPE_P (expr) ? 0 : TREE_ASM_WRITTEN (expr), 1);
+  bp_pack_value (bp, ((TYPE_P (expr) || TREE_CODE (expr) == TYPE_DECL)
+		      ? 0 : TREE_ASM_WRITTEN (expr)), 1);
   if (TYPE_P (expr))
     bp_pack_value (bp, TYPE_ARTIFICIAL (expr), 1);
   else
@@ -405,7 +406,13 @@ streamer_write_chain (struct output_block *ob, tree t, bool ref_p)
       saved_chain = TREE_CHAIN (t);
       TREE_CHAIN (t) = NULL_TREE;
 
-      stream_write_tree (ob, t, ref_p);
+      /* We avoid outputting external vars or functions by reference
+	 to the global decls section as we do not want to have them
+	 enter decl merging.  This is, of course, only for the call
+	 for streaming BLOCK_VARS, but other callers are safe.  */
+      stream_write_tree (ob, t,
+			 ref_p && !(VAR_OR_FUNCTION_DECL_P (t)
+				    && DECL_EXTERNAL (t)));
 
       TREE_CHAIN (t) = saved_chain;
       t = TREE_CHAIN (t);
