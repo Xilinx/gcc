@@ -1070,7 +1070,7 @@ source location.}#
 (install_method discr_any_receiver normalize_binding normbind_failany)
 
 (defun normbind_anybind (bind env ncx procs psloc)
-  (debug "normbind_anybind bind½" bind)
+  (debug "normbind_anybind bind=" bind)
   (let ( (dis (discrim bind))
 	 (symb (unsafe_get_field :binder bind)) 
 	 (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
@@ -1178,31 +1178,39 @@ source location.}#
 (install_method class_fixed_binding  normalize_binding normbind_fixbind)
 
 
-;; normalize local define-d binding
+;; normalize a define-d binding
 (defun normbind_definedvalbind (bind env ncx procs psloc)
-  (debug "normbind_definedvalbind bind" bind)
+  (debug "normbind_definedvalbind bind=" bind " psloc=" psloc)
   (assert_msg "check bind" (is_a bind class_defined_value_binding))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
   (let ( (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
-	 (symb (unsafe_get_field :binder bind))
-	 (syocc
-		(instance class_nrep_locsymocc
-			  :nrep_loc psloc
-			  :nocc_ctyp ctype_value 
-			  :nocc_symb symb
-			  :nocc_bind bind) ) 
-	 )
+         (symb (unsafe_get_field :binder bind))
+         (curproc (get_field :nctx_curproc ncx))
+         (syconst (instance class_nrep_defined_constant
+                            :nrep_loc psloc
+                            :nconst_sval symb
+                            :nconst_data ()
+                            :nconst_proc curproc
+                            :nconst_defbind bind
+                            ))
+					;- (syocc
+					;-        (instance class_nrep_locsymocc
+					;-                  :nrep_loc psloc
+					;-                  :nocc_ctyp ctype_value 
+					;-                  :nocc_symb symb
+					;-                  :nocc_bind bind) ) 
+         )
     (debug "normbind_definedvalbind ncx=" ncx
-	   " env=" env " procs=" procs)
-	  ;; cache the result & return it
-    (mapobject_put sycmap symb syocc)
-    (put_fields bind :fixbind_data syocc)
-    (debug "normbind_definedvalbind sycmap=" sycmap " syocc=" syocc)
+	   "\n env=" env " procs=" procs)
+    ;; cache the result & return it
+    (mapobject_put sycmap symb syconst)
+					;- (put_fields bind :fixbind_data syocc)
+    (debug "normbind_definedvalbind sycmap=" sycmap " syconst=" syconst)
     (if (is_non_empty_list procs)
 	(assert_msg "normbind_definedvalbind check no procs"))
-    (return syocc)
-))
+    (return syconst)
+    ))
 (install_method class_defined_value_binding normalize_binding normbind_definedvalbind)
 
 ;; normalize local constructed binding
@@ -1265,9 +1273,11 @@ source location.}#
    (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx))
 	  (syca (mapobject_get sycmap recv)) )
      (assert_msg "check sycmap" (is_mapobject sycmap))
+     (debug "normex_symbol syca=" syca " for recv=" recv)
      (cond 
       ;; check if in the cache
       (syca syca)	     ;already cached
+      ;;
       ;; value binding, get/put it into the map
       ( (is_a bind class_value_binding)
 	(let ( (bvar (mapobject_get (unsafe_get_field :nctx_valbindmap ncx) bind)) )
@@ -1321,6 +1331,7 @@ source location.}#
 	      bvar
 	      )
 	    )))
+      ;;
       ;; the procs is a non-empty list, so the symbol is closed
       ( (and (is_list procs)
 	     (is_pair (list_first procs)))
@@ -1395,6 +1406,7 @@ source location.}#
 		   )))
 	      clocc
 	      ) ) ) ) 
+      ;;
       ;; dispatch the binding
       (:else 
        (debug "normexp_symbol dispatching bind=" bind " for recv=" recv " psloc=" psloc)
@@ -3514,9 +3526,7 @@ source location.}#
 		  )))) )
        (unsafe_put_fields ndataclos :ndclo_closv clovtup)
        )
-     (unsafe_put_fields sfubind 
-			:fixbind_data ndataclos
-			)
+     (unsafe_put_fields sfubind :fixbind_data ndataclos)
      (debug "normexp_defun return nproc" nproc)
      (return nproc ())
      )
@@ -3586,10 +3596,10 @@ source location.}#
     (multicall
      (nbody nbindings)
      (normalize_tuple sbody newenv ncx sloc)
-     (multiple_every
-      nbindings
-      (lambda (nbi :long ix)
-	(put_env newenv nbi)))
+     (foreach_in_multiple
+      (nbindings)
+       (nbi :long ix)
+	(put_env newenv nbi))
      (unsafe_put_fields 
       nproc
       :nproc_body (wrap_normal_letseq (replace_last_by_return nbody newenv sloc) nbindings sloc)
@@ -4929,9 +4939,7 @@ source location.}#
 		    (normal_predef stype ncx sloc "primitive res type"))
 ;;; put the data into the primitive binding
     (if (is_a sprimbind class_primitive_binding)
-	(unsafe_put_fields sprimbind 
-			   :fixbind_data nprimdata 
-			   ))
+	(unsafe_put_fields sprimbind  :fixbind_data nprimdata))
     (return ())		     ;normalized defprimitive is empty
     ))
 (install_method class_source_defprimitive normal_exp normexp_defprimitive)
@@ -5034,9 +5042,7 @@ source location.}#
       (multiple_put_nth slotup (get_int citer_expafter) nafttupdata)
       )
     (assert_msg "check citbind" (is_a citbind class_citerator_binding))
-    (unsafe_put_fields citbind
-		       :fixbind_data insdata 
-		       )
+    (unsafe_put_fields citbind :fixbind_data insdata)
 ;;;;;;;
     ;; return the data
     (debug "normexp_defciterator return insdata" insdata)
@@ -5610,9 +5616,7 @@ source location.}#
       (fill_data_slot cladata class_ancestors ancdata)
       (fill_data_slot cladata class_fields flddata)
       (assert_msg "check sclabind" (is_a sclabind class_class_binding))
-      (unsafe_put_fields sclabind 
-			 :fixbind_data cladata 
-			 )
+      (unsafe_put_fields sclabind :fixbind_data cladata)
       ;; for each field which is not own, make a data to copy it from the superclass
       (setq ix 0)
       (forever loopsuperfield
@@ -5665,9 +5669,7 @@ source location.}#
 		     (fill_data_slot ownfldata fld_ownclass cladata)
 		     (multiple_put_nth fldtup (+i ix nbsupfld) ownfldata)
 		     ;; fill the field binding with its compiled data
-		     (unsafe_put_fields ownfldbind 
-					:fixbind_data ownfldata 
-					)
+		     (unsafe_put_fields ownfldbind :fixbind_data ownfldata)
 		     )))
 	       (setq ix (+i ix 1))
 	       )
@@ -5755,9 +5757,7 @@ source location.}#
 	  )
       (add_nctx_data ncx insdata)
       (put_env env bindins)
-      (unsafe_put_fields bindins 
-			 :fixbind_data insdata
-			 )
+      (unsafe_put_fields bindins :fixbind_data insdata)
       ;; scan the fields initialization
       (multiple_every
        sinstfields
@@ -5814,20 +5814,32 @@ source location.}#
 	(binddef (find_env env sname))
 	(namdata (normal_symbol_data sname ncx sloc))
 	(curproc (unsafe_get_field :nctx_curproc ncx)) 
+	(newenv (fresh_env env))
+	(locbind (instance class_normal_let_binding
+			   :letbind_loc sloc
+			   :binder sname
+			   :letbind_type ctype_value
+			   :letbind_expr ()
+			   ))
 	)
     (debug "normexp_define namdata=" namdata " binddef=" binddef)
     (assert_msg "check body tuple" (is_multiple sbody))
+    (assert_msg "check binddef" (is_a binddef class_defined_value_binding))
     (debug "normexp_define curproc" curproc)
+    ;; TODO:: maybe we could have internal defines for constants...
     (if (is_not_a curproc class_nrep_initproc)
 	(progn
 	  (error_plain sloc "(DEFINE ...) can appear only at top-level")
 	  (return)))
-    (debug "normexp_define sbody" sbody)
+    (put_env newenv locbind)
+    (debug "normexp_define sbody=" sbody "\n newenv=" newenv)
     (multicall
      (nbody nbindings)
-     (normalize_tuple sbody env ncx sloc)
+     (normalize_tuple sbody newenv ncx sloc)
      (debug "normexp_define nbody=" nbody " nbindings=" nbindings
 	    " sname=" sname)
+     (if (null nbindings)
+	 (setq nbindings (make_list discr_list)))
      (let (
 	   (procdefbinds (get_field :ninit_defbinds curproc))
 	   (ndefname (normexp_symbol sname env ncx sloc))
@@ -5854,10 +5866,8 @@ source location.}#
 	   (error_strv sloc "DEFINE-d name is not a value" snamestr))
        (if (!= (get_ctype nlastbody newenv) ctype_value)
 	   (error_strv sloc "DEFINE-d body don't end with a value" snamestr))
-
-       (warning_strv sloc "(DEFINE name ...) not fully implemented, normalization could be incomplete"
-		   snamestr)	
-       (debug "normexp_define newbody=" newbody " nbindings=" nbindings)
+       (list_append nbindings locbind)
+       (debug "normexp_define return newbody=" newbody " nbindings=" nbindings)
        (return newbody nbindings)
        ))))
 (install_method class_source_define normal_exp normexp_define)
@@ -5937,9 +5947,7 @@ source location.}#
 	  )
       (add_nctx_data ncx insdata)
       (add_nctx_data ncx namstrdata)
-      (unsafe_put_fields bindsel
-			 :fixbind_data insdata
-			 )
+      (unsafe_put_fields bindsel :fixbind_data insdata)
       ;; scan the fields initialization
       (multiple_every
        sinstfields
@@ -5970,9 +5978,7 @@ source location.}#
 	;; force the name of the selectordata
 	(multiple_put_nth slotup (get_int named_name) namstrdata)
 	(if (is_a bindsel class_selector_binding)
-	    (unsafe_put_fields bindsel
-			       :fixbind_data insdata
-			       ))
+	    (unsafe_put_fields bindsel :fixbind_data insdata))
 	;; return the data
 	(debug "normexp_defselector return insdata" insdata)
 	insdata

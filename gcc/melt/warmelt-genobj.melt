@@ -1071,7 +1071,7 @@ $SBUF.}#
 	    (oinisym (get_field :fixbind_data curdefbind))
 	    (oinidefloc (get_free_objlocptr gcx inidefsymb))
 	   )
-       (debug "compile2obj_initproc oinidefloc=" oinidefloc)
+       (debug "compile2obj_initproc oinidefloc=" oinidefloc " oinisym=" oinisym)
        (assert_msg "check oinisym" (is_a oinisym class_nrep_locsymocc))
        (mapobject_put locmap curdefbind oinidefloc)
      ))

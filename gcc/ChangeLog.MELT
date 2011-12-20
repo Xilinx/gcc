@@ -1,5 +1,17 @@
 
 2011-12-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (normbind_anybind): Better debugging.
+	(normbind_definedvalbind) make instance of class_nrep_defined_constant.
+	(normexp_symbol): More debugging.
+	(normexp_defun):  More debugging.
+	(normalize_lambda): Use foreach_in_multiple instead of multiple_every.
+
+	* melt/warmelt-genobj.melt (compile2obj_initproc): More debug.
+
+	* testsuite/melt/tdefine.melt (plus2): New function.
+	Use it.
+
+2011-12-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated all}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
