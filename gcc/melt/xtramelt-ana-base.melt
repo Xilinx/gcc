@@ -3805,6 +3805,13 @@ Don't scan operands of the added $G.}#
 	(add2out_strconst out "*nulltree*")
 	)))
 
+(defun dbgfun_tree_briefly (dbgi :tree tr)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (output_tree_briefly (get_field :dbgi_out dbgi) tr)
+  )
+
+(define dbg_tree_briefly 
+  (clone_with_discriminant dbgfun_tree_briefly discr_debug_closure))
 
 ;;;;;;;;;;;;;;;;
 (defun debugfun_gimple (dbgi :gimple g)
@@ -3905,6 +3912,7 @@ Don't scan operands of the added $G.}#
  cfun_nonlocal_goto_save_area
  cfun_static_chain_decl
  clear_special 
+ dbg_tree_briefly
  debug_dominance_info
  debug_post_dominance_info
  debug_ppl_coefficient

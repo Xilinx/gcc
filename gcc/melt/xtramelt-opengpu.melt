@@ -338,7 +338,7 @@
      (assert_msg "check curindvar" (is_a curindvar class_opengpu_induction_variable))
      (let ( (:tree tvar (tree_content (get_field :opgpuiv_tvar curindvar)))
 	    )
-       (debug "opengpu_affine_accessed_array tvar=" tvar " curindvar=" curindvar)
+       (debug "opengpu_affine_accessed_array tvar=" dbg_tree_briefly tvar " curindvar=" curindvar)
        (maptree_put treeprop tvar curindvar)
      ))
     (debug "opengpu_affine_accessed_array treeprop=" treeprop)
@@ -545,7 +545,7 @@
 )
 
 (defun opengpudetect_exec (pass)
-  (debug "opengpudetect_exec start pass=" pass)
+  (debug "opengpudetect_exec start pass=" pass " dbg_tree_briefly=" dbg_tree_briefly)
   (let ( (:long passcounter 0)
 	 )
     (code_chunk 

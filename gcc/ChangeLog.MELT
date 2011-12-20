@@ -1,4 +1,11 @@
 
+2011-12-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (melt_debug_fun, debug_msg_fun): Add an
+	extra newline for big output.
+	* melt/xtramelt-ana-base.melt (dbg_tree_briefly): New debug closure.
+	* melt/xtramelt-opengpu.melt (opengpudetect_exec): Display dbg_tree_briefly.
+	(opengpu_affine_accessed_array): Use it.
+
 2011-12-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt (class_opengpu_linear_composition): New.
 	(class_opengpu_induction_variable): Add :opgpuiv_bound field.

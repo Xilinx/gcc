@@ -59,8 +59,8 @@ or -fplugin-arg-melt-debug-depth program argument.}#
 ;;; debug_msg support is done by calling this debug_msg_fun 
 (defun debug_msg_fun (val :cstring msgstr :long count :cstring filenam :long lineno)
   :doc #{Internal function called by $DEBUG_MSG macro to output for
-debugging the value $VAL with message $MSGSTR, given $COUNT, at
-$FILENAM and $LINENO}#
+  debugging the value $VAL with message $MSGSTR, given $COUNT, at
+  $FILENAM and $LINENO}#
   (code_chunk incrdbgcounter #{++melt_dbgcounter}#)
   (if (melt_need_dbg 0) 
       (let ( (:long dbgcounter 0)
@@ -71,19 +71,19 @@ $FILENAM and $LINENO}#
 	     (boxedmaxdepth (make_integerbox discr_integer (debug_depth))) ;;;; @@@ DEBUGDEPTH
 	     )
 	(code_chunk getdbgcounter 
-		    #{/*$GETDBGCOUNTER*/ $dbgcounter = melt_dbgcounter;
+		    #{/*$GETDBGCOUNTER*/ $dbgcounter = melt_dbgcounter ;
 		    }#)
 	;; if we don't have a dumpfile, use stderr; this may also
 	;; happens when the dumpf exists, but its dump_file is null.
 	(code_chunk ensuregoodout #{/*$ENSUREGOODOUT*/
-		    static int nbwarn;
+		    static int nbwarn	;
 		    if (melt_get_file ($OUT) == NULL) {
-		      gcc_assert (melt_get_file ($STDERRF) == stderr);
-		      $OUT = $STDERRF;
-		      if (nbwarn++ <= 0) {
-		        inform (UNKNOWN_LOCATION, 
-				"MELT debug output goes to stderr because we have no dump_file.");
-		      }
+		    gcc_assert (melt_get_file ($STDERRF) == stderr) ;
+		    $OUT = $STDERRF				    ;
+		    if (nbwarn++ <= 0) {
+		    inform (UNKNOWN_LOCATION, 
+			    "MELT debug output goes to stderr because we have no dump_file.") ;
+		    }
 		    }
 		    }#)
 	(if (null out)
@@ -100,6 +100,7 @@ $FILENAM and $LINENO}#
 			      :dbgi_occmap occmap
 			      :dbgi_maxdepth boxedmaxdepth))
 	      (:long framdepth (the_framedepth)) 
+	      (:long inilen (output_length out))
 	      )
 	  (add2out_strconst out "!!!!****####")
 	  (add2out_longdec out dbgcounter)
@@ -125,16 +126,22 @@ $FILENAM and $LINENO}#
 	    (add2out_strconst out "() ;;;NIL!!!")
 	    )
 	  (add2out_indentnl out 0)
-	  )
-	(if (is_strbuf out)
-	    (progn
-	      (code_chunk debugstrbuf #{
-			  fprintf (stderr, "\n**debug_msg thru strbuffer:\n%s\n",
-					   melt_strbuf_str ($out)) ;
-			  fflush (stderr) ;
-			  }#)
-	      ))
-	)))
+	  (let ( (:long finallen (output_length out))
+		 )
+	    (if (>i finallen (+i inilen 200))
+		(progn
+		  (add2out_strconst out " .###")
+		  (add2out_indentnl out 0)))
+	    )
+	  (if (is_strbuf out)
+	      (progn
+		(code_chunk debugstrbuf #{
+			    fprintf (stderr, "\n**debug_msg thru strbuffer:\n%s\n",
+					     melt_strbuf_str ($out)) ;
+			    fflush (stderr)			     ;
+			    }#)
+		))
+	  ))))
 
 ;;; selector to output for debugging
 ;;; receiver: any object or value
@@ -287,6 +294,7 @@ $FILENAM and $LINENO}#
 	      (:long framdepth (the_framedepth)) 
 	      (:long outlen (output_length out)) 
 	      (:long laststroutlen outlen)
+	      (:long initoutlen outlen)
 	      )
 	  (add2out out "!!!!****####" dbgcounter "#^"  (-i framdepth 1) ":")
 	  (if filename
@@ -406,7 +414,12 @@ $FILENAM and $LINENO}#
 	       (add2out out "??:" (get_field :ctype_keyword vctyp) "?? ")
 	       )))
 	   (setq outlen (output_length out))
-	   )
+	   )				;end forever argloop
+	  ;; if the debug message is long enough, add an extra newline.
+	  (if (>i outlen (+i initoutlen 200))
+	      (progn
+		(add2out_strconst out " .##.")
+		(add2out_indentnl out 0)))
 	  (add2out_indentnl out 0)
 	  ))))
 
