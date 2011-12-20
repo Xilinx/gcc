@@ -4063,7 +4063,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-genobj.melt:5300:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("endmatch_gotoinstr"), (15));
 #endif
       ;
@@ -4699,7 +4699,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-genobj.melt:5325:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("testmatch_gotoinstr"), (15));
 #endif
       ;
@@ -5462,7 +5462,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-genobj.melt:5356:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("normtester_free_objloc_list"), (15));
 #endif
       ;
@@ -6975,7 +6975,7 @@ lab_endgetargs:;
 	    MELT_LOCATION ("warmelt-genobj.melt:5413:/ locexp");
 
 #if MELT_HAVE_DEBUG
-	    if (flag_melt_debug)
+	    if (melt_flag_debug)
 	      melt_dbgshortbacktrace (("compiltst_normtester_matcher null gotothen"), (14));
 #endif
 	    ;
@@ -7312,7 +7312,7 @@ lab_endgetargs:;
 	    MELT_LOCATION ("warmelt-genobj.melt:5422:/ locexp");
 
 #if MELT_HAVE_DEBUG
-	    if (flag_melt_debug)
+	    if (melt_flag_debug)
 	      melt_dbgshortbacktrace (("compiltst_normtester_matcher null gotoelse"), (14));
 #endif
 	    ;
@@ -12953,7 +12953,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /238f3ecf checkpair",
+	    melt_assertmsg ("putpairtail /1e12740f checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OSUCC__V37*/
 					       meltfptr[33])) ==
@@ -13899,7 +13899,7 @@ lab_endgetargs:;
 	    MELT_LOCATION ("warmelt-genobj.melt:5695:/ locexp");
 
 #if MELT_HAVE_DEBUG
-	    if (flag_melt_debug)
+	    if (melt_flag_debug)
 	      melt_dbgshortbacktrace (("compiltst_normtester_orclear curlocs"), (14));
 #endif
 	    ;

@@ -13004,8 +13004,8 @@ lab_endgetargs:;
 
    /*_#IS_A__L1*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.CURDAT__V2*/ meltfptr[1]),
-			     (melt_ptr_t) (( /*!CLASS_NREP_DATA */ meltfrout->
-					    tabval[0])));;
+			     (melt_ptr_t) (( /*!CLASS_NREP_BOUND_DATA */
+					    meltfrout->tabval[0])));;
       MELT_LOCATION ("warmelt-genobj.melt:1169:/ cond");
       /*cond */ if ( /*_#IS_A__L1*/ meltfnum[0])	/*then */
 	{

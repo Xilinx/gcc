@@ -2196,7 +2196,7 @@ lab_endgetargs:;
 		  MELT_LOCATION ("warmelt-first.melt:2560:/ locexp");
 
 #if MELT_HAVE_DEBUG
-		  if (flag_melt_debug)
+		  if (melt_flag_debug)
 		    melt_dbgshortbacktrace (("clone_symbol error.."), (15));
 #endif
 		  ;
@@ -2599,7 +2599,7 @@ lab_endgetargs:;
 	    MELT_LOCATION ("warmelt-first.melt:2599:/ locexp");
 
 #if MELT_HAVE_DEBUG
-	    if (flag_melt_debug)
+	    if (melt_flag_debug)
 	      melt_dbgshortbacktrace (("initfresh_contenvmaker"), (15));
 #endif
 	    ;

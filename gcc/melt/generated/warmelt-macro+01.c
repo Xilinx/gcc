@@ -13440,7 +13440,7 @@ lab_endgetargs:;
 											  meltfnum
 											  [52]
 											  =
-											  (flag_melt_bootstrapping);;
+											  (melt_flag_bootstrapping);;
 											/*^compute */
 
 			     /*_#NOT__L60*/
@@ -13894,7 +13894,7 @@ lab_endgetargs:;
 											  meltfnum
 											  [41]
 											  =
-											  (flag_melt_bootstrapping);;
+											  (melt_flag_bootstrapping);;
 											MELT_LOCATION
 											  ("warmelt-macro.melt:1307:/ cond");
 											/*cond */ if ( /*_#MELT_IS_BOOTSTRAPPING__L63*/ meltfnum[41])	/*then */
@@ -29828,7 +29828,7 @@ lab_endgetargs:;
 				      ("warmelt-macro.melt:1930:/ locexp");
 
 #if MELT_HAVE_DEBUG
-				    if (flag_melt_debug)
+				    if (melt_flag_debug)
 				      melt_dbgshortbacktrace (("flatten_for_c_code_expansion strange comp"), (15));
 #endif
 				    ;

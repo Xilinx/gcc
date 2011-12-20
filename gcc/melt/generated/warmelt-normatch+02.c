@@ -10690,7 +10690,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normatch.melt:2119:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("normexp_match lambda tester"), (12));
 #endif
       ;
@@ -15383,7 +15383,7 @@ lab_endgetargs:;
 	    MELT_LOCATION ("warmelt-normatch.melt:2773:/ locexp");
 
 #if MELT_HAVE_DEBUG
-	    if (flag_melt_debug)
+	    if (melt_flag_debug)
 	      melt_dbgshortbacktrace (("putthen_matchthen testinstance!!!"),
 				      (20));
 #endif
@@ -20521,7 +20521,7 @@ lab_endgetargs:;
 						  ("warmelt-normatch.melt:2905:/ locexp");
 
 #if MELT_HAVE_DEBUG
-						if (flag_melt_debug)
+						if (melt_flag_debug)
 						  melt_dbgshortbacktrace (("putelse_matchtest"), (12));
 #endif
 						;

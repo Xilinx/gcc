@@ -10325,7 +10325,7 @@ lab_endgetargs:;
 					    ("warmelt-normatch.melt:5248:/ locexp");
 
 #if MELT_HAVE_DEBUG
-					  if (flag_melt_debug)
+					  if (melt_flag_debug)
 					    melt_dbgshortbacktrace (("normtestmatch_cmatcher unexpected curexp"), (20));
 #endif
 					  ;
@@ -26580,7 +26580,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normatch.melt:5762:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("normexp_altmatch start"), (20));
 #endif
       ;

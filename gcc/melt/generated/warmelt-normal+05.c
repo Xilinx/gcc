@@ -2475,6 +2475,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_39 (struct
 void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_40 (struct
 								frame_start_module_melt_st
 								*, char *);
+void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_41 (struct
+								frame_start_module_melt_st
+								*, char *);
 static void forward_or_mark_module_start_frame_warmelt_normal (struct
 							       melt_callframe_st
 							       *fp,
@@ -2545,7 +2548,7 @@ meltrout_166_warmelt_normal_LAMBDA___62__ (meltclosure_ptr_t meltclosp_,
 /*getargs*/
 
   /*getarg#0 */
-  MELT_LOCATION ("warmelt-normal.melt:6665:/ getarg");
+  MELT_LOCATION ("warmelt-normal.melt:6687:/ getarg");
  /*_.KEY__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
 
   /*getarg#1 */
@@ -2567,7 +2570,7 @@ lab_endgetargs:;
  /*_#__L1*/ meltfnum[0] =
       (( /*_.VAL__V3*/ meltfptr[2]) ==
        (( /*~SPRED */ meltfclos->tabval[0])));;
-    MELT_LOCATION ("warmelt-normal.melt:6666:/ cond");
+    MELT_LOCATION ("warmelt-normal.melt:6688:/ cond");
     /*cond */ if ( /*_#__L1*/ meltfnum[0])	/*then */
       {
 	/*^cond.then */
@@ -2594,7 +2597,7 @@ lab_endgetargs:;
 	  /*_.IF___V4*/ meltfptr[3] = /*_.SET_CONTENT__V5*/ meltfptr[4];;
 	  /*epilog */
 
-	  MELT_LOCATION ("warmelt-normal.melt:6666:/ clear");
+	  MELT_LOCATION ("warmelt-normal.melt:6688:/ clear");
 	     /*clear *//*_.SET_CONTENT__V5*/ meltfptr[4] = 0;
 	}
 	;
@@ -2605,11 +2608,11 @@ lab_endgetargs:;
   /*_.IF___V4*/ meltfptr[3] = NULL;;
       }
     ;
-    MELT_LOCATION ("warmelt-normal.melt:6665:/ quasiblock");
+    MELT_LOCATION ("warmelt-normal.melt:6687:/ quasiblock");
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.IF___V4*/ meltfptr[3];;
-    MELT_LOCATION ("warmelt-normal.melt:6665:/ finalreturn");
+    MELT_LOCATION ("warmelt-normal.melt:6687:/ finalreturn");
     ;
     /*finalret */ goto labend_rout;
     /*epilog */

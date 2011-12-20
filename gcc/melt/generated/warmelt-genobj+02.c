@@ -30372,9 +30372,7 @@ lab_endgetargs:;
      /*_#IS_A__L11*/ meltfnum[10] =
 		  melt_is_instance_of ((melt_ptr_t)
 				       ( /*_.OURSLOT__V32*/ meltfptr[31]),
-				       (melt_ptr_t) (( /*!CLASS_NREP_DATA */
-						      meltfrout->
-						      tabval[13])));;
+				       (melt_ptr_t) (( /*!CLASS_NREP_BOUND_DATA */ meltfrout->tabval[13])));;
 		MELT_LOCATION ("warmelt-genobj.melt:2784:/ cond");
 		/*cond */ if ( /*_#IS_A__L11*/ meltfnum[10])	/*then */
 		  {

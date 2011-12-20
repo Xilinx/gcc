@@ -7138,13 +7138,13 @@ lab_endgetargs:;
       /* output_melt_descriptor GENRPATHCH__1 + */
       char *lrp =
 	lrealpath (melt_string_str ( /*_.MODNAMSTR__V2*/ meltfptr[1]));
-      if (!flag_melt_bootstrapping && !IS_ABSOLUTE_PATH (lrp))
+      if (!melt_flag_bootstrapping && !IS_ABSOLUTE_PATH (lrp))
 	{
 	  meltgc_add_strbuf_cstr ( /*_.DEBUF__V8*/ meltfptr[4], getpwd ());
 	  meltgc_add_strbuf ( /*_.DEBUF__V8*/ meltfptr[4], "/");
 	  meltgc_add_strbuf_cstr ( /*_.DEBUF__V8*/ meltfptr[4], lrp);
 	}
-      else if (flag_melt_bootstrapping)
+      else if (melt_flag_bootstrapping)
 	{
 	  meltgc_add_strbuf_cstr ( /*_.DEBUF__V8*/ meltfptr[4],
 				  melt_module_dir);
@@ -7202,7 +7202,7 @@ lab_endgetargs:;
       time (&now);
       memset (nowbuf, 0, sizeof (nowbuf));
       strftime (nowbuf, sizeof (nowbuf) - 1, "%c %Z", localtime (&now));
-      if (flag_melt_bootstrapping)
+      if (melt_flag_bootstrapping)
 	meltgc_add_strbuf ( /*_.DEBUF__V8*/ meltfptr[4],
 			   "/*MELT BOOTSTRAP*/\n");
       meltgc_add_strbuf ( /*_.DEBUF__V8*/ meltfptr[4],
@@ -8023,7 +8023,7 @@ lab_endgetargs:;
       if (fclose (descfil))
 	melt_fatal_error ("failed to close descriptor file %s - %m",
 			  descfilpath);
-      if (flag_melt_bootstrapping)
+      if (melt_flag_bootstrapping)
 	inform (UNKNOWN_LOCATION, "MELT generated descriptor file %s",
 		descfilpath);
       free (descfilpath);
@@ -10703,7 +10703,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-outobj.melt:4288:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("translate_macroexpanded_list ended"), (25));
 #endif
       ;

@@ -11393,7 +11393,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normatch.melt:594:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("set_new_tester_last_then start"), (15));
 #endif
       ;
@@ -12396,7 +12396,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normatch.melt:620:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("set_new_tester_all_elses start"), (15));
 #endif
       ;
@@ -15300,7 +15300,7 @@ lab_endgetargs:;
 		      MELT_LOCATION ("warmelt-normatch.melt:751:/ locexp");
 
 #if MELT_HAVE_DEBUG
-		      if (flag_melt_debug)
+		      if (melt_flag_debug)
 			melt_dbgshortbacktrace (("normvarpat_genreusetest making same newtester"), (15));
 #endif
 		      ;
@@ -15645,7 +15645,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normatch.melt:735:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("normvarpat_genreusetest lambda curhdler"),
 				(15));
 #endif
@@ -16159,7 +16159,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normatch.melt:772:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("normpat_variablepat begin"), (15));
 #endif
       ;
@@ -17505,7 +17505,7 @@ lab_endgetargs:;
 			MELT_LOCATION ("warmelt-normatch.melt:824:/ locexp");
 
 #if MELT_HAVE_DEBUG
-			if (flag_melt_debug)
+			if (melt_flag_debug)
 			  melt_dbgshortbacktrace (("normpat_variablepat updated fresh orvar"), (15));
 #endif
 			;
@@ -18522,7 +18522,7 @@ lab_endgetargs:;
 				      ("warmelt-normatch.melt:865:/ locexp");
 
 #if MELT_HAVE_DEBUG
-				    if (flag_melt_debug)
+				    if (melt_flag_debug)
 				      melt_dbgshortbacktrace (("normpat_variablepat updated reused orvar"), (15));
 #endif
 				    ;
@@ -18998,7 +18998,7 @@ lab_endgetargs:;
 			MELT_LOCATION ("warmelt-normatch.melt:890:/ locexp");
 
 #if MELT_HAVE_DEBUG
-			if (flag_melt_debug)
+			if (melt_flag_debug)
 			  melt_dbgshortbacktrace (("normpat_variablepat:: new clocc"), (12));
 #endif
 			;
@@ -23724,7 +23724,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normatch.melt:961:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("normpat_instancepat lambda"), (15));
 #endif
       ;
@@ -24089,7 +24089,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normatch.melt:1018:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("normpat_instancepat.subhdler"), (16));
 #endif
       ;
@@ -26267,7 +26267,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normatch.melt:1147:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("normpat_orpat called"), (16));
 #endif
       ;
@@ -31230,7 +31230,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normatch.melt:1346:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("normpat_anymatchpat start"), (14));
 #endif
       ;
@@ -34715,7 +34715,7 @@ lab_endgetargs:;
 		      MELT_LOCATION ("warmelt-normatch.melt:1549:/ locexp");
 
 #if MELT_HAVE_DEBUG
-		      if (flag_melt_debug)
+		      if (melt_flag_debug)
 			melt_dbgshortbacktrace (("normpat_anymatchpat before curhdler"), (12));
 #endif
 		      ;
@@ -35431,7 +35431,7 @@ lab_endgetargs:;
 	    MELT_LOCATION ("warmelt-normatch.melt:1581:/ locexp");
 
 #if MELT_HAVE_DEBUG
-	    if (flag_melt_debug)
+	    if (melt_flag_debug)
 	      melt_dbgshortbacktrace (("normpat_anymatchpat before normal_pattern curout"), (14));
 #endif
 	    ;
@@ -35933,7 +35933,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normatch.melt:1480:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("normpat_anymatchpat lambda updating else"),
 				(15));
 #endif
@@ -36220,7 +36220,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normatch.melt:1494:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("normpat_anymatchpat updatelse"), (15));
 #endif
       ;
@@ -37018,7 +37018,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normatch.melt:1576:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("normpat_anymatchpat subhdler"), (14));
 #endif
       ;
@@ -38227,7 +38227,7 @@ lab_endgetargs:;
 		      MELT_LOCATION ("warmelt-normatch.melt:1651:/ locexp");
 
 #if MELT_HAVE_DEBUG
-		      if (flag_melt_debug)
+		      if (melt_flag_debug)
 			melt_dbgshortbacktrace (("normpat_constpat making newtester same"), (15));
 #endif
 		      ;
@@ -38738,7 +38738,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normatch.melt:1636:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (flag_melt_debug)
+      if (melt_flag_debug)
 	melt_dbgshortbacktrace (("normpat_constpat lambda updatelse"), (15));
 #endif
       ;

@@ -5400,7 +5400,7 @@ lab_endgetargs:;
 			MELT_LOCATION ("warmelt-first.melt:3569:/ locexp");
 
 #if MELT_HAVE_DEBUG
-			if (flag_melt_debug)
+			if (melt_flag_debug)
 			  melt_dbgshortbacktrace (("INSTALL_METHOD failing on non-function"), (20));
 #endif
 			;
@@ -5475,7 +5475,7 @@ lab_endgetargs:;
 			MELT_LOCATION ("warmelt-first.melt:3582:/ locexp");
 
 #if MELT_HAVE_DEBUG
-			if (flag_melt_debug)
+			if (melt_flag_debug)
 			  melt_dbgshortbacktrace (("INSTALL_METHOD failing with bad named selector"), (20));
 #endif
 			;
@@ -5515,7 +5515,7 @@ lab_endgetargs:;
 			MELT_LOCATION ("warmelt-first.melt:3593:/ locexp");
 
 #if MELT_HAVE_DEBUG
-			if (flag_melt_debug)
+			if (melt_flag_debug)
 			  melt_dbgshortbacktrace (("INSTALL_METHOD failing with bad selector"), (20));
 #endif
 			;
@@ -5594,7 +5594,7 @@ lab_endgetargs:;
 		  MELT_LOCATION ("warmelt-first.melt:3608:/ locexp");
 
 #if MELT_HAVE_DEBUG
-		  if (flag_melt_debug)
+		  if (melt_flag_debug)
 		    melt_dbgshortbacktrace (("INSTALL_METHOD failing with bad named discriminant"), (20));
 #endif
 		  ;
@@ -5632,7 +5632,7 @@ lab_endgetargs:;
 		  MELT_LOCATION ("warmelt-first.melt:3618:/ locexp");
 
 #if MELT_HAVE_DEBUG
-		  if (flag_melt_debug)
+		  if (melt_flag_debug)
 		    melt_dbgshortbacktrace (("INSTALL_METHOD failing with bad discriminant"), (20));
 #endif
 		  ;
@@ -10320,7 +10320,7 @@ lab_endgetargs:;
 	    MELT_LOCATION ("warmelt-first.melt:3860:/ locexp");
 
 #if MELT_HAVE_DEBUG
-	    if (flag_melt_debug)
+	    if (melt_flag_debug)
 	      melt_dbgshortbacktrace (("put_env invalid binding"), (15));
 #endif
 	    ;
@@ -10432,7 +10432,7 @@ lab_endgetargs:;
 	    MELT_LOCATION ("warmelt-first.melt:3867:/ locexp");
 
 #if MELT_HAVE_DEBUG
-	    if (flag_melt_debug)
+	    if (melt_flag_debug)
 	      melt_dbgshortbacktrace (("put_env  bad binder in binding"),
 				      (5));
 #endif

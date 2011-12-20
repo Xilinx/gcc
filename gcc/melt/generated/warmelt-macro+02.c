@@ -6684,7 +6684,7 @@ lab_endgetargs:;
 		  MELT_LOCATION ("warmelt-macro.melt:2709:/ apply");
 		  /*apply */
 		  {
-		    union meltparam_un argtab[5];
+		    union meltparam_un argtab[7];
 		    memset (&argtab, 0, sizeof (argtab));
 		    /*^apply.arg */
 		    argtab[0].meltbp_long =
@@ -6695,9 +6695,14 @@ lab_endgetargs:;
 		    argtab[2].meltbp_long = 2709;
 		    /*^apply.arg */
 		    argtab[3].meltbp_cstring =
-		      "mexpand_define simple value sdefine";
+		      "mexpand_define simple value bodytup=";
 		    /*^apply.arg */
 		    argtab[4].meltbp_aptr =
+		      (melt_ptr_t *) & /*_.BODYTUP__V39*/ meltfptr[31];
+		    /*^apply.arg */
+		    argtab[5].meltbp_cstring = " sdefine=";
+		    /*^apply.arg */
+		    argtab[6].meltbp_aptr =
 		      (melt_ptr_t *) & /*_.SDEFINE__V40*/ meltfptr[32];
 		    /*_.MELT_DEBUG_FUN__V46*/ meltfptr[45] =
 		      melt_apply ((meltclosure_ptr_t)
@@ -6706,6 +6711,7 @@ lab_endgetargs:;
 				  (melt_ptr_t) (( /*nil */ NULL)),
 				  (MELTBPARSTR_LONG MELTBPARSTR_CSTRING
 				   MELTBPARSTR_LONG MELTBPARSTR_CSTRING
+				   MELTBPARSTR_PTR MELTBPARSTR_CSTRING
 				   MELTBPARSTR_PTR ""), argtab, "",
 				  (union meltparam_un *) 0);
 		  }
@@ -7262,7 +7268,7 @@ lab_endgetargs:;
 				      argtab[2].meltbp_long = 2757;
 				      /*^apply.arg */
 				      argtab[3].meltbp_cstring =
-					"mexpand_defun bad formal0bind=";
+					"mexpand_define function bad formal0bind=";
 				      /*^apply.arg */
 				      argtab[4].meltbp_aptr =
 					(melt_ptr_t *) &
@@ -7566,7 +7572,7 @@ lab_endgetargs:;
 			  argtab[2].meltbp_long = 2766;
 			  /*^apply.arg */
 			  argtab[3].meltbp_cstring =
-			    "mexpand_defun return sdefun";
+			    "mexpand_define function return sdefun";
 			  /*^apply.arg */
 			  argtab[4].meltbp_aptr =
 			    (melt_ptr_t *) & /*_.SDEFUN__V77*/ meltfptr[69];
