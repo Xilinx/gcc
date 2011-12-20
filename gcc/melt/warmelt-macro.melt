@@ -2706,7 +2706,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	      )
 	  (put_fields defvalbind  :defvalbind_define sdefine)
 	  (setq curpair (pair_tail curpair))
-	  (debug "mexpand_define simple value sdefine" sdefine)
+	  (debug "mexpand_define simple value bodytup=" bodytup " sdefine=" sdefine)
 	  (return sdefine)
 	  )))
      ;;
@@ -2754,7 +2754,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	  (if formal0bind
 	      (if (!= (get_field :fbind_type formal0bind) ctype_value)
 		  (progn
-		    (debug "mexpand_defun bad formal0bind=" formal0bind)
+		    (debug "mexpand_define function bad formal0bind=" formal0bind)
 		    (error_strv floc "invalid first formal argument in DEFINE-d function, expecting a :value"
 			        (get_field :named_name funame))
 		    (return))))
@@ -2763,7 +2763,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	  (let ( (bodytup (expand_pairlist_as_tuple curpair newenv mexpander)) 
 		 )
 	    (put_fields sdefun :sfun_body bodytup)
-	    (debug "mexpand_defun return sdefun" sdefun)
+	    (debug "mexpand_define function return sdefun" sdefun)
 	    (return sdefun)
 	    ))))
      ;;

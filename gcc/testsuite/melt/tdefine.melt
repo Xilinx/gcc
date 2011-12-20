@@ -11,4 +11,5 @@
 
 (define one (debug_msg one "one inside definition") (+ivi '0 1))
 (debug_msg one "one after definition")
+(assert_msg "check one exists" one)
 (export_values one)

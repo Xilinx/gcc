@@ -1166,7 +1166,7 @@ $SBUF.}#
 	     (list_to_multiple
 	      idata discr_multiple
 	      (lambda (curdat)
-		(assert_msg "check curdat" (is_a curdat class_nrep_data))
+		(assert_msg "check curdat" (is_a curdat class_nrep_bound_data))
 		(let ( (curobd (compile_obj curdat gcx)) )
 		  curobd))))
 	    (toplis (unsafe_get_field :ninit_topl ipro)) 
@@ -2781,7 +2781,7 @@ $SBUF.}#
 	      (let ( (slotup (unsafe_get_field :ninst_slots cdata)) 
 		     (ourslot (multiple_nth slotup fldoff)) 
 		     )
-		(if (is_a ourslot class_nrep_data)
+		(if (is_a ourslot class_nrep_bound_data)
 		    (let ( (cslot (compile_obj ourslot gcx)) )
 		      (debug "compilobj_nrep_fieldacc returning cslot=" cslot)
 		      (return cslot))
@@ -4068,7 +4068,7 @@ $SBUF.}#
 ;;; to add the initial data fill and the slots filling
 ;;; return a tuple of bindings to be disposed
 (defun compil_data_and_slots_fill (ndat obj odiscr irout gcx)
-  (assert_msg "compil_data_and_slots_fill check ndat" (is_a ndat class_nrep_data))
+  (assert_msg "compil_data_and_slots_fill check ndat" (is_a ndat class_nrep_bound_data))
   (assert_msg "compil_data_and_slots_fill check obj" (is_a obj class_objinitobject))
   (assert_msg "compil_data_and_slots_fill check odiscr" (is_a odiscr class_objvalue))
   (assert_msg "compil_data_and_slots_fill check irout" (is_a irout class_initialroutineobj))

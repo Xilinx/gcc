@@ -1,5 +1,22 @@
 
 2011-12-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (mexpand_define): Improve debug output.
+
+	* melt/warmelt-normal.melt (class_nrep_data): Removing, make it a
+	synonym.
+	(class_nrep_bound_data, class_nrep_discriminated_data): New class.
+	(class_nrep_datainstance, class_nrep_datastring)
+	(class_nrep_databoxedinteger, class_nrep_datatuple)
+	(class_nrep_dataroutine, class_nrep_dataclosure): Sub-class of
+	class_nrep_discriminated_data.
+	(class_nrep_defined_constant): New class.
+
+	* melt/warmelt-genobj.melt (compile2obj_initproc)
+	(compil_data_and_slots_fill): Use class_nrep_bound_data.
+
+	* testsuite/melt/tdefine.melt: Add assertion. Not working yet.
+
+2011-12-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt (melt_debug_fun, debug_msg_fun): Add an
 	extra newline for big output.
 	* melt/xtramelt-ana-base.melt (dbg_tree_briefly): New debug closure.

@@ -455,6 +455,8 @@ routine procedures.}#
 
 ;;; static normalized predef
 (defclass class_nrep_predef
+  :doc #{The $CLASS_NREP_PREDEF is for normalized predefined
+  values. $NRPREDEF gives the symbolic or integer number.}#
   :super class_nrep_simple
   :fields (
 	   nrpredef			;the predef is a symbol or a boxed integer
@@ -462,6 +464,7 @@ routine procedures.}#
 
 ;; normalized nil
 (defclass class_nrep_nil
+  :doc #{The $CLASS_NREP_NIL is for normalized nil occurrences.}#
   :super class_nrep_simple
   :fields (
 	   ))
@@ -472,26 +475,37 @@ routine procedures.}#
 ;;; parent_module_environment need specific stuff
 
 (defclass class_nrep_quasidata
+  :doc #{The $CLASS_NREP_QUASIDATA is an abstract super-class for data
+  computed during initialization.}#
   :super class_nrep
   :fields (
 	   ))
 
-
-;;;; static data is build at module initialization time
-(defclass class_nrep_data
-  ;; the objnum is the predefined rank if any
+(defclass class_nrep_bound_data
   :super class_nrep_quasidata
-  :fields (ndata_name			;name if any of the data
-	   ndata_discrx		;discriminant normal expression 
-	   ndata_rank			;boxed integer rank of the data 
+  :doc #{The internal $CLASS_NREP_BOUND_DATA is for normalized defined and
+  bound data. The objnum of its instance is the predefined rank if
+  any.}#
+  ;; the objnum is the predefined rank if any
+  :fields  (ndata_name			;name if any of the data
+	    ndata_rank			;boxed integer rank of the data 
 	   ;;; we box the integer and don't use the objnum bzcause we
 	   ;;; might have a lot (>30000) of data
-	   ndata_locbind		;local binding tuple to fill the data
+	    ndata_locbind		;local binding tuple to fill the data
+	   )
+)
+
+(defclass class_nrep_discriminated_data
+  :doc #{The internal $CLASS_NREP_DISCRIMINATED_DATA is for defined
+  data with a static disciminant.}#
+  :super class_nrep_bound_data
+  :fields (
+	   ndata_discrx		;discriminant normal expression 
 	   ))
 
 ;; normal "static" instance - built at modules initialization
 (defclass class_nrep_datainstance
-  :super class_nrep_data
+  :super class_nrep_discriminated_data
   :fields (ninst_objnum			;object number (a number or a symbol)
 	   ninst_predef			;predefined rank (number or symbol)
 	   ninst_hash			;integer hash
@@ -500,19 +514,19 @@ routine procedures.}#
 
 ;; normal "static" string
 (defclass class_nrep_datastring
-  :super class_nrep_data
+  :super class_nrep_discriminated_data
   :fields ( nstr_string		    ;the string
 	    ))
 
 ;; normal "static" boxed integer
 (defclass class_nrep_databoxedinteger
-  :super class_nrep_data
+  :super class_nrep_discriminated_data
   :fields ( nboxint_num			;the numerical integer
 	    ))
 
 ;; normal "static" tuple
 (defclass class_nrep_datatuple
-  :super class_nrep_data
+  :super class_nrep_discriminated_data
   :fields ( ntup_comp			;the tuple of component values expressions
 	    ))
 
@@ -530,13 +544,13 @@ routine procedures.}#
 
 ;; normal static routine data
 (defclass class_nrep_dataroutine
-  :super class_nrep_data
+  :super class_nrep_discriminated_data
   :fields (ndrou_proc		    ;associated procedure
 	   ))
 
 ;; normal static closure data
 (defclass class_nrep_dataclosure
-  :super class_nrep_data
+  :super class_nrep_discriminated_data
   :fields (ndclo_proc		    ;associated procedure
 	   ndclo_closv		    ;tuple of closed values
 	   ))
@@ -587,8 +601,13 @@ routine procedures.}#
 (defclass class_nrep_constant
   :super class_nrep_quasiconstant
   :fields (
-	   
 	   ))
+
+(defclass class_nrep_defined_constant
+  :super class_nrep_quasiconstant
+  :fields (nconst_defbind
+	   )
+)
 
 ;; noormal current_module_environment_container quasiconst
 (defclass class_nrep_quasiconst_current_module_environment_container
@@ -671,7 +690,7 @@ routine procedures.}#
  class_nrep_constocc
  class_nrep_consume_variadic
  class_nrep_cppif
- class_nrep_data
+ class_nrep_bound_data
  class_nrep_databoxedinteger
  class_nrep_dataclosure
  class_nrep_datainstance
@@ -680,6 +699,8 @@ routine procedures.}#
  class_nrep_datastring
  class_nrep_datasymbol
  class_nrep_datatuple
+ class_nrep_discriminated_data
+ class_nrep_defined_constant
  class_nrep_defunroutproc
  class_nrep_exit
  class_nrep_expression
@@ -741,12 +762,12 @@ routine procedures.}#
 ;;; add some data to a normalization context and return it
 (defun add_nctx_data (nctx ndata)
   (assert_msg "check nctx" (is_a nctx class_normalization_context))
-  (assert_msg "check ndata" (is_a ndata class_nrep_data))
+  (assert_msg "check ndata" (is_a ndata class_nrep_bound_data))
   (assert_msg "fresh ndata" (null (unsafe_get_field :ndata_rank ndata)))
   (let ( (datlis (unsafe_get_field :nctx_datalist nctx)) )
     (assert_msg "check datlis" (is_list datlis))
     (let ( (lastdat (pair_head (list_last datlis)))  )
-      (if (is_a lastdat class_nrep_data)
+      (if (is_a lastdat class_nrep_bound_data)
 	  (let ( (:long lastrk (get_int (unsafe_get_field :ndata_rank lastdat))) )
 	    (assert_msg "check lastrk" (>i lastrk 0))
 	    (let ( (rkbox (make_integerbox discr_integer (+i 1 lastrk))) )
@@ -1150,7 +1171,7 @@ source location.}#
 		      (unsafe_get_field :named_name symb)
 		      )
 	  ))
-    (assert_msg "normexp_symbol check fixdat" (is_a fixdat class_nrep_data))
+    (assert_msg "normexp_symbol check fixdat" (is_a fixdat class_nrep_bound_data))
     ;; cache the result & return it
     (mapobject_put sycmap symb fixdat)
     fixdat))
@@ -3331,7 +3352,7 @@ source location.}#
        (return tup)
        )
 ;;; last expression is a normal data, return it
-     ( (is_a lastcomp class_nrep_data)
+     ( (is_a lastcomp class_nrep_bound_data)
        (multiple_put_nth 
 	tup  (-i tuplen 1)
 	(instance class_nrep_return
@@ -5836,6 +5857,7 @@ source location.}#
 
        (warning_strv sloc "(DEFINE name ...) not fully implemented, normalization could be incomplete"
 		   snamestr)	
+       (debug "normexp_define newbody=" newbody " nbindings=" nbindings)
        (return newbody nbindings)
        ))))
 (install_method class_source_define normal_exp normexp_define)
@@ -6178,7 +6200,7 @@ source location.}#
 		(xclass (unsafe_get_field :cbind_class xbind))
 		)
 	   (debug "normexp_export_class xdata" xdata)
-	   (if (is_not_a xdata class_nrep_data)
+	   (if (is_not_a xdata class_nrep_bound_data)
 	       (error_strv sloc "forward defined class symbol to EXPORT_CLASS"
 			   (unsafe_get_field :named_name xnam)))
 	   (let ( (nclav (normal_exported_value xnam xdata nvaluexporter env ncx sloc bindslist))
@@ -6720,6 +6742,8 @@ source location.}#
  wrap_normal_letseq
  )
 
+
+(export_synonym class_nrep_data class_nrep_bound_data)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; eof warmelt-normal.melt
 
