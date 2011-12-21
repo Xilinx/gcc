@@ -6042,15 +6042,16 @@ package body Sem_Ch4 is
               and then Base_Type (Etype (R)) /= Universal_Integer
             then
                if Ada_Version >= Ada_2012
-                 and then Is_Dimensioned_Type (Etype (L))
+                 and then Has_Dimension_System (Etype (L))
                then
                   Error_Msg_NE
-                    ("exponent for dimensioned type must be a Rational" &
+                    ("exponent for dimensioned type must be a rational" &
                      ", found}", R, Etype (R));
                else
                   Error_Msg_NE
                     ("exponent must be of type Natural, found}", R, Etype (R));
                end if;
+
                return;
             end if;
 
@@ -6490,18 +6491,22 @@ package body Sem_Ch4 is
          Rewrite (N, Indexing);
          Analyze (N);
 
-         --  The return type of the indexing function is a reference type, so
-         --  add the dereference as a possible interpretation.
+         --  If the return type of the indexing function is a reference type,
+         --  add the dereference as a possible interpretation. Note that the
+         --  indexing aspect may be a function that returns the element type
+         --  with no intervening implicit dereference.
 
-         Disc := First_Discriminant (Etype (Func));
-         while Present (Disc) loop
-            if Has_Implicit_Dereference (Disc) then
-               Add_One_Interp (N, Disc, Designated_Type (Etype (Disc)));
-               exit;
-            end if;
+         if Has_Discriminants (Etype (Func)) then
+            Disc := First_Discriminant (Etype (Func));
+            while Present (Disc) loop
+               if Has_Implicit_Dereference (Disc) then
+                  Add_One_Interp (N, Disc, Designated_Type (Etype (Disc)));
+                  exit;
+               end if;
 
-            Next_Discriminant (Disc);
-         end loop;
+               Next_Discriminant (Disc);
+            end loop;
+         end if;
 
       else
          Indexing := Make_Function_Call (Loc,
@@ -6527,16 +6532,18 @@ package body Sem_Ch4 is
 
                   --  Add implicit dereference interpretation
 
-                  Disc := First_Discriminant (Etype (It.Nam));
-                  while Present (Disc) loop
-                     if Has_Implicit_Dereference (Disc) then
-                        Add_One_Interp
-                          (N, Disc, Designated_Type (Etype (Disc)));
-                        exit;
-                     end if;
+                  if Has_Discriminants (Etype (It.Nam)) then
+                     Disc := First_Discriminant (Etype (It.Nam));
+                     while Present (Disc) loop
+                        if Has_Implicit_Dereference (Disc) then
+                           Add_One_Interp
+                             (N, Disc, Designated_Type (Etype (Disc)));
+                           exit;
+                        end if;
 
-                     Next_Discriminant (Disc);
-                  end loop;
+                        Next_Discriminant (Disc);
+                     end loop;
+                  end if;
 
                   exit;
                end if;
@@ -7167,11 +7174,13 @@ package body Sem_Ch4 is
 
             --  Find a non-hidden operation whose first parameter is of the
             --  class-wide type, a subtype thereof, or an anonymous access
-            --  to same.
+            --  to same. If in an instance, the operation can be considered
+            --  even if hidden (it may be hidden because the instantiation is
+            --  expanded after the containing package has been analyzed).
 
             while Present (Hom) loop
                if Ekind_In (Hom, E_Procedure, E_Function)
-                 and then not Is_Hidden (Hom)
+                 and then (not Is_Hidden (Hom) or else In_Instance)
                  and then Scope (Hom) = Scope (Anc_Type)
                  and then Present (First_Formal (Hom))
                  and then

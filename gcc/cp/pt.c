@@ -6445,8 +6445,16 @@ convert_template_argument (tree parm,
   if (requires_type && ! is_type && TREE_CODE (arg) == SCOPE_REF
       && TREE_CODE (TREE_OPERAND (arg, 0)) == TEMPLATE_TYPE_PARM)
     {
-      permerror (input_location, "to refer to a type member of a template parameter, "
-	         "use %<typename %E%>", orig_arg);
+      if (TREE_CODE (TREE_OPERAND (arg, 1)) == BIT_NOT_EXPR)
+	{
+	  if (complain & tf_error)
+	    error ("invalid use of destructor %qE as a type", orig_arg);
+	  return error_mark_node;
+	}
+
+      permerror (input_location,
+		 "to refer to a type member of a template parameter, "
+		 "use %<typename %E%>", orig_arg);
 
       orig_arg = make_typename_type (TREE_OPERAND (arg, 0),
 				     TREE_OPERAND (arg, 1),
@@ -16614,6 +16622,7 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict,
     case BOOLEAN_TYPE:
     case ENUMERAL_TYPE:
     case VOID_TYPE:
+    case NULLPTR_TYPE:
       if (TREE_CODE (arg) != TREE_CODE (parm))
 	return unify_type_mismatch (explain_p, parm, arg);
 

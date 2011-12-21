@@ -1867,12 +1867,31 @@ package body Sem_Ch13 is
          ------------------------
 
          procedure Check_One_Function (Subp : Entity_Id) is
+            Default_Element : constant Node_Id :=
+                                Find_Aspect
+                                  (Etype (First_Formal (Subp)),
+                                   Aspect_Iterator_Element);
+
          begin
             if not Check_Primitive_Function (Subp) then
                Error_Msg_NE
                  ("aspect Indexing requires a function that applies to type&",
                    Subp, Ent);
             end if;
+
+            --  An indexing function must return either the default element of
+            --  the container, or a reference type.
+
+            if Present (Default_Element) then
+               Analyze (Default_Element);
+               if Is_Entity_Name (Default_Element)
+                 and then Covers (Entity (Default_Element), Etype (Subp))
+               then
+                  return;
+               end if;
+            end if;
+
+            --  Otherwise the return type must be a reference type.
 
             if not Has_Implicit_Dereference (Etype (Subp)) then
                Error_Msg_N
@@ -1894,7 +1913,7 @@ package body Sem_Ch13 is
 
          else
             declare
-               I : Interp_Index;
+               I  : Interp_Index;
                It : Interp;
 
             begin
@@ -2184,17 +2203,56 @@ package body Sem_Ch13 is
          U_Ent := Underlying_Type (Ent);
       end if;
 
-      --  Complete other routine error checks
+      --  Avoid cascaded error
 
       if Etype (Nam) = Any_Type then
          return;
+
+      --  Must be declared in current scope
 
       elsif Scope (Ent) /= Current_Scope then
          Error_Msg_N ("entity must be declared in this scope", Nam);
          return;
 
+      --  Must not be a source renaming (we do have some cases where the
+      --  expander generates a renaming, and those cases are OK, in such
+      --  cases any attribute applies to the renamed object as well).
+
+      elsif Is_Object (Ent)
+        and then Present (Renamed_Object (Ent))
+      then
+         --  Case of renamed object from source, this is an error
+
+         if Comes_From_Source (Renamed_Object (Ent)) then
+            Get_Name_String (Chars (N));
+            Error_Msg_Strlen := Name_Len;
+            Error_Msg_String (1 .. Name_Len) := Name_Buffer (1 .. Name_Len);
+            Error_Msg_N
+              ("~ clause not allowed for a renaming declaration "
+               & "(RM 13.1(6))", Nam);
+            return;
+
+         --  For the case of a compiler generated renaming, the attribute
+         --  definition clause applies to the renamed object created by the
+         --  expander. The easiest general way to handle this is to create a
+         --  copy of the attribute definition clause for this object.
+
+         else
+            Insert_Action (N,
+              Make_Attribute_Definition_Clause (Loc,
+                Name       =>
+                  New_Occurrence_Of (Entity (Renamed_Object (Ent)), Loc),
+                Chars      => Chars (N),
+                Expression => Duplicate_Subexpr (Expression (N))));
+         end if;
+
+      --  If no underlying entity, use entity itself, applies to some
+      --  previously detected error cases ???
+
       elsif No (U_Ent) then
          U_Ent := Ent;
+
+      --  Cannot specify for a subtype (exception Object/Value_Size)
 
       elsif Is_Type (U_Ent)
         and then not Is_First_Subtype (U_Ent)
@@ -2367,12 +2425,6 @@ package body Sem_Ch13 is
                   then
                      Error_Msg_N ("constant overlays a variable?", Expr);
 
-                  elsif Present (Renamed_Object (U_Ent)) then
-                     Error_Msg_N
-                       ("address clause not allowed"
-                          & " for a renaming declaration (RM 13.1(6))", Nam);
-                     return;
-
                   --  Imported variables can have an address clause, but then
                   --  the import is pretty meaningless except to suppress
                   --  initializations, so we do not need such variables to
@@ -2523,10 +2575,16 @@ package body Sem_Ch13 is
             elsif Align /= No_Uint then
                Set_Has_Alignment_Clause (U_Ent);
 
+               --  Tagged type case, check for attempt to set alignment to a
+               --  value greater than Max_Align, and reset if so.
+
                if Is_Tagged_Type (U_Ent) and then Align > Max_Align then
                   Error_Msg_N
                     ("?alignment for & set to Maximum_Aligment", Nam);
-                  Set_Alignment (U_Ent, Max_Align);
+                     Set_Alignment (U_Ent, Max_Align);
+
+               --  All other cases
+
                else
                   Set_Alignment (U_Ent, Align);
                end if;
@@ -6057,7 +6115,7 @@ package body Sem_Ch13 is
               Aspect_Type_Invariant    =>
             T := Standard_Boolean;
 
-         when Aspect_Dimension |
+         when Aspect_Dimension        |
               Aspect_Dimension_System =>
             raise Program_Error;
 
@@ -7770,12 +7828,21 @@ package body Sem_Ch13 is
    --  Start of processing for Rep_Item_Too_Late
 
    begin
-      --  First make sure entity is not frozen (RM 13.1(9)). Exclude imported
-      --  types, which may be frozen if they appear in a representation clause
-      --  for a local type.
+      --  First make sure entity is not frozen (RM 13.1(9))
 
       if Is_Frozen (T)
+
+        --  Exclude imported types, which may be frozen if they appear in a
+        --  representation clause for a local type.
+
         and then not From_With_Type (T)
+
+        --  Exclude generated entitiesa (not coming from source). The common
+        --  case is when we generate a renaming which prematurely freezes the
+        --  renamed internal entity, but we still want to be able to set copies
+        --  of attribute values such as Size/Alignment.
+
+        and then Comes_From_Source (T)
       then
          Too_Late;
          S := First_Subtype (T);
@@ -8792,8 +8859,8 @@ package body Sem_Ch13 is
             Source : constant Entity_Id  := T.Source;
             Target : constant Entity_Id  := T.Target;
 
-            Source_Siz    : Uint;
-            Target_Siz    : Uint;
+            Source_Siz : Uint;
+            Target_Siz : Uint;
 
          begin
             --  This validation check, which warns if we have unequal sizes for

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--            Copyright (C) 2011, Free Software Foundation, Inc.            --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -23,27 +23,29 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This new package of the GNAT compiler has been created in order to enable
---  any user of the GNAT compiler to deal with physical issues.
+--  This package provides support for numerical systems with dimensions. A
+--  "dimension" is a compile-time property of a numerical type which represents
+--  a relation between various quantifiers such as length, velocity, etc.
 
---  Indeed, the user is now able to create his own dimension system and to
---  assign a dimension, defined from the MKS system (package System.Dim_Mks)
---  or his own dimension systems, with any item and to run operations with
---  dimensionned entities.
---  In that case, a dimensionnality checking will be performed at compile time.
---  If no dimension has been assigned, the compiler assumes that the item is
---  dimensionless.
+--  Package System.Dim_Mks offers a ready-to-use system of SI base units. In
+--  addition, the implementation of this feature offers the ability to define
+--  an arbitrary system of units through the use of Ada 2012 aspects.
+
+--  Dimensionality checking is part of type analysis performed by the compiler.
+--  It ensures that manipulation of quantified numeric values is sensible with
+--  respect to the system of units.
 
 -----------------------------
 -- Aspect_Dimension_System --
 -----------------------------
 
---  In order to enable the user to create his own dimension system, a new
+--  In order to enable the user to create their own dimension system, a new
 --  aspect: Aspect_Dimension_System has been created.
+
 --  Note that this aspect applies for type declaration of type derived from any
 --  numeric type.
 
---  It defines the names of each dimension.
+--  It defines the names of each dimension
 
 ----------------------
 -- Aspect_Dimension --
@@ -51,8 +53,10 @@
 
 --  This new aspect applies for subtype and object declarations in order to
 --  define new dimensions.
+
 --  Using this aspect, the user is able to create new subtype/object with any
 --  dimension needed.
+
 --  Note that the base type of the subtype/object must be the type that defines
 --  the corresponding dimension system.
 
@@ -75,6 +79,7 @@
 
 --  Depending on the node kind, either none, one phase or two phases are
 --  executed.
+
 --  Phase 2 is called only when the node allows a dimension (see body of
 --  Sem_Dim to get the list of nodes that permit dimensions).
 
@@ -82,69 +87,74 @@
 -- Dimension_IO --
 ------------------
 
---  This section contains the routine used for IO purposes.
+--  This section contains the routine used for IO purposes
 
 with Types; use Types;
 
 package Sem_Dim is
 
-   -----------------------------
-   -- Aspect_Dimension_System --
-   -----------------------------
+   procedure Analyze_Aspect_Dimension
+     (N    : Node_Id;
+      Id   : Node_Id;
+      Aggr : Node_Id);
+   --  Analyze the contents of aspect Dimension. Associate the provided values
+   --  and quantifiers with the related context N.
+   --  ??? comment on usage of formals needed
 
    procedure Analyze_Aspect_Dimension_System
      (N    : Node_Id;
       Id   : Node_Id;
       Expr : Node_Id);
-   --  Analyzes the aggregate of Aspect_Dimension_System
-
-   ----------------------
-   -- Aspect_Dimension --
-   ----------------------
-
-   procedure Analyze_Aspect_Dimension
-     (N : Node_Id;
-      Id : Node_Id;
-      Expr : Node_Id);
-   --  Analyzes the aggregate of Aspect_Dimension and attaches the
-   --  corresponding dimension to N.
-
-   -------------------------------------------
-   -- Dimensionality checking & propagation --
-   -------------------------------------------
+   --  Analyze the contents of aspect Dimension_System. Extract the numerical
+   --  type, unit name and corresponding symbol from each indivitual dimension.
+   --  ??? comment on usage of formals needed
 
    procedure Analyze_Dimension (N : Node_Id);
-   --  Performs a dimension analysis and propagates dimension between nodes
-   --  when needed.
+   --  N may denote any of the following contexts:
+   --    * assignment statement
+   --    * attribute reference
+   --    * binary operator
+   --    * compontent declaration
+   --    * extended return statement
+   --    * function call
+   --    * identifier
+   --    * indexed component
+   --    * object declaration
+   --    * object renaming declaration
+   --    * qualified expression
+   --    * selected component
+   --    * simple return statement
+   --    * slice
+   --    * subtype declaration
+   --    * type conversion
+   --    * unary operator
+   --    * unchecked type conversion
+   --  Depending on the context, ensure that all expressions and entities
+   --  involved do not violate the rules of a system.
 
    procedure Eval_Op_Expon_For_Dimensioned_Type
-     (N : Node_Id;
+     (N     : Node_Id;
       B_Typ : Entity_Id);
-   --  Eval the Expon operator for dimensioned type with rational exponent
-
-   function Is_Dimensioned_Type (E : Entity_Id) return Boolean;
-   --  Return True if the type is a dimensioned type (i.e: a type which has an
-   --  aspect Dimension_System)
-
-   procedure Remove_Dimension_In_Call (N : Node_Id);
-   --  At the end of the Expand_Call routine, remove the dimensions of every
-   --  parameters in the call N.
-
-   procedure Remove_Dimension_In_Declaration (D : Node_Id);
-   --  At the end of Analyze_Declarations routine (see Sem_Ch3), removes the
-   --  dimension of the expression for each declaration.
-
-   procedure Remove_Dimension_In_Statement (S : Node_Id);
-   --  At the end of the Analyze_Statements routine (see Sem_Ch5), removes the
-   --  dimension for every statements.
-
-   ------------------
-   -- Dimension_IO --
-   ------------------
+   --  Evaluate the Expon operator for dimensioned type with rational exponent
+   --  ??? the above doesn't explain the purpose of this routine. why is this
+   --  procedure needed?
 
    procedure Expand_Put_Call_With_Dimension_String (N : Node_Id);
-   --  Expansion of Put call (from package System.Dim_Float_IO and
-   --  System.Dim_Integer_IO) for a dimensioned object in order to add the
-   --  dimension symbols as a suffix of the numeric value.
+   --  Determine whether N denotes a subprogram call to one of the routines
+   --  defined in System.Dim_Float_IO or System.Dim_Integer_IO and add an
+   --  extra actual to the call to represent the symbolic representation of
+   --  a dimension.
+
+   function Has_Dimension_System (Typ : Entity_Id) return Boolean;
+   --  Return True if type Typ has aspect Dimension_System applied to it
+
+   procedure Remove_Dimension_In_Call (Call : Node_Id);
+   --  Remove the dimensions from all formal parameters of Call
+
+   procedure Remove_Dimension_In_Declaration (Decl : Node_Id);
+   --  Remove the dimensions from the expression of Decl
+
+   procedure Remove_Dimension_In_Statement (Stmt : Node_Id);
+   --  Remove the dimensions associated with Stmt
 
 end Sem_Dim;

@@ -4469,23 +4469,26 @@ package body Sem_Res is
         and then Ekind (Current_Scope) = E_Package
         and then not In_Package_Body (Current_Scope)
       then
-         Error_Msg_N ("cannot activate task before body seen?", N);
-         Error_Msg_N ("\Program_Error will be raised at run time?", N);
+         Error_Msg_N ("?cannot activate task before body seen", N);
+         Error_Msg_N ("\?Program_Error will be raised at run time", N);
       end if;
 
-      --  Ada 2012 (AI05-0111-3): Issue a warning whenever allocating a task
-      --  or a type containing tasks on a subpool since the deallocation of
-      --  the subpool may lead to undefined task behavior. Perform the check
-      --  only when the allocator has not been converted into a Program_Error
-      --  due to a previous error.
+      --  Ada 2012 (AI05-0111-3): Detect an attempt to allocate a task or a
+      --  type with a task component on a subpool. This action must raise
+      --  Program_Error at runtime.
 
       if Ada_Version >= Ada_2012
         and then Nkind (N) = N_Allocator
         and then Present (Subpool_Handle_Name (N))
         and then Has_Task (Desig_T)
       then
-         Error_Msg_N ("?allocation of task on subpool may lead to " &
-                      "undefined behavior", N);
+         Error_Msg_N ("?cannot allocate task on subpool", N);
+         Error_Msg_N ("\?Program_Error will be raised at run time", N);
+
+         Rewrite (N,
+           Make_Raise_Program_Error (Sloc (N),
+             Reason => PE_Explicit_Raise));
+         Set_Etype (N, Typ);
       end if;
    end Resolve_Allocator;
 
@@ -5810,8 +5813,6 @@ package body Sem_Res is
             end if;
          end;
       end if;
-
-      --  dimension analysis
 
       Analyze_Dimension (N);
 
@@ -8012,12 +8013,10 @@ package body Sem_Res is
 
       Analyze_Dimension (N);
 
-      --  Evaluate the Expon operator for dimensioned type with rational
-      --  exponent.
+      --  Evaluate the exponentiation operator for dimensioned type with
+      --  rational exponent.
 
-      if Ada_Version >= Ada_2012
-        and then Is_Dimensioned_Type (B_Typ)
-      then
+      if Ada_Version >= Ada_2012 and then Has_Dimension_System (B_Typ) then
          Eval_Op_Expon_For_Dimensioned_Type (N, B_Typ);
 
          --  Skip the Eval_Op_Expon if the node has already been evaluated
@@ -8654,11 +8653,12 @@ package body Sem_Res is
         and then Is_Packed (T)
         and then Is_LHS (N)
       then
-         Error_Msg_N ("?assignment to component of packed atomic record",
-                      Prefix (N));
-         Error_Msg_N ("?\may cause unexpected accesses to atomic object",
-                      Prefix (N));
+         Error_Msg_N
+           ("?assignment to component of packed atomic record", Prefix (N));
+         Error_Msg_N
+           ("?\may cause unexpected accesses to atomic object", Prefix (N));
       end if;
+
       Analyze_Dimension (N);
    end Resolve_Selected_Component;
 

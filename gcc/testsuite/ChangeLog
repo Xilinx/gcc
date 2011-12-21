@@ -1,3 +1,118 @@
+2011-12-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51621
+	* g++.dg/cpp0x/constexpr-ice5.C: New.
+
+2011-12-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/c11-version-1.c, gcc.dg/c11-version-2.c,
+	gcc.dg/c94-version-1.c, gcc.dg/c99-version-1.c,
+	gcc.dg/gnu11-version-1.c: New tests.
+
+2011-12-20  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR middle-end/51200
+	* gcc.target/arm/volatile-bitfields-4.c: New test.
+	* c-c++-common/abi-bf.c: New test.
+
+2011-12-20  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/49951
+	* g++.dg/gcov/gcov-2.C: Adjust.
+
+2011-12-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51612
+	* g++.dg/cpp0x/constexpr-ice4.C: New.
+
+2011-12-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51328
+	* g++.dg/template/crash109.C: New.
+
+2011-12-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51530
+	* g++.dg/cpp0x/nullptr26.C: New.
+
+2011-12-19  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/mult-1.c: Require -O2.
+
+2011-12-19  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/ext-2.c: Add NOMIPS16.
+
+2011-12-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51526
+	* g++.dg/cpp0x/constexpr-delegating.C: New.
+
+2011-12-19  Sandra Loosemore  <sandra@codesourcery.com>
+	    Tom de Vries <tom@codesourcery.com>
+
+	PR rtl-opt/50380
+	* gcc.c-torture/compile/pr50380.c: New testcase.
+
+2011-12-19  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51605
+	* gfortran.dg/block_10.f90: New.
+
+2011-12-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51553
+	* g++.dg/cpp0x/initlist64.C: New.
+
+	PR c++/51228
+	* c-c++-common/transparent-union-1.c: New.
+
+2011-12-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/51580
+	* gnat.dg/specs/loop_optimization1.ads: New test.
+	* gnat.dg/specs/loop_optimization1_pkg.ad[sb]: New helper.
+
+2011-12-19  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/51573
+	* gcc.dg/lto/20111207-2_0.c: Adjust.
+	* g++.dg/lto/pr51573-1_0.C: New testcase.
+
+2011-12-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/51619
+	* g++.dg/cpp0x/pr51619.C: New test.
+
+2011-12-19  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51605
+	* gfortran.dg/select_type_25.f90: New.
+
+2011-12-19  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/51583
+	* gcc.dg/tree-ssa/pr51583.c: New test.
+
+2011-12-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51596
+	* g++.dg/opt/pr51596.C: New test.
+
+	PR middle-end/51590
+	PR tree-optimization/51606
+	* gcc.dg/vect/pr51590.c: New test.
+
+2011-12-19  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/51572
+	* g++.dg/lto/pr51572-2_0.C: New testcase.
+
+2011-12-19  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51477
+	* g++.dg/cpp0x/nsdmi6.C: New test.
+
 2011-12-19  Tobias Burnus  <burnus@net-b.de>
 
 	* gfortran.dg/coarray_poly_3.f90: New.

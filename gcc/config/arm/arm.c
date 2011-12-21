@@ -1989,7 +1989,8 @@ arm_option_override (void)
 			   global_options_set.x_param_values);
 
   /* ARM EABI defaults to strict volatile bitfields.  */
-  if (TARGET_AAPCS_BASED && flag_strict_volatile_bitfields < 0)
+  if (TARGET_AAPCS_BASED && flag_strict_volatile_bitfields < 0
+      && abi_version_at_least(2))
     flag_strict_volatile_bitfields = 1;
 
   /* Enable sw prefetching at -O3 for CPUS that have prefetch, and we have deemed
@@ -11671,7 +11672,7 @@ arm_select_cc_mode (enum rtx_code op, rtx x, rtx y)
 	    return CC_Zmode;
 
 	  /* We can do an equality test in three Thumb instructions.  */
-	  if (!TARGET_ARM)
+	  if (!TARGET_32BIT)
 	    return CC_Zmode;
 
 	  /* FALLTHROUGH */
@@ -11683,7 +11684,7 @@ arm_select_cc_mode (enum rtx_code op, rtx x, rtx y)
 	  /* DImode unsigned comparisons can be implemented by cmp +
 	     cmpeq without a scratch register.  Not worth doing in
 	     Thumb-2.  */
-	  if (TARGET_ARM)
+	  if (TARGET_32BIT)
 	    return CC_CZmode;
 
 	  /* FALLTHROUGH */

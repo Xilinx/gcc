@@ -1,3 +1,63 @@
+2011-12-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51621
+	* tree.c (diagnose_non_constexpr_vec_init): For value initialization
+	pass void_type_node, not void_zero_node, to build_vec_init_elt.
+
+2011-12-20  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/49951
+	* decl.c (cxx_maybe_build_cleanup): Don't set location of the call
+	to the destructor.
+
+2011-12-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51612
+	* semantics.c (is_valid_constexpr_fn): In case of constexpr
+	constructors also check for virtual base classes.
+
+2011-12-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51328
+	* pt.c (convert_template_argument): Early error out and return
+	error_mark_node for invalid uses of destructors as types.
+
+2011-12-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51530
+	* pt.c (unify): Handle NULLPTR_TYPE.
+
+	PR c++/51526
+	* semantics.c (build_data_member_initialization): Handle
+	delegating constructor.
+	(build_constexpr_constructor_member_initializers): Likewise.
+
+	PR c++/51553
+	* cp-tree.h (LOOKUP_LIST_INIT_CTOR): Rename from
+	LOOKUP_NO_COPY_CTOR_CONVERSION.
+	(add_list_candidates): Set it earlier.
+	(add_candidates): Don't check explicit on ctors when it's set.
+	(add_function_candidate): Check it even when LOOKUP_ONLYCONVERTING
+	is set.
+
+	PR c++/51553
+	* call.c (add_function_candidate): Allow conversions for the copy
+	parm in list-initialization unless the argument is an init-list.
+
+2011-12-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/51619
+	* semantics.c (cxx_eval_vec_init_1): If init is NULL for
+	multidimensional array, just set eltinit to NULL_TREE.
+
+	* cp-gimplify.c (gimplify_must_not_throw_expr): Use
+	gimple_seq_add_stmt_without_update instead of gimplify_seq_add_stmt.
+
+2011-12-19  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51477
+	* search.c (lookup_member): Get out early on invalid base type.
+
 2011-12-19  Jason Merrill  <jason@redhat.com>
 
 	PR c++/51489
