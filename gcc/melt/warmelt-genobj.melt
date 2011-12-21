@@ -1066,7 +1066,8 @@ $SBUF.}#
     (foreach_in_list
      (inidefbinds)
      (curpair curdefbind)
-     (debug "compile2obj_initproc curdefbind=" curdefbind)
+     (debug "compile2obj_initproc curdefbind=" curdefbind
+	    " of discrim=" (discrim curdefbind))
      (let ( (inidefsymb (get_field :binder curdefbind))
 	    (oinisym (get_field :fixbind_data curdefbind))
 	    (oinidefloc (get_free_objlocptr gcx inidefsymb))
@@ -3137,7 +3138,7 @@ $SBUF.}#
   (debug "compilobj_fixed_binding bind=" bind)
   (let ( (sbdata (unsafe_get_field :fixbind_data bind)) 
 	 (osdata (compile_obj sbdata gcx)) )
-    (debug "compilobj_fixed_binding osdata=" osdata)
+    (debug "compilobj_fixed_binding sbdata=" sbdata " osdata=" osdata)
     (return osdata)
     )
   )

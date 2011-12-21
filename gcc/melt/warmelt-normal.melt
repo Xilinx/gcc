@@ -959,7 +959,7 @@ routine procedures.}#
 
 ;;; normalize a tuple - returning a tuple & a bindinglist
 (defun normalize_tuple (tup env ncx psloc)
-  (debug tup "normalize_tuple tup=" tup)
+  (debug tup "normalize_tuple tup=" tup " psloc=" psloc)
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (if (null tup) (return () ()))
@@ -968,7 +968,7 @@ routine procedures.}#
 	 (res (multiple_map
 	       tup 
 	       (lambda (comp :long ix)
-		 (debug "normalize_tuple comp" comp)
+		 (debug "normalize_tuple comp=" comp " ix=" ix)
 		 (multicall 
 		  (norcomp nbinds)
 		  (normal_exp comp env ncx psloc)
@@ -1205,8 +1205,8 @@ source location.}#
 	   "\n env=" env " procs=" procs)
     ;; cache the result & return it
     (mapobject_put sycmap symb syconst)
-					;- (put_fields bind :fixbind_data syocc)
-    (debug "normbind_definedvalbind sycmap=" sycmap " syconst=" syconst)
+    (put_fields bind :fixbind_data syconst)
+    (debug "normbind_definedvalbind sycmap=" sycmap " syconst=" syconst " bind=" bind)
     (if (is_non_empty_list procs)
 	(assert_msg "normbind_definedvalbind check no procs"))
     (return syconst)
@@ -1273,7 +1273,7 @@ source location.}#
    (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx))
 	  (syca (mapobject_get sycmap recv)) )
      (assert_msg "check sycmap" (is_mapobject sycmap))
-     (debug "normex_symbol syca=" syca " for recv=" recv)
+     (debug "normex_symbol syca=" syca " for recv=" recv " bind=" bind)
      (cond 
       ;; check if in the cache
       (syca syca)	     ;already cached
@@ -3526,7 +3526,7 @@ source location.}#
 		  )))) )
        (unsafe_put_fields ndataclos :ndclo_closv clovtup)
        )
-     (unsafe_put_fields sfubind :fixbind_data ndataclos)
+     (put_fields sfubind :fixbind_data ndataclos)
      (debug "normexp_defun return nproc" nproc)
      (return nproc ())
      )
@@ -4939,7 +4939,7 @@ source location.}#
 		    (normal_predef stype ncx sloc "primitive res type"))
 ;;; put the data into the primitive binding
     (if (is_a sprimbind class_primitive_binding)
-	(unsafe_put_fields sprimbind  :fixbind_data nprimdata))
+	(put_fields sprimbind  :fixbind_data nprimdata))
     (return ())		     ;normalized defprimitive is empty
     ))
 (install_method class_source_defprimitive normal_exp normexp_defprimitive)
@@ -5042,7 +5042,7 @@ source location.}#
       (multiple_put_nth slotup (get_int citer_expafter) nafttupdata)
       )
     (assert_msg "check citbind" (is_a citbind class_citerator_binding))
-    (unsafe_put_fields citbind :fixbind_data insdata)
+    (put_fields citbind :fixbind_data insdata)
 ;;;;;;;
     ;; return the data
     (debug "normexp_defciterator return insdata" insdata)
@@ -5394,7 +5394,7 @@ source location.}#
 	    )
 	  ))
 ;;; put the data in the binding
-    (unsafe_put_fields cmbind :fixbind_data insdata)
+    (put_fields cmbind :fixbind_data insdata)
     ;; return the data
     (debug "normexp_defcmatcher return insdata" insdata)
     (return insdata)
@@ -5510,7 +5510,7 @@ source location.}#
 	 (multiple_put_nth slotup (get_int fmatch_data)
 			   ndata)
 ;;; put the data in the binding
-	 (unsafe_put_fields fmbind :fixbind_data insdata)
+	 (put_fields fmbind :fixbind_data insdata)
 ;;; make a funmatcher binding
 	 (debug "normexp_defunmatcher final fmbind" fmbind)
 	 (compile_warning "$@$incomplete normexp_defunmatcher" ())
@@ -5616,7 +5616,7 @@ source location.}#
       (fill_data_slot cladata class_ancestors ancdata)
       (fill_data_slot cladata class_fields flddata)
       (assert_msg "check sclabind" (is_a sclabind class_class_binding))
-      (unsafe_put_fields sclabind :fixbind_data cladata)
+      (put_fields sclabind :fixbind_data cladata)
       ;; for each field which is not own, make a data to copy it from the superclass
       (setq ix 0)
       (forever loopsuperfield
@@ -5669,7 +5669,7 @@ source location.}#
 		     (fill_data_slot ownfldata fld_ownclass cladata)
 		     (multiple_put_nth fldtup (+i ix nbsupfld) ownfldata)
 		     ;; fill the field binding with its compiled data
-		     (unsafe_put_fields ownfldbind :fixbind_data ownfldata)
+		     (put_fields ownfldbind :fixbind_data ownfldata)
 		     )))
 	       (setq ix (+i ix 1))
 	       )
@@ -5757,7 +5757,7 @@ source location.}#
 	  )
       (add_nctx_data ncx insdata)
       (put_env env bindins)
-      (unsafe_put_fields bindins :fixbind_data insdata)
+      (put_fields bindins :fixbind_data insdata)
       ;; scan the fields initialization
       (multiple_every
        sinstfields
@@ -5947,7 +5947,7 @@ source location.}#
 	  )
       (add_nctx_data ncx insdata)
       (add_nctx_data ncx namstrdata)
-      (unsafe_put_fields bindsel :fixbind_data insdata)
+      (put_fields bindsel :fixbind_data insdata)
       ;; scan the fields initialization
       (multiple_every
        sinstfields
@@ -5978,7 +5978,7 @@ source location.}#
 	;; force the name of the selectordata
 	(multiple_put_nth slotup (get_int named_name) namstrdata)
 	(if (is_a bindsel class_selector_binding)
-	    (unsafe_put_fields bindsel :fixbind_data insdata))
+	    (put_fields bindsel :fixbind_data insdata))
 	;; return the data
 	(debug "normexp_defselector return insdata" insdata)
 	insdata

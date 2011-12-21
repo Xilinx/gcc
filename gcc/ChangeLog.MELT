@@ -1,4 +1,16 @@
 
+2011-12-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (normbind_definedvalbind): Added
+	put_fields :fixbind_data. {{This function not called for tdefine.melt,
+	but it should be called.}}
+	(normexp_symbol): More debugging.
+	(normexp_defun, normexp_defprimitive, normexp_defciterator)
+	(normexp_defcmatcher, normexp_defselector, normexp_definstance):
+	Use safer put_fields for :fixbind_data.
+
+	* melt/warmelt-genobj.melt (compile2obj_initproc)
+	(compilobj_fixed_binding): More debug.
+
 2011-12-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normbind_anybind): Better debugging.
 	(normbind_definedvalbind) make instance of class_nrep_defined_constant.
