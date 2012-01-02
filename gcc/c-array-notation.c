@@ -43,8 +43,23 @@ find_rank (tree array, int *rank)
     }
   else
     {
-      for (ii = 0; ii < TREE_CODE_LENGTH (TREE_CODE (array)); ii++)
-	find_rank (TREE_OPERAND (array, ii), rank);
+      if (TREE_CODE (array) == CALL_EXPR
+	  || TREE_CODE (array) == AGGR_INIT_EXPR)
+	{
+	  if (TREE_CODE (TREE_OPERAND (array, 0)) == INTEGER_CST)
+	    {
+	      int length = TREE_INT_CST_LOW (TREE_OPERAND (array, 0));
+	      for (ii = 0; ii < length; ii++)
+		find_rank (TREE_OPERAND (array, ii), rank);
+	    }
+	  else
+	    gcc_unreachable ();
+	}
+      else
+	{
+	  for (ii = 0; ii < TREE_CODE_LENGTH (TREE_CODE (array)); ii++)
+	    find_rank (TREE_OPERAND (array, ii), rank);
+	}
     }
   return;
 }
@@ -75,6 +90,20 @@ extract_array_notation_exprs (tree node, tree **array_list, int *list_size)
 	extract_array_notation_exprs (*tsi_stmt_ptr (ii_tsi), array_list,
 				      list_size);
     }
+  else if (TREE_CODE (node) == CALL_EXPR || TREE_CODE (node) == AGGR_INIT_EXPR)
+    {
+      if (TREE_CODE (TREE_OPERAND (node, 0)) == INTEGER_CST)
+	{
+	  int length = TREE_INT_CST_LOW (TREE_OPERAND (node, 0));
+
+	  for (ii = 0; ii < length; ii++)
+	    extract_array_notation_exprs (TREE_OPERAND (node, ii), array_list,
+					  list_size);
+	}
+      else
+	gcc_unreachable  (); /* should not get here */
+	  
+    } 
   else
     {
       for (ii = 0; ii < TREE_CODE_LENGTH (TREE_CODE (node)); ii++)
@@ -107,6 +136,19 @@ replace_array_notations (tree *orig, tree *list, tree *array_operand,
       for (ii_tsi = tsi_start (*orig); !tsi_end_p (ii_tsi); tsi_next (&ii_tsi))
 	replace_array_notations (tsi_stmt_ptr (ii_tsi), list, array_operand,
 				 array_size);
+    }
+  else if (TREE_CODE (*orig) == CALL_EXPR
+	   || TREE_CODE (*orig) == AGGR_INIT_EXPR)
+    {
+      if (TREE_CODE (TREE_OPERAND (*orig, 0)) == INTEGER_CST)
+	{
+	  int length = TREE_INT_CST_LOW (TREE_OPERAND (*orig, 0));
+	  for (ii = 0; ii < length; ii++)
+	    replace_array_notations (&TREE_OPERAND (*orig, ii), list,
+				     array_operand, array_size);
+	}
+      else
+	gcc_unreachable (); /* should not get here! */
     }
   else
     {
@@ -489,12 +531,12 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
 	}
       else
 	{
-	  if (lhs_count_down[ii])
-	    cond_expr[ii] = build2
-	      (GT_EXPR, boolean_type_node, lhs_var[ii], lhs_length[ii]);
+	  if (lhs_count_down[jj])
+	    cond_expr[jj] = build2
+	      (GT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[jj]);
 	  else
-	    cond_expr[ii] = build2
-	      (LT_EXPR, boolean_type_node, lhs_var[ii], lhs_length[ii]);
+	    cond_expr[jj] = build2
+	      (LT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[jj]);
 	}
     }
   
@@ -1058,11 +1100,17 @@ fix_array_notation_expr (location_t location, enum tree_code code,
       add_stmt (body_label_expr[ii]);
     }
 
-  arg = default_function_array_read_conversion (location, arg);
   if (code == POSTINCREMENT_EXPR || code == POSTDECREMENT_EXPR)
-    arg.value = build_unary_op (location, code, arg.value, 0);
+    {
+      arg = default_function_array_read_conversion (location, arg);
+      arg.value = build_unary_op (location, code, arg.value, 0);
+    }
   else if (code == PREINCREMENT_EXPR || code == PREDECREMENT_EXPR)
-    arg = parser_build_unary_op (location, code, arg);
+    {
+      arg = default_function_array_read_conversion (location, arg);
+      arg = parser_build_unary_op (location, code, arg);
+    }
+
   add_stmt (arg.value);
   
   for (ii = rank - 1; ii >= 0; ii--)

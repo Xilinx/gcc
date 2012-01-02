@@ -5464,6 +5464,8 @@ c_parser_expr_no_commas (c_parser *parser, struct c_expr *after)
       code = BIT_IOR_EXPR;
       break;
     default:
+      if (TREE_CODE (lhs.value) == CALL_EXPR)
+	lhs = fix_array_notation_expr (op_location, TREE_CODE (lhs.value), lhs);
       return lhs;
     }
   c_parser_consume_token (parser);

@@ -1,3 +1,14 @@
+2011-12-25  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-array-notations.c (find_rank): Added a check for CALL_EXPR and
+	AGGR_INIT_EXPR.
+	(extract_array_notation_exprs): Likewise.
+	(replace_array_notations): Likewise.
+	(build_array_notation_expr): Changed variable from ii to jj.
+	(fix_array_notation_expr): Moved default_function_array_read_conversion
+	into if and else-if to handle function call case.
+	* c-parser.c (c_parser_expr_no_commas): Added a check for CALL_EXPR.
+
 2011-12-24  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-array-notations.c (fix_array_notation_expr): New function.
