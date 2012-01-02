@@ -5043,6 +5043,239 @@ build_modify_expr (location_t location, tree lhs, tree lhs_origtype,
   protected_set_expr_location (result, location);
   return result;
 }
+
+tree
+build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
+			   enum tree_code modifycode, location_t rhs_loc,
+			   tree rhs, tree rhs_origtype)
+{
+  bool lhs_vector = false, rhs_vector = false;
+  tree array_expr_lhs = NULL_TREE, array_expr_rhs = NULL_TREE, array_expr;
+  tree lhs_value = NULL_TREE, rhs_value = NULL_TREE;
+  tree lhs_stride = NULL_TREE, lhs_length = NULL_TREE, lhs_start = NULL_TREE;
+  tree rhs_stride = NULL_TREE, rhs_length = NULL_TREE, rhs_start = NULL_TREE;
+  tree loop, lhs_var = NULL_TREE, rhs_var = NULL_TREE;
+  tree body_label, body_label_expr;
+  tree exit_label, exit_label_expr, cond_expr,  if_stmt_label;
+  tree temp = NULL_TREE;
+  tree lhs_expr_incr = NULL_TREE, rhs_expr_incr = NULL_TREE;
+  bool lhs_count_down = false, rhs_count_down = false;
+  
+  if (TREE_CODE(lhs) == ARRAY_NOTATION_REF)
+    {
+      lhs_value = ARRAY_NOTATION_ARRAY (lhs);
+      lhs_start = ARRAY_NOTATION_START (lhs);
+      lhs_length = ARRAY_NOTATION_LENGTH (lhs);
+      lhs_stride = ARRAY_NOTATION_STRIDE (lhs);
+      lhs_vector = true;
+      /* if the stride value is variable (i.e. not constant) then assume the
+	 programmer knows what he is doing and keep on going */
+      if (!TREE_CONSTANT (lhs_length))
+	lhs_count_down = false; /* assume we count up */
+      else if (tree_int_cst_lt (lhs_length,
+				build_int_cst (TREE_TYPE (lhs_length), 0)))
+	lhs_count_down = true;
+    }
+  else
+    {
+      if (TREE_CODE(rhs) == ARRAY_NOTATION_REF)
+	error ("Assignment of vector to a scalar is prohibited");
+      else
+	lhs_vector = false;
+    }
+
+  if (TREE_CODE (rhs) == ARRAY_NOTATION_REF)
+    {
+      rhs_value = ARRAY_NOTATION_ARRAY (rhs);
+      rhs_start = ARRAY_NOTATION_START (rhs);
+      rhs_length = ARRAY_NOTATION_LENGTH (rhs);
+      rhs_stride = ARRAY_NOTATION_STRIDE (rhs);
+      rhs_vector = true;
+      
+      /* if the stride value is variable (i.e. not constant) then assume the
+	 programmer knows what he is doing and keep on going */
+      if (!TREE_CONSTANT (rhs_length))
+	rhs_count_down = false; /* assume wwe count up */
+      else if (tree_int_cst_lt (rhs_length,
+				build_int_cst (TREE_TYPE (rhs_length), 0)))
+	rhs_count_down = true;
+    }
+  else
+    rhs_vector = false;
+
+  loop = push_stmt_list();
+
+  if (lhs_vector)
+    {
+      lhs_var = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
+			    TREE_TYPE (lhs_start));
+      temp = build_modify_expr
+	(UNKNOWN_LOCATION, lhs_var, TREE_TYPE (lhs_var), modifycode,
+	 UNKNOWN_LOCATION, build_int_cst (TREE_TYPE (lhs_start), 0),
+	 TREE_TYPE (lhs_start));
+      add_stmt (temp);
+    }
+  if (rhs_vector)
+    {
+      rhs_var = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
+			    TREE_TYPE (rhs_start));
+      add_stmt (build_modify_expr (UNKNOWN_LOCATION, rhs_var,
+				   TREE_TYPE (rhs_var), modifycode,
+				   UNKNOWN_LOCATION,
+				   build_int_cst (TREE_TYPE(rhs_start), 0),
+				   TREE_TYPE (rhs_start)));
+    }
+
+
+  /* this will create the if statement label */
+  if_stmt_label = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
+			      void_type_node);
+  DECL_CONTEXT (if_stmt_label) = current_function_decl;
+  DECL_ARTIFICIAL (if_stmt_label) = 0;
+  DECL_IGNORED_P (if_stmt_label) = 1;
+  
+  /* this label statment will point to the loop body */
+  body_label = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
+			   void_type_node);
+  DECL_CONTEXT (body_label) = current_function_decl;
+  DECL_ARTIFICIAL (body_label) = 0;
+  DECL_IGNORED_P (body_label) = 1;
+  body_label_expr = build1 (LABEL_EXPR, void_type_node, body_label);
+
+  /* this will create the exit label..i.e. where the while loop will branch
+     out of
+  */
+  exit_label = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
+			   void_type_node);
+  DECL_CONTEXT (exit_label) = current_function_decl;
+  DECL_ARTIFICIAL (exit_label) = 0;
+  DECL_IGNORED_P (exit_label) = 1;
+  exit_label_expr = build1 (LABEL_EXPR, void_type_node, exit_label);
+
+  if (lhs_vector)
+    {
+      /* Array[start_index + (induction_var * stride)] */
+      array_expr_lhs = build_array_ref
+	(location, lhs_value, build2 (PLUS_EXPR, TREE_TYPE (lhs_var), lhs_start,
+				      build2 (MULT_EXPR, TREE_TYPE (lhs_var),
+					      lhs_var, lhs_stride)));
+      if (lhs_count_down)
+	lhs_expr_incr = build2 (MODIFY_EXPR, void_type_node, lhs_var,
+				build2 (PLUS_EXPR, TREE_TYPE (lhs_var), lhs_var,
+					build_int_cst (TREE_TYPE (lhs_var),
+						       -1)));
+      else 
+	lhs_expr_incr = build2 (MODIFY_EXPR, void_type_node, lhs_var,
+				build2 (PLUS_EXPR, TREE_TYPE (lhs_var), lhs_var,
+					build_int_cst (TREE_TYPE (lhs_var),
+						       1)));
+    }
+  if (rhs_vector)
+    {
+      
+      array_expr_rhs = build_array_ref
+	(location, rhs_value, build2 (PLUS_EXPR, TREE_TYPE (rhs_var), rhs_start,
+				      build2 (MULT_EXPR, TREE_TYPE (rhs_var),
+					      rhs_var, rhs_stride)));
+      if (rhs_count_down)
+	rhs_expr_incr = build2 (MODIFY_EXPR, void_type_node, rhs_var,
+				build2 (PLUS_EXPR, TREE_TYPE (rhs_var), rhs_var,
+					build_int_cst (TREE_TYPE (rhs_var),
+						       -1)));
+      else 
+	rhs_expr_incr = build2 (MODIFY_EXPR, void_type_node, rhs_var,
+				build2 (PLUS_EXPR, TREE_TYPE (rhs_var), rhs_var,
+					build_int_cst (TREE_TYPE (rhs_var),
+						       1)));
+    }
+  else
+    {
+      array_expr_rhs = rhs;
+      rhs_expr_incr = NULL_TREE;
+    }
+
+  array_expr = build_modify_expr (location, array_expr_lhs,
+				  lhs_origtype, modifycode, rhs_loc,
+				  array_expr_rhs, rhs_origtype);
+
+  if (rhs_expr_incr)
+    {
+      tree lhs_compare, rhs_compare;
+      if (lhs_count_down)
+	lhs_compare = build2 (GE_EXPR, boolean_type_node, lhs_var,
+			      build2 (PLUS_EXPR, TREE_TYPE (lhs_length),
+				      lhs_length,
+				      build_int_cst (TREE_TYPE (lhs_length),
+						     1)));
+      else
+	lhs_compare = build2 (LE_EXPR, boolean_type_node, lhs_var,
+			      build2 (MINUS_EXPR, TREE_TYPE (lhs_length),
+				      lhs_length,
+				      build_int_cst (TREE_TYPE (lhs_length),
+						     1)));
+
+      if (rhs_count_down)
+	rhs_compare = build2 (GE_EXPR, boolean_type_node, rhs_var,
+			      build2 (PLUS_EXPR, TREE_TYPE (rhs_length),
+				      rhs_length,
+				      build_int_cst (TREE_TYPE (rhs_length),
+						     1)));
+      else
+	rhs_compare = build2 (LE_EXPR, boolean_type_node, rhs_var,
+			      build2 (MINUS_EXPR, TREE_TYPE (rhs_length),
+				      rhs_length,
+				      build_int_cst (TREE_TYPE (rhs_length),
+						     1)));
+      
+      cond_expr = build2 (TRUTH_ANDIF_EXPR, void_type_node, lhs_compare,
+			  rhs_compare);
+    }
+  else
+    {
+      if (lhs_count_down)
+	cond_expr = build2 (GE_EXPR, boolean_type_node, lhs_var,
+			    build2 (PLUS_EXPR, TREE_TYPE (lhs_length),
+				    lhs_length,
+				    build_int_cst (TREE_TYPE (lhs_length), 1)));
+      else
+	cond_expr = build2 (LE_EXPR, boolean_type_node, lhs_var,
+			    fold_build2 (PLUS_EXPR, TREE_TYPE (lhs_length),
+				    lhs_length,
+				    build_int_cst (TREE_TYPE (lhs_length), -1)));
+    }
+  
+  /* The following statements will do the following:
+   * <if_stmt_label>:
+   *                  if (cond_expr) then go to body_label
+   *                  else                go to exit_label
+   * <body_label>:
+   *                  array expression
+   *                  ii++ and jj++
+   *                  go to if_stmt_label
+   * <exit_label>:
+   *                  <REST OF CODE>
+   */
+  
+  add_stmt (build1 (LABEL_EXPR, void_type_node, if_stmt_label));
+  add_stmt (build3 (COND_EXPR, void_type_node, cond_expr,
+		    build1 (GOTO_EXPR, void_type_node, body_label),
+		    build1 (GOTO_EXPR, void_type_node, exit_label)));
+
+  add_stmt (body_label_expr);
+  add_stmt (array_expr);
+  add_stmt (lhs_expr_incr);
+  if (rhs_expr_incr)
+    add_stmt (rhs_expr_incr);
+  
+  add_stmt (build1 (GOTO_EXPR, void_type_node, if_stmt_label));
+  add_stmt (exit_label_expr);
+   
+  pop_stmt_list (loop);
+
+  return loop;
+
+}
+
 
 /* Return whether STRUCT_TYPE has an anonymous field with type TYPE.
    This is used to implement -fplan9-extensions.  */

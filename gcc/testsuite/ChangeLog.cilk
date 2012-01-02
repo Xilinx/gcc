@@ -1,3 +1,10 @@
+2011-12-07  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gcc.dg/cilk-plus/array_notation_test/array_test1.c: New.
+	* gcc.dg/cilk-plus/array_notation_test/array_test2.c: Likewise.
+	* gcc.dg/cilk-plus/cilk-plus.exp: Added code to run array notation
+	tests.
+
 2011-09-21  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* g++.dg/cilk-plus/Clock.cpp: Changed extension from .cpp to .cc.

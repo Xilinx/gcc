@@ -549,6 +549,8 @@ extern tree pushdecl_top_level (tree);
 extern tree pushdecl (tree);
 extern tree build_modify_expr (location_t, tree, tree, enum tree_code,
 			       location_t, tree, tree);
+extern tree build_array_notation_expr (location_t, tree, tree, enum tree_code,
+				       location_t, tree, tree);
 extern tree build_indirect_ref (location_t, tree, ref_operator);
 
 extern int c_expand_decl (tree);

@@ -1252,7 +1252,7 @@ void c_parser_simd_private(c_parser *);
 void c_parser_simd_assert(c_parser *, bool);
 void c_parser_simd_vectorlength (c_parser *);
 void c_parser_simd_reduction (c_parser *);
-
+static tree c_parser_array_notation (c_parser *, tree, tree);
 /* Parse a translation unit (C90 6.7, C99 6.9).
 
    translation-unit:
@@ -5455,9 +5455,21 @@ c_parser_expr_no_commas (c_parser *parser, struct c_expr *after)
   exp_location = c_parser_peek_token (parser)->location;
   rhs = c_parser_expr_no_commas (parser, NULL);
   rhs = default_function_array_read_conversion (exp_location, rhs);
-  ret.value = build_modify_expr (op_location, lhs.value, lhs.original_type,
-				 code, exp_location, rhs.value,
-				 rhs.original_type);
+
+  /* bviyer: The line below is where the parser has the form:
+   * A = B
+   * So this is where we must modify the Array Notation arrays */
+
+  if (TREE_CODE (lhs.value) == ARRAY_NOTATION_REF
+      || TREE_CODE (rhs.value) == ARRAY_NOTATION_REF)
+    ret.value = build_array_notation_expr (op_location, lhs.value,
+					   lhs.original_type, code,
+					   exp_location, rhs.value,
+					   rhs.original_type);
+  else
+    ret.value = build_modify_expr (op_location, lhs.value, lhs.original_type,
+				   code, exp_location, rhs.value,
+				   rhs.original_type);
   if (code == NOP_EXPR)
     ret.original_code = MODIFY_EXPR;
   else
@@ -6941,10 +6953,44 @@ c_parser_postfix_expression_after_primary (c_parser *parser,
 	case CPP_OPEN_SQUARE:
 	  /* Array reference.  */
 	  c_parser_consume_token (parser);
-	  idx = c_parser_expression (parser).value;
-	  c_parser_skip_until_found (parser, CPP_CLOSE_SQUARE,
-				     "expected %<]%>");
-	  expr.value = build_array_ref (op_loc, expr.value, idx);
+	  if (c_parser_peek_token (parser)->type == CPP_COLON)
+	    {
+	      /* If we reach here, then we have something like this:
+	       * Array [ : ]
+	       */
+	      if (flag_enable_cilk)
+		expr.value = c_parser_array_notation (parser, NULL_TREE,
+						      expr.value);
+	    }
+	  else
+	    {
+	      /* Here we have 3 options.
+	       * 1. ARRAY [ EXPR ]  -- Normal array call.
+	       * 2. ARRAY [ EXPR : EXPR ] -- Array notation without stride
+	       * 3. ARRAY [ EXPR : EXPR : EXPR] -- Array notation with stride.
+
+	       * For 1. we just handle it like any array expression.
+	       * For 2, 3: WE handle the way we handle array notations.
+	       */
+	      tree initial_index = c_parser_expression (parser).value;
+	      if (c_parser_peek_token (parser)->type == CPP_COLON)
+		{
+		  if (flag_enable_cilk)
+		    expr.value = c_parser_array_notation (parser, initial_index,
+							  expr.value);
+		}
+	      else
+		{
+		  idx = initial_index;	
+		  /* bviyer: this is where they are going to find the values 
+		     of array index. So this is where we must modify to get
+		     Array notation idx is the array index 
+		  */
+		  c_parser_skip_until_found (parser, CPP_CLOSE_SQUARE,
+					     "expected %<]%>");
+		  expr.value = build_array_ref (op_loc, expr.value, idx);
+		}
+	    }
 	  expr.original_code = ERROR_MARK;
 	  expr.original_type = NULL;
 	  break;
@@ -11688,6 +11734,97 @@ c_parser_cilk_for_statement (c_parser *parser, tree grain)
      to be created to make outlining happy. */
 }
 
+static tree 
+c_parser_array_notation (c_parser *parser, tree initial_index, tree array_value)
+{
+  c_token *token = NULL;
+  tree start_index = NULL_TREE, end_index = NULL_TREE, stride = NULL_TREE;
+  tree value_tree = NULL_TREE, type = NULL_TREE, array_type = NULL_TREE;
+  tree array_type_domain = NULL_TREE;
+  double_int x;
 
+  array_type = TREE_TYPE (array_value);
+  gcc_assert (array_type);
+  type = TREE_TYPE (array_type);
+  token = c_parser_peek_token (parser);
+  
+  if (token == NULL)
+    {
+      c_parser_error (parser, "expected %<:%> or numeral");
+      return value_tree;
+    }
+  else if (token->type == CPP_COLON)
+    {
+      if (!initial_index)
+	{
+	  /* If we are here, then we have a case like this A[:] */
+	  c_parser_consume_token (parser);
+	  array_type_domain = TYPE_DOMAIN (array_type);
+	  gcc_assert (array_type_domain);
+	  start_index = TYPE_MINVAL (array_type_domain);
+	  start_index = fold_build1 (CONVERT_EXPR, integer_type_node,
+				     start_index);
+	  x = TREE_INT_CST (TYPE_MAXVAL (array_type_domain));
+	  x.low++;
+	  end_index = double_int_to_tree (integer_type_node, x);
+	  
+	  if (tree_int_cst_lt (build_int_cst (TREE_TYPE (end_index), 0),
+			       end_index))
+	    stride = build_int_cst (TREE_TYPE (start_index), 1);
+	  else
+	    stride = build_int_cst (TREE_TYPE (start_index), -1);
+	}
+      else if (initial_index != error_mark_node)
+	{
+	  /* If we are here, then there should be 2 possibilities:
+	     1. Array [EXPR : EXPR]
+	     2. Array [EXPR : EXPR : EXPR]
+	  */
+	  start_index = initial_index;
+
+	  c_parser_consume_token (parser); /* consume the ':' */
+	  end_index = c_parser_expression (parser).value;
+	  if (!end_index || end_index == error_mark_node)
+	    {
+	      c_parser_skip_to_end_of_block_or_statement (parser);
+	      return error_mark_node;
+	    }
+	  if (c_parser_peek_token (parser)->type == CPP_COLON)
+	    {
+	      c_parser_consume_token (parser);
+	      stride = c_parser_expression (parser).value;
+	      if (!stride || stride == error_mark_node)
+		{
+		  c_parser_skip_to_end_of_block_or_statement (parser);
+		  return error_mark_node;
+		}
+	    }
+	  else
+	    if (TREE_CONSTANT (start_index) && TREE_CONSTANT (end_index)
+		&& tree_int_cst_lt (end_index, start_index))
+	      stride = build_int_cst (TREE_TYPE (start_index), -1);
+	    else
+	      stride = build_int_cst (TREE_TYPE (start_index), 1);
+	}
+      else
+	c_parser_error (parser, "expected array notation expression");
+    }
+  else
+    c_parser_error (parser, "expected array notation expression");
+  
+  c_parser_skip_until_found (parser, CPP_CLOSE_SQUARE, "expected %<]%>");
+    
+
+  value_tree = build5 (ARRAY_NOTATION_REF, NULL_TREE, NULL_TREE, NULL_TREE,
+		       NULL_TREE, NULL_TREE, NULL_TREE);
+  ARRAY_NOTATION_ARRAY (value_tree) = array_value;
+  ARRAY_NOTATION_START (value_tree) = start_index;
+  ARRAY_NOTATION_LENGTH (value_tree) = end_index;
+  ARRAY_NOTATION_STRIDE (value_tree) = stride;
+  ARRAY_NOTATION_TYPE (value_tree) = type;
+
+  TREE_TYPE (value_tree) = type;
+  return value_tree;
+}
 
 #include "gt-c-parser.h"

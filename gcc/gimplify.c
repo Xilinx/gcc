@@ -7428,6 +7428,10 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	  ret = gimplify_omp_atomic (expr_p, pre_p);
 	  break;
 
+	case ARRAY_NOTATION_REF:
+	  /* Nothing should happen here. Just return as OK */
+	  ret = GS_ALL_DONE;
+	  break;
 	case CILK_FOR_STMT:
 	    {
 	      gimplify_cilk_for (expr_p, pre_p, post_p);

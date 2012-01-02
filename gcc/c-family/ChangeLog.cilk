@@ -1,3 +1,7 @@
+2011-12-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-common.h: Added build_array_notation_expr prototype.
+
 2011-08-08 Balaji V. Iyer    <balaji.v.iyer@intel.com>
 	* c-common.c (c_common_reswords[]): Added "cilk_for", "cilk_spawn"
 	and "cilk_sync" keywords.]
