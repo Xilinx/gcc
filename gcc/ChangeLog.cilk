@@ -1,3 +1,11 @@
+2011-12-22  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-typeck.c (find_rank): Moved function to c-array-notations.c
+	(build_array_notation_expr): Likewise.  Also added support for a
+	polynomial right-hand-size expression.
+	(replace_array_notations): New function.
+	(extract_array_notation_exprs): New function.
+
 2011-12-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-typeck.c (find_rank): Modified to find rank of array notation

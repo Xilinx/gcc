@@ -1130,7 +1130,7 @@ C_COMMON_OBJS = c-family/c-common.o c-family/c-cppbuiltin.o c-family/c-dump.o \
   c-family/c-format.o c-family/c-gimplify.o c-family/c-lex.o \
   c-family/c-omp.o c-family/c-opts.o c-family/c-pch.o \
   c-family/c-ppoutput.o c-family/c-pragma.o c-family/c-pretty-print.o \
-  c-family/c-semantics.o c-family/c-ada-spec.o cilk-spawn.o 
+  c-family/c-semantics.o c-family/c-ada-spec.o cilk-spawn.o c-array-notation.o
 
 # Language-specific object files for C and Objective C.
 C_AND_OBJC_OBJS = attribs.o c-errors.o c-decl.o c-typeck.o \
@@ -3447,6 +3447,10 @@ cilk-spawn.o: cilk-spawn.c $(GIMPLE_H) $(CONFIG_H) $(SYSTEM_H) $(TREE_H) \
 pragma_simd.o: pragma_simd.c $(GIMPLE_H) $(CONFIG_H) $(SYSTEM_H) $(TREE_H) \
    $(TREE_INLINE_H)
 
+c-array-notation.o: c-array-notation.c  c-lang.h $(CONFIG_H) $(SYSTEM_H) \
+   coretypes.h $(TM_H) $(TREE_H) \
+   $(C_TREE_H) $(TARGET_H) $(FLAGS_H) intl.h output.h $(EXPR_H) \
+   langhooks.h tree-iterator.h $(BITMAP_H) $(GIMPLE_H) c-family/c-objc.h
 
 target-globals.o : target-globals.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TM_H) insn-config.h $(MACHMODE_H) $(GGC_H) toplev.h target-globals.h \
