@@ -60,6 +60,8 @@ along with GCC; see the file COPYING3.  If not see
 
 extern tree c_build_sync (tree *);
 extern tree fix_conditional_array_notations (tree);
+extern struct c_expr  fix_array_notation_expr (location_t, enum tree_code,
+					      struct c_expr);
 struct pragma_simd_values local_simd_values;
 
 
@@ -5962,14 +5964,26 @@ c_parser_unary_expression (c_parser *parser)
       c_parser_consume_token (parser);
       exp_loc = c_parser_peek_token (parser)->location;
       op = c_parser_cast_expression (parser, NULL);
-      op = default_function_array_read_conversion (exp_loc, op);
-      return parser_build_unary_op (op_loc, PREINCREMENT_EXPR, op);
+      if (TREE_CODE (op.value) == ARRAY_NOTATION_REF)
+	op = fix_array_notation_expr (exp_loc, PREINCREMENT_EXPR, op);
+      else
+	{
+	  op = default_function_array_read_conversion (exp_loc, op);
+	  op = parser_build_unary_op (op_loc, PREINCREMENT_EXPR, op);
+	}
+      return op;
     case CPP_MINUS_MINUS:
       c_parser_consume_token (parser);
       exp_loc = c_parser_peek_token (parser)->location;
       op = c_parser_cast_expression (parser, NULL);
-      op = default_function_array_read_conversion (exp_loc, op);
-      return parser_build_unary_op (op_loc, PREDECREMENT_EXPR, op);
+      if (TREE_CODE (op.value) == ARRAY_NOTATION_REF)
+	op = fix_array_notation_expr (exp_loc, PREDECREMENT_EXPR, op);
+      else
+	{
+	  op = default_function_array_read_conversion (exp_loc, op);
+	  op = parser_build_unary_op (op_loc, PREDECREMENT_EXPR, op);
+	}
+      return op;
     case CPP_AND:
       c_parser_consume_token (parser);
       op = c_parser_cast_expression (parser, NULL);
@@ -7100,18 +7114,29 @@ c_parser_postfix_expression_after_primary (c_parser *parser,
 	case CPP_PLUS_PLUS:
 	  /* Postincrement.  */
 	  c_parser_consume_token (parser);
-	  expr = default_function_array_read_conversion (expr_loc, expr);
-	  expr.value = build_unary_op (op_loc,
-				       POSTINCREMENT_EXPR, expr.value, 0);
+	  if (TREE_CODE (expr.value) == ARRAY_NOTATION_REF)
+	    expr = fix_array_notation_expr (expr_loc, POSTINCREMENT_EXPR, expr);
+	  else
+	    {
+	      expr = default_function_array_read_conversion (expr_loc, expr);
+	      expr.value = build_unary_op (op_loc,
+					   POSTINCREMENT_EXPR, expr.value, 0);
+	    }
 	  expr.original_code = ERROR_MARK;
 	  expr.original_type = NULL;
 	  break;
 	case CPP_MINUS_MINUS:
 	  /* Postdecrement.  */
 	  c_parser_consume_token (parser);
-	  expr = default_function_array_read_conversion (expr_loc, expr);
-	  expr.value = build_unary_op (op_loc,
-				       POSTDECREMENT_EXPR, expr.value, 0);
+	  if (TREE_CODE (expr.value) == ARRAY_NOTATION_REF)
+	    expr = fix_array_notation_expr (expr_loc, POSTDECREMENT_EXPR, expr);
+	  else
+	    {
+	   
+	      expr = default_function_array_read_conversion (expr_loc, expr);
+	      expr.value = build_unary_op (op_loc,
+					   POSTDECREMENT_EXPR, expr.value, 0);
+	    }
 	  expr.original_code = ERROR_MARK;
 	  expr.original_type = NULL;
 	  break;

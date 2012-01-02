@@ -1,3 +1,12 @@
+2011-12-24  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-array-notations.c (fix_array_notation_expr): New function.
+	(fix_conditional_array_notations_1): Fixed a bug, by changing greater
+	than to less-than.
+	* c-parser.c (c_parser_unary_expression): Added support to handle
+	array notations in unary operations.
+	(c_parser_postfix_expression_after_primary): Likewise.
+
 2011-12-23  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-array-notations.c (fix_conditional_array_notations): New function.

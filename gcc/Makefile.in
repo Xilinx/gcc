@@ -1130,12 +1130,12 @@ C_COMMON_OBJS = c-family/c-common.o c-family/c-cppbuiltin.o c-family/c-dump.o \
   c-family/c-format.o c-family/c-gimplify.o c-family/c-lex.o \
   c-family/c-omp.o c-family/c-opts.o c-family/c-pch.o \
   c-family/c-ppoutput.o c-family/c-pragma.o c-family/c-pretty-print.o \
-  c-family/c-semantics.o c-family/c-ada-spec.o cilk-spawn.o c-array-notation.o
+  c-family/c-semantics.o c-family/c-ada-spec.o cilk-spawn.o
 
 # Language-specific object files for C and Objective C.
 C_AND_OBJC_OBJS = attribs.o c-errors.o c-decl.o c-typeck.o \
-  c-convert.o c-aux-info.o c-objc-common.o c-parser.o tree-mudflap.o \
-  $(C_COMMON_OBJS) $(C_TARGET_OBJS)
+  c-convert.o c-aux-info.o c-objc-common.o c-parser.o c-array-notation.o \
+  tree-mudflap.o $(C_COMMON_OBJS) $(C_TARGET_OBJS)
 
 # Language-specific object files for C.
 C_OBJS = c-lang.o c-family/stub-objc.o $(C_AND_OBJC_OBJS)
