@@ -1,3 +1,8 @@
+2012-01-02  Dehao Chen  <dehao@google.com>
+
+	* ipa-inline.c (cgraph_node_opt_info): Print more concise info when
+	dumping inline decisions.
+
 2011-12-19  Sterling Augustine <saugustine@google.com>
 
 	* dwarf2out.c (DEBUG_PUBNAMES_SECTION_LABEL,

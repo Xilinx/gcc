@@ -207,20 +207,18 @@ cgraph_node_opt_info (struct cgraph_node *node)
   char *buf;
   size_t buf_size;
   const char *bfd_name = lang_hooks.dwarf_name (node->decl, 0);
-  const char *count_text = "count=";
 
   if (!bfd_name)
     bfd_name = "unknown";
 
   buf_size = strlen (bfd_name) + 1;
-  if (flag_opt_info >= OPT_INFO_MED)
-    buf_size += (strlen (count_text) + MAX_INT_LENGTH + 1);
+  if (flag_opt_info >= OPT_INFO_MED && profile_info)
+    buf_size += (MAX_INT_LENGTH + 3);
   buf = (char *) xmalloc (buf_size);
 
   strcpy (buf, bfd_name);
-  if (flag_opt_info >= OPT_INFO_MED)
-    sprintf (buf, "%s,%s"HOST_WIDEST_INT_PRINT_DEC,
-	     buf, count_text, node->count);
+  if (flag_opt_info >= OPT_INFO_MED && profile_info)
+    sprintf (buf, "%s ("HOST_WIDEST_INT_PRINT_DEC")", buf, node->count);
   return buf;
 }
 
