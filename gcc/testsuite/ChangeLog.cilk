@@ -1,3 +1,8 @@
+2011-12-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gcc.dg/cilk-plus/array_notation_test/array_test_ND.c: New N-Dimension
+	array notation test.
+
 2011-12-07  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* gcc.dg/cilk-plus/array_notation_test/array_test1.c: New.
