@@ -59,6 +59,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "plugin.h"
 
 extern tree c_build_sync (tree *);
+extern tree fix_conditional_array_notations (tree);
 struct pragma_simd_values local_simd_values;
 
 
@@ -4763,6 +4764,7 @@ c_parser_if_statement (c_parser *parser)
   bool first_if = false;
   tree first_body, second_body;
   bool in_if_block;
+  tree if_stmt;
 
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_IF));
   c_parser_consume_token (parser);
@@ -4781,7 +4783,10 @@ c_parser_if_statement (c_parser *parser)
   else
     second_body = NULL_TREE;
   c_finish_if_stmt (loc, cond, first_body, second_body, first_if);
-  add_stmt (c_end_compound_stmt (loc, block, flag_isoc99));
+  if_stmt = c_end_compound_stmt (loc, block, flag_isoc99);
+  if_stmt = fix_conditional_array_notations (if_stmt);
+  add_stmt (if_stmt);
+  
 }
 
 /* Parse a switch statement (C90 6.6.4, C99 6.8.4).
@@ -4793,7 +4798,7 @@ c_parser_if_statement (c_parser *parser)
 static void
 c_parser_switch_statement (c_parser *parser)
 {
-  tree block, expr, body, save_break;
+  tree block, expr, body, save_break, switch_stmt;
   location_t switch_loc = c_parser_peek_token (parser)->location;
   location_t switch_cond_loc;
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_SWITCH));
@@ -4823,7 +4828,9 @@ c_parser_switch_statement (c_parser *parser)
       add_stmt (t);
     }
   c_break_label = save_break;
-  add_stmt (c_end_compound_stmt (switch_loc, block, flag_isoc99));
+  switch_stmt = c_end_compound_stmt (switch_loc, block, flag_isoc99);
+  switch_stmt = fix_conditional_array_notations (switch_stmt);
+  add_stmt (switch_stmt);
 }
 
 /* Parse a while statement (C90 6.6.5, C99 6.8.5).
@@ -4835,7 +4842,7 @@ c_parser_switch_statement (c_parser *parser)
 static void
 c_parser_while_statement (c_parser *parser)
 {
-  tree block, cond, body, save_break, save_cont;
+  tree block, cond, body, save_break, save_cont, while_stmt;
   location_t loc;
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_WHILE));
   c_parser_consume_token (parser);
@@ -4849,7 +4856,9 @@ c_parser_while_statement (c_parser *parser)
   body = c_parser_c99_block_statement (parser);
   c_finish_loop (loc, cond, NULL, body, c_break_label, c_cont_label,
 		 &local_simd_values, true);
-  add_stmt (c_end_compound_stmt (loc, block, flag_isoc99));
+  while_stmt = c_end_compound_stmt (loc, block, flag_isoc99);
+  while_stmt = fix_conditional_array_notations (while_stmt);
+  add_stmt (while_stmt);
   c_break_label = save_break;
   c_cont_label = save_cont;
 }
@@ -4863,7 +4872,7 @@ c_parser_while_statement (c_parser *parser)
 static void
 c_parser_do_statement (c_parser *parser)
 {
-  tree block, cond, body, save_break, save_cont, new_break, new_cont;
+  tree block, cond, body, save_break, save_cont, new_break, new_cont, do_stmt;
   location_t loc;
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_DO));
   c_parser_consume_token (parser);
@@ -4888,7 +4897,9 @@ c_parser_do_statement (c_parser *parser)
     c_parser_skip_to_end_of_block_or_statement (parser);
   c_finish_loop (loc, cond, NULL, body, new_break, new_cont,
 		 &local_simd_values, false);
-  add_stmt (c_end_compound_stmt (loc, block, flag_isoc99));
+  do_stmt = c_end_compound_stmt (loc, block, flag_isoc99);
+  do_stmt = fix_conditional_array_notations (do_stmt);
+  add_stmt (do_stmt);
 }
 
 /* Parse a for statement (C90 6.6.5, C99 6.8.5).
@@ -4950,7 +4961,7 @@ c_parser_do_statement (c_parser *parser)
 static void
 c_parser_for_statement (c_parser *parser, bool pragma_simd_found)
 {
-  tree block, cond, incr, save_break, save_cont, body;
+  tree block, cond, incr, save_break, save_cont, body, for_stmt;
   /* The following are only used when parsing an ObjC foreach statement.  */
   tree object_expression;
   /* Silence the bogus uninitialized warning.  */
@@ -5104,7 +5115,9 @@ c_parser_for_statement (c_parser *parser, bool pragma_simd_found)
     c_finish_loop (loc, cond, incr, body, c_break_label, c_cont_label,
 		   &local_simd_values,
 		   true);
-  add_stmt (c_end_compound_stmt (loc, block, flag_isoc99 || c_dialect_objc ()));
+  for_stmt = c_end_compound_stmt (loc, block, flag_isoc99 || c_dialect_objc ());
+  for_stmt = fix_conditional_array_notations (for_stmt);
+  add_stmt (for_stmt);
   c_break_label = save_break;
   c_cont_label = save_cont;
 }

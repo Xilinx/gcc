@@ -1,3 +1,13 @@
+2011-12-23  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-array-notations.c (fix_conditional_array_notations): New function.
+	(fix_conditional_array_notations_1): Likewise.
+	(extract_array_notation_exprs): Added a check for STATEMENT_LIST.
+	(replace_array_notations): Likewise.
+	* c-parser.c (c_parser_if_statement): Added a call to the function
+	fix_conditional_array_notations.  Also stored the compound statement
+	to a variable to be passed  into fix_conditional_array_notations.
+
 2011-12-22  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-typeck.c (find_rank): Moved function to c-array-notations.c
