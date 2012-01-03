@@ -1,3 +1,104 @@
+2012-01-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/15867
+	* decl.c (duplicate_decls): With -Wredundant-decls don't warn for
+	declaration followed by specialization.
+
+2012-01-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/51669
+	* semantics.c (finish_omp_clauses): Call fold_build_cleanup_point_expr
+	on OMP_CLAUSE_{IF,FINAL,NUM_THREADS,SCHEDULE_CHUNK}_EXPR.
+
+2012-01-02  Jason Merrill  <jason@redhat.com>
+
+	DR 1359
+	PR c++/51675
+	* method.c (walk_field_subobs): Don't check for uninitialized
+	fields in a union.
+	(synthesized_method_walk): Check here.
+
+	DR 325
+	PR c++/51666
+	* parser.c (cp_parser_cache_defarg): Split out...
+	(cp_parser_parameter_declaration): ...from here.
+	(cp_parser_save_nsdmi): Use it.
+	(cp_parser_cache_group): Remove CPP_COMMA support.
+
+2012-01-02  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51462
+	* semantics.c (cx_check_missing_mem_inits): Don't assert in case
+    	of error.
+
+2012-01-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/20140
+	* typeck2.c (digest_init_r): Use copy_init when initializing
+	an array of chars.
+
+2012-01-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/16603
+	* decl.c (build_enumerator): Don't call perform_integral_promotions
+	on the value.
+
+2012-01-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51379
+	* typeck.c (build_reinterpret_cast_1): Implement resolution of
+	DR 799.
+
+2012-01-01  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	* parser.c (cp_parser_using_declaration): Add a warning about
+	deprecated access declarations when no errors were encountered
+	while parsing the access declaration. Save the first token in
+	order to emit the warning at the right place.
+
+2011-12-31  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51397
+	* semantics.c (finish_static_assert): Use %s instead of %E for
+	the error message.
+
+2011-12-27  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/23211
+	* name-lookup.c (do_class_using_decl): Use dependent_scope_p
+	instead of dependent_type_p, to check that a non-dependent
+	nested-name-specifier of a class-scope using declaration refers to
+	a base, even if the current scope is dependent.
+	* parser.c (cp_parser_using_declaration): Set
+	USING_DECL_TYPENAME_P to 1 if the DECL is not null. Re-indent a
+	'else' close to the prior modification.
+
+2011-12-23  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51507
+	* search.c (at_function_scope_p): Also check cfun.
+	* pt.c (tsubst_pack_expansion): Check it instead of
+	cp_unevaluated_operand.
+	(instantiate_template_1): Use push_to_top_level.
+
+	* tree.c (dependent_name): OFFSET_REF and BASELINK
+	are not dependent names.
+
+2011-12-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51611
+	* cp-tree.h (CONVERT_EXPR_VBASE_PATH): New.
+	* class.c (build_base_path): Defer vbase conversion in an NSDMI.
+	* tree.c (bot_replace): Expand it here.
+	* cp-gimplify.c (cp_genericize_r): Make sure deferred conversion
+	doesn't leak into GENERIC.
+
+2011-12-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51305
+	* semantics.c (massage_constexpr_body): Reorder conditionals, make
+	sure a BIND_EXPR embedded in a MUST_NOT_THROW_EXPR is handled.
+
 2011-12-20  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/51621

@@ -8886,6 +8886,14 @@ fold_comparison (location_t loc, enum tree_code code, tree type,
 	      indirect_base0 = true;
 	    }
 	  offset0 = TREE_OPERAND (arg0, 1);
+	  if (host_integerp (offset0, 0)
+	      && ((HOST_WIDE_INT) (TREE_INT_CST_LOW (offset0) * BITS_PER_UNIT)
+		  / BITS_PER_UNIT
+		  == (HOST_WIDE_INT) TREE_INT_CST_LOW (offset0)))
+	    {
+	      bitpos0 = TREE_INT_CST_LOW (offset0) * BITS_PER_UNIT;
+	      offset0 = NULL_TREE;
+	    }
 	}
 
       base1 = arg1;
@@ -8909,6 +8917,14 @@ fold_comparison (location_t loc, enum tree_code code, tree type,
 	      indirect_base1 = true;
 	    }
 	  offset1 = TREE_OPERAND (arg1, 1);
+	  if (host_integerp (offset1, 0)
+	      && ((HOST_WIDE_INT) (TREE_INT_CST_LOW (offset1) * BITS_PER_UNIT)
+		  / BITS_PER_UNIT
+		  == (HOST_WIDE_INT) TREE_INT_CST_LOW (offset1)))
+	    {
+	      bitpos1 = TREE_INT_CST_LOW (offset1) * BITS_PER_UNIT;
+	      offset1 = NULL_TREE;
+	    }
 	}
 
       /* A local variable can never be pointed to by
@@ -13500,43 +13516,6 @@ fold_binary_loc (location_t loc,
     case ASSERT_EXPR:
       /* An ASSERT_EXPR should never be passed to fold_binary.  */
       gcc_unreachable ();
-
-    case VEC_EXTRACT_EVEN_EXPR:
-    case VEC_EXTRACT_ODD_EXPR:
-    case VEC_INTERLEAVE_HIGH_EXPR:
-    case VEC_INTERLEAVE_LOW_EXPR:
-      if ((TREE_CODE (arg0) == VECTOR_CST
-	   || TREE_CODE (arg0) == CONSTRUCTOR)
-	  && (TREE_CODE (arg1) == VECTOR_CST
-	      || TREE_CODE (arg1) == CONSTRUCTOR))
-	{
-	  unsigned int nelts = TYPE_VECTOR_SUBPARTS (type), i;
-	  unsigned char *sel = XALLOCAVEC (unsigned char, nelts);
-
-	  for (i = 0; i < nelts; i++)
-	    switch (code)
-	      {
-	      case VEC_EXTRACT_EVEN_EXPR:
-		sel[i] = i * 2;
-		break;
-	      case VEC_EXTRACT_ODD_EXPR:
-		sel[i] = i * 2 + 1;
-		break;
-	      case VEC_INTERLEAVE_HIGH_EXPR:
-		sel[i] = (i + (BYTES_BIG_ENDIAN ? 0 : nelts)) / 2
-			 + ((i & 1) ? nelts : 0);
-		break;
-	      case VEC_INTERLEAVE_LOW_EXPR:
-		sel[i] = (i + (BYTES_BIG_ENDIAN ? nelts : 0)) / 2
-			 + ((i & 1) ? nelts : 0);
-		break;
-	      default:
-		gcc_unreachable ();
-	      }
-
-	  return fold_vec_perm (type, arg0, arg1, sel);
-	}
-      return NULL_TREE;
 
     case VEC_PACK_TRUNC_EXPR:
     case VEC_PACK_FIX_TRUNC_EXPR:

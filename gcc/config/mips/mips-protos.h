@@ -239,6 +239,8 @@ extern void mips_split_call (rtx, rtx);
 extern bool mips_get_pic_call_symbol (rtx *, int);
 extern void mips_expand_fcc_reload (rtx, rtx, rtx);
 extern void mips_set_return_address (rtx, rtx);
+extern bool mips_move_by_pieces_p (unsigned HOST_WIDE_INT, unsigned int);
+extern bool mips_store_by_pieces_p (unsigned HOST_WIDE_INT, unsigned int);
 extern bool mips_expand_block_move (rtx, rtx, rtx);
 extern void mips_expand_synci_loop (rtx, rtx);
 
@@ -328,6 +330,11 @@ extern void mips_expand_atomic_qihi (union mips_gen_fn_ptrs,
 				     rtx, rtx, rtx, rtx);
 
 extern void mips_expand_vector_init (rtx, rtx);
+extern bool mips_expand_vec_perm_const (rtx op[4]);
+extern void mips_expand_vec_unpack (rtx op[2], bool, bool);
+extern void mips_expand_vec_reduc (rtx, rtx, rtx (*)(rtx, rtx, rtx));
+extern void mips_expand_vec_minmax (rtx, rtx, rtx,
+				    rtx (*) (rtx, rtx, rtx), bool);
 
 extern bool mips_eh_uses (unsigned int);
 extern bool mips_epilogue_uses (unsigned int);

@@ -1253,11 +1253,12 @@ ENDF __divmodsi4
 
 ;; Use Speed-optimized Version on "big" Devices, i.e. Devices with
 ;; at least 16k of Program Memory.  For smaller Devices, depend
-;; on MOVW.
+;; on MOVW and SP Size.  There is a Connexion between SP Size and
+;; Flash Size so that SP Size can be used to test for Flash Size.
 
 #if defined (__AVR_HAVE_JMP_CALL__)
 #   define SPEED_DIV 8
-#elif defined (__AVR_HAVE_MOVW__)
+#elif defined (__AVR_HAVE_MOVW__) && !defined (__AVR_HAVE_8BIT_SP__)
 #   define SPEED_DIV 16
 #else
 #   define SPEED_DIV 0
@@ -1540,9 +1541,6 @@ DEFUN  __divdi3_moddi3
 4:  ;; Epilogue: Restore the Z = 12 Registers and return
     in r28, __SP_L__
 #if defined (__AVR_HAVE_8BIT_SP__)
-;; FIXME: __AVR_HAVE_8BIT_SP__ is set on device level, not on core level
-;;        so this lines are dead code.  To make it work, devices without
-;;        SP_H must get their own multilib(s).
     clr r29
 #else
     in r29, __SP_H__
@@ -1558,6 +1556,71 @@ ENDF __divdi3_moddi3
 
 #endif /* L_divdi3 */
 
+.section .text.libgcc, "ax", @progbits
+
+#define TT __tmp_reg__
+
+#if defined (L_adddi3)
+;; (set (reg:DI 18)
+;;      (plus:DI (reg:DI 18)
+;;               (reg:DI 10)))
+DEFUN __adddi3
+    ADD A0,B0  $  adc A1,B1  $  adc A2,B2  $  adc A3,B3
+    adc A4,B4  $  adc A5,B5  $  adc A6,B6  $  adc A7,B7
+    ret
+ENDF __adddi3
+#endif /* L_adddi3 */
+
+#if defined (L_adddi3_s8)
+;; (set (reg:DI 18)
+;;      (plus:DI (reg:DI 18)
+;;               (sign_extend:SI (reg:QI 26))))
+DEFUN __adddi3_s8
+    clr     TT
+    sbrc    r26, 7
+    com     TT
+    ADD A0,r26 $  adc A1,TT  $  adc A2,TT  $  adc A3,TT
+    adc A4,TT  $  adc A5,TT  $  adc A6,TT  $  adc A7,TT
+    ret
+ENDF __adddi3_s8
+#endif /* L_adddi3_s8 */
+
+#if defined (L_subdi3)
+;; (set (reg:DI 18)
+;;      (minus:DI (reg:DI 18)
+;;                (reg:DI 10)))
+DEFUN __subdi3
+    SUB A0,B0  $  sbc A1,B1  $  sbc A2,B2  $  sbc A3,B3
+    sbc A4,B4  $  sbc A5,B5  $  sbc A6,B6  $  sbc A7,B7
+    ret
+ENDF __subdi3
+#endif /* L_subdi3 */
+
+#if defined (L_cmpdi2)
+;; (set (cc0)
+;;      (compare (reg:DI 18)
+;;               (reg:DI 10)))
+DEFUN __cmpdi2
+    CP  A0,B0  $  cpc A1,B1  $  cpc A2,B2  $  cpc A3,B3
+    cpc A4,B4  $  cpc A5,B5  $  cpc A6,B6  $  cpc A7,B7
+    ret
+ENDF __cmpdi2
+#endif /* L_cmpdi2 */
+
+#if defined (L_cmpdi2_s8)
+;; (set (cc0)
+;;      (compare (reg:DI 18)
+;;               (sign_extend:SI (reg:QI 26))))
+DEFUN __cmpdi2_s8
+    clr     TT
+    sbrc    r26, 7
+    com     TT
+    CP  A0,r26 $  cpc A1,TT  $  cpc A2,TT  $  cpc A3,TT
+    cpc A4,TT  $  cpc A5,TT  $  cpc A6,TT  $  cpc A7,TT
+    ret
+ENDF __cmpdi2_s8
+#endif /* L_cmpdi2_s8 */
+
 #if defined (L_negdi2)
 DEFUN __negdi2
 
@@ -1570,6 +1633,8 @@ DEFUN __negdi2
 
 ENDF __negdi2
 #endif /* L_negdi2 */
+
+#undef TT
 
 #undef C7
 #undef C6
@@ -1627,9 +1692,6 @@ DEFUN __prologue_saves__
 	push r28
 	push r29
 #if defined (__AVR_HAVE_8BIT_SP__)
-;; FIXME: __AVR_HAVE_8BIT_SP__ is set on device level, not on core level
-;;        so this lines are dead code.  To make it work, devices without
-;;        SP_H must get their own multilib(s).
 	in	r28,__SP_L__
 	sub	r28,r26
 	out	__SP_L__,r28
@@ -1679,9 +1741,6 @@ DEFUN __epilogue_restores__
 	ldd	r17,Y+3
 	ldd	r26,Y+2
 #if defined (__AVR_HAVE_8BIT_SP__)
-;; FIXME: __AVR_HAVE_8BIT_SP__ is set on device level, not on core level
-;;        so this lines are dead code.  To make it work, devices without
-;;        SP_H must get their own multilib(s).
 	ldd	r29,Y+1
 	add	r28,r30
 	out	__SP_L__,r28
@@ -2469,6 +2528,29 @@ DEFUN __ashldi3
     ret
 ENDF __ashldi3
 #endif /* defined (L_ashldi3) */
+
+#if defined (L_rotldi3)
+;; Shift left
+;; r25:r18 = rotl64 (r25:r18, r17:r16)
+DEFUN __rotldi3
+    push r16
+    andi r16, 63
+    breq 2f
+1:  lsl  r18
+    rol  r19
+    rol  r20
+    rol  r21
+    rol  r22
+    rol  r23
+    rol  r24
+    rol  r25
+    adc  r18, __zero_reg__
+    dec  r16
+    brne 1b
+2:  pop  r16
+    ret
+ENDF __rotldi3
+#endif /* defined (L_rotldi3) */
 
 
 .section .text.libgcc.fmul, "ax", @progbits

@@ -1,3 +1,635 @@
+2012-01-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51719
+	* value-prof.c (gimple_ic): When indirect call isn't noreturn,
+	but direct call is, clear direct call's lhs and don't add fallthrough
+	edge from dcall_bb to join_bb and PHIs.
+
+2012-01-03  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.md ("*cmp<mode>_ccs"): Fix comment mentioning
+	the instructions emitted by the pattern.
+	("*TDC_insn_<mode>"): Add comment.
+
+2012-01-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51730
+	* fold-const.c (fold_comparison): Properly canonicalize
+	tree offset and HOST_WIDE_INT bit position.
+
+2012-01-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/ia64/ia64.c (expand_vec_perm_broadcast): Use correct
+	operands for extzv pattern.
+
+2012-01-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/51725
+	* cselib.c (add_mem_for_addr): Call canonical_cselib_val
+	on mem_elt first.
+
+2012-01-02  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi (-flto and related options): Copy-edit.
+
+2012-01-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.md (loadgp_newabi_<mode>): Add missing earlyclobber.
+
+2012-01-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/sse.md (*avx2_gatherdi<mode>_3, *avx2_gatherdi<mode>_4):
+	New patterns.
+
+2012-01-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* expr.h (move_by_pieces_ninsns): Declare.
+	* expr.c (move_by_pieces_ninsns): Make external.
+	* config/mips/mips-protos.h (mips_move_by_pieces_p): Declare.
+	(mips_store_by_pieces_p): Likewise.
+	* config/mips/mips.h (MOVE_BY_PIECES_P): Call mips_move_by_pieces_p.
+	(STORE_BY_PIECES_P): Likewise mips_store_by_pieces_p.
+	* config/mips/mips.c (mips_move_by_pieces_p): New function.
+	(mips_store_by_pieces_p): Likewise.
+
+2012-01-02  Jakub Jelinek  <jakub@redhat.com>
+
+	* passes.c (register_one_dump_file): Free full_name.
+
+	* reload1.c (reload): Don't allocate reg_max_ref_width here.
+	(calculate_elim_costs_all_insns): Free offsets_at and
+	offsets_known_at at the end and clear the pointers.
+
+2012-01-02  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.opt (-mbranch-cost): Fix double definition of
+	this option introduced in r180739.
+
+2012-01-02  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/51345
+	* config.gcc (tm_file target=avr]): Add avr/avr-multilib.h
+	(tmake_file target=avr): Add avr/t-multilib.
+
+	* config/avr/avr-c.c (avr_cpu_cpp_builtins): Use AVR_HAVE_8BIT_SP
+	to built-in define __AVR_HAVE_8BIT_SP__, __AVR_HAVE_16BIT_SP__.
+	* config/avr/genmultilib.awk: New file.
+	* config/avr/t-multilib: New auto-generated file.
+	* config/avr/multilib.h: New auto-generated file.
+	* config/avr/t-avr (AVR_MCUS): New variable.
+	(genopt.sh): Use it.
+	(s-mlib): Depend on t-multilib.
+	(t-multilib, multilib.h): New dependencies.
+	(s-avr-mlib): New rule to build t-multilib, multilib.h from AVR_MCUS.
+	(MULTILIB_OPTIONS): Remove.
+	(MULTILIB_MATCHES): Remove.
+	(MULTILIB_DIRNAMES): Remove.
+	(MULTILIB_EXCEPTIONS): Remove:
+	* config/avr/genopt.sh: Don't use hard coded file name;
+	pass AVR_MCUS from t-avr instead.
+
+2012-01-02  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.c (avr_out_ashrpsi3): Fix "case 31" to "case 23".
+
+2012-01-02  Georg-Johann Lay  <avr@gjlay.de>
+
+	Implement light-weight DImode support.
+	* config/avr/avr-dimode.md: New file.
+	* config/avr/avr.md: Include it.
+	(adjust_len): Add plus64, compare64.
+	(HIDI): Remove code iterator.
+	(code_stdname): New code attribute.
+	(rotx, rotsmode): Remove DI.
+	(rotl<mode>3, *rotw<mode>, *rotb<mode>): Use HISI instead of HIDI
+	as code iterator.
+	* config/avr/avr-protos.h (avr_have_dimode): New.
+	(avr_out_plus64, avr_out_compare64): New.
+	* config/avr/avr.c (avr_out_compare): Handle DImode.
+	(avr_have_dimode): New variable definition and initialization.
+	(avr_out_compare64, avr_out_plus64): New functions.
+	(avr_out_plus_1): Use simplify_unary_operation to negate xval.
+	(adjust_insn_length): Handle ADJUST_LEN_COMPARE64, ADJUST_LEN_PLUS64.
+	(avr_compare_pattern): Skip DImode comparisons.
+
+2012-01-02  Revital Eres  <revital.eres@linaro.org>
+
+	* ddg.c (def_has_ccmode_p): New function.
+	(add_cross_iteration_register_deps,
+	create_ddg_dep_from_intra_loop_link): Call it.
+
+2012-01-02  Richard Guenther  <rguenther@suse.de>
+
+	PR other/51679
+	* invoke.texi (fassociative-math): Remove spurious paranthesis.
+
+2012-01-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.c (process_command): Update copyright notice dates.
+	* gcov.c (print_version): Likewise.
+	* gcov-dump.c (print_version): Likewise.
+	* mips-tfile.c (main): Likewise.
+	* mips-tdump.c (main): Likewise.
+
+2012-01-01  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/51704
+	* tree-vect-slp.c (vect_detect_hybrid_slp_stmts): Check that
+	a use is inside the basic block or loop before accessing its vect info.
+
+2012-01-01  Jan Hubicka  <jhjh@suse.cz>
+
+	PR rtl-optimization/51069
+	* cfgloopmanip.c (remove_path): Removing path making irreducible
+	region unconditional makes BB part of the region.
+
+2012-01-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51683
+	* tree-ssa-propagate.c (substitute_and_fold): Don't optimize away
+	calls with side-effects.
+	* tree-ssa-ccp.c (ccp_fold_stmt): Likewise.
+
+2011-12-31  Alexandre Oliva  <aoliva@redhat.com>
+
+	* cselib.h (cselib_add_permanent_equiv): Declare.
+	(canonical_cselib_val): New.
+	* cselib.c (new_elt_loc_list): Rework to support value
+	equivalences.  Adjust all callers.
+	(preserve_only_constants): Retain value equivalences.
+	(references_value_p): Retain preserved values.
+	(rtx_equal_for_cselib_1): Handle value equivalences.
+	(cselib_invalidate_regno): Use canonical value.
+	(cselib_add_permanent_equiv): New.
+	* alias.c (find_base_term): Reset locs lists while recursing.
+	* var-tracking.c (val_bind): New.  Don't add equivalences
+	present in cselib table, compared with code moved from...
+	(val_store): ... here.
+	(val_resolve): Use val_bind.
+	(VAL_EXPR_HAS_REVERSE): Drop.
+	(add_uses): Do not create MOps for addresses.  Do not mark
+	non-REG non-MEM expressions as requiring resolution.
+	(reverse_op): Record reverse as a cselib equivalence.
+	(add_stores): Use it.  Do not create MOps for addresses.
+	Do not require resolution for non-REG non-MEM expressions.
+	Simplify support for reverse operations.
+	(compute_bb_dataflow): Drop reverse support.
+	(emit_notes_in_bb): Likewise.
+	(create_entry_value): Rename to...
+	(record_entry_value): ... this.  Use cselib equivalences.
+	(vt_add_function_parameter): Adjust.
+
+2011-12-30  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/rs6000/rs6000.c (rs6000_inner_target_options): Fix thinko
+	in setting options via target #pragma or attribute.
+
+2011-12-30  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/bfin/bfin.h (REGISTER_MOVE_COST, MEMORY_MOVE_COST): Remove.
+	* config/bfin/bfin-protos.h (bfin_register_move_cost,
+	bfin_memory_move_cost): Remove.
+	* config/bfin/bfin.c (bfin_register_move_cost,
+	bfin_memory_move_cost): Make static. Change arguments type from
+	enum reg_class to reg_class_t and from int to bool.
+	(TARGET_REGISTER_MOVE_COST, TARGET_MEMORY_MOVE_COST): Define.
+
+2011-12-30  Nathan Sidwell  <nathan@acm.org>
+
+	* gcov.c (total_lines, total_executed): New global vars.
+	(generate_results): Call executed_summary.
+	(executed_summary): New function, broken out of ...
+	(function_summary): ... here.  Call it.
+	* coverage.c (coverage_finish): Also check for local_tick == -1.
+	* gcov-dump (tag_function): Correct labelling typo.
+
+2011-12-29  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/51623
+	* config/rs6000/rs6000.c (rs6000_assemble_integer): Delete check
+	for an initialized pointer being in a text section with
+	-mrelocatable, since it should never happen.
+
+2011-12-29  Michael Eager  <eager@eagercon.com>
+
+	* config/microblaze/microblaze.md: Add expander for simple_return,
+	return, add return_internal and simple_return_internal insns.
+
+2011-12-29  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh.h (BRANCH_COST): Use sh_branch_cost variable.
+	* config/sh/sh.c (sh_option_override): Simplify sh_branch_cost
+	expression.
+
+2011-12-28  Ian Lance Taylor  <iant@google.com>
+
+	* dwarf2out.c (gen_compile_unit_die): Use DW_LANG_Go for Go.
+
+2011-12-28  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/51623
+	* config/rs6000/rs6000.c (rs6000_assemble_integer): Don't call
+	unlikely_text_section_p.  Instead check for being in a code section.
+
+2011-12-28  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/51684
+	* tree-vect-slp.c (vect_schedule_slp_instance): Get gsi of original
+	statement in case of a pattern.
+	(vect_schedule_slp): Likewise.
+
+2011-12-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/51667
+	* ree.c (insn_merge_code): Delete.
+	(is_insn_merge_attempted): Likewise.
+	(get_insn_status): Likewise.
+	(set_insn_status): Likewise.
+	(struct ext_cand): Add CODE and MODE fields.
+	(combine_set_extend): Rename to...
+	(combine_set_extension): ...this.  Use above fields and tidy up.
+	(transform_ifelse): Likewise.
+	(get_defs): Return the chain of definitions.
+	(is_this_a_cmove): Merge into...
+	(is_cond_copy_insn): ...this.  Return bool.
+	(make_defs_and_copies_lists): Adjust calls to get_defs and simplify.
+	(merge_def_and_ext): Adjust call to combine_set_extend.
+	(combine_reaching_defs): Remove calls to {g|s}et_insn_status.
+	(struct extend_info): Rename to...
+	(struct re_info): ...this.  Add DEF_MAP field.
+	(add_ext_candidate): Merge into...
+	(add_removable_extension): ...this.  Adjust calls to get_defs.  Ensure
+	reaching definitions are associated with only one kind of extension.
+	(find_removable_extensions): Create and destroy the definition map.
+	(find_and_remove_re): Return void.  Change 'long' variables to 'int'.
+	Do not deal with is_insn_merge_attempted.
+
+2011-12-25  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/48641
+	* tree-ssa-threadupdate.c (redirect_edges): Watch for overflow.
+
+2011-12-26  Oleg Endo  <oleg.endo@t-online.de>
+
+	* config/sh/sync.md: Add soft atomics ABI description.
+	(fetchop_name): Use 'or' instead of 'ior'.
+	(fetchop_insn): Remove.
+	(atomic_compare_and_swap<mode>_soft):
+	Don't insert aligning nop after the write-back instruction.  Fix
+	multi-line asm output formatting style.
+	(atomic_fetch_<fetchop_name><mode>_soft): Likewise.
+	(atomic_fetch_nand<mode>_soft): Likewise.
+	(atomic_<fetchop_name>_fetch<mode>_soft): Likewise.
+	(atomic_nand_fetch<mode>_soft): Likewise.
+
+2011-12-23  Richard Henderson  <rth@redhat.com>
+
+	* tree.def (VEC_EXTRACT_EVEN_EXPR, VEC_EXTRACT_ODD_EXPR): Remove.
+	* cfgexpand.c (expand_debug_expr): Don't handle them.
+	* expr.c (expand_expr_real_2): Likewise.
+	* fold-const.c (fold_binary_loc): Likewise.
+	* gimple-pretty-print.c (dump_binary_rhs): Likewise.
+	* tree-cfg.c (verify_gimple_assign_binary): Likewise.
+	* tree-inline.c (estimate_operator_cost): Likewise.
+	* tree-pretty-print.c (dump_generic_node): Likewise.
+	* tree-vect-generic.c (expand_vector_operations_1): Likewise.
+	* optabs.c (optab_for_tree_code): Likewise.
+	(can_vec_perm_for_code_p): Remove.
+	(expand_binop): Don't try it.
+	(init_optabs): Don't init vec_extract_even/odd_optab.
+	* genopinit.c (optabs): Likewise.
+	* optabs.h (OTI_vec_extract_even, OTI_vec_extract_odd): Remove.
+	(vec_extract_even_optab, vec_extract_odd_optab): Remove.
+	* tree-vect-data-refs.c (vect_strided_store_supported): Tidy code.
+	(vect_permute_store_chain): Use TYPE_VECTOR_SUBPARTS instead of
+	GET_MODE_NUNITS; check vect_gen_perm_mask return value instead of
+	asserting vect_strided_store_supported.
+	(vect_strided_load_supported): Use can_vec_perm_p.
+	(vect_permute_load_chain): Use VEC_PERM_EXPR.
+
+	* doc/generic.texi (VEC_EXTRACT_EVEN_EXPR): Remove.
+	(VEC_EXTRACT_ODD_EXPR): Remove.
+	* doc/md.texi (vec_extract_even, vec_extract_odd): Remove.
+
+2011-12-23  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/score/score.h (REGISTER_MOVE_COST, MEMORY_MOVE_COST): Remove.
+	* config/score/score-protos.h (score_register_move_cost): Remove.
+	* config/score/score.c (TARGET_REGISTER_MOVE_COST): Define.
+	(score_register_move_cost): Make static. Change arguments type from
+	enum reg_class to reg_class_t.
+
+2011-12-23  Jakub Jelinek  <jakub@redhat.com>
+	    Richard Henderson  <rth@redhat.com>
+
+	* tree.def (VEC_INTERLEAVE_HIGH_EXPR, VEC_INTERLEAVE_LOW_EXPR): Remove.
+	* gimple-pretty-print.c (dump_binary_rhs): Don't handle
+	VEC_INTERLEAVE_HIGH_EXPR and VEC_INTERLEAVE_LOW_EXPR.
+	* expr.c (expand_expr_real_2): Likewise.
+	* tree-cfg.c (verify_gimple_assign_binary): Likewise.
+	* cfgexpand.c (expand_debug_expr): Likewise.
+	* tree-inline.c (estimate_operator_cost): Likewise.
+	* tree-pretty-print.c (dump_generic_node): Likewise.
+	* tree-vect-generic.c (expand_vector_operations_1): Likewise.
+	* fold-const.c (fold_binary_loc): Likewise.
+	* doc/generic.texi (VEC_INTERLEAVE_HIGH_EXPR,
+	VEC_INTERLEAVE_LOW_EXPR): Remove documentation.
+	* optabs.c (optab_for_tree_code): Don't handle
+	VEC_INTERLEAVE_HIGH_EXPR and VEC_INTERLEAVE_LOW_EXPR.
+	(expand_binop, init_optabs): Remove vec_interleave_high_optab
+	and vec_interleave_low_optab.
+	* genopinit.c (optabs): Likewise.
+	* optabs.h (OTI_vec_interleave_high, OTI_vec_interleave_low): Remove.
+	(vec_interleave_high_optab, vec_interleave_low_optab): Remove.
+	* doc/md.texi (vec_interleave_high, vec_interleave_low): Remove
+	documentation.
+	* tree-vect-stmts.c (gen_perm_mask): Renamed to...
+	(vect_gen_perm_mask): ... this.  No longer static.
+	(perm_mask_for_reverse, vectorizable_load): Adjust callers.
+	* tree-vectorizer.h (vect_gen_perm_mask): New prototype.
+	* tree-vect-data-refs.c (vect_strided_store_supported): Don't try
+	VEC_INTERLEAVE_*_EXPR, use can_vec_perm_p instead of
+	can_vec_perm_for_code_p.
+	(vect_permute_store_chain): Generate VEC_PERM_EXPR with interleaving
+	masks instead of VEC_INTERLEAVE_HIGH_EXPR and VEC_INTERLEAVE_LOW_EXPR.
+	* config/i386/i386.c (expand_vec_perm_interleave2): If
+	expand_vec_perm_interleave3 would handle it, return false.
+	(expand_vec_perm_broadcast_1): Don't use vec_interleave_*_optab.
+
+2011-12-23  Richard Henderson  <rth@redhat.com>
+
+	* config/mips/loongson.md (UNSPEC_LOONGSON_PINSR_0,
+	UNSPEC_LOONGSON_PINSR_1, UNSPEC_LOONGSON_PINSR_2,
+	UNSPEC_LOONGSON_PINSR_3): Replace with...
+	(UNSPEC_LOONGSON_PINSRH): ... this.
+	(UNSPEC_LOONGSON_VINIT): New.
+	(UNSPEC_LOONGSON_DSLL, UNSPEC_LOONGSON_DSRL): New.
+	(VWB): New mode iterator.
+	(V_inner): New mode attribute.
+	(loongson_vec_init1_<VHB>): New.
+	(*vec_concatv2si): New.
+	(and<VWHB>3, ior<VWHB>3, xor<VWHB>3, one_cmpl<VWHB>2): New.
+	(*loongson_nor): New.
+	(loongson_pextrh): Un-macro-ify.
+	(loongson_pmaddhw): Likewise.
+	(smaxv4hi3, umaxv8qi3, sminv4hi3, uminv8qi3): Likewise.
+	(loongson_pinsrh_0): Represent with vec_select+vec_concat.
+	(loongson_pinsrh_1, loongson_pinsrh_2, loongson_pinsrh_3): Likewise.
+	(*vec_setv4hi, vec_setv4hi): New.
+	(sdot_prodv4hi): New.
+	(smax<VWB>3, smin<VWB>3): New.
+	(reduc_uplus_v8qi): New.
+	(loongson_pshufh): Remove destination matching input.
+	(ashl<VWH>3, ashr<VWH>3, lshr<VWH>3): Fix type attribute.
+	(vec_interleave_high<VWHB>, vec_interleave_low<VWHB>): Remove.
+	(loongson_punpckhbh, loongson_punpckhhw, loongson_punpckhhw_qi,
+	loongson_punpckhwd, loongson_punpckhwd_qi, loongson_punpckhwd_hi,
+	loongson_punpcklbh, loongson_punpcklhw, loongson_punpcklhw_qi,
+	loongson_punpcklwd, loongson_punpcklwd_qi, loongson_punpcklwd_hi,
+	vec_perm_const<VWHB>, vec_unpacks_lo_<VHB>, vec_unpacks_hi_<VHB>,
+	vec_unpacku_lo_<VHB>, vec_unpacku_hi_<VHB>, vec_shl_<VWHBDI>,
+	vec_shr_<VWHBDI>, reduc_uplus_<VWH>, reduc_splus_<VWHB>,
+	reduc_smax_<VWHB>, reduc_smin_<VWHB>, reduc_umax_<VWHB>,
+	reduc_umin_<VB>): New.
+	* config/mips/mips-ps-3d.md (vec_perm_const_ps): New.
+	(mips_pul_ps, mips_puu_ps, mips_pll_ps, mips_plu_ps): Expand in
+	terms of vec_perm_const_ps.
+	(vec_perm_constv2sf): New.
+	(vec_initv2sf): Use mips_expand_vector_init.
+	(vec_concatv2sf): Rename from vec_initv2sf_internal.
+	(vec_setv2sf): Use vec_perm_const_ps.
+	(reduc_splus_v2sf, reduc_smin_v2sf, reduc_smax_v2sf): New.
+	* config/mips/loongson.h (pshufh_u, pshufh_s): Don't pass dest to
+	the builtin.
+	* config/mips/mips-modes.def (V16QI, V8HI, V4SI, V4SF): New modes.
+	* config/mips/mips-protos.h: Update.
+	* config/mips/mips.c (mips_get_arg_info): Match V2SFmode, not all
+	MODE_VECTOR_FLOAT.
+	(mips_return_mode_in_fpr_p): Likewise.
+	(mips_cannot_change_mode_class): Allow 8-byte integral mode changes.
+	(CODE_FOR_loongson_punpckhbh, CODE_FOR_loongson_punpckhhw,
+	CODE_FOR_loongson_punpckhwd, CODE_FOR_loongson_punpcklbh,
+	CODE_FOR_loongson_punpcklhw, CODE_FOR_loongson_punpcklwd): Remove.
+	(mips_builtins): Remove first operand for loongson pshufh builtins.
+	(MAX_VECT_LEN, struct expand_vec_perm_d): New.
+	(mips_expand_vselect, mips_expand_vselect_vconcat,
+	mips_expand_vpc_loongson_even_odd, mips_expand_vpc_loongson_pshufh,
+	mips_expand_vpc_loongson_bcast, mips_expand_vec_perm_const_1,
+	mips_expand_vec_perm_const, mips_vectorize_vec_perm_const_ok,
+	mips_expand_vec_unpack, mips_constant_elt_p, mips_expand_vi_broadcast,
+	mips_expand_vi_constant, mips_expand_vi_loongson_one_pinsrh,
+	mips_expand_vi_general, mips_expand_vec_reduc, mips_expand_vec_minmax,
+	TARGET_VECTORIZE_VEC_PERM_CONST_OK): New.
+	(mips_expand_vector_init): Rewrite.
+	* config/mips/predicates.md (const_2_or_3_operand): New.
+	(const_0_to_3_operand): New.
+
+2011-12-23  Dmitry Plotnikov  <dplotnikov@ispras.ru>
+
+	* config/arm/neon.md (float<mode><V_cvtto>2): New.
+	(floatuns<mode><V_cvtto>2): New.
+	(fix_trunc<mode><V_cvtto>2): New.
+	(fix_truncuns<mode><V_cvtto>2): New.
+	* config/arm/iterators.md (V_cvtto): New iterator.
+
+2011-12-23  Richard Guenther  <rguenther@suse.de>
+
+	PR rtl-optimization/50396
+	* simplify-rtx.c (simplify_binary_operation_1): Properly
+	guard code that only works for integers.
+
+2011-12-23  Tristan Gingold  <gingold@adacore.com>
+
+	* config/vms/vms-crtlmap.map (log10): Fix typo.
+
+2011-12-23  Tristan Gingold  <gingold@adacore.com>
+
+	* config/ia64/vms.h (SUPPORTS_ONE_ONLY): Define.
+
+2011-12-22  Bin Cheng  <bin.cheng@arm.com>
+	Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/43491
+	* tree-ssa-pre.c (eliminate): Don't replace global register
+	variable when it is the RHS of a single assign.
+
+2011-12-22  Joey Ye  <joey.ye@arm.com>
+
+	* toplev.c (process_options): Fix typo.
+
+2011-12-22  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR middle-end/51252
+	* config/pa/pa.c (pa_som_tm_clone_table_section): New function.
+	(som_tm_clone_table_section): Declare.
+	(pa_file_start_space): Create $TM_CLONE_TABLE$ subspace.
+	(pa_som_asm_init_sections): Init som_tm_clone_table_section.
+	* config/pa/som.h (TARGET_ASM_TM_CLONE_TABLE_SECTION): Define.
+
+2011-12-22  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* doc/tm.texi.in (TARGET_PREPARE_PCH_SAVE): New hook.
+	* doc/tm.texi: Regenerate.
+	* target.def (prepare_pch_save): New hook.
+	* c-family/c-pch.c (c_common_write_pch): Call it.
+	* config/mips/mips.c (was_mips16_pch_p): Delete.
+	(mips_set_mips16_mode): Don't refer to was_mips16_pch_p.
+	(mips_prepare_pch_save): New function.
+	(TARGET_PREPARE_PCH_SAVE): Define.
+
+2011-12-22  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR middle-end/51212
+	* opts.c (finish_options): Call sorry on -fgnu-tm and
+	-fnon-call-exceptions combination.
+
+2011-12-22  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/invoke.texi (C++ Dialect Options): Add missing options and
+	move -Wzero-as-null-pointer-constant to ...
+	(Warning Options): ... here.
+
+2011-12-22  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR target/47643
+	* doc/invoke.texi (i386 and x86-64 Options): Fix description of
+	-mtune without -march.
+
+2011-12-21  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/51643
+	* arm.c (arm_function_ok_for_sibcall): Use DECL_WEAK in previous
+	change.
+
+2011-12-22  Tristan Gingold  <gingold@adacore.com>
+
+	* config/ia64/ia64.c (ia64_promote_function_mode): Remove.
+	(TARGET_PROMOTE_FUNCTION_MODE): Remove.
+	(ia64_function_value): Call promote_function_mode instead of
+	ia64_promote_function_mode.
+	* config/ia64/vms.h (PROMOTE_MODE): Define.
+	(TARGET_PROMOTE_FUNCTION_MODE): Define.
+
+2011-12-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/27468
+	* common/config/alpha/alpha-common.c (alpha_option_optimization_table):
+	Enable flag_ree at -O2 or higher.
+
+2011-12-22  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/51650
+	* lto.c (uniquify_nodes): Register TYPE_DECLs with the
+	debuginfo machinery.
+
+2011-12-22  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* tree-pass.h (pass_reload): Declare.
+	* ira.c (overall_cost_before, saved_flag_ira_share_spill_slots):
+	New global variables, moved out of ira.
+	(do_reload): New static function, split off from the second half
+	of ...
+	(ira): ... here.
+	(gate_ira): Remove.
+	(pass_ira): Use TV_IRA, set gate to NULL, and set flags to
+	TODO_dump_func.
+	(rest_of_handle_reload): New static function.
+	(pass_reload): New.
+
+2011-12-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* common/config/i386/i386-common.c (ix86_option_optimization_table):
+	Move OPT_free processing from ...
+	* config/i386/i386.c (ix86_option_override_internal):  ... here.
+
+2011-12-21  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/51643
+	* arm.c (arm_function_ok_for_sibcall): Don't try to tailcall a
+	weak function on bare-metal EABI targets.
+
+2011-12-21  Jonathan Wakely  <jwakely.gcc@gmail.com>
+	    Jim Avera  <james_avera@yahoo.com>
+
+	* doc/extend.texi (__builtin_expect): Improve example.
+
+2011-12-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_option_override_internal): Enable flag_ree
+	also for 32bit targets.
+
+2011-12-21  Richard Henderson  <rth@redhat.com>
+
+	PR target/51552
+	* dwarf2cfi.c (dwarf2out_frame_debug): Move any_cfis_emitted code...
+	(scan_trace): ... here.
+
+2011-12-21  Jason Merrill  <jason@redhat.com>
+
+	* doc/standards.texi (C++ language): Update for C++11.
+
+2011-12-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-vect-patterns.c (vect_operation_fits_smaller_type): Initialize
+	*op0 and *op1 to NULL_TREE first to avoid warnings.
+	* calls.c (initialize_argument_information): Initialize base to avoid
+	warnings.
+
+	PR middle-end/51644
+	PR middle-end/51647
+	* tree-eh.c (decide_copy_try_finally): At -O0, return true
+	even when ndests is not 1, if there are only gimple_clobber_p
+	(or debug) stmts in the finally sequence.
+	* tree-inline.c (estimate_num_insns): Return 0 for gimple_clobber_p
+	stmts.
+
+2011-12-21  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR middle-end/51472
+	* trans-mem.c (tm_log_add): Use create_tmp_var_reg.
+
+2011-12-21  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-into-ssa.c (rewrite_update_stmt): Do not dump extra newlines.
+	(rewrite_update_enter_block): Likewise.
+	(dump_update_ssa): Likewise.
+	(update_ssa): Likewise but also dump a newline at the beginning.
+
+2011-12-21  Enkovich Ilya  <ilya.enkovich@intel.com>
+
+	PR target/50038
+	* implicit-zee.c: Delete.
+	* ree.c: New file.
+	* Makefile.in: Replace implicit-zee.c with ree.c.
+	* config/i386/i386.c (ix86_option_override_internal): Rename
+	flag_zee to flag_ree.
+	* common.opt (fzee): Ignored.
+	(free): New.
+	* passes.c (init_optimization_passes): Replace pass_implicit_zee
+	with pass_ree.
+	* tree-pass.h (pass_implicit_zee): Delete.
+	(pass_ree): New.
+	* timevar.def (TV_ZEE): Delete.
+	(TV_REE): New.
+	* doc/invoke.texi: Add -free description.
+
+2011-12-21  Tristan Gingold  <gingold@adacore.com>
+
+	* config/vms/vms-protos.h (vms_function_section): New prototype.
+	* config/vms/vms.c (vms_function_section): New function.
+	* config/vms/vms.h (TARGET_ASM_FUNCTION_SECTION): Define.
+
+2011-12-21  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/41159
+	* tree-outof-ssa.c (insert_value_copy_on_edge): Use the
+	mode of the pseudo as destination mode.  Only assert that
+	is equal to the promoted mode of the decl if it is a REG.
+
+2011-12-21  Tristan Gingold  <gingold@adacore.com>
+
+	* config/vms/xm-vms.h (STANDARD_EXEC_PREFIX): Remove define.
+
 2011-12-20  Richard Henderson  <rth@redhat.com>
 
 	* config/ia64/ia64.c (MAX_VECT_LEN): New.
@@ -55,7 +687,7 @@
 
 	PR target/49865
 	* ira-costs.c (find_costs_and_classes): Prefer registers even
-          if the memory cost is the same.
+	if the memory cost is the same.
 
 2011-12-20  Joseph Myers  <joseph@codesourcery.com>
 
@@ -795,7 +1427,7 @@
 	clobber, but all consecutive clobbers before RESX.
 	Use gimple_clobber_p predicate.
 
-2011-12-09  Michael Meissner  <meissner@the-meissners.org>
+2011-12-09  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	* config/rs6000/rs6000.c (altivec_expand_builtin): Call
 	expand_call to return a valid funciton instead of return
@@ -1403,7 +2035,7 @@
 	(ia64_print_operand_punct_valid_p): New function.
 	(ia64_print_operand, ia64_print_operand_address): Make static.
 
-2011-12-02  Michael Meissner  <meissner@the-meissners.org>
+2011-12-02  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	PR target/51390
 	* config/rs6000/rs6000.c (def_builtin): Use the correct field to
@@ -8403,6 +9035,7 @@
 
 2011-10-12  Richard Sandiford  <richard.sandiford@linaro.org>
 
+	PR middle-end/48660
 	* expr.h (copy_blkmode_to_reg): Declare.
 	* expr.c (copy_blkmode_to_reg): New function.
 	(expand_assignment): Don't expand register RESULT_DECLs before

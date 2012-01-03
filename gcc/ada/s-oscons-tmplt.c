@@ -85,6 +85,12 @@ pragma Style_Checks ("M32766");
  **/
 #define _XOPEN_SOURCE 500
 
+#elif defined (__alpha__) && defined (__osf__)
+/** For Tru64 UNIX, _XOPEN_SOURCE must be defined, otherwise CLOCK_REALTIME
+ ** is not defined.
+ **/
+#define _XOPEN_SOURCE 500
+
 #elif defined (__mips) && defined (__sgi)
 /** For IRIX 6, _XOPEN5 must be defined and _XOPEN_IOV_MAX must be used as
  ** IOV_MAX, otherwise IOV_MAX is not defined.  IRIX 5 has neither.
@@ -1379,7 +1385,7 @@ CND(CLOCK_THREAD_CPUTIME_ID, "Thread CPU clock")
 /* There's no clock_gettime or clock_id's on Darwin, generate a dummy value */
 # define CLOCK_RT_Ada "-1"
 
-#elif defined(FreeBSD) || (defined(_AIX) && defined(_AIXVERSION_530))
+#elif defined(FreeBSD) || defined(_AIX)
 /** On these platforms use system provided monotonic clock instead of
  ** the default CLOCK_REALTIME. We then need to set up cond var attributes
  ** appropriately (see thread.c).

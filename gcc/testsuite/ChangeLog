@@ -1,3 +1,361 @@
+2012-01-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/15867
+	* g++.dg/warn/Wredundant-decls-spec.C: New.
+
+2012-01-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51719
+	* g++.dg/tree-prof/pr51719.C: New test.
+
+2012-01-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51730
+	* gcc.dg/fold-compare-6.c: New testcase.
+
+2012-01-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/51669
+	* g++.dg/gomp/pr51669.C: New test.
+
+2012-01-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51675
+	* g++.dg/cpp0x/constexpr-union2.C: New.
+
+	PR c++/51666
+	* g++.dg/cpp0x/nsdmi-defer5.C: New.
+
+2012-01-02  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51462
+	* g++.dg/cpp0x/constexpr-99.C: New test.
+
+2012-01-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/20140
+	* g++.dg/template/init9.C: New.
+
+2012-01-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.dg/memcpy-4.c: Add nomips16 attribute for MIPS targets.
+	Increase copy to 5 bytes.  Look for at least two "mem/s/u"s,
+	rather than a specific number.
+
+2012-01-02  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/46262
+	PR fortran/46328
+	PR fortran/51052
+	* gfortran.dg/typebound_operator_7.f03: New.
+	* gfortran.dg/typebound_operator_8.f03: New.
+
+2012-01-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR target/51729
+	* gcc.target/mips/dspr2-MULT.c: Remove -ffixed-hi -ffixed-lo.
+	XFAIL.
+	* gcc.target/mips/dspr2-MULTU.c: Likewise.
+
+2012-01-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.dg/pr46309.c: Add -mtune=octeon2 for MIPS.
+
+2012-01-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* g++.dg/cpp0x/constexpr-rom.C: Look for .rdata rather than rodata
+	for MIPS.
+
+2012-01-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gfortran.dg/io_real_boz_3.f90: Require fortran_real_16.
+	* gfortran.dg/io_real_boz_4.f90: Likewise.
+	* gfortran.dg/io_real_boz_5.f90: Likewise.
+
+2012-01-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* g++.dg/opt/devirt2.C: Add -mno-abicalls for MIPS.
+
+2012-01-02  Revital Eres  <revital.eres@linaro.org>
+
+	* gcc.dg/sms-11.c: New file.
+
+2012-01-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51682
+	* gfortran.dg/coarray/image_index_3.f90: New.
+
+2012-01-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/16603
+	* g++.dg/parse/enum8.C: New.
+
+2012-01-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51379
+	* g++.dg/conversion/reinterpret4.C: New.
+	* g++.dg/conversion/reinterpret1.C: Adjust.
+
+2012-01-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* g++.dg/cpp0x/constexpr-delegating2.C: Add missing piece.
+
+2012-01-01  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	* g++.old-deja/g++.brendan/crash25.C: Adjust.
+	* g++.old-deja/g++.brendan/crash56.C: Likewise.
+	* g++.old-deja/g++.jason/access14.C: Likewise.
+	* g++.old-deja/g++.jason/access8.C: Likewise.
+	* g++.old-deja/g++.jason/access1.C: Likewise.
+	* g++.old-deja/g++.other/access3.C: Likewise.
+	* g++.old-deja/g++.other/access5.C: Likewise.
+	* g++.old-deja/g++.law/unsorted1.C: Likewise.
+	* g++.old-deja/g++.law/visibility22.C: Likewise.
+	* g++.old-deja/g++.law/visibility26.C: Likewise.
+	* g++.old-deja/g++.mike/p2746.C: Likewise.
+	* g++.dg/debug/using1.C: Likewise.
+	* g++.dg/lookup/using51.C: Likewise.
+	* g++.dg/inherit/using5.C: Likewise.
+	* g++.dg/inherit/pr30297.C: Likewise.
+	* g++.dg/inherit/access8.C: Likewise.
+	* g++.dg/torture/pr39362.C: Likewise.
+	* g++.dg/template/crash13.C: Likewise.
+	* g++.dg/template/using10.C: Likewise.
+
+2012-01-01  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/51502
+	* lib/gcc-dg.exp (scan-module-absence):  Really commit last
+	change.
+
+2012-01-01  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/51704
+	* gfortran.dg/vect/no-fre-no-copy-prop-O3-pr51704.f90: New.
+	* gfortran.dg/vect/vect.exp: Run no-fre-no-copy-prop-O3-* with
+	corresponding flags.
+
+2012-01-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51723
+	* g++.dg/cpp0x/constexpr-delegating2.C: New.
+
+2012-01-01  Jan Hubicka  <jh@suse.cz>
+
+	PR rtl-optimization/51069
+	* gcc.c-torture/compile/pr51069.c: New testcase.
+
+2012-01-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51683
+	* gcc.dg/pr51683.c: New test.
+
+2011-12-31  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51397
+	* g++.dg/cpp0x/static_assert6.C: New.
+
+2011-12-31  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/tree-ssa/vrp47: Pass -march=i586 for ia32 target.
+
+2011-12-31  Thomas König  <tkoenig@gcc.gnu.org>
+
+	PR fortran/51502
+	* lib/gcc-dg.exp (scan-module-absence):  New function.
+	* gfortran.dg/implicit_pure_2.f90:  New test.
+
+2011-12-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51316
+	* g++.dg/cpp0x/alignof4.C: New.
+
+2011-12-29  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR testsuite/51702
+	* gcc.dg/scal-to-vec1.c: If 32-bit powerpc-linux, add the
+	-mabi=altivec option, which suppresses a warning message about
+	passing vectors by reference.  The extra warning causes some tests
+	to fail.
+	* gcc.dg/scal-to-vec2.c: Likewise.
+	* gcc.dg/Wstrict-aliasing-bogus-ref-all-2.c: Likewise.
+	* gcc.dg/pr35442.c: Likewise.
+	* gcc.dg/vector-compare-1.c: Likewise.
+	* gcc.dg/vector-compare-2.c: Likewise.
+	* gcc.dg/torture/pr36891.c: Likewise.
+
+2012-12-29  Kai Tietz  <ktietz@redhat.com>
+
+	* g++.dg/abi/bitfield3.C: Make sure test runs
+	for windows targets without activated ms-bitfields option.
+
+	* g++.old-deja/g++.brendan/new3.C: Adjust test for mingw
+	targets to use static-version.
+	* g++.old-deja/g++.abi/cxa_vec.C: Likewise.
+	* g++.old-deja/g++.abi/arraynew.C: Likewise.
+	* g++.old-deja/g++.eh/new1.C: Likewise.
+	* g++.old-deja/g++.eh/new2.C: Likewise.
+
+2011-12-29  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* gfortran.dg/function_optimize_9.f90:  New test.
+
+2011-12-27  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/23211
+	* g++.dg/template/using18.C: New.
+	* g++.dg/template/using19.C: New.
+	* g++.dg/template/nested3.C: Remove dg-message at instantiation.
+	* g++.dg/template/crash13.C: Likewise.
+
+2011-12-28  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/51623
+	* gcc.target/powerpc/pr51623.c: New file.
+
+2011-12-28  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/torture/pr50396.c: Use dg-add-options ieee.
+
+2011-12-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51547
+	* g++.dg/cpp0x/pr51547.C: New.
+
+2011-12-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/execute/20111227-1.c: New test.
+
+2011-12-25  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/48641
+	* gcc.dg/compile/pr48641.c: New file.
+
+2011-12-26  Joey Ye  <joey.ye@arm.com>
+
+	PR middle-end/51200
+	* gcc.dg/volatile-bitfields-2.c: New test.
+
+2011-12-23  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51507
+	* g++.dg/cpp0x/variadic121.C: New.
+
+2011-12-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/vect/fast-math-pr35982.c: Fix parenthesis in target selectors.
+
+2011-12-23  Dmitry Plotnikov  <dplotnikov@ispras.ru>
+
+	* gcc.target/arm/vect-vcvt.c: New test.
+	* gcc.target/arm/vect-vcvtq.c: New test.
+
+	* gcc.dg/vect/fast-math-pr35982.c: Added vect_strided2 alternative
+	in final check.
+
+	* lib/target-supports.exp (check_effective_target_vect_intfloat_cvt):
+	True for ARM NEON.
+	(check_effective_target_vect_uintfloat_cvt): Likewise.
+	(check_effective_target_vect_floatuint_cvt): Likewise.
+	(check_effective_target_vect_floatint_cvt): Likewise.
+
+2011-12-23  Richard Guenther  <rguenther@suse.de>
+
+	PR rtl-optimization/50396
+	* gcc.dg/torture/pr50396.c: New testcase.
+
+2011-12-22  Bin Cheng  <bin.cheng@arm.com>
+
+	PR tree-optimization/43491
+	* gcc.dg/tree-ssa/pr43491.c: New test.
+
+2011-12-22  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR testsuite/50722
+	* gcc.dg/pr49994-3.c: Skip on ia64-*-*-*, hppa*-*-* and *-*-hpux*.
+
+2011-12-22  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/51650
+	* g++.dg/lto/pr51650-1_0.C: New testcase.
+	* g++.dg/lto/pr51650-2_0.C: Likewise.
+
+2011-12-21  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/51643
+	* gcc.target/arm/sibcall-2.c: New test.
+
+2011-12-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR testsuite/51645
+	* g++.dg/cpp0x/alias-decl-debug-0.C: Add dg-skip-if.
+
+2011-12-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/pr50038.c: Move to ...
+	* gcc.target/i386/pr50038.c: ... here.  Test on all targets.
+
+2011-12-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51611
+	* g++.dg/cpp0x/nsdmi-virtual1.C: New.
+
+2011-12-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51305
+	* g++.dg/cpp0x/constexpr-noexcept6.C: New.
+
+2011-12-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/51644
+	PR middle-end/51647
+	* gcc.dg/pr51644.c: New test.
+	* g++.dg/warn/Wreturn-4.C: New test.
+
+2011-12-21  Michael Zolotukhin  <michael.v.zolotukhin@intel.com>
+
+	* gcc.dg/vect/no-section-anchors-vect-31.c: Adjust array size and test
+	diag-scans to fix fail on AVX.
+	* gcc.dg/vect/no-section-anchors-vect-36.c: Ditto.
+	* gcc.dg/vect/no-section-anchors-vect-64.c: Ditto.
+	* gcc.dg/vect/no-section-anchors-vect-66.c: Ditto.
+	* gcc.dg/vect/no-section-anchors-vect-68.c: Ditto.
+	* gcc.dg/vect/no-section-anchors-vect-69.c: Ditto.
+	* gcc.dg/vect/no-vfa-vect-dv-2.c: Adjust dg-scans.
+	* gcc.dg/vect/pr45752.c: Ditto.
+	* gcc.dg/vect/slp-perm-4.c: Ditto.
+	* gcc.dg/vect/slp-perm-9.c: Ditto.
+	* gcc.dg/vect/vect-33.c: Ditto.
+	* gcc.dg/vect/vect-35.c: Ditto.
+	* gcc.dg/vect/vect-6-big-array.c: Ditto.
+	* gcc.dg/vect/vect-6.c: Ditto.
+	* gcc.dg/vect/vect-91.c: Ditto.
+	* gcc.dg/vect/vect-all-big-array.c: Ditto.
+	* gcc.dg/vect/vect-all.c: Ditto.
+	* gcc.dg/vect/vect-multitypes-1.c: Ditto.
+	* gcc.dg/vect/vect-outer-4c.c: Ditto.
+	* gcc.dg/vect/vect-outer-5.c: Ditto.
+	* gcc.dg/vect/vect-over-widen-1.c: Ditto.
+	* gcc.dg/vect/vect-over-widen-3.c: Ditto.
+	* gcc.dg/vect/vect-over-widen-4.c: Ditto.
+	* gcc.dg/vect/vect-peel-1.c: Ditto.
+	* gcc.dg/vect/vect-peel-2.c: Ditto.
+	* gcc.dg/vect/vect-peel-3.c: Ditto.
+	* gcc.dg/vect/vect-reduc-pattern-1b.c: Ditto.
+	* gcc.dg/vect/vect-reduc-pattern-1c.c: Ditto.
+	* gcc.dg/vect/vect-reduc-pattern-2b.c: Ditto.
+	* gcc.dg/vect/wrapv-vect-reduc-pattern-2c.c: Ditto.
+	* lib/target-supports.exp (check_avx_available): New function.
+	(check_effective_target_vect_sizes_32B_16B): Ditto.
+	(check_prefer_avx128): Ditto.
+	(check_effective_target_vect_aligned_arrays): Add handling of AVX.
+	(check_effective_target_vect_multiple_sizes): Ditto.
+
+2011-12-21  Enkovich Ilya  <ilya.enkovich@intel.com>
+
+	PR target/50038
+	* gcc.dg/pr50038.c: New test.
+
 2011-12-20  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/51621

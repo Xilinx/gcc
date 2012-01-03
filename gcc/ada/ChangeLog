@@ -1,3 +1,360 @@
+2012-01-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnatvsn.ads (Current_Year): Bump to 2012.
+
+2011-12-23  Pascal Obry  <obry@adacore.com>
+
+	* prj.ads (For_Every_Project_Imported): Add In_Aggregate_Lib
+	parameter to generic formal procedure.
+	* prj.adb (For_Every_Project_Imported): Update accordingly.
+	(Recursive_Check): Likewise. Do not parse imported project for
+	aggregate library. This is needed as the imported projects are
+	there just to handle dependencies.
+	(Look_For_Sources): Likewise.
+	(Recursive_Add): Likewise.
+	* prj-env.adb, prj-conf.adb, makeutl.adb, gnatcmd.adb:
+	Add In_Aggregate_Lib parameter to routines used with
+	For_Every_Project_Imported generic procedure.
+	* prj-nmsc.adb (Tree_Processing_Data): Add In_Aggregate_Lib field.
+	(Check): Move where it is used. Fix implementation
+	to not check libraries that are inside aggregate libraries.
+	(Recursive_Check): Add In_Aggregate_Lib parameter.
+
+2011-12-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch7.adb (Analyze_Package_Body, Has_Referencer): A generic
+	package is a referencer regardless of whether there is a
+	subsequent subprogram with an Inline pragma.
+
+2011-12-23  Geert Bosch  <bosch@adacore.com>
+
+	* sem_ch3.adb (Can_Derive_From): Check matching Float_Rep on VMS.
+
+2011-12-23  Pascal Obry  <obry@adacore.com>
+
+	* gnatcmd.adb, prj.adb, prj-nmsc.adb: Minor reformatting.
+
+2011-12-22  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_ch7.adb (Build_Adjust_Or_Finalize_Statements): Create the objects
+	associated with exception handling unconditionally.
+	(Build_Adjust_Statements): Create the objects associated with
+	exception handling unconditionally.
+	(Build_Components): Create the objects associated with exception
+	handling unconditionally.
+	(Build_Finalize_Statements): Create the objects associated with
+	exception handling unconditionally.
+	(Build_Initialize_Statements): Create the objects associated with
+	exception handling unconditionally.
+	(Build_Object_Declarations): Set the proper location of the data
+	record when exception propagation is forbidden.
+
+2011-12-22  Gary Dismukes  <dismukes@adacore.com>
+
+	* a-tienio.adb (Put): Test validity of Item parameters before
+	applying Image, and raise Constraint_Error for invalid values.
+
+2011-12-22  Bob Duff  <duff@adacore.com>
+
+	* a-stwima.ads (Initialize,Adjust,Finalize): Add overriding indicators.
+	* a-ststio.ads (AFCB_Allocate,AFCB_Close,AFCB_Free,Read,Write): Add
+	overriding indicators.
+
+2011-12-22  Arnaud Charlet  <charlet@adacore.com>
+
+	* s-osinte-hpux-dce.ads: Update header to GPLv3
+
+2011-12-22  Ed Schonberg  <schonberg@adacore.com>
+
+	* a-cohase.ads, a-cohase.adb: Update to latest RM version. Add
+	aspect Constant_Reference to set type, and corresponding
+	functions.
+	* a-cihama.ads, a-cihama.adb: Update to latest RM version. Add
+	function Reference to provide a proper element iterator construct
+	over indefinite maps.
+
+2011-12-22  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_attr.adb (Expand_N_Attribute, case 'Access): Do not insert
+	implicit conversion on prefix of Unrestricted_Access when prefix
+	is an explicit dereference.
+
+2011-12-22  Vincent Pucci  <pucci@adacore.com>
+
+	* sem_dim.adb: Addressed all ??? comments. Replacement of warnings by
+	errors using continuation marks.
+	(Error_Dim_Msg_For_?): Renaming of Error_Dim_For_?.
+
+2011-12-22  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch3.adb, sem_ch3.ads, sem_prag.adb: Minor code clean up.
+
+2011-12-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* s-oscons-tmplt.c [__alpha__ && __osf__] (_XOPEN_SOURCE): Define.
+
+2011-12-21  Javier Miranda  <miranda@adacore.com>
+
+	* sem_ch3.ads, sem_ch3.adb (Check_CPP_Type): New subprogram.
+	(Process_Full_View): Invoke Check_CPP_Type if processing the
+	full-view of a CPP type.
+	* sem_prag.adb (Process_Import_Or_Interface): Add missing support
+	for importing a CPP type that has an incomplete declaration. Move
+	to new routine Check_CPP_Type the code that verifies that
+	components of imported CPP types do not have default expressions.
+
+2011-12-21  Vincent Celier  <celier@adacore.com>
+
+	* prj-nmsc.adb (Report_No_Sources): Remove argument Lang. Report
+	no sources even for languages that are not allowed.
+	(Add_Source): Get the source even when the language is not allowed.
+
+2011-12-21  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch6.adb (Process_Formals): Add defensive code.
+
+2011-12-21  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch7.adb, sem_ch13.adb (Analyze_Package_Specification): Build the
+	invariant procedure of a type declaration that is a completion and has
+	aspect specifications.
+	(Build_Invariant_Procedure): If the procedure is built for a
+	type declaration that is a completion, analyze body expliitly
+	because all private declarations have been already analyzed.
+
+2011-12-21  Claire Dross  <dross@adacore.com>
+
+	* a-cfdlli.adb, a-cfhase.adb, a-cforma.adb, a-cforse.adb,
+	a-cofove.adb: Minor reformating on formal containers
+
+2011-12-21  Vincent Celier  <celier@adacore.com>
+
+	* makeutl.adb (Mains.Complete_Mains.Do_Complete): Remove
+	any main that is not in the list of restricted languages.
+	(Insert_Project_Sources.Do_Insert): Only add sources of languages
+	in the list of restricted languages.
+
+2011-12-21  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_res.adb (Valid_Conversion): A type conversion is valid when
+	the target type is an anonymous access type and the operand is a
+	rewriting of an allocator. The conversion is typically inserted
+	when the designated type is an interface.
+
+2011-12-21  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch9.adb (Establish_Task_Master): If the enclosing block
+	has no declarations, create new declarative list for it.
+
+2011-12-21  Matthew Heaney  <heaney@adacore.com>
+
+	* a-rbtgbk.adb (Generic_Conditional_Insert): Fixed incorrect comment.
+
+2011-12-21  Yannick Moy  <moy@adacore.com>
+
+	* sem_ch13.adb (Analyze_Attribute_Definition_Clause): Do not
+	ignore representation attributes in Alfa mode, since formal
+	verification backend does not depend on actual physical
+	representation, but code may still refer to attribute values.
+
+2011-12-21  Yannick Moy  <moy@adacore.com>
+
+	* par-ch13.adb (P_Aspect_Specifications): Recognize the cases
+	where a comma between two aspects is missing, or erroneously
+	replaced by a semicolon, issue an error and proceed with next
+	aspect.
+	* par.adb, sinfo.ads: Fix typos.
+
+2011-12-21  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_util.adb (Mark_Coextensions): A coextension for an
+	object that is part of the expression in a return statement,
+	or part of the return object in an extended return statement,
+	must be allocated dynamically.
+
+2011-12-21  Matthew Heaney  <heaney@adacore.com>
+
+	* a-crbtgk.adb (Generic_Conditional_Insert): Fixed incorrect comment.
+
+2011-12-21  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch5.adb (Analyze_Iterator_Specification): If the name
+	of an element iterator is not an entity name we introduce a
+	local renaming declaration for it. To prevent spurious warnings
+	on parameterless function calls that return a container, when
+	expansion is disabled (either explicitly or because of a previous
+	errors) the name must be marked as not coming from source.
+
+2011-12-21  Arnaud Charlet  <charlet@adacore.com>
+
+	* sem_ch13.adb (Analyze_Attribute_Definition_Clause): Separate
+	handling in CodePeer mode and only ignore Component_Size
+	attribute.
+
+2011-12-21  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch6.adb (Process_Formals): Set proper mechanism for
+	formals whose types have conventions Ada_Pass_By_Copy or
+	Ada_Pass_By_Reference.
+
+2011-12-21  Arnaud Charlet  <charlet@adacore.com>
+
+	* gnat1drv.adb (Gnat1Drv): Always delete old scil files in
+	CodePeer mode.
+
+2011-12-21  Robert Dewar  <dewar@adacore.com>
+
+	* comperr.adb: Minor reformatting.
+
+2011-12-21  Ed Schonberg  <schonberg@adacore.com>
+
+	* aspects.ads: New table Base_Aspect, to indicate that an aspect
+	is defined on a base type.
+	* aspects.adb (Find_Aspect): If the aspect is a Base_Aspect,
+	examine the representation items of the base type.
+
+2011-12-21  Pascal Obry  <obry@adacore.com>
+
+	* gnat_ugn.texi, prj.ads, prj-nmsc.adb, prj-attr.adb, projects.texi,
+	snames.ads-tmpl: Use Encapsulated instead of Fully Standalone library.
+
+2011-12-21  Pascal Obry  <obry@adacore.com>
+
+	* adaint.c (__gnat_is_executable_file_attr) [_WIN32]: Add parentheses
+	to kill warning.
+
+2011-12-21  Arnaud Charlet  <charlet@adacore.com>
+
+	* comperr.adb (Delete_SCIL_Files): Also delete .scilx files.
+	Fix implementation for child packages and package specs.
+	(Delete_SCIL_Files.Decode_Name_Buffer): New function.
+
+2011-12-21  Robert Dewar  <dewar@adacore.com>
+
+	* err_vars.ads, a-cdlili.adb, a-cfdlli.ads, prj.adb, prj-nmsc.adb,
+	a-cbdlli.adb, a-cbdlli.ads, a-cfdlli.adb: Minor reformatting.
+
+2011-12-21  Vincent Pucci  <pucci@adacore.com>
+
+	* s-diflio.adb, s-diflio.ads, s-diinio.adb, s-diinio.ads,
+	s-llflex.ads: Fix header.
+
+2011-12-21  Thomas Quinot  <quinot@adacore.com>
+
+	* thread.c, s-oscons-tmplt.c, init.c (pthread_condattr_setclock): For
+	AIX 5.2, define as a dummy weak symbol in init.c.
+	(CLOCK_RT_Ada): Set to CLOCK_MONOTONIC on all versions of AIX.
+
+2011-12-21  Thomas Quinot  <quinot@adacore.com>
+
+	* snames.ads-tmpl, sem_ch8.adb: Minor reformatting.
+	* sem_prag.adb: Minor comment clarification.
+
+2011-12-21  Vincent Celier  <celier@adacore.com>
+
+	* prj-nmsc.adb (Report_No_Sources): New argument Lang for the
+	language name as a Name_Id. Do not report no sources if language
+	is not allowed.
+	(Add_Source): Do not add source if language is not allowed.
+	* prj.adb (Add_Restricted_Language): New procedure
+	(Is_Allowed_Language): New function
+	* prj.ads (Add_Restricted_Language): New procedure
+	(Is_Allowed_Language): New function
+
+2011-12-21  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch5.adb, sem_dim.adb, sem_dim.ads, sem_ch12.adb, prj-conf.adb:
+	Minor reformatting.
+
+2011-12-21  Claire Dross  <dross@adacore.com>
+
+	* a-cfdlli.ads (Constant_Indexing, Default_Iterator,
+	Iterator_Element): Added to type List.               
+	(Not_No_Element, List_Iterator_Interfaces, Iterate,
+	Constant_Reference_Type, Constant_Reference): New.
+	* a-cfdlli.adb (type Iterator, Finalize, First, Last, Next,
+	Previous, Iterate, Not_No_Element, Constant_Reference): New.
+
+2011-12-21  Gary Dismukes  <dismukes@adacore.com>
+
+	* gnat_ugn.texi: Minor reformatting.
+
+2011-12-21  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch5.adb (Expand_Iterator_Loop): The cursor operation
+	Has_Element is the formal of Iterator_Interfaces, and within
+	the instantion of this package it is a renaming of some local
+	function with an unrelated name. Retrieve the operation from
+	the instance itself, not from the container package.
+
+2011-12-21  Vincent Pucci  <pucci@adacore.com>
+
+	* exp_ch6.adb (Expand_Call): Expand_Put_Call_With_Dimension_String
+	replaced by Expand_Put_Call_With_Dimension_Symbol
+	* sem_ch12.adb (Analyze_Package_Instantiation): New check for
+	System.Dim_Float_IO and System.Dim_Integer_IO instantiation.
+	* sem_ch3.adb (Analyze_Declarations): Removed
+	Remove_Dimension_In_Declaration call.
+	* sem_dim.adb: Update comments. Redefine the
+	representation of a Rational. Propagate all changes involving
+	data structures and types throughout the pakage. Output the
+	dimension aggregates for each error messages.
+	("/"): Rational constructor "/" removed for Whole operands.
+	("/"): New rational operation "/" for Rational operands.
+	("*"): Operation "*" between Rational and Int removed.
+	("abs"): New unary operator "abs" for Rational.
+	(Analyze_Aspect_Dimension_System): Reorganized.
+	(Analyze_Dimension_Identifier): Removed.
+	(Copy_Dimensions): Removed.
+	(Create_Rational_From_Expr): New Boolean parameter.
+	(Dimensions_Msg_Of): New routine. Return
+	a string with the dimensions of the parameter.
+	(From_Dimension_To_String_Of_Symbols): Renaming of
+	From_Dimension_To_String_Id.
+	* sem_dim.ads: Update comments.
+	(Is_Dim_IO_Package_Instantiation): New routine.
+	(Remove_Dimension_In_Declaration): Removed.
+	* sem_res.adb (Resolve_Op_Expon): Reorganized calls of
+	Eval_Op_Expon_For_Dimensioned_Type and Eval_Op_Expon.
+	* s-diflio.ads, s-diinio.ads: Update comments.
+
+2011-12-21  Pascal Obry  <obry@adacore.com>
+
+	* prj-attr.adb, snames.ads-tmpl: Add Library_Standalone,
+	Library_Fully_Standalone_Options and
+	Library_Fully_Standalone_Supported attributes.
+	* prj-nmsc.adb (Check_Library): Update check to take into
+	account fully standalone libraries. Such shared libraries can
+	only depend on static libraries.
+	(Check_Stand_Alone_Library): Add support for fully standalone libraries.
+	(Process_Project_Level_Simple_Attributes): Store value for
+	configuration attribute Library_Fully_Standalone_Supported.
+	* prj.ads, makeutl.adb (Standalone): New enumeration type.
+	(Project_Data): Standalone_Library now of type Standlone.
+	(Project_Configuration): Add Lib_Fully_Standalone_Supported
+	field.
+	(Default_Project_Config): Initialize new Lib_Fully_Standalone_Supported
+	field.
+	* clean.adb (Clean_Project): Adjust to new type for Standalone.
+	* make.adb (Library_Phase): Adjust to new type for Standalone.
+	(Gnatmake): Likewise.
+	* mlib-prj.adb (Build_Library): Adjust to new type for
+	Standalone.
+
+2011-12-21  Thomas Quinot  <quinot@adacore.com>
+
+	* gnatls.adb (Gnatls): Call Set_Standard_Error at startup, and then
+	Set_Standard_Output just before producing normal (non-diagnostic)
+	output.
+	* gnatcmd.adb (Gnatcmd): Call Set_Standard_Error at initialization
+	(and again after parsing project files).
+
+2011-12-21  Vincent Celier  <celier@adacore.com>
+
+	* prj-conf.adb (Do_Autoconf): When the object directory does
+	not exist, create auto.cgpr in the directory where temporary
+	files are created.
+
 2011-12-20  Ed Schonberg  <schonberg@adacore.com>
 
 	* sem_ch12.adb (Insert_Freeze_Node_For_Instance):  Further

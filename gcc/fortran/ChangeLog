@@ -1,3 +1,68 @@
+2012-01-03  Hans-Peter Nilsson  <hp@axis.com>
+
+	* gfortran.h (struct gfc_expr): Add missing "struct"
+	qualifier for member base_expr.
+
+2012-01-02  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/51529
+	* trans-array.c (gfc_array_allocate): Null allocated memory of
+	newly allocted class arrays.
+
+	PR fortran/46262
+	PR fortran/46328
+	PR fortran/51052
+	* interface.c(build_compcall_for_operator): Add a type to the
+	expression.
+	* trans-expr.c (conv_base_obj_fcn_val): New function.
+	(gfc_conv_procedure_call): Use base_expr to detect non-variable
+	base objects and, ensuring that there is a temporary variable,
+	build up the typebound call using conv_base_obj_fcn_val.
+	(gfc_trans_class_assign): Pick out class procedure pointer
+	assignments and do the assignment with no further prcessing.
+	(gfc_trans_class_array_init_assign, gfc_trans_class_init_assign
+	gfc_trans_class_assign): Move to top of file.
+	* gfortran.h : Add 'base_expr' field to gfc_expr.
+	* resolve.c (get_declared_from_expr): Add 'types' argument to
+	switch checking of derived types on or off.
+	(resolve_typebound_generic_call): Set the new argument.
+	(resolve_typebound_function, resolve_typebound_subroutine):
+	Set 'types' argument for get_declared_from_expr appropriately.
+	Identify base expression, if not a variable, in the argument
+	list of class valued calls. Assign it to the 'base_expr' field
+	of the final expression. Strip away all references after the
+	last class reference.
+
+2012-01-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51682
+	* trans-intrinsic.c (trans_this_image, trans_image_index,
+	trans_num_images, conv_intrinsic_cobound): Fold_convert the
+	caf_num_images/caf_this_images variables to the correct int kind.
+
+2012-01-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* gfortranspec.c (lang_specific_driver): Update copyright notice
+	dates.
+
+2011-12-31  Thomas König  <tkoenig@gcc.gnu.org>
+
+	PR fortran/51502
+	* expr.c (gfc_check_vardef_context):  When determining
+	implicit pure status, also check for variable definition
+	context.  Walk up namespaces until a procedure is
+	found to reset the implict pure attribute.
+	* resolve.c (gfc_implicit_pure):  Walk up namespaces
+	until a procedure is found.
+
+2011-12-29  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* dependency.c (gfc_dep_compare_functions):  Document
+	new behavior for REALs and complex.  Add comment to cases
+	where only INTEGERs are handled.  Compare REAL and COMPLEX
+	constants, returning 0 and -2 only.  Add assert to make
+	sure that only integer constants are compared.
+
 2011-12-19  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/51605
@@ -37,6 +102,7 @@
 	non-compile-time-constant-shape arrays to have a default
 	initializer.
 	* invoke.texi: Delete the restriction on automatic arrays not
+	being initialized by -finit-<type>=<constant>.
 
 2011-12-15  Tobias Burnus  <burnus@net-b.de>
 

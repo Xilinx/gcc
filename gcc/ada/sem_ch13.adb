@@ -2108,11 +2108,27 @@ package body Sem_Ch13 is
          Set_Analyzed (N, True);
       end if;
 
-      --  Process Ignore_Rep_Clauses option (we also ignore rep clauses in
-      --  CodePeer mode or Alfa mode, since they are not relevant in these
-      --  contexts).
+      --  Ignore some selected attributes in CodePeer mode since they are not
+      --  relevant in this context.
 
-      if Ignore_Rep_Clauses or CodePeer_Mode or Alfa_Mode then
+      if CodePeer_Mode then
+         case Id is
+
+            --  Ignore Component_Size in CodePeer mode, to avoid changing the
+            --  internal representation of types by implicitly packing them.
+
+            when Attribute_Component_Size =>
+               Rewrite (N, Make_Null_Statement (Sloc (N)));
+               return;
+
+            when others =>
+               null;
+         end case;
+      end if;
+
+      --  Process Ignore_Rep_Clauses option
+
+      if Ignore_Rep_Clauses then
          case Id is
 
             --  The following should be ignored. They do not affect legality
@@ -2132,11 +2148,7 @@ package body Sem_Ch13 is
                Rewrite (N, Make_Null_Statement (Sloc (N)));
                return;
 
-            --  We do not want too ignore 'Small in CodePeer_Mode or Alfa_Mode,
-            --  since it has an impact on the exact computations performed.
-
-            --  Perhaps 'Small should also not be ignored by
-            --  Ignore_Rep_Clauses ???
+            --  Perhaps 'Small should not be ignored by Ignore_Rep_Clauses ???
 
             when Attribute_Small =>
                if Ignore_Rep_Clauses then
@@ -4726,6 +4738,14 @@ package body Sem_Ch13 is
             --  (this is an error that will be caught elsewhere);
 
             Append_To (Private_Decls, PBody);
+
+            --  If the invariant appears on the full view of a type, the
+            --  analysis of the private part is complete, and we must
+            --  analyze the new body explicitly.
+
+            if In_Private_Part (Current_Scope) then
+               Analyze (PBody);
+            end if;
          end if;
       end if;
    end Build_Invariant_Procedure;

@@ -259,6 +259,9 @@ GTM::gtm_thread::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
   else
     {
 #ifdef HAVE_64BIT_SYNC_BUILTINS
+      // We don't really care which block of TIDs we get but only that we
+      // acquire one atomically; therefore, relaxed memory order is
+      // sufficient.
       tx->id = global_tid.fetch_add(tid_block_size, memory_order_relaxed);
       tx->local_tid = tx->id + 1;
 #else
@@ -454,7 +457,12 @@ GTM::gtm_thread::trycommit ()
       // The transaction is now inactive. Everything that we still have to do
       // will not synchronize with other transactions anymore.
       if (state & gtm_thread::STATE_SERIAL)
-	gtm_thread::serial_lock.write_unlock ();
+        {
+          gtm_thread::serial_lock.write_unlock ();
+          // There are no other active transactions, so there's no need to
+          // enforce privatization safety.
+          priv_time = 0;
+        }
       else
 	gtm_thread::serial_lock.read_unlock (this);
       state = 0;
@@ -471,17 +479,28 @@ GTM::gtm_thread::trycommit ()
       // Ensure privatization safety, if necessary.
       if (priv_time)
 	{
+          // There must be a seq_cst fence between the following loads of the
+          // other transactions' shared_state and the dispatch-specific stores
+          // that signal updates by this transaction (e.g., lock
+          // acquisitions).  This ensures that if we read prior to other
+          // reader transactions setting their shared_state to 0, then those
+          // readers will observe our updates.  We can reuse the seq_cst fence
+          // in serial_lock.read_unlock() however, so we don't need another
+          // one here.
 	  // TODO Don't just spin but also block using cond vars / futexes
 	  // here. Should probably be integrated with the serial lock code.
-	  // TODO For C++0x atomics, the loads of other threads' shared_state
-	  // should have acquire semantics (together with releases for the
-	  // respective updates). But is this unnecessary overhead because
-	  // weaker barriers are sufficient?
 	  for (gtm_thread *it = gtm_thread::list_of_threads; it != 0;
 	      it = it->next_thread)
 	    {
 	      if (it == this) continue;
-	      while (it->shared_state.load(memory_order_relaxed) < priv_time)
+	      // We need to load other threads' shared_state using acquire
+	      // semantics (matching the release semantics of the respective
+	      // updates).  This is necessary to ensure that the other
+	      // threads' memory accesses happen before our actions that
+	      // assume privatization safety.
+	      // TODO Are there any platform-specific optimizations (e.g.,
+	      // merging barriers)?
+	      while (it->shared_state.load(memory_order_acquire) < priv_time)
 		cpu_relax();
 	    }
 	}
@@ -497,11 +516,19 @@ GTM::gtm_thread::trycommit ()
 }
 
 void ITM_NORETURN
-GTM::gtm_thread::restart (gtm_restart_reason r)
+GTM::gtm_thread::restart (gtm_restart_reason r, bool finish_serial_upgrade)
 {
   // Roll back to outermost transaction. Do not reset transaction state because
   // we will continue executing this transaction.
   rollback ();
+
+  // If we have to restart while an upgrade of the serial lock is happening,
+  // we need to finish this here, after rollback (to ensure privatization
+  // safety despite undo writes) and before deciding about the retry strategy
+  // (which could switch to/from serial mode).
+  if (finish_serial_upgrade)
+    gtm_thread::serial_lock.write_upgrade_finish(this);
+
   decide_retry_strategy (r);
 
   // Run dispatch-specific restart code. Retry until we succeed.

@@ -15456,12 +15456,13 @@ rs6000_assemble_integer (rtx x, unsigned int size, int aligned_p)
     {
       static int recurse = 0;
 
-      /* For -mrelocatable, we mark all addresses that need to be fixed up
-	 in the .fixup section.  */
+      /* For -mrelocatable, we mark all addresses that need to be fixed up in
+	 the .fixup section.  Since the TOC section is already relocated, we
+	 don't need to mark it here.  We used to skip the text section, but it
+	 should never be valid for relocated addresses to be placed in the text
+	 section.  */
       if (TARGET_RELOCATABLE
 	  && in_section != toc_section
-	  && in_section != text_section
-	  && !unlikely_text_section_p (in_section)
 	  && !recurse
 	  && GET_CODE (x) != CONST_INT
 	  && GET_CODE (x) != CONST_DOUBLE
@@ -27137,7 +27138,7 @@ rs6000_inner_target_options (tree args, bool attr_p)
 		    if (strcmp (r, rs6000_opt_vars[i].name) == 0)
 		      {
 			size_t j = rs6000_opt_vars[i].global_offset;
-			((int *) &global_options)[j] = !invert;
+			*((int *) ((char *)&global_options + j)) = !invert;
 			error_p = false;
 			break;
 		      }
