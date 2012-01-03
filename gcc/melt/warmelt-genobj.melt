@@ -1,7 +1,7 @@
 ;; File warmelt-genobj.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -1072,8 +1072,12 @@ $SBUF.}#
 	    (oinisym (get_field :fixbind_data curdefbind))
 	    (oinidefloc (get_free_objlocptr gcx inidefsymb))
 	   )
-       (debug "compile2obj_initproc oinidefloc=" oinidefloc " oinisym=" oinisym)
-       (assert_msg "check oinisym" (is_a oinisym class_nrep_locsymocc))
+       (debug "compile2obj_initproc oinidefloc=" oinidefloc " oinisym=" oinisym
+	      " of discrim:" (discrim oinisym)
+	      " curdefbind=" curdefbind)
+       ;;oinisym is often a class_nrep_locsymocc but can be a
+       ;;class_nrep_defined_constant
+       (assert_msg "check oinisym" (is_a oinisym class_nrep_simple))
        (mapobject_put locmap curdefbind oinidefloc)
      ))
     ;; create a commentedblock to compute the new environemnt box in boxloc if it is null 
@@ -1736,6 +1740,25 @@ $SBUF.}#
     (return olocv)
     ))
 (install_method class_nrep_importedval compile_obj compilobj_nrep_importedval)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_definedconstant (ndconst gcx)
+  (debug "compilobj definedconstant ndconst=" ndconst " gcx=" gcx)
+  (assert_msg "check gcx" (is_a gcx class_initial_generation_context))
+  (assert_msg "check ndconst" (is_a ndconst class_nrep_defined_constant))
+  (let ( (nsval (unsafe_get_field :nconst_sval ndconst))
+	 (nloc (unsafe_get_field :nrep_loc ndconst))
+	 (locmap (unsafe_get_field :gncx_locmap gcx))
+	 (ndefbnd (unsafe_get_field :nconst_defbind ndconst))
+	 (ovloc (mapobject_get locmap ndefbnd))
+	 (nproc (unsafe_get_field :nconst_proc ndconst))
+	 )
+    (debug "compilobj definedconstant ndefbnd=" ndefbnd " nloc=" nloc " ovloc=" ovloc " nproc=" nproc)
+    (assert_msg "compilobj definedconstant check ovloc" ovloc)
+    (return ovloc)
+    ))
+(install_method class_nrep_defined_constant compile_obj compilobj_nrep_definedconstant)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a quasiconstant
@@ -2651,6 +2674,8 @@ $SBUF.}#
 	 (cvar (compile_obj var gcx))
 	 (cres (put_objdest cexp cvar))
 	 )
+    (debug "compilobj_nrep_setq loc=" loc " left var=" var " cvar=" cvar
+	   "\n right exp=" exp " cexp=" cexp " cres=" cres)
     (and (is_a cres class_objinstr)
 	 (null (unsafe_get_field :obi_loc cres))
 	 (unsafe_put_fields cres :obi_loc loc))
@@ -3598,8 +3623,11 @@ $SBUF.}#
 			   :obcond_then othen
 			   :obcond_else oelse))
 	   )
-      (assert_msg "check otest" (notnull otest))
+      (debug "compilobj_nrep_if ntest=" ntest " otest=" otest)
+      (debug "compilobj_nrep_if nthen=" nthen " otest=" othen)
+      (debug "compilobj_nrep_if nthen=" nelse " otest=" oelse)
       (debug "compilobj_nrep_if obif=" obif)
+      (assert_msg "check otest" (notnull otest))
       obif
       )))
 (install_method class_nrep_if compile_obj compilobj_nrep_if)

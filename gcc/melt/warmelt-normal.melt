@@ -1,7 +1,7 @@
 ;; file warmelt-normal.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -1409,11 +1409,11 @@ source location.}#
       ;;
       ;; dispatch the binding
       (:else 
-       (debug "normexp_symbol dispatching bind=" bind " for recv=" recv " psloc=" psloc)
+       (debug "normexp_symbol before normalize_binding bind=" bind " for recv=" recv " psloc=" psloc)
        (let ( (resnormbind 
 	       (normalize_binding bind env ncx procs psloc))
 	      )
-	 (debug "normexp_symbol got resnormbind=" resnormbind
+	 (debug "normexp_symbol after normalize_binding resnormbind=" resnormbind
 		" for bind=" bind " recv=" recv " psloc=" psloc)
 	 (return resnormbind)
 	 ))))))
@@ -5821,6 +5821,7 @@ source location.}#
 			   :letbind_type ctype_value
 			   :letbind_expr ()
 			   ))
+	(sycmap (unsafe_get_field :nctx_symbcachemap ncx))
 	)
     (debug "normexp_define namdata=" namdata " binddef=" binddef)
     (assert_msg "check body tuple" (is_multiple sbody))
@@ -5853,6 +5854,7 @@ source location.}#
 				  :nstq_var ndefname
 				  :nstq_exp nlastbody))
 	   )
+       (debug "normexp_define nlastassign=" nlastassign)
        (list_every nbindings (lambda (nb) (put_env newenv nb)))
        (foreach_in_multiple
 	(nbody)
@@ -5866,10 +5868,19 @@ source location.}#
 	   (error_strv sloc "DEFINE-d name is not a value" snamestr))
        (if (!= (get_ctype nlastbody newenv) ctype_value)
 	   (error_strv sloc "DEFINE-d body don't end with a value" snamestr))
-       (list_append nbindings locbind)
-       (debug "normexp_define return newbody=" newbody " nbindings=" nbindings)
-       (return newbody nbindings)
-       ))))
+       (let ( (nwrlet (wrap_normal_letseq newbody nbindings sloc))
+	      (nlocbindings (list locbind))
+	      (syca (mapobject_get sycmap sname))
+	      (sycabind (get_field :nocc_bind syca))
+	      )
+	 (debug "normexp_define syca=" syca " locbind=" locbind)
+	 (assert_msg "check syca" (is_a syca class_nrep_locsymocc))
+	 (assert_msg "check sycabind == locbind" (== sycabind locbind))
+	 (mapobject_remove sycmap sname)
+	 (debug "normexp_define updated sycmap=" sycmap)
+	 (debug "normexp_define return nwrlet=" nwrlet  " nlocbindings=" nlocbindings)
+	 (return nwrlet nlocbindings)
+	 )))))
 (install_method class_source_define normal_exp normexp_define)
 
 

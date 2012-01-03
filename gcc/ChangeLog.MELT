@@ -1,4 +1,16 @@
 
+2012-01-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{ tdefine.melt test still failing, translated incorrectly, so
+	xtramelt-ana-base.melt still incorrectly translated. }}
+	* melt/warmelt-macro.melt: Update comment & copyright year.
+	* melt/warmelt-normal.melt: Likewise.
+	(normexp_symbol): More debug.
+	(normexp_define): Wrap in a letseq the normalized body of the
+	define. Remove from the symbol cache..
+	* melt/warmelt-genobj.melt: Update comment & copyright year.
+	(compilobj_nrep_definedconstant): New function, perhaps buggy.
+	(compilobj_nrep_if): More debug.
+
 2011-12-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normbind_definedvalbind): Added
 	put_fields :fixbind_data. {{This function not called for tdefine.melt,
