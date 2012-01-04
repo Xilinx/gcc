@@ -3926,34 +3926,6 @@
      }#)
     (add2sbuf_strconst debuf "\";")
     (add2sbuf_indentnl debuf 0)
-    ;;
-    ;;
-    (add2sbuf_indentnl debuf 0)
-    (add2sbuf_strconst debuf "/* MELT generation timestamp */")
-    (add2sbuf_indentnl debuf 0)
-    (code_chunk 
-     gentimch
-     #{ /* output_melt_descriptor $GENTIMCH + */
-     time_t now = 0						   ;
-     char nowbuf[64]						   ;
-     time (&now)						   ;
-     memset (nowbuf, 0, sizeof(nowbuf))				   ;
-     strftime (nowbuf, sizeof(nowbuf)-1, "%c %Z", localtime(&now)) ;
-     if (melt_flag_bootstrapping)
-        meltgc_add_strbuf ($DEBUF, "/*MELT BOOTSTRAP*/\n");
-     meltgc_add_strbuf ($DEBUF, 
-			"const char melt_gen_timestamp[]=\"") ;
-     meltgc_add_strbuf_cstr ($DEBUF, nowbuf)		     ;
-     meltgc_add_strbuf ($DEBUF, "\";\n")		     ;
-     /*  $GENTIMCH don't use time_t, it is not a predefined C type! */
-     meltgc_strbuf_printf ($DEBUF, 
-			   "const long long melt_gen_timenum=%lld;",
-			   (long long) now) ;	       
-     /* output_melt_descriptor $GENTIMCH - */}#)
-    (add2sbuf_indentnl debuf 0)
-    (add2sbuf_strconst debuf "const char melt_build_timestamp[]= __DATE__ \"@\" __TIME__;")
-    (add2sbuf_indentnl debuf 0)
-    ;;
     (add2sbuf_indentnl debuf 0)
     (add2sbuf_strconst debuf "/* hash of preprocessed melt-run.h generating this */")
     (add2sbuf_indentnl debuf 0)
@@ -4031,6 +4003,34 @@
 			  (list_to_multiple pathlist)))
     (add2sbuf_strconst debuf "\";")
     (add2sbuf_indentnl debuf 0)	      
+    ;;
+    ;;
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "/* MELT generation timestamp */")
+    (add2sbuf_indentnl debuf 0)
+    (code_chunk 
+     gentimch
+     #{ /* output_melt_descriptor $GENTIMCH + */
+     time_t now = 0						   ;
+     char nowbuf[64]						   ;
+     time (&now)						   ;
+     memset (nowbuf, 0, sizeof(nowbuf))				   ;
+     strftime (nowbuf, sizeof(nowbuf)-1, "%c %Z", localtime(&now)) ;
+     if (melt_flag_bootstrapping)
+        meltgc_add_strbuf ($DEBUF, "/*MELT BOOTSTRAP*/\n");
+     meltgc_add_strbuf ($DEBUF, 
+			"const char melt_gen_timestamp[]=\"") ;
+     meltgc_add_strbuf_cstr ($DEBUF, nowbuf)		     ;
+     meltgc_add_strbuf ($DEBUF, "\";\n")		     ;
+     /*  $GENTIMCH don't use time_t, it is not a predefined C type! */
+     meltgc_strbuf_printf ($DEBUF, 
+			   "const long long melt_gen_timenum=%lld;",
+			   (long long) now) ;	       
+     /* output_melt_descriptor $GENTIMCH - */}#)
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "const char melt_build_timestamp[]= __DATE__ \"@\" __TIME__;")
+    (add2sbuf_indentnl debuf 0)
+    ;;
     (add2sbuf_strconst debuf "/* end of melt descriptor file */")
     (add2sbuf_indentnl debuf 0)
     ;;

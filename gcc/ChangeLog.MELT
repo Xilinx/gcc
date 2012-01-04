@@ -1,5 +1,9 @@
 
 2012-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (output_melt_descriptor): Move the time
+	stamp values to end of generated *-meltdesc.c file.
+
+2012-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated, even if `tdefine.melt` test don't work}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
