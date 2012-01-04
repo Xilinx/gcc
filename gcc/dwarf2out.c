@@ -8659,9 +8659,7 @@ add_pubname_string (const char *str, dw_die_ref die)
 static void
 add_pubname (tree decl, dw_die_ref die)
 {
-  if (!GENERATE_MINIMUM_LINE_TABLE
-      && targetm.want_debug_pub_sections
-      && TREE_PUBLIC (decl))
+  if (!GENERATE_MINIMUM_LINE_TABLE && targetm.want_debug_pub_sections)
     {
       if ((TREE_PUBLIC (decl) && !is_class_die (die->die_parent))
           || is_cu_die (die->die_parent) || is_namespace_die (die->die_parent))
@@ -8756,10 +8754,18 @@ output_pubnames (VEC (pubname_entry, gc) * names)
   unsigned long pubnames_length = size_of_pubnames (names);
   pubname_ref pub;
 
+  if (!targetm.want_debug_pub_sections)
+    return;
   if (names == pubname_table)
-    ASM_OUTPUT_LABEL (asm_out_file, debug_pubnames_section_label);
+    {
+      switch_to_section (debug_pubnames_section);
+      ASM_OUTPUT_LABEL (asm_out_file, debug_pubnames_section_label);
+    }
   else
-    ASM_OUTPUT_LABEL (asm_out_file, debug_pubtypes_section_label);
+    {
+      switch_to_section (debug_pubtypes_section);
+      ASM_OUTPUT_LABEL (asm_out_file, debug_pubtypes_section_label);
+    }
   if (DWARF_INITIAL_LENGTH_SIZE - DWARF_OFFSET_SIZE == 4)
     dw2_asm_output_data (4, 0xffffffff,
       "Initial length escape value indicating 64-bit DWARF extension");
@@ -22462,29 +22468,6 @@ optimize_location_lists (dw_die_ref die)
 }
 
 
-/* Report if the pubtypes_section is either empty or will be pruned to
-   empty.  */
-
-static bool
-pubtypes_section_empty (void)
-{
-  if (!VEC_empty (pubname_entry, pubtype_table))
-    {
-      if (flag_eliminate_unused_debug_types)
-	{
-	  /* The pubtypes table might be emptied by pruning unused items.  */
-	  unsigned i;
-	  pubname_ref p;
-	  FOR_EACH_VEC_ELT (pubname_entry, pubtype_table, i, p)
-	    if (p->die->die_offset != 0)
-              return false;
-	}
-      return true;
-    }
-  return false;
-}
-
-
 /* Output stuff that dwarf requires at the end of every file,
    and generate the DWARF-2 debugging info.  */
 
@@ -22749,17 +22732,12 @@ dwarf2out_finish (const char *filename)
   htab_delete (comdat_type_table);
 
   /* Add the DW_AT_GNU_pubnames and DW_AT_GNU_pubtypes attributes.  */
-  if (!VEC_empty (pubname_entry, pubname_table))
+  if (targetm.want_debug_pub_sections)
     {
-      /* FIXME: Should use add_AT_pubnamesptr.  This works because
-         most targets don't care what the base section is.  */
+      /* FIXME: Should use add_AT_pubnamesptr.  This works because most targets
+         don't care what the base section is.  */
       add_AT_lineptr (comp_unit_die (), DW_AT_GNU_pubnames,
-		      debug_pubnames_section_label);
-    }
-  if (!pubtypes_section_empty ())
-    {
-      /* FIXME: Should use add_AT_pubtypesptr.  This works because
-         most targets don't care what the base section is.  */
+                      debug_pubnames_section_label);
       add_AT_lineptr (comp_unit_die (), DW_AT_GNU_pubtypes,
                       debug_pubtypes_section_label);
     }
@@ -22787,22 +22765,12 @@ dwarf2out_finish (const char *filename)
       output_location_lists (comp_unit_die ());
     }
 
-  /* Output public names table if necessary.  */
-  if (!VEC_empty (pubname_entry, pubname_table) && info_section_emitted)
-    {
-      switch_to_section (debug_pubnames_section);
-      output_pubnames (pubname_table);
-    }
-
-  /* Output public types table if necessary.  */
+  /* Output public names and types tables if necessary.  */
+  output_pubnames (pubname_table);
   /* ??? Only defined by DWARF3, but emitted by Darwin for DWARF2.
      It shouldn't hurt to emit it always, since pure DWARF2 consumers
      simply won't look for the section.  */
-  if (!pubtypes_section_empty () && info_section_emitted)
-    {
-      switch_to_section (debug_pubtypes_section);
-      output_pubnames (pubtype_table);
-    }
+  output_pubnames (pubtype_table);
 
   /* Output the address range information if a CU (.debug_info section)
      was emitted.  We output an empty table even if we had no functions

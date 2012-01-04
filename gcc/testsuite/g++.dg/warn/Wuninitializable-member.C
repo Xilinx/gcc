@@ -8,7 +8,7 @@ public:
 };
 
 class Y {
-  const int var;// { dg-warning "non-static const member 'const int Y::var' in class without a constructor" }
+  const int var;// { dg-warning "non-static const member 'int const Y::var' in class without a constructor" }
 public:
   int g(){ return 2*var; }
 };

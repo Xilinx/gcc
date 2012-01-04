@@ -7,4 +7,4 @@ namespace { S f() { const char * s = __PRETTY_FUNCTION__; return S(); } }
 
 int main() { f(); }
 
-// { dg-final { scan-assembler "S \{anonymous\}::f" } }
+// { dg-final { scan-assembler "S \\(anonymous namespace\\)::f" } }
