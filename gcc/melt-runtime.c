@@ -11775,6 +11775,76 @@ static void melt_ppl_error_handler(enum ppl_enum_error_code err, const char* des
   }
 }
 
+/* Write a buffer to a file, but take care to not overwrite the file
+   if it does not change. */
+void
+melt_output_strbuf_to_file_no_overwrite (melt_ptr_t sbufv, const char*filnam)
+{
+  static unsigned cnt;
+  char buf[64];
+  time_t now = 0;
+  char* tempath = NULL;
+  char* bakpath = NULL;
+  long r = 0;
+  FILE *ftemp =  NULL;
+  FILE *filold = NULL;
+  bool samefc = false;
+  if (melt_magic_discr (sbufv) != MELTOBMAG_STRBUF)
+    return;
+  if (!filnam || !filnam[0])
+    return;
+  cnt++;
+  memset (buf, 0, sizeof(buf));
+  time (&now);
+  r = (melt_lrand () & 0x3ffffff) ^ ((long)now & (0x7fffffff));
+  snprintf (buf, sizeof (buf), "_n%d_p%d_r%lx.tmp", cnt, (int) getpid(), r);
+  tempath = concat (filnam, buf, NULL);
+  ftemp = fopen(tempath, "w+");
+  if (!ftemp) 
+    melt_fatal_error ("failed to open temporary %s for uniquely [over-]writing %s - %m",
+		      tempath, filnam);
+  if (fwrite (melt_strbuf_str (sbufv), 
+	      melt_strbuf_usedlength (sbufv), 
+	      1, ftemp) != 1)
+    melt_fatal_error ("failed to write into temporary %s for writing %s - %m",
+		      tempath, filnam);
+  fflush(ftemp);
+  filold = fopen(filnam, "r");
+  if (!filold) {
+    fclose(ftemp);
+    if (rename (tempath, filnam))
+      melt_fatal_error ("failed to rename %s to new %s - %m", 
+			tempath, filnam);
+    free (tempath), tempath = NULL;
+    return;
+  }
+  samefc = true;
+  rewind (ftemp);
+  while (samefc) {
+    int tc = getc (ftemp);
+    int oc = getc (filold);
+    if (tc == EOF && oc == EOF)
+      break;
+    if (tc != oc) 
+      samefc = false;
+  };
+  samefc = samefc && feof(ftemp) && feof(filold);
+  fclose (ftemp), ftemp = NULL;
+  fclose (filold), filold = NULL;
+  if (samefc) {
+    remove (tempath);
+    return;
+  }
+  else {
+    bakpath = concat (filnam, "~", NULL);
+    (void) rename (filnam, bakpath);
+    if (rename (tempath, filnam))
+      melt_fatal_error ("failed to rename %s to overwritten %s - %m",
+			tempath, filnam);
+  }
+  free (tempath), tempath = NULL;
+  free (bakpath), bakpath = NULL;
+}
 
 
 

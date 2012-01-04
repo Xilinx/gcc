@@ -1521,6 +1521,10 @@ long melt_output_length (melt_ptr_t out_p);
 /* output an strbuf into a file */
 void melt_output_strbuf_to_file (melt_ptr_t sbuf, const char*filnam);
 
+/* Write a buffer to a file, but take care to not overwrite the file
+   if it does not change. */
+void melt_output_strbuf_to_file_no_overwrite (melt_ptr_t sbufv, const char*filnam);
+
 
 /* allocate a pair of given head and tail */
 melt_ptr_t meltgc_new_pair (meltobject_ptr_t discr,

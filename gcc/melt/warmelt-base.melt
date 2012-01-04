@@ -2,7 +2,7 @@
 ;; file warmelt-base.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
                and Pierre Vittet  <piervit@pvittet.com>
 
@@ -1107,6 +1107,16 @@ Returns a boxed integer.}#
 (defprimitive output_sbuf_strval (sbuf vnam) :void
   :doc #{Output into file named by string value $VNAM the content of strinbuffer $SBUF.}#
 #{ melt_output_strbuf_to_file(($sbuf), melt_string_str($vnam)) }#)
+
+;;; primitive to output a strbuf into a file named by a cstring
+(defprimitive output_sbuf_no_overwrite_strconst (sbuf :cstring nam) :void
+  :doc #{Output into file named $NAM the content of strinbuffer $SBUF, take care to not overwrite an file named $VNAM if it was the same.}#
+#{ melt_output_strbuf_to_file_no_overwrite(($sbuf), ($nam)) }#)
+;;; primitive to output a strbuf into a file named by a stringval
+(defprimitive output_sbuf_no_overwrite_strval (sbuf vnam) :void
+  :doc #{Output into file named by string value $VNAM the content of 
+strinbuffer $SBUF, take care to not overwrite an old file named $VNAM if it was the same.}#
+#{ melt_output_strbuf_to_file_no_overwrite(($sbuf), melt_string_str($vnam)) }#)
 
 
 ;;;;;;;;;;;;;;;; variant for outbuf
@@ -3855,6 +3865,8 @@ polyhedron values.}#
  outnum_dbg
  outnum_err
  output_length
+ output_sbuf_no_overwrite_strconst
+ output_sbuf_no_overwrite_strval
  output_sbuf_strconst
  output_sbuf_strval
  outstr_dbg

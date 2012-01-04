@@ -3855,20 +3855,21 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; utility to output the melt descriptor file
+;; utility to output the melt descriptor and timestamp files
 (defun output_melt_descriptor (modnamstr secfiles)
   (debug "output_melt_descriptor modnamstr=" modnamstr " secfiles=" secfiles)
   (let ( 
 	(:long nbsecfiles (multiple_length secfiles))
 	(:long lastsecfileix 0)
 	(debuf (make_strbuf discr_strbuf))
+	(tibuf (make_strbuf discr_strbuf))
 	(pathlist (make_list discr_list))
 	)
     (add2sbuf_strconst debuf "/** GENERATED MELT DESCRIPTOR FILE ")
     (add2sbuf_ccomstring debuf modnamstr)
-    (add2sbuf_strconst debuf "+meltdesc.c - ** NEVER EDIT OR MOVE THIS, IT IS GENERATED & PARSED! **/")
+    (add2sbuf_strconst debuf "+meltdesc.c \n** NEVER EDIT OR MOVE THIS, IT IS GENERATED & PARSED! **/")
     (add2sbuf_indentnl debuf 0)
-    (add2sbuf_strconst debuf "/* These identifiers are generated in warmelt-outobj.melt & handled in melt-runtime.c carefully. */") 
+    (add2sbuf_strconst debuf "/* These identifiers are generated in warmelt-outobj.melt \n & handled in melt-runtime.c carefully. */") 
     (add2sbuf_indentnl debuf 0)
     (add2sbuf_strconst debuf "/* version of the GCC compiler & MELT runtime generating this */")
     (add2sbuf_indentnl debuf 0)
@@ -3900,9 +3901,9 @@
     (code_chunk
      genmodnamstr
      #{ /* output_melt_descriptor $GENMODNAMSTR + */
-     meltgc_add_strbuf_cstr ($DEBUF, lbasename (melt_string_str($MODNAMSTR)));
+     meltgc_add_strbuf_cstr ($DEBUF, lbasename (melt_string_str($MODNAMSTR))) ;
      }#
-    )
+     )
     (add2sbuf_strconst debuf "\";")
     (add2sbuf_indentnl debuf 0)
     (add2sbuf_strconst debuf "const char melt_modulerealpath[]=\"")
@@ -3911,17 +3912,17 @@
      #{ /* output_melt_descriptor $GENRPATHCH + */
      char* lrp = lrealpath (melt_string_str ($MODNAMSTR)) ;
      if (!melt_flag_bootstrapping && !IS_ABSOLUTE_PATH(lrp)) {
-       meltgc_add_strbuf_cstr ($DEBUF, getpwd()) ;
-       meltgc_add_strbuf ($DEBUF, "/")	       ;
-       meltgc_add_strbuf_cstr ($DEBUF, lrp) ;
+     meltgc_add_strbuf_cstr ($DEBUF, getpwd()) ;
+     meltgc_add_strbuf ($DEBUF, "/")	       ;
+     meltgc_add_strbuf_cstr ($DEBUF, lrp)      ;
      }
      else if (melt_flag_bootstrapping) {
-       meltgc_add_strbuf_cstr ($DEBUF, melt_module_dir) ;
-       meltgc_add_strbuf ($DEBUF, "/")	       ;
-       meltgc_add_strbuf_cstr ($DEBUF, lbasename (lrp)) ;
+     meltgc_add_strbuf_cstr ($DEBUF, melt_module_dir)	;
+     meltgc_add_strbuf ($DEBUF, "/")			;
+     meltgc_add_strbuf_cstr ($DEBUF, lbasename (lrp))	;
      }
      else      
-       meltgc_add_strbuf_cstr ($DEBUF, lrp);
+     meltgc_add_strbuf_cstr ($DEBUF, lrp) ;
      free (lrp)				  ;
      }#)
     (add2sbuf_strconst debuf "\";")
@@ -3993,68 +3994,88 @@
     (add2sbuf_strconst debuf ";")
     (add2sbuf_indentnl debuf 0)
     ;;
-    (add2sbuf_indentnl debuf 0) 
-    (add2sbuf_strconst debuf 
-		       "/* cumulated checksum of primary & secondary files */")
-    (add2sbuf_indentnl debuf 0)
-    (add2sbuf_strconst debuf "const char melt_cumulated_hexmd5[]=\"")
-    (add2sbuf_cencstring debuf 
-			 (string_hex_md5sum_path_sequence
-			  (list_to_multiple pathlist)))
-    (add2sbuf_strconst debuf "\";")
-    (add2sbuf_indentnl debuf 0)	      
-    ;;
-    ;;
-    (add2sbuf_indentnl debuf 0)
-    (add2sbuf_strconst debuf "/* MELT generation timestamp */")
-    (add2sbuf_indentnl debuf 0)
-    (code_chunk 
-     gentimch
-     #{ /* output_melt_descriptor $GENTIMCH + */
-     time_t now = 0						   ;
-     char nowbuf[64]						   ;
-     time (&now)						   ;
-     memset (nowbuf, 0, sizeof(nowbuf))				   ;
-     strftime (nowbuf, sizeof(nowbuf)-1, "%c %Z", localtime(&now)) ;
-     if (melt_flag_bootstrapping)
-        meltgc_add_strbuf ($DEBUF, "/*MELT BOOTSTRAP*/\n");
-     meltgc_add_strbuf ($DEBUF, 
-			"const char melt_gen_timestamp[]=\"") ;
-     meltgc_add_strbuf_cstr ($DEBUF, nowbuf)		     ;
-     meltgc_add_strbuf ($DEBUF, "\";\n")		     ;
-     /*  $GENTIMCH don't use time_t, it is not a predefined C type! */
-     meltgc_strbuf_printf ($DEBUF, 
-			   "const long long melt_gen_timenum=%lld;",
-			   (long long) now) ;	       
-     /* output_melt_descriptor $GENTIMCH - */}#)
-    (add2sbuf_indentnl debuf 0)
-    (add2sbuf_strconst debuf "const char melt_build_timestamp[]= __DATE__ \"@\" __TIME__;")
-    (add2sbuf_indentnl debuf 0)
-    ;;
-    (add2sbuf_strconst debuf "/* end of melt descriptor file */")
-    (add2sbuf_indentnl debuf 0)
-    ;;
-    (code_chunk 
-     writdescrfilech
-     #{ /* output_melt_descriptor $WRITDESCRFILECH+ */
-     char *descfilpath
-     = concat (melt_string_str ((melt_ptr_t)$MODNAMSTR),
-			       "+meltdesc.c", NULL) ;
-     FILE *descfil = fopen (descfilpath, "w")	    ;
-     debugeprintf ("output_melt_descriptor descfilpath %s", 
-		   descfilpath)		;
-     if (!descfil)
-     melt_fatal_error ("failed to open descriptor file %s - %m",
-		       descfilpath)	;
-     melt_putstrbuf (descfil, $DEBUF)	;
-     if (fclose (descfil))
-     melt_fatal_error ("failed to close descriptor file %s - %m",
-		       descfilpath)	;
-     if (melt_flag_bootstrapping)
-     inform (UNKNOWN_LOCATION, "MELT generated descriptor file %s",
-			       descfilpath) ;
-     free (descfilpath)			    ;
-     /* output_melt_descriptor $WRITDESCRFILECH- */ }#)
+    (let ( (cumpathmds (string_hex_md5sum_path_sequence
+			(list_to_multiple pathlist)))
+	   (modidnam (let ( (mout (make_strbuf discr_strbuf)) )
+		       (add2out mout "meltmod_")
+		       (add2sbuf_cident mout modnamstr)
+		       (add2out mout "_mds__")
+		       (add2sbuf_cident mout cumpathmds)
+		       (strbuf2string discr_string mout))
+		     )
+	   )
+      (assert_msg "check cumpathmds" (is_string cumpathmds)) 
+      (add2sbuf_indentnl debuf 0) 
+      (add2out debuf 
+		##{/* cumulated checksum of primary & secondary files */
+const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
+
+/* include the timestamp file */
+#define $MODIDNAM 1
+#include "$MODNAMSTR+melttime.h"
+}#
+		)
+      ;;
+      ;;
+      (add2sbuf_strconst tibuf "/** GENERATED MELT TIMESTAMP FILE ")
+      (add2sbuf_ccomstring tibuf modnamstr)
+      (add2sbuf_strconst tibuf "+melttime.h \n** NEVER EDIT OR MOVE THIS, IT IS GENERATED & PARSED! **/")
+      (add2sbuf_indentnl tibuf 0)
+      (add2sbuf_strconst tibuf "/* These identifiers are generated in warmelt-outobj.melt \n & handled in melt-runtime.c carefully. */") 
+      (add2sbuf_indentnl tibuf 0)
+      (add2sbuf_indentnl tibuf 0) 
+      (add2out tibuf ##{
+#if $MODIDNAM
+  /* MELT generation timestamp for $MODNAMSTR */}#
+      )
+      (add2sbuf_indentnl tibuf 0)
+      (code_chunk 
+       gentimch
+       #{ /* output_melt_descriptor $GENTIMCH + */
+       time_t now = 0						   ;
+       char nowbuf[64]						   ;
+       time (&now)						   ;
+       memset (nowbuf, 0, sizeof(nowbuf))			   ;
+       strftime (nowbuf, sizeof(nowbuf)-1, "%c %Z", localtime(&now)) ;
+       if (melt_flag_bootstrapping)
+       meltgc_add_strbuf ($TIBUF, "/*MELT BOOTSTRAP*/\n") ;
+       meltgc_add_strbuf ($TIBUF, 
+			  "const char melt_gen_timestamp[]=\"") ;
+       meltgc_add_strbuf_cstr ($TIBUF, nowbuf)			;
+       meltgc_add_strbuf ($TIBUF, "\";\n")			;
+       /*  $GENTIMCH don't use time_t, it is not a predefined C type! */
+       meltgc_strbuf_printf ($TIBUF, 
+			     "const long long melt_gen_timenum=%lld;",
+			     (long long) now) ;	       
+       /* output_melt_descriptor $GENTIMCH - */}#)
+      (add2sbuf_indentnl tibuf 0)
+      (add2sbuf_strconst tibuf "const char melt_build_timestamp[]= __DATE__ \"@\" __TIME__;")
+      (add2sbuf_indentnl tibuf 0)
+      (add2out tibuf ##{
+#else /* ! $MODIDNAM */
+#error invalid timestamp file for $MODNAMSTR 
+#endif /* $MODIDNAM */
+		}#)
+      (add2sbuf_indentnl tibuf 0)
+      ;;
+      (add2sbuf_strconst debuf "/* end of melt descriptor file */")
+      (add2sbuf_indentnl debuf 0)
+      (let (
+	    (meltdescpath
+	     (let ( (osbuf (make_strbuf discr_strbuf))
+		    )
+	       (add2out osbuf modnamstr "+meltdesc.c")
+	       (strbuf2string discr_string osbuf)))
+	    (melttimepath
+	     (let ( (osbuf (make_strbuf discr_strbuf))
+		    )
+	       (add2out osbuf modnamstr "+melttime.h")
+	       (strbuf2string discr_string osbuf)))
+	    )
+	(output_sbuf_no_overwrite_strval debuf meltdescpath)
+	(output_sbuf_no_overwrite_strval tibuf melttimepath)
+	)
+      )
     )
   )
 

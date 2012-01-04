@@ -1,5 +1,13 @@
 
 2012-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_output_strbuf_to_file_no_overwrite):  New declaration.
+	* melt-runtime.c (melt_output_strbuf_to_file_no_overwrite):  New function.
+	* melt/warmelt-base.melt (output_sbuf_no_overwrite_strconst)
+	(output_sbuf_no_overwrite_strval): New primitives.
+	* melt/warmelt-outobj.melt (output_melt_descriptor): Generate a
+	separate FOO+melttime.h file included in FOO+meltdesc.c.
+
+2012-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (output_melt_descriptor): Move the time
 	stamp values to end of generated *-meltdesc.c file.
 
