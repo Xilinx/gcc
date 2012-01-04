@@ -1,4 +1,4 @@
-/** Copyright (C) 2011 Free Software Foundation, Inc.
+/** Copyright (C) 2012 Free Software Foundation, Inc.
   This generated file meltrunsup-inc.c is part of GCC.
 
                   [DON'T EDIT THIS GENERATED FILE]
@@ -3058,5 +3058,5 @@ end:
 #undef compv
 
 
-/*** End of code file meltrunsup-inc.c generated on 2011 Dec 20
- * by GCC MELT 4.7.0 20111219 (experimental) [melt-branch revision 182525] MELT_0.9.2+ . ***/
+/*** End of code file meltrunsup-inc.c generated on 2012 Jan 04
+ * by GCC MELT 4.7.0 20120103 (experimental) [melt-branch revision 182864] MELT_0.9.2+ . ***/
