@@ -3997,9 +3997,9 @@
     ;;
     (let ( (cumpathmds (string_hex_md5sum_path_sequence
 			(list_to_multiple pathlist)))
-	   (modidnam (let ( (mout (make_strbuf discr_strbuf)) 
-			    (midstr (make_string_nakedbasename
+	   (midstr (make_string_nakedbasename
 				     discr_string modnamstr)) 
+	   (modidnam (let ( (mout (make_strbuf discr_strbuf)) 			    
 			    )
 		       (add2out mout "meltmod_")
 		       (add2sbuf_cident mout midstr)
@@ -4016,7 +4016,7 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 
 /* include the timestamp file */
 #define $MODIDNAM 1
-#include "$MODNAMSTR+melttime.h"
+#include "$MIDSTR+melttime.h"
 }#
 		)
       ;;
@@ -4029,6 +4029,7 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
       (add2sbuf_indentnl tibuf 0)
       (add2sbuf_indentnl tibuf 0) 
       (add2out tibuf ##{
+  /* This $MIDSTR+melttime.h is included from $MIDSTR+meltdesc.c only. */
 #if $MODIDNAM
   /* MELT generation timestamp for $MODNAMSTR */}#
       )

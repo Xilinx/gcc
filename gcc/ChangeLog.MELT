@@ -1,5 +1,10 @@
 
 2012-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (output_melt_descriptor): Don't use
+	path for the included timestamp file. Generate comment in that
+	timestamp file.
+
+2012-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl (warmelt-upgrade-translator): Also copy the
 	FOO+melttime.h melt timestamp files.
 	* melt-build.mk: Regenerate.
