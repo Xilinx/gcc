@@ -1,3 +1,77 @@
+2012-01-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/51695
+	* gcc.dg/pr51695.c: New test.
+
+2012-01-04  Andrew Pinski  <apinski@cavium.com>
+
+	* gcc.target/mips/mips64-dsp-ldx1.c: New test.
+	* gcc.target/mips/octeon2-lx-1.c: New test.
+	* gcc.target/mips/mips64-dsp-ldx.c: New test.
+	* gcc.target/mips/octeon2-lx-2.c: New test.
+	* gcc.target/mips/octeon2-lx-3.c: New test.
+
+2012-01-04  Patrick Marlier  <patrick.marlier@gmail.com>
+
+	PR other/51163
+	PR other/51164
+	* gcc.dg/tm/alias-1.c:  Adjust regexp.
+	* gcc.dg/tm/alias-2.c:  Adjust regexp.
+
+2012-01-04  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51064
+	* g++.dg/warn/Wparentheses-26.C: New.
+
+2012-01-04  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* gfortran.dg/elemental_optional_args_2.f90: New test.
+
+2012-01-04  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/49693
+	* gfortran.dg/common_17.f90:  New test.
+
+2012-01-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49651
+	* gcc.dg/tree-ssa/pta-ptrarith-1.c: Adjust.
+	* gcc.dg/tree-ssa/pta-ptrarith-2.c: Likewise.
+
+2012-01-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51738
+	* g++.dg/cpp0x/initlist-postfix-open-square.C: New.
+
+2012-01-03  Andrew Pinski  <apinski@cavium.com>
+
+	* lib/scanasm.exp (dg-function-on-line): Always use a special format
+	for all mips targets.  Also allow an optional .cfi_startproc.
+
+2012-01-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gfortran.dg/typebound_operator_8.f03: Use dg-add-options ieee.
+
+2012-01-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/29273
+	* g++.dg/rtti/dyncast5.C: New.
+
+2012-01-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51070
+	* gcc.dg/torture/pr51070-2.c: New testcase.
+
+2012-01-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51692
+	* gcc.dg/torture/pr51692.c: New testcase.
+
+2012-01-03  Richard Guenther  <rguenther@suse.de>
+
+	PR debug/51650
+	* g++.dg/lto/pr51650-3_0.C: New testcase.
+
 2012-01-03  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/15867

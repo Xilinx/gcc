@@ -1,3 +1,178 @@
+2012-01-05  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.c (avr_replace_prefix): Remove.
+	(avr_asm_named_section): Use ACONCAT instead of avr_replace_prefix.
+	(avr_asm_function_rodata_section): Ditto.
+	(avr_asm_select_section): Ditto.
+
+2012-01-05  Marcus Shawcroft  <marcus.shawcroft@arm.com>
+
+	* reload.c (find_reloads): Adjust LABEL_NUSES on REG_LABEL_OPERAND
+	insertion.
+
+2012-01-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/51648
+	* tree-cfg.c (need_fake_edge_p): Return true also for noreturn
+	calls that have any non-fake successor edges.
+
+	PR debug/51746
+	* var-tracking.c (add_stores): For COND_EXEC allow oval to be NULL.
+
+2012-01-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/51624
+	* tree-sra.c (build_ref_for_model): When replicating a chain of
+	COMPONENT_REFs, stop as soon as the offset would become negative.
+
+2012-01-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/51695
+	* dwarf2out.c (output_loc_list): For now drop >= 64KB expressions
+	in .debug_loc on the floor.
+
+2012-01-04  Andrew Pinski  <apinski@cavium.com>
+
+	* doc/invoke.texi (-march=@var{arch}): Add octeon+ and octeon2.
+
+2012-01-04  Andrew Pinski  <apinski@cavium.com>
+	    Adam Nemet  <anemet@caviumnetworks.com>
+
+	* config/mips/mips.md (size): Add SI and DI.
+	(SIZE): New mode attribute.
+	(U): New code attribute.
+	* config/mips/mips-dsp.md (mips_lbux): Use gen_mips_lbux_extsi.
+	(mips_lbux_<mode>): Delete.
+	(mips_l<SHORT:size><u>x_ext<GPR:mode>_<P:mode>): New pattern.
+	(mips_lhx): Use gen_mips_lhx_extsi.
+	(mips_lhx_<mode>): Delete.
+	(mips_lwx): Delete.
+	(mips_l<size>x): New expand.
+	(mips_lwx_<mode>): Delete.
+	(mips_l<GPR:size>x_<P:mode>): New pattern.
+	(*mips_lw<u>x_<P:mode>_ext): Likewise.
+	* config/mips/mips-ftypes.def: Add DI f(POINTER, SI) function type.
+	* config/mips/mips.c (mips_lx_address_p): New function.
+	(mips_rtx_costs <case MEM>): Call mips_lx_address_p.
+	(dsp64): New availability predicate.
+	(mips_builtins): Add an entry for __builtin_mips_ldx.
+	* config/mips/mips.h (ISA_HAS_LBX): New define.
+	(ISA_HAS_LBUX): Likewise.
+	(ISA_HAS_LHX): Likewise.
+	(ISA_HAS_LHUX): Likewise.
+	(ISA_HAS_LWX): Likewise.
+	(ISA_HAS_LWUX): Likewise.
+	(ISA_HAS_LDX): Likewise.
+	* doc/extend.texi (__builtin_mips_ldx): Document.
+
+2012-01-04  Tristan Gingold  <gingold@adacore.com>
+
+	* config/vms/xm-vms.h (HOST_LONG_FORMAT, HOST_PTR_PRINTF): Define
+	when long pointers are used.
+	* config.build (*-*-*vms*): Handle all OpenVMS targets.
+	(alpha64-dec-*vms*, alpha*-dec-*vms*)
+	(ia64-hp-*vms*): Remove.
+	* config/vms/xm-vms64.h: Delete.
+
+2012-01-04  Aldy Hernandez  <aldyh@redhat.com>
+
+	* opts.c (finish_options): Remove duplicate sorry.
+
+2012-01-04  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR middle-end/51696
+	* trans-mem.c (diagnose_tm_1): Display indirect calls with no name
+	correctly.
+
+2012-01-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51750
+	* tree.c (size_low_cst): New function.
+	* tree.h (size_low_cst): Declare.
+	* fold-const.c (fold_comparison): Use it to extract the low
+	part of the POINTER_PLUS_EXPR offset.
+
+2012-01-04  Georg-Johann Lay  <avr@gjlay.de>
+
+	Fix clearing ZERO_REG
+	* config/avr/avr.md (cc): Add alternative "ldi".
+	(movqi_insn): Use it in cc attribute.
+	* config/avr/avr.c (notice_update_cc): Handle CC_LDI.
+	(output_reload_in_const): Use CLR to move 0 to ZERO_REG.
+	(output_reload_insisf): Use ZERO_REG to pre-clear register.
+
+2012-01-04  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* configure: Regenerate.
+
+2012-01-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49651
+	* tree-ssa-structalias.c (type_can_have_subvars): New function.
+	(var_can_have_subvars): Use it.
+	(get_constraint_for_1): Only consider subfields if there
+	can be any.
+
+2012-01-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/51725
+	* cselib.c (new_elt_loc_list): When moving locs from one
+	cselib_val to its new canonical_cselib_val and the
+	cselib_val was in first_containing_mem chain, but
+	the canonical_cselib_val was not, add the latter into the
+	chain.
+	(cselib_invalidate_mem): Compare canonical_cselib_val of
+	addr_list chain elt with v.
+
+	PR pch/51722
+	* dwarf2out.c (dwarf2out_start_source_file, dwarf2out_define,
+	dwarf2out_undef): Allocate e.info using ggc_strdup instead
+	of xstrdup.
+	(output_macinfo_op): Don't ggc_strdup fd->filename.
+	(optimize_macinfo_range): Allocate grp_name using XALLOCAVEC,
+	then ggc_strdup it.  Don't free inc->info or cur->info.
+	(output_macinfo): Don't free ref->info or file->info.
+
+2012-01-03  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/51269
+	* tree-vect-loop-manip.c (set_prologue_iterations): Make
+	first_niters a pointer.
+	(slpeel_tree_peel_loop_to_edge): Likewise.
+	(vect_do_peeling_for_loop_bound): Update call to
+	slpeel_tree_peel_loop_to_edge.
+	(vect_gen_niters_for_prolog_loop): Don't compute wide_prolog_niters
+	here.  Remove it from the parameters list.
+	(vect_do_peeling_for_alignment): Update calls and compute
+	wide_prolog_niters.
+
+2012-01-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51070
+	* tree-loop-distribution.c (stmt_has_scalar_dependences_outside_loop):
+	Properly handle calls.
+
+2012-01-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51692
+	* tree-ssa-dce.c (eliminate_unnecessary_stmts): Do not remove
+	the LHS of allocation stmts.
+
+2012-01-03  Olivier Hainque  <hainque@adacore.com>
+
+	* system.h: Prior to #define, #undef fopen and freopen unconditionally.
+
+2012-01-03  Olivier Hainque  <hainque@adacore.com>
+
+	* collect2.c (main): In AIX specific computations for vector
+	insertions, use CONST_CAST2 to cast from char ** to const char **.
+
+2012-01-03  Richard Guenther  <rguenther@suse.de>
+
+	PR debug/51650
+	* dwarf2out.c (dwarf2out_finish): Always create a DIE for
+	the context of a limbo DIE when it does not already exist.
+
 2012-01-03  Jakub Jelinek  <jakub@redhat.com>
 
 	PR tree-optimization/51719

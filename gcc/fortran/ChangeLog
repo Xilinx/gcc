@@ -1,3 +1,35 @@
+2012-01-04  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50981
+	* trans-array.h (gfc_walk_elemental_function_args): New argument.
+	* trans-intrinsic.c (gfc_walk_intrinsic_function): Update call.
+	* trans-stmt.c (gfc_trans_call): Ditto.
+	* trans-array.c (gfc_walk_function_expr): Ditto.
+	(gfc_walk_elemental_function_args): Get the dummy argument list
+	if possible.  Check that the dummy and the actual argument are both
+	optional, and set can_be_null_ref accordingly.
+
+2012-01-04  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50981
+	* trans.h (struct gfc_ss_info): New field data::scalar::can_be_null_ref
+	* trans-array.c: If the reference can be NULL, save the reference
+	instead of the value.
+	* trans-expr.c (gfc_conv_expr): If we have saved a reference,
+	dereference it.
+
+2012-01-04  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans-expr.c (gfc_conv_expr): Move address taking...
+	(gfc_conv_expr_reference): ... here.
+
+2012-01-04  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/49693
+	* trans-common.c (create_common): Update copyright years.  Mark
+	variables as used to avoid warnings about unused variables in
+	common blocks.
+
 2012-01-03  Hans-Peter Nilsson  <hp@axis.com>
 
 	* gfortran.h (struct gfc_expr): Add missing "struct"
