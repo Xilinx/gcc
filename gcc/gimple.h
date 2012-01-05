@@ -229,7 +229,7 @@ void gimple_seq_add_stmt (gimple_seq *, gimple);
    similar to gimple_seq_add_stmt, but does not scan the operands.
    During gimplification, we need to manipulate statement sequences
    before the def/use vectors have been constructed.  */
-void gimplify_seq_add_stmt (gimple_seq *, gimple);
+void gimple_seq_add_stmt_without_update (gimple_seq *, gimple);
 
 /* Allocate a new sequence and initialize its first element with STMT.  */
 
@@ -954,7 +954,6 @@ void gimple_cond_get_ops_from_tree (tree, enum tree_code *, tree *, tree *);
 gimple gimple_build_cond_from_tree (tree, tree, tree);
 void gimple_cond_set_condition_from_tree (gimple, tree);
 bool gimple_has_side_effects (const_gimple);
-bool gimple_rhs_has_side_effects (const_gimple);
 bool gimple_could_trap_p (gimple);
 bool gimple_could_trap_p_1 (gimple, bool, bool);
 bool gimple_assign_rhs_could_trap_p (gimple);

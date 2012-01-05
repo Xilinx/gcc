@@ -47,6 +47,7 @@ with Sem_Case; use Sem_Case;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
+with Sem_Dim;  use Sem_Dim;
 with Sem_Disp; use Sem_Disp;
 with Sem_Elab; use Sem_Elab;
 with Sem_Eval; use Sem_Eval;
@@ -826,7 +827,6 @@ package body Sem_Ch5 is
 
       declare
          Ent : constant Entity_Id := Get_Enclosing_Object (Lhs);
-
       begin
          if Present (Ent)
            and then Safe_To_Capture_Value (N, Ent)
@@ -839,6 +839,8 @@ package body Sem_Ch5 is
             Set_Last_Assignment (Ent, Lhs);
          end if;
       end;
+
+      Analyze_Dimension (N);
    end Analyze_Assignment;
 
    -----------------------------
@@ -2255,11 +2257,17 @@ package body Sem_Ch5 is
          begin
             Typ := Etype (Iter_Name);
 
+            --  The name in the renaming declaration may be a function call.
+            --  Indicate that it does not come from source, to suppress
+            --  spurious warnings on renamings of parameterless functions,
+            --  a common enough idiom in user-defined iterators.
+
             Decl :=
               Make_Object_Renaming_Declaration (Loc,
                 Defining_Identifier => Id,
                 Subtype_Mark        => New_Occurrence_Of (Typ, Loc),
-                Name                => Relocate_Node (Iter_Name));
+                Name                =>
+                  New_Copy_Tree (Iter_Name, New_Sloc => Loc));
 
             Insert_Actions (Parent (Parent (N)), New_List (Decl));
             Rewrite (Name (N), New_Occurrence_Of (Id, Loc));
@@ -2731,6 +2739,10 @@ package body Sem_Ch5 is
       S := First (L);
       while Present (S) loop
          Analyze (S);
+
+         --  Remove dimension in all statements
+
+         Remove_Dimension_In_Statement (S);
          Next (S);
       end loop;
 

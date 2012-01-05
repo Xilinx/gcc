@@ -120,37 +120,43 @@ extern struct tm *localtime_r(const time_t *, struct tm *);
 
 */
 
-#if defined(WINNT)
+#if defined (WINNT) || defined (__CYGWIN__)
 
 const char __gnat_text_translation_required = 1;
+
+#ifdef __CYGWIN__
+#define WIN_SETMODE setmode
+#include <io.h>
+#else
+#define WIN_SETMODE _setmode
+#endif
 
 void
 __gnat_set_binary_mode (int handle)
 {
-  _setmode (handle, O_BINARY);
+  WIN_SETMODE (handle, O_BINARY);
 }
 
 void
 __gnat_set_text_mode (int handle)
 {
-  _setmode (handle, O_TEXT);
+  WIN_SETMODE (handle, O_TEXT);
 }
 
-#ifdef __MINGW32__
-#include <windows.h>
-
-/* Return the name of the tty.   Under windows there is no name for
-   the tty, so this function, if connected to a tty, returns the generic name
-   "console".  */
+#ifdef __CYGWIN__
 
 char *
 __gnat_ttyname (int filedes)
 {
-  if (isatty (filedes))
-    return "console";
-  else
-    return NULL;
+  extern char *ttyname (int);
+
+  return ttyname (filedes);
 }
+
+#endif /* __CYGWIN__ */
+
+#if defined (__CYGWIN__) || defined (__MINGW32__)
+#include <windows.h>
 
 #ifndef RTX
 
@@ -178,7 +184,7 @@ __gnat_is_windows_xp (void)
   return is_win_xp;
 }
 
-#endif
+#endif /* !RTX */
 
 /* Get the bounds of the stack.  The stack pointer is supposed to be
    initialized to BASE when a thread is created and the stack can be extended
@@ -198,7 +204,24 @@ __gnat_get_stack_bounds (void **base, void **limit)
   *limit = tib->StackLimit;
 }
 
-#endif /* !__MINGW32__ */
+#endif /* __CYGWIN__ || __MINGW32__ */
+
+#ifdef __MINGW32__
+
+/* Return the name of the tty.   Under windows there is no name for
+   the tty, so this function, if connected to a tty, returns the generic name
+   "console".  */
+
+char *
+__gnat_ttyname (int filedes)
+{
+  if (isatty (filedes))
+    return "console";
+  else
+    return NULL;
+}
+
+#endif /* __MINGW32__ */
 
 #else
 
@@ -827,7 +850,7 @@ __gnat_localtime_tzoff (const time_t *timer, long *off)
    the options assigned to the current task (parent), so offering some user
    level control over the options for a task hierarchy. It forces VX_FP_TASK
    because it is almost always required. On processors with the SPE
-   category, VX_SPE_TASK is needed to enable the SPE. */
+   category, VX_SPE_TASK should be used instead to enable the SPE. */
 extern int __gnat_get_task_options (void);
 
 int
@@ -838,10 +861,11 @@ __gnat_get_task_options (void)
   /* Get the options for the task creator */
   taskOptionsGet (taskIdSelf (), &options);
 
-  /* Force VX_FP_TASK because it is almost always required */
-  options |= VX_FP_TASK;
-#if defined (__SPE__) && (! defined (__VXWORKSMILS__))
+  /* Force VX_FP_TASK or VX_SPE_TASK as needed */
+#if defined (__SPE__)
   options |= VX_SPE_TASK;
+#else
+  options |= VX_FP_TASK;
 #endif
 
   /* Mask those bits that are not under user control */

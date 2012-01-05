@@ -37,6 +37,7 @@
 #include <string.h>
 #include <unwind.h>
 #include "local_type_traits"
+#include "local_atomic"
 
 #include "common.h"
 
@@ -206,7 +207,7 @@ struct gtm_thread
 
   // If this transaction is inactive, shared_state is ~0. Otherwise, this is
   // an active or serial transaction.
-  gtm_word shared_state;
+  atomic<gtm_word> shared_state;
 
   // The lock that provides access to serial mode.  Non-serialized
   // transactions acquire read locks; a serialized transaction aquires
@@ -230,7 +231,8 @@ struct gtm_thread
   // In beginend.cc
   void rollback (gtm_transaction_cp *cp = 0, bool aborting = false);
   bool trycommit ();
-  void restart (gtm_restart_reason) ITM_NORETURN;
+  void restart (gtm_restart_reason, bool finish_serial_upgrade = false)
+        ITM_NORETURN;
 
   gtm_thread();
   ~gtm_thread();

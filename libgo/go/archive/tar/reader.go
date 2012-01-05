@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"time"
 )
 
 var (
@@ -29,7 +30,7 @@ var (
 //	tr := tar.NewReader(r)
 //	for {
 //		hdr, err := tr.Next()
-//		if err == os.EOF {
+//		if err == io.EOF {
 //			// end of tar archive
 //			break
 //		}
@@ -79,7 +80,7 @@ func (tr *Reader) octal(b []byte) int64 {
 	for len(b) > 0 && (b[len(b)-1] == ' ' || b[len(b)-1] == '\x00') {
 		b = b[0 : len(b)-1]
 	}
-	x, err := strconv.Btoui64(cString(b), 8)
+	x, err := strconv.ParseUint(cString(b), 8, 64)
 	if err != nil {
 		tr.err = err
 	}
@@ -141,7 +142,7 @@ func (tr *Reader) readHeader() *Header {
 	hdr.Uid = int(tr.octal(s.next(8)))
 	hdr.Gid = int(tr.octal(s.next(8)))
 	hdr.Size = tr.octal(s.next(12))
-	hdr.Mtime = tr.octal(s.next(12))
+	hdr.ModTime = time.Unix(tr.octal(s.next(12)), 0)
 	s.next(8) // chksum
 	hdr.Typeflag = s.next(1)[0]
 	hdr.Linkname = cString(s.next(100))
@@ -178,8 +179,8 @@ func (tr *Reader) readHeader() *Header {
 			prefix = cString(s.next(155))
 		case "star":
 			prefix = cString(s.next(131))
-			hdr.Atime = tr.octal(s.next(12))
-			hdr.Ctime = tr.octal(s.next(12))
+			hdr.AccessTime = time.Unix(tr.octal(s.next(12)), 0)
+			hdr.ChangeTime = time.Unix(tr.octal(s.next(12)), 0)
 		}
 		if len(prefix) > 0 {
 			hdr.Name = prefix + "/" + hdr.Name
@@ -200,7 +201,7 @@ func (tr *Reader) readHeader() *Header {
 }
 
 // Read reads from the current entry in the tar archive.
-// It returns 0, os.EOF when it reaches the end of that entry,
+// It returns 0, io.EOF when it reaches the end of that entry,
 // until Next is called to advance to the next entry.
 func (tr *Reader) Read(b []byte) (n int, err error) {
 	if tr.nb == 0 {

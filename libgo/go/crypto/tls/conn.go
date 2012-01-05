@@ -93,7 +93,8 @@ func (c *Conn) SetTimeout(nsec int64) error {
 }
 
 // SetReadTimeout sets the time (in nanoseconds) that
-// Read will wait for data before returning os.EAGAIN.
+// Read will wait for data before returning a net.Error
+// with Timeout() == true.
 // Setting nsec == 0 (the default) disables the deadline.
 func (c *Conn) SetReadTimeout(nsec int64) error {
 	return c.conn.SetReadTimeout(nsec)
@@ -117,6 +118,9 @@ type halfConn struct {
 
 	nextCipher interface{} // next encryption state
 	nextMac    macFunction // next MAC algorithm
+
+	// used to save allocating a new buffer for each MAC.
+	inDigestBuf, outDigestBuf []byte
 }
 
 // prepareCipherSpec sets the encryption and MAC states
@@ -279,12 +283,13 @@ func (hc *halfConn) decrypt(b *block) (bool, alert) {
 		b.data[4] = byte(n)
 		b.resize(recordHeaderLen + n)
 		remoteMAC := payload[n:]
-		localMAC := hc.mac.MAC(hc.seq[0:], b.data)
+		localMAC := hc.mac.MAC(hc.inDigestBuf, hc.seq[0:], b.data)
 		hc.incSeq()
 
 		if subtle.ConstantTimeCompare(localMAC, remoteMAC) != 1 || paddingGood != 255 {
 			return false, alertBadRecordMAC
 		}
+		hc.inDigestBuf = localMAC
 	}
 
 	return true, 0
@@ -311,12 +316,13 @@ func padToBlockSize(payload []byte, blockSize int) (prefix, finalBlock []byte) {
 func (hc *halfConn) encrypt(b *block) (bool, alert) {
 	// mac
 	if hc.mac != nil {
-		mac := hc.mac.MAC(hc.seq[0:], b.data)
+		mac := hc.mac.MAC(hc.outDigestBuf, hc.seq[0:], b.data)
 		hc.incSeq()
 
 		n := len(b.data)
 		b.resize(n + len(mac))
 		copy(b.data[n:], mac)
+		hc.outDigestBuf = mac
 	}
 
 	payload := b.data[recordHeaderLen:]
@@ -471,7 +477,7 @@ Again:
 		// RFC suggests that EOF without an alertCloseNotify is
 		// an error, but popular web sites seem to do this,
 		// so we can't make it an error.
-		// if err == os.EOF {
+		// if err == io.EOF {
 		// 	err = io.ErrUnexpectedEOF
 		// }
 		if e, ok := err.(net.Error); !ok || !e.Temporary() {
@@ -737,7 +743,7 @@ func (c *Conn) Write(b []byte) (n int, err error) {
 	return c.writeRecord(recordTypeApplicationData, b)
 }
 
-// Read can be made to time out and return err == os.EAGAIN
+// Read can be made to time out and return a net.Error with Timeout() == true
 // after a fixed time limit; see SetTimeout and SetReadTimeout.
 func (c *Conn) Read(b []byte) (n int, err error) {
 	if err = c.Handshake(); err != nil {

@@ -206,6 +206,14 @@ double_check (gfc_expr *d, int n)
 static gfc_try
 coarray_check (gfc_expr *e, int n)
 {
+  if (e->ts.type == BT_CLASS && gfc_expr_attr (e).class_ok
+	&& CLASS_DATA (e)->attr.codimension
+	&& CLASS_DATA (e)->as->corank)
+    {
+      gfc_add_class_array_ref (e);
+      return SUCCESS;
+    }
+
   if (!gfc_is_coarray (e))
     {
       gfc_error ("Expected coarray variable as '%s' argument to the %s "
@@ -240,6 +248,14 @@ logical_array_check (gfc_expr *array, int n)
 static gfc_try
 array_check (gfc_expr *e, int n)
 {
+  if (e->ts.type == BT_CLASS && gfc_expr_attr (e).class_ok
+	&& CLASS_DATA (e)->attr.dimension
+	&& CLASS_DATA (e)->as->rank)
+    {
+      gfc_add_class_array_ref (e);
+      return SUCCESS;
+    }
+
   if (e->rank != 0)
     return SUCCESS;
 
@@ -554,6 +570,9 @@ dim_corank_check (gfc_expr *dim, gfc_expr *array)
 
   if (dim->expr_type != EXPR_CONSTANT)
     return SUCCESS;
+  
+  if (array->ts.type == BT_CLASS)
+    return SUCCESS;
 
   corank = gfc_get_corank (array);
 
@@ -585,6 +604,9 @@ dim_rank_check (gfc_expr *dim, gfc_expr *array, int allow_assumed)
     return SUCCESS;
 
   if (dim->expr_type != EXPR_CONSTANT)
+    return SUCCESS;
+
+  if (array->ts.type == BT_CLASS)
     return SUCCESS;
 
   if (array->expr_type == EXPR_FUNCTION && array->value.function.isym

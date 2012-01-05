@@ -814,7 +814,6 @@ edge_badness (struct cgraph_edge *edge, bool dump)
   else if (flag_guess_branch_prob)
     {
       int div = edge->frequency * (1<<10) / CGRAPH_FREQ_MAX;
-      int growth_for_all;
 
       div = MAX (div, 1);
       gcc_checking_assert (edge->frequency <= CGRAPH_FREQ_MAX);
@@ -852,14 +851,12 @@ edge_badness (struct cgraph_edge *edge, bool dump)
 	  if (dump)
 	    fprintf (dump_file, "Badness overflow\n");
 	}
-      growth_for_all = estimate_growth (callee);
-      badness += growth_for_all;
       if (dump)
 	{
 	  fprintf (dump_file,
-		   "      %i: guessed profile. frequency %f, overall growth %i,"
+		   "      %i: guessed profile. frequency %f,"
 		   " benefit %f%%, divisor %i\n",
-		   (int) badness, (double)edge->frequency / CGRAPH_FREQ_BASE, growth_for_all,
+		   (int) badness, (double)edge->frequency / CGRAPH_FREQ_BASE,
 		   relative_time_benefit (callee_info, edge, time_growth) * 100 / 256.0, div);
 	}
     }
@@ -870,7 +867,7 @@ edge_badness (struct cgraph_edge *edge, bool dump)
   else
     {
       int nest = MIN (inline_edge_summary (edge)->loop_depth, 8);
-      badness = estimate_growth (callee) * 256;
+      badness = growth * 256;
 
       /* Decrease badness if call is nested.  */
       if (badness > 0)
