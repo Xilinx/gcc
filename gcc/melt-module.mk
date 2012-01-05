@@ -20,8 +20,8 @@
 # <http://www.gnu.org/licenses/>.
 
 ### should be invoked to compile MELT generated C files srcdir/foo*.c
-### with descriptive file srcdir/foo+meltdesc.c, perhaps from
-### melt-runtime.c, with
+### with descriptive file srcdir/foo+meltdesc.c & timestamp file
+### srcdir/foo+melttime.h, perhaps from melt-runtime.c, with
 #### make -f melt-module.mk \
 ####    GCCMELT_MODULE_SOURCEBASE=srcdir/foo \
 ####    GCCMELT_MODULE_BINARYBASE=moduledir/foo \
@@ -55,6 +55,12 @@ endif
 GCCMELT_DESC:= $(wildcard $(GCCMELT_MODULE_SOURCEBASE)+meltdesc.c)
 ifeq ($(GCCMELT_DESC),)
 $(error MELT descriptive file $(GCCMELT_MODULE_SOURCEBASE)+meltdesc.c does not exist)
+endif
+
+# warn if the melt time stamp file is missing
+GCCMELT_TIMEF:= $(wildcard $(GCCMELT_MODULE_SOURCEBASE)+melttime.h)
+ifeq ($(GCCMELT_TIMEF),)
+$(warning MELT time stamp file $(GCCMELT_MODULE_SOURCEBASE)+melttime.h does not exist)
 endif
 
 ## check the flavor
@@ -135,7 +141,7 @@ vpath %.dynamic.pic.o $(GCCMELT_MODULE_WORKSPACE)
 	$(GCCMELT_CC) -DMELTGCC_MODULE_DEBUGNOLINE  -DMELT_HAVE_DEBUG=1  -DMELTGCC_DYNAMIC_OBJSTRUCT $(GCCMELT_DYNAMIC_FLAGS) $(GCCMELT_CFLAGS) \
 	   -fPIC -c -o $@ $(patsubst %, $(GCCMELT_SOURCEDIR)%.c, $(basename $(basename $(basename $(basename $(notdir $@))))))
 
-$(GCCMELT_MODULE_WORKSPACE)/$(basename $(notdir $(GCCMELT_DESC))).$(GCCMELT_CUMULATED_MD5).pic.o: $(GCCMELT_DESC)
+$(GCCMELT_MODULE_WORKSPACE)/$(basename $(notdir $(GCCMELT_DESC))).$(GCCMELT_CUMULATED_MD5).pic.o: $(GCCMELT_DESC) $(GCCMELT_TIMEF)
 	[ -d $(GCCMELT_MODULE_WORKSPACE) ] || mkdir -p $(GCCMELT_MODULE_WORKSPACE)
 	$(GCCMELT_CC) -DMELTGCC_MODULE_DESCRFILE $(GCCMELT_CFLAGS) -fPIC -c -o $@ $<
 

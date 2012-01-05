@@ -3855,7 +3855,8 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; utility to output the melt descriptor and timestamp files
+;; utility to output the melt descriptor FOO+meltdesc.c and melt
+;; timestamp FOO+melttime.h [#include-d by FOO+meltdesc.c] from files
 (defun output_melt_descriptor (modnamstr secfiles)
   (debug "output_melt_descriptor modnamstr=" modnamstr " secfiles=" secfiles)
   (let ( 
@@ -3996,9 +3997,12 @@
     ;;
     (let ( (cumpathmds (string_hex_md5sum_path_sequence
 			(list_to_multiple pathlist)))
-	   (modidnam (let ( (mout (make_strbuf discr_strbuf)) )
+	   (modidnam (let ( (mout (make_strbuf discr_strbuf)) 
+			    (midstr (make_string_nakedbasename
+				     discr_string modnamstr)) 
+			    )
 		       (add2out mout "meltmod_")
-		       (add2sbuf_cident mout modnamstr)
+		       (add2sbuf_cident mout midstr)
 		       (add2out mout "_mds__")
 		       (add2sbuf_cident mout cumpathmds)
 		       (strbuf2string discr_string mout))

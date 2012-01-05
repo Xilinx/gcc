@@ -142,6 +142,7 @@ void melt_break_alptr_2_at (const char*msg, const char* fil, int line);
 #include "melt-runtime.h"
 
 #define MELT_DESC_FILESUFFIX "+meltdesc.c"
+#define MELT_TIME_FILESUFFIX "+melttime.h"
 #define MELT_DEFAULT_FLAVOR "optimized"
 
 /* our copying garbage collector needs a vector of melt_ptr_t to
@@ -5253,10 +5254,12 @@ melt_run_make_for_branch (const char*ourmakecommand, const char*ourmakefile, con
 
 /* the srcbase is a generated primary .c file without its .c suffix,
    such as /some/path/foo which also means the MELT descriptor file
-   /some/path/foo+meltdesc.c and possibly secondary files like
-   /some/path/foo+1.c /some/path/foo+2.c.  the binbase should have no
-   .so suffix.  The module build is done thru the melt-module.mk file
-   [with the 'make' utility]. */
+   /some/path/foo+meltdesc.c and the MELT timestamp file
+   /some/path/foo+melttime.h and possibly secondary files like
+   /some/path/foo+01.c /some/path/foo+02.c in addition of the primary
+   file /some/path/foo.c ; the binbase should have no .so suffix.  The
+   module build is done thru the melt-module.mk file [with the 'make'
+   utility]. */
 
 void
 melt_compile_source (const char *srcbase, const char *binbase, const char*workdir, const char*flavor)
@@ -5317,6 +5320,12 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    if (access (srcdescrpath, R_OK)) 
        melt_fatal_error ("Cannot access MELT descriptive file %s to compile - %m", 
 			 srcdescrpath);
+   {
+     char*timefpath = concat (srcbase, MELT_TIME_FILESUFFIX, NULL);
+     if (access (timefpath, R_OK))
+       warning(0, "MELT timestamp file %s missing", timefpath);
+     free (timefpath);
+   }
    if (strchr(lbasename (binbase), '.'))
      melt_fatal_error ("MELT binary base %s to compile %s should not have dots", binbase, srcbase);
    if (strcmp(flavor, "quicklybuilt") && strcmp(flavor, "optimized") && strcmp(flavor, "debugnoline"))
@@ -8630,7 +8639,7 @@ melt_load_module_index (const char*srcbase, const char*flavor)
   int desclinenum = 0;
 
   /* list of required dynamic symbols (dlsymed in the module, provided
-     in the FOO+meltdesc.c file) */
+     in the FOO+meltdesc.c or FOO+melttime.h file) */
 #define MELTDESCR_REQUIRED_LIST						\
   MELTDESCR_REQUIRED_SYMBOL (melt_build_timestamp, char);		\
   MELTDESCR_REQUIRED_SYMBOL (melt_cumulated_hexmd5, char);		\
@@ -8645,7 +8654,7 @@ melt_load_module_index (const char*srcbase, const char*flavor)
   MELTDESCR_REQUIRED_SYMBOL (start_module_melt, melt_start_rout_t)
 
   /* list of optional dynamic symbols (dlsymed in the module, provided
-     in the FOO+meltdesc.c file). */
+     in the FOO+meltdesc.c or FOO+melttime.h file). */
 #define MELTDESCR_OPTIONAL_LIST				\
   MELTDESCR_OPTIONAL_SYMBOL (melt_versionstr, char);	\
   MELTDESCR_OPTIONAL_SYMBOL (melt_modulerealpath, char)

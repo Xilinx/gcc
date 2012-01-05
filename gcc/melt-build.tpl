@@ -721,9 +721,11 @@ ENDFOR melt_translator_file+]
 [+FOR melt_translator_file+]
 #@ [+ (. (tpl-file-line))+]
 	@echo upgrading MELT translator [+base+]
-## dont indent the [+base+]+meltdesc.c 
+## dont indent the [+base+]+meltdesc.c or [+base+]+melttime.h ::: [+ (. (tpl-file-line))+]
 	cp $(MELT_LAST_STAGE)/[+base+]+meltdesc.c  $(MELT_LAST_STAGE)/[+base+]+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/[+base+]+meltdesc.c > $(srcdir)/melt/generated/[+base+]+meltdesc.c 
+	cp $(MELT_LAST_STAGE)/[+base+]+melttime.h  $(MELT_LAST_STAGE)/[+base+]+melttime.h~; \
+	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/[+base+]+melttime.h > $(srcdir)/melt/generated/[+base+]+melttime.h 
 	for f in $(MELT_LAST_STAGE)/[+base+].c $(MELT_LAST_STAGE)/[+base+]+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \

@@ -2262,9 +2262,9 @@ melt_ptr_t meltgc_start_all_new_modules (melt_ptr_t env_p);
 /* Compile a SRCBASE file (without .c) into a BINBASE file (without
    .so) in a WORKDIR (or the tempdir) with given FLAVOR. See
    melt-module.mk file.  Actually compiles several files, that is
-   SRCBASE.c SRCBASE+01.c ... SRCBASE+meltdesc.c into
-   BINBASE.SRCMD5SUM.FLAVOR.so dynamically loadable shared object file
-   in the WORKDIR (which also keeps the intermediate *.pic.o
+   SRCBASE.c SRCBASE+01.c ... SRCBASE+meltdesc.c SRCBASE+melttime.h
+   into BINBASE.SRCMD5SUM.FLAVOR.so dynamically loadable shared object
+   file in the WORKDIR (which also keeps the intermediate *.pic.o
    files).  */
 void melt_compile_source (const char *srcbase, const char *binbase, const char*workdir, const char*flavor);
 

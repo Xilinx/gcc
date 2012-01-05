@@ -1,4 +1,17 @@
 
+2012-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl (warmelt-upgrade-translator): Also copy the
+	FOO+melttime.h melt timestamp files.
+	* melt-build.mk: Regenerate.
+	* melt-runtime.h (melt_compile_source): Mention Melt timestamp file.
+	* melt-runtime.c (melt_compile_source): Mention Melt timestamp
+	file and warn when missing.
+	* melt-module.mk (CCMELT_TIMEF): Variable for Melt timestamp file.
+	Warn when missing. Add dependency on it.
+	* melt/warmelt-outobj.melt (output_melt_descriptor): Use the naked
+	basename for the unique macroname related to inclusion of Melt
+	timestamp file.
+
 2012-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_output_strbuf_to_file_no_overwrite):  New declaration.
 	* melt-runtime.c (melt_output_strbuf_to_file_no_overwrite):  New function.

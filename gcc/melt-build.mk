@@ -4058,9 +4058,11 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
 
 #@ from melt-build.tpl line 722
 	@echo upgrading MELT translator warmelt-first
-## dont indent the warmelt-first+meltdesc.c 
+## dont indent the warmelt-first+meltdesc.c or warmelt-first+melttime.h ::: from melt-build.tpl line 724
 	cp $(MELT_LAST_STAGE)/warmelt-first+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-first+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-first+meltdesc.c > $(srcdir)/melt/generated/warmelt-first+meltdesc.c 
+	cp $(MELT_LAST_STAGE)/warmelt-first+melttime.h  $(MELT_LAST_STAGE)/warmelt-first+melttime.h~; \
+	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-first+melttime.h > $(srcdir)/melt/generated/warmelt-first+melttime.h 
 	for f in $(MELT_LAST_STAGE)/warmelt-first.c $(MELT_LAST_STAGE)/warmelt-first+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
@@ -4075,14 +4077,16 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
                      $(srcdir)/melt/generated/$$bf ; \
         done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-first*.so $(MELT_STAGE_ZERO)/warmelt-first*.c
-#@ from melt-build.tpl line 741
+#@ from melt-build.tpl line 743
 #
 
 #@ from melt-build.tpl line 722
 	@echo upgrading MELT translator warmelt-base
-## dont indent the warmelt-base+meltdesc.c 
+## dont indent the warmelt-base+meltdesc.c or warmelt-base+melttime.h ::: from melt-build.tpl line 724
 	cp $(MELT_LAST_STAGE)/warmelt-base+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-base+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-base+meltdesc.c > $(srcdir)/melt/generated/warmelt-base+meltdesc.c 
+	cp $(MELT_LAST_STAGE)/warmelt-base+melttime.h  $(MELT_LAST_STAGE)/warmelt-base+melttime.h~; \
+	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-base+melttime.h > $(srcdir)/melt/generated/warmelt-base+melttime.h 
 	for f in $(MELT_LAST_STAGE)/warmelt-base.c $(MELT_LAST_STAGE)/warmelt-base+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
@@ -4097,14 +4101,16 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
                      $(srcdir)/melt/generated/$$bf ; \
         done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-base*.so $(MELT_STAGE_ZERO)/warmelt-base*.c
-#@ from melt-build.tpl line 741
+#@ from melt-build.tpl line 743
 #
 
 #@ from melt-build.tpl line 722
 	@echo upgrading MELT translator warmelt-debug
-## dont indent the warmelt-debug+meltdesc.c 
+## dont indent the warmelt-debug+meltdesc.c or warmelt-debug+melttime.h ::: from melt-build.tpl line 724
 	cp $(MELT_LAST_STAGE)/warmelt-debug+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-debug+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-debug+meltdesc.c > $(srcdir)/melt/generated/warmelt-debug+meltdesc.c 
+	cp $(MELT_LAST_STAGE)/warmelt-debug+melttime.h  $(MELT_LAST_STAGE)/warmelt-debug+melttime.h~; \
+	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-debug+melttime.h > $(srcdir)/melt/generated/warmelt-debug+melttime.h 
 	for f in $(MELT_LAST_STAGE)/warmelt-debug.c $(MELT_LAST_STAGE)/warmelt-debug+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
@@ -4119,14 +4125,16 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
                      $(srcdir)/melt/generated/$$bf ; \
         done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-debug*.so $(MELT_STAGE_ZERO)/warmelt-debug*.c
-#@ from melt-build.tpl line 741
+#@ from melt-build.tpl line 743
 #
 
 #@ from melt-build.tpl line 722
 	@echo upgrading MELT translator warmelt-macro
-## dont indent the warmelt-macro+meltdesc.c 
+## dont indent the warmelt-macro+meltdesc.c or warmelt-macro+melttime.h ::: from melt-build.tpl line 724
 	cp $(MELT_LAST_STAGE)/warmelt-macro+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-macro+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-macro+meltdesc.c > $(srcdir)/melt/generated/warmelt-macro+meltdesc.c 
+	cp $(MELT_LAST_STAGE)/warmelt-macro+melttime.h  $(MELT_LAST_STAGE)/warmelt-macro+melttime.h~; \
+	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-macro+melttime.h > $(srcdir)/melt/generated/warmelt-macro+melttime.h 
 	for f in $(MELT_LAST_STAGE)/warmelt-macro.c $(MELT_LAST_STAGE)/warmelt-macro+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
@@ -4141,14 +4149,16 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
                      $(srcdir)/melt/generated/$$bf ; \
         done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-macro*.so $(MELT_STAGE_ZERO)/warmelt-macro*.c
-#@ from melt-build.tpl line 741
+#@ from melt-build.tpl line 743
 #
 
 #@ from melt-build.tpl line 722
 	@echo upgrading MELT translator warmelt-normal
-## dont indent the warmelt-normal+meltdesc.c 
+## dont indent the warmelt-normal+meltdesc.c or warmelt-normal+melttime.h ::: from melt-build.tpl line 724
 	cp $(MELT_LAST_STAGE)/warmelt-normal+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-normal+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-normal+meltdesc.c > $(srcdir)/melt/generated/warmelt-normal+meltdesc.c 
+	cp $(MELT_LAST_STAGE)/warmelt-normal+melttime.h  $(MELT_LAST_STAGE)/warmelt-normal+melttime.h~; \
+	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-normal+melttime.h > $(srcdir)/melt/generated/warmelt-normal+melttime.h 
 	for f in $(MELT_LAST_STAGE)/warmelt-normal.c $(MELT_LAST_STAGE)/warmelt-normal+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
@@ -4163,14 +4173,16 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
                      $(srcdir)/melt/generated/$$bf ; \
         done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-normal*.so $(MELT_STAGE_ZERO)/warmelt-normal*.c
-#@ from melt-build.tpl line 741
+#@ from melt-build.tpl line 743
 #
 
 #@ from melt-build.tpl line 722
 	@echo upgrading MELT translator warmelt-normatch
-## dont indent the warmelt-normatch+meltdesc.c 
+## dont indent the warmelt-normatch+meltdesc.c or warmelt-normatch+melttime.h ::: from melt-build.tpl line 724
 	cp $(MELT_LAST_STAGE)/warmelt-normatch+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-normatch+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-normatch+meltdesc.c > $(srcdir)/melt/generated/warmelt-normatch+meltdesc.c 
+	cp $(MELT_LAST_STAGE)/warmelt-normatch+melttime.h  $(MELT_LAST_STAGE)/warmelt-normatch+melttime.h~; \
+	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-normatch+melttime.h > $(srcdir)/melt/generated/warmelt-normatch+melttime.h 
 	for f in $(MELT_LAST_STAGE)/warmelt-normatch.c $(MELT_LAST_STAGE)/warmelt-normatch+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
@@ -4185,14 +4197,16 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
                      $(srcdir)/melt/generated/$$bf ; \
         done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-normatch*.so $(MELT_STAGE_ZERO)/warmelt-normatch*.c
-#@ from melt-build.tpl line 741
+#@ from melt-build.tpl line 743
 #
 
 #@ from melt-build.tpl line 722
 	@echo upgrading MELT translator warmelt-genobj
-## dont indent the warmelt-genobj+meltdesc.c 
+## dont indent the warmelt-genobj+meltdesc.c or warmelt-genobj+melttime.h ::: from melt-build.tpl line 724
 	cp $(MELT_LAST_STAGE)/warmelt-genobj+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-genobj+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-genobj+meltdesc.c > $(srcdir)/melt/generated/warmelt-genobj+meltdesc.c 
+	cp $(MELT_LAST_STAGE)/warmelt-genobj+melttime.h  $(MELT_LAST_STAGE)/warmelt-genobj+melttime.h~; \
+	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-genobj+melttime.h > $(srcdir)/melt/generated/warmelt-genobj+melttime.h 
 	for f in $(MELT_LAST_STAGE)/warmelt-genobj.c $(MELT_LAST_STAGE)/warmelt-genobj+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
@@ -4207,14 +4221,16 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
                      $(srcdir)/melt/generated/$$bf ; \
         done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-genobj*.so $(MELT_STAGE_ZERO)/warmelt-genobj*.c
-#@ from melt-build.tpl line 741
+#@ from melt-build.tpl line 743
 #
 
 #@ from melt-build.tpl line 722
 	@echo upgrading MELT translator warmelt-outobj
-## dont indent the warmelt-outobj+meltdesc.c 
+## dont indent the warmelt-outobj+meltdesc.c or warmelt-outobj+melttime.h ::: from melt-build.tpl line 724
 	cp $(MELT_LAST_STAGE)/warmelt-outobj+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-outobj+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-outobj+meltdesc.c > $(srcdir)/melt/generated/warmelt-outobj+meltdesc.c 
+	cp $(MELT_LAST_STAGE)/warmelt-outobj+melttime.h  $(MELT_LAST_STAGE)/warmelt-outobj+melttime.h~; \
+	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-outobj+melttime.h > $(srcdir)/melt/generated/warmelt-outobj+melttime.h 
 	for f in $(MELT_LAST_STAGE)/warmelt-outobj.c $(MELT_LAST_STAGE)/warmelt-outobj+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
@@ -4229,14 +4245,16 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
                      $(srcdir)/melt/generated/$$bf ; \
         done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-outobj*.so $(MELT_STAGE_ZERO)/warmelt-outobj*.c
-#@ from melt-build.tpl line 741
+#@ from melt-build.tpl line 743
 #
 
 #@ from melt-build.tpl line 722
 	@echo upgrading MELT translator warmelt-modes
-## dont indent the warmelt-modes+meltdesc.c 
+## dont indent the warmelt-modes+meltdesc.c or warmelt-modes+melttime.h ::: from melt-build.tpl line 724
 	cp $(MELT_LAST_STAGE)/warmelt-modes+meltdesc.c  $(MELT_LAST_STAGE)/warmelt-modes+meltdesc.c~; \
 	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-modes+meltdesc.c > $(srcdir)/melt/generated/warmelt-modes+meltdesc.c 
+	cp $(MELT_LAST_STAGE)/warmelt-modes+melttime.h  $(MELT_LAST_STAGE)/warmelt-modes+melttime.h~; \
+	sed s/$(MELT_LAST_STAGE)/MELT-STAGE-ZERO/g $(MELT_LAST_STAGE)/warmelt-modes+melttime.h > $(srcdir)/melt/generated/warmelt-modes+melttime.h 
 	for f in $(MELT_LAST_STAGE)/warmelt-modes.c $(MELT_LAST_STAGE)/warmelt-modes+[0-9]*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
@@ -4251,18 +4269,18 @@ warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
                      $(srcdir)/melt/generated/$$bf ; \
         done
 	rm -f $(MELT_STAGE_ZERO)/warmelt-modes*.so $(MELT_STAGE_ZERO)/warmelt-modes*.c
-#@ from melt-build.tpl line 741
+#@ from melt-build.tpl line 743
 #
 
 	cp -v meltrunsup*.[ch]   $(srcdir)/melt/generated/
-#@ from melt-build.tpl line 745
+#@ from melt-build.tpl line 747
 
 
 
 
 
 ### Generated MELT documentation
-#@ from melt-build.tpl line 752
+#@ from melt-build.tpl line 754
 meltgendoc.texi: $(melt_default_modules_list).modlis \
                     melt-sources/warmelt-first.melt \
                     melt-sources/warmelt-base.melt \
@@ -4314,5 +4332,5 @@ melt-clean:
            melt-stage3  melt-stage3.stamp \
                melt-sources melt-modules
 
-#@ from melt-build.tpl line 790
+#@ from melt-build.tpl line 792
 ## eof melt-build.mk generated from melt-build.tpl & melt-melt-build.def
