@@ -145,8 +145,9 @@ typedef enum
   GFC_SS_SCALAR,
 
   /* Like GFC_SS_SCALAR it evaluates the expression outside the
-     loop. Is always evaluated as a reference to the temporary.
-     Used for elemental function arguments.  */
+     loop.  Is always evaluated as a reference to the temporary, unless
+     temporary evaluation can result in a NULL pointer dereferencing (case of
+     optional arguments).  Used for elemental function arguments.  */
   GFC_SS_REFERENCE,
 
   /* An array section.  Scalarization indices will be substituted during
@@ -196,6 +197,9 @@ typedef struct gfc_ss_info
     struct
     {
       tree value;
+      /* Tells whether the reference can be null in the GFC_SS_REFERENCE case.
+	 Used to handle elemental procedures' optional arguments.  */
+      bool can_be_null_ref;
     }
     scalar;
 
@@ -333,6 +337,14 @@ typedef struct
 }
 gfc_wrapped_block;
 
+/* Class API functions.  */
+tree gfc_class_data_get (tree);
+tree gfc_class_vptr_get (tree);
+tree gfc_vtable_hash_get (tree);
+tree gfc_vtable_size_get (tree);
+tree gfc_vtable_extends_get (tree);
+tree gfc_vtable_def_init_get (tree);
+tree gfc_vtable_copy_get (tree);
 
 /* Initialize an init/cleanup block.  */
 void gfc_start_wrapped_block (gfc_wrapped_block* block, tree code);
@@ -803,6 +815,7 @@ struct GTY((variable_size)) lang_decl {
 #define GFC_DECL_RESULT(node) DECL_LANG_FLAG_5(node)
 #define GFC_DECL_SUBREF_ARRAY_P(node) DECL_LANG_FLAG_6(node)
 #define GFC_DECL_PUSH_TOPLEVEL(node) DECL_LANG_FLAG_7(node)
+#define GFC_DECL_CLASS(node) DECL_LANG_FLAG_8(node)
 
 /* An array descriptor.  */
 #define GFC_DESCRIPTOR_TYPE_P(node) TYPE_LANG_FLAG_1(node)

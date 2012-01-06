@@ -848,7 +848,8 @@
   "@
    cmn%?\\t%0, %1
    cmp%?\\t%0, #%n1"
-  [(set_attr "conds" "set")]
+  [(set_attr "conds" "set")
+   (set_attr "predicable" "yes")]
 )
 
 (define_insn "*compare_negsi_si"
@@ -858,7 +859,8 @@
 	 (match_operand:SI 1 "s_register_operand" "r")))]
   "TARGET_32BIT"
   "cmn%?\\t%1, %0"
-  [(set_attr "conds" "set")]
+  [(set_attr "conds" "set")
+   (set_attr "predicable" "yes")]
 )
 
 ;; This is the canonicalization of addsi3_compare0_for_combiner when the
@@ -959,7 +961,8 @@
   "@
    cmn%?\\t%0, %1
    cmp%?\\t%0, #%n1"
-  [(set_attr "conds" "set")]
+  [(set_attr "conds" "set")
+   (set_attr "predicable" "yes")]
 )
 
 (define_insn "*compare_addsi2_op1"
@@ -972,7 +975,8 @@
   "@
    cmn%?\\t%0, %1
    cmp%?\\t%0, #%n1"
-  [(set_attr "conds" "set")]
+  [(set_attr "conds" "set")
+   (set_attr "predicable" "yes")]
 )
 
 (define_insn "*addsi3_carryin_<optab>"
@@ -2272,7 +2276,8 @@
   output_asm_insn (\"tst%?\\t%0, %1\", operands);
   return \"\";
   "
-  [(set_attr "conds" "set")]
+  [(set_attr "conds" "set")
+   (set_attr "predicable" "yes")]
 )
 
 (define_insn_and_split "*ne_zeroextractsi"
@@ -3056,13 +3061,25 @@
     }"
 )
 
-(define_insn "*arm_xorsi3"
-  [(set (match_operand:SI         0 "s_register_operand" "=r")
-	(xor:SI (match_operand:SI 1 "s_register_operand" "r")
-		(match_operand:SI 2 "arm_rhs_operand" "rI")))]
+(define_insn_and_split "*arm_xorsi3"
+  [(set (match_operand:SI         0 "s_register_operand" "=r,r")
+	(xor:SI (match_operand:SI 1 "s_register_operand" "%r,r")
+		(match_operand:SI 2 "reg_or_int_operand" "rI,?n")))]
   "TARGET_32BIT"
-  "eor%?\\t%0, %1, %2"
-  [(set_attr "predicable" "yes")]
+  "@
+   eor%?\\t%0, %1, %2
+   #"
+  "TARGET_32BIT
+   && GET_CODE (operands[2]) == CONST_INT
+   && !const_ok_for_arm (INTVAL (operands[2]))"
+  [(clobber (const_int 0))]
+{
+  arm_split_constant (XOR, SImode, curr_insn,
+                      INTVAL (operands[2]), operands[0], operands[1], 0);
+  DONE;
+}
+  [(set_attr "length" "4,16")
+   (set_attr "predicable" "yes")]
 )
 
 (define_insn "*thumb1_xorsi3_insn"
@@ -4713,8 +4730,9 @@
 	(compare:CC_Z (match_operand:QI 0 "s_register_operand" "r")
 			 (const_int 0)))]
   "TARGET_32BIT"
-  "tst\\t%0, #255"
-  [(set_attr "conds" "set")]
+  "tst%?\\t%0, #255"
+  [(set_attr "conds" "set")
+   (set_attr "predicable" "yes")]
 )
 
 (define_expand "extendhisi2"
@@ -7470,7 +7488,8 @@
    cmn%?\\t%0, #%n1"
   [(set_attr "conds" "set")
    (set_attr "arch" "t2,t2,any,any")
-   (set_attr "length" "2,2,4,4")]
+   (set_attr "length" "2,2,4,4")
+   (set_attr "predicable" "yes")]
 )
 
 (define_insn "*cmpsi_shiftsi"
@@ -7511,7 +7530,8 @@
   [(set_attr "conds" "set")
    (set (attr "type") (if_then_else (match_operand 3 "const_int_operand" "")
 				    (const_string "alu_shift")
-				    (const_string "alu_shift_reg")))]
+				    (const_string "alu_shift_reg")))
+   (set_attr "predicable" "yes")]
 )
 
 ;; DImode comparisons.  The generic code generates branches that
@@ -7533,8 +7553,8 @@
   [(set (reg:CC_CZ CC_REGNUM)
 	(compare:CC_CZ (match_operand:DI 0 "s_register_operand" "r")
 		       (match_operand:DI 1 "arm_di_operand"	"rDi")))]
-  "TARGET_ARM"
-  "cmp%?\\t%R0, %R1\;cmpeq\\t%Q0, %Q1"
+  "TARGET_32BIT"
+  "cmp\\t%R0, %R1\;it eq\;cmpeq\\t%Q0, %Q1"
   [(set_attr "conds" "set")
    (set_attr "length" "8")]
 )

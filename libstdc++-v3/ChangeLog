@@ -1,3 +1,187 @@
+2012-01-03  François Dumont <fdumont@gcc.gnu.org>
+
+	* include/bits/hashtable_policy.h (_Ebo_helper<>): Rename to the more
+	specific _Hashtable_ebo_helper. Hide this implementation detail thanks
+	to private inheritance.
+
+2012-01-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51738
+	* testsuite/23_containers/map/element_access/39901.cc: New.
+
+2011-12-30  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/extensions.xml: Improve markup and note that some
+	extensions are included in C++11.
+	* doc/xml/manual/concurrency_extensions.xml: Likewise.
+
+2011-12-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/51711
+	* include/bits/regex.h (regex_replace): Fix thinko.
+	* testsuite/28_regex/algorithms/regex_replace/char/51711.cc: New.
+	* testsuite/28_regex/algorithms/regex_replace/wchar_t/51711.cc:
+	Likewise.
+
+2011-12-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/hashtable_policy.h (struct _Ebo_helper<>): Don't use
+	_N, badname on Solaris; minor stylistic changes.
+
+2011-12-29  François Dumont <fdumont@gcc.gnu.org>
+
+	PR libstdc++/51608
+	* include/bits/hashtable_policy.h (_Equal_helper<>): New, change the
+	way the _Equal functor is used depending on whether hash code is
+	cached or not.
+	(_Ebo_helper<>): New helper type to introduce EBO when possible.
+	(_Hash_code_base): Use _Ebo_helper to limit memory footprint. Move
+	_Equal functor management...
+	(_Hashtable_base): ...here, new, use _Equal_helper.
+	(_Local_iterator_base<>, _Local_iterator<>, _Local_const_iterator<>):
+	New, use _Hash_code_base, implementation of...
+	* include/bits/hashtable.h (_Hashtable<>::local_iterator,
+	_Hashtable<>::const_local_iterator): ...those. Add static assertions
+	checking that some functors are empty depending on whether hash code
+	is cache or not.
+	(_Hashtable<>::_M_bucket_index): New overloads using current bucket
+	count, use through out the _Hastable<> implementation.
+	* include/bits/unordered_set.h (__unordered_set<>,
+	__unordered_multiset<>): Cache hash code iff hash functor is not
+	empty and not final.
+	* include/bits/unordered_map.h (__unordered_map<>,
+	__unordered_multimap<>): Likewise.
+	* include/debug/unordered_map
+	(unordered_map<>::_S_to_local, unordered_multimap<>::_S_to_local):
+	Adapt to match new local iterator implementation.
+	* include/debug/unordered_set (unordered_set<>::_S_to_local,
+	unordered_multiset<>::_S_to_local): Likewise.
+	* include/profile/unordered_map (unordered_map<>::_M_profile_destruct,
+	unordered_multimap<>::_M_profile_destruct): Enhance thanks to usage of
+	local iterators.
+	* include/profile/unordered_set (unordered_set<>::_M_profile_destruct,
+	unordered_multiset<>::_M_profile_destruct): Likewise.
+	* testsuite_files/23_containers/unordered_set/instantiation_neg.cc:
+	Fix error line.
+	* testsuite_files/23_containers/unordered_set/final_hash.cc: New.
+	* testsuite_files/23_containers/unordered_multiset/final_hash.cc: New.
+	* testsuite_files/23_containers/unordered_map/final_hash.cc: New.
+	* testsuite_files/23_containers/unordered_multimap/final_hash.cc: New.
+
+2011-12-29  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/51701
+	* doc/xml/manual/extensions.xml (Input and Output): Remove reference
+	to RWLock class.
+
+2011-12-23  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/tr1/2_general_utilities/shared_ptr/cons/
+	weak_ptr_expired.cc: Modify to PASS instead of XFAIL.
+
+2011-12-23  Kai Tietz  <ktietz@redhat.com>
+
+	* config/os/mingw32-w64/os_defines.h (__USE_MINGW_ANSI_STDIO): Define.
+
+2011-12-23  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/c_global/cinttypes: Update comments that refer to TR1.
+
+2011-12-23  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/49204
+	* include/std/future (future_errc): Implement LWG 2056.
+
+2011-12-23  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/regex.h (match_results::size_type): Use
+	allocator_traits.
+
+2011-12-22  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/48362
+	* testsuite/libstdc++-prettyprinters/48362.cc: New.
+
+2011-12-22  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/48362
+	* python/libstdcxx/v6/printers.py (StdTuplePrinter): Handle empty
+	tuples.
+
+2011-12-20  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/51365
+	* include/std/tuple (_Tuple_impl): Check __is_final as well as
+	is_empty.
+	* testsuite/20_util/tuple/51365.cc: New.
+
+2011-12-19  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* libsupc++/eh_tm.cc (free_any_cxa_exception): Use
+	__GCC_ATOMIC_INT_LOCK_FREE, not _GLIBCXX_ATOMIC_BUILTINS_4.
+
+2011-12-19  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/performance/25_algorithms/search_n.cc: Disambiguate
+	local variable.
+
+2011-12-18  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/iterators.xml: Replace "sect1" with "section".
+	* doc/xml/manual/algorithms.xml: Likewise.
+	* doc/html/manual/iterators.html: Likewise.
+	* doc/html/manual/algorithms.html: Likewise.
+
+2011-12-15  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/51558
+	* include/bits/functional_hash.h (struct hash): Add static_assert.
+	* src/compatibility-c++0x.cc: Adjust compatibility definitions.
+	* testsuite/23_containers/unordered_map/erase/51142.cc: Adjust.
+	* testsuite/23_containers/unordered_set/erase/51142.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/erase/51142.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/erase/51142.cc: Likewise.
+
+2011-12-15  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/22_locale/num_put/put/char/9780-2.cc: Add test for "C"
+	locale, add sanity checks in case of grouping.
+
+2011-12-15  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/51540
+	* include/bits/stl_numeric.h (partial_sum): Adjust doxygen comments.
+
+2011-12-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	Revert:
+	2011-12-12  Kai Tietz  <ktietz@redhat.com>
+
+	PR libstdc++/51135
+	* libsupc++/cxxabi.h (__cxa_dtor_type): New type.
+	(__cxa_throw): Use it for destructor-argument.
+	* libsupc++/eh_throw.cc (__cxa_throw): Likewise.
+	* libsupc++/unwind-cxx.h (__cxa_exception): Change type of member
+	exceptionDestructor to __cxa_dtor_type.
+	* config/os/mingw32-w64/os_defines.h (_GLIBCXX_USE_THISCALL_ON_DTOR):
+	Define.
+	(__cxa_dtor_type): Declare target secific type variant.
+	* config/os/mingw32/os_defines.h: Likewise.
+
+2011-12-12  Kai Tietz  <ktietz@redhat.com>
+
+	PR libstdc++/51135
+	* libsupc++/cxxabi.h (__cxa_dtor_type): New type.
+	(__cxa_throw): Use it for destructor-argument.
+	* libsupc++/eh_throw.cc (__cxa_throw): Likewise.
+	* libsupc++/unwind-cxx.h (__cxa_exception): Change type of member
+	exceptionDestructor to __cxa_dtor_type.
+	* config/os/mingw32-w64/os_defines.h (_GLIBCXX_USE_THISCALL_ON_DTOR):
+	Define.
+	(__cxa_dtor_type): Declare target secific type variant.
+	* config/os/mingw32/os_defines.h: Likewise.
+
 2011-12-11  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* doc/xml/manual/abi.xml: Replace gcc-x.y.z with GCC x.y.z or x.y,

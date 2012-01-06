@@ -266,19 +266,19 @@ func TestServerTimeouts(t *testing.T) {
 	}
 
 	// Slow client that should timeout.
-	t1 := time.Nanoseconds()
+	t1 := time.Now()
 	conn, err := net.Dial("tcp", addr.String())
 	if err != nil {
 		t.Fatalf("Dial: %v", err)
 	}
 	buf := make([]byte, 1)
 	n, err := conn.Read(buf)
-	latency := time.Nanoseconds() - t1
+	latency := time.Now().Sub(t1)
 	if n != 0 || err != io.EOF {
 		t.Errorf("Read = %v, %v, wanted %v, %v", n, err, 0, io.EOF)
 	}
-	if latency < second*0.20 /* fudge from 0.25 above */ {
-		t.Errorf("got EOF after %d ns, want >= %d", latency, second*0.20)
+	if latency < 200*time.Millisecond /* fudge from 0.25 above */ {
+		t.Errorf("got EOF after %s, want >= %s", latency, 200*time.Millisecond)
 	}
 
 	// Hit the HTTP server successfully again, verifying that the
@@ -760,7 +760,7 @@ func TestTimeoutHandler(t *testing.T) {
 		_, werr := w.Write([]byte("hi"))
 		writeErrors <- werr
 	})
-	timeout := make(chan int64, 1) // write to this to force timeouts
+	timeout := make(chan time.Time, 1) // write to this to force timeouts
 	ts := httptest.NewServer(NewTestTimeoutHandler(sayHi, timeout))
 	defer ts.Close()
 
@@ -782,7 +782,7 @@ func TestTimeoutHandler(t *testing.T) {
 	}
 
 	// Times out:
-	timeout <- 1
+	timeout <- time.Time{}
 	res, err = Get(ts.URL)
 	if err != nil {
 		t.Error(err)
@@ -1077,6 +1077,31 @@ func TestClientWriteShutdown(t *testing.T) {
 	}
 }
 
+// Tests that chunked server responses that write 1 byte at a time are
+// buffered before chunk headers are added, not after chunk headers.
+func TestServerBufferedChunking(t *testing.T) {
+	if true {
+		t.Logf("Skipping known broken test; see Issue 2357")
+		return
+	}
+	conn := new(testConn)
+	conn.readBuf.Write([]byte("GET / HTTP/1.1\r\n\r\n"))
+	done := make(chan bool)
+	ls := &oneConnListener{conn}
+	go Serve(ls, HandlerFunc(func(rw ResponseWriter, req *Request) {
+		defer close(done)
+		rw.Header().Set("Content-Type", "text/plain") // prevent sniffing, which buffers
+		rw.Write([]byte{'x'})
+		rw.Write([]byte{'y'})
+		rw.Write([]byte{'z'})
+	}))
+	<-done
+	if !bytes.HasSuffix(conn.writeBuf.Bytes(), []byte("\r\n\r\n3\r\nxyz\r\n0\r\n\r\n")) {
+		t.Errorf("response didn't end with a single 3 byte 'xyz' chunk; got:\n%q",
+			conn.writeBuf.Bytes())
+	}
+}
+
 // goTimeout runs f, failing t if f takes more than ns to complete.
 func goTimeout(t *testing.T, ns int64, f func()) {
 	ch := make(chan bool, 2)
@@ -1120,7 +1145,7 @@ func TestAcceptMaxFds(t *testing.T) {
 	ln := &errorListener{[]error{
 		&net.OpError{
 			Op:  "accept",
-			Err: os.Errno(syscall.EMFILE),
+			Err: syscall.EMFILE,
 		}}}
 	err := Serve(ln, HandlerFunc(HandlerFunc(func(ResponseWriter, *Request) {})))
 	if err != io.EOF {

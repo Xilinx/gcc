@@ -1,6 +1,7 @@
 ;;  Mips.md	     Machine Description for MIPS based processors
 ;;  Copyright (C) 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-;;  1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+;;  1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+;;  2011, 2012
 ;;  Free Software Foundation, Inc.
 ;;  Contributed by   A. Lichnewsky, lich@inria.inria.fr
 ;;  Changes by       Michael Meissner, meissner@osf.org
@@ -42,6 +43,7 @@
   loongson_3a
   m4k
   octeon
+  octeon2
   r3900
   r6000
   r4000
@@ -667,9 +669,10 @@
 		     (HA "") (SA "") (DA "D")
 		     (UHA "") (USA "") (UDA "D")])
 
-;; This attribute gives the length suffix for a sign- or zero-extension
-;; instruction.
-(define_mode_attr size [(QI "b") (HI "h")])
+;; This attribute gives the length suffix for a load or store instruction.
+;; The same suffixes work for zero and sign extensions.
+(define_mode_attr size [(QI "b") (HI "h") (SI "w") (DI "d")])
+(define_mode_attr SIZE [(QI "B") (HI "H") (SI "W") (DI "D")])
 
 ;; This attributes gives the mode mask of a SHORT.
 (define_mode_attr mask [(QI "0x00ff") (HI "0xffff")])
@@ -788,6 +791,9 @@
 		     (ge "") (geu "u")
 		     (lt "") (ltu "u")
 		     (le "") (leu "u")])
+
+;; <U> is like <u> except uppercase.
+(define_code_attr U [(sign_extend "") (zero_extend "U")])
 
 ;; <su> is like <u>, but the signed form expands to "s" rather than "".
 (define_code_attr su [(sign_extend "s") (zero_extend "u")])
@@ -4837,7 +4843,7 @@
 ;; of _gp from the start of this function.  Operand 1 is the incoming
 ;; function address.
 (define_insn_and_split "loadgp_newabi_<mode>"
-  [(set (match_operand:P 0 "register_operand" "=d")
+  [(set (match_operand:P 0 "register_operand" "=&d")
 	(unspec:P [(match_operand:P 1)
 		   (match_operand:P 2 "register_operand" "d")]
 		  UNSPEC_LOADGP))]

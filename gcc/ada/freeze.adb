@@ -3040,8 +3040,13 @@ package body Freeze is
          --  nable and used in subsequent checks, so might as well try to
          --  compute it.
 
+         --  In Ada 2012, Freeze_Entities is also used in the front end to
+         --  trigger the analysis of aspect expressions, so in this case we
+         --  want to continue the freezing process.
+
          if Present (Scope (E))
            and then Is_Generic_Unit (Scope (E))
+           and then not Has_Predicates (E)
          then
             Check_Compile_Time_Size (E);
             return No_List;
@@ -4360,13 +4365,23 @@ package body Freeze is
 
       --  If expression is non-static, then it does not freeze in a default
       --  expression, see section "Handling of Default Expressions" in the
-      --  spec of package Sem for further details. Note that we have to
-      --  make sure that we actually have a real expression (if we have
-      --  a subtype indication, we can't test Is_Static_Expression!)
+      --  spec of package Sem for further details. Note that we have to make
+      --  sure that we actually have a real expression (if we have a subtype
+      --  indication, we can't test Is_Static_Expression!) However, we exclude
+      --  the case of the prefix of an attribute of a static scalar subtype
+      --  from this early return, because static subtype attributes should
+      --  always cause freezing, even in default expressions, but the attribute
+      --  may not have been marked as static yet (because in Resolve_Attribute,
+      --  the call to Eval_Attribute follows the call of Freeze_Expression on
+      --  the prefix).
 
       if In_Spec_Exp
         and then Nkind (N) in N_Subexpr
         and then not Is_Static_Expression (N)
+        and then (Nkind (Parent (N)) /= N_Attribute_Reference
+                   or else not (Is_Entity_Name (N)
+                                 and then Is_Type (Entity (N))
+                                 and then Is_Static_Subtype (Entity (N))))
       then
          return;
       end if;

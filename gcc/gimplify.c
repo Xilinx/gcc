@@ -1,7 +1,7 @@
 /* Tree lowering pass.  This pass converts the GENERIC functions-as-trees
    tree representation into the GIMPLE form.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
+   2012 Free Software Foundation, Inc.
    Major work done by Sebastian Pop <s.pop@laposte.net>,
    Diego Novillo <dnovillo@redhat.com> and Jason Merrill <jason@redhat.com>.
 
@@ -162,7 +162,7 @@ gimple_tree_eq (const void *p1, const void *p2)
    before the def/use vectors have been constructed.  */
 
 void
-gimplify_seq_add_stmt (gimple_seq *seq_p, gimple gs)
+gimple_seq_add_stmt_without_update (gimple_seq *seq_p, gimple gs)
 {
   gimple_stmt_iterator si;
 
@@ -175,6 +175,15 @@ gimplify_seq_add_stmt (gimple_seq *seq_p, gimple gs)
   si = gsi_last (*seq_p);
 
   gsi_insert_after_without_update (&si, gs, GSI_NEW_STMT);
+}
+
+/* Shorter alias name for the above function for use in gimplify.c
+   only.  */
+
+static inline void
+gimplify_seq_add_stmt (gimple_seq *seq_p, gimple gs)
+{
+  gimple_seq_add_stmt_without_update (seq_p, gs);
 }
 
 /* Append sequence SRC to the end of sequence *DST_P.  If *DST_P is
@@ -1081,6 +1090,15 @@ voidify_wrapper_expr (tree wrapper, tree temp)
 	      break;
 
 	    default:
+	      /* Assume that any tree upon which voidify_wrapper_expr is
+		 directly called is a wrapper, and that its body is op0.  */
+	      if (p == &wrapper)
+		{
+		  TREE_SIDE_EFFECTS (*p) = 1;
+		  TREE_TYPE (*p) = void_type_node;
+		  p = &TREE_OPERAND (*p, 0);
+		  break;
+		}
 	      goto out;
 	    }
 	}
@@ -5208,13 +5226,16 @@ gimplify_cleanup_point_expr (tree *expr_p, gimple_seq *pre_p)
      any cleanups collected outside the CLEANUP_POINT_EXPR.  */
   int old_conds = gimplify_ctxp->conditions;
   gimple_seq old_cleanups = gimplify_ctxp->conditional_cleanups;
+  bool old_in_cleanup_point_expr = gimplify_ctxp->in_cleanup_point_expr;
   gimplify_ctxp->conditions = 0;
   gimplify_ctxp->conditional_cleanups = NULL;
+  gimplify_ctxp->in_cleanup_point_expr = true;
 
   gimplify_stmt (&TREE_OPERAND (*expr_p, 0), &body_sequence);
 
   gimplify_ctxp->conditions = old_conds;
   gimplify_ctxp->conditional_cleanups = old_cleanups;
+  gimplify_ctxp->in_cleanup_point_expr = old_in_cleanup_point_expr;
 
   for (iter = gsi_start (body_sequence); !gsi_end_p (iter); )
     {
@@ -5390,7 +5411,8 @@ gimplify_target_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p)
 
       /* Add a clobber for the temporary going out of scope, like
 	 gimplify_bind_expr.  */
-      if (needs_to_live_in_memory (temp))
+      if (gimplify_ctxp->in_cleanup_point_expr
+	  && needs_to_live_in_memory (temp))
 	{
 	  tree clobber = build_constructor (TREE_TYPE (temp), NULL);
 	  TREE_THIS_VOLATILE (clobber) = true;

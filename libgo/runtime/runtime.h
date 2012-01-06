@@ -6,7 +6,6 @@
 
 #include "config.h"
 
-#define _GNU_SOURCE
 #include "go-assert.h"
 #include <setjmp.h>
 #include <signal.h>
@@ -53,9 +52,12 @@ typedef	struct	G		G;
 typedef	union	Lock		Lock;
 typedef	struct	M		M;
 typedef	union	Note		Note;
+typedef	struct	SigTab		SigTab;
 typedef	struct	MCache		MCache;
 typedef struct	FixAlloc	FixAlloc;
 typedef	struct	Hchan		Hchan;
+typedef	struct	Timers		Timers;
+typedef	struct	Timer		Timer;
 
 typedef	struct	__go_open_array		Slice;
 typedef	struct	__go_string		String;
@@ -178,6 +180,20 @@ struct	M
 	uint32	waitsemalock;
 };
 
+struct	SigTab
+{
+	int32	sig;
+	int32	flags;
+};
+enum
+{
+	SigCatch = 1<<0,
+	SigIgnore = 1<<1,
+	SigRestart = 1<<2,
+	SigQueue = 1<<3,
+	SigPanic = 1<<4,
+};
+
 /* Macros.  */
 
 #ifdef __WINDOWS__
@@ -190,6 +206,38 @@ enum {
 };
 #endif
 
+struct	Timers
+{
+	Lock;
+	G	*timerproc;
+	bool		sleeping;
+	bool		rescheduling;
+	Note	waitnote;
+	Timer	**t;
+	int32	len;
+	int32	cap;
+};
+
+// Package time knows the layout of this structure.
+// If this struct changes, adjust ../time/sleep.go:/runtimeTimer.
+struct	Timer
+{
+	int32	i;		// heap index
+
+	// Timer wakes up at when, and then at when+period, ... (period > 0 only)
+	// each time calling f(now, arg) in the timer goroutine, so f must be
+	// a well-behaved function and not block.
+	int64	when;
+	int64	period;
+	void	(*f)(int64, Eface);
+	Eface	arg;
+};
+
+/*
+ * defined macros
+ *    you need super-gopher-guru privilege
+ *    to add this list.
+ */
 #define	nelem(x)	(sizeof(x)/sizeof((x)[0]))
 #define	nil		((void*)0)
 #define USED(v)		((void) v)
@@ -218,7 +266,7 @@ void	runtime_args(int32, byte**);
 void	runtime_osinit();
 void	runtime_goargs(void);
 void	runtime_goenvs(void);
-void	runtime_throw(const char*);
+void	runtime_throw(const char*) __attribute__ ((noreturn));
 void	runtime_panicstring(const char*) __attribute__ ((noreturn));
 void*	runtime_mal(uintptr);
 void	runtime_schedinit(void);
@@ -229,6 +277,8 @@ G*	runtime_malg(int32, byte**, size_t*);
 void	runtime_minit(void);
 void	runtime_mallocinit(void);
 void	runtime_gosched(void);
+void	runtime_tsleep(int64);
+M*	runtime_newm(void);
 void	runtime_goexit(void);
 void	runtime_entersyscall(void) __asm__("libgo_syscall.syscall.entersyscall");
 void	runtime_exitsyscall(void) __asm__("libgo_syscall.syscall.exitsyscall");
@@ -341,3 +391,5 @@ void reflect_call(const struct __go_func_type *, const void *, _Bool, _Bool,
 #ifdef __rtems__
 void __wrap_rtems_task_variable_add(void **);
 #endif
+
+void	runtime_time_scan(void (*)(byte*, int64));

@@ -943,7 +943,8 @@ pph_stream_close (pph_stream *stream)
    in OB.  */
 
 static void
-pph_write_tree (struct output_block *ob, tree expr, bool ref_p ATTRIBUTE_UNUSED)
+pph_write_tree (struct output_block *ob, tree expr, bool ref_p ATTRIBUTE_UNUSED,
+		bool this_ref_p ATTRIBUTE_UNUSED)
 {
   pph_out_tree ((pph_stream *) ob->sdata, expr);
 }

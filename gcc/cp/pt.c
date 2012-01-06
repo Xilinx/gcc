@@ -5721,11 +5721,15 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
      to a null value, but otherwise still need to be of a specific form.  */
   if (cxx_dialect >= cxx0x)
     {
-      if (INTEGRAL_OR_ENUMERATION_TYPE_P (type))
+      if (TREE_CODE (expr) == PTRMEM_CST)
+	/* A PTRMEM_CST is already constant, and a valid template
+	   argument for a parameter of pointer to member type, we just want
+	   to leave it in that form rather than lower it to a
+	   CONSTRUCTOR.  */;
+      else if (INTEGRAL_OR_ENUMERATION_TYPE_P (type))
 	expr = maybe_constant_value (expr);
       else if (TYPE_PTR_P (type)
-	       || (TYPE_PTR_TO_MEMBER_P (type)
-		   && TREE_CODE (expr) != PTRMEM_CST))
+	       || TYPE_PTR_TO_MEMBER_P (type))
 	{
 	  tree folded = maybe_constant_value (expr);
 	  if (TYPE_PTR_P (type) ? integer_zerop (folded)
@@ -6442,8 +6446,16 @@ convert_template_argument (tree parm,
   if (requires_type && ! is_type && TREE_CODE (arg) == SCOPE_REF
       && TREE_CODE (TREE_OPERAND (arg, 0)) == TEMPLATE_TYPE_PARM)
     {
-      permerror (input_location, "to refer to a type member of a template parameter, "
-	         "use %<typename %E%>", orig_arg);
+      if (TREE_CODE (TREE_OPERAND (arg, 1)) == BIT_NOT_EXPR)
+	{
+	  if (complain & tf_error)
+	    error ("invalid use of destructor %qE as a type", orig_arg);
+	  return error_mark_node;
+	}
+
+      permerror (input_location,
+		 "to refer to a type member of a template parameter, "
+		 "use %<typename %E%>", orig_arg);
 
       orig_arg = make_typename_type (TREE_OPERAND (arg, 0),
 				     TREE_OPERAND (arg, 1),
@@ -9286,6 +9298,7 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
   int i, len = -1;
   tree result;
   htab_t saved_local_specializations = NULL;
+  bool need_local_specializations = false;
   int levels;
 
   gcc_assert (PACK_EXPANSION_P (t));
@@ -9319,7 +9332,7 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
        }
       if (TREE_CODE (parm_pack) == PARM_DECL)
 	{
-	  if (!cp_unevaluated_operand)
+	  if (at_function_scope_p ())
 	    arg_pack = retrieve_local_specialization (parm_pack);
 	  else
 	    {
@@ -9335,6 +9348,7 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
 		arg_pack = NULL_TREE;
 	      else
 		arg_pack = make_fnparm_pack (arg_pack);
+	      need_local_specializations = true;
 	    }
 	}
       else
@@ -9465,7 +9479,7 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
   if (len < 0)
     return error_mark_node;
 
-  if (cp_unevaluated_operand)
+  if (need_local_specializations)
     {
       /* We're in a late-specified return type, so create our own local
 	 specializations table; the current table is either NULL or (in the
@@ -13247,19 +13261,32 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 
         if (TRANSACTION_EXPR_IS_STMT (t))
           {
+	    tree body = TRANSACTION_EXPR_BODY (t);
+	    tree noex = NULL_TREE;
+	    if (TREE_CODE (body) == MUST_NOT_THROW_EXPR)
+	      {
+		noex = MUST_NOT_THROW_COND (body);
+		if (noex == NULL_TREE)
+		  noex = boolean_true_node;
+		body = TREE_OPERAND (body, 0);
+	      }
             stmt = begin_transaction_stmt (input_location, NULL, flags);
-            RECUR (TRANSACTION_EXPR_BODY (t));
-            finish_transaction_stmt (stmt, NULL, flags);
+            RECUR (body);
+            finish_transaction_stmt (stmt, NULL, flags, RECUR (noex));
           }
         else
           {
             stmt = build_transaction_expr (EXPR_LOCATION (t),
 					   RECUR (TRANSACTION_EXPR_BODY (t)),
-					   flags);
+					   flags, NULL_TREE);
             return stmt;
           }
       }
       break;
+
+    case MUST_NOT_THROW_EXPR:
+      return build_must_not_throw_expr (RECUR (TREE_OPERAND (t, 0)),
+					RECUR (MUST_NOT_THROW_COND (t)));
 
     case EXPR_PACK_EXPANSION:
       error ("invalid use of pack expansion expression");
@@ -13537,18 +13564,23 @@ tsubst_copy_and_build (tree t,
     case GT_EXPR:
     case MEMBER_REF:
     case DOTSTAR_EXPR:
-      return build_x_binary_op
-	(TREE_CODE (t),
-	 RECUR (TREE_OPERAND (t, 0)),
-	 (TREE_NO_WARNING (TREE_OPERAND (t, 0))
-	  ? ERROR_MARK
-	  : TREE_CODE (TREE_OPERAND (t, 0))),
-	 RECUR (TREE_OPERAND (t, 1)),
-	 (TREE_NO_WARNING (TREE_OPERAND (t, 1))
-	  ? ERROR_MARK
-	  : TREE_CODE (TREE_OPERAND (t, 1))),
-	 /*overload=*/NULL,
-	 complain);
+      {
+	tree r = build_x_binary_op
+	  (TREE_CODE (t),
+	   RECUR (TREE_OPERAND (t, 0)),
+	   (TREE_NO_WARNING (TREE_OPERAND (t, 0))
+	    ? ERROR_MARK
+	    : TREE_CODE (TREE_OPERAND (t, 0))),
+	   RECUR (TREE_OPERAND (t, 1)),
+	   (TREE_NO_WARNING (TREE_OPERAND (t, 1))
+	    ? ERROR_MARK
+	    : TREE_CODE (TREE_OPERAND (t, 1))),
+	   /*overload=*/NULL,
+	   complain);
+	if (EXPR_P (r) && TREE_NO_WARNING (t))
+	  TREE_NO_WARNING (r) = TREE_NO_WARNING (t);
+	return r;
+      }
 
     case SCOPE_REF:
       return tsubst_qualified_id (t, args, complain, in_decl, /*done=*/true,
@@ -14500,7 +14532,6 @@ instantiate_template_1 (tree tmpl, tree orig_args, tsubst_flags_t complain)
   tree fndecl;
   tree gen_tmpl;
   tree spec;
-  HOST_WIDE_INT saved_processing_template_decl;
 
   if (tmpl == error_mark_node)
     return error_mark_node;
@@ -14561,18 +14592,22 @@ instantiate_template_1 (tree tmpl, tree orig_args, tsubst_flags_t complain)
      deferring all checks until we have the FUNCTION_DECL.  */
   push_deferring_access_checks (dk_deferred);
 
-  /* Although PROCESSING_TEMPLATE_DECL may be true at this point
-     (because, for example, we have encountered a non-dependent
-     function call in the body of a template function and must now
-     determine which of several overloaded functions will be called),
-     within the instantiation itself we are not processing a
-     template.  */  
-  saved_processing_template_decl = processing_template_decl;
-  processing_template_decl = 0;
+  /* Instantiation of the function happens in the context of the function
+     template, not the context of the overload resolution we're doing.  */
+  push_to_top_level ();
+  if (DECL_CLASS_SCOPE_P (gen_tmpl))
+    {
+      tree ctx = tsubst (DECL_CONTEXT (gen_tmpl), targ_ptr,
+			 complain, gen_tmpl);
+      push_nested_class (ctx);
+    }
   /* Substitute template parameters to obtain the specialization.  */
   fndecl = tsubst (DECL_TEMPLATE_RESULT (gen_tmpl),
 		   targ_ptr, complain, gen_tmpl);
-  processing_template_decl = saved_processing_template_decl;
+  if (DECL_CLASS_SCOPE_P (gen_tmpl))
+    pop_nested_class ();
+  pop_from_top_level ();
+
   if (fndecl == error_mark_node)
     return error_mark_node;
 
@@ -16598,6 +16633,7 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict,
     case BOOLEAN_TYPE:
     case ENUMERAL_TYPE:
     case VOID_TYPE:
+    case NULLPTR_TYPE:
       if (TREE_CODE (arg) != TREE_CODE (parm))
 	return unify_type_mismatch (explain_p, parm, arg);
 

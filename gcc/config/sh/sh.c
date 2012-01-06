@@ -724,8 +724,15 @@ sh_option_override (void)
   else
     sh_divsi3_libfunc = "__sdivsi3";
   if (sh_branch_cost == -1)
-    sh_branch_cost
-      = TARGET_SH5 ? 1 : ! TARGET_SH2 || TARGET_HARD_SH4 ? 2 : 1;
+    {
+      sh_branch_cost = 1;
+
+      /*  The SH1 does not have delay slots, hence we get a pipeline stall
+	  at every branch.  The SH4 is superscalar, so the single delay slot
+	  is not sufficient to keep both pipelines filled.  */
+      if (! TARGET_SH2 || TARGET_HARD_SH4)
+	sh_branch_cost = 2;
+    }
 
   for (regno = 0; regno < FIRST_PSEUDO_REGISTER; regno++)
     if (! VALID_REGISTER_P (regno))
@@ -842,7 +849,7 @@ sh_option_override (void)
     sh_fix_range (sh_fixed_range_str);
 
   /* This target defaults to strict volatile bitfields.  */
-  if (flag_strict_volatile_bitfields < 0)
+  if (flag_strict_volatile_bitfields < 0 && abi_version_at_least(2))
     flag_strict_volatile_bitfields = 1;
 }
 

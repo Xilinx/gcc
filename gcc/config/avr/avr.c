@@ -164,6 +164,9 @@ static GTY(()) section *progmem_swtable_section;
    or to address space __pgm*.  */
 static GTY(()) section *progmem_section[6];
 
+/* Condition for insns/expanders from avr-dimode.md.  */
+bool avr_have_dimode = true;
+
 /* To track if code will use .bss and/or .data.  */
 bool avr_need_clear_bss_p = false;
 bool avr_need_copy_data_p = false;
@@ -289,32 +292,14 @@ bool avr_need_copy_data_p = false;
 #undef TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS
 #define TARGET_ADDR_SPACE_LEGITIMIZE_ADDRESS avr_addr_space_legitimize_address
 
+#undef  TARGET_PRINT_OPERAND
+#define TARGET_PRINT_OPERAND avr_print_operand
+#undef  TARGET_PRINT_OPERAND_ADDRESS
+#define TARGET_PRINT_OPERAND_ADDRESS avr_print_operand_address
+#undef  TARGET_PRINT_OPERAND_PUNCT_VALID_P
+#define TARGET_PRINT_OPERAND_PUNCT_VALID_P avr_print_operand_punct_valid_p
+
 
-
-/* Custom function to replace string prefix.
-
-   Return a ggc-allocated string with strlen (OLD_PREFIX) characters removed
-   from the start of OLD_STR and then prepended with NEW_PREFIX.  */
-
-static inline const char*
-avr_replace_prefix (const char *old_str,
-                    const char *old_prefix, const char *new_prefix)
-{
-  char *new_str;
-  size_t len = strlen (old_str) + strlen (new_prefix) - strlen (old_prefix);
-
-  gcc_assert (strlen (old_prefix) <= strlen (old_str));
-
-  /* Unfortunately, ggc_alloc_string returns a const char* and thus cannot be
-     used here.  */
-     
-  new_str = (char*) ggc_alloc_atomic (1 + len);
-
-  strcat (stpcpy (new_str, new_prefix), old_str + strlen (old_prefix));
-  
-  return (const char*) new_str;
-}
-
 
 /* Custom function to count number of set bits.  */
 
@@ -994,7 +979,7 @@ avr_prologue_setup_frame (HOST_WIDE_INT size, HARD_REG_SET set)
               /* The high byte (r29) does not change:
                  Prefer SUBI (1 cycle) over ABIW (2 cycles, same size).  */
 
-              my_fp = simplify_gen_subreg (QImode, fp, Pmode, 0);
+              my_fp = all_regs_rtx[FRAME_POINTER_REGNUM];
             }
 
           /************  Method 1: Adjust frame pointer  ************/
@@ -1292,7 +1277,7 @@ expand_epilogue (bool sibcall_p)
           /* The high byte (r29) does not change:
              Prefer SUBI (1 cycle) over SBIW (2 cycles).  */
                   
-          my_fp = simplify_gen_subreg (QImode, fp, Pmode, 0);
+          my_fp = all_regs_rtx[FRAME_POINTER_REGNUM];
         }
               
       /********** Method 1: Adjust fp register  **********/
@@ -1733,10 +1718,12 @@ cond_string (enum rtx_code code)
   return "";
 }
 
+
+/* Implement `TARGET_PRINT_OPERAND_ADDRESS'.  */
 /* Output ADDR to FILE as address.  */
 
-void
-print_operand_address (FILE *file, rtx addr)
+static void
+avr_print_operand_address (FILE *file, rtx addr)
 {
   switch (GET_CODE (addr))
     {
@@ -1791,11 +1778,21 @@ print_operand_address (FILE *file, rtx addr)
 }
 
 
+/* Implement `TARGET_PRINT_OPERAND_PUNCT_VALID_P'.  */
+
+static bool
+avr_print_operand_punct_valid_p (unsigned char code)
+{
+  return code == '~' || code == '!';
+}
+
+
+/* Implement `TARGET_PRINT_OPERAND'.  */
 /* Output X as assembler operand to file FILE.
    For a description of supported %-codes, see top of avr.md.  */
 
-void
-print_operand (FILE *file, rtx x, int code)
+static void
+avr_print_operand (FILE *file, rtx x, int code)
 {
   int abcd = 0;
 
@@ -1889,14 +1886,14 @@ print_operand (FILE *file, rtx x, int code)
 	}
       else if (code == 'i')
         {
-          print_operand (file, addr, 'i');
+          avr_print_operand (file, addr, 'i');
         }
       else if (code == 'o')
 	{
 	  if (GET_CODE (addr) != PLUS)
 	    fatal_insn ("bad address, not (reg+disp):", addr);
 
-	  print_operand (file, XEXP (addr, 1), 0);
+	  avr_print_operand (file, XEXP (addr, 1), 0);
 	}
       else if (code == 'p' || code == 'r')
         {
@@ -1904,21 +1901,21 @@ print_operand (FILE *file, rtx x, int code)
             fatal_insn ("bad address, not post_inc or pre_dec:", addr);
           
           if (code == 'p')
-            print_operand_address (file, XEXP (addr, 0));  /* X, Y, Z */
+            avr_print_operand_address (file, XEXP (addr, 0));  /* X, Y, Z */
           else
-            print_operand (file, XEXP (addr, 0), 0);  /* r26, r28, r30 */
+            avr_print_operand (file, XEXP (addr, 0), 0);  /* r26, r28, r30 */
         }
       else if (GET_CODE (addr) == PLUS)
 	{
-	  print_operand_address (file, XEXP (addr,0));
+	  avr_print_operand_address (file, XEXP (addr,0));
 	  if (REGNO (XEXP (addr, 0)) == REG_X)
 	    fatal_insn ("internal compiler error.  Bad address:"
 			,addr);
 	  fputc ('+', file);
-	  print_operand (file, XEXP (addr,1), code);
+	  avr_print_operand (file, XEXP (addr,1), code);
 	}
       else
-	print_operand_address (file, addr);
+	avr_print_operand_address (file, addr);
     }
   else if (code == 'i')
     {
@@ -1954,7 +1951,7 @@ print_operand (FILE *file, rtx x, int code)
   else if (code == 'k')
     fputs (cond_string (reverse_condition (GET_CODE (x))), file);
   else
-    print_operand_address (file, x);
+    avr_print_operand_address (file, x);
 }
 
 /* Update the condition code in the INSN.  */
@@ -1972,6 +1969,7 @@ notice_update_cc (rtx body ATTRIBUTE_UNUSED, rtx insn)
 
     case CC_OUT_PLUS:
     case CC_OUT_PLUS_NOCLOBBER:
+    case CC_LDI:
       {
         rtx *op = recog_data.operand;
         int len_dummy, icc;
@@ -1979,16 +1977,36 @@ notice_update_cc (rtx body ATTRIBUTE_UNUSED, rtx insn)
         /* Extract insn's operands.  */
         extract_constrain_insn_cached (insn);
 
-        if (CC_OUT_PLUS == cc)
-          avr_out_plus (op, &len_dummy, &icc);
-        else
-          avr_out_plus_noclobber (op, &len_dummy, &icc);
-        
-        cc = (enum attr_cc) icc;
-        
+        switch (cc)
+          {
+          default:
+            gcc_unreachable();
+            
+          case CC_OUT_PLUS:
+            avr_out_plus (op, &len_dummy, &icc);
+            cc = (enum attr_cc) icc;
+            break;
+            
+          case CC_OUT_PLUS_NOCLOBBER:
+            avr_out_plus_noclobber (op, &len_dummy, &icc);
+            cc = (enum attr_cc) icc;
+            break;
+
+          case CC_LDI:
+
+            cc = (op[1] == CONST0_RTX (GET_MODE (op[0]))
+                  && reg_overlap_mentioned_p (op[0], zero_reg_rtx))
+              /* Loading zero-reg with 0 uses CLI and thus clobbers cc0.  */
+              ? CC_CLOBBER
+              /* Any other "r,rL" combination does not alter cc0.  */
+              : CC_NONE;
+            
+            break;
+          } /* inner switch */
+
         break;
       }
-    }
+    } /* outer swicth */
 
   switch (cc)
     {
@@ -4072,14 +4090,17 @@ avr_out_compare (rtx insn, rtx *xop, int *plen)
   /* Value (0..0xff) held in clobber register xop[2] or -1 if unknown.  */
   int clobber_val = -1;
 
-  gcc_assert (REG_P (xreg)
-              && CONST_INT_P (xval));
+  gcc_assert (REG_P (xreg));
+  gcc_assert ((CONST_INT_P (xval) && n_bytes <= 4)
+              || (const_double_operand (xval, VOIDmode) && n_bytes == 8));
   
   if (plen)
     *plen = 0;
 
   /* Comparisons == +/-1 and != +/-1 can be done similar to camparing
-     against 0 by ORing the bytes.  This is one instruction shorter.  */
+     against 0 by ORing the bytes.  This is one instruction shorter.
+     Notice that DImode comparisons are always against reg:DI 18
+     and therefore don't use this.  */
 
   if (!test_hard_reg_class (LD_REGS, xreg)
       && compare_eq_p (insn)
@@ -4196,6 +4217,20 @@ avr_out_compare (rtx insn, rtx *xop, int *plen)
   return "";
 }
 
+
+/* Prepare operands of compare_const_di2 to be used with avr_out_compare.  */
+
+const char*
+avr_out_compare64 (rtx insn, rtx *op, int *plen)
+{
+  rtx xop[3];
+
+  xop[0] = gen_rtx_REG (DImode, 18);
+  xop[1] = op[0];
+  xop[2] = op[1];
+
+  return avr_out_compare (insn, xop, plen);
+}
 
 /* Output test instruction for HImode.  */
 
@@ -5183,7 +5218,7 @@ avr_out_ashrpsi3 (rtx insn, rtx *op, int *plen)
 
           /* fall through */
 
-        case 31:
+        case 23:
           return avr_asm_len ("lsl %C0"     CR_TAB
                               "sbc %A0,%A0" CR_TAB
                               "mov %B0,%A0" CR_TAB
@@ -5836,7 +5871,7 @@ avr_out_plus_1 (rtx *xop, int *plen, enum rtx_code code, int *pcc)
   *pcc = (MINUS == code) ? CC_SET_CZN : CC_CLOBBER;
 
   if (MINUS == code)
-    xval = gen_int_mode (-UINTVAL (xval), mode);
+    xval = simplify_unary_operation (NEG, mode, xval, mode);
 
   op[2] = xop[3];
 
@@ -6009,6 +6044,25 @@ avr_out_plus_noclobber (rtx *xop, int *plen, int *pcc)
   op[3] = NULL_RTX;
 
   return avr_out_plus (op, plen, pcc);
+}
+
+
+/* Prepare operands of adddi3_const_insn to be used with avr_out_plus_1.  */
+
+const char*
+avr_out_plus64 (rtx addend, int *plen)
+{
+  int cc_dummy;
+  rtx op[4];
+
+  op[0] = gen_rtx_REG (DImode, 18);
+  op[1] = op[0];
+  op[2] = addend;
+  op[3] = NULL_RTX;
+
+  avr_out_plus_1 (op, plen, MINUS, &cc_dummy);
+
+  return "";
 }
 
 /* Output bit operation (IOR, AND, XOR) with register XOP[0] and compile
@@ -6396,6 +6450,7 @@ adjust_insn_length (rtx insn, int len)
     case ADJUST_LEN_OUT_BITOP: avr_out_bitop (insn, op, &len); break;
       
     case ADJUST_LEN_OUT_PLUS: avr_out_plus (op, &len, NULL); break;
+    case ADJUST_LEN_PLUS64: avr_out_plus64 (op[0], &len); break;
     case ADJUST_LEN_OUT_PLUS_NOCLOBBER:
       avr_out_plus_noclobber (op, &len, NULL); break;
 
@@ -6412,6 +6467,7 @@ adjust_insn_length (rtx insn, int len)
     case ADJUST_LEN_TSTPSI: avr_out_tstpsi (insn, op, &len); break;
     case ADJUST_LEN_TSTSI: avr_out_tstsi (insn, op, &len); break;
     case ADJUST_LEN_COMPARE: avr_out_compare (insn, op, &len); break;
+    case ADJUST_LEN_COMPARE64: avr_out_compare64 (insn, op, &len); break;
 
     case ADJUST_LEN_LSHRQI: lshrqi3_out (insn, op, &len); break;
     case ADJUST_LEN_LSHRHI: lshrhi3_out (insn, op, &len); break;
@@ -7115,9 +7171,8 @@ avr_asm_function_rodata_section (tree decl)
 
           if (STR_PREFIX_P (name, old_prefix))
             {
-              const char *rname = avr_replace_prefix (name,
-                                                      old_prefix, new_prefix);
-
+              const char *rname = ACONCAT ((new_prefix,
+                                            name + strlen (old_prefix), NULL));
               flags &= ~SECTION_CODE;
               flags |= AVR_HAVE_JMP_CALL ? 0 : SECTION_CODE;
               
@@ -7142,15 +7197,16 @@ avr_asm_named_section (const char *name, unsigned int flags, tree decl)
       int segment = avr_addrspace[as].segment % avr_current_arch->n_segments;
       const char *old_prefix = ".rodata";
       const char *new_prefix = progmem_section_prefix[segment];
-      const char *sname = new_prefix;
       
       if (STR_PREFIX_P (name, old_prefix))
         {
-          sname = avr_replace_prefix (name, old_prefix, new_prefix);
+          const char *sname = ACONCAT ((new_prefix,
+                                        name + strlen (old_prefix), NULL));
+          default_elf_asm_named_section (sname, flags, decl);
+          return;
         }
 
-      default_elf_asm_named_section (sname, flags, decl);
-
+      default_elf_asm_named_section (new_prefix, flags, decl);
       return;
     }
   
@@ -7245,9 +7301,8 @@ avr_asm_select_section (tree decl, int reloc, unsigned HOST_WIDE_INT align)
 
           if (STR_PREFIX_P (name, old_prefix))
             {
-              const char *sname = avr_replace_prefix (name,
-                                                      old_prefix, new_prefix);
-
+              const char *sname = ACONCAT ((new_prefix,
+                                            name + strlen (old_prefix), NULL));
               return get_section (sname, sect->common.flags, sect->named.decl);
             }
         }
@@ -8370,7 +8425,9 @@ avr_compare_pattern (rtx insn)
   if (pattern
       && NONJUMP_INSN_P (insn)
       && SET_DEST (pattern) == cc0_rtx
-      && GET_CODE (SET_SRC (pattern)) == COMPARE)
+      && GET_CODE (SET_SRC (pattern)) == COMPARE
+      && DImode != GET_MODE (XEXP (SET_SRC (pattern), 0))
+      && DImode != GET_MODE (XEXP (SET_SRC (pattern), 1)))
     {
       return pattern;
     }
@@ -8883,9 +8940,9 @@ avr_regno_mode_code_ok_for_base_p (int regno,
 
    The effect on cc0 is as follows:
 
-   Load 0 to any register          : NONE
-   Load ld register with any value : NONE
-   Anything else:                  : CLOBBER  */
+   Load 0 to any register except ZERO_REG : NONE
+   Load ld register with any value        : NONE
+   Anything else:                         : CLOBBER  */
 
 static void
 output_reload_in_const (rtx *op, rtx clobber_reg, int *len, bool clear_p)
@@ -9000,7 +9057,9 @@ output_reload_in_const (rtx *op, rtx clobber_reg, int *len, bool clear_p)
       if (ival[n] == 0)
         {
           if (!clear_p)
-            avr_asm_len (ldreg_p ? "ldi %0,0" : "mov %0,__zero_reg__",
+            avr_asm_len (ldreg_p ? "ldi %0,0"
+                         : ZERO_REGNO == REGNO (xdest[n]) ? "clr %0"
+                         : "mov %0,__zero_reg__",
                          &xdest[n], len, 1);
           continue;
         }
@@ -9162,8 +9221,8 @@ output_reload_insisf (rtx *op, rtx clobber_reg, int *len)
         {
           /* Default needs 4 CLR instructions: clear register beforehand.  */
           
-          avr_asm_len ("clr %A0" CR_TAB
-                       "clr %B0" CR_TAB
+          avr_asm_len ("mov %A0,__zero_reg__" CR_TAB
+                       "mov %B0,__zero_reg__" CR_TAB
                        "movw %C0,%A0", &op[0], len, 3);
           
           output_reload_in_const (op, clobber_reg, len, true);

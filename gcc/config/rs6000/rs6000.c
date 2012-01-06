@@ -15456,12 +15456,13 @@ rs6000_assemble_integer (rtx x, unsigned int size, int aligned_p)
     {
       static int recurse = 0;
 
-      /* For -mrelocatable, we mark all addresses that need to be fixed up
-	 in the .fixup section.  */
+      /* For -mrelocatable, we mark all addresses that need to be fixed up in
+	 the .fixup section.  Since the TOC section is already relocated, we
+	 don't need to mark it here.  We used to skip the text section, but it
+	 should never be valid for relocated addresses to be placed in the text
+	 section.  */
       if (TARGET_RELOCATABLE
 	  && in_section != toc_section
-	  && in_section != text_section
-	  && !unlikely_text_section_p (in_section)
 	  && !recurse
 	  && GET_CODE (x) != CONST_INT
 	  && GET_CODE (x) != CONST_DOUBLE
@@ -19909,7 +19910,9 @@ rs6000_emit_prologue (void)
      used in this function, and do the corresponding magic in the
      epilogue.  */
 
-  if (TARGET_ALTIVEC && TARGET_ALTIVEC_VRSAVE
+  if (!WORLD_SAVE_P (info)
+      && TARGET_ALTIVEC
+      && TARGET_ALTIVEC_VRSAVE
       && info->vrsave_mask != 0)
     {
       rtx reg, mem, vrsave;
@@ -19925,15 +19928,12 @@ rs6000_emit_prologue (void)
       else
         emit_insn (gen_rtx_SET (VOIDmode, reg, vrsave));
 
-      if (!WORLD_SAVE_P (info))
-        {
-          /* Save VRSAVE.  */
-          offset = info->vrsave_save_offset + sp_offset;
-          mem = gen_frame_mem (SImode,
-                               gen_rtx_PLUS (Pmode, frame_reg_rtx,
-                                             GEN_INT (offset)));
-          insn = emit_move_insn (mem, reg);
-        }
+      /* Save VRSAVE.  */
+      offset = info->vrsave_save_offset + sp_offset;
+      mem = gen_frame_mem (SImode,
+			   gen_rtx_PLUS (Pmode, frame_reg_rtx, 
+					 GEN_INT (offset)));
+      insn = emit_move_insn (mem, reg);
 
       /* Include the registers in the mask.  */
       emit_insn (gen_iorsi3 (reg, reg, GEN_INT ((int) info->vrsave_mask)));
@@ -26519,7 +26519,7 @@ rs6000_expand_interleave (rtx target, rtx op0, rtx op1, bool highp)
   unsigned i, high, nelt = GET_MODE_NUNITS (vmode);
   rtx perm[16];
 
-  high = (highp == TARGET_BIG_ENDIAN ? 0 : nelt / 2);
+  high = (highp == BYTES_BIG_ENDIAN ? 0 : nelt / 2);
   for (i = 0; i < nelt / 2; i++)
     {
       perm[i * 2] = GEN_INT (i + high);
@@ -27138,7 +27138,7 @@ rs6000_inner_target_options (tree args, bool attr_p)
 		    if (strcmp (r, rs6000_opt_vars[i].name) == 0)
 		      {
 			size_t j = rs6000_opt_vars[i].global_offset;
-			((int *) &global_options)[j] = !invert;
+			*((int *) ((char *)&global_options + j)) = !invert;
 			error_p = false;
 			break;
 		      }

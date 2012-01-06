@@ -2,6 +2,7 @@ LIB1ASMSRC = avr/lib1funcs.S
 LIB1ASMFUNCS = \
 	_mulqi3 \
 	_mulhi3 \
+	_mulpsi3 _mulsqipsi3 \
 	_mulhisi3 \
 	_umulhisi3 \
 	_usmulhisi3 \
@@ -48,9 +49,9 @@ LIB1ASMFUNCS = \
 	_popcountqi2 \
 	_bswapsi2 \
 	_bswapdi2 \
-	_ashldi3 \
-	_ashrdi3 \
-	_lshrdi3 \
+	_ashldi3 _ashrdi3 _lshrdi3 _rotldi3 \
+	_adddi3 _adddi3_s8 _subdi3 \
+	_cmpdi2 _cmpdi2_s8 \
 	_fmul _fmuls _fmulsu
 
 LIB2FUNCS_EXCLUDE = \

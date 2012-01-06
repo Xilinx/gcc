@@ -88,8 +88,9 @@ type DB struct {
 	driver driver.Driver
 	dsn    string
 
-	mu       sync.Mutex
+	mu       sync.Mutex // protects freeConn and closed
 	freeConn []driver.Conn
+	closed   bool
 }
 
 // Open opens a database specified by its database driver name and a
@@ -106,6 +107,22 @@ func Open(driverName, dataSourceName string) (*DB, error) {
 	return &DB{driver: driver, dsn: dataSourceName}, nil
 }
 
+// Close closes the database, releasing any open resources.
+func (db *DB) Close() error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	var err error
+	for _, c := range db.freeConn {
+		err1 := c.Close()
+		if err1 != nil {
+			err = err1
+		}
+	}
+	db.freeConn = nil
+	db.closed = true
+	return err
+}
+
 func (db *DB) maxIdleConns() int {
 	const defaultMaxIdleConns = 2
 	// TODO(bradfitz): ask driver, if supported, for its default preference
@@ -116,6 +133,9 @@ func (db *DB) maxIdleConns() int {
 // conn returns a newly-opened or cached driver.Conn
 func (db *DB) conn() (driver.Conn, error) {
 	db.mu.Lock()
+	if db.closed {
+		return nil, errors.New("sql: database is closed")
+	}
 	if n := len(db.freeConn); n > 0 {
 		conn := db.freeConn[n-1]
 		db.freeConn = db.freeConn[:n-1]
@@ -140,11 +160,13 @@ func (db *DB) connIfFree(wanted driver.Conn) (conn driver.Conn, ok bool) {
 }
 
 func (db *DB) putConn(c driver.Conn) {
-	if n := len(db.freeConn); n < db.maxIdleConns() {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	if n := len(db.freeConn); !db.closed && n < db.maxIdleConns() {
 		db.freeConn = append(db.freeConn, c)
 		return
 	}
-	db.closeConn(c)
+	db.closeConn(c) // TODO(bradfitz): release lock before calling this?
 }
 
 func (db *DB) closeConn(c driver.Conn) {
@@ -180,17 +202,11 @@ func (db *DB) Prepare(query string) (*Stmt, error) {
 
 // Exec executes a query without returning any rows.
 func (db *DB) Exec(query string, args ...interface{}) (Result, error) {
-	// Optional fast path, if the driver implements driver.Execer.
-	if execer, ok := db.driver.(driver.Execer); ok {
-		resi, err := execer.Exec(query, args)
-		if err != nil {
-			return nil, err
-		}
-		return result{resi}, nil
+	sargs, err := subsetTypeArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
-	// If the driver does not implement driver.Execer, we need
-	// a connection.
 	ci, err := db.conn()
 	if err != nil {
 		return nil, err
@@ -198,11 +214,13 @@ func (db *DB) Exec(query string, args ...interface{}) (Result, error) {
 	defer db.putConn(ci)
 
 	if execer, ok := ci.(driver.Execer); ok {
-		resi, err := execer.Exec(query, args)
-		if err != nil {
-			return nil, err
+		resi, err := execer.Exec(query, sargs)
+		if err != driver.ErrSkip {
+			if err != nil {
+				return nil, err
+			}
+			return result{resi}, nil
 		}
-		return result{resi}, nil
 	}
 
 	sti, err := ci.Prepare(query)
@@ -210,7 +228,8 @@ func (db *DB) Exec(query string, args ...interface{}) (Result, error) {
 		return nil, err
 	}
 	defer sti.Close()
-	resi, err := sti.Exec(args)
+
+	resi, err := sti.Exec(sargs)
 	if err != nil {
 		return nil, err
 	}
@@ -325,25 +344,26 @@ func (tx *Tx) Rollback() error {
 	return tx.txi.Rollback()
 }
 
-// Prepare creates a prepared statement.
+// Prepare creates a prepared statement for use within a transaction.
 //
-// The statement is only valid within the scope of this transaction.
+// The returned statement operates within the transaction and can no longer
+// be used once the transaction has been committed or rolled back.
+//
+// To use an existing prepared statement on this transaction, see Tx.Stmt.
 func (tx *Tx) Prepare(query string) (*Stmt, error) {
-	// TODO(bradfitz): the restriction that the returned statement
-	// is only valid for this Transaction is lame and negates a
-	// lot of the benefit of prepared statements.  We could be
-	// more efficient here and either provide a method to take an
-	// existing Stmt (created on perhaps a different Conn), and
-	// re-create it on this Conn if necessary. Or, better: keep a
-	// map in DB of query string to Stmts, and have Stmt.Execute
-	// do the right thing and re-prepare if the Conn in use
-	// doesn't have that prepared statement.  But we'll want to
-	// avoid caching the statement in the case where we only call
-	// conn.Prepare implicitly (such as in db.Exec or tx.Exec),
-	// but the caller package can't be holding a reference to the
-	// returned statement.  Perhaps just looking at the reference
-	// count (by noting Stmt.Close) would be enough. We might also
-	// want a finalizer on Stmt to drop the reference count.
+	// TODO(bradfitz): We could be more efficient here and either
+	// provide a method to take an existing Stmt (created on
+	// perhaps a different Conn), and re-create it on this Conn if
+	// necessary. Or, better: keep a map in DB of query string to
+	// Stmts, and have Stmt.Execute do the right thing and
+	// re-prepare if the Conn in use doesn't have that prepared
+	// statement.  But we'll want to avoid caching the statement
+	// in the case where we only call conn.Prepare implicitly
+	// (such as in db.Exec or tx.Exec), but the caller package
+	// can't be holding a reference to the returned statement.
+	// Perhaps just looking at the reference count (by noting
+	// Stmt.Close) would be enough. We might also want a finalizer
+	// on Stmt to drop the reference count.
 	ci, err := tx.grabConn()
 	if err != nil {
 		return nil, err
@@ -362,6 +382,39 @@ func (tx *Tx) Prepare(query string) (*Stmt, error) {
 		query: query,
 	}
 	return stmt, nil
+}
+
+// Stmt returns a transaction-specific prepared statement from
+// an existing statement.
+//
+// Example:
+//  updateMoney, err := db.Prepare("UPDATE balance SET money=money+? WHERE id=?")
+//  ...
+//  tx, err := db.Begin()
+//  ...
+//  res, err := tx.Stmt(updateMoney).Exec(123.45, 98293203)
+func (tx *Tx) Stmt(stmt *Stmt) *Stmt {
+	// TODO(bradfitz): optimize this. Currently this re-prepares
+	// each time.  This is fine for now to illustrate the API but
+	// we should really cache already-prepared statements
+	// per-Conn. See also the big comment in Tx.Prepare.
+
+	if tx.db != stmt.db {
+		return &Stmt{stickyErr: errors.New("sql: Tx.Stmt: statement from different database used")}
+	}
+	ci, err := tx.grabConn()
+	if err != nil {
+		return &Stmt{stickyErr: err}
+	}
+	defer tx.releaseConn()
+	si, err := ci.Prepare(stmt.query)
+	return &Stmt{
+		db:        tx.db,
+		tx:        tx,
+		txsi:      si,
+		query:     stmt.query,
+		stickyErr: err,
+	}
 }
 
 // Exec executes a query that doesn't return rows.
@@ -386,7 +439,13 @@ func (tx *Tx) Exec(query string, args ...interface{}) (Result, error) {
 		return nil, err
 	}
 	defer sti.Close()
-	resi, err := sti.Exec(args)
+
+	sargs, err := subsetTypeArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
+	resi, err := sti.Exec(sargs)
 	if err != nil {
 		return nil, err
 	}
@@ -423,8 +482,9 @@ type connStmt struct {
 // Stmt is a prepared statement. Stmt is safe for concurrent use by multiple goroutines.
 type Stmt struct {
 	// Immutable:
-	db    *DB    // where we came from
-	query string // that created the Sttm
+	db        *DB    // where we came from
+	query     string // that created the Stmt
+	stickyErr error  // if non-nil, this error is returned for all operations
 
 	// If in a transaction, else both nil:
 	tx   *Tx
@@ -449,7 +509,10 @@ func (s *Stmt) Exec(args ...interface{}) (Result, error) {
 	}
 	defer releaseConn()
 
-	if want := si.NumInput(); len(args) != want {
+	// -1 means the driver doesn't know how to count the number of
+	// placeholders, so we won't sanity check input here and instead let the
+	// driver deal with errors.
+	if want := si.NumInput(); want != -1 && len(args) != want {
 		return nil, fmt.Errorf("db: expected %d arguments, got %d", want, len(args))
 	}
 
@@ -485,6 +548,9 @@ func (s *Stmt) Exec(args ...interface{}) (Result, error) {
 // statement, a function to call to release the connection, and a
 // statement bound to that connection.
 func (s *Stmt) connStmt() (ci driver.Conn, releaseConn func(), si driver.Stmt, err error) {
+	if s.stickyErr != nil {
+		return nil, nil, nil, s.stickyErr
+	}
 	s.mu.Lock()
 	if s.closed {
 		s.mu.Unlock()
@@ -545,10 +611,18 @@ func (s *Stmt) Query(args ...interface{}) (*Rows, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(args) != si.NumInput() {
+
+	// -1 means the driver doesn't know how to count the number of
+	// placeholders, so we won't sanity check input here and instead let the
+	// driver deal with errors.
+	if want := si.NumInput(); want != -1 && len(args) != want {
 		return nil, fmt.Errorf("db: statement expects %d inputs; got %d", si.NumInput(), len(args))
 	}
-	rowsi, err := si.Query(args)
+	sargs, err := subsetTypeArgs(args)
+	if err != nil {
+		return nil, err
+	}
+	rowsi, err := si.Query(sargs)
 	if err != nil {
 		s.db.putConn(ci)
 		return nil, err
@@ -585,6 +659,9 @@ func (s *Stmt) QueryRow(args ...interface{}) *Row {
 
 // Close closes the statement.
 func (s *Stmt) Close() error {
+	if s.stickyErr != nil {
+		return s.stickyErr
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed {

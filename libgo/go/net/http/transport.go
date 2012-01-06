@@ -504,7 +504,7 @@ func (pc *persistConn) expectingResponse() bool {
 var remoteSideClosedFunc func(error) bool // or nil to use default
 
 func remoteSideClosed(err error) bool {
-	if err == io.EOF || err == os.EINVAL {
+	if err == io.EOF {
 		return true
 	}
 	if remoteSideClosedFunc != nil {
@@ -519,17 +519,11 @@ func (pc *persistConn) readLoop() {
 
 	for alive {
 		pb, err := pc.br.Peek(1)
-		if err != nil {
-			if remoteSideClosed(err) && !pc.expectingResponse() {
-				// Remote side closed on us.  (We probably hit their
-				// max idle timeout)
-				pc.close()
-				return
-			}
-		}
 		if !pc.expectingResponse() {
-			log.Printf("Unsolicited response received on idle HTTP channel starting with %q; err=%v",
-				string(pb), err)
+			if len(pb) > 0 {
+				log.Printf("Unsolicited response received on idle HTTP channel starting with %q; err=%v",
+					string(pb), err)
+			}
 			pc.close()
 			return
 		}

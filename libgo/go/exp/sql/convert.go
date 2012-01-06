@@ -14,6 +14,21 @@ import (
 	"strconv"
 )
 
+// subsetTypeArgs takes a slice of arguments from callers of the sql
+// package and converts them into a slice of the driver package's
+// "subset types".
+func subsetTypeArgs(args []interface{}) ([]interface{}, error) {
+	out := make([]interface{}, len(args))
+	for n, arg := range args {
+		var err error
+		out[n], err = driver.DefaultParameterConverter.ConvertValue(arg)
+		if err != nil {
+			return nil, fmt.Errorf("sql: converting argument #%d's type: %v", n+1, err)
+		}
+	}
+	return out, nil
+}
+
 // convertAssign copies to dest the value in src, converting it if possible.
 // An error is returned if the copy would result in loss of information.
 // dest should be a pointer type.
@@ -80,7 +95,7 @@ func convertAssign(dest, src interface{}) error {
 	switch dv.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		s := asString(src)
-		i64, err := strconv.Atoi64(s)
+		i64, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
 			return fmt.Errorf("converting string %q to a %s: %v", s, dv.Kind(), err)
 		}
@@ -91,7 +106,7 @@ func convertAssign(dest, src interface{}) error {
 		return nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		s := asString(src)
-		u64, err := strconv.Atoui64(s)
+		u64, err := strconv.ParseUint(s, 10, 64)
 		if err != nil {
 			return fmt.Errorf("converting string %q to a %s: %v", s, dv.Kind(), err)
 		}
@@ -102,7 +117,7 @@ func convertAssign(dest, src interface{}) error {
 		return nil
 	case reflect.Float32, reflect.Float64:
 		s := asString(src)
-		f64, err := strconv.Atof64(s)
+		f64, err := strconv.ParseFloat(s, 64)
 		if err != nil {
 			return fmt.Errorf("converting string %q to a %s: %v", s, dv.Kind(), err)
 		}

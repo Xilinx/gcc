@@ -82,34 +82,18 @@ func headerEq(a, b Header) bool {
 func TestDateParsing(t *testing.T) {
 	tests := []struct {
 		dateStr string
-		exp     *time.Time
+		exp     time.Time
 	}{
 		// RFC 5322, Appendix A.1.1
 		{
 			"Fri, 21 Nov 1997 09:55:06 -0600",
-			&time.Time{
-				Year:       1997,
-				Month:      11,
-				Day:        21,
-				Hour:       9,
-				Minute:     55,
-				Second:     6,
-				ZoneOffset: -6 * 60 * 60,
-			},
+			time.Date(1997, 11, 21, 9, 55, 6, 0, time.FixedZone("", -6*60*60)),
 		},
 		// RFC5322, Appendix A.6.2
 		// Obsolete date.
 		{
 			"21 Nov 97 09:55:06 GMT",
-			&time.Time{
-				Year:   1997,
-				Month:  11,
-				Day:    21,
-				Hour:   9,
-				Minute: 55,
-				Second: 6,
-				Zone:   "GMT",
-			},
+			time.Date(1997, 11, 21, 9, 55, 6, 0, time.FixedZone("GMT", 0)),
 		},
 	}
 	for _, test := range tests {
@@ -121,7 +105,7 @@ func TestDateParsing(t *testing.T) {
 			t.Errorf("Failed parsing %q: %v", test.dateStr, err)
 			continue
 		}
-		if !reflect.DeepEqual(date, test.exp) {
+		if !date.Equal(test.exp) {
 			t.Errorf("Parse of %q: got %+v, want %+v", test.dateStr, date, test.exp)
 		}
 	}
@@ -135,14 +119,14 @@ func TestAddressParsing(t *testing.T) {
 		// Bare address
 		{
 			`jdoe@machine.example`,
-			[]*Address{&Address{
+			[]*Address{{
 				Address: "jdoe@machine.example",
 			}},
 		},
 		// RFC 5322, Appendix A.1.1
 		{
 			`John Doe <jdoe@machine.example>`,
-			[]*Address{&Address{
+			[]*Address{{
 				Name:    "John Doe",
 				Address: "jdoe@machine.example",
 			}},
@@ -150,7 +134,7 @@ func TestAddressParsing(t *testing.T) {
 		// RFC 5322, Appendix A.1.2
 		{
 			`"Joe Q. Public" <john.q.public@example.com>`,
-			[]*Address{&Address{
+			[]*Address{{
 				Name:    "Joe Q. Public",
 				Address: "john.q.public@example.com",
 			}},
@@ -158,14 +142,14 @@ func TestAddressParsing(t *testing.T) {
 		{
 			`Mary Smith <mary@x.test>, jdoe@example.org, Who? <one@y.test>`,
 			[]*Address{
-				&Address{
+				{
 					Name:    "Mary Smith",
 					Address: "mary@x.test",
 				},
-				&Address{
+				{
 					Address: "jdoe@example.org",
 				},
-				&Address{
+				{
 					Name:    "Who?",
 					Address: "one@y.test",
 				},
@@ -174,10 +158,10 @@ func TestAddressParsing(t *testing.T) {
 		{
 			`<boss@nil.test>, "Giant; \"Big\" Box" <sysservices@example.net>`,
 			[]*Address{
-				&Address{
+				{
 					Address: "boss@nil.test",
 				},
-				&Address{
+				{
 					Name:    `Giant; "Big" Box`,
 					Address: "sysservices@example.net",
 				},
@@ -190,7 +174,7 @@ func TestAddressParsing(t *testing.T) {
 		{
 			`=?iso-8859-1?q?J=F6rg_Doe?= <joerg@example.com>`,
 			[]*Address{
-				&Address{
+				{
 					Name:    `Jörg Doe`,
 					Address: "joerg@example.com",
 				},
@@ -200,7 +184,7 @@ func TestAddressParsing(t *testing.T) {
 		{
 			`=?utf-8?q?J=C3=B6rg_Doe?= <joerg@example.com>`,
 			[]*Address{
-				&Address{
+				{
 					Name:    `Jörg Doe`,
 					Address: "joerg@example.com",
 				},
@@ -210,7 +194,7 @@ func TestAddressParsing(t *testing.T) {
 		{
 			`=?ISO-8859-1?Q?Andr=E9?= Pirard <PIRARD@vm1.ulg.ac.be>`,
 			[]*Address{
-				&Address{
+				{
 					Name:    `André Pirard`,
 					Address: "PIRARD@vm1.ulg.ac.be",
 				},
@@ -220,7 +204,7 @@ func TestAddressParsing(t *testing.T) {
 		{
 			`=?ISO-8859-1?B?SvZyZw==?= <joerg@example.com>`,
 			[]*Address{
-				&Address{
+				{
 					Name:    `Jörg`,
 					Address: "joerg@example.com",
 				},
@@ -230,7 +214,7 @@ func TestAddressParsing(t *testing.T) {
 		{
 			`=?UTF-8?B?SsO2cmc=?= <joerg@example.com>`,
 			[]*Address{
-				&Address{
+				{
 					Name:    `Jörg`,
 					Address: "joerg@example.com",
 				},

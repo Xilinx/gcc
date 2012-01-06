@@ -56,6 +56,7 @@ with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch7;  use Sem_Ch7;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch13; use Sem_Ch13;
+with Sem_Dim;  use Sem_Dim;
 with Sem_Disp; use Sem_Disp;
 with Sem_Dist; use Sem_Dist;
 with Sem_Elim; use Sem_Elim;
@@ -2036,6 +2037,8 @@ package body Sem_Ch3 is
       if Has_Aspects (N) then
          Analyze_Aspect_Specifications (N, Id);
       end if;
+
+      Analyze_Dimension (N);
    end Analyze_Component_Declaration;
 
    --------------------------
@@ -3773,6 +3776,8 @@ package body Sem_Ch3 is
       if Has_Aspects (N) then
          Analyze_Aspect_Specifications (N, Id);
       end if;
+
+      Analyze_Dimension (N);
    end Analyze_Object_Declaration;
 
    ---------------------------
@@ -4571,6 +4576,8 @@ package body Sem_Ch3 is
       if Has_Aspects (N) then
          Analyze_Aspect_Specifications (N, Id);
       end if;
+
+      Analyze_Dimension (N);
    end Analyze_Subtype_Declaration;
 
    --------------------------------
@@ -9584,7 +9591,8 @@ package body Sem_Ch3 is
                May_Need_Implicit_Body (E);
             end if;
 
-         --  Comment needed here for Is_Generic_Type test ???
+         --  A formal incomplete type (Ada 2012) does not require a completion;
+         --  other incomplete type declarations do.
 
          elsif Ekind (E) = E_Incomplete_Type
            and then No (Underlying_Type (E))
@@ -9631,6 +9639,40 @@ package body Sem_Ch3 is
          Next_Entity (E);
       end loop;
    end Check_Completion;
+
+   ------------------------------------
+   -- Check_CPP_Type_Has_No_Defaults --
+   ------------------------------------
+
+   procedure Check_CPP_Type_Has_No_Defaults (T : Entity_Id) is
+      Tdef  : constant Node_Id := Type_Definition (Declaration_Node (T));
+      Clist : Node_Id;
+      Comp  : Node_Id;
+
+   begin
+      --  Obtain the component list
+
+      if Nkind (Tdef) = N_Record_Definition then
+         Clist := Component_List (Tdef);
+      else pragma Assert (Nkind (Tdef) = N_Derived_Type_Definition);
+         Clist := Component_List (Record_Extension_Part (Tdef));
+      end if;
+
+      --  Check all components to ensure no default expressions
+
+      if Present (Clist) then
+         Comp := First (Component_Items (Clist));
+         while Present (Comp) loop
+            if Present (Expression (Comp)) then
+               Error_Msg_N
+                 ("component of imported 'C'P'P type cannot have "
+                  & "default expression", Expression (Comp));
+            end if;
+
+            Next (Comp);
+         end loop;
+      end if;
+   end Check_CPP_Type_Has_No_Defaults;
 
    ----------------------------
    -- Check_Delta_Expression --
@@ -15291,9 +15333,22 @@ package body Sem_Ch3 is
          Spec : constant Entity_Id := Real_Range_Specification (Def);
 
       begin
+         --  Check specified "digits" constraint
+
          if Digs_Val > Digits_Value (E) then
             return False;
          end if;
+
+         --  Avoid types not matching pragma Float_Representation, if present
+
+         if (Opt.Float_Format = 'I' and then Float_Rep (E) /= IEEE_Binary)
+              or else
+            (Opt.Float_Format = 'V' and then Float_Rep (E) /= VAX_Native)
+         then
+            return False;
+         end if;
+
+         --  Check for matching range, if specified
 
          if Present (Spec) then
             if Expr_Value_R (Type_Low_Bound (E)) >
@@ -18086,6 +18141,11 @@ package body Sem_Ch3 is
       if Is_CPP_Class (Priv_T) then
          Set_Is_CPP_Class (Full_T);
          Set_Convention   (Full_T, Convention_CPP);
+
+         --  Check that components of imported CPP types do not have default
+         --  expressions.
+
+         Check_CPP_Type_Has_No_Defaults (Full_T);
       end if;
 
       --  If the private view has user specified stream attributes, then so has

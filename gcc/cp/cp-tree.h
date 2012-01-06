@@ -74,6 +74,7 @@ c-common.h, not after.
       DECL_OVERRIDE_P (in FUNCTION_DECL)
       IMPLICIT_CONV_EXPR_DIRECT_INIT (in IMPLICIT_CONV_EXPR)
       TRANSACTION_EXPR_IS_STMT (in TRANSACTION_EXPR)
+      CONVERT_EXPR_VBASE_PATH (in CONVERT_EXPR)
    1: IDENTIFIER_VIRTUAL_P (in IDENTIFIER_NODE)
       TI_PENDING_TEMPLATE_FLAG.
       TEMPLATE_PARMS_FOR_INLINE.
@@ -130,6 +131,7 @@ c-common.h, not after.
       DECL_TEMPLATE_INSTANTIATED (in a VAR_DECL or a FUNCTION_DECL)
       DECL_MEMBER_TEMPLATE_P (in TEMPLATE_DECL)
       FUNCTION_PARAMETER_PACK_P (in PARM_DECL)
+      USING_DECL_TYPENAME_P (in USING_DECL)
    2: DECL_THIS_EXTERN (in VAR_DECL or FUNCTION_DECL).
       DECL_IMPLICIT_TYPEDEF_P (in a TYPE_DECL)
    3: DECL_IN_AGGR_P.
@@ -586,6 +588,7 @@ typedef enum cp_trait_kind
   CPTK_IS_CONVERTIBLE_TO,
   CPTK_IS_EMPTY,
   CPTK_IS_ENUM,
+  CPTK_IS_FINAL,
   CPTK_IS_LITERAL_TYPE,
   CPTK_IS_POD,
   CPTK_IS_POLYMORPHIC,
@@ -2525,6 +2528,9 @@ extern void decl_shadowed_for_var_insert (tree, tree);
 /* The decls named by a using decl.  */
 #define USING_DECL_DECLS(NODE) DECL_INITIAL (USING_DECL_CHECK (NODE))
 
+/* Non zero if the using decl refers to a dependent type.  */
+#define USING_DECL_TYPENAME_P(NODE) DECL_LANG_FLAG_1 (USING_DECL_CHECK (NODE))
+
 /* In a VAR_DECL, true if we have a shadowed local variable
    in the shadowed var table for this VAR_DECL.  */
 #define DECL_HAS_SHADOWED_FOR_VAR_P(NODE) \
@@ -3019,6 +3025,11 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
 /* Indicates that a VEC_INIT_EXPR is expressing value-initialization.  */
 #define VEC_INIT_EXPR_VALUE_INIT(NODE) \
   TREE_LANG_FLAG_1 (VEC_INIT_EXPR_CHECK (NODE))
+
+/* The condition under which this MUST_NOT_THROW_EXPR actually blocks
+   exceptions.  NULL_TREE means 'true'.  */
+#define MUST_NOT_THROW_COND(NODE) \
+  TREE_OPERAND (MUST_NOT_THROW_EXPR_CHECK (NODE), 1)
 
 /* The TYPE_MAIN_DECL for a class template type is a TYPE_DECL, not a
    TEMPLATE_DECL.  This macro determines whether or not a given class
@@ -4005,6 +4016,11 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
   (TREE_CODE (EXPR) == TARGET_EXPR && TREE_LANG_FLAG_2 (EXPR)		\
    && same_type_ignoring_top_level_qualifiers_p (TYPE, TREE_TYPE (EXPR)))
 
+/* True if this CONVERT_EXPR is for a conversion to virtual base in
+   an NSDMI, and should be re-evaluated when used in a constructor.  */
+#define CONVERT_EXPR_VBASE_PATH(NODE) \
+  TREE_LANG_FLAG_0 (CONVERT_EXPR_CHECK (NODE))
+
 /* An enumeration of the kind of tags that C++ accepts.  */
 enum tag_types {
   none_type = 0, /* Not a tag type.  */
@@ -4380,11 +4396,10 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
 #define LOOKUP_PREFER_RVALUE (LOOKUP_HIDDEN << 1)
 /* We're inside an init-list, so narrowing conversions are ill-formed.  */
 #define LOOKUP_NO_NARROWING (LOOKUP_PREFER_RVALUE << 1)
-/* Avoid user-defined conversions for the first parameter of a copy
-   constructor (or move constructor).  */
-#define LOOKUP_NO_COPY_CTOR_CONVERSION (LOOKUP_NO_NARROWING << 1)
+/* We're looking up a constructor for list-initialization.  */
+#define LOOKUP_LIST_INIT_CTOR (LOOKUP_NO_NARROWING << 1)
 /* This is the first parameter of a copy constructor.  */
-#define LOOKUP_COPY_PARM (LOOKUP_NO_COPY_CTOR_CONVERSION << 1)
+#define LOOKUP_COPY_PARM (LOOKUP_LIST_INIT_CTOR << 1)
 /* We only want to consider list constructors.  */
 #define LOOKUP_LIST_ONLY (LOOKUP_COPY_PARM << 1)
 /* Return after determining which function to call and checking access.
@@ -5157,6 +5172,7 @@ extern bool type_noexcept_p			(const_tree);
 extern bool type_throw_all_p			(const_tree);
 extern tree build_noexcept_spec			(tree, int);
 extern void choose_personality_routine		(enum languages);
+extern tree build_must_not_throw_expr		(tree,tree);
 extern tree eh_type_info			(tree);
 extern tree begin_eh_spec_block			(void);
 extern void finish_eh_spec_block		(tree, tree);
@@ -5590,8 +5606,8 @@ extern void finish_omp_barrier			(void);
 extern void finish_omp_flush			(void);
 extern void finish_omp_taskwait			(void);
 extern tree begin_transaction_stmt		(location_t, tree *, int);
-extern void finish_transaction_stmt		(tree, tree, int);
-extern tree build_transaction_expr		(location_t, tree, int);
+extern void finish_transaction_stmt		(tree, tree, int, tree);
+extern tree build_transaction_expr		(location_t, tree, int, tree);
 extern void finish_omp_taskyield		(void);
 extern bool cxx_omp_create_clause_info		(tree, tree, bool, bool, bool);
 extern tree baselink_for_fns                    (tree);

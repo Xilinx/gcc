@@ -227,7 +227,7 @@ func (d *decodeState) value(v reflect.Value) {
 		// d.scan thinks we're still at the beginning of the item.
 		// Feed in an empty string - the shortest, simplest value -
 		// so that it knows we got to the end of the value.
-		if d.scan.step == stateRedo {
+		if d.scan.redo {
 			panic("redo")
 		}
 		d.scan.step(&d.scan, '"')
@@ -381,6 +381,7 @@ func (d *decodeState) array(v reflect.Value) {
 			d.error(errPhase)
 		}
 	}
+
 	if i < av.Len() {
 		if !sv.IsValid() {
 			// Array.  Zero the rest.
@@ -391,6 +392,9 @@ func (d *decodeState) array(v reflect.Value) {
 		} else {
 			sv.SetLen(i)
 		}
+	}
+	if i == 0 && av.Kind() == reflect.Slice && sv.IsNil() {
+		sv.Set(reflect.MakeSlice(sv.Type(), 0, 0))
 	}
 }
 
@@ -638,7 +642,7 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value) {
 		default:
 			d.error(&UnmarshalTypeError{"number", v.Type()})
 		case reflect.Interface:
-			n, err := strconv.Atof64(s)
+			n, err := strconv.ParseFloat(s, 64)
 			if err != nil {
 				d.saveError(&UnmarshalTypeError{"number " + s, v.Type()})
 				break
@@ -646,7 +650,7 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value) {
 			v.Set(reflect.ValueOf(n))
 
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			n, err := strconv.Atoi64(s)
+			n, err := strconv.ParseInt(s, 10, 64)
 			if err != nil || v.OverflowInt(n) {
 				d.saveError(&UnmarshalTypeError{"number " + s, v.Type()})
 				break
@@ -654,7 +658,7 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value) {
 			v.SetInt(n)
 
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-			n, err := strconv.Atoui64(s)
+			n, err := strconv.ParseUint(s, 10, 64)
 			if err != nil || v.OverflowUint(n) {
 				d.saveError(&UnmarshalTypeError{"number " + s, v.Type()})
 				break
@@ -662,7 +666,7 @@ func (d *decodeState) literalStore(item []byte, v reflect.Value) {
 			v.SetUint(n)
 
 		case reflect.Float32, reflect.Float64:
-			n, err := strconv.AtofN(s, v.Type().Bits())
+			n, err := strconv.ParseFloat(s, v.Type().Bits())
 			if err != nil || v.OverflowFloat(n) {
 				d.saveError(&UnmarshalTypeError{"number " + s, v.Type()})
 				break
@@ -794,7 +798,7 @@ func (d *decodeState) literalInterface() interface{} {
 		if c != '-' && (c < '0' || c > '9') {
 			d.error(errPhase)
 		}
-		n, err := strconv.Atof64(string(item))
+		n, err := strconv.ParseFloat(string(item), 64)
 		if err != nil {
 			d.saveError(&UnmarshalTypeError{"number " + string(item), reflect.TypeOf(0.0)})
 		}
@@ -809,7 +813,7 @@ func getu4(s []byte) rune {
 	if len(s) < 6 || s[0] != '\\' || s[1] != 'u' {
 		return -1
 	}
-	r, err := strconv.Btoui64(string(s[2:6]), 16)
+	r, err := strconv.ParseUint(string(s[2:6]), 16, 64)
 	if err != nil {
 		return -1
 	}

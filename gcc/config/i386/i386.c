@@ -3449,8 +3449,6 @@ ix86_option_override_internal (bool main_args_p)
      in case they weren't overwritten by command line options.  */
   if (TARGET_64BIT)
     {
-      if (optimize > 1 && !global_options_set.x_flag_zee)
-        flag_zee = 1;
       if (optimize >= 1 && !global_options_set.x_flag_omit_frame_pointer)
 	flag_omit_frame_pointer = !USE_X86_64_FRAME_POINTER;
       if (flag_asynchronous_unwind_tables == 2)
@@ -19433,6 +19431,45 @@ ix86_expand_int_vcond (rtx operands[])
 
   cop0 = operands[4];
   cop1 = operands[5];
+
+  /* Try to optimize x < 0 ? -1 : 0 into (signed) x >> 31
+     and x < 0 ? 1 : 0 into (unsigned) x >> 31.  */
+  if ((code == LT || code == GE)
+      && data_mode == mode
+      && cop1 == CONST0_RTX (mode)
+      && operands[1 + (code == LT)] == CONST0_RTX (data_mode)
+      && GET_MODE_SIZE (GET_MODE_INNER (data_mode)) > 1
+      && GET_MODE_SIZE (GET_MODE_INNER (data_mode)) <= 8
+      && (GET_MODE_SIZE (data_mode) == 16
+	  || (TARGET_AVX2 && GET_MODE_SIZE (data_mode) == 32)))
+    {
+      rtx negop = operands[2 - (code == LT)];
+      int shift = GET_MODE_BITSIZE (GET_MODE_INNER (data_mode)) - 1;
+      if (negop == CONST1_RTX (data_mode))
+	{
+	  rtx res = expand_simple_binop (mode, LSHIFTRT, cop0, GEN_INT (shift),
+					 operands[0], 1, OPTAB_DIRECT);
+	  if (res != operands[0])
+	    emit_move_insn (operands[0], res);
+	  return true;
+	}
+      else if (GET_MODE_INNER (data_mode) != DImode
+	       && vector_all_ones_operand (negop, data_mode))
+	{
+	  rtx res = expand_simple_binop (mode, ASHIFTRT, cop0, GEN_INT (shift),
+					 operands[0], 0, OPTAB_DIRECT);
+	  if (res != operands[0])
+	    emit_move_insn (operands[0], res);
+	  return true;
+	}
+    }
+
+  if (!nonimmediate_operand (cop1, mode))
+    cop1 = force_reg (mode, cop1);
+  if (!general_operand (operands[1], data_mode))
+    operands[1] = force_reg (data_mode, operands[1]);
+  if (!general_operand (operands[2], data_mode))
+    operands[2] = force_reg (data_mode, operands[2]);
 
   /* XOP supports all of the comparisons on all 128-bit vector int types.  */
   if (TARGET_XOP
@@ -35984,6 +36021,8 @@ expand_vec_perm_palignr (struct expand_vec_perm_d *d)
   return ok;
 }
 
+static bool expand_vec_perm_interleave3 (struct expand_vec_perm_d *d);
+
 /* A subroutine of ix86_expand_vec_perm_builtin_1.  Try to simplify
    a two vector permutation into a single vector permutation by using
    an interleave operation to merge the vectors.  */
@@ -36010,6 +36049,17 @@ expand_vec_perm_interleave2 (struct expand_vec_perm_d *d)
       /* For 32-byte modes allow even d->op0 == d->op1.
 	 The lack of cross-lane shuffling in some instructions
 	 might prevent a single insn shuffle.  */
+      dfinal = *d;
+      dfinal.testing_p = true;
+      /* If expand_vec_perm_interleave3 can expand this into
+	 a 3 insn sequence, give up and let it be expanded as
+	 3 insn sequence.  While that is one insn longer,
+	 it doesn't need a memory operand and in the common
+	 case that both interleave low and high permutations
+	 with the same operands are adjacent needs 4 insns
+	 for both after CSE.  */
+      if (expand_vec_perm_interleave3 (&dfinal))
+	return false;
     }
   else
     return false;
@@ -36849,18 +36899,23 @@ expand_vec_perm_broadcast_1 (struct expand_vec_perm_d *d)
 	 stopping once we have promoted to V4SImode and then use pshufd.  */
       do
 	{
-	  optab otab = vec_interleave_low_optab;
+	  rtx dest;
+	  rtx (*gen) (rtx, rtx, rtx)
+	    = vmode == V16QImode ? gen_vec_interleave_lowv16qi
+				 : gen_vec_interleave_lowv8hi;
 
 	  if (elt >= nelt2)
 	    {
-	      otab = vec_interleave_high_optab;
+	      gen = vmode == V16QImode ? gen_vec_interleave_highv16qi
+				       : gen_vec_interleave_highv8hi;
 	      elt -= nelt2;
 	    }
 	  nelt2 /= 2;
 
-	  op0 = expand_binop (vmode, otab, op0, op0, NULL, 0, OPTAB_DIRECT);
+	  dest = gen_reg_rtx (vmode);
+	  emit_insn (gen (dest, op0, op0));
 	  vmode = get_mode_wider_vector (vmode);
-	  op0 = gen_lowpart (vmode, op0);
+	  op0 = gen_lowpart (vmode, dest);
 	}
       while (vmode != V4SImode);
 
