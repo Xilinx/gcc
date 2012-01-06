@@ -273,7 +273,7 @@ $(MELT_STAGE_ZERO):
 +][+FOR melt_translator_file+][+ (define inbase (get "base")) (define inindex (for-index)) 
   (define depstage (if (< inindex outindex) (get "melt_stage") prevstage))
   (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
-+]      [+IF (< inindex outindex)+]$(realpath [+ (. depstage)+]/[+ (. inbase)+].quicklybuilt.so) \
++]      [+IF (< inindex outindex)+] [+ (. depstage)+]-[+(. outbase)+].stamp \
 [+ENDIF+][+ENDFOR melt_translator_file
 +]  empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
@@ -309,6 +309,12 @@ $(MELT_STAGE_ZERO):
               GCCMELT_MODULE_FLAVOR=quicklybuilt \
 	      GCCMELT_MODULE_SOURCEBASE=[+melt_stage+]/[+ (. outbase)+] \
               GCCMELT_MODULE_BINARYBASE=$(realpath [+melt_stage+])/[+(. outbase)+]
+
+
+#@ [+ (. (tpl-file-line))+] time stamp for module
+[+melt_stage+]-[+(. outbase)+].stamp: [+melt_stage+]/[+(. outbase)+].quicklybuilt.so
+	ls -l $< > $@-tmp
+	mv $@-tmp $@
 
 #@ [+ (. (tpl-file-line))+]
 ################## debugnoline module [+ (. outbase)+] for [+melt_stage+]
@@ -784,8 +790,8 @@ vpath %.h $(melt_make_source_dir)/generated . $(melt_source_dir)
 .PHONY: melt-clean
 melt-clean:
 	rm -rf *melt*.args melt-stage0-quicklybuilt melt-stage0-dynamic \
-	       melt-stage0-quicklybuilt.stamp melt-stage0-dynamic.stamp \
-[+FOR melt_stage+]           [+melt_stage+]  [+melt_stage+].stamp \
+               $(wildcard *melt-*.stamp) \
+[+FOR melt_stage+]           [+melt_stage+]  \
 [+ENDFOR melt_stage+]               melt-sources melt-modules
 
 #@ [+ (. (tpl-file-line))+]

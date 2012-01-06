@@ -1,5 +1,9 @@
 
-2012-01-06  Basile Starynkevitch  <basile@starynkevitch.net>:
+2012-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl: With make timestamp files melt-stage*-warmelt-*.stamp.
+	* melt-build.mk: Regenerate.
+
+2012-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl: The gernerated warmelt*.c don't explicitly
 	depend upon all the $(MELT_TRANSLATOR_SOURCE) but only on *.stamp
 	files...
