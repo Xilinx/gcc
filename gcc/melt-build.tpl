@@ -6,7 +6,7 @@ mk
 # DON'T EDIT melt-build.mk but only edit: melt-build.tpl or melt-build.def
 #
 # Makefile fragment for MELT modules and MELT translator bootstrap.
-#   Copyright (C) 2010,2011  Free Software Foundation
+#   Copyright (C) 2010,2011,2012  Free Software Foundation
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -267,8 +267,7 @@ $(MELT_STAGE_ZERO):
 #@ [+ (. (tpl-file-line))+]
 ### the C source of [+melt_stage+] for [+ (. outbase)+]
 [+melt_stage+]/[+ (. outbase)+].c [+melt_stage+]/[+ (. outbase)+]+meltdesc.c:  $(melt_make_source_dir)/[+ (. outbase)+].melt \
- $(MELT_TRANSLATOR_SOURCE) \
- | [+ (. prevstage)+].stamp [+ (. prevstage)+]/warmelt.modlis \
+       | [+ (. prevstage)+].stamp [+ (. prevstage)+]/warmelt.modlis \
 [+FOR includeload+]        [+includeload+] \
 [+ENDFOR includeload
 +][+FOR melt_translator_file+][+ (define inbase (get "base")) (define inindex (for-index)) 

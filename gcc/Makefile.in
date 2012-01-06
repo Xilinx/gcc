@@ -5421,8 +5421,8 @@ install-melt-includes: melt-runtime.h melt-predef.h melt-run.h melt-run-md5.h me
 ## meltframe MELT pass, and to check that melt-runtime.c follows some
 ## MELT coding rules.
 
-check-melt-runtime: melt-runtime.o melt-runtime.c xgcc$(exeext)		\
-	melt-sources melt-all-sources melt-modules melt-all-modules
+check-melt-runtime: $(MELT_RUNTIME_C) xgcc$(exeext)		\
+    melt-sources melt-all-sources melt-modules melt-all-modules
 	@echo checking melt-runtime.c with MELT				\
 	$(GCC_FOR_TARGET)  $(ALL_CFLAGS) $(ALL_CPPFLAGS) -Wno-error	\
  -I $(srcdir)/melt/generated/						\

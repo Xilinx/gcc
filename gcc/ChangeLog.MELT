@@ -1,4 +1,11 @@
 
+2012-01-06  Basile Starynkevitch  <basile@starynkevitch.net>:
+	* melt-build.tpl: The gernerated warmelt*.c don't explicitly
+	depend upon all the $(MELT_TRANSLATOR_SOURCE) but only on *.stamp
+	files...
+	* melt-build.mk: Regenerate.
+	* Makefile.in (check-melt-runtime): Use $(MELT_RUNTIME_C).
+
 2012-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated. The warmelt*+melttime.h are added.}}
 	* melt/generated/warmelt-base+melttime.h: Regenerate.
