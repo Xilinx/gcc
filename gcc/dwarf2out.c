@@ -8754,7 +8754,7 @@ output_pubnames (VEC (pubname_entry, gc) * names)
   unsigned long pubnames_length = size_of_pubnames (names);
   pubname_ref pub;
 
-  if (!targetm.want_debug_pub_sections)
+  if (!targetm.want_debug_pub_sections || !info_section_emitted)
     return;
   if (names == pubname_table)
     {
