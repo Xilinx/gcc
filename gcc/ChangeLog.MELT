@@ -1,4 +1,10 @@
 
+2012-01-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl: Add explicit rules for stage zero *meltdesc.c
+	etc...
+	Add rule for melttime.h headers.
+	* melt-build.mk: Regenerate.
+
 2012-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated.}}
 	* melt/generated/warmelt-base+melttime.h: Regenerate.
