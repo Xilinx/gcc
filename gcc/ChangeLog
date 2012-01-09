@@ -1,3 +1,172 @@
+2012-01-08  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimize/51680
+	* ipa-inline-analyss.c (evaluate_properties_for_edge): Fix conditoin on when
+	known_vals needs to be computed; cleanup.
+
+2012-01-08  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimize/51694
+	* ipa-cp.c (ipa_get_indirect_edge_target): Add bounds checks.
+
+2012-01-08  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/cpp.texi (Predefined Macros): __STRICT_ANSI__ is defined
+	for -std=c++98 and -std=c++11 too.
+
+2012-01-08  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* cfgloop.c (cancel_loop): Add free() of bbs array.
+
+2012-01-07  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/51600
+	* ipa-inline-analysis.c (estimate_edge_devirt_benefit): Disable code
+	that benefits small functions.
+
+2012-01-07  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline.c (want_inline_small_function_p): Fix formating.
+
+2012-01-07  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/51680
+	* ipa-inline.c (want_inline_small_function_p): Be more lax on functions
+	whose inlining reduce unit size.
+
+2012-01-07  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR bootstrap/51725
+	* cselib.c (new_elt_loc_list): Promote addr_list to canonical node.
+	Add canonical node to containing_mem chain after the non-canonical
+	one, even if there weren't any locs to propagate.
+	(remove_useless_values): Keep only canonical values.
+	(add_mem_for_addr, cselib_lookup_mem): Canonicalize addr.
+	(cselib_invalidate_mem): Likewise.  Ensure v is canonical, and
+	canonicalize mem_chain elements that are not discarded.
+
+2012-01-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/47333
+	* cgraphunit.c (cgraph_optimize): Call output_weakrefs
+	before emitting functions.
+
+	PR gcov-profile/50127
+	* bb-reorder.c (partition_hot_cold_basic_blocks): Call
+	clear_aux_for_blocks.
+
+2012-01-06  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/51746
+	* cselib.c (cselib_hash_rtx): Hash incoming VALUEs too.
+
+2012-01-06  Arnaud Charlet  <charlet@adacore.com>
+
+	* c-decl.c (ext_block): Moved up.
+	(collect_all_refs, for_each_global_decl): Take ext_block into account.
+
+2012-01-06  Han Shen  <shenhan@google.com>
+
+	Translate built-in include paths for sysroot.
+	* Makefile.in (gcc_gxx_include_dir_add_sysroot): New.
+	(PREPROCESSOR_DEFINES): Define GPLUSPLUS_INCLUDE_DIR_ADD_SYSROOT.
+
+	* cppdefault.c (cpp_include_defaults): Replace hard coded "0" with
+	GPLUSPLUS_INCLUDE_DIR_ADD_SYSROOT for "add_sysroot" field.
+
+	* configure.ac (AC_SUBST): Add gcc_gxx_include_dir_add_sysroot to
+	control whether sysroot should be prepended to gxx include dir.
+
+	* configure: Regenerate.
+
+2012-01-06  Torvald Riegel  <triegel@redhat.com>
+
+	PR rtl-optimization/51771
+	* builtin-attrs.def (ATTR_RETURNS_TWICE, ATTR_TM_NOTHROW_RT_LIST):
+	New.
+	* gtm-builtins.def (BUILT_IN_TM_START): Add returns-twice attrib.
+
+2012-01-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/51315
+	* tree-sra.c (tree_non_aligned_mem_for_access_p): New predicate.
+	(build_accesses_from_assign): Use it instead of tree_non_aligned_mem_p.
+
+2012-01-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/51681
+	* config/ia64/ia64.c (expand_vec_perm_shrp): Use correct operands
+	for shrp pattern.  Correctly handle and fixup shift variable.
+	Return false when shift > nelt for BYTES_BIG_ENDIAN target.
+
+2012-01-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/51762
+	* calls.c (emit_call_1): For noreturn calls force a REG_ARGS_SIZE
+	note when !ACCUMULATE_OUTGOING_ARGS.
+
+2012-01-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-vrp.c (extract_range_from_binary_expr_1): Remove duplicated
+	condition.
+	(extract_range_from_unary_expr_1): Avoid useless computations.
+
+2012-01-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/51767
+	* cfgrtl.c (force_nonfallthru_and_redirect): Force addition
+	of jump_block and add an extra edge for degenerated asm gotos.
+
+	PR middle-end/51768
+	* stmt.c (check_unique_operand_names): Don't ICE during error
+	reporting if i is from labels chain.
+
+	PR middle-end/44777
+	* profile.c (branch_prob): Split bbs that have exit edge
+	and need a fake entry edge too.
+
+2012-01-05  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/49710
+	* cfgloopmanip.c (remove_path): Walk loop hiearchy upwards when
+	unlooping loops.
+
+>>>>>>> .r182937
+2012-01-05  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/50490
+	* tree-streamer-out.c (write_ts_optimization): New function.
+	(streamer_write_tree_body): Call it.
+	* tree-streamer-in.c (lto_input_ts_optimization): New function.
+	(streamer_read_tree_body): Call it.
+	* lto-streamer-out.c (lto_is_streamable): Handle OPTIMIZATION_NODE.
+
+2012-01-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/51761
+	* gimple.h (struct gimplify_ctx): Add in_cleanup_point_expr field.
+	* gimplify.c (gimplify_cleanup_point_expr): Save and set
+	in_cleanup_point_expr before gimplify_stmt call and restore it
+	afterwards.
+	(gimplify_target_expr): Don't add {CLOBBER} cleanup if
+	in_cleanup_point_expr is false.
+
+2012-01-05  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51764
+	* common.opt (Wmudflap, fmudflap, fmudflapth, fmudflapir): Move
+	to c.opt.
+	* toplev.c (process_options): Reject combining mudflap and LTO.
+	* tree-nomudflap.c (nogo): Use sorry instead of internal_error.
+
+2012-01-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51760
+	* tree-ssa-ccp.c (likely_value): Drop UNDEFINED to CONSTANT,
+	not VARYING.
+	(bit_value_unop): Handle UNDEFINED operands.
+	(bit_value_binop): Likewise.
+
 2012-01-05  Georg-Johann Lay  <avr@gjlay.de>
 
 	* config/avr/avr.c (avr_replace_prefix): Remove.
@@ -76,6 +245,11 @@
 
 2012-01-04  Aldy Hernandez  <aldyh@redhat.com>
 
+	PR middle-end/51472
+	* trans-mem.c (expand_assign_tm): Handle TM_MEMMOVE loads correctly.
+
+2012-01-04  Aldy Hernandez  <aldyh@redhat.com>
+
 	* opts.c (finish_options): Remove duplicate sorry.
 
 2012-01-04  Aldy Hernandez  <aldyh@redhat.com>
@@ -110,17 +284,15 @@
 	PR tree-optimization/49651
 	* tree-ssa-structalias.c (type_can_have_subvars): New function.
 	(var_can_have_subvars): Use it.
-	(get_constraint_for_1): Only consider subfields if there
-	can be any.
+	(get_constraint_for_1): Only consider subfields if there can be any.
 
 2012-01-03  Jakub Jelinek  <jakub@redhat.com>
 
 	PR bootstrap/51725
-	* cselib.c (new_elt_loc_list): When moving locs from one
-	cselib_val to its new canonical_cselib_val and the
-	cselib_val was in first_containing_mem chain, but
-	the canonical_cselib_val was not, add the latter into the
-	chain.
+	* cselib.c (new_elt_loc_list): When moving locs from one cselib_val
+	to its new canonical_cselib_val and the cselib_val was in
+	first_containing_mem chain, but the canonical_cselib_val was not,
+	add the latter into the chain.
 	(cselib_invalidate_mem): Compare canonical_cselib_val of
 	addr_list chain elt with v.
 

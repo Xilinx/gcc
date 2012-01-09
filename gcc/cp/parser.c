@@ -6668,10 +6668,17 @@ cp_parser_new_expression (cp_parser* parser)
   if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_PAREN))
     {
       cp_token *token;
+      const char *saved_message = parser->type_definition_forbidden_message;
+
       /* Consume the `('.  */
       cp_lexer_consume_token (parser->lexer);
+
       /* Parse the type-id.  */
+      parser->type_definition_forbidden_message
+	= G_("types may not be defined in a new-expression");
       type = cp_parser_type_id (parser);
+      parser->type_definition_forbidden_message = saved_message;
+
       /* Look for the closing `)'.  */
       cp_parser_require (parser, CPP_CLOSE_PAREN, RT_CLOSE_PAREN);
       token = cp_lexer_peek_token (parser->lexer);
@@ -15046,7 +15053,13 @@ cp_parser_alias_declaration (cp_parser* parser)
   cp_parser_require_keyword (parser, RID_USING, RT_USING);
   id_location = cp_lexer_peek_token (parser->lexer)->location;
   id = cp_parser_identifier (parser);
+  if (id == error_mark_node)
+    return error_mark_node;
+
   attributes = cp_parser_attributes_opt (parser);
+  if (attributes == error_mark_node)
+    return error_mark_node;
+
   cp_parser_require (parser, CPP_EQ, RT_EQ);
 
   /* Now we are going to parse the type-id of the declaration.  */
