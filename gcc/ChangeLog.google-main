@@ -1,3 +1,11 @@
+2012-01-09  Dehao Chen  <dehao@google.com>
+
+	* ipa-inline-transform.c (cgraph_node_opt_info): Print profile info
+	if available.
+	(dump_inline_decision): Disable einline dump at OPT_INFO_MIN.
+	* ipa-inline.h (is_in_ipa_inline): New variable.
+	* ipa-inline.c (inline_small_functions): Set the current inline phase.
+
 2012-01-04   Sterling Augustine  <saugustine@google.com>
 
        * dwarf2out.c (add_pubname): Move conditional clause from outer to

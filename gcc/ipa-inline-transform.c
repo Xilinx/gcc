@@ -212,12 +212,12 @@ cgraph_node_opt_info (struct cgraph_node *node)
     bfd_name = "unknown";
 
   buf_size = strlen (bfd_name) + 1;
-  if (flag_opt_info >= OPT_INFO_MED && profile_info)
+  if (profile_info)
     buf_size += (MAX_INT_LENGTH + 3);
   buf = (char *) xmalloc (buf_size);
 
   strcpy (buf, bfd_name);
-  if (flag_opt_info >= OPT_INFO_MED && profile_info)
+  if (profile_info)
     sprintf (buf, "%s ("HOST_WIDEST_INT_PRINT_DEC")", buf, node->count);
   return buf;
 }
@@ -266,6 +266,8 @@ dump_inline_decision (struct cgraph_edge *edge)
   const char *call_count_text;
   struct cgraph_node *final_caller = edge->caller;
 
+  if (flag_opt_info < OPT_INFO_MED && !is_in_ipa_inline)
+    return;
   if (final_caller->global.inlined_to != NULL)
     inline_chain_text = cgraph_node_call_chain (final_caller, &final_caller);
   else
