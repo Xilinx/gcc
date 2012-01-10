@@ -63,6 +63,7 @@ struct mode_data
 
   struct mode_data *component;	/* mode of components */
   struct mode_data *wider;	/* next wider mode */
+  struct mode_data *wider_2x;	/* 2x wider mode */
 
   struct mode_data *contained;  /* Pointer to list of modes that have
 				   this mode as a component.  */
@@ -82,7 +83,7 @@ static struct mode_data *void_mode;
 static const struct mode_data blank_mode = {
   0, "<unknown>", MAX_MODE_CLASS,
   -1U, -1U, -1U, -1U,
-  0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0,
   "<unknown>", 0, 0, 0, 0
 };
 
@@ -789,7 +790,7 @@ calc_wider_mode (void)
 
   /* Allocate max_n_modes + 1 entries to leave room for the extra null
      pointer assigned after the qsort call below.  */
-  sortbuf = XALLOCAVEC (struct mode_data *, max_n_modes + 1);
+  sortbuf = (struct mode_data **) alloca ((max_n_modes + 1) * sizeof (struct mode_data *));
 
   for (c = 0; c < MAX_MODE_CLASS; c++)
     {
@@ -803,6 +804,7 @@ calc_wider_mode (void)
 	  for (prev = 0, m = modes[c]; m; m = next)
 	    {
 	      m->wider = void_mode;
+	      m->wider_2x = void_mode;
 
 	      /* this is nreverse */
 	      next = m->next;
@@ -824,6 +826,7 @@ calc_wider_mode (void)
 	  sortbuf[i] = 0;
 	  for (j = 0; j < i; j++)
 	    sortbuf[j]->next = sortbuf[j]->wider = sortbuf[j + 1];
+
 
 	  modes[c] = sortbuf[0];
 	}
@@ -1056,21 +1059,6 @@ emit_mode_wider (void)
 	  else
 	    {
 	      if (m2->precision != (unsigned int) -1)
-		continue;
-	    }
-
-	  /* For vectors we want twice the number of components,
-	     with the same element type.  */
-	  if (m->cl == MODE_VECTOR_INT
-	      || m->cl == MODE_VECTOR_FLOAT
-	      || m->cl == MODE_VECTOR_FRACT
-	      || m->cl == MODE_VECTOR_UFRACT
-	      || m->cl == MODE_VECTOR_ACCUM
-	      || m->cl == MODE_VECTOR_UACCUM)
-	    {
-	      if (m2->ncomponents != 2 * m->ncomponents)
-		continue;
-	      if (m->component != m2->component)
 		continue;
 	    }
 

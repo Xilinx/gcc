@@ -14,5 +14,5 @@ public:
 class buff_head : private port_head {
 public:
 	static int rep;
-	port_head::cap; // { dg-warning "deprecated" }
+	port_head::cap;
 };

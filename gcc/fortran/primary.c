@@ -1789,17 +1789,13 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
 
   if (gfc_peek_ascii_char () == '[')
     {
-      if ((sym->ts.type != BT_CLASS && sym->attr.dimension)
-	  || (sym->ts.type == BT_CLASS && CLASS_DATA (sym)
-	      && CLASS_DATA (sym)->attr.dimension))
+      if (sym->attr.dimension)
 	{
 	  gfc_error ("Array section designator, e.g. '(:)', is required "
 		     "besides the coarray designator '[...]' at %C");
 	  return MATCH_ERROR;
 	}
-      if ((sym->ts.type != BT_CLASS && !sym->attr.codimension)
-	  || (sym->ts.type == BT_CLASS && CLASS_DATA (sym)
-	      && !CLASS_DATA (sym)->attr.codimension))
+      if (!sym->attr.codimension)
 	{
 	  gfc_error ("Coarray designator at %C but '%s' is not a coarray",
 		     sym->name);
@@ -1821,8 +1817,7 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
 	  && !(gfc_matching_procptr_assignment
 	       && sym->attr.flavor == FL_PROCEDURE))
       || (sym->ts.type == BT_CLASS && sym->attr.class_ok
-	  && (CLASS_DATA (sym)->attr.dimension
-	      || CLASS_DATA (sym)->attr.codimension)))
+	  && CLASS_DATA (sym)->attr.dimension))
     {
       /* In EQUIVALENCE, we don't know yet whether we are seeing
 	 an array, character variable or array of character
@@ -1832,7 +1827,7 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
 
       m = gfc_match_array_ref (&tail->u.ar, equiv_flag ? NULL : sym->as,
 			       equiv_flag,
-			       sym->ts.type == BT_CLASS && CLASS_DATA (sym)
+			       sym->ts.type == BT_CLASS
 			       ? (CLASS_DATA (sym)->as
 				  ? CLASS_DATA (sym)->as->corank : 0)
 			       : (sym->as ? sym->as->corank : 0));
@@ -2895,28 +2890,10 @@ gfc_match_rvalue (gfc_expr **result)
 	  && gfc_get_default_type (sym->name, sym->ns)->type == BT_DERIVED)
 	gfc_set_default_type (sym, 0, sym->ns);
 
-      /* If the symbol has a (co)dimension attribute, the expression is a
+      /* If the symbol has a dimension attribute, the expression is a
 	 variable.  */
 
-      if (sym->attr.dimension || sym->attr.codimension)
-	{
-	  if (gfc_add_flavor (&sym->attr, FL_VARIABLE,
-			      sym->name, NULL) == FAILURE)
-	    {
-	      m = MATCH_ERROR;
-	      break;
-	    }
-
-	  e = gfc_get_expr ();
-	  e->symtree = symtree;
-	  e->expr_type = EXPR_VARIABLE;
-	  m = gfc_match_varspec (e, 0, false, true);
-	  break;
-	}
-
-      if (sym->ts.type == BT_CLASS && sym->attr.class_ok
-	  && (CLASS_DATA (sym)->attr.dimension
-	      || CLASS_DATA (sym)->attr.codimension))
+      if (sym->attr.dimension)
 	{
 	  if (gfc_add_flavor (&sym->attr, FL_VARIABLE,
 			      sym->name, NULL) == FAILURE)

@@ -1976,8 +1976,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize_p ATTRIBUTE_UNUSED,
 	  break;
 
 	case NOTE_INSN_EPILOGUE_BEG:
-          if (!DECL_IGNORED_P (current_function_decl))
-            (*debug_hooks->begin_epilogue) (last_linenum, last_filename);
+	  (*debug_hooks->begin_epilogue) (last_linenum, last_filename);
 	  targetm.asm_out.function_begin_epilogue (file);
 	  break;
 

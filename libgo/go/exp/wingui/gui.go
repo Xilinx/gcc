@@ -6,8 +6,8 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"syscall"
+	"os"
 	"unsafe"
 )
 

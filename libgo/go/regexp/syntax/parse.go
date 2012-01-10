@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 	"unicode"
-	"unicode/utf8"
+	"utf8"
 )
 
 // An Error describes a failure to parse a regular expression

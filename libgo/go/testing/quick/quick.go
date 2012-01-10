@@ -9,7 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"math"
-	"math/rand"
+	"rand"
 	"reflect"
 	"strings"
 )

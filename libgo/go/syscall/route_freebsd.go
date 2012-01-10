@@ -63,7 +63,7 @@ func (m *InterfaceMulticastAddrMessage) sockaddr() (sas []Sockaddr) {
 		switch i {
 		case RTAX_IFA:
 			sa, e := anyToSockaddr((*RawSockaddrAny)(unsafe.Pointer(rsa)))
-			if e != nil {
+			if e != 0 {
 				return nil
 			}
 			sas = append(sas, sa)

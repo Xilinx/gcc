@@ -5,8 +5,8 @@
 package heap_test
 
 import (
-	. "container/heap"
 	"testing"
+	. "container/heap"
 )
 
 type myHeap []int

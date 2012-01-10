@@ -41,8 +41,6 @@
 #define SS$_NORMAL 1
 #endif
 
-#define UNW_IVMS_MODE(HEADER) (((HEADER) >> 44) & 0x3L)
-
 typedef struct
 {
   unsigned long start_offset;

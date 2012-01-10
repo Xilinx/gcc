@@ -17,43 +17,43 @@ import "unsafe"
  * Wrapped
  */
 
-//sysnb	pipe(p *[2]int) (err error)
+//sysnb	pipe(p *[2]int) (errno int)
 //pipe(p *[2]int) int
-func Pipe(p []int) (err error) {
+func Pipe(p []int) (errno int) {
 	if len(p) != 2 {
 		return EINVAL
 	}
 	var pp [2]int
-	err = pipe(&pp)
+	errno = pipe(&pp)
 	p[0] = pp[0]
 	p[1] = pp[1]
 	return
 }
 
-//sys	utimes(path string, times *[2]Timeval) (err error)
+//sys	utimes(path string, times *[2]Timeval) (errno int)
 //utimes(path *byte, times *[2]Timeval) int
-func Utimes(path string, tv []Timeval) (err error) {
+func Utimes(path string, tv []Timeval) (errno int) {
 	if len(tv) != 2 {
 		return EINVAL
 	}
 	return utimes(path, (*[2]Timeval)(unsafe.Pointer(&tv[0])))
 }
 
-//sys	getcwd(buf *byte, size Size_t) (err error)
+//sys	getcwd(buf *byte, size Size_t) (errno int)
 //getcwd(buf *byte, size Size_t) *byte
 
 const ImplementsGetwd = true
 
-func Getwd() (ret string, err error) {
+func Getwd() (ret string, errno int) {
 	for len := Size_t(4096); ; len *= 2 {
 		b := make([]byte, len)
 		err := getcwd(&b[0], len)
-		if err == nil {
-			i := 0
+		if err == 0 {
+			i := 0;
 			for b[i] != 0 {
-				i++
+				i++;
 			}
-			return string(b[0:i]), nil
+			return string(b[0:i]), 0;
 		}
 		if err != ERANGE {
 			return "", err
@@ -61,16 +61,16 @@ func Getwd() (ret string, err error) {
 	}
 }
 
-//sysnb	getgroups(size int, list *Gid_t) (nn int, err error)
+//sysnb	getgroups(size int, list *Gid_t) (nn int, errno int)
 //getgroups(size int, list *Gid_t) int
 
-func Getgroups() (gids []int, err error) {
+func Getgroups() (gids []int, errno int) {
 	n, err := getgroups(0, nil)
-	if err != nil {
-		return nil, err
+	if err != 0 {
+		return nil, errno
 	}
 	if n == 0 {
-		return nil, nil
+		return nil, 0
 	}
 
 	// Sanity check group count.  Max is 1<<16 on GNU/Linux.
@@ -80,8 +80,8 @@ func Getgroups() (gids []int, err error) {
 
 	a := make([]Gid_t, n)
 	n, err = getgroups(n, &a[0])
-	if err != nil {
-		return nil, err
+	if err != 0 {
+		return nil, errno
 	}
 	gids = make([]int, n)
 	for i, v := range a[0:n] {
@@ -90,10 +90,10 @@ func Getgroups() (gids []int, err error) {
 	return
 }
 
-//sysnb	setgroups(n int, list *Gid_t) (err error)
+//sysnb	setgroups(n int, list *Gid_t) (errno int)
 //setgroups(n Size_t, list *Gid_t) int
 
-func Setgroups(gids []int) (err error) {
+func Setgroups(gids []int) (errno int) {
 	if len(gids) == 0 {
 		return setgroups(0, nil)
 	}
@@ -120,10 +120,10 @@ func (w WaitStatus) Signal() int
 func (w WaitStatus) StopSignal() int
 func (w WaitStatus) TrapCause() int
 
-//sys	Mkfifo(path string, mode uint32) (err error)
+//sys	Mkfifo(path string, mode uint32) (errno int)
 //mkfifo(path *byte, mode Mode_t) int
 
-//sys	Select(nfd int, r *FdSet, w *FdSet, e *FdSet, timeout *Timeval) (n int, err error)
+//sys	Select(nfd int, r *FdSet, w *FdSet, e *FdSet, timeout *Timeval) (n int, errno int)
 //select(nfd int, r *FdSet, w *FdSet, e *FdSet, timeout *Timeval) int
 
 const nfdbits = unsafe.Sizeof(fds_bits_type) * 8
@@ -154,52 +154,52 @@ func FDZero(set *FdSet) {
 	}
 }
 
-//sys	Access(path string, mode uint32) (err error)
+//sys	Access(path string, mode uint32) (errno int)
 //access(path *byte, mode int) int
 
-//sys	Chdir(path string) (err error)
+//sys	Chdir(path string) (errno int)
 //chdir(path *byte) int
 
-//sys	Chmod(path string, mode uint32) (err error)
+//sys	Chmod(path string, mode uint32) (errno int)
 //chmod(path *byte, mode Mode_t) int
 
-//sys	Chown(path string, uid int, gid int) (err error)
+//sys	Chown(path string, uid int, gid int) (errno int)
 //chown(path *byte, uid Uid_t, gid Gid_t) int
 
-//sys	Chroot(path string) (err error)
+//sys	Chroot(path string) (errno int)
 //chroot(path *byte) int
 
-//sys	Close(fd int) (err error)
+//sys	Close(fd int) (errno int)
 //close(fd int) int
 
-//sys	Creat(path string, mode uint32) (fd int, err error)
+//sys	Creat(path string, mode uint32) (fd int, errno int)
 //creat(path *byte, mode Mode_t) int
 
-//sysnb	Dup(oldfd int) (fd int, err error)
+//sysnb	Dup(oldfd int) (fd int, errno int)
 //dup(oldfd int) int
 
-//sysnb	Dup2(oldfd int, newfd int) (fd int, err error)
+//sysnb	Dup2(oldfd int, newfd int) (fd int, errno int)
 //dup2(oldfd int, newfd int) int
 
 //sys	Exit(code int)
 //exit(code int)
 
-//sys	Fchdir(fd int) (err error)
+//sys	Fchdir(fd int) (errno int)
 //fchdir(fd int) int
 
-//sys	Fchmod(fd int, mode uint32) (err error)
+//sys	Fchmod(fd int, mode uint32) (errno int)
 //fchmod(fd int, mode Mode_t) int
 
-//sys	Fchown(fd int, uid int, gid int) (err error)
+//sys	Fchown(fd int, uid int, gid int) (errno int)
 //fchown(fd int, uid Uid_t, gid Gid_t) int
 
-//sys	fcntl(fd int, cmd int, arg int) (val int, err error)
+//sys	fcntl(fd int, cmd int, arg int) (val int, errno int)
 //fcntl(fd int, cmd int, arg int) int
 
-//sys	Fdatasync(fd int) (err error)
+//sys	Fdatasync(fd int) (errno int)
 //fdatasync(fd int) int
 
-//sys	Fsync(fd int) (err error)
+//sys	Fsync(fd int) (errno int)
 //fsync(fd int) int
 
 //sysnb Getegid() (egid int)
@@ -214,7 +214,7 @@ func FDZero(set *FdSet) {
 //sysnb	Getpagesize() (pagesize int)
 //getpagesize() int
 
-//sysnb	Getpgid(pid int) (pgid int, err error)
+//sysnb	Getpgid(pid int) (pgid int, errno int)
 //getpgid(pid Pid_t) Pid_t
 
 //sysnb	Getpgrp() (pid int)
@@ -227,138 +227,138 @@ func FDZero(set *FdSet) {
 //getppid() Pid_t
 
 // FIXME: mksysinfo Rlimit
-// //sysnb	Getrlimit(resource int, rlim *Rlimit) (err error)
+// //sysnb	Getrlimit(resource int, rlim *Rlimit) (errno int)
 // //getrlimit(resource int, rlim *Rlimit) int
 
-//sysnb	Getrusage(who int, rusage *Rusage) (err error)
+//sysnb	Getrusage(who int, rusage *Rusage) (errno int)
 //getrusage(who int, rusage *Rusage) int
 
-//sysnb	gettimeofday(tv *Timeval, tz *byte) (err error)
+//sysnb	gettimeofday(tv *Timeval, tz *byte) (errno int)
 //gettimeofday(tv *Timeval, tz *byte) int
-func Gettimeofday(tv *Timeval) (err error) {
+func Gettimeofday(tv *Timeval) (errno int) {
 	return gettimeofday(tv, nil)
 }
 
 //sysnb Getuid() (uid int)
 //getuid() Uid_t
 
-//sysnb	Kill(pid int, sig int) (err error)
+//sysnb	Kill(pid int, sig int) (errno int)
 //kill(pid Pid_t, sig int) int
 
-//sys	Lchown(path string, uid int, gid int) (err error)
+//sys	Lchown(path string, uid int, gid int) (errno int)
 //lchown(path *byte, uid Uid_t, gid Gid_t) int
 
-//sys	Link(oldpath string, newpath string) (err error)
+//sys	Link(oldpath string, newpath string) (errno int)
 //link(oldpath *byte, newpath *byte) int
 
-//sys	Mkdir(path string, mode uint32) (err error)
+//sys	Mkdir(path string, mode uint32) (errno int)
 //mkdir(path *byte, mode Mode_t) int
 
-//sys	Mknod(path string, mode uint32, dev int) (err error)
+//sys	Mknod(path string, mode uint32, dev int) (errno int)
 //mknod(path *byte, mode Mode_t, dev _dev_t) int
 
-//sys	Mount(source string, target string, fstype string, flags int, data string) (err error)
+//sys	Mount(source string, target string, fstype string, flags int, data string) (errno int)
 //mount(source *byte, target *byte, fstype *byte, flags _C_long, data *byte) int
 
-//sys	Nanosleep(time *Timespec, leftover *Timespec) (err error)
+//sys	Nanosleep(time *Timespec, leftover *Timespec) (errno int)
 //nanosleep(time *Timespec, leftover *Timespec) int
 
-//sys	Pause() (err error)
+//sys	Pause() (errno int)
 //pause() int
 
-//sys	Read(fd int, p []byte) (n int, err error)
+//sys	Read(fd int, p []byte) (n int, errno int)
 //read(fd int, buf *byte, count Size_t) Ssize_t
 
-//sys	Readlink(path string, buf []byte) (n int, err error)
+//sys	Readlink(path string, buf []byte) (n int, errno int)
 //readlink(path *byte, buf *byte, bufsiz Size_t) Ssize_t
 
-//sys	Rename(oldpath string, newpath string) (err error)
+//sys	Rename(oldpath string, newpath string) (errno int)
 //rename(oldpath *byte, newpath *byte) int
 
-//sys	Rmdir(path string) (err error)
+//sys	Rmdir(path string) (errno int)
 //rmdir(path *byte) int
 
-//sys	Setdomainname(p []byte) (err error)
+//sys	Setdomainname(p []byte) (errno int)
 //setdomainname(name *byte, len Size_t) int
 
-//sys	Sethostname(p []byte) (err error)
+//sys	Sethostname(p []byte) (errno int)
 //sethostname(name *byte, len Size_t) int
 
-//sysnb	Setgid(gid int) (err error)
+//sysnb	Setgid(gid int) (errno int)
 //setgid(gid Gid_t) int
 
-//sysnb Setregid(rgid int, egid int) (err error)
+//sysnb Setregid(rgid int, egid int) (errno int)
 //setregid(rgid Gid_t, egid Gid_t) int
 
-//sysnb	Setpgid(pid int, pgid int) (err error)
+//sysnb	Setpgid(pid int, pgid int) (errno int)
 //setpgid(pid Pid_t, pgid Pid_t) int
 
-//sysnb	Setreuid(ruid int, euid int) (err error)
+//sysnb	Setreuid(ruid int, euid int) (errno int)
 //setreuid(ruid Uid_t, euid Uid_t) int
 
 // FIXME: mksysinfo Rlimit
-// //sysnb	Setrlimit(resource int, rlim *Rlimit) (err error)
+// //sysnb	Setrlimit(resource int, rlim *Rlimit) (errno int)
 // //setrlimit(resource int, rlim *Rlimit) int
 
-//sysnb	Setsid() (pid int, err error)
+//sysnb	Setsid() (pid int, errno int)
 //setsid() Pid_t
 
-//sysnb	settimeofday(tv *Timeval, tz *byte) (err error)
+//sysnb	settimeofday(tv *Timeval, tz *byte) (errno int)
 //settimeofday(tv *Timeval, tz *byte) int
 
-func Settimeofday(tv *Timeval) (err error) {
+func Settimeofday(tv *Timeval) (errno int) {
 	return settimeofday(tv, nil)
 }
 
-//sysnb	Setuid(uid int) (err error)
+//sysnb	Setuid(uid int) (errno int)
 //setuid(uid Uid_t) int
 
-//sys	Symlink(oldpath string, newpath string) (err error)
+//sys	Symlink(oldpath string, newpath string) (errno int)
 //symlink(oldpath *byte, newpath *byte) int
 
 //sys	Sync()
 //sync()
 
 // FIXME: mksysinfo Time_t
-// //sysnb	Time(t *Time_t) (tt Time_t, err error)
+// //sysnb	Time(t *Time_t) (tt Time_t, errno int)
 // //time(t *Time_t) Time_t
 
 // FIXME: mksysinfo Tms
-// //sysnb	Times(tms *Tms) (ticks uintptr, err error)
+// //sysnb	Times(tms *Tms) (ticks uintptr, errno int)
 // //times(tms *Tms) _clock_t
 
 //sysnb	Umask(mask int) (oldmask int)
 //umask(mask Mode_t) Mode_t
 
-//sys	Unlink(path string) (err error)
+//sys	Unlink(path string) (errno int)
 //unlink(path *byte) int
 
 // FIXME: mksysinfo Utimbuf
-// //sys	Utime(path string, buf *Utimbuf) (err error)
+// //sys	Utime(path string, buf *Utimbuf) (errno int)
 // //utime(path *byte, buf *Utimbuf) int
 
-//sys	Write(fd int, p []byte) (n int, err error)
+//sys	Write(fd int, p []byte) (n int, errno int)
 //write(fd int, buf *byte, count Size_t) Ssize_t
 
-//sys	munmap(addr uintptr, length uintptr) (err error)
+//sys	munmap(addr uintptr, length uintptr) (errno int)
 //munmap(addr *byte, length Size_t) int
 
-//sys Madvise(b []byte, advice int) (err error)
+//sys Madvise(b []byte, advice int) (errno int)
 //madvise(addr *byte, len Size_t, advice int) int
 
-//sys	Mprotect(b []byte, prot int) (err error)
+//sys	Mprotect(b []byte, prot int) (errno int)
 //mprotect(addr *byte, len Size_t, prot int) int
 
-//sys	Mlock(b []byte) (err error)
+//sys	Mlock(b []byte) (errno int)
 //mlock(addr *byte, len Size_t) int
 
-//sys	Munlock(b []byte) (err error)
+//sys	Munlock(b []byte) (errno int)
 //munlock(addr *byte, len Size_t) int
 
-//sys	Mlockall(flags int) (err error)
+//sys	Mlockall(flags int) (errno int)
 //mlockall(flags int) int
 
-//sys	Munlockall() (err error)
+//sys	Munlockall() (errno int)
 //munlockall() int
 
 func TimespecToNsec(ts Timespec) int64 { return int64(ts.Sec)*1e9 + int64(ts.Nsec) }
@@ -378,8 +378,8 @@ func NsecToTimeval(nsec int64) (tv Timeval) {
 	return
 }
 
-//sysnb	Tcgetattr(fd int, p *Termios) (err error)
+//sysnb	Tcgetattr(fd int, p *Termios) (errno int)
 //tcgetattr(fd int, p *Termios) int
 
-//sys	Tcsetattr(fd int, actions int, p *Termios) (err error)
+//sys	Tcsetattr(fd int, actions int, p *Termios) (errno int)
 //tcsetattr(fd int, actions int, p *Termios) int

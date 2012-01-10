@@ -5,16 +5,16 @@
 package rand
 
 import (
-	"errors"
+	"big"
 	"io"
-	"math/big"
+	"os"
 )
 
 // Prime returns a number, p, of the given size, such that p is prime
 // with high probability.
 func Prime(rand io.Reader, bits int) (p *big.Int, err error) {
 	if bits < 1 {
-		err = errors.New("crypto/rand: prime size must be positive")
+		err = os.EINVAL
 	}
 
 	b := uint(bits % 8)

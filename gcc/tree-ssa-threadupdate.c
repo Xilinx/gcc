@@ -513,11 +513,7 @@ redirect_edges (void **slot, void *data)
 		     e->src->index, e->dest->index, rd->dup_block->index);
 
 	  rd->dup_block->count += e->count;
-
-	  /* Excessive jump threading may make frequencies large enough so
-	     the computation overflows.  */
-	  if (rd->dup_block->frequency < BB_FREQ_MAX * 2)
-	    rd->dup_block->frequency += EDGE_FREQUENCY (e);
+	  rd->dup_block->frequency += EDGE_FREQUENCY (e);
 	  EDGE_SUCC (rd->dup_block, 0)->count += e->count;
 	  /* Redirect the incoming edge to the appropriate duplicate
 	     block.  */

@@ -7,7 +7,7 @@ package strings
 
 import (
 	"unicode"
-	"unicode/utf8"
+	"utf8"
 )
 
 // explode splits s into an array of UTF-8 sequences, one per Unicode character (still strings) up to a maximum of n (n < 0 means no limit).
@@ -64,17 +64,7 @@ func Count(s, sep string) int {
 
 // Contains returns true if substr is within s.
 func Contains(s, substr string) bool {
-	return Index(s, substr) >= 0
-}
-
-// ContainsAny returns true if any Unicode code points in chars are within s.
-func ContainsAny(s, chars string) bool {
-	return IndexAny(s, chars) >= 0
-}
-
-// ContainsRune returns true if the Unicode code point r is within s.
-func ContainsRune(s string, r rune) bool {
-	return IndexRune(s, r) >= 0
+	return Index(s, substr) != -1
 }
 
 // Index returns the index of the first instance of sep in s, or -1 if sep is not present in s.
@@ -279,7 +269,7 @@ func FieldsFunc(s string, f func(rune) bool) []string {
 			fieldStart = i
 		}
 	}
-	if fieldStart >= 0 { // Last field might end at EOF.
+	if fieldStart != -1 { // Last field might end at EOF.
 		a[na] = s[fieldStart:]
 	}
 	return a
@@ -522,7 +512,7 @@ func lastIndexFunc(s string, f func(rune) bool, truth bool) int {
 }
 
 func makeCutsetFunc(cutset string) func(rune) bool {
-	return func(r rune) bool { return IndexRune(cutset, r) >= 0 }
+	return func(r rune) bool { return IndexRune(cutset, r) != -1 }
 }
 
 // Trim returns a slice of the string s with all leading and

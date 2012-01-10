@@ -2896,26 +2896,6 @@ vect_analyze_data_refs (loop_vec_info loop_vinfo,
           return false;
         }
 
-      if (is_gimple_call (stmt))
-	{
-	  if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
-	    {
-	      fprintf (vect_dump, "not vectorized: dr in a call ");
-	      print_gimple_stmt (vect_dump, stmt, 0, TDF_SLIM);
-	    }
-
-	  if (bb_vinfo)
-	    {
-	      STMT_VINFO_VECTORIZABLE (stmt_info) = false;
-	      stop_bb_analysis = true;
-	      continue;
-	    }
-
-	  if (gather)
-	    free_data_ref (dr);
-	  return false;
-	}
-
       /* Update DR field in stmt_vec_info struct.  */
 
       /* If the dataref is in an inner-loop of the loop that is considered for
@@ -3794,13 +3774,16 @@ vect_create_destination_var (tree scalar_dest, tree vectype)
 
 /* Function vect_strided_store_supported.
 
-   Returns TRUE if interleave high and interleave low permutations
-   are supported, and FALSE otherwise.  */
+   Returns TRUE is INTERLEAVE_HIGH and INTERLEAVE_LOW operations are supported,
+   and FALSE otherwise.  */
 
 bool
 vect_strided_store_supported (tree vectype, unsigned HOST_WIDE_INT count)
 {
-  enum machine_mode mode = TYPE_MODE (vectype);
+  optab ih_optab, il_optab;
+  enum machine_mode mode;
+
+  mode = TYPE_MODE (vectype);
 
   /* vect_permute_store_chain requires the group size to be a power of two.  */
   if (exact_log2 (count) == -1)
@@ -3811,24 +3794,19 @@ vect_strided_store_supported (tree vectype, unsigned HOST_WIDE_INT count)
       return false;
     }
 
-  /* Check that the permutation is supported.  */
-  if (VECTOR_MODE_P (mode))
-    {
-      unsigned int i, nelt = GET_MODE_NUNITS (mode);
-      unsigned char *sel = XALLOCAVEC (unsigned char, nelt);
-      for (i = 0; i < nelt / 2; i++)
-	{
-	  sel[i * 2] = i;
-	  sel[i * 2 + 1] = i + nelt;
-	}
-      if (can_vec_perm_p (mode, false, sel))
-	{
-	  for (i = 0; i < nelt; i++)
-	    sel[i] += nelt / 2;
-	  if (can_vec_perm_p (mode, false, sel))
-	    return true;
-	}
-    }
+  /* Check that the operation is supported.  */
+  ih_optab = optab_for_tree_code (VEC_INTERLEAVE_HIGH_EXPR,
+				  vectype, optab_default);
+  il_optab = optab_for_tree_code (VEC_INTERLEAVE_LOW_EXPR,
+				  vectype, optab_default);
+  if (il_optab && ih_optab
+      && optab_handler (ih_optab, mode) != CODE_FOR_nothing
+      && optab_handler (il_optab, mode) != CODE_FOR_nothing)
+    return true;
+
+  if (can_vec_perm_for_code_p (VEC_INTERLEAVE_HIGH_EXPR, mode, NULL)
+      && can_vec_perm_for_code_p (VEC_INTERLEAVE_LOW_EXPR, mode, NULL))
+    return true;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "interleave op not supported by target.");
@@ -3919,27 +3897,15 @@ vect_permute_store_chain (VEC(tree,heap) *dr_chain,
   tree perm_dest, vect1, vect2, high, low;
   gimple perm_stmt;
   tree vectype = STMT_VINFO_VECTYPE (vinfo_for_stmt (stmt));
-  tree perm_mask_low, perm_mask_high;
-  unsigned int i, n;
-  unsigned int j, nelt = TYPE_VECTOR_SUBPARTS (vectype);
-  unsigned char *sel = XALLOCAVEC (unsigned char, nelt);
+  int i;
+  unsigned int j;
+  enum tree_code high_code, low_code;
+
+  gcc_assert (vect_strided_store_supported (vectype, length));
 
   *result_chain = VEC_copy (tree, heap, dr_chain);
 
-  for (i = 0, n = nelt / 2; i < n; i++)
-    {
-      sel[i * 2] = i;
-      sel[i * 2 + 1] = i + nelt;
-    }
-  perm_mask_high = vect_gen_perm_mask (vectype, sel);
-  gcc_assert (perm_mask_high != NULL);
-
-  for (i = 0; i < nelt; i++)
-    sel[i] += nelt / 2;
-  perm_mask_low = vect_gen_perm_mask (vectype, sel);
-  gcc_assert (perm_mask_low != NULL);
-
-  for (i = 0, n = exact_log2 (length); i < n; i++)
+  for (i = 0; i < exact_log2 (length); i++)
     {
       for (j = 0; j < length/2; j++)
 	{
@@ -3947,27 +3913,42 @@ vect_permute_store_chain (VEC(tree,heap) *dr_chain,
 	  vect2 = VEC_index (tree, dr_chain, j+length/2);
 
 	  /* Create interleaving stmt:
-	     high = VEC_PERM_EXPR <vect1, vect2, {0, nelt, 1, nelt+1, ...}>  */
+	     in the case of big endian:
+                                high = interleave_high (vect1, vect2)
+             and in the case of little endian:
+                                high = interleave_low (vect1, vect2).  */
 	  perm_dest = create_tmp_var (vectype, "vect_inter_high");
 	  DECL_GIMPLE_REG_P (perm_dest) = 1;
 	  add_referenced_var (perm_dest);
-	  high = make_ssa_name (perm_dest, NULL);
-	  perm_stmt
-	    = gimple_build_assign_with_ops3 (VEC_PERM_EXPR, high,
-					     vect1, vect2, perm_mask_high);
+          if (BYTES_BIG_ENDIAN)
+	    {
+	      high_code = VEC_INTERLEAVE_HIGH_EXPR;
+	      low_code = VEC_INTERLEAVE_LOW_EXPR;
+	    }
+	  else
+	    {
+	      low_code = VEC_INTERLEAVE_HIGH_EXPR;
+	      high_code = VEC_INTERLEAVE_LOW_EXPR;
+	    }
+	  perm_stmt = gimple_build_assign_with_ops (high_code, perm_dest,
+						    vect1, vect2);
+	  high = make_ssa_name (perm_dest, perm_stmt);
+	  gimple_assign_set_lhs (perm_stmt, high);
 	  vect_finish_stmt_generation (stmt, perm_stmt, gsi);
 	  VEC_replace (tree, *result_chain, 2*j, high);
 
 	  /* Create interleaving stmt:
-	     low = VEC_PERM_EXPR <vect1, vect2, {nelt/2, nelt*3/2, nelt/2+1,
-						 nelt*3/2+1, ...}>  */
+             in the case of big endian:
+                               low  = interleave_low (vect1, vect2)
+             and in the case of little endian:
+                               low  = interleave_high (vect1, vect2).  */
 	  perm_dest = create_tmp_var (vectype, "vect_inter_low");
 	  DECL_GIMPLE_REG_P (perm_dest) = 1;
 	  add_referenced_var (perm_dest);
-	  low = make_ssa_name (perm_dest, NULL);
-	  perm_stmt
-	    = gimple_build_assign_with_ops3 (VEC_PERM_EXPR, low,
-					     vect1, vect2, perm_mask_low);
+	  perm_stmt = gimple_build_assign_with_ops (low_code, perm_dest,
+						    vect1, vect2);
+	  low = make_ssa_name (perm_dest, perm_stmt);
+	  gimple_assign_set_lhs (perm_stmt, low);
 	  vect_finish_stmt_generation (stmt, perm_stmt, gsi);
 	  VEC_replace (tree, *result_chain, 2*j+1, low);
 	}
@@ -4245,13 +4226,16 @@ vect_setup_realignment (gimple stmt, gimple_stmt_iterator *gsi,
 
 /* Function vect_strided_load_supported.
 
-   Returns TRUE if even and odd permutations are supported,
+   Returns TRUE is EXTRACT_EVEN and EXTRACT_ODD operations are supported,
    and FALSE otherwise.  */
 
 bool
 vect_strided_load_supported (tree vectype, unsigned HOST_WIDE_INT count)
 {
-  enum machine_mode mode = TYPE_MODE (vectype);
+  optab ee_optab, eo_optab;
+  enum machine_mode mode;
+
+  mode = TYPE_MODE (vectype);
 
   /* vect_permute_load_chain requires the group size to be a power of two.  */
   if (exact_log2 (count) == -1)
@@ -4262,22 +4246,18 @@ vect_strided_load_supported (tree vectype, unsigned HOST_WIDE_INT count)
       return false;
     }
 
-  /* Check that the permutation is supported.  */
-  if (VECTOR_MODE_P (mode))
-    {
-      unsigned int i, nelt = GET_MODE_NUNITS (mode);
-      unsigned char *sel = XALLOCAVEC (unsigned char, nelt);
+  ee_optab = optab_for_tree_code (VEC_EXTRACT_EVEN_EXPR,
+				  vectype, optab_default);
+  eo_optab = optab_for_tree_code (VEC_EXTRACT_ODD_EXPR,
+				  vectype, optab_default);
+  if (ee_optab && eo_optab
+      && optab_handler (ee_optab, mode) != CODE_FOR_nothing
+      && optab_handler (eo_optab, mode) != CODE_FOR_nothing)
+    return true;
 
-      for (i = 0; i < nelt; i++)
-	sel[i] = i * 2;
-      if (can_vec_perm_p (mode, false, sel))
-	{
-	  for (i = 0; i < nelt; i++)
-	    sel[i] = i * 2 + 1;
-	  if (can_vec_perm_p (mode, false, sel))
-	    return true;
-	}
-    }
+  if (can_vec_perm_for_code_p (VEC_EXTRACT_EVEN_EXPR, mode, NULL)
+      && can_vec_perm_for_code_p (VEC_EXTRACT_ODD_EXPR, mode, NULL))
+    return true;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "extract even/odd not supported by target");
@@ -4379,28 +4359,17 @@ vect_permute_load_chain (VEC(tree,heap) *dr_chain,
 			 VEC(tree,heap) **result_chain)
 {
   tree perm_dest, data_ref, first_vect, second_vect;
-  tree perm_mask_even, perm_mask_odd;
   gimple perm_stmt;
   tree vectype = STMT_VINFO_VECTYPE (vinfo_for_stmt (stmt));
-  unsigned int i, j, log_length = exact_log2 (length);
-  unsigned nelt = TYPE_VECTOR_SUBPARTS (vectype);
-  unsigned char *sel = XALLOCAVEC (unsigned char, nelt);
+  int i;
+  unsigned int j;
+
+  gcc_assert (vect_strided_load_supported (vectype, length));
 
   *result_chain = VEC_copy (tree, heap, dr_chain);
-
-  for (i = 0; i < nelt; ++i)
-    sel[i] = i * 2;
-  perm_mask_even = vect_gen_perm_mask (vectype, sel);
-  gcc_assert (perm_mask_even != NULL);
-
-  for (i = 0; i < nelt; ++i)
-    sel[i] = i * 2 + 1;
-  perm_mask_odd = vect_gen_perm_mask (vectype, sel);
-  gcc_assert (perm_mask_odd != NULL);
-
-  for (i = 0; i < log_length; i++)
+  for (i = 0; i < exact_log2 (length); i++)
     {
-      for (j = 0; j < length; j += 2)
+      for (j = 0; j < length; j +=2)
 	{
 	  first_vect = VEC_index (tree, dr_chain, j);
 	  second_vect = VEC_index (tree, dr_chain, j+1);
@@ -4410,9 +4379,9 @@ vect_permute_load_chain (VEC(tree,heap) *dr_chain,
 	  DECL_GIMPLE_REG_P (perm_dest) = 1;
 	  add_referenced_var (perm_dest);
 
-	  perm_stmt = gimple_build_assign_with_ops3 (VEC_PERM_EXPR, perm_dest,
-						     first_vect, second_vect,
-						     perm_mask_even);
+	  perm_stmt = gimple_build_assign_with_ops (VEC_EXTRACT_EVEN_EXPR,
+						    perm_dest, first_vect,
+						    second_vect);
 
 	  data_ref = make_ssa_name (perm_dest, perm_stmt);
 	  gimple_assign_set_lhs (perm_stmt, data_ref);
@@ -4426,10 +4395,9 @@ vect_permute_load_chain (VEC(tree,heap) *dr_chain,
 	  DECL_GIMPLE_REG_P (perm_dest) = 1;
 	  add_referenced_var (perm_dest);
 
-	  perm_stmt = gimple_build_assign_with_ops3 (VEC_PERM_EXPR, perm_dest,
-						     first_vect, second_vect,
-						     perm_mask_odd);
-
+	  perm_stmt = gimple_build_assign_with_ops (VEC_EXTRACT_ODD_EXPR,
+						    perm_dest, first_vect,
+						    second_vect);
 	  data_ref = make_ssa_name (perm_dest, perm_stmt);
 	  gimple_assign_set_lhs (perm_stmt, data_ref);
 	  vect_finish_stmt_generation (stmt, perm_stmt, gsi);

@@ -16,7 +16,7 @@ type sendfileOp struct {
 	n   uint32
 }
 
-func (o *sendfileOp) Submit() (err error) {
+func (o *sendfileOp) Submit() (errno int) {
 	return syscall.TransmitFile(o.fd.sysfd, o.src, o.n, 0, &o.o, nil, syscall.TF_WRITE_BEHIND)
 }
 

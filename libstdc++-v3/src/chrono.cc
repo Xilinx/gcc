@@ -42,7 +42,7 @@ namespace std _GLIBCXX_VISIBILITY(default)
     constexpr bool system_clock::is_steady;
 
     system_clock::time_point
-    system_clock::now() noexcept
+    system_clock::now() throw ()
     {
 #ifdef _GLIBCXX_USE_CLOCK_REALTIME
       timespec tp;
@@ -64,9 +64,9 @@ namespace std _GLIBCXX_VISIBILITY(default)
     
 #ifdef _GLIBCXX_USE_CLOCK_MONOTONIC
     constexpr bool steady_clock::is_steady;
-
+    
     steady_clock::time_point
-    steady_clock::now() noexcept
+    steady_clock::now()
     {
       timespec tp;
       // -EINVAL, -EFAULT

@@ -2,7 +2,7 @@
 template <class T >
 struct S
 {
-  S() : S() {} // { dg-message "delegating constructors" }
+  S() : S() {} // { dg-error "base" }
 };
 
-S<int> s;
+S<int> s; // { dg-message "required" }

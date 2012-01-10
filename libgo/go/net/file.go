@@ -13,12 +13,12 @@ import (
 
 func newFileFD(f *os.File) (nfd *netFD, err error) {
 	fd, errno := syscall.Dup(f.Fd())
-	if errno != nil {
+	if errno != 0 {
 		return nil, os.NewSyscallError("dup", errno)
 	}
 
 	proto, errno := syscall.GetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_TYPE)
-	if errno != nil {
+	if errno != 0 {
 		return nil, os.NewSyscallError("getsockopt", errno)
 	}
 

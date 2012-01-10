@@ -187,9 +187,6 @@ struct extern_list *extern_head = 0;
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT		score_trampoline_init
 
-#undef TARGET_REGISTER_MOVE_COST
-#define TARGET_REGISTER_MOVE_COST	score_register_move_cost
-
 /* Return true if SYMBOL is a SYMBOL_REF and OFFSET + SYMBOL points
    to the same object as SYMBOL.  */
 static int
@@ -1001,13 +998,11 @@ score_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
   return score_classify_address (&addr, mode, x, strict);
 }
 
-/* Implement TARGET_REGISTER_MOVE_COST.
-
-   Return a number assessing the cost of moving a register in class
+/* Return a number assessing the cost of moving a register in class
    FROM to class TO. */
-static int
+int
 score_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
-                          reg_class_t from, reg_class_t to)
+                          enum reg_class from, enum reg_class to)
 {
   if (GR_REG_CLASS_P (from))
     {

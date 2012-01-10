@@ -62,7 +62,7 @@ func runcheck(t *testing.T, source, golden string, mode checkMode) {
 
 	// format source
 	var buf bytes.Buffer
-	if err := cfg.Fprint(&buf, fset, prog); err != nil {
+	if _, err := cfg.Fprint(&buf, fset, prog); err != nil {
 		t.Error(err)
 	}
 	res := buf.Bytes()

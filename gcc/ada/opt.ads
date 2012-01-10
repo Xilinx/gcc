@@ -801,12 +801,10 @@ package Opt is
    --  Set to True to skip compile and bind steps (except when Bind_Only is
    --  set to True).
 
-   List_Inherited_Aspects : Boolean := False;
+   List_Inherited_Aspects : Boolean := True;
    --  GNAT
    --  List inherited invariants, preconditions, and postconditions from
-   --  Invariant'Class, Pre'Class, and Post'Class aspects. Also list inherited
-   --  subtype predicates. Set True by use of -gnatw.l and False by use of
-   --  -gnatw.L.
+   --  Invariant'Class, Pre'Class, and Post'Class aspects.
 
    List_Restrictions : Boolean := False;
    --  GNATBIND

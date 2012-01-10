@@ -8,14 +8,13 @@ package build
 import (
 	"bytes"
 	"errors"
+	"exec"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
-	"time"
 )
 
 // Build produces a build Script for the given package.
@@ -151,7 +150,7 @@ func (s *Script) Run() error {
 
 // Stale returns true if the build's inputs are newer than its outputs.
 func (s *Script) Stale() bool {
-	var latest time.Time
+	var latest int64
 	// get latest mtime of outputs
 	for _, file := range s.Output {
 		fi, err := os.Stat(file)
@@ -159,13 +158,13 @@ func (s *Script) Stale() bool {
 			// any error reading output files means stale
 			return true
 		}
-		if mtime := fi.ModTime(); mtime.After(latest) {
-			latest = mtime
+		if m := fi.Mtime_ns; m > latest {
+			latest = m
 		}
 	}
 	for _, file := range s.Input {
 		fi, err := os.Stat(file)
-		if err != nil || fi.ModTime().After(latest) {
+		if err != nil || fi.Mtime_ns > latest {
 			// any error reading input files means stale
 			// (attempt to rebuild to figure out why)
 			return true

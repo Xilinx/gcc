@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-skip-if "" { *-*-* } { "-O0" "-fno-fat-lto-objects" } { "" } } */
+/* { dg-skip-if "" { *-*-* } { "-O0" } { "" } } */
 /* At -O1 DOM threads a jump in a non-optimal way which leads to
    the bogus propagation.  */
 /* { dg-skip-if "" { *-*-* } { "-O1" } { "" } } */

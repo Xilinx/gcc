@@ -109,7 +109,7 @@ func cgoLookupIPCNAME(name string) (addrs []IP, cname string, err error, complet
 		if gerrno == syscall.EAI_NONAME {
 			str = noSuchHost
 		} else if gerrno == syscall.EAI_SYSTEM {
-			str = syscall.GetErrno().Error()
+			str = syscall.Errstr(syscall.GetErrno())
 		} else {
 			str = bytePtrToString(libc_gai_strerror(gerrno))
 		}

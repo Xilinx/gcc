@@ -27,19 +27,17 @@ type InternalBenchmark struct {
 type B struct {
 	N         int
 	benchmark InternalBenchmark
-	ns        time.Duration
+	ns        int64
 	bytes     int64
-	start     time.Time
-	timerOn   bool
+	start     int64
 }
 
 // StartTimer starts timing a test.  This function is called automatically
 // before a benchmark starts, but it can also used to resume timing after
 // a call to StopTimer.
 func (b *B) StartTimer() {
-	if !b.timerOn {
-		b.start = time.Now()
-		b.timerOn = true
+	if b.start == 0 {
+		b.start = time.Nanoseconds()
 	}
 }
 
@@ -47,17 +45,17 @@ func (b *B) StartTimer() {
 // while performing complex initialization that you don't
 // want to measure.
 func (b *B) StopTimer() {
-	if b.timerOn {
-		b.ns += time.Now().Sub(b.start)
-		b.timerOn = false
+	if b.start > 0 {
+		b.ns += time.Nanoseconds() - b.start
 	}
+	b.start = 0
 }
 
 // ResetTimer sets the elapsed benchmark time to zero.
 // It does not affect whether the timer is running.
 func (b *B) ResetTimer() {
-	if b.timerOn {
-		b.start = time.Now()
+	if b.start > 0 {
+		b.start = time.Nanoseconds()
 	}
 	b.ns = 0
 }
@@ -70,7 +68,7 @@ func (b *B) nsPerOp() int64 {
 	if b.N <= 0 {
 		return 0
 	}
-	return b.ns.Nanoseconds() / int64(b.N)
+	return b.ns / int64(b.N)
 }
 
 // runN runs a single benchmark for the specified number of iterations.
@@ -136,14 +134,14 @@ func (b *B) run() BenchmarkResult {
 	n := 1
 	b.runN(n)
 	// Run the benchmark for at least the specified amount of time.
-	d := time.Duration(*benchTime * float64(time.Second))
-	for b.ns < d && n < 1e9 {
+	time := int64(*benchTime * 1e9)
+	for b.ns < time && n < 1e9 {
 		last := n
 		// Predict iterations/sec.
 		if b.nsPerOp() == 0 {
 			n = 1e9
 		} else {
-			n = int(d.Nanoseconds() / b.nsPerOp())
+			n = int(time / b.nsPerOp())
 		}
 		// Run more iterations than we think we'll need for a second (1.5x).
 		// Don't grow too fast in case we had timing errors previously.
@@ -158,23 +156,23 @@ func (b *B) run() BenchmarkResult {
 
 // The results of a benchmark run.
 type BenchmarkResult struct {
-	N     int           // The number of iterations.
-	T     time.Duration // The total time taken.
-	Bytes int64         // Bytes processed in one iteration.
+	N     int   // The number of iterations.
+	Ns    int64 // The total time taken.
+	Bytes int64 // Bytes processed in one iteration.
 }
 
 func (r BenchmarkResult) NsPerOp() int64 {
 	if r.N <= 0 {
 		return 0
 	}
-	return r.T.Nanoseconds() / int64(r.N)
+	return r.Ns / int64(r.N)
 }
 
 func (r BenchmarkResult) mbPerSec() float64 {
-	if r.Bytes <= 0 || r.T <= 0 || r.N <= 0 {
+	if r.Bytes <= 0 || r.Ns <= 0 || r.N <= 0 {
 		return 0
 	}
-	return (float64(r.Bytes) * float64(r.N) / 1e6) / r.T.Seconds()
+	return float64(r.Bytes) * float64(r.N) / float64(r.Ns) * 1e3
 }
 
 func (r BenchmarkResult) String() string {
@@ -189,9 +187,9 @@ func (r BenchmarkResult) String() string {
 		// The format specifiers here make sure that
 		// the ones digits line up for all three possible formats.
 		if nsop < 10 {
-			ns = fmt.Sprintf("%13.2f ns/op", float64(r.T.Nanoseconds())/float64(r.N))
+			ns = fmt.Sprintf("%13.2f ns/op", float64(r.Ns)/float64(r.N))
 		} else {
-			ns = fmt.Sprintf("%12.1f ns/op", float64(r.T.Nanoseconds())/float64(r.N))
+			ns = fmt.Sprintf("%12.1f ns/op", float64(r.Ns)/float64(r.N))
 		}
 	}
 	return fmt.Sprintf("%8d\t%s%s", r.N, ns, mb)
@@ -207,7 +205,7 @@ func RunBenchmarks(matchString func(pat, str string) (bool, error), benchmarks [
 	for _, Benchmark := range benchmarks {
 		matched, err := matchString(*matchBenchmarks, Benchmark.Name)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "testing: invalid regexp for -test.bench: %s\n", err)
+			println("invalid regexp for -test.bench:", err.Error())
 			os.Exit(1)
 		}
 		if !matched {
@@ -220,11 +218,11 @@ func RunBenchmarks(matchString func(pat, str string) (bool, error), benchmarks [
 			if procs != 1 {
 				benchName = fmt.Sprintf("%s-%d", Benchmark.Name, procs)
 			}
-			fmt.Printf("%s\t", benchName)
+			print(fmt.Sprintf("%s\t", benchName))
 			r := b.run()
-			fmt.Printf("%v\n", r)
+			print(fmt.Sprintf("%v\n", r))
 			if p := runtime.GOMAXPROCS(-1); p != procs {
-				fmt.Fprintf(os.Stderr, "testing: %s left GOMAXPROCS set to %d\n", benchName, p)
+				print(fmt.Sprintf("%s left GOMAXPROCS set to %d\n", benchName, p))
 			}
 		}
 	}

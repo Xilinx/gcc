@@ -1,6 +1,5 @@
 /* { dg-do compile } */
 /* { dg-options "-fdump-tree-optimized" } */
-/* { dg-skip-if "" { *-*-* } { "-fno-fat-lto-objects" } { "" } } */
 
 struct st {
     int ptr;

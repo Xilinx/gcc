@@ -78,16 +78,8 @@ pragma Style_Checks ("M32766");
  **  $ RUN xoscons
  **/
 
-/* Feature macro definitions */
-
 #if defined (__linux__) && !defined (_XOPEN_SOURCE)
 /** For Linux _XOPEN_SOURCE must be defined, otherwise IOV_MAX is not defined
- **/
-#define _XOPEN_SOURCE 500
-
-#elif defined (__alpha__) && defined (__osf__)
-/** For Tru64 UNIX, _XOPEN_SOURCE must be defined, otherwise CLOCK_REALTIME
- ** is not defined.
  **/
 #define _XOPEN_SOURCE 500
 
@@ -100,10 +92,6 @@ pragma Style_Checks ("M32766");
 #define IOV_MAX _XOPEN_IOV_MAX
 #endif
 #endif
-
-/* Include gsocket.h before any system header so it can redefine FD_SETSIZE */
-
-#include "gsocket.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -141,6 +129,8 @@ pragma Style_Checks ("M32766");
 
 # include <vxWorks.h>
 #endif
+
+#include "gsocket.h"
 
 #ifdef DUMMY
 
@@ -1385,7 +1375,7 @@ CND(CLOCK_THREAD_CPUTIME_ID, "Thread CPU clock")
 /* There's no clock_gettime or clock_id's on Darwin, generate a dummy value */
 # define CLOCK_RT_Ada "-1"
 
-#elif defined(FreeBSD) || defined(_AIX)
+#elif defined(FreeBSD) || (defined(_AIX) && defined(_AIXVERSION_530))
 /** On these platforms use system provided monotonic clock instead of
  ** the default CLOCK_REALTIME. We then need to set up cond var attributes
  ** appropriately (see thread.c).

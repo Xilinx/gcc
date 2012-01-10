@@ -23,13 +23,12 @@ package netchan
 
 import (
 	"errors"
-	"io"
 	"log"
+	"io"
 	"net"
 	"reflect"
 	"strconv"
 	"sync"
-	"time"
 )
 
 // Export
@@ -323,9 +322,9 @@ func (exp *Exporter) delClient(client *expClient) {
 // those not yet sent to any client and possibly including those sent while
 // Drain was executing, have been received by the importer.  In short, it
 // waits until all the exporter's messages have been received by a client.
-// If the timeout is positive and Drain takes longer than that to complete,
-// an error is returned.
-func (exp *Exporter) Drain(timeout time.Duration) error {
+// If the timeout (measured in nanoseconds) is positive and Drain takes
+// longer than that to complete, an error is returned.
+func (exp *Exporter) Drain(timeout int64) error {
 	// This wrapper function is here so the method's comment will appear in godoc.
 	return exp.clientSet.drain(timeout)
 }
@@ -333,9 +332,10 @@ func (exp *Exporter) Drain(timeout time.Duration) error {
 // Sync waits until all clients of the exporter have received the messages
 // that were sent at the time Sync was invoked.  Unlike Drain, it does not
 // wait for messages sent while it is running or messages that have not been
-// dispatched to any client.  If the timeout is positive and Sync takes longer
-// than that to complete, an error is returned.
-func (exp *Exporter) Sync(timeout time.Duration) error {
+// dispatched to any client.  If the timeout (measured in nanoseconds) is
+// positive and Sync takes longer than that to complete, an error is
+// returned.
+func (exp *Exporter) Sync(timeout int64) error {
 	// This wrapper function is here so the method's comment will appear in godoc.
 	return exp.clientSet.sync(timeout)
 }

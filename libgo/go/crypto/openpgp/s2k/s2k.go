@@ -26,7 +26,6 @@ var zero [1]byte
 // 4880, section 3.7.1.2) using the given hash, input passphrase and salt.
 func Salted(out []byte, h hash.Hash, in []byte, salt []byte) {
 	done := 0
-	var digest []byte
 
 	for i := 0; done < len(out); i++ {
 		h.Reset()
@@ -35,8 +34,7 @@ func Salted(out []byte, h hash.Hash, in []byte, salt []byte) {
 		}
 		h.Write(salt)
 		h.Write(in)
-		digest = h.Sum(digest[:0])
-		n := copy(out[done:], digest)
+		n := copy(out[done:], h.Sum())
 		done += n
 	}
 }
@@ -54,7 +52,6 @@ func Iterated(out []byte, h hash.Hash, in []byte, salt []byte, count int) {
 	}
 
 	done := 0
-	var digest []byte
 	for i := 0; done < len(out); i++ {
 		h.Reset()
 		for j := 0; j < i; j++ {
@@ -71,8 +68,7 @@ func Iterated(out []byte, h hash.Hash, in []byte, salt []byte, count int) {
 				written += len(combined)
 			}
 		}
-		digest = h.Sum(digest[:0])
-		n := copy(out[done:], digest)
+		n := copy(out[done:], h.Sum())
 		done += n
 	}
 }

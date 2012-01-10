@@ -24,7 +24,7 @@ type SockaddrLinklayer struct {
 	raw      RawSockaddrLinklayer
 }
 
-func (sa *SockaddrLinklayer) sockaddr() (*RawSockaddrAny, Socklen_t, error) {
+func (sa *SockaddrLinklayer) sockaddr() (*RawSockaddrAny, Socklen_t, int) {
 	if sa.Ifindex < 0 || sa.Ifindex > 0x7fffffff {
 		return nil, 0, EINVAL
 	}
@@ -37,7 +37,7 @@ func (sa *SockaddrLinklayer) sockaddr() (*RawSockaddrAny, Socklen_t, error) {
 	for i := 0; i < len(sa.Addr); i++ {
 		sa.raw.Addr[i] = sa.Addr[i]
 	}
-	return (*RawSockaddrAny)(unsafe.Pointer(&sa.raw)), SizeofSockaddrLinklayer, nil
+	return (*RawSockaddrAny)(unsafe.Pointer(&sa.raw)), SizeofSockaddrLinklayer, 0
 }
 
 type SockaddrNetlink struct {
@@ -48,12 +48,12 @@ type SockaddrNetlink struct {
 	raw    RawSockaddrNetlink
 }
 
-func (sa *SockaddrNetlink) sockaddr() (*RawSockaddrAny, Socklen_t, error) {
+func (sa *SockaddrNetlink) sockaddr() (*RawSockaddrAny, Socklen_t, int) {
 	sa.raw.Family = AF_NETLINK
 	sa.raw.Pad = sa.Pad
 	sa.raw.Pid = sa.Pid
 	sa.raw.Groups = sa.Groups
-	return (*RawSockaddrAny)(unsafe.Pointer(&sa.raw)), SizeofSockaddrNetlink, nil
+	return (*RawSockaddrAny)(unsafe.Pointer(&sa.raw)), SizeofSockaddrNetlink, 0
 }
 
 type RawSockaddrInet4 struct {
@@ -87,7 +87,7 @@ type RawSockaddrUnix struct {
 func (sa *RawSockaddrUnix) setLen(int) {
 }
 
-func (sa *RawSockaddrUnix) getLen() (int, error) {
+func (sa *RawSockaddrUnix) getLen() (int, int) {
 	if sa.Path[0] == 0 {
 		// "Abstract" Unix domain socket.
 		// Rewrite leading NUL as @ for textual display.
@@ -107,7 +107,7 @@ func (sa *RawSockaddrUnix) getLen() (int, error) {
 		n++
 	}
 
-	return n, nil
+	return n, 0
 }
 
 type RawSockaddrLinklayer struct {
@@ -133,11 +133,11 @@ type RawSockaddr struct {
 }
 
 // BindToDevice binds the socket associated with fd to device.
-func BindToDevice(fd int, device string) (err error) {
+func BindToDevice(fd int, device string) (errno int) {
 	return SetsockoptString(fd, SOL_SOCKET, SO_BINDTODEVICE, device)
 }
 
-func anyToSockaddrOS(rsa *RawSockaddrAny) (Sockaddr, error) {
+func anyToSockaddrOS(rsa *RawSockaddrAny) (Sockaddr, int) {
 	switch rsa.Addr.Family {
 	case AF_NETLINK:
 		pp := (*RawSockaddrNetlink)(unsafe.Pointer(rsa))
@@ -146,7 +146,7 @@ func anyToSockaddrOS(rsa *RawSockaddrAny) (Sockaddr, error) {
 		sa.Pad = pp.Pad
 		sa.Pid = pp.Pid
 		sa.Groups = pp.Groups
-		return sa, nil
+		return sa, 0
 
 	case AF_PACKET:
 		pp := (*RawSockaddrLinklayer)(unsafe.Pointer(rsa))
@@ -159,16 +159,16 @@ func anyToSockaddrOS(rsa *RawSockaddrAny) (Sockaddr, error) {
 		for i := 0; i < len(sa.Addr); i++ {
 			sa.Addr[i] = pp.Addr[i]
 		}
-		return sa, nil
+		return sa, 0
 	}
 	return nil, EAFNOSUPPORT
 }
 
-//sysnb	EpollCreate(size int) (fd int, err error)
+//sysnb	EpollCreate(size int) (fd int, errno int)
 //epoll_create(size int) int
 
-//sysnb	EpollCtl(epfd int, op int, fd int, event *EpollEvent) (err error)
+//sysnb	EpollCtl(epfd int, op int, fd int, event *EpollEvent) (errno int)
 //epoll_ctl(epfd int, op int, fd int, event *EpollEvent) int
 
-//sys	EpollWait(epfd int, events []EpollEvent, msec int) (n int, err error)
+//sys	EpollWait(epfd int, events []EpollEvent, msec int) (n int, errno int)
 //epoll_wait(epfd int, events *EpollEvent, maxevents int, timeout int) int

@@ -11,10 +11,8 @@ This package does not support ZIP64 or disk spanning.
 */
 package zip
 
-import (
-	"errors"
-	"time"
-)
+import "errors"
+import "time"
 
 // Compression methods.
 const (
@@ -76,26 +74,24 @@ func recoverError(errp *error) {
 // The resolution is 2s.
 // See: http://msdn.microsoft.com/en-us/library/ms724247(v=VS.85).aspx
 func msDosTimeToTime(dosDate, dosTime uint16) time.Time {
-	return time.Date(
+	return time.Time{
 		// date bits 0-4: day of month; 5-8: month; 9-15: years since 1980
-		int(dosDate>>9+1980),
-		time.Month(dosDate>>5&0xf),
-		int(dosDate&0x1f),
+		Year:  int64(dosDate>>9 + 1980),
+		Month: int(dosDate >> 5 & 0xf),
+		Day:   int(dosDate & 0x1f),
 
 		// time bits 0-4: second/2; 5-10: minute; 11-15: hour
-		int(dosTime>>11),
-		int(dosTime>>5&0x3f),
-		int(dosTime&0x1f*2),
-		0, // nanoseconds
-
-		time.UTC,
-	)
+		Hour:   int(dosTime >> 11),
+		Minute: int(dosTime >> 5 & 0x3f),
+		Second: int(dosTime & 0x1f * 2),
+	}
 }
 
-// ModTime returns the modification time.
+// Mtime_ns returns the modified time in ns since epoch.
 // The resolution is 2s.
-func (h *FileHeader) ModTime() time.Time {
-	return msDosTimeToTime(h.ModifiedDate, h.ModifiedTime)
+func (h *FileHeader) Mtime_ns() int64 {
+	t := msDosTimeToTime(h.ModifiedDate, h.ModifiedTime)
+	return t.Seconds() * 1e9
 }
 
 // Mode returns the permission and mode bits for the FileHeader.

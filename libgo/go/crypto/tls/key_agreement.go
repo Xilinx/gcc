@@ -5,6 +5,7 @@
 package tls
 
 import (
+	"big"
 	"crypto"
 	"crypto/elliptic"
 	"crypto/md5"
@@ -13,7 +14,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"io"
-	"math/big"
 )
 
 // rsaKeyAgreement implements the standard TLS key agreement where the client
@@ -90,13 +90,13 @@ func md5SHA1Hash(slices ...[]byte) []byte {
 	for _, slice := range slices {
 		hmd5.Write(slice)
 	}
-	copy(md5sha1, hmd5.Sum(nil))
+	copy(md5sha1, hmd5.Sum())
 
 	hsha1 := sha1.New()
 	for _, slice := range slices {
 		hsha1.Write(slice)
 	}
-	copy(md5sha1[md5.Size:], hsha1.Sum(nil))
+	copy(md5sha1[md5.Size:], hsha1.Sum())
 	return md5sha1
 }
 

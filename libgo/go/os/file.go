@@ -14,7 +14,7 @@ import (
 )
 
 // Name returns the name of the file as presented to Open.
-func (f *File) Name() string { return f.name }
+func (file *File) Name() string { return file.name }
 
 // Stdin, Stdout, and Stderr are open Files pointing to the standard input,
 // standard output, and standard error file descriptors.
@@ -51,38 +51,38 @@ const (
 // Read reads up to len(b) bytes from the File.
 // It returns the number of bytes read and an error, if any.
 // EOF is signaled by a zero count with err set to io.EOF.
-func (f *File) Read(b []byte) (n int, err error) {
-	if f == nil {
+func (file *File) Read(b []byte) (n int, err error) {
+	if file == nil {
 		return 0, EINVAL
 	}
-	n, e := f.read(b)
+	n, e := file.read(b)
 	if n < 0 {
 		n = 0
 	}
-	if n == 0 && len(b) > 0 && e == nil {
+	if n == 0 && len(b) > 0 && !iserror(e) {
 		return 0, io.EOF
 	}
-	if e != nil {
-		err = &PathError{"read", f.name, e}
+	if iserror(e) {
+		err = &PathError{"read", file.name, Errno(e)}
 	}
 	return n, err
 }
 
 // ReadAt reads len(b) bytes from the File starting at byte offset off.
 // It returns the number of bytes read and the error, if any.
-// ReadAt always returns a non-nil error when n < len(b).
-// At end of file, that error is io.EOF.
-func (f *File) ReadAt(b []byte, off int64) (n int, err error) {
-	if f == nil {
+// EOF is signaled by a zero count with err set to io.EOF.
+// ReadAt always returns a non-nil error when n != len(b).
+func (file *File) ReadAt(b []byte, off int64) (n int, err error) {
+	if file == nil {
 		return 0, EINVAL
 	}
 	for len(b) > 0 {
-		m, e := f.pread(b, off)
-		if m == 0 && e == nil {
+		m, e := file.pread(b, off)
+		if m == 0 && !iserror(e) {
 			return n, io.EOF
 		}
-		if e != nil {
-			err = &PathError{"read", f.name, e}
+		if iserror(e) {
+			err = &PathError{"read", file.name, Errno(e)}
 			break
 		}
 		n += m
@@ -95,19 +95,19 @@ func (f *File) ReadAt(b []byte, off int64) (n int, err error) {
 // Write writes len(b) bytes to the File.
 // It returns the number of bytes written and an error, if any.
 // Write returns a non-nil error when n != len(b).
-func (f *File) Write(b []byte) (n int, err error) {
-	if f == nil {
+func (file *File) Write(b []byte) (n int, err error) {
+	if file == nil {
 		return 0, EINVAL
 	}
-	n, e := f.write(b)
+	n, e := file.write(b)
 	if n < 0 {
 		n = 0
 	}
 
-	epipecheck(f, e)
+	epipecheck(file, e)
 
-	if e != nil {
-		err = &PathError{"write", f.name, e}
+	if iserror(e) {
+		err = &PathError{"write", file.name, Errno(e)}
 	}
 	return n, err
 }
@@ -115,14 +115,14 @@ func (f *File) Write(b []byte) (n int, err error) {
 // WriteAt writes len(b) bytes to the File starting at byte offset off.
 // It returns the number of bytes written and an error, if any.
 // WriteAt returns a non-nil error when n != len(b).
-func (f *File) WriteAt(b []byte, off int64) (n int, err error) {
-	if f == nil {
+func (file *File) WriteAt(b []byte, off int64) (n int, err error) {
+	if file == nil {
 		return 0, EINVAL
 	}
 	for len(b) > 0 {
-		m, e := f.pwrite(b, off)
-		if e != nil {
-			err = &PathError{"write", f.name, e}
+		m, e := file.pwrite(b, off)
+		if iserror(e) {
+			err = &PathError{"write", file.name, Errno(e)}
 			break
 		}
 		n += m
@@ -136,40 +136,40 @@ func (f *File) WriteAt(b []byte, off int64) (n int, err error) {
 // according to whence: 0 means relative to the origin of the file, 1 means
 // relative to the current offset, and 2 means relative to the end.
 // It returns the new offset and an error, if any.
-func (f *File) Seek(offset int64, whence int) (ret int64, err error) {
-	r, e := f.seek(offset, whence)
-	if e == nil && f.dirinfo != nil && r != 0 {
+func (file *File) Seek(offset int64, whence int) (ret int64, err error) {
+	r, e := file.seek(offset, whence)
+	if !iserror(e) && file.dirinfo != nil && r != 0 {
 		e = syscall.EISDIR
 	}
-	if e != nil {
-		return 0, &PathError{"seek", f.name, e}
+	if iserror(e) {
+		return 0, &PathError{"seek", file.name, Errno(e)}
 	}
 	return r, nil
 }
 
 // WriteString is like Write, but writes the contents of string s rather than
 // an array of bytes.
-func (f *File) WriteString(s string) (ret int, err error) {
-	if f == nil {
+func (file *File) WriteString(s string) (ret int, err error) {
+	if file == nil {
 		return 0, EINVAL
 	}
-	return f.Write([]byte(s))
+	return file.Write([]byte(s))
 }
 
 // Mkdir creates a new directory with the specified name and permission bits.
 // It returns an error, if any.
 func Mkdir(name string, perm uint32) error {
 	e := syscall.Mkdir(name, perm)
-	if e != nil {
-		return &PathError{"mkdir", name, e}
+	if iserror(e) {
+		return &PathError{"mkdir", name, Errno(e)}
 	}
 	return nil
 }
 
 // Chdir changes the current working directory to the named directory.
 func Chdir(dir string) error {
-	if e := syscall.Chdir(dir); e != nil {
-		return &PathError{"chdir", dir, e}
+	if e := syscall.Chdir(dir); iserror(e) {
+		return &PathError{"chdir", dir, Errno(e)}
 	}
 	return nil
 }
@@ -177,8 +177,8 @@ func Chdir(dir string) error {
 // Chdir changes the current working directory to the file,
 // which must be a directory.
 func (f *File) Chdir() error {
-	if e := syscall.Fchdir(f.fd); e != nil {
-		return &PathError{"chdir", f.name, e}
+	if e := syscall.Fchdir(f.fd); iserror(e) {
+		return &PathError{"chdir", f.name, Errno(e)}
 	}
 	return nil
 }

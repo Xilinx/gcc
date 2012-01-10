@@ -110,6 +110,6 @@ func Signame(sig int32) (name String) {
 }
 
 func Siginit() {
-	runtime_initsig(SigQueue);
+	runtime_initsig(1);
 	sig.inuse = true;	// enable reception of signals; cannot disable
 }

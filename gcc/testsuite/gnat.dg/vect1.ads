@@ -8,7 +8,6 @@ package Vect1 is
    for Varray'Alignment use 16;
 
    function "+" (X, Y : Varray) return Varray;
-   procedure Add (X, Y : Varray; R : out Varray);
    procedure Add (X, Y : not null access Varray; R : not null access Varray);
 
 
@@ -17,7 +16,6 @@ package Vect1 is
    for Sarray'Alignment use 16;
 
    function "+" (X, Y : Sarray) return Sarray;
-   procedure Add (X, Y : Sarray; R : out Sarray);
    procedure Add (X, Y : not null access Sarray; R : not null access Sarray);
 
 
@@ -25,7 +23,6 @@ package Vect1 is
    for Darray1'Alignment use 16;
 
    function "+" (X, Y : Darray1) return Darray1;
-   procedure Add (X, Y : Darray1; R : out Darray1);
    procedure Add (X, Y : not null access Darray1; R : not null access Darray1);
 
 
@@ -33,7 +30,6 @@ package Vect1 is
    for Darray2'Alignment use 16;
 
    function "+" (X, Y : Darray2) return Darray2;
-   procedure Add (X, Y : Darray2; R : out Darray2);
    procedure Add (X, Y : not null access Darray2; R : not null access Darray2);
 
 
@@ -41,7 +37,6 @@ package Vect1 is
    for Darray3'Alignment use 16;
 
    function "+" (X, Y : Darray3) return Darray3;
-   procedure Add (X, Y : Darray3; R : out Darray3);
    procedure Add (X, Y : not null access Darray3; R : not null access Darray3);
 
 end Vect1;

@@ -5,22 +5,21 @@
    license that can be found in the LICENSE file.  */
 
 #include <errno.h>
-#include <stdint.h>
 
 /* errno is typically a macro. These functions set 
    and get errno specific to the libc being used.  */
 
-uintptr_t GetErrno() asm ("libgo_syscall.syscall.GetErrno");
-void SetErrno(uintptr_t) asm ("libgo_syscall.syscall.SetErrno");
+int GetErrno() asm ("libgo_syscall.syscall.GetErrno");
+void SetErrno(int) asm ("libgo_syscall.syscall.SetErrno");
 
-uintptr_t
+int 
 GetErrno()
 {
-  return (uintptr_t) errno;
+  return errno;
 }
 
 void
-SetErrno(uintptr_t value)
+SetErrno(int value)
 {
-  errno = (int) value;
+  errno = value;
 }

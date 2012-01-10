@@ -26,7 +26,6 @@
 
 #include "libitm_i.h"
 #include "futex.h"
-#include <futex_bits.h>
 #include <errno.h>
 
 namespace GTM HIDDEN {
@@ -41,7 +40,7 @@ static long int gtm_futex_wake = FUTEX_WAKE | FUTEX_PRIVATE_FLAG;
 
 
 void
-futex_wait (std::atomic<int> *addr, int val)
+futex_wait (int *addr, int val)
 {
   long res;
 
@@ -65,7 +64,7 @@ futex_wait (std::atomic<int> *addr, int val)
 
 
 long
-futex_wake (std::atomic<int> *addr, int count)
+futex_wake (int *addr, int count)
 {
   long res = sys_futex0 (addr, gtm_futex_wake, count);
   if (__builtin_expect (res == -ENOSYS, 0))

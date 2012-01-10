@@ -11,42 +11,38 @@ import (
 	"unsafe"
 )
 
-//sysnb	raw_fork() (pid Pid_t, err Errno)
+//sysnb	raw_fork() (pid Pid_t, errno int)
 //fork() Pid_t
 
-//sysnb raw_setsid() (err Errno)
+//sysnb raw_setsid() (errno int)
 //setsid() Pid_t
 
-//sysnb raw_setpgid(pid int, pgid int) (err Errno)
-//setpgid(pid Pid_t, pgid Pid_t) int
-
-//sysnb	raw_chroot(path *byte) (err Errno)
+//sysnb	raw_chroot(path *byte) (errno int)
 //chroot(path *byte) int
 
-//sysnb	raw_chdir(path *byte) (err Errno)
+//sysnb	raw_chdir(path *byte) (errno int)
 //chdir(path *byte) int
 
-//sysnb	raw_fcntl(fd int, cmd int, arg int) (val int, err Errno)
+//sysnb	raw_fcntl(fd int, cmd int, arg int) (val int, errno int)
 //fcntl(fd int, cmd int, arg int) int
 
-//sysnb	raw_close(fd int) (err Errno)
+//sysnb	raw_close(fd int) (errno int)
 //close(fd int) int
 
-//sysnb	raw_ioctl(fd int, cmd int, val int) (rval int, err Errno)
+//sysnb	raw_ioctl(fd int, cmd int, val int) (rval int, errno int)
 //ioctl(fd int, cmd int, val int) int
 
-//sysnb	raw_execve(argv0 *byte, argv **byte, envv **byte) (err Errno)
+//sysnb	raw_execve(argv0 *byte, argv **byte, envv **byte) (errno int)
 //execve(argv0 *byte, argv **byte, envv **byte) int
 
-//sysnb	raw_write(fd int, buf *byte, count int) (err Errno)
+//sysnb	raw_read(fd int, p *byte, np int) (n int, errno int)
+//read(fd int, buf *byte, count Size_t) Ssize_t
+
+//sysnb	raw_write(fd int, buf *byte, count int) int
 //write(fd int, buf *byte, count Size_t) Ssize_t
 
 //sysnb	raw_exit(status int)
 //_exit(status int)
-
-// Note: not raw, returns error rather than Errno.
-//sys	read(fd int, p *byte, np int) (n int, err error)
-//read(fd int, buf *byte, count Size_t) Ssize_t
 
 // Lock synchronizing creation of new file descriptors with fork.
 //
@@ -110,9 +106,9 @@ func StringSlicePtr(ss []string) []*byte {
 
 func CloseOnExec(fd int) { fcntl(fd, F_SETFD, FD_CLOEXEC) }
 
-func SetNonblock(fd int, nonblocking bool) (err error) {
+func SetNonblock(fd int, nonblocking bool) (errno int) {
 	flag, err := fcntl(fd, F_GETFL, 0)
-	if err != nil {
+	if err != 0 {
 		return err
 	}
 	if nonblocking {
@@ -125,22 +121,20 @@ func SetNonblock(fd int, nonblocking bool) (err error) {
 }
 
 // Fork, dup fd onto 0..len(fd), and exec(argv0, argvv, envv) in child.
-// If a dup or exec fails, write the errno error to pipe.
+// If a dup or exec fails, write the errno int to pipe.
 // (Pipe is close-on-exec so if exec succeeds, it will be closed.)
 // In the child, this function must not acquire any locks, because
 // they might have been locked at the time of the fork.  This means
 // no rescheduling, no malloc calls, and no new stack segments.
 // The calls to RawSyscall are okay because they are assembly
 // functions that do not grow the stack.
-func forkAndExecInChild(argv0 *byte, argv, envv []*byte, chroot, dir *byte, attr *ProcAttr, sys *SysProcAttr, pipe int) (pid int, err Errno) {
+func forkAndExecInChild(argv0 *byte, argv, envv []*byte, chroot, dir *byte, attr *ProcAttr, sys *SysProcAttr, pipe int) (pid int, err int) {
 	// Declare all variables at top in case any
 	// declarations require heap allocation (e.g., err1).
-	var (
-		r1 Pid_t
-		err1 Errno
-		nextfd int
-		i int
-	)
+	var r1 Pid_t
+	var err1 int
+	var nextfd int
+	var i int
 
 	// guard against side effects of shuffling fds below.
 	fd := append([]int(nil), attr.Files...)
@@ -149,7 +143,7 @@ func forkAndExecInChild(argv0 *byte, argv, envv []*byte, chroot, dir *byte, attr
 	// No more allocation or calls of non-assembly functions.
 	r1, err1 = raw_fork()
 	if err1 != 0 {
-		return 0, err1
+		return 0, int(err1)
 	}
 
 	if r1 != 0 {
@@ -177,7 +171,7 @@ func forkAndExecInChild(argv0 *byte, argv, envv []*byte, chroot, dir *byte, attr
 
 	// Set process group
 	if sys.Setpgid {
-		err1 = raw_setpgid(0, 0)
+		err1 = Setpgid(0, 0)
 		if err1 != 0 {
 			goto childerror
 		}
@@ -195,35 +189,23 @@ func forkAndExecInChild(argv0 *byte, argv, envv []*byte, chroot, dir *byte, attr
 	if cred := sys.Credential; cred != nil {
 		ngroups := len(cred.Groups)
 		if ngroups == 0 {
-			err2 := setgroups(0, nil)
-			if err2 == nil {
-				err1 = 0
-			} else {
-				err1 = err2.(Errno)
-			}
+			err1 = setgroups(0, nil)
 		} else {
 			groups := make([]Gid_t, ngroups)
 			for i, v := range cred.Groups {
 				groups[i] = Gid_t(v)
 			}
-			err2 := setgroups(ngroups, &groups[0])
-			if err2 == nil {
-				err1 = 0
-			} else {
-				err1 = err2.(Errno)
-			}
+			err1 = setgroups(ngroups, &groups[0])
 		}
 		if err1 != 0 {
 			goto childerror
 		}
-		err2 := Setgid(int(cred.Gid))
-		if err2 != nil {
-			err1 = err2.(Errno)
+		err1 = Setgid(int(cred.Gid))
+		if err1 != 0 {
 			goto childerror
 		}
-		err2 = Setuid(int(cred.Uid))
-		if err2 != nil {
-			err1 = err2.(Errno)
+		err1 = Setuid(int(cred.Uid))
+		if err1 != 0 {
 			goto childerror
 		}
 	}
@@ -240,9 +222,8 @@ func forkAndExecInChild(argv0 *byte, argv, envv []*byte, chroot, dir *byte, attr
 	// so that pass 2 won't stomp on an fd it needs later.
 	nextfd = int(len(fd))
 	if pipe < nextfd {
-		_, err2 := Dup2(pipe, nextfd)
-		if err2 != nil {
-			err1 = err2.(Errno)
+		_, err1 = Dup2(pipe, nextfd)
+		if err1 != 0 {
 			goto childerror
 		}
 		raw_fcntl(nextfd, F_SETFD, FD_CLOEXEC)
@@ -251,9 +232,8 @@ func forkAndExecInChild(argv0 *byte, argv, envv []*byte, chroot, dir *byte, attr
 	}
 	for i = 0; i < len(fd); i++ {
 		if fd[i] >= 0 && fd[i] < int(i) {
-			_, err2 := Dup2(fd[i], nextfd)
-			if err2 != nil {
-				err1 = err2.(Errno)
+			_, err1 = Dup2(fd[i], nextfd)
+			if err1 != 0 {
 				goto childerror
 			}
 			raw_fcntl(nextfd, F_SETFD, FD_CLOEXEC)
@@ -282,9 +262,8 @@ func forkAndExecInChild(argv0 *byte, argv, envv []*byte, chroot, dir *byte, attr
 		}
 		// The new fd is created NOT close-on-exec,
 		// which is exactly what we want.
-		_, err2 := Dup2(fd[i], i)
-		if err2 != nil {
-			err1 = err2.(Errno)
+		_, err1 = Dup2(fd[i], i)
+		if err1 != 0 {
 			goto childerror
 		}
 	}
@@ -359,10 +338,10 @@ type SysProcAttr struct {
 var zeroProcAttr ProcAttr
 var zeroSysProcAttr SysProcAttr
 
-func forkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error) {
+func forkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err int) {
 	var p [2]int
 	var n int
-	var err1 Errno
+	var err1 uintptr
 	var wstatus WaitStatus
 
 	if attr == nil {
@@ -400,32 +379,32 @@ func forkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error) 
 	ForkLock.Lock()
 
 	// Allocate child status pipe close on exec.
-	if err = Pipe(p[0:]); err != nil {
+	if err = Pipe(p[0:]); err != 0 {
 		goto error
 	}
-	if _, err = fcntl(p[0], F_SETFD, FD_CLOEXEC); err != nil {
+	if _, err = fcntl(p[0], F_SETFD, FD_CLOEXEC); err != 0 {
 		goto error
 	}
-	if _, err = fcntl(p[1], F_SETFD, FD_CLOEXEC); err != nil {
+	if _, err = fcntl(p[1], F_SETFD, FD_CLOEXEC); err != 0 {
 		goto error
 	}
 
 	// Kick off child.
-	pid, err1 = forkAndExecInChild(argv0p, argvp, envvp, chroot, dir, attr, sys, p[1])
-	if err1 != 0 {
+	pid, err = forkAndExecInChild(argv0p, argvp, envvp, chroot, dir, attr, sys, p[1])
+	if err != 0 {
 		goto error
 	}
 	ForkLock.Unlock()
 
 	// Read child error status from pipe.
 	Close(p[1])
-	n, err = read(p[0], (*byte)(unsafe.Pointer(&err1)), int(unsafe.Sizeof(err1)))
+	n, err = raw_read(p[0], (*byte)(unsafe.Pointer(&err1)), int(unsafe.Sizeof(err1)))
 	Close(p[0])
-	if err != nil || n != 0 {
+	if err != 0 || n != 0 {
 		if n == int(unsafe.Sizeof(err1)) {
-			err = Errno(err1)
+			err = int(err1)
 		}
-		if err == nil {
+		if err == 0 {
 			err = EPIPE
 		}
 
@@ -439,7 +418,7 @@ func forkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error) 
 	}
 
 	// Read got EOF, so pipe closed on exec, so exec succeeded.
-	return pid, nil
+	return pid, 0
 
 error:
 	if p[0] >= 0 {
@@ -451,20 +430,20 @@ error:
 }
 
 // Combination of fork and exec, careful to be thread safe.
-func ForkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error) {
+func ForkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err int) {
 	return forkExec(argv0, argv, attr)
 }
 
 // StartProcess wraps ForkExec for package os.
-func StartProcess(argv0 string, argv []string, attr *ProcAttr) (pid, handle int, err error) {
+func StartProcess(argv0 string, argv []string, attr *ProcAttr) (pid, handle int, err int) {
 	pid, err = forkExec(argv0, argv, attr)
 	return pid, 0, err
 }
 
 // Ordinary exec.
-func Exec(argv0 string, argv []string, envv []string) (err error) {
+func Exec(argv0 string, argv []string, envv []string) (err int) {
 	err1 := raw_execve(StringBytePtr(argv0),
 		&StringSlicePtr(argv)[0],
 		&StringSlicePtr(envv)[0])
-	return Errno(err1)
+	return int(err1)
 }

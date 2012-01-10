@@ -1277,10 +1277,8 @@ package body Ada.Containers.Doubly_Linked_Lists is
    -- Reference --
    ---------------
 
-   function Constant_Reference
-     (Container : List;
-      Position  : Cursor) return Constant_Reference_Type
-   is
+   function Constant_Reference (Container : List; Position : Cursor)
+   return Constant_Reference_Type is
    begin
       pragma Unreferenced (Container);
 
@@ -1291,10 +1289,8 @@ package body Ada.Containers.Doubly_Linked_Lists is
       return (Element => Position.Node.Element'Access);
    end Constant_Reference;
 
-   function Reference
-     (Container : List;
-      Position  : Cursor) return Reference_Type
-   is
+   function Reference (Container : List; Position : Cursor)
+   return Reference_Type is
    begin
       pragma Unreferenced (Container);
 

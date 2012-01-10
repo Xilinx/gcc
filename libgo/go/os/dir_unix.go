@@ -19,7 +19,7 @@ const (
 //
 // If n > 0, Readdirnames returns at most n names. In this case, if
 // Readdirnames returns an empty slice, it will return a non-nil error
-// explaining why. At the end of a directory, the error is io.EOF.
+// explaining why. At the end of a directory, the error is os.EOF.
 //
 // If n <= 0, Readdirnames returns all the names from the directory in
 // a single slice. In this case, if Readdirnames succeeds (reads all
@@ -47,9 +47,9 @@ func (f *File) Readdirnames(n int) (names []string, err error) {
 		// Refill the buffer if necessary
 		if d.bufp >= d.nbuf {
 			d.bufp = 0
-			var errno error
+			var errno int
 			d.nbuf, errno = syscall.ReadDirent(f.fd, d.buf)
-			if errno != nil {
+			if errno != 0 {
 				return names, NewSyscallError("readdirent", errno)
 			}
 			if d.nbuf <= 0 {

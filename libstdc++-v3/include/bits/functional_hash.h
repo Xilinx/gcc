@@ -57,9 +57,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   template<typename _Tp>
     struct hash : public __hash_base<size_t, _Tp>
     {
-      static_assert(sizeof(_Tp) < 0,
-		    "std::hash is not specialized for this type");
-      size_t operator()(const _Tp&) const noexcept;
+      size_t
+      operator()(_Tp __val) const;
     };
 
   /// Partial specializations for pointer types.

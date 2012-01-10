@@ -3735,8 +3735,6 @@ gfc_has_default_initializer (gfc_symbol *der)
         if (!c->attr.pointer
 	     && gfc_has_default_initializer (c->ts.u.derived))
 	  return true;
-	if (c->attr.pointer && c->initializer)
-	  return true;
       }
     else
       {
@@ -3746,7 +3744,6 @@ gfc_has_default_initializer (gfc_symbol *der)
 
   return false;
 }
-
 
 /* Get an expression for a default initializer.  */
 
@@ -4309,11 +4306,7 @@ gfc_get_corank (gfc_expr *e)
   if (!gfc_is_coarray (e))
     return 0;
 
-  if (e->ts.type == BT_CLASS && e->ts.u.derived->components)
-    corank = e->ts.u.derived->components->as
-	     ? e->ts.u.derived->components->as->corank : 0;
-  else 
-    corank = e->symtree->n.sym->as ? e->symtree->n.sym->as->corank : 0;
+  corank = e->symtree->n.sym->as ? e->symtree->n.sym->as->corank : 0;
 
   for (ref = e->ref; ref; ref = ref->next)
     {
@@ -4398,7 +4391,6 @@ gfc_is_simply_contiguous (gfc_expr *expr, bool strict)
   int i;
   gfc_array_ref *ar = NULL;
   gfc_ref *ref, *part_ref = NULL;
-  gfc_symbol *sym;
 
   if (expr->expr_type == EXPR_FUNCTION)
     return expr->value.function.esym
@@ -4422,15 +4414,11 @@ gfc_is_simply_contiguous (gfc_expr *expr, bool strict)
 	ar = &ref->u.ar;
     }
 
-  sym = expr->symtree->n.sym;
-  if (expr->ts.type != BT_CLASS
-	&& ((part_ref
-		&& !part_ref->u.c.component->attr.contiguous
-		&& part_ref->u.c.component->attr.pointer)
-	    || (!part_ref
-		&& !sym->attr.contiguous
-		&& (sym->attr.pointer
-		      || sym->as->type == AS_ASSUMED_SHAPE))))
+  if ((part_ref && !part_ref->u.c.component->attr.contiguous
+       && part_ref->u.c.component->attr.pointer)
+      || (!part_ref && !expr->symtree->n.sym->attr.contiguous
+	  && (expr->symtree->n.sym->attr.pointer
+	      || expr->symtree->n.sym->as->type == AS_ASSUMED_SHAPE)))
     return false;
 
   if (!ar || ar->type == AR_FULL)
@@ -4690,24 +4678,9 @@ gfc_check_vardef_context (gfc_expr* e, bool pointer, bool alloc_obj,
       return FAILURE;
     }
 
-  if (!pointer && context && gfc_implicit_pure (NULL)
-      && gfc_impure_variable (sym))
-    {
-      gfc_namespace *ns;
-      gfc_symbol *sym;
+  if (!pointer && gfc_implicit_pure (NULL) && gfc_impure_variable (sym))
+    gfc_current_ns->proc_name->attr.implicit_pure = 0;
 
-      for (ns = gfc_current_ns; ns; ns = ns->parent)
-	{
-	  sym = ns->proc_name;
-	  if (sym == NULL)
-	    break;
-	  if (sym->attr.flavor == FL_PROCEDURE)
-	    {
-	      sym->attr.implicit_pure = 0;
-	      break;
-	    }
-	}
-    }
   /* Check variable definition context for associate-names.  */
   if (!pointer && sym->assoc)
     {

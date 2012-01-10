@@ -2027,50 +2027,6 @@ unsuitable_loc (rtx loc)
     }
 }
 
-/* Bind VAL to LOC in SET.  If MODIFIED, detach LOC from any values
-   bound to it.  */
-
-static inline void
-val_bind (dataflow_set *set, rtx val, rtx loc, bool modified)
-{
-  if (REG_P (loc))
-    {
-      if (modified)
-	var_regno_delete (set, REGNO (loc));
-      var_reg_decl_set (set, loc, VAR_INIT_STATUS_INITIALIZED,
-			dv_from_value (val), 0, NULL_RTX, INSERT);
-    }
-  else if (MEM_P (loc))
-    {
-      struct elt_loc_list *l = CSELIB_VAL_PTR (val)->locs;
-
-      if (l && GET_CODE (l->loc) == VALUE)
-	l = canonical_cselib_val (CSELIB_VAL_PTR (l->loc))->locs;
-
-      /* If this MEM is a global constant, we don't need it in the
-	 dynamic tables.  ??? We should test this before emitting the
-	 micro-op in the first place.  */
-      while (l)
-	if (GET_CODE (l->loc) == MEM && XEXP (l->loc, 0) == XEXP (loc, 0))
-	  break;
-	else
-	  l = l->next;
-
-      if (!l)
-	var_mem_decl_set (set, loc, VAR_INIT_STATUS_INITIALIZED,
-			  dv_from_value (val), 0, NULL_RTX, INSERT);
-    }
-  else
-    {
-      /* Other kinds of equivalences are necessarily static, at least
-	 so long as we do not perform substitutions while merging
-	 expressions.  */
-      gcc_unreachable ();
-      set_variable_part (set, loc, dv_from_value (val), 0,
-			 VAR_INIT_STATUS_INITIALIZED, NULL_RTX, INSERT);
-    }
-}
-
 /* Bind a value to a location it was just stored in.  If MODIFIED
    holds, assume the location was modified, detaching it from any
    values bound to it.  */
@@ -2102,7 +2058,21 @@ val_store (dataflow_set *set, rtx val, rtx loc, rtx insn, bool modified)
 
   gcc_checking_assert (!unsuitable_loc (loc));
 
-  val_bind (set, val, loc, modified);
+  if (REG_P (loc))
+    {
+      if (modified)
+	var_regno_delete (set, REGNO (loc));
+      var_reg_decl_set (set, loc, VAR_INIT_STATUS_INITIALIZED,
+			dv_from_value (val), 0, NULL_RTX, INSERT);
+    }
+  else if (MEM_P (loc))
+    var_mem_decl_set (set, loc, VAR_INIT_STATUS_INITIALIZED,
+		      dv_from_value (val), 0, NULL_RTX, INSERT);
+  else
+    /* ??? Ideally we wouldn't get these, and use them from the static
+       cselib loc list.  */
+    set_variable_part (set, loc, dv_from_value (val), 0,
+		       VAR_INIT_STATUS_INITIALIZED, NULL_RTX, INSERT);
 }
 
 /* Reset this node, detaching all its equivalences.  Return the slot
@@ -2217,13 +2187,20 @@ val_resolve (dataflow_set *set, rtx val, rtx loc, rtx insn)
 
       /* If we didn't find any equivalence, we need to remember that
 	 this value is held in the named register.  */
-      if (found)
-	return;
+      if (!found)
+	var_reg_decl_set (set, loc, VAR_INIT_STATUS_INITIALIZED,
+			  dv_from_value (val), 0, NULL_RTX, INSERT);
     }
-  /* ??? Attempt to find and merge equivalent MEMs or other
-     expressions too.  */
-
-  val_bind (set, val, loc, false);
+  else if (MEM_P (loc))
+    /* ??? Merge equivalent MEMs.  */
+    var_mem_decl_set (set, loc, VAR_INIT_STATUS_INITIALIZED,
+		      dv_from_value (val), 0, NULL_RTX, INSERT);
+  else
+    /* ??? Ideally we wouldn't get these, and use them from the static
+       cselib loc list.  */
+    /* ??? Merge equivalent expressions.  */
+    set_variable_part (set, loc, dv_from_value (val), 0,
+		       VAR_INIT_STATUS_INITIALIZED, NULL_RTX, INSERT);
 }
 
 /* Initialize dataflow set SET to be empty.
@@ -5069,6 +5046,10 @@ log_op_type (rtx x, basic_block bb, rtx insn,
    MO_CLOBBER as well.  */
 #define VAL_EXPR_IS_CLOBBERED(x) \
   (RTL_FLAG_CHECK1 ("VAL_EXPR_IS_CLOBBERED", (x), CONCAT)->unchanging)
+/* Whether the location is a CONCAT of the MO_VAL_SET expression and
+   a reverse operation that should be handled afterwards.  */
+#define VAL_EXPR_HAS_REVERSE(x) \
+  (RTL_FLAG_CHECK1 ("VAL_EXPR_HAS_REVERSE", (x), CONCAT)->return_val)
 
 /* All preserved VALUEs.  */
 static VEC (rtx, heap) *preserved_values;
@@ -5148,7 +5129,28 @@ add_uses (rtx *ploc, void *data)
 				 GET_MODE (mloc));
 
 	      if (val && !cselib_preserved_value_p (val))
-		preserve_value (val);
+		{
+		  micro_operation moa;
+		  preserve_value (val);
+
+		  if (GET_CODE (XEXP (mloc, 0)) != ENTRY_VALUE
+		      && (GET_CODE (XEXP (mloc, 0)) != PLUS
+			  || XEXP (XEXP (mloc, 0), 0) != cfa_base_rtx
+			  || !CONST_INT_P (XEXP (XEXP (mloc, 0), 1))))
+		    {
+		      mloc = cselib_subst_to_values (XEXP (mloc, 0),
+						     GET_MODE (mloc));
+		      moa.type = MO_VAL_USE;
+		      moa.insn = cui->insn;
+		      moa.u.loc = gen_rtx_CONCAT (address_mode,
+						  val->val_rtx, mloc);
+		      if (dump_file && (dump_flags & TDF_DETAILS))
+			log_op_type (moa.u.loc, cui->bb, cui->insn,
+				     moa.type, dump_file);
+		      VEC_safe_push (micro_operation, heap, VTI (bb)->mos,
+				     &moa);
+		    }
+		}
 	    }
 
 	  if (CONSTANT_P (vloc)
@@ -5160,11 +5162,7 @@ add_uses (rtx *ploc, void *data)
 	    {
 	      enum machine_mode mode2;
 	      enum micro_operation_type type2;
-	      rtx nloc = NULL;
-	      bool resolvable = REG_P (vloc) || MEM_P (vloc);
-
-	      if (resolvable)
-		nloc = replace_expr_with_values (vloc);
+	      rtx nloc = replace_expr_with_values (vloc);
 
 	      if (nloc)
 		{
@@ -5182,7 +5180,7 @@ add_uses (rtx *ploc, void *data)
 	      if (type2 == MO_CLOBBER
 		  && !cselib_preserved_value_p (val))
 		{
-		  VAL_NEEDS_RESOLUTION (oloc) = resolvable;
+		  VAL_NEEDS_RESOLUTION (oloc) = 1;
 		  preserve_value (val);
 		}
 	    }
@@ -5214,7 +5212,28 @@ add_uses (rtx *ploc, void *data)
 				 GET_MODE (mloc));
 
 	      if (val && !cselib_preserved_value_p (val))
-		preserve_value (val);
+		{
+		  micro_operation moa;
+		  preserve_value (val);
+
+		  if (GET_CODE (XEXP (mloc, 0)) != ENTRY_VALUE
+		      && (GET_CODE (XEXP (mloc, 0)) != PLUS
+			  || XEXP (XEXP (mloc, 0), 0) != cfa_base_rtx
+			  || !CONST_INT_P (XEXP (XEXP (mloc, 0), 1))))
+		    {
+		      mloc = cselib_subst_to_values (XEXP (mloc, 0),
+						     GET_MODE (mloc));
+		      moa.type = MO_VAL_USE;
+		      moa.insn = cui->insn;
+		      moa.u.loc = gen_rtx_CONCAT (address_mode,
+						  val->val_rtx, mloc);
+		      if (dump_file && (dump_flags & TDF_DETAILS))
+			log_op_type (moa.u.loc, cui->bb, cui->insn,
+				     moa.type, dump_file);
+		      VEC_safe_push (micro_operation, heap, VTI (bb)->mos,
+				     &moa);
+		    }
+		}
 	    }
 
 	  type2 = use_type (loc, 0, &mode2);
@@ -5237,7 +5256,6 @@ add_uses (rtx *ploc, void *data)
 
 	  */
 
-	  gcc_checking_assert (REG_P (loc) || MEM_P (loc));
 	  nloc = replace_expr_with_values (loc);
 	  if (!nloc)
 	    nloc = oloc;
@@ -5289,22 +5307,22 @@ add_uses_1 (rtx *x, void *cui)
    representable anyway.  */
 #define EXPR_USE_DEPTH (PARAM_VALUE (PARAM_MAX_VARTRACK_EXPR_DEPTH))
 
-/* Attempt to reverse the EXPR operation in the debug info and record
-   it in the cselib table.  Say for reg1 = reg2 + 6 even when reg2 is
-   no longer live we can express its value as VAL - 6.  */
+/* Attempt to reverse the EXPR operation in the debug info.  Say for
+   reg1 = reg2 + 6 even when reg2 is no longer live we
+   can express its value as VAL - 6.  */
 
-static void
-reverse_op (rtx val, const_rtx expr, rtx insn)
+static rtx
+reverse_op (rtx val, const_rtx expr)
 {
   rtx src, arg, ret;
   cselib_val *v;
   enum rtx_code code;
 
   if (GET_CODE (expr) != SET)
-    return;
+    return NULL_RTX;
 
   if (!REG_P (SET_DEST (expr)) || GET_MODE (val) != GET_MODE (SET_DEST (expr)))
-    return;
+    return NULL_RTX;
 
   src = SET_SRC (expr);
   switch (GET_CODE (src))
@@ -5315,30 +5333,30 @@ reverse_op (rtx val, const_rtx expr, rtx insn)
     case NOT:
     case NEG:
       if (!REG_P (XEXP (src, 0)))
-	return;
+	return NULL_RTX;
       break;
     case SIGN_EXTEND:
     case ZERO_EXTEND:
       if (!REG_P (XEXP (src, 0)) && !MEM_P (XEXP (src, 0)))
-	return;
+	return NULL_RTX;
       break;
     default:
-      return;
+      return NULL_RTX;
     }
 
   if (!SCALAR_INT_MODE_P (GET_MODE (src)) || XEXP (src, 0) == cfa_base_rtx)
-    return;
+    return NULL_RTX;
 
   v = cselib_lookup (XEXP (src, 0), GET_MODE (XEXP (src, 0)), 0, VOIDmode);
   if (!v || !cselib_preserved_value_p (v))
-    return;
+    return NULL_RTX;
 
   switch (GET_CODE (src))
     {
     case NOT:
     case NEG:
       if (GET_MODE (v->val_rtx) != GET_MODE (val))
-	return;
+	return NULL_RTX;
       ret = gen_rtx_fmt_e (GET_CODE (src), GET_MODE (val), val);
       break;
     case SIGN_EXTEND:
@@ -5356,15 +5374,15 @@ reverse_op (rtx val, const_rtx expr, rtx insn)
       goto binary;
     binary:
       if (GET_MODE (v->val_rtx) != GET_MODE (val))
-	return;
+	return NULL_RTX;
       arg = XEXP (src, 1);
       if (!CONST_INT_P (arg) && GET_CODE (arg) != SYMBOL_REF)
 	{
 	  arg = cselib_expand_value_rtx (arg, scratch_regs, 5);
 	  if (arg == NULL_RTX)
-	    return;
+	    return NULL_RTX;
 	  if (!CONST_INT_P (arg) && GET_CODE (arg) != SYMBOL_REF)
-	    return;
+	    return NULL_RTX;
 	}
       ret = simplify_gen_binary (code, GET_MODE (val), val, arg);
       if (ret == val)
@@ -5377,7 +5395,7 @@ reverse_op (rtx val, const_rtx expr, rtx insn)
       gcc_unreachable ();
     }
 
-  cselib_add_permanent_equiv (v, ret, insn);
+  return gen_rtx_CONCAT (GET_MODE (v->val_rtx), v->val_rtx, ret);
 }
 
 /* Add stores (register and memory references) LOC which will be tracked
@@ -5396,6 +5414,7 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
   bool track_p = false;
   cselib_val *v;
   bool resolve, preserve;
+  rtx reverse;
 
   if (type == MO_CLOBBER)
     return;
@@ -5460,7 +5479,26 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 					   GET_MODE (mloc));
 
 	  if (val && !cselib_preserved_value_p (val))
-	    preserve_value (val);
+	    {
+	      preserve_value (val);
+
+	      if (GET_CODE (XEXP (mloc, 0)) != ENTRY_VALUE
+		  && (GET_CODE (XEXP (mloc, 0)) != PLUS
+		      || XEXP (XEXP (mloc, 0), 0) != cfa_base_rtx
+		      || !CONST_INT_P (XEXP (XEXP (mloc, 0), 1))))
+		{
+		  mloc = cselib_subst_to_values (XEXP (mloc, 0),
+						 GET_MODE (mloc));
+		  mo.type = MO_VAL_USE;
+		  mo.insn = cui->insn;
+		  mo.u.loc = gen_rtx_CONCAT (address_mode,
+					     val->val_rtx, mloc);
+		  if (dump_file && (dump_flags & TDF_DETAILS))
+		    log_op_type (mo.u.loc, cui->bb, cui->insn,
+				 mo.type, dump_file);
+		  VEC_safe_push (micro_operation, heap, VTI (bb)->mos, &mo);
+		}
+	    }
 	}
 
       if (GET_CODE (expr) == CLOBBER || !track_p)
@@ -5540,10 +5578,7 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
     }
   else if (resolve && GET_CODE (mo.u.loc) == SET)
     {
-      if (REG_P (SET_SRC (expr)) || MEM_P (SET_SRC (expr)))
-	nloc = replace_expr_with_values (SET_SRC (expr));
-      else
-	nloc = NULL_RTX;
+      nloc = replace_expr_with_values (SET_SRC (expr));
 
       /* Avoid the mode mismatch between oexpr and expr.  */
       if (!nloc && mode != mode2)
@@ -5552,7 +5587,7 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 	  gcc_assert (oloc == SET_DEST (expr));
 	}
 
-      if (nloc && nloc != SET_SRC (mo.u.loc))
+      if (nloc)
 	oloc = gen_rtx_SET (GET_MODE (mo.u.loc), oloc, nloc);
       else
 	{
@@ -5599,7 +5634,14 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
   */
 
   if (GET_CODE (PATTERN (cui->insn)) != COND_EXEC)
-    reverse_op (v->val_rtx, expr, cui->insn);
+    {
+      reverse = reverse_op (v->val_rtx, expr);
+      if (reverse)
+	{
+	  loc = gen_rtx_CONCAT (GET_MODE (mo.u.loc), loc, reverse);
+	  VAL_EXPR_HAS_REVERSE (loc) = 1;
+	}
+    }
 
   mo.u.loc = loc;
 
@@ -6257,9 +6299,14 @@ compute_bb_dataflow (basic_block bb)
 	  case MO_VAL_SET:
 	    {
 	      rtx loc = mo->u.loc;
-	      rtx val, vloc, uloc;
+	      rtx val, vloc, uloc, reverse = NULL_RTX;
 
 	      vloc = loc;
+	      if (VAL_EXPR_HAS_REVERSE (loc))
+		{
+		  reverse = XEXP (loc, 1);
+		  vloc = XEXP (loc, 0);
+		}
 	      uloc = XEXP (vloc, 1);
 	      val = XEXP (vloc, 0);
 	      vloc = uloc;
@@ -6335,6 +6382,10 @@ compute_bb_dataflow (basic_block bb)
 		var_regno_delete (out, REGNO (uloc));
 
 	      val_store (out, val, vloc, insn, true);
+
+	      if (reverse)
+		val_store (out, XEXP (reverse, 0), XEXP (reverse, 1),
+			   insn, false);
 	    }
 	    break;
 
@@ -7647,7 +7698,6 @@ notify_dependents_of_resolved_value (variable ivar, htab_t vars)
 	  /* We won't notify variables that are being expanded,
 	     because their dependency list is cleared before
 	     recursing.  */
-	  NO_LOC_P (value) = false;
 	  VALUE_RECURSED_INTO (value) = false;
 
 	  gcc_checking_assert (dv_changed_p (dv));
@@ -7860,10 +7910,7 @@ vt_expand_loc_callback (rtx x, bitmap regs,
   gcc_checking_assert (!VALUE_RECURSED_INTO (x) || NO_LOC_P (x));
 
   if (NO_LOC_P (x))
-    {
-      gcc_checking_assert (VALUE_RECURSED_INTO (x) || !dv_changed_p (dv));
-      return NULL;
-    }
+    return NULL;
 
   var = (variable) htab_find_with_hash (elcd->vars, dv, dv_htab_hash (dv));
 
@@ -8662,9 +8709,14 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 	  case MO_VAL_SET:
 	    {
 	      rtx loc = mo->u.loc;
-	      rtx val, vloc, uloc;
+	      rtx val, vloc, uloc, reverse = NULL_RTX;
 
 	      vloc = loc;
+	      if (VAL_EXPR_HAS_REVERSE (loc))
+		{
+		  reverse = XEXP (loc, 1);
+		  vloc = XEXP (loc, 0);
+		}
 	      uloc = XEXP (vloc, 1);
 	      val = XEXP (vloc, 0);
 	      vloc = uloc;
@@ -8734,6 +8786,10 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
 		var_regno_delete (set, REGNO (uloc));
 
 	      val_store (set, val, vloc, insn, true);
+
+	      if (reverse)
+		val_store (set, XEXP (reverse, 0), XEXP (reverse, 1),
+			   insn, false);
 
 	      emit_notes_for_changes (next_insn, EMIT_NOTE_BEFORE_INSN,
 				      set->vars);
@@ -8901,17 +8957,28 @@ vt_get_decl_and_offset (rtx rtl, tree *declp, HOST_WIDE_INT *offsetp)
   return false;
 }
 
-/* Record the value for the ENTRY_VALUE of RTL as a global equivalence
-   of VAL.  */
+/* Mark the value for the ENTRY_VALUE of RTL as equivalent to EQVAL in
+   OUT.  */
 
 static void
-record_entry_value (cselib_val *val, rtx rtl)
+create_entry_value (dataflow_set *out, rtx eqval, rtx rtl)
 {
   rtx ev = gen_rtx_ENTRY_VALUE (GET_MODE (rtl));
+  cselib_val *val;
 
   ENTRY_VALUE_EXP (ev) = rtl;
 
-  cselib_add_permanent_equiv (val, ev, get_insns ());
+  val = cselib_lookup_from_insn (ev, GET_MODE (ev), true,
+				 VOIDmode, get_insns ());
+
+  if (val->val_rtx != eqval)
+    {
+      preserve_value (val);
+      set_variable_part (out, val->val_rtx, dv_from_value (eqval), 0,
+			 VAR_INIT_STATUS_INITIALIZED, NULL_RTX, INSERT);
+      set_variable_part (out, eqval, dv_from_value (val->val_rtx), 0,
+			 VAR_INIT_STATUS_INITIALIZED, NULL_RTX, INSERT);
+    }
 }
 
 /* Insert function parameter PARM in IN and OUT sets of ENTRY_BLOCK.  */
@@ -9070,7 +9137,7 @@ vt_add_function_parameter (tree parm)
 			 VAR_INIT_STATUS_INITIALIZED, NULL, INSERT);
       if (dv_is_value_p (dv))
 	{
-	  record_entry_value (CSELIB_VAL_PTR (dv_as_value (dv)), incoming);
+	  create_entry_value (out, dv_as_value (dv), incoming);
 	  if (TREE_CODE (TREE_TYPE (parm)) == REFERENCE_TYPE
 	      && INTEGRAL_TYPE_P (TREE_TYPE (TREE_TYPE (parm))))
 	    {
@@ -9083,9 +9150,9 @@ vt_add_function_parameter (tree parm)
 	      if (val)
 		{
 		  preserve_value (val);
-		  record_entry_value (val, mem);
 		  set_variable_part (out, mem, dv_from_value (val->val_rtx), 0,
 				     VAR_INIT_STATUS_INITIALIZED, NULL, INSERT);
+		  create_entry_value (out, val->val_rtx, mem);
 		}
 	    }
 	}

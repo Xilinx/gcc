@@ -4,7 +4,7 @@
 
 package norm
 
-import "unicode/utf8"
+import "utf8"
 
 type input interface {
 	skipASCII(p int) int

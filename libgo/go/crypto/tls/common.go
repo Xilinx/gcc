@@ -121,7 +121,7 @@ type Config struct {
 
 	// Time returns the current time as the number of seconds since the epoch.
 	// If Time is nil, TLS uses the system time.Seconds.
-	Time func() time.Time
+	Time func() int64
 
 	// Certificates contains one or more certificate chains
 	// to present to the other side of the connection.
@@ -175,10 +175,10 @@ func (c *Config) rand() io.Reader {
 	return r
 }
 
-func (c *Config) time() time.Time {
+func (c *Config) time() int64 {
 	t := c.Time
 	if t == nil {
-		t = time.Now
+		t = time.Seconds
 	}
 	return t()
 }
@@ -315,7 +315,9 @@ var (
 
 func initDefaultCipherSuites() {
 	varDefaultCipherSuites = make([]uint16, len(cipherSuites))
-	for i, suite := range cipherSuites {
-		varDefaultCipherSuites[i] = suite.id
+	i := 0
+	for id := range cipherSuites {
+		varDefaultCipherSuites[i] = id
+		i++
 	}
 }

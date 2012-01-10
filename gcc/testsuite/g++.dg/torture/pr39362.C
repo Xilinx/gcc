@@ -57,7 +57,7 @@ template <typename T> struct I <T, 0> : H <T>
   I (int capacity) { allocateBuffer (capacity); }
   ~I () { this->deallocateBuffer (buffer ()); }
   using H <T>::allocateBuffer;
-  H <T>::buffer; // { dg-warning "deprecated" } 
+  H <T>::buffer;
 };
 template <typename T, int cap = 0> struct J
 {

@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-O2 -fdump-tree-optimized -w" } */
+/* { dg-options "-O2 -fdump-tree-optimized" } */
 
 struct ehci_regs {
     char x;

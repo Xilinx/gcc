@@ -188,7 +188,7 @@ func ParseFiles(fset *token.FileSet, filenames []string, mode uint) (pkgs map[st
 // returned. If a parse error occurred, a non-nil but incomplete map and the
 // error are returned.
 //
-func ParseDir(fset *token.FileSet, path string, filter func(os.FileInfo) bool, mode uint) (map[string]*ast.Package, error) {
+func ParseDir(fset *token.FileSet, path string, filter func(*os.FileInfo) bool, mode uint) (map[string]*ast.Package, error) {
 	fd, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -202,9 +202,10 @@ func ParseDir(fset *token.FileSet, path string, filter func(os.FileInfo) bool, m
 
 	filenames := make([]string, len(list))
 	n := 0
-	for _, d := range list {
+	for i := 0; i < len(list); i++ {
+		d := &list[i]
 		if filter == nil || filter(d) {
-			filenames[n] = filepath.Join(path, d.Name())
+			filenames[n] = filepath.Join(path, d.Name)
 			n++
 		}
 	}

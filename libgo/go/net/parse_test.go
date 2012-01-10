@@ -7,8 +7,8 @@ package net
 import (
 	"bufio"
 	"os"
-	"runtime"
 	"testing"
+	"runtime"
 )
 
 func TestReadLine(t *testing.T) {

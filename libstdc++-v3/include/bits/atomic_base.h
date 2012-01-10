@@ -59,12 +59,14 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       memory_order_seq_cst
     } memory_order;
 
-  // Drop release ordering as per [atomics.types.operations.req]/21
-  constexpr memory_order
-  __cmpexch_failure_order(memory_order __m) noexcept
+  inline memory_order
+  __calculate_memory_order(memory_order __m) noexcept
   {
-    return __m == memory_order_acq_rel ? memory_order_acquire
-      : __m == memory_order_release ? memory_order_relaxed : __m;
+    const bool __cond1 = __m == memory_order_release;
+    const bool __cond2 = __m == memory_order_acq_rel;
+    memory_order __mo1(__cond1 ? memory_order_relaxed : __m);
+    memory_order __mo2(__cond2 ? memory_order_acquire : __mo1);
+    return __mo2;
   }
 
   inline void
@@ -503,7 +505,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 			    memory_order __m = memory_order_seq_cst) noexcept
       {
 	return compare_exchange_weak(__i1, __i2, __m,
-				     __cmpexch_failure_order(__m));
+				     __calculate_memory_order(__m));
       }
 
       bool
@@ -511,7 +513,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   memory_order __m = memory_order_seq_cst) volatile noexcept
       {
 	return compare_exchange_weak(__i1, __i2, __m,
-				     __cmpexch_failure_order(__m));
+				     __calculate_memory_order(__m));
       }
 
       bool
@@ -542,7 +544,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 			      memory_order __m = memory_order_seq_cst) noexcept
       {
 	return compare_exchange_strong(__i1, __i2, __m,
-				       __cmpexch_failure_order(__m));
+				       __calculate_memory_order(__m));
       }
 
       bool
@@ -550,7 +552,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		 memory_order __m = memory_order_seq_cst) volatile noexcept
       {
 	return compare_exchange_strong(__i1, __i2, __m,
-				       __cmpexch_failure_order(__m));
+				       __calculate_memory_order(__m));
       }
 
       __int_type

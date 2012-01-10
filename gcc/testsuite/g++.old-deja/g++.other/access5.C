@@ -9,7 +9,7 @@ protected:
 class B : private A
 {
 protected:
-  A::i; // { dg-warning "deprecated" }
+  A::i;
 };
 
 struct C : public B {

@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
-	"unicode/utf8"
+	"utf8"
 )
 
 // Errors returned during parsing and execution.  Users may extract the information and reformat
@@ -424,11 +424,11 @@ func (t *Template) newVariable(words []string) *variableElement {
 			}
 
 		case '.', '+', '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-			v, err := strconv.ParseInt(word, 0, 64)
+			v, err := strconv.Btoi64(word, 0)
 			if err == nil {
 				args[i] = v
 			} else {
-				v, err := strconv.ParseFloat(word, 64)
+				v, err := strconv.Atof64(word)
 				args[i], lerr = v, err
 			}
 

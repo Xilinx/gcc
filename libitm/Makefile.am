@@ -18,8 +18,8 @@ vpath % $(strip $(search_path))
 
 AM_CPPFLAGS = $(addprefix -I, $(search_path))
 AM_CFLAGS = $(XCFLAGS)
-AM_CXXFLAGS = $(XCFLAGS) -std=gnu++0x -funwind-tables -fno-exceptions \
-	-fno-rtti $(abi_version)
+AM_CXXFLAGS = -std=gnu++0x -funwind-tables -fno-exceptions -fno-rtti \
+	$(XCFLAGS) $(abi_version)
 AM_CCASFLAGS = $(XCFLAGS)
 AM_LDFLAGS = $(XLDFLAGS) $(SECTION_LDFLAGS) $(OPT_LDFLAGS)
 
@@ -62,9 +62,6 @@ libitm_la_SOURCES = \
 	query.cc retry.cc rwlock.cc useraction.cc util.cc \
 	sjlj.S tls.cc method-serial.cc method-gl.cc
 
-if ARCH_ARM
-libitm_la_SOURCES += hwcap.cc
-endif
 if ARCH_X86
 libitm_la_SOURCES += x86_sse.cc x86_avx.cc
 x86_sse.lo : XCFLAGS += -msse

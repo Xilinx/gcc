@@ -143,10 +143,10 @@ package Ada.Containers.Doubly_Linked_Lists is
    procedure Reverse_Elements (Container : in out List);
 
    function Iterate (Container : List)
-      return List_Iterator_Interfaces.Reversible_Iterator'Class;
+      return List_Iterator_Interfaces.Reversible_Iterator'class;
 
    function Iterate (Container : List; Start : Cursor)
-      return List_Iterator_Interfaces.Reversible_Iterator'Class;
+      return List_Iterator_Interfaces.Reversible_Iterator'class;
 
    procedure Swap
      (Container : in out List;

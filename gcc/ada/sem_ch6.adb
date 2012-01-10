@@ -60,7 +60,6 @@ with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch10; use Sem_Ch10;
 with Sem_Ch12; use Sem_Ch12;
 with Sem_Ch13; use Sem_Ch13;
-with Sem_Dim;  use Sem_Dim;
 with Sem_Disp; use Sem_Disp;
 with Sem_Dist; use Sem_Dist;
 with Sem_Elim; use Sem_Elim;
@@ -282,7 +281,6 @@ package body Sem_Ch6 is
       New_Body : Node_Id;
       New_Decl : Node_Id;
       New_Spec : Node_Id;
-      Ret      : Node_Id;
 
    begin
       --  This is one of the occasions on which we transform the tree during
@@ -304,15 +302,15 @@ package body Sem_Ch6 is
          Prev     := Find_Corresponding_Spec (N);
       end if;
 
-      Ret := Make_Simple_Return_Statement (LocX, Expression (N));
-
       New_Body :=
         Make_Subprogram_Body (Loc,
           Specification              => New_Spec,
           Declarations               => Empty_List,
           Handled_Statement_Sequence =>
             Make_Handled_Sequence_Of_Statements (LocX,
-              Statements => New_List (Ret)));
+              Statements => New_List (
+                Make_Simple_Return_Statement (LocX,
+                  Expression => Expression (N)))));
 
       if Present (Prev) and then Ekind (Prev) = E_Generic_Function then
 
@@ -364,13 +362,10 @@ package body Sem_Ch6 is
 
          --  To prevent premature freeze action, insert the new body at the end
          --  of the current declarations, or at the end of the package spec.
-         --  However, resolve usage names now, to prevent spurious visibility
-         --  on later entities.
 
          declare
-            Decls : List_Id            := List_Containing (N);
-            Par   : constant Node_Id   := Parent (Decls);
-            Id    : constant Entity_Id := Defining_Entity (New_Decl);
+            Decls : List_Id          := List_Containing (N);
+            Par   : constant Node_Id := Parent (Decls);
 
          begin
             if Nkind (Par) = N_Package_Specification
@@ -382,10 +377,6 @@ package body Sem_Ch6 is
             end if;
 
             Insert_After (Last (Decls), New_Body);
-            Push_Scope (Id);
-            Install_Formals (Id);
-            Preanalyze_Spec_Expression (Expression  (Ret), Etype (Id));
-            End_Scope;
          end;
       end if;
 
@@ -1530,8 +1521,6 @@ package body Sem_Ch6 is
 
       Kill_Current_Values (Last_Assignment_Only => True);
       Check_Unreachable_Code (N);
-
-      Analyze_Dimension (N);
    end Analyze_Return_Statement;
 
    -------------------------------------
@@ -3267,16 +3256,9 @@ package body Sem_Ch6 is
                               and then Null_Present (Specification (N)))
             then
                Error_Msg_Name_1 := Chars (Defining_Entity (N));
-
-               --  Specialize error message based on procedures vs. functions,
-               --  since functions can't be null subprograms.
-
-               if Ekind (Designator) = E_Procedure then
-                  Error_Msg_N
-                    ("interface procedure % must be abstract or null", N);
-               else
-                  Error_Msg_N ("interface function % must be abstract", N);
-               end if;
+               Error_Msg_N
+                 ("(Ada 2005) interface subprogram % must be abstract or null",
+                  N);
             end if;
          end;
       end if;
@@ -9527,14 +9509,14 @@ package body Sem_Ch6 is
                Default :=  Expression (Param_Spec);
 
                if Is_Scalar_Type (Etype (Default)) then
-                  if Nkind (Parameter_Type (Param_Spec)) /=
-                                              N_Access_Definition
+                  if Nkind
+                       (Parameter_Type (Param_Spec)) /= N_Access_Definition
                   then
                      Formal_Type := Entity (Parameter_Type (Param_Spec));
+
                   else
-                     Formal_Type :=
-                       Access_Definition
-                         (Related_Nod, Parameter_Type (Param_Spec));
+                     Formal_Type := Access_Definition
+                       (Related_Nod, Parameter_Type (Param_Spec));
                   end if;
 
                   Apply_Scalar_Range_Check (Default, Formal_Type);
@@ -9552,34 +9534,12 @@ package body Sem_Ch6 is
             Num_Out_Params := Num_Out_Params + 1;
          end if;
 
-         --  Skip remaining processing if formal type was in error
-
-         if Etype (Formal) = Any_Type or else Error_Posted (Formal) then
-            goto Next_Parameter;
-         end if;
-
          --  Force call by reference if aliased
 
          if Is_Aliased (Formal) then
             Set_Mechanism (Formal, By_Reference);
-
-            --  Warn if user asked this to be passed by copy
-
-            if Convention (Formal_Type) = Convention_Ada_Pass_By_Copy then
-               Error_Msg_N
-                 ("?cannot pass aliased parameter & by copy", Formal);
-            end if;
-
-         --  Force mechanism if type has Convention Ada_Pass_By_Ref/Copy
-
-         elsif Convention (Formal_Type) = Convention_Ada_Pass_By_Copy then
-            Set_Mechanism (Formal, By_Copy);
-
-         elsif Convention (Formal_Type) = Convention_Ada_Pass_By_Reference then
-            Set_Mechanism (Formal, By_Reference);
          end if;
 
-      <<Next_Parameter>>
          Next (Param_Spec);
       end loop;
 

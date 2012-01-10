@@ -605,7 +605,7 @@ Type::are_assignable_check_hidden(const Type* lhs, const Type* rhs,
 bool
 Type::are_assignable(const Type* lhs, const Type* rhs, std::string* reason)
 {
-  return Type::are_assignable_check_hidden(lhs, rhs, false, reason);
+  return Type::are_assignable_check_hidden(lhs, rhs, true, reason);
 }
 
 // Like are_assignable but don't check for hidden fields.
@@ -662,7 +662,7 @@ Type::are_convertible(const Type* lhs, const Type* rhs, std::string* reason)
     {
       if (rhs->integer_type() != NULL)
 	return true;
-      if (rhs->is_slice_type())
+      if (rhs->is_slice_type() && rhs->named_type() == NULL)
 	{
 	  const Type* e = rhs->array_type()->element_type()->forwarded();
 	  if (e->integer_type() != NULL
@@ -673,7 +673,9 @@ Type::are_convertible(const Type* lhs, const Type* rhs, std::string* reason)
     }
 
   // A string may be converted to []byte or []int.
-  if (rhs->is_string_type() && lhs->is_slice_type())
+  if (rhs->is_string_type()
+      && lhs->is_slice_type()
+      && lhs->named_type() == NULL)
     {
       const Type* e = lhs->array_type()->element_type()->forwarded();
       if (e->integer_type() != NULL
@@ -1235,6 +1237,8 @@ Type::type_functions(const char** hash_fn, const char** equal_fn) const
     case Type::TYPE_FLOAT:
     case Type::TYPE_COMPLEX:
     case Type::TYPE_POINTER:
+    case Type::TYPE_FUNCTION:
+    case Type::TYPE_MAP:
     case Type::TYPE_CHANNEL:
       *hash_fn = "__go_type_hash_identity";
       *equal_fn = "__go_type_equal_identity";
@@ -1247,8 +1251,6 @@ Type::type_functions(const char** hash_fn, const char** equal_fn) const
 
     case Type::TYPE_STRUCT:
     case Type::TYPE_ARRAY:
-    case Type::TYPE_FUNCTION:
-    case Type::TYPE_MAP:
       // These types can not be hashed or compared.
       *hash_fn = "__go_type_hash_error";
       *equal_fn = "__go_type_equal_error";
@@ -4731,9 +4733,7 @@ bool
 Map_type::do_verify()
 {
   if (this->key_type_->struct_type() != NULL
-      || this->key_type_->array_type() != NULL
-      || this->key_type_->function_type() != NULL
-      || this->key_type_->map_type() != NULL)
+      || this->key_type_->array_type() != NULL)
     {
       error_at(this->location_, "invalid map key type");
       return false;
@@ -4991,7 +4991,7 @@ Map_type::do_reflection(Gogo* gogo, std::string* ret) const
 {
   ret->append("map[");
   this->append_reflection(this->key_type_, gogo, ret);
-  ret->append("]");
+  ret->append("] ");
   this->append_reflection(this->val_type_, gogo, ret);
 }
 

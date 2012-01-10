@@ -68,4 +68,6 @@ struct lto_section_list
   struct lto_section_slot *first, *last;
 };
 
+int64_t lto_parse_hex (const char *p);
+
 #endif /* LTO_H */

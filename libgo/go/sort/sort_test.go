@@ -7,7 +7,7 @@ package sort_test
 import (
 	"fmt"
 	"math"
-	"math/rand"
+	"rand"
 	. "sort"
 	"strconv"
 	"testing"

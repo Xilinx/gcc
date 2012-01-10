@@ -13,7 +13,6 @@ import (
 	"hash"
 	"hash/crc32"
 	"io"
-	"time"
 )
 
 // BUG(nigeltao): Comments and Names don't properly map UTF-8 character codes outside of
@@ -43,11 +42,11 @@ var ChecksumError = errors.New("gzip checksum error")
 // The gzip file stores a header giving metadata about the compressed file.
 // That header is exposed as the fields of the Compressor and Decompressor structs.
 type Header struct {
-	Comment string    // comment
-	Extra   []byte    // "extra data"
-	ModTime time.Time // modification time
-	Name    string    // file name
-	OS      byte      // operating system type
+	Comment string // comment
+	Extra   []byte // "extra data"
+	Mtime   uint32 // modification time (seconds since January 1, 1970)
+	Name    string // file name
+	OS      byte   // operating system type
 }
 
 // An Decompressor is an io.Reader that can be read to retrieve
@@ -131,7 +130,7 @@ func (z *Decompressor) readHeader(save bool) error {
 	}
 	z.flg = z.buf[3]
 	if save {
-		z.ModTime = time.Unix(int64(get4(z.buf[4:8])), 0)
+		z.Mtime = get4(z.buf[4:8])
 		// z.buf[8] is xfl, ignored
 		z.OS = z.buf[9]
 	}

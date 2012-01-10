@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"log"
-	"unicode/utf8"
+	"utf8"
 )
 
 const blockSize = 64

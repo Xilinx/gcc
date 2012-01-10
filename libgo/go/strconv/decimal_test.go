@@ -70,23 +70,17 @@ var roundtests = []roundTest{
 func TestDecimalRound(t *testing.T) {
 	for i := 0; i < len(roundtests); i++ {
 		test := &roundtests[i]
-		d := NewDecimal(test.i)
-		d.RoundDown(test.nd)
-		s := d.String()
+		s := NewDecimal(test.i).RoundDown(test.nd).String()
 		if s != test.down {
 			t.Errorf("Decimal %v RoundDown %d = %v, want %v",
 				test.i, test.nd, s, test.down)
 		}
-		d = NewDecimal(test.i)
-		d.Round(test.nd)
-		s = d.String()
+		s = NewDecimal(test.i).Round(test.nd).String()
 		if s != test.round {
 			t.Errorf("Decimal %v Round %d = %v, want %v",
 				test.i, test.nd, s, test.down)
 		}
-		d = NewDecimal(test.i)
-		d.RoundUp(test.nd)
-		s = d.String()
+		s = NewDecimal(test.i).RoundUp(test.nd).String()
 		if s != test.up {
 			t.Errorf("Decimal %v RoundUp %d = %v, want %v",
 				test.i, test.nd, s, test.up)

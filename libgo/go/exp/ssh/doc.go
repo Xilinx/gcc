@@ -83,7 +83,7 @@ authentication method is supported.
 
 	config := &ClientConfig{
 		User: "username",
-		Auth: []ClientAuth{ ... },
+		Password: "123456",
 	}
 	client, err := Dial("yourserver.com:22", config)
 
@@ -92,9 +92,9 @@ Each ClientConn can support multiple interactive sessions, represented by a Sess
 	session, err := client.NewSession()
 
 Once a Session is created, you can execute a single command on the remote side 
-using the Run method.
+using the Exec method.
 
-	if err := session.Run("/usr/bin/whoami"); err != nil {
+	if err := session.Exec("/usr/bin/whoami"); err != nil {
 		panic("Failed to exec: " + err.String())
 	}
 	reader := bufio.NewReader(session.Stdin)

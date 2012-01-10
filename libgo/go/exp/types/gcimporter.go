@@ -8,17 +8,17 @@
 package types
 
 import (
+	"big"
 	"errors"
 	"fmt"
 	"go/ast"
 	"go/token"
 	"io"
-	"math/big"
 	"os"
 	"path/filepath"
 	"runtime"
+	"scanner"
 	"strconv"
-	"text/scanner"
 )
 
 const trace = false // set to true for debugging
@@ -59,7 +59,7 @@ func findPkg(path string) (filename, id string) {
 	// try extensions
 	for _, ext := range pkgExts {
 		filename = noext + ext
-		if f, err := os.Stat(filename); err == nil && !f.IsDir() {
+		if f, err := os.Stat(filename); err == nil && f.IsRegular() {
 			return
 		}
 	}
@@ -305,7 +305,7 @@ func (p *gcParser) parseArrayType() Type {
 	lit := p.expect(scanner.Int)
 	p.expect(']')
 	elt := p.parseType()
-	n, err := strconv.ParseUint(lit, 10, 64)
+	n, err := strconv.Atoui64(lit)
 	if err != nil {
 		p.error(err)
 	}
@@ -323,7 +323,7 @@ func (p *gcParser) parseMapType() Type {
 	return &Map{Key: key, Elt: elt}
 }
 
-// Name = identifier | "?" | ExportedName  .
+// Name = identifier | "?" .
 //
 func (p *gcParser) parseName() (name string) {
 	switch p.tok {
@@ -333,9 +333,6 @@ func (p *gcParser) parseName() (name string) {
 	case '?':
 		// anonymous
 		p.next()
-	case '@':
-		// exported name prefixed with package path
-		_, name = p.parseExportedName()
 	default:
 		p.error("name expected")
 	}
@@ -622,11 +619,10 @@ func (p *gcParser) parseNumber() Const {
 		// exponent (base 2)
 		p.next()
 		sign, val = p.parseInt()
-		exp64, err := strconv.ParseUint(val, 10, 0)
+		exp, err := strconv.Atoui(val)
 		if err != nil {
 			p.error(err)
 		}
-		exp := uint(exp64)
 		if sign == "-" {
 			denom := big.NewInt(1)
 			denom.Lsh(denom, exp)
@@ -751,7 +747,7 @@ func (p *gcParser) parseFuncDecl() {
 	}
 }
 
-// MethodDecl = "func" Receiver Name Signature .
+// MethodDecl = "func" Receiver identifier Signature .
 // Receiver   = "(" ( identifier | "?" ) [ "*" ] ExportedName ")" [ FuncBody ].
 //
 func (p *gcParser) parseMethodDecl() {
@@ -759,7 +755,7 @@ func (p *gcParser) parseMethodDecl() {
 	p.expect('(')
 	p.parseParameter() // receiver
 	p.expect(')')
-	p.parseName() // unexported method names in imports are qualified with their package.
+	p.expect(scanner.Ident)
 	p.parseSignature()
 	if p.tok == '{' {
 		p.parseFuncBody()

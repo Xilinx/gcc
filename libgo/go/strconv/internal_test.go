@@ -6,11 +6,7 @@
 
 package strconv
 
-func NewDecimal(i uint64) *decimal {
-	d := new(decimal)
-	d.Assign(i)
-	return d
-}
+func NewDecimal(i uint64) *decimal { return newDecimal(i) }
 
 func SetOptimize(b bool) bool {
 	old := optimize

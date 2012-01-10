@@ -13,14 +13,6 @@ import (
 
 // File represents an open file descriptor.
 type File struct {
-	*file
-}
-
-// file is the real representation of *File.
-// The extra level of indirection ensures that no clients of os
-// can overwrite this data, which could cause the finalizer
-// to close the wrong file descriptor.
-type file struct {
 	fd      int
 	name    string
 	dirinfo *dirInfo // nil unless directory being read
@@ -28,11 +20,11 @@ type file struct {
 }
 
 // Fd returns the integer Unix file descriptor referencing the open file.
-func (f *File) Fd() int {
-	if f == nil {
+func (file *File) Fd() int {
+	if file == nil {
 		return -1
 	}
-	return f.fd
+	return file.fd
 }
 
 // NewFile returns a new File with the given file descriptor and name.
@@ -40,14 +32,14 @@ func NewFile(fd int, name string) *File {
 	if fd < 0 {
 		return nil
 	}
-	f := &File{&file{fd: fd, name: name}}
-	runtime.SetFinalizer(f.file, (*file).close)
+	f := &File{fd: fd, name: name}
+	runtime.SetFinalizer(f, (*File).Close)
 	return f
 }
 
 // Auxiliary information if the File describes a directory
 type dirInfo struct {
-	buf []byte       // buffer for directory I/O
+	buf  []byte // buffer for directory I/O
 	dir *syscall.DIR // from opendir
 }
 
@@ -62,8 +54,8 @@ const DevNull = "/dev/null"
 // It returns the File and an error, if any.
 func OpenFile(name string, flag int, perm uint32) (file *File, err error) {
 	r, e := syscall.Open(name, flag|syscall.O_CLOEXEC, perm)
-	if e != nil {
-		return nil, &PathError{"open", name, e}
+	if e != 0 {
+		return nil, &PathError{"open", name, Errno(e)}
 	}
 
 	// There's a race here with fork/exec, which we are
@@ -77,22 +69,18 @@ func OpenFile(name string, flag int, perm uint32) (file *File, err error) {
 
 // Close closes the File, rendering it unusable for I/O.
 // It returns an error, if any.
-func (f *File) Close() error {
-	return f.file.close()
-}
-
-func (file *file) close() error {
+func (file *File) Close() error {
 	if file == nil || file.fd < 0 {
 		return EINVAL
 	}
 	var err error
-	if e := syscall.Close(file.fd); e != nil {
-		err = &PathError{"close", file.name, e}
+	if e := syscall.Close(file.fd); e != 0 {
+		err = &PathError{"close", file.name, Errno(e)}
 	}
 
 	if file.dirinfo != nil {
-		if libc_closedir(file.dirinfo.dir) < 0 && err == nil {
-			err = &PathError{"closedir", file.name, syscall.GetErrno()}
+		if libc_closedir(file.dirinfo.dir) < 0  && err == nil {
+			err = &PathError{"closedir", file.name, Errno(syscall.GetErrno())}
 		}
 	}
 
@@ -105,49 +93,56 @@ func (file *file) close() error {
 
 // Stat returns the FileInfo structure describing file.
 // It returns the FileInfo and an error, if any.
-func (f *File) Stat() (fi FileInfo, err error) {
+func (file *File) Stat() (fi *FileInfo, err error) {
 	var stat syscall.Stat_t
-	err = syscall.Fstat(f.fd, &stat)
-	if err != nil {
-		return nil, &PathError{"stat", f.name, err}
+	e := syscall.Fstat(file.fd, &stat)
+	if e != 0 {
+		return nil, &PathError{"stat", file.name, Errno(e)}
 	}
-	return fileInfoFromStat(&stat, f.name), nil
+	return fileInfoFromStat(file.name, new(FileInfo), &stat, &stat), nil
 }
 
-// Stat returns a FileInfo describing the named file and an error, if any.
+// Stat returns a FileInfo structure describing the named file and an error, if any.
 // If name names a valid symbolic link, the returned FileInfo describes
 // the file pointed at by the link and has fi.FollowedSymlink set to true.
 // If name names an invalid symbolic link, the returned FileInfo describes
 // the link itself and has fi.FollowedSymlink set to false.
-func Stat(name string) (fi FileInfo, err error) {
-	var stat syscall.Stat_t
-	err = syscall.Stat(name, &stat)
-	if err != nil {
-		return nil, &PathError{"stat", name, err}
+func Stat(name string) (fi *FileInfo, err error) {
+	var lstat, stat syscall.Stat_t
+	e := syscall.Lstat(name, &lstat)
+	if iserror(e) {
+		return nil, &PathError{"stat", name, Errno(e)}
 	}
-	return fileInfoFromStat(&stat, name), nil
+	statp := &lstat
+	if lstat.Mode&syscall.S_IFMT == syscall.S_IFLNK {
+		e := syscall.Stat(name, &stat)
+		if !iserror(e) {
+			statp = &stat
+		}
+	}
+	return fileInfoFromStat(name, new(FileInfo), &lstat, statp), nil
 }
 
-// Lstat returns a FileInfo describing the named file and an
+// Lstat returns the FileInfo structure describing the named file and an
 // error, if any.  If the file is a symbolic link, the returned FileInfo
 // describes the symbolic link.  Lstat makes no attempt to follow the link.
-func Lstat(name string) (fi FileInfo, err error) {
+func Lstat(name string) (fi *FileInfo, err error) {
 	var stat syscall.Stat_t
-	err = syscall.Lstat(name, &stat)
-	if err != nil {
-		return nil, &PathError{"lstat", name, err}
+	e := syscall.Lstat(name, &stat)
+	if iserror(e) {
+		return nil, &PathError{"lstat", name, Errno(e)}
 	}
-	return fileInfoFromStat(&stat, name), nil
+	return fileInfoFromStat(name, new(FileInfo), &stat, &stat), nil
 }
 
 // Readdir reads the contents of the directory associated with file and
-// returns an array of up to n FileInfo values, as would be returned
+// returns an array of up to n FileInfo structures, as would be returned
 // by Lstat, in directory order. Subsequent calls on the same file will yield
 // further FileInfos.
 //
 // If n > 0, Readdir returns at most n FileInfo structures. In this case, if
 // Readdir returns an empty slice, it will return a non-nil error
-// explaining why. At the end of a directory, the error is io.EOF.
+// explaining why. At the end of a directory, the error is os.EOF.
 //
 // If n <= 0, Readdir returns all the FileInfo from the directory in
 // a single slice. In this case, if Readdir succeeds (reads all
@@ -155,47 +150,47 @@ func Lstat(name string) (fi FileInfo, err error) {
 // nil error. If it encounters an error before the end of the
 // directory, Readdir returns the FileInfo read until that point
 // and a non-nil error.
-func (f *File) Readdir(n int) (fi []FileInfo, err error) {
-	dirname := f.name
+func (file *File) Readdir(n int) (fi []FileInfo, err error) {
+	dirname := file.name
 	if dirname == "" {
 		dirname = "."
 	}
 	dirname += "/"
-	names, err := f.Readdirnames(n)
+	names, err := file.Readdirnames(n)
 	fi = make([]FileInfo, len(names))
 	for i, filename := range names {
 		fip, err := Lstat(dirname + filename)
-		if err == nil {
-			fi[i] = fip
+		if fip == nil || err != nil {
+			fi[i].Name = filename // rest is already zeroed out
 		} else {
-			fi[i] = &FileStat{name: filename}
+			fi[i] = *fip
 		}
 	}
-	return fi, err
+	return
 }
 
 // read reads up to len(b) bytes from the File.
 // It returns the number of bytes read and an error, if any.
-func (f *File) read(b []byte) (n int, err error) {
+func (f *File) read(b []byte) (n int, err int) {
 	return syscall.Read(f.fd, b)
 }
 
 // pread reads len(b) bytes from the File starting at byte offset off.
 // It returns the number of bytes read and the error, if any.
 // EOF is signaled by a zero count with err set to 0.
-func (f *File) pread(b []byte, off int64) (n int, err error) {
+func (f *File) pread(b []byte, off int64) (n int, err int) {
 	return syscall.Pread(f.fd, b, off)
 }
 
 // write writes len(b) bytes to the File.
 // It returns the number of bytes written and an error, if any.
-func (f *File) write(b []byte) (n int, err error) {
+func (f *File) write(b []byte) (n int, err int) {
 	return syscall.Write(f.fd, b)
 }
 
 // pwrite writes len(b) bytes to the File starting at byte offset off.
 // It returns the number of bytes written and an error, if any.
-func (f *File) pwrite(b []byte, off int64) (n int, err error) {
+func (f *File) pwrite(b []byte, off int64) (n int, err int) {
 	return syscall.Pwrite(f.fd, b, off)
 }
 
@@ -203,15 +198,15 @@ func (f *File) pwrite(b []byte, off int64) (n int, err error) {
 // according to whence: 0 means relative to the origin of the file, 1 means
 // relative to the current offset, and 2 means relative to the end.
 // It returns the new offset and an error, if any.
-func (f *File) seek(offset int64, whence int) (ret int64, err error) {
+func (f *File) seek(offset int64, whence int) (ret int64, err int) {
 	return syscall.Seek(f.fd, offset, whence)
 }
 
 // Truncate changes the size of the named file.
 // If the file is a symbolic link, it changes the size of the link's target.
 func Truncate(name string, size int64) error {
-	if e := syscall.Truncate(name, size); e != nil {
-		return &PathError{"truncate", name, e}
+	if e := syscall.Truncate(name, size); e != 0 {
+		return &PathError{"truncate", name, Errno(e)}
 	}
 	return nil
 }
@@ -242,7 +237,7 @@ func Pipe() (r *File, w *File, err error) {
 	// See ../syscall/exec.go for description of lock.
 	syscall.ForkLock.RLock()
 	e := syscall.Pipe(p[0:])
-	if e != nil {
+	if iserror(e) {
 		syscall.ForkLock.RUnlock()
 		return nil, nil, NewSyscallError("pipe", e)
 	}
@@ -251,13 +246,4 @@ func Pipe() (r *File, w *File, err error) {
 	syscall.ForkLock.RUnlock()
 
 	return NewFile(p[0], "|0"), NewFile(p[1], "|1"), nil
-}
-
-// TempDir returns the default directory to use for temporary files.
-func TempDir() string {
-	dir := Getenv("TMPDIR")
-	if dir == "" {
-		dir = "/tmp"
-	}
-	return dir
 }

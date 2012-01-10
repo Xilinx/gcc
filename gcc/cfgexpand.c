@@ -456,14 +456,34 @@ add_scope_conflicts_1 (basic_block bb, bitmap work, bool for_conflict)
   FOR_EACH_EDGE (e, ei, bb->preds)
     bitmap_ior_into (work, (bitmap)e->src->aux);
 
-  visit = visit_op;
+  if (for_conflict)
+    {
+      /* We need to add conflicts for everything life at the start of
+         this block.  Unlike classical lifeness for named objects we can't
+	 rely on seeing a def/use of the names we're interested in.
+	 There might merely be indirect loads/stores.  We'd not add any
+	 conflicts for such partitions.  */
+      bitmap_iterator bi;
+      unsigned i;
+      EXECUTE_IF_SET_IN_BITMAP (work, 0, i, bi)
+	{
+	  unsigned j;
+	  bitmap_iterator bj;
+	  EXECUTE_IF_SET_IN_BITMAP (work, i, j, bj)
+	    add_stack_var_conflict (i, j);
+	}
+      visit = visit_conflict;
+    }
+  else
+    visit = visit_op;
 
   for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       gimple stmt = gsi_stmt (gsi);
-      walk_stmt_load_store_addr_ops (stmt, work, NULL, NULL, visit);
+      if (!is_gimple_debug (stmt))
+	walk_stmt_load_store_addr_ops (stmt, work, visit, visit, visit);
     }
-  for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       gimple stmt = gsi_stmt (gsi);
 
@@ -481,29 +501,7 @@ add_scope_conflicts_1 (basic_block bb, bitmap work, bool for_conflict)
 	    bitmap_clear_bit (work, *v);
 	}
       else if (!is_gimple_debug (stmt))
-	{
-	  if (for_conflict
-	      && visit == visit_op)
-	    {
-	      /* If this is the first real instruction in this BB we need
-	         to add conflicts for everything live at this point now.
-		 Unlike classical liveness for named objects we can't
-		 rely on seeing a def/use of the names we're interested in.
-		 There might merely be indirect loads/stores.  We'd not add any
-		 conflicts for such partitions.  */
-	      bitmap_iterator bi;
-	      unsigned i;
-	      EXECUTE_IF_SET_IN_BITMAP (work, 0, i, bi)
-		{
-		  unsigned j;
-		  bitmap_iterator bj;
-		  EXECUTE_IF_SET_IN_BITMAP (work, i + 1, j, bj)
-		    add_stack_var_conflict (i, j);
-		}
-	      visit = visit_conflict;
-	    }
-	  walk_stmt_load_store_addr_ops (stmt, work, visit, visit, visit);
-	}
+	walk_stmt_load_store_addr_ops (stmt, work, visit, visit, visit);
     }
 }
 
@@ -517,7 +515,7 @@ add_scope_conflicts (void)
   bool changed;
   bitmap work = BITMAP_ALLOC (NULL);
 
-  /* We approximate the live range of a stack variable by taking the first
+  /* We approximate the life range of a stack variable by taking the first
      mention of its name as starting point(s), and by the end-of-scope
      death clobber added by gimplify as ending point(s) of the range.
      This overapproximates in the case we for instance moved an address-taken
@@ -525,7 +523,7 @@ add_scope_conflicts (void)
      But it's conservatively correct as a variable never can hold values
      before its name is mentioned at least once.
 
-     We then do a mostly classical bitmap liveness algorithm.  */
+     We then do a mostly classical bitmap lifeness algorithm.  */
 
   FOR_ALL_BB (bb)
     bb->aux = BITMAP_ALLOC (NULL);
@@ -3452,6 +3450,10 @@ expand_debug_expr (tree exp)
     case REDUC_MIN_EXPR:
     case REDUC_PLUS_EXPR:
     case VEC_COND_EXPR:
+    case VEC_EXTRACT_EVEN_EXPR:
+    case VEC_EXTRACT_ODD_EXPR:
+    case VEC_INTERLEAVE_HIGH_EXPR:
+    case VEC_INTERLEAVE_LOW_EXPR:
     case VEC_LSHIFT_EXPR:
     case VEC_PACK_FIX_TRUNC_EXPR:
     case VEC_PACK_SAT_EXPR:

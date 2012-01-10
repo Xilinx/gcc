@@ -1,6 +1,5 @@
 // PR debug/46338
 // { dg-do compile }
-// { dg-require-profiling "-fprofile-generate" }
 // { dg-options "-O -fprofile-generate -fcompare-debug" }
 
 void bar ();

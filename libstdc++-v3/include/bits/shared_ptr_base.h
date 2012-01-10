@@ -63,7 +63,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     virtual char const*
     what() const noexcept;
 
-    virtual ~bad_weak_ptr() noexcept;    
+    virtual ~bad_weak_ptr() throw();    
   };
 
   // Substitute for bad_weak_ptr object in the case of -fno-exceptions.

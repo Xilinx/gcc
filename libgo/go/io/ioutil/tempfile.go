@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
 )
 
 // Random number state, accessed without lock; racy but harmless.
@@ -18,7 +17,8 @@ import (
 var rand uint32
 
 func reseed() uint32 {
-	return uint32(time.Now().UnixNano() + int64(os.Getpid()))
+	sec, nsec, _ := os.Time()
+	return uint32(sec*1e9 + nsec + int64(os.Getpid()))
 }
 
 func nextSuffix() string {

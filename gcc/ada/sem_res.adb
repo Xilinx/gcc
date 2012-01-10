@@ -57,7 +57,6 @@ with Sem_Ch4;  use Sem_Ch4;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch13; use Sem_Ch13;
-with Sem_Dim;  use Sem_Dim;
 with Sem_Disp; use Sem_Disp;
 with Sem_Dist; use Sem_Dist;
 with Sem_Elim; use Sem_Elim;
@@ -1991,10 +1990,6 @@ package body Sem_Res is
 
       Debug_A_Entry ("resolving  ", N);
 
-      if Debug_Flag_V then
-         Write_Overloads (N);
-      end if;
-
       if Comes_From_Source (N) then
          if Is_Fixed_Point_Type (Typ) then
             Check_Restriction (No_Fixed_Point, N);
@@ -2011,7 +2006,6 @@ package body Sem_Res is
 
       if Analyzed (N) then
          Debug_A_Exit ("resolving  ", N, "  (done, already analyzed)");
-         Analyze_Dimension (N);
          return;
 
       --  Return if type = Any_Type (previous error encountered)
@@ -2039,11 +2033,6 @@ package body Sem_Res is
          Get_First_Interp (N, I, It);
          Interp_Loop : while Present (It.Typ) loop
 
-            if Debug_Flag_V then
-               Write_Str ("Interp: ");
-               Write_Interp (It);
-            end if;
-
             --  We are only interested in interpretations that are compatible
             --  with the expected type, any other interpretations are ignored.
 
@@ -2065,10 +2054,6 @@ package body Sem_Res is
                  and then Typ /= Universal_Real
                  and then Present (It.Abstract_Op)
                then
-                  if Debug_Flag_V then
-                     Write_Line ("Skip.");
-                  end if;
-
                   goto Continue;
                end if;
 
@@ -2587,37 +2572,9 @@ package body Sem_Res is
          Resolution_Failed;
          return;
 
-      --  Only one intepretation
+      --  Here we have an acceptable interpretation for the context
 
       else
-         --  In Ada 2005, if we have something like "X : T := 2 + 2;", where
-         --  the "+" on T is abstract, and the operands are of universal type,
-         --  the above code will have (incorrectly) resolved the "+" to the
-         --  universal one in Standard. Therefore check for this case and give
-         --  an error. We can't do this earlier, because it would cause legal
-         --  cases to get errors (when some other type has an abstract "+").
-
-         if Ada_Version >= Ada_2005 and then
-           Nkind (N) in N_Op and then
-           Is_Overloaded (N) and then
-           Is_Universal_Numeric_Type (Etype (Entity (N)))
-         then
-            Get_First_Interp (N, I, It);
-            while Present (It.Typ) loop
-               if Present (It.Abstract_Op) and then
-                 Etype (It.Abstract_Op) = Typ
-               then
-                  Error_Msg_NE
-                    ("cannot call abstract subprogram &!", N, It.Abstract_Op);
-                  return;
-               end if;
-
-               Get_Next_Interp (I, It);
-            end loop;
-         end if;
-
-         --  Here we have an acceptable interpretation for the context
-
          --  Propagate type information and normalize tree for various
          --  predefined operations. If the context only imposes a class of
          --  types, rather than a specific type, propagate the actual type
@@ -4469,26 +4426,23 @@ package body Sem_Res is
         and then Ekind (Current_Scope) = E_Package
         and then not In_Package_Body (Current_Scope)
       then
-         Error_Msg_N ("?cannot activate task before body seen", N);
-         Error_Msg_N ("\?Program_Error will be raised at run time", N);
+         Error_Msg_N ("cannot activate task before body seen?", N);
+         Error_Msg_N ("\Program_Error will be raised at run time?", N);
       end if;
 
-      --  Ada 2012 (AI05-0111-3): Detect an attempt to allocate a task or a
-      --  type with a task component on a subpool. This action must raise
-      --  Program_Error at runtime.
+      --  Ada 2012 (AI05-0111-3): Issue a warning whenever allocating a task
+      --  or a type containing tasks on a subpool since the deallocation of
+      --  the subpool may lead to undefined task behavior. Perform the check
+      --  only when the allocator has not been converted into a Program_Error
+      --  due to a previous error.
 
       if Ada_Version >= Ada_2012
         and then Nkind (N) = N_Allocator
         and then Present (Subpool_Handle_Name (N))
         and then Has_Task (Desig_T)
       then
-         Error_Msg_N ("?cannot allocate task on subpool", N);
-         Error_Msg_N ("\?Program_Error will be raised at run time", N);
-
-         Rewrite (N,
-           Make_Raise_Program_Error (Sloc (N),
-             Reason => PE_Explicit_Raise));
-         Set_Etype (N, Typ);
+         Error_Msg_N ("?allocation of task on subpool may lead to " &
+                      "undefined behavior", N);
       end if;
    end Resolve_Allocator;
 
@@ -4883,7 +4837,6 @@ package body Sem_Res is
       end if;
 
       Generate_Operator_Reference (N, Typ);
-      Analyze_Dimension (N);
       Eval_Arithmetic_Op (N);
 
       --  In SPARK, a multiplication or division with operands of fixed point
@@ -5814,8 +5767,6 @@ package body Sem_Res is
          end;
       end if;
 
-      Analyze_Dimension (N);
-
       --  All done, evaluate call and deal with elaboration issues
 
       Eval_Call (N);
@@ -6012,7 +5963,6 @@ package body Sem_Res is
       --  Evaluate the relation (note we do this after the above check since
       --  this Eval call may change N to True/False.
 
-      Analyze_Dimension (N);
       Eval_Relational_Op (N);
    end Resolve_Comparison_Op;
 
@@ -6898,7 +6848,6 @@ package body Sem_Res is
            or else Is_Intrinsic_Subprogram
                      (Corresponding_Equality (Entity (N)))
          then
-            Analyze_Dimension (N);
             Eval_Relational_Op (N);
 
          elsif Nkind (N) = N_Op_Ne
@@ -7152,8 +7101,6 @@ package body Sem_Res is
             Next (Expr);
          end loop;
       end if;
-
-      Analyze_Dimension (N);
 
       --  Do not generate the warning on suspicious index if we are analyzing
       --  package Ada.Tags; otherwise we will report the warning with the
@@ -8010,16 +7957,7 @@ package body Sem_Res is
 
       Set_Etype (N, B_Typ);
       Generate_Operator_Reference (N, B_Typ);
-
-      Analyze_Dimension (N);
-
-      if Ada_Version >= Ada_2012 and then Has_Dimension_System (B_Typ) then
-         --  Evaluate the exponentiation operator for dimensioned type
-
-         Eval_Op_Expon_For_Dimensioned_Type (N, B_Typ);
-      else
-         Eval_Op_Expon (N);
-      end if;
+      Eval_Op_Expon (N);
 
       --  Set overflow checking bit. Much cleverer code needed here eventually
       --  and perhaps the Resolve routines should be separated for the various
@@ -8217,7 +8155,6 @@ package body Sem_Res is
          Set_Etype (N, Etype (Expr));
       end if;
 
-      Analyze_Dimension (N);
       Eval_Qualified_Expression (N);
    end Resolve_Qualified_Expression;
 
@@ -8646,13 +8583,11 @@ package body Sem_Res is
         and then Is_Packed (T)
         and then Is_LHS (N)
       then
-         Error_Msg_N
-           ("?assignment to component of packed atomic record", Prefix (N));
-         Error_Msg_N
-           ("?\may cause unexpected accesses to atomic object", Prefix (N));
+         Error_Msg_N ("?assignment to component of packed atomic record",
+                      Prefix (N));
+         Error_Msg_N ("?\may cause unexpected accesses to atomic object",
+                      Prefix (N));
       end if;
-
-      Analyze_Dimension (N);
    end Resolve_Selected_Component;
 
    -------------------
@@ -8964,7 +8899,6 @@ package body Sem_Res is
          Warn_On_Suspicious_Index (Name, High_Bound (Drange));
       end if;
 
-      Analyze_Dimension (N);
       Eval_Slice (N);
    end Resolve_Slice;
 
@@ -9371,8 +9305,6 @@ package body Sem_Res is
          Check_SPARK_Restriction ("object required", Operand);
       end if;
 
-      Analyze_Dimension (N);
-
       --  Note: we do the Eval_Type_Conversion call before applying the
       --  required checks for a subtype conversion. This is important, since
       --  both are prepared under certain circumstances to change the type
@@ -9656,7 +9588,6 @@ package body Sem_Res is
 
       Check_Unset_Reference (R);
       Generate_Operator_Reference (N, B_Typ);
-      Analyze_Dimension (N);
       Eval_Unary_Op (N);
 
       --  Set overflow checking bit. Much cleverer code needed here eventually
@@ -9823,7 +9754,6 @@ package body Sem_Res is
       --  Resolve operand using its own type
 
       Resolve (Operand, Opnd_Type);
-      Analyze_Dimension (N);
       Eval_Unchecked_Conversion (N);
    end Resolve_Unchecked_Type_Conversion;
 
@@ -10719,13 +10649,7 @@ package body Sem_Res is
          --  check is not enforced when within an instance body, since the
          --  RM requires such cases to be caught at run time.
 
-         --  If the operand is a rewriting of an allocator no check is needed
-         --  because there are no accessibility issues.
-
-         if Nkind (Original_Node (N)) = N_Allocator then
-            null;
-
-         elsif Ekind (Target_Type) /= E_Anonymous_Access_Type then
+         if Ekind (Target_Type) /= E_Anonymous_Access_Type then
             if Type_Access_Level (Opnd_Type) >
                Deepest_Type_Access_Level (Target_Type)
             then

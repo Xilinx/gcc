@@ -7,7 +7,7 @@ package path
 import (
 	"errors"
 	"strings"
-	"unicode/utf8"
+	"utf8"
 )
 
 var ErrBadPattern = errors.New("syntax error in pattern")

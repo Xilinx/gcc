@@ -15,11 +15,11 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"fmt"
+	"http"
 	"io"
 	"io/ioutil"
-	"net/http"
-	"net/url"
 	"strings"
+	"url"
 )
 
 const (
@@ -371,7 +371,7 @@ func getNonceAccept(nonce []byte) (expected []byte, err error) {
 		return
 	}
 	expected = make([]byte, 28)
-	base64.StdEncoding.Encode(expected, h.Sum(nil))
+	base64.StdEncoding.Encode(expected, h.Sum())
 	return
 }
 

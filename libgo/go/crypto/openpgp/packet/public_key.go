@@ -5,6 +5,7 @@
 package packet
 
 import (
+	"big"
 	"crypto/dsa"
 	"crypto/openpgp/elgamal"
 	error_ "crypto/openpgp/error"
@@ -14,14 +15,12 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"math/big"
 	"strconv"
-	"time"
 )
 
 // PublicKey represents an OpenPGP public key. See RFC 4880, section 5.5.2.
 type PublicKey struct {
-	CreationTime time.Time
+	CreationTime uint32 // seconds since the epoch
 	PubKeyAlgo   PublicKeyAlgorithm
 	PublicKey    interface{} // Either a *rsa.PublicKey or *dsa.PublicKey
 	Fingerprint  [20]byte
@@ -39,9 +38,9 @@ func fromBig(n *big.Int) parsedMPI {
 }
 
 // NewRSAPublicKey returns a PublicKey that wraps the given rsa.PublicKey.
-func NewRSAPublicKey(creationTime time.Time, pub *rsa.PublicKey, isSubkey bool) *PublicKey {
+func NewRSAPublicKey(creationTimeSecs uint32, pub *rsa.PublicKey, isSubkey bool) *PublicKey {
 	pk := &PublicKey{
-		CreationTime: creationTime,
+		CreationTime: creationTimeSecs,
 		PubKeyAlgo:   PubKeyAlgoRSA,
 		PublicKey:    pub,
 		IsSubkey:     isSubkey,
@@ -63,7 +62,7 @@ func (pk *PublicKey) parse(r io.Reader) (err error) {
 	if buf[0] != 4 {
 		return error_.UnsupportedError("public key version")
 	}
-	pk.CreationTime = time.Unix(int64(uint32(buf[1])<<24|uint32(buf[2])<<16|uint32(buf[3])<<8|uint32(buf[4])), 0)
+	pk.CreationTime = uint32(buf[1])<<24 | uint32(buf[2])<<16 | uint32(buf[3])<<8 | uint32(buf[4])
 	pk.PubKeyAlgo = PublicKeyAlgorithm(buf[5])
 	switch pk.PubKeyAlgo {
 	case PubKeyAlgoRSA, PubKeyAlgoRSAEncryptOnly, PubKeyAlgoRSASignOnly:
@@ -88,7 +87,7 @@ func (pk *PublicKey) setFingerPrintAndKeyId() {
 	fingerPrint := sha1.New()
 	pk.SerializeSignaturePrefix(fingerPrint)
 	pk.serializeWithoutHeaders(fingerPrint)
-	copy(pk.Fingerprint[:], fingerPrint.Sum(nil))
+	copy(pk.Fingerprint[:], fingerPrint.Sum())
 	pk.KeyId = binary.BigEndian.Uint64(pk.Fingerprint[12:20])
 }
 
@@ -235,11 +234,10 @@ func (pk *PublicKey) Serialize(w io.Writer) (err error) {
 func (pk *PublicKey) serializeWithoutHeaders(w io.Writer) (err error) {
 	var buf [6]byte
 	buf[0] = 4
-	t := uint32(pk.CreationTime.Unix())
-	buf[1] = byte(t >> 24)
-	buf[2] = byte(t >> 16)
-	buf[3] = byte(t >> 8)
-	buf[4] = byte(t)
+	buf[1] = byte(pk.CreationTime >> 24)
+	buf[2] = byte(pk.CreationTime >> 16)
+	buf[3] = byte(pk.CreationTime >> 8)
+	buf[4] = byte(pk.CreationTime)
 	buf[5] = byte(pk.PubKeyAlgo)
 
 	_, err = w.Write(buf[:])
@@ -271,7 +269,7 @@ func (pk *PublicKey) VerifySignature(signed hash.Hash, sig *Signature) (err erro
 	}
 
 	signed.Write(sig.HashSuffix)
-	hashBytes := signed.Sum(nil)
+	hashBytes := signed.Sum()
 
 	if hashBytes[0] != sig.HashTag[0] || hashBytes[1] != sig.HashTag[1] {
 		return error_.SignatureError("hash tag doesn't match")

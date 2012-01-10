@@ -1,7 +1,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package regexp implements regular expression search.
+// Package regexp implements a simple regular expression library.
 //
 // The syntax of the regular expressions accepted is the same
 // general syntax used by Perl, Python, and other languages.
@@ -60,7 +60,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"unicode/utf8"
+	"utf8"
 )
 
 var debug = false

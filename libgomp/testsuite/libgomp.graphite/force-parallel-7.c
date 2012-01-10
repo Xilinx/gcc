@@ -1,10 +1,9 @@
 #define N 500
 
-int A[N+5][N+5][N+5];
-
 int foo(void)
 {
   int i, j, k;
+  int A[N+5][N+5][N+5];
 
   /* Loop i: carried no dependency.  */
   for (i = 0; i < N; i++)

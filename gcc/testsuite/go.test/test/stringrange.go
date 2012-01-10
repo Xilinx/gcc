@@ -9,29 +9,28 @@ package main
 import (
 	"fmt"
 	"os"
-	"unicode/utf8"
+	"utf8"
 )
 
 func main() {
 	s := "\000\123\x00\xca\xFE\u0123\ubabe\U0000babe\U0010FFFFx"
-	expect := []rune{0, 0123, 0, 0xFFFD, 0xFFFD, 0x123, 0xbabe, 0xbabe, 0x10FFFF, 'x'}
+	expect := []int{ 0, 0123, 0, 0xFFFD, 0xFFFD, 0x123, 0xbabe, 0xbabe, 0x10FFFF, 'x' }
 	offset := 0
-	var i int
-	var c rune
+	var i, c int
 	ok := true
 	cnum := 0
 	for i, c = range s {
-		r, size := utf8.DecodeRuneInString(s[i:len(s)]) // check it another way
+		rune, size := utf8.DecodeRuneInString(s[i:len(s)])  // check it another way
 		if i != offset {
 			fmt.Printf("unexpected offset %d not %d\n", i, offset)
 			ok = false
 		}
-		if r != expect[cnum] {
-			fmt.Printf("unexpected rune %d from DecodeRuneInString: %x not %x\n", i, r, expect[cnum])
+		if rune != expect[cnum] {
+			fmt.Printf("unexpected rune %d from DecodeRuneInString: %x not %x\n", i, rune, expect[cnum])
 			ok = false
 		}
 		if c != expect[cnum] {
-			fmt.Printf("unexpected rune %d from range: %x not %x\n", i, r, expect[cnum])
+			fmt.Printf("unexpected rune %d from range: %x not %x\n", i, rune, expect[cnum])
 			ok = false
 		}
 		offset += size

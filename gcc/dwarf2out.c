@@ -9871,14 +9871,7 @@ modified_type_die (tree type, int is_const_type, int is_volatile_type,
     }
   /* This probably indicates a bug.  */
   else if (mod_type_die && mod_type_die->die_tag == DW_TAG_base_type)
-    {
-      name = TYPE_NAME (type);
-      if (name
-	  && TREE_CODE (name) == TYPE_DECL)
-	name = DECL_NAME (name);
-      add_name_attribute (mod_type_die,
-			  name ? IDENTIFIER_POINTER (name) : "__unknown__");
-    }
+    add_name_attribute (mod_type_die, "__unknown__");
 
   if (qualified_type)
     equate_type_number_to_die (qualified_type, mod_type_die);
@@ -18434,11 +18427,6 @@ gen_compile_unit_die (const char *filename)
 	language = DW_LANG_ObjC;
       else if (strcmp (language_string, "GNU Objective-C++") == 0)
 	language = DW_LANG_ObjC_plus_plus;
-      else if (dwarf_version >= 5 || !dwarf_strict)
-	{
-	  if (strcmp (language_string, "GNU Go") == 0)
-	    language = DW_LANG_Go;
-	}
     }
 
   add_AT_unsigned (die, DW_AT_language, language);
@@ -18855,9 +18843,8 @@ gen_type_die_with_usage (tree type, dw_die_ref context_die,
 
       /* Use the DIE of the containing namespace as the parent DIE of
          the type description DIE we want to generate.  */
-      if (DECL_FILE_SCOPE_P (TYPE_NAME (type))
-	  || (DECL_CONTEXT (TYPE_NAME (type))
-	      && TREE_CODE (DECL_CONTEXT (TYPE_NAME (type))) == NAMESPACE_DECL))
+      if (DECL_CONTEXT (TYPE_NAME (type))
+	  && TREE_CODE (DECL_CONTEXT (TYPE_NAME (type))) == NAMESPACE_DECL)
 	context_die = get_context_die (DECL_CONTEXT (TYPE_NAME (type)));
 
       TREE_ASM_WRITTEN (type) = 1;

@@ -9,7 +9,7 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"unicode/utf8"
+	"utf8"
 )
 
 var ErrBadPattern = errors.New("syntax error in pattern")
@@ -260,7 +260,7 @@ func glob(dir, pattern string, matches []string) (m []string, e error) {
 	if err != nil {
 		return
 	}
-	if !fi.IsDir() {
+	if !fi.IsDirectory() {
 		return
 	}
 	d, err := os.Open(dir)

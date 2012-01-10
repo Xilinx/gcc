@@ -8,5 +8,5 @@ package syscall
 
 func entersyscall()
 func exitsyscall()
-func GetErrno() Errno
-func SetErrno(Errno)
+func GetErrno() int
+func SetErrno(int)

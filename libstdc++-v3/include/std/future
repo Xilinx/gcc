@@ -60,10 +60,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   /// Error code for futures
   enum class future_errc
   {
-    future_already_retrieved = 1,
+    broken_promise,
+    future_already_retrieved,
     promise_already_satisfied,
-    no_state,
-    broken_promise
+    no_state
   };
 
   /// Specialization.

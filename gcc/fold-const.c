@@ -13501,6 +13501,43 @@ fold_binary_loc (location_t loc,
       /* An ASSERT_EXPR should never be passed to fold_binary.  */
       gcc_unreachable ();
 
+    case VEC_EXTRACT_EVEN_EXPR:
+    case VEC_EXTRACT_ODD_EXPR:
+    case VEC_INTERLEAVE_HIGH_EXPR:
+    case VEC_INTERLEAVE_LOW_EXPR:
+      if ((TREE_CODE (arg0) == VECTOR_CST
+	   || TREE_CODE (arg0) == CONSTRUCTOR)
+	  && (TREE_CODE (arg1) == VECTOR_CST
+	      || TREE_CODE (arg1) == CONSTRUCTOR))
+	{
+	  unsigned int nelts = TYPE_VECTOR_SUBPARTS (type), i;
+	  unsigned char *sel = XALLOCAVEC (unsigned char, nelts);
+
+	  for (i = 0; i < nelts; i++)
+	    switch (code)
+	      {
+	      case VEC_EXTRACT_EVEN_EXPR:
+		sel[i] = i * 2;
+		break;
+	      case VEC_EXTRACT_ODD_EXPR:
+		sel[i] = i * 2 + 1;
+		break;
+	      case VEC_INTERLEAVE_HIGH_EXPR:
+		sel[i] = (i + (BYTES_BIG_ENDIAN ? 0 : nelts)) / 2
+			 + ((i & 1) ? nelts : 0);
+		break;
+	      case VEC_INTERLEAVE_LOW_EXPR:
+		sel[i] = (i + (BYTES_BIG_ENDIAN ? nelts : 0)) / 2
+			 + ((i & 1) ? nelts : 0);
+		break;
+	      default:
+		gcc_unreachable ();
+	      }
+
+	  return fold_vec_perm (type, arg0, arg1, sel);
+	}
+      return NULL_TREE;
+
     case VEC_PACK_TRUNC_EXPR:
     case VEC_PACK_FIX_TRUNC_EXPR:
       {

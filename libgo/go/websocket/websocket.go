@@ -9,14 +9,14 @@ package websocket
 import (
 	"bufio"
 	"crypto/tls"
-	"encoding/json"
-	"errors"
+	"http"
 	"io"
 	"io/ioutil"
+	"json"
 	"net"
-	"net/http"
-	"net/url"
+	"os"
 	"sync"
+	"url"
 )
 
 const (
@@ -243,14 +243,12 @@ func (ws *Conn) RemoteAddr() net.Addr {
 	return &Addr{ws.config.Origin}
 }
 
-var errSetTimeout = errors.New("websocket: cannot set timeout: not using a net.Conn")
-
 // SetTimeout sets the connection's network timeout in nanoseconds.
 func (ws *Conn) SetTimeout(nsec int64) error {
 	if conn, ok := ws.rwc.(net.Conn); ok {
 		return conn.SetTimeout(nsec)
 	}
-	return errSetTimeout
+	return os.EINVAL
 }
 
 // SetReadTimeout sets the connection's network read timeout in nanoseconds.
@@ -258,7 +256,7 @@ func (ws *Conn) SetReadTimeout(nsec int64) error {
 	if conn, ok := ws.rwc.(net.Conn); ok {
 		return conn.SetReadTimeout(nsec)
 	}
-	return errSetTimeout
+	return os.EINVAL
 }
 
 // SetWriteTimeout sets the connection's network write timeout in nanoseconds.
@@ -266,7 +264,7 @@ func (ws *Conn) SetWriteTimeout(nsec int64) error {
 	if conn, ok := ws.rwc.(net.Conn); ok {
 		return conn.SetWriteTimeout(nsec)
 	}
-	return errSetTimeout
+	return os.EINVAL
 }
 
 // Config returns the WebSocket config.

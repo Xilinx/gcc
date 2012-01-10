@@ -7,7 +7,7 @@
 //
 // Code simply using databases should use package sql.
 //
-// Drivers only need to be aware of a subset of Go's types.  The sql package
+// Drivers only need to be aware of a subset of Go's types.  The db package
 // will convert all types into one of the following:
 //
 //   int64
@@ -24,34 +24,27 @@ import "errors"
 // Driver is the interface that must be implemented by a database
 // driver.
 type Driver interface {
-	// Open returns a new connection to the database.
+	// Open returns a new or cached connection to the database.
 	// The name is a string in a driver-specific format.
-	//
-	// Open may return a cached connection (one previously
-	// closed), but doing so is unnecessary; the sql package
-	// maintains a pool of idle connections for efficient re-use.
 	//
 	// The returned connection is only used by one goroutine at a
 	// time.
 	Open(name string) (Conn, error)
 }
 
-// ErrSkip may be returned by some optional interfaces' methods to
-// indicate at runtime that the fast path is unavailable and the sql
-// package should continue as if the optional interface was not
-// implemented. ErrSkip is only supported where explicitly
-// documented.
-var ErrSkip = errors.New("driver: skip fast-path; continue as if unimplemented")
-
-// Execer is an optional interface that may be implemented by a Conn.
+// Execer is an optional interface that may be implemented by a Driver
+// or a Conn.
+//
+// If a Driver does not implement Execer, the sql package's DB.Exec
+// method first obtains a free connection from its free pool or from
+// the driver's Open method. Execer should only be implemented by
+// drivers that can provide a more efficient implementation.
 //
 // If a Conn does not implement Execer, the db package's DB.Exec will
 // first prepare a query, execute the statement, and then close the
 // statement.
 //
 // All arguments are of a subset type as defined in the package docs.
-//
-// Exec may return ErrSkip.
 type Execer interface {
 	Exec(query string, args []interface{}) (Result, error)
 }
@@ -66,12 +59,8 @@ type Conn interface {
 
 	// Close invalidates and potentially stops any current
 	// prepared statements and transactions, marking this
-	// connection as no longer in use.
-	//
-	// Because the sql package maintains a free pool of
-	// connections and only calls Close when there's a surplus of
-	// idle connections, it shouldn't be necessary for drivers to
-	// do their own connection caching.
+	// connection as no longer in use.  The driver may cache or
+	// close its underlying connection to its database.
 	Close() error
 
 	// Begin starts and returns a new transaction.
@@ -94,35 +83,9 @@ type Result interface {
 // used by multiple goroutines concurrently.
 type Stmt interface {
 	// Close closes the statement.
-	//
-	// Closing a statement should not interrupt any outstanding
-	// query created from that statement. That is, the following
-	// order of operations is valid:
-	//
-	//  * create a driver statement
-	//  * call Query on statement, returning Rows
-	//  * close the statement
-	//  * read from Rows
-	//
-	// If closing a statement invalidates currently-running
-	// queries, the final step above will incorrectly fail.
-	//
-	// TODO(bradfitz): possibly remove the restriction above, if
-	// enough driver authors object and find it complicates their
-	// code too much. The sql package could be smarter about
-	// refcounting the statement and closing it at the appropriate
-	// time.
 	Close() error
 
 	// NumInput returns the number of placeholder parameters.
-	//
-	// If NumInput returns >= 0, the sql package will sanity check
-	// argument counts from callers and return errors to the caller
-	// before the statement's Exec or Query methods are called.
-	//
-	// NumInput may also return -1, if the driver doesn't know
-	// its number of placeholders. In that case, the sql package
-	// will not sanity check Exec or Query argument counts.
 	NumInput() int
 
 	// Exec executes a query that doesn't return rows, such
@@ -164,8 +127,6 @@ type Rows interface {
 	// The dest slice may be populated with only with values
 	// of subset types defined above, but excluding string.
 	// All string values must be converted to []byte.
-	//
-	// Next should return io.EOF when there are no more rows.
 	Next(dest []interface{}) error
 }
 

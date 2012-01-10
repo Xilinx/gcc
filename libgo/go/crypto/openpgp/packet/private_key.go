@@ -5,6 +5,7 @@
 package packet
 
 import (
+	"big"
 	"bytes"
 	"crypto/cipher"
 	"crypto/dsa"
@@ -15,9 +16,7 @@ import (
 	"crypto/sha1"
 	"io"
 	"io/ioutil"
-	"math/big"
 	"strconv"
-	"time"
 )
 
 // PrivateKey represents a possibly encrypted private key. See RFC 4880,
@@ -33,9 +32,9 @@ type PrivateKey struct {
 	iv            []byte
 }
 
-func NewRSAPrivateKey(currentTime time.Time, priv *rsa.PrivateKey, isSubkey bool) *PrivateKey {
+func NewRSAPrivateKey(currentTimeSecs uint32, priv *rsa.PrivateKey, isSubkey bool) *PrivateKey {
 	pk := new(PrivateKey)
-	pk.PublicKey = *NewRSAPublicKey(currentTime, &priv.PublicKey, isSubkey)
+	pk.PublicKey = *NewRSAPublicKey(currentTimeSecs, &priv.PublicKey, isSubkey)
 	pk.PrivateKey = priv
 	return pk
 }
@@ -100,9 +99,13 @@ func (pk *PrivateKey) parse(r io.Reader) (err error) {
 }
 
 func mod64kHash(d []byte) uint16 {
-	var h uint16
-	for _, b := range d {
-		h += uint16(b)
+	h := uint16(0)
+	for i := 0; i < len(d); i += 2 {
+		v := uint16(d[i]) << 8
+		if i+1 < len(d) {
+			v += uint16(d[i+1])
+		}
+		h += v
 	}
 	return h
 }
@@ -192,7 +195,7 @@ func (pk *PrivateKey) Decrypt(passphrase []byte) error {
 		}
 		h := sha1.New()
 		h.Write(data[:len(data)-sha1.Size])
-		sum := h.Sum(nil)
+		sum := h.Sum()
 		if !bytes.Equal(sum, data[len(data)-sha1.Size:]) {
 			return error_.StructuralError("private key checksum failure")
 		}

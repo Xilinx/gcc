@@ -6,7 +6,7 @@ package html
 
 import (
 	"testing"
-	"unicode/utf8"
+	"utf8"
 )
 
 func TestEntityLength(t *testing.T) {

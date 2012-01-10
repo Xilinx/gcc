@@ -453,31 +453,6 @@ get_object_alignment (tree exp)
   return align;
 }
 
-/* Return the alignment of object EXP, also considering its type when we do
-   not know of explicit misalignment.  Only handle MEM_REF and TARGET_MEM_REF.
-
-   ??? Note that, in the general case, the type of an expression is not kept
-   consistent with misalignment information by the front-end, for example when
-   taking the address of a member of a packed structure.  However, in most of
-   the cases, expressions have the alignment of their type so we optimistically
-   fall back to this alignment when we cannot compute a misalignment.  */
-
-unsigned int
-get_object_or_type_alignment (tree exp)
-{
-  unsigned HOST_WIDE_INT misalign;
-  unsigned int align = get_object_alignment_1 (exp, &misalign);
-
-  gcc_assert (TREE_CODE (exp) == MEM_REF || TREE_CODE (exp) == TARGET_MEM_REF);
-
-  if (misalign != 0)
-    align = (misalign & -misalign);
-  else
-    align = MAX (TYPE_ALIGN (TREE_TYPE (exp)), align);
-
-  return align;
-}
-
 /* Return the alignment in bits of EXP, a pointer valued expression.
    The alignment returned is, by default, the alignment of the thing that
    EXP points to.  If it is not a POINTER_TYPE, 0 is returned.
@@ -6775,7 +6750,6 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_STRCPY_CHK:
     case BUILT_IN_STPCPY_CHK:
     case BUILT_IN_STRNCPY_CHK:
-    case BUILT_IN_STPNCPY_CHK:
     case BUILT_IN_STRCAT_CHK:
     case BUILT_IN_STRNCAT_CHK:
     case BUILT_IN_SNPRINTF_CHK:
@@ -11117,9 +11091,7 @@ fold_builtin_4 (location_t loc, tree fndecl,
 				      DECL_FUNCTION_CODE (fndecl));
 
     case BUILT_IN_STRNCPY_CHK:
-    case BUILT_IN_STPNCPY_CHK:
-      return fold_builtin_stxncpy_chk (loc, arg0, arg1, arg2, arg3, NULL_TREE,
-                                       ignore, fcode);
+      return fold_builtin_strncpy_chk (loc, arg0, arg1, arg2, arg3, NULL_TREE);
 
     case BUILT_IN_STRNCAT_CHK:
       return fold_builtin_strncat_chk (loc, fndecl, arg0, arg1, arg2, arg3);
@@ -12682,7 +12654,6 @@ maybe_emit_chk_warning (tree exp, enum built_in_function fcode)
       break;
     case BUILT_IN_STRNCAT_CHK:
     case BUILT_IN_STRNCPY_CHK:
-    case BUILT_IN_STPNCPY_CHK:
       len = CALL_EXPR_ARG (exp, 2);
       size = CALL_EXPR_ARG (exp, 3);
       break;
@@ -13037,15 +13008,13 @@ fold_builtin_stxcpy_chk (location_t loc, tree fndecl, tree dest,
   return build_call_expr_loc (loc, fn, 2, dest, src);
 }
 
-/* Fold a call to the __st{r,p}ncpy_chk builtin.  DEST, SRC, LEN, and SIZE
+/* Fold a call to the __strncpy_chk builtin.  DEST, SRC, LEN, and SIZE
    are the arguments to the call.  If MAXLEN is not NULL, it is maximum
-   length passed as third argument. IGNORE is true if return value can be
-   ignored. FCODE is the BUILT_IN_* code of the builtin. */
+   length passed as third argument.  */
 
 tree
-fold_builtin_stxncpy_chk (location_t loc, tree dest, tree src,
-			  tree len, tree size, tree maxlen, bool ignore,
-			  enum built_in_function fcode)
+fold_builtin_strncpy_chk (location_t loc, tree dest, tree src,
+			  tree len, tree size, tree maxlen)
 {
   tree fn;
 
@@ -13054,15 +13023,6 @@ fold_builtin_stxncpy_chk (location_t loc, tree dest, tree src,
       || !validate_arg (len, INTEGER_TYPE)
       || !validate_arg (size, INTEGER_TYPE))
     return NULL_TREE;
-
-  if (fcode == BUILT_IN_STPNCPY_CHK && ignore)
-    {
-       /* If return value of __stpncpy_chk is ignored,
-          optimize into __strncpy_chk.  */
-       fn = builtin_decl_explicit (BUILT_IN_STRNCPY_CHK);
-       if (fn)
-         return build_call_expr_loc (loc, fn, 4, dest, src, len, size);
-    }
 
   if (! host_integerp (size, 1))
     return NULL_TREE;
@@ -13084,9 +13044,8 @@ fold_builtin_stxncpy_chk (location_t loc, tree dest, tree src,
 	return NULL_TREE;
     }
 
-  /* If __builtin_st{r,p}ncpy_chk is used, assume st{r,p}ncpy is available.  */
-  fn = builtin_decl_explicit (fcode == BUILT_IN_STPNCPY_CHK
-			      ? BUILT_IN_STPNCPY : BUILT_IN_STRNCPY);
+  /* If __builtin_strncpy_chk is used, assume strncpy is available.  */
+  fn = builtin_decl_explicit (BUILT_IN_STRNCPY);
   if (!fn)
     return NULL_TREE;
 

@@ -14,7 +14,6 @@ var certFiles = []string{
 	"/etc/ssl/certs/ca-certificates.crt", // Linux etc
 	"/etc/pki/tls/certs/ca-bundle.crt",   // Fedora/RHEL
 	"/etc/ssl/ca-bundle.pem",             // OpenSUSE
-	"/etc/ssl/cert.pem",                  // OpenBSD
 }
 
 func initDefaultRoots() {

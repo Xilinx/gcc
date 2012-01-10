@@ -773,6 +773,15 @@ expand_vector_operations_1 (gimple_stmt_iterator *gsi)
       || code == VIEW_CONVERT_EXPR)
     return;
 
+  /* These are only created by the vectorizer, after having queried
+     the target support.  It's more than just looking at the optab,
+     and there's no need to do it again.  */
+  if (code == VEC_INTERLEAVE_HIGH_EXPR
+      || code == VEC_INTERLEAVE_LOW_EXPR
+      || code == VEC_EXTRACT_EVEN_EXPR
+      || code == VEC_EXTRACT_ODD_EXPR)
+    return;
+
   gcc_assert (code != CONVERT_EXPR);
 
   /* The signedness is determined from input argument.  */
@@ -787,12 +796,10 @@ expand_vector_operations_1 (gimple_stmt_iterator *gsi)
       || code == LROTATE_EXPR
       || code == RROTATE_EXPR)
     {
-      optab opv;
-
       /* Check whether we have vector <op> {x,x,x,x} where x
          could be a scalar variable or a constant.  Transform
          vector <op> {x,x,x,x} ==> vector <op> scalar.  */
-      if (VECTOR_INTEGER_TYPE_P (TREE_TYPE (rhs2)))
+      if (VECTOR_MODE_P (TYPE_MODE (TREE_TYPE (rhs2))))
         {
           tree first;
           gimple def_stmt;
@@ -811,18 +818,17 @@ expand_vector_operations_1 (gimple_stmt_iterator *gsi)
             }
         }
 
-      opv = optab_for_tree_code (code, type, optab_vector);
-      if (VECTOR_INTEGER_TYPE_P (TREE_TYPE (rhs2)))
-	op = opv;
+      if (VECTOR_MODE_P (TYPE_MODE (TREE_TYPE (rhs2))))
+        op = optab_for_tree_code (code, type, optab_vector);
       else
 	{
           op = optab_for_tree_code (code, type, optab_scalar);
 
 	  /* The rtl expander will expand vector/scalar as vector/vector
 	     if necessary.  Don't bother converting the stmt here.  */
-	  if (optab_handler (op, TYPE_MODE (type)) == CODE_FOR_nothing
-	      && optab_handler (opv, TYPE_MODE (type)) != CODE_FOR_nothing)
-	    return;
+	  if (op == NULL
+	      || optab_handler (op, TYPE_MODE (type)) == CODE_FOR_nothing)
+	    op = optab_for_tree_code (code, type, optab_vector);
 	}
     }
   else
@@ -853,16 +859,14 @@ expand_vector_operations_1 (gimple_stmt_iterator *gsi)
 
   /* For very wide vectors, try using a smaller vector mode.  */
   compute_type = type;
-  if (!VECTOR_MODE_P (TYPE_MODE (type)) && op)
+  if (TYPE_MODE (type) == BLKmode && op)
     {
       tree vector_compute_type
         = type_for_widest_vector_mode (TYPE_MODE (TREE_TYPE (type)), op,
 				       TYPE_SATURATING (TREE_TYPE (type)));
       if (vector_compute_type != NULL_TREE
 	  && (TYPE_VECTOR_SUBPARTS (vector_compute_type)
-	      < TYPE_VECTOR_SUBPARTS (compute_type))
-	  && (optab_handler (op, TYPE_MODE (vector_compute_type))
-	      != CODE_FOR_nothing))
+	      < TYPE_VECTOR_SUBPARTS (compute_type)))
 	compute_type = vector_compute_type;
     }
 

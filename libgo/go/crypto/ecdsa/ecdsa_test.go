@@ -5,11 +5,11 @@
 package ecdsa
 
 import (
+	"big"
 	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/sha1"
+	"crypto/rand"
 	"encoding/hex"
-	"math/big"
 	"testing"
 )
 
@@ -214,7 +214,7 @@ func TestVectors(t *testing.T) {
 		msg, _ := hex.DecodeString(test.msg)
 		sha.Reset()
 		sha.Write(msg)
-		hashed := sha.Sum(nil)
+		hashed := sha.Sum()
 		r := fromHex(test.r)
 		s := fromHex(test.s)
 		if Verify(&pub, hashed, r, s) != test.ok {

@@ -1,5 +1,4 @@
 /* Bug 16325.  */
-/* { dg-require-profiling "-fprofile-generate" } */
 /* { dg-options "-O -fprofile-generate" } */
 
 extern void abort (void);

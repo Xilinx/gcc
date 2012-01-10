@@ -1592,7 +1592,7 @@ replace_uses_by (tree name, tree val)
 		  /* This can only occur for virtual operands, since
 		     for the real ones SSA_NAME_OCCURS_IN_ABNORMAL_PHI (name))
 		     would prevent replacement.  */
-		  gcc_checking_assert (!is_gimple_reg (name));
+		  gcc_assert (!is_gimple_reg (name));
 		  SSA_NAME_OCCURS_IN_ABNORMAL_PHI (val) = 1;
 		}
 	    }
@@ -1601,40 +1601,30 @@ replace_uses_by (tree name, tree val)
       if (gimple_code (stmt) != GIMPLE_PHI)
 	{
 	  gimple_stmt_iterator gsi = gsi_for_stmt (stmt);
-	  gimple orig_stmt = stmt;
 	  size_t i;
 
-	  /* Mark the block if we changed the last stmt in it.  */
-	  if (cfgcleanup_altered_bbs
-	      && stmt_ends_bb_p (stmt))
+	  fold_stmt (&gsi);
+	  stmt = gsi_stmt (gsi);
+	  if (cfgcleanup_altered_bbs && !is_gimple_debug (stmt))
 	    bitmap_set_bit (cfgcleanup_altered_bbs, gimple_bb (stmt)->index);
 
-	  /* FIXME.  It shouldn't be required to keep TREE_CONSTANT
-	     on ADDR_EXPRs up-to-date on GIMPLE.  Propagation will
-	     only change sth from non-invariant to invariant, and only
-	     when propagating constants.  */
-	  if (is_gimple_min_invariant (val))
-	    for (i = 0; i < gimple_num_ops (stmt); i++)
-	      {
-		tree op = gimple_op (stmt, i);
-		/* Operands may be empty here.  For example, the labels
-		   of a GIMPLE_COND are nulled out following the creation
-		   of the corresponding CFG edges.  */
-		if (op && TREE_CODE (op) == ADDR_EXPR)
-		  recompute_tree_invariant_for_addr_expr (op);
-	      }
+	  /* FIXME.  This should go in update_stmt.  */
+	  for (i = 0; i < gimple_num_ops (stmt); i++)
+	    {
+	      tree op = gimple_op (stmt, i);
+              /* Operands may be empty here.  For example, the labels
+                 of a GIMPLE_COND are nulled out following the creation
+                 of the corresponding CFG edges.  */
+	      if (op && TREE_CODE (op) == ADDR_EXPR)
+		recompute_tree_invariant_for_addr_expr (op);
+	    }
 
-	  if (fold_stmt (&gsi))
-	    stmt = gsi_stmt (gsi);
-
-	  if (maybe_clean_or_replace_eh_stmt (orig_stmt, stmt))
-	    gimple_purge_dead_eh_edges (gimple_bb (stmt));
-
+	  maybe_clean_or_replace_eh_stmt (stmt, stmt);
 	  update_stmt (stmt);
 	}
     }
 
-  gcc_checking_assert (has_zero_uses (name));
+  gcc_assert (has_zero_uses (name));
 
   /* Also update the trees stored in loop structures.  */
   if (current_loops)
@@ -3720,6 +3710,10 @@ do_pointer_plus_expr_check:
     case VEC_PACK_TRUNC_EXPR:
     case VEC_PACK_SAT_EXPR:
     case VEC_PACK_FIX_TRUNC_EXPR:
+    case VEC_EXTRACT_EVEN_EXPR:
+    case VEC_EXTRACT_ODD_EXPR:
+    case VEC_INTERLEAVE_HIGH_EXPR:
+    case VEC_INTERLEAVE_LOW_EXPR:
       /* FIXME.  */
       return false;
 

@@ -32,9 +32,9 @@ var atobtests = []atobTest{
 	{"True", true, nil},
 }
 
-func TestParseBool(t *testing.T) {
+func TestAtob(t *testing.T) {
 	for _, test := range atobtests {
-		b, e := ParseBool(test.in)
+		b, e := Atob(test.in)
 		if test.err != nil {
 			// expect an error
 			if e == nil {

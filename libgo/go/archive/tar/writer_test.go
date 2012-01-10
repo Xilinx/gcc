@@ -11,7 +11,6 @@ import (
 	"io/ioutil"
 	"testing"
 	"testing/iotest"
-	"time"
 )
 
 type writerTestEntry struct {
@@ -29,45 +28,45 @@ var writerTests = []*writerTest{
 	// tar (GNU tar) 1.26
 	//   ln -s small.txt link.txt
 	//   tar -b 1 --format=ustar -c -f writer.tar small.txt small2.txt link.txt
-	{
+	&writerTest{
 		file: "testdata/writer.tar",
 		entries: []*writerTestEntry{
-			{
+			&writerTestEntry{
 				header: &Header{
 					Name:     "small.txt",
 					Mode:     0640,
 					Uid:      73025,
 					Gid:      5000,
 					Size:     5,
-					ModTime:  time.Unix(1246508266, 0),
+					Mtime:    1246508266,
 					Typeflag: '0',
 					Uname:    "dsymonds",
 					Gname:    "eng",
 				},
 				contents: "Kilts",
 			},
-			{
+			&writerTestEntry{
 				header: &Header{
 					Name:     "small2.txt",
 					Mode:     0640,
 					Uid:      73025,
 					Gid:      5000,
 					Size:     11,
-					ModTime:  time.Unix(1245217492, 0),
+					Mtime:    1245217492,
 					Typeflag: '0',
 					Uname:    "dsymonds",
 					Gname:    "eng",
 				},
 				contents: "Google.com\n",
 			},
-			{
+			&writerTestEntry{
 				header: &Header{
 					Name:     "link.txt",
 					Mode:     0777,
 					Uid:      1000,
 					Gid:      1000,
 					Size:     0,
-					ModTime:  time.Unix(1314603082, 0),
+					Mtime:    1314603082,
 					Typeflag: '2',
 					Linkname: "small.txt",
 					Uname:    "strings",
@@ -80,17 +79,17 @@ var writerTests = []*writerTest{
 	// The truncated test file was produced using these commands:
 	//   dd if=/dev/zero bs=1048576 count=16384 > /tmp/16gig.txt
 	//   tar -b 1 -c -f- /tmp/16gig.txt | dd bs=512 count=8 > writer-big.tar
-	{
+	&writerTest{
 		file: "testdata/writer-big.tar",
 		entries: []*writerTestEntry{
-			{
+			&writerTestEntry{
 				header: &Header{
 					Name:     "tmp/16gig.txt",
 					Mode:     0640,
 					Uid:      73025,
 					Gid:      5000,
 					Size:     16 << 30,
-					ModTime:  time.Unix(1254699560, 0),
+					Mtime:    1254699560,
 					Typeflag: '0',
 					Uname:    "dsymonds",
 					Gname:    "eng",

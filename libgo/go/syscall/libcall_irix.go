@@ -4,5 +4,5 @@
 
 package syscall
 
-//sysnb raw_ptrace(request int, pid int, addr *byte, data *byte) (err Errno)
+//sysnb raw_ptrace(request int, pid int, addr *byte, data *byte) (errno int)
 //ptrace(request int, pid Pid_t, addr *byte, data *byte) _C_long

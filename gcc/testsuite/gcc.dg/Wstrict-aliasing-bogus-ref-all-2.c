@@ -1,6 +1,5 @@
 /* { dg-do compile } */
 /* { dg-options "-O2 -Wall" } */
-/* { dg-options "-O2 -Wall -mabi=altivec" { target { { powerpc*-*-linux* } && ilp32 } } } */
 
 typedef long long __m128i __attribute__ ((__vector_size__ (16), __may_alias__));
 

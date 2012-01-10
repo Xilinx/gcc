@@ -21,23 +21,24 @@ type InternalExample struct {
 func RunExamples(examples []InternalExample) (ok bool) {
 	ok = true
 
-	var eg InternalExample
-
 	stdout, stderr := os.Stdout, os.Stderr
 	defer func() {
 		os.Stdout, os.Stderr = stdout, stderr
 		if e := recover(); e != nil {
-			fmt.Printf("--- FAIL: %s\npanic: %v\n", eg.Name, e)
-			os.Exit(1)
+			if err, ok := e.(error); ok {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			panic(e)
 		}
 	}()
 
-	for _, eg = range examples {
+	for _, eg := range examples {
 		if *chatty {
-			fmt.Printf("=== RUN: %s\n", eg.Name)
+			fmt.Fprintln(os.Stderr, "=== RUN:", eg.Name)
 		}
 
-		// capture stdout and stderr
+		// capture stdout and stderr for testing purposes
 		r, w, err := os.Pipe()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -49,16 +50,16 @@ func RunExamples(examples []InternalExample) (ok bool) {
 			buf := new(bytes.Buffer)
 			_, err := io.Copy(buf, r)
 			if err != nil {
-				fmt.Fprintf(stderr, "testing: copying pipe: %v\n", err)
+				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
 			outC <- buf.String()
 		}()
 
 		// run example
-		t0 := time.Now()
+		ns := -time.Nanoseconds()
 		eg.F()
-		dt := time.Now().Sub(t0)
+		ns += time.Nanoseconds()
 
 		// close pipe, restore stdout/stderr, get output
 		w.Close()
@@ -66,15 +67,16 @@ func RunExamples(examples []InternalExample) (ok bool) {
 		out := <-outC
 
 		// report any errors
-		tstr := fmt.Sprintf("(%.2f seconds)", dt.Seconds())
 		if out != eg.Output {
-			fmt.Printf(
-				"--- FAIL: %s %s\ngot:\n%s\nwant:\n%s\n",
-				eg.Name, tstr, out, eg.Output,
+			fmt.Fprintf(
+				os.Stderr,
+				"--- FAIL: %s\ngot:\n%s\nwant:\n%s\n",
+				eg.Name, out, eg.Output,
 			)
 			ok = false
 		} else if *chatty {
-			fmt.Printf("--- PASS: %s %s\n", eg.Name, tstr)
+			tstr := fmt.Sprintf("(%.2f seconds)", float64(ns)/1e9)
+			fmt.Fprintln(os.Stderr, "--- PASS:", eg.Name, tstr)
 		}
 	}
 

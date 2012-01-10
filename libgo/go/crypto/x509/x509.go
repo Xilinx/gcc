@@ -6,17 +6,17 @@
 package x509
 
 import (
+	"asn1"
+	"big"
 	"bytes"
 	"crypto"
 	"crypto/dsa"
 	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"io"
-	"math/big"
 	"time"
 )
 
@@ -107,7 +107,7 @@ type dsaSignature struct {
 }
 
 type validity struct {
-	NotBefore, NotAfter time.Time
+	NotBefore, NotAfter *time.Time
 }
 
 type publicKeyInfo struct {
@@ -303,7 +303,7 @@ type Certificate struct {
 	SerialNumber        *big.Int
 	Issuer              pkix.Name
 	Subject             pkix.Name
-	NotBefore, NotAfter time.Time // Validity bounds.
+	NotBefore, NotAfter *time.Time // Validity bounds.
 	KeyUsage            KeyUsage
 
 	ExtKeyUsage        []ExtKeyUsage           // Sequence of extended key usages.
@@ -398,7 +398,7 @@ func (c *Certificate) CheckSignature(algo SignatureAlgorithm, signed, signature 
 	}
 
 	h.Write(signed)
-	digest := h.Sum(nil)
+	digest := h.Sum()
 
 	switch pub := c.PublicKey.(type) {
 	case *rsa.PublicKey:
@@ -899,10 +899,11 @@ var (
 	oidRSA         = []int{1, 2, 840, 113549, 1, 1, 1}
 )
 
-// CreateCertificate creates a new certificate based on a template. The
-// following members of template are used: SerialNumber, Subject, NotBefore,
-// NotAfter, KeyUsage, BasicConstraintsValid, IsCA, MaxPathLen, SubjectKeyId,
-// DNSNames, PermittedDNSDomainsCritical, PermittedDNSDomains.
+// CreateSelfSignedCertificate creates a new certificate based on
+// a template. The following members of template are used: SerialNumber,
+// Subject, NotBefore, NotAfter, KeyUsage, BasicConstraintsValid, IsCA,
+// MaxPathLen, SubjectKeyId, DNSNames, PermittedDNSDomainsCritical,
+// PermittedDNSDomains.
 //
 // The certificate is signed by parent. If parent is equal to template then the
 // certificate is self-signed. The parameter pub is the public key of the
@@ -927,15 +928,10 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub *rsa.P
 		return
 	}
 
-	var asn1Issuer []byte
-	if len(parent.RawSubject) > 0 {
-		asn1Issuer = parent.RawSubject
-	} else {
-		if asn1Issuer, err = asn1.Marshal(parent.Subject.ToRDNSequence()); err != nil {
-			return
-		}
+	asn1Issuer, err := asn1.Marshal(parent.Subject.ToRDNSequence())
+	if err != nil {
+		return
 	}
-
 	asn1Subject, err := asn1.Marshal(template.Subject.ToRDNSequence())
 	if err != nil {
 		return
@@ -962,7 +958,7 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub *rsa.P
 
 	h := sha1.New()
 	h.Write(tbsCertContents)
-	digest := h.Sum(nil)
+	digest := h.Sum()
 
 	signature, err := rsa.SignPKCS1v15(rand, priv, crypto.SHA1, digest)
 	if err != nil {
@@ -1010,7 +1006,7 @@ func ParseDERCRL(derBytes []byte) (certList *pkix.CertificateList, err error) {
 
 // CreateCRL returns a DER encoded CRL, signed by this Certificate, that
 // contains the given list of revoked certificates.
-func (c *Certificate) CreateCRL(rand io.Reader, priv *rsa.PrivateKey, revokedCerts []pkix.RevokedCertificate, now, expiry time.Time) (crlBytes []byte, err error) {
+func (c *Certificate) CreateCRL(rand io.Reader, priv *rsa.PrivateKey, revokedCerts []pkix.RevokedCertificate, now, expiry *time.Time) (crlBytes []byte, err error) {
 	tbsCertList := pkix.TBSCertificateList{
 		Version: 2,
 		Signature: pkix.AlgorithmIdentifier{
@@ -1029,7 +1025,7 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv *rsa.PrivateKey, revokedCer
 
 	h := sha1.New()
 	h.Write(tbsCertListContents)
-	digest := h.Sum(nil)
+	digest := h.Sum()
 
 	signature, err := rsa.SignPKCS1v15(rand, priv, crypto.SHA1, digest)
 	if err != nil {

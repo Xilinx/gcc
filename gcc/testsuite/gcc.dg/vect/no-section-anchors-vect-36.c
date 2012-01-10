@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include "tree-vect.h"
 
-#define N 32
+#define N 16
  
 struct {
   char ca[N];

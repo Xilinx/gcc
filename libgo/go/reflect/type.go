@@ -188,7 +188,7 @@ type Type interface {
 
 // A Kind represents the specific kind of type that a Type represents.
 // The zero Kind is not a valid kind.
-type Kind uint
+type Kind uint8
 
 const (
 	Invalid Kind = iota
@@ -455,16 +455,15 @@ func (t *uncommonType) Method(i int) (m Method) {
 	if p.name != nil {
 		m.Name = *p.name
 	}
-	fl := flag(Func) << flagKindShift
+	flag := uint32(0)
 	if p.pkgPath != nil {
 		m.PkgPath = *p.pkgPath
-		fl |= flagRO
+		flag |= flagRO
 	}
-	mt := toCommonType(p.typ)
-	m.Type = mt.toType()
+	m.Type = toType(p.typ)
 	x := new(unsafe.Pointer)
 	*x = p.tfn
-	m.Func = Value{mt, unsafe.Pointer(x), fl|flagIndir}
+	m.Func = valueFromIword(flag, m.Type, iword(uintptr(unsafe.Pointer(x))))
 	m.Index = i
 	return
 }
@@ -770,7 +769,7 @@ func (t *structType) Field(i int) (f StructField) {
 	if i < 0 || i >= len(t.fields) {
 		return
 	}
-	p := &t.fields[i]
+	p := t.fields[i]
 	f.Type = toType(p.typ)
 	if p.name != nil {
 		f.Name = *p.name
@@ -869,12 +868,10 @@ L:
 
 	if n == 1 {
 		// Found matching field.
-		if depth >= len(ff.Index) {
+		if len(ff.Index) <= depth {
 			ff.Index = make([]int, depth+1)
 		}
-		if len(ff.Index) > 1 {
-			ff.Index[depth] = fi
-		}
+		ff.Index[depth] = fi
 	} else {
 		// None or more than one matching field found.
 		fd = inf
@@ -906,6 +903,9 @@ func toCommonType(p *runtime.Type) *commonType {
 		return nil
 	}
 	x := unsafe.Pointer(p)
+	if uintptr(x)&reflectFlags != 0 {
+		panic("reflect: invalid interface value")
+	}
 	return (*commonType)(x)
 }
 
@@ -967,12 +967,10 @@ func (t *commonType) runtimeType() *runtime.Type {
 // PtrTo returns the pointer type with element t.
 // For example, if t represents type Foo, PtrTo(t) represents *Foo.
 func PtrTo(t Type) Type {
-	return t.(*commonType).ptrTo()
-}
-
-func (ct *commonType) ptrTo() *commonType {
+	// If t records its pointer-to type, use it.
+	ct := t.(*commonType)
 	if p := ct.ptrToThis; p != nil {
-		return toCommonType(p)
+		return toType(p)
 	}
 
 	// Otherwise, synthesize one.
@@ -984,7 +982,7 @@ func (ct *commonType) ptrTo() *commonType {
 	if m := ptrMap.m; m != nil {
 		if p := m[ct]; p != nil {
 			ptrMap.RUnlock()
-			return &p.commonType
+			return p.commonType.toType()
 		}
 	}
 	ptrMap.RUnlock()
@@ -996,7 +994,7 @@ func (ct *commonType) ptrTo() *commonType {
 	if p != nil {
 		// some other goroutine won the race and created it
 		ptrMap.Unlock()
-		return &p.commonType
+		return p
 	}
 
 	rt := (*runtime.Type)(unsafe.Pointer(ct))
@@ -1026,7 +1024,7 @@ func (ct *commonType) ptrTo() *commonType {
 
 	ptrMap.m[ct] = p
 	ptrMap.Unlock()
-	return &p.commonType
+	return p.commonType.toType()
 }
 
 func (t *commonType) Implements(u Type) bool {

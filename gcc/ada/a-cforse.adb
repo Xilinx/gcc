@@ -452,7 +452,11 @@ package body Ada.Containers.Formal_Ordered_Sets is
       pragma Assert (Vet (Container, Position.Node),
                      "bad cursor in Element");
 
-      return Container.Nodes (Position.Node).Element;
+      declare
+         N : Tree_Types.Nodes_Type renames Container.Nodes;
+      begin
+         return N (Position.Node).Element;
+      end;
    end Element;
 
    -------------------------

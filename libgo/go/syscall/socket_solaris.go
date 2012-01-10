@@ -42,7 +42,7 @@ type RawSockaddrUnix struct {
 func (sa *RawSockaddrUnix) setLen(int) {
 }
 
-func (sa *RawSockaddrUnix) getLen() (int, error) {
+func (sa *RawSockaddrUnix) getLen() (int, int) {
 	if sa.Path[0] == 0 {
 		// "Abstract" Unix domain socket.
 		// Rewrite leading NUL as @ for textual display.
@@ -62,7 +62,7 @@ func (sa *RawSockaddrUnix) getLen() (int, error) {
 		n++
 	}
 
-	return n, nil
+	return n, 0
 }
 
 type RawSockaddr struct {
@@ -71,10 +71,10 @@ type RawSockaddr struct {
 }
 
 // BindToDevice binds the socket associated with fd to device.
-func BindToDevice(fd int, device string) (err error) {
+func BindToDevice(fd int, device string) (errno int) {
 	return ENOSYS
 }
 
-func anyToSockaddrOS(rsa *RawSockaddrAny) (Sockaddr, error) {
-	return nil, EAFNOSUPPORT
+func anyToSockaddrOS(rsa *RawSockaddrAny) (Sockaddr, int) {
+	return nil, EAFNOSUPPORT;
 }

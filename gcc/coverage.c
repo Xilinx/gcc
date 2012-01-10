@@ -604,33 +604,20 @@ coverage_end_function (unsigned lineno_checksum, unsigned cfg_checksum)
       bbg_file_name = NULL;
     }
 
-  if (fn_ctr_mask)
+  /* If the function is extern (i.e. extern inline), then we won't be
+     outputting it, so don't chain it onto the function list.  */
+  if (fn_ctr_mask && !DECL_EXTERNAL (current_function_decl))
     {
-      struct coverage_data *item = 0;
+      struct coverage_data *item = ggc_alloc_coverage_data ();
 
-      /* If the function is extern (i.e. extern inline), then we won't
-	 be outputting it, so don't chain it onto the function
-	 list.  */
-      if (!DECL_EXTERNAL (current_function_decl))
-	{
-	  item = ggc_alloc_coverage_data ();
-	  
-	  item->ident = current_function_funcdef_no + 1;
-	  item->lineno_checksum = lineno_checksum;
-	  item->cfg_checksum = cfg_checksum;
-
-	  item->fn_decl = current_function_decl;
-	  item->next = 0;
-	  *functions_tail = item;
-	  functions_tail = &item->next;
-	}
-
+      item->ident = current_function_funcdef_no + 1;
+      item->lineno_checksum = lineno_checksum;
+      item->cfg_checksum = cfg_checksum;
       for (i = 0; i != GCOV_COUNTERS; i++)
 	{
 	  tree var = fn_v_ctrs[i];
-
-	  if (item)
-	    item->ctr_vars[i] = var;
+	  
+	  item->ctr_vars[i] = var;
 	  if (var)
 	    {
 	      tree array_type = build_index_type (size_int (fn_n_ctrs[i] - 1));
@@ -640,7 +627,17 @@ coverage_end_function (unsigned lineno_checksum, unsigned cfg_checksum)
 	      DECL_SIZE_UNIT (var) = TYPE_SIZE_UNIT (array_type);
 	      varpool_finalize_decl (var);
 	    }
-	  
+	}
+      item->fn_decl = current_function_decl;
+      item->next = 0;
+      *functions_tail = item;
+      functions_tail = &item->next;
+    }
+  
+  if (fn_ctr_mask)
+    {
+      for (i = 0; i != GCOV_COUNTERS; i++)
+	{
 	  fn_b_ctrs[i] = fn_n_ctrs[i] = 0;
 	  fn_v_ctrs[i] = NULL_TREE;
 	}
@@ -1119,7 +1116,7 @@ coverage_finish (void)
   if (bbg_file_name && gcov_close ())
     unlink (bbg_file_name);
   
-  if (!local_tick || local_tick == (unsigned)-1)
+  if (!local_tick)
     /* Only remove the da file, if we cannot stamp it.  If we can
        stamp it, libgcov will DTRT.  */
     unlink (da_file_name);

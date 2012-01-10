@@ -9,8 +9,8 @@ package bmp
 
 import (
 	"errors"
-	"image"
 	"image/color"
+	"image"
 	"io"
 )
 

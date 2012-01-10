@@ -1,7 +1,7 @@
 /* { dg-do run } */
 /* { dg-require-effective-target stdint_types } */
 /* { dg-options "-fdump-tree-alias" } */
-/* { dg-skip-if "" { *-*-* } { "-O0" "-fno-fat-lto-objects" } { "" } } */
+/* { dg-skip-if "" { *-*-* } { "-O0" } { "" } } */
 
 #include <stdint.h>
 

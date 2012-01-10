@@ -53,4 +53,5 @@ do                                                         \
 	}                                                  \
   } while (0)
 
+#define STANDARD_EXEC_PREFIX "/gnu/libexec/gcc/"
 #define STANDARD_STARTFILE_PREFIX "/gnu/lib/"

@@ -5,7 +5,7 @@
 package token
 
 import (
-	"encoding/gob"
+	"gob"
 	"io"
 )
 

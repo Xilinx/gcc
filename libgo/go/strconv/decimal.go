@@ -102,6 +102,12 @@ func (a *decimal) Assign(v uint64) {
 	trim(a)
 }
 
+func newDecimal(i uint64) *decimal {
+	a := new(decimal)
+	a.Assign(i)
+	return a
+}
+
 // Maximum shift that we can do in one pass without overflow.
 // Signed int has 31 bits, and we have to be able to accommodate 9<<k.
 const maxShift = 27
@@ -297,32 +303,32 @@ func shouldRoundUp(a *decimal, nd int) bool {
 // If nd is zero, it means we're rounding
 // just to the left of the digits, as in
 // 0.09 -> 0.1.
-func (a *decimal) Round(nd int) {
+func (a *decimal) Round(nd int) *decimal {
 	if nd < 0 || nd >= a.nd {
-		return
+		return a
 	}
 	if shouldRoundUp(a, nd) {
-		a.RoundUp(nd)
-	} else {
-		a.RoundDown(nd)
+		return a.RoundUp(nd)
 	}
+	return a.RoundDown(nd)
 }
 
 // Round a down to nd digits (or fewer).
 // Returns receiver for convenience.
-func (a *decimal) RoundDown(nd int) {
+func (a *decimal) RoundDown(nd int) *decimal {
 	if nd < 0 || nd >= a.nd {
-		return
+		return a
 	}
 	a.nd = nd
 	trim(a)
+	return a
 }
 
 // Round a up to nd digits (or fewer).
 // Returns receiver for convenience.
-func (a *decimal) RoundUp(nd int) {
+func (a *decimal) RoundUp(nd int) *decimal {
 	if nd < 0 || nd >= a.nd {
-		return
+		return a
 	}
 
 	// round up
@@ -331,7 +337,7 @@ func (a *decimal) RoundUp(nd int) {
 		if c < '9' { // can stop after this digit
 			a.d[i]++
 			a.nd = i + 1
-			return
+			return a
 		}
 	}
 
@@ -340,6 +346,7 @@ func (a *decimal) RoundUp(nd int) {
 	a.d[0] = '1'
 	a.nd = 1
 	a.dp++
+	return a
 }
 
 // Extract integer part, rounded appropriately.

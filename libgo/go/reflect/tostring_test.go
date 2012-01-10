@@ -23,14 +23,14 @@ func valueToString(val Value) string {
 	typ := val.Type()
 	switch val.Kind() {
 	case Int, Int8, Int16, Int32, Int64:
-		return strconv.FormatInt(val.Int(), 10)
+		return strconv.Itoa64(val.Int())
 	case Uint, Uint8, Uint16, Uint32, Uint64, Uintptr:
-		return strconv.FormatUint(val.Uint(), 10)
+		return strconv.Uitoa64(val.Uint())
 	case Float32, Float64:
-		return strconv.FormatFloat(val.Float(), 'g', -1, 64)
+		return strconv.Ftoa64(val.Float(), 'g', -1)
 	case Complex64, Complex128:
 		c := val.Complex()
-		return strconv.FormatFloat(real(c), 'g', -1, 64) + "+" + strconv.FormatFloat(imag(c), 'g', -1, 64) + "i"
+		return strconv.Ftoa64(real(c), 'g', -1) + "+" + strconv.Ftoa64(imag(c), 'g', -1) + "i"
 	case String:
 		return val.String()
 	case Bool:
@@ -88,7 +88,7 @@ func valueToString(val Value) string {
 		return typ.String() + "(" + valueToString(val.Elem()) + ")"
 	case Func:
 		v := val
-		return typ.String() + "(" + strconv.FormatUint(uint64(v.Pointer()), 10) + ")"
+		return typ.String() + "(" + strconv.Uitoa64(uint64(v.Pointer())) + ")"
 	default:
 		panic("valueToString: can't print type " + typ.String())
 	}

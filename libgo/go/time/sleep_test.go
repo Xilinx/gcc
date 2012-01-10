@@ -7,24 +7,22 @@ package time_test
 import (
 	"errors"
 	"fmt"
-	"runtime"
-	"sort"
-	"sync/atomic"
 	"testing"
+	"sort"
 	. "time"
 )
 
 func TestSleep(t *testing.T) {
-	const delay = 100 * Millisecond
+	const delay = int64(100e6)
 	go func() {
 		Sleep(delay / 2)
 		Interrupt()
 	}()
-	start := Now()
+	start := Nanoseconds()
 	Sleep(delay)
-	duration := Now().Sub(start)
+	duration := Nanoseconds() - start
 	if duration < delay {
-		t.Fatalf("Sleep(%s) slept for only %s", delay, duration)
+		t.Fatalf("Sleep(%d) slept for only %d ns", delay, duration)
 	}
 }
 
@@ -47,23 +45,6 @@ func TestAfterFunc(t *testing.T) {
 
 	AfterFunc(0, f)
 	<-c
-}
-
-func TestAfterStress(t *testing.T) {
-	stop := uint32(0)
-	go func() {
-		for atomic.LoadUint32(&stop) == 0 {
-			runtime.GC()
-			// Need to yield, because otherwise
-			// the main goroutine will never set the stop flag.
-			runtime.Gosched()
-		}
-	}()
-	c := Tick(1)
-	for i := 0; i < 100; i++ {
-		<-c
-	}
-	atomic.StoreUint32(&stop, 1)
 }
 
 func BenchmarkAfterFunc(b *testing.B) {
@@ -96,32 +77,32 @@ func BenchmarkStop(b *testing.B) {
 }
 
 func TestAfter(t *testing.T) {
-	const delay = 100 * Millisecond
-	start := Now()
+	const delay = int64(100e6)
+	start := Nanoseconds()
 	end := <-After(delay)
-	if duration := Now().Sub(start); duration < delay {
-		t.Fatalf("After(%s) slept for only %d ns", delay, duration)
+	if duration := Nanoseconds() - start; duration < delay {
+		t.Fatalf("After(%d) slept for only %d ns", delay, duration)
 	}
-	if min := start.Add(delay); end.Before(min) {
-		t.Fatalf("After(%s) expect >= %s, got %s", delay, min, end)
+	if min := start + delay; end < min {
+		t.Fatalf("After(%d) expect >= %d, got %d", delay, min, end)
 	}
 }
 
 func TestAfterTick(t *testing.T) {
 	const (
-		Delta = 100 * Millisecond
+		Delta = 100 * 1e6
 		Count = 10
 	)
-	t0 := Now()
+	t0 := Nanoseconds()
 	for i := 0; i < Count; i++ {
 		<-After(Delta)
 	}
-	t1 := Now()
-	d := t1.Sub(t0)
-	target := Delta * Count
+	t1 := Nanoseconds()
+	ns := t1 - t0
+	target := int64(Delta * Count)
 	slop := target * 2 / 10
-	if d < target-slop || d > target+slop {
-		t.Fatalf("%d ticks of %s took %s, expected %s", Count, Delta, d, target)
+	if ns < target-slop || ns > target+slop {
+		t.Fatalf("%d ticks of %g ns took %g ns, expected %g", Count, float64(Delta), float64(ns), float64(target))
 	}
 }
 
@@ -167,58 +148,42 @@ func TestAfterQueuing(t *testing.T) {
 }
 
 // For gccgo omit 0 for now because it can take too long to start the
-var slots = []int{5, 3, 6, 6, 6, 1, 1, 2, 7, 9, 4, 8 /*0*/ }
+var slots = []int{5, 3, 6, 6, 6, 1, 1, 2, 7, 9, 4, 8, /*0*/}
 
 type afterResult struct {
 	slot int
-	t    Time
+	t    int64
 }
 
-func await(slot int, result chan<- afterResult, ac <-chan Time) {
+func await(slot int, result chan<- afterResult, ac <-chan int64) {
 	result <- afterResult{slot, <-ac}
 }
 
 func testAfterQueuing(t *testing.T) error {
 	const (
-		Delta = 100 * Millisecond
+		Delta = 100 * 1e6
 	)
 	// make the result channel buffered because we don't want
 	// to depend on channel queueing semantics that might
 	// possibly change in the future.
 	result := make(chan afterResult, len(slots))
 
-	t0 := Now()
+	t0 := Nanoseconds()
 	for _, slot := range slots {
-		go await(slot, result, After(Duration(slot)*Delta))
+		go await(slot, result, After(int64(slot)*Delta))
 	}
 	sort.Ints(slots)
 	for _, slot := range slots {
 		r := <-result
 		if r.slot != slot {
-			return fmt.Errorf("after slot %d, expected %d", r.slot, slot)
+			return fmt.Errorf("after queue got slot %d, expected %d", r.slot, slot)
 		}
-		dt := r.t.Sub(t0)
-		target := Duration(slot) * Delta
-		slop := Delta / 4
-		if dt < target-slop || dt > target+slop {
-			return fmt.Errorf("After(%s) arrived at %s, expected [%s,%s]", target, dt, target-slop, target+slop)
+		ns := r.t - t0
+		target := int64(slot * Delta)
+		slop := int64(Delta) / 4
+		if ns < target-slop || ns > target+slop {
+			return fmt.Errorf("after queue slot %d arrived at %g, expected [%g,%g]", slot, float64(ns), float64(target-slop), float64(target+slop))
 		}
 	}
 	return nil
-}
-
-func TestTimerStopStress(t *testing.T) {
-	if testing.Short() {
-		return
-	}
-	for i := 0; i < 100; i++ {
-		go func(i int) {
-			timer := AfterFunc(2e9, func() {
-				t.Fatalf("timer %d was not stopped", i)
-			})
-			Sleep(1e9)
-			timer.Stop()
-		}(i)
-	}
-	Sleep(3e9)
 }

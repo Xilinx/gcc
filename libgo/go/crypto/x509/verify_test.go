@@ -10,7 +10,6 @@ import (
 	"errors"
 	"strings"
 	"testing"
-	"time"
 )
 
 type verifyTest struct {
@@ -134,7 +133,7 @@ func TestVerify(t *testing.T) {
 			Roots:         NewCertPool(),
 			Intermediates: NewCertPool(),
 			DNSName:       test.dnsName,
-			CurrentTime:   time.Unix(test.currentTime, 0),
+			CurrentTime:   test.currentTime,
 		}
 
 		for j, root := range test.roots {

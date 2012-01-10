@@ -86,7 +86,7 @@ public:
   void remove(T *p) { IListBase::remove(p); }
   T *head() { return (T *)IListBase::head(); }
   T *get() { return (T *)IListBase::get(); }
-  IListBase::empty; // { dg-warning "deprecated" }
+  IListBase::empty;
 friend class IListIter<T>;
 };
 
@@ -136,8 +136,8 @@ class IListIter : private IListIterBase {
 public:
   IListIter(const IList<T> &list) : IListIterBase(list) { }
   T *cur() { return (T *)IListIterBase::cur(); }
-  IListIterBase::next; // { dg-warning "deprecated" }
-  IListIterBase::done; // { dg-warning "deprecated" }
+  IListIterBase::next;
+  IListIterBase::done;
 };
 
 

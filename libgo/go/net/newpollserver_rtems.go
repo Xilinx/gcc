@@ -9,7 +9,7 @@ import (
 	"syscall"
 )
 
-func selfConnectedTCPSocket() (pr, pw *os.File, err error) {
+func selfConnectedTCPSocket() (pr, pw *os.File, err os.Error) {
 	// See ../syscall/exec.go for description of ForkLock.
 	syscall.ForkLock.RLock()
 	sockfd, e := syscall.Socket(syscall.AF_INET, syscall.SOCK_STREAM, 0)
@@ -49,7 +49,7 @@ func selfConnectedTCPSocket() (pr, pw *os.File, err error) {
 	return fd, fd, nil
 }
 
-func newPollServer() (s *pollServer, err error) {
+func newPollServer() (s *pollServer, err os.Error) {
 	s = new(pollServer)
 	s.cr = make(chan *netFD, 1)
 	s.cw = make(chan *netFD, 1)

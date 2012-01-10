@@ -25,9 +25,9 @@ package ebnf
 import (
 	"errors"
 	"fmt"
-	"text/scanner"
+	"scanner"
 	"unicode"
-	"unicode/utf8"
+	"utf8"
 )
 
 // ----------------------------------------------------------------------------

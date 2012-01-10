@@ -1,5 +1,5 @@
-// { dg-do run }
-// Copyright (C) 2005, 2009, 2010, 2011 Free Software Foundation
+// { dg-do run { xfail *-*-* } }
+// Copyright (C) 2005, 2009 Free Software Foundation
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -29,7 +29,7 @@ struct A { };
 int
 test01()
 {
-  bool test = false;
+  bool test __attribute__((unused)) = true;
 
   std::tr1::shared_ptr<A> a1(new A);
   std::tr1::weak_ptr<A> wa(a1);
@@ -42,9 +42,12 @@ test01()
   catch (const std::tr1::bad_weak_ptr&)
   {
     // Expected.
-    test = true;
+      __throw_exception_again;
   }
-  VERIFY( test );
+  catch (...)
+  {
+    // Failed.
+  }
 
   return 0;
 }

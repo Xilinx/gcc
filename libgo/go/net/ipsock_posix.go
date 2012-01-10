@@ -33,8 +33,8 @@ func probeIPv6Stack() (supportsIPv6, supportsIPv4map bool) {
 	}
 
 	for i := range probes {
-		s, err := syscall.Socket(syscall.AF_INET6, syscall.SOCK_STREAM, syscall.IPPROTO_TCP)
-		if err != nil {
+		s, errno := syscall.Socket(syscall.AF_INET6, syscall.SOCK_STREAM, syscall.IPPROTO_TCP)
+		if errno != 0 {
 			continue
 		}
 		defer closesocket(s)
@@ -42,8 +42,8 @@ func probeIPv6Stack() (supportsIPv6, supportsIPv4map bool) {
 		if err != nil {
 			continue
 		}
-		err = syscall.Bind(s, sa)
-		if err != nil {
+		errno = syscall.Bind(s, sa)
+		if errno != 0 {
 			continue
 		}
 		probes[i].ok = true

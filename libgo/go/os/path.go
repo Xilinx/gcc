@@ -17,7 +17,7 @@ func MkdirAll(path string, perm uint32) error {
 	// If path exists, stop with success or error.
 	dir, err := Stat(path)
 	if err == nil {
-		if dir.IsDir() {
+		if dir.IsDirectory() {
 			return nil
 		}
 		return &PathError{"mkdir", path, ENOTDIR}
@@ -48,7 +48,7 @@ func MkdirAll(path string, perm uint32) error {
 		// Handle arguments like "foo/." by
 		// double-checking that directory doesn't exist.
 		dir, err1 := Lstat(path)
-		if err1 == nil && dir.IsDir() {
+		if err1 == nil && dir.IsDirectory() {
 			return nil
 		}
 		return err
@@ -75,7 +75,7 @@ func RemoveAll(path string) error {
 		}
 		return serr
 	}
-	if !dir.IsDir() {
+	if !dir.IsDirectory() {
 		// Not a directory; return the error from Remove.
 		return err
 	}

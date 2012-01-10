@@ -13,13 +13,13 @@ import (
 	"crypto/md5"
 	"encoding/binary"
 	"fmt"
+	"http"
 	"io"
 	"io/ioutil"
-	"math/rand"
-	"net/http"
-	"net/url"
+	"rand"
 	"strconv"
 	"strings"
+	"url"
 )
 
 // An aray of characters to be randomly inserted to construct Sec-WebSocket-Key
@@ -274,7 +274,7 @@ func getChallengeResponse(number1, number2 uint32, key3 []byte) (expected []byte
 	if _, err = h.Write(challenge); err != nil {
 		return
 	}
-	expected = h.Sum(nil)
+	expected = h.Sum()
 	return
 }
 
@@ -365,13 +365,13 @@ func hixie76ClientHandshake(config *Config, br *bufio.Reader, bw *bufio.Writer) 
 	key2, number2 := generateKeyNumber()
 	if config.handshakeData != nil {
 		key1 = config.handshakeData["key1"]
-		n, err := strconv.ParseUint(config.handshakeData["number1"], 10, 32)
+		n, err := strconv.Atoui(config.handshakeData["number1"])
 		if err != nil {
 			panic(err)
 		}
 		number1 = uint32(n)
 		key2 = config.handshakeData["key2"]
-		n, err = strconv.ParseUint(config.handshakeData["number2"], 10, 32)
+		n, err = strconv.Atoui(config.handshakeData["number2"])
 		if err != nil {
 			panic(err)
 		}

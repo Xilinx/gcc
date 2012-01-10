@@ -11,17 +11,14 @@ import "sort"
 
 // Any type that implements heap.Interface may be used as a
 // min-heap with the following invariants (established after
-// Init has been called or if the data is empty or sorted):
+// Init has been called):
 //
 //	!h.Less(j, i) for 0 <= i < h.Len() and j = 2*i+1 or 2*i+2 and j < h.Len()
 //
-// Note that Push and Pop in this interface are for package heap's
-// implementation to call.  To add and remove things from the heap,
-// use heap.Push and heap.Pop.
 type Interface interface {
 	sort.Interface
-	Push(x interface{}) // add x as element Len()
-	Pop() interface{}   // remove and return element Len() - 1.
+	Push(x interface{})
+	Pop() interface{}
 }
 
 // A heap must be initialized before any of the heap operations

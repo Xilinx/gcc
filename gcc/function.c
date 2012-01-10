@@ -3140,8 +3140,9 @@ assign_parm_setup_reg (struct assign_parm_data_all *all, tree parm,
 		set_unique_reg_note (sinsn, REG_EQUIV, stackr);
 	    }
 	}
-      else 
-	set_dst_reg_note (linsn, REG_EQUIV, equiv_stack_parm, parmreg);
+      else if ((set = single_set (linsn)) != 0
+	       && SET_DEST (set) == parmreg)
+	set_unique_reg_note (linsn, REG_EQUIV, equiv_stack_parm);
     }
 
   /* For pointer data type, suggest pointer register.  */
@@ -4756,7 +4757,7 @@ expand_function_start (tree subr)
       /* Mark the register as eliminable, similar to parameters.  */
       if (MEM_P (chain)
 	  && reg_mentioned_p (arg_pointer_rtx, XEXP (chain, 0)))
-	set_dst_reg_note (insn, REG_EQUIV, chain, local);
+	set_unique_reg_note (insn, REG_EQUIV, chain);
     }
 
   /* If the function receives a non-local goto, then store the
@@ -5956,22 +5957,9 @@ thread_prologue_and_epilogue_insns (void)
 	  FOR_EACH_EDGE (e, ei, tmp_bb->preds)
 	    if (single_succ_p (e->src)
 		&& !bitmap_bit_p (&bb_on_list, e->src->index)
-		&& can_duplicate_block_p (e->src))
-	      {
-		edge pe;
-		edge_iterator pei;
-
-		/* If there is predecessor of e->src which doesn't
-		   need prologue and the edge is complex,
-		   we might not be able to redirect the branch
-		   to a copy of e->src.  */
-		FOR_EACH_EDGE (pe, pei, e->src->preds)
-		  if ((pe->flags & EDGE_COMPLEX) != 0
-		      && !bitmap_bit_p (&bb_flags, pe->src->index))
-		    break;
-		if (pe == NULL && bitmap_set_bit (&bb_tail, e->src->index))
-		  VEC_quick_push (basic_block, vec, e->src);
-	      }
+		&& can_duplicate_block_p (e->src)
+		&& bitmap_set_bit (&bb_tail, e->src->index))
+	      VEC_quick_push (basic_block, vec, e->src);
 	}
 
       /* Now walk backwards from every block that is marked as needing

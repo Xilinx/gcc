@@ -4,5 +4,5 @@
 
 package syscall
 
-//sysnb	Uname(buf *Utsname) (err error)
+//sysnb	Uname(buf *Utsname) (errno int)
 //uname(buf *Utsname) int

@@ -8,8 +8,8 @@ package os
 
 import "syscall"
 
-// Args hold the command-line arguments, starting with the program name.
-var Args []string
+var Args []string // provided by runtime
+var Envs []string // provided by runtime
 
 // Getuid returns the numeric user id of the caller.
 func Getuid() int { return syscall.Getuid() }

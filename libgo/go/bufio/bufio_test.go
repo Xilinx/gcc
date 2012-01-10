@@ -10,10 +10,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 	"testing/iotest"
-	"unicode/utf8"
+	"utf8"
 )
 
 // Reads from a reader and rot13s the result.
@@ -424,9 +425,9 @@ var errorWriterTests = []errorWriterTest{
 	{0, 1, nil, io.ErrShortWrite},
 	{1, 2, nil, io.ErrShortWrite},
 	{1, 1, nil, nil},
-	{0, 1, io.ErrClosedPipe, io.ErrClosedPipe},
-	{1, 2, io.ErrClosedPipe, io.ErrClosedPipe},
-	{1, 1, io.ErrClosedPipe, io.ErrClosedPipe},
+	{0, 1, os.EPIPE, os.EPIPE},
+	{1, 2, os.EPIPE, os.EPIPE},
+	{1, 1, os.EPIPE, os.EPIPE},
 }
 
 func TestWriteErrors(t *testing.T) {
@@ -694,17 +695,6 @@ func TestLinesAfterRead(t *testing.T) {
 	line, isPrefix, err := l.ReadLine()
 	if err != io.EOF {
 		t.Errorf("expected EOF from ReadLine, got '%s' %t %s", line, isPrefix, err)
-	}
-}
-
-func TestReadLineNonNilLineOrError(t *testing.T) {
-	r := NewReader(strings.NewReader("line 1\n"))
-	for i := 0; i < 2; i++ {
-		l, _, err := r.ReadLine()
-		if l != nil && err != nil {
-			t.Fatalf("on line %d/2; ReadLine=%#v, %v; want non-nil line or Error, but not both",
-				i+1, l, err)
-		}
 	}
 }
 

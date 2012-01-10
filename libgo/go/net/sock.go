@@ -28,9 +28,9 @@ func socket(net string, f, p, t int, la, ra syscall.Sockaddr, toAddr func(syscal
 	// See ../syscall/exec.go for description of ForkLock.
 	syscall.ForkLock.RLock()
 	s, e := syscall.Socket(f, p, t)
-	if err != nil {
+	if e != 0 {
 		syscall.ForkLock.RUnlock()
-		return nil, err
+		return nil, os.Errno(e)
 	}
 	syscall.CloseOnExec(s)
 	syscall.ForkLock.RUnlock()
@@ -39,9 +39,9 @@ func socket(net string, f, p, t int, la, ra syscall.Sockaddr, toAddr func(syscal
 
 	if la != nil {
 		e = syscall.Bind(s, la)
-		if e != nil {
+		if e != 0 {
 			closesocket(s)
-			return nil, e
+			return nil, os.Errno(e)
 		}
 	}
 
@@ -109,6 +109,11 @@ func setReuseAddr(fd *netFD, reuse bool) error {
 	fd.incref()
 	defer fd.decref()
 	return setsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_REUSEADDR, boolint(reuse))
+}
+
+func bindToDevice(fd *netFD, dev string) error {
+	// TODO(rsc): call setsockopt with null-terminated string pointer
+	return os.EINVAL
 }
 
 func setDontRoute(fd *netFD, dontroute bool) error {

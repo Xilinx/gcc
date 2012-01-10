@@ -1,10 +1,9 @@
 void abort (void);
 
-int x[10000000];
-
 void parloop (int N)
 {
   int i;
+  int x[10000000];
 
   for (i = 0; i < N; i++)
     x[i] = i + 3;

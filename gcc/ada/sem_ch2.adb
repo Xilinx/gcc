@@ -30,7 +30,6 @@ with Opt;      use Opt;
 with Restrict; use Restrict;
 with Rident;   use Rident;
 with Sem_Ch8;  use Sem_Ch8;
-with Sem_Dim;  use Sem_Dim;
 with Sinfo;    use Sinfo;
 with Stand;    use Stand;
 with Uintp;    use Uintp;
@@ -76,8 +75,6 @@ package body Sem_Ch2 is
       else
          Find_Direct_Name (N);
       end if;
-
-      Analyze_Dimension (N);
    end Analyze_Identifier;
 
    -----------------------------

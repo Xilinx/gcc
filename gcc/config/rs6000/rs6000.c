@@ -1661,8 +1661,6 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #undef TARGET_LEGITIMATE_CONSTANT_P
 #define TARGET_LEGITIMATE_CONSTANT_P rs6000_legitimate_constant_p
 
-#undef TARGET_VECTORIZE_VEC_PERM_CONST_OK
-#define TARGET_VECTORIZE_VEC_PERM_CONST_OK rs6000_vectorize_vec_perm_const_ok
 
 
 /* Simplifications for entries below.  */
@@ -2504,7 +2502,6 @@ darwin_rs6000_override_options (void)
      off.  */
   rs6000_altivec_abi = 1;
   TARGET_ALTIVEC_VRSAVE = 1;
-  rs6000_current_abi = ABI_DARWIN;
 
   if (DEFAULT_ABI == ABI_DARWIN
       && TARGET_64BIT)
@@ -4725,7 +4722,7 @@ rs6000_expand_vector_init (rtx target, rtx vals)
 					  copy_to_reg (XVECEXP (vals, 0, 3))));
 	  emit_insn (gen_vsx_xvcvdpsp (flt_even, dbl_even));
 	  emit_insn (gen_vsx_xvcvdpsp (flt_odd, dbl_odd));
-	  rs6000_expand_extract_even (target, flt_even, flt_odd);
+	  emit_insn (gen_vec_extract_evenv4sf (target, flt_even, flt_odd));
 	}
       return;
     }
@@ -10580,9 +10577,7 @@ altivec_expand_builtin (tree exp, rtx target, bool *expandedp)
     {
       *expandedp = true;
       error ("unresolved overload for Altivec builtin %qF", fndecl);
-
-      /* Given it is invalid, just generate a normal call.  */
-      return expand_call (exp, target, false);
+      return const0_rtx;
     }
 
   target = altivec_expand_ld_builtin (exp, target, expandedp);
@@ -11310,9 +11305,7 @@ rs6000_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
   if (!func_valid_p)
     {
       rs6000_invalid_builtin (fcode);
-
-      /* Given it is invalid, just generate a normal call.  */
-      return expand_call (exp, target, ignore);
+      return NULL_RTX;
     }
 
   switch (fcode)
@@ -15456,13 +15449,12 @@ rs6000_assemble_integer (rtx x, unsigned int size, int aligned_p)
     {
       static int recurse = 0;
 
-      /* For -mrelocatable, we mark all addresses that need to be fixed up in
-	 the .fixup section.  Since the TOC section is already relocated, we
-	 don't need to mark it here.  We used to skip the text section, but it
-	 should never be valid for relocated addresses to be placed in the text
-	 section.  */
+      /* For -mrelocatable, we mark all addresses that need to be fixed up
+	 in the .fixup section.  */
       if (TARGET_RELOCATABLE
 	  && in_section != toc_section
+	  && in_section != text_section
+	  && !unlikely_text_section_p (in_section)
 	  && !recurse
 	  && GET_CODE (x) != CONST_INT
 	  && GET_CODE (x) != CONST_DOUBLE
@@ -19559,52 +19551,56 @@ rs6000_emit_prologue (void)
     {
       int i;
       rtx spe_save_area_ptr;
-      int save_ptr_to_sp;
-      int ool_adjust = 0;
-
+ 
       /* Determine whether we can address all of the registers that need
-	 to be saved with an offset from frame_reg_rtx that fits in
+	 to be saved with an offset from the stack pointer that fits in
 	 the small const field for SPE memory instructions.  */
-      int spe_regs_addressable
-	= (SPE_CONST_OFFSET_OK (info->spe_gp_save_offset + sp_offset
-				+ reg_size * (32 - info->first_gp_reg_save - 1))
+      int spe_regs_addressable_via_sp
+	= (SPE_CONST_OFFSET_OK(info->spe_gp_save_offset + sp_offset
+			       + (32 - info->first_gp_reg_save - 1) * reg_size)
 	   && saving_GPRs_inline);
       int spe_offset;
-
-      if (spe_regs_addressable)
+ 
+      if (spe_regs_addressable_via_sp)
 	{
 	  spe_save_area_ptr = frame_reg_rtx;
-	  save_ptr_to_sp = info->total_size - sp_offset;
 	  spe_offset = info->spe_gp_save_offset + sp_offset;
 	}
       else
 	{
 	  /* Make r11 point to the start of the SPE save area.  We need
 	     to be careful here if r11 is holding the static chain.  If
-	     it is, then temporarily save it in r0.  */
-	  int offset;
-
-	  if (!saving_GPRs_inline)
-	    ool_adjust = 8 * (info->first_gp_reg_save
-			      - (FIRST_SAVRES_REGISTER + 1));
-	  offset = info->spe_gp_save_offset + sp_offset - ool_adjust;
-	  spe_save_area_ptr = gen_rtx_REG (Pmode, 11);
-	  save_ptr_to_sp = info->total_size - sp_offset + offset;
-	  spe_offset = 0;
+	     it is, then temporarily save it in r0.  We would use r0 as
+	     our base register here, but using r0 as a base register in
+	     loads and stores means something different from what we
+	     would like.  */
+	  int ool_adjust = (saving_GPRs_inline
+			    ? 0
+			    : (info->first_gp_reg_save
+			       - (FIRST_SAVRES_REGISTER+1))*8);
+	  HOST_WIDE_INT offset = (info->spe_gp_save_offset
+				  + sp_offset - ool_adjust);
 
 	  if (using_static_chain_p)
 	    {
 	      rtx r0 = gen_rtx_REG (Pmode, 0);
 	      gcc_assert (info->first_gp_reg_save > 11);
-
-	      emit_move_insn (r0, spe_save_area_ptr);
+ 
+	      emit_move_insn (r0, gen_rtx_REG (Pmode, 11));
 	    }
-	  emit_insn (gen_addsi3 (spe_save_area_ptr,
-				 frame_reg_rtx, GEN_INT (offset)));
-	  if (REGNO (frame_reg_rtx) == 11)
-	    sp_offset = -info->spe_gp_save_offset + ool_adjust;
+ 
+	  spe_save_area_ptr = gen_rtx_REG (Pmode, 11);
+	  insn = emit_insn (gen_addsi3 (spe_save_area_ptr,
+					frame_reg_rtx,
+					GEN_INT (offset)));
+	  /* We need to make sure the move to r11 gets noted for
+	     properly outputting unwind information.  */
+	  if (!saving_GPRs_inline)
+	    rs6000_frame_related (insn, frame_reg_rtx, offset,
+				  NULL_RTX, NULL_RTX);
+	  spe_offset = 0;
 	}
-
+ 
       if (saving_GPRs_inline)
 	{
 	  for (i = 0; i < 32 - info->first_gp_reg_save; i++)
@@ -19616,65 +19612,58 @@ rs6000_emit_prologue (void)
 		/* We're doing all this to ensure that the offset fits into
 		   the immediate offset of 'evstdd'.  */
 		gcc_assert (SPE_CONST_OFFSET_OK (reg_size * i + spe_offset));
-
+ 
 		offset = GEN_INT (reg_size * i + spe_offset);
 		addr = gen_rtx_PLUS (Pmode, spe_save_area_ptr, offset);
 		mem = gen_rtx_MEM (V2SImode, addr);
-
+  
 		insn = emit_move_insn (mem, reg);
-
-		rs6000_frame_related (insn,
-				      spe_save_area_ptr, save_ptr_to_sp,
-				      NULL_RTX, NULL_RTX);
+	   
+		rs6000_frame_related (insn, spe_save_area_ptr,
+				      info->spe_gp_save_offset
+				      + sp_offset + reg_size * i,
+				      offset, const0_rtx);
 	      }
 	}
       else
 	{
-	  insn = rs6000_emit_savres_rtx (info, spe_save_area_ptr,
-					 ool_adjust, reg_mode,
+	  insn = rs6000_emit_savres_rtx (info, gen_rtx_REG (Pmode, 11),
+					 0, reg_mode,
 					 /*savep=*/true, /*gpr=*/true,
 					 /*lr=*/false);
-
-	  rs6000_frame_related (insn, spe_save_area_ptr, save_ptr_to_sp,
+	  rs6000_frame_related (insn, frame_ptr_rtx, info->total_size,
 				NULL_RTX, NULL_RTX);
 	}
-
+					
+ 
       /* Move the static chain pointer back.  */
-      if (using_static_chain_p && !spe_regs_addressable)
-	emit_move_insn (spe_save_area_ptr, gen_rtx_REG (Pmode, 0));
+      if (using_static_chain_p && !spe_regs_addressable_via_sp)
+	emit_move_insn (gen_rtx_REG (Pmode, 11), gen_rtx_REG (Pmode, 0));
     }
   else if (!WORLD_SAVE_P (info) && !saving_GPRs_inline)
     {
       if (DEFAULT_ABI == ABI_DARWIN)
 	{
-	  rtx dest_reg = gen_rtx_REG (Pmode, 11);
+	  rtx dest_reg = gen_rtx_REG (reg_mode, 11);
 	  if (info->first_fp_reg_save == 64)
-	    {
-	      /* we only need a copy, no fprs were saved.  */
-	      if (dest_reg != frame_reg_rtx)
-		emit_move_insn (dest_reg, frame_reg_rtx);
-	    }
+	    /* we only need a copy, no fprs were saved.  */
+	    emit_move_insn (dest_reg, frame_reg_rtx);
 	  else
 	    {
-	      int save_off = 8 * (64 - info->first_fp_reg_save);
-	      rtx offset = GEN_INT (sp_offset - save_off);
-
-	      if (REGNO (dest_reg) == REGNO (frame_reg_rtx))
-		sp_offset = save_off;
+	      rtx offset = GEN_INT (sp_offset
+				    + (-8 * (64-info->first_fp_reg_save)));
 	      emit_insn (gen_add3_insn (dest_reg, frame_reg_rtx, offset));
 	    }
 	}
       /* Need to adjust r11 (r12) if we saved any FPRs.  */
       else if (info->first_fp_reg_save != 64)
-	{
-	  rtx dest_reg = gen_rtx_REG (Pmode, DEFAULT_ABI == ABI_AIX ? 12 : 11);
-	  int save_off = 8 * (64 - info->first_fp_reg_save);
-	  rtx offset = GEN_INT (sp_offset - save_off);
-
-	  if (REGNO (dest_reg) == REGNO (frame_reg_rtx))
-	    sp_offset = save_off;
+        {
+	  rtx dest_reg = gen_rtx_REG (reg_mode, DEFAULT_ABI == ABI_AIX
+				      ? 12 : 11);
+	  rtx offset = GEN_INT (sp_offset
+                                + (-8 * (64-info->first_fp_reg_save)));
 	  emit_insn (gen_add3_insn (dest_reg, frame_reg_rtx, offset));
-	}
+        }
 
       insn = rs6000_emit_savres_rtx (info, frame_reg_rtx,
 				     info->gp_save_offset + sp_offset,
@@ -19910,9 +19899,7 @@ rs6000_emit_prologue (void)
      used in this function, and do the corresponding magic in the
      epilogue.  */
 
-  if (!WORLD_SAVE_P (info)
-      && TARGET_ALTIVEC
-      && TARGET_ALTIVEC_VRSAVE
+  if (TARGET_ALTIVEC && TARGET_ALTIVEC_VRSAVE
       && info->vrsave_mask != 0)
     {
       rtx reg, mem, vrsave;
@@ -19928,12 +19915,15 @@ rs6000_emit_prologue (void)
       else
         emit_insn (gen_rtx_SET (VOIDmode, reg, vrsave));
 
-      /* Save VRSAVE.  */
-      offset = info->vrsave_save_offset + sp_offset;
-      mem = gen_frame_mem (SImode,
-			   gen_rtx_PLUS (Pmode, frame_reg_rtx, 
-					 GEN_INT (offset)));
-      insn = emit_move_insn (mem, reg);
+      if (!WORLD_SAVE_P (info))
+        {
+          /* Save VRSAVE.  */
+          offset = info->vrsave_save_offset + sp_offset;
+          mem = gen_frame_mem (SImode,
+                               gen_rtx_PLUS (Pmode, frame_reg_rtx,
+                                             GEN_INT (offset)));
+          insn = emit_move_insn (mem, reg);
+        }
 
       /* Include the registers in the mask.  */
       emit_insn (gen_iorsi3 (reg, reg, GEN_INT ((int) info->vrsave_mask)));
@@ -20587,39 +20577,40 @@ rs6000_emit_epilogue (int sibcall)
       && info->first_gp_reg_save != 32)
     {
       /* Determine whether we can address all of the registers that need
-	 to be saved with an offset from frame_reg_rtx that fits in
-	 the small const field for SPE memory instructions.  */
-      int spe_regs_addressable
-	= (SPE_CONST_OFFSET_OK (info->spe_gp_save_offset + sp_offset
-				+ reg_size * (32 - info->first_gp_reg_save - 1))
+         to be saved with an offset from the stack pointer that fits in
+         the small const field for SPE memory instructions.  */
+      int spe_regs_addressable_via_sp
+	= (SPE_CONST_OFFSET_OK(info->spe_gp_save_offset + sp_offset
+			       + (32 - info->first_gp_reg_save - 1) * reg_size)
 	   && restoring_GPRs_inline);
       int spe_offset;
-      int ool_adjust = 0;
 
-      if (spe_regs_addressable)
+      if (spe_regs_addressable_via_sp)
 	spe_offset = info->spe_gp_save_offset + sp_offset;
       else
-	{
+        {
 	  rtx old_frame_reg_rtx = frame_reg_rtx;
-	  /* Make r11 point to the start of the SPE save area.  We worried about
-	     not clobbering it when we were saving registers in the prologue.
-	     There's no need to worry here because the static chain is passed
-	     anew to every function.  */
+          /* Make r11 point to the start of the SPE save area.  We worried about
+             not clobbering it when we were saving registers in the prologue.
+             There's no need to worry here because the static chain is passed
+             anew to every function.  */
+	  int ool_adjust = (restoring_GPRs_inline
+			    ? 0
+			    : (info->first_gp_reg_save
+			       - (FIRST_SAVRES_REGISTER + 1)) * 8);
 
-	  if (!restoring_GPRs_inline)
-	    ool_adjust = 8 * (info->first_gp_reg_save
-			      - (FIRST_SAVRES_REGISTER + 1));
-	  frame_reg_rtx = gen_rtx_REG (Pmode, 11);
-	  emit_insn (gen_addsi3 (frame_reg_rtx, old_frame_reg_rtx,
+	  if (frame_reg_rtx == sp_reg_rtx)
+	    frame_reg_rtx = gen_rtx_REG (Pmode, 11);
+          emit_insn (gen_addsi3 (frame_reg_rtx, old_frame_reg_rtx,
 				 GEN_INT (info->spe_gp_save_offset
 					  + sp_offset
 					  - ool_adjust)));
 	  /* Keep the invariant that frame_reg_rtx + sp_offset points
 	     at the top of the stack frame.  */
-	  sp_offset = -info->spe_gp_save_offset + ool_adjust;
+	  sp_offset = -info->spe_gp_save_offset;
 
-	  spe_offset = 0;
-	}
+          spe_offset = 0;
+        }
 
       if (restoring_GPRs_inline)
 	{
@@ -20641,8 +20632,8 @@ rs6000_emit_epilogue (int sibcall)
 	      }
 	}
       else
-	rs6000_emit_savres_rtx (info, frame_reg_rtx,
-				ool_adjust, reg_mode,
+	rs6000_emit_savres_rtx (info, gen_rtx_REG (Pmode, 11),
+				0, reg_mode,
 				/*savep=*/false, /*gpr=*/true,
 				/*lr=*/true);
     }
@@ -20655,22 +20646,22 @@ rs6000_emit_epilogue (int sibcall)
       if (can_use_exit)
 	{
 	  rs6000_emit_stack_reset (info, sp_reg_rtx, frame_reg_rtx,
-				   sp_offset, can_use_exit);
+				 sp_offset, can_use_exit);
 	  if (DEFAULT_ABI == ABI_DARWIN)
 	    /* we only need a copy, no fprs were saved.  */
-	    emit_move_insn (gen_rtx_REG (Pmode, 11), frame_reg_rtx);
+	    emit_move_insn (gen_rtx_REG (reg_mode, 11), frame_reg_rtx);
 
 	  if (info->cr_save_p)
 	    rs6000_restore_saved_cr (cr_save_reg, using_mtcr_multiple);
 	}
       else
 	{
-	  rtx src_reg = gen_rtx_REG (Pmode, DEFAULT_ABI == ABI_AIX ? 12 : 11);
-
-	  emit_insn (gen_add3_insn (src_reg, frame_reg_rtx,
+	  emit_insn (gen_add3_insn (gen_rtx_REG (Pmode, DEFAULT_ABI == ABI_AIX
+							? 12 : 11),
+				    frame_reg_rtx,
 				    GEN_INT (sp_offset - info->fp_size)));
-	  if (REGNO (frame_reg_rtx) == REGNO (src_reg))
-	    sp_offset = info->fp_size;
+	  if (REGNO (frame_reg_rtx) == 11)
+	    sp_offset += info->fp_size;
 	}
 
       rs6000_emit_savres_rtx (info, frame_reg_rtx,
@@ -26208,327 +26199,6 @@ rs6000_emit_parity (rtx dst, rtx src)
     }
 }
 
-/* Expand an Altivec constant permutation.  Return true if we match
-   an efficient implementation; false to fall back to VPERM.  */
-
-bool
-altivec_expand_vec_perm_const (rtx operands[4])
-{
-  struct altivec_perm_insn {
-    enum insn_code impl;
-    unsigned char perm[16];
-  };
-  static const struct altivec_perm_insn patterns[] = {
-    { CODE_FOR_altivec_vpkuhum,
-      {  1,  3,  5,  7,  9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31 } },
-    { CODE_FOR_altivec_vpkuwum,
-      {  2,  3,  6,  7, 10, 11, 14, 15, 18, 19, 22, 23, 26, 27, 30, 31 } },
-    { CODE_FOR_altivec_vmrghb,
-      {  0, 16,  1, 17,  2, 18,  3, 19,  4, 20,  5, 21,  6, 22,  7, 23 } },
-    { CODE_FOR_altivec_vmrghh,
-      {  0,  1, 16, 17,  2,  3, 18, 19,  4,  5, 20, 21,  6,  7, 22, 23 } },
-    { CODE_FOR_altivec_vmrghw,
-      {  0,  1,  2,  3, 16, 17, 18, 19,  4,  5,  6,  7, 20, 21, 22, 23 } },
-    { CODE_FOR_altivec_vmrglb,
-      {  8, 24,  9, 25, 10, 26, 11, 27, 12, 28, 13, 29, 14, 30, 15, 31 } },
-    { CODE_FOR_altivec_vmrglh,
-      {  8,  9, 24, 25, 10, 11, 26, 27, 12, 13, 28, 29, 14, 15, 30, 31 } },
-    { CODE_FOR_altivec_vmrglw,
-      {  8,  9, 10, 11, 24, 25, 26, 27, 12, 13, 14, 15, 28, 29, 30, 31 } }
-  };
-
-  unsigned int i, j, elt, which;
-  unsigned char perm[16];
-  rtx target, op0, op1, sel, x;
-  bool one_vec;
-
-  target = operands[0];
-  op0 = operands[1];
-  op1 = operands[2];
-  sel = operands[3];
-
-  /* Unpack the constant selector.  */
-  for (i = which = 0; i < 16; ++i)
-    {
-      rtx e = XVECEXP (sel, 0, i);
-      elt = INTVAL (e) & 31;
-      which |= (elt < 16 ? 1 : 2);
-      perm[i] = elt;
-    }
-
-  /* Simplify the constant selector based on operands.  */
-  switch (which)
-    {
-    default:
-      gcc_unreachable ();
-
-    case 3:
-      one_vec = false;
-      if (!rtx_equal_p (op0, op1))
-	break;
-      /* FALLTHRU */
-
-    case 2:
-      for (i = 0; i < 16; ++i)
-	perm[i] &= 15;
-      op0 = op1;
-      one_vec = true;
-      break;
-
-    case 1:
-      op1 = op0;
-      one_vec = true;
-      break;
-    }
- 
-  /* Look for splat patterns.  */
-  if (one_vec)
-    {
-      elt = perm[0];
-
-      for (i = 0; i < 16; ++i)
-	if (perm[i] != elt)
-	  break;
-      if (i == 16)
-	{
-	  emit_insn (gen_altivec_vspltb (target, op0, GEN_INT (elt)));
-	  return true;
-	}
-
-      if (elt % 2 == 0)
-	{
-	  for (i = 0; i < 16; i += 2)
-	    if (perm[i] != elt || perm[i + 1] != elt + 1)
-	      break;
-	  if (i == 16)
-	    {
-	      x = gen_reg_rtx (V8HImode);
-	      emit_insn (gen_altivec_vsplth (x, gen_lowpart (V8HImode, op0),
-					     GEN_INT (elt / 2)));
-	      emit_move_insn (target, gen_lowpart (V16QImode, x));
-	      return true;
-	    }
-	}
-
-      if (elt % 4 == 0)
-	{
-	  for (i = 0; i < 16; i += 4)
-	    if (perm[i] != elt
-		|| perm[i + 1] != elt + 1
-		|| perm[i + 2] != elt + 2
-		|| perm[i + 3] != elt + 3)
-	      break;
-	  if (i == 16)
-	    {
-	      x = gen_reg_rtx (V4SImode);
-	      emit_insn (gen_altivec_vspltw (x, gen_lowpart (V4SImode, op0),
-					     GEN_INT (elt / 4)));
-	      emit_move_insn (target, gen_lowpart (V16QImode, x));
-	      return true;
-	    }
-	}
-    }
-
-  /* Look for merge and pack patterns.  */
-  for (j = 0; j < ARRAY_SIZE (patterns); ++j)
-    {
-      bool swapped;
-
-      elt = patterns[j].perm[0];
-      if (perm[0] == elt)
-	swapped = false;
-      else if (perm[0] == elt + 16)
-	swapped = true;
-      else
-	continue;
-      for (i = 1; i < 16; ++i)
-	{
-	  elt = patterns[j].perm[i];
-	  if (swapped)
-	    elt = (elt >= 16 ? elt - 16 : elt + 16);
-	  else if (one_vec && elt >= 16)
-	    elt -= 16;
-	  if (perm[i] != elt)
-	    break;
-	}
-      if (i == 16)
-	{
-	  enum insn_code icode = patterns[j].impl;
-	  enum machine_mode omode = insn_data[icode].operand[0].mode;
-	  enum machine_mode imode = insn_data[icode].operand[1].mode;
-
-	  if (swapped)
-	    x = op0, op0 = op1, op1 = x;
-	  if (imode != V16QImode)
-	    {
-	      op0 = gen_lowpart (imode, op0);
-	      op1 = gen_lowpart (imode, op1);
-	    }
-	  if (omode == V16QImode)
-	    x = target;
-	  else
-	    x = gen_reg_rtx (omode);
-	  emit_insn (GEN_FCN (icode) (x, op0, op1));
-	  if (omode != V16QImode)
-	    emit_move_insn (target, gen_lowpart (V16QImode, x));
-	  return true;
-	}
-    }
-
-  return false;
-}
-
-/* Expand a Paired Single, VSX Permute Doubleword, or SPE constant permutation.
-   Return true if we match an efficient implementation.  */
-
-static bool
-rs6000_expand_vec_perm_const_1 (rtx target, rtx op0, rtx op1,
-				unsigned char perm0, unsigned char perm1)
-{
-  rtx x;
-
-  /* If both selectors come from the same operand, fold to single op.  */
-  if ((perm0 & 2) == (perm1 & 2))
-    {
-      if (perm0 & 2)
-	op0 = op1;
-      else
-	op1 = op0;
-    }
-  /* If both operands are equal, fold to simpler permutation.  */
-  if (rtx_equal_p (op0, op1))
-    {
-      perm0 = perm0 & 1;
-      perm1 = (perm1 & 1) + 2;
-    }
-  /* If the first selector comes from the second operand, swap.  */
-  else if (perm0 & 2)
-    {
-      if (perm1 & 2)
-	return false;
-      perm0 -= 2;
-      perm1 += 2;
-      x = op0, op0 = op1, op1 = x;
-    }
-  /* If the second selector does not come from the second operand, fail.  */
-  else if ((perm1 & 2) == 0)
-    return false;
-
-  /* Success! */
-  if (target != NULL)
-    {
-      enum machine_mode vmode, dmode;
-      rtvec v;
-
-      vmode = GET_MODE (target);
-      gcc_assert (GET_MODE_NUNITS (vmode) == 2);
-      dmode = mode_for_vector (GET_MODE_INNER (vmode), 4);
-
-      x = gen_rtx_VEC_CONCAT (dmode, op0, op1);
-      v = gen_rtvec (2, GEN_INT (perm0), GEN_INT (perm1));
-      x = gen_rtx_VEC_SELECT (vmode, x, gen_rtx_PARALLEL (VOIDmode, v));
-      emit_insn (gen_rtx_SET (VOIDmode, target, x));
-    }
-  return true;
-}
-
-bool
-rs6000_expand_vec_perm_const (rtx operands[4])
-{
-  rtx target, op0, op1, sel;
-  unsigned char perm0, perm1;
-
-  target = operands[0];
-  op0 = operands[1];
-  op1 = operands[2];
-  sel = operands[3];
-
-  /* Unpack the constant selector.  */
-  perm0 = INTVAL (XVECEXP (sel, 0, 0)) & 3;
-  perm1 = INTVAL (XVECEXP (sel, 0, 1)) & 3;
-
-  return rs6000_expand_vec_perm_const_1 (target, op0, op1, perm0, perm1);
-}
-
-/* Test whether a constant permutation is supported.  */
-
-static bool
-rs6000_vectorize_vec_perm_const_ok (enum machine_mode vmode,
-				    const unsigned char *sel)
-{
-  /* AltiVec (and thus VSX) can handle arbitrary permutations.  */
-  if (TARGET_ALTIVEC)
-    return true;
-
-  /* Check for ps_merge* or evmerge* insns.  */
-  if ((TARGET_PAIRED_FLOAT && vmode == V2SFmode)
-      || (TARGET_SPE && vmode == V2SImode))
-    {
-      rtx op0 = gen_raw_REG (vmode, LAST_VIRTUAL_REGISTER + 1);
-      rtx op1 = gen_raw_REG (vmode, LAST_VIRTUAL_REGISTER + 2);
-      return rs6000_expand_vec_perm_const_1 (NULL, op0, op1, sel[0], sel[1]);
-    }
-
-  return false;
-}
-
-/* A subroutine for rs6000_expand_extract_even & rs6000_expand_interleave.  */
-
-static void
-rs6000_do_expand_vec_perm (rtx target, rtx op0, rtx op1,
-			   enum machine_mode vmode, unsigned nelt, rtx perm[])
-{
-  enum machine_mode imode;
-  rtx x;
-
-  imode = vmode;
-  if (GET_MODE_CLASS (vmode) != MODE_VECTOR_INT)
-    {
-      imode = GET_MODE_INNER (vmode);
-      imode = mode_for_size (GET_MODE_BITSIZE (imode), MODE_INT, 0);
-      imode = mode_for_vector (imode, nelt);
-    }
-
-  x = gen_rtx_CONST_VECTOR (imode, gen_rtvec_v (nelt, perm));
-  x = expand_vec_perm (vmode, op0, op1, x, target);
-  if (x != target)
-    emit_move_insn (target, x);
-}
-
-/* Expand an extract even operation.  */
-
-void
-rs6000_expand_extract_even (rtx target, rtx op0, rtx op1)
-{
-  enum machine_mode vmode = GET_MODE (target);
-  unsigned i, nelt = GET_MODE_NUNITS (vmode);
-  rtx perm[16];
-
-  for (i = 0; i < nelt; i++)
-    perm[i] = GEN_INT (i * 2);
-
-  rs6000_do_expand_vec_perm (target, op0, op1, vmode, nelt, perm);
-}
-
-/* Expand a vector interleave operation.  */
-
-void
-rs6000_expand_interleave (rtx target, rtx op0, rtx op1, bool highp)
-{
-  enum machine_mode vmode = GET_MODE (target);
-  unsigned i, high, nelt = GET_MODE_NUNITS (vmode);
-  rtx perm[16];
-
-  high = (highp == BYTES_BIG_ENDIAN ? 0 : nelt / 2);
-  for (i = 0; i < nelt / 2; i++)
-    {
-      perm[i * 2] = GEN_INT (i + high);
-      perm[i * 2 + 1] = GEN_INT (i + nelt + high);
-    }
-
-  rs6000_do_expand_vec_perm (target, op0, op1, vmode, nelt, perm);
-}
-
 /* Return an RTX representing where to find the function value of a
    function returning MODE.  */
 static rtx
@@ -27116,11 +26786,6 @@ rs6000_inner_target_options (tree args, bool attr_p)
 			error_p = false;
 			target_flags_explicit |= mask;
 
-			/* VSX needs altivec, so -mvsx automagically sets
-			   altivec.  */
-			if (mask == MASK_VSX && !invert)
-			  mask |= MASK_ALTIVEC;
-
 			if (rs6000_opt_masks[i].invert)
 			  invert = !invert;
 
@@ -27138,7 +26803,7 @@ rs6000_inner_target_options (tree args, bool attr_p)
 		    if (strcmp (r, rs6000_opt_vars[i].name) == 0)
 		      {
 			size_t j = rs6000_opt_vars[i].global_offset;
-			*((int *) ((char *)&global_options + j)) = !invert;
+			((int *) &global_options)[j] = !invert;
 			error_p = false;
 			break;
 		      }
@@ -27333,6 +26998,7 @@ rs6000_pragma_target_parse (tree args, tree pop_target)
   struct cl_target_option *prev_opt, *cur_opt;
   unsigned prev_bumask, cur_bumask, diff_bumask;
   int prev_flags, cur_flags, diff_flags;
+  bool ret;
 
   if (TARGET_DEBUG_TARGET)
     {
@@ -27354,6 +27020,7 @@ rs6000_pragma_target_parse (tree args, tree pop_target)
 
   if (! args)
     {
+      ret = true;
       cur_tree = ((pop_target)
 		  ? pop_target
 		  : target_option_default_node);
@@ -27363,13 +27030,13 @@ rs6000_pragma_target_parse (tree args, tree pop_target)
   else
     {
       rs6000_cpu_index = rs6000_tune_index = -1;
-      if (!rs6000_inner_target_options (args, false)
-	  || !rs6000_option_override_internal (false)
-	  || (cur_tree = build_target_option_node ()) == NULL_TREE)
+      ret = rs6000_inner_target_options (args, false);
+      cur_tree = build_target_option_node ();
+
+      if (!cur_tree)
 	{
 	  if (TARGET_DEBUG_BUILTIN || TARGET_DEBUG_TARGET)
-	    fprintf (stderr, "invalid pragma\n");
-
+	    fprintf (stderr, "build_target_option_node returned NULL\n");
 	  return false;
 	}
     }
@@ -27405,7 +27072,7 @@ rs6000_pragma_target_parse (tree args, tree pop_target)
 	}
     }
 
-  return true;
+  return ret;
 }
 
 

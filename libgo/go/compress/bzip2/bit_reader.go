@@ -20,7 +20,7 @@ type bitReader struct {
 	err  error
 }
 
-// bitReader needs to read bytes from an io.Reader. We attempt to convert the
+// bitReader needs to read bytes from an io.Reader. We attempt to cast the
 // given io.Reader to this interface and, if it doesn't already fit, we wrap in
 // a bufio.Reader.
 type byteReader interface {
@@ -37,7 +37,7 @@ func newBitReader(r io.Reader) bitReader {
 
 // ReadBits64 reads the given number of bits and returns them in the
 // least-significant part of a uint64. In the event of an error, it returns 0
-// and the error can be obtained by calling Err().
+// and the error can be obtained by calling Error().
 func (br *bitReader) ReadBits64(bits uint) (n uint64) {
 	for bits > br.bits {
 		b, err := br.r.ReadByte()
@@ -82,6 +82,6 @@ func (br *bitReader) ReadBit() bool {
 	return n != 0
 }
 
-func (br *bitReader) Err() error {
+func (br *bitReader) Error() error {
 	return br.err
 }

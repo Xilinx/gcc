@@ -9,14 +9,14 @@
 package main
 
 import (
+	"cmath"
 	"fmt"
 	"math"
-	"math/cmplx"
 )
 
-type Test struct {
-	f, g complex128
-	out  complex128
+type Test struct{
+	f, g	complex128
+	out	complex128
 }
 
 var nan = math.NaN()
@@ -25,9 +25,9 @@ var negzero = math.Copysign(0, -1)
 
 func calike(a, b complex128) bool {
 	switch {
-	case cmplx.IsInf(a) && cmplx.IsInf(b):
+	case cmath.IsInf(a) && cmath.IsInf(b):
 		return true
-	case cmplx.IsNaN(a) && cmplx.IsNaN(b):
+	case cmath.IsNaN(a) && cmath.IsNaN(b):
 		return true
 	}
 	return a == b
@@ -36,7 +36,7 @@ func calike(a, b complex128) bool {
 func main() {
 	bad := false
 	for _, t := range tests {
-		x := t.f / t.g
+		x := t.f/t.g
 		if !calike(x, t.out) {
 			if !bad {
 				fmt.Printf("BUG\n")

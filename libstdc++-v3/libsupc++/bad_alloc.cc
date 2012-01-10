@@ -1,6 +1,6 @@
 // Implementation file for the -*- C++ -*- dynamic memory management header.
 
-// Copyright (C) 2010, 2011 Free Software Foundation
+// Copyright (C) 2010 Free Software Foundation
 //
 // This file is part of GCC.
 //
@@ -25,10 +25,10 @@
 
 #include "new"
 
-std::bad_alloc::~bad_alloc() _GLIBCXX_USE_NOEXCEPT { }
+std::bad_alloc::~bad_alloc() throw() { }
 
 const char* 
-std::bad_alloc::what() const _GLIBCXX_USE_NOEXCEPT
+std::bad_alloc::what() const throw()
 {
   return "std::bad_alloc";
 }

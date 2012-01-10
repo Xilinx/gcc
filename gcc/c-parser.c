@@ -1846,7 +1846,7 @@ c_parser_asm_definition (c_parser *parser)
   c_parser_skip_until_found (parser, CPP_SEMICOLON, "expected %<;%>");
 }
 
-/* Parse a static assertion (C11 6.7.10).
+/* Parse a static assertion (C1X N1425 6.7.10).
 
    static_assert-declaration:
      static_assert-declaration-no-semi ;
@@ -1861,7 +1861,7 @@ c_parser_static_assert_declaration (c_parser *parser)
     c_parser_skip_to_end_of_block_or_statement (parser);
 }
 
-/* Parse a static assertion (C11 6.7.10), without the trailing
+/* Parse a static assertion (C1X N1425 6.7.10), without the trailing
    semicolon.
 
    static_assert-declaration-no-semi:
@@ -1877,7 +1877,7 @@ c_parser_static_assert_declaration_no_semi (c_parser *parser)
 
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_STATIC_ASSERT));
   assert_loc = c_parser_peek_token (parser)->location;
-  if (!flag_isoc11)
+  if (!flag_isoc1x)
     {
       if (flag_isoc99)
 	pedwarn (assert_loc, OPT_pedantic,
@@ -1952,7 +1952,7 @@ c_parser_static_assert_declaration_no_semi (c_parser *parser)
 
    Function specifiers (inline) are from C99, and are currently
    handled as storage class specifiers, as is __thread.  Alignment
-   specifiers are from C11.
+   specifiers are from C1X.
 
    C90 6.5.1, C99 6.7.1:
    storage-class-specifier:
@@ -1967,7 +1967,7 @@ c_parser_static_assert_declaration_no_semi (c_parser *parser)
      inline
      _Noreturn
 
-   (_Noreturn is new in C11.)
+   (_Noreturn is new in C1X.)
 
    C90 6.5.2, C99 6.7.2:
    type-specifier:
@@ -2818,7 +2818,7 @@ c_parser_typeof_specifier (c_parser *parser)
 
 /* Parse an alignment-specifier.
 
-   C11 6.7.5:
+   C1X 6.7.5:
 
    alignment-specifier:
      _Alignas ( type-name )
@@ -2832,7 +2832,7 @@ c_parser_alignas_specifier (c_parser * parser)
   location_t loc = c_parser_peek_token (parser)->location;
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_ALIGNAS));
   c_parser_consume_token (parser);
-  if (!flag_isoc11)
+  if (!flag_isoc1x)
     {
       if (flag_isoc99)
 	pedwarn (loc, OPT_pedantic,
@@ -5937,7 +5937,7 @@ c_parser_cast_expression (c_parser *parser, struct c_expr *after)
      __alignof__ ( type-name )
      && identifier
 
-   (C11 permits _Alignof with type names only.)
+   (C1X permits _Alignof with type names only.)
 
    unary-operator: one of
      __extension__ __real__ __imag__
@@ -6146,9 +6146,9 @@ c_parser_alignof_expression (c_parser *parser)
   tree alignof_spelling = c_parser_peek_token (parser)->value;
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_ALIGNOF));
   /* A diagnostic is not required for the use of this identifier in
-     the implementation namespace; only diagnose it for the C11
+     the implementation namespace; only diagnose it for the C1X
      spelling because of existing code using the other spellings.  */
-  if (!flag_isoc11
+  if (!flag_isoc1x
       && strcmp (IDENTIFIER_POINTER (alignof_spelling), "_Alignof") == 0)
     {
       if (flag_isoc99)
@@ -9876,7 +9876,6 @@ c_parser_omp_clause_num_threads (c_parser *parser, tree list)
     {
       location_t expr_loc = c_parser_peek_token (parser)->location;
       tree c, t = c_parser_expression (parser).value;
-      mark_exp_read (t);
       t = c_fully_fold (t, false, NULL);
 
       c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, "expected %<)%>");
@@ -10084,7 +10083,6 @@ c_parser_omp_clause_schedule (c_parser *parser, tree list)
 
       here = c_parser_peek_token (parser)->location;
       t = c_parser_expr_no_commas (parser, NULL).value;
-      mark_exp_read (t);
       t = c_fully_fold (t, false, NULL);
 
       if (OMP_CLAUSE_SCHEDULE_KIND (c) == OMP_CLAUSE_SCHEDULE_RUNTIME)

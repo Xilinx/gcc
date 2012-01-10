@@ -6,9 +6,15 @@ package mime
 
 import "testing"
 
-var typeTests = initMimeForTests()
+var typeTests = map[string]string{
+	".t1":  "application/test",
+	".t2":  "text/test; charset=utf-8",
+	".png": "image/png",
+}
 
 func TestTypeByExtension(t *testing.T) {
+	typeFiles = []string{"test.types"}
+
 	for ext, want := range typeTests {
 		val := TypeByExtension(ext)
 		if val != want {

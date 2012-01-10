@@ -6,32 +6,39 @@ package tls
 
 import (
 	"crypto/x509"
+	"reflect"
 	"syscall"
 	"unsafe"
 )
 
 func loadStore(roots *x509.CertPool, name string) {
-	store, err := syscall.CertOpenSystemStore(syscall.InvalidHandle, syscall.StringToUTF16Ptr(name))
-	if err != nil {
+	store, errno := syscall.CertOpenSystemStore(syscall.InvalidHandle, syscall.StringToUTF16Ptr(name))
+	if errno != 0 {
 		return
 	}
-	defer syscall.CertCloseStore(store, 0)
 
 	var cert *syscall.CertContext
 	for {
-		cert, err = syscall.CertEnumCertificatesInStore(store, cert)
-		if err != nil {
-			return
+		cert = syscall.CertEnumCertificatesInStore(store, cert)
+		if cert == nil {
+			break
 		}
 
-		buf := (*[1 << 20]byte)(unsafe.Pointer(cert.EncodedCert))[:]
-		// ParseCertificate requires its own copy of certificate data to keep.
-		buf2 := make([]byte, cert.Length)
-		copy(buf2, buf)
-		if c, err := x509.ParseCertificate(buf2); err == nil {
-			roots.AddCert(c)
+		var asn1Slice []byte
+		hdrp := (*reflect.SliceHeader)(unsafe.Pointer(&asn1Slice))
+		hdrp.Data = cert.EncodedCert
+		hdrp.Len = int(cert.Length)
+		hdrp.Cap = int(cert.Length)
+
+		buf := make([]byte, len(asn1Slice))
+		copy(buf, asn1Slice)
+
+		if cert, err := x509.ParseCertificate(buf); err == nil {
+			roots.AddCert(cert)
 		}
 	}
+
+	syscall.CertCloseStore(store, 0)
 }
 
 func initDefaultRoots() {

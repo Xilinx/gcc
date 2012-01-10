@@ -1410,7 +1410,7 @@ package body Par_SCO is
                   Set_Statement_Entry;
 
                   --  Process case branches, all of which are dominated by the
-                  --  CASE statement.
+                  --  CASE expression.
 
                   declare
                      Alt : Node_Id;
@@ -1419,7 +1419,7 @@ package body Par_SCO is
                      while Present (Alt) loop
                         Traverse_Declarations_Or_Statements
                           (L => Statements (Alt),
-                           D => Current_Dominant);
+                           D => ('S', Expression (N)));
                         Next (Alt);
                      end loop;
                   end;
@@ -1465,9 +1465,8 @@ package body Par_SCO is
 
                when N_Loop_Statement =>
                   declare
-                     ISC            : constant Node_Id := Iteration_Scheme (N);
-                     Inner_Dominant : Dominant_Info    := No_Dominant;
-
+                     ISC : constant Node_Id := Iteration_Scheme (N);
+                     Inner_Dominant : Dominant_Info := No_Dominant;
                   begin
                      if Present (ISC) then
 
@@ -1475,19 +1474,17 @@ package body Par_SCO is
                         --  statement sequence to include the iteration scheme
                         --  and process any decisions it contains.
 
-                        --  While loop
+                        --  While statement
 
                         if Present (Condition (ISC)) then
                            Extend_Statement_Sequence (N, ISC, 'W');
                            Process_Decisions_Defer (Condition (ISC), 'W');
 
                            --  Set more specific dominant for inner statements
-                           --  (the control sloc for the decision is that of
-                           --  the WHILE token).
 
-                           Inner_Dominant := ('T', ISC);
+                           Inner_Dominant := ('T', N);
 
-                        --  For loop
+                        --  For statement
 
                         else
                            Extend_Statement_Sequence (N, ISC, 'F');

@@ -12,7 +12,7 @@ import (
 	"reflect"
 	"sync"
 	"unicode"
-	"unicode/utf8"
+	"utf8"
 )
 
 // Some constants in the form of bytes, to avoid string overhead.
@@ -631,30 +631,24 @@ func (p *pp) handleMethods(verb rune, plus, goSyntax bool, depth int) (wasString
 			return
 		}
 	} else {
-		// If a string is acceptable according to the format, see if
-		// the value satisfies one of the string-valued interfaces.
-		// Println etc. set verb to %v, which is "stringable".
-		switch verb {
-		case 'v', 's', 'x', 'X', 'q':
-			// Is it an error or Stringer?
-			// The duplication in the bodies is necessary:
-			// setting wasString and handled, and deferring catchPanic,
-			// must happen before calling the method.
-			switch v := p.field.(type) {
-			case error:
-				wasString = false
-				handled = true
-				defer p.catchPanic(p.field, verb)
-				p.printField(v.Error(), verb, plus, false, depth)
-				return
+		// Is it an error or Stringer?
+		// The duplication in the bodies is necessary:
+		// setting wasString and handled and deferring catchPanic
+		// must happen before calling the method.
+		switch v := p.field.(type) {
+		case error:
+			wasString = false
+			handled = true
+			defer p.catchPanic(p.field, verb)
+			p.printField(v.Error(), verb, plus, false, depth)
+			return
 
-			case Stringer:
-				wasString = false
-				handled = true
-				defer p.catchPanic(p.field, verb)
-				p.printField(v.String(), verb, plus, false, depth)
-				return
-			}
+		case Stringer:
+			wasString = false
+			handled = true
+			defer p.catchPanic(p.field, verb)
+			p.printField(v.String(), verb, plus, false, depth)
+			return
 		}
 	}
 	handled = false
@@ -801,10 +795,6 @@ BigSwitch:
 	case reflect.Map:
 		if goSyntax {
 			p.buf.WriteString(f.Type().String())
-			if f.IsNil() {
-				p.buf.WriteString("(nil)")
-				break
-			}
 			p.buf.WriteByte('{')
 		} else {
 			p.buf.Write(mapBytes)
@@ -883,10 +873,6 @@ BigSwitch:
 		}
 		if goSyntax {
 			p.buf.WriteString(value.Type().String())
-			if f.Kind() == reflect.Slice && f.IsNil() {
-				p.buf.WriteString("(nil)")
-				break
-			}
 			p.buf.WriteByte('{')
 		} else {
 			p.buf.WriteByte('[')

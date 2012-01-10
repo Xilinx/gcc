@@ -935,7 +935,7 @@ package body Ada.Containers.Bounded_Ordered_Maps is
       return It : constant Iterator :=
                     (Limited_Controlled with
                        Container => Container'Unrestricted_Access,
-                       Node      => 0)
+                       Node      => Container.First)
       do
          B := B + 1;
       end return;

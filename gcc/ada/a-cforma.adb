@@ -1025,6 +1025,7 @@ package body Ada.Containers.Formal_Ordered_Maps is
                                              Element : Element_Type))
    is
    begin
+
       if not Has_Element (Container, Position) then
          raise Constraint_Error with
            "Position cursor of Query_Element has no element";

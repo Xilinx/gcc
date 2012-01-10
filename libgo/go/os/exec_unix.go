@@ -38,7 +38,7 @@ func (p *Process) Wait(options int) (w *Waitmsg, err error) {
 		options ^= WRUSAGE
 	}
 	pid1, e := syscall.Wait4(p.Pid, &status, options, rusage)
-	if e != nil {
+	if e != 0 {
 		return nil, NewSyscallError("wait", e)
 	}
 	// With WNOHANG pid is 0 if child has not exited.
@@ -57,8 +57,8 @@ func (p *Process) Signal(sig Signal) error {
 	if p.done {
 		return errors.New("os: process already finished")
 	}
-	if e := syscall.Kill(p.Pid, int(sig.(UnixSignal))); e != nil {
-		return e
+	if e := syscall.Kill(p.Pid, int(sig.(UnixSignal))); e != 0 {
+		return Errno(e)
 	}
 	return nil
 }

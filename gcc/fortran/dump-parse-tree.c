@@ -2330,4 +2330,3 @@ gfc_dump_parse_tree (gfc_namespace *ns, FILE *file)
   dumpfile = file;
   show_namespace (ns);
 }
-

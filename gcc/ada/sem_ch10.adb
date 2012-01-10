@@ -2678,14 +2678,7 @@ package body Sem_Ch10 is
             Generate_Reference (Par_Name, Pref);
 
          else
-            pragma Assert (Serious_Errors_Detected /= 0);
-
-            --  Mark the node to indicate that a related error has been posted.
-            --  This defends further compilation passes against improper use of
-            --  the invalid WITH clause node.
-
-            Set_Error_Posted (N);
-            Set_Name (N, Error);
+            Set_Name (N, Make_Null (Sloc (N)));
             return;
          end if;
       end if;
@@ -4107,7 +4100,6 @@ package body Sem_Ch10 is
          if Nkind (Item) /= N_With_Clause
            or else Implicit_With (Item)
            or else Limited_Present (Item)
-           or else Error_Posted (Item)
          then
             null;
 

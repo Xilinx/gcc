@@ -5,8 +5,8 @@
 package main
 
 import (
-	"syscall"
 	"unsafe"
+	"syscall"
 )
 
 type Wndclassex struct {

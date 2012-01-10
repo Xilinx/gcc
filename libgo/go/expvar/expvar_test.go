@@ -5,7 +5,7 @@
 package expvar
 
 import (
-	"encoding/json"
+	"json"
 	"testing"
 )
 

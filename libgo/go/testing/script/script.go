@@ -7,7 +7,7 @@ package script
 
 import (
 	"fmt"
-	"math/rand"
+	"rand"
 	"reflect"
 	"strings"
 )

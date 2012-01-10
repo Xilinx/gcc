@@ -53,7 +53,6 @@
 
 private with Ada.Streams;
 with Ada.Containers;
-with Ada.Iterator_Interfaces;
 
 generic
    type Element_Type is private;
@@ -64,10 +63,7 @@ generic
 package Ada.Containers.Formal_Doubly_Linked_Lists is
    pragma Pure;
 
-   type List (Capacity : Count_Type) is tagged private with
-      Constant_Indexing => Constant_Reference,
-      Default_Iterator  => Iterate,
-      Iterator_Element  => Element_Type;
+   type List (Capacity : Count_Type) is tagged private;
    --  pragma Preelaborable_Initialization (List);
 
    type Cursor is private;
@@ -76,17 +72,6 @@ package Ada.Containers.Formal_Doubly_Linked_Lists is
    Empty_List : constant List;
 
    No_Element : constant Cursor;
-
-   function Not_No_Element (Position : Cursor) return Boolean;
-
-   package List_Iterator_Interfaces is new
-     Ada.Iterator_Interfaces (Cursor => Cursor, Has_Element => Not_No_Element);
-
-   function Iterate (Container : List; Start : Cursor)
-      return List_Iterator_Interfaces.Reversible_Iterator'Class;
-
-   function Iterate (Container : List)
-      return List_Iterator_Interfaces.Reversible_Iterator'Class;
 
    function "=" (Left, Right : List) return Boolean;
 
@@ -240,15 +225,6 @@ package Ada.Containers.Formal_Doubly_Linked_Lists is
 
    end Generic_Sorting;
 
-   type Constant_Reference_Type
-      (Element : not null access constant Element_Type) is private
-   with
-      Implicit_Dereference => Element;
-
-   function Constant_Reference
-     (Container : List;      --  SHOULD BE ALIASED ???
-      Position  : Cursor)   return Constant_Reference_Type;
-
    function Strict_Equal (Left, Right : List) return Boolean;
    --  Strict_Equal returns True if the containers are physically equal, i.e.
    --  they are structurally equal (function "=" returns True) and that they
@@ -268,9 +244,8 @@ private
    type Node_Type is record
       Prev    : Count_Type'Base := -1;
       Next    : Count_Type;
-      Element : aliased Element_Type;
+      Element : Element_Type;
    end record;
-
    function "=" (L, R : Node_Type) return Boolean is abstract;
 
    type Node_Array is array (Count_Type range <>) of Node_Type;
@@ -300,9 +275,6 @@ private
 
    for List'Write use Write;
 
-   type List_Access is access all List;
-   for List_Access'Storage_Size use 0;
-
    type Cursor is record
       Node : Count_Type := 0;
    end record;
@@ -322,8 +294,5 @@ private
    Empty_List : constant List := (0, others => <>);
 
    No_Element : constant Cursor := (Node => 0);
-
-   type Constant_Reference_Type
-      (Element : not null access constant Element_Type) is null record;
 
 end Ada.Containers.Formal_Doubly_Linked_Lists;

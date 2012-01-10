@@ -29,24 +29,29 @@ func rsaAlignOf(salen int) int {
 // RouteRIB returns routing information base, as known as RIB,
 // which consists of network facility information, states and
 // parameters.
-func RouteRIB(facility, param int) ([]byte, error) {
+func RouteRIB(facility, param int) ([]byte, int) {
+	var (
+		tab []byte
+		e   int
+	)
+
 	mib := []_C_int{CTL_NET, AF_ROUTE, 0, 0, _C_int(facility), _C_int(param)}
 
 	// Find size.
 	n := uintptr(0)
-	if err := sysctl(mib, nil, &n, nil, 0); err != nil {
-		return nil, err
+	if e = sysctl(mib, nil, &n, nil, 0); e != 0 {
+		return nil, e
 	}
 	if n == 0 {
-		return nil, nil
+		return nil, 0
 	}
 
-	tab := make([]byte, n)
-	if err := sysctl(mib, &tab[0], &n, nil, 0); err != nil {
-		return nil, err
+	tab = make([]byte, n)
+	if e = sysctl(mib, &tab[0], &n, nil, 0); e != 0 {
+		return nil, e
 	}
 
-	return tab[:n], nil
+	return tab[:n], 0
 }
 
 // RoutingMessage represents a routing message.
@@ -86,7 +91,7 @@ func (m *RouteMessage) sockaddr() []Sockaddr {
 		switch i {
 		case RTAX_DST, RTAX_GATEWAY:
 			sa, e := anyToSockaddr((*RawSockaddrAny)(unsafe.Pointer(rsa)))
-			if e != nil {
+			if e != 0 {
 				return nil
 			}
 			if i == RTAX_DST {
@@ -129,7 +134,7 @@ func (m *InterfaceMessage) sockaddr() (sas []Sockaddr) {
 		return nil
 	}
 	sa, e := anyToSockaddr((*RawSockaddrAny)(unsafe.Pointer(&m.Data[0])))
-	if e != nil {
+	if e != 0 {
 		return nil
 	}
 	return append(sas, sa)
@@ -158,7 +163,7 @@ func (m *InterfaceAddrMessage) sockaddr() (sas []Sockaddr) {
 		switch i {
 		case RTAX_IFA:
 			sa, e := anyToSockaddr((*RawSockaddrAny)(unsafe.Pointer(rsa)))
-			if e != nil {
+			if e != 0 {
 				return nil
 			}
 			sas = append(sas, sa)
@@ -173,7 +178,7 @@ func (m *InterfaceAddrMessage) sockaddr() (sas []Sockaddr) {
 
 // ParseRoutingMessage parses buf as routing messages and returns
 // the slice containing the RoutingMessage interfaces.
-func ParseRoutingMessage(buf []byte) (msgs []RoutingMessage, err error) {
+func ParseRoutingMessage(buf []byte) (msgs []RoutingMessage, errno int) {
 	for len(buf) >= anyMessageLen {
 		any := (*anyMessage)(unsafe.Pointer(&buf[0]))
 		if any.Version != RTM_VERSION {
@@ -182,11 +187,11 @@ func ParseRoutingMessage(buf []byte) (msgs []RoutingMessage, err error) {
 		msgs = append(msgs, any.toRoutingMessage(buf))
 		buf = buf[any.Msglen:]
 	}
-	return msgs, nil
+	return msgs, 0
 }
 
 // ParseRoutingMessage parses msg's payload as raw sockaddrs and
 // returns the slice containing the Sockaddr interfaces.
-func ParseRoutingSockaddr(msg RoutingMessage) (sas []Sockaddr, err error) {
-	return append(sas, msg.sockaddr()...), nil
+func ParseRoutingSockaddr(msg RoutingMessage) (sas []Sockaddr, errno int) {
+	return append(sas, msg.sockaddr()...), 0
 }

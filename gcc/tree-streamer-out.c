@@ -88,8 +88,7 @@ pack_ts_base_value_fields (struct bitpack_d *bp, tree expr)
   else
     bp_pack_value (bp, 0, 1);
   /* We write debug info two times, do not confuse the second one.  */
-  bp_pack_value (bp, ((TYPE_P (expr) || TREE_CODE (expr) == TYPE_DECL)
-		      ? 0 : TREE_ASM_WRITTEN (expr)), 1);
+  bp_pack_value (bp, TYPE_P (expr) ? 0 : TREE_ASM_WRITTEN (expr), 1);
   if (TYPE_P (expr))
     bp_pack_value (bp, TYPE_ARTIFICIAL (expr), 1);
   else
@@ -406,15 +405,7 @@ streamer_write_chain (struct output_block *ob, tree t, bool ref_p)
       saved_chain = TREE_CHAIN (t);
       TREE_CHAIN (t) = NULL_TREE;
 
-      /* We avoid outputting external vars or functions by reference
-	 to the global decls section as we do not want to have them
-	 enter decl merging.  This is, of course, only for the call
-	 for streaming BLOCK_VARS, but other callers are safe.  */
-      if (VAR_OR_FUNCTION_DECL_P (t)
-	  && DECL_EXTERNAL (t))
-	stream_write_tree_shallow_non_ref (ob, t, ref_p);
-      else
-	stream_write_tree (ob, t, ref_p);
+      stream_write_tree (ob, t, ref_p);
 
       TREE_CHAIN (t) = saved_chain;
       t = TREE_CHAIN (t);
@@ -517,8 +508,6 @@ write_ts_decl_non_common_tree_pointers (struct output_block *ob, tree expr,
       stream_write_tree (ob, DECL_ARGUMENTS (expr), ref_p);
       stream_write_tree (ob, DECL_RESULT (expr), ref_p);
     }
-  else if (TREE_CODE (expr) == TYPE_DECL)
-    stream_write_tree (ob, DECL_ORIGINAL_TYPE (expr), ref_p);
   stream_write_tree (ob, DECL_VINDEX (expr), ref_p);
 }
 
@@ -555,6 +544,7 @@ write_ts_field_decl_tree_pointers (struct output_block *ob, tree expr,
   stream_write_tree (ob, DECL_QUALIFIER (expr), ref_p);
   stream_write_tree (ob, DECL_FIELD_BIT_OFFSET (expr), ref_p);
   stream_write_tree (ob, DECL_FCONTEXT (expr), ref_p);
+  streamer_write_chain (ob, TREE_CHAIN (expr), ref_p);
 }
 
 
@@ -610,7 +600,7 @@ write_ts_type_non_common_tree_pointers (struct output_block *ob, tree expr,
   else if (TREE_CODE (expr) == ARRAY_TYPE)
     stream_write_tree (ob, TYPE_DOMAIN (expr), ref_p);
   else if (RECORD_OR_UNION_TYPE_P (expr))
-    streamer_write_chain (ob, TYPE_FIELDS (expr), ref_p);
+    stream_write_tree (ob, TYPE_FIELDS (expr), ref_p);
   else if (TREE_CODE (expr) == FUNCTION_TYPE
 	   || TREE_CODE (expr) == METHOD_TYPE)
     stream_write_tree (ob, TYPE_ARG_TYPES (expr), ref_p);

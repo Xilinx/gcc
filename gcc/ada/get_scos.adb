@@ -287,14 +287,13 @@ begin
 
                   case Typ is
                      when '>' =>
-
-                        --  Dominance marker may be present only at entry point
+                        --  A dominance marker may be present only at an entry
+                        --  point.
 
                         pragma Assert (Key = 'S');
 
-                        Skipc;
                         Key := '>';
-                        Typ := Getc;
+                        Typ := Nextc;
 
                      when '1' .. '9' =>
                         Typ := ' ';
@@ -309,7 +308,6 @@ begin
                                  exit when Nextc = ':';
                                  N := N + 1;
                               end loop;
-
                               Skipc;
 
                               begin

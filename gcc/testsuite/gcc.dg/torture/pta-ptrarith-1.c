@@ -1,6 +1,6 @@
 /* { dg-do run } */
 /* { dg-options "-fdump-tree-alias" } */
-/* { dg-skip-if "" { *-*-* } { "-O0" "-fno-fat-lto-objects" } { "" } } */
+/* { dg-skip-if "" { *-*-* } { "-O0" } { "" } } */
 
 struct Foo {
   int *p;

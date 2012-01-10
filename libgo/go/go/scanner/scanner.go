@@ -27,7 +27,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"unicode"
-	"unicode/utf8"
+	"utf8"
 )
 
 // A Scanner holds the scanner's internal state while processing

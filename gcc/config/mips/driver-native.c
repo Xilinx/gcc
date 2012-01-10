@@ -125,8 +125,6 @@ host_detect_local_cpu (int argc, const char **argv)
 	  cpu = "sb1";
 	else if (strstr (buf, "R5000") != NULL)
 	  cpu = "r5000";
-	else if (strstr (buf, "Octeon II") != NULL)
-	  cpu = "octeon2";
 	else if (strstr (buf, "Octeon") != NULL)
 	  cpu = "octeon";
 	break;

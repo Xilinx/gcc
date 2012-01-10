@@ -62,18 +62,18 @@ func sendFile(c *netFD, r io.Reader) (written int64, err error, handled bool) {
 			written += int64(n)
 			remain -= int64(n)
 		}
-		if n == 0 && errno == nil {
+		if n == 0 && errno == 0 {
 			break
 		}
 		if errno == syscall.EAGAIN && c.wdeadline >= 0 {
 			pollserver.WaitWrite(c)
 			continue
 		}
-		if errno != nil {
+		if errno != 0 {
 			// This includes syscall.ENOSYS (no kernel
 			// support) and syscall.EINVAL (fd types which
 			// don't implement sendfile together)
-			err = &OpError{"sendfile", c.net, c.raddr, errno}
+			err = &OpError{"sendfile", c.net, c.raddr, os.Errno(errno)}
 			break
 		}
 	}

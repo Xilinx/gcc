@@ -10,7 +10,7 @@ import (
 	"go/ast"
 	"strings"
 	"unicode"
-	"unicode/utf8"
+	"utf8"
 )
 
 type Example struct {

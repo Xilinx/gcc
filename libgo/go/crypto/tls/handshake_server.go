@@ -56,25 +56,18 @@ Curves:
 	ellipticOk := supportedCurve && supportedPointFormat
 
 	var suite *cipherSuite
+	var suiteId uint16
 FindCipherSuite:
 	for _, id := range clientHello.cipherSuites {
 		for _, supported := range config.cipherSuites() {
 			if id == supported {
-				suite = nil
-				for _, s := range cipherSuites {
-					if s.id == id {
-						suite = s
-						break
-					}
-				}
-				if suite == nil {
-					continue
-				}
+				suite = cipherSuites[id]
 				// Don't select a ciphersuite which we can't
 				// support for this client.
 				if suite.elliptic && !ellipticOk {
 					continue
 				}
+				suiteId = id
 				break FindCipherSuite
 			}
 		}
@@ -94,8 +87,8 @@ FindCipherSuite:
 	}
 
 	hello.vers = vers
-	hello.cipherSuite = suite.id
-	t := uint32(config.time().Unix())
+	hello.cipherSuite = suiteId
+	t := uint32(config.time())
 	hello.random = make([]byte, 32)
 	hello.random[0] = byte(t >> 24)
 	hello.random[1] = byte(t >> 16)
@@ -234,9 +227,9 @@ FindCipherSuite:
 			return c.sendAlert(alertUnexpectedMessage)
 		}
 
-		digest := make([]byte, 0, 36)
-		digest = finishedHash.serverMD5.Sum(digest)
-		digest = finishedHash.serverSHA1.Sum(digest)
+		digest := make([]byte, 36)
+		copy(digest[0:16], finishedHash.serverMD5.Sum())
+		copy(digest[16:36], finishedHash.serverSHA1.Sum())
 		err = rsa.VerifyPKCS1v15(pub, crypto.MD5SHA1, digest, certVerify.signature)
 		if err != nil {
 			c.sendAlert(alertBadCertificate)
@@ -303,7 +296,7 @@ FindCipherSuite:
 	c.writeRecord(recordTypeHandshake, finished.marshal())
 
 	c.handshakeComplete = true
-	c.cipherSuite = suite.id
+	c.cipherSuite = suiteId
 
 	return nil
 }

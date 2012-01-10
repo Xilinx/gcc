@@ -46,7 +46,6 @@ with Stand;    use Stand;
 with Sinfo;    use Sinfo;
 with Snames;   use Snames;
 with Table;
-with Treepr;   use Treepr;
 with Uintp;    use Uintp;
 
 package body Sem_Type is
@@ -82,7 +81,7 @@ package body Sem_Type is
 
    package All_Interp is new Table.Table (
      Table_Component_Type => Interp,
-     Table_Index_Type     => Interp_Index,
+     Table_Index_Type     => Int,
      Table_Low_Bound      => 0,
      Table_Initial        => Alloc.All_Interp_Initial,
      Table_Increment      => Alloc.All_Interp_Increment,
@@ -3436,20 +3435,6 @@ package body Sem_Type is
       end if;
    end Valid_Comparison_Arg;
 
-   ------------------
-   -- Write_Interp --
-   ------------------
-
-   procedure Write_Interp (It : Interp) is
-   begin
-      Write_Str ("Nam: ");
-      Print_Tree_Node (It.Nam);
-      Write_Str ("Typ: ");
-      Print_Tree_Node (It.Typ);
-      Write_Str ("Abstract_Op: ");
-      Print_Tree_Node (It.Abstract_Op);
-   end Write_Interp;
-
    ----------------------
    -- Write_Interp_Ref --
    ----------------------
@@ -3475,13 +3460,6 @@ package body Sem_Type is
       Nam : Entity_Id;
 
    begin
-      Write_Str ("Overloads: ");
-      Print_Node_Briefly (N);
-
-      if Nkind (N) not in N_Has_Entity then
-         return;
-      end if;
-
       if not Is_Overloaded (N) then
          Write_Str ("Non-overloaded entity ");
          Write_Eol;

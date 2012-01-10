@@ -34,7 +34,7 @@ func dirstat(arg interface{}) (d *Dir, err error) {
 		buf := make([]byte, nd)
 
 		var n int
-		var e error
+		var e syscall.Error
 
 		switch syscallArg := arg.(type) {
 		case *File:
@@ -72,7 +72,7 @@ func dirstat(arg interface{}) (d *Dir, err error) {
 // Stat returns a FileInfo structure describing the named file and an error, if any.
 func Stat(name string) (fi *FileInfo, err error) {
 	d, err := dirstat(name)
-	if err != nil {
+	if iserror(err) {
 		return nil, err
 	}
 	return fileInfoFromStat(new(FileInfo), d), err
@@ -83,7 +83,7 @@ func Stat(name string) (fi *FileInfo, err error) {
 // the returned FileInfo describes the symbolic link.  Lstat makes no attempt to follow the link.
 func Lstat(name string) (fi *FileInfo, err error) {
 	d, err := dirstat(name)
-	if err != nil {
+	if iserror(err) {
 		return nil, err
 	}
 	return fileInfoFromStat(new(FileInfo), d), err

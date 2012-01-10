@@ -250,9 +250,9 @@ func ListenTCP(net string, laddr *TCPAddr) (l *TCPListener, err error) {
 		return nil, err
 	}
 	errno := syscall.Listen(fd.sysfd, listenBacklog())
-	if errno != nil {
+	if errno != 0 {
 		closesocket(fd.sysfd)
-		return nil, &OpError{"listen", "tcp", laddr, errno}
+		return nil, &OpError{"listen", "tcp", laddr, os.Errno(errno)}
 	}
 	l = new(TCPListener)
 	l.fd = fd

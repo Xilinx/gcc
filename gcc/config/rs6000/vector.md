@@ -747,6 +747,62 @@
 				INTVAL (operands[2]));
   DONE;
 })
+
+;; Interleave patterns
+(define_expand "vec_interleave_highv4sf"
+  [(set (match_operand:V4SF 0 "vfloat_operand" "")
+        (vec_merge:V4SF
+	 (vec_select:V4SF (match_operand:V4SF 1 "vfloat_operand" "")
+			  (parallel [(const_int 0)
+				     (const_int 2)
+				     (const_int 1)
+				     (const_int 3)]))
+	 (vec_select:V4SF (match_operand:V4SF 2 "vfloat_operand" "")
+			  (parallel [(const_int 2)
+				     (const_int 0)
+				     (const_int 3)
+				     (const_int 1)]))
+	 (const_int 5)))]
+  "VECTOR_UNIT_ALTIVEC_OR_VSX_P (V4SFmode)"
+  "")
+
+(define_expand "vec_interleave_lowv4sf"
+  [(set (match_operand:V4SF 0 "vfloat_operand" "")
+        (vec_merge:V4SF
+	 (vec_select:V4SF (match_operand:V4SF 1 "vfloat_operand" "")
+			  (parallel [(const_int 2)
+				     (const_int 0)
+				     (const_int 3)
+				     (const_int 1)]))
+	 (vec_select:V4SF (match_operand:V4SF 2 "vfloat_operand" "")
+			  (parallel [(const_int 0)
+				     (const_int 2)
+				     (const_int 1)
+				     (const_int 3)]))
+	 (const_int 5)))]
+  "VECTOR_UNIT_ALTIVEC_OR_VSX_P (V4SFmode)"
+  "")
+
+(define_expand "vec_interleave_high<mode>"
+  [(set (match_operand:VEC_64 0 "vfloat_operand" "")
+	(vec_concat:VEC_64
+	 (vec_select:<VEC_base> (match_operand:VEC_64 1 "vfloat_operand" "")
+				(parallel [(const_int 0)]))
+	 (vec_select:<VEC_base> (match_operand:VEC_64 2 "vfloat_operand" "")
+				(parallel [(const_int 0)]))))]
+  "VECTOR_UNIT_VSX_P (<MODE>mode)"
+  "")
+
+(define_expand "vec_interleave_low<mode>"
+  [(set (match_operand:VEC_64 0 "vfloat_operand" "")
+	(vec_concat:VEC_64
+	 (vec_select:<VEC_base> (match_operand:VEC_64 1 "vfloat_operand" "")
+				(parallel [(const_int 1)]))
+	 (vec_select:<VEC_base> (match_operand:VEC_64 2 "vfloat_operand" "")
+				(parallel [(const_int 1)]))))]
+  "VECTOR_UNIT_VSX_P (<MODE>mode)"
+  "")
+
 
 ;; Convert double word types to single word types
 (define_expand "vec_pack_trunc_v2df"
@@ -760,7 +816,7 @@
 
   emit_insn (gen_vsx_xvcvdpsp (r1, operands[1]));
   emit_insn (gen_vsx_xvcvdpsp (r2, operands[2]));
-  rs6000_expand_extract_even (operands[0], r1, r2);
+  emit_insn (gen_vec_extract_evenv4sf (operands[0], r1, r2));
   DONE;
 })
 
@@ -775,7 +831,7 @@
 
   emit_insn (gen_vsx_xvcvdpsxws (r1, operands[1]));
   emit_insn (gen_vsx_xvcvdpsxws (r2, operands[2]));
-  rs6000_expand_extract_even (operands[0], r1, r2);
+  emit_insn (gen_vec_extract_evenv4si (operands[0], r1, r2));
   DONE;
 })
 
@@ -790,7 +846,7 @@
 
   emit_insn (gen_vsx_xvcvdpuxws (r1, operands[1]));
   emit_insn (gen_vsx_xvcvdpuxws (r2, operands[2]));
-  rs6000_expand_extract_even (operands[0], r1, r2);
+  emit_insn (gen_vec_extract_evenv4si (operands[0], r1, r2));
   DONE;
 })
 
@@ -802,7 +858,7 @@
 {
   rtx reg = gen_reg_rtx (V4SFmode);
 
-  rs6000_expand_interleave (reg, operands[1], operands[1], true);
+  emit_insn (gen_vec_interleave_highv4sf (reg, operands[1], operands[1]));
   emit_insn (gen_vsx_xvcvspdp (operands[0], reg));
   DONE;
 })
@@ -814,7 +870,7 @@
 {
   rtx reg = gen_reg_rtx (V4SFmode);
 
-  rs6000_expand_interleave (reg, operands[1], operands[1], false);
+  emit_insn (gen_vec_interleave_lowv4sf (reg, operands[1], operands[1]));
   emit_insn (gen_vsx_xvcvspdp (operands[0], reg));
   DONE;
 })
@@ -826,7 +882,7 @@
 {
   rtx reg = gen_reg_rtx (V4SImode);
 
-  rs6000_expand_interleave (reg, operands[1], operands[1], true);
+  emit_insn (gen_vec_interleave_highv4si (reg, operands[1], operands[1]));
   emit_insn (gen_vsx_xvcvsxwdp (operands[0], reg));
   DONE;
 })
@@ -838,7 +894,7 @@
 {
   rtx reg = gen_reg_rtx (V4SImode);
 
-  rs6000_expand_interleave (reg, operands[1], operands[1], false);
+  emit_insn (gen_vec_interleave_lowv4si (reg, operands[1], operands[1]));
   emit_insn (gen_vsx_xvcvsxwdp (operands[0], reg));
   DONE;
 })
@@ -850,7 +906,7 @@
 {
   rtx reg = gen_reg_rtx (V4SImode);
 
-  rs6000_expand_interleave (reg, operands[1], operands[1], true);
+  emit_insn (gen_vec_interleave_highv4si (reg, operands[1], operands[1]));
   emit_insn (gen_vsx_xvcvuxwdp (operands[0], reg));
   DONE;
 })
@@ -862,7 +918,7 @@
 {
   rtx reg = gen_reg_rtx (V4SImode);
 
-  rs6000_expand_interleave (reg, operands[1], operands[1], false);
+  emit_insn (gen_vec_interleave_lowv4si (reg, operands[1], operands[1]));
   emit_insn (gen_vsx_xvcvuxwdp (operands[0], reg));
   DONE;
 })

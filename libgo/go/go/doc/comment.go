@@ -11,9 +11,7 @@ import (
 	"io"
 	"regexp"
 	"strings"
-	"text/template" // for HTMLEscape
-	"unicode"
-	"unicode/utf8"
+	"template" // for HTMLEscape
 )
 
 func isWhitespace(ch byte) bool { return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' }
@@ -84,6 +82,39 @@ func CommentText(comment *ast.CommentGroup) string {
 	return strings.Join(lines, "\n")
 }
 
+// Split bytes into lines.
+func split(text []byte) [][]byte {
+	// count lines
+	n := 0
+	last := 0
+	for i, c := range text {
+		if c == '\n' {
+			last = i + 1
+			n++
+		}
+	}
+	if last < len(text) {
+		n++
+	}
+
+	// split
+	out := make([][]byte, n)
+	last = 0
+	n = 0
+	for i, c := range text {
+		if c == '\n' {
+			out[n] = text[last : i+1]
+			last = i + 1
+			n++
+		}
+	}
+	if last < len(text) {
+		out[n] = text[last:]
+	}
+
+	return out
+}
+
 var (
 	ldquo = []byte("&ldquo;")
 	rdquo = []byte("&rdquo;")
@@ -91,13 +122,13 @@ var (
 
 // Escape comment text for HTML. If nice is set,
 // also turn `` into &ldquo; and '' into &rdquo;.
-func commentEscape(w io.Writer, text string, nice bool) {
+func commentEscape(w io.Writer, s []byte, nice bool) {
 	last := 0
 	if nice {
-		for i := 0; i < len(text)-1; i++ {
-			ch := text[i]
-			if ch == text[i+1] && (ch == '`' || ch == '\'') {
-				template.HTMLEscape(w, []byte(text[last:i]))
+		for i := 0; i < len(s)-1; i++ {
+			ch := s[i]
+			if ch == s[i+1] && (ch == '`' || ch == '\'') {
+				template.HTMLEscape(w, s[last:i])
 				last = i + 2
 				switch ch {
 				case '`':
@@ -109,7 +140,7 @@ func commentEscape(w io.Writer, text string, nice bool) {
 			}
 		}
 	}
-	template.HTMLEscape(w, []byte(text[last:]))
+	template.HTMLEscape(w, s[last:])
 }
 
 const (
@@ -137,8 +168,6 @@ var (
 	html_endp   = []byte("</p>\n")
 	html_pre    = []byte("<pre>")
 	html_endpre = []byte("</pre>\n")
-	html_h      = []byte("<h3>")
-	html_endh   = []byte("</h3>\n")
 )
 
 // Emphasize and escape a line of text for HTML. URLs are converted into links;
@@ -149,9 +178,9 @@ var (
 // and the word is converted into a link. If nice is set, the remaining text's
 // appearance is improved where it makes sense (e.g., `` is turned into &ldquo;
 // and '' into &rdquo;).
-func emphasize(w io.Writer, line string, words map[string]string, nice bool) {
+func emphasize(w io.Writer, line []byte, words map[string]string, nice bool) {
 	for {
-		m := matchRx.FindStringSubmatchIndex(line)
+		m := matchRx.FindSubmatchIndex(line)
 		if m == nil {
 			break
 		}
@@ -199,7 +228,7 @@ func emphasize(w io.Writer, line string, words map[string]string, nice bool) {
 	commentEscape(w, line, nice)
 }
 
-func indentLen(s string) int {
+func indentLen(s []byte) int {
 	i := 0
 	for i < len(s) && (s[i] == ' ' || s[i] == '\t') {
 		i++
@@ -207,11 +236,9 @@ func indentLen(s string) int {
 	return i
 }
 
-func isBlank(s string) bool {
-	return len(s) == 0 || (len(s) == 1 && s[0] == '\n')
-}
+func isBlank(s []byte) bool { return len(s) == 0 || (len(s) == 1 && s[0] == '\n') }
 
-func commonPrefix(a, b string) string {
+func commonPrefix(a, b []byte) []byte {
 	i := 0
 	for i < len(a) && i < len(b) && a[i] == b[i] {
 		i++
@@ -219,7 +246,7 @@ func commonPrefix(a, b string) string {
 	return a[0:i]
 }
 
-func unindent(block []string) {
+func unindent(block [][]byte) {
 	if len(block) == 0 {
 		return
 	}
@@ -241,46 +268,6 @@ func unindent(block []string) {
 	}
 }
 
-// heading returns the trimmed line if it passes as a section heading;
-// otherwise it returns the empty string. 
-func heading(line string) string {
-	line = strings.TrimSpace(line)
-	if len(line) == 0 {
-		return ""
-	}
-
-	// a heading must start with an uppercase letter
-	r, _ := utf8.DecodeRuneInString(line)
-	if !unicode.IsLetter(r) || !unicode.IsUpper(r) {
-		return ""
-	}
-
-	// it must end in a letter or digit:
-	r, _ = utf8.DecodeLastRuneInString(line)
-	if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-		return ""
-	}
-
-	// exclude lines with illegal characters
-	if strings.IndexAny(line, ",.;:!?+*/=()[]{}_^°&§~%#@<\">\\") >= 0 {
-		return ""
-	}
-
-	// allow "'" for possessive "'s" only
-	for b := line; ; {
-		i := strings.IndexRune(b, '\'')
-		if i < 0 {
-			break
-		}
-		if i+1 >= len(b) || b[i+1] != 's' || (i+2 < len(b) && b[i+2] != ' ') {
-			return "" // not followed by "s "
-		}
-		b = b[i+2:]
-	}
-
-	return line
-}
-
 // Convert comment text to formatted HTML.
 // The comment was prepared by DocReader,
 // so it is known not to have leading, trailing blank lines
@@ -289,7 +276,6 @@ func heading(line string) string {
 //
 // Turn each run of multiple \n into </p><p>.
 // Turn each run of indented lines into a <pre> block without indent.
-// Enclose headings with header tags.
 //
 // URLs in the comment text are converted into links; if the URL also appears
 // in the words map, the link is taken from the map (if the corresponding map
@@ -298,10 +284,8 @@ func heading(line string) string {
 // Go identifiers that appear in the words map are italicized; if the corresponding
 // map value is not the empty string, it is considered a URL and the word is converted
 // into a link.
-func ToHTML(w io.Writer, text string, words map[string]string) {
+func ToHTML(w io.Writer, s []byte, words map[string]string) {
 	inpara := false
-	lastWasBlank := false
-	lastWasHeading := false
 
 	close := func() {
 		if inpara {
@@ -316,7 +300,7 @@ func ToHTML(w io.Writer, text string, words map[string]string) {
 		}
 	}
 
-	lines := strings.SplitAfter(text, "\n")
+	lines := split(s)
 	unindent(lines)
 	for i := 0; i < len(lines); {
 		line := lines[i]
@@ -324,7 +308,6 @@ func ToHTML(w io.Writer, text string, words map[string]string) {
 			// close paragraph
 			close()
 			i++
-			lastWasBlank = true
 			continue
 		}
 		if indentLen(line) > 0 {
@@ -351,30 +334,10 @@ func ToHTML(w io.Writer, text string, words map[string]string) {
 				emphasize(w, line, nil, false) // no nice text formatting
 			}
 			w.Write(html_endpre)
-			lastWasHeading = false
 			continue
 		}
-
-		if lastWasBlank && !lastWasHeading && i+2 < len(lines) &&
-			isBlank(lines[i+1]) && !isBlank(lines[i+2]) && indentLen(lines[i+2]) == 0 {
-			// current line is non-blank, sourounded by blank lines
-			// and the next non-blank line is not indented: this
-			// might be a heading.
-			if head := heading(line); head != "" {
-				close()
-				w.Write(html_h)
-				commentEscape(w, head, true) // nice text formatting
-				w.Write(html_endh)
-				i += 2
-				lastWasHeading = true
-				continue
-			}
-		}
-
 		// open paragraph
 		open()
-		lastWasBlank = false
-		lastWasHeading = false
 		emphasize(w, lines[i], words, true) // nice text formatting
 		i++
 	}

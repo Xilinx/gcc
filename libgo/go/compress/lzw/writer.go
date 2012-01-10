@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 )
 
 // A writer is a buffered, flushable writer.
@@ -48,9 +49,8 @@ const (
 type encoder struct {
 	// w is the writer that compressed bytes are written to.
 	w writer
-	// order, write, bits, nBits and width are the state for
-	// converting a code stream into a byte stream.
-	order Order
+	// write, bits, nBits and width are the state for converting a code stream
+	// into a byte stream.
 	write func(*encoder, uint32) error
 	bits  uint32
 	nBits uint
@@ -64,7 +64,7 @@ type encoder struct {
 	// call. It is equal to invalidCode if there was no such call.
 	savedCode uint32
 	// err is the first error encountered during writing. Closing the encoder
-	// will make any future Write calls return errClosed
+	// will make any future Write calls return os.EINVAL.
 	err error
 	// table is the hash table from 20-bit keys to 12-bit values. Each table
 	// entry contains key<<12|val and collisions resolve by linear probing.
@@ -191,13 +191,13 @@ loop:
 // flush e's underlying writer.
 func (e *encoder) Close() error {
 	if e.err != nil {
-		if e.err == errClosed {
+		if e.err == os.EINVAL {
 			return nil
 		}
 		return e.err
 	}
-	// Make any future calls to Write return errClosed.
-	e.err = errClosed
+	// Make any future calls to Write return os.EINVAL.
+	e.err = os.EINVAL
 	// Write the savedCode if valid.
 	if e.savedCode != invalidCode {
 		if err := e.write(e, e.savedCode); err != nil {
@@ -214,7 +214,7 @@ func (e *encoder) Close() error {
 	}
 	// Write the final bits.
 	if e.nBits > 0 {
-		if e.order == MSB {
+		if e.write == (*encoder).writeMSB {
 			e.bits >>= 24
 		}
 		if err := e.w.WriteByte(uint8(e.bits)); err != nil {
@@ -250,7 +250,6 @@ func NewWriter(w io.Writer, order Order, litWidth int) io.WriteCloser {
 	lw := uint(litWidth)
 	return &encoder{
 		w:         bw,
-		order:     order,
 		write:     write,
 		width:     1 + lw,
 		litWidth:  lw,

@@ -18,43 +18,43 @@
 void
 __go_print_space ()
 {
-  putc (' ', stderr);
+  putchar (' ');
 }
 
 void
 __go_print_nl ()
 {
-  putc ('\n', stderr);
+  putchar ('\n');
 }
 
 void
 __go_print_string (struct __go_string val)
 {
-  fprintf (stderr, "%.*s", (int) val.__length, (const char *) val.__data);
+  printf ("%.*s", (int) val.__length, (const char *) val.__data);
 }
 
 void
 __go_print_uint64 (uint64_t val)
 {
-  fprintf (stderr, "%llu", (unsigned long long) val);
+  printf ("%llu", (unsigned long long) val);
 }
 
 void
 __go_print_int64 (int64_t val)
 {
-  fprintf (stderr, "%lld", (long long) val);
+  printf ("%lld", (long long) val);
 }
 
 void
 __go_print_double (double val)
 {
-  fprintf (stderr, "%.24g", val);
+  printf ("%.24g", val);
 }
 
 void
 __go_print_complex (__complex double val)
 {
-  fprintf (stderr, "(%.24g%s%.24gi)",
+  printf ("(%.24g%s%.24gi)",
 	  __builtin_creal (val),
 	  (__builtin_cimag (val) >= 0 || __builtin_isnan (__builtin_cimag(val))
 	   ? "+"
@@ -65,29 +65,29 @@ __go_print_complex (__complex double val)
 void
 __go_print_bool (_Bool val)
 {
-  fputs (val ? "true" : "false", stderr);
+  fputs (val ? "true" : "false", stdout);
 }
 
 void
 __go_print_pointer (void *val)
 {
-  fprintf (stderr, "%p", val);
+  printf ("%p", val);
 }
 
 void
 __go_print_empty_interface (struct __go_empty_interface e)
 {
-  fprintf (stderr, "(%p,%p)", e.__type_descriptor, e.__object);
+  printf ("(%p,%p)", e.__type_descriptor, e.__object);
 }
 
 void
 __go_print_interface (struct __go_interface i)
 {
-  fprintf (stderr, "(%p,%p)", i.__methods, i.__object);
+  printf ("(%p,%p)", i.__methods, i.__object);
 }
 
 void
 __go_print_slice (struct __go_open_array val)
 {
-  fprintf (stderr, "[%d/%d]%p", val.__count, val.__capacity, val.__values);
+  printf ("[%d/%d]%p", val.__count, val.__capacity, val.__values);
 }

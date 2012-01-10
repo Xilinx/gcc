@@ -19,8 +19,9 @@ func f() {
 
 func init() {
 	go f()
-	time.Now()
+	time.Nanoseconds()
 }
 
 func main() {
 }
+

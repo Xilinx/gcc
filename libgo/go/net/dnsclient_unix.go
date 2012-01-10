@@ -17,7 +17,7 @@
 package net
 
 import (
-	"math/rand"
+	"rand"
 	"sync"
 	"time"
 )
@@ -29,7 +29,7 @@ func exchange(cfg *dnsConfig, c Conn, name string, qtype uint16) (*dnsMsg, error
 		return nil, &DNSError{Err: "name too long", Name: name}
 	}
 	out := new(dnsMsg)
-	out.id = uint16(rand.Int()) ^ uint16(time.Now().UnixNano())
+	out.id = uint16(rand.Int()) ^ uint16(time.Nanoseconds())
 	out.question = []dnsQuestion{
 		{name, qtype, dnsClassINET},
 	}

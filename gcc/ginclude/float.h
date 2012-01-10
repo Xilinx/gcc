@@ -1,5 +1,4 @@
-/* Copyright (C) 2002, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+/* Copyright (C) 2002, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -158,7 +157,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #endif /* C99 */
 
-#if defined (__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#if defined (__STDC_VERSION__) && __STDC_VERSION__ > 199901L
 /* Versions of DECIMAL_DIG for each floating-point type.  */
 #undef FLT_DECIMAL_DIG
 #undef DBL_DECIMAL_DIG
@@ -195,7 +194,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define LDBL_TRUE_MIN	__LDBL_MIN__
 #endif
 
-#endif /* C11 */
+#endif /* C1X */
 
 #ifdef __STDC_WANT_DEC_FP__
 /* Draft Technical Report 24732, extension for decimal floating-point

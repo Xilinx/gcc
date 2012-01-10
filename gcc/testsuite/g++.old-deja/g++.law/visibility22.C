@@ -19,7 +19,7 @@ public:
 
 class B : private A {
 protected:
-        A::f; // { dg-warning "deprecated" }
+        A::f;
 public:
-        A::g; // { dg-warning "deprecated" }
+        A::g;
 };

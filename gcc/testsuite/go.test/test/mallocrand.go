@@ -10,7 +10,7 @@ package main
 
 import (
 	"flag"
-	"math/rand"
+	"rand"
 	"runtime"
 	"unsafe"
 )

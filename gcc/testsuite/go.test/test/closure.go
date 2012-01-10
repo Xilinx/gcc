@@ -76,6 +76,7 @@ func h() {
 
 func newfunc() func(int) int { return func(x int) int { return x } }
 
+
 func main() {
 	go f()
 	check([]int{1, 4, 5, 4})
@@ -89,6 +90,10 @@ func main() {
 	check([]int{100, 200, 101, 201, 500, 101, 201, 500})
 
 	x, y := newfunc(), newfunc()
+	if x == y {
+		println("newfunc returned same func")
+		panic("fail")
+	}
 	if x(1) != 1 || y(2) != 2 {
 		println("newfunc returned broken funcs")
 		panic("fail")

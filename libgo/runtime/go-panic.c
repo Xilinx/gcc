@@ -24,13 +24,13 @@ __printpanics (struct __go_panic_stack *p)
   if (p->__next != NULL)
     {
       __printpanics (p->__next);
-      fprintf (stderr, "\t");
+      printf ("\t");
     }
-  fprintf (stderr, "panic: ");
+  printf ("panic: ");
   printany (p->__arg);
   if (p->__was_recovered)
-    fprintf (stderr, " [recovered]");
-  fputc ('\n', stderr);
+    printf (" [recovered]");
+  putchar ('\n');
 }
 
 /* This implements __go_panic which is used for the panic

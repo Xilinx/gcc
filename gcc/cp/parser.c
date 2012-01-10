@@ -2276,8 +2276,6 @@ static void cp_parser_pre_parsed_nested_name_specifier
   (cp_parser *);
 static bool cp_parser_cache_group
   (cp_parser *, enum cpp_ttype, unsigned);
-static tree cp_parser_cache_defarg
-  (cp_parser *parser, bool nsdmi);
 static void cp_parser_parse_tentatively
   (cp_parser *);
 static void cp_parser_commit_to_tentative_parse
@@ -3604,7 +3602,7 @@ lookup_literal_operator (tree name, VEC(tree,gc) *args)
 {
   tree decl, fns;
   decl = lookup_name (name);
-  if (!decl || !is_overloaded_fn (decl))
+  if (!decl || decl == error_mark_node)
     return error_mark_node;
 
   for (fns = decl; fns; fns = OVL_NEXT (fns))
@@ -3908,7 +3906,6 @@ cp_parser_translation_unit (cp_parser* parser)
      __is_convertible_to ( type-id , type-id )     
      __is_empty ( type-id )
      __is_enum ( type-id )
-     __is_final ( type-id )
      __is_literal_type ( type-id )
      __is_pod ( type-id )
      __is_polymorphic ( type-id )
@@ -4255,7 +4252,6 @@ cp_parser_primary_expression (cp_parser *parser,
 	case RID_IS_CONVERTIBLE_TO:
 	case RID_IS_EMPTY:
 	case RID_IS_ENUM:
-	case RID_IS_FINAL:
 	case RID_IS_LITERAL_TYPE:
 	case RID_IS_POD:
 	case RID_IS_POLYMORPHIC:
@@ -8006,9 +8002,6 @@ cp_parser_trait_expr (cp_parser* parser, enum rid keyword)
     case RID_IS_ENUM:
       kind = CPTK_IS_ENUM;
       break;
-    case RID_IS_FINAL:
-      kind = CPTK_IS_FINAL;
-      break;
     case RID_IS_LITERAL_TYPE:
       kind = CPTK_IS_LITERAL_TYPE;
       break;
@@ -8174,8 +8167,6 @@ cp_parser_lambda_expression (cp_parser* parser)
   cp_parser_lambda_introducer (parser, lambda_expr);
 
   type = begin_lambda_type (lambda_expr);
-  if (type == error_mark_node)
-    return error_mark_node;
 
   record_lambda_scope (lambda_expr);
 
@@ -11526,7 +11517,6 @@ static void
 cp_parser_mem_initializer_list (cp_parser* parser)
 {
   tree mem_initializer_list = NULL_TREE;
-  tree target_ctor = error_mark_node;
   cp_token *token = cp_lexer_peek_token (parser->lexer);
 
   /* Let the semantic analysis code know that we are starting the
@@ -11564,27 +11554,6 @@ cp_parser_mem_initializer_list (cp_parser* parser)
           if (mem_initializer != error_mark_node)
             mem_initializer = make_pack_expansion (mem_initializer);
         }
-      if (target_ctor != error_mark_node
-	  && mem_initializer != error_mark_node)
-	{
-	  error ("mem-initializer for %qD follows constructor delegation",
-		 TREE_PURPOSE (mem_initializer));
-	  mem_initializer = error_mark_node;
-	}
-      /* Look for a target constructor. */
-      if (mem_initializer != error_mark_node
-	  && TYPE_P (TREE_PURPOSE (mem_initializer))
-	  && same_type_p (TREE_PURPOSE (mem_initializer), current_class_type))
-	{
-	  maybe_warn_cpp0x (CPP0X_DELEGATING_CTORS);
-	  if (mem_initializer_list)
-	    {
-	      error ("constructor delegation follows mem-initializer for %qD",
-		     TREE_PURPOSE (mem_initializer_list));
-	      mem_initializer = error_mark_node;
-	    }
-	  target_ctor = mem_initializer;
-	}
       /* Add it to the list, unless it was erroneous.  */
       if (mem_initializer != error_mark_node)
 	{
@@ -14014,26 +13983,9 @@ cp_parser_nonclass_name (cp_parser* parser)
   /* Look up the type-name.  */
   type_decl = cp_parser_lookup_name_simple (parser, identifier, token->location);
 
-  if (TREE_CODE (type_decl) == USING_DECL)
-    {
-      if (!DECL_DEPENDENT_P (type_decl))
-	type_decl = strip_using_decl (type_decl);
-      else if (USING_DECL_TYPENAME_P (type_decl))
-	{
-	  /* We have found a type introduced by a using
-	     declaration at class scope that refers to a dependent
-	     type.
-	     
-	     using typename :: [opt] nested-name-specifier unqualified-id ;
-	  */
-	  type_decl = make_typename_type (TREE_TYPE (type_decl),
-					  DECL_NAME (type_decl),
-					  typename_type, tf_error);
-	  if (type_decl != error_mark_node)
-	    type_decl = TYPE_NAME (type_decl);
-	}
-    }
-  
+  /* If it is a using decl, use its underlying decl.  */
+  type_decl = strip_using_decl (type_decl);
+
   if (TREE_CODE (type_decl) != TYPE_DECL
       && (objc_is_id (identifier) || objc_is_class_name (identifier)))
     {
@@ -15087,14 +15039,9 @@ cp_parser_using_declaration (cp_parser* parser,
   tree decl;
   tree identifier;
   tree qscope;
-  int oldcount = errorcount;
-  cp_token *diag_token = NULL;
 
   if (access_declaration_p)
-    {
-      diag_token = cp_lexer_peek_token (parser->lexer);
-      cp_parser_parse_tentatively (parser);
-    }
+    cp_parser_parse_tentatively (parser);
   else
     {
       /* Look for the `using' keyword.  */
@@ -15176,12 +15123,9 @@ cp_parser_using_declaration (cp_parser* parser,
 	  /* Create the USING_DECL.  */
 	  decl = do_class_using_decl (parser->scope, identifier);
 
-	  if (decl && typename_p)
-	    USING_DECL_TYPENAME_P (decl) = 1;
-
 	  if (check_for_bare_parameter_packs (decl))
             return false;
-	  else
+          else
 	    /* Add it to the list of members in this class.  */
 	    finish_member_declaration (decl);
 	}
@@ -15205,13 +15149,7 @@ cp_parser_using_declaration (cp_parser* parser,
 
   /* Look for the final `;'.  */
   cp_parser_require (parser, CPP_SEMICOLON, RT_SEMICOLON);
-
-  if (access_declaration_p && errorcount == oldcount)
-    warning_at (diag_token->location, OPT_Wdeprecated,
-		"access declarations are deprecated "
-		"in favour of using-declarations; "
-		"suggestion: add the %<using%> keyword");
-
+  
   return true;
 }
 
@@ -17835,18 +17773,159 @@ cp_parser_parameter_declaration (cp_parser *parser,
   /* If the next token is `=', then process a default argument.  */
   if (cp_lexer_next_token_is (parser->lexer, CPP_EQ))
     {
-      token = cp_lexer_peek_token (parser->lexer);
       /* If we are defining a class, then the tokens that make up the
 	 default argument must be saved and processed later.  */
       if (!template_parm_p && at_class_scope_p ()
 	  && TYPE_BEING_DEFINED (current_class_type)
 	  && !LAMBDA_TYPE_P (current_class_type))
-	default_argument = cp_parser_cache_defarg (parser, /*nsdmi=*/false);
+	{
+	  unsigned depth = 0;
+	  int maybe_template_id = 0;
+	  cp_token *first_token;
+	  cp_token *token;
+
+	  /* Add tokens until we have processed the entire default
+	     argument.  We add the range [first_token, token).  */
+	  first_token = cp_lexer_peek_token (parser->lexer);
+	  while (true)
+	    {
+	      bool done = false;
+
+	      /* Peek at the next token.  */
+	      token = cp_lexer_peek_token (parser->lexer);
+	      /* What we do depends on what token we have.  */
+	      switch (token->type)
+		{
+		  /* In valid code, a default argument must be
+		     immediately followed by a `,' `)', or `...'.  */
+		case CPP_COMMA:
+		  if (depth == 0 && maybe_template_id)
+		    {
+		      /* If we've seen a '<', we might be in a
+			 template-argument-list.  Until Core issue 325 is
+			 resolved, we don't know how this situation ought
+			 to be handled, so try to DTRT.  We check whether
+			 what comes after the comma is a valid parameter
+			 declaration list.  If it is, then the comma ends
+			 the default argument; otherwise the default
+			 argument continues.  */
+		      bool error = false;
+		      tree t;
+
+		      /* Set ITALP so cp_parser_parameter_declaration_list
+			 doesn't decide to commit to this parse.  */
+		      bool saved_italp = parser->in_template_argument_list_p;
+		      parser->in_template_argument_list_p = true;
+
+		      cp_parser_parse_tentatively (parser);
+		      cp_lexer_consume_token (parser->lexer);
+		      begin_scope (sk_function_parms, NULL_TREE);
+		      cp_parser_parameter_declaration_list (parser, &error);
+		      for (t = current_binding_level->names; t; t = DECL_CHAIN (t))
+			pop_binding (DECL_NAME (t), t);
+		      leave_scope ();
+		      if (!cp_parser_error_occurred (parser) && !error)
+			done = true;
+		      cp_parser_abort_tentative_parse (parser);
+
+		      parser->in_template_argument_list_p = saved_italp;
+		      break;
+		    }
+		case CPP_CLOSE_PAREN:
+		case CPP_ELLIPSIS:
+		  /* If we run into a non-nested `;', `}', or `]',
+		     then the code is invalid -- but the default
+		     argument is certainly over.  */
+		case CPP_SEMICOLON:
+		case CPP_CLOSE_BRACE:
+		case CPP_CLOSE_SQUARE:
+		  if (depth == 0)
+		    done = true;
+		  /* Update DEPTH, if necessary.  */
+		  else if (token->type == CPP_CLOSE_PAREN
+			   || token->type == CPP_CLOSE_BRACE
+			   || token->type == CPP_CLOSE_SQUARE)
+		    --depth;
+		  break;
+
+		case CPP_OPEN_PAREN:
+		case CPP_OPEN_SQUARE:
+		case CPP_OPEN_BRACE:
+		  ++depth;
+		  break;
+
+		case CPP_LESS:
+		  if (depth == 0)
+		    /* This might be the comparison operator, or it might
+		       start a template argument list.  */
+		    ++maybe_template_id;
+		  break;
+
+                case CPP_RSHIFT:
+                  if (cxx_dialect == cxx98)
+                    break;
+                  /* Fall through for C++0x, which treats the `>>'
+                     operator like two `>' tokens in certain
+                     cases.  */
+
+		case CPP_GREATER:
+		  if (depth == 0)
+		    {
+		      /* This might be an operator, or it might close a
+			 template argument list.  But if a previous '<'
+			 started a template argument list, this will have
+			 closed it, so we can't be in one anymore.  */
+		      maybe_template_id -= 1 + (token->type == CPP_RSHIFT);
+		      if (maybe_template_id < 0)
+			maybe_template_id = 0;
+		    }
+		  break;
+
+		  /* If we run out of tokens, issue an error message.  */
+		case CPP_EOF:
+		case CPP_PRAGMA_EOL:
+		  error_at (token->location, "file ends in default argument");
+		  done = true;
+		  break;
+
+		case CPP_NAME:
+		case CPP_SCOPE:
+		  /* In these cases, we should look for template-ids.
+		     For example, if the default argument is
+		     `X<int, double>()', we need to do name lookup to
+		     figure out whether or not `X' is a template; if
+		     so, the `,' does not end the default argument.
+
+		     That is not yet done.  */
+		  break;
+
+		default:
+		  break;
+		}
+
+	      /* If we've reached the end, stop.  */
+	      if (done)
+		break;
+
+	      /* Add the token to the token block.  */
+	      token = cp_lexer_consume_token (parser->lexer);
+	    }
+
+	  /* Create a DEFAULT_ARG to represent the unparsed default
+	     argument.  */
+	  default_argument = make_node (DEFAULT_ARG);
+	  DEFARG_TOKENS (default_argument)
+	    = cp_token_cache_new (first_token, token);
+	  DEFARG_INSTANTIATIONS (default_argument) = NULL;
+	}
       /* Outside of a class definition, we can just parse the
 	 assignment-expression.  */
       else
-	default_argument
-	  = cp_parser_default_argument (parser, template_parm_p);
+	{
+	  token = cp_lexer_peek_token (parser->lexer);
+	  default_argument 
+	    = cp_parser_default_argument (parser, template_parm_p);
+	}
 
       if (!parser->default_arg_ok_p)
 	{
@@ -18205,8 +18284,7 @@ cp_parser_initializer_list (cp_parser* parser, bool* non_constant_p)
 	  designator = cp_parser_constant_expression (parser, false, NULL);
 	  cp_parser_require (parser, CPP_CLOSE_SQUARE, RT_CLOSE_SQUARE);
 	  cp_parser_require (parser, CPP_EQ, RT_EQ);
-	  if (!cp_parser_parse_definitely (parser))
-	    designator = NULL_TREE;
+	  cp_parser_parse_definitely (parser);
 	}
       else
 	designator = NULL_TREE;
@@ -19368,7 +19446,7 @@ cp_parser_member_declaration (cp_parser* parser)
   parser->colon_corrects_to_scope_p = false;
 
   if (cp_parser_using_declaration (parser, /*access_declaration=*/true))
-      goto out;
+    goto out;
 
   /* Parse the decl-specifier-seq.  */
   decl_spec_token_start = cp_lexer_peek_token (parser->lexer);
@@ -20032,78 +20110,6 @@ cp_parser_base_specifier (cp_parser* parser)
 
 /* Exception handling [gram.exception] */
 
-/* Parse an (optional) noexcept-specification.
-
-   noexcept-specification:
-     noexcept ( constant-expression ) [opt]
-
-   If no noexcept-specification is present, returns NULL_TREE.
-   Otherwise, if REQUIRE_CONSTEXPR is false, then either parse and return any
-   expression if parentheses follow noexcept, or return BOOLEAN_TRUE_NODE if
-   there are no parentheses.  CONSUMED_EXPR will be set accordingly.
-   Otherwise, returns a noexcept specification unless RETURN_COND is true,
-   in which case a boolean condition is returned instead.  */
-
-static tree
-cp_parser_noexcept_specification_opt (cp_parser* parser,
-				      bool require_constexpr,
-				      bool* consumed_expr,
-				      bool return_cond)
-{
-  cp_token *token;
-  const char *saved_message;
-
-  /* Peek at the next token.  */
-  token = cp_lexer_peek_token (parser->lexer);
-
-  /* Is it a noexcept-specification?  */
-  if (cp_parser_is_keyword (token, RID_NOEXCEPT))
-    {
-      tree expr;
-      cp_lexer_consume_token (parser->lexer);
-
-      if (cp_lexer_peek_token (parser->lexer)->type == CPP_OPEN_PAREN)
-	{
-	  cp_lexer_consume_token (parser->lexer);
-
-	  if (require_constexpr)
-	    {
-	      /* Types may not be defined in an exception-specification.  */
-	      saved_message = parser->type_definition_forbidden_message;
-	      parser->type_definition_forbidden_message
-	      = G_("types may not be defined in an exception-specification");
-
-	      expr = cp_parser_constant_expression (parser, false, NULL);
-
-	      /* Restore the saved message.  */
-	      parser->type_definition_forbidden_message = saved_message;
-	    }
-	  else
-	    {
-	      expr = cp_parser_expression (parser, false, NULL);
-	      *consumed_expr = true;
-	    }
-
-	  cp_parser_require (parser, CPP_CLOSE_PAREN, RT_CLOSE_PAREN);
-	}
-      else
-	{
-	  expr = boolean_true_node;
-	  if (!require_constexpr)
-	    *consumed_expr = false;
-	}
-
-      /* We cannot build a noexcept-spec right away because this will check
-	 that expr is a constexpr.  */
-      if (!return_cond)
-	return build_noexcept_spec (expr, tf_warning_or_error);
-      else
-	return expr;
-    }
-  else
-    return NULL_TREE;
-}
-
 /* Parse an (optional) exception-specification.
 
    exception-specification:
@@ -20123,10 +20129,32 @@ cp_parser_exception_specification_opt (cp_parser* parser)
   token = cp_lexer_peek_token (parser->lexer);
 
   /* Is it a noexcept-specification?  */
-  type_id_list = cp_parser_noexcept_specification_opt(parser, true, NULL,
-						      false);
-  if (type_id_list != NULL_TREE)
-    return type_id_list;
+  if (cp_parser_is_keyword (token, RID_NOEXCEPT))
+    {
+      tree expr;
+      cp_lexer_consume_token (parser->lexer);
+
+      if (cp_lexer_peek_token (parser->lexer)->type == CPP_OPEN_PAREN)
+	{
+	  cp_lexer_consume_token (parser->lexer);
+
+	  /* Types may not be defined in an exception-specification.  */
+	  saved_message = parser->type_definition_forbidden_message;
+	  parser->type_definition_forbidden_message
+	    = G_("types may not be defined in an exception-specification");
+
+	  expr = cp_parser_constant_expression (parser, false, NULL);
+
+	  /* Restore the saved message.  */
+	  parser->type_definition_forbidden_message = saved_message;
+
+	  cp_parser_require (parser, CPP_CLOSE_PAREN, RT_CLOSE_PAREN);
+	}
+      else
+	expr = boolean_true_node;
+
+      return build_noexcept_spec (expr, tf_warning_or_error);
+    }
 
   /* If it's not `throw', then there's no exception-specification.  */
   if (!cp_parser_is_keyword (token, RID_THROW))
@@ -22057,8 +22085,24 @@ cp_parser_save_member_function_body (cp_parser* parser,
 static tree
 cp_parser_save_nsdmi (cp_parser* parser)
 {
-  return cp_parser_cache_defarg (parser, /*nsdmi=*/true);
+  /* Save away the tokens that make up the body of the
+     function.  */
+  cp_token *first = parser->lexer->next_token;
+  cp_token *last;
+  tree node;
+
+  /* Save tokens until the next comma or semicolon.  */
+  cp_parser_cache_group (parser, CPP_COMMA, /*depth=*/0);
+
+  last = parser->lexer->next_token;
+
+  node = make_node (DEFAULT_ARG);
+  DEFARG_TOKENS (node) = cp_token_cache_new (first, last);
+  DEFARG_INSTANTIATIONS (node) = NULL;
+
+  return node;
 }
+
 
 /* Parse a template-argument-list, as well as the trailing ">" (but
    not the opening "<").  See cp_parser_template_argument_list for the
@@ -22277,9 +22321,6 @@ cp_parser_late_parse_one_default_arg (cp_parser *parser, tree decl,
   cp_token_cache *tokens;
   tree parsed_arg;
   bool dummy;
-
-  if (default_arg == error_mark_node)
-    return error_mark_node;
 
   /* Push the saved tokens for the default argument onto the parser's
      lexer stack.  */
@@ -23049,17 +23090,11 @@ cp_parser_token_is_class_key (cp_token* token)
 static void
 cp_parser_check_class_key (enum tag_types class_key, tree type)
 {
-  if (type == error_mark_node)
-    return;
   if ((TREE_CODE (type) == UNION_TYPE) != (class_key == union_type))
-    {
-      permerror (input_location, "%qs tag used in naming %q#T",
-		 class_key == union_type ? "union"
-		 : class_key == record_type ? "struct" : "class",
-		 type);
-      inform (DECL_SOURCE_LOCATION (TYPE_NAME (type)),
-	      "%q#T was previously declared here", type);
-    }
+    permerror (input_location, "%qs tag used in naming %q#T",
+	    class_key == union_type ? "union"
+	     : class_key == record_type ? "struct" : "class",
+	     type);
 }
 
 /* Issue an error message if DECL is redeclared with different
@@ -23169,6 +23204,12 @@ cp_parser_cache_group (cp_parser *parser,
 	   kind of syntax error.  */
 	return true;
 
+      /* If we're caching something finished by a comma (or semicolon),
+	 such as an NSDMI, don't consume the comma.  */
+      if (end == CPP_COMMA
+	  && (token->type == CPP_SEMICOLON || token->type == CPP_COMMA))
+	return false;
+
       /* Consume the token.  */
       cp_lexer_consume_token (parser->lexer);
       /* See if it starts a new group.  */
@@ -23192,178 +23233,6 @@ cp_parser_cache_group (cp_parser *parser,
       else if (token->type == end)
 	return false;
     }
-}
-
-/* Like above, for caching a default argument or NSDMI.  Both of these are
-   terminated by a non-nested comma, but it can be unclear whether or not a
-   comma is nested in a template argument list unless we do more parsing.
-   In order to handle this ambiguity, when we encounter a ',' after a '<'
-   we try to parse what follows as a parameter-declaration-list (in the
-   case of a default argument) or a member-declarator (in the case of an
-   NSDMI).  If that succeeds, then we stop caching.  */
-
-static tree
-cp_parser_cache_defarg (cp_parser *parser, bool nsdmi)
-{
-  unsigned depth = 0;
-  int maybe_template_id = 0;
-  cp_token *first_token;
-  cp_token *token;
-  tree default_argument;
-
-  /* Add tokens until we have processed the entire default
-     argument.  We add the range [first_token, token).  */
-  first_token = cp_lexer_peek_token (parser->lexer);
-  if (first_token->type == CPP_OPEN_BRACE)
-    {
-      /* For list-initialization, this is straightforward.  */
-      cp_parser_cache_group (parser, CPP_CLOSE_BRACE, /*depth=*/0);
-      token = cp_lexer_peek_token (parser->lexer);
-    }
-  else while (true)
-    {
-      bool done = false;
-
-      /* Peek at the next token.  */
-      token = cp_lexer_peek_token (parser->lexer);
-      /* What we do depends on what token we have.  */
-      switch (token->type)
-	{
-	  /* In valid code, a default argument must be
-	     immediately followed by a `,' `)', or `...'.  */
-	case CPP_COMMA:
-	  if (depth == 0 && maybe_template_id)
-	    {
-	      /* If we've seen a '<', we might be in a
-		 template-argument-list.  Until Core issue 325 is
-		 resolved, we don't know how this situation ought
-		 to be handled, so try to DTRT.  We check whether
-		 what comes after the comma is a valid parameter
-		 declaration list.  If it is, then the comma ends
-		 the default argument; otherwise the default
-		 argument continues.  */
-	      bool error = false;
-	      tree t;
-
-	      /* Set ITALP so cp_parser_parameter_declaration_list
-		 doesn't decide to commit to this parse.  */
-	      bool saved_italp = parser->in_template_argument_list_p;
-	      parser->in_template_argument_list_p = true;
-
-	      cp_parser_parse_tentatively (parser);
-	      cp_lexer_consume_token (parser->lexer);
-
-	      if (nsdmi)
-		{
-		  int ctor_dtor_or_conv_p;
-		  cp_parser_declarator (parser, CP_PARSER_DECLARATOR_NAMED,
-					&ctor_dtor_or_conv_p,
-					/*parenthesized_p=*/NULL,
-					/*member_p=*/true);
-		}
-	      else
-		{
-		  begin_scope (sk_function_parms, NULL_TREE);
-		  cp_parser_parameter_declaration_list (parser, &error);
-		  for (t = current_binding_level->names; t; t = DECL_CHAIN (t))
-		    pop_binding (DECL_NAME (t), t);
-		  leave_scope ();
-		}
-	      if (!cp_parser_error_occurred (parser) && !error)
-		done = true;
-	      cp_parser_abort_tentative_parse (parser);
-
-	      parser->in_template_argument_list_p = saved_italp;
-	      break;
-	    }
-	case CPP_CLOSE_PAREN:
-	case CPP_ELLIPSIS:
-	  /* If we run into a non-nested `;', `}', or `]',
-	     then the code is invalid -- but the default
-	     argument is certainly over.  */
-	case CPP_SEMICOLON:
-	case CPP_CLOSE_BRACE:
-	case CPP_CLOSE_SQUARE:
-	  if (depth == 0)
-	    done = true;
-	  /* Update DEPTH, if necessary.  */
-	  else if (token->type == CPP_CLOSE_PAREN
-		   || token->type == CPP_CLOSE_BRACE
-		   || token->type == CPP_CLOSE_SQUARE)
-	    --depth;
-	  break;
-
-	case CPP_OPEN_PAREN:
-	case CPP_OPEN_SQUARE:
-	case CPP_OPEN_BRACE:
-	  ++depth;
-	  break;
-
-	case CPP_LESS:
-	  if (depth == 0)
-	    /* This might be the comparison operator, or it might
-	       start a template argument list.  */
-	    ++maybe_template_id;
-	  break;
-
-	case CPP_RSHIFT:
-	  if (cxx_dialect == cxx98)
-	    break;
-	  /* Fall through for C++0x, which treats the `>>'
-	     operator like two `>' tokens in certain
-	     cases.  */
-
-	case CPP_GREATER:
-	  if (depth == 0)
-	    {
-	      /* This might be an operator, or it might close a
-		 template argument list.  But if a previous '<'
-		 started a template argument list, this will have
-		 closed it, so we can't be in one anymore.  */
-	      maybe_template_id -= 1 + (token->type == CPP_RSHIFT);
-	      if (maybe_template_id < 0)
-		maybe_template_id = 0;
-	    }
-	  break;
-
-	  /* If we run out of tokens, issue an error message.  */
-	case CPP_EOF:
-	case CPP_PRAGMA_EOL:
-	  error_at (token->location, "file ends in default argument");
-	  done = true;
-	  break;
-
-	case CPP_NAME:
-	case CPP_SCOPE:
-	  /* In these cases, we should look for template-ids.
-	     For example, if the default argument is
-	     `X<int, double>()', we need to do name lookup to
-	     figure out whether or not `X' is a template; if
-	     so, the `,' does not end the default argument.
-
-	     That is not yet done.  */
-	  break;
-
-	default:
-	  break;
-	}
-
-      /* If we've reached the end, stop.  */
-      if (done)
-	break;
-
-      /* Add the token to the token block.  */
-      token = cp_lexer_consume_token (parser->lexer);
-    }
-
-  /* Create a DEFAULT_ARG to represent the unparsed default
-     argument.  */
-  default_argument = make_node (DEFAULT_ARG);
-  DEFARG_TOKENS (default_argument)
-    = cp_token_cache_new (first_token, token);
-  DEFARG_INSTANTIATIONS (default_argument) = NULL;
-
-  return default_argument;
 }
 
 /* Begin parsing tentatively.  We always save tokens while parsing
@@ -27511,9 +27380,11 @@ cp_parser_txn_attribute_opt (cp_parser *parser)
 /* Parse a __transaction_atomic or __transaction_relaxed statement.
 
    transaction-statement:
-     __transaction_atomic txn-attribute[opt] txn-noexcept-spec[opt]
+     __transaction_atomic txn-attribute[opt] txn-exception-spec[opt]
        compound-statement
-     __transaction_relaxed txn-noexcept-spec[opt] compound-statement
+     __transaction_relaxed txn-exception-spec[opt] compound-statement
+
+   ??? The exception specification is not yet implemented.
 */
 
 static tree
@@ -27522,7 +27393,7 @@ cp_parser_transaction (cp_parser *parser, enum rid keyword)
   unsigned char old_in = parser->in_transaction;
   unsigned char this_in = 1, new_in;
   cp_token *token;
-  tree stmt, attrs, noex;
+  tree stmt, attrs;
 
   gcc_assert (keyword == RID_TRANSACTION_ATOMIC
       || keyword == RID_TRANSACTION_RELAXED);
@@ -27540,9 +27411,6 @@ cp_parser_transaction (cp_parser *parser, enum rid keyword)
 	this_in |= parse_tm_stmt_attr (attrs, TM_STMT_ATTR_OUTER);
     }
 
-  /* Parse a noexcept specification.  */
-  noex = cp_parser_noexcept_specification_opt (parser, true, NULL, true);
-
   /* Keep track if we're in the lexical scope of an outer transaction.  */
   new_in = this_in | (old_in & TM_STMT_ATTR_OUTER);
 
@@ -27552,11 +27420,10 @@ cp_parser_transaction (cp_parser *parser, enum rid keyword)
   cp_parser_compound_statement (parser, NULL, false, false);
   parser->in_transaction = old_in;
 
-  finish_transaction_stmt (stmt, NULL, this_in, noex);
+  finish_transaction_stmt (stmt, NULL, this_in);
 
   return stmt;
 }
-
 
 /* Parse a __transaction_atomic or __transaction_relaxed expression.
 
@@ -27573,8 +27440,7 @@ cp_parser_transaction_expression (cp_parser *parser, enum rid keyword)
   unsigned char old_in = parser->in_transaction;
   unsigned char this_in = 1;
   cp_token *token;
-  tree expr, noex;
-  bool noex_expr;
+  tree expr;
 
   gcc_assert (keyword == RID_TRANSACTION_ATOMIC
       || keyword == RID_TRANSACTION_RELAXED);
@@ -27594,36 +27460,14 @@ cp_parser_transaction_expression (cp_parser *parser, enum rid keyword)
   if (keyword == RID_TRANSACTION_RELAXED)
     this_in |= TM_STMT_ATTR_RELAXED;
 
-  /* Set this early.  This might mean that we allow transaction_cancel in
-     an expression that we find out later actually has to be a constexpr.
-     However, we expect that cxx_constant_value will be able to deal with
-     this; also, if the noexcept has no constexpr, then what we parse next
-     really is a transaction's body.  */
   parser->in_transaction = this_in;
+  cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN);
 
-  /* Parse a noexcept specification.  */
-  noex = cp_parser_noexcept_specification_opt (parser, false, &noex_expr,
-					       true);
+  expr = cp_parser_expression (parser, /*cast_p=*/false, NULL);
+  finish_parenthesized_expr (expr);
+  expr = build_transaction_expr (token->location, expr, this_in);
 
-  if (!noex || !noex_expr
-      || cp_lexer_peek_token (parser->lexer)->type == CPP_OPEN_PAREN)
-    {
-      cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN);
-
-      expr = cp_parser_expression (parser, /*cast_p=*/false, NULL);
-      finish_parenthesized_expr (expr);
-
-      cp_parser_require (parser, CPP_CLOSE_PAREN, RT_CLOSE_PAREN);
-    }
-  else
-    {
-      /* The only expression that is available got parsed for the noexcept
-         already.  noexcept is true then.  */
-      expr = noex;
-      noex = boolean_true_node;
-    }
-
-  expr = build_transaction_expr (token->location, expr, this_in, noex);
+  cp_parser_require (parser, CPP_CLOSE_PAREN, RT_CLOSE_PAREN);
   parser->in_transaction = old_in;
 
   if (cp_parser_non_integral_constant_expression (parser, NIC_TRANSACTION))
@@ -27679,11 +27523,10 @@ cp_parser_function_transaction (cp_parser *parser, enum rid keyword)
 
   parser->in_transaction = old_in;
 
-  finish_transaction_stmt (stmt, compound_stmt, new_in, NULL_TREE);
+  finish_transaction_stmt (stmt, compound_stmt, new_in);
 
   return ctor_initializer_p;
 }
-
 
 /* Parse a __transaction_cancel statement.
 
@@ -28148,6 +27991,7 @@ cp_parser_cilk_for (cp_parser *parser, tree grain, int in_statement)
 	}
     }
 
+
   /* we just finish it like a normal for expr */
   finish_for_expr (expression, statement);
 
@@ -28179,7 +28023,7 @@ cp_parser_cilk_for_condition (cp_parser *parser)
 
   lhs = cp_parser_binary_expression (parser, false, false,
 				     PREC_SHIFT_EXPRESSION, NULL);
-  token = cp_lexer_peek_token (parser->lexer);
+  token=cp_lexer_peek_token (parser->lexer);
 
   if (token->type == CPP_NOT_EQ)
     {
@@ -28211,9 +28055,10 @@ cp_parser_cilk_for_condition (cp_parser *parser)
       error ("Missing comparison operator in the loop condition.\n");
       code = ERROR_MARK;
     }
-  
+
   cp_lexer_consume_token (parser->lexer);
 
+ 
   rhs = cp_parser_binary_expression
     (parser, false, false, PREC_SHIFT_EXPRESSION, NULL);
   
@@ -28233,13 +28078,13 @@ cp_parser_cilk_for_condition (cp_parser *parser)
 }
 
 /* this function parses the iterator of the cilk_for statement */
-
 static tree
 cp_parser_cilk_for_expression_iterator (cp_parser *parser)
 {
   cp_token *token = cp_lexer_peek_token (parser->lexer);
   tree name = NULL_TREE, expr = NULL_TREE;
   enum tree_code t_code;
+
 
   t_code = NOP_EXPR;
 

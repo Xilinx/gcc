@@ -92,23 +92,24 @@ gtm_get_stmlock (const gtm_cacheline *addr)
 }
 
 /* The current global version number.  */
-extern atomic<gtm_version> gtm_clock;
+extern gtm_version gtm_clock;
 
 static inline gtm_version
 gtm_get_clock (void)
 {
-  atomic_thread_fence(memory_order_release);
-  return gtm_clock.load(memory_order_acquire);
+  gtm_version r;
+
+  __sync_synchronize ();
+  r = gtm_clock;
+  atomic_read_barrier ();
+
+  return r;
 }
 
 static inline gtm_version
 gtm_inc_clock (void)
 {
-  /* ??? Here we have a choice, the pre-inc operator mapping to
-     __atomic_add_fetch with memory_order_seq_cst, or fetch_add
-     with memory_order_acq_rel plus another separate increment.
-     We really ought to recognize and optimize fetch_op(x) op x... */
-  gtm_version r = ++gtm_clock;
+  gtm_version r = __sync_add_and_fetch (&gtm_clock, 1);
 
   /* ??? Ought to handle wraparound for 32-bit.  */
   if (sizeof(r) < 8 && r > GTM_VERSION_MAX)

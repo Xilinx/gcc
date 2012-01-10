@@ -3510,10 +3510,11 @@ package body Exp_Ch4 is
 
          --  The finalization master must be inserted and analyzed as part of
          --  the current semantic unit. This form of expansion is not carried
-         --  out in Alfa mode because it is useless. Note that the master is
-         --  updated when analysis changes current units.
+         --  out in Alfa mode because it is useless.
 
-         if not Alfa_Mode then
+         if No (Finalization_Master (PtrT))
+           and then not Alfa_Mode
+         then
             Set_Finalization_Master (PtrT, Current_Anonymous_Master);
          end if;
       end if;
@@ -5228,11 +5229,10 @@ package body Exp_Ch4 is
                 Right_Opnd => Make_Predicate_Call (Rtyp, Lop)));
 
             --  Analyze new expression, mark left operand as analyzed to
-            --  avoid infinite recursion adding predicate calls. Similarly,
-            --  suppress further range checks on the call.
+            --  avoid infinite recursion adding predicate calls.
 
             Set_Analyzed (Left_Opnd (N));
-            Analyze_And_Resolve (N, Standard_Boolean, Suppress => All_Checks);
+            Analyze_And_Resolve (N, Standard_Boolean);
 
             --  All done, skip attempt at compile time determination of result
 

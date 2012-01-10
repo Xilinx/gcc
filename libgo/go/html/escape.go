@@ -7,7 +7,7 @@ package html
 import (
 	"bytes"
 	"strings"
-	"unicode/utf8"
+	"utf8"
 )
 
 // These replacements permit compatibility with old numeric entities that 

@@ -3322,7 +3322,7 @@ Type_conversion_expression::do_lower(Gogo*, Named_object*,
       mpfr_clear(imag);
     }
 
-  if (type->is_slice_type())
+  if (type->is_slice_type() && type->named_type() == NULL)
     {
       Type* element_type = type->array_type()->element_type()->forwarded();
       bool is_byte = element_type == Type::lookup_integer_type("uint8");
@@ -3621,11 +3621,20 @@ Type_conversion_expression::do_get_tree(Translate_context* context)
 			       integer_type_node,
 			       fold_convert(integer_type_node, expr_tree));
     }
-  else if (type->is_string_type() && expr_type->is_slice_type())
+  else if (type->is_string_type()
+	   && (expr_type->array_type() != NULL
+	       || (expr_type->points_to() != NULL
+		   && expr_type->points_to()->array_type() != NULL)))
     {
+      Type* t = expr_type;
+      if (t->points_to() != NULL)
+	{
+	  t = t->points_to();
+	  expr_tree = build_fold_indirect_ref(expr_tree);
+	}
       if (!DECL_P(expr_tree))
 	expr_tree = save_expr(expr_tree);
-      Array_type* a = expr_type->array_type();
+      Array_type* a = t->array_type();
       Type* e = a->element_type()->forwarded();
       go_assert(e->integer_type() != NULL);
       tree valptr = fold_convert(const_ptr_type_node,
@@ -3669,7 +3678,7 @@ Type_conversion_expression::do_get_tree(Translate_context* context)
       if (e->integer_type()->is_unsigned()
 	  && e->integer_type()->bits() == 8)
 	{
-	  tree string_to_byte_array_fndecl = NULL_TREE;
+	  static tree string_to_byte_array_fndecl;
 	  ret = Gogo::call_builtin(&string_to_byte_array_fndecl,
 				   this->location(),
 				   "__go_string_to_byte_array",
@@ -3681,7 +3690,7 @@ Type_conversion_expression::do_get_tree(Translate_context* context)
       else
 	{
 	  go_assert(e == Type::lookup_integer_type("int"));
-	  tree string_to_int_array_fndecl = NULL_TREE;
+	  static tree string_to_int_array_fndecl;
 	  ret = Gogo::call_builtin(&string_to_int_array_fndecl,
 				   this->location(),
 				   "__go_string_to_int_array",
@@ -6052,11 +6061,11 @@ Binary_expression::do_determine_type(const Type_context* context)
 }
 
 // Report an error if the binary operator OP does not support TYPE.
-// OTYPE is the type of the other operand.  Return whether the
-// operation is OK.  This should not be used for shift.
+// Return whether the operation is OK.  This should not be used for
+// shift.
 
 bool
-Binary_expression::check_operator_type(Operator op, Type* type, Type* otype,
+Binary_expression::check_operator_type(Operator op, Type* type,
 				       Location location)
 {
   switch (op)
@@ -6090,16 +6099,6 @@ Binary_expression::check_operator_type(Operator op, Type* type, Type* otype,
 		   ("expected integer, floating, complex, string, pointer, "
 		    "boolean, interface, slice, map, channel, "
 		    "or function type"));
-	  return false;
-	}
-      if ((type->is_slice_type()
-	   || type->map_type() != NULL
-	   || type->function_type() != NULL)
-	  && !otype->is_nil_type())
-	{
-	  error_at(location,
-		   ("slice, map, and function types may only "
-		    "be compared to nil"));
 	  return false;
 	}
       break;
@@ -6199,10 +6198,8 @@ Binary_expression::do_check_types(Gogo*)
 	  return;
 	}
       if (!Binary_expression::check_operator_type(this->op_, left_type,
-						  right_type,
 						  this->location())
 	  || !Binary_expression::check_operator_type(this->op_, right_type,
-						     left_type,
 						     this->location()))
 	{
 	  this->set_is_error();
@@ -6217,7 +6214,6 @@ Binary_expression::do_check_types(Gogo*)
 	  return;
 	}
       if (!Binary_expression::check_operator_type(this->op_, left_type,
-						  right_type,
 						  this->location()))
 	{
 	  this->set_is_error();
@@ -12796,23 +12792,14 @@ Composite_literal_expression::do_lower(Gogo* gogo, Named_object* function,
 	}
     }
 
-  Type *pt = type->points_to();
-  bool is_pointer = false;
-  if (pt != NULL)
-    {
-      is_pointer = true;
-      type = pt;
-    }
-
-  Expression* ret;
   if (type->is_error())
     return Expression::make_error(this->location());
   else if (type->struct_type() != NULL)
-    ret = this->lower_struct(gogo, type);
+    return this->lower_struct(gogo, type);
   else if (type->array_type() != NULL)
-    ret = this->lower_array(type);
+    return this->lower_array(type);
   else if (type->map_type() != NULL)
-    ret = this->lower_map(gogo, function, inserter, type);
+    return this->lower_map(gogo, function, inserter, type);
   else
     {
       error_at(this->location(),
@@ -12820,11 +12807,6 @@ Composite_literal_expression::do_lower(Gogo* gogo, Named_object* function,
 		"for composite literal"));
       return Expression::make_error(this->location());
     }
-
-  if (is_pointer)
-    ret = Expression::make_heap_composite(ret, this->location());
-
-  return ret;
 }
 
 // Lower a struct composite literal.
@@ -12835,26 +12817,7 @@ Composite_literal_expression::lower_struct(Gogo* gogo, Type* type)
   Location location = this->location();
   Struct_type* st = type->struct_type();
   if (this->vals_ == NULL || !this->has_keys_)
-    {
-      if (this->vals_ != NULL
-	  && !this->vals_->empty()
-	  && type->named_type() != NULL
-	  && type->named_type()->named_object()->package() != NULL)
-	{
-	  for (Struct_field_list::const_iterator pf = st->fields()->begin();
-	       pf != st->fields()->end();
-	       ++pf)
-	    {
-	      if (Gogo::is_hidden_name(pf->field_name()))
-		error_at(this->location(),
-			 "assignment of unexported field %qs in %qs literal",
-			 Gogo::message_name(pf->field_name()).c_str(),
-			 type->named_type()->message_name().c_str());
-	    }
-	}
-
-      return new Struct_construction_expression(type, this->vals_, location);
-    }
+    return new Struct_construction_expression(type, this->vals_, location);
 
   size_t field_count = st->field_count();
   std::vector<Expression*> vals(field_count);
@@ -13000,14 +12963,6 @@ Composite_literal_expression::lower_struct(Gogo* gogo, Type* type)
 		    : "unnamed struct"));
 	  return Expression::make_error(location);
 	}
-
-      if (type->named_type() != NULL
-	  && type->named_type()->named_object()->package() != NULL
-	  && Gogo::is_hidden_name(sf->field_name()))
-	error_at(name_expr->location(),
-		 "assignment of unexported field %qs in %qs literal",
-		 Gogo::message_name(sf->field_name()).c_str(),
-		 type->named_type()->message_name().c_str());
 
       vals[index] = val;
     }

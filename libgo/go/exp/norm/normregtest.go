@@ -10,9 +10,9 @@ import (
 	"exp/norm"
 	"flag"
 	"fmt"
+	"http"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"path"
 	"regexp"
@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
+	"utf8"
 )
 
 func main() {
@@ -171,7 +171,7 @@ func loadTestData() {
 		counter++
 		for j := 1; j < len(m)-1; j++ {
 			for _, split := range strings.Split(m[j], " ") {
-				r, err := strconv.ParseUint(split, 16, 64)
+				r, err := strconv.Btoui64(split, 16)
 				if err != nil {
 					logger.Fatal(err)
 				}

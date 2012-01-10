@@ -8,9 +8,9 @@ package os
 
 import "syscall"
 
-func Hostname() (name string, err error) {
+func Hostname() (name string, err Error) {
 	var u syscall.Utsname
-	if errno := syscall.Uname(&u); errno != nil {
+	if errno := syscall.Uname(&u); errno != 0 {
 		return "", NewSyscallError("uname", errno)
 	}
 	b := make([]byte, len(u.Nodename))

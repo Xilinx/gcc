@@ -13,8 +13,8 @@ public:
 class B : private A
 {
 public:
-  A::i; // { dg-warning "deprecated" }
-  A::A1; // { dg-warning "deprecated" }
+  A::i;
+  A::A1;
 };
 
 void

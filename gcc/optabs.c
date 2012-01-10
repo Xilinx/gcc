@@ -547,6 +547,18 @@ optab_for_tree_code (enum tree_code code, const_tree type,
     case ABS_EXPR:
       return trapv ? absv_optab : abs_optab;
 
+    case VEC_EXTRACT_EVEN_EXPR:
+      return vec_extract_even_optab;
+
+    case VEC_EXTRACT_ODD_EXPR:
+      return vec_extract_odd_optab;
+
+    case VEC_INTERLEAVE_HIGH_EXPR:
+      return vec_interleave_high_optab;
+
+    case VEC_INTERLEAVE_LOW_EXPR:
+      return vec_interleave_low_optab;
+
     default:
       return NULL;
     }
@@ -1594,6 +1606,30 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 	}
     }
 
+  /* Certain vector operations can be implemented with vector permutation.  */
+  if (VECTOR_MODE_P (mode))
+    {
+      enum tree_code tcode = ERROR_MARK;
+      rtx sel;
+
+      if (binoptab == vec_interleave_high_optab)
+	tcode = VEC_INTERLEAVE_HIGH_EXPR;
+      else if (binoptab == vec_interleave_low_optab)
+	tcode = VEC_INTERLEAVE_LOW_EXPR;
+      else if (binoptab == vec_extract_even_optab)
+	tcode = VEC_EXTRACT_EVEN_EXPR;
+      else if (binoptab == vec_extract_odd_optab)
+	tcode = VEC_EXTRACT_ODD_EXPR;
+
+      if (tcode != ERROR_MARK
+	  && can_vec_perm_for_code_p (tcode, mode, &sel))
+	{
+	  temp = expand_vec_perm (mode, op0, op1, sel, target);
+	  gcc_assert (temp != NULL);
+	  return temp;
+	}
+    }
+
   /* Look for a wider mode of the same class for which we think we
      can open-code the operation.  Check for a widening multiply at the
      wider mode as well.  */
@@ -2016,11 +2052,11 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 	    {
 	      rtx temp = emit_move_insn (target, xtarget);
 
-	      set_dst_reg_note (temp, REG_EQUAL,
-				gen_rtx_fmt_ee (binoptab->code, mode,
-						copy_rtx (xop0),
-						copy_rtx (xop1)),
-				target);
+	      set_unique_reg_note (temp,
+				   REG_EQUAL,
+				   gen_rtx_fmt_ee (binoptab->code, mode,
+						   copy_rtx (xop0),
+						   copy_rtx (xop1)));
 	    }
 	  else
 	    target = xtarget;
@@ -2068,12 +2104,11 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 	  if (optab_handler (mov_optab, mode) != CODE_FOR_nothing)
 	    {
 	      temp = emit_move_insn (target ? target : product, product);
-	      set_dst_reg_note (temp,
-				REG_EQUAL,
-				gen_rtx_fmt_ee (MULT, mode,
-						copy_rtx (op0),
-						copy_rtx (op1)),
-				target ? target : product);
+	      set_unique_reg_note (temp,
+				   REG_EQUAL,
+				   gen_rtx_fmt_ee (MULT, mode,
+						   copy_rtx (op0),
+						   copy_rtx (op1)));
 	    }
 	  return product;
 	}
@@ -2931,9 +2966,8 @@ expand_absneg_bit (enum rtx_code code, enum machine_mode mode,
 		           gen_lowpart (imode, target), 1, OPTAB_LIB_WIDEN);
       target = lowpart_subreg_maybe_copy (mode, temp, imode);
 
-      set_dst_reg_note (get_last_insn (), REG_EQUAL,
-			gen_rtx_fmt_e (code, mode, copy_rtx (op0)),
-			target);
+      set_unique_reg_note (get_last_insn (), REG_EQUAL,
+			   gen_rtx_fmt_e (code, mode, copy_rtx (op0)));
     }
 
   return target;
@@ -3865,7 +3899,8 @@ emit_libcall_block (rtx insns, rtx target, rtx result, rtx equiv)
     }
 
   last = emit_move_insn (target, result);
-  set_dst_reg_note (last, REG_EQUAL, copy_rtx (equiv), target);
+  if (optab_handler (mov_optab, GET_MODE (target)) != CODE_FOR_nothing)
+    set_unique_reg_note (last, REG_EQUAL, copy_rtx (equiv));
 
   if (final_dest != target)
     emit_move_insn (final_dest, target);
@@ -5178,10 +5213,11 @@ expand_fix (rtx to, rtx from, int unsignedp)
 	    {
 	      /* Make a place for a REG_NOTE and add it.  */
 	      insn = emit_move_insn (to, to);
-	      set_dst_reg_note (insn, REG_EQUAL,
-				gen_rtx_fmt_e (UNSIGNED_FIX, GET_MODE (to),
-					       copy_rtx (from)),
-				to);
+	      set_unique_reg_note (insn,
+	                           REG_EQUAL,
+				   gen_rtx_fmt_e (UNSIGNED_FIX,
+						  GET_MODE (to),
+						  copy_rtx (from)));
 	    }
 
 	  return;
@@ -6233,6 +6269,10 @@ init_optabs (void)
   init_optab (udot_prod_optab, UNKNOWN);
 
   init_optab (vec_extract_optab, UNKNOWN);
+  init_optab (vec_extract_even_optab, UNKNOWN);
+  init_optab (vec_extract_odd_optab, UNKNOWN);
+  init_optab (vec_interleave_high_optab, UNKNOWN);
+  init_optab (vec_interleave_low_optab, UNKNOWN);
   init_optab (vec_set_optab, UNKNOWN);
   init_optab (vec_init_optab, UNKNOWN);
   init_optab (vec_shl_optab, UNKNOWN);
@@ -6840,6 +6880,98 @@ can_vec_perm_p (enum machine_mode mode, bool variable,
   return true;
 }
 
+/* Return true if we can implement VEC_INTERLEAVE_{HIGH,LOW}_EXPR or
+   VEC_EXTRACT_{EVEN,ODD}_EXPR with VEC_PERM_EXPR for this target.
+   If PSEL is non-null, return the selector for the permutation.  */
+
+bool
+can_vec_perm_for_code_p (enum tree_code code, enum machine_mode mode,
+			 rtx *psel)
+{
+  bool need_sel_test = false;
+  enum insn_code icode;
+
+  /* If the target doesn't implement a vector mode for the vector type,
+     then no operations are supported.  */
+  if (!VECTOR_MODE_P (mode))
+    return false;
+
+  /* Do as many tests as possible without reqiring the selector.  */
+  icode = direct_optab_handler (vec_perm_optab, mode);
+  if (icode == CODE_FOR_nothing && GET_MODE_INNER (mode) != QImode)
+    {
+      enum machine_mode qimode
+	= mode_for_vector (QImode, GET_MODE_SIZE (mode));
+      if (VECTOR_MODE_P (qimode))
+	icode = direct_optab_handler (vec_perm_optab, qimode);
+    }
+  if (icode == CODE_FOR_nothing)
+    {
+      icode = direct_optab_handler (vec_perm_const_optab, mode);
+      if (icode != CODE_FOR_nothing
+	  && targetm.vectorize.vec_perm_const_ok != NULL)
+	need_sel_test = true;
+    }
+  if (icode == CODE_FOR_nothing)
+    return false;
+
+  /* If the selector is required, or if we need to test it, build it.  */
+  if (psel || need_sel_test)
+    {
+      int i, nelt = GET_MODE_NUNITS (mode), alt = 0;
+      unsigned char *data = XALLOCAVEC (unsigned char, nelt);
+
+      switch (code)
+	{
+	case VEC_EXTRACT_ODD_EXPR:
+	  alt = 1;
+	  /* FALLTHRU */
+	case VEC_EXTRACT_EVEN_EXPR:
+	  for (i = 0; i < nelt; ++i)
+	    data[i] = i * 2 + alt;
+	  break;
+
+	case VEC_INTERLEAVE_HIGH_EXPR:
+	case VEC_INTERLEAVE_LOW_EXPR:
+	  if ((BYTES_BIG_ENDIAN != 0) ^ (code == VEC_INTERLEAVE_HIGH_EXPR))
+	    alt = nelt / 2;
+	  for (i = 0; i < nelt / 2; ++i)
+	    {
+	      data[i * 2] = i + alt;
+	      data[i * 2 + 1] = i + nelt + alt;
+	    }
+	  break;
+
+	default:
+	  gcc_unreachable ();
+	}
+
+      if (need_sel_test
+	  && !targetm.vectorize.vec_perm_const_ok (mode, data))
+	return false;
+
+      if (psel)
+	{
+	  rtvec vec = rtvec_alloc (nelt);
+	  enum machine_mode imode = mode;
+
+	  for (i = 0; i < nelt; ++i)
+	    RTVEC_ELT (vec, i) = GEN_INT (data[i]);
+
+	  if (GET_MODE_CLASS (mode) != MODE_VECTOR_INT)
+	    {
+	      imode = int_mode_for_mode (GET_MODE_INNER (mode));
+	      imode = mode_for_vector (imode, nelt);
+	      gcc_assert (GET_MODE_CLASS (imode) == MODE_VECTOR_INT);
+	    }
+
+	  *psel = gen_rtx_CONST_VECTOR (imode, vec);
+	}
+    }
+
+  return true;
+}
+
 /* A subroutine of expand_vec_perm for expanding one vec_perm insn.  */
 
 static rtx
@@ -6906,8 +7038,7 @@ expand_vec_perm (enum machine_mode mode, rtx v0, rtx v1, rtx sel, rtx target)
     }
 
   /* If the input is a constant, expand it specially.  */
-  gcc_assert (GET_MODE_CLASS (GET_MODE (sel)) == MODE_VECTOR_INT);
-  if (GET_CODE (sel) == CONST_VECTOR)
+  if (CONSTANT_P (sel))
     {
       icode = direct_optab_handler (vec_perm_const_optab, mode);
       if (icode != CODE_FOR_nothing)
@@ -6925,7 +7056,7 @@ expand_vec_perm (enum machine_mode mode, rtx v0, rtx v1, rtx sel, rtx target)
 	    {
 	      unsigned int j, this_e;
 
-	      this_e = INTVAL (CONST_VECTOR_ELT (sel, i));
+	      this_e = INTVAL (XVECEXP (sel, 0, i));
 	      this_e &= 2 * e - 1;
 	      this_e *= u;
 
@@ -7269,7 +7400,7 @@ maybe_emit_sync_lock_test_and_set (rtx target, rtx mem, rtx val,
 	  rtx addr;
 
 	  addr = convert_memory_address (ptr_mode, XEXP (mem, 0));
-	  return emit_library_call_value (libfunc, NULL_RTX, LCT_NORMAL,
+	  return emit_library_call_value (libfunc, target, LCT_NORMAL,
 					  mode, 2, addr, ptr_mode,
 					  val, mode);
 	}
@@ -7506,7 +7637,7 @@ expand_atomic_compare_and_swap (rtx *ptarget_bool, rtx *ptarget_oval,
   if (libfunc != NULL)
     {
       rtx addr = convert_memory_address (ptr_mode, XEXP (mem, 0));
-      target_oval = emit_library_call_value (libfunc, NULL_RTX, LCT_NORMAL,
+      target_oval = emit_library_call_value (libfunc, target_oval, LCT_NORMAL,
 					     mode, 3, addr, ptr_mode,
 					     expected, mode, desired, mode);
 
@@ -8110,31 +8241,24 @@ maybe_legitimize_operand_same_code (enum insn_code icode, unsigned int opno,
     return true;
 
   /* If the operand is a memory whose address has no side effects,
-     try forcing the address into a non-virtual pseudo register.
-     The check for side effects is important because copy_to_mode_reg
-     cannot handle things like auto-modified addresses.  */
-  if (insn_data[(int) icode].operand[opno].allows_mem && MEM_P (op->value))
+     try forcing the address into a register.  The check for side
+     effects is important because force_reg cannot handle things
+     like auto-modified addresses.  */
+  if (insn_data[(int) icode].operand[opno].allows_mem
+      && MEM_P (op->value)
+      && !side_effects_p (XEXP (op->value, 0)))
     {
-      rtx addr, mem;
+      rtx addr, mem, last;
 
-      mem = op->value;
-      addr = XEXP (mem, 0);
-      if (!(REG_P (addr) && REGNO (addr) > LAST_VIRTUAL_REGISTER)
-	  && !side_effects_p (addr))
+      last = get_last_insn ();
+      addr = force_reg (Pmode, XEXP (op->value, 0));
+      mem = replace_equiv_address (op->value, addr);
+      if (insn_operand_matches (icode, opno, mem))
 	{
-	  rtx last;
-	  enum machine_mode mode;
-
-	  last = get_last_insn ();
-	  mode = targetm.addr_space.address_mode (MEM_ADDR_SPACE (mem));
-	  mem = replace_equiv_address (mem, copy_to_mode_reg (mode, addr));
-	  if (insn_operand_matches (icode, opno, mem))
-	    {
-	      op->value = mem;
-	      return true;
-	    }
-	  delete_insns_since (last);
+	  op->value = mem;
+	  return true;
 	}
+      delete_insns_since (last);
     }
 
   return false;

@@ -17,18 +17,18 @@ import (
 func interfaceMulticastAddrTable(ifindex int) ([]Addr, error) {
 	var (
 		tab   []byte
-		e     error
+		e     int
 		msgs  []syscall.RoutingMessage
 		ifmat []Addr
 	)
 
 	tab, e = syscall.RouteRIB(syscall.NET_RT_IFMALIST, ifindex)
-	if e != nil {
+	if e != 0 {
 		return nil, os.NewSyscallError("route rib", e)
 	}
 
 	msgs, e = syscall.ParseRoutingMessage(tab)
-	if e != nil {
+	if e != 0 {
 		return nil, os.NewSyscallError("route message", e)
 	}
 
@@ -52,7 +52,7 @@ func newMulticastAddr(m *syscall.InterfaceMulticastAddrMessage) ([]Addr, error) 
 	var ifmat []Addr
 
 	sas, e := syscall.ParseRoutingSockaddr(m)
-	if e != nil {
+	if e != 0 {
 		return nil, os.NewSyscallError("route sockaddr", e)
 	}
 

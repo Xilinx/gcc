@@ -36,11 +36,11 @@ gtm_rwlock::read_lock (gtm_thread *tx)
   for (;;)
     {
       // Fast path: first announce our intent to read, then check for
-      // conflicting intents to write.  The fence ensures that this happens
-      // in exactly this order.
-      tx->shared_state.store (0, memory_order_relaxed);
-      atomic_thread_fence (memory_order_seq_cst);
-      if (likely (writers.load (memory_order_relaxed) == 0))
+      // conflicting intents to write. The barrier makes sure that this
+      // happens in exactly this order.
+      tx->shared_state = 0;
+      __sync_synchronize();
+      if (likely(writers == 0))
 	return;
 
       // There seems to be an active, waiting, or confirmed writer, so enter
@@ -51,11 +51,11 @@ gtm_rwlock::read_lock (gtm_thread *tx)
       // We need the barrier here for the same reason that we need it in
       // read_unlock().
       // TODO Potentially too many wake-ups. See comments in read_unlock().
-      tx->shared_state.store (-1, memory_order_relaxed);
-      atomic_thread_fence (memory_order_seq_cst);
-      if (writer_readers.load (memory_order_relaxed) > 0)
+      tx->shared_state = ~(typeof tx->shared_state)0;
+      __sync_synchronize();
+      if (writer_readers > 0)
 	{
-	  writer_readers.store (0, memory_order_relaxed);
+	  writer_readers = 0;
 	  futex_wake(&writer_readers, 1);
 	}
 
@@ -63,16 +63,16 @@ gtm_rwlock::read_lock (gtm_thread *tx)
       // writer anymore.
       // TODO Spin here on writers for a while. Consider whether we woke
       // any writers before?
-      while (writers.load (memory_order_relaxed))
+      while (writers)
 	{
 	  // An active writer. Wait until it has finished. To avoid lost
 	  // wake-ups, we need to use Dekker-like synchronization.
 	  // Note that we cannot reset readers to zero when we see that there
 	  // are no writers anymore after the barrier because this pending
 	  // store could then lead to lost wake-ups at other readers.
-	  readers.store (1, memory_order_relaxed);
-	  atomic_thread_fence (memory_order_seq_cst);
-	  if (writers.load (memory_order_relaxed))
+	  readers = 1;
+	  __sync_synchronize();
+	  if (writers)
 	    futex_wait(&readers, 1);
 	}
 
@@ -97,8 +97,8 @@ bool
 gtm_rwlock::write_lock_generic (gtm_thread *tx)
 {
   // Try to acquire the write lock.
-  int w = 0;
-  if (unlikely (!writers.compare_exchange_strong (w, 1)))
+  unsigned int w;
+  if (unlikely((w = __sync_val_compare_and_swap(&writers, 0, 1)) != 0))
     {
       // If this is an upgrade, we must not wait for other writers or
       // upgrades.
@@ -106,14 +106,19 @@ gtm_rwlock::write_lock_generic (gtm_thread *tx)
 	return false;
 
       // There is already a writer. If there are no other waiting writers,
-      // switch to contended mode.  We need seq_cst memory order to make the
-      // Dekker-style synchronization work.
+      // switch to contended mode.
+      // Note that this is actually an atomic exchange, not a TAS. Also,
+      // it's only guaranteed to have acquire semantics, whereas we need a
+      // full barrier to make the Dekker-style synchronization work. However,
+      // we rely on the xchg being a full barrier on the architectures that we
+      // consider here.
+      // ??? Use C++0x atomics as soon as they are available.
       if (w != 2)
-	w = writers.exchange (2);
+	w = __sync_lock_test_and_set(&writers, 2);
       while (w != 0)
 	{
 	  futex_wait(&writers, 2);
-	  w = writers.exchange (2);
+	  w = __sync_lock_test_and_set(&writers, 2);
 	}
     }
 
@@ -121,16 +126,19 @@ gtm_rwlock::write_lock_generic (gtm_thread *tx)
   // readers that might still be active.
   // We don't need an extra barrier here because the CAS and the xchg
   // operations have full barrier semantics already.
+
+  // If this is an upgrade, we are not a reader anymore. This is only safe to
+  // do after we have acquired the writer lock.
   // TODO In the worst case, this requires one wait/wake pair for each
   // active reader. Reduce this!
+  if (tx != 0)
+    tx->shared_state = ~(typeof tx->shared_state)0;
+
   for (gtm_thread *it = gtm_thread::list_of_threads; it != 0;
       it = it->next_thread)
     {
-      if (it == tx)
-        continue;
       // Use a loop here to check reader flags again after waiting.
-      while (it->shared_state.load (memory_order_relaxed)
-          != ~(typeof it->shared_state)0)
+      while (it->shared_state != ~(typeof it->shared_state)0)
 	{
 	  // An active reader. Wait until it has finished. To avoid lost
 	  // wake-ups, we need to use Dekker-like synchronization.
@@ -138,13 +146,12 @@ gtm_rwlock::write_lock_generic (gtm_thread *tx)
 	  // the barrier that the reader has finished in the meantime;
 	  // however, this is only possible because we are the only writer.
 	  // TODO Spin for a while on this reader flag.
-	  writer_readers.store (1, memory_order_relaxed);
-	  atomic_thread_fence (memory_order_seq_cst);
-	  if (it->shared_state.load (memory_order_relaxed)
-	      != ~(typeof it->shared_state)0)
+	  writer_readers = 1;
+	  __sync_synchronize();
+	  if (it->shared_state != ~(typeof it->shared_state)0)
 	    futex_wait(&writer_readers, 1);
 	  else
-	    writer_readers.store (0, memory_order_relaxed);
+	    writer_readers = 0;
 	}
     }
 
@@ -171,45 +178,24 @@ gtm_rwlock::write_upgrade (gtm_thread *tx)
 }
 
 
-// Has to be called iff the previous upgrade was successful and after it is
-// safe for the transaction to not be marked as a reader anymore.
-
-void
-gtm_rwlock::write_upgrade_finish (gtm_thread *tx)
-{
-  // We are not a reader anymore.  This is only safe to do after we have
-  // acquired the writer lock.
-  tx->shared_state.store (-1, memory_order_release);
-}
-
-
 // Release a RW lock from reading.
 
 void
 gtm_rwlock::read_unlock (gtm_thread *tx)
 {
-  // We only need release memory order here because of privatization safety
-  // (this ensures that marking the transaction as inactive happens after
-  // any prior data accesses by this transaction, and that neither the
-  // compiler nor the hardware order this store earlier).
-  // ??? We might be able to avoid this release here if the compiler can't
-  // merge the release fence with the subsequent seq_cst fence.
-  tx->shared_state.store (-1, memory_order_release);
+  tx->shared_state = ~(typeof tx->shared_state)0;
 
-  // If there is a writer waiting for readers, wake it up.  We need the fence
-  // to avoid lost wake-ups.  Furthermore, the privatization safety
-  // implementation in gtm_thread::try_commit() relies on the existence of
-  // this seq_cst fence.
+  // If there is a writer waiting for readers, wake it up. We need the barrier
+  // to avoid lost wake-ups.
   // ??? We might not be the last active reader, so the wake-up might happen
   // too early. How do we avoid this without slowing down readers too much?
   // Each reader could scan the list of txns for other active readers but
   // this can result in many cache misses. Use combining instead?
   // TODO Sends out one wake-up for each reader in the worst case.
-  atomic_thread_fence (memory_order_seq_cst);
-  if (unlikely (writer_readers.load (memory_order_relaxed) > 0))
+  __sync_synchronize();
+  if (unlikely(writer_readers > 0))
     {
-      // No additional barrier needed here (see write_unlock()).
-      writer_readers.store (0, memory_order_relaxed);
+      writer_readers = 0;
       futex_wake(&writer_readers, 1);
     }
 }
@@ -220,11 +206,11 @@ gtm_rwlock::read_unlock (gtm_thread *tx)
 void
 gtm_rwlock::write_unlock ()
 {
-  // This needs to have seq_cst memory order.
-  if (writers.fetch_sub (1) == 2)
+  // This is supposed to be a full barrier.
+  if (__sync_fetch_and_sub(&writers, 1) == 2)
     {
       // There might be waiting writers, so wake them.
-      writers.store (0, memory_order_relaxed);
+      writers = 0;
       if (futex_wake(&writers, 1) == 0)
 	{
 	  // If we did not wake any waiting writers, we might indeed be the
@@ -239,13 +225,9 @@ gtm_rwlock::write_unlock ()
   // No waiting writers, so wake up all waiting readers.
   // Because the fetch_and_sub is a full barrier already, we don't need
   // another barrier here (as in read_unlock()).
-  if (readers.load (memory_order_relaxed) > 0)
+  if (readers > 0)
     {
-      // No additional barrier needed here.  The previous load must be in
-      // modification order because of the coherency constraints.  Late stores
-      // by a reader are not a problem because readers do Dekker-style
-      // synchronization on writers.
-      readers.store (0, memory_order_relaxed);
+      readers = 0;
       futex_wake(&readers, INT_MAX);
     }
 }

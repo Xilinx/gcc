@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -202,19 +202,18 @@ private
 
    type File_Type is access all Stream_AFCB;
 
-   overriding function AFCB_Allocate
-     (Control_Block : Stream_AFCB) return FCB.AFCB_Ptr;
+   function AFCB_Allocate (Control_Block : Stream_AFCB) return FCB.AFCB_Ptr;
 
-   overriding procedure AFCB_Close (File : not null access Stream_AFCB);
-   overriding procedure AFCB_Free  (File : not null access Stream_AFCB);
+   procedure AFCB_Close (File : not null access Stream_AFCB);
+   procedure AFCB_Free  (File : not null access Stream_AFCB);
 
-   overriding procedure Read
+   procedure Read
      (File : in out Stream_AFCB;
       Item : out Ada.Streams.Stream_Element_Array;
       Last : out Ada.Streams.Stream_Element_Offset);
    --  Read operation used when Stream_IO file is treated directly as Stream
 
-   overriding procedure Write
+   procedure Write
      (File : in out Stream_AFCB;
       Item : Ada.Streams.Stream_Element_Array);
    --  Write operation used when Stream_IO file is treated directly as Stream

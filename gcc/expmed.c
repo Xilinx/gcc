@@ -2939,7 +2939,6 @@ expand_mult_const (enum machine_mode mode, rtx op0, HOST_WIDE_INT val,
 	   && !optimize)
 	  ? target : 0;
       rtx accum_target = optimize ? 0 : accum;
-      rtx accum_inner;
 
       switch (alg->op[opno])
 	{
@@ -3005,18 +3004,16 @@ expand_mult_const (enum machine_mode mode, rtx op0, HOST_WIDE_INT val,
 	 that.  */
 
       tem = op0, nmode = mode;
-      accum_inner = accum;
       if (GET_CODE (accum) == SUBREG)
 	{
-	  accum_inner = SUBREG_REG (accum);
-	  nmode = GET_MODE (accum_inner);
+	  nmode = GET_MODE (SUBREG_REG (accum));
 	  tem = gen_lowpart (nmode, op0);
 	}
 
       insn = get_last_insn ();
-      set_dst_reg_note (insn, REG_EQUAL,
-			gen_rtx_MULT (nmode, tem, GEN_INT (val_so_far)),
-			accum_inner);
+      set_unique_reg_note (insn, REG_EQUAL,
+			   gen_rtx_MULT (nmode, tem,
+					 GEN_INT (val_so_far)));
     }
 
   if (variant == negate_variant)
@@ -3826,7 +3823,7 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
   rtx quotient = 0, remainder = 0;
   rtx last;
   int size;
-  rtx insn;
+  rtx insn, set;
   optab optab1, optab2;
   int op1_is_constant, op1_is_pow2 = 0;
   int max_cost, extra_cost;
@@ -4130,10 +4127,12 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 		  break;
 
 		insn = get_last_insn ();
-		if (insn != last)
-		  set_dst_reg_note (insn, REG_EQUAL,
-				    gen_rtx_UDIV (compute_mode, op0, op1),
-				    quotient);
+		if (insn != last
+		    && (set = single_set (insn)) != 0
+		    && SET_DEST (set) == quotient)
+		  set_unique_reg_note (insn,
+				       REG_EQUAL,
+				       gen_rtx_UDIV (compute_mode, op0, op1));
 	      }
 	    else		/* TRUNC_DIV, signed */
 	      {
@@ -4212,14 +4211,18 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 		      {
 			insn = get_last_insn ();
 			if (insn != last
+			    && (set = single_set (insn)) != 0
+			    && SET_DEST (set) == quotient
 			    && abs_d < ((unsigned HOST_WIDE_INT) 1
 					<< (HOST_BITS_PER_WIDE_INT - 1)))
-			  set_dst_reg_note (insn, REG_EQUAL,
-					    gen_rtx_DIV (compute_mode, op0,
-							 gen_int_mode
-							   (abs_d,
-							    compute_mode)),
-					    quotient);
+			  set_unique_reg_note (insn,
+					       REG_EQUAL,
+					       gen_rtx_DIV (compute_mode,
+							    op0,
+							    GEN_INT
+							    (trunc_int_for_mode
+							     (abs_d,
+							      compute_mode))));
 
 			quotient = expand_unop (compute_mode, neg_optab,
 						quotient, quotient, 0);
@@ -4306,10 +4309,12 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 		  break;
 
 		insn = get_last_insn ();
-		if (insn != last)
-		  set_dst_reg_note (insn, REG_EQUAL,
-				    gen_rtx_DIV (compute_mode, op0, op1),
-				    quotient);
+		if (insn != last
+		    && (set = single_set (insn)) != 0
+		    && SET_DEST (set) == quotient)
+		  set_unique_reg_note (insn,
+				       REG_EQUAL,
+				       gen_rtx_DIV (compute_mode, op0, op1));
 	      }
 	    break;
 	  }
@@ -4727,10 +4732,11 @@ expand_divmod (int rem_flag, enum tree_code code, enum machine_mode mode,
 				    NULL_RTX, 1);
 
 	    insn = get_last_insn ();
-	    set_dst_reg_note (insn, REG_EQUAL,
-			      gen_rtx_fmt_ee (unsignedp ? UDIV : DIV,
-					      compute_mode, op0, op1),
-			      quotient);
+	    set_unique_reg_note (insn,
+				 REG_EQUAL,
+				 gen_rtx_fmt_ee (unsignedp ? UDIV : DIV,
+						 compute_mode,
+						 op0, op1));
 	  }
 	break;
 

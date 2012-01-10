@@ -8,10 +8,10 @@ public:
 
 class B: private A {
 public:
-  A::foo; // { dg-warning "deprecated" }
+  A::foo;
 };
 
 void foo() {
   B b;
-  b.foo ();                    // { dg-bogus "" }
+  b.foo ();			// { dg-bogus "" } 
 }

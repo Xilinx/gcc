@@ -32,7 +32,7 @@ func (c *Conn) clientHandshake() error {
 		nextProtoNeg:       len(c.config.NextProtos) > 0,
 	}
 
-	t := uint32(c.config.time().Unix())
+	t := uint32(c.config.time())
 	hello.random[0] = byte(t >> 24)
 	hello.random[1] = byte(t >> 16)
 	hello.random[2] = byte(t >> 8)
@@ -72,7 +72,7 @@ func (c *Conn) clientHandshake() error {
 		return errors.New("server advertised unrequested NPN")
 	}
 
-	suite := mutualCipherSuite(c.config.cipherSuites(), serverHello.cipherSuite)
+	suite, suiteId := mutualCipherSuite(c.config.cipherSuites(), serverHello.cipherSuite)
 	if suite == nil {
 		return c.sendAlert(alertHandshakeFailure)
 	}
@@ -231,10 +231,10 @@ func (c *Conn) clientHandshake() error {
 
 	if cert != nil {
 		certVerify := new(certificateVerifyMsg)
-		digest := make([]byte, 0, 36)
-		digest = finishedHash.serverMD5.Sum(digest)
-		digest = finishedHash.serverSHA1.Sum(digest)
-		signed, err := rsa.SignPKCS1v15(c.config.rand(), c.config.Certificates[0].PrivateKey, crypto.MD5SHA1, digest)
+		var digest [36]byte
+		copy(digest[0:16], finishedHash.serverMD5.Sum())
+		copy(digest[16:36], finishedHash.serverSHA1.Sum())
+		signed, err := rsa.SignPKCS1v15(c.config.rand(), c.config.Certificates[0].PrivateKey, crypto.MD5SHA1, digest[0:])
 		if err != nil {
 			return c.sendAlert(alertInternalError)
 		}
@@ -292,7 +292,7 @@ func (c *Conn) clientHandshake() error {
 	}
 
 	c.handshakeComplete = true
-	c.cipherSuite = suite.id
+	c.cipherSuite = suiteId
 	return nil
 }
 

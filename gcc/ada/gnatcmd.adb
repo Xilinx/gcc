@@ -34,7 +34,7 @@ with MLib.Fil;
 with Namet;    use Namet;
 with Opt;      use Opt;
 with Osint;    use Osint;
-with Output;   use Output;
+with Output;
 with Prj;      use Prj;
 with Prj.Env;
 with Prj.Ext;  use Prj.Ext;
@@ -264,7 +264,6 @@ procedure GNATCmd is
    procedure Set_Library_For
      (Project           : Project_Id;
       Tree              : Project_Tree_Ref;
-      In_Aggregate_Lib  : Boolean;
       Libraries_Present : in out Boolean);
    --  If Project is a library project, add the correct -L and -l switches to
    --  the linker invocation.
@@ -1265,10 +1264,9 @@ procedure GNATCmd is
    procedure Set_Library_For
      (Project           : Project_Id;
       Tree              : Project_Tree_Ref;
-      In_Aggregate_Lib  : Boolean;
       Libraries_Present : in out Boolean)
    is
-      pragma Unreferenced (Tree, In_Aggregate_Lib);
+      pragma Unreferenced (Tree);
 
       Path_Option : constant String_Access :=
                       MLib.Linker_Library_Path_Option;
@@ -1377,10 +1375,6 @@ procedure GNATCmd is
 --  Start of processing for GNATCmd
 
 begin
-   --  All output from GNATCmd is debugging or error output: send to stderr
-
-   Set_Standard_Error;
-
    --  Initializations
 
    Csets.Initialize;
@@ -1907,10 +1901,6 @@ begin
             Env               => Root_Environment,
             Packages_To_Check => Packages_To_Check);
 
-         --  Prj.Pars.Parse calls Set_Standard_Output, reset to stderr
-
-         Set_Standard_Error;
-
          if Project = Prj.No_Project then
             Fail ("""" & Project_File.all & """ processing failed");
          end if;
@@ -2093,7 +2083,7 @@ begin
             begin
                if Pkg /= No_Package then
 
-                  --  First, check if there is a single main specified
+                  --  First, check if there is a single main specified.
 
                   for J in 1  .. Last_Switches.Last loop
                      if Last_Switches.Table (J) (1) /= '-' then

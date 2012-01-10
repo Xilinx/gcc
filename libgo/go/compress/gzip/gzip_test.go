@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"testing"
-	"time"
 )
 
 // pipe creates two ends of a pipe that gzip and gunzip, and runs dfunc at the
@@ -54,7 +53,7 @@ func TestWriter(t *testing.T) {
 		func(compressor *Compressor) {
 			compressor.Comment = "comment"
 			compressor.Extra = []byte("extra")
-			compressor.ModTime = time.Unix(1e8, 0)
+			compressor.Mtime = 1e8
 			compressor.Name = "name"
 			_, err := compressor.Write([]byte("payload"))
 			if err != nil {
@@ -75,8 +74,8 @@ func TestWriter(t *testing.T) {
 			if string(decompressor.Extra) != "extra" {
 				t.Fatalf("extra is %q, want %q", decompressor.Extra, "extra")
 			}
-			if decompressor.ModTime.Unix() != 1e8 {
-				t.Fatalf("mtime is %d, want %d", decompressor.ModTime.Unix(), uint32(1e8))
+			if decompressor.Mtime != 1e8 {
+				t.Fatalf("mtime is %d, want %d", decompressor.Mtime, uint32(1e8))
 			}
 			if decompressor.Name != "name" {
 				t.Fatalf("name is %q, want %q", decompressor.Name, "name")

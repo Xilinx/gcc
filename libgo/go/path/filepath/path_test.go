@@ -259,19 +259,19 @@ type Node struct {
 var tree = &Node{
 	"testdata",
 	[]*Node{
-		{"a", nil, 0},
-		{"b", []*Node{}, 0},
-		{"c", nil, 0},
-		{
+		&Node{"a", nil, 0},
+		&Node{"b", []*Node{}, 0},
+		&Node{"c", nil, 0},
+		&Node{
 			"d",
 			[]*Node{
-				{"x", nil, 0},
-				{"y", []*Node{}, 0},
-				{
+				&Node{"x", nil, 0},
+				&Node{"y", []*Node{}, 0},
+				&Node{
 					"z",
 					[]*Node{
-						{"u", nil, 0},
-						{"v", nil, 0},
+						&Node{"u", nil, 0},
+						&Node{"v", nil, 0},
 					},
 					0,
 				},
@@ -317,7 +317,7 @@ func checkMarks(t *testing.T, report bool) {
 // Assumes that each node name is unique. Good enough for a test.
 // If clear is true, any incoming error is cleared before return. The errors
 // are always accumulated, though.
-func mark(path string, info os.FileInfo, err error, errors *[]error, clear bool) error {
+func mark(path string, info *os.FileInfo, err error, errors *[]error, clear bool) error {
 	if err != nil {
 		*errors = append(*errors, err)
 		if clear {
@@ -325,9 +325,8 @@ func mark(path string, info os.FileInfo, err error, errors *[]error, clear bool)
 		}
 		return err
 	}
-	name := info.Name()
 	walkTree(tree, tree.name, func(path string, n *Node) {
-		if n.name == name {
+		if n.name == info.Name {
 			n.mark++
 		}
 	})
@@ -338,7 +337,7 @@ func TestWalk(t *testing.T) {
 	makeTree(t)
 	errors := make([]error, 0, 10)
 	clear := true
-	markFn := func(path string, info os.FileInfo, err error) error {
+	markFn := func(path string, info *os.FileInfo, err error) error {
 		return mark(path, info, err, &errors, clear)
 	}
 	// Expect no errors.
@@ -549,7 +548,7 @@ func TestEvalSymlinks(t *testing.T) {
 	// relative
 	testEvalSymlinks(t, tests)
 	// absolute
-	/* These tests do not work in the gccgo test environment.
+/* These tests do not work in the gccgo test environment.
 	goroot, err := filepath.EvalSymlinks(os.Getenv("GOROOT"))
 	if err != nil {
 		t.Fatalf("EvalSymlinks(%q) error: %v", os.Getenv("GOROOT"), err)
@@ -565,7 +564,7 @@ func TestEvalSymlinks(t *testing.T) {
 		}
 	}
 	testEvalSymlinks(t, tests)
-	*/
+*/
 }
 
 /* These tests do not work in the gccgo test environment.
@@ -604,7 +603,7 @@ func TestAbs(t *testing.T) {
 			t.Errorf("Abs(%q) error: %v", path, err)
 		}
 		absinfo, err := os.Stat(abspath)
-		if err != nil || !absinfo.(*os.FileStat).SameFile(info.(*os.FileStat)) {
+		if err != nil || absinfo.Ino != info.Ino {
 			t.Errorf("Abs(%q)=%q, not the same file", path, abspath)
 		}
 		if !filepath.IsAbs(abspath) {
@@ -635,10 +634,6 @@ var reltests = []RelTests{
 	{"a/b/../c", "a/b", "../b"},
 	{"a/b/c", "a/c/d", "../../c/d"},
 	{"a/b", "c/d", "../../c/d"},
-	{"a/b/c/d", "a/b", "../.."},
-	{"a/b/c/d", "a/b/", "../.."},
-	{"a/b/c/d/", "a/b", "../.."},
-	{"a/b/c/d/", "a/b/", "../.."},
 	{"../../a/b", "../../a/b/c/d", "c/d"},
 	{"/a/b", "/a/b", "."},
 	{"/a/b/.", "/a/b", "."},
@@ -650,10 +645,6 @@ var reltests = []RelTests{
 	{"/a/b/../c", "/a/b", "../b"},
 	{"/a/b/c", "/a/c/d", "../../c/d"},
 	{"/a/b", "/c/d", "../../c/d"},
-	{"/a/b/c/d", "/a/b", "../.."},
-	{"/a/b/c/d", "/a/b/", "../.."},
-	{"/a/b/c/d/", "/a/b", "../.."},
-	{"/a/b/c/d/", "/a/b/", "../.."},
 	{"/../../a/b", "/../../a/b/c/d", "c/d"},
 	{".", "a/b", "a/b"},
 	{".", "..", ".."},

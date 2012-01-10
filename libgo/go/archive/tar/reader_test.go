@@ -12,7 +12,6 @@ import (
 	"os"
 	"reflect"
 	"testing"
-	"time"
 )
 
 type untarTest struct {
@@ -24,24 +23,24 @@ type untarTest struct {
 var gnuTarTest = &untarTest{
 	file: "testdata/gnu.tar",
 	headers: []*Header{
-		{
+		&Header{
 			Name:     "small.txt",
 			Mode:     0640,
 			Uid:      73025,
 			Gid:      5000,
 			Size:     5,
-			ModTime:  time.Unix(1244428340, 0),
+			Mtime:    1244428340,
 			Typeflag: '0',
 			Uname:    "dsymonds",
 			Gname:    "eng",
 		},
-		{
+		&Header{
 			Name:     "small2.txt",
 			Mode:     0640,
 			Uid:      73025,
 			Gid:      5000,
 			Size:     11,
-			ModTime:  time.Unix(1244436044, 0),
+			Mtime:    1244436044,
 			Typeflag: '0',
 			Uname:    "dsymonds",
 			Gname:    "eng",
@@ -55,56 +54,56 @@ var gnuTarTest = &untarTest{
 
 var untarTests = []*untarTest{
 	gnuTarTest,
-	{
+	&untarTest{
 		file: "testdata/star.tar",
 		headers: []*Header{
-			{
-				Name:       "small.txt",
-				Mode:       0640,
-				Uid:        73025,
-				Gid:        5000,
-				Size:       5,
-				ModTime:    time.Unix(1244592783, 0),
-				Typeflag:   '0',
-				Uname:      "dsymonds",
-				Gname:      "eng",
-				AccessTime: time.Unix(1244592783, 0),
-				ChangeTime: time.Unix(1244592783, 0),
+			&Header{
+				Name:     "small.txt",
+				Mode:     0640,
+				Uid:      73025,
+				Gid:      5000,
+				Size:     5,
+				Mtime:    1244592783,
+				Typeflag: '0',
+				Uname:    "dsymonds",
+				Gname:    "eng",
+				Atime:    1244592783,
+				Ctime:    1244592783,
 			},
-			{
-				Name:       "small2.txt",
-				Mode:       0640,
-				Uid:        73025,
-				Gid:        5000,
-				Size:       11,
-				ModTime:    time.Unix(1244592783, 0),
-				Typeflag:   '0',
-				Uname:      "dsymonds",
-				Gname:      "eng",
-				AccessTime: time.Unix(1244592783, 0),
-				ChangeTime: time.Unix(1244592783, 0),
+			&Header{
+				Name:     "small2.txt",
+				Mode:     0640,
+				Uid:      73025,
+				Gid:      5000,
+				Size:     11,
+				Mtime:    1244592783,
+				Typeflag: '0',
+				Uname:    "dsymonds",
+				Gname:    "eng",
+				Atime:    1244592783,
+				Ctime:    1244592783,
 			},
 		},
 	},
-	{
+	&untarTest{
 		file: "testdata/v7.tar",
 		headers: []*Header{
-			{
+			&Header{
 				Name:     "small.txt",
 				Mode:     0444,
 				Uid:      73025,
 				Gid:      5000,
 				Size:     5,
-				ModTime:  time.Unix(1244593104, 0),
+				Mtime:    1244593104,
 				Typeflag: '\x00',
 			},
-			{
+			&Header{
 				Name:     "small2.txt",
 				Mode:     0444,
 				Uid:      73025,
 				Gid:      5000,
 				Size:     11,
-				ModTime:  time.Unix(1244593104, 0),
+				Mtime:    1244593104,
 				Typeflag: '\x00',
 			},
 		},
@@ -222,7 +221,7 @@ func TestIncrementalRead(t *testing.T) {
 			h.Write(rdbuf[0:nr])
 		}
 		// verify checksum
-		have := fmt.Sprintf("%x", h.Sum(nil))
+		have := fmt.Sprintf("%x", h.Sum())
 		want := cksums[nread]
 		if want != have {
 			t.Errorf("Bad checksum on file %s:\nhave %+v\nwant %+v", hdr.Name, have, want)

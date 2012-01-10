@@ -1,5 +1,5 @@
 // { dg-do assemble  }
-// { dg-options "-Wno-deprecated" }
+// { dg-options "" }
 // GROUPS passed old-abort
 
 const bool FALSE = 0;

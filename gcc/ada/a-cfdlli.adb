@@ -26,29 +26,8 @@
 ------------------------------------------------------------------------------
 
 with System;  use type System.Address;
-with Ada.Finalization;
 
 package body Ada.Containers.Formal_Doubly_Linked_Lists is
-
-   type Iterator is new Ada.Finalization.Limited_Controlled and
-     List_Iterator_Interfaces.Reversible_Iterator with
-   record
-      Container : List_Access;
-      Node      : Count_Type;
-   end record;
-
-   overriding procedure Finalize (Object : in out Iterator);
-
-   overriding function First (Object : Iterator) return Cursor;
-   overriding function Last  (Object : Iterator) return Cursor;
-
-   overriding function Next
-     (Object   : Iterator;
-      Position : Cursor) return Cursor;
-
-   overriding function Previous
-     (Object   : Iterator;
-      Position : Cursor) return Cursor;
 
    -----------------------
    -- Local Subprograms --
@@ -253,11 +232,10 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
       Capacity : Count_Type := 0) return List
    is
       C : constant Count_Type := Count_Type'Max (Source.Capacity, Capacity);
-      N : Count_Type;
+      N : Count_Type := 1;
       P : List (C);
 
    begin
-      N := 1;
       while N <= Source.Capacity loop
          P.Nodes (N).Prev := Source.Nodes (N).Prev;
          P.Nodes (N).Next := Source.Nodes (N).Next;
@@ -445,21 +423,6 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
       return Container.Nodes (Position.Node).Element;
    end Element;
 
-   --------------
-   -- Finalize --
-   --------------
-
-   procedure Finalize (Object : in out Iterator) is
-   begin
-      if Object.Container /= null then
-         declare
-            B : Natural renames Object.Container.all.Busy;
-         begin
-            B := B - 1;
-         end;
-      end if;
-   end Finalize;
-
    ----------
    -- Find --
    ----------
@@ -509,28 +472,6 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
       end if;
 
       return (Node => Container.First);
-   end First;
-
-   function First (Object : Iterator) return Cursor is
-   begin
-      --  The value of the iterator object's Node component influences the
-      --  behavior of the First (and Last) selector function.
-
-      --  When the Node component is null, this means the iterator object was
-      --  constructed without a start expression, in which case the (forward)
-      --  iteration starts from the (logical) beginning of the entire sequence
-      --  of items (corresponding to Container.First, for a forward iterator).
-
-      --  Otherwise, this is iteration over a partial sequence of items. When
-      --  the Node component is non-null, the iterator object was constructed
-      --  with a start expression, that specifies the position from which the
-      --  (forward) partial iteration begins.
-
-      if Object.Node = 0 then
-         return First (Object.Container.all);
-      else
-         return (Node => Object.Node);
-      end if;
    end First;
 
    -------------------
@@ -605,12 +546,12 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
          Node  : Count_Type := Container.First;
 
       begin
-         for J in 2 .. Container.Length loop
+         for I in 2 .. Container.Length loop
             if Nodes (Nodes (Node).Next).Element < Nodes (Node).Element then
                return False;
-            else
-               Node := Nodes (Node).Next;
             end if;
+
+            Node := Nodes (Node).Next;
          end loop;
 
          return True;
@@ -750,7 +691,7 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
             end if;
          end Sort;
 
-      --  Start of processing for Sort
+         --  Start of processing for Sort
 
       begin
          if Container.Length <= 1 then
@@ -800,6 +741,7 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
       J : Count_Type;
 
    begin
+
       if Before.Node /= 0 then
          pragma Assert (Vet (Container, Before), "bad cursor in Insert");
       end if;
@@ -848,6 +790,7 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
       J : Count_Type;
 
    begin
+
       if Before.Node /= 0 then
          pragma Assert (Vet (Container, Before), "bad cursor in Insert");
       end if;
@@ -949,15 +892,15 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
       Process   :
       not null access procedure (Container : List; Position : Cursor))
    is
-      C    : List renames Container'Unrestricted_Access.all;
-      B    : Natural renames C.Busy;
-      Node : Count_Type;
+      C : List renames Container'Unrestricted_Access.all;
+      B : Natural renames C.Busy;
+
+      Node : Count_Type := Container.First;
 
    begin
       B := B + 1;
 
       begin
-         Node := Container.First;
          while Node /= 0 loop
             Process (Container, (Node => Node));
             Node := Container.Nodes (Node).Next;
@@ -972,71 +915,6 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
       B := B - 1;
    end Iterate;
 
-   function Iterate (Container : List)
-     return List_Iterator_Interfaces.Reversible_Iterator'Class
-   is
-      B : Natural renames Container'Unrestricted_Access.all.Busy;
-
-   begin
-      --  The value of the Node component influences the behavior of the First
-      --  and Last selector functions of the iterator object. When the Node
-      --  component is null (as is the case here), this means the iterator
-      --  object was constructed without a start expression. This is a
-      --  complete iterator, meaning that the iteration starts from the
-      --  (logical) beginning of the sequence of items.
-
-      --  Note: For a forward iterator, Container.First is the beginning, and
-      --  for a reverse iterator, Container.Last is the beginning.
-
-      return It : constant Iterator :=
-                    Iterator'(Ada.Finalization.Limited_Controlled with
-                                Container => Container'Unrestricted_Access,
-                                Node      => 0)
-      do
-         B := B + 1;
-      end return;
-   end Iterate;
-
-   function Iterate (Container : List; Start : Cursor)
-     return List_Iterator_Interfaces.Reversible_Iterator'Class
-   is
-      B  : Natural renames Container'Unrestricted_Access.all.Busy;
-
-   begin
-      --  It was formerly the case that when Start = No_Element, the partial
-      --  iterator was defined to behave the same as for a complete iterator,
-      --  and iterate over the entire sequence of items. However, those
-      --  semantics were unintuitive and arguably error-prone (it is too easy
-      --  to accidentally create an endless loop), and so they were changed,
-      --  per the ARG meeting in Denver on 2011/11. However, there was no
-      --  consensus about what positive meaning this corner case should have,
-      --  and so it was decided to simply raise an exception. This does imply,
-      --  however, that it is not possible to use a partial iterator to specify
-      --  an empty sequence of items.
-
-      if not Has_Element (Container, Start) then
-         raise Constraint_Error with
-           "Start position for iterator is not a valid cursor";
-      end if;
-
-      --  The value of the Node component influences the behavior of the First
-      --  and Last selector functions of the iterator object. When the Node
-      --  component is non-null (as is the case here), it means that this
-      --  is a partial iteration, over a subset of the complete sequence of
-      --  items. The iterator object was constructed with a start expression,
-      --  indicating the position from which the iteration begins. Note that
-      --  the start position has the same value irrespective of whether this
-      --  is a forward or reverse iteration.
-
-      return It : constant Iterator :=
-                    Iterator'(Ada.Finalization.Limited_Controlled with
-                                Container => Container'Unrestricted_Access,
-                                Node      => Start.Node)
-      do
-         B := B + 1;
-      end return;
-   end Iterate;
-
    ----------
    -- Last --
    ----------
@@ -1047,28 +925,6 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
          return No_Element;
       end if;
       return (Node => Container.Last);
-   end Last;
-
-   function Last (Object : Iterator) return Cursor is
-   begin
-      --  The value of the iterator object's Node component influences the
-      --  behavior of the Last (and First) selector function.
-
-      --  When the Node component is null, this means the iterator object was
-      --  constructed without a start expression, in which case the (reverse)
-      --  iteration starts from the (logical) beginning of the entire sequence
-      --  (corresponding to Container.Last, for a reverse iterator).
-
-      --  Otherwise, this is iteration over a partial sequence of items. When
-      --  the Node component is non-null, the iterator object was constructed
-      --  with a start expression, that specifies the position from which the
-      --  (reverse) partial iteration begins.
-
-      if Object.Node = 0 then
-         return Last (Object.Container.all);
-      else
-         return (Node => Object.Node);
-      end if;
    end Last;
 
    ------------------
@@ -1229,23 +1085,6 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
       return (Node => Container.Nodes (Position.Node).Next);
    end Next;
 
-   function Next
-     (Object   : Iterator;
-      Position : Cursor) return Cursor
-   is
-   begin
-      return Next (Object.Container.all, Position);
-   end Next;
-
-   --------------------
-   -- Not_No_Element --
-   --------------------
-
-   function Not_No_Element (Position : Cursor) return Boolean is
-   begin
-      return Position /= No_Element;
-   end Not_No_Element;
-
    -------------
    -- Prepend --
    -------------
@@ -1279,14 +1118,6 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
       end if;
 
       return (Node => Container.Nodes (Position.Node).Prev);
-   end Previous;
-
-   function Previous
-     (Object   : Iterator;
-      Position : Cursor) return Cursor
-   is
-   begin
-      return Previous (Object.Container.all, Position);
    end Previous;
 
    -------------------
@@ -1365,22 +1196,6 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
       raise Program_Error with "attempt to stream list cursor";
    end Read;
 
-   ---------------
-   -- Reference --
-   ---------------
-
-   function Constant_Reference
-     (Container : List;
-      Position  : Cursor) return Constant_Reference_Type
-   is
-   begin
-      if not Has_Element (Container, Position) then
-         raise Constraint_Error with "Position cursor has no element";
-      end if;
-
-      return (Element => Container.Nodes (Position.Node).Element'Access);
-   end Constant_Reference;
-
    ---------------------
    -- Replace_Element --
    ---------------------
@@ -1391,6 +1206,7 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
       New_Item  : Element_Type)
    is
    begin
+
       if not Has_Element (Container, Position) then
          raise Constraint_Error with "Position cursor has no element";
       end if;
@@ -1403,7 +1219,11 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
       pragma Assert
         (Vet (Container, Position), "bad cursor in Replace_Element");
 
-      Container.Nodes (Position.Node).Element := New_Item;
+      declare
+         N : Node_Array renames Container.Nodes;
+      begin
+         N (Position.Node).Element := New_Item;
+      end;
    end Replace_Element;
 
    ----------------------
@@ -1455,7 +1275,7 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
          end if;
       end Swap;
 
-   --  Start of processing for Reverse_Elements
+      --  Start of processing for Reverse_Elements
 
    begin
       if Container.Length <= 1 then
@@ -1504,7 +1324,6 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
       Position  : Cursor := No_Element) return Cursor
    is
       CFirst : Count_Type := Position.Node;
-
    begin
       if CFirst = 0 then
          CFirst := Container.First;
@@ -1536,13 +1355,12 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
       C : List renames Container'Unrestricted_Access.all;
       B : Natural renames C.Busy;
 
-      Node : Count_Type;
+      Node : Count_Type := Container.Last;
 
    begin
       B := B + 1;
 
       begin
-         Node := Container.Last;
          while Node /= 0 loop
             Process (Container, (Node => Node));
             Node := Container.Nodes (Node).Prev;
@@ -1644,6 +1462,7 @@ package body Ada.Containers.Formal_Doubly_Linked_Lists is
       Target_Position : Cursor;
 
    begin
+
       if Target'Address = Source'Address then
          Splice (Target, Before, Position);
          return;

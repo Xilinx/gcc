@@ -2709,14 +2709,7 @@ package body Sem_Prag is
 
       procedure GNAT_Pragma is
       begin
-         --  We need to check the No_Implementation_Pragmas restriction for
-         --  the case of a pragma from source. Note that the case of aspects
-         --  generating corresponding pragmas marks these pragmas as not being
-         --  from source, so this test also catches that case.
-
-         if Comes_From_Source (N) then
-            Check_Restriction (No_Implementation_Pragmas, N);
-         end if;
+         Check_Restriction (No_Implementation_Pragmas, N);
       end GNAT_Pragma;
 
       --------------------------
@@ -4602,27 +4595,9 @@ package body Sem_Prag is
 
          --  Import a CPP class
 
-         elsif C = Convention_CPP
-           and then (Is_Record_Type (Def_Id)
-                      or else Ekind (Def_Id) = E_Incomplete_Type)
+         elsif Is_Record_Type (Def_Id)
+           and then C = Convention_CPP
          then
-            if Ekind (Def_Id) = E_Incomplete_Type then
-               if Present (Full_View (Def_Id)) then
-                  Def_Id := Full_View (Def_Id);
-
-               else
-                  Error_Msg_N
-                    ("cannot import 'C'P'P type before full declaration seen",
-                     Get_Pragma_Arg (Arg2));
-
-                  --  Although we have reported the error we decorate it as
-                  --  CPP_Class to avoid reporting spurious errors
-
-                  Set_Is_CPP_Class (Def_Id);
-                  return;
-               end if;
-            end if;
-
             --  Types treated as CPP classes must be declared limited (note:
             --  this used to be a warning but there is no real benefit to it
             --  since we did effectively intend to treat the type as limited
@@ -4646,13 +4621,38 @@ package body Sem_Prag is
                           (Declaration_Node (Def_Id))));
             end if;
 
-            --  Check that components of imported CPP types do not have default
-            --  expressions. For private types this check is performed when the
-            --  full view is analyzed (see Process_Full_View).
+            --  Components of imported CPP types must not have default
+            --  expressions because the constructor (if any) is on the
+            --  C++ side.
 
-            if not Is_Private_Type (Def_Id) then
-               Check_CPP_Type_Has_No_Defaults (Def_Id);
-            end if;
+            declare
+               Tdef  : constant Node_Id :=
+                         Type_Definition (Declaration_Node (Def_Id));
+               Clist : Node_Id;
+               Comp  : Node_Id;
+
+            begin
+               if Nkind (Tdef) = N_Record_Definition then
+                  Clist := Component_List (Tdef);
+
+               else
+                  pragma Assert (Nkind (Tdef) = N_Derived_Type_Definition);
+                  Clist := Component_List (Record_Extension_Part (Tdef));
+               end if;
+
+               if Present (Clist) then
+                  Comp := First (Component_Items (Clist));
+                  while Present (Comp) loop
+                     if Present (Expression (Comp)) then
+                        Error_Msg_N
+                          ("component of imported 'C'P'P type cannot have" &
+                           " default expression", Expression (Comp));
+                     end if;
+
+                     Next (Comp);
+                  end loop;
+               end if;
+            end;
 
          elsif Nkind (Parent (Def_Id)) = N_Incomplete_Type_Declaration then
             Check_No_Link_Name;
@@ -4663,8 +4663,8 @@ package body Sem_Prag is
 
          else
             Error_Pragma_Arg
-              ("second argument of pragma% must be object, subprogram "
-               & "or incomplete type",
+              ("second argument of pragma% must be object, subprogram" &
+               " or incomplete type",
                Arg2);
          end if;
 
@@ -7622,8 +7622,8 @@ package body Sem_Prag is
                   Get_Pragma_Arg (Arg1));
             end if;
 
-            Set_Is_CPP_Class (Typ);
-            Set_Convention (Typ, Convention_CPP);
+            Set_Is_CPP_Class      (Typ);
+            Set_Convention        (Typ, Convention_CPP);
 
             --  Imported CPP types must not have discriminants (because C++
             --  classes do not have discriminants).
@@ -8054,6 +8054,24 @@ package body Sem_Prag is
             --  appropriate attributes of the access type.
 
             Default_Pool := Expression (Arg1);
+
+         ---------------
+         -- Dimension --
+         ---------------
+
+         when Pragma_Dimension =>
+            GNAT_Pragma;
+            Check_Arg_Count (4);
+            Check_No_Identifiers;
+            Check_Arg_Is_Local_Name (Arg1);
+
+            if not Is_Type (Arg1) then
+               Error_Pragma ("first argument for pragma% must be subtype");
+            end if;
+
+            Check_Arg_Is_Static_Expression (Arg2, Standard_Integer);
+            Check_Arg_Is_Static_Expression (Arg3, Standard_Integer);
+            Check_Arg_Is_Static_Expression (Arg4, Standard_Integer);
 
          ------------------------------------
          -- Disable_Atomic_Synchronization --
@@ -14880,8 +14898,7 @@ package body Sem_Prag is
    -----------------------------------------
 
    --  This function makes use of the following static table which indicates
-   --  whether appearance of some name in a given pragma is to be considered
-   --  as a reference for the purposes of warnings about unreferenced objects.
+   --  whether a given pragma is significant.
 
    --  -1  indicates that references in any argument position are significant
    --  0   indicates that appearance in any argument is not significant
@@ -14932,6 +14949,7 @@ package body Sem_Prag is
       Pragma_Debug_Policy                   =>  0,
       Pragma_Detect_Blocking                => -1,
       Pragma_Default_Storage_Pool           => -1,
+      Pragma_Dimension                      => -1,
       Pragma_Disable_Atomic_Synchronization => -1,
       Pragma_Discard_Names                  =>  0,
       Pragma_Dispatching_Domain             => -1,

@@ -47,7 +47,7 @@ func (sa *RawSockaddrUnix) setLen(n int) {
 	sa.Len = uint8(3 + n) // 2 for Family, Len; 1 for NUL.
 }
 
-func (sa *RawSockaddrUnix) getLen() (int, error) {
+func (sa *RawSockaddrUnix) getLen() (int, int) {
 	if sa.Len < 3 || sa.Len > SizeofSockaddrUnix {
 		return 0, EINVAL
 	}
@@ -59,7 +59,7 @@ func (sa *RawSockaddrUnix) getLen() (int, error) {
 			break
 		}
 	}
-	return n, nil
+	return n, 0
 }
 
 type RawSockaddr struct {
@@ -69,10 +69,10 @@ type RawSockaddr struct {
 }
 
 // BindToDevice binds the socket associated with fd to device.
-func BindToDevice(fd int, device string) (err error) {
+func BindToDevice(fd int, device string) (errno int) {
 	return ENOSYS
 }
 
-func anyToSockaddrOS(rsa *RawSockaddrAny) (Sockaddr, error) {
-	return nil, EAFNOSUPPORT
+func anyToSockaddrOS(rsa *RawSockaddrAny) (Sockaddr, int) {
+	return nil, EAFNOSUPPORT;
 }
