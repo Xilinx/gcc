@@ -1,4 +1,9 @@
 
+2012-01-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-mv-if-changed.c: New file.
+
+	* make-melt-source-tar.sh: Copy melt-mv-if-changed.c
+
 2011-12-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{melt-0.9.2-rc2}}
 	* MELT-Plugin-Makefile (install-*): Add echo-ing messages.

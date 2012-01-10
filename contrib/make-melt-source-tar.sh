@@ -7,7 +7,7 @@
 ##
 ##    Middle End Lisp Translator = MELT
 ##
-##    Copyright (C)  2010, 2011 Free Software Foundation, Inc.
+##    Copyright (C)  2010, 2011, 2012 Free Software Foundation, Inc.
 ##    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 ## 
 ## This file is part of GCC.
@@ -92,6 +92,7 @@ copymelt gcc/doc/include/texinfo.tex
 
 copymelt gcc/doc/melt.texi
 
+copymelt contrib/melt-mv-if-changed.c 
 copymelt contrib/meltplugin.texi 
 copymelt contrib/meltpluginapi.texi
 
