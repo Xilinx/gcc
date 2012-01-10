@@ -790,6 +790,7 @@ compute_value_histograms (histogram_values values, unsigned cfg_checksum,
   gcov_type *histogram_counts[GCOV_N_VALUE_COUNTERS];
   gcov_type *act_count[GCOV_N_VALUE_COUNTERS];
   gcov_type *aact_count;
+  bool warned = false;
 
   for (t = 0; t < GCOV_N_VALUE_COUNTERS; t++)
     n_histogram_counters[t] = 0;
@@ -828,6 +829,20 @@ compute_value_histograms (histogram_values values, unsigned cfg_checksum,
       t = (int) hist->type;
 
       aact_count = act_count[t];
+      if (aact_count == 0)
+        {
+          /* this can only happen when FDO uses LIPO profiles where
+             we have HIST_TYPE_INDIR_CALL_TOPN counters in gcda
+             files.  */
+          gcc_assert (hist->type == HIST_TYPE_INDIR_CALL);
+          if (!warned && flag_opt_info >= OPT_INFO_MIN)
+            warning (0, "cannot find INDIR_CALL counters in func %s.",
+                     IDENTIFIER_POINTER (
+                       DECL_ASSEMBLER_NAME (current_function_decl)));
+          hist->n_counters = 0;
+          warned = true;
+          continue;
+        }
       act_count[t] += hist->n_counters;
 
       gimple_add_histogram_value (cfun, stmt, hist);

@@ -1,3 +1,8 @@
+2011-12-21   Rong Xu  <xur@google.com>
+
+	* gcc/profile.c (compute_value_histograms): handle the 
+	case when INDIR_CALL counters not available in gcda files.
+
 2012-01-09   Sterling Augustine  <saugustine@google.com>
 
        * dwarf2out.c (output_pubnames): Add check for info_section_emitted.
