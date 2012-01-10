@@ -1,4 +1,12 @@
 
+2012-01-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.mk (melt_module): Add intermediate dependency to
+	symlink it forcibly.
+	($(GCCMELT_MODULE_BINARYBASE).$(GCCMELT_MODULE_FLAVOR).so): New
+	intermediate target.
+	* melt-build.tpl: Move and improve, notably vpath.
+	* melt-build.mk: Regenerate.
+
 2012-01-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl: Add explicit rules for stage zero *meltdesc.c
 	etc...

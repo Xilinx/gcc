@@ -106,10 +106,16 @@ MELTCCRUNFILE1ARGS=  $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=runfile  
 	      $(meltarg_tempdir)=. $(MELT_DEBUG)
 MELTCCRUNFILE1=$(melt_make_cc1) $(MELTCCRUNFILE1ARGS)
 
-vpath %.so $(melt_make_module_dir) . 
-#vpath %.c $(melt_make_source_dir)/generated . $(melt_source_dir)
+vpath %.quicklybuilt.so . melt-workdir/ $(melt_make_module_dir)
+vpath %.debugnoline.so . melt-workdir/ $(melt_make_module_dir)
+vpath %.dynamic.so . melt-workdir/ $(melt_make_module_dir)
+vpath %.pic.o .  melt-workdir/ $(melt_make_module_dir)
+
+vpath %.so $(melt_make_module_dir) .
+vpath %.c $(melt_make_source_dir)/generated . $(melt_source_dir)
 vpath %.h . $(melt_make_source_dir)/generated $(melt_source_dir)
 vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
+
 
 ##
 ## the invoking command could set MELT_MAKE_MODULE_XTRAMAKEFLAGS=-j2
@@ -167,7 +173,7 @@ melt-stage0-quicklybuilt/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).quickl
               GCCMELT_MODULE_BINARYBASE=melt-stage0-quicklybuilt/[+base+]
 
 #@ [+ (. (tpl-file-line))+] stage0quick symlink
-melt-stage0-quicklybuilt/[+base+].so:  melt-stage0-quicklybuilt/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).quicklybuilt.so
+melt-stage0-quicklybuilt/[+base+].quicklybuilt.so:  melt-stage0-quicklybuilt/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).quicklybuilt.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 	ls -l $@ > melt-stage0-quicklybuilt-[+base+]-module.stamp-tmp
 	mv melt-stage0-quicklybuilt-[+base+]-module.stamp-tmp melt-stage0-quicklybuilt-[+base+]-module.stamp
@@ -194,14 +200,20 @@ melt-stage0-dynamic/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).dynamic.so:
 	      GCCMELT_CUMULATED_MD5=$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5) \
               GCCMELT_MODULE_BINARYBASE=melt-stage0-dynamic/[+base+]
 
+#@ [+ (. (tpl-file-line))+] stage0dyn module
+melt-stage0-dynamic/[+base+].dynamic.so:  melt-stage0-dynamic/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).dynamic.so
+	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
+	ls -l $@ > melt-stage0-dynamic-[+base+]-module.stamp-tmp
+	mv melt-stage0-dynamic-[+base+]-module.stamp-tmp  melt-stage0-dynamic--[+base+]-module.stamp
+
 #@ [+ (. (tpl-file-line))+] stage0dyn symlink
-melt-stage0-dynamic/[+base+].so: melt-stage0-dynamic/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).dynamic.so
+melt-stage0-dynamic/[+base+].so: melt-stage0-dynamic/[+base+].dynamic.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 	ls -l $@ > melt-stage0-dynamic-[+base+]-module.stamp-tmp
 	mv melt-stage0-dynamic-[+base+]-module.stamp-tmp melt-stage0-dynamic-[+base+]-module.stamp
 
-#@ [+ (. (tpl-file-line))+] stage0dyn quicklybuilt
-melt-stage0-dynamic/[+base+].quicklybuilt.so: melt-stage0-dynamic/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).dynamic.so
+#@ [+ (. (tpl-file-line))+] stage0dyn quicklybuilt, forced to be the dynamic variatn
+melt-stage0-dynamic/[+base+].quicklybuilt.so: melt-stage0-dynamic/[+base+].dynamic.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 #@ [+ (. (tpl-file-line))+] stage0dyn descfiles
@@ -223,18 +235,21 @@ melt-stage0-dynamic-[+base+]-module.stamp: melt-stage0-dynamic/[+base+].so  melt
 
 ##@ stage0quick [+ (. (tpl-file-line))+]
 melt-stage0-quicklybuilt/warmelt.modlis: | \
-[+FOR melt_translator_file " \\\n" +]             melt-stage0-quicklybuilt/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).quicklybuilt.so  melt-stage0-quicklybuilt/[+base+]+meltdesc.c [+
+[+FOR melt_translator_file " \\\n" +]             melt-stage0-quicklybuilt/[+base+].quicklybuilt.so  melt-stage0-quicklybuilt/[+base+]+meltdesc.c [+
 ENDFOR melt_translator_file+]
 	date  +"#$@ generated %F" > $@-tmp
 [+FOR melt_translator_file+]	echo $(melt_make_source_dir)/generated/[+base+].quicklybuilt >> $@-tmp
 [+ENDFOR melt_translator_file+]	$(melt_make_move) $@-tmp $@
 
 ##@ stage0quick timestamp [+ (. (tpl-file-line))+]
-melt-stage0-quicklybuilt.stamp: melt-stage0-quicklybuilt/warmelt.modlis; @true
+melt-stage0-quicklybuilt.stamp: melt-stage0-quicklybuilt/warmelt.modlis
+	ls -l $< > $@-tmp
+	$(melt_make_move) $@-tmp $@
+
 
 ##@ stage0dyn [+ (. (tpl-file-line))+]
 melt-stage0-dynamic/warmelt.modlis: | \
-[+FOR melt_translator_file " \\\n" +]              melt-stage0-dynamic/[+base+].$(MELT_GENERATED_[+mkvarsuf+]_CUMULMD5).dynamic.so  melt-stage0-dynamic/[+base+]+meltdesc.c[+
+[+FOR melt_translator_file " \\\n" +]              melt-stage0-dynamic/[+base+].dynamic.so  melt-stage0-dynamic/[+base+]+meltdesc.c[+
 ENDFOR melt_translator_file+]
 	date  +"#$@ generated %F" > $@-tmp
 [+FOR melt_translator_file+]	echo $(melt_make_source_dir)/generated/[+base+].dynamic >> $@-tmp
@@ -242,7 +257,9 @@ ENDFOR melt_translator_file+]
 	$(melt_make_move) $@-tmp $@
 
 ##@ stage0dyn timestamp [+ (. (tpl-file-line))+]
-melt-stage0-dynamic.stamp: melt-stage0-dynamic/warmelt.modlis; @true
+melt-stage0-dynamic.stamp: melt-stage0-dynamic/warmelt.modlis
+	ls -l $< > $@-tmp
+	$(melt_make_move) $@-tmp $@
 
 #@ [+ (. (tpl-file-line))+]
 ## An empty file is needed for every MELT translation!
@@ -291,7 +308,7 @@ $(MELT_STAGE_ZERO):
 +][+FOR melt_translator_file+][+ (define inbase (get "base")) (define inindex (for-index)) 
   (define depstage (if (< inindex outindex) (get "melt_stage") prevstage))
   (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
-+]      [+IF (< inindex outindex)+] [+ (. depstage)+]-[+(. outbase)+]-module.stamp \
++]      [+IF (< inindex outindex)+] [+ (. depstage)+]-[+(. inbase)+]-module.stamp \
 [+ENDIF+][+ENDFOR melt_translator_file
 +]  empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
@@ -379,7 +396,7 @@ ENDFOR melt_translator_file+]
 [+melt_stage+].stamp:  melt-run.h | [+melt_stage+]/warmelt.modlis
 	date +"#$@ generated %F" > $@-tmp
 	md5sum melt-run.h >> $@-tmp
-[+FOR melt_translator_file "\n"+]	md5sum $(wildcard [+melt_stage+]/[+base+]*.c) < /dev/null >> $@-tmp[+ENDFOR melt_translator_file+]
+[+FOR melt_translator_file "\n"+]	md5sum $(wildcard [+melt_stage+]/[+base+].c[+melt_stage+]/[+base+]+[0-9]*.c) < /dev/null >> $@-tmp[+ENDFOR melt_translator_file+]
 	echo "# end $@" >> $@-tmp
 	$(melt_make_move) $@-tmp $@
 
@@ -798,11 +815,6 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 	mv  $(notdir $(basename $@)).args-tmp  $(notdir $(basename $@)).args
 	@echo; echo; echo; echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(notdir $(basename $@)).args
-
-
-vpath %.so $(melt_make_module_dir) . 
-vpath %.c $(melt_make_source_dir)/generated . $(melt_source_dir) 
-vpath %.h $(melt_make_source_dir)/generated . $(melt_source_dir)
 
 
 
