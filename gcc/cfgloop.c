@@ -1294,6 +1294,7 @@ cancel_loop (struct loop *loop)
   for (i = 0; i < loop->num_nodes; i++)
     bbs[i]->loop_father = outer;
 
+  free (bbs);
   delete_loop (loop);
 }
 

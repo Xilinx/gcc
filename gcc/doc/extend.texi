@@ -1,5 +1,5 @@
 @c Copyright (C) 1988, 1989, 1992, 1993, 1994, 1996, 1998, 1999, 2000, 2001,
-@c 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+@c 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
 @c Free Software Foundation, Inc.
 
 @c This is part of the GCC manual.
@@ -5298,8 +5298,8 @@ GCC implements three different semantics of declaring a function
 inline.  One is available with @option{-std=gnu89} or
 @option{-fgnu89-inline} or when @code{gnu_inline} attribute is present
 on all inline declarations, another when
-@option{-std=c99}, @option{-std=c1x},
-@option{-std=gnu99} or @option{-std=gnu1x}
+@option{-std=c99}, @option{-std=c11},
+@option{-std=gnu99} or @option{-std=gnu11}
 (without @option{-fgnu89-inline}), and the third
 is used when compiling C++.
 
@@ -6313,7 +6313,7 @@ a general-purpose header file that should be usable by all programs,
 including ISO C programs.  The keywords @code{asm}, @code{typeof} and
 @code{inline} are not available in programs compiled with
 @option{-ansi} or @option{-std} (although @code{inline} can be used in a
-program compiled with @option{-std=c99} or @option{-std=c1x}).  The
+program compiled with @option{-std=c99} or @option{-std=c11}).  The
 ISO C99 keyword
 @code{restrict} is only available when @option{-std=gnu99} (which will
 eventually be the default) or @option{-std=c99} (or the equivalent
@@ -7623,7 +7623,7 @@ be emitted.
 @opindex ansi
 @opindex std
 Outside strict ISO C mode (@option{-ansi}, @option{-std=c90},
-@option{-std=c99} or @option{-std=c1x}), the functions
+@option{-std=c99} or @option{-std=c11}), the functions
 @code{_exit}, @code{alloca}, @code{bcmp}, @code{bzero},
 @code{dcgettext}, @code{dgettext}, @code{dremf}, @code{dreml},
 @code{drem}, @code{exp10f}, @code{exp10l}, @code{exp10}, @code{ffsll},
@@ -7843,7 +7843,7 @@ future revisions.
 @deftypefn {Built-in Function} @var{type} __builtin_complex (@var{real}, @var{imag})
 
 The built-in function @code{__builtin_complex} is provided for use in
-implementing the ISO C1X macros @code{CMPLXF}, @code{CMPLX} and
+implementing the ISO C11 macros @code{CMPLXF}, @code{CMPLX} and
 @code{CMPLXL}.  @var{real} and @var{imag} must have the same type, a
 real binary floating-point type, and the result has the corresponding
 complex type with real and imaginary parts @var{real} and @var{imag}.
@@ -7932,7 +7932,7 @@ expressions for @var{exp}, you should use constructions such as
 
 @smallexample
 if (__builtin_expect (ptr != NULL, 1))
-  error ();
+  foo (*ptr);
 @end smallexample
 
 @noindent
@@ -10537,6 +10537,7 @@ i32 __builtin_mips_rddsp (imm0_63)
 i32 __builtin_mips_lbux (void *, i32)
 i32 __builtin_mips_lhx (void *, i32)
 i32 __builtin_mips_lwx (void *, i32)
+a64 __builtin_mips_ldx (void *, i32) [MIPS64 only]
 i32 __builtin_mips_bposge32 (void)
 a64 __builtin_mips_madd (a64, i32, i32);
 a64 __builtin_mips_maddu (a64, ui32, ui32);
@@ -14123,7 +14124,7 @@ versions earlier than 4.4.
 @cindex @code{struct}
 @cindex @code{union}
 
-As permitted by ISO C1X and for compatibility with other compilers,
+As permitted by ISO C11 and for compatibility with other compilers,
 GCC allows you to define
 a structure or union that contains, as fields, structures and unions
 without names.  For example:

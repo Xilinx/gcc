@@ -354,7 +354,7 @@ func (p *printer) isOneLineFieldList(list []*ast.Field) bool {
 }
 
 func (p *printer) setLineComment(text string) {
-	p.setComment(&ast.CommentGroup{[]*ast.Comment{&ast.Comment{token.NoPos, text}}})
+	p.setComment(&ast.CommentGroup{[]*ast.Comment{{token.NoPos, text}}})
 }
 
 func (p *printer) fieldList(fields *ast.FieldList, isStruct, isIncomplete bool) {
@@ -1377,7 +1377,7 @@ func (p *printer) nodeSize(n ast.Node, maxSize int) (size int) {
 	// in RawFormat
 	cfg := Config{Mode: RawFormat}
 	var buf bytes.Buffer
-	if _, err := cfg.fprint(&buf, p.fset, n, p.nodeSizes); err != nil {
+	if err := cfg.fprint(&buf, p.fset, n, p.nodeSizes); err != nil {
 		return
 	}
 	if buf.Len() <= maxSize {

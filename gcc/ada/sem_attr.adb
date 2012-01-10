@@ -52,6 +52,7 @@ with Sem_Cat;  use Sem_Cat;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch10; use Sem_Ch10;
+with Sem_Dim;  use Sem_Dim;
 with Sem_Dist; use Sem_Dist;
 with Sem_Elim; use Sem_Elim;
 with Sem_Eval; use Sem_Eval;
@@ -5618,40 +5619,6 @@ package body Sem_Attr is
    --  Start of processing for Eval_Attribute
 
    begin
-      --  No folding in spec expression that comes from source where the prefix
-      --  is an unfrozen entity. This avoids premature folding in cases like:
-
-      --    procedure DefExprAnal is
-      --       type R is new Integer;
-      --       procedure P (Arg : Integer := R'Size);
-      --       for R'Size use 64;
-      --       procedure P (Arg : Integer := R'Size) is
-      --       begin
-      --          Put_Line (Arg'Img);
-      --       end P;
-      --    begin
-      --       P;
-      --    end;
-
-      --  which should print 64 rather than 32. The exclusion of non-source
-      --  constructs from this test comes from some internal usage in packed
-      --  arrays, which otherwise fails, could use more analysis perhaps???
-
-      --  We do however go ahead with generic actual types, otherwise we get
-      --  some regressions, probably these types should be frozen anyway???
-
-      if In_Spec_Expression
-        and then Comes_From_Source (N)
-        and then not (Is_Entity_Name (P)
-                       and then
-                        (Is_Frozen (Entity (P))
-                          or else (Is_Type (Entity (P))
-                                    and then
-                                      Is_Generic_Actual_Type (Entity (P)))))
-      then
-         return;
-      end if;
-
       --  Acquire first two expressions (at the moment, no attributes take more
       --  than two expressions in any case).
 
@@ -9199,6 +9166,7 @@ package body Sem_Attr is
 
       --  Finally perform static evaluation on the attribute reference
 
+      Analyze_Dimension (N);
       Eval_Attribute (N);
    end Resolve_Attribute;
 

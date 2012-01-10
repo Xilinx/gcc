@@ -971,11 +971,12 @@ package body Exp_Attr is
                                      (Etype (Prefix (Ref_Object))));
                   begin
                      --  No implicit conversion required if designated types
-                     --  match.
+                     --  match, or if we have an unrestricted access.
 
                      if Obj_DDT /= Btyp_DDT
+                       and then Id /= Attribute_Unrestricted_Access
                        and then not (Is_Class_Wide_Type (Obj_DDT)
-                                       and then Etype (Obj_DDT) = Btyp_DDT)
+                                      and then Etype (Obj_DDT) = Btyp_DDT)
                      then
                         Rewrite (N,
                           Convert_To (Typ,
@@ -1119,28 +1120,26 @@ package body Exp_Attr is
          --  operation _Alignment applied to X.
 
          elsif Is_Class_Wide_Type (Ptyp) then
+            New_Node :=
+              Make_Attribute_Reference (Loc,
+                Prefix         => Pref,
+                Attribute_Name => Name_Tag);
 
-            --  No need to do anything else compiling under restriction
-            --  No_Dispatching_Calls. During the semantic analysis we
-            --  already notified such violation.
-
-            if Restriction_Active (No_Dispatching_Calls) then
-               return;
+            if VM_Target = No_VM then
+               New_Node := Build_Get_Alignment (Loc, New_Node);
+            else
+               New_Node :=
+                 Make_Function_Call (Loc,
+                   Name => New_Reference_To (RTE (RE_Get_Alignment), Loc),
+                   Parameter_Associations => New_List (New_Node));
             end if;
 
-            New_Node :=
-              Make_Function_Call (Loc,
-                Name => New_Reference_To
-                  (Find_Prim_Op (Ptyp, Name_uAlignment), Loc),
-                Parameter_Associations => New_List (Pref));
+            --  Case where the context is a specific integer type with which
+            --  the original attribute was compatible. The function has a
+            --  specific type as well, so to preserve the compatibility we
+            --  must convert explicitly.
 
             if Typ /= Standard_Integer then
-
-               --  The context is a specific integer type with which the
-               --  original attribute was compatible. The function has a
-               --  specific type as well, so to preserve the compatibility
-               --  we must convert explicitly.
-
                New_Node := Convert_To (Typ, New_Node);
             end if;
 

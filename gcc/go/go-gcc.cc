@@ -619,6 +619,13 @@ Gcc_backend::set_placeholder_pointer_type(Btype* placeholder,
     }
   gcc_assert(TREE_CODE(tt) == POINTER_TYPE);
   TREE_TYPE(pt) = TREE_TYPE(tt);
+  if (TYPE_NAME(pt) != NULL_TREE)
+    {
+      // Build the data structure gcc wants to see for a typedef.
+      tree copy = build_variant_type_copy(pt);
+      TYPE_NAME(copy) = NULL_TREE;
+      DECL_ORIGINAL_TYPE(TYPE_NAME(pt)) = copy;
+    }
   return true;
 }
 
@@ -654,6 +661,12 @@ Gcc_backend::set_placeholder_struct_type(
   tree t = placeholder->get_tree();
   gcc_assert(TREE_CODE(t) == RECORD_TYPE && TYPE_FIELDS(t) == NULL_TREE);
   Btype* r = this->fill_in_struct(placeholder, fields);
+
+  // Build the data structure gcc wants to see for a typedef.
+  tree copy = build_distinct_type_copy(t);
+  TYPE_NAME(copy) = NULL_TREE;
+  DECL_ORIGINAL_TYPE(TYPE_NAME(t)) = copy;
+
   return r->get_tree() != error_mark_node;
 }
 
@@ -681,6 +694,12 @@ Gcc_backend::set_placeholder_array_type(Btype* placeholder,
   tree t = placeholder->get_tree();
   gcc_assert(TREE_CODE(t) == ARRAY_TYPE && TREE_TYPE(t) == NULL_TREE);
   Btype* r = this->fill_in_array(placeholder, element_btype, length);
+
+  // Build the data structure gcc wants to see for a typedef.
+  tree copy = build_distinct_type_copy(t);
+  TYPE_NAME(copy) = NULL_TREE;
+  DECL_ORIGINAL_TYPE(TYPE_NAME(t)) = copy;
+
   return r->get_tree() != error_mark_node;
 }
 
@@ -693,12 +712,31 @@ Gcc_backend::named_type(const std::string& name, Btype* btype,
   tree type = btype->get_tree();
   if (type == error_mark_node)
     return this->error_type();
-  type = build_variant_type_copy(type);
+
+  // The middle-end expects a basic type to have a name.  In Go every
+  // basic type will have a name.  The first time we see a basic type,
+  // give it whatever Go name we have at this point.
+  if (TYPE_NAME(type) == NULL_TREE
+      && location.gcc_location() == BUILTINS_LOCATION
+      && (TREE_CODE(type) == INTEGER_TYPE
+	  || TREE_CODE(type) == REAL_TYPE
+	  || TREE_CODE(type) == COMPLEX_TYPE
+	  || TREE_CODE(type) == BOOLEAN_TYPE))
+    {
+      tree decl = build_decl(BUILTINS_LOCATION, TYPE_DECL,
+			     get_identifier_from_string(name),
+			     type);
+      TYPE_NAME(type) = decl;
+      return this->make_type(type);
+    }
+
+  tree copy = build_variant_type_copy(type);
   tree decl = build_decl(location.gcc_location(), TYPE_DECL,
 			 get_identifier_from_string(name),
-			 type);
-  TYPE_NAME(type) = decl;
-  return this->make_type(type);
+			 copy);
+  DECL_ORIGINAL_TYPE(decl) = type;
+  TYPE_NAME(copy) = decl;
+  return this->make_type(copy);
 }
 
 // Return a pointer type used as a marker for a circular type.

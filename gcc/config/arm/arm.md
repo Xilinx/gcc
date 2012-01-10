@@ -151,11 +151,11 @@
   VUNSPEC_WCMP_GT       ; Used by the iwMMXT WCMPGT instructions
   VUNSPEC_EH_RETURN     ; Use to override the return address for exception
                         ; handling.
-  VUNSPEC_SYNC_COMPARE_AND_SWAP    ; Represent an atomic compare swap.
-  VUNSPEC_SYNC_LOCK                ; Represent a sync_lock_test_and_set.
-  VUNSPEC_SYNC_OP                  ; Represent a sync_<op>
-  VUNSPEC_SYNC_NEW_OP              ; Represent a sync_new_<op>
-  VUNSPEC_SYNC_OLD_OP              ; Represent a sync_old_<op>
+  VUNSPEC_ATOMIC_CAS	; Represent an atomic compare swap.
+  VUNSPEC_ATOMIC_XCHG	; Represent an atomic exchange.
+  VUNSPEC_ATOMIC_OP	; Represent an atomic operation.
+  VUNSPEC_LL		; Represent a load-register-exclusive.
+  VUNSPEC_SC		; Represent a store-register-exclusive.
 ])
 
 ;;---------------------------------------------------------------------------
@@ -185,21 +185,9 @@
 (define_attr "fpu" "none,fpa,fpe2,fpe3,maverick,vfp"
   (const (symbol_ref "arm_fpu_attr")))
 
-(define_attr "sync_result"          "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_memory"          "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_required_value"  "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_new_value"       "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_t1"              "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_t2"              "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_release_barrier" "yes,no"           (const_string "yes"))
-(define_attr "sync_op"              "none,add,sub,ior,xor,and,nand"
-                                    (const_string "none"))
-
 ; LENGTH of an instruction (in bytes)
 (define_attr "length" ""
-  (cond [(not (eq_attr "sync_memory" "none"))
- 	   (symbol_ref "arm_sync_loop_insns (insn, operands) * 4")
-	] (const_int 4)))
+  (const_int 4))
 
 ; The architecture which supports the instruction (or alternative).
 ; This can be "a" for ARM, "t" for either of the Thumbs, "32" for
@@ -848,7 +836,8 @@
   "@
    cmn%?\\t%0, %1
    cmp%?\\t%0, #%n1"
-  [(set_attr "conds" "set")]
+  [(set_attr "conds" "set")
+   (set_attr "predicable" "yes")]
 )
 
 (define_insn "*compare_negsi_si"
@@ -858,7 +847,8 @@
 	 (match_operand:SI 1 "s_register_operand" "r")))]
   "TARGET_32BIT"
   "cmn%?\\t%1, %0"
-  [(set_attr "conds" "set")]
+  [(set_attr "conds" "set")
+   (set_attr "predicable" "yes")]
 )
 
 ;; This is the canonicalization of addsi3_compare0_for_combiner when the
@@ -959,7 +949,8 @@
   "@
    cmn%?\\t%0, %1
    cmp%?\\t%0, #%n1"
-  [(set_attr "conds" "set")]
+  [(set_attr "conds" "set")
+   (set_attr "predicable" "yes")]
 )
 
 (define_insn "*compare_addsi2_op1"
@@ -972,7 +963,8 @@
   "@
    cmn%?\\t%0, %1
    cmp%?\\t%0, #%n1"
-  [(set_attr "conds" "set")]
+  [(set_attr "conds" "set")
+   (set_attr "predicable" "yes")]
 )
 
 (define_insn "*addsi3_carryin_<optab>"
@@ -2272,7 +2264,8 @@
   output_asm_insn (\"tst%?\\t%0, %1\", operands);
   return \"\";
   "
-  [(set_attr "conds" "set")]
+  [(set_attr "conds" "set")
+   (set_attr "predicable" "yes")]
 )
 
 (define_insn_and_split "*ne_zeroextractsi"
@@ -3056,13 +3049,25 @@
     }"
 )
 
-(define_insn "*arm_xorsi3"
-  [(set (match_operand:SI         0 "s_register_operand" "=r")
-	(xor:SI (match_operand:SI 1 "s_register_operand" "r")
-		(match_operand:SI 2 "arm_rhs_operand" "rI")))]
+(define_insn_and_split "*arm_xorsi3"
+  [(set (match_operand:SI         0 "s_register_operand" "=r,r")
+	(xor:SI (match_operand:SI 1 "s_register_operand" "%r,r")
+		(match_operand:SI 2 "reg_or_int_operand" "rI,?n")))]
   "TARGET_32BIT"
-  "eor%?\\t%0, %1, %2"
-  [(set_attr "predicable" "yes")]
+  "@
+   eor%?\\t%0, %1, %2
+   #"
+  "TARGET_32BIT
+   && GET_CODE (operands[2]) == CONST_INT
+   && !const_ok_for_arm (INTVAL (operands[2]))"
+  [(clobber (const_int 0))]
+{
+  arm_split_constant (XOR, SImode, curr_insn,
+                      INTVAL (operands[2]), operands[0], operands[1], 0);
+  DONE;
+}
+  [(set_attr "length" "4,16")
+   (set_attr "predicable" "yes")]
 )
 
 (define_insn "*thumb1_xorsi3_insn"
@@ -3413,7 +3418,7 @@
     bool need_else;
 
     if (which_alternative != 0 || operands[3] != const0_rtx
-        || (code != PLUS && code != MINUS && code != IOR && code != XOR))
+        || (code != PLUS && code != IOR && code != XOR))
       need_else = true;
     else
       need_else = false;
@@ -4713,8 +4718,9 @@
 	(compare:CC_Z (match_operand:QI 0 "s_register_operand" "r")
 			 (const_int 0)))]
   "TARGET_32BIT"
-  "tst\\t%0, #255"
-  [(set_attr "conds" "set")]
+  "tst%?\\t%0, #255"
+  [(set_attr "conds" "set")
+   (set_attr "predicable" "yes")]
 )
 
 (define_expand "extendhisi2"
@@ -7470,7 +7476,8 @@
    cmn%?\\t%0, #%n1"
   [(set_attr "conds" "set")
    (set_attr "arch" "t2,t2,any,any")
-   (set_attr "length" "2,2,4,4")]
+   (set_attr "length" "2,2,4,4")
+   (set_attr "predicable" "yes")]
 )
 
 (define_insn "*cmpsi_shiftsi"
@@ -7511,7 +7518,8 @@
   [(set_attr "conds" "set")
    (set (attr "type") (if_then_else (match_operand 3 "const_int_operand" "")
 				    (const_string "alu_shift")
-				    (const_string "alu_shift_reg")))]
+				    (const_string "alu_shift_reg")))
+   (set_attr "predicable" "yes")]
 )
 
 ;; DImode comparisons.  The generic code generates branches that
@@ -7533,8 +7541,8 @@
   [(set (reg:CC_CZ CC_REGNUM)
 	(compare:CC_CZ (match_operand:DI 0 "s_register_operand" "r")
 		       (match_operand:DI 1 "arm_di_operand"	"rDi")))]
-  "TARGET_ARM"
-  "cmp%?\\t%R0, %R1\;cmpeq\\t%Q0, %Q1"
+  "TARGET_32BIT"
+  "cmp\\t%R0, %R1\;it eq\;cmpeq\\t%Q0, %Q1"
   [(set_attr "conds" "set")
    (set_attr "length" "8")]
 )
@@ -7617,7 +7625,7 @@
 		      (pc)))]
   "TARGET_32BIT"
   "operands[1] = arm_gen_compare_reg (GET_CODE (operands[0]),
-				      operands[1], operands[2]);
+				      operands[1], operands[2], NULL_RTX);
    operands[2] = const0_rtx;"
 )
 
@@ -7687,7 +7695,7 @@
 				 (match_operand 3 "" "")]))]
   "TARGET_32BIT"
   "operands[2] = arm_gen_compare_reg (GET_CODE (operands[1]),
-				      operands[2], operands[3]);
+				      operands[2], operands[3], NULL_RTX);
    operands[3] = const0_rtx;"
 )
 
@@ -8015,7 +8023,7 @@
       FAIL;
 
     ccreg = arm_gen_compare_reg (code, XEXP (operands[1], 0),
-				 XEXP (operands[1], 1));
+				 XEXP (operands[1], 1), NULL_RTX);
     operands[1] = gen_rtx_fmt_ee (code, VOIDmode, ccreg, const0_rtx);
   }"
 )
@@ -8041,7 +8049,7 @@
       operands[3] = force_reg (SFmode, operands[3]);
 
     ccreg = arm_gen_compare_reg (code, XEXP (operands[1], 0),
-				 XEXP (operands[1], 1));
+				 XEXP (operands[1], 1), NULL_RTX);
     operands[1] = gen_rtx_fmt_ee (code, VOIDmode, ccreg, const0_rtx);
   }"
 )
@@ -8061,7 +8069,7 @@
       FAIL;
 
     ccreg = arm_gen_compare_reg (code, XEXP (operands[1], 0),
-				 XEXP (operands[1], 1));
+				 XEXP (operands[1], 1), NULL_RTX);
     operands[1] = gen_rtx_fmt_ee (code, VOIDmode, ccreg, const0_rtx);
   }"
 )
