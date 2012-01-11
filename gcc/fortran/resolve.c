@@ -5887,7 +5887,7 @@ resolve_compcall (gfc_expr* e, const char **name)
 /* Resolve a typebound function, or 'method'. First separate all
    the non-CLASS references by calling resolve_compcall directly.  */
 
-gfc_try
+static gfc_try
 resolve_typebound_function (gfc_expr* e)
 {
   gfc_symbol *declared;
@@ -6987,6 +6987,19 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
       gfc_error ("Allocating %s of ABSTRACT base type at %L requires a "
 		 "type-spec or source-expr", sym->name, &e->where);
       goto failure;
+    }
+
+  if (code->ext.alloc.ts.type == BT_CHARACTER && !e->ts.deferred)
+    {
+      int cmp = gfc_dep_compare_expr (e->ts.u.cl->length,
+				      code->ext.alloc.ts.u.cl->length);
+      if (cmp == 1 || cmp == -1 || cmp == -3)
+	{
+	  gfc_error ("Allocating %s at %L with type-spec requires the same "
+		     "character-length parameter as in the declaration",
+		     sym->name, &e->where);
+	  goto failure;
+	}
     }
 
   /* In the variable definition context checks, gfc_expr_attr is used
@@ -9208,8 +9221,9 @@ resolve_ordinary_assign (gfc_code *code, gfc_namespace *ns)
      and coindexed; cf. F2008, 7.2.1.2 and PR 43366.  */
   if (lhs->ts.type == BT_CLASS)
     {
-      gfc_error ("Variable must not be polymorphic in assignment at %L",
-		 &lhs->where);
+      gfc_error ("Variable must not be polymorphic in intrinsic assignment at "
+		 "%L - check that there is a matching specific subroutine "
+		 "for '=' operator", &lhs->where);
       return false;
     }
 
