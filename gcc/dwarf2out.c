@@ -3533,8 +3533,12 @@ static void gen_scheduled_generic_parms_dies (void);
 #ifndef DEBUG_PUBTYPES_SECTION
 #define DEBUG_PUBTYPES_SECTION	".debug_pubtypes"
 #endif
+#define DEBUG_NORM_STR_OFFSETS_SECTION ".debug_str_offsets"
+#define DEBUG_DWO_STR_OFFSETS_SECTION ".debug_str_offsets.dwo"
 #ifndef DEBUG_STR_OFFSETS_SECTION
-#define DEBUG_STR_OFFSETS_SECTION ".debug_str_offsets"
+#define DEBUG_STR_OFFSETS_SECTION                                       \
+  (!dwarf_split_debug_info                                              \
+   ? (DEBUG_NORM_STR_OFFSETS_SECTION) : (DEBUG_DWO_STR_OFFSETS_SECTION))
 #endif
 #define DEBUG_DWO_STR_SECTION   ".debug_str.dwo"
 #define DEBUG_NORM_STR_SECTION  ".debug_str"
