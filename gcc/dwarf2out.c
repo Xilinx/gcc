@@ -3536,8 +3536,11 @@ static void gen_scheduled_generic_parms_dies (void);
 #ifndef DEBUG_STR_OFFSETS_SECTION
 #define DEBUG_STR_OFFSETS_SECTION ".debug_str_offsets"
 #endif
+#define DEBUG_DWO_STR_SECTION   ".debug_str.dwo"
+#define DEBUG_NORM_STR_SECTION  ".debug_str"
 #ifndef DEBUG_STR_SECTION
-#define DEBUG_STR_SECTION   ".debug_str"
+#define DEBUG_STR_SECTION                               \
+  (!dwarf_split_debug_info ? (DEBUG_NORM_STR_SECTION) : (DEBUG_DWO_STR_SECTION))
 #endif
 #ifndef DEBUG_RANGES_SECTION
 #define DEBUG_RANGES_SECTION	".debug_ranges"
@@ -3550,8 +3553,8 @@ static void gen_scheduled_generic_parms_dies (void);
 
 /* Section flags for .debug_str section.  */
 #define DEBUG_STR_SECTION_FLAGS \
-  (HAVE_GAS_SHF_MERGE && flag_merge_debug_strings && !dwarf_split_debug_info \
-   ? SECTION_DEBUG | SECTION_MERGE | SECTION_STRINGS | 1                \
+  (HAVE_GAS_SHF_MERGE && flag_merge_debug_strings               \
+   ? SECTION_DEBUG | SECTION_MERGE | SECTION_STRINGS | 1        \
    : SECTION_DEBUG)
 
 /* Labels we insert at beginning sections we can reference instead of
@@ -7705,7 +7708,7 @@ size_of_die (dw_die_ref die)
   unsigned long size = 0;
   dw_attr_ref a;
   unsigned ix;
-  dwarf_form form;
+  enum dwarf_form form;
 
   size += size_of_uleb128 (die->die_abbrev);
   FOR_EACH_VEC_ELT (dw_attr_node, die->die_attr, ix, a)
@@ -8652,46 +8655,15 @@ output_comp_unit (dw_die_ref die, int output_if_empty)
     }
 }
 
-/* Report if the pubtypes_section is either empty or will be pruned to
-   empty.  */
-
-static bool
-pubtypes_section_empty (void)
-{
-  if (!VEC_empty (pubname_entry, pubtype_table))
-    {
-      if (flag_eliminate_unused_debug_types)
-	{
-	  /* The pubtypes table might be emptied by pruning unused items.  */
-	  unsigned i;
-	  pubname_ref p;
-	  FOR_EACH_VEC_ELT (pubname_entry, pubtype_table, i, p)
-	    if (p->die->die_offset != 0)
-              return false;
-	}
-      return true;
-    }
-  return false;
-}
-
 /* Add the DW_AT_GNU_pubnames and DW_AT_GNU_pubtypes attributes.  */
 
 static void
 add_AT_pubnames (dw_die_ref die)
 {
-  /* Add the DW_AT_GNU_pubnames and DW_AT_GNU_pubtypes attributes.  */
-  if (!VEC_empty (pubname_entry, pubname_table))
-    {
-      /* FIXME: Should use add_AT_pubnamesptr.  This works because
-         most targets don't care what the base section is.  */
-      add_AT_lineptr (die, DW_AT_GNU_pubnames, debug_pubnames_section_label);
-    }
-  if (!pubtypes_section_empty ())
-    {
-      /* FIXME: Should use add_AT_pubtypesptr.  This works because
-         most targets don't care what the base section is.  */
-      add_AT_lineptr (die, DW_AT_GNU_pubtypes, debug_pubtypes_section_label);
-    }
+  /* FIXME: Should use add_AT_pubnamesptr.  This works because most targets
+     don't care what the base section is.  */
+  add_AT_lineptr (die, DW_AT_GNU_pubnames, debug_pubnames_section_label);
+  add_AT_lineptr (die, DW_AT_GNU_pubtypes, debug_pubtypes_section_label);
 }
 
 /* Helper function to generate top-level dies for skeleton debug_info and
@@ -8989,10 +8961,18 @@ output_pubnames (VEC (pubname_entry, gc) * names)
   unsigned long pubnames_length = size_of_pubnames (names);
   pubname_ref pub;
 
+  if (!targetm.want_debug_pub_sections || !info_section_emitted)
+    return;
   if (names == pubname_table)
-    ASM_OUTPUT_LABEL (asm_out_file, debug_pubnames_section_label);
+    {
+      switch_to_section (debug_pubnames_section);
+      ASM_OUTPUT_LABEL (asm_out_file, debug_pubnames_section_label);
+    }
   else
-    ASM_OUTPUT_LABEL (asm_out_file, debug_pubtypes_section_label);
+    {
+      switch_to_section (debug_pubtypes_section);
+      ASM_OUTPUT_LABEL (asm_out_file, debug_pubtypes_section_label);
+    }
   if (DWARF_INITIAL_LENGTH_SIZE - DWARF_OFFSET_SIZE == 4)
     dw2_asm_output_data (4, 0xffffffff,
       "Initial length escape value indicating 64-bit DWARF extension");
@@ -21427,6 +21407,7 @@ static void
 output_index_strings (void)
 {
   unsigned int i;
+  unsigned int len = 0;
   struct indirect_string_node *node;
 
   if (VEC_empty (indirect_string_node, index_string_table))
@@ -21438,9 +21419,9 @@ output_index_strings (void)
     {
       gcc_assert (node->form == DW_FORM_GNU_str_index);
       gcc_assert (i == node->index);
-      dw2_asm_output_offset (DWARF_OFFSET_SIZE, node->label,
-                             debug_str_offsets_section,
-                             "indexed string %d: %s", node->index, node->str);
+      dw2_asm_output_data (DWARF_OFFSET_SIZE, len,
+                           "indexed string %d: %s", node->index, node->str);
+      len += strlen (node->str) + 1;
     }
   switch_to_section (debug_str_section);
   for (i = 0; VEC_iterate (indirect_string_node, index_string_table, i, node);
@@ -23042,22 +23023,12 @@ dwarf2out_finish (const char *filename)
       output_location_lists (comp_unit_die ());
     }
 
-  /* Output public names table if necessary.  */
-  if (!VEC_empty (pubname_entry, pubname_table) && info_section_emitted)
-    {
-      switch_to_section (debug_pubnames_section);
-      output_pubnames (pubname_table);
-    }
-
-  /* Output public types table if necessary.  */
+  /* Output public names and types tables if necessary.  */
+  output_pubnames (pubname_table);
   /* ??? Only defined by DWARF3, but emitted by Darwin for DWARF2.
      It shouldn't hurt to emit it always, since pure DWARF2 consumers
      simply won't look for the section.  */
-  if (!pubtypes_section_empty () && info_section_emitted)
-    {
-      switch_to_section (debug_pubtypes_section);
-      output_pubnames (pubtype_table);
-    }
+  output_pubnames (pubtype_table);
 
   /* Output the address range information if a CU (.debug_info section)
      was emitted.  We output an empty table even if we had no functions
