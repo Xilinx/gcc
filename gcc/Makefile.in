@@ -5376,7 +5376,10 @@ melt_module_dir=$(libexecsubdir)/melt-modules
 melt_installed_module_makefile=$(libexecsubdir)/melt-module.mk
 
 ## leave melt_is_plugin as empty 
-melt_is_plugin=
+melt_is_plugin =
+
+## leave melt_xtra_cflags
+melt_xtra_cflags = -O1
 
 MELT_STAGE_ZERO?=melt-stage0-dynamic
 AUTOGEN= autogen

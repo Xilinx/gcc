@@ -1,4 +1,12 @@
 
+2012-01-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Unstable build machinery... work in progress}}
+	* Makefile.in (melt_xtra_cflags): Non empty.
+	* melt-module.mk: Add debugging echo.
+	* melt-build.tpl: Partially improved, but very probably
+	non-optimal.
+	* melt-build.mk: Regenerate.
+
 2012-01-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-module.mk (melt_module): Add intermediate dependency to
 	symlink it forcibly.
