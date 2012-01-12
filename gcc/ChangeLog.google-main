@@ -1,3 +1,8 @@
+2012-01-12   Rong Xu  <xur@google.com>
+
+	* gcc/profile.c (compute_value_histograms): ignore the 
+	        histrogram when the counters not found in gcda file.
+
 2011-12-21   Rong Xu  <xur@google.com>
 
 	* gcc/profile.c (compute_value_histograms): handle the 

@@ -790,10 +790,14 @@ compute_value_histograms (histogram_values values, unsigned cfg_checksum,
   gcov_type *histogram_counts[GCOV_N_VALUE_COUNTERS];
   gcov_type *act_count[GCOV_N_VALUE_COUNTERS];
   gcov_type *aact_count;
-  bool warned = false;
+  bool warned[GCOV_N_VALUE_COUNTERS];
+  static const char *const ctr_names[] = GCOV_COUNTER_NAMES;
 
   for (t = 0; t < GCOV_N_VALUE_COUNTERS; t++)
-    n_histogram_counters[t] = 0;
+    {
+      n_histogram_counters[t] = 0;
+      warned[t] = 0;
+    }
 
   for (i = 0; i < VEC_length (histogram_value, values); i++)
     {
@@ -829,18 +833,17 @@ compute_value_histograms (histogram_values values, unsigned cfg_checksum,
       t = (int) hist->type;
 
       aact_count = act_count[t];
+      /* If the counter cannot be found in gcda file, skip this 
+         histogram and give a warning.  */
       if (aact_count == 0)
         {
-          /* this can only happen when FDO uses LIPO profiles where
-             we have HIST_TYPE_INDIR_CALL_TOPN counters in gcda
-             files.  */
-          gcc_assert (hist->type == HIST_TYPE_INDIR_CALL);
-          if (!warned && flag_opt_info >= OPT_INFO_MIN)
-            warning (0, "cannot find INDIR_CALL counters in func %s.",
+          if (!warned[t] && flag_opt_info >= OPT_INFO_MIN)
+            warning (0, "cannot find %s counters in function %s.",
+                     ctr_names[COUNTER_FOR_HIST_TYPE(t)],
                      IDENTIFIER_POINTER (
                        DECL_ASSEMBLER_NAME (current_function_decl)));
           hist->n_counters = 0;
-          warned = true;
+          warned[t] = true;
           continue;
         }
       act_count[t] += hist->n_counters;
