@@ -21,3 +21,8 @@ dg-init
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/*.cc]] " -w -lcilkrts -ldl -I  $srcdir/../../libcilkrts/include " " "
 
 dg-finish
+
+dg-init
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/array_notation_tests/*.cc]] " -O3 -ftree-vectorize" " "
+
+dg-finish

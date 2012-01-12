@@ -6022,7 +6022,10 @@ extern void cilk_address_modified_variables    (tree);
 extern void mark_receiver_addressable          (tree, tree);
 
 extern void gimplify_cilk_spawn                (tree *, gimple_seq *,
-						 gimple_seq *);
+						gimple_seq *);
+/* In cp/cp-array-notations.c */
+extern tree build_x_array_notation_expr        (tree, enum tree_code, tree,
+						tsubst_flags_t);
 /* -- end of C++ */
 
 #endif /* ! GCC_CP_TREE_H */
