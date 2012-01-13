@@ -1,7 +1,7 @@
 /* This file is part of the Intel(R) Cilk(TM) Plus support
-   This file contains routines to handle PRAGMA SIMD assignments by the
-   vectorizer.
-   Copyright (C) 2011  Free Software Foundation, Inc.
+   This file contains routines to handle PRAGMA SIMD 
+   assignments by the vectorizer.
+   Copyright (C) 2011, 2012  Free Software Foundation, Inc.
    Contributed by Balaji V. Iyer <balaji.v.iyer@intel.com>,
 		  Intel Corporation
 
