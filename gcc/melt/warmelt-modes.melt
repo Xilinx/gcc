@@ -1,7 +1,7 @@
 ;; file warmelt-modes.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright (C) 2011 Free Software Foundation, Inc.
+    Copyright (C) 2011, 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -3426,7 +3426,7 @@ melt_scanning (melt_ptr_t p)
 
 ;;;;;;;;;;;;;;;;
 
-;; utility function to transate something to various flavors of modules
+;; utility function to translate something to various flavors of modules
 (defun translate_to_flavored_module (inarg outarg carg flavors curenv)
   (debug "translate_to_flavored_module inarg=" inarg 
 	 " outarg=" outarg " carg=" carg " flavors=" flavors " curenv=" curenv)
@@ -3599,7 +3599,10 @@ ASSERT_MSG) is enabled"
 		    ( (is_string outarg) 
 		      (make_string_without_suffix discr_string outarg ".c")
 		      )
-		    ( (is_string inarg) 
+		    ( (is_string inarg)
+		      (if (not (string_suffixed inarg ".melt"))
+			  (warningmsg_strv "MELT translated input file without .melt suffix" 
+					   inarg))
 		      (make_string_nakedbasename discr_string inarg))
 		    (:else
 		     (errormsg_plain "invalid translatefile mode")
@@ -3635,14 +3638,20 @@ ASSERT_MSG) is enabled"
   (let ( (rlist (make_list discr_list))
 	 (:cstring progarg (melt_argument "arg"))
 	 (:cstring progarglist (melt_argument "arglist"))
-	 (inarg (cond ( progarg 
-			(make_stringconst discr_string progarg))
-		      ( progarglist
-			 (split_string_comma discr_string (make_stringconst discr_string progarglist))
-			)
-		      (:else
-		       (errormsg_plain "invalid arg or arglist to translateinit mode")
-		       (return))))
+	 (inarg
+	  (cond ( progarg 
+		  (let ( (progargstr (make_stringconst discr_string progarg))
+			 )
+		    (if (not (string_suffixed progargstr ".melt"))
+			(warningmsg_strv "MELT translated initial file without .melt suffix" 
+					 progargstr))
+		    progargstr))
+		( progarglist
+		  (split_string_comma discr_string (make_stringconst discr_string progarglist))
+		  )
+		(:else
+		 (errormsg_plain "invalid arg or arglist to translateinit mode")
+		 (return))))
 	 (outarg (make_stringconst discr_string (melt_argument "output")))
 	 (basnam (cond
 		  ( (is_string outarg) outarg)
@@ -3658,7 +3667,7 @@ ASSERT_MSG) is enabled"
 	    (string_suffixed basnam ".c"))
 	(progn 
 	  (errormsg_strv "tranlateinit mode needs a base name without suffix" 
-		       basnam)
+			 basnam)
 	  (return)
 	  ))
     (cond 

@@ -1,4 +1,11 @@
 
+2012-01-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Unoptimal build machinery... work in progress}}
+	* melt/warmelt-modes.melt: Issue a warning when translating a file
+	not named *.melt.
+	* melt-build.tpl: Improve. Use directory stamp files *-directory.stamp.
+	* melt-build.mk: Regenerate.
+
 2012-01-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Unstable build machinery... work in progress}}
 	* Makefile.in (melt_xtra_cflags): Non empty.
