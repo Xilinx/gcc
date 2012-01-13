@@ -1,3 +1,27 @@
+2012-01-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-array-notation.c (fix_conditional_array_notations): New function.
+	(fix_conditional_array_notations_1): Likewise.
+	* parser.c (cp_parser_compound_statement): Added a call to
+	fix_conditional_array_notations.
+	* cp-tree.h: Added a prototype for fix_conditional_array_notations.
+
+2012-01-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* Make-lang.in: Added cp-array-notation.c file information.
+	* cp-array-notation.c (replace_array_notations): New function.
+	(find_rank): Likewise.
+	(extract_array_notation_exprs): Likewise.
+	(build_x_array_notation_exprs): Likewise.
+	* parser.c (cp_parser_array_notation): Likewise.
+	(cp_parser_nested_name_specifier_opt): Added a check to see if
+	cilkplus is enabled.
+	(cp_parser_postfix_open_square_expression): Added a check for CPP_COLON
+	to handle array notation.
+	(cp_parser_assignment_expression): Added a check for ARRAY_NOTATION_REF
+	and if so, then call build_x_array_notation_expr function.
+	* cp-tree.h: Added prototype for build_x_array_notation_expr.
+
 2011-11-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (for_local_cb): Changed a const tree cast to (tree *).

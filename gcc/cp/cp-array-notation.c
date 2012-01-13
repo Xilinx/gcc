@@ -47,6 +47,7 @@
 
 void replace_array_notations (tree *, tree *, tree *, int);
 void find_rank (tree array, int *rank);
+static tree fix_conditional_array_notations_1 (tree stmt);
 
 /* This function is to find the rank of an array notation expression.
  * For example, an array notation of A[:][:] has a rank of 2.
@@ -622,4 +623,494 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
     }
    
   return loop;
+}
+
+static tree
+fix_conditional_array_notations_1 (tree stmt)
+{
+  tree *array_list = NULL;
+  int list_size = 0;
+  tree cond = NULL;
+  int rank = 0, ii = 0, jj = 0;
+  tree **array_ops, *array_var, *array_operand, jj_tree, loop;
+  tree **array_value, **array_stride, **array_length, **array_start;
+  tree *body_label, *body_label_expr, *exit_label, *exit_label_expr;
+  tree *compare_expr, *if_stmt_label, *expr_incr, *ind_init;
+  bool **count_down, **array_vector;
+
+  if (TREE_CODE (stmt) == COND_EXPR)
+    cond = COND_EXPR_COND (stmt);
+  else if (TREE_CODE (stmt) == IF_STMT)
+    cond = IF_COND (stmt);
+  else if (TREE_CODE (stmt) == SWITCH_STMT)
+    cond = SWITCH_STMT_COND (stmt);
+  else if (TREE_CODE (stmt) == SWITCH_EXPR)
+    cond = SWITCH_COND (stmt);
+  else if (TREE_CODE (stmt) == WHILE_STMT)
+    cond = WHILE_COND (stmt);
+  else if (TREE_CODE (stmt) == FOR_STMT || TREE_CODE (stmt) == CILK_FOR_STMT)
+    cond = FOR_COND (stmt);
+  else if (TREE_CODE (stmt) == DO_STMT)
+    cond = DO_COND (stmt);
+  else
+    /* otherwise don't even touch the statement */
+    return stmt;
+
+  find_rank (cond, &rank);
+  if (rank == 0)
+    return stmt;  
+  
+  extract_array_notation_exprs (cond, &array_list, &list_size);
+
+  if (*array_list == NULL_TREE || list_size == 0)
+    return stmt;
+
+  array_ops = (tree **) xmalloc (sizeof (tree *) * list_size);
+  for (ii = 0; ii < list_size; ii++)
+    array_ops[ii] = (tree *) xmalloc (sizeof (tree) * rank);
+  
+  array_vector = (bool **) xmalloc (sizeof (bool *) * list_size);
+  for (ii = 0; ii < list_size; ii++)
+    array_vector[ii] = (bool *) xmalloc (sizeof (bool) * rank);
+
+  array_value = (tree **) xmalloc (sizeof (tree *) * list_size);
+  array_stride = (tree **) xmalloc (sizeof (tree *) * list_size);
+  array_length = (tree **) xmalloc (sizeof (tree *) * list_size);
+  array_start = (tree **) xmalloc (sizeof (tree *) * list_size);
+
+  for (ii = 0; ii < list_size; ii++)
+    {
+      array_value[ii]  = (tree *) xmalloc (sizeof (tree) * rank);
+      array_stride[ii] = (tree *) xmalloc (sizeof (tree) * rank);
+      array_length[ii] = (tree *) xmalloc (sizeof (tree) * rank);
+      array_start[ii]  = (tree *) xmalloc (sizeof (tree) * rank);
+    }
+
+  body_label = (tree *) xmalloc(sizeof (tree) * rank);
+  body_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
+  exit_label = (tree *) xmalloc (sizeof (tree) * rank);
+  exit_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
+  compare_expr = (tree *) xmalloc (sizeof (tree) * rank);
+  if_stmt_label = (tree *) xmalloc (sizeof (tree) * rank);
+  
+  expr_incr = (tree *) xmalloc (sizeof (tree) * rank);
+  ind_init = (tree *) xmalloc (sizeof (tree) * rank);
+  
+  count_down = (bool **) xmalloc (sizeof (bool *) * list_size);
+  for (ii = 0; ii < list_size; ii++)
+    count_down[ii] = (bool *) xmalloc (sizeof (bool) * rank);
+
+  array_operand = (tree *) xmalloc (sizeof (tree) * list_size);
+  
+  array_var = (tree *) xmalloc (sizeof (tree) * rank);
+  
+
+  for (ii = 0; ii < list_size; ii++)
+    {
+      jj = 0;
+      for (jj_tree = array_list[ii];
+	   jj_tree && TREE_CODE (jj_tree) == ARRAY_NOTATION_REF;
+	   jj_tree = ARRAY_NOTATION_ARRAY (jj_tree))
+	{
+	  array_ops[ii][jj] = jj_tree;
+	  jj++;
+	}
+    }
+
+  for (ii = 0; ii < list_size; ii++)
+    {
+      if (TREE_CODE (array_list[ii]) == ARRAY_NOTATION_REF)
+	{
+	  for (jj = 0; jj < rank; jj++)
+	    {
+	      if (TREE_CODE (array_ops[ii][jj]) == ARRAY_NOTATION_REF)
+		{
+		  array_value[ii][jj] =
+		    ARRAY_NOTATION_ARRAY (array_ops[ii][jj]);
+		  array_start[ii][jj] =
+		    ARRAY_NOTATION_START (array_ops[ii][jj]);
+		  array_length[ii][jj] =
+		    ARRAY_NOTATION_LENGTH (array_ops[ii][jj]);
+		  array_stride[ii][jj] =
+		    ARRAY_NOTATION_STRIDE (array_ops[ii][jj]);
+		  array_vector[ii][jj] = true;
+
+		  if (!TREE_CONSTANT (array_length[ii][jj]))
+		      count_down[ii][jj] = false;
+		  else if (tree_int_cst_lt
+			   (array_length[ii][jj],
+			    build_int_cst (TREE_TYPE (array_length[ii][jj]),
+					   0)))
+		    count_down[ii][jj] = true;
+		  else
+		    count_down[ii][jj] = false;
+		}
+	      else
+		array_vector[ii][jj] = false;
+	    }
+	}
+    }
+
+  loop = alloc_stmt_list();
+
+  for (ii = 0; ii < rank; ii++)
+    {
+  
+      array_var[ii] = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
+				  integer_type_node);
+      ind_init[ii] =
+	build_modify_expr (UNKNOWN_LOCATION, array_var[ii],
+			   TREE_TYPE (array_var[ii]), NOP_EXPR,
+			   UNKNOWN_LOCATION,
+			   build_int_cst (TREE_TYPE (array_var[ii]), 0),
+			   TREE_TYPE (array_var[ii]));
+	
+    }
+
+  for (ii = 0; ii < rank ; ii++)
+    {
+      /* this will create the if statement label */
+      if_stmt_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
+				      void_type_node);
+      DECL_CONTEXT (if_stmt_label[ii]) = current_function_decl;
+      DECL_ARTIFICIAL (if_stmt_label[ii]) = 0;
+      DECL_IGNORED_P (if_stmt_label[ii]) = 1;
+  
+      /* this label statment will point to the loop body */
+      body_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
+				   void_type_node);
+      DECL_CONTEXT (body_label[ii]) = current_function_decl;
+      DECL_ARTIFICIAL (body_label[ii]) = 0;
+      DECL_IGNORED_P (body_label[ii]) = 1;
+      body_label_expr[ii] = build1 (LABEL_EXPR, void_type_node, body_label[ii]);
+
+      /* this will create the exit label..i.e. where the while loop will branch
+	 out of
+      */
+      exit_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
+				   void_type_node);
+      DECL_CONTEXT (exit_label[ii]) = current_function_decl;
+      DECL_ARTIFICIAL (exit_label[ii]) = 0;
+      DECL_IGNORED_P (exit_label[ii]) = 1;
+      exit_label_expr[ii] = build1 (LABEL_EXPR, void_type_node, exit_label[ii]);
+    }
+
+  for (ii = 0; ii < list_size; ii++)
+    {
+      if (array_vector[ii][0])
+	{
+	  array_operand[ii] = array_value[ii][rank - 1];
+	  gcc_assert (array_operand[ii]);
+
+	  for (jj = rank - 1; jj >= 0; jj--)
+	    {
+	      if (count_down[ii][jj])
+		{
+		  /* Array[start_index - (induction_var * stride)] */
+		  array_operand[ii] = build_array_ref
+		    (UNKNOWN_LOCATION, array_operand[ii],
+		     build2 (MINUS_EXPR, TREE_TYPE (array_var[jj]),
+			     array_start[ii][jj],
+			     build2 (MULT_EXPR, TREE_TYPE (array_var[jj]),
+				     array_var[jj], array_stride[ii][jj])));
+		}
+	      else
+		{
+		  /* Array[start_index + (induction_var * stride)] */
+		  array_operand[ii] = build_array_ref
+		    (UNKNOWN_LOCATION, array_operand[ii],
+		     build2 (PLUS_EXPR, TREE_TYPE (array_var[jj]),
+			     array_start[ii][jj],
+			     build2 (MULT_EXPR, TREE_TYPE (array_var[jj]),
+				     array_var[jj], array_stride[ii][jj])));
+		}
+	    }
+	}
+    }
+  replace_array_notations (&stmt, array_list, array_operand, list_size);
+
+  for (ii = 0; ii < rank; ii++)
+    {
+      expr_incr[ii] =
+	build2 (MODIFY_EXPR, void_type_node, array_var[ii],
+		build2 (PLUS_EXPR, TREE_TYPE (array_var[ii]), array_var[ii],
+			build_int_cst (TREE_TYPE (array_var[ii]), 1)));
+    }
+  
+  for (jj = 0; jj < rank; jj++)
+    {
+      if (rank && expr_incr[jj])
+	{
+	  if (count_down[0][jj])
+	    compare_expr[jj] =
+	      build2 (LT_EXPR, boolean_type_node, array_var[jj],
+		      build2 (MULT_EXPR, TREE_TYPE (array_var[jj]),
+			      array_length[0][jj],
+			      build_int_cst (TREE_TYPE (array_var[jj]), -1)));
+	  else
+	    compare_expr[jj] = build2 (LT_EXPR, boolean_type_node,
+				       array_var[jj], array_length[0][jj]);
+	}
+    }
+  
+  for (ii = 0; ii < rank; ii++)
+    {
+      append_to_statement_list (ind_init [ii], &loop);
+
+      append_to_statement_list
+	(build1 (LABEL_EXPR, void_type_node, if_stmt_label[ii]), &loop);
+      append_to_statement_list
+	(build3 (COND_EXPR, void_type_node, compare_expr[ii],
+		 build1 (GOTO_EXPR, void_type_node, body_label[ii]),
+		 build1 (GOTO_EXPR, void_type_node, exit_label[ii])), &loop);
+      append_to_statement_list (body_label_expr[ii], &loop);
+    }
+
+  append_to_statement_list (stmt, &loop);
+
+  for (ii = rank - 1; ii >= 0; ii--)
+    {
+      append_to_statement_list (expr_incr[ii], &loop);
+      append_to_statement_list
+	(build1 (GOTO_EXPR, void_type_node, if_stmt_label[ii]), &loop);
+      append_to_statement_list (exit_label_expr[ii], &loop);
+    }
+
+  free (body_label);
+  free (body_label_expr);
+  free (exit_label);
+  free (exit_label_expr);
+  free (compare_expr);
+  free (if_stmt_label);
+  free (expr_incr);
+  free (ind_init);
+  free (array_operand);
+  free (array_var);
+  
+  for (ii = 0; ii < list_size; ii++)
+    {
+      free (count_down[ii]);
+      free (array_value[ii]);
+      free (array_stride[ii]);
+      free (array_length[ii]);
+      free (array_start[ii]);
+      free (array_ops[ii]);
+      free (array_vector[ii]);
+    }
+
+  free (count_down);
+  free (array_value);
+  free (array_stride);
+  free (array_length);
+  free (array_start);
+  free (array_ops);
+  free (array_vector);
+
+  return loop;
+}
+
+/* This function will recursively go through all the subtrees and find all
+ * if, switch, for, while and do-while loops and fix up their conditions and
+ * also walk through their subtrees.
+ */
+tree
+fix_conditional_array_notations (tree t)
+{
+  enum tree_code code;
+  bool is_expr;
+
+  /* Skip empty subtrees.  */
+  if (!t)
+    return t;
+
+  code = TREE_CODE (t);
+  is_expr = IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (code));
+  
+  switch (code)
+    {
+    case ERROR_MARK:
+    case IDENTIFIER_NODE:
+    case INTEGER_CST:
+    case REAL_CST:
+    case FIXED_CST:
+    case STRING_CST:
+    case BLOCK:
+    case PLACEHOLDER_EXPR:
+    case FIELD_DECL:
+    case VOID_TYPE:
+    case REAL_TYPE:
+    case SSA_NAME:
+    case LABEL_DECL:
+    case RESULT_DECL:
+    case VAR_DECL:
+    case PARM_DECL:
+    case NON_LVALUE_EXPR:
+    case CONVERT_EXPR:
+    case NOP_EXPR:
+    case INIT_EXPR:
+    case MODIFY_EXPR:
+    case PREDECREMENT_EXPR:
+    case PREINCREMENT_EXPR:
+    case POSTDECREMENT_EXPR:
+    case POSTINCREMENT_EXPR:
+    case ADDR_EXPR:
+    case ARRAY_REF:
+    case BIT_FIELD_REF:
+    case VECTOR_CST:
+    case COMPLEX_CST:
+      return t;
+      
+    case CONSTRUCTOR:
+      return t;
+    case BIND_EXPR:
+      {
+	BIND_EXPR_BODY (t) =
+	  fix_conditional_array_notations  (BIND_EXPR_BODY (t));
+	return t;
+      }
+
+    case STATEMENT_LIST:
+      {
+	tree_stmt_iterator i;
+	for (i = tsi_start (t); !tsi_end_p (i); tsi_next (&i))
+	  *tsi_stmt_ptr (i) =
+	    fix_conditional_array_notations (*tsi_stmt_ptr (i));
+	return t;
+      }
+
+    case OMP_PARALLEL:
+    case OMP_TASK:
+    case OMP_FOR:
+    case OMP_SINGLE:
+    case OMP_SECTION:
+    case OMP_SECTIONS:
+    case OMP_MASTER:
+    case OMP_ORDERED:
+    case OMP_CRITICAL:
+    case OMP_ATOMIC:
+    case OMP_CLAUSE:
+    case TARGET_EXPR:
+    case RETURN_EXPR:
+    case DECL_EXPR:
+    case INTEGER_TYPE:
+    case ENUMERAL_TYPE:
+    case BOOLEAN_TYPE:
+    case POINTER_TYPE:
+    case ARRAY_TYPE:
+    case RECORD_TYPE:
+    case METHOD_TYPE:
+    case AGGR_INIT_EXPR:
+    case CALL_EXPR:
+      return t;
+
+    case COND_EXPR:
+      t = fix_conditional_array_notations_1 (t);
+      if (TREE_CODE (t) == COND_EXPR)
+	{
+	  COND_EXPR_THEN (t) =
+	    fix_conditional_array_notations (COND_EXPR_THEN (t));
+	  COND_EXPR_ELSE (t) =
+	    fix_conditional_array_notations (COND_EXPR_ELSE (t));
+	}
+      else
+	t = fix_conditional_array_notations (t);
+      return t;
+
+    case SWITCH_EXPR:
+      t = fix_conditional_array_notations_1 (t);
+      if (TREE_CODE (t) == SWITCH_EXPR)
+	SWITCH_BODY (t) = fix_conditional_array_notations (SWITCH_BODY (t));
+      else
+	t = fix_conditional_array_notations (t);
+      return t;
+      
+    case FOR_STMT:
+    case CILK_FOR_STMT:
+      t = fix_conditional_array_notations_1 (t);
+
+      /* If the above function added some extra instructions above the original
+       * for statement, then we can't assume it is still FOR_STMT/CILK_FOR_STMT
+       * so we have to check again */
+      if (TREE_CODE (t) == CILK_FOR_STMT || TREE_CODE (t) == FOR_STMT)
+	FOR_BODY (t) = fix_conditional_array_notations (FOR_BODY (t));
+      else
+	t = fix_conditional_array_notations (t);
+      return t;
+
+    case IF_STMT:
+      t = fix_conditional_array_notations_1 (t);
+      /* If the above function added some extra instructions above the original
+       * if statement, then we can't assume it is still IF_STMT
+       * so we have to check again */
+      if (TREE_CODE (t) == IF_STMT)
+	{
+	  if (THEN_CLAUSE (t))
+	    THEN_CLAUSE (t) = fix_conditional_array_notations (THEN_CLAUSE (t));
+	  if (ELSE_CLAUSE (t))
+	    ELSE_CLAUSE (t) = fix_conditional_array_notations (ELSE_CLAUSE (t));
+	}
+      else
+	t = fix_conditional_array_notations (t);
+      return t;
+
+    case SWITCH_STMT:
+      t = fix_conditional_array_notations_1 (t);
+      /* If the above function added some extra instructions above the original
+       * switch statement, then we can't assume it is still SWITCH_STMT
+       * so we have to check again */
+      if (TREE_CODE (t) == SWITCH_STMT)
+	{
+	  if (SWITCH_STMT_BODY (t))
+	    SWITCH_STMT_BODY (t) =
+	      fix_conditional_array_notations (SWITCH_STMT_BODY (t));
+	}
+      else
+	t = fix_conditional_array_notations (t);
+      return t;
+
+    case WHILE_STMT:
+      t = fix_conditional_array_notations_1 (t);
+      /* If the above function added some extra instructions above the original
+       * while statement, then we can't assume it is still WHILE_STMT
+       * so we have to check again */
+      if (TREE_CODE (t) == WHILE_STMT)
+	{
+	  if (WHILE_BODY (t))
+	    WHILE_BODY (t) = fix_conditional_array_notations (WHILE_BODY (t));
+	}
+      else
+	t = fix_conditional_array_notations (t);
+      return t;
+      
+    case DO_STMT:
+      t = fix_conditional_array_notations_1 (t);
+      /* If the above function added some extra instructions above the original
+       * do-while statement, then we can't assume it is still DO_STMT
+       * so we have to check again */
+      if (TREE_CODE (t) == DO_STMT)
+	{      
+	  if (DO_BODY (t))
+	    DO_BODY (t) = fix_conditional_array_notations (DO_BODY (t));
+	}
+      else
+	t = fix_conditional_array_notations (t);
+      return t;
+      
+    default:
+      if (is_expr)
+	{
+	  int i, len;
+
+	  /* Walk over all the sub-trees of this operand.  */
+	  len = TREE_CODE_LENGTH (code);
+
+	  /* Go through the subtrees.  We need to do this in forward order so
+	     that the scope of a FOR_EXPR is handled properly.  */
+	  for (i = 0; i < len; ++i)
+	    TREE_OPERAND (t, i) =
+	      fix_conditional_array_notations (TREE_OPERAND (t, i));
+	}
+      return t;
+    }
+  return t;
 }

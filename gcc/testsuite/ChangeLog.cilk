@@ -1,3 +1,9 @@
+2012-01-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* g++.dg/cilk-plus/array_notation_tests/switch_test.cc: New
+	* g++.dg/cilk-plus/array_notation_tests/if_test1.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/if_test2.cc: Likewise.
+
 2012-01-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* g++.dg/cilk-plus/array_notation_tests/array_test1.cc: New.

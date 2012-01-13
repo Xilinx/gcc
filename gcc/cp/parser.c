@@ -9121,6 +9121,7 @@ cp_parser_compound_statement (cp_parser *parser, tree in_statement_expr,
   /* Consume the `}'.  */
   cp_parser_require (parser, CPP_CLOSE_BRACE, RT_CLOSE_BRACE);
 
+  compound_stmt = fix_conditional_array_notations (compound_stmt);
   return compound_stmt;
 }
 
