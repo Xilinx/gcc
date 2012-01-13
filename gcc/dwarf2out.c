@@ -3606,7 +3606,8 @@ static void gen_scheduled_generic_parms_dies (void);
 #ifndef DEBUG_MACRO_SECTION_LABEL
 #define DEBUG_MACRO_SECTION_LABEL	    "Ldebug_macro"
 #endif
-
+#define SKELETON_COMP_DIE_ABBREV 1
+#define SKELETON_TYPE_DIE_ABBREV 2
 
 /* Definitions of defaults for formats and names of various special
    (artificial) labels which may be generated within this file (when the -g
@@ -8684,7 +8685,7 @@ add_top_level_skeleton_die_attrs (dw_die_ref die)
   add_AT_lineptr (die, DW_AT_stmt_list, debug_line_section_label);
   add_comp_dir_attribute (die);
   add_AT_string (die, DW_AT_GNU_dwo_name, dwo_file_name);
-  /* The specification requires that these attributes be inline to avoid
+  /* The specification suggests that these attributes be inline to avoid
      having a .debug_str section.  We know that they exist in the die because
      we just added them.  */
   attr = get_AT (die, DW_AT_GNU_dwo_name);
@@ -8692,9 +8693,14 @@ add_top_level_skeleton_die_attrs (dw_die_ref die)
   attr = get_AT (die, DW_AT_comp_dir);
   attr->dw_attr_val.v.val_str->form = DW_FORM_string;
   /* The post compile splitter will fill in this value.  */
-  add_AT_unsigned (die, DW_AT_GNU_dwo_id, 0);
   add_AT_pubnames (die);
 }
+
+/* For split_debug_sections with use_type info, all type units int the skeleton
+   sections have identical dies (but different headers).  This single die will
+   be output many times.  */
+
+static dw_die_ref skeleton_type_unit = NULL;
 
 /* Output skeleton debug sections that point to the dwo file.  */
 
@@ -8702,12 +8708,14 @@ static void
 output_skeleton_debug_sections (void)
 {
   dw_die_ref comp_unit = gen_compile_unit_die (NULL);
-  dw_die_ref type_unit = NULL;
 
   /* These attributes will be found in the full debug_info section.  */
   remove_AT (comp_unit, DW_AT_producer);
   remove_AT (comp_unit, DW_AT_language);
+
   add_top_level_skeleton_die_attrs (comp_unit);
+  /* Only the compilation unit gets the dwo_id.  */
+  add_AT_unsigned (comp_unit, DW_AT_GNU_dwo_id, 0);
 
   switch_to_section (debug_skeleton_info_section);
   ASM_GENERATE_INTERNAL_LABEL (debug_skeleton_info_section_label,
@@ -8740,49 +8748,20 @@ output_skeleton_debug_sections (void)
 
   dw2_asm_output_data (1, 0, "end of skeleton .debug_info");
 
-  if (use_debug_types)
-    {
-      /* Produce the skeleton type-unit header.  */
-      const char *secname = ".debug_types";
-      type_unit = new_die (DW_TAG_type_unit, NULL, NULL);
-      add_top_level_skeleton_die_attrs (type_unit);
-      type_unit->die_abbrev = 2;
-
-      targetm.asm_out.named_section (secname, SECTION_DEBUG, NULL);
-      if (DWARF_INITIAL_LENGTH_SIZE - DWARF_OFFSET_SIZE == 4)
-        dw2_asm_output_data (4, 0xffffffff,
-          "Initial length escape value indicating 64-bit DWARF extension");
-
-      /* One for the terminating NULL byte.  */
-      dw2_asm_output_data (DWARF_OFFSET_SIZE,
-                           DWARF_COMPILE_UNIT_HEADER_SIZE
-                           - DWARF_INITIAL_LENGTH_SIZE
-                           + size_of_die (type_unit) 
-                           + DWARF_TYPE_SIGNATURE_SIZE + DWARF_OFFSET_SIZE + 1,
-                           "Length of Type Unit Info");
-      dw2_asm_output_data (2, dwarf_version, "DWARF version number");
-      dw2_asm_output_offset (DWARF_OFFSET_SIZE,
-                             debug_skeleton_abbrev_section_label,
-                             debug_abbrev_section,
-                             "Offset Into Abbrev. Section");
-      dw2_asm_output_data (1, DWARF2_ADDR_SIZE, "Pointer Size (in bytes)");
-      /* A type_unit header contains a signature and an offset. Even this
-         skeleton one. However, because there is no real type to describe, use a
-         null value for both.  */
-      output_signature ("00000000", "Type Signature");
-      dw2_asm_output_data (DWARF_OFFSET_SIZE, 0, "Offset to Type DIE");
-
-      output_die (type_unit);
-      dw2_asm_output_data (1, 0, "end of skeleton .debug_types");
-    }
-
   /* Build the skeleton debug_abbrev section.  */
   switch_to_section (debug_skeleton_abbrev_section);
   ASM_OUTPUT_LABEL (asm_out_file, debug_skeleton_abbrev_section_label);
 
-  output_die_abbrevs (1, comp_unit);
+  output_die_abbrevs (SKELETON_COMP_DIE_ABBREV, comp_unit);
   if (use_debug_types)
-    output_die_abbrevs (2, type_unit);
+    {
+      /* Because all skeleton type_units have identical dies, just generate
+         one, and output it repeatedly.  */
+      skeleton_type_unit = new_die (DW_TAG_type_unit, NULL, NULL);
+      add_top_level_skeleton_die_attrs (skeleton_type_unit);
+      skeleton_type_unit->die_abbrev = SKELETON_TYPE_DIE_ABBREV;
+      output_die_abbrevs (SKELETON_TYPE_DIE_ABBREV, skeleton_type_unit);
+    }
 
   dw2_asm_output_data (1, 0, "end of skeleton .debug_abbrev");
 }
@@ -8822,6 +8801,7 @@ output_comdat_type_unit (comdat_type_node *node)
   targetm.asm_out.named_section (secname,
                                  SECTION_DEBUG | SECTION_LINKONCE,
                                  comdat_key);
+
 #else
   tmp = XALLOCAVEC (char, 18 + DWARF_TYPE_SIGNATURE_SIZE * 2);
   sprintf (tmp, ".gnu.linkonce.wt.");
@@ -8839,6 +8819,39 @@ output_comdat_type_unit (comdat_type_node *node)
   output_die (node->root_die);
 
   unmark_dies (node->root_die);
+
+  if (dwarf_split_debug_info)
+    {
+      /* Produce the skeleton type-unit header.  */
+      const char *secname = ".debug_types";
+      gcc_assert (skeleton_type_unit);
+
+      targetm.asm_out.named_section (secname,
+                                     SECTION_DEBUG | SECTION_LINKONCE,
+                                     comdat_key);
+      if (DWARF_INITIAL_LENGTH_SIZE - DWARF_OFFSET_SIZE == 4)
+        dw2_asm_output_data (4, 0xffffffff,
+          "Initial length escape value indicating 64-bit DWARF extension");
+
+      /* One for the terminating NULL byte.  */
+      dw2_asm_output_data (DWARF_OFFSET_SIZE,
+                           DWARF_COMPILE_UNIT_HEADER_SIZE
+                           - DWARF_INITIAL_LENGTH_SIZE
+                           + size_of_die (skeleton_type_unit)
+                           + DWARF_TYPE_SIGNATURE_SIZE + DWARF_OFFSET_SIZE + 1,
+                           "Length of Type Unit Info");
+      dw2_asm_output_data (2, dwarf_version, "DWARF version number");
+      dw2_asm_output_offset (DWARF_OFFSET_SIZE,
+                             debug_skeleton_abbrev_section_label,
+                             debug_abbrev_section,
+                             "Offset Into Abbrev. Section");
+      dw2_asm_output_data (1, DWARF2_ADDR_SIZE, "Pointer Size (in bytes)");
+      output_signature (node->signature, "Type Signature");
+      dw2_asm_output_data (DWARF_OFFSET_SIZE, 0, "Offset to Type DIE");
+
+      output_die (skeleton_type_unit);
+      dw2_asm_output_data (1, 0, "end of skeleton .debug_types");
+    }
 }
 
 /* Return the DWARF2/3 pubname associated with a decl.  */
