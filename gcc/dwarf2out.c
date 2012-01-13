@@ -8702,6 +8702,10 @@ add_top_level_skeleton_die_attrs (dw_die_ref die)
 
 static dw_die_ref skeleton_type_unit = NULL;
 
+/* The splitter will fill in this value.  */
+
+unsigned char dwo_id_placeholder[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
 /* Output skeleton debug sections that point to the dwo file.  */
 
 static void
@@ -8715,7 +8719,7 @@ output_skeleton_debug_sections (void)
 
   add_top_level_skeleton_die_attrs (comp_unit);
   /* Only the compilation unit gets the dwo_id.  */
-  add_AT_unsigned (comp_unit, DW_AT_GNU_dwo_id, 0);
+  add_AT_data8 (comp_unit, DW_AT_GNU_dwo_id, dwo_id_placeholder);
 
   switch_to_section (debug_skeleton_info_section);
   ASM_GENERATE_INTERNAL_LABEL (debug_skeleton_info_section_label,
@@ -22982,7 +22986,7 @@ dwarf2out_finish (const char *filename)
       /* Add a place-holder for the dwo_id to the comp-unit die.  Similarly, the
          skeleton die gets a placeholder inside
          output_skeleton_debug_sections.  */
-      add_AT_unsigned (comp_unit_die (), DW_AT_GNU_dwo_id, 0);
+      add_AT_data8 (comp_unit_die (), DW_AT_GNU_dwo_id, dwo_id_placeholder);
       output_skeleton_debug_sections ();
     }
 
