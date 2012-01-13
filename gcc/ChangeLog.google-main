@@ -1,3 +1,8 @@
+2012-01-13   Xinliang David Li  <davidxl@google.com>
+
+	*ipa-inline-analysis.c (do_estimate_edge_growth): Skip fake edges.
+
+=======
 2012-01-12   Rong Xu  <xur@google.com>
 
 	* gcc/profile.c (compute_value_histograms): ignore the 

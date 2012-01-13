@@ -2671,6 +2671,10 @@ do_estimate_edge_growth (struct cgraph_edge *edge)
   int size;
   struct cgraph_node *callee;
 
+  /* LIPO -- skip indirect edge.  */
+  if (!edge->call_stmt)
+    return 0;
+
   /* When we do caching, use do_estimate_edge_time to populate the entry.  */
 
   if (edge_growth_cache)
