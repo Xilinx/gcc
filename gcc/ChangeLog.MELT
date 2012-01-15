@@ -1,4 +1,13 @@
 
+2012-01-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Better build machinery... work in progress}}
+	* Makefile.in (melt_make_move): Rename as ...
+	(melt_move_if_change): New variable
+	(melt-runtime.o): Don't rebuilt everytime because of
+	melt-runtime.args.
+	* melt-build.tpl: Improve. Use melt_move_if_change...
+	* melt-build.mk: Regenerate.
+
 2012-01-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Unoptimal build machinery... work in progress}}
 	* melt/warmelt-modes.melt: Issue a warning when translating a file

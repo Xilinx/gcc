@@ -2,7 +2,7 @@
 ##
 ##    Middle End Lisp Translator = MELT
 ##
-##    Copyright (C) 2011 Free Software Foundation, Inc.
+##    Copyright (C) 2011, 2012 Free Software Foundation, Inc.
 ##    Contributed by Basile Starynkevitch <basile@starynkevitch.net> and others
 ## 
 ## This file contrib/MELT-Plugin-Makefile is part of GCC.
@@ -141,7 +141,7 @@ melt_make_gencdeps= $(melt_make_cc1)
 melt_make_module_makefile= melt-module.mk
 melt_make_source_dir= melt
 melt_make_module_dir=
-melt_make_move= $(SHELL) move-if-change
+melt_move_if_change= $(SHELL) move-if-change
 ## Don't use := definitions here!
 comma= ,
 melt_make_cc1flags= -fplugin=$(realpath melt.so) -I $(realpath .) -o /dev/null

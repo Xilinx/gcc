@@ -1,4 +1,7 @@
 
+2012-01-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile: use melt_move_if_change.
+
 2012-01-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-mv-if-changed.c: New file.
 

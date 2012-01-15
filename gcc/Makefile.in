@@ -2770,22 +2770,30 @@ MELT_RUNTIME_CPPDEFS= \
 	  -DMELT_REVISION='\"$(shell echo -n $(REVISION_c) | sed "s/ *$$//" | tr -s [:space:] _)\"' \
 	  -DMELT_GCC_VERSION=$(shell cat $(BASEVER) | $(AWK) '{split($$0,vertab,"."); printf "%d", vertab[1]*1000+vertab[2]}')
 
-melt-runtime.args:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h melt-runtime-params-inc.c $(C_COMMON_H) \
-                  $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H) $(TREE_H) \
-                   $(GGC_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(CFGLOOP_H) \
-	          tree-pass.h $(MELT_H) \
-	          $(srcdir)/melt/generated/meltrunsup.h \
-                  $(srcdir)/melt/generated/meltrunsup-inc.c \
-                  gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)
-	@rm -f melt-runtime.args
+melt-runtime.args:  $(MELT_RUNTIME_C) melt-run-md5.h melt-runtime-params-inc.c $(C_COMMON_H) \
+    $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H) $(TREE_H) \
+    $(GGC_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(CFGLOOP_H) \
+    tree-pass.h $(MELT_H) \
+    $(srcdir)/melt/generated/meltrunsup.h \
+    $(srcdir)/melt/generated/meltrunsup-inc.c \
+    gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H) \
+     Makefile
 	@echo '@@**@@' building melt-runtime.args
 	@echo $(ALL_CFLAGS) $(ALL_CPPFLAGS) -I $(srcdir)/melt/generated/ \
-	  $(MELT_RUNTIME_CPPDEFS) > melt-runtime.args-tmp
-	mv melt-runtime.args-tmp melt-runtime.args
+	  $(MELT_RUNTIME_CPPDEFS) $(MELT_RUNTIME_C)  > melt-runtime.args-tmp
+	$(melt_move_if_change) melt-runtime.args-tmp melt-runtime.args
 	@echo -n '@@**@@' melt-runtime.args: ; cat melt-runtime.args ; echo
 
-melt-runtime.o: melt-runtime.args
-	$(CC)  $(shell cat melt-runtime.args) -c $(MELT_RUNTIME_C) $(OUTPUT_OPTION)
+melt-runtime.o:  $(MELT_RUNTIME_C) melt-run-md5.h melt-runtime-params-inc.c  $(C_COMMON_H) \
+    $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H) $(TREE_H) \
+    $(GGC_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(CFGLOOP_H) \
+    tree-pass.h $(MELT_H) \
+    $(srcdir)/melt/generated/meltrunsup.h \
+    $(srcdir)/melt/generated/meltrunsup-inc.c \
+    gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H) \
+	| melt-runtime.args
+	ls -l melt-runtime.args
+	$(CC) -c $(shell cat melt-runtime.args)  $(OUTPUT_OPTION)
 
 ## to debug the macros, we may need this.
 melt-runtime.i: melt-runtime.args
@@ -2799,10 +2807,10 @@ melt-runtime.i: melt-runtime.args
 ## the one expected. It is included in melt-runtime.c and melt-run.h
 ## is generated to contain it.
 #### keep contrib/build-melt-plugin.sh in sync with this!
-melt-run-md5.h melt-run.h: Makefile  $(srcdir)/melt-run.proto.h \
+melt-run-md5.h melt-run.h:  $(srcdir)/melt-run.proto.h \
    $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H) \
    $(TREE_H)  $(GGC_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(CFGLOOP_H)  \
-   tree-pass.h $(MELT_H) gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)
+   tree-pass.h $(MELT_H) gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H) | Makefile
 	melt_run_md5=`$(CC) -C -E $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(srcdir)/melt-run.proto.h | grep -v '^#' | md5sum | cut -c 1-32`; \
    ( echo  "const char melt_run_preprocessed_md5[]=\"$$melt_run_md5\";" > melt-run-md5.h-tmp ; \
    sed -e "s,#define *MELT_RUN_HASHMD5 *XX,#define MELT_RUN_HASHMD5 \"$$melt_run_md5\"," <  $(srcdir)/melt-run.proto.h > melt-run.h-tmp )
@@ -5353,7 +5361,7 @@ melt_make_gencdeps= ./cc1$(exeext)
 melt_make_module_makefile=$(srcdir)/melt-module.mk
 melt_make_source_dir=$(srcdir)/melt
 melt_make_module_dir=$(objdir)
-melt_make_move=$(SHELL) $(srcdir)/../move-if-change
+melt_move_if_change=$(SHELL) $(srcdir)/../move-if-change
 ## Don't use := definitions here!
 comma= ,
 melt_make_cc1flags= -I $(realpath .)
