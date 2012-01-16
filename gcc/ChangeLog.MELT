@@ -1,4 +1,12 @@
 
+2012-01-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Better build machinery... work in progress}}
+	* Makefile.in (melt.encap): Also depends upon
+	$(srcdir)/melt-build.mk.
+	* melt-build.tpl: Always use $(MD5SUM).
+	Better dependencies on directory and stage stamp files.
+	* melt-build.mk: Regenerate.
+
 2012-01-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Better build machinery... work in progress}}
 	* Makefile.in (melt_make_move): Rename as ...

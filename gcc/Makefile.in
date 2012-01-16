@@ -5397,7 +5397,7 @@ include $(srcdir)/melt-build.mk
 
 .PHONY: melt.encap
 
-melt.encap: $(melt_make_cc1_dependency)
+melt.encap: $(melt_make_cc1_dependency) $(srcdir)/melt-build.mk
 	@echo melt.encap making Makefile and melt-build.mk
 	$(MAKE) Makefile $(srcdir)/melt-build.mk
 	@echo melt.encap making warmelt0 with melt_cflags= $(melt_cflags)
