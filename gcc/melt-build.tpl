@@ -442,8 +442,12 @@ warmelt[+(. stageindex)+]n:  [+melt_stage+]-fullstage.stamp [+melt_stage+]/warme
 ######## last stage [+ (. laststage)+]
 MELT_LAST_STAGE=[+ (. laststage)+]
 WARMELT_LAST= warmelt[+ (. lastindex)+]
+WARMELT_LAST_STAGESTAMP= [+ (. laststage)+]-fullstage.stamp
 WARMELT_LAST_MODLIS= [+ (. laststage)+]/warmelt.modlis
 
+
+
+#@ [+ (. (tpl-file-line))+]
 .PHONY: warmelt
 warmelt: $(WARMELT_LAST)
 
@@ -469,7 +473,7 @@ melt-sources-directory.stamp: melt-sources; @true
 
 
 ### all sources [+ (. (tpl-file-line))+]
-melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
+melt-all-sources: $(WARMELT_LAST_MODLIS) $(WARMELT_LAST_STAGESTAMP) empty-file-for-melt.c \
     melt-run.h melt-runtime.h melt-predef.h melt-sources-directory.stamp \
     $(melt_make_cc1_dependency) \
 [+FOR melt_translator_file+]      melt-sources/[+base+].melt \
@@ -507,7 +511,7 @@ melt-sources/[+base+]+melttime.h: melt-sources-directory.stamp \
 melt-sources/[+base+].c melt-sources/[+base+]+meltdesc.c: \
     melt-sources/[+base+].melt  melt-sources-directory.stamp [+FOR includeload
 +]melt-sources/[+includeload+] [+ENDFOR includeload+] \
-                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
+                    $(WARMELT_LAST_STAGESTAMP) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
                     $(melt_make_cc1_dependency)
 	@echo doing $@  [+ (. (tpl-file-line))+]
@@ -601,7 +605,7 @@ melt-sources/[+base+].c: \
  [+FOR includeload
 +]  melt-sources/[+includeload+] [+ENDFOR includeload+] \
    $(MELT_TRANSLATOR_SOURCE) \
-   $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
+   $(WARMELT_LAST_STAGESTAMP) $(WARMELT_LAST_MODLIS) \
    empty-file-for-melt.c melt-run.h melt-runtime.h \
    $(melt_make_cc1_dependency)
 	@echo doing $@  [+ (. (tpl-file-line))+]
@@ -748,7 +752,7 @@ $(melt_default_modules_list)-[+variant+].modlis:  melt-all-modules  melt-modules
 
 #@ [+ (. (tpl-file-line))+]
 ####### generate the runtime support files meltrunsup.h meltrunsup-inc.c
-meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
+meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS)  $(WARMELT_LAST_STAGESTAMP) empty-file-for-melt.c \
                    $(melt_make_cc1_dependency)
 	@rm -f $(wildcard meltrunsup*)
 	@echo $(melt_make_cc1flags) \
@@ -773,7 +777,7 @@ meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
 
 ###### generate the translator files warmelt*.c
 #@ [+ (. (tpl-file-line))+]
-warmelt-upgrade-translator: $(WARMELT_LAST) meltrun-generate \
+warmelt-upgrade-translator: $(WARMELT_LAST) $(WARMELT_LAST_STAGESTAMP) meltrun-generate \
 [+FOR melt_translator_file " \\\n"
 +]   $(MELT_LAST_STAGE)/[+base+].c \
          $(wildcard  $(MELT_LAST_STAGE)/[+base+]+*.c)[+

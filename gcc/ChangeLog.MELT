@@ -1,6 +1,11 @@
 
 2012-01-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Better build machinery... work in progress}}
+	* melt-build.tpl (WARMELT_LAST_STAGESTAMP): New. Use it at many
+	occasions.
+	* melt-build.mk: Regenerate.
+2012-01-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Better build machinery... work in progress}}
 	* melt-build.tpl: Use the melt-sourceS/*melttime.h timestamps.
 	* melt-build.mk: Regenerate.
 
