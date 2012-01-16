@@ -1,3 +1,39 @@
+2012-01-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51800
+	* resolve.c (build_default_init_expr): Also initialize
+	nonconstant-length strings with -finit-character=<n>.
+
+2011-01-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51816
+	* module.c (read_module): Don't make nonexisting
+	intrinsic operators as found.
+	(rename_list_remove_duplicate): New function.
+	(gfc_use_modules): Use it.
+
+2012-01-13  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/48351
+	* trans-array.c (structure_alloc_comps): Suppress interative
+	call to self, when current component is deallocated using
+	gfc_trans_dealloc_allocated.
+	* class.c (gfc_build_class_symbol): Copy the 'alloc_comp'
+	attribute from the declared type to the class structure.
+
+2012-01-13  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51842
+	* fortran/trans-types.c (gfc_init_kinds): Use PTRDIFF_TYPE
+	instead of a signed int of size POINTER_SIZE for
+	gfc_index_integer_kind.
+
+2012-01-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/36755
+	* intrinsic.texi (CHMOD): Extend a bit and remove statement
+	that /bin/chmod is called.
+
 2012-01-10  Gerald Pfeifer  <gerald@pfeifer.com>
 
 	* gfortran.texi (Fortran 2003 Status): Fix grammar.
