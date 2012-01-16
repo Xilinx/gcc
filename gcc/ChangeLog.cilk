@@ -1,3 +1,8 @@
+2011-01-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk.c (cilk_remove_annotated_functions): Added a int cast for
+	VEC_length in for-loop condition.
+
 2011-12-25  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-array-notations.c (find_rank): Added a check for CALL_EXPR and

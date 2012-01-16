@@ -1155,7 +1155,7 @@ cilk_remove_annotated_functions (rtx first)
 	    }
 	}
     }
-  for (ii = 0; ii < VEC_length (rtx, rtx_delete_list); ii++)
+  for (ii = 0; ii < (int)VEC_length (rtx, rtx_delete_list); ii++)
     remove_insn (VEC_index (rtx, rtx_delete_list, ii));
   
   return;
