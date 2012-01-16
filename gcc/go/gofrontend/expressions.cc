@@ -3382,9 +3382,11 @@ Type_conversion_expression::do_lower(Gogo*, Named_object*,
   if (type->is_slice_type())
     {
       Type* element_type = type->array_type()->element_type()->forwarded();
-      bool is_byte = element_type == Type::lookup_integer_type("uint8");
-      bool is_int = element_type == Type::lookup_integer_type("int");
-      if (is_byte || is_int)
+      bool is_byte = (element_type->integer_type() != NULL
+		      && element_type->integer_type()->is_byte());
+      bool is_rune = (element_type->integer_type() != NULL
+		      && element_type->integer_type()->is_rune());
+      if (is_byte || is_rune)
 	{
 	  std::string s;
 	  if (val->string_constant_value(&s))
@@ -3690,8 +3692,7 @@ Type_conversion_expression::do_get_tree(Translate_context* context)
       tree len = a->length_tree(gogo, expr_tree);
       len = fold_convert_loc(this->location().gcc_location(), integer_type_node,
                              len);
-      if (e->integer_type()->is_unsigned()
-	  && e->integer_type()->bits() == 8)
+      if (e->integer_type()->is_byte())
 	{
 	  static tree byte_array_to_string_fndecl;
 	  ret = Gogo::call_builtin(&byte_array_to_string_fndecl,
@@ -3706,7 +3707,7 @@ Type_conversion_expression::do_get_tree(Translate_context* context)
 	}
       else
 	{
-	  go_assert(e == Type::lookup_integer_type("int"));
+	  go_assert(e->integer_type()->is_rune());
 	  static tree int_array_to_string_fndecl;
 	  ret = Gogo::call_builtin(&int_array_to_string_fndecl,
 				   this->location(),
@@ -3723,8 +3724,7 @@ Type_conversion_expression::do_get_tree(Translate_context* context)
     {
       Type* e = type->array_type()->element_type()->forwarded();
       go_assert(e->integer_type() != NULL);
-      if (e->integer_type()->is_unsigned()
-	  && e->integer_type()->bits() == 8)
+      if (e->integer_type()->is_byte())
 	{
 	  tree string_to_byte_array_fndecl = NULL_TREE;
 	  ret = Gogo::call_builtin(&string_to_byte_array_fndecl,
@@ -3737,7 +3737,7 @@ Type_conversion_expression::do_get_tree(Translate_context* context)
 	}
       else
 	{
-	  go_assert(e == Type::lookup_integer_type("int"));
+	  go_assert(e->integer_type()->is_rune());
 	  tree string_to_int_array_fndecl = NULL_TREE;
 	  ret = Gogo::call_builtin(&string_to_int_array_fndecl,
 				   this->location(),
@@ -5844,7 +5844,7 @@ Binary_expression::lower_struct_comparison(Gogo* gogo,
   // See if we can compare using memcmp.  As a heuristic, we use
   // memcmp rather than field references and comparisons if there are
   // more than two fields.
-  if (st->compare_is_identity() && st->total_field_count() > 2)
+  if (st->compare_is_identity(gogo) && st->total_field_count() > 2)
     return this->lower_compare_to_memcmp(gogo, inserter);
 
   Location loc = this->location();
@@ -5919,7 +5919,7 @@ Binary_expression::lower_array_comparison(Gogo* gogo,
 
   // Call memcmp directly if possible.  This may let the middle-end
   // optimize the call.
-  if (at->compare_is_identity())
+  if (at->compare_is_identity(gogo))
     return this->lower_compare_to_memcmp(gogo, inserter);
 
   // Call the array comparison function.
@@ -7979,35 +7979,32 @@ Builtin_call_expression::do_integer_constant_value(bool iota_is_constant,
 	return false;
       if (arg_type->named_type() != NULL)
 	arg_type->named_type()->convert(this->gogo_);
-      tree arg_type_tree = type_to_tree(arg_type->get_backend(this->gogo_));
-      if (arg_type_tree == error_mark_node)
-	return false;
-      unsigned long val_long;
+
+      unsigned int ret;
       if (this->code_ == BUILTIN_SIZEOF)
 	{
-	  tree type_size = TYPE_SIZE_UNIT(arg_type_tree);
-	  go_assert(TREE_CODE(type_size) == INTEGER_CST);
-	  if (TREE_INT_CST_HIGH(type_size) != 0)
-	    return false;
-	  unsigned HOST_WIDE_INT val_wide = TREE_INT_CST_LOW(type_size);
-	  val_long = static_cast<unsigned long>(val_wide);
-	  if (val_long != val_wide)
+	  if (!arg_type->backend_type_size(this->gogo_, &ret))
 	    return false;
 	}
       else if (this->code_ == BUILTIN_ALIGNOF)
 	{
 	  if (arg->field_reference_expression() == NULL)
-	    val_long = go_type_alignment(arg_type_tree);
+	    {
+	      if (!arg_type->backend_type_align(this->gogo_, &ret))
+		return false;
+	    }
 	  else
 	    {
 	      // Calling unsafe.Alignof(s.f) returns the alignment of
 	      // the type of f when it is used as a field in a struct.
-	      val_long = go_field_alignment(arg_type_tree);
+	      if (!arg_type->backend_type_field_align(this->gogo_, &ret))
+		return false;
 	    }
 	}
       else
 	go_unreachable();
-      mpz_set_ui(val, val_long);
+
+      mpz_set_ui(val, ret);
       *ptype = NULL;
       return true;
     }
@@ -8025,21 +8022,12 @@ Builtin_call_expression::do_integer_constant_value(bool iota_is_constant,
 	return false;
       if (st->named_type() != NULL)
 	st->named_type()->convert(this->gogo_);
-      tree struct_tree = type_to_tree(st->get_backend(this->gogo_));
-      go_assert(TREE_CODE(struct_tree) == RECORD_TYPE);
-      tree field = TYPE_FIELDS(struct_tree);
-      for (unsigned int index = farg->field_index(); index > 0; --index)
-	{
-	  field = DECL_CHAIN(field);
-	  go_assert(field != NULL_TREE);
-	}
-      HOST_WIDE_INT offset_wide = int_byte_position (field);
-      if (offset_wide < 0)
+      unsigned int offset;
+      if (!st->struct_type()->backend_field_offset(this->gogo_,
+						   farg->field_index(),
+						   &offset))
 	return false;
-      unsigned long offset_long = static_cast<unsigned long>(offset_wide);
-      if (offset_long != static_cast<unsigned HOST_WIDE_INT>(offset_wide))
-	return false;
-      mpz_set_ui(val, offset_long);
+      mpz_set_ui(val, offset);
       return true;
     }
   return false;
@@ -8518,19 +8506,19 @@ Builtin_call_expression::do_check_types(Gogo*)
 	    break;
 	  }
 
-	Type* e2;
 	if (arg2_type->is_slice_type())
-	  e2 = arg2_type->array_type()->element_type();
-	else if (arg2_type->is_string_type())
-	  e2 = Type::lookup_integer_type("uint8");
-	else
 	  {
-	    this->report_error(_("right argument must be a slice or a string"));
-	    break;
+	    Type* e2 = arg2_type->array_type()->element_type();
+	    if (!Type::are_identical(e1, e2, true, NULL))
+	      this->report_error(_("element types must be the same"));
 	  }
-
-	if (!Type::are_identical(e1, e2, true, NULL))
-	  this->report_error(_("element types must be the same"));
+	else if (arg2_type->is_string_type())
+	  {
+	    if (e1->integer_type() == NULL || !e1->integer_type()->is_byte())
+	      this->report_error(_("first argument must be []byte"));
+	  }
+	else
+	    this->report_error(_("second argument must be slice or string"));
       }
       break;
 
@@ -8554,7 +8542,7 @@ Builtin_call_expression::do_check_types(Gogo*)
 	  {
 	    const Array_type* at = args->front()->type()->array_type();
 	    const Type* e = at->element_type()->forwarded();
-	    if (e == Type::lookup_integer_type("uint8"))
+	    if (e->integer_type() != NULL && e->integer_type()->is_byte())
 	      break;
 	  }
 
@@ -9112,7 +9100,8 @@ Builtin_call_expression::do_get_tree(Translate_context* context)
 	tree arg2_len;
 	tree element_size;
 	if (arg2->type()->is_string_type()
-	    && element_type == Type::lookup_integer_type("uint8"))
+	    && element_type->integer_type() != NULL
+	    && element_type->integer_type()->is_byte())
 	  {
 	    arg2_tree = save_expr(arg2_tree);
 	    arg2_val = String_type::bytes_tree(gogo, arg2_tree);
@@ -9954,7 +9943,11 @@ Call_expression::do_get_tree(Translate_context* context)
 	      fn = build_fold_addr_expr_loc(location.gcc_location(),
                                             excess_fndecl);
 	      for (int i = 0; i < nargs; ++i)
-		args[i] = ::convert(excess_type, args[i]);
+		{
+		  if (SCALAR_FLOAT_TYPE_P(TREE_TYPE(args[i]))
+		      || COMPLEX_FLOAT_TYPE_P(TREE_TYPE(args[i])))
+		    args[i] = ::convert(excess_type, args[i]);
+		}
 	    }
 	}
     }
@@ -12978,10 +12971,10 @@ class Composite_literal_expression : public Parser_expression
   lower_struct(Gogo*, Type*);
 
   Expression*
-  lower_array(Gogo*, Type*);
+  lower_array(Type*);
 
   Expression*
-  make_array(Gogo*, Type*, Expression_list*);
+  make_array(Type*, Expression_list*);
 
   Expression*
   lower_map(Gogo*, Named_object*, Statement_inserter*, Type*);
@@ -13048,7 +13041,7 @@ Composite_literal_expression::do_lower(Gogo* gogo, Named_object* function,
   else if (type->struct_type() != NULL)
     ret = this->lower_struct(gogo, type);
   else if (type->array_type() != NULL)
-    ret = this->lower_array(gogo, type);
+    ret = this->lower_array(type);
   else if (type->map_type() != NULL)
     ret = this->lower_map(gogo, function, inserter, type);
   else
@@ -13261,11 +13254,11 @@ Composite_literal_expression::lower_struct(Gogo* gogo, Type* type)
 // Lower an array composite literal.
 
 Expression*
-Composite_literal_expression::lower_array(Gogo* gogo, Type* type)
+Composite_literal_expression::lower_array(Type* type)
 {
   Location location = this->location();
   if (this->vals_ == NULL || !this->has_keys_)
-    return this->make_array(gogo, type, this->vals_);
+    return this->make_array(type, this->vals_);
 
   std::vector<Expression*> vals;
   vals.reserve(this->vals_->size());
@@ -13365,15 +13358,14 @@ Composite_literal_expression::lower_array(Gogo* gogo, Type* type)
   for (size_t i = 0; i < size; ++i)
     list->push_back(vals[i]);
 
-  return this->make_array(gogo, type, list);
+  return this->make_array(type, list);
 }
 
 // Actually build the array composite literal. This handles
 // [...]{...}.
 
 Expression*
-Composite_literal_expression::make_array(Gogo* gogo, Type* type,
-					 Expression_list* vals)
+Composite_literal_expression::make_array(Type* type, Expression_list* vals)
 {
   Location location = this->location();
   Array_type* at = type->array_type();
@@ -13385,10 +13377,6 @@ Composite_literal_expression::make_array(Gogo* gogo, Type* type,
       Expression* elen = Expression::make_integer(&vlen, NULL, location);
       mpz_clear(vlen);
       at = Type::make_array_type(at->element_type(), elen);
-
-      // This is after the finalize_methods pass, so run that now.
-      at->finalize_methods(gogo);
-
       type = at;
     }
   if (at->length() != NULL)
@@ -13939,25 +13927,26 @@ Type_info_expression::do_type()
 tree
 Type_info_expression::do_get_tree(Translate_context* context)
 {
-  tree type_tree = type_to_tree(this->type_->get_backend(context->gogo()));
-  if (type_tree == error_mark_node)
-    return error_mark_node;
-
-  tree val_type_tree = type_to_tree(this->type()->get_backend(context->gogo()));
-  go_assert(val_type_tree != error_mark_node);
-
-  if (this->type_info_ == TYPE_INFO_SIZE)
-    return fold_convert_loc(BUILTINS_LOCATION, val_type_tree,
-			    TYPE_SIZE_UNIT(type_tree));
-  else
+  Btype* btype = this->type_->get_backend(context->gogo());
+  Gogo* gogo = context->gogo();
+  size_t val;
+  switch (this->type_info_)
     {
-      unsigned int val;
-      if (this->type_info_ == TYPE_INFO_ALIGNMENT)
-	val = go_type_alignment(type_tree);
-      else
-	val = go_field_alignment(type_tree);
-      return build_int_cstu(val_type_tree, val);
+    case TYPE_INFO_SIZE:
+      val = gogo->backend()->type_size(btype);
+      break;
+    case TYPE_INFO_ALIGNMENT:
+      val = gogo->backend()->type_alignment(btype);
+      break;
+    case TYPE_INFO_FIELD_ALIGNMENT:
+      val = gogo->backend()->type_field_alignment(btype);
+      break;
+    default:
+      go_unreachable();
     }
+  tree val_type_tree = type_to_tree(this->type()->get_backend(gogo));
+  go_assert(val_type_tree != error_mark_node);
+  return build_int_cstu(val_type_tree, val);
 }
 
 // Dump ast representation for a type info expression.

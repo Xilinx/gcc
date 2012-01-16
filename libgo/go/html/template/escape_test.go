@@ -654,7 +654,7 @@ func TestEscape(t *testing.T) {
 	for _, test := range tests {
 		tmpl := New(test.name)
 		// TODO: Move noescape into template/func.go
-		tmpl.Funcs(template.FuncMap{
+		tmpl.Funcs(FuncMap{
 			"noescape": func(a ...interface{}) string {
 				return fmt.Sprint(a...)
 			},
@@ -792,7 +792,7 @@ func TestEscapeSet(t *testing.T) {
 
 	// pred is a template function that returns the predecessor of a
 	// natural number for testing recursive templates.
-	fns := template.FuncMap{"pred": func(a ...interface{}) (interface{}, error) {
+	fns := FuncMap{"pred": func(a ...interface{}) (interface{}, error) {
 		if len(a) == 1 {
 			if i, _ := a[0].(int); i > 0 {
 				return i - 1, nil
@@ -928,7 +928,7 @@ func TestErrors(t *testing.T) {
 		},
 		{
 			`{{template "foo"}}`,
-			"z:1: no such template foo",
+			"z:1: no such template \"foo\"",
 		},
 		{
 			`<div{{template "y"}}>` +
@@ -944,23 +944,23 @@ func TestErrors(t *testing.T) {
 		},
 		{
 			`<input type=button value=onclick=>`,
-			`exp/template/html:z: "=" in unquoted attr: "onclick="`,
+			`html/template:z: "=" in unquoted attr: "onclick="`,
 		},
 		{
 			`<input type=button value= onclick=>`,
-			`exp/template/html:z: "=" in unquoted attr: "onclick="`,
+			`html/template:z: "=" in unquoted attr: "onclick="`,
 		},
 		{
 			`<input type=button value= 1+1=2>`,
-			`exp/template/html:z: "=" in unquoted attr: "1+1=2"`,
+			`html/template:z: "=" in unquoted attr: "1+1=2"`,
 		},
 		{
 			"<a class=`foo>",
-			"exp/template/html:z: \"`\" in unquoted attr: \"`foo\"",
+			"html/template:z: \"`\" in unquoted attr: \"`foo\"",
 		},
 		{
 			`<a style=font:'Arial'>`,
-			`exp/template/html:z: "'" in unquoted attr: "font:'Arial'"`,
+			`html/template:z: "'" in unquoted attr: "font:'Arial'"`,
 		},
 		{
 			`<a=foo>`,

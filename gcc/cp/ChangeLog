@@ -1,3 +1,86 @@
+2012-01-13  Ian Lance Taylor  <iant@google.com>
+
+	PR c++/50012
+	* typeck.c (enum_cast_to_int): New static function.
+	(cp_build_binary_op): When handling warn_sign_compare, don't test
+	for TREE_NO_WARNING.  Do call enum_cast_to_int.
+	* call.c (avoid_sign_compare_warnings): Remove static function.
+	(build_new_op_1): Don't call avoid_sign_compare_warnings.
+
+2012-01-13  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* decl2.c: Do not include tree-mudflap.h
+	* semantics.c: Likewise.
+
+2012-01-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/20681
+	* semantics.c (finish_break_stmt): Avoid adding an unreachable
+	BREAK_STMT.
+
+	PR c++/51813
+	* decl2.c (constrain_visibility): Clear DECL_VISIBILITY_SPECIFIED
+	when reducing the visibility.
+
+	PR c++/51620
+	* class.c (build_vtbl_initializer): Use __cxa_deleted_virtual.
+
+2012-01-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51714
+	* pt.c (value_dependent_expression_p): Treat STMT_EXPR as
+	value-dependent.
+
+2012-01-13  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/51633
+	* semantics.c (cp_parser_ctor_initializer_opt_and_function_body):
+	Set the pointer to the last block of the constructor to the
+	current statement.
+	(build_constexpr_constructor_member_initializers): Get
+	build_data_member_initialization a chance to deal with more
+	statements before we choke.
+
+2012-01-12  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48051
+	* mangle.c (write_expression): Mangle BASELINK scope if
+	BASELINK_QUALIFIED_P.
+	* search.c (adjust_result_of_qualified_name_lookup): Set
+	BASELINK_QUALIFIED_P.
+	* tree.c (cp_tree_equal) [BASELINK]: Compare BASELINK_QUALIFIED_P.
+	* parser.c (cp_parser_postfix_dot_deref_expression): Don't call
+	adjust_result_of_qualified_name_lookup for non-qualified names.
+
+	PR c++/51403
+	* pt.c (unify): Handle error_mark_node.
+
+2012-01-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51565
+	* call.c (standard_conversion): For ptrmemfuncs, compare the
+	static_fn_types.
+
+	PR c++/51818
+	* mangle.c (find_substitution): A type is only a substitution
+	match if we're looking for a type.
+	(write_nested_name): Use decl_mangling_context.
+
+	* decl.c (decls_match): Assert that the arguments are decls.
+
+	PR c++/51613
+	* pt.c (resolve_overloaded_unification): Compare types with
+	same_type_p, not decls_match.
+
+2012-01-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51614
+	* class.c (build_base_path): Diagnose ambiguous base.
+
+	PR c++/51433
+	* semantics.c (cxx_eval_call_expression): Always retry previously
+	non-constant expressions.
+
 2012-01-06  Jason Merrill  <jason@redhat.com>
 
 	DR 686

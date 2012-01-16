@@ -615,7 +615,7 @@ find_substitution (tree node)
       /* NODE is a matched to a candidate if it's the same decl node or
 	 if it's the same type.  */
       if (decl == candidate
-	  || (TYPE_P (candidate) && type && TYPE_P (type)
+	  || (TYPE_P (candidate) && type && TYPE_P (node)
 	      && same_type_p (type, candidate))
 	  || NESTED_TEMPLATE_MATCH (node, candidate))
 	{
@@ -949,7 +949,7 @@ write_nested_name (const tree decl)
   else
     {
       /* No, just use <prefix>  */
-      write_prefix (CP_DECL_CONTEXT (decl));
+      write_prefix (decl_mangling_context (decl));
       write_unqualified_name (decl);
     }
   write_char ('E');
@@ -2500,7 +2500,9 @@ write_expression (tree expr)
       code = TREE_CODE (expr);
     }
 
-  if (code == BASELINK)
+  if (code == BASELINK
+      && (!type_unknown_p (expr)
+	  || !BASELINK_QUALIFIED_P (expr)))
     {
       expr = BASELINK_FUNCTIONS (expr);
       code = TREE_CODE (expr);
@@ -2583,10 +2585,20 @@ write_expression (tree expr)
       write_string ("at");
       write_type (TREE_OPERAND (expr, 0));
     }
-  else if (TREE_CODE (expr) == SCOPE_REF)
+  else if (code == SCOPE_REF
+	   || code == BASELINK)
     {
-      tree scope = TREE_OPERAND (expr, 0);
-      tree member = TREE_OPERAND (expr, 1);
+      tree scope, member;
+      if (code == SCOPE_REF)
+	{
+	  scope = TREE_OPERAND (expr, 0);
+	  member = TREE_OPERAND (expr, 1);
+	}
+      else
+	{
+	  scope = BINFO_TYPE (BASELINK_ACCESS_BINFO (expr));
+	  member = BASELINK_FUNCTIONS (expr);
+	}
 
       if (!abi_version_at_least (2) && DECL_P (member))
 	{

@@ -15558,7 +15558,7 @@ resolve_overloaded_unification (tree tparms,
 	      elem = tsubst (TREE_TYPE (fn), subargs, tf_none, NULL_TREE);
 	      if (try_one_overload (tparms, targs, tempargs, parm,
 				    elem, strict, sub_strict, addr_p, explain_p)
-		  && (!goodfn || !decls_match (goodfn, elem)))
+		  && (!goodfn || !same_type_p (goodfn, elem)))
 		{
 		  goodfn = elem;
 		  ++good;
@@ -16359,6 +16359,8 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict,
       idx = TEMPLATE_TYPE_IDX (parm);
       targ = TREE_VEC_ELT (INNERMOST_TEMPLATE_ARGS (targs), idx);
       tparm = TREE_VALUE (TREE_VEC_ELT (tparms, idx));
+      if (tparm == error_mark_node)
+	return unify_invalid (explain_p);
 
       /* Check for mixed types and values.  */
       if ((TREE_CODE (parm) == TEMPLATE_TYPE_PARM
@@ -19610,6 +19612,11 @@ value_dependent_expression_p (tree expression)
 	    return true;
 	return false;
       }
+
+    case STMT_EXPR:
+      /* Treat a GNU statement expression as dependent to avoid crashing
+	 under fold_non_dependent_expr; it can't be constant.  */
+      return true;
 
     default:
       /* A constant expression is value-dependent if any subexpression is

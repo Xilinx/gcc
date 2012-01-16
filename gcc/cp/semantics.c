@@ -33,7 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-family/c-common.h"
 #include "c-family/c-objc.h"
 #include "tree-inline.h"
-#include "tree-mudflap.h"
 #include "intl.h"
 #include "toplev.h"
 #include "flags.h"
@@ -997,6 +996,15 @@ finish_range_for_decl (tree range_for_stmt, tree decl, tree expr)
 tree
 finish_break_stmt (void)
 {
+  /* In switch statements break is sometimes stylistically used after
+     a return statement.  This can lead to spurious warnings about
+     control reaching the end of a non-void function when it is
+     inlined.  Note that we are calling block_may_fallthru with
+     language specific tree nodes; this works because
+     block_may_fallthru returns true when given something it does not
+     understand.  */
+  if (!block_may_fallthru (cur_stmt_list))
+    return void_zero_node;
   return add_stmt (build_stmt (input_location, BREAK_STMT));
 }
 
@@ -5951,6 +5959,8 @@ build_constexpr_constructor_member_initializers (tree type, tree body)
 	    break;
 	}
     }
+  else if (EXPR_P (body))
+    ok = build_data_member_initialization (body, &vec);
   else
     if (!flag_enable_cilk)
       gcc_assert (errorcount > 0);
@@ -6628,7 +6638,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
   else
     {
       result = entry->result;
-      if (!result || (result == error_mark_node && !allow_non_constant))
+      if (!result || result == error_mark_node)
 	result = (cxx_eval_constant_expression
 		  (&new_call, new_call.fundef->body,
 		   allow_non_constant, addr,

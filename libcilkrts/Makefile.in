@@ -313,7 +313,7 @@ libcilkrts_la_SOURCES = runtime/cilk-abi.c runtime/cilk_api.c           \
   runtime/cilk-abi-cilk-for.cpp runtime/except-gcc.cpp                  \
   runtime/global_state.cpp runtime/reducer_impl.cpp
 
-CILK_REVISION = 1857
+CILK_REVISION = 2068
 
 # Load the $(REVISION) value.
 libcilkrts_la_LDFLAGS = -rpath '$(libdir)' -version-info \

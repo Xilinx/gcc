@@ -6989,6 +6989,19 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
       goto failure;
     }
 
+  if (code->ext.alloc.ts.type == BT_CHARACTER && !e->ts.deferred)
+    {
+      int cmp = gfc_dep_compare_expr (e->ts.u.cl->length,
+				      code->ext.alloc.ts.u.cl->length);
+      if (cmp == 1 || cmp == -1 || cmp == -3)
+	{
+	  gfc_error ("Allocating %s at %L with type-spec requires the same "
+		     "character-length parameter as in the declaration",
+		     sym->name, &e->where);
+	  goto failure;
+	}
+    }
+
   /* In the variable definition context checks, gfc_expr_attr is used
      on the expression.  This is fooled by the array specification
      present in e, thus we have to eliminate that one temporarily.  */
@@ -9208,8 +9221,8 @@ resolve_ordinary_assign (gfc_code *code, gfc_namespace *ns)
      and coindexed; cf. F2008, 7.2.1.2 and PR 43366.  */
   if (lhs->ts.type == BT_CLASS)
     {
-      gfc_error ("Variable must not be polymorphic in assignment at %L "
-		 "- check that there is a matching specific subroutine "
+      gfc_error ("Variable must not be polymorphic in intrinsic assignment at "
+		 "%L - check that there is a matching specific subroutine "
 		 "for '=' operator", &lhs->where);
       return false;
     }
@@ -10130,6 +10143,26 @@ build_default_init_expr (gfc_symbol *sym)
 	  gfc_free_expr (init_expr);
 	  init_expr = NULL;
 	}
+      if (!init_expr && gfc_option.flag_init_character == GFC_INIT_CHARACTER_ON
+	  && sym->ts.u.cl->length)
+	{
+	  gfc_actual_arglist *arg;
+	  init_expr = gfc_get_expr ();
+	  init_expr->where = sym->declared_at;
+	  init_expr->ts = sym->ts;
+	  init_expr->expr_type = EXPR_FUNCTION;
+	  init_expr->value.function.isym =
+		gfc_intrinsic_function_by_id (GFC_ISYM_REPEAT);
+	  init_expr->value.function.name = "repeat";
+	  arg = gfc_get_actual_arglist ();
+	  arg->expr = gfc_get_character_expr (sym->ts.kind, &sym->declared_at,
+					      NULL, 1);
+	  arg->expr->value.character.string[0]
+		= gfc_option.flag_init_character_value;
+	  arg->next = gfc_get_actual_arglist ();
+	  arg->next->expr = gfc_copy_expr (sym->ts.u.cl->length);
+	  init_expr->value.function.actual = arg;
+	}
       break;
 	  
     default:
@@ -10156,10 +10189,12 @@ apply_default_init_local (gfc_symbol *sym)
   if (init == NULL)
     return;
 
-  /* For saved variables, we don't want to add an initializer at 
-     function entry, so we just add a static initializer.  */
+  /* For saved variables, we don't want to add an initializer at function
+     entry, so we just add a static initializer. Note that automatic variables
+     are stack allocated even with -fno-automatic.  */
   if (sym->attr.save || sym->ns->save_all 
-      || gfc_option.flag_max_stack_var_size == 0)
+      || (gfc_option.flag_max_stack_var_size == 0
+	  && (!sym->attr.dimension || !is_non_constant_shape_array (sym))))
     {
       /* Don't clobber an existing initializer!  */
       gcc_assert (sym->value == NULL);
