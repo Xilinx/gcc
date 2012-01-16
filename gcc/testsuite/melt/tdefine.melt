@@ -9,12 +9,17 @@
     -fmelt-debug empty-file-for-melt.c
 |#
 
-(defun plus2 (x) (+ivi x 2))
+(defun plus1 (x :cstring com) 
+  (debug "plus1 x=" x " com=" com)
+  (+ivi x 1))
 
 (define one 
-  (debug "inside definition one=" one)
-  (+ivi '0 1))
+  (let ( 
+        (insideone (plus1 '0 "insideone"))
+        )
+    insideone))
+
 (debug "after definition one=" one 
-       " one+2=" (plus2 one))
+       " one+1=" (plus1 one "afterdef one"))
 (assert_msg "check one exists" one)
 (export_values one)

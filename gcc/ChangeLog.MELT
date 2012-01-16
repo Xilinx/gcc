@@ -1,5 +1,12 @@
 
 2012-01-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (normexp_define): More debug.
+	make a tuple with two additional normal components.
+	* melt/warmelt-genobj.melt (dispose_objloc)
+	(compilobj_nrep_locsymocc): More debug.
+	* testsuite/melt/rdefine.melt: Use plus1 function.
+
+2012-01-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Better build machinery... work in progress}}
 	* melt-build.tpl (WARMELT_LAST_STAGESTAMP): New. Use it at many
 	occasions.

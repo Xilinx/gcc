@@ -959,7 +959,8 @@ routine procedures.}#
 
 ;;; normalize a tuple - returning a tuple & a bindinglist
 (defun normalize_tuple (tup env ncx psloc)
-  (debug tup "normalize_tuple tup=" tup " psloc=" psloc)
+  (debug "normalize_tuple tup=" tup " psloc=" psloc)
+  (shortbacktrace_dbg "normalize_tuple" 8)
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (if (null tup) (return () ()))
@@ -972,7 +973,7 @@ routine procedures.}#
 		 (multicall 
 		  (norcomp nbinds)
 		  (normal_exp comp env ncx psloc)
-		  (debug "normalize_tuple norcomp=" norcomp " nbinds=" nbinds)
+		  (debug "normalize_tuple norcomp=" norcomp " nbinds=" nbinds " for comp=" comp " ix=" ix)
 		  (assert_msg "check nbinds" (is_list_or_null nbinds))
 		  (assert_msg "check norcomp not nrep_expr" (is_not_a norcomp class_nrep_expression))
 		  (if (is_list nbinds)
@@ -5847,7 +5848,7 @@ source location.}#
 	   (:long nbodylen (multiple_length nbody))
 	   (nlastbody (multiple_nth nbody -1))
 	   (newenv (fresh_env env))
-	   (newbody (make_multiple discr_multiple (+i nbodylen 1)))
+	   (newbody (make_multiple discr_multiple (+i nbodylen 2)))
 	   (snamestr (get_field :named_name sname))
 	   (nlastassign (instance class_nrep_setq
 				  :nrep_loc sloc
@@ -5861,6 +5862,7 @@ source location.}#
 	(curnbody :long bodix)
 	(multiple_put_nth newbody bodix curnbody))
        (multiple_put_nth newbody nbodylen nlastassign)
+       (multiple_put_nth newbody (+i nbodylen 1) ndefname)
        (list_append procdefbinds binddef)
        (debug "normexp_define updated procdefbinds=" procdefbinds
 	      " ndefname=" ndefname " newbody=" newbody)
@@ -5873,6 +5875,7 @@ source location.}#
 	      (syca (mapobject_get sycmap sname))
 	      (sycabind (get_field :nocc_bind syca))
 	      )
+	 (debug "normexp_define nwrlet=" nwrlet)
 	 (debug "normexp_define syca=" syca " locbind=" locbind)
 	 (assert_msg "check syca" (is_a syca class_nrep_locsymocc))
 	 (assert_msg "check sycabind == locbind" (== sycabind locbind))
