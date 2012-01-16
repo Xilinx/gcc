@@ -1,6 +1,11 @@
 
 2012-01-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Better build machinery... work in progress}}
+	* melt-build.tpl: Use the melt-sourceS/*melttime.h timestamps.
+	* melt-build.mk: Regenerate.
+
+2012-01-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Better build machinery... work in progress}}
 	* Makefile.in (melt.encap): Also depends upon
 	$(srcdir)/melt-build.mk.
 	* melt-build.tpl: Always use $(MD5SUM).

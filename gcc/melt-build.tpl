@@ -341,6 +341,7 @@ melt-stage0-[+zeroflavor+]-fullstage.stamp: \
 	      empty-file-for-melt.c >> [+ (. outbase)+]+[+melt_stage+].args-tmp
 	@$(melt_move_if_change)  [+ (. outbase)+]+[+melt_stage+].args-tmp  [+ (. outbase)+]+[+melt_stage+].args
 	@echo; echo; echo -n  [+ (. outbase)+]+[+melt_stage+].args: ; cat [+ (. outbase)+]+[+melt_stage+].args ; echo; echo; echo "***** doing " $@  [+ (. (tpl-file-line))+]
+	@echo doing [+ (. outbase)+]+[+melt_stage+]  [+ (. (tpl-file-line))+]
 	$(melt_make_cc1) @[+ (. outbase)+]+[+melt_stage+].args
 	@ls -l [+melt_stage+]/[+ (. outbase)+].c  || ( echo "*@*MISSING "  [+melt_stage+]/[+ (. outbase)+].c [+ (. (tpl-file-line))+] ; exit 1 )
 
@@ -350,6 +351,7 @@ melt-stage0-[+zeroflavor+]-fullstage.stamp: \
               $(wildcard [+melt_stage+]/[+ (. outbase)+]+*.c)  [+ (. prevstage)+]-fullstage.stamp \
               melt-run.h melt-runtime.h melt-predef.h melt-workdir-directory.stamp \
               $(melt_make_cc1_dependency)
+	@echo doing $@  [+ (. (tpl-file-line))+]
 	+$(MELT_MAKE_MODULE) melt_module \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
@@ -372,6 +374,7 @@ melt-stage0-[+zeroflavor+]-fullstage.stamp: \
               $(wildcard [+melt_stage+]/[+ (. outbase)+]+*.c) \
               melt-run.h melt-runtime.h melt-predef.h melt-workdir-directory.stamp \
               $(melt_make_cc1_dependency)
+	@echo doing $@  [+ (. (tpl-file-line))+]
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
               GCCMELT_MODULE_WORKSPACE=melt-workdir \
               GCCMELT_MODULE_FLAVOR=debugnoline \
@@ -407,7 +410,8 @@ ENDFOR melt_translator_file+]
 
 ## the stamp for [+melt_stage+], using an order only prerequisite
 #@ [+ (. (tpl-file-line))+]
-[+melt_stage+]-fullstage.stamp:  melt-run.h | [+melt_stage+]/warmelt.modlis
+[+melt_stage+]-fullstage.stamp:  melt-run.h | [+melt_stage+]/warmelt.modlis \
+[+FOR melt_translator_file "\\\n"+] [+melt_stage+]-[+base+]-module.stamp [+ENDFOR melt_translator_file+]
 	echo "#$@ generated" > $@-tmp
 	$(MD5SUM) melt-run.h >> $@-tmp
 [+FOR melt_translator_file "\n"+]	$(MD5SUM) $(wildcard [+melt_stage+]/[+base+].c[+melt_stage+]/[+base+]+[0-9]*.c) < /dev/null >> $@-tmp[+ENDFOR melt_translator_file+]
@@ -466,17 +470,17 @@ melt-sources-directory.stamp: melt-sources; @true
 
 ### all sources [+ (. (tpl-file-line))+]
 melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
-              melt-run.h melt-runtime.h melt-predef.h melt-sources-directory.stamp \
-              $(melt_make_cc1_dependency) \
+    melt-run.h melt-runtime.h melt-predef.h melt-sources-directory.stamp \
+    $(melt_make_cc1_dependency) \
 [+FOR melt_translator_file+]      melt-sources/[+base+].melt \
-              melt-sources/[+base+].c \
+    melt-sources/[+base+]+melttime.h \
 [+FOR includeload+]       melt-sources/[+includeload+] \
 [+ENDFOR includeload+][+ENDFOR melt_translator_file+][+FOR melt_application_file" \\\n"
-+]            melt-sources/[+base+].melt \
-              melt-sources/[+base+].c [+ENDFOR melt_application_file+]
++]  melt-sources/[+base+].melt \
+    melt-sources/[+base+]+melttime.h  [+ENDFOR melt_application_file+]
 
 
-#### melt-sources translator files
+#### melt-sources translator files [+ (. (tpl-file-line))+]
 [+FOR melt_translator_file+]
 #@ [+ (. (tpl-file-line))+]
 [+ (define transindex (for-index)) +]
@@ -505,7 +509,8 @@ melt-sources/[+base+].c melt-sources/[+base+]+meltdesc.c: \
 +]melt-sources/[+includeload+] [+ENDFOR includeload+] \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
-                    $(melt_make_cc1_dependency) 
+                    $(melt_make_cc1_dependency)
+	@echo doing $@  [+ (. (tpl-file-line))+]
 	@echo [+IF (= transindex 0)+] $(MELTCCINIT1ARGS) \[+ELSE+] $(MELTCCFILE1ARGS) \[+ENDIF+]
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) \
 	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-modules): \
@@ -524,6 +529,7 @@ melt-modules/[+base+].optimized.so: melt-sources/[+base+].c \
       $(wildcard  melt-sources/[+base+]+*.c) \
       melt-modules-directory.stamp melt-sources-directory.stamp melt-workdir-directory.stamp \
       melt-run.h melt-runtime.h
+	@echo doing $@  [+ (. (tpl-file-line))+]
 	+$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_FLAVOR=optimized \
@@ -536,6 +542,7 @@ melt-modules/[+base+].debugnoline.so: melt-sources/[+base+].c \
    $(wildcard  melt-sources/[+base+]+*.c) \
    melt-modules-directory.stamp melt-sources-directory.stamp  melt-workdir-directory.stamp \
    melt-run.h melt-runtime.h 
+	@echo doing $@  [+ (. (tpl-file-line))+]
 	+$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_FLAVOR=debugnoline \
@@ -548,6 +555,7 @@ melt-modules/[+base+].quicklybuilt.so: melt-sources/[+base+].c \
     $(wildcard  melt-sources/[+base+]+*.c) \
     melt-modules-directory.stamp melt-sources-directory.stamp  melt-workdir-directory.stamp \
     melt-run.h melt-runtime.h 
+	@echo doing $@  [+ (. (tpl-file-line))+]
 	+$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_MODULE_FLAVOR=quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
@@ -565,7 +573,7 @@ melt-modules/[+base+].quicklybuilt.so: melt-sources/[+base+].c \
 #@ [+ (. (tpl-file-line))+]
 #### melt-sources warmelt-[+variant+] is the sequence of translator files:
 melt-sources/warmelt-[+variant+].modlis: [+FOR melt_translator_file " \\\n"+]melt-modules/[+base+].optimized.so [+ENDFOR melt_translator_file+]
-	@echo building [+variant+] module list $@
+	@echo building [+variant+] module list $@ [+ (. (tpl-file-line))+]
 	date  +"# MELT warmelt-[+variant+] list $@ generated %F" > $@-tmp
 	echo "#  [+variant+] translator files" >> $@-tmp
 [+FOR melt_translator_file+]	echo [+base+].[+variant+] >> $@-tmp
@@ -596,6 +604,7 @@ melt-sources/[+base+].c: \
    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
    empty-file-for-melt.c melt-run.h melt-runtime.h \
    $(melt_make_cc1_dependency)
+	@echo doing $@  [+ (. (tpl-file-line))+]
 	@echo 	$(MELTCCAPPLICATION1ARGS) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) \
 	     $(meltarg_module_path)=$(realpath melt-modules) \
@@ -616,6 +625,7 @@ melt-modules/[+base+].[+applflavor+].so: melt-sources-directory.stamp \
      melt-sources/[+base+].c melt-modules-directory.stamp  melt-workdir-directory.stamp \
      $(wildcard  melt-sources/[+base+]+*.c) \
      melt-run.h melt-runtime.h 
+	@echo doing $@  [+ (. (tpl-file-line))+]
 	+$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_MODULE_FLAVOR=[+applflavor+] \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
@@ -643,6 +653,7 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
 		melt-default-modules-quicklybuilt.modlis melt-runtime.args \
 		$(MELT_RUNTIME_C)
 # test that a helloworld can be translated [+ (. (tpl-file-line))+]
+	@echo doing $@  [+ (. (tpl-file-line))+]
 	@echo	$(MELTCCAPPLICATION1ARGS) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) \
 	     $(meltarg_module_path)=$(realpath melt-modules) \
