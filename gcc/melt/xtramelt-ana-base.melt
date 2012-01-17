@@ -2,7 +2,7 @@
 ;; file xtramelt-ana-base.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
                 and Jeremie Salvucci  <jeremie.salvucci@free.fr>
                 and Pierre Vittet  <piervit@pvittet.com>
@@ -1938,6 +1938,19 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
    }# )
 
 ;;;;;;;;;;;;;;;;
+;; pattern tree_offset_type is for pointers relative to object
+(defcmatcher tree_offset_type
+ (:tree tr)
+ (:tree trtype trbasetype)
+ treeoffsettype
+ ;; expander
+ #{/*$TREEOFFSETTYPE ?*/ (($TR) && TREE_CODE($TR) == OFFSET_TYPE) }#
+ ;; filler
+ #{/*$TREEOFFSETTYPE !*/ $TRTYPE = TREE_TYPE($TR);
+   $TRBASETYPE = TREE_OFFSET_BASETYPE ($TR);
+ }#)
+
+;;;;;;;;;;;;;;;;
 ;;; pattern tree_parm_decl matches a formal parameter declaration
 (defcmatcher tree_parm_decl 
   (:tree tr)
@@ -2061,6 +2074,44 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
     }#)
 
 ;;;;;;;;;;;;;;;;
+(defcmatcher tree_enumeral_type
+  (:tree tr)
+  (:tree ttype
+   :tree tmin tmax
+   :tree tsize
+   :tree tvalues)
+  treeenumtype
+  ;; test
+  #{/*$TREEENUMTYPE ?*/ (($TR) && TREE_CODE($TR) == ENUMERAL_TYPE) }#
+  ;; fill
+  #{/*$TREEENUMTYPE !*/
+      $TTYPE = TYPE_NAME($TR);
+      $TSIZE = TYPE_SIZE($TR);
+      $TMIN = TYPE_MIN_VALUE ($TR);
+      $TMAX = TYPE_MAX_VALUE ($TR);
+      $TVALUES = TYPE_VALUES ($TR); }#
+)
+
+;;;;;;;;;;;;;;;;;
+(defcmatcher tree_boolean_type
+  (:tree tr)
+  (:tree ttype
+   :tree tmin tmax
+   :tree tsize
+  )
+  treebooltype
+  ;; test
+  #{/*$TREEBOOLTYPE ?*/ (($TR) && TREE_CODE($TR) == BOOLEAN_TYPE) }#
+  ;; fill
+  #{/*$TREEBOOLTYPE !*/
+      $TTYPE = TYPE_NAME($TR);
+      $TSIZE = TYPE_SIZE($TR);
+      $TMIN = TYPE_MIN_VALUE ($TR);
+      $TMAX = TYPE_MAX_VALUE ($TR);}#
+)
+
+
+;;;;;;;;;;;;;;;;
 ;;; pattern tree_integer_type_bounded, the bounds are trees
 (defcmatcher tree_integer_type_bounded
   (:tree tr)
@@ -2154,7 +2205,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 				       TREE_STRING_LENGTH ($tr));
   }#)
        
-;;; pattern for pointer types
+;;; pattern for pointer types (or reference type)
 (defcmatcher tree_pointer_type_p
   (:tree tr)
   (:tree typetr)
@@ -2167,6 +2218,29 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;  :doc #{The $TREE_POINTER_TYPE_P cmatchers matches pointer &
 ;  reference type trees.}#
 )
+
+(defcmatcher tree_pointer_type
+  (:tree tr)
+  (:tree typetr)
+  treeptrty
+  ;; test
+  #{ /*$TREEPTRTY ?*/ (($TR) && TREE_CODE($TR) == POINTER_TYPE) }#
+  ;; fill
+  #{ /*$TREEPTRTY !*/ $TYPETR = TREE_TYPE($TR); }#
+  ;; operator
+  #{ /*TREEPTRTY*/ build_pointer_type(($TYPETR)) }#
+)
+
+(defcmatcher tree_reference_type
+  (:tree tr)
+  (:tree typetr)
+  treerefty
+  ;; test
+  #{ /*$TREEREFTY ?*/ (($TR) && TREE_CODE($TR) == REFERENCE_TYPE) }#
+  ;; fill
+  #{ /*$TREEREFTY !*/ $TYPETR = TREE_TYPE($TR); }#
+)
+
 
 ;;; pattern for indirect references
 (defcmatcher tree_indirect_reference
@@ -4173,6 +4247,7 @@ Don't scan operands of the added $G.}#
  tree_array_ref_full
  tree_array_type
  tree_block
+ tree_boolean_type
  tree_chain_append
  tree_chain_join
  tree_chain_prepend
@@ -4181,6 +4256,7 @@ Don't scan operands of the added $G.}#
  tree_component_ref_typed
  tree_content 
  tree_decl
+ tree_enumeral_type
  tree_field_decl
  tree_function_decl 
  tree_function_type
@@ -4192,12 +4268,15 @@ Don't scan operands of the added $G.}#
  tree_list
  tree_mem_ref
  tree_of_type
+ tree_offset_type
  tree_parm_decl
+ tree_pointer_type
  tree_pointer_type_p
  tree_real_cst
  tree_real_type
  tree_record_type
  tree_record_type_with_fields
+ tree_reference_type
  tree_simple_ssa_name 
  tree_ssa_name 
  tree_string_cst
