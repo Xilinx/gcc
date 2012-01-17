@@ -6112,7 +6112,7 @@ pph_set_chain_identifier_bindings (tree first, cp_binding_level *bl)
    after having read all the PPH files.  */
 
 void
-pph_set_global_identifier_bindings ()
+pph_set_global_identifier_bindings (void)
 {
   cp_binding_level *bl = scope_chain->bindings;
   pph_set_chain_identifier_bindings (bl->names, bl);

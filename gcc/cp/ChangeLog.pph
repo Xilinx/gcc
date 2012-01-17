@@ -1,5 +1,13 @@
 2012-01-16   Diego Novillo  <dnovillo@google.com>
 
+	* name-lookup.c (pph_set_global_identifier_bindings): Make
+	parameter list void.
+	* pph.h (pph_set_global_identifier_bindings): Likewise.
+	* pph-core.c (pph_stream_registry_add_name): Fix use of struct
+	pph_name_stream_map.
+
+2012-01-16   Diego Novillo  <dnovillo@google.com>
+
 	* pph-core.c (pph_stream_register): Move later in the file.
 	(pph_stream_unregister): Likewise.
 	(pph_stream_registry_ix_for): Fix comparison to !=.

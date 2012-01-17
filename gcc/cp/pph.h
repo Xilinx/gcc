@@ -164,13 +164,13 @@ extern enum pph_record_marker pph_in_record_marker (pph_stream *stream,
 struct binding_table_s;
 extern void pph_out_binding_table (pph_stream *, struct binding_table_s *);
 extern struct binding_table_s *pph_in_binding_table (pph_stream *);
-extern void pph_set_global_identifier_bindings ();
+extern void pph_set_global_identifier_bindings (void);
 
 /* In pt.c.  */
-extern void pph_out_pending_templates_list (pph_stream *stream);
-extern void pph_out_spec_entry_tables (pph_stream *stream);
-extern void pph_in_pending_templates_list (pph_stream *stream);
-extern void pph_in_spec_entry_tables (pph_stream *stream);
+extern void pph_out_pending_templates_list (pph_stream *);
+extern void pph_out_spec_entry_tables (pph_stream *);
+extern void pph_in_pending_templates_list (pph_stream *);
+extern void pph_in_spec_entry_tables (pph_stream *);
 
 
 /* Inline functions.  */

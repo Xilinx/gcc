@@ -886,7 +886,7 @@ static void
 pph_stream_registry_add_name (pph_stream *stream, const char *name)
 {
   void **slot;
-  pph_name_stream_map e;
+  struct pph_name_stream_map e;
 
   /* STREAM should have been registered beforehand.  */
   gcc_assert (pph_stream_registered_p (stream));
@@ -896,8 +896,8 @@ pph_stream_registry_add_name (pph_stream *stream, const char *name)
   e.ix = pph_stream_registry_ix_for (stream);
   slot = htab_find_slot (pph_stream_registry.name_ix, &e, INSERT);
   gcc_assert (*slot == NULL);
-  *slot = (void *) XNEW (pph_name_stream_map);
-  memcpy ((pph_name_stream_map *) *slot, &e, sizeof (e));
+  *slot = (void *) XNEW (struct pph_name_stream_map);
+  memcpy ((struct pph_name_stream_map *) *slot, &e, sizeof (e));
 }
 
 
