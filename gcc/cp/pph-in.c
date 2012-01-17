@@ -2892,7 +2892,7 @@ pph_read_file_1 (pph_stream *stream)
 
   /* Mark this file as read.  If other images need to access its contents,
      we will not need to actually read it again.  */
-  pph_mark_stream_read (stream);
+  stream->in_memory_p = true;
 
   if (flag_pph_dump_tree)
     pph_dump_namespace (pph_logfile, global_namespace);

@@ -251,7 +251,6 @@ enum pph_trace_end
 const char *pph_tree_code_text (enum tree_code code);
 void pph_dump_namespace (FILE *, tree ns);
 pph_stream *pph_stream_open (const char *, const char *);
-void pph_mark_stream_read (pph_stream *);
 void pph_stream_close (pph_stream *);
 void pph_add_include (pph_stream *, pph_stream *);
 void pph_trace_marker (enum pph_record_marker marker, enum pph_tag tag);

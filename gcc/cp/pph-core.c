@@ -49,6 +49,46 @@ along with GCC; see the file COPYING3.  If not see
 #include "streamer-hooks.h"
 
 
+/* Mapping between a name string and the registry index for the
+   corresponding PPH image.  */
+struct pph_name_stream_map {
+  const char *name;
+  unsigned ix;
+};
+
+/* Registry of all the PPH images opened during this compilation.
+   This registry is used in three different ways:
+
+    1- To associate header pathnames (HEADER_NAME field in
+       pph_stream) and images.  Used for looking up PPH streams from
+       header names (e.g., pph_out_line_table_and_includes).
+
+    2- To associate PPH file names (NAME field in pph_stream) and
+       images.  Used for deciding whether a PPH file has been
+       opened already (e.g., pph_stream_open).
+
+    3- To look for symbols and types in the pickle cache of opened
+       PPH streams (e.g., pph_cache_lookup_in_includes).
+
+   This registry is needed because images opened during #include
+   processing and opened from pph_in_includes cannot be closed
+   immediately after reading, because the pickle cache contained in
+   them may be referenced from other images.  We delay closing all of
+   them until the end of parsing (when pph_streamer_finish is called).  */
+struct pph_stream_registry_d {
+  /* Map between names and images.  */
+  htab_t name_ix;
+
+  /* Index of all registered PPH images.  */
+  struct pointer_map_t *image_ix;
+
+  /* List of registered PPH images.  */
+  VEC(pph_stream_ptr, heap) *v;
+};
+
+static struct pph_stream_registry_d pph_stream_registry;
+
+
 /*************************************************************** pph logging */
 
 
@@ -815,38 +855,113 @@ pph_loaded (void)
 /*********************************************************** stream handling */
 
 
-/* List of PPH images opened for reading.  Images opened during #include
-   processing and opened from pph_in_includes cannot be closed
-   immediately after reading, because the pickle cache contained in
-   them may be referenced from other images.  We delay closing all of
-   them until the end of parsing (when pph_streamer_finish is called).  */
-static VEC(pph_stream_ptr, heap) *pph_read_images = NULL;
+/* Register STREAM in the table of open streams.  */
 
-
-/* If FILENAME has already been read, return the stream associated with it.  */
-
-static pph_stream *
-pph_find_stream_for (const char *filename)
+static void
+pph_stream_register (pph_stream *stream)
 {
-  pph_stream *include;
-  unsigned i;
+  void **slot;
+  unsigned vlen;
 
-  /* FIXME pph, implement a hash map to avoid this linear search.  */
-  FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, i, include)
-    if (strcmp (include->name, filename) == 0)
-      return include;
+  slot = pointer_map_insert (pph_stream_registry.image_ix, stream);
 
-  return NULL;
+  /* Disallow multpile registration of the same STREAM.  This is overly
+     strict, but it prevents some unnecessary overhead.  */
+  gcc_assert (*slot == NULL);
+
+  VEC_safe_push (pph_stream_ptr, heap, pph_stream_registry.v, stream);
+  vlen = VEC_length (pph_stream_ptr, pph_stream_registry.v);
+  *slot = (void *)(intptr_t) (vlen - 1);
 }
 
 
-/* Add STREAM to the list of read images.  */
+/* Unregister STREAM from the table of open streams.  */
+
+static void
+pph_stream_unregister (pph_stream *stream)
+{
+  void **slot;
+  unsigned ix;
+
+  slot = pointer_map_contains (pph_stream_registry.image_ix, stream);
+  gcc_assert (slot);
+  ix = (unsigned)(intptr_t) *slot;
+
+  /* Mark it unregistered in the image index.  */
+  *slot = (void *)(intptr_t) -1;
+
+  /* Remove it from the image list.  Note that we do not need to
+     remove the index from the name index.  Any further lookups will
+     simply return NULL.  */
+  VEC_replace (pph_stream_ptr, pph_stream_registry.v, ix, NULL);
+}
+
+
+/* Return the index into the registry for STREAM.  If STREAM has not been
+   registered yet, return -1.  */
+
+static unsigned
+pph_stream_registry_ix_for (pph_stream *stream)
+{
+  void **slot;
+
+  slot = pointer_map_contains (pph_stream_registry.image_ix, stream);
+  if (slot == NULL)
+    return (unsigned) -1;
+
+  return (unsigned)(intptr_t) *slot;
+}
+
+
+/* Return true if STREAM has been registered.  */
+
+static bool
+pph_stream_registered_p (pph_stream *stream)
+{
+  return pph_stream_registry_ix_for (stream) == -1u;
+}
+
+
+/* Associate string NAME with the registry entry for STREAM.  */
 
 void
-pph_mark_stream_read (pph_stream *stream)
+pph_stream_registry_add_name (pph_stream *stream, const char *name)
 {
-  stream->in_memory_p = true;
-  VEC_safe_push (pph_stream_ptr, heap, pph_read_images, stream);
+  void **slot;
+  pph_name_stream_map e;
+
+  /* STREAM should have been registered beforehand.  */
+  gcc_assert (pph_stream_registered_p (stream));
+
+  /* Now associate NAME to STREAM.  */
+  e.name = name;
+  e.ix = pph_stream_registry_ix_for (stream);
+  slot = htab_find_slot (pph_stream_registry.name_ix, &e, INSERT);
+  gcc_assert (*slot == NULL);
+  memcpy ((pph_name_stream_map *) *slot, &e, sizeof (e));
+}
+
+
+/* Return the PPH stream associated with NAME.  Return NULL if no such
+   mapping exist.  */
+
+pph_stream *
+pph_stream_registry_lookup (const char *name)
+{
+  void **slot;
+  intptr_t slot_ix;
+  pph_name_stream_map e;
+
+  e.name = name;
+  e.ix = -1u;
+  slot = htab_find_slot (pph_stream_registry.name_ix, &e, NO_INSERT);
+  if (slot == NULL)
+    return NULL;
+
+  slot_ix = (intptr_t) *slot;
+  gcc_assert (slot_ix == (intptr_t)(unsigned) slot_ix);
+  e.ix = (unsigned) slot_ix;
+  return VEC_index (pph_stream_ptr, pph_stream_registry.v, e.ix);
 }
 
 
@@ -861,7 +976,7 @@ pph_stream_open (const char *name, const char *mode)
 
   /* If we have already opened a PPH stream named NAME, just return
      its associated stream.  */
-  stream = pph_find_stream_for (name);
+  stream = pph_stream_registry_lookup (name);
   if (stream)
     {
       gcc_assert (stream->in_memory_p);
@@ -882,6 +997,9 @@ pph_stream_open (const char *name, const char *mode)
     pph_init_write (stream);
   else
     pph_init_read (stream);
+
+  /* Register STREAM in the table of all open streams.  */
+  pph_stream_register (stream);
 
   return stream;
 }
@@ -931,6 +1049,9 @@ pph_stream_close (pph_stream *stream)
       free (stream->encoder.r.pph_sections);
       free (stream->encoder.r.file_data);
     }
+
+  /* Unregister STREAM.  */
+  pph_stream_unregister (stream);
 
   free (stream);
 }
@@ -1014,8 +1135,25 @@ pph_streamer_init (void)
 
 /* The initial order of the size of the lexical lookaside table,
    which will accomodate as many as half of its slots in use.  */
-
 static const unsigned int cpp_lt_order = /* 2 to the power of */ 9;
+
+
+/* Hash and comparison functions for pph_stream_registry.  */
+
+static hashval_t
+pph_header_image_hash (const void *p)
+{
+  return htab_hash_string (((const struct pph_name_stream_map *)p)->name);
+}
+
+static int
+pph_header_image_eq (const void *p1, const void *p2)
+{
+  const char *name1 = ((const struct pph_name_stream_map *)p1)->name;
+  const char *name2 = ((const struct pph_name_stream_map *)p2)->name;
+  return (name1 == name2 || strcmp (name1, name2) == 0);
+}
+
 
 /* Initialize PPH support.  */
 
@@ -1045,6 +1183,12 @@ pph_init (void)
                            cpp_lt_create (cpp_lt_order, flag_pph_debug/2));
   gcc_assert (table == NULL);
 
+  /* Set up the PPH registry.  */
+  pph_stream_registry.name_ix = htab_create (10, pph_header_image_hash,
+				              pph_header_image_eq, NULL);
+  pph_stream_registry.image_ix = pointer_map_create ();
+  pph_stream_registry.v = NULL;
+
   pph_streamer_init ();
 
   /* If we are generating a PPH file, initialize the writer.  */
@@ -1073,10 +1217,13 @@ pph_streamer_finish (void)
   pph_reader_finish ();
 
   /* Close any images read during parsing.  */
-  FOR_EACH_VEC_ELT (pph_stream_ptr, pph_read_images, i, image)
+  FOR_EACH_VEC_ELT (pph_stream_ptr, pph_stream_registry.v, i, image)
     pph_stream_close (image);
 
-  VEC_free (pph_stream_ptr, heap, pph_read_images);
+  /* Free all memory used by the stream registry.  */
+  VEC_free (pph_stream_ptr, heap, pph_stream_registry.v);
+  pointer_map_destroy (pph_stream_registry.image_ix);
+  htab_delete (pph_stream_registry.name_ix);
 }
 
 

@@ -1,3 +1,28 @@
+2012-01-16   Diego Novillo  <dnovillo@google.com>
+
+	* pph-core.c (struct pph_name_stream_map): Declare.
+	(struct pph_stream_registry_d): Declare.
+	(pph_stream_registry): New.
+	(pph_read_images): Remove.  Update all users.
+	(pph_find_stream_for): Remove.  Update all users.
+	(pph_mark_stream_read): Remove.  Update all users.
+	(pph_stream_register): New.
+	(pph_stream_unregister): New
+	(pph_stream_registry_ix_for): New.
+	(pph_stream_registered_p): New.
+	(pph_stream_registry_add_name): New.
+	(pph_stream_registry_lookup): New.
+	(pph_stream_open): Call it.
+	Call pph_stream_register.
+	(pph_stream_close): Call pph_stream_unregister.
+	(pph_header_image_hash): New.
+	(pph_header_image_eq): New.
+	(pph_init): Initialize pph_stream_registry.
+	(pph_streamer_finish): Free memory used by pph_stream_registry.
+	* pph-in.c (pph_read_file_1): Do not call pph_mark_stream_read.
+	Set STREAM->IN_MEMORY_P to true.
+	* pph-streamer.h (pph_mark_stream_read): Remove.
+
 2012-01-13   Diego Novillo  <dnovillo@google.com>
 
 	* pph-in.c (pph_in_line_table_and_includes): Fix computation of
