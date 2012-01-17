@@ -1,5 +1,9 @@
 
 2012-01-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl: Force with -f most occurrences of $(LN_S)
+	* melt-build.mk: Regenerate.
+
+2012-01-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

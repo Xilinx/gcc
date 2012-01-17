@@ -238,7 +238,7 @@ melt-stage0-[+zeroflavor+]/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5)
 melt-stage0-[+zeroflavor+]/[+base+]+meltdesc.c melt-stage0-[+zeroflavor+]/[+base+]+melttime.h: \
    $(melt_make_source_dir)/generated/[+base+]+meltdesc.c \
    $(melt_make_source_dir)/generated/[+base+]+melttime.h
-	$(LN_S) -v  $? melt-stage0-[+zeroflavor+]/
+	$(LN_S) -v -f $? melt-stage0-[+zeroflavor+]/
 
 
 #@ stage 0 for [+base+] flavor [+zeroflavor+]  shortmodule [+ (. (tpl-file-line))+] 
@@ -594,7 +594,7 @@ melt-sources/warmelt-[+variant+].modlis: [+FOR melt_translator_file " \\\n"+]mel
 #@ [+ (. (tpl-file-line))+]
 ## melt application [+base+]
 melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt
-	cd melt-sources; rm -f [+base+].melt; $(LN_S) $(realpath $^)
+	cd melt-sources; $(LN_S) -v -f $(realpath $^) [+base+].melt
 
 
 #@ [+ (. (tpl-file-line))+]
@@ -722,7 +722,7 @@ $(melt_default_modules_list).modlis: melt-all-modules \
        $(melt_default_modules_list)-quicklybuilt.modlis \
        $(melt_default_modules_list)-optimized.modlis \
        $(melt_default_modules_list)-debugnoline.modlis
-	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(melt_default_modules_list)-$(melt_default_variant).modlis  $(notdir $@)
+	cd $(dir $@) ; $(LN_S) -v -f $(melt_default_modules_list)-$(melt_default_variant).modlis  $(notdir $@)
 
 
 #@ [+ (. (tpl-file-line))+]
