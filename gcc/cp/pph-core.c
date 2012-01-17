@@ -855,6 +855,84 @@ pph_loaded (void)
 /*********************************************************** stream handling */
 
 
+/* Return the index into the registry for STREAM.  If STREAM has not been
+   registered yet, return -1.  */
+
+static unsigned
+pph_stream_registry_ix_for (pph_stream *stream)
+{
+  void **slot;
+
+  slot = pointer_map_contains (pph_stream_registry.image_ix, stream);
+  if (slot == NULL)
+    return (unsigned) -1;
+
+  return (unsigned)(intptr_t) *slot;
+}
+
+
+/* Return true if STREAM has been registered.  */
+
+static bool
+pph_stream_registered_p (pph_stream *stream)
+{
+  return pph_stream_registry_ix_for (stream) != -1u;
+}
+
+
+/* Associate string NAME with the registry entry for STREAM.  */
+
+static void
+pph_stream_registry_add_name (pph_stream *stream, const char *name)
+{
+  void **slot;
+  pph_name_stream_map e;
+
+  /* STREAM should have been registered beforehand.  */
+  gcc_assert (pph_stream_registered_p (stream));
+
+  /* Now associate NAME to STREAM.  */
+  e.name = name;
+  e.ix = pph_stream_registry_ix_for (stream);
+  slot = htab_find_slot (pph_stream_registry.name_ix, &e, INSERT);
+  gcc_assert (*slot == NULL);
+  *slot = (void *) XNEW (pph_name_stream_map);
+  memcpy ((pph_name_stream_map *) *slot, &e, sizeof (e));
+}
+
+
+/* Set NAME to be STREAM's full pathname for the corresponding header
+   file.  */
+
+void
+pph_stream_set_header_name (pph_stream *stream, const char *name)
+{
+  stream->header_name = name;
+  pph_stream_registry_add_name (stream, name);
+}
+
+
+/* Return the PPH stream associated with NAME.  Return NULL if no such
+   mapping exist.  */
+
+pph_stream *
+pph_stream_registry_lookup (const char *name)
+{
+  void **slot;
+  intptr_t slot_ix;
+  struct pph_name_stream_map e;
+
+  e.name = name;
+  e.ix = -1u;
+  slot = htab_find_slot (pph_stream_registry.name_ix, &e, NO_INSERT);
+  if (slot == NULL)
+    return NULL;
+
+  slot_ix = ((struct pph_name_stream_map *) *slot)->ix;
+  return VEC_index (pph_stream_ptr, pph_stream_registry.v, slot_ix);
+}
+
+
 /* Register STREAM in the table of open streams.  */
 
 static void
@@ -872,6 +950,9 @@ pph_stream_register (pph_stream *stream)
   VEC_safe_push (pph_stream_ptr, heap, pph_stream_registry.v, stream);
   vlen = VEC_length (pph_stream_ptr, pph_stream_registry.v);
   *slot = (void *)(intptr_t) (vlen - 1);
+
+  /* Add a mapping between STREAM's PPH file name and STREAM.  */
+  pph_stream_registry_add_name (stream, stream->name);
 }
 
 
@@ -894,74 +975,6 @@ pph_stream_unregister (pph_stream *stream)
      remove the index from the name index.  Any further lookups will
      simply return NULL.  */
   VEC_replace (pph_stream_ptr, pph_stream_registry.v, ix, NULL);
-}
-
-
-/* Return the index into the registry for STREAM.  If STREAM has not been
-   registered yet, return -1.  */
-
-static unsigned
-pph_stream_registry_ix_for (pph_stream *stream)
-{
-  void **slot;
-
-  slot = pointer_map_contains (pph_stream_registry.image_ix, stream);
-  if (slot == NULL)
-    return (unsigned) -1;
-
-  return (unsigned)(intptr_t) *slot;
-}
-
-
-/* Return true if STREAM has been registered.  */
-
-static bool
-pph_stream_registered_p (pph_stream *stream)
-{
-  return pph_stream_registry_ix_for (stream) == -1u;
-}
-
-
-/* Associate string NAME with the registry entry for STREAM.  */
-
-void
-pph_stream_registry_add_name (pph_stream *stream, const char *name)
-{
-  void **slot;
-  pph_name_stream_map e;
-
-  /* STREAM should have been registered beforehand.  */
-  gcc_assert (pph_stream_registered_p (stream));
-
-  /* Now associate NAME to STREAM.  */
-  e.name = name;
-  e.ix = pph_stream_registry_ix_for (stream);
-  slot = htab_find_slot (pph_stream_registry.name_ix, &e, INSERT);
-  gcc_assert (*slot == NULL);
-  memcpy ((pph_name_stream_map *) *slot, &e, sizeof (e));
-}
-
-
-/* Return the PPH stream associated with NAME.  Return NULL if no such
-   mapping exist.  */
-
-pph_stream *
-pph_stream_registry_lookup (const char *name)
-{
-  void **slot;
-  intptr_t slot_ix;
-  pph_name_stream_map e;
-
-  e.name = name;
-  e.ix = -1u;
-  slot = htab_find_slot (pph_stream_registry.name_ix, &e, NO_INSERT);
-  if (slot == NULL)
-    return NULL;
-
-  slot_ix = (intptr_t) *slot;
-  gcc_assert (slot_ix == (intptr_t)(unsigned) slot_ix);
-  e.ix = (unsigned) slot_ix;
-  return VEC_index (pph_stream_ptr, pph_stream_registry.v, e.ix);
 }
 
 
@@ -993,13 +1006,16 @@ pph_stream_open (const char *name, const char *mode)
   stream->write_p = (strchr (mode, 'w') != NULL);
   pph_cache_init (&stream->cache);
   stream->preloaded_cache = pph_preloaded_cache;
+
+  /* Register STREAM in the table of all open streams.  Do it before
+     initializing the reader or writer since they may need to look it
+     up in the registry.  */
+  pph_stream_register (stream);
+
   if (stream->write_p)
     pph_init_write (stream);
   else
     pph_init_read (stream);
-
-  /* Register STREAM in the table of all open streams.  */
-  pph_stream_register (stream);
 
   return stream;
 }

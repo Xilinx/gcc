@@ -250,6 +250,8 @@ enum pph_trace_end
 /* In pph-core.c.  */
 const char *pph_tree_code_text (enum tree_code code);
 void pph_dump_namespace (FILE *, tree ns);
+pph_stream *pph_stream_registry_lookup (const char *);
+void pph_stream_set_header_name (pph_stream *, const char *);
 pph_stream *pph_stream_open (const char *, const char *);
 void pph_stream_close (pph_stream *);
 void pph_add_include (pph_stream *, pph_stream *);

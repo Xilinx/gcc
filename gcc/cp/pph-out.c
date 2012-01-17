@@ -68,7 +68,7 @@ pph_init_write (pph_stream *stream)
 
   /* Since we are about to generate STREAM, its header name is the
      name of the header file that we are currently parsing.  */
-  stream->header_name = xstrdup (input_filename);
+  pph_stream_set_header_name (stream, xstrdup (input_filename));
 }
 
 
@@ -298,20 +298,6 @@ pph_out_include (pph_stream *stream, pph_stream *include,
 }
 
 
-/* Return the *NEXT_INCLUDE_IX'th pph_stream in STREAM's list of includes.
-   Returns NULL if we have read all includes.  Increments *NEXT_INCLUDE_IX
-   when sucessful.  */
-
-static inline pph_stream *
-pph_get_next_include (pph_stream *stream, unsigned int *next_incl_ix)
-{
-  if (*next_incl_ix < VEC_length (pph_stream_ptr, stream->includes))
-    return VEC_index (pph_stream_ptr, stream->includes, (*next_incl_ix)++);
-  else
-    return NULL;
-}
-
-
 /* Emit the required line_map entry (those directly related to this include)
    and some properties in the line_table to STREAM, ignoring builtin and
    command-line entries.  We will write references to our direct includes
@@ -323,9 +309,7 @@ pph_get_next_include (pph_stream *stream, unsigned int *next_incl_ix)
 static void
 pph_out_line_table_and_includes (pph_stream *stream)
 {
-  unsigned int next_incl_ix = 0;
   int ix;
-  pph_stream *current_include;
 
   /* Any #include should have been fully parsed and exited at this point.  */
   gcc_assert (line_table->depth == 0);
@@ -334,12 +318,11 @@ pph_out_line_table_and_includes (pph_stream *stream)
      used to generate STREAM.  */
   pph_out_string (stream, stream->header_name);
 
-  current_include = pph_get_next_include (stream, &next_incl_ix);
-
   for (ix = PPH_NUM_IGNORED_LINE_TABLE_ENTRIES;
        ix < (int) LINEMAPS_ORDINARY_USED (line_table);
        ix++)
     {
+      pph_stream *current_include;
       struct line_map *lm = LINEMAPS_ORDINARY_MAP_AT (line_table, ix);
 
       /* FIXME pph.  We currently do not support location tracking for
@@ -361,8 +344,11 @@ pph_out_line_table_and_includes (pph_stream *stream)
       /* If LM is an entry for an included PPH image, output a line table
 	 reference to it, so the reader can load the included image at
 	 this point.  */
-      if (current_include != NULL
-	  && strcmp (current_include->header_name, LINEMAP_FILE (lm)) == 0)
+      current_include = (lm->reason == LC_ENTER
+	                 && ix > PPH_NUM_IGNORED_LINE_TABLE_ENTRIES)
+	                ? pph_stream_registry_lookup (LINEMAP_FILE (lm))
+			: NULL;
+      if (current_include)
 	{
 	  struct line_map *included_from;
 
@@ -404,8 +390,6 @@ pph_out_line_table_and_includes (pph_stream *stream)
 	    /* We should always leave this loop before the end of the
 		current line_table entries.  */
 	    gcc_assert (ix < (int) LINEMAPS_ORDINARY_USED (line_table));
-
-	  current_include = pph_get_next_include (stream, &next_incl_ix);
 	}
       else
 	{
@@ -423,10 +407,6 @@ pph_out_line_table_and_includes (pph_stream *stream)
   /* Output the number of entries written to validate on input.  */
   pph_out_uint (stream, LINEMAPS_ORDINARY_USED (line_table)
                         - PPH_NUM_IGNORED_LINE_TABLE_ENTRIES);
-
-  /* Every PPH header included should have been seen and skipped in the
-     line_table streaming above.  */
-  gcc_assert (next_incl_ix == VEC_length (pph_stream_ptr, stream->includes));
 
   pph_out_source_location (stream, line_table->highest_location);
   pph_out_source_location (stream, line_table->highest_line);

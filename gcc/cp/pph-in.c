@@ -357,7 +357,7 @@ pph_in_line_table_and_includes (pph_stream *stream)
 
   /* Read the path name of the original text header file that was
      used to generate STREAM.  */
-  stream->header_name = pph_in_string (stream);
+  pph_stream_set_header_name (stream, pph_in_string (stream));
 
   /* All line map entries that have -1 as the includer, will now be
      relocated to the current last line map entry in the line table.  */

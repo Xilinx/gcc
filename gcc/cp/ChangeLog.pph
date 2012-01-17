@@ -1,5 +1,25 @@
 2012-01-16   Diego Novillo  <dnovillo@google.com>
 
+	* pph-core.c (pph_stream_register): Move later in the file.
+	(pph_stream_unregister): Likewise.
+	(pph_stream_registry_ix_for): Fix comparison to !=.
+	(pph_stream_registry_add_name): Make extern.
+	Allocate a new slot in the table.
+	(pph_stream_set_header_name): New.
+	(pph_stream_registry_lookup): Fix computation of SLOT_IX.
+	(pph_stream_open): Call pph_stream_register earlier.
+	* pph-in.c (pph_in_line_table_and_includes): Call
+	pph_stream_set_header_name.
+	* pph-out.c (pph_init_write): Likewise.
+	(pph_get_next_include): Remove.  Update all users.
+	(pph_out_line_table_and_includes): Call
+	pph_stream_registry_lookup to determine if the file being
+	entered is a PPH image.
+	* pph-streamer.h (pph_stream_registry_lookup): Declare.
+	(pph_stream_set_header_name): Declare.
+
+2012-01-16   Diego Novillo  <dnovillo@google.com>
+
 	* pph-core.c (struct pph_name_stream_map): Declare.
 	(struct pph_stream_registry_d): Declare.
 	(pph_stream_registry): New.
