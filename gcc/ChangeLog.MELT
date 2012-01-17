@@ -1,10 +1,19 @@
 
+2012-01-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{tdefine.melt test works!}}
+	* melt/warmelt-normal.melt (normexp_define): Remove duplicate
+	newenv binding. Remove the cached normalization.
+	(normbind_anybind, normbind_formalbind, normbind_letbind)
+	(normbind_fixbind, normbind_definedvalbind)
+	(normbind_constructbind, normexp_symbol, normexp_let)
+	(normexp_citeration): Added more debug messages
+
 2012-01-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normexp_define): More debug.
 	make a tuple with two additional normal components.
 	* melt/warmelt-genobj.melt (dispose_objloc)
 	(compilobj_nrep_locsymocc): More debug.
-	* testsuite/melt/rdefine.melt: Use plus1 function.
+	* testsuite/melt/tdefine.melt: Use plus1 function.
 
 2012-01-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Better build machinery... work in progress}}

@@ -1089,6 +1089,7 @@ source location.}#
       (debug "normbind_anybind kocc=" kocc)
       ;; cache the result & return it
       (mapobject_put sycmap symb kocc)
+      (debug "normbind_anybind updated sycmap=" sycmap)
       ;; put the const occurrence if needed in the const list of each proc
       (foreach_in_list
        (procs)
@@ -1126,6 +1127,7 @@ source location.}#
 	 )
 	  ;; cache the result & return it
     (mapobject_put sycmap symb syocc)
+    (debug "normbind_formalbind updated sycmap=" sycmap " syocc=" syocc)
     syocc
     ))
 (install_method class_formal_binding  normalize_binding normbind_formalbind)
@@ -1148,6 +1150,7 @@ source location.}#
 	 )
 	  ;; cache the result & return it
     (mapobject_put sycmap symb syocc)
+    (debug "normbind_letbind updated sycmap=" sycmap " syocc=" syocc)
     syocc
     ))
 (install_method class_let_binding  normalize_binding normbind_letbind)
@@ -1175,6 +1178,7 @@ source location.}#
     (assert_msg "normexp_symbol check fixdat" (is_a fixdat class_nrep_bound_data))
     ;; cache the result & return it
     (mapobject_put sycmap symb fixdat)
+    (debug "normbind_fixbind updated sycmap=" sycmap " symb=" symb " fixdat=" fixdat)
     fixdat))
 (install_method class_fixed_binding  normalize_binding normbind_fixbind)
 
@@ -1207,7 +1211,7 @@ source location.}#
     ;; cache the result & return it
     (mapobject_put sycmap symb syconst)
     (put_fields bind :fixbind_data syconst)
-    (debug "normbind_definedvalbind sycmap=" sycmap " syconst=" syconst " bind=" bind)
+    (debug "normbind_definedvalbind updated sycmap=" sycmap " syconst=" syconst " bind=" bind)
     (if (is_non_empty_list procs)
 	(assert_msg "normbind_definedvalbind check no procs"))
     (return syconst)
@@ -1243,6 +1247,7 @@ source location.}#
 			(is_a ourlocsym class_nrep_locsymocc))
 	    ;; cache the result & return it
 	    (mapobject_put sycmap symb ourlocsym)
+	    (debug "normbind_constructbind updated sycmap=" sycmap " symb=" symb " ourlocsym=" ourlocsym)
 	    (return ourlocsym)
 )))
 (install_method class_normal_constructor_binding normalize_binding normbind_constructbind)
@@ -1306,7 +1311,7 @@ source location.}#
 		     )
 		;; cache the result
 		(mapobject_put sycmap recv fxocc)
-		(debug "normexp_symbol const value fxocc" fxocc)
+		(debug "normexp_symbol const value fxocc" fxocc " updated sycmap=" sycmap)
 		;; put the const occurrence if needed in the const list of each proc
 		(list_every
 		 procs
@@ -1328,7 +1333,7 @@ source location.}#
 	    (progn
 	      ;; cache the result
 	      (mapobject_put sycmap recv bvar)
-	      (debug "normexp_symbol local value bvar" bvar)
+	      (debug "normexp_symbol local value bvar=" bvar " updated sycmap=" sycmap)
 	      bvar
 	      )
 	    )))
@@ -1362,7 +1367,7 @@ source location.}#
 				:ncloc_procs procs)) )
 		;; cache the result
 		(mapobject_put sycmap recv fxocc)
-		(debug "normexp_symbol fxocc" fxocc)
+		(debug "normexp_symbol fxocc" fxocc " updated sycmap=" sycmap)
 		;; put the const occurrence if needed in the const list of each proc
 		(list_every
 		 procs
@@ -1391,6 +1396,7 @@ source location.}#
 		   )
 	      ;; cache the result
 	      (mapobject_put sycmap recv clocc)
+	      (debug "normexp_symbol updated sycmap=" sycmap " clocc=" clocc)
 	      ;; put the closed occurrence if needed in the closed list of each proc
 	      (list_every 
 	       procs
@@ -2577,16 +2583,19 @@ source location.}#
      (normalize_tuple sbody newenv ncx sloc)
      (list_append2list bindlist  nbodbindings)
      (assert_msg "normexp_let check bindlist" (is_list_or_null bindlist))
-     (list_every
-      bindlist
-      (lambda (cbnd) 
-	(assert_msg "normexp_let check cbnd" (is_a cbnd class_normal_let_binding))))
+     (foreach_in_list
+      (bindlist)
+      (curpair cbnd) 
+      (assert_msg "normexp_let check cbnd" (is_a cbnd class_normal_let_binding)))
 ;;; remove every locally bound symbol from the symbol cache map
      (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx)) )
-       (list_every bindlist 
-		   (lambda (bnd)
-		     (mapobject_remove sycmap (unsafe_get_field :binder bnd))
-		     )))
+       (foreach_in_list 
+	(bindlist)
+	(curpair bnd)
+	(mapobject_remove sycmap (unsafe_get_field :binder bnd))
+	)
+       (debug "normexp_let shrinked updated sycmap=" sycmap)
+     )
 ;;;; make the result
      (let (
 	   (nlastbody (multiple_nth nbody -1))
@@ -5153,6 +5162,7 @@ source location.}#
 		    ;; ensure that it will be normalized as the same
 		    ;; local symbol occurence
 		    (mapobject_put sycmap curvsym clocc)
+		    (debug "normexp_citeration updated sycmap=" sycmap " clocc=" clocc)
 		    (list_append uncachelist curvsym)
 		    )
 		(progn
@@ -5802,17 +5812,22 @@ source location.}#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;; normalize a DEFINE 
+;;;;;; normalize a DEFINE for a constant
 (defun normexp_define (recv env ncx psloc)
   (assert_msg "check define recv" (is_a recv class_source_define))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (debug "normexp define recv" recv)
+  (shortbacktrace_dbg "normexp_define" 7)
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
 	(sname (unsafe_get_field :sdef_name recv))
 	(sbody (unsafe_get_field :sdefine_body recv))
-	(binddef (find_env env sname))
+	(binddef (let ( (bdf (find_env env sname))
+			) 
+		   (debug "normexp_define binddef bdf=" bdf)
+		   bdf
+		   ))
 	(namdata (normal_symbol_data sname ncx sloc))
 	(curproc (unsafe_get_field :nctx_curproc ncx)) 
 	(newenv (fresh_env env))
@@ -5824,10 +5839,10 @@ source location.}#
 			   ))
 	(sycmap (unsafe_get_field :nctx_symbcachemap ncx))
 	)
-    (debug "normexp_define namdata=" namdata " binddef=" binddef)
+    (debug "normexp_define namdata=" namdata " binddef=" binddef " sycmap=" sycmap)
     (assert_msg "check body tuple" (is_multiple sbody))
     (assert_msg "check binddef" (is_a binddef class_defined_value_binding))
-    (debug "normexp_define curproc" curproc)
+    (debug "normexp_define curproc=" curproc " newenv=" newenv)
     ;; TODO:: maybe we could have internal defines for constants...
     (if (is_not_a curproc class_nrep_initproc)
 	(progn
@@ -5847,7 +5862,6 @@ source location.}#
 	   (ndefname (normexp_symbol sname env ncx sloc))
 	   (:long nbodylen (multiple_length nbody))
 	   (nlastbody (multiple_nth nbody -1))
-	   (newenv (fresh_env env))
 	   (newbody (make_multiple discr_multiple (+i nbodylen 2)))
 	   (snamestr (get_field :named_name sname))
 	   (nlastassign (instance class_nrep_setq
@@ -5855,7 +5869,7 @@ source location.}#
 				  :nstq_var ndefname
 				  :nstq_exp nlastbody))
 	   )
-       (debug "normexp_define nlastassign=" nlastassign)
+       (debug "normexp_define nlastassign=" nlastassign " ndefname=" ndefname)
        (list_every nbindings (lambda (nb) (put_env newenv nb)))
        (foreach_in_multiple
 	(nbody)
@@ -5870,17 +5884,16 @@ source location.}#
 	   (error_strv sloc "DEFINE-d name is not a value" snamestr))
        (if (!= (get_ctype nlastbody newenv) ctype_value)
 	   (error_strv sloc "DEFINE-d body don't end with a value" snamestr))
+       (debug "normexp_define newbody=" newbody " sname=" sname " sycmap=" sycmap)
        (let ( (nwrlet (wrap_normal_letseq newbody nbindings sloc))
 	      (nlocbindings (list locbind))
 	      (syca (mapobject_get sycmap sname))
-	      (sycabind (get_field :nocc_bind syca))
 	      )
 	 (debug "normexp_define nwrlet=" nwrlet)
 	 (debug "normexp_define syca=" syca " locbind=" locbind)
-	 (assert_msg "check syca" (is_a syca class_nrep_locsymocc))
-	 (assert_msg "check sycabind == locbind" (== sycabind locbind))
+	 (assert_msg "check syca" (is_a syca class_nrep_defined_constant))
 	 (mapobject_remove sycmap sname)
-	 (debug "normexp_define updated sycmap=" sycmap)
+	 (debug "normexp_define shrinked updated sycmap=" sycmap)
 	 (debug "normexp_define return nwrlet=" nwrlet  " nlocbindings=" nlocbindings)
 	 (return nwrlet nlocbindings)
 	 )))))
