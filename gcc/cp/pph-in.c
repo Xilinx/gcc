@@ -2839,8 +2839,8 @@ pph_read_file_1 (pph_stream *stream)
   VEC(tree,gc) *file_unemitted_tinfo_decls;
   source_location cpp_token_replay_loc;
 
-  /* If we have read STREAM before, we do not need to re-read the rest
-     of its body.  We only needed to read its line table.  */
+  /* If we have opened STREAM before, we do not need to re-read the rest
+     of its body.  */
   if (stream->in_memory_p)
     return;
 
@@ -2889,10 +2889,6 @@ pph_read_file_1 (pph_stream *stream)
 
   /* Read and process the symbol table.  */
   pph_in_symtab (stream);
-
-  /* Mark this file as read.  If other images need to access its contents,
-     we will not need to actually read it again.  */
-  stream->in_memory_p = true;
 
   if (flag_pph_dump_tree)
     pph_dump_namespace (pph_logfile, global_namespace);
