@@ -409,7 +409,12 @@ pph_in_line_table_and_includes (pph_stream *stream)
 	  if (ORDINARY_MAP_INCLUDER_FILE_INDEX (lm) == -1)
 	    ORDINARY_MAP_INCLUDER_FILE_INDEX (lm) = top_includer_ix;
 	  else
-	    ORDINARY_MAP_INCLUDER_FILE_INDEX (lm) -= last_entry_ix;
+	    {
+	      gcc_assert (last_entry_ix
+			  > ORDINARY_MAP_INCLUDER_FILE_INDEX (lm));
+	      ORDINARY_MAP_INCLUDER_FILE_INDEX (lm)
+		= last_entry_ix - ORDINARY_MAP_INCLUDER_FILE_INDEX (lm);
+	    }
 
 	  lm->start_location += pph_loc_offset;
 	}

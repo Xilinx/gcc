@@ -226,8 +226,22 @@ pph_out_line_map_ordinary (pph_stream *stream, struct line_map *lm, int ix)
 
   /* To support relocating this table into other translation units,
      emit a relative index to LM's includer.  All the relative indices
-     are positive values indicating the distance from LM to the line
-     map for its includer.  */
+     are positive values indicating the distance from LM *back* to the
+     line map for its includer.
+
+     So, if we had header top.h including [1234].h, the line table
+     entries look something like this:
+
+	Map #10	LC_ENTER "top.h" FROM: -1 (top file).
+	Map #11	LC_ENTER "1.h" FROM: 10 (top.h) -> saved as offset 1 (11 - 10).
+	Map #12	LC_ENTER "2.h" FROM: 10 (top.h) -> saved as offset 2 (12 - 10).
+	Map #13	LC_ENTER "3.h" FROM: 10 (top.h) -> saved as offset 3 (13 - 10).
+	Map #14	LC_ENTER "4.h" FROM: 10 (top.h) -> saved as offset 4 (14 - 10).
+
+     When saving the map entry for #13 (3.h), we do not want to save
+     the absolute index value '10', since top.pph may be included from
+     different TUs.  Instead, we save the offset 3, so that the reader
+     knows that the includer for 3.h is 3 slots before 3.h's entry.  */
   includer_ix = ORDINARY_MAP_INCLUDER_FILE_INDEX (lm);
   if (includer_ix >= 0)
     {
