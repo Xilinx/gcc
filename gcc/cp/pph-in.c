@@ -2426,9 +2426,6 @@ pph_in_tree (pph_stream *stream)
          PPH image.  */
       expr = (tree) pph_cache_find (stream, PPH_RECORD_XREF, image_ix, ix,
 				    PPH_any_tree);
-
-      /* Read the internal cache slot where EXPR should be stored at.  */
-      ix = pph_in_uint (stream);
     }
   else if (marker == PPH_RECORD_START_MERGE_BODY)
     {
@@ -2438,12 +2435,13 @@ pph_in_tree (pph_stream *stream)
       expr = (tree) pph_cache_get (&stream->cache, ix);
     }
 
-  /* Add the new tree to the cache and read its body.  The tree is
-     added to the cache before we read its body to handle circular
-     references and references from children nodes.  If we are reading
-     a merge body, then the tree is already in the cache (it was added
-     by pph_in_merge_key_tree).  */
-  if (marker != PPH_RECORD_START_MERGE_BODY)
+  /* If we are starting to read a full tree, add its pointer to the
+     cache and read its body.  The tree is added to the cache before
+     we read its body to handle circular references and references
+     from children nodes.  If we are reading a merge body, then the
+     tree is already in the cache (it was added by
+     pph_in_merge_key_tree).  */
+  if (marker == PPH_RECORD_START)
     pph_cache_insert_at (&stream->cache, expr, ix, pph_tree_code_to_tag (expr));
 
   if (flag_pph_tracer)

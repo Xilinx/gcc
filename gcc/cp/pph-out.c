@@ -696,22 +696,25 @@ pph_out_start_tree_record (pph_stream *stream, tree t)
     }
   else if (marker == PPH_RECORD_START_MUTATED)
     {
-      unsigned int internal_ix;
+      unsigned new_crc;
+      size_t nbytes;
+      pph_cache *ext_cache;
 
       /* We found T in an external PPH file, but it has mutated since
          we originally read it.  We are going to write out T again,
-         but the reader should not re-allocate T, rather it should
+         but the reader should not re-allocate T.  Rather, it should
          read the contents of T on top of the existing address.
 
-         We also add T to STREAM's internal cache so further
-         references go to it rather than the external version.
-         Note that although we add an entry for T in STREAM's internal
-         cache, the reference we write to the stream is to the
-         external version of T.  This way the reader will get the
-         location of T from the external reference and overwrite it
-         with the contents that we are going to write here.  */
-      pph_cache_add (&stream->cache, t, &internal_ix, tag);
+	 We also re-compute T's CRC and update its cache entry.  This
+	 way, further references to T will become regular external
+	 references.  */
       pph_out_record_marker (stream, marker, tag);
+
+      /* Update the CRC for T in the external cache, so we don't
+	 continue to consider it mutated.  */
+      new_crc = pph_get_signature (t, &nbytes);
+      ext_cache = pph_cache_select (stream, PPH_RECORD_XREF, include_ix);
+      pph_cache_sign (ext_cache, ix, new_crc, nbytes);
 
       /* Write the location of T in the external cache.  */
       gcc_assert (include_ix != -1u);
@@ -719,10 +722,6 @@ pph_out_start_tree_record (pph_stream *stream, tree t)
 
       gcc_assert (ix != -1u);
       pph_out_uint (stream, ix);
-
-      /* Now write the location of the new version of T in the
-         internal cache.  */
-      pph_out_uint (stream, internal_ix);
     }
   else
     gcc_unreachable ();
@@ -2304,7 +2303,6 @@ pph_out_tree (pph_stream *stream, tree expr)
 
   if (marker == PPH_RECORD_START || marker == PPH_RECORD_START_MUTATED)
     {
-
       /* This is the first time we see EXPR, write it out.  */
       if (marker == PPH_RECORD_START)
         {
