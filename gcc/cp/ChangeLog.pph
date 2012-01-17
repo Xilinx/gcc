@@ -1,5 +1,10 @@
 2012-01-17   Diego Novillo  <dnovillo@google.com>
 
+	* pph-core.c (pph_stream_register): Move in-memory marking...
+	* pph-in.c (pph_read_file_1): ... here.
+
+2012-01-17   Diego Novillo  <dnovillo@google.com>
+
 	* pph-in.c (pph_read_file_1): Move in-memory marking for STREAM...
 	* pph-core.c (pph_stream_register): ... here.
 

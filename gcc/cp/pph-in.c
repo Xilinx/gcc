@@ -2839,10 +2839,16 @@ pph_read_file_1 (pph_stream *stream)
   VEC(tree,gc) *file_unemitted_tinfo_decls;
   source_location cpp_token_replay_loc;
 
-  /* If we have opened STREAM before, we do not need to re-read the rest
-     of its body.  */
+  /* If we already have STREAM in memory (or are reading it), ignore
+     this request.  */
   if (stream->in_memory_p)
     return;
+
+  /* Mark this file as being in memory.  This prevents multiple reads
+     from the same file.  This scenario can happen in #include chains
+     where the top header file is also included by one of its children
+     (common in system headers).  */
+  stream->in_memory_p = true;
 
   if (flag_pph_tracer >= 1)
     fprintf (pph_logfile, "PPH: Reading %s\n", stream->name);

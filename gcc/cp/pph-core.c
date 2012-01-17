@@ -953,10 +953,6 @@ pph_stream_register (pph_stream *stream)
 
   /* Add a mapping between STREAM's PPH file name and STREAM.  */
   pph_stream_registry_add_name (stream, stream->name);
-
-  /* Mark this file as being in memory.  This prevents opening the
-     same file more than twice.  */
-  stream->in_memory_p = true;
 }
 
 
