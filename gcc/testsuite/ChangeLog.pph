@@ -9,6 +9,12 @@
 	* g++.dg/pph/x0namespace.h: Add spacing.
 	* g++.dg/pph/x0namespace2.h: Likewise.
 
+2012-01-16   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/c1deepincl4.h: New.
+	* g++.dg/pph/c2deepincl3.h: Include it.
+	* g++.dg/pph/c2deepincl.cc: Use b4.
+
 2011-12-09   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/d1symnotinc.cc: Expect warning.
