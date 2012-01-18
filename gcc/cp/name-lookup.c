@@ -6085,26 +6085,160 @@ pph_in_binding_table (pph_stream *stream)
 }
 
 
+/*  Dump a taken binding action.  */
+
+static void
+pph_debug_binding_action (const char *action, tree decl)
+{
+  if (flag_pph_debug >= 5 || (flag_pph_debug >= 2 && !DECL_IS_BUILTIN (decl)))
+    {
+      fprintf (pph_logfile, "%s ", action);
+      pph_dump_tree_name (pph_logfile, decl, 0);
+    }
+}
+
+/*  Dump a not-taken binding action.  */
+
+static void
+pph_debug_binding_inaction (const char *action, tree decl)
+{
+  if (flag_pph_debug >= 5 || (flag_pph_debug >= 3 && !DECL_IS_BUILTIN (decl)))
+    {
+      fprintf (pph_logfile, "not %s ", action);
+      pph_dump_tree_name (pph_logfile, decl, 0);
+    }
+}
+
+
+/* Iterate over chain starting at FIRST and calling FUNCTION for each decl
+   with argument BL.  */
+
+static void
+pph_foreach_on_chain_bl (tree first, cp_binding_level *bl,
+			 void (*function)(tree, cp_binding_level *))
+{
+  unsigned i;
+  tree decl;
+  VEC(tree,heap) *w = chain2vec (first);
+  FOR_EACH_VEC_ELT_REVERSE (tree, w, i, decl)
+    (*function) (decl, bl);
+  VEC_free (tree, heap, w);
+}
+
+
+/* Set a identifier binding.  */
+
+static void
+pph_set_identifier_bindings (tree decl, cp_binding_level *bl)
+{
+  /* Set the identifier binding for a single decl.  */
+  tree id = DECL_NAME (decl);
+  if (id)
+    {
+      pph_debug_binding_action ("i-bind", decl);
+      push_binding (id, decl, bl);
+    }
+}
+
+
 /*  Set the identifier bindings for an individual chain.  */
 
 static void
 pph_set_chain_identifier_bindings (tree first, cp_binding_level *bl)
 {
-  tree decl;
-  for (decl = first; decl; decl = TREE_CHAIN (decl))
+  pph_foreach_on_chain_bl (first, bl, pph_set_identifier_bindings);
+}
+
+
+/*  Set a namespace identifier binding.  */
+
+static void
+pph_set_namespace_bindings (tree decl, cp_binding_level *bl)
+{
+  /* Set the namespace identifier binding for a single decl.  */
+  tree id = DECL_NAME (decl);
+  if (id)
     {
-      /* Set the identifier binding for a single decl.  */
-      tree id = DECL_NAME (decl);
-      if (id)
+      /* This code plagarizes from set_namespace_binding.
+	 It has trouble with supplement_binding, methinks.  */
+      /* FIXME pph: we should do more merging here.  */
+      cxx_binding *b = binding_for_name (bl, id);
+      if (!b->value)
 	{
-	  if (flag_pph_debug >=2)
-	    {
-	     fprintf (pph_logfile, "binding ");
-	     pph_dump_tree_name (pph_logfile, id, 0);
-	   }
-	  push_binding (id, decl, bl);
+	  b->value = decl;
+	  pph_debug_binding_action ("v-bind", decl);
 	}
+      else if (TREE_CODE (b->value) == TYPE_DECL &&
+    	   TREE_CODE (decl) != TYPE_DECL)
+	{
+	  b->type = b->value;
+	  b->value = decl;
+	  pph_debug_binding_action ("p-bind", decl);
+	}
+      else if (TREE_CODE (b->value) != TYPE_DECL &&
+    	   TREE_CODE (decl) == TYPE_DECL)
+	{
+	  b->type = decl;
+	  pph_debug_binding_action ("t-bind", decl);
+	}
+      else
+	pph_debug_binding_inaction ("n-bind", decl);
     }
+}
+
+
+/*  Set the namespace identifier bindings.  */
+
+static void
+pph_set_chain_namespace_bindings (tree first, cp_binding_level *bl)
+{
+  pph_foreach_on_chain_bl (first, bl, pph_set_namespace_bindings);
+}
+
+
+static void
+pph_foreach_on_chain (tree first, void (*function)(tree))
+{
+  unsigned i;
+  tree decl;
+  VEC(tree,heap) *w = chain2vec (first);
+  FOR_EACH_VEC_ELT_REVERSE (tree, w, i, decl)
+    (*function) (decl);
+  VEC_free (tree, heap, w);
+}
+
+
+/* Forward declaration.  */
+
+static void
+pph_set_namespace_namespace_bindings (cp_binding_level *bl);
+
+
+/* Set a namespace namespace binding.  */
+
+static void
+pph_set_namespace_namespace_binding (tree decl)
+{
+  /* Set the namespace identifier binding for a single decl.  */
+  tree id = DECL_NAME (decl);
+  if (id)
+    {
+      pph_debug_binding_action ("bind recurse", decl);
+      pph_set_namespace_namespace_bindings (NAMESPACE_LEVEL (decl));
+    }
+}
+
+
+/*  Set the namespace identifier bindings for a namespace.  */
+
+static void
+pph_set_namespace_namespace_bindings (cp_binding_level *bl)
+{
+  pph_set_chain_namespace_bindings (bl->names, bl);
+  pph_set_chain_namespace_bindings (bl->namespaces, bl);
+  pph_set_chain_namespace_bindings (bl->usings, bl);
+  /* FIXME pph: pph_set_chain_namespace_bindings (bl->using_directives, bl);  */
+  pph_foreach_on_chain (bl->namespaces, pph_set_namespace_namespace_binding);
 }
 
 
@@ -6119,6 +6253,7 @@ pph_set_global_identifier_bindings (void)
   pph_set_chain_identifier_bindings (bl->namespaces, bl);
   pph_set_chain_identifier_bindings (bl->usings, bl);
   pph_set_chain_identifier_bindings (bl->using_directives, bl);
+  pph_set_namespace_namespace_bindings (bl);
 }
 
 

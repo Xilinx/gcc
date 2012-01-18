@@ -490,4 +490,7 @@ extern tree add_builtin_function_ext_scope (const char *name, tree type,
 					    const char *library_name,
 					    tree attrs);
 
+/* FIXME pph: This is a gdb workaround.  Maybe it stays, maybe it does not.  */
+extern struct lang_hooks *get_lang_hooks (void);
+
 #endif /* GCC_LANG_HOOKS_H */

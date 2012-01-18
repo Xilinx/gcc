@@ -1,3 +1,14 @@
+2011-01-17   Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/x6dynarray3.cc: Add expected overload failures.
+	* g++.dg/pph/x4namespace.cc: Remove expected failures.
+	* g++.dg/pph/x4overset1.cc: Add expected overload asm diff failure.
+	* g++.dg/pph/x4overset2.cc: Likewise.
+	* g++.dg/pph/x4overset3.cc: Likewise.
+	* g++.dg/pph/x4overset4.cc: Likewise.
+	* g++.dg/pph/x0namespace.h: Add spacing.
+	* g++.dg/pph/x0namespace2.h: Likewise.
+
 2011-12-09   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/d1symnotinc.cc: Expect warning.

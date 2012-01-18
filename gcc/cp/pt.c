@@ -20597,11 +20597,13 @@ pph_dump_tinst_level (FILE *stream, struct tinst_level *tinst)
     ++count;
 
   /* Now dump them.  */
-  fprintf (stream, "%d tinst_levels\n", count);
+  fprintf (stream, "PPH: %d tinst_levels\n", count);
   for (cur = tinst; cur != NULL;  cur = cur->next)
     {
+      fprintf (stream, "PPH: ");
       pph_dump_location (stream, cur->locus);
       fprintf (stream, "\n");
+      fprintf (stream, "PPH: ");
       pph_dump_tree_name (stream, cur->decl, 0);
       fprintf (stream, "%d errors, ", cur->errors);
       fprintf (stream, "%d in system header\n", cur->in_system_header_p);
@@ -20647,7 +20649,7 @@ pph_dump_pending_templates_list (FILE *stream)
     ++count;
 
   /* Now dump them.  */
-  fprintf (stream, "%d pending templates\n", count );
+  fprintf (stream, "PPH: %d pending templates\n", count );
   for (cur = pending_templates; cur != NULL;  cur = cur->next )
     pph_dump_tinst_level (stream, cur->tinst);
 }
@@ -20738,9 +20740,9 @@ pph_dump_spec_entry_slot (void **slot, void *aux)
 {
   FILE *stream = (FILE *)aux;
   struct spec_entry *entry = (struct spec_entry *) *slot;
-  fprintf (stream, "spec_entry.tmpl: " );
+  fprintf (stream, "PPH: spec_entry.tmpl: " );
   pph_dump_tree_name (stream, entry->tmpl, 0);
-  fprintf (stream, "spec_entry.spec: " );
+  fprintf (stream, "PPH: spec_entry.spec: " );
   pph_dump_tree_name (stream, entry->spec, 0);
   return 1;
 }
@@ -20752,12 +20754,12 @@ pph_dump_spec_entry_htab (FILE *stream, const char *name, htab_t *table)
 {
   if (*table)
     {
-      fprintf (stream, "%d %s spec_entry elements\n",
+      fprintf (stream, "PPH: %d %s spec_entry elements\n",
                (int) htab_elements (*table), name);
       htab_traverse_noresize (*table, pph_dump_spec_entry_slot, stream);
     }
   else
-    fprintf (stream, "NULL %s spec_entry elements\n", name);
+    fprintf (stream, "PPH: NULL %s spec_entry elements\n", name);
 }
 
 /* Load and merge a spec_entry TABLE from STREAM.  */

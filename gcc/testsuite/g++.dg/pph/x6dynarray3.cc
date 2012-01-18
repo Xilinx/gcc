@@ -1,6 +1,8 @@
-// pph asm xdiff 18502
-// xfail BOGUS UNKNOWN
-// Some branches seem to be missing.
+// { dg-bogus "a0dynarray-dfn1b.hi:8:13: error: no matching function for call to 'operator new" "" { xfail *-*-* } 0 }
+// { dg-bogus "a0dynarray-dfn1b.hi:22:5: error: no suitable 'operator delete" "" { xfail *-*-* } 0 }
+// { dg-bogus "a0dynarray-dfn2b.hi:8:13: error: no matching function for call to 'operator new" "" { xfail *-*-* } 0 }
+// { dg-bogus "a0dynarray-dfn2b.hi:13:9: error: no suitable 'operator delete" "" { xfail *-*-* } 0 }
+// { dg-bogus "a0dynarray-dcl3.hi:11:60: warning: no corresponding deallocation function for 'void. operator new" "" { xfail *-*-* } 0 }
 
 #include "x5dynarray3.h"
 

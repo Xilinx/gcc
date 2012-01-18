@@ -1,3 +1,54 @@
+2012-01-17   Lawrence Crowl  <crowl@google.com>
+
+	* pph.h (pph_files_read): New.
+	(chain2vec): Move from static to global.
+	* pph-streamer.h (pph_dump_namespace): Add message parameter.
+	* pph-core.c (pph_dump_namespace): Add message parameter.
+	(pph_trace_marker): Add PPH: label to debugging output.
+	(pph_cache_insert_at): Remove non-static aggregate initializer.
+	(pph_loaded): Enable pph_set_global_identifier_bindings().
+	* pph-out.c (chain2vec): Move from static to global.
+	(pph_out_merge_key_namespace_decl): New.
+	(pph_out_merge_body_namespace_decl): New.
+	(pph_foreach_out_chain): New.
+	(pph_out_merge_key_binding_level): Handle namespace keys separately.
+	(pph_out_merge_key_tree): Likewise.
+	(pph_out_merge_body_binding_level): Handle namespace bodies separately.
+	(pph_out_identifier_bindings): No longer emit most binding info.
+	(pph_out_merge_key_namespace_decl): Output record info.
+	(pph_out_merge_body_namespace_decl): New.
+	* pph-in.c (pph_in_merge_body_namespace_decl): New.
+	(pph_in_merge_key_namespace_decl): New.
+	(pph_in_merge_key_binding_level): Handle namespace separately.
+	(pph_in_merge_key_tree): Likewise.
+	(pph_in_merge_body_binding_level_1): Likewise.
+	(pph_in_identifier_bindings): No longer emit most binding info.
+	(pph_ensure_namespace_binding_level): New.
+	(pph_in_merge_key_namespace_decl): Modify chain as needed.
+	(pph_in_merge_body_namespace_decl): New.
+	(bool pph_files_were_read): New.
+	(pph_files_read): New.
+	(pph_read_file_1): Set pph_files_were_read.
+	* pt.c (pph_dump_tinst_level): Add PPH: label to debugging output.
+	(pph_dump_pending_templates_list): Likewise.
+	(pph_dump_spec_entry_slot): Likewise.
+	(pph_dump_spec_entry_htab): Likewise.
+	* parser.h (cp_debug_parser_where): New.
+	* parser.c (cp_debug_parser_where): New.
+	(c_parse_file): Conditionalize call to pph_loaded.
+	* name-lookup.c (pph_debug_binding_action): New.
+	(pph_debug_binding_inaction): New.
+	(pph_foreach_on_chain_bl): New.
+	(pph_set_identifier_bindings): New.
+	(pph_set_chain_identifier_bindings): Use pph_set_identifier_bindings.
+	(pph_set_namespace_bindings): New.
+	(pph_set_chain_namespace_bindings): New.
+	(pph_foreach_on_chain): New.
+	(pph_set_namespace_namespace_binding): New.
+	(pph_set_namespace_namespace_bindings): New.
+	(pph_set_global_identifier_bindings): Add call to
+	pph_set_namespace_namespace_bindings.
+
 2012-01-17   Diego Novillo  <dnovillo@google.com>
 
 	* pph-core.c (pph_stream_register): Move in-memory marking...

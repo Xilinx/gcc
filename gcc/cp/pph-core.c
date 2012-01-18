@@ -147,8 +147,10 @@ pph_dump_binding (FILE *file, cp_binding_level *level);
 /* Dump namespace NS for PPH.  */
 
 void
-pph_dump_namespace (FILE *file, tree ns)
+pph_dump_namespace (FILE *file, tree ns, const char *msg)
 {
+  if (msg)
+    fprintf (file, "\nPPH: %s\n", msg);
   fprintf (file, "namespace ");
   pph_dump_tree_name (file, ns, 0);
   fprintf (file, "{\n");
@@ -183,7 +185,7 @@ pph_dump_binding (FILE *file, cp_binding_level *level)
     {
       next = DECL_CHAIN (t);
       if (!DECL_IS_BUILTIN (t))
-        pph_dump_namespace (file, t);
+        pph_dump_namespace (file, t, (const char *)NULL);
     }
 }
 
@@ -227,7 +229,7 @@ static const char *tag_strings[] =
 void
 pph_trace_marker (enum pph_record_marker marker, enum pph_tag tag)
 {
-  fprintf (pph_logfile, "marker ");
+  fprintf (pph_logfile, "PPH: marker ");
   if (PPH_RECORD_START <= marker && marker <= PPH_RECORD_PREF)
     fprintf (pph_logfile, "%s", marker_strings[marker - PPH_RECORD_START]);
   else
@@ -401,7 +403,13 @@ pph_cache_insert_at (pph_cache *cache, void *data, unsigned ix,
                      enum pph_tag tag)
 {
   void **map_slot;
-  pph_cache_entry e = { data, tag, false, 0, 0 };
+  pph_cache_entry e;
+
+  e.data = data;
+  e.tag = tag;
+  e.needs_merge_body = false;
+  e.crc = 0;
+  e.crc_nbytes = 0;
 
   map_slot = pointer_map_insert (cache->m, data);
 
@@ -843,12 +851,9 @@ pph_add_include (pph_stream *stream, pph_stream *include)
 void
 pph_loaded (void)
 {
-/* FIXME pph: Reconstructing the global binding does not yet work.  */
-#if 0
   pph_set_global_identifier_bindings();
-#endif
   if (flag_pph_dump_tree)
-    pph_dump_namespace (pph_logfile, global_namespace);
+    pph_dump_namespace (pph_logfile, global_namespace, "after all pph read");
 }
 
 

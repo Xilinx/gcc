@@ -987,6 +987,8 @@ pph_merge_into_chain (tree expr, const char *name, tree *chain)
 
 /* Forward declaration to break cyclic dependencies.  */
 static cp_binding_level *pph_in_binding_level (pph_stream *);
+static void pph_in_merge_body_namespace_decl (pph_stream *stream);
+static void pph_in_merge_key_namespace_decl (pph_stream *stream, tree *chain);
 
 /* Helper for pph_in_cxx_binding.  Read and return a cxx_binding
    instance from STREAM.  */
@@ -1203,9 +1205,12 @@ pph_in_binding_level (pph_stream *stream)
 static void
 pph_in_merge_key_binding_level (pph_stream *stream, cp_binding_level *bl)
 {
-  /* Read all the merge keys and merge into the bindings.  */
+  unsigned count, num;
+  num = pph_in_hwi (stream);
+  for (count = 0; count < num; ++count)
+    pph_in_merge_key_namespace_decl (stream, &bl->namespaces);
+  /* FIXME pph:  The null check should be unnecessary. */
   pph_in_merge_key_chain (stream, (bl) ? &bl->names : NULL);
-  pph_in_merge_key_chain (stream, (bl) ? &bl->namespaces : NULL);
   pph_in_merge_key_chain (stream, (bl) ? &bl->usings : NULL);
   pph_in_merge_key_chain (stream, (bl) ? &bl->using_directives : NULL);
 }
@@ -1216,7 +1221,10 @@ pph_in_merge_key_binding_level (pph_stream *stream, cp_binding_level *bl)
 static void
 pph_in_merge_body_binding_level_1 (pph_stream *stream, cp_binding_level *bl)
 {
-  pph_in_merge_body_chain (stream);
+  unsigned count, num;
+  num = pph_in_hwi (stream);
+  for (count = 0; count < num; ++count)
+    pph_in_merge_body_namespace_decl (stream);
   pph_in_merge_body_chain (stream);
   pph_in_merge_body_chain (stream);
   pph_in_merge_body_chain (stream);
@@ -1224,7 +1232,6 @@ pph_in_merge_body_binding_level_1 (pph_stream *stream, cp_binding_level *bl)
   /* FIXME pph: The following is probably too aggressive in overwriting.  */
   pph_in_binding_level_1 (stream, bl);
 }
-
 
 /* Read all the merge bodies from STREAM into the cp_binding_level BL.  */
 
@@ -1964,16 +1971,9 @@ static void
 pph_in_identifier_bindings (pph_stream *stream, tree expr)
 {
   if (flag_pph_debug >= 3)
-    fprintf (pph_logfile, "in identifier %s\n", IDENTIFIER_POINTER (expr));
+    fprintf (pph_logfile, "PPH: in identifier %s\n", IDENTIFIER_POINTER (expr));
 /* FIXME pph: Writing bindings is causing trouble,
    but not writing them is not yet working.  */
-#if 0
-#else
-  IDENTIFIER_NAMESPACE_BINDINGS (expr) = pph_in_cxx_binding (stream);
-  IDENTIFIER_BINDING (expr) = pph_in_cxx_binding (stream);
-  IDENTIFIER_TEMPLATE (expr) = pph_in_tree (stream);
-  IDENTIFIER_LABEL_VALUE (expr) = pph_in_tree (stream);
-#endif
   REAL_IDENTIFIER_TYPE_VALUE (expr) = pph_in_tree (stream);
 }
 
@@ -2260,13 +2260,74 @@ pph_in_tree_header (pph_stream *stream, enum LTO_tags tag)
 }
 
 
+/* Ensure that a binding level exists for a namespace DECL. */
+
+static void
+pph_ensure_namespace_binding_level (tree decl)
+{
+  if (!DECL_LANG_SPECIFIC (decl))
+    {
+      retrofit_lang_decl (decl);
+      NAMESPACE_LEVEL (decl) = ggc_alloc_cleared_cp_binding_level ();
+    }
+}
+
+
 /* Read all the merge keys for the names under namespace DECL from
    STREAM.  */
 
 static void
-pph_in_merge_key_namespace_decl (pph_stream *stream, tree decl)
+pph_in_merge_key_namespace_decl (pph_stream *stream, tree *chain)
 {
+  struct lto_input_block *ib = stream->encoder.r.ib;
   bool is_namespace_alias;
+  unsigned image_ix, ix;
+  enum pph_record_marker marker;
+  tree read_decl = NULL, decl = NULL;
+  enum LTO_tags tag;
+  const char *name;
+  tree name_id;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_any_tree);
+  gcc_assert (marker != PPH_RECORD_END);
+  if (pph_is_reference_marker (marker))
+    decl = (tree) pph_cache_find (stream, marker, image_ix, ix, PPH_any_tree);
+  else
+    gcc_assert (marker == PPH_RECORD_START_MERGE_KEY);
+
+  tag = streamer_read_record_start (ib);
+
+  read_decl = pph_in_tree_header (stream, tag);
+  gcc_assert (pph_tree_is_mergeable (read_decl));
+  name = pph_in_string (stream);
+
+  gcc_assert (TREE_CODE (read_decl) == NAMESPACE_DECL);
+
+  if (!decl)
+    {
+      /* The record is new, so we need to link it in.  */
+
+      /* If we are merging into an existing CHAIN.  Look for a match in
+         CHAIN to READ_DECL's header.  If we found a match, DECL will be
+         the existing tree that matches READ_DECL. Otherwise, DECL is the
+         newly allocated READ_DECL.  */
+      decl = (chain) ? pph_merge_into_chain (read_decl, name, chain)
+		     : read_decl;
+      gcc_assert (decl != NULL);
+
+      pph_cache_insert_at (&stream->cache, decl, ix,
+			   pph_tree_code_to_tag (decl));
+    }
+
+  if (flag_pph_tracer)
+    pph_trace_tree (decl, pph_trace_front, pph_trace_unmerged_key);
+
+  name_id = pph_in_tree (stream);
+  if (decl == read_decl)
+    {
+      DECL_NAME (decl) = name_id;
+      TREE_TYPE (decl) = void_type_node;
+    }
 
   /* If EXPR is a namespace alias, we do not need to merge
      its binding level (namespaces aliases do not have a
@@ -2275,6 +2336,7 @@ pph_in_merge_key_namespace_decl (pph_stream *stream, tree decl)
   is_namespace_alias = pph_in_bool (stream);
   if (!is_namespace_alias)
     {
+      /* FIXME pph this comment is broken.  */
       /* If this is the first time we see DECL, it will not have
 	 a decl_lang nor a binding level associated with it.  This
 	 means that we do not actually need to do any merging, so
@@ -2284,11 +2346,89 @@ pph_in_merge_key_namespace_decl (pph_stream *stream, tree decl)
 	 under DECL, but it will not try to attempt any merging.
 	 This is fine.  The namespace will be populated once we read
 	 DECL's body.  */
-      cp_binding_level *bl = DECL_LANG_SPECIFIC (decl)
-			     ? NAMESPACE_LEVEL (decl)
-			     : NULL;
-      pph_in_merge_key_binding_level (stream, bl);
+      pph_ensure_namespace_binding_level (decl);
+      pph_in_merge_key_binding_level (stream, NAMESPACE_LEVEL (decl));
     }
+
+  if (flag_pph_tracer)
+    pph_trace_tree (decl, pph_trace_back, pph_trace_unmerged_key);
+}
+
+
+/* Read all the merge bodies for the names under namespace DECL from
+   STREAM.  */
+
+static void
+pph_in_merge_body_namespace_decl (pph_stream *stream)
+{
+  bool is_namespace_alias;
+  unsigned image_ix, ix;
+  /* FIXME pph: remove internal cache duplication of external
+  unsigned local_ix;
+  */
+  enum pph_record_marker marker;
+  tree read_decl = NULL, decl = NULL;
+  enum LTO_tags tag;
+  struct lto_input_block *ib = stream->encoder.r.ib;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_any_tree);
+  gcc_assert (marker != PPH_RECORD_END);
+  if (pph_is_reference_marker (marker))
+    decl = (tree) pph_cache_find (stream, marker, image_ix, ix, PPH_any_tree);
+  else if (marker == PPH_RECORD_START_MUTATED)
+    /* FIXME pph: remove internal cache duplication of external
+    local_ix = pph_in_uint (stream);
+    */
+    ;
+  else
+    gcc_assert (marker == PPH_RECORD_START_MERGE_BODY);
+
+  tag = streamer_read_record_start (ib);
+  read_decl = pph_in_tree_header (stream, tag);
+  gcc_assert (TREE_CODE (read_decl) == NAMESPACE_DECL);
+  if (!decl)
+    {
+      if (marker == PPH_RECORD_START_MUTATED)
+        {
+          /* When reading a mutated tree, we only need to re-read its
+             body, the tree itself is already in the cache for another
+             PPH image.  */
+          decl = (tree) pph_cache_find (stream, PPH_RECORD_XREF, image_ix, ix,
+                                        PPH_any_tree);
+      
+          /* Read the internal cache slot where EXPR should be stored at.  */
+	  /* FIXME pph: remove internal cache duplication of external
+          ix = local_ix;
+	  */
+        }
+      else if (marker == PPH_RECORD_START_MERGE_BODY)
+        {
+          /* When reading a merge body, the tree has already been allocated
+             and added to STREAM's cache.  All we have to do now is read
+             its body.  */
+          decl = (tree) pph_cache_get (&stream->cache, ix);
+        }
+    }
+
+  if (flag_pph_tracer)
+    pph_trace_tree (decl, pph_trace_front, pph_trace_merge_body);
+
+  gcc_assert (DECL_NAME (decl));
+
+  /* If EXPR is a namespace alias, we do not need to merge
+     its binding level (namespaces aliases do not have a
+     binding level, they use the one from the namespace they
+     alias).  */
+  is_namespace_alias = pph_in_bool (stream);
+  if (!is_namespace_alias)
+    {
+      gcc_assert (DECL_LANG_SPECIFIC (decl));
+      gcc_assert (NAMESPACE_LEVEL (decl));
+      pph_in_merge_body_binding_level_1 (stream, NAMESPACE_LEVEL (decl));
+    }
+
+  if (flag_pph_tracer)
+    pph_trace_tree (decl, pph_trace_back, pph_trace_merge_body);
 }
 
 
@@ -2338,8 +2478,6 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
 
   if (DECL_P (expr))
     {
-      if (TREE_CODE (expr) == NAMESPACE_DECL)
-	pph_in_merge_key_namespace_decl (stream, expr);
 #if 0
 /* FIXME pph: Disable type merging for the moment.  */
       else if (TREE_CODE (expr) == TYPE_DECL)
@@ -2823,6 +2961,20 @@ pph_in_global_binding (pph_stream *stream)
 }
 
 
+/* Keep track of whether or not we actually read any PPH files.  */
+
+static bool pph_files_were_read = false;
+
+
+/* Report whether or not we actually read any PPH files.  */
+
+bool
+pph_files_read (void)
+{
+  return pph_files_were_read;
+}
+
+
 /* Helper for pph_read_file.  Read contents of PPH file in STREAM.  */
 
 static void
@@ -2848,13 +3000,19 @@ pph_read_file_1 (pph_stream *stream)
      (common in system headers).  */
   stream->in_memory_p = true;
 
+  pph_files_were_read = true;
+
   if (flag_pph_tracer >= 1)
-    fprintf (pph_logfile, "PPH: Reading %s\n", stream->name);
+    fprintf (pph_logfile, "\nPPH: Reading Lines and Includes for %s\n",
+			  stream->name);
 
   /* Read in STREAM's line table and merge it in the current line table.
      At the same time, read in includes in the order they were originally
      read.  */
   cpp_token_replay_loc = pph_in_line_table_and_includes (stream);
+
+  if (flag_pph_tracer >= 1)
+    fprintf (pph_logfile, "\nPPH: Reading Contents for %s\n", stream->name);
 
   /* Read all the identifiers and pre-processor symbols in the global
      namespace.  */
@@ -2895,7 +3053,7 @@ pph_read_file_1 (pph_stream *stream)
   pph_in_symtab (stream);
 
   if (flag_pph_dump_tree)
-    pph_dump_namespace (pph_logfile, global_namespace);
+    pph_dump_namespace (pph_logfile, global_namespace, "after pph read");
 }
 
 

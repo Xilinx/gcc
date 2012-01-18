@@ -1087,7 +1087,7 @@ chain2vec_filter (pph_stream *stream, tree chain, unsigned filter)
 
 /* Convert a CHAIN to a VEC by copying the nodes.  */
 
-static VEC(tree,heap) *
+VEC(tree,heap) *
 chain2vec (tree chain)
 {
   tree t;
@@ -1160,6 +1160,8 @@ pph_out_merge_body_chain (pph_stream *stream, tree chain, unsigned filter)
 
 /* Forward declaration to break cyclic dependencies.  */
 static void pph_out_binding_level (pph_stream *, cp_binding_level *, unsigned);
+static void pph_out_merge_key_namespace_decl (pph_stream *stream, tree ns);
+static void pph_out_merge_body_namespace_decl (pph_stream *stream, tree ns);
 
 
 /* Helper for pph_out_cxx_binding.  STREAM and CB are as in
@@ -1307,31 +1309,54 @@ pph_out_binding_level (pph_stream *stream, cp_binding_level *bl,
 }
 
 
-/* Write an index of mergeable objects from cp_binding_level BL to STREAM.  */
+/* Iterate over a chain FIRST, apply FILTER, and call output FUNCTION.  */
+
+static void
+pph_foreach_out_chain (pph_stream *stream, tree first, unsigned filter,
+		       void (*function)(pph_stream *, tree))
+{
+  unsigned i;
+  tree ns;
+  VEC(tree,heap) *v;
+  v = chain2vec_filter (stream, first, filter);
+  pph_out_hwi (stream, VEC_length (tree, v));
+  FOR_EACH_VEC_ELT_REVERSE (tree, v, i, ns)
+    (*function) (stream, ns);
+  VEC_free (tree, heap, v);
+}
+
+
+/* Write an index of mergeable namespaces from cp_binding_level BL to
+   STREAM. */
 
 static void
 pph_out_merge_key_binding_level (pph_stream *stream, cp_binding_level *bl)
 {
-  unsigned filter = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
-  pph_out_merge_key_chain (stream, bl->names, filter);
-  pph_out_merge_key_chain (stream, bl->namespaces, filter);
-  pph_out_merge_key_chain (stream, bl->usings, filter);
-  pph_out_merge_key_chain (stream, bl->using_directives, filter);
+  unsigned filter1 = PPHF_NO_PREFS | PPHF_NO_BUILTINS;
+  unsigned filter2 = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
+  pph_foreach_out_chain (stream, bl->namespaces, filter1,
+			 pph_out_merge_key_namespace_decl);
+  pph_out_merge_key_chain (stream, bl->names, filter2);
+  pph_out_merge_key_chain (stream, bl->usings, filter2);
+  pph_out_merge_key_chain (stream, bl->using_directives, filter2);
 }
 
 
-/* Write bodies of mergeable objects from cp_binding_level BL to STREAM.  */
+/* Write bodies of mergeable namespaces from from cp_binding_level BL
+   to STREAM. */
 
 static void
 pph_out_merge_body_binding_level (pph_stream *stream, cp_binding_level *bl)
 {
-  unsigned filter = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
-  pph_out_merge_body_chain (stream, bl->names, filter);
-  pph_out_merge_body_chain (stream, bl->namespaces, filter);
-  pph_out_merge_body_chain (stream, bl->usings, filter);
-  pph_out_merge_body_chain (stream, bl->using_directives, filter);
-  pph_out_tree_vec_filtered (stream, bl->static_decls, filter);
-  pph_out_binding_level_1 (stream, bl, filter);
+  unsigned filter1 = PPHF_NO_PREFS | PPHF_NO_BUILTINS;
+  unsigned filter2 = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
+  pph_foreach_out_chain (stream, bl->namespaces, filter1,
+			 pph_out_merge_body_namespace_decl);
+  pph_out_merge_body_chain (stream, bl->names, filter2);
+  pph_out_merge_body_chain (stream, bl->usings, filter2);
+  pph_out_merge_body_chain (stream, bl->using_directives, filter2);
+  pph_out_tree_vec_filtered (stream, bl->static_decls, filter2);
+  pph_out_binding_level_1 (stream, bl, filter2);
 }
 
 
@@ -1872,18 +1897,9 @@ pph_out_tcc_declaration (pph_stream *stream, tree decl)
 
 /* Emit the bindings for an identifier expr. */
 
-void
+static void
 pph_out_identifier_bindings (pph_stream *stream, tree expr)
 {
-/* FIXME pph: Writing bindings is causing trouble,
-   but not writing them is not yet working.  */
-#if 0
-#else
-  pph_out_cxx_binding (stream, IDENTIFIER_NAMESPACE_BINDINGS (expr));
-  pph_out_cxx_binding (stream, IDENTIFIER_BINDING (expr));
-  pph_out_tree (stream, IDENTIFIER_TEMPLATE (expr));
-  pph_out_tree (stream, IDENTIFIER_LABEL_VALUE (expr));
-#endif
   pph_out_tree (stream, REAL_IDENTIFIER_TYPE_VALUE (expr));
 }
 
@@ -2196,7 +2212,7 @@ pph_out_merge_name (pph_stream *stream, tree expr)
 }
 
 
-/* Write merge information for a namespace DECL to STREAM.  */
+/* Write merge key information for a namespace DECL to STREAM.  */
 
 static void
 pph_out_merge_key_namespace_decl (pph_stream *stream, tree decl)
@@ -2205,12 +2221,52 @@ pph_out_merge_key_namespace_decl (pph_stream *stream, tree decl)
 
   gcc_assert (TREE_CODE (decl) == NAMESPACE_DECL);
 
+  pph_out_start_merge_key_tree_record (stream, decl);
+
+  pph_out_tree_header (stream, decl);
+  pph_out_merge_name (stream, decl);
+
+  if (flag_pph_tracer)
+    pph_trace_tree (decl, pph_trace_front, pph_trace_key_out);
+
+  pph_out_tree (stream, DECL_NAME (decl));
+
   /* If EXPR is a namespace alias, it will not have an associated
      binding.  In that case, tell the reader not to bother with it.  */
   is_namespace_alias = (DECL_NAMESPACE_ALIAS (decl) != NULL_TREE);
   pph_out_bool (stream, is_namespace_alias);
   if (!is_namespace_alias)
     pph_out_merge_key_binding_level (stream, NAMESPACE_LEVEL (decl));
+
+  if (flag_pph_tracer)
+    pph_trace_tree (decl, pph_trace_back, pph_trace_key_out);
+}
+
+
+/* Write merge body information for a namespace DECL to STREAM.  */
+
+static void
+pph_out_merge_body_namespace_decl (pph_stream *stream, tree decl)
+{
+  bool is_namespace_alias;
+
+  gcc_assert (TREE_CODE (decl) == NAMESPACE_DECL);
+
+  pph_out_start_tree_record (stream, decl);
+  pph_out_tree_header (stream, decl);
+
+  if (flag_pph_tracer)
+    pph_trace_tree (decl, pph_trace_front, pph_trace_merge_body);
+
+  /* If EXPR is a namespace alias, it will not have an associated
+     binding.  In that case, tell the reader not to bother with it.  */
+  is_namespace_alias = (DECL_NAMESPACE_ALIAS (decl) != NULL_TREE);
+  pph_out_bool (stream, is_namespace_alias);
+  if (!is_namespace_alias)
+    pph_out_merge_body_binding_level (stream, NAMESPACE_LEVEL (decl));
+
+  if (flag_pph_tracer)
+    pph_trace_tree (decl, pph_trace_back, pph_trace_merge_body);
 }
 
 
@@ -2234,8 +2290,6 @@ pph_out_merge_key_tree (pph_stream *stream, tree expr)
   pph_out_merge_name (stream, expr);
   if (DECL_P (expr))
     {
-      if (TREE_CODE (expr) == NAMESPACE_DECL)
-	pph_out_merge_key_namespace_decl (stream, expr);
 #if 0
 /* FIXME pph: Distable tree merging for the moment.  */
       else if (TREE_CODE (expr) == TYPE_DECL)
@@ -2589,7 +2643,7 @@ pph_write_file (pph_stream *stream)
   cpp_idents_used idents_used;
 
   if (flag_pph_tracer >= 1)
-    fprintf (pph_logfile, "PPH: Writing %s\n", pph_out_file);
+    fprintf (pph_logfile, "\nPPH: Writing %s\n", pph_out_file);
 
   /* Emit the line table entries and references to our direct includes.   */
   pph_out_line_table_and_includes (stream);
@@ -2616,7 +2670,7 @@ pph_write_file (pph_stream *stream)
   pph_out_symtab (stream);
 
   if (flag_pph_dump_tree)
-    pph_dump_namespace (pph_logfile, global_namespace);
+    pph_dump_namespace (pph_logfile, global_namespace, "after pph write");
 }
 
 

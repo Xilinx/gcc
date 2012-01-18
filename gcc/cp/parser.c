@@ -463,6 +463,24 @@ cp_debug_parser_tokens (FILE *file, cp_parser *parser, int window_size)
 }
 
 
+/* Concisely dump the tokens around where the PARSER's current token
+   in a concise manner.  If FILE is NULL, the output is printed on
+   stderr. */
+
+void
+cp_debug_parser_where (FILE *file, cp_parser *parser)
+{
+  const size_t window_size = 20;
+  cp_token *token = parser->lexer->next_token;
+  expanded_location eloc = expand_location (token->location);
+
+  if (file == NULL)
+    file = stderr;
+
+  fprintf (file, "%s:%d:%d ", eloc.file, eloc.line, eloc.column);
+  cp_debug_parser_tokens (file, parser, window_size);
+}
+
 /* Dump debugging information for the given PARSER.  If FILE is NULL,
    the output is printed on stderr.  */
 
@@ -27440,7 +27458,8 @@ c_parse_file (void)
 
   the_parser = cp_parser_new ();
 
-  pph_loaded();
+  if (pph_enabled_p () && pph_files_read ())
+    pph_loaded ();
 
   push_deferring_access_checks (flag_access_control
 				? dk_no_deferred : dk_no_check);

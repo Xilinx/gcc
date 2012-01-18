@@ -159,6 +159,7 @@ extern location_t pph_in_location (pph_stream *stream);
 extern tree pph_in_tree (pph_stream *stream);
 extern enum pph_record_marker pph_in_record_marker (pph_stream *stream,
 			enum pph_tag *tag_p);
+extern bool pph_files_read (void);
 
 /* In name-lookup.c.  */
 struct binding_table_s;
@@ -171,6 +172,9 @@ extern void pph_out_pending_templates_list (pph_stream *);
 extern void pph_out_spec_entry_tables (pph_stream *);
 extern void pph_in_pending_templates_list (pph_stream *);
 extern void pph_in_spec_entry_tables (pph_stream *);
+
+/* FIXME pph: These functions should be moved to tree.c on merge.  */
+extern VEC(tree,heap) *chain2vec (tree chain);  /* In pph-out.c.  */
 
 
 /* Inline functions.  */

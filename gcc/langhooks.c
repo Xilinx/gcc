@@ -657,3 +657,10 @@ lhd_end_section (void)
       saved_section = NULL;
     }
 }
+
+/* FIXME pph: This is a gdb workaround.  Maybe it stays, maybe it does not.  */
+struct lang_hooks *
+get_lang_hooks()
+{
+  return &lang_hooks;
+}
