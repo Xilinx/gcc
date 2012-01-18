@@ -6026,7 +6026,7 @@ extern void gimplify_cilk_spawn                (tree *, gimple_seq *,
 /* In cp/cp-array-notations.c */
 extern tree build_x_array_notation_expr        (tree, enum tree_code, tree,
 						tsubst_flags_t);
-extern tree fix_conditional_array_notations    (tree);
+extern tree fix_array_notation_exprs           (tree);
 /* -- end of C++ */
 
 #endif /* ! GCC_CP_TREE_H */

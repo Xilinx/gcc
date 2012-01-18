@@ -41,6 +41,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pretty-print.h"
 #include "parser.h"
 
+extern void extract_array_notation_exprs (tree, tree **, int *);
+extern tree fix_unary_array_notation_exprs (tree);
 struct pragma_simd_values local_simd_values;
 
 /* The lexer.  */
@@ -7636,6 +7638,7 @@ cp_parser_assignment_expression (cp_parser* parser, bool cast_p,
 				 cp_id_kind * pidk)
 {
   tree expr;
+  tree new_expr;
 
   /* If the next token is the `throw' keyword, then we're looking at
      a throw-expression.  */
@@ -7679,16 +7682,15 @@ cp_parser_assignment_expression (cp_parser* parser, bool cast_p,
 	      /* Check if expression is of type ARRAY_NOTATION_REF, if so then
 	       * break up an array notation expression correctly 
 	       */
-	      if (TREE_CODE (expr) == ARRAY_NOTATION_REF
-		  || TREE_CODE (rhs) == ARRAY_NOTATION_REF)
-		expr = build_x_array_notation_expr (expr, assignment_operator,
-						    rhs, tf_warning_or_error);
-	      else
-		/* Build the assignment expression.  */
+	      new_expr = build_x_array_notation_expr (expr, assignment_operator,
+						      rhs, tf_warning_or_error);
+	      if (!new_expr)
 		expr = build_x_modify_expr (expr,
 					    assignment_operator,
 					    rhs,
 					    tf_warning_or_error);
+	      else
+		expr = new_expr;
 	    }
 	}
     }
@@ -9121,7 +9123,8 @@ cp_parser_compound_statement (cp_parser *parser, tree in_statement_expr,
   /* Consume the `}'.  */
   cp_parser_require (parser, CPP_CLOSE_BRACE, RT_CLOSE_BRACE);
 
-  compound_stmt = fix_conditional_array_notations (compound_stmt);
+  if (flag_enable_cilk)
+    compound_stmt = fix_array_notation_exprs (compound_stmt);
   return compound_stmt;
 }
 

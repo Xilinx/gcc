@@ -1,3 +1,13 @@
+2012-01-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* g++.dg/cilk-plus/array_notation_tests/predecr_test.cc: New.
+	* g++.dg/cilk-plus/array_notation_tests/preincr_test.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/postdecr_test.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/postincr_test.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/func.cc: Likewise.
+	* g++.dg/cilk-plus/array_notation_tests/func_call.cc: Likewise.
+	* g++.dg/cilk-plus/cilk-plus.exp: Added HAVE_IO flag for compilation.
+
 2012-01-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* g++.dg/cilk-plus/array_notation_tests/switch_test.cc: New

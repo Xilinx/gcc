@@ -1,3 +1,29 @@
+2012-01-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-array-notation.c (max): New function.
+	(fix_unary_array_notation_exprs): Likewise.
+	(build_x_array_notation_expr): Added a check to see if we get an
+	expression has a rank of 0.  Also added code to handle a case where
+	a function call with array notation as a parameter that results a
+	scalar value.  Also added a check if lhs_rank is zero.  Changed
+	modifycode to NOP_EXPR.  Replaced all lhs_rank in for-loop conditions
+	to max of lhs and rhs rank.  Added a check to see if array_expr_lhs is
+	null, if so then just use lhs.
+	(fix_conditional_array_notations): Renamed to fix_array_notation_exprs.
+	Also added a case for POSTINCREMENT_EXPR, POSTDECREMENT_EXPR,
+	PREDECREMENT_EXPR, PREINCREMENT_EXPR.
+	* cp-tree.h: Renamed fix_conditional_array_notations to
+	fix_array_notation_exprs.
+	* parser.c (cp_parser_assignment_expression): Modified to handle a
+	function-call that has array-notation as a parameter which will return
+	a single scalar value.
+	(cp_parser_compound_statement): Renamed fix_conditional array_notations
+	to fix_array_notation_exprs and make sure it is called only if
+	flag_enable_cilk is set.
+	* typeck.c (lvalue_or_else): Removed a error check for
+	ARRAY_NOTATION_REF, if flag_enable_cilk is defined.
+	(cp_build_addr_expr_1): Likewise.
+
 2012-01-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cp-array-notation.c (fix_conditional_array_notations): New function.
