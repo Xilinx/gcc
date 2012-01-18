@@ -67,7 +67,7 @@
   original $VAL when cloning is not possible. For objects, make a new
   one copying the common fields. See the $VALDESC_CLONECHUNK field in
   $CLASS_VALUE_DESCRIPTOR. The primitive's code is generated.}#
-  #{ meltgc_clone_with_discriminant((melt_ptr_t)($VAL), (meltobject_ptr_t)($DISCR)) }#)
+  #{ meltgc_clone_with_discriminant((melt_ptr_t)($VAL), (melt_ptr_t)($DISCR)) }#)
 
 ;; primitive to get the length of an object (or 0)
 (defprimitive obj_len (v) :long

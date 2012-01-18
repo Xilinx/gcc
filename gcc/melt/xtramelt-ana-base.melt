@@ -1753,29 +1753,65 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 	integer type.}#
 	#{
 		build_int_cst (integer_type_node, (int)melt_get_int ($INT_VALUE))
-	}#)
+	}#
+)
 
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
-;; pattern (tree_function_decl <funame> <initialtree>) match a tree for a function
+;; pattern (tree_function_decl_named <funame> <initialtree>) match a tree for a function
 ;; declaration
-(defcmatcher tree_function_decl 
+(defcmatcher tree_function_decl_named 
   (:tree tr) 				;matched
   ;; output 
   (:cstring funame
    :tree initialdcl
    )
-  treefun				;state symbol
+  treefunam				;state symbol
   ;; test expansion
-  #{ (($tr) && TREE_CODE($tr) == FUNCTION_DECL) }#
+  #{ /* $TREEFUNAM ? */ (($TR) && TREE_CODE($TR) == FUNCTION_DECL) }#
   ;; fill expansion
   #{
-   $funame = NULL; 
-   $initialdcl = NULL; 
+   $FUNAME = NULL; 
+   $INITIALDCL = NULL; 
    if (DECL_NAME($tr))
-     $funame = IDENTIFIER_POINTER(DECL_NAME($tr)); 
-   $initialdcl = DECL_RESULT($tr); 
+     $FUNAME = IDENTIFIER_POINTER(DECL_NAME($TR)); 
+   $INITIALDCL = DECL_RESULT($TR); 
+  }#
+)
+
+;; match a function decl of a given name
+(defcmatcher tree_function_decl_of_name 
+  (:tree tr :cstring fname) 				;matched
+  ;; output 
+  (:tree tfunname
+   :tree tinitialdcl
+   )
+  treefunofnam				;state symbol
+  ;; test expansion
+  #{ /*$TREEFUNOFNAM ?*/ (($TR) && TREE_CODE($TR) == FUNCTION_DECL && DECL_NAME($TR) 
+     && !strcmp($fname, IDENTIFIER_POINTER(DECL_NAME($TR)))) }#
+  ;; fill expansion
+  #{ /* $TREEFUNOFNAM ! */
+   $TFUNNAME = DECL_NAME($TR);
+   $TINITIALDCL = DECL_RESULT($TR); 
+  }#
+)
+
+
+(defcmatcher tree_function_decl 
+  (:tree tr) 				;matched
+  ;; output 
+  (:tree tfuname
+   :tree tinitialdcl
+   )
+  treefun				;state symbol
+  ;; test expansion
+  #{ /*$TREEFUN ?*/ (($TR) && TREE_CODE($TR) == FUNCTION_DECL) }#
+  ;; fill expansion
+  #{ /* $TREEFUN! */
+   $TFUNAME = DECL_NAME($TR);
+   $TINITIALDCL = DECL_RESULT($TR); 
   }#
 )
 
@@ -1816,14 +1852,14 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 
 ;;;;;;;;;;;;;;;;
 ;; pattern for variables (tree_var_decl <type> <name> <uid>)
-(defcmatcher tree_var_decl 
+(defcmatcher tree_var_decl_named 
   (:tree tr)
   (:tree type :cstring varname :long uid)
-  treevard				;statesym
+  treevardnam				;statesym
   ;; test expansion
-  #{/*$TREEVARD ?*/ (($TR) && TREE_CODE($TR) == VAR_DECL) }#
+  #{/*$TREEVARDNAM ?*/ (($TR) && TREE_CODE($TR) == VAR_DECL) }#
   ;; fill expansion
-  #{/*$TREEVARD !*/
+  #{/*$TREEVARDNAM !*/
    $VARNAME =NULL;
    $TYPE = TREE_TYPE($TR);
    $UID = DECL_UID($TR);
@@ -1831,10 +1867,24 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
      $VARNAME = IDENTIFIER_POINTER(DECL_NAME($TR));
    }# )
 
+;; pattern for variables (tree_var_decl <type> <name> <uid>)
+(defcmatcher tree_var_decl 
+  (:tree tr)
+  (:tree ttype tname :long uid)
+  treevard				;statesym
+  ;; test expansion
+  #{/*$TREEVARD ?*/ (($TR) && TREE_CODE($TR) == VAR_DECL) }#
+  ;; fill expansion
+  #{/*$TREEVARD !*/
+   $TTYPE = TREE_TYPE($TR);
+   $UID = DECL_UID($TR);
+   $TNAME = DECL_NAME($TR);
+   }# )
+
 ;;;;;;;;
 ;; pattern for a var_decl of given name
 	   
-(defcmatcher tree_var_decl_named 
+(defcmatcher tree_var_decl_of_name 
   (:tree tr :cstring varname)
   ()
   treevarn				;statesym
@@ -1864,7 +1914,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;;;;;;;;
 ;; pattern for a const_decl of given name
 	   
-(defcmatcher tree_const_decl_named 
+(defcmatcher tree_const_decl_of_name 
   (:tree tr :cstring constname)
   ()
   treeconstn				;statesym
@@ -1874,43 +1924,73 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   ;; fill expansion
   #{ /*$TREECONSTN !*/ }# )
 
+;; pattern for constant declaration  (tree_const_decl_named <type> <name> <uid>)
+(defcmatcher tree_const_decl_named 
+  (:tree tr)
+  (:tree type :cstring varname :long uid)
+  treeconstnam				;statesym
+  ;; test expansion
+  #{/*$TREECONSTNAM ?*/ (($TR) && TREE_CODE($TR) == CONST_DECL) }#
+  ;; fill expansion
+  #{/*$TREECONSTNAM !*/
+   $VARNAME =NULL;
+   $TYPE = TREE_TYPE($TR);
+   $UID = DECL_UID($TR);
+   if (DECL_NAME($TR))
+     $VARNAME = IDENTIFIER_POINTER(DECL_NAME($TR));
+   }# )
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; pattern for parameters (tree_parm_decl <type> <name> <uid>)
-(defcmatcher tree_parm_decl 
+(defcmatcher tree_parm_decl_named 
   (:tree tr)
   (:tree type :cstring parmname :long uid)
-  treeparmd				;statesym
+  treeparmdcnam				;statesym
   ;; test expansion
-  #{/*$TREEPARMD ?*/ (($TR) && TREE_CODE($TR) == PARM_DECL) }#
+  #{/*$TREEPARMDCNAM ?*/ (($TR) && TREE_CODE($TR) == PARM_DECL) }#
   ;; fill expansion
-  #{/*$TREEPARMD !*/
+  #{/*$TREEPARMDCNAM !*/
    $PARMNAME =NULL;
-   $TYPE = TREE_TYPE($TR);
+   $TYPE = DECL_ARG_TYPE($TR);
    $UID = DECL_UID($TR);
    if (DECL_NAME($TR))
      $PARMNAME = IDENTIFIER_POINTER(DECL_NAME($TR));
    }# )
 
 ;; pattern for a parm_decl of given name
-(defcmatcher tree_parm_decl_named 
+(defcmatcher tree_parm_decl_of_name 
   (:tree tr :cstring parmname)
   ()
-  treeparmn				;statesym
+  treeparmofnam				;statesym
   ;; test expansion
-  #{ /*$TREEPARMN ?*/ (($TR) && TREE_CODE($TR) == PARM_DECL && DECL_NAME($TR) 
+  #{ /*$TREEPARMOFNAM ?*/ (($TR) && TREE_CODE($TR) == PARM_DECL && DECL_NAME($TR) 
       && !strcmp($parmname, IDENTIFIER_POINTER(DECL_NAME($TR)))) }#
   ;; fill expansion
-  #{ /*$TREEPARMN !*/ }# )
+  #{ /*$TREEPARMOFNAM !*/ }# )
+
+
+;; pattern for a parm_decl
+(defcmatcher tree_parm_decl
+  (:tree tr)
+  (:tree trargtype trdeclnam)
+  treeparmde				;statesym
+  ;; test expansion
+  #{ /*$TREEPARMDE ?*/ (($TR) && TREE_CODE($TR) == PARM_DECL) }#
+  ;; fill expansion
+  #{ /*$TREEPARMDE !*/ 
+   $TRARGTYPE = DECL_ARG_TYPE($TR);
+   $TRDECLNAM = DECL_NAME($TR); }# )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; pattern for results (tree_result_decl <type> <name> <uid>)
-(defcmatcher tree_result_decl 
+(defcmatcher tree_result_decl_named
   (:tree tr)
   (:tree type :cstring parmname :long uid)
   treeparmd				;statesym
   ;; test expansion
-  #{/*$TREEPARMD ?*/ (($TR) && TREE_CODE($TR) == PARM_DECL) }#
+  #{/*$TREEPARMD ?*/ (($TR) && TREE_CODE($TR) == RESULT_DECL) }#
   ;; fill expansion
   #{/*$TREEPARMD !*/
    $PARMNAME =NULL;
@@ -1920,13 +2000,24 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
      $PARMNAME = IDENTIFIER_POINTER(DECL_NAME($TR));
    }# )
 
+(defcmatcher tree_result_decl
+  (:tree tr)
+  (:tree tnam ttyp)
+  treeresd				;statesym
+  ;; test expansion
+  #{ /*$TREERESD ?*/ (($TR) && TREE_CODE($TR) == RESULT_DECL)) }#
+  ;; fill expansion
+  #{ /*$TREERESD !*/ 
+   $TNAM = DECL_NAME($TR);
+   $TTYP = TREE_TYPE($TR); }# )
+
 ;; pattern for a parm_decl of given name
-(defcmatcher tree_result_decl_named 
+(defcmatcher tree_result_decl_of_name 
   (:tree tr :cstring parmname)
   ()
   treeparmn				;statesym
   ;; test expansion
-  #{ /*$TREEPARMN ?*/ (($TR) && TREE_CODE($TR) == PARM_DECL && DECL_NAME($TR) 
+  #{ /*$TREEPARMN ?*/ (($TR) && TREE_CODE($TR) == RESULT_DECL && DECL_NAME($TR) 
       && !strcmp($parmname, IDENTIFIER_POINTER(DECL_NAME($TR)))) }#
   ;; fill expansion
   #{ /*$TREEPARMN !*/ }# )
@@ -4448,8 +4539,10 @@ Don't scan operands of the added $G.}#
  tree_component_ref_typed
  tree_const_decl
  tree_const_decl_named
+ tree_const_decl_of_name
  tree_parm_decl
  tree_parm_decl_named
+ tree_parm_decl_of_name
  tree_type_decl
  tree_type_decl_named
  tree_content 
@@ -4458,6 +4551,8 @@ Don't scan operands of the added $G.}#
  tree_field_decl
  tree_fixed_point_type
  tree_function_decl 
+ tree_function_decl_named
+ tree_function_decl_of_name
  tree_function_type
  tree_identifier
  tree_indirect_reference
@@ -4477,6 +4572,7 @@ Don't scan operands of the added $G.}#
  tree_record_type_with_fields
  tree_result_decl
  tree_result_decl_named
+ tree_result_decl_of_name
  tree_reference_type
  tree_simple_ssa_name 
  tree_ssa_name 
@@ -4485,6 +4581,7 @@ Don't scan operands of the added $G.}#
  tree_type_declaration
  tree_uid
  tree_var_decl
+ tree_var_decl_of_name
  tree_var_decl_named
  tree_vec
  tree_void_type

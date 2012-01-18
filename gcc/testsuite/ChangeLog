@@ -1,3 +1,70 @@
+2012-01-17  Ian Lance Taylor  <iant@google.com>
+
+	PR go/50656
+	* go.test/go-test.exp (go-gc-tests): Recognize some more test
+	lines.
+
+2012-01-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51869
+	* gfortran.dg/realloc_on_assign_9.f90: New.
+
+2012-01-17  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR other/51165
+	* gcc.dg/tm/memopt-3.c: Remove xfail.
+	* gcc.dg/tm/memopt-4.c: Remove xfail.
+	* gcc.dg/tm/memopt-5.c: Remove xfail.
+	* gcc.dg/tm/memopt-7.c: Remove xfail.
+
+2012-01-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51877
+	* gcc.c-torture/execute/pr51877.c: New test.
+
+2012-01-17  Michael Zolotukhin  <michael.v.zolotukhin@intel.com>
+
+	* gcc.dg/vect/no-section-anchors-vect-69.c: Change
+	{!vect_align_arrays} to vect_sizes_32B_16B.
+	* gcc.dg/vect/vect-multitypes-1.c: Ditto.
+	* gcc.dg/vect/vect-peel-3.c: Ditto.
+
+2012-01-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51854
+	* g++.dg/abi/mangle60.C: New.
+
+	PR c++/51827
+	* g++.dg/pch/mangle1.{C,Hs}: New.
+
+2012-01-16  Mikael Morin  <mikael@gcc.gnu.org>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50981
+	* gfortran.dg/elemental_optional_args_3.f90: New
+	* gfortran.dg/elemental_optional_args_4.f90: New
+
+2012-01-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51809
+	* gfortran.dg/use_20.f90: New
+
+2012-01-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51868
+	* g++.dg/cpp0x/rv-bitfield.C: New.
+	* g++.dg/cpp0x/rv-bitfield2.C: New.
+
+2012-01-16  Paul Thomas  <pault@gcc.gnu.org>
+
+	* gfortran.dg/class_array_3.f03: Remove the explicit loop in
+	subroutine 'qsort' and use index array to assign the result.
+
+2012-01-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51865
+	* gcc.dg/pr51865.c: New test.
+
 2012-01-15  Richard Sandiford  <rdsandiford@googlemail.com>
 
 	* gcc.dg/tree-ssa/ssa-dom-thread-4.c: Expect 4 threaded edges for MIPS.

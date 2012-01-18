@@ -1,7 +1,7 @@
 ;; -*- Lisp -*-
 ;; file xtramelt-c-generator.melt
 (comment "***
-    Copyright 2010, 2011 Free Software Foundation, Inc.
+    Copyright 2010, 2011, 2012 Free Software Foundation, Inc.
     Contributed by Jeremie Salvucci  <jeremie.salvucci@free.fr>
                 with improvements by  Basile Starynkevitch  <basile@starynkevitch.net>
 
@@ -480,7 +480,7 @@
 
 (defun get_function_name (function :tree header)
   (match header
-	 (?(tree_function_decl ?name ?_)
+	 (?(tree_function_decl_named ?name ?_)
 	   (make_stringconst discr_string name))
 	 (?_)))
 
@@ -536,7 +536,7 @@
      (header)
      (:tree parameter)
      (match parameter
-	    (?(tree_parm_decl ?type ?_ ?name)
+	    (?(tree_parm_decl_named ?type ?name ?_)
 	      (let ((boxed_parameter (build_parameter function type name)))
 		(list_append parameters boxed_parameter)))
 	    (?_ )))
@@ -645,14 +645,14 @@
 
 (defun get_tree_value_rec (datas function sets buffer :tree value)
   (match value
-	 (?(tree_var_decl ?type ?name ?uid)
+	 (?(tree_var_decl_named ?type ?name ?uid)
 	   (handle_variables_declaration function sets value type name uid)
 	   (if name
 	       (add2sbuf_strconst buffer name)
 	     (progn
 	       (add2sbuf_strconst buffer "melt_tmp_")
 	       (add2sbuf_longdec buffer uid))))
-	 (?(tree_parm_decl ?_ ?_ ?name)
+	 (?(tree_parm_decl_named ?_ ?name ?_)
 	   (add2sbuf_strconst buffer name))
 	 (?(tree_integer_cst ?integer)
 	   (add2sbuf_longdec buffer integer))
@@ -692,7 +692,7 @@
      (instruction)
      (:tree argument)
      (match argument
-	    (?(tree_parm_decl ?type ?_ ?name)
+	    (?(tree_parm_decl_named ?type  ?name ?_)
 	      (let ((boxed_parameter (build_parameter function type name)))
 		(list_append parameters boxed_parameter)))
 	    (?_ )))

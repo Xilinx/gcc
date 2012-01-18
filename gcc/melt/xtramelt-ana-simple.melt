@@ -159,7 +159,7 @@
   (match 
    decltree
    ;; the joker below is acutally nil
-   ( ?(tree_function_decl ?funam ?(tree_block ?treevars ?_))
+   ( ?(tree_function_decl_named ?funam ?(tree_block ?treevars ?_))
       (debug "smallana_cfun_entbb treevars of function" treevars)
       (push_cfun_decl decltree)
       ;;;;;
@@ -172,10 +172,10 @@
 	( ?(tree_parm_decl
 	    ?(and ?argdtype 
 ;		  ?(tree_integer_type ?typname ?bigmin ?bigmax ?isiz)) ?argdcl ?argname)
-                  ?_) ?_ ?_)
+                  ?_) ?_ )
 	   )
-	( ?(tree_parm_decl ?argdtype ?argdcl ?argname)
-	   (debug "smallana_cfun_entbb argdtype=" argdtype " argdcl=" argdcl " argname=" argname)
+	( ?(tree_parm_decl_named ?argdtype  ?argname ?arguid)
+	   (debug "smallana_cfun_entbb argdtype=" argdtype " argname=" argname " arguid=" arguid)
 	   )
 	( ?_ 
 	  ;; (assert_msg "unexpected argdtree" ())	  
@@ -584,12 +584,11 @@
 	  (debug "sman_arithm_compare true branch impossible" g)
 	  )
       (progn
-	(debug "sman_arithm_compare true branch possible g" g)
-	(debugbasicblock "sman_arithm_compare true branch possible bb" bb)
+	(debug "sman_arithm_compare true branch possible g=" g " bb=" bb)
 	(foreach_basicblock_succ_edge 
 	 (bb)
 	 (:edge eg :long eix)
-	 (debugedge "sman_arithm_compare true succedge eg" eg)
+	 (debug "sman_arithm_compare true succedge eg=" eg " eix=" eix)
 	 (if (edge_for_true_value eg)
 	     (let ( (:basic_block tbb (edge_dest_bb eg)) 
 		    (oldpolyv (get_field :abenv_pplpoly abenv))
@@ -611,17 +610,16 @@
 	  (debug "sman_arithm_compare false branch impossible" g)
 	  )
       (progn
-	(debug "sman_arithm_compare false branch possible" g)
-	(debugbasicblock "sman_arithm_compare false branch possible bb" bb)
+	(debug "sman_arithm_compare false branch possible g=" g " bb=" bb)
 	(foreach_basicblock_succ_edge 
 	 (bb)
 	 (:edge eg :long eix)
-	 (debugedge "sman_arithm_compare false succedge eg" eg)
+	 (debug "sman_arithm_compare false succedge eg=" eg " eix=" eix)
 	 (if (edge_for_false_value eg)
 	     (let ( (:basic_block fbb (edge_dest_bb eg)) 
 		    (oldpolyv (get_field :abenv_pplpoly abenv))
 		    )
-	       (debugbasicblock "sman_arithm_compare falsesucc fbb" fbb)
+	       (debug "sman_arithm_compare falsesucc fbb=" fbb)
 	       (put_fields abenv :abenv_pplpoly clonpolyv)
 	       (debug "sman_arithm_compare false updated abenv=" abenv)
 	       (smaninterp_basicblock sman abenv fbb)
@@ -662,9 +660,9 @@
 	  (debug "smaninterp_gimple curarg" curarg)
 	  (match 
 	   curparamdcl
-	   (?(tree_parm_decl ?parmtype ?parmdecl ?parmname)
-	     (debug "smaninterp_gimple parmtype=" parmtype " parmdecl=" parmdecl
-		    " parmname=" parmname)
+	   (?(tree_parm_decl ?parmtype ?parmdecl)
+	     (debug "smaninterp_gimple parmtype=" parmtype
+		    " parmdecl=" parmdecl)
 	     (multiple_put_nth tupvarbind argix
 			       (tuple 
 				(make_tree discr_tree parmtype)
@@ -943,7 +941,7 @@
 	 (if tvars (justscan_tree jsdata tvars))
 	 (if tsublocks (justscan_tree jsdata tsublocks))
 	 )
-       (?(tree_parm_decl ?tptyp ?tpdecl ?_)
+       (?(tree_parm_decl ?tptyp ?tpdecl)
 	 (if tptyp (justscan_tree jsdata tptyp))
 	 (if tpdecl (justscan_tree jsdata tpdecl))
 	 )
@@ -1101,12 +1099,12 @@
    (:tree cfundecl)
    (match cfundecl
 	  ;; melt-runtime.c has has garbage collecting MELT functions starting with meltgc_
-	  ( ?(tree_function_decl ?(cstring_prefixed "meltgc_") ?_)
+	  ( ?(tree_function_decl_named ?(cstring_prefixed "meltgc_") ?_)
 	     )
 	  ;; MELT generated routines start with meltrout_
-	  ( ?(tree_function_decl ?(cstring_prefixed "meltrout_") ?_)
+	  ( ?(tree_function_decl_named ?(cstring_prefixed "meltrout_") ?_)
 	     )
-	  ( ?(tree_function_decl ?(cstring_same "start_module_melt") ?_)
+	  ( ?(tree_function_decl_named ?(cstring_same "start_module_melt") ?_)
 	     )
 	  (?_
 	   (return)
@@ -1150,7 +1148,7 @@
      (:tree tlocdecl :long ix)
      (debug "meltframe_exec tlocdecl" tlocdecl)
      (match tlocdecl 
-	    (?(tree_var_decl
+	    (?(tree_var_decl_named
 	       ?(and ?tvtyp 
 		     ?(tree_record_type_with_fields ?tmeltframrecnam 
 						    ?tmeltframfields))
@@ -1209,7 +1207,7 @@
 	(setq gimplecnt (+i gimplecnt 1))
 	(match g
 	       ( ?(gimple_call_3
-		   ?lhs ?(tree_function_decl ?(cstring_same "memset") ?_)
+		   ?lhs ?(tree_function_decl_named ?(cstring_same "memset") ?_)
 		   ?(tree_addr_expr tmeltframtype tmeltframdecl) ?arg2 ?arg3)
 		  (debug "meltframe_exec call3 memset arg2=" arg2 " arg3=" arg3)
 		  )

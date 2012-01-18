@@ -6968,7 +6968,11 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        meltgc_add_strbuf_raw_len((melt_ptr_t)sbufv, &rdcurc(), nbc);
        rd->rcol += nbc;
      }
-     else { /* the current char is not a dollar $ */
+     else { /* the current char is not a dollar $ nor an alnum */
+       /* if the macro string contains #{ it is suspicious. */
+       if (rdcurc() == '#' && rdfollowc(1) == '{')
+	   warning_at(rd->rsrcloc, 0, 
+		      "internal #{ inside MELT macrostring starting at line %d might be suspicious", lineno);
        if (!sbufv)
 	 sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
        meltgc_add_strbuf_raw_len((melt_ptr_t)sbufv, &rdcurc(), 1);

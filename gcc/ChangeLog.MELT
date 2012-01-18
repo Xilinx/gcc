@@ -1,4 +1,18 @@
 
+2012-01-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* warmelt-base.melt (clone_with_discriminant): Better casts in
+	macrostrings.
+	* melt/xtramelt-ana-base.melt (tree_function_decl_named)
+	(function_decl_of_name, tree_function_decl, tree_var_decl_named)
+	(tree_var_decl, tree_var_decl_of_name, tree_const_decl_of_name)
+	(tree_const_decl_named, tree_parm_decl_named)
+	(tree_parm_decl_of_name, tree_parm_decl, tree_result_decl_named)
+	(tree_result_decl, tree_result_decl_of_name): Improve or add or
+	change.
+	* melt/xtramelt-ana-simple.melt (meltframe_exec)
+	(smaninterp_gimple, ...): Adapt to previous changes.
+	* melt/xtramelt-c-generator.melt: Likewise.
+
 2012-01-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (tree_complex_type, tree_const_decl)
 	(tree_const_decl_named, tree_parm_decl, tree_parm_decl_named)

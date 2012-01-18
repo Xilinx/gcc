@@ -1,3 +1,39 @@
+2012-01-17  Tobias Burnus  <burnus@net-b.de>
+	    Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/51869
+	* trans-expr.c (alloc_scalar_allocatable_for_assignment): Nullify
+	LHS after allocation, if it has allocatable components.
+	* f95-lang.c (gfc_init_builtin_functions): Add BUILT_IN_CALLOC.
+
+2012-01-16  Mikael Morin  <mikael@gcc.gnu.org>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50981
+	* trans-array.c (gfc_walk_elemental_function_args): Fix
+	passing of deallocated allocatables/pointers as absent argument. 
+
+2012-01-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51809
+	* class.c (gfc_find_derived_vtab): Mark __vtab and
+	__def_init as FL_VARIABLE not as FL_PARAMETER.
+	* expr.c (gfc_simplify_expr): Remove special
+	handling of __vtab.
+	* resolve.c (resolve_values): Ditto.
+	* trans-decl.c (gfc_get_symbol_decl): Mark __vtab
+	and __def_init as TREE_READONLY.
+
+2012-01-16  Paul Thomas  <pault@gcc.gnu.org>
+
+	* trans-array.c (gfc_trans_create_temp_array): In the case of a
+	class array temporary, detect a null 'eltype' on entry and use 
+	'initial' to provde the class reference and so, through the
+	vtable, the element size for the dynamic type.
+	* trans-stmt.c (gfc_conv_elemental_dependencies): For class
+	expressions, set 'eltype' to null and pass the values via the
+	'initial' expression.
+
 2012-01-14  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/51800

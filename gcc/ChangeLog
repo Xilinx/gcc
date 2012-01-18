@@ -1,3 +1,92 @@
+2012-01-17  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+	    Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR middle-end/50325
+	PR middle-end/51192
+	* optabs.h (simplify_expand_binop): Declare.
+	* optabs.c (simplify_expand_binop): Make global.
+	* expmed.c (store_bit_field_1): Use simplify_expand_binop on big
+	endian targets if the source cannot be exactly covered by word
+	mode chunks.
+
+2012-01-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/51872
+	* hard-reg-set.h (struct hard_reg_set_container): New type.
+	* target.h (struct hard_reg_set_container): Forward declare.
+	* target.def (set_up_by_prologue): New target hook.
+	* doc/tm.texi.in (TARGET_SET_UP_BY_PROLOGUE): Document it.
+	* doc/tm.texi: Regenerated.
+	* function.c (thread_prologue_and_epilogue_insns): Change
+	set_up_by_prologue HARD_REG_SET into struct hard_reg_set_container.
+	Call targetm.set_up_by_prologue on it.
+	* config/rs6000/rs6000.c (rs6000_set_up_by_prologue): New function.
+	(TARGET_SET_UP_BY_PROLOGUE): Redefine to it.
+
+2012-01-17  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.c (rx_can_use_simple_return): New function.
+	* config/rx/rx-protos.h (rx_can_use_simple_return): Prototype.
+	* config/rx/rx.md (return): Predicate on rx_can_use_simple_return.
+
+2012-01-17  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51782
+	* expr.c (expand_assignment): Take address-space information
+	from the address operand of MEM_REF and TARGET_MEM_REF.
+	(expand_expr_real_1): Likewise.
+
+2012-01-17  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* ira.c (do_reload): Make sure ira_dump_file is re-set if no
+	reload dump is requested.
+
+2012-01-17  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR other/51165
+	* trans-mem.c (requires_barrier): Call may_be_aliased.
+
+2012-01-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51877
+	* tree-ssa-tail-merge.c (gimple_equal_p): Don't return true whenever
+	call arguments and fndecls compare equal, instead return false if they
+	don't.  Return true only if lhs1 and lhs2 are either both NULL, or
+	both SSA_NAMEs that are valueized the same, or they satisfy
+	operand_equal_p.
+
+2012-01-17  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (gcc_cv_target_dl_iterate_phdr): Only check on
+	Solaris 11+.
+	* configure: Regenerate.
+
+2012-01-16  Jan Hubicka  <jh@suse.cz>
+
+	PR c/12245
+	PR c++/14179
+	* convert.c (convert_to_integer): Use fold_convert for
+	converting an INTEGER_CST to integer type.
+
+2012-01-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/14179
+	* vec.c (vec_gc_o_reserve_1): Use ggc_round_alloc_size.
+
+2012-01-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/51860
+	* config/s390/s390.c (s390_chunkify_start): Don't skip
+	call insns followed by NOTE_INSN_CALL_ARG_LOCATION note.  Skip
+	NOTE_INSN_VAR_LOCATION and NOTE_INSN_CALL_ARG_LOCATION notes.
+	If insn is followed by NOTE_INSN_VAR_LOCATION or
+	NOTE_INSN_CALL_ARG_LOCATION notes, insert jump after all those notes.
+	Don't use location of note insns.
+
+	PR tree-optimization/51865
+	* tree-inline.c (tree_function_versioning): Call remap_decl
+	on DECL_RESULT whenever it has VOID_TYPE_P type.
+
 2012-01-15  Richard Sandiford  <rdsandiford@googlemail.com>
 
 	* config/mips/mips.c (mips16_build_call_stub): Don't use a stub
