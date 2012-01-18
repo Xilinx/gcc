@@ -1,3 +1,23 @@
+2012-01-18   Diego Novillo  <dnovillo@google.com>
+
+	* pph-core.c (pph_include_handler): If the primary file
+	uses #include_next, emit a warning and call
+	pph_disable_output.
+	(pph_stream_close_1): Factor out of ...
+	(pph_stream_close): ... here.
+	(pph_stream_close_no_flush): New.
+	(pph_streamer_finish): Call pph_writer_finish if
+	pph_writer_enabled_p returns true.
+	Call pph_reader_finish if pph_reader_enabled_p returns
+	true.
+	* pph-in.c (pph_in_include): Assert that we are not
+	trying to read STREAM from STREAM.
+	* pph-out.c (pph_out_line_table_and_includes): Do not
+	emit a line table reference to STREAM.
+	(pph_disable_output): New.
+	* pph-streamer.h (pph_stream_close_no_flush): Declare.
+	(pph_disable_output): Declare.
+
 2012-01-17   Lawrence Crowl  <crowl@google.com>
 
 	* pph.h (pph_files_read): New.

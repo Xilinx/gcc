@@ -1070,6 +1070,7 @@ extern void cpp_return_at_eof (cpp_buffer *, bool);
 /* Return the path name of the main file iff it does not have a
    multiple include guard. */
 extern const char *cpp_main_missing_guard (cpp_reader *pfile);
+extern bool cpp_in_primary_file (cpp_reader *);
 
 /* In pch.c */
 struct save_macro_data;

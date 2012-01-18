@@ -343,12 +343,15 @@ pph_out_line_table_and_includes (pph_stream *stream)
 
       /* If LM is an entry for an included PPH image, output a line table
 	 reference to it, so the reader can load the included image at
-	 this point.  */
+	 this point.  Make sure we do not emit self-referential
+	 entries (even if a file is properly guarded against double
+	 inclusion, there will be linemap entries in the line table
+	 for it).  */
       current_include = (lm->reason == LC_ENTER
 	                 && ix > PPH_NUM_IGNORED_LINE_TABLE_ENTRIES)
 	                ? pph_stream_registry_lookup (LINEMAP_FILE (lm))
 			: NULL;
-      if (current_include)
+      if (current_include && current_include != stream)
 	{
 	  struct line_map *included_from;
 
@@ -2793,4 +2796,21 @@ void
 pph_writer_add_include (pph_stream *include)
 {
   pph_add_include (pph_out_stream, include);
+}
+
+
+/* Disable PPH generation.  Used when we discover that the file that we
+   are currently converting into PPH is not compatible.  This does not
+   necessarily stop compilation, so make sure that the PPH file is
+   not generated.  */
+
+void
+pph_disable_output (void)
+{
+  /* If we are not generating a PPH image, do nothing.  */
+  if (!pph_out_stream)
+    return;
+
+  pph_stream_close_no_flush (pph_out_stream);
+  pph_out_file = NULL;
 }

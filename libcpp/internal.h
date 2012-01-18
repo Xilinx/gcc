@@ -646,13 +646,6 @@ cpp_in_system_header (cpp_reader *pfile)
 #define CPP_PEDANTIC(PF) CPP_OPTION (PF, cpp_pedantic)
 #define CPP_WTRADITIONAL(PF) CPP_OPTION (PF, cpp_warn_traditional)
 
-static inline int cpp_in_primary_file (cpp_reader *);
-static inline int
-cpp_in_primary_file (cpp_reader *pfile)
-{
-  return pfile->line_table->depth == 1;
-}
-
 /* In macro.c */
 extern void _cpp_free_definition (cpp_hashnode *);
 extern bool _cpp_create_definition (cpp_reader *, cpp_hashnode *);

@@ -254,6 +254,7 @@ pph_stream *pph_stream_registry_lookup (const char *);
 void pph_stream_set_header_name (pph_stream *, const char *);
 pph_stream *pph_stream_open (const char *, const char *);
 void pph_stream_close (pph_stream *);
+void pph_stream_close_no_flush (pph_stream *);
 void pph_add_include (pph_stream *, pph_stream *);
 void pph_trace_marker (enum pph_record_marker marker, enum pph_tag tag);
 void pph_trace_tree (tree, enum pph_trace_end, enum pph_trace_kind);
@@ -277,6 +278,7 @@ void pph_writer_init (void);
 void pph_writer_finish (void);
 void pph_out_location (pph_stream *, location_t);
 void pph_out_tree (pph_stream *, tree);
+void pph_disable_output (void);
 
 /* In pph-in.c.  */
 void pph_init_read (pph_stream *);

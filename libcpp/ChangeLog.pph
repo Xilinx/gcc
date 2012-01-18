@@ -1,3 +1,9 @@
+2012-01-18   Diego Novillo  <dnovillo@google.com>
+
+	* internal.h (cpp_in_primary_file): Move ...
+	* files.c (cpp_in_primary_file): ... here.
+	* include/cpplib.h (cpp_in_primary_file): Declare.
+
 2011-11-22   Diego Novillo  <dnovillo@google.com>
 
 	* include/line-map.h (linemap_dump): Declare.

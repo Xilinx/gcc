@@ -1936,3 +1936,12 @@ cpp_return_at_eof (cpp_buffer *buffer, bool val)
 {
   buffer->return_at_eof = val;
 }
+
+
+/* Return true if PFILE is currently reading the primary file.  */
+
+bool
+cpp_in_primary_file (cpp_reader *pfile)
+{
+  return pfile->line_table->depth == 1;
+}

@@ -327,6 +327,9 @@ pph_in_include (pph_stream *stream)
   old_loc_offset = pph_loc_offset;
 
   include_name = pph_in_string (stream);
+
+  /* We should not be trying to include STREAM again.  */
+  gcc_assert (strcmp (include_name, stream->name) != 0);
   include_stream = pph_read_file (include_name);
 
   /* Add INCLUDE_STREAM, and the images included by it, to the list

@@ -669,6 +669,21 @@ pph_include_handler (cpp_reader *reader,
       fprintf (pph_logfile, "%c\n", angle_brackets ? '>' : '"');
     }
 
+  /* If we find a #include_next directive in the primary file,
+     refuse to generate a PPH image for it.  #include_next cannot
+     be resolved from the primary source file, so generating an
+     image for it would cause an infinite self-referential loop
+     in the line table.  */
+  if (cpp_in_primary_file (reader)
+      && strcmp ((const char *)dname, "include_next") == 0)
+    {
+      warning_at (loc, OPT_Winvalid_pph, "#include_next found in the "
+		  "primary source file. PPH generation disabled for %s",
+		  LOCATION_FILE (loc));
+      pph_disable_output ();
+      return true;
+    }
+
   read_text_file_p = true;
   pph_file = query_pph_include_map (name);
   if (pph_file != NULL
@@ -1026,10 +1041,15 @@ pph_stream_open (const char *name, const char *mode)
 }
 
 
-/* Close PPH stream STREAM.  */
+/* Close PPH stream STREAM.  If FLUSH_P is true and STREAM was being
+   written to, then STREAM's encoding buffers are flushed before
+   closing it.  Otherwise, STREAM is closed without flushing internal
+   buffers and its associated file is removed.  This is used when an
+   exceptional condition occurs that prevents us from generating a PPH
+   image.  */
 
-void
-pph_stream_close (pph_stream *stream)
+static void
+pph_stream_close_1 (pph_stream *stream, bool flush_p)
 {
   /* STREAM can be NULL if it could not be properly opened.  An error
      has already been emitted, so avoid crashing here.  */
@@ -1039,12 +1059,22 @@ pph_stream_close (pph_stream *stream)
   if (flag_pph_tracer >= 1)
     fprintf (pph_logfile, "PPH: Closing %s\n", stream->name);
 
-  /* If we were writing to STREAM, flush all the memory buffers.  This
-     does the actual writing of all the pickled data structures.  */
-  if (stream->write_p)
+  /* If we were writing to STREAM and the caller tells us to, flush
+     all the memory buffers.  This does the actual writing of all the
+     pickled data structures.  */
+  if (stream->write_p && flush_p)
     pph_flush_buffers (stream);
 
   fclose (stream->file);
+
+  /* If we were writing but the caller did not want STREAM's buffers
+     flushed, remove the PPH file.  */
+  if (stream->write_p && !flush_p)
+    {
+      if (flag_pph_tracer >= 1)
+	fprintf (pph_logfile, "PPH: Removing %s", stream->name);
+      unlink (stream->name);
+    }
 
   /* Deallocate all memory used.  */
   stream->file = NULL;
@@ -1077,6 +1107,25 @@ pph_stream_close (pph_stream *stream)
   free (stream);
 }
 
+
+/* Close PPH stream STREAM.  If STREAM was being written to, flush its
+   encoding buffers.  */
+
+void
+pph_stream_close (pph_stream *stream)
+{
+  pph_stream_close_1 (stream, true);
+}
+
+
+/* Close PPH stream STREAM.  If STREAM was being written to, do not
+   flush its encoding buffers and remove the associated file.  */
+
+void
+pph_stream_close_no_flush (pph_stream *stream)
+{
+  pph_stream_close_1 (stream, false);
+}
 
 /********************************************************** stream callbacks */
 
@@ -1232,10 +1281,12 @@ pph_streamer_finish (void)
   pph_stream *image;
 
   /* Finalize the writer.  */
-  pph_writer_finish ();
+  if (pph_writer_enabled_p ())
+    pph_writer_finish ();
 
   /* Finalize the reader.  */
-  pph_reader_finish ();
+  if (pph_reader_enabled_p ())
+    pph_reader_finish ();
 
   /* Close any images read during parsing.  */
   FOR_EACH_VEC_ELT (pph_stream_ptr, pph_stream_registry.v, i, image)
