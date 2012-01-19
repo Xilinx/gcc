@@ -2565,8 +2565,7 @@ pph_in_tree (pph_stream *stream)
       /* When reading a mutated tree, we only need to re-read its
          body, the tree itself is already in the cache for another
          PPH image.  */
-      expr = (tree) pph_cache_find (stream, PPH_RECORD_XREF, image_ix, ix,
-				    PPH_any_tree);
+      expr = (tree) pph_cache_find (stream, marker, image_ix, ix, PPH_any_tree);
     }
   else if (marker == PPH_RECORD_START_MERGE_BODY)
     {
@@ -2600,7 +2599,7 @@ pph_in_tree (pph_stream *stream)
     pph_trace_tree (expr, pph_trace_back,
 	marker == PPH_RECORD_START_MERGE_BODY ? pph_trace_merge_body
 	: marker == PPH_RECORD_START_MUTATED ? pph_trace_mutate
-	: pph_trace_normal );
+	: pph_trace_normal);
 
   /* If needed, sign the recently materialized tree to detect
      mutations.  Note that we only need to compute signatures
@@ -2612,8 +2611,13 @@ pph_in_tree (pph_stream *stream)
     {
       unsigned crc;
       size_t nbytes;
+      pph_cache *cache;
+
+      /* Retrieve the cache to sign based on where we materialized
+	 EXPR from.  */
+      cache = pph_cache_select (stream, marker, image_ix);
       crc = pph_get_signature (expr, &nbytes);
-      pph_cache_sign (&stream->cache, ix, crc, nbytes);
+      pph_cache_sign (cache, ix, crc, nbytes);
     }
 
   return expr;

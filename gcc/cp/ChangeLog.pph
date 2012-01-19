@@ -1,3 +1,11 @@
+2012-01-19   Diego Novillo  <dnovillo@google.com>
+
+	* pph-in.c (pph_in_tree): Sign EXPR from the cache it was
+	taken from.
+	* pph-streamer.h (pph_cache_select): Handle PPH_RECORD_START,
+	PPH_RECORD_START_MERGE_BODY, PPH_RECORD_START_MERGE_KEY
+	and PPH_RECORD_START_MUTATED.
+
 2012-01-18   Diego Novillo  <dnovillo@google.com>
 
 	* pph-core.c (pph_include_handler): If the primary file

@@ -293,9 +293,16 @@ void pph_reader_finish (void);
 
 
 /* Return the pickle cache in STREAM corresponding to MARKER.
-   if MARKER is PPH_RECORD_IREF, it returns the cache in STREAM itself.
-   If MARKER is PPH_RECORD_XREF, it returns the cache in
-   STREAM->INCLUDES[INCLUDE_IX].
+   INCLUDE_IX is only used for MARKER values PPH_RECORD_XREF or
+   PPH_RECORD_START_MUTATED.
+
+   If MARKER is one of {PPH_RECORD_IREF, PPH_RECORD_START,
+   PPH_RECORD_START_MERGE_BODY, PPH_RECORD_START_MERGE_KEY}, it
+   returns the cache in STREAM itself.
+
+   If MARKER is one of {PPH_RECORD_XREF, PPH_RECORD_START_MUTATED}, it
+   returns the cache in STREAM->INCLUDES[INCLUDE_IX].
+
    If MARKER is a PREF, it returns the preloaded cache.  */
 static inline pph_cache *
 pph_cache_select (pph_stream *stream, enum pph_record_marker marker,
@@ -304,9 +311,13 @@ pph_cache_select (pph_stream *stream, enum pph_record_marker marker,
   switch (marker)
     {
     case PPH_RECORD_IREF:
+    case PPH_RECORD_START:
+    case PPH_RECORD_START_MERGE_BODY:
+    case PPH_RECORD_START_MERGE_KEY:
       return &stream->cache;
       break;
     case PPH_RECORD_XREF:
+    case PPH_RECORD_START_MUTATED:
       return &VEC_index (pph_stream_ptr, stream->includes, include_ix)->cache;
       break;
     case PPH_RECORD_PREF:
