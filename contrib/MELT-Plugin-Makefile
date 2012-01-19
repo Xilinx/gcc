@@ -135,11 +135,15 @@ MELTGCC_MAKE= $(MAKE)
 
 .PHONY: all clean doc doc-pdf doc-info doc-html install bootstrap-melt  install-melt-includes install-melt-sources install-melt-modules  install-melt-mk install-melt-default-modules-list install-melt-so
 
+# the GCC compiler into which we plug the MELT metaplugin
 melt_make_cc1= $(MELTGCC) -c
+# the make dependencies related to using MELT
 melt_make_cc1_dependency= melt-runtime.h melt-run.h melt/generated/meltrunsup.h melt/generated/meltrunsup-inc.c melt.so
 melt_make_gencdeps= $(melt_make_cc1)
 melt_make_module_makefile= melt-module.mk
-melt_make_source_dir= melt
+
+# the directory containg *.metl files when making. Should be an absolute path
+melt_make_source_dir=$(realpath melt)
 melt_make_module_dir=
 melt_move_if_change= $(SHELL) move-if-change
 ## Don't use := definitions here!
@@ -248,9 +252,10 @@ melt.so melt-runtime.args: melt-runtime.c $(MELTGCC_RUNTIME_INCLUDES) \
 	   -DMELT_GCC_VERSION=$(MELTGCC_VERSION_NUMBER) \
            '-DMELT_REVISION=\"$(shell cat gfmeltgcc_revision)\"' \
 	      > melt-runtime.args-tmp
+	@echo $(realpath $<) >> melt-runtime.args-tmp
 	@mv melt-runtime.args-tmp melt-runtime.args
 	$(CC) $(CFLAGS) -fPIC  -shared  @melt-runtime.args \
-	-o $@ melt-runtime.c $(MELTGCC_LIBES)
+	-o $@ $(MELTGCC_LIBES)
 
 clean:
 	$(RM) *.o *~ melt-predef.h gt-melt-runtime.h gfmelt* *tmp stamp-*

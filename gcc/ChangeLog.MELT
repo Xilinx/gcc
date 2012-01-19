@@ -1,4 +1,9 @@
 
+2012-01-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_load_flavored_module): Always find in
+	current directory. Inform about all the directories and paths
+	searched.
+
 2012-01-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): bumped to 0.9.3-
 

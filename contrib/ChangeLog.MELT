@@ -1,4 +1,9 @@
 
+2012-01-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{melt-0.9.3-rc0}}
+	* MELT-Plugin-Makefile (melt_make_source_dir): Use realpath.
+	(melt-runtime.args): Explicitly add the melt-runtime.c.
+
 2012-01-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile: use melt_move_if_change.
 

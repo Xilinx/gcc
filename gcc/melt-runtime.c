@@ -9152,7 +9152,7 @@ meltgc_load_flavored_module (const char*modulbase, const char*flavor)
   descrpath = 
     MELT_FIND_FILE (descrfull,
 		    MELT_FILE_IN_DIRECTORY, tempdirpath,
-		    MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:".",
+		    MELT_FILE_IN_DIRECTORY, ".",
 		    MELT_FILE_IN_PATH, srcpathstr,
 		    MELT_FILE_IN_PATH, getenv ("GCCMELT_SOURCE_PATH"),
 		    MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:melt_source_dir,
@@ -9163,6 +9163,13 @@ meltgc_load_flavored_module (const char*modulbase, const char*flavor)
     {
       error ("MELT failed to find module %s with descriptive file %s", 
 	     dupmodul, descrfull);
+      /* Keep the order of the inform calls below same as the order
+	 for MELT_FIND_FILE above. */
+      if (tempdirpath && tempdirpath[0])
+	inform (UNKNOWN_LOCATION,
+		"MELT temporary directory %s", tempdirpath);
+      inform (UNKNOWN_LOCATION,
+	      "MELT current directory %s", getpwd());
       if (srcpathstr)
 	inform (UNKNOWN_LOCATION,
 		"MELT source path %s", srcpathstr);
