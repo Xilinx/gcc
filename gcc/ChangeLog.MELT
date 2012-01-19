@@ -1,5 +1,8 @@
 
 2012-01-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): bumped to 0.9.3-
+
+2012-01-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* warmelt-base.melt (clone_with_discriminant): Better casts in
 	macrostrings.
 	* melt/xtramelt-ana-base.melt (tree_function_decl_named)
