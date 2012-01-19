@@ -38,9 +38,9 @@
   (UNSPEC_SET_GOT       101)    ;;
   (UNSPEC_GOTOFF        102)    ;; GOT offset
   (UNSPEC_PLT           103)    ;; jump table
-  (UNSPEC_TLS           104)    ;; jump table
-  (UNSPEC_CMP		104)    ;; signed compare
-  (UNSPEC_CMPU		105)    ;; unsigned compare
+  (UNSPEC_CMP		    104)    ;; signed compare
+  (UNSPEC_CMPU		    105)    ;; unsigned compare
+  (UNSPEC_TLS           106)    ;; jump table
 ])
 
 
