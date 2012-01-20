@@ -1,3 +1,14 @@
+2012-01-20   Diego Novillo  <dnovillo@google.com>
+
+	* config-lang.in (gtfiles): Remove pph.h and pph-core.c.
+	Add pph-out.c
+	* pph-out.c: Include gt-cp-pph-out.h.
+	(pph_decls_in_symtab): Declare.
+	(pph_writer_init): Initialize.
+	(pph_add_decl_to_symtab): Add DECL to pph_decls_in_symtab.
+	(pph_writer_finish): Set pph_decls_in_symtab and call
+	ggc_collect.
+
 2012-01-20   Lawrence Crowl  <crowl@google.com>
 
 	* parser.c (cp_debug_parser_where): Protect against null pointers.
