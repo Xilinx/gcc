@@ -1,3 +1,50 @@
+2012-01-20  Tobias Burnus  <burnus@net-b.de>
+	    Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/51056
+	* gfortran.dg/use_21.f90: New.
+
+2012-01-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/51106
+	* gcc.dg/torture/pr51106-1.c: New test.
+	* gcc.dg/torture/pr51106-2.c: New test.
+
+2012-01-19  Kai Tietz  <ktietz@redhat.com>
+
+	* g++.dg/torture/pr51344.C: New test.
+
+2012-01-19  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51904
+	* gfortran.dg/intrinsic_size_2.f90: New.
+
+2012-01-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51889
+	* g++.dg/inherit/using7.C: New.
+
+2012-01-19  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37997
+	* gcc.dg/tree-ssa/ssa-pre-28.c: New testcase.
+
+2012-01-19 Andrey Belevantsev <abel@ispras.ru>
+
+	PR rtl-optimization/51505
+	* gcc.dg/pr51505.c: New test.
+
+2012-01-18  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/51634
+	* gfortran.dg/typebound_operator_12.f03: New.
+	* gfortran.dg/typebound_operator_13.f03: New.
+
+2012-01-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51225
+	* g++.dg/cpp0x/pr51225.C: New.
+
 2012-01-17  Ian Lance Taylor  <iant@google.com>
 
 	PR go/50656
