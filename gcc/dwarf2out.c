@@ -7287,6 +7287,15 @@ break_out_comdat_types (dw_die_ref die)
         type_node->root_die = unit;
         type_node->next = comdat_type_list;
         comdat_type_list = type_node;
+        if (targetm.want_debug_pub_sections)
+        {
+          /* FIXME: Should use add_AT_pubnamesptr.  This works because most
+             targets don't care what the base section is.  */
+          add_AT_lineptr (unit, DW_AT_GNU_pubnames,
+                          debug_pubnames_section_label);
+          add_AT_lineptr (unit, DW_AT_GNU_pubtypes,
+                          debug_pubtypes_section_label);
+        }
 
         /* Generate the type signature.  */
         generate_type_signature (c, type_node);
