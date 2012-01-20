@@ -1,4 +1,8 @@
 
+2012-01-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (melt-runtime-params-inc.c): Use gfmeltgcc_revision.
+	(install-melt-default-modules-list): Install the various flavors.
+
 2012-01-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{melt-0.9.3-rc0}}
 	* MELT-Plugin-Makefile (melt_make_source_dir): Use realpath.

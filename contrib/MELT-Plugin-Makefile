@@ -228,14 +228,14 @@ melt-run-md5.h:  gfmeltgcc_run_md5
 MELTGCC_VERSION_NUMBER = $(shell cat gfmeltgcc_version_number)
 
 
-melt-runtime-params-inc.c: melt-make-string
+melt-runtime-params-inc.c: melt-make-string gfmeltgcc_revision
 	./melt-make-string \
 	     melt_source_dir '$(melt_source_dir)' \
 	     melt_module_dir '$(melt_module_dir)' \
 	     melt_module_make_command '$(MAKE)' \
 	     melt_module_makefile '$(melt_installed_module_makefile)' \
 	     melt_module_cflags '$(melt_installed_cflags)' \
-	     melt_revision '$(shell echo -n $(REVISION_c) | sed "s/ *$$//" | tr -s [:space:] _)' \
+	     melt_revision '$(shell  tr -s [:space:] _ < $(gfmeltgcc_revision))' \
 	     melt_default_modlis '$(melt_default_modules_list)' > $@-tmp
 	mv $@-tmp $@
 
@@ -344,8 +344,11 @@ install-melt-mk: melt-module.mk
 	$(INSTALL_DATA) $< $(DESTDIR)$(melt_installed_module_makefile)
 
 ## install the default modules list
-install-melt-default-modules-list: $(melt_default_modules_list).modlis 
-	$(INSTALL_DATA) $< $(DESTDIR)$(melt_source_dir) 
+install-melt-default-modules-list: $(melt_default_modules_list).modlis \
+            $(melt_default_modules_list)-quicklybuilt.modlis \
+            $(melt_default_modules_list)-optimized.modlis \
+            $(melt_default_modules_list)-debugnoline.modlis
+	$(INSTALL_DATA) $^ $(DESTDIR)$(melt_source_dir) 
 
 ### install the MELT documentation files
 install-melt-doc: doc doc-info doc-pdf doc-html
