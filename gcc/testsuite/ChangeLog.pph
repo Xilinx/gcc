@@ -1,3 +1,11 @@
+2011-01-20   Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/x4overset1.cc: Make passing.
+	* g++.dg/pph/x4overset2.cc: Make wanted assembly diff.
+	* g++.dg/pph/x4overset3.cc: Make passing.
+	* g++.dg/pph/x4overset4.cc: Make wanted assembly diff.
+	* g++.dg/pph/x6dynarray3.cc: Change xfail signature.
+
 2012-01-18   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/d0include-next.h: New.

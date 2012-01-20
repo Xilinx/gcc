@@ -1,3 +1,18 @@
+2012-01-20   Lawrence Crowl  <crowl@google.com>
+
+	* parser.c (cp_debug_parser_where): Protect against null pointers.
+	* name-lookup.c (cxx_binding_make_for_name): New.
+	(binding_for_name): Factor construction into the above.
+	(modify_binding_for_overload): New.
+	(push_overloaded_decl_1): Factor out above function.
+	(pph_foreach_on_chain_bl): Add filter parameter.
+	(pph_set_identifier_bindings): Likewise.
+	(pph_set_chain_identifier_bindings): Likewise.
+	(pph_set_chain_namespace_bindings): Likewise.
+	(pph_set_namespace_bindings): Likewise.  Correct overloading.
+	(pph_set_namespace_namespace_bindings): Add filter parameter in calls.
+	(pph_set_global_identifier_bindings): Likewise.
+
 2012-01-19   Diego Novillo  <dnovillo@google.com>
 
 	* pph-in.c (pph_in_tree): Sign EXPR from the cache it was

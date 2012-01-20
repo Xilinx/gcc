@@ -471,12 +471,34 @@ void
 cp_debug_parser_where (FILE *file, cp_parser *parser)
 {
   const size_t window_size = 20;
-  cp_token *token = parser->lexer->next_token;
-  expanded_location eloc = expand_location (token->location);
+  cp_lexer *lexer;
+  cp_token *token;
+  expanded_location eloc;
 
   if (file == NULL)
     file = stderr;
 
+  if (parser == NULL)
+    {
+      fprintf (file, "No parser available.\n");
+      return;
+    }
+
+  lexer = parser->lexer;
+  if (lexer == NULL)
+    {
+      fprintf (file, "No lexer available.\n");
+      return;
+    }
+
+  token = lexer->next_token;
+  if (token == NULL)
+    {
+      fprintf (file, "No token available.\n");
+      return;
+    }
+
+  eloc = expand_location (token->location);
   fprintf (file, "%s:%d:%d ", eloc.file, eloc.line, eloc.column);
   cp_debug_parser_tokens (file, parser, window_size);
 }

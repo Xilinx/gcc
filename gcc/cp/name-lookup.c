@@ -2035,24 +2035,29 @@ cp_binding_level_find_binding_for_name (cp_binding_level *scope, tree name)
   return NULL;
 }
 
+/* Return an new cxx_binding initialized for a NAME in SCOPE.  */
+
+static cxx_binding *
+cxx_binding_make_for_name (cp_binding_level *scope, tree name)
+{
+  cxx_binding *result = cxx_binding_make (NULL, NULL);
+  result->previous = IDENTIFIER_NAMESPACE_BINDINGS (name);
+  result->scope = scope;
+  result->is_local = false;
+  result->value_is_inherited = false;
+  IDENTIFIER_NAMESPACE_BINDINGS (name) = result;
+  return result;
+}
+
 /* Always returns a binding for name in scope.  If no binding is
    found, make a new one.  */
 
 static cxx_binding *
 binding_for_name (cp_binding_level *scope, tree name)
 {
-  cxx_binding *result;
-
-  result = cp_binding_level_find_binding_for_name (scope, name);
-  if (result)
-    return result;
-  /* Not found, make a new one.  */
-  result = cxx_binding_make (NULL, NULL);
-  result->previous = IDENTIFIER_NAMESPACE_BINDINGS (name);
-  result->scope = scope;
-  result->is_local = false;
-  result->value_is_inherited = false;
-  IDENTIFIER_NAMESPACE_BINDINGS (name) = result;
+  cxx_binding *result = cp_binding_level_find_binding_for_name (scope, name);
+  if (!result)
+    result = cxx_binding_make_for_name (scope, name);
   return result;
 }
 
@@ -2205,6 +2210,29 @@ pushdecl_with_scope (tree x, cp_binding_level *level, bool is_friend)
   return ret;
 }
 
+static tree
+modify_binding_for_overload (tree decl, tree old, int flags)
+{
+  tree new_binding;
+  if (old || TREE_CODE (decl) == TEMPLATE_DECL
+      /* If it's a using declaration, we always need to build an OVERLOAD,
+	 because it's the only way to remember that the declaration comes
+	 from 'using', and have the lookup behave correctly.  */
+      || (flags & PUSH_USING))
+    {
+      if (old && TREE_CODE (old) != OVERLOAD)
+	new_binding = ovl_cons (decl, ovl_cons (old, NULL_TREE));
+      else
+	new_binding = ovl_cons (decl, old);
+      if (flags & PUSH_USING)
+	OVL_USED (new_binding) = 1;
+    }
+  else
+    /* NAME is not ambiguous.  */
+    new_binding = decl;
+  return new_binding;
+}
+
 
 /* DECL is a FUNCTION_DECL for a non-member function, which may have
    other definitions already in place.  We get around this by making
@@ -2294,22 +2322,7 @@ push_overloaded_decl_1 (tree decl, int flags, bool is_friend)
 	}
     }
 
-  if (old || TREE_CODE (decl) == TEMPLATE_DECL
-      /* If it's a using declaration, we always need to build an OVERLOAD,
-	 because it's the only way to remember that the declaration comes
-	 from 'using', and have the lookup behave correctly.  */
-      || (flags & PUSH_USING))
-    {
-      if (old && TREE_CODE (old) != OVERLOAD)
-	new_binding = ovl_cons (decl, ovl_cons (old, NULL_TREE));
-      else
-	new_binding = ovl_cons (decl, old);
-      if (flags & PUSH_USING)
-	OVL_USED (new_binding) = 1;
-    }
-  else
-    /* NAME is not ambiguous.  */
-    new_binding = decl;
+  new_binding = modify_binding_for_overload (decl, old, flags);
 
   if (doing_global)
     set_namespace_binding (name, current_namespace, new_binding);
@@ -6114,14 +6127,14 @@ pph_debug_binding_inaction (const char *action, tree decl)
    with argument BL.  */
 
 static void
-pph_foreach_on_chain_bl (tree first, cp_binding_level *bl,
-			 void (*function)(tree, cp_binding_level *))
+pph_foreach_on_chain_bl (tree first, cp_binding_level *bl, int flags,
+			 void (*function)(tree, cp_binding_level *, int))
 {
   unsigned i;
   tree decl;
   VEC(tree,heap) *w = chain2vec (first);
   FOR_EACH_VEC_ELT_REVERSE (tree, w, i, decl)
-    (*function) (decl, bl);
+    (*function) (decl, bl, flags);
   VEC_free (tree, heap, w);
 }
 
@@ -6129,7 +6142,8 @@ pph_foreach_on_chain_bl (tree first, cp_binding_level *bl,
 /* Set a identifier binding.  */
 
 static void
-pph_set_identifier_bindings (tree decl, cp_binding_level *bl)
+pph_set_identifier_bindings (tree decl, cp_binding_level *bl,
+			     int flags ATTRIBUTE_UNUSED)
 {
   /* Set the identifier binding for a single decl.  */
   tree id = DECL_NAME (decl);
@@ -6141,48 +6155,88 @@ pph_set_identifier_bindings (tree decl, cp_binding_level *bl)
 }
 
 
-/*  Set the identifier bindings for an individual chain.  */
+/* Set the identifier bindings for an individual chain.  */
 
 static void
-pph_set_chain_identifier_bindings (tree first, cp_binding_level *bl)
+pph_set_chain_identifier_bindings (tree first, cp_binding_level *bl, int flags)
 {
-  pph_foreach_on_chain_bl (first, bl, pph_set_identifier_bindings);
+  pph_foreach_on_chain_bl (first, bl, flags, pph_set_identifier_bindings);
 }
+
+
+#if 0
+/* Add an overload to a binding.  */
+
+static tree
+pph_add_overload (tree decl, tree older)
+{
+  tree newer;
+  if (older && TREE_CODE (older) != OVERLOAD)
+    newer = ovl_cons (decl, ovl_cons (older, NULL_TREE));
+  else
+    newer = ovl_cons (decl, older);
+  return newer;
+}
+#endif
 
 
 /*  Set a namespace identifier binding.  */
 
 static void
-pph_set_namespace_bindings (tree decl, cp_binding_level *bl)
+pph_set_namespace_bindings (tree decl, cp_binding_level *bl, int flags)
 {
   /* Set the namespace identifier binding for a single decl.  */
   tree id = DECL_NAME (decl);
   if (id)
     {
-      /* This code plagarizes from set_namespace_binding.
+      /* FIXME pph: This code plagarizes from push_overloaded_decl_1 and
+	 binding_for_name.  It may be incomplete.  */
+      cxx_binding *b = cp_binding_level_find_binding_for_name (bl, id);
+      if (b)
+	{
+	  tree old = b->value;
+	  if (is_overloaded_fn (old))
+	    {
+	      /* We don't overload implicit built-ins.  duplicate_decls()
+		 may fail to merge the decls if the new decl is e.g. a
+		 template function.  */
+              if (TREE_CODE (old) == FUNCTION_DECL
+		  && DECL_ANTICIPATED (old)
+		  && !DECL_HIDDEN_FRIEND_P (old))
+		old = NULL;
+              decl = modify_binding_for_overload (decl, old, flags);
+	    }
+	}
+      else
+	b = cxx_binding_make_for_name (bl, id);
+
+      /* FIXME pph: This code plagarizes from set_namespace_binding.
 	 It has trouble with supplement_binding, methinks.  */
-      /* FIXME pph: we should do more merging here.  */
-      cxx_binding *b = binding_for_name (bl, id);
       if (!b->value)
 	{
 	  b->value = decl;
-	  pph_debug_binding_action ("v-bind", decl);
+	  pph_debug_binding_action ("new bind", decl);
+	}
+      if (TREE_CODE (decl) == OVERLOAD)
+	{
+	  b->value = decl;
+	  pph_debug_binding_action ("ovl bind", decl);
 	}
       else if (TREE_CODE (b->value) == TYPE_DECL &&
     	   TREE_CODE (decl) != TYPE_DECL)
 	{
 	  b->type = b->value;
 	  b->value = decl;
-	  pph_debug_binding_action ("p-bind", decl);
+	  pph_debug_binding_action ("t/v bind", decl);
 	}
       else if (TREE_CODE (b->value) != TYPE_DECL &&
     	   TREE_CODE (decl) == TYPE_DECL)
 	{
 	  b->type = decl;
-	  pph_debug_binding_action ("t-bind", decl);
+	  pph_debug_binding_action ("v/t bind", decl);
 	}
       else
-	pph_debug_binding_inaction ("n-bind", decl);
+	pph_debug_binding_inaction ("not bind", decl);
     }
 }
 
@@ -6190,9 +6244,9 @@ pph_set_namespace_bindings (tree decl, cp_binding_level *bl)
 /*  Set the namespace identifier bindings.  */
 
 static void
-pph_set_chain_namespace_bindings (tree first, cp_binding_level *bl)
+pph_set_chain_namespace_bindings (tree first, cp_binding_level *bl, int flags)
 {
-  pph_foreach_on_chain_bl (first, bl, pph_set_namespace_bindings);
+  pph_foreach_on_chain_bl (first, bl, flags, pph_set_namespace_bindings);
 }
 
 
@@ -6234,10 +6288,12 @@ pph_set_namespace_namespace_binding (tree decl)
 static void
 pph_set_namespace_namespace_bindings (cp_binding_level *bl)
 {
-  pph_set_chain_namespace_bindings (bl->names, bl);
-  pph_set_chain_namespace_bindings (bl->namespaces, bl);
-  pph_set_chain_namespace_bindings (bl->usings, bl);
-  /* FIXME pph: pph_set_chain_namespace_bindings (bl->using_directives, bl);  */
+  pph_set_chain_namespace_bindings (bl->names, bl, 0);
+  pph_set_chain_namespace_bindings (bl->namespaces, bl, 0);
+  pph_set_chain_namespace_bindings (bl->usings, bl, PUSH_USING);
+  /* FIXME pph:
+  pph_set_chain_namespace_bindings (bl->using_directives, bl, 0);
+  */
   pph_foreach_on_chain (bl->namespaces, pph_set_namespace_namespace_binding);
 }
 
@@ -6249,10 +6305,10 @@ void
 pph_set_global_identifier_bindings (void)
 {
   cp_binding_level *bl = scope_chain->bindings;
-  pph_set_chain_identifier_bindings (bl->names, bl);
-  pph_set_chain_identifier_bindings (bl->namespaces, bl);
-  pph_set_chain_identifier_bindings (bl->usings, bl);
-  pph_set_chain_identifier_bindings (bl->using_directives, bl);
+  pph_set_chain_identifier_bindings (bl->names, bl, 0);
+  pph_set_chain_identifier_bindings (bl->namespaces, bl, 0);
+  pph_set_chain_identifier_bindings (bl->usings, bl, PUSH_USING);
+  pph_set_chain_identifier_bindings (bl->using_directives, bl, 0);
   pph_set_namespace_namespace_bindings (bl);
 }
 
