@@ -4408,8 +4408,11 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 	  ))
     (cond 
      ((is_string files) 
+      (debug "translate_to_c_one_or_more_melt_files reading single file " files)
+       (informsg_strv "reading from file" files)
       (list_append2list rlist (read_file files)))
      ((is_list files)
+      (debug "translate_to_c_one_or_more_melt_files reading list of files " files)
       (foreach_in_list
        (files)
        (curpair curfile)

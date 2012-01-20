@@ -56,7 +56,7 @@
 	(inarg (make_stringconst discr_string (melt_argument "arg")))
 	(outarg (make_stringconst discr_string (melt_argument "output")))
 	)
-    (debug "before read runfile_mode parmodenv=" parmodenv 
+    (debug "runfile_docmd before read runfile_mode parmodenv=" parmodenv 
 	   " initial_environment=" initial_environment
 	   " inarg=" inarg
 	   " outarg=" outarg)
@@ -70,11 +70,11 @@
 		     (make_string_without_suffix discr_string modulnam ".c"))
 	       (setq modulnam
 		     (make_string_without_suffix discr_string modulnam ".so"))
-	       (debug "runfile_mode sets modulnam=" modulnam " with outarg")
+	       (debug "runfile_docmd sets modulnam=" modulnam " with outarg")
 	       outarg)
 	     ( (is_string inarg) 
 	       (setq modulnam (make_string_nakedbasename discr_string inarg))
-	       (debug "runfile_mode sets modulnam=" modulnam " with inarg")
+	       (debug "runfile_docmd sets modulnam=" modulnam " with inarg")
 	       (make_string_tempname_suffixed discr_string inarg ".c"))
 	     (:else
 	      (errormsg_plain "invalid runfile mode")
@@ -83,16 +83,18 @@
 	   )
       (let ( (modsrcbase (make_string_without_suffix discr_string modsrcname ".c")) 
 	     )
-      (debug "before compilation runfile_mode modulnam=" modulnam
+      (debug "runfile_docmd before translation inarg=" inarg " modulnam=" modulnam
 	     " modsrcname=" modsrcname
 	     " modsrcbase=" modsrcbase)
       (translate_to_c_one_or_more_melt_files inarg modsrcbase curenv)
-      (debug "after compilation runfile_mode modsrcname=" modsrcname
+      (debug "runfile_docmd after translation modsrcname=" modsrcname
 	     " modulnam=" modulnam)
       (generate_quickly_melt_module modsrcbase modulnam)
-      (debug "after generation of module runfile_mode modulnam=" modulnam)
+      (debug "runfile_docmd after generation of module runfile_mode modsrcbase=" modsrcbase
+	     " modulnam=" modulnam)
       ;; the new environment is silently discarded
       (ignore (start_melt_module_of_flavor curenv modulnam '"quicklybuilt"))
+      (debug "runfile_docmd done modulnam=" modulnam " modsrcbase=" modsrcbase)
       ))))
 ;;;;
 (definstance runfile_mode
