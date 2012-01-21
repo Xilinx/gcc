@@ -1,3 +1,8 @@
+2012-01-20   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x1namespace-alias2.cc: Remove expected ICE.
+	Document assembly difference.
+
 2011-01-20   Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/x4overset1.cc: Make passing.

@@ -1,5 +1,6 @@
-// { dg-xfail-if "ICE build_int_cst_wide - bad merged type" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "internal compiler error: in build_int_cst_wide, at tree.c" "" { xfail *-*-* } 0 }
+// pph asm xdiff 34830
+// The assembly difference is due to missing code in function f().
+// The PPH version removes the whole return expression.
 #include "x1namespace-alias1.h"
 #include "x1namespace-alias2.h"
 

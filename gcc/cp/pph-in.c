@@ -1848,6 +1848,16 @@ pph_in_lang_type (pph_stream *stream)
 }
 
 
+/* Read from STREAM an enum machine_mode value.  */
+
+static enum machine_mode
+pph_in_machine_mode (pph_stream *stream)
+{
+  struct lto_input_block *ib = stream->encoder.r.ib;
+  return streamer_read_enum (ib, machine_mode, NUM_MACHINE_MODES);
+}
+
+
 /* Read from STREAM the body of tcc_type node TYPE.  */
 
 static void
@@ -1857,6 +1867,7 @@ pph_in_tcc_type (pph_stream *stream, tree type)
   TYPE_POINTER_TO (type) = pph_in_tree (stream);
   TYPE_REFERENCE_TO (type) = pph_in_tree (stream);
   TYPE_NEXT_VARIANT (type) = pph_in_tree (stream);
+  SET_TYPE_MODE (type, pph_in_machine_mode (stream));
   /* FIXME pph - Streaming TYPE_CANONICAL generates many type comparison
      failures.  Why?  */
   /* FIXME pph: apparently redundant.  */

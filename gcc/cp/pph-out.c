@@ -1828,6 +1828,15 @@ pph_out_lang_type (pph_stream *stream, tree type)
     pph_out_lang_type_ptrmem (stream, &lt->u.ptrmem);
 }
 
+/* Write machine_mode value MODE to STREAM.  */
+
+static void
+pph_out_machine_mode (pph_stream *stream, enum machine_mode mode)
+{
+  struct output_block *ob = stream->encoder.w.ob;
+  streamer_write_enum (ob->main_stream, machine_mode, NUM_MACHINE_MODES, mode);
+}
+
 
 /* Write to STREAM the body of tcc_type node TYPE.  */
 
@@ -1838,6 +1847,7 @@ pph_out_tcc_type (pph_stream *stream, tree type)
   pph_out_tree (stream, TYPE_POINTER_TO (type));
   pph_out_tree (stream, TYPE_REFERENCE_TO (type));
   pph_out_tree (stream, TYPE_NEXT_VARIANT (type));
+  pph_out_machine_mode (stream, TYPE_MODE (type));
   /* FIXME pph - Streaming TYPE_CANONICAL generates many type comparison
      failures.  Why?  */
   pph_out_tree (stream, TREE_CHAIN (type));
