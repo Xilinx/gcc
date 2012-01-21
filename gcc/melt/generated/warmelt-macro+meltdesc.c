@@ -3,8 +3,8 @@
 /* These identifiers are generated in warmelt-outobj.melt 
  & handled in melt-runtime.c carefully. */
 /* version of the GCC compiler & MELT runtime generating this */
-const char melt_genversionstr[]="4.7.0 20120116 (experimental) [melt-branch revision 183234] MELT_0.9.2+";
-const char melt_versionmeltstr[]="0.9.2+ [melt-branch_revision_183207]";
+const char melt_genversionstr[]="4.7.0 20120120 (experimental) [melt-branch revision 183370] MELT_0.9.3-";
+const char melt_versionmeltstr[]="0.9.3- [melt-branch_revision_183370]";
 
 /* source name & real path of the module */
 /*MELTMODULENAME MELT-STAGE-ZERO/warmelt-macro */
@@ -12,7 +12,7 @@ const char melt_modulename[]="warmelt-macro";
 const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.7.0/melt-modules/warmelt-macro";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="160854b04fea58a7182ebc75d493f92c";
+const char melt_prepromd5meltrun[]="4f5ad9456073c7ac5005202110b27b2e";
 /* hexmd5checksum of primary C file */
 const char melt_primaryhexmd5[]="101ebb073f4a869ba440846d2fa2cd51";
 
