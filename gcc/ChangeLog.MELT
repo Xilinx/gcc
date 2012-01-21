@@ -1,5 +1,8 @@
 
 2012-01-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.mk: Share the *+meltdesc.pic.o for all flavors.
+
+2012-01-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Count
 	the number of real secondary files generated, and backup the old
 	extra ones.
