@@ -1081,7 +1081,7 @@
   :meltmode_help '"install a pass scanning all the code"
   :meltmode_fun justscan_docmd
 )
-(install_melt_mode justscan_mode "justscan")
+(install_melt_mode justscan_mode)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; a pass to help write MELT code in C.
@@ -1227,8 +1227,8 @@
 		       tmeltframdecl
 		       tmeltframvarptr)
 		     ?(tree_integer_cst ?ixksrc)))
-		  (debuglong "meltframe_exec gimple_assign_single varptrsrcdest ixkdst" ixkdst)
-		  (debuglong "meltframe_exec gimple_assign_single varptrsrcdest ixksrc" ixksrc)
+		  (debug "meltframe_exec gimple_assign_single varptrsrcdest ixkdst=" ixkdst 
+			 " ixksrc=" ixksrc)
 		  (cond 
 		   ( (<i ixkdst 0)
 		     (warning_at_gimple g "negative meltvarptr destination pointer index")
@@ -1317,8 +1317,7 @@
 	  tfundecl "meltvarptr not assigned at index" ix)
 	 )
        )
-      (debuglong "meltframe_exec bbcnt" bbcnt)
-      (debuglong "meltframe_exec gimplecnt" gimplecnt)
+      (debug "meltframe_exec bbcnt=" bbcnt" gimplecnt=" gimplecnt)
      
       )
     )
@@ -1362,6 +1361,6 @@
   :meltmode_help '"install a pass checking MELT frame accesses"
   :meltmode_fun meltframe_docmd
 )
-(install_melt_mode meltframe_mode "meltframe")
+(install_melt_mode meltframe_mode)
 
 ;; eof xtramelt-ana-simple.melt

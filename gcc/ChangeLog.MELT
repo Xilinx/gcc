@@ -1,5 +1,11 @@
 
 2012-01-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Count
+	the number of real secondary files generated, and backup the old
+	extra ones.
+	* melt/xtramelt-ana-simple.melt: install_melt_mode has one argument!
+
+2012-01-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_compile_source): More tests.
 	* melt/xtramelt-c-generator.melt: Don't use debugtree.
 

@@ -4084,6 +4084,9 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
     )
   )
 
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility function to translate a macroexpanded list
 (defun translate_macroexpanded_list (xlist modnamstr modctx ncx)
@@ -4236,7 +4239,9 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 		      }#)
 	  ;;(informsg_strv "warmelt generated module C file" modnamstr)
 	  (let ( (secfiles (get_field :mocx_filetuple modctx)) 
-		 (:long nbsecfiles (multiple_length secfiles))
+		 (:long nbsecfiles 0)
+		 (:long lgsecfiles (multiple_length secfiles))
+		 (:long hisecfilerk 0)
 		 )
 	    (debug "compile_list_sexpr secfiles=" secfiles)
 	    (foreach_in_multiple
@@ -4248,6 +4253,8 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 			       (is_a curfil class_secondary_c_file))
 		   (assert_msg "check curfil index" 
 			       (==i (get_int curfil) filix))
+		   (setq hisecfilerk filix)
+		   (setq nbsecfiles (+i nbsecfiles 1))
 		   (let ( (secfilpath (get_field :secfil_path curfil))
 			  (secdeclbuf (get_field :secfil_declbuf curfil))
 			  (secimplbuf (get_field :secfil_implbuf curfil))
@@ -4269,7 +4276,7 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 	    (output_melt_descriptor modnamstr secfiles)
 	    ;; remove the old extra files
 	    (foreach_long_upto 
-	     (nbsecfiles (+i nbsecfiles 15))
+	     ((+i hisecfilerk 1) (+i hisecfilerk 25))
 	     (:long delfilix)
 	     (if (>i delfilix 0)
 		 (let ( (delfilnam (generated_c_filename discr_string modnamstr () delfilix))
@@ -4286,9 +4293,9 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 		      const char* $BACKUPCHK#_bakfilnamstr = 
 		          melt_string_str ((melt_ptr_t) $BAKFILNAM) ;
 		      if ($BACKUPCHK#_delfilnamstr && $BACKUPCHK#_bakfilnamstr
-						   && !access ($BACKUPCHK#_delfilnamstr, F_OK)) {
+			  && !access ($BACKUPCHK#_delfilnamstr, F_OK)) {
 		        if (!rename ($BACKUPCHK#_delfilnamstr, $BACKUPCHK#_bakfilnamstr)) 
-		        inform (UNKNOWN_LOCATION, "MELT backup old generated file %s as %s", 
+		           inform (UNKNOWN_LOCATION, "MELT backing up previous generated file %s as %s", 
 		  				  $BACKUPCHK#_delfilnamstr, $BACKUPCHK#_bakfilnamstr) ;
 		      }
 		      $BACKUPCHK#_delfilnamstr = NULL ;
