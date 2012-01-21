@@ -526,7 +526,7 @@
 		?(tree_type_declaration 
 		  ?(tree_identifier ?type_name)))
 	       (put_fields parameter :element_type (make_stringconst discr_string type_name)))
-	     (?_ (debugtree "Type : " type)))
+	     (?_ (debug "Type : " type)))
       (put_fields parameter :element_name (make_stringconst discr_string name))
       (return parameter)))
 

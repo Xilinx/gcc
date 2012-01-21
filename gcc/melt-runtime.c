@@ -1,7 +1,7 @@
 /*** file melt-runtime.c
      Middle End Lisp Translator [MELT] runtime support.
 
-     Copyright (C) 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+     Copyright (C) 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
      Contributed by Basile Starynkevitch <basile@starynkevitch.net>
      and Pierre Vittet  <piervit@pvittet.com>
      and Romain Geissler  <romain.geissler@gmail.com>
@@ -5301,14 +5301,14 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
      melt_fatal_error
        ("MELT cannot compile source base %s of flavor %s with an $IFS (probable security risk)",
 	srcbase, flavor);
-   if (!srcbase) 
+   if (!srcbase || !srcbase[0]) 
      {
-       warning (0, "no source base given to compile");
-       goto end;
+       melt_fatal_error ("no source base given to compile for MELT (%p)", 
+			 srcbase);
      }
-   if (!binbase)
+   if (!binbase || !binbase[0])
      {
-       melt_fatal_error ("no binary base given to compile %s", srcbase);
+       melt_fatal_error ("no binary base given to compile %s for MELT", srcbase);
      }
    if (!workdir || !workdir[0])
      {
@@ -5348,9 +5348,15 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    if (!ourcflags || !ourcflags[0]) 
      ourcflags = melt_module_cflags;
 
-   /* We use printf, not inform, because we are not sure that diagnostic buffers are flushed.  */
-   printf ("\nMELT is building binary %s from source %s with flavor %s\n", binbase, srcbase, flavor);
-
+   debugeprintf ("melt_compile_source binbase='%s' srcbase='%s' flavor='%s'",
+		 binbase, srcbase, flavor);
+   gcc_assert (binbase != NULL && binbase[0] != (char)0);
+   gcc_assert (srcbase != NULL && srcbase[0] != (char)0);
+   gcc_assert (flavor != NULL && flavor[0] != (char)0);
+   /* We use printf, not inform, because we are not sure that
+      diagnostic buffers are flushed.  */
+   printf ("\nMELT is building binary %s from source %s with flavor %s\n",
+	   binbase, srcbase, flavor);
    fflush (stdout);
    fflush (stderr);
 
@@ -5361,6 +5367,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    melt_run_make_for_branch (ourmakecommand, ourmakefile, ourcflags, 
 			     flavor, srcbase, binbase, workdir);
  #endif /*MELT_IS_PLUGIN*/
+   goto end;
   end:
    debugeprintf ("melt_compile_source end srcbase %s binbase %s flavor %s", 
 		 srcbase, binbase, flavor);

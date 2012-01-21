@@ -1,4 +1,8 @@
 
+2012-01-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_compile_source): More tests.
+	* melt/xtramelt-c-generator.melt: Don't use debugtree.
+
 2012-01-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt
 	(translate_to_c_one_or_more_melt_files): More debug.
