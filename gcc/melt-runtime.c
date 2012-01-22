@@ -12383,7 +12383,7 @@ melt_val2passflag(melt_ptr_t val_p)
 static bool 
 meltgc_gimple_gate(void)
 {
-  int ok = 0;
+  int ok = TRUE;
   static const char* modstr;
   FILE *oldf = NULL;
   MELT_ENTERFRAME(6, NULL);
@@ -12537,7 +12537,8 @@ meltgc_gimple_execute (void)
     meltgc_run_meltpass_after_hook ();
   }
  end:
-  debugeprintf ("meltgc_gimple_execute pass %s ended res=%u", current_pass->name, res);
+  debugeprintf ("meltgc_gimple_execute pass %s ended res=%u",
+		current_pass->name, res);
   MELT_EXITFRAME();
   return res;
 #undef passv        
@@ -12553,7 +12554,7 @@ meltgc_gimple_execute (void)
 static bool 
 meltgc_rtl_gate(void)
 {
-  int ok = 0;
+  int ok = TRUE;
   FILE* oldf = NULL;
   static const char* modstr;
   MELT_ENTERFRAME(6, NULL);
@@ -12714,7 +12715,7 @@ meltgc_rtl_execute(void)
 static bool 
 meltgc_simple_ipa_gate(void)
 {
-  int ok = 0;
+  int ok = TRUE;
   FILE* oldf = NULL;
   static const char*modstr;
   MELT_ENTERFRAME(6, NULL);

@@ -1,7 +1,13 @@
 
 2012-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_gimple_gate, meltgc_rtl_gate)
+	(meltgc_simple_ipa_gate): Initialize ok to TRUE so that a lack of
+	gate closure don't fail the pass.
+
 	* testsuite/melt/tpassexec.melt: New file.
 	* testsuite/melt/tpassexec-c.c: New file.
+
+2012-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_do_initial_mode): Warn when mode failed.
 	(meltgc_notify_sysdata_passexec_hook): More debug.
 	* melt-run.proto.h: include "plugin-version.h".
