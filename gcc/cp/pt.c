@@ -1,6 +1,6 @@
 /* Handle parameterized types (templates) for GNU C++.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
+   2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Written by Ken Raeburn (raeburn@cygnus.com) while at Watchmaker Computing.
    Rewritten by Jason Merrill (jason@cygnus.com).
@@ -5807,6 +5807,9 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
 	  if (complain & tf_error)
 	    {
 	      int errs = errorcount, warns = warningcount;
+	      if (processing_template_decl
+		  && !require_potential_constant_expression (expr))
+		return NULL_TREE;
 	      expr = cxx_constant_value (expr);
 	      if (errorcount > errs || warningcount > warns)
 		inform (EXPR_LOC_OR_HERE (expr),
@@ -7463,6 +7466,9 @@ lookup_template_class_1 (tree d1, tree arglist, tree in_decl, tree context,
 
       context = tsubst (DECL_CONTEXT (gen_tmpl), arglist,
 			complain, in_decl);
+      if (context == error_mark_node)
+	return error_mark_node;
+
       if (!context)
 	context = global_namespace;
 

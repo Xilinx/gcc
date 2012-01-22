@@ -1,3 +1,302 @@
+2012-01-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51832
+	* varpool.c (varpool_analyze_pending_decls): Copy DECL_EXTERNAL
+	for extra name aliases.
+
+2012-01-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/51924
+	* ree.c (combine_set_extension): Improve debugging message.
+	(combine_reaching_defs): Likewise.
+	(get_defs): Rename confusingly named variable.
+	(find_and_remove_re): Skip a candidate if the extension expression has
+	been modified.
+
+2012-01-21  Robert Millan  <rmh@gnu.org>
+	    Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* config/kfreebsd-gnu.h (GNU_USER_DYNAMIC_LINKERX32): New macro.
+	(GNU_USER_DYNAMIC_LINKER): Adjust indentation.
+
+2012-01-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51914
+	* tree-vect-stmts.c (vectorizable_conversion): For
+	cvt_type && modifier == WIDEN, put temporary with cvt_type
+	at the beginning of vec_dsts and set vec_dest to temporary
+	with vectype_out.
+
+2012-01-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* cfgrtl.c (rtl_dump_bb): Do not dump insns for {ENTRY|EXIT}_BLOCK.
+
+2011-01-20  Tijl Coosemans  <tijl@coosemans.org>
+
+	* config/i386/i386.c: Fix checks for !TARGET_MACHO.
+	* config/rs6000/rs6000.c: Likewise.
+
+2012-01-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/51915
+	* config/arm/arm.c (arm_count_output_move_double_insns): Call
+	output_move_double on a copy of operands array.
+
+2012-01-20   Cary Coutant  <ccoutant@google.com>
+	     Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/45682
+	* dwarf2out.c (copy_declaration_context): Return ref to parent
+	of declaration DIE, if necessary.
+	(remove_child_or_replace_with_skeleton): Add new parameter; update
+	caller.  Place skeleton DIE under parent DIE of original declaration.
+	Move call to copy_declaration_context to here ...
+	(break_out_comdat_types): ... from here.
+
+2012-01-20  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	PR rtl-optimization/51856
+	* reload.c (find_reloads_subreg_address): Set the address_reloaded
+	flag to reloaded.
+
+2012-01-20  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	PR target/51819
+	* config/arm/arm.c (arm_print_operand): Correct output of alignment
+	hints for neon loads and stores.
+
+2012-01-20  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49868
+	PR target/50887
+	* doc/extend.texi (Named Address Spaces): Split into subsections.
+	(AVR Named Address Spaces): New subsection.
+	(M32C Named Address Spaces): New subsection.
+	(RL78 Named Address Spaces): New subsection.
+	(SPU Named Address Spaces): New subsection.
+	(Variable Attributes): New anchor "AVR Variable Attributes".
+	(AVR Variable Attributes): Rewrite and avoid wording
+	"address space" in this context.
+	* doc/invoke.texi (AVR Options): Rewrite and add documentation
+	for -maccumulate-args, -mbranch-cost=, -mrelax, -mshort-calls.
+	(AVR Built-in Macros): New subsubsection therein.
+	* doc/md.texi (AVR constraints): Remove "C04", "R".
+
+2012-01-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51903
+	* tree-ssa-pre.c (eliminate): Properly purging of EH edges
+	when removing stmts.
+
+2012-01-20  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	PR target/50313
+	* config/arm/arm.c (arm_load_pic_register): Use
+	gen_pic_load_addr_unified. Delete calls to gen_pic_load_addr_32bit
+	, gen_pic_add_dot_plus_eight and gen_pic_add_dot_plus_four.
+	(arm_pic_static_addr): Likewise.
+	(arm_rtx_costs_1): Adjust cost for UNSPEC_PIC_UNIFIED.
+	(arm_note_pic_base): Handle UNSPEC_PIC_UNIFIED.
+	* config/arm/arm.md (UNSPEC_PIC_UNIFIED): Define.
+	(pic_load_addr_unified): New.
+
+2012-01-20  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR target/51106
+	* function.c (instantiate_virtual_regs_in_insn): Use
+	delete_insn_and_edges when removing a wrong asm insn.
+
+2012-01-19  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/40761
+	* ira-int.h (struct ira_loop_tree_node): Add comment for member
+	loop.  Add new member loop_num.
+	(IRA_LOOP_NODE_BY_INDEX): Modify the check.
+	(ira_build): Remove the parameter.
+
+	* ira.c (ira_print_disposition): Use loop_num instead of
+	loop->num.
+	(ira.c): Do not build CFG loops for one region allocation.  Remove
+	argument from ira_build call.
+
+	* ira-build.c (init_loop_tree_node): New function.
+	(create_loop_tree_nodes): Use it.  Separate the case when CFG
+	loops are not built.
+	(more_one_region_p): Check current_loops.
+	(finish_loop_tree_nodes): Separate the case when CFG loops are not
+	built.
+	(add_loop_to_tree): Process loop equal to NULL too.
+	(form_loop_tree): Separate the case when CFG loops are not built.
+	Use explicitly number for the root.
+	(rebuild_regno_allocno_maps, create_loop_tree_node_allocnos): Add
+	an assertion.
+	(ira_print_expanded_allocno, loop_compare_func): Use loop_num
+	instead of loop->num.
+	(mark_loops_for_removal): Ditto.  Use loop_num instead of
+	loop->num.
+	(mark_all_loops_for_removal): Ditto.
+	(remove_unnecessary_regions): Separate the case when CFG loops
+	are not built.
+	(ira_build): Remove the parameter.  Use explicit number of regions
+	when CFG loops are not built.
+
+	* ira-color.c (print_loop_title): Separate the case for the root
+	node.  Use loop_num instead of loop->num.
+	(move_spill_restore): Use loop_num instead of loop->num.
+
+	* ira-emit.c (setup_entered_from_non_parent_p): Add an assertion.
+	(change_loop): Ditto.
+	(change_loop): Use loop_num instead of loop->num.
+
+	* ira-lives.c (process_bb_node_lives): Ditto.
+
+	* ira-costs.c (print_allocno_costs, find_costs_and_classes):
+	Ditto.
+
+	* ira-conflicts.c (print_allocno_conflicts): Ditto.
+
+2012-01-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libmudflap/40778
+	* tree-mudflap.c (mf_artificial): New function.
+	(execute_mudflap_function_ops, execute_mudflap_function_decls,
+	mx_register_decls, mudflap_enqueue_decl): Use it.
+
+	PR target/51876
+	* config/arm/neon.md (*neon_vswp<mode>): Fix up operand
+	numbers in the insn pattern.
+
+2012-01-19  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/46590
+	* cfgexpand.c (add_scope_conflicts_1): New old_conflicts argument,
+	use it in remembering which conflicts we already created.
+	(add_scope_conflicts): Adjust call to above, (de)allocate helper
+	bitmap.
+
+2012-01-19  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR lto/51280
+	* lto-wrapper.c (run_gcc): Pass -fgnu_tm on.
+	(merge_and_complain): Same.
+
+2012-01-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/50237
+	* config/initfini-array.h: Guard content of the header
+	with #ifdef HAVE_INITFINI_ARRAY.
+	* configure.ac: Move gcc_AC_INITFINI_ARRAY much later into the file.
+	Add initfini-array.h to tm_file here.
+	* acinclude.m4 (gcc_AC_INITFINI_ARRAY): For non-ia64 do a linker
+	test.
+	* config.gcc: Don't add initfini-array.h to tm_file here.
+	* configure: Regenerated.
+
+2012-01-19  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/51505
+	* df-problems.c (df_kill_notes): New parameter live. Update comment.
+	Remove REG_EQUAL/REG_EQUIV notes referring to dead registers.
+	(df_note_bb_compute): Update the call to df_kill_notes. 
+
+2012-01-18  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (requires_barrier): Remove call to is_global_var.
+
+2012-01-18  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa.c (useless_type_conversion_p): Remove special-casing
+	of conversions to void *.
+
+2012-01-17  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+	    Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR middle-end/50325
+	PR middle-end/51192
+	* optabs.h (simplify_expand_binop): Declare.
+	* optabs.c (simplify_expand_binop): Make global.
+	* expmed.c (store_bit_field_1): Use simplify_expand_binop on big
+	endian targets if the source cannot be exactly covered by word
+	mode chunks.
+
+2012-01-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/51872
+	* hard-reg-set.h (struct hard_reg_set_container): New type.
+	* target.h (struct hard_reg_set_container): Forward declare.
+	* target.def (set_up_by_prologue): New target hook.
+	* doc/tm.texi.in (TARGET_SET_UP_BY_PROLOGUE): Document it.
+	* doc/tm.texi: Regenerated.
+	* function.c (thread_prologue_and_epilogue_insns): Change
+	set_up_by_prologue HARD_REG_SET into struct hard_reg_set_container.
+	Call targetm.set_up_by_prologue on it.
+	* config/rs6000/rs6000.c (rs6000_set_up_by_prologue): New function.
+	(TARGET_SET_UP_BY_PROLOGUE): Redefine to it.
+
+2012-01-17  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.c (rx_can_use_simple_return): New function.
+	* config/rx/rx-protos.h (rx_can_use_simple_return): Prototype.
+	* config/rx/rx.md (return): Predicate on rx_can_use_simple_return.
+
+2012-01-17  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51782
+	* expr.c (expand_assignment): Take address-space information
+	from the address operand of MEM_REF and TARGET_MEM_REF.
+	(expand_expr_real_1): Likewise.
+
+2012-01-17  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* ira.c (do_reload): Make sure ira_dump_file is re-set if no
+	reload dump is requested.
+
+2012-01-17  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR other/51165
+	* trans-mem.c (requires_barrier): Call may_be_aliased.
+
+2012-01-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51877
+	* tree-ssa-tail-merge.c (gimple_equal_p): Don't return true whenever
+	call arguments and fndecls compare equal, instead return false if they
+	don't.  Return true only if lhs1 and lhs2 are either both NULL, or
+	both SSA_NAMEs that are valueized the same, or they satisfy
+	operand_equal_p.
+
+2012-01-17  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (gcc_cv_target_dl_iterate_phdr): Only check on
+	Solaris 11+.
+	* configure: Regenerate.
+
+2012-01-16  Jan Hubicka  <jh@suse.cz>
+
+	PR c/12245
+	PR c++/14179
+	* convert.c (convert_to_integer): Use fold_convert for
+	converting an INTEGER_CST to integer type.
+
+2012-01-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/14179
+	* vec.c (vec_gc_o_reserve_1): Use ggc_round_alloc_size.
+
+2012-01-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/51860
+	* config/s390/s390.c (s390_chunkify_start): Don't skip
+	call insns followed by NOTE_INSN_CALL_ARG_LOCATION note.  Skip
+	NOTE_INSN_VAR_LOCATION and NOTE_INSN_CALL_ARG_LOCATION notes.
+	If insn is followed by NOTE_INSN_VAR_LOCATION or
+	NOTE_INSN_CALL_ARG_LOCATION notes, insert jump after all those notes.
+	Don't use location of note insns.
+
+	PR tree-optimization/51865
+	* tree-inline.c (tree_function_versioning): Call remap_decl
+	on DECL_RESULT whenever it has VOID_TYPE_P type.
+
 2012-01-15  Richard Sandiford  <rdsandiford@googlemail.com>
 
 	* config/mips/mips.c (mips16_build_call_stub): Don't use a stub

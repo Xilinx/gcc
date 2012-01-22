@@ -1,3 +1,206 @@
+2012-01-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51832
+	* g++.dg/lto/pr51832.h: New.
+	* g++.dg/lto/pr51832_0.C: New.
+	* g++.dg/lto/pr51832_1.C: New.
+
+2012-01-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/ext-elim-1.c: New test.
+
+2012-01-22  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR target/51931
+	* gcc.c-torture/compile/20001226-1.c: Add nomips16 attribute.
+	* g++.dg/opt/longbranch1.C: Likewise.
+
+2012-01-22  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* g++.old-deja/g++.pt/ptrmem6.C: xfail a test for ARM and MIPS
+	in C++11 mode.
+
+2012-01-21  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/50556
+	* gfortran.dg/namelist_74.f90: New test.
+	* gfortran.dg/namelist_59.f90: Remove SAVE attribute.
+
+2012-01-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51913
+	* gfortran.dg/class_47.f90: New.
+
+2012-01-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/renaming5.ad[sb]: New test.
+
+2012-01-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51919
+	* g++.dg/pch/mangle1.{C,Hs}: Remove.
+
+2012-01-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51922
+	* g++.dg/ext/attrib42.C: Require ilp32.
+
+2012-01-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/51915
+	* gcc.target/arm/pr51915.c: New test.
+
+2012-01-20   Cary Coutant  <ccoutant@google.com>
+	     Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/45682
+	* g++.dg/debug/dwarf2/nested-3.C: New test.
+
+2012-01-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51402
+	* g++.dg/template/crash110.C: New.
+
+2012-01-20  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.misc-tests/gcov-14.c: Skip on alpha*-dec-osf*.
+	Remove default options on hppa*-*-hpux*.
+
+2012-01-20  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/ext/visibility/template9.C: Add dg-require-visibility.
+
+2012-01-20  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.c-torture/compile/pr51856.c: New testcase.
+
+2012-01-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	* go.test/go-test.exp (go-gc-tests): Pass correctly formatted
+	options to go_target_compile.
+
+2012-01-20  Kai Tietz  <ktietz@redhat.com>
+
+	* g++.dg/torture/pr51344.C: Fix typo.
+
+2012-01-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51903
+	* g++.dg/torture/pr51903.C: New testcase.
+
+2012-01-20  Tobias Burnus  <burnus@net-b.de>
+	    Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/51056
+	* gfortran.dg/use_21.f90: New.
+
+2012-01-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/51106
+	* gcc.dg/torture/pr51106-1.c: New test.
+	* gcc.dg/torture/pr51106-2.c: New test.
+
+2012-01-19  Kai Tietz  <ktietz@redhat.com>
+
+	* g++.dg/torture/pr51344.C: New test.
+
+2012-01-19  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51904
+	* gfortran.dg/intrinsic_size_2.f90: New.
+
+2012-01-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51889
+	* g++.dg/inherit/using7.C: New.
+
+2012-01-19  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/37997
+	* gcc.dg/tree-ssa/ssa-pre-28.c: New testcase.
+
+2012-01-19 Andrey Belevantsev <abel@ispras.ru>
+
+	PR rtl-optimization/51505
+	* gcc.dg/pr51505.c: New test.
+
+2012-01-18  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/51634
+	* gfortran.dg/typebound_operator_12.f03: New.
+	* gfortran.dg/typebound_operator_13.f03: New.
+
+2012-01-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51225
+	* g++.dg/cpp0x/pr51225.C: New.
+
+2012-01-17  Ian Lance Taylor  <iant@google.com>
+
+	PR go/50656
+	* go.test/go-test.exp (go-gc-tests): Recognize some more test lines.
+
+2012-01-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51869
+	* gfortran.dg/realloc_on_assign_9.f90: New.
+
+2012-01-17  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR other/51165
+	* gcc.dg/tm/memopt-3.c: Remove xfail.
+	* gcc.dg/tm/memopt-4.c: Remove xfail.
+	* gcc.dg/tm/memopt-5.c: Remove xfail.
+	* gcc.dg/tm/memopt-7.c: Remove xfail.
+
+2012-01-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51877
+	* gcc.c-torture/execute/pr51877.c: New test.
+
+2012-01-17  Michael Zolotukhin  <michael.v.zolotukhin@intel.com>
+
+	* gcc.dg/vect/no-section-anchors-vect-69.c: Change
+	{!vect_align_arrays} to vect_sizes_32B_16B.
+	* gcc.dg/vect/vect-multitypes-1.c: Ditto.
+	* gcc.dg/vect/vect-peel-3.c: Ditto.
+
+2012-01-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51854
+	* g++.dg/abi/mangle60.C: New.
+
+	PR c++/51827
+	* g++.dg/pch/mangle1.{C,Hs}: New.
+
+2012-01-16  Mikael Morin  <mikael@gcc.gnu.org>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/50981
+	* gfortran.dg/elemental_optional_args_3.f90: New
+	* gfortran.dg/elemental_optional_args_4.f90: New
+
+2012-01-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51809
+	* gfortran.dg/use_20.f90: New
+
+2012-01-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51868
+	* g++.dg/cpp0x/rv-bitfield.C: New.
+	* g++.dg/cpp0x/rv-bitfield2.C: New.
+
+2012-01-16  Paul Thomas  <pault@gcc.gnu.org>
+
+	* gfortran.dg/class_array_3.f03: Remove the explicit loop in
+	subroutine 'qsort' and use index array to assign the result.
+
+2012-01-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51865
+	* gcc.dg/pr51865.c: New test.
+
 2012-01-15  Richard Sandiford  <rdsandiford@googlemail.com>
 
 	* gcc.dg/tree-ssa/ssa-dom-thread-4.c: Expect 4 threaded edges for MIPS.

@@ -2927,6 +2927,25 @@ write_template_arg_literal (const tree value)
 	write_real_cst (value);
 	break;
 
+      case COMPLEX_CST:
+	if (TREE_CODE (TREE_REALPART (value)) == INTEGER_CST
+	    && TREE_CODE (TREE_IMAGPART (value)) == INTEGER_CST)
+	  {
+	    write_integer_cst (TREE_REALPART (value));
+	    write_char ('_');
+	    write_integer_cst (TREE_IMAGPART (value));
+	  }
+	else if (TREE_CODE (TREE_REALPART (value)) == REAL_CST
+		 && TREE_CODE (TREE_IMAGPART (value)) == REAL_CST)
+	  {
+	    write_real_cst (TREE_REALPART (value));
+	    write_char ('_');
+	    write_real_cst (TREE_IMAGPART (value));
+	  }
+	else
+	  gcc_unreachable ();
+	break;
+
       case STRING_CST:
 	sorry ("string literal in function template signature");
 	break;
@@ -3330,7 +3349,21 @@ get_mangled_id (tree decl)
 void
 mangle_decl (const tree decl)
 {
-  tree id = get_mangled_id (decl);
+  tree id;
+  bool dep;
+
+  /* Don't bother mangling uninstantiated templates.  */
+  ++processing_template_decl;
+  if (TREE_CODE (decl) == TYPE_DECL)
+    dep = dependent_type_p (TREE_TYPE (decl));
+  else
+    dep = (DECL_LANG_SPECIFIC (decl) && DECL_TEMPLATE_INFO (decl)
+	   && any_dependent_template_arguments_p (DECL_TI_ARGS (decl)));
+  --processing_template_decl;
+  if (dep)
+    return;
+
+  id = get_mangled_id (decl);
   SET_DECL_ASSEMBLER_NAME (decl, id);
 
   if (G.need_abi_warning

@@ -1883,10 +1883,23 @@ Parse::init_var(const Typed_identifier& tid, Type* type, Expression* init,
     {
       if (!type_from_init && init != NULL)
 	{
-	  if (!this->gogo_->in_global_scope())
+	  if (this->gogo_->in_global_scope())
+	    return this->create_dummy_global(type, init, location);
+	  else if (type == NULL)
 	    this->gogo_->add_statement(Statement::make_statement(init, true));
 	  else
-	    return this->create_dummy_global(type, init, location);
+	    {
+	      // With both a type and an initializer, create a dummy
+	      // variable so that we will check whether the
+	      // initializer can be assigned to the type.
+	      Variable* var = new Variable(type, init, false, false, false,
+					   location);
+	      static int count;
+	      char buf[30];
+	      snprintf(buf, sizeof buf, "sink$%d", count);
+	      ++count;
+	      return this->gogo_->add_variable(buf, var);
+	    }
 	}
       return this->gogo_->add_sink();
     }
@@ -2375,6 +2388,12 @@ Parse::operand(bool may_be_sink)
 
     case Token::TOKEN_STRING:
       ret = Expression::make_string(token->string_value(), token->location());
+      this->advance_token();
+      return ret;
+
+    case Token::TOKEN_CHARACTER:
+      ret = Expression::make_character(token->character_value(), NULL,
+				       token->location());
       this->advance_token();
       return ret;
 
@@ -3155,6 +3174,7 @@ Parse::expression_may_start_here()
 	default:
 	  return false;
 	}
+    case Token::TOKEN_CHARACTER:
     case Token::TOKEN_INTEGER:
     case Token::TOKEN_FLOAT:
     case Token::TOKEN_IMAGINARY:
@@ -3317,6 +3337,7 @@ Parse::statement(Label* label)
       break;
 
     case Token::TOKEN_STRING:
+    case Token::TOKEN_CHARACTER:
     case Token::TOKEN_INTEGER:
     case Token::TOKEN_FLOAT:
     case Token::TOKEN_IMAGINARY:
@@ -3376,6 +3397,7 @@ Parse::statement_may_start_here()
 	return this->expression_may_start_here();
 
     case Token::TOKEN_STRING:
+    case Token::TOKEN_CHARACTER:
     case Token::TOKEN_INTEGER:
     case Token::TOKEN_FLOAT:
     case Token::TOKEN_IMAGINARY:

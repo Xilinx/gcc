@@ -1197,8 +1197,6 @@ fi
 CFLAGS="$saved_CFLAGS"
 CXXFLAGS="$saved_CXXFLAGS"
 
-gcc_AC_INITFINI_ARRAY
-
 # mkdir takes a single argument on some systems. 
 gcc_AC_FUNC_MKDIR_TAKES_ONE_ARG
 
@@ -1269,6 +1267,11 @@ then out_file=$cpu_type/$cpu_type.c; fi
 
 if test x"$tmake_file" = x
 then tmake_file=$cpu_type/t-$cpu_type
+fi
+
+# Support --enable-initfini-array.
+if test x$enable_initfini_array != xno; then
+  tm_file="${tm_file} initfini-array.h"
 fi
 
 if test x"$dwarf2" = xyes
@@ -2421,6 +2424,8 @@ if test x$gcc_cv_ld_ro_rw_mix = xread-write; then
    and read-write sections into a read-write section.])
 fi
 AC_MSG_RESULT($gcc_cv_ld_ro_rw_mix)
+
+gcc_AC_INITFINI_ARRAY
 
 # Check if we have .[us]leb128, and support symbol arithmetic with it.
 gcc_GAS_CHECK_FEATURE([.sleb128 and .uleb128], gcc_cv_as_leb128,
@@ -4642,7 +4647,11 @@ fi
 AC_MSG_CHECKING(dl_iterate_phdr in target C library)
 gcc_cv_target_dl_iterate_phdr=unknown
 case "$target" in
-  *-*-solaris2*)
+  # Restrict to Solaris 11+.  While most of the Solaris 11 linker changes
+  # were backported to Solaris 10 Update 10, dl_iterate_phdr only lives in
+  # libdl there, both complicating its use and breaking compatibility
+  # between Solaris 10 updates.
+  *-*-solaris2.1[[1-9]]*)
     # <link.h> needs both a dl_iterate_phdr declaration and support for
     # compilation with largefile support.
     if grep dl_iterate_phdr $target_header_dir/link.h > /dev/null 2>&1 \

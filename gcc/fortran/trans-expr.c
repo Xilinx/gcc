@@ -3736,7 +3736,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
       /* Allocated allocatable components of derived types must be
 	 deallocated for non-variable scalars.  Non-variable arrays are
 	 dealt with in trans-array.c(gfc_conv_array_parameter).  */
-      if (e && e->ts.type == BT_DERIVED
+      if (e && (e->ts.type == BT_DERIVED || e->ts.type == BT_CLASS)
 	    && e->ts.u.derived->attr.alloc_comp
 	    && !(e->symtree && e->symtree->n.sym->attr.pointer)
 	    && (e->expr_type != EXPR_VARIABLE && !e->rank))
@@ -3766,6 +3766,16 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 	      local_tmp = gfc_evaluate_now (tmp, &se->pre);
 	      local_tmp = gfc_copy_alloc_comp (e->ts.u.derived, local_tmp, tmp, parm_rank);
 	      gfc_add_expr_to_block (&se->post, local_tmp);
+	    }
+
+	  if (e->ts.type == BT_DERIVED && fsym && fsym->ts.type == BT_CLASS)
+	    {
+	      /* The derived type is passed to gfc_deallocate_alloc_comp.
+		 Therefore, class actuals can handled correctly but derived
+		 types passed to class formals need the _data component.  */
+	      tmp = gfc_class_data_get (tmp);
+	      if (!CLASS_DATA (fsym)->attr.dimension)
+		tmp = build_fold_indirect_ref_loc (input_location, tmp);
 	    }
 
 	  tmp = gfc_deallocate_alloc_comp (e->ts.u.derived, tmp, parm_rank);
@@ -6585,11 +6595,24 @@ alloc_scalar_allocatable_for_assignment (stmtblock_t *block,
       size_in_bytes = size;
     }
 
-  tmp = build_call_expr_loc (input_location,
-			     builtin_decl_explicit (BUILT_IN_MALLOC),
-			     1, size_in_bytes);
-  tmp = fold_convert (TREE_TYPE (lse.expr), tmp);
-  gfc_add_modify (block, lse.expr, tmp);
+  if (expr1->ts.type == BT_DERIVED && expr1->ts.u.derived->attr.alloc_comp)
+    {
+      tmp = build_call_expr_loc (input_location,
+				 builtin_decl_explicit (BUILT_IN_CALLOC),
+				 2, build_one_cst (size_type_node),
+				 size_in_bytes);
+      tmp = fold_convert (TREE_TYPE (lse.expr), tmp);
+      gfc_add_modify (block, lse.expr, tmp);
+    }
+  else
+    {
+      tmp = build_call_expr_loc (input_location,
+				 builtin_decl_explicit (BUILT_IN_MALLOC),
+				 1, size_in_bytes);
+      tmp = fold_convert (TREE_TYPE (lse.expr), tmp);
+      gfc_add_modify (block, lse.expr, tmp);
+    }
+
   if (expr1->ts.type == BT_CHARACTER && expr1->ts.deferred)
     {
       /* Deferred characters need checking for lhs and rhs string
