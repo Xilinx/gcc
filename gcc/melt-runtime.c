@@ -5295,7 +5295,9 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    debugeprintf ("melt_compile_source start mycwd %s", mycwd);
    MELT_LOCATION_HERE_PRINTF (curlocbuf,
 			      "melt_compile_source srcbase %s binbase %s flavor %s", 
-			      srcbase, binbase, flavor);
+			      srcbase?(srcbase[0]?srcbase:"*empty*"):"*null*", 
+			      binbase?(binbase[0]?binbase:"*empty*"):"*null*", 
+			      flavor?(flavor[0]?flavor:"*empty*"):"*null*");
    if (getenv("IFS"))
      /* Having an IFS is a huge security risk for shells. */
      melt_fatal_error
@@ -8626,6 +8628,13 @@ melt_same_md5sum_hex (const char* curpath, FILE* sfil, const char*md5hexstr)
 
 
 
+const char* melt_flavors_array[] = {
+  "quicklybuilt",
+  "optimized",
+  "debugnoline",
+  NULL
+};
+
 /* Return a positive index, in the melt_modinfvec vector, of a module
    of given source base (the path, without "+meltdesc.c" suffix of the
    MELT descriptive file). This function don't run the
@@ -8791,6 +8800,49 @@ melt_load_module_index (const char*srcbase, const char*flavor)
      MELT_FILE_IN_DIRECTORY, ".",
      NULL);
   debugeprintf ("melt_load_module_index sopath %s", sopath);
+  /* Try also the other flavors when asked for default flavor. */
+  if (!sopath && !strcmp(flavor, MELT_DEFAULT_FLAVOR) && !melt_flag_bootstrapping)
+    {
+      const char* curflavor = NULL;
+      char* cursobase = NULL;
+      char* cursopath = NULL;
+      int curflavorix;
+      for (curflavorix=0; 
+	   (curflavor=melt_flavors_array[curflavorix]) != NULL;
+	   curflavorix++)
+	{
+	  debugeprintf ("melt_load_module_index curflavor %s curflavorix %d", curflavor, curflavorix);
+	  cursobase = 
+	    concat (lbasename(descmodulename), ".", desccumulatedhexmd5, ".", curflavor, ".so", NULL);
+	  debugeprintf ("melt_load_module_index curflavor %s long cursobase %s workdir %s", 
+			curflavor, cursobase, melt_argument ("workdir"));
+	  cursopath =
+	    MELT_FIND_FILE 
+	    (cursobase, 
+	     /* First search in the temporary directory, but don't bother making it.  */
+	     MELT_FILE_IN_DIRECTORY, tempdir_melt,
+	     /* Search in the user provided work directory, if given. */
+	     MELT_FILE_IN_DIRECTORY, melt_argument ("workdir"),
+	     /* Search in the user provided module path, if given.  */
+	     MELT_FILE_IN_PATH, melt_argument ("module-path"),
+	     /* Search using the GCCMELT_MODULE_PATH environment variable.  */
+	     MELT_FILE_IN_PATH, getenv ("GCCMELT_MODULE_PATH"),
+	     /* Search in the built-in MELT module directory.  */
+	     MELT_FILE_IN_DIRECTORY, melt_flag_bootstrapping?NULL:melt_module_dir,
+	     /* Since the path is a complete path with an md5um in it, we also
+		search in the current directory.  */
+	     MELT_FILE_IN_DIRECTORY, ".",
+	     NULL);
+	  debugeprintf ("melt_load_module_index curflavorix=%d cursopath %s", curflavorix, cursopath);
+	  if (cursopath) {
+	    sopath = cursopath;
+	    inform (UNKNOWN_LOCATION, "MELT loading module %s instead of default flavor %s",
+		    cursopath, MELT_DEFAULT_FLAVOR);
+	    break;
+	  };
+	  free (cursobase), cursobase = NULL;
+	};
+    }
   /* Build the module if not found and the auto-build is not inhibited. */
   if (!sopath && !melt_flag_bootstrapping
       && !melt_argument ("inhibit-auto-build")) 
@@ -8825,17 +8877,17 @@ melt_load_module_index (const char*srcbase, const char*flavor)
   validh = TRUE;
 
   /* Retrieve our dynamic symbols. */
-#define MELTDESCR_UNION_SYMBOL(Sym,Typ)  union { void* ptr_##Sym; \
+#define MELTDESCR_UNION_SYMBOL(Sym,Typ)  union { void* ptr_##Sym;	\
     Typ* dat_##Sym; } u_##Sym
 
 #define MELTDESCR_REQUIRED_SYMBOL(Sym,Typ) do {         \
     MELTDESCR_UNION_SYMBOL(Sym,Typ);                    \
     u_##Sym.ptr_##Sym = (void*) dlsym (dlh, #Sym);      \
-      debugeprintf ("melt_load_module_index req. " #Sym \
-                    " %p validh %d",                    \
-                    u_##Sym.ptr_##Sym, (int) validh);   \
-      if (!u_##Sym.ptr_##Sym) validh = FALSE;           \
-      else dynr_##Sym = u_##Sym.dat_##Sym; } while(0)
+    debugeprintf ("melt_load_module_index req. " #Sym	\
+		  " %p validh %d",			\
+		  u_##Sym.ptr_##Sym, (int) validh);	\
+    if (!u_##Sym.ptr_##Sym) validh = FALSE;		\
+    else dynr_##Sym = u_##Sym.dat_##Sym; } while(0)
 
   MELTDESCR_REQUIRED_LIST;
 
@@ -8844,8 +8896,8 @@ melt_load_module_index (const char*srcbase, const char*flavor)
 #define MELTDESCR_OPTIONAL_SYMBOL(Sym,Typ) do {         \
     MELTDESCR_UNION_SYMBOL(Sym,Typ);                    \
     u_##Sym.ptr_##Sym = (void*) dlsym (dlh, #Sym);      \
-      if (u_##Sym.ptr_##Sym)                            \
-        dyno_##Sym = u_##Sym.dat_##Sym; } while(0)
+    if (u_##Sym.ptr_##Sym)				\
+      dyno_##Sym = u_##Sym.dat_##Sym; } while(0)
 
   MELTDESCR_OPTIONAL_LIST;
 
