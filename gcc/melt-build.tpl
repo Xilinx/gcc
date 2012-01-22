@@ -414,7 +414,7 @@ ENDFOR melt_translator_file+]
 [+FOR melt_translator_file "\\\n"+] [+melt_stage+]-[+base+]-module.stamp [+ENDFOR melt_translator_file+]
 	echo "#$@ generated" > $@-tmp
 	$(MD5SUM) melt-run.h >> $@-tmp
-[+FOR melt_translator_file "\n"+]	$(MD5SUM) $(wildcard [+melt_stage+]/[+base+].c[+melt_stage+]/[+base+]+[0-9]*.c) < /dev/null >> $@-tmp[+ENDFOR melt_translator_file+]
+[+FOR melt_translator_file "\n"+]	$(MD5SUM) $(wildcard [+melt_stage+]/[+base+].c [+melt_stage+]/[+base+]+[0-9]*.c) < /dev/null >> $@-tmp[+ENDFOR melt_translator_file+]
 	echo "# end $@" >> $@-tmp
 	$(melt_move_if_change) $@-tmp $@
 
@@ -780,7 +780,7 @@ meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS)  $(WARMELT_LAST_STAGEST
 warmelt-upgrade-translator: $(WARMELT_LAST) $(WARMELT_LAST_STAGESTAMP) meltrun-generate \
 [+FOR melt_translator_file " \\\n"
 +]   $(MELT_LAST_STAGE)/[+base+].c \
-         $(wildcard  $(MELT_LAST_STAGE)/[+base+]+*.c)[+
+         $(wildcard  $(MELT_LAST_STAGE)/[+base+]+*.c) [+
 ENDFOR melt_translator_file+]
 	@echo upgrading the MELT translator
 	@which unifdef > /dev/null || (echo missing unifdef for warmelt-upgrade-translator; exit 1)

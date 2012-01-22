@@ -1,5 +1,9 @@
 
 2012-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl: Missing space for generation of *-module.stamp
+	* melt-build.mk: Regenerate.
+
+2012-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
