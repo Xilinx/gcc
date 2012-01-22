@@ -94,7 +94,9 @@
 	     " modulnam=" modulnam)
       ;; the new environment is silently discarded
       (ignore (start_melt_module_of_flavor curenv modulnam '"quicklybuilt"))
-      (debug "runfile_docmd done modulnam=" modulnam " modsrcbase=" modsrcbase)
+      (debug "runfile_docmd done modulnam=" modulnam " modsrcbase=" modsrcbase " return :true")
+      ;; the mode closure should return true to enable further compilation
+      (return :true)
       ))))
 ;;;;
 (definstance runfile_mode
@@ -158,6 +160,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
       ;; the new environment is silently discarded
       (debug "before starting quicklybuilt module rundebug_mode dbgmodulnam=" dbgmodulnam)
       (ignore (start_melt_module_of_flavor curenv modulnam '"quicklybuilt"))
+      (return :true) ;; so the mode succeeds and compilation can continue
       )))
 ;;;;
 (definstance rundebug_mode
@@ -1374,6 +1377,8 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
                   inform (UNKNOWN_LOCATION, " use -fmelt-mode= to set the MELT mode[s] separated by comma");
 #endif /*MELT_IS_PLUGIN*/
 		  }#)
+      (return ())			;to fail the mode and avoid
+					;further compilation
       )))
 
 (definstance help_mode
@@ -1386,7 +1391,9 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 
 
 (defun nop_docmd  (cmd moduldata)
-  (debug "in nop_docmd cmd=" cmd))
+  (debug "in nop_docmd cmd=" cmd)
+  (return :true)			;succeed the nop mode
+  )
 
 (definstance nop_mode
   class_melt_mode
@@ -3412,7 +3419,7 @@ melt_scanning (melt_ptr_t p)
       (informsg_strv "generated runtype support implementation file" outcodename)
       ;;
       (debug "runtypesupport_docmd done outarg=" outarg)
-
+      (return :true)			;mode success
       )))
 
 ;;;;;;;;;;;;;;;;
@@ -3491,7 +3498,8 @@ melt_scanning (melt_ptr_t p)
 	   " coutarg=" coutarg " curenv=" curenv)
     (translate_to_flavored_module inarg outarg coutarg
 				  (tuple '"quicklybuilt" '"optimized" '"debugnoline")) 
-    curenv))
+    (return :true)			;succeed the mode
+    ))
 
 (definstance translatetomodule_mode
   class_melt_mode
@@ -3515,7 +3523,9 @@ melt_scanning (melt_ptr_t p)
 	)
     (debug "translatedebug_docmd inarg=" inarg " outarg=" outarg
 	   " coutarg=" coutarg " curenv=" curenv)
-    (translate_to_flavored_module inarg outarg coutarg '"debugnoline" curenv)))
+    (translate_to_flavored_module inarg outarg coutarg '"debugnoline" curenv))
+  (return :true)			;succeed the mode
+  )
 
 (definstance translatedebug_mode
   class_melt_mode
@@ -3542,7 +3552,9 @@ ASSERT_MSG) is enabled"
 	)
     (debug "translatequickly_docmd inarg=" inarg " outarg=" outarg
 	   " coutarg=" coutarg " curenv=" curenv)
-    (translate_to_flavored_module inarg outarg coutarg '"quicklybuilt" curenv)))
+    (translate_to_flavored_module inarg outarg coutarg '"quicklybuilt" curenv)
+    (return :true) ;;; succeed the mode
+    ))
 
 
 
@@ -3568,7 +3580,9 @@ ASSERT_MSG) is enabled"
 	)
     (debug "translateoptimized_docmd inarg=" inarg " outarg=" outarg
 	   " coutarg=" coutarg " curenv=" curenv)
-    (translate_to_flavored_module inarg outarg coutarg '"optimized" curenv)))
+    (translate_to_flavored_module inarg outarg coutarg '"optimized" curenv)
+    (return :true) ;;succeed the mode
+    ))
 
 
 
@@ -3619,10 +3633,12 @@ ASSERT_MSG) is enabled"
 	(progn 	  
 	  (errormsg_strv "tranlatefile mode needs a base name without suffix" 
 		       basnam)
-	  (return)
+	  (return)			;fail the mode
 	  ))
       (translate_to_c_one_or_more_melt_files inarg basnam curenv)
+      (return :true)			;succeed the mode
       )))
+
 
 (definstance translatefile_mode
   class_melt_mode
@@ -3632,6 +3648,8 @@ ASSERT_MSG) is enabled"
   :meltmode_fun translatefile_docmd
 )
 (install_melt_mode translatefile_mode)
+
+
 
 ;;;;;;;;;;;;;;;;
 (defun translateinit_docmd (cmd moduldata)
@@ -3691,7 +3709,7 @@ ASSERT_MSG) is enabled"
     ;; we trigger explicitly a full GC to stress the runtime. The
     ;; translateinit mode is not useful to the casual user.
     (full_garbcoll 10000)
-    (return)
+    (return :true)			;mode succeed
     ))
 
 ;;;

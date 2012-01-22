@@ -673,7 +673,7 @@
 	 (?(tree_field_decl ?(tree_identifier ?name) ?_)
 	   (add2sbuf_strconst buffer name))
 	 (?_ 
-	  (debugtree "Unknown tree : " value))))
+	  (debug "Unknown tree : " value))))
 
 (defun get_tree_value (datas function sets :tree value)
   (let ((buffer (make_strbuf discr_strbuf)))
@@ -726,7 +726,7 @@
 		 :goto_value ())))
     (match instruction
 	   (?(gimple_goto ?label)
-	     (debugtree "Label : " label))
+	     (debug "Label : " label))
 	   (?_ ))))
 
 (defun fill_instruction_assignment (datas function sets assignment 
@@ -749,7 +749,7 @@
 	   (?(gimple_assign_unary_minus ?left ?right)
 	     (fill_instruction_assignment function sets build left (null_tree) right "-"))
 	   (?(gimple_assign_single ?left ?right)
-	     (debugtree "Right : " right)
+	     (debug "Right : " right)
 	     (fill_instruction_assignment datas function sets build left right))
 	   (?(gimple_assign_plus ?left ?right1 ?right2)
 	     (fill_instruction_assignment datas function sets build left right1 right2 "+"))

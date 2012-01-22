@@ -1,6 +1,15 @@
 
 2012-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tpassexec.melt: New file.
+	* testsuite/melt/tpassexec-c.c: New file.
+	* melt-runtime.c (meltgc_do_initial_mode): Warn when mode failed.
+	(meltgc_notify_sysdata_passexec_hook): More debug.
+	* melt-run.proto.h: include "plugin-version.h".
+	* melt/warmelt-modes.melt: Add a return :true in all our modes.
+
+2012-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_passexec_callback): Improve debug.
+	* melt/xtramelt-c-generator.melt: Don't use debugtree.
 
 2012-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_flavors_array): New.

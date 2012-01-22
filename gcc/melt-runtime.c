@@ -8335,7 +8335,8 @@ melt_passexec_callback (void *gcc_data,
 #define passxhv   meltfram__.mcfr_varptr[0]
 #define passnamev meltfram__.mcfr_varptr[1]
   passxhv = melt_get_inisysdata (MELTFIELD_SYSDATA_PASSEXEC_HOOK);
-  debugeprintf("melt_passexec_callback pass %p passxhv %p", pass, passxhv);
+  debugeprintf ("melt_passexec_callback pass %p passxhv %p", 
+		(void*) pass, passxhv);
   gcc_assert (pass != NULL);
   if (melt_magic_discr((melt_ptr_t) passxhv) == MELTOBMAG_CLOSURE)
     {
@@ -9631,7 +9632,12 @@ meltgc_do_initial_mode (melt_ptr_t modata_p, const char* modstr)
 	  debugeprintf ("meltgc_do_initial_mode after apply closv %p resv %p",
 			closv, resv);
 	}
-	exit_after_options = (resv == NULL);
+	if (!resv)
+	  {
+	    warning(0, "MELT mode %s failed, so compilation disabled", 
+		    curmodstr);
+	    exit_after_options = TRUE;
+	  }
       }
       if (comma)
 	curmodstr = comma+1;
@@ -13213,12 +13219,12 @@ meltgc_notify_sysdata_passexec_hook (void)
   debugeprintf("pxhookv= %p", pxhookv);
   if (pxhookv == NULL) 
     {
-      debugeprintf("unregister PLUGIN_PASS_EXECUTION");
+      debugeprintf ("unregister PLUGIN_PASS_EXECUTION %s", melt_plugin_name);
       unregister_callback (melt_plugin_name, PLUGIN_PASS_EXECUTION);
     }
   else if (melt_magic_discr ((melt_ptr_t) pxhookv) == MELTOBMAG_CLOSURE)
     {
-      debugeprintf("register PLUGIN_PASS_EXECUTION");
+      debugeprintf ("register PLUGIN_PASS_EXECUTION pxhookv=%p", pxhookv);
       register_callback (melt_plugin_name, PLUGIN_PASS_EXECUTION,
 			 melt_passexec_callback,
 			 NULL);
