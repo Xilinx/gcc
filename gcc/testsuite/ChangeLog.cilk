@@ -1,3 +1,7 @@
+2012-01-21  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	*  g++.dg/cilk-plus/array_notation_tests/builtin_funcs.cc: New.
+
 2012-01-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* g++.dg/cilk-plus/array_notation_tests/predecr_test.cc: New.

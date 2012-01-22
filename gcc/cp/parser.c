@@ -41,7 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pretty-print.h"
 #include "parser.h"
 
-extern void extract_array_notation_exprs (tree, tree **, int *);
+extern void extract_array_notation_exprs (tree, bool, tree **, int *);
 extern tree fix_unary_array_notation_exprs (tree);
 struct pragma_simd_values local_simd_values;
 

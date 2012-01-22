@@ -1,3 +1,8 @@
+2012-01-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-common.c (c_define_builtins): Added a call to
+	array_notation_init_builtins function.
+
 2011-12-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-common.h: Added build_array_notation_expr prototype.

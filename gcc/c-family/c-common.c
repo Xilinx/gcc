@@ -49,7 +49,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "libfuncs.h"
 #include "cilk.h"
 
-
+extern void array_notation_init_builtins (void);
 enum expand_modifier {EXPAND_NORMAL = 0, EXPAND_STACK_PARM, EXPAND_SUM,
                       EXPAND_CONST_ADDRESS, EXPAND_INITIALIZER, EXPAND_WRITE,
                       EXPAND_MEMORY};
@@ -4660,7 +4660,10 @@ c_define_builtins (tree va_list_ref_type_node, tree va_list_arg_type_node)
   /* this function will initialize all the builtin functions required by
    * the cilkplus port */
   if (flag_enable_cilk)
-    cilk_init_builtins();
+    {
+      cilk_init_builtins ();
+      array_notation_init_builtins ();
+    }
 
   targetm.init_builtins ();
 

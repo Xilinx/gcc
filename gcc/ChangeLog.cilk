@@ -1,4 +1,11 @@
-2011-01-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+2012-01-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* Makefile.in: Added array-notation-common.c file for compilation.
+	* array-notation-common.c (mark_cold): New function.
+	(array_notation_init_builtins): Likewise.
+	* tree.h: Added a new enum list called "array_notation_reduce_type."
+	
+2012-01-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (cilk_remove_annotated_functions): Added a int cast for
 	VEC_length in for-loop condition.

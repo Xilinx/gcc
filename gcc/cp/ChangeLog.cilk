@@ -1,3 +1,25 @@
+2012-01-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* call.c (convert_like_real): Type conversion is ignored if array
+	notation is present as a parameter.
+	* cp-array-notation.c (find_rank): Added a new parameter called
+	ignore_builtin_fn.  Also handled a case for STATEMENT_LIST.  Finally,
+	added a check to see if the builtin function should be ignored.
+	(extract_array_notation_exprs): Added a new parameter called
+	ignore_builtin_fn.  Also added a check to see for ignore_builtin_fn.
+	(replace_array_notations): Likewise.
+	(build_x_array_notation_expr): Modified find_rank call to add a bool.
+	Also added a check if the funtion is a builtin array notation function.
+	Added a bool parameter to extract_array_notation_exprs, find_rank and
+	replace_array_notations.
+	(fix_builtin_array_notation_fn): New function.
+	(is_builtin_array_notation_fn): Likewise.
+	(build_x_reduce_expr): Likewise.
+	(contains_array_notation_expr): Likewise.
+	(fix_unary_array_notation_exprs): Changed the name of the parameter.
+	Also handled a case check for CALL_EXPR and if so, called
+	fix_builtin_array_notation_fn.
+
 2012-01-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cp-array-notation.c (max): New function.

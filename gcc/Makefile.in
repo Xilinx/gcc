@@ -1452,6 +1452,7 @@ OBJS = \
 	xcoffout.o \
         cilk.o \
         cilk-low.o \
+	array-notation-common.o \
 	$(out_object_file) \
 	$(EXTRA_OBJS) \
 	$(host_hook_obj)
@@ -3437,6 +3438,8 @@ lower-subreg.o : lower-subreg.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 
 
 
+array-notation-common.o: array-notation-common.c $(CONFIG_H) $(SYSTEM_H) \
+    $(TREE_H) $(RTL_H) $(OPTABS_H) $(GIMPLE_H) $(RECOG_H) 
 
 cilk.o: cilk.c $(CONFIG_H) $(SYSTEM_H) $(TREE_H) $(RTL_H) $(OPTABS_H) \
    $(GIMPLE_H) $(RECOG_H) cilk.h

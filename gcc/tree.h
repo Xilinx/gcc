@@ -73,8 +73,6 @@ struct reduction_values
   int not_reduced;
   struct reduction_values *ptr_next;
 };
-  
-
 
 /* bviyer: Since we can have multiple pragma simd, this will hold the values of
  * each of the pragma simd and then as soon as it finds a for loop
@@ -105,11 +103,19 @@ struct pragma_simd_values
   struct pragma_simd_values *ptr_next;
 };
 
-
-
-
 extern struct pragma_simd_values *psv_head;
 
+typedef enum array_notation_reduce_type {
+  REDUCE_UNKNOWN = 0,
+  REDUCE_ADD,
+  REDUCE_MUL,
+  REDUCE_ALL_ZEROS,
+  REDUCE_ANY_ZEROS,
+  REDUCE_MAX,
+  REDUCE_MIN,
+  REDUCE_MAX_INDEX,
+  REDUCE_MIN_INDEX
+} an_reduce_type;
 
 
 #undef DEFTREECODE

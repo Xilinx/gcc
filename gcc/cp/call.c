@@ -43,6 +43,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "cilk.h"
 
+extern bool contains_array_notation_expr (tree);
 /* The various kinds of conversion.  */
 
 typedef enum conversion_kind {
@@ -5638,13 +5639,16 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	  else if (t->kind == ck_identity)
 	    break;
 	}
-
-      permerror (input_location, "invalid conversion from %qT to %qT",
-		 TREE_TYPE (expr), totype);
-      if (fn)
-	permerror (DECL_SOURCE_LOCATION (fn),
-		   "  initializing argument %P of %qD", argnum, fn);
-
+      if (flag_enable_cilk && contains_array_notation_expr (expr))
+	;
+      else
+	{
+	  permerror (input_location, "invalid conversion from %qT to %qT",
+		     TREE_TYPE (expr), totype);
+	  if (fn)
+	    permerror (DECL_SOURCE_LOCATION (fn),
+		       "  initializing argument %P of %qD", argnum, fn);
+	}
       return cp_convert (totype, expr);
     }
 
