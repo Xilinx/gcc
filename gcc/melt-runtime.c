@@ -8335,6 +8335,7 @@ melt_passexec_callback (void *gcc_data,
 #define passxhv   meltfram__.mcfr_varptr[0]
 #define passnamev meltfram__.mcfr_varptr[1]
   passxhv = melt_get_inisysdata (MELTFIELD_SYSDATA_PASSEXEC_HOOK);
+  debugeprintf("melt_passexec_callback pass %p passxhv %p", pass, passxhv);
   gcc_assert (pass != NULL);
   if (melt_magic_discr((melt_ptr_t) passxhv) == MELTOBMAG_CLOSURE)
     {
@@ -8348,11 +8349,8 @@ melt_passexec_callback (void *gcc_data,
       {
 	static char locbuf[80];
 	memset (locbuf, 0, sizeof (locbuf));
-	snprintf (locbuf, sizeof (locbuf) - 1,
-		  "%s:%d:melt_passexec_callback [pass %s #%d] before apply",
-		  lbasename (__FILE__), __LINE__, 
-		  pass->name, pass->static_pass_number);
-	meltfram__.mcfr_flocs = locbuf;
+	MELT_LOCATION_HERE_PRINTF(locbuf, "melt_passexec_callback [pass %s #%d] before apply",
+				  pass->name, pass->static_pass_number);
       }
 #endif 
       debugeprintf ("melt_passexec_callback before apply pass @ %p %s #%d", 
@@ -13212,12 +13210,15 @@ meltgc_notify_sysdata_passexec_hook (void)
   MELT_ENTERFRAME (2, NULL);
 #define pxhookv      meltfram__.mcfr_varptr[0]
   pxhookv =  melt_get_inisysdata (MELTFIELD_SYSDATA_PASSEXEC_HOOK);
+  debugeprintf("pxhookv= %p", pxhookv);
   if (pxhookv == NULL) 
     {
+      debugeprintf("unregister PLUGIN_PASS_EXECUTION");
       unregister_callback (melt_plugin_name, PLUGIN_PASS_EXECUTION);
     }
   else if (melt_magic_discr ((melt_ptr_t) pxhookv) == MELTOBMAG_CLOSURE)
     {
+      debugeprintf("register PLUGIN_PASS_EXECUTION");
       register_callback (melt_plugin_name, PLUGIN_PASS_EXECUTION,
 			 melt_passexec_callback,
 			 NULL);

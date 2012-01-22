@@ -1,5 +1,8 @@
 
 2012-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_passexec_callback): Improve debug.
+
+2012-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_flavors_array): New.
 	(melt_load_module_index): Try other flavors when asked for default.
 
