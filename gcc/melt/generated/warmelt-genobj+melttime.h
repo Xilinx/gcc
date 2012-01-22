@@ -8,8 +8,8 @@
 #if meltmod_warmelt_genobj_mds__51ff89903744accb4f637242dab9fdd5
   /* MELT generation timestamp for MELT-STAGE-ZERO/warmelt-genobj */
 /*MELT BOOTSTRAP*/
-const char melt_gen_timestamp[]="Sat Jan 21 22:38:34 2012 MET";
-const long long melt_gen_timenum=1327181914;
+const char melt_gen_timestamp[]="Sun Jan 22 18:42:37 2012 MET";
+const long long melt_gen_timenum=1327254157;
 const char melt_build_timestamp[]= __DATE__ "@" __TIME__;
 
 #else /* ! meltmod_warmelt_genobj_mds__51ff89903744accb4f637242dab9fdd5 */

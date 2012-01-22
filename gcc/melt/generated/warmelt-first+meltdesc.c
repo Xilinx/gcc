@@ -3,8 +3,8 @@
 /* These identifiers are generated in warmelt-outobj.melt 
  & handled in melt-runtime.c carefully. */
 /* version of the GCC compiler & MELT runtime generating this */
-const char melt_genversionstr[]="4.7.0 20120120 (experimental) [melt-branch revision 183370] MELT_0.9.3-";
-const char melt_versionmeltstr[]="0.9.3- [melt-branch_revision_183370]";
+const char melt_genversionstr[]="4.7.0 20120120 (experimental) [melt-branch revision 183390] MELT_0.9.3";
+const char melt_versionmeltstr[]="0.9.3 [melt-branch_revision_183390]";
 
 /* source name & real path of the module */
 /*MELTMODULENAME MELT-STAGE-ZERO/warmelt-first */
