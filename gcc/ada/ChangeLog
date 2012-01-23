@@ -1,3 +1,255 @@
+2012-01-23  Robert Dewar  <dewar@adacore.com>
+
+	* sem_prag.ads, sem_prag.adb: Minor reformatting.
+
+2012-01-23  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch13.adb (Analyze_Aspect_Specifications): Check for
+	language defined aspect applied to renaming or formal type
+	declaration (not permitted)
+
+2012-01-23  Matthew Heaney  <heaney@adacore.com>
+
+	* a-cdlili.adb, a-cidlli.adb, a-cbdlli.adb (Vet): Replaced
+	comment with pragma Assert.
+
+2012-01-23  Vincent Pucci  <pucci@adacore.com>
+
+	* sem_ch12.adb (Analyze_Generic_Subprogram_Declaration): Call
+	to Make_Aspect_For_PPC_In_Gen_Sub_Decl added in ASIS mode.
+	* sem_prag.adb, sem_prag.ads (Make_Aspect_For_PPC_In_Gen_Sub_Decl): New
+	routine. In ASIS mode, convert any PPC pragmas into aspects in generic
+	subprogram declaration in order to enable the analysis of PPC boolean
+	expressions.
+
+2012-01-23  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch3.adb (Analyze_Object_Declaration): Properly
+	handle Current_Value for volatile variables (also propagate
+	Treat_As_Volatile from type to object).
+
+2012-01-23  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* sem_ch12.adb (Install_Body): Detect the case
+	where the enclosing context is a package with a stub body that
+	has already been replaced by the actual body. In such cases,
+	the freeze node for the enclosing context must be inserted after
+	the real body.
+
+2012-01-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_prag.adb (Analyze_Pragma, case Debug): Freeze the called
+	subprogram before expanding the pragma into an if-statement with
+	a block, to ensure that when the subprogram is null its body is
+	properly generated before expansion.
+
+2012-01-23  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* sem_ch12.adb (Analyze_Associations): Alphabetize local variables and
+	constants. Rename Actual_Types to Actuals_To_Freeze. Rename Next_Formal
+	to Saved_Formal.
+	Freeze all eligible subprograms which appear as actuals in
+	the instantiation.
+	(Has_Fully_Defined_Profile): New routine.
+	(Renames_Standard_Subprogram): New routine.
+	(Earlier): Add local variable N. Comment update. Do not use source
+	locations when trying to determine whether one node precedes another.
+
+2012-01-23  Gary Dismukes  <dismukes@adacore.com>
+
+	* exp_ch4.adb (Expand_Concatenate): In the case
+	where the result of a concatentation can be null, set the to
+	result have both the low and high bounds of the right operand (not
+	just the high bound, as was the case prior to this fix). Also,
+	fix the saved high bound setting (Last_Opnd_High_Bound) in the
+	empty string literal case (should have been low bound minus one,
+	rather than plus one).
+
+2012-01-23  Thomas Quinot  <quinot@adacore.com>
+
+	* scos.ads, put_scos.adb, get_scos.adb (Get_SCOs, Put_SCOs): Do not
+	omit statement SCOs for disabled pragmas.
+
+2012-01-23  Matthew Heaney  <heaney@adacore.com>
+
+	* a-cohase.ads, a-cihase.ads, a-cbhase.ads, a-coorse.ads,
+	a-ciorse.ads, a-cborse.ads, a-cohama.ads, a-cihama.ads, a-cbhama.ads,
+	a-coorma.ads, a-ciorma.ads, a-cborma.ads, a-cdlili.ads, a-cidlli.ads,
+	a-cbdlli.ads, a-convec.ads, a-coinve.ads, a-cobove.ads (Cursor'Read,
+	Cursor'Write): Declare in private part.
+	(Reference_Type'Read, Reference_Type'Write): Ditto.
+	(Constant_Reference_Type'Read, Constant_Reference_Type'Write): Ditto.
+
+2012-01-23  Robert Dewar  <dewar@adacore.com>
+
+	* a-catizo.ads, a-calend.adb, a-calend.ads, par-ch13.adb: Minor
+	reformatting.
+
+2012-01-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Analyze_Subprogram_Declaration): Do not set the
+	Corresponding_Body on a defaulted null formal subprogram.
+	* sem_ch12.adb (Check_Formal_Package_Instance): No check needed
+	on a defaulted formal subprogram that is a null procedure.
+
+2012-01-23  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_ch9.adb: Update the comments involving pragma Implemented.
+	* sem_ch3.adb (Check_Pragma_Implemented (Entity_Id)): Add local
+	constant Subp_Alias and local variable Impl_Subp. Properly
+	handle aliases of synchronized wrappers. Code cleanup.
+	(Check_Pragma_Implemented (Entity_Id; Entity_Id)): Add
+	Name_Optional as part of the condition.
+	* sem_prag.adb (Analyze_Pragma): Add "Optional" as one of the
+	valid choices of implementation kind.
+	(Check_Arg_Is_One_Of): New routine.
+	* snames.ads-tmlp: Add Name_Optional.
+
+2012-01-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* par-ch13.adb: Better error recovery in illegal aspect
+	specification.
+
+2012-01-23  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* a-calend.adb: Add with clause for Interfaces.C. Add constant
+	Unix_Max.
+	(Day_Of_Week): Call the internal UTC_Time_Offset.
+	(Split): Call the internal UTC_Time_Offset.
+	(Time_Of): Call the internal UTC_Time_Offset.
+	(Time_Zone_Operations.UTC_Time_Offset): Call internal UTC_Time_Offset.
+	(UTC_Time_Offset): New library-level routine.
+	* a-calend.ads (UTC_Time_Offset): Remove parameter
+	Is_Historic. Update related comment on usage.
+	* a-catizo.adb (UTC_Time_Offset): Removed.
+	(UTC_Time_Offset (Time)): Call Time_Zone_Operations.UTC_Time_Offset.
+	* a-caltizo.ads (UTC_Time_Offset): Removed.
+	(UTC_Time_Offset (Time)): Add back the default expression of parameter
+	Date.
+
+2012-01-23  Robert Dewar  <dewar@adacore.com>
+
+	* sprint.ads, sprint.adb (Sprint_Node_List): Add New_Lines parameter
+	(pg,po,ps): Make sure each entry starts on new line.
+
+2012-01-23  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* a-calend.ads, a-calend.adb: Define types int and int_Pointer. Update
+	the parameter profile of procedure localtime_tzoff and its associated
+	comment.
+	(Day_Of_Week): Do not treat the input date as historical
+	with respect to time zones.
+	(Split): Do not treat the input
+	date as historical with respect to time zones.	(Time_Of): Do
+	not treat the input constituents as forming a historical date
+	with respect to time zones.
+	(UTC_Time_Offset): Add new formal
+	parameter Is_Historic. Add local variable Flag. Update the call
+	to localtime_tzoff.
+	* a-catizo.ads, a-catizo.adb (UTC_Time_Offset): New routine.
+	(UTC_Time_Offset (Time)): Update the call to
+	Time_Zone_Operations.UTC_Time_Offset.
+	* sysdep.c (__gnat_localtime_tzoff): Update parameter
+	profile. Split the processing of offsets on Windows into two - one
+	part of historic time stamps and the other for the current time.
+
+2012-01-23  Robert Dewar  <dewar@adacore.com>
+
+	* a-calend.adb: Minor reformatting.
+
+2012-01-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch9.adb, sem_ch9.adb: Handle array of access to synchronized
+	interface in requeue statement.
+
+2012-01-23  Cyrille Comar  <comar@adacore.com>
+
+	* projects.texi: Remove references to main units and replace
+	with references to main programs to be coherent with the
+	documentation.
+
+2012-01-23  Robert Dewar  <dewar@adacore.com>
+
+	* s-utf_32.adb: Minor reformatting.
+
+2012-01-23  Vincent Celier  <celier@adacore.com>
+
+	* snames.ads-tmpl: Minor comment addition Indicate that
+	Name_Library_Encapsulated_Options is only used in gprbuild.
+
+2012-01-23  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch10.adb (Analyze_Subunit): Properly save/restore cunit
+	restrictions.
+
+2012-01-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* snames.ads-tmpl: Add Name_Synchronization.
+	* aspects.ads, aspects.adb: Add Aspect_Synchronization to
+	enumeration type and related maps.
+	* sem_ch13.adb (Analyze_Aspect_Specifications): Handle Aspect
+	Synchronization, build corresponding pragma Implemented.
+	* sem_util.adb (Implementation_Kind): Handle both explicit and
+	implicit pragma_argument association to retrieve the given
+	synchronization mode.
+
+2012-01-23  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch10.adb, errout.adb: Minor reformatting.
+
+2012-01-23  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_res.adb (Resolve_Actuals): An actual in a call to an
+	Ada 2012 Reference function does not lead to a dangerous order
+	dependence.
+
+2012-01-23  Gary Dismukes  <dismukes@adacore.com>
+
+	* exp_util.adb (Is_Iterated_Container): Test
+	Is_Entity_Name when searching for calls to the default iterator,
+	to avoid blowing up on indirect calls which have an explicit
+	dereference as the call name.
+
+2012-01-23  Thomas Quinot  <quinot@adacore.com>
+
+	* errout.adb (Set_Msg_Node): For an N_Expanded_Name, output
+	the complete expanded name, rather than just its Selector_Name.
+
+2012-01-23  Thomas Quinot  <quinot@adacore.com>
+
+	* a-textio.adb (Put): Rewrite one-parameter Character version to
+	just call the two-parameter one with Current_Out.
+
+2012-01-23  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* freeze.adb (Check_Current_Instance): Issue an
+	error when the prefix of 'Unchecked_Access or 'Access does not
+	denote a legal aliased view of a type.
+	(Freeze_Record_Type): Do not halt the processing of record components
+	once the Has_Controlled_Component is set as this bypasses the remaining
+	checks.
+	(Is_Aliased_View_Of_Type): New routine.
+
+2012-01-23  Thomas Quinot  <quinot@adacore.com>
+
+	* errout.ads, freeze.adb: Minor reformatting.
+
+2012-01-23  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_ch10.adb, sem_prag.adb: Remove redundant apostrophes in error
+	messages.
+
+2012-01-23  Olivier Hainque  <hainque@adacore.com>
+
+	* adadecode.c (__gnat_decode): Deal with empty input early,
+	preventing potential erroneous memory access later on.
+
+2012-01-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/46192
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <object>: In the case of a
+	renaming, preserve the volatileness through the indirection, if any.
+
 2012-01-14  Andreas Schwab  <schwab@linux-m68k.org>
 
 	* gcc-interface/Makefile.in (OSCONS_EXTRACT): Add

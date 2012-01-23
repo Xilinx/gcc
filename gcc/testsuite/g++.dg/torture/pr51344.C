@@ -1,4 +1,6 @@
-/* { dg-do compile } */
+/* { dg-do compile { target { i?86-*-* && ilp32 } } } */
+class A;
+
 template <class T>
 class B
 {
