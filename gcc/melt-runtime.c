@@ -4650,9 +4650,23 @@ melt_apply (meltclosure_ptr_t clos_p,
 #endif
   if (melt_magic_discr ((melt_ptr_t) clos_p) != MELTOBMAG_CLOSURE)
     goto end;
-  if (melt_magic_discr ((melt_ptr_t) (clos_p->rout)) !=
-      MELTOBMAG_ROUTINE || !(routfun = clos_p->rout->routfunad))
-    goto end;
+  {
+    int routmag = melt_magic_discr ((melt_ptr_t) (clos_p->rout));
+    if (routmag != MELTOBMAG_ROUTINE) 
+      {
+	melt_fatal_error ("MELT corrupted closure %p with routine value %p of bad magic %d (expecting MELTOBMAG_ROUTINE=%d)",
+			  (void*) clos_p, (void*) clos_p->rout, 
+			  routmag, MELTOBMAG_ROUTINE);
+	goto end;
+      }
+  }
+  if (!(routfun = clos_p->rout->routfunad))
+    {
+      melt_fatal_error ("MELT closure %p with corrupted routine value %p <%s> without function",
+			(void*) clos_p, (void*) clos_p->rout, 
+			clos_p->rout->routdescr);
+      goto end;
+    }
   res = (*routfun) (clos_p, arg1_p, xargdescr_, xargtab_, xresdescr_, xrestab_);
  end:
 #if MELT_HAVE_DEBUG

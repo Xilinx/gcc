@@ -1,5 +1,9 @@
 
 2012-01-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_apply): Add more checks with fatal error on
+	closure and routine.
+
+2012-01-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_flag_debug, melt_flag_bootstrapping): Declare for plugin.
 	* melt-runtime.c (melt_flag_debug, melt_flag_bootstrapping): Define for plugin.
 	* melt/warmelt-first.melt (melt_need_dbg, melt_need_dbglim):
