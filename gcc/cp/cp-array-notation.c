@@ -1921,7 +1921,7 @@ fix_unary_array_notation_exprs (tree orig_stmt)
 static bool
 is_builtin_array_notation_fn (tree func_name, an_reduce_type *type)
 {
-  const char *function_name;
+  const char *function_name = NULL;
 
   if (!func_name)
     return false;
