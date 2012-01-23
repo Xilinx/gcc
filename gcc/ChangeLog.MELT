@@ -1,4 +1,14 @@
 
+2012-01-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_flag_debug, melt_flag_bootstrapping): Declare for plugin.
+	* melt-runtime.c (melt_flag_debug, melt_flag_bootstrapping): Define for plugin.
+	* melt/warmelt-first.melt (melt_need_dbg, melt_need_dbglim):
+	Improve documentation.
+	* melt/warmelt-debug.melt (melt_really_need_debug)
+	(melt_really_need_dbglim): News primitives which are non trivial
+	even in optimized flavor.
+	Use them everywhere.
+
 2012-01-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl: Missing space for generation of *-module.stamp
 	* melt-build.mk: Regenerate.

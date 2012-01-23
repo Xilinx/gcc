@@ -165,16 +165,10 @@ static int melt_debugging_after_mode;
 extern void gt_ggc_mx_melt_un (void *);
 
 #ifdef MELT_IS_PLUGIN
-
-/* It may happen that options flags are macros defined in generated
-   file options.h as fields of global_options variable. */
-#ifndef melt_flag_debug
-int melt_flag_debug;
-#endif
-
-#ifndef melt_flag_bootstrapping
-int melt_flag_bootstrapping;
-#endif
+int melt_flag_debug =0; /* for MELT plugin */
+int melt_flag_bootstrapping =0;
+/* In the MELT branch melt_flag_debug is #define-d in generated "options.h" 
+   as global_options.x_melt_flag_debug. */
 
 /**
    NOTE:  october 2009
