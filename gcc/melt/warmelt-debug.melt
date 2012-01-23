@@ -62,6 +62,10 @@ or -fplugin-arg-melt-debug-depth program argument.}#
   :doc #{Test if debug is needed, even in optimized flavor. See
  $MELT_NEED_DBG}#
  #{/*MELT_REALLY_NEED_DEBUG*/ (melt_need_debug ((int) $DEPTH))}#)
+
+(defprimitive melt_has_flag_debug_set () :long
+  #{/*MELT_HAS_FLAG_DEBUG_SET*/ melt_flag_debug}#)
+
 (defprimitive melt_really_need_dbglim  (:long depth limit) :long
   :doc #{Test if debug is needed with limits, even in optimized flavor. 
 See $MELT_NEED_DBGLIM.}#
@@ -74,7 +78,7 @@ See $MELT_NEED_DBGLIM.}#
   debugging the value $VAL with message $MSGSTR, given $COUNT, at
   $FILENAM and $LINENO}#
   (code_chunk incrdbgcounter #{++melt_dbgcounter}#)
-  (if (melt_really_need_debug 0) 
+  (if (melt_has_flag_debug_set) 
       (let ( (:long dbgcounter 0)
 	     (dumpf (get_field :sysdata_dumpfile initial_system_data)) 
 	     (stderrf (get_field :sysdata_stderr initial_system_data)) 
@@ -266,7 +270,7 @@ See $MELT_NEED_DBGLIM.}#
 
 ;;; the debug_fun is usually called thru the debug macro.
 (defun melt_debug_fun (nothing :long count :cstring filename :long lineno :rest)
-  (if (melt_really_need_debug 0) 
+  (if (melt_has_flag_debug_set) 
       (let ( (:long dbgcounter 0)
 	     (dumpf (get_field :sysdata_dumpfile initial_system_data)) 
 	     (stderrf (get_field :sysdata_stderr initial_system_data)) 
@@ -1330,6 +1334,7 @@ $TORANK}#
  discr_debug_closure
  display_debug_message  
  melt_debug_fun
+ melt_has_flag_debug_set
  melt_really_need_dbglim
  melt_really_need_debug
  register_basicblock_debug_fun

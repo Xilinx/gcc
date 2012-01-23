@@ -1,5 +1,8 @@
 
 2012-01-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (melt_has_flag_debug_set): New primitive.
+
+2012-01-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_apply): Add more checks with fatal error on
 	closure and routine.
 
