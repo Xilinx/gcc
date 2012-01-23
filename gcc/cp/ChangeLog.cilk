@@ -1,3 +1,10 @@
+2012-01-22  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-array-notation.c (find_rank): Removed a check for AGGR_INIT_EXPR
+	with CALL_EXPR.
+	(extract_array_notation_exprs): Likewise.
+	(replace_array_notations): Likewise.
+
 2012-01-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* call.c (convert_like_real): Type conversion is ignored if array

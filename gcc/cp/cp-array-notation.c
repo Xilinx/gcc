@@ -86,8 +86,7 @@ find_rank (tree array, bool ignore_builtin_fn, int *rank)
     }
   else
     {
-      if (TREE_CODE (array) == CALL_EXPR
-	  || TREE_CODE (array) == AGGR_INIT_EXPR)
+      if (TREE_CODE (array) == CALL_EXPR)
 	{
 	  tree func_name = CALL_EXPR_FN (array);
 	  if (TREE_CODE (func_name) == ADDR_EXPR)
@@ -147,7 +146,7 @@ extract_array_notation_exprs (tree node, bool ignore_builtin_fn,
 	extract_array_notation_exprs (*tsi_stmt_ptr (ii_tsi), ignore_builtin_fn,
 				      array_list, list_size);
     }
-  else if (TREE_CODE (node) == CALL_EXPR || TREE_CODE (node) == AGGR_INIT_EXPR)
+  else if (TREE_CODE (node) == CALL_EXPR)
     {
       if (is_builtin_array_notation_fn (CALL_EXPR_FN (node), &dummy_type))
 	{
@@ -216,8 +215,7 @@ replace_array_notations (tree *orig, bool ignore_builtin_fn, tree *list,
 	replace_array_notations (tsi_stmt_ptr (ii_tsi), ignore_builtin_fn,
 				 list, array_operand, array_size);
     }
-  else if (TREE_CODE (*orig) == CALL_EXPR
-	   || TREE_CODE (*orig) == AGGR_INIT_EXPR)
+  else if (TREE_CODE (*orig) == CALL_EXPR)
     {
       if (is_builtin_array_notation_fn (CALL_EXPR_FN (*orig), &dummy_type))
 	{
