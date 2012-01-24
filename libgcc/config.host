@@ -402,8 +402,11 @@ mcore-*-elf)
 	;;
 mcore-*-pe*)
 	;;
+microblaze*-linux*)
+	tmake_file="microblaze/t-microblaze-linux"
+	;;
 microblaze*-*-*)
-        tmake_file="microblaze/t-microblaze"
+	tmake_file="microblaze/t-microblaze"
 	;;
 mips-sgi-irix[56]*)
 	;;
