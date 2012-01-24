@@ -2362,8 +2362,6 @@ pph_out_tree (pph_stream *stream, tree expr)
          the class and code.  */
       gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
       streamer_write_builtin (stream->encoder.w.ob, expr);
-      if (TREE_CODE (expr) == IDENTIFIER_NODE)
-        pph_out_identifier_bindings (stream, expr);
       return;
     }
   else if (TREE_CODE (expr) == INTEGER_CST)

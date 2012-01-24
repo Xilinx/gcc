@@ -2243,16 +2243,41 @@ pph_unpack_value_fields (struct bitpack_d *bp, tree expr)
 
 
 /* Read a tree header from STREAM and allocate a memory instance for it.
-   Return the new tree.  */
+   Return the new tree.  If the whole tree fits in the header, the
+   caller does not need to read anything else.  In that case,
+   *FULLY_READ_P will be set to true on return from this function.
+   Otherwise, it will be set to false.  */
 
 static tree
-pph_in_tree_header (pph_stream *stream, enum LTO_tags tag)
+pph_in_tree_header (pph_stream *stream, bool *fully_read_p)
 {
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
   struct bitpack_d bp;
   tree expr;
   enum tree_code code;
+  enum LTO_tags tag;
+
+  tag = streamer_read_record_start (ib);
+  gcc_assert ((unsigned) tag < (unsigned) LTO_NUM_TAGS);
+
+  /* Some trees are completely contained in the header,
+     deal with them first.  */
+  if (tag == LTO_builtin_decl)
+    {
+      /* If we are going to read a built-in function, all we need is
+	  the code and class.  */
+      expr = streamer_get_builtin_tree (ib, data_in);
+      *fully_read_p = true;
+      return expr;
+    }
+  else if (tag == lto_tree_code_to_tag (INTEGER_CST))
+    {
+      /* For integer constants we only need the type and its hi/low
+	  words.  */
+      *fully_read_p = true;
+      return streamer_read_integer_cst (ib, data_in);
+    }
 
   /* Allocate the tree.  Handle C++-specific codes first.  */
   code = lto_tag_to_tree_code (tag);
@@ -2269,6 +2294,9 @@ pph_in_tree_header (pph_stream *stream, enum LTO_tags tag)
 
   /* Unpack all language-dependent bitfields.  */
   pph_unpack_value_fields (&bp, expr);
+
+  /* The reader should continue reading the body of EXPR.  */
+  *fully_read_p = false;
 
   return expr;
 }
@@ -2293,12 +2321,10 @@ pph_ensure_namespace_binding_level (tree decl)
 static void
 pph_in_merge_key_namespace_decl (pph_stream *stream, tree *chain)
 {
-  struct lto_input_block *ib = stream->encoder.r.ib;
-  bool is_namespace_alias;
+  bool is_namespace_alias, fully_read_p;
   unsigned image_ix, ix;
   enum pph_record_marker marker;
   tree read_decl = NULL, decl = NULL;
-  enum LTO_tags tag;
   const char *name;
   tree name_id;
 
@@ -2309,10 +2335,10 @@ pph_in_merge_key_namespace_decl (pph_stream *stream, tree *chain)
   else
     gcc_assert (marker == PPH_RECORD_START_MERGE_KEY);
 
-  tag = streamer_read_record_start (ib);
+  gcc_assert (decl == NULL || TREE_CODE (decl) == NAMESPACE_DECL);
 
-  read_decl = pph_in_tree_header (stream, tag);
-  gcc_assert (pph_tree_is_mergeable (read_decl));
+  read_decl = pph_in_tree_header (stream, &fully_read_p);
+  gcc_assert (!fully_read_p && pph_tree_is_mergeable (read_decl));
   name = pph_in_string (stream);
 
   gcc_assert (TREE_CODE (read_decl) == NAMESPACE_DECL);
@@ -2375,31 +2401,24 @@ pph_in_merge_key_namespace_decl (pph_stream *stream, tree *chain)
 static void
 pph_in_merge_body_namespace_decl (pph_stream *stream)
 {
-  bool is_namespace_alias;
+  bool is_namespace_alias, fully_read_p;
   unsigned image_ix, ix;
-  /* FIXME pph: remove internal cache duplication of external
-  unsigned local_ix;
-  */
   enum pph_record_marker marker;
   tree read_decl = NULL, decl = NULL;
-  enum LTO_tags tag;
-  struct lto_input_block *ib = stream->encoder.r.ib;
 
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_any_tree);
   gcc_assert (marker != PPH_RECORD_END);
   if (pph_is_reference_marker (marker))
     decl = (tree) pph_cache_find (stream, marker, image_ix, ix, PPH_any_tree);
-  else if (marker == PPH_RECORD_START_MUTATED)
-    /* FIXME pph: remove internal cache duplication of external
-    local_ix = pph_in_uint (stream);
-    */
-    ;
   else
-    gcc_assert (marker == PPH_RECORD_START_MERGE_BODY);
+    gcc_assert (marker == PPH_RECORD_START_MERGE_BODY
+		|| marker == PPH_RECORD_START_MUTATED);
 
-  tag = streamer_read_record_start (ib);
-  read_decl = pph_in_tree_header (stream, tag);
-  gcc_assert (TREE_CODE (read_decl) == NAMESPACE_DECL);
+  /* If we read a DECL, it must be a NAMESPACE_DECL.  */
+  gcc_assert (decl == NULL || TREE_CODE (decl) == NAMESPACE_DECL);
+
+  read_decl = pph_in_tree_header (stream, &fully_read_p);
+  gcc_assert (!fully_read_p && TREE_CODE (read_decl) == NAMESPACE_DECL);
   if (!decl)
     {
       if (marker == PPH_RECORD_START_MUTATED)
@@ -2409,11 +2428,6 @@ pph_in_merge_body_namespace_decl (pph_stream *stream)
              PPH image.  */
           decl = (tree) pph_cache_find (stream, PPH_RECORD_XREF, image_ix, ix,
                                         PPH_any_tree);
-      
-          /* Read the internal cache slot where EXPR should be stored at.  */
-	  /* FIXME pph: remove internal cache duplication of external
-          ix = local_ix;
-	  */
         }
       else if (marker == PPH_RECORD_START_MERGE_BODY)
         {
@@ -2454,11 +2468,10 @@ pph_in_merge_body_namespace_decl (pph_stream *stream)
 static tree
 pph_in_merge_key_tree (pph_stream *stream, tree *chain)
 {
-  struct lto_input_block *ib = stream->encoder.r.ib;
   enum pph_record_marker marker;
   unsigned image_ix, ix;
   tree read_expr, expr;
-  enum LTO_tags tag;
+  bool fully_read_p;
   const char *name;
 
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_any_tree);
@@ -2468,12 +2481,10 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
     return (tree) pph_cache_find (stream, marker, image_ix, ix, PPH_any_tree);
   gcc_assert (marker == PPH_RECORD_START_MERGE_KEY);
 
-  tag = streamer_read_record_start (ib);
-
   /* Materialize a new node from STREAM.  This will also read all the
      language-independent bitfields for the new tree.  */
-  read_expr = pph_in_tree_header (stream, tag);
-  gcc_assert (pph_tree_is_mergeable (read_expr));
+  read_expr = pph_in_tree_header (stream, &fully_read_p);
+  gcc_assert (!fully_read_p && pph_tree_is_mergeable (read_expr));
   name = pph_in_string (stream);
 
   /* If we are merging into an existing CHAIN.  Look for a match in
@@ -2523,12 +2534,9 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
 tree
 pph_in_tree (pph_stream *stream)
 {
-  struct lto_input_block *ib = stream->encoder.r.ib;
-  struct data_in *data_in = stream->encoder.r.data_in;
   tree expr = NULL;
   enum pph_record_marker marker;
   unsigned image_ix, ix;
-  enum LTO_tags tag;
 
   /* Read record start and test cache.  */
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_any_tree);
@@ -2538,33 +2546,13 @@ pph_in_tree (pph_stream *stream)
     return (tree) pph_cache_find (stream, marker, image_ix, ix, PPH_any_tree);
   else if (marker == PPH_RECORD_START || marker == PPH_RECORD_START_NO_CACHE)
     {
-      /* This is a new tree that we need to allocate.  Start by
-         reading the header fields, so we know how to allocate it
-         (different tree nodes need to be allocated in different
-         ways).  */
-      tag = streamer_read_record_start (ib);
-      gcc_assert ((unsigned) tag < (unsigned) LTO_NUM_TAGS);
-      if (tag == LTO_builtin_decl)
-        {
-          /* If we are going to read a built-in function, all we need is
-             the code and class.  */
-          gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
-          expr = streamer_get_builtin_tree (ib, data_in);
-	  if (TREE_CODE (expr) == IDENTIFIER_NODE)
-	    pph_in_identifier_bindings (stream, expr);
-	  return expr;
-        }
-      else if (tag == lto_tree_code_to_tag (INTEGER_CST))
-        {
-          /* For integer constants we only need the type and its hi/low
-             words.  */
-          gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
-          return streamer_read_integer_cst (ib, data_in);
-        }
+      bool fully_read_p;
 
       /* Materialize a new node from STREAM.  This will also read all the
          language-independent bitfields for the new tree.  */
-      expr = pph_in_tree_header (stream, tag);
+      expr = pph_in_tree_header (stream, &fully_read_p);
+      if (fully_read_p)
+	return expr;
     }
 
   gcc_assert (marker == PPH_RECORD_START
