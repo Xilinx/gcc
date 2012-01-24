@@ -1,4 +1,4 @@
-// pph asm xdiff 63957
+// pph asm xokay 63957
 // Assembly differences seem to be due to the order in which the
 // symbols in the template hash tables are emitted.
 #include "x0tmplclass11.h"

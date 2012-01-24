@@ -1,3 +1,28 @@
+2012-01-24   Lawrence Crowl  <crowl@google.com>
+
+	* pph-streamer.h (pph_dump_global_state): New.
+	(pph_dump_namespace): Removed; callers now use pph_dump_global_state.
+	* pph-core.c (pph_dump_tree_name): Add tree pointer.
+	(pph_dump_vec_tree): New.
+	(pph_dump_namespace): Remove message parameter.
+	(pph_dump_global_state): New.
+	(pph_loaded): Call pph_dump_global_state instead of pph_dump_namespace.
+	* pph-out.c (pph_write_file): Call pph_dump_global_state instead of
+	pph_dump_namespace.
+	* error.c (dump_decl): Protect against null pointers.
+	* name-lookup.c (pph_debug_binding_action): Add PPH: output label.
+	(pph_debug_binding_inaction): Add PPH: output label.
+	(pph_set_identifier_bindings): Modify debug label.
+	(pph_debug_overload_binding_action): New.
+	(pph_set_namespace_bindings): Call pph_debug_overload_binding_action
+	instead of pph_debug_binding_action.
+	(pph_add_overload): Remove unused.
+	* pph-in.c (pph_is_on_chain): New.
+	(pph_union_into_chain): New.
+	(pph_read_file_1): Call pph_union_into_chain for keyed_classes.
+	Call pph_union_into_tree_vec for unemitted_tinfo_decls.
+	Call pph_dump_global_state instead of pph_dump_namespace.
+
 2012-01-24   Diego Novillo  <dnovillo@google.com>
 
 	* pph-in.c (pph_in_tree_header): Add argument FULLY_READ_P.

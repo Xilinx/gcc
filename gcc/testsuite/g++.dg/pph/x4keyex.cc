@@ -1,4 +1,4 @@
-// pph asm xdiff 32642
+// pph asm xokay 32642
 //
 // This test case fails to compare because LFB/LFE labels are different.
 //

@@ -1130,7 +1130,10 @@ dump_decl (tree t, int flags)
       break;
 
     case LABEL_DECL:
-      pp_cxx_tree_identifier (cxx_pp, DECL_NAME (t));
+      if (DECL_NAME (t))
+        pp_cxx_tree_identifier (cxx_pp, DECL_NAME (t));
+      else
+        pp_cxx_ws_string (cxx_pp, "<null>");
       break;
 
     case CONST_DECL:

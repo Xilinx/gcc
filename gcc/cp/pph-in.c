@@ -810,6 +810,37 @@ pph_union_into_tree_vec (VEC(tree,gc) **into, VEC(tree,gc) *from)
 
 /******************************************************************** chains */
 
+/* Test whether or not a tree T is on a CHAIN.  */
+
+static bool
+pph_is_on_chain (tree chain, tree t)
+{
+  for (; chain; chain = TREE_CHAIN (chain))
+    {
+      if (chain == t)
+        return true;
+    }
+  return false;
+}
+
+/* Union a NEWER chain into an EXISTING chain.  */
+
+static void
+pph_union_into_chain (tree *existing, tree newer)
+{
+  /* FIXME pph: A better algorithm would be nice.  */
+  if (newer == NULL)
+    return;
+  if (pph_is_on_chain (*existing, newer))
+      pph_union_into_chain (existing, TREE_CHAIN (newer));
+  else
+    {
+      pph_union_into_chain (existing, TREE_CHAIN (newer));
+      TREE_CHAIN (newer) = *existing;
+      *existing = newer;
+    }
+}
+
 
 /* Read a chain of ASTs from STREAM.  */
 
@@ -2990,9 +3021,7 @@ pph_read_file_1 (pph_stream *stream)
   cpp_ident_use *bad_use;
   const char *cur_def;
   cpp_idents_used idents_used;
-  tree t, file_keyed_classes, file_static_aggregates;
-  unsigned i;
-  VEC(tree,gc) *file_unemitted_tinfo_decls;
+  tree file_static_aggregates;
   source_location cpp_token_replay_loc;
 
   /* If we already have STREAM in memory (or are reading it), ignore
@@ -3042,12 +3071,8 @@ pph_read_file_1 (pph_stream *stream)
 
   /* Read and merge the other global state collected during parsing of
      the original header.  */
-  file_keyed_classes = pph_in_tree (stream);
-  keyed_classes = chainon (file_keyed_classes, keyed_classes);
-
-  file_unemitted_tinfo_decls = pph_in_tree_vec (stream);
-  FOR_EACH_VEC_ELT (tree, file_unemitted_tinfo_decls, i, t)
-    VEC_safe_push (tree, gc, unemitted_tinfo_decls, t);
+  pph_union_into_chain (&keyed_classes, pph_in_tree (stream));
+  pph_union_into_tree_vec (&unemitted_tinfo_decls, pph_in_tree_vec (stream));
 
   pph_in_pending_templates_list (stream);
   pph_in_spec_entry_tables (stream);
@@ -3059,7 +3084,7 @@ pph_read_file_1 (pph_stream *stream)
   pph_in_symtab (stream);
 
   if (flag_pph_dump_tree)
-    pph_dump_namespace (pph_logfile, global_namespace, "after pph read");
+    pph_dump_global_state (pph_logfile, "after pph read");
 }
 
 

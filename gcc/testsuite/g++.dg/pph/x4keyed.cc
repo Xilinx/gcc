@@ -1,5 +1,4 @@
-// { dg-xfail-if "redefinition problems" { *-*-* } { "-fpph-map=pph.map" } }
-// { dg-excess-errors "typeinfo redefinition problems.  May be merging issue for global binding" }
+// pph asm xokay 27667
 
 #include "x0keyed1.h"
 #include "x0keyed2.h"

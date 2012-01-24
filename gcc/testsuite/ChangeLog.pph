@@ -1,3 +1,13 @@
+2012-01-24   Lawrence Crowl  <crowl@google.com>
+
+	* lib/dg-pph.exp: Add an asm 'xokay' for benign assembly differences.
+	* g++.dg/pph/x4keyno.cc: Bug fixed, now xokay.
+	* g++.dg/pph/x4keyed.cc: Bug fixed, now xokay.
+	* g++.dg/pph/x4keyex.cc: Mark xokay.
+	* g++.dg/pph/x4tmplclass1.cc: Mark xokay.
+	* g++.dg/pph/x1tmplclass2.cc: Clarify failure.
+	* g++.dg/pph/x4tmplclass2.cc: Clarify failure.
+
 2012-01-20   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x1namespace-alias2.cc: Remove expected ICE.

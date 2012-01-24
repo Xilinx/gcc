@@ -166,9 +166,14 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
 
     # The sources mark when they expect the comparison to differ.
     # When marked with xdiff, the difference is a problem.
+    # When marked with xokay, the difference is not causing a problem.
     # When marked with xwant, the difference is what we want.
     set xdiff_entry [grep $test "pph asm xdiff( )*\[0-9\]*"]
+    set xokay_entry [grep $test "pph asm xokay( )*\[0-9\]*"]
     set xwant_entry [grep $test "pph asm xwant( )*\[0-9\]*"]
+    if { $xokay_entry != ""} {
+	set xwant_entry $xokay_entry
+    }
     set xdiff [llength $xdiff_entry]
     set xwant [llength $xwant_entry]
     if { $adiff == 0 } {

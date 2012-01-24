@@ -125,6 +125,7 @@ pph_dump_tree_name (FILE *file, tree t, int flags)
 {
   enum tree_code code = TREE_CODE (t);
   const char *text = pph_tree_code_text (code);
+  fprintf (file, "%p ", (void *)t);
   if (DECL_P (t))
     fprintf (file, "%s %s\n", text, decl_as_string (t, flags));
   else if (TYPE_P (t))
@@ -146,11 +147,9 @@ pph_dump_binding (FILE *file, cp_binding_level *level);
 
 /* Dump namespace NS for PPH.  */
 
-void
-pph_dump_namespace (FILE *file, tree ns, const char *msg)
+static void
+pph_dump_namespace (FILE *file, tree ns)
 {
-  if (msg)
-    fprintf (file, "\nPPH: %s\n", msg);
   fprintf (file, "namespace ");
   pph_dump_tree_name (file, ns, 0);
   fprintf (file, "{\n");
@@ -185,8 +184,41 @@ pph_dump_binding (FILE *file, cp_binding_level *level)
     {
       next = DECL_CHAIN (t);
       if (!DECL_IS_BUILTIN (t))
-        pph_dump_namespace (file, t, (const char *)NULL);
+        pph_dump_namespace (file, t);
     }
+}
+
+
+/* Dump a tree vec v for PPH.  */
+
+void
+pph_dump_vec_tree (FILE *file, VEC(tree,gc) *v)
+{
+  unsigned i;
+  tree t;
+  FOR_EACH_VEC_ELT (tree, v, i, t)
+    pph_dump_tree_name (file, t, 0);
+}
+
+
+
+/* Dump global symbol information for PPH.  */
+
+void
+pph_dump_global_state (FILE *file, const char *msg)
+{
+  fprintf (file, "\nPPH: BEGIN GLOBAL STATE ");
+  if (msg)
+    fprintf (file, "%s", msg);
+  fprintf (file, "\n");
+  pph_dump_namespace (file, global_namespace);
+  fprintf (file, "\nPPH: static_aggregates\n");
+  pph_dump_chain (file, static_aggregates);
+  fprintf (file, "\nPPH: keyed_classes\n");
+  pph_dump_chain (file, keyed_classes);
+  fprintf (file, "\nPPH: unemitted_tinfo_decls\n");
+  pph_dump_vec_tree (file, unemitted_tinfo_decls);
+  fprintf (file, "\nPPH: END GLOBAL STATE\n\n");
 }
 
 
@@ -868,7 +900,7 @@ pph_loaded (void)
 {
   pph_set_global_identifier_bindings();
   if (flag_pph_dump_tree)
-    pph_dump_namespace (pph_logfile, global_namespace, "after all pph read");
+    pph_dump_global_state (pph_logfile, "after all pph read");
 }
 
 

@@ -6105,7 +6105,21 @@ pph_debug_binding_action (const char *action, tree decl)
 {
   if (flag_pph_debug >= 5 || (flag_pph_debug >= 2 && !DECL_IS_BUILTIN (decl)))
     {
-      fprintf (pph_logfile, "%s ", action);
+      fprintf (pph_logfile, "PPH: %s ", action);
+      pph_dump_tree_name (pph_logfile, decl, 0);
+    }
+}
+
+
+/*  Dump a taken binding action for overloads.  */
+
+static void
+pph_debug_overload_binding_action (const char *action, tree ovld)
+{
+  tree decl = OVL_CURRENT (ovld);
+  if (flag_pph_debug >= 5 || (flag_pph_debug >= 2 && !DECL_IS_BUILTIN (decl)))
+    {
+      fprintf (pph_logfile, "PPH: %s ", action);
       pph_dump_tree_name (pph_logfile, decl, 0);
     }
 }
@@ -6117,7 +6131,7 @@ pph_debug_binding_inaction (const char *action, tree decl)
 {
   if (flag_pph_debug >= 5 || (flag_pph_debug >= 3 && !DECL_IS_BUILTIN (decl)))
     {
-      fprintf (pph_logfile, "not %s ", action);
+      fprintf (pph_logfile, "PPH: not %s ", action);
       pph_dump_tree_name (pph_logfile, decl, 0);
     }
 }
@@ -6149,7 +6163,7 @@ pph_set_identifier_bindings (tree decl, cp_binding_level *bl,
   tree id = DECL_NAME (decl);
   if (id)
     {
-      pph_debug_binding_action ("i-bind", decl);
+      pph_debug_binding_action ("push bind", decl);
       push_binding (id, decl, bl);
     }
 }
@@ -6162,22 +6176,6 @@ pph_set_chain_identifier_bindings (tree first, cp_binding_level *bl, int flags)
 {
   pph_foreach_on_chain_bl (first, bl, flags, pph_set_identifier_bindings);
 }
-
-
-#if 0
-/* Add an overload to a binding.  */
-
-static tree
-pph_add_overload (tree decl, tree older)
-{
-  tree newer;
-  if (older && TREE_CODE (older) != OVERLOAD)
-    newer = ovl_cons (decl, ovl_cons (older, NULL_TREE));
-  else
-    newer = ovl_cons (decl, older);
-  return newer;
-}
-#endif
 
 
 /*  Set a namespace identifier binding.  */
@@ -6220,7 +6218,7 @@ pph_set_namespace_bindings (tree decl, cp_binding_level *bl, int flags)
       if (TREE_CODE (decl) == OVERLOAD)
 	{
 	  b->value = decl;
-	  pph_debug_binding_action ("ovl bind", decl);
+	  pph_debug_overload_binding_action ("ovl bind", decl);
 	}
       else if (TREE_CODE (b->value) == TYPE_DECL &&
     	   TREE_CODE (decl) != TYPE_DECL)

@@ -2696,7 +2696,7 @@ pph_write_file (pph_stream *stream)
   pph_out_symtab (stream);
 
   if (flag_pph_dump_tree)
-    pph_dump_namespace (pph_logfile, global_namespace, "after pph write");
+    pph_dump_global_state (pph_logfile, "after pph write");
 }
 
 
