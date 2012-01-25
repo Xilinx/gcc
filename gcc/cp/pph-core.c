@@ -176,7 +176,7 @@ pph_dump_chain (FILE *file, tree chain)
 
 /* Dump cp_binding_level LEVEL for PPH.  */
 
-void
+static void
 pph_dump_binding (FILE *file, cp_binding_level *level)
 {
   tree t, next;
@@ -192,7 +192,7 @@ pph_dump_binding (FILE *file, cp_binding_level *level)
 
 /* Dump a tree vec v for PPH.  */
 
-void
+static void
 pph_dump_vec_tree (FILE *file, VEC(tree,gc) *v)
 {
   unsigned i;
