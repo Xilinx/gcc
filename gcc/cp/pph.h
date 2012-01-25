@@ -1,5 +1,6 @@
 /* Factored pre-parsed header (PPH) support for C++
-   Copyright (C) 2010 Free Software Foundation, Inc.
+
+   Copyright (C) 2012 Free Software Foundation, Inc.
    Contributed by Lawrence Crowl <crowl@google.com> and
    Diego Novillo <dnovillo@google.com>.
 

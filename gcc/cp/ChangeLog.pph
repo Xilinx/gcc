@@ -1,3 +1,11 @@
+2012-01-25   Diego Novillo  <dnovillo@google.com>
+
+	* pph-core.c: Fix copyright and contribution data.
+	* pph-in.c: Likewise.
+	* pph-out.c: Likewise.
+	* pph-streamer.h: Likewise.
+	* pph.h: Likewise.
+
 2012-01-24   Lawrence Crowl  <crowl@google.com>
 
 	* pph-streamer.h (pph_dump_global_state): New.

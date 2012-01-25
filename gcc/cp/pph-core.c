@@ -1,6 +1,7 @@
 /* Factored pre-parsed header (PPH) support for C++.
    Common routines for streaming PPH data.
-   Copyright (C) 2010, 2011 Free Software Foundation, Inc.
+
+   Copyright (C) 2012 Free Software Foundation, Inc.
    Contributed by Lawrence Crowl <crowl@google.com> and
    Diego Novillo <dnovillo@google.com>.
 

@@ -1,6 +1,8 @@
 /* Support routines and data structures for streaming PPH data.
-   Copyright (C) 2011 Free Software Foundation, Inc.
-   Contributed by Diego Novillo <dnovillo@google.com>.
+
+   Copyright (C) 2012 Free Software Foundation, Inc.
+   Contributed by Lawrence Crowl <crowl@google.com> and
+   Diego Novillo <dnovillo@google.com>.
 
    This file is part of GCC.
 
