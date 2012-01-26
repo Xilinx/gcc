@@ -1,3 +1,27 @@
+2012-01-25   Lawrence Crowl  <crowl@google.com>
+
+	* pph-core.c (pph_dump_tree_name): Refactor.
+	(pph_dump_overload_names): New.
+	(pph_dump_one_binding): New.
+	(pph_dump_bindings_for_id): New.
+	(pph_dump_bindings_for_decl): New.
+	(pph_dump_chain): Dump builtins at -fpph-debug>=5.  Remove unneeded
+	'next' variable.
+	(pph_dump_binding): Likewise.
+	(pph_loaded): Clarify purpose of global state dump.
+	* name-lookup.c (pph_debug_binding_inaction): Remove redundant output.
+	(pph_set_identifier_bindings): Removed.
+	(pph_set_chain_identifier_bindings): Removed.
+	(pph_set_namespace_bindings): Removed.
+	(pph_set_identifier_binding): New.  Refactored from
+	pph_set_namespace_bindings.  Fixes some identifer binding issues.
+	(pph_set_namespace_decl_binding): New. Refactored from
+	pph_set_namespace_bindings.
+	(pph_set_chain_namespace_bindings): Use pph_set_namespace_decl_binding
+	instead of pph_set_namespace_bindings.
+	(pph_set_global_identifier_bindings): Remove bad calls to
+	pph_set_chain_identifier_bindings.
+
 2012-01-25   Diego Novillo  <dnovillo@google.com>
 
 	* pph-core.c: Fix copyright and contribution data.

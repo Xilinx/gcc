@@ -1,4 +1,4 @@
-// pph asm xwant 03374
+// pph asm xwant 53261
 // This test produces overload differences because the declaration and
 // call orders are different between pph and textual parsing.
 

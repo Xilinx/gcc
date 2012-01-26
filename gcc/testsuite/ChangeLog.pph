@@ -1,5 +1,16 @@
 2012-01-24   Lawrence Crowl  <crowl@google.com>
 
+	* g++.dg/pph/x0samename3.h: New passing.
+	* g++.dg/pph/x1samename.cc: New passing.
+	* g++.dg/pph/x4samename.cc: Mark passing.
+	* g++.dg/pph/x4resolve1.cc: Change passing assembler diff code.
+	* g++.dg/pph/x4resolve2.cc: Change passing assembler diff code.
+	* g++.dg/pph/x6dynarray3.cc: Remove two bogus errors.
+	* g++.dg/pph/x5dynarray7.h: Add one bogus error.
+	* g++.dg/pph/x6dynarray6.h: Add one bogus error.
+
+2012-01-24   Lawrence Crowl  <crowl@google.com>
+
 	* lib/dg-pph.exp: Add an asm 'xokay' for benign assembly differences.
 	* g++.dg/pph/x4keyno.cc: Bug fixed, now xokay.
 	* g++.dg/pph/x4keyed.cc: Bug fixed, now xokay.

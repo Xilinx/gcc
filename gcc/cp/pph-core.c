@@ -126,27 +126,107 @@ pph_dump_tree_name (FILE *file, tree t, int flags)
 {
   enum tree_code code = TREE_CODE (t);
   const char *text = pph_tree_code_text (code);
-  fprintf (file, "%p ", (void *)t);
+  fprintf (file, "%p %s ", (void *)t, text);
   if (DECL_P (t))
-    fprintf (file, "%s %s\n", text, decl_as_string (t, flags));
+    fprintf (file, "%s\n", decl_as_string (t, flags));
   else if (TYPE_P (t))
-    fprintf (file, "%s %s\n", text, type_as_string (t, flags));
+    fprintf (file, "%s\n", type_as_string (t, flags));
   else if (EXPR_P (t))
-    fprintf (file, "%s %s\n", text, expr_as_string (t, flags));
+    fprintf (file, "%s\n", expr_as_string (t, flags));
   else
     {
-      fprintf (file, "%s ", text );
       print_generic_expr (file, t, flags);
       fprintf (file, "\n");
     }
 }
 
 
+/* Dump a list of overloaded function names to FILE starting with T
+   using FLAGS.  */
+
+static void
+pph_dump_overload_names (FILE *file, tree t, int flags)
+{
+  for (; t; t = OVL_NEXT (t))
+    {
+      tree u = OVL_CURRENT (t);
+      enum tree_code code = TREE_CODE (t);
+      const char *text = pph_tree_code_text (code);
+      fprintf (file, "  binding value: ");
+      fprintf (file, "%p %s ", (void *)t, text);
+      pph_dump_tree_name (file, u, flags);
+    }
+}
+
+
+/* Dump one cxx_binding B to FILE.  */
+
+static void
+pph_dump_one_binding (FILE *file, cxx_binding *b)
+{
+  if (b->scope)
+    {
+      fprintf (file, "  binding scope: ");
+      pph_dump_tree_name (file, b->scope->this_entity, 0);
+    }
+  if (b->value)
+    {
+      if (TREE_CODE (b->value) == OVERLOAD)
+	pph_dump_overload_names (file, b->value, 0);
+      else
+	{
+	  fprintf (file, "  binding value: ");
+	  pph_dump_tree_name (file, b->value, 0);
+	}
+    }
+  if (b->type)
+    {
+      fprintf (file, "  binding type: ");
+      pph_dump_tree_name (file, b->type, 0);
+    }
+  fprintf (file, "  binding is_local: %d\n", b->is_local);
+  fprintf (file, "  binding value_is_inherited: %d\n", b->value_is_inherited);
+}
+
+
+/* Dump all the cxx_bindings for and identifier ID to FILE.  */
+
+static void
+pph_dump_bindings_for_id (FILE *file, tree id)
+{
+  cxx_binding *b = IDENTIFIER_NAMESPACE_BINDINGS (id);
+  if (b)
+    for (; b != NULL; b = b->previous)
+      pph_dump_one_binding (file, b);
+  else
+    fprintf (file, "  binding: NO BINDING\n");
+}
+
+
+/* Dump all the cxx_bindings for and identifier ID to FILE.  */
+
+static void
+pph_dump_bindings_for_decl (FILE *file, tree decl)
+{
+  /* FIXME pph: The declarations often have the same identifier, and
+  hence the same bbindings.  The output is hence redundant.  We should
+  probably just collect the ids an print them in a separate table. */
+
+  tree id = DECL_NAME (decl);
+  if (id)
+    pph_dump_bindings_for_id (file, id);
+  else
+    fprintf (file, "  binding: NO NAME\n" );
+}
+
+
+/* Forward declaration.  */
+
 static void
 pph_dump_binding (FILE *file, cp_binding_level *level);
 
 
-/* Dump namespace NS for PPH.  */
+/* Dump namespace NS to FILE.  */
 
 static void
 pph_dump_namespace (FILE *file, tree ns)
@@ -164,12 +244,14 @@ pph_dump_namespace (FILE *file, tree ns)
 static void
 pph_dump_chain (FILE *file, tree chain)
 {
-  tree t, next;
-  for (t = chain; t; t = next)
+  tree t;
+  for (t = chain; t; t = DECL_CHAIN (t))
     {
-      next = DECL_CHAIN (t);
-      if (!DECL_IS_BUILTIN (t))
-        pph_dump_tree_name (file, t, 0);
+      if (!DECL_IS_BUILTIN (t) || flag_pph_debug >= 5)
+	{
+	  pph_dump_tree_name (file, t, 0);
+	  pph_dump_bindings_for_decl (file, t);
+	}
     }
 }
 
@@ -179,12 +261,11 @@ pph_dump_chain (FILE *file, tree chain)
 static void
 pph_dump_binding (FILE *file, cp_binding_level *level)
 {
-  tree t, next;
+  tree t;
   pph_dump_chain (file, level->names);
-  for (t = level->namespaces; t; t = next)
+  for (t = level->namespaces; t; t = DECL_CHAIN (t))
     {
-      next = DECL_CHAIN (t);
-      if (!DECL_IS_BUILTIN (t))
+      if (!DECL_IS_BUILTIN (t) || flag_pph_debug >= 5)
         pph_dump_namespace (file, t);
     }
 }
@@ -901,7 +982,8 @@ pph_loaded (void)
 {
   pph_set_global_identifier_bindings();
   if (flag_pph_dump_tree)
-    pph_dump_global_state (pph_logfile, "after all pph read");
+    /* FIXME pph: We could probably just dump the identifier bindings.  */
+    pph_dump_global_state (pph_logfile, "after identifiers bound");
 }
 
 
