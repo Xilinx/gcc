@@ -1100,6 +1100,15 @@ DEFPARAM (PARAM_MAX_TRACKED_STRLENS,
 	  "track string lengths",
 	  1000, 0, 0)
 
+/* Parameters to be used with -mpatch-functions-for-instrumentation.
+   See config/i386/i386.opt  */
+DEFPARAM (PARAM_FUNCTION_PATCH_MIN_INSTRUCTIONS,
+          "function-patch-min-instructions",
+          "Minimum number of instructions in the function without loop before "
+          "the function is qualified for patching for instrumentation (for use "
+          "with -mpatch-functions-for-instrumentation)",
+          200, 0, 0)
+
 /*
 Local variables:
 mode:c

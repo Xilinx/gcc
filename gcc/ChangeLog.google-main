@@ -1,3 +1,31 @@
+2012-01-25   Harshit Chopra  <harshit@google.com>
+
+	Introduce a new option -mpatch-functions-for-instrumentation to
+	generate Nops at function prologue and epilogue for dynamic
+	instrumentation.
+	* gcc/config/i386/i386-protos.h: Added function and macro definitions
+	for function patch sections used globally.
+	* gcc/config/i386/i386.c (check_should_patch_current_function): Check
+	if the current function should be patched with Nops.
+	(ix86_output_function_prologue): Output Nops for function prologue.
+	(ix86_output_function_nops_prologue_epilogue): Helper function which
+	outputs Nops for function prologue and epilogue.
+	(ix86_elf_asm_named_section): Generate the name of the function patch
+	section.
+	(ix86_output_call_insn): Generate nops for sibling calls.
+	* gcc/config/i386/i386.md: Generate nops for returns.
+	* gcc/config/i386/i386.opt: Commandline options to control nops
+	generation for function patching.
+	* gcc/params.def (DEFPARAM): Define parameter to control generation
+	of nops based on number of instructions in a function
+	* gcc/testsuite/gcc.target/i386/patch-functions-1.c: New testcase
+	* gcc/testsuite/gcc.target/i386/patch-functions-2.c: New testcase
+	* gcc/testsuite/gcc.target/i386/patch-functions-3.c: New testcase
+	* gcc/testsuite/gcc.target/i386/patch-functions-4.c: New testcase
+	* gcc/testsuite/gcc.target/i386/patch-functions-5.c: New testcase
+	* gcc/testsuite/gcc.target/i386/patch-functions-6.c: New testcase
+	* gcc/testsuite/gcc.target/i386/patch-functions-7.c: New testcase
+
 2012-01-13   Xinliang David Li  <davidxl@google.com>
 
 	*ipa-inline-analysis.c (do_estimate_edge_growth): Skip fake edges.
