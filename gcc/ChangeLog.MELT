@@ -1,5 +1,8 @@
 
 2011-01-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (dbg_out): Compute maxdepth. Use a cond.
+
+2011-01-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_is_plugin): Declare new extern variable.
 
 	* melt-runtime.c (melt_is_plugin): Define.

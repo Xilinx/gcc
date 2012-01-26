@@ -462,27 +462,28 @@ $DBGI at given $DEPTH}#
 
 (defun dbg_out (obj dbgi  :long depth) 
   :doc #{Output for debugging value $OBJ using debug information
-$DBGI at given $DEPTH}#
+  $DBGI at given $DEPTH}#
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
   (checkcallstack_msg "start dbg_out")
   (let ( (out (unsafe_get_field :dbgi_out dbgi))
 	 (discr (discrim obj))
+	 (:long maxdepth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
 	 )
-    (if (melt_really_need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-	(if (is_object obj)
-	    (progn
-	      ;; (checkcallstack_msg "start dbg_out outobject")
-	      (dbg_outobject obj dbgi depth)
-	      )
-	  (if obj
-	      (progn
-		;; (checkcallstack_msg "start dbg_out output")
-		(dbg_output obj dbgi depth)
-		)
-	    (if out (add2out_strconst out "()")
-	      )))
-      (if out
-	  (add2out_strconst out "..")
+    (if (null out)
+	(return))
+    (if (melt_really_need_dbglim  depth maxdepth)
+	(progn
+	  (cond
+	   ( (is_object obj)
+	     (dbg_outobject obj dbgi depth))
+	   ( obj
+	     (dbg_output obj dbgi depth))
+	   (:else
+	    (add2out_strconst out "()"))
+	   )
+	  )
+      (progn
+	(add2out_strconst out ".!.")
 	))))
 
 ;; utility to dump fields in an object from a given rank to a given rank
