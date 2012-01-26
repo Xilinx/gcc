@@ -1,5 +1,9 @@
 2012-01-26   Diego Novillo  <dnovillo@google.com>
 
+	* pph-in.c (pph_read_file): Remove leftover debugging code.
+
+2012-01-26   Diego Novillo  <dnovillo@google.com>
+
 	* pph-core.c (pph_include_handler): Call pph_writer_get_stream.
 	(pph_add_include): Move to pph-in.c
 	(pph_stream_open): Initialize STREAM->INCLUDES.M.
