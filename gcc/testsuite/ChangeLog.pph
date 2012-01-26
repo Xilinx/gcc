@@ -1,3 +1,11 @@
+2012-01-26   Diego Novillo  <dnovillo@google.com>
+
+	* x0multiple-include.h: New.
+	* x1multiple-include.h: New.
+	* x2multiple-include.h: New.
+	* x3multiple-include.h: New.
+	* x4multiple-include.cc: New.
+
 2012-01-24   Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/x0samename3.h: New passing.

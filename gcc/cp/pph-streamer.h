@@ -225,11 +225,13 @@ struct pph_stream {
      indirectly by this image.  Note that this list only contains PPH
      files, not regular text headers.  Regular text headers are embedded
      in this stream.  */
-  VEC(pph_stream_ptr,heap) *includes;
+  struct {
+    /* Vector to hold all the images.  */
+    VEC(pph_stream_ptr,heap) *v;
 
-  /* Parent include file.  This points to the PPH stream for the file
-     that immediately includes this one.  */
-  pph_stream_ptr parent;
+    /* Set to prevent adding the same image more than once.  */
+    struct pointer_set_t *m;
+  } includes;
 };
 
 /* Filter values to avoid emitting certain objects to a PPH file.  */
@@ -257,7 +259,6 @@ void pph_stream_set_header_name (pph_stream *, const char *);
 pph_stream *pph_stream_open (const char *, const char *);
 void pph_stream_close (pph_stream *);
 void pph_stream_close_no_flush (pph_stream *);
-void pph_add_include (pph_stream *, pph_stream *);
 void pph_trace_marker (enum pph_record_marker marker, enum pph_tag tag);
 void pph_trace_tree (tree, enum pph_trace_end, enum pph_trace_kind);
 pph_cache_entry *pph_cache_insert_at (pph_cache *, void *, unsigned,
@@ -270,7 +271,6 @@ pph_cache_entry *pph_cache_lookup_in_includes (pph_stream *, void *,
 pph_cache_entry *pph_cache_add (pph_cache *, void *, unsigned *, enum pph_tag);
 void pph_cache_sign (pph_cache *, unsigned, unsigned, size_t);
 unsigned pph_get_signature (tree, size_t *);
-void pph_writer_add_include (pph_stream *);
 
 /* In pph-out.c.  */
 void pph_flush_buffers (pph_stream *);
@@ -285,7 +285,7 @@ void pph_disable_output (void);
 /* In pph-in.c.  */
 void pph_init_read (pph_stream *);
 location_t pph_in_location (pph_stream *);
-pph_stream *pph_read_file (const char *);
+pph_stream *pph_read_file (const char *, pph_stream *);
 tree pph_in_tree (pph_stream *stream);
 void pph_reader_init (void);
 void pph_reader_finish (void);
@@ -320,7 +320,7 @@ pph_cache_select (pph_stream *stream, enum pph_record_marker marker,
       break;
     case PPH_RECORD_XREF:
     case PPH_RECORD_START_MUTATED:
-      return &VEC_index (pph_stream_ptr, stream->includes, include_ix)->cache;
+      return &VEC_index (pph_stream_ptr, stream->includes.v, include_ix)->cache;
       break;
     case PPH_RECORD_PREF:
       return stream->preloaded_cache;

@@ -316,7 +316,6 @@ pph_in_include (pph_stream *stream)
 {
   int old_loc_offset;
   const char *include_name;
-  pph_stream *include_stream;
   source_location prev_start_loc = pph_in_source_location (stream);
 
   /* Simulate highest_location to be as it would be at this point in a non-pph
@@ -332,11 +331,7 @@ pph_in_include (pph_stream *stream)
 
   /* We should not be trying to include STREAM again.  */
   gcc_assert (strcmp (include_name, stream->name) != 0);
-  include_stream = pph_read_file (include_name);
-
-  /* Add INCLUDE_STREAM, and the images included by it, to the list
-     of included images for STREAM.  */
-  pph_add_include (stream, include_stream);
+  pph_read_file (include_name, stream);
 
   pph_loc_offset = old_loc_offset;
 }
@@ -2831,6 +2826,7 @@ pph_in_symtab (pph_stream *stream)
 		 to clear the finalized and reachable bits in the
 		 node, otherwise cgraph_finalize_function will toss
 		 out this node.  */
+	      DECL_EXTERNAL (node->decl) = false;
 	      node->local.finalized = false;
 	      node->reachable = false;
 	      cgraph_finalize_function (node->decl, true);
@@ -3014,7 +3010,9 @@ pph_files_read (void)
 }
 
 
-/* Helper for pph_read_file.  Read contents of PPH file in STREAM.  */
+/* Helper for pph_read_file.  Read contents of PPH file in STREAM.
+   Return true if STREAM was read or false if STREAM was already
+   in memory.  */
 
 static void
 pph_read_file_1 (pph_stream *stream)
@@ -3089,11 +3087,39 @@ pph_read_file_1 (pph_stream *stream)
     pph_dump_global_state (pph_logfile, "after pph read");
 }
 
+/* Helper for pph_add_include.  Add INCLUDE to the list of included
+   images in PARENT.  Do nothing if INCLUDE was already in the list.  */
 
-/* Read PPH file FILENAME.  Return the in-memory pph_stream instance.  */
+static void
+pph_add_include_1 (pph_stream *parent, pph_stream *include)
+{
+  if (pointer_set_insert (parent->includes.m, include) == 0)
+    VEC_safe_push (pph_stream_ptr, heap, parent->includes.v, include);
+}
+
+
+/* Add INCLUDE, and the images included by it, to the list of files
+   included by PARENT.  */
+
+static void
+pph_add_include (pph_stream *parent, pph_stream *include)
+{
+  pph_stream *include_child;
+  unsigned i;
+
+  pph_add_include_1 (parent, include);
+  FOR_EACH_VEC_ELT (pph_stream_ptr, include->includes.v, i, include_child)
+    pph_add_include_1 (parent, include_child);
+}
+
+
+/* Read PPH file FILENAME.  Return the in-memory pph_stream instance.
+   PARENT is the PPH file including FILENAME.  If PARENT is not NULL,
+   the new PPH image is added to the list of images included by
+   PARENT.  */
 
 pph_stream *
-pph_read_file (const char *filename)
+pph_read_file (const char *filename, pph_stream *parent)
 {
   pph_stream *stream = pph_stream_open (filename, "rb");
   if (stream)
@@ -3103,7 +3129,14 @@ pph_read_file (const char *filename)
 	 line_tables.  */
       line_table->highest_location--;
 
+      /* Read STREAM and add it to PARENT.  If PARENT is NULL, it
+	 means that STREAM is being read from the toplevel translation
+	 unit and we are not generating a PPH image.  */
       pph_read_file_1 (stream);
+      if (parent)
+	pph_add_include (parent, stream);
+      else
+	gcc_assert (line_table->depth == 1);
     }
 
   return stream;

@@ -1,3 +1,27 @@
+2012-01-26   Diego Novillo  <dnovillo@google.com>
+
+	* pph-core.c (pph_include_handler): Call pph_writer_get_stream.
+	(pph_add_include): Move to pph-in.c
+	(pph_stream_open): Initialize STREAM->INCLUDES.M.
+	(pph_stream_close_1): Free STREAM->INCLUDES.M.
+	* pph-in.c (pph_in_symtab): For functions we are going to
+	expand, set DECL_EXTERNAL to false.
+	(pph_add_include_1): New.
+	(pph_add_include): Move from pph-core.c.  Call pph_add_include_1.
+	(pph_read_file): Add argument PARENT.  Update all callers.
+	If PARENT is given, add STREAM to PARENT's #include table.
+	* pph-out.c (pph_writer_get_stream): New.
+	* pph-streamer.h (struct pph_stream): Change field INCLUDES to
+	be a structure with two fields V and M.  Update all users.
+	(pph_add_include): Remove.
+	(pph_writer_add_include): Remove.
+	(pph_read_file): Add second argument.
+
+2012-01-25   Diego Novillo  <dnovillo@google.com>
+
+	* pph-core.c (pph_dump_includes): New.
+	* pph.h (pph_dump_includes): Declare.
+
 2012-01-25   Lawrence Crowl  <crowl@google.com>
 
 	* pph-core.c (pph_dump_tree_name): Refactor.
@@ -21,11 +45,6 @@
 	instead of pph_set_namespace_bindings.
 	(pph_set_global_identifier_bindings): Remove bad calls to
 	pph_set_chain_identifier_bindings.
-
-2012-01-25   Diego Novillo  <dnovillo@google.com>
-
-	* pph-core.c (pph_dump_includes): New.
-	* pph.h (pph_dump_includes): Declare.
 
 2012-01-25   Diego Novillo  <dnovillo@google.com>
 

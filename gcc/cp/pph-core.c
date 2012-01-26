@@ -642,7 +642,7 @@ pph_cache_lookup_in_includes (pph_stream *stream, void *data,
      in the cache, so instead of ICEing, we ignore the match to force
      the caller to pickle DATA.  */
   e = NULL;
-  FOR_EACH_VEC_ELT (pph_stream_ptr, stream->includes, include_ix, include)
+  FOR_EACH_VEC_ELT (pph_stream_ptr, stream->includes.v, include_ix, include)
     {
       e = pph_cache_lookup (&include->cache, data, &ix, PPH_null);
       if (e)
@@ -804,18 +804,13 @@ pph_include_handler (cpp_reader *reader,
       && pph_is_valid_here (name, loc)
       && !cpp_included_before (reader, name, input_location))
     {
-      pph_stream *include = pph_read_file (pph_file);
+      /* The stream we are currently generating is private to
+	 the writer.  As an exception, allow access from the
+	 include handler.  */
+      pph_stream *pph_writer_get_stream (void);
+      pph_stream *include = pph_read_file (pph_file, pph_writer_get_stream ());
       if (include)
-	{
-	  /* If we are generating a new PPH image, add the stream we
-	     just read to the list of includes.   This way, the parser
-	     will be able to resolve references to symbols in INCLUDE
-	     and its children.  */
-	  if (pph_writer_enabled_p ())
-	    pph_writer_add_include (include);
-
-	  read_text_file_p = false;
-	}
+	read_text_file_p = false;
       else
 	warning_at (loc, OPT_Wmissing_pph,
 		    "cannot open PPH file %s for reading: %m\n"
@@ -971,29 +966,13 @@ pph_dump_includes (FILE *file, pph_stream *stream, unsigned indent)
   if (file == NULL)
     file = stderr;
 
-  FOR_EACH_VEC_ELT (pph_stream_ptr, stream->includes, i, include)
+  FOR_EACH_VEC_ELT (pph_stream_ptr, stream->includes.v, i, include)
     {
       for (j = 0; j < indent; j++)
 	fputc (' ', file);
       fprintf (file, "#%u %s (%s)\n", i, include->name, include->header_name);
       pph_dump_includes (file, include, indent + 2);
     }
-}
-
-
-/* Add INCLUDE, and the images included by it, to the list of files
-   included by STREAM.  */
-
-void
-pph_add_include (pph_stream *stream, pph_stream *include)
-{
-  pph_stream *include_child;
-  unsigned i;
-
-  include->parent = stream;
-  VEC_safe_push (pph_stream_ptr, heap, stream->includes, include);
-  FOR_EACH_VEC_ELT (pph_stream_ptr, include->includes, i, include_child)
-    VEC_safe_push (pph_stream_ptr, heap, stream->includes, include_child);
 }
 
 
@@ -1164,6 +1143,7 @@ pph_stream_open (const char *name, const char *mode)
   stream->write_p = (strchr (mode, 'w') != NULL);
   pph_cache_init (&stream->cache);
   stream->preloaded_cache = pph_preloaded_cache;
+  stream->includes.m = pointer_set_create ();
 
   /* Register STREAM in the table of all open streams.  Do it before
      initializing the reader or writer since they may need to look it
@@ -1219,7 +1199,8 @@ pph_stream_close_1 (pph_stream *stream, bool flush_p)
   VEC_free (pph_cache_entry, heap, stream->cache.v);
   pointer_map_destroy (stream->cache.m);
   VEC_free (pph_symtab_entry, heap, stream->symtab.v);
-  VEC_free (pph_stream_ptr, heap, stream->includes);
+  VEC_free (pph_stream_ptr, heap, stream->includes.v);
+  pointer_set_destroy (stream->includes.m);
 
   if (stream->write_p)
     {

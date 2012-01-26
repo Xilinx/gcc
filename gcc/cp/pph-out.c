@@ -67,6 +67,19 @@ static pph_stream *pph_out_stream = NULL;
 static GTY(()) VEC(tree,gc) *pph_decls_in_symtab;
 
 
+/* Return the stream we are currently generating.  We declare this function
+   with external linkage so it can be accessed from pph_include_handler,
+   but this really should be private to this file.  */
+
+pph_stream *pph_writer_get_stream (void);
+
+pph_stream *
+pph_writer_get_stream (void)
+{
+  return pph_out_stream;
+}
+
+
 /* Initialize buffers and tables in STREAM for writing.  */
 
 void
@@ -2817,15 +2830,6 @@ pph_writer_finish (void)
      table.  */
   pph_decls_in_symtab = NULL;
   ggc_collect ();
-}
-
-
-/* Add INCLUDE to the list of images included by pph_out_stream.  */
-
-void
-pph_writer_add_include (pph_stream *include)
-{
-  pph_add_include (pph_out_stream, include);
 }
 
 
