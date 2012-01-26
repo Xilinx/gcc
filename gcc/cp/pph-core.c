@@ -982,7 +982,7 @@ pph_dump_includes (FILE *file, pph_stream *stream, unsigned indent)
 void
 pph_loaded (void)
 {
-  pph_set_global_identifier_bindings();
+  pph_set_global_identifier_bindings ();
   if (flag_pph_dump_tree)
     /* FIXME pph: We could probably just dump the identifier bindings.  */
     pph_dump_global_state (pph_logfile, "after identifiers bound");

@@ -1,5 +1,9 @@
 2012-01-26   Diego Novillo  <dnovillo@google.com>
 
+	* pph-core.c (pph_loaded): Tidy.
+
+2012-01-26   Diego Novillo  <dnovillo@google.com>
+
 	* pph-core.c (pph_include_handler): Tidy warning message.
 	* pph-out.c (pph_disable_output): Add tracing output.
 
