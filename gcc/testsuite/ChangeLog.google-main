@@ -1,3 +1,8 @@
+2012-01-26   Han Shen  <shenhan@google.com>
+
+	* gcc.dg/fstack-protector-strong.c: New test.
+	* g++.dg/fstack-protector-strong.C: New test.
+
 2012-01-04   Sterling Augustine  <saugustine@google.com>
 
        * g++.dg/diagnostic/bindings1.C: Adjust expected output.

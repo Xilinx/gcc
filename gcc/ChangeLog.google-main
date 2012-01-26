@@ -1,3 +1,12 @@
+2011-01-26  Han Shen  <shenhan@google.com>
+
+	Add a new option "-fstack-protector-strong".
+	* cfgexpand.c (expand_used_vars): Add logic handling
+	stack-protector-strong.
+	(record_or_union_type_has_array): New, tests if a record or union type
+	contains an array.
+	* common.opt (fstack-protector-strong): New option.
+
 2012-01-25   Harshit Chopra  <harshit@google.com>
 
 	Introduce a new option -mpatch-functions-for-instrumentation to
@@ -30,7 +39,6 @@
 
 	*ipa-inline-analysis.c (do_estimate_edge_growth): Skip fake edges.
 
-=======
 2012-01-12   Rong Xu  <xur@google.com>
 
 	* gcc/profile.c (compute_value_histograms): ignore the 
