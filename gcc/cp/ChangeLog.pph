@@ -1,5 +1,13 @@
 2012-01-26   Diego Novillo  <dnovillo@google.com>
 
+	* pph-core.c (pph_stream_close_1): Add a newline to fprintf call.
+	(pph_finish): If there were errors during compilation,
+	disable PPH generation.
+	* pph-out.c (pph_disable_output): Also set pph_out_stream to
+	NULL.
+
+2012-01-26   Diego Novillo  <dnovillo@google.com>
+
 	* pph-in.c (pph_read_file): Remove leftover debugging code.
 
 2012-01-26   Diego Novillo  <dnovillo@google.com>

@@ -2847,6 +2847,7 @@ pph_disable_output (void)
 
   pph_stream_close_no_flush (pph_out_stream);
   pph_out_file = NULL;
+  pph_out_stream = NULL;
 }
 
 #include "gt-cp-pph-out.h"

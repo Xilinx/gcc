@@ -1190,7 +1190,7 @@ pph_stream_close_1 (pph_stream *stream, bool flush_p)
   if (stream->write_p && !flush_p)
     {
       if (flag_pph_tracer >= 1)
-	fprintf (pph_logfile, "PPH: Removing %s", stream->name);
+	fprintf (pph_logfile, "PPH: Removing %s\n", stream->name);
       unlink (stream->name);
     }
 
@@ -1423,6 +1423,10 @@ pph_streamer_finish (void)
 void
 pph_finish (void)
 {
+  /* If we found errors during compilation, disable PPH generation.  */
+  if (errorcount || sorrycount)
+    pph_disable_output ();
+
   /* Finalize the streamer.  */
   pph_streamer_finish ();
 
