@@ -188,7 +188,7 @@ toolexeclibgocryptoopenpgpdir = $(toolexeclibgocryptodir)/openpgp
 toolexeclibgocryptoopenpgp_DATA = \
 	crypto/openpgp/armor.gox \
 	crypto/openpgp/elgamal.gox \
-	crypto/openpgp/error.gox \
+	crypto/openpgp/errors.gox \
 	crypto/openpgp/packet.gox \
 	crypto/openpgp/s2k.gox
 
@@ -196,6 +196,16 @@ toolexeclibgocryptox509dir = $(toolexeclibgocryptodir)/x509
 
 toolexeclibgocryptox509_DATA = \
 	crypto/x509/pkix.gox
+
+toolexeclibgodatabasedir = $(toolexeclibgodir)/database
+
+toolexeclibgodatabase_DATA = \
+	database/sql.gox
+
+toolexeclibgodatabasesqldir = $(toolexeclibgodatabasedir)/sql
+
+toolexeclibgodatabasesql_DATA = \
+	database/sql/driver.gox
 
 toolexeclibgodebugdir = $(toolexeclibgodir)/debug
 
@@ -235,16 +245,12 @@ toolexeclibgoexp_DATA = \
 	exp/ebnf.gox \
 	$(exp_inotify_gox) \
 	exp/norm.gox \
+	exp/proxy.gox \
 	exp/spdy.gox \
-	exp/sql.gox \
 	exp/ssh.gox \
 	exp/terminal.gox \
-	exp/types.gox
-
-toolexeclibgoexpsqldir = $(toolexeclibgoexpdir)/sql
-
-toolexeclibgoexpsql_DATA = \
-	exp/sql/driver.gox
+	exp/types.gox \
+	exp/utf8string.gox
 
 toolexeclibgogodir = $(toolexeclibgodir)/go
 
@@ -669,17 +675,25 @@ endif # !LIBGO_IS_RTEMS
 if LIBGO_IS_LINUX
 go_net_cgo_file = go/net/cgo_linux.go
 go_net_sock_file = go/net/sock_linux.go
+go_net_sockopt_file = go/net/sockopt_linux.go
+go_net_sockoptip_file = go/net/sockoptip_linux.go
 else
 if LIBGO_IS_IRIX
 go_net_cgo_file = go/net/cgo_linux.go
 go_net_sock_file = go/net/sock_linux.go
+go_net_sockopt_file = go/net/sockopt_linux.go
+go_net_sockoptip_file = go/net/sockoptip_linux.go
 else
 if LIBGO_IS_SOLARIS
 go_net_cgo_file = go/net/cgo_linux.go
 go_net_sock_file = go/net/sock_linux.go
+go_net_sockopt_file = go/net/sockopt_linux.go
+go_net_sockoptip_file = go/net/sockoptip_linux.go
 else
 go_net_cgo_file = go/net/cgo_bsd.go
 go_net_sock_file = go/net/sock_bsd.go
+go_net_sockopt_file = go/net/sockopt_bsd.go
+go_net_sockoptip_file = go/net/sockoptip_bsd.go
 endif
 endif
 endif
@@ -708,6 +722,7 @@ go_net_files = \
 	go/net/dnsclient_unix.go \
 	go/net/dnsconfig.go \
 	go/net/dnsmsg.go \
+	go/net/doc.go \
 	$(go_net_newpollserver_file) \
 	go/net/fd.go \
 	$(go_net_fd_os_file) \
@@ -728,6 +743,10 @@ go_net_files = \
 	$(go_net_sendfile_file) \
 	go/net/sock.go \
 	$(go_net_sock_file) \
+	go/net/sockopt.go \
+	$(go_net_sockopt_file) \
+	go/net/sockoptip.go \
+	$(go_net_sockoptip_file) \
 	go/net/tcpsock.go \
 	go/net/tcpsock_posix.go \
 	go/net/udpsock.go \
@@ -780,6 +799,7 @@ endif
 go_os_files = \
 	$(go_os_dir_file) \
 	go/os/dir.go \
+	go/os/doc.go \
 	go/os/env.go \
 	go/os/error.go \
 	go/os/error_posix.go \
@@ -890,8 +910,7 @@ go_syslog_c_files = \
 go_testing_files = \
 	go/testing/benchmark.go \
 	go/testing/example.go \
-	go/testing/testing.go \
-	go/testing/wrapper.go
+	go/testing/testing.go
 
 go_time_files = \
 	go/time/format.go \
@@ -993,7 +1012,8 @@ go_crypto_dsa_files = \
 go_crypto_ecdsa_files = \
 	go/crypto/ecdsa/ecdsa.go
 go_crypto_elliptic_files = \
-	go/crypto/elliptic/elliptic.go
+	go/crypto/elliptic/elliptic.go \
+	go/crypto/elliptic/p224.go
 go_crypto_hmac_files = \
 	go/crypto/hmac/hmac.go
 go_crypto_md4_files = \
@@ -1061,8 +1081,8 @@ go_crypto_openpgp_armor_files = \
 	go/crypto/openpgp/armor/encode.go
 go_crypto_openpgp_elgamal_files = \
 	go/crypto/openpgp/elgamal/elgamal.go
-go_crypto_openpgp_error_files = \
-	go/crypto/openpgp/error/error.go
+go_crypto_openpgp_errors_files = \
+	go/crypto/openpgp/errors/errors.go
 go_crypto_openpgp_packet_files = \
 	go/crypto/openpgp/packet/compressed.go \
 	go/crypto/openpgp/packet/encrypted_key.go \
@@ -1081,6 +1101,14 @@ go_crypto_openpgp_s2k_files = \
 
 go_crypto_x509_pkix_files = \
 	go/crypto/x509/pkix/pkix.go
+
+go_database_sql_files = \
+	go/database/sql/convert.go \
+	go/database/sql/sql.go
+
+go_database_sql_driver_files = \
+	go/database/sql/driver/driver.go \
+	go/database/sql/driver/types.go
 
 go_debug_dwarf_files = \
 	go/debug/dwarf/buf.go \
@@ -1142,6 +1170,7 @@ go_encoding_pem_files = \
 go_encoding_xml_files = \
 	go/encoding/xml/marshal.go \
 	go/encoding/xml/read.go \
+	go/encoding/xml/typeinfo.go \
 	go/encoding/xml/xml.go
 
 go_exp_ebnf_files = \
@@ -1157,13 +1186,15 @@ go_exp_norm_files = \
 	go/exp/norm/readwriter.go \
 	go/exp/norm/tables.go \
 	go/exp/norm/trie.go
+go_exp_proxy_files = \
+	go/exp/proxy/direct.go \
+	go/exp/proxy/per_host.go \
+	go/exp/proxy/proxy.go \
+	go/exp/proxy/socks5.go
 go_exp_spdy_files = \
 	go/exp/spdy/read.go \
 	go/exp/spdy/types.go \
 	go/exp/spdy/write.go
-go_exp_sql_files = \
-	go/exp/sql/convert.go \
-	go/exp/sql/sql.go
 go_exp_ssh_files = \
 	go/exp/ssh/channel.go \
 	go/exp/ssh/cipher.go \
@@ -1173,7 +1204,7 @@ go_exp_ssh_files = \
 	go/exp/ssh/doc.go \
 	go/exp/ssh/messages.go \
 	go/exp/ssh/server.go \
-	go/exp/ssh/server_shell.go \
+	go/exp/ssh/server_terminal.go \
 	go/exp/ssh/session.go \
 	go/exp/ssh/tcpip.go \
 	go/exp/ssh/transport.go
@@ -1187,10 +1218,8 @@ go_exp_types_files = \
 	go/exp/types/gcimporter.go \
 	go/exp/types/types.go \
 	go/exp/types/universe.go
-
-go_exp_sql_driver_files = \
-	go/exp/sql/driver/driver.go \
-	go/exp/sql/driver/types.go
+go_exp_utf8string_files = \
+	go/exp/utf8string/string.go
 
 go_go_ast_files = \
 	go/go/ast/ast.go \
@@ -1210,7 +1239,8 @@ go_go_doc_files = \
 	go/go/doc/doc.go \
 	go/go/doc/example.go \
 	go/go/doc/exports.go \
-	go/go/doc/filter.go
+	go/go/doc/filter.go \
+	go/go/doc/reader.go
 go_go_parser_files = \
 	go/go/parser/interface.go \
 	go/go/parser/parser.go
@@ -1448,7 +1478,6 @@ go_text_scanner_files = \
 go_unicode_utf16_files = \
 	go/unicode/utf16/utf16.go
 go_unicode_utf8_files = \
-	go/unicode/utf8/string.go \
 	go/unicode/utf8/utf8.go
 
 # Define Syscall and Syscall6.
@@ -1461,8 +1490,15 @@ endif
 # Define ForkExec and Exec.
 if LIBGO_IS_RTEMS
 syscall_exec_file = go/syscall/exec_stubs.go
+syscall_exec_os_file =
+else
+if LIBGO_IS_LINUX
+syscall_exec_file = go/syscall/exec_unix.go
+syscall_exec_os_file = go/syscall/exec_linux.go
 else
 syscall_exec_file = go/syscall/exec_unix.go
+syscall_exec_os_file = go/syscall/exec_bsd.go
+endif
 endif
 
 # Define Wait4.
@@ -1573,6 +1609,7 @@ go_base_syscall_files = \
 	go/syscall/syscall.go \
 	$(syscall_syscall_file) \
 	$(syscall_exec_file) \
+	$(syscall_exec_os_file) \
 	$(syscall_wait_file) \
 	$(syscall_sleep_file) \
 	$(syscall_errstr_file) \
@@ -1720,10 +1757,12 @@ libgo_go_objs = \
 	crypto/xtea.lo \
 	crypto/openpgp/armor.lo \
 	crypto/openpgp/elgamal.lo \
-	crypto/openpgp/error.lo \
+	crypto/openpgp/errors.lo \
 	crypto/openpgp/packet.lo \
 	crypto/openpgp/s2k.lo \
 	crypto/x509/pkix.lo \
+	database/sql.lo \
+	database/sql/driver.lo \
 	debug/dwarf.lo \
 	debug/elf.lo \
 	debug/gosym.lo \
@@ -1743,12 +1782,12 @@ libgo_go_objs = \
 	encoding/xml.lo \
 	exp/ebnf.lo \
 	exp/norm.lo \
+	exp/proxy.lo \
 	exp/spdy.lo \
-	exp/sql.lo \
 	exp/ssh.lo \
 	exp/terminal.lo \
 	exp/types.lo \
-	exp/sql/driver.lo \
+	exp/utf8string.lo \
 	html/template.lo \
 	go/ast.lo \
 	go/build.lo \
@@ -2578,15 +2617,15 @@ crypto/openpgp/elgamal/check: $(CHECK_DEPS)
 	@$(CHECK)
 .PHONY: crypto/openpgp/elgamal/check
 
-@go_include@ crypto/openpgp/error.lo.dep
-crypto/openpgp/error.lo.dep: $(go_crypto_openpgp_error_files)
+@go_include@ crypto/openpgp/errors.lo.dep
+crypto/openpgp/errors.lo.dep: $(go_crypto_openpgp_errors_files)
 	$(BUILDDEPS)
-crypto/openpgp/error.lo: $(go_crypto_openpgp_error_files)
+crypto/openpgp/errors.lo: $(go_crypto_openpgp_errors_files)
 	$(BUILDPACKAGE)
-crypto/openpgp/error/check: $(CHECK_DEPS)
-	@$(MKDIR_P) crypto/openpgp/error
+crypto/openpgp/errors/check: $(CHECK_DEPS)
+	@$(MKDIR_P) crypto/openpgp/errors
 	@$(CHECK)
-.PHONY: crypto/openpgp/error/check
+.PHONY: crypto/openpgp/errors/check
 
 @go_include@ crypto/openpgp/packet.lo.dep
 crypto/openpgp/packet.lo.dep: $(go_crypto_openpgp_packet_files)
@@ -2617,6 +2656,26 @@ crypto/x509/pkix/check: $(CHECK_DEPS)
 	@$(MKDIR_P) crypto/x509/pkix
 	@$(CHECK)
 .PHONY: crypto/x509/pkix/check
+
+@go_include@ database/sql.lo.dep
+database/sql.lo.dep: $(go_database_sql_files)
+	$(BUILDDEPS)
+database/sql.lo: $(go_database_sql_files)
+	$(BUILDPACKAGE)
+database/sql/check: $(CHECK_DEPS)
+	@$(MKDIR_P) database/sql
+	@$(CHECK)
+.PHONY: database/sql/check
+
+@go_include@ database/sql/driver.lo.dep
+database/sql/driver.lo.dep: $(go_database_sql_driver_files)
+	$(BUILDDEPS)
+database/sql/driver.lo: $(go_database_sql_driver_files)
+	$(BUILDPACKAGE)
+database/sql/driver/check: $(CHECK_DEPS)
+	@$(MKDIR_P) database/sql/driver
+	@$(CHECK)
+.PHONY: database/sql/driver/check
 
 @go_include@ debug/dwarf.lo.dep
 debug/dwarf.lo.dep: $(go_debug_dwarf_files)
@@ -2808,6 +2867,16 @@ exp/norm/check: $(CHECK_DEPS)
 	@$(CHECK)
 .PHONY: exp/norm/check
 
+@go_include@ exp/proxy.lo.dep
+exp/proxy.lo.dep: $(go_exp_proxy_files)
+	$(BUILDDEPS)
+exp/proxy.lo: $(go_exp_proxy_files)
+	$(BUILDPACKAGE)
+exp/proxy/check: $(CHECK_DEPS)
+	@$(MKDIR_P) exp/proxy
+	@$(CHECK)
+.PHONY: exp/proxy/check
+
 @go_include@ exp/spdy.lo.dep
 exp/spdy.lo.dep: $(go_exp_spdy_files)
 	$(BUILDDEPS)
@@ -2817,16 +2886,6 @@ exp/spdy/check: $(CHECK_DEPS)
 	@$(MKDIR_P) exp/spdy
 	@$(CHECK)
 .PHONY: exp/spdy/check
-
-@go_include@ exp/sql.lo.dep
-exp/sql.lo.dep: $(go_exp_sql_files)
-	$(BUILDDEPS)
-exp/sql.lo: $(go_exp_sql_files)
-	$(BUILDPACKAGE)
-exp/sql/check: $(CHECK_DEPS)
-	@$(MKDIR_P) exp/sql
-	@$(CHECK)
-.PHONY: exp/sql/check
 
 @go_include@ exp/ssh.lo.dep
 exp/ssh.lo.dep: $(go_exp_ssh_files)
@@ -2858,6 +2917,16 @@ exp/types/check: $(CHECK_DEPS)
 	@$(CHECK)
 .PHONY: exp/types/check
 
+@go_include@ exp/utf8string.lo.dep
+exp/utf8string.lo.dep: $(go_exp_utf8string_files)
+	$(BUILDDEPS)
+exp/utf8string.lo: $(go_exp_utf8string_files)
+	$(BUILDPACKAGE)
+exp/utf8string/check: $(CHECK_DEPS)
+	@$(MKDIR_P) exp/utf8string
+	@$(CHECK)
+.PHONY: exp/utf8string/check
+
 @go_include@ exp/inotify.lo.dep
 exp/inotify.lo.dep: $(go_exp_inotify_files)
 	$(BUILDDEPS)
@@ -2867,16 +2936,6 @@ exp/inotify/check: $(CHECK_DEPS)
 	@$(MKDIR_P) exp/inotify
 	@$(CHECK)
 .PHONY: exp/inotify/check
-
-@go_include@ exp/sql/driver.lo.dep
-exp/sql/driver.lo.dep: $(go_exp_sql_driver_files)
-	$(BUILDDEPS)
-exp/sql/driver.lo: $(go_exp_sql_driver_files)
-	$(BUILDPACKAGE)
-exp/sql/driver/check: $(CHECK_DEPS)
-	@$(MKDIR_P) exp/sql/driver
-	@$(CHECK)
-.PHONY: exp/sql/driver/check
 
 @go_include@ html/template.lo.dep
 html/template.lo.dep: $(go_html_template_files)
@@ -3622,7 +3681,7 @@ crypto/openpgp/armor.gox: crypto/openpgp/armor.lo
 	$(BUILDGOX)
 crypto/openpgp/elgamal.gox: crypto/openpgp/elgamal.lo
 	$(BUILDGOX)
-crypto/openpgp/error.gox: crypto/openpgp/error.lo
+crypto/openpgp/errors.gox: crypto/openpgp/errors.lo
 	$(BUILDGOX)
 crypto/openpgp/packet.gox: crypto/openpgp/packet.lo
 	$(BUILDGOX)
@@ -3630,6 +3689,12 @@ crypto/openpgp/s2k.gox: crypto/openpgp/s2k.lo
 	$(BUILDGOX)
 
 crypto/x509/pkix.gox: crypto/x509/pkix.lo
+	$(BUILDGOX)
+
+database/sql.gox: database/sql.lo
+	$(BUILDGOX)
+
+database/sql/driver.gox: database/sql/driver.lo
 	$(BUILDGOX)
 
 debug/dwarf.gox: debug/dwarf.lo
@@ -3674,9 +3739,9 @@ exp/inotify.gox: exp/inotify.lo
 	$(BUILDGOX)
 exp/norm.gox: exp/norm.lo
 	$(BUILDGOX)
-exp/spdy.gox: exp/spdy.lo
+exp/proxy.gox: exp/proxy.lo
 	$(BUILDGOX)
-exp/sql.gox: exp/sql.lo
+exp/spdy.gox: exp/spdy.lo
 	$(BUILDGOX)
 exp/ssh.gox: exp/ssh.lo
 	$(BUILDGOX)
@@ -3684,8 +3749,7 @@ exp/terminal.gox: exp/terminal.lo
 	$(BUILDGOX)
 exp/types.gox: exp/types.lo
 	$(BUILDGOX)
-
-exp/sql/driver.gox: exp/sql/driver.lo
+exp/utf8string.gox: exp/utf8string.lo	
 	$(BUILDGOX)
 
 html/template.gox: html/template.lo
@@ -3901,6 +3965,8 @@ TEST_PACKAGES = \
 	crypto/openpgp/elgamal/check \
 	crypto/openpgp/packet/check \
 	crypto/openpgp/s2k/check \
+	database/sql/check \
+	database/sql/driver/check \
 	debug/dwarf/check \
 	debug/elf/check \
 	debug/macho/check \
@@ -3920,10 +3986,11 @@ TEST_PACKAGES = \
 	exp/ebnf/check \
 	$(exp_inotify_check) \
 	exp/norm/check \
+	exp/proxy/check \
 	exp/spdy/check \
-	exp/sql/check \
 	exp/ssh/check \
 	exp/terminal/check \
+	exp/utf8string/check \
 	html/template/check \
 	go/ast/check \
 	$(go_build_check_omitted_since_it_calls_6g) \

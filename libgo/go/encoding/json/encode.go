@@ -12,6 +12,7 @@ package json
 import (
 	"bytes"
 	"encoding/base64"
+	"math"
 	"reflect"
 	"runtime"
 	"sort"
@@ -38,6 +39,8 @@ import (
 //
 // String values encode as JSON strings, with each invalid UTF-8 sequence
 // replaced by the encoding of the Unicode replacement character U+FFFD.
+// The angle brackets "<" and ">" are escaped to "\u003c" and "\u003e"
+// to keep some browsers from misinterpreting JSON output as HTML.
 //
 // Array and slice values encode as JSON arrays, except that
 // []byte encodes as a base64-encoded string.
@@ -76,7 +79,8 @@ import (
 //    Int64String int64 `json:",string"`
 //
 // The key name will be used if it's a non-empty string consisting of
-// only Unicode letters, digits, dollar signs, hyphens, and underscores.
+// only Unicode letters, digits, dollar signs, percent signs, hyphens,
+// underscores and slashes.
 //
 // Map values encode as JSON objects.
 // The map's key type must be string; the object keys are used directly
@@ -168,6 +172,15 @@ type UnsupportedTypeError struct {
 
 func (e *UnsupportedTypeError) Error() string {
 	return "json: unsupported type: " + e.Type.String()
+}
+
+type UnsupportedValueError struct {
+	Value reflect.Value
+	Str   string
+}
+
+func (e *UnsupportedValueError) Error() string {
+	return "json: unsupported value: " + e.Str
 }
 
 type InvalidUTF8Error struct {
@@ -290,7 +303,11 @@ func (e *encodeState) reflectValueQuoted(v reflect.Value, quoted bool) {
 			e.Write(b)
 		}
 	case reflect.Float32, reflect.Float64:
-		b := strconv.AppendFloat(e.scratch[:0], v.Float(), 'g', -1, v.Type().Bits())
+		f := v.Float()
+		if math.IsInf(f, 0) || math.IsNaN(f) {
+			e.error(&UnsupportedValueError{v, strconv.FormatFloat(f, 'g', -1, v.Type().Bits())})
+		}
+		b := strconv.AppendFloat(e.scratch[:0], f, 'g', -1, v.Type().Bits())
 		if quoted {
 			writeString(e, string(b))
 		} else {
@@ -403,8 +420,13 @@ func isValidTag(s string) bool {
 		return false
 	}
 	for _, c := range s {
-		if c != '$' && c != '-' && c != '_' && !unicode.IsLetter(c) && !unicode.IsDigit(c) {
-			return false
+		switch c {
+		case '$', '-', '_', '/', '%':
+			// Acceptable
+		default:
+			if !unicode.IsLetter(c) && !unicode.IsDigit(c) {
+				return false
+			}
 		}
 	}
 	return true

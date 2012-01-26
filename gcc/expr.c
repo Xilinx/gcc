@@ -6429,8 +6429,6 @@ store_field (rtx target, HOST_WIDE_INT bitsize, HOST_WIDE_INT bitpos,
       if (to_rtx == target)
 	to_rtx = copy_rtx (to_rtx);
 
-      if (!MEM_SCALAR_P (to_rtx))
-	MEM_IN_STRUCT_P (to_rtx) = 1;
       if (!MEM_KEEP_ALIAS_SET_P (to_rtx) && MEM_ALIAS_SET (to_rtx) != 0)
 	set_mem_alias_set (to_rtx, alias_set);
 
@@ -7200,8 +7198,7 @@ safe_from_p (const_rtx x, tree exp, int top_p)
 	 are memory and they conflict.  */
       return ! (rtx_equal_p (x, exp_rtl)
 		|| (MEM_P (x) && MEM_P (exp_rtl)
-		    && true_dependence (exp_rtl, VOIDmode, x,
-					rtx_addr_varies_p)));
+		    && true_dependence (exp_rtl, VOIDmode, x)));
     }
 
   /* If we reach here, it is safe.  */
@@ -9330,6 +9327,16 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		bftype = TREE_TYPE (base);
 		if (TYPE_MODE (TREE_TYPE (exp)) != BLKmode)
 		  bftype = TREE_TYPE (exp);
+		else
+		  {
+		    temp = assign_stack_temp (DECL_MODE (base),
+					      GET_MODE_SIZE (DECL_MODE (base)),
+					      0);
+		    store_expr (base, temp, 0, false);
+		    temp = adjust_address (temp, BLKmode, offset);
+		    set_mem_size (temp, int_size_in_bytes (TREE_TYPE (exp)));
+		    return temp;
+		  }
 		return expand_expr (build3 (BIT_FIELD_REF, bftype,
 					    base,
 					    TYPE_SIZE (TREE_TYPE (exp)),
@@ -10044,10 +10051,32 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	 results.  */
       if (MEM_P (op0))
 	{
+	  enum insn_code icode;
+
 	  op0 = copy_rtx (op0);
 
 	  if (TYPE_ALIGN_OK (type))
 	    set_mem_align (op0, MAX (MEM_ALIGN (op0), TYPE_ALIGN (type)));
+	  else if (mode != BLKmode
+		   && MEM_ALIGN (op0) < GET_MODE_ALIGNMENT (mode)
+		   /* If the target does have special handling for unaligned
+		      loads of mode then use them.  */
+		   && ((icode = optab_handler (movmisalign_optab, mode))
+		       != CODE_FOR_nothing))
+	    {
+	      rtx reg, insn;
+
+	      op0 = adjust_address (op0, mode, 0);
+	      /* We've already validated the memory, and we're creating a
+		 new pseudo destination.  The predicates really can't
+		 fail.  */
+	      reg = gen_reg_rtx (mode);
+
+	      /* Nor can the insn generator.  */
+	      insn = GEN_FCN (icode) (reg, op0);
+	      emit_insn (insn);
+	      return reg;
+	    }
 	  else if (STRICT_ALIGNMENT
 		   && mode != BLKmode
 		   && MEM_ALIGN (op0) < GET_MODE_ALIGNMENT (mode))

@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Package testing provides support for automated testing of Go packages.
-// It is intended to be used in concert with the ``gotest'' utility, which automates
+// It is intended to be used in concert with the ``go test'' command, which automates
 // execution of any function of the form
 //     func TestXxx(*testing.T)
 // where Xxx can be any alphanumeric string (but the first letter must not be in
@@ -21,6 +21,7 @@
 //             fmt.Sprintf("hello")
 //         }
 //     }
+//
 // The benchmark package will vary b.N until the benchmark function lasts
 // long enough to be timed reliably.  The output
 //     testing.BenchmarkHello    10000000    282 ns/op
@@ -36,6 +37,33 @@
 //             big.Len()
 //         }
 //     }
+//
+// The package also runs and verifies example code. Example functions
+// include an introductory comment that is compared with the standard output
+// of the function when the tests are run, as in this example of an example:
+//
+//     // hello
+//     func ExampleHello() {
+//             fmt.Println("hello")
+//     }
+//
+// Example functions without comments are compiled but not executed.
+//
+// The naming convention to declare examples for a function F, a type T and
+// method M on type T are:
+//
+//     func ExampleF() { ... }
+//     func ExampleT() { ... }
+//     func ExampleT_M() { ... }
+//
+// Multiple example functions for a type/function/method may be provided by
+// appending a distinct suffix to the name. The suffix must start with a
+// lower-case letter.
+//
+//     func ExampleF_suffix() { ... }
+//     func ExampleT_suffix() { ... }
+//     func ExampleT_M_suffix() { ... }
+//
 package testing
 
 import (
@@ -63,7 +91,7 @@ var (
 	memProfile     = flag.String("test.memprofile", "", "write a memory profile to the named file after execution")
 	memProfileRate = flag.Int("test.memprofilerate", 0, "if >=0, sets runtime.MemProfileRate")
 	cpuProfile     = flag.String("test.cpuprofile", "", "write a cpu profile to the named file during execution")
-	timeout        = flag.Int64("test.timeout", 0, "if > 0, sets time limit for tests in seconds")
+	timeout        = flag.Duration("test.timeout", 0, "if positive, sets an aggregate time limit for all tests")
 	cpuListStr     = flag.String("test.cpu", "", "comma-separated list of number of CPUs to use for each test")
 	parallel       = flag.Int("test.parallel", runtime.GOMAXPROCS(0), "maximum test parallelism")
 
@@ -90,7 +118,7 @@ func Short() bool {
 // If addFileLine is true, it also prefixes the string with the file and line of the call site.
 func decorate(s string, addFileLine bool) string {
 	if addFileLine {
-		_, file, line, ok := runtime.Caller(4) // decorate + log + public function.
+		_, file, line, ok := runtime.Caller(3) // decorate + log + public function.
 		if ok {
 			// Truncate file name at last file name separator.
 			if index := strings.LastIndex(file, "/"); index >= 0 {
@@ -136,9 +164,27 @@ func (c *common) Failed() bool { return c.failed }
 // FailNow marks the function as having failed and stops its execution.
 // Execution will continue at the next Test.
 func (c *common) FailNow() {
-	c.duration = time.Now().Sub(c.start)
 	c.Fail()
-	c.signal <- c.self
+
+	// Calling runtime.Goexit will exit the goroutine, which
+	// will run the deferred functions in this goroutine,
+	// which will eventually run the deferred lines in tRunner,
+	// which will signal to the test loop that this test is done.
+	//
+	// A previous version of this code said:
+	//
+	//	c.duration = ...
+	//	c.signal <- c.self
+	//	runtime.Goexit()
+	//
+	// This previous version duplicated code (those lines are in
+	// tRunner no matter what), but worse the goroutine teardown
+	// implicit in runtime.Goexit was not guaranteed to complete
+	// before the test exited.  If a test deferred an important cleanup
+	// function (like removing temporary files), there was no guarantee
+	// it would run on a test failure.  Because we send on c.signal during
+	// a top-of-stack deferred function now, we know that the send
+	// only happens after any other stacked defers have completed.
 	runtime.Goexit()
 }
 
@@ -195,9 +241,17 @@ type InternalTest struct {
 
 func tRunner(t *T, test *InternalTest) {
 	t.start = time.Now()
+
+	// When this goroutine is done, either because test.F(t)
+	// returned normally or because a test failure triggered 
+	// a call to runtime.Goexit, record the duration and send
+	// a signal saying that the test is done.
+	defer func() {
+		t.duration = time.Now().Sub(t.start)
+		t.signal <- t
+	}()
+
 	test.F(t)
-	t.duration = time.Now().Sub(t.start)
-	t.signal <- t
 }
 
 // An internal function but exported because it is cross-package; part of the implementation
@@ -346,7 +400,7 @@ var timer *time.Timer
 // startAlarm starts an alarm if requested.
 func startAlarm() {
 	if *timeout > 0 {
-		timer = time.AfterFunc(time.Duration(*timeout)*time.Second, alarm)
+		timer = time.AfterFunc(*timeout, alarm)
 	}
 }
 

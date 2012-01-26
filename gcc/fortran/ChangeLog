@@ -1,3 +1,27 @@
+2012-01-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51995
+	* class.c (gfc_build_class_symbol): Fix invalid freeing
+	issue with fclass->f2k_derived.
+
+2012-01-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51995
+	* class.c (gfc_build_class_symbol): Ensure that
+	fclass->f2k_derived is set.
+
+2012-01-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51966
+	* resolve.c (resolve_structure_cons): Only create an
+	array constructors for nonscalars.
+
+2012-01-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51948
+	* check.c (variable_check): Fix checking for
+	 variables and deeply nested BLOCKs.
+
 2012-01-21  Tobias Burnus  <burnus@net-b.de>
 	    Steven G. Kargl  <kargl@gcc.gnu.org>
 

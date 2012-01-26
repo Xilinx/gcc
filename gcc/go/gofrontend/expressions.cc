@@ -1328,7 +1328,8 @@ Func_expression::get_tree_without_closure(Gogo* gogo)
   // can't take their address.
   if (fntype->is_builtin())
     {
-      error_at(this->location(), "invalid use of special builtin function %qs",
+      error_at(this->location(),
+	       "invalid use of special builtin function %qs; must be called",
 	       this->function_->name().c_str());
       return error_mark_node;
     }
@@ -1454,8 +1455,9 @@ Unknown_expression::do_lower(Gogo*, Named_object*, Statement_inserter*, int)
 	{
 	  if (this->is_composite_literal_key_)
 	    return this;
-	  error_at(location, "reference to undefined name %qs",
-		   this->named_object_->message_name().c_str());
+	  if (!this->no_error_message_)
+	    error_at(location, "reference to undefined name %qs",
+		     this->named_object_->message_name().c_str());
 	  return Expression::make_error(location);
 	}
     }
@@ -1468,10 +1470,12 @@ Unknown_expression::do_lower(Gogo*, Named_object*, Statement_inserter*, int)
     case Named_object::NAMED_OBJECT_TYPE_DECLARATION:
       if (this->is_composite_literal_key_)
 	return this;
-      error_at(location, "reference to undefined type %qs",
-	       real->message_name().c_str());
+      if (!this->no_error_message_)
+	error_at(location, "reference to undefined type %qs",
+		 real->message_name().c_str());
       return Expression::make_error(location);
     case Named_object::NAMED_OBJECT_VAR:
+      real->var_value()->set_is_used();
       return Expression::make_var_reference(real, location);
     case Named_object::NAMED_OBJECT_FUNC:
     case Named_object::NAMED_OBJECT_FUNC_DECLARATION:
@@ -1479,7 +1483,8 @@ Unknown_expression::do_lower(Gogo*, Named_object*, Statement_inserter*, int)
     case Named_object::NAMED_OBJECT_PACKAGE:
       if (this->is_composite_literal_key_)
 	return this;
-      error_at(location, "unexpected reference to package");
+      if (!this->no_error_message_)
+	error_at(location, "unexpected reference to package");
       return Expression::make_error(location);
     default:
       go_unreachable();
@@ -1497,7 +1502,7 @@ Unknown_expression::do_dump_expression(Ast_dump_context* ast_dump_context) const
 
 // Make a reference to an unknown name.
 
-Expression*
+Unknown_expression*
 Expression::make_unknown_reference(Named_object* no, Location location)
 {
   return new Unknown_expression(no, location);
@@ -5551,7 +5556,9 @@ Binary_expression::do_lower(Gogo* gogo, Named_object*,
 	Expression* ret = NULL;
 	if (left_type != right_type
 	    && left_type != NULL
+	    && !left_type->is_abstract()
 	    && right_type != NULL
+	    && !right_type->is_abstract()
 	    && left_type->base() != right_type->base()
 	    && op != OPERATOR_LSHIFT
 	    && op != OPERATOR_RSHIFT)
@@ -5603,7 +5610,27 @@ Binary_expression::do_lower(Gogo* gogo, Named_object*,
 		  type = right_type;
 		else
 		  type = left_type;
-		ret = Expression::make_integer(&val, type, location);
+
+		bool is_character = false;
+		if (type == NULL)
+		  {
+		    Type* t = this->left_->type();
+		    if (t->integer_type() != NULL
+			&& t->integer_type()->is_rune())
+		      is_character = true;
+		    else if (op != OPERATOR_LSHIFT && op != OPERATOR_RSHIFT)
+		      {
+			t = this->right_->type();
+			if (t->integer_type() != NULL
+			    && t->integer_type()->is_rune())
+			  is_character = true;
+		      }
+		  }
+
+		if (is_character)
+		  ret = Expression::make_character(&val, type, location);
+		else
+		  ret = Expression::make_integer(&val, type, location);
 	      }
 
 	    mpz_clear(val);
@@ -6246,6 +6273,12 @@ Binary_expression::do_type()
 	else if (left_type->float_type() != NULL)
 	  return left_type;
 	else if (right_type->float_type() != NULL)
+	  return right_type;
+	else if (left_type->integer_type() != NULL
+		 && left_type->integer_type()->is_rune())
+	  return left_type;
+	else if (right_type->integer_type() != NULL
+		 && right_type->integer_type()->is_rune())
 	  return right_type;
 	else
 	  return left_type;
@@ -8481,6 +8514,11 @@ Builtin_call_expression::do_check_types(Gogo*)
 		    || type->function_type() != NULL
 		    || type->is_slice_type())
 		  ;
+		else if ((*p)->is_type_expression())
+		  {
+		    // If this is a type expression it's going to give
+		    // an error anyhow, so we don't need one here.
+		  }
 		else
 		  this->report_error(_("unsupported argument type to "
 				       "builtin function"));
@@ -10555,7 +10593,7 @@ Array_index_expression::do_check_types(Gogo*)
   if (this->end_ != NULL && !array_type->is_slice_type())
     {
       if (!this->array_->is_addressable())
-	this->report_error(_("array is not addressable"));
+	this->report_error(_("slice of unaddressable value"));
       else
 	this->array_->address_taken(true);
     }
@@ -10796,13 +10834,6 @@ Expression*
 Expression::make_array_index(Expression* array, Expression* start,
 			     Expression* end, Location location)
 {
-  // Taking a slice of a composite literal requires moving the literal
-  // onto the heap.
-  if (end != NULL && array->is_composite_literal())
-    {
-      array = Expression::make_heap_composite(array, location);
-      array = Expression::make_unary(OPERATOR_MULT, array, location);
-    }
   return new Array_index_expression(array, start, end, location);
 }
 
@@ -11916,10 +11947,6 @@ class Struct_construction_expression : public Expression
 					      this->location());
   }
 
-  bool
-  do_is_addressable() const
-  { return true; }
-
   tree
   do_get_tree(Translate_context*);
 
@@ -12200,10 +12227,6 @@ protected:
 
   void
   do_check_types(Gogo*);
-
-  bool
-  do_is_addressable() const
-  { return true; }
 
   void
   do_export(Export*) const;

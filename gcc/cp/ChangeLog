@@ -1,3 +1,36 @@
+2012-01-24  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51917
+	* decl.c (xref_basetypes): Check VEC_length instead of VEC_space.
+
+	PR c++/51973
+	* tree.c (called_fns_equal): Check template args.
+	(cp_tree_equal): Call it.
+
+2012-01-24  Aldy Hernandez  <aldyh@redhat.com>
+	    Patrick Marlier  <patrick.marlier@gmail.com>
+
+	PR c++/51928
+	* class.c (set_method_tm_attributes): Use TARGET_THUNK instead of
+	thunk for set_one_vmethod_tm_attributes.
+
+2012-01-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51223
+	* call.c (build_over_call): Check for error_mark_node as
+	TREE_VALUE when default arguments are processed.
+
+2012-01-23  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51930
+	* decl2.c (determine_visibility): Check for visibility attribute
+	on template specialization.
+
+2012-01-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51398
+	* pt.c (parameter_of_template_p): Skip error_mark_node parameters.
+
 2012-01-23  Jason Merrill  <jason@redhat.com>
 
 	PR c++/51925

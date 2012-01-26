@@ -1,3 +1,154 @@
+2012-01-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/51895
+	* g++.dg/opt/pr51895.C: New test.
+
+2012-01-26  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/48794
+	* gfortran.dg/gomp/pr48794-2.f90: New testcase.
+
+2012-01-26  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.dg/ssa-dom-thread-4.c: Set -mbranch-cost=2 for s390 and
+	s390x.
+
+2012-01-26  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.dg/pr46309.c: Set branch-cost to 2 for s390 and s390x.
+	* gcc.dg/pr44194-1.c: Disable since s390 returns structs always in
+	memory.
+	* gfortran.dg/reassoc_4.f: Force max-completely-peeled-insns to
+	the default value for s390 and s390x.
+
+2012-01-25  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR lto/51698
+	* gcc.dg/lto/trans-mem-4_0.c: New.
+	* gcc.dg/lto/trans-mem-4_1.c: New.
+	* gcc.dg/lto/trans-mem-2_0.c: Provide correct argument types for
+	TM builtins.
+	* gcc.dg/lto/trans-mem-1_0.c: Require stdint_types.
+	* gcc.dg/lto/trans-mem-1_1.c: Provide correct argument types for
+	TM builtins.
+	* gcc.dg/lto/trans-mem-3_0.c: Require stdint_types.
+	* gcc.dg/lto/trans-mem-3_1.c: Provide correct argument types for
+	TM builtins.
+
+2012-01-25    Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.target/avr/torture/int24-mul.c: Rename __pgm to __flash.
+
+2012-01-25  Ian Lance Taylor  <iant@google.com>
+
+	* go.test/go-test.exp (go-gc-tests): Handle a few more test
+	lines.
+
+2012-01-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51995
+	* gfortran.dg/typebound_proc_25.f90: New.
+
+2012-01-25  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51992
+	* g++.dg/lto/pr51992_0.C: New.
+
+2012-01-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51987
+	* gcc.target/i386/pr51987.c: New test.
+
+2012-01-25  Greta Yorsh  <Greta.Yorsh@arm.com>
+
+	* gcc.dg/tm/lto-1.c: Require lto support in target.
+
+2012-01-25  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/48374
+	* gcc.dg/pr48374.c: New test.
+
+2012-01-25  Greta Yorsh  <Greta.Yorsh@arm.com>
+
+	* gcc.dg/pr50908-2.c (dg-options): Add -fno-short-enums.
+
+2012-01-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51966
+	* gfortran.dg/derived_constructor_char_3.f90: New.
+
+2012-01-24  Ian Lance Taylor  <iant@google.com>
+
+	* go.test/go-test.exp (filecmp): New procedure.
+	(errchk): Handle quoted square brackets.
+	(go-gc-tests): Set go_compile_args. Handle various new test
+	lines.  Skip a few new tests.
+	* lib/go-torture.exp (go-torture-execute): Use go_compile_args.
+
+2012-01-24  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* lib/target-supports.exp (proc check_effective_target_vect_perm)
+	(check_effective_target_vect_extract_even_odd)
+	(check_effective_target_vect_interleave): Return true for MIPS
+	paired-single.
+
+2012-01-24  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.c-torture/execute/scal-to-vec1.c (one): New volatile variable.
+	(main): Use it instead of argc.
+
+2012-01-24  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51973
+	* g++.dg/cpp0x/sfinae31.C: New.
+
+2012-01-24  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.dg/memcpy-4.c: Don't expect /s on MEMs.
+
+2012-01-24  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51812
+	* g++.dg/inherit/covariant20.C: New.
+
+2012-01-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51223
+	* g++.dg/parse/crash58.C: New.
+
+2012-01-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/51957
+	* gcc.dg/pr51957-1.c: New test.
+	* gcc.dg/pr51957-1.h: New file.
+	* gcc.dg/pr51957-2.c: New test.
+
+2012-01-23  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51930
+	* g++.dg/ext/visibility/template10.C: New.
+
+2012-01-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51948
+	* gfortran.dg/move_alloc_12.f90: New.
+
+2012-01-23  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	PR middle-end/45416
+	* gcc.dg/pr45416.c: Skip for Thumb1. Handle ubfx.
+
+2012-01-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51398
+	* g++.dg/template/crash111.C: New.
+
+2012-01-23  Arnaud Charlet  <charlet@adacore.com>
+
+	* ada/acats/tests/cxh/cxh1001.a: Removed, test not suitable on all
+	configurations.
+	* ada/acats/run_all.sh: Simplify by removing cxh1001 special case.
+
 2012-01-23  Dodji Seketeli  <dodji@redhat.com>
 
 	PR testsuite/51941

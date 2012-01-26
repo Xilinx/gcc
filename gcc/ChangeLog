@@ -1,3 +1,281 @@
+2012-01-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/51895
+	* expr.c (expand_expr_real_1): Handle BLKmode MEM_REF of
+	non-addressable non-BLKmode base correctly.
+
+2012-01-26  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/48794
+	* tree-eh.c (remove_unreachable_handlers_no_lp): Don't remove
+	regions referenced from RESX/EH_DISPATCH.
+
+2012-01-26  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.h: Make BRANCH_COST an option.
+	* config/s390/s390.opt: New option -mbranch-cost.
+
+2012-01-26  Richard Henderson  <rth@redhat.com>
+
+	Revert 2012-01-24 change:
+	* trans-mem.c (requires_barrier): Do not instrument thread local
+	variables and emit save/restore for them.
+
+2012-01-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/51986
+	* sched-deps.c (sched_get_condition_with_rev_uncached): Don't test
+	for pat == 0.
+
+2012-01-25  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_small_data_pattern_1): Don't process
+	ASM_OPERANDS.
+
+2012-01-25  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49868
+	Rename __pgm to __flash.
+	Rename __pgm1 to __flash1.
+	Rename __pgm2 to __flash2.
+	Rename __pgm3 to __flash3.
+	Rename __pgm4 to __flash4.
+	Rename __pgm5 to __flash5.
+	Rename __pgmx to __memx.
+	* doc/extend.texi (AVR Named Address Spaces)
+	Rename address space names as indicated above.
+	* config/avr/avr.c (avr_addrspace): Ditto.
+
+	* config/avr/avr-protos.h
+	(avr_mem_pgmx_p): Rename to avr_mem_memx_p.
+	(avr_mem_pgm_p): Rename to avr_mem_flash_p.
+	* config/avr/predicates.md: Ditto.
+	* config/avr/avr.c Ditto, and
+	(avr_decl_pgmx_p): Rename to avr_decl_memx_p.
+	(avr_decl_pgm_p): Rename to avr_decl_flash_p.
+
+	* config/avr/avr.h (ADDR_SPACE_PGM): Rename to ADDR_SPACE_FLASH.
+	(ADDR_SPACE_PGM1): Rename to ADDR_SPACE_FLASH1.
+	(ADDR_SPACE_PGM2): Rename to ADDR_SPACE_FLASH2.
+	(ADDR_SPACE_PGM3): Rename to ADDR_SPACE_FLASH3.
+	(ADDR_SPACE_PGM4): Rename to ADDR_SPACE_FLASH4.
+	(ADDR_SPACE_PGM5): Rename to ADDR_SPACE_FLASH5.
+	(ADDR_SPACE_PGMX): Rename to ADDR_SPACE_MEMX.
+	* config/avr/avr.c: Ditto.
+	* config/avr/avr.md: Ditto.
+
+2012-01-25  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51992
+	* tree.c (find_decls_types_in_node): Walk gimple_call_fntype.
+
+2012-01-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51987
+	* tree-data-ref.c (get_references_in_stmt): Handle references in
+	non-volatile GIMPLE_ASM.
+
+2012-01-25  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-sccvn.c (vn_reference_eq): Also compare if both
+	bases are dereferenced.
+
+2012-01-25  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/48374
+	* sel-sched-ir.h (get_all_loop_exits): Check for zero successors. 
+
+2012-01-25  Andrey Belevantsev  <abel@ispras.ru>
+
+	* tree-predcom.c (tree_predictive_commoning_loop): Bail out when
+	compute_data_dependences_for_loop returns false.
+	* tree-parloops.c (loop_parallel_p): Likewise.
+
+2012-01-25  Richard Guenther  <rguenther@suse.de>
+
+	* tree.h (get_pointer_alignment_1): Declare.
+	* builtins.c (get_pointer_alignment_1): New function.
+	(get_pointer_alignment): Use it.
+
+2012-01-25  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	PR rtl-optimization/48308
+	* combine.c (enum undo_kind): Add UNDO_LINKS.
+	(struct undo): Add member l to other_contents and where.
+	(do_SUBST_LINK): New.
+	(SUBST_LINK): New.
+	(try_combine): Handle LOG_LINKS for the dummy i1 case.
+	(undo_all): Handle UNDO_LINKS.
+
+2012-01-25  Richard Henderson  <rth@redhat.com>
+
+	* optabs.c (maybe_emit_atomic_test_and_set): Allow non-QImode
+	mem inputs.
+
+2012-01-24  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* optabs.c (gen_atomic_test_and_set): Use each argument.
+
+2012-01-24  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips-ps-3d.md (mips_addr_ps, reduc_splus_v2sf)
+	(mips_cvt_pw_ps, mips_cvt_ps_pw, mips_mulr_ps, mips_cabs_cond_<fmt>)
+	(mips_cabs_cond_4s, mips_cabs_cond_ps, bc1any4t, bc1any4f, bc1any2t)
+	(bc1any2f, mips_rsqrt1_<fmt>, mips_rsqrt2_<fmt>, mips_recip1_<fmt>)
+	(mips_recip2_<fmt>): Require TARGET_MIPS3D rather than
+	TARGET_PAIRED_SINGLE_FLOAT.
+
+2012-01-24  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* doc/rtl.texi (MEM_IN_STRUCT_P, MEM_SCALAR_P): Delete.
+	(in_struct, return_val): Remove MEM documentation.
+	* rtl.h (rtx_def): Remove MEM meanings from in_struct and return_val.
+	(MEM_IN_STRUCT_P, MEM_SCALAR_P): Delete.
+	(MEM_COPY_ATTRIBUTES): Remove references to MEM_IN_STRUCT_P
+	and MEM_SCALAR.
+	* emit-rtl.c (set_mem_attributes_minus_bitpos): Likewise.
+	* cfgexpand.c (add_alias_set_conflicts): Likewise.
+	* expr.c (store_field): Likewise.
+	* function.c (assign_stack_temp_for_type): Likewise.
+	* ifcvt.c (noce_try_cmove_arith): Likewise.
+	* reload1.c (reload): Likewise.
+	* config/alpha/alpha.c (alpha_set_memflags_1): Likewise.
+	(alpha_set_memflags): Likewise.
+	* config/m32c/m32c.c (m32c_immd_dbl_mov): Nullify.
+
+2012-01-24  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* rtl.h (true_dependence, canon_true_dependence): Remove varies
+	parameter.
+	* alias.c (fixed_scalar_and_varying_struct_p): Delete.
+	(true_dependence_1, write_dependence_p, may_alias_p): Don't call it.
+	(true_dependence_1, true_dependence, canon_true_dependence): Remove
+	varies parameter.
+	* cselib.c (cselib_rtx_varies_p): Delete.
+	(cselib_invalidate_mem): Update call to canon_true_dependence.
+	* dse.c (record_store, check_mem_read_rtx): Likewise.
+	(scan_reads_nospill): Likewise.
+	* cse.c (check_dependence): Likewise.
+	(cse_rtx_varies_p): Delete.
+	* expr.c (safe_from_p): Update call to true_dependence.
+	* ira.c (validate_equiv_mem_from_store): Likewise.
+	(memref_referenced_p): Likewise.
+	* postreload-gcse.c (find_mem_conflicts): Likewise.
+	* sched-deps.c (sched_analyze_2): Likewise.
+	* store-motion.c (load_kills_store): Likewise.
+	* config/frv/frv.c (frv_registers_conflict_p_1): Likewise.
+	* gcse.c (mems_conflict_for_gcse_p): Likewise.
+	(compute_transp): Update call to canon_true_dependence.
+
+2012-01-25  Richard Henderson  <rth@redhat.com>
+
+	* optabs.c (CODE_FOR_atomic_test_and_set): Provide default.
+	(maybe_emit_atomic_test_and_set): New.
+	(expand_sync_lock_test_and_set): Use it.
+	(expand_atomic_test_and_set): Likewise.
+	* doc/extend.texi (__atomic_test_and_set): Adjust the docs to match
+	the implementation; clarify implementation defined details.
+	* doc/md.texi (atomic_test_and_set): Document.
+
+2012-01-25  Richard Henderson  <rth@redhat.com>
+
+	* config/sparc/predicates.md (zero_or_v7_operand): Use match_code.
+
+2012-01-25  Richard Henderson  <rth@redhat.com>
+
+	PR target/51968
+	* config/arm/arm.c (neon_split_vcombine): Emit deleted note
+	to effect no-op split.
+
+2012-01-24  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR lto/51698
+	* builtin-types.def: (BT_CONST_DOUBLE_PTR): New.
+	(BT_FN_VOID_PTR_CONST_PTR_SIZE): New.
+	(BT_FN_VOID_PTR_INT_SIZE): New.
+	(BT_FN_UINT_UINT_VAR): Remove.
+	(BT_FN_UINT32_UINT32_VAR): New.
+	(BT_FN_DOUBLE_VPTR): Remove.
+	(BT_FN_DOUBLE_CONST_DOUBLE_PTR): New.
+
+	* gtm-builtins.def (_ITM_abortTransaction): Set return type to
+	void.
+	(_ITM_changeTransactionMode): Same.
+	(_ITM_memmoveRtWt): Change return type to void.
+	(_ITM_memcpyRtWt): Same.
+	(_ITM_memsetW): Same.
+	(_ITM_RaRD): Change types to double.
+	(_ITM_RD): Same.
+	(_ITM_RaWD): Same.
+	(_ITM_RfWD): Same.
+
+	* builtins.def (DEF_TM_BUILTIN): Set BOTH_P to true.
+
+2012-01-24  Aldy Hernandez  <aldyh@redhat.com>
+	    Patrick Marlier  <patrick.marlier@gmail.com>
+
+	* trans-mem.c (requires_barrier): Do not instrument thread local
+	variables and emit save/restore for them.
+
+2012-01-24  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51812
+	* cgraphunit.c (cgraph_decide_is_function_needed): Don't always
+	output static aliases.
+
+2012-01-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR driver/47249
+	* common.opt (-pie, -shared, pie, shared): Change from Common to
+	Driver.
+	* gcc.c (display_help): Display help for -pie and -shared.
+
+2012-01-24  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49868
+	* doc/extend.texi (AVR Named Address Spaces): Move sample code up.
+	Remove note on size/offset limitation.
+	(AVR Variable Attributes): Add example how to read data located
+	with progmem.  Refer to named address spaces.
+	* doc/invoke.texi (AVR Options): Fix typo.
+
+2012-01-24  Richard Guenther  <rguenther@suse.de>
+
+	Forward-port to trunk
+	2010-09-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/45678
+	* expr.c (expand_expr_real_1) <case VIEW_CONVERT_EXPR>: If
+	op0 isn't sufficiently aligned and there is movmisalignM
+	insn for mode, use it to load op0 into a temporary register.
+
+2012-01-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/51957
+	* target.def (const_not_ok_for_debug_p): New hook.
+	* doc/tm.texi.in (TARGET_CONST_NOT_OK_FOR_DEBUG_P): New hook
+	documentation.
+	* doc/tm.texi: Regenerated.
+	* dwarf2out.c (const_ok_for_output_1): If
+	targetm.const_not_ok_for_debug_p returns true, fail.
+	* config/rs6000/rs6000.c (rs6000_const_not_ok_for_debug_p): New
+	function.
+	(TARGET_CONST_NOT_OK_FOR_DEBUG_P): Redefine.
+
+2012-01-23  Kai Tietz  <ktietz@redhat.com>
+
+	PR target/51900
+	* config/i386/predicates.md (symbolic_operand): Allow
+	UNSPEC_PCREL as PIC expression for lea.
+	* config/i386/winnt.c (i386_pe_binds_local_p): Reworked.
+	* config/i386/i386.c (ix86_delegitimize_address): Handle
+	UNSPEC_PCREL for none-MEM, too.
+
+2012-01-23  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (ipa_tm_create_version): Set externally_visible.
+	(ipa_tm_create_version_alias): Same.
+
 2012-01-18  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR libitm/51830
