@@ -33,8 +33,10 @@ along with GCC; see the file COPYING3.   If not see
 
 #ifdef MELT_IS_PLUGIN
 #include "gcc-plugin.h"
+const int melt_is_plugin=1;
 #else
 #include "version.h"
+const int melt_is_plugin=0;
 #endif	/* MELT_IS_PLUGIN */
 
 
@@ -424,16 +426,30 @@ melt_print_version_info (FILE *fil, const char* indent)
 	   indent, melt_source_dir);
   fprintf (fil, "%sMELT built-in module directory: %s\n",
 	   indent, melt_module_dir);
-  fprintf (fil, "%sUse -fmelt-source-path= or -fmelt-module-path= to override them with a colon-separated path.\n",
-	   indent);
-  fprintf (fil, "%sMELT built-in module make command [-fmelt-module-make-command=] %s\n",
-	   indent, melt_module_make_command);
-  fprintf (fil, "%sMELT built-in module makefile [-fmelt-module-makefile=] %s\n",
-	   indent, melt_module_makefile);
-  fprintf (fil, "%sMELT built-in module cflags [-fmelt-module-cflags=] %s\n",
-	   indent, melt_module_cflags);
-  fprintf (fil, "%sMELT built-in default module list [-fmelt-init=@]%s\n",
-	   indent, melt_default_modlis);
+  if (melt_is_plugin) {
+    fprintf (fil, "%sUse -fplugin-arg-melt-source-path= or -fplugin-arg-melt-module-path= to override them with a colon-separated path.\n",
+	     indent);
+    fprintf (fil, "%sMELT built-in module make command [-fmelt-plugin-arg-module-make-command=] %s\n",
+	     indent, melt_module_make_command);
+    fprintf (fil, "%sMELT built-in module makefile [-fmelt-plugin-arg-module-makefile=] %s\n",
+	     indent, melt_module_makefile);
+    fprintf (fil, "%sMELT built-in module cflags [-fmelt-plugin-arg-module-cflags=] %s\n",
+	     indent, melt_module_cflags);
+    fprintf (fil, "%sMELT built-in default module list [-fmelt-plugin-arg-init=@]%s\n",
+	     indent, melt_default_modlis);
+  }
+  else {
+    fprintf (fil, "%sUse -fmelt-source-path= or -fmelt-module-path= to override them with a colon-separated path.\n",
+	     indent);
+    fprintf (fil, "%sMELT built-in module make command [-fmelt-module-make-command=] %s\n",
+	     indent, melt_module_make_command);
+    fprintf (fil, "%sMELT built-in module makefile [-fmelt-module-makefile=] %s\n",
+	     indent, melt_module_makefile);
+    fprintf (fil, "%sMELT built-in module cflags [-fmelt-module-cflags=] %s\n",
+	     indent, melt_module_cflags);
+    fprintf (fil, "%sMELT built-in default module list [-fmelt-init=@]%s\n",
+	     indent, melt_default_modlis);
+  }
   fflush (fil);
 }
 

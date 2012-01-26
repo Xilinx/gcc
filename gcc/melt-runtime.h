@@ -113,6 +113,9 @@ extern const char melt_module_makefile[];
 extern const char melt_module_cflags[];
 extern const char melt_default_modlis[];
 
+/* Set to 1 iff MELT is a plugin, otherwise 0 */
+extern const int melt_is_plugin;
+
 struct melt_callframe_st /* forward declaration */;
 
 #ifdef MELT_IS_PLUGIN

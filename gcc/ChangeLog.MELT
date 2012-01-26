@@ -1,4 +1,10 @@
 
+2011-01-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_is_plugin): Declare new extern variable.
+
+	* melt-runtime.c (melt_is_plugin): Define.
+	(melt_print_version_info): Use it.
+
 2012-01-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
