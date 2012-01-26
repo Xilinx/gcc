@@ -3135,8 +3135,6 @@ pph_read_file (const char *filename, pph_stream *parent)
       pph_read_file_1 (stream);
       if (parent)
 	pph_add_include (parent, stream);
-      else
-	gcc_assert (line_table->depth == 1);
     }
 
   return stream;
