@@ -24,6 +24,11 @@
 
 2012-01-25   Diego Novillo  <dnovillo@google.com>
 
+	* pph-core.c (pph_dump_includes): New.
+	* pph.h (pph_dump_includes): Declare.
+
+2012-01-25   Diego Novillo  <dnovillo@google.com>
+
 	* pph-core.c: Fix copyright and contribution data.
 	* pph-in.c: Likewise.
 	* pph-out.c: Likewise.

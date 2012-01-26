@@ -958,6 +958,29 @@ pph_init_include_tree (void)
 }
 
 
+/* Dump on FILE the include tree for STREAM as recorded in
+   STREAM.INCLUDES.  INDENT is the number of spaces to indent before
+   printing each entry.  */
+
+void
+pph_dump_includes (FILE *file, pph_stream *stream, unsigned indent)
+{
+  pph_stream *include;
+  unsigned i, j;
+
+  if (file == NULL)
+    file = stderr;
+
+  FOR_EACH_VEC_ELT (pph_stream_ptr, stream->includes, i, include)
+    {
+      for (j = 0; j < indent; j++)
+	fputc (' ', file);
+      fprintf (file, "#%u %s (%s)\n", i, include->name, include->header_name);
+      pph_dump_includes (file, include, indent + 2);
+    }
+}
+
+
 /* Add INCLUDE, and the images included by it, to the list of files
    included by STREAM.  */
 
