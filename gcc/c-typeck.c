@@ -110,6 +110,8 @@ static void readonly_warning (tree, enum lvalue_use);
 static int lvalue_or_else (location_t, const_tree, enum lvalue_use);
 static void record_maybe_used_decl (tree);
 static int comptypes_internal (const_tree, const_tree, bool *, bool *);
+
+extern bool contains_array_notation_expr (tree);
 
 /* Return true if EXP is a null pointer constant, false otherwise.  */
 
@@ -3027,6 +3029,8 @@ convert_arguments (tree typelist, VEC(tree,gc) *values,
       bool npc;
       tree parmval;
 
+      if (flag_enable_cilk && contains_array_notation_expr (val))
+	continue;
       if (type == void_type_node)
 	{
 	  if (selector)
@@ -3268,11 +3272,16 @@ convert_arguments (tree typelist, VEC(tree,gc) *values,
 
   if (typetail != 0 && TREE_VALUE (typetail) != void_type_node)
     {
-      error_at (input_location,
-		"too few arguments to function %qE", function);
-      if (fundecl && !DECL_BUILT_IN (fundecl))
-	inform (DECL_SOURCE_LOCATION (fundecl), "declared here");
-      return -1;
+      if (flag_enable_cilk && contains_array_notation_expr (function))
+	;
+      else
+	{
+	  error_at (input_location,
+		    "too few arguments to function %qE", function);
+	  if (fundecl && !DECL_BUILT_IN (fundecl))
+	    inform (DECL_SOURCE_LOCATION (fundecl), "declared here");
+	  return -1;
+	}
     }
 
   return error_args ? -1 : (int) parmnum;
@@ -5173,6 +5182,9 @@ convert_for_assignment (location_t location, tree type, tree rhs,
   tree rname = NULL_TREE;
   bool objc_ok = false;
 
+  if (flag_enable_cilk && contains_array_notation_expr (rhs))
+    return rhs;
+  
   if (errtype == ic_argpass)
     {
       tree selector;
@@ -5719,16 +5731,20 @@ convert_for_assignment (location_t location, tree type, tree rhs,
 	 or one that results from arithmetic, even including
 	 a cast to integer type.  */
       if (!null_pointer_constant)
-	WARN_FOR_ASSIGNMENT (location, 0,
-			     G_("passing argument %d of %qE makes "
-				"pointer from integer without a cast"),
-			     G_("assignment makes pointer from integer "
-				"without a cast"),
-			     G_("initialization makes pointer from "
-				"integer without a cast"),
-			     G_("return makes pointer from integer "
-				"without a cast"));
-
+	{
+	  if (flag_enable_cilk && contains_array_notation_expr (rhs))
+	    ;
+	  else
+	    WARN_FOR_ASSIGNMENT (location, 0,
+				 G_("passing argument %d of %qE makes "
+				    "pointer from integer without a cast"),
+				 G_("assignment makes pointer from integer "
+				    "without a cast"),
+				 G_("initialization makes pointer from "
+				    "integer without a cast"),
+				 G_("return makes pointer from integer "
+				    "without a cast"));
+	}
       return convert (type, rhs);
     }
   else if (codel == INTEGER_TYPE && coder == POINTER_TYPE)

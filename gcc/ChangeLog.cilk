@@ -1,3 +1,25 @@
+2012-01-25  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-array-notation.c (replace_array_notations): Added a new bool as
+	parameter and added support for it.
+	(find_rank): Likewise.
+	(extract_array_notation_exprs): Likewise.
+	(replace_array_notations): Likewise.
+	(max): New function.
+	(fix_builtin_array_notation_fn): Likewise.
+	(is_builtin_array_notation_fn): Likewise.
+	(contains_array_notation_expr): Likewise.
+	(build_array_notation_expr): Added support for builtin function.
+	Changed all for-loops that have comparison with lhs_rank, with
+	max (lhs_rank and rhs_rank).  Also added a check if array_expr_lhs is
+	NULL, then we set that equal to lhs.
+	* c-parser.c (c_parser_expr_no_commas): Added support for array
+	notations inside function calls (i.e. function that takes array notation
+	as input and returns a scalar value).
+	* c-typeck.c (convert_arguments): If array notation is present inside
+	a function call, then we skip it for now since we will fix it up in a
+	later step.
+
 2012-01-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* Makefile.in: Added array-notation-common.c file for compilation.

@@ -62,6 +62,7 @@ extern tree c_build_sync (tree *);
 extern tree fix_conditional_array_notations (tree);
 extern struct c_expr  fix_array_notation_expr (location_t, enum tree_code,
 					      struct c_expr);
+extern bool contains_array_notation_expr (tree);
 struct pragma_simd_values local_simd_values;
 
 
@@ -5474,11 +5475,11 @@ c_parser_expr_no_commas (c_parser *parser, struct c_expr *after)
   rhs = default_function_array_read_conversion (exp_location, rhs);
 
   /* bviyer: The line below is where the parser has the form:
-   * A = B
+   * A = B, where A&B could contain array notation expressions 
    * So this is where we must modify the Array Notation arrays */
 
-  if (TREE_CODE (lhs.value) == ARRAY_NOTATION_REF
-      || TREE_CODE (rhs.value) == ARRAY_NOTATION_REF)
+  if (flag_enable_cilk && (contains_array_notation_expr (lhs.value)
+			   || contains_array_notation_expr (rhs.value)))
     ret.value = build_array_notation_expr (op_location, lhs.value,
 					   lhs.original_type, code,
 					   exp_location, rhs.value,
