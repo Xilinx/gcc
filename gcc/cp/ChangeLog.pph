@@ -1,5 +1,10 @@
 2012-01-26   Diego Novillo  <dnovillo@google.com>
 
+	* pph-core.c (pph_include_handler): Tidy warning message.
+	* pph-out.c (pph_disable_output): Add tracing output.
+
+2012-01-26   Diego Novillo  <dnovillo@google.com>
+
 	* pph-core.c (pph_stream_close_1): Add a newline to fprintf call.
 	(pph_finish): If there were errors during compilation,
 	disable PPH generation.

@@ -2845,6 +2845,10 @@ pph_disable_output (void)
   if (!pph_out_stream)
     return;
 
+  if (flag_pph_tracer >= 1)
+    fprintf (pph_logfile, "PPH: Disabling PPH generation for %s\n",
+	     pph_out_stream->header_name);
+
   pph_stream_close_no_flush (pph_out_stream);
   pph_out_file = NULL;
   pph_out_stream = NULL;

@@ -791,8 +791,8 @@ pph_include_handler (cpp_reader *reader,
   if (cpp_in_primary_file (reader)
       && strcmp ((const char *)dname, "include_next") == 0)
     {
-      warning_at (loc, OPT_Winvalid_pph, "#include_next found in the "
-		  "primary source file. PPH generation disabled for %s",
+      warning_at (loc, OPT_Winvalid_pph, "#include_next not allowed in a "
+		  "PPH file.  PPH generation disabled for %s",
 		  LOCATION_FILE (loc));
       pph_disable_output ();
       return true;
