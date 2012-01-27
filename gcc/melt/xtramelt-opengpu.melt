@@ -325,6 +325,9 @@ and $OPGPULC_GIMPLE the gimple making it.}#
       (return ivtup)
       )))
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun opengpu_affine_accessed_array (inductionvars cloopbodytuple :loop cloop)
   (debug "opengpu_affine_accessed_array inductionvars=" inductionvars
 	 "\n cloopbodytuple=" cloopbodytuple
@@ -343,7 +346,7 @@ and $OPGPULC_GIMPLE the gimple making it.}#
        (debug "opengpu_affine_accessed_array tvar=" dbg_tree_briefly tvar " curindvar=" curindvar)
        (maptree_put treeprop tvar curindvar)
      ))
-    (debug "opengpu_affine_accessed_array treeprop=" treeprop)
+    (debug "opengpu_affine_accessed_array treeprop=" treeprop " inductionvars=" inductionvars "\n")
     ;; scan the bodies
     (foreach_in_multiple 
      (cloopbodytuple)
@@ -352,7 +355,7 @@ and $OPGPULC_GIMPLE the gimple making it.}#
      (assert_msg "check curbody" (is_basicblock curbody))
      (let ( (:basic_block curbb (basicblock_content curbody))
 	    )
-       (debug "opengpu_affine_accessed_array curbb=" curbb)
+       (debug "opengpu_affine_accessed_array curbb=" curbb "\n")
        (eachgimple_in_basicblock
 	(curbb)
 	(:gimple g)
@@ -391,6 +394,29 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 	   (debug "opengpu_affine_accessed_array assign_cast/right.memref lhs="   dbg_tree_briefly lhs
 		  " rptr="  dbg_tree_briefly rptr " roff="  dbg_tree_briefly roff)
 	   )
+	 (?(gimple_assign_cast ?(tree_ssa_name ?lvar ?lvalu ?lvers ?ldefstmt) 
+			       ?(tree_ssa_name ?rvar ?rvalu ?rvers ?rdefstmt))
+	   (debug "opengpu_affine_accessed_array assign_cast lvar="dbg_tree_briefly  lvar
+		  " lvalu=" dbg_tree_briefly lvalu " lvers=" lvers " ldefstmt=" ldefstmt
+		  "\n rvar="  dbg_tree_briefly rvar " rvalu="  dbg_tree_briefly rvalu
+		  " rvers=" rvers " rdefstmt=" rdefstmt)
+	   (let ( (rvarprop (maptree_get treeprop rvar))
+		  (lvarprop (maptree_get treeprop lvar))
+		 )
+	     (debug "opengpu_affine_accessed_array rvarprop=" rvarprop " lvarprop=" lvarprop)
+	     (if rvarprop
+		 (if (null lvarprop)
+		     (let ( (newlvarprop
+			     (instance class_opengpu_linear_composition
+				       :opgpulc_inducvar rvarprop
+				       :opgpulc_gimple (make_gimple discr_gimple g)))
+			    )
+		       (compile_warning "opengpu_affine_accessed_array too simple rvarprop...")
+		       (debug "opengpu_affine_accessed_array newlvarprop=" newlvarprop)
+		       (maptree_put treeprop lvar newlvarprop)
+		     )))
+	     )
+	   )
 	 (?(gimple_assign_cast ?lhs ?rhs)
 	   (debug "opengpu_affine_accessed_array assign_cast lhs="  dbg_tree_briefly lhs
 		  "\n rhs="  dbg_tree_briefly rhs)
@@ -414,6 +440,7 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 	  (debug "opengpu_affine_accessed_array unexpected g=" g)
 	  (warning_at_gimple g "unexpected gimple for opengpu_affine_accessed_array")
 	  ))
+	(debug "opengpu_affine_accessed_array done gimple " g "\n\n")
 	)
        ))
     )
