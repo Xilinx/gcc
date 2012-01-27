@@ -1,4 +1,9 @@
 
+2011-01-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELTDBG_MAXDEPTH, melt_need_debug)
+	(melt_need_debug_limit): Defined significantly even without
+	MELT_HAVE_DEBUG!
+
 2011-01-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt (dbg_out): Compute maxdepth. Use a cond.
 

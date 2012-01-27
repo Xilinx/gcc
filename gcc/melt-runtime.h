@@ -189,31 +189,9 @@ extern int melt_flag_bootstrapping;
       fprintf(stderr,"!@%s:%d: %s **backtrace** ",		\
               lbasename(__FILE__), __LINE__, (Msg));		\
       melt_dbgbacktrace((Depth)); }} while(0)
-/* the maximal debug depth - should be a parameter */
-#define MELTDBG_MAXDEPTH 7
-static inline int 
-melt_need_debug (int depth) {
-  return 
-    melt_flag_debug && melt_dbgcounter>=melt_debugskipcount 
-    && depth >= 0 && depth < MELTDBG_MAXDEPTH;
-}
-
-static inline int 
-melt_need_debug_limit (int depth, int lim) {
-  return 
-    melt_flag_debug && melt_dbgcounter>=melt_debugskipcount 
-    && depth >= 0 && depth < lim;
-}
 
 #else /* !MELT_HAVE_DEBUG*/
 #define MELTDBG_MAXDEPTH 0
-static inline int
-melt_need_debug (int depth) 
-{ return depth != depth && 0; }
-
-static inline int
-melt_need_debug_limit (int depth, int lim) 
-{ return depth != depth && 0 && lim != lim; }
 
 #define debugeprintf_raw(Fmt,...) do{if (0) \
       {fprintf(stderr, Fmt, ##__VA_ARGS__); fflush(stderr);}}while(0)
@@ -242,6 +220,27 @@ melt_need_debug_limit (int depth, int lim)
               lbasename(__FILE__), __LINE__, (Msg));		\
       melt_dbgbacktrace((Depth)); }} while(0)
 #endif /*MELT_HAVE_DEBUG*/
+
+/* We need melt_need_debug and melt_need_debug_limit to work even
+   without MELT_HAVE_DEBUG. Otherwise dbg_out don't work as expected,
+   then a user module with debuggable flavor can't use the debug
+   macro from the warmelt-debug module in optimized flavor. */
+
+/* the maximal debug depth - should be a parameter */
+#define MELTDBG_MAXDEPTH 7
+static inline int 
+melt_need_debug (int depth) {
+  return 
+    melt_flag_debug && melt_dbgcounter>=melt_debugskipcount 
+    && depth >= 0 && depth < MELTDBG_MAXDEPTH;
+}
+
+static inline int 
+melt_need_debug_limit (int depth, int lim) {
+  return 
+    melt_flag_debug && melt_dbgcounter>=melt_debugskipcount 
+    && depth >= 0 && depth < lim;
+}
 
 /* unspecified flexible dimension in structure */
 #if defined(__STDC__) &&  __STDC__VERSION >= 199901L
