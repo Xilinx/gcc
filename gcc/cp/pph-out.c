@@ -2854,6 +2854,11 @@ pph_disable_output (void)
   pph_stream_close_no_flush (pph_out_stream);
   pph_out_file = NULL;
   pph_out_stream = NULL;
+
+  /* Also disable the reader.  We are not generating a PPH image anymore,
+     so it makes no sense to keep reading images.  FIXME pph, instead
+     of disabling PPH generation we may want to simply abort compilation.  */
+  pph_disable_reader ();
 }
 
 #include "gt-cp-pph-out.h"

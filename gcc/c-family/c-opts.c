@@ -140,6 +140,18 @@ pph_reader_enabled_p (void)
   return include_pph_mapping != NULL;
 }
 
+
+/* Disable PPH reading.  After this function is called, all subsequent
+   #include commands will be processed as textual includes.  */
+
+void
+pph_disable_reader (void)
+{
+  strstrmap_destroy (include_pph_mapping);
+  include_pph_mapping = NULL;
+}
+
+
 /* Add mappings from include directive to PPH files found within file FILENAME.
    The file is a sequence of lines.
    Each line contains the directive, followed by a tab,

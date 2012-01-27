@@ -1,5 +1,11 @@
 2012-01-27   Diego Novillo  <dnovillo@google.com>
 
+	* pph-core.c (pph_include_handler): If PPH has been disabled,
+	process the file as a regular text include.
+	* pph-out.c (pph_disable_output): Also disable the reader.
+
+2012-01-27   Diego Novillo  <dnovillo@google.com>
+
 	* pph-core.c (pph_stream_open): If STREAM exists and its mode
 	is different than the mode in which it was originally opened,
 	return NULL.

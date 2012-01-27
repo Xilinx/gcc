@@ -784,6 +784,11 @@ pph_include_handler (cpp_reader *reader,
       fprintf (pph_logfile, "%c\n", angle_brackets ? '>' : '"');
     }
 
+  /* If PPH has been disabled, process the #include as a regular
+     text include.  */
+  if (!pph_enabled_p ())
+    return true;
+
   /* If we find a #include_next directive in the primary file,
      refuse to generate a PPH image for it.  #include_next cannot
      be resolved from the primary source file, so generating an

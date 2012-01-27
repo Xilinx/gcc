@@ -590,6 +590,11 @@ extern const char *pph_out_file;
 extern bool
 pph_reader_enabled_p (void);
 
+/* Disable the PPH reader.  */
+
+extern void
+pph_disable_reader (void);
+
 /* Query for a mapping from an INCLUDE to a PPH file.
    Return the filename, without ownership.
    If there is no mapping, return null.  */
