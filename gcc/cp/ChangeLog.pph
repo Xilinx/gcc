@@ -1,3 +1,25 @@
+2012-01-26   Lawrence Crowl  <crowl@google.com>
+
+	* decl2.c (#include "pph.h"): New.
+	(pph_out_decl2_hidden_state): New.
+	(pph_in_decl2_hidden_state): New.
+	(pph_dump_decl2_hidden_state): New.
+	* Make-lang.in (cp/decl.o): Add dependence on $(CXX_PPH_H)
+	* pph.h (pph_dump_vec_tree): Externalize.
+	(pph_out_tree_vec): Externalize.
+	(pph_in_tree_vec): Externalize.
+	(pph_union_into_tree_vec): Externalize.
+	(pph_out_decl2_hidden_state): New.
+	(pph_in_decl2_hidden_state): New.
+	(pph_dump_decl2_hidden_state): New.
+	* pph-core.c (pph_dump_vec_tree): Externalize.
+	(pph_dump_global_state): Call pph_dump_decl2_hidden_state.
+	* pph-out.c (pph_out_tree_vec): Externalize.
+	(pph_write_file): Call pph_out_decl2_hidden_state.
+	* pph-in.c (pph_in_tree_vec): Externalize.
+	(pph_union_into_tree_vec): Externalize.
+	(pph_read_file_1): Call pph_in_decl2_hidden_state.
+
 2012-01-26   Diego Novillo  <dnovillo@google.com>
 
 	* pph-core.c (pph_loaded): Tidy.

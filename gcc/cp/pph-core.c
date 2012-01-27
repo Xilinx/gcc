@@ -273,7 +273,7 @@ pph_dump_binding (FILE *file, cp_binding_level *level)
 
 /* Dump a tree vec v for PPH.  */
 
-static void
+void
 pph_dump_vec_tree (FILE *file, VEC(tree,gc) *v)
 {
   unsigned i;
@@ -301,6 +301,7 @@ pph_dump_global_state (FILE *file, const char *msg)
   fprintf (file, "\nPPH: unemitted_tinfo_decls\n");
   pph_dump_vec_tree (file, unemitted_tinfo_decls);
   fprintf (file, "\nPPH: END GLOBAL STATE\n\n");
+  pph_dump_decl2_hidden_state (file);
 }
 
 

@@ -1,10 +1,19 @@
+2012-01-26   Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/x1tmplclass1.cc: Mark passing.
+	* g++.dg/pph/x1tmplclass2.cc: Mark okay.
+	* g++.dg/pph/x4tmplclass1.cc: Mark okay.
+	* g++.dg/pph/x4tmplclass2.cc: Change failure.
+	* g++.dg/pph/z4tmplclass1.cc: Change failure.
+	* g++.dg/pph/z4tmplclass2.cc: Change failure.
+
 2012-01-26   Diego Novillo  <dnovillo@google.com>
 
-	* x0multiple-include.h: New.
-	* x1multiple-include.h: New.
-	* x2multiple-include.h: New.
-	* x3multiple-include.h: New.
-	* x4multiple-include.cc: New.
+	* g++.dg/pph/x0multiple-include.h: New.
+	* g++.dg/pph/x1multiple-include.h: New.
+	* g++.dg/pph/x2multiple-include.h: New.
+	* g++.dg/pph/x3multiple-include.h: New.
+	* g++.dg/pph/x4multiple-include.cc: New.
 
 2012-01-24   Lawrence Crowl  <crowl@google.com>
 

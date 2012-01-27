@@ -683,7 +683,7 @@ pph_in_token_cache (pph_stream *stream)
 
 /* Read and return a gc VEC of trees from STREAM.  */
 
-static VEC(tree,gc) *
+VEC(tree,gc) *
 pph_in_tree_vec (pph_stream *stream)
 {
   HOST_WIDE_INT i, num;
@@ -782,7 +782,7 @@ pph_union_two_tree_vecs (VEC(tree,gc) *left, VEC(tree,gc) *right)
 /* Union FROM one tree vec with and INTO a tree vec.  The INTO argument will
    have an updated value.  The FROM argument is no longer valid.  */
 
-static void
+void
 pph_union_into_tree_vec (VEC(tree,gc) **into, VEC(tree,gc) *from)
 {
   if (!VEC_empty (tree, from))
@@ -3079,6 +3079,8 @@ pph_read_file_1 (pph_stream *stream)
 
   file_static_aggregates = pph_in_tree (stream);
   static_aggregates = chainon (file_static_aggregates, static_aggregates);
+
+  pph_in_decl2_hidden_state (stream);
 
   /* Read and process the symbol table.  */
   pph_in_symtab (stream);

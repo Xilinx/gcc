@@ -144,6 +144,7 @@ extern void pph_loaded (void);
 extern void pph_finish (void);
 extern void pph_dump_location (FILE *file, location_t loc);
 extern void pph_dump_tree_name (FILE *file, tree t, int flags);
+extern void pph_dump_vec_tree (FILE *file, VEC(tree,gc) *v);
 extern void pph_init_include_tree (void);
 extern void pph_dump_includes (FILE *, pph_stream *, unsigned);
 
@@ -151,6 +152,7 @@ extern void pph_dump_includes (FILE *, pph_stream *, unsigned);
 extern void pph_out_uint (pph_stream *stream, unsigned int value);
 extern void pph_out_location (pph_stream *stream, location_t loc);
 extern void pph_out_tree (pph_stream *stream, tree t);
+extern void pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v);
 extern void pph_out_record_marker (pph_stream *stream,
 			enum pph_record_marker marker, enum pph_tag tag);
 void pph_add_decl_to_symtab (tree, enum pph_symtab_action, bool, bool);
@@ -159,9 +161,16 @@ void pph_add_decl_to_symtab (tree, enum pph_symtab_action, bool, bool);
 extern unsigned int pph_in_uint (pph_stream *stream);
 extern location_t pph_in_location (pph_stream *stream);
 extern tree pph_in_tree (pph_stream *stream);
+extern VEC(tree,gc) *pph_in_tree_vec (pph_stream *stream);
+extern void pph_union_into_tree_vec (VEC(tree,gc) **into, VEC(tree,gc) *from);
 extern enum pph_record_marker pph_in_record_marker (pph_stream *stream,
 			enum pph_tag *tag_p);
 extern bool pph_files_read (void);
+
+/* In decl2.c.  */
+extern void pph_out_decl2_hidden_state (pph_stream *stream);
+extern void pph_in_decl2_hidden_state (pph_stream *stream);
+extern void pph_dump_decl2_hidden_state (FILE *file);
 
 /* In name-lookup.c.  */
 struct binding_table_s;

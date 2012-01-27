@@ -54,6 +54,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "splay-tree.h"
 #include "langhooks.h"
 #include "c-family/c-ada-spec.h"
+#include "pph.h"
 
 extern cpp_reader *parse_in;
 
@@ -4396,5 +4397,42 @@ mark_used (tree decl)
 
   return true;
 }
+
+
+/* Write out hidden global state to PPH STREAM.  */
+
+void
+pph_out_decl2_hidden_state (pph_stream *stream)
+{
+  pph_out_tree_vec (stream, pending_statics);
+  pph_out_tree_vec (stream, deferred_fns);
+  pph_out_tree_vec (stream, no_linkage_decls);
+}
+
+
+/* Read in hidden global state from PPH STREAM.  */
+
+void
+pph_in_decl2_hidden_state (pph_stream *stream)
+{
+  pph_union_into_tree_vec (&pending_statics, pph_in_tree_vec (stream));
+  pph_union_into_tree_vec (&deferred_fns, pph_in_tree_vec (stream));
+  pph_union_into_tree_vec (&no_linkage_decls, pph_in_tree_vec (stream));
+}
+
+
+/* Dump hidden global state.  */
+
+void
+pph_dump_decl2_hidden_state (FILE *file)
+{
+  fprintf (file, "\nPPH: pending_statics\n");
+  pph_dump_vec_tree (file, pending_statics);
+  fprintf (file, "\nPPH: deferred_fns\n");
+  pph_dump_vec_tree (file, deferred_fns);
+  fprintf (file, "\nPPH: no_linkage_decls\n");
+  pph_dump_vec_tree (file, no_linkage_decls);
+}
+
 
 #include "gt-cp-decl2.h"

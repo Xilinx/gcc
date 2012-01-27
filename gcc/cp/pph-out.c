@@ -983,7 +983,7 @@ vec2vec_filter (pph_stream *stream, VEC(tree,gc) *v, unsigned filter)
 
 /* Write all the trees in VEC V to STREAM.  */
 
-static void
+void
 pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
 {
   unsigned i;
@@ -2706,6 +2706,8 @@ pph_write_file (pph_stream *stream)
   pph_out_spec_entry_tables (stream);
 
   pph_out_tree (stream, static_aggregates);
+
+  pph_out_decl2_hidden_state (stream);
 
   /* Emit the symbol table.  */
   pph_out_symtab (stream);

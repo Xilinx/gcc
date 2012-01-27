@@ -1,5 +1,5 @@
-// pph asm xdiff 65352
-// xfail BOGUS DUPVAR DUPFUNC
+// pph asm xdiff 43522
+// xfail DUPVAR DUPFUNC
 
 #include "x0tmplclass13.h"
 #include "x0tmplclass14.h"
