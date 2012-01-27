@@ -1,3 +1,10 @@
+2012-01-27   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/pph.exp: Remove PPH images before running the tests.
+	* g++.dg/pph/x1circular.h: New.
+	* g++.dg/pph/x2circular.h: New.
+	* g++.dg/pph/x3circular.cc: New.
+
 2012-01-26   Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/x1tmplclass1.cc: Mark passing.

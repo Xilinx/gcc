@@ -41,6 +41,14 @@ exec echo "string.h	string.pph" >> pph.map
 
 set mapflag -fpph-map=pph.map
 
+# Remove all existing PPH images to prevent stale state issues.
+verbose "Removing existing PPH images" 0
+set pph_file_list "[glob -nocomplain *.pph]"
+foreach pph_file $pph_file_list {
+  remote_file build delete $pph_file
+}
+
+verbose "Running PPH tests" 0
 foreach scenario $scenarios {
 
     set old_dg_do_what_default "${dg-do-what-default}"

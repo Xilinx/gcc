@@ -1,3 +1,9 @@
+2012-01-27   Diego Novillo  <dnovillo@google.com>
+
+	* pph-core.c (pph_stream_open): If STREAM exists and its mode
+	is different than the mode in which it was originally opened,
+	return NULL.
+
 2012-01-26   Lawrence Crowl  <crowl@google.com>
 
 	* decl2.c (#include "pph.h"): New.

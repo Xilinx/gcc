@@ -1117,7 +1117,9 @@ pph_stream_unregister (pph_stream *stream)
 
 
 /* Create a new PPH stream to be stored on the file called NAME.
-   MODE is passed to fopen directly.  */
+   MODE is passed to fopen directly.  If NAME could not be opened,
+   return NULL to indicate to the caller that it should process NAME
+   as a regular text header.  */
 
 pph_stream *
 pph_stream_open (const char *name, const char *mode)
@@ -1130,6 +1132,15 @@ pph_stream_open (const char *name, const char *mode)
   stream = pph_stream_registry_lookup (name);
   if (stream)
     {
+      /* In a circular #include scenario, we will eventually try to
+	 read from the same PPH image that we are generating.  To
+	 avoid that problem, detect circularity and return NULL to
+	 force the caller to process NAME as a regular text header.  */
+      if (stream->write_p && strchr (mode, 'r') != NULL)
+	return NULL;
+
+      /* Otherwise, assert that we have read (or are reading) STREAM
+	 and return it.  */
       gcc_assert (stream->in_memory_p);
       return stream;
     }
