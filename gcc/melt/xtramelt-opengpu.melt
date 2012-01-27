@@ -2,7 +2,7 @@
 ;; file xtramelt-opengpu.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2010, 2011 Free Software Foundation, Inc.
+    Copyright 2010, 2011, 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
     [funded within OpenGPU french project: http://opengpu.net/ ]
 
@@ -173,7 +173,9 @@
 
 (defclass class_opengpu_linear_composition
   :super class_proped
-  :doc #{Class representing linear composition of OpenGpu induction variables, with $OPGPULC_INDUCVAR being the induction variable of $CLASS_OPENGPU_INDUCTION_VARIABLE and $OPGPULC_GIMPLE the gimple making it.}#
+  :doc #{Class representing linear composition of OpenGpu induction variables,
+with $OPGPULC_INDUCVAR being the induction variable of $CLASS_OPENGPU_INDUCTION_VARIABLE 
+and $OPGPULC_GIMPLE the gimple making it.}#
   :fields (opgpulc_inducvar opgpulc_gimple)
 )
 
@@ -215,9 +217,9 @@
        (match gimplastsrc
 	      ( ?(gimple_cond_lessequal ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers))
 					?(and ?rhs ?(tree_simple_ssa_name ?rvar ?rvers)))
-		 (debug "opengpu_candidate_induction_variables last <= lvar=" lvar
+		 (debug "opengpu_candidate_induction_variables last <= lvar=" dbg_tree_briefly lvar
 			" lvers=" lvers " lhs=" lhs
-			" rvar=" rvar " rvers=" rvers " rhs=" rhs)
+			" rvar=" dbg_tree_briefly rvar " rvers=" rvers " rhs=" rhs)
 		 (let ( (incrtup (opengpu_increment_ssaname () lhs))
 			)
 		   (multicall 
@@ -240,7 +242,7 @@
 		    )))
 	      ( ?(gimple_cond_lessequal ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers))
 					?(tree_integer_cst ?rlim))
-		 (debug "opengpu_candidate_induction_variables last <= lvar=" lvar
+		 (debug "opengpu_candidate_induction_variables last <= lvar=" dbg_tree_briefly lvar
 			" lvers=" lvers " const rlim=" rlim)
 		 (let ( (incrtup (opengpu_increment_ssaname () lhs))
 			)
@@ -248,7 +250,7 @@
 		    (minv maxv)
 		    (mini+maxi_increment incrtup)
 		    (debug "opengpu_candidate_induction_variables gave incrtup=" incrtup
-			   " minv=" minv " maxv=" maxv " lvar=" lvar)
+			   " minv=" minv " maxv=" maxv " lvar=" dbg_tree_briefly lvar)
 		    (if (>iv minv '0)
 			(let ( (newiv (instance class_opengpu_induction_variable
 						:opgpuiv_tvar (make_tree discr_tree lvar)
@@ -264,15 +266,15 @@
 		    )))
 	      ( ?(gimple_cond_less ?(and ?lhs ?(tree_simple_ssa_name ?lvar ?lvers))
 				   ?(tree_simple_ssa_name ?rvar ?rvers))
-		 (debug "opengpu_candidate_induction_variables last < lvar=" lvar
-			" lvers=" lvers " rvar=" rvar " rvers=" rvers)
+		 (debug "opengpu_candidate_induction_variables last < lvar=" dbg_tree_briefly lvar
+			" lvers=" lvers " rvar=" dbg_tree_briefly rvar " rvers=" rvers)
 		 (let ( (incrtup (opengpu_increment_ssaname () lhs))
 			)
 		   (multicall 
 		    (minv maxv)
 		    (mini+maxi_increment incrtup)
 		    (debug "opengpu_candidate_induction_variables gave incrtup=" incrtup
-			   " minv=" minv " maxv=" maxv " lvar=" lvar)
+			   " minv=" minv " maxv=" maxv " lvar=" dbg_tree_briefly lvar)
 		    (if (>iv minv '0)
 			(let ( (newiv (instance class_opengpu_induction_variable
 						:opgpuiv_tvar (make_tree discr_tree lvar)
@@ -358,39 +360,52 @@
 	(match 
 	 g
 	 (?(gimple_assign_single ?(tree_mem_ref ?lptr ?loff)  ?(tree_mem_ref ?rptr ?roff))
-	   (debug "opengpu_affine_accessed_array assign_single/both.memref lptr=" lptr " loff=" loff
-		  "\n rptr=" rptr " roff=" roff)
+	   (debug "opengpu_affine_accessed_array assign_single/both.memref lptr="  dbg_tree_briefly lptr 
+		  " loff="  dbg_tree_briefly  loff
+		  "\n rptr="  dbg_tree_briefly rptr " roff="  dbg_tree_briefly roff)
 	   )
 	 (?(gimple_assign_single ?(tree_mem_ref ?lptr ?loff) ?rhs)
-	   (debug "opengpu_affine_accessed_array assign_single/left.memref lptr=" lptr " loff=" loff "\n rhs=" rhs)
+	   (debug "opengpu_affine_accessed_array assign_single/left.memref lptr="  dbg_tree_briefly lptr 
+		  " loff="  dbg_tree_briefly loff 
+		  "\n rhs="  dbg_tree_briefly rhs)
 	   )
 	 (?(gimple_assign_single ?lhs ?(tree_mem_ref ?rptr ?roff))
-	   (debug "opengpu_affine_accessed_array assign_single/right.memref lhs=" lhs " rptr=" rptr " roff=" roff)
+	   (debug "opengpu_affine_accessed_array assign_single/right.memref lhs="
+		  dbg_tree_briefly  dbg_tree_briefly lhs " rptr="  dbg_tree_briefly rptr
+		  " roff="  dbg_tree_briefly roff)
 	   )
 	 (?(gimple_assign_single ?lhs ?rhs)
-	   (debug "opengpu_affine_accessed_array assign_single lhs=" lhs "\n rhs=" rhs)
+	   (debug "opengpu_affine_accessed_array assign_single lhs="   dbg_tree_briefly lhs
+		  "\n rhs="   dbg_tree_briefly rhs)
 	   )
 	 (?(gimple_assign_cast ?(tree_mem_ref ?lptr ?loff)  ?(tree_mem_ref ?rptr ?roff))
-	   (debug "opengpu_affine_accessed_array assign_cast/both.memref lptr=" lptr " loff=" loff
-		  "\n rptr=" rptr " roff=" roff)
+	   (debug "opengpu_affine_accessed_array assign_cast/both.memref lptr="  dbg_tree_briefly lptr
+		  " loff="  dbg_tree_briefly loff
+		  "\n rptr="  dbg_tree_briefly rptr " roff="  dbg_tree_briefly roff)
 	   )
 	 (?(gimple_assign_cast ?(tree_mem_ref ?lptr ?loff)  ?rhs)
-	   (debug "opengpu_affine_accessed_array assign_cast/left.memref lptr=" lptr " loff=" loff "\n rhs=" rhs)
+	   (debug "opengpu_affine_accessed_array assign_cast/left.memref lptr="  dbg_tree_briefly lptr
+		  " loff="  dbg_tree_briefly loff "\n rhs="  dbg_tree_briefly rhs)
 	   )
 	 (?(gimple_assign_cast ?lhs ?(tree_mem_ref ?rptr ?roff))
-	   (debug "opengpu_affine_accessed_array assign_cast/right.memref lhs=" lhs " rptr=" rptr " roff=" roff)
+	   (debug "opengpu_affine_accessed_array assign_cast/right.memref lhs="   dbg_tree_briefly lhs
+		  " rptr="  dbg_tree_briefly rptr " roff="  dbg_tree_briefly roff)
 	   )
 	 (?(gimple_assign_cast ?lhs ?rhs)
-	   (debug "opengpu_affine_accessed_array assign_cast lhs=" lhs "\n rhs=" rhs)
+	   (debug "opengpu_affine_accessed_array assign_cast lhs="  dbg_tree_briefly lhs
+		  "\n rhs="  dbg_tree_briefly rhs)
 	   )
 	 (?(gimple_assign_plus ?lhs ?rhs1 ?rhs2)
-	   (debug "opengpu_affine_accessed_array assign_plus lhs=" lhs "\n rhs1=" rhs1 "\n rhs2=" rhs2)
+	   (debug "opengpu_affine_accessed_array assign_plus lhs="   dbg_tree_briefly lhs
+		  "\n rhs1="   dbg_tree_briefly rhs1 "\n rhs2="   dbg_tree_briefly rhs2)
 	   )
 	 (?(gimple_assign_mult ?lhs ?rhs1 ?rhs2)
-	   (debug "opengpu_affine_accessed_array assign_mult lhs=" lhs "\n rhs1=" rhs1 "\n rhs2=" rhs2)
+	   (debug "opengpu_affine_accessed_array assign_mult lhs="  dbg_tree_briefly lhs 
+		  "\n rhs1="   dbg_tree_briefly rhs1 "\n rhs2="   dbg_tree_briefly rhs2)
 	   )
 	 (?(gimple_assign_pointerplus ?lhs ?rhs1 ?rhs2)
-	   (debug "opengpu_affine_accessed_array assign_pointerplus lhs=" lhs "\n rhs1=" rhs1 "\n rhs2=" rhs2)
+	   (debug "opengpu_affine_accessed_array assign_pointerplus lhs="   dbg_tree_briefly lhs 
+		  "\n rhs1="  dbg_tree_briefly rhs1 "\n rhs2="  dbg_tree_briefly rhs2)
 	   )
 	 (?(gimple_cond_with_edges ?edtrue ?edfalse)
 	   (debug "opengpu_affine_accessed_array gimple_cond_with_edges edtrue=" edtrue "\n edfalse=" edfalse)
