@@ -2,7 +2,7 @@
    MELT header melt-runtime.h
    [[middle end lisp translator, see http://gcc.gnu.org/wiki/MELT or
    www.gcc-melt.org ]]
-   Copyright (C)  2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+   Copyright (C)  2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
    and Pierre Vittet <piervit@pvittet.com>
 
