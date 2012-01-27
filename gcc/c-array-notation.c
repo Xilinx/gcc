@@ -1379,7 +1379,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 {
   tree new_var_type = NULL_TREE, func_parm, new_expr, new_yes_expr, new_no_expr;
   tree array_ind_value = NULL_TREE, new_no_ind, new_yes_ind, new_no_list;
-  tree new_yes_list, new_cond_expr, new_var_init, new_exp_init;
+  tree new_yes_list, new_cond_expr, new_var_init, new_exp_init = NULL_TREE;
   an_reduce_type an_type = REDUCE_UNKNOWN;
   tree *array_list = NULL;
   int list_size = 0;
