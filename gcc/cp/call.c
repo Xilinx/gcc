@@ -6594,9 +6594,14 @@ build_over_call (struct z_candidate *cand, int flags,
 
   /* Default arguments */
   for (; parm && parm != void_list_node; parm = TREE_CHAIN (parm), i++)
-    argarray[j++] = convert_default_arg (TREE_VALUE (parm),
-					 TREE_PURPOSE (parm),
-					 fn, i - is_method);
+    {
+      if (TREE_VALUE (parm) == error_mark_node)
+	return error_mark_node;
+      argarray[j++] = convert_default_arg (TREE_VALUE (parm),
+					   TREE_PURPOSE (parm),
+					   fn, i - is_method);
+    }
+
   /* Ellipsis */
   for (; arg_index < VEC_length (tree, args); ++arg_index)
     {

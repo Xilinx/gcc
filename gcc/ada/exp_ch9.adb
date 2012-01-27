@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -8878,7 +8878,8 @@ package body Exp_Ch9 is
    --    Target.Primitive (Param1, ..., ParamN);
 
    --  Ada 2012 (AI05-0030): Dispatching requeue to an interface primitive
-   --  marked by pragma Implemented (XXX, By_Any) or not marked at all.
+   --  marked by pragma Implemented (XXX, By_Any | Optional) or not marked
+   --  at all.
 
    --    declare
    --       S : constant Offset_Index :=
@@ -8923,9 +8924,9 @@ package body Exp_Ch9 is
       function Build_Dispatching_Requeue_To_Any return Node_Id;
       --  Ada 2012 (AI05-0030): N denotes a dispatching requeue statement of
       --  the form Concval.Ename. Ename is either marked by pragma Implemented
-      --  (XXX, By_Any) or not marked at all. Create a block which determines
-      --  at runtime whether Ename denotes an entry or a procedure and perform
-      --  the appropriate kind of dispatching select.
+      --  (XXX, By_Any | Optional) or not marked at all. Create a block which
+      --  determines at runtime whether Ename denotes an entry or a procedure
+      --  and perform the appropriate kind of dispatching select.
 
       function Build_Normal_Requeue return Node_Id;
       --  N denotes a non-dispatching requeue statement to either a task or a
@@ -9090,10 +9091,26 @@ package body Exp_Ch9 is
          --  Generate:
          --    _Disp_Requeue (<Params>);
 
-         return
-           Make_Procedure_Call_Statement (Loc,
-             Name => Make_Identifier (Loc, Name_uDisp_Requeue),
-             Parameter_Associations => Params);
+         --  Find entity for Disp_Requeue operation, which belongs to
+         --  the type and may not be directly visible.
+
+         declare
+            Elmt : Elmt_Id;
+            Op   : Entity_Id;
+
+         begin
+            Elmt := First_Elmt (Primitive_Operations (Etype (Conc_Typ)));
+            while Present (Elmt) loop
+               Op := Node (Elmt);
+               exit when Chars (Op) = Name_uDisp_Requeue;
+               Next_Elmt (Elmt);
+            end loop;
+
+            return
+              Make_Procedure_Call_Statement (Loc,
+                Name                   => New_Occurrence_Of (Op, Loc),
+                Parameter_Associations => Params);
+         end;
       end Build_Dispatching_Requeue;
 
       --------------------------------------
@@ -9366,6 +9383,16 @@ package body Exp_Ch9 is
       Extract_Entry (N, Concval, Ename, Index);
       Conc_Typ := Etype (Concval);
 
+      --  If the prefix is an access to class-wide type, dereference to get
+      --  object and entry type.
+
+      if Is_Access_Type (Conc_Typ) then
+         Conc_Typ := Designated_Type (Conc_Typ);
+         Rewrite (Concval,
+           Make_Explicit_Dereference (Loc, Relocate_Node (Concval)));
+         Analyze_And_Resolve (Concval, Conc_Typ);
+      end if;
+
       --  Examine the scope stack in order to find nearest enclosing protected
       --  or task type. This will constitute our invocation source.
 
@@ -9419,9 +9446,10 @@ package body Exp_Ch9 is
                Analyze (N);
 
             --  The procedure_or_entry_NAME's implementation kind is either
-            --  By_Any or pragma Implemented was not applied at all. In this
-            --  case a runtime test determines whether Ename denotes an entry
-            --  or a protected procedure and performs the appropriate call.
+            --  By_Any, Optional, or pragma Implemented was not applied at all.
+            --  In this case a runtime test determines whether Ename denotes an
+            --  entry or a protected procedure and performs the appropriate
+            --  call.
 
             else
                Rewrite (N, Build_Dispatching_Requeue_To_Any);

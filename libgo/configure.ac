@@ -33,6 +33,8 @@ AC_SUBST(CFLAGS)
 
 AM_MAINTAINER_MODE
 
+AC_INCLUDES_DEFAULT
+
 AC_PROG_LD
 AC_PROG_RANLIB
 AC_CHECK_TOOL(OBJCOPY, objcopy, missing-objcopy)
@@ -451,7 +453,7 @@ no)
   ;;
 esac
 
-AC_CHECK_HEADERS(sys/mman.h syscall.h sys/epoll.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h sys/socket.h net/if.h)
+AC_CHECK_HEADERS(sys/mman.h syscall.h sys/epoll.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h sys/socket.h net/if.h sys/prctl.h)
 
 AC_CHECK_HEADERS([linux/filter.h linux/netlink.h linux/rtnetlink.h], [], [],
 [#ifdef HAVE_SYS_SOCKET_H
@@ -464,6 +466,9 @@ AM_CONDITIONAL(HAVE_SYS_MMAN_H, test "$ac_cv_header_sys_mman_h" = yes)
 AC_CHECK_FUNCS(strerror_r strsignal wait4 mincore setenv)
 AM_CONDITIONAL(HAVE_STRERROR_R, test "$ac_cv_func_strerror_r" = yes)
 AM_CONDITIONAL(HAVE_WAIT4, test "$ac_cv_func_wait4" = yes)
+
+AC_CHECK_FUNCS(epoll_create1 faccessat fchmodat fchownat futimesat inotify_add_watch inotify_init inotify_rm_watch mkdirat mknodat openat renameat splice tee unlinkat unshare)
+AC_CHECK_TYPES([loff_t])
 
 CFLAGS_hold="$CFLAGS"
 CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
@@ -519,7 +524,7 @@ AC_SUBST(STRINGOPS_FLAG)
 
 CFLAGS_hold=$CFLAGS
 CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE"
-AC_CHECK_TYPES(off64_t)
+AC_CHECK_TYPES([off64_t])
 CFLAGS=$CFLAGS_hold
 
 dnl Work out the size of the epoll_events struct on GNU/Linux.

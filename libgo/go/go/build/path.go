@@ -105,14 +105,14 @@ func FindTree(path string) (tree *Tree, pkg string, err error) {
 				continue
 			}
 			tree = t
-			pkg = path[len(tpath):]
+			pkg = filepath.ToSlash(path[len(tpath):])
 			return
 		}
 		err = fmt.Errorf("path %q not inside a GOPATH", path)
 		return
 	}
 	tree = defaultTree
-	pkg = path
+	pkg = filepath.ToSlash(path)
 	for _, t := range Path {
 		if t.HasSrc(pkg) {
 			tree = t
@@ -157,6 +157,7 @@ func init() {
 		Path = []*Tree{t}
 	}
 
+Loop:
 	for _, p := range filepath.SplitList(os.Getenv("GOPATH")) {
 		if p == "" {
 			continue
@@ -166,6 +167,21 @@ func init() {
 			log.Printf("invalid GOPATH %q: %v", p, err)
 			continue
 		}
+
+		// Check for dupes.
+		// TODO(alexbrainman): make this correct under windows (case insensitive).
+		for _, t2 := range Path {
+			if t2.Path != t.Path {
+				continue
+			}
+			if t2.Goroot {
+				log.Printf("GOPATH is the same as GOROOT: %q", t.Path)
+			} else {
+				log.Printf("duplicate GOPATH entry: %q", t.Path)
+			}
+			continue Loop
+		}
+
 		Path = append(Path, t)
 		gcImportArgs = append(gcImportArgs, "-I", t.PkgDir())
 		ldImportArgs = append(ldImportArgs, "-L", t.PkgDir())

@@ -1118,6 +1118,8 @@ add_method (tree type, tree method, tree using_decl)
 
   /* Add the new binding.  */
   overload = build_overload (method, current_fns);
+  if (using_decl && TREE_CODE (overload) == OVERLOAD)
+    OVL_USED (overload) = true;
 
   if (conv_p)
     TYPE_HAS_CONVERSION (type) = 1;
@@ -4428,7 +4430,12 @@ set_method_tm_attributes (tree t)
       tree vchain;
       for (vchain = BINFO_VIRTUALS (TYPE_BINFO (t)); vchain;
 	   vchain = TREE_CHAIN (vchain))
-	set_one_vmethod_tm_attributes (t, BV_FN (vchain));
+	{
+	  fndecl = BV_FN (vchain);
+	  if (DECL_THUNK_P (fndecl))
+	    fndecl = THUNK_TARGET (fndecl);
+	  set_one_vmethod_tm_attributes (t, fndecl);
+	}
     }
 
   /* If the class doesn't have an attribute, nothing more to do.  */
