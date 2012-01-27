@@ -1,3 +1,10 @@
+2012-01-26  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-array-notation.c (extract_array_notation_exprs): Added a check
+	to see if the call expr is sec_implicit_index function.
+	(replace_array_notations): Likewise.
+	(build_x_array_notation_expr): Likewise.
+
 2012-01-22  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cp-array-notation.c (is_builtin_array_notation_fn): Initialized

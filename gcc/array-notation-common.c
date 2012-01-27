@@ -38,6 +38,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "dwarf2out.h"
 
+int extract_sec_implicit_index_arg (tree);
+bool is_sec_implicit_index_fn (tree);
+void array_notation_init_builtins (void);
+
 static void
 mark_cold (tree fndecl)
 {
@@ -97,5 +101,62 @@ array_notation_init_builtins (void)
   new_func = build_fn_decl ("__sec_reduce_max_ind", func_type);
   mark_cold (new_func);
   new_func = lang_hooks.decls.pushdecl (new_func);
+
+  func_type = build_function_type_list (integer_type_node, integer_type_node,
+					NULL_TREE);
+  new_func = build_fn_decl ("__sec_implicit_index", func_type);
+  mark_cold (new_func);
+  new_func = lang_hooks.decls.pushdecl (new_func);
+  
   return;
+}
+
+bool
+is_sec_implicit_index_fn (tree func_name)
+{
+  const char *function_name = NULL;
+
+  if (!func_name)
+    return false;
+  
+  if (TREE_CODE (func_name) == IDENTIFIER_NODE)
+    function_name = IDENTIFIER_POINTER (func_name);
+  else if (TREE_CODE (func_name) == ADDR_EXPR)
+    {
+      func_name = TREE_OPERAND (func_name, 0);
+      if (TREE_CODE (func_name) == FUNCTION_DECL)
+	if (DECL_NAME (func_name))
+	  function_name = IDENTIFIER_POINTER (DECL_NAME (func_name));
+    }
+
+  if (!function_name)
+    return false;
+  else if (!strcmp (function_name, "__sec_implicit_index"))
+    return true;
+  else
+    return false;
+}
+
+int
+extract_sec_implicit_index_arg (tree fn)
+{
+  tree fn_arg;
+  HOST_WIDE_INT return_int = 0;
+  if (!fn)
+    return -1;
+
+  if (TREE_CODE (fn) == CALL_EXPR)
+    {
+      fn_arg = CALL_EXPR_ARG (fn, 0);
+      if (really_constant_p (fn_arg))
+	return_int = (int)int_cst_value (fn_arg);
+      else
+	{
+	  error ("__sec_implicit_index parameter must be constant integer "
+		 "expression");
+	  error ("Bailing out due to previous error");
+	  exit (ICE_EXIT_CODE);
+	}
+    }
+  return return_int;
 }

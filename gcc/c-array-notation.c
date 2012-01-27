@@ -47,7 +47,8 @@ struct c_expr fix_array_notation_expr (location_t, enum tree_code,
 static bool is_builtin_array_notation_fn (tree func_name, an_reduce_type *type);
 static tree fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var);
 bool contains_array_notation_expr (tree expr);
-
+extern bool is_sec_implicit_index_fn (tree);
+extern int extract_sec_implicit_index_arg (tree fn);
 /* This function is to find the rank of an array notation expression.
  * For example, an array notation of A[:][:] has a rank of 2.
  */
@@ -159,6 +160,18 @@ extract_array_notation_exprs (tree node, bool ignore_builtin_fn,
 	      return;
 	    }
 	}
+      if (is_sec_implicit_index_fn (CALL_EXPR_FN (node)))
+	{
+	  ii = *list_size;
+	  new_array_list = (tree *) xrealloc (*array_list, (ii + 1) *
+					      sizeof (tree));
+	  gcc_assert (new_array_list);
+	  new_array_list[ii] = node;
+	  ii++;
+	  *list_size = ii;
+	  *array_list = new_array_list;
+	  return;
+	}
       if (TREE_CODE (TREE_OPERAND (node, 0)) == INTEGER_CST)
 	{
 	  int length = TREE_INT_CST_LOW (TREE_OPERAND (node, 0));
@@ -220,6 +233,15 @@ replace_array_notations (tree *orig, bool ignore_builtin_fn, tree *list,
 		  if (*orig == list[ii])
 		    *orig = array_operand[ii];
 		}
+	    }
+	  return;
+	}
+      if (is_sec_implicit_index_fn (CALL_EXPR_FN (*orig)))
+	{
+	  for (ii = 0; ii < array_size; ii++)
+	    {
+	      if (*orig == list[ii])
+		*orig = array_operand[ii];
 	    }
 	  return;
 	}
@@ -324,19 +346,8 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
 	  return NULL_TREE;
 	}
     }
-
-  
-
-  /* if (TREE_CODE (rhs) == CALL_EXPR) */
-  /*   { */
-  /*     if (is_builtin_array_notation_fn (CALL_EXPR_FN (rhs), &type)) */
-  /* 	{ */
-  /* 	  loop = build_reduce_expr (location, lhs, lhs_origtype, modifycode, */
-  /* 				    rhs_loc, rhs, rhs_origtype); */
-  /* 	  return loop; */
-  /* 	} */
-  /*   } */
-  
+  rhs_list_size = 0;
+  rhs_list = NULL;
   extract_array_notation_exprs (rhs, true, &rhs_list, &rhs_list_size);
   
   if (lhs_rank == 0 && rhs_rank != 0)
@@ -624,12 +635,60 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
 		}
 	    }
 	}
+
+      for (ii = 0; ii < rhs_list_size; ii++)
+	{
+	  if (TREE_CODE (rhs_list[ii]) == CALL_EXPR)
+	    {
+	      int idx_value = 0;
+	      tree func_name = CALL_EXPR_FN (rhs_list[ii]);
+	      if (TREE_CODE (func_name) == ADDR_EXPR)
+		if (is_sec_implicit_index_fn (func_name))
+		  {
+		    idx_value = extract_sec_implicit_index_arg (rhs_list[ii]);
+		    if (idx_value < lhs_rank && idx_value >= 0)
+		      rhs_array_operand[ii] = lhs_var[idx_value];
+		    else
+		      {
+			error ("__sec_implicit_index parameter must be less "
+			       " than the rank of the Left Hand Side expr. ");
+			error ("Bailing out due to the previous error.");
+			exit (ICE_EXIT_CODE);
+		      }
+		  }  
+	    }
+	}
+		  
       replace_array_notations (&rhs, true, rhs_list, rhs_array_operand,
 			       rhs_list_size);
       array_expr_rhs = rhs;
     }
   else
     {
+      for (ii = 0; ii < rhs_list_size; ii++)
+	{
+	  if (TREE_CODE (rhs_list[ii]) == CALL_EXPR)
+	    {
+	      int idx_value = 0;
+	      tree func_name = CALL_EXPR_FN (rhs_list[ii]);
+	      if (TREE_CODE (func_name) == ADDR_EXPR)
+		if (is_sec_implicit_index_fn (func_name))
+		  {
+		    idx_value = extract_sec_implicit_index_arg (rhs_list[ii]);
+		    if (idx_value < lhs_rank && idx_value >= 0)
+		      rhs_array_operand[ii] = lhs_var[idx_value];
+		    else
+		      {
+			error ("__sec_implicit_index parameter must be less "
+			       " than the rank of the Left Hand Side expr. ");
+			error ("Bailing out due to the previous error.");
+			exit (ICE_EXIT_CODE);
+		      }
+		  }  
+	    }
+	}
+      replace_array_notations (&rhs, true, rhs_list, rhs_array_operand,
+			       rhs_list_size);
       array_expr_rhs = rhs;
       rhs_expr_incr[0] = NULL_TREE;
     }

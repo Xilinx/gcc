@@ -1,3 +1,14 @@
+2012-01-26  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* array-notation-common.c (array_notation_init_builtins): Added the
+	internal array notation function "__sec_reduce_implicit_index."
+	(is_sec_implicit_index_fn): New function.
+	(extract_sec_implicit_index_arg): Likewise.
+	* c-array-notation.c (extract_array_notation_exprs): Added a check to
+	see if we encountered sec_implicit_index function.
+	(replace_array_notations): Likewise.
+	(build_array_notation_expr): Likewise.
+
 2012-01-25  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-array-notation.c (replace_array_notations): Added a new bool as
