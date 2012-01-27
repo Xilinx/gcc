@@ -371,7 +371,7 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 	   )
 	 (?(gimple_assign_single ?lhs ?(tree_mem_ref ?rptr ?roff))
 	   (debug "opengpu_affine_accessed_array assign_single/right.memref lhs="
-		  dbg_tree_briefly  dbg_tree_briefly lhs " rptr="  dbg_tree_briefly rptr
+		  dbg_tree_briefly  lhs " rptr="  dbg_tree_briefly rptr
 		  " roff="  dbg_tree_briefly roff)
 	   )
 	 (?(gimple_assign_single ?lhs ?rhs)
@@ -560,7 +560,7 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 )
 
 (defun opengpudetect_exec (pass)
-  (debug "opengpudetect_exec start pass=" pass " dbg_tree_briefly=" dbg_tree_briefly)
+  (debug "opengpudetect_exec start pass=" pass)
   (let ( (:long passcounter 0)
 	 )
     (code_chunk 
@@ -582,7 +582,7 @@ and $OPGPULC_GIMPLE the gimple making it.}#
     (with_cfun_decl
      ()
      (:tree fundecl)
-     (debug "opengpudetect_exec fundecl=" fundecl)
+     (debug "opengpudetect_exec fundecl=" fundecl "\n\n")
      (let ( (fundeclval (make_tree discr_tree fundecl)) 
 	    (gpudata (instance class_opengpu_data
 			       :opengpu_passcount (make_integerbox discr_constant_integer passcounter)
@@ -596,7 +596,7 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 	(debug "opengpudetect_exec bb=" bb)
 	)
 ;;;
-       (debug "opengpudetect_exec after each_bb_cfun before each_loop fundecl=" fundecl)
+       (debug "opengpudetect_exec after each_bb_cfun before each_loop fundecl=" dbg_tree_briefly fundecl)
        (each_loop 
 	()
 	(:loop curloop :long loopix)
@@ -616,7 +616,7 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 	)
        ;;
        (debug "opengpudetect_exec end pass=" pass " passcounter=" passcounter
-	      " fundecl=" fundecl)
+	      " fundecl=" dbg_tree_briefly fundecl)
        (return :true)
        ))))
 
