@@ -62,6 +62,7 @@ static tree lookup_destructor (tree, tree, tree);
 static void warn_args_num (location_t, tree, bool);
 static int convert_arguments (tree, VEC(tree,gc) **, tree, int,
                               tsubst_flags_t);
+extern bool contains_array_notation_expr (tree);
 
 /* Do `exp = require_complete_type (exp);' to make sure exp
    does not have an incomplete type.  (That includes void types.)
@@ -7393,6 +7394,9 @@ convert_for_assignment (tree type, tree rhs,
 {
   tree rhstype;
   enum tree_code coder;
+  
+  if (flag_enable_cilk && contains_array_notation_expr (rhs))
+    return rhs;
 
   /* Strip NON_LVALUE_EXPRs since we aren't using as an lvalue.  */
   if (TREE_CODE (rhs) == NON_LVALUE_EXPR)

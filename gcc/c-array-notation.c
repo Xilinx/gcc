@@ -1379,7 +1379,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 {
   tree new_var_type = NULL_TREE, func_parm, new_expr, new_yes_expr, new_no_expr;
   tree array_ind_value = NULL_TREE, new_no_ind, new_yes_ind, new_no_list;
-  tree new_yes_list, new_cond_expr, new_var_init;
+  tree new_yes_list, new_cond_expr, new_var_init, new_exp_init;
   an_reduce_type an_type = REDUCE_UNKNOWN;
   tree *array_list = NULL;
   int list_size = 0;
@@ -1719,6 +1719,9 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_var_init = build_modify_expr
 	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 UNKNOWN_LOCATION, build_zero_cst (new_var_type), new_var_type);
+      new_exp_init = build_modify_expr
+	(UNKNOWN_LOCATION, array_ind_value, TREE_TYPE (array_ind_value),
+	 NOP_EXPR, UNKNOWN_LOCATION, func_parm, TREE_TYPE (func_parm));
       new_no_ind = build_modify_expr
 	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var));
@@ -1766,6 +1769,9 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_var_init = build_modify_expr
 	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 UNKNOWN_LOCATION, build_zero_cst (new_var_type), new_var_type);
+      new_exp_init = build_modify_expr
+	(UNKNOWN_LOCATION, array_ind_value, TREE_TYPE (array_ind_value),
+	 NOP_EXPR, UNKNOWN_LOCATION, func_parm, TREE_TYPE (func_parm));
       new_no_ind = build_modify_expr
 	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var));
@@ -1817,12 +1823,12 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   for (ii = 0; ii < rank; ii++)
     append_to_statement_list (ind_init [ii], &loop);
 
+  if (an_type == REDUCE_MAX_INDEX || an_type == REDUCE_MIN_INDEX)
+    append_to_statement_list (new_exp_init, &loop);
   append_to_statement_list (new_var_init, &loop);
   
   for (ii = 0; ii < rank; ii++)
     {
-      /* append_to_statement_list (ind_init [ii], &loop); */
-
       append_to_statement_list
 	(build1 (LABEL_EXPR, void_type_node, if_stmt_label[ii]), &loop);
       append_to_statement_list

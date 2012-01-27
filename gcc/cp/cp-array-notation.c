@@ -1294,7 +1294,8 @@ static tree
 fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 {
   tree new_var_type = NULL_TREE, func_parm, new_expr, new_yes_expr, new_no_expr;
-  tree new_var_init;
+  tree array_ind_value = NULL_TREE, new_no_ind, new_yes_ind, new_no_list;
+  tree new_yes_list, new_cond_expr, new_var_init, new_exp_init;
   an_reduce_type an_type = REDUCE_UNKNOWN;
   tree *array_list = NULL;
   int list_size = 0;
@@ -1538,55 +1539,55 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 
   *new_var = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE, new_var_type);
   gcc_assert (*new_var);
+  if (an_type == REDUCE_MAX_INDEX || an_type == REDUCE_MIN_INDEX)
+    array_ind_value = build_decl
+      (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE, TREE_TYPE (func_parm));
 
   switch (an_type)
     {
     case REDUCE_ADD:
       new_var_init = build_x_modify_expr
-	(*new_var, NOP_EXPR, build_int_cst (new_var_type, 0), 1);
+	(*new_var, NOP_EXPR, build_zero_cst (new_var_type), 1);
       new_expr = build_x_modify_expr (*new_var, PLUS_EXPR, func_parm, 1);
       break;
     case REDUCE_MUL:
       new_var_init = build_x_modify_expr
-	(*new_var, NOP_EXPR, build_int_cst (new_var_type, 1), 1);
+	(*new_var, NOP_EXPR, build_one_cst (new_var_type), 1);
       new_expr = build_x_modify_expr (*new_var, MULT_EXPR, func_parm, 1);
       break;
     case REDUCE_ALL_ZEROS:
       new_var_init = build_x_modify_expr
-	(*new_var, NOP_EXPR, build_int_cst (new_var_type, 1), 1);
+	(*new_var, NOP_EXPR, build_one_cst (new_var_type), 1);
       /* Initially you assume everything is zero, now if we find a case where
        * it is NOT true, then we set the result to false. Otherwise
        * we just keep the previous value
        */
       new_yes_expr = build_x_modify_expr
-	(*new_var, NOP_EXPR, build_int_cst (TREE_TYPE (*new_var), 0), 1);
+	(*new_var, NOP_EXPR, build_zero_cst (TREE_TYPE (*new_var)), 1);
       new_no_expr = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
-      new_expr = build_x_conditional_expr (func_parm, new_yes_expr,
+      new_cond_expr = build2 (NE_EXPR, TREE_TYPE (func_parm), func_parm,
+			      build_zero_cst (TREE_TYPE (func_parm)));
+      new_expr = build_x_conditional_expr (new_cond_expr, new_yes_expr,
 					   new_no_expr, 1);
       break;
     case REDUCE_ANY_ZEROS:
       new_var_init = build_x_modify_expr
-	(*new_var, NOP_EXPR, build_int_cst (new_var_type, 0), 1);
+	(*new_var, NOP_EXPR, build_zero_cst (new_var_type), 1);
       /* Initially we assume there are NO zeros in the list. When we find
        * a non-zero, we keep the previous value. If we find a zero, we
        * set the value to true
        */
       new_no_expr = build_x_modify_expr
-	(*new_var, NOP_EXPR, build_int_cst (TREE_TYPE (*new_var), 1), 1);
+	(*new_var, NOP_EXPR, build_one_cst (TREE_TYPE (*new_var)), 1);
       new_yes_expr = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
-      new_expr = build_x_conditional_expr (func_parm, new_yes_expr,
+      new_cond_expr = build2 (NE_EXPR, TREE_TYPE (func_parm), func_parm,
+			      build_zero_cst (TREE_TYPE (func_parm)));
+      new_expr = build_x_conditional_expr (new_cond_expr, new_yes_expr,
 					   new_no_expr, 1);      
       break;
     case REDUCE_MAX:
-      if (INTEGRAL_TYPE_P (new_var_type))
-	new_var_init = build_x_modify_expr
-	  (*new_var, NOP_EXPR, TYPE_MIN_VALUE (new_var_type), 1);
-      else /* Otherwise, we pick the first item in the array */
-	new_var_init = build_x_modify_expr
-	  (*new_var, NOP_EXPR,
-	   build_array_ref (UNKNOWN_LOCATION,
-			    TREE_OPERAND (array_operand[0], 0),
-			    build_int_cst (integer_type_node, 0)), 1);
+      /* set initial value as the first element in the list */
+      new_var_init = build_x_modify_expr (*new_var, NOP_EXPR, func_parm, 1);
       new_no_expr  = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
       new_yes_expr = build_x_modify_expr (*new_var, NOP_EXPR, func_parm, 1);
       new_expr = build_x_conditional_expr
@@ -1594,15 +1595,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	 new_yes_expr, new_no_expr, 1);      
       break;
     case REDUCE_MIN:
-      if (INTEGRAL_TYPE_P (new_var_type))
-	new_var_init = build_x_modify_expr
-	  (*new_var, NOP_EXPR, TYPE_MAX_VALUE (new_var_type), 1);
-      else /* Otherwise, we the first item in the array */
-	new_var_init = build_x_modify_expr
-	  (*new_var, NOP_EXPR,
-	   build_array_ref (UNKNOWN_LOCATION,
-			    TREE_OPERAND (array_operand[0], 0),
-			    build_int_cst (integer_type_node, 0)), 1);
+      new_var_init = build_x_modify_expr (*new_var, NOP_EXPR, func_parm, 1);
       new_no_expr  = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
       new_yes_expr = build_x_modify_expr (*new_var, NOP_EXPR, func_parm, 1);
       new_expr = build_x_conditional_expr
@@ -1610,46 +1603,87 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	 new_yes_expr, new_no_expr, 1);
       break;
     case REDUCE_MAX_INDEX:
-      new_var_init = build_x_modify_expr
-	(*new_var, NOP_EXPR, build_int_cst (new_var_type, 0), 1);
-      new_no_expr  = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
+      new_var_init = build_x_modify_expr (*new_var, NOP_EXPR, array_var[0], 1);
+      new_exp_init = build_x_modify_expr (array_ind_value, NOP_EXPR, func_parm,
+					  1);
+      new_no_ind   = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
+      new_no_expr  = build_x_modify_expr (array_ind_value, NOP_EXPR,
+					  array_ind_value, 1);
       if (list_size > 1) /* this means there is more than 1 */
-	new_yes_expr = build_x_modify_expr (*new_var, NOP_EXPR, array_var[0],
-					    1);
-      else				    
-	new_yes_expr = build_x_modify_expr
-	  (*new_var, NOP_EXPR, TREE_OPERAND (array_operand[0], 1), 1);
+	{
+	  new_yes_ind  = build_x_modify_expr (*new_var, NOP_EXPR, array_var[0],
+					      1);
+	  new_yes_expr = build_x_modify_expr (array_ind_value, NOP_EXPR,
+					      func_parm, 1);
+	}
+      else
+	{
+	  new_yes_ind  = build_x_modify_expr
+	    (*new_var, NOP_EXPR, TREE_OPERAND (array_operand[0], 1), 1);
+	  new_yes_expr = build_x_modify_expr (array_ind_value, NOP_EXPR,
+					      func_parm, 1);
+	}
+      new_yes_list = alloc_stmt_list ();
+      append_to_statement_list (new_yes_ind, &new_yes_list);
+      append_to_statement_list (new_yes_expr, &new_yes_list);
+
+      new_no_list = alloc_stmt_list ();
+      append_to_statement_list (new_no_ind, &new_no_list);
+      append_to_statement_list (new_no_expr, &new_no_list);
       
       new_expr = build_x_conditional_expr
-	(build2 (LT_EXPR, TREE_TYPE (*new_var), *new_var, func_parm),
-	 new_yes_expr, new_no_expr, 1);
+	(build2 (LT_EXPR, TREE_TYPE (array_ind_value), array_ind_value,
+		 func_parm),
+	 new_yes_list, new_no_list, 1);
       break;
     case REDUCE_MIN_INDEX:
-      new_var_init = build_x_modify_expr
-	(*new_var, NOP_EXPR, build_int_cst (new_var_type, 0), 1);
-      new_no_expr  = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
-      if (list_size > 1)
-	new_yes_expr = build_x_modify_expr (*new_var, NOP_EXPR, array_var[0],
-					    1);
+      new_var_init = build_x_modify_expr (*new_var, NOP_EXPR, array_var[0], 1);
+      new_exp_init = build_x_modify_expr (array_ind_value, NOP_EXPR, func_parm,
+					  1);
+      new_no_ind   = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
+      new_no_expr  = build_x_modify_expr (array_ind_value, NOP_EXPR,
+					  array_ind_value, 1);
+      if (list_size > 1) /* this means there is more than 1 */
+	{
+	  new_yes_ind  = build_x_modify_expr (*new_var, NOP_EXPR, array_var[0],
+					      1);
+	  new_yes_expr = build_x_modify_expr (array_ind_value, NOP_EXPR,
+					      func_parm, 1);
+	}
       else
-	new_yes_expr = build_x_modify_expr
-	  (*new_var, NOP_EXPR, TREE_OPERAND (array_operand[0], 1), 1);
+	{
+	  new_yes_ind  = build_x_modify_expr
+	    (*new_var, NOP_EXPR, TREE_OPERAND (array_operand[0], 1), 1);
+	  new_yes_expr = build_x_modify_expr (array_ind_value, NOP_EXPR,
+					      func_parm, 1);
+	}
+      new_yes_list = alloc_stmt_list ();
+      append_to_statement_list (new_yes_ind, &new_yes_list);
+      append_to_statement_list (new_yes_expr, &new_yes_list);
+
+      new_no_list = alloc_stmt_list ();
+      append_to_statement_list (new_no_ind, &new_no_list);
+      append_to_statement_list (new_no_expr, &new_no_list);
       
       new_expr = build_x_conditional_expr
-	(build2 (GT_EXPR, TREE_TYPE (*new_var), *new_var, func_parm),
-	 new_yes_expr, new_no_expr, 1);
+	(build2 (GT_EXPR, TREE_TYPE (array_ind_value), array_ind_value,
+		 func_parm),
+	 new_yes_list, new_no_list, 1);
       break;
     default:
       gcc_unreachable ();
       break;
     }
 
+  for (ii = 0; ii < rank; ii++)
+    append_to_statement_list (ind_init[ii], &loop);
+    
   append_to_statement_list (new_var_init, &loop);
+  if (an_type == REDUCE_MAX_INDEX || an_type == REDUCE_MIN_INDEX)
+    append_to_statement_list (new_exp_init, &loop);
   
   for (ii = 0; ii < rank; ii++)
     {
-      append_to_statement_list (ind_init [ii], &loop);
-
       append_to_statement_list
 	(build1 (LABEL_EXPR, void_type_node, if_stmt_label[ii]), &loop);
       append_to_statement_list
@@ -2078,7 +2112,7 @@ contains_array_notation_expr (tree expr)
   int list_size = 0;
   
   extract_array_notation_exprs (expr, false, &array_list, &list_size);
-  if (*array_list == NULL || list_size == 0)
+  if (array_list == NULL || list_size == 0)
     return false;
   else
     return true;

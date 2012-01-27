@@ -1,5 +1,10 @@
 2012-01-26  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
+	* c-array-notation.c (fix_builtin_array_notation_fn): Initialized the
+	maximum/minimum value for max/min index builtin function.
+
+2012-01-26  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
 	* array-notation-common.c (array_notation_init_builtins): Added the
 	internal array notation function "__sec_reduce_implicit_index."
 	(is_sec_implicit_index_fn): New function.

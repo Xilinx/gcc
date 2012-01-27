@@ -1,5 +1,18 @@
 2012-01-26  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
+	* cp-array-notation.c (fix_builtin_array_notation_fn): Added new var
+	called "array_ind_value," that stores the max/min value and the *new_var
+	stores the index.  Also, replaced all build_int_cst with build_one_cst
+	and build_zero_cst.  Also, in REDUCE_ANY_ZEROS and REDUCE_ALL_ZEROS
+	cases, replaced comparing with func_parm with a new_cond_expr.  Also
+	initialized the maximum/minimum value for the max/min index builtin
+	function.
+	(contains_array_notation_expr): Deferenced array_list in if statement.
+	* typeck.c (convert_for_assignment): Checked if the rhs contains array
+	notation expr, if so we don't do any conversion.
+
+2012-01-26  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
 	* cp-array-notation.c (extract_array_notation_exprs): Added a check
 	to see if the call expr is sec_implicit_index function.
 	(replace_array_notations): Likewise.
