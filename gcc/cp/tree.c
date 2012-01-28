@@ -203,10 +203,13 @@ lvalue_kind (const_tree ref)
       return lvalue_kind (BASELINK_FUNCTIONS (CONST_CAST_TREE (ref)));
 
     case NON_DEPENDENT_EXPR:
-      /* We used to just return clk_ordinary for NON_DEPENDENT_EXPR because
-	 it was safe enough for C++98, but in C++0x lvalues don't bind to
-	 rvalue references, so we get bogus errors (c++/44870).  */
-      return lvalue_kind (TREE_OPERAND (ref, 0));
+      /* We just return clk_ordinary for NON_DEPENDENT_EXPR in C++98, but
+	 in C++11 lvalues don't bind to rvalue references, so we need to
+	 work harder to avoid bogus errors (c++/44870).  */
+      if (cxx_dialect < cxx0x)
+	return clk_ordinary;
+      else
+	return lvalue_kind (TREE_OPERAND (ref, 0));
 
     default:
       if (!TREE_TYPE (ref))
@@ -1879,11 +1882,19 @@ bot_manip (tree* tp, int* walk_subtrees, void* data)
       tree u;
 
       if (TREE_CODE (TREE_OPERAND (t, 1)) == AGGR_INIT_EXPR)
-	u = build_cplus_new (TREE_TYPE (t), TREE_OPERAND (t, 1),
-			     tf_warning_or_error);
+	{
+	  u = build_cplus_new (TREE_TYPE (t), TREE_OPERAND (t, 1),
+			       tf_warning_or_error);
+	  if (AGGR_INIT_ZERO_FIRST (TREE_OPERAND (t, 1)))
+	    AGGR_INIT_ZERO_FIRST (TREE_OPERAND (u, 1)) = true;
+	}
       else
 	u = build_target_expr_with_type (TREE_OPERAND (t, 1), TREE_TYPE (t),
 					 tf_warning_or_error);
+
+      TARGET_EXPR_IMPLICIT_P (u) = TARGET_EXPR_IMPLICIT_P (t);
+      TARGET_EXPR_LIST_INIT_P (u) = TARGET_EXPR_LIST_INIT_P (t);
+      TARGET_EXPR_DIRECT_INIT_P (u) = TARGET_EXPR_DIRECT_INIT_P (t);
 
       /* Map the old variable to the new one.  */
       splay_tree_insert (target_remap,
@@ -2384,6 +2395,7 @@ cp_tree_equal (tree t1, tree t2)
     case REINTERPRET_CAST_EXPR:
     case CONST_CAST_EXPR:
     case DYNAMIC_CAST_EXPR:
+    case IMPLICIT_CONV_EXPR:
     case NEW_EXPR:
       if (!same_type_p (TREE_TYPE (t1), TREE_TYPE (t2)))
 	return false;
@@ -2981,11 +2993,13 @@ cp_walk_subtrees (tree *tp, int *walk_subtrees_p, walk_tree_fn func,
 
     case TYPE_PACK_EXPANSION:
       WALK_SUBTREE (TREE_TYPE (*tp));
+      WALK_SUBTREE (PACK_EXPANSION_EXTRA_ARGS (*tp));
       *walk_subtrees_p = 0;
       break;
       
     case EXPR_PACK_EXPANSION:
       WALK_SUBTREE (TREE_OPERAND (*tp, 0));
+      WALK_SUBTREE (PACK_EXPANSION_EXTRA_ARGS (*tp));
       *walk_subtrees_p = 0;
       break;
 
@@ -2994,6 +3008,7 @@ cp_walk_subtrees (tree *tp, int *walk_subtrees_p, walk_tree_fn func,
     case STATIC_CAST_EXPR:
     case CONST_CAST_EXPR:
     case DYNAMIC_CAST_EXPR:
+    case IMPLICIT_CONV_EXPR:
       if (TREE_TYPE (*tp))
 	WALK_SUBTREE (TREE_TYPE (*tp));
 
@@ -3322,6 +3337,7 @@ stabilize_init (tree init, tree *initp)
 
   if (TREE_CODE (t) == INIT_EXPR
       && TREE_CODE (TREE_OPERAND (t, 1)) != TARGET_EXPR
+      && TREE_CODE (TREE_OPERAND (t, 1)) != CONSTRUCTOR
       && TREE_CODE (TREE_OPERAND (t, 1)) != AGGR_INIT_EXPR)
     {
       TREE_OPERAND (t, 1) = stabilize_expr (TREE_OPERAND (t, 1), initp);
@@ -3339,11 +3355,20 @@ stabilize_init (tree init, tree *initp)
       /* Aggregate initialization: stabilize each of the field
 	 initializers.  */
       unsigned i;
-      tree value;
+      constructor_elt *ce;
       bool good = true;
-      FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (t), i, value)
-	if (!stabilize_init (value, initp))
-	  good = false;
+      VEC(constructor_elt,gc) *v = CONSTRUCTOR_ELTS (t);
+      for (i = 0; VEC_iterate (constructor_elt, v, i, ce); ++i)
+	{
+	  tree type = TREE_TYPE (ce->value);
+	  tree subinit;
+	  if (TREE_CODE (type) == REFERENCE_TYPE
+	      || SCALAR_TYPE_P (type))
+	    ce->value = stabilize_expr (ce->value, &subinit);
+	  else if (!stabilize_init (ce->value, &subinit))
+	    good = false;
+	  *initp = add_stmt_to_compound (*initp, subinit);
+	}
       return good;
     }
 
@@ -3453,17 +3478,6 @@ cp_free_lang_data (tree t)
 	 in this TU.  So make it an external reference.  */
       DECL_EXTERNAL (t) = 1;
       TREE_STATIC (t) = 0;
-    }
-  if (CP_AGGREGATE_TYPE_P (t)
-      && TYPE_NAME (t))
-    {
-      tree name = TYPE_NAME (t);
-      if (TREE_CODE (name) == TYPE_DECL)
-	name = DECL_NAME (name);
-      /* Drop anonymous names.  */
-      if (name != NULL_TREE
-	  && ANON_AGGRNAME_P (name))
-	TYPE_NAME (t) = NULL_TREE;
     }
   if (TREE_CODE (t) == NAMESPACE_DECL)
     {

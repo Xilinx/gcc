@@ -153,6 +153,10 @@ package Ada.Containers.Indefinite_Hashed_Sets is
       Position  : Cursor)
    return Constant_Reference_Type;
 
+   procedure Assign (Target : in out Set; Source : Set);
+
+   function Copy (Source : Set; Capacity : Count_Type := 0) return Set;
+
    procedure Move (Target : in out Set; Source : in out Set);
    --  Clears Target (if it's not empty), and then moves (not copies) the
    --  buckets array and nodes from Source to Target.
@@ -414,13 +418,11 @@ package Ada.Containers.Indefinite_Hashed_Sets is
 
       function Reference_Preserving_Key
         (Container : aliased in out Set;
-         Position  : Cursor)
-      return Reference_Type;
+         Position  : Cursor) return Reference_Type;
 
       function Reference_Preserving_Key
         (Container : aliased in out Set;
-         Key  : Key_Type)
-      return Reference_Type;
+         Key       : Key_Type) return Reference_Type;
 
    private
       type Reference_Type (Element : not null access Element_Type)
@@ -428,7 +430,6 @@ package Ada.Containers.Indefinite_Hashed_Sets is
    end Generic_Keys;
 
 private
-
    pragma Inline (Next);
 
    type Node_Type;

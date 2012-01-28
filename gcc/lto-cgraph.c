@@ -54,6 +54,9 @@ static void input_cgraph_opt_summary (VEC (cgraph_node_ptr, heap) * nodes);
 /* Number of LDPR values known to GCC.  */
 #define LDPR_NUM_KNOWN (LDPR_PREVAILING_DEF_IRONLY_EXP + 1)
 
+/* All node orders are ofsetted by ORDER_BASE.  */
+static int order_base;
+
 /* Cgraph streaming is organized as set of record whose type
    is indicated by a tag.  */
 enum LTO_cgraph_tags
@@ -425,6 +428,7 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
 
   streamer_write_enum (ob->main_stream, LTO_cgraph_tags, LTO_cgraph_last_tag,
 		       tag);
+  streamer_write_hwi_stream (ob->main_stream, node->order);
 
   /* In WPA mode, we only output part of the call-graph.  Also, we
      fake cgraph node attributes.  There are two cases that we care.
@@ -508,10 +512,17 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
 		     || referenced_from_other_partition_p (&node->ref_list, set, vset)), 1);
   bp_pack_value (&bp, node->lowered, 1);
   bp_pack_value (&bp, in_other_partition, 1);
-  bp_pack_value (&bp, node->alias && !boundary_p, 1);
+  /* Real aliases in a boundary become non-aliases. However we still stream
+     alias info on weakrefs. 
+     TODO: We lose a bit of information here - when we know that variable is
+     defined in other unit, we may use the info on aliases to resolve 
+     symbol1 != symbol2 type tests that we can do only for locally defined objects
+     otherwise.  */
+  bp_pack_value (&bp, node->alias && (!boundary_p || DECL_EXTERNAL (node->decl)), 1);
   bp_pack_value (&bp, node->frequency, 2);
   bp_pack_value (&bp, node->only_called_at_startup, 1);
   bp_pack_value (&bp, node->only_called_at_exit, 1);
+  bp_pack_value (&bp, node->tm_clone, 1);
   bp_pack_value (&bp, node->thunk.thunk_p && !boundary_p, 1);
   bp_pack_enum (&bp, ld_plugin_symbol_resolution,
 	        LDPR_NUM_KNOWN, node->resolution);
@@ -526,7 +537,8 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
       streamer_write_uhwi_stream (ob->main_stream, node->thunk.fixed_offset);
       streamer_write_uhwi_stream (ob->main_stream, node->thunk.virtual_value);
     }
-  if ((node->alias || node->thunk.thunk_p) && !boundary_p)
+  if ((node->alias || node->thunk.thunk_p)
+      && (!boundary_p || (node->alias && DECL_EXTERNAL (node->decl))))
     {
       streamer_write_hwi_in_range (ob->main_stream, 0, 1,
 					node->thunk.alias != NULL);
@@ -548,6 +560,7 @@ lto_output_varpool_node (struct lto_simple_output_block *ob, struct varpool_node
   struct bitpack_d bp;
   int ref;
 
+  streamer_write_hwi_stream (ob->main_stream, node->order);
   lto_output_var_decl_index (ob->decl_state, ob->main_stream, node->decl);
   bp = bitpack_create (ob->main_stream);
   bp_pack_value (&bp, node->externally_visible, 1);
@@ -916,6 +929,7 @@ input_overwrite_node (struct lto_file_decl_data *file_data,
   node->frequency = (enum node_frequency)bp_unpack_value (bp, 2);
   node->only_called_at_startup = bp_unpack_value (bp, 1);
   node->only_called_at_exit = bp_unpack_value (bp, 1);
+  node->tm_clone = bp_unpack_value (bp, 1);
   node->thunk.thunk_p = bp_unpack_value (bp, 1);
   node->resolution = bp_unpack_enum (bp, ld_plugin_symbol_resolution,
 				     LDPR_NUM_KNOWN);
@@ -960,7 +974,9 @@ input_node (struct lto_file_decl_data *file_data,
   unsigned decl_index;
   int ref = LCC_NOT_FOUND, ref2 = LCC_NOT_FOUND;
   int clone_ref;
+  int order;
 
+  order = streamer_read_hwi (ib) + order_base;
   clone_ref = streamer_read_hwi (ib);
 
   decl_index = streamer_read_uhwi (ib);
@@ -973,6 +989,10 @@ input_node (struct lto_file_decl_data *file_data,
     }
   else
     node = cgraph_get_create_node (fn_decl);
+
+  node->order = order;
+  if (order >= cgraph_order)
+    cgraph_order = order + 1;
 
   node->count = streamer_read_hwi (ib);
   node->count_materialization_scale = streamer_read_hwi (ib);
@@ -1035,10 +1055,15 @@ input_varpool_node (struct lto_file_decl_data *file_data,
   struct bitpack_d bp;
   int ref = LCC_NOT_FOUND;
   bool non_null_aliasof;
+  int order;
 
+  order = streamer_read_hwi (ib) + order_base;
   decl_index = streamer_read_uhwi (ib);
   var_decl = lto_file_decl_data_get_var_decl (file_data, decl_index);
   node = varpool_node (var_decl);
+  node->order = order;
+  if (order >= cgraph_order)
+    cgraph_order = order + 1;
   node->lto_file_data = file_data;
 
   bp = streamer_read_bitpack (ib);
@@ -1178,6 +1203,7 @@ input_cgraph_1 (struct lto_file_decl_data *file_data,
   unsigned i;
 
   tag = streamer_read_enum (ib, LTO_cgraph_tags, LTO_cgraph_last_tag);
+  order_base = cgraph_order;
   while (tag)
     {
       if (tag == LTO_cgraph_edge)
@@ -1196,7 +1222,7 @@ input_cgraph_1 (struct lto_file_decl_data *file_data,
       tag = streamer_read_enum (ib, LTO_cgraph_tags, LTO_cgraph_last_tag);
     }
 
-  lto_input_toplevel_asms (file_data);
+  lto_input_toplevel_asms (file_data, order_base);
 
   /* AUX pointers should be all non-zero for nodes read from the stream.  */
 #ifdef ENABLE_CHECKING
@@ -1663,9 +1689,9 @@ input_cgraph_opt_section (struct lto_file_decl_data *file_data,
 {
   const struct lto_function_header *header =
     (const struct lto_function_header *) data;
-  const int32_t cfg_offset = sizeof (struct lto_function_header);
-  const int32_t main_offset = cfg_offset + header->cfg_size;
-  const int32_t string_offset = main_offset + header->main_size;
+  const int cfg_offset = sizeof (struct lto_function_header);
+  const int main_offset = cfg_offset + header->cfg_size;
+  const int string_offset = main_offset + header->main_size;
   struct data_in *data_in;
   struct lto_input_block ib_main;
   unsigned int i;

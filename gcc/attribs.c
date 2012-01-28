@@ -168,7 +168,8 @@ init_attributes (void)
 	  gcc_assert (strcmp (attribute_tables[i][j].name,
 			      attribute_tables[i][k].name));
     }
-  /* Check that no name occurs in more than one table.  */
+  /* Check that no name occurs in more than one table.  Names that
+     begin with '*' are exempt, and may be overridden.  */
   for (i = 0; i < ARRAY_SIZE (attribute_tables); i++)
     {
       size_t j, k, l;
@@ -176,8 +177,9 @@ init_attributes (void)
       for (j = i + 1; j < ARRAY_SIZE (attribute_tables); j++)
 	for (k = 0; attribute_tables[i][k].name != NULL; k++)
 	  for (l = 0; attribute_tables[j][l].name != NULL; l++)
-	    gcc_assert (strcmp (attribute_tables[i][k].name,
-				attribute_tables[j][l].name));
+	    gcc_assert (attribute_tables[i][k].name[0] == '*'
+			|| strcmp (attribute_tables[i][k].name,
+				   attribute_tables[j][l].name));
     }
 #endif
 
@@ -209,7 +211,7 @@ register_attribute (const struct attribute_spec *attr)
   slot = htab_find_slot_with_hash (attribute_hash, &str,
 				   substring_hash (str.str, str.length),
 				   INSERT);
-  gcc_assert (!*slot);
+  gcc_assert (!*slot || attr->name[0] == '*');
   *slot = (void *) CONST_CAST (struct attribute_spec *, attr);
 }
 
@@ -639,4 +641,13 @@ merge_lock_attr_args (tree attr, tree additional_args)
            || is_attribute_p ("lock_returned", identifier))
     warning (OPT_Wattributes, "Additional %qs attribute ignored",
              IDENTIFIER_POINTER (identifier));
+}
+
+/* Subroutine of set_method_tm_attributes.  Apply TM attribute ATTR
+   to the method FNDECL.  */
+
+void
+apply_tm_attr (tree fndecl, tree attr)
+{
+  decl_attributes (&TREE_TYPE (fndecl), tree_cons (attr, NULL, NULL), 0);
 }

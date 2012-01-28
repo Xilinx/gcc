@@ -47,6 +47,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-codes.h"
 #include "ggc.h"
 #include "opts.h"
+#include "optabs.h"
 
 enum reg_class regno_reg_class[] =
 {
@@ -163,6 +164,8 @@ static void m68k_function_arg_advance (cumulative_args_t, enum machine_mode,
 static rtx m68k_function_arg (cumulative_args_t, enum machine_mode,
 			      const_tree, bool);
 static bool m68k_cannot_force_const_mem (enum machine_mode mode, rtx x);
+static bool m68k_output_addr_const_extra (FILE *, rtx);
+static void m68k_init_sync_libfuncs (void) ATTRIBUTE_UNUSED;
 
 /* Initialize the GCC target structure.  */
 
@@ -296,6 +299,9 @@ static bool m68k_cannot_force_const_mem (enum machine_mode mode, rtx x);
 
 #undef TARGET_LEGITIMATE_CONSTANT_P
 #define TARGET_LEGITIMATE_CONSTANT_P m68k_legitimate_constant_p
+
+#undef TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA
+#define TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA m68k_output_addr_const_extra
 
 static const struct attribute_spec m68k_attribute_table[] =
 {
@@ -4202,7 +4208,8 @@ notice_update_cc (rtx exp, rtx insn)
       && GET_MODE_CLASS (GET_MODE (XEXP (cc_status.value2, 0))) == MODE_FLOAT)
     {
       cc_status.flags = CC_IN_68881;
-      if (!FP_REG_P (XEXP (cc_status.value2, 0)))
+      if (!FP_REG_P (XEXP (cc_status.value2, 0))
+	  && FP_REG_P (XEXP (cc_status.value2, 1)))
 	cc_status.flags |= CC_REVERSED;
     }
 }
@@ -4540,9 +4547,9 @@ m68k_get_reloc_decoration (enum m68k_reloc reloc)
     }
 }
 
-/* m68k implementation of OUTPUT_ADDR_CONST_EXTRA.  */
+/* m68k implementation of TARGET_OUTPUT_ADDR_CONST_EXTRA.  */
 
-bool
+static bool
 m68k_output_addr_const_extra (FILE *file, rtx x)
 {
   if (GET_CODE (x) == UNSPEC)
@@ -6517,6 +6524,12 @@ m68k_conditional_register_usage (void)
     }
   if (flag_pic)
     fixed_regs[PIC_REG] = call_used_regs[PIC_REG] = 1;
+}
+
+static void
+m68k_init_sync_libfuncs (void)
+{
+  init_sync_libfuncs (UNITS_PER_WORD);
 }
 
 #include "gt-m68k.h"

@@ -157,6 +157,11 @@ rest_of_decl_compilation (tree decl,
       {
 	alias = TREE_VALUE (TREE_VALUE (alias));
 	alias = get_identifier (TREE_STRING_POINTER (alias));
+	/* A quirk of the initial implementation of aliases required that the
+	   user add "extern" to all of them.  Which is silly, but now
+	   historical.  Do note that the symbol is in fact locally defined.  */
+	if (!lookup_attribute ("weakref", DECL_ATTRIBUTES (decl)))
+	  DECL_EXTERNAL (decl) = 0;
 	assemble_alias (decl, alias);
       }
   }
@@ -1182,9 +1187,11 @@ init_optimization_passes (void)
   p = &all_lowering_passes;
   NEXT_PASS (pass_warn_unused_result);
   NEXT_PASS (pass_diagnose_omp_blocks);
+  NEXT_PASS (pass_diagnose_tm_blocks);
   NEXT_PASS (pass_mudflap_1);
   NEXT_PASS (pass_lower_omp);
   NEXT_PASS (pass_lower_cf);
+  NEXT_PASS (pass_lower_tm);
   NEXT_PASS (pass_refactor_eh);
   NEXT_PASS (pass_lower_eh);
   NEXT_PASS (pass_build_cfg);
@@ -1255,6 +1262,7 @@ init_optimization_passes (void)
       struct opt_pass **p = &pass_ipa_multiversion_dispatch.pass.sub;
       NEXT_PASS (pass_tree_convert_builtin_dispatch);
     }
+  NEXT_PASS (pass_ipa_tm);
   NEXT_PASS (pass_ipa_lower_emutls);
   *p = NULL;
 
@@ -1372,7 +1380,6 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_vectorize);
 	    {
 	      struct opt_pass **p = &pass_vectorize.pass.sub;
-	      NEXT_PASS (pass_lower_vector_ssa);
 	      NEXT_PASS (pass_dce_loop);
 	    }
           NEXT_PASS (pass_predcom);
@@ -1384,6 +1391,7 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_lim);
 	  NEXT_PASS (pass_tree_loop_done);
 	}
+      NEXT_PASS (pass_lower_vector_ssa);
       NEXT_PASS (pass_cse_reciprocals);
       NEXT_PASS (pass_reassoc);
       NEXT_PASS (pass_vrp);
@@ -1416,6 +1424,13 @@ init_optimization_passes (void)
       NEXT_PASS (pass_rename_ssa_copies);
       NEXT_PASS (pass_uncprop);
       NEXT_PASS (pass_local_pure_const);
+    }
+  NEXT_PASS (pass_tm_init);
+    {
+      struct opt_pass **p = &pass_tm_init.pass.sub;
+      NEXT_PASS (pass_tm_mark);
+      NEXT_PASS (pass_tm_memopt);
+      NEXT_PASS (pass_tm_edges);
     }
   NEXT_PASS (pass_lower_complex_O0);
   NEXT_PASS (pass_cleanup_eh);

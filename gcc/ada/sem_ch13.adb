@@ -161,15 +161,15 @@ package body Sem_Ch13 is
    ----------------------------------------------
 
    --  The following table collects unchecked conversions for validation.
-   --  Entries are made by Validate_Unchecked_Conversion and then the
-   --  call to Validate_Unchecked_Conversions does the actual error
-   --  checking and posting of warnings. The reason for this delayed
-   --  processing is to take advantage of back-annotations of size and
-   --  alignment values performed by the back end.
+   --  Entries are made by Validate_Unchecked_Conversion and then the call
+   --  to Validate_Unchecked_Conversions does the actual error checking and
+   --  posting of warnings. The reason for this delayed processing is to take
+   --  advantage of back-annotations of size and alignment values performed by
+   --  the back end.
 
-   --  Note: the reason we store a Source_Ptr value instead of a Node_Id
-   --  is that by the time Validate_Unchecked_Conversions is called, Sprint
-   --  will already have modified all Sloc values if the -gnatD option is set.
+   --  Note: the reason we store a Source_Ptr value instead of a Node_Id is
+   --  that by the time Validate_Unchecked_Conversions is called, Sprint will
+   --  already have modified all Sloc values if the -gnatD option is set.
 
    type UC_Entry is record
       Eloc   : Source_Ptr; -- node used for posting warnings
@@ -193,13 +193,13 @@ package body Sem_Ch13 is
 
    --    for X'Address use Expr
 
-   --  where Expr is of the form Y'Address or recursively is a reference
-   --  to a constant of either of these forms, and X and Y are entities of
-   --  objects, then if Y has a smaller alignment than X, that merits a
-   --  warning about possible bad alignment. The following table collects
-   --  address clauses of this kind. We put these in a table so that they
-   --  can be checked after the back end has completed annotation of the
-   --  alignments of objects, since we can catch more cases that way.
+   --  where Expr is of the form Y'Address or recursively is a reference to a
+   --  constant of either of these forms, and X and Y are entities of objects,
+   --  then if Y has a smaller alignment than X, that merits a warning about
+   --  possible bad alignment. The following table collects address clauses of
+   --  this kind. We put these in a table so that they can be checked after the
+   --  back end has completed annotation of the alignments of objects, since we
+   --  can catch more cases that way.
 
    type Address_Clause_Check_Record is record
       N : Node_Id;
@@ -728,8 +728,9 @@ package body Sem_Ch13 is
             A_Id : constant Aspect_Id  := Get_Aspect_Id (Nam);
             Anod : Node_Id;
 
-            Eloc : Source_Ptr := Sloc (Expr);
-            --  Source location of expression, modified when we split PPC's
+            Eloc : Source_Ptr := No_Location;
+            --  Source location of expression, modified when we split PPC's. It
+            --  is set below when Expr is present.
 
             procedure Check_False_Aspect_For_Derived_Type;
             --  This procedure checks for the case of a false aspect for a
@@ -802,6 +803,18 @@ package body Sem_Ch13 is
 
             if Analyzed (Aspect) then
                goto Continue;
+            end if;
+
+            --  Set the source location of expression, used in the case of
+            --  a failed precondition/postcondition or invariant. Note that
+            --  the source location of the expression is not usually the best
+            --  choice here. For example, it gets located on the last AND
+            --  keyword in a chain of boolean expressiond AND'ed together.
+            --  It is best to put the message on the first character of the
+            --  assertion, which is the effect of the First_Node call here.
+
+            if Present (Expr) then
+               Eloc := Sloc (First_Node (Expr));
             end if;
 
             --  Check restriction No_Implementation_Aspect_Specifications
@@ -1231,8 +1244,13 @@ package body Sem_Ch13 is
                   --  We do not do this for Pre'Class, since we have to put
                   --  these conditions together in a complex OR expression
 
-                  if Pname = Name_Postcondition
-                    or else not Class_Present (Aspect)
+                  --  We do not do this in ASIS mode, as ASIS relies on the
+                  --  original node representing the complete expression, when
+                  --  retrieving it through the source aspect table.
+
+                  if not ASIS_Mode
+                    and then (Pname = Name_Postcondition
+                               or else not Class_Present (Aspect))
                   then
                      while Nkind (Expr) = N_And_Then loop
                         Insert_After (Aspect,
@@ -1385,6 +1403,7 @@ package body Sem_Ch13 is
                   Args      : List_Id;
                   Comp_Expr : Node_Id;
                   Comp_Assn : Node_Id;
+                  New_Expr  : Node_Id;
 
                begin
                   Args := New_List;
@@ -1401,9 +1420,19 @@ package body Sem_Ch13 is
                      goto Continue;
                   end if;
 
+                  --  Make pragma expressions refer to the original aspect
+                  --  expressions through the Original_Node link. This is used
+                  --  in semantic analysis for ASIS mode, so that the original
+                  --  expression also gets analyzed.
+
                   Comp_Expr := First (Expressions (Expr));
                   while Present (Comp_Expr) loop
-                     Append (Relocate_Node (Comp_Expr), Args);
+                     New_Expr := Relocate_Node (Comp_Expr);
+                     Set_Original_Node (New_Expr, Comp_Expr);
+                     Append
+                       (Make_Pragma_Argument_Association (Sloc (Comp_Expr),
+                          Expression => New_Expr),
+                       Args);
                      Next (Comp_Expr);
                   end loop;
 
@@ -1418,10 +1447,12 @@ package body Sem_Ch13 is
                         goto Continue;
                      end if;
 
+                     New_Expr := Relocate_Node (Expression (Comp_Assn));
+                     Set_Original_Node (New_Expr, Expression (Comp_Assn));
                      Append (Make_Pragma_Argument_Association (
                        Sloc       => Sloc (Comp_Assn),
                        Chars      => Chars (First (Choices (Comp_Assn))),
-                       Expression => Relocate_Node (Expression (Comp_Assn))),
+                       Expression => New_Expr),
                        Args);
                      Next (Comp_Assn);
                   end loop;
@@ -2464,7 +2495,8 @@ package body Sem_Ch13 is
          --  Alignment attribute definition clause
 
          when Attribute_Alignment => Alignment : declare
-            Align : constant Uint := Get_Alignment_Value (Expr);
+            Align     : constant Uint := Get_Alignment_Value (Expr);
+            Max_Align : constant Uint := UI_From_Int (Maximum_Alignment);
 
          begin
             FOnly := True;
@@ -2480,7 +2512,14 @@ package body Sem_Ch13 is
 
             elsif Align /= No_Uint then
                Set_Has_Alignment_Clause (U_Ent);
-               Set_Alignment            (U_Ent, Align);
+
+               if Is_Tagged_Type (U_Ent) and then Align > Max_Align then
+                  Error_Msg_N
+                    ("?alignment for & set to Maximum_Aligment", Nam);
+                  Set_Alignment (U_Ent, Max_Align);
+               else
+                  Set_Alignment (U_Ent, Align);
+               end if;
 
                --  For an array type, U_Ent is the first subtype. In that case,
                --  also set the alignment of the anonymous base type so that
@@ -3365,10 +3404,22 @@ package body Sem_Ch13 is
          --  No statements other than code statements, pragmas, and labels.
          --  Again we allow certain internally generated statements.
 
+         --  In Ada 2012, qualified expressions are names, and the code
+         --  statement is initially parsed as a procedure call.
+
          Stmt := First (Statements (HSS));
          while Present (Stmt) loop
             StmtO := Original_Node (Stmt);
-            if Comes_From_Source (StmtO)
+
+            --  A procedure call transformed into a code statement is OK.
+
+            if Ada_Version >= Ada_2012
+              and then Nkind (StmtO) = N_Procedure_Call_Statement
+              and then Nkind (Name (StmtO)) = N_Qualified_Expression
+            then
+               null;
+
+            elsif Comes_From_Source (StmtO)
               and then not Nkind_In (StmtO, N_Pragma,
                                             N_Label,
                                             N_Code_Statement)
@@ -5829,7 +5880,17 @@ package body Sem_Ch13 is
       --  All other cases
 
       else
-         Preanalyze_Spec_Expression (End_Decl_Expr, T);
+         --  In a generic context the aspect expressions have not been
+         --  preanalyzed, so do it now. There are no conformance checks
+         --  to perform in this case.
+
+         if No (T) then
+            Check_Aspect_At_Freeze_Point (ASN);
+            return;
+         else
+            Preanalyze_Spec_Expression (End_Decl_Expr, T);
+         end if;
+
          Err := not Fully_Conformant_Expressions (End_Decl_Expr, Freeze_Expr);
       end if;
 
@@ -8575,8 +8636,8 @@ package body Sem_Ch13 is
       Target := Ancestor_Subtype (Etype (Act_Unit));
 
       --  If either type is generic, the instantiation happens within a generic
-      --  unit, and there is nothing to check. The proper check
-      --  will happen when the enclosing generic is instantiated.
+      --  unit, and there is nothing to check. The proper check will happen
+      --  when the enclosing generic is instantiated.
 
       if Is_Generic_Type (Source) or else Is_Generic_Type (Target) then
          return;
@@ -8674,9 +8735,8 @@ package body Sem_Ch13 is
       end if;
 
       --  If unchecked conversion to access type, and access type is declared
-      --  in the same unit as the unchecked conversion, then set the
-      --  No_Strict_Aliasing flag (no strict aliasing is implicit in this
-      --  situation).
+      --  in the same unit as the unchecked conversion, then set the flag
+      --  No_Strict_Aliasing (no strict aliasing is implicit here)
 
       if Is_Access_Type (Target) and then
         In_Same_Source_Unit (Target, N)
@@ -8684,11 +8744,11 @@ package body Sem_Ch13 is
          Set_No_Strict_Aliasing (Implementation_Base_Type (Target));
       end if;
 
-      --  Generate N_Validate_Unchecked_Conversion node for back end in
-      --  case the back end needs to perform special validation checks.
+      --  Generate N_Validate_Unchecked_Conversion node for back end in case
+      --  the back end needs to perform special validation checks.
 
-      --  Shouldn't this be in Exp_Ch13, since the check only gets done
-      --  if we have full expansion and the back end is called ???
+      --  Shouldn't this be in Exp_Ch13, since the check only gets done if we
+      --  have full expansion and the back end is called ???
 
       Vnode :=
         Make_Validate_Unchecked_Conversion (Sloc (N));
@@ -8717,8 +8777,8 @@ package body Sem_Ch13 is
             Source : constant Entity_Id  := T.Source;
             Target : constant Entity_Id  := T.Target;
 
-            Source_Siz    : Uint;
-            Target_Siz    : Uint;
+            Source_Siz : Uint;
+            Target_Siz : Uint;
 
          begin
             --  This validation check, which warns if we have unequal sizes for

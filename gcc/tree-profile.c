@@ -311,7 +311,7 @@ gimple_init_instrumentation_sampling (void)
       DECL_INITIAL (gcov_sampling_rate_decl) = build_int_cst (
           get_gcov_unsigned_t (),
           PARAM_VALUE (PARAM_PROFILE_GENERATE_SAMPLING_RATE));
-      assemble_variable (gcov_sampling_rate_decl, 0, 0, 0);
+      varpool_finalize_decl (gcov_sampling_rate_decl);
     }
 
   if (flag_profile_generate_sampling && !instrumentation_to_be_sampled)
@@ -328,7 +328,7 @@ gimple_init_instrumentation_sampling (void)
       if (targetm.have_tls && !is_kernel_build)
         DECL_TLS_MODEL (gcov_sample_counter_decl) =
             decl_default_tls_model (gcov_sample_counter_decl);
-      assemble_variable (gcov_sample_counter_decl, 0, 0, 0);
+      varpool_finalize_decl (gcov_sample_counter_decl);
     }
 }
 
@@ -484,6 +484,7 @@ gimple_gen_edge_profiler (int edgeno, edge e)
   one = build_int_cst (gcov_type_node, 1);
   stmt1 = gimple_build_assign (gcov_type_tmp_var, ref);
   gimple_assign_set_lhs (stmt1, make_ssa_name (gcov_type_tmp_var, stmt1));
+  find_referenced_vars_in (stmt1);
   stmt2 = gimple_build_assign_with_ops (PLUS_EXPR, gcov_type_tmp_var,
 					gimple_assign_lhs (stmt1), one);
   gimple_assign_set_lhs (stmt2, make_ssa_name (gcov_type_tmp_var, stmt2));
@@ -534,6 +535,7 @@ gimple_gen_interval_profiler (histogram_value value, unsigned tag, unsigned base
   val = prepare_instrumented_value (&gsi, value);
   call = gimple_build_call (tree_interval_profiler_fn, 4,
 			    ref_ptr, val, start, steps);
+  find_referenced_vars_in (call);
   gsi_insert_before (&gsi, call, GSI_NEW_STMT);
 }
 
@@ -554,6 +556,7 @@ gimple_gen_pow2_profiler (histogram_value value, unsigned tag, unsigned base)
 				      true, NULL_TREE, true, GSI_SAME_STMT);
   val = prepare_instrumented_value (&gsi, value);
   call = gimple_build_call (tree_pow2_profiler_fn, 2, ref_ptr, val);
+  find_referenced_vars_in (call);
   gsi_insert_before (&gsi, call, GSI_NEW_STMT);
 }
 
@@ -574,6 +577,7 @@ gimple_gen_one_value_profiler (histogram_value value, unsigned tag, unsigned bas
 				      true, NULL_TREE, true, GSI_SAME_STMT);
   val = prepare_instrumented_value (&gsi, value);
   call = gimple_build_call (tree_one_value_profiler_fn, 2, ref_ptr, val);
+  find_referenced_vars_in (call);
   gsi_insert_before (&gsi, call, GSI_NEW_STMT);
 }
 
@@ -612,9 +616,12 @@ gimple_gen_ic_profiler (histogram_value value, unsigned tag, unsigned base)
 
   tmp1 = create_tmp_reg (ptr_void, "PROF");
   stmt1 = gimple_build_assign (ic_gcov_type_ptr_var, ref_ptr);
+  find_referenced_vars_in (stmt1);
   stmt2 = gimple_build_assign (tmp1, unshare_expr (value->hvalue.value));
   gimple_assign_set_lhs (stmt2, make_ssa_name (tmp1, stmt2));
+  find_referenced_vars_in (stmt2);
   stmt3 = gimple_build_assign (ic_void_ptr_var, gimple_assign_lhs (stmt2));
+  add_referenced_var (ic_void_ptr_var);
 
   gsi_insert_before (&gsi, stmt1, GSI_SAME_STMT);
   gsi_insert_before (&gsi, stmt2, GSI_SAME_STMT);
@@ -650,9 +657,11 @@ gimple_gen_ic_func_profiler (void)
   counter_ptr = force_gimple_operand_gsi (&gsi, ic_gcov_type_ptr_var,
 					  true, NULL_TREE, true,
 					  GSI_SAME_STMT);
+  add_referenced_var (ic_gcov_type_ptr_var);
   ptr_var = force_gimple_operand_gsi (&gsi, ic_void_ptr_var,
 				      true, NULL_TREE, true,
 				      GSI_SAME_STMT);
+  add_referenced_var (ic_void_ptr_var);
   tree_uid = build_int_cst (gcov_type_node, current_function_funcdef_no);
   stmt1 = gimple_build_call (tree_indirect_call_profiler_fn, 4,
 			     counter_ptr, tree_uid, cur_func, ptr_var);
@@ -721,12 +730,15 @@ gimple_gen_dc_profiler (unsigned base, gimple call_stmt)
   tmp1 = force_gimple_operand_gsi (&gsi, tmp1, true, NULL_TREE,
 				   true, GSI_SAME_STMT);
   stmt1 = gimple_build_assign (dc_gcov_type_ptr_var, tmp1);
+  find_referenced_vars_in (stmt1);
   tmp2 = create_tmp_var (ptr_void, "PROF_dc");
   add_referenced_var (tmp2);
   stmt2 = gimple_build_assign (tmp2, unshare_expr (callee));
+  find_referenced_vars_in (stmt2);
   tmp3 = make_ssa_name (tmp2, stmt2);
   gimple_assign_set_lhs (stmt2, tmp3);
   stmt3 = gimple_build_assign (dc_void_ptr_var, tmp3);
+  find_referenced_vars_in (stmt3);
   gsi_insert_before (&gsi, stmt1, GSI_SAME_STMT);
   gsi_insert_before (&gsi, stmt2, GSI_SAME_STMT);
   gsi_insert_before (&gsi, stmt3, GSI_SAME_STMT);
@@ -805,6 +817,7 @@ gimple_gen_average_profiler (histogram_value value, unsigned tag, unsigned base)
 				      true, GSI_SAME_STMT);
   val = prepare_instrumented_value (&gsi, value);
   call = gimple_build_call (tree_average_profiler_fn, 2, ref_ptr, val);
+  find_referenced_vars_in (call);
   gsi_insert_before (&gsi, call, GSI_NEW_STMT);
 }
 
@@ -825,6 +838,7 @@ gimple_gen_ior_profiler (histogram_value value, unsigned tag, unsigned base)
 				      true, NULL_TREE, true, GSI_SAME_STMT);
   val = prepare_instrumented_value (&gsi, value);
   call = gimple_build_call (tree_ior_profiler_fn, 2, ref_ptr, val);
+  find_referenced_vars_in (call);
   gsi_insert_before (&gsi, call, GSI_NEW_STMT);
 }
 

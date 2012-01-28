@@ -559,6 +559,10 @@ Winline
 Common Var(warn_inline) Warning
 Warn when an inlined function cannot be inlined
 
+Winvalid-memory-model
+Common Var(warn_invalid_memory_model) Init(1) Warning
+Warn when an atomic memory model parameter is known to be outside the valid range.
+
 Wlarger-than-
 Common RejectNegative Joined Warning Undocumented Alias(Wlarger-than=)
 
@@ -750,6 +754,10 @@ Warn when a variable is unused
 Wcoverage-mismatch
 Common Var(warn_coverage_mismatch) Init(1) Warning
 Warn in case profiles in -fprofile-use do not match
+
+Wvector-operation-performance
+Common Var(warn_vector_operation_performance) Warning
+Warn when a vector operation is compiled outside the SIMD
 
 Xassembler
 Driver Separate
@@ -1284,6 +1292,10 @@ floop-block
 Common Report Var(flag_loop_block) Optimization
 Enable Loop Blocking transformation
 
+fgnu-tm
+Common Report Var(flag_tm)
+Enable support for GNU transactional memory
+
 floop-flatten
 Common Report Var(flag_loop_flatten) Optimization
 Enable Loop Flattening transformation
@@ -1360,6 +1372,10 @@ finline-limit=
 Common RejectNegative Joined UInteger
 -finline-limit=<number>	Limit the size of inlined functions to <number>
 
+finline-atomics
+Common Report Var(flag_inline_atomics) Init(1) Optimization
+Inline __atomic operations when a lock free instruction sequence is available.
+
 finstrument-functions
 Common Report Var(flag_instrument_function_entry_exit)
 Instrument function entry and exit with profiling calls
@@ -1419,7 +1435,7 @@ EnumValue
 Enum(ira_algorithm) String(priority) Value(IRA_ALGORITHM_PRIORITY)
 
 fira-region=
-Common Joined RejectNegative Enum(ira_region) Var(flag_ira_region) Init(IRA_REGION_MIXED)
+Common Joined RejectNegative Enum(ira_region) Var(flag_ira_region) Init(IRA_REGION_AUTODETECT)
 -fira-region=[one|all|mixed] Set regions for IRA
 
 Enum
@@ -1914,6 +1930,11 @@ Eliminate redundant zero extensions on targets that support implicit extensions.
 fshow-column
 Common Report Var(flag_show_column) Init(1)
 Show column numbers in diagnostics, when available.  Default on
+
+fshrink-wrap
+Common Report Var(flag_shrink_wrap) Optimization
+Emit function prologues only before parts of the function that need it,
+rather than at the top of the function.
 
 fsignaling-nans
 Common Report Var(flag_signaling_nans) Optimization SetByCombined

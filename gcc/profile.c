@@ -443,6 +443,39 @@ read_profile_edge_counts (gcov_type *exec_counts)
     return num_edges;
 }
 
+#define OVERLAP_BASE 10000
+
+/* Compare the static estimated profile to the actual profile, and
+   return the "degree of overlap" measure between them.
+
+   Degree of overlap is a number between 0 and OVERLAP_BASE. It is
+   the sum of each basic block's minimum relative weights between
+   two profiles. And overlap of OVERLAP_BASE means two profiles are
+   identical.  */
+
+static int
+compute_frequency_overlap (void)
+{
+  gcov_type count_total = 0, freq_total = 0;
+  int overlap = 0;
+  basic_block bb;
+
+  FOR_BB_BETWEEN (bb, ENTRY_BLOCK_PTR, NULL, next_bb)
+    {
+      count_total += bb->count;
+      freq_total += bb->frequency;
+    }
+
+  if (count_total == 0 || freq_total == 0)
+    return 0;
+
+  FOR_BB_BETWEEN (bb, ENTRY_BLOCK_PTR, NULL, next_bb)
+    overlap += MIN (bb->count * OVERLAP_BASE / count_total,
+		    bb->frequency * OVERLAP_BASE / freq_total);
+
+  return overlap;
+}
+
 /* Compute the branch probabilities for the various branches.
    Annotate them accordingly.  
 
@@ -613,7 +646,13 @@ compute_branch_probabilities (unsigned cfg_checksum, unsigned lineno_checksum)
 	}
     }
   if (dump_file)
-    dump_flow_info (dump_file, dump_flags);
+    {
+      int overlap = compute_frequency_overlap ();
+      dump_flow_info (dump_file, dump_flags);
+      fprintf (dump_file, "Static profile overlap: %d.%d%%\n",
+	       overlap / (OVERLAP_BASE / 100),
+	       overlap % (OVERLAP_BASE / 100));
+    }
 
   total_num_passes += passes;
   if (dump_file)
@@ -1095,30 +1134,25 @@ branch_prob (void)
   lineno_checksum = coverage_compute_lineno_checksum ();
 
   /* Write the data from which gcov can reconstruct the basic block
-     graph.  */
+     graph and function line numbers  */
 
-  /* Basic block flags */
-  if (coverage_begin_output (lineno_checksum, cfg_checksum))
+  if (coverage_begin_function (lineno_checksum, cfg_checksum))
     {
       gcov_position_t offset;
 
+      /* Basic block flags */
       offset = gcov_write_tag (GCOV_TAG_BLOCKS);
       for (i = 0; i != (unsigned) (n_basic_blocks); i++)
 	gcov_write_unsigned (0);
       gcov_write_length (offset);
-    }
 
-   /* Keep all basic block indexes nonnegative in the gcov output.
-      Index 0 is used for entry block, last index is for exit block.
-      */
-  ENTRY_BLOCK_PTR->index = 1;
-  EXIT_BLOCK_PTR->index = last_basic_block;
+      /* Keep all basic block indexes nonnegative in the gcov output.
+	 Index 0 is used for entry block, last index is for exit
+	 block.    */
+      ENTRY_BLOCK_PTR->index = 1;
+      EXIT_BLOCK_PTR->index = last_basic_block;
 
-  /* Arcs */
-  if (coverage_begin_output (lineno_checksum, cfg_checksum))
-    {
-      gcov_position_t offset;
-
+      /* Arcs */
       FOR_BB_BETWEEN (bb, ENTRY_BLOCK_PTR, EXIT_BLOCK_PTR, next_bb)
 	{
 	  edge e;
@@ -1153,11 +1187,11 @@ branch_prob (void)
 
 	  gcov_write_length (offset);
 	}
-    }
 
-  /* Line numbers.  */
-  if (coverage_begin_output (lineno_checksum, cfg_checksum))
-    {
+      ENTRY_BLOCK_PTR->index = ENTRY_BLOCK;
+      EXIT_BLOCK_PTR->index = EXIT_BLOCK;
+
+      /* Line numbers.  */
       /* Initialize the output.  */
       output_location (NULL, 0, NULL, NULL);
 
@@ -1202,8 +1236,6 @@ branch_prob (void)
 	}
     }
 
-  ENTRY_BLOCK_PTR->index = ENTRY_BLOCK;
-  EXIT_BLOCK_PTR->index = EXIT_BLOCK;
 #undef BB_TO_GCOV_INDEX
 
   if (flag_profile_reusedist)

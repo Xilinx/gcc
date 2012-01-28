@@ -1853,8 +1853,8 @@ gfc_simplify_expr (gfc_expr *p, int type)
 	  if (p->ref && p->ref->u.ss.end)
 	    gfc_extract_int (p->ref->u.ss.end, &end);
 
-	  if (end < 0)
-	    end = 0;
+	  if (end < start)
+	    end = start;
 
 	  s = gfc_get_wide_string (end - start + 2);
 	  memcpy (s, p->value.character.string + start,
@@ -1883,7 +1883,8 @@ gfc_simplify_expr (gfc_expr *p, int type)
 	 initialization expression, or we want a subsection.  */
       if (p->symtree->n.sym->attr.flavor == FL_PARAMETER
 	  && (gfc_init_expr_flag || p->ref
-	      || p->symtree->n.sym->value->expr_type != EXPR_ARRAY))
+	      || p->symtree->n.sym->value->expr_type != EXPR_ARRAY)
+	  && !p->symtree->n.sym->attr.vtab)
 	{
 	  if (simplify_parameter_variable (p, type) == FAILURE)
 	    return FAILURE;
@@ -3734,6 +3735,8 @@ gfc_has_default_initializer (gfc_symbol *der)
         if (!c->attr.pointer
 	     && gfc_has_default_initializer (c->ts.u.derived))
 	  return true;
+	if (c->attr.pointer && c->initializer)
+	  return true;
       }
     else
       {
@@ -3743,6 +3746,7 @@ gfc_has_default_initializer (gfc_symbol *der)
 
   return false;
 }
+
 
 /* Get an expression for a default initializer.  */
 
@@ -4134,8 +4138,9 @@ gfc_expr_check_typed (gfc_expr* e, gfc_namespace* ns, bool strict)
   return error_found ? FAILURE : SUCCESS;
 }
 
-/* Walk an expression tree and replace all symbols with a corresponding symbol
-   in the formal_ns of "sym". Needed for copying interfaces in PROCEDURE
+
+/* Walk an expression tree and replace all dummy symbols by the corresponding
+   symbol in the formal_ns of "sym". Needed for copying interfaces in PROCEDURE
    statements. The boolean return value is required by gfc_traverse_expr.  */
 
 static bool
@@ -4144,14 +4149,12 @@ replace_symbol (gfc_expr *expr, gfc_symbol *sym, int *i ATTRIBUTE_UNUSED)
   if ((expr->expr_type == EXPR_VARIABLE 
        || (expr->expr_type == EXPR_FUNCTION
 	   && !gfc_is_intrinsic (expr->symtree->n.sym, 0, expr->where)))
-      && expr->symtree->n.sym->ns == sym->ts.interface->formal_ns)
+      && expr->symtree->n.sym->ns == sym->ts.interface->formal_ns
+      && expr->symtree->n.sym->attr.dummy)
     {
-      gfc_symtree *stree;
-      gfc_namespace *ns = sym->formal_ns;
-      /* Don't use gfc_get_symtree as we prefer to fail badly if we don't find
-	 the symtree rather than create a new one (and probably fail later).  */
-      stree = gfc_find_symtree (ns ? ns->sym_root : gfc_current_ns->sym_root,
-		      		expr->symtree->n.sym->name);
+      gfc_symtree *root = sym->formal_ns ? sym->formal_ns->sym_root
+					 : gfc_current_ns->sym_root;
+      gfc_symtree *stree = gfc_find_symtree (root, expr->symtree->n.sym->name);
       gcc_assert (stree);
       stree->n.sym->attr = expr->symtree->n.sym->attr;
       expr->symtree = stree;
@@ -4164,6 +4167,7 @@ gfc_expr_replace_symbols (gfc_expr *expr, gfc_symbol *dest)
 {
   gfc_traverse_expr (expr, dest, &replace_symbol, 0);
 }
+
 
 /* The following is analogous to 'replace_symbol', and needed for copying
    interfaces for procedure pointer components. The argument 'sym' must formally
@@ -4301,13 +4305,23 @@ gfc_get_corank (gfc_expr *e)
 {
   int corank;
   gfc_ref *ref;
-  corank = e->symtree->n.sym->as ? e->symtree->n.sym->as->corank : 0;
+
+  if (!gfc_is_coarray (e))
+    return 0;
+
+  if (e->ts.type == BT_CLASS && e->ts.u.derived->components)
+    corank = e->ts.u.derived->components->as
+	     ? e->ts.u.derived->components->as->corank : 0;
+  else 
+    corank = e->symtree->n.sym->as ? e->symtree->n.sym->as->corank : 0;
+
   for (ref = e->ref; ref; ref = ref->next)
     {
       if (ref->type == REF_ARRAY)
 	corank = ref->u.ar.as->corank;
       gcc_assert (ref->type != REF_SUBSTRING);
     }
+
   return corank;
 }
 
@@ -4384,6 +4398,7 @@ gfc_is_simply_contiguous (gfc_expr *expr, bool strict)
   int i;
   gfc_array_ref *ar = NULL;
   gfc_ref *ref, *part_ref = NULL;
+  gfc_symbol *sym;
 
   if (expr->expr_type == EXPR_FUNCTION)
     return expr->value.function.esym
@@ -4407,11 +4422,15 @@ gfc_is_simply_contiguous (gfc_expr *expr, bool strict)
 	ar = &ref->u.ar;
     }
 
-  if ((part_ref && !part_ref->u.c.component->attr.contiguous
-       && part_ref->u.c.component->attr.pointer)
-      || (!part_ref && !expr->symtree->n.sym->attr.contiguous
-	  && (expr->symtree->n.sym->attr.pointer
-	      || expr->symtree->n.sym->as->type == AS_ASSUMED_SHAPE)))
+  sym = expr->symtree->n.sym;
+  if (expr->ts.type != BT_CLASS
+	&& ((part_ref
+		&& !part_ref->u.c.component->attr.contiguous
+		&& part_ref->u.c.component->attr.pointer)
+	    || (!part_ref
+		&& !sym->attr.contiguous
+		&& (sym->attr.pointer
+		      || sym->as->type == AS_ASSUMED_SHAPE))))
     return false;
 
   if (!ar || ar->type == AR_FULL)
@@ -4629,7 +4648,7 @@ gfc_check_vardef_context (gfc_expr* e, bool pointer, bool alloc_obj,
 		       sym->name, context, &e->where);
 	  return FAILURE;
 	}
-      if (!pointer && !is_pointer)
+      if (!pointer && !is_pointer && !sym->attr.pointer)
 	{
 	  if (context)
 	    gfc_error ("Dummy argument '%s' with INTENT(IN) in variable"

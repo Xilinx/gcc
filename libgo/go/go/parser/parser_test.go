@@ -5,6 +5,7 @@
 package parser
 
 import (
+	"go/ast"
 	"go/token"
 	"os"
 	"testing"
@@ -26,6 +27,9 @@ var illegalInputs = []interface{}{
 	`package p; func f() { for _ = range x ; ; {} };`,
 	`package p; func f() { for ; ; _ = range x {} };`,
 	`package p; func f() { for ; _ = range x ; {} };`,
+	`package p; func f() { switch t = t.(type) {} };`,
+	`package p; func f() { switch t, t = t.(type) {} };`,
+	`package p; func f() { switch t = t.(type), t {} };`,
 	`package p; var a = [1]int; /* illegal expression */`,
 	`package p; var a = [...]int; /* illegal expression */`,
 	`package p; var a = struct{} /* illegal expression */`,
@@ -61,6 +65,9 @@ var validPrograms = []interface{}{
 	`package p; func f(...T);`,
 	`package p; func f(float, ...int);`,
 	`package p; func f(x int, a ...int) { f(0, a...); f(1, a...,) };`,
+	`package p; func f(int,) {};`,
+	`package p; func f(...int,) {};`,
+	`package p; func f(x ...int,) {};`,
 	`package p; type T []int; var a []bool; func f() { if a[T{42}[0]] {} };`,
 	`package p; type T []int; func g(int) bool { return true }; func f() { if g(T{42}[0]) {} };`,
 	`package p; type T []int; func f() { for _ = range []int{T{42}[0]} {} };`,
@@ -74,7 +81,7 @@ var validPrograms = []interface{}{
 
 func TestParseValidPrograms(t *testing.T) {
 	for _, src := range validPrograms {
-		_, err := ParseFile(fset, "", src, 0)
+		_, err := ParseFile(fset, "", src, SpuriousErrors)
 		if err != nil {
 			t.Errorf("ParseFile(%q): %v", src, err)
 		}
@@ -106,7 +113,7 @@ func nameFilter(filename string) bool {
 	return true
 }
 
-func dirFilter(f *os.FileInfo) bool { return nameFilter(f.Name) }
+func dirFilter(f os.FileInfo) bool { return nameFilter(f.Name()) }
 
 func TestParse4(t *testing.T) {
 	path := "."
@@ -125,6 +132,49 @@ func TestParse4(t *testing.T) {
 	for filename := range pkg.Files {
 		if !nameFilter(filename) {
 			t.Errorf("unexpected package file: %s", filename)
+		}
+	}
+}
+
+func TestColonEqualsScope(t *testing.T) {
+	f, err := ParseFile(fset, "", `package p; func f() { x, y, z := x, y, z }`, 0)
+	if err != nil {
+		t.Errorf("parse: %s", err)
+	}
+
+	// RHS refers to undefined globals; LHS does not.
+	as := f.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.AssignStmt)
+	for _, v := range as.Rhs {
+		id := v.(*ast.Ident)
+		if id.Obj != nil {
+			t.Errorf("rhs %s has Obj, should not", id.Name)
+		}
+	}
+	for _, v := range as.Lhs {
+		id := v.(*ast.Ident)
+		if id.Obj == nil {
+			t.Errorf("lhs %s does not have Obj, should", id.Name)
+		}
+	}
+}
+
+func TestVarScope(t *testing.T) {
+	f, err := ParseFile(fset, "", `package p; func f() { var x, y, z = x, y, z }`, 0)
+	if err != nil {
+		t.Errorf("parse: %s", err)
+	}
+
+	// RHS refers to undefined globals; LHS does not.
+	as := f.Decls[0].(*ast.FuncDecl).Body.List[0].(*ast.DeclStmt).Decl.(*ast.GenDecl).Specs[0].(*ast.ValueSpec)
+	for _, v := range as.Values {
+		id := v.(*ast.Ident)
+		if id.Obj != nil {
+			t.Errorf("rhs %s has Obj, should not", id.Name)
+		}
+	}
+	for _, id := range as.Names {
+		if id.Obj == nil {
+			t.Errorf("lhs %s does not have Obj, should", id.Name)
 		}
 	}
 }

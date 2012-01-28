@@ -127,7 +127,19 @@ package body Aspects is
       Ritem : Node_Id;
 
    begin
-      Ritem := First_Rep_Item (Ent);
+
+      --  If the aspect is an inherited one and the entity is a class-wide
+      --  type, use the aspect of the specific type.
+
+      if Is_Type (Ent)
+        and then Is_Class_Wide_Type (Ent)
+        and then Inherited_Aspect (A)
+      then
+         Ritem := First_Rep_Item (Etype (Ent));
+      else
+         Ritem := First_Rep_Item (Ent);
+      end if;
+
       while Present (Ritem) loop
          if Nkind (Ritem) = N_Aspect_Specification
            and then Get_Aspect_Id (Chars (Identifier (Ritem))) = A
@@ -168,6 +180,7 @@ package body Aspects is
       N_Component_Declaration                  => True,
       N_Entry_Declaration                      => True,
       N_Exception_Declaration                  => True,
+      N_Exception_Renaming_Declaration         => True,
       N_Formal_Abstract_Subprogram_Declaration => True,
       N_Formal_Concrete_Subprogram_Declaration => True,
       N_Formal_Object_Declaration              => True,
@@ -176,11 +189,14 @@ package body Aspects is
       N_Full_Type_Declaration                  => True,
       N_Function_Instantiation                 => True,
       N_Generic_Package_Declaration            => True,
+      N_Generic_Renaming_Declaration           => True,
       N_Generic_Subprogram_Declaration         => True,
       N_Object_Declaration                     => True,
+      N_Object_Renaming_Declaration            => True,
       N_Package_Declaration                    => True,
       N_Package_Instantiation                  => True,
       N_Package_Specification                  => True,
+      N_Package_Renaming_Declaration           => True,
       N_Private_Extension_Declaration          => True,
       N_Private_Type_Declaration               => True,
       N_Procedure_Instantiation                => True,
@@ -190,6 +206,7 @@ package body Aspects is
       N_Single_Task_Declaration                => True,
       N_Subprogram_Body                        => True,
       N_Subprogram_Declaration                 => True,
+      N_Subprogram_Renaming_Declaration        => True,
       N_Subtype_Declaration                    => True,
       N_Task_Body                              => True,
       N_Task_Type_Declaration                  => True,
@@ -243,6 +260,7 @@ package body Aspects is
     Aspect_Preelaborate_05              => Aspect_Preelaborate_05,
     Aspect_Pure                         => Aspect_Pure,
     Aspect_Pure_05                      => Aspect_Pure_05,
+    Aspect_Pure_12                      => Aspect_Pure_12,
     Aspect_Remote_Call_Interface        => Aspect_Remote_Call_Interface,
     Aspect_Remote_Types                 => Aspect_Remote_Types,
     Aspect_Shared_Passive               => Aspect_Shared_Passive,

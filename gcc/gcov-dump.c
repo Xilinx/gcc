@@ -350,19 +350,24 @@ tag_function (const char *filename ATTRIBUTE_UNUSED,
 {
   unsigned long pos = gcov_position ();
 
-  printf (" ident=%u", gcov_read_unsigned ());
-  printf (", lineno_checksum=0x%08x", gcov_read_unsigned ());
-  printf (", cfg_checksum_checksum=0x%08x", gcov_read_unsigned ());
-
-  if (gcov_position () - pos < length)
+  if (!length)
+    printf (" placeholder");
+  else
     {
-      const char *name;
+      printf (" ident=%u", gcov_read_unsigned ());
+      printf (", lineno_checksum=0x%08x", gcov_read_unsigned ());
+      printf (", cfg_checksum_checksum=0x%08x", gcov_read_unsigned ());
 
-      name = gcov_read_string ();
-      printf (", `%s'", name ? name : "NULL");
-      name = gcov_read_string ();
-      printf (" %s", name ? name : "NULL");
-      printf (":%u", gcov_read_unsigned ());
+      if (gcov_position () - pos < length)
+	{
+	  const char *name;
+	  
+	  name = gcov_read_string ();
+	  printf (", `%s'", name ? name : "NULL");
+	  name = gcov_read_string ();
+	  printf (" %s", name ? name : "NULL");
+	  printf (":%u", gcov_read_unsigned ());
+	}
     }
 }
 
@@ -416,6 +421,18 @@ tag_arcs (const char *filename ATTRIBUTE_UNUSED,
 	  dst = gcov_read_unsigned ();
 	  flags = gcov_read_unsigned ();
 	  printf (" %u:%04x", dst, flags);
+	  if (flags)
+	    {
+	      char c = '(';
+	      
+	      if (flags & GCOV_ARC_ON_TREE)
+		printf ("%ctree", c), c = ',';
+	      if (flags & GCOV_ARC_FAKE)
+		printf ("%cfake", c), c = ',';
+	      if (flags & GCOV_ARC_FALLTHROUGH)
+		printf ("%cfall", c), c = ',';
+	      printf (")");
+	    }
 	}
     }
 }

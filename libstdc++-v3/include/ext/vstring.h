@@ -32,7 +32,10 @@
 
 #pragma GCC system_header
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <initializer_list>
+#endif
+
 #include <ext/vstring_util.h>
 #include <ext/rc_string_base.h>
 #include <ext/sso_string_base.h>
@@ -1151,6 +1154,17 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	this->_M_set_leaked();
 	return iterator(this->_M_data() + __pos);
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  Remove the last character.
+       *
+       *  The string must be non-empty.
+       */
+      void
+      pop_back()
+      { this->_M_erase(size()-1, 1); }
+#endif // __GXX_EXPERIMENTAL_CXX0X__
 
       /**
        *  @brief  Replace characters with value from another string.
@@ -2770,7 +2784,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     : public __hash_base<size_t, __gnu_cxx::__vstring>
     {
       size_t
-      operator()(const __gnu_cxx::__vstring& __s) const
+      operator()(const __gnu_cxx::__vstring& __s) const noexcept
       { return std::_Hash_impl::hash(__s.data(), __s.length()); }
     };
 
@@ -2781,7 +2795,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     : public __hash_base<size_t, __gnu_cxx::__wvstring>
     {
       size_t
-      operator()(const __gnu_cxx::__wvstring& __s) const
+      operator()(const __gnu_cxx::__wvstring& __s) const noexcept
       { return std::_Hash_impl::hash(__s.data(),
                                      __s.length() * sizeof(wchar_t)); }
     };
@@ -2794,7 +2808,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     : public __hash_base<size_t, __gnu_cxx::__u16vstring>
     {
       size_t
-      operator()(const __gnu_cxx::__u16vstring& __s) const
+      operator()(const __gnu_cxx::__u16vstring& __s) const noexcept
       { return std::_Hash_impl::hash(__s.data(),
                                      __s.length() * sizeof(char16_t)); }
     };
@@ -2805,7 +2819,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     : public __hash_base<size_t, __gnu_cxx::__u32vstring>
     {
       size_t
-      operator()(const __gnu_cxx::__u32vstring& __s) const
+      operator()(const __gnu_cxx::__u32vstring& __s) const noexcept
       { return std::_Hash_impl::hash(__s.data(),
                                      __s.length() * sizeof(char32_t)); }
     };

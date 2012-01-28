@@ -154,6 +154,7 @@ target_libraries="target-libgcc \
 		target-libgloss \
 		target-newlib \
 		target-libgomp \
+		target-libitm \
 		target-libstdc++-v3 \
 		target-libmudflap \
 		target-libssp \
@@ -492,6 +493,22 @@ if test x$enable_libgomp = x ; then
     esac
 fi
 
+# Disable libitm on unsupported systems.
+if test -d ${srcdir}/libitm; then
+    if test x$enable_libitm = x; then
+	AC_MSG_CHECKING([for libitm support])
+	if (srcdir=${srcdir}/libitm; \
+		. ${srcdir}/configure.tgt; \
+		test -n "$UNSUPPORTED")
+	then
+	    AC_MSG_RESULT([no])
+	    noconfigdirs="$noconfigdirs target-libitm"
+	else
+	    AC_MSG_RESULT([yes])
+	fi
+    fi
+fi
+
 # Disable libssp for some systems.
 case "${target}" in
   avr-*-*)
@@ -499,6 +516,12 @@ case "${target}" in
     noconfigdirs="$noconfigdirs target-libssp"
     ;;
   powerpc-*-aix* | rs6000-*-aix*)
+    noconfigdirs="$noconfigdirs target-libssp"
+    ;;
+  rl78-*-*)
+    # libssp uses a misaligned load to trigger a fault, but the RL78
+    # doesn't fault for those - instead, it gives a build-time error
+    # for explicit misaligned loads.
     noconfigdirs="$noconfigdirs target-libssp"
     ;;
 esac
@@ -2277,10 +2300,6 @@ case "${target}" in
     extra_arflags_for_target=" -X32_64"
     extra_nmflags_for_target=" -B -X32_64"
     ;;
-  *-*-darwin[[3-9]]*)
-    # ranlib before Darwin10 requires the -c flag to look at common symbols.
-    extra_ranlibflags_for_target=" -c"
-    ;;
 esac
 
 alphaieee_frag=/dev/null
@@ -3045,6 +3064,7 @@ NCN_STRICT_CHECK_TOOLS(WINDRES, windres)
 NCN_STRICT_CHECK_TOOLS(WINDMC, windmc)
 NCN_STRICT_CHECK_TOOLS(OBJCOPY, objcopy)
 NCN_STRICT_CHECK_TOOLS(OBJDUMP, objdump)
+NCN_STRICT_CHECK_TOOLS(READELF, readelf)
 AC_SUBST(CC)
 AC_SUBST(CXX)
 AC_SUBST(CFLAGS)
@@ -3078,6 +3098,7 @@ ACX_CHECK_INSTALLED_TARGET_TOOL(LIPO_FOR_TARGET, lipo)
 ACX_CHECK_INSTALLED_TARGET_TOOL(NM_FOR_TARGET, nm)
 ACX_CHECK_INSTALLED_TARGET_TOOL(OBJDUMP_FOR_TARGET, objdump)
 ACX_CHECK_INSTALLED_TARGET_TOOL(RANLIB_FOR_TARGET, ranlib)
+ACX_CHECK_INSTALLED_TARGET_TOOL(READELF_FOR_TARGET, readelf)
 ACX_CHECK_INSTALLED_TARGET_TOOL(STRIP_FOR_TARGET, strip)
 ACX_CHECK_INSTALLED_TARGET_TOOL(WINDRES_FOR_TARGET, windres)
 ACX_CHECK_INSTALLED_TARGET_TOOL(WINDMC_FOR_TARGET, windmc)
@@ -3107,6 +3128,7 @@ GCC_TARGET_TOOL(lipo, LIPO_FOR_TARGET, LIPO)
 GCC_TARGET_TOOL(nm, NM_FOR_TARGET, NM, [binutils/nm-new])
 GCC_TARGET_TOOL(objdump, OBJDUMP_FOR_TARGET, OBJDUMP, [binutils/objdump])
 GCC_TARGET_TOOL(ranlib, RANLIB_FOR_TARGET, RANLIB, [binutils/ranlib])
+GCC_TARGET_TOOL(readelf, READELF_FOR_TARGET, READELF, [binutils/readelf])
 GCC_TARGET_TOOL(strip, STRIP_FOR_TARGET, STRIP, [binutils/strip-new])
 GCC_TARGET_TOOL(windres, WINDRES_FOR_TARGET, WINDRES, [binutils/windres])
 GCC_TARGET_TOOL(windmc, WINDMC_FOR_TARGET, WINDMC, [binutils/windmc])

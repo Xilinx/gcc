@@ -129,6 +129,26 @@ tree_is_indexable (tree t)
   else if (TREE_CODE (t) == VAR_DECL && decl_function_context (t)
 	   && !TREE_STATIC (t))
     return false;
+  /* If this is a decl generated for block local externs for
+     debug info generation, stream it unshared alongside BLOCK_VARS.  */
+  else if (VAR_OR_FUNCTION_DECL_P (t)
+	   /* ???  The following tests are a literal match on what
+	      c-decl.c:pop_scope does.  */
+	   && TREE_PUBLIC (t)
+	   && DECL_EXTERNAL (t)
+	   && DECL_CONTEXT (t)
+	   && TREE_CODE (DECL_CONTEXT (t)) == FUNCTION_DECL)
+    return false;
+  /* Variably modified types need to be streamed alongside function
+     bodies because they can refer to local entities.  Together with
+     them we have to localize their members as well.
+     ???  In theory that includes non-FIELD_DECLs as well.  */
+  else if (TYPE_P (t)
+	   && variably_modified_type_p (t, NULL_TREE))
+    return false;
+  else if (TREE_CODE (t) == FIELD_DECL
+	   && variably_modified_type_p (DECL_CONTEXT (t), NULL_TREE))
+    return false;
   else
     return (TYPE_P (t) || DECL_P (t) || TREE_CODE (t) == SSA_NAME);
 }
@@ -172,15 +192,21 @@ lto_output_location_bitpack (struct bitpack_d *bp,
 
 
 /* Emit location LOC to output block OB.
-   When bitpack is handy, it is more space effecient to call
+   If the output_location streamer hook exists, call it.
+   Otherwise, when bitpack is handy, it is more space efficient to call
    lto_output_location_bitpack with existing bitpack.  */
 
 void
 lto_output_location (struct output_block *ob, location_t loc)
 {
-  struct bitpack_d bp = bitpack_create (ob->main_stream);
-  lto_output_location_bitpack (&bp, ob, loc);
-  streamer_write_bitpack (&bp);
+  if (streamer_hooks.output_location)
+    streamer_hooks.output_location (ob, loc);
+  else
+    {
+      struct bitpack_d bp = bitpack_create (ob->main_stream);
+      lto_output_location_bitpack (&bp, ob, loc);
+      streamer_write_bitpack (&bp);
+    }
 }
 
 
@@ -713,18 +739,60 @@ produce_asm (struct output_block *ob, tree fn)
 }
 
 
+/* Output the base body of struct function FN using output block OB.  */
+
+static void
+output_struct_function_base (struct output_block *ob, struct function *fn)
+{
+  struct bitpack_d bp;
+  unsigned i;
+  tree t;
+
+  /* Output the static chain and non-local goto save area.  */
+  stream_write_tree (ob, fn->static_chain_decl, true);
+  stream_write_tree (ob, fn->nonlocal_goto_save_area, true);
+
+  /* Output all the local variables in the function.  */
+  streamer_write_hwi (ob, VEC_length (tree, fn->local_decls));
+  FOR_EACH_VEC_ELT (tree, fn->local_decls, i, t)
+    stream_write_tree (ob, t, true);
+
+  /* Output the function start and end loci.  */
+  lto_output_location (ob, fn->function_start_locus);
+  lto_output_location (ob, fn->function_end_locus);
+
+  /* Output current IL state of the function.  */
+  streamer_write_uhwi (ob, fn->curr_properties);
+
+  /* Write all the attributes for FN.  */
+  bp = bitpack_create (ob->main_stream);
+  bp_pack_value (&bp, fn->is_thunk, 1);
+  bp_pack_value (&bp, fn->has_local_explicit_reg_vars, 1);
+  bp_pack_value (&bp, fn->after_tree_profile, 1);
+  bp_pack_value (&bp, fn->returns_pcc_struct, 1);
+  bp_pack_value (&bp, fn->returns_struct, 1);
+  bp_pack_value (&bp, fn->can_throw_non_call_exceptions, 1);
+  bp_pack_value (&bp, fn->always_inline_functions_inlined, 1);
+  bp_pack_value (&bp, fn->after_inlining, 1);
+  bp_pack_value (&bp, fn->stdarg, 1);
+  bp_pack_value (&bp, fn->has_nonlocal_label, 1);
+  bp_pack_value (&bp, fn->calls_alloca, 1);
+  bp_pack_value (&bp, fn->calls_setjmp, 1);
+  bp_pack_value (&bp, fn->va_list_fpr_size, 8);
+  bp_pack_value (&bp, fn->va_list_gpr_size, 8);
+  streamer_write_bitpack (&bp);
+}
+
+
 /* Output the body of function NODE->DECL.  */
 
 static void
 output_function (struct cgraph_node *node)
 {
-  struct bitpack_d bp;
   tree function;
   struct function *fn;
   basic_block bb;
   struct output_block *ob;
-  unsigned i;
-  tree t;
 
   function = node->decl;
   fn = DECL_STRUCT_FUNCTION (function);
@@ -744,39 +812,7 @@ output_function (struct cgraph_node *node)
 
   streamer_write_record_start (ob, LTO_function);
 
-  /* Write all the attributes for FN.  */
-  bp = bitpack_create (ob->main_stream);
-  bp_pack_value (&bp, fn->is_thunk, 1);
-  bp_pack_value (&bp, fn->has_local_explicit_reg_vars, 1);
-  bp_pack_value (&bp, fn->after_tree_profile, 1);
-  bp_pack_value (&bp, fn->returns_pcc_struct, 1);
-  bp_pack_value (&bp, fn->returns_struct, 1);
-  bp_pack_value (&bp, fn->can_throw_non_call_exceptions, 1);
-  bp_pack_value (&bp, fn->always_inline_functions_inlined, 1);
-  bp_pack_value (&bp, fn->after_inlining, 1);
-  bp_pack_value (&bp, fn->stdarg, 1);
-  bp_pack_value (&bp, fn->has_nonlocal_label, 1);
-  bp_pack_value (&bp, fn->calls_alloca, 1);
-  bp_pack_value (&bp, fn->calls_setjmp, 1);
-  bp_pack_value (&bp, fn->va_list_fpr_size, 8);
-  bp_pack_value (&bp, fn->va_list_gpr_size, 8);
-  streamer_write_bitpack (&bp);
-
-  /* Output the function start and end loci.  */
-  lto_output_location (ob, fn->function_start_locus);
-  lto_output_location (ob, fn->function_end_locus);
-
-  /* Output current IL state of the function.  */
-  streamer_write_uhwi (ob, fn->curr_properties);
-
-  /* Output the static chain and non-local goto save area.  */
-  stream_write_tree (ob, fn->static_chain_decl, true);
-  stream_write_tree (ob, fn->nonlocal_goto_save_area, true);
-
-  /* Output all the local variables in the function.  */
-  streamer_write_hwi (ob, VEC_length (tree, fn->local_decls));
-  FOR_EACH_VEC_ELT (tree, fn->local_decls, i, t)
-    stream_write_tree (ob, t, true);
+  output_struct_function_base (ob, fn);
 
   /* Output the head of the arguments list.  */
   stream_write_tree (ob, DECL_ARGUMENTS (function), true);
@@ -954,7 +990,10 @@ lto_output_toplevel_asms (void)
   streamer_write_char_stream (ob->string_stream, 0);
 
   for (can = cgraph_asm_nodes; can; can = can->next)
-    streamer_write_string_cst (ob, ob->main_stream, can->asm_str);
+    {
+      streamer_write_string_cst (ob, ob->main_stream, can->asm_str);
+      streamer_write_hwi (ob, can->order);
+    }
 
   streamer_write_string_cst (ob, ob->main_stream, NULL_TREE);
 
@@ -1251,7 +1290,7 @@ write_symbol (struct streamer_tree_cache_d *cache,
   enum gcc_plugin_symbol_kind kind;
   enum gcc_plugin_symbol_visibility visibility;
   unsigned slot_num;
-  uint64_t size;
+  unsigned HOST_WIDEST_INT size;
   const char *comdat;
   unsigned char c;
 
@@ -1309,7 +1348,7 @@ write_symbol (struct streamer_tree_cache_d *cache,
      when symbol has attribute (visibility("hidden")) specified.
      targetm.binds_local_p check DECL_VISIBILITY_SPECIFIED and gets this
      right. */
-     
+
   if (DECL_EXTERNAL (t)
       && !targetm.binds_local_p (t))
     visibility = GCCPV_DEFAULT;
@@ -1331,14 +1370,9 @@ write_symbol (struct streamer_tree_cache_d *cache,
       }
 
   if (kind == GCCPK_COMMON
-      && DECL_SIZE (t)
-      && TREE_CODE (DECL_SIZE (t)) == INTEGER_CST)
-    {
-      size = (HOST_BITS_PER_WIDE_INT >= 64)
-	? (uint64_t) int_size_in_bytes (TREE_TYPE (t))
-	: (((uint64_t) TREE_INT_CST_HIGH (DECL_SIZE_UNIT (t))) << 32)
-		| TREE_INT_CST_LOW (DECL_SIZE_UNIT (t));
-    }
+      && DECL_SIZE_UNIT (t)
+      && TREE_CODE (DECL_SIZE_UNIT (t)) == INTEGER_CST)
+    size = TREE_INT_CST_LOW (DECL_SIZE_UNIT (t));
   else
     size = 0;
 
@@ -1411,11 +1445,7 @@ produce_symtab (struct output_block *ob,
 	 them indirectly or via vtables.  Do not output them to symbol
 	 table: they end up being undefined and just consume space.  */
       if (!node->address_taken && !node->callers)
-	{
-	  gcc_assert (node->analyzed);
-	  gcc_assert (DECL_DECLARED_INLINE_P (node->decl));
-	  continue;
-	}
+	continue;
       if (DECL_COMDAT (node->decl)
 	  && cgraph_comdat_can_be_unshared_p (node))
 	continue;

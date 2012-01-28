@@ -1,4 +1,11 @@
-2011-01-26  Han Shen  <shenhan@google.com>
+2012-01-27  Xinliang David Li  <davidxl@google.com>
+
+	Merged revisions 179852,180436,182413,182518 via svnmerge from
+	svn+ssh://gcc.gnu.org/svn/gcc/branches/google/integration.
+	Fixed new regressions and FDO/LIPO failures.
+
+
+2012-01-26  Han Shen  <shenhan@google.com>
 
 	Add a new option "-fstack-protector-strong".
 	* cfgexpand.c (expand_used_vars): Add logic handling

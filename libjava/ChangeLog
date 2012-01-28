@@ -1,3 +1,35 @@
+2011-12-12  Kai Tietz  <ktietz@redhat.com>
+
+	PR libgcj/50053
+	* java/lang/natClass.cc (java::lang::Class::newInstance): Special case
+	member-call for 32-bit IA native Window target.
+
+2011-11-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/50888
+	* prims.cc: Don't include ctype.h.
+	(c_isspace): Define.
+	(next_property_key, next_property_value): Use it instead
+	of isspace.
+
+2011-11-21  Andreas Tobler  <andreast@fgznet.ch>
+
+	* configure.ac: Fix FreeBSD 10 detection.
+	* configure: Regenerate.
+
+2011-10-17  Paul Brook  <paul@codesourcery.com>
+
+	* exception.cc (parse_lsda_header): hardcode ttype_encoding for older
+	ARM EABI toolchains.
+	(get_ttype_entry) Remove __ARM_EABI_UNWINDER__ variant.
+
+2011-10-16  Uros Bizjak  <ubizjak@gmail.com>
+	    Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/50737
+	* include/dwarf2-signal.h [__alpha__]: Remove MAKE_THROW_FRAME
+	definition.
+
 2011-08-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* exception.cc (std::abort): Remove static.

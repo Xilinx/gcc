@@ -80,7 +80,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Don't put any single quote (') in MOD_VERSION, 
    if yout want it to be recognized.  */
-#define MOD_VERSION "7"
+#define MOD_VERSION "8"
 
 
 /* Structure that describes a position within a module file.  */
@@ -194,6 +194,8 @@ static char module_name[GFC_MAX_SYMBOL_LEN + 1];
 static bool specified_nonint, specified_int;
 
 static int module_line, module_column, only_flag;
+static int prev_module_line, prev_module_column, prev_character;
+
 static enum
 { IO_INPUT, IO_OUTPUT }
 iomode;
@@ -428,6 +430,34 @@ resolve_fixups (fixup_t *f, void *gp)
     }
 }
 
+
+/* Convert a string such that it starts with a lower-case character. Used
+   to convert the symtree name of a derived-type to the symbol name or to
+   the name of the associated generic function.  */
+
+static const char *
+dt_lower_string (const char *name)
+{
+  if (name[0] != (char) TOLOWER ((unsigned char) name[0]))
+    return gfc_get_string ("%c%s", (char) TOLOWER ((unsigned char) name[0]),
+			   &name[1]);
+  return gfc_get_string (name);
+}
+
+
+/* Convert a string such that it starts with an upper-case character. Used to
+   return the symtree-name for a derived type; the symbol name itself and the
+   symtree/symbol name of the associated generic function start with a lower-
+   case character.  */
+
+static const char *
+dt_upper_string (const char *name)
+{
+  if (name[0] != (char) TOUPPER ((unsigned char) name[0]))
+    return gfc_get_string ("%c%s", (char) TOUPPER ((unsigned char) name[0]),
+			   &name[1]);
+  return gfc_get_string (name);
+}
 
 /* Call here during module reading when we know what pointer to
    associate with an integer.  Any fixups that exist are resolved at
@@ -699,12 +729,18 @@ static const char *
 find_use_name_n (const char *name, int *inst, bool interface)
 {
   gfc_use_rename *u;
+  const char *low_name = NULL;
   int i;
+
+  /* For derived types.  */
+  if (name[0] != (char) TOLOWER ((unsigned char) name[0]))
+    low_name = dt_lower_string (name);
 
   i = 0;
   for (u = gfc_rename_list; u; u = u->next)
     {
-      if (strcmp (u->use_name, name) != 0
+      if ((!low_name && strcmp (u->use_name, name) != 0)
+	  || (low_name && strcmp (u->use_name, low_name) != 0)
 	  || (u->op == INTRINSIC_USER && !interface)
 	  || (u->op != INTRINSIC_USER &&  interface))
 	continue;
@@ -722,6 +758,13 @@ find_use_name_n (const char *name, int *inst, bool interface)
     return only_flag ? NULL : name;
 
   u->found = 1;
+
+  if (low_name)
+    {
+      if (u->local_name[0] == '\0')
+	return name;
+      return dt_upper_string (u->local_name);
+    }
 
   return (u->local_name[0] != '\0') ? u->local_name : name;
 }
@@ -780,6 +823,7 @@ find_use_operator (gfc_intrinsic_op op)
 typedef struct true_name
 {
   BBT_HEADER (true_name);
+  const char *name;
   gfc_symbol *sym;
 }
 true_name;
@@ -803,7 +847,7 @@ compare_true_names (void *_t1, void *_t2)
   if (c != 0)
     return c;
 
-  return strcmp (t1->sym->name, t2->sym->name);
+  return strcmp (t1->name, t2->name);
 }
 
 
@@ -817,7 +861,7 @@ find_true_name (const char *name, const char *module)
   gfc_symbol sym;
   int c;
 
-  sym.name = gfc_get_string (name);
+  t.name = gfc_get_string (name);
   if (module != NULL)
     sym.module = gfc_get_string (module);
   else
@@ -847,6 +891,10 @@ add_true_name (gfc_symbol *sym)
 
   t = XCNEW (true_name);
   t->sym = sym;
+  if (sym->attr.flavor == FL_DERIVED)
+    t->name = dt_upper_string (sym->name);
+  else
+    t->name = sym->name;
 
   gfc_insert_bbt (&true_name_root, t, compare_true_names);
 }
@@ -858,13 +906,19 @@ add_true_name (gfc_symbol *sym)
 static void
 build_tnt (gfc_symtree *st)
 {
+  const char *name;
   if (st == NULL)
     return;
 
   build_tnt (st->left);
   build_tnt (st->right);
 
-  if (find_true_name (st->n.sym->name, st->n.sym->module) != NULL)
+  if (st->n.sym->attr.flavor == FL_DERIVED)
+    name = dt_upper_string (st->n.sym->name);
+  else
+    name = st->n.sym->name;
+
+  if (find_true_name (name, st->n.sym->module) != NULL)
     return;
 
   add_true_name (st->n.sym);
@@ -984,6 +1038,10 @@ module_char (void)
   if (c == EOF)
     bad_module ("Unexpected EOF");
 
+  prev_module_line = module_line;
+  prev_module_column = module_column;
+  prev_character = c;
+
   if (c == '\n')
     {
       module_line++;
@@ -994,6 +1052,16 @@ module_char (void)
   return c;
 }
 
+/* Unget a character while remembering the line and column.  Works for
+   a single character only.  */
+
+static void
+module_unget_char (void)
+{
+  module_line = prev_module_line;
+  module_column = prev_module_column;
+  ungetc (prev_character, module_fp);
+}
 
 /* Parse a string constant.  The delimiter is guaranteed to be a
    single quote.  */
@@ -1001,51 +1069,37 @@ module_char (void)
 static void
 parse_string (void)
 {
-  module_locus start;
-  int len, c;
-  char *p;
+  int c;
+  size_t cursz = 30;
+  size_t len = 0;
 
-  get_module_locus (&start);
+  atom_string = XNEWVEC (char, cursz);
 
-  len = 0;
-
-  /* See how long the string is.  */
   for ( ; ; )
     {
       c = module_char ();
-      if (c == EOF)
-	bad_module ("Unexpected end of module in string constant");
 
-      if (c != '\'')
-	{
-	  len++;
-	  continue;
-	}
-
-      c = module_char ();
       if (c == '\'')
 	{
-	  len++;
-	  continue;
+	  int c2 = module_char ();
+	  if (c2 != '\'')
+	    {
+	      module_unget_char ();
+	      break;
+	    }
 	}
 
-      break;
+      if (len >= cursz)
+	{
+	  cursz *= 2;
+	  atom_string = XRESIZEVEC (char, atom_string, cursz);
+	}
+      atom_string[len] = c;
+      len++;
     }
 
-  set_module_locus (&start);
-
-  atom_string = p = XCNEWVEC (char, len + 1);
-
-  for (; len > 0; len--)
-    {
-      c = module_char ();
-      if (c == '\'')
-	module_char ();		/* Guaranteed to be another \'.  */
-      *p++ = c;
-    }
-
-  module_char ();		/* Terminating \'.  */
-  *p = '\0';			/* C-style string for debug purposes.  */
+  atom_string = XRESIZEVEC (char, atom_string, len + 1);
+  atom_string[len] = '\0'; 	/* C-style string for debug purposes.  */
 }
 
 
@@ -1054,24 +1108,22 @@ parse_string (void)
 static void
 parse_integer (int c)
 {
-  module_locus m;
-
   atom_int = c - '0';
 
   for (;;)
     {
-      get_module_locus (&m);
-
       c = module_char ();
       if (!ISDIGIT (c))
-	break;
+	{
+	  module_unget_char ();
+	  break;
+	}
 
       atom_int = 10 * atom_int + c - '0';
       if (atom_int > 99999999)
 	bad_module ("Integer overflow");
     }
 
-  set_module_locus (&m);
 }
 
 
@@ -1080,7 +1132,6 @@ parse_integer (int c)
 static void
 parse_name (int c)
 {
-  module_locus m;
   char *p;
   int len;
 
@@ -1089,13 +1140,14 @@ parse_name (int c)
   *p++ = c;
   len = 1;
 
-  get_module_locus (&m);
-
   for (;;)
     {
       c = module_char ();
       if (!ISALNUM (c) && c != '_' && c != '-')
-	break;
+	{
+	  module_unget_char ();
+	  break;
+	}
 
       *p++ = c;
       if (++len > GFC_MAX_SYMBOL_LEN)
@@ -1104,11 +1156,6 @@ parse_name (int c)
 
   *p = '\0';
 
-  fseek (module_fp, -1, SEEK_CUR);
-  module_column = m.column + len - 1;
-
-  if (c == '\n')
-    module_line--;
 }
 
 
@@ -1218,17 +1265,99 @@ parse_atom (void)
 static atom_type
 peek_atom (void)
 {
-  module_locus m;
-  atom_type a;
+  int c;
 
-  get_module_locus (&m);
+  do
+    {
+      c = module_char ();
+    }
+  while (c == ' ' || c == '\r' || c == '\n');
 
-  a = parse_atom ();
-  if (a == ATOM_STRING)
-    free (atom_string);
+  switch (c)
+    {
+    case '(':
+      module_unget_char ();
+      return ATOM_LPAREN;
 
-  set_module_locus (&m);
-  return a;
+    case ')':
+      module_unget_char ();
+      return ATOM_RPAREN;
+
+    case '\'':
+      module_unget_char ();
+      return ATOM_STRING;
+
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      module_unget_char ();
+      return ATOM_INTEGER;
+
+    case 'a':
+    case 'b':
+    case 'c':
+    case 'd':
+    case 'e':
+    case 'f':
+    case 'g':
+    case 'h':
+    case 'i':
+    case 'j':
+    case 'k':
+    case 'l':
+    case 'm':
+    case 'n':
+    case 'o':
+    case 'p':
+    case 'q':
+    case 'r':
+    case 's':
+    case 't':
+    case 'u':
+    case 'v':
+    case 'w':
+    case 'x':
+    case 'y':
+    case 'z':
+    case 'A':
+    case 'B':
+    case 'C':
+    case 'D':
+    case 'E':
+    case 'F':
+    case 'G':
+    case 'H':
+    case 'I':
+    case 'J':
+    case 'K':
+    case 'L':
+    case 'M':
+    case 'N':
+    case 'O':
+    case 'P':
+    case 'Q':
+    case 'R':
+    case 'S':
+    case 'T':
+    case 'U':
+    case 'V':
+    case 'W':
+    case 'X':
+    case 'Y':
+    case 'Z':
+      module_unget_char ();
+      return ATOM_NAME;
+
+    default:
+      bad_module ("Bad name");
+    }
 }
 
 
@@ -1238,11 +1367,12 @@ peek_atom (void)
 static void
 require_atom (atom_type type)
 {
-  module_locus m;
   atom_type t;
   const char *p;
+  int column, line;
 
-  get_module_locus (&m);
+  column = module_column;
+  line = module_line;
 
   t = parse_atom ();
   if (t != type)
@@ -1268,7 +1398,8 @@ require_atom (atom_type type)
 	  gfc_internal_error ("require_atom(): bad atom type required");
 	}
 
-      set_module_locus (&m);
+      module_column = column;
+      module_line = line;
       bad_module (p);
     }
 }
@@ -2986,8 +3117,12 @@ fix_mio_expr (gfc_expr *e)
 	 namespace to see if the required, non-contained symbol is available
 	 yet. If so, the latter should be written.  */
       if (e->symtree->n.sym && check_unique_name (e->symtree->name))
-	ns_st = gfc_find_symtree (gfc_current_ns->sym_root,
-				  e->symtree->n.sym->name);
+	{
+          const char *name = e->symtree->n.sym->name;
+	  if (e->symtree->n.sym->attr.flavor == FL_DERIVED)
+	    name = dt_upper_string (name);
+	  ns_st = gfc_find_symtree (gfc_current_ns->sym_root, name);
+	}
 
       /* On the other hand, if the existing symbol is the module name or the
 	 new symbol is a dummy argument, do not do the promotion.  */
@@ -3608,6 +3743,8 @@ mio_symbol (gfc_symbol *sym)
 
   mio_symbol_attribute (&sym->attr);
   mio_typespec (&sym->ts);
+  if (sym->ts.type == BT_CLASS)
+    sym->attr.class_ok = 1;
 
   if (iomode == IO_OUTPUT)
     mio_namespace_ref (&sym->formal_ns);
@@ -4203,6 +4340,7 @@ load_needed (pointer_info *p)
 				 1, &ns->proc_name);
 
       sym = gfc_new_symbol (p->u.rsym.true_name, ns);
+      sym->name = dt_lower_string (p->u.rsym.true_name);
       sym->module = gfc_get_string (p->u.rsym.module);
       strcpy (sym->binding_label, p->u.rsym.binding_label);
 
@@ -4495,6 +4633,7 @@ read_module (void)
 		{
 		  info->u.rsym.sym = gfc_new_symbol (info->u.rsym.true_name,
 						     gfc_current_ns);
+		  info->u.rsym.sym->name = dt_lower_string (info->u.rsym.true_name);
 		  sym = info->u.rsym.sym;
 		  sym->module = gfc_get_string (info->u.rsym.module);
 
@@ -4833,7 +4972,7 @@ write_dt_extensions (gfc_symtree *st)
     return;
 
   mio_lparen ();
-  mio_pool_string (&st->n.sym->name);
+  mio_pool_string (&st->name);
   if (st->n.sym->module != NULL)
     mio_pool_string (&st->n.sym->module);
   else
@@ -4868,7 +5007,15 @@ write_symbol (int n, gfc_symbol *sym)
     gfc_internal_error ("write_symbol(): bad module symbol '%s'", sym->name);
 
   mio_integer (&n);
-  mio_pool_string (&sym->name);
+
+  if (sym->attr.flavor == FL_DERIVED)
+    {
+      const char *name;
+      name = dt_upper_string (sym->name);
+      mio_pool_string (&name);
+    }
+  else
+    mio_pool_string (&sym->name);
 
   mio_pool_string (&sym->module);
   if (sym->attr.is_bind_c || sym->attr.is_iso_c)
@@ -5348,8 +5495,53 @@ import_iso_c_binding_module (void)
       for (u = gfc_rename_list; u; u = u->next)
 	if (strcmp (c_interop_kinds_table[i].name, u->use_name) == 0)
 	  {
+	    bool not_in_std;
+	    const char *name;
 	    u->found = 1;
 	    found = true;
+
+	    switch (i)
+	      {
+#define NAMED_FUNCTION(a,b,c,d) \
+	        case a: \
+		  not_in_std = (gfc_option.allow_std & d) == 0; \
+		  name = b; \
+		  break;
+#include "iso-c-binding.def"
+#undef NAMED_FUNCTION
+#define NAMED_INTCST(a,b,c,d) \
+	        case a: \
+		  not_in_std = (gfc_option.allow_std & d) == 0; \
+		  name = b; \
+		  break;
+#include "iso-c-binding.def"
+#undef NAMED_INTCST
+#define NAMED_REALCST(a,b,c,d) \
+	        case a: \
+		  not_in_std = (gfc_option.allow_std & d) == 0; \
+		  name = b; \
+		  break;
+#include "iso-c-binding.def"
+#undef NAMED_REALCST
+#define NAMED_CMPXCST(a,b,c,d) \
+	        case a: \
+		  not_in_std = (gfc_option.allow_std & d) == 0; \
+		  name = b; \
+		  break;
+#include "iso-c-binding.def"
+#undef NAMED_CMPXCST
+		default:
+		  not_in_std = false;
+		  name = "";
+	      }
+
+	    if (not_in_std)
+	      {
+		gfc_error ("The symbol '%s', referenced at %C, is not "
+			   "in the selected standard", name);
+		continue;
+	      }
+
 	    switch (i)
 	      {
 #define NAMED_FUNCTION(a,b,c,d) \
@@ -5372,23 +5564,59 @@ import_iso_c_binding_module (void)
 	  }
 
       if (!found && !only_flag)
-	switch (i)
-	  {
+	{
+	  /* Skip, if the symbol is not in the enabled standard.  */
+	  switch (i)
+	    {
 #define NAMED_FUNCTION(a,b,c,d) \
-	    case a: \
-	      if ((gfc_option.allow_std & d) == 0) \
-		continue; \
-	      create_intrinsic_function (b, (gfc_isym_id) c, \
-					 iso_c_module_name, \
-					 INTMOD_ISO_C_BINDING); \
+	      case a: \
+		if ((gfc_option.allow_std & d) == 0) \
+		  continue; \
+		break;
+#include "iso-c-binding.def"
+#undef NAMED_FUNCTION
+
+#define NAMED_INTCST(a,b,c,d) \
+	      case a: \
+		if ((gfc_option.allow_std & d) == 0) \
+		  continue; \
+		break;
+#include "iso-c-binding.def"
+#undef NAMED_INTCST
+#define NAMED_REALCST(a,b,c,d) \
+	      case a: \
+		if ((gfc_option.allow_std & d) == 0) \
+		  continue; \
+		break;
+#include "iso-c-binding.def"
+#undef NAMED_REALCST
+#define NAMED_CMPXCST(a,b,c,d) \
+	      case a: \
+		if ((gfc_option.allow_std & d) == 0) \
+		  continue; \
+		break;
+#include "iso-c-binding.def"
+#undef NAMED_CMPXCST
+	      default:
+		; /* Not GFC_STD_* versioned. */
+	    }
+
+	  switch (i)
+	    {
+#define NAMED_FUNCTION(a,b,c,d) \
+	      case a: \
+		create_intrinsic_function (b, (gfc_isym_id) c, \
+					   iso_c_module_name, \
+					   INTMOD_ISO_C_BINDING); \
 		  break;
 #include "iso-c-binding.def"
 #undef NAMED_FUNCTION
 
-	    default:
-	      generate_isocbinding_symbol (iso_c_module_name,
-					   (iso_c_binding_symbol) i, NULL);
-	  }
+	      default:
+		generate_isocbinding_symbol (iso_c_module_name,
+					     (iso_c_binding_symbol) i, NULL);
+	    }
+	}
    }
 
    for (u = gfc_rename_list; u; u = u->next)
@@ -5483,7 +5711,8 @@ create_derived_type (const char *name, const char *modname,
 		      intmod_id module, int id)
 {
   gfc_symtree *tmp_symtree;
-  gfc_symbol *sym;
+  gfc_symbol *sym, *dt_sym;
+  gfc_interface *intr, *head;
 
   tmp_symtree = gfc_find_symtree (gfc_current_ns->sym_root, name);
   if (tmp_symtree != NULL)
@@ -5496,16 +5725,33 @@ create_derived_type (const char *name, const char *modname,
 
   gfc_get_sym_tree (name, gfc_current_ns, &tmp_symtree, false);
   sym = tmp_symtree->n.sym;
-
   sym->module = gfc_get_string (modname);
   sym->from_intmod = module;
   sym->intmod_sym_id = id;
-  sym->attr.flavor = FL_DERIVED;
-  sym->attr.private_comp = 1;
-  sym->attr.zero_comp = 1;
-  sym->attr.use_assoc = 1;
-}
+  sym->attr.flavor = FL_PROCEDURE;
+  sym->attr.function = 1;
+  sym->attr.generic = 1;
 
+  gfc_get_sym_tree (dt_upper_string (sym->name),
+		    gfc_current_ns, &tmp_symtree, false);
+  dt_sym = tmp_symtree->n.sym;
+  dt_sym->name = gfc_get_string (sym->name);
+  dt_sym->attr.flavor = FL_DERIVED;
+  dt_sym->attr.private_comp = 1;
+  dt_sym->attr.zero_comp = 1;
+  dt_sym->attr.use_assoc = 1;
+  dt_sym->module = gfc_get_string (modname);
+  dt_sym->from_intmod = module;
+  dt_sym->intmod_sym_id = id;
+
+  head = sym->generic;
+  intr = gfc_get_interface ();
+  intr->sym = dt_sym;
+  intr->where = gfc_current_locus;
+  intr->next = head;
+  sym->generic = intr;
+  sym->attr.if_source = IFSRC_DECL;
+}
 
 
 /* USE the ISO_FORTRAN_ENV intrinsic module.  */

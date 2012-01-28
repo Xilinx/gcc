@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -35,13 +35,17 @@ pragma Elaborate_All (Ada.Containers.Hash_Tables.Generic_Operations);
 with Ada.Containers.Hash_Tables.Generic_Keys;
 pragma Elaborate_All (Ada.Containers.Hash_Tables.Generic_Keys);
 
+with System; use type System.Address;
+
 package body Ada.Containers.Hashed_Maps is
 
-   type Iterator is new
-     Map_Iterator_Interfaces.Forward_Iterator with record
-        Container : Map_Access;
-        Node      : Node_Access;
-     end record;
+   type Iterator is new Limited_Controlled and
+     Map_Iterator_Interfaces.Forward_Iterator with
+   record
+      Container : Map_Access;
+   end record;
+
+   overriding procedure Finalize (Object : in out Iterator);
 
    overriding function First (Object : Iterator) return Cursor;
 
@@ -131,6 +135,41 @@ package body Ada.Containers.Hashed_Maps is
       HT_Ops.Adjust (Container.HT);
    end Adjust;
 
+   ------------
+   -- Assign --
+   ------------
+
+   procedure Assign (Target : in out Map; Source : Map) is
+      procedure Insert_Item (Node : Node_Access);
+      pragma Inline (Insert_Item);
+
+      procedure Insert_Items is new HT_Ops.Generic_Iteration (Insert_Item);
+
+      -----------------
+      -- Insert_Item --
+      -----------------
+
+      procedure Insert_Item (Node : Node_Access) is
+      begin
+         Target.Insert (Key => Node.Key, New_Item => Node.Element);
+      end Insert_Item;
+
+   --  Start of processing for Assign
+
+   begin
+      if Target'Address = Source'Address then
+         return;
+      end if;
+
+      Target.Clear;
+
+      if Target.Capacity < Source.Length then
+         Target.Reserve_Capacity (Source.Length);
+      end if;
+
+      Insert_Items (Target.HT);
+   end Assign;
+
    --------------
    -- Capacity --
    --------------
@@ -157,6 +196,34 @@ package body Ada.Containers.Hashed_Maps is
    begin
       return Find (Container, Key) /= No_Element;
    end Contains;
+
+   ----------
+   -- Copy --
+   ----------
+
+   function Copy
+     (Source   : Map;
+      Capacity : Count_Type := 0) return Map
+   is
+      C : Count_Type;
+
+   begin
+      if Capacity = 0 then
+         C := Source.Length;
+
+      elsif Capacity >= Source.Length then
+         C := Capacity;
+
+      else
+         raise Capacity_Error
+           with "Requested capacity is less than Source length";
+      end if;
+
+      return Target : Map do
+         Target.Reserve_Capacity (C);
+         Target.Assign (Source);
+      end return;
+   end Copy;
 
    ---------------
    -- Copy_Node --
@@ -321,6 +388,17 @@ package body Ada.Containers.Hashed_Maps is
       HT_Ops.Finalize (Container.HT);
    end Finalize;
 
+   procedure Finalize (Object : in out Iterator) is
+   begin
+      if Object.Container /= null then
+         declare
+            B : Natural renames Object.Container.all.HT.Busy;
+         begin
+            B := B - 1;
+         end;
+      end if;
+   end Finalize;
+
    ----------
    -- Find --
    ----------
@@ -333,7 +411,7 @@ package body Ada.Containers.Hashed_Maps is
          return No_Element;
       end if;
 
-      return Cursor'(Container'Unchecked_Access, Node);
+      return Cursor'(Container'Unrestricted_Access, Node);
    end Find;
 
    --------------------
@@ -371,18 +449,12 @@ package body Ada.Containers.Hashed_Maps is
          return No_Element;
       end if;
 
-      return Cursor'(Container'Unchecked_Access, Node);
+      return Cursor'(Container'Unrestricted_Access, Node);
    end First;
 
    function First (Object : Iterator) return Cursor is
-      M : constant Map_Access  := Object.Container;
-      N : constant Node_Access := HT_Ops.First (M.HT);
    begin
-      if N = null then
-         return No_Element;
-      end if;
-
-      return Cursor'(Object.Container.all'Unchecked_Access, N);
+      return Object.Container.First;
    end First;
 
    ----------
@@ -488,7 +560,7 @@ package body Ada.Containers.Hashed_Maps is
          HT_Ops.Reserve_Capacity (HT, HT.Length);
       end if;
 
-      Position.Container := Container'Unchecked_Access;
+      Position.Container := Container'Unrestricted_Access;
    end Insert;
 
    procedure Insert
@@ -530,7 +602,7 @@ package body Ada.Containers.Hashed_Maps is
          HT_Ops.Reserve_Capacity (HT, HT.Length);
       end if;
 
-      Position.Container := Container'Unchecked_Access;
+      Position.Container := Container'Unrestricted_Access;
    end Insert;
 
    procedure Insert
@@ -580,10 +652,10 @@ package body Ada.Containers.Hashed_Maps is
 
       procedure Process_Node (Node : Node_Access) is
       begin
-         Process (Cursor'(Container'Unchecked_Access, Node));
+         Process (Cursor'(Container'Unrestricted_Access, Node));
       end Process_Node;
 
-      B : Natural renames Container'Unrestricted_Access.HT.Busy;
+      B : Natural renames Container'Unrestricted_Access.all.HT.Busy;
 
    --  Start of processing for Iterate
 
@@ -602,12 +674,16 @@ package body Ada.Containers.Hashed_Maps is
    end Iterate;
 
    function Iterate
-     (Container : Map) return Map_Iterator_Interfaces.Forward_Iterator'class
+     (Container : Map) return Map_Iterator_Interfaces.Forward_Iterator'Class
    is
-      Node : constant Node_Access := HT_Ops.First (Container.HT);
-      It   : constant Iterator := (Container'Unrestricted_Access, Node);
+      B  : Natural renames Container'Unrestricted_Access.all.HT.Busy;
    begin
-      return It;
+      return It : constant Iterator :=
+                    (Limited_Controlled with
+                       Container => Container'Unrestricted_Access)
+      do
+         B := B + 1;
+      end return;
    end Iterate;
 
    ---------
@@ -687,11 +763,16 @@ package body Ada.Containers.Hashed_Maps is
       Position : Cursor) return Cursor
    is
    begin
-      if Position.Node = null then
+      if Position.Container = null then
          return No_Element;
-      else
-         return (Object.Container, Next (Position).Node);
       end if;
+
+      if Position.Container /= Object.Container then
+         raise Program_Error with
+           "Position cursor of Next designates wrong map";
+      end if;
+
+      return Next (Position);
    end Next;
 
    -------------------
@@ -780,14 +861,36 @@ package body Ada.Containers.Hashed_Maps is
    -- Reference --
    ---------------
 
-   function Constant_Reference (Container : Map; Key : Key_Type)
-   return Constant_Reference_Type is
+   function Constant_Reference
+     (Container : aliased Map;
+      Position  : Cursor) return Constant_Reference_Type
+   is
+      pragma Unreferenced (Container);
+   begin
+      return (Element => Element (Position)'Unrestricted_Access);
+   end Constant_Reference;
+
+   function Reference
+     (Container : aliased in out Map;
+      Position  : Cursor) return Reference_Type
+   is
+      pragma Unreferenced (Container);
+   begin
+      return (Element => Element (Position)'Unrestricted_Access);
+   end Reference;
+
+   function Constant_Reference
+     (Container : aliased Map;
+      Key       : Key_Type) return Constant_Reference_Type
+   is
    begin
       return (Element => Container.Element (Key)'Unrestricted_Access);
    end Constant_Reference;
 
-   function Reference (Container : Map; Key : Key_Type)
-   return Reference_Type is
+   function Reference
+     (Container : aliased in out Map;
+      Key       : Key_Type) return Reference_Type
+   is
    begin
       return (Element => Container.Element (Key)'Unrestricted_Access);
    end Reference;

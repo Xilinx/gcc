@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"io"
 	"io/ioutil"
-	"os"
 	"testing"
 	"time"
 )
@@ -18,7 +17,7 @@ type ZipTest struct {
 	Name    string
 	Comment string
 	File    []ZipTestFile
-	Error   os.Error // the error that Opening this file should return
+	Error   error // the error that Opening this file should return
 }
 
 type ZipTestFile struct {
@@ -26,6 +25,7 @@ type ZipTestFile struct {
 	Content []byte // if blank, will attempt to compare against File
 	File    string // name of file to compare to (relative to testdata/)
 	Mtime   string // modified time in format "mm-dd-yy hh:mm:ss"
+	Mode    uint32
 }
 
 // Caution: The Mtime values found for the test files should correspond to
@@ -47,11 +47,13 @@ var tests = []ZipTest{
 				Name:    "test.txt",
 				Content: []byte("This is a test text file.\n"),
 				Mtime:   "09-05-10 12:12:02",
+				Mode:    0x81a4,
 			},
 			{
 				Name:  "gophercolor16x16.png",
 				File:  "gophercolor16x16.png",
 				Mtime: "09-05-10 15:52:58",
+				Mode:  0x81a4,
 			},
 		},
 	},
@@ -96,7 +98,11 @@ func readTestZip(t *testing.T, zt ZipTest) {
 	if err == FormatError {
 		return
 	}
-	defer z.Close()
+	defer func() {
+		if err := z.Close(); err != nil {
+			t.Errorf("error %q when closing zip file", err)
+		}
+	}()
 
 	// bail here if no Files expected to be tested
 	// (there may actually be files in the zip, but we don't care)
@@ -158,9 +164,11 @@ func readTestFile(t *testing.T, ft ZipTestFile, f *File) {
 		t.Error(err)
 		return
 	}
-	if got, want := f.Mtime_ns()/1e9, mtime.Seconds(); got != want {
-		t.Errorf("%s: mtime=%s (%d); want %s (%d)", f.Name, time.SecondsToUTC(got), got, mtime, want)
+	if ft := f.ModTime(); !ft.Equal(mtime) {
+		t.Errorf("%s: mtime=%s, want %s", f.Name, ft, mtime)
 	}
+
+	testFileMode(t, f, ft.Mode)
 
 	size0 := f.UncompressedSize
 
@@ -203,6 +211,19 @@ func readTestFile(t *testing.T, ft ZipTestFile, f *File) {
 	}
 }
 
+func testFileMode(t *testing.T, f *File, want uint32) {
+	mode, err := f.Mode()
+	if want == 0 {
+		if err == nil {
+			t.Errorf("%s mode: got %v, want none", f.Name, mode)
+		}
+	} else if err != nil {
+		t.Errorf("%s mode: %s", f.Name, err)
+	} else if mode != want {
+		t.Errorf("%s mode: want 0x%x, got 0x%x", f.Name, want, mode)
+	}
+}
+
 func TestInvalidFiles(t *testing.T) {
 	const size = 1024 * 70 // 70kb
 	b := make([]byte, size)
@@ -227,7 +248,7 @@ func TestInvalidFiles(t *testing.T) {
 
 type sliceReaderAt []byte
 
-func (r sliceReaderAt) ReadAt(b []byte, off int64) (int, os.Error) {
+func (r sliceReaderAt) ReadAt(b []byte, off int64) (int, error) {
 	copy(b, r[int(off):int(off)+len(b)])
 	return len(b), nil
 }

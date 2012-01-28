@@ -6,13 +6,12 @@
 
 #include <signal.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/time.h>
 
+#include "runtime.h"
 #include "go-assert.h"
 #include "go-panic.h"
-#include "go-signal.h"
-
-#include "runtime.h"
 
 #ifndef SA_RESTART
   #define SA_RESTART 0
@@ -24,6 +23,10 @@ struct sigtab
 {
   /* Signal number.  */
   int sig;
+  /* Nonzero if the signal should be caught.  */
+  _Bool catch;
+  /* Nonzero if the signal should be queued.  */
+  _Bool queue;
   /* Nonzero if the signal should be ignored.  */
   _Bool ignore;
   /* Nonzero if we should restart system calls.  */
@@ -34,62 +37,81 @@ struct sigtab
 
 static struct sigtab signals[] =
 {
-  { SIGHUP, 0, 1 },
-  { SIGINT, 0, 1 },
-  { SIGALRM, 1, 1 },
-  { SIGTERM, 0, 1 },
+  { SIGHUP, 0, 1, 0, 1 },
+  { SIGINT, 0, 1, 0, 1 },
+  { SIGQUIT, 0, 1, 0, 1 },
+  { SIGALRM, 0, 1, 1, 1 },
+  { SIGTERM, 0, 1, 0, 1 },
+#ifdef SIGILL
+  { SIGILL, 1, 0, 0, 0 },
+#endif
+#ifdef SIGTRAP
+  { SIGTRAP, 1, 0, 0, 0 },
+#endif
+#ifdef SIGABRT
+  { SIGABRT, 1, 0, 0, 0 },
+#endif
 #ifdef SIGBUS
-  { SIGBUS, 0, 0 },
+  { SIGBUS, 1, 0, 0, 0 },
 #endif
 #ifdef SIGFPE
-  { SIGFPE, 0, 0 },
+  { SIGFPE, 1, 0, 0, 0 },
 #endif
 #ifdef SIGUSR1
-  { SIGUSR1, 1, 1 },
+  { SIGUSR1, 0, 1, 1, 1 },
 #endif
 #ifdef SIGSEGV
-  { SIGSEGV, 0, 0 },
+  { SIGSEGV, 1, 0, 0, 0 },
 #endif
 #ifdef SIGUSR2
-  { SIGUSR2, 1, 1 },
+  { SIGUSR2, 0, 1, 1, 1 },
 #endif
 #ifdef SIGPIPE
-  { SIGPIPE, 1, 0 },
+  { SIGPIPE, 0, 0, 1, 0 },
+#endif
+#ifdef SIGSTKFLT
+  { SIGSTKFLT, 1, 0, 0, 0 },
 #endif
 #ifdef SIGCHLD
-  { SIGCHLD, 1, 1 },
+  { SIGCHLD, 0, 1, 1, 1 },
 #endif
 #ifdef SIGTSTP
-  { SIGTSTP, 1, 1 },
+  { SIGTSTP, 0, 1, 1, 1 },
 #endif
 #ifdef SIGTTIN
-  { SIGTTIN, 1, 1 },
+  { SIGTTIN, 0, 1, 1, 1 },
 #endif
 #ifdef SIGTTOU
-  { SIGTTOU, 1, 1 },
+  { SIGTTOU, 0, 1, 1, 1 },
 #endif
 #ifdef SIGURG
-  { SIGURG, 1, 1 },
+  { SIGURG, 0, 1, 1, 1 },
 #endif
 #ifdef SIGXCPU
-  { SIGXCPU, 1, 1 },
+  { SIGXCPU, 0, 1, 1, 1 },
 #endif
 #ifdef SIGXFSZ
-  { SIGXFSZ, 1, 1 },
+  { SIGXFSZ, 0, 1, 1, 1 },
 #endif
 #ifdef SIGVTARLM
-  { SIGVTALRM, 1, 1 },
+  { SIGVTALRM, 0, 1, 1, 1 },
+#endif
+#ifdef SIGPROF
+  { SIGPROF, 0, 1, 1, 1 },
 #endif
 #ifdef SIGWINCH
-  { SIGWINCH, 1, 1 },
+  { SIGWINCH, 0, 1, 1, 1 },
 #endif
 #ifdef SIGIO
-  { SIGIO, 1, 1 },
+  { SIGIO, 0, 1, 1, 1 },
 #endif
 #ifdef SIGPWR
-  { SIGPWR, 1, 1 },
+  { SIGPWR, 0, 1, 1, 1 },
 #endif
-  { -1, 0, 0 }
+#ifdef SIGSYS
+  { SIGSYS, 1, 0, 0, 0 },
+#endif
+  { -1, 0, 0, 0, 0 }
 };
 
 /* The Go signal handler.  */
@@ -100,18 +122,26 @@ sighandler (int sig)
   const char *msg;
   int i;
 
+#ifdef SIGPROF
   if (sig == SIGPROF)
     {
       /* FIXME.  */
-      runtime_sigprof (0, 0, nil);
+      runtime_sigprof (0, 0, nil, nil);
       return;
     }
+#endif
 
   /* FIXME: Should check siginfo for more information when
      available.  */
   msg = NULL;
   switch (sig)
     {
+#ifdef SIGILL
+    case SIGILL:
+      msg = "illegal instruction";
+      break;
+#endif
+
 #ifdef SIGBUS
     case SIGBUS:
       msg = "invalid memory address or nil pointer dereference";
@@ -138,7 +168,7 @@ sighandler (int sig)
     {
       sigset_t clear;
 
-      if (__sync_bool_compare_and_swap (&m->mallocing, 1, 1))
+      if (runtime_m()->mallocing)
 	{
 	  fprintf (stderr, "caught signal while mallocing: %s\n", msg);
 	  __go_assert (0);
@@ -150,19 +180,25 @@ sighandler (int sig)
       i = sigprocmask (SIG_UNBLOCK, &clear, NULL);
       __go_assert (i == 0);
 
-      __go_panic_msg (msg);
+      runtime_panicstring (msg);
     }
 
-  if (__go_sigsend (sig))
-    return;
   for (i = 0; signals[i].sig != -1; ++i)
     {
       if (signals[i].sig == sig)
 	{
 	  struct sigaction sa;
 
-	  if (signals[i].ignore)
-	    return;
+	  if (signals[i].queue)
+	    {
+	      if (__go_sigsend (sig) || signals[i].ignore)
+		return;
+	      runtime_exit (2);		// SIGINT, SIGTERM, etc
+	    }
+
+	  if (runtime_panicking)
+	    runtime_exit (2);
+	  runtime_panicking = 1;
 
 	  memset (&sa, 0, sizeof sa);
 
@@ -181,11 +217,18 @@ sighandler (int sig)
   abort ();
 }
 
+/* Ignore a signal.  */
+
+static void
+sig_ignore (int sig __attribute__ ((unused)))
+{
+}
+
 /* Initialize signal handling for Go.  This is called when the program
    starts.  */
 
 void
-__initsig ()
+runtime_initsig (int32 queue)
 {
   struct sigaction sa;
   int i;
@@ -201,6 +244,12 @@ __initsig ()
 
   for (i = 0; signals[i].sig != -1; ++i)
     {
+      if (signals[i].queue != (queue ? 1 : 0))
+	continue;
+      if (signals[i].catch || signals[i].queue)
+	sa.sa_handler = sighandler;
+      else
+	sa.sa_handler = sig_ignore;
       sa.sa_flags = signals[i].restart ? SA_RESTART : 0;
       if (sigaction (signals[i].sig, &sa, NULL) != 0)
 	__go_assert (0);
@@ -210,6 +259,7 @@ __initsig ()
 void
 runtime_resetcpuprofiler(int32 hz)
 {
+#ifdef SIGPROF
   struct itimerval it;
   struct sigaction sa;
   int i;
@@ -242,8 +292,9 @@ runtime_resetcpuprofiler(int32 hz)
       i = setitimer (ITIMER_PROF, &it, NULL);
       __go_assert (i == 0);
     }
+#endif
 
-  m->profilehz = hz;
+  runtime_m()->profilehz = hz;
 }
 
 /* Used by the os package to raise SIGPIPE.  */

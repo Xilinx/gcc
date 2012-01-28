@@ -9,7 +9,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"io"
-	"io/ioutil"
+	"strings"
 	"sync"
 	"time"
 )
@@ -20,8 +20,11 @@ const (
 	recordHeaderLen = 5            // record header length
 	maxHandshake    = 65536        // maximum handshake we support (protocol max is 16 MB)
 
-	minVersion = 0x0301 // minimum supported version - TLS 1.0
-	maxVersion = 0x0301 // maximum supported version - TLS 1.0
+	versionSSL30 = 0x0300
+	versionTLS10 = 0x0301
+
+	minVersion = versionSSL30
+	maxVersion = versionTLS10
 )
 
 // TLS record types.
@@ -98,6 +101,10 @@ type ConnectionState struct {
 	NegotiatedProtocol         string
 	NegotiatedProtocolIsMutual bool
 
+	// ServerName contains the server name indicated by the client, if any.
+	// (Only valid for server connections.)
+	ServerName string
+
 	// the certificate chain that was presented by the other side
 	PeerCertificates []*x509.Certificate
 	// the verified certificate chains built from PeerCertificates.
@@ -114,12 +121,20 @@ type Config struct {
 
 	// Time returns the current time as the number of seconds since the epoch.
 	// If Time is nil, TLS uses the system time.Seconds.
-	Time func() int64
+	Time func() time.Time
 
 	// Certificates contains one or more certificate chains
 	// to present to the other side of the connection.
 	// Server configurations must include at least one certificate.
 	Certificates []Certificate
+
+	// NameToCertificate maps from a certificate name to an element of
+	// Certificates. Note that a certificate name can be of the form
+	// '*.example.com' and so doesn't have to be a domain name as such.
+	// See Config.BuildNameToCertificate
+	// The nil value causes the first element of Certificates to be used
+	// for all connections.
+	NameToCertificate map[string]*Certificate
 
 	// RootCAs defines the set of root certificate authorities
 	// that clients use when verifying server certificates.
@@ -139,6 +154,14 @@ type Config struct {
 	// anything more than self-signed.
 	AuthenticateClient bool
 
+	// InsecureSkipVerify controls whether a client verifies the
+	// server's certificate chain and host name.
+	// If InsecureSkipVerify is true, TLS accepts any certificate
+	// presented by the server and any host name in that certificate.
+	// In this mode, TLS is susceptible to man-in-the-middle attacks.
+	// This should be used only for testing.
+	InsecureSkipVerify bool
+
 	// CipherSuites is a list of supported cipher suites. If CipherSuites
 	// is nil, TLS uses a list of suites supported by the implementation.
 	CipherSuites []uint16
@@ -152,10 +175,10 @@ func (c *Config) rand() io.Reader {
 	return r
 }
 
-func (c *Config) time() int64 {
+func (c *Config) time() time.Time {
 	t := c.Time
 	if t == nil {
-		t = time.Seconds
+		t = time.Now
 	}
 	return t()
 }
@@ -174,6 +197,59 @@ func (c *Config) cipherSuites() []uint16 {
 		s = defaultCipherSuites()
 	}
 	return s
+}
+
+// getCertificateForName returns the best certificate for the given name,
+// defaulting to the first element of c.Certificates if there are no good
+// options.
+func (c *Config) getCertificateForName(name string) *Certificate {
+	if len(c.Certificates) == 1 || c.NameToCertificate == nil {
+		// There's only one choice, so no point doing any work.
+		return &c.Certificates[0]
+	}
+
+	name = strings.ToLower(name)
+	for len(name) > 0 && name[len(name)-1] == '.' {
+		name = name[:len(name)-1]
+	}
+
+	if cert, ok := c.NameToCertificate[name]; ok {
+		return cert
+	}
+
+	// try replacing labels in the name with wildcards until we get a
+	// match.
+	labels := strings.Split(name, ".")
+	for i := range labels {
+		labels[i] = "*"
+		candidate := strings.Join(labels, ".")
+		if cert, ok := c.NameToCertificate[candidate]; ok {
+			return cert
+		}
+	}
+
+	// If nothing matches, return the first certificate.
+	return &c.Certificates[0]
+}
+
+// BuildNameToCertificate parses c.Certificates and builds c.NameToCertificate
+// from the CommonName and SubjectAlternateName fields of each of the leaf
+// certificates.
+func (c *Config) BuildNameToCertificate() {
+	c.NameToCertificate = make(map[string]*Certificate)
+	for i := range c.Certificates {
+		cert := &c.Certificates[i]
+		x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
+		if err != nil {
+			continue
+		}
+		if len(x509Cert.Subject.CommonName) > 0 {
+			c.NameToCertificate[x509Cert.Subject.CommonName] = cert
+		}
+		for _, san := range x509Cert.DNSNames {
+			c.NameToCertificate[san] = cert
+		}
+	}
 }
 
 // A Certificate is a chain of one or more certificates, leaf first.
@@ -215,15 +291,6 @@ func defaultConfig() *Config {
 	return &emptyConfig
 }
 
-// Possible certificate files; stop after finding one.
-// On OS X we should really be using the Directory Services keychain
-// but that requires a lot of Mach goo to get at.  Instead we use
-// the same root set that curl uses.
-var certFiles = []string{
-	"/etc/ssl/certs/ca-certificates.crt", // Linux etc
-	"/usr/share/curl/curl-ca-bundle.crt", // OS X
-}
-
 var once sync.Once
 
 func defaultRoots() *x509.CertPool {
@@ -241,27 +308,14 @@ func initDefaults() {
 	initDefaultCipherSuites()
 }
 
-var varDefaultRoots *x509.CertPool
-
-func initDefaultRoots() {
-	roots := x509.NewCertPool()
-	for _, file := range certFiles {
-		data, err := ioutil.ReadFile(file)
-		if err == nil {
-			roots.AppendCertsFromPEM(data)
-			break
-		}
-	}
-	varDefaultRoots = roots
-}
-
-var varDefaultCipherSuites []uint16
+var (
+	varDefaultRoots        *x509.CertPool
+	varDefaultCipherSuites []uint16
+)
 
 func initDefaultCipherSuites() {
 	varDefaultCipherSuites = make([]uint16, len(cipherSuites))
-	i := 0
-	for id := range cipherSuites {
-		varDefaultCipherSuites[i] = id
-		i++
+	for i, suite := range cipherSuites {
+		varDefaultCipherSuites[i] = suite.id
 	}
 }

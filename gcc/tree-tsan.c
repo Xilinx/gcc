@@ -90,6 +90,7 @@ along with GCC; see the file COPYING3.  If not see
 #define TSAN_PERFIX "__tsan_"
 #define MAX_MOP_BYTES 16
 #define SBLOCK_SIZE 5
+void tsan_finish_file (void);
 
 enum tsan_ignore_type
 {
@@ -526,7 +527,7 @@ build_stack_assign (gimple_seq *seq)
   tree retaddr_decl;
   tree assign;
 
-  retaddr_decl = implicit_built_in_decls [BUILT_IN_RETURN_ADDRESS];
+  retaddr_decl = builtin_decl_implicit (BUILT_IN_RETURN_ADDRESS);
   pc_addr = build_call_expr (retaddr_decl, 1, integer_zero_node);
   op_size = build_int_cst_wide (sizetype, -(POINTER_SIZE / BITS_PER_UNIT), -1);
   op_expr = build2 (POINTER_PLUS_EXPR, ptr_type_node,
@@ -1093,7 +1094,8 @@ tsan_gate (void)
 
 /* Inserts __tsan_init () into the list of CTORs.  */
 
-void tsan_finish_file (void)
+void
+tsan_finish_file (void)
 {
   tree ctor_statements;
 
@@ -1122,4 +1124,3 @@ struct gimple_opt_pass pass_tsan = {{
   TODO_dump_cgraph | TODO_dump_func | TODO_verify_all
     | TODO_update_ssa | TODO_update_address_taken /* todo_flags_finish  */
 }};
-

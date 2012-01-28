@@ -249,6 +249,18 @@ package body Sinfo is
       return Node3 (N);
    end Ancestor_Part;
 
+   function Atomic_Sync_Required
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Expanded_Name
+        or else NT (N).Nkind = N_Explicit_Dereference
+        or else NT (N).Nkind = N_Identifier
+        or else NT (N).Nkind = N_Indexed_Component
+        or else NT (N).Nkind = N_Selected_Component);
+      return Flag14 (N);
+   end Atomic_Sync_Required;
+
    function Array_Aggregate
       (N : Node_Id) return Node_Id is
    begin
@@ -645,6 +657,7 @@ package body Sinfo is
       (N : Node_Id) return Node_Id is
    begin
       pragma Assert (False
+        or else NT (N).Nkind = N_Expression_Function
         or else NT (N).Nkind = N_Package_Body
         or else NT (N).Nkind = N_Protected_Body
         or else NT (N).Nkind = N_Subprogram_Body
@@ -1559,6 +1572,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_String_Literal);
       return Flag13 (N);
    end Has_Wide_Wide_Character;
+
+   function Header_Size_Added
+      (N : Node_Id) return Boolean is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Attribute_Reference);
+      return Flag11 (N);
+   end Header_Size_Added;
 
    function Hidden_By_Use_Clause
      (N : Node_Id) return Elist_Id is
@@ -3309,6 +3330,18 @@ package body Sinfo is
       Set_Node3_With_Parent (N, Val);
    end Set_Ancestor_Part;
 
+   procedure Set_Atomic_Sync_Required
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Expanded_Name
+        or else NT (N).Nkind = N_Explicit_Dereference
+        or else NT (N).Nkind = N_Identifier
+        or else NT (N).Nkind = N_Indexed_Component
+        or else NT (N).Nkind = N_Selected_Component);
+      Set_Flag14 (N, Val);
+   end Set_Atomic_Sync_Required;
+
    procedure Set_Array_Aggregate
       (N : Node_Id; Val : Node_Id) is
    begin
@@ -3705,6 +3738,7 @@ package body Sinfo is
       (N : Node_Id; Val : Node_Id) is
    begin
       pragma Assert (False
+        or else NT (N).Nkind = N_Expression_Function
         or else NT (N).Nkind = N_Package_Body
         or else NT (N).Nkind = N_Protected_Body
         or else NT (N).Nkind = N_Subprogram_Body
@@ -4610,6 +4644,14 @@ package body Sinfo is
         or else NT (N).Nkind = N_String_Literal);
       Set_Flag13 (N, Val);
    end Set_Has_Wide_Wide_Character;
+
+   procedure Set_Header_Size_Added
+      (N : Node_Id; Val : Boolean := True) is
+   begin
+      pragma Assert (False
+        or else NT (N).Nkind = N_Attribute_Reference);
+      Set_Flag11 (N, Val);
+   end Set_Header_Size_Added;
 
    procedure Set_Hidden_By_Use_Clause
      (N : Node_Id; Val : Elist_Id) is

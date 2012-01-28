@@ -275,6 +275,13 @@ vn_get_expr_for (tree name)
 			  gimple_assign_rhs2 (def_stmt));
       break;
 
+    case tcc_exceptional:
+      if (code == CONSTRUCTOR
+	  && TREE_CODE
+	       (TREE_TYPE (gimple_assign_rhs1 (def_stmt))) == VECTOR_TYPE)
+	expr = gimple_assign_rhs1 (def_stmt);
+      break;
+
     default:;
     }
   if (expr == NULL_TREE)
@@ -911,6 +918,8 @@ ao_ref_init_from_vn_reference (ao_ref *ref,
     ref->base_alias_set = base_alias_set;
   else
     ref->base_alias_set = get_alias_set (base);
+  /* We discount volatiles from value-numbering elsewhere.  */
+  ref->volatile_p = false;
 
   return true;
 }
@@ -1328,6 +1337,33 @@ vn_reference_lookup_2 (ao_ref *op ATTRIBUTE_UNUSED, tree vuse, void *vr_)
   return NULL;
 }
 
+/* Lookup an existing or insert a new vn_reference entry into the
+   value table for the VUSE, SET, TYPE, OPERANDS reference which
+   has the constant value CST.  */
+
+static vn_reference_t
+vn_reference_lookup_or_insert_constant_for_pieces (tree vuse,
+						   alias_set_type set,
+						   tree type,
+						   VEC (vn_reference_op_s,
+							heap) *operands,
+						   tree cst)
+{
+  struct vn_reference_s vr1;
+  vn_reference_t result;
+  vr1.vuse = vuse;
+  vr1.operands = operands;
+  vr1.type = type;
+  vr1.set = set;
+  vr1.hashcode = vn_reference_compute_hash (&vr1);
+  if (vn_reference_lookup_1 (&vr1, &result))
+    return result;
+  return vn_reference_insert_pieces (vuse, set, type,
+				     VEC_copy (vn_reference_op_s, heap,
+					       operands), cst,
+				     get_or_alloc_constant_value_id (cst));
+}
+
 /* Callback for walk_non_aliased_vuses.  Tries to perform a lookup
    from the statement defining VUSE and if not successful tries to
    translate *REFP and VR_ through an aggregate copy at the defintion
@@ -1381,8 +1417,12 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
   if (maxsize == -1)
     return (void *)-1;
 
+  /* We can't deduce anything useful from clobbers.  */
+  if (gimple_clobber_p (def_stmt))
+    return (void *)-1;
+
   /* def_stmt may-defs *ref.  See if we can derive a value for *ref
-     from that defintion.
+     from that definition.
      1) Memset.  */
   if (is_gimple_reg_type (vr->type)
       && gimple_call_builtin_p (def_stmt, BUILT_IN_MEMSET)
@@ -1403,11 +1443,8 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
 	  && offset2 + size2 >= offset + maxsize)
 	{
 	  tree val = build_zero_cst (vr->type);
-	  unsigned int value_id = get_or_alloc_constant_value_id (val);
-	  return vn_reference_insert_pieces (vuse, vr->set, vr->type,
-					     VEC_copy (vn_reference_op_s,
-						       heap, vr->operands),
-					     val, value_id);
+	  return vn_reference_lookup_or_insert_constant_for_pieces
+	           (vuse, vr->set, vr->type, vr->operands, val);
 	}
     }
 
@@ -1427,15 +1464,108 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
 	  && offset2 + size2 >= offset + maxsize)
 	{
 	  tree val = build_zero_cst (vr->type);
-	  unsigned int value_id = get_or_alloc_constant_value_id (val);
-	  return vn_reference_insert_pieces (vuse, vr->set, vr->type,
-					     VEC_copy (vn_reference_op_s,
-						       heap, vr->operands),
-					     val, value_id);
+	  return vn_reference_lookup_or_insert_constant_for_pieces
+	           (vuse, vr->set, vr->type, vr->operands, val);
 	}
     }
 
-  /* 3) For aggregate copies translate the reference through them if
+  /* 3) Assignment from a constant.  We can use folds native encode/interpret
+     routines to extract the assigned bits.  */
+  else if (CHAR_BIT == 8 && BITS_PER_UNIT == 8
+	   && ref->size == maxsize
+	   && maxsize % BITS_PER_UNIT == 0
+	   && offset % BITS_PER_UNIT == 0
+	   && is_gimple_reg_type (vr->type)
+	   && gimple_assign_single_p (def_stmt)
+	   && is_gimple_min_invariant (gimple_assign_rhs1 (def_stmt)))
+    {
+      tree base2;
+      HOST_WIDE_INT offset2, size2, maxsize2;
+      base2 = get_ref_base_and_extent (gimple_assign_lhs (def_stmt),
+				       &offset2, &size2, &maxsize2);
+      if (maxsize2 != -1
+	  && maxsize2 == size2
+	  && size2 % BITS_PER_UNIT == 0
+	  && offset2 % BITS_PER_UNIT == 0
+	  && operand_equal_p (base, base2, 0)
+	  && offset2 <= offset
+	  && offset2 + size2 >= offset + maxsize)
+	{
+	  /* We support up to 512-bit values (for V8DFmode).  */
+	  unsigned char buffer[64];
+	  int len;
+
+	  len = native_encode_expr (gimple_assign_rhs1 (def_stmt),
+				    buffer, sizeof (buffer));
+	  if (len > 0)
+	    {
+	      tree val = native_interpret_expr (vr->type,
+						buffer
+						+ ((offset - offset2)
+						   / BITS_PER_UNIT),
+						ref->size / BITS_PER_UNIT);
+	      if (val)
+		return vn_reference_lookup_or_insert_constant_for_pieces
+		         (vuse, vr->set, vr->type, vr->operands, val);
+	    }
+	}
+    }
+
+  /* 4) Assignment from an SSA name which definition we may be able
+     to access pieces from.  */
+  else if (ref->size == maxsize
+	   && is_gimple_reg_type (vr->type)
+	   && gimple_assign_single_p (def_stmt)
+	   && TREE_CODE (gimple_assign_rhs1 (def_stmt)) == SSA_NAME)
+    {
+      tree rhs1 = gimple_assign_rhs1 (def_stmt);
+      gimple def_stmt2 = SSA_NAME_DEF_STMT (rhs1);
+      if (is_gimple_assign (def_stmt2)
+	  && (gimple_assign_rhs_code (def_stmt2) == COMPLEX_EXPR
+	      || gimple_assign_rhs_code (def_stmt2) == CONSTRUCTOR)
+	  && types_compatible_p (vr->type, TREE_TYPE (TREE_TYPE (rhs1))))
+	{
+	  tree base2;
+	  HOST_WIDE_INT offset2, size2, maxsize2, off;
+	  base2 = get_ref_base_and_extent (gimple_assign_lhs (def_stmt),
+					   &offset2, &size2, &maxsize2);
+	  off = offset - offset2;
+	  if (maxsize2 != -1
+	      && maxsize2 == size2
+	      && operand_equal_p (base, base2, 0)
+	      && offset2 <= offset
+	      && offset2 + size2 >= offset + maxsize)
+	    {
+	      tree val = NULL_TREE;
+	      HOST_WIDE_INT elsz
+		= TREE_INT_CST_LOW (TYPE_SIZE (TREE_TYPE (TREE_TYPE (rhs1))));
+	      if (gimple_assign_rhs_code (def_stmt2) == COMPLEX_EXPR)
+		{
+		  if (off == 0)
+		    val = gimple_assign_rhs1 (def_stmt2);
+		  else if (off == elsz)
+		    val = gimple_assign_rhs2 (def_stmt2);
+		}
+	      else if (gimple_assign_rhs_code (def_stmt2) == CONSTRUCTOR
+		       && off % elsz == 0)
+		{
+		  tree ctor = gimple_assign_rhs1 (def_stmt2);
+		  unsigned i = off / elsz;
+		  if (i < CONSTRUCTOR_NELTS (ctor))
+		    {
+		      constructor_elt *elt = CONSTRUCTOR_ELT (ctor, i);
+		      if (compare_tree_int (elt->index, i) == 0)
+			val = elt->value;
+		    }
+		}
+	      if (val)
+		return vn_reference_lookup_or_insert_constant_for_pieces
+		         (vuse, vr->set, vr->type, vr->operands, val);
+	    }
+	}
+    }
+
+  /* 5) For aggregate copies translate the reference through them if
      the copy kills ref.  */
   else if (vn_walk_kind == VN_WALKREWRITE
 	   && gimple_assign_single_p (def_stmt)
@@ -1516,6 +1646,7 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
       FOR_EACH_VEC_ELT (vn_reference_op_s, rhs, j, vro)
 	VEC_replace (vn_reference_op_s, vr->operands, i + 1 + j, vro);
       VEC_free (vn_reference_op_s, heap, rhs);
+      vr->operands = valueize_refs (vr->operands);
       vr->hashcode = vn_reference_compute_hash (vr);
 
       /* Adjust *ref from the new operands.  */
@@ -1533,7 +1664,7 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
       return NULL;
     }
 
-  /* 4) For memcpy copies translate the reference through them if
+  /* 6) For memcpy copies translate the reference through them if
      the copy kills ref.  */
   else if (vn_walk_kind == VN_WALKREWRITE
 	   && is_gimple_reg_type (vr->type)
@@ -2922,7 +3053,8 @@ simplify_unary_expression (gimple stmt)
      GIMPLE_ASSIGN_SINGLE codes.  */
   if (code == REALPART_EXPR
       || code == IMAGPART_EXPR
-      || code == VIEW_CONVERT_EXPR)
+      || code == VIEW_CONVERT_EXPR
+      || code == BIT_FIELD_REF)
     op0 = TREE_OPERAND (op0, 0);
 
   if (TREE_CODE (op0) != SSA_NAME)
@@ -2934,7 +3066,8 @@ simplify_unary_expression (gimple stmt)
   else if (CONVERT_EXPR_CODE_P (code)
 	   || code == REALPART_EXPR
 	   || code == IMAGPART_EXPR
-	   || code == VIEW_CONVERT_EXPR)
+	   || code == VIEW_CONVERT_EXPR
+	   || code == BIT_FIELD_REF)
     {
       /* We want to do tree-combining on conversion-like expressions.
          Make sure we feed only SSA_NAMEs or constants to fold though.  */
@@ -2943,6 +3076,7 @@ simplify_unary_expression (gimple stmt)
 	  || BINARY_CLASS_P (tem)
 	  || TREE_CODE (tem) == VIEW_CONVERT_EXPR
 	  || TREE_CODE (tem) == SSA_NAME
+	  || TREE_CODE (tem) == CONSTRUCTOR
 	  || is_gimple_min_invariant (tem))
 	op0 = tem;
     }
@@ -2951,7 +3085,14 @@ simplify_unary_expression (gimple stmt)
   if (op0 == orig_op0)
     return NULL_TREE;
 
-  result = fold_unary_ignore_overflow (code, gimple_expr_type (stmt), op0);
+  if (code == BIT_FIELD_REF)
+    {
+      tree rhs = gimple_assign_rhs1 (stmt);
+      result = fold_ternary (BIT_FIELD_REF, TREE_TYPE (rhs),
+			     op0, TREE_OPERAND (rhs, 1), TREE_OPERAND (rhs, 2));
+    }
+  else
+    result = fold_unary_ignore_overflow (code, gimple_expr_type (stmt), op0);
   if (result)
     {
       STRIP_USELESS_TYPE_CONVERSION (result);
@@ -2967,27 +3108,30 @@ simplify_unary_expression (gimple stmt)
 static tree
 try_to_simplify (gimple stmt)
 {
+  enum tree_code code = gimple_assign_rhs_code (stmt);
   tree tem;
 
   /* For stores we can end up simplifying a SSA_NAME rhs.  Just return
      in this case, there is no point in doing extra work.  */
-  if (gimple_assign_copy_p (stmt)
-      && TREE_CODE (gimple_assign_rhs1 (stmt)) == SSA_NAME)
+  if (code == SSA_NAME)
     return NULL_TREE;
 
   /* First try constant folding based on our current lattice.  */
-  tem = gimple_fold_stmt_to_constant (stmt, vn_valueize);
-  if (tem)
+  tem = gimple_fold_stmt_to_constant_1 (stmt, vn_valueize);
+  if (tem
+      && (TREE_CODE (tem) == SSA_NAME
+	  || is_gimple_min_invariant (tem)))
     return tem;
 
   /* If that didn't work try combining multiple statements.  */
-  switch (TREE_CODE_CLASS (gimple_assign_rhs_code (stmt)))
+  switch (TREE_CODE_CLASS (code))
     {
     case tcc_reference:
-      /* Fallthrough for some codes that can operate on registers.  */
-      if (!(TREE_CODE (gimple_assign_rhs1 (stmt)) == REALPART_EXPR
-	    || TREE_CODE (gimple_assign_rhs1 (stmt)) == IMAGPART_EXPR
-	    || TREE_CODE (gimple_assign_rhs1 (stmt)) == VIEW_CONVERT_EXPR))
+      /* Fallthrough for some unary codes that can operate on registers.  */
+      if (!(code == REALPART_EXPR
+	    || code == IMAGPART_EXPR
+	    || code == VIEW_CONVERT_EXPR
+	    || code == BIT_FIELD_REF))
 	break;
       /* We could do a little more with unary ops, if they expand
 	 into binary ops, but it's debatable whether it is worth it. */
@@ -3157,7 +3301,8 @@ visit_use (tree use)
 			  /* VOP-less references can go through unary case.  */
 			  if ((code == REALPART_EXPR
 			       || code == IMAGPART_EXPR
-			       || code == VIEW_CONVERT_EXPR)
+			       || code == VIEW_CONVERT_EXPR
+			       || code == BIT_FIELD_REF)
 			      && TREE_CODE (TREE_OPERAND (rhs1, 0)) == SSA_NAME)
 			    {
 			      changed = visit_nary_op (lhs, stmt);

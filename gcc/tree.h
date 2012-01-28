@@ -335,10 +335,6 @@ extern const char * built_in_names[(int) END_BUILTINS];
 #define CASE_FLT_FN(FN) case FN: case FN##F: case FN##L
 #define CASE_FLT_FN_REENT(FN) case FN##_R: case FN##F_R: case FN##L_R
 #define CASE_INT_FN(FN) case FN: case FN##L: case FN##LL
-
-/* An array of _DECL trees for the above.  */
-extern GTY(()) tree built_in_decls[(int) END_BUILTINS];
-extern GTY(()) tree implicit_built_in_decls[(int) END_BUILTINS];
 
 /* In an OMP_CLAUSE node.  */
 
@@ -538,11 +534,11 @@ struct GTY(()) tree_common {
        CASE_HIGH_SEEN in
            CASE_LABEL_EXPR
 
-       CALL_CANNOT_INLINE_P in
-           CALL_EXPR
- 
        ENUM_IS_SCOPED in
 	   ENUMERAL_TYPE
+
+       TRANSACTION_EXPR_OUTER in
+	   TRANSACTION_EXPR
 
    public_flag:
 
@@ -570,6 +566,9 @@ struct GTY(()) tree_common {
 
        OMP_CLAUSE_PRIVATE_DEBUG in
            OMP_CLAUSE_PRIVATE
+
+       TRANSACTION_EXPR_RELAXED in
+	   TRANSACTION_EXPR
 
    private_flag:
 
@@ -1132,6 +1131,13 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
   (TREE_CODE (TYPE) == COMPLEX_TYPE	\
    && TREE_CODE (TREE_TYPE (TYPE)) == REAL_TYPE)
 
+/* Nonzero if TYPE represents a vector integer type.  */
+                
+#define VECTOR_INTEGER_TYPE_P(TYPE)                   \
+             (TREE_CODE (TYPE) == VECTOR_TYPE      \
+                 && TREE_CODE (TREE_TYPE (TYPE)) == INTEGER_TYPE)
+
+
 /* Nonzero if TYPE represents a vector floating-point type.  */
 
 #define VECTOR_FLOAT_TYPE_P(TYPE)	\
@@ -1243,9 +1249,6 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
    CASE_HIGH operand has been processed.  */
 #define CASE_HIGH_SEEN(NODE) \
   (CASE_LABEL_EXPR_CHECK (NODE)->base.static_flag)
-
-/* Used to mark a CALL_EXPR as not suitable for inlining.  */
-#define CALL_CANNOT_INLINE_P(NODE) (CALL_EXPR_CHECK (NODE)->base.static_flag)
 
 /* Used to mark scoped enums.  */
 #define ENUM_IS_SCOPED(NODE) (ENUMERAL_TYPE_CHECK (NODE)->base.static_flag)
@@ -1530,6 +1533,7 @@ struct GTY(()) tree_fixed_cst {
 };
 
 /* In a STRING_CST */
+/* In C terms, this is sizeof, not strlen.  */
 #define TREE_STRING_LENGTH(NODE) (STRING_CST_CHECK (NODE)->string.length)
 #define TREE_STRING_POINTER(NODE) \
   ((const char *)(STRING_CST_CHECK (NODE)->string.str))
@@ -1644,6 +1648,14 @@ struct GTY(()) tree_vec {
    constructor output purposes.  */
 #define CONSTRUCTOR_BITFIELD_P(NODE) \
   (DECL_BIT_FIELD (FIELD_DECL_CHECK (NODE)) && DECL_MODE (NODE) != BLKmode)
+
+/* True if NODE is a clobber right hand side, an expression of indeterminate
+   value that clobbers the LHS in a copy instruction.  We use a volatile
+   empty CONSTRUCTOR for this, as it matches most of the necessary semantic.
+   In particular the volatile flag causes us to not prematurely remove
+   such clobber instructions.  */
+#define TREE_CLOBBER_P(NODE) \
+  (TREE_CODE (NODE) == CONSTRUCTOR && TREE_THIS_VOLATILE (NODE))
 
 /* A single element of a CONSTRUCTOR. VALUE holds the actual value of the
    element. INDEX can optionally design the position of VALUE: in arrays,
@@ -1816,6 +1828,14 @@ extern void protected_set_expr_location (tree, location_t);
    operand array, even if it's not valid to dereference it.  */
 #define CALL_EXPR_ARGP(NODE) \
   (&(TREE_OPERAND (CALL_EXPR_CHECK (NODE), 0)) + 3)
+
+/* TM directives and accessors.  */
+#define TRANSACTION_EXPR_BODY(NODE) \
+  TREE_OPERAND (TRANSACTION_EXPR_CHECK (NODE), 0)
+#define TRANSACTION_EXPR_OUTER(NODE) \
+  (TRANSACTION_EXPR_CHECK (NODE)->base.static_flag)
+#define TRANSACTION_EXPR_RELAXED(NODE) \
+  (TRANSACTION_EXPR_CHECK (NODE)->base.public_flag)
 
 /* OpenMP directive and clause accessors.  */
 
@@ -2239,7 +2259,7 @@ extern enum machine_mode vector_type_mode (const_tree);
    to point back at the TYPE_DECL node.  This allows the debug routines
    to know that the two nodes represent the same type, so that we only
    get one debug info record for them.  */
-#define TYPE_STUB_DECL(NODE) TREE_CHAIN (NODE)
+#define TYPE_STUB_DECL(NODE) (TREE_CHAIN (TYPE_CHECK (NODE)))
 
 /* In a RECORD_TYPE, UNION_TYPE or QUAL_UNION_TYPE, it means the type
    has BLKmode only because it lacks the alignment requirement for
@@ -2694,7 +2714,9 @@ struct function;
     nodes, this points to either the FUNCTION_DECL for the containing
     function, the RECORD_TYPE or UNION_TYPE for the containing type, or
     NULL_TREE or a TRANSLATION_UNIT_DECL if the given decl has "file
-    scope".  */
+    scope".  In particular, for VAR_DECLs which are virtual table pointers
+    (they have DECL_VIRTUAL set), we use DECL_CONTEXT to determine the type
+    they belong to.  */
 #define DECL_CONTEXT(NODE) (DECL_MINIMAL_CHECK (NODE)->decl_minimal.context)
 #define DECL_FIELD_CONTEXT(NODE) \
   (FIELD_DECL_CHECK (NODE)->decl_minimal.context)
@@ -2982,6 +3004,17 @@ extern void decl_value_expr_insert (tree, tree);
 
 /* The DECL_RTL for NODE, if it is set, or NULL, if it is not set.  */
 #define DECL_RTL_IF_SET(NODE) (DECL_RTL_SET_P (NODE) ? DECL_RTL (NODE) : NULL)
+
+#if (GCC_VERSION >= 2007)
+#define DECL_RTL_KNOWN_SET(decl) __extension__				\
+({  tree const __d = (decl);						\
+    gcc_checking_assert (DECL_RTL_SET_P (__d));				\
+    /* Dereference it so the compiler knows it can't be NULL even	\
+       without assertion checking.  */					\
+    &*DECL_RTL_IF_SET (__d); })
+#else
+#define DECL_RTL_KNOWN_SET(decl) (&*DECL_RTL_IF_SET (decl))
+#endif
 
 /* In VAR_DECL and PARM_DECL nodes, nonzero means declared `register'.  */
 #define DECL_REGISTER(NODE) (DECL_WRTL_CHECK (NODE)->decl_common.decl_flag_0)
@@ -3450,6 +3483,29 @@ struct GTY(())
 #define DECL_NO_INLINE_WARNING_P(NODE) \
   (FUNCTION_DECL_CHECK (NODE)->function_decl.no_inline_warning_flag)
 
+/* Nonzero if a FUNCTION_CODE is a TM load/store.  */
+#define BUILTIN_TM_LOAD_STORE_P(FN) \
+  ((FN) >= BUILT_IN_TM_STORE_1 && (FN) <= BUILT_IN_TM_LOAD_RFW_LDOUBLE)
+
+/* Nonzero if a FUNCTION_CODE is a TM load.  */
+#define BUILTIN_TM_LOAD_P(FN) \
+  ((FN) >= BUILT_IN_TM_LOAD_1 && (FN) <= BUILT_IN_TM_LOAD_RFW_LDOUBLE)
+
+/* Nonzero if a FUNCTION_CODE is a TM store.  */
+#define BUILTIN_TM_STORE_P(FN) \
+  ((FN) >= BUILT_IN_TM_STORE_1 && (FN) <= BUILT_IN_TM_STORE_WAW_LDOUBLE)
+
+#define CASE_BUILT_IN_TM_LOAD(FN)	\
+  case BUILT_IN_TM_LOAD_##FN:		\
+  case BUILT_IN_TM_LOAD_RAR_##FN:	\
+  case BUILT_IN_TM_LOAD_RAW_##FN:	\
+  case BUILT_IN_TM_LOAD_RFW_##FN
+
+#define CASE_BUILT_IN_TM_STORE(FN)	\
+  case BUILT_IN_TM_STORE_##FN:		\
+  case BUILT_IN_TM_STORE_WAR_##FN:	\
+  case BUILT_IN_TM_STORE_WAW_##FN
+
 /* Nonzero in a FUNCTION_DECL that should be always inlined by the inliner
    disregarding size and cost heuristics.  This is equivalent to using
    the always_inline attribute without the required diagnostics if the
@@ -3537,8 +3593,9 @@ struct GTY(()) tree_function_decl {
   unsigned pure_flag : 1;
   unsigned looping_const_or_pure_flag : 1;
   unsigned has_debug_args_flag : 1;
+  unsigned tm_clone_flag : 1;
 
-  /* 2 bits left */
+  /* 1 bit left */
 };
 
 /* The source language of the translation-unit.  */
@@ -5148,6 +5205,7 @@ extern bool auto_var_in_fn_p (const_tree, const_tree);
 extern tree build_low_bits_mask (tree, unsigned);
 extern tree tree_strip_nop_conversions (tree);
 extern tree tree_strip_sign_nop_conversions (tree);
+extern const_tree strip_invariant_refs (const_tree);
 extern tree lhd_gcc_personality (void);
 extern void assign_assembler_name_if_neeeded (tree);
 extern void warn_deprecated_use (tree, tree);
@@ -5172,6 +5230,25 @@ extern void expand_return (tree);
 
 /* In tree-eh.c */
 extern void using_eh_for_cleanups (void);
+
+/* Compare and hash for any structure which begins with a canonical
+   pointer.  Assumes all pointers are interchangeable, which is sort
+   of already assumed by gcc elsewhere IIRC.  */
+
+static inline int
+struct_ptr_eq (const void *a, const void *b)
+{
+  const void * const * x = (const void * const *) a;
+  const void * const * y = (const void * const *) b;
+  return *x == *y;
+}
+
+static inline hashval_t
+struct_ptr_hash (const void *a)
+{
+  const void * const * x = (const void * const *) a;
+  return (intptr_t)*x >> 4;
+}
 
 /* In fold-const.c */
 
@@ -5367,6 +5444,7 @@ fold_build_pointer_plus_hwi_loc (location_t loc, tree ptr, HOST_WIDE_INT off)
 	fold_build_pointer_plus_hwi_loc (UNKNOWN_LOCATION, p, o)
 
 /* In builtins.c */
+extern bool avoid_folding_inline_builtin (tree);
 extern tree fold_call_expr (location_t, tree, bool);
 extern tree fold_builtin_fputs (location_t, tree, tree, bool, bool, tree);
 extern tree fold_builtin_strcpy (location_t, tree, tree, tree, tree);
@@ -5391,10 +5469,10 @@ extern tree build_va_arg_indirect_ref (tree);
 extern tree build_string_literal (int, const char *);
 extern bool validate_arglist (const_tree, ...);
 extern rtx builtin_memset_read_str (void *, HOST_WIDE_INT, enum machine_mode);
-extern bool is_builtin_name (const char *);
 extern bool is_builtin_fn (tree);
 extern unsigned int get_object_alignment_1 (tree, unsigned HOST_WIDE_INT *);
 extern unsigned int get_object_alignment (tree);
+extern unsigned int get_object_or_type_alignment (tree);
 extern unsigned int get_pointer_alignment (tree);
 extern tree fold_call_stmt (gimple, bool);
 extern tree gimple_fold_builtin_snprintf_chk (gimple, tree, enum built_in_function);
@@ -5543,6 +5621,10 @@ extern tree build_duplicate_type (tree);
 #define ECF_NOVOPS		  (1 << 9)
 /* The function does not lead to calls within current function unit.  */
 #define ECF_LEAF		  (1 << 10)
+/* Nonzero if this call does not affect transactions.  */
+#define ECF_TM_PURE		  (1 << 11)
+/* Nonzero if this call is into the transaction runtime library.  */
+#define ECF_TM_BUILTIN		  (1 << 12)
 
 extern int flags_from_decl_or_type (const_tree);
 extern int call_expr_flags (const_tree);
@@ -5599,6 +5681,8 @@ extern bool is_lock_attribute_with_args (const_tree);
 
 /* Extract and return all lock attributes from the given attribute list.  */
 extern tree extract_lock_attributes (tree);
+
+extern void apply_tm_attr (tree, tree);
 
 /* In integrate.c */
 extern void set_decl_abstract_flags (tree, int);
@@ -5798,6 +5882,7 @@ tree target_for_debug_bind (tree);
 /* In tree-ssa-address.c.  */
 extern tree tree_mem_ref_addr (tree, tree);
 extern void copy_mem_ref_info (tree, tree);
+extern void copy_ref_info (tree, tree);
 
 /* In tree-vrp.c */
 extern bool ssa_name_nonnegative_p (const_tree);
@@ -5810,6 +5895,21 @@ extern unsigned HOST_WIDE_INT compute_builtin_object_size (tree, int);
 /* In expr.c.  */
 extern unsigned HOST_WIDE_INT highest_pow2_factor (const_tree);
 extern tree build_personality_function (const char *);
+
+/* In trans-mem.c.  */
+extern tree build_tm_abort_call (location_t, bool);
+extern bool is_tm_safe (const_tree);
+extern bool is_tm_pure (const_tree);
+extern bool is_tm_may_cancel_outer (tree);
+extern bool is_tm_ending_fndecl (tree);
+extern void record_tm_replacement (tree, tree);
+extern void tm_malloc_replacement (tree);
+
+static inline bool
+is_tm_safe_or_pure (const_tree x)
+{
+  return is_tm_safe (x) || is_tm_pure (x);
+}
 
 /* In tree-inline.c.  */
 
@@ -5937,5 +6037,95 @@ is_lang_specific (tree t)
 
 /* In gimple-low.c.  */
 extern bool block_may_fallthru (const_tree);
+
+
+/* Functional interface to the builtin functions.  */
+
+/* The builtin_info structure holds the FUNCTION_DECL of the standard builtin
+   function, and a flag that says if the function is available implicitly, or
+   whether the user has to code explicit calls to __builtin_<xxx>.  */
+
+typedef struct GTY(()) builtin_info_type_d {
+  tree decl[(int)END_BUILTINS];
+  bool implicit_p[(int)END_BUILTINS];
+} builtin_info_type;
+
+extern GTY(()) builtin_info_type builtin_info;
+
+/* Valid builtin number.  */
+#define BUILTIN_VALID_P(FNCODE) \
+  (IN_RANGE ((int)FNCODE, ((int)BUILT_IN_NONE) + 1, ((int) END_BUILTINS) - 1))
+
+/* Return the tree node for an explicit standard builtin function or NULL.  */
+static inline tree
+builtin_decl_explicit (enum built_in_function fncode)
+{
+  gcc_checking_assert (BUILTIN_VALID_P (fncode));
+
+  return builtin_info.decl[(size_t)fncode];
+}
+
+/* Return the tree node for an implicit builtin function or NULL.  */
+static inline tree
+builtin_decl_implicit (enum built_in_function fncode)
+{
+  size_t uns_fncode = (size_t)fncode;
+  gcc_checking_assert (BUILTIN_VALID_P (fncode));
+
+  if (!builtin_info.implicit_p[uns_fncode])
+    return NULL_TREE;
+
+  return builtin_info.decl[uns_fncode];
+}
+
+/* Set explicit builtin function nodes and whether it is an implicit
+   function.  */
+
+static inline void
+set_builtin_decl (enum built_in_function fncode, tree decl, bool implicit_p)
+{
+  size_t ufncode = (size_t)fncode;
+
+  gcc_checking_assert (BUILTIN_VALID_P (fncode)
+		       && (decl != NULL_TREE || !implicit_p));
+
+  builtin_info.decl[ufncode] = decl;
+  builtin_info.implicit_p[ufncode] = implicit_p;
+}
+
+/* Set the implicit flag for a builtin function.  */
+
+static inline void
+set_builtin_decl_implicit_p (enum built_in_function fncode, bool implicit_p)
+{
+  size_t uns_fncode = (size_t)fncode;
+
+  gcc_checking_assert (BUILTIN_VALID_P (fncode)
+		       && builtin_info.decl[uns_fncode] != NULL_TREE);
+
+  builtin_info.implicit_p[uns_fncode] = implicit_p;
+}
+
+/* Return whether the standard builtin function can be used as an explicit
+   function.  */
+
+static inline bool
+builtin_decl_explicit_p (enum built_in_function fncode)
+{
+  gcc_checking_assert (BUILTIN_VALID_P (fncode));
+  return (builtin_info.decl[(size_t)fncode] != NULL_TREE);
+}
+
+/* Return whether the standard builtin function can be used implicitly.  */
+
+static inline bool
+builtin_decl_implicit_p (enum built_in_function fncode)
+{
+  size_t uns_fncode = (size_t)fncode;
+
+  gcc_checking_assert (BUILTIN_VALID_P (fncode));
+  return (builtin_info.decl[uns_fncode] != NULL_TREE
+	  && builtin_info.implicit_p[uns_fncode]);
+}
 
 #endif  /* GCC_TREE_H  */

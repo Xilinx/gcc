@@ -917,15 +917,11 @@ is currently only supported by some targets, notably Linux.
 
 @item --with-native-system-header-dir=@var{dirname}
 Specifies that @var{dirname} is the directory that contains native system
-header files, rather than @file{/usr/include}. This option is most useful
+header files, rather than @file{/usr/include}.  This option is most useful
 if you are creating a compiler that should be isolated from the system
 as much as possible.  It is most commonly used with the
 @option{--with-sysroot} option and will cause GCC to search
 @var{dirname} inside the system root specified by that option.
-
-Please note that for certain targets, such as DJGPP, this value is
-ignored. If the target specifies a default value for native system
-header files then this option is ignored.
 
 @item --enable-shared[=@var{package}[,@dots{}]]
 Build shared versions of libraries, if shared libraries are supported on
@@ -1224,6 +1220,11 @@ of the arguments depend on the target.
 Specify if the compiler should default to @option{-marm} or @option{-mthumb}.
 This option is only supported on ARM targets.
 
+@item --with-stack-offset=@var{num}
+This option sets the default for the -mstack-offset=@var{num} option,
+and will thus generally also control the setting of this option for
+libraries.  This option is only supported on Epiphany targets.
+
 @item --with-fpmath=@var{isa}
 This options sets @option{-mfpmath=sse} by default and specifies the default
 ISA for floating-point arithmetics.  You can select either @samp{sse} which
@@ -1309,8 +1310,7 @@ experimental option which may become the default in a later release.
 @item --enable-build-poststage1-with-cxx
 When bootstrapping, build stages 2 and 3 of GCC using a C++ compiler
 rather than a C compiler.  Stage 1 is still built with a C compiler.
-This is an experimental option which may become the default in a later
-release.  This is enabled by default and may be disabled using
+This is enabled by default and may be disabled using
 @option{--disable-build-poststage1-with-cxx}.
 
 @item --enable-maintainer-mode
@@ -3345,6 +3345,13 @@ and includes all the necessary compilation tools and libraries.
 @html
 <hr />
 @end html
+@heading @anchor{epiphany-x-elf}epiphany-*-elf
+Adapteva Epiphany.
+This configuration is intended for embedded systems.
+
+@html
+<hr />
+@end html
 @heading @anchor{x-x-freebsd}*-*-freebsd*
 
 Support for FreeBSD 1 was discontinued in GCC 3.2.  Support for
@@ -4159,6 +4166,13 @@ Embedded PowerPC system in little endian mode.
 @html
 <hr />
 @end html
+@heading @anchor{rl78-x-elf}rl78-*-elf
+The Renesas RL78 processor.
+This configuration is intended for embedded systems.
+
+@html
+<hr />
+@end html
 @heading @anchor{rx-x-elf}rx-*-elf
 The Renesas RX processor.  See
 @uref{http://eu.renesas.com/fmwk.jsp?cnt=rx600_series_landing.jsp&fp=/products/mpumcu/rx_family/rx600_series}
@@ -4494,7 +4508,7 @@ both 64-bit x86-64 and 32-bit x86 code (via the @option{-m32} switch).
 @html
 <hr />
 @end html
-@heading @anchor{x86-64-x-solaris2.10}x86_64-*-solaris2.1[0-9]*
+@heading @anchor{x86-64-x-solaris210}x86_64-*-solaris2.1[0-9]*
 
 GCC also supports the x86-64 architecture implemented by the AMD64
 processor (@samp{amd64-*-*} is an alias for @samp{x86_64-*-*}) on

@@ -203,42 +203,10 @@ double_check (gfc_expr *d, int n)
 }
 
 
-/* Check whether an expression is a coarray (without array designator).  */
-
-static bool
-is_coarray (gfc_expr *e)
-{
-  bool coarray = false;
-  gfc_ref *ref;
-
-  if (e->expr_type != EXPR_VARIABLE)
-    return false;
-
-  coarray = e->symtree->n.sym->attr.codimension;
-
-  for (ref = e->ref; ref; ref = ref->next)
-    {
-      if (ref->type == REF_COMPONENT)
-	coarray = ref->u.c.component->attr.codimension;
-      else if (ref->type != REF_ARRAY || ref->u.ar.dimen != 0)
-	coarray = false;
-      else if (ref->type == REF_ARRAY && ref->u.ar.codimen != 0) 
-	{
-	  int n;
-	  for (n = 0; n < ref->u.ar.codimen; n++)
-	    if (ref->u.ar.dimen_type[n] != DIMEN_THIS_IMAGE)
-	      coarray = false;
-	}
-    }
-
-  return coarray;
-}
-
-
 static gfc_try
 coarray_check (gfc_expr *e, int n)
 {
-  if (!is_coarray (e))
+  if (!gfc_is_coarray (e))
     {
       gfc_error ("Expected coarray variable as '%s' argument to the %s "
                  "intrinsic at %L", gfc_current_intrinsic_arg[n]->name,
@@ -272,6 +240,14 @@ logical_array_check (gfc_expr *array, int n)
 static gfc_try
 array_check (gfc_expr *e, int n)
 {
+  if (e->ts.type == BT_CLASS
+	&& CLASS_DATA (e)->attr.dimension
+	&& CLASS_DATA (e)->as->rank)
+    {
+      gfc_add_class_array_ref (e);
+      return SUCCESS;
+    }
+
   if (e->rank != 0)
     return SUCCESS;
 
@@ -318,6 +294,22 @@ less_than_bitsize1 (const char *arg1, gfc_expr *expr1, const char *arg2,
     {
       gfc_extract_int (expr2, &i2);
       i3 = gfc_validate_kind (BT_INTEGER, expr1->ts.kind, false);
+ 
+      /* For ISHFT[C], check that |shift| <= bit_size(i).  */
+      if (arg2 == NULL)
+	{
+	  if (i2 < 0)
+	    i2 = -i2;
+
+	  if (i2 > gfc_integer_kinds[i3].bit_size)
+	    {
+	      gfc_error ("The absolute value of SHIFT at %L must be less "
+			 "than or equal to BIT_SIZE('%s')",
+			 &expr2->where, arg1);
+	      return FAILURE;
+	    }
+	}
+
       if (or_equal)
 	{
 	  if (i2 > gfc_integer_kinds[i3].bit_size)
@@ -492,10 +484,31 @@ variable_check (gfc_expr *e, int n, bool allow_proc)
       && (gfc_current_intrinsic_arg[n]->intent == INTENT_OUT
 	  || gfc_current_intrinsic_arg[n]->intent == INTENT_INOUT))
     {
-      gfc_error ("'%s' argument of '%s' intrinsic at %L cannot be INTENT(IN)",
-		 gfc_current_intrinsic_arg[n]->name, gfc_current_intrinsic,
-		 &e->where);
-      return FAILURE;
+      gfc_ref *ref;
+      bool pointer = e->symtree->n.sym->ts.type == BT_CLASS
+		     && CLASS_DATA (e->symtree->n.sym)
+		     ? CLASS_DATA (e->symtree->n.sym)->attr.class_pointer
+		     : e->symtree->n.sym->attr.pointer;
+
+      for (ref = e->ref; ref; ref = ref->next)
+	{
+	  if (pointer && ref->type == REF_COMPONENT)
+	    break;
+	  if (ref->type == REF_COMPONENT
+	      && ((ref->u.c.component->ts.type == BT_CLASS
+		   && CLASS_DATA (ref->u.c.component)->attr.class_pointer)
+		  || (ref->u.c.component->ts.type != BT_CLASS
+		      && ref->u.c.component->attr.pointer)))
+	    break;
+	} 
+
+      if (!ref)
+	{
+	  gfc_error ("'%s' argument of '%s' intrinsic at %L cannot be "
+		     "INTENT(IN)", gfc_current_intrinsic_arg[n]->name,
+		     gfc_current_intrinsic, &e->where);
+	  return FAILURE;
+	}
     }
 
   if (e->expr_type == EXPR_VARIABLE
@@ -543,16 +556,17 @@ dim_check (gfc_expr *dim, int n, bool optional)
 static gfc_try
 dim_corank_check (gfc_expr *dim, gfc_expr *array)
 {
-  gfc_array_ref *ar;
   int corank;
 
   gcc_assert (array->expr_type == EXPR_VARIABLE);
 
   if (dim->expr_type != EXPR_CONSTANT)
     return SUCCESS;
+  
+  if (array->ts.type == BT_CLASS)
+    return SUCCESS;
 
-  ar = gfc_find_array_ref (array);
-  corank = ar->as->corank;
+  corank = gfc_get_corank (array);
 
   if (mpz_cmp_ui (dim->value.integer, 1) < 0
       || mpz_cmp_ui (dim->value.integer, corank) > 0)
@@ -582,6 +596,9 @@ dim_rank_check (gfc_expr *dim, gfc_expr *array, int allow_assumed)
     return SUCCESS;
 
   if (dim->expr_type != EXPR_CONSTANT)
+    return SUCCESS;
+
+  if (array->ts.type == BT_CLASS)
     return SUCCESS;
 
   if (array->expr_type == EXPR_FUNCTION && array->value.function.isym
@@ -952,7 +969,7 @@ null_arg:
 gfc_try
 gfc_check_atan_2 (gfc_expr *y, gfc_expr *x)
 {
-  /* gfc_notify_std would be a wast of time as the return value
+  /* gfc_notify_std would be a waste of time as the return value
      is seemingly used only for the generic resolution.  The error
      will be: Too many arguments.  */
   if ((gfc_option.allow_std & GFC_STD_F2008) == 0)
@@ -1501,7 +1518,14 @@ gfc_check_dshift (gfc_expr *i, gfc_expr *j, gfc_expr *shift)
   if (type_check (j, 1, BT_INTEGER) == FAILURE)
     return FAILURE;
 
-  if (same_type_check (i, 0, j, 1) == FAILURE)
+  if (i->is_boz && j->is_boz)
+    {
+      gfc_error ("'I' at %L and 'J' at %L cannot both be BOZ literal "
+		 "constants", &i->where, &j->where);
+      return FAILURE;
+    }
+
+  if (!i->is_boz && !j->is_boz && same_type_check (i, 0, j, 1) == FAILURE)
     return FAILURE;
 
   if (type_check (shift, 2, BT_INTEGER) == FAILURE)
@@ -1510,8 +1534,18 @@ gfc_check_dshift (gfc_expr *i, gfc_expr *j, gfc_expr *shift)
   if (nonnegative_check ("SHIFT", shift) == FAILURE)
     return FAILURE;
 
-  if (less_than_bitsize1 ("I", i, "SHIFT", shift, true) == FAILURE)
-    return FAILURE;
+  if (i->is_boz)
+    {
+      if (less_than_bitsize1 ("J", j, "SHIFT", shift, true) == FAILURE)
+    	return FAILURE;
+      i->ts.kind = j->ts.kind;
+    }
+  else
+    {
+      if (less_than_bitsize1 ("I", i, "SHIFT", shift, true) == FAILURE)
+    	return FAILURE;
+      j->ts.kind = i->ts.kind;
+    }
 
   return SUCCESS;
 }
@@ -1961,6 +1995,9 @@ gfc_check_ishft (gfc_expr *i, gfc_expr *shift)
       || type_check (shift, 1, BT_INTEGER) == FAILURE)
     return FAILURE;
 
+  if (less_than_bitsize1 ("I", i, NULL, shift, true) == FAILURE)
+    return FAILURE;
+
   return SUCCESS;
 }
 
@@ -1972,7 +2009,42 @@ gfc_check_ishftc (gfc_expr *i, gfc_expr *shift, gfc_expr *size)
       || type_check (shift, 1, BT_INTEGER) == FAILURE)
     return FAILURE;
 
-  if (size != NULL && type_check (size, 2, BT_INTEGER) == FAILURE)
+  if (size != NULL) 
+    {
+      int i2, i3;
+
+      if (type_check (size, 2, BT_INTEGER) == FAILURE)
+	return FAILURE;
+
+      if (less_than_bitsize1 ("I", i, "SIZE", size, true) == FAILURE)
+	return FAILURE;
+
+      if (size->expr_type == EXPR_CONSTANT)
+	{
+	  gfc_extract_int (size, &i3);
+	  if (i3 <= 0)
+	    {
+	      gfc_error ("SIZE at %L must be positive", &size->where);
+	      return FAILURE;
+	    }
+
+	  if (shift->expr_type == EXPR_CONSTANT)
+	    {
+	      gfc_extract_int (shift, &i2);
+	      if (i2 < 0)
+		i2 = -i2;
+
+	      if (i2 > i3)
+		{
+		  gfc_error ("The absolute value of SHIFT at %L must be less "
+			     "than or equal to SIZE at %L", &shift->where,
+			     &size->where);
+		  return FAILURE;
+		}
+	     }
+	}
+    }
+  else if (less_than_bitsize1 ("I", i, NULL, shift, true) == FAILURE)
     return FAILURE;
 
   return SUCCESS;
@@ -2651,6 +2723,14 @@ gfc_check_move_alloc (gfc_expr *from, gfc_expr *to)
   if (allocatable_check (to, 1) == FAILURE)
     return FAILURE;
 
+  if (from->ts.type == BT_CLASS && to->ts.type == BT_DERIVED)
+    {
+      gfc_error ("The TO arguments in MOVE_ALLOC at %L must be "
+		 "polymorphic if FROM is polymorphic",
+		 &from->where);
+      return FAILURE;
+    }
+
   if (same_type_check (to, 1, from, 0) == FAILURE)
     return FAILURE;
 
@@ -2673,7 +2753,7 @@ gfc_check_move_alloc (gfc_expr *from, gfc_expr *to)
       return FAILURE;
     }
 
-  /* CLASS arguments: Make sure the vtab is present.  */
+  /* CLASS arguments: Make sure the vtab of from is present.  */
   if (to->ts.type == BT_CLASS)
     gfc_find_derived_vtab (from->ts.u.derived);
 
@@ -2689,6 +2769,16 @@ gfc_check_nearest (gfc_expr *x, gfc_expr *s)
 
   if (type_check (s, 1, BT_REAL) == FAILURE)
     return FAILURE;
+
+  if (s->expr_type == EXPR_CONSTANT)
+    {
+      if (mpfr_sgn (s->value.real) == 0)
+	{
+	  gfc_error ("Argument 'S' of NEAREST at %L shall not be zero",
+		     &s->where);
+	  return FAILURE;
+	}
+    }
 
   return SUCCESS;
 }
@@ -3478,8 +3568,15 @@ gfc_check_size (gfc_expr *array, gfc_expr *dim, gfc_expr *kind)
 
 
 gfc_try
-gfc_check_sizeof (gfc_expr *arg ATTRIBUTE_UNUSED)
+gfc_check_sizeof (gfc_expr *arg)
 {
+  if (arg->ts.type == BT_PROCEDURE)
+    {
+      gfc_error ("'%s' argument of '%s' intrinsic at %L may not be a procedure",
+		 gfc_current_intrinsic_arg[0]->name, gfc_current_intrinsic,
+		 &arg->where);
+      return FAILURE;
+    }
   return SUCCESS;
 }
 
@@ -3487,7 +3584,7 @@ gfc_check_sizeof (gfc_expr *arg ATTRIBUTE_UNUSED)
 gfc_try
 gfc_check_c_sizeof (gfc_expr *arg)
 {
-  if (verify_c_interop (&arg->ts) != SUCCESS)
+  if (gfc_verify_c_interop (&arg->ts) != SUCCESS)
     {
       gfc_error ("'%s' argument of '%s' intrinsic at %L must be an "
 		 "interoperable data entity",

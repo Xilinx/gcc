@@ -6,17 +6,10 @@
 package mime
 
 import (
-	"bufio"
-	"os"
+	"fmt"
 	"strings"
 	"sync"
 )
-
-var typeFiles = []string{
-	"/etc/mime.types",
-	"/etc/apache2/mime.types",
-	"/etc/apache/mime.types",
-}
 
 var mimeTypes = map[string]string{
 	".css":  "text/css; charset=utf-8",
@@ -32,55 +25,23 @@ var mimeTypes = map[string]string{
 
 var mimeLock sync.RWMutex
 
-func loadMimeFile(filename string) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return
-	}
-
-	reader := bufio.NewReader(f)
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			f.Close()
-			return
-		}
-		fields := strings.Fields(line)
-		if len(fields) <= 1 || fields[0][0] == '#' {
-			continue
-		}
-		typename := fields[0]
-		if strings.HasPrefix(typename, "text/") {
-			typename += "; charset=utf-8"
-		}
-		for _, ext := range fields[1:] {
-			if ext[0] == '#' {
-				break
-			}
-			mimeTypes["."+ext] = typename
-		}
-	}
-}
-
-func initMime() {
-	for _, filename := range typeFiles {
-		loadMimeFile(filename)
-	}
-}
-
 var once sync.Once
 
 // TypeByExtension returns the MIME type associated with the file extension ext.
 // The extension ext should begin with a leading dot, as in ".html".
 // When ext has no associated type, TypeByExtension returns "".
 //
-// The built-in table is small but is is augmented by the local
+// The built-in table is small but on unix it is augmented by the local
 // system's mime.types file(s) if available under one or more of these
 // names:
 //
 //   /etc/mime.types
 //   /etc/apache2/mime.types
 //   /etc/apache/mime.types
+//
+// Windows system mime types are extracted from registry.
+//
+// Text types have the charset parameter set to "utf-8" by default.
 func TypeByExtension(ext string) string {
 	once.Do(initMime)
 	mimeLock.RLock()
@@ -92,13 +53,32 @@ func TypeByExtension(ext string) string {
 // AddExtensionType sets the MIME type associated with
 // the extension ext to typ.  The extension should begin with
 // a leading dot, as in ".html".
-func AddExtensionType(ext, typ string) os.Error {
-	once.Do(initMime)
-	if len(ext) < 1 || ext[0] != '.' {
-		return os.EINVAL
+func AddExtensionType(ext, typ string) error {
+	if ext == "" || ext[0] != '.' {
+		return fmt.Errorf(`mime: extension "%s" misses dot`, ext)
 	}
+	once.Do(initMime)
+	return setExtensionType(ext, typ)
+}
+
+func setExtensionType(extension, mimeType string) error {
+	full, param, err := ParseMediaType(mimeType)
+	if err != nil {
+		return err
+	}
+	if split := strings.Index(full, "/"); split < 0 {
+		return fmt.Errorf(`mime: malformed MIME type "%s"`, mimeType)
+	} else {
+		main := full[:split]
+		sub := full[split+1:]
+		if main == "text" && param["charset"] == "" {
+			param["charset"] = "utf-8"
+		}
+		mimeType = FormatMediaType(main, sub, param)
+	}
+
 	mimeLock.Lock()
-	mimeTypes[ext] = typ
+	mimeTypes[extension] = mimeType
 	mimeLock.Unlock()
 	return nil
 }

@@ -418,6 +418,10 @@ execute_mudflap_function_ops (void)
 
   push_gimplify_context (&gctx);
 
+  add_referenced_var (mf_cache_array_decl);
+  add_referenced_var (mf_cache_shift_decl);
+  add_referenced_var (mf_cache_mask_decl);
+
   /* In multithreaded mode, don't cache the lookup cache parameters.  */
   if (! flag_mudflap_threads)
     mf_decl_cache_locals ();
@@ -925,7 +929,6 @@ mf_xform_derefs_1 (gimple_stmt_iterator *iter, tree *tp,
 }
 /* Transform
    1) Memory references.
-   2) BUILTIN_ALLOCA calls.
 */
 static void
 mf_xform_statements (void)
@@ -964,14 +967,6 @@ mf_xform_statements (void)
 				     gimple_location (s),
 				     integer_zero_node);
                 }
-              break;
-
-            case GIMPLE_CALL:
-              {
-                tree fndecl = gimple_call_fndecl (s);
-                if (fndecl && (DECL_FUNCTION_CODE (fndecl) == BUILT_IN_ALLOCA))
-                  gimple_call_set_cannot_inline (s, true);
-              }
               break;
 
             default:

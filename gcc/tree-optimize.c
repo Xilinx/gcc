@@ -204,6 +204,7 @@ execute_cleanup_cfg_post_optimizing (void)
   /* Estimate the code footprint for hot BBs before we enter RTL */
   compute_codesize_estimate();
   cleanup_tree_cfg ();
+  maybe_remove_unreachable_handlers ();
   cleanup_dead_labels ();
   group_case_labels ();
   if ((flag_compare_debug_opt || flag_compare_debug)

@@ -1697,9 +1697,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
    *  @return  Nothing.
    *
    *  Rotates the elements of the range @p [__first,__last) by 
-   *  @p(__middle - __first) positions so that the element at @p __middle
+   *  @p (__middle - __first) positions so that the element at @p __middle
    *  is moved to @p __first, the element at @p __middle+1 is moved to
-   *  @ __first+1 and so on for each element in the range
+   *  @p __first+1 and so on for each element in the range
    *  @p [__first,__last).
    *
    *  This effectively swaps the ranges @p [__first,__middle) and
@@ -1738,7 +1738,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
    *  range beginning at @result, rotating the copied elements by 
    *  @p (__middle-__first) positions so that the element at @p __middle
    *  is moved to @p __result, the element at @p __middle+1 is moved
-   *  to @__result+1 and so on for each element in the range @p
+   *  to @p __result+1 and so on for each element in the range @p
    *  [__first,__last).
    *
    *  Performs 
@@ -1980,9 +1980,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
    *  to the range beginning at @p __result_first, where the number of
    *  elements to be copied, @p N, is the smaller of @p (__last-__first) and
    *  @p (__result_last-__result_first).
-   *  After the sort if @p i and @j are iterators in the range
-   *  @p [__result_first,__result_first+N) such that @i precedes @j then
-   *  @p *j<*i is false.
+   *  After the sort if @e i and @e j are iterators in the range
+   *  @p [__result_first,__result_first+N) such that i precedes j then
+   *  *j<*i is false.
    *  The value returned is @p __result_first+N.
   */
   template<typename _InputIterator, typename _RandomAccessIterator>
@@ -2046,8 +2046,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
    *  to the range beginning at @p result_first, where the number of
    *  elements to be copied, @p N, is the smaller of @p (__last-__first) and
    *  @p (__result_last-__result_first).
-   *  After the sort if @p i and @j are iterators in the range
-   *  @p [__result_first,__result_first+N) such that @i precedes @j then
+   *  After the sort if @e i and @e j are iterators in the range
+   *  @p [__result_first,__result_first+N) such that i precedes j then
    *  @p __comp(*j,*i) is false.
    *  The value returned is @p __result_first+N.
   */
@@ -2422,7 +2422,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   // lower_bound moved to stl_algobase.h
 
   /**
-   *  @brief Finds the first position in which @a val could be inserted
+   *  @brief Finds the first position in which @p __val could be inserted
    *         without changing the ordering.
    *  @ingroup binary_search_algorithms
    *  @param  __first   An iterator.
@@ -2430,8 +2430,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
    *  @param  __val     The search term.
    *  @param  __comp    A functor to use for comparisons.
    *  @return An iterator pointing to the first element <em>not less
-   *           than</em> @a __val, or end() if every element is less
-   *           than @a __val.
+   *           than</em> @p __val, or end() if every element is less
+   *           than @p __val.
    *  @ingroup binary_search_algorithms
    *
    *  The comparison function should have the same effects on ordering as
@@ -2474,14 +2474,14 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     }
 
   /**
-   *  @brief Finds the last position in which @a val could be inserted
+   *  @brief Finds the last position in which @p __val could be inserted
    *         without changing the ordering.
    *  @ingroup binary_search_algorithms
    *  @param  __first   An iterator.
    *  @param  __last    Another iterator.
    *  @param  __val     The search term.
-   *  @return  An iterator pointing to the first element greater than @a __val,
-   *           or end() if no elements are greater than @a __val.
+   *  @return  An iterator pointing to the first element greater than @p __val,
+   *           or end() if no elements are greater than @p __val.
    *  @ingroup binary_search_algorithms
   */
   template<typename _ForwardIterator, typename _Tp>
@@ -2519,15 +2519,15 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     }
 
   /**
-   *  @brief Finds the last position in which @a val could be inserted
+   *  @brief Finds the last position in which @p __val could be inserted
    *         without changing the ordering.
    *  @ingroup binary_search_algorithms
    *  @param  __first   An iterator.
    *  @param  __last    Another iterator.
    *  @param  __val     The search term.
    *  @param  __comp    A functor to use for comparisons.
-   *  @return  An iterator pointing to the first element greater than @a __val,
-   *           or end() if no elements are greater than @a __val.
+   *  @return  An iterator pointing to the first element greater than @p __val,
+   *           or end() if no elements are greater than @p __val.
    *  @ingroup binary_search_algorithms
    *
    *  The comparison function should have the same effects on ordering as
@@ -2570,7 +2570,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     }
 
   /**
-   *  @brief Finds the largest subrange in which @a val could be inserted
+   *  @brief Finds the largest subrange in which @p __val could be inserted
    *         at any place in it without changing the ordering.
    *  @ingroup binary_search_algorithms
    *  @param  __first   An iterator.
@@ -2632,7 +2632,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     }
 
   /**
-   *  @brief Finds the largest subrange in which @a val could be inserted
+   *  @brief Finds the largest subrange in which @p __val could be inserted
    *         at any place in it without changing the ordering.
    *  @param  __first   An iterator.
    *  @param  __last    Another iterator.
@@ -2703,10 +2703,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
    *  @param  __first   An iterator.
    *  @param  __last    Another iterator.
    *  @param  __val     The search term.
-   *  @return True if @a __val (or its equivalent) is in [@a
-   *  __first,@a __last ].
+   *  @return True if @p __val (or its equivalent) is in [@p
+   *  __first,@p __last ].
    *
-   *  Note that this does not actually return an iterator to @a __val.  For
+   *  Note that this does not actually return an iterator to @p __val.  For
    *  that, use std::find or a container's specialized find member functions.
   */
   template<typename _ForwardIterator, typename _Tp>
@@ -2734,9 +2734,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
    *  @param  __last    Another iterator.
    *  @param  __val     The search term.
    *  @param  __comp    A functor to use for comparisons.
-   *  @return  True if @a val (or its equivalent) is in [@a first,@a last ].
+   *  @return  True if @p __val (or its equivalent) is in @p [__first,__last].
    *
-   *  Note that this does not actually return an iterator to @a val.  For
+   *  Note that this does not actually return an iterator to @p __val.  For
    *  that, use std::find or a container's specialized find member functions.
    *
    *  The comparison function should have the same effects on ordering as
@@ -3558,7 +3558,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
    *  each element in [__first2,__last2) within [__first1,__last1).
    *  The iterators over each range only move forward, so this is a
    *  linear algorithm.  If an element in [__first2,__last2) is not
-   *  found before the search iterator reaches @a __last2, false is
+   *  found before the search iterator reaches @p __last2, false is
    *  returned.
   */
   template<typename _InputIterator1, typename _InputIterator2>
@@ -3609,7 +3609,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
    *  using comp to decide.  The iterators over each range only move
    *  forward, so this is a linear algorithm.  If an element in
    *  [__first2,__last2) is not found before the search iterator
-   *  reaches @a __last2, false is returned.
+   *  reaches @p __last2, false is returned.
   */
   template<typename _InputIterator1, typename _InputIterator2,
 	   typename _Compare>
@@ -3655,13 +3655,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   // max_element
 
   /**
-   *  @brief  Permute range into the next @a dictionary ordering.
+   *  @brief  Permute range into the next @e dictionary ordering.
    *  @ingroup sorting_algorithms
    *  @param  __first  Start of range.
    *  @param  __last   End of range.
    *  @return  False if wrapped to first permutation, true otherwise.
    *
-   *  Treats all permutations of the range as a set of @a dictionary sorted
+   *  Treats all permutations of the range as a set of @e dictionary sorted
    *  sequences.  Permutes the current sequence into the next one of this set.
    *  Returns true if there are more sequences to generate.  If the sequence
    *  is the largest of the set, the smallest is generated and false returned.
@@ -3709,7 +3709,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     }
 
   /**
-   *  @brief  Permute range into the next @a dictionary ordering using
+   *  @brief  Permute range into the next @e dictionary ordering using
    *          comparison functor.
    *  @ingroup sorting_algorithms
    *  @param  __first  Start of range.
@@ -3718,7 +3718,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
    *  @return  False if wrapped to first permutation, true otherwise.
    *
    *  Treats all permutations of the range [__first,__last) as a set of
-   *  @a dictionary sorted sequences ordered by @a comp.  Permutes the current
+   *  @e dictionary sorted sequences ordered by @p __comp.  Permutes the current
    *  sequence into the next one of this set.  Returns true if there are more
    *  sequences to generate.  If the sequence is the largest of the set, the
    *  smallest is generated and false returned.
@@ -3767,13 +3767,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     }
 
   /**
-   *  @brief  Permute range into the previous @a dictionary ordering.
+   *  @brief  Permute range into the previous @e dictionary ordering.
    *  @ingroup sorting_algorithms
    *  @param  __first  Start of range.
    *  @param  __last   End of range.
    *  @return  False if wrapped to last permutation, true otherwise.
    *
-   *  Treats all permutations of the range as a set of @a dictionary sorted
+   *  Treats all permutations of the range as a set of @e dictionary sorted
    *  sequences.  Permutes the current sequence into the previous one of this
    *  set.  Returns true if there are more sequences to generate.  If the
    *  sequence is the smallest of the set, the largest is generated and false
@@ -3822,7 +3822,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     }
 
   /**
-   *  @brief  Permute range into the previous @a dictionary ordering using
+   *  @brief  Permute range into the previous @e dictionary ordering using
    *          comparison functor.
    *  @ingroup sorting_algorithms
    *  @param  __first  Start of range.
@@ -3831,7 +3831,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
    *  @return  False if wrapped to last permutation, true otherwise.
    *
    *  Treats all permutations of the range [__first,__last) as a set of
-   *  @a dictionary sorted sequences ordered by @a comp.  Permutes the current
+   *  @e dictionary sorted sequences ordered by @p __comp.  Permutes the current
    *  sequence into the previous one of this set.  Returns true if there are
    *  more sequences to generate.  If the sequence is the smallest of the set,
    *  the largest is generated and false returned.
@@ -4067,7 +4067,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
    *  @ingroup sorting_algorithms
    *  @param  __a  A thing of arbitrary type.
    *  @param  __b  Another thing of arbitrary type.
-   *  @param  __comp  A @link comparison_functor comparison functor @endlink.
+   *  @param  __comp  A @link comparison_functors comparison functor @endlink.
    *  @return A pair(__b, __a) if __b is smaller than __a, pair(__a,
    *  __b) otherwise.
   */
@@ -5294,9 +5294,9 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
    *  @p [first,last) and moves them to the range @p [__first,__middle). The
    *  order of the remaining elements in the range @p [__middle,__last) is
    *  undefined.
-   *  After the sort if @p i and @j are iterators in the range
-   *  @p [__first,__middle) such that @i precedes @j and @k is an iterator in
-   *  the range @p [__middle,__last) then @p *j<*i and @p *k<*i are both false.
+   *  After the sort if @e i and @e j are iterators in the range
+   *  @p [__first,__middle) such that i precedes j and @e k is an iterator in
+   *  the range @p [__middle,__last) then *j<*i and *k<*i are both false.
   */
   template<typename _RandomAccessIterator>
     inline void
@@ -5332,8 +5332,8 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
    *  @p [__first,__last) and moves them to the range @p [__first,__middle). The
    *  order of the remaining elements in the range @p [__middle,__last) is
    *  undefined.
-   *  After the sort if @p i and @j are iterators in the range
-   *  @p [__first,__middle) such that @i precedes @j and @k is an iterator in
+   *  After the sort if @e i and @e j are iterators in the range
+   *  @p [__first,__middle) such that i precedes j and @e k is an iterator in
    *  the range @p [__middle,__last) then @p *__comp(j,*i) and @p __comp(*k,*i)
    *  are both false.
   */
@@ -5369,11 +5369,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
    *
    *  Rearranges the elements in the range @p [__first,__last) so that @p *__nth
    *  is the same element that would have been in that position had the
-   *  whole sequence been sorted.
    *  whole sequence been sorted. The elements either side of @p *__nth are
-   *  not completely sorted, but for any iterator @i in the range
-   *  @p [__first,__nth) and any iterator @j in the range @p [__nth,__last) it
-   *  holds that @p *j<*i is false.
+   *  not completely sorted, but for any iterator @e i in the range
+   *  @p [__first,__nth) and any iterator @e j in the range @p [__nth,__last) it
+   *  holds that *j < *i is false.
   */
   template<typename _RandomAccessIterator>
     inline void
@@ -5410,8 +5409,8 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
    *  Rearranges the elements in the range @p [__first,__last) so that @p *__nth
    *  is the same element that would have been in that position had the
    *  whole sequence been sorted. The elements either side of @p *__nth are
-   *  not completely sorted, but for any iterator @i in the range
-   *  @p [__first,__nth) and any iterator @j in the range @p [__nth,__last) it
+   *  not completely sorted, but for any iterator @e i in the range
+   *  @p [__first,__nth) and any iterator @e j in the range @p [__nth,__last) it
    *  holds that @p __comp(*j,*i) is false.
   */
   template<typename _RandomAccessIterator, typename _Compare>
@@ -5447,8 +5446,8 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
    *  @return  Nothing.
    *
    *  Sorts the elements in the range @p [__first,__last) in ascending order,
-   *  such that @p *(i+1)<*i is false for each iterator @p i in the range
-   *  @p [__first,__last-1).
+   *  such that for each iterator @e i in the range @p [__first,__last-1),  
+   *  *(i+1)<*i is false.
    *
    *  The relative ordering of equivalent elements is not preserved, use
    *  @p stable_sort() if this is needed.
@@ -5483,7 +5482,7 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
    *  @return  Nothing.
    *
    *  Sorts the elements in the range @p [__first,__last) in ascending order,
-   *  such that @p __comp(*(i+1),*i) is false for every iterator @p i in the
+   *  such that @p __comp(*(i+1),*i) is false for every iterator @e i in the
    *  range @p [__first,__last-1).
    *
    *  The relative ordering of equivalent elements is not preserved, use
@@ -5523,10 +5522,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
    *  @param  __last2   Another iterator.
    *  @param  __result  An iterator pointing to the end of the merged range.
    *  @return         An iterator pointing to the first element <em>not less
-   *                  than</em> @a val.
+   *                  than</em> @e val.
    *
-   *  Merges the ranges [__first1,__last1) and [__first2,__last2) into
-   *  the sorted range [__result, __result + (__last1-__first1) +
+   *  Merges the ranges @p [__first1,__last1) and @p [__first2,__last2) into
+   *  the sorted range @p [__result, __result + (__last1-__first1) +
    *  (__last2-__first2)).  Both input ranges must be sorted, and the
    *  output range must not overlap with either of the input ranges.
    *  The sort is @e stable, that is, for equivalent elements in the
@@ -5584,10 +5583,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
    *  @param  __result  An iterator pointing to the end of the merged range.
    *  @param  __comp    A functor to use for comparisons.
    *  @return         An iterator pointing to the first element "not less
-   *                  than" @a val.
+   *                  than" @e val.
    *
-   *  Merges the ranges [__first1,__last1) and [__first2,__last2) into
-   *  the sorted range [__result, __result + (__last1-__first1) +
+   *  Merges the ranges @p [__first1,__last1) and @p [__first2,__last2) into
+   *  the sorted range @p [__result, __result + (__last1-__first1) +
    *  (__last2-__first2)).  Both input ranges must be sorted, and the
    *  output range must not overlap with either of the input ranges.
    *  The sort is @e stable, that is, for equivalent elements in the
@@ -5649,8 +5648,8 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
    *  @return  Nothing.
    *
    *  Sorts the elements in the range @p [__first,__last) in ascending order,
-   *  such that @p *(i+1)<*i is false for each iterator @p i in the range
-   *  @p [__first,__last-1).
+   *  such that for each iterator @p i in the range @p [__first,__last-1),
+   *  @p *(i+1)<*i is false.
    *
    *  The relative ordering of equivalent elements is preserved, so any two
    *  elements @p x and @p y in the range @p [__first,__last) such that
@@ -5691,8 +5690,8 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
    *  @return  Nothing.
    *
    *  Sorts the elements in the range @p [__first,__last) in ascending order,
-   *  such that @p __comp(*(i+1),*i) is false for each iterator @p i in the
-   *  range @p [__first,__last-1).
+   *  such that for each iterator @p i in the range @p [__first,__last-1),
+   *  @p __comp(*(i+1),*i) is false.
    *
    *  The relative ordering of equivalent elements is preserved, so any two
    *  elements @p x and @p y in the range @p [__first,__last) such that
@@ -5808,8 +5807,8 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
    *  This operation iterates over both ranges, copying elements present in
    *  each range in order to the output range.  Iterators increment for each
    *  range.  When the current element of one range is less than the other
-   *  according to @a __comp, that element is copied and the iterator advanced.
-   *  If an equivalent element according to @a __comp is contained in both
+   *  according to @p __comp, that element is copied and the iterator advanced.
+   *  If an equivalent element according to @p __comp is contained in both
    *  ranges, the element from the first range is copied and both ranges
    *  advance.  The output range may not overlap either input range.
   */
@@ -5932,8 +5931,8 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
    *  This operation iterates over both ranges, copying elements present in
    *  both ranges in order to the output range.  Iterators increment for each
    *  range.  When the current element of one range is less than the other
-   *  according to @a __comp, that iterator advances.  If an element is
-   *  contained in both ranges according to @a __comp, the element from the
+   *  according to @p __comp, that iterator advances.  If an element is
+   *  contained in both ranges according to @p __comp, the element from the
    *  first range is copied and both ranges advance.  The output range may not
    *  overlap either input range.
   */
@@ -6049,10 +6048,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
    *  This operation iterates over both ranges, copying elements present in
    *  the first range but not the second in order to the output range.
    *  Iterators increment for each range.  When the current element of the
-   *  first range is less than the second according to @a comp, that element
+   *  first range is less than the second according to @p __comp, that element
    *  is copied and the iterator advances.  If the current element of the
    *  second range is less, no element is copied and the iterator advances.
-   *  If an element is contained in both ranges according to @a comp, no
+   *  If an element is contained in both ranges according to @p __comp, no
    *  elements are copied and both ranges advance.  The output range may not
    *  overlap either input range.
   */
@@ -6175,9 +6174,9 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
    *  This operation iterates over both ranges, copying elements present in
    *  one range but not the other in order to the output range.  Iterators
    *  increment for each range.  When the current element of one range is less
-   *  than the other according to @a comp, that element is copied and the
+   *  than the other according to @p comp, that element is copied and the
    *  iterator advances.  If an element is contained in both ranges according
-   *  to @a comp, no elements are copied and both ranges advance.  The output
+   *  to @p __comp, no elements are copied and both ranges advance.  The output
    *  range may not overlap either input range.
   */
   template<typename _InputIterator1, typename _InputIterator2,
@@ -6263,7 +6262,7 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
    *  @param  __last   End of range.
    *  @param  __comp   Comparison functor.
    *  @return  Iterator referencing the first instance of the smallest value
-   *  according to comp.
+   *  according to __comp.
   */
   template<typename _ForwardIterator, typename _Compare>
     _ForwardIterator

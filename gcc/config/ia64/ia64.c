@@ -234,6 +234,10 @@ static void ia64_output_function_prologue (FILE *, HOST_WIDE_INT);
 static void ia64_output_function_epilogue (FILE *, HOST_WIDE_INT);
 static void ia64_output_function_end_prologue (FILE *);
 
+static void ia64_print_operand (FILE *, rtx, int);
+static void ia64_print_operand_address (FILE *, rtx);
+static bool ia64_print_operand_punct_valid_p (unsigned char code);
+
 static int ia64_issue_rate (void);
 static int ia64_adjust_cost_2 (rtx, int, rtx, int, dw_t);
 static void ia64_sched_init (FILE *, int, int);
@@ -382,6 +386,13 @@ static const struct attribute_spec ia64_attribute_table[] =
 #define TARGET_ASM_FUNCTION_END_PROLOGUE ia64_output_function_end_prologue
 #undef TARGET_ASM_FUNCTION_EPILOGUE
 #define TARGET_ASM_FUNCTION_EPILOGUE ia64_output_function_epilogue
+
+#undef TARGET_PRINT_OPERAND
+#define TARGET_PRINT_OPERAND ia64_print_operand
+#undef TARGET_PRINT_OPERAND_ADDRESS
+#define TARGET_PRINT_OPERAND_ADDRESS ia64_print_operand_address
+#undef TARGET_PRINT_OPERAND_PUNCT_VALID_P
+#define TARGET_PRINT_OPERAND_PUNCT_VALID_P ia64_print_operand_punct_valid_p
 
 #undef TARGET_IN_SMALL_DATA_P
 #define TARGET_IN_SMALL_DATA_P  ia64_in_small_data_p
@@ -2266,7 +2277,7 @@ ia64_split_call (rtx retval, rtx addr, rtx retaddr, rtx scratch_r,
 
 void
 ia64_expand_atomic_op (enum rtx_code code, rtx mem, rtx val,
-		       rtx old_dst, rtx new_dst)
+		       rtx old_dst, rtx new_dst, enum memmodel model)
 {
   enum machine_mode mode = GET_MODE (mem);
   rtx old_reg, new_reg, cmp_reg, ar_ccv, label;
@@ -2283,12 +2294,31 @@ ia64_expand_atomic_op (enum rtx_code code, rtx mem, rtx val,
       if (!old_dst)
         old_dst = gen_reg_rtx (mode);
 
-      emit_insn (gen_memory_barrier ());
+      switch (model)
+	{
+	case MEMMODEL_ACQ_REL:
+	case MEMMODEL_SEQ_CST:
+	  emit_insn (gen_memory_barrier ());
+	  /* FALLTHRU */
+	case MEMMODEL_RELAXED:
+	case MEMMODEL_ACQUIRE:
+	case MEMMODEL_CONSUME:
+	  if (mode == SImode)
+	    icode = CODE_FOR_fetchadd_acq_si;
+	  else
+	    icode = CODE_FOR_fetchadd_acq_di;
+	  break;
+	case MEMMODEL_RELEASE:
+	  if (mode == SImode)
+	    icode = CODE_FOR_fetchadd_rel_si;
+	  else
+	    icode = CODE_FOR_fetchadd_rel_di;
+	  break;
 
-      if (mode == SImode)
-	icode = CODE_FOR_fetchadd_acq_si;
-      else
-	icode = CODE_FOR_fetchadd_acq_di;
+	default:
+	  gcc_unreachable ();
+	}
+
       emit_insn (GEN_FCN (icode) (old_dst, mem, val));
 
       if (new_dst)
@@ -2302,8 +2332,12 @@ ia64_expand_atomic_op (enum rtx_code code, rtx mem, rtx val,
     }
 
   /* Because of the volatile mem read, we get an ld.acq, which is the
-     front half of the full barrier.  The end half is the cmpxchg.rel.  */
-  gcc_assert (MEM_VOLATILE_P (mem));
+     front half of the full barrier.  The end half is the cmpxchg.rel.
+     For relaxed and release memory models, we don't need this.  But we
+     also don't bother trying to prevent it either.  */
+  gcc_assert (model == MEMMODEL_RELAXED
+	      || model == MEMMODEL_RELEASE
+	      || MEM_VOLATILE_P (mem));
 
   old_reg = gen_reg_rtx (DImode);
   cmp_reg = gen_reg_rtx (DImode);
@@ -2342,12 +2376,36 @@ ia64_expand_atomic_op (enum rtx_code code, rtx mem, rtx val,
   if (new_dst)
     emit_move_insn (new_dst, new_reg);
 
-  switch (mode)
+  switch (model)
     {
-    case QImode:  icode = CODE_FOR_cmpxchg_rel_qi;  break;
-    case HImode:  icode = CODE_FOR_cmpxchg_rel_hi;  break;
-    case SImode:  icode = CODE_FOR_cmpxchg_rel_si;  break;
-    case DImode:  icode = CODE_FOR_cmpxchg_rel_di;  break;
+    case MEMMODEL_RELAXED:
+    case MEMMODEL_ACQUIRE:
+    case MEMMODEL_CONSUME:
+      switch (mode)
+	{
+	case QImode: icode = CODE_FOR_cmpxchg_acq_qi;  break;
+	case HImode: icode = CODE_FOR_cmpxchg_acq_hi;  break;
+	case SImode: icode = CODE_FOR_cmpxchg_acq_si;  break;
+	case DImode: icode = CODE_FOR_cmpxchg_acq_di;  break;
+	default:
+	  gcc_unreachable ();
+	}
+      break;
+
+    case MEMMODEL_RELEASE:
+    case MEMMODEL_ACQ_REL:
+    case MEMMODEL_SEQ_CST:
+      switch (mode)
+	{
+	case QImode: icode = CODE_FOR_cmpxchg_rel_qi;  break;
+	case HImode: icode = CODE_FOR_cmpxchg_rel_hi;  break;
+	case SImode: icode = CODE_FOR_cmpxchg_rel_si;  break;
+	case DImode: icode = CODE_FOR_cmpxchg_rel_di;  break;
+	default:
+	  gcc_unreachable ();
+	}
+      break;
+
     default:
       gcc_unreachable ();
     }
@@ -4919,7 +4977,7 @@ ia64_output_dwarf_dtprel (FILE *file, int size, rtx x)
 /* ??? Do we need this?  It gets used only for 'a' operands.  We could perhaps
    also call this from ia64_print_operand for memory addresses.  */
 
-void
+static void
 ia64_print_operand_address (FILE * stream ATTRIBUTE_UNUSED,
 			    rtx address ATTRIBUTE_UNUSED)
 {
@@ -4950,7 +5008,7 @@ ia64_print_operand_address (FILE * stream ATTRIBUTE_UNUSED,
 	Linux kernel.
    v    Print vector constant value as an 8-byte integer value.  */
 
-void
+static void
 ia64_print_operand (FILE * file, rtx x, int code)
 {
   const char *str;
@@ -5236,6 +5294,14 @@ ia64_print_operand (FILE * file, rtx x, int code)
     }
 
   return;
+}
+
+/* Worker function for TARGET_PRINT_OPERAND_PUNCT_VALID_P.  */
+
+static bool
+ia64_print_operand_punct_valid_p (unsigned char code)
+{
+  return (code == '+' || code == ',');
 }
 
 /* Compute a (partial) cost for rtx X.  Return true if the complete
@@ -6342,6 +6408,7 @@ rtx_needs_barrier (rtx x, struct reg_flags flags, int pred)
 	case UNSPEC_PIC_CALL:
         case UNSPEC_MF:
         case UNSPEC_FETCHADD_ACQ:
+        case UNSPEC_FETCHADD_REL:
 	case UNSPEC_BSP_VALUE:
 	case UNSPEC_FLUSHRS:
 	case UNSPEC_BUNDLE_SELECTOR:
@@ -6385,6 +6452,7 @@ rtx_needs_barrier (rtx x, struct reg_flags flags, int pred)
 	  break;
 
         case UNSPEC_CMPXCHG_ACQ:
+        case UNSPEC_CMPXCHG_REL:
 	  need_barrier = rtx_needs_barrier (XVECEXP (x, 0, 1), flags, pred);
 	  need_barrier |= rtx_needs_barrier (XVECEXP (x, 0, 2), flags, pred);
 	  break;
@@ -10100,15 +10168,12 @@ ia64_init_builtins (void)
 
   if (TARGET_HPUX)
     {
-      if (built_in_decls [BUILT_IN_FINITE])
-	set_user_assembler_name (built_in_decls [BUILT_IN_FINITE],
-	  "_Isfinite");
-      if (built_in_decls [BUILT_IN_FINITEF])
-	set_user_assembler_name (built_in_decls [BUILT_IN_FINITEF],
-	  "_Isfinitef");
-      if (built_in_decls [BUILT_IN_FINITEL])
-	set_user_assembler_name (built_in_decls [BUILT_IN_FINITEL],
-	  "_Isfinitef128");
+      if ((decl = builtin_decl_explicit (BUILT_IN_FINITE)) != NULL_TREE)
+	set_user_assembler_name (decl, "_Isfinite");
+      if ((decl = builtin_decl_explicit (BUILT_IN_FINITEF)) != NULL_TREE)
+	set_user_assembler_name (decl, "_Isfinitef");
+      if ((decl = builtin_decl_explicit (BUILT_IN_FINITEL)) != NULL_TREE)
+	set_user_assembler_name (decl, "_Isfinitef128");
     }
 }
 
@@ -10719,7 +10784,7 @@ ia64_profile_hook (int labelno)
       char buf[30];
       const char *label_name;
       ASM_GENERATE_INTERNAL_LABEL (buf, "LP", labelno);
-      label_name = (*targetm.strip_name_encoding) (ggc_strdup (buf));
+      label_name = ggc_strdup ((*targetm.strip_name_encoding) (buf));
       label = gen_rtx_SYMBOL_REF (Pmode, label_name);
       SYMBOL_REF_FLAGS (label) = SYMBOL_FLAG_LOCAL;
     }

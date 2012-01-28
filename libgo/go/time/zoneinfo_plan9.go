@@ -6,11 +6,10 @@
 
 package time
 
-import (
-	"os"
-	"strconv"
-	"strings"
-)
+//import (
+//	"strconv"
+//	"strings"
+//)
 
 func parseZones(s string) (zt []zonetime) {
 	f := strings.Fields(s)
@@ -49,11 +48,19 @@ func parseZones(s string) (zt []zonetime) {
 	return
 }
 
-func setupZone() {
+func initLocal() {
 	t, err := os.Getenverror("timezone")
 	if err != nil {
 		// do nothing: use UTC
 		return
 	}
 	zones = parseZones(t)
+}
+
+func initTestingZone() {
+	buf, err := readFile("/adm/timezone/US_Pacific")
+	if err != nil {
+		return
+	}
+	zones = parseZones(string(buf))
 }

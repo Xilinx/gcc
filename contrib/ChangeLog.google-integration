@@ -1,3 +1,13 @@
+2011-12-19   Sharad Singhai  <singhai@google.com>
+
+	* testsuite-management/x86_64-unknown-linux-gnu.xfail: Update with
+	new failures in trunk, specially in libitm.
+
+2011-10-23   Diego Novillo  <dnovillo@google.com>
+
+	* testsuite-management/x86_64-unknown-linux-gnu.xfail: Update with
+	new/removed failures in trunk.
+
 2011-10-02   Diego Novillo  <dnovillo@google.com>
 
 	* testsuite-management/x86_64-unknown-linux-gnu.xfail: Update with

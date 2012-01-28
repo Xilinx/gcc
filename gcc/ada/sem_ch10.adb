@@ -47,6 +47,7 @@ with Restrict; use Restrict;
 with Rident;   use Rident;
 with Rtsfind;  use Rtsfind;
 with Sem;      use Sem;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch7;  use Sem_Ch7;
@@ -208,7 +209,7 @@ package body Sem_Ch10 is
    -- Limited_With_Clauses --
    --------------------------
 
-   --  Limited_With clauses are the mechanism chosen for Ada05 to support
+   --  Limited_With clauses are the mechanism chosen for Ada 2005 to support
    --  mutually recursive types declared in different units. A limited_with
    --  clause that names package P in the context of unit U makes the types
    --  declared in the visible part of P available within U, but with the
@@ -467,7 +468,6 @@ package body Sem_Ch10 is
                --  generated with clauses or limited with clauses. Note that
                --  we examine with clauses having pragmas Elaborate or
                --  Elaborate_All applied to them due to cases such as:
-               --
 
                --     with Pack;
                --     with Pack;
@@ -725,7 +725,12 @@ package body Sem_Ch10 is
             return;
 
          else
+            --  Analyze the package spec
+
             Semantics (Lib_Unit);
+
+            --  Check for unused with's
+
             Check_Unused_Withs (Get_Cunit_Unit_Number (Lib_Unit));
 
             --  Verify that the library unit is a package declaration
@@ -802,9 +807,20 @@ package body Sem_Ch10 is
 
                   begin
                      Set_Comes_From_Source_Default (False);
+
+                     --  Checks for redundant USE TYPE clauses have a special
+                     --  exception for the synthetic spec we create here. This
+                     --  special case relies on the two compilation units
+                     --  sharing the same context clause.
+
+                     --  Note: We used to do a shallow copy (New_Copy_List),
+                     --  which defeated those checks and also created malformed
+                     --  trees (subtype mark shared by two distinct
+                     --  N_Use_Type_Clause nodes) which crashed the compiler.
+
                      Lib_Unit :=
                        Make_Compilation_Unit (Loc,
-                         Context_Items => New_Copy_List (Context_Items (N)),
+                         Context_Items => Context_Items (N),
                          Unit =>
                            Make_Subprogram_Declaration (Sloc (N),
                              Specification =>
@@ -857,8 +873,6 @@ package body Sem_Ch10 is
 
          declare
             Save_Style_Check : constant Boolean := Style_Check;
-            Save_C_Restrict  : constant Save_Cunit_Boolean_Restrictions :=
-                                 Cunit_Boolean_Restrictions_Save;
 
          begin
             if not GNAT_Mode then
@@ -867,8 +881,10 @@ package body Sem_Ch10 is
 
             Semantics (Parent_Spec (Unit_Node));
             Version_Update (N, Parent_Spec (Unit_Node));
+
+            --  Restore style check settings
+
             Style_Check := Save_Style_Check;
-            Cunit_Boolean_Restrictions_Restore (Save_C_Restrict);
          end;
       end if;
 
@@ -1052,8 +1068,6 @@ package body Sem_Ch10 is
             Un    : Unit_Number_Type;
 
             Save_Style_Check : constant Boolean := Style_Check;
-            Save_C_Restrict  : constant Save_Cunit_Boolean_Restrictions :=
-                                 Cunit_Boolean_Restrictions_Save;
 
          begin
             Item := First (Context_Items (N));
@@ -1122,8 +1136,9 @@ package body Sem_Ch10 is
                Next (Item);
             end loop;
 
+            --  Restore style checks settings
+
             Style_Check := Save_Style_Check;
-            Cunit_Boolean_Restrictions_Restore (Save_C_Restrict);
          end;
       end if;
 
@@ -1641,7 +1656,7 @@ package body Sem_Ch10 is
       --  subunit, and that the current unit is one of its parents which was
       --  being analyzed to provide the needed context for the analysis of the
       --  subunit. In this case we analyze the subunit and continue with the
-      --  parent, without looking a subsequent subunits.
+      --  parent, without looking at subsequent subunits.
 
       if Is_Loaded (Subunit_Name) then
 
@@ -2351,7 +2366,6 @@ package body Sem_Ch10 is
       --  warnings if we have this definite error.
 
       Save_Style_Check : constant Boolean := Opt.Style_Check;
-      Save_C_Restrict  : Save_Cunit_Boolean_Restrictions;
 
    begin
       U := Unit (Library_Unit (N));
@@ -2387,10 +2401,6 @@ package body Sem_Ch10 is
             Restriction_Violation := True;
          end if;
       end if;
-
-      --  Save current restriction set, does not apply to with'ed unit
-
-      Save_C_Restrict := Cunit_Boolean_Restrictions_Save;
 
       --  Several actions are skipped for dummy packages (those supplied for
       --  with's where no matching file could be found). Such packages are
@@ -2591,10 +2601,9 @@ package body Sem_Ch10 is
          end if;
       end if;
 
-      --  Restore style checks and restrictions
+      --  Restore style checks
 
       Style_Check := Save_Style_Check;
-      Cunit_Boolean_Restrictions_Restore (Save_C_Restrict);
 
       --  Record the reference, but do NOT set the unit as referenced, we want
       --  to consider the unit as unreferenced if this is the only reference
@@ -5013,12 +5022,16 @@ package body Sem_Ch10 is
 
                --  Set entity of parent identifiers if the unit is a child
                --  unit. This ensures that the tree is properly formed from
-               --  semantic point of view (e.g. for ASIS queries).
+               --  semantic point of view (e.g. for ASIS queries). The unit
+               --  entities are not fully analyzed, so we need to follow unit
+               --  links in the tree.
 
                Set_Entity (Nam, Ent);
 
                Nam := Prefix (Nam);
-               Ent := Scope (Ent);
+               Ent :=
+                 Defining_Entity
+                   (Unit (Parent_Spec (Unit_Declaration_Node (Ent))));
 
                --  Set entity of last ancestor
 
