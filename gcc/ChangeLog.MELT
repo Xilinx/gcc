@@ -1,5 +1,9 @@
 
 2011-01-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELTDBG_MAXDEPTH): Remove dual definition when
+	optimized...
+
+2011-01-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (scanpat_srcpatconst): Renamed as
 	(scanpat_srcpatconstant).
 	(scanpat_srcpatconstruct): New method

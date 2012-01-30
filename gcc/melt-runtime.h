@@ -191,7 +191,6 @@ extern int melt_flag_bootstrapping;
       melt_dbgbacktrace((Depth)); }} while(0)
 
 #else /* !MELT_HAVE_DEBUG*/
-#define MELTDBG_MAXDEPTH 0
 
 #define debugeprintf_raw(Fmt,...) do{if (0) \
       {fprintf(stderr, Fmt, ##__VA_ARGS__); fflush(stderr);}}while(0)
