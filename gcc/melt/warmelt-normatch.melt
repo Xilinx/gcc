@@ -1,7 +1,7 @@
 ;; file warmelt-normatch.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -162,7 +162,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;; scanning a pattern constant
-(defun scanpat_srcpatconst (recv psloc ctyp pcn)
+(defun scanpat_srcpatconstant (recv psloc ctyp pcn)
   (debug "scanpat_srcpatconst recv" recv)
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
   (assert_msg "check recv" (is_a recv class_source_pattern_constant))
@@ -178,24 +178,24 @@ scanning variables.}#
     (assert_msg "check bindlist" (is_list bindlist))
     (cond 
      ( (not (is_object sconst))
-       (debug "scanpat_srcpatconst nonobj literal const" sconst)
+       (debug "scanpat_srcpatconstant nonobj literal const" sconst)
 	(setq ncst sconst)
        )
      ( (null mcst)
        (multicall
 	(nconst nbindconst)
 	(normal_exp sconst env ncx sloc)
-	(debug "scanpat_srcpatconst nconst" nconst)
+	(debug "scanpat_srcpatconstant nconst" nconst)
 	(mapobject_put mapcst sconst nconst)
 	(if nbindconst (list_append2list bindlist nbindconst))
 	(setq ncst nconst)
 	))
      (:else
-      (debug "scanpat_srcpatconst got mcst" mcst)
+      (debug "scanpat_srcpatconstant got mcst" mcst)
       ))
-    (debug "scanpat_srcpatconst ncst" ncst)
+    (debug "scanpat_srcpatconstant ncst" ncst)
     (let ( (rectyp (get_ctype ncst env)) )
-      (debug "scanpat_srcpatconst rectyp" rectyp)
+      (debug "scanpat_srcpatconstant rectyp" rectyp)
       (assert_msg "check rectyp" (is_a rectyp class_ctype))
       (cond ((!= rectyp ctyp)
 	     (error_strv sloc "invalid ctype in constant pattern - expecting"
@@ -207,7 +207,33 @@ scanning variables.}#
 	      "perhaps this MATCH expression is badly parenthesised")
 	     ))
       )))
-(install_method class_source_pattern_constant scan_pattern scanpat_srcpatconst)
+(install_method class_source_pattern_constant scan_pattern scanpat_srcpatconstant)
+
+
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;; scanning a pattern construct
+
+(defun scanpat_srcpatconstruct (recv psloc ctyp pcn)
+  (debug "scanpat_srcpatconstruct recv" recv)
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
+  (assert_msg "check recv" (is_a recv class_source_pattern_construct))
+  (let ( (sloc (unsafe_get_field :loca_location recv))
+	 (subpa (unsafe_get_field :ctpat_subpa recv))
+	 (ncx (unsafe_get_field :pctn_normctxt pcn))
+	 )
+    (assert_msg "check ctyp is value" (== ctyp ctype_value))
+    (foreach_in_multiple 
+     (subpa)
+     (cursubpa :long subix)
+     (debug "scanpat_srcpatconstruct cursubpa=" cursubpa " subix=" subix)
+     (scan_pattern cursubpa sloc ctype_value pcn)
+     )
+     (debug "scanpat_srcpatconstruct done subpa=" subpa)
+  ))
+(install_method class_source_pattern_construct scan_pattern scanpat_srcpatconstruct)
+
+
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;

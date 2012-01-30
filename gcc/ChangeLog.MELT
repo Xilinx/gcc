@@ -1,5 +1,10 @@
 
 2011-01-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (scanpat_srcpatconst): Renamed as
+	(scanpat_srcpatconstant).
+	(scanpat_srcpatconstruct): New method
+
+2011-01-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tmatch-1.melt: Improve comment about running it.
 
 2011-01-30  Basile Starynkevitch  <basile@starynkevitch.net>
