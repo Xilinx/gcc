@@ -1,3 +1,161 @@
+2012-01-30  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.dg/dfp/fe-convert-2.c: Force use of soft dfp on s390 and
+          s390x.
+
+2012-01-29  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR testsuite/51875
+	* gfortran.dg/guality/pr41558.f90: Skip on 32-bit hppa*-*-hpux*.
+
+	* g++.dg/ext/visibility/template10.C: Fix typo.
+
+	* gcc.dg/tm/pr51472.c: Add -fno-common option on hppa-*-hpux*.
+
+2012-01-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51327
+	* g++.dg/cpp0x/constexpr-ice6.C: New.
+
+2012-01-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41600
+	* gfortran.dg/default_initialization_6.f90: New.
+
+2012-01-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51972
+	* gfortran.dg/class_allocate_12.f90: Enable disabled test.
+	* gfortran.dg/class_48.f90: New.
+
+2012-01-29  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR fortran/51808
+	* gfortran.dg/module_md5_1.f90: Update MD5 sum.
+
+2012-01-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51972
+	* gfortran.dg/class_allocate_12.f90: New.
+
+2012-01-28  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/torture/pr50444.c: Fix dg directives.
+
+2012-01-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52006
+	* gcc.target/arm/pr52006.c: New test.
+
+2012-01-27  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR testsuite/52011
+	* gcc.dg/lto/trans-mem.h: New file.
+	* gcc.dg/lto/trans-mem-2_0.c: Include it.
+	* gcc.dg/lto/trans-mem-1_1.c: Same.
+	* gcc.dg/lto/trans-mem-4_1.c: Same.
+	* gcc.dg/lto/trans-mem-3_1.c: Same.
+
+2012-01-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52022
+	* gfortran.dg/dummy_procedure_7.f90: New.
+
+2012-01-27  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* g++.dg/cpp0x/constexpr-rom.C: Don't add -G0 on *-*-darwin*
+	*-*-aix* alpha*-*-osf* alpha*-*-*vms*.
+
+2012-01-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/51852
+	* g++.dg/other/gc5.C: New test.
+
+2012-01-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50444
+	* gcc.dg/torture/pr50444.c: New testcase.
+
+2012-01-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51970
+	PR fortran/51977
+	* gfortran.dg/move_alloc_13.f90: New.
+
+2012-01-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/51953
+	* gfortran.dg/allocate_alloc_opt_13.f90: New.
+	* gfortran.dg/allocate_alloc_opt_4.f90: Add -std=f2003
+	and change dg-error string.
+
+2012-01-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52016
+	* gfortran.dg/elemental_args_check_5.f90: New.
+
+2012-01-27  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/51959
+	* g++.dg/torture/pr51959.C: New testcase.
+
+2012-01-27  Tom de Vries  <tom@codesourcery.com>
+
+	PR tree-optimization/51990
+	* gcc.dg/pr51990.c: New test.
+	* gcc.dg/pr51990-2.c: Same.
+
+2012-01-27  Paul Thomas  <pault@gcc.gnu.org>
+	    Tobias Burnus <burnus@gcc.gnu.org>
+
+	PR fortran/48705
+	* gfortran.dg/class_allocate_11.f03: New.
+
+	PR fortran/51870
+	PR fortran/51943
+	PR fortran/51946
+	* gfortran.dg/class_allocate_7.f03: New.
+	* gfortran.dg/class_allocate_8.f03: New.
+	* gfortran.dg/class_allocate_9.f03: New.
+	* gfortran.dg/class_allocate_10.f03: New.
+
+2012-01-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/discr34.adb: New test.
+	* gnat.dg/discr34_pkg.ads: New helper.
+
+2012-01-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/discr33.adb: New test.
+
+2012-01-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/limited_with3.ad[sb): New test.
+	* gnat.dg/limited_with3_pkg1.ad[sb]: New helper.
+	* gnat.dg/limited_with3_pkg2.ads: Likewise.
+	* gnat.dg/limited_with3_pkg3.ads: Likewise.
+
+2012-01-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/stack_usage1.adb: New test.
+	* gnat.dg/stack_usage1_pkg.ad[sb]: New helper.
+
+	* gcc.dg/pr44194-1.c: Remove superfluous include directive.
+	* gcc.dg/pr44194-2.c: Likewise.
+
+2012-01-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51370
+	* g++.dg/template/crash112.C: New.
+
+2012-01-27  Richard Henderson  <rth@redhat.com>
+
+	* gcc.dg/atomic-flag.c: Adjust for __GCC_ATOMIC_TEST_AND_SET_TRUEVAL.
+
+2012-01-26  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gfortran.dg/reassoc_4.f: Use dg-additional-options.
+
 2012-01-26  Jakub Jelinek  <jakub@redhat.com>
 
 	PR middle-end/51895
