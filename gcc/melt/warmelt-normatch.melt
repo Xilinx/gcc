@@ -545,6 +545,15 @@ scanning variables.}#
 	     ntinst_fieldlocs		;the tuple of field locals or nil
 	     ))
 
+
+;; test for tuples
+(defclass class_normtester_tuple
+    :super class_normtester_anytester
+    :fields (
+	     ;; a tuple similar to the class's fields
+	     nttuple_components		;the tuple of components
+	     ))
+
 ;;;;;;;;;;;;;;;;
 (defclass class_nrep_match
   :super class_nrep_typed_expression
@@ -728,6 +737,7 @@ scanning variables.}#
 	 (myclassname (get_field :named_name myclass)) 
 	 (psloc (get_field :loca_location (get_field :pctn_src pcn)))
 	 )
+    (debug "normpat_anyrecv myclass=" myclass " recv=" recv " nmatch=" nmatch)
     (error_strv psloc 
 		"unimplemented NORMAL_PATTERN for pattern of " myclassname)
     (assert_msg "catchall normal_pattern unimplemented on pattern" ())
@@ -1025,11 +1035,28 @@ scanning variables.}#
 	   (testercont (instance class_container
 				 :container_value tester
 				 ))
+	   (sortedpatfields
+	    (multiple_sort 
+	     patfields
+	     (lambda (pf1 pf2)
+	       (assert_msg "check pf1" (is_a pf1 class_source_field_pattern))
+	       (assert_msg "check pf2" (is_a pf2 class_source_field_pattern))
+	       (let ( (:long wpf1 (get_int (get_field :pat_weight 
+						      (get_field :spaf_pattern pf1))))
+		      (:long wpf2 (get_int (get_field :pat_weight 
+						      (get_field :spaf_pattern pf2))))
+		      )
+		 (cond  ((==i wpf2 wpf2) '0)
+			((<i wpf1 wpf2) '1)
+			(:else '-1))))
+	     discr_multiple
+	     )		       
+	    )
 	   )
-      (debug "normpat_instancepat testercont before loop" testercont)
+      (debug "normpat_instancepat before loop testercont=" testercont " sortedpatfields=" sortedpatfields)
       (assert_msg "check testbindl" (is_list testloccl))
       (foreach_in_multiple
-       (patfields)
+       (sortedpatfields)
        (curpatf :long patix)
        (debug "normpat_instancepat  in loop curpatf=" curpatf " testercont=" testercont)
        (assert_msg "check curpatf" (is_a curpatf class_source_field_pattern))
@@ -1114,6 +1141,186 @@ scanning variables.}#
 (install_method class_source_pattern_instance normal_pattern normpat_instancepat)
 
 
+(defclass class_tuple_component_pattern
+  :super class_root
+  :fields (tupcp_pattern		;the pattern for the component
+	   tupcp_index			;the component index
+	   ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;;; normalize a tuple pattern
+(defun normpat_tuplepat  (recv nmatch hdler pcn)
+  (debug "normpat_tuplepat recv=" recv "nmatch=" nmatch " pcn=" pcn)
+  (assert_msg "check pcn" (is_a pcn class_pattern_context))
+  (assert_msg "check recv" (is_a recv class_source_pattern_tuple))
+  (let (
+	(sloc (get_field :loca_location recv))
+	(tupsubpa (get_field :ctpat_subpa recv))
+	(:long nbcomp (multiple_length tupsubpa))
+	(ncx (get_field :pctn_normctxt pcn))
+	(stuffmap (get_field :pctn_stuffmap pcn))
+	(tstuff (mapobject_get stuffmap nmatch))
+	(curhdler hdler)
+	(tester ())
+	(testlist (get_field :pctn_tests pcn))
+	)
+    (debug "normpat_tuplepat tupsubpa=" tupsubpa " nbcomp=" nbcomp)
+    ;; find the tester in the stuff
+    (forever
+     loopstuff
+     (debug "normpat_tuplepat loop tstuff=" tstuff)
+     (cond
+      ( (and 
+	 (is_a tstuff class_normtester_tuple)
+	 (==i (multiple_length (get_field :nttuple_components tstuff)) nbcomp)
+	 )
+	(debug "normpat_tuplepat found tstuff=" tstuff)
+	(setq tester tstuff)
+	)
+      ((is_a tstuff class_normtester_any)
+       (setq tstuff (get_field :ntest_else tstuff))
+       (setq curhdler
+	     (lambda (tester)
+	       (shortbacktrace_dbg "normpat_instancepat lambda" 15)
+	       (put_fields tstuff :ntest_else tester)
+	       (debug "normpat_tuplepat lambda updatelse of tstuff" tstuff)
+	       (list_append (get_field :ntest_comefrom tester) tstuff)
+	       ))
+       )
+      (:else
+       (let ( (newcomplocs
+	       (make_multiple discr_multiple nbcomp))
+	      (newtester
+	       (instance class_normtester_tuple
+			 :nrep_loc sloc
+			 :ntest_matched nmatch
+			 :ntest_then ()
+			 :ntest_else ()
+			 :ntest_locclist (make_list discr_list)
+			 :ntest_comefrom (make_list discr_list)
+			 :nttuple_components newcomplocs
+			 ))
+	      )
+	 (debug "normpat_tuplepat newtester=" newtester)
+	 (register_new_normtester newtester pcn)
+	 (setq tester newtester)
+	 (list_append testlist newtester)
+	 (debug "normpat_tuplepat before calling curhdler" curhdler)
+	 (curhdler tester)
+	 (debug "normpat_tuplepat after calling curhdler" curhdler)
+	 (exit loopstuff)
+	 )
+       )
+      )
+     )					;end forever loopstuff
+    ;;
+    (debug "normpat_tuplepat tester=" tester "recv=" recv "  tupsubpa=" tupsubpa)
+    (let ( (testloccl (get_field :ntest_locclist tester)) 
+	   (testercont (instance class_container
+				 :container_value tester
+				 ))
+	   (unsortedsubpa
+	    (multiple_map
+	     tupsubpa
+	     (lambda (subpa :long subix)
+	       (instance class_tuple_component_pattern
+			 :tupcp_pattern subpa
+			 :tupcp_index (make_integerbox discr_constant_integer subix)))))
+	   (sortedsubpa 
+	    (multiple_sort
+	     unsortedsubpa
+	     (lambda (supa1 supa2)
+	       (let ( (:long wp1 (get_int (get_field :pat_weight (get_field :tupcp_pattern supa1))))
+		      (:long wp2 (get_int (get_field :pat_weight (get_field :tupcp_pattern supa2))))
+		      )
+		 (cond ((==i wp1 wp2) '0)
+		       ((<i wp1 wp2) '1)
+		       (:else '-1))))
+	     discr_multiple))
+	   )
+      (debug "normpat_tuplepat testercont before loop " testercont " sortedsubpa=" sortedsubpa)
+      (assert_msg "check testbindl" (is_list testloccl))
+      (foreach_in_multiple
+       (sortedsubpa)
+       (curtupat :long tupatix)
+       (debug "normpat_tuplepat curtupat=" curtupat " tupatix=" tupatix)
+       (assert_msg "check curtupat" (is_a curtupat class_tuple_component_pattern))
+       (let ( (curpat (get_field :tupcp_pattern curtupat))
+	      (:long patix (get_int (get_field :tupcp_index curtupat)))
+	      (subhdler 
+	       (lambda (newsubtester)
+		 (debug "normpat_tuplepat.subhdler newsubtester=" newsubtester
+			"testercont=" testercont)
+		 (shortbacktrace_dbg "normpat_tuplepat.subhdler" 16)
+		 (let ( (prevtester (get_field :container_value testercont)) )
+		   (debug "normpat_tuplepat.subhdler prevtester" prevtester)
+		   (assert_msg "check prevtester" (is_a prevtester class_normtester_anytester))
+		   (set_new_tester_last_then newsubtester testercont)
+		   )
+		 (debug "normpat_tuplepat.subhdler end newsubtester" newsubtester)
+		 ))
+	      )
+	 (debug "normpat_tuplepat curpat=" curpat " patix=" patix)
+	 (let ( (curloccl ())
+		)
+	   (debug "normpat_instancepat scanning testloccl" testloccl)
+	   ;; try to find an existing local occurrence for the field
+	   (foreach_in_list 
+	    (testloccl)
+	    (testpair testlocsy)
+	    (assert_msg "check testlocsy" (is_a testlocsy class_nrep_locsymocc))
+	    (if (==i patix
+		     (get_int (get_field :nunth_index (get_field :letbind_expr (get_field :nocc_bind testlocsy)))))
+		(progn
+		  (setq testpair ())	;to exist from foreach
+		  (setq curloccl testlocsy)))
+	    )
+	   (debug "normpat_tuplepat got curloccl" curloccl)
+	   ;; if no local occurrence found, add a new one
+	   (if (null curloccl)
+	       (let ( 
+		     (newsym (clone_symbol 'nthcomp))
+		     (nunthexp (instance class_nrep_unsafe_nth_component
+					 :nrep_loc sloc
+					 :nunth_tuple nmatch
+					 :nunth_index (make_integerbox discr_constant_integer patix)
+					 ))
+		     (newbind (instance class_normal_let_binding
+					:binder newsym
+					:letbind_type ctype_value
+					:letbind_expr nunthexp
+					:letbind_loc sloc))
+		     (newlocc (instance class_nrep_locsymocc
+					:nrep_loc sloc
+					:nocc_ctyp ctype_value
+					:nocc_symb newsym
+					:nocc_bind newbind
+					))
+		     )
+		 (multiple_put_nth
+		  (get_field :nttuple_components  tester)
+		  patix
+		  newlocc)
+		 ;; 
+		 ;; put the newlocc in the symbol cache map
+		 (mapobject_put (get_field :nctx_symbcachemap ncx) newsym newlocc)
+		 (debug "normpat_tuplepat updated components tester" tester)
+		 (list_append testloccl newlocc)
+		 (debug "normpat_tupleepat made newlocc" newlocc)
+		 (setq curloccl newlocc)
+		 ))
+	   (debug "normpat_tuplepat before normal_pattern curpat=" curpat)
+	   (normal_pattern curpat curloccl subhdler pcn)
+	   (debug "normpat_tuplepat after normal_pattern curpat=" curpat " patix=" patix)
+	   )))
+      )
+    
+    (debug "normpat_tuplepat final tester" tester)
+    )
+  (debug "normpat_tuplepat recv end" recv)
+  )
+(install_method class_source_pattern_tuple normal_pattern normpat_tuplepat)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
@@ -6312,6 +6519,7 @@ normalized expression.}#
  class_normtester_or_transmit
  class_normtester_same
  class_normtester_success
+ class_normtester_tuple
  class_nrep_match
  ;;
  ;; for alternate matching

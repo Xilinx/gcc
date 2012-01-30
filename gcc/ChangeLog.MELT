@@ -1,5 +1,15 @@
 
 2011-01-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (class_nrep_unsafe_nth_component): New,
+	with fields nunth_tuple & nunth_index
+	* melt/warmelt-normatch.melt (class_normtester_tuple): New, with
+	nttuple_components
+	(normpat_instancepat): Sort the fields according to their pattern weight.
+	(class_tuple_component_pattern): New, with tupcp_pattern & tupcp_index
+	(normpat_tuplepat): New method for normal_pattern of
+	class_source_pattern_tuple
+
+2011-01-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELTDBG_MAXDEPTH): Remove dual definition when
 	optimized...
 

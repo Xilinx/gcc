@@ -266,11 +266,19 @@ part, $NIFP_ELSE the else part, $NIFP_CTYP the ctype.}#
 	   nuget_field))
 
 
+
+
 ;; normalized unsafe_put_field
 (defclass class_nrep_unsafe_put_fields
   :super class_nrep_expression
   :fields (nuput_obj
 	   nuput_fields))
+
+;; normalized unsafe nth_component
+(defclass class_nrep_unsafe_nth_component
+  :super class_nrep_expression
+  :fields (nunth_tuple
+	   nunth_index))
 
 ;; normalized setq
 (defclass class_nrep_setq
@@ -743,6 +751,7 @@ routine procedures.}#
  class_nrep_typed_expression_with_arguments
  class_nrep_unsafe_get_field
  class_nrep_unsafe_put_fields
+ class_nrep_unsafe_nth_component
  class_nrep_update_current_module_environment_container
  class_nrep_variadic_argument
 
