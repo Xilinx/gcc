@@ -175,8 +175,9 @@
   :super class_proped
   :doc #{Class representing linear composition of OpenGpu induction variables,
 with $OPGPULC_INDUCVAR being the induction variable of $CLASS_OPENGPU_INDUCTION_VARIABLE 
+$OPGPULC_BASE being the base on which we compile
 and $OPGPULC_GIMPLE the gimple making it.}#
-  :fields (opgpulc_inducvar opgpulc_gimple)
+  :fields (opgpulc_inducvar opgpulc_base opgpulc_gimple)
 )
 
 ;; utility function to return the tuple of possible induction
@@ -406,13 +407,18 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 	     (debug "opengpu_affine_accessed_array rvarprop=" rvarprop " lvarprop=" lvarprop)
 	     (if rvarprop
 		 (if (null lvarprop)
-		     (let ( (newlvarprop
+		     (let (
+			   (rinducvar (if (is_a rvarprop class_opengpu_induction_variable)
+					 rvarprop
+				       (get_field :opgpulc_inducvar rvarprop)))
+			   (newlvarprop
 			     (instance class_opengpu_linear_composition
-				       :opgpulc_inducvar rvarprop
+				       :opgpulc_inducvar rinducvar
+				       :opgpulc_base rvarprop
 				       :opgpulc_gimple (make_gimple discr_gimple g)))
 			    )
 		       (compile_warning "opengpu_affine_accessed_array too simple rvarprop...")
-		       (debug "opengpu_affine_accessed_array newlvarprop=" newlvarprop)
+		       (debug "opengpu_affine_accessed_array rinducvar=" rinducvar " newlvarprop=" newlvarprop)
 		       (maptree_put treeprop lvar newlvarprop)
 		     )))
 	     )
@@ -421,6 +427,37 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 	   (debug "opengpu_affine_accessed_array assign_cast lhs="  dbg_tree_briefly lhs
 		  "\n rhs="  dbg_tree_briefly rhs)
 	   )
+	 ;;
+	 ;; having the same ?ivar twice don't work, even when they are
+	 ;; the same... This is a MELT bug -bad translation- in svn rev 183695
+	 (?(gimple_assign_plus ?(tree_ssa_name ?ivar ?lvalu ?lvers ?ldefstmt)
+			       ?(tree_ssa_name ?ivar ?rvalu1 ?rvers1 ?rdefstmt1)
+			       ?(tree_integer_cst ?rincr))
+	   (debug "opengpu_affine_accessed_array assign incr var ivar=" dbg_tree_briefly ivar 
+		  " lvers=" lvers " ldefstmt=" ldefstmt
+		  "\n lvalu="  dbg_tree_briefly lvalu " rvalu1=" dbg_tree_briefly rvalu1
+		  "\n rincr=" rincr)
+	   (let ( (ivarprop (maptree_get treeprop ivar))
+		  )
+	     (debug "opengpu_affine_accessed_array assign incr var ivarprop=" ivarprop)
+	     (assert_msg "check ivarprop" (is_a ivarprop class_opengpu_induction_variable))
+	   ))
+	 (?(gimple_assign_plus ?(tree_ssa_name ?lvar ?lvalu ?lvers ?ldefstmt)
+			       ?(tree_ssa_name ?rvar1 ?rvalu1 ?rvers1 ?rdefstmt1)
+			       ?(tree_integer_cst ?rincr))
+	   (debug "opengpu_affine_accessed_array assign_plus lvar="  lvar
+		  " lvalu="   dbg_tree_briefly lvalu
+		  " lvers="   lvers  " ldefstmt=" ldefstmt
+		  "\n rvar1=" rvar1
+		  " rvalu1=" dbg_tree_briefly rvalu1
+		  " rvers1=" rvers1 " rdefstmt1=" rdefstmt1
+		  "\n rincr=" rincr)
+	   (let ( (lvarprop (maptree_get treeprop lvar))
+		  (rvar1prop (maptree_get treeprop rvar1))
+		 )
+	     (debug "opengpu_affine_accessed_array lvarprop=" lvarprop " rvar1prop=" rvar1prop)
+	   ))
+	 ;;
 	 (?(gimple_assign_plus ?lhs ?rhs1 ?rhs2)
 	   (debug "opengpu_affine_accessed_array assign_plus lhs="   dbg_tree_briefly lhs
 		  "\n rhs1="   dbg_tree_briefly rhs1 "\n rhs2="   dbg_tree_briefly rhs2)
