@@ -1,4 +1,4 @@
-#if TESTING
+#if HAVE_IO
 #include <iostream>
 #endif
 
