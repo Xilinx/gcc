@@ -1231,6 +1231,9 @@ typedef struct GTY(()) dw_loc_list_struct {
   /* True if the range should be emitted even if begin and end
      are the same.  */
   bool force;
+  /* For dwarf_split_debug_info, the index into the debug_ref_section
+     for this location list.  */
+  unsigned int index;
 } dw_loc_list_node;
 
 static dw_loc_descr_ref int_loc_descriptor (HOST_WIDE_INT);
@@ -4791,24 +4794,15 @@ add_AT_offset (dw_die_ref die, enum dwarf_attribute attr_kind,
 
 static GTY (()) VEC (dw_attr_node,gc) * ref_index_table;
 
-static void
+static unsigned int
 add_ref_table_entry (dw_attr_node *attr)
 {
   if (dwarf_split_debug_info)
-    VEC_safe_push (dw_attr_node, gc, ref_index_table, attr);
-}
-
-static unsigned int
-ref_table_entry_index (dw_attr_node *attr)
-{
-  unsigned int i;
-  dw_attr_node *n;
-  for (i = 0; VEC_iterate (dw_attr_node, ref_index_table, i, n); i++)
     {
-      if (n->dw_attr_val.v.val_offset ==  attr->dw_attr_val.v.val_offset)
-        return i;
+      VEC_safe_push (dw_attr_node, gc, ref_index_table, attr);
+      return VEC_length (dw_attr_node, ref_index_table) - 1;
     }
-  gcc_unreachable ();
+  return 0;
 }
 
 /* Add an range_list attribute value to a DIE.  */
@@ -4823,7 +4817,14 @@ add_AT_range_list (dw_die_ref die, enum dwarf_attribute attr_kind,
   attr.dw_attr_val.val_class = dw_val_class_range_list;
   attr.dw_attr_val.v.val_offset = offset;
   add_dwarf_attr (die, &attr);
-  add_ref_table_entry (&attr);
+  if (dwarf_split_debug_info)
+    {
+      /* There will be two copies of the attr, one in the die, and one in the
+         ref table. Substitute the index for the actual offset in the die, and
+         save the actual offset in the ref table.  */
+      get_AT (die, DW_AT_ranges)->dw_attr_val.v.val_offset
+          = add_ref_table_entry (&attr);
+    }
 }
 
 /* Return the start label of a delta attribute.  */
@@ -7785,11 +7786,14 @@ size_of_die (dw_die_ref die)
 	  }
 	  break;
 	case dw_val_class_loc_list:
-	  size += DWARF_OFFSET_SIZE;
+          if (dwarf_split_debug_info)
+            size += size_of_uleb128 (AT_loc_list (a)->index);
+          else
+            size += DWARF_OFFSET_SIZE;
 	  break;
 	case dw_val_class_range_list:
           if (dwarf_split_debug_info)
-            size += size_of_uleb128 (ref_table_entry_index (a));
+            size += size_of_uleb128 (a->dw_attr_val.v.val_offset);
           else
             size += DWARF_OFFSET_SIZE;
 	  break;
@@ -8358,13 +8362,12 @@ output_loc_list (dw_loc_list_ref list_head)
 /* Output the offset into the debug_range section.  */
 
 static void
-output_range_list_offset (dw_attr_ref list)
+output_range_list_offset (dw_attr_ref a)
 {
   char *p = strchr (ranges_section_label, '\0');
-  const char *name = dwarf_attr_name (list->dw_attr);
+  const char *name = dwarf_attr_name (a->dw_attr);
 
-  sprintf (p, "+" HOST_WIDE_INT_PRINT_HEX,
-           list->dw_attr_val.v.val_offset);
+  sprintf (p, "+" HOST_WIDE_INT_PRINT_HEX, a->dw_attr_val.v.val_offset);
   dw2_asm_output_offset (DWARF_OFFSET_SIZE, ranges_section_label,
                          debug_ranges_section, "%s", name);
   *p = '\0';
@@ -8373,15 +8376,39 @@ output_range_list_offset (dw_attr_ref list)
 /* Output a reference to a dw_val_class_range_list in the proper form.  */
 
 static void
-output_range_list_ref (dw_attr_ref list)
+output_range_list_ref (dw_attr_ref a)
 {
-  gcc_assert (AT_class (list) == dw_val_class_range_list);
+  gcc_assert (AT_class (a) == dw_val_class_range_list);
   if (dwarf_split_debug_info)
-    dw2_asm_output_data_uleb128 (ref_table_entry_index (list),
-                                 "%s (via ref_index)",
-                                 dwarf_attr_name (list->dw_attr));
+    dw2_asm_output_data_uleb128 (a->dw_attr_val.v.val_offset,
+                                 "%s", dwarf_attr_name (a->dw_attr));
   else
-    output_range_list_offset (list);
+    output_range_list_offset (a);
+}
+
+/* Output the offset into the debug_loc section.  */
+
+static void
+output_loc_list_offset (dw_attr_ref a)
+{
+  char *sym = AT_loc_list (a)->ll_symbol;
+
+  gcc_assert (sym);
+  dw2_asm_output_offset (DWARF_OFFSET_SIZE, sym, debug_loc_section,
+                         "%s", dwarf_attr_name (a->dw_attr));
+}
+
+/* Output a reference to a dw_val_class_loc_list in the proper form.  */
+
+static void
+output_loc_list_ref (dw_attr_ref a)
+{
+  gcc_assert (AT_class (a) == dw_val_class_loc_list);
+  if (dwarf_split_debug_info)
+    dw2_asm_output_data_uleb128 (AT_loc_list (a)->index,
+                                 "%s", dwarf_attr_name (a->dw_attr));
+  else
+    output_loc_list_offset (a);
 }
 
 /* Output a type signature.  */
@@ -8534,13 +8561,7 @@ output_die (dw_die_ref die)
 	  break;
 
 	case dw_val_class_loc_list:
-	  {
-	    char *sym = AT_loc_list (a)->ll_symbol;
-
-	    gcc_assert (sym);
-            dw2_asm_output_offset (DWARF_OFFSET_SIZE, sym, debug_loc_section,
-                                   "%s", name);
-	  }
+          output_loc_list_ref (a);
 	  break;
 
 	case dw_val_class_die_ref:
@@ -8618,8 +8639,7 @@ output_die (dw_die_ref die)
 				   "%s: \"%s\"", name, AT_string (a));
 	  else if (a->dw_attr_val.v.val_str->form == DW_FORM_GNU_str_index)
             dw2_asm_output_data_uleb128 (a->dw_attr_val.v.val_str->index,
-                                         "indexed string: \"%s\"",
-                                         AT_string (a));
+                                         "%s: \"%s\"", name, AT_string (a));
           else
 	    dw2_asm_output_nstring (AT_string (a), -1, "%s", name);
 	  break;
@@ -21551,8 +21571,8 @@ output_ref_table (void)
     {
       if (AT_class (node) == dw_val_class_range_list)
         output_range_list_offset (node);
-      else if (AT_class (node) == dw_val_class_lineptr)
-        dw2_asm_output_addr (DWARF2_ADDR_SIZE, AT_lbl (node), NULL);
+      else if (AT_class (node) == dw_val_class_loc_list)
+        output_loc_list_offset (node);
       else
         gcc_unreachable ();
     }
@@ -22876,6 +22896,27 @@ optimize_location_lists (dw_die_ref die)
   optimize_location_lists_1 (die, htab);
   htab_delete (htab);
 }
+
+
+/* Recursively assign each location list a unique index into the debug_ref
+   section.  */
+
+static void
+index_location_lists (dw_die_ref die)
+{
+  dw_die_ref c;
+  dw_attr_ref a;
+  unsigned ix;
+
+  FOR_EACH_VEC_ELT (dw_attr_node, die->die_attr, ix, a)
+    if (AT_class (a) == dw_val_class_loc_list)
+      {
+	dw_loc_list_ref list = AT_loc_list (a);
+        list->index = add_ref_table_entry (a);
+      }
+
+  FOR_EACH_CHILD (die, c, index_location_lists (c));
+}
 
 /* Output stuff that dwarf requires at the end of every file,
    and generate the DWARF-2 debugging info.  */
@@ -23112,7 +23153,10 @@ dwarf2out_finish (const char *filename)
 		   macinfo_section_label);
 
   if (have_location_lists)
-    optimize_location_lists (comp_unit_die ());
+    {
+      optimize_location_lists (comp_unit_die ());
+      index_location_lists (comp_unit_die ());
+    }
 
   if (dwarf_split_debug_info)
     {
