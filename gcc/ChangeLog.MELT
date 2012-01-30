@@ -1,5 +1,8 @@
 
 2011-01-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tmatch-1.melt: Improve comment about running it.
+
+2011-01-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt (opengpu_affine_accessed_array):
 	Incomplete, trigger a MELT bad translation bug...
 
