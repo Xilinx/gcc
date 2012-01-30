@@ -22627,7 +22627,7 @@ foo:	data8	25
 	tls_first_minor=13
 	tls_as_opt=--fatal-warnings
 	;;
-  microblaze-*-*)
+  microblaze*-*-*)
     conftest_s='
 	.section .tdata,"awT",@progbits
 x:
