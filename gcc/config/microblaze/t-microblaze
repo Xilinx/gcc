@@ -1,8 +1,3 @@
-# For C++ crtstuff
-EXTRA_MULTILIB_PARTS = crtbegin$(objext) crtend$(objext)
-
-EXTRA_PARTS += crti$(objext) crtn$(objext)
-
 MULTILIB_OPTIONS = mxl-barrel-shift mno-xl-soft-mul mxl-multiply-high mlittle-endian
 MULTILIB_DIRNAMES = bs m mh le
 MULTILIB_EXCEPTIONS = *mxl-barrel-shift/mxl-multiply-high mxl-multiply-high
@@ -26,10 +21,3 @@ fp-bit.c: $(srcdir)/config/fp-bit.c
 
 dp-bit.c: $(srcdir)/config/fp-bit.c
 	cat $(srcdir)/config/fp-bit.c > dp-bit.c
-
-# Assemble startup files
-$(T)crti$(objext): $(srcdir)/config/microblaze/crti.s
-	$(GCC_FOR_TARGET) $(MULTILIB_CFLAGS) -c $(srcdir)/config/microblaze/crti.s -o $(T)crti$(objext)
-
-$(T)crtn$(objext): $(srcdir)/config/microblaze/crtn.s
-	$(GCC_FOR_TARGET) $(MULTILIB_CFLAGS) -c $(srcdir)/config/microblaze/crtn.s -o $(T)crtn$(objext)
