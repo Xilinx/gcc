@@ -27,7 +27,8 @@ LIB1ASMFUNCS = \
 	_tablejump \
 	_tablejump_elpm \
 	_load_3 _load_4 \
-	_xload_2 _xload_3 _xload_4 \
+	_xload_1 _xload_2 _xload_3 _xload_4 \
+	_movmemx \
 	_copy_data \
 	_clear_bss \
 	_ctors \
@@ -49,9 +50,9 @@ LIB1ASMFUNCS = \
 	_popcountqi2 \
 	_bswapsi2 \
 	_bswapdi2 \
-	_ashldi3 \
-	_ashrdi3 \
-	_lshrdi3 \
+	_ashldi3 _ashrdi3 _lshrdi3 _rotldi3 \
+	_adddi3 _adddi3_s8 _subdi3 \
+	_cmpdi2 _cmpdi2_s8 \
 	_fmul _fmuls _fmulsu
 
 LIB2FUNCS_EXCLUDE = \

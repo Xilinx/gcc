@@ -1,4 +1,40 @@
-2011-12-14  Hariharan Sandanagobalane <hariharan.gcc@gmail.com>
+2012-01-23  Harshit Chopra  <harshit@google.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2012-01-22  Douglas B Rupp  <rupp@ngnat.com>
+
+	* configure.ac: Remove reference to mh-interix.
+	* configure: Regenerate.
+
+2012-01-05  Richard Henderson  <rth@redhat.com>
+
+	PR bootstrap/51072
+	* configure.ac: Disable libitm if c++ is not enabled.
+	* configure: Rebuild.
+
+	* configure.ac: Fix regexp for same.
+	* configure: Rebuild.
+
+2012-01-02  Balaji V. Iyer  <bviyer@gmail.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2012-01-02  Richard Guenther  <rguenther@suse.de>
+
+	PR bootstrap/51686
+	* Makefile.def (install-strip-gcc): Depend on install-strip-lto-plugin.
+	* Makefile.in: Regenerate.
+
+2011-12-28  Oleg Endo <olegendo@gcc.gnu.org>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2011-12-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* configure: Regenerate.
+
+2011-12-14  Hariharan Sandanagobalane  <hariharan.gcc@gmail.com>
 
 	* MAINTAINERS (picochip): Changed email address.
 

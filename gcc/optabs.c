@@ -1,7 +1,7 @@
 /* Expand the basic unary and binary arithmetic operations, for GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
    1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011  Free Software Foundation, Inc.
+   2011, 2012  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -547,18 +547,6 @@ optab_for_tree_code (enum tree_code code, const_tree type,
     case ABS_EXPR:
       return trapv ? absv_optab : abs_optab;
 
-    case VEC_EXTRACT_EVEN_EXPR:
-      return vec_extract_even_optab;
-
-    case VEC_EXTRACT_ODD_EXPR:
-      return vec_extract_odd_optab;
-
-    case VEC_INTERLEAVE_HIGH_EXPR:
-      return vec_interleave_high_optab;
-
-    case VEC_INTERLEAVE_LOW_EXPR:
-      return vec_interleave_low_optab;
-
     default:
       return NULL;
     }
@@ -671,7 +659,7 @@ expand_ternary_op (enum machine_mode mode, optab ternary_optab, rtx op0,
    calculated at compile time.  The arguments and return value are
    otherwise the same as for expand_binop.  */
 
-static rtx
+rtx
 simplify_expand_binop (enum machine_mode mode, optab binoptab,
 		       rtx op0, rtx op1, rtx target, int unsignedp,
 		       enum optab_methods methods)
@@ -1603,30 +1591,6 @@ expand_binop (enum machine_mode mode, optab binoptab, rtx op0, rtx op1,
 	      if (temp)
 		return temp;
 	    }
-	}
-    }
-
-  /* Certain vector operations can be implemented with vector permutation.  */
-  if (VECTOR_MODE_P (mode))
-    {
-      enum tree_code tcode = ERROR_MARK;
-      rtx sel;
-
-      if (binoptab == vec_interleave_high_optab)
-	tcode = VEC_INTERLEAVE_HIGH_EXPR;
-      else if (binoptab == vec_interleave_low_optab)
-	tcode = VEC_INTERLEAVE_LOW_EXPR;
-      else if (binoptab == vec_extract_even_optab)
-	tcode = VEC_EXTRACT_EVEN_EXPR;
-      else if (binoptab == vec_extract_odd_optab)
-	tcode = VEC_EXTRACT_ODD_EXPR;
-
-      if (tcode != ERROR_MARK
-	  && can_vec_perm_for_code_p (tcode, mode, &sel))
-	{
-	  temp = expand_vec_perm (mode, op0, op1, sel, target);
-	  gcc_assert (temp != NULL);
-	  return temp;
 	}
     }
 
@@ -6269,10 +6233,6 @@ init_optabs (void)
   init_optab (udot_prod_optab, UNKNOWN);
 
   init_optab (vec_extract_optab, UNKNOWN);
-  init_optab (vec_extract_even_optab, UNKNOWN);
-  init_optab (vec_extract_odd_optab, UNKNOWN);
-  init_optab (vec_interleave_high_optab, UNKNOWN);
-  init_optab (vec_interleave_low_optab, UNKNOWN);
   init_optab (vec_set_optab, UNKNOWN);
   init_optab (vec_init_optab, UNKNOWN);
   init_optab (vec_shl_optab, UNKNOWN);
@@ -6880,98 +6840,6 @@ can_vec_perm_p (enum machine_mode mode, bool variable,
   return true;
 }
 
-/* Return true if we can implement VEC_INTERLEAVE_{HIGH,LOW}_EXPR or
-   VEC_EXTRACT_{EVEN,ODD}_EXPR with VEC_PERM_EXPR for this target.
-   If PSEL is non-null, return the selector for the permutation.  */
-
-bool
-can_vec_perm_for_code_p (enum tree_code code, enum machine_mode mode,
-			 rtx *psel)
-{
-  bool need_sel_test = false;
-  enum insn_code icode;
-
-  /* If the target doesn't implement a vector mode for the vector type,
-     then no operations are supported.  */
-  if (!VECTOR_MODE_P (mode))
-    return false;
-
-  /* Do as many tests as possible without reqiring the selector.  */
-  icode = direct_optab_handler (vec_perm_optab, mode);
-  if (icode == CODE_FOR_nothing && GET_MODE_INNER (mode) != QImode)
-    {
-      enum machine_mode qimode
-	= mode_for_vector (QImode, GET_MODE_SIZE (mode));
-      if (VECTOR_MODE_P (qimode))
-	icode = direct_optab_handler (vec_perm_optab, qimode);
-    }
-  if (icode == CODE_FOR_nothing)
-    {
-      icode = direct_optab_handler (vec_perm_const_optab, mode);
-      if (icode != CODE_FOR_nothing
-	  && targetm.vectorize.vec_perm_const_ok != NULL)
-	need_sel_test = true;
-    }
-  if (icode == CODE_FOR_nothing)
-    return false;
-
-  /* If the selector is required, or if we need to test it, build it.  */
-  if (psel || need_sel_test)
-    {
-      int i, nelt = GET_MODE_NUNITS (mode), alt = 0;
-      unsigned char *data = XALLOCAVEC (unsigned char, nelt);
-
-      switch (code)
-	{
-	case VEC_EXTRACT_ODD_EXPR:
-	  alt = 1;
-	  /* FALLTHRU */
-	case VEC_EXTRACT_EVEN_EXPR:
-	  for (i = 0; i < nelt; ++i)
-	    data[i] = i * 2 + alt;
-	  break;
-
-	case VEC_INTERLEAVE_HIGH_EXPR:
-	case VEC_INTERLEAVE_LOW_EXPR:
-	  if ((BYTES_BIG_ENDIAN != 0) ^ (code == VEC_INTERLEAVE_HIGH_EXPR))
-	    alt = nelt / 2;
-	  for (i = 0; i < nelt / 2; ++i)
-	    {
-	      data[i * 2] = i + alt;
-	      data[i * 2 + 1] = i + nelt + alt;
-	    }
-	  break;
-
-	default:
-	  gcc_unreachable ();
-	}
-
-      if (need_sel_test
-	  && !targetm.vectorize.vec_perm_const_ok (mode, data))
-	return false;
-
-      if (psel)
-	{
-	  rtvec vec = rtvec_alloc (nelt);
-	  enum machine_mode imode = mode;
-
-	  for (i = 0; i < nelt; ++i)
-	    RTVEC_ELT (vec, i) = GEN_INT (data[i]);
-
-	  if (GET_MODE_CLASS (mode) != MODE_VECTOR_INT)
-	    {
-	      imode = int_mode_for_mode (GET_MODE_INNER (mode));
-	      imode = mode_for_vector (imode, nelt);
-	      gcc_assert (GET_MODE_CLASS (imode) == MODE_VECTOR_INT);
-	    }
-
-	  *psel = gen_rtx_CONST_VECTOR (imode, vec);
-	}
-    }
-
-  return true;
-}
-
 /* A subroutine of expand_vec_perm for expanding one vec_perm insn.  */
 
 static rtx
@@ -7436,10 +7304,47 @@ maybe_emit_compare_and_swap_exchange_loop (rtx target, rtx mem, rtx val)
   return NULL_RTX;
 }
 
+/* This function tries to implement an atomic test-and-set operation
+   using the atomic_test_and_set instruction pattern.  A boolean value
+   is returned from the operation, using TARGET if possible.  */
+
 #ifndef HAVE_atomic_test_and_set
 #define HAVE_atomic_test_and_set 0
-#define gen_atomic_test_and_set(x,y,z)  (gcc_unreachable (), NULL_RTX)
+#define CODE_FOR_atomic_test_and_set CODE_FOR_nothing
+#define gen_atomic_test_and_set(x,y,z) \
+  (gcc_unreachable (), (void) (0 && (x) && (y) && (z)), NULL_RTX)
 #endif
+
+static rtx
+maybe_emit_atomic_test_and_set (rtx target, rtx mem, enum memmodel model)
+{
+  enum machine_mode pat_bool_mode;
+  const struct insn_data_d *id;
+
+  if (!HAVE_atomic_test_and_set)
+    return NULL_RTX;
+
+  id = &insn_data[CODE_FOR_atomic_test_and_set];
+  pat_bool_mode = id->operand[0].mode;
+
+  /* ??? We only support test-and-set on single bytes at the moment.
+     We'd have to change the builtin to allow wider memories.  */
+  gcc_checking_assert (id->operand[1].mode == QImode);
+
+  /* While we always get QImode from __atomic_test_and_set, we get
+     other memory modes from __sync_lock_test_and_set.  Note that we
+     use no endian adjustment here.  This matches the 4.6 behavior
+     in the Sparc backend.  */
+  if (GET_MODE (mem) != QImode)
+    mem = adjust_address_nv (mem, QImode, 0);
+
+  if (target == NULL || GET_MODE (target) != pat_bool_mode)
+    target = gen_reg_rtx (pat_bool_mode);
+
+  emit_insn (gen_atomic_test_and_set (target, mem, GEN_INT (model)));
+
+  return target;
+}
 
 /* This function expands the legacy _sync_lock test_and_set operation which is
    generally an atomic exchange.  Some limited targets only allow the
@@ -7455,20 +7360,21 @@ expand_sync_lock_test_and_set (rtx target, rtx mem, rtx val)
 
   /* Try an atomic_exchange first.  */
   ret = maybe_emit_atomic_exchange (target, mem, val, MEMMODEL_ACQUIRE);
+  if (ret)
+    return ret;
 
-  if (!ret)
-    ret = maybe_emit_sync_lock_test_and_set (target, mem, val,
-					     MEMMODEL_ACQUIRE);
-  if (!ret)
-    ret = maybe_emit_compare_and_swap_exchange_loop (target, mem, val);
+  ret = maybe_emit_sync_lock_test_and_set (target, mem, val, MEMMODEL_ACQUIRE);
+  if (ret)
+    return ret;
+
+  ret = maybe_emit_compare_and_swap_exchange_loop (target, mem, val);
+  if (ret)
+    return ret;
 
   /* If there are no other options, try atomic_test_and_set if the value
      being stored is 1.  */
-  if (!ret && val == const1_rtx && HAVE_atomic_test_and_set)
-    {
-      ret = gen_atomic_test_and_set (target, mem, GEN_INT (MEMMODEL_ACQUIRE));
-      emit_insn (ret);
-    }
+  if (val == const1_rtx)
+    ret = maybe_emit_atomic_test_and_set (target, mem, MEMMODEL_ACQUIRE);
 
   return ret;
 }
@@ -7483,28 +7389,26 @@ rtx
 expand_atomic_test_and_set (rtx target, rtx mem, enum memmodel model)
 {
   enum machine_mode mode = GET_MODE (mem);
-  rtx ret = NULL_RTX;
+  rtx ret;
+
+  ret = maybe_emit_atomic_test_and_set (target, mem, model);
+  if (ret)
+    return ret;
 
   if (target == NULL_RTX)
     target = gen_reg_rtx (mode);
 
-  if (HAVE_atomic_test_and_set)
-    {
-      ret = gen_atomic_test_and_set (target, mem, GEN_INT (MEMMODEL_ACQUIRE));
-      emit_insn (ret);
-      return ret;
-    }
-
   /* If there is no test and set, try exchange, then a compare_and_swap loop,
      then __sync_test_and_set.  */
   ret = maybe_emit_atomic_exchange (target, mem, const1_rtx, model);
+  if (ret)
+    return ret;
 
-  if (!ret)
-    ret = maybe_emit_compare_and_swap_exchange_loop (target, mem, const1_rtx);
+  ret = maybe_emit_compare_and_swap_exchange_loop (target, mem, const1_rtx);
+  if (ret)
+    return ret;
 
-  if (!ret)
-    ret = maybe_emit_sync_lock_test_and_set (target, mem, const1_rtx, model);
-
+  ret = maybe_emit_sync_lock_test_and_set (target, mem, const1_rtx, model);
   if (ret)
     return ret;
 

@@ -197,6 +197,7 @@ var hex = "0123456789abcdef"
 // An encodeState encodes JSON into a bytes.Buffer.
 type encodeState struct {
 	bytes.Buffer // accumulated output
+	scratch      [64]byte
 }
 
 func (e *encodeState) marshal(v interface{}) (err error) {
@@ -275,14 +276,26 @@ func (e *encodeState) reflectValueQuoted(v reflect.Value, quoted bool) {
 		}
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		writeString(e, strconv.FormatInt(v.Int(), 10))
-
+		b := strconv.AppendInt(e.scratch[:0], v.Int(), 10)
+		if quoted {
+			writeString(e, string(b))
+		} else {
+			e.Write(b)
+		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		writeString(e, strconv.FormatUint(v.Uint(), 10))
-
+		b := strconv.AppendUint(e.scratch[:0], v.Uint(), 10)
+		if quoted {
+			writeString(e, string(b))
+		} else {
+			e.Write(b)
+		}
 	case reflect.Float32, reflect.Float64:
-		writeString(e, strconv.FormatFloat(v.Float(), 'g', -1, v.Type().Bits()))
-
+		b := strconv.AppendFloat(e.scratch[:0], v.Float(), 'g', -1, v.Type().Bits())
+		if quoted {
+			writeString(e, string(b))
+		} else {
+			e.Write(b)
+		}
 	case reflect.String:
 		if quoted {
 			sb, err := Marshal(v.String())
@@ -339,13 +352,10 @@ func (e *encodeState) reflectValueQuoted(v reflect.Value, quoted bool) {
 			e.WriteString("null")
 			break
 		}
-		// Slices can be marshalled as nil, but otherwise are handled
-		// as arrays.
-		fallthrough
-	case reflect.Array:
-		if v.Type() == byteSliceType {
+		if v.Type().Elem().Kind() == reflect.Uint8 {
+			// Byte slices get special treatment; arrays don't.
+			s := v.Bytes()
 			e.WriteByte('"')
-			s := v.Interface().([]byte)
 			if len(s) < 1024 {
 				// for small buffers, using Encode directly is much faster.
 				dst := make([]byte, base64.StdEncoding.EncodedLen(len(s)))
@@ -361,6 +371,10 @@ func (e *encodeState) reflectValueQuoted(v reflect.Value, quoted bool) {
 			e.WriteByte('"')
 			break
 		}
+		// Slices can be marshalled as nil, but otherwise are handled
+		// as arrays.
+		fallthrough
+	case reflect.Array:
 		e.WriteByte('[')
 		n := v.Len()
 		for i := 0; i < n; i++ {

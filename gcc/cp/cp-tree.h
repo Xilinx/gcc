@@ -74,6 +74,8 @@ c-common.h, not after.
       DECL_OVERRIDE_P (in FUNCTION_DECL)
       IMPLICIT_CONV_EXPR_DIRECT_INIT (in IMPLICIT_CONV_EXPR)
       TRANSACTION_EXPR_IS_STMT (in TRANSACTION_EXPR)
+      CONVERT_EXPR_VBASE_PATH (in CONVERT_EXPR)
+      OVL_ARG_DEPENDENT (in OVERLOAD)
    1: IDENTIFIER_VIRTUAL_P (in IDENTIFIER_NODE)
       TI_PENDING_TEMPLATE_FLAG.
       TEMPLATE_PARMS_FOR_INLINE.
@@ -587,6 +589,7 @@ typedef enum cp_trait_kind
   CPTK_IS_CONVERTIBLE_TO,
   CPTK_IS_EMPTY,
   CPTK_IS_ENUM,
+  CPTK_IS_FINAL,
   CPTK_IS_LITERAL_TYPE,
   CPTK_IS_POD,
   CPTK_IS_POLYMORPHIC,
@@ -4010,6 +4013,11 @@ more_aggr_init_expr_args_p (const aggr_init_expr_arg_iterator *iter)
   (TREE_CODE (EXPR) == TARGET_EXPR && TREE_LANG_FLAG_2 (EXPR)		\
    && same_type_ignoring_top_level_qualifiers_p (TYPE, TREE_TYPE (EXPR)))
 
+/* True if this CONVERT_EXPR is for a conversion to virtual base in
+   an NSDMI, and should be re-evaluated when used in a constructor.  */
+#define CONVERT_EXPR_VBASE_PATH(NODE) \
+  TREE_LANG_FLAG_0 (CONVERT_EXPR_CHECK (NODE))
+
 /* An enumeration of the kind of tags that C++ accepts.  */
 enum tag_types {
   none_type = 0, /* Not a tag type.  */
@@ -4383,11 +4391,10 @@ enum overload_flags { NO_SPECIAL = 0, DTOR_FLAG, TYPENAME_FLAG };
 #define LOOKUP_PREFER_RVALUE (LOOKUP_HIDDEN << 1)
 /* We're inside an init-list, so narrowing conversions are ill-formed.  */
 #define LOOKUP_NO_NARROWING (LOOKUP_PREFER_RVALUE << 1)
-/* Avoid user-defined conversions for the first parameter of a copy
-   constructor (or move constructor).  */
-#define LOOKUP_NO_COPY_CTOR_CONVERSION (LOOKUP_NO_NARROWING << 1)
+/* We're looking up a constructor for list-initialization.  */
+#define LOOKUP_LIST_INIT_CTOR (LOOKUP_NO_NARROWING << 1)
 /* This is the first parameter of a copy constructor.  */
-#define LOOKUP_COPY_PARM (LOOKUP_NO_COPY_CTOR_CONVERSION << 1)
+#define LOOKUP_COPY_PARM (LOOKUP_LIST_INIT_CTOR << 1)
 /* We only want to consider list constructors.  */
 #define LOOKUP_LIST_ONLY (LOOKUP_COPY_PARM << 1)
 /* Return after determining which function to call and checking access.
@@ -5668,10 +5675,12 @@ extern tree hash_tree_cons			(tree, tree, tree);
 extern tree hash_tree_chain			(tree, tree);
 extern tree build_qualified_name		(tree, tree, tree, bool);
 extern int is_overloaded_fn			(tree);
+extern tree dependent_name			(tree);
 extern tree get_fns				(tree);
 extern tree get_first_fn			(tree);
 extern tree ovl_cons				(tree, tree);
 extern tree build_overload			(tree, tree);
+extern tree ovl_scope				(tree);
 extern bool non_static_member_function_p        (tree);
 extern const char *cxx_printable_name		(tree, int);
 extern const char *cxx_printable_name_translate	(tree, int);

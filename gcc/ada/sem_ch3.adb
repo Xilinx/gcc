@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -56,6 +56,7 @@ with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch7;  use Sem_Ch7;
 with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch13; use Sem_Ch13;
+with Sem_Dim;  use Sem_Dim;
 with Sem_Disp; use Sem_Disp;
 with Sem_Dist; use Sem_Dist;
 with Sem_Elim; use Sem_Elim;
@@ -2036,6 +2037,8 @@ package body Sem_Ch3 is
       if Has_Aspects (N) then
          Analyze_Aspect_Specifications (N, Id);
       end if;
+
+      Analyze_Dimension (N);
    end Analyze_Component_Declaration;
 
    --------------------------
@@ -2990,6 +2993,8 @@ package body Sem_Ch3 is
          end if;
       end if;
 
+      --  Object is marked pure if it is in a pure scope
+
       Set_Is_Pure (Id, Is_Pure (Current_Scope));
 
       --  If deferred constant, make sure context is appropriate. We detect
@@ -3544,6 +3549,14 @@ package body Sem_Ch3 is
 
       Set_Etype (Id, Act_T);
 
+      --  Object is marked to be treated as volatile if type is volatile and
+      --  we clear the Current_Value setting that may have been set above.
+
+      if Treat_As_Volatile (Etype (Id)) then
+         Set_Treat_As_Volatile (Id);
+         Set_Current_Value (Id, Empty);
+      end if;
+
       --  Deal with controlled types
 
       if Has_Controlled_Component (Etype (Id))
@@ -3773,6 +3786,8 @@ package body Sem_Ch3 is
       if Has_Aspects (N) then
          Analyze_Aspect_Specifications (N, Id);
       end if;
+
+      Analyze_Dimension (N);
    end Analyze_Object_Declaration;
 
    ---------------------------
@@ -4571,6 +4586,8 @@ package body Sem_Ch3 is
       if Has_Aspects (N) then
          Analyze_Aspect_Specifications (N, Id);
       end if;
+
+      Analyze_Dimension (N);
    end Analyze_Subtype_Declaration;
 
    --------------------------------
@@ -8890,17 +8907,27 @@ package body Sem_Ch3 is
       procedure Check_Pragma_Implemented (Subp : Entity_Id) is
          Iface_Alias : constant Entity_Id := Interface_Alias (Subp);
          Impl_Kind   : constant Name_Id   := Implementation_Kind (Iface_Alias);
+         Subp_Alias  : constant Entity_Id := Alias (Subp);
          Contr_Typ   : Entity_Id;
+         Impl_Subp   : Entity_Id;
 
       begin
          --  Subp must have an alias since it is a hidden entity used to link
          --  an interface subprogram to its overriding counterpart.
 
-         pragma Assert (Present (Alias (Subp)));
+         pragma Assert (Present (Subp_Alias));
+
+         --  Handle aliases to synchronized wrappers
+
+         Impl_Subp := Subp_Alias;
+
+         if Is_Primitive_Wrapper (Impl_Subp) then
+            Impl_Subp := Wrapped_Entity (Impl_Subp);
+         end if;
 
          --  Extract the type of the controlling formal
 
-         Contr_Typ := Etype (First_Formal (Alias (Subp)));
+         Contr_Typ := Etype (First_Formal (Subp_Alias));
 
          if Is_Concurrent_Record_Type (Contr_Typ) then
             Contr_Typ := Corresponding_Concurrent_Type (Contr_Typ);
@@ -8910,12 +8937,12 @@ package body Sem_Ch3 is
          --  be implemented by an entry.
 
          if Impl_Kind = Name_By_Entry
-           and then Ekind (Wrapped_Entity (Alias (Subp))) /= E_Entry
+           and then Ekind (Impl_Subp) /= E_Entry
          then
             Error_Msg_Node_2 := Iface_Alias;
             Error_Msg_NE
               ("type & must implement abstract subprogram & with an entry",
-               Alias (Subp), Contr_Typ);
+               Subp_Alias, Contr_Typ);
 
          elsif Impl_Kind = Name_By_Protected_Procedure then
 
@@ -8927,19 +8954,17 @@ package body Sem_Ch3 is
                Error_Msg_Node_2 := Contr_Typ;
                Error_Msg_NE
                  ("interface subprogram & cannot be implemented by a " &
-                  "primitive procedure of task type &", Alias (Subp),
+                  "primitive procedure of task type &", Subp_Alias,
                   Iface_Alias);
 
             --  An interface subprogram whose implementation kind is By_
             --  Protected_Procedure must be implemented by a procedure.
 
-            elsif Is_Primitive_Wrapper (Alias (Subp))
-              and then Ekind (Wrapped_Entity (Alias (Subp))) /= E_Procedure
-            then
+            elsif Ekind (Impl_Subp) /= E_Procedure then
                Error_Msg_Node_2 := Iface_Alias;
                Error_Msg_NE
                  ("type & must implement abstract subprogram & with a " &
-                  "procedure", Alias (Subp), Contr_Typ);
+                  "procedure", Subp_Alias, Contr_Typ);
             end if;
          end if;
       end Check_Pragma_Implemented;
@@ -8959,10 +8984,11 @@ package body Sem_Ch3 is
          --  Ada 2012 (AI05-0030): The implementation kinds of an overridden
          --  and overriding subprogram are different. In general this is an
          --  error except when the implementation kind of the overridden
-         --  subprograms is By_Any.
+         --  subprograms is By_Any or Optional.
 
          if Iface_Kind /= Subp_Kind
            and then Iface_Kind /= Name_By_Any
+           and then Iface_Kind /= Name_Optional
          then
             if Iface_Kind = Name_By_Entry then
                Error_Msg_N
@@ -9632,6 +9658,40 @@ package body Sem_Ch3 is
          Next_Entity (E);
       end loop;
    end Check_Completion;
+
+   ------------------------------------
+   -- Check_CPP_Type_Has_No_Defaults --
+   ------------------------------------
+
+   procedure Check_CPP_Type_Has_No_Defaults (T : Entity_Id) is
+      Tdef  : constant Node_Id := Type_Definition (Declaration_Node (T));
+      Clist : Node_Id;
+      Comp  : Node_Id;
+
+   begin
+      --  Obtain the component list
+
+      if Nkind (Tdef) = N_Record_Definition then
+         Clist := Component_List (Tdef);
+      else pragma Assert (Nkind (Tdef) = N_Derived_Type_Definition);
+         Clist := Component_List (Record_Extension_Part (Tdef));
+      end if;
+
+      --  Check all components to ensure no default expressions
+
+      if Present (Clist) then
+         Comp := First (Component_Items (Clist));
+         while Present (Comp) loop
+            if Present (Expression (Comp)) then
+               Error_Msg_N
+                 ("component of imported 'C'P'P type cannot have "
+                  & "default expression", Expression (Comp));
+            end if;
+
+            Next (Comp);
+         end loop;
+      end if;
+   end Check_CPP_Type_Has_No_Defaults;
 
    ----------------------------
    -- Check_Delta_Expression --
@@ -15292,9 +15352,22 @@ package body Sem_Ch3 is
          Spec : constant Entity_Id := Real_Range_Specification (Def);
 
       begin
+         --  Check specified "digits" constraint
+
          if Digs_Val > Digits_Value (E) then
             return False;
          end if;
+
+         --  Avoid types not matching pragma Float_Representation, if present
+
+         if (Opt.Float_Format = 'I' and then Float_Rep (E) /= IEEE_Binary)
+              or else
+            (Opt.Float_Format = 'V' and then Float_Rep (E) /= VAX_Native)
+         then
+            return False;
+         end if;
+
+         --  Check for matching range, if specified
 
          if Present (Spec) then
             if Expr_Value_R (Type_Low_Bound (E)) >
@@ -16246,34 +16319,11 @@ package body Sem_Ch3 is
       then
          return True;
 
-      --  If we are in the body of an instantiation, the component is visible
-      --  if the parent type is non-private, or in  an enclosing scope. The
-      --  scope stack is not present when analyzing an instance body, so we
-      --  must inspect the chain of scopes explicitly.
+      --  In the body of an instantiation, no need to check for the visibility
+      --  of a component.
 
       elsif In_Instance_Body then
-         if not Is_Private_Type (Scope (C)) then
-            return True;
-
-         else
-            declare
-               S : Entity_Id;
-
-            begin
-               S := Current_Scope;
-               while Present (S)
-                 and then S /= Standard_Standard
-               loop
-                  if S = Type_Scope then
-                     return True;
-                  end if;
-
-                  S := Scope (S);
-               end loop;
-
-               return False;
-            end;
-         end if;
+         return True;
 
       --  If the component has been declared in an ancestor which is currently
       --  a private type, then it is not visible. The same applies if the
@@ -18087,6 +18137,11 @@ package body Sem_Ch3 is
       if Is_CPP_Class (Priv_T) then
          Set_Is_CPP_Class (Full_T);
          Set_Convention   (Full_T, Convention_CPP);
+
+         --  Check that components of imported CPP types do not have default
+         --  expressions.
+
+         Check_CPP_Type_Has_No_Defaults (Full_T);
       end if;
 
       --  If the private view has user specified stream attributes, then so has

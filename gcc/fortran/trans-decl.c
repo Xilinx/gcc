@@ -1,6 +1,6 @@
 /* Backend function setup
    Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011
+   2011, 2012
    Free Software Foundation, Inc.
    Contributed by Paul Brook
 
@@ -121,6 +121,7 @@ tree gfor_fndecl_associated;
 tree gfor_fndecl_caf_init;
 tree gfor_fndecl_caf_finalize;
 tree gfor_fndecl_caf_register;
+tree gfor_fndecl_caf_deregister;
 tree gfor_fndecl_caf_critical;
 tree gfor_fndecl_caf_end_critical;
 tree gfor_fndecl_caf_sync_all;
@@ -1434,7 +1435,6 @@ gfc_get_symbol_decl (gfc_symbol * sym)
       gfc_finish_var_decl (span, sym);
       TREE_STATIC (span) = TREE_STATIC (decl);
       DECL_ARTIFICIAL (span) = 1;
-      DECL_INITIAL (span) = build_int_cst (gfc_array_index_type, 0);
 
       GFC_DECL_SPAN (decl) = span;
       GFC_TYPE_ARRAY_SPAN (TREE_TYPE (decl)) = span;
@@ -1485,7 +1485,10 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 
   if (sym->attr.vtab
       || (sym->name[0] == '_' && strncmp ("__def_init", sym->name, 10) == 0))
-    GFC_DECL_PUSH_TOPLEVEL (decl) = 1;
+    {
+      TREE_READONLY (decl) = 1;
+      GFC_DECL_PUSH_TOPLEVEL (decl) = 1;
+    }
 
   return decl;
 }
@@ -3164,7 +3167,11 @@ gfc_build_builtin_function_decls (void)
       gfor_fndecl_caf_register = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("caf_register")), "...WWW", pvoid_type_node, 6,
         size_type_node, integer_type_node, ppvoid_type_node, pint_type,
-        build_pointer_type (pchar_type_node), integer_type_node);
+        pchar_type_node, integer_type_node);
+
+      gfor_fndecl_caf_deregister = gfc_build_library_function_decl_with_spec (
+	get_identifier (PREFIX("caf_deregister")), ".WWW", void_type_node, 4,
+        ppvoid_type_node, pint_type, pchar_type_node, integer_type_node);
 
       gfor_fndecl_caf_critical = gfc_build_library_function_decl (
 	get_identifier (PREFIX("caf_critical")), void_type_node, 0);
@@ -3577,6 +3584,17 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
       if (sym->assoc)
 	continue;
 
+      if (sym->attr.subref_array_pointer
+	  && GFC_DECL_SPAN (sym->backend_decl)
+	  && !TREE_STATIC (GFC_DECL_SPAN (sym->backend_decl)))
+	{
+	  gfc_init_block (&tmpblock);
+	  gfc_add_modify (&tmpblock, GFC_DECL_SPAN (sym->backend_decl),
+			  build_int_cst (gfc_array_index_type, 0));
+	  gfc_add_init_cleanup (block, gfc_finish_block (&tmpblock),
+				NULL_TREE);
+	}
+
       if (sym->attr.dimension || sym->attr.codimension)
 	{
           /* Assumed-size Cray pointees need to be treated as AS_EXPLICIT.  */
@@ -3670,7 +3688,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
       else if ((!sym->attr.dummy || sym->ts.deferred)
 		&& (sym->ts.type == BT_CLASS
 		&& CLASS_DATA (sym)->attr.pointer))
-	break;
+	continue;
       else if ((!sym->attr.dummy || sym->ts.deferred)
 		&& (sym->attr.allocatable
 		    || (sym->ts.type == BT_CLASS
@@ -3678,6 +3696,8 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	{
 	  if (!sym->attr.save)
 	    {
+	      tree descriptor = NULL_TREE;
+
 	      /* Nullify and automatic deallocation of allocatable
 		 scalars.  */
 	      e = gfc_lval_expr_from_sym (sym);
@@ -3702,6 +3722,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	      else
 		{
 		  gfc_conv_expr (&se, e);
+		  descriptor = se.expr;
 		  se.expr = gfc_conv_descriptor_data_addr (se.expr);
 		  se.expr = build_fold_indirect_ref_loc (input_location, se.expr);
 		}
@@ -3751,9 +3772,18 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	      /* Deallocate when leaving the scope. Nullifying is not
 		 needed.  */
 	      if (!sym->attr.result && !sym->attr.dummy)
-		tmp = gfc_deallocate_scalar_with_status (se.expr, NULL, true,
-							 NULL, sym->ts);
-
+		{
+		  if (sym->ts.type == BT_CLASS
+		      && CLASS_DATA (sym)->attr.codimension)
+		    tmp = gfc_deallocate_with_status (descriptor, NULL_TREE,
+						      NULL_TREE, NULL_TREE,
+						      NULL_TREE, true, NULL,
+						      true);
+		  else
+		    tmp = gfc_deallocate_scalar_with_status (se.expr, NULL,
+							     true, NULL,
+							     sym->ts);
+		}
 	      if (sym->ts.type == BT_CLASS)
 		{
 		  /* Initialize _vptr to declared type.  */

@@ -25,10 +25,6 @@ rm -f sysinfo.c
 cat > sysinfo.c <<EOF
 #include "config.h"
 
-#define _GNU_SOURCE
-#define _LARGEFILE_SOURCE
-#define _FILE_OFFSET_BITS 64
-
 #include <sys/types.h>
 #include <dirent.h>
 #include <errno.h>
@@ -93,6 +89,15 @@ cat > sysinfo.c <<EOF
 #if defined(HAVE_NET_IF_H)
 #include <net/if.h>
 #endif
+
+/* Constants that may only be defined as expressions on some systems,
+   expressions too complex for -fdump-go-spec to handle.  These are
+   handled specially below.  */
+enum {
+#ifdef TIOCGWINSZ
+  TIOCGWINSZ_val = TIOCGWINSZ,
+#endif
+};
 EOF
 
 ${CC} -fdump-go-spec=gen-sysinfo.go -std=gnu99 -S -o sysinfo.s sysinfo.c
@@ -197,9 +202,12 @@ grep '^const __PC' gen-sysinfo.go |
 # epoll constants.
 grep '^const _EPOLL' gen-sysinfo.go |
   sed -e 's/^\(const \)_\(EPOLL[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
-# Make sure EPOLLRDHUP is defined.
+# Make sure EPOLLRDHUP and EPOLL_CLOEXEC are defined.
 if ! grep '^const EPOLLRDHUP' ${OUT} >/dev/null 2>&1; then
   echo "const EPOLLRDHUP = 0x2000" >> ${OUT}
+fi
+if ! grep '^const EPOLL_CLOEXEC' ${OUT} >/dev/null 2>&1; then
+  echo "const EPOLL_CLOEXEC = 02000000" >> ${OUT}
 fi
 
 # Ptrace constants.
@@ -525,7 +533,14 @@ grep '^type _passwd ' gen-sysinfo.go | \
 
 # The ioctl flags for the controlling TTY.
 grep '^const _TIOC' gen-sysinfo.go | \
+    grep -v '_val =' | \
     sed -e 's/^\(const \)_\(TIOC[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
+# We need TIOCGWINSZ.
+if ! grep '^const TIOCGWINSZ' ${OUT} >/dev/null 2>&1; then
+  if grep '^const _TIOCGWINSZ_val' ${OUT} >/dev/null 2>&1; then
+    echo 'const TIOCGWINSZ = _TIOCGWINSZ_val' >> ${OUT}
+  fi
+fi
 
 # The ioctl flags for terminal control
 grep '^const _TC[GS]ET' gen-sysinfo.go | \

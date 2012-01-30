@@ -45,10 +45,7 @@ contains
    allocate (tmp(size (a, 1)), source = a)
    index_array = [(i, i = 1, size (a, 1))]
    call internal_qsort (tmp, index_array)   ! Do not move class elements around until end
-   do i = 1, size (a, 1)                    ! Since they can be of arbitrary size.
-     a(i) = tmp(index_array(i))             ! Vector index array would be neater
-   end do
-!    a = tmp(index_array)                    ! Like this - TODO: fixme
+   a = tmp(index_array)
  end subroutine qsort
 
  recursive subroutine internal_qsort (x, iarray)
@@ -124,7 +121,7 @@ contains
          cmp = .false.
        end if
      class default
-         ERROR STOP "Don't compare apples with oranges"
+       ERROR STOP "Don't compare apples with oranges"
    end select
  end function lt_cmp_int
 end module test
@@ -134,10 +131,10 @@ program main
  class(sort_t), allocatable :: A(:)
  integer :: i, m(5)= [7 , 4, 5, 2, 3]
  allocate (A(5), source = [(sort_int_t(m(i)), i=1,5)])
-!  print *, "Before qsort: ", (A(i)%disp(), i = 1, size(a,1))
+!  print *, "Before qsort: ", A%disp()
  call qsort(A)
-!  print *, "After qsort:  ", (A(i)%disp(), i = 1, size(a,1))
- if (any ([(A(i)%disp(), i = 1, size(a,1))] .ne. [2,3,4,5,7])) call abort
+!  print *, "After qsort:  ", A%disp()
+ if (any (A%disp() .ne. [2,3,4,5,7])) call abort
 end program main
 
 ! { dg-final { cleanup-modules "m_qsort test" } }

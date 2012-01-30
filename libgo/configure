@@ -657,6 +657,8 @@ LIBGO_IS_SOLARIS_FALSE
 LIBGO_IS_SOLARIS_TRUE
 LIBGO_IS_RTEMS_FALSE
 LIBGO_IS_RTEMS_TRUE
+LIBGO_IS_NETBSD_FALSE
+LIBGO_IS_NETBSD_TRUE
 LIBGO_IS_LINUX_FALSE
 LIBGO_IS_LINUX_TRUE
 LIBGO_IS_IRIX_FALSE
@@ -11097,7 +11099,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11100 "configure"
+#line 11102 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -11203,7 +11205,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11206 "configure"
+#line 11208 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -13465,6 +13467,7 @@ is_darwin=no
 is_freebsd=no
 is_irix=no
 is_linux=no
+is_netbsd=no
 is_rtems=no
 is_solaris=no
 GOOS=unknown
@@ -13473,6 +13476,7 @@ case ${host} in
   *-*-freebsd*)  is_freebsd=yes; GOOS=freebsd ;;
   *-*-irix6*)    is_irix=yes;    GOOS=irix ;;
   *-*-linux*)    is_linux=yes;   GOOS=linux ;;
+  *-*-netbsd*)	 is_netbsd=yes;  GOOS=netbsd ;;
   *-*-rtems*)    is_rtems=yes;   GOOS=rtems ;;
   *-*-solaris2*) is_solaris=yes; GOOS=solaris ;;
 esac
@@ -13506,6 +13510,14 @@ fi
 else
   LIBGO_IS_LINUX_TRUE='#'
   LIBGO_IS_LINUX_FALSE=
+fi
+
+ if test $is_netbsd = yes; then
+  LIBGO_IS_NETBSD_TRUE=
+  LIBGO_IS_NETBSD_FALSE='#'
+else
+  LIBGO_IS_NETBSD_TRUE='#'
+  LIBGO_IS_NETBSD_FALSE=
 fi
 
  if test $is_rtems = yes; then
@@ -13804,22 +13816,23 @@ fi
 
 
 
+OSCFLAGS="-D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 case "$target" in
     mips-sgi-irix6.5*)
 	# IRIX 6 needs _XOPEN_SOURCE=500 for the XPG5 version of struct
 	# msghdr in <sys/socket.h>.
-	OSCFLAGS='-D_XOPEN_SOURCE=500'
+	OSCFLAGS="$OSCFLAGS -D_XOPEN_SOURCE=500"
 	;;
     *-*-solaris2.[89])
 	# Solaris 8/9 need this so struct msghdr gets the msg_control
 	# etc. fields in <sys/socket.h> (_XPG4_2).
-	OSCFLAGS='-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D__EXTENSIONS__'
+	OSCFLAGS="$OSCFLAGS -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D__EXTENSIONS__"
 	;;
     *-*-solaris2.1[01])
 	# Solaris 10+ needs this so struct msghdr gets the msg_control
-	# etc. fields in <sys/socket.h> (_XPG4_2).  _XOPEN_SOURCE=500 as
+	# etc. fields in <sys/socket.h> (_XPG4_2).  _XOPEN_SOURCE=600 as
 	# above doesn't work with C99.
-	OSCFLAGS='-D_XOPEN_SOURCE=600 -D__EXTENSIONS__'
+	OSCFLAGS="$OSCFLAGS -std=gnu99 -D_XOPEN_SOURCE=600 -D__EXTENSIONS__"
 	;;
 esac
 
@@ -14935,6 +14948,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${LIBGO_IS_LINUX_TRUE}" && test -z "${LIBGO_IS_LINUX_FALSE}"; then
   as_fn_error "conditional \"LIBGO_IS_LINUX\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${LIBGO_IS_NETBSD_TRUE}" && test -z "${LIBGO_IS_NETBSD_FALSE}"; then
+  as_fn_error "conditional \"LIBGO_IS_NETBSD\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${LIBGO_IS_RTEMS_TRUE}" && test -z "${LIBGO_IS_RTEMS_FALSE}"; then

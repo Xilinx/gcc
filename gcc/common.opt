@@ -1,6 +1,6 @@
 ; Options for the language- and target-independent parts of the compiler.
 
-; Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+; Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
 ; Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
@@ -316,7 +316,7 @@ Common Alias(pedantic)
 Common Alias(pedantic-errors)
 
 -pie
-Common Alias(pie)
+Driver Alias(pie)
 
 -pipe
 Driver Alias(pipe)
@@ -370,7 +370,7 @@ Common Alias(p)
 Driver Alias(save-temps)
 
 -shared
-Common Alias(shared)
+Driver Alias(shared)
 
 -specs
 Driver Separate Alias(specs=)
@@ -572,10 +572,6 @@ Warn if the loop cannot be optimized due to nontrivial assumptions.
 Wmissing-noreturn
 Common Var(warn_missing_noreturn) Warning
 Warn about functions which might be candidates for __attribute__((noreturn))
-
-Wmudflap
-Common Var(warn_mudflap) Init(1) Warning
-Warn about constructs not instrumented by -fmudflap
 
 Woverflow
 Common Var(warn_overflow) Init(1) Warning
@@ -828,7 +824,10 @@ Driver Undocumented
 ;    function parameters used in other parameters and the return type.
 ;    First selectable in G++ 4.6.
 ;
-; 6: The version of the ABI that doesn't promote scoped enums to int.
+; 6: The version of the ABI that doesn't promote scoped enums to int and
+;    changes the mangling of template argument packs, const/static_cast,
+;    prefix ++ and --, and a class scope function used as a template
+;    argument.
 ;    First selectable in G++ 4.7.
 ;
 ; Additional positive integers will be assigned as new versions of
@@ -1507,18 +1506,6 @@ fmove-loop-invariants
 Common Report Var(flag_move_loop_invariants) Init(1) Optimization
 Move loop invariant computations out of loops
 
-fmudflap
-Common RejectNegative Report Var(flag_mudflap)
-Add mudflap bounds-checking instrumentation for single-threaded program
-
-fmudflapth
-Common RejectNegative Report Var(flag_mudflap,2)
-Add mudflap bounds-checking instrumentation for multi-threaded program
-
-fmudflapir
-Common RejectNegative Report Var(flag_mudflap_ignore_reads)
-Ignore read operations when inserting mudflap instrumentation
-
 fdce
 Common Var(flag_dce) Init(1) Optimization
 Use the RTL dead code elimination pass
@@ -1823,8 +1810,12 @@ Common Ignore
 Does nothing.  Preserved for backward compatibility.
 
 fzee
-Common Report Var(flag_zee) Init(0)
-Eliminate redundant zero extensions on targets that support implicit extensions.
+Common Ignore
+Does nothing.  Preserved for backward compatibility.
+
+free
+Common Report Var(flag_ree) Init(0)
+Turn on Redundant Extensions Elimination pass.
 
 fshow-column
 Common Report Var(flag_show_column) Init(1)
@@ -2442,7 +2433,7 @@ x
 Driver Joined Separate
 
 shared
-Common RejectNegative Negative(pie)
+Driver RejectNegative Negative(pie)
 Create a shared library
 
 shared-libgcc
@@ -2475,7 +2466,7 @@ symbolic
 Driver
 
 pie
-Common RejectNegative Negative(shared)
+Driver RejectNegative Negative(shared)
 Create a position independent executable
 
 z

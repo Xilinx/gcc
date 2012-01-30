@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -60,6 +60,7 @@ with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch10; use Sem_Ch10;
 with Sem_Ch12; use Sem_Ch12;
 with Sem_Ch13; use Sem_Ch13;
+with Sem_Dim;  use Sem_Dim;
 with Sem_Disp; use Sem_Disp;
 with Sem_Dist; use Sem_Dist;
 with Sem_Elim; use Sem_Elim;
@@ -1529,6 +1530,8 @@ package body Sem_Ch6 is
 
       Kill_Current_Values (Last_Assignment_Only => True);
       Check_Unreachable_Code (N);
+
+      Analyze_Dimension (N);
    end Analyze_Return_Statement;
 
    -------------------------------------
@@ -3135,7 +3138,6 @@ package body Sem_Ch6 is
 
          Set_Defining_Unit_Name (Specification (Null_Body),
            Make_Defining_Identifier (Loc, Chars (Defining_Entity (N))));
-         Set_Corresponding_Body (N, Defining_Entity (Null_Body));
 
          Form := First (Parameter_Specifications (Specification (Null_Body)));
          while Present (Form) loop
@@ -3189,7 +3191,13 @@ package body Sem_Ch6 is
       then
          Set_Has_Completion (Designator);
 
-         if Present (Null_Body) then
+         --  Null procedures are always inlined, but generic formal subprograms
+         --  which appear as such in the internal instance of formal packages,
+         --  need no completion and are not marked Inline.
+
+         if Present (Null_Body)
+           and then Nkind (N) /= N_Formal_Concrete_Subprogram_Declaration
+         then
             Set_Corresponding_Body (N, Defining_Entity (Null_Body));
             Set_Body_To_Inline (N, Null_Body);
             Set_Is_Inlined (Designator);
@@ -9524,14 +9532,14 @@ package body Sem_Ch6 is
                Default :=  Expression (Param_Spec);
 
                if Is_Scalar_Type (Etype (Default)) then
-                  if Nkind
-                       (Parameter_Type (Param_Spec)) /= N_Access_Definition
+                  if Nkind (Parameter_Type (Param_Spec)) /=
+                                              N_Access_Definition
                   then
                      Formal_Type := Entity (Parameter_Type (Param_Spec));
-
                   else
-                     Formal_Type := Access_Definition
-                       (Related_Nod, Parameter_Type (Param_Spec));
+                     Formal_Type :=
+                       Access_Definition
+                         (Related_Nod, Parameter_Type (Param_Spec));
                   end if;
 
                   Apply_Scalar_Range_Check (Default, Formal_Type);
@@ -9549,12 +9557,34 @@ package body Sem_Ch6 is
             Num_Out_Params := Num_Out_Params + 1;
          end if;
 
+         --  Skip remaining processing if formal type was in error
+
+         if Etype (Formal) = Any_Type or else Error_Posted (Formal) then
+            goto Next_Parameter;
+         end if;
+
          --  Force call by reference if aliased
 
          if Is_Aliased (Formal) then
             Set_Mechanism (Formal, By_Reference);
+
+            --  Warn if user asked this to be passed by copy
+
+            if Convention (Formal_Type) = Convention_Ada_Pass_By_Copy then
+               Error_Msg_N
+                 ("?cannot pass aliased parameter & by copy", Formal);
+            end if;
+
+         --  Force mechanism if type has Convention Ada_Pass_By_Ref/Copy
+
+         elsif Convention (Formal_Type) = Convention_Ada_Pass_By_Copy then
+            Set_Mechanism (Formal, By_Copy);
+
+         elsif Convention (Formal_Type) = Convention_Ada_Pass_By_Reference then
+            Set_Mechanism (Formal, By_Reference);
          end if;
 
+      <<Next_Parameter>>
          Next (Param_Spec);
       end loop;
 

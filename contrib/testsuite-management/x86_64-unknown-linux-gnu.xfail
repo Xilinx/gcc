@@ -1,38 +1,30 @@
-
-# These tests fail in trunk in all configurations.
+#*** libstdc++ for unix/-m32:
+#*** libstdc++ for unix/-m64:
+# Both of these fail because of the stl debug patch which changes line numbers.
 FAIL: 23_containers/vector/requirements/dr438/assign_neg.cc  (test for errors, line 1225)
-FAIL: 23_containers/vector/requirements/dr438/assign_neg.cc (test for errors, line 1225)
 FAIL: 23_containers/vector/requirements/dr438/assign_neg.cc (test for excess errors)
 FAIL: 23_containers/vector/requirements/dr438/constructor_1_neg.cc  (test for errors, line 1155)
-FAIL: 23_containers/vector/requirements/dr438/constructor_1_neg.cc (test for errors, line 1155)
 FAIL: 23_containers/vector/requirements/dr438/constructor_1_neg.cc (test for excess errors)
 FAIL: 23_containers/vector/requirements/dr438/constructor_2_neg.cc  (test for errors, line 1155)
-FAIL: 23_containers/vector/requirements/dr438/constructor_2_neg.cc (test for errors, line 1155)
 FAIL: 23_containers/vector/requirements/dr438/constructor_2_neg.cc (test for excess errors)
 FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc  (test for errors, line 1266)
-FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc (test for errors, line 1266)
 FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc (test for excess errors)
+
+# These tests fail in trunk in all configurations.
 FAIL: gcc.dg/cproj-fails-with-broken-glibc.c execution test
 XPASS: gcc.dg/inline_3.c (test for excess errors)
 XPASS: gcc.dg/inline_4.c (test for excess errors)
-FAIL: gcc.dg/tree-ssa/vrp47.c scan-tree-dump-times dom1 "x[^ ]* & y" 1
 XPASS: gcc.dg/unroll_2.c (test for excess errors)
 XPASS: gcc.dg/unroll_3.c (test for excess errors)
 XPASS: gcc.dg/unroll_4.c (test for excess errors)
 FAIL: libmudflap.c++/pass55-frag.cxx ( -O) execution test
-FAIL: gcc.dg/torture/vector-shift2.c -O0  execution test
-FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution, -O2 -ftree-vectorize -msse2
-FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution,  -O2 -fomit-frame-pointer -finline-functions
-FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution,  -O3 -g
-FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution,  -O2 -fbounds-check
-FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution,  -O2
-FAIL: gfortran.fortran-torture/execute/entry_4.f90 execution,  -O2 -fomit-frame-pointer -finline-functions -funroll-loops
 FAIL: gcc.c-torture/execute/vshuf-v2di.c execution,  -Os
 FAIL: gcc.c-torture/execute/vshuf-v8hi.c execution,  -Os
 FAIL: gcc.target/i386/pr27827.c scan-assembler fmul[ \t]*%st
 
 # Failures in libitm.
-UNRESOLVED: libitm.c++/static_ctor.C compilation failed to produce executable
+FAIL: libitm.c/stackundo.c (test for excess errors)
+UNRESOLVED: libitm.c/stackundo.c compilation failed to produce executable
 FAIL: libitm.c++/dropref.C (test for excess errors)
 UNRESOLVED: libitm.c++/dropref.C compilation failed to produce executable
 UNRESOLVED: libitm.c++/eh-1.C compilation failed to produce executable

@@ -1,5 +1,5 @@
 @c Copyright (C) 1988,1989,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,
-@c 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+@c 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -4959,6 +4959,10 @@ TARGET_STRUCT_VALUE_RTX, FRAME_POINTER_REGNUM, EH_USES,
 FRAME_POINTER_REGNUM, ARG_POINTER_REGNUM, and the PIC_OFFSET_TABLE_REGNUM.
 @end deftypefn
 
+@deftypefn {Target Hook} void TARGET_SET_UP_BY_PROLOGUE (struct hard_reg_set_container *@var{})
+This hook should add additional registers that are computed by the prologue to the hard regset for shrink-wrapping optimization purposes.
+@end deftypefn
+
 @node Stack Smashing Protection
 @subsection Stack smashing protection
 @cindex stack smashing protection
@@ -5625,6 +5629,11 @@ references inside an @code{UNSPEC} rtx to represent PIC or similar
 addressing modes.  This target hook allows GCC's optimizers to understand
 the semantics of these opaque @code{UNSPEC}s by converting them back
 into their original form.
+@end deftypefn
+
+@deftypefn {Target Hook} bool TARGET_CONST_NOT_OK_FOR_DEBUG_P (rtx @var{x})
+This hook should return true if @var{x} should not be emitted into
+debug sections.
 @end deftypefn
 
 @deftypefn {Target Hook} bool TARGET_CANNOT_FORCE_CONST_MEM (enum machine_mode @var{mode}, rtx @var{x})
@@ -10077,6 +10086,13 @@ If this hook is nonnull, the default implementation of
 of @code{target_flags}.  @var{pch_flags} specifies the value that
 @code{target_flags} had when the PCH file was created.  The return
 value is the same as for @code{TARGET_PCH_VALID_P}.
+@end deftypefn
+
+@deftypefn {Target Hook} void TARGET_PREPARE_PCH_SAVE (void)
+Called before writing out a PCH file.  If the target has some
+garbage-collected data that needs to be in a particular state on PCH loads,
+it can use this hook to enforce that state.  Very few targets need
+to do anything here.
 @end deftypefn
 
 @node C++ ABI

@@ -25,6 +25,7 @@ class Struct_field;
 class Expression_list;
 class Var_expression;
 class Temporary_reference_expression;
+class Set_and_use_temporary_expression;
 class String_expression;
 class Binary_expression;
 class Call_expression;
@@ -60,6 +61,7 @@ class Expression
     EXPRESSION_CONST_REFERENCE,
     EXPRESSION_VAR_REFERENCE,
     EXPRESSION_TEMPORARY_REFERENCE,
+    EXPRESSION_SET_AND_USE_TEMPORARY,
     EXPRESSION_SINK,
     EXPRESSION_FUNC_REFERENCE,
     EXPRESSION_UNKNOWN_REFERENCE,
@@ -134,6 +136,13 @@ class Expression
   static Temporary_reference_expression*
   make_temporary_reference(Temporary_statement*, Location);
 
+  // Make an expressions which sets a temporary variable and then
+  // evaluates to a reference to that temporary variable.  This is
+  // used to set a temporary variable while retaining the order of
+  // evaluation.
+  static Set_and_use_temporary_expression*
+  make_set_and_use_temporary(Temporary_statement*, Expression*, Location);
+
   // Make a sink expression--a reference to the blank identifier _.
   static Expression*
   make_sink(Location);
@@ -144,7 +153,7 @@ class Expression
 
   // Make a reference to an unknown name.  In a correct program this
   // will always be lowered to a real const/var/func reference.
-  static Expression*
+  static Unknown_expression*
   make_unknown_reference(Named_object*, Location);
 
   // Make a constant bool expression.
@@ -154,6 +163,11 @@ class Expression
   // Make a constant string expression.
   static Expression*
   make_string(const std::string&, Location);
+
+  // Make a character constant expression.  TYPE should be NULL for an
+  // abstract type.
+  static Expression*
+  make_character(const mpz_t*, Type*, Location);
 
   // Make a constant integer expression.  TYPE should be NULL for an
   // abstract type.
@@ -394,6 +408,15 @@ class Expression
   {
     return this->convert<Temporary_reference_expression,
 			 EXPRESSION_TEMPORARY_REFERENCE>();
+  }
+
+  // If this is a set-and-use-temporary, return the
+  // Set_and_use_temporary_expression.  Otherwise, return NULL.
+  Set_and_use_temporary_expression*
+  set_and_use_temporary_expression()
+  {
+    return this->convert<Set_and_use_temporary_expression,
+			 EXPRESSION_SET_AND_USE_TEMPORARY>();
   }
 
   // Return whether this is a sink expression.
@@ -1021,6 +1044,62 @@ class Temporary_reference_expression : public Expression
   bool is_lvalue_;
 };
 
+// Set and use a temporary variable.
+
+class Set_and_use_temporary_expression : public Expression
+{
+ public:
+  Set_and_use_temporary_expression(Temporary_statement* statement,
+				   Expression* expr, Location location)
+    : Expression(EXPRESSION_SET_AND_USE_TEMPORARY, location),
+      statement_(statement), expr_(expr)
+  { }
+
+  // Return the temporary.
+  Temporary_statement*
+  temporary() const
+  { return this->statement_; }
+
+  // Return the expression.
+  Expression*
+  expression() const
+  { return this->expr_; }
+
+ protected:
+  Type*
+  do_type();
+
+  void
+  do_determine_type(const Type_context*)
+  { }
+
+  Expression*
+  do_copy()
+  {
+    return make_set_and_use_temporary(this->statement_, this->expr_,
+				      this->location());
+  }
+
+  bool
+  do_is_addressable() const
+  { return true; }
+
+  void
+  do_address_taken(bool);
+
+  tree
+  do_get_tree(Translate_context*);
+
+  void
+  do_dump_expression(Ast_dump_context*) const;
+
+ private:
+  // The statement where the temporary variable is defined.
+  Temporary_statement* statement_;
+  // The expression to assign to the temporary.
+  Expression* expr_;
+};
+
 // A string expression.
 
 class String_expression : public Expression
@@ -1147,9 +1226,9 @@ class Binary_expression : public Expression
   do_import(Import*);
 
   // Report an error if OP can not be applied to TYPE.  Return whether
-  // it can.
+  // it can.  OTYPE is the type of the other operand.
   static bool
-  check_operator_type(Operator op, Type* type, Location);
+  check_operator_type(Operator op, Type* type, Type* otype, Location);
 
  protected:
   int
@@ -1200,6 +1279,18 @@ class Binary_expression : public Expression
   do_dump_expression(Ast_dump_context*) const;
 
  private:
+  Expression*
+  lower_struct_comparison(Gogo*, Statement_inserter*);
+
+  Expression*
+  lower_array_comparison(Gogo*, Statement_inserter*);
+
+  Expression*
+  lower_compare_to_memcmp(Gogo*, Statement_inserter*);
+
+  Expression*
+  operand_address(Statement_inserter*, Expression*);
+
   // The binary operator to apply.
   Operator op_;
   // The left hand side operand.
@@ -1463,7 +1554,8 @@ class Unknown_expression : public Parser_expression
  public:
   Unknown_expression(Named_object* named_object, Location location)
     : Parser_expression(EXPRESSION_UNKNOWN_REFERENCE, location),
-      named_object_(named_object), is_composite_literal_key_(false)
+      named_object_(named_object), no_error_message_(false),
+      is_composite_literal_key_(false)
   { }
 
   // The associated named object.
@@ -1474,6 +1566,13 @@ class Unknown_expression : public Parser_expression
   // The name of the identifier which was unknown.
   const std::string&
   name() const;
+
+  // Call this to indicate that we should not give an error if this
+  // name is never defined.  This is used to avoid knock-on errors
+  // during an erroneous parse.
+  void
+  set_no_error_message()
+  { this->no_error_message_ = true; }
 
   // Note that this expression is being used as the key in a composite
   // literal, so it may be OK if it is not resolved.
@@ -1501,6 +1600,9 @@ class Unknown_expression : public Parser_expression
  private:
   // The unknown name.
   Named_object* named_object_;
+  // True if we should not give errors if this is undefined.  This is
+  // used if there was a parse failure.
+  bool no_error_message_;
   // True if this is the key in a composite literal.
   bool is_composite_literal_key_;
 };

@@ -126,6 +126,7 @@ is_darwin=no
 is_freebsd=no
 is_irix=no
 is_linux=no
+is_netbsd=no
 is_rtems=no
 is_solaris=no
 GOOS=unknown
@@ -134,6 +135,7 @@ case ${host} in
   *-*-freebsd*)  is_freebsd=yes; GOOS=freebsd ;;
   *-*-irix6*)    is_irix=yes;    GOOS=irix ;;
   *-*-linux*)    is_linux=yes;   GOOS=linux ;;
+  *-*-netbsd*)	 is_netbsd=yes;  GOOS=netbsd ;;
   *-*-rtems*)    is_rtems=yes;   GOOS=rtems ;;
   *-*-solaris2*) is_solaris=yes; GOOS=solaris ;;
 esac
@@ -141,6 +143,7 @@ AM_CONDITIONAL(LIBGO_IS_DARWIN, test $is_darwin = yes)
 AM_CONDITIONAL(LIBGO_IS_FREEBSD, test $is_freebsd = yes)
 AM_CONDITIONAL(LIBGO_IS_IRIX, test $is_irix = yes)
 AM_CONDITIONAL(LIBGO_IS_LINUX, test $is_linux = yes)
+AM_CONDITIONAL(LIBGO_IS_NETBSD, test $is_netbsd = yes)
 AM_CONDITIONAL(LIBGO_IS_RTEMS, test $is_rtems = yes)
 AM_CONDITIONAL(LIBGO_IS_SOLARIS, test $is_solaris = yes)
 AC_SUBST(GOOS)
@@ -277,23 +280,24 @@ AC_SUBST(GO_LIBCALL_OS_ARCH_FILE)
 AC_SUBST(GO_SYSCALL_OS_FILE)
 AC_SUBST(GO_SYSCALL_OS_ARCH_FILE)
 
-dnl Some targets need special flags to build sysinfo.go.
+dnl Special flags used to generate sysinfo.go.
+OSCFLAGS="-D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 case "$target" in
     mips-sgi-irix6.5*)
 	# IRIX 6 needs _XOPEN_SOURCE=500 for the XPG5 version of struct
 	# msghdr in <sys/socket.h>.
-	OSCFLAGS='-D_XOPEN_SOURCE=500'
+	OSCFLAGS="$OSCFLAGS -D_XOPEN_SOURCE=500"
 	;;
     *-*-solaris2.[[89]])
 	# Solaris 8/9 need this so struct msghdr gets the msg_control
 	# etc. fields in <sys/socket.h> (_XPG4_2).
-	OSCFLAGS='-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D__EXTENSIONS__'
+	OSCFLAGS="$OSCFLAGS -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D__EXTENSIONS__"
 	;;
     *-*-solaris2.1[[01]])
 	# Solaris 10+ needs this so struct msghdr gets the msg_control
-	# etc. fields in <sys/socket.h> (_XPG4_2).  _XOPEN_SOURCE=500 as
+	# etc. fields in <sys/socket.h> (_XPG4_2).  _XOPEN_SOURCE=600 as
 	# above doesn't work with C99.
-	OSCFLAGS='-D_XOPEN_SOURCE=600 -D__EXTENSIONS__'
+	OSCFLAGS="$OSCFLAGS -std=gnu99 -D_XOPEN_SOURCE=600 -D__EXTENSIONS__"
 	;;
 esac
 AC_SUBST(OSCFLAGS)

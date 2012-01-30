@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -46,6 +46,7 @@ with Sem_Aux;  use Sem_Aux;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
+with Sem_Dim;  use Sem_Dim;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
 with Sem_Type; use Sem_Type;
@@ -889,6 +890,28 @@ package body Sem_Ch13 is
                end loop;
             end if;
 
+            --  Check some general restrictions on language defined aspects
+
+            if not Impl_Defined_Aspects (A_Id) then
+               Error_Msg_Name_1 := Nam;
+
+               --  Not allowed for renaming declarations
+
+               if Nkind (N) in N_Renaming_Declaration then
+                  Error_Msg_N
+                    ("aspect % not allowed for renaming declaration",
+                     Aspect);
+               end if;
+
+               --  Not allowed for formal type declarations
+
+               if Nkind (N) = N_Formal_Type_Declaration then
+                  Error_Msg_N
+                    ("aspect % not allowed for formal type declaration",
+                     Aspect);
+               end if;
+            end if;
+
             --  Copy expression for later processing by the procedures
             --  Check_Aspect_At_[Freeze_Point | End_Of_Declarations]
 
@@ -1099,6 +1122,21 @@ package body Sem_Ch13 is
 
                   --  We don't have to play the delay game here, since the only
                   --  values are check names which don't get analyzed anyway.
+
+                  pragma Assert (not Delay_Required);
+
+               when Aspect_Synchronization =>
+
+                  --  The aspect corresponds to pragma Implemented.
+                  --  Construct the pragma
+
+                  Aitem :=
+                    Make_Pragma (Loc,
+                      Pragma_Argument_Associations => New_List (
+                        New_Occurrence_Of (E, Loc),
+                        Relocate_Node (Expr)),
+                      Pragma_Identifier            =>
+                        Make_Identifier (Sloc (Id), Name_Implemented));
 
                   pragma Assert (not Delay_Required);
 
@@ -1476,6 +1514,15 @@ package body Sem_Ch13 is
 
                   goto Continue;
                end;
+
+               when Aspect_Dimension =>
+                  Analyze_Aspect_Dimension (N, Id, Expr);
+                  goto Continue;
+
+               when Aspect_Dimension_System =>
+                  Analyze_Aspect_Dimension_System (N, Id, Expr);
+                  goto Continue;
+
             end case;
 
             --  If a delay is required, we delay the freeze (not much point in
@@ -1857,12 +1904,31 @@ package body Sem_Ch13 is
          ------------------------
 
          procedure Check_One_Function (Subp : Entity_Id) is
+            Default_Element : constant Node_Id :=
+                                Find_Aspect
+                                  (Etype (First_Formal (Subp)),
+                                   Aspect_Iterator_Element);
+
          begin
             if not Check_Primitive_Function (Subp) then
                Error_Msg_NE
                  ("aspect Indexing requires a function that applies to type&",
                    Subp, Ent);
             end if;
+
+            --  An indexing function must return either the default element of
+            --  the container, or a reference type.
+
+            if Present (Default_Element) then
+               Analyze (Default_Element);
+               if Is_Entity_Name (Default_Element)
+                 and then Covers (Entity (Default_Element), Etype (Subp))
+               then
+                  return;
+               end if;
+            end if;
+
+            --  Otherwise the return type must be a reference type.
 
             if not Has_Implicit_Dereference (Etype (Subp)) then
                Error_Msg_N
@@ -1884,7 +1950,7 @@ package body Sem_Ch13 is
 
          else
             declare
-               I : Interp_Index;
+               I  : Interp_Index;
                It : Interp;
 
             begin
@@ -2079,11 +2145,27 @@ package body Sem_Ch13 is
          Set_Analyzed (N, True);
       end if;
 
-      --  Process Ignore_Rep_Clauses option (we also ignore rep clauses in
-      --  CodePeer mode or Alfa mode, since they are not relevant in these
-      --  contexts).
+      --  Ignore some selected attributes in CodePeer mode since they are not
+      --  relevant in this context.
 
-      if Ignore_Rep_Clauses or CodePeer_Mode or Alfa_Mode then
+      if CodePeer_Mode then
+         case Id is
+
+            --  Ignore Component_Size in CodePeer mode, to avoid changing the
+            --  internal representation of types by implicitly packing them.
+
+            when Attribute_Component_Size =>
+               Rewrite (N, Make_Null_Statement (Sloc (N)));
+               return;
+
+            when others =>
+               null;
+         end case;
+      end if;
+
+      --  Process Ignore_Rep_Clauses option
+
+      if Ignore_Rep_Clauses then
          case Id is
 
             --  The following should be ignored. They do not affect legality
@@ -2103,11 +2185,7 @@ package body Sem_Ch13 is
                Rewrite (N, Make_Null_Statement (Sloc (N)));
                return;
 
-            --  We do not want too ignore 'Small in CodePeer_Mode or Alfa_Mode,
-            --  since it has an impact on the exact computations performed.
-
-            --  Perhaps 'Small should also not be ignored by
-            --  Ignore_Rep_Clauses ???
+            --  Perhaps 'Small should not be ignored by Ignore_Rep_Clauses ???
 
             when Attribute_Small =>
                if Ignore_Rep_Clauses then
@@ -2174,17 +2252,56 @@ package body Sem_Ch13 is
          U_Ent := Underlying_Type (Ent);
       end if;
 
-      --  Complete other routine error checks
+      --  Avoid cascaded error
 
       if Etype (Nam) = Any_Type then
          return;
+
+      --  Must be declared in current scope
 
       elsif Scope (Ent) /= Current_Scope then
          Error_Msg_N ("entity must be declared in this scope", Nam);
          return;
 
+      --  Must not be a source renaming (we do have some cases where the
+      --  expander generates a renaming, and those cases are OK, in such
+      --  cases any attribute applies to the renamed object as well).
+
+      elsif Is_Object (Ent)
+        and then Present (Renamed_Object (Ent))
+      then
+         --  Case of renamed object from source, this is an error
+
+         if Comes_From_Source (Renamed_Object (Ent)) then
+            Get_Name_String (Chars (N));
+            Error_Msg_Strlen := Name_Len;
+            Error_Msg_String (1 .. Name_Len) := Name_Buffer (1 .. Name_Len);
+            Error_Msg_N
+              ("~ clause not allowed for a renaming declaration "
+               & "(RM 13.1(6))", Nam);
+            return;
+
+         --  For the case of a compiler generated renaming, the attribute
+         --  definition clause applies to the renamed object created by the
+         --  expander. The easiest general way to handle this is to create a
+         --  copy of the attribute definition clause for this object.
+
+         else
+            Insert_Action (N,
+              Make_Attribute_Definition_Clause (Loc,
+                Name       =>
+                  New_Occurrence_Of (Entity (Renamed_Object (Ent)), Loc),
+                Chars      => Chars (N),
+                Expression => Duplicate_Subexpr (Expression (N))));
+         end if;
+
+      --  If no underlying entity, use entity itself, applies to some
+      --  previously detected error cases ???
+
       elsif No (U_Ent) then
          U_Ent := Ent;
+
+      --  Cannot specify for a subtype (exception Object/Value_Size)
 
       elsif Is_Type (U_Ent)
         and then not Is_First_Subtype (U_Ent)
@@ -2357,12 +2474,6 @@ package body Sem_Ch13 is
                   then
                      Error_Msg_N ("constant overlays a variable?", Expr);
 
-                  elsif Present (Renamed_Object (U_Ent)) then
-                     Error_Msg_N
-                       ("address clause not allowed"
-                          & " for a renaming declaration (RM 13.1(6))", Nam);
-                     return;
-
                   --  Imported variables can have an address clause, but then
                   --  the import is pretty meaningless except to suppress
                   --  initializations, so we do not need such variables to
@@ -2513,10 +2624,16 @@ package body Sem_Ch13 is
             elsif Align /= No_Uint then
                Set_Has_Alignment_Clause (U_Ent);
 
+               --  Tagged type case, check for attempt to set alignment to a
+               --  value greater than Max_Align, and reset if so.
+
                if Is_Tagged_Type (U_Ent) and then Align > Max_Align then
                   Error_Msg_N
                     ("?alignment for & set to Maximum_Aligment", Nam);
-                  Set_Alignment (U_Ent, Max_Align);
+                     Set_Alignment (U_Ent, Max_Align);
+
+               --  All other cases
+
                else
                   Set_Alignment (U_Ent, Align);
                end if;
@@ -4658,6 +4775,14 @@ package body Sem_Ch13 is
             --  (this is an error that will be caught elsewhere);
 
             Append_To (Private_Decls, PBody);
+
+            --  If the invariant appears on the full view of a type, the
+            --  analysis of the private part is complete, and we must
+            --  analyze the new body explicitly.
+
+            if In_Private_Part (Current_Scope) then
+               Analyze (PBody);
+            end if;
          end if;
       end if;
    end Build_Invariant_Procedure;
@@ -6027,11 +6152,12 @@ package body Sem_Ch13 is
             Analyze (Expression (ASN));
             return;
 
-         --  Suppress/Unsuppress/Warnings should never be delayed
+         --  Suppress/Unsuppress/Synchronization/Warnings should not be delayed
 
-         when Aspect_Suppress   |
-              Aspect_Unsuppress |
-              Aspect_Warnings   =>
+         when Aspect_Suppress        |
+              Aspect_Unsuppress      |
+              Aspect_Synchronization |
+              Aspect_Warnings        =>
             raise Program_Error;
 
          --  Pre/Post/Invariant/Predicate take boolean expressions
@@ -6046,6 +6172,11 @@ package body Sem_Ch13 is
               Aspect_Static_Predicate  |
               Aspect_Type_Invariant    =>
             T := Standard_Boolean;
+
+         when Aspect_Dimension        |
+              Aspect_Dimension_System =>
+            raise Program_Error;
+
       end case;
 
       --  Do the preanalyze call
@@ -7755,12 +7886,21 @@ package body Sem_Ch13 is
    --  Start of processing for Rep_Item_Too_Late
 
    begin
-      --  First make sure entity is not frozen (RM 13.1(9)). Exclude imported
-      --  types, which may be frozen if they appear in a representation clause
-      --  for a local type.
+      --  First make sure entity is not frozen (RM 13.1(9))
 
       if Is_Frozen (T)
+
+        --  Exclude imported types, which may be frozen if they appear in a
+        --  representation clause for a local type.
+
         and then not From_With_Type (T)
+
+        --  Exclude generated entitiesa (not coming from source). The common
+        --  case is when we generate a renaming which prematurely freezes the
+        --  renamed internal entity, but we still want to be able to set copies
+        --  of attribute values such as Size/Alignment.
+
+        and then Comes_From_Source (T)
       then
          Too_Late;
          S := First_Subtype (T);

@@ -1231,7 +1231,7 @@ procedure Gnatls is
 
             --  Add the lib subdirectory if it exists
 
-            Lib_Path := Get_RTS_Search_Dir (Name, Objects);
+            Lib_Path := Get_RTS_Search_Dir (Rts_Full_Path.all, Objects);
 
             if Lib_Path /= null then
                Add_Search_Dirs (Lib_Path, Objects);
@@ -1553,6 +1553,7 @@ begin
    --  If -l (output license information) is given, it must be the only switch
 
    if License and then Arg_Count /= 2 then
+      Set_Standard_Error;
       Write_Str ("Can't use -l with another switch");
       Write_Eol;
       Usage;
@@ -1713,6 +1714,7 @@ begin
             GNATDIST.Output_No_ALI (Lib_File_Name (Main_File));
 
          else
+            Set_Standard_Error;
             Write_Str ("Can't find library info for ");
             Get_Name_String (Main_File);
             Write_Char ('"'); -- "
@@ -1744,6 +1746,10 @@ begin
          end if;
       end if;
    end loop;
+
+   --  Reset default output file descriptor, if needed
+
+   Set_Standard_Output;
 
    if Very_Verbose_Mode then
       for A in ALIs.First .. ALIs.Last loop

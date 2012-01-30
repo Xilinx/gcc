@@ -4,7 +4,7 @@
    and during the instantiation of template functions.
 
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-		 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+		 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
    Written by Mark Mitchell (mmitchell@usa.net) based on code found
    formerly in parse.y and pt.c.
 
@@ -33,7 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-family/c-common.h"
 #include "c-family/c-objc.h"
 #include "tree-inline.h"
-#include "tree-mudflap.h"
 #include "intl.h"
 #include "toplev.h"
 #include "flags.h"
@@ -995,6 +994,15 @@ finish_range_for_decl (tree range_for_stmt, tree decl, tree expr)
 tree
 finish_break_stmt (void)
 {
+  /* In switch statements break is sometimes stylistically used after
+     a return statement.  This can lead to spurious warnings about
+     control reaching the end of a non-void function when it is
+     inlined.  Note that we are calling block_may_fallthru with
+     language specific tree nodes; this works because
+     block_may_fallthru returns true when given something it does not
+     understand.  */
+  if (!block_may_fallthru (cur_stmt_list))
+    return void_zero_node;
   return add_stmt (build_stmt (input_location, BREAK_STMT));
 }
 
@@ -2370,7 +2378,8 @@ finish_compound_literal (tree type, tree compound_literal,
     return error_mark_node;
   compound_literal = reshape_init (type, compound_literal, complain);
   if (SCALAR_TYPE_P (type)
-      && !BRACE_ENCLOSED_INITIALIZER_P (compound_literal))
+      && !BRACE_ENCLOSED_INITIALIZER_P (compound_literal)
+      && (complain & tf_warning_or_error))
     check_narrowing (type, compound_literal);
   if (TREE_CODE (type) == ARRAY_TYPE
       && TYPE_DOMAIN (type) == NULL_TREE)
@@ -2662,20 +2671,6 @@ finish_member_declaration (tree decl)
     {
       if (TREE_CODE (decl) == USING_DECL)
 	{
-	  /* We need to add the target functions to the
-	     CLASSTYPE_METHOD_VEC if an enclosing scope is a template
-	     class, so that this function be found by lookup_fnfields_1
-	     when the using declaration is not instantiated yet.  */
-
-	  tree target_decl = strip_using_decl (decl);
-	  if (dependent_type_p (current_class_type)
-	      && is_overloaded_fn (target_decl))
-	    {
-	      tree t = target_decl;
-	      for (; t; t = OVL_NEXT (t))
-		add_method (current_class_type, OVL_CURRENT (t), decl);
-	    }
-
 	  /* For now, ignore class-scope USING_DECLS, so that
 	     debugging backends do not see them. */
 	  DECL_IGNORED_P (decl) = 1;
@@ -2812,23 +2807,20 @@ finish_base_specifier (tree base, tree access, bool virtual_p)
 tree
 baselink_for_fns (tree fns)
 {
-  tree fn;
+  tree scope;
   tree cl;
 
   if (BASELINK_P (fns) 
       || error_operand_p (fns))
     return fns;
-  
-  fn = fns;
-  if (TREE_CODE (fn) == TEMPLATE_ID_EXPR)
-    fn = TREE_OPERAND (fn, 0);
-  fn = get_first_fn (fn);
-  if (!DECL_FUNCTION_MEMBER_P (fn))
+
+  scope = ovl_scope (fns);
+  if (!CLASS_TYPE_P (scope))
     return fns;
 
-  cl = currently_open_derived_class (DECL_CONTEXT (fn));
+  cl = currently_open_derived_class (scope);
   if (!cl)
-    cl = DECL_CONTEXT (fn);
+    cl = scope;
   cl = TYPE_BINFO (cl);
   return build_baselink (cl, cl, fns, /*optype=*/NULL_TREE);
 }
@@ -4066,6 +4058,8 @@ finish_omp_clauses (tree clauses)
 	  t = maybe_convert_cond (t);
 	  if (t == error_mark_node)
 	    remove = true;
+	  else if (!processing_template_decl)
+	    t = fold_build_cleanup_point_expr (TREE_TYPE (t), t);
 	  OMP_CLAUSE_IF_EXPR (c) = t;
 	  break;
 
@@ -4074,6 +4068,8 @@ finish_omp_clauses (tree clauses)
 	  t = maybe_convert_cond (t);
 	  if (t == error_mark_node)
 	    remove = true;
+	  else if (!processing_template_decl)
+	    t = fold_build_cleanup_point_expr (TREE_TYPE (t), t);
 	  OMP_CLAUSE_FINAL_EXPR (c) = t;
 	  break;
 
@@ -4086,6 +4082,13 @@ finish_omp_clauses (tree clauses)
 	    {
 	      error ("num_threads expression must be integral");
 	      remove = true;
+	    }
+	  else
+	    {
+	      t = mark_rvalue_use (t);
+	      if (!processing_template_decl)
+		t = fold_build_cleanup_point_expr (TREE_TYPE (t), t);
+	      OMP_CLAUSE_NUM_THREADS_EXPR (c) = t;
 	    }
 	  break;
 
@@ -4100,6 +4103,13 @@ finish_omp_clauses (tree clauses)
 	    {
 	      error ("schedule chunk size expression must be integral");
 	      remove = true;
+	    }
+	  else
+	    {
+	      t = mark_rvalue_use (t);
+	      if (!processing_template_decl)
+		t = fold_build_cleanup_point_expr (TREE_TYPE (t), t);
+	      OMP_CLAUSE_SCHEDULE_CHUNK_EXPR (c) = t;
 	    }
 	  break;
 
@@ -5122,7 +5132,7 @@ finish_static_assert (tree condition, tree message, location_t location,
       if (TREE_CODE (condition) == INTEGER_CST 
           && integer_zerop (condition))
         /* Report the error. */
-        error ("static assertion failed: %E", message);
+        error ("static assertion failed: %s", TREE_STRING_POINTER (message));
       else if (condition && condition != error_mark_node)
 	{
 	  error ("non-constant condition for static assertion");
@@ -5434,6 +5444,9 @@ trait_expr_value (cp_trait_kind kind, tree type1, tree type2)
     case CPTK_IS_ENUM:
       return (type_code1 == ENUMERAL_TYPE);
 
+    case CPTK_IS_FINAL:
+      return (CLASS_TYPE_P (type1) && CLASSTYPE_FINAL (type1));
+
     case CPTK_IS_LITERAL_TYPE:
       return (literal_type_p (type1));
 
@@ -5493,6 +5506,7 @@ finish_trait_expr (cp_trait_kind kind, tree type1, tree type2)
 	      || kind == CPTK_IS_CONVERTIBLE_TO
 	      || kind == CPTK_IS_EMPTY
 	      || kind == CPTK_IS_ENUM
+	      || kind == CPTK_IS_FINAL
 	      || kind == CPTK_IS_LITERAL_TYPE
 	      || kind == CPTK_IS_POD
 	      || kind == CPTK_IS_POLYMORPHIC
@@ -5533,6 +5547,7 @@ finish_trait_expr (cp_trait_kind kind, tree type1, tree type2)
     case CPTK_HAS_VIRTUAL_DESTRUCTOR:
     case CPTK_IS_ABSTRACT:
     case CPTK_IS_EMPTY:
+    case CPTK_IS_FINAL:
     case CPTK_IS_LITERAL_TYPE:
     case CPTK_IS_POD:
     case CPTK_IS_POLYMORPHIC:
@@ -5720,6 +5735,12 @@ is_valid_constexpr_fn (tree fun, bool complain)
 	    }
 	}
     }
+  else if (CLASSTYPE_VBASECLASSES (DECL_CONTEXT (fun)))
+    {
+      ret = false;
+      if (complain)
+	error ("%q#T has virtual base classes", DECL_CONTEXT (fun));
+    }
 
   return ret;
 }
@@ -5791,6 +5812,12 @@ build_data_member_initialization (tree t, VEC(constructor_elt,gc) **vec)
 	     the const_cast.  */
 	  member = op;
 	}
+      else if (op == current_class_ptr
+	       && (same_type_ignoring_top_level_qualifiers_p
+		   (TREE_TYPE (TREE_TYPE (member)),
+		    current_class_type)))
+	/* Delegating constructor.  */
+	member = op;
       else
 	{
 	  /* We don't put out anything for an empty base.  */
@@ -5894,10 +5921,25 @@ build_constexpr_constructor_member_initializers (tree type, tree body)
 	    break;
 	}
     }
+  else if (EXPR_P (body))
+    ok = build_data_member_initialization (body, &vec);
   else
     gcc_assert (errorcount > 0);
   if (ok)
-    return build_constructor (type, vec);
+    {
+      if (VEC_length (constructor_elt, vec) > 0)
+	{
+	  /* In a delegating constructor, return the target.  */
+	  constructor_elt *ce = VEC_index (constructor_elt, vec, 0);
+	  if (ce->index == current_class_ptr)
+	    {
+	      body = ce->value;
+	      VEC_free (constructor_elt, gc, vec);
+	      return body;
+	    }
+	}
+      return build_constructor (type, vec);
+    }
   else
     return error_mark_node;
 }
@@ -5963,12 +6005,12 @@ massage_constexpr_body (tree fun, tree body)
       (DECL_CONTEXT (fun), body);
   else
     {
-      if (TREE_CODE (body) == BIND_EXPR)
-	body = BIND_EXPR_BODY (body);
       if (TREE_CODE (body) == EH_SPEC_BLOCK)
         body = EH_SPEC_STMTS (body);
       if (TREE_CODE (body) == MUST_NOT_THROW_EXPR)
 	body = TREE_OPERAND (body, 0);
+      if (TREE_CODE (body) == BIND_EXPR)
+	body = BIND_EXPR_BODY (body);
       body = constexpr_fn_retval (body);
     }
   return body;
@@ -6016,7 +6058,8 @@ cx_check_missing_mem_inits (tree fun, tree body, bool complain)
 	      /* It's OK to skip a member with a trivial constexpr ctor.
 	         A constexpr ctor that isn't trivial should have been
 	         added in by now.  */
-	      gcc_checking_assert (!TYPE_HAS_COMPLEX_DFLT (ftype));
+	      gcc_checking_assert (!TYPE_HAS_COMPLEX_DFLT (ftype)
+				   || errorcount != 0);
 	      continue;
 	    }
 	  error ("uninitialized member %qD in %<constexpr%> constructor",
@@ -6526,7 +6569,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
   else
     {
       result = entry->result;
-      if (!result || (result == error_mark_node && !allow_non_constant))
+      if (!result || result == error_mark_node)
 	result = (cxx_eval_constant_expression
 		  (&new_call, new_call.fundef->body,
 		   allow_non_constant, addr,
@@ -7055,7 +7098,7 @@ cxx_eval_vec_init_1 (const constexpr_call *call, tree atype, tree init,
       if (TREE_CODE (elttype) == ARRAY_TYPE)
 	{
 	  /* A multidimensional array; recurse.  */
-	  if (value_init)
+	  if (value_init || init == NULL_TREE)
 	    eltinit = NULL_TREE;
 	  else
 	    eltinit = cp_build_array_ref (input_location, init, idx,
@@ -7694,17 +7737,6 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 	tree oldop = TREE_OPERAND (t, 0);
 	tree op = oldop;
 	tree to = TREE_TYPE (t);
-	tree source = TREE_TYPE (op);
-        if (TYPE_PTR_P (source) && ARITHMETIC_TYPE_P (to)
-	    && !(TREE_CODE (op) == COMPONENT_REF
-		 && TYPE_PTRMEMFUNC_P (TREE_TYPE (TREE_OPERAND (op, 0)))))
-          {
-            if (!allow_non_constant)
-              error ("conversion of expression %qE of pointer type "
-                     "cannot yield a constant expression", op);
-	    *non_constant_p = true;
-	    return t;
-          }
 	op = cxx_eval_constant_expression (call, TREE_OPERAND (t, 0),
 					   allow_non_constant, addr,
 					   non_constant_p);
@@ -7790,6 +7822,20 @@ cxx_eval_outermost_constant_expr (tree t, bool allow_non_constant)
       if (!allow_non_constant)
 	error ("%qT cannot be the type of a complete constant expression "
 	       "because it has mutable sub-objects", TREE_TYPE (t));
+      non_constant_p = true;
+    }
+
+  /* Technically we should check this for all subexpressions, but that
+     runs into problems with our internal representation of pointer
+     subtraction and the 5.19 rules are still in flux.  */
+  if (CONVERT_EXPR_CODE_P (TREE_CODE (r))
+      && ARITHMETIC_TYPE_P (TREE_TYPE (r))
+      && TREE_CODE (TREE_OPERAND (r, 0)) == ADDR_EXPR)
+    {
+      if (!allow_non_constant)
+	error ("conversion from pointer type %qT "
+	       "to arithmetic type %qT in a constant-expression",
+	       TREE_TYPE (TREE_OPERAND (r, 0)), TREE_TYPE (r));
       non_constant_p = true;
     }
 
@@ -8100,25 +8146,10 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     case NOP_EXPR:
     case CONVERT_EXPR:
     case VIEW_CONVERT_EXPR:
-      /* -- an array-to-pointer conversion that is applied to an lvalue
-            that designates an object with thread or automatic storage
-            duration;  FIXME not implemented as it breaks constexpr arrays;
-	    need to fix the standard
-         -- a type conversion from a pointer or pointer-to-member type
-            to a literal type.  */
+      /* -- a reinterpret_cast.  FIXME not implemented, and this rule
+	 may change to something more specific to type-punning (DR 1312).  */
       {
         tree from = TREE_OPERAND (t, 0);
-        tree source = TREE_TYPE (from);
-        tree target = TREE_TYPE (t);
-        if (TYPE_PTR_P (source) && ARITHMETIC_TYPE_P (target)
-	    && !(TREE_CODE (from) == COMPONENT_REF
-		 && TYPE_PTRMEMFUNC_P (TREE_TYPE (TREE_OPERAND (from, 0)))))
-          {
-            if (flags & tf_error)
-              error ("conversion of expression %qE of pointer type "
-                     "cannot yield a constant expression", from);
-            return false;
-          }
         return (potential_constant_expression_1
 		(from, TREE_CODE (t) != VIEW_CONVERT_EXPR, flags));
       }

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -6037,10 +6037,11 @@ package body Sem_Util is
 
    function Implementation_Kind (Subp : Entity_Id) return Name_Id is
       Impl_Prag : constant Node_Id := Get_Rep_Pragma (Subp, Name_Implemented);
+      Arg       : Node_Id;
    begin
       pragma Assert (Present (Impl_Prag));
-      return
-        Chars (Expression (Last (Pragma_Argument_Associations (Impl_Prag))));
+      Arg := Last (Pragma_Argument_Associations (Impl_Prag));
+      return Chars (Get_Pragma_Arg (Arg));
    end Implementation_Kind;
 
    --------------------------
@@ -9331,7 +9332,6 @@ package body Sem_Util is
               and then Nkind (Expression (Expression (N))) = N_Op_Concat
             then
                Set_Is_Dynamic_Coextension (N);
-
             else
                Set_Is_Static_Coextension (N);
             end if;
@@ -9346,12 +9346,33 @@ package body Sem_Util is
 
    begin
       case Nkind (Context_Nod) is
-         when N_Assignment_Statement    |
-              N_Simple_Return_Statement =>
+
+         --  Comment here ???
+
+         when N_Assignment_Statement    =>
             Is_Dynamic := Nkind (Expression (Context_Nod)) = N_Allocator;
 
+         --  An allocator that is a component of a returned aggregate
+         --  must be dynamic.
+
+         when N_Simple_Return_Statement =>
+            declare
+               Expr : constant Node_Id := Expression (Context_Nod);
+            begin
+               Is_Dynamic :=
+                 Nkind (Expr) = N_Allocator
+                   or else
+                     (Nkind (Expr) = N_Qualified_Expression
+                       and then Nkind (Expression (Expr)) = N_Aggregate);
+            end;
+
+         --  An alloctor within an object declaration in an extended return
+         --  statement is of necessity dynamic.
+
          when N_Object_Declaration =>
-            Is_Dynamic := Nkind (Root_Nod) = N_Allocator;
+            Is_Dynamic := Nkind (Root_Nod) = N_Allocator
+              or else
+                Nkind (Parent (Context_Nod)) = N_Extended_Return_Statement;
 
          --  This routine should not be called for constructs which may not
          --  contain coextensions.
@@ -9371,9 +9392,9 @@ package body Sem_Util is
       Formal : Entity_Id;
 
    begin
-      if Ada_Version >= Ada_2005
-        and then Present (First_Formal (E))
-      then
+      --  Ada 2005 or later, and formals present
+
+      if Ada_Version >= Ada_2005 and then Present (First_Formal (E)) then
          Formal := Next_Formal (First_Formal (E));
          while Present (Formal) loop
             if No (Default_Value (Formal)) then
@@ -9384,6 +9405,8 @@ package body Sem_Util is
          end loop;
 
          return True;
+
+      --  Ada 83/95 or no formals
 
       else
          return False;
