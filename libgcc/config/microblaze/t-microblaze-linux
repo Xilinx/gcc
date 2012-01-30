@@ -1,8 +1,6 @@
 # For C++ crtstuff
 EXTRA_MULTILIB_PARTS = crtbegin$(objext) crtend$(objext)
 
-EXTRA_PARTS += crti$(objext) crtn$(objext)
-
 LIB2ADD += \
         $(srcdir)/config/microblaze/divsi3.asm \
         $(srcdir)/config/microblaze/modsi3.asm \
