@@ -129,16 +129,6 @@ tree_is_indexable (tree t)
   else if (TREE_CODE (t) == VAR_DECL && decl_function_context (t)
 	   && !TREE_STATIC (t))
     return false;
-  /* If this is a decl generated for block local externs for
-     debug info generation, stream it unshared alongside BLOCK_VARS.  */
-  else if (VAR_OR_FUNCTION_DECL_P (t)
-	   /* ???  The following tests are a literal match on what
-	      c-decl.c:pop_scope does.  */
-	   && TREE_PUBLIC (t)
-	   && DECL_EXTERNAL (t)
-	   && DECL_CONTEXT (t)
-	   && TREE_CODE (DECL_CONTEXT (t)) == FUNCTION_DECL)
-    return false;
   /* Variably modified types need to be streamed alongside function
      bodies because they can refer to local entities.  Together with
      them we have to localize their members as well.
@@ -314,7 +304,6 @@ lto_is_streamable (tree expr)
 	 && code != WITH_CLEANUP_EXPR
 	 && code != STATEMENT_LIST
 	 && code != OMP_CLAUSE
-	 && code != OPTIMIZATION_NODE
 	 && (code == CASE_LABEL_EXPR
 	     || code == DECL_EXPR
 	     || TREE_CODE_CLASS (code) != tcc_statement);
@@ -380,11 +369,12 @@ lto_write_tree (struct output_block *ob, tree expr, bool ref_p)
 
 
 /* Emit the physical representation of tree node EXPR to output block
-   OB.  If REF_P is true, the leaves of EXPR are emitted as references
-   via lto_output_tree_ref.  */
+   OB.  If THIS_REF_P is true, the leaves of EXPR are emitted as references
+   via lto_output_tree_ref.  REF_P is used for streaming siblings of EXPR.  */
 
 void
-lto_output_tree (struct output_block *ob, tree expr, bool ref_p)
+lto_output_tree (struct output_block *ob, tree expr,
+		 bool ref_p, bool this_ref_p)
 {
   unsigned ix;
   bool existed_p;
@@ -395,7 +385,7 @@ lto_output_tree (struct output_block *ob, tree expr, bool ref_p)
       return;
     }
 
-  if (ref_p && tree_is_indexable (expr))
+  if (this_ref_p && tree_is_indexable (expr))
     {
       lto_output_tree_ref (ob, expr);
       return;

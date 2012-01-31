@@ -106,7 +106,7 @@ enum rid
   RID_DFLOAT32, RID_DFLOAT64, RID_DFLOAT128,
   RID_FRACT, RID_ACCUM,
 
-  /* C1X */
+  /* C11 */
   RID_ALIGNAS,
 
   /* This means to warn that this is a C++ keyword, and then treat it
@@ -134,7 +134,7 @@ enum rid
   RID_CONSTCAST, RID_DYNCAST, RID_REINTCAST, RID_STATCAST,
 
   /* C++ extensions */
-  RID_BASES,                  RID_DIRECT_BASES,
+  RID_BASES,                   RID_DIRECT_BASES,
   RID_HAS_NOTHROW_ASSIGN,      RID_HAS_NOTHROW_CONSTRUCTOR,
   RID_HAS_NOTHROW_COPY,        RID_HAS_TRIVIAL_ASSIGN,
   RID_HAS_TRIVIAL_CONSTRUCTOR, RID_HAS_TRIVIAL_COPY,
@@ -142,12 +142,12 @@ enum rid
   RID_IS_ABSTRACT,             RID_IS_BASE_OF,
   RID_IS_CLASS,                RID_IS_CONVERTIBLE_TO,
   RID_IS_EMPTY,                RID_IS_ENUM,
-  RID_IS_LITERAL_TYPE,         RID_IS_POD,
-  RID_IS_POLYMORPHIC,          RID_IS_STD_LAYOUT,
-  RID_IS_TRIVIAL,              RID_IS_UNION,
-  RID_UNDERLYING_TYPE,
+  RID_IS_FINAL,                RID_IS_LITERAL_TYPE,
+  RID_IS_POD,                  RID_IS_POLYMORPHIC,
+  RID_IS_STD_LAYOUT,           RID_IS_TRIVIAL,
+  RID_IS_UNION,                RID_UNDERLYING_TYPE,
 
-  /* C++0x */
+  /* C++11 */
   RID_CONSTEXPR, RID_DECLTYPE, RID_NOEXCEPT, RID_NULLPTR, RID_STATIC_ASSERT,
 
   /* Objective-C ("AT" reserved words - they are only keywords when
@@ -607,13 +607,13 @@ extern int flag_cond_mismatch;
 
 extern int flag_isoc94;
 
-/* Nonzero means use the ISO C99 (or C1X) dialect of C.  */
+/* Nonzero means use the ISO C99 (or C11) dialect of C.  */
 
 extern int flag_isoc99;
 
-/* Nonzero means use the ISO C1X dialect of C.  */
+/* Nonzero means use the ISO C11 dialect of C.  */
 
-extern int flag_isoc1x;
+extern int flag_isoc11;
 
 /* Nonzero means that we have builtin functions, and main is an int.  */
 

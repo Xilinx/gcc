@@ -914,6 +914,7 @@ clone_function (tree orig_fndecl, const char *name_suffix)
 
   tree_function_versioning (orig_fndecl, new_decl, NULL /*tree_map*/,
                             false, NULL /*args_to_skip*/,
+			    false, /* skip return */
 			    NULL /* blocks_to_copy */ ,
                             NULL /* new_entry */);
 

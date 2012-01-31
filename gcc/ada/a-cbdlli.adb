@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -81,6 +81,11 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
       New_Node  : Count_Type);
 
    function Vet (Position : Cursor) return Boolean;
+   --  Checks invariants of the cursor and its designated container, as a
+   --  simple way of detecting dangling references (see operation Free for a
+   --  description of the detection mechanism), returning True if all checks
+   --  pass. Invocations of Vet are used here as the argument of pragma Assert,
+   --  so the checks are performed only when assertions are enabled.
 
    ---------
    -- "=" --
@@ -295,6 +300,33 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
 
       Free (Container, X);
    end Clear;
+
+   ------------------------
+   -- Constant_Reference --
+   ------------------------
+
+   function Constant_Reference
+     (Container : aliased List;
+      Position  : Cursor) return Constant_Reference_Type
+   is
+   begin
+      if Position.Container = null then
+         raise Constraint_Error with "Position cursor has no element";
+      end if;
+
+      if Position.Container /= Container'Unrestricted_Access then
+         raise Program_Error with
+           "Position cursor designates wrong container";
+      end if;
+
+      pragma Assert (Vet (Position), "bad cursor in Constant_Reference");
+
+      declare
+         N : Node_Type renames Container.Nodes (Position.Node);
+      begin
+         return (Element => N.Element'Access);
+      end;
+   end Constant_Reference;
 
    --------------
    -- Contains --
@@ -655,7 +687,7 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
       --  When an element is deleted from the list container, its node becomes
       --  inactive, and so we set its Prev component to a negative value, to
       --  indicate that it is now inactive. This provides a useful way to
-      --  detect a dangling cursor reference.
+      --  detect a dangling cursor reference (and which is used in Vet).
 
       N (X).Prev := -1;  -- Node is deallocated (not on active list)
 
@@ -1537,30 +1569,27 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
    -- Reference --
    ---------------
 
-   function Constant_Reference (Container : List; Position : Cursor)
-   return Constant_Reference_Type is
+   function Reference
+     (Container : aliased in out List;
+      Position  : Cursor) return Reference_Type
+   is
    begin
-      pragma Unreferenced (Container);
-
       if Position.Container = null then
          raise Constraint_Error with "Position cursor has no element";
       end if;
 
-      return (Element =>
-         Position.Container.Nodes (Position.Node).Element'Unrestricted_Access);
-   end Constant_Reference;
-
-   function Reference (Container : List; Position : Cursor)
-   return Reference_Type is
-   begin
-      pragma Unreferenced (Container);
-
-      if Position.Container = null then
-         raise Constraint_Error with "Position cursor has no element";
+      if Position.Container /= Container'Unrestricted_Access then
+         raise Program_Error with
+           "Position cursor designates wrong container";
       end if;
 
-      return (Element =>
-         Position.Container.Nodes (Position.Node).Element'Unrestricted_Access);
+      pragma Assert (Vet (Position), "bad cursor in function Reference");
+
+      declare
+         N : Node_Type renames Container.Nodes (Position.Node);
+      begin
+         return (Element => N.Element'Access);
+      end;
    end Reference;
 
    ---------------------
@@ -2160,6 +2189,14 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
             return False;
          end if;
 
+         --  An invariant of an active node is that its Previous and Next
+         --  components are non-negative. Operation Free sets the Previous
+         --  component of the node to the value -1 before actually deallocating
+         --  the node, to mark the node as inactive. (By "dellocating" we mean
+         --  only that the node is linked onto a list of inactive nodes used
+         --  for storage.) This marker gives us a simple way to detect a
+         --  dangling reference to a node.
+
          if N (Position.Node).Prev < 0 then  -- see Free
             return False;
          end if;
@@ -2182,9 +2219,8 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
             return False;
          end if;
 
-         --  If we get here, we know that this disjunction is true:
-         --  N (Position.Node).Prev /= 0 or else Position.Node = L.First
-         --  Why not do this with an assertion???
+         pragma Assert (N (Position.Node).Prev /= 0
+                          or else Position.Node = L.First);
 
          if N (Position.Node).Next = 0
            and then Position.Node /= L.Last
@@ -2192,9 +2228,8 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
             return False;
          end if;
 
-         --  If we get here, we know that this disjunction is true:
-         --  N (Position.Node).Next /= 0 or else Position.Node = L.Last
-         --  Why not do this with an assertion???
+         pragma Assert (N (Position.Node).Next /= 0
+                          or else Position.Node = L.Last);
 
          if L.Length = 1 then
             return L.First = L.Last;
@@ -2240,21 +2275,17 @@ package body Ada.Containers.Bounded_Doubly_Linked_Lists is
             return False;
          end if;
 
-         --  Eliminate earlier disjunct
-
-         if Position.Node = L.First then
+         if Position.Node = L.First then  -- eliminates earlier disjunct
             return True;
          end if;
 
-         --  If we get to this point, we know that this predicate is true:
-         --  N (Position.Node).Prev /= 0
+         pragma Assert (N (Position.Node).Prev /= 0);
 
          if Position.Node = L.Last then  -- eliminates earlier disjunct
             return True;
          end if;
 
-         --  If we get to this point, we know that this predicate is true:
-         --  N (Position.Node).Next /= 0
+         pragma Assert (N (Position.Node).Next /= 0);
 
          if N (N (Position.Node).Next).Prev /= Position.Node then
             return False;

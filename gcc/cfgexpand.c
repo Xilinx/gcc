@@ -357,8 +357,7 @@ aggregate_contains_union_type (tree type)
    and due to type based aliasing rules decides that for two overlapping
    union temporaries { short s; int i; } accesses to the same mem through
    different types may not alias and happily reorders stores across
-   life-time boundaries of the temporaries (See PR25654).
-   We also have to mind MEM_IN_STRUCT_P and MEM_SCALAR_P.  */
+   life-time boundaries of the temporaries (See PR25654).  */
 
 static void
 add_alias_set_conflicts (void)
@@ -441,11 +440,12 @@ visit_conflict (gimple stmt ATTRIBUTE_UNUSED, tree op, void *data)
 
 /* Helper routine for add_scope_conflicts, calculating the active partitions
    at the end of BB, leaving the result in WORK.  We're called to generate
-   conflicts when FOR_CONFLICT is true, otherwise we're just tracking
-   liveness.  */
+   conflicts when OLD_CONFLICTS is non-null, otherwise we're just tracking
+   liveness.  If we generate conflicts then OLD_CONFLICTS stores the bits
+   for which we generated conflicts already.  */
 
 static void
-add_scope_conflicts_1 (basic_block bb, bitmap work, bool for_conflict)
+add_scope_conflicts_1 (basic_block bb, bitmap work, bitmap old_conflicts)
 {
   edge e;
   edge_iterator ei;
@@ -482,7 +482,7 @@ add_scope_conflicts_1 (basic_block bb, bitmap work, bool for_conflict)
 	}
       else if (!is_gimple_debug (stmt))
 	{
-	  if (for_conflict
+	  if (old_conflicts
 	      && visit == visit_op)
 	    {
 	      /* If this is the first real instruction in this BB we need
@@ -490,16 +490,27 @@ add_scope_conflicts_1 (basic_block bb, bitmap work, bool for_conflict)
 		 Unlike classical liveness for named objects we can't
 		 rely on seeing a def/use of the names we're interested in.
 		 There might merely be indirect loads/stores.  We'd not add any
-		 conflicts for such partitions.  */
+		 conflicts for such partitions.  We know that we generated
+		 conflicts between all partitions in old_conflicts already,
+		 so we need to generate only the new ones, avoiding to
+		 repeatedly pay the O(N^2) cost for each basic block.  */
 	      bitmap_iterator bi;
 	      unsigned i;
-	      EXECUTE_IF_SET_IN_BITMAP (work, 0, i, bi)
+
+	      EXECUTE_IF_AND_COMPL_IN_BITMAP (work, old_conflicts, 0, i, bi)
 		{
 		  unsigned j;
 		  bitmap_iterator bj;
-		  EXECUTE_IF_SET_IN_BITMAP (work, i + 1, j, bj)
+		  /* First the conflicts between new and old_conflicts.  */
+		  EXECUTE_IF_SET_IN_BITMAP (old_conflicts, 0, j, bj)
+		    add_stack_var_conflict (i, j);
+		  /* Then the conflicts between only the new members.  */
+		  EXECUTE_IF_AND_COMPL_IN_BITMAP (work, old_conflicts, i + 1,
+						  j, bj)
 		    add_stack_var_conflict (i, j);
 		}
+	      /* And remember for the next basic block.  */
+	      bitmap_ior_into (old_conflicts, work);
 	      visit = visit_conflict;
 	    }
 	  walk_stmt_load_store_addr_ops (stmt, work, visit, visit, visit);
@@ -516,6 +527,7 @@ add_scope_conflicts (void)
   basic_block bb;
   bool changed;
   bitmap work = BITMAP_ALLOC (NULL);
+  bitmap old_conflicts;
 
   /* We approximate the live range of a stack variable by taking the first
      mention of its name as starting point(s), and by the end-of-scope
@@ -537,15 +549,18 @@ add_scope_conflicts (void)
       FOR_EACH_BB (bb)
 	{
 	  bitmap active = (bitmap)bb->aux;
-	  add_scope_conflicts_1 (bb, work, false);
+	  add_scope_conflicts_1 (bb, work, NULL);
 	  if (bitmap_ior_into (active, work))
 	    changed = true;
 	}
     }
 
-  FOR_EACH_BB (bb)
-    add_scope_conflicts_1 (bb, work, true);
+  old_conflicts = BITMAP_ALLOC (NULL);
 
+  FOR_EACH_BB (bb)
+    add_scope_conflicts_1 (bb, work, old_conflicts);
+
+  BITMAP_FREE (old_conflicts);
   BITMAP_FREE (work);
   FOR_ALL_BB (bb)
     BITMAP_FREE (bb->aux);
@@ -2541,10 +2556,8 @@ convert_debug_memory_address (enum machine_mode mode, rtx x,
   gcc_assert (xmode == mode || xmode == VOIDmode);
 #else
   rtx temp;
-  enum machine_mode address_mode = targetm.addr_space.address_mode (as);
-  enum machine_mode pointer_mode = targetm.addr_space.pointer_mode (as);
 
-  gcc_assert (mode == address_mode || mode == pointer_mode);
+  gcc_assert (targetm.addr_space.valid_pointer_mode (mode, as));
 
   if (GET_MODE (x) == mode || GET_MODE (x) == VOIDmode)
     return x;
@@ -3497,10 +3510,6 @@ expand_debug_expr (tree exp)
     case REDUC_MIN_EXPR:
     case REDUC_PLUS_EXPR:
     case VEC_COND_EXPR:
-    case VEC_EXTRACT_EVEN_EXPR:
-    case VEC_EXTRACT_ODD_EXPR:
-    case VEC_INTERLEAVE_HIGH_EXPR:
-    case VEC_INTERLEAVE_LOW_EXPR:
     case VEC_LSHIFT_EXPR:
     case VEC_PACK_FIX_TRUNC_EXPR:
     case VEC_PACK_SAT_EXPR:

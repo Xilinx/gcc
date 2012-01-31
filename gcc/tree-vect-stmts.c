@@ -1,5 +1,5 @@
 /* Statement Analysis and Transformation for Vectorization
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Dorit Naishlos <dorit@il.ibm.com>
    and Ira Rosen <irar@il.ibm.com>
@@ -2420,7 +2420,9 @@ vectorizable_conversion (gimple stmt, gimple_stmt_iterator *gsi,
      from supportable_*_operation, and store them in the correct order
      for future use in vect_create_vectorized_*_stmts ().  */
   vec_dsts = VEC_alloc (tree, heap, multi_step_cvt + 1);
-  vec_dest = vect_create_destination_var (scalar_dest, vectype_out);
+  vec_dest = vect_create_destination_var (scalar_dest,
+					  (cvt_type && modifier == WIDEN)
+					  ? cvt_type : vectype_out);
   VEC_quick_push (tree, vec_dsts, vec_dest);
 
   if (multi_step_cvt)
@@ -2435,7 +2437,9 @@ vectorizable_conversion (gimple stmt, gimple_stmt_iterator *gsi,
     }
 
   if (cvt_type)
-    vec_dest = vect_create_destination_var (scalar_dest, cvt_type);
+    vec_dest = vect_create_destination_var (scalar_dest,
+					    modifier == WIDEN
+					    ? vectype_out : cvt_type);
 
   if (!slp_node)
     {
@@ -3864,8 +3868,8 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 
      Then permutation statements are generated:
 
-        VS5: vx5 = VEC_INTERLEAVE_HIGH_EXPR < vx0, vx3 >
-        VS6: vx6 = VEC_INTERLEAVE_LOW_EXPR < vx0, vx3 >
+	VS5: vx5 = VEC_PERM_EXPR < vx0, vx3, {0, 8, 1, 9, 2, 10, 3, 11} >
+	VS6: vx6 = VEC_PERM_EXPR < vx0, vx3, {4, 12, 5, 13, 6, 14, 7, 15} >
 	...
 
      And they are put in STMT_VINFO_VEC_STMT of the corresponding scalar stmts
@@ -4062,8 +4066,8 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
    the VECTOR_CST mask that implements the permutation of the
    vector elements.  If that is impossible to do, returns NULL.  */
 
-static tree
-gen_perm_mask (tree vectype, unsigned char *sel)
+tree
+vect_gen_perm_mask (tree vectype, unsigned char *sel)
 {
   tree mask_elt_type, mask_type, mask_vec;
   int i, nunits;
@@ -4103,7 +4107,7 @@ perm_mask_for_reverse (tree vectype)
   for (i = 0; i < nunits; ++i)
     sel[i] = nunits - 1 - i;
 
-  return gen_perm_mask (vectype, sel);
+  return vect_gen_perm_mask (vectype, sel);
 }
 
 /* Given a vector variable X and Y, that was generated for the scalar
@@ -4354,7 +4358,7 @@ vectorizable_load (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	  for (i = 0; i < gather_off_nunits; ++i)
 	    sel[i] = i | nunits;
 
-	  perm_mask = gen_perm_mask (gather_off_vectype, sel);
+	  perm_mask = vect_gen_perm_mask (gather_off_vectype, sel);
 	  gcc_assert (perm_mask != NULL_TREE);
 	}
       else if (nunits == gather_off_nunits * 2)
@@ -4366,7 +4370,7 @@ vectorizable_load (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	    sel[i] = i < gather_off_nunits
 		     ? i : i + nunits - gather_off_nunits;
 
-	  perm_mask = gen_perm_mask (vectype, sel);
+	  perm_mask = vect_gen_perm_mask (vectype, sel);
 	  gcc_assert (perm_mask != NULL_TREE);
 	  ncopies *= 2;
 	}
@@ -4582,8 +4586,8 @@ vectorizable_load (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 
      Then permutation statements are generated:
 
-     VS5: vx5 = VEC_EXTRACT_EVEN_EXPR < vx0, vx1 >
-     VS6: vx6 = VEC_EXTRACT_ODD_EXPR < vx0, vx1 >
+     VS5: vx5 = VEC_PERM_EXPR < vx0, vx1, { 0, 2, ..., i*2 } >
+     VS6: vx6 = VEC_PERM_EXPR < vx0, vx1, { 1, 3, ..., i*2+1 } >
        ...
 
      And they are put in STMT_VINFO_VEC_STMT of the corresponding scalar stmts
@@ -5243,7 +5247,8 @@ vect_analyze_stmt (gimple stmt, bool *need_to_vectorize, slp_tree node)
   enum vect_relevant relevance = STMT_VINFO_RELEVANT (stmt_info);
   bool ok;
   tree scalar_type, vectype;
-  gimple pattern_stmt, pattern_def_stmt;
+  gimple pattern_stmt;
+  gimple_seq pattern_def_seq;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     {
@@ -5314,21 +5319,29 @@ vect_analyze_stmt (gimple stmt, bool *need_to_vectorize, slp_tree node)
    }
 
   if (is_pattern_stmt_p (stmt_info)
-      && (pattern_def_stmt = STMT_VINFO_PATTERN_DEF_STMT (stmt_info))
-      && (STMT_VINFO_RELEVANT_P (vinfo_for_stmt (pattern_def_stmt))
-          || STMT_VINFO_LIVE_P (vinfo_for_stmt (pattern_def_stmt))))
+      && (pattern_def_seq = STMT_VINFO_PATTERN_DEF_SEQ (stmt_info)))
     {
-      /* Analyze def stmt of STMT if it's a pattern stmt.  */
-      if (vect_print_dump_info (REPORT_DETAILS))
-        {
-          fprintf (vect_dump, "==> examining pattern def statement: ");
-          print_gimple_stmt (vect_dump, pattern_def_stmt, 0, TDF_SLIM);
-        }
+      gimple_stmt_iterator si;
 
-      if (!vect_analyze_stmt (pattern_def_stmt, need_to_vectorize, node))
-        return false;
-   }
+      for (si = gsi_start (pattern_def_seq); !gsi_end_p (si); gsi_next (&si))
+	{
+	  gimple pattern_def_stmt = gsi_stmt (si);
+	  if (STMT_VINFO_RELEVANT_P (vinfo_for_stmt (pattern_def_stmt))
+	      || STMT_VINFO_LIVE_P (vinfo_for_stmt (pattern_def_stmt)))
+	    {
+	      /* Analyze def stmt of STMT if it's a pattern stmt.  */
+	      if (vect_print_dump_info (REPORT_DETAILS))
+		{
+		  fprintf (vect_dump, "==> examining pattern def statement: ");
+		  print_gimple_stmt (vect_dump, pattern_def_stmt, 0, TDF_SLIM);
+		}
 
+	      if (!vect_analyze_stmt (pattern_def_stmt,
+				      need_to_vectorize, node))
+		return false;
+	    }
+	}
+    }
 
   switch (STMT_VINFO_DEF_TYPE (stmt_info))
     {
@@ -5645,7 +5658,7 @@ new_stmt_vec_info (gimple stmt, loop_vec_info loop_vinfo,
   STMT_VINFO_VECTORIZABLE (res) = true;
   STMT_VINFO_IN_PATTERN_P (res) = false;
   STMT_VINFO_RELATED_STMT (res) = NULL;
-  STMT_VINFO_PATTERN_DEF_STMT (res) = NULL;
+  STMT_VINFO_PATTERN_DEF_SEQ (res) = NULL;
   STMT_VINFO_DATA_REF (res) = NULL;
 
   STMT_VINFO_DR_BASE_ADDRESS (res) = NULL;
@@ -5716,8 +5729,13 @@ free_stmt_vec_info (gimple stmt)
 	= vinfo_for_stmt (STMT_VINFO_RELATED_STMT (stmt_info));
       if (patt_info)
 	{
-	  if (STMT_VINFO_PATTERN_DEF_STMT (patt_info))
-	    free_stmt_vec_info (STMT_VINFO_PATTERN_DEF_STMT (patt_info));
+	  gimple_seq seq = STMT_VINFO_PATTERN_DEF_SEQ (patt_info);
+	  if (seq)
+	    {
+	      gimple_stmt_iterator si;
+	      for (si = gsi_start (seq); !gsi_end_p (si); gsi_next (&si))
+		free_stmt_vec_info (gsi_stmt (si));
+	    }
 	  free_stmt_vec_info (STMT_VINFO_RELATED_STMT (stmt_info));
 	}
     }

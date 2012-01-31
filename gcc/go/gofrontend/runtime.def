@@ -28,12 +28,15 @@
 // the name.  The third is the parameter types and the fourth is the
 // result types.
 
+// The standard C memcmp function, used for struct comparisons.
+DEF_GO_RUNTIME(MEMCMP, "memcmp", P3(POINTER, POINTER, UINTPTR), R1(INT))
+
 // Range over a string, returning the next index.
 DEF_GO_RUNTIME(STRINGITER, "runtime.stringiter", P2(STRING, INT), R1(INT))
 
 // Range over a string, returning the next index and character.
 DEF_GO_RUNTIME(STRINGITER2, "runtime.stringiter2", P2(STRING, INT),
-	       R2(INT, INT))
+	       R2(INT, RUNE))
 
 // Concatenate two strings.
 DEF_GO_RUNTIME(STRING_PLUS, "__go_string_plus", P2(STRING, STRING), R1(STRING))

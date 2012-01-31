@@ -2879,7 +2879,7 @@ set_inherited_value_binding_p (cxx_binding *binding, tree decl,
       tree context;
 
       if (TREE_CODE (decl) == OVERLOAD)
-	context = CP_DECL_CONTEXT (OVL_CURRENT (decl));
+	context = ovl_scope (decl);
       else
 	{
 	  gcc_assert (DECL_P (decl));
@@ -3243,7 +3243,7 @@ do_class_using_decl (tree scope, tree name)
       return NULL_TREE;
     }
 
-  scope_dependent_p = dependent_type_p (scope);
+  scope_dependent_p = dependent_scope_p (scope);
   name_dependent_p = (scope_dependent_p
 		      || (IDENTIFIER_TYPENAME_P (name)
 			  && dependent_type_p (TREE_TYPE (name))));
@@ -3268,9 +3268,9 @@ do_class_using_decl (tree scope, tree name)
 
      In general, we cannot check this constraint in a template because
      we do not know the entire set of base classes of the current
-     class type.  However, if all of the base classes are
-     non-dependent, then we can avoid delaying the check until
-     instantiation.  */
+     class type. Morover, if SCOPE is dependent, it might match a
+     non-dependent base.  */
+
   if (!scope_dependent_p)
     {
       base_kind b_kind;
@@ -3296,7 +3296,7 @@ do_class_using_decl (tree scope, tree name)
 	  if (BASELINK_P (decl))
 	    decl = BASELINK_FUNCTIONS (decl);
 	}
-   }
+    }
 
   value = build_lang_decl (USING_DECL, name, NULL_TREE);
   USING_DECL_DECLS (value) = decl;

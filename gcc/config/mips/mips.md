@@ -1,6 +1,7 @@
 ;;  Mips.md	     Machine Description for MIPS based processors
 ;;  Copyright (C) 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-;;  1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+;;  1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+;;  2011, 2012
 ;;  Free Software Foundation, Inc.
 ;;  Contributed by   A. Lichnewsky, lich@inria.inria.fr
 ;;  Changes by       Michael Meissner, meissner@osf.org
@@ -102,6 +103,7 @@
   UNSPEC_LOAD_GOT
   UNSPEC_TLS_LDM
   UNSPEC_TLS_GET_TP
+  UNSPEC_UNSHIFTED_HIGH
 
   ;; MIPS16 constant pools.
   UNSPEC_ALIGN
@@ -134,6 +136,7 @@
 
 (define_constants
   [(TLS_GET_TP_REGNUM		3)
+   (PIC_FUNCTION_ADDR_REGNUM	25)
    (RETURN_ADDR_REGNUM		31)
    (CPRESTORE_SLOT_REGNUM	76)
    (GOT_VERSION_REGNUM		79)
@@ -668,9 +671,10 @@
 		     (HA "") (SA "") (DA "D")
 		     (UHA "") (USA "") (UDA "D")])
 
-;; This attribute gives the length suffix for a sign- or zero-extension
-;; instruction.
-(define_mode_attr size [(QI "b") (HI "h")])
+;; This attribute gives the length suffix for a load or store instruction.
+;; The same suffixes work for zero and sign extensions.
+(define_mode_attr size [(QI "b") (HI "h") (SI "w") (DI "d")])
+(define_mode_attr SIZE [(QI "B") (HI "H") (SI "W") (DI "D")])
 
 ;; This attributes gives the mode mask of a SHORT.
 (define_mode_attr mask [(QI "0x00ff") (HI "0xffff")])
@@ -789,6 +793,9 @@
 		     (ge "") (geu "u")
 		     (lt "") (ltu "u")
 		     (le "") (leu "u")])
+
+;; <U> is like <u> except uppercase.
+(define_code_attr U [(sign_extend "") (zero_extend "U")])
 
 ;; <su> is like <u>, but the signed form expands to "s" rather than "".
 (define_code_attr su [(sign_extend "s") (zero_extend "u")])
@@ -3919,14 +3926,19 @@
 ;;
 ;; on MIPS16 targets.
 (define_split
-  [(set (match_operand:SI 0 "d_operand")
-	(high:SI (match_operand:SI 1 "absolute_symbolic_operand")))]
+  [(set (match_operand:P 0 "d_operand")
+	(high:P (match_operand:P 1 "symbolic_operand_with_high")))]
   "TARGET_MIPS16 && reload_completed"
-  [(set (match_dup 0) (match_dup 2))
-   (set (match_dup 0) (ashift:SI (match_dup 0) (const_int 16)))]
-{
-  operands[2] = mips_unspec_address (operands[1], SYMBOL_32_HIGH);
-})
+  [(set (match_dup 0) (unspec:P [(match_dup 1)] UNSPEC_UNSHIFTED_HIGH))
+   (set (match_dup 0) (ashift:P (match_dup 0) (const_int 16)))])
+
+(define_insn "*unshifted_high"
+  [(set (match_operand:P 0 "d_operand" "=d")
+	(unspec:P [(match_operand:P 1 "symbolic_operand_with_high")]
+		  UNSPEC_UNSHIFTED_HIGH))]
+  ""
+  "li\t%0,%h1"
+  [(set_attr "extended_mips16" "yes")])
 
 ;; Insns to fetch a symbol from a big GOT.
 
@@ -4838,7 +4850,7 @@
 ;; of _gp from the start of this function.  Operand 1 is the incoming
 ;; function address.
 (define_insn_and_split "loadgp_newabi_<mode>"
-  [(set (match_operand:P 0 "register_operand" "=d")
+  [(set (match_operand:P 0 "register_operand" "=&d")
 	(unspec:P [(match_operand:P 1)
 		   (match_operand:P 2 "register_operand" "d")]
 		  UNSPEC_LOADGP))]
@@ -6487,6 +6499,14 @@
 ;;  ....................
 ;;
 
+(define_insn "consttable_tls_reloc"
+  [(unspec_volatile [(match_operand 0 "tls_reloc_operand" "")
+		     (match_operand 1 "const_int_operand" "")]
+		    UNSPEC_CONSTTABLE_INT)]
+  "TARGET_MIPS16_PCREL_LOADS"
+  { return mips_output_tls_reloc_directive (&operands[0]); }
+  [(set (attr "length") (symbol_ref "INTVAL (operands[1])"))])
+
 (define_insn "consttable_int"
   [(unspec_volatile [(match_operand 0 "consttable_operand" "")
 		     (match_operand 1 "const_int_operand" "")]
@@ -6587,6 +6607,49 @@
   [(set_attr "type" "unknown")
    ; See tls_get_tp_<mode>
    (set_attr "can_delay" "no")
+   (set_attr "mode" "<MODE>")])
+
+;; In MIPS16 mode, the TLS base pointer is accessed by a
+;; libgcc helper function __mips16_rdhwr(), as 'rdhwr' is not
+;; accessible in MIPS16.
+;;
+;; This is not represented as a call insn, to avoid the
+;; unnecesarry clobbering of caller-save registers by a
+;; function consisting only of: "rdhwr $3,$29; j $31; nop;"
+;;
+;; A $25 clobber is added to cater for a $25 load stub added by the
+;; linker to __mips16_rdhwr when the call is made from non-PIC code.
+
+(define_insn_and_split "tls_get_tp_mips16_<mode>"
+  [(set (match_operand:P 0 "register_operand" "=d")
+	(unspec:P [(match_operand:P 1 "call_insn_operand" "dS")]
+		  UNSPEC_TLS_GET_TP))
+   (clobber (reg:P TLS_GET_TP_REGNUM))
+   (clobber (reg:P PIC_FUNCTION_ADDR_REGNUM))
+   (clobber (reg:P RETURN_ADDR_REGNUM))]
+  "HAVE_AS_TLS && TARGET_MIPS16"
+  "#"
+  "&& reload_completed"
+  [(parallel [(set (reg:P TLS_GET_TP_REGNUM)
+	  	   (unspec:P [(match_dup 1)] UNSPEC_TLS_GET_TP))
+	      (clobber (reg:P PIC_FUNCTION_ADDR_REGNUM))
+	      (clobber (reg:P RETURN_ADDR_REGNUM))])
+   (set (match_dup 0) (reg:P TLS_GET_TP_REGNUM))]
+  ""
+  [(set_attr "type" "multi")
+   (set_attr "length" "16")
+   (set_attr "mode" "<MODE>")])
+
+(define_insn "*tls_get_tp_mips16_call_<mode>"
+  [(set (reg:P TLS_GET_TP_REGNUM)
+	(unspec:P [(match_operand:P 0 "call_insn_operand" "dS")]
+		  UNSPEC_TLS_GET_TP))
+   (clobber (reg:P PIC_FUNCTION_ADDR_REGNUM))
+   (clobber (reg:P RETURN_ADDR_REGNUM))]
+  "HAVE_AS_TLS && TARGET_MIPS16"
+  { return MIPS_CALL ("jal", operands, 0, -1); }
+  [(set_attr "type" "call")
+   (set_attr "length" "12")
    (set_attr "mode" "<MODE>")])
 
 ;; Synchronization instructions.

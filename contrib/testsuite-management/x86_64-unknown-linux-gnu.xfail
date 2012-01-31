@@ -32,17 +32,9 @@ FAIL: gcc.target/i386/patch-functions-6.c scan-assembler ret(.*).byte\t0x90(.*).
 # gc failure
 FAIL: boehm-gc.c/thread_leak_test.c -O2 (test for excess errors)
 
-# These tests fail in trunk in all configuration
-FAIL: 23_containers/vector/requirements/dr438/assign_neg.cc  (test for errors, line 1225)
-FAIL: 23_containers/vector/requirements/dr438/assign_neg.cc (test for excess errors)
-FAIL: 23_containers/vector/requirements/dr438/constructor_1_neg.cc  (test for errors, line 1155)
-FAIL: 23_containers/vector/requirements/dr438/constructor_1_neg.cc (test for excess errors)
-FAIL: 23_containers/vector/requirements/dr438/constructor_2_neg.cc  (test for errors, line 1155)
-FAIL: 23_containers/vector/requirements/dr438/constructor_2_neg.cc (test for excess errors)
-FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc  (test for errors, line 1266)
-FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc (test for excess errors)
+
+# These tests fail in trunk in all configurations.
 FAIL: gcc.dg/cproj-fails-with-broken-glibc.c execution test
-FAIL: gcc.dg/tree-ssa/vrp47.c scan-tree-dump-times dom1 "x[^ ]* & y" 1
 XPASS: gcc.dg/unroll_2.c (test for excess errors)
 XPASS: gcc.dg/unroll_3.c (test for excess errors)
 XPASS: gcc.dg/unroll_4.c (test for excess errors)
@@ -58,8 +50,20 @@ FAIL: 23_containers/vector/requirements/dr438/constructor_2_neg.cc  (test for er
 FAIL: 23_containers/vector/requirements/dr438/constructor_2_neg.cc (test for excess errors)
 FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc  (test for errors, line 1266)
 FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc (test for excess errors)
+FAIL: gcc.c-torture/execute/vshuf-v2di.c execution,  -Os
+FAIL: gcc.c-torture/execute/vshuf-v8hi.c execution,  -Os
+FAIL: gcc.target/i386/pr27827.c scan-assembler fmul[ \t]*%st
 
 # *** libitm for unix
+# Failures in libitm.
+FAIL: libitm.c/stackundo.c (test for excess errors)
+UNRESOLVED: libitm.c/stackundo.c compilation failed to produce executable
+FAIL: libitm.c++/dropref.C (test for excess errors)
+UNRESOLVED: libitm.c++/dropref.C compilation failed to produce executable
+UNRESOLVED: libitm.c++/eh-1.C compilation failed to produce executable
+FAIL: libitm.c++/eh-1.C (test for excess errors)
+FAIL: libitm.c++/throwdown.C (test for excess errors)
+>>>>>>> .merge-right.r183740
 FAIL: libitm.c/cancel.c (test for excess errors)
 UNRESOLVED: libitm.c/cancel.c compilation failed to produce executable
 FAIL: libitm.c/clone-1.c (test for excess errors)
@@ -91,5 +95,12 @@ flaky | FAIL: libmudflap.cth/pass40-frag.c execution test
 flaky | FAIL: libmudflap.cth/pass40-frag.c output pattern test
 flaky | FAIL: libmudflap.cth/pass40-frag.c (-O2) execution test
 FAIL: libmudflap.cth/pass39-frag.c (-O3) (rerun 10) execution test
+
+# New failures
+FAIL: gcc.c-torture/compile/pr49710.c -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions  (test for excess errors)
+FAIL: gcc.c-torture/compile/pr49710.c -O3 -fomit-frame-pointer -funroll-loops  (internal compiler error)
+FAIL: gcc.c-torture/compile/pr49710.c -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions  (internal compiler error)
+FAIL: gcc.c-torture/compile/pr49710.c -O3 -fomit-frame-pointer -funroll-loops  (test for excess errors)
+
 
 

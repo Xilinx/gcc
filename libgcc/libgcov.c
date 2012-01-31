@@ -147,6 +147,10 @@ THREAD_PREFIX gcov_unsigned_t __gcov_sample_counter = 0;
 /* Chain of per-object gcov structures.  */
 extern struct gcov_info *__gcov_list;
 
+/* A program checksum allows us to distinguish program data for an
+   object file included in multiple programs.  */
+static gcov_unsigned_t gcov_crc32;
+
 /* Size of the longest file name. */
 static size_t gcov_max_filename = 0;
 #endif /* __GCOV_KERNEL__ */
@@ -167,10 +171,6 @@ THREAD_PREFIX gcov_type *__gcov_indirect_call_topn_counters ATTRIBUTE_HIDDEN;
 
 /* Indirect call callee address.  */
 THREAD_PREFIX void *__gcov_indirect_call_topn_callee ATTRIBUTE_HIDDEN;
-
-/* A program checksum allows us to distinguish program data for an
-   object file included in multiple programs.  */
-static gcov_unsigned_t gcov_crc32;
 
 /* Dynamic call graph build and form module groups.  */
 void __gcov_compute_module_groups (void) ATTRIBUTE_HIDDEN;
@@ -285,6 +285,25 @@ gcov_counter_active (const struct gcov_info *info, unsigned int type)
 }
 
 #ifndef __GCOV_KERNEL__
+
+/* Add an unsigned value to the current crc */
+
+static gcov_unsigned_t
+crc32_unsigned (gcov_unsigned_t crc32, gcov_unsigned_t value)
+{
+  unsigned ix;
+
+  for (ix = 32; ix--; value <<= 1)
+    {
+      unsigned feedback;
+
+      feedback = (value ^ crc32) & 0x80000000 ? 0x04c11db7 : 0;
+      crc32 <<= 1;
+      crc32 ^= feedback;
+    }
+
+  return crc32;
+}
 
 /* Check if VERSION of the info block PTR matches libgcov one.
    Return 1 on success, or zero in case of versions mismatch.
@@ -604,13 +623,12 @@ __gcov_init (struct gcov_info *info)
       gcov_sampling_rate_initialized = 1;
     }
 
-  if (!info->version)
+  if (!info->version || !info->n_functions)
     return;
 
   if (gcov_version (info, info->version, 0))
     {
       const char *ptr = info->filename;
-      gcov_unsigned_t crc32 = gcov_crc32;
       size_t filename_length = strlen (info->filename);
       struct gcov_pmu_info pmu_info;
 
@@ -636,23 +654,6 @@ __gcov_init (struct gcov_info *info)
       gcc_assert (EXTRACT_MODULE_ID_FROM_GLOBAL_ID (GEN_FUNC_GLOBAL_ID (
                                                        info->mod_info->ident, 0))
                   == info->mod_info->ident);
-
-      do
-	{
-	  unsigned ix;
-	  gcov_unsigned_t value = *ptr << 24;
-
-	  for (ix = 8; ix--; value <<= 1)
-	    {
-	      gcov_unsigned_t feedback;
-
-	      feedback = (value ^ crc32) & 0x80000000 ? 0x04c11db7 : 0;
-	      crc32 <<= 1;
-	      crc32 ^= feedback;
-	    }
-	} while (*ptr++);
-
-      gcov_crc32 = crc32;
 
       if (!__gcov_list)
         {
@@ -770,14 +771,26 @@ gcov_object_summary (struct gcov_info *info, struct gcov_summary *obj_sum)
   const struct gcov_ctr_info *ci_ptr;
   struct gcov_ctr_summary *cs_ptr;
   gcov_unsigned_t c_num;
-  unsigned f_ix, t_ix;
+  unsigned t_ix;
+  int f_ix;
+  gcov_unsigned_t crc32 = gcov_crc32;
 
   /* Totals for this object file.  */
-  for (f_ix = 0; f_ix != info->n_functions; f_ix++)
+  crc32 = crc32_unsigned (crc32, info->stamp);
+  crc32 = crc32_unsigned (crc32, info->n_functions);
+
+  for (f_ix = 0; (unsigned) f_ix != info->n_functions; f_ix++)
     {
       gfi_ptr = info->functions[f_ix];
 
       if (!gfi_ptr || gfi_ptr->key != info)
+        gfi_ptr = 0;
+
+      crc32 = crc32_unsigned (crc32, gfi_ptr ? gfi_ptr->cfg_checksum : 0);
+      crc32 = crc32_unsigned (crc32,
+                              gfi_ptr ? gfi_ptr->lineno_checksum : 0);
+
+      if (!gfi_ptr)
         continue;
 
       ci_ptr = gfi_ptr->ctrs;
@@ -788,6 +801,8 @@ gcov_object_summary (struct gcov_info *info, struct gcov_summary *obj_sum)
 
           cs_ptr = &(obj_sum->ctrs[t_ix]);
           cs_ptr->num += ci_ptr->num;
+          crc32 = crc32_unsigned (crc32, ci_ptr->num);
+
           for (c_num = 0; c_num < ci_ptr->num; c_num++)
             {
               cs_ptr->sum_all += ci_ptr->values[c_num];
@@ -797,6 +812,7 @@ gcov_object_summary (struct gcov_info *info, struct gcov_summary *obj_sum)
           ci_ptr++;
         }
     }
+  gcov_crc32 = crc32;
 }
 
 /* Merge with existing gcda file in the same directory to avoid
@@ -944,8 +960,6 @@ rewrite:;
           {
             if (!cs_prg->runs++)
               cs_prg->num = cs_tprg->num;
-            else if (cs_prg->num != cs_tprg->num)
-              goto read_mismatch;
             cs_prg->sum_all += cs_tprg->sum_all;
             if (cs_prg->run_max < cs_tprg->run_max)
               cs_prg->run_max = cs_tprg->run_max;

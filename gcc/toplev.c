@@ -1353,10 +1353,20 @@ process_options (void)
 	   "and -ftree-loop-linear)");
 #endif
 
+  if (flag_mudflap && flag_lto)
+    sorry ("mudflap cannot be used together with link-time optimization");
+
   /* One region RA really helps to decrease the code size.  */
   if (flag_ira_region == IRA_REGION_AUTODETECT)
     flag_ira_region
       = optimize_size || !optimize ? IRA_REGION_ONE : IRA_REGION_MIXED;
+
+  if (flag_strict_volatile_bitfields > 0 && !abi_version_at_least (2))
+    {
+      warning (0, "-fstrict-volatile-bitfields disabled; "
+	       "it is incompatible with ABI versions < 2");
+      flag_strict_volatile_bitfields = 0;
+    }
 
   /* Unrolling all loops implies that standard loop unrolling must also
      be done.  */

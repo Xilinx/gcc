@@ -1,3 +1,11 @@
+2012-01-31  Xinliang David Li  <davidxl@google.com>
+
+	* Merged revisions 183740 via svnmerge from 
+	svn+ssh://gcc.gnu.org/svn/gcc/branches/google/integration
+	* Resolved merge conflicts
+	* Changed libgcov.c to match upstream's handling of crc
+	computation
+
 2012-01-27  Xinliang David Li  <davidxl@google.com>
 
 	Merged revisions 179852,180436,182413,182518 via svnmerge from

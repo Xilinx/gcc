@@ -697,23 +697,19 @@ package body System.Task_Primitives.Operations is
    -----------
 
    procedure Yield (Do_Yield : Boolean := True) is
-      pragma Unreferenced (Do_Yield);
-
    begin
       --  Note: in a previous implementation if Do_Yield was False, then we
       --  introduced a delay of 1 millisecond in an attempt to get closer to
       --  annex D semantics, and in particular to make ACATS CXD8002 pass. But
       --  this change introduced a huge performance regression evaluating the
-      --  Count attribute. So we decided to remove this processing and just
-      --  call SwitchToThread unconditionally (leaving Do_Yield unreferenced).
+      --  Count attribute. So we decided to remove this processing.
 
       --  Moreover, CXD8002 appears to pass on Windows (although we do not
       --  guarantee full Annex D compliance on Windows in any case).
 
-      --  What is not clear is why we now call SwitchToThread in the False
-      --  case. Other versions don't do that, is it necessary???
-
-      SwitchToThread;
+      if Do_Yield then
+         SwitchToThread;
+      end if;
    end Yield;
 
    ------------------

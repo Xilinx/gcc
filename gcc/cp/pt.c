@@ -1,6 +1,6 @@
 /* Handle parameterized types (templates) for GNU C++.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
+   2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Written by Ken Raeburn (raeburn@cygnus.com) while at Watchmaker Computing.
    Rewritten by Jason Merrill (jason@cygnus.com).
@@ -5851,6 +5851,9 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
 	  if (complain & tf_error)
 	    {
 	      int errs = errorcount, warns = warningcount;
+	      if (processing_template_decl
+		  && !require_potential_constant_expression (expr))
+		return NULL_TREE;
 	      expr = cxx_constant_value (expr);
 	      if (errorcount > errs || warningcount > warns)
 		inform (EXPR_LOC_OR_HERE (expr),
@@ -6489,8 +6492,16 @@ convert_template_argument (tree parm,
   if (requires_type && ! is_type && TREE_CODE (arg) == SCOPE_REF
       && TREE_CODE (TREE_OPERAND (arg, 0)) == TEMPLATE_TYPE_PARM)
     {
-      permerror (input_location, "to refer to a type member of a template parameter, "
-	         "use %<typename %E%>", orig_arg);
+      if (TREE_CODE (TREE_OPERAND (arg, 1)) == BIT_NOT_EXPR)
+	{
+	  if (complain & tf_error)
+	    error ("invalid use of destructor %qE as a type", orig_arg);
+	  return error_mark_node;
+	}
+
+      permerror (input_location,
+		 "to refer to a type member of a template parameter, "
+		 "use %<typename %E%>", orig_arg);
 
       orig_arg = make_typename_type (TREE_OPERAND (arg, 0),
 				     TREE_OPERAND (arg, 1),
@@ -7499,6 +7510,9 @@ lookup_template_class_1 (tree d1, tree arglist, tree in_decl, tree context,
 
       context = tsubst (DECL_CONTEXT (gen_tmpl), arglist,
 			complain, in_decl);
+      if (context == error_mark_node)
+	return error_mark_node;
+
       if (!context)
 	context = global_namespace;
 
@@ -8187,6 +8201,9 @@ parameter_of_template_p (tree parm, tree templ)
   for (i = 0; i < TREE_VEC_LENGTH (parms); ++i)
     {
       tree p = TREE_VALUE (TREE_VEC_ELT (parms, i));
+      if (p == error_mark_node)
+	continue;
+
       if (parm == p
 	  || (DECL_INITIAL (parm)
 	      && DECL_INITIAL (parm) == DECL_INITIAL (p)))
@@ -9400,6 +9417,7 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
   int i, len = -1;
   tree result;
   htab_t saved_local_specializations = NULL;
+  bool need_local_specializations = false;
   int levels;
 
   gcc_assert (PACK_EXPANSION_P (t));
@@ -9433,7 +9451,7 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
        }
       if (TREE_CODE (parm_pack) == PARM_DECL)
 	{
-	  if (!cp_unevaluated_operand)
+	  if (at_function_scope_p ())
 	    arg_pack = retrieve_local_specialization (parm_pack);
 	  else
 	    {
@@ -9449,6 +9467,7 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
 		arg_pack = NULL_TREE;
 	      else
 		arg_pack = make_fnparm_pack (arg_pack);
+	      need_local_specializations = true;
 	    }
 	}
       else
@@ -9579,7 +9598,7 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
   if (len < 0)
     return error_mark_node;
 
-  if (cp_unevaluated_operand)
+  if (need_local_specializations)
     {
       /* We're in a late-specified return type, so create our own local
 	 specializations table; the current table is either NULL or (in the
@@ -13677,18 +13696,23 @@ tsubst_copy_and_build (tree t,
     case GT_EXPR:
     case MEMBER_REF:
     case DOTSTAR_EXPR:
-      return build_x_binary_op
-	(TREE_CODE (t),
-	 RECUR (TREE_OPERAND (t, 0)),
-	 (TREE_NO_WARNING (TREE_OPERAND (t, 0))
-	  ? ERROR_MARK
-	  : TREE_CODE (TREE_OPERAND (t, 0))),
-	 RECUR (TREE_OPERAND (t, 1)),
-	 (TREE_NO_WARNING (TREE_OPERAND (t, 1))
-	  ? ERROR_MARK
-	  : TREE_CODE (TREE_OPERAND (t, 1))),
-	 /*overload=*/NULL,
-	 complain);
+      {
+	tree r = build_x_binary_op
+	  (TREE_CODE (t),
+	   RECUR (TREE_OPERAND (t, 0)),
+	   (TREE_NO_WARNING (TREE_OPERAND (t, 0))
+	    ? ERROR_MARK
+	    : TREE_CODE (TREE_OPERAND (t, 0))),
+	   RECUR (TREE_OPERAND (t, 1)),
+	   (TREE_NO_WARNING (TREE_OPERAND (t, 1))
+	    ? ERROR_MARK
+	    : TREE_CODE (TREE_OPERAND (t, 1))),
+	   /*overload=*/NULL,
+	   complain);
+	if (EXPR_P (r) && TREE_NO_WARNING (t))
+	  TREE_NO_WARNING (r) = TREE_NO_WARNING (t);
+	return r;
+      }
 
     case SCOPE_REF:
       return tsubst_qualified_id (t, args, complain, in_decl, /*done=*/true,
@@ -14640,7 +14664,6 @@ instantiate_template_1 (tree tmpl, tree orig_args, tsubst_flags_t complain)
   tree fndecl;
   tree gen_tmpl;
   tree spec;
-  HOST_WIDE_INT saved_processing_template_decl;
 
   if (tmpl == error_mark_node)
     return error_mark_node;
@@ -14701,18 +14724,22 @@ instantiate_template_1 (tree tmpl, tree orig_args, tsubst_flags_t complain)
      deferring all checks until we have the FUNCTION_DECL.  */
   push_deferring_access_checks (dk_deferred);
 
-  /* Although PROCESSING_TEMPLATE_DECL may be true at this point
-     (because, for example, we have encountered a non-dependent
-     function call in the body of a template function and must now
-     determine which of several overloaded functions will be called),
-     within the instantiation itself we are not processing a
-     template.  */  
-  saved_processing_template_decl = processing_template_decl;
-  processing_template_decl = 0;
+  /* Instantiation of the function happens in the context of the function
+     template, not the context of the overload resolution we're doing.  */
+  push_to_top_level ();
+  if (DECL_CLASS_SCOPE_P (gen_tmpl))
+    {
+      tree ctx = tsubst (DECL_CONTEXT (gen_tmpl), targ_ptr,
+			 complain, gen_tmpl);
+      push_nested_class (ctx);
+    }
   /* Substitute template parameters to obtain the specialization.  */
   fndecl = tsubst (DECL_TEMPLATE_RESULT (gen_tmpl),
 		   targ_ptr, complain, gen_tmpl);
-  processing_template_decl = saved_processing_template_decl;
+  if (DECL_CLASS_SCOPE_P (gen_tmpl))
+    pop_nested_class ();
+  pop_from_top_level ();
+
   if (fndecl == error_mark_node)
     return error_mark_node;
 
@@ -15577,7 +15604,7 @@ resolve_overloaded_unification (tree tparms,
 	      elem = tsubst (TREE_TYPE (fn), subargs, tf_none, NULL_TREE);
 	      if (try_one_overload (tparms, targs, tempargs, parm,
 				    elem, strict, sub_strict, addr_p, explain_p)
-		  && (!goodfn || !decls_match (goodfn, elem)))
+		  && (!goodfn || !same_type_p (goodfn, elem)))
 		{
 		  goodfn = elem;
 		  ++good;
@@ -16378,6 +16405,8 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict,
       idx = TEMPLATE_TYPE_IDX (parm);
       targ = TREE_VEC_ELT (INNERMOST_TEMPLATE_ARGS (targs), idx);
       tparm = TREE_VALUE (TREE_VEC_ELT (tparms, idx));
+      if (tparm == error_mark_node)
+	return unify_invalid (explain_p);
 
       /* Check for mixed types and values.  */
       if ((TREE_CODE (parm) == TEMPLATE_TYPE_PARM
@@ -16738,6 +16767,7 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict,
     case BOOLEAN_TYPE:
     case ENUMERAL_TYPE:
     case VOID_TYPE:
+    case NULLPTR_TYPE:
       if (TREE_CODE (arg) != TREE_CODE (parm))
 	return unify_type_mismatch (explain_p, parm, arg);
 
@@ -16990,7 +17020,7 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict,
 
     default:
       /* An unresolved overload is a nondeduced context.  */
-      if (type_unknown_p (parm))
+      if (is_overloaded_fn (parm) || type_unknown_p (parm))
 	return unify_success (explain_p);
       gcc_assert (EXPR_P (parm));
 
@@ -19634,6 +19664,11 @@ value_dependent_expression_p (tree expression)
 	    return true;
 	return false;
       }
+
+    case STMT_EXPR:
+      /* Treat a GNU statement expression as dependent to avoid crashing
+	 under fold_non_dependent_expr; it can't be constant.  */
+      return true;
 
     default:
       /* A constant expression is value-dependent if any subexpression is

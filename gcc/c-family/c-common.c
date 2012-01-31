@@ -218,13 +218,13 @@ int flag_cond_mismatch;
 
 int flag_isoc94;
 
-/* Nonzero means use the ISO C99 (or C1X) dialect of C.  */
+/* Nonzero means use the ISO C99 (or C11) dialect of C.  */
 
 int flag_isoc99;
 
-/* Nonzero means use the ISO C1X dialect of C.  */
+/* Nonzero means use the ISO C11 dialect of C.  */
 
-int flag_isoc1x;
+int flag_isoc11;
 
 /* Nonzero means that we have builtin functions, and main is an int.  */
 
@@ -480,6 +480,7 @@ const struct c_common_resword c_common_reswords[] =
   { "__is_convertible_to", RID_IS_CONVERTIBLE_TO, D_CXXONLY },
   { "__is_empty",	RID_IS_EMPTY,	D_CXXONLY },
   { "__is_enum",	RID_IS_ENUM,	D_CXXONLY },
+  { "__is_final",	RID_IS_FINAL,	D_CXXONLY },
   { "__is_literal_type", RID_IS_LITERAL_TYPE, D_CXXONLY },
   { "__is_pod",		RID_IS_POD,	D_CXXONLY },
   { "__is_polymorphic",	RID_IS_POLYMORPHIC, D_CXXONLY },
@@ -4457,11 +4458,20 @@ c_sizeof_or_alignof_type (location_t loc,
         return error_mark_node;
       value = size_one_node;
     }
-  else if (!COMPLETE_TYPE_P (type))
+  else if (!COMPLETE_TYPE_P (type)
+	   && (!c_dialect_cxx () || is_sizeof || type_code != ARRAY_TYPE))
     {
       if (complain)
-	error_at (loc, "invalid application of %qs to incomplete type %qT ",
+	error_at (loc, "invalid application of %qs to incomplete type %qT",
 		  op_name, type);
+      return error_mark_node;
+    }
+  else if (c_dialect_cxx () && type_code == ARRAY_TYPE
+	   && !COMPLETE_TYPE_P (TREE_TYPE (type)))
+    {
+      if (complain)
+	error_at (loc, "invalid application of %qs to array type %qT of "
+		  "incomplete element type", op_name, type);
       return error_mark_node;
     }
   else
@@ -6395,13 +6405,27 @@ handle_transparent_union_attribute (tree *node, tree name,
 
   if (TREE_CODE (type) == UNION_TYPE)
     {
-      /* When IN_PLACE is set, leave the check for FIELDS and MODE to
-	 the code in finish_struct.  */
+      /* Make sure that the first field will work for a transparent union.
+	 If the type isn't complete yet, leave the check to the code in
+	 finish_struct.  */
+      if (TYPE_SIZE (type))
+	{
+	  tree first = first_field (type);
+	  if (first == NULL_TREE
+	      || DECL_ARTIFICIAL (first)
+	      || TYPE_MODE (type) != DECL_MODE (first))
+	    goto ignored;
+	}
+
       if (!(flags & (int) ATTR_FLAG_TYPE_IN_PLACE))
 	{
-	  if (TYPE_FIELDS (type) == NULL_TREE
-	      || c_dialect_cxx ()
-	      || TYPE_MODE (type) != DECL_MODE (TYPE_FIELDS (type)))
+	  /* If the type isn't complete yet, setting the flag
+	     on a variant wouldn't ever be checked.  */
+	  if (!TYPE_SIZE (type))
+	    goto ignored;
+
+	  /* build_duplicate_type doesn't work for C++.  */
+	  if (c_dialect_cxx ())
 	    goto ignored;
 
 	  /* A type variant isn't good enough, since we don't a cast

@@ -1097,6 +1097,25 @@ tree_non_aligned_mem_p (tree exp, unsigned int align)
   return false;
 }
 
+/* Return true if EXP is a memory reference less aligned than what the access
+   ACC would require.  This is invoked only on strict-alignment targets.  */
+
+static bool
+tree_non_aligned_mem_for_access_p (tree exp, struct access *acc)
+{
+  unsigned int acc_align;
+
+  /* The alignment of the access is that of its expression.  However, it may
+     have been artificially increased, e.g. by a local alignment promotion,
+     so we cap it to the alignment of the type of the base, on the grounds
+     that valid sub-accesses cannot be more aligned than that.  */
+  acc_align = get_object_alignment (acc->expr);
+  if (acc->base && acc_align > TYPE_ALIGN (TREE_TYPE (acc->base)))
+    acc_align = TYPE_ALIGN (TREE_TYPE (acc->base));
+
+  return tree_non_aligned_mem_p (exp, acc_align);
+}
+
 /* Scan expressions occuring in STMT, create access structures for all accesses
    to candidates for scalarization and remove those candidates which occur in
    statements or expressions that prevent them from being split apart.  Return
@@ -1125,8 +1144,7 @@ build_accesses_from_assign (gimple stmt)
   if (lacc)
     {
       lacc->grp_assignment_write = 1;
-      if (STRICT_ALIGNMENT
-	  && tree_non_aligned_mem_p (rhs, get_object_alignment (lhs)))
+      if (STRICT_ALIGNMENT && tree_non_aligned_mem_for_access_p (rhs, lacc))
         lacc->grp_unscalarizable_region = 1;
     }
 
@@ -1136,8 +1154,7 @@ build_accesses_from_assign (gimple stmt)
       if (should_scalarize_away_bitmap && !gimple_has_volatile_ops (stmt)
 	  && !is_gimple_reg_type (racc->type))
 	bitmap_set_bit (should_scalarize_away_bitmap, DECL_UID (racc->base));
-      if (STRICT_ALIGNMENT
-	  && tree_non_aligned_mem_p (lhs, get_object_alignment (rhs)))
+      if (STRICT_ALIGNMENT && tree_non_aligned_mem_for_access_p (lhs, racc))
         racc->grp_unscalarizable_region = 1;
     }
 
@@ -1522,11 +1539,16 @@ build_ref_for_model (location_t loc, tree base, HOST_WIDE_INT offset,
       do {
 	tree field = TREE_OPERAND (expr, 1);
 	tree cr_offset = component_ref_field_offset (expr);
-	gcc_assert (cr_offset && host_integerp (cr_offset, 1));
+	HOST_WIDE_INT bit_pos
+	  = tree_low_cst (cr_offset, 1) * BITS_PER_UNIT
+	      + TREE_INT_CST_LOW (DECL_FIELD_BIT_OFFSET (field));
 
-	offset -= TREE_INT_CST_LOW (cr_offset) * BITS_PER_UNIT;
-	offset -= TREE_INT_CST_LOW (DECL_FIELD_BIT_OFFSET (field));
+	/* We can be called with a model different from the one associated
+	   with BASE so we need to avoid going up the chain too far.  */
+	if (offset - bit_pos < 0)
+	  break;
 
+	offset -= bit_pos;
 	VEC_safe_push (tree, stack, cr_stack, expr);
 
 	expr = TREE_OPERAND (expr, 0);
@@ -2754,6 +2776,9 @@ load_assign_lhs_subreplacements (struct access *lacc, struct access *top_racc,
 	      else
 		rhs = build_ref_for_model (loc, top_racc->base, offset, lacc,
 					    new_gsi, true);
+	      if (lacc->grp_partial_lhs)
+		rhs = force_gimple_operand_gsi (new_gsi, rhs, true, NULL_TREE,
+						false, GSI_NEW_STMT);
 	    }
 
 	  stmt = gimple_build_assign (get_access_replacement (lacc), rhs);
@@ -3891,6 +3916,13 @@ decide_one_param_reduction (struct access *repr)
       if (by_ref && repr->non_addressable)
 	return 0;
 
+      /* Do not decompose a non-BLKmode param in a way that would
+         create BLKmode params.  Especially for by-reference passing
+	 (thus, pointer-type param) this is hardly worthwhile.  */
+      if (DECL_MODE (parm) != BLKmode
+	  && TYPE_MODE (repr->type) == BLKmode)
+	return 0;
+
       if (!by_ref || (!repr->grp_maybe_modified
 		      && !repr->grp_not_necessarilly_dereferenced))
 	total_size += repr->size;
@@ -4679,7 +4711,7 @@ modify_function (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
   current_function_decl = NULL_TREE;
 
   new_node = cgraph_function_versioning (node, redirect_callers, NULL, NULL,
-					 NULL, NULL, "isra");
+					 false, NULL, NULL, "isra");
   current_function_decl = new_node->decl;
   push_cfun (DECL_STRUCT_FUNCTION (new_node->decl));
 

@@ -45,6 +45,12 @@
 #undef NOMINMAX
 #define NOMINMAX 1
 
+// Make sure that POSIX printf/scanf functions are activated.  As
+// libstdc++ depends on POSIX-definitions of those functions, we define
+// it unconditionally.
+#undef __USE_MINGW_ANSI_STDIO
+#define __USE_MINGW_ANSI_STDIO 1
+
 #if defined (_GLIBCXX_DLL)
 #define _GLIBCXX_PSEUDO_VISIBILITY_default __attribute__ ((__dllimport__))
 #else
@@ -64,5 +70,12 @@
 // On native windows targets there is no ioctl function. And the existing
 // ioctlsocket function doesn't work for normal file-descriptors.
 #define _GLIBCXX_NO_IOCTL 1
+
+// See libstdc++/51135
+// Class constructors/destructors have __thiscall calling-convention on
+// IA 32-bit
+#if defined (__i386__)
+#define _GLIBCXX_CDTOR_CALLABI __thiscall
+#endif
 
 #endif

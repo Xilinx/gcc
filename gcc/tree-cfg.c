@@ -1,6 +1,6 @@
 /* Control flow functions for trees.
    Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010, 2011  Free Software Foundation, Inc.
+   2010, 2011, 2012  Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
 This file is part of GCC.
@@ -1664,10 +1664,10 @@ replace_uses_by (tree name, tree val)
 	      }
 
 	  if (fold_stmt (&gsi))
-	    {
-	      stmt = gsi_stmt (gsi);
-	      maybe_clean_or_replace_eh_stmt (orig_stmt, stmt);
-	    }
+	    stmt = gsi_stmt (gsi);
+
+	  if (maybe_clean_or_replace_eh_stmt (orig_stmt, stmt))
+	    gimple_purge_dead_eh_edges (gimple_bb (stmt));
 
 	  update_stmt (stmt);
 	}
@@ -3752,10 +3752,6 @@ do_pointer_plus_expr_check:
     case VEC_PACK_TRUNC_EXPR:
     case VEC_PACK_SAT_EXPR:
     case VEC_PACK_FIX_TRUNC_EXPR:
-    case VEC_EXTRACT_EVEN_EXPR:
-    case VEC_EXTRACT_ODD_EXPR:
-    case VEC_INTERLEAVE_HIGH_EXPR:
-    case VEC_INTERLEAVE_LOW_EXPR:
       /* FIXME.  */
       return false;
 
@@ -6936,9 +6932,20 @@ need_fake_edge_p (gimple t)
 	   && DECL_FUNCTION_CODE (fndecl) == BUILT_IN_FORK))
     return false;
 
-  if (is_gimple_call (t)
-      && !(call_flags & ECF_NORETURN))
-    return true;
+  if (is_gimple_call (t))
+    {
+      edge_iterator ei;
+      edge e;
+      basic_block bb;
+
+      if (!(call_flags & ECF_NORETURN))
+	return true;
+
+      bb = gimple_bb (t);
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if ((e->flags & EDGE_FAKE) == 0)
+	  return true;
+    }
 
   if (gimple_code (t) == GIMPLE_ASM
        && (gimple_asm_volatile_p (t) || gimple_asm_input_p (t)))
@@ -6949,9 +6956,10 @@ need_fake_edge_p (gimple t)
 
 
 /* Add fake edges to the function exit for any non constant and non
-   noreturn calls, volatile inline assembly in the bitmap of blocks
-   specified by BLOCKS or to the whole CFG if BLOCKS is zero.  Return
-   the number of blocks that were split.
+   noreturn calls (or noreturn calls with EH/abnormal edges),
+   volatile inline assembly in the bitmap of blocks specified by BLOCKS
+   or to the whole CFG if BLOCKS is zero.  Return the number of blocks
+   that were split.
 
    The goal is to expose cases in which entering a basic block does
    not imply that all subsequent instructions must be executed.  */

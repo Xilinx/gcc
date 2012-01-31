@@ -728,8 +728,14 @@ store_init_value (tree decl, tree init, VEC(tree,gc)** cleanups, int flags)
       value = fold_non_dependent_expr (value);
       value = maybe_constant_init (value);
       if (DECL_DECLARED_CONSTEXPR_P (decl))
-	/* Diagnose a non-constant initializer for constexpr.  */
-	value = cxx_constant_value (value);
+	{
+	  /* Diagnose a non-constant initializer for constexpr.  */
+	  if (processing_template_decl
+	      && !require_potential_constant_expression (value))
+	    value = error_mark_node;
+	  else
+	    value = cxx_constant_value (value);
+	}
       const_init = (reduced_constant_expression_p (value)
 		    || error_operand_p (value));
       DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl) = const_init;
@@ -912,7 +918,11 @@ digest_init_r (tree type, tree init, bool nested, int flags,
 		}
 	    }
 
-	  TREE_TYPE (init) = type;
+	  if (type != TREE_TYPE (init))
+	    {
+	      init = copy_node (init);
+	      TREE_TYPE (init) = type;
+	    }
 	  if (TYPE_DOMAIN (type) != 0 && TREE_CONSTANT (TYPE_SIZE (type)))
 	    {
 	      int size = TREE_INT_CST_LOW (TYPE_SIZE (type));

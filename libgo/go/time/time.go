@@ -7,6 +7,8 @@
 // The calendrical calculations always assume a Gregorian calendar.
 package time
 
+import "errors"
+
 // A Time represents an instant in time with nanosecond precision.
 //
 // Programs using times should typically store and pass them as values,
@@ -548,7 +550,7 @@ func (d Duration) Hours() float64 {
 func (t Time) Add(d Duration) Time {
 	t.sec += int64(d / 1e9)
 	t.nsec += int32(d % 1e9)
-	if t.nsec > 1e9 {
+	if t.nsec >= 1e9 {
 		t.sec++
 		t.nsec -= 1e9
 	} else if t.nsec < 0 {
@@ -562,6 +564,20 @@ func (t Time) Add(d Duration) Time {
 // To compute t-d for a duration d, use t.Add(-d).
 func (t Time) Sub(u Time) Duration {
 	return Duration(t.sec-u.sec)*Second + Duration(t.nsec-u.nsec)
+}
+
+// AddDate returns the time corresponding to adding the
+// given number of years, months, and days to t.
+// For example, AddDate(-1, 2, 3) applied to January 1, 2011
+// returns March 4, 2010.
+//
+// AddDate normalizes its result in the same way that Date does,
+// so, for example, adding one month to October 31 yields
+// December 1, the normalized form for November 31.
+func (t Time) AddDate(years int, months int, days int) Time {
+	year, month, day := t.Date()
+	hour, min, sec := t.Clock()
+	return Date(year+years, month+Month(months), day+days, hour, min, sec, int(t.nsec), t.loc)
 }
 
 const (
@@ -673,7 +689,7 @@ func daysIn(m Month, year int) int {
 	if m == February && isLeap(year) {
 		return 29
 	}
-	return int(daysBefore[m+1] - daysBefore[m])
+	return int(daysBefore[m] - daysBefore[m-1])
 }
 
 // Provided by package runtime.
@@ -734,6 +750,132 @@ func (t Time) Unix() int64 {
 // since January 1, 1970 UTC.
 func (t Time) UnixNano() int64 {
 	return (t.sec+internalToUnix)*1e9 + int64(t.nsec)
+}
+
+type gobError string
+
+func (g gobError) Error() string { return string(g) }
+
+const timeGobVersion byte = 1
+
+// GobEncode implements the gob.GobEncoder interface.
+func (t Time) GobEncode() ([]byte, error) {
+	var offsetMin int16 // minutes east of UTC. -1 is UTC.
+
+	if t.Location() == &utcLoc {
+		offsetMin = -1
+	} else {
+		_, offset := t.Zone()
+		if offset%60 != 0 {
+			return nil, errors.New("Time.GobEncode: zone offset has fractional minute")
+		}
+		offset /= 60
+		if offset < -32768 || offset == -1 || offset > 32767 {
+			return nil, errors.New("Time.GobEncode: unexpected zone offset")
+		}
+		offsetMin = int16(offset)
+	}
+
+	enc := []byte{
+		timeGobVersion,    // byte 0 : version
+		byte(t.sec >> 56), // bytes 1-8: seconds
+		byte(t.sec >> 48),
+		byte(t.sec >> 40),
+		byte(t.sec >> 32),
+		byte(t.sec >> 24),
+		byte(t.sec >> 16),
+		byte(t.sec >> 8),
+		byte(t.sec),
+		byte(t.nsec >> 24), // bytes 9-12: nanoseconds
+		byte(t.nsec >> 16),
+		byte(t.nsec >> 8),
+		byte(t.nsec),
+		byte(offsetMin >> 8), // bytes 13-14: zone offset in minutes
+		byte(offsetMin),
+	}
+
+	return enc, nil
+}
+
+// GobDecode implements the gob.GobDecoder interface.
+func (t *Time) GobDecode(buf []byte) error {
+	if len(buf) == 0 {
+		return errors.New("Time.GobDecode: no data")
+	}
+
+	if buf[0] != timeGobVersion {
+		return errors.New("Time.GobDecode: unsupported version")
+	}
+
+	if len(buf) != /*version*/ 1+ /*sec*/ 8+ /*nsec*/ 4+ /*zone offset*/ 2 {
+		return errors.New("Time.GobDecode: invalid length")
+	}
+
+	buf = buf[1:]
+	t.sec = int64(buf[7]) | int64(buf[6])<<8 | int64(buf[5])<<16 | int64(buf[4])<<24 |
+		int64(buf[3])<<32 | int64(buf[2])<<40 | int64(buf[1])<<48 | int64(buf[0])<<56
+
+	buf = buf[8:]
+	t.nsec = int32(buf[3]) | int32(buf[2])<<8 | int32(buf[1])<<16 | int32(buf[0])<<24
+
+	buf = buf[4:]
+	offset := int(int16(buf[1])|int16(buf[0])<<8) * 60
+
+	if offset == -1*60 {
+		t.loc = &utcLoc
+	} else if _, localoff, _, _, _ := Local.lookup(t.sec + internalToUnix); offset == localoff {
+		t.loc = Local
+	} else {
+		t.loc = FixedZone("", offset)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements the json.Marshaler interface.
+// Time is formatted as RFC3339.
+func (t Time) MarshalJSON() ([]byte, error) {
+	yearInt := t.Year()
+	if yearInt < 0 || yearInt > 9999 {
+		return nil, errors.New("Time.MarshalJSON: year outside of range [0,9999]")
+	}
+
+	// We need a four-digit year, but Format produces variable-width years.
+	year := itoa(yearInt)
+	year = "0000"[:4-len(year)] + year
+
+	var formattedTime string
+	if t.nsec == 0 {
+		// RFC3339, no fractional second
+		formattedTime = t.Format("-01-02T15:04:05Z07:00")
+	} else {
+		// RFC3339 with fractional second
+		formattedTime = t.Format("-01-02T15:04:05.000000000Z07:00")
+
+		// Trim trailing zeroes from fractional second.
+		const nanoEnd = 24 // Index of last digit of fractional second
+		var i int
+		for i = nanoEnd; formattedTime[i] == '0'; i-- {
+			// Seek backwards until first significant digit is found.
+		}
+
+		formattedTime = formattedTime[:i+1] + formattedTime[nanoEnd+1:]
+	}
+
+	buf := make([]byte, 0, 1+len(year)+len(formattedTime)+1)
+	buf = append(buf, '"')
+	buf = append(buf, year...)
+	buf = append(buf, formattedTime...)
+	buf = append(buf, '"')
+	return buf, nil
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+// Time is expected in RFC3339 format.
+func (t *Time) UnmarshalJSON(data []byte) (err error) {
+	*t, err = Parse("\""+RFC3339+"\"", string(data))
+	// Fractional seconds are handled implicitly by Parse.
+	return
 }
 
 // Unix returns the local Time corresponding to the given Unix time,

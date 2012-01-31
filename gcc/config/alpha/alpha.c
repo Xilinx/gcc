@@ -1489,8 +1489,6 @@ alpha_set_memflags_1 (rtx *xp, void *data)
     return 0;
 
   MEM_VOLATILE_P (x) = MEM_VOLATILE_P (orig);
-  MEM_IN_STRUCT_P (x) = MEM_IN_STRUCT_P (orig);
-  MEM_SCALAR_P (x) = MEM_SCALAR_P (orig);
   MEM_NOTRAP_P (x) = MEM_NOTRAP_P (orig);
   MEM_READONLY_P (x) = MEM_READONLY_P (orig);
 
@@ -1520,8 +1518,6 @@ alpha_set_memflags (rtx seq, rtx ref)
      generated from one of the insn patterns.  So if everything is
      zero, the pattern is already up-to-date.  */
   if (!MEM_VOLATILE_P (ref)
-      && !MEM_IN_STRUCT_P (ref)
-      && !MEM_SCALAR_P (ref)
       && !MEM_NOTRAP_P (ref)
       && !MEM_READONLY_P (ref))
     return;
@@ -7935,7 +7931,8 @@ alpha_start_function (FILE *file, const char *fnname,
    if (TARGET_ABI_OPEN_VMS
        && !TREE_PUBLIC (decl)
        && DECL_CONTEXT (decl)
-       && !TYPE_P (DECL_CONTEXT (decl)))
+       && !TYPE_P (DECL_CONTEXT (decl))
+       && TREE_CODE (DECL_CONTEXT (decl)) != TRANSLATION_UNIT_DECL)
      {
 	strcpy (tramp_label, fnname);
 	strcat (tramp_label, "..tr");
@@ -9541,9 +9538,19 @@ alpha_use_linkage (rtx func, bool lflag, bool rflag)
     {
       size_t buf_len;
       char *linksym;
+      tree id;
 
       if (name[0] == '*')
 	name++;
+
+      /* Follow transparent alias, as this is used for CRTL translations.  */
+      id = maybe_get_identifier (name);
+      if (id)
+        {
+          while (IDENTIFIER_TRANSPARENT_ALIAS (id))
+            id = TREE_CHAIN (id);
+          name = IDENTIFIER_POINTER (id);
+        }
 
       buf_len = strlen (name) + 8 + 9;
       linksym = (char *) alloca (buf_len);
@@ -9577,7 +9584,7 @@ alpha_write_one_linkage (splay_tree_node node, void *data)
   if (link->rkind == KIND_CODEADDR)
     {
       /* External and used, request code address.  */
-      fprintf (stream, "\t.code_address %s\n", name);
+      fprintf (stream, "\t.code_address ");
     }
   else
     {
@@ -9586,14 +9593,16 @@ alpha_write_one_linkage (splay_tree_node node, void *data)
 	{
 	  /* Locally defined, build linkage pair.  */
 	  fprintf (stream, "\t.quad %s..en\n", name);
-	  fprintf (stream, "\t.quad %s\n", name);
+	  fprintf (stream, "\t.quad ");
 	}
       else
 	{
 	  /* External, request linkage pair.  */
-	  fprintf (stream, "\t.linkage %s\n", name);
+	  fprintf (stream, "\t.linkage ");
 	}
     }
+  assemble_name (stream, name);
+  fputs ("\n", stream);
 
   return 0;
 }

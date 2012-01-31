@@ -1,3 +1,180 @@
+2012-01-24  Torvald Riegel  <triegel@redhat.com>
+
+	* config/linux/rwlock.cc (GTM::gtm_rwlock::write_unlock): Fix reader
+	wake-up.
+
+2012-01-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/x86/target.h (gtm_jmpbuf) [__x86_64__]: Move rip to the
+	end of structure.
+	* config/x86/sjlj.S (_ITM_beginTransaction) [__x86_64__]: Update
+	offset values.  Do not copy return address.  Decrement stack
+	by 56 bytes only.
+	(GTM_longjump) [__x86_64__]: Update offset values.
+
+2012-01-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR libitm/51830
+	* config/x86/sjlj.S (_ITM_beginTransaction) [!__x86_64__]: Load
+	the first function argument to %eax.
+
+2012-01-23  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* libitm.h (_ITM_getThreadnum): Remove.
+	* libitm.map (_ITM_getThreadnum): Remove from LIBITM_1.0.
+
+2012-01-23  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* clearcap.map: New file.
+	* acinclude.m4 (LIBITM_CHECK_LINKER_HWCAP): New test.
+	* configure.ac: Call it.
+	Clear HWCAP_LDFLAGS if defaulting to -mavx.
+	* Makefile.am (AM_LDFLAGS): Add $(HWCAP_LDFLAGS)
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
+2012-01-17  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libitm/51173
+	* testsuite/libitm.c++/static_ctor.C: Skip test, note PR, remove
+	include, exclude options.
+
+2012-01-14  Torvald Riegel  <triegel@redhat.com>
+
+	* local.cc (GTM::gtm_undolog::rollback): Truncate undo log after
+	rolling back.
+	* containers.h (GTM::vector::set_size): New.
+
+2012-01-14  Torvald Riegel  <triegel@redhat.com>
+
+	PR libitm/51855
+	* config/generic/tls.h (GTM::mask_stack_top): New.
+	(GTM::mask_stack_bottom): Declare.
+	* config/generic/tls.c (GTM::mask_stack_bottom): New.
+	* local.cc (gtm_undolog::rollback): Filter out any updates that
+	overlap the libitm stack.  Add current transaction as parameter.
+	* libitm_i.h (GTM::gtm_undolog::rollback): Adapt.
+	* beginend.cc (GTM::gtm_thread::rollback): Adapt.
+	* testsuite/libitm.c/stackundo.c: New test.
+
+2012-01-10  Richard Henderson  <rth@redhat.com>
+
+	* libitm_i.h (_Unwind_DeleteException): Declare weak.
+	* eh_cpp.cc (_Unwind_DeleteException): Define for
+	!HAVE_ELF_STYLE_WEAKREF.
+
+2012-01-08  Torvald Riegel  <triegel@redhat.com>
+
+	* local.cc (GTM_LB): Use GTM::gtm_undolog.
+	(GTM::gtm_thread::drop_references_undolog): Remove.
+	(GTM::gtm_thread::commit_undolog,
+	GTM::gtm_thread::rollback_undolog): Move to ...
+	* libitm_i.h (GTM::gtm_undolog): ...here. New.
+	(GTM::gtm_undolog_entry): Remove.
+	(GTM::gtm_thread): Adapt.
+	* beginend.cc (GTM::gtm_thread::rollback): Adapt.
+	(GTM::gtm_thread::trycommit): Adapt.
+	* method-serial.cc (serial_dispatch::log): Adapt.
+	* method-gl.cc (gl_wt_dispatch::pre_write): Adapt.
+	(gl_wt_dispatch::store): Fix likely/unlikely.
+	* containers.h (GTM::vector::resize): Add additional_capacity
+	parameter and handle it.
+	(GTM::vector::resize_noinline): New/adapt.
+	(GTM::vector::push): New.
+
+2012-01-06  Richard Henderson  <rth@redhat.com>
+
+	* configure.tgt: Support powerpc-linux and powerpc-darwin.
+	* config/linux/powerpc/futex_bits.h: New file.
+	* config/powerpc/cacheline.h: New file.
+	* config/powerpc/sjlj.S: New file.
+	* config/powerpc/target.h: New file.
+	* config/generic/asmcfi.h (cfi_offset): New.
+	(cfi_restore, cfi_undefined): New.
+
+2012-01-05  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR other/51171
+	* testsuite/libitm.c/reentrant.c: Remove xfail.
+	(thread): Pass x to pure().
+	From Patrik Marlier <patrick.marlier@gmail.com>.
+
+2011-12-24  Torvald Riegel  <triegel@redhat.com>
+
+	* beginend.cc (GTM::gtm_thread::trycommit): Don't enforce
+	privatization safety if already in serial mode.
+
+2011-12-24  Torvald Riegel  <triegel@redhat.com>
+
+	* beginend.cc (GTM::gtm_thread::restart): Add and handle
+	finish_serial_upgrade parameter.
+	* libitm.h (GTM::gtm_thread::restart): Adapt declaration.
+	* config/linux/rwlock.cc (GTM::gtm_rwlock::write_lock_generic):
+	Don't unset reader flag.
+	(GTM::gtm_rwlock::write_upgrade_finish): New.
+	* config/posix/rwlock.cc: Same.
+	* config/linux/rwlock.h (GTM::gtm_rwlock::write_upgrade_finish):
+	Declare.
+	* config/posix/rwlock.h: Same.
+	* method-serial.cc (GTM::gtm_thread::serialirr_mode): Unset reader
+	flag after commit or after rollback when restarting.
+
+2011-12-24  Torvald Riegel  <triegel@redhat.com>
+
+	* beginend.cc (GTM::gtm_thread::begin_transaction): Add comment.
+	(GTM::gtm_thread::try_commit): Changed memory order.
+	* config/linux/alpha/futex_bits.h (sys_futex0): Take atomic int
+	as parameter.
+	* config/linux/x86/futex_bits.h (sys_futex0): Same.
+	* config/linux/sh/futex_bits.h (sys_futex0): Same.
+	* config/linux/futex_bits.h (sys_futex0): Same.
+	* config/linux/futex.cc (futex_wait, futex_wake): Same.
+	* config/linux/futex.h (futex_wait, futex_wake): Same.
+	* config/linux/rwlock.h (gtm_rwlock::writers,
+	gtm_rwlock::writer_readers, gtm_rwlock::readers): Change to atomic
+	ints.
+	* config/linux/rwlock.cc (gtm_rwlock::read_lock,
+	gtm_rwlock::write_lock_generic, gtm_rwlock::read_unlock,
+	gtm_rwlock::write_unlock): Fix memory orders and fences.
+	* config/posix/rwlock.cc (gtm_rwlock::read_lock,
+	gtm_rwlock::write_lock_generic, gtm_rwlock::read_unlock,
+	gtm_rwlock::write_unlock): Same.
+	* config/linux/rwlock.h (gtm_rwlock::summary): Change to atomic int.
+	* method-gl.cc (gl_mg::init, gl_wt_dispatch::memtransfer_static,
+	gl_wt_dispatch::memset_static, gl_wt_dispatch::begin_or_restart):
+	Add comments.
+	(gl_wt_dispatch::pre_write, gl_wt_dispatch::validate,
+	gl_wt_dispatch::load, gl_wt_dispatch::store,
+	gl_wt_dispatch::try_commit, gl_wt_dispatch::rollback): Fix memory
+	orders and fences.  Add comments.
+
+2011-12-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* Makefile.am (AM_CXXFLAGS): Put $(XCFLAGS) first.
+	* Makefile.in: Regenerated.
+
+2011-12-17  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* configure.tgt: Add sh* case.
+	* config/sh/target.h: New file.
+	* config/sh/sjlj.S: New file.
+	* config/linux/sh/futex_bits.h: New file.
+
+2011-12-14  Richard Henderson  <rth@redhat.com>
+
+	* config/arm/hwcap.h, config/arm/hwcap.cc: New files.
+	* config/arm/sjlj.S, config/arm/target.h: New files.
+	* config/generic/asmcfi.h (cfi_adjust_cfa_offset): New.
+	(cfi_rel_offset): New.
+	* config/linux/futex_bits.h: New file.
+	* config/linux/futex.cc: Include futex_bits.h here...
+	* config/linux/futex.h: ... not here.
+	* Makefile.am (libitm_la_SOURCES) <ARCH_ARM>: Add hwcap.cc.
+	* configure.ac (ARCH_AM): New conditional.
+	* Makefile.in, configure: Rebuild.
+	* configure.tgt: Handle ARM.
+
 2011-12-13  Richard Henderson  <rth@redhat.com>
 
 	* config/posix/rwlock.cc (gtm_rwlock::write_lock_generic): Fix
