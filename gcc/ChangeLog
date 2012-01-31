@@ -1,3 +1,71 @@
+2011-12-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR bootstrap/51479
+	* Makefile.in (errors.o): Restored.
+
+2011-12-09  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/48042
+	* tree.c (free_lang_data_in_decl): Remove freeing conditional
+	on debuginfo level.
+
+2011-12-09  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	PR middle-end/40154
+	* emit-rtl.c (set_dst_reg_note): New function.
+	* rtl.h (set_dst_reg_note): Declare.
+	* optabs.c (expand_binop, expand_absneg_bit): Use set_dst_reg_note.
+	(emit_libcall_block, expand_fix): Likewise.
+	* function.c (assign_parm_setup_reg, expand_function_start): Likewise.
+	* expmed.c (expand_mult_const, expand_divmod): Likewise.
+	* reload1.c (gen_reload): Likewise.
+
+	* dse.c (get_stored_val, get_call_args): Use gen_int_mode.
+	* expmed.c (expand_divmod): Likewise.
+	* combine.c (simplify_if_then_else): Likewise.
+
+2011-12-09  Kai Tietz  <ktietz@redhat.com>
+
+	* ira-color.c (print_hard_regs_subforest): Use
+	HOST_WIDEST_INT_PRINT_DEC instead of %lld.
+	(allocno_hard_regs): Change type of cost member
+	to HOST_WIDEST_INT.
+	(add_allocno_hard_regs): Change type of argument cost
+	to HOST_WIDEST_INT.
+	* ira-conflict.c (build_conflict_bit_table): Replace use
+	of long-long by HOST_WIDEST_INT.
+
+2011-12-09  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/51425
+	* config/avr/avr.md (config/avr/avr.md, *sbix_branch_tmp): Use
+	zero_extract:QIHI instead of zero_extract:HI.
+
+2011-12-09  Jakub Jelinek  <jakub@redhat.com>
+	    Andrew Pinski  <apinski@cavium.com>
+
+	PR tree-optimization/51117
+	* tree-eh.c (optimize_clobbers): New function.
+	(execute_lower_eh_dispatch): Call it.
+
+2011-12-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/51482
+	* tree-vect-stmts.c (get_vectype_for_scalar_type_and_size):
+	Make sure to only create REAL_TYPE and INTEGER_TYPE component
+	vectors.
+
+2011-12-09  Kai Tietz  <ktietz@redhat.com>
+
+	* implicit-zee.c (num_realized): Change type to long.
+	(num_ze_opportunities): Likewise.
+
+2011-12-08  Andrew Pinski  <apinski@cavium.com>
+
+	* config/mips/mips-cpus.def (octeon+): New CPU.
+	* config/mips/mips-tables.opt: Regenerate.
+	* config/mips/mips.h (MIPS_CPP_SET_PROCESSOR): Emit '+' as 'P'.
+
 2011-12-08  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
 
 	PR middle-end/39976
