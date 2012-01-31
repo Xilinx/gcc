@@ -17,8 +17,8 @@ func (r recordingHash) Write(b []byte) (n int, err error) {
 	return r.buf.Write(b)
 }
 
-func (r recordingHash) Sum() []byte {
-	return r.buf.Bytes()
+func (r recordingHash) Sum(in []byte) []byte {
+	return append(in, r.buf.Bytes()...)
 }
 
 func (r recordingHash) Reset() {
@@ -29,11 +29,15 @@ func (r recordingHash) Size() int {
 	panic("shouldn't be called")
 }
 
+func (r recordingHash) BlockSize() int {
+	panic("shouldn't be called")
+}
+
 func testCanonicalText(t *testing.T, input, expected string) {
 	r := recordingHash{bytes.NewBuffer(nil)}
 	c := NewCanonicalTextHash(r)
 	c.Write([]byte(input))
-	result := c.Sum()
+	result := c.Sum(nil)
 	if expected != string(result) {
 		t.Errorf("input: %x got: %x want: %x", input, result, expected)
 	}

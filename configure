@@ -3093,7 +3093,9 @@ case "${target}" in
     noconfigdirs="$noconfigdirs target-libssp"
     ;;
   rl78-*-*)
-    # Dereferencing -1 is a compile-time error
+    # libssp uses a misaligned load to trigger a fault, but the RL78
+    # doesn't fault for those - instead, it gives a build-time error
+    # for explicit misaligned loads.
     noconfigdirs="$noconfigdirs target-libssp"
     ;;
 esac
@@ -3667,9 +3669,6 @@ fi
     ;;
   *-mingw*)
     host_makefile_frag="config/mh-mingw"
-    ;;
-  *-interix*)
-    host_makefile_frag="config/mh-interix"
     ;;
   hppa*-hp-hpux10*)
     host_makefile_frag="config/mh-pa-hpux10"
@@ -4977,7 +4976,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_cc_gcc_supports_ada" >&5
 $as_echo "$acx_cv_cc_gcc_supports_ada" >&6; }
 
-if test x$GNATBIND != xno && test x$GNATMAKE != xno && test x$acx_cv_cc_gcc_supports_ada != xno; then
+if test "x$GNATBIND" != xno && test "x$GNATMAKE" != xno && test x$acx_cv_cc_gcc_supports_ada != xno; then
   have_gnat=yes
 else
   have_gnat=no
@@ -6468,6 +6467,14 @@ case ,${enable_languages},:${enable_objc_gc} in
     if echo " ${noconfigdirs} " | grep "target-libjava" >/dev/null 2>&1; then
       noconfigdirs="$noconfigdirs target-boehm-gc"
     fi
+    ;;
+esac
+
+# Disable libitm if we're not building C++
+case ,${enable_languages}, in
+  *,c++,*) ;;
+  *)
+    noconfigdirs="$noconfigdirs target-libitm"
     ;;
 esac
 

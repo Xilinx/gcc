@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1210,10 +1210,8 @@ package body Exp_Ch7 is
 
             Finalizer_Decls := New_List;
 
-            if Exceptions_OK then
-               Build_Object_Declarations
-                 (Finalizer_Data, Finalizer_Decls, Loc, For_Package);
-            end if;
+            Build_Object_Declarations
+              (Finalizer_Data, Finalizer_Decls, Loc, For_Package);
 
             --  Since the total number of controlled objects is always known,
             --  build a subtype of Natural with precise bounds. This allows
@@ -2839,14 +2837,14 @@ package body Exp_Ch7 is
    --------------------------
 
    procedure Build_Finalizer_Call (N : Node_Id; Fin_Id : Entity_Id) is
-      Loc : constant Source_Ptr := Sloc (N);
-      HSS : Node_Id := Handled_Statement_Sequence (N);
-
       Is_Prot_Body : constant Boolean :=
                        Nkind (N) = N_Subprogram_Body
                          and then Is_Protected_Subprogram_Body (N);
       --  Determine whether N denotes the protected version of a subprogram
       --  which belongs to a protected type.
+
+      Loc : constant Source_Ptr := Sloc (N);
+      HSS : Node_Id;
 
    begin
       --  Do not perform this expansion in Alfa mode because we do not create
@@ -2858,6 +2856,7 @@ package body Exp_Ch7 is
 
       --  The At_End handler should have been assimilated by the finalizer
 
+      HSS := Handled_Statement_Sequence (N);
       pragma Assert (No (At_End_Proc (HSS)));
 
       --  If the construct to be cleaned up is a protected subprogram body, the
@@ -2943,9 +2942,14 @@ package body Exp_Ch7 is
    begin
       pragma Assert (Decls /= No_List);
 
+      --  Always set the proper location as it may be needed even when
+      --  exception propagation is forbidden.
+
+      Data.Loc := Loc;
+
       if Restriction_Active (No_Exception_Propagation) then
-         Data.Abort_Id := Empty;
-         Data.E_Id := Empty;
+         Data.Abort_Id  := Empty;
+         Data.E_Id      := Empty;
          Data.Raised_Id := Empty;
          return;
       end if;
@@ -2953,7 +2957,6 @@ package body Exp_Ch7 is
       Data.Abort_Id  := Make_Temporary (Loc, 'A');
       Data.E_Id      := Make_Temporary (Loc, 'E');
       Data.Raised_Id := Make_Temporary (Loc, 'R');
-      Data.Loc       := Loc;
 
       --  In certain scenarios, finalization can be triggered by an abort. If
       --  the finalization itself fails and raises an exception, the resulting
@@ -4893,12 +4896,10 @@ package body Exp_Ch7 is
       --  Start of processing for Build_Adjust_Or_Finalize_Statements
 
       begin
-         Build_Indices;
+         Finalizer_Decls := New_List;
 
-         if Exceptions_OK then
-            Finalizer_Decls := New_List;
-            Build_Object_Declarations (Finalizer_Data, Finalizer_Decls, Loc);
-         end if;
+         Build_Indices;
+         Build_Object_Declarations (Finalizer_Data, Finalizer_Decls, Loc);
 
          Comp_Ref :=
            Make_Indexed_Component (Loc,
@@ -5168,14 +5169,11 @@ package body Exp_Ch7 is
       --  Start of processing for Build_Initialize_Statements
 
       begin
-         Build_Indices;
-
          Counter_Id := Make_Temporary (Loc, 'C');
+         Finalizer_Decls := New_List;
 
-         if Exceptions_OK then
-            Finalizer_Decls := New_List;
-            Build_Object_Declarations (Finalizer_Data, Finalizer_Decls, Loc);
-         end if;
+         Build_Indices;
+         Build_Object_Declarations (Finalizer_Data, Finalizer_Decls, Loc);
 
          --  Generate the block which houses the finalization call, the index
          --  guard and the handler which triggers Program_Error later on.
@@ -5881,10 +5879,8 @@ package body Exp_Ch7 is
       --  Start of processing for Build_Adjust_Statements
 
       begin
-         if Exceptions_OK then
-            Finalizer_Decls := New_List;
-            Build_Object_Declarations (Finalizer_Data, Finalizer_Decls, Loc);
-         end if;
+         Finalizer_Decls := New_List;
+         Build_Object_Declarations (Finalizer_Data, Finalizer_Decls, Loc);
 
          if Nkind (Typ_Def) = N_Derived_Type_Definition then
             Rec_Def := Record_Extension_Part (Typ_Def);
@@ -6458,10 +6454,8 @@ package body Exp_Ch7 is
       --  Start of processing for Build_Finalize_Statements
 
       begin
-         if Exceptions_OK then
-            Finalizer_Decls := New_List;
-            Build_Object_Declarations (Finalizer_Data, Finalizer_Decls, Loc);
-         end if;
+         Finalizer_Decls := New_List;
+         Build_Object_Declarations (Finalizer_Data, Finalizer_Decls, Loc);
 
          if Nkind (Typ_Def) = N_Derived_Type_Definition then
             Rec_Def := Record_Extension_Part (Typ_Def);

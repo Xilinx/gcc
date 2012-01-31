@@ -37,20 +37,30 @@ var buildPkgs = []struct {
 	{
 		"go/build/cmdtest",
 		&DirInfo{
-			GoFiles: []string{"main.go"},
-			Package: "main",
-			Imports: []string{"go/build/pkgtest"},
+			GoFiles:     []string{"main.go"},
+			Package:     "main",
+			Imports:     []string{"go/build/pkgtest"},
+			TestImports: []string{},
 		},
 	},
 	{
 		"go/build/cgotest",
 		&DirInfo{
-			CgoFiles: []string{"cgotest.go"},
-			CFiles:   []string{"cgotest.c"},
-			Imports:  []string{"C", "unsafe"},
-			Package:  "cgotest",
+			CgoFiles:    ifCgo([]string{"cgotest.go"}),
+			CFiles:      []string{"cgotest.c"},
+			HFiles:      []string{"cgotest.h"},
+			Imports:     []string{"C", "unsafe"},
+			TestImports: []string{},
+			Package:     "cgotest",
 		},
 	},
+}
+
+func ifCgo(x []string) []string {
+	if DefaultContext.CgoEnabled {
+		return x
+	}
+	return nil
 }
 
 const cmdtestOutput = "3"
@@ -66,6 +76,10 @@ func TestBuild(t *testing.T) {
 		}
 		if !reflect.DeepEqual(info, tt.info) {
 			t.Errorf("ScanDir(%#q) = %#v, want %#v\n", tt.dir, info, tt.info)
+			continue
+		}
+
+		if tt.dir == "go/build/cgotest" && len(info.CgoFiles) == 0 {
 			continue
 		}
 

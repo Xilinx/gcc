@@ -1,5 +1,5 @@
 // go-gcc.cc -- Go frontend to gcc IR.
-// Copyright (C) 2011 Free Software Foundation, Inc.
+// Copyright (C) 2011, 2012 Free Software Foundation, Inc.
 // Contributed by Ian Lance Taylor, Google.
 
 // This file is part of GCC.
@@ -194,6 +194,18 @@ class Gcc_backend : public Backend
 
   bool
   is_circular_pointer_type(Btype*);
+
+  size_t
+  type_size(Btype*);
+
+  size_t
+  type_alignment(Btype*);
+
+  size_t
+  type_field_alignment(Btype*);
+
+  size_t
+  type_field_offset(Btype*, size_t index);
 
   // Expressions.
 
@@ -619,6 +631,13 @@ Gcc_backend::set_placeholder_pointer_type(Btype* placeholder,
     }
   gcc_assert(TREE_CODE(tt) == POINTER_TYPE);
   TREE_TYPE(pt) = TREE_TYPE(tt);
+  if (TYPE_NAME(pt) != NULL_TREE)
+    {
+      // Build the data structure gcc wants to see for a typedef.
+      tree copy = build_variant_type_copy(pt);
+      TYPE_NAME(copy) = NULL_TREE;
+      DECL_ORIGINAL_TYPE(TYPE_NAME(pt)) = copy;
+    }
   return true;
 }
 
@@ -637,10 +656,13 @@ Gcc_backend::placeholder_struct_type(const std::string& name,
 				     Location location)
 {
   tree ret = make_node(RECORD_TYPE);
-  tree decl = build_decl(location.gcc_location(), TYPE_DECL,
-			 get_identifier_from_string(name),
-			 ret);
-  TYPE_NAME(ret) = decl;
+  if (!name.empty())
+    {
+      tree decl = build_decl(location.gcc_location(), TYPE_DECL,
+			     get_identifier_from_string(name),
+			     ret);
+      TYPE_NAME(ret) = decl;
+    }
   return this->make_type(ret);
 }
 
@@ -654,6 +676,15 @@ Gcc_backend::set_placeholder_struct_type(
   tree t = placeholder->get_tree();
   gcc_assert(TREE_CODE(t) == RECORD_TYPE && TYPE_FIELDS(t) == NULL_TREE);
   Btype* r = this->fill_in_struct(placeholder, fields);
+
+  if (TYPE_NAME(t) != NULL_TREE)
+    {
+      // Build the data structure gcc wants to see for a typedef.
+      tree copy = build_distinct_type_copy(t);
+      TYPE_NAME(copy) = NULL_TREE;
+      DECL_ORIGINAL_TYPE(TYPE_NAME(t)) = copy;
+    }
+
   return r->get_tree() != error_mark_node;
 }
 
@@ -681,6 +712,12 @@ Gcc_backend::set_placeholder_array_type(Btype* placeholder,
   tree t = placeholder->get_tree();
   gcc_assert(TREE_CODE(t) == ARRAY_TYPE && TREE_TYPE(t) == NULL_TREE);
   Btype* r = this->fill_in_array(placeholder, element_btype, length);
+
+  // Build the data structure gcc wants to see for a typedef.
+  tree copy = build_distinct_type_copy(t);
+  TYPE_NAME(copy) = NULL_TREE;
+  DECL_ORIGINAL_TYPE(TYPE_NAME(t)) = copy;
+
   return r->get_tree() != error_mark_node;
 }
 
@@ -693,12 +730,31 @@ Gcc_backend::named_type(const std::string& name, Btype* btype,
   tree type = btype->get_tree();
   if (type == error_mark_node)
     return this->error_type();
-  type = build_variant_type_copy(type);
+
+  // The middle-end expects a basic type to have a name.  In Go every
+  // basic type will have a name.  The first time we see a basic type,
+  // give it whatever Go name we have at this point.
+  if (TYPE_NAME(type) == NULL_TREE
+      && location.gcc_location() == BUILTINS_LOCATION
+      && (TREE_CODE(type) == INTEGER_TYPE
+	  || TREE_CODE(type) == REAL_TYPE
+	  || TREE_CODE(type) == COMPLEX_TYPE
+	  || TREE_CODE(type) == BOOLEAN_TYPE))
+    {
+      tree decl = build_decl(BUILTINS_LOCATION, TYPE_DECL,
+			     get_identifier_from_string(name),
+			     type);
+      TYPE_NAME(type) = decl;
+      return this->make_type(type);
+    }
+
+  tree copy = build_variant_type_copy(type);
   tree decl = build_decl(location.gcc_location(), TYPE_DECL,
 			 get_identifier_from_string(name),
-			 type);
-  TYPE_NAME(type) = decl;
-  return this->make_type(type);
+			 copy);
+  DECL_ORIGINAL_TYPE(decl) = type;
+  TYPE_NAME(copy) = decl;
+  return this->make_type(copy);
 }
 
 // Return a pointer type used as a marker for a circular type.
@@ -715,6 +771,67 @@ bool
 Gcc_backend::is_circular_pointer_type(Btype* btype)
 {
   return btype->get_tree() == ptr_type_node;
+}
+
+// Return the size of a type.
+
+size_t
+Gcc_backend::type_size(Btype* btype)
+{
+  tree t = btype->get_tree();
+  if (t == error_mark_node)
+    return 1;
+  t = TYPE_SIZE_UNIT(t);
+  gcc_assert(TREE_CODE(t) == INTEGER_CST);
+  gcc_assert(TREE_INT_CST_HIGH(t) == 0);
+  unsigned HOST_WIDE_INT val_wide = TREE_INT_CST_LOW(t);
+  size_t ret = static_cast<size_t>(val_wide);
+  gcc_assert(ret == val_wide);
+  return ret;
+}
+
+// Return the alignment of a type.
+
+size_t
+Gcc_backend::type_alignment(Btype* btype)
+{
+  tree t = btype->get_tree();
+  if (t == error_mark_node)
+    return 1;
+  return TYPE_ALIGN_UNIT(t);
+}
+
+// Return the alignment of a struct field of type BTYPE.
+
+size_t
+Gcc_backend::type_field_alignment(Btype* btype)
+{
+  tree t = btype->get_tree();
+  if (t == error_mark_node)
+    return 1;
+  return go_field_alignment(t);
+}
+
+// Return the offset of a field in a struct.
+
+size_t
+Gcc_backend::type_field_offset(Btype* btype, size_t index)
+{
+  tree struct_tree = btype->get_tree();
+  if (struct_tree == error_mark_node)
+    return 0;
+  gcc_assert(TREE_CODE(struct_tree) == RECORD_TYPE);
+  tree field = TYPE_FIELDS(struct_tree);
+  for (; index > 0; --index)
+    {
+      field = DECL_CHAIN(field);
+      gcc_assert(field != NULL_TREE);
+    }
+  HOST_WIDE_INT offset_wide = int_byte_position(field);
+  gcc_assert(offset_wide >= 0);
+  size_t ret = static_cast<size_t>(offset_wide);
+  gcc_assert(ret == static_cast<unsigned HOST_WIDE_INT>(offset_wide));
+  return ret;
 }
 
 // Return the zero value for a type.

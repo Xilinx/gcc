@@ -12,10 +12,12 @@ package json
 import (
 	"bytes"
 	"encoding/base64"
+	"math"
 	"reflect"
 	"runtime"
 	"sort"
 	"strconv"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 )
@@ -37,6 +39,8 @@ import (
 //
 // String values encode as JSON strings, with each invalid UTF-8 sequence
 // replaced by the encoding of the Unicode replacement character U+FFFD.
+// The angle brackets "<" and ">" are escaped to "\u003c" and "\u003e"
+// to keep some browsers from misinterpreting JSON output as HTML.
 //
 // Array and slice values encode as JSON arrays, except that
 // []byte encodes as a base64-encoded string.
@@ -75,7 +79,8 @@ import (
 //    Int64String int64 `json:",string"`
 //
 // The key name will be used if it's a non-empty string consisting of
-// only Unicode letters, digits, dollar signs, hyphens, and underscores.
+// only Unicode letters, digits, dollar signs, percent signs, hyphens,
+// underscores and slashes.
 //
 // Map values encode as JSON objects.
 // The map's key type must be string; the object keys are used directly
@@ -169,6 +174,15 @@ func (e *UnsupportedTypeError) Error() string {
 	return "json: unsupported type: " + e.Type.String()
 }
 
+type UnsupportedValueError struct {
+	Value reflect.Value
+	Str   string
+}
+
+func (e *UnsupportedValueError) Error() string {
+	return "json: unsupported value: " + e.Str
+}
+
 type InvalidUTF8Error struct {
 	S string
 }
@@ -196,6 +210,7 @@ var hex = "0123456789abcdef"
 // An encodeState encodes JSON into a bytes.Buffer.
 type encodeState struct {
 	bytes.Buffer // accumulated output
+	scratch      [64]byte
 }
 
 func (e *encodeState) marshal(v interface{}) (err error) {
@@ -274,14 +289,30 @@ func (e *encodeState) reflectValueQuoted(v reflect.Value, quoted bool) {
 		}
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		writeString(e, strconv.Itoa64(v.Int()))
-
+		b := strconv.AppendInt(e.scratch[:0], v.Int(), 10)
+		if quoted {
+			writeString(e, string(b))
+		} else {
+			e.Write(b)
+		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		writeString(e, strconv.Uitoa64(v.Uint()))
-
+		b := strconv.AppendUint(e.scratch[:0], v.Uint(), 10)
+		if quoted {
+			writeString(e, string(b))
+		} else {
+			e.Write(b)
+		}
 	case reflect.Float32, reflect.Float64:
-		writeString(e, strconv.FtoaN(v.Float(), 'g', -1, v.Type().Bits()))
-
+		f := v.Float()
+		if math.IsInf(f, 0) || math.IsNaN(f) {
+			e.error(&UnsupportedValueError{v, strconv.FormatFloat(f, 'g', -1, v.Type().Bits())})
+		}
+		b := strconv.AppendFloat(e.scratch[:0], f, 'g', -1, v.Type().Bits())
+		if quoted {
+			writeString(e, string(b))
+		} else {
+			e.Write(b)
+		}
 	case reflect.String:
 		if quoted {
 			sb, err := Marshal(v.String())
@@ -295,28 +326,10 @@ func (e *encodeState) reflectValueQuoted(v reflect.Value, quoted bool) {
 
 	case reflect.Struct:
 		e.WriteByte('{')
-		t := v.Type()
-		n := v.NumField()
 		first := true
-		for i := 0; i < n; i++ {
-			f := t.Field(i)
-			if f.PkgPath != "" {
-				continue
-			}
-			tag, omitEmpty, quoted := f.Name, false, false
-			if tv := f.Tag.Get("json"); tv != "" {
-				if tv == "-" {
-					continue
-				}
-				name, opts := parseTag(tv)
-				if isValidTag(name) {
-					tag = name
-				}
-				omitEmpty = opts.Contains("omitempty")
-				quoted = opts.Contains("string")
-			}
-			fieldValue := v.Field(i)
-			if omitEmpty && isEmptyValue(fieldValue) {
+		for _, ef := range encodeFields(v.Type()) {
+			fieldValue := v.Field(ef.i)
+			if ef.omitEmpty && isEmptyValue(fieldValue) {
 				continue
 			}
 			if first {
@@ -324,9 +337,9 @@ func (e *encodeState) reflectValueQuoted(v reflect.Value, quoted bool) {
 			} else {
 				e.WriteByte(',')
 			}
-			e.string(tag)
+			e.string(ef.tag)
 			e.WriteByte(':')
-			e.reflectValueQuoted(fieldValue, quoted)
+			e.reflectValueQuoted(fieldValue, ef.quoted)
 		}
 		e.WriteByte('}')
 
@@ -356,13 +369,10 @@ func (e *encodeState) reflectValueQuoted(v reflect.Value, quoted bool) {
 			e.WriteString("null")
 			break
 		}
-		// Slices can be marshalled as nil, but otherwise are handled
-		// as arrays.
-		fallthrough
-	case reflect.Array:
-		if v.Type() == byteSliceType {
+		if v.Type().Elem().Kind() == reflect.Uint8 {
+			// Byte slices get special treatment; arrays don't.
+			s := v.Bytes()
 			e.WriteByte('"')
-			s := v.Interface().([]byte)
 			if len(s) < 1024 {
 				// for small buffers, using Encode directly is much faster.
 				dst := make([]byte, base64.StdEncoding.EncodedLen(len(s)))
@@ -378,6 +388,10 @@ func (e *encodeState) reflectValueQuoted(v reflect.Value, quoted bool) {
 			e.WriteByte('"')
 			break
 		}
+		// Slices can be marshalled as nil, but otherwise are handled
+		// as arrays.
+		fallthrough
+	case reflect.Array:
 		e.WriteByte('[')
 		n := v.Len()
 		for i := 0; i < n; i++ {
@@ -406,8 +420,13 @@ func isValidTag(s string) bool {
 		return false
 	}
 	for _, c := range s {
-		if c != '$' && c != '-' && c != '_' && !unicode.IsLetter(c) && !unicode.IsDigit(c) {
-			return false
+		switch c {
+		case '$', '-', '_', '/', '%':
+			// Acceptable
+		default:
+			if !unicode.IsLetter(c) && !unicode.IsDigit(c) {
+				return false
+			}
 		}
 	}
 	return true
@@ -469,4 +488,64 @@ func (e *encodeState) string(s string) (int, error) {
 	}
 	e.WriteByte('"')
 	return e.Len() - len0, nil
+}
+
+// encodeField contains information about how to encode a field of a
+// struct.
+type encodeField struct {
+	i         int // field index in struct
+	tag       string
+	quoted    bool
+	omitEmpty bool
+}
+
+var (
+	typeCacheLock     sync.RWMutex
+	encodeFieldsCache = make(map[reflect.Type][]encodeField)
+)
+
+// encodeFields returns a slice of encodeField for a given
+// struct type.
+func encodeFields(t reflect.Type) []encodeField {
+	typeCacheLock.RLock()
+	fs, ok := encodeFieldsCache[t]
+	typeCacheLock.RUnlock()
+	if ok {
+		return fs
+	}
+
+	typeCacheLock.Lock()
+	defer typeCacheLock.Unlock()
+	fs, ok = encodeFieldsCache[t]
+	if ok {
+		return fs
+	}
+
+	v := reflect.Zero(t)
+	n := v.NumField()
+	for i := 0; i < n; i++ {
+		f := t.Field(i)
+		if f.PkgPath != "" {
+			continue
+		}
+		var ef encodeField
+		ef.i = i
+		ef.tag = f.Name
+
+		tv := f.Tag.Get("json")
+		if tv != "" {
+			if tv == "-" {
+				continue
+			}
+			name, opts := parseTag(tv)
+			if isValidTag(name) {
+				ef.tag = name
+			}
+			ef.omitEmpty = opts.Contains("omitempty")
+			ef.quoted = opts.Contains("string")
+		}
+		fs = append(fs, ef)
+	}
+	encodeFieldsCache[t] = fs
+	return fs
 }

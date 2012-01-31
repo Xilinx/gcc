@@ -22,6 +22,9 @@ const Size = 64
 // The size of a SHA384 checksum in bytes.
 const Size384 = 48
 
+// The blocksize of SHA512 and SHA384 in bytes.
+const BlockSize = 128
+
 const (
 	_Chunk     = 128
 	_Init0     = 0x6a09e667f3bcc908
@@ -97,6 +100,8 @@ func (d *digest) Size() int {
 	return Size384
 }
 
+func (d *digest) BlockSize() int { return BlockSize }
+
 func (d *digest) Write(p []byte) (nn int, err error) {
 	nn = len(p)
 	d.len += uint64(nn)
@@ -123,7 +128,7 @@ func (d *digest) Write(p []byte) (nn int, err error) {
 	return
 }
 
-func (d0 *digest) Sum() []byte {
+func (d0 *digest) Sum(in []byte) []byte {
 	// Make a copy of d0 so that caller can keep writing and summing.
 	d := new(digest)
 	*d = *d0
@@ -149,21 +154,24 @@ func (d0 *digest) Sum() []byte {
 		panic("d.nx != 0")
 	}
 
-	p := make([]byte, 64)
-	j := 0
-	for _, s := range d.h {
-		p[j+0] = byte(s >> 56)
-		p[j+1] = byte(s >> 48)
-		p[j+2] = byte(s >> 40)
-		p[j+3] = byte(s >> 32)
-		p[j+4] = byte(s >> 24)
-		p[j+5] = byte(s >> 16)
-		p[j+6] = byte(s >> 8)
-		p[j+7] = byte(s >> 0)
-		j += 8
-	}
+	h := d.h[:]
+	size := Size
 	if d.is384 {
-		return p[0:48]
+		h = d.h[:6]
+		size = Size384
 	}
-	return p
+
+	var digest [Size]byte
+	for i, s := range h {
+		digest[i*8] = byte(s >> 56)
+		digest[i*8+1] = byte(s >> 48)
+		digest[i*8+2] = byte(s >> 40)
+		digest[i*8+3] = byte(s >> 32)
+		digest[i*8+4] = byte(s >> 24)
+		digest[i*8+5] = byte(s >> 16)
+		digest[i*8+6] = byte(s >> 8)
+		digest[i*8+7] = byte(s)
+	}
+
+	return append(in, digest[:size]...)
 }

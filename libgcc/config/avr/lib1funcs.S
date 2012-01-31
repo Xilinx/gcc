@@ -466,6 +466,153 @@ ENDF __mulsi3
 #endif /* __AVR_HAVE_MUL__ */
 
 /*******************************************************
+       Multiplication 24 x 24
+*******************************************************/
+
+#if defined (L_mulpsi3)
+
+;; A[0..2]: In: Multiplicand; Out: Product
+#define A0  22
+#define A1  A0+1
+#define A2  A0+2
+
+;; B[0..2]: In: Multiplier
+#define B0  18
+#define B1  B0+1
+#define B2  B0+2
+
+#if defined (__AVR_HAVE_MUL__)
+
+;; C[0..2]: Expand Result
+#define C0  22
+#define C1  C0+1
+#define C2  C0+2
+
+;; R24:R22 *= R20:R18
+;; Clobbers: r21, r25, r26, r27, __tmp_reg__
+
+#define AA0 26
+#define AA2 21
+
+DEFUN __mulpsi3
+    wmov    AA0, A0
+    mov     AA2, A2
+    XCALL   __umulhisi3
+    mul     AA2, B0     $  add  C2, r0
+    mul     AA0, B2     $  add  C2, r0
+    clr     __zero_reg__
+    ret
+ENDF __mulpsi3
+
+#undef AA2
+#undef AA0
+
+#undef C2
+#undef C1
+#undef C0
+
+#else /* !HAVE_MUL */
+
+;; C[0..2]: Expand Result
+#define C0  0
+#define C1  C0+1
+#define C2  21
+
+;; R24:R22 *= R20:R18
+;; Clobbers: __tmp_reg__, R18, R19, R20, R21
+
+DEFUN __mulpsi3
+
+    ;; C[] = 0
+    clr     __tmp_reg__
+    clr     C2
+    
+0:  ;; Shift N-th Bit of B[] into Carry.  N = 24 - Loop
+    LSR  B2     $  ror  B1     $  ror  B0
+    
+    ;; If the N-th Bit of B[] was set...
+    brcc    1f
+    
+    ;; ...then add A[] * 2^N to the Result C[]
+    ADD  C0,A0  $  adc  C1,A1  $  adc  C2,A2
+    
+1:  ;; Multiply A[] by 2
+    LSL  A0     $  rol  A1     $  rol  A2
+    
+    ;; Loop until B[] is 0
+    subi B0,0   $  sbci B1,0   $  sbci B2,0
+    brne    0b
+    
+    ;; Copy C[] to the return Register A[]
+    wmov    A0, C0
+    mov     A2, C2
+
+    clr     __zero_reg__
+    ret
+ENDF __mulpsi3
+
+#undef C2
+#undef C1
+#undef C0
+
+#endif /* HAVE_MUL */
+
+#undef B2
+#undef B1
+#undef B0
+
+#undef A2
+#undef A1
+#undef A0
+
+#endif /* L_mulpsi3 */
+
+#if defined (L_mulsqipsi3) && defined (__AVR_HAVE_MUL__)
+
+;; A[0..2]: In: Multiplicand
+#define A0  22
+#define A1  A0+1
+#define A2  A0+2
+
+;; BB: In: Multiplier
+#define BB  25
+
+;; C[0..2]: Result
+#define C0  18
+#define C1  C0+1
+#define C2  C0+2
+
+;; C[] = A[] * sign_extend (BB)
+DEFUN __mulsqipsi3
+    mul     A0, BB
+    movw    C0, r0
+    mul     A2, BB
+    mov     C2, r0
+    mul     A1, BB
+    add     C1, r0
+    adc     C2, r1
+    clr     __zero_reg__
+    sbrs    BB, 7
+    ret
+    ;; One-extend BB
+    sub     C1, A0
+    sbc     C2, A1
+    ret
+ENDF __mulsqipsi3
+
+#undef C2
+#undef C1
+#undef C0
+
+#undef BB
+
+#undef A2
+#undef A1
+#undef A0
+
+#endif /* L_mulsqipsi3  &&  HAVE_MUL */
+
+/*******************************************************
        Multiplication 64 x 64
 *******************************************************/
 
@@ -1106,11 +1253,12 @@ ENDF __divmodsi4
 
 ;; Use Speed-optimized Version on "big" Devices, i.e. Devices with
 ;; at least 16k of Program Memory.  For smaller Devices, depend
-;; on MOVW.
+;; on MOVW and SP Size.  There is a Connexion between SP Size and
+;; Flash Size so that SP Size can be used to test for Flash Size.
 
 #if defined (__AVR_HAVE_JMP_CALL__)
 #   define SPEED_DIV 8
-#elif defined (__AVR_HAVE_MOVW__)
+#elif defined (__AVR_HAVE_MOVW__) && !defined (__AVR_HAVE_8BIT_SP__)
 #   define SPEED_DIV 16
 #else
 #   define SPEED_DIV 0
@@ -1342,7 +1490,7 @@ DEFUN  __divdi3_moddi3
 #endif /* SPEED_DIV */    
 
 0:  ;; The Prologue
-    ;; Save Z = 12 Registers:  Y, 17...8
+    ;; Save 12 Registers:  Y, 17...8
     ;; No Frame needed (X = 0)
     clr r26
     clr r27
@@ -1393,9 +1541,6 @@ DEFUN  __divdi3_moddi3
 4:  ;; Epilogue: Restore the Z = 12 Registers and return
     in r28, __SP_L__
 #if defined (__AVR_HAVE_8BIT_SP__)
-;; FIXME: __AVR_HAVE_8BIT_SP__ is set on device level, not on core level
-;;        so this lines are dead code.  To make it work, devices without
-;;        SP_H must get their own multilib(s).
     clr r29
 #else
     in r29, __SP_H__
@@ -1411,6 +1556,71 @@ ENDF __divdi3_moddi3
 
 #endif /* L_divdi3 */
 
+.section .text.libgcc, "ax", @progbits
+
+#define TT __tmp_reg__
+
+#if defined (L_adddi3)
+;; (set (reg:DI 18)
+;;      (plus:DI (reg:DI 18)
+;;               (reg:DI 10)))
+DEFUN __adddi3
+    ADD A0,B0  $  adc A1,B1  $  adc A2,B2  $  adc A3,B3
+    adc A4,B4  $  adc A5,B5  $  adc A6,B6  $  adc A7,B7
+    ret
+ENDF __adddi3
+#endif /* L_adddi3 */
+
+#if defined (L_adddi3_s8)
+;; (set (reg:DI 18)
+;;      (plus:DI (reg:DI 18)
+;;               (sign_extend:SI (reg:QI 26))))
+DEFUN __adddi3_s8
+    clr     TT
+    sbrc    r26, 7
+    com     TT
+    ADD A0,r26 $  adc A1,TT  $  adc A2,TT  $  adc A3,TT
+    adc A4,TT  $  adc A5,TT  $  adc A6,TT  $  adc A7,TT
+    ret
+ENDF __adddi3_s8
+#endif /* L_adddi3_s8 */
+
+#if defined (L_subdi3)
+;; (set (reg:DI 18)
+;;      (minus:DI (reg:DI 18)
+;;                (reg:DI 10)))
+DEFUN __subdi3
+    SUB A0,B0  $  sbc A1,B1  $  sbc A2,B2  $  sbc A3,B3
+    sbc A4,B4  $  sbc A5,B5  $  sbc A6,B6  $  sbc A7,B7
+    ret
+ENDF __subdi3
+#endif /* L_subdi3 */
+
+#if defined (L_cmpdi2)
+;; (set (cc0)
+;;      (compare (reg:DI 18)
+;;               (reg:DI 10)))
+DEFUN __cmpdi2
+    CP  A0,B0  $  cpc A1,B1  $  cpc A2,B2  $  cpc A3,B3
+    cpc A4,B4  $  cpc A5,B5  $  cpc A6,B6  $  cpc A7,B7
+    ret
+ENDF __cmpdi2
+#endif /* L_cmpdi2 */
+
+#if defined (L_cmpdi2_s8)
+;; (set (cc0)
+;;      (compare (reg:DI 18)
+;;               (sign_extend:SI (reg:QI 26))))
+DEFUN __cmpdi2_s8
+    clr     TT
+    sbrc    r26, 7
+    com     TT
+    CP  A0,r26 $  cpc A1,TT  $  cpc A2,TT  $  cpc A3,TT
+    cpc A4,TT  $  cpc A5,TT  $  cpc A6,TT  $  cpc A7,TT
+    ret
+ENDF __cmpdi2_s8
+#endif /* L_cmpdi2_s8 */
+
 #if defined (L_negdi2)
 DEFUN __negdi2
 
@@ -1423,6 +1633,8 @@ DEFUN __negdi2
 
 ENDF __negdi2
 #endif /* L_negdi2 */
+
+#undef TT
 
 #undef C7
 #undef C6
@@ -1480,9 +1692,6 @@ DEFUN __prologue_saves__
 	push r28
 	push r29
 #if defined (__AVR_HAVE_8BIT_SP__)
-;; FIXME: __AVR_HAVE_8BIT_SP__ is set on device level, not on core level
-;;        so this lines are dead code.  To make it work, devices without
-;;        SP_H must get their own multilib(s).
 	in	r28,__SP_L__
 	sub	r28,r26
 	out	__SP_L__,r28
@@ -1532,9 +1741,6 @@ DEFUN __epilogue_restores__
 	ldd	r17,Y+3
 	ldd	r26,Y+2
 #if defined (__AVR_HAVE_8BIT_SP__)
-;; FIXME: __AVR_HAVE_8BIT_SP__ is set on device level, not on core level
-;;        so this lines are dead code.  To make it work, devices without
-;;        SP_H must get their own multilib(s).
 	ldd	r29,Y+1
 	add	r28,r30
 	out	__SP_L__,r28
@@ -1855,19 +2061,14 @@ ENDF __load_4
 #endif /* L_load_3 || L_load_3 */
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Loading n bytes from Flash; n = 2,3,4
-;; R22... = Flash[R21:Z]
+;; Loading n bytes from Flash or RAM;  n = 1,2,3,4
+;; R22... = Flash[R21:Z] or RAM[Z] depending on R21.7
 ;; Clobbers: __tmp_reg__, R21, R30, R31
 
-#if (defined (L_xload_2)            \
+#if (defined (L_xload_1)            \
+     || defined (L_xload_2)         \
      || defined (L_xload_3)         \
-     || defined (L_xload_4))        \
-    && defined (__AVR_HAVE_ELPM__)  \
-    && !defined (__AVR_HAVE_ELPMX__)
-
-#if !defined (__AVR_HAVE_RAMPZ__)
-#error Need RAMPZ
-#endif /* have RAMPZ */
+     || defined (L_xload_4))
 
 ;; Destination
 #define D0  22
@@ -1880,6 +2081,9 @@ ENDF __load_4
 #define HHI8  21
 
 .macro  .xload dest, n
+#if defined (__AVR_HAVE_ELPMX__)
+    elpm    \dest, Z+
+#elif defined (__AVR_HAVE_ELPM__)
     elpm
     mov     \dest, r0
 .if \dest != D0+\n-1
@@ -1887,39 +2091,161 @@ ENDF __load_4
     adc     HHI8, __zero_reg__
     out     __RAMPZ__, HHI8
 .endif
-.endm
+#elif defined (__AVR_HAVE_LPMX__)
+    lpm     \dest, Z+
+#else
+    lpm
+    mov     \dest, r0
+.if \dest != D0+\n-1
+    adiw    r30, 1
+.endif
+#endif
+.endm ; .xload
+
+#if defined (L_xload_1)
+DEFUN __xload_1
+#if defined (__AVR_HAVE_LPMX__) && !defined (__AVR_HAVE_RAMPZ__)
+    ld      D0, Z
+    sbrs    HHI8, 7
+    lpm     D0, Z
+    ret
+#else
+    sbrc    HHI8, 7
+    rjmp    1f
+#if defined (__AVR_HAVE_RAMPZ__)
+    out     __RAMPZ__, HHI8
+#endif /* __AVR_HAVE_RAMPZ__ */
+    .xload  D0, 1
+    ret
+1:  ld      D0, Z
+    ret
+#endif /* LPMx && ! RAMPZ */
+ENDF __xload_1
+#endif /* L_xload_1 */
 
 #if defined (L_xload_2)
 DEFUN __xload_2
+    sbrc    HHI8, 7
+    rjmp    1f
+#if defined (__AVR_HAVE_RAMPZ__)
     out     __RAMPZ__, HHI8
-    .xload D0, 2
-    .xload D1, 2
+#endif /* __AVR_HAVE_RAMPZ__ */
+    .xload  D0, 2
+    .xload  D1, 2
+    ret
+1:  ld      D0, Z+
+    ld      D1, Z+
     ret
 ENDF __xload_2
 #endif /* L_xload_2 */
 
 #if defined (L_xload_3)
 DEFUN __xload_3
+    sbrc    HHI8, 7
+    rjmp    1f
+#if defined (__AVR_HAVE_RAMPZ__)
     out     __RAMPZ__, HHI8
-    .xload D0, 3
-    .xload D1, 3
-    .xload D2, 3
+#endif /* __AVR_HAVE_RAMPZ__ */
+    .xload  D0, 3
+    .xload  D1, 3
+    .xload  D2, 3
+    ret
+1:  ld      D0, Z+
+    ld      D1, Z+
+    ld      D2, Z+
     ret
 ENDF __xload_3
 #endif /* L_xload_3 */
 
 #if defined (L_xload_4)
 DEFUN __xload_4
+    sbrc    HHI8, 7
+    rjmp    1f
+#if defined (__AVR_HAVE_RAMPZ__)
     out     __RAMPZ__, HHI8
-    .xload D0, 4
-    .xload D1, 4
-    .xload D2, 4
-    .xload D3, 4
+#endif /* __AVR_HAVE_RAMPZ__ */
+    .xload  D0, 4
+    .xload  D1, 4
+    .xload  D2, 4
+    .xload  D3, 4
+    ret
+1:  ld      D0, Z+
+    ld      D1, Z+
+    ld      D2, Z+
+    ld      D3, Z+
     ret
 ENDF __xload_4
 #endif /* L_xload_4 */
 
-#endif /* L_xload_{2|3|4} && ELPM */
+#endif /* L_xload_{1|2|3|4} */
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; memcopy from Address Space __pgmx to RAM
+;; R23:Z = Source Address
+;; X     = Destination Address
+;; Clobbers: __tmp_reg__, R23, R24, R25, X, Z
+
+#if defined (L_movmemx)
+
+#define HHI8  23
+#define LOOP  24
+
+DEFUN __movmemx_qi
+    ;; #Bytes to copy fity in 8 Bits (1..255)
+    ;; Zero-extend Loop Counter
+    clr     LOOP+1
+    ;; FALLTHRU
+ENDF __movmemx_qi
+
+DEFUN __movmemx_hi
+
+;; Read from where?
+    sbrc    HHI8, 7
+    rjmp    1f
+
+;; Read from Flash
+
+#if defined (__AVR_HAVE_RAMPZ__)
+    out     __RAMPZ__, HHI8
+#endif
+
+0:  ;; Load 1 Byte from Flash...
+
+#if defined (__AVR_HAVE_ELPMX__)
+    elpm    r0, Z+
+#elif defined (__AVR_HAVE_ELPM__)
+    elpm
+    adiw    r30, 1
+    adc     HHI8, __zero_reg__
+    out     __RAMPZ__, HHI8
+#elif defined (__AVR_HAVE_LPMX__)
+    lpm     r0, Z+
+#else
+    lpm
+    adiw    r30, 1
+#endif
+
+    ;; ...and store that Byte to RAM Destination
+    st      X+, r0
+    sbiw    LOOP, 1
+    brne    0b
+    ret
+
+;; Read from RAM
+
+1:  ;; Read 1 Byte from RAM...
+    ld      r0, Z+
+    ;; and store that Byte to RAM Destination
+    st      X+, r0
+    sbiw    LOOP, 1
+    brne    0b
+    ret
+ENDF __movmemx_hi
+
+#undef HHI8
+#undef LOOP
+
+#endif /* L_movmemx */
 
 
 .section .text.libgcc.builtins, "ax", @progbits
@@ -2322,6 +2648,29 @@ DEFUN __ashldi3
     ret
 ENDF __ashldi3
 #endif /* defined (L_ashldi3) */
+
+#if defined (L_rotldi3)
+;; Shift left
+;; r25:r18 = rotl64 (r25:r18, r17:r16)
+DEFUN __rotldi3
+    push r16
+    andi r16, 63
+    breq 2f
+1:  lsl  r18
+    rol  r19
+    rol  r20
+    rol  r21
+    rol  r22
+    rol  r23
+    rol  r24
+    rol  r25
+    adc  r18, __zero_reg__
+    dec  r16
+    brne 1b
+2:  pop  r16
+    ret
+ENDF __rotldi3
+#endif /* defined (L_rotldi3) */
 
 
 .section .text.libgcc.fmul, "ax", @progbits

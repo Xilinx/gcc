@@ -9,6 +9,7 @@ import (
 	"encoding/gob"
 	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"testing"
 	"testing/quick"
 )
@@ -1242,9 +1243,13 @@ func TestBitSet(t *testing.T) {
 		x.SetString(test.x, 0)
 		b := x.Bit(test.i)
 		if b != test.b {
-
-			t.Errorf("#%d want %v got %v", i, test.b, b)
+			t.Errorf("#%d got %v want %v", i, b, test.b)
 		}
+	}
+	z := NewInt(1)
+	z.SetBit(NewInt(0), 2, 1)
+	if z.Cmp(NewInt(4)) != 0 {
+		t.Errorf("destination leaked into result; got %s want 4", z)
 	}
 }
 
@@ -1400,4 +1405,10 @@ func TestIntGobEncoding(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestIssue2607(t *testing.T) {
+	// This code sequence used to hang.
+	n := NewInt(10)
+	n.Rand(rand.New(rand.NewSource(9)), n)
 }

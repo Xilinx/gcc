@@ -29,6 +29,11 @@ extern void * __splitstack_resetcontext(void *context[10], size_t *);
 extern void *__splitstack_find(void *, void *, size_t *, void **, void **,
 			       void **);
 
+extern void __splitstack_block_signals (int *, int *);
+
+extern void __splitstack_block_signals_context (void *context[10], int *,
+						int *);
+
 #endif
 
 #if defined(USING_SPLIT_STACK) && defined(LINKER_SUPPORTS_SPLIT_STACK)
@@ -42,7 +47,6 @@ extern void *__splitstack_find(void *, void *, size_t *, void **, void **,
 #endif
 
 static void schedule(G*);
-static M *startm(void);
 
 typedef struct Sched Sched;
 
@@ -128,7 +132,7 @@ struct Sched {
 	volatile uint32 atomic;	// atomic scheduling word (see below)
 
 	int32 profilehz;	// cpu profiling rate
-	
+
 	bool init;  // running initialization
 	bool lockmain;  // init called runtime.LockOSThread
 
@@ -826,7 +830,7 @@ runtime_starttheworld(bool extra)
 		// but m is not running a specific goroutine,
 		// so set the helpgc flag as a signal to m's
 		// first schedule(nil) to mcpu-- and grunning--.
-		m = startm();
+		m = runtime_newm();
 		m->helpgc = 1;
 		runtime_sched.grunning++;
 	}
@@ -863,6 +867,14 @@ runtime_mstart(void* mp)
 		*(int*)0x21 = 0x21;
 	}
 	runtime_minit();
+
+#ifdef USING_SPLIT_STACK
+	{
+	  int dont_block_signals = 0;
+	  __splitstack_block_signals(&dont_block_signals, nil);
+	}
+#endif
+
 	schedule(nil);
 	return nil;
 }
@@ -876,8 +888,6 @@ struct CgoThreadStart
 };
 
 // Kick off new m's as needed (up to mcpumax).
-// There are already `other' other cpus that will
-// start looking for goroutines shortly.
 // Sched is locked.
 static void
 matchmg(void)
@@ -895,13 +905,14 @@ matchmg(void)
 
 		// Find the m that will run gp.
 		if((mp = mget(gp)) == nil)
-			mp = startm();
+			mp = runtime_newm();
 		mnextg(mp, gp);
 	}
 }
 
-static M*
-startm(void)
+// Create a new m.  It will start off with a call to runtime_mstart.
+M*
+runtime_newm(void)
 {
 	M *m;
 	pthread_attr_t attr;
@@ -1135,6 +1146,7 @@ runtime_exitsyscall(void)
 	runtime_memclr(gp->gcregs, sizeof gp->gcregs);
 }
 
+// Allocate a new g, with a stack big enough for stacksize bytes.
 G*
 runtime_malg(int32 stacksize, byte** ret_stack, size_t* ret_stacksize)
 {
@@ -1143,9 +1155,13 @@ runtime_malg(int32 stacksize, byte** ret_stack, size_t* ret_stacksize)
 	newg = runtime_malloc(sizeof(G));
 	if(stacksize >= 0) {
 #if USING_SPLIT_STACK
+		int dont_block_signals = 0;
+
 		*ret_stack = __splitstack_makecontext(stacksize,
 						      &newg->stack_context[0],
 						      ret_stacksize);
+		__splitstack_block_signals_context(&newg->stack_context[0],
+						   &dont_block_signals, nil);
 #else
 		*ret_stack = runtime_mallocgc(stacksize, FlagNoProfiling|FlagNoGC, 0, 0);
 		*ret_stacksize = stacksize;
@@ -1187,8 +1203,12 @@ __go_go(void (*fn)(void*), void* arg)
 
 	if((newg = gfget()) != nil){
 #ifdef USING_SPLIT_STACK
+		int dont_block_signals = 0;
+
 		sp = __splitstack_resetcontext(&newg->stack_context[0],
 					       &spsize);
+		__splitstack_block_signals_context(&newg->stack_context[0],
+						   &dont_block_signals, nil);
 #else
 		sp = newg->gcinitial_sp;
 		spsize = newg->gcstack_size;
@@ -1283,6 +1303,7 @@ runtime_Gosched(void)
 	runtime_gosched();
 }
 
+// Implementation of runtime.GOMAXPROCS.
 // delete when scheduler is stronger
 int32
 runtime_gomaxprocsfunc(int32 n)
@@ -1390,6 +1411,7 @@ static struct {
 	uintptr pcbuf[100];
 } prof;
 
+// Called if we receive a SIGPROF signal.
 void
 runtime_sigprof(uint8 *pc __attribute__ ((unused)),
 		uint8 *sp __attribute__ ((unused)),
@@ -1412,6 +1434,7 @@ runtime_sigprof(uint8 *pc __attribute__ ((unused)),
 	runtime_unlock(&prof);
 }
 
+// Arrange to call fn with a traceback hz times a second.
 void
 runtime_setcpuprofilerate(void (*fn)(uintptr*, int32), int32 hz)
 {

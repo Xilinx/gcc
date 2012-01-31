@@ -150,7 +150,7 @@ type parseTest struct {
 	name   string
 	input  string
 	ok     bool
-	result string
+	result string // what the user would see in an error message.
 }
 
 const (
@@ -160,59 +160,57 @@ const (
 
 var parseTests = []parseTest{
 	{"empty", "", noError,
-		`[]`},
+		``},
 	{"comment", "{{/*\n\n\n*/}}", noError,
-		`[]`},
+		``},
 	{"spaces", " \t\n", noError,
-		`[(text: " \t\n")]`},
+		`" \t\n"`},
 	{"text", "some text", noError,
-		`[(text: "some text")]`},
+		`"some text"`},
 	{"emptyAction", "{{}}", hasError,
-		`[(action: [])]`},
+		`{{}}`},
 	{"field", "{{.X}}", noError,
-		`[(action: [(command: [F=[X]])])]`},
+		`{{.X}}`},
 	{"simple command", "{{printf}}", noError,
-		`[(action: [(command: [I=printf])])]`},
+		`{{printf}}`},
 	{"$ invocation", "{{$}}", noError,
-		"[(action: [(command: [V=[$]])])]"},
+		"{{$}}"},
 	{"variable invocation", "{{with $x := 3}}{{$x 23}}{{end}}", noError,
-		"[({{with [V=[$x]] := [(command: [N=3])]}} [(action: [(command: [V=[$x] N=23])])])]"},
+		"{{with $x := 3}}{{$x 23}}{{end}}"},
 	{"variable with fields", "{{$.I}}", noError,
-		"[(action: [(command: [V=[$ I]])])]"},
+		"{{$.I}}"},
 	{"multi-word command", "{{printf `%d` 23}}", noError,
-		"[(action: [(command: [I=printf S=`%d` N=23])])]"},
+		"{{printf `%d` 23}}"},
 	{"pipeline", "{{.X|.Y}}", noError,
-		`[(action: [(command: [F=[X]]) (command: [F=[Y]])])]`},
+		`{{.X | .Y}}`},
 	{"pipeline with decl", "{{$x := .X|.Y}}", noError,
-		`[(action: [V=[$x]] := [(command: [F=[X]]) (command: [F=[Y]])])]`},
-	{"declaration", "{{.X|.Y}}", noError,
-		`[(action: [(command: [F=[X]]) (command: [F=[Y]])])]`},
+		`{{$x := .X | .Y}}`},
 	{"simple if", "{{if .X}}hello{{end}}", noError,
-		`[({{if [(command: [F=[X]])]}} [(text: "hello")])]`},
+		`{{if .X}}"hello"{{end}}`},
 	{"if with else", "{{if .X}}true{{else}}false{{end}}", noError,
-		`[({{if [(command: [F=[X]])]}} [(text: "true")] {{else}} [(text: "false")])]`},
+		`{{if .X}}"true"{{else}}"false"{{end}}`},
 	{"simple range", "{{range .X}}hello{{end}}", noError,
-		`[({{range [(command: [F=[X]])]}} [(text: "hello")])]`},
+		`{{range .X}}"hello"{{end}}`},
 	{"chained field range", "{{range .X.Y.Z}}hello{{end}}", noError,
-		`[({{range [(command: [F=[X Y Z]])]}} [(text: "hello")])]`},
+		`{{range .X.Y.Z}}"hello"{{end}}`},
 	{"nested range", "{{range .X}}hello{{range .Y}}goodbye{{end}}{{end}}", noError,
-		`[({{range [(command: [F=[X]])]}} [(text: "hello")({{range [(command: [F=[Y]])]}} [(text: "goodbye")])])]`},
+		`{{range .X}}"hello"{{range .Y}}"goodbye"{{end}}{{end}}`},
 	{"range with else", "{{range .X}}true{{else}}false{{end}}", noError,
-		`[({{range [(command: [F=[X]])]}} [(text: "true")] {{else}} [(text: "false")])]`},
+		`{{range .X}}"true"{{else}}"false"{{end}}`},
 	{"range over pipeline", "{{range .X|.M}}true{{else}}false{{end}}", noError,
-		`[({{range [(command: [F=[X]]) (command: [F=[M]])]}} [(text: "true")] {{else}} [(text: "false")])]`},
+		`{{range .X | .M}}"true"{{else}}"false"{{end}}`},
 	{"range []int", "{{range .SI}}{{.}}{{end}}", noError,
-		`[({{range [(command: [F=[SI]])]}} [(action: [(command: [{{<.>}}])])])]`},
+		`{{range .SI}}{{.}}{{end}}`},
 	{"constants", "{{range .SI 1 -3.2i true false 'a'}}{{end}}", noError,
-		`[({{range [(command: [F=[SI] N=1 N=-3.2i B=true B=false N='a'])]}} [])]`},
+		`{{range .SI 1 -3.2i true false 'a'}}{{end}}`},
 	{"template", "{{template `x`}}", noError,
-		`[{{template "x"}}]`},
+		`{{template "x"}}`},
 	{"template with arg", "{{template `x` .Y}}", noError,
-		`[{{template "x" [(command: [F=[Y]])]}}]`},
+		`{{template "x" .Y}}`},
 	{"with", "{{with .X}}hello{{end}}", noError,
-		`[({{with [(command: [F=[X]])]}} [(text: "hello")])]`},
+		`{{with .X}}"hello"{{end}}`},
 	{"with with else", "{{with .X}}hello{{else}}goodbye{{end}}", noError,
-		`[({{with [(command: [F=[X]])]}} [(text: "hello")] {{else}} [(text: "goodbye")])]`},
+		`{{with .X}}"hello"{{else}}"goodbye"{{end}}`},
 	// Errors.
 	{"unclosed action", "hello{{range", hasError, ""},
 	{"unmatched end", "{{end}}", hasError, ""},
@@ -236,7 +234,7 @@ var builtins = map[string]interface{}{
 
 func TestParse(t *testing.T) {
 	for _, test := range parseTests {
-		tmpl, err := New(test.name).Parse(test.input, "", "", builtins)
+		tmpl, err := New(test.name).Parse(test.input, "", "", make(map[string]*Tree), builtins)
 		switch {
 		case err == nil && !test.ok:
 			t.Errorf("%q: expected error; got none", test.name)
@@ -254,6 +252,35 @@ func TestParse(t *testing.T) {
 		result := tmpl.Root.String()
 		if result != test.result {
 			t.Errorf("%s=(%q): got\n\t%v\nexpected\n\t%v", test.name, test.input, result, test.result)
+		}
+	}
+}
+
+type isEmptyTest struct {
+	name  string
+	input string
+	empty bool
+}
+
+var isEmptyTests = []isEmptyTest{
+	{"empty", ``, true},
+	{"nonempty", `hello`, false},
+	{"spaces only", " \t\n \t\n", true},
+	{"definition", `{{define "x"}}something{{end}}`, true},
+	{"definitions and space", "{{define `x`}}something{{end}}\n\n{{define `y`}}something{{end}}\n\n", true},
+	{"definitions and text", "{{define `x`}}something{{end}}\nx\n{{define `y`}}something{{end}}\ny\n}}", false},
+	{"definition and action", "{{define `x`}}something{{end}}{{if 3}}foo{{end}}", false},
+}
+
+func TestIsEmpty(t *testing.T) {
+	for _, test := range isEmptyTests {
+		tree, err := New("root").Parse(test.input, "", "", make(map[string]*Tree), nil)
+		if err != nil {
+			t.Errorf("%q: unexpected error: %v", test.name, err)
+			continue
+		}
+		if empty := IsEmptyTree(tree.Root); empty != test.empty {
+			t.Errorf("%q: expected %t got %t", test.name, test.empty, empty)
 		}
 	}
 }

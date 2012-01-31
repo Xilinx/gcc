@@ -6,7 +6,7 @@
  *                                                                          *
  *                         Asm Implementation File                          *
  *                                                                          *
- *            Copyright (C) 2011, Free Software Foundation, Inc.            *
+ *         Copyright (C) 2011-2012, Free Software Foundation, Inc.          *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -19,10 +19,10 @@
  * additional permissions described in the GCC Runtime Library Exception,   *
  * version 3.1, as published by the Free Software Foundation.               *
  *                                                                          *
- * In particular,  you can freely  distribute your programs  built with the *
- * GNAT Pro compiler, including any required library run-time units,  using *
- * any licensing terms  of your choosing.  See the AdaCore Software License *
- * for full details.                                                        *
+ * You should have received a copy of the GNU General Public License and    *
+ * a copy of the GCC Runtime Library Exception along with this program;     *
+ * see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    *
+ * <http://www.gnu.org/licenses/>.                                          *
  *                                                                          *
  * GNAT was originally developed  by the GNAT team at  New York University. *
  * Extensive contributions were provided by Ada Core Technologies Inc.      *
@@ -169,15 +169,23 @@ CR(".cfi_def_cfa " S(CFA_REG) ", 0")
 
 /* Register location blocks
    ------------------------
-   Rules to find registers of interest from the CFA. This should
-   comprise all the non-volatile registers relevant to the interrupted
-   context.  */
+   Rules to find registers of interest from the CFA. This should comprise
+   all the non-volatile registers relevant to the interrupted context.
+
+   Note that we include r1 in this set, unlike the libgcc unwinding
+   fallbacks.  This is useful for fallbacks to allow the use of r1 in CFI
+   expressions and the absence of rule for r1 gets compensated by using the
+   target CFA instead.  We don't need the expression facility here and
+   setup a fake CFA to allow very simple offset expressions, so having a
+   rule for r1 is the proper thing to do.  We for sure have observed
+   crashes in some cases without it.  */
 
 #define COMMON_CFI(REG) \
   ".cfi_offset " S(REGNO_##REG) "," S(REG_SET_##REG)
 
 #define CFI_COMMON_REGS \
 CR("# CFI for common registers\n") \
+TCR(COMMON_CFI(GR(1)))  \
 TCR(COMMON_CFI(GR(2)))  \
 TCR(COMMON_CFI(GR(3)))  \
 TCR(COMMON_CFI(GR(4)))  \

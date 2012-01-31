@@ -59,7 +59,7 @@ func findPkg(path string) (filename, id string) {
 	// try extensions
 	for _, ext := range pkgExts {
 		filename = noext + ext
-		if f, err := os.Stat(filename); err == nil && f.IsRegular() {
+		if f, err := os.Stat(filename); err == nil && !f.IsDir() {
 			return
 		}
 	}
@@ -81,7 +81,7 @@ type gcParser struct {
 func (p *gcParser) init(filename, id string, src io.Reader, imports map[string]*ast.Object) {
 	p.scanner.Init(src)
 	p.scanner.Error = func(_ *scanner.Scanner, msg string) { p.error(msg) }
-	p.scanner.Mode = scanner.ScanIdents | scanner.ScanInts | scanner.ScanStrings | scanner.ScanComments | scanner.SkipComments
+	p.scanner.Mode = scanner.ScanIdents | scanner.ScanInts | scanner.ScanChars | scanner.ScanStrings | scanner.ScanComments | scanner.SkipComments
 	p.scanner.Whitespace = 1<<'\t' | 1<<' '
 	p.scanner.Filename = filename // for good error messages
 	p.next()
@@ -145,18 +145,14 @@ func GcImporter(imports map[string]*ast.Object, path string) (pkg *ast.Object, e
 
 // Declare inserts a named object of the given kind in scope.
 func (p *gcParser) declare(scope *ast.Scope, kind ast.ObjKind, name string) *ast.Object {
-	// a type may have been declared before - if it exists
-	// already in the respective package scope, return that
-	// type
-	if kind == ast.Typ {
-		if obj := scope.Lookup(name); obj != nil {
-			assert(obj.Kind == ast.Typ)
-			return obj
-		}
+	// the object may have been imported before - if it exists
+	// already in the respective package scope, return that object
+	if obj := scope.Lookup(name); obj != nil {
+		assert(obj.Kind == kind)
+		return obj
 	}
 
-	// any other object must be a newly declared object -
-	// create it and insert it into the package scope
+	// otherwise create a new object and insert it into the package scope
 	obj := ast.NewObj(kind, name)
 	if scope.Insert(obj) != nil {
 		p.errorf("already declared: %v %s", kind, obj.Name)
@@ -199,14 +195,15 @@ func (p *gcParser) errorf(format string, args ...interface{}) {
 func (p *gcParser) expect(tok rune) string {
 	lit := p.lit
 	if p.tok != tok {
-		p.errorf("expected %q, got %q (%q)", scanner.TokenString(tok), scanner.TokenString(p.tok), lit)
+		panic(1)
+		p.errorf("expected %s, got %s (%s)", scanner.TokenString(tok), scanner.TokenString(p.tok), lit)
 	}
 	p.next()
 	return lit
 }
 
 func (p *gcParser) expectSpecial(tok string) {
-	sep := rune('x') // not white space
+	sep := 'x' // not white space
 	i := 0
 	for i < len(tok) && p.tok == rune(tok[i]) && sep > ' ' {
 		sep = p.scanner.Peek() // if sep <= ' ', there is white space before the next token
@@ -261,7 +258,7 @@ func (p *gcParser) parsePkgId() *ast.Object {
 func (p *gcParser) parseDotIdent() string {
 	ident := ""
 	if p.tok != scanner.Int {
-		sep := rune('x') // not white space
+		sep := 'x' // not white space
 		for (p.tok == scanner.Ident || p.tok == scanner.Int || p.tok == '·') && sep > ' ' {
 			ident += p.lit
 			sep = p.scanner.Peek() // if sep <= ' ', there is white space before the next token
@@ -305,7 +302,7 @@ func (p *gcParser) parseArrayType() Type {
 	lit := p.expect(scanner.Int)
 	p.expect(']')
 	elt := p.parseType()
-	n, err := strconv.Atoui64(lit)
+	n, err := strconv.ParseUint(lit, 10, 64)
 	if err != nil {
 		p.error(err)
 	}
@@ -323,7 +320,7 @@ func (p *gcParser) parseMapType() Type {
 	return &Map{Key: key, Elt: elt}
 }
 
-// Name = identifier | "?" .
+// Name = identifier | "?" | ExportedName  .
 //
 func (p *gcParser) parseName() (name string) {
 	switch p.tok {
@@ -333,6 +330,9 @@ func (p *gcParser) parseName() (name string) {
 	case '?':
 		// anonymous
 		p.next()
+	case '@':
+		// exported name prefixed with package path
+		_, name = p.parseExportedName()
 	default:
 		p.error("name expected")
 	}
@@ -460,29 +460,32 @@ func (p *gcParser) parseSignature() *Func {
 	return &Func{Params: params, Results: results, IsVariadic: isVariadic}
 }
 
-// MethodSpec = ( identifier | ExportedName )  Signature .
+// MethodOrEmbedSpec = Name [ Signature ] .
 //
-func (p *gcParser) parseMethodSpec() *ast.Object {
-	if p.tok == scanner.Ident {
-		p.expect(scanner.Ident)
-	} else {
-		p.parseExportedName()
+func (p *gcParser) parseMethodOrEmbedSpec() *ast.Object {
+	p.parseName()
+	if p.tok == '(' {
+		p.parseSignature()
+		// TODO(gri) compute method object
+		return ast.NewObj(ast.Fun, "_")
 	}
-	p.parseSignature()
-
-	// TODO(gri) compute method object
-	return ast.NewObj(ast.Fun, "_")
+	// TODO lookup name and return that type
+	return ast.NewObj(ast.Typ, "_")
 }
 
-// InterfaceType = "interface" "{" [ MethodList ] "}" .
-// MethodList    = MethodSpec { ";" MethodSpec } .
+// InterfaceType = "interface" "{" [ MethodOrEmbedList ] "}" .
+// MethodOrEmbedList = MethodOrEmbedSpec { ";" MethodOrEmbedSpec } .
 //
 func (p *gcParser) parseInterfaceType() Type {
 	var methods ObjList
 
 	parseMethod := func() {
-		meth := p.parseMethodSpec()
-		methods = append(methods, meth)
+		switch m := p.parseMethodOrEmbedSpec(); m.Kind {
+		case ast.Typ:
+			// TODO expand embedded methods
+		case ast.Fun:
+			methods = append(methods, m)
+		}
 	}
 
 	p.expectKeyword("interface")
@@ -619,10 +622,11 @@ func (p *gcParser) parseNumber() Const {
 		// exponent (base 2)
 		p.next()
 		sign, val = p.parseInt()
-		exp, err := strconv.Atoui(val)
+		exp64, err := strconv.ParseUint(val, 10, 0)
 		if err != nil {
 			p.error(err)
 		}
+		exp := uint(exp64)
 		if sign == "-" {
 			denom := big.NewInt(1)
 			denom.Lsh(denom, exp)
@@ -641,6 +645,7 @@ func (p *gcParser) parseNumber() Const {
 // Literal     = bool_lit | int_lit | float_lit | complex_lit | string_lit .
 // bool_lit    = "true" | "false" .
 // complex_lit = "(" float_lit "+" float_lit ")" .
+// rune_lit = "(" int_lit "+" int_lit ")" .
 // string_lit  = `"` { unicode_char } `"` .
 //
 func (p *gcParser) parseConstDecl() {
@@ -670,21 +675,33 @@ func (p *gcParser) parseConstDecl() {
 			typ = Float64.Underlying
 		}
 	case '(':
-		// complex_lit
+		// complex_lit or rune_lit
 		p.next()
+		if p.tok == scanner.Char {
+			p.next()
+			p.expect('+')
+			p.parseNumber()
+			p.expect(')')
+			// TODO: x = ...
+			break
+		}
 		re := p.parseNumber()
 		p.expect('+')
 		im := p.parseNumber()
 		p.expect(')')
 		x = Const{cmplx{re.val.(*big.Rat), im.val.(*big.Rat)}}
 		typ = Complex128.Underlying
+	case scanner.Char:
+		// TODO: x = ...
+		p.next()
 	case scanner.String:
 		// string_lit
 		x = MakeConst(token.STRING, p.lit)
 		p.next()
 		typ = String.Underlying
 	default:
-		p.error("expected literal")
+		println(p.tok)
+		p.errorf("expected literal got %s", scanner.TokenString(p.tok))
 	}
 	if obj.Type == nil {
 		obj.Type = typ
@@ -747,7 +764,7 @@ func (p *gcParser) parseFuncDecl() {
 	}
 }
 
-// MethodDecl = "func" Receiver identifier Signature .
+// MethodDecl = "func" Receiver Name Signature .
 // Receiver   = "(" ( identifier | "?" ) [ "*" ] ExportedName ")" [ FuncBody ].
 //
 func (p *gcParser) parseMethodDecl() {
@@ -755,7 +772,7 @@ func (p *gcParser) parseMethodDecl() {
 	p.expect('(')
 	p.parseParameter() // receiver
 	p.expect(')')
-	p.expect(scanner.Ident)
+	p.parseName() // unexported method names in imports are qualified with their package.
 	p.parseSignature()
 	if p.tok == '{' {
 		p.parseFuncBody()

@@ -263,7 +263,7 @@ func TestTransportServerClosingUnexpectedly(t *testing.T) {
 				t.Fatalf(format, arg...)
 			}
 			t.Logf("retrying shortly after expected error: "+format, arg...)
-			time.Sleep(1e9 / int64(retries))
+			time.Sleep(time.Second / time.Duration(retries))
 		}
 		for retries >= 0 {
 			retries--
@@ -292,7 +292,7 @@ func TestTransportServerClosingUnexpectedly(t *testing.T) {
 	// it on most fast machines, causing the next fetch() call to
 	// succeed quickly.  But if we do get errors, fetch() will retry 5
 	// times with some delays between.
-	time.Sleep(25e6)
+	time.Sleep(25 * time.Millisecond)
 
 	body3 := fetch(3, 5)
 

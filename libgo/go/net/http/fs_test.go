@@ -190,8 +190,8 @@ func TestDirJoin(t *testing.T) {
 		if err != nil {
 			t.Fatalf("stat of %s: %v", name, err)
 		}
-		if gfi.Ino != wfi.Ino {
-			t.Errorf("%s got different inode", name)
+		if !gfi.(*os.FileStat).SameFile(wfi.(*os.FileStat)) {
+			t.Errorf("%s got different file", name)
 		}
 	}
 	test(Dir("/etc/"), "/hosts")
@@ -208,18 +208,31 @@ func TestDirJoin(t *testing.T) {
 	test(Dir("/etc/hosts"), "../")
 }
 
+func TestEmptyDirOpenCWD(t *testing.T) {
+	test := func(d Dir) {
+		name := "fs_test.go"
+		f, err := d.Open(name)
+		if err != nil {
+			t.Fatalf("open of %s: %v", name, err)
+		}
+		defer f.Close()
+	}
+	test(Dir(""))
+	test(Dir("."))
+	test(Dir("./"))
+}
+
 func TestServeFileContentType(t *testing.T) {
 	const ctype = "icecream/chocolate"
-	override := false
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		if override {
+		if r.FormValue("override") == "1" {
 			w.Header().Set("Content-Type", ctype)
 		}
 		ServeFile(w, r, "testdata/file")
 	}))
 	defer ts.Close()
-	get := func(want string) {
-		resp, err := Get(ts.URL)
+	get := func(override, want string) {
+		resp, err := Get(ts.URL + "?override=" + override)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -227,9 +240,8 @@ func TestServeFileContentType(t *testing.T) {
 			t.Errorf("Content-Type mismatch: got %q, want %q", h, want)
 		}
 	}
-	get("text/plain; charset=utf-8")
-	override = true
-	get(ctype)
+	get("0", "text/plain; charset=utf-8")
+	get("1", ctype)
 }
 
 func TestServeFileMimeType(t *testing.T) {
@@ -244,6 +256,20 @@ func TestServeFileMimeType(t *testing.T) {
 	want := "text/css; charset=utf-8"
 	if h := resp.Header.Get("Content-Type"); h != want {
 		t.Errorf("Content-Type mismatch: got %q, want %q", h, want)
+	}
+}
+
+func TestServeFileFromCWD(t *testing.T) {
+	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
+		ServeFile(w, r, "fs_test.go")
+	}))
+	defer ts.Close()
+	r, err := Get(ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.StatusCode != 200 {
+		t.Fatalf("expected 200 OK, got %s", r.Status)
 	}
 }
 

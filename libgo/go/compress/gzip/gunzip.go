@@ -13,6 +13,7 @@ import (
 	"hash"
 	"hash/crc32"
 	"io"
+	"time"
 )
 
 // BUG(nigeltao): Comments and Names don't properly map UTF-8 character codes outside of
@@ -42,11 +43,11 @@ var ChecksumError = errors.New("gzip checksum error")
 // The gzip file stores a header giving metadata about the compressed file.
 // That header is exposed as the fields of the Compressor and Decompressor structs.
 type Header struct {
-	Comment string // comment
-	Extra   []byte // "extra data"
-	Mtime   uint32 // modification time (seconds since January 1, 1970)
-	Name    string // file name
-	OS      byte   // operating system type
+	Comment string    // comment
+	Extra   []byte    // "extra data"
+	ModTime time.Time // modification time
+	Name    string    // file name
+	OS      byte      // operating system type
 }
 
 // An Decompressor is an io.Reader that can be read to retrieve
@@ -95,6 +96,7 @@ func get4(p []byte) uint32 {
 
 func (z *Decompressor) readString() (string, error) {
 	var err error
+	needconv := false
 	for i := 0; ; i++ {
 		if i >= len(z.buf) {
 			return "", HeaderError
@@ -103,9 +105,18 @@ func (z *Decompressor) readString() (string, error) {
 		if err != nil {
 			return "", err
 		}
+		if z.buf[i] > 0x7f {
+			needconv = true
+		}
 		if z.buf[i] == 0 {
 			// GZIP (RFC 1952) specifies that strings are NUL-terminated ISO 8859-1 (Latin-1).
-			// TODO(nigeltao): Convert from ISO 8859-1 (Latin-1) to UTF-8.
+			if needconv {
+				s := make([]rune, 0, i)
+				for _, v := range z.buf[0:i] {
+					s = append(s, rune(v))
+				}
+				return string(s), nil
+			}
 			return string(z.buf[0:i]), nil
 		}
 	}
@@ -130,7 +141,7 @@ func (z *Decompressor) readHeader(save bool) error {
 	}
 	z.flg = z.buf[3]
 	if save {
-		z.Mtime = get4(z.buf[4:8])
+		z.ModTime = time.Unix(int64(get4(z.buf[4:8])), 0)
 		// z.buf[8] is xfl, ignored
 		z.OS = z.buf[9]
 	}

@@ -371,7 +371,7 @@ func getNonceAccept(nonce []byte) (expected []byte, err error) {
 		return
 	}
 	expected = make([]byte, 28)
-	base64.StdEncoding.Encode(expected, h.Sum())
+	base64.StdEncoding.Encode(expected, h.Sum(nil))
 	return
 }
 
@@ -390,7 +390,7 @@ func hybiClientHandshake(config *Config, br *bufio.Reader, bw *bufio.Writer) (er
 		panic("wrong protocol version.")
 	}
 
-	bw.WriteString("GET " + config.Location.RawPath + " HTTP/1.1\r\n")
+	bw.WriteString("GET " + config.Location.RequestURI() + " HTTP/1.1\r\n")
 
 	bw.WriteString("Host: " + config.Location.Host + "\r\n")
 	bw.WriteString("Upgrade: websocket\r\n")
@@ -505,7 +505,7 @@ func (c *hybiServerHandshaker) ReadHandshake(buf *bufio.Reader, req *http.Reques
 	} else {
 		scheme = "ws"
 	}
-	c.Location, err = url.ParseRequest(scheme + "://" + req.Host + req.URL.RawPath)
+	c.Location, err = url.ParseRequest(scheme + "://" + req.Host + req.URL.RequestURI())
 	if err != nil {
 		return http.StatusBadRequest, err
 	}

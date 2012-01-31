@@ -84,15 +84,15 @@ func (c *testConn) RemoteAddr() net.Addr {
 	return dummyAddr("remote-addr")
 }
 
-func (c *testConn) SetTimeout(nsec int64) error {
+func (c *testConn) SetDeadline(t time.Time) error {
 	return nil
 }
 
-func (c *testConn) SetReadTimeout(nsec int64) error {
+func (c *testConn) SetReadDeadline(t time.Time) error {
 	return nil
 }
 
-func (c *testConn) SetWriteTimeout(nsec int64) error {
+func (c *testConn) SetWriteDeadline(t time.Time) error {
 	return nil
 }
 
@@ -266,19 +266,19 @@ func TestServerTimeouts(t *testing.T) {
 	}
 
 	// Slow client that should timeout.
-	t1 := time.Nanoseconds()
+	t1 := time.Now()
 	conn, err := net.Dial("tcp", addr.String())
 	if err != nil {
 		t.Fatalf("Dial: %v", err)
 	}
 	buf := make([]byte, 1)
 	n, err := conn.Read(buf)
-	latency := time.Nanoseconds() - t1
+	latency := time.Now().Sub(t1)
 	if n != 0 || err != io.EOF {
 		t.Errorf("Read = %v, %v, wanted %v, %v", n, err, 0, io.EOF)
 	}
-	if latency < second*0.20 /* fudge from 0.25 above */ {
-		t.Errorf("got EOF after %d ns, want >= %d", latency, second*0.20)
+	if latency < 200*time.Millisecond /* fudge from 0.25 above */ {
+		t.Errorf("got EOF after %s, want >= %s", latency, 200*time.Millisecond)
 	}
 
 	// Hit the HTTP server successfully again, verifying that the
@@ -361,7 +361,7 @@ func TestIdentityResponse(t *testing.T) {
 
 	// The ReadAll will hang for a failing test, so use a Timer to
 	// fail explicitly.
-	goTimeout(t, 2e9, func() {
+	goTimeout(t, 2*time.Second, func() {
 		got, _ := ioutil.ReadAll(conn)
 		expectedSuffix := "\r\n\r\ntoo short"
 		if !strings.HasSuffix(string(got), expectedSuffix) {
@@ -395,7 +395,7 @@ func testTcpConnectionCloses(t *testing.T, req string, h Handler) {
 	success := make(chan bool)
 	go func() {
 		select {
-		case <-time.After(5e9):
+		case <-time.After(5 * time.Second):
 			t.Fatal("body not closed after 5s")
 		case <-success:
 		}
@@ -538,7 +538,7 @@ func TestHeadResponses(t *testing.T) {
 
 func TestTLSHandshakeTimeout(t *testing.T) {
 	ts := httptest.NewUnstartedServer(HandlerFunc(func(w ResponseWriter, r *Request) {}))
-	ts.Config.ReadTimeout = 250e6
+	ts.Config.ReadTimeout = 250 * time.Millisecond
 	ts.StartTLS()
 	defer ts.Close()
 	conn, err := net.Dial("tcp", ts.Listener.Addr().String())
@@ -546,7 +546,7 @@ func TestTLSHandshakeTimeout(t *testing.T) {
 		t.Fatalf("Dial: %v", err)
 	}
 	defer conn.Close()
-	goTimeout(t, 10e9, func() {
+	goTimeout(t, 10*time.Second, func() {
 		var buf [1]byte
 		n, err := conn.Read(buf[:])
 		if err == nil || n != 0 {
@@ -576,7 +576,7 @@ func TestTLSServer(t *testing.T) {
 		t.Fatalf("Dial: %v", err)
 	}
 	defer idleConn.Close()
-	goTimeout(t, 10e9, func() {
+	goTimeout(t, 10*time.Second, func() {
 		if !strings.HasPrefix(ts.URL, "https://") {
 			t.Errorf("expected test TLS server to start with https://, got %q", ts.URL)
 			return
@@ -642,7 +642,7 @@ func TestServerExpect(t *testing.T) {
 		// Note using r.FormValue("readbody") because for POST
 		// requests that would read from r.Body, which we only
 		// conditionally want to do.
-		if strings.Contains(r.URL.RawPath, "readbody=true") {
+		if strings.Contains(r.URL.RawQuery, "readbody=true") {
 			ioutil.ReadAll(r.Body)
 			w.Write([]byte("Hi"))
 		} else {
@@ -760,7 +760,7 @@ func TestTimeoutHandler(t *testing.T) {
 		_, werr := w.Write([]byte("hi"))
 		writeErrors <- werr
 	})
-	timeout := make(chan int64, 1) // write to this to force timeouts
+	timeout := make(chan time.Time, 1) // write to this to force timeouts
 	ts := httptest.NewServer(NewTestTimeoutHandler(sayHi, timeout))
 	defer ts.Close()
 
@@ -782,7 +782,7 @@ func TestTimeoutHandler(t *testing.T) {
 	}
 
 	// Times out:
-	timeout <- 1
+	timeout <- time.Time{}
 	res, err = Get(ts.URL)
 	if err != nil {
 		t.Error(err)
@@ -904,17 +904,13 @@ func testHandlerPanic(t *testing.T, withHijack bool) {
 		panic("intentional death for testing")
 	}))
 	defer ts.Close()
-	_, err := Get(ts.URL)
-	if err == nil {
-		t.Logf("expected an error")
-	}
 
 	// Do a blocking read on the log output pipe so its logging
 	// doesn't bleed into the next test.  But wait only 5 seconds
 	// for it.
-	done := make(chan bool)
+	done := make(chan bool, 1)
 	go func() {
-		buf := make([]byte, 1024)
+		buf := make([]byte, 4<<10)
 		_, err := pr.Read(buf)
 		pr.Close()
 		if err != nil {
@@ -922,10 +918,16 @@ func testHandlerPanic(t *testing.T, withHijack bool) {
 		}
 		done <- true
 	}()
+
+	_, err := Get(ts.URL)
+	if err == nil {
+		t.Logf("expected an error")
+	}
+
 	select {
 	case <-done:
 		return
-	case <-time.After(5e9):
+	case <-time.After(5 * time.Second):
 		t.Fatal("expected server handler to log an error")
 	}
 }
@@ -1072,16 +1074,41 @@ func TestClientWriteShutdown(t *testing.T) {
 	}()
 	select {
 	case <-donec:
-	case <-time.After(10e9):
+	case <-time.After(10 * time.Second):
 		t.Fatalf("timeout")
 	}
 }
 
+// Tests that chunked server responses that write 1 byte at a time are
+// buffered before chunk headers are added, not after chunk headers.
+func TestServerBufferedChunking(t *testing.T) {
+	if true {
+		t.Logf("Skipping known broken test; see Issue 2357")
+		return
+	}
+	conn := new(testConn)
+	conn.readBuf.Write([]byte("GET / HTTP/1.1\r\n\r\n"))
+	done := make(chan bool)
+	ls := &oneConnListener{conn}
+	go Serve(ls, HandlerFunc(func(rw ResponseWriter, req *Request) {
+		defer close(done)
+		rw.Header().Set("Content-Type", "text/plain") // prevent sniffing, which buffers
+		rw.Write([]byte{'x'})
+		rw.Write([]byte{'y'})
+		rw.Write([]byte{'z'})
+	}))
+	<-done
+	if !bytes.HasSuffix(conn.writeBuf.Bytes(), []byte("\r\n\r\n3\r\nxyz\r\n0\r\n\r\n")) {
+		t.Errorf("response didn't end with a single 3 byte 'xyz' chunk; got:\n%q",
+			conn.writeBuf.Bytes())
+	}
+}
+
 // goTimeout runs f, failing t if f takes more than ns to complete.
-func goTimeout(t *testing.T, ns int64, f func()) {
+func goTimeout(t *testing.T, d time.Duration, f func()) {
 	ch := make(chan bool, 2)
-	timer := time.AfterFunc(ns, func() {
-		t.Errorf("Timeout expired after %d ns", ns)
+	timer := time.AfterFunc(d, func() {
+		t.Errorf("Timeout expired after %v", d)
 		ch <- true
 	})
 	defer timer.Stop()
@@ -1120,7 +1147,7 @@ func TestAcceptMaxFds(t *testing.T) {
 	ln := &errorListener{[]error{
 		&net.OpError{
 			Op:  "accept",
-			Err: os.Errno(syscall.EMFILE),
+			Err: syscall.EMFILE,
 		}}}
 	err := Serve(ln, HandlerFunc(HandlerFunc(func(ResponseWriter, *Request) {})))
 	if err != io.EOF {
@@ -1139,15 +1166,15 @@ func BenchmarkClientServer(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		res, err := Get(ts.URL)
 		if err != nil {
-			panic("Get: " + err.Error())
+			b.Fatal("Get:", err)
 		}
 		all, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			panic("ReadAll: " + err.Error())
+			b.Fatal("ReadAll:", err)
 		}
 		body := string(all)
 		if body != "Hello world.\n" {
-			panic("Got body: " + body)
+			b.Fatal("Got body:", body)
 		}
 	}
 

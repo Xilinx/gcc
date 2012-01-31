@@ -30,7 +30,7 @@ runtime_futexsleep(uint32 *addr, uint32 val, int64 ns)
 	else {
 		ts.tv_sec = ns/1000000000LL;
 		ts.tv_nsec = ns%1000000000LL;
-		// Avoid overflowdefs
+		// Avoid overflow
 		if(ts.tv_sec > 1<<30)
 			ts.tv_sec = 1<<30;
 		tsp = &ts;
@@ -102,4 +102,10 @@ void
 runtime_osinit(void)
 {
 	runtime_ncpu = getproccount();
+}
+
+void
+runtime_goenvs(void)
+{
+	runtime_goenvs_unix();
 }

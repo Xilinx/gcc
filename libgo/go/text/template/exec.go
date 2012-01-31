@@ -9,6 +9,7 @@ import (
 	"io"
 	"reflect"
 	"runtime"
+	"sort"
 	"strings"
 	"text/template/parse"
 )
@@ -78,15 +79,29 @@ func (s *state) error(err error) {
 func errRecover(errp *error) {
 	e := recover()
 	if e != nil {
-		if _, ok := e.(runtime.Error); ok {
+		switch err := e.(type) {
+		case runtime.Error:
+			panic(e)
+		case error:
+			*errp = err
+		default:
 			panic(e)
 		}
-		*errp = e.(error)
 	}
 }
 
+// ExecuteTemplate applies the template associated with t that has the given name
+// to the specified data object and writes the output to wr.
+func (t *Template) ExecuteTemplate(wr io.Writer, name string, data interface{}) error {
+	tmpl := t.tmpl[name]
+	if tmpl == nil {
+		return fmt.Errorf("template: no template %q associated with template %q", name, t.name)
+	}
+	return tmpl.Execute(wr, data)
+}
+
 // Execute applies a parsed template to the specified data object,
-// writing the output to wr.
+// and writes the output to wr.
 func (t *Template) Execute(wr io.Writer, data interface{}) (err error) {
 	defer errRecover(&err)
 	value := reflect.ValueOf(data)
@@ -97,7 +112,7 @@ func (t *Template) Execute(wr io.Writer, data interface{}) (err error) {
 		vars: []variable{{"$", value}},
 	}
 	if t.Tree == nil || t.Root == nil {
-		state.errorf("must be parsed before execution")
+		state.errorf("%q is an incomplete or empty template", t.name)
 	}
 	state.walk(value, t.Root)
 	return
@@ -220,7 +235,7 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) {
 		if val.Len() == 0 {
 			break
 		}
-		for _, key := range val.MapKeys() {
+		for _, key := range sortKeys(val.MapKeys()) {
 			oneIteration(key, val.MapIndex(key))
 		}
 		return
@@ -251,13 +266,9 @@ func (s *state) walkRange(dot reflect.Value, r *parse.RangeNode) {
 }
 
 func (s *state) walkTemplate(dot reflect.Value, t *parse.TemplateNode) {
-	set := s.tmpl.set
-	if set == nil {
-		s.errorf("no set defined in which to invoke template named %q", t.Name)
-	}
-	tmpl := set.tmpl[t.Name]
+	tmpl := s.tmpl.tmpl[t.Name]
 	if tmpl == nil {
-		s.errorf("template %q not in set", t.Name)
+		s.errorf("template %q not defined", t.Name)
 	}
 	// Variables declared by the pipeline persist.
 	dot = s.evalPipeline(dot, t.Pipe)
@@ -376,7 +387,7 @@ func (s *state) evalFieldChain(dot, receiver reflect.Value, ident []string, args
 }
 
 func (s *state) evalFunction(dot reflect.Value, name string, args []parse.Node, final reflect.Value) reflect.Value {
-	function, ok := findFunction(name, s.tmpl, s.tmpl.set)
+	function, ok := findFunction(name, s.tmpl)
 	if !ok {
 		s.errorf("%q is not a defined function", name)
 	}
@@ -398,7 +409,7 @@ func (s *state) evalField(dot reflect.Value, fieldName string, args []parse.Node
 	if ptr.Kind() != reflect.Interface && ptr.CanAddr() {
 		ptr = ptr.Addr()
 	}
-	if method, ok := methodByName(ptr, fieldName); ok {
+	if method := ptr.MethodByName(fieldName); method.IsValid() {
 		return s.evalCall(dot, method, fieldName, args, final)
 	}
 	hasArgs := len(args) > 1 || final.IsValid()
@@ -431,17 +442,6 @@ func (s *state) evalField(dot reflect.Value, fieldName string, args []parse.Node
 	}
 	s.errorf("can't evaluate field %s in type %s", fieldName, typ)
 	panic("not reached")
-}
-
-// TODO: delete when reflect's own MethodByName is released.
-func methodByName(receiver reflect.Value, name string) (reflect.Value, bool) {
-	typ := receiver.Type()
-	for i := 0; i < typ.NumMethod(); i++ {
-		if typ.Method(i).Name == name {
-			return receiver.Method(i), true // This value includes the receiver.
-		}
-	}
-	return zero, false
 }
 
 var (
@@ -502,7 +502,13 @@ func (s *state) evalCall(dot, fun reflect.Value, name string, args []parse.Node,
 // validateType guarantees that the value is valid and assignable to the type.
 func (s *state) validateType(value reflect.Value, typ reflect.Type) reflect.Value {
 	if !value.IsValid() {
-		s.errorf("invalid value; expected %s", typ)
+		switch typ.Kind() {
+		case reflect.Interface, reflect.Ptr, reflect.Chan, reflect.Map, reflect.Slice, reflect.Func:
+			// An untyped nil interface{}. Accept as a proper nil value.
+			value = reflect.Zero(typ)
+		default:
+			s.errorf("invalid value; expected %s", typ)
+		}
 	}
 	if !value.Type().AssignableTo(typ) {
 		// Does one dereference or indirection work? We could do more, as we
@@ -670,4 +676,45 @@ func (s *state) printValue(n parse.Node, v reflect.Value) {
 		}
 	}
 	fmt.Fprint(s.wr, v.Interface())
+}
+
+// Types to help sort the keys in a map for reproducible output.
+
+type rvs []reflect.Value
+
+func (x rvs) Len() int      { return len(x) }
+func (x rvs) Swap(i, j int) { x[i], x[j] = x[j], x[i] }
+
+type rvInts struct{ rvs }
+
+func (x rvInts) Less(i, j int) bool { return x.rvs[i].Int() < x.rvs[j].Int() }
+
+type rvUints struct{ rvs }
+
+func (x rvUints) Less(i, j int) bool { return x.rvs[i].Uint() < x.rvs[j].Uint() }
+
+type rvFloats struct{ rvs }
+
+func (x rvFloats) Less(i, j int) bool { return x.rvs[i].Float() < x.rvs[j].Float() }
+
+type rvStrings struct{ rvs }
+
+func (x rvStrings) Less(i, j int) bool { return x.rvs[i].String() < x.rvs[j].String() }
+
+// sortKeys sorts (if it can) the slice of reflect.Values, which is a slice of map keys.
+func sortKeys(v []reflect.Value) []reflect.Value {
+	if len(v) <= 1 {
+		return v
+	}
+	switch v[0].Kind() {
+	case reflect.Float32, reflect.Float64:
+		sort.Sort(rvFloats{v})
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		sort.Sort(rvInts{v})
+	case reflect.String:
+		sort.Sort(rvStrings{v})
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		sort.Sort(rvUints{v})
+	}
+	return v
 }

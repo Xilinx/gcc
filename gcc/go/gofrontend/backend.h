@@ -139,7 +139,8 @@ class Backend
   set_placeholder_function_type(Btype* placeholder, Btype* ft) = 0;
 
   // Create a placeholder struct type.  This is used for a named
-  // struct type, as with placeholder_pointer_type.
+  // struct type, as with placeholder_pointer_type.  It is also used
+  // for interface types, in which case NAME will be the empty string.
   virtual Btype*
   placeholder_struct_type(const std::string& name, Location) = 0;
 
@@ -197,6 +198,25 @@ class Backend
   // PLACEHOLDER parameter, this may safely always return false.
   virtual bool
   is_circular_pointer_type(Btype*) = 0;
+
+  // Return the size of a type.
+  virtual size_t
+  type_size(Btype*) = 0;
+
+  // Return the alignment of a type.
+  virtual size_t
+  type_alignment(Btype*) = 0;
+
+  // Return the alignment of a struct field of this type.  This is
+  // normally the same as type_alignment, but not always.
+  virtual size_t
+  type_field_alignment(Btype*) = 0;
+
+  // Return the offset of field INDEX in a struct type.  INDEX is the
+  // entry in the FIELDS std::vector parameter of struct_type or
+  // set_placeholder_struct_type.
+  virtual size_t
+  type_field_offset(Btype*, size_t index) = 0;
 
   // Expressions.
 
@@ -379,9 +399,9 @@ class Backend
   // must be a pointer to this struct type.
   // 
   // We must create the named structure before we know its
-  // initializer, because the initializer refer to its own address.
-  // After calling this the frontend will call
-  // set_immutable_struct_initializer.
+  // initializer, because the initializer may refer to its own
+  // address.  After calling this the frontend will call
+  // immutable_struct_set_init.
   virtual Bvariable*
   immutable_struct(const std::string& name, bool is_common, Btype* type,
 		   Location) = 0;
@@ -400,8 +420,8 @@ class Backend
 
   // Create a reference to a named immutable initialized data
   // structure defined in some other package.  This will be a
-  // structure created by a call to immutable_struct_expression with
-  // the same NAME and TYPE and with IS_COMMON passed as false.  This
+  // structure created by a call to immutable_struct with the same
+  // NAME and TYPE and with IS_COMMON passed as false.  This
   // corresponds to an extern const global variable in C.
   virtual Bvariable*
   immutable_struct_reference(const std::string& name, Btype* type,

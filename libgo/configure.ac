@@ -33,6 +33,8 @@ AC_SUBST(CFLAGS)
 
 AM_MAINTAINER_MODE
 
+AC_INCLUDES_DEFAULT
+
 AC_PROG_LD
 AC_PROG_RANLIB
 AC_CHECK_TOOL(OBJCOPY, objcopy, missing-objcopy)
@@ -126,6 +128,7 @@ is_darwin=no
 is_freebsd=no
 is_irix=no
 is_linux=no
+is_netbsd=no
 is_rtems=no
 is_solaris=no
 GOOS=unknown
@@ -134,6 +137,7 @@ case ${host} in
   *-*-freebsd*)  is_freebsd=yes; GOOS=freebsd ;;
   *-*-irix6*)    is_irix=yes;    GOOS=irix ;;
   *-*-linux*)    is_linux=yes;   GOOS=linux ;;
+  *-*-netbsd*)	 is_netbsd=yes;  GOOS=netbsd ;;
   *-*-rtems*)    is_rtems=yes;   GOOS=rtems ;;
   *-*-solaris2*) is_solaris=yes; GOOS=solaris ;;
 esac
@@ -141,6 +145,7 @@ AM_CONDITIONAL(LIBGO_IS_DARWIN, test $is_darwin = yes)
 AM_CONDITIONAL(LIBGO_IS_FREEBSD, test $is_freebsd = yes)
 AM_CONDITIONAL(LIBGO_IS_IRIX, test $is_irix = yes)
 AM_CONDITIONAL(LIBGO_IS_LINUX, test $is_linux = yes)
+AM_CONDITIONAL(LIBGO_IS_NETBSD, test $is_netbsd = yes)
 AM_CONDITIONAL(LIBGO_IS_RTEMS, test $is_rtems = yes)
 AM_CONDITIONAL(LIBGO_IS_SOLARIS, test $is_solaris = yes)
 AC_SUBST(GOOS)
@@ -277,23 +282,24 @@ AC_SUBST(GO_LIBCALL_OS_ARCH_FILE)
 AC_SUBST(GO_SYSCALL_OS_FILE)
 AC_SUBST(GO_SYSCALL_OS_ARCH_FILE)
 
-dnl Some targets need special flags to build sysinfo.go.
+dnl Special flags used to generate sysinfo.go.
+OSCFLAGS="-D_GNU_SOURCE -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 case "$target" in
     mips-sgi-irix6.5*)
 	# IRIX 6 needs _XOPEN_SOURCE=500 for the XPG5 version of struct
 	# msghdr in <sys/socket.h>.
-	OSCFLAGS='-D_XOPEN_SOURCE=500'
+	OSCFLAGS="$OSCFLAGS -D_XOPEN_SOURCE=500"
 	;;
     *-*-solaris2.[[89]])
 	# Solaris 8/9 need this so struct msghdr gets the msg_control
 	# etc. fields in <sys/socket.h> (_XPG4_2).
-	OSCFLAGS='-D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D__EXTENSIONS__'
+	OSCFLAGS="$OSCFLAGS -D_XOPEN_SOURCE=500 -D_XOPEN_SOURCE_EXTENDED -D__EXTENSIONS__"
 	;;
     *-*-solaris2.1[[01]])
 	# Solaris 10+ needs this so struct msghdr gets the msg_control
-	# etc. fields in <sys/socket.h> (_XPG4_2).  _XOPEN_SOURCE=500 as
+	# etc. fields in <sys/socket.h> (_XPG4_2).  _XOPEN_SOURCE=600 as
 	# above doesn't work with C99.
-	OSCFLAGS='-D_XOPEN_SOURCE=600 -D__EXTENSIONS__'
+	OSCFLAGS="$OSCFLAGS -std=gnu99 -D_XOPEN_SOURCE=600 -D__EXTENSIONS__"
 	;;
 esac
 AC_SUBST(OSCFLAGS)
@@ -447,7 +453,7 @@ no)
   ;;
 esac
 
-AC_CHECK_HEADERS(sys/mman.h syscall.h sys/epoll.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h sys/socket.h net/if.h)
+AC_CHECK_HEADERS(sys/mman.h syscall.h sys/epoll.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h sys/socket.h net/if.h sys/prctl.h)
 
 AC_CHECK_HEADERS([linux/filter.h linux/netlink.h linux/rtnetlink.h], [], [],
 [#ifdef HAVE_SYS_SOCKET_H
@@ -460,6 +466,9 @@ AM_CONDITIONAL(HAVE_SYS_MMAN_H, test "$ac_cv_header_sys_mman_h" = yes)
 AC_CHECK_FUNCS(strerror_r strsignal wait4 mincore setenv)
 AM_CONDITIONAL(HAVE_STRERROR_R, test "$ac_cv_func_strerror_r" = yes)
 AM_CONDITIONAL(HAVE_WAIT4, test "$ac_cv_func_wait4" = yes)
+
+AC_CHECK_FUNCS(epoll_create1 faccessat fchmodat fchownat futimesat inotify_add_watch inotify_init inotify_rm_watch mkdirat mknodat openat renameat splice tee unlinkat unshare)
+AC_CHECK_TYPES([loff_t])
 
 CFLAGS_hold="$CFLAGS"
 CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
@@ -515,7 +524,7 @@ AC_SUBST(STRINGOPS_FLAG)
 
 CFLAGS_hold=$CFLAGS
 CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE"
-AC_CHECK_TYPES(off64_t)
+AC_CHECK_TYPES([off64_t])
 CFLAGS=$CFLAGS_hold
 
 dnl Work out the size of the epoll_events struct on GNU/Linux.

@@ -89,8 +89,9 @@ stmt_has_scalar_dependences_outside_loop (gimple stmt)
 
   switch (gimple_code (stmt))
     {
+    case GIMPLE_CALL:
     case GIMPLE_ASSIGN:
-      name = gimple_assign_lhs (stmt);
+      name = gimple_get_lhs (stmt);
       break;
 
     case GIMPLE_PHI:
@@ -101,8 +102,10 @@ stmt_has_scalar_dependences_outside_loop (gimple stmt)
       return false;
     }
 
-  return TREE_CODE (name) == SSA_NAME
-    && ssa_name_has_uses_outside_loop_p (name, loop_containing_stmt (stmt));
+  return (name
+	  && TREE_CODE (name) == SSA_NAME
+	  && ssa_name_has_uses_outside_loop_p (name,
+					       loop_containing_stmt (stmt)));
 }
 
 /* Update the PHI nodes of NEW_LOOP.  NEW_LOOP is a duplicate of
@@ -1140,7 +1143,8 @@ ldist_gen (struct loop *loop, struct graph *rdg,
       goto ldist_done;
 
   rewrite_into_loop_closed_ssa (NULL, TODO_update_ssa);
-  update_ssa (TODO_update_ssa_only_virtuals | TODO_update_ssa);
+  mark_sym_for_renaming (gimple_vop (cfun));
+  update_ssa (TODO_update_ssa_only_virtuals);
 
  ldist_done:
 

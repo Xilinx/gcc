@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1996-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1996-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -34,7 +34,7 @@ with MLib.Fil;
 with Namet;    use Namet;
 with Opt;      use Opt;
 with Osint;    use Osint;
-with Output;
+with Output;   use Output;
 with Prj;      use Prj;
 with Prj.Env;
 with Prj.Ext;  use Prj.Ext;
@@ -1375,6 +1375,10 @@ procedure GNATCmd is
 --  Start of processing for GNATCmd
 
 begin
+   --  All output from GNATCmd is debugging or error output: send to stderr
+
+   Set_Standard_Error;
+
    --  Initializations
 
    Csets.Initialize;
@@ -1901,6 +1905,10 @@ begin
             Env               => Root_Environment,
             Packages_To_Check => Packages_To_Check);
 
+         --  Prj.Pars.Parse calls Set_Standard_Output, reset to stderr
+
+         Set_Standard_Error;
+
          if Project = Prj.No_Project then
             Fail ("""" & Project_File.all & """ processing failed");
          end if;
@@ -2083,7 +2091,7 @@ begin
             begin
                if Pkg /= No_Package then
 
-                  --  First, check if there is a single main specified.
+                  --  First, check if there is a single main specified
 
                   for J in 1  .. Last_Switches.Last loop
                      if Last_Switches.Table (J) (1) /= '-' then
