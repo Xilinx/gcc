@@ -325,6 +325,26 @@ var tokenTests = []tokenTest{
 	},
 	{
 		"comment9",
+		"a<!--z-",
+		"a$<!--z-->",
+	},
+	{
+		"comment10",
+		"a<!--z--",
+		"a$<!--z-->",
+	},
+	{
+		"comment11",
+		"a<!--z---",
+		"a$<!--z--->",
+	},
+	{
+		"comment12",
+		"a<!--z----",
+		"a$<!--z---->",
+	},
+	{
+		"comment13",
 		"a<!--x--!>z",
 		"a$<!--x-->$z",
 	},
@@ -427,7 +447,7 @@ loop:
 		if tt.golden != "" {
 			for i, s := range strings.Split(tt.golden, "$") {
 				if z.Next() == ErrorToken {
-					t.Errorf("%s token %d: want %q got error %v", tt.desc, i, s, z.Error())
+					t.Errorf("%s token %d: want %q got error %v", tt.desc, i, s, z.Err())
 					continue loop
 				}
 				actual := z.Token().String()
@@ -438,8 +458,8 @@ loop:
 			}
 		}
 		z.Next()
-		if z.Error() != io.EOF {
-			t.Errorf("%s: want EOF got %q", tt.desc, z.Error())
+		if z.Err() != io.EOF {
+			t.Errorf("%s: want EOF got %q", tt.desc, z.Err())
 		}
 	}
 }
@@ -543,8 +563,8 @@ loop:
 		tt := z.Next()
 		switch tt {
 		case ErrorToken:
-			if z.Error() != io.EOF {
-				t.Error(z.Error())
+			if z.Err() != io.EOF {
+				t.Error(z.Err())
 			}
 			break loop
 		case TextToken:

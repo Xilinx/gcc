@@ -9,7 +9,7 @@ import (
 	"crypto/tls"
 	"io"
 	"net"
-	"url"
+	"net/url"
 )
 
 // DialError is an error that occurs while dialling a websocket server.
@@ -72,8 +72,8 @@ A trivial example client:
 	package main
 
 	import (
-		"http"
 		"log"
+		"net/http"
 		"strings"
 		"websocket"
 	)

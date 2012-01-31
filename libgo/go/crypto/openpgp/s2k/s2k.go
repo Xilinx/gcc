@@ -8,7 +8,7 @@ package s2k
 
 import (
 	"crypto"
-	error_ "crypto/openpgp/error"
+	"crypto/openpgp/errors"
 	"hash"
 	"io"
 	"strconv"
@@ -26,6 +26,7 @@ var zero [1]byte
 // 4880, section 3.7.1.2) using the given hash, input passphrase and salt.
 func Salted(out []byte, h hash.Hash, in []byte, salt []byte) {
 	done := 0
+	var digest []byte
 
 	for i := 0; done < len(out); i++ {
 		h.Reset()
@@ -34,7 +35,8 @@ func Salted(out []byte, h hash.Hash, in []byte, salt []byte) {
 		}
 		h.Write(salt)
 		h.Write(in)
-		n := copy(out[done:], h.Sum())
+		digest = h.Sum(digest[:0])
+		n := copy(out[done:], digest)
 		done += n
 	}
 }
@@ -52,6 +54,7 @@ func Iterated(out []byte, h hash.Hash, in []byte, salt []byte, count int) {
 	}
 
 	done := 0
+	var digest []byte
 	for i := 0; done < len(out); i++ {
 		h.Reset()
 		for j := 0; j < i; j++ {
@@ -68,7 +71,8 @@ func Iterated(out []byte, h hash.Hash, in []byte, salt []byte, count int) {
 				written += len(combined)
 			}
 		}
-		n := copy(out[done:], h.Sum())
+		digest = h.Sum(digest[:0])
+		n := copy(out[done:], digest)
 		done += n
 	}
 }
@@ -85,11 +89,11 @@ func Parse(r io.Reader) (f func(out, in []byte), err error) {
 
 	hash, ok := HashIdToHash(buf[1])
 	if !ok {
-		return nil, error_.UnsupportedError("hash for S2K function: " + strconv.Itoa(int(buf[1])))
+		return nil, errors.UnsupportedError("hash for S2K function: " + strconv.Itoa(int(buf[1])))
 	}
 	h := hash.New()
 	if h == nil {
-		return nil, error_.UnsupportedError("hash not available: " + strconv.Itoa(int(hash)))
+		return nil, errors.UnsupportedError("hash not available: " + strconv.Itoa(int(hash)))
 	}
 
 	switch buf[0] {
@@ -119,7 +123,7 @@ func Parse(r io.Reader) (f func(out, in []byte), err error) {
 		return f, nil
 	}
 
-	return nil, error_.UnsupportedError("S2K function")
+	return nil, errors.UnsupportedError("S2K function")
 }
 
 // Serialize salts and stretches the given passphrase and writes the resulting

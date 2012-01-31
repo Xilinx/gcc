@@ -1,3 +1,7 @@
+// Copyright 2011 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package syntax
 
 import (
@@ -267,7 +271,7 @@ func dumpProg(b *bytes.Buffer, p *Prog) {
 }
 
 func u32(i uint32) string {
-	return strconv.Uitoa64(uint64(i))
+	return strconv.FormatUint(uint64(i), 10)
 }
 
 func dumpInst(b *bytes.Buffer, i *Inst) {

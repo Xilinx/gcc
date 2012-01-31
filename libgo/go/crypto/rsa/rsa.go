@@ -8,12 +8,12 @@ package rsa
 // TODO(agl): Add support for PSS padding.
 
 import (
-	"big"
 	"crypto/rand"
 	"crypto/subtle"
 	"errors"
 	"hash"
 	"io"
+	"math/big"
 )
 
 var bigZero = big.NewInt(0)
@@ -189,12 +189,13 @@ func incCounter(c *[4]byte) {
 // specified in PKCS#1 v2.1.
 func mgf1XOR(out []byte, hash hash.Hash, seed []byte) {
 	var counter [4]byte
+	var digest []byte
 
 	done := 0
 	for done < len(out) {
 		hash.Write(seed)
 		hash.Write(counter[0:4])
-		digest := hash.Sum()
+		digest = hash.Sum(digest[:0])
 		hash.Reset()
 
 		for i := 0; i < len(digest) && done < len(out); i++ {
@@ -231,7 +232,7 @@ func EncryptOAEP(hash hash.Hash, random io.Reader, pub *PublicKey, msg []byte, l
 	}
 
 	hash.Write(label)
-	lHash := hash.Sum()
+	lHash := hash.Sum(nil)
 	hash.Reset()
 
 	em := make([]byte, k)
@@ -428,7 +429,7 @@ func DecryptOAEP(hash hash.Hash, random io.Reader, priv *PrivateKey, ciphertext 
 	}
 
 	hash.Write(label)
-	lHash := hash.Sum()
+	lHash := hash.Sum(nil)
 	hash.Reset()
 
 	// Converting the plaintext number to bytes will strip any

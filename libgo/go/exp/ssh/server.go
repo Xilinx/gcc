@@ -5,7 +5,6 @@
 package ssh
 
 import (
-	"big"
 	"bytes"
 	"crypto"
 	"crypto/rand"
@@ -14,6 +13,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"io"
+	"math/big"
 	"net"
 	"sync"
 )
@@ -36,10 +36,13 @@ type ServerConfig struct {
 	// several goroutines.
 	PasswordCallback func(user, password string) bool
 
-	// PubKeyCallback, if non-nil, is called when a client attempts public
+	// PublicKeyCallback, if non-nil, is called when a client attempts public
 	// key authentication. It must return true iff the given public key is
 	// valid for the given user.
-	PubKeyCallback func(user, algo string, pubkey []byte) bool
+	PublicKeyCallback func(user, algo string, pubkey []byte) bool
+
+	// Cryptographic-related configuration.
+	Crypto CryptoConfig
 }
 
 func (c *ServerConfig) rand() io.Reader {
@@ -204,11 +207,11 @@ func (s *ServerConn) kexDH(group *dhGroup, hashFunc crypto.Hash, magics *handsha
 	marshalInt(K, kInt)
 	h.Write(K)
 
-	H = h.Sum()
+	H = h.Sum(nil)
 
 	h.Reset()
 	h.Write(H)
-	hh := h.Sum()
+	hh := h.Sum(nil)
 
 	var sig []byte
 	switch hostKeyAlgo {
@@ -221,7 +224,7 @@ func (s *ServerConn) kexDH(group *dhGroup, hashFunc crypto.Hash, magics *handsha
 		return nil, nil, errors.New("internal error")
 	}
 
-	serializedSig := serializeRSASignature(sig)
+	serializedSig := serializeSignature(hostAlgoRSA, sig)
 
 	kexDHReply := kexDHReplyMsg{
 		HostKey:   serializedHostKey,
@@ -234,49 +237,8 @@ func (s *ServerConn) kexDH(group *dhGroup, hashFunc crypto.Hash, magics *handsha
 	return
 }
 
-func serializeRSASignature(sig []byte) []byte {
-	length := stringLength([]byte(hostAlgoRSA))
-	length += stringLength(sig)
-
-	ret := make([]byte, length)
-	r := marshalString(ret, []byte(hostAlgoRSA))
-	r = marshalString(r, sig)
-
-	return ret
-}
-
 // serverVersion is the fixed identification string that Server will use.
 var serverVersion = []byte("SSH-2.0-Go\r\n")
-
-// buildDataSignedForAuth returns the data that is signed in order to prove
-// posession of a private key. See RFC 4252, section 7.
-func buildDataSignedForAuth(sessionId []byte, req userAuthRequestMsg, algo, pubKey []byte) []byte {
-	user := []byte(req.User)
-	service := []byte(req.Service)
-	method := []byte(req.Method)
-
-	length := stringLength(sessionId)
-	length += 1
-	length += stringLength(user)
-	length += stringLength(service)
-	length += stringLength(method)
-	length += 1
-	length += stringLength(algo)
-	length += stringLength(pubKey)
-
-	ret := make([]byte, length)
-	r := marshalString(ret, sessionId)
-	r[0] = msgUserAuthRequest
-	r = r[1:]
-	r = marshalString(r, user)
-	r = marshalString(r, service)
-	r = marshalString(r, method)
-	r[0] = 1
-	r = r[1:]
-	r = marshalString(r, algo)
-	r = marshalString(r, pubKey)
-	return ret
-}
 
 // Handshake performs an SSH transport and client authentication on the given ServerConn.
 func (s *ServerConn) Handshake() error {
@@ -298,8 +260,8 @@ func (s *ServerConn) Handshake() error {
 	serverKexInit := kexInitMsg{
 		KexAlgos:                supportedKexAlgos,
 		ServerHostKeyAlgos:      supportedHostKeyAlgos,
-		CiphersClientServer:     supportedCiphers,
-		CiphersServerClient:     supportedCiphers,
+		CiphersClientServer:     s.config.Crypto.ciphers(),
+		CiphersServerClient:     s.config.Crypto.ciphers(),
 		MACsClientServer:        supportedMACs,
 		MACsServerClient:        supportedMACs,
 		CompressionClientServer: supportedCompressions,
@@ -364,7 +326,9 @@ func (s *ServerConn) Handshake() error {
 	if packet[0] != msgNewKeys {
 		return UnexpectedMessageError{msgNewKeys, packet[0]}
 	}
-	s.transport.reader.setupKeys(clientKeys, K, H, H, hashFunc)
+	if err = s.transport.reader.setupKeys(clientKeys, K, H, H, hashFunc); err != nil {
+		return err
+	}
 	if packet, err = s.readPacket(); err != nil {
 		return err
 	}
@@ -395,7 +359,7 @@ func isAcceptableAlgo(algo string) bool {
 
 // testPubKey returns true if the given public key is acceptable for the user.
 func (s *ServerConn) testPubKey(user, algo string, pubKey []byte) bool {
-	if s.config.PubKeyCallback == nil || !isAcceptableAlgo(algo) {
+	if s.config.PublicKeyCallback == nil || !isAcceptableAlgo(algo) {
 		return false
 	}
 
@@ -405,7 +369,7 @@ func (s *ServerConn) testPubKey(user, algo string, pubKey []byte) bool {
 		}
 	}
 
-	result := s.config.PubKeyCallback(user, algo, pubKey)
+	result := s.config.PublicKeyCallback(user, algo, pubKey)
 	if len(s.cachedPubKeys) < maxCachedPubKeys {
 		c := cachedPubKey{
 			user:   user,
@@ -461,7 +425,7 @@ userAuthLoop:
 				break userAuthLoop
 			}
 		case "publickey":
-			if s.config.PubKeyCallback == nil {
+			if s.config.PublicKeyCallback == nil {
 				break
 			}
 			payload := userAuthReq.Payload
@@ -514,7 +478,7 @@ userAuthLoop:
 					hashFunc := crypto.SHA1
 					h := hashFunc.New()
 					h.Write(signedData)
-					digest := h.Sum()
+					digest := h.Sum(nil)
 					rsaKey, ok := parseRSA(pubKey)
 					if !ok {
 						return ParseError{msgUserAuthRequest}
@@ -535,7 +499,7 @@ userAuthLoop:
 		if s.config.PasswordCallback != nil {
 			failureMsg.Methods = append(failureMsg.Methods, "password")
 		}
-		if s.config.PubKeyCallback != nil {
+		if s.config.PublicKeyCallback != nil {
 			failureMsg.Methods = append(failureMsg.Methods, "publickey")
 		}
 

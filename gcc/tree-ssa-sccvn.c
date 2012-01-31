@@ -556,6 +556,7 @@ vn_reference_eq (const void *p1, const void *p2)
 	  tem1.type = TREE_TYPE (tem1.op0);
 	  tem1.opcode = TREE_CODE (tem1.op0);
 	  vro1 = &tem1;
+	  deref1 = false;
 	}
       if (deref2 && vro2->opcode == ADDR_EXPR)
 	{
@@ -564,7 +565,10 @@ vn_reference_eq (const void *p1, const void *p2)
 	  tem2.type = TREE_TYPE (tem2.op0);
 	  tem2.opcode = TREE_CODE (tem2.op0);
 	  vro2 = &tem2;
+	  deref2 = false;
 	}
+      if (deref1 != deref2)
+	return false;
       if (!vn_reference_op_eq (vro1, vro2))
 	return false;
       ++j;
@@ -624,6 +628,10 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
 
       switch (temp.opcode)
 	{
+	case WITH_SIZE_EXPR:
+	  temp.op0 = TREE_OPERAND (ref, 1);
+	  temp.off = 0;
+	  break;
 	case MEM_REF:
 	  /* The base address gets its own vn_reference_op_s structure.  */
 	  temp.op0 = TREE_OPERAND (ref, 1);
@@ -740,6 +748,7 @@ copy_reference_ops_from_ref (tree ref, VEC(vn_reference_op_s, heap) **result)
       VEC_safe_push (vn_reference_op_s, heap, *result, &temp);
 
       if (REFERENCE_CLASS_P (ref)
+	  || TREE_CODE (ref) == WITH_SIZE_EXPR
 	  || (TREE_CODE (ref) == ADDR_EXPR
 	      && !is_gimple_min_invariant (ref)))
 	ref = TREE_OPERAND (ref, 0);
@@ -918,6 +927,8 @@ ao_ref_init_from_vn_reference (ao_ref *ref,
     ref->base_alias_set = base_alias_set;
   else
     ref->base_alias_set = get_alias_set (base);
+  /* We discount volatiles from value-numbering elsewhere.  */
+  ref->volatile_p = false;
 
   return true;
 }
@@ -1335,6 +1346,33 @@ vn_reference_lookup_2 (ao_ref *op ATTRIBUTE_UNUSED, tree vuse, void *vr_)
   return NULL;
 }
 
+/* Lookup an existing or insert a new vn_reference entry into the
+   value table for the VUSE, SET, TYPE, OPERANDS reference which
+   has the constant value CST.  */
+
+static vn_reference_t
+vn_reference_lookup_or_insert_constant_for_pieces (tree vuse,
+						   alias_set_type set,
+						   tree type,
+						   VEC (vn_reference_op_s,
+							heap) *operands,
+						   tree cst)
+{
+  struct vn_reference_s vr1;
+  vn_reference_t result;
+  vr1.vuse = vuse;
+  vr1.operands = operands;
+  vr1.type = type;
+  vr1.set = set;
+  vr1.hashcode = vn_reference_compute_hash (&vr1);
+  if (vn_reference_lookup_1 (&vr1, &result))
+    return result;
+  return vn_reference_insert_pieces (vuse, set, type,
+				     VEC_copy (vn_reference_op_s, heap,
+					       operands), cst,
+				     get_or_alloc_constant_value_id (cst));
+}
+
 /* Callback for walk_non_aliased_vuses.  Tries to perform a lookup
    from the statement defining VUSE and if not successful tries to
    translate *REFP and VR_ through an aggregate copy at the defintion
@@ -1414,11 +1452,8 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
 	  && offset2 + size2 >= offset + maxsize)
 	{
 	  tree val = build_zero_cst (vr->type);
-	  unsigned int value_id = get_or_alloc_constant_value_id (val);
-	  return vn_reference_insert_pieces (vuse, vr->set, vr->type,
-					     VEC_copy (vn_reference_op_s,
-						       heap, vr->operands),
-					     val, value_id);
+	  return vn_reference_lookup_or_insert_constant_for_pieces
+	           (vuse, vr->set, vr->type, vr->operands, val);
 	}
     }
 
@@ -1438,11 +1473,8 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
 	  && offset2 + size2 >= offset + maxsize)
 	{
 	  tree val = build_zero_cst (vr->type);
-	  unsigned int value_id = get_or_alloc_constant_value_id (val);
-	  return vn_reference_insert_pieces (vuse, vr->set, vr->type,
-					     VEC_copy (vn_reference_op_s,
-						       heap, vr->operands),
-					     val, value_id);
+	  return vn_reference_lookup_or_insert_constant_for_pieces
+	           (vuse, vr->set, vr->type, vr->operands, val);
 	}
     }
 
@@ -1482,13 +1514,8 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
 						   / BITS_PER_UNIT),
 						ref->size / BITS_PER_UNIT);
 	      if (val)
-		{
-		  unsigned int value_id = get_or_alloc_constant_value_id (val);
-		  return vn_reference_insert_pieces
-		           (vuse, vr->set, vr->type,
-			    VEC_copy (vn_reference_op_s, heap, vr->operands),
-			    val, value_id);
-		}
+		return vn_reference_lookup_or_insert_constant_for_pieces
+		         (vuse, vr->set, vr->type, vr->operands, val);
 	    }
 	}
     }
@@ -1541,13 +1568,8 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
 		    }
 		}
 	      if (val)
-		{
-		  unsigned int value_id = get_or_alloc_constant_value_id (val);
-		  return vn_reference_insert_pieces
-		           (vuse, vr->set, vr->type,
-			    VEC_copy (vn_reference_op_s, heap, vr->operands),
-			    val, value_id);
-		}
+		return vn_reference_lookup_or_insert_constant_for_pieces
+		         (vuse, vr->set, vr->type, vr->operands, val);
 	    }
 	}
     }
@@ -1633,6 +1655,7 @@ vn_reference_lookup_3 (ao_ref *ref, tree vuse, void *vr_)
       FOR_EACH_VEC_ELT (vn_reference_op_s, rhs, j, vro)
 	VEC_replace (vn_reference_op_s, vr->operands, i + 1 + j, vro);
       VEC_free (vn_reference_op_s, heap, rhs);
+      vr->operands = valueize_refs (vr->operands);
       vr->hashcode = vn_reference_compute_hash (vr);
 
       /* Adjust *ref from the new operands.  */
@@ -3164,8 +3187,7 @@ visit_use (tree use)
       if (gimple_code (stmt) == GIMPLE_PHI)
 	changed = visit_phi (stmt);
       else if (!gimple_has_lhs (stmt)
-	       || gimple_has_volatile_ops (stmt)
-	       || stmt_could_throw_p (stmt))
+	       || gimple_has_volatile_ops (stmt))
 	changed = defs_to_varying (stmt);
       else if (is_gimple_assign (stmt))
 	{

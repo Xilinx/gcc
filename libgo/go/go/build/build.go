@@ -8,13 +8,14 @@ package build
 import (
 	"bytes"
 	"errors"
-	"exec"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
 )
 
 // Build produces a build Script for the given package.
@@ -150,7 +151,7 @@ func (s *Script) Run() error {
 
 // Stale returns true if the build's inputs are newer than its outputs.
 func (s *Script) Stale() bool {
-	var latest int64
+	var latest time.Time
 	// get latest mtime of outputs
 	for _, file := range s.Output {
 		fi, err := os.Stat(file)
@@ -158,13 +159,13 @@ func (s *Script) Stale() bool {
 			// any error reading output files means stale
 			return true
 		}
-		if m := fi.Mtime_ns; m > latest {
-			latest = m
+		if mtime := fi.ModTime(); mtime.After(latest) {
+			latest = mtime
 		}
 	}
 	for _, file := range s.Input {
 		fi, err := os.Stat(file)
-		if err != nil || fi.Mtime_ns > latest {
+		if err != nil || fi.ModTime().After(latest) {
 			// any error reading input files means stale
 			// (attempt to rebuild to figure out why)
 			return true
@@ -395,8 +396,7 @@ func (b *build) cgo(cgofiles, cgocfiles []string) (outGo, outObj []string) {
 		Output: output,
 	})
 	outGo = append(outGo, gofiles...)
-	exportH := filepath.Join(b.path, "_cgo_export.h")
-	b.script.addIntermediate(defunC, exportH, b.obj+"_cgo_flags")
+	b.script.addIntermediate(defunC, b.obj+"_cgo_export.h", b.obj+"_cgo_flags")
 	b.script.addIntermediate(cfiles...)
 
 	// cc _cgo_defun.c

@@ -1572,16 +1572,7 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
   attrs.alias = get_alias_set (t);
 
   MEM_VOLATILE_P (ref) |= TYPE_VOLATILE (type);
-  MEM_IN_STRUCT_P (ref)
-    = AGGREGATE_TYPE_P (type) || TREE_CODE (type) == COMPLEX_TYPE;
   MEM_POINTER (ref) = POINTER_TYPE_P (type);
-
-  /* If we are making an object of this type, or if this is a DECL, we know
-     that it is a scalar if the type is not an aggregate.  */
-  if ((objectp || DECL_P (t))
-      && ! AGGREGATE_TYPE_P (type)
-      && TREE_CODE (type) != COMPLEX_TYPE)
-    MEM_SCALAR_P (ref) = 1;
 
   /* Default values from pre-existing memory attributes if present.  */
   refattrs = MEM_ATTRS (ref);
@@ -1854,17 +1845,6 @@ set_mem_attributes_minus_bitpos (rtx ref, tree t, int objectp,
   /* Now set the attributes we computed above.  */
   attrs.addrspace = TYPE_ADDR_SPACE (type);
   set_mem_attrs (ref, &attrs);
-
-  /* If this is already known to be a scalar or aggregate, we are done.  */
-  if (MEM_IN_STRUCT_P (ref) || MEM_SCALAR_P (ref))
-    return;
-
-  /* If it is a reference into an aggregate, this is part of an aggregate.
-     Otherwise we don't know.  */
-  else if (TREE_CODE (t) == COMPONENT_REF || TREE_CODE (t) == ARRAY_REF
-	   || TREE_CODE (t) == ARRAY_RANGE_REF
-	   || TREE_CODE (t) == BIT_FIELD_REF)
-    MEM_IN_STRUCT_P (ref) = 1;
 }
 
 void
@@ -5004,6 +4984,17 @@ set_unique_reg_note (rtx insn, enum reg_note kind, rtx datum)
 
   return REG_NOTES (insn);
 }
+
+/* Like set_unique_reg_note, but don't do anything unless INSN sets DST.  */
+rtx
+set_dst_reg_note (rtx insn, enum reg_note kind, rtx datum, rtx dst)
+{
+  rtx set = single_set (insn);
+
+  if (set && SET_DEST (set) == dst)
+    return set_unique_reg_note (insn, kind, datum);
+  return NULL_RTX;
+}
 
 /* Return an indication of which type of insn should have X as a body.
    The value is CODE_LABEL, INSN, CALL_INSN or JUMP_INSN.  */
@@ -5706,6 +5697,11 @@ init_emit_once (void)
        mode = GET_MODE_WIDER_MODE (mode))
     const_tiny_rtx[3][(int) mode] = constm1_rtx;
 
+  for (mode = GET_CLASS_NARROWEST_MODE (MODE_PARTIAL_INT);
+       mode != VOIDmode;
+       mode = GET_MODE_WIDER_MODE (mode))
+    const_tiny_rtx[3][(int) mode] = constm1_rtx;
+      
   for (mode = GET_CLASS_NARROWEST_MODE (MODE_COMPLEX_INT);
        mode != VOIDmode;
        mode = GET_MODE_WIDER_MODE (mode))

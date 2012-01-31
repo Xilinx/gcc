@@ -15,6 +15,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 )
 
 // A Conn represents a secured connection.
@@ -86,23 +87,23 @@ func (c *Conn) RemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
 }
 
-// SetTimeout sets the read deadline associated with the connection.
+// SetDeadline sets the read deadline associated with the connection.
 // There is no write deadline.
-func (c *Conn) SetTimeout(nsec int64) error {
-	return c.conn.SetTimeout(nsec)
+// A zero value for t means Read will not time out.
+func (c *Conn) SetDeadline(t time.Time) error {
+	return c.conn.SetDeadline(t)
 }
 
-// SetReadTimeout sets the time (in nanoseconds) that
-// Read will wait for data before returning os.EAGAIN.
-// Setting nsec == 0 (the default) disables the deadline.
-func (c *Conn) SetReadTimeout(nsec int64) error {
-	return c.conn.SetReadTimeout(nsec)
+// SetReadDeadline sets the read deadline on the underlying connection.
+// A zero value for t means Read will not time out.
+func (c *Conn) SetReadDeadline(t time.Time) error {
+	return c.conn.SetReadDeadline(t)
 }
 
-// SetWriteTimeout exists to satisfy the net.Conn interface
+// SetWriteDeadline exists to satisfy the net.Conn interface
 // but is not implemented by TLS.  It always returns an error.
-func (c *Conn) SetWriteTimeout(nsec int64) error {
-	return errors.New("TLS does not support SetWriteTimeout")
+func (c *Conn) SetWriteDeadline(t time.Time) error {
+	return errors.New("TLS does not support SetWriteDeadline")
 }
 
 // A halfConn represents one direction of the record layer
@@ -117,6 +118,9 @@ type halfConn struct {
 
 	nextCipher interface{} // next encryption state
 	nextMac    macFunction // next MAC algorithm
+
+	// used to save allocating a new buffer for each MAC.
+	inDigestBuf, outDigestBuf []byte
 }
 
 // prepareCipherSpec sets the encryption and MAC states
@@ -279,12 +283,13 @@ func (hc *halfConn) decrypt(b *block) (bool, alert) {
 		b.data[4] = byte(n)
 		b.resize(recordHeaderLen + n)
 		remoteMAC := payload[n:]
-		localMAC := hc.mac.MAC(hc.seq[0:], b.data)
+		localMAC := hc.mac.MAC(hc.inDigestBuf, hc.seq[0:], b.data)
 		hc.incSeq()
 
 		if subtle.ConstantTimeCompare(localMAC, remoteMAC) != 1 || paddingGood != 255 {
 			return false, alertBadRecordMAC
 		}
+		hc.inDigestBuf = localMAC
 	}
 
 	return true, 0
@@ -311,12 +316,13 @@ func padToBlockSize(payload []byte, blockSize int) (prefix, finalBlock []byte) {
 func (hc *halfConn) encrypt(b *block) (bool, alert) {
 	// mac
 	if hc.mac != nil {
-		mac := hc.mac.MAC(hc.seq[0:], b.data)
+		mac := hc.mac.MAC(hc.outDigestBuf, hc.seq[0:], b.data)
 		hc.incSeq()
 
 		n := len(b.data)
 		b.resize(n + len(mac))
 		copy(b.data[n:], mac)
+		hc.outDigestBuf = mac
 	}
 
 	payload := b.data[recordHeaderLen:]
@@ -471,7 +477,7 @@ Again:
 		// RFC suggests that EOF without an alertCloseNotify is
 		// an error, but popular web sites seem to do this,
 		// so we can't make it an error.
-		// if err == os.EOF {
+		// if err == io.EOF {
 		// 	err = io.ErrUnexpectedEOF
 		// }
 		if e, ok := err.(net.Error); !ok || !e.Temporary() {
@@ -737,8 +743,8 @@ func (c *Conn) Write(b []byte) (n int, err error) {
 	return c.writeRecord(recordTypeApplicationData, b)
 }
 
-// Read can be made to time out and return err == os.EAGAIN
-// after a fixed time limit; see SetTimeout and SetReadTimeout.
+// Read can be made to time out and return a net.Error with Timeout() == true
+// after a fixed time limit; see SetDeadline and SetReadDeadline.
 func (c *Conn) Read(b []byte) (n int, err error) {
 	if err = c.Handshake(); err != nil {
 		return

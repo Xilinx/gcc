@@ -9,7 +9,7 @@ package armor
 import (
 	"bufio"
 	"bytes"
-	error_ "crypto/openpgp/error"
+	"crypto/openpgp/errors"
 	"encoding/base64"
 	"io"
 )
@@ -35,7 +35,7 @@ type Block struct {
 	oReader openpgpReader
 }
 
-var ArmorCorrupt error = error_.StructuralError("armor invalid")
+var ArmorCorrupt error = errors.StructuralError("armor invalid")
 
 const crc24Init = 0xb704ce
 const crc24Poly = 0x1864cfb
@@ -151,7 +151,7 @@ func (r *openpgpReader) Read(p []byte) (n int, err error) {
 }
 
 // Decode reads a PGP armored block from the given Reader. It will ignore
-// leading garbage. If it doesn't find a block, it will return nil, os.EOF. The
+// leading garbage. If it doesn't find a block, it will return nil, io.EOF. The
 // given Reader is not usable after calling this function: an arbitrary amount
 // of data may have been read past the end of the block.
 func Decode(in io.Reader) (p *Block, err error) {

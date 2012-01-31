@@ -6,17 +6,17 @@
 package x509
 
 import (
-	"asn1"
-	"big"
 	"bytes"
 	"crypto"
 	"crypto/dsa"
 	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"io"
+	"math/big"
 	"time"
 )
 
@@ -107,7 +107,7 @@ type dsaSignature struct {
 }
 
 type validity struct {
-	NotBefore, NotAfter *time.Time
+	NotBefore, NotAfter time.Time
 }
 
 type publicKeyInfo struct {
@@ -303,7 +303,7 @@ type Certificate struct {
 	SerialNumber        *big.Int
 	Issuer              pkix.Name
 	Subject             pkix.Name
-	NotBefore, NotAfter *time.Time // Validity bounds.
+	NotBefore, NotAfter time.Time // Validity bounds.
 	KeyUsage            KeyUsage
 
 	ExtKeyUsage        []ExtKeyUsage           // Sequence of extended key usages.
@@ -398,7 +398,7 @@ func (c *Certificate) CheckSignature(algo SignatureAlgorithm, signed, signature 
 	}
 
 	h.Write(signed)
-	digest := h.Sum()
+	digest := h.Sum(nil)
 
 	switch pub := c.PublicKey.(type) {
 	case *rsa.PublicKey:
@@ -899,21 +899,41 @@ var (
 	oidRSA         = []int{1, 2, 840, 113549, 1, 1, 1}
 )
 
-// CreateSelfSignedCertificate creates a new certificate based on
-// a template. The following members of template are used: SerialNumber,
-// Subject, NotBefore, NotAfter, KeyUsage, BasicConstraintsValid, IsCA,
-// MaxPathLen, SubjectKeyId, DNSNames, PermittedDNSDomainsCritical,
-// PermittedDNSDomains.
+func subjectBytes(cert *Certificate) ([]byte, error) {
+	if len(cert.RawSubject) > 0 {
+		return cert.RawSubject, nil
+	}
+
+	return asn1.Marshal(cert.Subject.ToRDNSequence())
+}
+
+// CreateCertificate creates a new certificate based on a template. The
+// following members of template are used: SerialNumber, Subject, NotBefore,
+// NotAfter, KeyUsage, BasicConstraintsValid, IsCA, MaxPathLen, SubjectKeyId,
+// DNSNames, PermittedDNSDomainsCritical, PermittedDNSDomains.
 //
 // The certificate is signed by parent. If parent is equal to template then the
 // certificate is self-signed. The parameter pub is the public key of the
 // signee and priv is the private key of the signer.
 //
 // The returned slice is the certificate in DER encoding.
-func CreateCertificate(rand io.Reader, template, parent *Certificate, pub *rsa.PublicKey, priv *rsa.PrivateKey) (cert []byte, err error) {
+//
+// The only supported key type is RSA (*rsa.PublicKey for pub, *rsa.PrivateKey
+// for priv).
+func CreateCertificate(rand io.Reader, template, parent *Certificate, pub interface{}, priv interface{}) (cert []byte, err error) {
+	rsaPub, ok := pub.(*rsa.PublicKey)
+	if !ok {
+		return nil, errors.New("x509: non-RSA public keys not supported")
+	}
+
+	rsaPriv, ok := priv.(*rsa.PrivateKey)
+	if !ok {
+		return nil, errors.New("x509: non-RSA private keys not supported")
+	}
+
 	asn1PublicKey, err := asn1.Marshal(rsaPublicKey{
-		N: pub.N,
-		E: pub.E,
+		N: rsaPub.N,
+		E: rsaPub.E,
 	})
 	if err != nil {
 		return
@@ -928,11 +948,12 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub *rsa.P
 		return
 	}
 
-	asn1Issuer, err := asn1.Marshal(parent.Subject.ToRDNSequence())
+	asn1Issuer, err := subjectBytes(parent)
 	if err != nil {
 		return
 	}
-	asn1Subject, err := asn1.Marshal(template.Subject.ToRDNSequence())
+
+	asn1Subject, err := subjectBytes(template)
 	if err != nil {
 		return
 	}
@@ -958,9 +979,9 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub *rsa.P
 
 	h := sha1.New()
 	h.Write(tbsCertContents)
-	digest := h.Sum()
+	digest := h.Sum(nil)
 
-	signature, err := rsa.SignPKCS1v15(rand, priv, crypto.SHA1, digest)
+	signature, err := rsa.SignPKCS1v15(rand, rsaPriv, crypto.SHA1, digest)
 	if err != nil {
 		return
 	}
@@ -977,6 +998,7 @@ func CreateCertificate(rand io.Reader, template, parent *Certificate, pub *rsa.P
 // pemCRLPrefix is the magic string that indicates that we have a PEM encoded
 // CRL.
 var pemCRLPrefix = []byte("-----BEGIN X509 CRL")
+
 // pemType is the type of a PEM encoded CRL.
 var pemType = "X509 CRL"
 
@@ -1006,7 +1028,13 @@ func ParseDERCRL(derBytes []byte) (certList *pkix.CertificateList, err error) {
 
 // CreateCRL returns a DER encoded CRL, signed by this Certificate, that
 // contains the given list of revoked certificates.
-func (c *Certificate) CreateCRL(rand io.Reader, priv *rsa.PrivateKey, revokedCerts []pkix.RevokedCertificate, now, expiry *time.Time) (crlBytes []byte, err error) {
+//
+// The only supported key type is RSA (*rsa.PrivateKey for priv).
+func (c *Certificate) CreateCRL(rand io.Reader, priv interface{}, revokedCerts []pkix.RevokedCertificate, now, expiry time.Time) (crlBytes []byte, err error) {
+	rsaPriv, ok := priv.(*rsa.PrivateKey)
+	if !ok {
+		return nil, errors.New("x509: non-RSA private keys not supported")
+	}
 	tbsCertList := pkix.TBSCertificateList{
 		Version: 2,
 		Signature: pkix.AlgorithmIdentifier{
@@ -1025,9 +1053,9 @@ func (c *Certificate) CreateCRL(rand io.Reader, priv *rsa.PrivateKey, revokedCer
 
 	h := sha1.New()
 	h.Write(tbsCertListContents)
-	digest := h.Sum()
+	digest := h.Sum(nil)
 
-	signature, err := rsa.SignPKCS1v15(rand, priv, crypto.SHA1, digest)
+	signature, err := rsa.SignPKCS1v15(rand, rsaPriv, crypto.SHA1, digest)
 	if err != nil {
 		return
 	}

@@ -13,13 +13,13 @@ import (
 	"crypto/md5"
 	"encoding/binary"
 	"fmt"
-	"http"
 	"io"
 	"io/ioutil"
-	"rand"
+	"math/rand"
+	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
-	"url"
 )
 
 // An aray of characters to be randomly inserted to construct Sec-WebSocket-Key
@@ -274,7 +274,7 @@ func getChallengeResponse(number1, number2 uint32, key3 []byte) (expected []byte
 	if _, err = h.Write(challenge); err != nil {
 		return
 	}
-	expected = h.Sum()
+	expected = h.Sum(nil)
 	return
 }
 
@@ -343,7 +343,7 @@ func hixie76ClientHandshake(config *Config, br *bufio.Reader, bw *bufio.Writer) 
 	}
 	// 4.1. Opening handshake.
 	// Step 5.  send a request line.
-	bw.WriteString("GET " + config.Location.RawPath + " HTTP/1.1\r\n")
+	bw.WriteString("GET " + config.Location.RequestURI() + " HTTP/1.1\r\n")
 
 	// Step 6-14. push request headers in fields.
 	fields := []string{
@@ -365,13 +365,13 @@ func hixie76ClientHandshake(config *Config, br *bufio.Reader, bw *bufio.Writer) 
 	key2, number2 := generateKeyNumber()
 	if config.handshakeData != nil {
 		key1 = config.handshakeData["key1"]
-		n, err := strconv.Atoui(config.handshakeData["number1"])
+		n, err := strconv.ParseUint(config.handshakeData["number1"], 10, 32)
 		if err != nil {
 			panic(err)
 		}
 		number1 = uint32(n)
 		key2 = config.handshakeData["key2"]
-		n, err = strconv.Atoui(config.handshakeData["number2"])
+		n, err = strconv.ParseUint(config.handshakeData["number2"], 10, 32)
 		if err != nil {
 			panic(err)
 		}
@@ -456,7 +456,7 @@ func hixie75ClientHandshake(config *Config, br *bufio.Reader, bw *bufio.Writer) 
 	if config.Version != ProtocolVersionHixie75 {
 		panic("wrong protocol version.")
 	}
-	bw.WriteString("GET " + config.Location.RawPath + " HTTP/1.1\r\n")
+	bw.WriteString("GET " + config.Location.RequestURI() + " HTTP/1.1\r\n")
 	bw.WriteString("Upgrade: WebSocket\r\n")
 	bw.WriteString("Connection: Upgrade\r\n")
 	bw.WriteString("Host: " + config.Location.Host + "\r\n")
@@ -557,7 +557,7 @@ func (c *hixie76ServerHandshaker) ReadHandshake(buf *bufio.Reader, req *http.Req
 	} else {
 		scheme = "ws"
 	}
-	c.Location, err = url.ParseRequest(scheme + "://" + req.Host + req.URL.RawPath)
+	c.Location, err = url.ParseRequest(scheme + "://" + req.Host + req.URL.RequestURI())
 	if err != nil {
 		return http.StatusBadRequest, err
 	}
@@ -653,7 +653,7 @@ func (c *hixie75ServerHandshaker) ReadHandshake(buf *bufio.Reader, req *http.Req
 	} else {
 		scheme = "ws"
 	}
-	c.Location, err = url.ParseRequest(scheme + "://" + req.Host + req.URL.RawPath)
+	c.Location, err = url.ParseRequest(scheme + "://" + req.Host + req.URL.RequestURI())
 	if err != nil {
 		return http.StatusBadRequest, err
 	}

@@ -1162,6 +1162,11 @@ class For_range_statement : public Statement
 		    Block**, Expression**, Block**, Block**);
 
   void
+  lower_range_slice(Gogo*, Block*, Block*, Named_object*, Temporary_statement*,
+		    Temporary_statement*, Temporary_statement*,
+		    Block**, Expression**, Block**, Block**);
+
+  void
   lower_range_string(Gogo*, Block*, Block*, Named_object*, Temporary_statement*,
 		     Temporary_statement*, Temporary_statement*,
 		     Block**, Expression**, Block**, Block**);
@@ -1436,7 +1441,7 @@ class Type_case_clauses
 
   // Lower to if and goto statements.
   void
-  lower(Block*, Temporary_statement* descriptor_temp,
+  lower(Type*, Block*, Temporary_statement* descriptor_temp,
 	Unnamed_label* break_label) const;
 
   // Dump the AST representation to a dump context.
@@ -1480,7 +1485,7 @@ class Type_case_clauses
 
     // Lower to if and goto statements.
     void
-    lower(Block*, Temporary_statement* descriptor_temp,
+    lower(Type*, Block*, Temporary_statement* descriptor_temp,
 	  Unnamed_label* break_label, Unnamed_label** stmts_label) const;
 
     // Dump the AST representation to a dump context.
