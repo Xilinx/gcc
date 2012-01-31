@@ -294,12 +294,12 @@ tree
 build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 			     tsubst_flags_t complain)
 {
-  bool *lhs_vector = NULL, **rhs_vector = NULL;
-  tree *lhs_array = NULL, **rhs_array = NULL;
+  bool lhs_vector[100][100], **rhs_vector = NULL;
+  tree lhs_array[100][100], **rhs_array = NULL;
   tree array_expr_lhs = NULL_TREE, array_expr_rhs = NULL_TREE;
   tree array_expr = NULL_TREE;
-  tree *lhs_value = NULL, **rhs_value = NULL;
-  tree *lhs_stride = NULL, *lhs_length = NULL, *lhs_start = NULL;
+  tree lhs_value[100][100], **rhs_value = NULL;
+  tree lhs_stride[100][100], lhs_length[100][100], lhs_start[100][100];
   tree **rhs_stride = NULL, **rhs_length = NULL, **rhs_start = NULL;
   tree loop = NULL_TREE, *lhs_var = NULL, *rhs_var = NULL;
   tree *body_label = NULL, *body_label_expr = NULL;
@@ -307,17 +307,19 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
   tree *if_stmt_label = NULL;
   tree *lhs_expr_incr = NULL, *rhs_expr_incr = NULL;
   tree *lhs_ind_init = NULL, *rhs_ind_init = NULL;
-  bool *lhs_count_down = NULL, **rhs_count_down = NULL;
+  bool **lhs_count_down = NULL, **rhs_count_down = NULL;
   tree *lhs_compare = NULL, *rhs_compare = NULL, *rhs_array_operand = NULL;
+  tree *lhs_array_operand = NULL;
   int lhs_rank = 0, rhs_rank = 0, ii = 0, jj = 0;
   tree ii_tree = NULL_TREE;
-  tree *rhs_list = NULL;
-  int rhs_list_size = 0;
+  tree *rhs_list = NULL, *lhs_list = NULL;
+  int rhs_list_size = 0, lhs_list_size = 0;
   an_reduce_type type = REDUCE_UNKNOWN;
   
   find_rank (lhs, true, &lhs_rank);
   find_rank (rhs, true, &rhs_rank);
 
+  
   /* If both are scalar, then no reason to do any of the components inside this
    * function... a simple build_x_modify_expr would do.
    */
@@ -349,40 +351,34 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
       error ("Rank-mismatch");
       return error_mark_node;
     }
-  
-  lhs_vector = (bool *) xmalloc (sizeof (bool) * lhs_rank);
+
+  /* We need this when we have a scatter issue */
+  extract_array_notation_exprs (lhs, true, &lhs_list, &lhs_list_size);
+
   rhs_vector = (bool **) xmalloc (sizeof (bool *) * rhs_list_size);
   for (ii = 0; ii < rhs_list_size; ii++)
     rhs_vector[ii] = (bool *) xmalloc (sizeof (bool) * rhs_rank);
-  
-  lhs_array = (tree *) xmalloc (sizeof (tree) * lhs_rank);
+    
   rhs_array = (tree **) xmalloc (sizeof (tree *) * rhs_list_size);
   for (ii = 0; ii < rhs_list_size; ii++)
     rhs_array[ii] = (tree *) xmalloc (sizeof (tree) * rhs_rank);
 
-  lhs_value = (tree *) xmalloc (sizeof (tree) * lhs_rank);
-
   rhs_value = (tree **) xmalloc (sizeof (tree *) * rhs_list_size);
   for (ii = 0; ii < rhs_list_size; ii++)
     rhs_value[ii] = (tree *) xmalloc (sizeof (tree) * rhs_rank);
-
-  lhs_stride = (tree *) xmalloc (sizeof (tree) * lhs_rank);
-
+ 
   rhs_stride = (tree **) xmalloc (sizeof (tree *) * rhs_list_size);
   for (ii = 0; ii < rhs_list_size; ii++)
     rhs_stride[ii] = (tree *) xmalloc (sizeof (tree) * rhs_rank);
 
-  lhs_length = (tree *) xmalloc (sizeof (tree) * lhs_rank);
   rhs_length = (tree **) xmalloc (sizeof (tree *) * rhs_list_size);
   for (ii = 0; ii < rhs_list_size; ii++)
     rhs_length[ii] = (tree *) xmalloc (sizeof (tree) * rhs_rank);
-  
-
-  lhs_start = (tree *) xmalloc (sizeof (tree) * lhs_rank);
+    
   rhs_start = (tree **) xmalloc (sizeof (tree *) * rhs_list_size);
   for (ii = 0; ii < rhs_list_size; ii++)
     rhs_start[ii] = (tree *) xmalloc (sizeof (tree) * rhs_rank);
-
+   
   lhs_var = (tree *) xmalloc (sizeof (tree) * lhs_rank);
   rhs_var = (tree *) xmalloc (sizeof (tree) * rhs_rank);
   
@@ -407,7 +403,10 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
   lhs_ind_init = (tree *) xmalloc (sizeof (tree) * lhs_rank);
   rhs_ind_init = (tree *) xmalloc (sizeof (tree) * rhs_rank);
 
-  lhs_count_down = (bool *) xmalloc (sizeof (bool) * lhs_rank);
+  lhs_count_down = (bool **) xmalloc (sizeof (bool *) * lhs_list_size);
+  for (ii = 0; ii < lhs_list_size; ii++)
+    lhs_count_down[ii] = (bool *) xmalloc (sizeof (bool) * lhs_rank);
+  
   rhs_count_down = (bool **) xmalloc (sizeof (bool *) * rhs_list_size);
   for (ii = 0; ii < rhs_list_size; ii++)
     rhs_count_down[ii] = (bool *) xmalloc (sizeof (bool) * rhs_rank);
@@ -415,20 +414,29 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
   lhs_compare = (tree *) xmalloc (sizeof (tree) * lhs_rank);
   rhs_compare = (tree *) xmalloc (sizeof (tree) * rhs_rank);
 
+  lhs_array_operand = (tree *) xmalloc (sizeof (tree) * lhs_list_size);
   rhs_array_operand = (tree *) xmalloc (sizeof (tree) * rhs_list_size);
-
-  ii = 0;
+  
   if (lhs_rank)
     {
-      for (ii_tree = lhs; ii_tree && TREE_CODE (ii_tree) == ARRAY_NOTATION_REF;
-	   ii_tree = ARRAY_NOTATION_ARRAY (ii_tree))
+      for (ii = 0; ii < lhs_list_size; ii++)
+	for (jj = 0; jj < lhs_rank; jj++)
+	  lhs_array[ii][jj] = NULL_TREE;
+
+      for (ii = 0; ii < lhs_list_size; ii++)
 	{
-	  lhs_array[ii] = ii_tree;
-	  ii++;
+	  jj = 0;
+	  for (ii_tree = lhs_list[ii];
+	       ii_tree && TREE_CODE (ii_tree) == ARRAY_NOTATION_REF;
+	       ii_tree = ARRAY_NOTATION_ARRAY (ii_tree))
+	    {
+	      lhs_array[ii][jj] = ii_tree;
+	      jj++;
+	    }
 	}
     }
   else
-    lhs_array[0] = NULL_TREE;
+    lhs_array[0][0] = NULL_TREE;
 
   if (rhs_rank)
     {
@@ -445,31 +453,36 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	}
     }
 
-  if (TREE_CODE (lhs) == ARRAY_NOTATION_REF)
+  for (ii = 0; ii < lhs_list_size; ii++)
     {
-      for (ii = 0; ii < lhs_rank; ii++)
+      if (TREE_CODE (lhs_list[ii]) == ARRAY_NOTATION_REF)
 	{
-	  if (TREE_CODE (lhs_array[ii]) == ARRAY_NOTATION_REF)
+	  for (jj = 0; jj < lhs_rank; jj++)
 	    {
-	      lhs_value[ii] = ARRAY_NOTATION_ARRAY (lhs_array[ii]);
-	      lhs_start[ii] = ARRAY_NOTATION_START (lhs_array[ii]);
-	      lhs_length[ii] = ARRAY_NOTATION_LENGTH (lhs_array[ii]);
-	      lhs_stride[ii] = ARRAY_NOTATION_STRIDE (lhs_array[ii]);
-	      lhs_vector[ii] = true;
-	      /* IF the stride value is variable (i.e. not constant) then
-	       * assume that the length is positive
-	       */
-	      if (!TREE_CONSTANT (lhs_length[ii]))
-		lhs_count_down[ii] = false;
-	      else if (tree_int_cst_lt
-		       (lhs_length[ii],
-			build_int_cst (TREE_TYPE (lhs_length[ii]), 0)))
-		lhs_count_down[ii] = true;
+	      if (TREE_CODE (lhs_array[ii][jj]) == ARRAY_NOTATION_REF)
+		{
+		  lhs_value[ii][jj] = ARRAY_NOTATION_ARRAY (lhs_array[ii][jj]);
+		  lhs_start[ii][jj] = ARRAY_NOTATION_START (lhs_array[ii][jj]);
+		  lhs_length[ii][jj] =
+		    ARRAY_NOTATION_LENGTH (lhs_array[ii][jj]);
+		  lhs_stride[ii][jj] =
+		    ARRAY_NOTATION_STRIDE (lhs_array[ii][jj]);
+		  lhs_vector[ii][jj] = true;
+		  
+		  /* IF the stride value is variable (i.e. not constant) then
+		   * assume that the length is positive  */
+		  if (!TREE_CONSTANT (lhs_length[ii][jj]))
+		    lhs_count_down[ii][jj] = false;
+		  else if (tree_int_cst_lt
+			   (lhs_length[ii][jj],
+			    build_zero_cst (TREE_TYPE (lhs_length[ii][jj]))))
+		    lhs_count_down[ii][jj] = true;
+		  else
+		    lhs_count_down[ii][jj] = false;
+		}
 	      else
-		lhs_count_down[ii] = false;
+		lhs_vector[ii][jj] = false;
 	    }
-	  else
-	    lhs_vector[ii] = false;
 	}
     }
 
@@ -495,7 +508,7 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 		    rhs_count_down[ii][jj] = false;
 		  else if (tree_int_cst_lt
 			   (rhs_length[ii][jj],
-			    build_int_cst (TREE_TYPE (rhs_length[ii][jj]), 0)))
+			    build_zero_cst (TREE_TYPE (rhs_length[ii][jj]))))
 		    rhs_count_down[ii][jj] = true;
 		  else
 		    rhs_count_down[ii][jj] = false;	
@@ -510,15 +523,15 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 
   for (ii = 0; ii < lhs_rank; ii++)
     {
-      if (lhs_vector[ii])
+      if (lhs_vector[0][ii])
 	{
 	  lhs_var[ii] = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
-				    TREE_TYPE (lhs_start[ii]));
+				    TREE_TYPE (lhs_start[0][ii]));
 	  lhs_ind_init[ii] = build_modify_expr
 	    (UNKNOWN_LOCATION, lhs_var[ii], TREE_TYPE (lhs_var[ii]),
 	     NOP_EXPR,
-	     UNKNOWN_LOCATION, build_int_cst (TREE_TYPE (lhs_start[ii]), 0),
-	     TREE_TYPE (lhs_start[ii]));
+	     UNKNOWN_LOCATION, build_zero_cst (TREE_TYPE (lhs_var[ii])),
+	     TREE_TYPE (lhs_var[ii]));
 	  
 	}
     }
@@ -526,14 +539,13 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
   for (ii = 0; ii < rhs_rank; ii++)
     {
       /* When we have a polynomial, we assume that the indices are of type
-       * integer
-       */
+       * integer */
       rhs_var[ii] = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
 				integer_type_node);
       rhs_ind_init[ii] = build_modify_expr
 	(UNKNOWN_LOCATION, rhs_var[ii], TREE_TYPE (rhs_var[ii]),
 	 NOP_EXPR,
-	 UNKNOWN_LOCATION, build_int_cst (TREE_TYPE (rhs_var[ii]), 0),
+	 UNKNOWN_LOCATION, build_zero_cst (TREE_TYPE (rhs_var[ii])),
 	 TREE_TYPE (rhs_var[ii]));
     }
   
@@ -568,29 +580,43 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 
   if (lhs_rank)
     {
-      /* The last ARRAY_NOTATION element's ARRAY component should be the array's
-       * base value
-       */
-      array_expr_lhs = lhs_value[lhs_rank - 1];
-      for (ii = lhs_rank - 1; ii >= 0; ii--)
+      for (ii = 0; ii < lhs_list_size; ii++)
 	{
-	  /* Array[start_index + (induction_var * stride)] */
-	  array_expr_lhs = build_array_ref
-	    (UNKNOWN_LOCATION, array_expr_lhs,
-	     build2 (PLUS_EXPR, TREE_TYPE (lhs_var[ii]), lhs_start[ii],
-		     build2 (MULT_EXPR, TREE_TYPE (lhs_var[ii]), lhs_var[ii],
-			     lhs_stride[ii])));
-	  if (lhs_count_down[ii])
-	    lhs_expr_incr[ii] =
-	      build2 (MODIFY_EXPR, void_type_node, lhs_var[ii],
-		      build2 (PLUS_EXPR, TREE_TYPE (lhs_var[ii]), lhs_var[ii],
-			      build_int_cst (TREE_TYPE (lhs_var[ii]), -1)));
-	  else
-	    lhs_expr_incr[ii] =
-	      build2 (MODIFY_EXPR, void_type_node, lhs_var[ii],
-		      build2 (PLUS_EXPR, TREE_TYPE (lhs_var[ii]), lhs_var[ii],
-			      build_int_cst (TREE_TYPE (lhs_var[ii]), 1)));
+	  if (lhs_vector[ii][0])
+	    {
+	      /* The last ARRAY_NOTATION element's ARRAY component should be
+	       * the array's base value */
+	      lhs_array_operand[ii] = lhs_value[ii][lhs_rank - 1];
+	      gcc_assert (lhs_array_operand[ii]);
+		for (jj = lhs_rank - 1; jj >= 0; jj--)
+		  {
+		    if (lhs_count_down[ii][jj])
+		      {
+			/* Array[start_index + (induction_var * stride)] */
+			lhs_array_operand[ii] = build_array_ref
+			  (UNKNOWN_LOCATION, lhs_array_operand[ii],
+			   build2 (MINUS_EXPR, TREE_TYPE (lhs_var[jj]),
+				   lhs_start[ii][jj],
+				   build2 (MULT_EXPR, TREE_TYPE (lhs_var[jj]),
+					   lhs_var[jj],
+					   lhs_stride[ii][jj])));
+		      }
+		    else
+		      {
+			lhs_array_operand[ii] = build_array_ref
+			  (UNKNOWN_LOCATION, lhs_array_operand[ii],
+			   build2 (PLUS_EXPR, TREE_TYPE (lhs_var[jj]),
+				   lhs_start[ii][jj],
+				   build2 (MULT_EXPR, TREE_TYPE (lhs_var[jj]),
+					   lhs_var[jj],
+					   lhs_stride[ii][jj])));
+		      }
+		  }
+	    }
 	}
+      replace_array_notations (&lhs, true, lhs_list, lhs_array_operand,
+			       lhs_list_size);
+      array_expr_lhs = lhs;
     }
 
   if (rhs_rank)
@@ -649,11 +675,10 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 		      }
 		  }
 	    }
-	}
-	      
+	}	
       replace_array_notations (&rhs, true, rhs_list, rhs_array_operand,
 				 rhs_list_size);
-	array_expr_rhs = rhs;
+      array_expr_rhs = rhs;
     }
   else
     {
@@ -691,9 +716,15 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
       rhs_expr_incr[ii] = build2
 	(MODIFY_EXPR, void_type_node, rhs_var[ii],
 	 build2 (PLUS_EXPR, TREE_TYPE (rhs_var[ii]), rhs_var[ii],
-		 build_int_cst (TREE_TYPE (rhs_var[ii]), 1)));
+		 build_one_cst (TREE_TYPE (rhs_var[ii]))));
     }
-  
+  for (ii = 0; ii < lhs_rank; ii++)
+    {
+      lhs_expr_incr[ii] = build2
+	(MODIFY_EXPR, void_type_node, lhs_var[ii],
+	 build2 (PLUS_EXPR, TREE_TYPE (lhs_var[ii]), lhs_var[ii],
+		 build_one_cst (TREE_TYPE (lhs_var[ii]))));	
+    }
   if (!array_expr_lhs)
     array_expr_lhs = lhs;
   
@@ -704,13 +735,13 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
     {
       if (rhs_rank && rhs_expr_incr[jj])
 	{
-	  if (lhs_count_down[jj])
+	  if (lhs_count_down[0][jj])
 	    lhs_compare[jj] = build2
-	      (GT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[jj]);
+	      (GT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[0][jj]);
 	  
 	  else
 	    lhs_compare[jj] = build2
-	      (LT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[jj]);
+	      (LT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[0][jj]);
 
 
 	  /* What we are doing here is this:
@@ -737,12 +768,12 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	}
       else
 	{
-	  if (lhs_count_down[jj])
+	  if (lhs_count_down[0][jj])
 	    cond_expr[jj] = build2
-	      (GT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[jj]);
+	      (GT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[0][jj]);
 	  else
 	    cond_expr[jj] = build2
-	      (LT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[jj]);
+	      (LT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[0][jj]);
 	}
     }
   
@@ -792,7 +823,62 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	(build1 (GOTO_EXPR, void_type_node, if_stmt_label[ii]), &loop);
       append_to_statement_list (exit_label_expr[ii], &loop);
     }
-   
+
+  for (ii = 0; ii < rhs_list_size; ii++)
+    {
+      free (rhs_vector[ii]);
+      free (rhs_array[ii]);
+      free (rhs_value[ii]);
+      free (rhs_length[ii]);
+      free (rhs_stride[ii]);
+      free (rhs_start[ii]);
+    }
+  if (rhs_vector)
+    free (rhs_vector);
+
+  if (rhs_array)
+    free (rhs_array);
+  if (rhs_value)
+    free (rhs_value);
+  if (rhs_length)
+    free (rhs_length);
+  if (rhs_stride)
+    free (rhs_stride);
+  if (rhs_start)
+    free (rhs_start);
+
+  
+  if (exit_label)    
+    free (exit_label);
+  if (exit_label_expr)
+    free (exit_label_expr);
+
+  if (if_stmt_label)
+    free (if_stmt_label);
+  if (body_label)
+    free (body_label);
+  if (body_label_expr)
+    free (body_label_expr);
+  
+  if (rhs_expr_incr)    
+    free (rhs_expr_incr);
+  if (rhs_ind_init)
+    free (rhs_ind_init);
+  
+  if (lhs_array_operand)
+    free (lhs_array_operand);
+  if (rhs_array_operand)
+    free (rhs_array_operand);
+  if (rhs_compare)
+    free (rhs_compare);
+  if (lhs_compare)
+    free (lhs_compare);
+
+  if (lhs_list)
+    free (lhs_list);
+  if (rhs_list)
+    free (rhs_list);
+
   return loop;
 }
 
@@ -910,8 +996,7 @@ fix_conditional_array_notations_1 (tree stmt)
 		      count_down[ii][jj] = false;
 		  else if (tree_int_cst_lt
 			   (array_length[ii][jj],
-			    build_int_cst (TREE_TYPE (array_length[ii][jj]),
-					   0)))
+			    build_zero_cst (TREE_TYPE (array_length[ii][jj]))))
 		    count_down[ii][jj] = true;
 		  else
 		    count_down[ii][jj] = false;
@@ -933,7 +1018,7 @@ fix_conditional_array_notations_1 (tree stmt)
 	build_modify_expr (UNKNOWN_LOCATION, array_var[ii],
 			   TREE_TYPE (array_var[ii]), NOP_EXPR,
 			   UNKNOWN_LOCATION,
-			   build_int_cst (TREE_TYPE (array_var[ii]), 0),
+			   build_zero_cst (TREE_TYPE (array_var[ii])),
 			   TREE_TYPE (array_var[ii]));
 	
     }
@@ -1005,7 +1090,7 @@ fix_conditional_array_notations_1 (tree stmt)
       expr_incr[ii] =
 	build2 (MODIFY_EXPR, void_type_node, array_var[ii],
 		build2 (PLUS_EXPR, TREE_TYPE (array_var[ii]), array_var[ii],
-			build_int_cst (TREE_TYPE (array_var[ii]), 1)));
+			build_one_cst (TREE_TYPE (array_var[ii]))));
     }
   
   for (jj = 0; jj < rank; jj++)
@@ -1423,8 +1508,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 		      count_down[ii][jj] = false;
 		  else if (tree_int_cst_lt
 			   (array_length[ii][jj],
-			    build_int_cst (TREE_TYPE (array_length[ii][jj]),
-					   0)))
+			    build_zero_cst (TREE_TYPE (array_length[ii][jj]))))
 		    count_down[ii][jj] = true;
 		  else
 		    count_down[ii][jj] = false;
@@ -1446,7 +1530,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	build_modify_expr (UNKNOWN_LOCATION, array_var[ii],
 			   TREE_TYPE (array_var[ii]), NOP_EXPR,
 			   UNKNOWN_LOCATION,
-			   build_int_cst (TREE_TYPE (array_var[ii]), 0),
+			   build_zero_cst (TREE_TYPE (array_var[ii])),
 			   TREE_TYPE (array_var[ii]));	
     }
 
@@ -1518,7 +1602,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       expr_incr[ii] =
 	build2 (MODIFY_EXPR, void_type_node, array_var[ii],
 		build2 (PLUS_EXPR, TREE_TYPE (array_var[ii]), array_var[ii],
-			build_int_cst (TREE_TYPE (array_var[ii]), 1)));
+			build_one_cst (TREE_TYPE (array_var[ii]))));
     }
   
   for (jj = 0; jj < rank; jj++)
@@ -1856,8 +1940,7 @@ fix_unary_array_notation_exprs (tree orig_stmt)
 		      count_down[ii][jj] = false;
 		  else if (tree_int_cst_lt
 			   (array_length[ii][jj],
-			    build_int_cst (TREE_TYPE (array_length[ii][jj]),
-					   0)))
+			    build_zero_cst (TREE_TYPE (array_length[ii][jj]))))
 		    count_down[ii][jj] = true;
 		  else
 		    count_down[ii][jj] = false;
@@ -1878,7 +1961,7 @@ fix_unary_array_notation_exprs (tree orig_stmt)
 	build_modify_expr (UNKNOWN_LOCATION, array_var[ii],
 			   TREE_TYPE (array_var[ii]), NOP_EXPR,
 			   UNKNOWN_LOCATION,
-			   build_int_cst (TREE_TYPE (array_var[ii]), 0),
+			   build_zero_cst (TREE_TYPE (array_var[ii])),
 			   TREE_TYPE (array_var[ii]));	
     }
 
@@ -1949,7 +2032,7 @@ fix_unary_array_notation_exprs (tree orig_stmt)
       expr_incr[ii] =
 	build2 (MODIFY_EXPR, void_type_node, array_var[ii],
 		build2 (PLUS_EXPR, TREE_TYPE (array_var[ii]), array_var[ii],
-			build_int_cst (TREE_TYPE (array_var[ii]), 1)));
+			build_one_cst (TREE_TYPE (array_var[ii]))));
     }
   
   for (jj = 0; jj < rank; jj++)

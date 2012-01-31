@@ -283,12 +283,12 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
 			   enum tree_code modifycode, location_t rhs_loc,
 			   tree rhs, tree rhs_origtype)
 {
-  bool *lhs_vector = NULL, **rhs_vector = NULL, found_builtin_fn = false;
-  tree *lhs_array = NULL, **rhs_array = NULL;
+  bool **lhs_vector = NULL, **rhs_vector = NULL, found_builtin_fn = false;
+  tree **lhs_array = NULL, **rhs_array = NULL;
   tree array_expr_lhs = NULL_TREE, array_expr_rhs = NULL_TREE;
   tree array_expr = NULL_TREE;
-  tree *lhs_value = NULL, **rhs_value = NULL;
-  tree *lhs_stride = NULL, *lhs_length = NULL, *lhs_start = NULL;
+  tree **lhs_value = NULL, **rhs_value = NULL;
+  tree **lhs_stride = NULL, **lhs_length = NULL, **lhs_start = NULL;
   tree **rhs_stride = NULL, **rhs_length = NULL, **rhs_start = NULL;
   tree loop = NULL_TREE, *lhs_var = NULL, *rhs_var = NULL;
   tree *body_label = NULL, *body_label_expr = NULL;
@@ -296,12 +296,13 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
   tree *if_stmt_label = NULL;
   tree *lhs_expr_incr = NULL, *rhs_expr_incr = NULL;
   tree *lhs_ind_init = NULL, *rhs_ind_init = NULL;
-  bool *lhs_count_down = NULL, **rhs_count_down = NULL;
+  bool **lhs_count_down = NULL, **rhs_count_down = NULL;
   tree *lhs_compare = NULL, *rhs_compare = NULL, *rhs_array_operand = NULL;
+  tree *lhs_array_operand = NULL;
   int lhs_rank = 0, rhs_rank = 0, ii = 0, jj = 0;
-  tree ii_tree = NULL_TREE, new_modify_expr;
+  tree ii_tree = NULL_TREE, new_modify_expr, *lhs_list = NULL;
   tree *rhs_list = NULL, new_var = NULL_TREE, builtin_loop = NULL_TREE;
-  int rhs_list_size = 0;
+  int rhs_list_size = 0, lhs_list_size = 0;
 
   find_rank (rhs, false, &rhs_rank);
 
@@ -349,6 +350,7 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
   rhs_list_size = 0;
   rhs_list = NULL;
   extract_array_notation_exprs (rhs, true, &rhs_list, &rhs_list_size);
+  extract_array_notation_exprs (lhs, true, &lhs_list, &lhs_list_size);
   
   if (lhs_rank == 0 && rhs_rank != 0)
     {
@@ -362,35 +364,51 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
       return error_mark_node;
     }
   
-  lhs_vector = (bool *) xmalloc (sizeof (bool) * lhs_rank);
+  lhs_vector = (bool **) xmalloc (sizeof (bool *) * lhs_list_size);
+  for (ii = 0; ii < lhs_list_size; ii++)
+    lhs_vector[ii] = (bool *) xmalloc (sizeof (bool) * lhs_rank);
+  
   rhs_vector = (bool **) xmalloc (sizeof (bool *) * rhs_list_size);
   for (ii = 0; ii < rhs_list_size; ii++)
     rhs_vector[ii] = (bool *) xmalloc (sizeof (bool) * rhs_rank);
   
-  lhs_array = (tree *) xmalloc (sizeof (tree) * lhs_rank);
+  lhs_array = (tree **) xmalloc (sizeof (tree *) * lhs_list_size);
+  for (ii = 0; ii < lhs_list_size; ii++)
+    lhs_array[ii] = (tree *) xmalloc (sizeof (tree) * lhs_rank);
+  
   rhs_array = (tree **) xmalloc (sizeof (tree *) * rhs_list_size);
   for (ii = 0; ii < rhs_list_size; ii++)
     rhs_array[ii] = (tree *) xmalloc (sizeof (tree) * rhs_rank);
 
-  lhs_value = (tree *) xmalloc (sizeof (tree) * lhs_rank);
-
+  lhs_value = (tree **) xmalloc (sizeof (tree *) * lhs_list_size);
+  for (ii = 0; ii < lhs_list_size; ii++)
+    lhs_value[ii] = (tree *) xmalloc (sizeof (tree) * lhs_rank);
+  
   rhs_value = (tree **) xmalloc (sizeof (tree *) * rhs_list_size);
   for (ii = 0; ii < rhs_list_size; ii++)
     rhs_value[ii] = (tree *) xmalloc (sizeof (tree) * rhs_rank);
 
-  lhs_stride = (tree *) xmalloc (sizeof (tree) * lhs_rank);
-
+  lhs_stride = (tree **) xmalloc (sizeof (tree *) * lhs_list_size);
+  for (ii = 0; ii < lhs_list_size; ii++)
+    lhs_stride[ii] = (tree *) xmalloc (sizeof (tree *) * lhs_rank);
+  
   rhs_stride = (tree **) xmalloc (sizeof (tree *) * rhs_list_size);
   for (ii = 0; ii < rhs_list_size; ii++)
     rhs_stride[ii] = (tree *) xmalloc (sizeof (tree) * rhs_rank);
 
-  lhs_length = (tree *) xmalloc (sizeof (tree) * lhs_rank);
+  lhs_length = (tree **) xmalloc (sizeof (tree *) * lhs_list_size);
+  for (ii = 0; ii < lhs_list_size; ii++)
+    lhs_length[ii] = (tree *) xmalloc (sizeof (tree) * lhs_rank);
+  
   rhs_length = (tree **) xmalloc (sizeof (tree *) * rhs_list_size);
   for (ii = 0; ii < rhs_list_size; ii++)
     rhs_length[ii] = (tree *) xmalloc (sizeof (tree) * rhs_rank);
   
 
-  lhs_start = (tree *) xmalloc (sizeof (tree) * lhs_rank);
+  lhs_start = (tree **) xmalloc (sizeof (tree *) * lhs_list_size);
+  for (ii = 0; ii < lhs_list_size; ii++)
+    lhs_start[ii] = (tree *) xmalloc (sizeof (tree) * lhs_rank);
+  
   rhs_start = (tree **) xmalloc (sizeof (tree *) * rhs_list_size);
   for (ii = 0; ii < rhs_list_size; ii++)
     rhs_start[ii] = (tree *) xmalloc (sizeof (tree) * rhs_rank);
@@ -419,7 +437,10 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
   lhs_ind_init = (tree *) xmalloc (sizeof (tree) * lhs_rank);
   rhs_ind_init = (tree *) xmalloc (sizeof (tree) * rhs_rank);
 
-  lhs_count_down = (bool *) xmalloc (sizeof (bool) * lhs_rank);
+  lhs_count_down = (bool **) xmalloc (sizeof (bool *) * lhs_list_size);
+  for (ii = 0; ii < lhs_list_size; ii++)
+    lhs_count_down[ii] = (bool *) xmalloc (sizeof (bool) * lhs_rank);
+  
   rhs_count_down = (bool **) xmalloc (sizeof (bool *) * rhs_list_size);
   for (ii = 0; ii < rhs_list_size; ii++)
     rhs_count_down[ii] = (bool *) xmalloc (sizeof (bool) * rhs_rank);
@@ -428,15 +449,25 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
   rhs_compare = (tree *) xmalloc (sizeof (tree) * rhs_rank);
 
   rhs_array_operand = (tree *) xmalloc (sizeof (tree) * rhs_list_size);
+  lhs_array_operand = (tree *) xmalloc (sizeof (tree) * lhs_list_size);
 
-  ii = 0;
-  for (ii_tree = lhs; ii_tree && TREE_CODE (ii_tree) == ARRAY_NOTATION_REF;
-       ii_tree = ARRAY_NOTATION_ARRAY (ii_tree))
+  if (lhs_rank)
     {
-      lhs_array[ii] = ii_tree;
-      ii++;
+      for (ii = 0; ii < lhs_list_size; ii++)
+	{
+	  jj = 0;
+	  for (ii_tree = lhs_list[ii];
+	       ii_tree && TREE_CODE (ii_tree) == ARRAY_NOTATION_REF;
+	       ii_tree = ARRAY_NOTATION_ARRAY (ii_tree))
+	    {
+	      lhs_array[ii][jj] = ii_tree;
+	      jj++;
+	    }
+	}
     }
-
+  else
+    lhs_array[0][0] = NULL_TREE;
+  
   if (rhs_rank)
     {
       for (ii = 0; ii < rhs_list_size; ii++)
@@ -452,31 +483,36 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
 	}
     }
 
-  if (TREE_CODE (lhs) == ARRAY_NOTATION_REF)
+  for (ii = 0; ii < lhs_list_size; ii++)
     {
-      for (ii = 0; ii < lhs_rank; ii++)
+      if (TREE_CODE (lhs_list[ii]) == ARRAY_NOTATION_REF)
 	{
-	  if (TREE_CODE (lhs_array[ii]) == ARRAY_NOTATION_REF)
+	  for (jj = 0; jj < lhs_rank; jj++)
 	    {
-	      lhs_value[ii] = ARRAY_NOTATION_ARRAY (lhs_array[ii]);
-	      lhs_start[ii] = ARRAY_NOTATION_START (lhs_array[ii]);
-	      lhs_length[ii] = ARRAY_NOTATION_LENGTH (lhs_array[ii]);
-	      lhs_stride[ii] = ARRAY_NOTATION_STRIDE (lhs_array[ii]);
-	      lhs_vector[ii] = true;
-	      /* IF the stride value is variable (i.e. not constant) then
-	       * assume that the length is positive
-	       */
-	      if (!TREE_CONSTANT (lhs_length[ii]))
-		lhs_count_down[ii] = false;
-	      else if (tree_int_cst_lt
-		       (lhs_length[ii],
-			build_int_cst (TREE_TYPE (lhs_length[ii]), 0)))
-		lhs_count_down[ii] = true;
+	      if (TREE_CODE (lhs_array[ii][jj]) == ARRAY_NOTATION_REF)
+		{
+		  lhs_value[ii][jj] = ARRAY_NOTATION_ARRAY (lhs_array[ii][jj]);
+		  lhs_start[ii][jj] = ARRAY_NOTATION_START (lhs_array[ii][jj]);
+		  lhs_length[ii][jj] =
+		    ARRAY_NOTATION_LENGTH (lhs_array[ii][jj]);
+		  lhs_stride[ii][jj] =
+		    ARRAY_NOTATION_STRIDE (lhs_array[ii][jj]);
+		  lhs_vector[ii][jj] = true;
+		  /* IF the stride value is variable (i.e. not constant) then
+		   * assume that the length is positive
+		   */
+		  if (!TREE_CONSTANT (lhs_length[ii][jj]))
+		    lhs_count_down[ii][jj] = false;
+		  else if (tree_int_cst_lt
+			   (lhs_length[ii][jj],
+			    build_zero_cst (TREE_TYPE (lhs_length[ii][jj]))))
+		    lhs_count_down[ii][jj] = true;
+		  else
+		    lhs_count_down[ii][jj] = false;
+		}
 	      else
-		lhs_count_down[ii] = false;
+		lhs_vector[ii][jj] = false;
 	    }
-	  else
-	    lhs_vector[ii] = false;
 	}
     }
 
@@ -517,15 +553,15 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
 
   for (ii = 0; ii < lhs_rank; ii++)
     {
-      if (lhs_vector[ii])
+      if (lhs_vector[0][ii])
 	{
 	  lhs_var[ii] = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
-				    TREE_TYPE (lhs_start[ii]));
+				    integer_type_node);
 	  lhs_ind_init[ii] = build_modify_expr
 	    (UNKNOWN_LOCATION, lhs_var[ii], TREE_TYPE (lhs_var[ii]),
 	     NOP_EXPR,
-	     UNKNOWN_LOCATION, build_int_cst (TREE_TYPE (lhs_start[ii]), 0),
-	     TREE_TYPE (lhs_start[ii]));
+	     UNKNOWN_LOCATION, build_zero_cst (TREE_TYPE (lhs_var[ii])),
+	     TREE_TYPE (lhs_var[ii]));
 	  
 	}
     }
@@ -575,29 +611,40 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
 
   if (lhs_rank)
     {
+      for (ii = 0; ii < lhs_list_size; ii++)
+	{
+	  if (lhs_vector[ii][0])
+	    {
       /* The last ARRAY_NOTATION element's ARRAY component should be the array's
        * base value
        */
-      array_expr_lhs = lhs_value[lhs_rank - 1];
-      for (ii = lhs_rank - 1; ii >= 0; ii--)
-	{
-	  /* Array[start_index + (induction_var * stride)] */
-	  array_expr_lhs = build_array_ref
-	    (location, array_expr_lhs,
-	     build2 (PLUS_EXPR, TREE_TYPE (lhs_var[ii]), lhs_start[ii],
-		     build2 (MULT_EXPR, TREE_TYPE (lhs_var[ii]), lhs_var[ii],
-			     lhs_stride[ii])));
-	  if (lhs_count_down[ii])
-	    lhs_expr_incr[ii] =
-	      build2 (MODIFY_EXPR, void_type_node, lhs_var[ii],
-		      build2 (PLUS_EXPR, TREE_TYPE (lhs_var[ii]), lhs_var[ii],
-			      build_int_cst (TREE_TYPE (lhs_var[ii]), -1)));
-	  else
-	    lhs_expr_incr[ii] =
-	      build2 (MODIFY_EXPR, void_type_node, lhs_var[ii],
-		      build2 (PLUS_EXPR, TREE_TYPE (lhs_var[ii]), lhs_var[ii],
-			      build_int_cst (TREE_TYPE (lhs_var[ii]), 1)));
+	      lhs_array_operand[ii] = lhs_value[ii][lhs_rank - 1];
+	      gcc_assert (lhs_array_operand[ii]);
+	      for (jj = lhs_rank - 1; jj >= 0; jj--)
+		{
+		  if (lhs_count_down[ii][jj])
+		      /* Array[start_index + (induction_var * stride)] */
+		      lhs_array_operand[ii] = build_array_ref
+			(UNKNOWN_LOCATION, lhs_array_operand[ii],
+			 build2 (MINUS_EXPR, TREE_TYPE (lhs_var[jj]),
+				 lhs_start[ii][jj],
+				 build2 (MULT_EXPR, TREE_TYPE (lhs_var[jj]),
+					 lhs_var[jj],
+					 lhs_stride[ii][jj])));
+		  else
+		    lhs_array_operand[ii] = build_array_ref
+		      (UNKNOWN_LOCATION, lhs_array_operand[ii],
+		       build2 (PLUS_EXPR, TREE_TYPE (lhs_var[jj]),
+			       lhs_start[ii][jj],
+			       build2 (MULT_EXPR, TREE_TYPE (lhs_var[jj]),
+				       lhs_var[jj],
+				       lhs_stride[ii][jj])));
+		}
+	    }
 	}
+      replace_array_notations (&lhs, true, lhs_list, lhs_array_operand,
+			       lhs_list_size);
+      array_expr_lhs = lhs;
     }
 
   if (rhs_rank)
@@ -698,9 +745,17 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
       rhs_expr_incr[ii] = build2
 	(MODIFY_EXPR, void_type_node, rhs_var[ii],
 	 build2 (PLUS_EXPR, TREE_TYPE (rhs_var[ii]), rhs_var[ii],
-		 build_int_cst (TREE_TYPE (rhs_var[ii]), 1)));
+		 build_one_cst (TREE_TYPE (rhs_var[ii]))));
     } 
 
+  for (ii = 0; ii < lhs_rank; ii++)
+    {
+      lhs_expr_incr[ii] = build2
+	(MODIFY_EXPR, void_type_node, lhs_var[ii],
+	 build2 (PLUS_EXPR, TREE_TYPE (lhs_var[ii]), lhs_var[ii],
+		 build_one_cst (TREE_TYPE (lhs_var[ii]))));
+    }
+  
   if (!array_expr_lhs)
     array_expr_lhs = lhs;
 
@@ -712,13 +767,13 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
     {
       if (rhs_rank && rhs_expr_incr[jj])
 	{
-	  if (lhs_count_down[jj])
+	  if (lhs_count_down[0][jj])
 	    lhs_compare[jj] = build2
-	      (GT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[jj]);
+	      (GT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[0][jj]);
 	  
 	  else
 	    lhs_compare[jj] = build2
-	      (LT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[jj]);
+	      (LT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[0][jj]);
 
 
 	  /* What we are doing here is this:
@@ -742,12 +797,12 @@ build_array_notation_expr (location_t location, tree lhs, tree lhs_origtype,
 	}
       else
 	{
-	  if (lhs_count_down[jj])
+	  if (lhs_count_down[0][jj])
 	    cond_expr[jj] = build2
-	      (GT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[jj]);
+	      (GT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[0][jj]);
 	  else
 	    cond_expr[jj] = build2
-	      (LT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[jj]);
+	      (LT_EXPR, boolean_type_node, lhs_var[jj], lhs_length[0][jj]);
 	}
     }
   

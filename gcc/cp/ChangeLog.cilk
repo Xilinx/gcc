@@ -1,3 +1,14 @@
+2012-01-31  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-array-notation.c (build_x_array_notation_expr): Added another
+	dimension to lhs parameters to handle scatter of array notations.  Also
+	replaced all cases of build_int_cst with 0 or 1 with build_zero_cst and
+	build_one_cst, respectively.
+	(fix_conditional_array_notations_1): Replaced build_int_cst with 0 or 1
+	with build_zero_cst and build_one_cst, respectively.
+	(fix_builtin_array_notation_fn): Likewise.
+	(fix_unary_array_notation_exprs): Likewise.
+
 2012-01-26  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cp-array-notation.c (fix_builtin_array_notation_fn): Added new var

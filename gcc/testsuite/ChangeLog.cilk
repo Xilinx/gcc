@@ -1,3 +1,7 @@
+2012-01-31  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* gcc.dg/cilk-plus/array_notation_tests/gather_scatter.c: New.
+	* g++.dg/cilk-plus/array_notation_tests/gather_scatter.cc: Likewise.
 2012-01-30  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* g++.dg/cilk-plus/array_notation_tests/array_test2.cc: Changed a
