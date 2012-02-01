@@ -6057,7 +6057,7 @@ pph_out_binding_table (pph_stream *stream, binding_table bt)
     {
       if (bt->chain[i])
 	{
-	  pph_out_record_marker (stream, PPH_RECORD_START, PPH_binding_entry);
+	  pph_out_record_marker (stream, PPH_RECORD_START_NO_CACHE, PPH_binding_entry);
 	  pph_out_tree (stream, bt->chain[i]->name);
 	  pph_out_tree (stream, bt->chain[i]->type);
 	}
@@ -6083,7 +6083,7 @@ pph_in_binding_table (pph_stream *stream)
       enum pph_tag tag;
       enum pph_record_marker marker = pph_in_record_marker (stream, &tag);
       gcc_assert (tag == PPH_binding_entry);
-      if (marker == PPH_RECORD_START)
+      if (marker == PPH_RECORD_START_NO_CACHE)
 	{
 	  tree name = pph_in_tree (stream);
 	  tree type = pph_in_tree (stream);

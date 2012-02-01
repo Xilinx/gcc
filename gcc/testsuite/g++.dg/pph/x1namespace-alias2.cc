@@ -1,6 +1,3 @@
-// pph asm xdiff 34830
-// The assembly difference is due to missing code in function f().
-// The PPH version removes the whole return expression.
 #include "x1namespace-alias1.h"
 #include "x1namespace-alias2.h"
 

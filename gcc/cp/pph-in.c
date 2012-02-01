@@ -1300,16 +1300,10 @@ pph_in_language_function (pph_stream *stream)
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_language_function);
   if (marker == PPH_RECORD_END)
     return NULL;
-  else if (pph_is_reference_marker (marker))
-    return (struct language_function *) pph_cache_find (stream, marker,
-							image_ix, ix,
-							PPH_language_function);
 
-  /* Remove if we start emitting merge keys for this structure.  */
-  gcc_assert (marker == PPH_RECORD_START);
+  gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
 
-  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_language_function, lf,
-                      ggc_alloc_cleared_language_function ());
+  lf = ggc_alloc_cleared_language_function ();
   lf->base.x_stmt_tree.x_cur_stmt_list = pph_in_tree_vec (stream);
   lf->base.x_stmt_tree.stmts_are_full_exprs_p = pph_in_uint (stream);
   lf->x_cdtor_label = pph_in_tree (stream);
@@ -1353,37 +1347,23 @@ pph_in_struct_function (pph_stream *stream, tree decl)
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_function);
   if (marker == PPH_RECORD_END)
     return;
-  else if (pph_is_reference_marker (marker))
-    {
-      fn = (struct function *) pph_cache_find (stream, marker, image_ix, ix,
-					       PPH_function);
-      gcc_assert (DECL_STRUCT_FUNCTION (decl) == fn);
-      return;
-    }
 
-  /* Remove if we start emitting merge keys for this structure.  */
-  gcc_assert (marker == PPH_RECORD_START);
+  gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
 
   /* Possibly allocate a new DECL_STRUCT_FUNCTION for DECL.  */
   t = pph_in_tree (stream);
   gcc_assert (t == decl);
   fn = DECL_STRUCT_FUNCTION (decl);
-  if (!fn)
+  if (fn == NULL)
     {
       /* The DECL_STRUCT_FUNCTION does not already already exists,
          which implies that we are reading an entirely new function
          and not merging into an existing function.  */
-      /* We would normally use ALLOC_AND_REGISTER,
-         but allocate_struct_function does not return a pointer.  */
       allocate_struct_function (decl, false);
       fn = DECL_STRUCT_FUNCTION (decl);
     }
 
-  /* Now register it.  */
-  pph_cache_insert_at (&stream->cache, fn, ix, PPH_function);
-
   /* FIXME pph: For now, accept the new version of the fields when merging.  */
-
   input_struct_function_base (fn, stream->encoder.r.data_in,
 			      stream->encoder.r.ib);
 
@@ -1574,67 +1554,6 @@ pph_in_ld_parm (pph_stream *stream, struct lang_decl_parm *ldp)
 }
 
 
-/* Read from STREAM the start of a lang_decl record for DECL.  If the
-   caller should do a merge-read, set *IS_MERGE_P to true.  Return
-   lang_decl structure associated with DECL.  If this function returns
-   NULL, it means that the lang_decl record has already been read and
-   nothing else needs to be done.  */
-
-static struct lang_decl *
-pph_in_lang_decl_start (pph_stream *stream, tree decl, bool *is_merge_p)
-{
-  enum pph_record_marker marker;
-  unsigned image_ix, ix;
-  struct lang_decl *ld;
-
-  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_lang_decl);
-  if (marker == PPH_RECORD_END)
-    return NULL;
-  else if (pph_is_reference_marker (marker))
-    {
-      DECL_LANG_SPECIFIC (decl) =
-	(struct lang_decl *) pph_cache_find (stream, marker, image_ix, ix,
-					     PPH_lang_decl);
-      return NULL;
-    }
-  else if (marker == PPH_RECORD_START_MERGE_BODY)
-    {
-      /* If we are about to read the merge body for this lang_decl
-	 structure, the instance we found in the cache, must be the
-	 same one associated with DECL.  */
-      ld = (struct lang_decl *) pph_cache_get (&stream->cache, ix);
-      gcc_assert (ld == DECL_LANG_SPECIFIC (decl));
-      *is_merge_p = true;
-    }
-  else
-    {
-      gcc_assert (marker == PPH_RECORD_START);
-
-      /* FIXME pph, we should not be getting a DECL_LANG_SPECIFIC
-	 instance here.  This is being allocated by
-	 pph_in_merge_key_namespace_decl, but this should be the only
-	 place where we allocate it.
-
-	Change the if() below to:
-	          gcc_assert (DECL_LANG_SPECIFIC (decl) == NULL);
-      */
-      if (DECL_LANG_SPECIFIC (decl) == NULL)
-	{
-	  /* Allocate a lang_decl structure for DECL.  */
-	  retrofit_lang_decl (decl);
-	}
-      ld = DECL_LANG_SPECIFIC (decl);
-
-      /* Now register it.  We would normally use ALLOC_AND_REGISTER,
-	 but retrofit_lang_decl does not return a pointer.  */
-      pph_cache_insert_at (&stream->cache, ld, ix, PPH_lang_decl);
-      *is_merge_p = false;
-    }
-
-  return ld;
-}
-
-
 /* Read language specific data in DECL from STREAM.  */
 
 static void
@@ -1643,10 +1562,24 @@ pph_in_lang_decl (pph_stream *stream, tree decl)
   struct lang_decl *ld;
   struct lang_decl_base *ldb;
   bool is_merge;
+  enum pph_record_marker marker;
+  unsigned image_ix, ix;
 
-  ld = pph_in_lang_decl_start (stream, decl, &is_merge);
-  if (ld == NULL)
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_lang_decl);
+  if (marker == PPH_RECORD_END)
     return;
+
+  gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
+
+
+  is_merge = true;
+  if (DECL_LANG_SPECIFIC (decl) == NULL)
+    {
+      is_merge = false;
+      retrofit_lang_decl (decl);
+    }
+
+  ld = DECL_LANG_SPECIFIC (decl);
 
   /* Read all the fields in lang_decl_base.  */
   ldb = &ld->u.base;
@@ -1724,16 +1657,11 @@ pph_in_sorted_fields_type (pph_stream *stream)
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_sorted_fields_type);
   if (marker == PPH_RECORD_END)
     return NULL;
-  else if (pph_is_reference_marker (marker))
-    return (struct sorted_fields_type *)
-	  pph_cache_find (stream, marker, image_ix, ix, PPH_sorted_fields_type);
 
-  /* Remove if we start emitting merge keys for this structure.  */
-  gcc_assert (marker == PPH_RECORD_START);
+  gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
 
   num_fields = pph_in_uint (stream);
-  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_sorted_fields_type, v,
-                      sorted_fields_type_new (num_fields));
+  v = sorted_fields_type_new (num_fields);
   for (i = 0; i < num_fields; i++)
     v->elts[i] = pph_in_tree (stream);
 
@@ -1804,20 +1732,12 @@ pph_in_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
   ltc->vbases = pph_in_tree_vec (stream);
 
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_binding_table);
-  if (marker == PPH_RECORD_START)
-    {
-      ltc->nested_udts = pph_in_binding_table (stream);
-      pph_cache_insert_at (&stream->cache, ltc->nested_udts, ix,
-                           PPH_binding_table);
-    }
-  else if (pph_is_reference_marker (marker))
-    ltc->nested_udts = (binding_table) pph_cache_find (stream, marker,
-						       image_ix, ix,
-						       PPH_binding_table);
+  if (marker == PPH_RECORD_START_NO_CACHE)
+    ltc->nested_udts = pph_in_binding_table (stream);
   else
     {
-      /* Remove if we start emitting merge keys for this structure.  */
       gcc_assert (marker == PPH_RECORD_END);
+      ltc->nested_udts = NULL;
     }
 
   ltc->as_base = pph_in_tree (stream);
@@ -1856,15 +1776,10 @@ pph_in_lang_type (pph_stream *stream)
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_lang_type);
   if (marker == PPH_RECORD_END)
     return NULL;
-  else if (pph_is_reference_marker (marker))
-    return (struct lang_type *) pph_cache_find (stream, marker, image_ix, ix,
-						PPH_lang_type);
 
-  /* Remove if we start emitting merge keys for this structure.  */
-  gcc_assert (marker == PPH_RECORD_START);
+  gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
 
-  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_lang_type, lt,
-                      ggc_alloc_cleared_lang_type (sizeof (struct lang_type)));
+  lt = ggc_alloc_cleared_lang_type (sizeof (struct lang_type));
 
   pph_in_lang_type_header (stream, &lt->u.h);
   if (lt->u.h.is_lang_type_class)

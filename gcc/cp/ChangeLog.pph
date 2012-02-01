@@ -1,3 +1,31 @@
+2012-01-31   Diego Novillo  <dnovillo@google.com>
+
+	* name-lookup.c (pph_out_binding_table): Use
+	PPH_RECORD_START_NO_CACHE records.
+	(pph_in_binding_table): Likewise.
+	* pph-in.c (pph_in_language_function): Remove caching code,
+	assume that the structure is always in a
+	PPH_RECORD_START_NO_CACHE.
+	(pph_in_struct_function): Likewise.
+	(pph_in_lang_decl): Likewise.
+	(pph_in_sorted_fields_type): Likewise.
+	(pph_in_lang_type_class): Likewise.
+	(pph_in_lang_type): Likewise.
+	(pph_in_lang_decl_start): Remove.
+	* pph-out.c (pph_get_marker_for): Always return
+	PPH_RECORD_START_NO_CACHE for PPH_binding_table, PPH_function,
+	PPH_lang_decl, PPH_lang_type, PPH_language_function and
+	PPH_sorted_fields_type.
+	(pph_out_start_record): Do not write IX for
+	PPH_RECORD_START_NO_CACHE.
+	(pph_out_language_function): Only support
+	PPH_RECORD_START_NO_CACHE or PPH_RECORD_END.
+	(pph_out_struct_function): Likewise.
+	(pph_out_lang_decl): Likewise.
+	(pph_out_sorted_fields_type): Likewise.
+	(pph_out_lang_type_class): Likewise.
+	(pph_out_lang_type): Likewise.
+
 2012-01-27   Diego Novillo  <dnovillo@google.com>
 
 	* pph-core.c (pph_include_handler): If PPH has been disabled,

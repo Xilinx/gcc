@@ -478,6 +478,28 @@ pph_get_marker_for (pph_stream *stream, void *data, unsigned *include_ix_p,
   if (data == NULL)
     return PPH_RECORD_END;
 
+  /* Some structures should never be shared as they are already
+     members of shared structures.  If the parent structure is shared,
+     the inner structure will be shared too.  Additionally, this is a
+     problem when the parent structure has mutated from one PPH to the
+     other.  If we allow the inner structure to be shared, we will
+     read the mutated state of the outer structure, but we will
+     happily re-use the data from the inner one (and miss mutated
+     state in it).  */
+  switch (tag)
+    {
+    case PPH_binding_table:
+    case PPH_function:
+    case PPH_lang_decl:
+    case PPH_lang_type:
+    case PPH_language_function:
+    case PPH_sorted_fields_type:
+      return PPH_RECORD_START_NO_CACHE;
+
+    default:
+      break;
+    }
+
   /* If DATA is a pre-loaded tree node, return a pre-loaded reference
      marker.  */
   if (pph_cache_lookup (NULL, data, ix_p, tag))
@@ -608,9 +630,11 @@ pph_out_start_record (pph_stream *stream, void *data, enum pph_tag tag)
 
   /* The caller will have to write a physical representation for DATA.  */
   gcc_assert (marker == PPH_RECORD_START
+	      || marker == PPH_RECORD_START_NO_CACHE
 	      || marker == PPH_RECORD_START_MERGE_BODY);
   pph_out_record_marker (stream, marker, tag);
-  pph_out_uint (stream, ix);
+  if (marker != PPH_RECORD_START_NO_CACHE)
+    pph_out_uint (stream, ix);
 
   return marker;
 }
@@ -1404,11 +1428,10 @@ pph_out_language_function (pph_stream *stream, struct language_function *lf)
   enum pph_record_marker marker;
 
   marker = pph_out_start_record (stream, lf, PPH_language_function);
-  if (pph_is_reference_or_end_marker (marker))
+  if (marker == PPH_RECORD_END)
     return;
 
-  /* Remove if we start emitting merge keys for this structure.  */
-  gcc_assert (marker == PPH_RECORD_START);
+  gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
 
   pph_out_tree_vec (stream, lf->base.x_stmt_tree.x_cur_stmt_list);
   pph_out_uint (stream, lf->base.x_stmt_tree.stmts_are_full_exprs_p);
@@ -1462,11 +1485,10 @@ pph_out_struct_function (pph_stream *stream, struct function *fn)
   enum pph_record_marker marker;
 
   marker = pph_out_start_record (stream, fn, PPH_function);
-  if (pph_is_reference_or_end_marker (marker))
+  if (marker == PPH_RECORD_END)
     return;
 
-  /* Remove if we start emitting merge keys for this structure.  */
-  gcc_assert (marker == PPH_RECORD_START);
+  gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
 
   pph_out_tree (stream, fn->decl);
   output_struct_function_base (stream->encoder.w.ob, fn);
@@ -1638,8 +1660,10 @@ pph_out_lang_decl (pph_stream *stream, tree decl)
 
   ld = DECL_LANG_SPECIFIC (decl);
   marker = pph_out_start_record (stream, ld, PPH_lang_decl);
-  if (pph_is_reference_or_end_marker (marker))
+  if (marker == PPH_RECORD_END)
     return;
+
+  gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
 
   /* Write all the fields in lang_decl_base.  */
   ldb = &ld->u.base;
@@ -1715,11 +1739,10 @@ pph_out_sorted_fields_type (pph_stream *stream, struct sorted_fields_type *sft)
   enum pph_record_marker marker;
 
   marker = pph_out_start_record (stream, sft, PPH_sorted_fields_type);
-  if (pph_is_reference_or_end_marker (marker))
+  if (marker == PPH_RECORD_END)
     return;
 
-  /* Remove if we start emitting merge keys for this structure.  */
-  gcc_assert (marker == PPH_RECORD_START);
+  gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
 
   pph_out_uint (stream, sft->len);
   for (i = 0; i < sft->len; i++)
@@ -1790,10 +1813,9 @@ pph_out_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
   {
     enum pph_record_marker marker;
     marker = pph_out_start_record (stream, ltc->nested_udts, PPH_binding_table);
-    if (!pph_is_reference_or_end_marker (marker))
+    if (marker != PPH_RECORD_END)
       {
-	/* Remove if we start emitting merge keys for this structure.  */
-	gcc_assert (marker == PPH_RECORD_START);
+	gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
 	pph_out_binding_table (stream, ltc->nested_udts);
       }
   }
@@ -1830,11 +1852,10 @@ pph_out_lang_type (pph_stream *stream, tree type)
 
   lt = TYPE_LANG_SPECIFIC (type);
   marker = pph_out_start_record (stream, lt, PPH_lang_type);
-  if (pph_is_reference_or_end_marker (marker))
+  if (marker == PPH_RECORD_END)
     return;
 
-  /* Remove if we start emitting merge keys for this structure.  */
-  gcc_assert (marker == PPH_RECORD_START);
+  gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
 
   pph_out_lang_type_header (stream, &lt->u.h);
   if (lt->u.h.is_lang_type_class)

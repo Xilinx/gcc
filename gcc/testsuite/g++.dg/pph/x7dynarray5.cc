@@ -1,5 +1,4 @@
 // { dg-xfail-if "BOGUS POSSIBLY DROPPING SYMBOLS " { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus ".*internal compiler error.*" "" { xfail *-*-* } 0 }
 
 #include "x0dynarray4.h"
 #include "x6dynarray5.h"
