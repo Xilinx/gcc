@@ -1,3 +1,15 @@
+2012-02-01  Dehao Chen  <dehao@google.com>
+
+	* predict.c (strips_small_constant): New
+	(get_base_value): New
+	(find_ssa_name_in_assign_stmt): New
+	(is_comparison_with_loop_invariant_p): New
+	(expr_coherent_p): New
+	(predict_iv_comparison): New
+	(predict_loops): Add heuristic for loop-nested branches that compare an
+	induction variable to a loop bound variable.
+	* predict.def (PRED_LOOP_IV_COMPARE): New macro
+
 2012-01-31  Xinliang David Li  <davidxl@google.com>
 
 	* Merged revisions 183740 via svnmerge from 
