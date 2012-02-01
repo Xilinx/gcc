@@ -1,3 +1,62 @@
+2012-02-01  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/49204
+	* include/std/future (__future_base::_State_base::wait()): Use lambda
+	expression for predicate and remove redundant test.
+	(__future_base::_State_base::wait_for()): Return future_status and
+	use lambda expression for predicate.
+	(__future_base::_State_base::wait_until()): Likewise.
+	(__basic_future::wait_for(), __basic_future::wait_until()): Likewise.
+	(__future_base::_Async_state): Replace with _Async_state_common
+	class for non-dependent functionality and _Async_state_impl class
+	template for dependent functionality.
+	(__future_base::_Async_state_common::_M_join): Serialize attempts to
+	join thread.
+	(__future_base::_Async_state_common::_M_run_deferred): Join.
+	(__future_base::_Async_state::_M_do_run): Replace with lambda.
+	* src/c++11/future.cc (__future_base::_Async_state_common): Define
+	destructor, so key function is in the library.
+	* config/abi/pre/gnu.ver: Add exports for ~_Async_state_common.
+	* testsuite/30_threads/packaged_task/members/get_future.cc: Expect
+	future_status return instead of bool.
+	* testsuite/30_threads/shared_future/members/wait_until.cc: Likewise.
+	* testsuite/30_threads/shared_future/members/wait_for.cc: Likewise.
+	* testsuite/30_threads/future/members/wait_until.cc: Likewise.
+	* testsuite/30_threads/future/members/wait_for.cc: Likewise.
+	* testsuite/30_threads/promise/members/set_value2.cc: Likewise.
+	* testsuite/30_threads/promise/members/set_value3.cc: Likewise.
+	* testsuite/30_threads/promise/members/swap.cc: Likewise.
+
+2012-01-30  Tom Tromey  <tromey@redhat.com>
+
+	PR libstdc++/51649:
+	* testsuite/libstdc++-prettyprinters/debug.cc: New file.
+	* testsuite/lib/gdb-test.exp (regexp-test): New proc.
+	(note-test): Update.
+	(gdb-test): Handle regexp tests.  Add some logging.
+	* testsuite/libstdc++-prettyprinters/simple.cc: Compile with -O0.
+	(placeholder, use): Remove.
+	(main): Add tests for deque, list, map, and set iterators.  Add
+	tests for slist and slist iterator.
+	* testsuite/libstdc++-prettyprinters/48362.cc (main): Handle __7
+	namespace.
+	* python/libstdcxx/v6/printers.py (StdListPrinter.children): Use
+	the type's _Node typedef.
+	(StdListIteratorPrinter.to_string): Change how node type is
+	computed.
+	(StdSlistPrinter.children): Use the type's _Node typedef.
+	(StdSlistIteratorPrinter.to_string): Likewise.
+	(StdRbtreeIteratorPrinter.to_string): Use the type's _Link_type
+	typedef.
+	(StdMapPrinter.children): Change how the node's type is computed.
+	(StdSetPrinter.children): Likewise.
+	(StdForwardListPrinter.children): Use the type's _Node typedef.
+	(Printer.add_version): New method.
+	(Printer.add_container): New method.
+	(build_libstdcxx_dictionary): Handle __7 and __cxx1998
+	namespaces.
+	(find_type): New function.
+
 2012-01-27  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/51795
