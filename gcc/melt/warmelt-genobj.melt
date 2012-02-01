@@ -5590,6 +5590,96 @@ $SBUF.}#
     )
   )
 (install_method class_normtester_instance compile_tester compiltst_normtester_instance)
+
+
+
+
+;;;;;;;;;;;;;;;;
+(defun compiltst_normtester_tuple (ntup gcx tcx)
+  (debug "compiltst_normtester_tuple ntup=" ntup " of discrim=" (discrim ntup))
+  (assert_msg "check ntup" (is_a ntup class_normtester_tuple))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
+  (let ( (nloc (unsafe_get_field :nrep_loc ntup))
+	 (nmatched (unsafe_get_field :ntest_matched ntup))
+	 (nthen (unsafe_get_field :ntest_then ntup))
+	 (nelse (unsafe_get_field :ntest_else ntup))
+	 (normatch (unsafe_get_field :ntest_normatch ntup))
+	 (nlocclist (unsafe_get_field :ntest_locclist ntup))
+	 (ntupcomp (unsafe_get_field :nttuple_components ntup))
+	 (:long nbcomp (multiple_length ntupcomp))
+	 (olist (make_list discr_list))
+	 (:long ntestix (get_int ntup))	
+	 (gotothen (or (normtester_gotoinstr nthen gcx)
+		       (endmatch_gotoinstr normatch gcx nloc)))
+	 (gotoelse (or (normtester_gotoinstr nelse gcx)
+		       (endmatch_gotoinstr normatch gcx nloc)))
+	 (omatched (compile_obj nmatched gcx))
+	 (freelist (normtester_free_objloc_list ntup gcx tcx))
+	 (othenlist (make_list discr_list))
+	 (oelselist (make_list discr_list))
+	 (othenblock (instance class_objplainblock
+			       :obi_loc nloc
+			       :oblo_bodyl othenlist
+			       ))
+	 (oelseblock (instance class_objplainblock
+			       :obi_loc nloc
+			       :oblo_bodyl oelselist))
+	 (otest (instance
+		 class_objlocatedexpv
+		 :obcx_loc nloc
+		 :obx_cont (tuple
+			    (make_stringconst discr_verbatim_string 
+					      "/*normtestertuple*/ ((melt_magic_discr((melt_ptr_t)(")
+			    omatched
+			    (make_stringconst discr_verbatim_string 
+					      ")) == MELTOBMAG_MULTIPLE) && ((melt_multiple_ptr_t)")
+			    omatched
+			    (make_stringconst discr_verbatim_string 
+					      ")->nbval == ")
+			    (make_integerbox discr_constant_integer nbcomp)
+			    (make_stringconst discr_verbatim_string 
+					      ")")
+			    )
+		 ))
+	 (ocond (instance class_objcond
+			  :obi_loc nloc
+			  :obcond_test otest
+			  :obcond_then othenblock
+			  :obcond_else oelseblock))
+	 )
+    (debug "compiltst_normtester_tuple omatched=" omatched " freelist=" freelist 
+	   "\n otest=" otest
+	   "\n ocond=" ocond)
+    ;; clear the freelist
+    (foreach_in_list
+     (freelist)
+     (locpair obloc)
+     (debug "compiltst_normtester_tuple obloc=" obloc)
+     (assert_msg "check obloc" (is_a obloc class_objlocv))
+     (let ( (oclearob (instance class_objclear
+				:obi_loc nloc
+				:oclr_vloc obloc
+				)) )
+       (list_append olist oclearob)
+       ))
+    ;; add the cond
+    (list_append olist ocond)
+    ;; we have to add into the othenlist the fetch of each component and
+    ;; the gotothen
+    (debug "compiltst_normtester_tuple ntupcomp=" ntupcomp)
+    (foreach_in_multiple
+     (ntupcomp)
+     (curntup :long tupix)
+     (debug "compiltst_normtester_tuple curntup=" curntup " tupix=" tupix)
+     )
+    (assert_msg "@$@compiltst_normtester_tuple unimplemented")
+    ))
+(install_method class_normtester_tuple compile_tester compiltst_normtester_tuple)
+
+
+
+
 ;;;;;;;;;;;;;;;;
 (defun compiltst_normtester_same (ntsa gcx tcx)
   (debug "compiltst_normtester_same ntsa=" ntsa)
