@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -53,6 +53,7 @@ with Sem_Ch4;  use Sem_Ch4;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch12; use Sem_Ch12;
 with Sem_Ch13; use Sem_Ch13;
+with Sem_Dim;  use Sem_Dim;
 with Sem_Disp; use Sem_Disp;
 with Sem_Dist; use Sem_Dist;
 with Sem_Eval; use Sem_Eval;
@@ -1215,6 +1216,7 @@ package body Sem_Ch8 is
       end if;
 
       Set_Renamed_Object (Id, Nam);
+      Analyze_Dimension (N);
    end Analyze_Object_Renaming;
 
    ------------------------------
@@ -2663,7 +2665,10 @@ package body Sem_Ch8 is
          if not Is_Actual
            and then (Old_S = New_S
                       or else (Nkind (Nam) /= N_Expanded_Name
-                        and then  Chars (Old_S) = Chars (New_S)))
+                        and then Chars (Old_S) = Chars (New_S))
+                      or else (Nkind (Nam) = N_Expanded_Name
+                        and then Entity (Prefix (Nam)) = Current_Scope
+                        and then Chars (Selector_Name (Nam)) = Chars (New_S)))
          then
             Error_Msg_N ("subprogram cannot rename itself", N);
          end if;
@@ -6117,10 +6122,16 @@ package body Sem_Ch8 is
                   --  is completed in the current scope, and not for a limited
                   --  view of a type.
 
-                  if not Is_Tagged_Type (T)
-                    and then Ada_Version >= Ada_2005
-                  then
-                     if From_With_Type (T) then
+                  if Ada_Version >= Ada_2005 then
+
+                     --  Test whether the Available_View of a limited type view
+                     --  is tagged, since the limited view may not be marked as
+                     --  tagged if the type itself has an untagged incomplete
+                     --  type view in its package.
+
+                     if From_With_Type (T)
+                       and then not Is_Tagged_Type (Available_View (T))
+                     then
                         Error_Msg_N
                           ("prefix of Class attribute must be tagged", N);
                         Set_Etype (N, Any_Type);
@@ -8023,7 +8034,7 @@ package body Sem_Ch8 is
          end if;
       end Use_Class_Wide_Operations;
 
-   --  Start of processing for Use_One_Type;
+   --  Start of processing for Use_One_Type
 
    begin
       --  It is the type determined by the subtype mark (8.4(8)) whose

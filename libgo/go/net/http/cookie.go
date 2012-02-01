@@ -96,7 +96,7 @@ func readSetCookies(h Header) []*Cookie {
 				continue
 			case "max-age":
 				secs, err := strconv.Atoi(val)
-				if err != nil || secs < 0 || secs != 0 && val[0] == '0' {
+				if err != nil || secs != 0 && val[0] == '0' {
 					break
 				}
 				if secs <= 0 {
@@ -115,7 +115,7 @@ func readSetCookies(h Header) []*Cookie {
 						break
 					}
 				}
-				c.Expires = *exptime
+				c.Expires = exptime.UTC()
 				continue
 			case "path":
 				c.Path = val
@@ -146,8 +146,8 @@ func (c *Cookie) String() string {
 	if len(c.Domain) > 0 {
 		fmt.Fprintf(&b, "; Domain=%s", sanitizeValue(c.Domain))
 	}
-	if len(c.Expires.Zone) > 0 {
-		fmt.Fprintf(&b, "; Expires=%s", c.Expires.Format(time.RFC1123))
+	if c.Expires.Unix() > 0 {
+		fmt.Fprintf(&b, "; Expires=%s", c.Expires.UTC().Format(time.RFC1123))
 	}
 	if c.MaxAge > 0 {
 		fmt.Fprintf(&b, "; Max-Age=%d", c.MaxAge)

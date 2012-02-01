@@ -44,7 +44,7 @@ type Int struct {
 	mu sync.Mutex
 }
 
-func (v *Int) String() string { return strconv.Itoa64(v.i) }
+func (v *Int) String() string { return strconv.FormatInt(v.i, 10) }
 
 func (v *Int) Add(delta int64) {
 	v.mu.Lock()
@@ -64,7 +64,7 @@ type Float struct {
 	mu sync.Mutex
 }
 
-func (v *Float) String() string { return strconv.Ftoa64(v.f, 'g', -1) }
+func (v *Float) String() string { return strconv.FormatFloat(v.f, 'g', -1, 64) }
 
 // Add adds delta to v.
 func (v *Float) Add(delta float64) {
@@ -193,7 +193,7 @@ func (f Func) String() string {
 var vars map[string]Var = make(map[string]Var)
 var mutex sync.Mutex
 
-// Publish declares an named exported variable. This should be called from a
+// Publish declares a named exported variable. This should be called from a
 // package's init function when it creates its Vars. If the name is already
 // registered then this will log.Panic.
 func Publish(name string, v Var) {

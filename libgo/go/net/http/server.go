@@ -149,11 +149,13 @@ type writerOnly struct {
 }
 
 func (w *response) ReadFrom(src io.Reader) (n int64, err error) {
-	// Flush before checking w.chunking, as Flush will call
-	// WriteHeader if it hasn't been called yet, and WriteHeader
-	// is what sets w.chunking.
-	w.Flush()
+	// Call WriteHeader before checking w.chunking if it hasn't
+	// been called yet, since WriteHeader is what sets w.chunking.
+	if !w.wroteHeader {
+		w.WriteHeader(StatusOK)
+	}
 	if !w.chunking && w.bodyAllowed() && !w.needSniff {
+		w.Flush()
 		if rf, ok := w.conn.rwc.(io.ReaderFrom); ok {
 			n, err = rf.ReadFrom(src)
 			w.written += n
@@ -259,7 +261,7 @@ func (w *response) Header() Header {
 }
 
 // maxPostHandlerReadBytes is the max number of Request.Body bytes not
-// consumed by a handler that the server will read from the a client
+// consumed by a handler that the server will read from the client
 // in order to keep a connection alive.  If there are more bytes than
 // this then the server to be paranoid instead sends a "Connection:
 // close" response.
@@ -286,7 +288,7 @@ func (w *response) WriteHeader(code int) {
 	var contentLength int64
 	if clenStr := w.header.Get("Content-Length"); clenStr != "" {
 		var err error
-		contentLength, err = strconv.Atoi64(clenStr)
+		contentLength, err = strconv.ParseInt(clenStr, 10, 64)
 		if err == nil {
 			hasCL = true
 		} else {
@@ -345,7 +347,7 @@ func (w *response) WriteHeader(code int) {
 	}
 
 	if _, ok := w.header["Date"]; !ok {
-		w.Header().Set("Date", time.UTC().Format(TimeFormat))
+		w.Header().Set("Date", time.Now().UTC().Format(TimeFormat))
 	}
 
 	te := w.header.Get("Transfer-Encoding")
@@ -465,7 +467,7 @@ func (w *response) Write(data []byte) (n int, err error) {
 		// determine the content type.  Accumulate the
 		// initial writes in w.conn.body.
 		// Cap m so that append won't allocate.
-		m := cap(w.conn.body) - len(w.conn.body)
+		m = cap(w.conn.body) - len(w.conn.body)
 		if m > len(data) {
 			m = len(data)
 		}
@@ -567,14 +569,15 @@ func (c *conn) serve() {
 		if err == nil {
 			return
 		}
-		if c.rwc != nil { // may be nil if connection hijacked
-			c.rwc.Close()
-		}
 
 		var buf bytes.Buffer
 		fmt.Fprintf(&buf, "http: panic serving %v: %v\n", c.remoteAddr, err)
 		buf.Write(debug.Stack())
 		log.Print(buf.String())
+
+		if c.rwc != nil { // may be nil if connection hijacked
+			c.rwc.Close()
+		}
 	}()
 
 	if tlsConn, ok := c.rwc.(*tls.Conn); ok {
@@ -950,11 +953,11 @@ func Serve(l net.Listener, handler Handler) error {
 
 // A Server defines parameters for running an HTTP server.
 type Server struct {
-	Addr           string  // TCP address to listen on, ":http" if empty
-	Handler        Handler // handler to invoke, http.DefaultServeMux if nil
-	ReadTimeout    int64   // the net.Conn.SetReadTimeout value for new connections
-	WriteTimeout   int64   // the net.Conn.SetWriteTimeout value for new connections
-	MaxHeaderBytes int     // maximum size of request headers, DefaultMaxHeaderBytes if 0
+	Addr           string        // TCP address to listen on, ":http" if empty
+	Handler        Handler       // handler to invoke, http.DefaultServeMux if nil
+	ReadTimeout    time.Duration // maximum duration before timing out read of the request
+	WriteTimeout   time.Duration // maximum duration before timing out write of the response
+	MaxHeaderBytes int           // maximum size of request headers, DefaultMaxHeaderBytes if 0
 }
 
 // ListenAndServe listens on the TCP network address srv.Addr and then
@@ -987,10 +990,10 @@ func (srv *Server) Serve(l net.Listener) error {
 			return e
 		}
 		if srv.ReadTimeout != 0 {
-			rw.SetReadTimeout(srv.ReadTimeout)
+			rw.SetReadDeadline(time.Now().Add(srv.ReadTimeout))
 		}
 		if srv.WriteTimeout != 0 {
-			rw.SetWriteTimeout(srv.WriteTimeout)
+			rw.SetWriteDeadline(time.Now().Add(srv.WriteTimeout))
 		}
 		c, err := srv.newConn(rw)
 		if err != nil {
@@ -1011,8 +1014,8 @@ func (srv *Server) Serve(l net.Listener) error {
 //	package main
 //
 //	import (
-//		"http"
 //		"io"
+//		"net/http"
 //		"log"
 //	)
 //
@@ -1025,7 +1028,7 @@ func (srv *Server) Serve(l net.Listener) error {
 //		http.HandleFunc("/hello", HelloServer)
 //		err := http.ListenAndServe(":12345", nil)
 //		if err != nil {
-//			log.Fatal("ListenAndServe: ", err.String())
+//			log.Fatal("ListenAndServe: ", err)
 //		}
 //	}
 func ListenAndServe(addr string, handler Handler) error {
@@ -1042,8 +1045,8 @@ func ListenAndServe(addr string, handler Handler) error {
 // A trivial example server is:
 //
 //	import (
-//		"http"
 //		"log"
+//		"net/http"
 //	)
 //
 //	func handler(w http.ResponseWriter, req *http.Request) {
@@ -1082,7 +1085,6 @@ func (s *Server) ListenAndServeTLS(certFile, keyFile string) error {
 	}
 	config := &tls.Config{
 		Rand:       rand.Reader,
-		Time:       time.Seconds,
 		NextProtos: []string{"http/1.1"},
 	}
 
@@ -1110,9 +1112,9 @@ func (s *Server) ListenAndServeTLS(certFile, keyFile string) error {
 // (If msg is empty, a suitable default message will be sent.)
 // After such a timeout, writes by h to its ResponseWriter will return
 // ErrHandlerTimeout.
-func TimeoutHandler(h Handler, ns int64, msg string) Handler {
-	f := func() <-chan int64 {
-		return time.After(ns)
+func TimeoutHandler(h Handler, dt time.Duration, msg string) Handler {
+	f := func() <-chan time.Time {
+		return time.After(dt)
 	}
 	return &timeoutHandler{h, f, msg}
 }
@@ -1123,7 +1125,7 @@ var ErrHandlerTimeout = errors.New("http: Handler timeout")
 
 type timeoutHandler struct {
 	handler Handler
-	timeout func() <-chan int64 // returns channel producing a timeout
+	timeout func() <-chan time.Time // returns channel producing a timeout
 	body    string
 }
 

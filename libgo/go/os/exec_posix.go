@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build darwin freebsd linux openbsd windows
+// +build darwin freebsd linux netbsd openbsd windows
 
 package os
 
@@ -24,7 +24,7 @@ func (sig UnixSignal) String() string {
 // StartProcess starts a new process with the program, arguments and attributes
 // specified by name, argv and attr.
 //
-// StartProcess is a low-level interface. The exec package provides
+// StartProcess is a low-level interface. The os/exec package provides
 // higher-level interfaces.
 func StartProcess(name string, argv []string, attr *ProcAttr) (p *Process, err error) {
 	sysattr := &syscall.ProcAttr{
@@ -40,8 +40,8 @@ func StartProcess(name string, argv []string, attr *ProcAttr) (p *Process, err e
 	}
 
 	pid, h, e := syscall.StartProcess(name, argv, sysattr)
-	if iserror(e) {
-		return nil, &PathError{"fork/exec", name, Errno(e)}
+	if e != nil {
+		return nil, &PathError{"fork/exec", name, e}
 	}
 	return newProcess(pid, h), nil
 }
@@ -56,14 +56,14 @@ func (p *Process) Kill() error {
 // If successful, Exec never returns.  If it fails, it returns an error.
 //
 // To run a child process, see StartProcess (for a low-level interface)
-// or the exec package (for higher-level interfaces).
+// or the os/exec package (for higher-level interfaces).
 func Exec(name string, argv []string, envv []string) error {
 	if envv == nil {
 		envv = Environ()
 	}
 	e := syscall.Exec(name, argv, envv)
-	if iserror(e) {
-		return &PathError{"exec", name, Errno(e)}
+	if e != nil {
+		return &PathError{"exec", name, e}
 	}
 	return nil
 }

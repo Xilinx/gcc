@@ -87,7 +87,7 @@ static int32	argc;
 static byte**	argv;
 
 extern Slice os_Args asm ("libgo_os.os.Args");
-extern Slice os_Envs asm ("libgo_os.os.Envs");
+extern Slice syscall_Envs asm ("libgo_syscall.syscall.Envs");
 
 void
 runtime_args(int32 c, byte **v)
@@ -115,7 +115,7 @@ runtime_goargs(void)
 }
 
 void
-runtime_goenvs(void)
+runtime_goenvs_unix(void)
 {
 	String *s;
 	int32 i, n;
@@ -126,9 +126,9 @@ runtime_goenvs(void)
 	s = runtime_malloc(n*sizeof s[0]);
 	for(i=0; i<n; i++)
 		s[i] = runtime_gostringnocopy(argv[argc+1+i]);
-	os_Envs.__values = (void*)s;
-	os_Envs.__count = n;
-	os_Envs.__capacity = n;
+	syscall_Envs.__values = (void*)s;
+	syscall_Envs.__count = n;
+	syscall_Envs.__capacity = n;
 }
 
 const byte*
@@ -141,8 +141,8 @@ runtime_getenv(const char *s)
 
 	bs = (const byte*)s;
 	len = runtime_findnull(bs);
-	envv = (String*)os_Envs.__values;
-	envc = os_Envs.__count;
+	envv = (String*)syscall_Envs.__values;
+	envc = syscall_Envs.__count;
 	for(i=0; i<envc; i++){
 		if(envv[i].__length <= len)
 			continue;
@@ -182,4 +182,23 @@ runtime_fastrand1(void)
 		x ^= 0x88888eefUL;
 	m->fastrand = x;
 	return x;
+}
+
+struct funcline_go_return
+{
+  String retfile;
+  int32 retline;
+};
+
+struct funcline_go_return
+runtime_funcline_go(void *f, uintptr targetpc)
+  __asm__("libgo_runtime.runtime.funcline_go");
+
+struct funcline_go_return
+runtime_funcline_go(void *f __attribute__((unused)),
+		    uintptr targetpc __attribute__((unused)))
+{
+  struct funcline_go_return ret;
+  runtime_memclr(&ret, sizeof ret);
+  return ret;
 }

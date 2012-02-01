@@ -7,7 +7,6 @@ package xml
 import (
 	"bytes"
 	"io"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -30,71 +29,69 @@ const testInput = `
 </body><!-- missing final newline -->`
 
 var rawTokens = []Token{
-	CharData([]byte("\n")),
+	CharData("\n"),
 	ProcInst{"xml", []byte(`version="1.0" encoding="UTF-8"`)},
-	CharData([]byte("\n")),
-	Directive([]byte(`DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	CharData("\n"),
+	Directive(`DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"`),
-	),
-	CharData([]byte("\n")),
+	CharData("\n"),
 	StartElement{Name{"", "body"}, []Attr{{Name{"xmlns", "foo"}, "ns1"}, {Name{"", "xmlns"}, "ns2"}, {Name{"xmlns", "tag"}, "ns3"}}},
-	CharData([]byte("\n  ")),
+	CharData("\n  "),
 	StartElement{Name{"", "hello"}, []Attr{{Name{"", "lang"}, "en"}}},
-	CharData([]byte("World <>'\" 白鵬翔")),
+	CharData("World <>'\" 白鵬翔"),
 	EndElement{Name{"", "hello"}},
-	CharData([]byte("\n  ")),
-	StartElement{Name{"", "goodbye"}, nil},
+	CharData("\n  "),
+	StartElement{Name{"", "goodbye"}, []Attr{}},
 	EndElement{Name{"", "goodbye"}},
-	CharData([]byte("\n  ")),
+	CharData("\n  "),
 	StartElement{Name{"", "outer"}, []Attr{{Name{"foo", "attr"}, "value"}, {Name{"xmlns", "tag"}, "ns4"}}},
-	CharData([]byte("\n    ")),
-	StartElement{Name{"", "inner"}, nil},
+	CharData("\n    "),
+	StartElement{Name{"", "inner"}, []Attr{}},
 	EndElement{Name{"", "inner"}},
-	CharData([]byte("\n  ")),
+	CharData("\n  "),
 	EndElement{Name{"", "outer"}},
-	CharData([]byte("\n  ")),
-	StartElement{Name{"tag", "name"}, nil},
-	CharData([]byte("\n    ")),
-	CharData([]byte("Some text here.")),
-	CharData([]byte("\n  ")),
+	CharData("\n  "),
+	StartElement{Name{"tag", "name"}, []Attr{}},
+	CharData("\n    "),
+	CharData("Some text here."),
+	CharData("\n  "),
 	EndElement{Name{"tag", "name"}},
-	CharData([]byte("\n")),
+	CharData("\n"),
 	EndElement{Name{"", "body"}},
-	Comment([]byte(" missing final newline ")),
+	Comment(" missing final newline "),
 }
 
 var cookedTokens = []Token{
-	CharData([]byte("\n")),
+	CharData("\n"),
 	ProcInst{"xml", []byte(`version="1.0" encoding="UTF-8"`)},
-	CharData([]byte("\n")),
-	Directive([]byte(`DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	CharData("\n"),
+	Directive(`DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"`),
-	),
-	CharData([]byte("\n")),
+	CharData("\n"),
 	StartElement{Name{"ns2", "body"}, []Attr{{Name{"xmlns", "foo"}, "ns1"}, {Name{"", "xmlns"}, "ns2"}, {Name{"xmlns", "tag"}, "ns3"}}},
-	CharData([]byte("\n  ")),
+	CharData("\n  "),
 	StartElement{Name{"ns2", "hello"}, []Attr{{Name{"", "lang"}, "en"}}},
-	CharData([]byte("World <>'\" 白鵬翔")),
+	CharData("World <>'\" 白鵬翔"),
 	EndElement{Name{"ns2", "hello"}},
-	CharData([]byte("\n  ")),
-	StartElement{Name{"ns2", "goodbye"}, nil},
+	CharData("\n  "),
+	StartElement{Name{"ns2", "goodbye"}, []Attr{}},
 	EndElement{Name{"ns2", "goodbye"}},
-	CharData([]byte("\n  ")),
+	CharData("\n  "),
 	StartElement{Name{"ns2", "outer"}, []Attr{{Name{"ns1", "attr"}, "value"}, {Name{"xmlns", "tag"}, "ns4"}}},
-	CharData([]byte("\n    ")),
-	StartElement{Name{"ns2", "inner"}, nil},
+	CharData("\n    "),
+	StartElement{Name{"ns2", "inner"}, []Attr{}},
 	EndElement{Name{"ns2", "inner"}},
-	CharData([]byte("\n  ")),
+	CharData("\n  "),
 	EndElement{Name{"ns2", "outer"}},
-	CharData([]byte("\n  ")),
-	StartElement{Name{"ns3", "name"}, nil},
-	CharData([]byte("\n    ")),
-	CharData([]byte("Some text here.")),
-	CharData([]byte("\n  ")),
+	CharData("\n  "),
+	StartElement{Name{"ns3", "name"}, []Attr{}},
+	CharData("\n    "),
+	CharData("Some text here."),
+	CharData("\n  "),
 	EndElement{Name{"ns3", "name"}},
-	CharData([]byte("\n")),
+	CharData("\n"),
 	EndElement{Name{"ns2", "body"}},
-	Comment([]byte(" missing final newline ")),
+	Comment(" missing final newline "),
 }
 
 const testInputAltEncoding = `
@@ -102,11 +99,11 @@ const testInputAltEncoding = `
 <TAG>VALUE</TAG>`
 
 var rawTokensAltEncoding = []Token{
-	CharData([]byte("\n")),
+	CharData("\n"),
 	ProcInst{"xml", []byte(`version="1.0" encoding="x-testing-uppercase"`)},
-	CharData([]byte("\n")),
-	StartElement{Name{"", "tag"}, nil},
-	CharData([]byte("value")),
+	CharData("\n"),
+	StartElement{Name{"", "tag"}, []Attr{}},
+	CharData("value"),
 	EndElement{Name{"", "tag"}},
 }
 
@@ -157,36 +154,8 @@ var xmlInput = []string{
 	"<t>cdata]]></t>",
 }
 
-type stringReader struct {
-	s   string
-	off int
-}
-
-func (r *stringReader) Read(b []byte) (n int, err error) {
-	if r.off >= len(r.s) {
-		return 0, io.EOF
-	}
-	for r.off < len(r.s) && n < len(b) {
-		b[n] = r.s[r.off]
-		n++
-		r.off++
-	}
-	return
-}
-
-func (r *stringReader) ReadByte() (b byte, err error) {
-	if r.off >= len(r.s) {
-		return 0, io.EOF
-	}
-	b = r.s[r.off]
-	r.off++
-	return
-}
-
-func StringReader(s string) io.Reader { return &stringReader{s, 0} }
-
 func TestRawToken(t *testing.T) {
-	p := NewParser(StringReader(testInput))
+	p := NewParser(strings.NewReader(testInput))
 	testRawToken(t, p, rawTokens)
 }
 
@@ -205,12 +174,12 @@ func (d *downCaser) ReadByte() (c byte, err error) {
 
 func (d *downCaser) Read(p []byte) (int, error) {
 	d.t.Fatalf("unexpected Read call on downCaser reader")
-	return 0, os.EINVAL
+	panic("unreachable")
 }
 
 func TestRawTokenAltEncoding(t *testing.T) {
 	sawEncoding := ""
-	p := NewParser(StringReader(testInputAltEncoding))
+	p := NewParser(strings.NewReader(testInputAltEncoding))
 	p.CharsetReader = func(charset string, input io.Reader) (io.Reader, error) {
 		sawEncoding = charset
 		if charset != "x-testing-uppercase" {
@@ -222,7 +191,7 @@ func TestRawTokenAltEncoding(t *testing.T) {
 }
 
 func TestRawTokenAltEncodingNoConverter(t *testing.T) {
-	p := NewParser(StringReader(testInputAltEncoding))
+	p := NewParser(strings.NewReader(testInputAltEncoding))
 	token, err := p.RawToken()
 	if token == nil {
 		t.Fatalf("expected a token on first RawToken call")
@@ -271,25 +240,25 @@ var nestedDirectivesInput = `
 `
 
 var nestedDirectivesTokens = []Token{
-	CharData([]byte("\n")),
-	Directive([]byte(`DOCTYPE [<!ENTITY rdf "http://www.w3.org/1999/02/22-rdf-syntax-ns#">]`)),
-	CharData([]byte("\n")),
-	Directive([]byte(`DOCTYPE [<!ENTITY xlt ">">]`)),
-	CharData([]byte("\n")),
-	Directive([]byte(`DOCTYPE [<!ENTITY xlt "<">]`)),
-	CharData([]byte("\n")),
-	Directive([]byte(`DOCTYPE [<!ENTITY xlt '>'>]`)),
-	CharData([]byte("\n")),
-	Directive([]byte(`DOCTYPE [<!ENTITY xlt '<'>]`)),
-	CharData([]byte("\n")),
-	Directive([]byte(`DOCTYPE [<!ENTITY xlt '">'>]`)),
-	CharData([]byte("\n")),
-	Directive([]byte(`DOCTYPE [<!ENTITY xlt "'<">]`)),
-	CharData([]byte("\n")),
+	CharData("\n"),
+	Directive(`DOCTYPE [<!ENTITY rdf "http://www.w3.org/1999/02/22-rdf-syntax-ns#">]`),
+	CharData("\n"),
+	Directive(`DOCTYPE [<!ENTITY xlt ">">]`),
+	CharData("\n"),
+	Directive(`DOCTYPE [<!ENTITY xlt "<">]`),
+	CharData("\n"),
+	Directive(`DOCTYPE [<!ENTITY xlt '>'>]`),
+	CharData("\n"),
+	Directive(`DOCTYPE [<!ENTITY xlt '<'>]`),
+	CharData("\n"),
+	Directive(`DOCTYPE [<!ENTITY xlt '">'>]`),
+	CharData("\n"),
+	Directive(`DOCTYPE [<!ENTITY xlt "'<">]`),
+	CharData("\n"),
 }
 
 func TestNestedDirectives(t *testing.T) {
-	p := NewParser(StringReader(nestedDirectivesInput))
+	p := NewParser(strings.NewReader(nestedDirectivesInput))
 
 	for i, want := range nestedDirectivesTokens {
 		have, err := p.Token()
@@ -303,7 +272,7 @@ func TestNestedDirectives(t *testing.T) {
 }
 
 func TestToken(t *testing.T) {
-	p := NewParser(StringReader(testInput))
+	p := NewParser(strings.NewReader(testInput))
 
 	for i, want := range cookedTokens {
 		have, err := p.Token()
@@ -318,7 +287,7 @@ func TestToken(t *testing.T) {
 
 func TestSyntax(t *testing.T) {
 	for i := range xmlInput {
-		p := NewParser(StringReader(xmlInput[i]))
+		p := NewParser(strings.NewReader(xmlInput[i]))
 		var err error
 		for _, err = p.Token(); err == nil; _, err = p.Token() {
 		}
@@ -375,26 +344,26 @@ var all = allScalars{
 var sixteen = "16"
 
 const testScalarsInput = `<allscalars>
-	<true1>true</true1>
-	<true2>1</true2>
-	<false1>false</false1>
-	<false2>0</false2>
-	<int>1</int>
-	<int8>-2</int8>
-	<int16>3</int16>
-	<int32>-4</int32>
-	<int64>5</int64>
-	<uint>6</uint>
-	<uint8>7</uint8>
-	<uint16>8</uint16>
-	<uint32>9</uint32>
-	<uint64>10</uint64>
-	<uintptr>11</uintptr>
-	<float>12.0</float>
-	<float32>13.0</float32>
-	<float64>14.0</float64>
-	<string>15</string>
-	<ptrstring>16</ptrstring>
+	<True1>true</True1>
+	<True2>1</True2>
+	<False1>false</False1>
+	<False2>0</False2>
+	<Int>1</Int>
+	<Int8>-2</Int8>
+	<Int16>3</Int16>
+	<Int32>-4</Int32>
+	<Int64>5</Int64>
+	<Uint>6</Uint>
+	<Uint8>7</Uint8>
+	<Uint16>8</Uint16>
+	<Uint32>9</Uint32>
+	<Uint64>10</Uint64>
+	<Uintptr>11</Uintptr>
+	<Float>12.0</Float>
+	<Float32>13.0</Float32>
+	<Float64>14.0</Float64>
+	<String>15</String>
+	<PtrString>16</PtrString>
 </allscalars>`
 
 func TestAllScalars(t *testing.T) {
@@ -415,7 +384,7 @@ type item struct {
 }
 
 func TestIssue569(t *testing.T) {
-	data := `<item><field_a>abcd</field_a></item>`
+	data := `<item><Field_a>abcd</Field_a></item>`
 	var i item
 	buf := bytes.NewBufferString(data)
 	err := Unmarshal(buf, &i)
@@ -427,7 +396,7 @@ func TestIssue569(t *testing.T) {
 
 func TestUnquotedAttrs(t *testing.T) {
 	data := "<tag attr=azAZ09:-_\t>"
-	p := NewParser(StringReader(data))
+	p := NewParser(strings.NewReader(data))
 	p.Strict = false
 	token, err := p.Token()
 	if _, ok := err.(*SyntaxError); ok {
@@ -453,7 +422,7 @@ func TestValuelessAttrs(t *testing.T) {
 		{"<input checked />", "input", "checked"},
 	}
 	for _, test := range tests {
-		p := NewParser(StringReader(test[0]))
+		p := NewParser(strings.NewReader(test[0]))
 		p.Strict = false
 		token, err := p.Token()
 		if _, ok := err.(*SyntaxError); ok {
@@ -489,10 +458,13 @@ func TestCopyTokenStartElement(t *testing.T) {
 	elt := StartElement{Name{"", "hello"}, []Attr{{Name{"", "lang"}, "en"}}}
 	var tok1 Token = elt
 	tok2 := CopyToken(tok1)
+	if tok1.(StartElement).Attr[0].Value != "en" {
+		t.Error("CopyToken overwrote Attr[0]")
+	}
 	if !reflect.DeepEqual(tok1, tok2) {
 		t.Error("CopyToken(StartElement) != StartElement")
 	}
-	elt.Attr[0] = Attr{Name{"", "lang"}, "de"}
+	tok1.(StartElement).Attr[0] = Attr{Name{"", "lang"}, "de"}
 	if reflect.DeepEqual(tok1, tok2) {
 		t.Error("CopyToken(CharData) uses same buffer.")
 	}
@@ -500,7 +472,7 @@ func TestCopyTokenStartElement(t *testing.T) {
 
 func TestSyntaxErrorLineNum(t *testing.T) {
 	testInput := "<P>Foo<P>\n\n<P>Bar</>\n"
-	p := NewParser(StringReader(testInput))
+	p := NewParser(strings.NewReader(testInput))
 	var err error
 	for _, err = p.Token(); err == nil; _, err = p.Token() {
 	}
@@ -515,7 +487,7 @@ func TestSyntaxErrorLineNum(t *testing.T) {
 
 func TestTrailingRawToken(t *testing.T) {
 	input := `<FOO></FOO>  `
-	p := NewParser(StringReader(input))
+	p := NewParser(strings.NewReader(input))
 	var err error
 	for _, err = p.RawToken(); err == nil; _, err = p.RawToken() {
 	}
@@ -526,7 +498,7 @@ func TestTrailingRawToken(t *testing.T) {
 
 func TestTrailingToken(t *testing.T) {
 	input := `<FOO></FOO>  `
-	p := NewParser(StringReader(input))
+	p := NewParser(strings.NewReader(input))
 	var err error
 	for _, err = p.Token(); err == nil; _, err = p.Token() {
 	}
@@ -537,7 +509,7 @@ func TestTrailingToken(t *testing.T) {
 
 func TestEntityInsideCDATA(t *testing.T) {
 	input := `<test><![CDATA[ &val=foo ]]></test>`
-	p := NewParser(StringReader(input))
+	p := NewParser(strings.NewReader(input))
 	var err error
 	for _, err = p.Token(); err == nil; _, err = p.Token() {
 	}
@@ -569,7 +541,7 @@ var characterTests = []struct {
 func TestDisallowedCharacters(t *testing.T) {
 
 	for i, tt := range characterTests {
-		p := NewParser(StringReader(tt.in))
+		p := NewParser(strings.NewReader(tt.in))
 		var err error
 
 		for err == nil {

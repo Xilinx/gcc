@@ -56,6 +56,7 @@ var (
 	stringVal            string
 	stringVal1           string
 	bytesVal             []byte
+	runeVal              rune
 	complex64Val         complex64
 	complex128Val        complex128
 	renamedBoolVal       renamedBool
@@ -225,9 +226,9 @@ var scanfTests = []ScanfTest{
 	{"%v", "0377\n", &intVal, 0377},
 	{"%v", "0x44\n", &intVal, 0x44},
 	{"%d", "72\n", &intVal, 72},
-	{"%c", "a\n", &intVal, 'a'},
-	{"%c", "\u5072\n", &intVal, 0x5072},
-	{"%c", "\u1234\n", &intVal, '\u1234'},
+	{"%c", "a\n", &runeVal, 'a'},
+	{"%c", "\u5072\n", &runeVal, '\u5072'},
+	{"%c", "\u1234\n", &runeVal, '\u1234'},
 	{"%d", "73\n", &int8Val, int8(73)},
 	{"%d", "+74\n", &int16Val, int16(74)},
 	{"%d", "75\n", &int32Val, int32(75)},
@@ -322,9 +323,10 @@ var s, t string
 var c complex128
 var x, y Xs
 var z IntString
+var r1, r2, r3 rune
 
 var multiTests = []ScanfMultiTest{
-	{"", "", nil, nil, ""},
+	{"", "", []interface{}{}, []interface{}{}, ""},
 	{"%d", "23", args(&i), args(23), ""},
 	{"%2s%3s", "22333", args(&s, &t), args("22", "333"), ""},
 	{"%2d%3d", "44555", args(&i, &j), args(44, 555), ""},
@@ -333,7 +335,7 @@ var multiTests = []ScanfMultiTest{
 	{"%3d22%3d", "33322333", args(&i, &j), args(333, 333), ""},
 	{"%6vX=%3fY", "3+2iX=2.5Y", args(&c, &f), args((3 + 2i), 2.5), ""},
 	{"%d%s", "123abc", args(&i, &s), args(123, "abc"), ""},
-	{"%c%c%c", "2\u50c2X", args(&i, &j, &k), args('2', '\u50c2', 'X'), ""},
+	{"%c%c%c", "2\u50c2X", args(&r1, &r2, &r3), args('2', '\u50c2', 'X'), ""},
 
 	// Custom scanners.
 	{"%e%f", "eefffff", args(&x, &y), args(Xs("ee"), Xs("fffff")), ""},
@@ -347,7 +349,7 @@ var multiTests = []ScanfMultiTest{
 	{"X%d", "10X", args(&intVal), nil, "input does not match format"},
 
 	// Bad UTF-8: should see every byte.
-	{"%c%c%c", "\xc2X\xc2", args(&i, &j, &k), args(utf8.RuneError, 'X', utf8.RuneError), ""},
+	{"%c%c%c", "\xc2X\xc2", args(&r1, &r2, &r3), args(utf8.RuneError, 'X', utf8.RuneError), ""},
 }
 
 func testScan(name string, t *testing.T, scan func(r io.Reader, a ...interface{}) (int, error)) {
@@ -378,7 +380,7 @@ func testScan(name string, t *testing.T, scan func(r io.Reader, a ...interface{}
 		}
 		val := v.Interface()
 		if !reflect.DeepEqual(val, test.out) {
-			t.Errorf("%s scanning %q: expected %v got %v, type %T", name, test.text, test.out, val, val)
+			t.Errorf("%s scanning %q: expected %#v got %#v, type %T", name, test.text, test.out, val, val)
 		}
 	}
 }
@@ -417,7 +419,7 @@ func TestScanf(t *testing.T) {
 		}
 		val := v.Interface()
 		if !reflect.DeepEqual(val, test.out) {
-			t.Errorf("scanning (%q, %q): expected %v got %v, type %T", test.format, test.text, test.out, val, val)
+			t.Errorf("scanning (%q, %q): expected %#v got %#v, type %T", test.format, test.text, test.out, val, val)
 		}
 	}
 }
@@ -520,7 +522,7 @@ func testScanfMulti(name string, t *testing.T) {
 		}
 		result := resultVal.Interface()
 		if !reflect.DeepEqual(result, test.out) {
-			t.Errorf("scanning (%q, %q): expected %v got %v", test.format, test.text, test.out, result)
+			t.Errorf("scanning (%q, %q): expected %#v got %#v", test.format, test.text, test.out, result)
 		}
 	}
 }

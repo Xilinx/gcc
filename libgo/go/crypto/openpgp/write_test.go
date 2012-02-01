@@ -54,7 +54,7 @@ func TestNewEntity(t *testing.T) {
 		return
 	}
 
-	e, err := NewEntity(rand.Reader, time.Seconds(), "Test User", "test", "test@example.com")
+	e, err := NewEntity(rand.Reader, time.Now(), "Test User", "test", "test@example.com")
 	if err != nil {
 		t.Errorf("failed to create entity: %s", err)
 		return
@@ -222,7 +222,7 @@ func TestEncryption(t *testing.T) {
 
 		if test.isSigned {
 			if md.SignatureError != nil {
-				t.Errorf("#%d: signature error: %s", i, err)
+				t.Errorf("#%d: signature error: %s", i, md.SignatureError)
 			}
 			if md.Signature == nil {
 				t.Error("signature missing")

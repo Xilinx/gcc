@@ -3,12 +3,12 @@
 // license that can be found in the LICENSE file.
 
 // +build darwin freebsd linux
+// +build cgo
 
 package user
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -70,7 +70,7 @@ func lookup(uid int, username string, lookupByName bool) (*User, error) {
 			bufSize,
 			&result)
 		if rv != 0 {
-			return nil, fmt.Errorf("user: lookup username %s: %s", username, os.Errno(syscall.GetErrno()))
+			return nil, fmt.Errorf("user: lookup username %s: %s", username, syscall.GetErrno())
 		}
 		if result == nil {
 			return nil, UnknownUserError(username)
@@ -82,7 +82,7 @@ func lookup(uid int, username string, lookupByName bool) (*User, error) {
 			bufSize,
 			&result)
 		if rv != 0 {
-			return nil, fmt.Errorf("user: lookup userid %d: %s", uid, os.Errno(syscall.GetErrno()))
+			return nil, fmt.Errorf("user: lookup userid %d: %s", uid, syscall.GetErrno())
 		}
 		if result == nil {
 			return nil, UnknownUserIdError(uid)

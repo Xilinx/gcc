@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"sort"
 	"strings"
 	"testing"
 )
@@ -157,24 +156,16 @@ func (t *T) Method2(a uint16, b string) string {
 	return fmt.Sprintf("Method2: %d %s", a, b)
 }
 
+func (t *T) Method3(v interface{}) string {
+	return fmt.Sprintf("Method3: %v", v)
+}
+
 func (t *T) MAdd(a int, b []int) []int {
 	v := make([]int, len(b))
 	for i, x := range b {
 		v[i] = x + a
 	}
 	return v
-}
-
-// MSort is used to sort map keys for stable output. (Nice trick!)
-func (t *T) MSort(m map[string]int) []string {
-	keys := make([]string, len(m))
-	i := 0
-	for k := range m {
-		keys[i] = k
-		i++
-	}
-	sort.Strings(keys)
-	return keys
 }
 
 // EPERM returns a value and an error according to its argument.
@@ -293,6 +284,7 @@ var execTests = []execTest{
 	{".Method2(3, .X)", "-{{.Method2 3 .X}}-", "-Method2: 3 x-", tVal, true},
 	{".Method2(.U16, `str`)", "-{{.Method2 .U16 `str`}}-", "-Method2: 16 str-", tVal, true},
 	{".Method2(.U16, $x)", "{{if $x := .X}}-{{.Method2 .U16 $x}}{{end}}-", "-Method2: 16 x-", tVal, true},
+	{".Method3(nil)", "-{{.Method3 .MXI.unset}}-", "-Method3: <nil>-", tVal, true},
 	{"method on var", "{{if $x := .}}-{{$x.Method2 .U16 $x.X}}{{end}}-", "-Method2: 16 x-", tVal, true},
 	{"method on chained var",
 		"{{range .MSIone}}{{if $.U.TrueFalse $.True}}{{$.U.TrueFalse $.True}}{{else}}WRONG{{end}}{{end}}",
@@ -322,6 +314,8 @@ var execTests = []execTest{
 	{"if slice", "{{if .SI}}NON-EMPTY{{else}}EMPTY{{end}}", "NON-EMPTY", tVal, true},
 	{"if emptymap", "{{if .MSIEmpty}}NON-EMPTY{{else}}EMPTY{{end}}", "EMPTY", tVal, true},
 	{"if map", "{{if .MSI}}NON-EMPTY{{else}}EMPTY{{end}}", "NON-EMPTY", tVal, true},
+	{"if map unset", "{{if .MXI.none}}NON-ZERO{{else}}ZERO{{end}}", "ZERO", tVal, true},
+	{"if map not unset", "{{if not .MXI.none}}ZERO{{else}}NON-ZERO{{end}}", "ZERO", tVal, true},
 	{"if $x with $y int", "{{if $x := true}}{{with $y := .I}}{{$x}},{{$y}}{{end}}{{end}}", "true,17", tVal, true},
 	{"if $x with $x int", "{{if $x := true}}{{with $x := .I}}{{$x}},{{end}}{{$x}}{{end}}", "17,true", tVal, true},
 
@@ -403,9 +397,9 @@ var execTests = []execTest{
 	{"range empty else", "{{range .SIEmpty}}-{{.}}-{{else}}EMPTY{{end}}", "EMPTY", tVal, true},
 	{"range []bool", "{{range .SB}}-{{.}}-{{end}}", "-true--false-", tVal, true},
 	{"range []int method", "{{range .SI | .MAdd .I}}-{{.}}-{{end}}", "-20--21--22-", tVal, true},
-	{"range map", "{{range .MSI | .MSort}}-{{.}}-{{end}}", "-one--three--two-", tVal, true},
+	{"range map", "{{range .MSI}}-{{.}}-{{end}}", "-1--3--2-", tVal, true},
 	{"range empty map no else", "{{range .MSIEmpty}}-{{.}}-{{end}}", "", tVal, true},
-	{"range map else", "{{range .MSI | .MSort}}-{{.}}-{{else}}EMPTY{{end}}", "-one--three--two-", tVal, true},
+	{"range map else", "{{range .MSI}}-{{.}}-{{else}}EMPTY{{end}}", "-1--3--2-", tVal, true},
 	{"range empty map else", "{{range .MSIEmpty}}-{{.}}-{{else}}EMPTY{{end}}", "EMPTY", tVal, true},
 	{"range empty interface", "{{range .Empty3}}-{{.}}-{{else}}EMPTY{{end}}", "-7--8-", tVal, true},
 	{"range empty nil", "{{range .Empty0}}-{{.}}-{{end}}", "", tVal, true},
@@ -476,7 +470,7 @@ func vfunc(V, *V) string {
 	return "vfunc"
 }
 
-func testExecute(execTests []execTest, set *Set, t *testing.T) {
+func testExecute(execTests []execTest, template *Template, t *testing.T) {
 	b := new(bytes.Buffer)
 	funcs := FuncMap{
 		"count":    count,
@@ -486,8 +480,13 @@ func testExecute(execTests []execTest, set *Set, t *testing.T) {
 		"zeroArgs": zeroArgs,
 	}
 	for _, test := range execTests {
-		tmpl := New(test.name).Funcs(funcs)
-		_, err := tmpl.ParseInSet(test.input, set)
+		var tmpl *Template
+		var err error
+		if template == nil {
+			tmpl, err = New(test.name).Funcs(funcs).Parse(test.input)
+		} else {
+			tmpl, err = template.New(test.name).Funcs(funcs).Parse(test.input)
+		}
 		if err != nil {
 			t.Errorf("%s: parse error: %s", test.name, err)
 			continue
@@ -659,24 +658,34 @@ func TestTree(t *testing.T) {
 			},
 		},
 	}
-	set := new(Set)
-	_, err := set.Delims("(", ")").Parse(treeTemplate)
+	tmpl, err := New("root").Delims("(", ")").Parse(treeTemplate)
 	if err != nil {
 		t.Fatal("parse error:", err)
 	}
 	var b bytes.Buffer
-	err = set.Execute(&b, "tree", tree)
-	if err != nil {
-		t.Fatal("exec error:", err)
-	}
 	stripSpace := func(r rune) rune {
 		if r == '\t' || r == '\n' {
 			return -1
 		}
 		return r
 	}
-	result := strings.Map(stripSpace, b.String())
 	const expect = "[1[2[3[4]][5[6]]][7[8[9]][10[11]]]]"
+	// First by looking up the template.
+	err = tmpl.Lookup("tree").Execute(&b, tree)
+	if err != nil {
+		t.Fatal("exec error:", err)
+	}
+	result := strings.Map(stripSpace, b.String())
+	if result != expect {
+		t.Errorf("expected %q got %q", expect, result)
+	}
+	// Then direct to execution.
+	b.Reset()
+	err = tmpl.ExecuteTemplate(&b, "tree", tree)
+	if err != nil {
+		t.Fatal("exec error:", err)
+	}
+	result = strings.Map(stripSpace, b.String())
 	if result != expect {
 		t.Errorf("expected %q got %q", expect, result)
 	}

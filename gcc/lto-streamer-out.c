@@ -129,16 +129,6 @@ tree_is_indexable (tree t)
   else if (TREE_CODE (t) == VAR_DECL && decl_function_context (t)
 	   && !TREE_STATIC (t))
     return false;
-  /* If this is a decl generated for block local externs for
-     debug info generation, stream it unshared alongside BLOCK_VARS.  */
-  else if (VAR_OR_FUNCTION_DECL_P (t)
-	   /* ???  The following tests are a literal match on what
-	      c-decl.c:pop_scope does.  */
-	   && TREE_PUBLIC (t)
-	   && DECL_EXTERNAL (t)
-	   && DECL_CONTEXT (t)
-	   && TREE_CODE (DECL_CONTEXT (t)) == FUNCTION_DECL)
-    return false;
   /* Variably modified types need to be streamed alongside function
      bodies because they can refer to local entities.  Together with
      them we have to localize their members as well.
@@ -314,7 +304,6 @@ lto_is_streamable (tree expr)
 	 && code != WITH_CLEANUP_EXPR
 	 && code != STATEMENT_LIST
 	 && code != OMP_CLAUSE
-	 && code != OPTIMIZATION_NODE
 	 && (code == CASE_LABEL_EXPR
 	     || code == DECL_EXPR
 	     || TREE_CODE_CLASS (code) != tcc_statement);
@@ -380,11 +369,12 @@ lto_write_tree (struct output_block *ob, tree expr, bool ref_p)
 
 
 /* Emit the physical representation of tree node EXPR to output block
-   OB.  If REF_P is true, the leaves of EXPR are emitted as references
-   via lto_output_tree_ref.  */
+   OB.  If THIS_REF_P is true, the leaves of EXPR are emitted as references
+   via lto_output_tree_ref.  REF_P is used for streaming siblings of EXPR.  */
 
 void
-lto_output_tree (struct output_block *ob, tree expr, bool ref_p)
+lto_output_tree (struct output_block *ob, tree expr,
+		 bool ref_p, bool this_ref_p)
 {
   unsigned ix;
   bool existed_p;
@@ -395,7 +385,7 @@ lto_output_tree (struct output_block *ob, tree expr, bool ref_p)
       return;
     }
 
-  if (ref_p && tree_is_indexable (expr))
+  if (this_ref_p && tree_is_indexable (expr))
     {
       lto_output_tree_ref (ob, expr);
       return;
@@ -1290,7 +1280,7 @@ write_symbol (struct streamer_tree_cache_d *cache,
   enum gcc_plugin_symbol_kind kind;
   enum gcc_plugin_symbol_visibility visibility;
   unsigned slot_num;
-  uint64_t size;
+  unsigned HOST_WIDEST_INT size;
   const char *comdat;
   unsigned char c;
 
@@ -1348,7 +1338,7 @@ write_symbol (struct streamer_tree_cache_d *cache,
      when symbol has attribute (visibility("hidden")) specified.
      targetm.binds_local_p check DECL_VISIBILITY_SPECIFIED and gets this
      right. */
-     
+
   if (DECL_EXTERNAL (t)
       && !targetm.binds_local_p (t))
     visibility = GCCPV_DEFAULT;
@@ -1370,14 +1360,9 @@ write_symbol (struct streamer_tree_cache_d *cache,
       }
 
   if (kind == GCCPK_COMMON
-      && DECL_SIZE (t)
-      && TREE_CODE (DECL_SIZE (t)) == INTEGER_CST)
-    {
-      size = (HOST_BITS_PER_WIDE_INT >= 64)
-	? (uint64_t) int_size_in_bytes (TREE_TYPE (t))
-	: (((uint64_t) TREE_INT_CST_HIGH (DECL_SIZE_UNIT (t))) << 32)
-		| TREE_INT_CST_LOW (DECL_SIZE_UNIT (t));
-    }
+      && DECL_SIZE_UNIT (t)
+      && TREE_CODE (DECL_SIZE_UNIT (t)) == INTEGER_CST)
+    size = TREE_INT_CST_LOW (DECL_SIZE_UNIT (t));
   else
     size = 0;
 

@@ -1,5 +1,5 @@
 /* Interprocedural constant propagation
-   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
    Contributed by Razya Ladelsky <RAZYA@il.ibm.com> and Martin Jambor
@@ -1112,7 +1112,8 @@ ipa_get_indirect_edge_target (struct cgraph_edge *ie,
 
   if (!ie->indirect_info->polymorphic)
     {
-      tree t = VEC_index (tree, known_vals, param_index);
+      tree t = (VEC_length (tree, known_vals) > (unsigned int) param_index
+	        ? VEC_index (tree, known_vals, param_index) : NULL);
       if (t &&
 	  TREE_CODE (t) == ADDR_EXPR
 	  && TREE_CODE (TREE_OPERAND (t, 0)) == FUNCTION_DECL)
@@ -1126,7 +1127,8 @@ ipa_get_indirect_edge_target (struct cgraph_edge *ie,
   otr_type = ie->indirect_info->otr_type;
 
   t = VEC_index (tree, known_vals, param_index);
-  if (!t && known_binfos)
+  if (!t && known_binfos
+      && VEC_length (tree, known_binfos) > (unsigned int) param_index)
     t = VEC_index (tree, known_binfos, param_index);
   if (!t)
     return NULL_TREE;
@@ -1408,6 +1410,14 @@ estimate_local_effects (struct cgraph_node *node)
 	  time_benefit = base_time - time
 	    + devirtualization_time_bonus (node, known_csts, known_binfos)
 	    + removable_params_cost + emc;
+
+	  gcc_checking_assert (size >=0);
+	  /* The inliner-heuristics based estimates may think that in certain
+	     contexts some functions do not have any size at all but we want
+	     all specializations to have at least a tiny cost, not least not to
+	     divide by zero.  */
+	  if (size == 0)
+	    size = 1;
 
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    {

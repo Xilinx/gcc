@@ -21,7 +21,9 @@ package big
 import (
 	"errors"
 	"io"
+	"math"
 	"math/rand"
+	"sync"
 )
 
 // An unsigned integer x of the form
@@ -447,10 +449,10 @@ func (z nat) mulRange(a, b uint64) nat {
 	case a == b:
 		return z.setUint64(a)
 	case a+1 == b:
-		return z.mul(nat{}.setUint64(a), nat{}.setUint64(b))
+		return z.mul(nat(nil).setUint64(a), nat(nil).setUint64(b))
 	}
 	m := (a + b) / 2
-	return z.mul(nat{}.mulRange(a, m), nat{}.mulRange(m+1, b))
+	return z.mul(nat(nil).mulRange(a, m), nat(nil).mulRange(m+1, b))
 }
 
 // q = (x-r)/y, with 0 <= r < y
@@ -590,7 +592,7 @@ func (x nat) bitLen() int {
 const MaxBase = 'z' - 'a' + 10 + 1 // = hexValue('z') + 1
 
 func hexValue(ch rune) Word {
-	d := MaxBase + 1 // illegal base
+	d := int(MaxBase + 1) // illegal base
 	switch {
 	case '0' <= ch && ch <= '9':
 		d = int(ch - '0')
@@ -713,23 +715,23 @@ func (x nat) decimalString() string {
 
 // string converts x to a string using digits from a charset; a digit with
 // value d is represented by charset[d]. The conversion base is determined
-// by len(charset), which must be >= 2.
+// by len(charset), which must be >= 2 and <= 256.
 func (x nat) string(charset string) string {
 	b := Word(len(charset))
 
 	// special cases
 	switch {
-	case b < 2 || b > 256:
+	case b < 2 || MaxBase > 256:
 		panic("illegal base")
 	case len(x) == 0:
 		return string(charset[0])
 	}
 
 	// allocate buffer for conversion
-	i := x.bitLen()/log2(b) + 1 // +1: round up
+	i := int(float64(x.bitLen())/math.Log2(float64(b))) + 1 // off by one at most
 	s := make([]byte, i)
 
-	// special case: power of two bases can avoid divisions completely
+	// convert power of two and non power of two bases separately
 	if b == b&-b {
 		// shift is base-b digit size in bits
 		shift := uint(trailingZeroBits(b)) // shift > 0 because b >= 2
@@ -772,64 +774,201 @@ func (x nat) string(charset string) string {
 			nbits -= shift
 		}
 
-		return string(s[i:])
-	}
-
-	// general case: extract groups of digits by multiprecision division
-
-	// maximize ndigits where b**ndigits < 2^_W; bb (big base) is b**ndigits
-	bb := Word(1)
-	ndigits := 0
-	for max := Word(_M / b); bb <= max; bb *= b {
-		ndigits++
-	}
-
-	// preserve x, create local copy for use in repeated divisions
-	q := nat{}.set(x)
-	var r Word
-
-	// convert
-	if b == 10 { // hard-coding for 10 here speeds this up by 1.25x
-		for len(q) > 0 {
-			// extract least significant, base bb "digit"
-			q, r = q.divW(q, bb) // N.B. >82% of time is here. Optimize divW
-			if len(q) == 0 {
-				// skip leading zeros in most-significant group of digits
-				for j := 0; j < ndigits && r != 0; j++ {
-					i--
-					s[i] = charset[r%10]
-					r /= 10
-				}
-			} else {
-				for j := 0; j < ndigits; j++ {
-					i--
-					s[i] = charset[r%10]
-					r /= 10
-				}
-			}
-		}
 	} else {
-		for len(q) > 0 {
-			// extract least significant group of digits
-			q, r = q.divW(q, bb) // N.B. >82% of time is here. Optimize divW
-			if len(q) == 0 {
-				// skip leading zeros in most-significant group of digits
-				for j := 0; j < ndigits && r != 0; j++ {
-					i--
-					s[i] = charset[r%b]
-					r /= b
-				}
-			} else {
-				for j := 0; j < ndigits; j++ {
-					i--
-					s[i] = charset[r%b]
-					r /= b
-				}
-			}
+		// determine "big base"; i.e., the largest possible value bb
+		// that is a power of base b and still fits into a Word
+		// (as in 10^19 for 19 decimal digits in a 64bit Word)
+		bb := b      // big base is b**ndigits
+		ndigits := 1 // number of base b digits
+		for max := Word(_M / b); bb <= max; bb *= b {
+			ndigits++ // maximize ndigits where bb = b**ndigits, bb <= _M
+		}
+
+		// construct table of successive squares of bb*leafSize to use in subdivisions
+		// result (table != nil) <=> (len(x) > leafSize > 0)
+		table := divisors(len(x), b, ndigits, bb)
+
+		// preserve x, create local copy for use by convertWords
+		q := nat(nil).set(x)
+
+		// convert q to string s in base b
+		q.convertWords(s, charset, b, ndigits, bb, table)
+
+		// strip leading zeros
+		// (x != 0; thus s must contain at least one non-zero digit
+		// and the loop will terminate)
+		i = 0
+		for zero := charset[0]; s[i] == zero; {
+			i++
 		}
 	}
 
 	return string(s[i:])
+}
+
+// Convert words of q to base b digits in s. If q is large, it is recursively "split in half"
+// by nat/nat division using tabulated divisors. Otherwise, it is converted iteratively using
+// repeated nat/Word divison.
+//
+// The iterative method processes n Words by n divW() calls, each of which visits every Word in the 
+// incrementally shortened q for a total of n + (n-1) + (n-2) ... + 2 + 1, or n(n+1)/2 divW()'s. 
+// Recursive conversion divides q by its approximate square root, yielding two parts, each half 
+// the size of q. Using the iterative method on both halves means 2 * (n/2)(n/2 + 1)/2 divW()'s
+// plus the expensive long div(). Asymptotically, the ratio is favorable at 1/2 the divW()'s, and
+// is made better by splitting the subblocks recursively. Best is to split blocks until one more 
+// split would take longer (because of the nat/nat div()) than the twice as many divW()'s of the 
+// iterative approach. This threshold is represented by leafSize. Benchmarking of leafSize in the 
+// range 2..64 shows that values of 8 and 16 work well, with a 4x speedup at medium lengths and 
+// ~30x for 20000 digits. Use nat_test.go's BenchmarkLeafSize tests to optimize leafSize for 
+// specfic hardware.
+//
+func (q nat) convertWords(s []byte, charset string, b Word, ndigits int, bb Word, table []divisor) {
+	// split larger blocks recursively
+	if table != nil {
+		// len(q) > leafSize > 0
+		var r nat
+		index := len(table) - 1
+		for len(q) > leafSize {
+			// find divisor close to sqrt(q) if possible, but in any case < q
+			maxLength := q.bitLen()     // ~= log2 q, or at of least largest possible q of this bit length
+			minLength := maxLength >> 1 // ~= log2 sqrt(q)
+			for index > 0 && table[index-1].nbits > minLength {
+				index-- // desired
+			}
+			if table[index].nbits >= maxLength && table[index].bbb.cmp(q) >= 0 {
+				index--
+				if index < 0 {
+					panic("internal inconsistency")
+				}
+			}
+
+			// split q into the two digit number (q'*bbb + r) to form independent subblocks
+			q, r = q.div(r, q, table[index].bbb)
+
+			// convert subblocks and collect results in s[:h] and s[h:]
+			h := len(s) - table[index].ndigits
+			r.convertWords(s[h:], charset, b, ndigits, bb, table[0:index])
+			s = s[:h] // == q.convertWords(s, charset, b, ndigits, bb, table[0:index+1])
+		}
+	}
+
+	// having split any large blocks now process the remaining (small) block iteratively
+	i := len(s)
+	var r Word
+	if b == 10 {
+		// hard-coding for 10 here speeds this up by 1.25x (allows for / and % by constants)
+		for len(q) > 0 {
+			// extract least significant, base bb "digit"
+			q, r = q.divW(q, bb)
+			for j := 0; j < ndigits && i > 0; j++ {
+				i--
+				// avoid % computation since r%10 == r - int(r/10)*10;
+				// this appears to be faster for BenchmarkString10000Base10
+				// and smaller strings (but a bit slower for larger ones)
+				t := r / 10
+				s[i] = charset[r-t<<3-t-t] // TODO(gri) replace w/ t*10 once compiler produces better code
+				r = t
+			}
+		}
+	} else {
+		for len(q) > 0 {
+			// extract least significant, base bb "digit"
+			q, r = q.divW(q, bb)
+			for j := 0; j < ndigits && i > 0; j++ {
+				i--
+				s[i] = charset[r%b]
+				r /= b
+			}
+		}
+	}
+
+	// prepend high-order zeroes
+	zero := charset[0]
+	for i > 0 { // while need more leading zeroes
+		i--
+		s[i] = zero
+	}
+}
+
+// Split blocks greater than leafSize Words (or set to 0 to disable recursive conversion)
+// Benchmark and configure leafSize using: gotest -test.bench="Leaf"
+//   8 and 16 effective on 3.0 GHz Xeon "Clovertown" CPU (128 byte cache lines)
+//   8 and 16 effective on 2.66 GHz Core 2 Duo "Penryn" CPU
+var leafSize int = 8 // number of Word-size binary values treat as a monolithic block
+
+type divisor struct {
+	bbb     nat // divisor
+	nbits   int // bit length of divisor (discounting leading zeroes) ~= log2(bbb)
+	ndigits int // digit length of divisor in terms of output base digits
+}
+
+var cacheBase10 [64]divisor // cached divisors for base 10
+var cacheLock sync.Mutex    // protects cacheBase10
+
+// expWW computes x**y
+func (z nat) expWW(x, y Word) nat {
+	return z.expNN(nat(nil).setWord(x), nat(nil).setWord(y), nil)
+}
+
+// construct table of powers of bb*leafSize to use in subdivisions
+func divisors(m int, b Word, ndigits int, bb Word) []divisor {
+	// only compute table when recursive conversion is enabled and x is large
+	if leafSize == 0 || m <= leafSize {
+		return nil
+	}
+
+	// determine k where (bb**leafSize)**(2**k) >= sqrt(x)
+	k := 1
+	for words := leafSize; words < m>>1 && k < len(cacheBase10); words <<= 1 {
+		k++
+	}
+
+	// create new table of divisors or extend and reuse existing table as appropriate
+	var table []divisor
+	var cached bool
+	switch b {
+	case 10:
+		table = cacheBase10[0:k] // reuse old table for this conversion
+		cached = true
+	default:
+		table = make([]divisor, k) // new table for this conversion
+	}
+
+	// extend table
+	if table[k-1].ndigits == 0 {
+		if cached {
+			cacheLock.Lock() // begin critical section
+		}
+
+		// add new entries as needed
+		var larger nat
+		for i := 0; i < k; i++ {
+			if table[i].ndigits == 0 {
+				if i == 0 {
+					table[i].bbb = nat(nil).expWW(bb, Word(leafSize))
+					table[i].ndigits = ndigits * leafSize
+				} else {
+					table[i].bbb = nat(nil).mul(table[i-1].bbb, table[i-1].bbb)
+					table[i].ndigits = 2 * table[i-1].ndigits
+				}
+
+				// optimization: exploit aggregated extra bits in macro blocks
+				larger = nat(nil).set(table[i].bbb)
+				for mulAddVWW(larger, larger, b, 0) == 0 {
+					table[i].bbb = table[i].bbb.set(larger)
+					table[i].ndigits++
+				}
+
+				table[i].nbits = table[i].bbb.bitLen()
+			}
+		}
+
+		if cached {
+			cacheLock.Unlock() // end critical section
+		}
+	}
+
+	return table
 }
 
 const deBruijn32 = 0x077CB531
@@ -919,9 +1058,11 @@ func (z nat) setBit(x nat, i uint, b uint) nat {
 		return z.norm()
 	case 1:
 		if j >= n {
-			n = j + 1
+			z = z.make(j + 1)
+			z[n:].clear()
+		} else {
+			z = z.make(n)
 		}
-		z = z.make(n)
 		copy(z, x)
 		z[j] |= m
 		// no need to normalize
@@ -1048,12 +1189,16 @@ func (x nat) powersOfTwoDecompose() (q nat, k int) {
 // random creates a random integer in [0..limit), using the space in z if
 // possible. n is the bit length of limit.
 func (z nat) random(rand *rand.Rand, limit nat, n int) nat {
+	if alias(z, limit) {
+		z = nil // z is an alias for limit - cannot reuse
+	}
+	z = z.make(len(limit))
+
 	bitLengthOfMSW := uint(n % _W)
 	if bitLengthOfMSW == 0 {
 		bitLengthOfMSW = _W
 	}
 	mask := Word((1 << bitLengthOfMSW) - 1)
-	z = z.make(len(limit))
 
 	for {
 		for i := range z {
@@ -1140,7 +1285,7 @@ func (z nat) expNN(x, y, m nat) nat {
 		}
 	}
 
-	return z
+	return z.norm()
 }
 
 // probablyPrime performs reps Miller-Rabin tests to check whether n is prime.
@@ -1191,11 +1336,11 @@ func (n nat) probablyPrime(reps int) bool {
 		return false
 	}
 
-	nm1 := nat{}.sub(n, natOne)
+	nm1 := nat(nil).sub(n, natOne)
 	// 1<<k * q = nm1;
 	q, k := nm1.powersOfTwoDecompose()
 
-	nm3 := nat{}.sub(nm1, natTwo)
+	nm3 := nat(nil).sub(nm1, natTwo)
 	rand := rand.New(rand.NewSource(int64(n[0])))
 
 	var x, y, quotient nat

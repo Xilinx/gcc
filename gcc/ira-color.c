@@ -53,7 +53,7 @@ struct allocno_hard_regs
   HARD_REG_SET set;
   /* Overall (spilling) cost of all allocnos with given register
      set.  */
-  long long int cost;
+  HOST_WIDEST_INT cost;
 };
 
 typedef struct allocno_hard_regs_node *allocno_hard_regs_node_t;
@@ -229,7 +229,7 @@ init_allocno_hard_regs (void)
 /* Add (or update info about) allocno hard registers with SET and
    COST.  */
 static allocno_hard_regs_t
-add_allocno_hard_regs (HARD_REG_SET set, long long int cost)
+add_allocno_hard_regs (HARD_REG_SET set, HOST_WIDEST_INT cost)
 {
   struct allocno_hard_regs temp;
   allocno_hard_regs_t hv;
@@ -498,7 +498,7 @@ print_hard_regs_subforest (FILE *f, allocno_hard_regs_node_t roots,
 	fprintf (f, " ");
       fprintf (f, "%d:(", node->preorder_num);
       print_hard_reg_set (f, node->hard_regs->set, false);
-      fprintf (f, ")@%lld\n", node->hard_regs->cost);
+      fprintf (f, ")@" HOST_WIDEST_INT_PRINT_DEC "\n", node->hard_regs->cost);
       print_hard_regs_subforest (f, node->first, level + 1);
     }
 }
@@ -1670,7 +1670,6 @@ assign_hard_reg (ira_allocno_t a, bool retry_p)
       update_conflict_hard_regno_costs (full_costs, aclass, false);
     }
   min_cost = min_full_cost = INT_MAX;
-
   /* We don't care about giving callee saved registers to allocnos no
      living through calls because call clobbered registers are
      allocated first (it is usual practice to put them first in
@@ -1797,8 +1796,14 @@ bucket_allocno_compare_func (const void *v1p, const void *v2p)
   ira_allocno_t a1 = *(const ira_allocno_t *) v1p;
   ira_allocno_t a2 = *(const ira_allocno_t *) v2p;
   int diff, a1_freq, a2_freq, a1_num, a2_num;
+  int cl1 = ALLOCNO_CLASS (a1), cl2 = ALLOCNO_CLASS (a2);
 
-  if ((diff = (int) ALLOCNO_CLASS (a2) - ALLOCNO_CLASS (a1)) != 0)
+  /* Push pseudos requiring less hard registers first.  It means that
+     we will assign pseudos requiring more hard registers first
+     avoiding creation small holes in free hard register file into
+     which the pseudos requiring more hard registers can not fit.  */
+  if ((diff = (ira_reg_class_max_nregs[cl1][ALLOCNO_MODE (a1)]
+	       - ira_reg_class_max_nregs[cl2][ALLOCNO_MODE (a2)])) != 0)
     return diff;
   a1_freq = ALLOCNO_FREQ (a1);
   a2_freq = ALLOCNO_FREQ (a2);
@@ -2005,7 +2010,7 @@ ira_loop_edge_freq (ira_loop_tree_node_t loop_node, int regno, bool exit_p)
   edge e;
   VEC (edge, heap) *edges;
 
-  ira_assert (loop_node->loop != NULL
+  ira_assert (current_loops != NULL && loop_node->loop != NULL
 	      && (regno < 0 || regno >= FIRST_PSEUDO_REGISTER));
   freq = 0;
   if (! exit_p)
@@ -2656,14 +2661,19 @@ print_loop_title (ira_loop_tree_node_t loop_tree_node)
   edge e;
   edge_iterator ei;
 
-  ira_assert (loop_tree_node->loop != NULL);
-  fprintf (ira_dump_file,
-	   "\n  Loop %d (parent %d, header bb%d, depth %d)\n    bbs:",
-	   loop_tree_node->loop->num,
-	   (loop_tree_node->parent == NULL
-	    ? -1 : loop_tree_node->parent->loop->num),
-	   loop_tree_node->loop->header->index,
-	   loop_depth (loop_tree_node->loop));
+  if (loop_tree_node->parent == NULL)
+    fprintf (ira_dump_file,
+	     "\n  Loop 0 (parent -1, header bb%d, depth 0)\n    bbs:",
+	     NUM_FIXED_BLOCKS);
+  else
+    {
+      ira_assert (current_loops != NULL && loop_tree_node->loop != NULL);
+      fprintf (ira_dump_file,
+	       "\n  Loop %d (parent %d, header bb%d, depth %d)\n    bbs:",
+	       loop_tree_node->loop_num, loop_tree_node->parent->loop_num,
+	       loop_tree_node->loop->header->index,
+	       loop_depth (loop_tree_node->loop));
+    }
   for (subloop_node = loop_tree_node->children;
        subloop_node != NULL;
        subloop_node = subloop_node->next)
@@ -2675,7 +2685,7 @@ print_loop_title (ira_loop_tree_node_t loop_tree_node)
 	      && ((dest_loop_node = IRA_BB_NODE (e->dest)->parent)
 		  != loop_tree_node))
 	    fprintf (ira_dump_file, "(->%d:l%d)",
-		     e->dest->index, dest_loop_node->loop->num);
+		     e->dest->index, dest_loop_node->loop_num);
       }
   fprintf (ira_dump_file, "\n    all:");
   EXECUTE_IF_SET_IN_BITMAP (loop_tree_node->all_allocnos, 0, j, bi)
@@ -3005,7 +3015,7 @@ move_spill_restore (void)
 		  fprintf
 		    (ira_dump_file,
 		     "      Moving spill/restore for a%dr%d up from loop %d",
-		     ALLOCNO_NUM (a), regno, loop_node->loop->num);
+		     ALLOCNO_NUM (a), regno, loop_node->loop_num);
 		  fprintf (ira_dump_file, " - profit %d\n", -cost);
 		}
 	      changed_p = true;

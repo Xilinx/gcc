@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---            Copyright (C) 2006-2011, Free Software Foundation, Inc.       --
+--            Copyright (C) 2006-2012, Free Software Foundation, Inc.       --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -744,6 +744,7 @@ package body Prj.Conf is
             With_State : in out Integer)
          is
             pragma Unreferenced (With_State);
+
             Shared : constant Shared_Project_Tree_Data_Access := Tree.Shared;
 
             Variable      : Variable_Value;
@@ -757,9 +758,8 @@ package body Prj.Conf is
                Variable :=
                  Value_Of (Name_Languages, Project.Decl.Attributes, Shared);
 
-               if Variable = Nil_Variable_Value
-                 or else Variable.Default
-               then
+               if Variable = Nil_Variable_Value or else Variable.Default then
+
                   --  Languages is not declared. If it is not an extending
                   --  project, or if it extends a project with no Languages,
                   --  check for Default_Language.
@@ -792,17 +792,17 @@ package body Prj.Conf is
                         Lang := Name_Find;
                         Language_Htable.Set (Lang, Lang);
 
-                     else
-                        --  If no default language is declared, default to Ada
+                     --  If no default language is declared, default to Ada
 
+                     else
                         Language_Htable.Set (Name_Ada, Name_Ada);
                      end if;
                   end if;
 
                elsif Variable.Values /= Nil_String then
 
-                  --  Attribute Languages is declared with a non empty
-                  --  list: put all the languages in Language_HTable.
+                  --  Attribute Languages is declared with a non empty list:
+                  --  put all the languages in Language_HTable.
 
                   List := Variable.Values;
                   while List /= Nil_String loop
@@ -1155,8 +1155,18 @@ package body Prj.Conf is
                         File_Use  => "configuration file");
 
                      if Path_FD /= Invalid_FD then
-                        Args (3) := new String'(Get_Name_String (Path_Name));
-                        GNAT.OS_Lib.Close (Path_FD);
+                        declare
+                           Temp_Dir : constant String :=
+                                        Containing_Directory
+                                          (Get_Name_String (Path_Name));
+                        begin
+                           GNAT.OS_Lib.Close (Path_FD);
+                           Args (3) :=
+                             new String'(Temp_Dir &
+                                         Directory_Separator &
+                                         Auto_Cgpr);
+                           Delete_File (Get_Name_String (Path_Name));
+                        end;
 
                      else
                         --  We'll have an error message later on

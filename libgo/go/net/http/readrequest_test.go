@@ -44,15 +44,9 @@ var reqTests = []reqTest{
 		&Request{
 			Method: "GET",
 			URL: &url.URL{
-				Raw:          "http://www.techcrunch.com/",
-				Scheme:       "http",
-				RawPath:      "/",
-				RawAuthority: "www.techcrunch.com",
-				RawUserinfo:  "",
-				Host:         "www.techcrunch.com",
-				Path:         "/",
-				RawQuery:     "",
-				Fragment:     "",
+				Scheme: "http",
+				Host:   "www.techcrunch.com",
+				Path:   "/",
 			},
 			Proto:      "HTTP/1.1",
 			ProtoMajor: 1,
@@ -70,7 +64,6 @@ var reqTests = []reqTest{
 			Close:         false,
 			ContentLength: 7,
 			Host:          "www.techcrunch.com",
-			Form:          url.Values{},
 		},
 
 		"abcdef\n",
@@ -87,17 +80,15 @@ var reqTests = []reqTest{
 		&Request{
 			Method: "GET",
 			URL: &url.URL{
-				Raw:     "/",
-				Path:    "/",
-				RawPath: "/",
+				Path: "/",
 			},
 			Proto:         "HTTP/1.1",
 			ProtoMajor:    1,
 			ProtoMinor:    1,
+			Header:        Header{},
 			Close:         false,
 			ContentLength: 0,
 			Host:          "foo.com",
-			Form:          url.Values{},
 		},
 
 		noBody,
@@ -114,15 +105,7 @@ var reqTests = []reqTest{
 		&Request{
 			Method: "GET",
 			URL: &url.URL{
-				Raw:          "//user@host/is/actually/a/path/",
-				Scheme:       "",
-				RawPath:      "//user@host/is/actually/a/path/",
-				RawAuthority: "",
-				RawUserinfo:  "",
-				Host:         "",
-				Path:         "//user@host/is/actually/a/path/",
-				RawQuery:     "",
-				Fragment:     "",
+				Path: "//user@host/is/actually/a/path/",
 			},
 			Proto:         "HTTP/1.1",
 			ProtoMajor:    1,
@@ -131,7 +114,6 @@ var reqTests = []reqTest{
 			Close:         false,
 			ContentLength: 0,
 			Host:          "test",
-			Form:          url.Values{},
 		},
 
 		noBody,
@@ -172,17 +154,15 @@ var reqTests = []reqTest{
 		&Request{
 			Method: "POST",
 			URL: &url.URL{
-				Raw:     "/",
-				Path:    "/",
-				RawPath: "/",
+				Path: "/",
 			},
 			TransferEncoding: []string{"chunked"},
 			Proto:            "HTTP/1.1",
 			ProtoMajor:       1,
 			ProtoMinor:       1,
+			Header:           Header{},
 			ContentLength:    -1,
 			Host:             "foo.com",
-			Form:             url.Values{},
 		},
 
 		"foobar",
@@ -221,7 +201,7 @@ func TestReadRequest(t *testing.T) {
 			t.Errorf("#%d: Body = %q want %q", i, body, tt.Body)
 		}
 		if !reflect.DeepEqual(tt.Trailer, req.Trailer) {
-			t.Errorf("%#d. Trailers differ.\n got: %v\nwant: %v", i, req.Trailer, tt.Trailer)
+			t.Errorf("#%d. Trailers differ.\n got: %v\nwant: %v", i, req.Trailer, tt.Trailer)
 		}
 	}
 }

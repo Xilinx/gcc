@@ -18,6 +18,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -26,6 +27,31 @@ var robotsTxtHandler = HandlerFunc(func(w ResponseWriter, r *Request) {
 	fmt.Fprintf(w, "User-agent: go\nDisallow: /something/")
 })
 
+// pedanticReadAll works like ioutil.ReadAll but additionally
+// verifies that r obeys the documented io.Reader contract.
+func pedanticReadAll(r io.Reader) (b []byte, err error) {
+	var bufa [64]byte
+	buf := bufa[:]
+	for {
+		n, err := r.Read(buf)
+		if n == 0 && err == nil {
+			return nil, fmt.Errorf("Read: n=0 with err=nil")
+		}
+		b = append(b, buf[:n]...)
+		if err == io.EOF {
+			n, err := r.Read(buf)
+			if n != 0 || err != io.EOF {
+				return nil, fmt.Errorf("Read: n=%d err=%#v after EOF", n, err)
+			}
+			return b, nil
+		}
+		if err != nil {
+			return b, err
+		}
+	}
+	panic("unreachable")
+}
+
 func TestClient(t *testing.T) {
 	ts := httptest.NewServer(robotsTxtHandler)
 	defer ts.Close()
@@ -33,7 +59,7 @@ func TestClient(t *testing.T) {
 	r, err := Get(ts.URL)
 	var b []byte
 	if err == nil {
-		b, err = ioutil.ReadAll(r.Body)
+		b, err = pedanticReadAll(r.Body)
 		r.Body.Close()
 	}
 	if err != nil {
@@ -208,6 +234,92 @@ func TestRedirects(t *testing.T) {
 	finalUrl = res.Request.URL.String()
 	if e, g := "Get /?n=1: no redirects allowed", fmt.Sprintf("%v", err); e != g {
 		t.Errorf("with redirects forbidden, expected error %q, got %q", e, g)
+	}
+}
+
+var expectedCookies = []*Cookie{
+	&Cookie{Name: "ChocolateChip", Value: "tasty"},
+	&Cookie{Name: "First", Value: "Hit"},
+	&Cookie{Name: "Second", Value: "Hit"},
+}
+
+var echoCookiesRedirectHandler = HandlerFunc(func(w ResponseWriter, r *Request) {
+	for _, cookie := range r.Cookies() {
+		SetCookie(w, cookie)
+	}
+	if r.URL.Path == "/" {
+		SetCookie(w, expectedCookies[1])
+		Redirect(w, r, "/second", StatusMovedPermanently)
+	} else {
+		SetCookie(w, expectedCookies[2])
+		w.Write([]byte("hello"))
+	}
+})
+
+// Just enough correctness for our redirect tests. Uses the URL.Host as the
+// scope of all cookies.
+type TestJar struct {
+	m      sync.Mutex
+	perURL map[string][]*Cookie
+}
+
+func (j *TestJar) SetCookies(u *url.URL, cookies []*Cookie) {
+	j.m.Lock()
+	defer j.m.Unlock()
+	j.perURL[u.Host] = cookies
+}
+
+func (j *TestJar) Cookies(u *url.URL) []*Cookie {
+	j.m.Lock()
+	defer j.m.Unlock()
+	return j.perURL[u.Host]
+}
+
+func TestRedirectCookiesOnRequest(t *testing.T) {
+	var ts *httptest.Server
+	ts = httptest.NewServer(echoCookiesRedirectHandler)
+	defer ts.Close()
+	c := &Client{}
+	req, _ := NewRequest("GET", ts.URL, nil)
+	req.AddCookie(expectedCookies[0])
+	// TODO: Uncomment when an implementation of a RFC6265 cookie jar lands.
+	_ = c
+	// resp, _ := c.Do(req)
+	// matchReturnedCookies(t, expectedCookies, resp.Cookies())
+
+	req, _ = NewRequest("GET", ts.URL, nil)
+	// resp, _ = c.Do(req)
+	// matchReturnedCookies(t, expectedCookies[1:], resp.Cookies())
+}
+
+func TestRedirectCookiesJar(t *testing.T) {
+	var ts *httptest.Server
+	ts = httptest.NewServer(echoCookiesRedirectHandler)
+	defer ts.Close()
+	c := &Client{}
+	c.Jar = &TestJar{perURL: make(map[string][]*Cookie)}
+	u, _ := url.Parse(ts.URL)
+	c.Jar.SetCookies(u, []*Cookie{expectedCookies[0]})
+	resp, _ := c.Get(ts.URL)
+	matchReturnedCookies(t, expectedCookies, resp.Cookies())
+}
+
+func matchReturnedCookies(t *testing.T, expected, given []*Cookie) {
+	t.Logf("Received cookies: %v", given)
+	if len(given) != len(expected) {
+		t.Errorf("Expected %d cookies, got %d", len(expected), len(given))
+	}
+	for _, ec := range expected {
+		foundC := false
+		for _, c := range given {
+			if ec.Name == c.Name && ec.Value == c.Value {
+				foundC = true
+				break
+			}
+		}
+		if !foundC {
+			t.Errorf("Missing cookie %v", ec)
+		}
 	}
 }
 

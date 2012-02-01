@@ -60,8 +60,8 @@ A trivial example server:
 	package main
 
 	import (
-		"http"
 		"io"
+		"net/http"
 		"websocket"
 	)
 
@@ -74,7 +74,7 @@ A trivial example server:
 		http.Handle("/echo", websocket.Handler(EchoServer));
 		err := http.ListenAndServe(":12345", nil);
 		if err != nil {
-			panic("ListenAndServe: " + err.String())
+			panic("ListenAndServe: " + err.Error())
 		}
 	}
 */

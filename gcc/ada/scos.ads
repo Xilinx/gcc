@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2009-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 2009-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -157,6 +157,7 @@ package SCOs is
    --      F        FOR loop (from FOR through end of iteration scheme)
    --      I        IF statement (from IF through end of condition)
    --      P[name:] PRAGMA with the indicated name
+   --      p[name:] disabled PRAGMA with the indicated name
    --      R        extended RETURN statement
    --      W        WHILE loop statement (from WHILE through end of condition)
 
@@ -424,7 +425,7 @@ package SCOs is
    --             handler first sloc ('E')
    --      To   = No_Source_Location ('F'/'T'/'S'), handler last sloc ('E')
 
-   --    Note: A dominance marker is always followed by a statement entry.
+   --    Note: A dominance marker is always followed by a statement entry
 
    --    Decision (EXIT/entry guard/IF/WHILE)
    --      C1   = 'E'/'G'/'I'/'W' (for EXIT/entry Guard/IF/WHILE)

@@ -262,6 +262,7 @@ package Rtsfind is
       System_Img_Uns,
       System_Img_WChar,
       System_Interrupts,
+      System_Long_Long_Float_Expon,
       System_Machine_Code,
       System_Mantissa,
       System_Memcop,
@@ -570,6 +571,7 @@ package Rtsfind is
      RE_Unbounded_String,                -- Ada.Strings.Unbounded
 
      RE_Access_Level,                    -- Ada.Tags
+     RE_Alignment,                       -- Ada.Tags
      RE_Address_Array,                   -- Ada.Tags
      RE_Addr_Ptr,                        -- Ada.Tags
      RE_Base_Address,                    -- Ada.Tags
@@ -587,6 +589,7 @@ package Rtsfind is
      RE_External_Tag,                    -- Ada.Tags
      RO_TA_External_Tag,                 -- Ada.Tags
      RE_Get_Access_Level,                -- Ada.Tags
+     RE_Get_Alignment,                   -- Ada.Tags
      RE_Get_Entry_Index,                 -- Ada.Tags
      RE_Get_Offset_Index,                -- Ada.Tags
      RE_Get_Prim_Op_Kind,                -- Ada.Tags
@@ -863,6 +866,8 @@ package Rtsfind is
      RE_Register_Interrupt_Handler,      -- System.Interrupts
      RE_Static_Interrupt_Protection,     -- System.Interrupts
      RE_System_Interrupt_Id,             -- System.Interrupts
+
+     RE_Expon_LLF,                       -- System.Long_Long_Float_Expon
 
      RE_Asm_Insn,                        -- System.Machine_Code
      RE_Asm_Input_Operand,               -- System.Machine_Code
@@ -1768,6 +1773,7 @@ package Rtsfind is
      RE_Unbounded_String                 => Ada_Strings_Unbounded,
 
      RE_Access_Level                     => Ada_Tags,
+     RE_Alignment                        => Ada_Tags,
      RE_Address_Array                    => Ada_Tags,
      RE_Addr_Ptr                         => Ada_Tags,
      RE_Base_Address                     => Ada_Tags,
@@ -1785,6 +1791,7 @@ package Rtsfind is
      RE_External_Tag                     => Ada_Tags,
      RO_TA_External_Tag                  => Ada_Tags,
      RE_Get_Access_Level                 => Ada_Tags,
+     RE_Get_Alignment                    => Ada_Tags,
      RE_Get_Entry_Index                  => Ada_Tags,
      RE_Get_Offset_Index                 => Ada_Tags,
      RE_Get_Prim_Op_Kind                 => Ada_Tags,
@@ -2061,6 +2068,8 @@ package Rtsfind is
      RE_Register_Interrupt_Handler       => System_Interrupts,
      RE_Static_Interrupt_Protection      => System_Interrupts,
      RE_System_Interrupt_Id              => System_Interrupts,
+
+     RE_Expon_LLF                        => System_Long_Long_Float_Expon,
 
      RE_Asm_Insn                         => System_Machine_Code,
      RE_Asm_Input_Operand                => System_Machine_Code,

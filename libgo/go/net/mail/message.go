@@ -89,14 +89,14 @@ func init() {
 	}
 }
 
-func parseDate(date string) (*time.Time, error) {
+func parseDate(date string) (time.Time, error) {
 	for _, layout := range dateLayouts {
 		t, err := time.Parse(layout, date)
 		if err == nil {
 			return t, nil
 		}
 	}
-	return nil, errors.New("mail: header could not be parsed")
+	return time.Time{}, errors.New("mail: header could not be parsed")
 }
 
 // A Header represents the key-value pairs in a mail message header.
@@ -111,10 +111,10 @@ func (h Header) Get(key string) string {
 var ErrHeaderNotPresent = errors.New("mail: header not in message")
 
 // Date parses the Date header field.
-func (h Header) Date() (*time.Time, error) {
+func (h Header) Date() (time.Time, error) {
 	hdr := h.Get("Date")
 	if hdr == "" {
-		return nil, ErrHeaderNotPresent
+		return time.Time{}, ErrHeaderNotPresent
 	}
 	return parseDate(hdr)
 }
@@ -185,7 +185,7 @@ func (a *Address) String() string {
 type addrParser []byte
 
 func newAddrParser(s string) *addrParser {
-	p := addrParser([]byte(s))
+	p := addrParser(s)
 	return &p
 }
 
@@ -481,7 +481,7 @@ func (qd qDecoder) Read(p []byte) (n int, err error) {
 		if _, err := io.ReadFull(qd.r, qd.scratch[:2]); err != nil {
 			return 0, err
 		}
-		x, err := strconv.Btoi64(string(qd.scratch[:2]), 16)
+		x, err := strconv.ParseInt(string(qd.scratch[:2]), 16, 64)
 		if err != nil {
 			return 0, fmt.Errorf("mail: invalid RFC 2047 encoding: %q", qd.scratch[:2])
 		}

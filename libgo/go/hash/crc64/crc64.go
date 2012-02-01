@@ -53,6 +53,8 @@ func New(tab *Table) hash.Hash64 { return &digest{0, tab} }
 
 func (d *digest) Size() int { return Size }
 
+func (d *digest) BlockSize() int { return 1 }
+
 func (d *digest) Reset() { d.crc = 0 }
 
 func update(crc uint64, tab *Table, p []byte) uint64 {
@@ -75,18 +77,17 @@ func (d *digest) Write(p []byte) (n int, err error) {
 
 func (d *digest) Sum64() uint64 { return d.crc }
 
-func (d *digest) Sum() []byte {
-	p := make([]byte, 8)
+func (d *digest) Sum(in []byte) []byte {
 	s := d.Sum64()
-	p[0] = byte(s >> 56)
-	p[1] = byte(s >> 48)
-	p[2] = byte(s >> 40)
-	p[3] = byte(s >> 32)
-	p[4] = byte(s >> 24)
-	p[5] = byte(s >> 16)
-	p[6] = byte(s >> 8)
-	p[7] = byte(s)
-	return p
+	in = append(in, byte(s>>56))
+	in = append(in, byte(s>>48))
+	in = append(in, byte(s>>40))
+	in = append(in, byte(s>>32))
+	in = append(in, byte(s>>24))
+	in = append(in, byte(s>>16))
+	in = append(in, byte(s>>8))
+	in = append(in, byte(s))
+	return in
 }
 
 // Checksum returns the CRC-64 checksum of data

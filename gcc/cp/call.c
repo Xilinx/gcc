@@ -1,7 +1,7 @@
 /* Functions related to invoking methods and overloaded functions.
    Copyright (C) 1987, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
    1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010, 2011
+   2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com) and
    modified by Brendan Kehoe (brendan@cygnus.com).
@@ -111,12 +111,15 @@ struct conversion {
     /* The next conversion in the chain.  Since the conversions are
        arranged from outermost to innermost, the NEXT conversion will
        actually be performed before this conversion.  This variant is
-       used only when KIND is neither ck_identity nor ck_ambig.  */
+       used only when KIND is neither ck_identity, ck_ambig nor
+       ck_list.  Please use the next_conversion function instead
+       of using this field directly.  */
     conversion *next;
     /* The expression at the beginning of the conversion chain.  This
        variant is used only if KIND is ck_identity or ck_ambig.  */
     tree expr;
-    /* The array of conversions for an initializer_list.  */
+    /* The array of conversions for an initializer_list, so this
+       variant is used only when KIN D is ck_list.  */
     conversion **list;
   } u;
   /* The function candidate corresponding to this conversion
@@ -193,6 +196,7 @@ static conversion *standard_conversion (tree, tree, tree, bool, int);
 static conversion *reference_binding (tree, tree, tree, bool, int);
 static conversion *build_conv (conversion_kind, tree, conversion *);
 static conversion *build_list_conv (tree, tree, int);
+static conversion *next_conversion (conversion *);
 static bool is_subseq (conversion *, conversion *);
 static conversion *maybe_handle_ref_bind (conversion **);
 static void maybe_handle_implicit_object (conversion **);
@@ -522,7 +526,7 @@ struct z_candidate {
   tree access_path;
   /* If FN is a non-static member function, the binfo indicating the
      subobject to which the `this' pointer should be converted if FN
-     is selected by overload resolution.  The type pointed to the by
+     is selected by overload resolution.  The type pointed to by
      the `this' pointer must correspond to the most derived class
      indicated by the CONVERSION_PATH.  */
   tree conversion_path;
@@ -831,6 +835,21 @@ build_list_conv (tree type, tree ctor, int flags)
     }
 
   return t;
+}
+
+/* Return the next conversion of the conversion chain (if applicable),
+   or NULL otherwise.  Please use this function instead of directly
+   accessing fields of struct conversion.  */
+
+static conversion *
+next_conversion (conversion *conv)
+{
+  if (conv == NULL
+      || conv->kind == ck_identity
+      || conv->kind == ck_ambig
+      || conv->kind == ck_list)
+    return NULL;
+  return conv->u.next;
 }
 
 /* Subroutine of build_aggr_conv: check whether CTOR, a braced-init-list,
@@ -1255,10 +1274,8 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
       tree tbase = class_of_this_parm (tofn);
 
       if (!DERIVED_FROM_P (fbase, tbase)
-	  || !same_type_p (TREE_TYPE (fromfn), TREE_TYPE (tofn))
-	  || !compparms (TREE_CHAIN (TYPE_ARG_TYPES (fromfn)),
-			 TREE_CHAIN (TYPE_ARG_TYPES (tofn)))
-	  || cp_type_quals (fbase) != cp_type_quals (tbase))
+	  || !same_type_p (static_fn_type (fromfn),
+			   static_fn_type (tofn)))
 	return NULL;
 
       from = build_memfn_type (fromfn, tbase, cp_type_quals (tbase));
@@ -1937,16 +1954,18 @@ add_function_candidate (struct z_candidate **candidates,
 	     to handle move constructors and template constructors as well;
 	     the standardese should soon be updated similarly.  */
 	  if (ctype && i == 0 && (len-skip == 1)
-	      && !(flags & LOOKUP_ONLYCONVERTING)
 	      && DECL_CONSTRUCTOR_P (fn)
 	      && parmtype != error_mark_node
 	      && (same_type_ignoring_top_level_qualifiers_p
 		  (non_reference (parmtype), ctype)))
 	    {
-	      lflags |= LOOKUP_COPY_PARM;
+	      if (!(flags & LOOKUP_ONLYCONVERTING))
+		lflags |= LOOKUP_COPY_PARM;
 	      /* We allow user-defined conversions within init-lists, but
-		 not for the copy constructor.  */
-	      if (flags & LOOKUP_NO_COPY_CTOR_CONVERSION)
+		 don't list-initialize the copy parm, as that would mean
+		 using two levels of braces for the same type.  */
+	      if ((flags & LOOKUP_LIST_INIT_CTOR)
+		  && BRACE_ENCLOSED_INITIALIZER_P (arg))
 		lflags |= LOOKUP_NO_CONVERSION;
 	    }
 	  else
@@ -3323,9 +3342,8 @@ add_list_candidates (tree fns, tree first_arg,
 
   gcc_assert (*candidates == NULL);
 
-  /* For list-initialization we consider explicit constructors, but
-     give an error if one is selected.  */
-  flags &= ~LOOKUP_ONLYCONVERTING;
+  /* We're looking for a ctor for list-initialization.  */
+  flags |= LOOKUP_LIST_INIT_CTOR;
   /* And we don't allow narrowing conversions.  We also use this flag to
      avoid the copy constructor call for copy-list-initialization.  */
   flags |= LOOKUP_NO_NARROWING;
@@ -3353,8 +3371,6 @@ add_list_candidates (tree fns, tree first_arg,
   flags &= ~LOOKUP_LIST_ONLY;
   /* We allow more user-defined conversions within an init-list.  */
   flags &= ~LOOKUP_NO_CONVERSION;
-  /* But not for the copy ctor.  */
-  flags |= LOOKUP_NO_COPY_CTOR_CONVERSION;
 
   add_candidates (fns, first_arg, args, NULL_TREE,
 		  explicit_targs, template_only, conversion_path,
@@ -4780,7 +4796,11 @@ add_candidates (tree fns, tree first_arg, const VEC(tree,gc) *args,
       if (DECL_CONSTRUCTOR_P (fn))
 	{
 	  check_list_ctor = !!(flags & LOOKUP_LIST_ONLY);
-	  check_converting = !!(flags & LOOKUP_ONLYCONVERTING);
+	  /* For list-initialization we consider explicit constructors
+	     and complain if one is chosen.  */
+	  check_converting
+	    = ((flags & (LOOKUP_ONLYCONVERTING|LOOKUP_LIST_INIT_CTOR))
+	       == LOOKUP_ONLYCONVERTING);
 	}
       else
 	{
@@ -4860,32 +4880,10 @@ add_candidates (tree fns, tree first_arg, const VEC(tree,gc) *args,
     }
 }
 
-/* Even unsigned enum types promote to signed int.  We don't want to
-   issue -Wsign-compare warnings for this case.  Here ORIG_ARG is the
-   original argument and ARG is the argument after any conversions
-   have been applied.  We set TREE_NO_WARNING if we have added a cast
-   from an unsigned enum type to a signed integer type.  */
-
-static void
-avoid_sign_compare_warnings (tree orig_arg, tree arg)
-{
-  if (orig_arg != NULL_TREE
-      && arg != NULL_TREE
-      && orig_arg != arg
-      && TREE_CODE (TREE_TYPE (orig_arg)) == ENUMERAL_TYPE
-      && TYPE_UNSIGNED (TREE_TYPE (orig_arg))
-      && INTEGRAL_TYPE_P (TREE_TYPE (arg))
-      && !TYPE_UNSIGNED (TREE_TYPE (arg)))
-    TREE_NO_WARNING (arg) = 1;
-}
-
 static tree
 build_new_op_1 (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 		tree *overload, tsubst_flags_t complain)
 {
-  tree orig_arg1 = arg1;
-  tree orig_arg2 = arg2;
-  tree orig_arg3 = arg3;
   struct z_candidate *candidates = 0, *cand;
   VEC(tree,gc) *arglist;
   tree fnname;
@@ -5180,10 +5178,6 @@ build_new_op_1 (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
     return result;
 
  builtin:
-  avoid_sign_compare_warnings (orig_arg1, arg1);
-  avoid_sign_compare_warnings (orig_arg2, arg2);
-  avoid_sign_compare_warnings (orig_arg3, arg3);
-
   switch (code)
     {
     case MODIFY_EXPR:
@@ -5603,7 +5597,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	  && BRACE_ENCLOSED_INITIALIZER_P (CONSTRUCTOR_ELT (expr, 0)->value))
 	permerror (input_location, "too many braces around initializer for %qT", totype);
 
-      for (; t; t = t->u.next)
+      for (; t ; t = next_conversion (t))
 	{
 	  if (t->kind == ck_user && t->cand->reason)
 	    {
@@ -6587,9 +6581,14 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 
   /* Default arguments */
   for (; parm && parm != void_list_node; parm = TREE_CHAIN (parm), i++)
-    argarray[j++] = convert_default_arg (TREE_VALUE (parm),
-					 TREE_PURPOSE (parm),
-					 fn, i - is_method);
+    {
+      if (TREE_VALUE (parm) == error_mark_node)
+	return error_mark_node;
+      argarray[j++] = convert_default_arg (TREE_VALUE (parm),
+					   TREE_PURPOSE (parm),
+					   fn, i - is_method);
+    }
+
   /* Ellipsis */
   for (; arg_index < VEC_length (tree, args); ++arg_index)
     {
@@ -8437,10 +8436,7 @@ perform_implicit_conversion_flags (tree type, tree expr, tsubst_flags_t complain
 	}
       expr = error_mark_node;
     }
-  else if (processing_template_decl
-	   /* As a kludge, we always perform conversions between scalar
-	      types, as IMPLICIT_CONV_EXPR confuses c_finish_omp_for.  */
-	   && !(SCALAR_TYPE_P (type) && SCALAR_TYPE_P (TREE_TYPE (expr))))
+  else if (processing_template_decl && conv->kind != ck_identity)
     {
       /* In a template, we are only concerned about determining the
 	 type of non-dependent expressions, so we do not have to
