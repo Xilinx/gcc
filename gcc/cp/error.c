@@ -463,12 +463,21 @@ dump_type (tree t, int flags)
       break;
 
     case TEMPLATE_TYPE_PARM:
-      pp_cxx_cv_qualifier_seq (cxx_pp, t);
-      if (TYPE_IDENTIFIER (t))
-	pp_cxx_tree_identifier (cxx_pp, TYPE_IDENTIFIER (t));
-      else
-	pp_cxx_canonical_template_parameter
-	  (cxx_pp, TEMPLATE_TYPE_PARM_INDEX (t));
+      {
+	tree decl = TYPE_NAME (t);
+	pp_cxx_cv_qualifier_seq (cxx_pp, t);
+	if (decl)
+	  {
+	    tree ident = DECL_NAME (decl);
+	    if (ident)
+	      pp_cxx_tree_identifier (cxx_pp, ident);
+	    else
+	      pp_cxx_canonical_template_parameter
+		    (cxx_pp, TEMPLATE_TYPE_PARM_INDEX (t));
+	  }
+	else
+	  pp_cxx_ws_string (cxx_pp, "<nameless>");
+      }
       break;
 
       /* This is not always necessary for pointers and such, but doing this
@@ -593,6 +602,27 @@ class_key_or_enum_as_string (tree t)
     return "struct";
 }
 
+
+/* Determine if a tree T is a template.  */
+
+static bool is_template (tree t)
+{
+  tree ti_tmpl, parms;
+  if (TREE_CODE (t) == ENUMERAL_TYPE)
+    return false;
+  if (!TYPE_LANG_SPECIFIC (t))
+    return false;
+  if (!CLASSTYPE_TEMPLATE_INFO (t))
+    return false;
+  ti_tmpl = CLASSTYPE_TI_TEMPLATE (t);
+  if (TREE_CODE (ti_tmpl) != TEMPLATE_DECL)
+    return true;
+  parms = DECL_TEMPLATE_PARMS (ti_tmpl);
+  if (parms)
+    return PRIMARY_TEMPLATE_P (ti_tmpl);
+  return false;
+}
+
 /* Print out a class declaration T under the control of FLAGS,
    in the form `class foo'.  */
 
@@ -629,10 +659,7 @@ dump_aggr_type (tree t, int flags)
 	  typdef = 0;
 	}
 
-      tmplate = !typdef && TREE_CODE (t) != ENUMERAL_TYPE
-		&& TYPE_LANG_SPECIFIC (t) && CLASSTYPE_TEMPLATE_INFO (t)
-		&& (TREE_CODE (CLASSTYPE_TI_TEMPLATE (t)) != TEMPLATE_DECL
-		    || PRIMARY_TEMPLATE_P (CLASSTYPE_TI_TEMPLATE (t)));
+      tmplate = !typdef && is_template (t);
       
       if (! (flags & TFF_UNQUALIFIED_NAME))
 	dump_scope (CP_DECL_CONTEXT (name), flags | TFF_SCOPE);

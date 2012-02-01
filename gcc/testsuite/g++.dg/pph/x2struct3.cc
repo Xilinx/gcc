@@ -1,8 +1,8 @@
-#include "x1struct2.h"
+#include "x1struct3.h"
 
 type D::method()
 { static int x = 2;
-  return fld + mbr; }
+  return fld + mbr + gbl; }
 
 type D::mbr = 4;
 typedef D D2;

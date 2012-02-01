@@ -942,6 +942,9 @@ streamer_read_tree_body (struct lto_input_block *ib, struct data_in *data_in,
 
   code = TREE_CODE (expr);
 
+  if (CODE_CONTAINS_STRUCT (code, TS_DECL_MINIMAL))
+    lto_input_ts_decl_minimal_tree_pointers (ib, data_in, expr);
+
   if (CODE_CONTAINS_STRUCT (code, TS_TYPED))
     lto_input_ts_common_tree_pointers (ib, data_in, expr);
 
@@ -950,9 +953,6 @@ streamer_read_tree_body (struct lto_input_block *ib, struct data_in *data_in,
 
   if (CODE_CONTAINS_STRUCT (code, TS_COMPLEX))
     lto_input_ts_complex_tree_pointers (ib, data_in, expr);
-
-  if (CODE_CONTAINS_STRUCT (code, TS_DECL_MINIMAL))
-    lto_input_ts_decl_minimal_tree_pointers (ib, data_in, expr);
 
   if (CODE_CONTAINS_STRUCT (code, TS_DECL_COMMON))
     lto_input_ts_decl_common_tree_pointers (ib, data_in, expr);

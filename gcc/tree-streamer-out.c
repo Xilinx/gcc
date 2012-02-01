@@ -808,6 +808,9 @@ streamer_write_tree_body (struct output_block *ob, tree expr, bool ref_p)
 
   code = TREE_CODE (expr);
 
+  if (CODE_CONTAINS_STRUCT (code, TS_DECL_MINIMAL))
+    write_ts_decl_minimal_tree_pointers (ob, expr, ref_p);
+
   if (CODE_CONTAINS_STRUCT (code, TS_TYPED))
     write_ts_common_tree_pointers (ob, expr, ref_p);
 
@@ -816,9 +819,6 @@ streamer_write_tree_body (struct output_block *ob, tree expr, bool ref_p)
 
   if (CODE_CONTAINS_STRUCT (code, TS_COMPLEX))
     write_ts_complex_tree_pointers (ob, expr, ref_p);
-
-  if (CODE_CONTAINS_STRUCT (code, TS_DECL_MINIMAL))
-    write_ts_decl_minimal_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_DECL_COMMON))
     write_ts_decl_common_tree_pointers (ob, expr, ref_p);

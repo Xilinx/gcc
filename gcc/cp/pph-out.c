@@ -2290,7 +2290,7 @@ pph_out_merge_key_namespace_decl (pph_stream *stream, tree decl)
   pph_out_merge_name (stream, decl);
 
   if (flag_pph_tracer)
-    pph_trace_tree (decl, pph_trace_front, pph_trace_key_out);
+    pph_trace_tree (decl, NULL, pph_trace_front, pph_trace_key_out);
 
   pph_out_tree (stream, DECL_NAME (decl));
 
@@ -2302,7 +2302,7 @@ pph_out_merge_key_namespace_decl (pph_stream *stream, tree decl)
     pph_out_merge_key_binding_level (stream, NAMESPACE_LEVEL (decl));
 
   if (flag_pph_tracer)
-    pph_trace_tree (decl, pph_trace_back, pph_trace_key_out);
+    pph_trace_tree (decl, NULL, pph_trace_back, pph_trace_key_out);
 }
 
 
@@ -2319,7 +2319,7 @@ pph_out_merge_body_namespace_decl (pph_stream *stream, tree decl)
   pph_out_tree_header (stream, decl);
 
   if (flag_pph_tracer)
-    pph_trace_tree (decl, pph_trace_front, pph_trace_merge_body);
+    pph_trace_tree (decl, NULL, pph_trace_front, pph_trace_merge_body);
 
   /* If EXPR is a namespace alias, it will not have an associated
      binding.  In that case, tell the reader not to bother with it.  */
@@ -2329,7 +2329,7 @@ pph_out_merge_body_namespace_decl (pph_stream *stream, tree decl)
     pph_out_merge_body_binding_level (stream, NAMESPACE_LEVEL (decl));
 
   if (flag_pph_tracer)
-    pph_trace_tree (decl, pph_trace_back, pph_trace_merge_body);
+    pph_trace_tree (decl, NULL, pph_trace_back, pph_trace_merge_body);
 }
 
 
@@ -2338,40 +2338,30 @@ pph_out_merge_body_namespace_decl (pph_stream *stream, tree decl)
 static void
 pph_out_merge_key_tree (pph_stream *stream, tree expr)
 {
-  gcc_assert (pph_tree_is_mergeable (expr));
-
   if (pph_out_start_merge_key_tree_record (stream, expr))
     return;
 
   if (flag_pph_tracer)
-    pph_trace_tree (expr, pph_trace_front, pph_trace_key_out);
+    pph_trace_tree (expr, NULL, pph_trace_front, pph_trace_key_out);
 
   /* Write merge key information.  This includes EXPR's header (needed
-     to re-allocate EXPR in the reader) and the merge key, used to
-     lookup EXPR in the reader's context and merge if necessary.  */
+     to re-allocate EXPR in the reader). */
   pph_out_tree_header (stream, expr);
-  pph_out_merge_name (stream, expr);
+
   if (DECL_P (expr))
     {
-#if 0
-/* FIXME pph: Distable tree merging for the moment.  */
-      else if (TREE_CODE (expr) == TYPE_DECL)
-        pph_out_merge_key_tree (stream, TREE_TYPE (expr));
+      /* Write the merge name, used to lookup EXPR in the reader's context
+	 and merge if necessary.  */
+      pph_out_merge_name (stream, expr);
     }
-  else if (CLASS_TYPE_P (expr))
+  else
     {
-      unsigned filter = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
-      pph_out_merge_key_chain (stream, TYPE_FIELDS (expr), filter);
-      pph_out_merge_key_chain (stream, TYPE_METHODS (expr), filter);
-      /* FIXME pph: Nested types are broken.
-      pph_out_binding_table (stream, CLASSTYPE_NESTED_UTDS (expr));
-      pph_out_merge_key_chain (stream, CLASSTYPE_DECL_LIST (expr), filter);
-      */
-#endif
+      gcc_assert (TYPE_P (expr));
+      gcc_assert (false);
     }
 
   if (flag_pph_tracer)
-    pph_trace_tree (expr, pph_trace_back, pph_trace_key_out);
+    pph_trace_tree (expr, NULL, pph_trace_back, pph_trace_key_out);
 }
 
 
@@ -2411,7 +2401,7 @@ pph_out_tree (pph_stream *stream, tree expr)
     }
 
   if (flag_pph_tracer)
-    pph_trace_tree (expr, pph_trace_front,
+    pph_trace_tree (expr, NULL, pph_trace_front,
 	marker == PPH_RECORD_START_MERGE_BODY ? pph_trace_merge_body
 	: marker == PPH_RECORD_START_MUTATED ? pph_trace_mutate
 	: pph_trace_normal);
@@ -2443,7 +2433,7 @@ pph_out_tree (pph_stream *stream, tree expr)
     gcc_unreachable ();
 
   if (flag_pph_tracer)
-    pph_trace_tree (expr, pph_trace_back,
+    pph_trace_tree (expr, NULL, pph_trace_back,
 	marker == PPH_RECORD_START_MERGE_BODY ? pph_trace_merge_body
 	: marker == PPH_RECORD_START_MUTATED ? pph_trace_mutate
 	: pph_trace_normal);

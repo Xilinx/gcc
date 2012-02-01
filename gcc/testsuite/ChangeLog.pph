@@ -1,3 +1,18 @@
+2012-02-01   Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/c0struct.h: Rename to c0struct2.h.
+	* g++.dg/pph/c0struct1.h: New.  Has no typedefs.
+	* g++.dg/pph/c1struct.cc: Rename to c1struct2.cc.
+	* g++.dg/pph/c1struct1.cc: New.  Has no typedefs.
+	* g++.dg/pph/x0struct0.h: Rename to x0struct2.h.
+	* g++.dg/pph/x0struct1.h: New.  Has no typedefs.
+	* g++.dg/pph/x1struct2.h: Rename to x1struct3.h.
+	* g++.dg/pph/x1struct1.h: Rename to x1struct2.h.
+	* g++.dg/pph/x1struct1.h: New.  Has no typedefs.
+	* g++.dg/pph/x2struct2.cc: Rename to x2struct3.cc.
+	* g++.dg/pph/x2struct1.cc: Rename to x2struct2.cc.
+	* g++.dg/pph/x2struct1.cc: New.  Has no typedefs.
+
 2012-01-31   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x1namespace-alias2.cc: Mark fixed.

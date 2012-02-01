@@ -2281,10 +2281,8 @@ pph_in_merge_key_namespace_decl (pph_stream *stream, tree *chain)
   gcc_assert (decl == NULL || TREE_CODE (decl) == NAMESPACE_DECL);
 
   read_decl = pph_in_tree_header (stream, &fully_read_p);
-  gcc_assert (!fully_read_p && pph_tree_is_mergeable (read_decl));
+  gcc_assert (!fully_read_p && TREE_CODE (read_decl) == NAMESPACE_DECL);
   name = pph_in_string (stream);
-
-  gcc_assert (TREE_CODE (read_decl) == NAMESPACE_DECL);
 
   if (!decl)
     {
@@ -2303,7 +2301,7 @@ pph_in_merge_key_namespace_decl (pph_stream *stream, tree *chain)
     }
 
   if (flag_pph_tracer)
-    pph_trace_tree (decl, pph_trace_front, pph_trace_unmerged_key);
+    pph_trace_tree (decl, name, pph_trace_front, pph_trace_unmerged_key);
 
   name_id = pph_in_tree (stream);
   if (decl == read_decl)
@@ -2334,7 +2332,7 @@ pph_in_merge_key_namespace_decl (pph_stream *stream, tree *chain)
     }
 
   if (flag_pph_tracer)
-    pph_trace_tree (decl, pph_trace_back, pph_trace_unmerged_key);
+    pph_trace_tree (decl, name, pph_trace_back, pph_trace_unmerged_key);
 }
 
 
@@ -2382,7 +2380,7 @@ pph_in_merge_body_namespace_decl (pph_stream *stream)
     }
 
   if (flag_pph_tracer)
-    pph_trace_tree (decl, pph_trace_front, pph_trace_merge_body);
+    pph_trace_tree (decl, "?", pph_trace_front, pph_trace_merge_body);
 
   gcc_assert (DECL_NAME (decl));
 
@@ -2399,7 +2397,7 @@ pph_in_merge_body_namespace_decl (pph_stream *stream)
     }
 
   if (flag_pph_tracer)
-    pph_trace_tree (decl, pph_trace_back, pph_trace_merge_body);
+    pph_trace_tree (decl, NULL, pph_trace_back, pph_trace_merge_body);
 }
 
 
@@ -2427,46 +2425,36 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
   /* Materialize a new node from STREAM.  This will also read all the
      language-independent bitfields for the new tree.  */
   read_expr = pph_in_tree_header (stream, &fully_read_p);
-  gcc_assert (!fully_read_p && pph_tree_is_mergeable (read_expr));
-  name = pph_in_string (stream);
+  gcc_assert (!fully_read_p);
 
-  /* If we are merging into an existing CHAIN.  Look for a match in
-     CHAIN to READ_EXPR's header.  If we found a match, EXPR will be
-     the existing tree that matches READ_EXPR. Otherwise, EXPR is the
-     newly allocated READ_EXPR.  */
-  expr = (chain) ? pph_merge_into_chain (read_expr, name, chain) : read_expr;
-  gcc_assert (expr != NULL);
-
-  pph_cache_insert_at (&stream->cache, expr, ix, pph_tree_code_to_tag (expr));
-
-  if (flag_pph_tracer)
-    pph_trace_tree (expr, pph_trace_front,
-		    expr == read_expr ? pph_trace_unmerged_key
-				      : pph_trace_merged_key);
-
-  if (DECL_P (expr))
+  if (DECL_P (read_expr))
     {
-#if 0
-/* FIXME pph: Disable type merging for the moment.  */
-      else if (TREE_CODE (expr) == TYPE_DECL)
-        /* Types are not on a chain.  */
-        TREE_TYPE (expr) = pph_in_merge_key_tree (stream, NULL);
-    }
-  else if (CLASS_TYPE_P (expr))
-    {
-      pph_in_merge_key_chain (stream, &TYPE_FIELDS (expr));
-      pph_in_merge_key_chain (stream, &TYPE_METHODS (expr));
-      /*FIXME pph: Nested types are broken.
-      pph_in_binding_table (stream, &CLASSTYPE_NESTED_UTDS (expr));
-      pph_in_merge_key_chain (stream, &CLASSTYPE_DECL_LIST (expr));
-      */
-#endif
-    }
+      gcc_assert (chain);
+      name = pph_in_string (stream);
+      /* If we are merging into an existing CHAIN.  Look for a match in
+         CHAIN to READ_EXPR's header.  If we found a match, EXPR will be
+         the existing tree that matches READ_EXPR. Otherwise, EXPR is the
+         newly allocated READ_EXPR.  */
+      expr = pph_merge_into_chain (read_expr, name, chain);
+      gcc_assert (expr != NULL);
+      pph_cache_insert_at (&stream->cache, expr, ix,
+			   pph_tree_code_to_tag (expr));
 
-  if (flag_pph_tracer)
-    pph_trace_tree (expr, pph_trace_back,
-		    expr == read_expr ? pph_trace_unmerged_key
-				      : pph_trace_merged_key);
+      if (flag_pph_tracer)
+        pph_trace_tree (expr, name, pph_trace_front,
+		        expr == read_expr ? pph_trace_unmerged_key
+				          : pph_trace_merged_key);
+
+      if (flag_pph_tracer)
+        pph_trace_tree (expr, name, pph_trace_back,
+		        expr == read_expr ? pph_trace_unmerged_key
+				          : pph_trace_merged_key);
+    }
+  else
+    {
+      gcc_assert (TYPE_P (read_expr));
+      gcc_assert (false);
+    }
 
   return expr;
 }
@@ -2527,7 +2515,7 @@ pph_in_tree (pph_stream *stream)
     pph_cache_insert_at (&stream->cache, expr, ix, pph_tree_code_to_tag (expr));
 
   if (flag_pph_tracer)
-    pph_trace_tree (expr, pph_trace_front,
+    pph_trace_tree (expr, "?", pph_trace_front,
 	marker == PPH_RECORD_START_MERGE_BODY ? pph_trace_merge_body
 	: marker == PPH_RECORD_START_MUTATED ? pph_trace_mutate
 	: pph_trace_normal );
@@ -2538,7 +2526,7 @@ pph_in_tree (pph_stream *stream)
     pph_in_tree_body (stream, expr);
 
   if (flag_pph_tracer)
-    pph_trace_tree (expr, pph_trace_back,
+    pph_trace_tree (expr, NULL, pph_trace_back,
 	marker == PPH_RECORD_START_MERGE_BODY ? pph_trace_merge_body
 	: marker == PPH_RECORD_START_MUTATED ? pph_trace_mutate
 	: pph_trace_normal);

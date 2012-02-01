@@ -260,7 +260,8 @@ pph_stream *pph_stream_open (const char *, const char *);
 void pph_stream_close (pph_stream *);
 void pph_stream_close_no_flush (pph_stream *);
 void pph_trace_marker (enum pph_record_marker marker, enum pph_tag tag);
-void pph_trace_tree (tree, enum pph_trace_end, enum pph_trace_kind);
+void pph_trace_tree (tree, const char *,
+		     enum pph_trace_end, enum pph_trace_kind);
 pph_cache_entry *pph_cache_insert_at (pph_cache *, void *, unsigned,
 				      enum pph_tag);
 pph_cache_entry *pph_cache_lookup (pph_cache *, void *, unsigned *,

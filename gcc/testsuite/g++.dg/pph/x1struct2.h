@@ -1,10 +1,10 @@
-#ifndef X1STRUCT_H
-#define X1STRUCT_H
-#include "c0struct.h"
-struct D : thing {
+#ifndef X1STRUCT2_H
+#define X1STRUCT2_H
+#include "x0struct2.h"
+struct D : public thing {
     type method();
     type another()
-    { return fld + mbr + gbl; }
+    { return fld + mbr; }
     type fld;
     static type mbr;
 };

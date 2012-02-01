@@ -1,5 +1,5 @@
-#ifndef X0STRUCT0_H
-#define X0STRUCT0_H
+#ifndef X0STRUCT2_H
+#define X0STRUCT2_H
 typedef int type;
 struct B {
 };

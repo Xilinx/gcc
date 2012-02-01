@@ -364,7 +364,8 @@ pph_trace_marker (enum pph_record_marker marker, enum pph_tag tag)
 /* Print tracing information for a possibly MERGEABLE tree T.  */
 
 void
-pph_trace_tree (tree t, enum pph_trace_end end, enum pph_trace_kind kind)
+pph_trace_tree (tree t, const char *name,
+		enum pph_trace_end end, enum pph_trace_kind kind)
 {
   char end_char, kind_char, decl_char;
   bool is_merge, is_decl;
@@ -390,7 +391,7 @@ pph_trace_tree (tree t, enum pph_trace_end end, enum pph_trace_kind kind)
 	break;
       case pph_trace_mutate:
 	kind_char = '=';
-	is_merge = false;
+	is_merge = true;
 	break;
       case pph_trace_normal:
 	kind_char = '.';
@@ -421,9 +422,9 @@ pph_trace_tree (tree t, enum pph_trace_end end, enum pph_trace_kind kind)
   if (emit)
     {
       fprintf (pph_logfile, "PPH: %c%c%c ", end_char, kind_char, decl_char);
-      if (kind == pph_trace_unmerged_key || end == pph_trace_front)
-	fprintf (pph_logfile, "%s -------\n",
-			      pph_tree_code_text (TREE_CODE (t)));
+      if (name)
+	fprintf (pph_logfile, "%p %s %s\n", (void*)t,
+			      pph_tree_code_text (TREE_CODE (t)), name);
       else
         pph_dump_tree_name (pph_logfile, t, 0);
     }
