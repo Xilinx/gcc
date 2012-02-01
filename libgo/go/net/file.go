@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build darwin freebsd linux openbsd
+// +build darwin freebsd linux netbsd openbsd
 
 package net
 
@@ -13,12 +13,12 @@ import (
 
 func newFileFD(f *os.File) (nfd *netFD, err error) {
 	fd, errno := syscall.Dup(f.Fd())
-	if errno != 0 {
+	if errno != nil {
 		return nil, os.NewSyscallError("dup", errno)
 	}
 
 	proto, errno := syscall.GetsockoptInt(fd, syscall.SOL_SOCKET, syscall.SO_TYPE)
-	if errno != 0 {
+	if errno != nil {
 		return nil, os.NewSyscallError("getsockopt", errno)
 	}
 

@@ -5,22 +5,23 @@
 package packet
 
 import (
-	"big"
 	"crypto/dsa"
 	"crypto/openpgp/elgamal"
-	error_ "crypto/openpgp/error"
+	"crypto/openpgp/errors"
 	"crypto/rsa"
 	"crypto/sha1"
 	"encoding/binary"
 	"fmt"
 	"hash"
 	"io"
+	"math/big"
 	"strconv"
+	"time"
 )
 
 // PublicKey represents an OpenPGP public key. See RFC 4880, section 5.5.2.
 type PublicKey struct {
-	CreationTime uint32 // seconds since the epoch
+	CreationTime time.Time
 	PubKeyAlgo   PublicKeyAlgorithm
 	PublicKey    interface{} // Either a *rsa.PublicKey or *dsa.PublicKey
 	Fingerprint  [20]byte
@@ -38,14 +39,29 @@ func fromBig(n *big.Int) parsedMPI {
 }
 
 // NewRSAPublicKey returns a PublicKey that wraps the given rsa.PublicKey.
-func NewRSAPublicKey(creationTimeSecs uint32, pub *rsa.PublicKey, isSubkey bool) *PublicKey {
+func NewRSAPublicKey(creationTime time.Time, pub *rsa.PublicKey) *PublicKey {
 	pk := &PublicKey{
-		CreationTime: creationTimeSecs,
+		CreationTime: creationTime,
 		PubKeyAlgo:   PubKeyAlgoRSA,
 		PublicKey:    pub,
-		IsSubkey:     isSubkey,
 		n:            fromBig(pub.N),
 		e:            fromBig(big.NewInt(int64(pub.E))),
+	}
+
+	pk.setFingerPrintAndKeyId()
+	return pk
+}
+
+// NewDSAPublicKey returns a PublicKey that wraps the given rsa.PublicKey.
+func NewDSAPublicKey(creationTime time.Time, pub *dsa.PublicKey) *PublicKey {
+	pk := &PublicKey{
+		CreationTime: creationTime,
+		PubKeyAlgo:   PubKeyAlgoDSA,
+		PublicKey:    pub,
+		p:            fromBig(pub.P),
+		q:            fromBig(pub.Q),
+		g:            fromBig(pub.G),
+		y:            fromBig(pub.Y),
 	}
 
 	pk.setFingerPrintAndKeyId()
@@ -60,9 +76,9 @@ func (pk *PublicKey) parse(r io.Reader) (err error) {
 		return
 	}
 	if buf[0] != 4 {
-		return error_.UnsupportedError("public key version")
+		return errors.UnsupportedError("public key version")
 	}
-	pk.CreationTime = uint32(buf[1])<<24 | uint32(buf[2])<<16 | uint32(buf[3])<<8 | uint32(buf[4])
+	pk.CreationTime = time.Unix(int64(uint32(buf[1])<<24|uint32(buf[2])<<16|uint32(buf[3])<<8|uint32(buf[4])), 0)
 	pk.PubKeyAlgo = PublicKeyAlgorithm(buf[5])
 	switch pk.PubKeyAlgo {
 	case PubKeyAlgoRSA, PubKeyAlgoRSAEncryptOnly, PubKeyAlgoRSASignOnly:
@@ -72,7 +88,7 @@ func (pk *PublicKey) parse(r io.Reader) (err error) {
 	case PubKeyAlgoElGamal:
 		err = pk.parseElGamal(r)
 	default:
-		err = error_.UnsupportedError("public key type: " + strconv.Itoa(int(pk.PubKeyAlgo)))
+		err = errors.UnsupportedError("public key type: " + strconv.Itoa(int(pk.PubKeyAlgo)))
 	}
 	if err != nil {
 		return
@@ -87,7 +103,7 @@ func (pk *PublicKey) setFingerPrintAndKeyId() {
 	fingerPrint := sha1.New()
 	pk.SerializeSignaturePrefix(fingerPrint)
 	pk.serializeWithoutHeaders(fingerPrint)
-	copy(pk.Fingerprint[:], fingerPrint.Sum())
+	copy(pk.Fingerprint[:], fingerPrint.Sum(nil))
 	pk.KeyId = binary.BigEndian.Uint64(pk.Fingerprint[12:20])
 }
 
@@ -104,7 +120,7 @@ func (pk *PublicKey) parseRSA(r io.Reader) (err error) {
 	}
 
 	if len(pk.e.bytes) > 3 {
-		err = error_.UnsupportedError("large public exponent")
+		err = errors.UnsupportedError("large public exponent")
 		return
 	}
 	rsa := &rsa.PublicKey{
@@ -234,10 +250,11 @@ func (pk *PublicKey) Serialize(w io.Writer) (err error) {
 func (pk *PublicKey) serializeWithoutHeaders(w io.Writer) (err error) {
 	var buf [6]byte
 	buf[0] = 4
-	buf[1] = byte(pk.CreationTime >> 24)
-	buf[2] = byte(pk.CreationTime >> 16)
-	buf[3] = byte(pk.CreationTime >> 8)
-	buf[4] = byte(pk.CreationTime)
+	t := uint32(pk.CreationTime.Unix())
+	buf[1] = byte(t >> 24)
+	buf[2] = byte(t >> 16)
+	buf[3] = byte(t >> 8)
+	buf[4] = byte(t)
 	buf[5] = byte(pk.PubKeyAlgo)
 
 	_, err = w.Write(buf[:])
@@ -253,7 +270,7 @@ func (pk *PublicKey) serializeWithoutHeaders(w io.Writer) (err error) {
 	case PubKeyAlgoElGamal:
 		return writeMPIs(w, pk.p, pk.g, pk.y)
 	}
-	return error_.InvalidArgumentError("bad public-key algorithm")
+	return errors.InvalidArgumentError("bad public-key algorithm")
 }
 
 // CanSign returns true iff this public key can generate signatures
@@ -265,18 +282,18 @@ func (pk *PublicKey) CanSign() bool {
 // public key, of the data hashed into signed. signed is mutated by this call.
 func (pk *PublicKey) VerifySignature(signed hash.Hash, sig *Signature) (err error) {
 	if !pk.CanSign() {
-		return error_.InvalidArgumentError("public key cannot generate signatures")
+		return errors.InvalidArgumentError("public key cannot generate signatures")
 	}
 
 	signed.Write(sig.HashSuffix)
-	hashBytes := signed.Sum()
+	hashBytes := signed.Sum(nil)
 
 	if hashBytes[0] != sig.HashTag[0] || hashBytes[1] != sig.HashTag[1] {
-		return error_.SignatureError("hash tag doesn't match")
+		return errors.SignatureError("hash tag doesn't match")
 	}
 
 	if pk.PubKeyAlgo != sig.PubKeyAlgo {
-		return error_.InvalidArgumentError("public key and signature use different algorithms")
+		return errors.InvalidArgumentError("public key and signature use different algorithms")
 	}
 
 	switch pk.PubKeyAlgo {
@@ -284,13 +301,18 @@ func (pk *PublicKey) VerifySignature(signed hash.Hash, sig *Signature) (err erro
 		rsaPublicKey, _ := pk.PublicKey.(*rsa.PublicKey)
 		err = rsa.VerifyPKCS1v15(rsaPublicKey, sig.Hash, hashBytes, sig.RSASignature.bytes)
 		if err != nil {
-			return error_.SignatureError("RSA verification failure")
+			return errors.SignatureError("RSA verification failure")
 		}
 		return nil
 	case PubKeyAlgoDSA:
 		dsaPublicKey, _ := pk.PublicKey.(*dsa.PublicKey)
+		// Need to truncate hashBytes to match FIPS 186-3 section 4.6.
+		subgroupSize := (dsaPublicKey.Q.BitLen() + 7) / 8
+		if len(hashBytes) > subgroupSize {
+			hashBytes = hashBytes[:subgroupSize]
+		}
 		if !dsa.Verify(dsaPublicKey, hashBytes, new(big.Int).SetBytes(sig.DSASigR.bytes), new(big.Int).SetBytes(sig.DSASigS.bytes)) {
-			return error_.SignatureError("DSA verification failure")
+			return errors.SignatureError("DSA verification failure")
 		}
 		return nil
 	default:
@@ -304,7 +326,7 @@ func (pk *PublicKey) VerifySignature(signed hash.Hash, sig *Signature) (err erro
 func keySignatureHash(pk, signed *PublicKey, sig *Signature) (h hash.Hash, err error) {
 	h = sig.Hash.New()
 	if h == nil {
-		return nil, error_.UnsupportedError("hash function")
+		return nil, errors.UnsupportedError("hash function")
 	}
 
 	// RFC 4880, section 5.2.4
@@ -330,7 +352,7 @@ func (pk *PublicKey) VerifyKeySignature(signed *PublicKey, sig *Signature) (err 
 func userIdSignatureHash(id string, pk *PublicKey, sig *Signature) (h hash.Hash, err error) {
 	h = sig.Hash.New()
 	if h == nil {
-		return nil, error_.UnsupportedError("hash function")
+		return nil, errors.UnsupportedError("hash function")
 	}
 
 	// RFC 4880, section 5.2.4

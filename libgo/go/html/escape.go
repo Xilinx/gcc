@@ -7,7 +7,7 @@ package html
 import (
 	"bytes"
 	"strings"
-	"utf8"
+	"unicode/utf8"
 )
 
 // These replacements permit compatibility with old numeric entities that 
@@ -78,7 +78,7 @@ func unescapeEntity(b []byte, dst, src int, attribute bool) (dst1, src1 int) {
 			i++
 		}
 
-		x := rune(0)
+		x := '\x00'
 		for i < len(s) {
 			c = s[i]
 			i++

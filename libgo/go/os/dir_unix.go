@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build darwin freebsd linux openbsd
+// +build darwin freebsd linux netbsd openbsd
 
 package os
 
@@ -15,19 +15,7 @@ const (
 	blockSize = 4096
 )
 
-// Readdirnames reads and returns a slice of names from the directory f.
-//
-// If n > 0, Readdirnames returns at most n names. In this case, if
-// Readdirnames returns an empty slice, it will return a non-nil error
-// explaining why. At the end of a directory, the error is os.EOF.
-//
-// If n <= 0, Readdirnames returns all the names from the directory in
-// a single slice. In this case, if Readdirnames succeeds (reads all
-// the way to the end of the directory), it returns the slice and a
-// nil error. If it encounters an error before the end of the
-// directory, Readdirnames returns the names read until that point and
-// a non-nil error.
-func (f *File) Readdirnames(n int) (names []string, err error) {
+func (f *File) readdirnames(n int) (names []string, err error) {
 	// If this file has no dirinfo, create one.
 	if f.dirinfo == nil {
 		f.dirinfo = new(dirInfo)
@@ -47,9 +35,9 @@ func (f *File) Readdirnames(n int) (names []string, err error) {
 		// Refill the buffer if necessary
 		if d.bufp >= d.nbuf {
 			d.bufp = 0
-			var errno int
+			var errno error
 			d.nbuf, errno = syscall.ReadDirent(f.fd, d.buf)
-			if errno != 0 {
+			if errno != nil {
 				return names, NewSyscallError("readdirent", errno)
 			}
 			if d.nbuf <= 0 {

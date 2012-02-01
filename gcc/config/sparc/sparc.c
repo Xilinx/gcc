@@ -779,6 +779,10 @@ char sparc_hard_reg_printed[8];
 #undef TARGET_PRINT_OPERAND_ADDRESS
 #define TARGET_PRINT_OPERAND_ADDRESS sparc_print_operand_address
 
+/* The value stored by LDSTUB.  */
+#undef TARGET_ATOMIC_TEST_AND_SET_TRUEVAL
+#define TARGET_ATOMIC_TEST_AND_SET_TRUEVAL 0xff
+
 struct gcc_target targetm = TARGET_INITIALIZER;
 
 static void
@@ -1162,8 +1166,12 @@ sparc_option_override (void)
 
   if (sparc_memory_model == SMM_DEFAULT)
     {
+      /* Choose the memory model for the operating system.  */
+      enum sparc_memory_model_type os_default = SUBTARGET_DEFAULT_MEMORY_MODEL;
+      if (os_default != SMM_DEFAULT)
+	sparc_memory_model = os_default;
       /* Choose the most relaxed model for the processor.  */
-      if (TARGET_V9)
+      else if (TARGET_V9)
 	sparc_memory_model = SMM_RMO;
       else if (TARGET_V8)
 	sparc_memory_model = SMM_PSO;
@@ -4968,8 +4976,9 @@ sparc_expand_prologue (void)
       else if (size <= 8192)
 	{
 	  insn = emit_insn (gen_stack_pointer_inc (GEN_INT (-4096)));
-	  /* %sp is still the CFA register.  */
 	  RTX_FRAME_RELATED_P (insn) = 1;
+
+	  /* %sp is still the CFA register.  */
 	  insn = emit_insn (gen_stack_pointer_inc (GEN_INT (4096 - size)));
 	}
       else
@@ -4992,8 +5001,18 @@ sparc_expand_prologue (void)
       else if (size <= 8192)
 	{
 	  emit_window_save (GEN_INT (-4096));
+
 	  /* %sp is not the CFA register anymore.  */
 	  emit_insn (gen_stack_pointer_inc (GEN_INT (4096 - size)));
+
+	  /* Make sure no %fp-based store is issued until after the frame is
+	     established.  The offset between the frame pointer and the stack
+	     pointer is calculated relative to the value of the stack pointer
+	     at the end of the function prologue, and moving instructions that
+	     access the stack via the frame pointer between the instructions
+	     that decrement the stack pointer could result in accessing the
+	     register window save area, which is volatile.  */
+	  emit_insn (gen_frame_blockage ());
 	}
       else
 	{
@@ -11466,49 +11485,47 @@ vector_init_bshuffle (rtx target, rtx elt, enum machine_mode mode,
   emit_insn (final_insn);
 }
 
+/* Subroutine of sparc_expand_vector_init.  Emit code to initialize
+   all fields of TARGET to ELT in V8QI by means of VIS FPMERGE insn.  */
+
 static void
-vector_init_fpmerge (rtx target, rtx elt, enum machine_mode inner_mode)
+vector_init_fpmerge (rtx target, rtx elt)
 {
-  rtx t1, t2, t3, t3_low;
+  rtx t1, t2, t2_low, t3, t3_low;
 
   t1 = gen_reg_rtx (V4QImode);
-  elt = convert_modes (SImode, inner_mode, elt, true);
+  elt = convert_modes (SImode, QImode, elt, true);
   emit_move_insn (gen_lowpart (SImode, t1), elt);
 
-  t2 = gen_reg_rtx (V4QImode);
-  emit_move_insn (t2, t1);
+  t2 = gen_reg_rtx (V8QImode);
+  t2_low = gen_lowpart (V4QImode, t2);
+  emit_insn (gen_fpmerge_vis (t2, t1, t1));
 
   t3 = gen_reg_rtx (V8QImode);
   t3_low = gen_lowpart (V4QImode, t3);
+  emit_insn (gen_fpmerge_vis (t3, t2_low, t2_low));
 
-  emit_insn (gen_fpmerge_vis (t3, t1, t2));
-  emit_move_insn (t1, t3_low);
-  emit_move_insn (t2, t3_low);
-
-  emit_insn (gen_fpmerge_vis (t3, t1, t2));
-  emit_move_insn (t1, t3_low);
-  emit_move_insn (t2, t3_low);
-
-  emit_insn (gen_fpmerge_vis (gen_lowpart (V8QImode, target), t1, t2));
+  emit_insn (gen_fpmerge_vis (target, t3_low, t3_low));
 }
 
+/* Subroutine of sparc_expand_vector_init.  Emit code to initialize
+   all fields of TARGET to ELT in V4HI by means of VIS FALIGNDATA insn.  */
+
 static void
-vector_init_faligndata (rtx target, rtx elt, enum machine_mode inner_mode)
+vector_init_faligndata (rtx target, rtx elt)
 {
   rtx t1 = gen_reg_rtx (V4HImode);
+  int i;
 
-  elt = convert_modes (SImode, inner_mode, elt, true);
-
+  elt = convert_modes (SImode, HImode, elt, true);
   emit_move_insn (gen_lowpart (SImode, t1), elt);
 
   emit_insn (gen_alignaddrsi_vis (gen_reg_rtx (SImode),
 				  force_reg (SImode, GEN_INT (6)),
-				  CONST0_RTX (SImode)));
+				  const0_rtx));
 
-  emit_insn (gen_faligndatav4hi_vis (target, t1, target));
-  emit_insn (gen_faligndatav4hi_vis (target, t1, target));
-  emit_insn (gen_faligndatav4hi_vis (target, t1, target));
-  emit_insn (gen_faligndatav4hi_vis (target, t1, target));
+  for (i = 0; i < 4; i++)
+    emit_insn (gen_faligndatav4hi_vis (target, t1, target));
 }
 
 /* Emit code to initialize TARGET to values for individual fields VALS.  */
@@ -11516,9 +11533,9 @@ vector_init_faligndata (rtx target, rtx elt, enum machine_mode inner_mode)
 void
 sparc_expand_vector_init (rtx target, rtx vals)
 {
-  enum machine_mode mode = GET_MODE (target);
-  enum machine_mode inner_mode = GET_MODE_INNER (mode);
-  int n_elts = GET_MODE_NUNITS (mode);
+  const enum machine_mode mode = GET_MODE (target);
+  const enum machine_mode inner_mode = GET_MODE_INNER (mode);
+  const int n_elts = GET_MODE_NUNITS (mode);
   int i, n_var = 0;
   bool all_same;
   rtx mem;
@@ -11574,12 +11591,12 @@ sparc_expand_vector_init (rtx target, rtx vals)
 	}
       if (mode == V8QImode)
 	{
-	  vector_init_fpmerge (target, XVECEXP (vals, 0, 0), inner_mode);
+	  vector_init_fpmerge (target, XVECEXP (vals, 0, 0));
 	  return;
 	}
       if (mode == V4HImode)
 	{
-	  vector_init_faligndata (target, XVECEXP (vals, 0, 0), inner_mode);
+	  vector_init_faligndata (target, XVECEXP (vals, 0, 0));
 	  return;
 	}
     }

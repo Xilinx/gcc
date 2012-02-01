@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -250,7 +250,6 @@ package body Exp_Ch3 is
    --  Dispatching is required in general, since the result of the attribute
    --  will vary with the actual object subtype.
    --
-   --     _alignment     provides result of 'Alignment attribute
    --     _size          provides result of 'Size attribute
    --     typSR          provides result of 'Read attribute
    --     typSW          provides result of 'Write attribute
@@ -550,10 +549,7 @@ package body Exp_Ch3 is
                 Name       => Comp,
                 Expression =>
                   Convert_To (Comp_Type,
-                    Expression
-                      (Get_Rep_Item_For_Entity
-                        (First_Subtype (A_Type),
-                         Name_Default_Component_Value)))));
+                    Default_Aspect_Component_Value (First_Subtype (A_Type)))));
 
          elsif Needs_Simple_Initialization (Comp_Type) then
             Set_Assignment_OK (Comp);
@@ -6854,14 +6850,17 @@ package body Exp_Ch3 is
 
          return Result;
 
-      --  Scalars with Default_Value aspect
+      --  Scalars with Default_Value aspect. The first subtype may now be
+      --   private, so retrieve value from underlying type.
 
       elsif Is_Scalar_Type (T) and then Has_Default_Aspect (T) then
-         return
-           Convert_To (T,
-             Expression
-               (Get_Rep_Item_For_Entity
-                 (First_Subtype (T), Name_Default_Value)));
+         if Is_Private_Type (First_Subtype (T)) then
+            return Unchecked_Convert_To (T,
+              Default_Aspect_Value (Full_View (First_Subtype (T))));
+         else
+            return
+              Convert_To (T, Default_Aspect_Value (First_Subtype (T)));
+         end if;
 
       --  Otherwise, for scalars, we must have normalize/initialize scalars
       --  case, or if the node N is an 'Invalid_Value attribute node.
@@ -8156,18 +8155,6 @@ package body Exp_Ch3 is
 
         Ret_Type => Standard_Long_Long_Integer));
 
-      --  Spec of _Alignment
-
-      Append_To (Res, Predef_Spec_Or_Body (Loc,
-        Tag_Typ => Tag_Typ,
-        Name    => Name_uAlignment,
-        Profile => New_List (
-          Make_Parameter_Specification (Loc,
-            Defining_Identifier => Make_Defining_Identifier (Loc, Name_X),
-            Parameter_Type      => New_Reference_To (Tag_Typ, Loc))),
-
-        Ret_Type => Standard_Integer));
-
       --  Specs for dispatching stream attributes
 
       declare
@@ -8739,29 +8726,6 @@ package body Exp_Ch3 is
             Next_Elmt (Prim);
          end loop;
       end if;
-
-      --  Body of _Alignment
-
-      Decl := Predef_Spec_Or_Body (Loc,
-        Tag_Typ => Tag_Typ,
-        Name    => Name_uAlignment,
-        Profile => New_List (
-          Make_Parameter_Specification (Loc,
-            Defining_Identifier => Make_Defining_Identifier (Loc, Name_X),
-            Parameter_Type      => New_Reference_To (Tag_Typ, Loc))),
-
-        Ret_Type => Standard_Integer,
-        For_Body => True);
-
-      Set_Handled_Statement_Sequence (Decl,
-        Make_Handled_Sequence_Of_Statements (Loc, New_List (
-          Make_Simple_Return_Statement (Loc,
-            Expression =>
-              Make_Attribute_Reference (Loc,
-                Prefix          => Make_Identifier (Loc, Name_X),
-                Attribute_Name  => Name_Alignment)))));
-
-      Append_To (Res, Decl);
 
       --  Body of _Size
 

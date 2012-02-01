@@ -1768,14 +1768,8 @@ Constant integer 1
 @item G
 A floating point constant 0.0
 
-@item R
-Integer constant in the range @minus{}6 @dots{} 5.
-
 @item Q
 A memory address based on Y or Z pointer with displacement.
-
-@item C04
-Constant integer 4
 @end table
 
 @item Epiphany---@file{config/epiphany/constraints.md}
@@ -4145,34 +4139,6 @@ operand 1 is new value of field and operand 2 specify the field index.
 Extract given field from the vector value.  Operand 1 is the vector, operand 2
 specify field index and operand 0 place to store value into.
 
-@cindex @code{vec_extract_even@var{m}} instruction pattern
-@item @samp{vec_extract_even@var{m}}
-Extract even elements from the input vectors (operand 1 and operand 2).
-The even elements of operand 2 are concatenated to the even elements of operand
-1 in their original order. The result is stored in operand 0.
-The output and input vectors should have the same modes.
-
-@cindex @code{vec_extract_odd@var{m}} instruction pattern
-@item @samp{vec_extract_odd@var{m}}
-Extract odd elements from the input vectors (operand 1 and operand 2).
-The odd elements of operand 2 are concatenated to the odd elements of operand
-1 in their original order. The result is stored in operand 0.
-The output and input vectors should have the same modes.
-
-@cindex @code{vec_interleave_high@var{m}} instruction pattern
-@item @samp{vec_interleave_high@var{m}}
-Merge high elements of the two input vectors into the output vector. The output
-and input vectors should have the same modes (@code{N} elements). The high
-@code{N/2} elements of the first input vector are interleaved with the high
-@code{N/2} elements of the second input vector.
-
-@cindex @code{vec_interleave_low@var{m}} instruction pattern
-@item @samp{vec_interleave_low@var{m}}
-Merge low elements of the two input vectors into the output vector. The output
-and input vectors should have the same modes (@code{N} elements). The low
-@code{N/2} elements of the first input vector are interleaved with the low
-@code{N/2} elements of the second input vector.
-
 @cindex @code{vec_init@var{m}} instruction pattern
 @item @samp{vec_init@var{m}}
 Initialize the vector to given values.  Operand 0 is the vector to initialize
@@ -5926,6 +5892,19 @@ If these patterns are not defined, attempts will be made to use legacy
 the operation followed by the arithmetic operation required to produce the
 result.  If none of these are available a compare-and-swap loop will be
 used.
+
+@cindex @code{atomic_test_and_set} instruction pattern
+@item @samp{atomic_test_and_set}
+
+This pattern emits code for @code{__builtin_atomic_test_and_set}.
+Operand 0 is an output operand which is set to true if the previous
+previous contents of the byte was "set", and false otherwise.  Operand 1
+is the @code{QImode} memory to be modified.  Operand 2 is the memory
+model to be used.
+
+The specific value that defines "set" is implementation defined, and
+is normally based on what is performed by the native atomic test and set
+instruction.
 
 @cindex @code{mem_thread_fence@var{mode}} instruction pattern
 @item @samp{mem_thread_fence@var{mode}}

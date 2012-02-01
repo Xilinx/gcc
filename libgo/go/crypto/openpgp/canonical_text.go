@@ -41,8 +41,8 @@ func (cth *canonicalTextHash) Write(buf []byte) (int, error) {
 	return len(buf), nil
 }
 
-func (cth *canonicalTextHash) Sum() []byte {
-	return cth.h.Sum()
+func (cth *canonicalTextHash) Sum(in []byte) []byte {
+	return cth.h.Sum(in)
 }
 
 func (cth *canonicalTextHash) Reset() {
@@ -52,4 +52,8 @@ func (cth *canonicalTextHash) Reset() {
 
 func (cth *canonicalTextHash) Size() int {
 	return cth.h.Size()
+}
+
+func (cth *canonicalTextHash) BlockSize() int {
+	return cth.h.BlockSize()
 }

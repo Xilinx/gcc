@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -1126,7 +1126,6 @@ begin
            Pragma_Debug_Policy                   |
            Pragma_Detect_Blocking                |
            Pragma_Default_Storage_Pool           |
-           Pragma_Dimension                      |
            Pragma_Disable_Atomic_Synchronization |
            Pragma_Discard_Names                  |
            Pragma_Dispatching_Domain             |
@@ -1220,6 +1219,7 @@ begin
            Pragma_Pure_Function                  |
            Pragma_Queuing_Policy                 |
            Pragma_Relative_Deadline              |
+           Pragma_Remote_Access_Type             |
            Pragma_Remote_Call_Interface          |
            Pragma_Remote_Types                   |
            Pragma_Restricted_Run_Time            |

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build darwin freebsd linux openbsd
+// +build darwin freebsd linux netbsd openbsd
 
 package os
 
@@ -38,7 +38,7 @@ func (p *Process) Wait(options int) (w *Waitmsg, err error) {
 		options ^= WRUSAGE
 	}
 	pid1, e := syscall.Wait4(p.Pid, &status, options, rusage)
-	if e != 0 {
+	if e != nil {
 		return nil, NewSyscallError("wait", e)
 	}
 	// With WNOHANG pid is 0 if child has not exited.
@@ -57,8 +57,8 @@ func (p *Process) Signal(sig Signal) error {
 	if p.done {
 		return errors.New("os: process already finished")
 	}
-	if e := syscall.Kill(p.Pid, int(sig.(UnixSignal))); e != 0 {
-		return Errno(e)
+	if e := syscall.Kill(p.Pid, int(sig.(UnixSignal))); e != nil {
+		return e
 	}
 	return nil
 }
@@ -72,10 +72,7 @@ func (p *Process) Release() error {
 	return nil
 }
 
-// FindProcess looks for a running process by its pid.
-// The Process it returns can be used to obtain information
-// about the underlying operating system process.
-func FindProcess(pid int) (p *Process, err error) {
+func findProcess(pid int) (p *Process, err error) {
 	// NOOP for unix.
 	return newProcess(pid, 0), nil
 }

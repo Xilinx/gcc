@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -44,7 +44,7 @@ package body Ada.Containers.Indefinite_Vectors is
      Vector_Iterator_Interfaces.Reversible_Iterator with
    record
       Container : Vector_Access;
-      Index     : Index_Type;
+      Index     : Index_Type'Base;
    end record;
 
    overriding procedure Finalize (Object : in out Iterator);
@@ -673,34 +673,51 @@ package body Ada.Containers.Indefinite_Vectors is
    ------------------------
 
    function Constant_Reference
-     (Container : Vector;
+     (Container : aliased Vector;
       Position  : Cursor) return Constant_Reference_Type
    is
-   begin
-      pragma Unreferenced (Container);
+      E : Element_Access;
 
+   begin
       if Position.Container = null then
          raise Constraint_Error with "Position cursor has no element";
+      end if;
+
+      if Position.Container /= Container'Unrestricted_Access then
+         raise Program_Error with "Position cursor denotes wrong container";
       end if;
 
       if Position.Index > Position.Container.Last then
          raise Constraint_Error with "Position cursor is out of range";
       end if;
 
-      return
-       (Element => Position.Container.Elements.EA (Position.Index).all'Access);
+      E := Container.Elements.EA (Position.Index);
+
+      if E = null then
+         raise Constraint_Error with "element at Position is empty";
+      end if;
+
+      return (Element => E.all'Access);
    end Constant_Reference;
 
    function Constant_Reference
-     (Container : Vector;
-      Position  : Index_Type) return Constant_Reference_Type
+     (Container : aliased Vector;
+      Index     : Index_Type) return Constant_Reference_Type
    is
+      E : Element_Access;
+
    begin
-      if (Position) > Container.Last then
+      if Index > Container.Last then
          raise Constraint_Error with "Index is out of range";
       end if;
 
-      return (Element => Container.Elements.EA (Position).all'Access);
+      E := Container.Elements.EA (Index);
+
+      if E = null then
+         raise Constraint_Error with "element at Index is empty";
+      end if;
+
+      return (Element => E.all'Access);
    end Constant_Reference;
 
    --------------
@@ -1109,14 +1126,9 @@ package body Ada.Containers.Indefinite_Vectors is
    end Finalize;
 
    procedure Finalize (Object : in out Iterator) is
+      B : Natural renames Object.Container.Busy;
    begin
-      if Object.Container /= null then
-         declare
-            B : Natural renames Object.Container.all.Busy;
-         begin
-            B := B - 1;
-         end;
-      end if;
+      B := B - 1;
    end Finalize;
 
    ----------
@@ -1185,9 +1197,26 @@ package body Ada.Containers.Indefinite_Vectors is
    end First;
 
    function First (Object : Iterator) return Cursor is
-      C : constant Cursor := (Object.Container, Index_Type'First);
    begin
-      return C;
+      --  The value of the iterator object's Index component influences the
+      --  behavior of the First (and Last) selector function.
+
+      --  When the Index component is No_Index, this means the iterator
+      --  object was constructed without a start expression, in which case the
+      --  (forward) iteration starts from the (logical) beginning of the entire
+      --  sequence of items (corresponding to Container.First, for a forward
+      --  iterator).
+
+      --  Otherwise, this is iteration over a partial sequence of items.
+      --  When the Index component isn't No_Index, the iterator object was
+      --  constructed with a start expression, that specifies the position
+      --  from which the (forward) partial iteration begins.
+
+      if Object.Index = No_Index then
+         return First (Object.Container.all);
+      else
+         return Cursor'(Object.Container, Object.Index);
+      end if;
    end First;
 
    -------------------
@@ -1367,7 +1396,6 @@ package body Ada.Containers.Indefinite_Vectors is
       ----------
 
       procedure Sort (Container : in out Vector) is
-
          procedure Sort is new Generic_Array_Sort
            (Index_Type   => Index_Type,
             Element_Type => Element_Access,
@@ -1381,9 +1409,20 @@ package body Ada.Containers.Indefinite_Vectors is
             return;
          end if;
 
-         if Container.Lock > 0 then
+         --  The exception behavior for the vector container must match that
+         --  for the list container, so we check for cursor tampering here
+         --  (which will catch more things) instead of for element tampering
+         --  (which will catch fewer things). It's true that the elements of
+         --  this vector container could be safely moved around while (say) an
+         --  iteration is taking place (iteration only increments the busy
+         --  counter), and so technically all we would need here is a test for
+         --  element tampering (indicated by the lock counter), that's simply
+         --  an artifact of our array-based implementation. Logically Sort
+         --  requires a check for cursor tampering.
+
+         if Container.Busy > 0 then
             raise Program_Error with
-              "attempt to tamper with elements (vector is locked)";
+              "attempt to tamper with cursors (vector is busy)";
          end if;
 
          Sort (Container.Elements.EA (Index_Type'First .. Container.Last));
@@ -2552,15 +2591,26 @@ package body Ada.Containers.Indefinite_Vectors is
    end Iterate;
 
    function Iterate (Container : Vector)
-      return Vector_Iterator_Interfaces.Reversible_Iterator'class
+      return Vector_Iterator_Interfaces.Reversible_Iterator'Class
    is
-      B  : Natural renames Container'Unrestricted_Access.all.Busy;
+      V : constant Vector_Access := Container'Unrestricted_Access;
+      B : Natural renames V.Busy;
 
    begin
+      --  The value of its Index component influences the behavior of the First
+      --  and Last selector functions of the iterator object. When the Index
+      --  component is No_Index (as is the case here), this means the iterator
+      --  object was constructed without a start expression. This is a complete
+      --  iterator, meaning that the iteration starts from the (logical)
+      --  beginning of the sequence of items.
+
+      --  Note: For a forward iterator, Container.First is the beginning, and
+      --  for a reverse iterator, Container.Last is the beginning.
+
       return It : constant Iterator :=
                     (Limited_Controlled with
-                       Container => Container'Unrestricted_Access,
-                       Index     => Index_Type'First)
+                       Container => V,
+                       Index     => No_Index)
       do
          B := B + 1;
       end return;
@@ -2569,14 +2619,50 @@ package body Ada.Containers.Indefinite_Vectors is
    function Iterate
      (Container : Vector;
       Start     : Cursor)
-      return Vector_Iterator_Interfaces.Reversible_Iterator'class
+      return Vector_Iterator_Interfaces.Reversible_Iterator'Class
    is
-      B  : Natural renames Container'Unrestricted_Access.all.Busy;
+      V : constant Vector_Access := Container'Unrestricted_Access;
+      B : Natural renames V.Busy;
 
    begin
+      --  It was formerly the case that when Start = No_Element, the partial
+      --  iterator was defined to behave the same as for a complete iterator,
+      --  and iterate over the entire sequence of items. However, those
+      --  semantics were unintuitive and arguably error-prone (it is too easy
+      --  to accidentally create an endless loop), and so they were changed,
+      --  per the ARG meeting in Denver on 2011/11. However, there was no
+      --  consensus about what positive meaning this corner case should have,
+      --  and so it was decided to simply raise an exception. This does imply,
+      --  however, that it is not possible to use a partial iterator to specify
+      --  an empty sequence of items.
+
+      if Start.Container = null then
+         raise Constraint_Error with
+           "Start position for iterator equals No_Element";
+      end if;
+
+      if Start.Container /= V then
+         raise Program_Error with
+           "Start cursor of Iterate designates wrong vector";
+      end if;
+
+      if Start.Index > V.Last then
+         raise Constraint_Error with
+           "Start position for iterator equals No_Element";
+      end if;
+
+      --  The value of its Index component influences the behavior of the First
+      --  and Last selector functions of the iterator object. When the Index
+      --  component is not No_Index (as is the case here), it means that this
+      --  is a partial iteration, over a subset of the complete sequence of
+      --  items. The iterator object was constructed with a start expression,
+      --  indicating the position from which the iteration begins. Note that
+      --  the start position has the same value irrespective of whether this
+      --  is a forward or reverse iteration.
+
       return It : constant Iterator :=
                     (Limited_Controlled with
-                       Container => Container'Unrestricted_Access,
+                       Container => V,
                        Index     => Start.Index)
       do
          B := B + 1;
@@ -2597,9 +2683,25 @@ package body Ada.Containers.Indefinite_Vectors is
    end Last;
 
    function Last (Object : Iterator) return Cursor is
-      C : constant Cursor := (Object.Container, Object.Container.Last);
    begin
-      return C;
+      --  The value of the iterator object's Index component influences the
+      --  behavior of the Last (and First) selector function.
+
+      --  When the Index component is No_Index, this means the iterator
+      --  object was constructed without a start expression, in which case the
+      --  (reverse) iteration starts from the (logical) beginning of the entire
+      --  sequence (corresponding to Container.Last, for a reverse iterator).
+
+      --  Otherwise, this is iteration over a partial sequence of items.
+      --  When the Index component is not No_Index, the iterator object was
+      --  constructed with a start expression, that specifies the position
+      --  from which the (reverse) partial iteration begins.
+
+      if Object.Index = No_Index then
+         return Last (Object.Container.all);
+      else
+         return Cursor'(Object.Container, Object.Index);
+      end if;
    end Last;
 
    -----------------
@@ -2718,11 +2820,16 @@ package body Ada.Containers.Indefinite_Vectors is
 
    function Next (Object : Iterator; Position : Cursor) return Cursor is
    begin
-      if Position.Index = Object.Container.Last then
-         return  No_Element;
-      else
-         return (Object.Container, Position.Index + 1);
+      if Position.Container = null then
+         return No_Element;
       end if;
+
+      if Position.Container /= Object.Container then
+         raise Program_Error with
+           "Position cursor of Next designates wrong vector";
+      end if;
+
+      return Next (Position);
    end Next;
 
    procedure Next (Position : in out Cursor) is
@@ -2791,11 +2898,16 @@ package body Ada.Containers.Indefinite_Vectors is
 
    function Previous (Object : Iterator; Position : Cursor) return Cursor is
    begin
-      if Position.Index > Index_Type'First then
-         return (Object.Container, Position.Index - 1);
-      else
+      if Position.Container = null then
          return No_Element;
       end if;
+
+      if Position.Container /= Object.Container then
+         raise Program_Error with
+           "Position cursor of Previous designates wrong vector";
+      end if;
+
+      return Previous (Position);
    end Previous;
 
    -------------------
@@ -2913,35 +3025,51 @@ package body Ada.Containers.Indefinite_Vectors is
    ---------------
 
    function Reference
-     (Container : Vector;
+     (Container : aliased in out Vector;
       Position  : Cursor) return Reference_Type
    is
-   begin
-      pragma Unreferenced (Container);
+      E : Element_Access;
 
+   begin
       if Position.Container = null then
          raise Constraint_Error with "Position cursor has no element";
+      end if;
+
+      if Position.Container /= Container'Unrestricted_Access then
+         raise Program_Error with "Position cursor denotes wrong container";
       end if;
 
       if Position.Index > Position.Container.Last then
          raise Constraint_Error with "Position cursor is out of range";
       end if;
 
-      return
-        (Element =>
-           Position.Container.Elements.EA (Position.Index).all'Access);
+      E := Container.Elements.EA (Position.Index);
+
+      if E = null then
+         raise Constraint_Error with "element at Position is empty";
+      end if;
+
+      return (Element => E.all'Access);
    end Reference;
 
    function Reference
-     (Container : Vector;
-      Position  : Index_Type) return Reference_Type
+     (Container : aliased in out Vector;
+      Index     : Index_Type) return Reference_Type
    is
+      E : Element_Access;
+
    begin
-      if Position > Container.Last then
+      if Index > Container.Last then
          raise Constraint_Error with "Index is out of range";
       end if;
 
-      return (Element => Container.Elements.EA (Position).all'Access);
+      E := Container.Elements.EA (Index);
+
+      if E = null then
+         raise Constraint_Error with "element at Index is empty";
+      end if;
+
+      return (Element => E.all'Access);
    end Reference;
 
    ---------------------
@@ -3299,9 +3427,20 @@ package body Ada.Containers.Indefinite_Vectors is
          return;
       end if;
 
-      if Container.Lock > 0 then
+      --  The exception behavior for the vector container must match that for
+      --  the list container, so we check for cursor tampering here (which will
+      --  catch more things) instead of for element tampering (which will catch
+      --  fewer things). It's true that the elements of this vector container
+      --  could be safely moved around while (say) an iteration is taking place
+      --  (iteration only increments the busy counter), and so technically all
+      --  we would need here is a test for element tampering (indicated by the
+      --  lock counter), that's simply an artifact of our array-based
+      --  implementation. Logically Reverse_Elements requires a check for
+      --  cursor tampering.
+
+      if Container.Busy > 0 then
          raise Program_Error with
-           "attempt to tamper with elements (vector is locked)";
+           "attempt to tamper with cursors (vector is busy)";
       end if;
 
       declare

@@ -42,8 +42,8 @@ const char* const Import::import_marker = "*imported*";
 // returns a pointer to a Stream object to read the data that it
 // exports.  If the file is not found, it returns NULL.
 
-// When FILENAME is not an absolute path, we use the search path
-// provided by -I and -L options.
+// When FILENAME is not an absolute path and does not start with ./ or
+// ../, we use the search path provided by -I and -L options.
 
 // When FILENAME does not exist, we try modifying FILENAME to find the
 // file.  We use the first of these which exists:
@@ -61,7 +61,18 @@ const char* const Import::import_marker = "*imported*";
 Import::Stream*
 Import::open_package(const std::string& filename, Location location)
 {
-  if (!IS_ABSOLUTE_PATH(filename))
+  bool is_local;
+  if (IS_ABSOLUTE_PATH(filename))
+    is_local = true;
+  else if (filename[0] == '.' && IS_DIR_SEPARATOR(filename[1]))
+    is_local = true;
+  else if (filename[0] == '.'
+	   && filename[1] == '.'
+	   && IS_DIR_SEPARATOR(filename[2]))
+    is_local = true;
+  else
+    is_local = false;
+  if (!is_local)
     {
       for (std::vector<std::string>::const_iterator p = search_path.begin();
 	   p != search_path.end();
@@ -215,46 +226,24 @@ Import::find_object_export_data(const std::string& filename,
 				off_t offset,
 				Location location)
 {
-  const char* errmsg;
+  char *buf;
+  size_t len;
   int err;
-  simple_object_read* sobj = simple_object_start_read(fd, offset,
-						      "__GNU_GO",
-						      &errmsg, &err);
-  if (sobj == NULL)
+  const char *errmsg = go_read_export_data(fd, offset, &buf, &len, &err);
+  if (errmsg != NULL)
+    {
+      if (err == 0)
+	error_at(location, "%s: %s", filename.c_str(), errmsg);
+      else
+	error_at(location, "%s: %s: %s", filename.c_str(), errmsg,
+		 xstrerror(err));
+      return NULL;
+    }
+
+  if (buf == NULL)
     return NULL;
 
-  off_t sec_offset;
-  off_t sec_length;
-  int found = simple_object_find_section(sobj, ".go_export", &sec_offset,
-					 &sec_length, &errmsg, &err);
-
-  simple_object_release_read(sobj);
-
-  if (!found)
-    return NULL;
-
-  if (lseek(fd, offset + sec_offset, SEEK_SET) < 0)
-    {
-      error_at(location, "lseek %s failed: %m", filename.c_str());
-      return NULL;
-    }
-
-  char* buf = new char[sec_length];
-  ssize_t c = read(fd, buf, sec_length);
-  if (c < 0)
-    {
-      error_at(location, "read %s failed: %m", filename.c_str());
-      delete[] buf;
-      return NULL;
-    }
-  if (c < sec_length)
-    {
-      error_at(location, "%s: short read", filename.c_str());
-      delete[] buf;
-      return NULL;
-    }
-
-  return new Stream_from_buffer(buf, sec_length);
+  return new Stream_from_buffer(buf, len);
 }
 
 // Class Import.
@@ -707,6 +696,8 @@ Import::register_builtin_types(Gogo* gogo)
   this->register_builtin_type(gogo, "bool", BUILTIN_BOOL);
   this->register_builtin_type(gogo, "string", BUILTIN_STRING);
   this->register_builtin_type(gogo, "error", BUILTIN_ERROR);
+  this->register_builtin_type(gogo, "byte", BUILTIN_BYTE);
+  this->register_builtin_type(gogo, "rune", BUILTIN_RUNE);
 }
 
 // Register a single builtin type.

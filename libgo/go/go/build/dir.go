@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
-	"go/doc"
 	"go/parser"
 	"go/token"
 	"io/ioutil"
@@ -26,9 +25,9 @@ import (
 
 // A Context specifies the supporting context for a build.
 type Context struct {
-	GOARCH string // target architecture
-	GOOS   string // target operating system
-	// TODO(rsc,adg): GOPATH
+	GOARCH     string // target architecture
+	GOOS       string // target operating system
+	CgoEnabled bool   // whether cgo can be used
 
 	// By default, ScanDir uses the operating system's
 	// file system calls to read directories and files.
@@ -38,16 +37,16 @@ type Context struct {
 	// format of the strings dir and file: they can be
 	// slash-separated, backslash-separated, even URLs.
 
-	// ReadDir returns a slice of *os.FileInfo, sorted by Name,
+	// ReadDir returns a slice of os.FileInfo, sorted by Name,
 	// describing the content of the named directory.
 	// The dir argument is the argument to ScanDir.
 	// If ReadDir is nil, ScanDir uses io.ReadDir.
-	ReadDir func(dir string) (fi []*os.FileInfo, err error)
+	ReadDir func(dir string) (fi []os.FileInfo, err error)
 
 	// ReadFile returns the content of the file named file
 	// in the directory named dir.  The dir argument is the
 	// argument to ScanDir, and the file argument is the
-	// Name field from an *os.FileInfo returned by ReadDir.
+	// Name field from an os.FileInfo returned by ReadDir.
 	// The returned path is the full name of the file, to be
 	// used in error messages.
 	//
@@ -56,7 +55,7 @@ type Context struct {
 	ReadFile func(dir, file string) (path string, content []byte, err error)
 }
 
-func (ctxt *Context) readDir(dir string) ([]*os.FileInfo, error) {
+func (ctxt *Context) readDir(dir string) ([]os.FileInfo, error) {
 	if f := ctxt.ReadDir; f != nil {
 		return f(dir)
 	}
@@ -75,9 +74,36 @@ func (ctxt *Context) readFile(dir, file string) (string, []byte, error) {
 // The DefaultContext is the default Context for builds.
 // It uses the GOARCH and GOOS environment variables
 // if set, or else the compiled code's GOARCH and GOOS.
-var DefaultContext = Context{
-	GOARCH: envOr("GOARCH", runtime.GOARCH),
-	GOOS:   envOr("GOOS", runtime.GOOS),
+var DefaultContext = defaultContext()
+
+var cgoEnabled = map[string]bool{
+	"darwin/386":    true,
+	"darwin/amd64":  true,
+	"linux/386":     true,
+	"linux/amd64":   true,
+	"freebsd/386":   true,
+	"freebsd/amd64": true,
+	"windows/386":   true,
+	"windows/amd64": true,
+}
+
+func defaultContext() Context {
+	var c Context
+
+	c.GOARCH = envOr("GOARCH", runtime.GOARCH)
+	c.GOOS = envOr("GOOS", runtime.GOOS)
+
+	s := os.Getenv("CGO_ENABLED")
+	switch s {
+	case "1":
+		c.CgoEnabled = true
+	case "0":
+		c.CgoEnabled = false
+	default:
+		c.CgoEnabled = cgoEnabled[c.GOOS+"/"+c.GOARCH]
+	}
+
+	return c
 }
 
 func envOr(name, def string) string {
@@ -96,8 +122,9 @@ type DirInfo struct {
 
 	// Source files
 	GoFiles  []string // .go files in dir (excluding CgoFiles)
+	HFiles   []string // .h files in dir
 	CFiles   []string // .c files in dir
-	SFiles   []string // .s files in dir
+	SFiles   []string // .s (and, when using cgo, .S files in dir)
 	CgoFiles []string // .go files that import "C"
 
 	// Cgo directives
@@ -135,25 +162,27 @@ func (ctxt *Context) ScanDir(dir string) (info *DirInfo, err error) {
 		return nil, err
 	}
 
+	var Sfiles []string // files with ".S" (capital S)
 	var di DirInfo
 	imported := make(map[string]bool)
 	testImported := make(map[string]bool)
 	fset := token.NewFileSet()
 	for _, d := range dirs {
-		if !d.IsRegular() {
+		if d.IsDir() {
 			continue
 		}
-		if strings.HasPrefix(d.Name, "_") ||
-			strings.HasPrefix(d.Name, ".") {
+		name := d.Name()
+		if strings.HasPrefix(name, "_") ||
+			strings.HasPrefix(name, ".") {
 			continue
 		}
-		if !ctxt.goodOSArchFile(d.Name) {
+		if !ctxt.goodOSArchFile(name) {
 			continue
 		}
 
-		ext := path.Ext(d.Name)
+		ext := path.Ext(name)
 		switch ext {
-		case ".go", ".c", ".s":
+		case ".go", ".c", ".s", ".h", ".S":
 			// tentatively okay
 		default:
 			// skip
@@ -161,7 +190,7 @@ func (ctxt *Context) ScanDir(dir string) (info *DirInfo, err error) {
 		}
 
 		// Look for +build comments to accept or reject the file.
-		filename, data, err := ctxt.readFile(dir, d.Name)
+		filename, data, err := ctxt.readFile(dir, name)
 		if err != nil {
 			return nil, err
 		}
@@ -172,10 +201,16 @@ func (ctxt *Context) ScanDir(dir string) (info *DirInfo, err error) {
 		// Going to save the file.  For non-Go files, can stop here.
 		switch ext {
 		case ".c":
-			di.CFiles = append(di.CFiles, d.Name)
+			di.CFiles = append(di.CFiles, name)
+			continue
+		case ".h":
+			di.HFiles = append(di.HFiles, name)
 			continue
 		case ".s":
-			di.SFiles = append(di.SFiles, d.Name)
+			di.SFiles = append(di.SFiles, name)
+			continue
+		case ".S":
+			Sfiles = append(Sfiles, name)
 			continue
 		}
 
@@ -192,7 +227,7 @@ func (ctxt *Context) ScanDir(dir string) (info *DirInfo, err error) {
 			continue
 		}
 
-		isTest := strings.HasSuffix(d.Name, "_test.go")
+		isTest := strings.HasSuffix(name, "_test.go")
 		if isTest && strings.HasSuffix(pkg, "_test") {
 			pkg = pkg[:len(pkg)-len("_test")]
 		}
@@ -255,15 +290,17 @@ func (ctxt *Context) ScanDir(dir string) (info *DirInfo, err error) {
 			}
 		}
 		if isCgo {
-			di.CgoFiles = append(di.CgoFiles, d.Name)
+			if ctxt.CgoEnabled {
+				di.CgoFiles = append(di.CgoFiles, name)
+			}
 		} else if isTest {
 			if pkg == string(pf.Name.Name) {
-				di.TestGoFiles = append(di.TestGoFiles, d.Name)
+				di.TestGoFiles = append(di.TestGoFiles, name)
 			} else {
-				di.XTestGoFiles = append(di.XTestGoFiles, d.Name)
+				di.XTestGoFiles = append(di.XTestGoFiles, name)
 			}
 		} else {
-			di.GoFiles = append(di.GoFiles, d.Name)
+			di.GoFiles = append(di.GoFiles, name)
 		}
 	}
 	if di.Package == "" {
@@ -281,6 +318,15 @@ func (ctxt *Context) ScanDir(dir string) (info *DirInfo, err error) {
 		di.TestImports[i] = p
 		i++
 	}
+
+	// add the .S files only if we are using cgo
+	// (which means gcc will compile them).
+	// The standard assemblers expect .s files.
+	if len(di.CgoFiles) > 0 {
+		di.SFiles = append(di.SFiles, Sfiles...)
+		sort.Strings(di.SFiles)
+	}
+
 	// File name lists are sorted because ReadDir sorts.
 	sort.Strings(di.Imports)
 	sort.Strings(di.TestImports)
@@ -288,7 +334,6 @@ func (ctxt *Context) ScanDir(dir string) (info *DirInfo, err error) {
 }
 
 var slashslash = []byte("//")
-var plusBuild = []byte("+build")
 
 // shouldBuild reports whether it is okay to use this file,
 // The rule is that in the file's leading run of // comments
@@ -366,7 +411,7 @@ func (ctxt *Context) shouldBuild(content []byte) bool {
 // TODO(rsc): This duplicates code in cgo.
 // Once the dust settles, remove this code from cgo.
 func (ctxt *Context) saveCgo(filename string, di *DirInfo, cg *ast.CommentGroup) error {
-	text := doc.CommentText(cg)
+	text := cg.Text()
 	for _, line := range strings.Split(text, "\n") {
 		orig := line
 
@@ -430,7 +475,7 @@ func (ctxt *Context) saveCgo(filename string, di *DirInfo, cg *ast.CommentGroup)
 	return nil
 }
 
-var safeBytes = []byte("+-.,/0123456789=ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz")
+var safeBytes = []byte("+-.,/0123456789=ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz:")
 
 func safeName(s string) bool {
 	if s == "" {
@@ -465,7 +510,7 @@ func splitQuoted(s string) (r []string, err error) {
 	arg := make([]rune, len(s))
 	escaped := false
 	quoted := false
-	quote := rune(0)
+	quote := '\x00'
 	i := 0
 	for _, rune := range s {
 		switch {
@@ -474,9 +519,9 @@ func splitQuoted(s string) (r []string, err error) {
 		case rune == '\\':
 			escaped = true
 			continue
-		case quote != 0:
+		case quote != '\x00':
 			if rune == quote {
-				quote = 0
+				quote = '\x00'
 				continue
 			}
 		case rune == '"' || rune == '\'':
@@ -509,14 +554,22 @@ func splitQuoted(s string) (r []string, err error) {
 //
 //	$GOOS
 //	$GOARCH
-//	$GOOS/$GOARCH
+//	cgo (if cgo is enabled)
+//	nocgo (if cgo is disabled)
+//	a slash-separated list of any of these
 //
 func (ctxt *Context) matchOSArch(name string) bool {
+	if ctxt.CgoEnabled && name == "cgo" {
+		return true
+	}
+	if !ctxt.CgoEnabled && name == "nocgo" {
+		return true
+	}
 	if name == ctxt.GOOS || name == ctxt.GOARCH {
 		return true
 	}
 	i := strings.Index(name, "/")
-	return i >= 0 && name[:i] == ctxt.GOOS && name[i+1:] == ctxt.GOARCH
+	return i >= 0 && ctxt.matchOSArch(name[:i]) && ctxt.matchOSArch(name[i+1:])
 }
 
 // goodOSArchFile returns false if the name contains a $GOOS or $GOARCH

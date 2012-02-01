@@ -17,6 +17,9 @@ func init() {
 // The size of an MD5 checksum in bytes.
 const Size = 16
 
+// The blocksize of MD5 in bytes.
+const BlockSize = 64
+
 const (
 	_Chunk = 64
 	_Init0 = 0x67452301
@@ -51,6 +54,8 @@ func New() hash.Hash {
 
 func (d *digest) Size() int { return Size }
 
+func (d *digest) BlockSize() int { return BlockSize }
+
 func (d *digest) Write(p []byte) (nn int, err error) {
 	nn = len(p)
 	d.len += uint64(nn)
@@ -77,10 +82,9 @@ func (d *digest) Write(p []byte) (nn int, err error) {
 	return
 }
 
-func (d0 *digest) Sum() []byte {
+func (d0 *digest) Sum(in []byte) []byte {
 	// Make a copy of d0 so that caller can keep writing and summing.
-	d := new(digest)
-	*d = *d0
+	d := *d0
 
 	// Padding.  Add a 1 bit and 0 bits until 56 bytes mod 64.
 	len := d.len
@@ -103,14 +107,13 @@ func (d0 *digest) Sum() []byte {
 		panic("d.nx != 0")
 	}
 
-	p := make([]byte, 16)
-	j := 0
-	for _, s := range d.s {
-		p[j+0] = byte(s >> 0)
-		p[j+1] = byte(s >> 8)
-		p[j+2] = byte(s >> 16)
-		p[j+3] = byte(s >> 24)
-		j += 4
+	var digest [Size]byte
+	for i, s := range d.s {
+		digest[i*4] = byte(s)
+		digest[i*4+1] = byte(s >> 8)
+		digest[i*4+2] = byte(s >> 16)
+		digest[i*4+3] = byte(s >> 24)
 	}
-	return p
+
+	return append(in, digest[:]...)
 }

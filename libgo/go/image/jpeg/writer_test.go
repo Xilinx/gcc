@@ -10,7 +10,7 @@ import (
 	"image/color"
 	"image/png"
 	"io/ioutil"
-	"rand"
+	"math/rand"
 	"os"
 	"testing"
 )
@@ -105,7 +105,7 @@ func BenchmarkEncodeRGBOpaque(b *testing.B) {
 		}
 	}
 	if !img.Opaque() {
-		panic("expected image to be opaque")
+		b.Fatal("expected image to be opaque")
 	}
 	b.SetBytes(640 * 480 * 4)
 	b.StartTimer()
