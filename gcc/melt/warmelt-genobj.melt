@@ -618,6 +618,54 @@
 
 (export_synonym class_objblock class_objplainblock)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; variadic function to make an objlocatedexpv out of a chunk
+(defun make_objlocatedexp (loc cty :rest)
+  (debug "make_objlocatedexp loc=" loc " cty=" cty)
+  (assert_msg "make_objlocatedexp check loc" (or (null loc) (is_a loc discr_mixed_location)))
+  (assert_msg "make_objlocatedexp check cty" (is_a cty class_ctype))
+  (let ( (arglist (make_list discr_list)) 
+	 )
+    (forever 
+     argloop
+     (variadic ( () 
+		 (exit argloop))
+	       ( (:long l)
+		 (let ( (bl (make_integerbox discr_constant_integer l))
+			)
+		   (list_append arglist bl)))
+	       ( (:cstring s)
+		 (let ( (bs (make_stringconst discr_verbatim_string s)) 
+			)
+		   (list_append arglist bs)))
+	       ( (:value v)
+		 (cond ( (is_list v)
+			 (list_append2list arglist v))
+		       ( (is_multiple v)
+			 (foreach_in_multiple
+			  (v)
+			  (curcomp :long ix)
+			  (list_append arglist curcomp)))
+		       (:else
+			(list_append arglist v))))
+	       ( :else
+		 (debug "make_objlocatedexp varargctype=" (variadic_ctype 0))
+		 (assert_msg "unexpected variable argument for make_objlocatedexp" ()))
+	       ))
+    (debug "make_objlocatedexp arglist=" arglist)
+    (let ( (res
+	    (instance  class_objlocatedexpv
+		       :obv_type cty
+		       :obx_cont (list_to_multiple arglist discr_multiple)
+		       :obcx_loc loc))
+	   )
+      (debug "make_objlocatedexp res=" res)
+      (return res)
+      )))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
 ;;;; selector to generate the declaration of an initial
 ;;; receiver some objinielem
 ;;; argument strbuf
@@ -5407,7 +5455,9 @@ $SBUF.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; catch-all for unimplemented normtester
 (defun compiltst_normtester_any (nta gcx tcx)
-  (debug "compiltst_normtester_any nta=" nta " gcx=" gcx " tcx=" tcx)
+  (debug "compiltst_normtester_any nta=" nta 
+	 "\n of discrim " (discrim nta)
+	 "\n gcx=" gcx " tcx=" tcx)
   (error_strv (get_field :nrep_loc nta) 
 	      "**UNIMPLEMENTED normal tester compilation "
 	      (get_field :named_name (discrim nta)))
@@ -5521,17 +5571,11 @@ $SBUF.}#
 	(oelseblock (instance class_objplainblock
 			      :obi_loc nloc
 			      :oblo_bodyl oelselist))
-	(otest (instance
-		class_objlocatedexpv
-		:obcx_loc nloc
-		:obx_cont (tuple
-			   (make_stringconst discr_verbatim_string 
-					     "/*normtesterinst*/ (melt_is_instance_of((")
-			   omatched
-			   (make_stringconst discr_verbatim_string "), (")
-			   oclass
-			   (make_stringconst discr_verbatim_string ")))"))
-		))
+	(otest 
+	 (make_objlocatedexp 
+	  nloc ctype_long
+	  ##{/*normtesterinst*/ (melt_is_instance_of((melt_ptr_t)($OMATCHED),
+						     (melt_ptr_t)($OCLASS)))}#))	     
 	(ocond (instance class_objcond
 			 :obi_loc nloc
 			 :obcond_test otest
@@ -5625,23 +5669,11 @@ $SBUF.}#
 	 (oelseblock (instance class_objplainblock
 			       :obi_loc nloc
 			       :oblo_bodyl oelselist))
-	 (otest (instance
-		 class_objlocatedexpv
-		 :obcx_loc nloc
-		 :obx_cont (tuple
-			    (make_stringconst discr_verbatim_string 
-					      "/*normtestertuple*/ ((melt_magic_discr((melt_ptr_t)(")
-			    omatched
-			    (make_stringconst discr_verbatim_string 
-					      ")) == MELTOBMAG_MULTIPLE) && ((melt_multiple_ptr_t)")
-			    omatched
-			    (make_stringconst discr_verbatim_string 
-					      ")->nbval == ")
-			    (make_integerbox discr_constant_integer nbcomp)
-			    (make_stringconst discr_verbatim_string 
-					      ")")
-			    )
-		 ))
+	 (otest 
+	  (make_objlocatedexp
+	   nloc ctype_long
+	   ##{/*normtestertuple*/ (melt_magic_discr((melt_ptr_t)($OMATCHED)) == MELTOBMAG_MULTIPLE
+		&& ((melt_multiple_ptr_t)($OMATCHED))->nbval == $NBCOMP)}#)				   )
 	 (ocond (instance class_objcond
 			  :obi_loc nloc
 			  :obcond_test otest
@@ -5710,17 +5742,10 @@ $SBUF.}#
 	(oelseblock (instance class_objplainblock
 			      :obi_loc nloc
 			      :oblo_bodyl oelselist))
-	(otest (instance
-		class_objlocatedexpv
-		:obcx_loc nloc
-		:obx_cont (tuple
-			   (make_stringconst discr_verbatim_string 
-					     "/*same*/ ((")
-			   omatched
-			   (make_stringconst discr_verbatim_string ") == (")
-			   oidentical
-			   (make_stringconst discr_verbatim_string "))"))
-		))
+	(otest
+	 (make_objlocatedexp 
+	  nloc ctype_long
+	  ##{/*testersame*/ ($OMATCHED == $OIDENTICAL)}#))
 	(ocond (instance class_objcond
 			 :obi_loc nloc
 			 :obcond_test otest

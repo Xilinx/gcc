@@ -1221,12 +1221,20 @@ scanning variables.}#
 				 :container_value tester
 				 ))
 	   (unsortedsubpa
-	    (multiple_map
-	     tupsubpa
-	     (lambda (subpa :long subix)
-	       (instance class_tuple_component_pattern
-			 :tupcp_pattern subpa
-			 :tupcp_index (make_integerbox discr_constant_integer subix)))))
+	    (let (
+		  (listsubpa (make_list discr_list))
+		  )
+	      (foreach_in_multiple
+	       (tupsubpa)
+	       (subpa :long subix)
+	       ;; we need to skip the joker subpatterns
+	       (if (is_not_a subpa class_source_pattern_joker_variable)
+		   (list_append listsubpa
+				(instance class_tuple_component_pattern
+					  :tupcp_pattern subpa
+					  :tupcp_index (make_integerbox discr_constant_integer subix)))))
+	      (list_to_multiple discr_multiple listsubpa)
+	      ))
 	   (sortedsubpa 
 	    (multiple_sort
 	     unsortedsubpa
@@ -1317,9 +1325,8 @@ scanning variables.}#
       )
     
     (debug "normpat_tuplepat final tester" tester)
-    )
-  (debug "normpat_tuplepat recv end" recv)
-  )
+    (debug "normpat_tuplepat recv end" recv)
+    ))
 (install_method class_source_pattern_tuple normal_pattern normpat_tuplepat)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
