@@ -2978,9 +2978,11 @@ $SBUF.}#
 	 (nidx (unsafe_get_field :nunth_index nunc))
 	 (otup (compile_obj ntup gcx))
 	 (oidx (compile_obj nidx gcx))
+	 (ounc (make_objcompute nloc ##{/*unsafenthcomp*/((meltmultiple_ptr_t)($OTUP))->tabval[$OIDX]}#
+				))
 	)
-    (debug "compilobj_nrep_unsafe_nth_component otup=" otup " oidx=" oidx)
-  (assert_msg "$@$unimplemented compilobj_nrep_unsafe_nth_component")
+    (debug "compilobj_nrep_unsafe_nth_component otup=" otup " oidx=" oidx " ounc=" ounc)
+    (return ounc)
   ))
 (install_method class_nrep_unsafe_nth_component compile_obj compilobj_nrep_unsafe_nth_component)
 
@@ -5705,7 +5707,7 @@ $SBUF.}#
 	  (make_objlocatedexp
 	   nloc ctype_long
 	   ##{/*normtestertuple*/ (melt_magic_discr((melt_ptr_t)($OMATCHED)) == MELTOBMAG_MULTIPLE
-		&& ((melt_multiple_ptr_t)($OMATCHED))->nbval == $NBCOMP)}#)				   )
+		&& ((meltmultiple_ptr_t)($OMATCHED))->nbval == $NBCOMP)}#)				   )
 	 (ocond (instance class_objcond
 			  :obi_loc nloc
 			  :obcond_test otest
