@@ -1,3 +1,15 @@
+2012-02-01   Diego Novillo  <dnovillo@google.com>
+
+	* config-lang.in (gtfiles): Remove pph-out.c.  Add pph-core.c.
+	* pph-core.c: Include gt-cp-pph-core.h.
+	(pph_cached_trees): Declare.
+	(pph_cache_insert_at): If adding a tree to the cache, also
+	add it to pph_cached_trees.
+	(pph_streamer_init): Set pph_cached_trees to NULL.
+	(pph_streamer_finish): Likewise.
+	Call ggc_collect.
+	* pph-out.c (pph_decls_in_symtab): Remove.  Update all users.
+
 2012-02-01   Lawrence Crowl  <crowl@google.com>
 
 	* error.c (dump_function_decl):  Add protection against NULL.

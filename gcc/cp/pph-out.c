@@ -54,19 +54,6 @@ static void pph_out_merge_key_tree (pph_stream *, tree);
 static pph_stream *pph_out_stream = NULL;
 
 
-/* List of all the symbols added to the PPH symbol table.
-
-   FIXME pph, the *only* purpose of this list is to act as a GC root
-   to avoid these DECLs from being garbage collected.
-
-   The parser will invoke garbage collection, which may clobber some
-   DECLs in the symbol table (because the symbol table is stored on
-   the heap).  Ideally, we would notice when DECLs go unused, but for
-   now this will just keep these DECLs around until we finalize PPH
-   processing.  */
-static GTY(()) VEC(tree,gc) *pph_decls_in_symtab;
-
-
 /* Return the stream we are currently generating.  We declare this function
    with external linkage so it can be accessed from pph_include_handler,
    but this really should be private to this file.  */
@@ -109,7 +96,6 @@ pph_writer_init (void)
   pph_out_stream = pph_stream_open (pph_out_file, "wb");
   if (pph_out_stream == NULL)
     fatal_error ("Cannot open PPH file %s for writing: %m", pph_out_file);
-  pph_decls_in_symtab = NULL;
 }
 
 
@@ -2559,7 +2545,6 @@ pph_add_decl_to_symtab (tree decl, enum pph_symtab_action action,
   entry.top_level = top_level;
   entry.at_end = at_end;
   VEC_safe_push (pph_symtab_entry, heap, pph_out_stream->symtab.v, &entry);
-  VEC_safe_push (tree, gc, pph_decls_in_symtab, decl);
 }
 
 
@@ -2846,11 +2831,6 @@ pph_writer_finish (void)
 
   pph_stream_close (pph_out_stream);
   pph_out_stream = NULL;
-
-  /* Get rid of all the dead DECLs we may have had in the symbol
-     table.  */
-  pph_decls_in_symtab = NULL;
-  ggc_collect ();
 }
 
 
@@ -2879,5 +2859,3 @@ pph_disable_output (void)
      of disabling PPH generation we may want to simply abort compilation.  */
   pph_disable_reader ();
 }
-
-#include "gt-cp-pph-out.h"

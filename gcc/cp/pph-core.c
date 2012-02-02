@@ -90,6 +90,19 @@ struct pph_stream_registry_d {
 static struct pph_stream_registry_d pph_stream_registry;
 
 
+/* List of all the trees added to PPH pickle caches.
+
+   FIXME pph, the *only* purpose of this list is to act as a GC root
+   to avoid these trees from being garbage collected.
+
+   The parser will invoke garbage collection, which may clobber some
+   trees in the pickle caches (because the pickle caches are stored on
+   the heap).  Ideally, we would put all these data structures on GC
+   memory.  */
+static GTY(()) VEC(tree,gc) *pph_cached_trees;
+
+
+
 /*************************************************************** pph logging */
 
 
@@ -539,6 +552,11 @@ pph_cache_insert_at (pph_cache *cache, void *data, unsigned ix,
   if (ix + 1 > VEC_length (pph_cache_entry, cache->v))
     VEC_safe_grow_cleared (pph_cache_entry, heap, cache->v, ix + 1);
   VEC_replace (pph_cache_entry, cache->v, ix, &e);
+
+  /* FIXME pph.  Hack to prevent cached trees from being garbage
+     collected.  */
+  if ((unsigned) tag <= (unsigned) PPH_any_tree)
+    VEC_safe_push (tree, gc, pph_cached_trees, (tree) data);
 
   return pph_cache_get_entry (cache, ix);
 }
@@ -1337,6 +1355,7 @@ pph_streamer_init (void)
 {
   pph_hooks_init ();
   pph_init_preloaded_cache ();
+  pph_cached_trees = NULL;
 }
 
 
@@ -1433,6 +1452,10 @@ pph_streamer_finish (void)
   VEC_free (pph_stream_ptr, heap, pph_stream_registry.v);
   pointer_map_destroy (pph_stream_registry.image_ix);
   htab_delete (pph_stream_registry.name_ix);
+
+  /* Get rid of all the dead trees we may have had in caches.  */
+  pph_cached_trees = NULL;
+  ggc_collect ();
 }
 
 
@@ -1455,3 +1478,5 @@ pph_finish (void)
   if (flag_pph_logfile)
     fclose (pph_logfile);
 }
+
+#include "gt-cp-pph-core.h"
