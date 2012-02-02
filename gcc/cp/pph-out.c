@@ -2353,11 +2353,19 @@ pph_out_merge_key_tree (pph_stream *stream, tree expr)
       /* Write the merge name, used to lookup EXPR in the reader's context
 	 and merge if necessary.  */
       pph_out_merge_name (stream, expr);
+
+      if (TREE_CODE (expr) == TYPE_DECL)
+	{
+	  bool is_implicit = DECL_IMPLICIT_TYPEDEF_P (expr);
+	  tree type = TREE_TYPE (expr);
+	  pph_out_bool (stream, is_implicit);
+	  if (is_implicit)
+	    pph_out_merge_key_tree (stream, type);
+	}
     }
   else
     {
       gcc_assert (TYPE_P (expr));
-      gcc_assert (false);
     }
 
   if (flag_pph_tracer)

@@ -1,5 +1,22 @@
 2012-02-01   Lawrence Crowl  <crowl@google.com>
 
+	* g++.dg/pph/x4structover1.cc: Mark fixed.
+	* g++.dg/pph/a0incomplete2.hi: New.
+	* g++.dg/pph/a0incomplete3.hi: New.
+	* g++.dg/pph/a0incomplete4.cci: New.
+	* g++.dg/pph/x0incomplete1.h: New.
+	* g++.dg/pph/x0incomplete2.h: New.
+	* g++.dg/pph/x0incomplete3.h: New.
+	* g++.dg/pph/x1incomplete3.h: New.
+	* g++.dg/pph/x1incomplete4.cc: New.
+	* g++.dg/pph/x2incomplete4.cc: New.
+	* g++.dg/pph/x3incomplete412.cc: New.
+	* g++.dg/pph/x3incomplete413.cc: New.
+	* g++.dg/pph/x4incomplete4123.cc: New.
+	* g++.dg/pph/x4incomplete4321.cc: New.
+
+2012-02-01   Lawrence Crowl  <crowl@google.com>
+
 	* g++.dg/pph/c0struct.h: Rename to c0struct2.h.
 	* g++.dg/pph/c0struct1.h: New.  Has no typedefs.
 	* g++.dg/pph/c1struct.cc: Rename to c1struct2.cc.

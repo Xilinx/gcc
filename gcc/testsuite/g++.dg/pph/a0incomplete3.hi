@@ -1,0 +1,21 @@
+#ifndef A0INCOMPLETE3_HI
+#define A0INCOMPLETE3_HI
+
+inline copies::copies()
+:
+   field( 0 )
+{
+}
+
+inline copies::copies( const copies &arg )
+:
+   field( arg.field + 1 )
+{
+}
+
+inline int copies::value()
+{
+    return field;
+}
+
+#endif

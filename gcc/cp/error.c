@@ -1351,7 +1351,7 @@ static void
 dump_function_decl (tree t, int flags)
 {
   tree fntype;
-  tree parmtypes;
+  tree parmtypes, argtypes;
   tree cname = NULL_TREE;
   tree template_args = NULL_TREE;
   tree template_parms = NULL_TREE;
@@ -1393,7 +1393,12 @@ dump_function_decl (tree t, int flags)
     }
 
   fntype = TREE_TYPE (t);
-  parmtypes = FUNCTION_FIRST_USER_PARMTYPE (t);
+  gcc_assert (fntype)
+  argtypes = TYPE_ARG_TYPES (fntype);
+  if (argtypes)
+    parmtypes = skip_artificial_parms_for (t, argtypes);
+  else
+    parmtypes = NULL;
 
   if (DECL_CLASS_SCOPE_P (t))
     cname = DECL_CONTEXT (t);

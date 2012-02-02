@@ -1,0 +1,12 @@
+#ifndef A0INCOMPLETE2_HI
+#define A0INCOMPLETE2_HI
+
+struct copies
+{
+    copies();
+    copies( const copies &arg );
+    int value();
+    int field;
+};
+
+#endif

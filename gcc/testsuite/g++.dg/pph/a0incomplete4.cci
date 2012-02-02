@@ -1,0 +1,5 @@
+int query( copies arg )
+{
+    copies var( arg );
+    return var.value();
+}

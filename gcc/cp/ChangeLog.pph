@@ -1,5 +1,15 @@
 2012-02-01   Lawrence Crowl  <crowl@google.com>
 
+	* error.c (dump_function_decl):  Add protection against NULL.
+	* pph-out.c (pph_out_merge_key_tree):  Write merge keys for struct
+	types, as opposed to decls.
+	* pph-in.c (pph_in_merge_tree_body):  Save chains in decls only.
+	(pph_in_merge_key_tree): Read merge keys for struct types.  Split
+	handling into two phases, cache insertion (which is before the trace
+	front) and sub-tree reading.
+
+2012-02-01   Lawrence Crowl  <crowl@google.com>
+
 	* pph-streamer.h (pph_trace_tree):  Add name parameter.  Adjust callers
 	to match.
 	* pph-core.c (pph_trace_tree):  Add name parameter to override

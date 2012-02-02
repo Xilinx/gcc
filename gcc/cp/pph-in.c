@@ -2116,11 +2116,6 @@ pph_in_merge_tree_body (pph_stream *stream, tree expr)
   struct lto_input_block *ib = stream->encoder.r.ib;
   struct data_in *data_in = stream->encoder.r.data_in;
 
-  /* If we are reading a merge body, it means that EXPR is already in
-     some chain.  Given that EXPR may now be in a different location
-     in the chain, we need to make sure we do not lose it.  */
-  tree saved_expr_chain = TREE_CHAIN (expr);
-
   /* Read the language-independent parts of EXPR's body.  */
   streamer_read_tree_body (ib, data_in, expr);
 
@@ -2128,7 +2123,15 @@ pph_in_merge_tree_body (pph_stream *stream, tree expr)
   switch (TREE_CODE_CLASS (TREE_CODE (expr)))
     {
       case tcc_declaration:
+	{
+	  /* If we are reading a merge body, it means that EXPR is already in
+	     some chain.  Given that EXPR may now be in a different location
+	     in the chain, we need to make sure we do not lose it.
+	     FIXME pph: We should just not save TREE_CHAIN for merge bodies.  */
+	  tree saved_expr_chain = TREE_CHAIN (expr);
        pph_in_merge_tcc_declaration (stream, expr);
+	  TREE_CHAIN (expr) = saved_expr_chain;
+	}
        break;
 
       case tcc_type:
@@ -2140,10 +2143,6 @@ pph_in_merge_tree_body (pph_stream *stream, tree expr)
                     pph_tree_code_text (TREE_CODE (expr)));
        break;
     }
-
-  /* Restore TREE_CHAIN if necessary.  FIXME pph, we should just not
-     save TREE_CHAIN for merge bodies.  */
-  TREE_CHAIN (expr) = saved_expr_chain;
 }
 
 
@@ -2413,7 +2412,7 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
   unsigned image_ix, ix;
   tree read_expr, expr;
   bool fully_read_p;
-  const char *name;
+  const char *name = "?";
 
   marker = pph_in_start_record (stream, &image_ix, &ix, PPH_any_tree);
   if (marker == PPH_RECORD_END)
@@ -2426,35 +2425,51 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
      language-independent bitfields for the new tree.  */
   read_expr = pph_in_tree_header (stream, &fully_read_p);
   gcc_assert (!fully_read_p);
+  gcc_assert (chain);
 
   if (DECL_P (read_expr))
     {
-      gcc_assert (chain);
       name = pph_in_string (stream);
       /* If we are merging into an existing CHAIN.  Look for a match in
          CHAIN to READ_EXPR's header.  If we found a match, EXPR will be
          the existing tree that matches READ_EXPR. Otherwise, EXPR is the
          newly allocated READ_EXPR.  */
       expr = pph_merge_into_chain (read_expr, name, chain);
-      gcc_assert (expr != NULL);
-      pph_cache_insert_at (&stream->cache, expr, ix,
-			   pph_tree_code_to_tag (expr));
-
-      if (flag_pph_tracer)
-        pph_trace_tree (expr, name, pph_trace_front,
-		        expr == read_expr ? pph_trace_unmerged_key
-				          : pph_trace_merged_key);
-
-      if (flag_pph_tracer)
-        pph_trace_tree (expr, name, pph_trace_back,
-		        expr == read_expr ? pph_trace_unmerged_key
-				          : pph_trace_merged_key);
     }
   else
     {
       gcc_assert (TYPE_P (read_expr));
-      gcc_assert (false);
+      if (*chain)
+	expr = *chain;
+      else
+	expr = read_expr;
     }
+  gcc_assert (expr != NULL);
+  pph_cache_insert_at (&stream->cache, expr, ix,
+		       pph_tree_code_to_tag (expr));
+
+  if (flag_pph_tracer)
+    pph_trace_tree (expr, name, pph_trace_front,
+		    expr == read_expr ? pph_trace_unmerged_key
+				      : pph_trace_merged_key);
+
+  if (DECL_P (read_expr))
+    {
+      if (TREE_CODE (expr) == TYPE_DECL)
+	{
+	  bool is_implicit = pph_in_bool (stream);
+	  if (is_implicit)
+	    pph_in_merge_key_tree (stream, &(TREE_TYPE (expr)));
+	}
+    }
+  else
+    {
+    }
+
+  if (flag_pph_tracer)
+    pph_trace_tree (expr, name, pph_trace_back,
+		    expr == read_expr ? pph_trace_unmerged_key
+				      : pph_trace_merged_key);
 
   return expr;
 }
