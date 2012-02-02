@@ -41,6 +41,7 @@ microblaze_cpp_define (cpp_reader *pfile)
   builtin_assert ("cpu=microblaze");
   builtin_assert ("machine=microblaze");
   builtin_define ("__MICROBLAZE__");
+  builtin_define ("__microblaze__");
   if (TARGET_LITTLE_ENDIAN)
     {
       builtin_define ("_LITTLE_ENDIAN");
