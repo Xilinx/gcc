@@ -3586,7 +3586,9 @@ lab_endgetargs:;
 	    /*clear *//*_.CSYM_URANK__V5*/ meltfptr[4] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.VC__V2*/ meltfptr[1]), (( /*!CLASS_CLONED_SYMBOL */ meltfrout->tabval[0])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of ((melt_ptr_t) ( /*_.VC__V2*/ meltfptr[1]),
+			      (melt_ptr_t) (( /*!CLASS_CLONED_SYMBOL */ meltfrout->tabval[0])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */

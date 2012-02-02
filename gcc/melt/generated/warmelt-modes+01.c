@@ -1908,7 +1908,9 @@ lab_endgetargs:;
 	    /*clear *//*_.SCLASS_CLABIND__V10*/ meltfptr[9] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.CUREXP__V2*/ meltfptr[1]), (( /*!CLASS_SOURCE_DEFCLASS */ meltfrout->tabval[1])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of ((melt_ptr_t) ( /*_.CUREXP__V2*/ meltfptr[1]),
+			      (melt_ptr_t) (( /*!CLASS_SOURCE_DEFCLASS */ meltfrout->tabval[1])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -1978,7 +1980,9 @@ lab_endgetargs:;
 	    /*clear *//*_.SEXP_CONTENTS__V12*/ meltfptr[11] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.SDEF_DOC__V8*/ meltfptr[4]), (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of ((melt_ptr_t) ( /*_.SDEF_DOC__V8*/ meltfptr[4]),
+			      (melt_ptr_t) (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -2030,7 +2034,10 @@ lab_endgetargs:;
 	    /*clear *//*_.CBIND_CLASS__V13*/ meltfptr[4] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.SCLASS_CLABIND__V10*/ meltfptr[9]), (( /*!CLASS_CLASS_BINDING */ meltfrout->tabval[3])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of
+	 ((melt_ptr_t) ( /*_.SCLASS_CLABIND__V10*/ meltfptr[9]),
+	  (melt_ptr_t) (( /*!CLASS_CLASS_BINDING */ meltfrout->tabval[3])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -2724,7 +2731,9 @@ lab_endgetargs:;
 	    /*clear *//*_.SINST_CLASS__V45*/ meltfptr[36] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.CUREXP__V2*/ meltfptr[1]), (( /*!CLASS_SOURCE_DEFSELECTOR */ meltfrout->tabval[9])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of ((melt_ptr_t) ( /*_.CUREXP__V2*/ meltfptr[1]),
+			      (melt_ptr_t) (( /*!CLASS_SOURCE_DEFSELECTOR */ meltfrout->tabval[9])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -2794,7 +2803,10 @@ lab_endgetargs:;
 	    /*clear *//*_.SEXP_CONTENTS__V47*/ meltfptr[30] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.SDEF_DOC__V43*/ meltfptr[39]), (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of
+	 ((melt_ptr_t) ( /*_.SDEF_DOC__V43*/ meltfptr[39]),
+	  (melt_ptr_t) (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -2979,7 +2991,9 @@ lab_endgetargs:;
 	    /*clear *//*_.SINST_CLASS__V59*/ meltfptr[39] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.CUREXP__V2*/ meltfptr[1]), (( /*!CLASS_SOURCE_DEFINSTANCE */ meltfrout->tabval[10])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of ((melt_ptr_t) ( /*_.CUREXP__V2*/ meltfptr[1]),
+			      (melt_ptr_t) (( /*!CLASS_SOURCE_DEFINSTANCE */ meltfrout->tabval[10])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -3049,7 +3063,10 @@ lab_endgetargs:;
 	    /*clear *//*_.SEXP_CONTENTS__V61*/ meltfptr[31] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.SDEF_DOC__V57*/ meltfptr[26]), (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of
+	 ((melt_ptr_t) ( /*_.SDEF_DOC__V57*/ meltfptr[26]),
+	  (melt_ptr_t) (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -3232,7 +3249,9 @@ lab_endgetargs:;
 	    /*clear *//*_.SFORMAL_ARGS__V72*/ meltfptr[14] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.CUREXP__V2*/ meltfptr[1]), (( /*!CLASS_SOURCE_DEFPRIMITIVE */ meltfrout->tabval[11])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of ((melt_ptr_t) ( /*_.CUREXP__V2*/ meltfptr[1]),
+			      (melt_ptr_t) (( /*!CLASS_SOURCE_DEFPRIMITIVE */ meltfrout->tabval[11])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -3294,7 +3313,9 @@ lab_endgetargs:;
 	    /*clear *//*_.SEXP_CONTENTS__V74*/ meltfptr[16] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.SDEF_DOC__V71*/ meltfptr[9]), (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of ((melt_ptr_t) ( /*_.SDEF_DOC__V71*/ meltfptr[9]),
+			      (melt_ptr_t) (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -3472,7 +3493,9 @@ lab_endgetargs:;
 	    /*clear *//*_.SFORMAL_ARGS__V85*/ meltfptr[26] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.CUREXP__V2*/ meltfptr[1]), (( /*!CLASS_SOURCE_DEFUN */ meltfrout->tabval[12])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of ((melt_ptr_t) ( /*_.CUREXP__V2*/ meltfptr[1]),
+			      (melt_ptr_t) (( /*!CLASS_SOURCE_DEFUN */ meltfrout->tabval[12])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -3534,7 +3557,10 @@ lab_endgetargs:;
 	    /*clear *//*_.SEXP_CONTENTS__V87*/ meltfptr[78] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.SDEF_DOC__V84*/ meltfptr[18]), (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of
+	 ((melt_ptr_t) ( /*_.SDEF_DOC__V84*/ meltfptr[18]),
+	  (melt_ptr_t) (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -3714,7 +3740,9 @@ lab_endgetargs:;
 	    /*clear *//*_.SFORMAL_ARGS__V98*/ meltfptr[89] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.CUREXP__V2*/ meltfptr[1]), (( /*!CLASS_SOURCE_DEFCITERATOR */ meltfrout->tabval[13])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of ((melt_ptr_t) ( /*_.CUREXP__V2*/ meltfptr[1]),
+			      (melt_ptr_t) (( /*!CLASS_SOURCE_DEFCITERATOR */ meltfrout->tabval[13])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -3776,7 +3804,10 @@ lab_endgetargs:;
 	    /*clear *//*_.SEXP_CONTENTS__V100*/ meltfptr[91] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.SDEF_DOC__V97*/ meltfptr[18]), (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of
+	 ((melt_ptr_t) ( /*_.SDEF_DOC__V97*/ meltfptr[18]),
+	  (melt_ptr_t) (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -3959,7 +3990,9 @@ lab_endgetargs:;
 	    /*clear *//*_.SFORMAL_ARGS__V111*/ meltfptr[102] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.CUREXP__V2*/ meltfptr[1]), (( /*!CLASS_SOURCE_DEFCMATCHER */ meltfrout->tabval[14])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of ((melt_ptr_t) ( /*_.CUREXP__V2*/ meltfptr[1]),
+			      (melt_ptr_t) (( /*!CLASS_SOURCE_DEFCMATCHER */ meltfrout->tabval[14])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -4021,7 +4054,10 @@ lab_endgetargs:;
 	    /*clear *//*_.SEXP_CONTENTS__V113*/ meltfptr[104] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.SDEF_DOC__V110*/ meltfptr[18]), (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of
+	 ((melt_ptr_t) ( /*_.SDEF_DOC__V110*/ meltfptr[18]),
+	  (melt_ptr_t) (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -4204,7 +4240,9 @@ lab_endgetargs:;
 	    /*clear *//*_.SEXPMAC_DOC__V124*/ meltfptr[115] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.CUREXP__V2*/ meltfptr[1]), (( /*!CLASS_SOURCE_EXPORT_PATMACRO */ meltfrout->tabval[15])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of ((melt_ptr_t) ( /*_.CUREXP__V2*/ meltfptr[1]),
+			      (melt_ptr_t) (( /*!CLASS_SOURCE_EXPORT_PATMACRO */ meltfrout->tabval[15])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -4266,7 +4304,10 @@ lab_endgetargs:;
 	    /*clear *//*_.SEXP_CONTENTS__V126*/ meltfptr[117] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.SEXPMAC_DOC__V124*/ meltfptr[115]), (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of
+	 ((melt_ptr_t) ( /*_.SEXPMAC_DOC__V124*/ meltfptr[115]),
+	  (melt_ptr_t) (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -4401,7 +4442,9 @@ lab_endgetargs:;
 	    /*clear *//*_.SEXPMAC_DOC__V135*/ meltfptr[128] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.CUREXP__V2*/ meltfptr[1]), (( /*!CLASS_SOURCE_EXPORT_MACRO */ meltfrout->tabval[16])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of ((melt_ptr_t) ( /*_.CUREXP__V2*/ meltfptr[1]),
+			      (melt_ptr_t) (( /*!CLASS_SOURCE_EXPORT_MACRO */ meltfrout->tabval[16])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -4463,7 +4506,10 @@ lab_endgetargs:;
 	    /*clear *//*_.SEXP_CONTENTS__V137*/ meltfptr[130] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.SEXPMAC_DOC__V135*/ meltfptr[128]), (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of
+	 ((melt_ptr_t) ( /*_.SEXPMAC_DOC__V135*/ meltfptr[128]),
+	  (melt_ptr_t) (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -4596,7 +4642,9 @@ lab_endgetargs:;
 	    /*clear *//*_.SDEF_DOC__V145*/ meltfptr[128] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.CUREXP__V2*/ meltfptr[1]), (( /*!CLASS_SOURCE_DEFINITION */ meltfrout->tabval[17])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of ((melt_ptr_t) ( /*_.CUREXP__V2*/ meltfptr[1]),
+			      (melt_ptr_t) (( /*!CLASS_SOURCE_DEFINITION */ meltfrout->tabval[17])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -4650,7 +4698,10 @@ lab_endgetargs:;
 	    /*clear *//*_.SEXP_CONTENTS__V147*/ meltfptr[140] = 0;
       /*^cond */
       /*cond */ if (
-		     /*normtesterinst */ (melt_is_instance_of (( /*_.SDEF_DOC__V145*/ meltfptr[128]), (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
+		     /*normtesterinst */
+	(melt_is_instance_of
+	 ((melt_ptr_t) ( /*_.SDEF_DOC__V145*/ meltfptr[128]),
+	  (melt_ptr_t) (( /*!CLASS_SEXPR */ meltfrout->tabval[2])))))	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */

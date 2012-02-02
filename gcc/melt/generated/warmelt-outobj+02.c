@@ -15,7 +15,7 @@ struct melt_callframe_st;	/*defined in melt-runtime.h */
 
 
 /**!!** ***
-    Copyright (C) 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+    Copyright (C) 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -6768,7 +6768,7 @@ lab_endgetargs:;
 	  {
 	    MELT_LOCATION ("warmelt-outobj.melt:1389:/ locexp");
 	    meltgc_add_strbuf ((melt_ptr_t) ( /*_.IMPLBUF__V4*/ meltfptr[3]),
-			       ("#undef melt_variadic_len"));
+			       ("#undef melt_variadic_length"));
 	  }
 	  ;
 
@@ -6783,7 +6783,7 @@ lab_endgetargs:;
 	  {
 	    MELT_LOCATION ("warmelt-outobj.melt:1391:/ locexp");
 	    meltgc_add_strbuf ((melt_ptr_t) ( /*_.IMPLBUF__V4*/ meltfptr[3]),
-			       ("#undef melt_variadic_ix"));
+			       ("#undef melt_variadic_index"));
 	  }
 	  ;
 

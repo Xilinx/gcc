@@ -2972,7 +2972,10 @@ lab_endgetargs:;
 	     /*clear *//*_.CTYPG_UPDATEBOXFUN__V30*/ meltfptr[29] = 0;
 	    /*^cond */
 	    /*cond */ if (
-			   /*normtesterinst */ (melt_is_instance_of (( /*_.CURCTYP__V16*/ meltfptr[14]), (( /*!CLASS_CTYPE_GTY */ meltfrout->tabval[1])))))	/*then */
+			   /*normtesterinst */
+	      (melt_is_instance_of
+	       ((melt_ptr_t) ( /*_.CURCTYP__V16*/ meltfptr[14]),
+		(melt_ptr_t) (( /*!CLASS_CTYPE_GTY */ meltfrout->tabval[1])))))	/*then */
 	      {
 		/*^cond.then */
 		/*^block */
@@ -3252,7 +3255,10 @@ lab_endgetargs:;
 	     /*clear *//*_.NAMED_NAME__V35*/ meltfptr[25] = 0;
 	    /*^cond */
 	    /*cond */ if (
-			   /*normtesterinst */ (melt_is_instance_of (( /*_.CTYPG_BOXDISCR__V27*/ meltfptr[26]), (( /*!CLASS_DISCRIMINANT */ meltfrout->tabval[3])))))	/*then */
+			   /*normtesterinst */
+	      (melt_is_instance_of
+	       ((melt_ptr_t) ( /*_.CTYPG_BOXDISCR__V27*/ meltfptr[26]),
+		(melt_ptr_t) (( /*!CLASS_DISCRIMINANT */ meltfrout->tabval[3])))))	/*then */
 	      {
 		/*^cond.then */
 		/*^block */
@@ -5570,7 +5576,10 @@ lab_endgetargs:;
 	     /*clear *//*_.CTYPG_MAPNVALFUN__V34*/ meltfptr[33] = 0;
 	    /*^cond */
 	    /*cond */ if (
-			   /*normtesterinst */ (melt_is_instance_of (( /*_.CURCTYP__V13*/ meltfptr[11]), (( /*!CLASS_CTYPE_GTY */ meltfrout->tabval[1])))))	/*then */
+			   /*normtesterinst */
+	      (melt_is_instance_of
+	       ((melt_ptr_t) ( /*_.CURCTYP__V13*/ meltfptr[11]),
+		(melt_ptr_t) (( /*!CLASS_CTYPE_GTY */ meltfrout->tabval[1])))))	/*then */
 	      {
 		/*^cond.then */
 		/*^block */
@@ -5898,7 +5907,10 @@ lab_endgetargs:;
 	     /*clear *//*_.NAMED_NAME__V39*/ meltfptr[23] = 0;
 	    /*^cond */
 	    /*cond */ if (
-			   /*normtesterinst */ (melt_is_instance_of (( /*_.CTYPG_MAPDISCR__V25*/ meltfptr[24]), (( /*!CLASS_DISCRIMINANT */ meltfrout->tabval[4])))))	/*then */
+			   /*normtesterinst */
+	      (melt_is_instance_of
+	       ((melt_ptr_t) ( /*_.CTYPG_MAPDISCR__V25*/ meltfptr[24]),
+		(melt_ptr_t) (( /*!CLASS_DISCRIMINANT */ meltfrout->tabval[4])))))	/*then */
 	      {
 		/*^cond.then */
 		/*^block */

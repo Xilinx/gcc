@@ -2509,7 +2509,7 @@ meltrout_163_warmelt_normal_LAMBDA___59__ (meltclosure_ptr_t meltclosp_,
 /*getargs*/
 
   /*getarg#0 */
-  MELT_LOCATION ("warmelt-normal.melt:6720:/ getarg");
+  MELT_LOCATION ("warmelt-normal.melt:6729:/ getarg");
  /*_.KEY__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
 
   /*getarg#1 */
@@ -2531,7 +2531,7 @@ lab_endgetargs:;
  /*_#__L1*/ meltfnum[0] =
       (( /*_.VAL__V3*/ meltfptr[2]) ==
        (( /*~SPRED */ meltfclos->tabval[0])));;
-    MELT_LOCATION ("warmelt-normal.melt:6721:/ cond");
+    MELT_LOCATION ("warmelt-normal.melt:6730:/ cond");
     /*cond */ if ( /*_#__L1*/ meltfnum[0])	/*then */
       {
 	/*^cond.then */
@@ -2558,7 +2558,7 @@ lab_endgetargs:;
 	  /*_.IF___V4*/ meltfptr[3] = /*_.SET_CONTENT__V5*/ meltfptr[4];;
 	  /*epilog */
 
-	  MELT_LOCATION ("warmelt-normal.melt:6721:/ clear");
+	  MELT_LOCATION ("warmelt-normal.melt:6730:/ clear");
 	     /*clear *//*_.SET_CONTENT__V5*/ meltfptr[4] = 0;
 	}
 	;
@@ -2569,11 +2569,11 @@ lab_endgetargs:;
   /*_.IF___V4*/ meltfptr[3] = NULL;;
       }
     ;
-    MELT_LOCATION ("warmelt-normal.melt:6720:/ quasiblock");
+    MELT_LOCATION ("warmelt-normal.melt:6729:/ quasiblock");
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.IF___V4*/ meltfptr[3];;
-    MELT_LOCATION ("warmelt-normal.melt:6720:/ finalreturn");
+    MELT_LOCATION ("warmelt-normal.melt:6729:/ finalreturn");
     ;
     /*finalret */ goto labend_rout;
     /*epilog */
