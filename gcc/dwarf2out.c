@@ -204,6 +204,7 @@ struct GTY(()) indirect_string_node {
   unsigned int refcount;
   enum dwarf_form form;
   char *label;
+  unsigned int index;
 };
 
 static GTY ((param_is (struct indirect_string_node))) htab_t debug_str_hash;
@@ -3566,7 +3567,7 @@ static void gen_scheduled_generic_parms_dies (void);
 
 /* Section flags for .debug_str section.  */
 #define DEBUG_STR_SECTION_FLAGS \
-  (HAVE_GAS_SHF_MERGE && flag_merge_debug_strings               \
+  (HAVE_GAS_SHF_MERGE && flag_merge_debug_strings && !dwarf_split_debug_info \
    ? SECTION_DEBUG | SECTION_MERGE | SECTION_STRINGS | 1        \
    : SECTION_DEBUG)
 
@@ -4329,12 +4330,17 @@ AT_class (dw_attr_ref a)
 }
 
 /* Return the index for any attribute that will be referenced with a
-   DW_FORM_GNU_ref_index of DW_FORM_GNU_addr_index.  */
+   DW_FORM_GNU_ref_index of DW_FORM_GNU_addr_index.  Strings have their
+   indices handled differently to account for reference counting
+   pruning.  */
 
 static inline unsigned int
 AT_index (dw_attr_ref a)
 {
-  return a->dw_attr_val.val_index;
+  if (AT_class (a) == dw_val_class_str)
+    return a->dw_attr_val.v.val_str->index;
+  else
+    return a->dw_attr_val.val_index;
 }
 
 /* Set the index for any attribute that will be referenced with a
@@ -4343,7 +4349,10 @@ AT_index (dw_attr_ref a)
 static inline void
 set_AT_index (dw_attr_ref a, unsigned int index)
 {
-  a->dw_attr_val.val_index = index;
+  if (AT_class (a) == dw_val_class_str)
+    a->dw_attr_val.v.val_str->index = index;
+  else
+    a->dw_attr_val.val_index = index;
 }
 
 /* Add a flag value attribute to a DIE.  */
@@ -21588,7 +21597,7 @@ output_index_strings (void)
     {
       gcc_assert (node->form == DW_FORM_GNU_str_index);
       dw2_asm_output_data (DWARF_OFFSET_SIZE, len,
-                           "indexed string %d: %s", i, node->str);
+                           "indexed string 0x%x: %s", i, node->str);
       len += strlen (node->str) + 1;
     }
   switch_to_section (debug_str_section);
