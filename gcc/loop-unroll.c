@@ -264,8 +264,6 @@ unroll_and_peel_loops (int flags)
   bool check;
   loop_iterator li;
 
-  record_loop_exits();
-
   /* First perform complete loop peeling (it is almost surely a win,
      and affects parameters for further decision a lot).  */
   peel_loops_completely (flags);

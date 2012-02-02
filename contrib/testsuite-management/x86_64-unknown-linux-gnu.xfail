@@ -96,11 +96,5 @@ flaky | FAIL: libmudflap.cth/pass40-frag.c output pattern test
 flaky | FAIL: libmudflap.cth/pass40-frag.c (-O2) execution test
 FAIL: libmudflap.cth/pass39-frag.c (-O3) (rerun 10) execution test
 
-# New failures
-FAIL: gcc.c-torture/compile/pr49710.c -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions  (test for excess errors)
-FAIL: gcc.c-torture/compile/pr49710.c -O3 -fomit-frame-pointer -funroll-loops  (internal compiler error)
-FAIL: gcc.c-torture/compile/pr49710.c -O3 -fomit-frame-pointer -funroll-all-loops -finline-functions  (internal compiler error)
-FAIL: gcc.c-torture/compile/pr49710.c -O3 -fomit-frame-pointer -funroll-loops  (test for excess errors)
-
 
 

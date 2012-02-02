@@ -1,3 +1,10 @@
+2012-02-01  Xinliang David Li  <davidxl@google.com>
+
+	* diagnostic.c (diagnostic_set_info_translated):
+	strip discriminator for location used in messages.
+	* loop-unroll.c (unroll_and_peel_loops):
+	remove exit recording which is redundant.
+
 2012-02-01  Dehao Chen  <dehao@google.com>
 
 	* predict.c (strips_small_constant): New

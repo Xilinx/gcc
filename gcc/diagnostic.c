@@ -151,6 +151,7 @@ diagnostic_set_info_translated (diagnostic_info *diagnostic, const char *msg,
 				va_list *args, location_t location,
 				diagnostic_t kind)
 {
+  location = map_discriminator_location (location);
   diagnostic->message.err_no = errno;
   diagnostic->message.args_ptr = args;
   diagnostic->message.format_spec = msg;
@@ -673,11 +674,9 @@ warning (int opt, const char *gmsgid, ...)
 {
   diagnostic_info diagnostic;
   va_list ap;
-  location_t location;
 
   va_start (ap, gmsgid);
-  location = map_discriminator_location (input_location);
-  diagnostic_set_info (&diagnostic, gmsgid, &ap, location, DK_WARNING);
+  diagnostic_set_info (&diagnostic, gmsgid, &ap, input_location, DK_WARNING);
   diagnostic.option_index = opt;
 
   va_end (ap);
@@ -695,7 +694,6 @@ warning_at (location_t location, int opt, const char *gmsgid, ...)
   va_list ap;
 
   va_start (ap, gmsgid);
-  location = map_discriminator_location (location);
   diagnostic_set_info (&diagnostic, gmsgid, &ap, location, DK_WARNING);
   diagnostic.option_index = opt;
   va_end (ap);
