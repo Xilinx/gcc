@@ -1,5 +1,16 @@
 
 2011-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (normpat_tuplepat): Implemented.
+	* melt/warmelt-genobj.melt (make_objcompute): New function.
+	(compile2obj_initproc): Use it.
+	(compilobj_nrep_unsafe_nth_component): New method for compile_obj
+	of class_nrep_unsafe_nth_component.
+	(compilobj_nrep_store_predefined): Use make_objcompute.
+	(compiltst_normtester_tuple): Done.
+	* melt/warmelt-outobj.melt (outpucod_procroutine) generate #undef
+	of melt_variadic_length & melt_variadic_index
+
+2011-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (normpat_tuplepat): Skip joker subpatterns.
 	* melt/warmelt-genobj.melt (make_objlocatedexp): New function.
 	(compiltst_normtester_instance, compiltst_normtester_tuple): Use it.

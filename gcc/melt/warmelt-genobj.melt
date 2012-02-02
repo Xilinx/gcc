@@ -619,7 +619,7 @@
 (export_synonym class_objblock class_objplainblock)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; variadic function to make an objlocatedexpv out of a chunk
+;; variadic function to make an objlocatedexpv out of a macrostring
 (defun make_objlocatedexp (loc cty :rest)
   (debug "make_objlocatedexp loc=" loc " cty=" cty)
   (assert_msg "make_objlocatedexp check loc" (or (null loc) (is_a loc discr_mixed_location)))
@@ -663,7 +663,48 @@
       (return res)
       )))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+;; variadic function to make an objcompute out of a macrostring
+(defun make_objcompute (loc :rest)
+  (debug "make_objcompute loc=" loc)
+  (assert_msg "make_objcompute check loc" (or (null loc) (is_a loc discr_mixed_location)))
+  (let ( (arglist (make_list discr_list)) 
+	 )
+    (forever 
+     argloop
+     (variadic ( () 
+		 (exit argloop))
+	       ( (:long l)
+		 (let ( (bl (make_integerbox discr_constant_integer l))
+			)
+		   (list_append arglist bl)))
+	       ( (:cstring s)
+		 (let ( (bs (make_stringconst discr_verbatim_string s)) 
+			)
+		   (list_append arglist bs)))
+	       ( (:value v)
+		 (cond ( (is_list v)
+			 (list_append2list arglist v))
+		       ( (is_multiple v)
+			 (foreach_in_multiple
+			  (v)
+			  (curcomp :long ix)
+			  (list_append arglist curcomp)))
+		       (:else
+			(list_append arglist v))))
+	       ( :else
+		 (debug "make_objcompute varargctype=" (variadic_ctype 0))
+		 (assert_msg "unexpected variable argument for make_objcompute" ()))
+	       ))
+    (debug "make_objcompute arglist=" arglist)
+    (let ( (res
+	    (instance  class_objcompute
+		       :obdi_destlist (make_list discr_list)
+		       :obcpt_expr (list_to_multiple arglist discr_multiple)
+		       :obi_loc loc))
+	   )
+      (debug "make_objcompute res=" res)
+      (return res)
+      )))
 
 
 ;;;; selector to generate the declaration of an initial
@@ -1144,18 +1185,14 @@ $SBUF.}#
 	     ;; always generate a test for fresh_env being a closure if the oprevenv exists
 	     (list_append 
 	      bodfel
-	      (instance class_objcompute
-			:obcpt_expr (tuple
-				     (make_stringconst discr_verbatim_string 
-						       "if ((") 
-				     oprevenv
-				     (make_stringconst discr_verbatim_string 
-						       ") && melt_magic_discr((melt_ptr_t)(")
-				     ofreshenv
-				     (make_stringconst discr_verbatim_string 
-						       ")) != MELTOBMAG_CLOSURE) warning(0, \"bad MELT fresh_env @%p in system data <%s:%d>\", ")
-				     ofreshenv
-				     (make_stringconst discr_verbatim_string ", __FILE__, __LINE__);"))))
+	      (make_objcompute 
+	       ()
+	       ##{/*checkfreshenv*/ if (($OPREVENV)
+					&& melt_magic_discr((melt_ptr_t)($OFRESHENV)) != MELTOBMAG_CLOSURE)
+  	           warning(0, "bad MELT FRESH_ENV @%p in system data <%s:%d>",
+			      ($OFRESHENV), __FILE__, __LINE__);}#
+		   )
+	      )
 	     ;; generate the apply of ofreshenv
 	     (list_append
 	      bodfel
@@ -1337,18 +1374,10 @@ $SBUF.}#
 	(append_commentconst oinibody "set retinit from boxloc")
 	;; emit setting the retinit from the boxloc
 	(let ( (osetretinit
-		(instance 
-		 class_objcompute
-		 :obdi_destlist (list retinit)
-		 :obcpt_expr
-		 (tuple
-			      (make_stringconst discr_verbatim_string
-						"/*final freshenv get*/ melt_container_value((melt_ptr_t)(")
-			      boxloc	
-			      (make_stringconst discr_verbatim_string "))")	
-			      )
-		 ))
+		(make_objcompute ()
+				 ##{/* finalfreshenvget */ melt_container_value((melt_ptr_t)($BOXLOC))}#))
 	       )
+	  (put_objdest osetretinit retinit)
 	  (debug "compile2obj_initproc adding osetretinit=" osetretinit)
 	  (list_append oinibody osetretinit))
 ;;; ending
@@ -2936,6 +2965,25 @@ $SBUF.}#
     (return oblock)
     ))
 (install_method class_nrep_unsafe_put_fields compile_obj compilobj_nrep_unsafe_put_fields)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; compile an unsafe nth component
+(defun compilobj_nrep_unsafe_nth_component (nunc gcx)
+  (assert_msg "check nunc" (is_a nunc class_nrep_unsafe_nth_component))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (debug "compilobj_nrep_unsafe_nth_component nunc=" nunc)
+  (let ( (nloc (unsafe_get_field :nrep_loc nunc))
+	 (ntup (unsafe_get_field :nunth_tuple nunc))
+	 (nidx (unsafe_get_field :nunth_index nunc))
+	 (otup (compile_obj ntup gcx))
+	 (oidx (compile_obj nidx gcx))
+	)
+    (debug "compilobj_nrep_unsafe_nth_component otup=" otup " oidx=" oidx)
+  (assert_msg "$@$unimplemented compilobj_nrep_unsafe_nth_component")
+  ))
+(install_method class_nrep_unsafe_nth_component compile_obj compilobj_nrep_unsafe_nth_component)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile a simple application
 (defun compilobj_nrep_apply (napp gcx)
@@ -4817,33 +4865,17 @@ $SBUF.}#
 	 )
     (cond 
      ( (is_a npred class_symbol)
-       (setq res 
-	     (instance class_objcompute
-		       :obi_loc nloc
-		       :obcpt_expr 
-		       (tuple
-			(make_stringconst discr_verbatim_string
-					  "MELT_STORE_PREDEF(")
-			(make_string discr_verbatim_string 
-				     (get_field :named_name npred))
-			(make_stringconst discr_verbatim_string ", (")
-			oval
-			(make_stringconst discr_verbatim_string "))"))
-		       ))
+       (let ( (namepred (make_string discr_verbatim_string (get_field :named_name npred))) )
+	 (setq res 
+	       (make_objcompute 
+		nloc
+		##{MELT_STORE_PREDEF($NAMEPRED,($OVAL))}#)))
        )
      ( (is_integerbox npred)
        (setq res 
-	     (instance class_objcompute
-		       :obi_loc nloc
-		       :obcpt_expr 
-		       (tuple
-			(make_stringconst discr_verbatim_string
-					  "melt_store_predefined(")
-			npred
-			(make_stringconst discr_verbatim_string ", (")
-			oval
-			(make_stringconst discr_verbatim_string "))"))
-		       ))
+	     (make_objcompute
+	      nloc
+	      ##{melt_store_predefined($NPRED,($OVAL))}#))
        )
      (:else
       (debug "compilobj_nrep_store_predefined bad npred=" npred)
@@ -5704,8 +5736,33 @@ $SBUF.}#
      (ntupcomp)
      (curntup :long tupix)
      (debug "compiltst_normtester_tuple curntup=" curntup " tupix=" tupix)
-     )
-    (assert_msg "@$@compiltst_normtester_tuple unimplemented")
+     (if curntup
+	 (let ( (curovar (compile_obj curntup gcx))
+		(cnbind (get_field :nocc_bind curntup))
+		(curbexp (get_field :letbind_expr cnbind))
+		(curoexp (compile_obj curbexp gcx))
+	     )
+	   (debug "compiltst_normtester_tuple curovar=" curovar 
+		  "  cnbind=" cnbind "  curbexp=" curbexp "  curoexp=" curoexp
+		  " tupix=" tupix)
+	   (assert_msg "check curovar" (is_a curovar class_objlocv))
+	   (assert_msg "check cnbind" (is_a cnbind class_normal_let_binding))
+	   (assert_msg "check curbexp" (is_a curbexp class_nrep_unsafe_nth_component))
+	   (assert_msg "check nthrnk" (==i (get_int (get_field :nunth_index curbexp)) tupix))
+	   (put_objdest curoexp curovar)
+	   (debug "compiltst_normtester_tuple updated curoexp=" curoexp)
+	   (list_append othenlist curoexp)
+	   ))
+     );; end foreach ntupcomp
+    ;; also add the gotothen
+    (assert_msg "check gotothen" (is_object gotothen))
+    (list_append othenlist gotothen)
+    ;;
+    ;; add into the oelselist the gotoelse
+    (assert_msg "check gotoelse" (is_object gotoelse))
+    (list_append oelselist gotoelse)
+    (debug "compiltst_normtester_tuple final olist=" olist)
+    (return olist)
     ))
 (install_method class_normtester_tuple compile_tester compiltst_normtester_tuple)
 

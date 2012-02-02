@@ -1215,7 +1215,8 @@ scanning variables.}#
       )
      )					;end forever loopstuff
     ;;
-    (debug "normpat_tuplepat tester=" tester "recv=" recv "  tupsubpa=" tupsubpa)
+    (debug "normpat_tuplepat tester=" tester
+	   "\n recv=" recv "\n  tupsubpa=" tupsubpa)
     (let ( (testloccl (get_field :ntest_locclist tester)) 
 	   (testercont (instance class_container
 				 :container_value tester
@@ -1233,7 +1234,8 @@ scanning variables.}#
 				(instance class_tuple_component_pattern
 					  :tupcp_pattern subpa
 					  :tupcp_index (make_integerbox discr_constant_integer subix)))))
-	      (list_to_multiple discr_multiple listsubpa)
+	      (debug "normpat_tuplepat unsorted listsubpa=" listsubpa)
+	      (list_to_multiple listsubpa discr_multiple)
 	      ))
 	   (sortedsubpa 
 	    (multiple_sort
@@ -1247,7 +1249,9 @@ scanning variables.}#
 		       (:else '-1))))
 	     discr_multiple))
 	   )
-      (debug "normpat_tuplepat testercont before loop " testercont " sortedsubpa=" sortedsubpa)
+      (debug "normpat_tuplepat testercont before loop testercont=" testercont 
+	     "\n unsortedsubpa=" unsortedsubpa      
+	     "\n sortedsubpa=" sortedsubpa)
       (assert_msg "check testbindl" (is_list testloccl))
       (foreach_in_multiple
        (sortedsubpa)
@@ -1272,7 +1276,7 @@ scanning variables.}#
 	 (debug "normpat_tuplepat curpat=" curpat " patix=" patix)
 	 (let ( (curloccl ())
 		)
-	   (debug "normpat_instancepat scanning testloccl" testloccl)
+	   (debug "normpat_tuplepat scanning testloccl" testloccl)
 	   ;; try to find an existing local occurrence for the field
 	   (foreach_in_list 
 	    (testloccl)
@@ -1284,7 +1288,7 @@ scanning variables.}#
 		  (setq testpair ())	;to exist from foreach
 		  (setq curloccl testlocsy)))
 	    )
-	   (debug "normpat_tuplepat got curloccl" curloccl)
+	   (debug "normpat_tuplepat got curloccl=" curloccl)
 	   ;; if no local occurrence found, add a new one
 	   (if (null curloccl)
 	       (let ( 
@@ -1306,6 +1310,7 @@ scanning variables.}#
 					:nocc_bind newbind
 					))
 		     )
+		 (debug "normpat_tuplepat newlocc=" newlocc)
 		 (multiple_put_nth
 		  (get_field :nttuple_components  tester)
 		  patix
@@ -1315,18 +1320,16 @@ scanning variables.}#
 		 (mapobject_put (get_field :nctx_symbcachemap ncx) newsym newlocc)
 		 (debug "normpat_tuplepat updated components tester" tester)
 		 (list_append testloccl newlocc)
-		 (debug "normpat_tupleepat made newlocc" newlocc)
+		 (debug "normpat_tuplepat made newlocc" newlocc)
 		 (setq curloccl newlocc)
 		 ))
-	   (debug "normpat_tuplepat before normal_pattern curpat=" curpat)
+	   (debug "normpat_tuplepat before normal_pattern curpat=" curpat " curloccl=" curloccl)
 	   (normal_pattern curpat curloccl subhdler pcn)
 	   (debug "normpat_tuplepat after normal_pattern curpat=" curpat " patix=" patix)
 	   )))
-      )
-    
-    (debug "normpat_tuplepat final tester" tester)
-    (debug "normpat_tuplepat recv end" recv)
-    ))
+      (debug "normpat_tuplepat final tester" tester)
+      (debug "normpat_tuplepat recv end" recv)
+      )))
 (install_method class_source_pattern_tuple normal_pattern normpat_tuplepat)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
