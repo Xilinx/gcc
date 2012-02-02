@@ -1,5 +1,9 @@
 2012-02-01   Diego Novillo  <dnovillo@google.com>
 
+	* error.c (dump_function_decl): Add missing ';'.
+
+2012-02-01   Diego Novillo  <dnovillo@google.com>
+
 	* config-lang.in (gtfiles): Remove pph-out.c.  Add pph-core.c.
 	* pph-core.c: Include gt-cp-pph-core.h.
 	(pph_cached_trees): Declare.

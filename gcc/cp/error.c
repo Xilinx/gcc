@@ -1393,7 +1393,7 @@ dump_function_decl (tree t, int flags)
     }
 
   fntype = TREE_TYPE (t);
-  gcc_assert (fntype)
+  gcc_assert (fntype);
   argtypes = TYPE_ARG_TYPES (fntype);
   if (argtypes)
     parmtypes = skip_artificial_parms_for (t, argtypes);
