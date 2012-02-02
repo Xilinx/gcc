@@ -2,10 +2,12 @@
 ;; file tmatch-2.melt
 
 #| run in buildir/gcc
- ./cc1 -fmelt=translatefile -fmelt-dynlibdir=. \
-    -fmelt-compile-script=./built-melt-cc-script \
-    -fmelt-gensrcdir=. -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
-    -fmelt-arg=..../tmatch-2.melt -fmelt-debug
+ ln -s $GCCMELT_SOURCE/gcc/testsuite/melt/tmatch-2.melt 
+ ./cc1 -fmelt-mode=runfile  -fmelt-module-path=melt-stage3:melt-modules   -fmelt-source-path=melt-stage3:melt-sources \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt -fmelt-workdir=melt-workdir \
+    -fmelt-option=match_graphic=/tmp/melt2graph,alternate_match \
+    -fmelt-arg=tmatch-2.melt \
+    -fmelt-debug empty-file-for-melt.c
 |#
 
 (defcmatcher even 

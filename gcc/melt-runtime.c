@@ -8370,7 +8370,7 @@ melt_passexec_callback (void *gcc_data,
 	  ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING), pass->name);
 #if MELT_HAVE_DEBUG
       {
-	static char locbuf[80];
+	static char locbuf[110];
 	memset (locbuf, 0, sizeof (locbuf));
 	MELT_LOCATION_HERE_PRINTF(locbuf, "melt_passexec_callback [pass %s #%d] before apply",
 				  pass->name, pass->static_pass_number);
@@ -9610,6 +9610,7 @@ meltgc_do_initial_mode (melt_ptr_t modata_p, const char* modstr)
       /* the mode exit is builtin */
       if (curmodstr && !strcmp (curmodstr, "exit"))
 	{
+	  debugeprintf("meltgc_do_initial_mode MELT setting exit_after_options for exit builtin mode");
 	  exit_after_options = true;
 	  goto end;
 	}
@@ -9659,6 +9660,8 @@ meltgc_do_initial_mode (melt_ptr_t modata_p, const char* modstr)
 	    warning(0, "MELT mode %s failed, so compilation disabled", 
 		    curmodstr);
 	    exit_after_options = TRUE;
+	    debugeprintf ("meltgc_do_initial_mode set exit_after_options for failed modstr %s", 
+			  modstr);
 	  }
       }
       if (comma)
@@ -9690,7 +9693,7 @@ meltgc_load_modules_and_do_mode (void)
   char *dupmodpath = NULL;
   int lastmodix = 0;
 #if MELT_HAVE_DEBUG
-  char locbuf[200];
+  char locbuf[220];
 #endif
   MELT_ENTERFRAME(4, NULL);
 #define modatv     meltfram__.mcfr_varptr[0]
@@ -9724,7 +9727,7 @@ meltgc_load_modules_and_do_mode (void)
   while (curmod && curmod[0])
     {
 #if MELT_HAVE_DEBUG
-      char locbuf[200];
+      char locbuf[250];
 #endif
       nextmod = strchr (curmod, ':');
       if (nextmod)
@@ -9810,16 +9813,32 @@ meltgc_load_modules_and_do_mode (void)
 	modatv = meltgc_start_all_new_modules ((melt_ptr_t) modatv);
 	debugeprintf ("meltgc_load_modules_and_do_mode done curxtra %s", 
 		      curxtra);
-      }
+      } /* end for curxtra */
+  }
+  /**
+   * then we do the mode if needed 
+   **/
+  if (melt_get_inisysdata (MELTFIELD_SYSDATA_MODE_DICT) && modstr
+      && modstr[0])
+    {
     /**
-     * Then we set MELT options.
+     * First we set MELT options.
      **/
     MELT_LOCATION_HERE ("before setting options");
     optstr = melt_argument ("option");
+    debugeprintf ("meltgc_load_modules_and_do_mode start option; optstr %s",
+		  optstr);
+    if (optstr)
+      debugeprintf ("meltgc_load_modules_and_do_mode optstr.len %d with modstr %s", 
+		    strlen(optstr), modstr);
+    else
+      debugeprintf ("meltgc_load_modules_and_do_mode null optstr with modstr %s",
+		    modstr);
     optsetv = NULL;
-    debugeprintf ("meltgc_load_modules_and_do_mode optstr %s", optstr);
-    if (optstr && optstr[0]
-	&& (optsetv=melt_get_inisysdata (MELTFIELD_SYSDATA_OPTION_SET)) != NULL
+    if (optstr && optstr[0]) {
+      optsetv=melt_get_inisysdata (MELTFIELD_SYSDATA_OPTION_SET);
+      debugeprintf("meltfield_sysdata_option_set optsetv %p for optstr '%s'", optsetv, optstr);
+      if (optsetv != NULL
 	&& melt_magic_discr ((melt_ptr_t) optsetv) == MELTOBMAG_CLOSURE) 
       {
 	char *optc = 0;
@@ -9869,17 +9888,8 @@ meltgc_load_modules_and_do_mode (void)
 	MELT_LOCATION_HERE ("meltgc_load_modules_and_do_mode option set done");
 	melt_garbcoll (0, MELT_ONLY_MINOR);
       }
-    MELT_LOCATION_HERE ("after setting options");
-  }
-  /**
-   * then we do the mode if needed 
-   **/
-  if (melt_get_inisysdata (MELTFIELD_SYSDATA_MODE_DICT) && modstr
-      && modstr[0])
-    {
-      debugeprintf
-	(" sets exit_after_options for mode %s",
-	 modstr);
+    }
+    MELT_LOCATION_HERE ("meltgc_load_modules_and_do_mode after handling options");
       MELT_LOCATION_HERE
 	("meltgc_load_modules_and_do_mode load_initial_melt_modules before do_initial_mode");
       meltgc_do_initial_mode ((melt_ptr_t) modatv, modstr);
@@ -12441,7 +12451,7 @@ meltgc_gimple_gate(void)
   debugeprintf ("meltgc_gimple_gate pass %s before apply", current_pass->name);
 #if MELT_HAVE_DEBUG
   {
-    static char locbuf[80];
+    static char locbuf[120];
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_gimple_gate pass %s before apply",
@@ -12531,7 +12541,7 @@ meltgc_gimple_execute (void)
     /* apply with one extra long result */
 #if MELT_HAVE_DEBUG
   {
-    static char locbuf[80];
+    static char locbuf[120];
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_gimple_execute pass %s before apply",
@@ -12613,7 +12623,7 @@ meltgc_rtl_gate(void)
     }
 #if MELT_HAVE_DEBUG
   {
-    static char locbuf[80];
+    static char locbuf[120];
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_rtl_gate pass %s before apply",
@@ -12694,7 +12704,7 @@ meltgc_rtl_execute(void)
     /* apply with one extra long result */
 #if MELT_HAVE_DEBUG
   {
-    static char locbuf[80];
+    static char locbuf[120];
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_rtl_execute pass %s before apply",
@@ -12775,7 +12785,7 @@ meltgc_simple_ipa_gate(void)
   debugeprintf ("meltgc_simple_ipa_gate pass %s before apply", current_pass->name);
 #if MELT_HAVE_DEBUG
   {
-    static char locbuf[80];
+    static char locbuf[120];
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_simple_ipa_gate pass %s before apply",
@@ -12863,7 +12873,7 @@ meltgc_simple_ipa_execute(void)
     debugeprintf ("meltgc_simple_ipa_execute pass %s before apply", current_pass->name);
 #if MELT_HAVE_DEBUG
   {
-    static char locbuf[80];
+    static char locbuf[120];
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:meltgc_simple_ipa_execute pass %s before apply",
@@ -13350,7 +13360,7 @@ melt_handle_melt_attribute (tree decl, tree name, const char *attrstr,
       argtab[1].meltbp_aptr = (melt_ptr_t *) & seqv;
 #if MELT_HAVE_DEBUG
   {
-    static char locbuf[80];
+    static char locbuf[120];
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
 	      "%s:%d:melt_handle_melt_attribute %s before apply",
