@@ -1,3 +1,45 @@
+2012-02-02  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/41587
+	PR fortran/46356
+	PR fortran/51754
+	PR fortran/50981
+	* class.c (insert_component_ref, class_data_ref_missing,
+	gfc_fix_class_refs): New functions.
+	* gfortran.h (gfc_fix_class_refs): New prototype.
+	* trans-expr.c (gfc_conv_expr): Remove special case handling and call
+	gfc_fix_class_refs instead.
+
+2012-02-02  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/52012
+	* trans-expr.c (fcncall_realloc_result): If variable shape is
+	correct, retain the bounds, whatever they are.
+
+2012-02-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52093
+	* simplify.c (gfc_simplify_size): Handle INTRINSIC_PARENTHESES.
+
+2012-02-01  Thomas König  <tkoenig@gcc.gnu.org>
+
+	PR fortran/51958
+	* frontend-passes.c (convert_elseif):  New function.
+	(optimize_namespace):  Call it.
+
+2012-02-01  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52024
+	* module.c (MOD_VERSION): Bump.
+	(mio_typebound_proc): Read/write is_operator from/to the
+	.mod file.
+
+2012-02-01  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52059
+	* trans-expr.c (gfc_conv_procedure_call): Add array ref
+	only to variables.
+
 2012-01-31  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/52024

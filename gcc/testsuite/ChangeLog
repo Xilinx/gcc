@@ -1,3 +1,63 @@
+2012-02-02  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/41587
+	* gfortran.dg/class_array_10.f03: New test.
+
+	PR fortran/46356
+	* gfortran.dg/class_array_11.f03: New test.
+
+	PR fortran/51754
+	* gfortran.dg/class_array_12.f03: New test.
+
+2012-02-02  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/52012
+	* gfortran.dg/realloc_on_assign_11.f90: New test.
+
+2012-02-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52093
+	* gfortran.dg/shape_7.f90: New.
+
+2012-02-02  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/mips-prepend-1.c: New test.
+
+2012-02-02 Jan Hubicka  <jh@suse.cz>
+	   Tom de Vries  <tom@codesourcery.com>
+
+	PR middle-end/51998
+	* testsuite/gcc.dg/alias-12.c: New testcase.
+	* testsuite/gcc.dg/alias-13.c: New testcase.
+
+2012-02-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52086
+	* gcc.dg/pr52086.c: New test.
+
+	PR tree-optimization/52073
+	* gcc.c-torture/compile/pr52073.c: New test.
+
+2012-02-01  Thomas König  <tkoenig@gcc.gnu.org>
+
+	PR fortran/51958
+	* gfortran.dg/function_optimize_10.f90:  New test.
+
+2012-02-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	* go.test/go-test.exp (go-gc-tests): xfail test/nilptr.go runtime
+	test on alpha*-*-*.
+
+2012-02-01  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52024
+	* gfortran.dg/typebound_operator_14.f90: New.
+
+2012-02-01  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52059
+	* gfortran.dg/elemental_function_1.f90: New.
+
 2012-02-01  Georg-Johann Lay  <avr@gjlay.de>
 
 	PR rtl-optimization/51374
