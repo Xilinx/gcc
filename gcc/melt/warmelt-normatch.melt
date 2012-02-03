@@ -2580,6 +2580,10 @@ scanning variables.}#
 ;;;;
 (install_method class_source_match normal_exp normexp_match)
 
+
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; A L T E R N A T E     I M P L E M E N T A T I O N
@@ -2806,6 +2810,14 @@ is the tuple of slot matched data.}#
   :fields (mstins_class
 	   mstins_slots))
 
+(defclass class_match_step_test_multiple
+  :super class_match_step_test
+  :doc #{The $CLASS_MATCH_STEP_TEST_MULTIPLE is the class for testing
+  tupleness. $MSTTUP_COMPONENTS is the tuple of matched data
+  components, or nil.}#
+  :fields (msttup_components
+	  ))
+
 (defclass class_match_step_test_matcher
   :super class_match_step_test
   :doc #{The $CLASS_MATCH_STEP_TEST_MATCHER is the class for testing with
@@ -2887,20 +2899,22 @@ the flags of the $STEP with an extra context $CTX.}#
   :formals (step fun ctx))
 
 (defun scansubpat_anyrecv (recv fun ctx)
-  (debug "scansubpat_anyrecv recv" recv)
   (let ( (dis (discrim recv)) )
+    (debug "scansubpat_anyrecv recv=" recv " of discrim=" dis)
     (errormsg_strv "unexpected scan_subpatterns for" (unsafe_get_field :named_name dis))
     (assert_msg "@$@unexpected scansubpat_anyrecv")
 ))
 (install_method discr_any_receiver scan_subpatterns scansubpat_anyrecv)
 
 (defun scansubpat_noop (recv fun ctx)
+  (debug "scansubpat_noop recv=" recv)
   ()
 )
 (install_method class_source_pattern_variable scan_subpatterns scansubpat_noop)
 (install_method class_source_pattern_constant scan_subpatterns scansubpat_noop)
 
 (defun scansubpat_or (recv fun ctx)
+  (debug "scansubpat_or recv=" recv)
   (let ( (disjtup (unsafe_get_field :orpat_disj recv)) )
     (foreach_in_multiple
      (disjtup)
@@ -2909,6 +2923,7 @@ the flags of the $STEP with an extra context $CTX.}#
 (install_method class_source_pattern_or scan_subpatterns scansubpat_or)
 
 (defun scansubpat_and (recv fun ctx)
+  (debug "scansubpat_and recv=" recv)
   (let ( (conjtup (unsafe_get_field :andpat_conj recv)) )
     (foreach_in_multiple
      (conjtup)
@@ -2918,6 +2933,7 @@ the flags of the $STEP with an extra context $CTX.}#
 
 
 (defun scansubpat_construct (recv fun ctx)
+  (debug "scansubpat_construct recv=" recv)
   (let ( (subpatup (unsafe_get_field :ctpat_subpa recv)) )
     (foreach_in_multiple
      (subpatup)
@@ -2926,6 +2942,7 @@ the flags of the $STEP with an extra context $CTX.}#
 (install_method class_source_pattern_construct scan_subpatterns scansubpat_construct)
 
 (defun scansubpat_object (recv fun ctx)
+  (debug "scansubpat_object recv=" recv)
   (let ( (patfieltup (unsafe_get_field :spat_fields recv)) )
     (foreach_in_multiple
      (patfieltup)
@@ -2934,13 +2951,14 @@ the flags of the $STEP with an extra context $CTX.}#
 	 (fun (unsafe_get_field :spaf_pattern curpatfld) ctx)))))
 (install_method class_source_pattern_object scan_subpatterns scansubpat_object)
 
-(defun scansubpat_composite (recv fun ctx)
-  (let ( (outup (unsafe_get_field :spac_outargs recv)) )
+(defun scansubpat_construct (recv fun ctx)
+  (debug "scansubpat_construct recv=" recv)
+  (let ( (outup (unsafe_get_field :ctpat_subpa recv)) )
     (foreach_in_multiple
      (outup)
      (curout :long oix)
      (fun curout ctx))))
-(install_method class_source_pattern_construct scan_subpatterns scansubpat_composite)
+(install_method class_source_pattern_construct scan_subpatterns scansubpat_construct)
 
 
 (defun fill_matchcase (curmcase sloc)
@@ -3333,16 +3351,7 @@ the flags of the $STEP with an extra context $CTX.}#
 
 
 
-
-(defun translpat_tuplepat (recv mdata mcase varmap sloc)
-  (assert_msg "check recv" (is_a recv class_source_pattern_tuple))
-  (debug "translpat_tuplepat recv" recv)
-  (error_plain sloc "@@unimplemented translpat_tuplepat")
-  (assert_msg "$@$ translpat_tuplepat unimplemented")
-)
-(install_method class_source_pattern_tuple translate_pattern translpat_tuplepat)
-
-
+;;;;;;;;;;;;;;;;
 (defun translpat_listpat (recv mdata mcase varmap sloc)
   (assert_msg "check recv" (is_a recv class_source_pattern_list))
   (debug "translpat_listpat recv" recv)
@@ -3353,6 +3362,95 @@ the flags of the $STEP with an extra context $CTX.}#
 
 
 
+;;;;;;;;;;;;;;;;
+(defun translpat_tuplepat (recv mdata mcase varmap psloc)
+  (debug "translpat_tuplepat recv=" recv " mdata=" mdata " mcase=" mcase)
+  (assert_msg "check recv" (is_a recv class_source_pattern_tuple))
+  (assert_msg "check mdata" (is_a mdata class_matched_data))
+  (assert_msg "check mcase" (is_a mcase class_match_case))
+  (let ( (sloc (or (unsafe_get_field :loca_location recv) psloc))
+	 (subpatup (unsafe_get_field :ctpat_subpa recv))
+	 (:long nbsubpat (multiple_length subpatup))
+	 (patcomplist (make_list discr_list))
+	 (mctxt (unsafe_get_field :mcase_mctxt mcase))
+	 )
+    (foreach_in_multiple
+     (subpatup)
+     (cursubpat :long patix)
+     (debug "translpat_tuplepat cursubpat=" cursubpat 
+	    " patix=" patix)
+     (assert_msg "check cursubpat" (is_a cursubpat class_source_pattern))
+     (if (is_not_a cursubpat class_source_pattern_joker_variable)
+	 (let ( (tucomp (instance class_tuple_component_pattern
+				  :tupcp_pattern cursubpat
+				  :tupcp_index (make_integerbox discr_constant_integer patix)))
+		)
+	   (list_append patcomplist tucomp)
+	   )))
+    (debug "translpat_tuplepat  patcomplist=" patcomplist)
+    (let ( (rawpatcomptup (list_to_multiple patcomplist discr_multiple))
+	   (sortedpatcomptup
+	    (multiple_sort
+	     rawpatcomptup
+	     (lambda (tc1 tc2)
+	       (let ( (:long wtc1 (get_int (get_field :pat_weight (get_field :tupcp_pattern tc1))))
+		      (:long wtc2 (get_int (get_field :pat_weight (get_field :tupcp_pattern tc2))))
+		      )
+		 (cond
+		  ( (==i wtc1 wtc2) '0)
+		  ( (<i wtc1 wtc2) '1)
+		  (:else '-1))))
+	     discr_multiple))
+	   )
+      (debug "translpat_tuplepat sortedpatcomptup=" sortedpatcomptup 
+	     "\n class_match_step_test_multiple=" class_match_step_test_multiple)
+      ;; find our step if its exist or else create it, also find the
+      ;; last test step to add our new test in its else case
+      (let ( (istep ())
+	     (laststeptest ())
+	     (steplist (unsafe_get_field :mdata_steps mdata))
+	     )
+	(foreach_in_list
+	 (steplist)
+	 (curpair curstep)
+	 (cond 
+	  ( (and (is_a curstep class_match_step_test_multiple)
+		 (==i (multiple_length (get_field :msttup_components curstep))
+		      nbsubpat))
+	    (setq curpair ())
+	    (setq istep curstep))
+	  ( (is_a curstep class_match_step_test)
+	    (setq laststeptest curstep))
+	  ))				; end foreach in steplist
+	(debug "translpat_tuplepat laststeptest=" laststeptest " istep=" istep)
+	(if (null istep)
+	    (let (
+		  (dcomp (make_multiple discr_multiple nbsubpat))
+		  (newstep (instance class_match_step_test_multiple
+				     :loca_location sloc
+				     :mstep_data mdata
+				     :mstep_then ()
+				     :mstep_else ()
+				     :msttup_components dcomp))
+		  )
+	      (setq istep newstep)
+	      (debug "translpat_tuplepat newstep" newstep)
+	      (list_append steplist newstep)
+	      (debug "translpat_tuplepat updated steplist=" steplist)
+	      (if laststeptest
+		  (progn 
+		    (put_else_match laststeptest newstep)
+		    (debug "translpat_tuplepat updated laststeptest=" laststeptest)))
+	      ))
+	(error_plain sloc "@@unimplemented translpat_tuplepat")
+	(assert_msg "$@$ translpat_tuplepat unimplemented")
+	)
+      )))
+(install_method class_source_pattern_tuple translate_pattern translpat_tuplepat)
+
+
+
+;;;;;;;;;;;;;;;;
 (defun translpat_inspat (recv mdata mcase varmap psloc)
   (debug "translpat_inspat recv" recv)
   (assert_msg "check recv" (is_a recv class_source_pattern_instance))
@@ -4147,37 +4245,98 @@ the flags of the $STEP with an extra context $CTX.}#
      (if curslot
 	 (progn
 	   (assert_msg "check curslot" (is_a curslot class_matched_data))
+	   (let ( 
+		 (curslotdata  (mapobject_get datamap curslot))
+		 (fld (multiple_nth (get_field :class_fields testclass) slix))
+		 (fldname (get_field :named_name fld))
+		 )
 	   (add2out_indentnl edgebuf 0)
-	   (add2out_string edgebuf stepname)
-	   (add2out_strconst edgebuf " /*testinslot*/ -> /*data*/")
-	   (add2out_string edgebuf (mapobject_get datamap curslot))
-	   (add2out_strconst edgebuf " [ arrowhead=open,")
-	   (let ( (fld (multiple_nth (get_field :class_fields testclass) slix)) )
-	     (assert_msg "check fld" (is_a fld class_field))
-	     (add2out_strconst edgebuf " label=<<font point-size=\"6.5\" color=\"indigo\">")
-	     (add2out_string edgebuf (get_field :named_name fld))
-	     (add2out_strconst edgebuf "</font>>, "))
-	     (add2out_strconst edgebuf " color=violet, style=dotted ];")
+	   (assert_msg "check fld" (is_a fld class_field))
+	   (add2out edgebuf ##{$STEPNAME /* testinslot */ -> /*data*/ $CURSLOTDATA 
+      [ arrowhead=open, label=<<font point-size="6.5" color="indigo">$FLDNAME</font>>,  color=violet, style=dotted ];
+		    }#)
+	     )
 	   ))
      )
     (if thenname
 	(progn
 	  (add2out_indentnl edgebuf 0)
-	  (add2out_string edgebuf stepname)
-	  (add2out_strconst edgebuf " /*then*/ -> ")
-	  (add2out_string edgebuf thenname)
-	  (add2out_strconst edgebuf " [ arrowhead=normal, color=green ];")
-	  ))
+	  (add2out edgebuf ##{$STEPNAME /*then*/ -> $THENNAME  [ arrowhead=normal, color=green ];}#
+		   )))
     (if elsename
 	(progn
 	  (add2out_indentnl edgebuf 0)
-	  (add2out_string edgebuf stepname)
-	  (add2out_strconst edgebuf " /*else*/ -> ")
-	  (add2out_string edgebuf elsename)
-	  (add2out_strconst edgebuf " [ arrowhead=diamond, color=red ];")
-	  ))
+	  (add2out edgebuf ##{$STEPNAME /*then*/ -> $ELSENAME  [ arrowhead=diamond, color=red ];}#
+		   )))
     ))
 (install_method class_match_step_test_instance matchgraphic_altstep mgaltstep_steptestinst)
+
+
+;;;;;;;;;;;;;;;;
+
+(defun mgaltstep_steptestmult (step mg)
+  (debug "mgaltstep_steptestmult step" step)
+  (assert_msg "check step" (is_a step class_match_step_test_multiple))
+  (assert_msg "check mg" (is_a mg class_match_graphic))
+  (let ( (loca (unsafe_get_field :loca_location step))
+	 (nodebuf (unsafe_get_field :mchgx_nodout mg))
+	 (edgebuf (unsafe_get_field :mchgx_edgout mg))
+	 (sthen (unsafe_get_field :mstep_then step))
+	 (selse (unsafe_get_field :mstep_else step))
+	 (sdata (unsafe_get_field :mstep_data step))
+	 (sindex (unsafe_get_field :mstep_index step))
+	 (scomp (unsafe_get_field :msttup_components step))
+	 (datamap (unsafe_get_field :mchgx_datanamemap mg))
+	 (stepmap (unsafe_get_field :mchgx_stepnamemap mg))
+	 (stepname (mapobject_get stepmap step))
+	 (thenname (if sthen (mapobject_get stepmap sthen)))
+	 (elsename (if selse (mapobject_get stepmap selse)))
+	 (:long stephash (obj_hash step))
+	 (:long nbcomp (multiple_length scomp))
+	 (dis (discrim step))
+	 (clanam (get_field :named_name dis))
+	 )
+    (add2out_strconst nodebuf "<tr><td><font color=\"hotpink\" face=\"Times-Roman Bold\" point-size=\"6\">")
+    (code_chunk 
+     outclanam
+     #{ /* $OUTCLANAM */
+     meltgc_add_out ((melt_ptr_t) $NODEBUF,
+		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
+     }#)
+    (add2out nodebuf ##{</font>  <font color="darkred" face="Courier" point-size="6">^$NBCOMP</font>}#)
+    (add2out_strconst nodebuf "<td>")
+    (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
+    (add2sbuf_short_mixloc nodebuf loca)
+    (add2out_strconst nodebuf "</font></td> </tr>")
+    (add2out_indentnl nodebuf 0)
+    ;;
+    (foreach_in_multiple
+     (scomp)
+     (curcomp :long cpix)
+     (if curcomp
+	 (progn
+	   (assert_msg "check curcomp" (is_a curcomp class_matched_data))
+	   (let ( 
+		 (curcompdata  (mapobject_get datamap curcomp))
+		 )
+	   (add2out_indentnl edgebuf 0)
+	   (add2out edgebuf ##{$STEPNAME /* testtuplcomp */ -> /*data*/ $CURCOMPDATA 
+      [ arrowhead=open, label=<<font point-size="6.5" color="indigo">[$CPIX]</font>>,  color=violet, style=dotted ];
+		    }#)
+	   ))))
+    ;;
+    (if thenname
+	(progn
+	  (add2out_indentnl edgebuf 0)
+	  (add2out edgebuf ##{$STEPNAME /*then*/ -> $THENNAME [ arrowhead=normal, color=green ];}#
+		   )))
+    (if elsename
+	(progn
+	 (add2out_indentnl edgebuf 0)
+	 (add2out edgebuf ##{$STEPNAME /*else*/ -> $ELSENAME  [ arrowhead=diamond, color=red ];}#
+		  )))
+    ))
+(install_method class_match_step_test_multiple matchgraphic_altstep mgaltstep_steptestmult)
 
 ;;;;;;;;;;;;;;;;
 (defun mgaltstep_steptestgroup (step mg)
@@ -4213,19 +4372,13 @@ the flags of the $STEP with an extra context $CTX.}#
     (if thenname
 	(progn
 	  (add2out_indentnl edgebuf 0)
-	  (add2out_string edgebuf stepname)
-	  (add2out_strconst edgebuf " /*then*/ -> ")
-	  (add2out_string edgebuf thenname)
-	  (add2out_strconst edgebuf " [ arrowhead=normal, color=green ];")
-	  ))
+	  (add2out edgebuf ##{$STEPNAME /*then*/ -> $THENNAME [ arrowhead=normal, color=green ];}#
+		   )))
     (if elsename
 	(progn
-	  (add2out_indentnl edgebuf 0)
-	  (add2out_string edgebuf stepname)
-	  (add2out_strconst edgebuf " /*else*/ -> ")
-	  (add2out_string edgebuf elsename)
-	  (add2out_strconst edgebuf " [ arrowhead=diamond, color=red ];")
-	  ))
+	 (add2out_indentnl edgebuf 0)
+	 (add2out edgebuf ##{$STEPNAME /*else*/ -> $ELSENAME  [ arrowhead=diamond, color=red ];}#
+		  )))
     ))
 (install_method class_match_step_test_group matchgraphic_altstep mgaltstep_steptestgroup)
 
@@ -6547,6 +6700,7 @@ normalized expression.}#
  class_match_step_test_group
  class_match_step_test_instance
  class_match_step_test_matcher
+ class_match_step_test_multiple
  class_match_step_test_variable
  class_match_step_then
  class_match_step_with_data

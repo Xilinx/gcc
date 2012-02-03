@@ -1,5 +1,14 @@
 
 2011-02-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (class_match_step_test_multiple): New
+	class.
+	(scansubpat_composite) renamed as..
+	(scansubpat_construct) ..
+	(translpat_tuplepat): More, but not yet complete...
+	(mgaltstep_steptestmult) New method for matchgraphic_altstep on
+	class_match_step_test_multiple.
+
+2011-02-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_set_flag_debug, melt_clear_flag_debug): New
 	declarations.
 	* melt-runtime.c (meltgc_do_initial_mode): Better debug printf.
