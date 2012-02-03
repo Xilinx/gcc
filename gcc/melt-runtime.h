@@ -227,6 +227,12 @@ extern int melt_flag_bootstrapping;
 
 /* the maximal debug depth - should be a parameter */
 #define MELTDBG_MAXDEPTH 7
+
+/* Useful, notably to be called from GDB, since melt_flag_debug might
+   be a macro ... */
+extern void melt_set_flag_debug (void);
+extern void melt_clear_flag_debug (void);
+
 static inline int 
 melt_need_debug (int depth) {
   return 

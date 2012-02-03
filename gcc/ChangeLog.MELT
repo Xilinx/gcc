@@ -1,4 +1,13 @@
 
+2011-02-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_set_flag_debug, melt_clear_flag_debug): New
+	declarations.
+	* melt-runtime.c (meltgc_do_initial_mode): Better debug printf.
+	(meltgc_set_user_options): New function.
+	(meltgc_load_modules_and_do_mode): Call it.
+	(melt_set_flag_debug, melt_clear_flag_debug): New functions.
+	* testsuite/melt/tmatch-1.melt: improve comment.
+
 2011-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_passexec_callback): Bigger location buf.
 	(meltgc_do_initial_mode): Verbose debugging of exit builtin mode,

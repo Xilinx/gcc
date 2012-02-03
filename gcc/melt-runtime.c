@@ -9610,7 +9610,8 @@ meltgc_do_initial_mode (melt_ptr_t modata_p, const char* modstr)
       /* the mode exit is builtin */
       if (curmodstr && !strcmp (curmodstr, "exit"))
 	{
-	  debugeprintf("meltgc_do_initial_mode MELT setting exit_after_options for exit builtin mode");
+	  debugeprintf("meltgc_do_initial_mode MELT setting exit_after_options for built-in mode '%s'", 
+		       curmodstr);
 	  exit_after_options = true;
 	  goto end;
 	}
@@ -9681,6 +9682,97 @@ meltgc_do_initial_mode (melt_ptr_t modata_p, const char* modstr)
 }
 
 
+
+static void
+meltgc_set_user_options (const char* optstr)
+{
+#if MELT_HAVE_DEBUG
+  char locbuf[220];
+#endif
+  MELT_ENTERFRAME(3, NULL);
+#define optsetv    meltfram__.mcfr_varptr[0]
+#define optsymbv   meltfram__.mcfr_varptr[1]
+#define optresv    meltfram__.mcfr_varptr[2]
+  debugeprintf ("meltgc_set_user_options start option; optstr %s",
+		optstr);
+  if (optstr)
+    debugeprintf ("meltgc_set_user_options optstr.len %d ", 
+		  (int) strlen (optstr));
+  optsetv = NULL;
+  if (optstr && optstr[0]) {
+    optsetv=melt_get_inisysdata (MELTFIELD_SYSDATA_OPTION_SET);
+    debugeprintf("meltfield_sysdata_option_set optsetv %p for optstr '%s'", optsetv, optstr);
+    if (optsetv != NULL
+	&& melt_magic_discr ((melt_ptr_t) optsetv) == MELTOBMAG_CLOSURE) 
+      {
+	char *optc = 0;
+	char *optname = 0;
+	char *optvalue = 0;
+	for (optc = CONST_CAST (char *, optstr);
+	     optc && *optc;
+	     )
+	  {
+	    optname = optvalue = NULL;
+	    if (!ISALPHA(*optc))
+	      melt_fatal_error ("invalid MELT option name %s [should start with letter]",
+				optc);
+	    optname = optc;
+	    while (*optc && (ISALNUM(*optc) || *optc=='_' || *optc=='-'))
+	      optc++;
+	    if (*optc == '=') 
+	      {
+		warning(0, "MELT option %s with obsolete equal sign '=' replaced by colon ':'", 
+			optstr);
+		*optc = ':';
+	      }
+	    if (*optc == ':') 
+	      {
+		*optc = (char)0;
+		optc++;
+		optvalue = optc;
+		while (*optc && *optc != ',')
+		  optc++;
+	      }
+	    if (*optc==',') {
+	      *optc = (char)0;
+	      optc++;
+	    }
+	    debugeprintf("optname '%s", optname);
+	    if (!optname || !optname[0])
+	      error ("MELT option %s without valid name", optstr);
+	    optsymbv = meltgc_named_symbol (optname, MELT_CREATE);
+	    debugeprintf("optname '%s got optsymbv %p", optname, optsymbv);
+	    {
+	      union meltparam_un pararg[1];
+	      memset (&pararg, 0, sizeof (pararg));
+	      pararg[0].meltbp_cstring = optvalue;
+	      MELT_LOCATION_HERE_PRINTF (locbuf, 
+					 "meltgc_set_user_options option %s set before apply", optname);
+	      debugeprintf ("MELT option %s value %s", optname,
+			    optvalue?optvalue:"_");
+	      optresv =
+		melt_apply ((meltclosure_ptr_t) optsetv,
+			    (melt_ptr_t) optsymbv,
+			    MELTBPARSTR_CSTRING, pararg, "", NULL);
+	      if (!optresv)
+		warning (0, "unhandled MELT option %s", optname);
+    
+	      /* after options setting, force a minor collection to ensure
+		 nothing is left in young region */
+	      MELT_LOCATION_HERE ("meltgc_set_user_options option set done");
+	      melt_garbcoll (0, MELT_ONLY_MINOR);
+	    }
+	  }
+      }
+  }
+  MELT_EXITFRAME();
+#undef optsetv
+#undef optsymbv
+#undef optresv
+}
+
+  
+
 static void  
 meltgc_load_modules_and_do_mode (void)
 {
@@ -9689,17 +9781,13 @@ meltgc_load_modules_and_do_mode (void)
   const char*modstr = NULL;
   const char*inistr = NULL;
   const char* xtrastr = NULL;
-  const char* optstr = NULL;
   char *dupmodpath = NULL;
   int lastmodix = 0;
 #if MELT_HAVE_DEBUG
-  char locbuf[220];
+  char locbuf[240];
 #endif
-  MELT_ENTERFRAME(4, NULL);
+  MELT_ENTERFRAME(1, NULL);
 #define modatv     meltfram__.mcfr_varptr[0]
-#define optsetv    meltfram__.mcfr_varptr[1]
-#define optsymbv   meltfram__.mcfr_varptr[2]
-#define optresv    meltfram__.mcfr_varptr[3]
   modstr = melt_argument ("mode");
   inistr = melt_argument ("init");
   debugeprintf ("meltgc_load_modules_and_do_mode start modstr %s inistr %s", 
@@ -9821,92 +9909,40 @@ meltgc_load_modules_and_do_mode (void)
   if (melt_get_inisysdata (MELTFIELD_SYSDATA_MODE_DICT) && modstr
       && modstr[0])
     {
-    /**
-     * First we set MELT options.
-     **/
-    MELT_LOCATION_HERE ("before setting options");
-    optstr = melt_argument ("option");
-    debugeprintf ("meltgc_load_modules_and_do_mode start option; optstr %s",
-		  optstr);
-    if (optstr)
-      debugeprintf ("meltgc_load_modules_and_do_mode optstr.len %d with modstr %s", 
-		    strlen(optstr), modstr);
-    else
-      debugeprintf ("meltgc_load_modules_and_do_mode null optstr with modstr %s",
-		    modstr);
-    optsetv = NULL;
-    if (optstr && optstr[0]) {
-      optsetv=melt_get_inisysdata (MELTFIELD_SYSDATA_OPTION_SET);
-      debugeprintf("meltfield_sysdata_option_set optsetv %p for optstr '%s'", optsetv, optstr);
-      if (optsetv != NULL
-	&& melt_magic_discr ((melt_ptr_t) optsetv) == MELTOBMAG_CLOSURE) 
-      {
-	char *optc = 0;
-	char *optname = 0;
-	char *optvalue = 0;
-	for (optc = CONST_CAST (char *, optstr);
-	     optc && *optc;
-	     )
-	  {
-	    optname = optvalue = NULL;
-	    if (!ISALPHA(*optc))
-	      melt_fatal_error ("invalid MELT option name %s [should start with letter]",
-				optc);
-	    optname = optc;
-	    while (*optc && (ISALNUM(*optc) || *optc=='_' || *optc=='-'))
-	      optc++;
-	    if (*optc == ':') {
-	      *optc = (char)0;
-	      optc++;
-	      optvalue = optc;
-	      while (*optc && *optc != ',')
-		optc++;
-	    }
-	    if (*optc==',') {
-	      *optc = (char)0;
-	      optc++;
-	    }
-	    optsymbv = meltgc_named_symbol (optname, MELT_CREATE);
-	    {
-	      union meltparam_un pararg[1];
-	      memset (&pararg, 0, sizeof (pararg));
-	      pararg[0].meltbp_cstring = optvalue;
-	      MELT_LOCATION_HERE ("meltgc_load_modules_and_do_mode option set before apply");
-	      debugeprintf ("MELT option %s value %s", optname,
-			    optvalue?optvalue:"_");
-	      optresv =
-		melt_apply ((meltclosure_ptr_t) optsetv,
-			    (melt_ptr_t) optsymbv,
-			    MELTBPARSTR_CSTRING, pararg, "", NULL);
-	      if (!optresv)
-		warning (0, "unhandled MELT option %s", optname);
-	    }
-	  }
-    
-	/* after options setting, force a minor collection to ensure
-	   nothing is left in young region */
-	MELT_LOCATION_HERE ("meltgc_load_modules_and_do_mode option set done");
-	melt_garbcoll (0, MELT_ONLY_MINOR);
-      }
-    }
-    MELT_LOCATION_HERE ("meltgc_load_modules_and_do_mode after handling options");
-      MELT_LOCATION_HERE
-	("meltgc_load_modules_and_do_mode load_initial_melt_modules before do_initial_mode");
+      /**
+       * First we set MELT options.
+       **/
+      const char* optstr = melt_argument("option");
+      debugeprintf("meltgc_load_modules_and_do_mode optstr %s", optstr);
+      if (optstr && optstr[0]) 
+	{
+	  char* optdup = xstrdup (optstr);
+	  MELT_LOCATION_HERE_PRINTF
+	      (locbuf,
+	       "meltgc_load_modules_and_do_mode mode %s before setting options %s", modstr, optdup);
+	  debugeprintf("meltgc_load_modules_and_do_mode handling user options optdup %s", 
+		       optdup);
+	  meltgc_set_user_options (optdup);
+	  debugeprintf("meltgc_load_modules_and_do_mode handled user options optdup %s", 
+		       optdup);
+	  free (optdup);
+	}
+      MELT_LOCATION_HERE_PRINTF 
+	(locbuf, 
+	 "meltgc_load_modules_and_do_mode before do_initial_mode mode %s", modstr);
       meltgc_do_initial_mode ((melt_ptr_t) modatv, modstr);
       debugeprintf
 	("meltgc_load_modules_and_do_mode after do_initial_mode  mode_string %s",
 	 modstr);
-      MELT_LOCATION_HERE
-	("meltgc_load_modules_and_do_mode after do_initial_mode");
+      MELT_LOCATION_HERE_PRINTF
+	(locbuf, "meltgc_load_modules_and_do_mode after do_initial_mode mode %s", modstr);
     }
   else if (modstr)
     melt_fatal_error ("melt with mode string %s without mode dispatcher",
 		      modstr);
  end:
   MELT_EXITFRAME ();
-#undef dumpv
 #undef modatv
-#undef optsetv
   if (dupmodpath)
     free (dupmodpath), dupmodpath = NULL;
 }
@@ -13401,5 +13437,23 @@ melt_sparebreakpoint_2_at (const char*fil, int lin, void*ptr, const char*msg) {
 #endif /*ENABLE_CHECKING*/
 
 
+
+void melt_set_flag_debug (void) 
+{
+  time_t now;
+  melt_flag_debug = 1;
+  time (&now);
+  debugeprintf(" melt_set_flag_debug  forcibly set debug %s", 
+	       ctime(&now));
+}
+
+void melt_clear_flag_debug (void) 
+{
+  time_t now;
+  time (&now);
+  debugeprintf(" melt_clear_flag_debug forcibly clear debug %s", 
+	       ctime(&now));
+  melt_flag_debug = 0;
+}
 
 /* eof $Id$ */
