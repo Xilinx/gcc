@@ -8461,6 +8461,7 @@ output_attr_index_or_value (dw_attr_ref a)
         break;
       case dw_val_class_range_list:
         output_range_list_offset (a);
+        break;
       default:
         gcc_unreachable ();
     }
