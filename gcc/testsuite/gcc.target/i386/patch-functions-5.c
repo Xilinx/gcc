@@ -1,4 +1,5 @@
-/* { dg-do run} */
+/* { dg-do run } */
+/* { dg-require-effective-target lp64 } */
 /* { dg-options "-mpatch-functions-for-instrumentation -mpatch-functions-ignore-loops --param function-patch-min-instructions=0" } */
 
 /* Function should be patched with nop bytes with given options.

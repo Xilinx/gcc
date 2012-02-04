@@ -1,3 +1,16 @@
+2012-02-03   Harshit Chopra  <harshit@google.com>
+
+  Restricting the tests to run for 64-bit target since function patching
+	  is only supported for 64-bit targets.
+
+	* gcc.target/i386/patch-functions-1.c: Restrict to 64-bit targets.
+	* gcc.target/i386/patch-functions-2.c: Likewise
+	* gcc.target/i386/patch-functions-3.c: Likewise
+	* gcc.target/i386/patch-functions-4.c: Likewise
+	* gcc.target/i386/patch-functions-5.c: Likewise
+	* gcc.target/i386/patch-functions-6.c: Likewise
+	* gcc.target/i386/patch-functions-7.c: Likewise
+
 2011-02-01  Dehao Chen  <dehao@google.com>
 
 	* gcc.dg/predict-1.c: Check if LOOP_IV_COMPARE static predict

@@ -1,4 +1,5 @@
-/* { dg-do run} */
+/* { dg-do run } */
+/* { dg-require-effective-target lp64 } */
 /* { dg-options "-mpatch-functions-for-instrumentation -mno-patch-functions-main-always" } */
 
 /* Function is small to be instrumented with default values. Check there

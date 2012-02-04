@@ -1,4 +1,5 @@
-/* { dg-do run} */
+/* { dg-do run } */
+/* { dg-require-effective-target lp64 } */
 /* { dg-options "-mpatch-functions-for-instrumentation -mpatch-functions-ignore-loops -mno-patch-functions-main-always" } */
 
 /* Function is too small to be patched when ignoring the loop.

@@ -1,4 +1,5 @@
-/* { dg-do run} */
+/* { dg-do run } */
+/* { dg-require-effective-target lp64 } */
 /* { dg-options "-mpatch-functions-for-instrumentation --param function-patch-min-instructions=0" } */
 
 /* Function should have nop-bytes with -mpatch-function-min-instructions=0.

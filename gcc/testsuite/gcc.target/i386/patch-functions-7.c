@@ -1,4 +1,5 @@
-/* { dg-do run} */
+/* { dg-do run } */
+/* { dg-require-effective-target lp64 } */
 /* { dg-options "-mpatch-functions-for-instrumentation -mno-patch-functions-main-always" } */
 
 /* 'main' shouldn't be patched with the option -mno-patch-functions-main-always.
