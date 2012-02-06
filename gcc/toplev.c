@@ -240,6 +240,12 @@ announce_function (tree decl)
 {
   if (!quiet_flag)
     {
+
+      static long count;
+      count++;
+      if (count % 8 == 0)
+	putc('\n', stderr);
+
       if (rtl_dump_and_exit)
 	fprintf (stderr, "%s ",
 		 identifier_to_locale (IDENTIFIER_POINTER (DECL_NAME (decl))));

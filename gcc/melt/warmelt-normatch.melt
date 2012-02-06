@@ -2854,7 +2854,7 @@ originating matched data. Field $NRMATD_RANK is a unique rank.}#
 ;;;;;;;;;;;;;;;;
 ;;; make a flag for a given source pattern in a given matching context
 (defun make_match_flag (spat mcx str)
-  (debug "make_match_flag spat=" spat " mcx=" mcx)
+  (debug "make_match_flag spat=" spat " mcx=" mcx " str=" str)
   (assert_msg "check spat" (is_a spat class_source_pattern))
   (assert_msg "check mcx" (is_a mcx class_matching_context))
   (assert_msg "check str" (is_string str))
@@ -3496,7 +3496,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	  ;;
 	  (debug "translpat_tuplepat elselist" elselist)
 	  (let ( 
-		(mflag (make_match_flag recv mctxt (clone_symbol 'tupleflag)))
+		(mflag (make_match_flag recv mctxt '"tuple"))
 		(stepsetflag
 		 (if (list_first_element flaglist)
 		     (instance class_match_step_flag_conjunction
@@ -5295,6 +5295,8 @@ normalized expression.}#
       )))
 (install_method class_match_step_flag_conjunction normalize_step normstep_mflagconj)
 
+
+;;;;;;;;;;;;;;;;
 (defun normstep_mtestinstance (step nmctxt sloc)
   (debug "normstep_mtestinstance step" step)
   (assert_msg "check step" (is_a step class_match_step_test_instance))
@@ -5336,12 +5338,10 @@ normalized expression.}#
 			    :nif_then ()
 			    :nif_else ()))
 	  )
-      (debug "normstep_mtestinstance nthen" nthen)
-      (debug "normstep_mtestinstance nelse" nelse)
+      (debug "normstep_mtestinstance nthen=" nthen " nelse=" nelse)
       (assert_msg "check nthen" (is_a nthen class_nrep_match_label))
       (assert_msg "check nelse" (is_a nelse class_nrep_match_label))
-      (debug "normstep_mtestinstance njthen" njthen)
-      (debug "normstep_mtestinstance njelse" njelse)
+      (debug "normstep_mtestinstance njthen=" njthen " njelse=" njelse)
       (foreach_in_multiple
        (matslots)
        (curmslot :long curix)
@@ -5406,6 +5406,49 @@ normalized expression.}#
 (install_method class_match_step_test_instance normalize_step normstep_mtestinstance)
 
 
+;;;;;;;;;;;;;;;;
+
+(defun normstep_mtestmultiple (step nmctxt sloc)
+  (debug "normstep_mtestmultiple step=" step " sloc=" sloc "\n of discrim=" (discrim step))
+  (assert_msg "check step" (is_a step class_match_step_test_multiple))
+  (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
+  (let ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
+	 (matdata (unsafe_get_field :mstep_data step))
+	 (matthen (unsafe_get_field :mstep_then step))
+	 (matelse (unsafe_get_field :mstep_else step))
+	 (matindex (unsafe_get_field :mstep_index step))
+	 (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
+	 (:long matix (get_int matindex))
+	 (matcomp (unsafe_get_field :msttup_components step))
+	 )
+    (debug "normstep_mtestmultiple matdata=" matdata " matix=" matix " matcomp=" matcomp)
+    (let (
+	  (nthen (altmatch_normalize_step matthen nmctxt))
+	  (nelse (altmatch_normalize_step matelse nmctxt))
+	  (jumpthen (instance class_nrep_match_jump
+			      :nmjmp_label nthen))
+	  (jumpelse (instance class_nrep_match_jump
+			      :nmjmp_label nelse))
+	  (njthen (complete_normstep_if_last step jumpthen nmctxt))
+	  (njelse (complete_normstep_if_last step jumpelse nmctxt))
+	  (ncx (get_field :mctx_normctxt matctx))
+	  (env (get_field :mctx_env matctx))
+	  )
+      (debug "normstep_mtestmultiple nthen=" nthen " nelse=" nelse)
+      (assert_msg "check nthen" (is_a nthen class_nrep_match_label))
+      (assert_msg "check nelse" (is_a nelse class_nrep_match_label))
+      (debug "normstep_mtestmultiple njthen=" njthen " njelse=" njelse)
+      (foreach_in_multiple
+       (matcomp)
+       (curmcomp :long curix)
+       (debug "normstep_mtestmultiple curmcomp=" curmcomp " curix=" curix)
+       )
+      (error_plain nsloc "unimplemented NORMALIZE_STEP for TUPLE")
+      (assert_msg "@$@unimplemented normstep_mtestmultiple")
+      )))
+
+(install_method class_match_step_test_multiple normalize_step normstep_mtestmultiple)
+;;;;;;;;;;;;;;;;
 
 (defun normstep_mtestvar (step nmctxt sloc)
   (debug "normstep_mtestvar step" step)

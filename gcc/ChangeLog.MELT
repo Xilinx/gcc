@@ -1,5 +1,12 @@
 
 2011-02-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* toplev.c (announce_function): Emit newline periodically.
+
+	* melt/warmelt-normatch.melt (normstep_mtestmultiple): New
+	incomplete method for normalize_step in
+	class_match_step_test_multiple.
+
+2011-02-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (translpat_tuplepat): Done.
 
 2011-02-06  Basile Starynkevitch  <basile@starynkevitch.net>
