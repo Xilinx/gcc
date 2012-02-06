@@ -1,6 +1,6 @@
 // { dg-options "-std=gnu++0x" }
 
-// Copyright (C) 2005, 2006, 2007, 2009, 2012 Free Software Foundation
+// Copyright (C) 2012 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -17,42 +17,26 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-// 20.6.6.2 Template class shared_ptr [util.smartptr.shared]
+#include <atomic>
 
-#include <memory>
-#include <testsuite_hooks.h>
-
-struct A { };
-
-// 20.6.6.2.1 shared_ptr constructors [util.smartptr.shared.const]
-
-// Construction from expired weak_ptr
-int
-test01()
+enum class tacos : int
 {
-  bool test = false;
+  cancun = 4,
+  el_loco = 5,
+  sabor = 6,
+  papalote = 9,
+  licious = 44,
+  jarritos = 55
+};
 
-  std::shared_ptr<A> a1(new A);
-  std::weak_ptr<A> wa(a1);
-  a1.reset();
-  VERIFY( wa.expired() );
-  try
-  {
-    std::shared_ptr<A> a2(wa);
-  }
-  catch (const std::bad_weak_ptr&)
-  {
-    // Expected.
-    test = true;
-  }
-  VERIFY( test );
-
-  return 0;
-}
-
-int
-main()
+// should minimally compile and link
+int main()
 {
-  test01();
+  std::atomic<float> af(0.0f);
+  float non_af = af;
+  
+  std::atomic<tacos> ae(tacos::sabor);
+  tacos non_ae = ae;
+
   return 0;
 }

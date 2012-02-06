@@ -1,3 +1,75 @@
+2012-02-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/48680
+	* doc/invoke.texi (C++ Dialect Options): Use @option markup for
+	-Weffc++ and specify guidelines come from second edition.
+
+2012-02-05  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.md (sibcall_internal, sibcall_value_internal)
+	(sibcall_value_multiple_internal, call_split, call_internal_direct)
+	(call_direct_split, call_value_split, call_value_internal_direct)
+	(call_value_direct_split, call_value_multiple_split): Use jal and
+	jal_macro attributes.
+
+2012-02-05  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* reload1.c (reload_regs_reach_end_p): Replace with...
+	(reload_reg_rtx_reaches_end_p): ...this function.
+	(new_spill_reg_store): Update commentary.
+	(emit_input_reload_insns): Don't clear new_spill_reg_store here.
+	(emit_output_reload_insns): Check reload_reg_rtx_reaches_end_p
+	before setting new_spill_reg_store.
+	(emit_reload_insns): Use a separate loop to clear new_spill_reg_store.
+	Use reload_reg_rtx_reaches_end_p instead of reload_regs_reach_end_p.
+	Also use reload_reg_rtx_reaches_end_p when reading new_spill_reg_store
+	for non-spill reload registers.
+
+2012-02-05  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/52091
+	* tree-vectorizer.h (vect_is_simple_use): Add an argument.
+	(vect_is_simple_use_1): Likewise.
+	* tree-vect-loop.c (vectorizable_reduction): Update calls
+	to vect_is_simple_use_1 and vect_is_simple_use.
+	(vectorizable_live_operation): Likewise.
+	* tree-vect-patterns.c (widened_name_p,
+	vect_recog_vector_vector_shift_pattern, check_bool_pattern):
+	Likewise.
+	* tree-vect-stmts.c (process_use, vect_get_vec_def_for_operand,
+	vectorizable_call, vectorizable_conversion,
+	vectorizable_assignment, vectorizable_shift,
+	vectorizable_operation, vectorizable_store, vectorizable_load):
+	Likewise.
+	(vect_is_simple_cond): Add an argument, pass it to
+	vect_is_simple_use_1.
+	(vectorizable_condition): Update calls to vect_is_simple_cond,
+	vect_is_simple_use.
+	(vect_is_simple_use): Add an argument, the statement in which
+	OPERAND is used.  Check that if OPERAND's def stmt is a double
+	reduction phi node, the use is a phi node too.
+	(vect_is_simple_use_1): Add an argument, pass it to
+	vect_is_simple_use.
+	* tree-vect-slp.c (vect_get_and_check_slp_defs): Update a call
+	to vect_is_simple_use.
+
+2012-02-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/52095
+	* modulo-sched.c (dump_insn_locator): New function.
+	(loop_canon_p, sms_schedule): Use it.
+
+	PR rtl-optimization/52113
+	* lower-subreg.c (decompose_multiword_subregs): Call recog_memoized
+	even for decomposable shift/zext insns.
+
+2012-02-03  Jakub Jelinek  <jakub@redhat.com>
+	    Zdenek Dvorak  <ook@ucw.cz>
+
+	PR rtl-optimization/52092
+	* loop-unswitch.c (unswitch_single_loop): Call copy_rtx_if_shared
+	on get_iv_value result.
+
 2012-02-02  Andrew Pinski  <apinski@cavium.com>
 
 	PR middle-end/47982
