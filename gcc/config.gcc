@@ -1863,6 +1863,7 @@ microblaze*-*-elf)
 	c_target_objs="${c_target_objs} microblaze-c.o"
 	cxx_target_objs="${cxx_target_objs} microblaze-c.o"
 	tmake_file="${tmake_file} microblaze/t-microblaze"
+	extra_parts="crtbegin.o crtbeginS.o crtend.o crtendS.o crtbeginT.o"
         ;;
 microblaze*-*-*)
        	case $target in
