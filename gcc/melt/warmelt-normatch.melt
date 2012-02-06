@@ -5353,7 +5353,7 @@ normalized expression.}#
 		    (curfld (multiple_nth clafields curix))
 		    (nflexp (instance class_nrep_unsafe_get_field
 				      :nrep_loc nsloc
-				      :nuget_obj nslot
+				      :nuget_obj ndata
 				      :nuget_field curfld))
 		    (nsetf (instance class_nrep_setq
 				     :nrep_loc nsloc
@@ -5420,6 +5420,7 @@ normalized expression.}#
 	 (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
 	 (:long matix (get_int matindex))
 	 (matcomp (unsafe_get_field :msttup_components step))
+	 (ndata (altmatch_normalize_mdata matdata nmctxt))
 	 )
     (debug "normstep_mtestmultiple matdata=" matdata " matix=" matix " matcomp=" matcomp)
     (let (
@@ -5440,8 +5441,26 @@ normalized expression.}#
       (debug "normstep_mtestmultiple njthen=" njthen " njelse=" njelse)
       (foreach_in_multiple
        (matcomp)
-       (curmcomp :long curix)
-       (debug "normstep_mtestmultiple curmcomp=" curmcomp " curix=" curix)
+       (curmdata :long curix)
+       (debug "normstep_mtestmultiple curmdata=" curmdata " curix=" curix)
+       (if curmdata
+	   (progn
+	     (assert_msg "check curmdata" (is_a curmdata class_matched_data))
+	     (let 
+		   ( (ncompdata (altmatch_normalize_mdata curmdata nmctxt))
+		     (ncompexp (instance class_nrep_unsafe_nth_component
+					 :nrep_loc nsloc
+					 :nunth_tuple ndata
+					 :nunth_index (make_integerbox discr_constant_integer curix)
+					 ))
+		    (nsetf (instance class_nrep_setq
+				     :nrep_loc nsloc
+				     :nstq_var ncompdata
+				     :nstq_exp ncompexp))
+		   )
+	       (debug "normstep_mtestmultiple ncompdata=" ncompdata 
+			  "\n ncompexp=" ncompexp "\n nsetf=" nsetf)
+	       )))
        )
       (error_plain nsloc "unimplemented NORMALIZE_STEP for TUPLE")
       (assert_msg "@$@unimplemented normstep_mtestmultiple")

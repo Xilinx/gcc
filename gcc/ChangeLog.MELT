@@ -1,5 +1,8 @@
 
 2011-02-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (normstep_mtestmultiple): More.
+
+2011-02-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* toplev.c (announce_function): Emit newline periodically.
 
 	* melt/warmelt-normatch.melt (normstep_mtestmultiple): New
