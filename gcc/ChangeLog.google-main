@@ -1,3 +1,8 @@
+2012-02-06   Dmitriy Vyukov  <dvyukov@google.com>
+
+	Port revision 183839 from google/gcc-4_6 branch.
+	* tree-tsan.c: Code style changes.
+
 2012-02-01  Xinliang David Li  <davidxl@google.com>
 
 	* diagnostic.c (diagnostic_set_info_translated):

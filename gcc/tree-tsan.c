@@ -29,6 +29,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "tree-flow.h"
 #include "tree-pass.h"
+#include "tree-tsan.h"
 #include "tree-iterator.h"
 #include "cfghooks.h"
 #include "langhooks.h"
@@ -37,9 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "cgraph.h"
 #include "diagnostic.h"
-
-#include <stdlib.h>
-#include <stdio.h>
 
 /* ThreadSanitizer is a data race detector for C/C++ programs.
    http://code.google.com/p/data-race-test/wiki/ThreadSanitizer
@@ -90,7 +88,6 @@ along with GCC; see the file COPYING3.  If not see
 #define TSAN_PERFIX "__tsan_"
 #define MAX_MOP_BYTES 16
 #define SBLOCK_SIZE 5
-void tsan_finish_file (void);
 
 enum tsan_ignore_type
 {
@@ -152,10 +149,10 @@ DEF_VEC_O (mop_desc);
 DEF_VEC_ALLOC_O (mop_desc, heap);
 static VEC (mop_desc, heap) *mop_list;
 
-/* Returns a definition of a runtime variable with type TYP and name NAME.  */
+/* Returns a definition of a runtime variable with type TYPE and name NAME.  */
 
 static tree
-build_var_decl (tree typ, const char *name)
+build_var_decl (tree type, const char *name)
 {
   tree id;
   tree decl;
@@ -171,7 +168,7 @@ build_var_decl (tree typ, const char *name)
       return decl;
     }
 
-  decl = build_decl (UNKNOWN_LOCATION, VAR_DECL, id, typ);
+  decl = build_decl (UNKNOWN_LOCATION, VAR_DECL, id, type);
   TREE_STATIC (decl) = 1;
   TREE_PUBLIC (decl) = 1;
   DECL_EXTERNAL (decl) = 1;
@@ -209,10 +206,10 @@ get_thread_ignore_decl (void)
   return decl;
 }
 
-/* Returns a definition of a runtime functione with type TYP and name NAME.  */
+/* Returns a definition of a runtime function with type TYPE and name NAME.  */
 
 static tree
-build_func_decl (tree typ, const char *name)
+build_func_decl (tree type, const char *name)
 {
   tree id;
   cgraph_node_ptr func;
@@ -228,7 +225,7 @@ build_func_decl (tree typ, const char *name)
       return decl;
     }
 
-  decl = build_fn_decl (name, typ);
+  decl = build_fn_decl (name, type);
   TREE_NOTHROW (decl) = 1;
   DECL_ATTRIBUTES (decl) = tree_cons (get_identifier ("leaf"),
                                      NULL, DECL_ATTRIBUTES (decl));
@@ -293,7 +290,7 @@ ignore_append (enum tsan_ignore_type type, char *name)
    since they are matched against mangled names.
    Returns non-zero if STR is matched against TEMPL.  */
 
-static int
+static bool
 ignore_match (char *templ, const char *str)
 {
   char *tpos;
@@ -307,7 +304,7 @@ ignore_match (char *templ, const char *str)
           continue;
         }
       if (str [0] == 0)
-        return 0;
+        return false;
       tpos = strchr (templ, '*');
       if (tpos != NULL)
         tpos [0] = 0;
@@ -317,9 +314,9 @@ ignore_match (char *templ, const char *str)
       if (tpos != NULL)
         tpos [0] = '*';
       if (spos == NULL)
-        return 0;
+        return false;
     }
-  return 1;
+  return true;
 }
 
 /* Loads ignore definitions from the file specified by -ftsan-ignore=filename.
@@ -356,14 +353,6 @@ ignore_load (void)
   ssize_t sz;
   char buf [PATH_MAX];
 
-  if(getenv("GCCTSAN_PAUSE"))
-    {
-      int res;
-      printf("ATTACH A DEBUGGER AND PRESS ENTER\n");
-      res = scanf("%s", buf);
-      (void)res;
-    }
-
   if (flag_tsan_ignore == NULL || flag_tsan_ignore [0] == 0)
     return;
 
@@ -384,7 +373,7 @@ ignore_load (void)
     }
   if (f == NULL)
     {
-      error ("failed to open ignore file '%s'\n", flag_tsan_ignore);
+      fatal_error ("failed to open ignore file '%s'\n", flag_tsan_ignore);
       return;
     }
 
@@ -583,8 +572,7 @@ instr_vptr_store (tree expr, tree rhs, int is_sblock, gimple_seq *gseq)
   tree expr_ptr;
   tree addr_expr;
   tree expr_type;
-  tree expr_size;
-  double_int size;
+  unsigned size;
   unsigned flags;
   tree flags_expr;
   gimple_seq flags_seq;
@@ -596,13 +584,12 @@ instr_vptr_store (tree expr, tree rhs, int is_sblock, gimple_seq *gseq)
   expr_type = TREE_TYPE (expr);
   while (TREE_CODE (expr_type) == ARRAY_TYPE)
     expr_type = TREE_TYPE (expr_type);
-  expr_size = TYPE_SIZE (expr_type);
-  size = tree_to_double_int (expr_size);
-  gcc_assert (size.high == 0 && size.low != 0);
-  if (size.low > 128)
-    size.low = 128;
-  size.low = (size.low / 8) - 1;
-  flags = ((!!is_sblock << 0) + (size.low << 2));
+  size = TREE_INT_CST_LOW (TYPE_SIZE (expr_type));
+  size = size / BITS_PER_UNIT;
+  if (size > MAX_MOP_BYTES)
+    size = MAX_MOP_BYTES;
+  size -= 1;
+  flags = ((!!is_sblock << 0) + (size << 2));
   flags_expr = build_int_cst (unsigned_type_node, flags);
   is_store_expr = build2 (NE_EXPR, unsigned_type_node,
                               build1 (VIEW_CONVERT_EXPR, size_type_node, expr),
@@ -677,7 +664,6 @@ set_location (gimple_seq seq, location_t loc)
 
   for (n = gimple_seq_first (seq); n != NULL; n = n->next)
     gimple_set_location (n->stmt, loc);
-  verify_gimple_in_seq (seq);
 }
 
 /* Check as to whether EXPR refers to a store to vptr.  */
@@ -700,11 +686,11 @@ is_vptr_store (gimple stmt, tree expr, int is_store)
 /* Checks as to whether EXPR refers to constant var/field/param.
    Don't bother to instrument them.  */
 
-static int
+static bool
 is_load_of_const (tree expr, int is_store)
 {
   if (is_store)
-    return 0;
+    return false;
   if (TREE_CODE (expr) == COMPONENT_REF)
     expr = TREE_OPERAND (expr, 1);
   if (TREE_CODE (expr) == VAR_DECL
@@ -712,9 +698,9 @@ is_load_of_const (tree expr, int is_store)
       || TREE_CODE (expr) == FIELD_DECL)
     {
       if (TREE_READONLY (expr))
-        return 1;
+        return true;
     }
-  return 0;
+  return false;
 }
 
 /* Checks as to whether EXPR needs to be instrumented,
@@ -732,7 +718,6 @@ handle_expr (gimple_stmt_iterator gsi, tree expr, int is_store,
   unsigned fld_off;
   unsigned fld_size;
   tree base;
-
 
   base = get_base_address (expr);
   if (base == NULL_TREE
@@ -810,8 +795,7 @@ handle_gimple (gimple_stmt_iterator gsi, VEC (mop_desc, heap) **mop_list)
 
   stmt = gsi_stmt (gsi);
   gcode = gimple_code (stmt);
-  if (gcode >= LAST_AND_UNUSED_GIMPLE_CODE)
-    return;
+  gcc_assert (gcode < LAST_AND_UNUSED_GIMPLE_CODE);
 
   switch (gcode)
     {
