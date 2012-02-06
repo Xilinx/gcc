@@ -3465,10 +3465,10 @@ the flags of the $STEP with an extra context $CTX.}#
 	     (assert_msg "check curpat" (is_a curpat class_source_pattern))
 	     (if (null curdata)
 		 (let ( (newdata (instance class_matched_data
-				 :mdata_symb (clone_symbol 'patuplecomp)
-				 :mdata_ctype ctype_value
-				 :mdata_orig istep
-				 :mdata_steps (make_list discr_list)))
+					   :mdata_symb (clone_symbol 'patuplecomp)
+					   :mdata_ctype ctype_value
+					   :mdata_orig istep
+					   :mdata_steps (make_list discr_list)))
 			)
 		   (debug "translpat_tuplepat newdata=" newdata)
 		   (setq curdata newdata)
@@ -3493,12 +3493,37 @@ the flags of the $STEP with an extra context $CTX.}#
 	      )
 	     )
 	   )
+	  ;;
 	  (debug "translpat_tuplepat elselist" elselist)
-	  (error_plain sloc "@@unimplemented translpat_tuplepat")
-	  (assert_msg "$@$ translpat_tuplepat unimplemented")
-	  )
-	)))
-  )
+	  (let ( 
+		(mflag (make_match_flag recv mctxt (clone_symbol 'tupleflag)))
+		(stepsetflag
+		 (if (list_first_element flaglist)
+		     (instance class_match_step_flag_conjunction
+			       :loca_location sloc
+			       :mstep_then ()
+			       :mstep_flag mflag
+			       :mstep_flagargs (list_to_multiple flaglist discr_multiple))
+		   (instance class_match_step_flag_set
+			     :loca_location sloc
+			     :mstep_then ()
+			     :mstep_flag mflag)))
+		(stepgroup (instance class_match_step_test_group
+				     :loca_location sloc
+				     :mstep_data mdata
+				     :mstep_then ()
+				     :mstep_else ()
+				     :mstgroup_start istep
+				     :mstgroup_then stepsetflag
+				     :mstgroup_else (list_to_multiple elselist discr_multiple)
+				     ))
+		)
+	    (put_fields mflag :mflag_setstep stepsetflag)
+	    (debug "translpat_tuplepat stepsetflag" stepsetflag)
+	    (put_then_match laststep stepsetflag)
+	    (debug "translpat_tuplepat return stepgroup=" stepgroup " mflag=")
+	    (return stepgroup mflag)
+	    ))))))
 (install_method class_source_pattern_tuple translate_pattern translpat_tuplepat)
 
 
