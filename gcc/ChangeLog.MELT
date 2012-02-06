@@ -1,4 +1,7 @@
 
+2011-02-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (translpat_tuplepat): More
+
 2011-02-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (class_match_step_test_multiple): New
 	class.

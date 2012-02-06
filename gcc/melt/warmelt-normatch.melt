@@ -3423,6 +3423,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	    (setq laststeptest curstep))
 	  ))				; end foreach in steplist
 	(debug "translpat_tuplepat laststeptest=" laststeptest " istep=" istep)
+	;; create the istep if not found
 	(if (null istep)
 	    (let (
 		  (dcomp (make_multiple discr_multiple nbsubpat))
@@ -3442,10 +3443,62 @@ the flags of the $STEP with an extra context $CTX.}#
 		    (put_else_match laststeptest newstep)
 		    (debug "translpat_tuplepat updated laststeptest=" laststeptest)))
 	      ))
-	(error_plain sloc "@@unimplemented translpat_tuplepat")
-	(assert_msg "$@$ translpat_tuplepat unimplemented")
-	)
-      )))
+	;; translate each subpattern
+	(let (
+	      (laststep istep)
+	      (dcomp (get_field :msttup_components istep))
+	      (flaglist (make_list discr_list))
+	      (elselist (make_list discr_list))
+	      )
+	  (debug "translpat_tuplepat dcomp=" dcomp)
+	  (list_append elselist istep)
+	  (foreach_in_multiple
+	   (sortedpatcomptup)
+	   (curpatcomp :long curpix)
+	   (debug "translpat_tuplepat curpatcomp=" curpatcomp " curpix=" curpix)
+	   (assert_msg "check curpatcomp" (is_a curpatcomp class_tuple_component_pattern))
+	   (let ( (curpat (get_field :tupcp_pattern curpatcomp))
+		  (:long pix (get_int (get_field :tupcp_index curpatcomp)))
+		  (curdata (multiple_nth dcomp pix))
+		  )
+	     (debug "translpat_tuplepat curpat=" curpat " pix=" pix " curdata=" curdata)
+	     (assert_msg "check curpat" (is_a curpat class_source_pattern))
+	     (if (null curdata)
+		 (let ( (newdata (instance class_matched_data
+				 :mdata_symb (clone_symbol 'patuplecomp)
+				 :mdata_ctype ctype_value
+				 :mdata_orig istep
+				 :mdata_steps (make_list discr_list)))
+			)
+		   (debug "translpat_tuplepat newdata=" newdata)
+		   (setq curdata newdata)
+		   (multiple_put_nth dcomp pix newdata)
+		   ))
+	     (debug "translpat_tuplepat before translating curpat=" curpat)
+	     (multicall
+	      (substep subflag)
+	      (translate_pattern curpat curdata mcase varmap psloc)
+	      (debug "translpat_tuplepat after translating curpat=" curpat " substep=" substep
+		     " subflag=" subflag)
+	      (if substep
+		  (progn 
+		    (debug "translpat_tuplepat laststep=" laststep)
+		    (put_then_match laststep substep)
+		    (list_append elselist substep)
+		    (setq laststep substep)))
+	      (if subflag
+		  (progn
+		    (debug "translpat_tuplepat subflag=" subflag)
+		    (list_append flaglist subflag)))
+	      )
+	     )
+	   )
+	  (debug "translpat_tuplepat elselist" elselist)
+	  (error_plain sloc "@@unimplemented translpat_tuplepat")
+	  (assert_msg "$@$ translpat_tuplepat unimplemented")
+	  )
+	)))
+  )
 (install_method class_source_pattern_tuple translate_pattern translpat_tuplepat)
 
 
