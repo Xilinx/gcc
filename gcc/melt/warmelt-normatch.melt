@@ -5420,6 +5420,7 @@ normalized expression.}#
 	 (matctx (unsafe_get_field :matnorx_matchctxt nmctxt))
 	 (:long matix (get_int matindex))
 	 (matcomp (unsafe_get_field :msttup_components step))
+	 (:long nbcomp (multiple_length matcomp))
 	 (ndata (altmatch_normalize_mdata matdata nmctxt))
 	 )
     (debug "normstep_mtestmultiple matdata=" matdata " matix=" matix 
@@ -5435,7 +5436,14 @@ normalized expression.}#
 	  (njelse (complete_normstep_if_last step jumpelse nmctxt))
 	  (ncx (get_field :mctx_normctxt matctx))
 	  (niflist (make_list discr_list))
+	  (nbcompval (make_integerbox discr_constant_integer nbcomp))
 	  (nifistuple (instance class_nrep_iftuplesized
+				:nrep_loc sloc
+				:nif_testval ndata
+				:nif_tupsiz nbcompval
+				:nexpr_ctyp ctype_void
+				:nif_then ()
+				:nif_else ()
 				))
 	  (env (get_field :mctx_env matctx))
 	  )
