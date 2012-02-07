@@ -1,4 +1,18 @@
 
+2011-02-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (class_nrep_iftestvalue): New class
+	with nif_testval field.
+	(class_nrep_ifisa): Inherit from above.
+	(class_nrep_iftuplesized): New class.
+	(normexp_get_field,normexp_put_fields): Temporarily fill both
+	nifa_val and niv_testval fields.
+
+	* melt/warmelt-normatch.melt
+	(normstep_mtestinstance,normstep_mtestmultiple) Temporarily fill
+	both nifa_val and niv_testval fields.
+
+	* melt/warmelt-genobj.melt
+
 2011-02-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (normstep_mtestmultiple): More.
 

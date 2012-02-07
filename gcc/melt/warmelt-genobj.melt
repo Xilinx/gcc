@@ -3742,7 +3742,7 @@ $SBUF.}#
 	 (nthen (unsafe_get_field :nif_then rif))
 	 (nelse (unsafe_get_field :nif_else rif))
 	 (nctyp (unsafe_get_field :nexpr_ctyp rif))
-	 (nval (unsafe_get_field :nifa_val rif))
+	 (nval (get_field :nif_testval rif))
 	 (ncla (unsafe_get_field :nifa_class rif))
 	 )
     (assert_msg "check nctyp" (is_a nctyp class_ctype))

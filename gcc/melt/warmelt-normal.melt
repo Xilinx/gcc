@@ -178,7 +178,7 @@ returned things are thru $NRET_REST tuple.}#
 	   nret_rest			;tuple of normal expr...
 	   ))
 
-;; common normal for if & ifisa
+;; common normal for if, ifisa ...
 (defclass class_nrep_ifcommon
   :doc #{The $CLASS_NREP_IFCOMMON is the common superclass for
 normalized if-like tests. $NIF_THEN gives the then branch, and
@@ -188,16 +188,31 @@ $NIF_ELSE gives the else branch.}#
 	   nif_else
 	   ))
 
+;;; common normal for testing some value
+(defclass class_nrep_iftestvalue
+  :doc #{The $CLASS_NREP_IFTESTVALUE is a common superclass for
+  testing about some given value $NIF_TESTVAL}# 
+  :super class_nrep_ifcommon
+  :fields (nif_testval
+))
+
 ;; normal if is_a(value,class) then else
 (defclass class_nrep_ifisa
   :doc #{The $CLASS_NREP_IFISA is for normalized $IS_A tests. $NIFA_VAL
   gives the value to be tested, and $NIFA_CLASS gives the normalized
   class data in which the value is tested for membership.}#
-  :super class_nrep_ifcommon
+  :super class_nrep_iftestvalue
   :fields (nifa_val			;normal value to be tested
 	   nifa_class			;normal class 
 ))
 
+(defclass class_nrep_iftuplesized
+  :doc #{The $CLASS_NREP_IFTUPLESIZED is for normalized tests of
+  multiple of given size. Inherited $NIF_TESTVAL gives the value to be tested (if
+  it is multiple), and $NIF_TUPSIZ gives the size to be tested (if it
+  has that size).}#
+  :super class_nrep_iftestvalue
+  :fields (nif_tupsiz))
 
 ;; normal if_variadic(variadic,typetuple) then ..
 (defclass class_nrep_ifvariadic
@@ -719,6 +734,8 @@ routine procedures.}#
  class_nrep_ifcommon
  class_nrep_ifisa
  class_nrep_ifsame
+ class_nrep_iftestvalue
+ class_nrep_iftuplesized
  class_nrep_ifvariadic
  class_nrep_importedval
  class_nrep_initproc
@@ -2711,6 +2728,7 @@ source location.}#
 			     :letbind_expr 
 			     (instance class_nrep_ifisa
 				       :nrep_loc sloc
+				       :nif_testval nobj
 				       :nifa_val nobj
 				       :nifa_class ncla
 				       :nif_then nuget
@@ -2889,6 +2907,7 @@ source location.}#
 			   :nuput_fields nfields)) 
 	   (nif (instance class_nrep_ifisa
 			  :nrep_loc sloc
+			  :nif_testval nobj
 			  :nifa_val nobj
 			  :nifa_class ncla
 			  :nif_then npuf

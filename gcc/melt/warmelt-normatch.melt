@@ -5332,6 +5332,7 @@ normalized expression.}#
 	  (niflist (make_list discr_list))
 	  (nifisa (instance class_nrep_ifisa
 			    :nrep_loc sloc
+			    :nif_testval ndata
 			    :nifa_val ndata
 			    :nifa_class ncla
 			    :nexpr_ctyp ctype_void
@@ -5422,7 +5423,8 @@ normalized expression.}#
 	 (matcomp (unsafe_get_field :msttup_components step))
 	 (ndata (altmatch_normalize_mdata matdata nmctxt))
 	 )
-    (debug "normstep_mtestmultiple matdata=" matdata " matix=" matix " matcomp=" matcomp)
+    (debug "normstep_mtestmultiple matdata=" matdata " matix=" matix 
+	   "\n matcomp=" matcomp "\n ndata=" ndata)
     (let (
 	  (nthen (altmatch_normalize_step matthen nmctxt))
 	  (nelse (altmatch_normalize_step matelse nmctxt))
@@ -5433,6 +5435,9 @@ normalized expression.}#
 	  (njthen (complete_normstep_if_last step jumpthen nmctxt))
 	  (njelse (complete_normstep_if_last step jumpelse nmctxt))
 	  (ncx (get_field :mctx_normctxt matctx))
+	  (niflist (make_list discr_list))
+	  (nifistuple (instance class_nrep_iftuplesized
+				))
 	  (env (get_field :mctx_env matctx))
 	  )
       (debug "normstep_mtestmultiple nthen=" nthen " nelse=" nelse)
@@ -5468,6 +5473,8 @@ normalized expression.}#
 
 (install_method class_match_step_test_multiple normalize_step normstep_mtestmultiple)
 ;;;;;;;;;;;;;;;;
+
+
 
 (defun normstep_mtestvar (step nmctxt sloc)
   (debug "normstep_mtestvar step" step)
