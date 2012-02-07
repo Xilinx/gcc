@@ -311,11 +311,7 @@ end_directive (cpp_reader *pfile, int skip_line)
     }
 
   /* Restore state.  */
-  pfile->state.save_comments = ! CPP_OPTION (pfile, discard_comments);
-  pfile->state.in_directive = 0;
-  pfile->state.in_expression = 0;
-  pfile->state.angled_headers = 0;
-  pfile->directive = 0;
+  _cpp_clear_directive_state (pfile);
 }
 
 /* Prepare to handle the directive in pfile->directive.  */
@@ -2605,4 +2601,40 @@ _cpp_init_directives (cpp_reader *pfile)
       node->is_directive = 1;
       node->directive_index = i;
     }
+}
+
+/* Clear lexer directive state for PFILE.  */
+
+void
+_cpp_clear_directive_state (cpp_reader *pfile)
+{
+  pfile->state.save_comments = ! CPP_OPTION (pfile, discard_comments);
+  pfile->state.in_directive = 0;
+  pfile->state.in_expression = 0;
+  pfile->state.angled_headers = 0;
+  pfile->directive = 0;
+}
+
+
+/* Save lexer directive state for PFILE on *DIRECTIVE_P and *STATE_P.  */
+
+void
+_cpp_save_directive_state (cpp_reader *pfile,
+			   const struct directive **directive_p,
+			   struct lexer_state *state_p)
+{
+  memcpy (state_p, &pfile->state, sizeof (*state_p));
+  *directive_p = pfile->directive;
+}
+
+
+/* Restore lexer directive state for PFILE from *DIRECTIVE_P and *STATE_P.  */
+
+void
+_cpp_restore_directive_state (cpp_reader *pfile,
+			      const struct directive *directive_p,
+			      struct lexer_state *state_p)
+{
+  memcpy (&pfile->state, state_p, sizeof (*state_p));
+  pfile->directive = directive_p;
 }

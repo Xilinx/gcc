@@ -1,3 +1,9 @@
+2012-02-06   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x0string-escapes.h: New.
+	* g++.dg/pph/x1string-escapes.h: New.
+	* g++.dg/pph/x2string-escapes.cc: New.
+
 2012-02-01   Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/x4structover1.cc: Mark fixed.

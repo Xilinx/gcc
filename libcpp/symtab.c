@@ -825,6 +825,8 @@ void
 cpp_lt_replay (cpp_reader *reader, cpp_idents_used* identifiers,
                source_location *loc)
 {
+  const struct directive *directive;
+  struct lexer_state state;
   unsigned int i;
   unsigned int num_entries = identifiers->num_entries;
   cpp_ident_use *entries = identifiers->entries;
@@ -833,6 +835,12 @@ cpp_lt_replay (cpp_reader *reader, cpp_idents_used* identifiers,
 
   /* Prevent the lexer from invalidating the tokens we've read so far.  */
   reader->keep_tokens++;
+
+  /* Clear the lexer state so it does not think that we are inside a
+     directive.  When re-playing the symbol table, we are inside the
+     #include directive that brought in a PPH image.  */
+  _cpp_save_directive_state (reader, &directive, &state);
+  _cpp_clear_directive_state (reader);
 
   if (loc)
     cpp_force_token_locations (reader, loc);
@@ -874,6 +882,9 @@ cpp_lt_replay (cpp_reader *reader, cpp_idents_used* identifiers,
     cpp_stop_forcing_token_locations (reader);
 
   free (buffer);
+
+  /* Restore the lexer state.  */
+  _cpp_restore_directive_state (reader, directive, &state);
 }
 
 /* Destroy IDENTIFIERS captured.  */

@@ -719,6 +719,12 @@ extern void _cpp_init_internal_pragmas (cpp_reader *);
 extern void _cpp_do_file_change (cpp_reader *, enum lc_reason, const char *,
 				 linenum_type, unsigned int);
 extern void _cpp_pop_buffer (cpp_reader *);
+extern void _cpp_clear_directive_state (cpp_reader *);
+extern void _cpp_save_directive_state (cpp_reader *, const struct directive **,
+				       struct lexer_state *);
+extern void _cpp_restore_directive_state (cpp_reader *,
+					  const struct directive *,
+					  struct lexer_state *);
 
 /* In directives.c */
 struct _cpp_dir_only_callbacks
