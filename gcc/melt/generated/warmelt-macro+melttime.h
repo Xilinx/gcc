@@ -5,14 +5,14 @@
 
 
   /* This warmelt-macro+melttime.h is included from warmelt-macro+meltdesc.c only. */
-#if meltmod_warmelt_macro_mds__45c328d2edc41b73afd06dcef1ade3cd
+#if meltmod_warmelt_macro_mds__c649a9fa90f69aad56a9bc5130787809
   /* MELT generation timestamp for MELT-STAGE-ZERO/warmelt-macro */
 /*MELT BOOTSTRAP*/
-const char melt_gen_timestamp[]="Thu Feb  2 13:54:01 2012 CET";
-const long long melt_gen_timenum=1328187241;
+const char melt_gen_timestamp[]="Tue Feb  7 10:34:20 2012 CET";
+const long long melt_gen_timenum=1328607260;
 const char melt_build_timestamp[]= __DATE__ "@" __TIME__;
 
-#else /* ! meltmod_warmelt_macro_mds__45c328d2edc41b73afd06dcef1ade3cd */
+#else /* ! meltmod_warmelt_macro_mds__c649a9fa90f69aad56a9bc5130787809 */
 #error invalid timestamp file for MELT-STAGE-ZERO/warmelt-macro 
-#endif /* meltmod_warmelt_macro_mds__45c328d2edc41b73afd06dcef1ade3cd */
+#endif /* meltmod_warmelt_macro_mds__c649a9fa90f69aad56a9bc5130787809 */
 		

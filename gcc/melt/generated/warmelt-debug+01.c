@@ -4805,8 +4805,8 @@ labend_rout:
   melt_trace_end ("MELT_DEBUG_FUN", meltcallcount);
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
-#undef melt_variadic_len
-#undef melt_variadic_ix
+#undef melt_variadic_length
+#undef melt_variadic_index
 
 #undef meltcallcount
 #undef meltfram__

@@ -2811,8 +2811,8 @@ labend_rout:
   melt_trace_end ("ADD2OUT", meltcallcount);
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
-#undef melt_variadic_len
-#undef melt_variadic_ix
+#undef melt_variadic_length
+#undef melt_variadic_index
 
 #undef meltcallcount
 #undef meltfram__
