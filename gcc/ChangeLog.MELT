@@ -1,5 +1,11 @@
 
 2011-02-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* gcc/melt/warmelt-normatch.melt (scansubpat_construct): Remove
+	duplicate.
+	(mgaltstep_steptestmult): Add check.
+	(fill_matchcase): Improve recursion on varpatscanner.
+
+2011-02-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* gcc/melt/warmelt-normatch.melt (normstep_mtestmultiple): Done.
 
 2011-02-07  Basile Starynkevitch  <basile@starynkevitch.net>

@@ -226,8 +226,9 @@ scanning variables.}#
     (foreach_in_multiple 
      (subpa)
      (cursubpa :long subix)
-     (debug "scanpat_srcpatconstruct cursubpa=" cursubpa " subix=" subix)
+     (debug "scanpat_srcpatconstruct before scan_pattern cursubpa=" cursubpa " subix=" subix)
      (scan_pattern cursubpa sloc ctype_value pcn)
+     (debug "scanpat_srcpatconstruct after scan_pattern cursubpa=" cursubpa " subix=" subix)
      )
      (debug "scanpat_srcpatconstruct done subpa=" subpa)
   ))
@@ -2928,17 +2929,24 @@ the flags of the $STEP with an extra context $CTX.}#
     (foreach_in_multiple
      (conjtup)
      (curconj :long cix)
+     (debug "scansubpat_and curconj=" curconj " cix=" cix)
      (fun curconj ctx))))
 (install_method class_source_pattern_and scan_subpatterns scansubpat_and)
 
 
 (defun scansubpat_construct (recv fun ctx)
-  (debug "scansubpat_construct recv=" recv)
-  (let ( (subpatup (unsafe_get_field :ctpat_subpa recv)) )
+  (debug "scansubpat_construct recv=" recv " fun=" fun)
+  (shortbacktrace_dbg "scansubpat_construct" 10)
+  (assert_msg "check recv" (is_a recv class_source_pattern_construct))
+  (let ( (subpatup (get_field :ctpat_subpa recv)) )
+    (debug "scansubpat_construct subpatup=" subpatup)
     (foreach_in_multiple
      (subpatup)
      (curpa :long pix)
-     (fun curpa ctx))))
+     (debug "scansubpat_construct before curpa=" curpa " pix=" pix)
+     (fun curpa ctx)
+     (debug "scansubpat_construct after curpa=" curpa " pix=" pix)
+     )))
 (install_method class_source_pattern_construct scan_subpatterns scansubpat_construct)
 
 (defun scansubpat_object (recv fun ctx)
@@ -2951,15 +2959,6 @@ the flags of the $STEP with an extra context $CTX.}#
 	 (fun (unsafe_get_field :spaf_pattern curpatfld) ctx)))))
 (install_method class_source_pattern_object scan_subpatterns scansubpat_object)
 
-(defun scansubpat_construct (recv fun ctx)
-  (debug "scansubpat_construct recv=" recv)
-  (let ( (outup (unsafe_get_field :ctpat_subpa recv)) )
-    (foreach_in_multiple
-     (outup)
-     (curout :long oix)
-     (fun curout ctx))))
-(install_method class_source_pattern_construct scan_subpatterns scansubpat_construct)
-
 
 (defun fill_matchcase (curmcase sloc)
   (debug "fill_matchcase curmcase" curmcase)
@@ -2969,10 +2968,14 @@ the flags of the $STEP with an extra context $CTX.}#
 	(curscas (unsafe_get_field :mcase_source curmcase))
 	(curpat (unsafe_get_field :scam_patt curscas))
 	)
+    (debug "fill_matchcase ourpatvarmap=" ourpatvarmap)
     (letrec (
 	     (varpatscanner 
 	      (lambda (pat patvarmap)
-		(debug "fill_matchcase/varpatscanner pat" pat)
+		(debug "fill_matchcase/varpatscanner pat=" pat " patvarmap=" patvarmap)
+		(assert_msg "check patvarmap" (is_mapobject patvarmap))
+		(assert_msg "same patvarmap" (== patvarmap ourpatvarmap))
+		(shortbacktrace_dbg "fill_matchcase/varpatscanner" 10)
 		(if (is_a pat class_source_pattern_variable)
 		    (let (
 			  (pvarsymb (unsafe_get_field :spatvar_symb pat))
@@ -2981,16 +2984,27 @@ the flags of the $STEP with an extra context $CTX.}#
 		      (if (null varocclist)
 			  (progn 
 			    (setq varocclist (make_list discr_list))
-			    (mapobject_put patvarmap pvarsymb varocclist)))
+			    (mapobject_put patvarmap pvarsymb varocclist)
+			    (debug "fill_matchcase/varpatscanner updated patvarmap=" patvarmap " for pat=" pat)
+			    ))
 		      (list_append varocclist pat)
-		      ))
+		      )
+		  (progn
+		    (debug "fill_matchcase/varpatscanner before scan_subpatterns pat=" pat
+			   "\n ourpatvarmap=" ourpatvarmap)
+		    (scan_subpatterns pat varpatscanner ourpatvarmap)
+		    (debug "fill_matchcase/varpatscanner after scan_subpatterns pat=" pat
+			   "\n ourpatvarmap=" ourpatvarmap)
+		    )
+		  )
 		))
 	     )
-	    (varpatscanner curpat ourpatvarmap)
-	    (scan_subpatterns curpat varpatscanner ourpatvarmap)
-	    )
-    (debug "fill_matchcase ourpatvarmap" ourpatvarmap)
-    (unsafe_put_fields curmcase :mcase_varmap ourpatvarmap)
+      (debug "fill_matchcase before varpatscanner curpat=" curpat " ourpatvarmap=" ourpatvarmap "\n varpatscanner=" varpatscanner)
+      (varpatscanner curpat ourpatvarmap)
+      (debug "fill_matchcase after varpatscanner  curpat=" curpat "\n ourpatvarmap=" ourpatvarmap)
+      )
+    (debug "fill_matchcase final ourpatvarmap=" ourpatvarmap " for curmcase=" curmcase)
+    (put_fields curmcase :mcase_varmap ourpatvarmap)
     ))
 
 
@@ -4353,7 +4367,7 @@ the flags of the $STEP with an extra context $CTX.}#
 ;;;;;;;;;;;;;;;;
 
 (defun mgaltstep_steptestmult (step mg)
-  (debug "mgaltstep_steptestmult step" step)
+  (debug "mgaltstep_steptestmult step=" step)
   (assert_msg "check step" (is_a step class_match_step_test_multiple))
   (assert_msg "check mg" (is_a mg class_match_graphic))
   (let ( (loca (unsafe_get_field :loca_location step))
@@ -4388,20 +4402,24 @@ the flags of the $STEP with an extra context $CTX.}#
     (add2out_strconst nodebuf "</font></td> </tr>")
     (add2out_indentnl nodebuf 0)
     ;;
+    (debug "mgaltstep_steptestmult scomp=" scomp)
     (foreach_in_multiple
      (scomp)
      (curcomp :long cpix)
+     (debug "mgaltstep_steptestmult curcomp=" curcomp " cpix=" cpix)
      (if curcomp
 	 (progn
 	   (assert_msg "check curcomp" (is_a curcomp class_matched_data))
 	   (let ( 
 		 (curcompdata  (mapobject_get datamap curcomp))
 		 )
-	   (add2out_indentnl edgebuf 0)
-	   (add2out edgebuf ##{$STEPNAME /* testtuplcomp */ -> /*data*/ $CURCOMPDATA 
-      [ arrowhead=open, label=<<font point-size="6.5" color="indigo">[$CPIX]</font>>,  color=violet, style=dotted ];
-		    }#)
-	   ))))
+	     (debug "mgaltstep_steptestmult curcompdata=" curcompdata " cpix=" cpix)
+	     (assert_msg "check curcompdata" curcompdata)
+	     (add2out_indentnl edgebuf 0)
+	     (add2out edgebuf ##{$STEPNAME /* testtuplcomp */ -> /*data*/ $CURCOMPDATA 
+    [ arrowhead=open, label=<<font point-size="6.5" color="indigo">[$CPIX]</font>>,  color=violet, style=dotted ];
+		      }#)
+	     ))))
     ;;
     (if thenname
 	(progn
