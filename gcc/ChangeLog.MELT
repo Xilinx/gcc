@@ -1,5 +1,13 @@
 
 2011-02-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* gcc/melt/warmelt-normal.melt (class_nrep_ifisa): Remove nifa_val
+	field.
+	(normexp_get_field,normexp_put_fields): Don't use nifa_val field.
+
+	* gcc/melt/warmelt-normatch.melt (normstep_mtestinstance)
+	(normstep_mtestmultiple): Ditto.
+
+2011-02-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 
 	* gcc/melt/generated/meltrunsup-inc.c: Regenerate.

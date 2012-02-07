@@ -198,12 +198,12 @@ $NIF_ELSE gives the else branch.}#
 
 ;; normal if is_a(value,class) then else
 (defclass class_nrep_ifisa
-  :doc #{The $CLASS_NREP_IFISA is for normalized $IS_A tests. $NIFA_VAL
-  gives the value to be tested, and $NIFA_CLASS gives the normalized
-  class data in which the value is tested for membership.}#
+  :doc #{The $CLASS_NREP_IFISA is for normalized $IS_A
+  tests. Inherited $NIF_TESTVAL gives the value to be tested, and
+  $NIFA_CLASS gives the normalized class data in which the value is
+  tested for membership.}#
   :super class_nrep_iftestvalue
-  :fields (nifa_val			;normal value to be tested
-	   nifa_class			;normal class 
+  :fields (nifa_class			;normal class 
 ))
 
 (defclass class_nrep_iftuplesized
@@ -2729,7 +2729,6 @@ source location.}#
 			     (instance class_nrep_ifisa
 				       :nrep_loc sloc
 				       :nif_testval nobj
-				       :nifa_val nobj
 				       :nifa_class ncla
 				       :nif_then nuget
 				       :nexpr_ctyp ctype_value
@@ -2908,7 +2907,6 @@ source location.}#
 	   (nif (instance class_nrep_ifisa
 			  :nrep_loc sloc
 			  :nif_testval nobj
-			  :nifa_val nobj
 			  :nifa_class ncla
 			  :nif_then npuf
 			  :nexpr_ctyp ctype_void

@@ -5333,7 +5333,6 @@ normalized expression.}#
 	  (nifisa (instance class_nrep_ifisa
 			    :nrep_loc sloc
 			    :nif_testval ndata
-			    :nifa_val ndata
 			    :nifa_class ncla
 			    :nexpr_ctyp ctype_void
 			    :nif_then ()
