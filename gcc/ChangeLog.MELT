@@ -1,5 +1,9 @@
 
 2011-02-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (mg_altdraw_graphviz)
+	(altmatch_normalize_mdata): More debug.
+
+2011-02-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (putthen_matchany): New
 	error-catch-all method for put_then_match on class_root.
 	(putthen_matchany): New error-catch-all method for put_else_match

@@ -4445,7 +4445,7 @@ the flags of the $STEP with an extra context $CTX.}#
 		 (curcompdata  (mapobject_get datamap curcomp))
 		 )
 	     (debug "mgaltstep_steptestmult curcompdata=" curcompdata " cpix=" cpix)
-	     (if (null curcompdata) (debug "mgaltstep_steptestmult bad datamap=" datamap))
+	     (if (null curcompdata) (debug "mgaltstep_steptestmult bad datamap=" datamap " for curcomp=" curcomp))
 	     (assert_msg "check curcompdata" curcompdata)
 	     (add2out_indentnl edgebuf 0)
 	     (add2out edgebuf ##{$STEPNAME /* testtuplcomp */ -> /*data*/ $CURCOMPDATA 
@@ -6183,7 +6183,7 @@ normalized expression.}#
     (if (is_a mdata class_matched_normal_data)
 	(progn 
 	  (setq ndata (unsafe_get_field :mdata_orig mdata))
-	  (debug "altmatch_normalize_mdata got normal data" ndata))
+	  (debug "altmatch_normalize_mdata got normal ndata=" ndata " from mdata=" mdata))
       (let ( (msymb (unsafe_get_field :mdata_symb mdata))
 	     (mctyp (unsafe_get_field :mdata_ctype mdata))
 	     (sloc (get_field :loca_location 
@@ -6202,7 +6202,7 @@ normalized expression.}#
 	    )
 	(setq ndata newdata)
 	(list_append bodyl newdatainit)
-	(debug "altmatch_normalize_mdata made newdata" newdata)
+	(debug "altmatch_normalize_mdata made newdata=" newdata)
 	))
     (mapobject_put datamap mdata ndata)
     (list_append mdataqueue mdata)
@@ -6437,8 +6437,8 @@ normalized expression.}#
 			      :mctx_endlabel endlab
 			      ))
 	    )
-       (debug "normexp_altmatch matctyp" matctyp)
-       (debug "normexp_altmatch matctx" matctx)
+       (debug "normexp_altmatch matctyp=" matctyp
+	      "\n mdata=" mdata "\n matctx=" matctx)
        ;; build each match case
        (foreach_in_multiple
 	(scases)
@@ -6635,94 +6635,93 @@ normalized expression.}#
     ;; each data with its printable name and mapstep associating each
     ;; step with its printable name
     (letrec 
-     ( (scandata 
-	(lambda (data)
-	  (debug "mg_altdraw_graphviz/scandata data=" data)
-	  (assert_msg "mg_altdraw_graphviz.scandata check data" (is_a data class_matched_data))
-	  (let ( (oldname ( (mapobject_get mapdata data) ))
-		 )
-	    (if oldname
-		(progn 
-		  (debug "mg_altdraw_graphviz/scandata found oldname" oldname)
-		  (return oldname))))
-	  (let ( (nambuf (make_strbuf discr_strbuf))
-		 (msymb (unsafe_get_field :mdata_symb data))
-		 (:long datacnt (+i 1 (get_int datacountbox)))
-		 (msteps (unsafe_get_field :mdata_steps data))
-		 )
-	    (add2sbuf_strconst nambuf "mdata_")
-	    (add2sbuf_longdec nambuf datacnt)
-	    (put_int datacountbox datacnt)
-	    (add2sbuf_strconst nambuf "_")
-	    (add2sbuf_cident nambuf (get_field :named_name msymb))
-	    (if (is_a msymb class_cloned_symbol)
-		(progn
-		  (add2sbuf_strconst nambuf "__")
-		  (add2sbuf_longdec nambuf (get_int (unsafe_get_field :csym_urank msymb)))))
-	    (let ( (newname  (strbuf2string discr_string nambuf))
-		   )
-	      (mapobject_put mapdata data newname)
-	    (foreach_in_list
-	     (msteps)
-	     (curpair curstep)
-	     (scanstep curstep))
-	    (return newname)
-	    )
-	  )))
-       (scanstep 
-	(lambda (step)
-	  (debug "mg_altdraw_graphviz/scanstep step=" step)
-	  (assert_msg "mg_altdraw_graphviz.scanstep check step" (is_a step class_match_step))
-	  (let ( (oldname (mapobject_get mapstep step)) 
-		 )
-	    (if oldname
-		(progn
-		  (debug "mg_altdraw_graphviz.scanstep found oldname" oldname)
-		  (return oldname))))
-	  (let ( (nambuf (make_strbuf discr_strbuf))
-		 (:long mapcnt (mapobject_count mapstep))
-		 (disnam (get_field :named_name (discrim step)))
-		 ;; not every step has a data
-		 (sdata (get_field :mstep_data step))
-		 )
-	    (code_chunk chunkdisnam
-			#{/*$CHUNKDISNAM*/ meltgc_add_strbuf ((melt_ptr_t)$NAMBUF,
-					      melt_string_str ((melt_ptr_t)$DISNAM)
-					                      + strlen("CLASS_")) }#)
-	    (add2sbuf_strconst nambuf "__")
-	    (add2sbuf_longdec nambuf (+i mapcnt 1))
-	    (mapobject_put mapstep step (strbuf2string discr_string nambuf))
-	    (if sdata (scandata sdata))
-	    (scan_step_data step scandata ())
-	    (scan_step_flag step scanflag ())
-	    (let (
-	          ;;; these are checked get fields!!
-		  (sthen (get_field :mstep_then step))
-		  (selse (get_field :mstep_else step))
-		  (sflag (get_field :mstep_flag step))
-		  )
-	      (if sthen (scanstep sthen))
-	      (if selse (scanstep selse))
-	      (if sflag (scanflag sflag))
-	      ))))
-       (scanflag
-	(lambda (flag)
-	  (debug "mg_altdraw_graphviz.scanflag flag=" flag)
-	  (let ( (flstep (get_field :mflag_setstep flag))
-		 )
-	    (if flstep
-		(progn
-		  (debug "mg_altdraw_graphviz.scanflag flstep" flstep)
-		  (assert_msg "check flstep" (is_a flstep class_match_step))
-		  (scanstep flstep)
-		  ))
-	  )))
-       )
-     (debug "mg_altdraw_graphviz before scandata mdata=" mdata " scandata=" scandata)
-     (scandata mdata)
-     (debug "mg_altdraw_graphviz after scandata mdata=" mdata
-	    " mapdata=" mapdata " mapstep=" mapstep)
-     )
+	( (scandata 
+	   (lambda (data)
+	     (debug "mg_altdraw_graphviz/scandata data=" data)
+	     (assert_msg "mg_altdraw_graphviz.scandata check data" (is_a data class_matched_data))
+	     (let ( (oldname ( (mapobject_get mapdata data) ))
+		    )
+	       (if oldname
+		   (progn 
+		     (debug "mg_altdraw_graphviz/scandata found oldname" oldname)
+		     (return oldname))))
+	     (let ( (nambuf (make_strbuf discr_strbuf))
+		    (msymb (unsafe_get_field :mdata_symb data))
+		    (:long datacnt (+i 1 (get_int datacountbox)))
+		    (msteps (unsafe_get_field :mdata_steps data))
+		    (symbname (get_field :named_name msymb))
+		    )
+	       (add2out nambuf ##{mdata_$DATACNT#_$SYMBNAME}#)
+	       (put_int datacountbox datacnt)
+	       (if (is_a msymb class_cloned_symbol)
+		   (let ( (:long clonrk (get_int (get_field :csym_urank msymb))) 
+			  )
+		     (add2out nambuf ##{__$CLONRK}#)))
+	       (let ( (newname  (strbuf2string discr_string nambuf))
+		      )
+		 (mapobject_put mapdata data newname)
+		 (debug "mg_altdraw_graphviz/scandata newname=" newname " updated mapdata=" mapdata)
+	       (foreach_in_list
+		(msteps)
+		(curpair curstep)
+		(scanstep curstep))
+	       (return newname)
+	       )
+	     )))
+	  (scanstep 
+	   (lambda (step)
+	     (debug "mg_altdraw_graphviz/scanstep step=" step)
+	     (assert_msg "mg_altdraw_graphviz.scanstep check step" (is_a step class_match_step))
+	     (let ( (oldname (mapobject_get mapstep step)) 
+		    )
+	       (if oldname
+		   (progn
+		     (debug "mg_altdraw_graphviz.scanstep found oldname" oldname)
+		     (return oldname))))
+	     (let ( (nambuf (make_strbuf discr_strbuf))
+		    (:long mapcnt (mapobject_count mapstep))
+		    (disnam (get_field :named_name (discrim step)))
+		    ;; not every step has a data
+		    (sdata (get_field :mstep_data step))
+		    )
+	       (code_chunk chunkdisnam
+			   #{/*$CHUNKDISNAM*/ meltgc_add_strbuf ((melt_ptr_t)$NAMBUF,
+								 melt_string_str ((melt_ptr_t)$DISNAM)
+								 + strlen("CLASS_")) }#)
+	       (add2sbuf_strconst nambuf "__")
+	       (add2sbuf_longdec nambuf (+i mapcnt 1))
+	       (mapobject_put mapstep step (strbuf2string discr_string nambuf))
+	       (if sdata (scandata sdata))
+	       (scan_step_data step scandata ())
+	       (scan_step_flag step scanflag ())
+	       (let (
+;;; these are checked get fields!!
+		     (sthen (get_field :mstep_then step))
+		     (selse (get_field :mstep_else step))
+		     (sflag (get_field :mstep_flag step))
+		     )
+		 (if sthen (scanstep sthen))
+		 (if selse (scanstep selse))
+		 (if sflag (scanflag sflag))
+		 ))))
+	  (scanflag
+	   (lambda (flag)
+	     (debug "mg_altdraw_graphviz.scanflag flag=" flag)
+	     (let ( (flstep (get_field :mflag_setstep flag))
+		    )
+	       (if flstep
+		   (progn
+		     (debug "mg_altdraw_graphviz.scanflag flstep" flstep)
+		     (assert_msg "check flstep" (is_a flstep class_match_step))
+		     (scanstep flstep)
+		     ))
+	       )))
+	  )
+      (debug "mg_altdraw_graphviz before scandata mdata=" mdata " scandata=" scandata)
+      (scandata mdata)
+      (debug "mg_altdraw_graphviz after scandata mdata=" mdata
+	     " mapdata=" mapdata " mapstep=" mapstep)
+      )
     (let (
 	  (:long datacount 0)
 	  (:long stepcount 0)
@@ -6781,7 +6780,7 @@ normalized expression.}#
 	      discr_multiple
 	      ))
 	    )
-					;; draw the data nodes
+	;; draw the data nodes
 	(debug "mg_altdraw_graphviz sortupdata" sortupdata)
 	(foreach_in_multiple
 	 (sortupdata)
@@ -6824,7 +6823,7 @@ normalized expression.}#
 	   (add2out_strconst nodebuf "</font></td> </tr>")
 	   (add2out_strconst nodebuf "</table>> ];")
 	   (add2out_indentnl nodebuf 0)
-					;;; output edges to the steps
+;;; output edges to the steps
 	   (foreach_in_list
 	    (datasteps)
 	    (pairstep curstep)
@@ -6836,7 +6835,7 @@ normalized expression.}#
 	    )
 	   )
 	 )
-					;; draw the step nodes
+	;; draw the step nodes
 	(debug "mg_altdraw_graphviz sortupstep" sortupstep)
 	(foreach_in_multiple
 	 (sortupstep)
@@ -6873,35 +6872,35 @@ normalized expression.}#
 	  (code_chunk 
 	   outputmgfile
 	   #{ /* $outputmgfile start */
-     time_t nowt = 0;
-     char nowbuf[60];
-     FILE* dotfil = 
-     fopen (melt_string_str ((melt_ptr_t) $DOTFILENAME), "w");
-     if (!dotfil) 
-        melt_fatal_error ("failed to open matchdot file %s - %m", 
-		     melt_string_str ((melt_ptr_t) $DOTFILENAME));
-     fprintf (dotfil, "// melt matchdot file %s\n", 
-                      melt_string_str ((melt_ptr_t) $DOTFILENAME));
-     time (&nowt);
-     memset (nowbuf, 0, sizeof(nowbuf));
-     strftime (nowbuf, sizeof(nowbuf)-1,
-                       "%Y %b %d %Hh%M",
-                       localtime (&nowt));
-     fprintf (dotfil, "// generated %s\n", nowbuf);
-     fprintf (dotfil, "digraph meltaltmatch_%lx {", $MDATAHASH);
-     fprintf (dotfil, " graph [ label=<<font color='firebrick' point-size='9' face='Helvetica Bold'>Melt Alt Match %s ** %s</font>>,",
-		      lbasename (melt_string_str ((melt_ptr_t) $DOTFILENAME)),
-		      nowbuf);
-     fprintf (dotfil," pad=\"0.5\", margin=\"0.3\" ];\n");
-     fprintf (dotfil, " node [ shape=\"box\", fontsize=\"9\" ];\n");
-     melt_putstrbuf (dotfil, (melt_ptr_t) $NODEBUF);
-     fprintf (dotfil, "\n /// edges\n");
-     melt_putstrbuf (dotfil, (melt_ptr_t) $EDGEBUF);
-     fprintf (dotfil, "\n} // eof %s\n", melt_string_str ((melt_ptr_t) $DOTFILENAME));
-     fclose (dotfil);
+	   time_t nowt = 0		;
+	   char nowbuf[60]		;
+	   FILE* dotfil = 
+	   fopen (melt_string_str ((melt_ptr_t) $DOTFILENAME), "w") ;
+	   if (!dotfil) 
+	   melt_fatal_error ("failed to open matchdot file %s - %m", 
+			     melt_string_str ((melt_ptr_t) $DOTFILENAME)) ;
+	   fprintf (dotfil, "// melt matchdot file %s\n", 
+			    melt_string_str ((melt_ptr_t) $DOTFILENAME)) ;
+	   time (&nowt)			;
+	   memset (nowbuf, 0, sizeof(nowbuf)) ;
+	   strftime (nowbuf, sizeof(nowbuf)-1,
+			     "%Y %b %d %Hh%M",
+			     localtime (&nowt))			;
+	   fprintf (dotfil, "// generated %s\n", nowbuf)	;
+	   fprintf (dotfil, "digraph meltaltmatch_%lx {", $MDATAHASH) ;
+	   fprintf (dotfil, " graph [ label=<<font color='firebrick' point-size='9' face='Helvetica Bold'>Melt Alt Match %s ** %s</font>>,",
+			    lbasename (melt_string_str ((melt_ptr_t) $DOTFILENAME)),
+			    nowbuf)				    ;
+	   fprintf (dotfil," pad=\"0.5\", margin=\"0.3\" ];\n")	    ;
+	   fprintf (dotfil, " node [ shape=\"box\", fontsize=\"9\" ];\n") ;
+	   melt_putstrbuf (dotfil, (melt_ptr_t) $NODEBUF) ;
+	   fprintf (dotfil, "\n /// edges\n")		  ;
+	   melt_putstrbuf (dotfil, (melt_ptr_t) $EDGEBUF) ;
+	   fprintf (dotfil, "\n} // eof %s\n", melt_string_str ((melt_ptr_t) $DOTFILENAME)) ;
+	   fclose (dotfil)		;
 	   /* $outputmgfile end */
 	   }#)
-	)))))
+	  )))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
