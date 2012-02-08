@@ -3015,6 +3015,15 @@ the flags of the $STEP with an extra context $CTX.}#
   :formals (recv thenstep)
 )
 
+(defun putthen_matchany (recv thenstep)
+  (let ( (dis (discrim recv))
+	 )
+  (debug "putelse_mathany recv=" recv "thenstep=" thenstep " for discrim=" dis)
+  (errormsg_strv "unexpected PUT_THEN_MATCH for " (get_field :named_name dis))
+  (assert_msg "@$@unexpected PUT_THEN_MATCH [putthen_matchany]")
+))
+(install_method class_root put_then_match putthen_matchany)
+
 (defun start_step (step)
   (cond 
    ( (null step)
@@ -3101,10 +3110,21 @@ the flags of the $STEP with an extra context $CTX.}#
 (install_method class_match_step_test_group put_then_match putthen_matchgroup)
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defselector put_else_match class_selector
   :doc #{Put the else part of a match test $RECV to $ELSESTEP.}#
   :formals (recv elsestep)
 )
+
+(defun putelse_matchany (recv elsestep)
+  (let ( (dis (discrim recv))
+	 )
+  (debug "putelse_mathany recv=" recv "elsestep=" elsestep " for discrim=" dis)
+  (errormsg_strv "unexpected PUT_ELSE_MATCH for " (get_field :named_name dis))
+  (assert_msg "@$@unexpected PUT_ELSE_MATCH [putelse_matchany]")
+))
+(install_method class_root put_else_match putelse_matchany)
 
 ;; method to putelse inside then-steps
 (defun putelse_matchstepthen (recv elsestep)
@@ -3238,7 +3258,7 @@ the flags of the $STEP with an extra context $CTX.}#
 (install_method class_match_step_test_group put_else_match putelse_matchgroup)
 
 
-
+;;;;;;;;;;;;;;;;
 (defun scanstepdata_testins (step fun ctx)
   (assert_msg "check step" (is_a step class_match_step_test_instance))
   (let ( (slotup (unsafe_get_field :mstins_slots step)) 
@@ -3484,11 +3504,11 @@ the flags of the $STEP with an extra context $CTX.}#
 					   :mdata_orig istep
 					   :mdata_steps (make_list discr_list)))
 			)
-		   (debug "translpat_tuplepat newdata=" newdata)
+		   (debug "translpat_tuplepat newdata=" newdata " for istep=" istep " pix=" pix)
 		   (setq curdata newdata)
 		   (multiple_put_nth dcomp pix newdata)
 		   ))
-	     (debug "translpat_tuplepat before translating curpat=" curpat)
+	     (debug "translpat_tuplepat before translating curpat=" curpat " with istep=" istep)
 	     (multicall
 	      (substep subflag)
 	      (translate_pattern curpat curdata mcase varmap psloc)
@@ -3542,7 +3562,9 @@ the flags of the $STEP with an extra context $CTX.}#
 
 
 
-;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun translpat_inspat (recv mdata mcase varmap psloc)
   (debug "translpat_inspat recv" recv)
   (assert_msg "check recv" (is_a recv class_source_pattern_instance))
@@ -3698,6 +3720,7 @@ the flags of the $STEP with an extra context $CTX.}#
 (install_method class_source_pattern_instance translate_pattern translpat_inspat)
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 (defun translpat_varpat (recv mdata mcase varmap psloc)
@@ -4226,6 +4249,14 @@ the flags of the $STEP with an extra context $CTX.}#
 )
 
 
+(defun mgaltstep_any (recv mg)
+  (let ( (dis (discrim recv))
+	 )
+  (debug "mgaltstep_any recv=" recv " mg=" mg " for discrim=" dis)
+  (errormsg_strv "unexpected MATCHGRAPHIC_ALTSTEP for " (get_field :named_name dis))
+  (assert_msg "@$@unexpected MATCHGRAPHIC_ALTSTEP [mgaltstep_any]")
+))
+(install_method class_root matchgraphic_altstep mgaltstep_any)
 
 
 ;;;;;;;;;;;;;;;;
@@ -4414,6 +4445,7 @@ the flags of the $STEP with an extra context $CTX.}#
 		 (curcompdata  (mapobject_get datamap curcomp))
 		 )
 	     (debug "mgaltstep_steptestmult curcompdata=" curcompdata " cpix=" cpix)
+	     (if (null curcompdata) (debug "mgaltstep_steptestmult bad datamap=" datamap))
 	     (assert_msg "check curcompdata" curcompdata)
 	     (add2out_indentnl edgebuf 0)
 	     (add2out edgebuf ##{$STEPNAME /* testtuplcomp */ -> /*data*/ $CURCOMPDATA 
@@ -6599,13 +6631,13 @@ normalized expression.}#
 		       :mchgx_stepnamemap mapstep
 		       ))
 	 )
-					;;; recursive scan of data & steps to fill the mapdata associating
-					;;; each data with its printable name and mapstep associating each
-					;;; step with its printable name
+    ;; recursive scan of data & steps to fill the mapdata associating
+    ;; each data with its printable name and mapstep associating each
+    ;; step with its printable name
     (letrec 
      ( (scandata 
 	(lambda (data)
-	  (debug "mg_altdraw_graphviz/scandata data" data)
+	  (debug "mg_altdraw_graphviz/scandata data=" data)
 	  (assert_msg "mg_altdraw_graphviz.scandata check data" (is_a data class_matched_data))
 	  (let ( (oldname ( (mapobject_get mapdata data) ))
 		 )
@@ -6639,7 +6671,7 @@ normalized expression.}#
 	  )))
        (scanstep 
 	(lambda (step)
-	  (debug "mg_altdraw_graphviz/scanstep step" step)
+	  (debug "mg_altdraw_graphviz/scanstep step=" step)
 	  (assert_msg "mg_altdraw_graphviz.scanstep check step" (is_a step class_match_step))
 	  (let ( (oldname (mapobject_get mapstep step)) 
 		 )
@@ -6654,8 +6686,9 @@ normalized expression.}#
 		 (sdata (get_field :mstep_data step))
 		 )
 	    (code_chunk chunkdisnam
-			#{ meltgc_add_strbuf ((melt_ptr_t)$nambuf,
-					      melt_string_str((melt_ptr_t)$disnam)+strlen("CLASS_")) }#)
+			#{/*$CHUNKDISNAM*/ meltgc_add_strbuf ((melt_ptr_t)$NAMBUF,
+					      melt_string_str ((melt_ptr_t)$DISNAM)
+					                      + strlen("CLASS_")) }#)
 	    (add2sbuf_strconst nambuf "__")
 	    (add2sbuf_longdec nambuf (+i mapcnt 1))
 	    (mapobject_put mapstep step (strbuf2string discr_string nambuf))
@@ -6674,7 +6707,7 @@ normalized expression.}#
 	      ))))
        (scanflag
 	(lambda (flag)
-	  (debug "mg_altdraw_graphviz.scanflag flag" flag)
+	  (debug "mg_altdraw_graphviz.scanflag flag=" flag)
 	  (let ( (flstep (get_field :mflag_setstep flag))
 		 )
 	    (if flstep
@@ -6685,14 +6718,11 @@ normalized expression.}#
 		  ))
 	  )))
        )
-     (debug "mg_altdraw_graphviz before scandata mdata" mdata)
-     (debug "mg_altdraw_graphviz scandata" scandata)
+     (debug "mg_altdraw_graphviz before scandata mdata=" mdata " scandata=" scandata)
      (scandata mdata)
-     (debug "mg_altdraw_graphviz after scandata mdata" mdata)
-     (debug "mg_altdraw_graphviz after scandata mapdata" mapdata)
-     (debug "mg_altdraw_graphviz after scandata mapstep" mapstep)
+     (debug "mg_altdraw_graphviz after scandata mdata=" mdata
+	    " mapdata=" mapdata " mapstep=" mapstep)
      )
-					;;
     (let (
 	  (:long datacount 0)
 	  (:long stepcount 0)

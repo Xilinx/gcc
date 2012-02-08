@@ -1,4 +1,13 @@
 
+2011-02-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (putthen_matchany): New
+	error-catch-all method for put_then_match on class_root.
+	(putthen_matchany): New error-catch-all method for put_else_match
+	on class_root.
+	(translpat_tuplepat): More debugging messages.
+	(mgaltstep_any): New error-catch-all method for
+	matchgraphic_altstep on class_root.
+
 2011-02-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* gcc/melt/warmelt-normatch.melt (scansubpat_construct): Remove
 	duplicate.
