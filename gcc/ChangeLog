@@ -1,3 +1,124 @@
+2012-02-07  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR middle-end/24306
+	* config/mips/mips.c (mips_std_gimplify_va_arg_expr): New function.
+	(mips_gimplify_va_arg_expr): Call it instead of
+	std_gimplify_va_arg_expr.
+
+2012-02-07  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/rs6000/rs6000.c (rs6000_trampoline_init): Fix error
+	message for -mno-pointers-to-nested-function.
+
+2012-02-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/51994
+	* expr.c (get_inner_reference): If there is an offset, add a negative
+	bit position to it (if any).
+
+2012-02-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/52060
+	* combine.c (try_combine): Add i0src_copy and i0src_copy2 variables,
+	copy i1src to i1src_copy whenever added_sets_2 && i1_feeds_i2_n already
+	before i1dest -> i1src substitution in newpat, copy i0src to i0src_copy
+	and/or i0src_copy2 when needed.
+
+2012-02-07  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.c (main): Don't look for lto-wrapper or lto-wrapper
+	or LTOPLUGINSONAME if have_c.
+
+	* config/freebsd-spec.h: Add comment about what macros can be defined
+	in this header.
+	(LINK_EH_SPEC, LINK_SSP_SPEC, USE_LD_AS_NEEDED): Don't define here.
+	* config/freebsd.h (LINK_EH_SPEC, LINK_SSP_SPEC, USE_LD_AS_NEEDED): But
+	here instead.
+
+2012-02-07  Richard Guenther  <rguenther@suse.de>
+
+	* gimple-pretty-print.c (dump_gimple_phi): Avoid excessive
+	newline in -alias dumps.
+
+2012-02-07  Kai Tietz  <ktietz@redhat.com>
+            Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR target/40068
+	* config/i386/winnt-cxx.c (i386_pe_adjust_class_at_definition):
+	Take care that typinfo gets dllexport-attribute.
+
+2012-02-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/52074
+	* expr.c (expand_expr_addr_expr_1): For CONSTANT_CLASS_P or CONST_DECL
+	if modifier < EXPAND_SUM call force_operand on the result.
+
+2012-02-07  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* config/epiphany/epiphany.h (ASM_DECLARE_FUNCTION_SIZE): Redefine,
+	adding __forwarder_dst__ prefix if a forwarder_section attribute is
+	present.
+	(epiphany_function_type): Replace types for specific interrupts with
+	EPIPHANY_FUNCTION_INTERRUPT.
+	(EPIPHANY_INTERRUPT_P): Update.
+	* config/epiphany/epiphany.c (epiphany_handle_forwarder_attribute):
+	New static function.
+	(epiphany_attribute_table) <interrupt>: min_len is 0, max_len is 9.
+	<disinterrupt>: Affects type identity.
+	(epiphany_handle_interrupt_attribute): Handle variable number of
+	arguments.
+	(epiphany_compute_function_type): Update for new
+	epiphany_function_type definition.
+	(epiphany_expand_prologue): Don't save (reg:DI GPR_0) for interrupt
+	handlers with a longcall forwarder.
+	(epiphany_start_function): Handle multiple interrupt arguments and/or
+	forwarder_section attribute.
+
+	* config/epiphany/epiphany.h (LIB_SPEC): Link libc again after libgloss.
+
+2012-02-07  Alan Modra  <amodra@gmail.com>
+
+	PR target/52107
+	* config/rs6000/rs6000.c (rs6000_emit_move): Don't create DImode
+	subregs of TFmode.
+
+2012-02-06  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR tree-optimization/50969
+	* tree-vect-stmts.c (vect_model_store_cost): Correct statement cost to
+	use vec_perm rather than vector_stmt.
+	(vect_model_load_cost): Likewise.
+	* config/i386/i386.c (ix86_builtin_vectorization_cost): Change cost of
+	vec_perm to be the same as other vector statements.
+	* config/rs6000/rs6000.c (rs6000_builtin_vectorization_cost): Revise
+	cost of vec_perm for TARGET_VSX.
+
+2012-02-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52115
+	* tree-sra.c (access_has_replacements_p): New function.
+	(sra_modify_assign): Use it to decide whether a use is uninitialized.
+
+2012-02-06  Patrick Marlier  <patrick.marlier@gmail.com>
+
+	PR middle-end/52047
+	* trans-mem.c (expand_call_tm): Add an assertion.
+	* calls.c (flags_from_decl_or_type): Add ECF_TM_PURE to 'no vops'
+	functions.
+
+2012-02-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/50955
+	* tree-ssa-loop-ivopts.c (get_computation_cost_at): Artificially
+	raise cost of expressions that replace an address with an
+	expression based on a different pointer.
+
+2012-02-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52129
+	* calls.c (mem_overlaps_already_clobbered_arg_p): If val is
+	CONST_INT_P, subtract resp. add crtl->args.pretend_args_size to it.
+
 2012-02-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	PR c++/48680
