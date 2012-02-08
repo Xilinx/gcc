@@ -9,12 +9,28 @@ package net
 import (
 	"errors"
 	"os"
+	"time"
 )
 
 // UDPConn is the implementation of the Conn and PacketConn
 // interfaces for UDP network connections.
 type UDPConn struct {
 	plan9Conn
+}
+
+// SetDeadline implements the net.Conn SetDeadline method.
+func (c *UDPConn) SetDeadline(t time.Time) error {
+	return os.EPLAN9
+}
+
+// SetReadDeadline implements the net.Conn SetReadDeadline method.
+func (c *UDPConn) SetReadDeadline(t time.Time) error {
+	return os.EPLAN9
+}
+
+// SetWriteDeadline implements the net.Conn SetWriteDeadline method.
+func (c *UDPConn) SetWriteDeadline(t time.Time) error {
+	return os.EPLAN9
 }
 
 // UDP-specific methods.
@@ -24,7 +40,7 @@ type UDPConn struct {
 // that was on the packet.
 //
 // ReadFromUDP can be made to time out and return an error with Timeout() == true
-// after a fixed time limit; see SetTimeout and SetReadTimeout.
+// after a fixed time limit; see SetDeadline and SetReadDeadline.
 func (c *UDPConn) ReadFromUDP(b []byte) (n int, addr *UDPAddr, err error) {
 	if !c.ok() {
 		return 0, nil, os.EINVAL
@@ -62,7 +78,7 @@ func (c *UDPConn) ReadFrom(b []byte) (n int, addr Addr, err error) {
 //
 // WriteToUDP can be made to time out and return
 // an error with Timeout() == true after a fixed time limit;
-// see SetTimeout and SetWriteTimeout.
+// see SetDeadline and SetWriteDeadline.
 // On packet-oriented connections, write timeouts are rare.
 func (c *UDPConn) WriteToUDP(b []byte, addr *UDPAddr) (n int, err error) {
 	if !c.ok() {
@@ -94,7 +110,7 @@ func (c *UDPConn) WriteTo(b []byte, addr Addr) (n int, err error) {
 	}
 	a, ok := addr.(*UDPAddr)
 	if !ok {
-		return 0, &OpError{"writeto", "udp", addr, os.EINVAL}
+		return 0, &OpError{"write", c.dir, addr, os.EINVAL}
 	}
 	return c.WriteToUDP(b, a)
 }
@@ -109,7 +125,7 @@ func DialUDP(net string, laddr, raddr *UDPAddr) (c *UDPConn, err error) {
 		return nil, UnknownNetworkError(net)
 	}
 	if raddr == nil {
-		return nil, &OpError{"dial", "udp", nil, errMissingAddress}
+		return nil, &OpError{"dial", net, nil, errMissingAddress}
 	}
 	c1, err := dialPlan9(net, laddr, raddr)
 	if err != nil {
@@ -157,7 +173,7 @@ func ListenUDP(net string, laddr *UDPAddr) (c *UDPConn, err error) {
 		return nil, UnknownNetworkError(net)
 	}
 	if laddr == nil {
-		return nil, &OpError{"listen", "udp", nil, errMissingAddress}
+		return nil, &OpError{"listen", net, nil, errMissingAddress}
 	}
 	l, err := listenPlan9(net, laddr)
 	if err != nil {

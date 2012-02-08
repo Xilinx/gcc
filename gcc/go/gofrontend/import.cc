@@ -42,8 +42,8 @@ const char* const Import::import_marker = "*imported*";
 // returns a pointer to a Stream object to read the data that it
 // exports.  If the file is not found, it returns NULL.
 
-// When FILENAME is not an absolute path, we use the search path
-// provided by -I and -L options.
+// When FILENAME is not an absolute path and does not start with ./ or
+// ../, we use the search path provided by -I and -L options.
 
 // When FILENAME does not exist, we try modifying FILENAME to find the
 // file.  We use the first of these which exists:
@@ -61,7 +61,18 @@ const char* const Import::import_marker = "*imported*";
 Import::Stream*
 Import::open_package(const std::string& filename, Location location)
 {
-  if (!IS_ABSOLUTE_PATH(filename))
+  bool is_local;
+  if (IS_ABSOLUTE_PATH(filename))
+    is_local = true;
+  else if (filename[0] == '.' && IS_DIR_SEPARATOR(filename[1]))
+    is_local = true;
+  else if (filename[0] == '.'
+	   && filename[1] == '.'
+	   && IS_DIR_SEPARATOR(filename[2]))
+    is_local = true;
+  else
+    is_local = false;
+  if (!is_local)
     {
       for (std::vector<std::string>::const_iterator p = search_path.begin();
 	   p != search_path.end();
@@ -430,12 +441,29 @@ Import::import_func(Package* package)
   Named_object* no;
   if (fntype->is_method())
     {
-      Type* rtype = receiver->type()->deref();
+      Type* rtype = receiver->type();
+
+      // We may still be reading the definition of RTYPE, so we have
+      // to be careful to avoid calling base or convert.  If RTYPE is
+      // a named type or a forward declaration, then we know that it
+      // is not a pointer, because we are reading a method on RTYPE
+      // and named pointers can't have methods.
+
+      if (rtype->classification() == Type::TYPE_POINTER)
+	rtype = rtype->points_to();
+
       if (rtype->is_error_type())
 	return NULL;
-      Named_type* named_rtype = rtype->named_type();
-      go_assert(named_rtype != NULL);
-      no = named_rtype->add_method_declaration(name, package, fntype, loc);
+      else if (rtype->named_type() != NULL)
+	no = rtype->named_type()->add_method_declaration(name, package, fntype,
+							 loc);
+      else if (rtype->forward_declaration_type() != NULL)
+	no = rtype->forward_declaration_type()->add_method_declaration(name,
+								       package,
+								       fntype,
+								       loc);
+      else
+	go_unreachable();
     }
   else
     {
@@ -636,8 +664,8 @@ Import::read_type()
 	{
 	  // We have seen this type before.  FIXME: it would be a good
 	  // idea to check that the two imported types are identical,
-	  // but we have not finalized the methds yet, which means
-	  // that we can nt reliably compare interface types.
+	  // but we have not finalized the methods yet, which means
+	  // that we can not reliably compare interface types.
 	  type = no->type_value();
 
 	  // Don't change the visibility of the existing type.
@@ -685,6 +713,8 @@ Import::register_builtin_types(Gogo* gogo)
   this->register_builtin_type(gogo, "bool", BUILTIN_BOOL);
   this->register_builtin_type(gogo, "string", BUILTIN_STRING);
   this->register_builtin_type(gogo, "error", BUILTIN_ERROR);
+  this->register_builtin_type(gogo, "byte", BUILTIN_BYTE);
+  this->register_builtin_type(gogo, "rune", BUILTIN_RUNE);
 }
 
 // Register a single builtin type.

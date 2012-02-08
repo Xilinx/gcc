@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2004-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -377,6 +377,52 @@ package body Ada.Containers.Bounded_Vectors is
 
       Container.Last := No_Index;
    end Clear;
+
+   ------------------------
+   -- Constant_Reference --
+   ------------------------
+
+   function Constant_Reference
+     (Container : aliased Vector;
+      Position  : Cursor) return Constant_Reference_Type
+   is
+   begin
+      if Position.Container = null then
+         raise Constraint_Error with "Position cursor has no element";
+      end if;
+
+      if Position.Container /= Container'Unrestricted_Access then
+         raise Program_Error with "Position cursor denotes wrong container";
+      end if;
+
+      if Position.Index > Position.Container.Last then
+         raise Constraint_Error with "Position cursor is out of range";
+      end if;
+
+      declare
+         A : Elements_Array renames Container.Elements;
+         I : constant Count_Type := To_Array_Index (Position.Index);
+      begin
+         return (Element => A (I)'Access);
+      end;
+   end Constant_Reference;
+
+   function Constant_Reference
+     (Container : aliased Vector;
+      Index     : Index_Type) return Constant_Reference_Type
+   is
+   begin
+      if Index > Container.Last then
+         raise Constraint_Error with "Index is out of range";
+      end if;
+
+      declare
+         A : Elements_Array renames Container.Elements;
+         I : constant Count_Type := To_Array_Index (Index);
+      begin
+         return (Element => A (I)'Access);
+      end;
+   end Constant_Reference;
 
    --------------
    -- Contains --
@@ -885,8 +931,7 @@ package body Ada.Containers.Bounded_Vectors is
       -- Sort --
       ----------
 
-      procedure Sort (Container : in out Vector)
-      is
+      procedure Sort (Container : in out Vector) is
          procedure Sort is
             new Generic_Array_Sort
              (Index_Type   => Count_Type,
@@ -894,14 +939,27 @@ package body Ada.Containers.Bounded_Vectors is
               Array_Type   => Elements_Array,
               "<"          => "<");
 
+      --  Start of processing for Sort
+
       begin
          if Container.Last <= Index_Type'First then
             return;
          end if;
 
-         if Container.Lock > 0 then
+         --  The exception behavior for the vector container must match that
+         --  for the list container, so we check for cursor tampering here
+         --  (which will catch more things) instead of for element tampering
+         --  (which will catch fewer things). It's true that the elements of
+         --  this vector container could be safely moved around while (say) an
+         --  iteration is taking place (iteration only increments the busy
+         --  counter), and so technically all we would need here is a test for
+         --  element tampering (indicated by the lock counter), that's simply
+         --  an artifact of our array-based implementation. Logically Sort
+         --  requires a check for cursor tampering.
+
+         if Container.Busy > 0 then
             raise Program_Error with
-              "attempt to tamper with elements (vector is locked)";
+              "attempt to tamper with cursors (vector is busy)";
          end if;
 
          Sort (Container.Elements (1 .. Container.Length));
@@ -2071,76 +2129,46 @@ package body Ada.Containers.Bounded_Vectors is
    -- Reference --
    ---------------
 
-   function Constant_Reference
-     (Container : Vector;
-      Position  : Cursor)    --  SHOULD BE ALIASED
-      return Constant_Reference_Type
-   is
-   begin
-      pragma Unreferenced (Container);
-
-      if Position.Container = null then
-         raise Constraint_Error with "Position cursor has no element";
-      end if;
-
-      if Position.Index > Position.Container.Last then
-         raise Constraint_Error with "Position cursor is out of range";
-      end if;
-
-      return
-       (Element =>
-          Position.Container.Elements
-            (To_Array_Index (Position.Index))'Access);
-   end Constant_Reference;
-
-   function Constant_Reference
-     (Container : Vector;
-      Position  : Index_Type)
-      return Constant_Reference_Type
-   is
-   begin
-      if (Position) > Container.Last then
-         raise Constraint_Error with "Index is out of range";
-      end if;
-
-      return (Element =>
-                Container.Elements (To_Array_Index (Position))'Access);
-   end Constant_Reference;
-
    function Reference
-     (Container : Vector;
-      Position  : Cursor)
-      return Reference_Type
+     (Container : aliased in out Vector;
+      Position  : Cursor) return Reference_Type
    is
    begin
-      pragma Unreferenced (Container);
-
       if Position.Container = null then
          raise Constraint_Error with "Position cursor has no element";
+      end if;
+
+      if Position.Container /= Container'Unrestricted_Access then
+         raise Program_Error with "Position cursor denotes wrong container";
       end if;
 
       if Position.Index > Position.Container.Last then
          raise Constraint_Error with "Position cursor is out of range";
       end if;
 
-      return
-        (Element =>
-           Position.Container.Elements
-             (To_Array_Index (Position.Index))'Access);
+      declare
+         A : Elements_Array renames Container.Elements;
+         I : constant Count_Type := To_Array_Index (Position.Index);
+      begin
+         return (Element => A (I)'Access);
+      end;
    end Reference;
 
    function Reference
-     (Container : Vector;
-      Position  : Index_Type)
-      return Reference_Type
+     (Container : aliased in out Vector;
+      Index     : Index_Type) return Reference_Type
    is
    begin
-      if Position > Container.Last then
+      if Index > Container.Last then
          raise Constraint_Error with "Index is out of range";
-      else
-         return (Element =>
-           Container.Elements (To_Array_Index (Position))'Unrestricted_Access);
       end if;
+
+      declare
+         A : Elements_Array renames Container.Elements;
+         I : constant Count_Type := To_Array_Index (Index);
+      begin
+         return (Element => A (I)'Access);
+      end;
    end Reference;
 
    ---------------------
@@ -2218,9 +2246,20 @@ package body Ada.Containers.Bounded_Vectors is
          return;
       end if;
 
-      if Container.Lock > 0 then
+      --  The exception behavior for the vector container must match that for
+      --  the list container, so we check for cursor tampering here (which will
+      --  catch more things) instead of for element tampering (which will catch
+      --  fewer things). It's true that the elements of this vector container
+      --  could be safely moved around while (say) an iteration is taking place
+      --  (iteration only increments the busy counter), and so technically all
+      --  we would need here is a test for element tampering (indicated by the
+      --  lock counter), that's simply an artifact of our array-based
+      --  implementation. Logically Reverse_Elements requires a check for
+      --  cursor tampering.
+
+      if Container.Busy > 0 then
          raise Program_Error with
-           "attempt to tamper with elements (vector is locked)";
+           "attempt to tamper with cursors (vector is busy)";
       end if;
 
       Idx := 1;

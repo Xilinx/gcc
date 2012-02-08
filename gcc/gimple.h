@@ -1006,9 +1006,6 @@ extern bool is_gimple_mem_rhs (tree);
 /* Returns true iff T is a valid if-statement condition.  */
 extern bool is_gimple_condexpr (tree);
 
-/* Returns true iff T is a variable that does not need to live in memory.  */
-extern bool is_gimple_non_addressable (tree t);
-
 /* Returns true iff T is a valid call address expression.  */
 extern bool is_gimple_call_addr (tree);
 
@@ -1100,7 +1097,7 @@ extern enum gimplify_status gimplify_expr (tree *, gimple_seq *, gimple_seq *,
 extern void gimplify_type_sizes (tree, gimple_seq *);
 extern void gimplify_one_sizepos (tree *, gimple_seq *);
 extern bool gimplify_stmt (tree *, gimple_seq *);
-extern gimple gimplify_body (tree *, tree, bool);
+extern gimple gimplify_body (tree, bool);
 extern void push_gimplify_context (struct gimplify_ctx *);
 extern void pop_gimplify_context (gimple);
 extern void gimplify_and_add (tree, gimple_seq *);

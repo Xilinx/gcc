@@ -46,19 +46,19 @@ func TestPostQuery(t *testing.T) {
 
 type stringMap map[string][]string
 type parseContentTypeTest struct {
+	shouldError bool
 	contentType stringMap
 }
 
 var parseContentTypeTests = []parseContentTypeTest{
-	{contentType: stringMap{"Content-Type": {"text/plain"}}},
-	{contentType: stringMap{}}, // Non-existent keys are not placed. The value nil is illegal.
-	{contentType: stringMap{"Content-Type": {"text/plain; boundary="}}},
-	{
-		contentType: stringMap{"Content-Type": {"application/unknown"}},
-	},
+	{false, stringMap{"Content-Type": {"text/plain"}}},
+	// Non-existent keys are not placed. The value nil is illegal.
+	{true, stringMap{}},
+	{true, stringMap{"Content-Type": {"text/plain; boundary="}}},
+	{false, stringMap{"Content-Type": {"application/unknown"}}},
 }
 
-func TestParseFormBadContentType(t *testing.T) {
+func TestParseFormUnknownContentType(t *testing.T) {
 	for i, test := range parseContentTypeTests {
 		req := &Request{
 			Method: "POST",
@@ -66,8 +66,11 @@ func TestParseFormBadContentType(t *testing.T) {
 			Body:   ioutil.NopCloser(bytes.NewBufferString("body")),
 		}
 		err := req.ParseForm()
-		if err == nil {
+		switch {
+		case err == nil && test.shouldError:
 			t.Errorf("test %d should have returned error", i)
+		case err != nil && !test.shouldError:
+			t.Errorf("test %d should not have returned error, got %v", i, err)
 		}
 	}
 }
@@ -202,8 +205,8 @@ func validateTestMultipartContents(t *testing.T, req *Request, allMem bool) {
 	if g, e := req.FormValue("texta"), textaValue; g != e {
 		t.Errorf("texta value = %q, want %q", g, e)
 	}
-	if g, e := req.FormValue("texta"), textaValue; g != e {
-		t.Errorf("texta value = %q, want %q", g, e)
+	if g, e := req.FormValue("textb"), textbValue; g != e {
+		t.Errorf("textb value = %q, want %q", g, e)
 	}
 	if g := req.FormValue("missing"); g != "" {
 		t.Errorf("missing value = %q, want empty string", g)
@@ -214,14 +217,16 @@ func validateTestMultipartContents(t *testing.T, req *Request, allMem bool) {
 			t.Error(n, " is *os.File, should not be")
 		}
 	}
-	fd := testMultipartFile(t, req, "filea", "filea.txt", fileaContents)
-	assertMem("filea", fd)
-	fd = testMultipartFile(t, req, "fileb", "fileb.txt", filebContents)
+	fda := testMultipartFile(t, req, "filea", "filea.txt", fileaContents)
+	defer fda.Close()
+	assertMem("filea", fda)
+	fdb := testMultipartFile(t, req, "fileb", "fileb.txt", filebContents)
+	defer fdb.Close()
 	if allMem {
-		assertMem("fileb", fd)
+		assertMem("fileb", fdb)
 	} else {
-		if _, ok := fd.(*os.File); !ok {
-			t.Errorf("fileb has unexpected underlying type %T", fd)
+		if _, ok := fdb.(*os.File); !ok {
+			t.Errorf("fileb has unexpected underlying type %T", fdb)
 		}
 	}
 

@@ -971,6 +971,11 @@ get_array_ref_dim_for_loop_dim (gfc_ss *ss, int loop_dim)
    fields of info if known.  Returns the size of the array, or NULL for a
    callee allocated array.
 
+   'eltype' == NULL signals that the temporary should be a class object.
+   The 'initial' expression is used to obtain the size of the dynamic
+   type; otehrwise the allocation and initialisation proceeds as for any
+   other expression
+
    PRE, POST, INITIAL, DYNAMIC and DEALLOC are as for
    gfc_trans_allocate_array_storage.  */
 
@@ -990,8 +995,22 @@ gfc_trans_create_temp_array (stmtblock_t * pre, stmtblock_t * post, gfc_ss * ss,
   tree nelem;
   tree cond;
   tree or_expr;
+  tree class_expr = NULL_TREE;
   int n, dim, tmp_dim;
   int total_dim = 0;
+
+  /* This signals a class array for which we need the size of the
+     dynamic type.  Generate an eltype and then the class expression.  */
+  if (eltype == NULL_TREE && initial)
+    {
+      if (POINTER_TYPE_P (TREE_TYPE (initial)))
+	class_expr = build_fold_indirect_ref_loc (input_location, initial);
+      eltype = TREE_TYPE (class_expr);
+      eltype = gfc_get_element_type (eltype);
+      /* Obtain the structure (class) expression.  */
+      class_expr = TREE_OPERAND (class_expr, 0);
+      gcc_assert (class_expr);
+    }
 
   memset (from, 0, sizeof (from));
   memset (to, 0, sizeof (to));
@@ -1133,16 +1152,21 @@ gfc_trans_create_temp_array (stmtblock_t * pre, stmtblock_t * post, gfc_ss * ss,
   /* Get the size of the array.  */
   if (size && !callee_alloc)
     {
+      tree elemsize;
       /* If or_expr is true, then the extent in at least one
 	 dimension is zero and the size is set to zero.  */
       size = fold_build3_loc (input_location, COND_EXPR, gfc_array_index_type,
 			      or_expr, gfc_index_zero_node, size);
 
       nelem = size;
+      if (class_expr == NULL_TREE)
+	elemsize = fold_convert (gfc_array_index_type,
+			TYPE_SIZE_UNIT (gfc_get_element_type (type)));
+      else
+	elemsize = gfc_vtable_size_get (class_expr);
+
       size = fold_build2_loc (input_location, MULT_EXPR, gfc_array_index_type,
-		size,
-		fold_convert (gfc_array_index_type,
-			      TYPE_SIZE_UNIT (gfc_get_element_type (type))));
+			      size, elemsize);
     }
   else
     {
@@ -4695,7 +4719,7 @@ static tree
 gfc_array_init_size (tree descriptor, int rank, int corank, tree * poffset,
 		     gfc_expr ** lower, gfc_expr ** upper, stmtblock_t * pblock,
 		     stmtblock_t * descriptor_block, tree * overflow,
-		     gfc_expr *expr3)
+		     tree expr3_elem_size, tree *nelems, gfc_expr *expr3)
 {
   tree type;
   tree tmp;
@@ -4852,7 +4876,9 @@ gfc_array_init_size (tree descriptor, int rank, int corank, tree * poffset,
   /* The stride is the number of elements in the array, so multiply by the
      size of an element to get the total size.  Obviously, if there ia a
      SOURCE expression (expr3) we must use its element size.  */
-  if (expr3 != NULL)
+  if (expr3_elem_size != NULL_TREE)
+    tmp = expr3_elem_size;
+  else if (expr3 != NULL)
     {
       if (expr3->ts.type == BT_CLASS)
 	{
@@ -4880,6 +4906,7 @@ gfc_array_init_size (tree descriptor, int rank, int corank, tree * poffset,
   if (rank == 0)
     return element_size;
 
+  *nelems = gfc_evaluate_now (stride, pblock);
   stride = fold_convert (size_type_node, stride);
 
   /* First check for overflow. Since an array of type character can
@@ -4938,7 +4965,8 @@ gfc_array_init_size (tree descriptor, int rank, int corank, tree * poffset,
 
 bool
 gfc_array_allocate (gfc_se * se, gfc_expr * expr, tree status, tree errmsg,
-		    tree errlen, gfc_expr *expr3)
+		    tree errlen, tree label_finish, tree expr3_elem_size,
+		    tree *nelems, gfc_expr *expr3)
 {
   tree tmp;
   tree pointer;
@@ -5023,7 +5051,7 @@ gfc_array_allocate (gfc_se * se, gfc_expr * expr, tree status, tree errmsg,
   size = gfc_array_init_size (se->expr, ref->u.ar.as->rank,
 			      ref->u.ar.as->corank, &offset, lower, upper,
 			      &se->pre, &set_descriptor_block, &overflow,
-			      expr3);
+			      expr3_elem_size, nelems, expr3);
 
   if (dimension)
     {
@@ -5054,6 +5082,9 @@ gfc_array_allocate (gfc_se * se, gfc_expr * expr, tree status, tree errmsg,
   gfc_start_block (&elseblock);
 
   /* Allocate memory to store the data.  */
+  if (POINTER_TYPE_P (TREE_TYPE (se->expr)))
+    se->expr = build_fold_indirect_ref_loc (input_location, se->expr);
+
   pointer = gfc_conv_descriptor_data_get (se->expr);
   STRIP_NOPS (pointer);
 
@@ -5064,7 +5095,7 @@ gfc_array_allocate (gfc_se * se, gfc_expr * expr, tree status, tree errmsg,
   /* The allocatable variant takes the old pointer as first argument.  */
   if (allocatable)
     gfc_allocate_allocatable (&elseblock, pointer, size, token,
-			      status, errmsg, errlen, expr);
+			      status, errmsg, errlen, label_finish, expr);
   else
     gfc_allocate_using_malloc (&elseblock, pointer, size, status);
 
@@ -5080,12 +5111,12 @@ gfc_array_allocate (gfc_se * se, gfc_expr * expr, tree status, tree errmsg,
 
   gfc_add_expr_to_block (&se->pre, tmp);
 
-  if (expr->ts.type == BT_CLASS && expr3)
+  if (expr->ts.type == BT_CLASS)
     {
       tmp = build_int_cst (unsigned_char_type_node, 0);
-      /* For class objects we need to nullify the memory in case they have
-	 allocatable components; the reason is that _copy, which is used for
-	 initialization, first frees the destination.  */
+      /* With class objects, it is best to play safe and null the 
+	 memory because we cannot know if dynamic types have allocatable
+	 components or not.  */
       tmp = build_call_expr_loc (input_location,
 				 builtin_decl_explicit (BUILT_IN_MEMSET),
 				 3, pointer, tmp,  size);
@@ -5127,24 +5158,40 @@ gfc_array_allocate (gfc_se * se, gfc_expr * expr, tree status, tree errmsg,
 /*GCC ARRAYS*/
 
 tree
-gfc_array_deallocate (tree descriptor, tree pstat, gfc_expr* expr)
+gfc_array_deallocate (tree descriptor, tree pstat, tree errmsg, tree errlen,
+		      tree label_finish, gfc_expr* expr)
 {
   tree var;
   tree tmp;
   stmtblock_t block;
+  bool coarray = gfc_is_coarray (expr);
 
   gfc_start_block (&block);
+
   /* Get a pointer to the data.  */
   var = gfc_conv_descriptor_data_get (descriptor);
   STRIP_NOPS (var);
 
   /* Parameter is the address of the data component.  */
-  tmp = gfc_deallocate_with_status (var, pstat, false, expr);
+  tmp = gfc_deallocate_with_status (coarray ? descriptor : var, pstat, errmsg,
+				    errlen, label_finish, false, expr, coarray);
   gfc_add_expr_to_block (&block, tmp);
 
-  /* Zero the data pointer.  */
+  /* Zero the data pointer; only for coarrays an error can occur and then
+     the allocation status may not be changed.  */
   tmp = fold_build2_loc (input_location, MODIFY_EXPR, void_type_node,
 			 var, build_int_cst (TREE_TYPE (var), 0));
+  if (pstat != NULL_TREE && coarray && gfc_option.coarray == GFC_FCOARRAY_LIB)
+    {
+      tree cond;
+      tree stat = build_fold_indirect_ref_loc (input_location, pstat);
+
+      cond = fold_build2_loc (input_location, EQ_EXPR, boolean_type_node,
+			      stat, build_int_cst (TREE_TYPE (stat), 0));
+      tmp = fold_build3_loc (input_location, COND_EXPR, void_type_node,
+			     cond, tmp, build_empty_stmt (input_location));
+    }
+
   gfc_add_expr_to_block (&block, tmp);
 
   return gfc_finish_block (&block);
@@ -7055,7 +7102,7 @@ gfc_conv_array_parameter (gfc_se * se, gfc_expr * expr, gfc_ss * ss, bool g77,
 /* Generate code to deallocate an array, if it is allocated.  */
 
 tree
-gfc_trans_dealloc_allocated (tree descriptor)
+gfc_trans_dealloc_allocated (tree descriptor, bool coarray)
 { 
   tree tmp;
   tree var;
@@ -7069,7 +7116,9 @@ gfc_trans_dealloc_allocated (tree descriptor)
   /* Call array_deallocate with an int * present in the second argument.
      Although it is ignored here, it's presence ensures that arrays that
      are already deallocated are ignored.  */
-  tmp = gfc_deallocate_with_status (var, NULL_TREE, true, NULL);
+  tmp = gfc_deallocate_with_status (coarray ? descriptor : var, NULL_TREE,
+				    NULL_TREE, NULL_TREE, NULL_TREE, true,
+				    NULL, coarray);
   gfc_add_expr_to_block (&block, tmp);
 
   /* Zero the data pointer.  */
@@ -7220,6 +7269,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
   gfc_loopinfo loop;
   stmtblock_t fnblock;
   stmtblock_t loopbody;
+  stmtblock_t tmpblock;
   tree decl_type;
   tree tmp;
   tree comp;
@@ -7231,6 +7281,7 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
   tree ctype;
   tree vref, dref;
   tree null_cond = NULL_TREE;
+  bool called_dealloc_with_status;
 
   gfc_init_block (&fnblock);
 
@@ -7341,25 +7392,20 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
       switch (purpose)
 	{
 	case DEALLOCATE_ALLOC_COMP:
-	  if (cmp_has_alloc_comps && !c->attr.pointer)
-	    {
-	      /* Do not deallocate the components of ultimate pointer
-		 components.  */
-	      comp = fold_build3_loc (input_location, COMPONENT_REF, ctype,
-				      decl, cdecl, NULL_TREE);
-	      rank = c->as ? c->as->rank : 0;
-	      tmp = structure_alloc_comps (c->ts.u.derived, comp, NULL_TREE,
-					   rank, purpose);
-	      gfc_add_expr_to_block (&fnblock, tmp);
-	    }
+
+	  /* gfc_deallocate_scalar_with_status calls gfc_deallocate_alloc_comp
+	     (ie. this function) so generate all the calls and suppress the
+	     recursion from here, if necessary.  */
+	  called_dealloc_with_status = false;
+	  gfc_init_block (&tmpblock);
 
 	  if (c->attr.allocatable
 	      && (c->attr.dimension || c->attr.codimension))
 	    {
 	      comp = fold_build3_loc (input_location, COMPONENT_REF, ctype,
 				      decl, cdecl, NULL_TREE);
-	      tmp = gfc_trans_dealloc_allocated (comp);
-	      gfc_add_expr_to_block (&fnblock, tmp);
+	      tmp = gfc_trans_dealloc_allocated (comp, c->attr.codimension);
+	      gfc_add_expr_to_block (&tmpblock, tmp);
 	    }
 	  else if (c->attr.allocatable)
 	    {
@@ -7369,12 +7415,13 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 
 	      tmp = gfc_deallocate_scalar_with_status (comp, NULL, true, NULL,
 						       c->ts);
-	      gfc_add_expr_to_block (&fnblock, tmp);
+	      gfc_add_expr_to_block (&tmpblock, tmp);
+	      called_dealloc_with_status = true;
 
 	      tmp = fold_build2_loc (input_location, MODIFY_EXPR,
 				     void_type_node, comp,
 				     build_int_cst (TREE_TYPE (comp), 0));
-	      gfc_add_expr_to_block (&fnblock, tmp);
+	      gfc_add_expr_to_block (&tmpblock, tmp);
 	    }
 	  else if (c->ts.type == BT_CLASS && CLASS_DATA (c)->attr.allocatable)
 	    {
@@ -7388,19 +7435,39 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 				      TREE_TYPE (tmp), comp, tmp, NULL_TREE);
 
 	      if (GFC_DESCRIPTOR_TYPE_P(TREE_TYPE (comp)))
-	        tmp = gfc_trans_dealloc_allocated (comp);
+	        tmp = gfc_trans_dealloc_allocated (comp,
+					CLASS_DATA (c)->attr.codimension);
 	      else
 		{
 		  tmp = gfc_deallocate_scalar_with_status (comp, NULL, true, NULL,
 							   CLASS_DATA (c)->ts);
-		  gfc_add_expr_to_block (&fnblock, tmp);
+		  gfc_add_expr_to_block (&tmpblock, tmp);
+		  called_dealloc_with_status = true;
 
 		  tmp = fold_build2_loc (input_location, MODIFY_EXPR,
 					 void_type_node, comp,
 					 build_int_cst (TREE_TYPE (comp), 0));
 		}
+	      gfc_add_expr_to_block (&tmpblock, tmp);
+	    }
+
+	  if (cmp_has_alloc_comps
+		&& !c->attr.pointer
+		&& !called_dealloc_with_status)
+	    {
+	      /* Do not deallocate the components of ultimate pointer
+		 components or iteratively call self if call has been made
+		 to gfc_trans_dealloc_allocated  */
+	      comp = fold_build3_loc (input_location, COMPONENT_REF, ctype,
+				      decl, cdecl, NULL_TREE);
+	      rank = c->as ? c->as->rank : 0;
+	      tmp = structure_alloc_comps (c->ts.u.derived, comp, NULL_TREE,
+					   rank, purpose);
 	      gfc_add_expr_to_block (&fnblock, tmp);
 	    }
+
+	  /* Now add the deallocation of this component.  */
+	  gfc_add_block_to_block (&fnblock, &tmpblock);
 	  break;
 
 	case NULLIFY_ALLOC_COMP:
@@ -7463,6 +7530,57 @@ structure_alloc_comps (gfc_symbol * der_type, tree decl,
 	  dcmp = fold_build3_loc (input_location, COMPONENT_REF, ctype, dest,
 				  cdecl, NULL_TREE);
 	  dcmp = fold_convert (TREE_TYPE (comp), dcmp);
+
+	  if (c->ts.type == BT_CLASS && CLASS_DATA (c)->attr.allocatable)
+	    {
+	      tree ftn_tree;
+	      tree size;
+	      tree dst_data;
+	      tree src_data;
+	      tree null_data;
+
+	      dst_data = gfc_class_data_get (dcmp);
+	      src_data = gfc_class_data_get (comp);
+	      size = fold_convert (size_type_node, gfc_vtable_size_get (comp));
+
+	      if (CLASS_DATA (c)->attr.dimension)
+		{
+		  nelems = gfc_conv_descriptor_size (src_data,
+						     CLASS_DATA (c)->as->rank);
+		  src_data = gfc_conv_descriptor_data_get (src_data);
+		  dst_data = gfc_conv_descriptor_data_get (dst_data);
+		}
+	      else
+		nelems = build_int_cst (size_type_node, 1);
+
+	      gfc_init_block (&tmpblock);
+
+	      /* We need to use CALLOC as _copy might try to free allocatable
+		 components of the destination.  */
+	      ftn_tree = builtin_decl_explicit (BUILT_IN_CALLOC);
+              tmp = build_call_expr_loc (input_location, ftn_tree, 2, nelems,
+					 size);
+	      gfc_add_modify (&tmpblock, dst_data,
+			      fold_convert (TREE_TYPE (dst_data), tmp));
+
+	      tmp = gfc_copy_class_to_class (comp, dcmp, nelems);
+	      gfc_add_expr_to_block (&tmpblock, tmp);
+	      tmp = gfc_finish_block (&tmpblock);
+
+	      gfc_init_block (&tmpblock);
+	      gfc_add_modify (&tmpblock, dst_data,
+			      fold_convert (TREE_TYPE (dst_data),
+					    null_pointer_node));
+	      null_data = gfc_finish_block (&tmpblock);
+
+	      null_cond = fold_build2_loc (input_location, NE_EXPR,
+					   boolean_type_node, src_data,
+				           null_pointer_node); 	
+
+	      gfc_add_expr_to_block (&fnblock, build3_v (COND_EXPR, null_cond,
+							 tmp, null_data));
+	      continue;
+	    }
 
 	  if (c->attr.allocatable && !cmp_has_alloc_comps)
 	    {
@@ -8094,7 +8212,8 @@ gfc_trans_deferred_array (gfc_symbol * sym, gfc_wrapped_block * block)
   if (sym->attr.allocatable && (sym->attr.dimension || sym->attr.codimension)
       && !sym->attr.save && !sym->attr.result)
     {
-      tmp = gfc_trans_dealloc_allocated (sym->backend_decl);
+      tmp = gfc_trans_dealloc_allocated (sym->backend_decl,
+					 sym->attr.codimension);
       gfc_add_expr_to_block (&cleanup, tmp);
     }
 
@@ -8349,7 +8468,7 @@ gfc_walk_elemental_function_args (gfc_ss * ss, gfc_actual_arglist *arg,
   scalar = 1;
   for (; arg; arg = arg->next)
     {
-      if (!arg->expr)
+      if (!arg->expr || arg->expr->expr_type == EXPR_NULL)
 	continue;
 
       newss = gfc_walk_subexpr (head, arg->expr);
@@ -8362,9 +8481,10 @@ gfc_walk_elemental_function_args (gfc_ss * ss, gfc_actual_arglist *arg,
 
 	  if (dummy_arg != NULL
 	      && dummy_arg->sym->attr.optional
-	      && arg->expr->symtree
-	      && arg->expr->symtree->n.sym->attr.optional
-	      && arg->expr->ref == NULL)
+	      && arg->expr->expr_type == EXPR_VARIABLE
+	      && (gfc_expr_attr (arg->expr).optional
+		  || gfc_expr_attr (arg->expr).allocatable
+		  || gfc_expr_attr (arg->expr).pointer))
 	    newss->info->data.scalar.can_be_null_ref = true;
 	}
       else

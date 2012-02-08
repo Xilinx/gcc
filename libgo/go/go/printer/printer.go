@@ -18,8 +18,11 @@ import (
 	"text/tabwriter"
 )
 
-const debug = false // enable for debugging
-const infinity = 1 << 30
+const (
+	maxNewlines = 2     // max. number of newlines between source text
+	debug       = false // enable for debugging
+	infinity    = 1 << 30
+)
 
 type whiteSpace byte
 
@@ -72,6 +75,10 @@ type printer struct {
 
 	// Cache of already computed node sizes.
 	nodeSizes map[ast.Node]int
+
+	// Cache of most recently computed line position.
+	cachedPos  token.Pos
+	cachedLine int // line corresponding to cachedPos
 }
 
 func (p *printer) init(cfg *Config, fset *token.FileSet, nodeSizes map[ast.Node]int) {
@@ -79,6 +86,7 @@ func (p *printer) init(cfg *Config, fset *token.FileSet, nodeSizes map[ast.Node]
 	p.fset = fset
 	p.wsbuf = make([]whiteSpace, 0, 16) // whitespace sequences are short
 	p.nodeSizes = nodeSizes
+	p.cachedPos = -1
 }
 
 func (p *printer) internalError(msg ...interface{}) {
@@ -89,21 +97,20 @@ func (p *printer) internalError(msg ...interface{}) {
 	}
 }
 
-// nlines returns the adjusted number of linebreaks given the desired number
-// of breaks n such that min <= result <= max.
-//
-func (p *printer) nlines(n, min int) int {
-	const max = 2 // max. number of newlines
-	switch {
-	case n < min:
-		return min
-	case n > max:
-		return max
-	}
-	return n
+func (p *printer) posFor(pos token.Pos) token.Position {
+	// not used frequently enough to cache entire token.Position
+	return p.fset.Position(pos)
 }
 
-// writeByte writes a single byte to p.output and updates p.pos.
+func (p *printer) lineFor(pos token.Pos) int {
+	if pos != p.cachedPos {
+		p.cachedPos = pos
+		p.cachedLine = p.fset.Position(pos).Line
+	}
+	return p.cachedLine
+}
+
+// writeByte writes ch to p.output and updates p.pos.
 func (p *printer) writeByte(ch byte) {
 	p.output.WriteByte(ch)
 	p.pos.Offset++
@@ -128,13 +135,11 @@ func (p *printer) writeByte(ch byte) {
 	}
 }
 
-// writeNewlines writes up to n newlines to p.output and updates p.pos.
-// The actual number of newlines written is limited by nlines.
-// nl must be one of '\n' or '\f'.
-//
-func (p *printer) writeNewlines(n int, nl byte) {
-	for n = p.nlines(n, 0); n > 0; n-- {
-		p.writeByte(nl)
+// writeByteN writes ch n times to p.output and updates p.pos.
+func (p *printer) writeByteN(ch byte, n int) {
+	for n > 0 {
+		p.writeByte(ch)
+		n--
 	}
 }
 
@@ -223,8 +228,8 @@ func (p *printer) writeCommentPrefix(pos, next token.Position, prev, comment *as
 	}
 
 	if pos.IsValid() && pos.Filename != p.last.Filename {
-		// comment in a different file - separate with newlines (writeNewlines will limit the number)
-		p.writeNewlines(10, '\f')
+		// comment in a different file - separate with newlines
+		p.writeByteN('\f', maxNewlines)
 		return
 	}
 
@@ -270,6 +275,7 @@ func (p *printer) writeCommentPrefix(pos, next token.Position, prev, comment *as
 	} else {
 		// comment on a different line:
 		// separate with at least one line break
+		droppedLinebreak := false
 		if prev == nil {
 			// first comment of a comment group
 			j := 0
@@ -295,6 +301,7 @@ func (p *printer) writeCommentPrefix(pos, next token.Position, prev, comment *as
 				case newline, formfeed:
 					// TODO(gri): may want to keep formfeed info in some cases
 					p.wsbuf[i] = ignore
+					droppedLinebreak = true
 				}
 				j = i
 				break
@@ -302,25 +309,41 @@ func (p *printer) writeCommentPrefix(pos, next token.Position, prev, comment *as
 			p.writeWhitespace(j)
 		}
 
-		// turn off indent if we're about to print a line directive.
-		indent := p.indent
-		if strings.HasPrefix(comment.Text, linePrefix) {
-			p.indent = 0
+		// determine number of linebreaks before the comment
+		n := 0
+		if pos.IsValid() && p.last.IsValid() {
+			n = pos.Line - p.last.Line
+			if n < 0 { // should never happen
+				n = 0
+			}
 		}
 
-		// use formfeeds to break columns before a comment;
-		// this is analogous to using formfeeds to separate
-		// individual lines of /*-style comments - but make
-		// sure there is at least one line break if the previous
-		// comment was a line comment
-		n := pos.Line - p.last.Line // if !pos.IsValid(), pos.Line == 0, and n will be 0
-		if n <= 0 && prev != nil && prev.Text[1] == '/' {
+		// at the package scope level only (p.indent == 0),
+		// add an extra newline if we dropped one before:
+		// this preserves a blank line before documentation
+		// comments at the package scope level (issue 2570)
+		if p.indent == 0 && droppedLinebreak {
+			n++
+		}
+
+		// make sure there is at least one line break
+		// if the previous comment was a line comment
+		if n == 0 && prev != nil && prev.Text[1] == '/' {
 			n = 1
 		}
+
 		if n > 0 {
-			p.writeNewlines(n, '\f')
+			// turn off indent if we're about to print a line directive
+			indent := p.indent
+			if strings.HasPrefix(comment.Text, linePrefix) {
+				p.indent = 0
+			}
+			// use formfeeds to break columns before a comment;
+			// this is analogous to using formfeeds to separate
+			// individual lines of /*-style comments
+			p.writeByteN('\f', nlimit(n))
+			p.indent = indent // restore indent
 		}
-		p.indent = indent
 	}
 }
 
@@ -524,7 +547,7 @@ func (p *printer) writeComment(comment *ast.Comment) {
 
 	// shortcut common case of //-style comments
 	if text[1] == '/' {
-		p.writeItem(p.fset.Position(comment.Pos()), text, true)
+		p.writeItem(p.posFor(comment.Pos()), text, true)
 		return
 	}
 
@@ -535,7 +558,7 @@ func (p *printer) writeComment(comment *ast.Comment) {
 
 	// write comment lines, separated by formfeed,
 	// without a line break after the last line
-	pos := p.fset.Position(comment.Pos())
+	pos := p.posFor(comment.Pos())
 	for i, line := range lines {
 		if i > 0 {
 			p.writeByte('\f')
@@ -550,10 +573,11 @@ func (p *printer) writeComment(comment *ast.Comment) {
 // writeCommentSuffix writes a line break after a comment if indicated
 // and processes any leftover indentation information. If a line break
 // is needed, the kind of break (newline vs formfeed) depends on the
-// pending whitespace. writeCommentSuffix returns true if a pending
-// formfeed was dropped from the whitespace buffer.
+// pending whitespace. The writeCommentSuffix result indicates if a
+// newline was written or if a formfeed was dropped from the whitespace
+// buffer.
 //
-func (p *printer) writeCommentSuffix(needsLinebreak bool) (droppedFF bool) {
+func (p *printer) writeCommentSuffix(needsLinebreak bool) (wroteNewline, droppedFF bool) {
 	for i, ch := range p.wsbuf {
 		switch ch {
 		case blank, vtab:
@@ -566,6 +590,7 @@ func (p *printer) writeCommentSuffix(needsLinebreak bool) (droppedFF bool) {
 			// but remember if we dropped any formfeeds
 			if needsLinebreak {
 				needsLinebreak = false
+				wroteNewline = true
 			} else {
 				if ch == formfeed {
 					droppedFF = true
@@ -579,6 +604,7 @@ func (p *printer) writeCommentSuffix(needsLinebreak bool) (droppedFF bool) {
 	// make sure we have a line break
 	if needsLinebreak {
 		p.writeByte('\n')
+		wroteNewline = true
 	}
 
 	return
@@ -587,21 +613,21 @@ func (p *printer) writeCommentSuffix(needsLinebreak bool) (droppedFF bool) {
 // intersperseComments consumes all comments that appear before the next token
 // tok and prints it together with the buffered whitespace (i.e., the whitespace
 // that needs to be written before the next token). A heuristic is used to mix
-// the comments and whitespace. intersperseComments returns true if a pending
-// formfeed was dropped from the whitespace buffer.
+// the comments and whitespace. The intersperseComments result indicates if a
+// newline was written or if a formfeed was dropped from the whitespace buffer.
 //
-func (p *printer) intersperseComments(next token.Position, tok token.Token) (droppedFF bool) {
+func (p *printer) intersperseComments(next token.Position, tok token.Token) (wroteNewline, droppedFF bool) {
 	var last *ast.Comment
 	for ; p.commentBefore(next); p.cindex++ {
 		for _, c := range p.comments[p.cindex].List {
-			p.writeCommentPrefix(p.fset.Position(c.Pos()), next, last, c, tok.IsKeyword())
+			p.writeCommentPrefix(p.posFor(c.Pos()), next, last, c, tok.IsKeyword())
 			p.writeComment(c)
 			last = c
 		}
 	}
 
 	if last != nil {
-		if last.Text[1] == '*' && p.fset.Position(last.Pos()).Line == next.Line {
+		if last.Text[1] == '*' && p.lineFor(last.Pos()) == next.Line {
 			// the last comment is a /*-style comment and the next item
 			// follows on the same line: separate with an extra blank
 			p.writeByte(' ')
@@ -618,7 +644,7 @@ func (p *printer) intersperseComments(next token.Position, tok token.Token) (dro
 	// no comment was written - we should never reach here since
 	// intersperseComments should not be called in that case
 	p.internalError("intersperseComments called without pending comments")
-	return false
+	return
 }
 
 // whiteWhitespace writes the first n whitespace entries.
@@ -670,6 +696,14 @@ func (p *printer) writeWhitespace(n int) {
 
 // ----------------------------------------------------------------------------
 // Printing interface
+
+// nlines limits n to maxNewlines.
+func nlimit(n int) int {
+	if n > maxNewlines {
+		n = maxNewlines
+	}
+	return n
+}
 
 func mayCombine(prev token.Token, next byte) (b bool) {
 	switch prev {
@@ -754,28 +788,38 @@ func (p *printer) print(args ...interface{}) {
 			tok = x
 		case token.Pos:
 			if x.IsValid() {
-				next = p.fset.Position(x) // accurate position of next item
+				next = p.posFor(x) // accurate position of next item
 			}
 			tok = p.lastTok
+		case string:
+			// incorrect AST - print error message
+			data = x
+			isLit = true
+			tok = token.STRING
 		default:
-			fmt.Fprintf(os.Stderr, "print: unsupported argument type %T\n", f)
+			fmt.Fprintf(os.Stderr, "print: unsupported argument %v (%T)\n", f, f)
 			panic("go/printer type")
 		}
 		p.lastTok = tok
 		p.pos = next
 
 		if data != "" {
-			nl := byte('\n')
-			if p.flush(next, tok) {
-				nl = '\f' // dropped formfeed before
-			}
+			wroteNewline, droppedFF := p.flush(next, tok)
 
 			// intersperse extra newlines if present in the source
 			// (don't do this in flush as it will cause extra newlines
-			// at the end of a file) - use formfeeds if we dropped one
-			// before
-			if n := next.Line - p.pos.Line; n > 0 {
-				p.writeNewlines(n, nl)
+			// at the end of a file)
+			n := nlimit(next.Line - p.pos.Line)
+			// don't exceed maxNewlines if we already wrote one
+			if wroteNewline && n == maxNewlines {
+				n = maxNewlines - 1
+			}
+			if n > 0 {
+				ch := byte('\n')
+				if droppedFF {
+					ch = '\f' // use formfeed since we dropped one before
+				}
+				p.writeByteN(ch, n)
 			}
 
 			p.writeItem(next, data, isLit)
@@ -787,19 +831,18 @@ func (p *printer) print(args ...interface{}) {
 // before the next position in the source code.
 //
 func (p *printer) commentBefore(next token.Position) bool {
-	return p.cindex < len(p.comments) && p.fset.Position(p.comments[p.cindex].List[0].Pos()).Offset < next.Offset
+	return p.cindex < len(p.comments) && p.posFor(p.comments[p.cindex].List[0].Pos()).Offset < next.Offset
 }
 
-// Flush prints any pending comments and whitespace occurring
-// textually before the position of the next token tok. Flush
-// returns true if a pending formfeed character was dropped
-// from the whitespace buffer as a result of interspersing
-// comments.
+// Flush prints any pending comments and whitespace occurring textually
+// before the position of the next token tok. The Flush result indicates
+// if a newline was written or if a formfeed was dropped from the whitespace
+// buffer.
 //
-func (p *printer) flush(next token.Position, tok token.Token) (droppedFF bool) {
+func (p *printer) flush(next token.Position, tok token.Token) (wroteNewline, droppedFF bool) {
 	if p.commentBefore(next) {
 		// if there are comments before the next item, intersperse them
-		droppedFF = p.intersperseComments(next, tok)
+		wroteNewline, droppedFF = p.intersperseComments(next, tok)
 	} else {
 		// otherwise, write any leftover whitespace
 		p.writeWhitespace(len(p.wsbuf))
@@ -807,13 +850,76 @@ func (p *printer) flush(next token.Position, tok token.Token) (droppedFF bool) {
 	return
 }
 
+// getNode returns the ast.CommentGroup associated with n, if any.
+func getDoc(n ast.Node) *ast.CommentGroup {
+	switch n := n.(type) {
+	case *ast.Field:
+		return n.Doc
+	case *ast.ImportSpec:
+		return n.Doc
+	case *ast.ValueSpec:
+		return n.Doc
+	case *ast.TypeSpec:
+		return n.Doc
+	case *ast.GenDecl:
+		return n.Doc
+	case *ast.FuncDecl:
+		return n.Doc
+	case *ast.File:
+		return n.Doc
+	}
+	return nil
+}
+
 func (p *printer) printNode(node interface{}) error {
+	// unpack *CommentedNode, if any
+	var comments []*ast.CommentGroup
+	if cnode, ok := node.(*CommentedNode); ok {
+		node = cnode.Node
+		comments = cnode.Comments
+	}
+
+	if comments != nil {
+		// commented node - restrict comment list to relevant range
+		n, ok := node.(ast.Node)
+		if !ok {
+			goto unsupported
+		}
+		beg := n.Pos()
+		end := n.End()
+		// if the node has associated documentation,
+		// include that commentgroup in the range
+		// (the comment list is sorted in the order
+		// of the comment appearance in the source code)
+		if doc := getDoc(n); doc != nil {
+			beg = doc.Pos()
+		}
+		// token.Pos values are global offsets, we can
+		// compare them directly
+		i := 0
+		for i < len(comments) && comments[i].End() < beg {
+			i++
+		}
+		j := i
+		for j < len(comments) && comments[j].Pos() < end {
+			j++
+		}
+		if i < j {
+			p.comments = comments[i:j]
+		}
+	} else if n, ok := node.(*ast.File); ok {
+		// use ast.File comments, if any
+		p.comments = n.Comments
+	}
+
+	// if there are no comments, use node comments
+	p.useNodeComments = p.comments == nil
+
+	// format node
 	switch n := node.(type) {
 	case ast.Expr:
-		p.useNodeComments = true
 		p.expr(n, ignoreMultiLine)
 	case ast.Stmt:
-		p.useNodeComments = true
 		// A labeled statement will un-indent to position the
 		// label. Set indent to 1 so we don't get indent "underflow".
 		if _, labeledStmt := n.(*ast.LabeledStmt); labeledStmt {
@@ -821,19 +927,19 @@ func (p *printer) printNode(node interface{}) error {
 		}
 		p.stmt(n, false, ignoreMultiLine)
 	case ast.Decl:
-		p.useNodeComments = true
 		p.decl(n, ignoreMultiLine)
 	case ast.Spec:
-		p.useNodeComments = true
 		p.spec(n, 1, false, ignoreMultiLine)
 	case *ast.File:
-		p.comments = n.Comments
-		p.useNodeComments = n.Comments == nil
 		p.file(n)
 	default:
-		return fmt.Errorf("go/printer: unsupported node type %T", n)
+		goto unsupported
 	}
+
 	return nil
+
+unsupported:
+	return fmt.Errorf("go/printer: unsupported node type %T", node)
 }
 
 // ----------------------------------------------------------------------------
@@ -1001,10 +1107,18 @@ func (cfg *Config) fprint(output io.Writer, fset *token.FileSet, node interface{
 	return
 }
 
+// A CommentedNode bundles an AST node and corresponding comments.
+// It may be provided as argument to any of the FPrint functions.
+//
+type CommentedNode struct {
+	Node     interface{} // *ast.File, or ast.Expr, ast.Decl, ast.Spec, or ast.Stmt
+	Comments []*ast.CommentGroup
+}
+
 // Fprint "pretty-prints" an AST node to output for a given configuration cfg.
 // Position information is interpreted relative to the file set fset.
-// The node type must be *ast.File, or assignment-compatible to ast.Expr,
-// ast.Decl, ast.Spec, or ast.Stmt.
+// The node type must be *ast.File, *CommentedNode, or assignment-compatible
+// to ast.Expr, ast.Decl, ast.Spec, or ast.Stmt.
 //
 func (cfg *Config) Fprint(output io.Writer, fset *token.FileSet, node interface{}) error {
 	return cfg.fprint(output, fset, node, make(map[ast.Node]int))

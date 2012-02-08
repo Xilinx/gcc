@@ -295,6 +295,7 @@ func makeTree(t *testing.T) {
 			fd, err := os.Create(path)
 			if err != nil {
 				t.Errorf("makeTree: %v", err)
+				return
 			}
 			fd.Close()
 		} else {
@@ -344,10 +345,10 @@ func TestWalk(t *testing.T) {
 	// Expect no errors.
 	err := filepath.Walk(tree.name, markFn)
 	if err != nil {
-		t.Errorf("no error expected, found: %s", err)
+		t.Fatalf("no error expected, found: %s", err)
 	}
 	if len(errors) != 0 {
-		t.Errorf("unexpected errors: %s", errors)
+		t.Fatalf("unexpected errors: %s", errors)
 	}
 	checkMarks(t, true)
 	errors = errors[0:0]
@@ -369,7 +370,7 @@ func TestWalk(t *testing.T) {
 		tree.entries[3].mark--
 		err := filepath.Walk(tree.name, markFn)
 		if err != nil {
-			t.Errorf("expected no error return from Walk, %s", err)
+			t.Fatalf("expected no error return from Walk, got %s", err)
 		}
 		if len(errors) != 2 {
 			t.Errorf("expected 2 errors, got %d: %s", len(errors), errors)
@@ -388,7 +389,7 @@ func TestWalk(t *testing.T) {
 		clear = false // error will stop processing
 		err = filepath.Walk(tree.name, markFn)
 		if err == nil {
-			t.Errorf("expected error return from Walk")
+			t.Fatalf("expected error return from Walk")
 		}
 		if len(errors) != 1 {
 			t.Errorf("expected 1 error, got %d: %s", len(errors), errors)
@@ -422,10 +423,73 @@ var basetests = []PathTest{
 	{"a/b/c.x", "c.x"},
 }
 
+var winbasetests = []PathTest{
+	{`c:\`, `\`},
+	{`c:.`, `.`},
+	{`c:\a\b`, `b`},
+	{`c:a\b`, `b`},
+	{`c:a\b\c`, `c`},
+	{`\\host\share\`, `\`},
+	{`\\host\share\a`, `a`},
+	{`\\host\share\a\b`, `b`},
+}
+
 func TestBase(t *testing.T) {
-	for _, test := range basetests {
-		if s := filepath.ToSlash(filepath.Base(test.path)); s != test.result {
+	tests := basetests
+	if runtime.GOOS == "windows" {
+		// make unix tests work on windows
+		for i, _ := range tests {
+			tests[i].result = filepath.Clean(tests[i].result)
+		}
+		// add windows specific tests
+		tests = append(tests, winbasetests...)
+	}
+	for _, test := range tests {
+		if s := filepath.Base(test.path); s != test.result {
 			t.Errorf("Base(%q) = %q, want %q", test.path, s, test.result)
+		}
+	}
+}
+
+var dirtests = []PathTest{
+	{"", "."},
+	{".", "."},
+	{"/.", "/"},
+	{"/", "/"},
+	{"////", "/"},
+	{"/foo", "/"},
+	{"x/", "x"},
+	{"abc", "."},
+	{"abc/def", "abc"},
+	{"a/b/.x", "a/b"},
+	{"a/b/c.", "a/b"},
+	{"a/b/c.x", "a/b"},
+}
+
+var windirtests = []PathTest{
+	{`c:\`, `c:\`},
+	{`c:.`, `c:.`},
+	{`c:\a\b`, `c:\a`},
+	{`c:a\b`, `c:a`},
+	{`c:a\b\c`, `c:a\b`},
+	{`\\host\share\`, `\\host\share\`},
+	{`\\host\share\a`, `\\host\share\`},
+	{`\\host\share\a\b`, `\\host\share\a`},
+}
+
+func TestDir(t *testing.T) {
+	tests := dirtests
+	if runtime.GOOS == "windows" {
+		// make unix tests work on windows
+		for i, _ := range tests {
+			tests[i].result = filepath.Clean(tests[i].result)
+		}
+		// add windows specific tests
+		tests = append(tests, windirtests...)
+	}
+	for _, test := range tests {
+		if s := filepath.Dir(test.path); s != test.result {
+			t.Errorf("Dir(%q) = %q, want %q", test.path, s, test.result)
 		}
 	}
 }
@@ -597,11 +661,13 @@ func TestAbs(t *testing.T) {
 		info, err := os.Stat(path)
 		if err != nil {
 			t.Errorf("%s: %s", path, err)
+			continue
 		}
 
 		abspath, err := filepath.Abs(path)
 		if err != nil {
 			t.Errorf("Abs(%q) error: %v", path, err)
+			continue
 		}
 		absinfo, err := os.Stat(abspath)
 		if err != nil || !absinfo.(*os.FileStat).SameFile(info.(*os.FileStat)) {

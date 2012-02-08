@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2004-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -32,6 +32,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Iterator_Interfaces;
+
 private with Ada.Containers.Hash_Tables;
 private with Ada.Streams;
 private with Ada.Finalization;
@@ -52,7 +53,7 @@ package Ada.Containers.Hashed_Sets is
 
    type Set is tagged private
    with
-      constant_Indexing => Constant_Reference,
+      Constant_Indexing => Constant_Reference,
       Default_Iterator  => Iterate,
       Iterator_Element  => Element_Type;
 
@@ -145,10 +146,6 @@ package Ada.Containers.Hashed_Sets is
    --  Calls Process with the element (having only a constant view) of the node
    --  designed by the cursor.
 
-   procedure Assign (Target : in out Set; Source : Set);
-
-   function Copy (Source : Set; Capacity : Count_Type := 0) return Set;
-
    type Constant_Reference_Type
      (Element : not null access constant Element_Type) is private
         with Implicit_Dereference => Element;
@@ -156,6 +153,10 @@ package Ada.Containers.Hashed_Sets is
    function Constant_Reference
      (Container : aliased Set;
       Position  : Cursor) return Constant_Reference_Type;
+
+   procedure Assign (Target : in out Set; Source : Set);
+
+   function Copy (Source : Set; Capacity : Count_Type := 0) return Set;
 
    procedure Move (Target : in out Set; Source : in out Set);
    --  Clears Target (if it's not empty), and then moves (not copies) the
@@ -422,13 +423,31 @@ package Ada.Containers.Hashed_Sets is
         (Container : aliased in out Set;
          Position  : Cursor) return Reference_Type;
 
+      function Constant_Reference
+        (Container : aliased Set;
+         Key       : Key_Type) return Constant_Reference_Type;
+
       function Reference_Preserving_Key
         (Container : aliased in out Set;
-         Key  : Key_Type) return Reference_Type;
+         Key       : Key_Type) return Reference_Type;
 
    private
       type Reference_Type (Element : not null access Element_Type)
          is null record;
+
+      use Ada.Streams;
+
+      procedure Read
+        (Stream : not null access Root_Stream_Type'Class;
+         Item   : out Reference_Type);
+
+      for Reference_Type'Read use Read;
+
+      procedure Write
+        (Stream : not null access Root_Stream_Type'Class;
+         Item   : Reference_Type);
+
+      for Reference_Type'Write use Write;
 
    end Generic_Keys;
 
@@ -439,7 +458,7 @@ private
    type Node_Access is access Node_Type;
 
    type Node_Type is limited record
-      Element : Element_Type;
+      Element : aliased Element_Type;
       Next    : Node_Access;
    end record;
 
@@ -457,6 +476,18 @@ private
    use HT_Types;
    use Ada.Finalization;
    use Ada.Streams;
+
+   procedure Write
+     (Stream    : not null access Root_Stream_Type'Class;
+      Container : Set);
+
+   for Set'Write use Write;
+
+   procedure Read
+     (Stream    : not null access Root_Stream_Type'Class;
+      Container : out Set);
+
+   for Set'Read use Read;
 
    type Set_Access is access all Set;
    for Set_Access'Storage_Size use 0;
@@ -478,20 +509,6 @@ private
 
    for Cursor'Read use Read;
 
-   No_Element : constant Cursor := (Container => null, Node => null);
-
-   procedure Write
-     (Stream    : not null access Root_Stream_Type'Class;
-      Container : Set);
-
-   for Set'Write use Write;
-
-   procedure Read
-     (Stream    : not null access Root_Stream_Type'Class;
-      Container : out Set);
-
-   for Set'Read use Read;
-
    type Constant_Reference_Type
      (Element : not null access constant Element_Type) is null record;
 
@@ -508,5 +525,7 @@ private
    for Constant_Reference_Type'Write use Write;
 
    Empty_Set : constant Set := (Controlled with HT => (null, 0, 0, 0));
+
+   No_Element : constant Cursor := (Container => null, Node => null);
 
 end Ada.Containers.Hashed_Sets;

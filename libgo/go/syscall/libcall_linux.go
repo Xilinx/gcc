@@ -139,14 +139,6 @@ func PtracePokeData(pid int, addr uintptr, data []byte) (count int, err error) {
 	return ptracePoke(PTRACE_POKEDATA, PTRACE_PEEKDATA, pid, addr, data)
 }
 
-func PtraceGetRegs(pid int, regsout *PtraceRegs) (err error) {
-	return ptrace(PTRACE_GETREGS, pid, 0, uintptr(unsafe.Pointer(regsout)))
-}
-
-func PtraceSetRegs(pid int, regs *PtraceRegs) (err error) {
-	return ptrace(PTRACE_SETREGS, pid, 0, uintptr(unsafe.Pointer(regs)))
-}
-
 func PtraceSetOptions(pid int, options int) (err error) {
 	return ptrace(PTRACE_SETOPTIONS, pid, 0, uintptr(options))
 }
@@ -203,15 +195,10 @@ func PtraceDetach(pid int) (err error) { return ptrace(PTRACE_DETACH, pid, 0, 0)
 // //sys	Fstatfs(fd int, buf *Statfs_t) (err error)
 // //fstatfs(fd int, buf *Statfs_t) int
 
-// FIXME: Only available as a syscall.
-// //sysnb	Gettid() (tid int)
-// //gettid() Pid_t
-
-//sys	Ioperm(from int, num int, on int) (err error)
-//ioperm(from _C_long, num _C_long, on int) int
-
-//sys	Iopl(level int) (err error)
-//iopl(level int) int
+func Gettid() (tid int) {
+	r1, _, _ := Syscall(SYS_GETTID, 0, 0, 0)
+	return int(r1)
+}
 
 // FIXME: mksysinfo linux_dirent
 //    Or just abandon this function.
@@ -278,19 +265,19 @@ func Sendfile(outfd int, infd int, offset *int64, count int) (written int, err e
 func Splice(rfd int, roff *int64, wfd int, woff *int64, len int, flags int) (n int64, err error) {
 	var lroff _loff_t
 	var plroff *_loff_t
-	if (roff != nil) {
+	if roff != nil {
 		plroff = &lroff
 	}
 	var lwoff _loff_t
 	var plwoff *_loff_t
-	if (woff != nil) {
+	if woff != nil {
 		plwoff = &lwoff
 	}
 	n, err = splice(rfd, plroff, wfd, plwoff, len, flags)
-	if (roff != nil) {
+	if roff != nil {
 		*roff = int64(lroff)
 	}
-	if (woff != nil) {
+	if woff != nil {
 		*woff = int64(lwoff)
 	}
 	return

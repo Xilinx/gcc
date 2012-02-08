@@ -1,4 +1,4 @@
-// { dg-bogus "atomicity.h:48:45: error: void value not ignored as it ought to be" "" { xfail *-*-* } 0 }
+// { dg-bogus "atomicity.h:48:61: error: void value not ignored as it ought to be" "" { xfail *-*-* } 0 }
 
 #ifndef X6DYNARRAY6_H
 #define X6DYNARRAY6_H

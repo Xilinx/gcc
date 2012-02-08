@@ -562,10 +562,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       cpp_opts->warn_endif_labels = value;
       break;
 
-    case OPT_Werror:
-      global_dc->warning_as_error_requested = value;
-      break;
-
     case OPT_Wformat:
       set_Wformat (value);
       break;
@@ -1186,6 +1182,13 @@ c_common_post_options (const char **pfilename)
   /* FIXME pph.  Add support for streaming macro line maps.  */
   if (cpp_opts->track_macro_expansion && pph_out_file != NULL)
     sorry ("-ftrack-macro-expansion not yet supported with pre-parsed headers");
+
+  /* Disable LTO output when outputting a precompiled header.  */
+  if (pch_file && flag_lto)
+    {
+      flag_lto = 0;
+      flag_generate_lto = 0;
+    }
 
   return flag_preprocess_only;
 }

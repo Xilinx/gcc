@@ -1,3 +1,88 @@
+2012-02-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/51296
+	PR libstdc++/51906
+	* gthr-posix.h: Allow static initializer macros to be disabled.
+	(__gthrw_pthread_cond_init): Define weak reference unconditionally.
+
+2012-02-05  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* config.host (mips64*-*-linux*, mipsisa64*-*-linux*, mips*-*-linux*):
+	Add t-slibgcc-libgcc to tmake_file.
+	* config/mips/libgcc-mips16.ver: Revert previous patch.
+	* config/mips/mips16.S (__mips16_rdhwr): Hide.
+
+2012-02-02  Sumanth G <sumanth.gundapaneni@kpitcummins.com>
+	    Jayant R Sonar <jayant.sonar@kpitcummins.com>
+
+	* config.host: Add National Semiconductor CR16 target (cr16-*-*).
+	* config/cr16/crti.S: New file.
+	* config/cr16/crtlibid.S: New file.
+	* config/cr16/crtn.S: New file.
+	* config/cr16/lib1funcs.S: New file.
+	* config/cr16/t-cr16: New file.
+	* config/cr16/t-crtlibid: New file.
+	* config/cr16/unwind-dw2.h: New file.
+	* config/cr16/unwind-cr16.c: New file.
+	* config/cr16/divmodhi3.c: New file.
+
+2012-01-25  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/t-linux64: Delete.  Move..
+	* config/rs6000/t-ppc64-fp: ..softfp_wrap defines to here..
+	* config/rs6000/t-linux: ..and libgcc flags to here.
+
+2012-01-22  Douglas B Rupp  <rupp@gnat.com>
+
+	* config.host (i[34567]86-*-interix3*):
+	Change triplet to i[34567]86-*-interix[3-9]*.
+	* configure: Regenerate.
+
+2012-01-15  Chung-Lin Tang  <cltang@codesourcery.com>
+	    Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/libgcc-mips16.ver (__mips16_rdhwr): Add.
+	* config/mips/mips16.S (__mips16_rdhwr): New function.
+	* config/mips/t-mips16 (LIB1ASMFUNCS): Add _m16rdhwr.
+
+2012-01-11  Nathan Sidwell  <nathan@acm.org>
+
+	* libgcov.c (__gcov_init): Ignore objects with no functions.
+
+2012-01-10  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49868
+	Extend __pgmx semantics to linearize memory.
+	* config/avr/t-avr (LIB1ASMFUNCS): Add _xload_1, _movmemx.
+	* config/avr/lib1funcs.S (__xload_1): New function.
+	(__movmemx_qi, __movmemx_hi): New functions.
+	(__xload_2, __xload_3, __xload_4): Rewrite to fit new __pgmx
+	semantics.
+
+2012-01-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sol2-unwind.h (sparc64_is_sighandler): Check that the
+	purported sigacthandler address isn't null before dereferencing it.
+	(sparc_is_sighandler): Likewise.
+
+2012-01-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR ada/41929
+	* config/sparc/sol2-unwind.h (sparc64_is_sighandler): Remove SAVPC and
+	add CFA.  Revert back to old code for Solaris 8+ multi-threaded.
+	(sparc_is_sighandler): Likewise.
+	(MD_FALLBACK_FRAME_STATE_FOR): Adjust call to IS_SIGHANDLER.
+
+2012-01-06  Tristan Gingold  <gingold@adacore.com>
+
+	* config/ia64/t-ia64 (LIB1ASMFUNCS): Move backward
+	compatibility thunks...
+	(CUSTOM_CRTSTUFF, crtbegin.o, crtend.o)
+	(crtbeginS.o, crtendS.o): ... and these to ...
+	* config/ia64/t-ia64-elf: ... this new file.
+	* config.host (ia64*-*-elf*, ia64*-*-freebsd*, ia64*-*-linux*)
+	(ia64*-*-hpux*): Add ia64/t-ia64-elf in tmake_file.
+
 2012-01-04  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
 
 	* configure: Regenerate.
@@ -36,6 +121,10 @@
 2011-12-21  Tristan Gingold  <gingold@adacore.com>
 
 	* config/ia64/fde-vms.c (UNW_IVMS_MODE): Define.
+
+2011-12-21  Ian Lance Taylor  <iant@google.com>
+
+	* config/i386/morestack.S: Simplify CFI opcodes throughout.
 
 2011-12-20  Ian Lance Taylor  <iant@google.com>
 

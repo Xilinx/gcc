@@ -34,7 +34,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-family/c-common.h"
 #include "c-family/c-objc.h"
 #include "tree-inline.h"
-#include "tree-mudflap.h"
 #include "intl.h"
 #include "toplev.h"
 #include "flags.h"
@@ -996,6 +995,15 @@ finish_range_for_decl (tree range_for_stmt, tree decl, tree expr)
 tree
 finish_break_stmt (void)
 {
+  /* In switch statements break is sometimes stylistically used after
+     a return statement.  This can lead to spurious warnings about
+     control reaching the end of a non-void function when it is
+     inlined.  Note that we are calling block_may_fallthru with
+     language specific tree nodes; this works because
+     block_may_fallthru returns true when given something it does not
+     understand.  */
+  if (!block_may_fallthru (cur_stmt_list))
+    return void_zero_node;
   return add_stmt (build_stmt (input_location, BREAK_STMT));
 }
 
@@ -2664,20 +2672,6 @@ finish_member_declaration (tree decl)
     {
       if (TREE_CODE (decl) == USING_DECL)
 	{
-	  /* We need to add the target functions to the
-	     CLASSTYPE_METHOD_VEC if an enclosing scope is a template
-	     class, so that this function be found by lookup_fnfields_1
-	     when the using declaration is not instantiated yet.  */
-
-	  tree target_decl = strip_using_decl (decl);
-	  if (dependent_type_p (current_class_type)
-	      && is_overloaded_fn (target_decl))
-	    {
-	      tree t = target_decl;
-	      for (; t; t = OVL_NEXT (t))
-		add_method (current_class_type, OVL_CURRENT (t), decl);
-	    }
-
 	  /* For now, ignore class-scope USING_DECLS, so that
 	     debugging backends do not see them. */
 	  DECL_IGNORED_P (decl) = 1;
@@ -2814,23 +2808,20 @@ finish_base_specifier (tree base, tree access, bool virtual_p)
 tree
 baselink_for_fns (tree fns)
 {
-  tree fn;
+  tree scope;
   tree cl;
 
   if (BASELINK_P (fns) 
       || error_operand_p (fns))
     return fns;
-  
-  fn = fns;
-  if (TREE_CODE (fn) == TEMPLATE_ID_EXPR)
-    fn = TREE_OPERAND (fn, 0);
-  fn = get_first_fn (fn);
-  if (!DECL_FUNCTION_MEMBER_P (fn))
+
+  scope = ovl_scope (fns);
+  if (!CLASS_TYPE_P (scope))
     return fns;
 
-  cl = currently_open_derived_class (DECL_CONTEXT (fn));
+  cl = currently_open_derived_class (scope);
   if (!cl)
-    cl = DECL_CONTEXT (fn);
+    cl = scope;
   cl = TYPE_BINFO (cl);
   return build_baselink (cl, cl, fns, /*optype=*/NULL_TREE);
 }
@@ -5935,6 +5926,8 @@ build_constexpr_constructor_member_initializers (tree type, tree body)
 	    break;
 	}
     }
+  else if (EXPR_P (body))
+    ok = build_data_member_initialization (body, &vec);
   else
     gcc_assert (errorcount > 0);
   if (ok)
@@ -6581,7 +6574,7 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
   else
     {
       result = entry->result;
-      if (!result || (result == error_mark_node && !allow_non_constant))
+      if (!result || result == error_mark_node)
 	result = (cxx_eval_constant_expression
 		  (&new_call, new_call.fundef->body,
 		   allow_non_constant, addr,

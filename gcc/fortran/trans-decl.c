@@ -1,6 +1,6 @@
 /* Backend function setup
    Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011
+   2011, 2012
    Free Software Foundation, Inc.
    Contributed by Paul Brook
 
@@ -121,6 +121,7 @@ tree gfor_fndecl_associated;
 tree gfor_fndecl_caf_init;
 tree gfor_fndecl_caf_finalize;
 tree gfor_fndecl_caf_register;
+tree gfor_fndecl_caf_deregister;
 tree gfor_fndecl_caf_critical;
 tree gfor_fndecl_caf_end_critical;
 tree gfor_fndecl_caf_sync_all;
@@ -325,9 +326,8 @@ gfc_sym_mangled_identifier (gfc_symbol * sym)
 
   /* Prevent the mangling of identifiers that have an assigned
      binding label (mainly those that are bind(c)).  */
-  if (sym->attr.is_bind_c == 1
-      && sym->binding_label[0] != '\0')
-    return get_identifier(sym->binding_label);
+  if (sym->attr.is_bind_c == 1 && sym->binding_label)
+    return get_identifier (sym->binding_label);
   
   if (sym->module == NULL)
     return gfc_sym_identifier (sym);
@@ -351,7 +351,7 @@ gfc_sym_mangled_function_id (gfc_symbol * sym)
      provided, and remove the other checks.  Then we could use it
      for other things if we wished.  */
   if ((sym->attr.is_bind_c == 1 || sym->attr.is_iso_c == 1) &&
-      sym->binding_label[0] != '\0')
+      sym->binding_label)
     /* use the binding label rather than the mangled name */
     return get_identifier (sym->binding_label);
 
@@ -1484,7 +1484,10 @@ gfc_get_symbol_decl (gfc_symbol * sym)
 
   if (sym->attr.vtab
       || (sym->name[0] == '_' && strncmp ("__def_init", sym->name, 10) == 0))
-    GFC_DECL_PUSH_TOPLEVEL (decl) = 1;
+    {
+      TREE_READONLY (decl) = 1;
+      GFC_DECL_PUSH_TOPLEVEL (decl) = 1;
+    }
 
   return decl;
 }
@@ -3163,7 +3166,11 @@ gfc_build_builtin_function_decls (void)
       gfor_fndecl_caf_register = gfc_build_library_function_decl_with_spec (
 	get_identifier (PREFIX("caf_register")), "...WWW", pvoid_type_node, 6,
         size_type_node, integer_type_node, ppvoid_type_node, pint_type,
-        build_pointer_type (pchar_type_node), integer_type_node);
+        pchar_type_node, integer_type_node);
+
+      gfor_fndecl_caf_deregister = gfc_build_library_function_decl_with_spec (
+	get_identifier (PREFIX("caf_deregister")), ".WWW", void_type_node, 4,
+        ppvoid_type_node, pint_type, pchar_type_node, integer_type_node);
 
       gfor_fndecl_caf_critical = gfc_build_library_function_decl (
 	get_identifier (PREFIX("caf_critical")), void_type_node, 0);
@@ -3679,7 +3686,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	}
       else if ((!sym->attr.dummy || sym->ts.deferred)
 		&& (sym->ts.type == BT_CLASS
-		&& CLASS_DATA (sym)->attr.pointer))
+		&& CLASS_DATA (sym)->attr.class_pointer))
 	continue;
       else if ((!sym->attr.dummy || sym->ts.deferred)
 		&& (sym->attr.allocatable
@@ -3688,6 +3695,8 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	{
 	  if (!sym->attr.save)
 	    {
+	      tree descriptor = NULL_TREE;
+
 	      /* Nullify and automatic deallocation of allocatable
 		 scalars.  */
 	      e = gfc_lval_expr_from_sym (sym);
@@ -3712,6 +3721,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	      else
 		{
 		  gfc_conv_expr (&se, e);
+		  descriptor = se.expr;
 		  se.expr = gfc_conv_descriptor_data_addr (se.expr);
 		  se.expr = build_fold_indirect_ref_loc (input_location, se.expr);
 		}
@@ -3761,9 +3771,18 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	      /* Deallocate when leaving the scope. Nullifying is not
 		 needed.  */
 	      if (!sym->attr.result && !sym->attr.dummy)
-		tmp = gfc_deallocate_scalar_with_status (se.expr, NULL, true,
-							 NULL, sym->ts);
-
+		{
+		  if (sym->ts.type == BT_CLASS
+		      && CLASS_DATA (sym)->attr.codimension)
+		    tmp = gfc_deallocate_with_status (descriptor, NULL_TREE,
+						      NULL_TREE, NULL_TREE,
+						      NULL_TREE, true, NULL,
+						      true);
+		  else
+		    tmp = gfc_deallocate_scalar_with_status (se.expr, NULL,
+							     true, NULL,
+							     sym->ts);
+		}
 	      if (sym->ts.type == BT_CLASS)
 		{
 		  /* Initialize _vptr to declared type.  */
@@ -4664,6 +4683,22 @@ generate_local_decl (gfc_symbol * sym)
 	  && sym->ts.type == BT_CHARACTER && sym->ts.is_c_interop
 	  && sym->ns->proc_name != NULL && sym->ns->proc_name->attr.is_bind_c)
 	gfc_conv_scalar_char_value (sym, NULL, NULL);
+
+      /* Unused procedure passed as dummy argument.  */
+      if (sym->attr.flavor == FL_PROCEDURE)
+	{
+	  if (!sym->attr.referenced)
+	    {
+	      if (gfc_option.warn_unused_dummy_argument)
+		gfc_warning ("Unused dummy argument '%s' at %L", sym->name,
+			     &sym->declared_at);	     
+	    }
+
+	  /* Silence bogus "unused parameter" warnings from the
+	     middle end.  */
+	  if (sym->backend_decl != NULL_TREE)
+		TREE_NO_WARNING (sym->backend_decl) = 1;
+	}
     }
 
   /* Make sure we convert the types of the derived types from iso_c_binding
@@ -5321,7 +5356,8 @@ gfc_generate_function_code (gfc_namespace * ns)
 							 null_pointer_node));
 	  else if (sym->ts.type == BT_CLASS
 		   && CLASS_DATA (sym)->attr.allocatable
-		   && sym->attr.dimension == 0 && sym->result == sym)
+		   && CLASS_DATA (sym)->attr.dimension == 0
+		   && sym->result == sym)
 	    {
 	      tmp = CLASS_DATA (sym)->backend_decl;
 	      tmp = fold_build3_loc (input_location, COMPONENT_REF,

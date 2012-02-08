@@ -1,5 +1,6 @@
 /* Intrinsic translation
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011, 2012
    Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
    and Steven Bosscher <s.bosscher@student.tudelft.nl>
@@ -7236,10 +7237,11 @@ conv_intrinsic_move_alloc (gfc_code *code)
   gfc_init_se (&from_se, NULL);
   gfc_init_se (&to_se, NULL);
 
+  gcc_assert (from_expr->ts.type != BT_CLASS
+	      || to_expr->ts.type == BT_CLASS);
+
   if (from_expr->rank == 0)
     {
-      gcc_assert (from_expr->ts.type != BT_CLASS
-		  || to_expr->ts.type == BT_CLASS);
       if (from_expr->ts.type != BT_CLASS)
 	from_expr2 = from_expr;
       else
@@ -7355,7 +7357,8 @@ conv_intrinsic_move_alloc (gfc_code *code)
   gfc_conv_expr_descriptor (&from_se, from_expr, from_ss);
 
   tmp = gfc_conv_descriptor_data_get (to_se.expr);
-  tmp = gfc_deallocate_with_status (tmp, NULL_TREE, true, to_expr);
+  tmp = gfc_deallocate_with_status (tmp, NULL_TREE, NULL_TREE, NULL_TREE,
+				    NULL_TREE, true, to_expr, false);
   gfc_add_expr_to_block (&block, tmp);
 
   /* Move the pointer and update the array descriptor data.  */

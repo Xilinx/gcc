@@ -3453,9 +3453,6 @@ case "${target}" in
   tic54x-*-*)
     noconfigdirs="$noconfigdirs target-libgloss gdb"
     ;;
-  cr16-*-*)
-    noconfigdirs="$noconfigdirs gdb"
-    ;;
   d10v-*-*)
     noconfigdirs="$noconfigdirs target-libgloss"
     ;;
@@ -3669,9 +3666,6 @@ fi
     ;;
   *-mingw*)
     host_makefile_frag="config/mh-mingw"
-    ;;
-  *-interix*)
-    host_makefile_frag="config/mh-interix"
     ;;
   hppa*-hp-hpux10*)
     host_makefile_frag="config/mh-pa-hpux10"

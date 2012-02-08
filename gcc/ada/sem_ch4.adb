@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -62,6 +62,7 @@ with Stand;    use Stand;
 with Sinfo;    use Sinfo;
 with Snames;   use Snames;
 with Tbuild;   use Tbuild;
+with Uintp;    use Uintp;
 
 package body Sem_Ch4 is
 
@@ -2637,6 +2638,34 @@ package body Sem_Ch4 is
       end if;
    end Analyze_Membership_Op;
 
+   -----------------
+   -- Analyze_Mod --
+   -----------------
+
+   procedure Analyze_Mod (N : Node_Id) is
+   begin
+      --  A special warning check, if we have an expression of the form:
+      --    expr mod 2 * literal
+      --  where literal is 64 or less, then probably what was meant was
+      --    expr mod 2 ** literal
+      --  so issue an appropriate warning.
+
+      if Warn_On_Suspicious_Modulus_Value
+        and then Nkind (Right_Opnd (N)) = N_Integer_Literal
+        and then Intval (Right_Opnd (N)) = Uint_2
+        and then Nkind (Parent (N)) = N_Op_Multiply
+        and then Nkind (Right_Opnd (Parent (N))) = N_Integer_Literal
+        and then Intval (Right_Opnd (Parent (N))) <= Uint_64
+      then
+         Error_Msg_N
+           ("suspicious MOD value, was '*'* intended'??", Parent (N));
+      end if;
+
+      --  Remaining processing is same as for other arithmetic operators
+
+      Analyze_Arithmetic_Op (N);
+   end Analyze_Mod;
+
    ----------------------
    -- Analyze_Negation --
    ----------------------
@@ -3858,8 +3887,10 @@ package body Sem_Ch4 is
       elsif Is_Record_Type (Prefix_Type) then
 
          --  Find component with given name
+         --  In an instance, if the node is known as a prefixed call, do
+         --  not examine components whose visibility may be accidental.
 
-         while Present (Comp) loop
+         while Present (Comp) and then not Is_Prefixed_Call (N) loop
             if Chars (Comp) = Chars (Sel)
               and then Is_Visible_Component (Comp)
             then

@@ -10,6 +10,10 @@ import (
 	"unicode/utf8"
 )
 
+type writer interface {
+	WriteString(string) (int, error)
+}
+
 // These replacements permit compatibility with old numeric entities that 
 // assumed Windows-1252 encoding.
 // http://www.whatwg.org/specs/web-apps/current-work/multipage/tokenization.html#consume-a-character-reference
@@ -78,7 +82,7 @@ func unescapeEntity(b []byte, dst, src int, attribute bool) (dst1, src1 int) {
 			i++
 		}
 
-		x := rune(0)
+		x := '\x00'
 		for i < len(s) {
 			c = s[i]
 			i++

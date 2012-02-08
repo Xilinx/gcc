@@ -1,5 +1,5 @@
 ;; GCC machine description for m68k synchronization instructions.
-;; Copyright (C) 2011
+;; Copyright (C) 2011, 2012
 ;; Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
@@ -41,7 +41,7 @@
   [(set (match_operand:I 1 "register_operand" "=d")
 	(unspec_volatile:I
 	  [(match_operand:I 2 "memory_operand" "+m")
-	   (match_operand:I 3 "register_operand" "0")
+	   (match_operand:I 3 "register_operand" "1")
 	   (match_operand:I 4 "register_operand" "d")]
 	  UNSPECV_CAS_1))
    (set (match_dup 2)
@@ -56,25 +56,23 @@
   ;; Elide the seq if operands[0] is dead.
   "cas<sz> %1,%4,%2\;seq %0")
 
-(define_expand "sync_test_and_setqi"
-  [(match_operand:QI 0 "register_operand" "")
-   (match_operand:QI 1 "memory_operand" "")
-   (match_operand:QI 2 "general_operand" "")]
-  "!TARGET_CAS"
+(define_expand "atomic_test_and_set"
+  [(match_operand:QI 0 "register_operand" "")		;; bool success output
+   (match_operand:QI 1 "memory_operand" "")		;; memory
+   (match_operand:SI 2 "const_int_operand" "")]		;; model
+  ""
 {
-  if (operands[2] != const1_rtx)
-    FAIL;
-  emit_insn (gen_sync_test_and_setqi_1 (operands[0], operands[1]));
+  emit_insn (gen_atomic_test_and_set_1 (operands[0], operands[1]));
   emit_insn (gen_negqi2 (operands[0], operands[0]));
   DONE;
 })
 
-(define_insn "sync_test_and_setqi_1"
+(define_insn "atomic_test_and_set_1"
   [(set (match_operand:QI 0 "register_operand" "=d")
 	(unspec_volatile:QI
 	  [(match_operand:QI 1 "memory_operand" "+m")]
 	  UNSPECV_TAS_1))
    (set (match_dup 1)
 	(unspec_volatile:QI [(match_dup 1)] UNSPECV_TAS_2))]
-  "!TARGET_CAS"
+  ""
   "tas %1\;sne %0")

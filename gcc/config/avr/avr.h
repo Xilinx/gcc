@@ -158,13 +158,13 @@ extern const avr_addrspace_t avr_addrspace[];
 enum
   {
     ADDR_SPACE_RAM,
-    ADDR_SPACE_PGM,
-    ADDR_SPACE_PGM1,
-    ADDR_SPACE_PGM2,
-    ADDR_SPACE_PGM3,
-    ADDR_SPACE_PGM4,
-    ADDR_SPACE_PGM5,
-    ADDR_SPACE_PGMX
+    ADDR_SPACE_FLASH,
+    ADDR_SPACE_FLASH1,
+    ADDR_SPACE_FLASH2,
+    ADDR_SPACE_FLASH3,
+    ADDR_SPACE_FLASH4,
+    ADDR_SPACE_FLASH5,
+    ADDR_SPACE_MEMX
   };
 
 #define TARGET_CPU_CPP_BUILTINS()	avr_cpu_cpp_builtins (pfile)
@@ -615,22 +615,6 @@ mmcu=*:-mmcu=%*}"
 #define TEST_HARD_REG_CLASS(CLASS, REGNO) \
   TEST_HARD_REG_BIT (reg_class_contents[ (int) (CLASS)], REGNO)
 
-/* Note that the other files fail to use these
-   in some of the places where they should.  */
-
-#if defined(__STDC__) || defined(ALMOST_STDC)
-#define AS2(a,b,c) #a " " #b "," #c
-#define AS2C(b,c) " " #b "," #c
-#define AS3(a,b,c,d) #a " " #b "," #c "," #d
-#define AS1(a,b) #a " " #b
-#else
-#define AS1(a,b) "a	b"
-#define AS2(a,b,c) "a	b,c"
-#define AS2C(b,c) " b,c"
-#define AS3(a,b,c,d) "a	b,c,d"
-#endif
-#define OUT_AS1(a,b) output_asm_insn (AS1(a,b), operands)
-#define OUT_AS2(a,b,c) output_asm_insn (AS2(a,b,c), operands)
 #define CR_TAB "\n\t"
 
 #define DWARF2_ADDR_SIZE 4

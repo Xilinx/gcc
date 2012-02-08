@@ -62,18 +62,34 @@
    This must be the rightmost field of machine dependent section flags.  */
 #define AVR_SECTION_PROGMEM (0xf * SECTION_MACH_DEP)
 
+/* Similar 4-bit region for SYMBOL_REF_FLAGS.  */
+#define AVR_SYMBOL_FLAG_PROGMEM (0xf * SYMBOL_FLAG_MACH_DEP)
+
+/* Similar 4-bit region in SYMBOL_REF_FLAGS:
+   Set address-space AS in SYMBOL_REF_FLAGS of SYM  */
+#define AVR_SYMBOL_SET_ADDR_SPACE(SYM,AS)                       \
+  do {                                                          \
+    SYMBOL_REF_FLAGS (sym) &= ~AVR_SYMBOL_FLAG_PROGMEM;         \
+    SYMBOL_REF_FLAGS (sym) |= (AS) * SYMBOL_FLAG_MACH_DEP;      \
+  } while (0)
+
+/* Read address-space from SYMBOL_REF_FLAGS of SYM  */
+#define AVR_SYMBOL_GET_ADDR_SPACE(SYM)                          \
+  ((SYMBOL_REF_FLAGS (sym) & AVR_SYMBOL_FLAG_PROGMEM)           \
+   / SYMBOL_FLAG_MACH_DEP)
+
 /* Known address spaces.  The order must be the same as in the respective
    enum from avr.h (or designated initialized must be used).  */
 const avr_addrspace_t avr_addrspace[] =
 {
     { ADDR_SPACE_RAM,  0, 2, ""     ,   0 },
-    { ADDR_SPACE_PGM,  1, 2, "__pgm",   0 },
-    { ADDR_SPACE_PGM1, 1, 2, "__pgm1",  1 },
-    { ADDR_SPACE_PGM2, 1, 2, "__pgm2",  2 },
-    { ADDR_SPACE_PGM3, 1, 2, "__pgm3",  3 },
-    { ADDR_SPACE_PGM4, 1, 2, "__pgm4",  4 },
-    { ADDR_SPACE_PGM5, 1, 2, "__pgm5",  5 },
-    { ADDR_SPACE_PGMX, 1, 3, "__pgmx",  0 },
+    { ADDR_SPACE_FLASH,  1, 2, "__flash",   0 },
+    { ADDR_SPACE_FLASH1, 1, 2, "__flash1",  1 },
+    { ADDR_SPACE_FLASH2, 1, 2, "__flash2",  2 },
+    { ADDR_SPACE_FLASH3, 1, 2, "__flash3",  3 },
+    { ADDR_SPACE_FLASH4, 1, 2, "__flash4",  4 },
+    { ADDR_SPACE_FLASH5, 1, 2, "__flash5",  5 },
+    { ADDR_SPACE_MEMX, 1, 3, "__memx",  0 },
     { 0              , 0, 0, NULL,      0 }
 };
 
@@ -124,29 +140,32 @@ static bool avr_rtx_costs (rtx, int, int, int, int *, bool);
 #define FIRST_CUM_REG 26
 
 /* Implicit target register of LPM instruction (R0) */
-static GTY(()) rtx lpm_reg_rtx;
+extern GTY(()) rtx lpm_reg_rtx;
+rtx lpm_reg_rtx;
 
 /* (Implicit) address register of LPM instruction (R31:R30 = Z) */
-static GTY(()) rtx lpm_addr_reg_rtx;
+extern GTY(()) rtx lpm_addr_reg_rtx;
+rtx lpm_addr_reg_rtx;
 
-/* Temporary register RTX (gen_rtx_REG (QImode, TMP_REGNO)) */
-static GTY(()) rtx tmp_reg_rtx;
+/* Temporary register RTX (reg:QI TMP_REGNO) */
+extern GTY(()) rtx tmp_reg_rtx;
+rtx tmp_reg_rtx;
 
-/* Zeroed register RTX (gen_rtx_REG (QImode, ZERO_REGNO)) */
-static GTY(()) rtx zero_reg_rtx;
+/* Zeroed register RTX (reg:QI ZERO_REGNO) */
+extern GTY(()) rtx zero_reg_rtx;
+rtx zero_reg_rtx;
+
+/* RTXs for all general purpose registers as QImode */
+extern GTY(()) rtx all_regs_rtx[32];
+rtx all_regs_rtx[32];
 
 /* RAMPZ special function register */
-static GTY(()) rtx rampz_rtx;
+extern GTY(()) rtx rampz_rtx;
+rtx rampz_rtx;
 
 /* RTX containing the strings "" and "e", respectively */
 static GTY(()) rtx xstring_empty;
 static GTY(()) rtx xstring_e;
-
-/* RTXs for all general purpose registers as QImode */
-static GTY(()) rtx all_regs_rtx[32];
-
-/* AVR register names {"r0", "r1", ..., "r31"} */
-static const char *const avr_regnames[] = REGISTER_NAMES;
 
 /* Preprocessor macros to define depending on MCU type.  */
 const char *avr_extra_arch_macro;
@@ -161,7 +180,7 @@ const struct mcu_type_s *avr_current_device;
 static GTY(()) section *progmem_swtable_section;
 
 /* Unnamed sections associated to __attribute__((progmem)) aka. PROGMEM
-   or to address space __pgm*.  */
+   or to address space __flash*.  */
 static GTY(()) section *progmem_section[6];
 
 /* Condition for insns/expanders from avr-dimode.md.  */
@@ -469,7 +488,7 @@ avr_scalar_mode_supported_p (enum machine_mode mode)
 /* Return TRUE if DECL is a VAR_DECL located in Flash and FALSE, otherwise.  */
 
 static bool
-avr_decl_pgm_p (tree decl)
+avr_decl_flash_p (tree decl)
 {
   if (TREE_CODE (decl) != VAR_DECL
       || TREE_TYPE (decl) == error_mark_node)
@@ -485,7 +504,7 @@ avr_decl_pgm_p (tree decl)
    address space and FALSE, otherwise.  */
  
 static bool
-avr_decl_pgmx_p (tree decl)
+avr_decl_memx_p (tree decl)
 {
   if (TREE_CODE (decl) != VAR_DECL
       || TREE_TYPE (decl) == error_mark_node)
@@ -493,14 +512,14 @@ avr_decl_pgmx_p (tree decl)
       return false;
     }
 
-  return (ADDR_SPACE_PGMX == TYPE_ADDR_SPACE (TREE_TYPE (decl)));
+  return (ADDR_SPACE_MEMX == TYPE_ADDR_SPACE (TREE_TYPE (decl)));
 }
 
 
 /* Return TRUE if X is a MEM rtx located in Flash and FALSE, otherwise.  */
 
 bool
-avr_mem_pgm_p (rtx x)
+avr_mem_flash_p (rtx x)
 {
   return (MEM_P (x)
           && !ADDR_SPACE_GENERIC_P (MEM_ADDR_SPACE (x)));
@@ -511,10 +530,10 @@ avr_mem_pgm_p (rtx x)
    address space and FALSE, otherwise.  */
 
 bool
-avr_mem_pgmx_p (rtx x)
+avr_mem_memx_p (rtx x)
 {
   return (MEM_P (x)
-          && ADDR_SPACE_PGMX == MEM_ADDR_SPACE (x));
+          && ADDR_SPACE_MEMX == MEM_ADDR_SPACE (x));
 }
 
 
@@ -2099,90 +2118,90 @@ ret_cond_branch (rtx x, int len, int reverse)
     {
     case GT:
       if (cc_prev_status.flags & CC_OVERFLOW_UNUSABLE)
-	return (len == 1 ? (AS1 (breq,.+2) CR_TAB
-			    AS1 (brpl,%0)) :
-		len == 2 ? (AS1 (breq,.+4) CR_TAB
-			    AS1 (brmi,.+2) CR_TAB
-			    AS1 (rjmp,%0)) :
-		(AS1 (breq,.+6) CR_TAB
-		 AS1 (brmi,.+4) CR_TAB
-		 AS1 (jmp,%0)));
+	return (len == 1 ? ("breq .+2" CR_TAB
+			    "brpl %0") :
+		len == 2 ? ("breq .+4" CR_TAB
+			    "brmi .+2" CR_TAB
+			    "rjmp %0") :
+		("breq .+6" CR_TAB
+		 "brmi .+4" CR_TAB
+		 "jmp %0"));
 	  
       else
-	return (len == 1 ? (AS1 (breq,.+2) CR_TAB
-			    AS1 (brge,%0)) :
-		len == 2 ? (AS1 (breq,.+4) CR_TAB
-			    AS1 (brlt,.+2) CR_TAB
-			    AS1 (rjmp,%0)) :
-		(AS1 (breq,.+6) CR_TAB
-		 AS1 (brlt,.+4) CR_TAB
-		 AS1 (jmp,%0)));
+	return (len == 1 ? ("breq .+2" CR_TAB
+			    "brge %0") :
+		len == 2 ? ("breq .+4" CR_TAB
+			    "brlt .+2" CR_TAB
+			    "rjmp %0") :
+		("breq .+6" CR_TAB
+		 "brlt .+4" CR_TAB
+		 "jmp %0"));
     case GTU:
-      return (len == 1 ? (AS1 (breq,.+2) CR_TAB
-                          AS1 (brsh,%0)) :
-              len == 2 ? (AS1 (breq,.+4) CR_TAB
-                          AS1 (brlo,.+2) CR_TAB
-                          AS1 (rjmp,%0)) :
-              (AS1 (breq,.+6) CR_TAB
-               AS1 (brlo,.+4) CR_TAB
-               AS1 (jmp,%0)));
+      return (len == 1 ? ("breq .+2" CR_TAB
+                          "brsh %0") :
+              len == 2 ? ("breq .+4" CR_TAB
+                          "brlo .+2" CR_TAB
+                          "rjmp %0") :
+              ("breq .+6" CR_TAB
+               "brlo .+4" CR_TAB
+               "jmp %0"));
     case LE:
       if (cc_prev_status.flags & CC_OVERFLOW_UNUSABLE)
-	return (len == 1 ? (AS1 (breq,%0) CR_TAB
-			    AS1 (brmi,%0)) :
-		len == 2 ? (AS1 (breq,.+2) CR_TAB
-			    AS1 (brpl,.+2) CR_TAB
-			    AS1 (rjmp,%0)) :
-		(AS1 (breq,.+2) CR_TAB
-		 AS1 (brpl,.+4) CR_TAB
-		 AS1 (jmp,%0)));
+	return (len == 1 ? ("breq %0" CR_TAB
+			    "brmi %0") :
+		len == 2 ? ("breq .+2" CR_TAB
+			    "brpl .+2" CR_TAB
+			    "rjmp %0") :
+		("breq .+2" CR_TAB
+		 "brpl .+4" CR_TAB
+		 "jmp %0"));
       else
-	return (len == 1 ? (AS1 (breq,%0) CR_TAB
-			    AS1 (brlt,%0)) :
-		len == 2 ? (AS1 (breq,.+2) CR_TAB
-			    AS1 (brge,.+2) CR_TAB
-			    AS1 (rjmp,%0)) :
-		(AS1 (breq,.+2) CR_TAB
-		 AS1 (brge,.+4) CR_TAB
-		 AS1 (jmp,%0)));
+	return (len == 1 ? ("breq %0" CR_TAB
+			    "brlt %0") :
+		len == 2 ? ("breq .+2" CR_TAB
+			    "brge .+2" CR_TAB
+			    "rjmp %0") :
+		("breq .+2" CR_TAB
+		 "brge .+4" CR_TAB
+		 "jmp %0"));
     case LEU:
-      return (len == 1 ? (AS1 (breq,%0) CR_TAB
-                          AS1 (brlo,%0)) :
-              len == 2 ? (AS1 (breq,.+2) CR_TAB
-                          AS1 (brsh,.+2) CR_TAB
-			  AS1 (rjmp,%0)) :
-              (AS1 (breq,.+2) CR_TAB
-               AS1 (brsh,.+4) CR_TAB
-	       AS1 (jmp,%0)));
+      return (len == 1 ? ("breq %0" CR_TAB
+                          "brlo %0") :
+              len == 2 ? ("breq .+2" CR_TAB
+                          "brsh .+2" CR_TAB
+			  "rjmp %0") :
+              ("breq .+2" CR_TAB
+               "brsh .+4" CR_TAB
+	       "jmp %0"));
     default:
       if (reverse)
 	{
 	  switch (len)
 	    {
 	    case 1:
-	      return AS1 (br%k1,%0);
+	      return "br%k1 %0";
 	    case 2:
-	      return (AS1 (br%j1,.+2) CR_TAB
-		      AS1 (rjmp,%0));
+	      return ("br%j1 .+2" CR_TAB
+		      "rjmp %0");
 	    default:
-	      return (AS1 (br%j1,.+4) CR_TAB
-		      AS1 (jmp,%0));
+	      return ("br%j1 .+4" CR_TAB
+		      "jmp %0");
 	    }
 	}
-	else
-	  {
-	    switch (len)
-	      {
-	      case 1:
-		return AS1 (br%j1,%0);
-	      case 2:
-		return (AS1 (br%k1,.+2) CR_TAB
-			AS1 (rjmp,%0));
-	      default:
-		return (AS1 (br%k1,.+4) CR_TAB
-			AS1 (jmp,%0));
-	      }
-	  }
+      else
+        {
+          switch (len)
+            {
+            case 1:
+              return "br%j1 %0";
+            case 2:
+              return ("br%k1 .+2" CR_TAB
+                      "rjmp %0");
+            default:
+              return ("br%k1 .+4" CR_TAB
+                      "jmp %0");
+            }
+        }
     }
   return "";
 }
@@ -2416,7 +2435,7 @@ avr_load_libgcc_p (rtx op)
         
   return (n_bytes > 2
           && !AVR_HAVE_LPMX
-          && avr_mem_pgm_p (op));
+          && avr_mem_flash_p (op));
 }
 
 /* Return true if a value of mode MODE is read by __xload_* function.  */
@@ -2427,8 +2446,7 @@ avr_xload_libgcc_p (enum machine_mode mode)
   int n_bytes = GET_MODE_SIZE (mode);
   
   return (n_bytes > 1
-          && avr_current_arch->n_segments > 1
-          && !AVR_HAVE_ELPMX);
+          || avr_current_arch->n_segments > 1);
 }
 
 
@@ -2597,8 +2615,7 @@ avr_out_lpm (rtx insn, rtx *op, int *plen)
   int regno_dest;
   int segment;
   RTX_CODE code;
-  
-  addr_space_t as;
+  addr_space_t as = MEM_ADDR_SPACE (src);
 
   if (plen)
     *plen = 0;
@@ -2611,24 +2628,11 @@ avr_out_lpm (rtx insn, rtx *op, int *plen)
       return "";
     }
 
-  as = MEM_ADDR_SPACE (src);
-
   addr = XEXP (src, 0);
   code = GET_CODE (addr);
 
   gcc_assert (REG_P (dest));
-  
-  if (as == ADDR_SPACE_PGMX)
-    {
-      /* We are called from avr_out_xload because someone wrote
-         __pgmx on a device with just one flash segment.  */
-
-      gcc_assert (LO_SUM == code);
-
-      addr = XEXP (addr, 1);
-    }
-  else
-    gcc_assert (REG == code || POST_INC == code);
+  gcc_assert (REG == code || POST_INC == code);
 
   xop[0] = dest;
   xop[1] = addr;
@@ -2766,76 +2770,28 @@ avr_out_lpm (rtx insn, rtx *op, int *plen)
 }
 
 
-/* Worker function for xload_<mode> and xload_8 insns.  */
+/* Worker function for xload_8 insn.  */
 
 const char*
-avr_out_xload (rtx insn, rtx *op, int *plen)
+avr_out_xload (rtx insn ATTRIBUTE_UNUSED, rtx *op, int *plen)
 {
-  rtx xop[5];
-  rtx reg = op[0];
-  int n_bytes = GET_MODE_SIZE (GET_MODE (reg));
-  unsigned int regno = REGNO (reg);
+  rtx xop[4];
 
-  if (avr_current_arch->n_segments == 1)
-    return avr_out_lpm (insn, op, plen);
-
-  xop[0] = reg;
+  xop[0] = op[0];
   xop[1] = op[1];
   xop[2] = lpm_addr_reg_rtx;
-  xop[3] = lpm_reg_rtx;
-  xop[4] = tmp_reg_rtx;
-  
-  avr_asm_len ("out __RAMPZ__,%1", xop, plen, -1);
-  
-  if (1 == n_bytes)
-    {
-      if (AVR_HAVE_ELPMX)
-        return avr_asm_len ("elpm %0,%a2", xop, plen, 1);
-      else
-        return avr_asm_len ("elpm" CR_TAB
-                            "mov %0,%3", xop, plen, 2);
-    }
+  xop[3] = AVR_HAVE_LPMX ? op[0] : lpm_reg_rtx;
 
-  gcc_assert (AVR_HAVE_ELPMX);
-  
-  if (!reg_overlap_mentioned_p (reg, lpm_addr_reg_rtx))
-    {
-      /* Insn clobbers the Z-register so we can use post-increment.  */
-      
-      avr_asm_len                    ("elpm %A0,%a2+", xop, plen, 1);
-      if (n_bytes >= 2)  avr_asm_len ("elpm %B0,%a2+", xop, plen, 1);
-      if (n_bytes >= 3)  avr_asm_len ("elpm %C0,%a2+", xop, plen, 1);
-      if (n_bytes >= 4)  avr_asm_len ("elpm %D0,%a2+", xop, plen, 1);
+  if (plen)
+    *plen = 0;
 
-      return "";
-    }
+  avr_asm_len ("ld %3,%a2" CR_TAB
+               "sbrs %1,7", xop, plen, 2);
 
-  switch (n_bytes)
-    {
-    default:
-      gcc_unreachable();
-      
-    case 2:
-      gcc_assert (regno == REGNO (lpm_addr_reg_rtx));
+  avr_asm_len (AVR_HAVE_LPMX ? "lpm %3,%a2" : "lpm", xop, plen, 1);
 
-      return avr_asm_len ("elpm %4,%a2+" CR_TAB
-                          "elpm %B0,%a2" CR_TAB
-                          "mov %A0,%4", xop, plen, 3);
-
-    case 3:
-    case 4:
-      gcc_assert (regno + 2 == REGNO (lpm_addr_reg_rtx));
-      
-      avr_asm_len ("elpm %A0,%a2+" CR_TAB
-                   "elpm %B0,%a2+", xop, plen, 2);
-
-      if (n_bytes == 3)
-        return avr_asm_len ("elpm %C0,%a2", xop, plen, 1);
-      else
-        return avr_asm_len ("elpm %4,%a2+" CR_TAB
-                            "elpm %D0,%a2" CR_TAB
-                            "mov %C0,%4", xop, plen, 3);
-    }
+  if (REGNO (xop[0]) != REGNO (xop[3]))
+    avr_asm_len ("mov %0,%3", xop, plen, 1);
   
   return "";
 }
@@ -2849,8 +2805,8 @@ output_movqi (rtx insn, rtx operands[], int *l)
   rtx src = operands[1];
   int *real_l = l;
   
-  if (avr_mem_pgm_p (src)
-      || avr_mem_pgm_p (dest))
+  if (avr_mem_flash_p (src)
+      || avr_mem_flash_p (dest))
     {
       return avr_out_lpm (insn, operands, real_l);
     }
@@ -2865,11 +2821,11 @@ output_movqi (rtx insn, rtx operands[], int *l)
       if (register_operand (src, QImode)) /* mov r,r */
 	{
 	  if (test_hard_reg_class (STACK_REG, dest))
-	    return AS2 (out,%0,%1);
+	    return "out %0,%1";
 	  else if (test_hard_reg_class (STACK_REG, src))
-	    return AS2 (in,%0,%1);
+	    return "in %0,%1";
 	  
-	  return AS2 (mov,%0,%1);
+	  return "mov %0,%1";
 	}
       else if (CONSTANT_P (src))
         {
@@ -2900,8 +2856,8 @@ output_movhi (rtx insn, rtx xop[], int *plen)
 
   gcc_assert (GET_MODE_SIZE (GET_MODE (dest)) == 2);
   
-  if (avr_mem_pgm_p (src)
-      || avr_mem_pgm_p (dest))
+  if (avr_mem_flash_p (src)
+      || avr_mem_flash_p (dest))
     {
       return avr_out_lpm (insn, xop, plen);
     }
@@ -3166,50 +3122,50 @@ out_movsi_r_mr (rtx insn, rtx op[], int *l)
         {
           if (reg_dest == REG_X)
 	    /* "ld r26,-X" is undefined */
-	    return *l=7, (AS2 (adiw,r26,3)        CR_TAB
-			  AS2 (ld,r29,X)          CR_TAB
-			  AS2 (ld,r28,-X)         CR_TAB
-			  AS2 (ld,__tmp_reg__,-X) CR_TAB
-			  AS2 (sbiw,r26,1)        CR_TAB
-			  AS2 (ld,r26,X)          CR_TAB
-			  AS2 (mov,r27,__tmp_reg__));
+	    return *l=7, ("adiw r26,3"        CR_TAB
+			  "ld r29,X"          CR_TAB
+			  "ld r28,-X"         CR_TAB
+			  "ld __tmp_reg__,-X" CR_TAB
+			  "sbiw r26,1"        CR_TAB
+			  "ld r26,X"          CR_TAB
+			  "mov r27,__tmp_reg__");
           else if (reg_dest == REG_X - 2)
-            return *l=5, (AS2 (ld,%A0,X+)  CR_TAB
-                          AS2 (ld,%B0,X+) CR_TAB
-                          AS2 (ld,__tmp_reg__,X+)  CR_TAB
-                          AS2 (ld,%D0,X)  CR_TAB
-                          AS2 (mov,%C0,__tmp_reg__));
+            return *l=5, ("ld %A0,X+"          CR_TAB
+                          "ld %B0,X+"          CR_TAB
+                          "ld __tmp_reg__,X+"  CR_TAB
+                          "ld %D0,X"           CR_TAB
+                          "mov %C0,__tmp_reg__");
           else if (reg_unused_after (insn, base))
-            return  *l=4, (AS2 (ld,%A0,X+)  CR_TAB
-                           AS2 (ld,%B0,X+) CR_TAB
-                           AS2 (ld,%C0,X+) CR_TAB
-                           AS2 (ld,%D0,X));
+            return  *l=4, ("ld %A0,X+"  CR_TAB
+                           "ld %B0,X+" CR_TAB
+                           "ld %C0,X+" CR_TAB
+                           "ld %D0,X");
           else
-            return  *l=5, (AS2 (ld,%A0,X+)  CR_TAB
-                           AS2 (ld,%B0,X+) CR_TAB
-                           AS2 (ld,%C0,X+) CR_TAB
-                           AS2 (ld,%D0,X)  CR_TAB
-                           AS2 (sbiw,r26,3));
+            return  *l=5, ("ld %A0,X+"  CR_TAB
+                           "ld %B0,X+" CR_TAB
+                           "ld %C0,X+" CR_TAB
+                           "ld %D0,X"  CR_TAB
+                           "sbiw r26,3");
         }
       else
         {
           if (reg_dest == reg_base)
-            return *l=5, (AS2 (ldd,%D0,%1+3) CR_TAB
-                          AS2 (ldd,%C0,%1+2) CR_TAB
-                          AS2 (ldd,__tmp_reg__,%1+1)  CR_TAB
-                          AS2 (ld,%A0,%1)  CR_TAB
-                          AS2 (mov,%B0,__tmp_reg__));
+            return *l=5, ("ldd %D0,%1+3" CR_TAB
+                          "ldd %C0,%1+2" CR_TAB
+                          "ldd __tmp_reg__,%1+1"  CR_TAB
+                          "ld %A0,%1"  CR_TAB
+                          "mov %B0,__tmp_reg__");
           else if (reg_base == reg_dest + 2)
-            return *l=5, (AS2 (ld ,%A0,%1)    CR_TAB
-                          AS2 (ldd,%B0,%1+1) CR_TAB
-                          AS2 (ldd,__tmp_reg__,%1+2)  CR_TAB
-                          AS2 (ldd,%D0,%1+3) CR_TAB
-                          AS2 (mov,%C0,__tmp_reg__));
+            return *l=5, ("ld %A0,%1"             CR_TAB
+                          "ldd %B0,%1+1"          CR_TAB
+                          "ldd __tmp_reg__,%1+2"  CR_TAB
+                          "ldd %D0,%1+3"          CR_TAB
+                          "mov %C0,__tmp_reg__");
           else
-            return *l=4, (AS2 (ld ,%A0,%1)   CR_TAB
-                          AS2 (ldd,%B0,%1+1) CR_TAB
-                          AS2 (ldd,%C0,%1+2) CR_TAB
-                          AS2 (ldd,%D0,%1+3));
+            return *l=4, ("ld %A0,%1"    CR_TAB
+                          "ldd %B0,%1+1" CR_TAB
+                          "ldd %C0,%1+2" CR_TAB
+                          "ldd %D0,%1+3");
         }
     }
   else if (GET_CODE (base) == PLUS) /* (R + i) */
@@ -3222,21 +3178,21 @@ out_movsi_r_mr (rtx insn, rtx op[], int *l)
 	    fatal_insn ("incorrect insn:",insn);
 
 	  if (disp <= 63 + MAX_LD_OFFSET (GET_MODE (src)))
-	    return *l = 6, (AS2 (adiw,r28,%o1-60) CR_TAB
-			    AS2 (ldd,%A0,Y+60)    CR_TAB
-			    AS2 (ldd,%B0,Y+61)    CR_TAB
-			    AS2 (ldd,%C0,Y+62)    CR_TAB
-			    AS2 (ldd,%D0,Y+63)    CR_TAB
-			    AS2 (sbiw,r28,%o1-60));
+	    return *l = 6, ("adiw r28,%o1-60" CR_TAB
+			    "ldd %A0,Y+60"    CR_TAB
+			    "ldd %B0,Y+61"    CR_TAB
+			    "ldd %C0,Y+62"    CR_TAB
+			    "ldd %D0,Y+63"    CR_TAB
+			    "sbiw r28,%o1-60");
 
-	  return *l = 8, (AS2 (subi,r28,lo8(-%o1)) CR_TAB
-			  AS2 (sbci,r29,hi8(-%o1)) CR_TAB
-			  AS2 (ld,%A0,Y)           CR_TAB
-			  AS2 (ldd,%B0,Y+1)        CR_TAB
-			  AS2 (ldd,%C0,Y+2)        CR_TAB
-			  AS2 (ldd,%D0,Y+3)        CR_TAB
-			  AS2 (subi,r28,lo8(%o1))  CR_TAB
-			  AS2 (sbci,r29,hi8(%o1)));
+	  return *l = 8, ("subi r28,lo8(-%o1)" CR_TAB
+			  "sbci r29,hi8(-%o1)" CR_TAB
+			  "ld %A0,Y"           CR_TAB
+			  "ldd %B0,Y+1"        CR_TAB
+			  "ldd %C0,Y+2"        CR_TAB
+			  "ldd %D0,Y+3"        CR_TAB
+			  "subi r28,lo8(%o1)"  CR_TAB
+			  "sbci r29,hi8(%o1)");
 	}
 
       reg_base = true_regnum (XEXP (base, 0));
@@ -3247,62 +3203,62 @@ out_movsi_r_mr (rtx insn, rtx op[], int *l)
 	    {
 	      *l = 7;
 	      /* "ld r26,-X" is undefined */
-	      return (AS2 (adiw,r26,%o1+3)    CR_TAB
-		      AS2 (ld,r29,X)          CR_TAB
-		      AS2 (ld,r28,-X)         CR_TAB
-		      AS2 (ld,__tmp_reg__,-X) CR_TAB
-		      AS2 (sbiw,r26,1)        CR_TAB
-		      AS2 (ld,r26,X)          CR_TAB
-		      AS2 (mov,r27,__tmp_reg__));
+	      return ("adiw r26,%o1+3"    CR_TAB
+		      "ld r29,X"          CR_TAB
+		      "ld r28,-X"         CR_TAB
+		      "ld __tmp_reg__,-X" CR_TAB
+		      "sbiw r26,1"        CR_TAB
+		      "ld r26,X"          CR_TAB
+		      "mov r27,__tmp_reg__");
 	    }
 	  *l = 6;
 	  if (reg_dest == REG_X - 2)
-	    return (AS2 (adiw,r26,%o1)      CR_TAB
-		    AS2 (ld,r24,X+)         CR_TAB
-		    AS2 (ld,r25,X+)         CR_TAB
-		    AS2 (ld,__tmp_reg__,X+) CR_TAB
-		    AS2 (ld,r27,X)          CR_TAB
-		    AS2 (mov,r26,__tmp_reg__));
+	    return ("adiw r26,%o1"      CR_TAB
+		    "ld r24,X+"         CR_TAB
+		    "ld r25,X+"         CR_TAB
+		    "ld __tmp_reg__,X+" CR_TAB
+		    "ld r27,X"          CR_TAB
+		    "mov r26,__tmp_reg__");
 
-	  return (AS2 (adiw,r26,%o1) CR_TAB
-		  AS2 (ld,%A0,X+)    CR_TAB
-		  AS2 (ld,%B0,X+)    CR_TAB
-		  AS2 (ld,%C0,X+)    CR_TAB
-		  AS2 (ld,%D0,X)     CR_TAB
-		  AS2 (sbiw,r26,%o1+3));
+	  return ("adiw r26,%o1" CR_TAB
+		  "ld %A0,X+"    CR_TAB
+		  "ld %B0,X+"    CR_TAB
+		  "ld %C0,X+"    CR_TAB
+		  "ld %D0,X"     CR_TAB
+		  "sbiw r26,%o1+3");
 	}
       if (reg_dest == reg_base)
-        return *l=5, (AS2 (ldd,%D0,%D1) CR_TAB
-                      AS2 (ldd,%C0,%C1) CR_TAB
-                      AS2 (ldd,__tmp_reg__,%B1)  CR_TAB
-                      AS2 (ldd,%A0,%A1) CR_TAB
-                      AS2 (mov,%B0,__tmp_reg__));
+        return *l=5, ("ldd %D0,%D1"          CR_TAB
+                      "ldd %C0,%C1"          CR_TAB
+                      "ldd __tmp_reg__,%B1"  CR_TAB
+                      "ldd %A0,%A1"          CR_TAB
+                      "mov %B0,__tmp_reg__");
       else if (reg_dest == reg_base - 2)
-        return *l=5, (AS2 (ldd,%A0,%A1) CR_TAB
-                      AS2 (ldd,%B0,%B1) CR_TAB
-                      AS2 (ldd,__tmp_reg__,%C1)  CR_TAB
-                      AS2 (ldd,%D0,%D1) CR_TAB
-                      AS2 (mov,%C0,__tmp_reg__));
-      return *l=4, (AS2 (ldd,%A0,%A1) CR_TAB
-                    AS2 (ldd,%B0,%B1) CR_TAB
-                    AS2 (ldd,%C0,%C1) CR_TAB
-                    AS2 (ldd,%D0,%D1));
+        return *l=5, ("ldd %A0,%A1"          CR_TAB
+                      "ldd %B0,%B1"          CR_TAB
+                      "ldd __tmp_reg__,%C1"  CR_TAB
+                      "ldd %D0,%D1"          CR_TAB
+                      "mov %C0,__tmp_reg__");
+      return *l=4, ("ldd %A0,%A1" CR_TAB
+                    "ldd %B0,%B1" CR_TAB
+                    "ldd %C0,%C1" CR_TAB
+                    "ldd %D0,%D1");
     }
   else if (GET_CODE (base) == PRE_DEC) /* (--R) */
-    return *l=4, (AS2 (ld,%D0,%1) CR_TAB
-		  AS2 (ld,%C0,%1) CR_TAB
-		  AS2 (ld,%B0,%1) CR_TAB
-		  AS2 (ld,%A0,%1));
+    return *l=4, ("ld %D0,%1" CR_TAB
+		  "ld %C0,%1" CR_TAB
+		  "ld %B0,%1" CR_TAB
+		  "ld %A0,%1");
   else if (GET_CODE (base) == POST_INC) /* (R++) */
-    return *l=4, (AS2 (ld,%A0,%1) CR_TAB
-		  AS2 (ld,%B0,%1) CR_TAB
-		  AS2 (ld,%C0,%1) CR_TAB
-		  AS2 (ld,%D0,%1));
+    return *l=4, ("ld %A0,%1" CR_TAB
+		  "ld %B0,%1" CR_TAB
+		  "ld %C0,%1" CR_TAB
+		  "ld %D0,%1");
   else if (CONSTANT_ADDRESS_P (base))
-      return *l=8, (AS2 (lds,%A0,%m1) CR_TAB
-		    AS2 (lds,%B0,%m1+1) CR_TAB
-		    AS2 (lds,%C0,%m1+2) CR_TAB
-		    AS2 (lds,%D0,%m1+3));
+    return *l=8, ("lds %A0,%m1"   CR_TAB
+                  "lds %B0,%m1+1" CR_TAB
+                  "lds %C0,%m1+2" CR_TAB
+                  "lds %D0,%m1+3");
     
   fatal_insn ("unknown move insn:",insn);
   return "";
@@ -3322,10 +3278,10 @@ out_movsi_mr_r (rtx insn, rtx op[], int *l)
     l = &tmp;
   
   if (CONSTANT_ADDRESS_P (base))
-    return *l=8,(AS2 (sts,%m0,%A1) CR_TAB
-		 AS2 (sts,%m0+1,%B1) CR_TAB
-		 AS2 (sts,%m0+2,%C1) CR_TAB
-		 AS2 (sts,%m0+3,%D1));
+    return *l=8,("sts %m0,%A1" CR_TAB
+                 "sts %m0+1,%B1" CR_TAB
+                 "sts %m0+2,%C1" CR_TAB
+                 "sts %m0+3,%D1");
   if (reg_base > 0)                 /* (r) */
     {
       if (reg_base == REG_X)                /* (R26) */
@@ -3334,52 +3290,52 @@ out_movsi_mr_r (rtx insn, rtx op[], int *l)
             {
 	      /* "st X+,r26" is undefined */
               if (reg_unused_after (insn, base))
-		return *l=6, (AS2 (mov,__tmp_reg__,r27) CR_TAB
-			      AS2 (st,X,r26)            CR_TAB
-			      AS2 (adiw,r26,1)          CR_TAB
-			      AS2 (st,X+,__tmp_reg__)   CR_TAB
-			      AS2 (st,X+,r28)           CR_TAB
-			      AS2 (st,X,r29));
+		return *l=6, ("mov __tmp_reg__,r27" CR_TAB
+			      "st X,r26"            CR_TAB
+			      "adiw r26,1"          CR_TAB
+			      "st X+,__tmp_reg__"   CR_TAB
+			      "st X+,r28"           CR_TAB
+			      "st X,r29");
               else
-                return *l=7, (AS2 (mov,__tmp_reg__,r27) CR_TAB
-			      AS2 (st,X,r26)            CR_TAB
-			      AS2 (adiw,r26,1)          CR_TAB
-			      AS2 (st,X+,__tmp_reg__)   CR_TAB
-			      AS2 (st,X+,r28)           CR_TAB
-			      AS2 (st,X,r29)            CR_TAB
-			      AS2 (sbiw,r26,3));
+                return *l=7, ("mov __tmp_reg__,r27" CR_TAB
+			      "st X,r26"            CR_TAB
+			      "adiw r26,1"          CR_TAB
+			      "st X+,__tmp_reg__"   CR_TAB
+			      "st X+,r28"           CR_TAB
+			      "st X,r29"            CR_TAB
+			      "sbiw r26,3");
             }
           else if (reg_base == reg_src + 2)
             {
               if (reg_unused_after (insn, base))
-                return *l=7, (AS2 (mov,__zero_reg__,%C1) CR_TAB
-                              AS2 (mov,__tmp_reg__,%D1) CR_TAB
-                              AS2 (st,%0+,%A1) CR_TAB
-                              AS2 (st,%0+,%B1) CR_TAB
-                              AS2 (st,%0+,__zero_reg__)  CR_TAB
-                              AS2 (st,%0,__tmp_reg__)   CR_TAB
-                              AS1 (clr,__zero_reg__));
+                return *l=7, ("mov __zero_reg__,%C1" CR_TAB
+                              "mov __tmp_reg__,%D1"  CR_TAB
+                              "st %0+,%A1"           CR_TAB
+                              "st %0+,%B1"           CR_TAB
+                              "st %0+,__zero_reg__"  CR_TAB
+                              "st %0,__tmp_reg__"    CR_TAB
+                              "clr __zero_reg__");
               else
-                return *l=8, (AS2 (mov,__zero_reg__,%C1) CR_TAB
-                              AS2 (mov,__tmp_reg__,%D1) CR_TAB
-                              AS2 (st,%0+,%A1) CR_TAB
-                              AS2 (st,%0+,%B1) CR_TAB
-                              AS2 (st,%0+,__zero_reg__)  CR_TAB
-                              AS2 (st,%0,__tmp_reg__)   CR_TAB
-                              AS1 (clr,__zero_reg__)     CR_TAB
-                              AS2 (sbiw,r26,3));
+                return *l=8, ("mov __zero_reg__,%C1" CR_TAB
+                              "mov __tmp_reg__,%D1"  CR_TAB
+                              "st %0+,%A1"           CR_TAB
+                              "st %0+,%B1"           CR_TAB
+                              "st %0+,__zero_reg__"  CR_TAB
+                              "st %0,__tmp_reg__"    CR_TAB
+                              "clr __zero_reg__"     CR_TAB
+                              "sbiw r26,3");
             }
-          return *l=5, (AS2 (st,%0+,%A1)  CR_TAB
-                        AS2 (st,%0+,%B1) CR_TAB
-                        AS2 (st,%0+,%C1) CR_TAB
-                        AS2 (st,%0,%D1)  CR_TAB
-                        AS2 (sbiw,r26,3));
+          return *l=5, ("st %0+,%A1" CR_TAB
+                        "st %0+,%B1" CR_TAB
+                        "st %0+,%C1" CR_TAB
+                        "st %0,%D1"  CR_TAB
+                        "sbiw r26,3");
         }
       else
-        return *l=4, (AS2 (st,%0,%A1)    CR_TAB
-		      AS2 (std,%0+1,%B1) CR_TAB
-		      AS2 (std,%0+2,%C1) CR_TAB
-		      AS2 (std,%0+3,%D1));
+        return *l=4, ("st %0,%A1"    CR_TAB
+		      "std %0+1,%B1" CR_TAB
+		      "std %0+2,%C1" CR_TAB
+		      "std %0+3,%D1");
     }
   else if (GET_CODE (base) == PLUS) /* (R + i) */
     {
@@ -3391,21 +3347,21 @@ out_movsi_mr_r (rtx insn, rtx op[], int *l)
 	    fatal_insn ("incorrect insn:",insn);
 
 	  if (disp <= 63 + MAX_LD_OFFSET (GET_MODE (dest)))
-	    return *l = 6, (AS2 (adiw,r28,%o0-60) CR_TAB
-			    AS2 (std,Y+60,%A1)    CR_TAB
-			    AS2 (std,Y+61,%B1)    CR_TAB
-			    AS2 (std,Y+62,%C1)    CR_TAB
-			    AS2 (std,Y+63,%D1)    CR_TAB
-			    AS2 (sbiw,r28,%o0-60));
+	    return *l = 6, ("adiw r28,%o0-60" CR_TAB
+			    "std Y+60,%A1"    CR_TAB
+			    "std Y+61,%B1"    CR_TAB
+			    "std Y+62,%C1"    CR_TAB
+			    "std Y+63,%D1"    CR_TAB
+			    "sbiw r28,%o0-60");
 
-	  return *l = 8, (AS2 (subi,r28,lo8(-%o0)) CR_TAB
-			  AS2 (sbci,r29,hi8(-%o0)) CR_TAB
-			  AS2 (st,Y,%A1)           CR_TAB
-			  AS2 (std,Y+1,%B1)        CR_TAB
-			  AS2 (std,Y+2,%C1)        CR_TAB
-			  AS2 (std,Y+3,%D1)        CR_TAB
-			  AS2 (subi,r28,lo8(%o0))  CR_TAB
-			  AS2 (sbci,r29,hi8(%o0)));
+	  return *l = 8, ("subi r28,lo8(-%o0)" CR_TAB
+			  "sbci r29,hi8(-%o0)" CR_TAB
+			  "st Y,%A1"           CR_TAB
+			  "std Y+1,%B1"        CR_TAB
+			  "std Y+2,%C1"        CR_TAB
+			  "std Y+3,%D1"        CR_TAB
+			  "subi r28,lo8(%o0)"  CR_TAB
+			  "sbci r29,hi8(%o0)");
 	}
       if (reg_base == REG_X)
 	{
@@ -3413,52 +3369,52 @@ out_movsi_mr_r (rtx insn, rtx op[], int *l)
 	  if (reg_src == REG_X)
 	    {
 	      *l = 9;
-	      return (AS2 (mov,__tmp_reg__,r26)  CR_TAB
-		      AS2 (mov,__zero_reg__,r27) CR_TAB
-		      AS2 (adiw,r26,%o0)         CR_TAB
-		      AS2 (st,X+,__tmp_reg__)    CR_TAB
-		      AS2 (st,X+,__zero_reg__)   CR_TAB
-		      AS2 (st,X+,r28)            CR_TAB
-		      AS2 (st,X,r29)             CR_TAB
-		      AS1 (clr,__zero_reg__)     CR_TAB
-		      AS2 (sbiw,r26,%o0+3));
+	      return ("mov __tmp_reg__,r26"  CR_TAB
+		      "mov __zero_reg__,r27" CR_TAB
+		      "adiw r26,%o0"         CR_TAB
+		      "st X+,__tmp_reg__"    CR_TAB
+		      "st X+,__zero_reg__"   CR_TAB
+		      "st X+,r28"            CR_TAB
+		      "st X,r29"             CR_TAB
+		      "clr __zero_reg__"     CR_TAB
+		      "sbiw r26,%o0+3");
 	    }
 	  else if (reg_src == REG_X - 2)
 	    {
 	      *l = 9;
-	      return (AS2 (mov,__tmp_reg__,r26)  CR_TAB
-		      AS2 (mov,__zero_reg__,r27) CR_TAB
-		      AS2 (adiw,r26,%o0)         CR_TAB
-		      AS2 (st,X+,r24)            CR_TAB
-		      AS2 (st,X+,r25)            CR_TAB
-		      AS2 (st,X+,__tmp_reg__)    CR_TAB
-		      AS2 (st,X,__zero_reg__)    CR_TAB
-		      AS1 (clr,__zero_reg__)     CR_TAB
-		      AS2 (sbiw,r26,%o0+3));
+	      return ("mov __tmp_reg__,r26"  CR_TAB
+		      "mov __zero_reg__,r27" CR_TAB
+		      "adiw r26,%o0"         CR_TAB
+		      "st X+,r24"            CR_TAB
+		      "st X+,r25"            CR_TAB
+		      "st X+,__tmp_reg__"    CR_TAB
+		      "st X,__zero_reg__"    CR_TAB
+		      "clr __zero_reg__"     CR_TAB
+		      "sbiw r26,%o0+3");
 	    }
 	  *l = 6;
-	  return (AS2 (adiw,r26,%o0) CR_TAB
-		  AS2 (st,X+,%A1)    CR_TAB
-		  AS2 (st,X+,%B1)    CR_TAB
-		  AS2 (st,X+,%C1)    CR_TAB
-		  AS2 (st,X,%D1)     CR_TAB
-		  AS2 (sbiw,r26,%o0+3));
+	  return ("adiw r26,%o0" CR_TAB
+		  "st X+,%A1"    CR_TAB
+		  "st X+,%B1"    CR_TAB
+		  "st X+,%C1"    CR_TAB
+		  "st X,%D1"     CR_TAB
+		  "sbiw r26,%o0+3");
 	}
-      return *l=4, (AS2 (std,%A0,%A1)    CR_TAB
-		    AS2 (std,%B0,%B1) CR_TAB
-		    AS2 (std,%C0,%C1) CR_TAB
-		    AS2 (std,%D0,%D1));
+      return *l=4, ("std %A0,%A1" CR_TAB
+		    "std %B0,%B1" CR_TAB
+		    "std %C0,%C1" CR_TAB
+		    "std %D0,%D1");
     }
   else if (GET_CODE (base) == PRE_DEC) /* (--R) */
-    return *l=4, (AS2 (st,%0,%D1) CR_TAB
-		  AS2 (st,%0,%C1) CR_TAB
-		  AS2 (st,%0,%B1) CR_TAB
-		  AS2 (st,%0,%A1));
+    return *l=4, ("st %0,%D1" CR_TAB
+		  "st %0,%C1" CR_TAB
+		  "st %0,%B1" CR_TAB
+		  "st %0,%A1");
   else if (GET_CODE (base) == POST_INC) /* (R++) */
-    return *l=4, (AS2 (st,%0,%A1)  CR_TAB
-		  AS2 (st,%0,%B1) CR_TAB
-		  AS2 (st,%0,%C1) CR_TAB
-		  AS2 (st,%0,%D1));
+    return *l=4, ("st %0,%A1" CR_TAB
+		  "st %0,%B1" CR_TAB
+		  "st %0,%C1" CR_TAB
+		  "st %0,%D1");
   fatal_insn ("unknown move insn:",insn);
   return "";
 }
@@ -3471,8 +3427,8 @@ output_movsisf (rtx insn, rtx operands[], int *l)
   rtx src = operands[1];
   int *real_l = l;
   
-  if (avr_mem_pgm_p (src)
-      || avr_mem_pgm_p (dest))
+  if (avr_mem_flash_p (src)
+      || avr_mem_flash_p (dest))
     {
       return avr_out_lpm (insn, operands, real_l);
     }
@@ -3489,28 +3445,28 @@ output_movsisf (rtx insn, rtx operands[], int *l)
 	      if (AVR_HAVE_MOVW)
 		{
 		  *l = 2;
-		  return (AS2 (movw,%C0,%C1) CR_TAB
-			  AS2 (movw,%A0,%A1));
+		  return ("movw %C0,%C1" CR_TAB
+			  "movw %A0,%A1");
 		}
 	      *l = 4;
-	      return (AS2 (mov,%D0,%D1) CR_TAB
-		      AS2 (mov,%C0,%C1) CR_TAB
-		      AS2 (mov,%B0,%B1) CR_TAB
-		      AS2 (mov,%A0,%A1));
+	      return ("mov %D0,%D1" CR_TAB
+		      "mov %C0,%C1" CR_TAB
+		      "mov %B0,%B1" CR_TAB
+		      "mov %A0,%A1");
 	    }
 	  else
 	    {
 	      if (AVR_HAVE_MOVW)
 		{
 		  *l = 2;
-		  return (AS2 (movw,%A0,%A1) CR_TAB
-			  AS2 (movw,%C0,%C1));
+		  return ("movw %A0,%A1" CR_TAB
+			  "movw %C0,%C1");
 		}
 	      *l = 4;
-	      return (AS2 (mov,%A0,%A1) CR_TAB
-		      AS2 (mov,%B0,%B1) CR_TAB
-		      AS2 (mov,%C0,%C1) CR_TAB
-		      AS2 (mov,%D0,%D1));
+	      return ("mov %A0,%A1" CR_TAB
+		      "mov %B0,%B1" CR_TAB
+		      "mov %C0,%C1" CR_TAB
+		      "mov %D0,%D1");
 	    }
 	}
       else if (CONSTANT_P (src))
@@ -3772,8 +3728,8 @@ avr_out_movpsi (rtx insn, rtx *op, int *plen)
   rtx dest = op[0];
   rtx src = op[1];
   
-  if (avr_mem_pgm_p (src)
-      || avr_mem_pgm_p (dest))
+  if (avr_mem_flash_p (src)
+      || avr_mem_flash_p (dest))
     {
       return avr_out_lpm (insn, op, plen);
     }
@@ -3882,10 +3838,10 @@ out_movqi_mr_r (rtx insn, rtx op[], int *plen)
           return "";
         }
       
-      return avr_asm_len ("std %0,%1", op, plen, 1);
+      return avr_asm_len ("std %0,%1", op, plen, -1);
     }
   
-  return avr_asm_len ("st %0,%1", op, plen, 1);
+  return avr_asm_len ("st %0,%1", op, plen, -1);
 }
 
 static const char*
@@ -4449,80 +4405,80 @@ ashlqi3_out (rtx insn, rtx operands[], int *len)
 	    break;
 
 	  *len = 1;
-	  return AS1 (clr,%0);
+	  return "clr %0";
 	  
 	case 1:
 	  *len = 1;
-	  return AS1 (lsl,%0);
+	  return "lsl %0";
 	  
 	case 2:
 	  *len = 2;
-	  return (AS1 (lsl,%0) CR_TAB
-		  AS1 (lsl,%0));
+	  return ("lsl %0" CR_TAB
+		  "lsl %0");
 
 	case 3:
 	  *len = 3;
-	  return (AS1 (lsl,%0) CR_TAB
-		  AS1 (lsl,%0) CR_TAB
-		  AS1 (lsl,%0));
+	  return ("lsl %0" CR_TAB
+		  "lsl %0" CR_TAB
+		  "lsl %0");
 
 	case 4:
 	  if (test_hard_reg_class (LD_REGS, operands[0]))
 	    {
 	      *len = 2;
-	      return (AS1 (swap,%0) CR_TAB
-		      AS2 (andi,%0,0xf0));
+	      return ("swap %0" CR_TAB
+		      "andi %0,0xf0");
 	    }
 	  *len = 4;
-	  return (AS1 (lsl,%0) CR_TAB
-		  AS1 (lsl,%0) CR_TAB
-		  AS1 (lsl,%0) CR_TAB
-		  AS1 (lsl,%0));
+	  return ("lsl %0" CR_TAB
+		  "lsl %0" CR_TAB
+		  "lsl %0" CR_TAB
+		  "lsl %0");
 
 	case 5:
 	  if (test_hard_reg_class (LD_REGS, operands[0]))
 	    {
 	      *len = 3;
-	      return (AS1 (swap,%0) CR_TAB
-		      AS1 (lsl,%0)  CR_TAB
-		      AS2 (andi,%0,0xe0));
+	      return ("swap %0" CR_TAB
+		      "lsl %0"  CR_TAB
+		      "andi %0,0xe0");
 	    }
 	  *len = 5;
-	  return (AS1 (lsl,%0) CR_TAB
-		  AS1 (lsl,%0) CR_TAB
-		  AS1 (lsl,%0) CR_TAB
-		  AS1 (lsl,%0) CR_TAB
-		  AS1 (lsl,%0));
+	  return ("lsl %0" CR_TAB
+		  "lsl %0" CR_TAB
+		  "lsl %0" CR_TAB
+		  "lsl %0" CR_TAB
+		  "lsl %0");
 
 	case 6:
 	  if (test_hard_reg_class (LD_REGS, operands[0]))
 	    {
 	      *len = 4;
-	      return (AS1 (swap,%0) CR_TAB
-		      AS1 (lsl,%0)  CR_TAB
-		      AS1 (lsl,%0)  CR_TAB
-		      AS2 (andi,%0,0xc0));
+	      return ("swap %0" CR_TAB
+		      "lsl %0"  CR_TAB
+		      "lsl %0"  CR_TAB
+		      "andi %0,0xc0");
 	    }
 	  *len = 6;
-	  return (AS1 (lsl,%0) CR_TAB
-		  AS1 (lsl,%0) CR_TAB
-		  AS1 (lsl,%0) CR_TAB
-		  AS1 (lsl,%0) CR_TAB
-		  AS1 (lsl,%0) CR_TAB
-		  AS1 (lsl,%0));
+	  return ("lsl %0" CR_TAB
+		  "lsl %0" CR_TAB
+		  "lsl %0" CR_TAB
+		  "lsl %0" CR_TAB
+		  "lsl %0" CR_TAB
+		  "lsl %0");
 
 	case 7:
 	  *len = 3;
-	  return (AS1 (ror,%0) CR_TAB
-		  AS1 (clr,%0) CR_TAB
-		  AS1 (ror,%0));
+	  return ("ror %0" CR_TAB
+		  "clr %0" CR_TAB
+		  "ror %0");
 	}
     }
   else if (CONSTANT_P (operands[2]))
     fatal_insn ("internal compiler error.  Incorrect shift:", insn);
 
-  out_shift_with_cnt (AS1 (lsl,%0),
-		      insn, operands, len, 1);
+  out_shift_with_cnt ("lsl %0",
+                      insn, operands, len, 1);
   return "";
 }
 
@@ -4549,8 +4505,8 @@ ashlhi3_out (rtx insn, rtx operands[], int *len)
 	    break;
 
 	  *len = 2;
-	  return (AS1 (clr,%B0) CR_TAB
-		  AS1 (clr,%A0));
+	  return ("clr %B0" CR_TAB
+		  "clr %A0");
 
 	case 4:
 	  if (optimize_size && scratch)
@@ -4558,23 +4514,23 @@ ashlhi3_out (rtx insn, rtx operands[], int *len)
 	  if (ldi_ok)
 	    {
 	      *len = 6;
-	      return (AS1 (swap,%A0)      CR_TAB
-		      AS1 (swap,%B0)      CR_TAB
-		      AS2 (andi,%B0,0xf0) CR_TAB
-		      AS2 (eor,%B0,%A0)   CR_TAB
-		      AS2 (andi,%A0,0xf0) CR_TAB
-		      AS2 (eor,%B0,%A0));
+	      return ("swap %A0"      CR_TAB
+		      "swap %B0"      CR_TAB
+		      "andi %B0,0xf0" CR_TAB
+		      "eor %B0,%A0"   CR_TAB
+		      "andi %A0,0xf0" CR_TAB
+		      "eor %B0,%A0");
 	    }
 	  if (scratch)
 	    {
 	      *len = 7;
-	      return (AS1 (swap,%A0)    CR_TAB
-		      AS1 (swap,%B0)    CR_TAB
-		      AS2 (ldi,%3,0xf0) CR_TAB
+	      return ("swap %A0"    CR_TAB
+		      "swap %B0"    CR_TAB
+		      "ldi %3,0xf0" CR_TAB
 		      "and %B0,%3"      CR_TAB
-		      AS2 (eor,%B0,%A0) CR_TAB
+		      "eor %B0,%A0" CR_TAB
 		      "and %A0,%3"      CR_TAB
-		      AS2 (eor,%B0,%A0));
+		      "eor %B0,%A0");
 	    }
 	  break;  /* optimize_size ? 6 : 8 */
 
@@ -4584,27 +4540,27 @@ ashlhi3_out (rtx insn, rtx operands[], int *len)
 	  if (ldi_ok)
 	    {
 	      *len = 8;
-	      return (AS1 (lsl,%A0)       CR_TAB
-		      AS1 (rol,%B0)       CR_TAB
-		      AS1 (swap,%A0)      CR_TAB
-		      AS1 (swap,%B0)      CR_TAB
-		      AS2 (andi,%B0,0xf0) CR_TAB
-		      AS2 (eor,%B0,%A0)   CR_TAB
-		      AS2 (andi,%A0,0xf0) CR_TAB
-		      AS2 (eor,%B0,%A0));
+	      return ("lsl %A0"       CR_TAB
+		      "rol %B0"       CR_TAB
+		      "swap %A0"      CR_TAB
+		      "swap %B0"      CR_TAB
+		      "andi %B0,0xf0" CR_TAB
+		      "eor %B0,%A0"   CR_TAB
+		      "andi %A0,0xf0" CR_TAB
+		      "eor %B0,%A0");
 	    }
 	  if (scratch)
 	    {
 	      *len = 9;
-	      return (AS1 (lsl,%A0)     CR_TAB
-		      AS1 (rol,%B0)     CR_TAB
-		      AS1 (swap,%A0)    CR_TAB
-		      AS1 (swap,%B0)    CR_TAB
-		      AS2 (ldi,%3,0xf0) CR_TAB
+	      return ("lsl %A0"     CR_TAB
+		      "rol %B0"     CR_TAB
+		      "swap %A0"    CR_TAB
+		      "swap %B0"    CR_TAB
+		      "ldi %3,0xf0" CR_TAB
 		      "and %B0,%3"      CR_TAB
-		      AS2 (eor,%B0,%A0) CR_TAB
+		      "eor %B0,%A0" CR_TAB
 		      "and %A0,%3"      CR_TAB
-		      AS2 (eor,%B0,%A0));
+		      "eor %B0,%A0");
 	    }
 	  break;  /* 10 */
 
@@ -4612,175 +4568,174 @@ ashlhi3_out (rtx insn, rtx operands[], int *len)
 	  if (optimize_size)
 	    break;  /* scratch ? 5 : 6 */
 	  *len = 9;
-	  return (AS1 (clr,__tmp_reg__) CR_TAB
-		  AS1 (lsr,%B0)         CR_TAB
-		  AS1 (ror,%A0)         CR_TAB
-		  AS1 (ror,__tmp_reg__) CR_TAB
-		  AS1 (lsr,%B0)         CR_TAB
-		  AS1 (ror,%A0)         CR_TAB
-		  AS1 (ror,__tmp_reg__) CR_TAB
-		  AS2 (mov,%B0,%A0)     CR_TAB
-		  AS2 (mov,%A0,__tmp_reg__));
+	  return ("clr __tmp_reg__" CR_TAB
+		  "lsr %B0"         CR_TAB
+		  "ror %A0"         CR_TAB
+		  "ror __tmp_reg__" CR_TAB
+		  "lsr %B0"         CR_TAB
+		  "ror %A0"         CR_TAB
+		  "ror __tmp_reg__" CR_TAB
+		  "mov %B0,%A0"     CR_TAB
+		  "mov %A0,__tmp_reg__");
 
 	case 7:
 	  *len = 5;
-	  return (AS1 (lsr,%B0)     CR_TAB
-		  AS2 (mov,%B0,%A0) CR_TAB
-		  AS1 (clr,%A0)     CR_TAB
-		  AS1 (ror,%B0)     CR_TAB
-		  AS1 (ror,%A0));
+	  return ("lsr %B0"     CR_TAB
+		  "mov %B0,%A0" CR_TAB
+		  "clr %A0"     CR_TAB
+		  "ror %B0"     CR_TAB
+		  "ror %A0");
 
 	case 8:
-	  return *len = 2, (AS2 (mov,%B0,%A1) CR_TAB
-			    AS1 (clr,%A0));
+	  return *len = 2, ("mov %B0,%A1" CR_TAB
+			    "clr %A0");
 
 	case 9:
 	  *len = 3;
-	  return (AS2 (mov,%B0,%A0) CR_TAB
-		  AS1 (clr,%A0)     CR_TAB
-		  AS1 (lsl,%B0));
+	  return ("mov %B0,%A0" CR_TAB
+		  "clr %A0"     CR_TAB
+		  "lsl %B0");
 
 	case 10:
 	  *len = 4;
-	  return (AS2 (mov,%B0,%A0) CR_TAB
-		  AS1 (clr,%A0)     CR_TAB
-		  AS1 (lsl,%B0)     CR_TAB
-		  AS1 (lsl,%B0));
+	  return ("mov %B0,%A0" CR_TAB
+		  "clr %A0"     CR_TAB
+		  "lsl %B0"     CR_TAB
+		  "lsl %B0");
 
 	case 11:
 	  *len = 5;
-	  return (AS2 (mov,%B0,%A0) CR_TAB
-		  AS1 (clr,%A0)     CR_TAB
-		  AS1 (lsl,%B0)     CR_TAB
-		  AS1 (lsl,%B0)     CR_TAB
-		  AS1 (lsl,%B0));
+	  return ("mov %B0,%A0" CR_TAB
+		  "clr %A0"     CR_TAB
+		  "lsl %B0"     CR_TAB
+		  "lsl %B0"     CR_TAB
+		  "lsl %B0");
 
 	case 12:
 	  if (ldi_ok)
 	    {
 	      *len = 4;
-	      return (AS2 (mov,%B0,%A0) CR_TAB
-		      AS1 (clr,%A0)     CR_TAB
-		      AS1 (swap,%B0)    CR_TAB
-		      AS2 (andi,%B0,0xf0));
+	      return ("mov %B0,%A0" CR_TAB
+		      "clr %A0"     CR_TAB
+		      "swap %B0"    CR_TAB
+		      "andi %B0,0xf0");
 	    }
 	  if (scratch)
 	    {
 	      *len = 5;
-	      return (AS2 (mov,%B0,%A0) CR_TAB
-		      AS1 (clr,%A0)     CR_TAB
-		      AS1 (swap,%B0)    CR_TAB
-		      AS2 (ldi,%3,0xf0) CR_TAB
+	      return ("mov %B0,%A0" CR_TAB
+		      "clr %A0"     CR_TAB
+		      "swap %B0"    CR_TAB
+		      "ldi %3,0xf0" CR_TAB
 		      "and %B0,%3");
 	    }
 	  *len = 6;
-	  return (AS2 (mov,%B0,%A0) CR_TAB
-		  AS1 (clr,%A0)     CR_TAB
-		  AS1 (lsl,%B0)     CR_TAB
-		  AS1 (lsl,%B0)     CR_TAB
-		  AS1 (lsl,%B0)     CR_TAB
-		  AS1 (lsl,%B0));
+	  return ("mov %B0,%A0" CR_TAB
+		  "clr %A0"     CR_TAB
+		  "lsl %B0"     CR_TAB
+		  "lsl %B0"     CR_TAB
+		  "lsl %B0"     CR_TAB
+		  "lsl %B0");
 
 	case 13:
 	  if (ldi_ok)
 	    {
 	      *len = 5;
-	      return (AS2 (mov,%B0,%A0) CR_TAB
-		      AS1 (clr,%A0)     CR_TAB
-		      AS1 (swap,%B0)    CR_TAB
-		      AS1 (lsl,%B0)     CR_TAB
-		      AS2 (andi,%B0,0xe0));
+	      return ("mov %B0,%A0" CR_TAB
+		      "clr %A0"     CR_TAB
+		      "swap %B0"    CR_TAB
+		      "lsl %B0"     CR_TAB
+		      "andi %B0,0xe0");
 	    }
 	  if (AVR_HAVE_MUL && scratch)
 	    {
 	      *len = 5;
-	      return (AS2 (ldi,%3,0x20) CR_TAB
-		      AS2 (mul,%A0,%3)  CR_TAB
-		      AS2 (mov,%B0,r0)  CR_TAB
-		      AS1 (clr,%A0)     CR_TAB
-		      AS1 (clr,__zero_reg__));
+	      return ("ldi %3,0x20" CR_TAB
+		      "mul %A0,%3"  CR_TAB
+		      "mov %B0,r0"  CR_TAB
+		      "clr %A0"     CR_TAB
+		      "clr __zero_reg__");
 	    }
 	  if (optimize_size && scratch)
 	    break;  /* 5 */
 	  if (scratch)
 	    {
 	      *len = 6;
-	      return (AS2 (mov,%B0,%A0) CR_TAB
-		      AS1 (clr,%A0)     CR_TAB
-		      AS1 (swap,%B0)    CR_TAB
-		      AS1 (lsl,%B0)     CR_TAB
-		      AS2 (ldi,%3,0xe0) CR_TAB
+	      return ("mov %B0,%A0" CR_TAB
+		      "clr %A0"     CR_TAB
+		      "swap %B0"    CR_TAB
+		      "lsl %B0"     CR_TAB
+		      "ldi %3,0xe0" CR_TAB
 		      "and %B0,%3");
 	    }
 	  if (AVR_HAVE_MUL)
 	    {
 	      *len = 6;
 	      return ("set"            CR_TAB
-		      AS2 (bld,r1,5)   CR_TAB
-		      AS2 (mul,%A0,r1) CR_TAB
-		      AS2 (mov,%B0,r0) CR_TAB
-		      AS1 (clr,%A0)    CR_TAB
-		      AS1 (clr,__zero_reg__));
+		      "bld r1,5"   CR_TAB
+		      "mul %A0,r1" CR_TAB
+		      "mov %B0,r0" CR_TAB
+		      "clr %A0"    CR_TAB
+		      "clr __zero_reg__");
 	    }
 	  *len = 7;
-	  return (AS2 (mov,%B0,%A0) CR_TAB
-		  AS1 (clr,%A0)     CR_TAB
-		  AS1 (lsl,%B0)     CR_TAB
-		  AS1 (lsl,%B0)     CR_TAB
-		  AS1 (lsl,%B0)     CR_TAB
-		  AS1 (lsl,%B0)     CR_TAB
-		  AS1 (lsl,%B0));
+	  return ("mov %B0,%A0" CR_TAB
+		  "clr %A0"     CR_TAB
+		  "lsl %B0"     CR_TAB
+		  "lsl %B0"     CR_TAB
+		  "lsl %B0"     CR_TAB
+		  "lsl %B0"     CR_TAB
+		  "lsl %B0");
 
 	case 14:
 	  if (AVR_HAVE_MUL && ldi_ok)
 	    {
 	      *len = 5;
-	      return (AS2 (ldi,%B0,0x40) CR_TAB
-		      AS2 (mul,%A0,%B0)  CR_TAB
-		      AS2 (mov,%B0,r0)   CR_TAB
-		      AS1 (clr,%A0)      CR_TAB
-		      AS1 (clr,__zero_reg__));
+	      return ("ldi %B0,0x40" CR_TAB
+		      "mul %A0,%B0"  CR_TAB
+		      "mov %B0,r0"   CR_TAB
+		      "clr %A0"      CR_TAB
+		      "clr __zero_reg__");
 	    }
 	  if (AVR_HAVE_MUL && scratch)
 	    {
 	      *len = 5;
-	      return (AS2 (ldi,%3,0x40) CR_TAB
-		      AS2 (mul,%A0,%3)  CR_TAB
-		      AS2 (mov,%B0,r0)  CR_TAB
-		      AS1 (clr,%A0)     CR_TAB
-		      AS1 (clr,__zero_reg__));
+	      return ("ldi %3,0x40" CR_TAB
+		      "mul %A0,%3"  CR_TAB
+		      "mov %B0,r0"  CR_TAB
+		      "clr %A0"     CR_TAB
+		      "clr __zero_reg__");
 	    }
 	  if (optimize_size && ldi_ok)
 	    {
 	      *len = 5;
-	      return (AS2 (mov,%B0,%A0) CR_TAB
-		      AS2 (ldi,%A0,6) "\n1:\t"
-		      AS1 (lsl,%B0)     CR_TAB
-		      AS1 (dec,%A0)     CR_TAB
-		      AS1 (brne,1b));
+	      return ("mov %B0,%A0" CR_TAB
+		      "ldi %A0,6" "\n1:\t"
+		      "lsl %B0"     CR_TAB
+		      "dec %A0"     CR_TAB
+		      "brne 1b");
 	    }
 	  if (optimize_size && scratch)
 	    break;  /* 5 */
 	  *len = 6;
-	  return (AS1 (clr,%B0) CR_TAB
-		  AS1 (lsr,%A0) CR_TAB
-		  AS1 (ror,%B0) CR_TAB
-		  AS1 (lsr,%A0) CR_TAB
-		  AS1 (ror,%B0) CR_TAB
-		  AS1 (clr,%A0));
+	  return ("clr %B0" CR_TAB
+		  "lsr %A0" CR_TAB
+		  "ror %B0" CR_TAB
+		  "lsr %A0" CR_TAB
+		  "ror %B0" CR_TAB
+		  "clr %A0");
 
 	case 15:
 	  *len = 4;
-	  return (AS1 (clr,%B0) CR_TAB
-		  AS1 (lsr,%A0) CR_TAB
-		  AS1 (ror,%B0) CR_TAB
-		  AS1 (clr,%A0));
+	  return ("clr %B0" CR_TAB
+		  "lsr %A0" CR_TAB
+		  "ror %B0" CR_TAB
+		  "clr %A0");
 	}
       len = t;
     }
-  out_shift_with_cnt ((AS1 (lsl,%A0) CR_TAB
-		       AS1 (rol,%B0)),
-		       insn, operands, len, 2);
+  out_shift_with_cnt ("lsl %A0" CR_TAB
+                      "rol %B0", insn, operands, len, 2);
   return "";
 }
 
@@ -4868,14 +4823,14 @@ ashlsi3_out (rtx insn, rtx operands[], int *len)
 	    break;
 
 	  if (AVR_HAVE_MOVW)
-	    return *len = 3, (AS1 (clr,%D0) CR_TAB
-			      AS1 (clr,%C0) CR_TAB
-			      AS2 (movw,%A0,%C0));
+	    return *len = 3, ("clr %D0" CR_TAB
+			      "clr %C0" CR_TAB
+			      "movw %A0,%C0");
 	  *len = 4;
-	  return (AS1 (clr,%D0) CR_TAB
-		  AS1 (clr,%C0) CR_TAB
-		  AS1 (clr,%B0) CR_TAB
-		  AS1 (clr,%A0));
+	  return ("clr %D0" CR_TAB
+		  "clr %C0" CR_TAB
+		  "clr %B0" CR_TAB
+		  "clr %A0");
 
 	case 8:
 	  {
@@ -4883,15 +4838,15 @@ ashlsi3_out (rtx insn, rtx operands[], int *len)
 	    int reg1 = true_regnum (operands[1]);
 	    *len = 4;
 	    if (reg0 >= reg1)
-	      return (AS2 (mov,%D0,%C1)  CR_TAB
-		      AS2 (mov,%C0,%B1)  CR_TAB
-		      AS2 (mov,%B0,%A1)  CR_TAB
-		      AS1 (clr,%A0));
+	      return ("mov %D0,%C1"  CR_TAB
+		      "mov %C0,%B1"  CR_TAB
+		      "mov %B0,%A1"  CR_TAB
+		      "clr %A0");
 	    else
-	      return (AS1 (clr,%A0)      CR_TAB
-		      AS2 (mov,%B0,%A1)  CR_TAB
-		      AS2 (mov,%C0,%B1)  CR_TAB
-		      AS2 (mov,%D0,%C1));
+	      return ("clr %A0"      CR_TAB
+		      "mov %B0,%A1"  CR_TAB
+		      "mov %C0,%B1"  CR_TAB
+		      "mov %D0,%C1");
 	  }
 
 	case 16:
@@ -4899,42 +4854,41 @@ ashlsi3_out (rtx insn, rtx operands[], int *len)
 	    int reg0 = true_regnum (operands[0]);
 	    int reg1 = true_regnum (operands[1]);
 	    if (reg0 + 2 == reg1)
-	      return *len = 2, (AS1 (clr,%B0)      CR_TAB
-				AS1 (clr,%A0));
+	      return *len = 2, ("clr %B0"      CR_TAB
+				"clr %A0");
 	    if (AVR_HAVE_MOVW)
-	      return *len = 3, (AS2 (movw,%C0,%A1) CR_TAB
-				AS1 (clr,%B0)      CR_TAB
-				AS1 (clr,%A0));
+	      return *len = 3, ("movw %C0,%A1" CR_TAB
+				"clr %B0"      CR_TAB
+				"clr %A0");
 	    else
-	      return *len = 4, (AS2 (mov,%C0,%A1)  CR_TAB
-				AS2 (mov,%D0,%B1)  CR_TAB
-				AS1 (clr,%B0)      CR_TAB
-				AS1 (clr,%A0));
+	      return *len = 4, ("mov %C0,%A1"  CR_TAB
+				"mov %D0,%B1"  CR_TAB
+				"clr %B0"      CR_TAB
+				"clr %A0");
 	  }
 
 	case 24:
 	  *len = 4;
-	  return (AS2 (mov,%D0,%A1)  CR_TAB
-		  AS1 (clr,%C0)      CR_TAB
-		  AS1 (clr,%B0)      CR_TAB
-		  AS1 (clr,%A0));
+	  return ("mov %D0,%A1"  CR_TAB
+		  "clr %C0"      CR_TAB
+		  "clr %B0"      CR_TAB
+		  "clr %A0");
 
 	case 31:
 	  *len = 6;
-	  return (AS1 (clr,%D0) CR_TAB
-		  AS1 (lsr,%A0) CR_TAB
-		  AS1 (ror,%D0) CR_TAB
-		  AS1 (clr,%C0) CR_TAB
-		  AS1 (clr,%B0) CR_TAB
-		  AS1 (clr,%A0));
+	  return ("clr %D0" CR_TAB
+		  "lsr %A0" CR_TAB
+		  "ror %D0" CR_TAB
+		  "clr %C0" CR_TAB
+		  "clr %B0" CR_TAB
+		  "clr %A0");
 	}
       len = t;
     }
-  out_shift_with_cnt ((AS1 (lsl,%A0) CR_TAB
-		       AS1 (rol,%B0) CR_TAB
-		       AS1 (rol,%C0) CR_TAB
-		       AS1 (rol,%D0)),
-		       insn, operands, len, 4);
+  out_shift_with_cnt ("lsl %A0" CR_TAB
+                      "rol %B0" CR_TAB
+                      "rol %C0" CR_TAB
+                      "rol %D0", insn, operands, len, 4);
   return "";
 }
 
@@ -4954,40 +4908,40 @@ ashrqi3_out (rtx insn, rtx operands[], int *len)
 	{
 	case 1:
 	  *len = 1;
-	  return AS1 (asr,%0);
+	  return "asr %0";
 
 	case 2:
 	  *len = 2;
-	  return (AS1 (asr,%0) CR_TAB
-		  AS1 (asr,%0));
+	  return ("asr %0" CR_TAB
+		  "asr %0");
 
 	case 3:
 	  *len = 3;
-	  return (AS1 (asr,%0) CR_TAB
-		  AS1 (asr,%0) CR_TAB
-		  AS1 (asr,%0));
+	  return ("asr %0" CR_TAB
+		  "asr %0" CR_TAB
+		  "asr %0");
 
 	case 4:
 	  *len = 4;
-	  return (AS1 (asr,%0) CR_TAB
-		  AS1 (asr,%0) CR_TAB
-		  AS1 (asr,%0) CR_TAB
-		  AS1 (asr,%0));
+	  return ("asr %0" CR_TAB
+		  "asr %0" CR_TAB
+		  "asr %0" CR_TAB
+		  "asr %0");
 
 	case 5:
 	  *len = 5;
-	  return (AS1 (asr,%0) CR_TAB
-		  AS1 (asr,%0) CR_TAB
-		  AS1 (asr,%0) CR_TAB
-		  AS1 (asr,%0) CR_TAB
-		  AS1 (asr,%0));
+	  return ("asr %0" CR_TAB
+		  "asr %0" CR_TAB
+		  "asr %0" CR_TAB
+		  "asr %0" CR_TAB
+		  "asr %0");
 
 	case 6:
 	  *len = 4;
-	  return (AS2 (bst,%0,6)  CR_TAB
-		  AS1 (lsl,%0)    CR_TAB
-		  AS2 (sbc,%0,%0) CR_TAB
-		  AS2 (bld,%0,0));
+	  return ("bst %0,6"  CR_TAB
+		  "lsl %0"    CR_TAB
+		  "sbc %0,%0" CR_TAB
+		  "bld %0,0");
 
 	default:
 	  if (INTVAL (operands[2]) < 8)
@@ -4997,15 +4951,15 @@ ashrqi3_out (rtx insn, rtx operands[], int *len)
 
 	case 7:
 	  *len = 2;
-	  return (AS1 (lsl,%0) CR_TAB
-		  AS2 (sbc,%0,%0));
+	  return ("lsl %0" CR_TAB
+		  "sbc %0,%0");
 	}
     }
   else if (CONSTANT_P (operands[2]))
     fatal_insn ("internal compiler error.  Incorrect shift:", insn);
 
-  out_shift_with_cnt (AS1 (asr,%0),
-		      insn, operands, len, 1);
+  out_shift_with_cnt ("asr %0",
+                      insn, operands, len, 1);
   return "";
 }
 
@@ -5036,21 +4990,21 @@ ashrhi3_out (rtx insn, rtx operands[], int *len)
 	  if (optimize_size)
 	    break;  /* scratch ? 5 : 6 */
 	  *len = 8;
-	  return (AS2 (mov,__tmp_reg__,%A0) CR_TAB
-		  AS2 (mov,%A0,%B0)         CR_TAB
-		  AS1 (lsl,__tmp_reg__)     CR_TAB
-		  AS1 (rol,%A0)             CR_TAB
-		  AS2 (sbc,%B0,%B0)         CR_TAB
-		  AS1 (lsl,__tmp_reg__)     CR_TAB
-		  AS1 (rol,%A0)             CR_TAB
-		  AS1 (rol,%B0));
+	  return ("mov __tmp_reg__,%A0" CR_TAB
+		  "mov %A0,%B0"         CR_TAB
+		  "lsl __tmp_reg__"     CR_TAB
+		  "rol %A0"             CR_TAB
+		  "sbc %B0,%B0"         CR_TAB
+		  "lsl __tmp_reg__"     CR_TAB
+		  "rol %A0"             CR_TAB
+		  "rol %B0");
 
 	case 7:
 	  *len = 4;
-	  return (AS1 (lsl,%A0)     CR_TAB
-		  AS2 (mov,%A0,%B0) CR_TAB
-		  AS1 (rol,%A0)     CR_TAB
-		  AS2 (sbc,%B0,%B0));
+	  return ("lsl %A0"     CR_TAB
+		  "mov %A0,%B0" CR_TAB
+		  "rol %A0"     CR_TAB
+		  "sbc %B0,%B0");
 
 	case 8:
 	  {
@@ -5058,101 +5012,101 @@ ashrhi3_out (rtx insn, rtx operands[], int *len)
 	    int reg1 = true_regnum (operands[1]);
 
 	    if (reg0 == reg1)
-	      return *len = 3, (AS2 (mov,%A0,%B0) CR_TAB
-				AS1 (lsl,%B0)     CR_TAB
-				AS2 (sbc,%B0,%B0));
+	      return *len = 3, ("mov %A0,%B0" CR_TAB
+				"lsl %B0"     CR_TAB
+				"sbc %B0,%B0");
 	    else 
-	      return *len = 4, (AS2 (mov,%A0,%B1) CR_TAB
-			        AS1 (clr,%B0)     CR_TAB
-			        AS2 (sbrc,%A0,7)  CR_TAB
-			        AS1 (dec,%B0));
+	      return *len = 4, ("mov %A0,%B1" CR_TAB
+			        "clr %B0"     CR_TAB
+			        "sbrc %A0,7"  CR_TAB
+			        "dec %B0");
 	  }
 
 	case 9:
 	  *len = 4;
-	  return (AS2 (mov,%A0,%B0) CR_TAB
-		  AS1 (lsl,%B0)      CR_TAB
-		  AS2 (sbc,%B0,%B0) CR_TAB
-		  AS1 (asr,%A0));
+	  return ("mov %A0,%B0" CR_TAB
+		  "lsl %B0"      CR_TAB
+		  "sbc %B0,%B0" CR_TAB
+		  "asr %A0");
 
 	case 10:
 	  *len = 5;
-	  return (AS2 (mov,%A0,%B0) CR_TAB
-		  AS1 (lsl,%B0)     CR_TAB
-		  AS2 (sbc,%B0,%B0) CR_TAB
-		  AS1 (asr,%A0)     CR_TAB
-		  AS1 (asr,%A0));
+	  return ("mov %A0,%B0" CR_TAB
+		  "lsl %B0"     CR_TAB
+		  "sbc %B0,%B0" CR_TAB
+		  "asr %A0"     CR_TAB
+		  "asr %A0");
 
 	case 11:
 	  if (AVR_HAVE_MUL && ldi_ok)
 	    {
 	      *len = 5;
-	      return (AS2 (ldi,%A0,0x20) CR_TAB
-		      AS2 (muls,%B0,%A0) CR_TAB
-		      AS2 (mov,%A0,r1)   CR_TAB
-		      AS2 (sbc,%B0,%B0)  CR_TAB
-		      AS1 (clr,__zero_reg__));
+	      return ("ldi %A0,0x20" CR_TAB
+		      "muls %B0,%A0" CR_TAB
+		      "mov %A0,r1"   CR_TAB
+		      "sbc %B0,%B0"  CR_TAB
+		      "clr __zero_reg__");
 	    }
 	  if (optimize_size && scratch)
 	    break;  /* 5 */
 	  *len = 6;
-	  return (AS2 (mov,%A0,%B0) CR_TAB
-		  AS1 (lsl,%B0)     CR_TAB
-		  AS2 (sbc,%B0,%B0) CR_TAB
-		  AS1 (asr,%A0)     CR_TAB
-		  AS1 (asr,%A0)     CR_TAB
-		  AS1 (asr,%A0));
+	  return ("mov %A0,%B0" CR_TAB
+		  "lsl %B0"     CR_TAB
+		  "sbc %B0,%B0" CR_TAB
+		  "asr %A0"     CR_TAB
+		  "asr %A0"     CR_TAB
+		  "asr %A0");
 
 	case 12:
 	  if (AVR_HAVE_MUL && ldi_ok)
 	    {
 	      *len = 5;
-	      return (AS2 (ldi,%A0,0x10) CR_TAB
-		      AS2 (muls,%B0,%A0) CR_TAB
-		      AS2 (mov,%A0,r1)   CR_TAB
-		      AS2 (sbc,%B0,%B0)  CR_TAB
-		      AS1 (clr,__zero_reg__));
+	      return ("ldi %A0,0x10" CR_TAB
+		      "muls %B0,%A0" CR_TAB
+		      "mov %A0,r1"   CR_TAB
+		      "sbc %B0,%B0"  CR_TAB
+		      "clr __zero_reg__");
 	    }
 	  if (optimize_size && scratch)
 	    break;  /* 5 */
 	  *len = 7;
-	  return (AS2 (mov,%A0,%B0) CR_TAB
-		  AS1 (lsl,%B0)     CR_TAB
-		  AS2 (sbc,%B0,%B0) CR_TAB
-		  AS1 (asr,%A0)     CR_TAB
-		  AS1 (asr,%A0)     CR_TAB
-		  AS1 (asr,%A0)     CR_TAB
-		  AS1 (asr,%A0));
+	  return ("mov %A0,%B0" CR_TAB
+		  "lsl %B0"     CR_TAB
+		  "sbc %B0,%B0" CR_TAB
+		  "asr %A0"     CR_TAB
+		  "asr %A0"     CR_TAB
+		  "asr %A0"     CR_TAB
+		  "asr %A0");
 
 	case 13:
 	  if (AVR_HAVE_MUL && ldi_ok)
 	    {
 	      *len = 5;
-	      return (AS2 (ldi,%A0,0x08) CR_TAB
-		      AS2 (muls,%B0,%A0) CR_TAB
-		      AS2 (mov,%A0,r1)   CR_TAB
-		      AS2 (sbc,%B0,%B0)  CR_TAB
-		      AS1 (clr,__zero_reg__));
+	      return ("ldi %A0,0x08" CR_TAB
+		      "muls %B0,%A0" CR_TAB
+		      "mov %A0,r1"   CR_TAB
+		      "sbc %B0,%B0"  CR_TAB
+		      "clr __zero_reg__");
 	    }
 	  if (optimize_size)
 	    break;  /* scratch ? 5 : 7 */
 	  *len = 8;
-	  return (AS2 (mov,%A0,%B0) CR_TAB
-		  AS1 (lsl,%B0)     CR_TAB
-		  AS2 (sbc,%B0,%B0) CR_TAB
-		  AS1 (asr,%A0)     CR_TAB
-		  AS1 (asr,%A0)     CR_TAB
-		  AS1 (asr,%A0)     CR_TAB
-		  AS1 (asr,%A0)     CR_TAB
-		  AS1 (asr,%A0));
+	  return ("mov %A0,%B0" CR_TAB
+		  "lsl %B0"     CR_TAB
+		  "sbc %B0,%B0" CR_TAB
+		  "asr %A0"     CR_TAB
+		  "asr %A0"     CR_TAB
+		  "asr %A0"     CR_TAB
+		  "asr %A0"     CR_TAB
+		  "asr %A0");
 
 	case 14:
 	  *len = 5;
-	  return (AS1 (lsl,%B0)     CR_TAB
-		  AS2 (sbc,%A0,%A0) CR_TAB
-		  AS1 (lsl,%B0)     CR_TAB
-		  AS2 (mov,%B0,%A0) CR_TAB
-		  AS1 (rol,%A0));
+	  return ("lsl %B0"     CR_TAB
+		  "sbc %A0,%A0" CR_TAB
+		  "lsl %B0"     CR_TAB
+		  "mov %B0,%A0" CR_TAB
+		  "rol %A0");
 
 	default:
 	  if (INTVAL (operands[2]) < 16)
@@ -5161,15 +5115,14 @@ ashrhi3_out (rtx insn, rtx operands[], int *len)
 	  /* fall through */
 
 	case 15:
-	  return *len = 3, (AS1 (lsl,%B0)     CR_TAB
-			    AS2 (sbc,%A0,%A0) CR_TAB
-			    AS2 (mov,%B0,%A0));
+	  return *len = 3, ("lsl %B0"     CR_TAB
+			    "sbc %A0,%A0" CR_TAB
+			    "mov %B0,%A0");
 	}
       len = t;
     }
-  out_shift_with_cnt ((AS1 (asr,%B0) CR_TAB
-		       AS1 (ror,%A0)),
-		       insn, operands, len, 2);
+  out_shift_with_cnt ("asr %B0" CR_TAB
+                      "ror %A0", insn, operands, len, 2);
   return "";
 }
 
@@ -5254,19 +5207,19 @@ ashrsi3_out (rtx insn, rtx operands[], int *len)
 	    int reg1 = true_regnum (operands[1]);
 	    *len=6;
 	    if (reg0 <= reg1)
-	      return (AS2 (mov,%A0,%B1) CR_TAB
-		      AS2 (mov,%B0,%C1) CR_TAB
-		      AS2 (mov,%C0,%D1) CR_TAB
-		      AS1 (clr,%D0)     CR_TAB
-		      AS2 (sbrc,%C0,7)  CR_TAB
-		      AS1 (dec,%D0));
+	      return ("mov %A0,%B1" CR_TAB
+		      "mov %B0,%C1" CR_TAB
+		      "mov %C0,%D1" CR_TAB
+		      "clr %D0"     CR_TAB
+		      "sbrc %C0,7"  CR_TAB
+		      "dec %D0");
 	    else
-	      return (AS1 (clr,%D0)     CR_TAB
-		      AS2 (sbrc,%D1,7)  CR_TAB
-		      AS1 (dec,%D0)     CR_TAB
-		      AS2 (mov,%C0,%D1) CR_TAB
-		      AS2 (mov,%B0,%C1) CR_TAB
-		      AS2 (mov,%A0,%B1));
+	      return ("clr %D0"     CR_TAB
+		      "sbrc %D1,7"  CR_TAB
+		      "dec %D0"     CR_TAB
+		      "mov %C0,%D1" CR_TAB
+		      "mov %B0,%C1" CR_TAB
+		      "mov %A0,%B1");
 	  }
 	  
 	case 16:
@@ -5275,32 +5228,32 @@ ashrsi3_out (rtx insn, rtx operands[], int *len)
 	    int reg1 = true_regnum (operands[1]);
 	    
 	    if (reg0 == reg1 + 2)
-	      return *len = 4, (AS1 (clr,%D0)     CR_TAB
-				AS2 (sbrc,%B0,7)  CR_TAB
-				AS1 (com,%D0)     CR_TAB
-				AS2 (mov,%C0,%D0));
+	      return *len = 4, ("clr %D0"     CR_TAB
+				"sbrc %B0,7"  CR_TAB
+				"com %D0"     CR_TAB
+				"mov %C0,%D0");
 	    if (AVR_HAVE_MOVW)
-	      return *len = 5, (AS2 (movw,%A0,%C1) CR_TAB
-				AS1 (clr,%D0)      CR_TAB
-				AS2 (sbrc,%B0,7)   CR_TAB
-				AS1 (com,%D0)      CR_TAB
-				AS2 (mov,%C0,%D0));
+	      return *len = 5, ("movw %A0,%C1" CR_TAB
+				"clr %D0"      CR_TAB
+				"sbrc %B0,7"   CR_TAB
+				"com %D0"      CR_TAB
+				"mov %C0,%D0");
 	    else 
-	      return *len = 6, (AS2 (mov,%B0,%D1) CR_TAB
-				AS2 (mov,%A0,%C1) CR_TAB
-				AS1 (clr,%D0)     CR_TAB
-				AS2 (sbrc,%B0,7)  CR_TAB
-				AS1 (com,%D0)     CR_TAB
-				AS2 (mov,%C0,%D0));
+	      return *len = 6, ("mov %B0,%D1" CR_TAB
+				"mov %A0,%C1" CR_TAB
+				"clr %D0"     CR_TAB
+				"sbrc %B0,7"  CR_TAB
+				"com %D0"     CR_TAB
+				"mov %C0,%D0");
 	  }
 
 	case 24:
-	  return *len = 6, (AS2 (mov,%A0,%D1) CR_TAB
-			    AS1 (clr,%D0)     CR_TAB
-			    AS2 (sbrc,%A0,7)  CR_TAB
-			    AS1 (com,%D0)     CR_TAB
-			    AS2 (mov,%B0,%D0) CR_TAB
-			    AS2 (mov,%C0,%D0));
+	  return *len = 6, ("mov %A0,%D1" CR_TAB
+			    "clr %D0"     CR_TAB
+			    "sbrc %A0,7"  CR_TAB
+			    "com %D0"     CR_TAB
+			    "mov %B0,%D0" CR_TAB
+			    "mov %C0,%D0");
 
 	default:
 	  if (INTVAL (operands[2]) < 32)
@@ -5310,24 +5263,23 @@ ashrsi3_out (rtx insn, rtx operands[], int *len)
 
 	case 31:
 	  if (AVR_HAVE_MOVW)
-	    return *len = 4, (AS1 (lsl,%D0)     CR_TAB
-			      AS2 (sbc,%A0,%A0) CR_TAB
-			      AS2 (mov,%B0,%A0) CR_TAB
-			      AS2 (movw,%C0,%A0));
+	    return *len = 4, ("lsl %D0"     CR_TAB
+			      "sbc %A0,%A0" CR_TAB
+			      "mov %B0,%A0" CR_TAB
+			      "movw %C0,%A0");
 	  else
-	    return *len = 5, (AS1 (lsl,%D0)     CR_TAB
-			      AS2 (sbc,%A0,%A0) CR_TAB
-			      AS2 (mov,%B0,%A0) CR_TAB
-			      AS2 (mov,%C0,%A0) CR_TAB
-			      AS2 (mov,%D0,%A0));
+	    return *len = 5, ("lsl %D0"     CR_TAB
+			      "sbc %A0,%A0" CR_TAB
+			      "mov %B0,%A0" CR_TAB
+			      "mov %C0,%A0" CR_TAB
+			      "mov %D0,%A0");
 	}
       len = t;
     }
-  out_shift_with_cnt ((AS1 (asr,%D0) CR_TAB
-		       AS1 (ror,%C0) CR_TAB
-		       AS1 (ror,%B0) CR_TAB
-		       AS1 (ror,%A0)),
-		       insn, operands, len, 4);
+  out_shift_with_cnt ("asr %D0" CR_TAB
+                      "ror %C0" CR_TAB
+                      "ror %B0" CR_TAB
+                      "ror %A0", insn, operands, len, 4);
   return "";
 }
 
@@ -5350,79 +5302,79 @@ lshrqi3_out (rtx insn, rtx operands[], int *len)
 	    break;
 
 	  *len = 1;
-	  return AS1 (clr,%0);
+	  return "clr %0";
 
 	case 1:
 	  *len = 1;
-	  return AS1 (lsr,%0);
+	  return "lsr %0";
 
 	case 2:
 	  *len = 2;
-	  return (AS1 (lsr,%0) CR_TAB
-		  AS1 (lsr,%0));
+	  return ("lsr %0" CR_TAB
+		  "lsr %0");
 	case 3:
 	  *len = 3;
-	  return (AS1 (lsr,%0) CR_TAB
-		  AS1 (lsr,%0) CR_TAB
-		  AS1 (lsr,%0));
+	  return ("lsr %0" CR_TAB
+		  "lsr %0" CR_TAB
+		  "lsr %0");
 	  
 	case 4:
 	  if (test_hard_reg_class (LD_REGS, operands[0]))
 	    {
 	      *len=2;
-	      return (AS1 (swap,%0) CR_TAB
-		      AS2 (andi,%0,0x0f));
+	      return ("swap %0" CR_TAB
+		      "andi %0,0x0f");
 	    }
 	  *len = 4;
-	  return (AS1 (lsr,%0) CR_TAB
-		  AS1 (lsr,%0) CR_TAB
-		  AS1 (lsr,%0) CR_TAB
-		  AS1 (lsr,%0));
+	  return ("lsr %0" CR_TAB
+		  "lsr %0" CR_TAB
+		  "lsr %0" CR_TAB
+		  "lsr %0");
 	  
 	case 5:
 	  if (test_hard_reg_class (LD_REGS, operands[0]))
 	    {
 	      *len = 3;
-	      return (AS1 (swap,%0) CR_TAB
-		      AS1 (lsr,%0)  CR_TAB
-		      AS2 (andi,%0,0x7));
+	      return ("swap %0" CR_TAB
+		      "lsr %0"  CR_TAB
+		      "andi %0,0x7");
 	    }
 	  *len = 5;
-	  return (AS1 (lsr,%0) CR_TAB
-		  AS1 (lsr,%0) CR_TAB
-		  AS1 (lsr,%0) CR_TAB
-		  AS1 (lsr,%0) CR_TAB
-		  AS1 (lsr,%0));
+	  return ("lsr %0" CR_TAB
+		  "lsr %0" CR_TAB
+		  "lsr %0" CR_TAB
+		  "lsr %0" CR_TAB
+		  "lsr %0");
 	  
 	case 6:
 	  if (test_hard_reg_class (LD_REGS, operands[0]))
 	    {
 	      *len = 4;
-	      return (AS1 (swap,%0) CR_TAB
-		      AS1 (lsr,%0)  CR_TAB
-		      AS1 (lsr,%0)  CR_TAB
-		      AS2 (andi,%0,0x3));
+	      return ("swap %0" CR_TAB
+		      "lsr %0"  CR_TAB
+		      "lsr %0"  CR_TAB
+		      "andi %0,0x3");
 	    }
 	  *len = 6;
-	  return (AS1 (lsr,%0) CR_TAB
-		  AS1 (lsr,%0) CR_TAB
-		  AS1 (lsr,%0) CR_TAB
-		  AS1 (lsr,%0) CR_TAB
-		  AS1 (lsr,%0) CR_TAB
-		  AS1 (lsr,%0));
+	  return ("lsr %0" CR_TAB
+		  "lsr %0" CR_TAB
+		  "lsr %0" CR_TAB
+		  "lsr %0" CR_TAB
+		  "lsr %0" CR_TAB
+		  "lsr %0");
 	  
 	case 7:
 	  *len = 3;
-	  return (AS1 (rol,%0) CR_TAB
-		  AS1 (clr,%0) CR_TAB
-		  AS1 (rol,%0));
+	  return ("rol %0" CR_TAB
+		  "clr %0" CR_TAB
+		  "rol %0");
 	}
     }
   else if (CONSTANT_P (operands[2]))
     fatal_insn ("internal compiler error.  Incorrect shift:", insn);
   
-  out_shift_with_cnt (AS1 (lsr,%0),
-		      insn, operands, len, 1);
+  out_shift_with_cnt ("lsr %0",
+                      insn, operands, len, 1);
   return "";
 }
 
@@ -5448,8 +5400,8 @@ lshrhi3_out (rtx insn, rtx operands[], int *len)
 	    break;
 
 	  *len = 2;
-	  return (AS1 (clr,%B0) CR_TAB
-		  AS1 (clr,%A0));
+	  return ("clr %B0" CR_TAB
+		  "clr %A0");
 
 	case 4:
 	  if (optimize_size && scratch)
@@ -5457,23 +5409,23 @@ lshrhi3_out (rtx insn, rtx operands[], int *len)
 	  if (ldi_ok)
 	    {
 	      *len = 6;
-	      return (AS1 (swap,%B0)      CR_TAB
-		      AS1 (swap,%A0)      CR_TAB
-		      AS2 (andi,%A0,0x0f) CR_TAB
-		      AS2 (eor,%A0,%B0)   CR_TAB
-		      AS2 (andi,%B0,0x0f) CR_TAB
-		      AS2 (eor,%A0,%B0));
+	      return ("swap %B0"      CR_TAB
+		      "swap %A0"      CR_TAB
+		      "andi %A0,0x0f" CR_TAB
+		      "eor %A0,%B0"   CR_TAB
+		      "andi %B0,0x0f" CR_TAB
+		      "eor %A0,%B0");
 	    }
 	  if (scratch)
 	    {
 	      *len = 7;
-	      return (AS1 (swap,%B0)    CR_TAB
-		      AS1 (swap,%A0)    CR_TAB
-		      AS2 (ldi,%3,0x0f) CR_TAB
+	      return ("swap %B0"    CR_TAB
+		      "swap %A0"    CR_TAB
+		      "ldi %3,0x0f" CR_TAB
 		      "and %A0,%3"      CR_TAB
-		      AS2 (eor,%A0,%B0) CR_TAB
+		      "eor %A0,%B0" CR_TAB
 		      "and %B0,%3"      CR_TAB
-		      AS2 (eor,%A0,%B0));
+		      "eor %A0,%B0");
 	    }
 	  break;  /* optimize_size ? 6 : 8 */
 
@@ -5483,27 +5435,27 @@ lshrhi3_out (rtx insn, rtx operands[], int *len)
 	  if (ldi_ok)
 	    {
 	      *len = 8;
-	      return (AS1 (lsr,%B0)       CR_TAB
-		      AS1 (ror,%A0)       CR_TAB
-		      AS1 (swap,%B0)      CR_TAB
-		      AS1 (swap,%A0)      CR_TAB
-		      AS2 (andi,%A0,0x0f) CR_TAB
-		      AS2 (eor,%A0,%B0)   CR_TAB
-		      AS2 (andi,%B0,0x0f) CR_TAB
-		      AS2 (eor,%A0,%B0));
+	      return ("lsr %B0"       CR_TAB
+		      "ror %A0"       CR_TAB
+		      "swap %B0"      CR_TAB
+		      "swap %A0"      CR_TAB
+		      "andi %A0,0x0f" CR_TAB
+		      "eor %A0,%B0"   CR_TAB
+		      "andi %B0,0x0f" CR_TAB
+		      "eor %A0,%B0");
 	    }
 	  if (scratch)
 	    {
 	      *len = 9;
-	      return (AS1 (lsr,%B0)     CR_TAB
-		      AS1 (ror,%A0)     CR_TAB
-		      AS1 (swap,%B0)    CR_TAB
-		      AS1 (swap,%A0)    CR_TAB
-		      AS2 (ldi,%3,0x0f) CR_TAB
+	      return ("lsr %B0"     CR_TAB
+		      "ror %A0"     CR_TAB
+		      "swap %B0"    CR_TAB
+		      "swap %A0"    CR_TAB
+		      "ldi %3,0x0f" CR_TAB
 		      "and %A0,%3"      CR_TAB
-		      AS2 (eor,%A0,%B0) CR_TAB
+		      "eor %A0,%B0" CR_TAB
 		      "and %B0,%3"      CR_TAB
-		      AS2 (eor,%A0,%B0));
+		      "eor %A0,%B0");
 	    }
 	  break;  /* 10 */
 
@@ -5511,175 +5463,174 @@ lshrhi3_out (rtx insn, rtx operands[], int *len)
 	  if (optimize_size)
 	    break;  /* scratch ? 5 : 6 */
 	  *len = 9;
-	  return (AS1 (clr,__tmp_reg__) CR_TAB
-		  AS1 (lsl,%A0)         CR_TAB
-		  AS1 (rol,%B0)         CR_TAB
-		  AS1 (rol,__tmp_reg__) CR_TAB
-		  AS1 (lsl,%A0)         CR_TAB
-		  AS1 (rol,%B0)         CR_TAB
-		  AS1 (rol,__tmp_reg__) CR_TAB
-		  AS2 (mov,%A0,%B0)     CR_TAB
-		  AS2 (mov,%B0,__tmp_reg__));
+	  return ("clr __tmp_reg__" CR_TAB
+		  "lsl %A0"         CR_TAB
+		  "rol %B0"         CR_TAB
+		  "rol __tmp_reg__" CR_TAB
+		  "lsl %A0"         CR_TAB
+		  "rol %B0"         CR_TAB
+		  "rol __tmp_reg__" CR_TAB
+		  "mov %A0,%B0"     CR_TAB
+		  "mov %B0,__tmp_reg__");
 
 	case 7:
 	  *len = 5;
-	  return (AS1 (lsl,%A0)     CR_TAB
-		  AS2 (mov,%A0,%B0) CR_TAB
-		  AS1 (rol,%A0)     CR_TAB
-		  AS2 (sbc,%B0,%B0) CR_TAB
-		  AS1 (neg,%B0));
+	  return ("lsl %A0"     CR_TAB
+		  "mov %A0,%B0" CR_TAB
+		  "rol %A0"     CR_TAB
+		  "sbc %B0,%B0" CR_TAB
+		  "neg %B0");
 
 	case 8:
-	  return *len = 2, (AS2 (mov,%A0,%B1) CR_TAB
-			    AS1 (clr,%B0));
+	  return *len = 2, ("mov %A0,%B1" CR_TAB
+			    "clr %B0");
 
 	case 9:
 	  *len = 3;
-	  return (AS2 (mov,%A0,%B0) CR_TAB
-		  AS1 (clr,%B0)     CR_TAB
-		  AS1 (lsr,%A0));
+	  return ("mov %A0,%B0" CR_TAB
+		  "clr %B0"     CR_TAB
+		  "lsr %A0");
 
 	case 10:
 	  *len = 4;
-	  return (AS2 (mov,%A0,%B0) CR_TAB
-		  AS1 (clr,%B0)     CR_TAB
-		  AS1 (lsr,%A0)     CR_TAB
-		  AS1 (lsr,%A0));
+	  return ("mov %A0,%B0" CR_TAB
+		  "clr %B0"     CR_TAB
+		  "lsr %A0"     CR_TAB
+		  "lsr %A0");
 
 	case 11:
 	  *len = 5;
-	  return (AS2 (mov,%A0,%B0) CR_TAB
-		  AS1 (clr,%B0)     CR_TAB
-		  AS1 (lsr,%A0)     CR_TAB
-		  AS1 (lsr,%A0)     CR_TAB
-		  AS1 (lsr,%A0));
+	  return ("mov %A0,%B0" CR_TAB
+		  "clr %B0"     CR_TAB
+		  "lsr %A0"     CR_TAB
+		  "lsr %A0"     CR_TAB
+		  "lsr %A0");
 
 	case 12:
 	  if (ldi_ok)
 	    {
 	      *len = 4;
-	      return (AS2 (mov,%A0,%B0) CR_TAB
-		      AS1 (clr,%B0)     CR_TAB
-		      AS1 (swap,%A0)    CR_TAB
-		      AS2 (andi,%A0,0x0f));
+	      return ("mov %A0,%B0" CR_TAB
+		      "clr %B0"     CR_TAB
+		      "swap %A0"    CR_TAB
+		      "andi %A0,0x0f");
 	    }
 	  if (scratch)
 	    {
 	      *len = 5;
-	      return (AS2 (mov,%A0,%B0) CR_TAB
-		      AS1 (clr,%B0)     CR_TAB
-		      AS1 (swap,%A0)    CR_TAB
-		      AS2 (ldi,%3,0x0f) CR_TAB
+	      return ("mov %A0,%B0" CR_TAB
+		      "clr %B0"     CR_TAB
+		      "swap %A0"    CR_TAB
+		      "ldi %3,0x0f" CR_TAB
 		      "and %A0,%3");
 	    }
 	  *len = 6;
-	  return (AS2 (mov,%A0,%B0) CR_TAB
-		  AS1 (clr,%B0)     CR_TAB
-		  AS1 (lsr,%A0)     CR_TAB
-		  AS1 (lsr,%A0)     CR_TAB
-		  AS1 (lsr,%A0)     CR_TAB
-		  AS1 (lsr,%A0));
+	  return ("mov %A0,%B0" CR_TAB
+		  "clr %B0"     CR_TAB
+		  "lsr %A0"     CR_TAB
+		  "lsr %A0"     CR_TAB
+		  "lsr %A0"     CR_TAB
+		  "lsr %A0");
 
 	case 13:
 	  if (ldi_ok)
 	    {
 	      *len = 5;
-	      return (AS2 (mov,%A0,%B0) CR_TAB
-		      AS1 (clr,%B0)     CR_TAB
-		      AS1 (swap,%A0)    CR_TAB
-		      AS1 (lsr,%A0)     CR_TAB
-		      AS2 (andi,%A0,0x07));
+	      return ("mov %A0,%B0" CR_TAB
+		      "clr %B0"     CR_TAB
+		      "swap %A0"    CR_TAB
+		      "lsr %A0"     CR_TAB
+		      "andi %A0,0x07");
 	    }
 	  if (AVR_HAVE_MUL && scratch)
 	    {
 	      *len = 5;
-	      return (AS2 (ldi,%3,0x08) CR_TAB
-		      AS2 (mul,%B0,%3)  CR_TAB
-		      AS2 (mov,%A0,r1)  CR_TAB
-		      AS1 (clr,%B0)     CR_TAB
-		      AS1 (clr,__zero_reg__));
+	      return ("ldi %3,0x08" CR_TAB
+		      "mul %B0,%3"  CR_TAB
+		      "mov %A0,r1"  CR_TAB
+		      "clr %B0"     CR_TAB
+		      "clr __zero_reg__");
 	    }
 	  if (optimize_size && scratch)
 	    break;  /* 5 */
 	  if (scratch)
 	    {
 	      *len = 6;
-	      return (AS2 (mov,%A0,%B0) CR_TAB
-		      AS1 (clr,%B0)     CR_TAB
-		      AS1 (swap,%A0)    CR_TAB
-		      AS1 (lsr,%A0)     CR_TAB
-		      AS2 (ldi,%3,0x07) CR_TAB
+	      return ("mov %A0,%B0" CR_TAB
+		      "clr %B0"     CR_TAB
+		      "swap %A0"    CR_TAB
+		      "lsr %A0"     CR_TAB
+		      "ldi %3,0x07" CR_TAB
 		      "and %A0,%3");
 	    }
 	  if (AVR_HAVE_MUL)
 	    {
 	      *len = 6;
 	      return ("set"            CR_TAB
-		      AS2 (bld,r1,3)   CR_TAB
-		      AS2 (mul,%B0,r1) CR_TAB
-		      AS2 (mov,%A0,r1) CR_TAB
-		      AS1 (clr,%B0)    CR_TAB
-		      AS1 (clr,__zero_reg__));
+		      "bld r1,3"   CR_TAB
+		      "mul %B0,r1" CR_TAB
+		      "mov %A0,r1" CR_TAB
+		      "clr %B0"    CR_TAB
+		      "clr __zero_reg__");
 	    }
 	  *len = 7;
-	  return (AS2 (mov,%A0,%B0) CR_TAB
-		  AS1 (clr,%B0)     CR_TAB
-		  AS1 (lsr,%A0)     CR_TAB
-		  AS1 (lsr,%A0)     CR_TAB
-		  AS1 (lsr,%A0)     CR_TAB
-		  AS1 (lsr,%A0)     CR_TAB
-		  AS1 (lsr,%A0));
+	  return ("mov %A0,%B0" CR_TAB
+		  "clr %B0"     CR_TAB
+		  "lsr %A0"     CR_TAB
+		  "lsr %A0"     CR_TAB
+		  "lsr %A0"     CR_TAB
+		  "lsr %A0"     CR_TAB
+		  "lsr %A0");
 
 	case 14:
 	  if (AVR_HAVE_MUL && ldi_ok)
 	    {
 	      *len = 5;
-	      return (AS2 (ldi,%A0,0x04) CR_TAB
-		      AS2 (mul,%B0,%A0)  CR_TAB
-		      AS2 (mov,%A0,r1)   CR_TAB
-		      AS1 (clr,%B0)      CR_TAB
-		      AS1 (clr,__zero_reg__));
+	      return ("ldi %A0,0x04" CR_TAB
+		      "mul %B0,%A0"  CR_TAB
+		      "mov %A0,r1"   CR_TAB
+		      "clr %B0"      CR_TAB
+		      "clr __zero_reg__");
 	    }
 	  if (AVR_HAVE_MUL && scratch)
 	    {
 	      *len = 5;
-	      return (AS2 (ldi,%3,0x04) CR_TAB
-		      AS2 (mul,%B0,%3)  CR_TAB
-		      AS2 (mov,%A0,r1)  CR_TAB
-		      AS1 (clr,%B0)     CR_TAB
-		      AS1 (clr,__zero_reg__));
+	      return ("ldi %3,0x04" CR_TAB
+		      "mul %B0,%3"  CR_TAB
+		      "mov %A0,r1"  CR_TAB
+		      "clr %B0"     CR_TAB
+		      "clr __zero_reg__");
 	    }
 	  if (optimize_size && ldi_ok)
 	    {
 	      *len = 5;
-	      return (AS2 (mov,%A0,%B0) CR_TAB
-		      AS2 (ldi,%B0,6) "\n1:\t"
-		      AS1 (lsr,%A0)     CR_TAB
-		      AS1 (dec,%B0)     CR_TAB
-		      AS1 (brne,1b));
+	      return ("mov %A0,%B0" CR_TAB
+		      "ldi %B0,6" "\n1:\t"
+		      "lsr %A0"     CR_TAB
+		      "dec %B0"     CR_TAB
+		      "brne 1b");
 	    }
 	  if (optimize_size && scratch)
 	    break;  /* 5 */
 	  *len = 6;
-	  return (AS1 (clr,%A0) CR_TAB
-		  AS1 (lsl,%B0) CR_TAB
-		  AS1 (rol,%A0) CR_TAB
-		  AS1 (lsl,%B0) CR_TAB
-		  AS1 (rol,%A0) CR_TAB
-		  AS1 (clr,%B0));
+	  return ("clr %A0" CR_TAB
+		  "lsl %B0" CR_TAB
+		  "rol %A0" CR_TAB
+		  "lsl %B0" CR_TAB
+		  "rol %A0" CR_TAB
+		  "clr %B0");
 
 	case 15:
 	  *len = 4;
-	  return (AS1 (clr,%A0) CR_TAB
-		  AS1 (lsl,%B0) CR_TAB
-		  AS1 (rol,%A0) CR_TAB
-		  AS1 (clr,%B0));
+	  return ("clr %A0" CR_TAB
+		  "lsl %B0" CR_TAB
+		  "rol %A0" CR_TAB
+		  "clr %B0");
 	}
       len = t;
     }
-  out_shift_with_cnt ((AS1 (lsr,%B0) CR_TAB
-		       AS1 (ror,%A0)),
-		       insn, operands, len, 2);
+  out_shift_with_cnt ("lsr %B0" CR_TAB
+                      "ror %A0", insn, operands, len, 2);
   return "";
 }
 
@@ -5758,14 +5709,14 @@ lshrsi3_out (rtx insn, rtx operands[], int *len)
 	    break;
 
 	  if (AVR_HAVE_MOVW)
-	    return *len = 3, (AS1 (clr,%D0) CR_TAB
-			      AS1 (clr,%C0) CR_TAB
-			      AS2 (movw,%A0,%C0));
+	    return *len = 3, ("clr %D0" CR_TAB
+			      "clr %C0" CR_TAB
+			      "movw %A0,%C0");
 	  *len = 4;
-	  return (AS1 (clr,%D0) CR_TAB
-		  AS1 (clr,%C0) CR_TAB
-		  AS1 (clr,%B0) CR_TAB
-		  AS1 (clr,%A0));
+	  return ("clr %D0" CR_TAB
+		  "clr %C0" CR_TAB
+		  "clr %B0" CR_TAB
+		  "clr %A0");
 
 	case 8:
 	  {
@@ -5773,15 +5724,15 @@ lshrsi3_out (rtx insn, rtx operands[], int *len)
 	    int reg1 = true_regnum (operands[1]);
 	    *len = 4;
 	    if (reg0 <= reg1)
-	      return (AS2 (mov,%A0,%B1) CR_TAB
-		      AS2 (mov,%B0,%C1) CR_TAB
-		      AS2 (mov,%C0,%D1) CR_TAB
-		      AS1 (clr,%D0));
+	      return ("mov %A0,%B1" CR_TAB
+		      "mov %B0,%C1" CR_TAB
+		      "mov %C0,%D1" CR_TAB
+		      "clr %D0");
 	    else
-	      return (AS1 (clr,%D0)     CR_TAB
-		      AS2 (mov,%C0,%D1) CR_TAB
-		      AS2 (mov,%B0,%C1) CR_TAB
-		      AS2 (mov,%A0,%B1)); 
+	      return ("clr %D0"     CR_TAB
+		      "mov %C0,%D1" CR_TAB
+		      "mov %B0,%C1" CR_TAB
+		      "mov %A0,%B1"); 
 	  }
 	  
 	case 16:
@@ -5790,41 +5741,40 @@ lshrsi3_out (rtx insn, rtx operands[], int *len)
 	    int reg1 = true_regnum (operands[1]);
 
 	    if (reg0 == reg1 + 2)
-	      return *len = 2, (AS1 (clr,%C0)     CR_TAB
-				AS1 (clr,%D0));
+	      return *len = 2, ("clr %C0"     CR_TAB
+				"clr %D0");
 	    if (AVR_HAVE_MOVW)
-	      return *len = 3, (AS2 (movw,%A0,%C1) CR_TAB
-				AS1 (clr,%C0)      CR_TAB
-				AS1 (clr,%D0));
+	      return *len = 3, ("movw %A0,%C1" CR_TAB
+				"clr %C0"      CR_TAB
+				"clr %D0");
 	    else
-	      return *len = 4, (AS2 (mov,%B0,%D1) CR_TAB
-				AS2 (mov,%A0,%C1) CR_TAB
-				AS1 (clr,%C0)     CR_TAB
-				AS1 (clr,%D0));
+	      return *len = 4, ("mov %B0,%D1" CR_TAB
+				"mov %A0,%C1" CR_TAB
+				"clr %C0"     CR_TAB
+				"clr %D0");
 	  }
 	  
 	case 24:
-	  return *len = 4, (AS2 (mov,%A0,%D1) CR_TAB
-			    AS1 (clr,%B0)     CR_TAB
-			    AS1 (clr,%C0)     CR_TAB
-			    AS1 (clr,%D0));
+	  return *len = 4, ("mov %A0,%D1" CR_TAB
+			    "clr %B0"     CR_TAB
+			    "clr %C0"     CR_TAB
+			    "clr %D0");
 
 	case 31:
 	  *len = 6;
-	  return (AS1 (clr,%A0)    CR_TAB
-		  AS2 (sbrc,%D0,7) CR_TAB
-		  AS1 (inc,%A0)    CR_TAB
-		  AS1 (clr,%B0)    CR_TAB
-		  AS1 (clr,%C0)    CR_TAB
-		  AS1 (clr,%D0));
+	  return ("clr %A0"    CR_TAB
+		  "sbrc %D0,7" CR_TAB
+		  "inc %A0"    CR_TAB
+		  "clr %B0"    CR_TAB
+		  "clr %C0"    CR_TAB
+		  "clr %D0");
 	}
       len = t;
     }
-  out_shift_with_cnt ((AS1 (lsr,%D0) CR_TAB
-		       AS1 (ror,%C0) CR_TAB
-		       AS1 (ror,%B0) CR_TAB
-		       AS1 (ror,%A0)),
-		      insn, operands, len, 4);
+  out_shift_with_cnt ("lsr %D0" CR_TAB
+                      "ror %C0" CR_TAB
+                      "ror %B0" CR_TAB
+                      "ror %A0", insn, operands, len, 4);
   return "";
 }
 
@@ -6673,8 +6623,8 @@ avr_assemble_integer (rtx x, unsigned int size, int aligned_p)
       default_assemble_integer (avr_const_address_lo16 (x),
                                 GET_MODE_SIZE (HImode), aligned_p);
       
-      fputs ("\t.warning\t\"assembling 24-bit address needs binutils extension for hh8(",
-             asm_out_file);
+      fputs ("\t.warning\t\"assembling 24-bit address needs binutils"
+             " extension for hh8(", asm_out_file);
       output_addr_const (asm_out_file, x);
       fputs (")\"\n", asm_out_file);
       
@@ -6857,10 +6807,10 @@ avr_progmem_p (tree decl, tree attributes)
   if (TREE_CODE (decl) != VAR_DECL)
     return 0;
 
-  if (avr_decl_pgmx_p (decl))
+  if (avr_decl_memx_p (decl))
     return 2;
 
-  if (avr_decl_pgm_p (decl))
+  if (avr_decl_flash_p (decl))
     return 1;
 
   if (NULL_TREE
@@ -6925,8 +6875,8 @@ avr_nonconst_pointer_addrspace (tree typ)
 }
 
 
-/* Sanity check NODE so that all pointers targeting address space AS1
-   go along with CONST qualifier.  Writing to this address space should
+/* Sanity check NODE so that all pointers targeting non-generic addres spaces
+   go along with CONST qualifier.  Writing to these address spaces should
    be detected and complained about as early as possible.  */
 
 static bool
@@ -7242,11 +7192,11 @@ avr_section_type_flags (tree decl, const char *name, int reloc)
       addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (decl));
 
       /* Attribute progmem puts data in generic address space.
-         Set section flags as if it was in __pgm to get the right
+         Set section flags as if it was in __flash to get the right
          section prefix in the remainder.  */
 
       if (ADDR_SPACE_GENERIC_P (as))
-        as = ADDR_SPACE_PGM;
+        as = ADDR_SPACE_FLASH;
 
       flags |= as * SECTION_MACH_DEP;
       flags &= ~SECTION_WRITE;
@@ -7269,6 +7219,7 @@ avr_encode_section_info (tree decl, rtx rtl, int new_decl_p)
   if (new_decl_p
       && decl && DECL_P (decl)
       && NULL_TREE == DECL_INITIAL (decl)
+      && !DECL_EXTERNAL (decl)
       && avr_progmem_p (decl, DECL_ATTRIBUTES (decl)))
     {
       warning (OPT_Wuninitialized,
@@ -7277,6 +7228,23 @@ avr_encode_section_info (tree decl, rtx rtl, int new_decl_p)
     }
 
   default_encode_section_info (decl, rtl, new_decl_p);
+
+  if (decl && DECL_P (decl)
+      && TREE_CODE (decl) != FUNCTION_DECL
+      && MEM_P (rtl)
+      && SYMBOL_REF == GET_CODE (XEXP (rtl, 0)))
+   {
+      rtx sym = XEXP (rtl, 0);
+      addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (decl));
+
+      /* PSTR strings are in generic space but located in flash:
+         patch address space.  */
+      
+      if (-1 == avr_progmem_p (decl, DECL_ATTRIBUTES (decl)))
+        as = ADDR_SPACE_FLASH;
+
+      AVR_SYMBOL_SET_ADDR_SPACE (sym, as);
+    }
 }
 
 
@@ -9019,10 +8987,8 @@ output_reload_in_const (rtx *op, rtx clobber_reg, int *len, bool clear_p)
           xop[1] = src;
           xop[2] = clobber_reg;
 
-          if (n >= 2 + (avr_current_arch->n_segments > 1))
-            avr_asm_len ("mov %0,__zero_reg__", xop, len, 1);
-          else
-            avr_asm_len (asm_code[n][ldreg_p], xop, len, ldreg_p ? 1 : 2);
+          avr_asm_len (asm_code[n][ldreg_p], xop, len, ldreg_p ? 1 : 2);
+          
           continue;
         }
 
@@ -9500,12 +9466,12 @@ avr_addr_space_legitimate_address_p (enum machine_mode mode, rtx x,
     case ADDR_SPACE_GENERIC:
       return avr_legitimate_address_p (mode, x, strict);
 
-    case ADDR_SPACE_PGM:
-    case ADDR_SPACE_PGM1:
-    case ADDR_SPACE_PGM2:
-    case ADDR_SPACE_PGM3:
-    case ADDR_SPACE_PGM4:
-    case ADDR_SPACE_PGM5:
+    case ADDR_SPACE_FLASH:
+    case ADDR_SPACE_FLASH1:
+    case ADDR_SPACE_FLASH2:
+    case ADDR_SPACE_FLASH3:
+    case ADDR_SPACE_FLASH4:
+    case ADDR_SPACE_FLASH5:
 
       switch (GET_CODE (x))
         {
@@ -9521,9 +9487,9 @@ avr_addr_space_legitimate_address_p (enum machine_mode mode, rtx x,
           break;
         }
 
-      break; /* PGM */
+      break; /* FLASH */
       
-    case ADDR_SPACE_PGMX:
+    case ADDR_SPACE_MEMX:
       if (REG_P (x))
         ok = (!strict
               && can_create_pseudo_p());
@@ -9539,7 +9505,7 @@ avr_addr_space_legitimate_address_p (enum machine_mode mode, rtx x,
                 && REGNO (lo) == REG_Z);
         }
       
-      break; /* PGMX */
+      break; /* MEMX */
     }
 
   if (avr_log.legitimate_address_p)
@@ -9596,51 +9562,57 @@ avr_addr_space_convert (rtx src, tree type_from, tree type_to)
     avr_edump ("\n%!: op = %r\nfrom = %t\nto = %t\n",
                src, type_from, type_to);
 
-  if (as_from != ADDR_SPACE_PGMX
-      && as_to == ADDR_SPACE_PGMX)
+  /* Up-casting from 16-bit to 24-bit pointer.  */
+  
+  if (as_from != ADDR_SPACE_MEMX
+      && as_to == ADDR_SPACE_MEMX)
     {
-      rtx new_src;
-      int n_segments = avr_current_arch->n_segments;
-      RTX_CODE code = GET_CODE (src);
+      int msb;
+      rtx sym = src;
+      rtx reg = gen_reg_rtx (PSImode);
 
-      if (CONST == code
-          && PLUS == GET_CODE (XEXP (src, 0))
-          && SYMBOL_REF == GET_CODE (XEXP (XEXP (src, 0), 0))
-          && CONST_INT_P (XEXP (XEXP (src, 0), 1)))
+      while (CONST == GET_CODE (sym) || PLUS == GET_CODE (sym))
+        sym = XEXP (sym, 0);
+
+      /* Look at symbol flags:  avr_encode_section_info set the flags
+         also if attribute progmem was seen so that we get the right
+         promotion for, e.g. PSTR-like strings that reside in generic space
+         but are located in flash.  In that case we patch the incoming
+         address space.  */
+
+      if (SYMBOL_REF == GET_CODE (sym)
+          && ADDR_SPACE_FLASH == AVR_SYMBOL_GET_ADDR_SPACE (sym))
         {
-          HOST_WIDE_INT offset = INTVAL (XEXP (XEXP (src, 0), 1));
-          const char *name = XSTR (XEXP (XEXP (src, 0), 0), 0);
-          
-          new_src = gen_rtx_SYMBOL_REF (PSImode, ggc_strdup (name));
-          new_src = gen_rtx_CONST (PSImode,
-                                   plus_constant (new_src, offset));
-          return new_src;
+          as_from = ADDR_SPACE_FLASH;
         }
 
-      if (SYMBOL_REF == code)
-          {
-            const char *name = XSTR (src, 0);
-            
-            return gen_rtx_SYMBOL_REF (PSImode, ggc_strdup (name));
-          }
-      
+      /* Linearize memory: RAM has bit 23 set.  */
+             
+      msb = ADDR_SPACE_GENERIC_P (as_from)
+        ? 0x80
+        : avr_addrspace[as_from].segment % avr_current_arch->n_segments;
+
       src = force_reg (Pmode, src);
       
-      if (ADDR_SPACE_GENERIC_P (as_from)
-          || as_from == ADDR_SPACE_PGM
-          || n_segments == 1)
-        {
-          return gen_rtx_ZERO_EXTEND (PSImode, src);
-        }
-      else
-        {
-          int segment = avr_addrspace[as_from].segment % n_segments;
+      emit_insn (msb == 0
+                 ? gen_zero_extendhipsi2 (reg, src)
+                 : gen_n_extendhipsi2 (reg, gen_int_mode (msb, QImode), src));
+          
+      return reg;
+    }
 
-          new_src = gen_reg_rtx (PSImode);
-          emit_insn (gen_n_extendhipsi2 (new_src, GEN_INT (segment), src));
+  /* Down-casting from 24-bit to 16-bit throws away the high byte.  */
 
-          return new_src;
-        }
+  if (as_from == ADDR_SPACE_MEMX
+      && as_to != ADDR_SPACE_MEMX)
+    {
+      rtx new_src = gen_reg_rtx (Pmode);
+
+      src = force_reg (PSImode, src);
+      
+      emit_move_insn (new_src,
+                      simplify_gen_subreg (Pmode, src, PSImode, 0));
+      return new_src;
     }
   
   return src;
@@ -9650,19 +9622,16 @@ avr_addr_space_convert (rtx src, tree type_from, tree type_to)
 /* Implement `TARGET_ADDR_SPACE_SUBSET_P'.  */
 
 static bool
-avr_addr_space_subset_p (addr_space_t subset, addr_space_t superset)
+avr_addr_space_subset_p (addr_space_t subset ATTRIBUTE_UNUSED,
+                         addr_space_t superset ATTRIBUTE_UNUSED)
 {
-  if (subset == ADDR_SPACE_PGMX
-      && superset != ADDR_SPACE_PGMX)
-    {
-      return false;
-    }
+  /* Allow any kind of pointer mess.  */
   
   return true;
 }
 
 
-/* Worker function for movmemhi insn.
+/* Worker function for movmemhi expander.
    XOP[0]  Destination as MEM:BLK
    XOP[1]  Source      "     "
    XOP[2]  # Bytes to copy
@@ -9679,7 +9648,7 @@ avr_emit_movmemhi (rtx *xop)
   rtx loop_reg, addr0, addr1, a_src, a_dest, insn, xas, reg_x;
   rtx a_hi8 = NULL_RTX;
 
-  if (avr_mem_pgm_p (xop[0]))
+  if (avr_mem_flash_p (xop[0]))
     return false;
 
   if (!CONST_INT_P (xop[2]))
@@ -9692,12 +9661,14 @@ avr_emit_movmemhi (rtx *xop)
   a_src  = XEXP (xop[1], 0);
   a_dest = XEXP (xop[0], 0);
 
-  /* See if constant fits in 8 bits.  */
-
-  loop_mode = (count <= 0x100) ? QImode : HImode;
-
   if (PSImode == GET_MODE (a_src))
     {
+      gcc_assert (as == ADDR_SPACE_MEMX);
+
+      loop_mode = (count < 0x100) ? QImode : HImode;
+      loop_reg = gen_rtx_REG (loop_mode, 24);
+      emit_move_insn (loop_reg, gen_int_mode (count, loop_mode));
+
       addr1 = simplify_gen_subreg (HImode, a_src, PSImode, 0);
       a_hi8 = simplify_gen_subreg (QImode, a_src, PSImode, 2);
     }
@@ -9705,41 +9676,35 @@ avr_emit_movmemhi (rtx *xop)
     {
       int segment = avr_addrspace[as].segment % avr_current_arch->n_segments;
       
+      if (segment
+          && avr_current_arch->n_segments > 1)
+        {
+          a_hi8 = GEN_INT (segment);
+          emit_move_insn (rampz_rtx, a_hi8 = copy_to_mode_reg (QImode, a_hi8));
+        }
+      else if (!ADDR_SPACE_GENERIC_P (as))
+        {
+          as = ADDR_SPACE_FLASH;
+        }
+      
       addr1 = a_src;
 
-      if (segment)
-        a_hi8 = GEN_INT (segment);
-    }
-
-  if (a_hi8
-      && avr_current_arch->n_segments > 1)
-    {
-      emit_move_insn (rampz_rtx, a_hi8 = copy_to_mode_reg (QImode, a_hi8));
-    }
-  else if (!ADDR_SPACE_GENERIC_P (as))
-    {
-      as = ADDR_SPACE_PGM;
+      loop_mode = (count <= 0x100) ? QImode : HImode;
+      loop_reg = copy_to_mode_reg (loop_mode, gen_int_mode (count, loop_mode));
     }
 
   xas = GEN_INT (as);
 
-  /* Create loop counter register */
-
-  loop_reg = copy_to_mode_reg (loop_mode, gen_int_mode (count, loop_mode));
-
-  /* Copy pointers into new pseudos - they will be changed */
-
-  addr0 = copy_to_mode_reg (HImode, a_dest);
-  addr1 = copy_to_mode_reg (HImode, addr1);
-
   /* FIXME: Register allocator might come up with spill fails if it is left
-        on its own.  Thus, we allocate the pointer registers by hand.  */
+        on its own.  Thus, we allocate the pointer registers by hand:
+        Z = source address
+        X = destination address  */
 
   emit_move_insn (lpm_addr_reg_rtx, addr1);
   addr1 = lpm_addr_reg_rtx;
 
   reg_x = gen_rtx_REG (HImode, REG_X);
-  emit_move_insn (reg_x, addr0);
+  emit_move_insn (reg_x, a_dest);
   addr0 = reg_x;
 
   /* FIXME: Register allocator does a bad job and might spill address
@@ -9748,30 +9713,30 @@ avr_emit_movmemhi (rtx *xop)
         load and store as seperate insns.  Instead, we perform the copy
         by means of one monolithic insn.  */
 
-  if (ADDR_SPACE_GENERIC_P (as))
+  gcc_assert (TMP_REGNO == LPM_REGNO);
+
+  if (as != ADDR_SPACE_MEMX)
     {
+      /* Load instruction ([E]LPM or LD) is known at compile time:
+         Do the copy-loop inline.  */
+      
       rtx (*fun) (rtx, rtx, rtx, rtx, rtx, rtx, rtx, rtx)
         = QImode == loop_mode ? gen_movmem_qi : gen_movmem_hi;
 
       insn = fun (addr0, addr1, xas, loop_reg,
                   addr0, addr1, tmp_reg_rtx, loop_reg);
     }
-  else if (as == ADDR_SPACE_PGM)
-    {
-      rtx (*fun) (rtx, rtx, rtx, rtx, rtx, rtx, rtx, rtx)
-        = QImode == loop_mode ? gen_movmem_qi : gen_movmem_hi;
-
-      insn = fun (addr0, addr1, xas, loop_reg, addr0, addr1,
-                  AVR_HAVE_LPMX ? tmp_reg_rtx : lpm_reg_rtx, loop_reg);
-    }
   else
     {
+      rtx loop_reg16 = gen_rtx_REG (HImode, 24);
+      rtx r23 = gen_rtx_REG (QImode, 23);
       rtx (*fun) (rtx, rtx, rtx, rtx, rtx, rtx, rtx, rtx, rtx, rtx, rtx)
-        = QImode == loop_mode ? gen_movmem_qi_elpm : gen_movmem_hi_elpm;
+        = QImode == loop_mode ? gen_movmemx_qi : gen_movmemx_hi;
+
+      emit_move_insn (r23, a_hi8);
       
       insn = fun (addr0, addr1, xas, loop_reg, addr0, addr1,
-                  AVR_HAVE_ELPMX ? tmp_reg_rtx : lpm_reg_rtx, loop_reg,
-                  a_hi8, a_hi8, GEN_INT (RAMPZ_ADDR));
+                  lpm_reg_rtx, loop_reg16, r23, r23, GEN_INT (RAMPZ_ADDR));
     }
 
   set_mem_addr_space (SET_SRC (XVECEXP (insn, 0, 0)), as);
@@ -9824,7 +9789,7 @@ avr_out_movmem (rtx insn ATTRIBUTE_UNUSED, rtx *xop, int *plen)
       avr_asm_len ("ld %6,%a1+", xop, plen, 1);
       break;
       
-    case ADDR_SPACE_PGM:
+    case ADDR_SPACE_FLASH:
 
       if (AVR_HAVE_LPMX)
         avr_asm_len ("lpm %6,%a1+", xop, plen, 1);
@@ -9833,26 +9798,17 @@ avr_out_movmem (rtx insn ATTRIBUTE_UNUSED, rtx *xop, int *plen)
                      "adiw %1,1", xop, plen, 2);
       break;
       
-    case ADDR_SPACE_PGM1:
-    case ADDR_SPACE_PGM2:
-    case ADDR_SPACE_PGM3:
-    case ADDR_SPACE_PGM4:
-    case ADDR_SPACE_PGM5:
-    case ADDR_SPACE_PGMX:
+    case ADDR_SPACE_FLASH1:
+    case ADDR_SPACE_FLASH2:
+    case ADDR_SPACE_FLASH3:
+    case ADDR_SPACE_FLASH4:
+    case ADDR_SPACE_FLASH5:
 
       if (AVR_HAVE_ELPMX)
         avr_asm_len ("elpm %6,%a1+", xop, plen, 1);
       else
         avr_asm_len ("elpm" CR_TAB
                      "adiw %1,1", xop, plen, 2);
-      
-      if (as == ADDR_SPACE_PGMX
-          && !AVR_HAVE_ELPMX)
-        {
-          avr_asm_len ("adc %8,__zero_reg__" CR_TAB
-                       "out __RAMPZ__,%8", xop, plen, 2);
-        }
-      
       break;
     }
 

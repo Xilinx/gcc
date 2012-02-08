@@ -1,6 +1,7 @@
 /* Subroutines used for code generation on IBM RS/6000.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
+   2012
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -938,7 +939,7 @@ static bool legitimate_lo_sum_address_p (enum machine_mode, rtx, int);
 static struct machine_function * rs6000_init_machine_status (void);
 static bool rs6000_assemble_integer (rtx, unsigned int, int);
 static bool no_global_regs_above (int, bool);
-#if defined (HAVE_GAS_HIDDEN) && !defined (TARGET_MACHO)
+#if defined (HAVE_GAS_HIDDEN) && !TARGET_MACHO
 static void rs6000_assemble_visibility (tree, int);
 #endif
 static int rs6000_ra_ever_killed (void);
@@ -1105,6 +1106,7 @@ static rtx rs6000_debug_legitimize_address (rtx, rtx, enum machine_mode);
 static rtx rs6000_legitimize_tls_address (rtx, enum tls_model);
 static void rs6000_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 static rtx rs6000_delegitimize_address (rtx);
+static bool rs6000_const_not_ok_for_debug_p (rtx);
 static rtx rs6000_tls_get_addr (void);
 static rtx rs6000_got_sym (void);
 static int rs6000_tls_symbol_ref_1 (rtx *, void *);
@@ -1226,6 +1228,7 @@ static bool rs6000_cannot_force_const_mem (enum machine_mode, rtx);
 static bool rs6000_legitimate_constant_p (enum machine_mode, rtx);
 static bool rs6000_save_toc_in_prologue_p (void);
 static void rs6000_code_end (void) ATTRIBUTE_UNUSED;
+static void rs6000_set_up_by_prologue (struct hard_reg_set_container *);
 
 /* Hash table stuff for keeping track of TOC entries.  */
 
@@ -1386,10 +1389,13 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #undef TARGET_ASM_INTEGER
 #define TARGET_ASM_INTEGER rs6000_assemble_integer
 
-#if defined (HAVE_GAS_HIDDEN) && !defined (TARGET_MACHO)
+#if defined (HAVE_GAS_HIDDEN) && !TARGET_MACHO
 #undef TARGET_ASM_ASSEMBLE_VISIBILITY
 #define TARGET_ASM_ASSEMBLE_VISIBILITY rs6000_assemble_visibility
 #endif
+
+#undef TARGET_SET_UP_BY_PROLOGUE
+#define TARGET_SET_UP_BY_PROLOGUE rs6000_set_up_by_prologue
 
 #undef TARGET_HAVE_TLS
 #define TARGET_HAVE_TLS HAVE_AS_TLS
@@ -1399,6 +1405,9 @@ static const struct attribute_spec rs6000_attribute_table[] =
 
 #undef TARGET_DELEGITIMIZE_ADDRESS
 #define TARGET_DELEGITIMIZE_ADDRESS rs6000_delegitimize_address
+
+#undef TARGET_CONST_NOT_OK_FOR_DEBUG_P
+#define TARGET_CONST_NOT_OK_FOR_DEBUG_P rs6000_const_not_ok_for_debug_p
 
 #undef TARGET_ASM_FUNCTION_PROLOGUE
 #define TARGET_ASM_FUNCTION_PROLOGUE rs6000_output_function_prologue
@@ -1575,7 +1584,7 @@ static const struct attribute_spec rs6000_attribute_table[] =
 #define TARGET_VECTORIZE_BUILTIN_VECTORIZED_FUNCTION \
   rs6000_builtin_vectorized_function
 
-#ifndef TARGET_MACHO
+#if !TARGET_MACHO
 #undef TARGET_STACK_PROTECT_FAIL
 #define TARGET_STACK_PROTECT_FAIL rs6000_stack_protect_fail
 #endif
@@ -2332,6 +2341,11 @@ rs6000_init_hard_regno_mode_ok (bool global_init_p)
 	  rs6000_vector_reload[V4SFmode][1]  = CODE_FOR_reload_v4sf_di_load;
 	  rs6000_vector_reload[V2DFmode][0]  = CODE_FOR_reload_v2df_di_store;
 	  rs6000_vector_reload[V2DFmode][1]  = CODE_FOR_reload_v2df_di_load;
+	  if (TARGET_VSX && TARGET_VSX_SCALAR_MEMORY)
+	    {
+	      rs6000_vector_reload[DFmode][0]  = CODE_FOR_reload_df_di_store;
+	      rs6000_vector_reload[DFmode][1]  = CODE_FOR_reload_df_di_load;
+	    }
 	}
       else
 	{
@@ -2347,6 +2361,11 @@ rs6000_init_hard_regno_mode_ok (bool global_init_p)
 	  rs6000_vector_reload[V4SFmode][1]  = CODE_FOR_reload_v4sf_si_load;
 	  rs6000_vector_reload[V2DFmode][0]  = CODE_FOR_reload_v2df_si_store;
 	  rs6000_vector_reload[V2DFmode][1]  = CODE_FOR_reload_v2df_si_load;
+	  if (TARGET_VSX && TARGET_VSX_SCALAR_MEMORY)
+	    {
+	      rs6000_vector_reload[DFmode][0]  = CODE_FOR_reload_df_si_store;
+	      rs6000_vector_reload[DFmode][1]  = CODE_FOR_reload_df_si_load;
+	    }
 	}
     }
 
@@ -2945,7 +2964,8 @@ rs6000_option_override_internal (bool global_init_p)
 			&& rs6000_cpu != PROCESSOR_POWER6
 			&& rs6000_cpu != PROCESSOR_POWER7
 			&& rs6000_cpu != PROCESSOR_PPCA2
-			&& rs6000_cpu != PROCESSOR_CELL);
+			&& rs6000_cpu != PROCESSOR_CELL
+			&& rs6000_cpu != PROCESSOR_PPC476);
   rs6000_sched_groups = (rs6000_cpu == PROCESSOR_POWER4
 			 || rs6000_cpu == PROCESSOR_POWER5
 			 || rs6000_cpu == PROCESSOR_POWER7);
@@ -3520,8 +3540,12 @@ rs6000_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
       case vec_to_scalar:
       case scalar_to_vec:
       case cond_branch_not_taken:
-      case vec_perm:
         return 1;
+
+      case vec_perm:
+	if (!TARGET_VSX)
+	  return 1;
+	return 2;
 
       case cond_branch_taken:
         return 3;
@@ -5800,6 +5824,25 @@ rs6000_delegitimize_address (rtx orig_x)
   return orig_x;
 }
 
+/* Return true if X shouldn't be emitted into the debug info.
+   The linker doesn't like .toc section references from
+   .debug_* sections, so reject .toc section symbols.  */
+
+static bool
+rs6000_const_not_ok_for_debug_p (rtx x)
+{
+  if (GET_CODE (x) == SYMBOL_REF
+      && CONSTANT_POOL_ADDRESS_P (x))
+    {
+      rtx c = get_pool_constant (x);
+      enum machine_mode cmode = get_pool_mode (x);
+      if (ASM_OUTPUT_SPECIAL_POOL_ENTRY_P (c, cmode))
+	return true;
+    }
+
+  return false;
+}
+
 /* Construct the SYMBOL_REF for the tls_get_addr function.  */
 
 static GTY(()) rtx rs6000_tls_symbol;
@@ -6967,17 +7010,14 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
   if (!TARGET_IEEEQUAD && TARGET_LONG_DOUBLE_128
       && mode == TFmode && GET_CODE (operands[1]) == CONST_DOUBLE)
     {
-      /* DImode is used, not DFmode, because simplify_gen_subreg doesn't
-	 know how to get a DFmode SUBREG of a TFmode.  */
-      enum machine_mode imode = (TARGET_E500_DOUBLE ? DFmode : DImode);
-      rs6000_emit_move (simplify_gen_subreg (imode, operands[0], mode, 0),
-			simplify_gen_subreg (imode, operands[1], mode, 0),
-			imode);
-      rs6000_emit_move (simplify_gen_subreg (imode, operands[0], mode,
-					     GET_MODE_SIZE (imode)),
-			simplify_gen_subreg (imode, operands[1], mode,
-					     GET_MODE_SIZE (imode)),
-			imode);
+      rs6000_emit_move (simplify_gen_subreg (DFmode, operands[0], mode, 0),
+			simplify_gen_subreg (DFmode, operands[1], mode, 0),
+			DFmode);
+      rs6000_emit_move (simplify_gen_subreg (DFmode, operands[0], mode,
+					     GET_MODE_SIZE (DFmode)),
+			simplify_gen_subreg (DFmode, operands[1], mode,
+					     GET_MODE_SIZE (DFmode)),
+			DFmode);
       return;
     }
 
@@ -15504,7 +15544,7 @@ rs6000_assemble_integer (rtx x, unsigned int size, int aligned_p)
   return default_assemble_integer (x, size, aligned_p);
 }
 
-#if defined (HAVE_GAS_HIDDEN) && !defined (TARGET_MACHO)
+#if defined (HAVE_GAS_HIDDEN) && !TARGET_MACHO
 /* Emit an assembler directive to set symbol visibility for DECL to
    VISIBILITY_TYPE.  */
 
@@ -27890,6 +27930,19 @@ rs6000_code_end (void)
   free_after_compilation (cfun);
   set_cfun (NULL);
   current_function_decl = NULL;
+}
+
+/* Add r30 to hard reg set if the prologue sets it up and it is not
+   pic_offset_table_rtx.  */
+
+static void
+rs6000_set_up_by_prologue (struct hard_reg_set_container *set)
+{
+  if (!TARGET_SINGLE_PIC_BASE
+      && TARGET_TOC
+      && TARGET_MINIMAL_TOC
+      && get_pool_size () != 0)
+    add_to_hard_reg_set (&set->set, Pmode, RS6000_PIC_OFFSET_TABLE_REGNUM);
 }
 
 struct gcc_target targetm = TARGET_INITIALIZER;

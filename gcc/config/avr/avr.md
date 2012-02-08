@@ -367,7 +367,7 @@
     operands[3] = gen_rtx_REG (HImode, REG_Z);
     operands[2] = force_operand (XEXP (operands[1], 0), NULL_RTX);
     operands[1] = replace_equiv_address (operands[1], operands[3]);
-    set_mem_addr_space (operands[1], ADDR_SPACE_PGM);
+    set_mem_addr_space (operands[1], ADDR_SPACE_FLASH);
   })
     
 (define_insn "load_<mode>_libgcc"
@@ -390,7 +390,8 @@
         (match_operand:QI 1 "memory_operand"    "m"))
    (clobber (reg:HI REG_Z))]
   "can_create_pseudo_p()
-   && avr_mem_pgmx_p (operands[1])
+   && !avr_xload_libgcc_p (QImode)
+   && avr_mem_memx_p (operands[1])
    && REG_P (XEXP (operands[1], 0))"
   { gcc_unreachable(); }
   "&& 1"
@@ -414,9 +415,8 @@
         (match_operand:MOVMODE 1 "memory_operand"    "m"))
    (clobber (reg:QI 21))
    (clobber (reg:HI REG_Z))]
-  "QImode != <MODE>mode
-   && can_create_pseudo_p()
-   && avr_mem_pgmx_p (operands[1])
+  "can_create_pseudo_p()
+   && avr_mem_memx_p (operands[1])
    && REG_P (XEXP (operands[1], 0))"
   { gcc_unreachable(); }
   "&& 1"
@@ -426,52 +426,39 @@
     rtx reg_z = gen_rtx_REG (HImode, REG_Z);
     rtx addr_hi8 = simplify_gen_subreg (QImode, addr, PSImode, 2);
     addr_space_t as = MEM_ADDR_SPACE (operands[1]);
-    rtx hi8, insn;
+    rtx insn;
 
+    /* Split the address to R21:Z */
     emit_move_insn (reg_z, simplify_gen_subreg (HImode, addr, PSImode, 0));
+    emit_move_insn (gen_rtx_REG (QImode, 21), addr_hi8);
 
-    if (avr_xload_libgcc_p (<MODE>mode))
-      {
-        emit_move_insn (gen_rtx_REG (QImode, 21), addr_hi8);
-        insn = emit_insn (gen_xload_<mode>_libgcc ());
-        emit_move_insn (operands[0], gen_rtx_REG (<MODE>mode, 22));
-      }
-    else if (avr_current_arch->n_segments == 1
-             && GET_MODE_SIZE (<MODE>mode) > 2
-             && !AVR_HAVE_LPMX)
-      {
-        rtx src = gen_rtx_MEM (<MODE>mode, reg_z);
-
-        as = ADDR_SPACE_PGM;
-        insn = emit_insn (gen_load_<mode>_libgcc (src));
-        emit_move_insn (operands[0], gen_rtx_REG (<MODE>mode, 22));
-      }
-    else
-      {
-        hi8 = gen_reg_rtx (QImode);
-        emit_move_insn (hi8, addr_hi8);
-        insn = emit_insn (gen_xload_<mode> (operands[0], hi8));
-      }
-
+    /* Load with code from libgcc */
+    insn = emit_insn (gen_xload_<mode>_libgcc ());
     set_mem_addr_space (SET_SRC (single_set (insn)), as);
+
+    /* Move to destination */
+    emit_move_insn (operands[0], gen_rtx_REG (<MODE>mode, 22));
 
     DONE;
   })
 
-;; Move value from address space pgmx to a register
+;; Move value from address space memx to a register
 ;; These insns must be prior to respective generic move insn.
 
 (define_insn "xload_8"
-  [(set (match_operand:QI 0 "register_operand"                    "=r")
-        (mem:QI (lo_sum:PSI (match_operand:QI 1 "register_operand" "r")
+  [(set (match_operand:QI 0 "register_operand"                   "=&r,r")
+        (mem:QI (lo_sum:PSI (match_operand:QI 1 "register_operand" "r,r")
                             (reg:HI REG_Z))))]
-  ""
+  "!avr_xload_libgcc_p (QImode)"
   {
     return avr_out_xload (insn, operands, NULL);
   }
-  [(set_attr "adjust_len" "xload")
-   (set_attr "cc" "clobber")])
+  [(set_attr "length" "3,4")
+   (set_attr "adjust_len" "*,xload")
+   (set_attr "isa" "lpmx,lpm")
+   (set_attr "cc" "none")])
 
+;; "xload_qi_libgcc"
 ;; "xload_hi_libgcc"
 ;; "xload_psi_libgcc"
 ;; "xload_si_libgcc"
@@ -482,35 +469,14 @@
                                  (reg:HI REG_Z))))
    (clobber (reg:QI 21))
    (clobber (reg:HI REG_Z))]
-  "<MODE>mode != QImode
-   && avr_xload_libgcc_p (<MODE>mode)"
+  "avr_xload_libgcc_p (<MODE>mode)"
   {
     rtx x_bytes = GEN_INT (GET_MODE_SIZE (<MODE>mode));
 
-    /* Devices with ELPM* also have CALL.  */
-
-    output_asm_insn ("call __xload_%0", &x_bytes);
+    output_asm_insn ("%~call __xload_%0", &x_bytes);
     return "";
   }
-  [(set_attr "length" "2")
-   (set_attr "cc" "clobber")])
-
-;; "xload_hi"
-;; "xload_psi"
-;; "xload_si"
-;; "xload_sf"
-(define_insn "xload_<mode>"
-  [(set (match_operand:MOVMODE 0 "register_operand"                    "=r")
-        (mem:MOVMODE (lo_sum:PSI (match_operand:QI 1 "register_operand" "r")
-                                 (reg:HI REG_Z))))
-   (clobber (scratch:HI))
-   (clobber (reg:HI REG_Z))]
-  "<MODE>mode != QImode
-   && !avr_xload_libgcc_p (<MODE>mode)"
-  {
-    return avr_out_xload (insn, operands, NULL);
-  }
-  [(set_attr "adjust_len" "xload")
+  [(set_attr "type" "xcall")
    (set_attr "cc" "clobber")])
 
 
@@ -521,7 +487,6 @@
 ;; "movsi"
 ;; "movsf"
 ;; "movpsi"
-
 (define_expand "mov<mode>"
   [(set (match_operand:MOVMODE 0 "nonimmediate_operand" "")
         (match_operand:MOVMODE 1 "general_operand" ""))]
@@ -530,7 +495,7 @@
     rtx dest = operands[0];
     rtx src  = operands[1]; 
     
-    if (avr_mem_pgm_p (dest))
+    if (avr_mem_flash_p (dest))
       DONE;
   
     /* One of the operands has to be in a register.  */
@@ -541,14 +506,14 @@
         operands[1] = src = copy_to_mode_reg (<MODE>mode, src);
       }
 
-  if (avr_mem_pgmx_p (src))
+  if (avr_mem_memx_p (src))
     {
       rtx addr = XEXP (src, 0);
 
       if (!REG_P (addr))
         src = replace_equiv_address (src, copy_to_mode_reg (PSImode, addr));
 
-      if (QImode == <MODE>mode)
+      if (!avr_xload_libgcc_p (<MODE>mode))
         emit_insn (gen_xload8_A (dest, src));
       else
         emit_insn (gen_xload<mode>_A (dest, src));
@@ -717,7 +682,7 @@
   {
      rtx addr = XEXP (operands[1], 0);
 
-     if (!avr_mem_pgm_p (operands[1])
+     if (!avr_mem_flash_p (operands[1])
          || !REG_P (addr)
          || reg_overlap_mentioned_p (addr, operands[0]))
        {
@@ -869,10 +834,10 @@
   })
 
 (define_mode_attr MOVMEM_r_d [(QI "r")
-                              (HI "d")])
+                              (HI "wd")])
 
-;; $0, $4 : & dest
-;; $1, $5 : & src
+;; $0, $4 : & dest (REG_X)
+;; $1, $5 : & src  (REG_Z)
 ;; $2     : Address Space
 ;; $3, $7 : Loop register
 ;; $6     : Scratch register
@@ -882,7 +847,7 @@
 (define_insn "movmem_<mode>"
   [(set (mem:BLK (match_operand:HI 0 "register_operand" "x"))
         (mem:BLK (match_operand:HI 1 "register_operand" "z")))
-   (unspec [(match_operand:QI 2 "const_int_operand"     "LP")]
+   (unspec [(match_operand:QI 2 "const_int_operand"     "n")]
            UNSPEC_MOVMEM)
    (use (match_operand:QIHI 3 "register_operand"       "<MOVMEM_r_d>"))
    (clobber (match_operand:HI 4 "register_operand"     "=0"))
@@ -897,29 +862,28 @@
    (set_attr "cc" "clobber")])
 
 ;; Ditto and
-;; $8, $9 : hh8 (& src)
+;; $3, $7 : Loop register = R24
+;; $8, $9 : hh8 (& src)   = R23
 ;; $10    : RAMPZ_ADDR
 
-;; "movmem_qi_elpm"
-;; "movmem_hi_elpm"
-(define_insn "movmem_<mode>_elpm"
+;; "movmemx_qi"
+;; "movmemx_hi"
+(define_insn "movmemx_<mode>"
   [(set (mem:BLK (match_operand:HI 0 "register_operand"             "x"))
         (mem:BLK (lo_sum:PSI (match_operand:QI 8 "register_operand" "r")
                              (match_operand:HI 1 "register_operand" "z"))))
    (unspec [(match_operand:QI 2 "const_int_operand"                 "n")]
            UNSPEC_MOVMEM)
-   (use (match_operand:QIHI 3 "register_operand"                   "<MOVMEM_r_d>"))
+   (use (match_operand:QIHI 3 "register_operand"                   "w"))
    (clobber (match_operand:HI 4 "register_operand"                 "=0"))
    (clobber (match_operand:HI 5 "register_operand"                 "=1"))
    (clobber (match_operand:QI 6 "register_operand"                 "=&r"))
-   (clobber (match_operand:QIHI 7 "register_operand"               "=3"))
+   (clobber (match_operand:HI 7 "register_operand"                 "=3"))
    (clobber (match_operand:QI 9 "register_operand"                 "=8"))
    (clobber (mem:QI (match_operand:QI 10 "io_address_operand"       "n")))]
   ""
-  {
-    return avr_out_movmem (insn, operands, NULL);
-  }
-  [(set_attr "adjust_len" "movmem")
+  "%~call __movmemx_<mode>"
+  [(set_attr "type" "xcall")
    (set_attr "cc" "clobber")])
 
 
@@ -1188,7 +1152,7 @@
       };
 
     if (*asm_code[which_alternative])
-      return asm_code [which_alternative];
+      return asm_code[which_alternative];
 
     return avr_out_plus (operands, NULL, NULL);
   }
@@ -1257,7 +1221,7 @@
       };
 
     if (*asm_code[which_alternative])
-      return asm_code [which_alternative];
+      return asm_code[which_alternative];
 
     return avr_out_plus (operands, NULL, NULL);
   }
@@ -1382,13 +1346,13 @@
 	(mult:QI (match_operand:QI 1 "register_operand" "")
 		 (match_operand:QI 2 "register_operand" "")))]
   ""
-  "{
-  if (!AVR_HAVE_MUL)
-    {
-      emit_insn (gen_mulqi3_call (operands[0], operands[1], operands[2]));
-      DONE;
-    }
-}")
+  {
+    if (!AVR_HAVE_MUL)
+      {
+        emit_insn (gen_mulqi3_call (operands[0], operands[1], operands[2]));
+        DONE;
+      }
+  })
 
 (define_insn "*mulqi3_enh"
   [(set (match_operand:QI 0 "register_operand" "=r")
@@ -4417,7 +4381,9 @@
 	 (label_ref (match_operand 3 "" ""))
 	 (pc)))]
   ""
-  "* return avr_out_sbxx_branch (insn, operands);"
+  {
+    return avr_out_sbxx_branch (insn, operands);
+  }
   [(set (attr "length")
 	(if_then_else (and (ge (minus (pc) (match_dup 3)) (const_int -2046))
 			   (le (minus (pc) (match_dup 3)) (const_int 2046)))
@@ -4595,8 +4561,9 @@
                       (label_ref (match_operand 0 "" ""))
                       (pc)))]
   ""
-  "*
-   return ret_cond_branch (operands[1], avr_jump_mode (operands[0],insn), 0);"
+  {
+    return ret_cond_branch (operands[1], avr_jump_mode (operands[0], insn), 0);
+  }
   [(set_attr "type" "branch1")
    (set_attr "cc" "clobber")])
 
@@ -4610,8 +4577,9 @@
                       (pc)
                       (label_ref (match_operand 0 "" ""))))]
   ""
-  "*
-   return ret_cond_branch (operands[1], avr_jump_mode (operands[0], insn), 1);"
+  {
+    return ret_cond_branch (operands[1], avr_jump_mode (operands[0], insn), 1);
+  }
   [(set_attr "type" "branch1")
    (set_attr "cc" "clobber")])
 
@@ -4623,8 +4591,9 @@
                       (pc)
                       (label_ref (match_operand 0 "" ""))))]
   ""
-  "*
-   return ret_cond_branch (operands[1], avr_jump_mode (operands[0], insn), 1);"
+  {
+    return ret_cond_branch (operands[1], avr_jump_mode (operands[0], insn), 1);
+  }
   [(set_attr "type" "branch")
    (set_attr "cc" "clobber")])
 
@@ -4805,10 +4774,9 @@
 	      (use (label_ref (match_dup 3)))
 	      (clobber (match_dup 6))])]
   ""
-  "
-{
-  operands[6] = gen_reg_rtx (HImode);
-}")
+  {
+    operands[6] = gen_reg_rtx (HImode);
+  })
 
 
 ;; ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -4827,7 +4795,7 @@
   [(set (mem:QI (match_operand 0 "low_io_address_operand" "n"))
         (and:QI (mem:QI (match_dup 0))
                 (match_operand:QI 1 "single_zero_operand" "n")))]
-  "optimize > 0"
+  ""
   {
     operands[2] = GEN_INT (exact_log2 (~INTVAL (operands[1]) & 0xff));
     return "cbi %i0,%2";
@@ -4839,7 +4807,7 @@
   [(set (mem:QI (match_operand 0 "low_io_address_operand" "n"))
         (ior:QI (mem:QI (match_dup 0))
                 (match_operand:QI 1 "single_one_operand" "n")))]
-  "optimize > 0"
+  ""
   {
     operands[2] = GEN_INT (exact_log2 (INTVAL (operands[1]) & 0xff));
     return "sbi %i0,%2";
@@ -4859,8 +4827,10 @@
 			  (const_int 0)])
 	 (label_ref (match_operand 3 "" ""))
 	 (pc)))]
-  "(optimize > 0)"
-  "* return avr_out_sbxx_branch (insn, operands);"
+  ""
+  {
+    return avr_out_sbxx_branch (insn, operands);
+  }
   [(set (attr "length")
 	(if_then_else (and (ge (minus (pc) (match_dup 3)) (const_int -2046))
                            (le (minus (pc) (match_dup 3)) (const_int 2046)))
@@ -4879,7 +4849,7 @@
 			  (const_int 0)])
 	 (label_ref (match_operand 2 "" ""))
 	 (pc)))]
-  "(optimize > 0)"
+  ""
 {
   operands[3] = operands[2];
   operands[2] = GEN_INT (7);
@@ -4906,8 +4876,10 @@
 			  (const_int 0)])
 	 (label_ref (match_operand 3 "" ""))
 	 (pc)))]
-  "(optimize > 0)"
-  "* return avr_out_sbxx_branch (insn, operands);"
+  ""
+  {
+    return avr_out_sbxx_branch (insn, operands);
+  }
   [(set (attr "length")
 	(if_then_else (and (ge (minus (pc) (match_dup 3)) (const_int -2046))
                            (le (minus (pc) (match_dup 3)) (const_int 2045)))
@@ -4925,7 +4897,7 @@
 			  (const_int 0)])
 	 (label_ref (match_operand 2 "" ""))
 	 (pc)))]
-  "(optimize > 0)"
+  ""
 {
   operands[3] = operands[2];
   operands[2] = GEN_INT (7);
@@ -4960,26 +4932,27 @@
   {
     CC_STATUS_INIT;
     if (test_hard_reg_class (ADDW_REGS, operands[0]))
-      output_asm_insn (AS2 (sbiw,%0,1) CR_TAB
-                       AS2 (sbc,%C0,__zero_reg__) CR_TAB
-                       AS2 (sbc,%D0,__zero_reg__) "\n", operands);
+      output_asm_insn ("sbiw %0,1" CR_TAB
+                       "sbc %C0,__zero_reg__" CR_TAB
+                       "sbc %D0,__zero_reg__", operands);
     else
-      output_asm_insn (AS2 (subi,%A0,1) CR_TAB
-                       AS2 (sbc,%B0,__zero_reg__) CR_TAB
-                       AS2 (sbc,%C0,__zero_reg__) CR_TAB
-                       AS2 (sbc,%D0,__zero_reg__) "\n", operands);
+      output_asm_insn ("subi %A0,1" CR_TAB
+                       "sbc %B0,__zero_reg__" CR_TAB
+                       "sbc %C0,__zero_reg__" CR_TAB
+                       "sbc %D0,__zero_reg__", operands);
 
     switch (avr_jump_mode (operands[2], insn))
       {
       case 1:
-        return AS1 (brcc,%2);
+        return "brcc %2";
       case 2:
-        return (AS1 (brcs,.+2) CR_TAB
-                AS1 (rjmp,%2));
+        return "brcs .+2\;rjmp %2";
+      case 3:
+        return "brcs .+4\;jmp %2";
       }
 
-    return (AS1 (brcs,.+4) CR_TAB
-            AS1 (jmp,%2));
+    gcc_unreachable();
+    return "";
   })
 
 (define_peephole
@@ -4996,25 +4969,27 @@
 		      (label_ref (match_operand 2 "" ""))
 		      (pc)))]
   ""
-  "*
-{
-  CC_STATUS_INIT;
-  if (test_hard_reg_class (ADDW_REGS, operands[0]))
-    output_asm_insn (AS2 (sbiw,%0,1), operands);
-  else
-    output_asm_insn (AS2 (subi,%A0,1) CR_TAB
-		     AS2 (sbc,%B0,__zero_reg__) \"\\n\", operands);
-  switch (avr_jump_mode (operands[2],insn))
   {
-    case 1:
-      return AS1 (brcc,%2);
-    case 2:
-      return (AS1 (brcs,.+2) CR_TAB
-              AS1 (rjmp,%2));
-  }
-  return (AS1 (brcs,.+4) CR_TAB
-          AS1 (jmp,%2));
-}")
+    CC_STATUS_INIT;
+    if (test_hard_reg_class (ADDW_REGS, operands[0]))
+      output_asm_insn ("sbiw %0,1", operands);
+    else
+      output_asm_insn ("subi %A0,1" CR_TAB
+                       "sbc %B0,__zero_reg__", operands);
+
+    switch (avr_jump_mode (operands[2], insn))
+      {
+      case 1:
+        return "brcc %2";
+      case 2:
+        return "brcs .+2\;rjmp %2";
+      case 3:
+        return "brcs .+4\;jmp %2";
+      }
+
+    gcc_unreachable();
+    return "";
+  })
 
 (define_peephole
   [(set (match_operand:QI 0 "d_register_operand" "")
@@ -5028,45 +5003,82 @@
 		      (label_ref (match_operand 1 "" ""))
 		      (pc)))]
   ""
-  "*
-{
-  CC_STATUS_INIT;
-  cc_status.value1 = operands[0];
-  cc_status.flags |= CC_OVERFLOW_UNUSABLE;
-  output_asm_insn (AS2 (subi,%A0,1), operands);
-  switch (avr_jump_mode (operands[1],insn))
   {
-    case 1:
-      return AS1 (brcc,%1);
-    case 2:
-      return (AS1 (brcs,.+2) CR_TAB
-              AS1 (rjmp,%1));
-  }
-  return (AS1 (brcs,.+4) CR_TAB
-          AS1 (jmp,%1));
-}")
+    CC_STATUS_INIT;
+    cc_status.value1 = operands[0];
+    cc_status.flags |= CC_OVERFLOW_UNUSABLE;
 
-(define_peephole
-  [(set (cc0)
-	(compare (match_operand:QI 0 "register_operand" "")
-		 (const_int 0)))
-   (set (pc)
-	(if_then_else (eq (cc0) (const_int 0))
-		      (label_ref (match_operand 1 "" ""))
-		      (pc)))]
-  "jump_over_one_insn_p (insn, operands[1])"
-  "cpse %0,__zero_reg__")
+    output_asm_insn ("subi %A0,1", operands);
 
-(define_peephole
+    switch (avr_jump_mode (operands[1], insn))
+      {
+      case 1:
+        return "brcc %1";
+      case 2:
+        return "brcs .+2\;rjmp %1";
+      case 3:
+        return "brcs .+4\;jmp %1";
+      }
+
+    gcc_unreachable();
+    return "";
+  })
+
+
+(define_peephole ; "*cpse.eq"
   [(set (cc0)
-        (compare (match_operand:QI 0 "register_operand" "")
-		 (match_operand:QI 1 "register_operand" "")))
+        (compare (match_operand:QI 1 "register_operand" "r,r")
+                 (match_operand:QI 2 "reg_or_0_operand" "r,L")))
    (set (pc)
-	(if_then_else (eq (cc0) (const_int 0))
-		      (label_ref (match_operand 2 "" ""))
+        (if_then_else (eq (cc0)
+                          (const_int 0))
+                      (label_ref (match_operand 0 "" ""))
+                      (pc)))]
+  "jump_over_one_insn_p (insn, operands[0])"
+  "@
+	cpse %1,%2
+	cpse %1,__zero_reg__")
+
+;; This peephole avoids code like
+;;
+;;     TST   Rn     ; *cmpqi
+;;     BREQ  .+2    ; branch
+;;     RJMP  .Lm
+;;
+;; Notice that the peephole is always shorter than cmpqi + branch.
+;; The reason to write it as peephole is that sequences like
+;;     
+;;     AND   Rm, Rn
+;;     BRNE  .La
+;;
+;; shall not be superseeded.  With a respective combine pattern
+;; the latter sequence would be 
+;;     
+;;     AND   Rm, Rn
+;;     CPSE  Rm, __zero_reg__
+;;     RJMP  .La
+;;
+;; and thus longer and slower and not easy to be rolled back.
+
+(define_peephole ; "*cpse.ne"
+  [(set (cc0)
+        (compare (match_operand:QI 1 "register_operand" "")
+                 (match_operand:QI 2 "reg_or_0_operand" "")))
+   (set (pc)
+        (if_then_else (ne (cc0)
+                          (const_int 0))
+		      (label_ref (match_operand 0 "" ""))
 		      (pc)))]
-  "jump_over_one_insn_p (insn, operands[2])"
-  "cpse %0,%1")
+  "!AVR_HAVE_JMP_CALL
+   || !avr_current_device->errata_skip"
+  {
+    if (operands[2] == const0_rtx)
+      operands[2] = zero_reg_rtx;
+
+    return 3 == avr_jump_mode (operands[0], insn)
+      ? "cpse %1,%2\;jmp %0"
+      : "cpse %1,%2\;rjmp %0";
+  })
 
 ;;pppppppppppppppppppppppppppppppppppppppppppppppppppp
 ;;prologue/epilogue support instructions
@@ -5949,8 +5961,6 @@
     operands[4] = simplify_gen_subreg (QImode, operands[0], HImode, 1);
   })
 
-(include "avr-dimode.md")
-
 (define_insn_and_split "*extzv.qihi2"
   [(set (match_operand:HI 0 "register_operand"                      "=r")
         (zero_extend:HI 
@@ -5970,3 +5980,6 @@
     operands[3] = simplify_gen_subreg (QImode, operands[0], HImode, 0);
     operands[4] = simplify_gen_subreg (QImode, operands[0], HImode, 1);
   })
+
+
+(include "avr-dimode.md")

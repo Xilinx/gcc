@@ -8,12 +8,28 @@ package net
 
 import (
 	"os"
+	"time"
 )
 
 // TCPConn is an implementation of the Conn interface
 // for TCP network connections.
 type TCPConn struct {
 	plan9Conn
+}
+
+// SetDeadline implements the net.Conn SetDeadline method.
+func (c *TCPConn) SetDeadline(t time.Time) error {
+	return os.EPLAN9
+}
+
+// SetReadDeadline implements the net.Conn SetReadDeadline method.
+func (c *TCPConn) SetReadDeadline(t time.Time) error {
+	return os.EPLAN9
+}
+
+// SetWriteDeadline implements the net.Conn SetWriteDeadline method.
+func (c *TCPConn) SetWriteDeadline(t time.Time) error {
+	return os.EPLAN9
 }
 
 // CloseRead shuts down the reading side of the TCP connection.
@@ -44,7 +60,7 @@ func DialTCP(net string, laddr, raddr *TCPAddr) (c *TCPConn, err error) {
 		return nil, UnknownNetworkError(net)
 	}
 	if raddr == nil {
-		return nil, &OpError{"dial", "tcp", nil, errMissingAddress}
+		return nil, &OpError{"dial", net, nil, errMissingAddress}
 	}
 	c1, err := dialPlan9(net, laddr, raddr)
 	if err != nil {
@@ -71,7 +87,7 @@ func ListenTCP(net string, laddr *TCPAddr) (l *TCPListener, err error) {
 		return nil, UnknownNetworkError(net)
 	}
 	if laddr == nil {
-		return nil, &OpError{"listen", "tcp", nil, errMissingAddress}
+		return nil, &OpError{"listen", net, nil, errMissingAddress}
 	}
 	l1, err := listenPlan9(net, laddr)
 	if err != nil {

@@ -69,7 +69,7 @@ type Type interface {
 
 	// PkgPath returns the type's package path.
 	// The package path is a full package import path like "encoding/base64".
-	// PkgPath returns an empty string for unnamed types.
+	// PkgPath returns an empty string for unnamed or predeclared types.
 	PkgPath() string
 
 	// Size returns the number of bytes needed to store
@@ -243,7 +243,7 @@ type commonType struct {
 	align      int8
 	fieldAlign uint8
 	size       uintptr
-	hash	   uint32
+	hash       uint32
 	hashfn     func(unsafe.Pointer, uintptr)
 	equalfn    func(unsafe.Pointer, unsafe.Pointer, uintptr)
 	string     *string
@@ -464,7 +464,7 @@ func (t *uncommonType) Method(i int) (m Method) {
 	m.Type = mt.toType()
 	x := new(unsafe.Pointer)
 	*x = p.tfn
-	m.Func = Value{mt, unsafe.Pointer(x), fl|flagIndir}
+	m.Func = Value{mt, unsafe.Pointer(x), fl | flagIndir}
 	m.Index = i
 	return
 }
@@ -999,10 +999,19 @@ func (ct *commonType) ptrTo() *commonType {
 		return &p.commonType
 	}
 
-	rt := (*runtime.Type)(unsafe.Pointer(ct))
+	s := "*" + *ct.string
+
+	canonicalTypeLock.RLock()
+	r, ok := canonicalType[s]
+	canonicalTypeLock.RUnlock()
+	if ok {
+		ptrMap.m[ct] = (*ptrType)(unsafe.Pointer(r.(*commonType)))
+		ptrMap.Unlock()
+		return r.(*commonType)
+	}
 
 	rp := new(runtime.PtrType)
-	
+
 	// initialize p using *byte's ptrType as a prototype.
 	// have to do assignment as ptrType, not runtime.PtrType,
 	// in order to write to unexported fields.
@@ -1010,7 +1019,6 @@ func (ct *commonType) ptrTo() *commonType {
 	bp := (*ptrType)(unsafe.Pointer(unsafe.Typeof((*byte)(nil)).(*runtime.PtrType)))
 	*p = *bp
 
-	s := "*" + *ct.string
 	p.string = &s
 
 	// For the type structures linked into the binary, the
@@ -1018,11 +1026,15 @@ func (ct *commonType) ptrTo() *commonType {
 	// Create a good hash for the new string by using
 	// the FNV-1 hash's mixing function to combine the
 	// old hash and the new "*".
-	p.hash = ct.hash*16777619 ^ '*'
+	// p.hash = ct.hash*16777619 ^ '*'
+	// This is the gccgo version.
+	p.hash = (ct.hash << 4) + 9
 
 	p.uncommonType = nil
 	p.ptrToThis = nil
 	p.elem = (*runtime.Type)(unsafe.Pointer(ct))
+
+	p = canonicalize(p).(*ptrType)
 
 	ptrMap.m[ct] = p
 	ptrMap.Unlock()

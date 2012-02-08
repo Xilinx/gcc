@@ -1,6 +1,6 @@
 ;;- Machine description for ARM for GNU compiler
 ;;  Copyright 1991, 1993, 1994, 1995, 1996, 1996, 1997, 1998, 1999, 2000,
-;;  2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+;;  2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
 ;;  Free Software Foundation, Inc.
 ;;  Contributed by Pieter `Tiggr' Schoenmakers (rcpieter@win.tue.nl)
 ;;  and Martin Simmons (@harleqn.co.uk).
@@ -116,6 +116,7 @@
 			; unaligned locations, on architectures which support
 			; that.
   UNSPEC_UNALIGNED_STORE ; Same for str/strh.
+  UNSPEC_PIC_UNIFIED    ; Create a common pic addressing form.
 ])
 
 ;; UNSPEC_VOLATILE Usage:
@@ -151,11 +152,11 @@
   VUNSPEC_WCMP_GT       ; Used by the iwMMXT WCMPGT instructions
   VUNSPEC_EH_RETURN     ; Use to override the return address for exception
                         ; handling.
-  VUNSPEC_SYNC_COMPARE_AND_SWAP    ; Represent an atomic compare swap.
-  VUNSPEC_SYNC_LOCK                ; Represent a sync_lock_test_and_set.
-  VUNSPEC_SYNC_OP                  ; Represent a sync_<op>
-  VUNSPEC_SYNC_NEW_OP              ; Represent a sync_new_<op>
-  VUNSPEC_SYNC_OLD_OP              ; Represent a sync_old_<op>
+  VUNSPEC_ATOMIC_CAS	; Represent an atomic compare swap.
+  VUNSPEC_ATOMIC_XCHG	; Represent an atomic exchange.
+  VUNSPEC_ATOMIC_OP	; Represent an atomic operation.
+  VUNSPEC_LL		; Represent a load-register-exclusive.
+  VUNSPEC_SC		; Represent a store-register-exclusive.
 ])
 
 ;;---------------------------------------------------------------------------
@@ -185,21 +186,9 @@
 (define_attr "fpu" "none,fpa,fpe2,fpe3,maverick,vfp"
   (const (symbol_ref "arm_fpu_attr")))
 
-(define_attr "sync_result"          "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_memory"          "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_required_value"  "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_new_value"       "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_t1"              "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_t2"              "none,0,1,2,3,4,5" (const_string "none"))
-(define_attr "sync_release_barrier" "yes,no"           (const_string "yes"))
-(define_attr "sync_op"              "none,add,sub,ior,xor,and,nand"
-                                    (const_string "none"))
-
 ; LENGTH of an instruction (in bytes)
 (define_attr "length" ""
-  (cond [(not (eq_attr "sync_memory" "none"))
- 	   (symbol_ref "arm_sync_loop_insns (insn, operands) * 4")
-	] (const_int 4)))
+  (const_int 4))
 
 ; The architecture which supports the instruction (or alternative).
 ; This can be "a" for ARM, "t" for either of the Thumbs, "32" for
@@ -5625,6 +5614,30 @@
   "operands[3] = can_create_pseudo_p () ? gen_reg_rtx (SImode) : operands[0];"
 )
 
+;; operand1 is the memory address to go into 
+;; pic_load_addr_32bit.
+;; operand2 is the PIC label to be emitted 
+;; from pic_add_dot_plus_eight.
+;; We do this to allow hoisting of the entire insn.
+(define_insn_and_split "pic_load_addr_unified"
+  [(set (match_operand:SI 0 "s_register_operand" "=r,r,l")
+	(unspec:SI [(match_operand:SI 1 "" "mX,mX,mX") 
+		    (match_operand:SI 2 "" "")] 
+		    UNSPEC_PIC_UNIFIED))]
+ "flag_pic"
+ "#"
+ "&& reload_completed"
+ [(set (match_dup 0) (unspec:SI [(match_dup 1)] UNSPEC_PIC_SYM))
+  (set (match_dup 0) (unspec:SI [(match_dup 0) (match_dup 3)
+       		     		 (match_dup 2)] UNSPEC_PIC_BASE))]
+ "operands[3] = TARGET_THUMB ? GEN_INT (4) : GEN_INT (8);"
+ [(set_attr "type" "load1,load1,load1")
+  (set_attr "pool_range" "4096,4096,1024")
+  (set_attr "neg_pool_range" "4084,0,0")
+  (set_attr "arch"  "a,t2,t1")    
+  (set_attr "length" "8,6,4")]
+)
+
 ;; The rather odd constraints on the following are to force reload to leave
 ;; the insn alone, and to force the minipool generation pass to then move
 ;; the GOT symbol to memory.
@@ -5706,7 +5719,8 @@
 		    (const_int 8)
 		    (match_operand 1 "" "")]
 		   UNSPEC_PIC_BASE))
-   (set (match_operand:SI 2 "register_operand" "") (mem:SI (match_dup 0)))]
+   (set (match_operand:SI 2 "arm_general_register_operand" "")
+	(mem:SI (match_dup 0)))]
   "TARGET_ARM && peep2_reg_dead_p (2, operands[0])"
   [(set (match_dup 2)
 	(mem:SI (unspec:SI [(match_dup 3)
@@ -7637,7 +7651,7 @@
 		      (pc)))]
   "TARGET_32BIT"
   "operands[1] = arm_gen_compare_reg (GET_CODE (operands[0]),
-				      operands[1], operands[2]);
+				      operands[1], operands[2], NULL_RTX);
    operands[2] = const0_rtx;"
 )
 
@@ -7707,7 +7721,7 @@
 				 (match_operand 3 "" "")]))]
   "TARGET_32BIT"
   "operands[2] = arm_gen_compare_reg (GET_CODE (operands[1]),
-				      operands[2], operands[3]);
+				      operands[2], operands[3], NULL_RTX);
    operands[3] = const0_rtx;"
 )
 
@@ -7738,7 +7752,7 @@
 	(not:SI (match_operator:SI 1 "arm_comparison_operator"
 		 [(match_operand 2 "cc_register" "") (const_int 0)])))]
   "TARGET_ARM"
-  "mov%D1\\t%0, #0\;mvn%d1\\t%0, #1"
+  "mvn%D1\\t%0, #0\;mvn%d1\\t%0, #1"
   [(set_attr "conds" "use")
    (set_attr "insn" "mov")
    (set_attr "length" "8")]
@@ -8035,7 +8049,7 @@
       FAIL;
 
     ccreg = arm_gen_compare_reg (code, XEXP (operands[1], 0),
-				 XEXP (operands[1], 1));
+				 XEXP (operands[1], 1), NULL_RTX);
     operands[1] = gen_rtx_fmt_ee (code, VOIDmode, ccreg, const0_rtx);
   }"
 )
@@ -8061,7 +8075,7 @@
       operands[3] = force_reg (SFmode, operands[3]);
 
     ccreg = arm_gen_compare_reg (code, XEXP (operands[1], 0),
-				 XEXP (operands[1], 1));
+				 XEXP (operands[1], 1), NULL_RTX);
     operands[1] = gen_rtx_fmt_ee (code, VOIDmode, ccreg, const0_rtx);
   }"
 )
@@ -8081,7 +8095,7 @@
       FAIL;
 
     ccreg = arm_gen_compare_reg (code, XEXP (operands[1], 0),
-				 XEXP (operands[1], 1));
+				 XEXP (operands[1], 1), NULL_RTX);
     operands[1] = gen_rtx_fmt_ee (code, VOIDmode, ccreg, const0_rtx);
   }"
 )

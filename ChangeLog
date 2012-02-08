@@ -1,3 +1,35 @@
+2012-02-08  Ira Rosen <irar@il.ibm.com>
+
+	* MAINTAINERS (Various Maintainers): Remove myself as auto-vectorizer
+	maintainer.
+
+2012-02-04  Venkataramanan Kumar  <venkataramanan.kumar@amd.com>
+
+	* MAINTAINERS (Write After Approval): Move myself to maintain alphabetical order.
+
+2012-02-03  Venkataramanan Kumar  <venkataramanan.kumar@amd.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2012-02-02  Jayant R Sonar <jayant.sonar@kpitcummins.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2012-02-02  Sumanth G <sumanth.gundapaneni@kpitcummins.com>
+	    Jayant R Sonar <jayant.sonar@kpitcummins.com>
+
+	* configure.ac (cr16-*-*): Remove nonconfigdirs.
+	* configure: Regenerate.
+
+2012-01-23  Harshit Chopra  <harshit@google.com>
+
+	* MAINTAINERS (Write After Approval): Add myself.
+
+2012-01-22  Douglas B Rupp  <rupp@ngnat.com>
+
+	* configure.ac: Remove reference to mh-interix.
+	* configure: Regenerate.
+
 2012-01-05  Richard Henderson  <rth@redhat.com>
 
 	PR bootstrap/51072

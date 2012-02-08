@@ -27,7 +27,6 @@ var (
 )
 
 const (
-	second      = 1e9
 	newHttpPath = "/foo"
 )
 
@@ -388,12 +387,12 @@ func (WriteFailCodec) WriteRequest(*Request, interface{}) error {
 }
 
 func (WriteFailCodec) ReadResponseHeader(*Response) error {
-	time.Sleep(120e9)
+	time.Sleep(120 * time.Second)
 	panic("unreachable")
 }
 
 func (WriteFailCodec) ReadResponseBody(interface{}) error {
-	time.Sleep(120e9)
+	time.Sleep(120 * time.Second)
 	panic("unreachable")
 }
 
@@ -413,7 +412,7 @@ func TestSendDeadlock(t *testing.T) {
 	select {
 	case <-done:
 		return
-	case <-time.After(5e9):
+	case <-time.After(5 * time.Second):
 		t.Fatal("deadlock")
 	}
 }
@@ -468,13 +467,16 @@ func TestCountMallocsOverHTTP(t *testing.T) {
 	fmt.Printf("mallocs per HTTP rpc round trip: %d\n", countMallocs(dialHTTP, t))
 }
 
-type writeCrasher struct{}
+type writeCrasher struct {
+	done chan bool
+}
 
 func (writeCrasher) Close() error {
 	return nil
 }
 
-func (writeCrasher) Read(p []byte) (int, error) {
+func (w *writeCrasher) Read(p []byte) (int, error) {
+	<-w.done
 	return 0, io.EOF
 }
 
@@ -483,7 +485,8 @@ func (writeCrasher) Write(p []byte) (int, error) {
 }
 
 func TestClientWriteError(t *testing.T) {
-	c := NewClient(writeCrasher{})
+	w := &writeCrasher{done: make(chan bool)}
+	c := NewClient(w)
 	res := false
 	err := c.Call("foo", 1, &res)
 	if err == nil {
@@ -492,6 +495,7 @@ func TestClientWriteError(t *testing.T) {
 	if err.Error() != "fake write failure" {
 		t.Error("unexpected value of error:", err)
 	}
+	w.done <- true
 }
 
 func benchmarkEndToEnd(dial func() (*Client, error), b *testing.B) {
@@ -499,8 +503,7 @@ func benchmarkEndToEnd(dial func() (*Client, error), b *testing.B) {
 	once.Do(startServer)
 	client, err := dial()
 	if err != nil {
-		fmt.Println("error dialing", err)
-		return
+		b.Fatal("error dialing:", err)
 	}
 
 	// Synchronous calls
@@ -515,14 +518,12 @@ func benchmarkEndToEnd(dial func() (*Client, error), b *testing.B) {
 		go func() {
 			reply := new(Reply)
 			for atomic.AddInt32(&N, -1) >= 0 {
-				err = client.Call("Arith.Add", args, reply)
+				err := client.Call("Arith.Add", args, reply)
 				if err != nil {
-					fmt.Printf("Add: expected no error but got string %q", err.Error())
-					panic("rpc error")
+					b.Fatalf("rpc error: Add: expected no error but got string %q", err.Error())
 				}
 				if reply.C != args.A+args.B {
-					fmt.Printf("Add: expected %d got %d", reply.C, args.A+args.B)
-					panic("rpc error")
+					b.Fatalf("rpc error: Add: expected %d got %d", reply.C, args.A+args.B)
 				}
 			}
 			wg.Done()
@@ -537,8 +538,7 @@ func benchmarkEndToEndAsync(dial func() (*Client, error), b *testing.B) {
 	once.Do(startServer)
 	client, err := dial()
 	if err != nil {
-		fmt.Println("error dialing", err)
-		return
+		b.Fatal("error dialing:", err)
 	}
 
 	// Asynchronous calls
@@ -562,12 +562,11 @@ func benchmarkEndToEndAsync(dial func() (*Client, error), b *testing.B) {
 		}()
 		go func() {
 			for call := range res {
-				a := call.Args.(*Args).A
-				b := call.Args.(*Args).B
-				c := call.Reply.(*Reply).C
-				if a+b != c {
-					fmt.Printf("Add: expected %d got %d", a+b, c)
-					panic("incorrect reply")
+				A := call.Args.(*Args).A
+				B := call.Args.(*Args).B
+				C := call.Reply.(*Reply).C
+				if A+B != C {
+					b.Fatalf("incorrect reply: Add: expected %d got %d", A+B, C)
 				}
 				<-gate
 				if atomic.AddInt32(&recv, -1) == 0 {
