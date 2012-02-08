@@ -1768,14 +1768,8 @@ Constant integer 1
 @item G
 A floating point constant 0.0
 
-@item R
-Integer constant in the range @minus{}6 @dots{} 5.
-
 @item Q
 A memory address based on Y or Z pointer with displacement.
-
-@item C04
-Constant integer 4
 @end table
 
 @item Epiphany---@file{config/epiphany/constraints.md}
@@ -1847,6 +1841,40 @@ Matches the return address if it is in a stack slot.
 @item Cfm
 Matches control register values to switch fp mode, which are encapsulated in
 @code{UNSPEC_FP_MODE}.
+@end table
+
+@item CR16 Architecture---@file{config/cr16/cr16.h}
+@table @code
+
+@item b
+Registers from r0 to r14 (registers without stack pointer)
+
+@item t
+Register from r0 to r11 (all 16-bit registers)
+
+@item p
+Register from r12 to r15 (all 32-bit registers)
+
+@item I
+Signed constant that fits in 4 bits
+
+@item J
+Signed constant that fits in 5 bits
+
+@item K
+Signed constant that fits in 6 bits
+
+@item L
+Unsigned constant that fits in 4 bits
+
+@item M
+Signed constant that fits in 32 bits
+
+@item N
+Check for 64 bits wide constants for add/sub instructions
+
+@item G
+Floating point constant that is legal for store immediate
 @end table
 
 @item Hewlett-Packard PA-RISC---@file{config/pa/pa.h}
@@ -2979,6 +3007,96 @@ A memory reference that is encoded within the opcode.
 
 @end table
 
+@item RL78---@file{config/rl78/constraints.md}
+@table @code
+
+@item Int3
+An integer constant in the range 1 @dots{} 7.
+@item Int8
+An integer constant in the range 0 @dots{} 255.
+@item J
+An integer constant in the range @minus{}255 @dots{} 0
+@item K
+The integer constant 1.
+@item L
+The integer constant -1.
+@item M
+The integer constant 0.
+@item N
+The integer constant 2.
+@item O
+The integer constant -2.
+@item P
+An integer constant in the range 1 @dots{} 15.
+@item Qbi
+The built-in compare types--eq, ne, gtu, ltu, geu, and leu.
+@item Qsc
+The synthetic compare types--gt, lt, ge, and le.
+@item Wab
+A memory reference with an absolute address.
+@item Wbc
+A memory reference using @code{BC} as a base register, with an optional offset.
+@item Wca
+A memory reference using @code{AX}, @code{BC}, @code{DE}, or @code{HL} for the address, for calls.
+@item Wcv
+A memory reference using any 16-bit register pair for the address, for calls.
+@item Wd2
+A memory reference using @code{DE} as a base register, with an optional offset.
+@item Wde
+A memory reference using @code{DE} as a base register, without any offset.
+@item Wfr
+Any memory reference to an address in the far address space.
+@item Wh1
+A memory reference using @code{HL} as a base register, with an optional one-byte offset.
+@item Whb
+A memory reference using @code{HL} as a base register, with @code{B} or @code{C} as the index register.
+@item Whl
+A memory reference using @code{HL} as a base register, without any offset.
+@item Ws1
+A memory reference using @code{SP} as a base register, with an optional one-byte offset.
+@item Y
+Any memory reference to an address in the near address space.
+@item A
+The @code{AX} register.
+@item B
+The @code{BC} register.
+@item D
+The @code{DE} register.
+@item R
+@code{A} through @code{L} registers.
+@item S
+The @code{SP} register.
+@item T
+The @code{HL} register.
+@item Z08W
+The 16-bit @code{R8} register.
+@item Z10W
+The 16-bit @code{R10} register.
+@item Zint
+The registers reserved for interrupts (@code{R24} to @code{R31}).
+@item a
+The @code{A} register.
+@item b
+The @code{B} register.
+@item c
+The @code{C} register.
+@item d
+The @code{D} register.
+@item e
+The @code{E} register.
+@item h
+The @code{H} register.
+@item l
+The @code{L} register.
+@item v
+The virtual registers.
+@item w
+The @code{PSW} register.
+@item x
+The @code{X} register.
+
+@end table
+
 @item RX---@file{config/rx/constraints.md}
 @table @code
 @item Q
@@ -4054,34 +4172,6 @@ operand 1 is new value of field and operand 2 specify the field index.
 @item @samp{vec_extract@var{m}}
 Extract given field from the vector value.  Operand 1 is the vector, operand 2
 specify field index and operand 0 place to store value into.
-
-@cindex @code{vec_extract_even@var{m}} instruction pattern
-@item @samp{vec_extract_even@var{m}}
-Extract even elements from the input vectors (operand 1 and operand 2).
-The even elements of operand 2 are concatenated to the even elements of operand
-1 in their original order. The result is stored in operand 0.
-The output and input vectors should have the same modes.
-
-@cindex @code{vec_extract_odd@var{m}} instruction pattern
-@item @samp{vec_extract_odd@var{m}}
-Extract odd elements from the input vectors (operand 1 and operand 2).
-The odd elements of operand 2 are concatenated to the odd elements of operand
-1 in their original order. The result is stored in operand 0.
-The output and input vectors should have the same modes.
-
-@cindex @code{vec_interleave_high@var{m}} instruction pattern
-@item @samp{vec_interleave_high@var{m}}
-Merge high elements of the two input vectors into the output vector. The output
-and input vectors should have the same modes (@code{N} elements). The high
-@code{N/2} elements of the first input vector are interleaved with the high
-@code{N/2} elements of the second input vector.
-
-@cindex @code{vec_interleave_low@var{m}} instruction pattern
-@item @samp{vec_interleave_low@var{m}}
-Merge low elements of the two input vectors into the output vector. The output
-and input vectors should have the same modes (@code{N} elements). The low
-@code{N/2} elements of the first input vector are interleaved with the low
-@code{N/2} elements of the second input vector.
 
 @cindex @code{vec_init@var{m}} instruction pattern
 @item @samp{vec_init@var{m}}
@@ -5836,6 +5926,19 @@ If these patterns are not defined, attempts will be made to use legacy
 the operation followed by the arithmetic operation required to produce the
 result.  If none of these are available a compare-and-swap loop will be
 used.
+
+@cindex @code{atomic_test_and_set} instruction pattern
+@item @samp{atomic_test_and_set}
+
+This pattern emits code for @code{__builtin_atomic_test_and_set}.
+Operand 0 is an output operand which is set to true if the previous
+previous contents of the byte was "set", and false otherwise.  Operand 1
+is the @code{QImode} memory to be modified.  Operand 2 is the memory
+model to be used.
+
+The specific value that defines "set" is implementation defined, and
+is normally based on what is performed by the native atomic test and set
+instruction.
 
 @cindex @code{mem_thread_fence@var{mode}} instruction pattern
 @item @samp{mem_thread_fence@var{mode}}

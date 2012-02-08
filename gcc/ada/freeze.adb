@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -42,6 +42,7 @@ with Nmake;    use Nmake;
 with Opt;      use Opt;
 with Restrict; use Restrict;
 with Rident;   use Rident;
+with Rtsfind; use Rtsfind;
 with Sem;      use Sem;
 with Sem_Aux;  use Sem_Aux;
 with Sem_Cat;  use Sem_Cat;
@@ -1342,7 +1343,9 @@ package body Freeze is
 
             --  If an incomplete type is still not frozen, this may be a
             --  premature freezing because of a body declaration that follows.
-            --  Indicate where the freezing took place.
+            --  Indicate where the freezing took place. Freezing will happen
+            --  if the body comes from source, but not if it is internally
+            --  generated, for example as the body of a type invariant.
 
             --  If the freezing is caused by the end of the current declarative
             --  part, it is a Taft Amendment type, and there is no error.
@@ -1354,14 +1357,23 @@ package body Freeze is
                   Bod : constant Node_Id := Next (After);
 
                begin
+                  --  The presence of a body freezes all entities previously
+                  --  declared in the current list of declarations, but this
+                  --  does not apply if the body does not come from source.
+                  --  A type invariant is transformed into a subprogram body
+                  --  which is placed at the end of the private part of the
+                  --  current package, but this body does not freeze incomplete
+                  --  types that may be declared in this private part.
+
                   if (Nkind_In (Bod, N_Subprogram_Body,
                                      N_Entry_Body,
                                      N_Package_Body,
                                      N_Protected_Body,
                                      N_Task_Body)
                         or else Nkind (Bod) in N_Body_Stub)
-                     and then
-                       List_Containing (After) = List_Containing (Parent (E))
+                    and then
+                      List_Containing (After) = List_Containing (Parent (E))
+                    and then Comes_From_Source (Bod)
                   then
                      Error_Msg_Sloc := Sloc (Next (After));
                      Error_Msg_NE
@@ -1581,13 +1593,92 @@ package body Freeze is
 
       procedure Check_Current_Instance (Comp_Decl : Node_Id) is
 
-         Rec_Type : constant Entity_Id :=
-                      Scope (Defining_Identifier (Comp_Decl));
-
-         Decl : constant Node_Id := Parent (Rec_Type);
+         function Is_Aliased_View_Of_Type (Typ : Entity_Id) return Boolean;
+         --  Determine whether Typ is compatible with the rules for aliased
+         --  views of types as defined in RM 3.10 in the various dialects.
 
          function Process (N : Node_Id) return Traverse_Result;
          --  Process routine to apply check to given node
+
+         -----------------------------
+         -- Is_Aliased_View_Of_Type --
+         -----------------------------
+
+         function Is_Aliased_View_Of_Type (Typ : Entity_Id) return Boolean is
+            Typ_Decl : constant Node_Id := Parent (Typ);
+
+         begin
+            --  Common case
+
+            if Nkind (Typ_Decl) = N_Full_Type_Declaration
+              and then Limited_Present (Type_Definition (Typ_Decl))
+            then
+               return True;
+
+            --  The following paragraphs describe what a legal aliased view of
+            --  a type is in the various dialects of Ada.
+
+            --  Ada 95
+
+            --  The current instance of a limited type, and a formal parameter
+            --  or generic formal object of a tagged type.
+
+            --  Ada 95 limited type
+            --    * Type with reserved word "limited"
+            --    * A protected or task type
+            --    * A composite type with limited component
+
+            elsif Ada_Version <= Ada_95 then
+               return Is_Limited_Type (Typ);
+
+            --  Ada 2005
+
+            --  The current instance of a limited tagged type, a protected
+            --  type, a task type, or a type that has the reserved word
+            --  "limited" in its full definition ... a formal parameter or
+            --  generic formal object of a tagged type.
+
+            --  Ada 2005 limited type
+            --    * Type with reserved word "limited", "synchronized", "task"
+            --      or "protected"
+            --    * A composite type with limited component
+            --    * A derived type whose parent is a non-interface limited type
+
+            elsif Ada_Version = Ada_2005 then
+               return
+                 (Is_Limited_Type (Typ) and then Is_Tagged_Type (Typ))
+                   or else
+                     (Is_Derived_Type (Typ)
+                       and then not Is_Interface (Etype (Typ))
+                       and then Is_Limited_Type (Etype (Typ)));
+
+            --  Ada 2012 and beyond
+
+            --  The current instance of an immutably limited type ... a formal
+            --  parameter or generic formal object of a tagged type.
+
+            --  Ada 2012 limited type
+            --    * Type with reserved word "limited", "synchronized", "task"
+            --      or "protected"
+            --    * A composite type with limited component
+            --    * A derived type whose parent is a non-interface limited type
+            --    * An incomplete view
+
+            --  Ada 2012 immutably limited type
+            --    * Explicitly limited record type
+            --    * Record extension with "limited" present
+            --    * Non-formal limited private type that is either tagged
+            --      or has at least one access discriminant with a default
+            --      expression
+            --    * Task type, protected type or synchronized interface
+            --    * Type derived from immutably limited type
+
+            else
+               return
+                 Is_Immutably_Limited_Type (Typ)
+                   or else Is_Incomplete_Type (Typ);
+            end if;
+         end Is_Aliased_View_Of_Type;
 
          -------------
          -- Process --
@@ -1617,24 +1708,15 @@ package body Freeze is
 
          procedure Traverse is new Traverse_Proc (Process);
 
+         --  Local variables
+
+         Rec_Type : constant Entity_Id :=
+                      Scope (Defining_Identifier (Comp_Decl));
+
       --  Start of processing for Check_Current_Instance
 
       begin
-         --  In Ada 95, the (imprecise) rule is that the current instance
-         --  of a limited type is aliased. In Ada 2005, limitedness must be
-         --  explicit: either a tagged type, or a limited record.
-
-         if Is_Limited_Type (Rec_Type)
-           and then (Ada_Version < Ada_2005 or else Is_Tagged_Type (Rec_Type))
-         then
-            return;
-
-         elsif Nkind (Decl) = N_Full_Type_Declaration
-           and then Limited_Present (Type_Definition (Decl))
-         then
-            return;
-
-         else
+         if not Is_Aliased_View_Of_Type (Rec_Type) then
             Traverse (Comp_Decl);
          end if;
       end Check_Current_Instance;
@@ -2147,18 +2229,16 @@ package body Freeze is
                                           (Etype (Comp)))))
                then
                   Set_Has_Controlled_Component (Rec);
-                  exit;
                end if;
 
                if Has_Unchecked_Union (Etype (Comp)) then
                   Set_Has_Unchecked_Union (Rec);
                end if;
 
+               --  Scan component declaration for likely misuses of current
+               --  instance, either in a constraint or a default expression.
+
                if Has_Per_Object_Constraint (Comp) then
-
-                  --  Scan component declaration for likely misuses of current
-                  --  instance, either in a constraint or a default expression.
-
                   Check_Current_Instance (Parent (Comp));
                end if;
 
@@ -3029,8 +3109,13 @@ package body Freeze is
          --  nable and used in subsequent checks, so might as well try to
          --  compute it.
 
+         --  In Ada 2012, Freeze_Entities is also used in the front end to
+         --  trigger the analysis of aspect expressions, so in this case we
+         --  want to continue the freezing process.
+
          if Present (Scope (E))
            and then Is_Generic_Unit (Scope (E))
+           and then not Has_Predicates (E)
          then
             Check_Compile_Time_Size (E);
             return No_List;
@@ -4019,6 +4104,281 @@ package body Freeze is
                   end loop;
                end;
             end if;
+
+            --  If the type is a simple storage pool type, then this is where
+            --  we attempt to locate and validate its Allocate, Deallocate, and
+            --  Storage_Size operations (the first is required, and the latter
+            --  two are optional). We also verify that the full type for a
+            --  private type is allowed to be a simple storage pool type.
+
+            if Present (Get_Rep_Pragma (E, Name_Simple_Storage_Pool_Type))
+              and then (Is_Base_Type (E) or else Has_Private_Declaration (E))
+            then
+
+               --  If the type is marked Has_Private_Declaration, then this is
+               --  a full type for a private type that was specified with the
+               --  pragma Simple_Storage_Pool_Type, and here we ensure that the
+               --  pragma is allowed for the full type (for example, it can't
+               --  be an array type, or a nonlimited record type).
+
+               if Has_Private_Declaration (E) then
+                  if (not Is_Record_Type (E)
+                       or else not Is_Immutably_Limited_Type (E))
+                    and then not Is_Private_Type (E)
+                  then
+                     Error_Msg_Name_1 := Name_Simple_Storage_Pool_Type;
+
+                     Error_Msg_N
+                       ("pragma% can only apply to full type that is an " &
+                        "explicitly limited type", E);
+                  end if;
+               end if;
+
+               Validate_Simple_Pool_Ops : declare
+                  Pool_Type    : Entity_Id renames E;
+                  Address_Type : constant Entity_Id := RTE (RE_Address);
+                  Stg_Cnt_Type : constant Entity_Id := RTE (RE_Storage_Count);
+
+                  procedure Validate_Simple_Pool_Op_Formal
+                    (Pool_Op        : Entity_Id;
+                     Pool_Op_Formal : in out Entity_Id;
+                     Expected_Mode  : Formal_Kind;
+                     Expected_Type  : Entity_Id;
+                     Formal_Name    : String;
+                     OK_Formal      : in out Boolean);
+                  --  Validate one formal Pool_Op_Formal of the candidate pool
+                  --  operation Pool_Op. The formal must be of Expected_Type
+                  --  and have mode Expected_Mode. OK_Formal will be set to
+                  --  False if the formal doesn't match. If OK_Formal is False
+                  --  on entry, then the formal will effectively be ignored
+                  --  (because validation of the pool op has already failed).
+                  --  Upon return, Pool_Op_Formal will be updated to the next
+                  --  formal, if any.
+
+                  procedure Validate_Simple_Pool_Operation (Op_Name : Name_Id);
+                  --  Search for and validate a simple pool operation with the
+                  --  name Op_Name. If the name is Allocate, then there must be
+                  --  exactly one such primitive operation for the simple pool
+                  --  type. If the name is Deallocate or Storage_Size, then
+                  --  there can be at most one such primitive operation. The
+                  --  profile of the located primitive must conform to what
+                  --  is expected for each operation.
+
+                  ------------------------------------
+                  -- Validate_Simple_Pool_Op_Formal --
+                  ------------------------------------
+
+                  procedure Validate_Simple_Pool_Op_Formal
+                    (Pool_Op        : Entity_Id;
+                     Pool_Op_Formal : in out Entity_Id;
+                     Expected_Mode  : Formal_Kind;
+                     Expected_Type  : Entity_Id;
+                     Formal_Name    : String;
+                     OK_Formal      : in out Boolean)
+                  is
+                  begin
+                     --  If OK_Formal is False on entry, then simply ignore
+                     --  the formal, because an earlier formal has already
+                     --  been flagged.
+
+                     if not OK_Formal then
+                        return;
+
+                     --  If no formal is passed in, then issue an error for a
+                     --  missing formal.
+
+                     elsif not Present (Pool_Op_Formal) then
+                        Error_Msg_NE
+                          ("simple storage pool op missing formal " &
+                           Formal_Name & " of type&", Pool_Op, Expected_Type);
+                        OK_Formal := False;
+
+                        return;
+                     end if;
+
+                     if Etype (Pool_Op_Formal) /= Expected_Type then
+                        --  If the pool type was expected for this formal, then
+                        --  this will not be considered a candidate operation
+                        --  for the simple pool, so we unset OK_Formal so that
+                        --  the op and any later formals will be ignored.
+
+                        if Expected_Type = Pool_Type then
+                           OK_Formal := False;
+
+                           return;
+
+                        else
+                           Error_Msg_NE
+                             ("wrong type for formal " & Formal_Name &
+                              " of simple storage pool op; expected type&",
+                              Pool_Op_Formal, Expected_Type);
+                        end if;
+                     end if;
+
+                     --  Issue error if formal's mode is not the expected one
+
+                     if Ekind (Pool_Op_Formal) /= Expected_Mode then
+                        Error_Msg_N
+                          ("wrong mode for formal of simple storage pool op",
+                           Pool_Op_Formal);
+                     end if;
+
+                     --  Advance to the next formal
+
+                     Next_Formal (Pool_Op_Formal);
+                  end Validate_Simple_Pool_Op_Formal;
+
+                  ------------------------------------
+                  -- Validate_Simple_Pool_Operation --
+                  ------------------------------------
+
+                  procedure Validate_Simple_Pool_Operation
+                    (Op_Name : Name_Id)
+                  is
+                     Op       : Entity_Id;
+                     Found_Op : Entity_Id := Empty;
+                     Formal   : Entity_Id;
+                     Is_OK    : Boolean;
+
+                  begin
+                     pragma Assert
+                       (Op_Name = Name_Allocate
+                          or else Op_Name = Name_Deallocate
+                          or else Op_Name = Name_Storage_Size);
+
+                     Error_Msg_Name_1 := Op_Name;
+
+                     --  For each homonym declared immediately in the scope
+                     --  of the simple storage pool type, determine whether
+                     --  the homonym is an operation of the pool type, and,
+                     --  if so, check that its profile is as expected for
+                     --  a simple pool operation of that name.
+
+                     Op := Get_Name_Entity_Id (Op_Name);
+                     while Present (Op) loop
+                        if Ekind_In (Op, E_Function, E_Procedure)
+                          and then Scope (Op) = Current_Scope
+                        then
+                           Formal := First_Entity (Op);
+
+                           Is_OK := True;
+
+                           --  The first parameter must be of the pool type
+                           --  in order for the operation to qualify.
+
+                           if Op_Name = Name_Storage_Size then
+                              Validate_Simple_Pool_Op_Formal
+                                (Op, Formal, E_In_Parameter, Pool_Type,
+                                 "Pool", Is_OK);
+
+                           else
+                              Validate_Simple_Pool_Op_Formal
+                                (Op, Formal, E_In_Out_Parameter, Pool_Type,
+                                 "Pool", Is_OK);
+                           end if;
+
+                           --  If another operation with this name has already
+                           --  been located for the type, then flag an error,
+                           --  since we only allow the type to have a single
+                           --  such primitive.
+
+                           if Present (Found_Op) and then Is_OK then
+                              Error_Msg_NE
+                                ("only one % operation allowed for " &
+                                 "simple storage pool type&", Op, Pool_Type);
+                           end if;
+
+                           --  In the case of Allocate and Deallocate, a formal
+                           --  of type System.Address is required.
+
+                           if Op_Name = Name_Allocate then
+                              Validate_Simple_Pool_Op_Formal
+                                (Op, Formal, E_Out_Parameter,
+                                 Address_Type, "Storage_Address", Is_OK);
+
+                           elsif Op_Name = Name_Deallocate then
+                              Validate_Simple_Pool_Op_Formal
+                                (Op, Formal, E_In_Parameter,
+                                 Address_Type, "Storage_Address", Is_OK);
+                           end if;
+
+                           --  In the case of Allocate and Deallocate, formals
+                           --  of type Storage_Count are required as the third
+                           --  and fourth parameters.
+
+                           if Op_Name /= Name_Storage_Size then
+                              Validate_Simple_Pool_Op_Formal
+                                (Op, Formal, E_In_Parameter,
+                                 Stg_Cnt_Type, "Size_In_Storage_Units", Is_OK);
+
+                              Validate_Simple_Pool_Op_Formal
+                                (Op, Formal, E_In_Parameter,
+                                 Stg_Cnt_Type, "Alignment", Is_OK);
+                           end if;
+
+                           --  If no mismatched formals have been found (Is_OK)
+                           --  and no excess formals are present, then this
+                           --  operation has been validated, so record it.
+
+                           if not Present (Formal) and then Is_OK then
+                              Found_Op := Op;
+                           end if;
+                        end if;
+
+                        Op := Homonym (Op);
+                     end loop;
+
+                     --  There must be a valid Allocate operation for the type,
+                     --  so issue an error if none was found.
+
+                     if Op_Name = Name_Allocate
+                       and then not Present (Found_Op)
+                     then
+                        Error_Msg_N ("missing % operation for simple " &
+                                     "storage pool type", Pool_Type);
+
+                     elsif Present (Found_Op) then
+                        --  Simple pool operations can't be abstract
+
+                        if Is_Abstract_Subprogram (Found_Op) then
+                           Error_Msg_N
+                             ("simple storage pool operation must not be " &
+                              "abstract", Found_Op);
+                        end if;
+
+                        --  The Storage_Size operation must be a function with
+                        --  Storage_Count as its result type.
+
+                        if Op_Name = Name_Storage_Size then
+                           if Ekind (Found_Op) = E_Procedure then
+                              Error_Msg_N
+                                ("% operation must be a function", Found_Op);
+
+                           elsif Etype (Found_Op) /= Stg_Cnt_Type then
+                              Error_Msg_NE
+                                ("wrong result type for%, expected type&",
+                                 Found_Op, Stg_Cnt_Type);
+                           end if;
+
+                        --  Allocate and Deallocate must be procedures
+
+                        elsif Ekind (Found_Op) = E_Function then
+                           Error_Msg_N
+                             ("% operation must be a procedure", Found_Op);
+                        end if;
+                     end if;
+                  end Validate_Simple_Pool_Operation;
+
+               --  Start of processing for Validate_Simple_Pool_Ops
+
+               begin
+                  Validate_Simple_Pool_Operation (Name_Allocate);
+
+                  Validate_Simple_Pool_Operation (Name_Deallocate);
+
+                  Validate_Simple_Pool_Operation (Name_Storage_Size);
+               end Validate_Simple_Pool_Ops;
+            end if;
          end if;
 
          --  Now that all types from which E may depend are frozen, see if the
@@ -4081,22 +4441,21 @@ package body Freeze is
 
          if Is_First_Subtype (E) and then Has_Default_Aspect (E) then
             declare
-               Nam    : Name_Id;
-               Aspect : Node_Id;
-               Exp    : Node_Id;
-               Typ    : Entity_Id;
+               Nam : Name_Id;
+               Exp : Node_Id;
+               Typ : Entity_Id;
 
             begin
                if Is_Scalar_Type (E) then
                   Nam := Name_Default_Value;
                   Typ := E;
+                  Exp := Default_Aspect_Value (Typ);
                else
                   Nam := Name_Default_Component_Value;
                   Typ := Component_Type (E);
+                  Exp := Default_Aspect_Component_Value (E);
                end if;
 
-               Aspect := Get_Rep_Item_For_Entity (E, Nam);
-               Exp := Expression (Aspect);
                Analyze_And_Resolve (Exp, Typ);
 
                if Etype (Exp) /= Any_Type then
@@ -4239,7 +4598,8 @@ package body Freeze is
       --  By default, if no size clause is present, an enumeration type with
       --  Convention C is assumed to interface to a C enum, and has integer
       --  size. This applies to types. For subtypes, verify that its base
-      --  type has no size clause either.
+      --  type has no size clause either. Treat other foreign conventions
+      --  in the same way, and also make sure alignment is set right.
 
       if Has_Foreign_Convention (Typ)
         and then not Has_Size_Clause (Typ)
@@ -4247,6 +4607,7 @@ package body Freeze is
         and then Esize (Typ) < Standard_Integer_Size
       then
          Init_Esize (Typ, Standard_Integer_Size);
+         Set_Alignment (Typ, Alignment (Standard_Integer));
 
       else
          --  If the enumeration type interfaces to C, and it has a size clause
@@ -4347,13 +4708,23 @@ package body Freeze is
 
       --  If expression is non-static, then it does not freeze in a default
       --  expression, see section "Handling of Default Expressions" in the
-      --  spec of package Sem for further details. Note that we have to
-      --  make sure that we actually have a real expression (if we have
-      --  a subtype indication, we can't test Is_Static_Expression!)
+      --  spec of package Sem for further details. Note that we have to make
+      --  sure that we actually have a real expression (if we have a subtype
+      --  indication, we can't test Is_Static_Expression!) However, we exclude
+      --  the case of the prefix of an attribute of a static scalar subtype
+      --  from this early return, because static subtype attributes should
+      --  always cause freezing, even in default expressions, but the attribute
+      --  may not have been marked as static yet (because in Resolve_Attribute,
+      --  the call to Eval_Attribute follows the call of Freeze_Expression on
+      --  the prefix).
 
       if In_Spec_Exp
         and then Nkind (N) in N_Subexpr
         and then not Is_Static_Expression (N)
+        and then (Nkind (Parent (N)) /= N_Attribute_Reference
+                   or else not (Is_Entity_Name (N)
+                                 and then Is_Type (Entity (N))
+                                 and then Is_Static_Subtype (Entity (N))))
       then
          return;
       end if;

@@ -1,7 +1,7 @@
 /* Convert tree expression to rtl instructions, for GNU compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
+   2012 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -123,9 +123,6 @@ struct store_by_pieces_d
   int reverse;
 };
 
-static unsigned HOST_WIDE_INT move_by_pieces_ninsns (unsigned HOST_WIDE_INT,
-						     unsigned int,
-						     unsigned int);
 static void move_by_pieces_1 (rtx (*) (rtx, ...), enum machine_mode,
 			      struct move_by_pieces_d *);
 static bool block_move_libcall_safe_for_call_parm (void);
@@ -1016,7 +1013,7 @@ move_by_pieces (rtx to, rtx from, unsigned HOST_WIDE_INT len,
 /* Return number of insns required to move L bytes by pieces.
    ALIGN (in bits) is maximum alignment we can assume.  */
 
-static unsigned HOST_WIDE_INT
+unsigned HOST_WIDE_INT
 move_by_pieces_ninsns (unsigned HOST_WIDE_INT l, unsigned int align,
 		       unsigned int max_size)
 {
@@ -3645,9 +3642,11 @@ mem_autoinc_base (rtx mem)
      (1) One or more auto-inc style memory references (aka pushes),
      (2) One or more addition/subtraction with the SP as destination,
      (3) A single move insn with the SP as destination,
-     (4) A call_pop insn.
+     (4) A call_pop insn,
+     (5) Noreturn call insns if !ACCUMULATE_OUTGOING_ARGS.
 
-   Insns in the sequence that do not modify the SP are ignored.
+   Insns in the sequence that do not modify the SP are ignored,
+   except for noreturn calls.
 
    The return value is the amount of adjustment that can be trivially
    verified, via immediate operand or auto-inc.  If the adjustment
@@ -3792,7 +3791,12 @@ fixup_args_size_notes (rtx prev, rtx last, int end_args_size)
 
       this_delta = find_args_size_adjust (insn);
       if (this_delta == 0)
-	continue;
+	{
+	  if (!CALL_P (insn)
+	      || ACCUMULATE_OUTGOING_ARGS
+	      || find_reg_note (insn, REG_NORETURN, NULL_RTX) == NULL_RTX)
+	    continue;
+	}
 
       gcc_assert (!saw_unknown);
       if (this_delta == HOST_WIDE_INT_MIN)
@@ -4544,25 +4548,21 @@ get_bit_range (unsigned HOST_WIDE_INT *bitstart,
     }
 }
 
-/* Return the alignment of the object EXP, also considering its type
-   when we do not know of explicit misalignment.
-   ???  Note that, in the general case, the type of an expression is not kept
-   consistent with misalignment information by the front-end, for
-   example when taking the address of a member of a packed structure.
-   However, in most of the cases, expressions have the alignment of
-   their type, so we optimistically fall back to the alignment of the
-   type when we cannot compute a misalignment.  */
+/* Returns true if the MEM_REF REF refers to an object that does not
+   reside in memory and has non-BLKmode.  */
 
-static unsigned int
-get_object_or_type_alignment (tree exp)
+static bool
+mem_ref_refers_to_non_mem_p (tree ref)
 {
-  unsigned HOST_WIDE_INT misalign;
-  unsigned int align = get_object_alignment_1 (exp, &misalign);
-  if (misalign != 0)
-    align = (misalign & -misalign);
-  else
-    align = MAX (TYPE_ALIGN (TREE_TYPE (exp)), align);
-  return align;
+  tree base = TREE_OPERAND (ref, 0);
+  if (TREE_CODE (base) != ADDR_EXPR)
+    return false;
+  base = TREE_OPERAND (base, 0);
+  return (DECL_P (base)
+	  && !TREE_ADDRESSABLE (base)
+	  && DECL_MODE (base) != BLKmode
+	  && DECL_RTL_SET_P (base)
+	  && !MEM_P (DECL_RTL (base)));
 }
 
 /* Expand an assignment that stores the value of FROM into TO.  If NONTEMPORAL
@@ -4588,6 +4588,7 @@ expand_assignment (tree to, tree from, bool nontemporal)
   if (operand_equal_p (to, from, 0))
     return;
 
+  /* Handle misaligned stores.  */
   mode = TYPE_MODE (TREE_TYPE (to));
   if ((TREE_CODE (to) == MEM_REF
        || TREE_CODE (to) == TARGET_MEM_REF)
@@ -4597,6 +4598,8 @@ expand_assignment (tree to, tree from, bool nontemporal)
       && ((icode = optab_handler (movmisalign_optab, mode))
 	  != CODE_FOR_nothing))
     {
+      addr_space_t as
+	= TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (TREE_OPERAND (to, 0))));
       struct expand_operand ops[2];
       enum machine_mode address_mode;
       rtx reg, op0, mem;
@@ -4606,8 +4609,6 @@ expand_assignment (tree to, tree from, bool nontemporal)
 
       if (TREE_CODE (to) == MEM_REF)
 	{
-	  addr_space_t as
-	      = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (TREE_OPERAND (to, 1))));
 	  tree base = TREE_OPERAND (to, 0);
 	  address_mode = targetm.addr_space.address_mode (as);
 	  op0 = expand_expr (base, NULL_RTX, VOIDmode, EXPAND_NORMAL);
@@ -4615,7 +4616,7 @@ expand_assignment (tree to, tree from, bool nontemporal)
 	  if (!integer_zerop (TREE_OPERAND (to, 1)))
 	    {
 	      rtx off
-		  = immed_double_int_const (mem_ref_offset (to), address_mode);
+		= immed_double_int_const (mem_ref_offset (to), address_mode);
 	      op0 = simplify_gen_binary (PLUS, address_mode, op0, off);
 	    }
 	  op0 = memory_address_addr_space (mode, op0, as);
@@ -4625,9 +4626,7 @@ expand_assignment (tree to, tree from, bool nontemporal)
 	}
       else if (TREE_CODE (to) == TARGET_MEM_REF)
 	{
-	  addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (to));
 	  struct mem_address addr;
-
 	  get_address_description (to, &addr);
 	  op0 = addr_for_mem_ref (&addr, as, true);
 	  op0 = memory_address_addr_space (mode, op0, as);
@@ -4643,7 +4642,7 @@ expand_assignment (tree to, tree from, bool nontemporal)
       create_fixed_operand (&ops[0], mem);
       create_input_operand (&ops[1], reg, mode);
       /* The movmisalign<mode> pattern cannot fail, else the assignment would
-         silently be omitted.  */
+	 silently be omitted.  */
       expand_insn (icode, 2, ops);
       return;
     }
@@ -4652,12 +4651,10 @@ expand_assignment (tree to, tree from, bool nontemporal)
      if the structure component's rtx is not simply a MEM.
      Assignment of an array element at a constant index, and assignment of
      an array element in an unaligned packed structure field, has the same
-     problem.  */
+     problem.  Same for (partially) storing into a non-memory object.  */
   if (handled_component_p (to)
-      /* ???  We only need to handle MEM_REF here if the access is not
-         a full access of the base object.  */
       || (TREE_CODE (to) == MEM_REF
-	  && TREE_CODE (TREE_OPERAND (to, 0)) == ADDR_EXPR)
+	  && mem_ref_refers_to_non_mem_p (to))
       || TREE_CODE (TREE_TYPE (to)) == ARRAY_TYPE)
     {
       enum machine_mode mode1;
@@ -4668,6 +4665,7 @@ expand_assignment (tree to, tree from, bool nontemporal)
       int unsignedp;
       int volatilep = 0;
       tree tem;
+      bool misalignp;
 
       push_temp_slots ();
       tem = get_inner_reference (to, &bitsize, &bitpos, &offset, &mode1,
@@ -4680,8 +4678,22 @@ expand_assignment (tree to, tree from, bool nontemporal)
 
       /* If we are going to use store_bit_field and extract_bit_field,
 	 make sure to_rtx will be safe for multiple use.  */
-
-      to_rtx = expand_normal (tem);
+      mode = TYPE_MODE (TREE_TYPE (tem));
+      if (TREE_CODE (tem) == MEM_REF
+	  && mode != BLKmode
+	  && ((align = get_object_or_type_alignment (tem))
+	      < GET_MODE_ALIGNMENT (mode))
+	  && ((icode = optab_handler (movmisalign_optab, mode))
+	      != CODE_FOR_nothing))
+	{
+	  misalignp = true;
+	  to_rtx = gen_reg_rtx (mode);
+	}
+      else
+	{
+	  misalignp = false;
+	  to_rtx = expand_normal (tem);
+	}
 
       /* If the bitfield is volatile, we want to access it in the
 	 field's mode, not the computed mode.
@@ -4827,6 +4839,37 @@ expand_assignment (tree to, tree from, bool nontemporal)
 				  nontemporal);
 	}
 
+      if (misalignp)
+	{
+	  struct expand_operand ops[2];
+	  enum machine_mode address_mode;
+	  rtx op0, mem;
+	  addr_space_t as = TYPE_ADDR_SPACE
+	      (TREE_TYPE (TREE_TYPE (TREE_OPERAND (tem, 0))));
+	  tree base = TREE_OPERAND (tem, 0);
+	  address_mode = targetm.addr_space.address_mode (as);
+	  op0 = expand_expr (base, NULL_RTX, VOIDmode, EXPAND_NORMAL);
+	  op0 = convert_memory_address_addr_space (address_mode, op0, as);
+	  if (!integer_zerop (TREE_OPERAND (tem, 1)))
+	    {
+	      rtx off = immed_double_int_const (mem_ref_offset (tem),
+						address_mode);
+	      op0 = simplify_gen_binary (PLUS, address_mode, op0, off);
+	    }
+	  op0 = memory_address_addr_space (mode, op0, as);
+	  mem = gen_rtx_MEM (mode, op0);
+	  set_mem_attributes (mem, tem, 0);
+	  set_mem_addr_space (mem, as);
+	  if (TREE_THIS_VOLATILE (tem))
+	    MEM_VOLATILE_P (mem) = 1;
+
+	  create_fixed_operand (&ops[0], mem);
+	  create_input_operand (&ops[1], to_rtx, mode);
+	  /* The movmisalign<mode> pattern cannot fail, else the assignment
+	     would silently be omitted.  */
+	  expand_insn (icode, 2, ops);
+	}
+
       if (result)
 	preserve_temp_slots (result);
       free_temp_slots ();
@@ -4882,11 +4925,8 @@ expand_assignment (tree to, tree from, bool nontemporal)
       return;
     }
 
-  /* Ordinary treatment.  Expand TO to get a REG or MEM rtx.
-     Don't re-expand if it was expanded already (in COMPONENT_REF case).  */
-
-  if (to_rtx == 0)
-    to_rtx = expand_expr (to, NULL_RTX, VOIDmode, EXPAND_WRITE);
+  /* Ordinary treatment.  Expand TO to get a REG or MEM rtx.  */
+  to_rtx = expand_expr (to, NULL_RTX, VOIDmode, EXPAND_WRITE);
 
   /* Don't move directly into a return register.  */
   if (TREE_CODE (to) == RESULT_DECL
@@ -6315,7 +6355,7 @@ store_field (rtx target, HOST_WIDE_INT bitsize, HOST_WIDE_INT bitpos,
 
       store_field (blk_object, bitsize, bitpos,
 		   bitregion_start, bitregion_end,
-		   mode, exp, type, alias_set, nontemporal);
+		   mode, exp, type, MEM_ALIAS_SET (blk_object), nontemporal);
 
       emit_move_insn (target, object);
 
@@ -6348,6 +6388,8 @@ store_field (rtx target, HOST_WIDE_INT bitsize, HOST_WIDE_INT bitpos,
 		|| bitpos % GET_MODE_ALIGNMENT (mode))
 	       && SLOW_UNALIGNED_ACCESS (mode, MEM_ALIGN (target)))
 	      || (bitpos % BITS_PER_UNIT != 0)))
+      || (bitsize >= 0 && mode != BLKmode
+	  && GET_MODE_BITSIZE (mode) > bitsize)
       /* If the RHS and field are a constant size and the size of the
 	 RHS isn't the same size as the bitfield, we must use bitfield
 	 operations.  */
@@ -6443,8 +6485,6 @@ store_field (rtx target, HOST_WIDE_INT bitsize, HOST_WIDE_INT bitpos,
       if (to_rtx == target)
 	to_rtx = copy_rtx (to_rtx);
 
-      if (!MEM_SCALAR_P (to_rtx))
-	MEM_IN_STRUCT_P (to_rtx) = 1;
       if (!MEM_KEEP_ALIAS_SET_P (to_rtx) && MEM_ALIAS_SET (to_rtx) != 0)
 	set_mem_alias_set (to_rtx, alias_set);
 
@@ -6676,6 +6716,24 @@ get_inner_reference (tree exp, HOST_WIDE_INT *pbitsize,
   /* Otherwise, split it up.  */
   if (offset)
     {
+      /* Avoid returning a negative bitpos as this may wreak havoc later.  */
+      if (double_int_negative_p (bit_offset))
+        {
+	  double_int mask
+	    = double_int_mask (BITS_PER_UNIT == 8
+			       ? 3 : exact_log2 (BITS_PER_UNIT));
+	  double_int tem = double_int_and_not (bit_offset, mask);
+	  /* TEM is the bitpos rounded to BITS_PER_UNIT towards -Inf.
+	     Subtract it to BIT_OFFSET and add it (scaled) to OFFSET.  */
+	  bit_offset = double_int_sub (bit_offset, tem);
+	  tem = double_int_rshift (tem,
+				   BITS_PER_UNIT == 8
+				   ? 3 : exact_log2 (BITS_PER_UNIT),
+				   HOST_BITS_PER_DOUBLE_INT, true);
+	  offset = size_binop (PLUS_EXPR, offset,
+			       double_int_to_tree (sizetype, tem));
+	}
+
       *pbitpos = double_int_to_shwi (bit_offset);
       *poffset = offset;
     }
@@ -7214,8 +7272,7 @@ safe_from_p (const_rtx x, tree exp, int top_p)
 	 are memory and they conflict.  */
       return ! (rtx_equal_p (x, exp_rtl)
 		|| (MEM_P (x) && MEM_P (exp_rtl)
-		    && true_dependence (exp_rtl, VOIDmode, x,
-					rtx_addr_varies_p)));
+		    && true_dependence (exp_rtl, VOIDmode, x)));
     }
 
   /* If we reach here, it is safe.  */
@@ -7375,7 +7432,12 @@ expand_expr_addr_expr_1 (tree exp, rtx target, enum machine_mode tmode,
      generating ADDR_EXPR of something that isn't an LVALUE.  The only
      exception here is STRING_CST.  */
   if (CONSTANT_CLASS_P (exp))
-    return XEXP (expand_expr_constant (exp, 0, modifier), 0);
+    {
+      result = XEXP (expand_expr_constant (exp, 0, modifier), 0);
+      if (modifier < EXPAND_SUM)
+	result = force_operand (result, target);
+      return result;
+    }
 
   /* Everything must be something allowed by is_gimple_addressable.  */
   switch (TREE_CODE (exp))
@@ -7394,7 +7456,11 @@ expand_expr_addr_expr_1 (tree exp, rtx target, enum machine_mode tmode,
 
     case CONST_DECL:
       /* Expand the initializer like constants above.  */
-      return XEXP (expand_expr_constant (DECL_INITIAL (exp), 0, modifier), 0);
+      result = XEXP (expand_expr_constant (DECL_INITIAL (exp),
+					   0, modifier), 0);
+      if (modifier < EXPAND_SUM)
+	result = force_operand (result, target);
+      return result;
 
     case REALPART_EXPR:
       /* The real part of the complex number is always first, therefore
@@ -7452,7 +7518,8 @@ expand_expr_addr_expr_1 (tree exp, rtx target, enum machine_mode tmode,
 	    }
 
 	  if (modifier != EXPAND_INITIALIZER
-	      && modifier != EXPAND_CONST_ADDRESS)
+	      && modifier != EXPAND_CONST_ADDRESS
+	      && modifier != EXPAND_SUM)
 	    result = force_operand (result, target);
 	  return result;
 	}
@@ -8665,12 +8732,6 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
         return temp;
       }
 
-    case VEC_EXTRACT_EVEN_EXPR:
-    case VEC_EXTRACT_ODD_EXPR:
-    case VEC_INTERLEAVE_HIGH_EXPR:
-    case VEC_INTERLEAVE_LOW_EXPR:
-      goto binop;
-
     case VEC_LSHIFT_EXPR:
     case VEC_RSHIFT_EXPR:
       {
@@ -8736,6 +8797,23 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
     case VEC_PERM_EXPR:
       expand_operands (treeop0, treeop1, target, &op0, &op1, EXPAND_NORMAL);
       op2 = expand_normal (treeop2);
+
+      /* Careful here: if the target doesn't support integral vector modes,
+	 a constant selection vector could wind up smooshed into a normal
+	 integral constant.  */
+      if (CONSTANT_P (op2) && GET_CODE (op2) != CONST_VECTOR)
+	{
+	  tree sel_type = TREE_TYPE (treeop2);
+	  enum machine_mode vmode
+	    = mode_for_vector (TYPE_MODE (TREE_TYPE (sel_type)),
+			       TYPE_VECTOR_SUBPARTS (sel_type));
+	  gcc_assert (GET_MODE_CLASS (vmode) == MODE_VECTOR_INT);
+	  op2 = simplify_subreg (vmode, op2, TYPE_MODE (sel_type), 0);
+	  gcc_assert (op2 && GET_CODE (op2) == CONST_VECTOR);
+	}
+      else
+        gcc_assert (GET_MODE_CLASS (GET_MODE (op2)) == MODE_VECTOR_INT);
+
       temp = expand_vec_perm (mode, op0, op1, op2, target);
       gcc_assert (temp);
       return temp;
@@ -9256,7 +9334,8 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 
     case TARGET_MEM_REF:
       {
-	addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (exp));
+	addr_space_t as
+	  = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (TREE_OPERAND (exp, 0))));
 	struct mem_address addr;
 	enum insn_code icode;
 	unsigned int align;
@@ -9291,7 +9370,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
     case MEM_REF:
       {
 	addr_space_t as
-	  = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (TREE_OPERAND (exp, 1))));
+	  = TYPE_ADDR_SPACE (TREE_TYPE (TREE_TYPE (TREE_OPERAND (exp, 0))));
 	enum machine_mode address_mode;
 	tree base = TREE_OPERAND (exp, 0);
 	gimple def_stmt;
@@ -9299,44 +9378,38 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	unsigned align;
 	/* Handle expansion of non-aliased memory with non-BLKmode.  That
 	   might end up in a register.  */
-	if (TREE_CODE (base) == ADDR_EXPR)
+	if (mem_ref_refers_to_non_mem_p (exp))
 	  {
 	    HOST_WIDE_INT offset = mem_ref_offset (exp).low;
 	    tree bit_offset;
+	    tree bftype;
 	    base = TREE_OPERAND (base, 0);
-	    if (!DECL_P (base))
+	    if (offset == 0
+		&& host_integerp (TYPE_SIZE (TREE_TYPE (exp)), 1)
+		&& (GET_MODE_BITSIZE (DECL_MODE (base))
+		    == TREE_INT_CST_LOW (TYPE_SIZE (TREE_TYPE (exp)))))
+	      return expand_expr (build1 (VIEW_CONVERT_EXPR,
+					  TREE_TYPE (exp), base),
+				  target, tmode, modifier);
+	    bit_offset = bitsize_int (offset * BITS_PER_UNIT);
+	    bftype = TREE_TYPE (base);
+	    if (TYPE_MODE (TREE_TYPE (exp)) != BLKmode)
+	      bftype = TREE_TYPE (exp);
+	    else
 	      {
-		HOST_WIDE_INT off;
-		base = get_addr_base_and_unit_offset (base, &off);
-		gcc_assert (base);
-		offset += off;
+		temp = assign_stack_temp (DECL_MODE (base),
+					  GET_MODE_SIZE (DECL_MODE (base)),
+					  0);
+		store_expr (base, temp, 0, false);
+		temp = adjust_address (temp, BLKmode, offset);
+		set_mem_size (temp, int_size_in_bytes (TREE_TYPE (exp)));
+		return temp;
 	      }
-	    /* If we are expanding a MEM_REF of a non-BLKmode non-addressable
-	       decl we must use bitfield operations.  */
-	    if (DECL_P (base)
-		&& !TREE_ADDRESSABLE (base)
-		&& DECL_MODE (base) != BLKmode
-		&& DECL_RTL_SET_P (base)
-		&& !MEM_P (DECL_RTL (base)))
-	      {
-		tree bftype;
-		if (offset == 0
-		    && host_integerp (TYPE_SIZE (TREE_TYPE (exp)), 1)
-		    && (GET_MODE_BITSIZE (DECL_MODE (base))
-			== TREE_INT_CST_LOW (TYPE_SIZE (TREE_TYPE (exp)))))
-		  return expand_expr (build1 (VIEW_CONVERT_EXPR,
-					      TREE_TYPE (exp), base),
-				      target, tmode, modifier);
-		bit_offset = bitsize_int (offset * BITS_PER_UNIT);
-		bftype = TREE_TYPE (base);
-		if (TYPE_MODE (TREE_TYPE (exp)) != BLKmode)
-		  bftype = TREE_TYPE (exp);
-		return expand_expr (build3 (BIT_FIELD_REF, bftype,
-					    base,
-					    TYPE_SIZE (TREE_TYPE (exp)),
-					    bit_offset),
-				    target, tmode, modifier);
-	      }
+	    return expand_expr (build3 (BIT_FIELD_REF, bftype,
+					base,
+					TYPE_SIZE (TREE_TYPE (exp)),
+					bit_offset),
+				target, tmode, modifier);
 	  }
 	address_mode = targetm.addr_space.address_mode (as);
 	base = TREE_OPERAND (exp, 0);
@@ -9740,11 +9813,16 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		&& modifier != EXPAND_CONST_ADDRESS
 		&& modifier != EXPAND_INITIALIZER)
 	    /* If the field is volatile, we always want an aligned
-	       access.  Only do this if the access is not already naturally
+	       access.  Do this in following two situations:
+	       1. the access is not already naturally
 	       aligned, otherwise "normal" (non-bitfield) volatile fields
-	       become non-addressable.  */
+	       become non-addressable.
+	       2. the bitsize is narrower than the access size. Need
+	       to extract bitfields from the access.  */
 	    || (volatilep && flag_strict_volatile_bitfields > 0
-		&& (bitpos % GET_MODE_ALIGNMENT (mode) != 0))
+		&& (bitpos % GET_MODE_ALIGNMENT (mode) != 0 
+		    || (mode1 != BLKmode
+		        && bitsize < GET_MODE_SIZE (mode1) * BITS_PER_UNIT)))
 	    /* If the field isn't aligned enough to fetch as a memref,
 	       fetch it as a bit field.  */
 	    || (mode1 != BLKmode
@@ -10040,10 +10118,32 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	 results.  */
       if (MEM_P (op0))
 	{
+	  enum insn_code icode;
+
 	  op0 = copy_rtx (op0);
 
 	  if (TYPE_ALIGN_OK (type))
 	    set_mem_align (op0, MAX (MEM_ALIGN (op0), TYPE_ALIGN (type)));
+	  else if (mode != BLKmode
+		   && MEM_ALIGN (op0) < GET_MODE_ALIGNMENT (mode)
+		   /* If the target does have special handling for unaligned
+		      loads of mode then use them.  */
+		   && ((icode = optab_handler (movmisalign_optab, mode))
+		       != CODE_FOR_nothing))
+	    {
+	      rtx reg, insn;
+
+	      op0 = adjust_address (op0, mode, 0);
+	      /* We've already validated the memory, and we're creating a
+		 new pseudo destination.  The predicates really can't
+		 fail.  */
+	      reg = gen_reg_rtx (mode);
+
+	      /* Nor can the insn generator.  */
+	      insn = GEN_FCN (icode) (reg, op0);
+	      emit_insn (insn);
+	      return reg;
+	    }
 	  else if (STRICT_ALIGNMENT
 		   && mode != BLKmode
 		   && MEM_ALIGN (op0) < GET_MODE_ALIGNMENT (mode))
@@ -10557,15 +10657,22 @@ do_store_flag (sepops ops, rtx target, enum machine_mode mode)
      so we just call into the folder and expand its result.  */
 
   if ((code == NE || code == EQ)
-      && TREE_CODE (arg0) == BIT_AND_EXPR && integer_zerop (arg1)
-      && integer_pow2p (TREE_OPERAND (arg0, 1))
+      && integer_zerop (arg1)
       && (TYPE_PRECISION (ops->type) != 1 || TYPE_UNSIGNED (ops->type)))
     {
-      tree type = lang_hooks.types.type_for_mode (mode, unsignedp);
-      return expand_expr (fold_single_bit_test (loc,
-						code == NE ? NE_EXPR : EQ_EXPR,
-						arg0, arg1, type),
-			  target, VOIDmode, EXPAND_NORMAL);
+      gimple srcstmt = get_def_for_expr (arg0, BIT_AND_EXPR);
+      if (srcstmt
+	  && integer_pow2p (gimple_assign_rhs2 (srcstmt)))
+	{
+	  enum tree_code tcode = code == NE ? NE_EXPR : EQ_EXPR;
+	  tree type = lang_hooks.types.type_for_mode (mode, unsignedp);
+	  tree temp = fold_build2_loc (loc, BIT_AND_EXPR, TREE_TYPE (arg1),
+				       gimple_assign_rhs1 (srcstmt),
+				       gimple_assign_rhs2 (srcstmt));
+	  temp = fold_single_bit_test (loc, tcode, temp, arg1, type);
+	  if (temp)
+	    return expand_expr (temp, target, VOIDmode, EXPAND_NORMAL);
+	}
     }
 
   if (! get_subtarget (target)

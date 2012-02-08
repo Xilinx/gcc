@@ -1,7 +1,7 @@
 /* Compiler driver program that can handle many languages.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
    1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010, 2011
+   2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -2445,9 +2445,17 @@ add_sysrooted_prefix (struct path_prefix *pprefix, const char *prefix,
 
   if (target_system_root)
     {
+      char *sysroot_no_trailing_dir_separator = xstrdup (target_system_root);
+      size_t sysroot_len = strlen (target_system_root);
+
+      if (sysroot_len > 0
+	  && target_system_root[sysroot_len - 1] == DIR_SEPARATOR)
+	sysroot_no_trailing_dir_separator[sysroot_len - 1] = '\0';
+
       if (target_sysroot_suffix)
 	  prefix = concat (target_sysroot_suffix, prefix, NULL);
-      prefix = concat (target_system_root, prefix, NULL);
+      prefix = concat (sysroot_no_trailing_dir_separator, prefix, NULL);
+      free (sysroot_no_trailing_dir_separator);
 
       /* We have to override this because GCC's notion of sysroot
 	 moves along with GCC.  */
@@ -2988,6 +2996,8 @@ display_help (void)
   fputs (_("  -S                       Compile only; do not assemble or link\n"), stdout);
   fputs (_("  -c                       Compile and assemble, but do not link\n"), stdout);
   fputs (_("  -o <file>                Place the output into <file>\n"), stdout);
+  fputs (_("  -pie                     Create a position independent executable\n"), stdout);
+  fputs (_("  -shared                  Create a shared library\n"), stdout);
   fputs (_("\
   -x <language>            Specify the language of the following input files\n\
                            Permissible languages include: c c++ assembler none\n\
@@ -6437,7 +6447,11 @@ main (int argc, char **argv)
 
   /* Set up to remember the pathname of the lto wrapper. */
 
-  lto_wrapper_file = find_a_file (&exec_prefixes, "lto-wrapper", X_OK, false);
+  if (have_c)
+    lto_wrapper_file = NULL;
+  else
+    lto_wrapper_file = find_a_file (&exec_prefixes, "lto-wrapper",
+				    X_OK, false);
   if (lto_wrapper_file)
     {
       lto_wrapper_spec = lto_wrapper_file;
@@ -6557,7 +6571,7 @@ main (int argc, char **argv)
     {
       printf (_("%s %s%s\n"), progname, pkgversion_string,
 	      version_string);
-      printf ("Copyright %s 2011 Free Software Foundation, Inc.\n",
+      printf ("Copyright %s 2012 Free Software Foundation, Inc.\n",
 	      _("(C)"));
       fputs (_("This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"),
@@ -6811,39 +6825,46 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
   if (num_linker_inputs > 0 && !seen_error () && print_subprocess_help < 2)
     {
       int tmp = execution_count;
+
+      if (! have_c)
+	{
 #if HAVE_LTO_PLUGIN > 0
 #if HAVE_LTO_PLUGIN == 2
-      const char *fno_use_linker_plugin = "fno-use-linker-plugin";
+	  const char *fno_use_linker_plugin = "fno-use-linker-plugin";
 #else
-      const char *fuse_linker_plugin = "fuse-linker-plugin";
+	  const char *fuse_linker_plugin = "fuse-linker-plugin";
 #endif
 #endif
 
-      /* We'll use ld if we can't find collect2.  */
-      if (! strcmp (linker_name_spec, "collect2"))
-	{
-	  char *s = find_a_file (&exec_prefixes, "collect2", X_OK, false);
-	  if (s == NULL)
-	    linker_name_spec = "ld";
-	}
+	  /* We'll use ld if we can't find collect2.  */
+	  if (! strcmp (linker_name_spec, "collect2"))
+	    {
+	      char *s = find_a_file (&exec_prefixes, "collect2", X_OK, false);
+	      if (s == NULL)
+		linker_name_spec = "ld";
+	    }
 
 #if HAVE_LTO_PLUGIN > 0
 #if HAVE_LTO_PLUGIN == 2
-      if (!switch_matches (fno_use_linker_plugin,
-			   fno_use_linker_plugin + strlen (fno_use_linker_plugin), 0))
+	  if (!switch_matches (fno_use_linker_plugin,
+			       fno_use_linker_plugin
+			       + strlen (fno_use_linker_plugin), 0))
 #else
-      if (switch_matches (fuse_linker_plugin,
-			  fuse_linker_plugin + strlen (fuse_linker_plugin), 0))
+	  if (switch_matches (fuse_linker_plugin,
+			      fuse_linker_plugin
+			      + strlen (fuse_linker_plugin), 0))
 #endif
-	{
-	  linker_plugin_file_spec = find_a_file (&exec_prefixes,
-						 LTOPLUGINSONAME, R_OK,
-						 false);
-	  if (!linker_plugin_file_spec)
-	    fatal_error ("-fuse-linker-plugin, but %s not found", LTOPLUGINSONAME);
+	    {
+	      linker_plugin_file_spec = find_a_file (&exec_prefixes,
+						     LTOPLUGINSONAME, R_OK,
+						     false);
+	      if (!linker_plugin_file_spec)
+		fatal_error ("-fuse-linker-plugin, but %s not found",
+			     LTOPLUGINSONAME);
+	    }
+#endif
+	  lto_gcc_spec = argv[0];
 	}
-#endif
-      lto_gcc_spec = argv[0];
 
       /* Rebuild the COMPILER_PATH and LIBRARY_PATH environment variables
 	 for collect.  */

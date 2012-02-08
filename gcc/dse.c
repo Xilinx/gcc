@@ -895,7 +895,12 @@ emit_inc_dec_insn_before (rtx mem ATTRIBUTE_UNUSED,
   /* We can reuse all operands without copying, because we are about
      to delete the insn that contained it.  */
   if (srcoff)
-    new_insn = gen_add3_insn (dest, src, srcoff);
+    {
+      start_sequence ();
+      emit_insn (gen_add3_insn (dest, src, srcoff));
+      new_insn = get_insns ();
+      end_sequence ();
+    }
   else
     new_insn = gen_move_insn (dest, src);
   info.first = new_insn;
@@ -1677,7 +1682,7 @@ record_store (rtx body, bb_info_t bb_info)
 	  if (canon_true_dependence (s_info->mem,
 				     GET_MODE (s_info->mem),
 				     s_info->mem_addr,
-				     mem, mem_addr, rtx_varies_p))
+				     mem, mem_addr))
 	    {
 	      s_info->rhs = NULL;
 	      s_info->const_rhs = NULL;
@@ -1945,7 +1950,7 @@ get_stored_val (store_info_t store_info, enum machine_mode read_mode,
 	      c |= (c << shift);
 	      shift <<= 1;
 	    }
-	  read_reg = GEN_INT (trunc_int_for_mode (c, store_mode));
+	  read_reg = gen_int_mode (c, store_mode);
 	  read_reg = extract_low_bits (read_mode, store_mode, read_reg);
 	}
     }
@@ -2274,7 +2279,7 @@ check_mem_read_rtx (rtx *loc, void *data)
 	      = canon_true_dependence (store_info->mem,
 				       GET_MODE (store_info->mem),
 				       store_info->mem_addr,
-				       mem, mem_addr, rtx_varies_p);
+				       mem, mem_addr);
 
 	  else if (group_id == store_info->group_id)
 	    {
@@ -2285,7 +2290,7 @@ check_mem_read_rtx (rtx *loc, void *data)
 		  = canon_true_dependence (store_info->mem,
 					   GET_MODE (store_info->mem),
 					   store_info->mem_addr,
-					   mem, mem_addr, rtx_varies_p);
+					   mem, mem_addr);
 
 	      /* If this read is just reading back something that we just
 		 stored, rewrite the read.  */
@@ -2372,7 +2377,7 @@ check_mem_read_rtx (rtx *loc, void *data)
 	    remove = canon_true_dependence (store_info->mem,
 					    GET_MODE (store_info->mem),
 					    store_info->mem_addr,
-					    mem, mem_addr, rtx_varies_p);
+					    mem, mem_addr);
 
 	  if (remove)
 	    {
@@ -2454,7 +2459,7 @@ get_call_args (rtx call_insn, tree fn, rtx *args, int nargs)
 	{
 	  if (!tmp || !CONST_INT_P (tmp))
 	    return false;
-	  tmp = GEN_INT (trunc_int_for_mode (INTVAL (tmp), mode));
+	  tmp = gen_int_mode (INTVAL (tmp), mode);
 	}
       if (tmp)
 	args[idx] = tmp;
@@ -3271,8 +3276,7 @@ scan_reads_nospill (insn_info_t insn_info, bitmap gen, bitmap kill)
 		      && canon_true_dependence (group->base_mem,
 						GET_MODE (group->base_mem),
 						group->canon_base_addr,
-						read_info->mem, NULL_RTX,
-						rtx_varies_p))
+						read_info->mem, NULL_RTX))
 		    {
 		      if (kill)
 			bitmap_ior_into (kill, group->group_kill);

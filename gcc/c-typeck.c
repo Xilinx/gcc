@@ -394,7 +394,7 @@ composite_type (tree t1, tree t2)
 	tree pointed_to_1 = TREE_TYPE (t1);
 	tree pointed_to_2 = TREE_TYPE (t2);
 	tree target = composite_type (pointed_to_1, pointed_to_2);
-	t1 = build_pointer_type (target);
+        t1 = build_pointer_type_for_mode (target, TYPE_MODE (t1), false);
 	t1 = build_type_attribute_variant (t1, attributes);
 	return qualify_type (t1, t2);
       }
@@ -1014,7 +1014,7 @@ comptypes_check_different_types (tree type1, tree type2,
    compatible integer type, then this sets *ENUM_AND_INT_P to true;
    *ENUM_AND_INT_P is never set to false.  If DIFFERENT_TYPES_P is not
    NULL, and the types are compatible but different enough not to be
-   permitted in C1X typedef redeclarations, then this sets
+   permitted in C11 typedef redeclarations, then this sets
    *DIFFERENT_TYPES_P to true; *DIFFERENT_TYPES_P is never set to
    false, but may or may not be set if the types are incompatible.
    This differs from comptypes, in that we don't free the seen

@@ -5,16 +5,20 @@
 package os
 
 import (
+	"io"
 	"syscall"
 	"unsafe"
 )
 
-func libc_dup(fd int) int __asm__ ("dup")
-func libc_opendir(*byte) *syscall.DIR __asm__ ("opendir")
-func libc_closedir(*syscall.DIR) int __asm__ ("closedir")
+//extern opendir
+func libc_opendir(*byte) *syscall.DIR
+
+//extern closedir
+func libc_closedir(*syscall.DIR) int
 
 // FIXME: pathconf returns long, not int.
-func libc_pathconf(*byte, int) int __asm__ ("pathconf")
+//extern pathconf
+func libc_pathconf(*byte, int) int
 
 func clen(n []byte) int {
 	for i := 0; i < len(n); i++ {
@@ -25,26 +29,14 @@ func clen(n []byte) int {
 	return len(n)
 }
 
-var elen int;
+var elen int
 
-// Readdirnames reads and returns a slice of names from the directory f.
-//
-// If n > 0, Readdirnames returns at most n names. In this case, if
-// Readdirnames returns an empty slice, it will return a non-nil error
-// explaining why. At the end of a directory, the error is os.EOF.
-//
-// If n <= 0, Readdirnames returns all the names from the directory in
-// a single slice. In this case, if Readdirnames succeeds (reads all
-// the way to the end of the directory), it returns the slice and a
-// nil os.Error. If it encounters an error before the end of the
-// directory, Readdirnames returns the names read until that point and
-// a non-nil error.
-func (file *File) Readdirnames(n int) (names []string, err Error) {
+func (file *File) readdirnames(n int) (names []string, err error) {
 	if elen == 0 {
-		var dummy syscall.Dirent;
+		var dummy syscall.Dirent
 		elen = (unsafe.Offsetof(dummy.Name) +
-			libc_pathconf(syscall.StringBytePtr(file.name),	syscall.PC_NAME_MAX) +
-			1);
+			libc_pathconf(syscall.StringBytePtr(file.name), syscall.PC_NAME_MAX) +
+			1)
 	}
 
 	if file.dirinfo == nil {
@@ -66,7 +58,7 @@ func (file *File) Readdirnames(n int) (names []string, err Error) {
 	dir := file.dirinfo.dir
 	if dir == nil {
 		return names, NewSyscallError("opendir", syscall.GetErrno())
-	}	
+	}
 
 	for n != 0 {
 		var result *syscall.Dirent
@@ -78,14 +70,14 @@ func (file *File) Readdirnames(n int) (names []string, err Error) {
 			break // EOF
 		}
 		var name = string(result.Name[0:clen(result.Name[0:])])
-		if name == "." || name == ".." {	// Useless names
+		if name == "." || name == ".." { // Useless names
 			continue
 		}
 		names = append(names, name)
 		n--
 	}
 	if n >= 0 && len(names) == 0 {
-		return names, EOF
+		return names, io.EOF
 	}
 	return names, nil
 }

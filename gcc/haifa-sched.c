@@ -1178,33 +1178,20 @@ recompute_todo_spec (rtx next)
       regno = REGNO (XEXP (cond, 0));
 
       /* Find the last scheduled insn that modifies the condition register.
-	 If we have a true dependency on it, it sets it to the correct value,
-	 otherwise it must be a later insn scheduled in-between that clobbers
-	 the condition.  */
-      FOR_EACH_VEC_ELT_REVERSE (rtx, scheduled_insns, i, prev)
-	{
-	  sd_iterator_def sd_it;
-	  dep_t dep;
-	  HARD_REG_SET t;
-	  bool found;
+	 We can stop looking once we find the insn we depend on through the
+	 REG_DEP_CONTROL; if the condition register isn't modified after it,
+	 we know that it still has the right value.  */
+      if (QUEUE_INDEX (pro) == QUEUE_SCHEDULED)
+	FOR_EACH_VEC_ELT_REVERSE (rtx, scheduled_insns, i, prev)
+	  {
+	    HARD_REG_SET t;
 
-	  find_all_hard_reg_sets (prev, &t);
-	  if (!TEST_HARD_REG_BIT (t, regno))
-	    continue;
-
-	  found = false;
-	  FOR_EACH_DEP (next, SD_LIST_RES_BACK, sd_it, dep)
-	    {
-	      if (DEP_PRO (dep) == prev && DEP_TYPE (dep) == REG_DEP_TRUE)
-		{
-		  found = true;
-		  break;
-		}
-	    }
-	  if (!found)
-	    return HARD_DEP;
-	  break;
-	}
+	    find_all_hard_reg_sets (prev, &t);
+	    if (TEST_HARD_REG_BIT (t, regno))
+	      return HARD_DEP;
+	    if (prev == pro)
+	      break;
+	  }
       if (ORIG_PAT (next) == NULL_RTX)
 	{
 	  ORIG_PAT (next) = PATTERN (next);
@@ -4848,6 +4835,10 @@ sched_init (void)
     {
       int i, max_regno = max_reg_num ();
 
+      if (sched_dump != NULL)
+	/* We need info about pseudos for rtl dumps about pseudo
+	   classes and costs.  */
+	regstat_init_n_sets_and_refs ();
       ira_set_pseudo_classes (sched_verbose ? sched_dump : NULL);
       sched_regno_pressure_class
 	= (enum reg_class *) xmalloc (max_regno * sizeof (enum reg_class));
@@ -4959,6 +4950,8 @@ sched_finish (void)
   haifa_finish_h_i_d ();
   if (sched_pressure_p)
     {
+      if (regstat_n_sets_and_refs != NULL)
+	regstat_free_n_sets_and_refs ();
       free (sched_regno_pressure_class);
       BITMAP_FREE (region_ref_regs);
       BITMAP_FREE (saved_reg_live);
@@ -6500,20 +6493,6 @@ add_jump_dependencies (rtx insn, rtx jump)
   while (1);
 
   gcc_assert (!sd_lists_empty_p (jump, SD_LIST_BACK));
-}
-
-/* Return the NOTE_INSN_BASIC_BLOCK of BB.  */
-rtx
-bb_note (basic_block bb)
-{
-  rtx note;
-
-  note = BB_HEAD (bb);
-  if (LABEL_P (note))
-    note = NEXT_INSN (note);
-
-  gcc_assert (NOTE_INSN_BASIC_BLOCK_P (note));
-  return note;
 }
 
 /* Extend data structures for logical insn UID.  */

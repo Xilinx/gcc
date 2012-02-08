@@ -1298,8 +1298,7 @@ experimental option which may become the default in a later release.
 @item --enable-build-poststage1-with-cxx
 When bootstrapping, build stages 2 and 3 of GCC using a C++ compiler
 rather than a C compiler.  Stage 1 is still built with a C compiler.
-This is an experimental option which may become the default in a later
-release.  This is enabled by default and may be disabled using
+This is enabled by default and may be disabled using
 @option{--disable-build-poststage1-with-cxx}.
 
 @item --enable-maintainer-mode
@@ -3273,6 +3272,29 @@ is available at @uref{http://blackfin.uclinux.org}
 @html
 <hr />
 @end html
+@heading @anchor{cr16}CR16
+
+The CR16 CompactRISC architecture is a 16-bit architecture. This architecture is 
+used in embedded applications.
+
+@ifnothtml
+@xref{CR16 Options,, CR16 Options, gcc, Using and Porting the GNU Compiler
+Collection (GCC)},
+@end ifnothtml
+
+@ifhtml
+See ``CR16 Options'' in the main manual for a list of CR16-specific options.
+@end ifhtml
+
+Use @samp{configure --target=cr16-elf --enable-languages=c,c++} to configure
+GCC@ for building a CR16 elf cross-compiler.
+
+Use @samp{configure --target=cr16-uclinux --enable-languages=c,c++} to configure
+GCC@ for building a CR16 uclinux cross-compiler.
+
+@html
+<hr />
+@end html
 @heading @anchor{cris}CRIS
 
 CRIS is the CPU architecture in Axis Communications ETRAX system-on-a-chip
@@ -4141,6 +4163,13 @@ Embedded PowerPC system in little endian mode.
 @html
 <hr />
 @end html
+@heading @anchor{rl78-x-elf}rl78-*-elf
+The Renesas RL78 processor.
+This configuration is intended for embedded systems.
+
+@html
+<hr />
+@end html
 @heading @anchor{rx-x-elf}rx-*-elf
 The Renesas RX processor.  See
 @uref{http://eu.renesas.com/fmwk.jsp?cnt=rx600_series_landing.jsp&fp=/products/mpumcu/rx_family/rx600_series}
@@ -4476,7 +4505,7 @@ both 64-bit x86-64 and 32-bit x86 code (via the @option{-m32} switch).
 @html
 <hr />
 @end html
-@heading @anchor{x86-64-x-solaris2.10}x86_64-*-solaris2.1[0-9]*
+@heading @anchor{x86-64-x-solaris210}x86_64-*-solaris2.1[0-9]*
 
 GCC also supports the x86-64 architecture implemented by the AMD64
 processor (@samp{amd64-*-*} is an alias for @samp{x86_64-*-*}) on

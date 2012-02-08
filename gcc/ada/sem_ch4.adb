@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -50,6 +50,7 @@ with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch5;  use Sem_Ch5;
 with Sem_Ch6;  use Sem_Ch6;
 with Sem_Ch8;  use Sem_Ch8;
+with Sem_Dim;  use Sem_Dim;
 with Sem_Disp; use Sem_Disp;
 with Sem_Dist; use Sem_Dist;
 with Sem_Eval; use Sem_Eval;
@@ -61,6 +62,7 @@ with Stand;    use Stand;
 with Sinfo;    use Sinfo;
 with Snames;   use Snames;
 with Tbuild;   use Tbuild;
+with Uintp;    use Uintp;
 
 package body Sem_Ch4 is
 
@@ -576,10 +578,12 @@ package body Sem_Ch4 is
                --  and the allocated object is unconstrained.
 
                elsif Ada_Version >= Ada_2005
-                 and then Has_Constrained_Partial_View (Base_Typ)
+                 and then Effectively_Has_Constrained_Partial_View
+                            (Typ  => Base_Typ,
+                             Scop => Current_Scope)
                then
                   Error_Msg_N
-                    ("constraint no allowed when type " &
+                    ("constraint not allowed when type " &
                       "has a constrained partial view", Constraint (E));
                end if;
 
@@ -2634,6 +2638,34 @@ package body Sem_Ch4 is
       end if;
    end Analyze_Membership_Op;
 
+   -----------------
+   -- Analyze_Mod --
+   -----------------
+
+   procedure Analyze_Mod (N : Node_Id) is
+   begin
+      --  A special warning check, if we have an expression of the form:
+      --    expr mod 2 * literal
+      --  where literal is 64 or less, then probably what was meant was
+      --    expr mod 2 ** literal
+      --  so issue an appropriate warning.
+
+      if Warn_On_Suspicious_Modulus_Value
+        and then Nkind (Right_Opnd (N)) = N_Integer_Literal
+        and then Intval (Right_Opnd (N)) = Uint_2
+        and then Nkind (Parent (N)) = N_Op_Multiply
+        and then Nkind (Right_Opnd (Parent (N))) = N_Integer_Literal
+        and then Intval (Right_Opnd (Parent (N))) <= Uint_64
+      then
+         Error_Msg_N
+           ("suspicious MOD value, was '*'* intended'??", Parent (N));
+      end if;
+
+      --  Remaining processing is same as for other arithmetic operators
+
+      Analyze_Arithmetic_Op (N);
+   end Analyze_Mod;
+
    ----------------------
    -- Analyze_Negation --
    ----------------------
@@ -3432,8 +3464,8 @@ package body Sem_Ch4 is
       --  of the high bound.
 
       procedure Check_Universal_Expression (N : Node_Id);
-      --  In Ada83, reject bounds of a universal range that are not literals or
-      --  entity names.
+      --  In Ada 83, reject bounds of a universal range that are not literals
+      --  or entity names.
 
       -----------------------
       -- Check_Common_Type --
@@ -3855,8 +3887,10 @@ package body Sem_Ch4 is
       elsif Is_Record_Type (Prefix_Type) then
 
          --  Find component with given name
+         --  In an instance, if the node is known as a prefixed call, do
+         --  not examine components whose visibility may be accidental.
 
-         while Present (Comp) loop
+         while Present (Comp) and then not Is_Prefixed_Call (N) loop
             if Chars (Comp) = Chars (Sel)
               and then Is_Visible_Component (Comp)
             then
@@ -6038,8 +6072,17 @@ package body Sem_Ch4 is
                 First_Subtype (Base_Type (Etype (R))) /= Standard_Integer
               and then Base_Type (Etype (R)) /= Universal_Integer
             then
-               Error_Msg_NE
-                 ("exponent must be of type Natural, found}", R, Etype (R));
+               if Ada_Version >= Ada_2012
+                 and then Has_Dimension_System (Etype (L))
+               then
+                  Error_Msg_NE
+                    ("exponent for dimensioned type must be a rational" &
+                     ", found}", R, Etype (R));
+               else
+                  Error_Msg_NE
+                    ("exponent must be of type Natural, found}", R, Etype (R));
+               end if;
+
                return;
             end if;
 
@@ -6217,6 +6260,11 @@ package body Sem_Ch4 is
 
    begin
       if Is_Overloaded (N) then
+         if Debug_Flag_V then
+            Write_Str ("Remove_Abstract_Operations: ");
+            Write_Overloads (N);
+         end if;
+
          Get_First_Interp (N, I, It);
 
          while Present (It.Nam) loop
@@ -6231,7 +6279,7 @@ package body Sem_Ch4 is
                   Remove_Interp (I);
                   exit;
 
-               --  In Ada 2005, this operation does not participate in Overload
+               --  In Ada 2005, this operation does not participate in overload
                --  resolution. If the operation is defined in a predefined
                --  unit, it is one of the operations declared abstract in some
                --  variants of System, and it must be removed as well.
@@ -6410,6 +6458,11 @@ package body Sem_Ch4 is
                end loop;
             end if;
          end if;
+
+         if Debug_Flag_V then
+            Write_Str ("Remove_Abstract_Operations done: ");
+            Write_Overloads (N);
+         end if;
       end if;
    end Remove_Abstract_Operations;
 
@@ -6469,18 +6522,22 @@ package body Sem_Ch4 is
          Rewrite (N, Indexing);
          Analyze (N);
 
-         --  The return type of the indexing function is a reference type, so
-         --  add the dereference as a possible interpretation.
+         --  If the return type of the indexing function is a reference type,
+         --  add the dereference as a possible interpretation. Note that the
+         --  indexing aspect may be a function that returns the element type
+         --  with no intervening implicit dereference.
 
-         Disc := First_Discriminant (Etype (Func));
-         while Present (Disc) loop
-            if Has_Implicit_Dereference (Disc) then
-               Add_One_Interp (N, Disc, Designated_Type (Etype (Disc)));
-               exit;
-            end if;
+         if Has_Discriminants (Etype (Func)) then
+            Disc := First_Discriminant (Etype (Func));
+            while Present (Disc) loop
+               if Has_Implicit_Dereference (Disc) then
+                  Add_One_Interp (N, Disc, Designated_Type (Etype (Disc)));
+                  exit;
+               end if;
 
-            Next_Discriminant (Disc);
-         end loop;
+               Next_Discriminant (Disc);
+            end loop;
+         end if;
 
       else
          Indexing := Make_Function_Call (Loc,
@@ -6506,16 +6563,18 @@ package body Sem_Ch4 is
 
                   --  Add implicit dereference interpretation
 
-                  Disc := First_Discriminant (Etype (It.Nam));
-                  while Present (Disc) loop
-                     if Has_Implicit_Dereference (Disc) then
-                        Add_One_Interp
-                          (N, Disc, Designated_Type (Etype (Disc)));
-                        exit;
-                     end if;
+                  if Has_Discriminants (Etype (It.Nam)) then
+                     Disc := First_Discriminant (Etype (It.Nam));
+                     while Present (Disc) loop
+                        if Has_Implicit_Dereference (Disc) then
+                           Add_One_Interp
+                             (N, Disc, Designated_Type (Etype (Disc)));
+                           exit;
+                        end if;
 
-                     Next_Discriminant (Disc);
-                  end loop;
+                        Next_Discriminant (Disc);
+                     end loop;
+                  end if;
 
                   exit;
                end if;
@@ -7146,11 +7205,13 @@ package body Sem_Ch4 is
 
             --  Find a non-hidden operation whose first parameter is of the
             --  class-wide type, a subtype thereof, or an anonymous access
-            --  to same.
+            --  to same. If in an instance, the operation can be considered
+            --  even if hidden (it may be hidden because the instantiation is
+            --  expanded after the containing package has been analyzed).
 
             while Present (Hom) loop
                if Ekind_In (Hom, E_Procedure, E_Function)
-                 and then not Is_Hidden (Hom)
+                 and then (not Is_Hidden (Hom) or else In_Instance)
                  and then Scope (Hom) = Scope (Anc_Type)
                  and then Present (First_Formal (Hom))
                  and then

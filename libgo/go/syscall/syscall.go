@@ -9,8 +9,9 @@
 // packages rather than this one if you can.
 // For details of the functions and data types in this package consult
 // the manuals for the appropriate operating system.
-// These calls return errno == 0 to indicate success; otherwise
-// errno is an operating system error number describing the failure.
+// These calls return err == nil to indicate success; otherwise
+// err is an operating system error describing the failure.
+// On most systems, that error has type syscall.Errno.
 package syscall
 
 import "unsafe"
@@ -33,3 +34,11 @@ var _zero uintptr
 
 var dummy *byte
 const sizeofPtr uintptr = uintptr(unsafe.Sizeof(dummy))
+
+func (ts *Timespec) Unix() (sec int64, nsec int64) {
+	return int64(ts.Sec), int64(ts.Nsec)
+}
+
+func (tv *Timeval) Unix() (sec int64, nsec int64) {
+	return int64(tv.Sec), int64(tv.Usec) * 1000
+}

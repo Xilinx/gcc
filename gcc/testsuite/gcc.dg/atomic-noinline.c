@@ -31,7 +31,7 @@ main ()
   if (ac != 1)
     abort ();
 
-  __atomic_compare_exchange_n (&as, &bs, cs, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+  __atomic_compare_exchange_n (&as, &bs, cs, 0, __ATOMIC_SEQ_CST, __ATOMIC_ACQUIRE);
   if (as != 1)
     abort ();
 
@@ -49,6 +49,13 @@ main ()
   if (__atomic_is_lock_free (4, 0) != 10)
     abort ();
    
+  /* PR 51040 was caused by arithmetic code not patching up nand_fetch properly
+     when used an an external function.  Look for proper return value here.  */
+  ac = 0x3C;
+  bc = __atomic_nand_fetch (&ac, 0x0f, __ATOMIC_RELAXED);
+  if (bc != ac)
+    abort ();
+
   return 0;
 }
 

@@ -1,5 +1,5 @@
 /* Declaration statement matcher
-   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -26,12 +26,16 @@ along with GCC; see the file COPYING3.  If not see
 #include "parse.h"
 #include "flags.h"
 #include "constructor.h"
+#include "tree.h"
 
 /* Macros to access allocate memory for gfc_data_variable,
    gfc_data_value and gfc_data.  */
 #define gfc_get_data_variable() XCNEW (gfc_data_variable)
 #define gfc_get_data_value() XCNEW (gfc_data_value)
 #define gfc_get_data() XCNEW (gfc_data)
+
+
+static gfc_try set_binding_label (const char **, const char *, int);
 
 
 /* This flag is set if an old-style length selector is matched
@@ -51,7 +55,7 @@ static gfc_array_spec *current_as;
 static int colon_seen;
 
 /* The current binding label (if any).  */
-static char curr_binding_label[GFC_MAX_BINDING_LABEL_LEN + 1];
+static const char* curr_binding_label;
 /* Need to know how many identifiers are on the current data declaration
    line in case we're given the BIND(C) attribute with a NAME= specifier.  */
 static int num_idents_on_line;
@@ -323,7 +327,7 @@ static match
 match_data_constant (gfc_expr **result)
 {
   char name[GFC_MAX_SYMBOL_LEN + 1];
-  gfc_symbol *sym;
+  gfc_symbol *sym, *dt_sym = NULL;
   gfc_expr *expr;
   match m;
   locus old_loc;
@@ -366,15 +370,19 @@ match_data_constant (gfc_expr **result)
   if (gfc_find_symbol (name, NULL, 1, &sym))
     return MATCH_ERROR;
 
+  if (sym && sym->attr.generic)
+    dt_sym = gfc_find_dt_in_generic (sym);
+
   if (sym == NULL
-      || (sym->attr.flavor != FL_PARAMETER && sym->attr.flavor != FL_DERIVED))
+      || (sym->attr.flavor != FL_PARAMETER
+	  && (!dt_sym || dt_sym->attr.flavor != FL_DERIVED)))
     {
       gfc_error ("Symbol '%s' must be a PARAMETER in DATA statement at %C",
 		 name);
       return MATCH_ERROR;
     }
-  else if (sym->attr.flavor == FL_DERIVED)
-    return gfc_match_structure_constructor (sym, result, false);
+  else if (dt_sym && dt_sym->attr.flavor == FL_DERIVED)
+    return gfc_match_structure_constructor (dt_sym, result);
 
   /* Check to see if the value is an initialization array expression.  */
   if (sym->value->expr_type == EXPR_ARRAY)
@@ -1160,11 +1168,11 @@ build_sym (const char *name, gfc_charlen *cl, bool cl_deferred,
      with a bind(c) and make sure the binding label is set correctly.  */
   if (sym->attr.is_bind_c == 1)
     {
-      if (sym->binding_label[0] == '\0')
+      if (!sym->binding_label)
         {
 	  /* Set the binding label and verify that if a NAME= was specified
 	     then only one identifier was in the entity-decl-list.  */
-	  if (set_binding_label (sym->binding_label, sym->name,
+	  if (set_binding_label (&sym->binding_label, sym->name,
 				 num_idents_on_line) == FAILURE)
             return FAILURE;
         }
@@ -1568,7 +1576,8 @@ build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
 
   /* Should this ever get more complicated, combine with similar section
      in add_init_expr_to_sym into a separate function.  */
-  if (c->ts.type == BT_CHARACTER && !c->attr.pointer && c->initializer && c->ts.u.cl
+  if (c->ts.type == BT_CHARACTER && !c->attr.pointer && c->initializer
+      && c->ts.u.cl
       && c->ts.u.cl->length && c->ts.u.cl->length->expr_type == EXPR_CONSTANT)
     {
       int len;
@@ -1954,10 +1963,10 @@ variable_decl (int elem)
       st = gfc_find_symtree (gfc_current_ns->sym_root, current_ts.u.derived->name);
       if (!(current_ts.u.derived->attr.imported
 		&& st != NULL
-		&& st->n.sym == current_ts.u.derived)
+		&& gfc_find_dt_in_generic (st->n.sym) == current_ts.u.derived)
 	    && !gfc_current_ns->has_import_set)
 	{
-	    gfc_error ("the type of '%s' at %C has not been declared within the "
+	    gfc_error ("The type of '%s' at %C has not been declared within the "
 		       "interface", name);
 	    m = MATCH_ERROR;
 	    goto cleanup;
@@ -2097,6 +2106,33 @@ gfc_match_old_kind_spec (gfc_typespec *ts)
 	  return MATCH_ERROR;
 	}
       ts->kind /= 2;
+
+    }
+
+  if (ts->type == BT_INTEGER && ts->kind == 4 && gfc_option.flag_integer4_kind == 8)
+    ts->kind = 8;
+
+  if (ts->type == BT_REAL || ts->type == BT_COMPLEX)
+    {
+      if (ts->kind == 4)
+	{
+	  if (gfc_option.flag_real4_kind == 8)
+	    ts->kind =  8;
+	  if (gfc_option.flag_real4_kind == 10)
+	    ts->kind = 10;
+	  if (gfc_option.flag_real4_kind == 16)
+	    ts->kind = 16;
+	}
+
+      if (ts->kind == 8)
+	{
+	  if (gfc_option.flag_real8_kind == 4)
+	    ts->kind = 4;
+	  if (gfc_option.flag_real8_kind == 10)
+	    ts->kind = 10;
+	  if (gfc_option.flag_real8_kind == 16)
+	    ts->kind = 16;
+	}
     }
 
   if (gfc_validate_kind (ts->type, ts->kind, true) < 0)
@@ -2242,7 +2278,33 @@ kind_expr:
 
   if(m == MATCH_ERROR)
      gfc_current_locus = where;
-  
+
+  if (ts->type == BT_INTEGER && ts->kind == 4 && gfc_option.flag_integer4_kind == 8)
+    ts->kind =  8;
+
+  if (ts->type == BT_REAL || ts->type == BT_COMPLEX)
+    {
+      if (ts->kind == 4)
+	{
+	  if (gfc_option.flag_real4_kind == 8)
+	    ts->kind =  8;
+	  if (gfc_option.flag_real4_kind == 10)
+	    ts->kind = 10;
+	  if (gfc_option.flag_real4_kind == 16)
+	    ts->kind = 16;
+	}
+
+      if (ts->kind == 8)
+	{
+	  if (gfc_option.flag_real8_kind == 4)
+	    ts->kind = 4;
+	  if (gfc_option.flag_real8_kind == 10)
+	    ts->kind = 10;
+	  if (gfc_option.flag_real8_kind == 16)
+	    ts->kind = 16;
+	}
+    }
+
   /* Return what we know from the test(s).  */
   return m;
 
@@ -2501,10 +2563,11 @@ match
 gfc_match_decl_type_spec (gfc_typespec *ts, int implicit_flag)
 {
   char name[GFC_MAX_SYMBOL_LEN + 1];
-  gfc_symbol *sym;
+  gfc_symbol *sym, *dt_sym;
   match m;
   char c;
   bool seen_deferred_kind, matched_type;
+  const char *dt_name;
 
   /* A belt and braces check that the typespec is correctly being treated
      as a deferred characteristic association.  */
@@ -2516,7 +2579,7 @@ gfc_match_decl_type_spec (gfc_typespec *ts, int implicit_flag)
     ts->kind = -1;
 
   /* Clear the current binding label, in case one is given.  */
-  curr_binding_label[0] = '\0';
+  curr_binding_label = NULL;
 
   if (gfc_match (" byte") == MATCH_YES)
     {
@@ -2668,40 +2731,96 @@ gfc_match_decl_type_spec (gfc_typespec *ts, int implicit_flag)
       ts->u.derived = NULL;
       if (gfc_current_state () != COMP_INTERFACE
 	    && !gfc_find_symbol (name, NULL, 1, &sym) && sym)
-	ts->u.derived = sym;
+	{
+	  sym = gfc_find_dt_in_generic (sym);
+	  ts->u.derived = sym;
+	}
       return MATCH_YES;
     }
 
   /* Search for the name but allow the components to be defined later.  If
      type = -1, this typespec has been seen in a function declaration but
-     the type could not be accessed at that point.  */
+     the type could not be accessed at that point.  The actual derived type is
+     stored in a symtree with the first letter of the name captialized; the
+     symtree with the all lower-case name contains the associated
+     generic function.  */
+  dt_name = gfc_get_string ("%c%s",
+			    (char) TOUPPER ((unsigned char) name[0]),
+			    (const char*)&name[1]);
   sym = NULL;
-  if (ts->kind != -1 && gfc_get_ha_symbol (name, &sym))
+  dt_sym = NULL;
+  if (ts->kind != -1)
     {
-      gfc_error ("Type name '%s' at %C is ambiguous", name);
-      return MATCH_ERROR;
+      gfc_get_ha_symbol (name, &sym);
+      if (sym->generic && gfc_find_symbol (dt_name, NULL, 0, &dt_sym))
+	{
+	  gfc_error ("Type name '%s' at %C is ambiguous", name);
+	  return MATCH_ERROR;
+	}
+      if (sym->generic && !dt_sym)
+	dt_sym = gfc_find_dt_in_generic (sym);
     }
   else if (ts->kind == -1)
     {
       int iface = gfc_state_stack->previous->state != COMP_INTERFACE
 		    || gfc_current_ns->has_import_set;
-      if (gfc_find_symbol (name, NULL, iface, &sym))
+      gfc_find_symbol (name, NULL, iface, &sym);
+      if (sym && sym->generic && gfc_find_symbol (dt_name, NULL, 1, &dt_sym))
 	{       
 	  gfc_error ("Type name '%s' at %C is ambiguous", name);
 	  return MATCH_ERROR;
 	}
+      if (sym && sym->generic && !dt_sym)
+	dt_sym = gfc_find_dt_in_generic (sym);
 
       ts->kind = 0;
       if (sym == NULL)
 	return MATCH_NO;
     }
 
-  if (sym->attr.flavor != FL_DERIVED
-      && gfc_add_flavor (&sym->attr, FL_DERIVED, sym->name, NULL) == FAILURE)
-    return MATCH_ERROR;
+  if ((sym->attr.flavor != FL_UNKNOWN
+       && !(sym->attr.flavor == FL_PROCEDURE && sym->attr.generic))
+      || sym->attr.subroutine)
+    {
+      gfc_error ("Type name '%s' at %C conflicts with previously declared "
+	         "entity at %L, which has the same name", name,
+		 &sym->declared_at);
+      return MATCH_ERROR;
+    }
 
   gfc_set_sym_referenced (sym);
-  ts->u.derived = sym;
+  if (!sym->attr.generic
+      && gfc_add_generic (&sym->attr, sym->name, NULL) == FAILURE)
+    return MATCH_ERROR;
+
+  if (!sym->attr.function
+      && gfc_add_function (&sym->attr, sym->name, NULL) == FAILURE)
+    return MATCH_ERROR;
+
+  if (!dt_sym)
+    {
+      gfc_interface *intr, *head;
+
+      /* Use upper case to save the actual derived-type symbol.  */
+      gfc_get_symbol (dt_name, NULL, &dt_sym);
+      dt_sym->name = gfc_get_string (sym->name);
+      head = sym->generic;
+      intr = gfc_get_interface ();
+      intr->sym = dt_sym;
+      intr->where = gfc_current_locus;
+      intr->next = head;
+      sym->generic = intr;
+      sym->attr.if_source = IFSRC_DECL;
+    }
+
+  gfc_set_sym_referenced (dt_sym);
+
+  if (dt_sym->attr.flavor != FL_DERIVED
+      && gfc_add_flavor (&dt_sym->attr, FL_DERIVED, sym->name, NULL)
+			 == FAILURE)
+    return MATCH_ERROR;
+
+  ts->u.derived = dt_sym;
 
   return MATCH_YES;
 
@@ -3052,6 +3171,20 @@ gfc_match_import (void)
 	  st->n.sym = sym;
 	  sym->refs++;
 	  sym->attr.imported = 1;
+
+	  if (sym->attr.generic && (sym = gfc_find_dt_in_generic (sym)))
+	    {
+	      /* The actual derived type is stored in a symtree with the first
+		 letter of the name captialized; the symtree with the all
+		 lower-case name contains the associated generic function. */
+	      st = gfc_new_symtree (&gfc_current_ns->sym_root,
+			gfc_get_string ("%c%s",
+				(char) TOUPPER ((unsigned char) sym->name[0]),
+				&sym->name[1]));
+	      st->n.sym = sym;
+	      sym->refs++;
+	      sym->attr.imported = 1;
+	    }
 
 	  goto next_item;
 
@@ -3674,8 +3807,9 @@ cleanup:
    (J3/04-007, section 15.4.1).  If a binding label was given and
    there is more than one argument (num_idents), it is an error.  */
 
-gfc_try
-set_binding_label (char *dest_label, const char *sym_name, int num_idents)
+static gfc_try
+set_binding_label (const char **dest_label, const char *sym_name, 
+		   int num_idents)
 {
   if (num_idents > 1 && has_name_equals)
     {
@@ -3684,17 +3818,15 @@ set_binding_label (char *dest_label, const char *sym_name, int num_idents)
       return FAILURE;
     }
 
-  if (curr_binding_label[0] != '\0')
-    {
-      /* Binding label given; store in temp holder til have sym.  */
-      strcpy (dest_label, curr_binding_label);
-    }
+  if (curr_binding_label)
+    /* Binding label given; store in temp holder til have sym.  */
+    *dest_label = curr_binding_label;
   else
     {
       /* No binding label given, and the NAME= specifier did not exist,
          which means there was no NAME="".  */
       if (sym_name != NULL && has_name_equals == 0)
-        strcpy (dest_label, sym_name);
+        *dest_label = IDENTIFIER_POINTER (get_identifier (sym_name));
     }
    
   return SUCCESS;
@@ -3874,7 +4006,7 @@ verify_bind_c_sym (gfc_symbol *tmp_sym, gfc_typespec *ts,
   /* See if the symbol has been marked as private.  If it has, make sure
      there is no binding label and warn the user if there is one.  */
   if (tmp_sym->attr.access == ACCESS_PRIVATE
-      && tmp_sym->binding_label[0] != '\0')
+      && tmp_sym->binding_label)
       /* Use gfc_warning_now because we won't say that the symbol fails
 	 just because of this.	*/
       gfc_warning_now ("Symbol '%s' at %L is marked PRIVATE but has been "
@@ -3900,7 +4032,7 @@ set_verify_bind_c_sym (gfc_symbol *tmp_sym, int num_idents)
   /* Set the is_bind_c bit in symbol_attribute.  */
   gfc_add_is_bind_c (&(tmp_sym->attr), tmp_sym->name, &gfc_current_locus, 0);
 
-  if (set_binding_label (tmp_sym->binding_label, tmp_sym->name, 
+  if (set_binding_label (&tmp_sym->binding_label, tmp_sym->name,
 			 num_idents) != SUCCESS)
     return FAILURE;
 
@@ -3917,7 +4049,8 @@ set_verify_bind_c_com_block (gfc_common_head *com_block, int num_idents)
   gfc_try retval = SUCCESS;
   
   /* destLabel, common name, typespec (which may have binding label).  */
-  if (set_binding_label (com_block->binding_label, com_block->name, num_idents)
+  if (set_binding_label (&com_block->binding_label, com_block->name, 
+			 num_idents)
       != SUCCESS)
     return FAILURE;
 
@@ -4028,7 +4161,7 @@ gfc_match_bind_c_stmt (void)
   /* This may not be necessary.  */
   gfc_clear_ts (ts);
   /* Clear the temporary binding label holder.  */
-  curr_binding_label[0] = '\0';
+  curr_binding_label = NULL;
 
   /* Look for the bind(c).  */
   found_match = gfc_match_bind_c (NULL, true);
@@ -4736,7 +4869,8 @@ match_procedure_decl (void)
 	      return MATCH_ERROR;
 	    }
 	  /* Set binding label for BIND(C).  */
-	  if (set_binding_label (sym->binding_label, sym->name, num) != SUCCESS)
+	  if (set_binding_label (&sym->binding_label, sym->name, num) 
+	      != SUCCESS)
 	    return MATCH_ERROR;
 	}
 
@@ -5580,7 +5714,7 @@ match
 gfc_match_bind_c (gfc_symbol *sym, bool allow_binding_name)
 {
   /* binding label, if exists */   
-  char binding_label[GFC_MAX_SYMBOL_LEN + 1];
+  const char* binding_label = NULL;
   match double_quote;
   match single_quote;
 
@@ -5588,10 +5722,6 @@ gfc_match_bind_c (gfc_symbol *sym, bool allow_binding_name)
      specifier or not.  */
   has_name_equals = 0;
 
-  /* Init the first char to nil so we can catch if we don't have
-     the label (name attr) or the symbol name yet.  */
-  binding_label[0] = '\0';
-   
   /* This much we have to be able to match, in this order, if
      there is a bind(c) label.	*/
   if (gfc_match (" bind ( c ") != MATCH_YES)
@@ -5626,7 +5756,7 @@ gfc_match_bind_c (gfc_symbol *sym, bool allow_binding_name)
       
       /* Grab the binding label, using functions that will not lower
 	 case the names automatically.	*/
-      if (gfc_match_name_C (binding_label) != MATCH_YES)
+      if (gfc_match_name_C (&binding_label) != MATCH_YES)
 	 return MATCH_ERROR;
       
       /* Get the closing quotation.  */
@@ -5674,14 +5804,12 @@ gfc_match_bind_c (gfc_symbol *sym, bool allow_binding_name)
   /* Save the binding label to the symbol.  If sym is null, we're
      probably matching the typespec attributes of a declaration and
      haven't gotten the name yet, and therefore, no symbol yet.	 */
-  if (binding_label[0] != '\0')
+  if (binding_label)
     {
       if (sym != NULL)
-      {
-	strcpy (sym->binding_label, binding_label);
-      }
+	sym->binding_label = binding_label;
       else
-	strcpy (curr_binding_label, binding_label);
+	curr_binding_label = binding_label;
     }
   else if (allow_binding_name)
     {
@@ -5690,7 +5818,7 @@ gfc_match_bind_c (gfc_symbol *sym, bool allow_binding_name)
 	 If name="" or allow_binding_name is false, no C binding name is
 	 created. */
       if (sym != NULL && sym->name != NULL && has_name_equals == 0)
-	strncpy (sym->binding_label, sym->name, strlen (sym->name) + 1);
+	sym->binding_label = IDENTIFIER_POINTER (get_identifier (sym->name));
     }
 
   if (has_name_equals && gfc_current_state () == COMP_INTERFACE
@@ -6475,7 +6603,7 @@ access_attr_decl (gfc_statement st)
   char name[GFC_MAX_SYMBOL_LEN + 1];
   interface_type type;
   gfc_user_op *uop;
-  gfc_symbol *sym;
+  gfc_symbol *sym, *dt_sym;
   gfc_intrinsic_op op;
   match m;
 
@@ -6503,6 +6631,13 @@ access_attr_decl (gfc_statement st)
 	  if (gfc_add_access (&sym->attr, (st == ST_PUBLIC)
 					  ? ACCESS_PUBLIC : ACCESS_PRIVATE,
 			      sym->name, NULL) == FAILURE)
+	    return MATCH_ERROR;
+
+	  if (sym->attr.generic && (dt_sym = gfc_find_dt_in_generic (sym))
+	      && gfc_add_access (&dt_sym->attr,
+				 (st == ST_PUBLIC) ? ACCESS_PUBLIC
+						   : ACCESS_PRIVATE,
+				 sym->name, NULL) == FAILURE)
 	    return MATCH_ERROR;
 
 	  break;
@@ -7175,6 +7310,8 @@ check_extended_derived_type (char *name)
       return NULL;
     }
 
+  extended = gfc_find_dt_in_generic (extended);
+
   if (extended->attr.flavor != FL_DERIVED)
     {
       gfc_error ("'%s' in EXTENDS expression at %C is not a "
@@ -7277,11 +7414,12 @@ gfc_match_derived_decl (void)
   char name[GFC_MAX_SYMBOL_LEN + 1];
   char parent[GFC_MAX_SYMBOL_LEN + 1];
   symbol_attribute attr;
-  gfc_symbol *sym;
+  gfc_symbol *sym, *gensym;
   gfc_symbol *extended;
   match m;
   match is_type_attr_spec = MATCH_NO;
   bool seen_attr = false;
+  gfc_interface *intr = NULL, *head;
 
   if (gfc_current_state () == COMP_DERIVED)
     return MATCH_NO;
@@ -7327,14 +7465,48 @@ gfc_match_derived_decl (void)
       return MATCH_ERROR;
     }
 
-  if (gfc_get_symbol (name, NULL, &sym))
+  if (gfc_get_symbol (name, NULL, &gensym))
     return MATCH_ERROR;
 
-  if (sym->ts.type != BT_UNKNOWN)
+  if (!gensym->attr.generic && gensym->ts.type != BT_UNKNOWN)
     {
       gfc_error ("Derived type name '%s' at %C already has a basic type "
-		 "of %s", sym->name, gfc_typename (&sym->ts));
+		 "of %s", gensym->name, gfc_typename (&gensym->ts));
       return MATCH_ERROR;
+    }
+
+  if (!gensym->attr.generic
+      && gfc_add_generic (&gensym->attr, gensym->name, NULL) == FAILURE)
+    return MATCH_ERROR;
+
+  if (!gensym->attr.function
+      && gfc_add_function (&gensym->attr, gensym->name, NULL) == FAILURE)
+    return MATCH_ERROR;
+
+  sym = gfc_find_dt_in_generic (gensym);
+
+  if (sym && (sym->components != NULL || sym->attr.zero_comp))
+    {
+      gfc_error ("Derived type definition of '%s' at %C has already been "
+                 "defined", sym->name);
+      return MATCH_ERROR;
+    }
+
+  if (!sym)
+    {
+      /* Use upper case to save the actual derived-type symbol.  */
+      gfc_get_symbol (gfc_get_string ("%c%s",
+			(char) TOUPPER ((unsigned char) gensym->name[0]),
+			&gensym->name[1]), NULL, &sym);
+      sym->name = gfc_get_string (gensym->name);
+      head = gensym->generic;
+      intr = gfc_get_interface ();
+      intr->sym = sym;
+      intr->where = gfc_current_locus;
+      intr->sym->declared_at = gfc_current_locus;
+      intr->next = head;
+      gensym->generic = intr;
+      gensym->attr.if_source = IFSRC_DECL;
     }
 
   /* The symbol may already have the derived attribute without the
@@ -7346,16 +7518,18 @@ gfc_match_derived_decl (void)
       && gfc_add_flavor (&sym->attr, FL_DERIVED, sym->name, NULL) == FAILURE)
     return MATCH_ERROR;
 
-  if (sym->components != NULL || sym->attr.zero_comp)
-    {
-      gfc_error ("Derived type definition of '%s' at %C has already been "
-		 "defined", sym->name);
-      return MATCH_ERROR;
-    }
-
   if (attr.access != ACCESS_UNKNOWN
       && gfc_add_access (&sym->attr, attr.access, sym->name, NULL) == FAILURE)
     return MATCH_ERROR;
+  else if (sym->attr.access == ACCESS_UNKNOWN
+	   && gensym->attr.access != ACCESS_UNKNOWN
+	   && gfc_add_access (&sym->attr, gensym->attr.access, sym->name, NULL)
+	      == FAILURE)
+    return MATCH_ERROR;
+
+  if (sym->attr.access != ACCESS_UNKNOWN
+      && gensym->attr.access == ACCESS_UNKNOWN)
+    gensym->attr.access = sym->attr.access;
 
   /* See if the derived type was labeled as bind(c).  */
   if (attr.is_bind_c != 0)
@@ -8217,6 +8391,8 @@ gfc_match_generic (void)
       target->specific_st = target_st;
       target->specific = NULL;
       target->next = tb->u.generic;
+      target->is_operator = ((op_type == INTERFACE_USER_OP)
+			     || (op_type == INTERFACE_INTRINSIC_OP));
       tb->u.generic = target;
     }
   while (gfc_match (" ,") == MATCH_YES);

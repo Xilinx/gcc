@@ -7,7 +7,7 @@
 @c                                                                            o
 @c                             G N A T _ U G N                                o
 @c                                                                            o
-@c           Copyright (C) 1992-2011, Free Software Foundation, Inc.          o
+@c           Copyright (C) 1992-2012, Free Software Foundation, Inc.          o
 @c                                                                            o
 @c oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
@@ -5092,9 +5092,12 @@ switch are
 @option{-gnatwd} (implicit dereferencing),
 @option{-gnatwh} (hiding),
 @option{-gnatw.h} (holes (gaps) in record layouts)
+@option{-gnatw.i} (overlapping actuals),
 @option{-gnatwl} (elaboration warnings),
-@option{-gnatw.o} (warn on values set by out parameters ignored)
-and @option{-gnatwt} (tracking of deleted conditional code).
+@option{-gnatw.l} (inherited aspects),
+@option{-gnatw.o} (warn on values set by out parameters ignored),
+@option{-gnatwt} (tracking of deleted conditional code)
+and @option{-gnatw.u} (unordered enumeration),
 All other optional warnings are turned on.
 
 @item -gnatwA
@@ -5102,7 +5105,15 @@ All other optional warnings are turned on.
 @cindex @option{-gnatwA} (@command{gcc})
 This switch suppresses all optional warning messages, see remaining list
 in this section for details on optional warning messages that can be
-individually controlled.
+individually controlled. Note that unlike switch @option{-gnatws}, the
+use of switch @option{-gnatwA} does not suppress warnings that are
+normally given unconditionally and cannot be individually controlled
+(for example, the warning about a missing exit path in a function).
+Also, again unlike switch @option{-gnatws}, warnings suppressed by
+the use of switch @option{-gnatwA} can be individually turned back
+on. For example the use of switch @option{-gnatwA} followed by
+switch @option{-gnatwd} will suppress all optional warnings except
+the warnings for implicit dereferencing.
 
 @item -gnatw.a
 @emph{Activate warnings on failing assertions.}
@@ -5242,7 +5253,12 @@ is the only -gnatw switch that affects the handling of style check messages.
 @cindex @option{-gnatw.e} (@command{gcc})
 @cindex Warnings, activate every optional warning
 This switch activates all optional warnings, including those which
-are not activated by @code{-gnatwa}.
+are not activated by @code{-gnatwa}. The use of this switch is not
+recommended for normal use. If you turn this switch on, it is almost
+certain that you will get large numbers of useless warnings. The
+warnings that are excluded from @code{-gnatwa} are typically highly
+specialized warnings that are suitable for use only in code that has
+been specifically designed according to specialized coding rules.
 
 @item -gnatwf
 @emph{Activate warnings on unreferenced formals.}
@@ -5418,6 +5434,19 @@ This warning is not automatically turned on by the use of @option{-gnatwa}.
 This switch suppresses warnings on missing Elaborate and Elaborate_All pragmas.
 See the section in this guide on elaboration checking for details on
 when such pragmas should be used.
+
+@item -gnatw.l
+@emph{List inherited aspects.}
+@cindex @option{-gnatw.l} (@command{gcc})
+This switch causes the compiler to list inherited invariants,
+preconditions, and postconditions from Invariant'Class, Pre'Class, and
+Post'Class aspects. Also list inherited subtype predicates.
+These messages are not automatically turned on by the use of @option{-gnatwa}.
+
+@item -gnatw.L
+@emph{Suppress listing of inherited aspects.}
+@cindex @option{-gnatw.L} (@command{gcc})
+This switch suppresses listing of inherited aspects.
 
 @item -gnatwm
 @emph{Activate warnings on modified but unreferenced variables.}
@@ -5611,8 +5640,14 @@ This switch suppresses warnings for object renaming function.
 @emph{Suppress all warnings.}
 @cindex @option{-gnatws} (@command{gcc})
 This switch completely suppresses the
-output of all warning messages from the GNAT front end.
-Note that it does not suppress warnings from the @command{gcc} back end.
+output of all warning messages from the GNAT front end, including
+both warnings that can be controlled by switches described in this
+section, and those that are normally given unconditionally. The
+effect of this suppress action can only be cancelled by a subsequent
+use of the switch @option{-gnatwn}.
+
+Note that switch @option{-gnatws} does not suppress
+warnings from the @command{gcc} back end.
 To suppress these back end warnings as well, use the switch @option{-w}
 in addition to @option{-gnatws}. Also this switch has no effect on the
 handling of style check messages.
@@ -5651,6 +5686,22 @@ useful for detecting deactivated code in certified applications.
 @emph{Suppress warnings for tracking of deleted conditional code.}
 @cindex @option{-gnatwT} (@command{gcc})
 This switch suppresses warnings for tracking of deleted conditional code.
+
+@item -gnatw.t
+@emph{Activate warnings on suspicious contracts.}
+@cindex @option{-gnatw.t} (@command{gcc})
+This switch activates warnings on suspicious postconditions (whether a
+pragma @code{Postcondition} or a @code{Post} aspect in Ada 2012). A
+function postcondition is suspicious when it does not mention the result
+of the function. A procedure postcondition is suspicious when it only
+refers to the pre-state of the procedure, because in that case it should
+rather be expressed as a precondition. The default is that such warnings
+are not generated. This warning can also be turned on using @option{-gnatwa}.
+
+@item -gnatw.T
+@emph{Suppress warnings on suspicious contracts.}
+@cindex @option{-gnatw.T} (@command{gcc})
+This switch suppresses warnings on suspicious postconditions.
 
 @item -gnatwu
 @emph{Activate warnings on unused entities.}
@@ -5692,6 +5743,8 @@ ordered. (A @emph{client} is defined as a unit that is other than the unit in
 which the type is declared, or its body or subunits.) Please refer to
 the description of pragma @code{Ordered} in the
 @cite{@value{EDITION} Reference Manual} for further details.
+The default is that such warnings are not generated.
+This warning is not automatically turned on by the use of @option{-gnatwa}.
 
 @item -gnatw.U
 @emph{Deactivate warnings on unordered enumeration types.}
@@ -5882,35 +5935,53 @@ The use of this switch also sets the default front end warning mode to
 A string of warning parameters can be used in the same parameter. For example:
 
 @smallexample
--gnatwaLe
+-gnatwaGe
 @end smallexample
 
 @noindent
-will turn on all optional warnings except for elaboration pragma warnings,
+will turn on all optional warnings except for unrecognized pragma warnings,
 and also specify that warnings should be treated as errors.
 @end ifclear
+
 When no switch @option{^-gnatw^/WARNINGS^} is used, this is equivalent to:
 
 @table @option
 @c !sort!
+@item -gnatwB
+@item -gnatw.b
 @item -gnatwC
+@item -gnatw.C
 @item -gnatwD
 @item -gnatwF
 @item -gnatwg
 @item -gnatwH
 @item -gnatwi
+@item -gnatw.I
 @item -gnatwJ
 @item -gnatwK
 @item -gnatwL
+@item -gnatw.L
 @item -gnatwM
+@item -gnatw.m
 @item -gnatwn
 @item -gnatwo
+@item -gnatw.O
 @item -gnatwP
+@item -gnatw.P
+@item -gnatwq
 @item -gnatwR
+@item -gnatw.R
+@item -gnatw.S
+@item -gnatwT
+@item -gnatw.T
 @item -gnatwU
 @item -gnatwv
-@item -gnatwz
+@item -gnatww
+@item -gnatw.W
 @item -gnatwx
+@item -gnatw.X
+@item -gnatwy
+@item -gnatwz
 
 @end table
 
@@ -6280,9 +6351,10 @@ for the use of blanks to separate source tokens.
 @emph{Check Boolean operators.}
 The use of AND/OR operators is not permitted except in the cases of modular
 operands, array operands, and simple stand-alone boolean variables or
-boolean constants. In all other cases AND THEN/OR ELSE are required.
+boolean constants. In all other cases @code{and then}/@code{or else} are
+required.
 
-@item ^c^COMMENTS^ (double space)
+@item ^c^COMMENTS^
 @emph{Check comments, double space.}
 Comments must meet the following set of rules:
 
@@ -6334,7 +6406,7 @@ example:
 @end smallexample
 @end itemize
 
-@item ^C^COMMENTS1^ (single space)
+@item ^C^COMMENTS1^
 @emph{Check comments, single space.}
 This is identical to @code{^c^COMMENTS^} except that only one space
 is required following the @code{--} of a comment instead of two.
@@ -6356,7 +6428,7 @@ Neither form feeds nor vertical tab characters are permitted
 in the source text.
 
 @item ^g^GNAT^
-@emph{GNAT style mode}
+@emph{GNAT style mode.}
 The set of style check switches is set to match that used by the GNAT sources.
 This may be useful when developing code that is eventually intended to be
 incorporated into GNAT. For further details, see GNAT sources.
@@ -6376,7 +6448,7 @@ up under the @code{if} with at least one non-blank line in between
 containing all or part of the condition to be tested.
 
 @item ^I^IN_MODE^
-@emph{check mode IN keywords}
+@emph{check mode IN keywords.}
 Mode @code{in} (the default mode) is not
 allowed to be given explicitly. @code{in out} is fine,
 but not @code{in} on its own.
@@ -6465,7 +6537,7 @@ Clear :
 @end smallexample
 
 @item ^Lnnn^MAX_NESTING=nnn^
-@emph{Set maximum nesting level}
+@emph{Set maximum nesting level.}
 The maximum level of nesting of constructs (including subprograms, loops,
 blocks, packages, and conditionals) may not exceed the given value
 @option{nnn}. A value of zero disconnects this style check.
@@ -6492,7 +6564,7 @@ to match the presentation in the Ada Reference Manual (for example,
 @code{Integer} and @code{ASCII.NUL}).
 
 @item ^N^NONE^
-@emph{Turn off all style checks}
+@emph{Turn off all style checks.}
 All style check options are turned off.
 
 @item ^o^ORDERED_SUBPROGRAMS^
@@ -6522,13 +6594,6 @@ corresponding declaration. No specific casing style is imposed on
 identifiers. The only requirement is for consistency of references
 with declarations.
 
-@item ^S^STATEMENTS_AFTER_THEN_ELSE^
-@emph{Check no statements after THEN/ELSE.}
-No statements are allowed
-on the same line as a THEN or ELSE keyword following the
-keyword in an IF statement. OR ELSE and AND THEN are not affected,
-and a special exception allows a pragma to appear after ELSE.
-
 @item ^s^SPECS^
 @emph{Check separate specs.}
 Separate declarations (``specs'') are required for subprograms (a
@@ -6537,6 +6602,13 @@ exception is that parameterless library level procedures are
 not required to have a separate declaration. This exception covers
 the most frequent form of main program procedures.
 
+@item ^S^STATEMENTS_AFTER_THEN_ELSE^
+@emph{Check no statements after @code{then}/@code{else}.}
+No statements are allowed
+on the same line as a @code{then} or @code{else} keyword following the
+keyword in an @code{if} statement. @code{or else} and @code{and then} are not
+affected, and a special exception allows a pragma to appear after @code{else}.
+
 @item ^t^TOKEN^
 @emph{Check token spacing.}
 The following token spacing rules are enforced:
@@ -6544,7 +6616,7 @@ The following token spacing rules are enforced:
 @itemize @bullet
 
 @item
-The keywords @code{@b{abs}} and @code{@b{not}} must be followed by a space.
+The keywords @code{abs} and @code{not} must be followed by a space.
 
 @item
 The token @code{=>} must be surrounded by spaces.
@@ -6605,9 +6677,9 @@ around conditions in @code{if} statements, @code{while} statements and
 @item ^y^ALL_BUILTIN^
 @emph{Set all standard style check options}
 This is equivalent to @code{gnaty3aAbcefhiklmnprst}, that is all checking
-options enabled with the exception of @option{-gnatyo}, @option{-gnatyI},
-@option{-gnatyS}, @option{-gnatyLnnn},
-@option{-gnatyd}, @option{-gnatyu}, and @option{-gnatyx}.
+options enabled with the exception of @option{-gnatyB}, @option{-gnatyd},
+@option{-gnatyI}, @option{-gnatyLnnn}, @option{-gnatyo}, @option{-gnatyO},
+@option{-gnatyS}, @option{-gnatyu}, and @option{-gnatyx}.
 
 @ifclear vms
 @item -
@@ -6655,8 +6727,8 @@ including style messages, as fatal errors.
 The switch
 @ifclear vms
 @option{-gnaty} on its own (that is not
-followed by any letters or digits), then the effect is equivalent
-to the use of @option{-gnatyy}, as described above, that is all
+followed by any letters or digits) is equivalent
+to the use of @option{-gnatyy} as described above, that is all
 built-in standard style check options are enabled.
 
 @end ifclear
@@ -8660,6 +8732,9 @@ This is because in the default static elaboration mode, all necessary
 These implicit pragmas are still respected by the binder in
 @option{^-p^/PESSIMISTIC_ELABORATION^} mode, so a
 safe elaboration order is assured.
+
+Note that @option{^-p^/PESSIMISTIC_ELABORATION^} is not intended for
+production use; it is more for debugging/experimental use.
 @end table
 
 @node Output Control
@@ -11805,7 +11880,7 @@ recognized by GNAT:
 @section Handling of Configuration Pragmas
 
 Configuration pragmas may either appear at the start of a compilation
-unit, in which case they apply only to that unit, or they may apply to
+unit, or they can appear in a configuration pragma file to apply to
 all compilations performed in a given compilation environment.
 
 GNAT also provides the @code{gnatchop} utility to provide an automatic
@@ -11815,6 +11890,30 @@ See @ref{Operating gnatchop in Compilation Mode} for details.
 However, for most purposes, it will be more convenient to edit the
 @file{gnat.adc} file that contains configuration pragmas directly,
 as described in the following section.
+
+In the case of @code{Restrictions} pragmas appearing as configuration
+pragmas in individual compilation units, the exact handling depends on
+the type of restriction.
+
+Restrictions that require partition-wide consistency (like
+@code{No_Tasking}) are
+recognized wherever they appear
+and can be freely inherited, e.g. from a with'ed unit to the with'ing
+unit. This makes sense since the binder will in any case insist on seeing
+consistent use, so any unit not conforming to any restrictions that are
+anywhere in the partition will be rejected, and you might as well find
+that out at compile time rather than at bind time.
+
+For restrictions that do not require partition-wide consistency, e.g.
+SPARK or No_Implementation_Attributes, in general the restriction applies
+only to the unit in which the pragma appears, and not to any other units.
+
+The exception is No_Elaboration_Code which always applies to the entire
+object file from a compilation, i.e. to the body, spec, and all subunits.
+This restriction can be specified in a configuration pragma file, or it
+can be on the body and/or the spec (in eithe case it applies to all the
+relevant units). It can appear on a subunit only if it has previously
+appeared in the body of spec.
 
 @node The Configuration Pragmas Files
 @section The Configuration Pragmas Files
@@ -13164,6 +13263,24 @@ setting.
 Enumeration literals are in mixed case. Overrides ^-n^/NAME_CASING^ casing
 setting.
 
+@cindex @option{^-nt@var{x}^/TYPE_CASING^} (@command{gnatpp})
+@item ^-neD^/TYPE_CASING=AS_DECLARED^
+Names introduced by type and subtype declarations are always
+cased as they appear in the declaration in the source file.
+Overrides ^-n^/NAME_CASING^ casing setting.
+
+@item ^-ntU^/TYPE_CASING=UPPER_CASE^
+Names introduced by type and subtype declarations are always in
+upper case. Overrides ^-n^/NAME_CASING^ casing setting.
+
+@item ^-ntL^/TYPE_CASING=LOWER_CASE^
+Names introduced by type and subtype declarations are always in
+lower case. Overrides ^-n^/NAME_CASING^ casing setting.
+
+@item ^-ntM^/TYPE_CASING=MIXED_CASE^
+Names introduced by type and subtype declarations are always in
+mixed case. Overrides ^-n^/NAME_CASING^ casing setting.
+
 @cindex @option{^-p@var{x}^/PRAGMA_CASING^} (@command{gnatpp})
 @item ^-pL^/PRAGMA_CASING=LOWER_CASE^
 Pragma names are lower case
@@ -13364,6 +13481,19 @@ and variants if there are @var{nnn} or more (the default
 value is 10).
 If @var{nnn} is 0, an additional indentation level is
 used for @b{case} alternatives and variants regardless of their number.
+
+@item ^--call_threshold=@var{nnn}^/MAX_ACT=@var{nnn}^
+@cindex @option{^--call_threshold^/MAX_ACT^} (@command{gnatpp})
+If the number of parameter associations is greater than @var{nnn} and if at
+least one association uses named notation, start each association from
+a new line. If @var{nnn} is 0, no check for the number of associations
+is made, this is the default.
+
+@item ^--par_threshold=@var{nnn}^/MAX_PAR=@var{nnn}^
+@cindex @option{^--par_threshold^/MAX_PAR^} (@command{gnatpp})
+If the number of parameter specifications is greater than @var{nnn}
+(or equal to @var{nnn} in case of a function), start each specification from
+a new line. The default for @var{nnn} is 3.
 @end table
 
 @node Setting the Source Search Path
@@ -16282,6 +16412,28 @@ the Library Directory. As a consequence, only the Interface Units may be
 imported from Ada units outside of the library. If other units are imported,
 the binding phase will fail.
 
+@noindent
+It is also possible to build an encapsulated library where not only
+the code to elaborate and finalize the library is embedded but also
+ensuring that the library is linked only against static
+libraries. So an encapsulated library only depends on system
+libraries, all other code, including the GNAT runtime, is embedded. To
+build an encapsulated library the attribute
+@code{Library_Standalone} must be set to @code{encapsulated}:
+
+@smallexample @c projectfile
+@group
+   for Library_Dir use "lib_dir";
+   for Library_Name use "dummy";
+   for Library_Interface use ("int1", "int1.child");
+   for Library_Standalone use "encapsulated";
+@end group
+@end smallexample
+
+@noindent
+The default value for this attribute is @code{standard} in which case
+a stand-alone library is built.
+
 The attribute @code{Library_Src_Dir} may be specified for a
 Stand-Alone Library. @code{Library_Src_Dir} is a simple attribute that has a
 single string value. Its value must be the path (absolute or relative to the
@@ -17889,6 +18041,9 @@ gnatmake -P<harness-dir>/test_driver
 test_runner
 @end smallexample
 
+Note that you might need to specify the necessary values of scenario variables
+when you are not using the AUnit defaults.
+
 @item actual unit test stubs
 a test stub for each visible subprogram is created in a separate file, if it
 doesn't exist already. By default, those separate test files are located in a
@@ -17899,6 +18054,9 @@ file my_unit.ads in directory src contains a visible subprogram Proc, then
 the corresponding unit test will be found in file
 src/tests/my_unit-tests-proc_<code>.adb. <code> is a signature encoding used to
 differentiate test names in cases of overloading.
+
+Note that if the project already has both my_unit.ads and my_unit-tests.ads this
+will cause name a conflict with generated test package.
 @end itemize
 
 @node Switches for gnattest
@@ -17920,6 +18078,10 @@ manual tests to be added to the test suite.
 @item -r
 @cindex @option{-r} (@command{gnattest})
 Recursively consider all sources from all projects.
+
+@item -X@var{name=value}
+@cindex @option{-X} (@command{gnattest})
+Indicate that external variable @var{name} has the value @var{value}.
 
 @item -q
 @cindex @option{-q} (@command{gnattest})
@@ -18311,6 +18473,8 @@ The tool currently does not support following features:
 @item generic tests for generic packages and package instantiations
 @item tests for protected subprograms and entries
 @item aspects Precondition, Postcondition, and Test_Case
+@item generating test packages for code that is not conformant with ada 2005
+
 @end itemize
 
 @c *********************************
@@ -18419,7 +18583,7 @@ g++ -c -fdump-ada-spec -DXLIB_ILLEGAL_ACCESS -C /usr/include/X11/Xlib.h
 The above will generate more complete bindings than a straight call without
 the @option{-DXLIB_ILLEGAL_ACCESS} switch.
 
-In other cases, it is not possible to parse a header file in a stand alone
+In other cases, it is not possible to parse a header file in a stand-alone
 manner, because other include files need to be included first. In this
 case, the solution is to create a small header file including the needed
 @code{#include} and possible @code{#define} directives. For example, to
@@ -26304,7 +26468,7 @@ of the methodological principle known as the ``contract model'',
 the generic declaration explicitly indicates whether
 or not such instantiations are permitted.  If a generic formal parameter
 has explicit unknown discriminants, indicated by using @code{(<>)} after the
-type name, then it can be instantiated with indefinite types, but no
+subtype name, then it can be instantiated with indefinite types, but no
 stand-alone variables can be declared of this type.  Any attempt to declare
 such a variable will result in an illegality at the time the generic is
 declared.  If the @code{(<>)} notation is not used, then it is illegal

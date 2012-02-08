@@ -30,6 +30,20 @@
 ;; means that we should never use any of these patterns except at the
 ;; direction of the user via a builtin.
 
+(define_c_enum "unspec" [
+  UNSPEC_MOVNTQ
+  UNSPEC_PFRCP
+  UNSPEC_PFRCPIT1
+  UNSPEC_PFRCPIT2
+  UNSPEC_PFRSQRT
+  UNSPEC_PFRSQIT1
+])
+
+(define_c_enum "unspecv" [
+  UNSPECV_EMMS
+  UNSPECV_FEMMS
+])
+
 ;; 8 byte integral modes handled by MMX (and by extension, SSE)
 (define_mode_iterator MMXMODEI [V8QI V4HI V2SI])
 (define_mode_iterator MMXMODEI8 [V8QI V4HI V2SI V1DI])
@@ -329,10 +343,10 @@
   DONE;
 })
 
-(define_insn "sse_movntdi"
+(define_insn "sse_movntq"
   [(set (match_operand:DI 0 "memory_operand" "=m")
 	(unspec:DI [(match_operand:DI 1 "register_operand" "y")]
-		   UNSPEC_MOVNT))]
+		   UNSPEC_MOVNTQ))]
   "TARGET_SSE || TARGET_3DNOW_A"
   "movntq\t{%1, %0|%0, %1}"
   [(set_attr "type" "mmxmov")

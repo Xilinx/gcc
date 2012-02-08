@@ -63,7 +63,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     virtual char const*
     what() const noexcept;
 
-    virtual ~bad_weak_ptr() throw();    
+    virtual ~bad_weak_ptr() noexcept;    
   };
 
   // Substitute for bad_weak_ptr object in the case of -fno-exceptions.
@@ -1450,7 +1450,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     : public __hash_base<size_t, __shared_ptr<_Tp, _Lp>>
     {
       size_t
-      operator()(const __shared_ptr<_Tp, _Lp>& __s) const
+      operator()(const __shared_ptr<_Tp, _Lp>& __s) const noexcept
       { return std::hash<_Tp*>()(__s.get()); }
     };
 

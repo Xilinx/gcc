@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -2601,6 +2601,12 @@ package body Exp_Ch4 is
       --  This is either an integer literal node, or an identifier reference to
       --  a constant entity initialized to the appropriate value.
 
+      Last_Opnd_Low_Bound : Node_Id;
+      --  A tree node representing the low bound of the last operand. This
+      --  need only be set if the result could be null. It is used for the
+      --  special case of setting the right low bound for a null result.
+      --  This is of type Ityp.
+
       Last_Opnd_High_Bound : Node_Id;
       --  A tree node representing the high bound of the last operand. This
       --  need only be set if the result could be null. It is used for the
@@ -2811,11 +2817,14 @@ package body Exp_Ch4 is
                Result_May_Be_Null := False;
             end if;
 
-            --  Capture last operand high bound if result could be null
+            --  Capture last operand low and high bound if result could be null
 
             if J = N and then Result_May_Be_Null then
+               Last_Opnd_Low_Bound :=
+                 New_Copy_Tree (String_Literal_Low_Bound (Opnd_Typ));
+
                Last_Opnd_High_Bound :=
-                 Make_Op_Add (Loc,
+                 Make_Op_Subtract (Loc,
                    Left_Opnd  =>
                      New_Copy_Tree (String_Literal_Low_Bound (Opnd_Typ)),
                    Right_Opnd => Make_Integer_Literal (Loc, 1));
@@ -2871,9 +2880,13 @@ package body Exp_Ch4 is
                            Result_May_Be_Null := False;
                         end if;
 
-                        --  Capture last operand bound if result could be null
+                        --  Capture last operand bounds if result could be null
 
                         if J = N and then Result_May_Be_Null then
+                           Last_Opnd_Low_Bound :=
+                             Convert_To (Ityp,
+                               Make_Integer_Literal (Loc, Expr_Value (Lo)));
+
                            Last_Opnd_High_Bound :=
                              Convert_To (Ityp,
                                Make_Integer_Literal (Loc, Expr_Value (Hi)));
@@ -2914,7 +2927,16 @@ package body Exp_Ch4 is
                      Duplicate_Subexpr (Opnd, Name_Req => True),
                    Attribute_Name => Name_First);
 
+               --  Capture last operand bounds if result could be null
+
                if J = N and Result_May_Be_Null then
+                  Last_Opnd_Low_Bound :=
+                    Convert_To (Ityp,
+                      Make_Attribute_Reference (Loc,
+                        Prefix         =>
+                          Duplicate_Subexpr (Opnd, Name_Req => True),
+                        Attribute_Name => Name_First));
+
                   Last_Opnd_High_Bound :=
                     Convert_To (Ityp,
                       Make_Attribute_Reference (Loc,
@@ -3124,6 +3146,15 @@ package body Exp_Ch4 is
       --  bounds if the last operand is super-flat).
 
       if Result_May_Be_Null then
+         Low_Bound :=
+           Make_Conditional_Expression (Loc,
+             Expressions => New_List (
+               Make_Op_Eq (Loc,
+                 Left_Opnd  => New_Copy (Aggr_Length (NN)),
+                 Right_Opnd => Make_Artyp_Literal (0)),
+               Last_Opnd_Low_Bound,
+               Low_Bound));
+
          High_Bound :=
            Make_Conditional_Expression (Loc,
              Expressions => New_List (
@@ -3510,11 +3541,10 @@ package body Exp_Ch4 is
 
          --  The finalization master must be inserted and analyzed as part of
          --  the current semantic unit. This form of expansion is not carried
-         --  out in Alfa mode because it is useless.
+         --  out in Alfa mode because it is useless. Note that the master is
+         --  updated when analysis changes current units.
 
-         if No (Finalization_Master (PtrT))
-           and then not Alfa_Mode
-         then
+         if not Alfa_Mode then
             Set_Finalization_Master (PtrT, Current_Anonymous_Master);
          end if;
       end if;
@@ -3534,6 +3564,31 @@ package body Exp_Ch4 is
                if VM_Target = No_VM then
                   Set_Procedure_To_Call (N, RTE (RE_SS_Allocate));
                end if;
+
+            --  In the case of an allocator for a simple storage pool, locate
+            --  and save a reference to the pool type's Allocate routine.
+
+            elsif Present (Get_Rep_Pragma
+                             (Etype (Pool), Name_Simple_Storage_Pool_Type))
+            then
+               declare
+                  Alloc_Op  : Entity_Id := Get_Name_Entity_Id (Name_Allocate);
+                  Pool_Type : constant Entity_Id := Base_Type (Etype (Pool));
+
+               begin
+                  while Present (Alloc_Op) loop
+                     if Scope (Alloc_Op) = Scope (Pool_Type)
+                       and then Present (First_Formal (Alloc_Op))
+                       and then Etype (First_Formal (Alloc_Op)) = Pool_Type
+                     then
+                        Set_Procedure_To_Call (N, Alloc_Op);
+
+                        exit;
+                     end if;
+
+                     Alloc_Op := Homonym (Alloc_Op);
+                  end loop;
+               end;
 
             elsif Is_Class_Wide_Type (Etype (Pool)) then
                Set_Procedure_To_Call (N, RTE (RE_Allocate_Any));
@@ -3903,8 +3958,10 @@ package body Exp_Ch4 is
                        and then Present (Discriminant_Default_Value
                                           (First_Discriminant (Typ)))
                        and then (Ada_Version < Ada_2005
-                                  or else
-                                    not Has_Constrained_Partial_View (Typ))
+                                  or else not
+                                    Effectively_Has_Constrained_Partial_View
+                                      (Typ  => Typ,
+                                       Scop => Current_Scope))
                      then
                         Typ := Build_Default_Subtype (Typ, N);
                         Set_Expression (N, New_Reference_To (Typ, Loc));
@@ -5227,10 +5284,11 @@ package body Exp_Ch4 is
                 Right_Opnd => Make_Predicate_Call (Rtyp, Lop)));
 
             --  Analyze new expression, mark left operand as analyzed to
-            --  avoid infinite recursion adding predicate calls.
+            --  avoid infinite recursion adding predicate calls. Similarly,
+            --  suppress further range checks on the call.
 
             Set_Analyzed (Left_Opnd (N));
-            Analyze_And_Resolve (N, Standard_Boolean);
+            Analyze_And_Resolve (N, Standard_Boolean, Suppress => All_Checks);
 
             --  All done, skip attempt at compile time determination of result
 

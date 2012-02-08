@@ -7,13 +7,30 @@
 package net
 
 import (
+	"errors"
 	"os"
+	"time"
 )
 
 // UDPConn is the implementation of the Conn and PacketConn
 // interfaces for UDP network connections.
 type UDPConn struct {
 	plan9Conn
+}
+
+// SetDeadline implements the net.Conn SetDeadline method.
+func (c *UDPConn) SetDeadline(t time.Time) error {
+	return os.EPLAN9
+}
+
+// SetReadDeadline implements the net.Conn SetReadDeadline method.
+func (c *UDPConn) SetReadDeadline(t time.Time) error {
+	return os.EPLAN9
+}
+
+// SetWriteDeadline implements the net.Conn SetWriteDeadline method.
+func (c *UDPConn) SetWriteDeadline(t time.Time) error {
+	return os.EPLAN9
 }
 
 // UDP-specific methods.
@@ -23,8 +40,8 @@ type UDPConn struct {
 // that was on the packet.
 //
 // ReadFromUDP can be made to time out and return an error with Timeout() == true
-// after a fixed time limit; see SetTimeout and SetReadTimeout.
-func (c *UDPConn) ReadFromUDP(b []byte) (n int, addr *UDPAddr, err os.Error) {
+// after a fixed time limit; see SetDeadline and SetReadDeadline.
+func (c *UDPConn) ReadFromUDP(b []byte) (n int, addr *UDPAddr, err error) {
 	if !c.ok() {
 		return 0, nil, os.EINVAL
 	}
@@ -40,7 +57,7 @@ func (c *UDPConn) ReadFromUDP(b []byte) (n int, addr *UDPAddr, err os.Error) {
 		return
 	}
 	if m < udpHeaderSize {
-		return 0, nil, os.NewError("short read reading UDP header")
+		return 0, nil, errors.New("short read reading UDP header")
 	}
 	buf = buf[:m]
 
@@ -50,7 +67,7 @@ func (c *UDPConn) ReadFromUDP(b []byte) (n int, addr *UDPAddr, err os.Error) {
 }
 
 // ReadFrom implements the net.PacketConn ReadFrom method.
-func (c *UDPConn) ReadFrom(b []byte) (n int, addr Addr, err os.Error) {
+func (c *UDPConn) ReadFrom(b []byte) (n int, addr Addr, err error) {
 	if !c.ok() {
 		return 0, nil, os.EINVAL
 	}
@@ -61,9 +78,9 @@ func (c *UDPConn) ReadFrom(b []byte) (n int, addr Addr, err os.Error) {
 //
 // WriteToUDP can be made to time out and return
 // an error with Timeout() == true after a fixed time limit;
-// see SetTimeout and SetWriteTimeout.
+// see SetDeadline and SetWriteDeadline.
 // On packet-oriented connections, write timeouts are rare.
-func (c *UDPConn) WriteToUDP(b []byte, addr *UDPAddr) (n int, err os.Error) {
+func (c *UDPConn) WriteToUDP(b []byte, addr *UDPAddr) (n int, err error) {
 	if !c.ok() {
 		return 0, os.EINVAL
 	}
@@ -87,13 +104,13 @@ func (c *UDPConn) WriteToUDP(b []byte, addr *UDPAddr) (n int, err os.Error) {
 }
 
 // WriteTo implements the net.PacketConn WriteTo method.
-func (c *UDPConn) WriteTo(b []byte, addr Addr) (n int, err os.Error) {
+func (c *UDPConn) WriteTo(b []byte, addr Addr) (n int, err error) {
 	if !c.ok() {
 		return 0, os.EINVAL
 	}
 	a, ok := addr.(*UDPAddr)
 	if !ok {
-		return 0, &OpError{"writeto", "udp", addr, os.EINVAL}
+		return 0, &OpError{"write", c.dir, addr, os.EINVAL}
 	}
 	return c.WriteToUDP(b, a)
 }
@@ -101,14 +118,14 @@ func (c *UDPConn) WriteTo(b []byte, addr Addr) (n int, err os.Error) {
 // DialUDP connects to the remote address raddr on the network net,
 // which must be "udp", "udp4", or "udp6".  If laddr is not nil, it is used
 // as the local address for the connection.
-func DialUDP(net string, laddr, raddr *UDPAddr) (c *UDPConn, err os.Error) {
+func DialUDP(net string, laddr, raddr *UDPAddr) (c *UDPConn, err error) {
 	switch net {
 	case "udp", "udp4", "udp6":
 	default:
 		return nil, UnknownNetworkError(net)
 	}
 	if raddr == nil {
-		return nil, &OpError{"dial", "udp", nil, errMissingAddress}
+		return nil, &OpError{"dial", net, nil, errMissingAddress}
 	}
 	c1, err := dialPlan9(net, laddr, raddr)
 	if err != nil {
@@ -149,14 +166,14 @@ func unmarshalUDPHeader(b []byte) (*udpHeader, []byte) {
 // local address laddr.  The returned connection c's ReadFrom
 // and WriteTo methods can be used to receive and send UDP
 // packets with per-packet addressing.
-func ListenUDP(net string, laddr *UDPAddr) (c *UDPConn, err os.Error) {
+func ListenUDP(net string, laddr *UDPAddr) (c *UDPConn, err error) {
 	switch net {
 	case "udp", "udp4", "udp6":
 	default:
 		return nil, UnknownNetworkError(net)
 	}
 	if laddr == nil {
-		return nil, &OpError{"listen", "udp", nil, errMissingAddress}
+		return nil, &OpError{"listen", net, nil, errMissingAddress}
 	}
 	l, err := listenPlan9(net, laddr)
 	if err != nil {
@@ -172,7 +189,7 @@ func ListenUDP(net string, laddr *UDPAddr) (c *UDPConn, err os.Error) {
 // JoinGroup joins the IP multicast group named by addr on ifi,
 // which specifies the interface to join.  JoinGroup uses the
 // default multicast interface if ifi is nil.
-func (c *UDPConn) JoinGroup(ifi *Interface, addr IP) os.Error {
+func (c *UDPConn) JoinGroup(ifi *Interface, addr IP) error {
 	if !c.ok() {
 		return os.EINVAL
 	}
@@ -180,7 +197,7 @@ func (c *UDPConn) JoinGroup(ifi *Interface, addr IP) os.Error {
 }
 
 // LeaveGroup exits the IP multicast group named by addr on ifi.
-func (c *UDPConn) LeaveGroup(ifi *Interface, addr IP) os.Error {
+func (c *UDPConn) LeaveGroup(ifi *Interface, addr IP) error {
 	if !c.ok() {
 		return os.EINVAL
 	}

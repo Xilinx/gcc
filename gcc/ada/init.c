@@ -219,6 +219,19 @@ nanosleep (struct timestruc_t *Rqtp, struct timestruc_t *Rmtp)
 
 #endif /* _AIXVERSION_430 */
 
+/* Version of AIX before 5.3 don't have pthread_condattr_setclock:
+ * supply it as a weak symbol here so that if linking on a 5.3 or newer
+ * machine, we get the real one.
+ */
+
+#ifndef _AIXVERSION_530
+#pragma weak pthread_condattr_setclock
+int
+pthread_condattr_setclock (pthread_condattr_t *attr, clockid_t cl) {
+  return 0;
+}
+#endif
+
 static void
 __gnat_error_handler (int sig,
 		      siginfo_t *si ATTRIBUTE_UNUSED,
@@ -1808,8 +1821,8 @@ __gnat_error_handler (int sig,
       break;
 
     case SIGBUS:
-      exception = &constraint_error;
-      msg = "SIGBUS";
+      exception = &storage_error;
+      msg = "SIGBUS: possible stack overflow";
       break;
 
     default:
@@ -2282,11 +2295,12 @@ __gnat_is_stack_guard (mach_vm_address_t addr)
   return 0;
 }
 
-static void
-__gnat_error_handler (int sig, siginfo_t *si, void *ucontext ATTRIBUTE_UNUSED)
+#define HAVE_GNAT_ADJUST_CONTEXT_FOR_RAISE
+
+void
+__gnat_adjust_context_for_raise (int signo ATTRIBUTE_UNUSED,
+				 void *ucontext ATTRIBUTE_UNUSED)
 {
-  struct Exception_Data *exception;
-  const char *msg;
 #if defined (__x86_64__)
   /* Work around radar #10302855/pr50678, where the unwinders (libunwind or
      libgcc_s depending on the system revision) and the DWARF unwind data for
@@ -2294,9 +2308,19 @@ __gnat_error_handler (int sig, siginfo_t *si, void *ucontext ATTRIBUTE_UNUSED)
      and rdx to be transposed)..  */
   ucontext_t *uc = (ucontext_t *)ucontext ;
   unsigned long t = uc->uc_mcontext->__ss.__rbx;
+
   uc->uc_mcontext->__ss.__rbx = uc->uc_mcontext->__ss.__rdx;
   uc->uc_mcontext->__ss.__rdx = t;
 #endif
+}
+
+static void
+__gnat_error_handler (int sig, siginfo_t *si, void *ucontext)
+{
+  struct Exception_Data *exception;
+  const char *msg;
+
+  __gnat_adjust_context_for_raise (sig, ucontext);
 
   switch (sig)
     {

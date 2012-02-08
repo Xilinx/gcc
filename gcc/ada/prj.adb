@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2001-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -34,6 +34,7 @@ with Snames;   use Snames;
 with Uintp;    use Uintp;
 
 with Ada.Characters.Handling;    use Ada.Characters.Handling;
+with Ada.Containers.Ordered_Sets;
 with Ada.Unchecked_Deallocation;
 
 with GNAT.Case_Util;            use GNAT.Case_Util;
@@ -41,6 +42,17 @@ with GNAT.Directory_Operations; use GNAT.Directory_Operations;
 with GNAT.HTable;
 
 package body Prj is
+
+   type Restricted_Lang;
+   type Restricted_Lang_Access is access Restricted_Lang;
+   type Restricted_Lang is record
+      Name : Name_Id;
+      Next : Restricted_Lang_Access;
+   end record;
+
+   Restricted_Languages : Restricted_Lang_Access := null;
+   --  When null, all languages are allowed, otherwise only the languages in
+   --  the list are allowed.
 
    Object_Suffix : constant String := Get_Target_Object_Suffix.all;
    --  File suffix for object files
@@ -85,6 +97,20 @@ package body Prj is
 
    function Contains_ALI_Files (Dir : Path_Name_Type) return Boolean;
    --  Return True if there is at least one ALI file in the directory Dir
+
+   -----------------------------
+   -- Add_Restricted_Language --
+   -----------------------------
+
+   procedure Add_Restricted_Language (Name : String) is
+      N : String (1 .. Name'Length) := Name;
+   begin
+      To_Lower (N);
+      Name_Len := 0;
+      Add_Str_To_Name_Buffer (N);
+      Restricted_Languages :=
+        new Restricted_Lang'(Name => Name_Find, Next => Restricted_Languages);
+   end Add_Restricted_Language;
 
    -------------------
    -- Add_To_Buffer --
@@ -360,6 +386,31 @@ package body Prj is
       return Name_Find;
    end Extend_Name;
 
+   -------------------------
+   -- Is_Allowed_Language --
+   -------------------------
+
+   function Is_Allowed_Language (Name : Name_Id) return Boolean is
+      R    : Restricted_Lang_Access := Restricted_Languages;
+      Lang : constant String := Get_Name_String (Name);
+
+   begin
+      if R = null then
+         return True;
+
+      else
+         while R /= null loop
+            if Get_Name_String (R.Name) = Lang then
+               return True;
+            end if;
+
+            R := R.Next;
+         end loop;
+
+         return False;
+      end if;
+   end Is_Allowed_Language;
+
    ---------------------
    -- Project_Changed --
    ---------------------
@@ -392,7 +443,13 @@ package body Prj is
 
       if Iter.Language = No_Language_Index then
          if Iter.All_Projects then
-            Iter.Project := Iter.Project.Next;
+            loop
+               Iter.Project := Iter.Project.Next;
+               exit when Iter.Project = null
+                 or else Iter.Encapsulated_Libs
+                 or else not Iter.Project.From_Encapsulated_Lib;
+            end loop;
+
             Project_Changed (Iter);
          else
             Iter.Project := null;
@@ -413,23 +470,32 @@ package body Prj is
    ---------------------
 
    function For_Each_Source
-     (In_Tree  : Project_Tree_Ref;
-      Project  : Project_Id := No_Project;
-      Language : Name_Id := No_Name) return Source_Iterator
+     (In_Tree           : Project_Tree_Ref;
+      Project           : Project_Id := No_Project;
+      Language          : Name_Id := No_Name;
+      Encapsulated_Libs : Boolean := True) return Source_Iterator
    is
       Iter : Source_Iterator;
    begin
       Iter := Source_Iterator'
-        (In_Tree       => In_Tree,
-         Project       => In_Tree.Projects,
-         All_Projects  => Project = No_Project,
-         Language_Name => Language,
-         Language      => No_Language_Index,
-         Current       => No_Source);
+        (In_Tree           => In_Tree,
+         Project           => In_Tree.Projects,
+         All_Projects      => Project = No_Project,
+         Language_Name     => Language,
+         Language          => No_Language_Index,
+         Current           => No_Source,
+         Encapsulated_Libs => Encapsulated_Libs);
 
       if Project /= null then
          while Iter.Project /= null
            and then Iter.Project.Project /= Project
+         loop
+            Iter.Project := Iter.Project.Next;
+         end loop;
+
+      else
+         while not Iter.Encapsulated_Libs
+           and then Iter.Project.From_Encapsulated_Lib
          loop
             Iter.Project := Iter.Project.Next;
          end loop;
@@ -466,7 +532,7 @@ package body Prj is
    -- For_Every_Project_Imported --
    --------------------------------
 
-   procedure For_Every_Project_Imported
+   procedure For_Every_Project_Imported_Context
      (By                 : Project_Id;
       Tree               : Project_Tree_Ref;
       With_State         : in out State;
@@ -474,77 +540,191 @@ package body Prj is
       Imported_First     : Boolean := False)
    is
       use Project_Boolean_Htable;
-      Seen : Project_Boolean_Htable.Instance := Project_Boolean_Htable.Nil;
 
-      procedure Recursive_Check
-        (Project : Project_Id;
-         Tree    : Project_Tree_Ref);
-      --  Check if a project has already been seen. If not seen, mark it as
-      --  Seen, Call Action, and check all its imported projects.
+      procedure Recursive_Check_Context
+        (Project               : Project_Id;
+         Tree                  : Project_Tree_Ref;
+         In_Aggregate_Lib      : Boolean;
+         From_Encapsulated_Lib : Boolean);
+      --  Recursively handle the project tree creating a new context for
+      --  keeping track about already handled projects.
 
-      ---------------------
-      -- Recursive_Check --
-      ---------------------
+      -----------------------------
+      -- Recursive_Check_Context --
+      -----------------------------
 
-      procedure Recursive_Check
-        (Project : Project_Id;
-         Tree    : Project_Tree_Ref)
+      procedure Recursive_Check_Context
+        (Project               : Project_Id;
+         Tree                  : Project_Tree_Ref;
+         In_Aggregate_Lib      : Boolean;
+         From_Encapsulated_Lib : Boolean)
       is
-         List : Project_List;
+         package Name_Id_Set is
+           new Ada.Containers.Ordered_Sets (Element_Type => Name_Id);
+
+         Seen_Name : Name_Id_Set.Set;
+         --  This set is needed to ensure that we do not haandle the same
+         --  project twice in the context of aggregate libraries.
+
+         procedure Recursive_Check
+           (Project               : Project_Id;
+            Tree                  : Project_Tree_Ref;
+            In_Aggregate_Lib      : Boolean;
+            From_Encapsulated_Lib : Boolean);
+         --  Check if project has already been seen. If not, mark it as Seen,
+         --  Call Action, and check all its imported and aggregated projects.
+
+         ---------------------
+         -- Recursive_Check --
+         ---------------------
+
+         procedure Recursive_Check
+           (Project               : Project_Id;
+            Tree                  : Project_Tree_Ref;
+            In_Aggregate_Lib      : Boolean;
+            From_Encapsulated_Lib : Boolean)
+         is
+            List : Project_List;
+            T    : Project_Tree_Ref;
+
+         begin
+            if not Seen_Name.Contains (Project.Name) then
+
+               --  Even if a project is aggregated multiple times in an
+               --  aggregated library, we will only return it once.
+
+               Seen_Name.Include (Project.Name);
+
+               if not Imported_First then
+                  Action
+                    (Project,
+                     Tree,
+                     Project_Context'(In_Aggregate_Lib, From_Encapsulated_Lib),
+                     With_State);
+               end if;
+
+               --  Visit all extended projects
+
+               if Project.Extends /= No_Project then
+                  Recursive_Check
+                    (Project.Extends, Tree,
+                     In_Aggregate_Lib, From_Encapsulated_Lib);
+               end if;
+
+               --  Visit all imported projects
+
+               List := Project.Imported_Projects;
+               while List /= null loop
+                  Recursive_Check
+                    (List.Project, Tree,
+                     In_Aggregate_Lib,
+                     From_Encapsulated_Lib
+                       or else Project.Standalone_Library = Encapsulated);
+                  List := List.Next;
+               end loop;
+
+               --  Visit all aggregated projects
+
+               if Include_Aggregated
+                 and then Project.Qualifier in Aggregate_Project
+               then
+                  declare
+                     Agg : Aggregated_Project_List;
+
+                  begin
+                     Agg := Project.Aggregated_Projects;
+                     while Agg /= null loop
+                        pragma Assert (Agg.Project /= No_Project);
+
+                        --  For aggregated libraries, the tree must be the one
+                        --  of the aggregate library.
+
+                        if Project.Qualifier = Aggregate_Library then
+                           T := Tree;
+                           Recursive_Check
+                             (Agg.Project, T,
+                              True,
+                              From_Encapsulated_Lib
+                                or else
+                                  Project.Standalone_Library = Encapsulated);
+
+                        else
+                           T := Agg.Tree;
+
+                           --  Use a new context as we want to returns the same
+                           --  project in different project tree for aggregated
+                           --  projects.
+
+                           Recursive_Check_Context
+                             (Agg.Project, T, False, False);
+                        end if;
+
+                        Agg := Agg.Next;
+                     end loop;
+                  end;
+               end if;
+
+               if Imported_First then
+                  Action
+                    (Project,
+                     Tree,
+                     Project_Context'(In_Aggregate_Lib, From_Encapsulated_Lib),
+                     With_State);
+               end if;
+            end if;
+         end Recursive_Check;
+
+      --  Start of processing for Recursive_Check_Context
 
       begin
-         if not Get (Seen, Project) then
-            --  Even if a project is aggregated multiple times, we will only
-            --  return it once.
-
-            Set (Seen, Project, True);
-
-            if not Imported_First then
-               Action (Project, Tree, With_State);
-            end if;
-
-            --  Visit all extended projects
-
-            if Project.Extends /= No_Project then
-               Recursive_Check (Project.Extends, Tree);
-            end if;
-
-            --  Visit all imported projects
-
-            List := Project.Imported_Projects;
-            while List /= null loop
-               Recursive_Check (List.Project, Tree);
-               List := List.Next;
-            end loop;
-
-            --  Visit all aggregated projects
-
-            if Include_Aggregated
-              and then Project.Qualifier in Aggregate_Project
-            then
-               declare
-                  Agg : Aggregated_Project_List;
-               begin
-                  Agg := Project.Aggregated_Projects;
-                  while Agg /= null loop
-                     pragma Assert (Agg.Project /= No_Project);
-                     Recursive_Check (Agg.Project, Agg.Tree);
-                     Agg := Agg.Next;
-                  end loop;
-               end;
-            end if;
-
-            if Imported_First then
-               Action (Project, Tree, With_State);
-            end if;
-         end if;
-      end Recursive_Check;
+         Recursive_Check
+           (Project, Tree, In_Aggregate_Lib, From_Encapsulated_Lib);
+      end Recursive_Check_Context;
 
    --  Start of processing for For_Every_Project_Imported
 
    begin
-      Recursive_Check (Project => By, Tree => Tree);
-      Reset (Seen);
+      Recursive_Check_Context
+        (Project               => By,
+         Tree                  => Tree,
+         In_Aggregate_Lib      => False,
+         From_Encapsulated_Lib => False);
+   end For_Every_Project_Imported_Context;
+
+   procedure For_Every_Project_Imported
+     (By                 : Project_Id;
+      Tree               : Project_Tree_Ref;
+      With_State         : in out State;
+      Include_Aggregated : Boolean := True;
+      Imported_First     : Boolean := False)
+   is
+      procedure Internal
+        (Project    : Project_Id;
+         Tree       : Project_Tree_Ref;
+         Context    : Project_Context;
+         With_State : in out State);
+      --  Action wrapper for handling the context
+
+      --------------
+      -- Internal --
+      --------------
+
+      procedure Internal
+        (Project    : Project_Id;
+         Tree       : Project_Tree_Ref;
+         Context    : Project_Context;
+         With_State : in out State)
+      is
+         pragma Unreferenced (Context);
+      begin
+         Action (Project, Tree, With_State);
+      end Internal;
+
+      procedure For_Projects is
+        new For_Every_Project_Imported_Context (State, Internal);
+
+   begin
+      For_Projects (By, Tree, With_State, Include_Aggregated, Imported_First);
    end For_Every_Project_Imported;
 
    -----------------
@@ -1296,7 +1476,8 @@ package body Prj is
    is
       procedure Analyze_Tree
         (Local_Root : Project_Id;
-         Local_Tree : Project_Tree_Ref);
+         Local_Tree : Project_Tree_Ref;
+         Context    : Project_Context);
       --  Process Project and all its aggregated project to analyze their own
       --  imported projects.
 
@@ -1306,16 +1487,18 @@ package body Prj is
 
       procedure Analyze_Tree
         (Local_Root : Project_Id;
-         Local_Tree : Project_Tree_Ref)
+         Local_Tree : Project_Tree_Ref;
+         Context    : Project_Context)
       is
          pragma Unreferenced (Local_Root);
 
          Project : Project_Id;
 
          procedure Recursive_Add
-           (Prj   : Project_Id;
-            Tree  : Project_Tree_Ref;
-            Dummy : in out Boolean);
+           (Prj     : Project_Id;
+            Tree    : Project_Tree_Ref;
+            Context : Project_Context;
+            Dummy   : in out Boolean);
          --  Recursively add the projects imported by project Project, but not
          --  those that are extended.
 
@@ -1324,11 +1507,13 @@ package body Prj is
          -------------------
 
          procedure Recursive_Add
-           (Prj   : Project_Id;
-            Tree  : Project_Tree_Ref;
-            Dummy : in out Boolean)
+           (Prj     : Project_Id;
+            Tree    : Project_Tree_Ref;
+            Context : Project_Context;
+            Dummy   : in out Boolean)
          is
             pragma Unreferenced (Dummy, Tree);
+
             List : Project_List;
             Prj2 : Project_Id;
 
@@ -1356,13 +1541,16 @@ package body Prj is
 
                Project.All_Imported_Projects :=
                  new Project_List_Element'
-                   (Project => Prj2,
-                    Next    => Project.All_Imported_Projects);
+                   (Project               => Prj2,
+                    From_Encapsulated_Lib =>
+                      Context.From_Encapsulated_Lib
+                        or else Analyze_Tree.Context.From_Encapsulated_Lib,
+                    Next                  => Project.All_Imported_Projects);
             end if;
          end Recursive_Add;
 
          procedure For_All_Projects is
-           new For_Every_Project_Imported (Boolean, Recursive_Add);
+           new For_Every_Project_Imported_Context (Boolean, Recursive_Add);
 
          Dummy : Boolean := False;
          List  : Project_List;
@@ -1380,7 +1568,7 @@ package body Prj is
       end Analyze_Tree;
 
       procedure For_Aggregates is
-        new For_Project_And_Aggregated (Analyze_Tree);
+        new For_Project_And_Aggregated_Context (Analyze_Tree);
 
    --  Start of processing for Compute_All_Imported_Projects
 
@@ -1549,7 +1737,9 @@ package body Prj is
    procedure Debug_Output (Str : String) is
    begin
       if Current_Verbosity > Default then
+         Set_Standard_Error;
          Write_Line ((1 .. Debug_Level * 2 => ' ') & Str);
+         Set_Standard_Output;
       end if;
    end Debug_Output;
 
@@ -1560,7 +1750,9 @@ package body Prj is
    procedure Debug_Indent is
    begin
       if Current_Verbosity = High then
+         Set_Standard_Error;
          Write_Str ((1 .. Debug_Level * 2 => ' '));
+         Set_Standard_Output;
       end if;
    end Debug_Indent;
 
@@ -1572,6 +1764,7 @@ package body Prj is
    begin
       if Current_Verbosity = High then
          Debug_Indent;
+         Set_Standard_Error;
          Write_Str (Str);
 
          if Str2 = No_Name then
@@ -1579,6 +1772,8 @@ package body Prj is
          else
             Write_Line (" """ & Get_Name_String (Str2) & '"');
          end if;
+
+         Set_Standard_Output;
       end if;
    end Debug_Output;
 
@@ -1671,6 +1866,56 @@ package body Prj is
          end loop;
       end if;
    end For_Project_And_Aggregated;
+
+   ----------------------------------------
+   -- For_Project_And_Aggregated_Context --
+   ----------------------------------------
+
+   procedure For_Project_And_Aggregated_Context
+     (Root_Project : Project_Id;
+      Root_Tree    : Project_Tree_Ref)
+   is
+
+      procedure Recursive_Process
+        (Project : Project_Id;
+         Tree    : Project_Tree_Ref;
+         Context : Project_Context);
+      --  Process Project and all aggregated projects recursively
+
+      -----------------------
+      -- Recursive_Process --
+      -----------------------
+
+      procedure Recursive_Process
+        (Project : Project_Id;
+         Tree    : Project_Tree_Ref;
+         Context : Project_Context)
+      is
+         Agg : Aggregated_Project_List;
+         Ctx : Project_Context;
+      begin
+         Action (Project, Tree, Context);
+
+         if Project.Qualifier in Aggregate_Project then
+            Ctx :=
+              (In_Aggregate_Lib      => True,
+               From_Encapsulated_Lib =>
+                 Context.From_Encapsulated_Lib
+                   or else
+                 Project.Standalone_Library = Encapsulated);
+
+            Agg := Project.Aggregated_Projects;
+            while Agg /= null loop
+               Recursive_Process (Agg.Project, Agg.Tree, Ctx);
+               Agg := Agg.Next;
+            end loop;
+         end if;
+      end Recursive_Process;
+
+   begin
+      Recursive_Process
+        (Root_Project, Root_Tree, Project_Context'(False, False));
+   end For_Project_And_Aggregated_Context;
 
 --  Package initialization for Prj
 

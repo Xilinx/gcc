@@ -43,7 +43,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "c-family/c-common.h"
 #include "c-family/c-objc.h"
-#include "tree-mudflap.h"
 #include "cgraph.h"
 #include "tree-inline.h"
 #include "c-family/c-pragma.h"
@@ -495,6 +494,7 @@ check_member_template (tree tmpl)
   decl = DECL_TEMPLATE_RESULT (tmpl);
 
   if (TREE_CODE (decl) == FUNCTION_DECL
+      || DECL_ALIAS_TEMPLATE_P (tmpl)
       || (TREE_CODE (decl) == TYPE_DECL
 	  && MAYBE_CLASS_TYPE_P (TREE_TYPE (decl))))
     {
@@ -1199,9 +1199,9 @@ save_template_attributes (tree *attr_p, tree *decl_p)
 
   old_attrs = *q;
 
-  /* Place the late attributes at the beginning of the attribute
+  /* Merge the late attributes at the beginning with the attribute
      list.  */
-  TREE_CHAIN (tree_last (late_attrs)) = *q;
+  late_attrs = merge_attributes (late_attrs, *q);
   *q = late_attrs;
 
   if (!DECL_P (*decl_p) && *decl_p == TYPE_MAIN_VARIANT (*decl_p))
@@ -1983,6 +1983,8 @@ constrain_visibility (tree decl, int visibility, bool tmpl)
 	   && (tmpl || !DECL_VISIBILITY_SPECIFIED (decl)))
     {
       DECL_VISIBILITY (decl) = (enum symbol_visibility) visibility;
+      /* This visibility was not specified.  */
+      DECL_VISIBILITY_SPECIFIED (decl) = false;
     }
 }
 
@@ -2175,8 +2177,14 @@ determine_visibility (tree decl)
 		    ? TYPE_TEMPLATE_INFO (TREE_TYPE (decl))
 		    : DECL_TEMPLATE_INFO (decl));
       tree args = TI_ARGS (tinfo);
+      tree attribs = (TREE_CODE (decl) == TYPE_DECL
+		      ? TYPE_ATTRIBUTES (TREE_TYPE (decl))
+		      : DECL_ATTRIBUTES (decl));
       
-      if (args != error_mark_node)
+      if (args != error_mark_node
+	  /* Template argument visibility outweighs #pragma or namespace
+	     visibility, but not an explicit attribute.  */
+	  && !lookup_attribute ("visibility", attribs))
 	{
 	  int depth = TMPL_ARGS_DEPTH (args);
 	  tree pattern = DECL_TEMPLATE_RESULT (TI_TEMPLATE (tinfo));
@@ -4346,6 +4354,14 @@ mark_used (tree decl)
       && !DECL_DEFAULTED_OUTSIDE_CLASS_P (decl)
       && ! DECL_INITIAL (decl))
     {
+      /* Defer virtual destructors so that thunks get the right
+	 linkage.  */
+      if (DECL_VIRTUAL_P (decl) && !at_eof)
+	{
+	  note_vague_linkage_fn (decl);
+	  return true;
+	}
+
       /* Remember the current location for a function we will end up
 	 synthesizing.  Then we can inform the user where it was
 	 required in the case of error.  */
@@ -4357,7 +4373,7 @@ mark_used (tree decl)
 	 on the stack (such as overload resolution candidates).
 
          We could just let cp_write_global_declarations handle synthesizing
-         this function, since we just added it to deferred_fns, but doing
+         this function by adding it to deferred_fns, but doing
          it at the use site produces better error messages.  */
       ++function_depth;
       synthesize_method (decl);

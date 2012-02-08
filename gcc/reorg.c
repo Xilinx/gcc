@@ -2716,7 +2716,8 @@ fill_slots_from_thread (rtx insn, rtx condition, rtx thread,
 	  if (!must_annul
 	      && (condition == const_true_rtx
 	          || (! insn_sets_resource_p (trial, &opposite_needed, true)
-		      && ! may_trap_or_fault_p (pat))))
+		      && ! may_trap_or_fault_p (pat)
+		      && ! RTX_FRAME_RELATED_P (trial))))
 	    {
 	      old_trial = trial;
 	      trial = try_split (pat, trial, 0);
@@ -3600,9 +3601,11 @@ relax_delay_slots (rtx first)
 	    }
 	}
 
+      /* See if we have a simple (conditional) jump that is useless.  */
       if (! INSN_ANNULLED_BRANCH_P (delay_insn)
-	  && prev_active_insn (target_label) == insn
 	  && ! condjump_in_parallel_p (delay_insn)
+	  && prev_active_insn (target_label) == insn
+	  && ! BARRIER_P (prev_nonnote_insn (target_label))
 #ifdef HAVE_cc0
 	  /* If the last insn in the delay slot sets CC0 for some insn,
 	     various code assumes that it is in a delay slot.  We could

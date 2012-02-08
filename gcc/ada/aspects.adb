@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2010-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 2010-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -125,17 +125,29 @@ package body Aspects is
 
    function Find_Aspect (Ent : Entity_Id; A : Aspect_Id) return Node_Id is
       Ritem : Node_Id;
+      Typ   : Entity_Id;
 
    begin
 
       --  If the aspect is an inherited one and the entity is a class-wide
-      --  type, use the aspect of the specific type.
+      --  type, use the aspect of the specific type. If the type is a base
+      --  aspect, examine the rep. items of the base type.
 
-      if Is_Type (Ent)
-        and then Is_Class_Wide_Type (Ent)
-        and then Inherited_Aspect (A)
-      then
-         Ritem := First_Rep_Item (Etype (Ent));
+      if Is_Type (Ent) then
+         if Base_Aspect (A) then
+            Typ := Base_Type (Ent);
+         else
+            Typ := Ent;
+         end if;
+
+         if Is_Class_Wide_Type (Typ)
+           and then Inherited_Aspect (A)
+         then
+            Ritem := First_Rep_Item (Etype (Typ));
+         else
+            Ritem := First_Rep_Item (Typ);
+         end if;
+
       else
          Ritem := First_Rep_Item (Ent);
       end if;
@@ -180,6 +192,7 @@ package body Aspects is
       N_Component_Declaration                  => True,
       N_Entry_Declaration                      => True,
       N_Exception_Declaration                  => True,
+      N_Exception_Renaming_Declaration         => True,
       N_Formal_Abstract_Subprogram_Declaration => True,
       N_Formal_Concrete_Subprogram_Declaration => True,
       N_Formal_Object_Declaration              => True,
@@ -188,11 +201,14 @@ package body Aspects is
       N_Full_Type_Declaration                  => True,
       N_Function_Instantiation                 => True,
       N_Generic_Package_Declaration            => True,
+      N_Generic_Renaming_Declaration           => True,
       N_Generic_Subprogram_Declaration         => True,
       N_Object_Declaration                     => True,
+      N_Object_Renaming_Declaration            => True,
       N_Package_Declaration                    => True,
       N_Package_Instantiation                  => True,
       N_Package_Specification                  => True,
+      N_Package_Renaming_Declaration           => True,
       N_Private_Extension_Declaration          => True,
       N_Private_Type_Declaration               => True,
       N_Procedure_Instantiation                => True,
@@ -202,6 +218,7 @@ package body Aspects is
       N_Single_Task_Declaration                => True,
       N_Subprogram_Body                        => True,
       N_Subprogram_Declaration                 => True,
+      N_Subprogram_Renaming_Declaration        => True,
       N_Subtype_Declaration                    => True,
       N_Task_Body                              => True,
       N_Task_Type_Declaration                  => True,
@@ -235,6 +252,8 @@ package body Aspects is
     Aspect_Default_Component_Value      => Aspect_Default_Component_Value,
     Aspect_Default_Iterator             => Aspect_Default_Iterator,
     Aspect_Default_Value                => Aspect_Default_Value,
+    Aspect_Dimension                    => Aspect_Dimension,
+    Aspect_Dimension_System             => Aspect_Dimension_System,
     Aspect_Discard_Names                => Aspect_Discard_Names,
     Aspect_Dispatching_Domain           => Aspect_Dispatching_Domain,
     Aspect_Dynamic_Predicate            => Aspect_Predicate,
@@ -255,6 +274,7 @@ package body Aspects is
     Aspect_Preelaborate_05              => Aspect_Preelaborate_05,
     Aspect_Pure                         => Aspect_Pure,
     Aspect_Pure_05                      => Aspect_Pure_05,
+    Aspect_Pure_12                      => Aspect_Pure_12,
     Aspect_Remote_Call_Interface        => Aspect_Remote_Call_Interface,
     Aspect_Remote_Types                 => Aspect_Remote_Types,
     Aspect_Shared_Passive               => Aspect_Shared_Passive,
@@ -275,8 +295,11 @@ package body Aspects is
     Aspect_Preelaborable_Initialization => Aspect_Preelaborable_Initialization,
     Aspect_Priority                     => Aspect_Priority,
     Aspect_Pure_Function                => Aspect_Pure_Function,
+    Aspect_Remote_Access_Type           => Aspect_Remote_Access_Type,
     Aspect_Read                         => Aspect_Read,
     Aspect_Shared                       => Aspect_Atomic,
+    Aspect_Simple_Storage_Pool          => Aspect_Simple_Storage_Pool,
+    Aspect_Simple_Storage_Pool_Type     => Aspect_Simple_Storage_Pool_Type,
     Aspect_Size                         => Aspect_Size,
     Aspect_Small                        => Aspect_Small,
     Aspect_Static_Predicate             => Aspect_Predicate,
@@ -285,6 +308,7 @@ package body Aspects is
     Aspect_Stream_Size                  => Aspect_Stream_Size,
     Aspect_Suppress                     => Aspect_Suppress,
     Aspect_Suppress_Debug_Info          => Aspect_Suppress_Debug_Info,
+    Aspect_Synchronization              => Aspect_Synchronization,
     Aspect_Test_Case                    => Aspect_Test_Case,
     Aspect_Type_Invariant               => Aspect_Invariant,
     Aspect_Unchecked_Union              => Aspect_Unchecked_Union,

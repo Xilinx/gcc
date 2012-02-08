@@ -3,12 +3,12 @@
 // license that can be found in the LICENSE file.
 
 // +build darwin freebsd linux
+// +build cgo
 
 package user
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -26,8 +26,11 @@ static int mygetpwuid_r(int uid, struct passwd *pwd,
 }
 */
 
-func libc_getpwnam_r(name *byte, pwd *syscall.Passwd, buf *byte, buflen syscall.Size_t, result **syscall.Passwd) int __asm__ ("getpwnam_r")
-func libc_getpwuid_r(uid syscall.Uid_t, pwd *syscall.Passwd, buf *byte, buflen syscall.Size_t, result **syscall.Passwd) int __asm__ ("getpwuid_r")
+//extern getpwnam_r
+func libc_getpwnam_r(name *byte, pwd *syscall.Passwd, buf *byte, buflen syscall.Size_t, result **syscall.Passwd) int
+
+//extern getpwuid_r
+func libc_getpwuid_r(uid syscall.Uid_t, pwd *syscall.Passwd, buf *byte, buflen syscall.Size_t, result **syscall.Passwd) int
 
 // bytePtrToString takes a NUL-terminated array of bytes and convert
 // it to a Go string.
@@ -46,17 +49,17 @@ func init() {
 
 // Lookup looks up a user by username. If the user cannot be found,
 // the returned error is of type UnknownUserError.
-func Lookup(username string) (*User, os.Error) {
+func Lookup(username string) (*User, error) {
 	return lookup(-1, username, true)
 }
 
 // LookupId looks up a user by userid. If the user cannot be found,
 // the returned error is of type UnknownUserIdError.
-func LookupId(uid int) (*User, os.Error) {
+func LookupId(uid int) (*User, error) {
 	return lookup(uid, "", false)
 }
 
-func lookup(uid int, username string, lookupByName bool) (*User, os.Error) {
+func lookup(uid int, username string, lookupByName bool) (*User, error) {
 	var pwd syscall.Passwd
 	var result *syscall.Passwd
 
@@ -70,7 +73,7 @@ func lookup(uid int, username string, lookupByName bool) (*User, os.Error) {
 			bufSize,
 			&result)
 		if rv != 0 {
-			return nil, fmt.Errorf("user: lookup username %s: %s", username, os.Errno(syscall.GetErrno()))
+			return nil, fmt.Errorf("user: lookup username %s: %s", username, syscall.GetErrno())
 		}
 		if result == nil {
 			return nil, UnknownUserError(username)
@@ -82,7 +85,7 @@ func lookup(uid int, username string, lookupByName bool) (*User, os.Error) {
 			bufSize,
 			&result)
 		if rv != 0 {
-			return nil, fmt.Errorf("user: lookup userid %d: %s", uid, os.Errno(syscall.GetErrno()))
+			return nil, fmt.Errorf("user: lookup userid %d: %s", uid, syscall.GetErrno())
 		}
 		if result == nil {
 			return nil, UnknownUserIdError(uid)

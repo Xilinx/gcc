@@ -1,7 +1,7 @@
 /* Call-backs for C++ error reporting.
    This code is non-reentrant.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2002, 2003,
-   2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    This file is part of GCC.
 
@@ -1118,14 +1118,17 @@ dump_decl (tree t, int flags)
     case TEMPLATE_ID_EXPR:
       {
 	tree name = TREE_OPERAND (t, 0);
+	tree args = TREE_OPERAND (t, 1);
 
 	if (is_overloaded_fn (name))
 	  name = DECL_NAME (get_first_fn (name));
 	dump_decl (name, flags);
 	pp_cxx_begin_template_argument_list (cxx_pp);
-	if (TREE_OPERAND (t, 1))
-	  dump_template_argument_list (TREE_OPERAND (t, 1), flags);
-	pp_cxx_end_template_argument_list (cxx_pp);
+	if (args == error_mark_node)
+	  pp_string (cxx_pp, M_("<template arguments error>"));
+	else if (args)
+	  dump_template_argument_list (args, flags);
+      	pp_cxx_end_template_argument_list (cxx_pp);
       }
       break;
 
@@ -2194,6 +2197,8 @@ dump_expr (tree t, int flags)
 	}
       else
 	{
+	  if (!BRACE_ENCLOSED_INITIALIZER_P (t))
+	    dump_type (TREE_TYPE (t), 0);
 	  pp_cxx_left_brace (cxx_pp);
 	  dump_expr_init_vec (CONSTRUCTOR_ELTS (t), flags);
 	  pp_cxx_right_brace (cxx_pp);
@@ -2406,6 +2411,7 @@ dump_expr (tree t, int flags)
       break;
 
     case TEMPLATE_TYPE_PARM:
+    case TEMPLATE_TEMPLATE_PARM:
     case BOUND_TEMPLATE_TEMPLATE_PARM:
       dump_type (t, flags);
       break;
@@ -3305,6 +3311,11 @@ maybe_warn_cpp0x (cpp0x_warn_str str)
 		 "user-defined literals "
 		 "only available with -std=c++11 or -std=gnu++11");
 	break;
+      case CPP0X_DELEGATING_CTORS:
+	pedwarn (input_location, 0,
+		 "delegating constructors "
+		 "only available with -std=c++11 or -std=gnu++11");
+        break;
       default:
 	gcc_unreachable ();
       }

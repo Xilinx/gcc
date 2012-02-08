@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2011, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2012, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -145,7 +145,7 @@ static void prepend_one_attribute_to (struct attrib **,
 				      enum attr_type, tree, tree, Node_Id);
 static void prepend_attributes (Entity_Id, struct attrib **);
 static tree elaborate_expression (Node_Id, Entity_Id, tree, bool, bool, bool);
-static bool is_variable_size (tree);
+static bool type_has_variable_size (tree);
 static tree elaborate_expression_1 (tree, Entity_Id, tree, bool, bool);
 static tree elaborate_expression_2 (tree, Entity_Id, tree, bool, bool,
 				    unsigned int);
@@ -160,7 +160,7 @@ static bool compile_time_known_address_p (Node_Id);
 static bool cannot_be_superflat_p (Node_Id);
 static bool constructor_address_p (tree);
 static void components_to_record (tree, Node_Id, tree, int, bool, bool, bool,
-				  bool, bool, bool, bool, tree *);
+				  bool, bool, bool, bool, tree, tree *);
 static Uint annotate_value (tree);
 static void annotate_rep (Entity_Id, tree);
 static tree build_position_list (tree, bool, tree, tree, unsigned int, tree);
@@ -176,6 +176,7 @@ static unsigned int ceil_alignment (unsigned HOST_WIDE_INT);
 static void check_ok_for_atomic (tree, Entity_Id, bool);
 static tree create_field_decl_from (tree, tree, tree, tree, tree,
 				    VEC(subst_pair,heap) *);
+static tree create_rep_part (tree, tree, tree);
 static tree get_rep_part (tree);
 static tree create_variant_part_from (tree, VEC(variant_desc,heap) *, tree,
 				      tree, VEC(subst_pair,heap) *);
@@ -888,10 +889,11 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    && Is_Array_Type (Etype (gnat_entity))
 	    && !type_annotate_only)
 	  {
-	    tree gnu_fat
-	      = TREE_TYPE (gnat_to_gnu_type (Base_Type (Etype (gnat_entity))));
+	    tree gnu_array
+	      = gnat_to_gnu_type (Base_Type (Etype (gnat_entity)));
 	    gnu_type
-	      = build_unc_object_type_from_ptr (gnu_fat, gnu_type,
+	      = build_unc_object_type_from_ptr (TREE_TYPE (gnu_array),
+						gnu_type,
 						concat_name (gnu_entity_name,
 							     "UNC"),
 						debug_info_p);
@@ -1007,6 +1009,17 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 			saved = true;
 			annotate_object (gnat_entity, gnu_type, NULL_TREE,
 					 false, false);
+			/* This assertion will fail if the renamed object
+			   isn't aligned enough as to make it possible to
+			   honor the alignment set on the renaming.  */
+			if (align)
+			  {
+			    unsigned int renamed_align
+			      = DECL_P (gnu_decl)
+				? DECL_ALIGN (gnu_decl)
+				: TYPE_ALIGN (TREE_TYPE (gnu_decl));
+			    gcc_assert (renamed_align >= align);
+			  }
 			break;
 		      }
 
@@ -1039,6 +1052,14 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		   entity is always accessed indirectly through it.  */
 		else
 		  {
+		    /* We need to preserve the volatileness of the renamed
+		       object through the indirection.  */
+		    if (TREE_THIS_VOLATILE (gnu_expr)
+			&& !TYPE_VOLATILE (gnu_type))
+		      gnu_type
+			= build_qualified_type (gnu_type,
+						(TYPE_QUALS (gnu_type)
+						 | TYPE_QUAL_VOLATILE));
 		    gnu_type = build_reference_type (gnu_type);
 		    inner_const_flag = TREE_READONLY (gnu_expr);
 		    const_flag = true;
@@ -1446,6 +1467,41 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		DECL_RENAMING_GLOBAL_P (gnu_decl) = 1;
 		record_global_renaming_pointer (gnu_decl);
 	      }
+	  }
+
+	/* If this is an aliased object with an unconstrained nominal subtype
+	   and optimization isn't enabled, create a VAR_DECL for debugging
+	   purposes whose type is a thin reference (the reference counterpart
+	   of a thin pointer), so that it will be directly initialized to the
+	   address of the array part.  */
+	else if (Is_Constr_Subt_For_UN_Aliased (Etype (gnat_entity))
+		 && Is_Array_Type (Etype (gnat_entity))
+		 && !type_annotate_only
+		 && !optimize
+		 && debug_info_p)
+	  {
+	    tree gnu_array
+	      = gnat_to_gnu_type (Base_Type (Etype (gnat_entity)));
+	    tree gnu_thin_type
+	      = build_reference_type (TYPE_OBJECT_RECORD_TYPE (gnu_array));
+	    tree gnu_ref, gnu_debug_decl;
+
+	    /* In case the object with the template has already been indirectly
+	       allocated, we have nothing to do here.  */
+	    if (TYPE_IS_THIN_POINTER_P (gnu_type))
+	      gnu_ref = gnu_decl;
+	    else
+	      gnu_ref = build_unary_op (ADDR_EXPR, NULL_TREE, gnu_decl);
+	    gnu_ref = convert (gnu_thin_type, gnu_ref);
+
+	    gnu_debug_decl
+	      = create_var_decl (gnu_entity_name, gnu_ext_name,
+				 gnu_thin_type, NULL_TREE, const_flag,
+				 Is_Public (gnat_entity), !definition,
+				 static_p, attr_list, gnat_entity);
+	    SET_DECL_VALUE_EXPR (gnu_debug_decl, gnu_ref);
+	    DECL_HAS_VALUE_EXPR_P (gnu_debug_decl) = 1;
+	    DECL_IGNORED_P (gnu_decl) = 1;
 	  }
 
 	/* If this is a constant and we are defining it or it generates a real
@@ -3048,7 +3104,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 			      gnu_field_list, packed, definition, false,
 			      all_rep, is_unchecked_union, debug_info_p,
 			      false, OK_To_Reorder_Components (gnat_entity),
-			      NULL);
+			      all_rep ? NULL_TREE : bitsize_zero_node, NULL);
 
 	/* If it is passed by reference, force BLKmode to ensure that objects
 	   of this type will always be put in memory.  */
@@ -3713,7 +3769,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    break;
 	  }
 
-	/* If we have not done it yet, build the pointer type the usual way.  */
+	/* If we haven't done it yet, build the pointer type the usual way.  */
 	if (!gnu_type)
 	  {
 	    /* Modify the designated type if we are pointing only to constant
@@ -4249,7 +4305,9 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 		    gnu_return_type = gnu_new_ret_type;
 		    TYPE_NAME (gnu_return_type) = get_identifier ("RETURN");
-		    /* Set a default alignment to speed up accesses.  */
+		    /* Set a default alignment to speed up accesses.  But we
+		       shouldn't increase the size of the structure too much,
+		       lest it doesn't fit in return registers anymore.  */
 		    TYPE_ALIGN (gnu_return_type)
 		      = get_mode_alignment (ptr_mode);
 		  }
@@ -4258,9 +4316,6 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		  = create_field_decl (gnu_param_name, gnu_param_type,
 				       gnu_return_type, NULL_TREE, NULL_TREE,
 				       0, 0);
-		/* Set a minimum alignment to speed up accesses.  */
-		if (DECL_ALIGN (gnu_field) < TYPE_ALIGN (gnu_return_type))
-		  DECL_ALIGN (gnu_field) = TYPE_ALIGN (gnu_return_type);
 		Sloc_to_locus (Sloc (gnat_param),
 			       &DECL_SOURCE_LOCATION (gnu_field));
 		DECL_CHAIN (gnu_field) = gnu_field_list;
@@ -4563,7 +4618,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
       break;
 
     case E_Label:
-      gnu_decl = create_label_decl (gnu_entity_name);
+      gnu_decl = create_label_decl (gnu_entity_name, gnat_entity);
       break;
 
     case E_Block:
@@ -5173,6 +5228,42 @@ get_unpadded_type (Entity_Id gnat_entity)
 
   return type;
 }
+
+/* Return the DECL associated with the public subprogram GNAT_ENTITY but whose
+   type has been changed to that of the parameterless procedure, except if an
+   alias is already present, in which case it is returned instead.  */
+
+tree
+get_minimal_subprog_decl (Entity_Id gnat_entity)
+{
+  tree gnu_entity_name, gnu_ext_name;
+  struct attrib *attr_list = NULL;
+
+  /* See the E_Function/E_Procedure case of gnat_to_gnu_entity for the model
+     of the handling applied here.  */
+
+  while (Present (Alias (gnat_entity)))
+    {
+      gnat_entity = Alias (gnat_entity);
+      if (present_gnu_tree (gnat_entity))
+	return get_gnu_tree (gnat_entity);
+    }
+
+  gnu_entity_name = get_entity_name (gnat_entity);
+  gnu_ext_name = create_concat_name (gnat_entity, NULL);
+
+  if (Has_Stdcall_Convention (gnat_entity))
+    prepend_one_attribute_to (&attr_list, ATTR_MACHINE_ATTRIBUTE,
+			      get_identifier ("stdcall"), NULL_TREE,
+			      gnat_entity);
+
+  if (No (Interface_Name (gnat_entity)) && gnu_ext_name == gnu_entity_name)
+    gnu_ext_name = NULL_TREE;
+
+  return
+    create_subprog_decl (gnu_entity_name, gnu_ext_name, void_ftype, NULL_TREE,
+			 false, true, true, true, attr_list, gnat_entity);
+}
 
 /* Wrap up compilation of DECL, a TYPE_DECL, possibly deferring it.
    Every TYPE_DECL generated for a type definition must be passed
@@ -5277,6 +5368,7 @@ Gigi_Equivalent_Type (Entity_Id gnat_entity)
     }
 
   gcc_assert (Present (gnat_equiv) || type_annotate_only);
+
   return gnat_equiv;
 }
 
@@ -5506,7 +5598,15 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
 		   || (!foreign
 		       && default_pass_by_ref (gnu_param_type)))))
     {
+      /* We take advantage of 6.2(12) by considering that references built for
+	 parameters whose type isn't by-ref and for which the mechanism hasn't
+	 been forced to by-ref are restrict-qualified in the C sense.  */
+      bool restrict_p
+	= !TREE_ADDRESSABLE (gnu_param_type) && mech != By_Reference;
       gnu_param_type = build_reference_type (gnu_param_type);
+      if (restrict_p)
+	gnu_param_type
+	  = build_qualified_type (gnu_param_type, TYPE_QUAL_RESTRICT);
       by_ref = true;
 
       /* In some ABIs, e.g. SPARC 32-bit, fat pointer types are themselves
@@ -5567,6 +5667,10 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
   DECL_BY_COMPONENT_PTR_P (gnu_param) = by_component_ptr;
   DECL_BY_DESCRIPTOR_P (gnu_param) = (mech == By_Descriptor ||
                                       mech == By_Short_Descriptor);
+  /* Note that, in case of a parameter passed by double reference, the
+     DECL_POINTS_TO_READONLY_P flag is meant for the second reference.
+     The first reference always points to read-only, as it points to
+     the second reference, i.e. the reference to the actual parameter.  */
   DECL_POINTS_TO_READONLY_P (gnu_param)
     = (ro_param && (by_ref || by_component_ptr));
   DECL_CAN_NEVER_BE_NULL_P (gnu_param) = Can_Never_Be_Null (gnat_param);
@@ -6743,7 +6847,7 @@ adjust_packed (tree field_type, tree record_type, int packed)
      because we cannot create temporaries of non-fixed size in case
      we need to take the address of the field.  See addressable_p and
      the notes on the addressability issues for further details.  */
-  if (is_variable_size (field_type))
+  if (type_has_variable_size (field_type))
     return 0;
 
   /* If the alignment of the record is specified and the field type
@@ -7018,6 +7122,7 @@ gnat_to_gnu_field (Entity_Id gnat_field, tree gnu_record_type, int packed,
     = create_field_decl (gnu_field_id, gnu_field_type, gnu_record_type,
 			 gnu_size, gnu_pos, packed, Is_Aliased (gnat_field));
   Sloc_to_locus (Sloc (gnat_field), &DECL_SOURCE_LOCATION (gnu_field));
+  DECL_ALIASED_P (gnu_field) = Is_Aliased (gnat_field);
   TREE_THIS_VOLATILE (gnu_field) = TREE_SIDE_EFFECTS (gnu_field) = is_volatile;
 
   if (Ekind (gnat_field) == E_Discriminant)
@@ -7031,7 +7136,7 @@ gnat_to_gnu_field (Entity_Id gnat_field, tree gnu_record_type, int packed,
    field of variable size or is a record that has a field such a field.  */
 
 static bool
-is_variable_size (tree type)
+type_has_variable_size (tree type)
 {
   tree field;
 
@@ -7046,12 +7151,68 @@ is_variable_size (tree type)
     return false;
 
   for (field = TYPE_FIELDS (type); field; field = DECL_CHAIN (field))
-    if (is_variable_size (TREE_TYPE (field)))
+    if (type_has_variable_size (TREE_TYPE (field)))
       return true;
 
   return false;
 }
 
+/* Return true if FIELD is an artificial field.  */
+
+static bool
+field_is_artificial (tree field)
+{
+  /* These fields are generated by the front-end proper.  */
+  if (IDENTIFIER_POINTER (DECL_NAME (field)) [0] == '_')
+    return true;
+
+  /* These fields are generated by gigi.  */
+  if (DECL_INTERNAL_P (field))
+    return true;
+
+  return false;
+}
+
+/* Return true if FIELD is a non-artificial aliased field.  */
+
+static bool
+field_is_aliased (tree field)
+{
+  if (field_is_artificial (field))
+    return false;
+
+  return DECL_ALIASED_P (field);
+}
+
+/* Return true if FIELD is a non-artificial field with self-referential
+   size.  */
+
+static bool
+field_has_self_size (tree field)
+{
+  if (field_is_artificial (field))
+    return false;
+
+  if (DECL_SIZE (field) && TREE_CODE (DECL_SIZE (field)) == INTEGER_CST)
+    return false;
+
+  return CONTAINS_PLACEHOLDER_P (TYPE_SIZE (TREE_TYPE (field)));
+}
+
+/* Return true if FIELD is a non-artificial field with variable size.  */
+
+static bool
+field_has_variable_size (tree field)
+{
+  if (field_is_artificial (field))
+    return false;
+
+  if (DECL_SIZE (field) && TREE_CODE (DECL_SIZE (field)) == INTEGER_CST)
+    return false;
+
+  return TREE_CODE (TYPE_SIZE (TREE_TYPE (field))) != INTEGER_CST;
+}
+
 /* qsort comparer for the bit positions of two record components.  */
 
 static int
@@ -7096,6 +7257,10 @@ compare_field_bitpos (const PTR rt1, const PTR rt2)
 
    REORDER is true if we are permitted to reorder components of this type.
 
+   FIRST_FREE_POS, if nonzero, is the first (lowest) free field position in
+   the outer record type down to this variant level.  It is nonzero only if
+   all the fields down to this level have a rep clause and ALL_REP is false.
+
    P_GNU_REP_LIST, if nonzero, is a pointer to a list to which each field
    with a rep clause is to be added; in this case, that is all that should
    be done with such fields.  */
@@ -7106,12 +7271,15 @@ components_to_record (tree gnu_record_type, Node_Id gnat_component_list,
 		      bool cancel_alignment, bool all_rep,
 		      bool unchecked_union, bool debug_info,
 		      bool maybe_unused, bool reorder,
-		      tree *p_gnu_rep_list)
+		      tree first_free_pos, tree *p_gnu_rep_list)
 {
   bool all_rep_and_size = all_rep && TYPE_SIZE (gnu_record_type);
   bool layout_with_rep = false;
+  bool has_self_field = false;
+  bool has_aliased_after_self_field = false;
   Node_Id component_decl, variant_part;
   tree gnu_field, gnu_next, gnu_last;
+  tree gnu_rep_part = NULL_TREE;
   tree gnu_variant_part = NULL_TREE;
   tree gnu_rep_list = NULL_TREE;
   tree gnu_var_list = NULL_TREE;
@@ -7160,6 +7328,12 @@ components_to_record (tree gnu_record_type, Node_Id gnat_component_list,
 		gnu_field_list = gnu_field;
 		if (!gnu_last)
 		  gnu_last = gnu_field;
+
+		/* And record information for the final layout.  */
+		if (field_has_self_size (gnu_field))
+		  has_self_field = true;
+		else if (has_self_field && field_is_aliased (gnu_field))
+		  has_aliased_after_self_field = true;
 	      }
 	  }
 
@@ -7185,7 +7359,7 @@ components_to_record (tree gnu_record_type, Node_Id gnat_component_list,
 	= concat_name (get_identifier (Get_Name_String (Chars (gnat_discr))),
 		       "XVN");
       tree gnu_union_type, gnu_union_name;
-      tree gnu_variant_list = NULL_TREE;
+      tree this_first_free_pos, gnu_variant_list = NULL_TREE;
 
       if (TREE_CODE (gnu_name) == TYPE_DECL)
 	gnu_name = DECL_NAME (gnu_name);
@@ -7193,12 +7367,10 @@ components_to_record (tree gnu_record_type, Node_Id gnat_component_list,
       gnu_union_name
 	= concat_name (gnu_name, IDENTIFIER_POINTER (gnu_var_name));
 
-      /* Reuse an enclosing union if all fields are in the variant part
-	 and there is no representation clause on the record, to match
-	 the layout of C unions.  There is an associated check below.  */
-      if (!gnu_field_list
-	  && TREE_CODE (gnu_record_type) == UNION_TYPE
-	  && !TYPE_PACKED (gnu_record_type))
+      /* Reuse the enclosing union if this is an Unchecked_Union whose fields
+	 are all in the variant part, to match the layout of C unions.  There
+	 is an associated check below.  */
+      if (TREE_CODE (gnu_record_type) == UNION_TYPE)
 	gnu_union_type = gnu_record_type;
       else
 	{
@@ -7208,6 +7380,29 @@ components_to_record (tree gnu_record_type, Node_Id gnat_component_list,
 	  TYPE_NAME (gnu_union_type) = gnu_union_name;
 	  TYPE_ALIGN (gnu_union_type) = 0;
 	  TYPE_PACKED (gnu_union_type) = TYPE_PACKED (gnu_record_type);
+	}
+
+      /* If all the fields down to this level have a rep clause, find out
+	 whether all the fields at this level also have one.  If so, then
+	 compute the new first free position to be passed downward.  */
+      this_first_free_pos = first_free_pos;
+      if (this_first_free_pos)
+	{
+	  for (gnu_field = gnu_field_list;
+	       gnu_field;
+	       gnu_field = DECL_CHAIN (gnu_field))
+	    if (DECL_FIELD_OFFSET (gnu_field))
+	      {
+		tree pos = bit_position (gnu_field);
+		if (!tree_int_cst_lt (pos, this_first_free_pos))
+		  this_first_free_pos
+		    = size_binop (PLUS_EXPR, pos, DECL_SIZE (gnu_field));
+	      }
+	    else
+	      {
+		this_first_free_pos = NULL_TREE;
+		break;
+	      }
 	}
 
       for (variant = First_Non_Pragma (Variants (variant_part));
@@ -7231,8 +7426,7 @@ components_to_record (tree gnu_record_type, Node_Id gnat_component_list,
 	  TYPE_PACKED (gnu_variant_type) = TYPE_PACKED (gnu_record_type);
 
 	  /* Similarly, if the outer record has a size specified and all
-	     fields have record rep clauses, we can propagate the size
-	     into the variant part.  */
+	     the fields have a rep clause, we can propagate the size.  */
 	  if (all_rep_and_size)
 	    {
 	      TYPE_SIZE (gnu_variant_type) = TYPE_SIZE (gnu_record_type);
@@ -7244,20 +7438,24 @@ components_to_record (tree gnu_record_type, Node_Id gnat_component_list,
 	     we aren't sure to really use it at this point, see below.  */
 	  components_to_record (gnu_variant_type, Component_List (variant),
 				NULL_TREE, packed, definition,
-				!all_rep_and_size, all_rep,
-				unchecked_union, debug_info,
-				true, reorder, &gnu_rep_list);
+				!all_rep_and_size, all_rep, unchecked_union,
+				debug_info, true, reorder, this_first_free_pos,
+				all_rep || this_first_free_pos
+				? NULL : &gnu_rep_list);
 
 	  gnu_qual = choices_to_gnu (gnu_discr, Discrete_Choices (variant));
-
 	  Set_Present_Expr (variant, annotate_value (gnu_qual));
 
-	  /* If this is an Unchecked_Union and we have exactly one field,
-	     use this field directly to match the layout of C unions.  */
-	  if (unchecked_union
-	      && TYPE_FIELDS (gnu_variant_type)
-	      && !DECL_CHAIN (TYPE_FIELDS (gnu_variant_type)))
-	    gnu_field = TYPE_FIELDS (gnu_variant_type);
+	  /* If this is an Unchecked_Union whose fields are all in the variant
+	     part and we have a single field with no representation clause or
+	     placed at offset zero, use the field directly to match the layout
+	     of C unions.  */
+	  if (TREE_CODE (gnu_record_type) == UNION_TYPE
+	      && (gnu_field = TYPE_FIELDS (gnu_variant_type)) != NULL_TREE
+	      && !DECL_CHAIN (gnu_field)
+	      && (!DECL_FIELD_OFFSET (gnu_field)
+		  || integer_zerop (bit_position (gnu_field))))
+	    DECL_CONTEXT (gnu_field) = gnu_union_type;
 	  else
 	    {
 	      /* Deal with packedness like in gnat_to_gnu_field.  */
@@ -7328,14 +7526,17 @@ components_to_record (tree gnu_record_type, Node_Id gnat_component_list,
 	  gnu_variant_part
 	    = create_field_decl (gnu_var_name, gnu_union_type, gnu_record_type,
 				 all_rep ? TYPE_SIZE (gnu_union_type) : 0,
-				 all_rep ? bitsize_zero_node : 0,
+				 all_rep || this_first_free_pos
+				 ? bitsize_zero_node : 0,
 				 union_field_packed, 0);
 
 	  DECL_INTERNAL_P (gnu_variant_part) = 1;
-	  DECL_CHAIN (gnu_variant_part) = gnu_field_list;
-	  gnu_field_list = gnu_variant_part;
 	}
     }
+
+  /* From now on, a zero FIRST_FREE_POS is totally useless.  */
+  if (first_free_pos && integer_zerop (first_free_pos))
+    first_free_pos = NULL_TREE;
 
   /* Scan GNU_FIELD_LIST and see if any fields have rep clauses and, if we are
      permitted to reorder components, self-referential sizes or variable sizes.
@@ -7368,34 +7569,17 @@ components_to_record (tree gnu_record_type, Node_Id gnat_component_list,
 	  continue;
 	}
 
-      if (reorder)
+      if ((reorder || has_aliased_after_self_field)
+	  && field_has_self_size (gnu_field))
 	{
-	  /* Pull out the variant part and put it onto GNU_SELF_LIST.  */
-	  if (gnu_field == gnu_variant_part)
-	    {
-	      MOVE_FROM_FIELD_LIST_TO (gnu_self_list);
-	      continue;
-	    }
+	  MOVE_FROM_FIELD_LIST_TO (gnu_self_list);
+	  continue;
+	}
 
-	  /* Skip internal fields and fields with fixed size.  */
-	  if (!DECL_INTERNAL_P (gnu_field)
-	      && !(DECL_SIZE (gnu_field)
-		   && TREE_CODE (DECL_SIZE (gnu_field)) == INTEGER_CST))
-	    {
-	      tree type_size = TYPE_SIZE (TREE_TYPE (gnu_field));
-
-	      if (CONTAINS_PLACEHOLDER_P (type_size))
-		{
-		  MOVE_FROM_FIELD_LIST_TO (gnu_self_list);
-		  continue;
-		}
-
-	      if (TREE_CODE (type_size) != INTEGER_CST)
-		{
-		  MOVE_FROM_FIELD_LIST_TO (gnu_var_list);
-		  continue;
-		}
-	    }
+      if (reorder && field_has_variable_size (gnu_field))
+	{
+	  MOVE_FROM_FIELD_LIST_TO (gnu_var_list);
+	  continue;
 	}
 
       gnu_last = gnu_field;
@@ -7403,7 +7587,7 @@ components_to_record (tree gnu_record_type, Node_Id gnat_component_list,
 
 #undef MOVE_FROM_FIELD_LIST_TO
 
-  /* If permitted, we reorder the components as follows:
+  /* If permitted, we reorder the fields as follows:
 
        1) all fixed length fields,
        2) all fields whose length doesn't depend on discriminants,
@@ -7416,14 +7600,20 @@ components_to_record (tree gnu_record_type, Node_Id gnat_component_list,
       = chainon (nreverse (gnu_self_list),
 		 chainon (nreverse (gnu_var_list), gnu_field_list));
 
-  /* If we have any fields in our rep'ed field list and it is not the case that
-     all the fields in the record have rep clauses and P_REP_LIST is nonzero,
-     set it and ignore these fields.  */
-  if (gnu_rep_list && p_gnu_rep_list && !all_rep)
+  /* Otherwise, if there is an aliased field placed after a field whose length
+     depends on discriminants, we put all the fields of the latter sort, last.
+     We need to do this in case an object of this record type is mutable.  */
+  else if (has_aliased_after_self_field)
+    gnu_field_list = chainon (nreverse (gnu_self_list), gnu_field_list);
+
+  /* If P_REP_LIST is nonzero, this means that we are asked to move the fields
+     in our REP list to the previous level because this level needs them in
+     order to do a correct layout, i.e. avoid having overlapping fields.  */
+  if (p_gnu_rep_list && gnu_rep_list)
     *p_gnu_rep_list = chainon (*p_gnu_rep_list, gnu_rep_list);
 
   /* Otherwise, sort the fields by bit position and put them into their own
-     record, before the others, if we also have fields without rep clauses.  */
+     record, before the others, if we also have fields without rep clause.  */
   else if (gnu_rep_list)
     {
       tree gnu_rep_type
@@ -7451,17 +7641,40 @@ components_to_record (tree gnu_record_type, Node_Id gnat_component_list,
       if (gnu_field_list)
 	{
 	  finish_record_type (gnu_rep_type, gnu_rep_list, 1, debug_info);
-	  gnu_field
-	    = create_field_decl (get_identifier ("REP"), gnu_rep_type,
-				 gnu_record_type, NULL_TREE, NULL_TREE, 0, 1);
-	  DECL_INTERNAL_P (gnu_field) = 1;
-	  gnu_field_list = chainon (gnu_field_list, gnu_field);
+
+	  /* If FIRST_FREE_POS is nonzero, we need to ensure that the fields
+	     without rep clause are laid out starting from this position.
+	     Therefore, we force it as a minimal size on the REP part.  */
+	  gnu_rep_part
+	    = create_rep_part (gnu_rep_type, gnu_record_type, first_free_pos);
 	}
       else
 	{
 	  layout_with_rep = true;
 	  gnu_field_list = nreverse (gnu_rep_list);
 	}
+    }
+
+  /* If FIRST_FREE_POS is nonzero, we need to ensure that the fields without
+     rep clause are laid out starting from this position.  Therefore, if we
+     have not already done so, we create a fake REP part with this size.  */
+  if (first_free_pos && !layout_with_rep && !gnu_rep_part)
+    {
+      tree gnu_rep_type = make_node (RECORD_TYPE);
+      finish_record_type (gnu_rep_type, NULL_TREE, 0, debug_info);
+      gnu_rep_part
+	= create_rep_part (gnu_rep_type, gnu_record_type, first_free_pos);
+    }
+
+  /* Now chain the REP part at the end of the reversed field list.  */
+  if (gnu_rep_part)
+    gnu_field_list = chainon (gnu_field_list, gnu_rep_part);
+
+  /* And the variant part at the beginning.  */
+  if (gnu_variant_part)
+    {
+      DECL_CHAIN (gnu_variant_part) = gnu_field_list;
+      gnu_field_list = gnu_variant_part;
     }
 
   if (cancel_alignment)
@@ -8567,6 +8780,24 @@ create_field_decl_from (tree old_field, tree field_type, tree record_type,
   return new_field;
 }
 
+/* Create the REP part of RECORD_TYPE with REP_TYPE.  If MIN_SIZE is nonzero,
+   it is the minimal size the REP_PART must have.  */
+
+static tree
+create_rep_part (tree rep_type, tree record_type, tree min_size)
+{
+  tree field;
+
+  if (min_size && !tree_int_cst_lt (TYPE_SIZE (rep_type), min_size))
+    min_size = NULL_TREE;
+
+  field = create_field_decl (get_identifier ("REP"), rep_type, record_type,
+			     min_size, bitsize_zero_node, 0, 1);
+  DECL_INTERNAL_P (field) = 1;
+
+  return field;
+}
+
 /* Return the REP part of RECORD_TYPE, if any.  Otherwise return NULL.  */
 
 static tree
@@ -8575,10 +8806,10 @@ get_rep_part (tree record_type)
   tree field = TYPE_FIELDS (record_type);
 
   /* The REP part is the first field, internal, another record, and its name
-     doesn't start with an underscore (i.e. is not generated by the FE).  */
+     starts with an 'R'.  */
   if (DECL_INTERNAL_P (field)
       && TREE_CODE (TREE_TYPE (field)) == RECORD_TYPE
-      && IDENTIFIER_POINTER (DECL_NAME (field)) [0] != '_')
+      && IDENTIFIER_POINTER (DECL_NAME (field)) [0] == 'R')
     return field;
 
   return NULL_TREE;

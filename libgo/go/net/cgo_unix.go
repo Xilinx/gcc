@@ -17,14 +17,18 @@ package net
 */
 
 import (
-	"os"
 	"syscall"
 	"unsafe"
 )
 
-func libc_getaddrinfo(node *byte, service *byte, hints *syscall.Addrinfo, res **syscall.Addrinfo) int __asm__ ("getaddrinfo")
-func libc_freeaddrinfo(res *syscall.Addrinfo) __asm__ ("freeaddrinfo")
-func libc_gai_strerror(errcode int) *byte __asm__ ("gai_strerror")
+//extern getaddrinfo
+func libc_getaddrinfo(node *byte, service *byte, hints *syscall.Addrinfo, res **syscall.Addrinfo) int
+
+//extern freeaddrinfo
+func libc_freeaddrinfo(res *syscall.Addrinfo)
+
+//extern gai_strerror
+func libc_gai_strerror(errcode int) *byte
 
 // bytePtrToString takes a NUL-terminated array of bytes and convert
 // it to a Go string.
@@ -37,7 +41,7 @@ func bytePtrToString(p *byte) string {
 	return string(a[:i])
 }
 
-func cgoLookupHost(name string) (addrs []string, err os.Error, completed bool) {
+func cgoLookupHost(name string) (addrs []string, err error, completed bool) {
 	ip, err, completed := cgoLookupIP(name)
 	for _, p := range ip {
 		addrs = append(addrs, p.String())
@@ -45,7 +49,7 @@ func cgoLookupHost(name string) (addrs []string, err os.Error, completed bool) {
 	return
 }
 
-func cgoLookupPort(net, service string) (port int, err os.Error, completed bool) {
+func cgoLookupPort(net, service string) (port int, err error, completed bool) {
 	var res *syscall.Addrinfo
 	var hints syscall.Addrinfo
 
@@ -91,7 +95,7 @@ func cgoLookupPort(net, service string) (port int, err os.Error, completed bool)
 	return 0, &AddrError{"unknown port", net + "/" + service}, true
 }
 
-func cgoLookupIPCNAME(name string) (addrs []IP, cname string, err os.Error, completed bool) {
+func cgoLookupIPCNAME(name string) (addrs []IP, cname string, err error, completed bool) {
 	var res *syscall.Addrinfo
 	var hints syscall.Addrinfo
 
@@ -110,11 +114,11 @@ func cgoLookupIPCNAME(name string) (addrs []IP, cname string, err os.Error, comp
 		if gerrno == syscall.EAI_NONAME {
 			str = noSuchHost
 		} else if gerrno == syscall.EAI_SYSTEM {
-			str = syscall.Errstr(syscall.GetErrno())
+			str = syscall.GetErrno().Error()
 		} else {
 			str = bytePtrToString(libc_gai_strerror(gerrno))
 		}
-		return nil, "", &DNSError{Error: str, Name: name}, true
+		return nil, "", &DNSError{Err: str, Name: name}, true
 	}
 	defer libc_freeaddrinfo(res)
 	if res != nil {
@@ -145,12 +149,12 @@ func cgoLookupIPCNAME(name string) (addrs []IP, cname string, err os.Error, comp
 	return addrs, cname, nil, true
 }
 
-func cgoLookupIP(name string) (addrs []IP, err os.Error, completed bool) {
+func cgoLookupIP(name string) (addrs []IP, err error, completed bool) {
 	addrs, _, err, completed = cgoLookupIPCNAME(name)
 	return
 }
 
-func cgoLookupCNAME(name string) (cname string, err os.Error, completed bool) {
+func cgoLookupCNAME(name string) (cname string, err error, completed bool) {
 	_, cname, err, completed = cgoLookupIPCNAME(name)
 	return
 }

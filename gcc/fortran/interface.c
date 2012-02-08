@@ -1,6 +1,6 @@
 /* Deal with interfaces.
    Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010
+   2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -1262,8 +1262,9 @@ check_interface0 (gfc_interface *p, const char *interface_name)
     {
       /* Make sure all symbols in the interface have been defined as
 	 functions or subroutines.  */
-      if ((!p->sym->attr.function && !p->sym->attr.subroutine)
-	  || !p->sym->attr.if_source)
+      if (((!p->sym->attr.function && !p->sym->attr.subroutine)
+	   || !p->sym->attr.if_source)
+	  && p->sym->attr.flavor != FL_DERIVED)
 	{
 	  if (p->sym->attr.external)
 	    gfc_error ("Procedure '%s' in %s at %L has no explicit interface",
@@ -1276,11 +1277,18 @@ check_interface0 (gfc_interface *p, const char *interface_name)
 	}
 
       /* Verify that procedures are either all SUBROUTINEs or all FUNCTIONs.  */
-      if ((psave->sym->attr.function && !p->sym->attr.function)
+      if ((psave->sym->attr.function && !p->sym->attr.function
+	   && p->sym->attr.flavor != FL_DERIVED)
 	  || (psave->sym->attr.subroutine && !p->sym->attr.subroutine))
 	{
-	  gfc_error ("In %s at %L procedures must be either all SUBROUTINEs"
-		     " or all FUNCTIONs", interface_name, &p->sym->declared_at);
+	  if (p->sym->attr.flavor != FL_DERIVED)
+	    gfc_error ("In %s at %L procedures must be either all SUBROUTINEs"
+		       " or all FUNCTIONs", interface_name,
+		       &p->sym->declared_at);
+	  else
+	    gfc_error ("In %s at %L procedures must be all FUNCTIONs as the "
+		       "generic name is also the name of a derived type",
+		       interface_name, &p->sym->declared_at);
 	  return 1;
 	}
 
@@ -1336,8 +1344,10 @@ check_interface1 (gfc_interface *p, gfc_interface *q0,
 	if (p->sym->name == q->sym->name && p->sym->module == q->sym->module)
 	  continue;
 
-	if (gfc_compare_interfaces (p->sym, q->sym, q->sym->name, generic_flag,
-				    0, NULL, 0))
+	if (p->sym->attr.flavor != FL_DERIVED
+	    && q->sym->attr.flavor != FL_DERIVED
+	    && gfc_compare_interfaces (p->sym, q->sym, q->sym->name,
+				       generic_flag, 0, NULL, 0))
 	  {
 	    if (referenced)
 	      gfc_error ("Ambiguous interfaces '%s' and '%s' in %s at %L",
@@ -1531,6 +1541,9 @@ done:
 static int
 symbol_rank (gfc_symbol *sym)
 {
+  if (sym->ts.type == BT_CLASS && CLASS_DATA (sym)->as)
+    return CLASS_DATA (sym)->as->rank;
+
   return (sym->as == NULL) ? 0 : sym->as->rank;
 }
 
@@ -1681,7 +1694,10 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 
   if ((actual->expr_type != EXPR_NULL || actual->ts.type != BT_UNKNOWN)
       && actual->ts.type != BT_HOLLERITH
-      && !gfc_compare_types (&formal->ts, &actual->ts))
+      && !gfc_compare_types (&formal->ts, &actual->ts)
+      && !(formal->ts.type == BT_DERIVED && actual->ts.type == BT_CLASS
+	   && gfc_compare_derived_types (formal->ts.u.derived, 
+					 CLASS_DATA (actual)->ts.u.derived)))
     {
       if (where)
 	gfc_error ("Type mismatch in argument '%s' at %L; passed %s to %s",
@@ -1690,7 +1706,7 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
       return 0;
     }
     
-  /* F2003, 12.5.2.5.  */
+  /* F2008, 12.5.2.5.  */
   if (formal->ts.type == BT_CLASS
       && (CLASS_DATA (formal)->attr.class_pointer
           || CLASS_DATA (formal)->attr.allocatable))
@@ -1702,8 +1718,8 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 			formal->name, &actual->where);
 	  return 0;
 	}
-      if (CLASS_DATA (actual)->ts.u.derived
-	  != CLASS_DATA (formal)->ts.u.derived)
+      if (!gfc_compare_derived_types (CLASS_DATA (actual)->ts.u.derived,
+				      CLASS_DATA (formal)->ts.u.derived))
 	{
 	  if (where)
 	    gfc_error ("Actual argument to '%s' at %L must have the same "
@@ -1810,6 +1826,10 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
   if (symbol_rank (formal) == actual->rank)
     return 1;
 
+  if (actual->ts.type == BT_CLASS && CLASS_DATA (actual)->as
+	&& CLASS_DATA (actual)->as->rank == symbol_rank (formal))
+    return 1;
+
   rank_check = where != NULL && !is_elemental && formal->as
 	       && (formal->as->type == AS_ASSUMED_SHAPE
 		   || formal->as->type == AS_DEFERRED)
@@ -1819,7 +1839,11 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
   if (rank_check || ranks_must_agree
       || (formal->attr.pointer && actual->expr_type != EXPR_NULL)
       || (actual->rank != 0 && !(is_elemental || formal->attr.dimension))
-      || (actual->rank == 0 && formal->as->type == AS_ASSUMED_SHAPE
+      || (actual->rank == 0
+	  && ((formal->ts.type == BT_CLASS
+	       && CLASS_DATA (formal)->as->type == AS_ASSUMED_SHAPE)
+	      || (formal->ts.type != BT_CLASS
+		   && formal->as->type == AS_ASSUMED_SHAPE))
 	  && actual->expr_type != EXPR_NULL)
       || (actual->rank == 0 && formal->attr.dimension
 	  && gfc_is_coindexed (actual)))
@@ -2148,6 +2172,7 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
   gfc_formal_arglist *f;
   int i, n, na;
   unsigned long actual_size, formal_size;
+  bool full_array = false;
 
   actual = *ap;
 
@@ -2287,6 +2312,9 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 	  return 0;
 	}
 
+      if (f->sym->ts.type == BT_CLASS)
+	goto skip_size_check;
+
       actual_size = get_expr_storage_size (a->expr);
       formal_size = get_sym_storage_size (f->sym);
       if (actual_size != 0 && actual_size < formal_size
@@ -2305,6 +2333,8 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 			 &a->expr->where);
 	  return  0;
 	}
+
+     skip_size_check:
 
       /* Satisfy 12.4.1.3 by ensuring that a procedure pointer actual argument
 	 is provided for a procedure pointer formal argument.  */
@@ -2417,6 +2447,18 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 		       "or INTENT(IN)", &a->expr->where, f->sym->name);
 	  return 0;
 	}
+
+     if (f->sym->ts.type == BT_CLASS
+	   && CLASS_DATA (f->sym)->attr.allocatable
+	   && gfc_is_class_array_ref (a->expr, &full_array)
+	   && !full_array)
+	{
+	  if (where)
+	    gfc_error ("Actual CLASS array argument for '%s' must be a full "
+		       "array at %L", f->sym->name, &a->expr->where);
+	  return 0;
+	}
+
 
       if (a->expr->expr_type != EXPR_NULL
 	  && compare_allocatable (f->sym, a->expr) == 0)
@@ -3019,6 +3061,8 @@ gfc_search_interface (gfc_interface *intr, int sub_flag,
 
   for (; intr; intr = intr->next)
     {
+      if (intr->sym->attr.flavor == FL_DERIVED)
+	continue;
       if (sub_flag && intr->sym->attr.function)
 	continue;
       if (!sub_flag && intr->sym->attr.subroutine)
@@ -3124,9 +3168,13 @@ matching_typebound_op (gfc_expr** tb_base,
 	gfc_symbol* derived;
 	gfc_try result;
 
+	while (base->expr->expr_type == EXPR_OP
+	       && base->expr->value.op.op == INTRINSIC_PARENTHESES)
+	  base->expr = base->expr->value.op.op1;
+
 	if (base->expr->ts.type == BT_CLASS)
 	  {
-	    if (!gfc_expr_attr (base->expr).class_ok)
+	    if (CLASS_DATA (base->expr) == NULL)
 	      continue;
 	    derived = CLASS_DATA (base->expr)->ts.u.derived;
 	  }
@@ -3212,6 +3260,14 @@ build_compcall_for_operator (gfc_expr* e, gfc_actual_arglist* actual,
   e->value.compcall.base_object = base;
   e->value.compcall.ignore_pass = 1;
   e->value.compcall.assign = 0;
+  if (e->ts.type == BT_UNKNOWN
+	&& target->function)
+    {
+      if (target->is_generic)
+	e->ts = target->u.generic->specific->u.specific->n.sym->ts;
+      else
+	e->ts = target->u.specific->n.sym->ts;
+    }
 }
 
 

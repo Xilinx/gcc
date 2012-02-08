@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2001-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -40,6 +40,14 @@ with GNAT.Dynamic_Tables;
 with GNAT.OS_Lib;          use GNAT.OS_Lib;
 
 package Prj is
+
+   procedure Add_Restricted_Language (Name : String);
+   --  Call by gprbuild for each language specify by switch
+   --  --restricted-to-languages=.
+
+   function Is_Allowed_Language (Name : Name_Id) return Boolean;
+   --  Returns True if --restricted-to-languages= is not used or if Name
+   --  is one of the restricted languages.
 
    All_Other_Names : constant Name_Id := Names_High_Bound;
    --  Name used to replace others as an index of an associative array
@@ -930,8 +938,9 @@ package Prj is
    type Project_List_Element;
    type Project_List is access all Project_List_Element;
    type Project_List_Element is record
-      Project : Project_Id   := No_Project;
-      Next    : Project_List := null;
+      Project               : Project_Id   := No_Project;
+      From_Encapsulated_Lib : Boolean      := False;
+      Next                  : Project_List := null;
    end record;
    --  A list of projects
 
@@ -1025,6 +1034,9 @@ package Prj is
       --  The level of library support. Specified in the configuration. Support
       --  is none, static libraries only or both static and shared libraries.
 
+      Lib_Encapsulated_Supported : Boolean := False;
+      --  True when building fully standalone libraries supported on the target
+
       Archive_Builder : Name_List_Index := No_Name_List;
       --  The name of the executable to build archives, with the minimum
       --  switches. Specified in the configuration.
@@ -1077,37 +1089,38 @@ package Prj is
    end record;
 
    Default_Project_Config : constant Project_Configuration :=
-                              (Target                        => No_Name,
-                               Run_Path_Option               => No_Name_List,
-                               Run_Path_Origin               => No_Name,
-                               Library_Install_Name_Option   => No_Name,
-                               Separate_Run_Path_Options     => False,
-                               Executable_Suffix             => No_Name,
-                               Linker                        => No_Path,
-                               Map_File_Option               => No_Name,
+                              (Target                         => No_Name,
+                               Run_Path_Option                => No_Name_List,
+                               Run_Path_Origin                => No_Name,
+                               Library_Install_Name_Option    => No_Name,
+                               Separate_Run_Path_Options      => False,
+                               Executable_Suffix              => No_Name,
+                               Linker                         => No_Path,
+                               Map_File_Option                => No_Name,
                                Trailing_Linker_Required_Switches =>
                                  No_Name_List,
-                               Linker_Executable_Option      => No_Name_List,
-                               Linker_Lib_Dir_Option         => No_Name,
-                               Linker_Lib_Name_Option        => No_Name,
-                               Library_Builder               => No_Path,
-                               Max_Command_Line_Length       => 0,
-                               Resp_File_Format              => None,
-                               Resp_File_Options             => No_Name_List,
-                               Lib_Support                   => None,
-                               Archive_Builder               => No_Name_List,
-                               Archive_Builder_Append_Option => No_Name_List,
-                               Archive_Indexer               => No_Name_List,
-                               Archive_Suffix                => No_File,
-                               Lib_Partial_Linker            => No_Name_List,
-                               Shared_Lib_Driver             => No_File,
-                               Shared_Lib_Prefix             => No_File,
-                               Shared_Lib_Suffix             => No_File,
-                               Shared_Lib_Min_Options        => No_Name_List,
-                               Lib_Version_Options           => No_Name_List,
-                               Symbolic_Link_Supported       => False,
-                               Lib_Maj_Min_Id_Supported      => False,
-                               Auto_Init_Supported           => False);
+                               Linker_Executable_Option       => No_Name_List,
+                               Linker_Lib_Dir_Option          => No_Name,
+                               Linker_Lib_Name_Option         => No_Name,
+                               Library_Builder                => No_Path,
+                               Max_Command_Line_Length        => 0,
+                               Resp_File_Format               => None,
+                               Resp_File_Options              => No_Name_List,
+                               Lib_Support                    => None,
+                               Lib_Encapsulated_Supported     => False,
+                               Archive_Builder                => No_Name_List,
+                               Archive_Builder_Append_Option  => No_Name_List,
+                               Archive_Indexer                => No_Name_List,
+                               Archive_Suffix                 => No_File,
+                               Lib_Partial_Linker             => No_Name_List,
+                               Shared_Lib_Driver              => No_File,
+                               Shared_Lib_Prefix              => No_File,
+                               Shared_Lib_Suffix              => No_File,
+                               Shared_Lib_Min_Options         => No_Name_List,
+                               Lib_Version_Options            => No_Name_List,
+                               Symbolic_Link_Supported        => False,
+                               Lib_Maj_Min_Id_Supported       => False,
+                               Auto_Init_Supported            => False);
 
    -------------------------
    -- Aggregated projects --
@@ -1139,6 +1152,8 @@ package Prj is
 
    --  The following record describes a project file representation
 
+   type Standalone is (No, Standard, Encapsulated);
+
    type Project_Data (Qualifier : Project_Qualifier := Unspecified) is record
 
       -------------
@@ -1165,7 +1180,8 @@ package Prj is
       --  True for virtual extending projects
 
       Location : Source_Ptr := No_Location;
-      --  The location in the project file source of the reserved word project
+      --  The location in the project file source of the project name that
+      --  immediately follows the reserved word "project".
 
       ---------------
       -- Languages --
@@ -1251,7 +1267,7 @@ package Prj is
       Lib_Internal_Name : Name_Id := No_Name;
       --  If a library project, internal name store inside the library
 
-      Standalone_Library : Boolean := False;
+      Standalone_Library : Standalone := No;
       --  Indicate that this is a Standalone Library Project File
 
       Lib_Interface_ALIs : String_List_Id := Nil_String;
@@ -1364,6 +1380,10 @@ package Prj is
       Extended  : Project_Id) return Boolean;
    --  Return True if Extending is extending the Extended project
 
+   function Is_Ext
+     (Extending : Project_Id;
+      Extended  : Project_Id) return Boolean renames Is_Extending;
+
    function Has_Ada_Sources (Data : Project_Id) return Boolean;
    --  Return True if the project has Ada sources
 
@@ -1386,11 +1406,13 @@ package Prj is
    type Source_Iterator is private;
 
    function For_Each_Source
-     (In_Tree  : Project_Tree_Ref;
-      Project  : Project_Id := No_Project;
-      Language : Name_Id := No_Name) return Source_Iterator;
+     (In_Tree           : Project_Tree_Ref;
+      Project           : Project_Id := No_Project;
+      Language          : Name_Id    := No_Name;
+      Encapsulated_Libs : Boolean    := True) return Source_Iterator;
    --  Returns an iterator for all the sources of a project tree, or a specific
-   --  project, or a specific language.
+   --  project, or a specific language. Include sources from aggregated libs if
+   --  Aggregated_Libs is True.
 
    function Element (Iter : Source_Iterator) return Source_Id;
    --  Return the current source (or No_Source if there are no more sources)
@@ -1571,10 +1593,45 @@ package Prj is
    --
    --  If Include_Aggregated is True, then an aggregate project will recurse
    --  into the projects it aggregates. Otherwise, the latter are never
-   --  returned
+   --  returned.
+   --
+   --  In_Aggregate_Lib is True if the project is in an aggregate library
    --
    --  The Tree argument passed to the callback is required in the case of
    --  aggregated projects, since they might not be using the same tree as 'By'
+
+   type Project_Context is record
+      In_Aggregate_Lib : Boolean;
+      --  True if the project is part of an aggregate library
+
+      From_Encapsulated_Lib : Boolean;
+      --  True if the project is imported from an encapsulated library
+   end record;
+
+   generic
+      type State is limited private;
+      with procedure Action
+        (Project    : Project_Id;
+         Tree       : Project_Tree_Ref;
+         Context    : Project_Context;
+         With_State : in out State);
+   procedure For_Every_Project_Imported_Context
+     (By                 : Project_Id;
+      Tree               : Project_Tree_Ref;
+      With_State         : in out State;
+      Include_Aggregated : Boolean := True;
+      Imported_First     : Boolean := False);
+   --  As above but with an associated context
+
+   generic
+      with procedure Action
+        (Project : Project_Id;
+         Tree    : Project_Tree_Ref;
+         Context : Project_Context);
+   procedure For_Project_And_Aggregated_Context
+     (Root_Project : Project_Id;
+      Root_Tree    : Project_Tree_Ref);
+   --  As above but with an associated context
 
    function Extend_Name
      (File        : File_Name_Type;
@@ -1806,6 +1863,9 @@ private
       --  Only sources of this language will be returned (or all if No_Name)
 
       Current : Source_Id;
+
+      Encapsulated_Libs : Boolean;
+      --  True if we want to include the sources from encapsulated libs
    end record;
 
    procedure Add_To_Buffer

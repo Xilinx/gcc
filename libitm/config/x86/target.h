@@ -29,13 +29,13 @@ namespace GTM HIDDEN {
 typedef struct gtm_jmpbuf
 {
   void *cfa;
-  unsigned long rip;
   unsigned long rbx;
   unsigned long rbp;
   unsigned long r12;
   unsigned long r13;
   unsigned long r14;
   unsigned long r15;
+  unsigned long rip;
 } gtm_jmpbuf;
 #else
 typedef struct gtm_jmpbuf
@@ -64,20 +64,6 @@ static inline void
 cpu_relax (void)
 {
   __asm volatile ("rep; nop" : : : "memory");
-}
-
-static inline void
-atomic_read_barrier (void)
-{
-  /* x86 is a strong memory ordering machine.  */
-  __asm volatile ("" : : : "memory");
-}
-
-static inline void
-atomic_write_barrier (void)
-{
-  /* x86 is a strong memory ordering machine.  */
-  __asm volatile ("" : : : "memory");
 }
 
 } // namespace GTM

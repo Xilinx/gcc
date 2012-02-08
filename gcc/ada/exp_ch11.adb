@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -101,9 +101,16 @@ package body Exp_Ch11 is
 
    procedure Expand_At_End_Handler (HSS : Node_Id; Block : Node_Id) is
       Clean   : constant Entity_Id  := Entity (At_End_Proc (HSS));
-      Loc     : constant Source_Ptr := Sloc (Clean);
       Ohandle : Node_Id;
       Stmnts  : List_Id;
+
+      Loc : constant Source_Ptr := No_Location;
+      --  Location used for expansion. We quite deliberately do not set a
+      --  specific source location for the expanded handler. This makes
+      --  sense since really the handler is not associated with specific
+      --  source. We used to set this to Sloc (Clean), but that caused
+      --  useless and annoying bouncing around of line numbers in the
+      --  debugger in some circumstances.
 
    begin
       pragma Assert (Present (Clean));
@@ -1033,16 +1040,17 @@ package body Exp_Ch11 is
                      Save :=
                        Make_Procedure_Call_Statement (No_Location,
                          Name =>
-                           New_Occurrence_Of (RTE (RE_Save_Occurrence),
-                                              No_Location),
+                           New_Occurrence_Of
+                             (RTE (RE_Save_Occurrence), No_Location),
                          Parameter_Associations => New_List (
-                           New_Occurrence_Of (Cparm, Cloc),
+                           New_Occurrence_Of (Cparm, No_Location),
                            Make_Explicit_Dereference (No_Location,
                              Make_Function_Call (No_Location,
-                               Name => Make_Explicit_Dereference (No_Location,
-                                 New_Occurrence_Of
-                                   (RTE (RE_Get_Current_Excep),
-                                    No_Location))))));
+                               Name =>
+                                 Make_Explicit_Dereference (No_Location,
+                                   New_Occurrence_Of
+                                     (RTE (RE_Get_Current_Excep),
+                                      No_Location))))));
 
                      Mark_Rewrite_Insertion (Save);
                      Prepend (Save, Statements (Handler));
@@ -1913,49 +1921,57 @@ package body Exp_Ch11 is
                H := First (Exception_Handlers (P));
                while Present (H) loop
 
-                  --  Loop through choices in one handler
+                  --  Guard against other constructs appearing in the list of
+                  --  exception handlers.
 
-                  C := First (Exception_Choices (H));
-                  while Present (C) loop
+                  if Nkind (H) = N_Exception_Handler then
 
-                     --  Deal with others case
+                     --  Loop through choices in one handler
 
-                     if Nkind (C) = N_Others_Choice then
+                     C := First (Exception_Choices (H));
+                     while Present (C) loop
 
-                        --  Matching others handler, but we need to ensure
-                        --  there is no choice parameter. If there is, then we
-                        --  don't have a local handler after all (since we do
-                        --  not allow choice parameters for local handlers).
+                        --  Deal with others case
 
-                        if No (Choice_Parameter (H)) then
-                           return H;
-                        else
-                           return Empty;
-                        end if;
+                        if Nkind (C) = N_Others_Choice then
 
-                     --  If not others must be entity name
+                           --  Matching others handler, but we need to ensure
+                           --  there is no choice parameter. If there is, then
+                           --  we don't have a local handler after all (since
+                           --  we do not allow choice parameters for local
+                           --  handlers).
 
-                     elsif Nkind (C) /= N_Others_Choice then
-                        pragma Assert (Is_Entity_Name (C));
-                        pragma Assert (Present (Entity (C)));
-
-                        --  Get exception being handled, dealing with renaming
-
-                        EHandle := Get_Renamed_Entity (Entity (C));
-
-                        --  If match, then check choice parameter
-
-                        if ERaise = EHandle then
                            if No (Choice_Parameter (H)) then
                               return H;
                            else
                               return Empty;
                            end if;
-                        end if;
-                     end if;
 
-                     Next (C);
-                  end loop;
+                        --  If not others must be entity name
+
+                        elsif Nkind (C) /= N_Others_Choice then
+                           pragma Assert (Is_Entity_Name (C));
+                           pragma Assert (Present (Entity (C)));
+
+                           --  Get exception being handled, dealing with
+                           --  renaming.
+
+                           EHandle := Get_Renamed_Entity (Entity (C));
+
+                           --  If match, then check choice parameter
+
+                           if ERaise = EHandle then
+                              if No (Choice_Parameter (H)) then
+                                 return H;
+                              else
+                                 return Empty;
+                              end if;
+                           end if;
+                        end if;
+
+                        Next (C);
+                     end loop;
+                  end if;
 
                   Next (H);
                end loop;

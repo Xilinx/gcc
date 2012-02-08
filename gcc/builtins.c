@@ -1,7 +1,7 @@
 /* Expand builtin functions.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
+   2012 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -227,7 +227,7 @@ static void expand_builtin_sync_synchronize (void);
 
 /* Return true if NAME starts with __builtin_ or __sync_.  */
 
-bool
+static bool
 is_builtin_name (const char *name)
 {
   if (strncmp (name, "__builtin_", 10) == 0)
@@ -452,6 +452,60 @@ get_object_alignment (tree exp)
   return align;
 }
 
+/* Return the alignment of object EXP, also considering its type when we do
+   not know of explicit misalignment.  Only handle MEM_REF and TARGET_MEM_REF.
+
+   ??? Note that, in the general case, the type of an expression is not kept
+   consistent with misalignment information by the front-end, for example when
+   taking the address of a member of a packed structure.  However, in most of
+   the cases, expressions have the alignment of their type so we optimistically
+   fall back to this alignment when we cannot compute a misalignment.  */
+
+unsigned int
+get_object_or_type_alignment (tree exp)
+{
+  unsigned HOST_WIDE_INT misalign;
+  unsigned int align = get_object_alignment_1 (exp, &misalign);
+
+  gcc_assert (TREE_CODE (exp) == MEM_REF || TREE_CODE (exp) == TARGET_MEM_REF);
+
+  if (misalign != 0)
+    align = (misalign & -misalign);
+  else
+    align = MAX (TYPE_ALIGN (TREE_TYPE (exp)), align);
+
+  return align;
+}
+
+/* For a pointer valued expression EXP compute values M and N such that
+   M divides (EXP - N) and such that N < M.  Store N in *BITPOSP and return M.
+
+   If EXP is not a pointer, 0 is returned.  */
+
+unsigned int
+get_pointer_alignment_1 (tree exp, unsigned HOST_WIDE_INT *bitposp)
+{
+  STRIP_NOPS (exp);
+
+  if (TREE_CODE (exp) == ADDR_EXPR)
+    return get_object_alignment_1 (TREE_OPERAND (exp, 0), bitposp);
+  else if (TREE_CODE (exp) == SSA_NAME
+	   && POINTER_TYPE_P (TREE_TYPE (exp)))
+    {
+      struct ptr_info_def *pi = SSA_NAME_PTR_INFO (exp);
+      if (!pi)
+	{
+	  *bitposp = 0;
+	  return BITS_PER_UNIT;
+	}
+      *bitposp = pi->misalign * BITS_PER_UNIT;
+      return pi->align * BITS_PER_UNIT;
+    }
+
+  *bitposp = 0;
+  return POINTER_TYPE_P (TREE_TYPE (exp)) ? BITS_PER_UNIT : 0;
+}
+
 /* Return the alignment in bits of EXP, a pointer valued expression.
    The alignment returned is, by default, the alignment of the thing that
    EXP points to.  If it is not a POINTER_TYPE, 0 is returned.
@@ -462,25 +516,18 @@ get_object_alignment (tree exp)
 unsigned int
 get_pointer_alignment (tree exp)
 {
-  STRIP_NOPS (exp);
+  unsigned HOST_WIDE_INT bitpos = 0;
+  unsigned int align;
+  
+  align = get_pointer_alignment_1 (exp, &bitpos);
 
-  if (TREE_CODE (exp) == ADDR_EXPR)
-    return get_object_alignment (TREE_OPERAND (exp, 0));
-  else if (TREE_CODE (exp) == SSA_NAME
-	   && POINTER_TYPE_P (TREE_TYPE (exp)))
-    {
-      struct ptr_info_def *pi = SSA_NAME_PTR_INFO (exp);
-      unsigned align;
-      if (!pi)
-	return BITS_PER_UNIT;
-      if (pi->misalign != 0)
-	align = (pi->misalign & -pi->misalign);
-      else
-	align = pi->align;
-      return align * BITS_PER_UNIT;
-    }
+  /* align and bitpos now specify known low bits of the pointer.
+     ptr & (align - 1) == bitpos.  */
 
-  return POINTER_TYPE_P (TREE_TYPE (exp)) ? BITS_PER_UNIT : 0;
+  if (bitpos != 0)
+    align = (bitpos & -bitpos);
+
+  return align;
 }
 
 /* Compute the length of a C string.  TREE_STRING_LENGTH is not the right
@@ -4523,8 +4570,8 @@ expand_builtin_alloca (tree exp, bool cannot_accumulate)
   bool alloca_with_align = (DECL_FUNCTION_CODE (get_callee_fndecl (exp))
 			    == BUILT_IN_ALLOCA_WITH_ALIGN);
 
-  /* Emit normal call if marked not-inlineable.  */
-  if (CALL_CANNOT_INLINE_P (exp))
+  /* Emit normal call if we use mudflap.  */
+  if (flag_mudflap)
     return NULL_RTX;
 
   valid_arglist
@@ -4807,7 +4854,7 @@ round_trampoline_addr (rtx tramp)
 }
 
 static rtx
-expand_builtin_init_trampoline (tree exp)
+expand_builtin_init_trampoline (tree exp, bool onstack)
 {
   tree t_tramp, t_func, t_chain;
   rtx m_tramp, r_tramp, r_chain, tmp;
@@ -4824,13 +4871,16 @@ expand_builtin_init_trampoline (tree exp)
   m_tramp = gen_rtx_MEM (BLKmode, r_tramp);
   MEM_NOTRAP_P (m_tramp) = 1;
 
-  /* The TRAMP argument should be the address of a field within the
-     local function's FRAME decl.  Let's see if we can fill in the
-     to fill in the MEM_ATTRs for this memory.  */
+  /* If ONSTACK, the TRAMP argument should be the address of a field
+     within the local function's FRAME decl.  Either way, let's see if
+     we can fill in the MEM_ATTRs for this memory.  */
   if (TREE_CODE (t_tramp) == ADDR_EXPR)
     set_mem_attributes_minus_bitpos (m_tramp, TREE_OPERAND (t_tramp, 0),
 				     true, 0);
 
+  /* Creator of a heap trampoline is responsible for making sure the
+     address is aligned to at least STACK_BOUNDARY.  Normally malloc
+     will ensure this anyhow.  */
   tmp = round_trampoline_addr (r_tramp);
   if (tmp != r_tramp)
     {
@@ -4850,10 +4900,13 @@ expand_builtin_init_trampoline (tree exp)
   /* Generate insns to initialize the trampoline.  */
   targetm.calls.trampoline_init (m_tramp, t_func, r_chain);
 
-  trampolines_created = 1;
+  if (onstack)
+    {
+      trampolines_created = 1;
 
-  warning_at (DECL_SOURCE_LOCATION (t_func), OPT_Wtrampolines,
-              "trampoline generated for nested function %qD", t_func);
+      warning_at (DECL_SOURCE_LOCATION (t_func), OPT_Wtrampolines,
+		  "trampoline generated for nested function %qD", t_func);
+    }
 
   return const0_rtx;
 }
@@ -5144,7 +5197,6 @@ expand_builtin_sync_operation (enum machine_mode mode, tree exp,
 	case BUILT_IN_SYNC_FETCH_AND_NAND_4:
 	case BUILT_IN_SYNC_FETCH_AND_NAND_8:
 	case BUILT_IN_SYNC_FETCH_AND_NAND_16:
-
 	  if (warned_f_a_n)
 	    break;
 
@@ -5158,7 +5210,6 @@ expand_builtin_sync_operation (enum machine_mode mode, tree exp,
 	case BUILT_IN_SYNC_NAND_AND_FETCH_4:
 	case BUILT_IN_SYNC_NAND_AND_FETCH_8:
 	case BUILT_IN_SYNC_NAND_AND_FETCH_16:
-
 	  if (warned_n_a_f)
 	    break;
 
@@ -5190,16 +5241,24 @@ expand_builtin_compare_and_swap (enum machine_mode mode, tree exp,
 				 bool is_bool, rtx target)
 {
   rtx old_val, new_val, mem;
+  rtx *pbool, *poval;
 
   /* Expand the operands.  */
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   old_val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
   new_val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 2), mode);
 
-  if (!expand_atomic_compare_and_swap ((is_bool ? &target : NULL),
-				       (is_bool ? NULL : &target),
-				       mem, old_val, new_val, false,
-				       MEMMODEL_SEQ_CST, MEMMODEL_SEQ_CST))
+  pbool = poval = NULL;
+  if (target != const0_rtx)
+    {
+      if (is_bool)
+	pbool = &target;
+      else
+	poval = &target;
+    }
+  if (!expand_atomic_compare_and_swap (pbool, poval, mem, old_val, new_val,
+				       false, MEMMODEL_SEQ_CST,
+				       MEMMODEL_SEQ_CST))
     return NULL_RTX;
 
   return target;
@@ -5221,7 +5280,7 @@ expand_builtin_sync_lock_test_and_set (enum machine_mode mode, tree exp,
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_atomic_exchange (target, mem, val, MEMMODEL_ACQUIRE, true);
+  return expand_sync_lock_test_and_set (target, mem, val);
 }
 
 /* Expand the __sync_lock_release intrinsic.  EXP is the CALL_EXPR.  */
@@ -5285,7 +5344,7 @@ expand_builtin_atomic_exchange (enum machine_mode mode, tree exp, rtx target)
   mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
   val = expand_expr_force_mode (CALL_EXPR_ARG (exp, 1), mode);
 
-  return expand_atomic_exchange (target, mem, val, model, false);
+  return expand_atomic_exchange (target, mem, val, model);
 }
 
 /* Expand the __atomic_compare_exchange intrinsic:
@@ -5338,8 +5397,9 @@ expand_builtin_atomic_compare_exchange (enum machine_mode mode, tree exp,
 
   oldval = copy_to_reg (gen_rtx_MEM (mode, expect));
 
-  if (!expand_atomic_compare_and_swap (&target, &oldval, mem, oldval,
-				       desired, is_weak, success, failure))
+  if (!expand_atomic_compare_and_swap ((target == const0_rtx ? NULL : &target),
+				       &oldval, mem, oldval, desired,
+				       is_weak, success, failure))
     return NULL_RTX;
 
   emit_move_insn (gen_rtx_MEM (mode, expect), oldval);
@@ -5460,10 +5520,82 @@ expand_builtin_atomic_fetch_op (enum machine_mode mode, tree exp, rtx target,
 
   /* Then issue the arithmetic correction to return the right result.  */
   if (!ignore)
-    ret = expand_simple_binop (mode, code, ret, val, NULL_RTX, true,
-			       OPTAB_LIB_WIDEN);
+    {
+      if (code == NOT)
+	{
+	  ret = expand_simple_binop (mode, AND, ret, val, NULL_RTX, true,
+				     OPTAB_LIB_WIDEN);
+	  ret = expand_simple_unop (mode, NOT, ret, target, true);
+	}
+      else
+	ret = expand_simple_binop (mode, code, ret, val, target, true,
+				   OPTAB_LIB_WIDEN);
+    }
   return ret;
 }
+
+
+#ifndef HAVE_atomic_clear
+# define HAVE_atomic_clear 0
+# define gen_atomic_clear(x,y) (gcc_unreachable (), NULL_RTX)
+#endif
+
+/* Expand an atomic clear operation.
+	void _atomic_clear (BOOL *obj, enum memmodel)
+   EXP is the call expression.  */
+
+static rtx
+expand_builtin_atomic_clear (tree exp) 
+{
+  enum machine_mode mode;
+  rtx mem, ret;
+  enum memmodel model;
+
+  mode = mode_for_size (BOOL_TYPE_SIZE, MODE_INT, 0);
+  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
+  model = get_memmodel (CALL_EXPR_ARG (exp, 1));
+
+  if (model == MEMMODEL_ACQUIRE || model == MEMMODEL_ACQ_REL)
+    {
+      error ("invalid memory model for %<__atomic_store%>");
+      return const0_rtx;
+    }
+
+  if (HAVE_atomic_clear)
+    {
+      emit_insn (gen_atomic_clear (mem, model));
+      return const0_rtx;
+    }
+
+  /* Try issuing an __atomic_store, and allow fallback to __sync_lock_release.
+     Failing that, a store is issued by __atomic_store.  The only way this can
+     fail is if the bool type is larger than a word size.  Unlikely, but
+     handle it anyway for completeness.  Assume a single threaded model since
+     there is no atomic support in this case, and no barriers are required.  */
+  ret = expand_atomic_store (mem, const0_rtx, model, true);
+  if (!ret)
+    emit_move_insn (mem, const0_rtx);
+  return const0_rtx;
+}
+
+/* Expand an atomic test_and_set operation.
+	bool _atomic_test_and_set (BOOL *obj, enum memmodel)
+   EXP is the call expression.  */
+
+static rtx
+expand_builtin_atomic_test_and_set (tree exp, rtx target)
+{
+  rtx mem;
+  enum memmodel model;
+  enum machine_mode mode;
+
+  mode = mode_for_size (BOOL_TYPE_SIZE, MODE_INT, 0);
+  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
+  model = get_memmodel (CALL_EXPR_ARG (exp, 1));
+
+  return expand_atomic_test_and_set (target, mem, model);
+}
+
 
 /* Return true if (optional) argument ARG1 of size ARG0 is always lock free on
    this architecture.  If ARG1 is NULL, use typical alignment for size ARG0.  */
@@ -5591,23 +5723,6 @@ expand_builtin_atomic_is_lock_free (tree exp)
   return NULL_RTX;
 }
 
-/* This routine will either emit the mem_thread_fence pattern or issue a 
-   sync_synchronize to generate a fence for memory model MEMMODEL.  */
-
-#ifndef HAVE_mem_thread_fence
-# define HAVE_mem_thread_fence 0
-# define gen_mem_thread_fence(x) (gcc_unreachable (), NULL_RTX)
-#endif
-
-void
-expand_builtin_mem_thread_fence (enum memmodel model)
-{
-  if (HAVE_mem_thread_fence)
-    emit_insn (gen_mem_thread_fence (GEN_INT (model)));
-  else if (model != MEMMODEL_RELAXED)
-    expand_builtin_sync_synchronize ();
-}
-
 /* Expand the __atomic_thread_fence intrinsic:
    	void __atomic_thread_fence (enum memmodel)
    EXP is the CALL_EXPR.  */
@@ -5615,46 +5730,8 @@ expand_builtin_mem_thread_fence (enum memmodel model)
 static void
 expand_builtin_atomic_thread_fence (tree exp)
 {
-  enum memmodel model;
-  
-  model = get_memmodel (CALL_EXPR_ARG (exp, 0));
-  expand_builtin_mem_thread_fence (model);
-}
-
-/* This routine will either emit the mem_signal_fence pattern or issue a 
-   sync_synchronize to generate a fence for memory model MEMMODEL.  */
-
-#ifndef HAVE_mem_signal_fence
-# define HAVE_mem_signal_fence 0
-# define gen_mem_signal_fence(x) (gcc_unreachable (), NULL_RTX)
-#endif
-
-static void
-expand_builtin_mem_signal_fence (enum memmodel model)
-{
-  if (HAVE_mem_signal_fence)
-    emit_insn (gen_mem_signal_fence (GEN_INT (model)));
-  else if (model != MEMMODEL_RELAXED)
-    {
-      rtx asm_op, clob;
-
-      /* By default targets are coherent between a thread and the signal
-	 handler running on the same thread.  Thus this really becomes a
-	 compiler barrier, in that stores must not be sunk past
-	 (or raised above) a given point.  */
-
-      /* Generate asm volatile("" : : : "memory") as the memory barrier.  */
-      asm_op = gen_rtx_ASM_OPERANDS (VOIDmode, empty_string, empty_string, 0,
-				     rtvec_alloc (0), rtvec_alloc (0),
-				     rtvec_alloc (0), UNKNOWN_LOCATION);
-      MEM_VOLATILE_P (asm_op) = 1;
-
-      clob = gen_rtx_SCRATCH (VOIDmode);
-      clob = gen_rtx_MEM (BLKmode, clob);
-      clob = gen_rtx_CLOBBER (VOIDmode, clob);
-
-      emit_insn (gen_rtx_PARALLEL (VOIDmode, gen_rtvec (2, asm_op, clob)));
-    }
+  enum memmodel model = get_memmodel (CALL_EXPR_ARG (exp, 0));
+  expand_mem_thread_fence (model);
 }
 
 /* Expand the __atomic_signal_fence intrinsic:
@@ -5664,10 +5741,8 @@ expand_builtin_mem_signal_fence (enum memmodel model)
 static void
 expand_builtin_atomic_signal_fence (tree exp)
 {
-  enum memmodel model;
-
-  model = get_memmodel (CALL_EXPR_ARG (exp, 0));
-  expand_builtin_mem_signal_fence (model);
+  enum memmodel model = get_memmodel (CALL_EXPR_ARG (exp, 0));
+  expand_mem_signal_fence (model);
 }
 
 /* Expand the __sync_synchronize intrinsic.  */
@@ -5675,31 +5750,7 @@ expand_builtin_atomic_signal_fence (tree exp)
 static void
 expand_builtin_sync_synchronize (void)
 {
-  gimple x;
-  VEC (tree, gc) *v_clobbers;
-
-#ifdef HAVE_memory_barrier
-  if (HAVE_memory_barrier)
-    {
-      emit_insn (gen_memory_barrier ());
-      return;
-    }
-#endif
-
-  if (synchronize_libfunc != NULL_RTX)
-    {
-      emit_library_call (synchronize_libfunc, LCT_NORMAL, VOIDmode, 0);
-      return;
-    }
-
-  /* If no explicit memory barrier instruction is available, create an
-     empty asm stmt with a memory clobber.  */
-  v_clobbers = VEC_alloc (tree, gc, 1);
-  VEC_quick_push (tree, v_clobbers,
-		  tree_cons (NULL, build_string (6, "memory"), NULL));
-  x = gimple_build_asm_vec ("", NULL, NULL, v_clobbers, NULL);
-  gimple_asm_set_volatile (x, true);
-  expand_asm_stmt (x);
+  expand_mem_thread_fence (MEMMODEL_SEQ_CST);
 }
 
 
@@ -6280,7 +6331,9 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       return const0_rtx;
 
     case BUILT_IN_INIT_TRAMPOLINE:
-      return expand_builtin_init_trampoline (exp);
+      return expand_builtin_init_trampoline (exp, true);
+    case BUILT_IN_INIT_HEAP_TRAMPOLINE:
+      return expand_builtin_init_trampoline (exp, false);
     case BUILT_IN_ADJUST_TRAMPOLINE:
       return expand_builtin_adjust_trampoline (exp);
 
@@ -6497,12 +6550,28 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_4:
     case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_8:
     case BUILT_IN_ATOMIC_COMPARE_EXCHANGE_16:
-      mode = 
-	  get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_COMPARE_EXCHANGE_1);
-      target = expand_builtin_atomic_compare_exchange (mode, exp, target);
-      if (target)
-	return target;
-      break;
+      {
+	unsigned int nargs, z;
+	VEC(tree,gc) *vec;
+
+	mode = 
+	    get_builtin_sync_mode (fcode - BUILT_IN_ATOMIC_COMPARE_EXCHANGE_1);
+	target = expand_builtin_atomic_compare_exchange (mode, exp, target);
+	if (target)
+	  return target;
+
+	/* If this is turned into an external library call, the weak parameter
+	   must be dropped to match the expected parameter list.  */
+	nargs = call_expr_nargs (exp);
+	vec = VEC_alloc (tree, gc, nargs - 1);
+	for (z = 0; z < 3; z++)
+	  VEC_quick_push (tree, vec, CALL_EXPR_ARG (exp, z));
+	/* Skip the boolean weak parameter.  */
+	for (z = 4; z < 6; z++)
+	  VEC_quick_push (tree, vec, CALL_EXPR_ARG (exp, z));
+	exp = build_call_vec (TREE_TYPE (exp), CALL_EXPR_FN (exp), vec);
+	break;
+      }
 
     case BUILT_IN_ATOMIC_LOAD_1:
     case BUILT_IN_ATOMIC_LOAD_2:
@@ -6693,6 +6762,12 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       if (target)
 	return target;
       break;
+
+    case BUILT_IN_ATOMIC_TEST_AND_SET:
+      return expand_builtin_atomic_test_and_set (exp, target);
+
+    case BUILT_IN_ATOMIC_CLEAR:
+      return expand_builtin_atomic_clear (exp);
  
     case BUILT_IN_ATOMIC_ALWAYS_LOCK_FREE:
       return expand_builtin_atomic_always_lock_free (exp);
@@ -6726,6 +6801,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_STRCPY_CHK:
     case BUILT_IN_STPCPY_CHK:
     case BUILT_IN_STRNCPY_CHK:
+    case BUILT_IN_STPNCPY_CHK:
     case BUILT_IN_STRCAT_CHK:
     case BUILT_IN_STRNCAT_CHK:
     case BUILT_IN_SNPRINTF_CHK:
@@ -10890,7 +10966,9 @@ fold_builtin_4 (location_t loc, tree fndecl,
 				      DECL_FUNCTION_CODE (fndecl));
 
     case BUILT_IN_STRNCPY_CHK:
-      return fold_builtin_strncpy_chk (loc, arg0, arg1, arg2, arg3, NULL_TREE);
+    case BUILT_IN_STPNCPY_CHK:
+      return fold_builtin_stxncpy_chk (loc, arg0, arg1, arg2, arg3, NULL_TREE,
+                                       ignore, fcode);
 
     case BUILT_IN_STRNCAT_CHK:
       return fold_builtin_strncat_chk (loc, fndecl, arg0, arg1, arg2, arg3);
@@ -12453,6 +12531,7 @@ maybe_emit_chk_warning (tree exp, enum built_in_function fcode)
       break;
     case BUILT_IN_STRNCAT_CHK:
     case BUILT_IN_STRNCPY_CHK:
+    case BUILT_IN_STPNCPY_CHK:
       len = CALL_EXPR_ARG (exp, 2);
       size = CALL_EXPR_ARG (exp, 3);
       break;
@@ -12807,13 +12886,15 @@ fold_builtin_stxcpy_chk (location_t loc, tree fndecl, tree dest,
   return build_call_expr_loc (loc, fn, 2, dest, src);
 }
 
-/* Fold a call to the __strncpy_chk builtin.  DEST, SRC, LEN, and SIZE
+/* Fold a call to the __st{r,p}ncpy_chk builtin.  DEST, SRC, LEN, and SIZE
    are the arguments to the call.  If MAXLEN is not NULL, it is maximum
-   length passed as third argument.  */
+   length passed as third argument. IGNORE is true if return value can be
+   ignored. FCODE is the BUILT_IN_* code of the builtin. */
 
 tree
-fold_builtin_strncpy_chk (location_t loc, tree dest, tree src,
-			  tree len, tree size, tree maxlen)
+fold_builtin_stxncpy_chk (location_t loc, tree dest, tree src,
+			  tree len, tree size, tree maxlen, bool ignore,
+			  enum built_in_function fcode)
 {
   tree fn;
 
@@ -12822,6 +12903,15 @@ fold_builtin_strncpy_chk (location_t loc, tree dest, tree src,
       || !validate_arg (len, INTEGER_TYPE)
       || !validate_arg (size, INTEGER_TYPE))
     return NULL_TREE;
+
+  if (fcode == BUILT_IN_STPNCPY_CHK && ignore)
+    {
+       /* If return value of __stpncpy_chk is ignored,
+          optimize into __strncpy_chk.  */
+       fn = builtin_decl_explicit (BUILT_IN_STRNCPY_CHK);
+       if (fn)
+         return build_call_expr_loc (loc, fn, 4, dest, src, len, size);
+    }
 
   if (! host_integerp (size, 1))
     return NULL_TREE;
@@ -12843,8 +12933,9 @@ fold_builtin_strncpy_chk (location_t loc, tree dest, tree src,
 	return NULL_TREE;
     }
 
-  /* If __builtin_strncpy_chk is used, assume strncpy is available.  */
-  fn = builtin_decl_explicit (BUILT_IN_STRNCPY);
+  /* If __builtin_st{r,p}ncpy_chk is used, assume st{r,p}ncpy is available.  */
+  fn = builtin_decl_explicit (fcode == BUILT_IN_STPNCPY_CHK
+			      ? BUILT_IN_STPNCPY : BUILT_IN_STRNCPY);
   if (!fn)
     return NULL_TREE;
 

@@ -1,6 +1,6 @@
 /* gfortran header file
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010, 2011
+   2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -42,7 +42,6 @@ along with GCC; see the file COPYING3.  If not see
 /* Major control parameters.  */
 
 #define GFC_MAX_SYMBOL_LEN 63   /* Must be at least 63 for F2003.  */
-#define GFC_MAX_BINDING_LABEL_LEN 126 /* (2 * GFC_MAX_SYMBOL_LEN) */
 #define GFC_MAX_LINE 132	/* Characters beyond this are not seen.  */
 #define GFC_LETTERS 26		/* Number of letters in the alphabet.  */
 
@@ -1116,6 +1115,7 @@ typedef struct gfc_tbp_generic
   struct gfc_typebound_proc* specific;
 
   struct gfc_tbp_generic* next;
+  bool is_operator;
 }
 gfc_tbp_generic;
 
@@ -1238,7 +1238,7 @@ typedef struct gfc_symbol
 
   /* This may be repetitive, since the typespec now has a binding
      label field.  */
-  char binding_label[GFC_MAX_BINDING_LABEL_LEN + 1];
+  const char* binding_label;
   /* Store a reference to the common_block, if this symbol is in one.  */
   struct gfc_common_head *common_block;
 
@@ -1255,7 +1255,7 @@ typedef struct gfc_common_head
   char use_assoc, saved, threadprivate;
   char name[GFC_MAX_SYMBOL_LEN + 1];
   struct gfc_symbol *head;
-  char binding_label[GFC_MAX_BINDING_LABEL_LEN + 1];
+  const char* binding_label;
   int is_bind_c;
 }
 gfc_common_head;
@@ -1299,7 +1299,9 @@ gfc_use_rename;
 typedef struct gfc_use_list
 {
   const char *module_name;
-  int only_flag;
+  bool intrinsic;
+  bool non_intrinsic;
+  bool only_flag;
   struct gfc_use_rename *rename;
   locus where;
   /* Next USE statement.  */
@@ -1696,6 +1698,10 @@ typedef struct gfc_expr
   gfc_ref *ref;
 
   locus where;
+
+  /* Used to store the base expression in component calls, when the expression
+     is not a variable.  */
+  struct gfc_expr *base_expr;
 
   /* is_boz is true if the integer is regarded as BOZ bitpatten and is_snan
      denotes a signalling not-a-number.  */
@@ -2215,6 +2221,9 @@ typedef struct
   int flag_default_double;
   int flag_default_integer;
   int flag_default_real;
+  int flag_integer4_kind;
+  int flag_real4_kind;
+  int flag_real8_kind;
   int flag_dollar_ok;
   int flag_underscoring;
   int flag_second_underscore;
@@ -2587,7 +2596,7 @@ gfc_try verify_bind_c_sym (gfc_symbol *, gfc_typespec *, int, gfc_common_head *)
 gfc_try verify_bind_c_derived_type (gfc_symbol *);
 gfc_try verify_com_block_vars_c_interop (gfc_common_head *);
 void generate_isocbinding_symbol (const char *, iso_c_binding_symbol, const char *);
-gfc_symbol *get_iso_c_sym (gfc_symbol *, char *, char *, int);
+gfc_symbol *get_iso_c_sym (gfc_symbol *, char *, const char *, int);
 int gfc_get_sym_tree (const char *, gfc_namespace *, gfc_symtree **, bool);
 int gfc_get_ha_symbol (const char *, gfc_symbol **);
 int gfc_get_ha_sym_tree (const char *, gfc_symtree **);
@@ -2630,6 +2639,7 @@ gfc_try gfc_check_symbol_typed (gfc_symbol*, gfc_namespace*, bool, locus);
 gfc_namespace* gfc_find_proc_namespace (gfc_namespace*);
 
 bool gfc_is_associate_pointer (gfc_symbol*);
+gfc_symbol * gfc_find_dt_in_generic (gfc_symbol *);
 
 /* intrinsic.c -- true if working in an init-expr, false otherwise.  */
 extern bool gfc_init_expr_flag;
@@ -2874,6 +2884,9 @@ match gfc_match_rvalue (gfc_expr **);
 match gfc_match_varspec (gfc_expr*, int, bool, bool);
 int gfc_check_digit (char, int);
 bool gfc_is_function_return_value (gfc_symbol *, gfc_namespace *);
+gfc_try gfc_convert_to_structure_constructor (gfc_expr *, gfc_symbol *,
+					      gfc_expr **,
+					      gfc_actual_arglist **, bool);
 
 /* trans.c */
 void gfc_generate_code (gfc_namespace *);
@@ -2906,12 +2919,16 @@ gfc_try gfc_calculate_transfer_sizes (gfc_expr*, gfc_expr*, gfc_expr*,
 				      size_t*, size_t*, size_t*);
 
 /* class.c */
+void gfc_fix_class_refs (gfc_expr *e);
 void gfc_add_component_ref (gfc_expr *, const char *);
+void gfc_add_class_array_ref (gfc_expr *);
 #define gfc_add_data_component(e)     gfc_add_component_ref(e,"_data")
 #define gfc_add_vptr_component(e)     gfc_add_component_ref(e,"_vptr")
 #define gfc_add_hash_component(e)     gfc_add_component_ref(e,"_hash")
 #define gfc_add_size_component(e)     gfc_add_component_ref(e,"_size")
 #define gfc_add_def_init_component(e) gfc_add_component_ref(e,"_def_init")
+bool gfc_is_class_array_ref (gfc_expr *, bool *);
+bool gfc_is_class_scalar_expr (gfc_expr *);
 gfc_expr *gfc_class_null_initializer (gfc_typespec *);
 unsigned int gfc_hash_value (gfc_symbol *);
 gfc_try gfc_build_class_symbol (gfc_typespec *, symbol_attribute *,

@@ -20,6 +20,7 @@ func define(kind ast.ObjKind, name string) *ast.Object {
 	if scope.Insert(obj) != nil {
 		panic("types internal error: double declaration")
 	}
+	obj.Decl = scope
 	return obj
 }
 
@@ -54,8 +55,10 @@ func init() {
 
 	Bool = defType("bool")
 	defType("byte") // TODO(gri) should be an alias for uint8
+	defType("rune") // TODO(gri) should be an alias for int
 	defType("complex64")
 	Complex128 = defType("complex128")
+	defType("error")
 	defType("float32")
 	Float64 = defType("float64")
 	defType("int8")

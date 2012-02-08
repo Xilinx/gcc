@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2011, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2012, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -1849,17 +1849,19 @@ potential_alignment_gap (tree prev_field, tree curr_field, tree offset)
   return true;
 }
 
-/* Return a LABEL_DECL node for LABEL_NAME.  */
+/* Return a LABEL_DECL with LABEL_NAME.  GNAT_NODE is used for the position
+   of the decl.  */
 
 tree
-create_label_decl (tree label_name)
+create_label_decl (tree label_name, Node_Id gnat_node)
 {
-  tree label_decl = build_decl (input_location,
-				LABEL_DECL, label_name, void_type_node);
+  tree label_decl
+    = build_decl (input_location, LABEL_DECL, label_name, void_type_node);
 
-  DECL_CONTEXT (label_decl)     = current_function_decl;
-  DECL_MODE (label_decl)        = VOIDmode;
-  DECL_SOURCE_LOCATION (label_decl) = input_location;
+  DECL_MODE (label_decl) = VOIDmode;
+
+  /* Add this decl to the current binding level.  */
+  gnat_pushdecl (label_decl, gnat_node);
 
   return label_decl;
 }
@@ -4744,18 +4746,16 @@ unchecked_convert (tree type, tree expr, bool notrunc_p)
 enum tree_code
 tree_code_for_record_type (Entity_Id gnat_type)
 {
-  Node_Id component_list
-    = Component_List (Type_Definition
-		      (Declaration_Node
-		       (Implementation_Base_Type (gnat_type))));
-  Node_Id component;
+  Node_Id component_list, component;
 
- /* Make this a UNION_TYPE unless it's either not an Unchecked_Union or
-    we have a non-discriminant field outside a variant.  In either case,
-    it's a RECORD_TYPE.  */
-
+  /* Return UNION_TYPE if it's an Unchecked_Union whose non-discriminant
+     fields are all in the variant part.  Otherwise, return RECORD_TYPE.  */
   if (!Is_Unchecked_Union (gnat_type))
     return RECORD_TYPE;
+
+  gnat_type = Implementation_Base_Type (gnat_type);
+  component_list
+    = Component_List (Type_Definition (Declaration_Node (gnat_type)));
 
   for (component = First_Non_Pragma (Component_Items (component_list));
        Present (component);

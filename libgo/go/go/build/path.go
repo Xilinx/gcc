@@ -5,8 +5,8 @@
 package build
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -21,9 +21,9 @@ type Tree struct {
 	Goroot bool
 }
 
-func newTree(p string) (*Tree, os.Error) {
+func newTree(p string) (*Tree, error) {
 	if !filepath.IsAbs(p) {
-		return nil, os.NewError("must be absolute")
+		return nil, errors.New("must be absolute")
 	}
 	ep, err := filepath.EvalSymlinks(p)
 	if err != nil {
@@ -56,7 +56,7 @@ func (t *Tree) PkgDir() string {
 func (t *Tree) BinDir() string {
 	if t.Goroot {
 		if gobin := os.Getenv("GOBIN"); gobin != "" {
-			return gobin
+			return filepath.Clean(gobin)
 		}
 	}
 	return filepath.Join(t.Path, "bin")
@@ -69,7 +69,7 @@ func (t *Tree) HasSrc(pkg string) bool {
 	if err != nil {
 		return false
 	}
-	return fi.IsDirectory()
+	return fi.IsDir()
 }
 
 // HasPkg returns whether the given package's
@@ -79,18 +79,17 @@ func (t *Tree) HasPkg(pkg string) bool {
 	if err != nil {
 		return false
 	}
-	return fi.IsRegular()
-	// TODO(adg): check object version is consistent
+	return !fi.IsDir()
 }
 
 var (
-	ErrNotFound     = os.NewError("go/build: package could not be found locally")
-	ErrTreeNotFound = os.NewError("go/build: no valid GOROOT or GOPATH could be found")
+	ErrNotFound     = errors.New("package could not be found locally")
+	ErrTreeNotFound = errors.New("no valid GOROOT or GOPATH could be found")
 )
 
 // FindTree takes an import or filesystem path and returns the
 // tree where the package source should be and the package import path.
-func FindTree(path string) (tree *Tree, pkg string, err os.Error) {
+func FindTree(path string) (tree *Tree, pkg string, err error) {
 	if isLocalPath(path) {
 		if path, err = filepath.Abs(path); err != nil {
 			return
@@ -104,14 +103,14 @@ func FindTree(path string) (tree *Tree, pkg string, err os.Error) {
 				continue
 			}
 			tree = t
-			pkg = path[len(tpath):]
+			pkg = filepath.ToSlash(path[len(tpath):])
 			return
 		}
 		err = fmt.Errorf("path %q not inside a GOPATH", path)
 		return
 	}
 	tree = defaultTree
-	pkg = path
+	pkg = filepath.ToSlash(path)
 	for _, t := range Path {
 		if t.HasSrc(pkg) {
 			tree = t
@@ -149,9 +148,7 @@ var (
 func init() {
 	root := runtime.GOROOT()
 	t, err := newTree(root)
-	if err != nil {
-		log.Printf("go/build: invalid GOROOT %q: %v", root, err)
-	} else {
+	if err == nil {
 		t.Goroot = true
 		Path = []*Tree{t}
 	}
@@ -162,9 +159,9 @@ func init() {
 		}
 		t, err := newTree(p)
 		if err != nil {
-			log.Printf("go/build: invalid GOPATH %q: %v", p, err)
 			continue
 		}
+
 		Path = append(Path, t)
 		gcImportArgs = append(gcImportArgs, "-I", t.PkgDir())
 		ldImportArgs = append(ldImportArgs, "-L", t.PkgDir())
