@@ -4839,7 +4839,6 @@ add_AT_offset (dw_die_ref die, enum dwarf_attribute attr_kind,
 /* A table of entries into the .debug_ref section.  */
 
 static GTY (()) VEC (dw_attr_node,gc) * ref_index_table;
-static GTY (()) VEC (dw_attr_node,gc) * addr_index_table;
 
 static unsigned int
 add_ref_table_entry (dw_attr_node *attr)
