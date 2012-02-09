@@ -21546,7 +21546,7 @@ dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
       ASM_GENERATE_INTERNAL_LABEL (debug_skeleton_line_section_label,
                                    DEBUG_SKELETON_LINE_SECTION_LABEL, 0);
       debug_str_offsets_section = get_section (DEBUG_STR_OFFSETS_SECTION,
-                                               DEBUG_STR_SECTION_FLAGS, NULL);
+                                               SECTION_DEBUG, NULL);
     }
   debug_aranges_section = get_section (DEBUG_ARANGES_SECTION,
 				       SECTION_DEBUG, NULL);
