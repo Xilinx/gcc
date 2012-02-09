@@ -1970,11 +1970,21 @@ scanning variables.}#
 		)
     ))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; internal selector to output the label of a test in "HTML-like"
 ;; graphiz format
 (defselector matchgraphic_label class_selector
 )
-
+(defun mglabel_any (recv mg)
+  (let ( (dis (discrim recv))
+	 (disname (get_field :named_name dis))
+	 )
+  (debug "mglabel_any recv=" recv " mg=" mg " dis=" dis)
+  (errormsg_strv "unimplemented MATCHGRAPHIC_LABEL for " disname)
+  (assert_msg "@$@unexpected mglabel_anyobj")
+))
+(install_method discr_any_receiver matchgraphic_label mglabel_any)
+  
 (defun mglabel_any_test (ntest mg)
   (debug "mglabel_any_test start ntest" ntest)
   (assert_msg "check ntest" (is_a ntest class_normtester_any))
@@ -2906,6 +2916,22 @@ the flags of the $STEP with an extra context $CTX.}#
     (assert_msg "@$@unexpected scansubpat_anyrecv")
 ))
 (install_method discr_any_receiver scan_subpatterns scansubpat_anyrecv)
+
+(defun scanstepdata_anyrecv (recv fun ctx)
+  (let ( (dis (discrim recv)) )
+    (debug "scanstepdata_anyrecv recv=" recv " of discrim=" dis)
+    (errormsg_strv "unexpected scan_step_data for" (unsafe_get_field :named_name dis))
+    (assert_msg "@$@unexpected scanstepdata_anyrecv")
+))
+(install_method discr_any_receiver scan_step_data scanstepdata_anyrecv)
+
+(defun scanstepflag_anyrecv (recv fun ctx)
+  (let ( (dis (discrim recv)) )
+    (debug "scanstepflag_anyrecv recv=" recv " of discrim=" dis)
+    (errormsg_strv "unexpected scan_step_flag for" (unsafe_get_field :named_name dis))
+    (assert_msg "@$@unexpected scanstepflag_anyrecv")
+))
+(install_method discr_any_receiver scan_step_flag scanstepflag_anyrecv)
 
 (defun scansubpat_noop (recv fun ctx)
   (debug "scansubpat_noop recv=" recv)
@@ -6718,6 +6744,7 @@ normalized expression.}#
 	       )))
 	  )
       (debug "mg_altdraw_graphviz before scandata mdata=" mdata " scandata=" scandata)
+      (assert_msg "check mdata" (is_a mdata class_matched_data))
       (scandata mdata)
       (debug "mg_altdraw_graphviz after scandata mdata=" mdata
 	     " mapdata=" mapdata " mapstep=" mapstep)

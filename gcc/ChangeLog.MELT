@@ -1,4 +1,10 @@
 
+2011-02-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (mglabel_any, scanstepdata_anyrecv)
+	(scanstepflag_anyrecv): Add catchall erroring methods for
+	matchgraphic_label, scan_step_data, scan_step_flag.
+	(mg_altdraw_graphviz): Add assertion for mdata.
+
 2011-02-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (mg_altdraw_graphviz)
 	(altmatch_normalize_mdata): More debug.
