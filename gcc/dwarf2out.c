@@ -4229,7 +4229,7 @@ dwarf_form_name (unsigned int form)
     case DW_FORM_strp:
       return "DW_FORM_strp";
     case DW_FORM_GNU_str_index:
-      return "DW_FORM_str_index";
+      return "DW_FORM_GNU_str_index";
     case DW_FORM_udata:
       return "DW_FORM_udata";
     case DW_FORM_ref_addr:
