@@ -1,0 +1,19 @@
+;; -*- lisp -*-
+;; file  gcc/testsuite/melt/tmatch-tuple.melt
+;; test the match operation
+
+#| run in buildir/gcc
+ ln -s $GCCMELT_SOURCE/gcc/testsuite/melt/tmatch-tuple.melt 
+ ./cc1 -fmelt-mode=runfile  -fmelt-module-path=melt-stage3:melt-modules   -fmelt-source-path=melt-stage3:melt-sources \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt -fmelt-workdir=melt-workdir \
+    -fmelt-option=match_graphic:/tmp/melt1graph,alternate_match \
+    -fmelt-arg=tmatch-tuple.melt \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+(defun tmatch1_tup (x f)
+  (match x
+         ( ?(tuple ?n ?_)
+	    (f n x))))
+
+;; eof tmatch-tuple.melt
