@@ -3361,7 +3361,7 @@ static void add_ranges_by_labels (dw_die_ref, const char *, const char *,
 				  bool *);
 static void output_ranges (void);
 static dw_line_info_table *new_line_info_table (void);
-static void output_line_info (void);
+static void output_line_info (bool);
 static void output_file_names (void);
 static dw_die_ref base_type_die (tree);
 static int is_base_type (tree);
@@ -9859,7 +9859,7 @@ output_one_line_info_table (dw_line_info_table *table)
    information goes into the .debug_line section.  */
 
 static void
-output_line_info (void)
+output_line_info (bool prologue_only)
 {
   char l1[20], l2[20], p1[20], p2[20];
   int ver = dwarf_version;
@@ -9929,6 +9929,12 @@ output_line_info (void)
   /* Write out the information about the files we use.  */
   output_file_names ();
   ASM_OUTPUT_LABEL (asm_out_file, p2);
+  if (prologue_only)
+    {
+      /* Output the marker for the end of the line number info.  */
+      ASM_OUTPUT_LABEL (asm_out_file, l2);
+      return;
+    }
 
   if (separate_line_info)
     {
@@ -23322,16 +23328,20 @@ dwarf2out_finish (const char *filename)
   switch_to_section (debug_line_section);
   ASM_OUTPUT_LABEL (asm_out_file, debug_line_section_label);
   if (! DWARF2_ASM_LINE_DEBUG_INFO)
-    output_line_info ();
+    output_line_info (false);
 
   if (dwarf_split_debug_info)
     {
       switch_to_section (debug_skeleton_line_section);
       ASM_OUTPUT_LABEL (asm_out_file, debug_skeleton_line_section_label);
+      output_line_info (true);
+
       output_index_strings ();
+
       switch_to_section (debug_ref_section);
       ASM_OUTPUT_LABEL (asm_out_file, debug_ref_section_label);
       output_ref_table ();
+
       switch_to_section (debug_addr_section);
       ASM_OUTPUT_LABEL (asm_out_file, debug_addr_section_label);
       output_addr_table ();
