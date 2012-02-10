@@ -9155,9 +9155,14 @@ output_pubnames (VEC (pubname_entry, gc) * names)
 			 "Length of Public Type Names Info");
   /* Version number for pubnames/pubtypes is still 2, even in DWARF3.  */
   dw2_asm_output_data (2, 2, "DWARF Version");
-  dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_info_section_label,
-			 debug_info_section,
-			 "Offset of Compilation Unit Info");
+  if (dwarf_split_debug_info)
+    dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_skeleton_info_section_label,
+                           debug_skeleton_info_section,
+                           "Offset of Compilation Unit Info");
+  else
+    dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_info_section_label,
+                           debug_info_section,
+                           "Offset of Compilation Unit Info");
   dw2_asm_output_data (DWARF_OFFSET_SIZE, next_die_offset,
 		       "Compilation Unit Length");
 
@@ -9197,9 +9202,14 @@ output_aranges (unsigned long aranges_length)
 		       "Length of Address Ranges Info");
   /* Version number for aranges is still 2, even in DWARF3.  */
   dw2_asm_output_data (2, 2, "DWARF Version");
-  dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_info_section_label,
-			 debug_info_section,
-			 "Offset of Compilation Unit Info");
+  if (dwarf_split_debug_info)
+    dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_skeleton_info_section_label,
+                           debug_skeleton_info_section,
+                           "Offset of Compilation Unit Info");
+  else
+    dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_info_section_label,
+                           debug_info_section,
+                           "Offset of Compilation Unit Info");
   dw2_asm_output_data (1, DWARF2_ADDR_SIZE, "Size of Address");
   dw2_asm_output_data (1, 0, "Size of Segment Descriptor");
 
