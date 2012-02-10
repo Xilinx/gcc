@@ -1,3 +1,10 @@
+2011-02-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (scanstepdata_testins): More debug.
+	(scanstepdata_testtuple): New method for scan_step_data on
+	class_match_step_test_multiple.
+	(scanstepdata_testwithflag): New no-op method for scan_step_data
+	on class_match_step_with_flag
+
 2011-02-09  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* testsuite/melt/tmatch-tuple.melt: New file.

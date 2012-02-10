@@ -3287,6 +3287,7 @@ the flags of the $STEP with an extra context $CTX.}#
 ;;;;;;;;;;;;;;;;
 (defun scanstepdata_testins (step fun ctx)
   (assert_msg "check step" (is_a step class_match_step_test_instance))
+  (debug "scanstepdata_testins step=" step " fun=" fun)
   (let ( (slotup (unsafe_get_field :mstins_slots step)) 
 	 )
     (foreach_in_multiple 
@@ -3295,6 +3296,29 @@ the flags of the $STEP with an extra context $CTX.}#
      (if curslot 
 	 (fun curslot ctx)))))
 (install_method class_match_step_test_instance scan_step_data scanstepdata_testins)
+
+(defun scanstepdata_testtuple (step fun ctx)
+  (debug "scanstepdata_testtuple step=" step " fun=" fun)
+  (assert_msg "check step" (is_a step class_match_step_test_multiple))
+  (let ( (mtupcomp (get_field :msttup_components step))
+	 )
+    (debug "scanstepdata_testtuple mtupcomp=" mtupcomp)
+    (foreach_in_multiple
+     (mtupcomp)
+     (curcomp :long mix)
+     (if curcomp
+	 (fun curcomp ctx))
+     )
+))
+(install_method  class_match_step_test_multiple  scan_step_data  scanstepdata_testtuple)
+
+
+;;; scan step data for test with flag is a no-op
+(defun scanstepdata_testwithflag (step fun ctx)
+  (debug "scanstepdata_testwithflag step=" step " fun=" fun)
+  )
+(install_method class_match_step_with_flag scan_step_data scanstepdata_testwithflag)
+
 
 (defun scanstepdata_testmatcher (step fun ctx)
   (assert_msg "check step" (is_a step class_match_step_test_matcher))
@@ -3331,6 +3355,15 @@ the flags of the $STEP with an extra context $CTX.}#
 
 (install_method class_match_step_flag_operation scan_step_flag
 		scanstepflag_stepflagoper)
+
+
+;; scan step flag on step with data is a no-op
+(defun scanstepflag_stepwithdata (step fun ctx)
+  (debug "scanstepflag_stepwithdata step=" step " fun=" fun)
+  (assert_msg "check step" (is_a step class_match_step_with_data))
+)
+(install_method class_match_step_with_data scan_step_flag
+		scanstepflag_stepwithdata)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; the selector to translate a pattern
