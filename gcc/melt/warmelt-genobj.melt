@@ -3735,9 +3735,9 @@ $SBUF.}#
 
 ;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_ifisa (rif gcx)
+  (debug "compilobj_nrep_ifisa rif=" rif)
   (assert_msg "check rif" (is_a rif class_nrep_ifisa))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
-  (debug "compilobj_nrep_ifisa rif=" rif)
   (let ( (loc (unsafe_get_field :nrep_loc rif))
 	 (nthen (unsafe_get_field :nif_then rif))
 	 (nelse (unsafe_get_field :nif_else rif))
@@ -3751,18 +3751,10 @@ $SBUF.}#
 	   (ocla (compile_obj ncla gcx))
 	   (oelse (if (is_not_a nelse class_nrep_nil) 
 		      (compile_obj nelse gcx)))
-	   (otest (instance class_objexpv
-			    :obx_cont
-			    (tuple
-			     (make_stringconst discr_verbatim_string
-					       "/*ifisa*/ melt_is_instance_of((melt_ptr_t)(")
-			     oval
-			     (make_stringconst discr_verbatim_string
-					       "), (melt_ptr_t)(")
-			     ocla
-			     (make_stringconst discr_verbatim_string
-					       "))"))
-			    ))
+	   (otest (make_objlocatedexp loc ctype_long
+				      ##{/*ifisa*/ melt_is_instance_of((melt_ptr_t)($OVAL), 
+                                                                       (melt_ptr_t)($OCLA))
+				      }#))
 	   (obif (instance class_objcond
 			   :obi_loc loc
 			   :obcond_test otest
@@ -3774,6 +3766,38 @@ $SBUF.}#
       )))
 (install_method class_nrep_ifisa compile_obj compilobj_nrep_ifisa)
 
+
+;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_iftuplesized (rif gcx)
+  (debug "compilobj_nrep_ifisa rif=" rif)
+  (assert_msg "check rif" (is_a rif class_nrep_iftuplesized))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (let ( (loc (unsafe_get_field :nrep_loc rif))
+	 (nthen (unsafe_get_field :nif_then rif))
+	 (nelse (unsafe_get_field :nif_else rif))
+	 (nval (get_field :nif_testval rif))
+	 (ntsz (get_field :nif_tupsiz rif))
+	 )
+    (debug "compilobj_nrep_iftuplesized nval=" nval " ntsz=" ntsz)
+    (let (  (othen (compile_obj nthen gcx))
+	    (oval (compile_obj nval gcx))
+	    (oelse (compile_obj nelse gcx))
+	    (oval (compile_obj nval gcx))
+	    (otsz (compile_obj ntsz gcx))
+	    (otest
+	     (make_objlocatedexp loc ctype_long
+				 ##{/*iftuplesized*/ melt_magic_discr((melt_ptr_t)($OVAL)) == MELTOBMAG_MULTIPLE
+				 && ((meltmultiple_ptr_t)($OVAL))->nbval == (int)($OTSZ)}#))
+	   (obif (instance class_objcond
+			   :obi_loc loc
+			   :obcond_test otest
+			   :obcond_then othen
+			   :obcond_else oelse))
+	  )
+      (debug "compilobj_nrep_iftuplesized obif=" obif)
+      obif
+)))
+(install_method class_nrep_iftuplesized compile_obj compilobj_nrep_iftuplesized)
 
 ;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_ifvariadic (rif gcx)
@@ -5309,8 +5333,17 @@ $SBUF.}#
 	(stepixv (get_field :mstep_index nstep))
 	)
     (debug "compilobj_nrep_matchlabel stepixv=" stepixv " nstep=" nstep)
-    (assert_msg "@$@unimplemented compilobj_nrep_matchlabel")
-    ))
+    (shortbacktrace_dbg "compilobj_nrep_matchlabel" 12)
+(let ( (objm (make_objcompute nloc ##{??compilobj_nrep_matchlabel
+#error incomplete compilobj_nrep_matchlabel
+/*nstep=*/ $NSTEP
+/*stepixv=*/ $STEPIXV
+}#))
+       )
+  (error_plain nloc "not fully implemented compilobj_nrep_matchlabel")
+  (debug "compilobj_nrep_matchlabel objm=" objm)
+  (return objm)
+    )))
 
 (install_method class_nrep_match_label compile_obj compilobj_nrep_matchlabel)
 
@@ -5329,10 +5362,20 @@ $SBUF.}#
 	(matdata (get_field :nrmatd_mdata ndata))
 	(altmatch (get_field :gncx_altmatch gcx))
 	)
-    (debug "compilobj_nrep_matchdatainit ndata=" ndata " ndatatype=" ndatatype
-	   " ndatarank=" ndatarank " matdata=" matdata " altmatch=" altmatch)
-    (assert_msg "@$@unimplemented compilobj_nrep_matchdatainit")
-    ))
+    (shortbacktrace_dbg "compilobj_nrep_matchdatainit" 10)
+    (debug "compilobj_nrep_matchdatainit ndata=" ndata "\n ndatatype=" ndatatype
+	   " ndatarank=" ndatarank "\n matdata=" matdata "\n altmatch=" altmatch)
+    (let ( (objc (make_objcompute nloc ##{??compilobj_nrep_matchdatainit
+#error incomplete compilobj_nrep_matchdatainit
+/*ndata=*/ $NDATA
+/*ndatatype=*/ $NDATATYPE
+/*matdata=*/ $MATDATA
+}#))
+	   )
+      (error_plain nloc "not fully implemented compilobj_nrep_matchdatainit")
+      (debug "compilobj_nrep_matchdatainit objc=" objc)
+      (return objc)
+    )))
 
 (install_method class_nrep_match_data_initializer compile_obj compilobj_nrep_matchdatainit)
 

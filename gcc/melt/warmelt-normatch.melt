@@ -2853,7 +2853,7 @@ $CLASS_NREP_ALTMATCH using that match flag.}#
 
 (defclass class_nrep_matched_data
   :super class_nrep_simple
-  :doc #{The $CLASS_NREP_MATCHED_DATA is the normalize representation
+  :doc #{The $CLASS_NREP_MATCHED_DATA is the normalized representation
 of match data, instance of $CLASS_MATCHED_DATA. Field $NRPMATD_CTYPE
 gives the ctype of the data. Field $NRMATD_MDATA gives the
 originating matched data. Field $NRMATD_RANK is a unique rank.}#

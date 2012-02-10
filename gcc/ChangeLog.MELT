@@ -1,4 +1,15 @@
 2011-02-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (class_nrep_matched_data): Typo in
+	doc-string.
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_ifisa): Use
+	make_objlocatedexp.
+	(compilobj_nrep_iftuplesized): New method for compile_obj on
+	class_nrep_iftuplesized
+	(compilobj_nrep_matchlabel): Incomplete, but generate #error.
+	(compilobj_nrep_matchdatainit): Likewise.
+
+2011-02-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (mgaltstep_steptestmult): Typo in
 	generated label.
 
