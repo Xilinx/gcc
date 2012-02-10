@@ -3363,7 +3363,7 @@ static void add_ranges_by_labels (dw_die_ref, const char *, const char *,
 				  bool *);
 static void output_ranges (void);
 static dw_line_info_table *new_line_info_table (void);
-static void output_line_info (void);
+static void output_line_info (bool);
 static void output_file_names (void);
 static dw_die_ref base_type_die (tree);
 static int is_base_type (tree);
@@ -4231,7 +4231,7 @@ dwarf_form_name (unsigned int form)
     case DW_FORM_strp:
       return "DW_FORM_strp";
     case DW_FORM_GNU_str_index:
-      return "DW_FORM_str_index";
+      return "DW_FORM_GNU_str_index";
     case DW_FORM_udata:
       return "DW_FORM_udata";
     case DW_FORM_ref_addr:
@@ -9023,7 +9023,7 @@ output_comdat_type_unit (comdat_type_node *node)
                            DWARF_COMPILE_UNIT_HEADER_SIZE
                            - DWARF_INITIAL_LENGTH_SIZE
                            + size_of_die (skeleton_type_unit)
-                           + DWARF_TYPE_SIGNATURE_SIZE + DWARF_OFFSET_SIZE + 1,
+                           + DWARF_TYPE_SIGNATURE_SIZE + DWARF_OFFSET_SIZE,
                            "Length of Type Unit Info");
       dw2_asm_output_data (2, dwarf_version, "DWARF version number");
       dw2_asm_output_offset (DWARF_OFFSET_SIZE,
@@ -9035,7 +9035,7 @@ output_comdat_type_unit (comdat_type_node *node)
       dw2_asm_output_data (DWARF_OFFSET_SIZE, 0, "Offset to Type DIE");
 
       output_die (skeleton_type_unit);
-      dw2_asm_output_data (1, 0, "end of skeleton .debug_types");
+      /* dw2_asm_output_data (1, 0, "end of skeleton .debug_types"); */
     }
 }
 
@@ -9186,9 +9186,14 @@ output_pubnames (VEC (pubname_entry, gc) * names)
 			 "Length of Public Type Names Info");
   /* Version number for pubnames/pubtypes is still 2, even in DWARF3.  */
   dw2_asm_output_data (2, 2, "DWARF Version");
-  dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_info_section_label,
-			 debug_info_section,
-			 "Offset of Compilation Unit Info");
+  if (dwarf_split_debug_info)
+    dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_skeleton_info_section_label,
+                           debug_skeleton_info_section,
+                           "Offset of Compilation Unit Info");
+  else
+    dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_info_section_label,
+                           debug_info_section,
+                           "Offset of Compilation Unit Info");
   dw2_asm_output_data (DWARF_OFFSET_SIZE, next_die_offset,
 		       "Compilation Unit Length");
 
@@ -9228,9 +9233,14 @@ output_aranges (unsigned long aranges_length)
 		       "Length of Address Ranges Info");
   /* Version number for aranges is still 2, even in DWARF3.  */
   dw2_asm_output_data (2, 2, "DWARF Version");
-  dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_info_section_label,
-			 debug_info_section,
-			 "Offset of Compilation Unit Info");
+  if (dwarf_split_debug_info)
+    dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_skeleton_info_section_label,
+                           debug_skeleton_info_section,
+                           "Offset of Compilation Unit Info");
+  else
+    dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_info_section_label,
+                           debug_info_section,
+                           "Offset of Compilation Unit Info");
   dw2_asm_output_data (1, DWARF2_ADDR_SIZE, "Size of Address");
   dw2_asm_output_data (1, 0, "Size of Segment Descriptor");
 
@@ -9890,7 +9900,7 @@ output_one_line_info_table (dw_line_info_table *table)
    information goes into the .debug_line section.  */
 
 static void
-output_line_info (void)
+output_line_info (bool prologue_only)
 {
   char l1[20], l2[20], p1[20], p2[20];
   int ver = dwarf_version;
@@ -9960,6 +9970,12 @@ output_line_info (void)
   /* Write out the information about the files we use.  */
   output_file_names ();
   ASM_OUTPUT_LABEL (asm_out_file, p2);
+  if (prologue_only)
+    {
+      /* Output the marker for the end of the line number info.  */
+      ASM_OUTPUT_LABEL (asm_out_file, l2);
+      return;
+    }
 
   if (separate_line_info)
     {
@@ -23371,16 +23387,20 @@ dwarf2out_finish (const char *filename)
   switch_to_section (debug_line_section);
   ASM_OUTPUT_LABEL (asm_out_file, debug_line_section_label);
   if (! DWARF2_ASM_LINE_DEBUG_INFO)
-    output_line_info ();
+    output_line_info (false);
 
   if (dwarf_split_debug_info)
     {
       switch_to_section (debug_skeleton_line_section);
       ASM_OUTPUT_LABEL (asm_out_file, debug_skeleton_line_section_label);
+      output_line_info (true);
+
       output_index_strings ();
+
       switch_to_section (debug_ref_section);
       ASM_OUTPUT_LABEL (asm_out_file, debug_ref_section_label);
       output_ref_table ();
+
       switch_to_section (debug_addr_section);
       ASM_OUTPUT_LABEL (asm_out_file, debug_addr_section_label);
       output_addr_table ();
