@@ -478,6 +478,11 @@ AC_CHECK_FUNCS(sem_timedwait)
 CFLAGS="$CFLAGS_hold"
 LIBS="$LIBS_hold"
 
+LIBS_hold="$LIBS"
+LIBS="$LIBS $MATH_LIBS"
+AC_CHECK_FUNCS(matherr)
+LIBS="$LIBS_hold"
+
 AC_CACHE_CHECK([for __sync_bool_compare_and_swap_4],
 [libgo_cv_func___sync_bool_compare_and_swap_4],
 [AC_LINK_IFELSE([
@@ -522,6 +527,23 @@ if test "$libgo_cv_c_stringops" = yes; then
 fi
 AC_SUBST(STRINGOPS_FLAG)
 
+dnl For x86 we want to compile the math library with -mfancy-math-387
+dnl -funsafe-math-optimizations so that we can use the builtin
+dnl instructions directly.
+AC_CACHE_CHECK([whether compiler supports -mfancy-math-387],
+[libgo_cv_c_fancymath],
+[CFLAGS_hold=$CFLAGS
+CFLAGS="$CFLAGS -mfancy-math-387"
+AC_COMPILE_IFELSE([int i;],
+[libgo_cv_c_fancymath=yes],
+[libgo_cv_c_fancymath=no])
+CFLAGS=$CFLAGS_hold])
+MATH_FLAG=
+if test "$libgo_cv_c_fancymath" = yes; then
+  MATH_FLAG="-mfancy-math-387 -funsafe-math-optimizations"
+fi
+AC_SUBST(MATH_FLAG)
+
 CFLAGS_hold=$CFLAGS
 CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE"
 AC_CHECK_TYPES([off64_t])
@@ -548,6 +570,16 @@ AC_CACHE_CHECK([epoll_event data.fd offset],
 [libgo_cv_c_epoll_event_fd_offset=0])])
 STRUCT_EPOLL_EVENT_FD_OFFSET=${libgo_cv_c_epoll_event_fd_offset}
 AC_SUBST(STRUCT_EPOLL_EVENT_FD_OFFSET)
+
+dnl See if struct exception is defined in <math.h>.
+AC_CHECK_TYPE([struct exception],
+[libgo_has_struct_exception=yes],
+[libgo_has_struct_exception=no],
+[#include <math.h>])
+if test "$libgo_has_struct_exception" = "yes"; then
+  AC_DEFINE(HAVE_STRUCT_EXCEPTION, 1,
+            [Define to 1 if <math.h> defines struct exception])
+fi
 
 dnl See whether setcontext changes the value of TLS variables.
 AC_CACHE_CHECK([whether setcontext clobbers TLS variables],

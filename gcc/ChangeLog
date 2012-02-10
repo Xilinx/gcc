@@ -1,3 +1,74 @@
+2012-02-09  Peter Bergner  <bergner@vnet.ibm.com>
+
+	PR middle-end/52140
+	* dojump.c (do_compare_rtx_and_jump): Use SCALAR_FLOAT_MODE_P.
+
+2012-02-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/52165
+	* var-tracking.c (emit_note_insn_var_location): If
+	EMIT_NOTE_BEFORE_INSN and insn is NOTE_INSN_CALL_ARG_LOCATION,
+	emit it before next non-NOTE_INSN_CALL_ARG_LOCATION
+	non-NOTE_DURING_CALL_P insn.
+
+2012-02-09  Bin Cheng  <bin.cheng@arm.com>
+
+	PR middle-end/51867
+	* builtins.c (expand_builtin): Don't check DECL_ASSEMBLER_NAME_SET_P.
+
+2012-02-08  Magnus Granberg  <zorry@gentoo.org>
+
+	PR driver/48524
+	* gcc.c (switch_matches) Support switches with separated form, -D
+	and -U.
+
+2012-02-08  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md (SREG_ADDR): Remove constant definition.
+	(SP_ADDR): Ditto.
+	(RAMPZ_ADDR): Ditto.
+	* config/avr/avr.c (avr_addr_t): New typedef.
+	(avr_addr): New struct to hold RAM address of SPL, SPH, RAMPZ, SREG.
+	(avr_init_expanders): Initialize it.
+	(expand_prologue): Use avr_addr instead of RAMPZ_ADDR, SP_ADDR,
+	SREG_ADDR.
+	(expand_epilogue): Ditto.
+	(avr_print_operand): Ditto.
+	(avr_file_start): Ditto.
+	(avr_emit_movmemhi): Ditto.
+
+2012-02-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46886
+	* tree-flow.h (do_while_loop_p): Declare.
+	* tree-ssa-loop-ch.c (do_while_loop_p): Export.
+	* tree-parloops.c (parallelize_loops): Only parallelize do-while
+	loops.
+
+2012-02-08  Andrew MacLeod  <amacleod@redhat.com>
+
+	* optabs.c (expand_atomic_load): Do not assume compare_and_swap will
+	always succeed for integers larger than a native word.
+
+2012-02-08  Richard Guenther  <rguenther@suse.de>
+
+	PR rtl-optimization/52170
+	* simplify-rtx.c (simplify_plus_minus): Use CONSTM1_RTX to
+	properly handle integer vector modes.
+
+2012-02-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR gcov-profile/52150
+	* coverage.c: Include target.h.
+	(build_var): Call targetm.strip_name_encoding on the assembler name.
+	Change one _ into . or $ if the target allows it.
+	* Makefile.in (coverage.o): Depend on $(TARGET_H).
+
+	PR rtl-optimization/52139
+	* cfgrtl.c (cfg_layout_merge_blocks): If BB_END
+	is a BARRIER after emit_insn_after_noloc, move BB_END
+	to the last non-BARRIER insn before it.
+
 2012-02-07  Richard Sandiford  <rdsandiford@googlemail.com>
 
 	PR middle-end/24306

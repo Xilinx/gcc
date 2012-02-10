@@ -154,26 +154,26 @@ am__DEPENDENCIES_2 = bufio/bufio.lo bytes/bytes.lo bytes/index.lo \
 	encoding/base32.lo encoding/base64.lo encoding/binary.lo \
 	encoding/csv.lo encoding/gob.lo encoding/hex.lo \
 	encoding/json.lo encoding/pem.lo encoding/xml.lo exp/ebnf.lo \
-	exp/html.lo exp/norm.lo exp/proxy.lo exp/terminal.lo \
-	exp/types.lo exp/utf8string.lo html/template.lo go/ast.lo \
-	go/build.lo go/doc.lo go/parser.lo go/printer.lo go/scanner.lo \
-	go/token.lo hash/adler32.lo hash/crc32.lo hash/crc64.lo \
-	hash/fnv.lo net/http/cgi.lo net/http/fcgi.lo \
-	net/http/httptest.lo net/http/httputil.lo net/http/pprof.lo \
-	image/bmp.lo image/color.lo image/draw.lo image/gif.lo \
-	image/jpeg.lo image/png.lo image/tiff.lo index/suffixarray.lo \
-	io/ioutil.lo log/syslog.lo log/syslog/syslog_c.lo math/big.lo \
-	math/cmplx.lo math/rand.lo mime/mime.lo mime/multipart.lo \
-	net/http.lo net/mail.lo net/rpc.lo net/smtp.lo \
-	net/textproto.lo net/url.lo old/netchan.lo old/regexp.lo \
-	old/template.lo $(am__DEPENDENCIES_1) os/user.lo os/signal.lo \
-	path/filepath.lo regexp/syntax.lo net/rpc/jsonrpc.lo \
-	runtime/debug.lo runtime/pprof.lo sync/atomic.lo \
-	sync/atomic_c.lo syscall/syscall.lo syscall/errno.lo \
-	syscall/wait.lo text/scanner.lo text/tabwriter.lo \
-	text/template.lo text/template/parse.lo testing/testing.lo \
-	testing/iotest.lo testing/quick.lo testing/script.lo \
-	unicode/utf16.lo unicode/utf8.lo
+	exp/html.lo exp/norm.lo exp/proxy.lo exp/signal.lo \
+	exp/terminal.lo exp/types.lo exp/utf8string.lo \
+	html/template.lo go/ast.lo go/build.lo go/doc.lo go/parser.lo \
+	go/printer.lo go/scanner.lo go/token.lo hash/adler32.lo \
+	hash/crc32.lo hash/crc64.lo hash/fnv.lo net/http/cgi.lo \
+	net/http/fcgi.lo net/http/httptest.lo net/http/httputil.lo \
+	net/http/pprof.lo image/color.lo image/draw.lo image/gif.lo \
+	image/jpeg.lo image/png.lo index/suffixarray.lo io/ioutil.lo \
+	log/syslog.lo log/syslog/syslog_c.lo math/big.lo math/cmplx.lo \
+	math/rand.lo mime/mime.lo mime/multipart.lo net/http.lo \
+	net/mail.lo net/rpc.lo net/smtp.lo net/textproto.lo net/url.lo \
+	old/netchan.lo old/regexp.lo old/template.lo \
+	$(am__DEPENDENCIES_1) os/user.lo path/filepath.lo \
+	regexp/syntax.lo net/rpc/jsonrpc.lo runtime/debug.lo \
+	runtime/pprof.lo sync/atomic.lo sync/atomic_c.lo \
+	syscall/syscall.lo syscall/errno.lo syscall/wait.lo \
+	text/scanner.lo text/tabwriter.lo text/template.lo \
+	text/template/parse.lo testing/testing.lo testing/iotest.lo \
+	testing/quick.lo testing/script.lo unicode/utf16.lo \
+	unicode/utf8.lo
 libgo_la_DEPENDENCIES = $(am__DEPENDENCIES_2) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
@@ -192,12 +192,13 @@ am__libgo_la_SOURCES_DIST = runtime/go-append.c runtime/go-assert.c \
 	runtime/go-interface-val-compare.c runtime/go-make-slice.c \
 	runtime/go-map-delete.c runtime/go-map-index.c \
 	runtime/go-map-len.c runtime/go-map-range.c \
-	runtime/go-nanotime.c runtime/go-now.c runtime/go-new-map.c \
-	runtime/go-new.c runtime/go-nosys.c runtime/go-panic.c \
-	runtime/go-print.c runtime/go-recover.c runtime/go-reflect.c \
-	runtime/go-reflect-call.c runtime/go-reflect-map.c \
-	runtime/go-rune.c runtime/go-runtime-error.c \
-	runtime/go-setenv.c runtime/go-signal.c runtime/go-strcmp.c \
+	runtime/go-matherr.c runtime/go-nanotime.c runtime/go-now.c \
+	runtime/go-new-map.c runtime/go-new.c runtime/go-nosys.c \
+	runtime/go-panic.c runtime/go-print.c runtime/go-recover.c \
+	runtime/go-reflect.c runtime/go-reflect-call.c \
+	runtime/go-reflect-map.c runtime/go-rune.c \
+	runtime/go-runtime-error.c runtime/go-setenv.c \
+	runtime/go-signal.c runtime/go-strcmp.c \
 	runtime/go-string-to-byte-array.c \
 	runtime/go-string-to-int-array.c runtime/go-strplus.c \
 	runtime/go-strslice.c runtime/go-trampoline.c \
@@ -230,22 +231,23 @@ am__objects_4 = go-append.lo go-assert.lo go-assert-interface.lo \
 	go-int-array-to-string.lo go-int-to-string.lo \
 	go-interface-compare.lo go-interface-eface-compare.lo \
 	go-interface-val-compare.lo go-make-slice.lo go-map-delete.lo \
-	go-map-index.lo go-map-len.lo go-map-range.lo go-nanotime.lo \
-	go-now.lo go-new-map.lo go-new.lo go-nosys.lo go-panic.lo \
-	go-print.lo go-recover.lo go-reflect.lo go-reflect-call.lo \
-	go-reflect-map.lo go-rune.lo go-runtime-error.lo go-setenv.lo \
-	go-signal.lo go-strcmp.lo go-string-to-byte-array.lo \
-	go-string-to-int-array.lo go-strplus.lo go-strslice.lo \
-	go-trampoline.lo go-type-complex.lo go-type-eface.lo \
-	go-type-error.lo go-type-float.lo go-type-identity.lo \
-	go-type-interface.lo go-type-string.lo go-typedesc-equal.lo \
-	go-typestring.lo go-unreflect.lo go-unsafe-new.lo \
-	go-unsafe-newarray.lo go-unsafe-pointer.lo go-unwind.lo \
-	chan.lo cpuprof.lo $(am__objects_1) mcache.lo mcentral.lo \
-	$(am__objects_2) mfinal.lo mfixalloc.lo mgc0.lo mheap.lo \
-	msize.lo proc.lo runtime.lo thread.lo yield.lo \
-	$(am__objects_3) iface.lo malloc.lo map.lo mprof.lo reflect.lo \
-	runtime1.lo sema.lo sigqueue.lo string.lo time.lo
+	go-map-index.lo go-map-len.lo go-map-range.lo go-matherr.lo \
+	go-nanotime.lo go-now.lo go-new-map.lo go-new.lo go-nosys.lo \
+	go-panic.lo go-print.lo go-recover.lo go-reflect.lo \
+	go-reflect-call.lo go-reflect-map.lo go-rune.lo \
+	go-runtime-error.lo go-setenv.lo go-signal.lo go-strcmp.lo \
+	go-string-to-byte-array.lo go-string-to-int-array.lo \
+	go-strplus.lo go-strslice.lo go-trampoline.lo \
+	go-type-complex.lo go-type-eface.lo go-type-error.lo \
+	go-type-float.lo go-type-identity.lo go-type-interface.lo \
+	go-type-string.lo go-typedesc-equal.lo go-typestring.lo \
+	go-unreflect.lo go-unsafe-new.lo go-unsafe-newarray.lo \
+	go-unsafe-pointer.lo go-unwind.lo chan.lo cpuprof.lo \
+	$(am__objects_1) mcache.lo mcentral.lo $(am__objects_2) \
+	mfinal.lo mfixalloc.lo mgc0.lo mheap.lo msize.lo proc.lo \
+	runtime.lo thread.lo yield.lo $(am__objects_3) iface.lo \
+	malloc.lo map.lo mprof.lo reflect.lo runtime1.lo sema.lo \
+	sigqueue.lo string.lo time.lo
 am_libgo_la_OBJECTS = $(am__objects_4)
 libgo_la_OBJECTS = $(am_libgo_la_OBJECTS)
 libgo_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
@@ -390,6 +392,7 @@ LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
+MATH_FLAG = @MATH_FLAG@
 MATH_LIBS = @MATH_LIBS@
 MKDIR_P = @MKDIR_P@
 NET_LIBS = @NET_LIBS@
@@ -676,6 +679,7 @@ toolexeclibgoexp_DATA = \
 	$(exp_inotify_gox) \
 	exp/norm.gox \
 	exp/proxy.gox \
+	exp/signal.gox \
 	exp/terminal.gox \
 	exp/types.gox \
 	exp/utf8string.gox
@@ -703,13 +707,11 @@ toolexeclibgohtml_DATA = \
 
 toolexeclibgoimagedir = $(toolexeclibgodir)/image
 toolexeclibgoimage_DATA = \
-	image/bmp.gox \
 	image/color.gox \
 	image/draw.gox \
 	image/gif.gox \
 	image/jpeg.gox \
-	image/png.gox \
-	image/tiff.gox
+	image/png.gox
 
 toolexeclibgoindexdir = $(toolexeclibgodir)/index
 toolexeclibgoindex_DATA = \
@@ -763,8 +765,7 @@ toolexeclibgoold_DATA = \
 toolexeclibgoosdir = $(toolexeclibgodir)/os
 toolexeclibgoos_DATA = \
 	os/exec.gox \
-	os/user.gox \
-	os/signal.gox
+	os/user.gox
 
 toolexeclibgopathdir = $(toolexeclibgodir)/path
 toolexeclibgopath_DATA = \
@@ -838,6 +839,7 @@ runtime_files = \
 	runtime/go-map-index.c \
 	runtime/go-map-len.c \
 	runtime/go-map-range.c \
+	runtime/go-matherr.c \
 	runtime/go-nanotime.c \
 	runtime/go-now.c \
 	runtime/go-new-map.c \
@@ -1249,7 +1251,6 @@ go_crypto_cipher_files = \
 	go/crypto/cipher/cipher.go \
 	go/crypto/cipher/ctr.go \
 	go/crypto/cipher/io.go \
-	go/crypto/cipher/ocfb.go \
 	go/crypto/cipher/ofb.go
 
 go_crypto_des_files = \
@@ -1441,6 +1442,9 @@ go_exp_proxy_files = \
 	go/exp/proxy/proxy.go \
 	go/exp/proxy/socks5.go
 
+go_exp_signal_files = \
+	go/exp/signal/signal.go
+
 go_exp_terminal_files = \
 	go/exp/terminal/terminal.go \
 	go/exp/terminal/util.go
@@ -1524,9 +1528,6 @@ go_html_template_files = \
 	go/html/template/transition.go \
 	go/html/template/url.go
 
-go_image_bmp_files = \
-	go/image/bmp/reader.go
-
 go_image_color_files = \
 	go/image/color/color.go \
 	go/image/color/ycbcr.go
@@ -1547,12 +1548,6 @@ go_image_jpeg_files = \
 go_image_png_files = \
 	go/image/png/reader.go \
 	go/image/png/writer.go
-
-go_image_tiff_files = \
-	go/image/tiff/buffer.go \
-	go/image/tiff/compress.go \
-	go/image/tiff/consts.go \
-	go/image/tiff/reader.go
 
 go_index_suffixarray_files = \
 	go/index/suffixarray/qsufsort.go \
@@ -1672,9 +1667,6 @@ go_os_exec_files = \
 go_os_user_files = \
 	go/os/user/user.go \
 	go/os/user/lookup_unix.go
-
-go_os_signal_files = \
-	go/os/signal/signal.go
 
 go_path_filepath_files = \
 	go/path/filepath/match.go \
@@ -1920,6 +1912,7 @@ libgo_go_objs = \
 	exp/html.lo \
 	exp/norm.lo \
 	exp/proxy.lo \
+	exp/signal.lo \
 	exp/terminal.lo \
 	exp/types.lo \
 	exp/utf8string.lo \
@@ -1940,13 +1933,11 @@ libgo_go_objs = \
 	net/http/httptest.lo \
 	net/http/httputil.lo \
 	net/http/pprof.lo \
-	image/bmp.lo \
 	image/color.lo \
 	image/draw.lo \
 	image/gif.lo \
 	image/jpeg.lo \
 	image/png.lo \
-	image/tiff.lo \
 	index/suffixarray.lo \
 	io/ioutil.lo \
 	log/syslog.lo \
@@ -1967,7 +1958,6 @@ libgo_go_objs = \
 	old/template.lo \
 	$(os_lib_inotify_lo) \
 	os/user.lo \
-	os/signal.lo \
 	path/filepath.lo \
 	regexp/syntax.lo \
 	net/rpc/jsonrpc.lo \
@@ -2171,6 +2161,7 @@ TEST_PACKAGES = \
 	$(exp_inotify_check) \
 	exp/norm/check \
 	exp/proxy/check \
+	exp/signal/check \
 	exp/terminal/check \
 	exp/utf8string/check \
 	html/template/check \
@@ -2190,7 +2181,6 @@ TEST_PACKAGES = \
 	image/draw/check \
 	image/jpeg/check \
 	image/png/check \
-	image/tiff/check \
 	index/suffixarray/check \
 	io/ioutil/check \
 	log/syslog/check \
@@ -2213,7 +2203,6 @@ TEST_PACKAGES = \
 	old/template/check \
 	os/exec/check \
 	os/user/check \
-	os/signal/check \
 	path/filepath/check \
 	regexp/syntax/check \
 	sync/atomic/check \
@@ -2390,6 +2379,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-map-index.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-map-len.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-map-range.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-matherr.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-nanotime.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-new-map.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-new.Plo@am__quote@
@@ -2677,6 +2667,13 @@ go-map-range.lo: runtime/go-map-range.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/go-map-range.c' object='go-map-range.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o go-map-range.lo `test -f 'runtime/go-map-range.c' || echo '$(srcdir)/'`runtime/go-map-range.c
+
+go-matherr.lo: runtime/go-matherr.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT go-matherr.lo -MD -MP -MF $(DEPDIR)/go-matherr.Tpo -c -o go-matherr.lo `test -f 'runtime/go-matherr.c' || echo '$(srcdir)/'`runtime/go-matherr.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/go-matherr.Tpo $(DEPDIR)/go-matherr.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/go-matherr.c' object='go-matherr.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o go-matherr.lo `test -f 'runtime/go-matherr.c' || echo '$(srcdir)/'`runtime/go-matherr.c
 
 go-nanotime.lo: runtime/go-nanotime.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT go-nanotime.lo -MD -MP -MF $(DEPDIR)/go-nanotime.Tpo -c -o go-nanotime.lo `test -f 'runtime/go-nanotime.c' || echo '$(srcdir)/'`runtime/go-nanotime.c
@@ -4512,7 +4509,9 @@ log/check: $(CHECK_DEPS)
 math/math.lo.dep: $(go_math_files)
 	$(BUILDDEPS)
 math/math.lo: $(go_math_files)
-	$(BUILDPACKAGE)
+	$(MKDIR_P) $(@D)
+	files=`echo $^ | sed -e 's/[^ ]*\.gox//g'`; \
+	$(LTGOCOMPILE) $(MATH_FLAG) -I . -c -fgo-prefix="libgo_$(@D)" -o $@ $$files
 math/check: $(CHECK_DEPS)
 	@$(CHECK)
 .PHONY: math/check
@@ -5157,6 +5156,16 @@ exp/proxy/check: $(CHECK_DEPS)
 	@$(CHECK)
 .PHONY: exp/proxy/check
 
+@go_include@ exp/signal.lo.dep
+exp/signal.lo.dep: $(go_exp_signal_files)
+	$(BUILDDEPS)
+exp/signal.lo: $(go_exp_signal_files)
+	$(BUILDPACKAGE)
+exp/signal/check: $(CHECK_DEPS)
+	@$(MKDIR_P) exp/signal
+	@$(CHECK)
+.PHONY: exp/signal/check
+
 @go_include@ exp/terminal.lo.dep
 exp/terminal.lo.dep: $(go_exp_terminal_files)
 	$(BUILDDEPS)
@@ -5326,16 +5335,6 @@ hash/fnv/check: $(CHECK_DEPS)
 	@$(CHECK)
 .PHONY: hash/fnv/check
 
-@go_include@ image/bmp.lo.dep
-image/bmp.lo.dep: $(go_image_bmp_files)
-	$(BUILDDEPS)
-image/bmp.lo: $(go_image_bmp_files)
-	$(BUILDPACKAGE)
-image/bmp/check: $(CHECK_DEPS)
-	@$(MKDIR_P) image/bmp
-	@$(CHECK)
-.PHONY: image/bmp/check
-
 @go_include@ image/color.lo.dep
 image/color.lo.dep: $(go_image_color_files)
 	$(BUILDDEPS)
@@ -5385,16 +5384,6 @@ image/png/check: $(CHECK_DEPS)
 	@$(MKDIR_P) image/png
 	@$(CHECK)
 .PHONY: image/png/check
-
-@go_include@ image/tiff.lo.dep
-image/tiff.lo.dep: $(go_image_tiff_files)
-	$(BUILDDEPS)
-image/tiff.lo: $(go_image_tiff_files)
-	$(BUILDPACKAGE)
-image/tiff/check: $(CHECK_DEPS)
-	@$(MKDIR_P) image/tiff
-	@$(CHECK)
-.PHONY: image/tiff/check
 
 @go_include@ index/suffixarray.lo.dep
 index/suffixarray.lo.dep: $(go_index_suffixarray_files)
@@ -5637,16 +5626,6 @@ os/user/check: $(CHECK_DEPS)
 	@$(MKDIR_P) os/user
 	@$(CHECK)
 .PHONY: os/user/check
-
-@go_include@ os/signal.lo.dep
-os/signal.lo.dep: $(go_os_signal_files)
-	$(BUILDDEPS)
-os/signal.lo: $(go_os_signal_files)
-	$(BUILDPACKAGE)
-os/signal/check: $(CHECK_DEPS)
-	@$(MKDIR_P) os/signal
-	@$(CHECK)
-.PHONY: os/signal/check
 
 @go_include@ path/filepath.lo.dep
 path/filepath.lo.dep: $(go_path_filepath_files)
@@ -5957,6 +5936,8 @@ exp/norm.gox: exp/norm.lo
 	$(BUILDGOX)
 exp/proxy.gox: exp/proxy.lo
 	$(BUILDGOX)
+exp/signal.gox: exp/signal.lo
+	$(BUILDGOX)
 exp/terminal.gox: exp/terminal.lo
 	$(BUILDGOX)
 exp/types.gox: exp/types.lo
@@ -5991,8 +5972,6 @@ hash/crc64.gox: hash/crc64.lo
 hash/fnv.gox: hash/fnv.lo
 	$(BUILDGOX)
 
-image/bmp.gox: image/bmp.lo
-	$(BUILDGOX)
 image/color.gox: image/color.lo
 	$(BUILDGOX)
 image/draw.gox: image/draw.lo
@@ -6002,8 +5981,6 @@ image/gif.gox: image/gif.lo
 image/jpeg.gox: image/jpeg.lo
 	$(BUILDGOX)
 image/png.gox: image/png.lo
-	$(BUILDGOX)
-image/tiff.gox: image/tiff.lo
 	$(BUILDGOX)
 
 index/suffixarray.gox: index/suffixarray.lo
@@ -6062,8 +6039,6 @@ old/template.gox: old/template.lo
 os/exec.gox: os/exec.lo
 	$(BUILDGOX)
 os/user.gox: os/user.lo
-	$(BUILDGOX)
-os/signal.gox: os/signal.lo
 	$(BUILDGOX)
 
 path/filepath.gox: path/filepath.lo
