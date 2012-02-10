@@ -8992,7 +8992,7 @@ output_comdat_type_unit (comdat_type_node *node)
                            DWARF_COMPILE_UNIT_HEADER_SIZE
                            - DWARF_INITIAL_LENGTH_SIZE
                            + size_of_die (skeleton_type_unit)
-                           + DWARF_TYPE_SIGNATURE_SIZE + DWARF_OFFSET_SIZE + 1,
+                           + DWARF_TYPE_SIGNATURE_SIZE + DWARF_OFFSET_SIZE,
                            "Length of Type Unit Info");
       dw2_asm_output_data (2, dwarf_version, "DWARF version number");
       dw2_asm_output_offset (DWARF_OFFSET_SIZE,
@@ -9004,7 +9004,7 @@ output_comdat_type_unit (comdat_type_node *node)
       dw2_asm_output_data (DWARF_OFFSET_SIZE, 0, "Offset to Type DIE");
 
       output_die (skeleton_type_unit);
-      dw2_asm_output_data (1, 0, "end of skeleton .debug_types");
+      /* dw2_asm_output_data (1, 0, "end of skeleton .debug_types"); */
     }
 }
 
