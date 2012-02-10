@@ -3570,6 +3570,10 @@ arm_libcall_uses_aapcs_base (const_rtx libcall)
       add_libcall (libcall_htab,
 		   convert_optab_libfunc (trunc_optab, HFmode, SFmode));
       add_libcall (libcall_htab,
+		   convert_optab_libfunc (sfix_optab, SImode, DFmode));
+      add_libcall (libcall_htab,
+		   convert_optab_libfunc (ufix_optab, SImode, DFmode));
+      add_libcall (libcall_htab,
 		   convert_optab_libfunc (sfix_optab, DImode, DFmode));
       add_libcall (libcall_htab,
 		   convert_optab_libfunc (ufix_optab, DImode, DFmode));
@@ -5077,6 +5081,14 @@ arm_function_ok_for_sibcall (tree decl, tree exp)
   if (IS_STACKALIGN (func_type))
     return false;
 
+  /* The AAPCS says that, on bare-metal, calls to unresolved weak
+     references should become a NOP.  Don't convert such calls into
+     sibling calls.  */
+  if (TARGET_AAPCS_BASED
+      && arm_abi == ARM_ABI_AAPCS
+      && DECL_WEAK (decl))
+    return false;
+
   /* Everything else is ok.  */
   return true;
 }
@@ -5379,11 +5391,7 @@ arm_load_pic_register (unsigned long saved_regs ATTRIBUTE_UNUSED)
 
       if (TARGET_32BIT)
 	{
-	  emit_insn (gen_pic_load_addr_32bit (pic_reg, pic_rtx));
-	  if (TARGET_ARM)
-	    emit_insn (gen_pic_add_dot_plus_eight (pic_reg, pic_reg, labelno));
-	  else
-	    emit_insn (gen_pic_add_dot_plus_four (pic_reg, pic_reg, labelno));
+	  emit_insn (gen_pic_load_addr_unified (pic_reg, pic_rtx, labelno));
 	}
       else /* TARGET_THUMB1 */
 	{
@@ -5396,10 +5404,10 @@ arm_load_pic_register (unsigned long saved_regs ATTRIBUTE_UNUSED)
 				     thumb_find_work_register (saved_regs));
 	      emit_insn (gen_pic_load_addr_thumb1 (pic_tmp, pic_rtx));
 	      emit_insn (gen_movsi (pic_offset_table_rtx, pic_tmp));
+	      emit_insn (gen_pic_add_dot_plus_four (pic_reg, pic_reg, labelno));
 	    }
 	  else
-	    emit_insn (gen_pic_load_addr_thumb1 (pic_reg, pic_rtx));
-	  emit_insn (gen_pic_add_dot_plus_four (pic_reg, pic_reg, labelno));
+	    emit_insn (gen_pic_load_addr_unified (pic_reg, pic_rtx, labelno));
 	}
     }
 
@@ -5429,20 +5437,7 @@ arm_pic_static_addr (rtx orig, rtx reg)
                                UNSPEC_SYMBOL_OFFSET);
   offset_rtx = gen_rtx_CONST (Pmode, offset_rtx);
 
-  if (TARGET_32BIT)
-    {
-      emit_insn (gen_pic_load_addr_32bit (reg, offset_rtx));
-      if (TARGET_ARM)
-        insn = emit_insn (gen_pic_add_dot_plus_eight (reg, reg, labelno));
-      else
-        insn = emit_insn (gen_pic_add_dot_plus_four (reg, reg, labelno));
-    }
-  else /* TARGET_THUMB1 */
-    {
-      emit_insn (gen_pic_load_addr_thumb1 (reg, offset_rtx));
-      insn = emit_insn (gen_pic_add_dot_plus_four (reg, reg, labelno));
-    }
-
+  insn = emit_insn (gen_pic_load_addr_unified (reg, offset_rtx, labelno));
   return insn;
 }
 
@@ -5485,7 +5480,7 @@ static bool
 will_be_in_index_register (const_rtx x)
 {
   /* arm.md: calculate_pic_address will split this into a register.  */
-  return GET_CODE (x) == UNSPEC && XINT (x, 1) == UNSPEC_PIC_SYM;
+  return GET_CODE (x) == UNSPEC && (XINT (x, 1) == UNSPEC_PIC_SYM);
 }
 
 /* Return nonzero if X is a valid ARM state address operand.  */
@@ -7231,6 +7226,15 @@ arm_rtx_costs_1 (rtx x, enum rtx_code outer, int* total, bool speed)
 	*total = COSTS_N_INSNS (1);
       else
 	*total = COSTS_N_INSNS (4);
+      return true;
+
+    case UNSPEC:
+      /* We cost this as high as our memory costs to allow this to
+	 be hoisted from loops.  */
+      if (XINT (x, 1) == UNSPEC_PIC_UNIFIED)
+	{
+	  *total = COSTS_N_INSNS (2 + ARM_NUM_REGS (mode));
+	}
       return true;
 
     default:
@@ -9426,7 +9430,8 @@ static int
 arm_note_pic_base (rtx *x, void *date ATTRIBUTE_UNUSED)
 {
   if (GET_CODE (*x) == UNSPEC
-      && XINT (*x, 1) == UNSPEC_PIC_BASE)
+      && (XINT (*x, 1) == UNSPEC_PIC_BASE
+	  || XINT (*x, 1) == UNSPEC_PIC_UNIFIED))
     return 1;
   return 0;
 }
@@ -20859,6 +20864,8 @@ thumb1_expand_epilogue (void)
   gcc_assert (amount >= 0);
   if (amount)
     {
+      emit_insn (gen_blockage ());
+
       if (amount < 512)
 	emit_insn (gen_addsi3 (stack_pointer_rtx, stack_pointer_rtx,
 			       GEN_INT (amount)));

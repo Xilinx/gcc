@@ -721,7 +721,7 @@ c_finish_incomplete_decl (tree decl)
 
 	  complete_array_type (&TREE_TYPE (decl), NULL_TREE, true);
 
-	  layout_decl (decl, 0);
+	  relayout_decl (decl);
 	}
     }
 }
@@ -1200,7 +1200,7 @@ pop_scope (void)
 	      DECL_CHAIN (p) = BLOCK_VARS (block);
 	      BLOCK_VARS (block) = p;
 	    }
-	  else if (VAR_OR_FUNCTION_DECL_P (p))
+	  else if (VAR_OR_FUNCTION_DECL_P (p) && scope != file_scope)
 	    {
 	      /* For block local externs add a special
 		 DECL_EXTERNAL decl for debug info generation.  */
@@ -4261,7 +4261,7 @@ finish_decl (tree decl, location_t init_loc, tree init,
       if (DECL_INITIAL (decl))
 	TREE_TYPE (DECL_INITIAL (decl)) = type;
 
-      layout_decl (decl, 0);
+      relayout_decl (decl);
     }
 
   if (TREE_CODE (decl) == VAR_DECL)
@@ -9782,6 +9782,9 @@ collect_source_ref_cb (tree decl)
     collect_source_ref (LOCATION_FILE (decl_sloc (decl, false)));
 }
 
+/* Preserve the external declarations scope across a garbage collect.  */
+static GTY(()) tree ext_block;
+
 /* Collect all references relevant to SOURCE_FILE.  */
 
 static void
@@ -9792,6 +9795,8 @@ collect_all_refs (const char *source_file)
 
   FOR_EACH_VEC_ELT (tree, all_translation_units, i, t)
     collect_ada_nodes (BLOCK_VARS (DECL_INITIAL (t)), source_file);
+
+  collect_ada_nodes (BLOCK_VARS (ext_block), source_file);
 }
 
 /* Iterate over all global declarations and call CALLBACK.  */
@@ -9810,10 +9815,10 @@ for_each_global_decl (void (*callback) (tree decl))
       for (decl = BLOCK_VARS (decls); decl; decl = TREE_CHAIN (decl))
 	callback (decl);
     }
-}
 
-/* Preserve the external declarations scope across a garbage collect.  */
-static GTY(()) tree ext_block;
+  for (decl = BLOCK_VARS (ext_block); decl; decl = TREE_CHAIN (decl))
+    callback (decl);
+}
 
 void
 c_write_global_declarations (void)

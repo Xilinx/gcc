@@ -1,3 +1,65 @@
+2012-02-09  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from mainline
+	2012-01-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/51669
+	* semantics.c (finish_omp_clauses): Call fold_build_cleanup_point_expr
+	on OMP_CLAUSE_{IF,NUM_THREADS,SCHEDULE_CHUNK}_EXPR.
+
+	2011-12-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/51360
+	* semantics.c (finish_omp_clauses): For OMP_CLAUSE_NUM_THREADS_EXPR
+	and OMP_CLAUSE_SCHEDULE_CHUNK_EXPR call mark_rvalue_use.
+
+2012-01-19  Kai Tietz  <ktietz@redhat.com>
+
+	PR c++/51344
+	* decl2.c (save_template_attributes): Use merge_attributes
+	instead of chaining up via TREE_CHAIN.
+
+2012-01-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/51854
+	* mangle.c (write_template_arg_literal): Sorry instead of aborting.
+
+2012-01-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51868
+	* typeck.c (build_static_cast_1): Handle bit-fields properly.
+
+2011-12-20  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/49951
+	* decl.c (cxx_maybe_build_cleanup): Don't set location of the call
+	to the destructor.
+
+2011-12-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51416
+	* init.c (build_value_init_noctor): Check for incomplete type.
+
+2011-12-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51331
+	* class.c (convert_to_base_statically): Just call
+	build_simple_base_path.
+	(build_simple_base_path): Check field offset.
+
+2011-12-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51248
+	* decl.c (copy_type_enum): Also update variants.
+	(finish_enum): Allow variants of complete enums.
+
+2011-12-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51406
+	PR c++/51161
+	* typeck.c (build_static_cast_1): Fix cast of lvalue to
+	base rvalue reference.
+
 2011-11-22  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/51265
