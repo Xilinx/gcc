@@ -1,4 +1,19 @@
 2011-02-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (dbgout_fields): Force indentation and
+	output for fields of depth 0 or 1, to produce prettier output.
+
+	* melt/warmelt-normatch.melt (mgaltstep_steptestmult): Better color.
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_altmatch): Better debug.
+	(compilobj_nrep_matchlabel) Safer field access.
+	(compilobj_nrep_matchflag): New fake method for compile_obj on
+	class_nrep_match_flag.
+	(compilobj_nrep_matchedata): New fake method for compile_obj on
+	class_nrep_matched_data.
+	(compilobj_nrep_matchjump): New fake method for compile_obj on
+	class_nrep_match_jump.
+
+2011-02-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (class_nrep_matched_data): Typo in
 	doc-string.
 

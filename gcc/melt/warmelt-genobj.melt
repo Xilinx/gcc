@@ -5266,7 +5266,7 @@ $SBUF.}#
 (defun compilobj_nrep_altmatch (nmat gcx)
   (assert_msg "check nmat" (is_a nmat class_nrep_altmatch))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
-  (debug "compilobj_nrep_altmatch nmat=" nmat " gcx=" gcx)
+  (debug "compilobj_nrep_altmatch nmat=" nmat "\n gcx=" gcx)
   (let ( 
 	(nloc (unsafe_get_field :nrep_loc nmat))
 	(nctyp (unsafe_get_field :nexpr_ctyp nmat))
@@ -5328,8 +5328,8 @@ $SBUF.}#
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug "compilobj_nrep_matchlabel nmlab=" nmlab " gcx=" gcx)
   (let (
-	(nloc (unsafe_get_field :nrep_loc nmlab))
-	(nstep (unsafe_get_field :nmlab_step nmlab))
+	(nloc (get_field :nrep_loc nmlab))
+	(nstep (get_field :nmlab_step nmlab))
 	(stepixv (get_field :mstep_index nstep))
 	)
     (debug "compilobj_nrep_matchlabel stepixv=" stepixv " nstep=" nstep)
@@ -5347,6 +5347,31 @@ $SBUF.}#
 
 (install_method class_nrep_match_label compile_obj compilobj_nrep_matchlabel)
 
+
+;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_matchflag (nmflag gcx)
+  (debug "compilobj_nrep_matchflag nmflag=" nmflag "\n of discrim=" (discrim nmflag)
+	 "\n gcx=" gcx)
+  (assert_msg "check nmflag" (is_a nmflag class_nrep_match_flag))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (let ( (nloc (unsafe_get_field :nrep_loc nmflag))
+	 (nrfla (unsafe_get_field :nrpfla_flag nmflag))
+	 (nrmatch (unsafe_get_field :nrpfla_nmatch nmflag))
+	 )
+    (debug "compilobj_nrep_matchflag nrfla=" nrfla " nrmatch=" nrmatch)
+    (shortbacktrace_dbg "compilobj_nrep_matchflag" 12)
+    (let ( (objm
+	    (make_objcompute nloc ##{??compilobj_nrep_matchflag
+			     #error incomplete compilobj_nrep_matchflag
+			     /*nrfla=*/ $NRFLA
+			     }#))
+	   )
+      (error_plain nloc "not fully implemented compilobj_nrep_matchflag")
+      (debug "compilobj_nrep_matchflag objm=" objm)
+      (return objm)
+      )))
+
+(install_method class_nrep_match_flag compile_obj compilobj_nrep_matchflag)
 
 ;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_matchdatainit (nmdat gcx)
@@ -5378,6 +5403,61 @@ $SBUF.}#
     )))
 
 (install_method class_nrep_match_data_initializer compile_obj compilobj_nrep_matchdatainit)
+
+
+
+;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_matchedata (nmdat gcx)
+  (debug "compilobj_nrep_matchedata nmdat=" nmdat 
+	 "\n of discr=" (discrim nmdat) "\n gcx=" gcx)
+  (assert_msg "check nmdat" (is_a nmdat class_nrep_matched_data))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (let (
+	(nloc (unsafe_get_field :nrep_loc nmdat))
+	(nctype (unsafe_get_field :nrmatd_ctype nmdat))
+	(nrmdata (get_field :nrmatd_mdata nmdat))
+	(nrmrank (get_field :nrmatd_rank nmdat))
+	(altmatch (get_field :gncx_altmatch gcx))
+	)
+    (shortbacktrace_dbg "compilobj_nrep_matchdatainit" 10)
+    (debug "compilobj_nrep_matchedata  altmatch=" altmatch)
+    (let ( (objc (make_objcompute nloc ##{??compilobj_nrep_matchedata
+ /*nrmrank=*/ $NRMRANK
+#error incomplete compilobj_nrep_matchedata 
+}#))
+	   )
+      (error_plain nloc "not fully implemented compilobj_nrep_matchedata")
+      (debug "compilobj_nrep_matchedata objc=" objc)
+      (return objc)
+    )))
+
+(install_method class_nrep_matched_data compile_obj compilobj_nrep_matchedata)
+
+
+
+;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_matchjump (nmjump gcx)
+  (debug "compilobj_nrep_matchedata nmjump=" nmjump 
+	 "\n of discr=" (discrim nmjump) "\n gcx=" gcx)
+  (assert_msg "check nmjump" (is_a nmjump class_nrep_match_jump))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (let (
+	(nloc (unsafe_get_field :nrep_loc nmjump))
+	(altmatch (get_field :gncx_altmatch gcx))
+	)
+    (debug "compilobj_nrep_matchjump  altmatch=" altmatch)
+    (let ( (objc (make_objcompute nloc ##{??compilobj_nrep_matchjump
+#error incomplete compilobj_nrep_matchjump 
+}#))
+	   )
+      (error_plain nloc "not fully implemented compilobj_nrep_matchjump")
+      (debug "compilobj_nrep_matchjump objc=" objc)
+      (return objc)
+    )))
+
+(install_method class_nrep_match_jump compile_obj compilobj_nrep_matchjump)
+
+
 
 
 

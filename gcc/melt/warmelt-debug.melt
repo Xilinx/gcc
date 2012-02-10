@@ -513,7 +513,7 @@ $DBGI at given $DEPTH}#
 		 (let ( (curfld (multiple_nth clafieldseq ix))
 			(curval (object_nth_field obj ix))
 			)
-		   (if (or (<=i depth 0) (notnull curval))
+		   (if (or (<=i depth 1) (notnull curval))
 		       (let
 			   ( (:long outcuroff (output_length out))
 			     )
@@ -521,6 +521,7 @@ $DBGI at given $DEPTH}#
 			 (if (or 
 			      (>i outcuroff (+i outoff 80))
 			      (==i (%iraw fldcnt 2) 0)
+			      (<=i depth 1)
 			      )
 			     (progn
 			       (add2out_indentnl out depth)

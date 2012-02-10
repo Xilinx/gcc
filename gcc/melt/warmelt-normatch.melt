@@ -4485,7 +4485,7 @@ the flags of the $STEP with an extra context $CTX.}#
      meltgc_add_out ((melt_ptr_t) $NODEBUF,
 		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
      }#)
-    (add2out nodebuf ##{</font>  <font color="darkred" face="Courier" point-size="6">^$NBCOMP</font></td>}#)
+    (add2out nodebuf ##{</font>  <font color="red" face="Courier" point-size="6">^$NBCOMP</font></td>}#)
     (add2out_strconst nodebuf "<td>")
     (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
     (add2sbuf_short_mixloc nodebuf loca)
