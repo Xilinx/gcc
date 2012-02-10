@@ -1,4 +1,11 @@
 2011-02-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (mgaltstep_steptestmult): Typo in
+	generated label.
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_matchdatainit): More
+	debug.
+
+2011-02-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (scanstepdata_testins): More debug.
 	(scanstepdata_testtuple): New method for scan_step_data on
 	class_match_step_test_multiple.

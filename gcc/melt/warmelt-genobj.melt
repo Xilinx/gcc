@@ -5317,9 +5317,10 @@ $SBUF.}#
 
 ;;;;;;;;;;;;;;;;
 (defun compilobj_nrep_matchdatainit (nmdat gcx)
+  (debug "compilobj_nrep_matchdatainit nmdat=" nmdat 
+	 "\n of discr=" (discrim nmdat) "\n gcx=" gcx)
   (assert_msg "check nmdat" (is_a nmdat class_nrep_match_data_initializer))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
-  (debug "compilobj_nrep_matchdatainit nmdat=" nmdat " gcx=" gcx)
   (let (
 	(nloc (unsafe_get_field :nrep_loc nmdat))
 	(ndata (get_field :nmdac_data nmdat))
