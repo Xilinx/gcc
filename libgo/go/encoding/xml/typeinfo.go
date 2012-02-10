@@ -37,7 +37,6 @@ const (
 	fAny
 
 	// TODO:
-	//fIgnore
 	//fOmitEmpty
 
 	fMode = fElement | fAttr | fCharData | fInnerXml | fComment | fAny
@@ -62,7 +61,7 @@ func getTypeInfo(typ reflect.Type) (*typeInfo, error) {
 		n := typ.NumField()
 		for i := 0; i < n; i++ {
 			f := typ.Field(i)
-			if f.PkgPath != "" {
+			if f.PkgPath != "" || f.Tag.Get("xml") == "-" {
 				continue // Private field
 			}
 
@@ -194,7 +193,7 @@ func structFieldInfo(typ reflect.Type, f *reflect.StructField) (*fieldInfo, erro
 
 	// If the field type has an XMLName field, the names must match
 	// so that the behavior of both marshalling and unmarshalling
-	// is straighforward and unambiguous.
+	// is straightforward and unambiguous.
 	if finfo.flags&fElement != 0 {
 		ftyp := f.Type
 		xmlname := lookupXMLName(ftyp)

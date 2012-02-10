@@ -604,6 +604,7 @@ LTLIBOBJS
 LIBOBJS
 STRUCT_EPOLL_EVENT_FD_OFFSET
 SIZEOF_STRUCT_EPOLL_EVENT
+MATH_FLAG
 STRINGOPS_FLAG
 HAVE_WAIT4_FALSE
 HAVE_WAIT4_TRUE
@@ -11101,7 +11102,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11104 "configure"
+#line 11105 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -11207,7 +11208,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11210 "configure"
+#line 11211 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -14622,6 +14623,21 @@ done
 CFLAGS="$CFLAGS_hold"
 LIBS="$LIBS_hold"
 
+LIBS_hold="$LIBS"
+LIBS="$LIBS $MATH_LIBS"
+for ac_func in matherr
+do :
+  ac_fn_c_check_func "$LINENO" "matherr" "ac_cv_func_matherr"
+if test "x$ac_cv_func_matherr" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_MATHERR 1
+_ACEOF
+
+fi
+done
+
+LIBS="$LIBS_hold"
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for __sync_bool_compare_and_swap_4" >&5
 $as_echo_n "checking for __sync_bool_compare_and_swap_4... " >&6; }
 if test "${libgo_cv_func___sync_bool_compare_and_swap_4+set}" = set; then :
@@ -14707,6 +14723,33 @@ if test "$libgo_cv_c_stringops" = yes; then
 fi
 
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether compiler supports -mfancy-math-387" >&5
+$as_echo_n "checking whether compiler supports -mfancy-math-387... " >&6; }
+if test "${libgo_cv_c_fancymath+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  CFLAGS_hold=$CFLAGS
+CFLAGS="$CFLAGS -mfancy-math-387"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+int i;
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  libgo_cv_c_fancymath=yes
+else
+  libgo_cv_c_fancymath=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+CFLAGS=$CFLAGS_hold
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $libgo_cv_c_fancymath" >&5
+$as_echo "$libgo_cv_c_fancymath" >&6; }
+MATH_FLAG=
+if test "$libgo_cv_c_fancymath" = yes; then
+  MATH_FLAG="-mfancy-math-387 -funsafe-math-optimizations"
+fi
+
+
 CFLAGS_hold=$CFLAGS
 CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE"
 ac_fn_c_check_type "$LINENO" "off64_t" "ac_cv_type_off64_t" "$ac_includes_default"
@@ -14755,6 +14798,118 @@ fi
 $as_echo "$libgo_cv_c_epoll_event_fd_offset" >&6; }
 STRUCT_EPOLL_EVENT_FD_OFFSET=${libgo_cv_c_epoll_event_fd_offset}
 
+
+ac_fn_c_check_type "$LINENO" "struct exception" "ac_cv_type_struct_exception" "#include <math.h>
+"
+if test "x$ac_cv_type_struct_exception" = x""yes; then :
+  libgo_has_struct_exception=yes
+else
+  libgo_has_struct_exception=no
+fi
+
+if test "$libgo_has_struct_exception" = "yes"; then
+
+$as_echo "#define HAVE_STRUCT_EXCEPTION 1" >>confdefs.h
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether setcontext clobbers TLS variables" >&5
+$as_echo_n "checking whether setcontext clobbers TLS variables... " >&6; }
+if test "${libgo_cv_lib_setcontext_clobbers_tls+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  LIBS_hold="$LIBS"
+LIBS="$LIBS $PTHREAD_LIBS"
+if test "$cross_compiling" = yes; then :
+  case "$target" in
+  x86_64*-*-solaris2.10) libgo_cv_lib_setcontext_clobbers_tls=yes ;;
+  *) libgo_cv_lib_setcontext_clobbers_tls=no ;;
+ esac
+
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <pthread.h>
+#include <stdlib.h>
+#include <ucontext.h>
+#include <unistd.h>
+
+__thread int tls;
+
+static char stack[10 * 1024 * 1024];
+static ucontext_t c;
+
+/* Called via makecontext/setcontext.  */
+
+static void
+cfn (void)
+{
+  exit (tls);
+}
+
+/* Called via pthread_create.  */
+
+static void *
+tfn (void *dummy)
+{
+  /* The thread should still see this value after calling
+     setcontext.  */
+  tls = 0;
+
+  setcontext (&c);
+
+  /* The call to setcontext should not return.  */
+  abort ();
+}
+
+int
+main ()
+{
+  pthread_t tid;
+
+  /* The thread should not see this value.  */
+  tls = 1;
+
+  if (getcontext (&c) < 0)
+    abort ();
+
+  c.uc_stack.ss_sp = stack;
+  c.uc_stack.ss_flags = 0;
+  c.uc_stack.ss_size = sizeof stack;
+  c.uc_link = NULL;
+  makecontext (&c, cfn, 0);
+
+  if (pthread_create (&tid, NULL, tfn, NULL) != 0)
+    abort ();
+
+  if (pthread_join (tid, NULL) != 0)
+    abort ();
+
+  /* The thread should have called exit.  */
+  abort ();
+}
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  libgo_cv_lib_setcontext_clobbers_tls=no
+else
+  libgo_cv_lib_setcontext_clobbers_tls=yes
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+LIBS="$LIBS_hold"
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $libgo_cv_lib_setcontext_clobbers_tls" >&5
+$as_echo "$libgo_cv_lib_setcontext_clobbers_tls" >&6; }
+if test "$libgo_cv_lib_setcontext_clobbers_tls" = "yes"; then
+
+$as_echo "#define SETCONTEXT_CLOBBERS_TLS 1" >>confdefs.h
+
+fi
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure

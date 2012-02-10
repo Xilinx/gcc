@@ -5455,6 +5455,21 @@ switch_matches (const char *atom, const char *end_atom, int starred)
 	&& check_live_switch (i, plen))
       return true;
 
+    /* Check if a switch with separated form matching the atom.
+       We check -D and -U switches. */
+    else if (switches[i].args != 0)
+      {
+	if ((*switches[i].part1 == 'D' || *switches[i].part1 == 'U')
+	    && *switches[i].part1 == atom[0])
+	  {
+	    if (!strncmp (switches[i].args[0], &atom[1], len - 1)
+		&& (starred || (switches[i].part1[1] == '\0'
+				&& switches[i].args[0][len - 1] == '\0'))
+		&& check_live_switch (i, (starred ? 1 : -1)))
+	      return true;
+	  }
+      }
+
   return false;
 }
 
@@ -6447,7 +6462,11 @@ main (int argc, char **argv)
 
   /* Set up to remember the pathname of the lto wrapper. */
 
-  lto_wrapper_file = find_a_file (&exec_prefixes, "lto-wrapper", X_OK, false);
+  if (have_c)
+    lto_wrapper_file = NULL;
+  else
+    lto_wrapper_file = find_a_file (&exec_prefixes, "lto-wrapper",
+				    X_OK, false);
   if (lto_wrapper_file)
     {
       lto_wrapper_spec = lto_wrapper_file;
@@ -6821,39 +6840,46 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
   if (num_linker_inputs > 0 && !seen_error () && print_subprocess_help < 2)
     {
       int tmp = execution_count;
+
+      if (! have_c)
+	{
 #if HAVE_LTO_PLUGIN > 0
 #if HAVE_LTO_PLUGIN == 2
-      const char *fno_use_linker_plugin = "fno-use-linker-plugin";
+	  const char *fno_use_linker_plugin = "fno-use-linker-plugin";
 #else
-      const char *fuse_linker_plugin = "fuse-linker-plugin";
+	  const char *fuse_linker_plugin = "fuse-linker-plugin";
 #endif
 #endif
 
-      /* We'll use ld if we can't find collect2.  */
-      if (! strcmp (linker_name_spec, "collect2"))
-	{
-	  char *s = find_a_file (&exec_prefixes, "collect2", X_OK, false);
-	  if (s == NULL)
-	    linker_name_spec = "ld";
-	}
+	  /* We'll use ld if we can't find collect2.  */
+	  if (! strcmp (linker_name_spec, "collect2"))
+	    {
+	      char *s = find_a_file (&exec_prefixes, "collect2", X_OK, false);
+	      if (s == NULL)
+		linker_name_spec = "ld";
+	    }
 
 #if HAVE_LTO_PLUGIN > 0
 #if HAVE_LTO_PLUGIN == 2
-      if (!switch_matches (fno_use_linker_plugin,
-			   fno_use_linker_plugin + strlen (fno_use_linker_plugin), 0))
+	  if (!switch_matches (fno_use_linker_plugin,
+			       fno_use_linker_plugin
+			       + strlen (fno_use_linker_plugin), 0))
 #else
-      if (switch_matches (fuse_linker_plugin,
-			  fuse_linker_plugin + strlen (fuse_linker_plugin), 0))
+	  if (switch_matches (fuse_linker_plugin,
+			      fuse_linker_plugin
+			      + strlen (fuse_linker_plugin), 0))
 #endif
-	{
-	  linker_plugin_file_spec = find_a_file (&exec_prefixes,
-						 LTOPLUGINSONAME, R_OK,
-						 false);
-	  if (!linker_plugin_file_spec)
-	    fatal_error ("-fuse-linker-plugin, but %s not found", LTOPLUGINSONAME);
+	    {
+	      linker_plugin_file_spec = find_a_file (&exec_prefixes,
+						     LTOPLUGINSONAME, R_OK,
+						     false);
+	      if (!linker_plugin_file_spec)
+		fatal_error ("-fuse-linker-plugin, but %s not found",
+			     LTOPLUGINSONAME);
+	    }
+#endif
+	  lto_gcc_spec = argv[0];
 	}
-#endif
-      lto_gcc_spec = argv[0];
 
       /* Rebuild the COMPILER_PATH and LIBRARY_PATH environment variables
 	 for collect.  */

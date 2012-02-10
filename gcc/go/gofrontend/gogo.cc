@@ -880,7 +880,7 @@ Gogo::declare_function(const std::string& name, Function_type* type,
       else if (rtype->forward_declaration_type() != NULL)
 	{
 	  Forward_declaration_type* ftype = rtype->forward_declaration_type();
-	  return ftype->add_method_declaration(name, type, location);
+	  return ftype->add_method_declaration(name, NULL, type, location);
 	}
       else
 	go_unreachable();
@@ -3848,6 +3848,24 @@ Variable::add_preinit_statement(Gogo* gogo, Statement* s)
   b->set_end_location(s->location());
 }
 
+// Whether this variable has a type.
+
+bool
+Variable::has_type() const
+{
+  if (this->type_ == NULL)
+    return false;
+
+  // A variable created in a type switch case nil does not actually
+  // have a type yet.  It will be changed to use the initializer's
+  // type in determine_type.
+  if (this->is_type_switch_var_
+      && this->type_->is_nil_constant_as_type())
+    return false;
+
+  return true;
+}
+
 // In an assignment which sets a variable to a tuple of EXPR, return
 // the type of the first element of the tuple.
 
@@ -4307,11 +4325,12 @@ Type_declaration::add_method(const std::string& name, Function* function)
 
 Named_object*
 Type_declaration::add_method_declaration(const std::string&  name,
+					 Package* package,
 					 Function_type* type,
 					 Location location)
 {
-  Named_object* ret = Named_object::make_function_declaration(name, NULL, type,
-							      location);
+  Named_object* ret = Named_object::make_function_declaration(name, package,
+							      type, location);
   this->methods_.push_back(ret);
   return ret;
 }

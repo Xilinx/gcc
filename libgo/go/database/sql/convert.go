@@ -40,14 +40,28 @@ func convertAssign(dest, src interface{}) error {
 		case *string:
 			*d = s
 			return nil
+		case *[]byte:
+			*d = []byte(s)
+			return nil
 		}
 	case []byte:
 		switch d := dest.(type) {
 		case *string:
 			*d = string(s)
 			return nil
+		case *interface{}:
+			bcopy := make([]byte, len(s))
+			copy(bcopy, s)
+			*d = bcopy
+			return nil
 		case *[]byte:
 			*d = s
+			return nil
+		}
+	case nil:
+		switch d := dest.(type) {
+		case *[]byte:
+			*d = nil
 			return nil
 		}
 	}
@@ -71,6 +85,9 @@ func convertAssign(dest, src interface{}) error {
 			*d = bv.(bool)
 		}
 		return err
+	case *interface{}:
+		*d = src
+		return nil
 	}
 
 	if scanner, ok := dest.(ScannerInto); ok {

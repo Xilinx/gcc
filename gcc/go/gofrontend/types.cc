@@ -1658,7 +1658,12 @@ Type::type_descriptor_constructor(Gogo* gogo, int runtime_type_kind,
 
   ++p;
   go_assert(p->is_field_name("hash"));
-  mpz_set_ui(iv, this->hash_for_method(gogo));
+  unsigned int h;
+  if (name != NULL)
+    h = name->hash_for_method(gogo);
+  else
+    h = this->hash_for_method(gogo);
+  mpz_set_ui(iv, h);
   vals->push_back(Expression::make_integer(&iv, p->type(), bloc));
 
   ++p;
@@ -5416,7 +5421,8 @@ tree
 Array_type::capacity_tree(Gogo* gogo, tree array)
 {
   if (this->length_ != NULL)
-    return omit_one_operand(sizetype, this->get_length_tree(gogo), array);
+    return omit_one_operand(integer_type_node, this->get_length_tree(gogo),
+			    array);
 
   // This is an open array.  We need to read the capacity field.
 
@@ -9115,6 +9121,7 @@ Forward_declaration_type::add_method(const std::string& name,
 
 Named_object*
 Forward_declaration_type::add_method_declaration(const std::string& name,
+						 Package* package,
 						 Function_type* type,
 						 Location location)
 {
@@ -9122,7 +9129,7 @@ Forward_declaration_type::add_method_declaration(const std::string& name,
   if (no->is_unknown())
     no->declare_as_type();
   Type_declaration* td = no->type_declaration_value();
-  return td->add_method_declaration(name, type, location);
+  return td->add_method_declaration(name, package, type, location);
 }
 
 // Traversal.
