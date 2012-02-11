@@ -1,3 +1,8 @@
+2012-02-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/52146
+	* config/i386/i386.md (movabs split for x32): New.
+
 2012-02-10  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/52146
