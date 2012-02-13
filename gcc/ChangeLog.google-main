@@ -1,3 +1,9 @@
+2012-02-13   Xinliang David Li  <davidxl@google.com>
+
+	* tree-optimize.c (execute_fixup_cfg): Using double type in
+	scaling to avoid count overflow during out-of-line copy
+	fixup. (ref: google-4_6 r184162)
+
 2012-02-06   Dmitriy Vyukov  <dvyukov@google.com>
 
 	Port revision 183839 from google/gcc-4_6 branch.

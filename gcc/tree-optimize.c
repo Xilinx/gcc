@@ -292,22 +292,22 @@ execute_fixup_cfg (void)
 
   if (ENTRY_BLOCK_PTR->count)
     count_scale = ((cgraph_get_node (current_function_decl)->count
-		    * REG_BR_PROB_BASE + ENTRY_BLOCK_PTR->count / 2)
+		    * (double) REG_BR_PROB_BASE + ENTRY_BLOCK_PTR->count / 2)
 		   / ENTRY_BLOCK_PTR->count);
   else
     count_scale = REG_BR_PROB_BASE;
 
   ENTRY_BLOCK_PTR->count = cgraph_get_node (current_function_decl)->count;
-  EXIT_BLOCK_PTR->count = (EXIT_BLOCK_PTR->count * count_scale
+  EXIT_BLOCK_PTR->count = (EXIT_BLOCK_PTR->count * (double) count_scale
   			   + REG_BR_PROB_BASE / 2) / REG_BR_PROB_BASE;
 
   FOR_EACH_EDGE (e, ei, ENTRY_BLOCK_PTR->succs)
-    e->count = (e->count * count_scale
+    e->count = (e->count * (double) count_scale
        + REG_BR_PROB_BASE / 2) / REG_BR_PROB_BASE;
 
   FOR_EACH_BB (bb)
     {
-      bb->count = (bb->count * count_scale
+      bb->count = (bb->count * (double) count_scale
 		   + REG_BR_PROB_BASE / 2) / REG_BR_PROB_BASE;
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	{
@@ -341,7 +341,7 @@ execute_fixup_cfg (void)
 	}
 
       FOR_EACH_EDGE (e, ei, bb->succs)
-        e->count = (e->count * count_scale
+          e->count = (e->count * (double) count_scale
 		    + REG_BR_PROB_BASE / 2) / REG_BR_PROB_BASE;
     }
   if (count_scale != REG_BR_PROB_BASE)
