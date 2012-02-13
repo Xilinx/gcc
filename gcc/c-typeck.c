@@ -3029,7 +3029,9 @@ convert_arguments (tree typelist, VEC(tree,gc) *values,
       bool npc;
       tree parmval;
 
-      if (flag_enable_cilk && contains_array_notation_expr (val))
+      if (flag_enable_cilk
+	  && (contains_array_notation_expr (val)
+	      || contains_array_notation_expr (fundecl)))
 	continue;
       if (type == void_type_node)
 	{

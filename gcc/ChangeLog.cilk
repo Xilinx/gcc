@@ -1,3 +1,16 @@
+2012-02-13  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-array-notation.c (fix_builtin_array_notation_fn): Added a
+	REDUCE_ANY_NONZEROS, REDUCE_ALL_NONZEROS and REDUCE_CUSTOM case.
+	(is_builtin_array_notation_fn): Replaced all occurances of "zeros" in
+	string with "zero."  Also, added a case for REDUCE_ALL_ZEROS and
+	REDUCE_ALL_NONZEROS and REDUCE_CUSTOM.
+	* array-notation-common.c (array_notation_init_builtins): Likewise.
+	(is_sec_implicit_index_fn): Added a check for FUNCTION_DECL.
+	* tree.h: Added REDUCE_ANY_NONZEROS and REDUCE_ALL_NONZEROS into enum.
+	* c-typeck.c (convert_arguments): Added a check for array notation in
+	the function decl.
+
 2012-01-31  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-array-notation.c (build_array_notation_expr): Added another

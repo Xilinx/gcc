@@ -1,3 +1,45 @@
+2012-02-13  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* call.c (build_conditional_expr): Added a check for ARRAY_NOTATION_REF.
+	(convert_like_real): Added check for array notations inside function.
+	* cp-array-notation.c (fix_builtin_array_notation_fn): Added a
+	REDUCE_ANY_NONZEROS, REDUCE_ALL_NONZEROS and REDUCE_CUSTOM case.
+	(is_builtin_array_notation_fn): Replaced all occurances of "zeros" in
+	string with "zero."  Also, added a check for REDUCE_CUSTOM,
+	REDUCE_ALL_ZEROS, REDUCE_ALL_NONZEROS.  Also added a check for
+	FUNCTION_DECL.
+	(find_rank): Changed a not equal to check to a less than check.  Also
+	added check for TREE_LIST and DECL_EXPR.
+	(extract_array_notation_exprs): Likewise.
+	(replace_array_notations): Likewise.  Also added a type check.
+	(has_call_expr_with_array_notation): New function.
+	(build_x_array_notations): Moved lhs_var creation and checking for
+	implicit_index function to the top.  Added a check for ARRAY NOTATION
+	REF.  Also replaced all TREE CONSTANT calls with specific functions.
+	Replaced all build_decls with create_tmp_var.  Added a label name for
+	all the label decls.  Replaced all C function-calls with their C++
+	equivalents (e.g replace build_modify_expr with build_x_modify_expr).
+	Also, replaced stmt list implemention to a push_stmt_list impl.
+	Replaced conditional_expr in the array notation loop with a if-then-else
+	statment functions.
+	(fix_conditional_array_notations_1): Likewise.
+	(fix_unary_array_notation_exprs): Likewise.
+	(fix_builtin_array_notation_fn): All the changes in
+	build_x_array_notation_exprs are incorporated into this function.  Also,
+	added check for REDUCE_CUSTOM, REDUCE_ALL_NONZEROS and
+	REDUCE_ANY_NONZEROS. Replaced a big case statement with if then else.
+	(fix_array_notation_exprs): Added a check for DECL_EXPR, MODIFY_EXPR,
+	CALL_EXPR and MODOP_EXPR.
+	* parser.c (cp_parser_assignment_expression): Removed call for
+	build_x_array_notation_expr and the new_expr variable.
+	(cp_parser_array_notation): Added support for templates.
+	(tsubst_copy_and_build): Added a ARRAY_NOTATION_REF case.
+	(type_unification_real): Likewise.
+	* tree.c (lvalue_kind): Likewise.
+	* typeck.c (cp_build_addr_expr_1): Likewise.
+	* expr.c (array_ref_element_size): Broke up a value into smaller parts.
+	(array_ref_lower_bound): Likewise.
+
 2012-01-31  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cp-array-notation.c (build_x_array_notation_expr): Added another

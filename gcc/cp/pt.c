@@ -46,6 +46,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-iterator.h"
 #include "vecprim.h"
 
+extern bool contains_array_notation_expr (tree );
 /* The type of functions taking a tree, and some additional data, and
    returning an int.  */
 typedef int (*tree_fn_t) (tree, void*);
@@ -13680,6 +13681,13 @@ tsubst_copy_and_build (tree t,
 						args, complain, in_decl);
       return build_x_array_ref (op1, RECUR (TREE_OPERAND (t, 1)), complain);
 
+    case ARRAY_NOTATION_REF:
+      op1 = tsubst_non_call_postfix_expression (ARRAY_NOTATION_ARRAY (t),
+						args, complain, in_decl);
+      return build5 (ARRAY_NOTATION_REF, TREE_TYPE (op1),
+		     op1, RECUR (ARRAY_NOTATION_START (t)),
+		     RECUR (ARRAY_NOTATION_LENGTH (t)),
+		     RECUR (ARRAY_NOTATION_STRIDE (t)), TREE_TYPE (op1));
     case SIZEOF_EXPR:
       if (PACK_EXPANSION_P (TREE_OPERAND (t, 0)))
 	return tsubst_copy (t, args, complain, in_decl);
@@ -15346,6 +15354,9 @@ type_unification_real (tree tparms,
       arg = args[ia];
       ++ia;
 
+      if (TREE_CODE (arg) == ARRAY_NOTATION_REF)
+	return 1;
+      
       if (unify_one_argument (tparms, targs, parm, arg, subr, strict,
 			      flags, explain_p))
 	return 1;

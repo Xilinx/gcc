@@ -82,8 +82,8 @@ int main(int argc, char **argv)
     for (int ii = 0; ii < 10; ii++)
       array2[ii] = argc - ii;
 
-  x = __sec_reduce_all_zeros (array[0:5:1]);
-  y = __sec_reduce_any_zeros (array2[:]);
+  x = __sec_reduce_all_zero (array[0:5:1]);
+  y = __sec_reduce_any_zero (array2[:]);
 #if HAVE_IO
   std::cout <<  "All Zeros = " << x << " Any Zeros = " << y << std::endl;
 #endif

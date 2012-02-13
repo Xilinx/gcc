@@ -41,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pretty-print.h"
 #include "parser.h"
 
+extern int array_notation_label_no;
 extern void extract_array_notation_exprs (tree, bool, tree **, int *);
 extern tree fix_unary_array_notation_exprs (tree);
 struct pragma_simd_values local_simd_values;
@@ -646,6 +647,8 @@ cp_lexer_new_main (void)
   local_simd_values.ptr_next           = NULL;
 
   psv_head = NULL;
+
+  array_notation_label_no = 0;
   
   return lexer;
 }
@@ -6014,7 +6017,7 @@ cp_parser_postfix_open_square_expression (cp_parser *parser,
 	index = cp_parser_constant_expression (parser, false, NULL);
       else
 	index = cp_parser_expression (parser, /*cast_p=*/false, NULL);
-
+      
       if (cp_lexer_peek_token (parser->lexer)->type == CPP_COLON)
 	{
 	  if (flag_enable_cilk)
@@ -7530,6 +7533,7 @@ cp_parser_binary_expression (cp_parser* parser, bool cast_p,
 	c_inhibit_evaluation_warnings -= lhs == truthvalue_true_node;
 
       overload = NULL;
+
       /* ??? Currently we pass lhs_type == ERROR_MARK and rhs_type ==
 	 ERROR_MARK for everything that is not a binary expression.
 	 This makes warn_about_parentheses miss some warnings that
@@ -7638,7 +7642,6 @@ cp_parser_assignment_expression (cp_parser* parser, bool cast_p,
 				 cp_id_kind * pidk)
 {
   tree expr;
-  tree new_expr;
 
   /* If the next token is the `throw' keyword, then we're looking at
      a throw-expression.  */
@@ -7678,19 +7681,11 @@ cp_parser_assignment_expression (cp_parser* parser, bool cast_p,
 	      if (cp_parser_non_integral_constant_expression (parser,
 							      NIC_ASSIGNMENT))
 		return error_mark_node;
-
-	      /* Check if expression is of type ARRAY_NOTATION_REF, if so then
-	       * break up an array notation expression correctly 
-	       */
-	      new_expr = build_x_array_notation_expr (expr, assignment_operator,
-						      rhs, tf_warning_or_error);
-	      if (!new_expr)
 		expr = build_x_modify_expr (expr,
 					    assignment_operator,
 					    rhs,
 					    tf_warning_or_error);
-	      else
-		expr = new_expr;
+
 	    }
 	}
     }
@@ -29087,12 +29082,20 @@ cp_parser_array_notation (cp_parser *parser, tree init_index, tree array_value)
   tree value_tree, type, array_type, array_type_domain;
   double_int x;
 
-  array_type = TREE_TYPE (array_value);
-  gcc_assert (array_type);
+  if (processing_template_decl)
+    {
+      array_type = TREE_TYPE (array_value);
+      type = NULL_TREE;
+       
+    }
+  else
+    {
+      array_type = TREE_TYPE (array_value);
+      gcc_assert (array_type);
 
-  type = TREE_TYPE (array_type);
+      type = TREE_TYPE (array_type);
+    }
   token = cp_lexer_peek_token (parser->lexer);
-
   if (!token)
     {
       cp_parser_error (parser, "expected %<:%> or numeral");
@@ -29104,6 +29107,13 @@ cp_parser_array_notation (cp_parser *parser, tree init_index, tree array_value)
 	{
 	  /* IF we are here, then we havea  case like this A[:] */
 	  cp_lexer_consume_token (parser->lexer);
+
+	  if (TREE_CODE (array_type) == RECORD_TYPE)
+	    {
+	      error ("Records using array notation must specify the "
+		     "start and length");
+	      exit (ICE_EXIT_CODE);
+	    }
 	  array_type_domain = TYPE_DOMAIN (array_type);
 	  gcc_assert (array_type_domain);
 
@@ -29148,6 +29158,8 @@ cp_parser_array_notation (cp_parser *parser, tree init_index, tree array_value)
 	    }
 	  else
 	    if (TREE_CONSTANT (start_index) && TREE_CONSTANT (length_index)
+		&& TREE_CODE (length_index) != VAR_DECL
+		&& TREE_CODE (start_index) != VAR_DECL
 		&& tree_int_cst_lt (length_index, start_index))
 	      stride = build_int_cst (TREE_TYPE (start_index), -1);
 	    else
@@ -29158,17 +29170,25 @@ cp_parser_array_notation (cp_parser *parser, tree init_index, tree array_value)
     }
   else
     cp_parser_error (parser, "expected array-notation expression");
-  
   cp_parser_require (parser, CPP_CLOSE_SQUARE, RT_CLOSE_SQUARE);
 
-  value_tree = build5 (ARRAY_NOTATION_REF, NULL_TREE, NULL_TREE, NULL_TREE,
-		       NULL_TREE, NULL_TREE, NULL_TREE);
-  ARRAY_NOTATION_ARRAY (value_tree) = array_value;
-  ARRAY_NOTATION_START (value_tree) = start_index;
-  ARRAY_NOTATION_LENGTH (value_tree) = length_index;
-  ARRAY_NOTATION_STRIDE (value_tree) = stride;
-  ARRAY_NOTATION_TYPE (value_tree) = type;
-
+  if (!type)
+    {
+      if (array_type)
+	type = TREE_TYPE (array_type);
+      value_tree = build_min_nt (ARRAY_NOTATION_REF, array_value, start_index,
+				 length_index, stride, type, NULL_TREE);
+    }
+  else
+    {
+      value_tree = build5 (ARRAY_NOTATION_REF, NULL_TREE, NULL_TREE, NULL_TREE,
+			   NULL_TREE, NULL_TREE, NULL_TREE);
+      ARRAY_NOTATION_ARRAY (value_tree) = array_value;
+      ARRAY_NOTATION_START (value_tree) = start_index;
+      ARRAY_NOTATION_LENGTH (value_tree) = length_index;
+      ARRAY_NOTATION_STRIDE (value_tree) = stride;
+      ARRAY_NOTATION_TYPE (value_tree) = type;
+    }
   TREE_TYPE (value_tree) = type;
 
   return value_tree;

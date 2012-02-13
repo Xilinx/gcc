@@ -1468,7 +1468,7 @@ build_x_arrow (tree expr)
   tree type = TREE_TYPE (expr);
   tree last_rval = NULL_TREE;
   VEC(tree,gc) *types_memoized = NULL;
-
+  
   if (type == error_mark_node)
     return error_mark_node;
 

@@ -1759,6 +1759,8 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
     CASE_CONVERT:
       type = TREE_TYPE (node);
       op0 = TREE_OPERAND (node, 0);
+      if (!op0)
+	break;
       if (type != TREE_TYPE (op0))
 	{
 	  pp_character (buffer, '(');

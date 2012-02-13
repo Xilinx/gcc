@@ -6780,9 +6780,14 @@ tree
 array_ref_element_size (tree exp)
 {
   tree aligned_size = TREE_OPERAND (exp, 3);
-  tree elmt_type = TREE_TYPE (TREE_TYPE (TREE_OPERAND (exp, 0)));
+  tree elmt_type;
   location_t loc = EXPR_LOCATION (exp);
 
+  if (!TREE_TYPE (TREE_OPERAND (exp, 0)))
+    return NULL_TREE;
+  else
+    elmt_type = TREE_TYPE (TREE_TYPE (TREE_OPERAND (exp, 0)));
+  
   /* If a size was specified in the ARRAY_REF, it's the size measured
      in alignment units of the element type.  So multiply by that value.  */
   if (aligned_size)
@@ -6807,8 +6812,13 @@ array_ref_element_size (tree exp)
 tree
 array_ref_low_bound (tree exp)
 {
-  tree domain_type = TYPE_DOMAIN (TREE_TYPE (TREE_OPERAND (exp, 0)));
+  tree domain_type = NULL_TREE;
 
+  if (TREE_TYPE (TREE_OPERAND (exp, 0)))
+    domain_type = TYPE_DOMAIN (TREE_TYPE (TREE_OPERAND (exp, 0)));
+  else
+    domain_type = NULL_TREE;
+  
   /* If a lower bound is specified in EXP, use it.  */
   if (TREE_OPERAND (exp, 2))
     return TREE_OPERAND (exp, 2);

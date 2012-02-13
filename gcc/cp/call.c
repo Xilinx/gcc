@@ -4741,12 +4741,18 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
 static tree
 prep_operand (tree operand)
 {
+  tree opr_type = NULL_TREE;
   if (operand)
     {
-      if (CLASS_TYPE_P (TREE_TYPE (operand))
-	  && CLASSTYPE_TEMPLATE_INSTANTIATION (TREE_TYPE (operand)))
+      if (TREE_CODE (operand) == ARRAY_NOTATION_REF)
+	return operand;
+      else
+	opr_type = TREE_TYPE (operand);
+      
+      if (CLASS_TYPE_P (opr_type)
+	  && CLASSTYPE_TEMPLATE_INSTANTIATION (opr_type))
 	/* Make sure the template type is instantiated now.  */
-	instantiate_class_template (TYPE_MAIN_VARIANT (TREE_TYPE (operand)));
+	instantiate_class_template (TYPE_MAIN_VARIANT (opr_type));
     }
 
   return operand;
@@ -5639,7 +5645,9 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	  else if (t->kind == ck_identity)
 	    break;
 	}
-      if (flag_enable_cilk && contains_array_notation_expr (expr))
+      if (flag_enable_cilk
+	  && (contains_array_notation_expr (expr)
+	      || contains_array_notation_expr (fn)))
 	;
       else
 	{

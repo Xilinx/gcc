@@ -1443,12 +1443,30 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   tree **array_value, **array_stride, **array_length, **array_start;
   tree *body_label, *body_label_expr, *exit_label, *exit_label_expr;
   tree *compare_expr, *if_stmt_label, *expr_incr, *ind_init;
+  tree identity_value = NULL_TREE, call_fn = NULL_TREE, new_call_expr;
   bool **count_down, **array_vector;
   
   if (!is_builtin_array_notation_fn (CALL_EXPR_FN (an_builtin_fn), &an_type))
     return NULL_TREE;
+
+  if (an_type != REDUCE_CUSTOM)
+    func_parm = CALL_EXPR_ARG (an_builtin_fn, 0);
+  else
+    {
+      call_fn = CALL_EXPR_ARG (an_builtin_fn, 0);
+      while (TREE_CODE (call_fn) == CONVERT_EXPR
+	     || TREE_CODE (call_fn) == NOP_EXPR)
+	call_fn = TREE_OPERAND (call_fn, 0);
+      call_fn = TREE_OPERAND (call_fn, 0);
+      
+      identity_value = CALL_EXPR_ARG (an_builtin_fn, 1);
+      while (TREE_CODE (identity_value) == CONVERT_EXPR
+	     || TREE_CODE (identity_value) == NOP_EXPR)
+	identity_value = TREE_OPERAND (identity_value, 0);
+      
+      func_parm = CALL_EXPR_ARG (an_builtin_fn, 2);
+    }
   
-  func_parm = CALL_EXPR_ARG (an_builtin_fn, 0);
   while (TREE_CODE (func_parm) == CONVERT_EXPR
 	 || TREE_CODE (func_parm) == NOP_EXPR)
     func_parm = TREE_OPERAND (func_parm, 0);
@@ -1476,12 +1494,18 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_var_type = ARRAY_NOTATION_TYPE (array_list[0]);
       break;
     case REDUCE_ALL_ZEROS:
+    case REDUCE_ALL_NONZEROS:
     case REDUCE_ANY_ZEROS:
+    case REDUCE_ANY_NONZEROS:
       new_var_type = integer_type_node;
       break;
     case REDUCE_MAX_INDEX:
     case REDUCE_MIN_INDEX:
       new_var_type = integer_type_node;
+      break;
+    case REDUCE_CUSTOM:
+      if (call_fn && identity_value)
+      new_var_type = ARRAY_NOTATION_TYPE (array_list[0]);
       break;
     default:
       gcc_unreachable ();
@@ -1720,6 +1744,27 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	(UNKNOWN_LOCATION, new_cond_expr, false, new_yes_expr,
 	 TREE_TYPE (new_yes_expr), new_no_expr, TREE_TYPE (new_no_expr));
       break;
+    case REDUCE_ALL_NONZEROS:
+      new_var_init = build_modify_expr
+	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
+	 UNKNOWN_LOCATION, build_one_cst (new_var_type), new_var_type);
+      /* Initially you assume everything is non-zero, now if we find a case
+	 where it is NOT true, then we set the result to false. Otherwise
+	 * we just keep the previous value
+	 */
+      new_yes_expr = build_modify_expr
+	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
+	 UNKNOWN_LOCATION, build_zero_cst (TREE_TYPE (*new_var)),
+	 TREE_TYPE (*new_var));
+      new_no_expr = build_modify_expr
+	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
+	 UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var));
+      new_cond_expr = build2 (EQ_EXPR, TREE_TYPE (func_parm), func_parm,
+			      build_zero_cst (TREE_TYPE (func_parm)));
+      new_expr = build_conditional_expr
+	(UNKNOWN_LOCATION, new_cond_expr, false, new_yes_expr,
+	 TREE_TYPE (new_yes_expr), new_no_expr, TREE_TYPE (new_no_expr));
+      break;
     case REDUCE_ANY_ZEROS:
       new_var_init = build_modify_expr
 	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
@@ -1728,10 +1773,30 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
        * a non-zero, we keep the previous value. If we find a zero, we
        * set the value to true
        */
-      new_no_expr = build_modify_expr
+      new_yes_expr = build_modify_expr
 	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 UNKNOWN_LOCATION, build_one_cst (new_var_type), new_var_type);
+      new_no_expr = build_modify_expr
+	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
+	 UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var));
+      new_cond_expr = build2 (EQ_EXPR, TREE_TYPE (func_parm), func_parm,
+			      build_zero_cst (TREE_TYPE (func_parm)));
+      new_expr = build_conditional_expr
+	(UNKNOWN_LOCATION, new_cond_expr, false, new_yes_expr,
+	 TREE_TYPE (new_yes_expr), new_no_expr, TREE_TYPE (new_no_expr));   
+      break;
+    case REDUCE_ANY_NONZEROS:
+      new_var_init = build_modify_expr
+	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
+	 UNKNOWN_LOCATION, build_zero_cst (new_var_type), new_var_type);
+      /* Initially we assume there are NO non-zeros in the list. When we find
+       * a zero, we keep the previous value. If we find a non-zero, we
+       * set the value to true
+       */
       new_yes_expr = build_modify_expr
+	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
+	 UNKNOWN_LOCATION, build_one_cst (new_var_type), new_var_type);
+      new_no_expr = build_modify_expr
 	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
 	 UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var));
       new_cond_expr = build2 (NE_EXPR, TREE_TYPE (func_parm), func_parm,
@@ -1870,6 +1935,27 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	 false,
 	 new_yes_list, TREE_TYPE (*new_var), new_no_list, TREE_TYPE (*new_var));
       break;
+    case REDUCE_CUSTOM:
+      if (!call_fn)
+	{
+	  error ("Unknown/Invalid function!");
+	  exit (ICE_EXIT_CODE);
+	}
+      if (!identity_value)
+	{
+	  error ("Invalid Identity Value!");
+	  exit (ICE_EXIT_CODE);
+	}
+      new_var_init = build_modify_expr
+	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
+	 UNKNOWN_LOCATION, identity_value, new_var_type);
+
+      new_call_expr = build_call_expr (call_fn, 2, *new_var, func_parm);
+      new_expr = build_modify_expr
+	(UNKNOWN_LOCATION, *new_var, TREE_TYPE (*new_var), NOP_EXPR,
+	 UNKNOWN_LOCATION, new_call_expr, TREE_TYPE (*new_var));
+      break;
+      
     default:
       gcc_unreachable ();
       break;
@@ -1967,14 +2053,24 @@ is_builtin_array_notation_fn (tree func_name, an_reduce_type *type)
       *type = REDUCE_MUL;
       return true;
     }
-  else if (!strcmp (function_name, "__sec_reduce_all_zeros"))
+  else if (!strcmp (function_name, "__sec_reduce_all_zero"))
     {
       *type = REDUCE_ALL_ZEROS;
       return true;
     }
-  else if (!strcmp (function_name, "__sec_reduce_any_zeros"))
+  else if (!strcmp (function_name, "__sec_reduce_all_nonzero"))
+    {
+      *type = REDUCE_ALL_NONZEROS;
+      return true;
+    }
+  else if (!strcmp (function_name, "__sec_reduce_any_zero"))
     {
       *type = REDUCE_ANY_ZEROS;
+      return true;
+    }
+  else if (!strcmp (function_name, "__sec_reduce_any_nonzero"))
+    {
+      *type = REDUCE_ANY_NONZEROS;
       return true;
     }
   else if (!strcmp (function_name, "__sec_reduce_max"))
@@ -1995,6 +2091,11 @@ is_builtin_array_notation_fn (tree func_name, an_reduce_type *type)
   else if (!strcmp (function_name, "__sec_reduce_max_ind"))
     {
       *type = REDUCE_MAX_INDEX;
+      return true;
+    }
+  else if (!strcmp (function_name, "__sec_reduce"))
+    {
+      *type = REDUCE_CUSTOM;
       return true;
     }
   else

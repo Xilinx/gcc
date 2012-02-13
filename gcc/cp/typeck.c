@@ -4799,10 +4799,18 @@ cp_build_addr_expr_1 (tree arg, bool strict_lvalue, tsubst_flags_t complain)
 
   arg = mark_lvalue_use (arg);
   argtype = lvalue_type (arg);
-
+  
   gcc_assert (TREE_CODE (arg) != IDENTIFIER_NODE
 	      || !IDENTIFIER_OPNAME_P (arg));
 
+  if (TREE_CODE (arg) == ARRAY_NOTATION_REF)
+    {
+      val = build_address (arg);
+      if (TREE_CODE (arg) == OFFSET_REF)
+	PTRMEM_OK_P (val) = PTRMEM_OK_P (arg);
+      return val;
+    }
+  
   if (TREE_CODE (arg) == COMPONENT_REF && type_unknown_p (arg)
       && !really_overloaded_fn (TREE_OPERAND (arg, 1)))
     {
@@ -8445,7 +8453,8 @@ lvalue_or_else (tree ref, enum lvalue_use use, tsubst_flags_t complain)
 
   if (flag_enable_cilk && TREE_CODE (ref) == ARRAY_NOTATION_REF)
     /* IF we are using array notations then we will fix up later and not
-     * worry about it now
+     * worry about it now. If there is an error, this fucntion will get hit
+     * again and during that time we can catch the error.
      */
     return 1;
   else if (kind == clk_none)

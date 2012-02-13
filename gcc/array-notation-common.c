@@ -68,13 +68,13 @@ array_notation_init_builtins (void)
 
   func_type = build_function_type_list (integer_type_node, ptr_type_node,
 					NULL_TREE);
-  new_func = build_fn_decl ("__sec_reduce_all_zeros", func_type);
+  new_func = build_fn_decl ("__sec_reduce_all_zero", func_type);
   mark_cold (new_func);
   new_func = lang_hooks.decls.pushdecl (new_func);
 
   func_type = build_function_type_list (integer_type_node, ptr_type_node,
 					NULL_TREE);
-  new_func = build_fn_decl ("__sec_reduce_any_zeros", func_type);
+  new_func = build_fn_decl ("__sec_reduce_any_zero", func_type);
   mark_cold (new_func);
   new_func = lang_hooks.decls.pushdecl (new_func);
 
@@ -102,12 +102,29 @@ array_notation_init_builtins (void)
   mark_cold (new_func);
   new_func = lang_hooks.decls.pushdecl (new_func);
 
+  func_type = build_function_type_list (integer_type_node, ptr_type_node,
+				       NULL_TREE);
+  new_func = build_fn_decl ("__sec_reduce_any_nonzero", func_type);
+  mark_cold (new_func);
+  new_func = lang_hooks.decls.pushdecl (new_func);
+
+  func_type = build_function_type_list (integer_type_node, ptr_type_node,
+					NULL_TREE);
+  new_func = build_fn_decl ("__sec_reduce_all_nonzero", func_type);
+  mark_cold (new_func);
+  new_func = lang_hooks.decls.pushdecl (new_func);
+  
   func_type = build_function_type_list (integer_type_node, integer_type_node,
 					NULL_TREE);
   new_func = build_fn_decl ("__sec_implicit_index", func_type);
   mark_cold (new_func);
   new_func = lang_hooks.decls.pushdecl (new_func);
-  
+
+  func_type = build_function_type_list (integer_type_node, ptr_type_node,
+					ptr_type_node, ptr_type_node,
+					NULL_TREE);
+  new_func = build_fn_decl ("__sec_reduce", func_type);
+  new_func = lang_hooks.decls.pushdecl (new_func);
   return;
 }
 
@@ -118,6 +135,9 @@ is_sec_implicit_index_fn (tree func_name)
 
   if (!func_name)
     return false;
+
+  if (TREE_CODE (func_name) == FUNCTION_DECL)
+    func_name = DECL_NAME (func_name);
   
   if (TREE_CODE (func_name) == IDENTIFIER_NODE)
     function_name = IDENTIFIER_POINTER (func_name);
