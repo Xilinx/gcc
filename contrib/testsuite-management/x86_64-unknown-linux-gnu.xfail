@@ -16,21 +16,22 @@ FAIL: gcc.dg/thread_annot_lock-42.c  (test for warnings, line 9)
 
 # New regression -- only fail with -std=gnu+11 option
 FAIL: g++.dg/warn/Wself-assign-2.C -std=gnu++11  (test for warnings, line 12)
-FAIL: g++.dg/template/sfinae19.C -std=c++11 (test for excess errors)
 
 # New xray failures
-FAIL: gcc.target/i386/patch-functions-1.c scan-assembler ret(.*).byte\t0x90(.*).byte\t0x90
-FAIL: gcc.target/i386/patch-functions-1.c scan-assembler .byte\t0xeb,0x09(.*).byte\t0x90
-FAIL: gcc.target/i386/patch-functions-3.c scan-assembler .byte\t0xeb,0x09(.*).byte\t0x90
-FAIL: gcc.target/i386/patch-functions-3.c scan-assembler ret(.*).byte\t0x90(.*).byte\t0x90
-FAIL: gcc.target/i386/patch-functions-5.c scan-assembler .byte\t0xeb,0x09(.*).byte\t0x90
-FAIL: gcc.target/i386/patch-functions-5.c scan-assembler ret(.*).byte\t0x90(.*).byte\t0x90
-FAIL: gcc.target/i386/patch-functions-6.c scan-assembler .byte\t0xeb,0x09(.*).byte\t0x90
-FAIL: gcc.target/i386/patch-functions-6.c scan-assembler ret(.*).byte\t0x90(.*).byte\t0x90
-
-
-# gc failure
-FAIL: boehm-gc.c/thread_leak_test.c -O2 (test for excess errors)
+UNRESOLVED: gcc.target/i386/patch-functions-1.c scan-assembler ret(.*).byte\t0x90(.*).byte\t0x90
+UNRESOLVED: gcc.target/i386/patch-functions-1.c scan-assembler .byte\t0xeb,0x09(.*).byte\t0x90
+UNRESOLVED: gcc.target/i386/patch-functions-2.c scan-assembler-not ret(.*).byte\t0x90(.*).byte\t0x90
+UNRESOLVED: gcc.target/i386/patch-functions-2.c scan-assembler-not .byte\t0xeb,0x09(.*).byte\t0x90
+UNRESOLVED: gcc.target/i386/patch-functions-3.c scan-assembler ret(.*).byte\t0x90(.*).byte\t0x90
+UNRESOLVED: gcc.target/i386/patch-functions-3.c scan-assembler .byte\t0xeb,0x09(.*).byte\t0x90
+UNRESOLVED: gcc.target/i386/patch-functions-4.c scan-assembler-not ret(.*).byte\t0x90(.*).byte\t0x90
+UNRESOLVED: gcc.target/i386/patch-functions-4.c scan-assembler-not .byte\t0xeb,0x09(.*).byte\t0x90
+UNRESOLVED: gcc.target/i386/patch-functions-5.c scan-assembler .byte\t0xeb,0x09(.*).byte\t0x90
+UNRESOLVED: gcc.target/i386/patch-functions-5.c scan-assembler ret(.*).byte\t0x90(.*).byte\t0x90
+UNRESOLVED: gcc.target/i386/patch-functions-6.c scan-assembler .byte\t0xeb,0x09(.*).byte\t0x90
+UNRESOLVED: gcc.target/i386/patch-functions-6.c scan-assembler ret(.*).byte\t0x90(.*).byte\t0x90
+UNRESOLVED: gcc.target/i386/patch-functions-7.c scan-assembler-not ret(.*).byte\t0x90(.*).byte\t0x90
+UNRESOLVED: gcc.target/i386/patch-functions-7.c scan-assembler-not .byte\t0xeb,0x09(.*).byte\t0x90
 
 
 # These tests fail in trunk in all configurations.
@@ -63,7 +64,6 @@ UNRESOLVED: libitm.c++/dropref.C compilation failed to produce executable
 UNRESOLVED: libitm.c++/eh-1.C compilation failed to produce executable
 FAIL: libitm.c++/eh-1.C (test for excess errors)
 FAIL: libitm.c++/throwdown.C (test for excess errors)
->>>>>>> .merge-right.r183740
 FAIL: libitm.c/cancel.c (test for excess errors)
 UNRESOLVED: libitm.c/cancel.c compilation failed to produce executable
 FAIL: libitm.c/clone-1.c (test for excess errors)
@@ -82,8 +82,14 @@ FAIL: libitm.c++/dropref.C (test for excess errors)
 UNRESOLVED: libitm.c++/dropref.C compilation failed to produce executable
 FAIL: libitm.c++/eh-1.C (test for excess errors)
 UNRESOLVED: libitm.c++/eh-1.C compilation failed to produce executable
-FAIL: libitm.c++/static_ctor.C (test for excess errors)
-UNRESOLVED: libitm.c++/static_ctor.C compilation failed to produce executable
+UNRESOLVED: libitm.c/notx.c compilation failed to produce executable
+FAIL: libitm.c/notx.c (test for excess errors)
+UNRESOLVED: libitm.c/reentrant.c compilation failed to produce executable
+FAIL: libitm.c/reentrant.c (test for excess errors)
+UNRESOLVED: libitm.c/simple-2.c compilation failed to produce executable
+FAIL: libitm.c/simple-2.c (test for excess errors)
+UNRESOLVED: libitm.c/txrelease.c compilation failed to produce executable
+FAIL: libitm.c/txrelease.c (test for excess errors)
 
 # These are flaky when tested in loaded machines (they exceed the timeout)
 flaky | FAIL: libmudflap.cth/pass40-frag.c (-O2) output pattern test
