@@ -1,3 +1,8 @@
+2011-02-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_BIGLEN): New constant
+	* melt-runtime.c (meltgc_strbuf_reserve): Display debug messages
+	when reaching it.
+
 2011-02-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt (dbgout_fields): Force indentation and
 	output for fields of depth 0 or 1, to produce prettier output.

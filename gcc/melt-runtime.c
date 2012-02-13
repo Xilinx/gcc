@@ -1773,6 +1773,38 @@ meltgc_strbuf_reserve (melt_ptr_t outbuf_p, unsigned reslen)
       unsigned long newsiz = slen + reslen + 10;
       bool wasyoung = FALSE;
       newsiz += newsiz/8;
+#if MELT_HAVE_DEBUG
+      /* to help catching monster buffer overflow */
+      if (newsiz > MELT_BIGLEN)
+	{
+	  static long sbufthreshold;
+	  if (newsiz > sbufthreshold && melt_flag_debug) 
+	    {
+	      int shownsize = 0;
+	      long rnd = melt_lrand() & 0xffffff;
+	      sbufthreshold = ((newsiz + (sbufthreshold / 4)) | 0xff) + 1;
+	      shownsize = (int)(5000 + (sbufthreshold/(MELT_BIGLEN/16)));
+	      gcc_assert ((shownsize * 3L) < newsiz);
+	      /* we generate a quasirandom marker to ease searching */
+	      debugeprintf_raw("\n\n##########%06x##\n", rnd);
+	      debugeprintf
+		("MELT string buffer @%p of length %ld growing very big to %ld\n", 
+		 outbufv,    
+		 (long) (buf_outbufv->bufend -  buf_outbufv->bufstart), 	  
+		 newsiz);
+	      debugeprintf("MELT big string buffer starts with %d bytes:\n%.*s\n",
+			   shownsize, shownsize,
+			   buf_outbufv->bufzn + buf_outbufv->bufstart);
+	      debugeprintf_raw("##########%06x##\n", rnd);
+	      debugeprintf("MELT big string buffer ends with %d bytes:\n%.*s\n",
+			   shownsize, shownsize,
+			   buf_outbufv->bufzn + buf_outbufv->bufend
+			   - shownsize);
+	      debugeprintf_raw("##########%06x##\n", rnd);
+	      melt_dbgshortbacktrace ("MELT big string buffer", 20);
+	    }
+	}
+#endif 
       if (newsiz > MELT_MAXLEN) 
 	melt_fatal_error ("MELT string buffer overflow, needed %ld bytes = %ld Megabytes!",
 			  (long)newsiz, (long)newsiz>>20);

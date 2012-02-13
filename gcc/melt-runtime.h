@@ -559,6 +559,10 @@ const char* melt_obmag_string(int i);
 /* maxlen can also be used as a bit mask */
 #define MELT_MAXLEN 0x1fffffff
 
+/* big length might be used to warn about really big stuff.. and is
+   also a bit mask. */
+#define MELT_BIGLEN 0x3ffffff
+
 
 /***
     objects are a la ObjVlisp, single-inheritance with a root class, 
