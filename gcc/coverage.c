@@ -1988,6 +1988,94 @@ add_module_info (unsigned module_id, bool is_primary, int index)
     primary_module_id = module_id;
 }
 
+/* Process the include paths needed for parsing the aux modules.
+   The sub_pattern is in the form SUB_PATH:NEW_SUB_PATH. If it is
+   defined, the SUB_PATH in ORIG_INC_PATH will be replaced with
+   NEW_SUB_PATH.  */
+
+static void
+process_include (char **orig_inc_path, char* old_sub, char *new_sub)
+{
+  char *inc_path, *orig_sub;
+
+  if (strlen (*orig_inc_path) < strlen (old_sub))
+    return;
+
+  inc_path = (char*) xmalloc (strlen (*orig_inc_path) + strlen (new_sub)
+                              - strlen (old_sub) + 1);
+  orig_sub = strstr (*orig_inc_path, old_sub);
+  if (!orig_sub)
+    {
+      inform (UNKNOWN_LOCATION, "subpath %s not found in path %s",
+              old_sub, *orig_inc_path);
+      free (inc_path);
+      return;
+    }
+
+  strncpy (inc_path, *orig_inc_path, orig_sub - *orig_inc_path);
+  inc_path[orig_sub - *orig_inc_path] = '\0';
+  strcat (inc_path, new_sub);
+  strcat (inc_path, orig_sub + strlen (old_sub));
+
+  free (*orig_inc_path);
+  *orig_inc_path = inc_path;
+}
+
+/* Process include paths for MOD_INFO according to option
+   -fripa-inc-path-sub=OLD_SUB:NEW_SUB   */
+
+static void
+process_include_paths_1 (struct gcov_module_info *mod_info,
+                         char* old_sub, char *new_sub)
+{
+  unsigned i, j;
+
+  for (i = 0; i < mod_info->num_quote_paths; i++)
+    process_include (&mod_info->string_array[i], old_sub, new_sub);
+
+  for (i = 0, j = mod_info->num_quote_paths;
+       i < mod_info->num_bracket_paths; i++, j++)
+    process_include (&mod_info->string_array[j], old_sub, new_sub);
+
+  for (i = 0, j = mod_info->num_quote_paths + mod_info->num_bracket_paths +
+       mod_info->num_cpp_defines; i < mod_info->num_cpp_includes; i++, j++)
+    process_include (&mod_info->string_array[j], old_sub, new_sub);
+
+}
+
+/* Process include paths for MOD_INFO according to option
+   -fripa-inc-path-sub=old_sub1:new_sub1[,old_sub2:new_sub2]  */
+
+static void
+process_include_paths (struct gcov_module_info *mod_info)
+{
+  char *sub_pattern, *cur, *next,  *new_sub;
+
+  if (!lipo_inc_path_pattern)
+    return;
+
+  sub_pattern = xstrdup (lipo_inc_path_pattern);
+  cur = sub_pattern;
+
+  do
+    {
+      next = strchr (cur, ',');
+      if (next)
+        *next++ = '\0';
+      new_sub = strchr (cur, ':');
+      if (!new_sub)
+        {
+          error ("Invalid path substibution pattern %s", sub_pattern);
+          free (sub_pattern);
+          return;
+        }
+      *new_sub++ = '\0';
+      process_include_paths_1 (mod_info, cur, new_sub);
+      cur = next;
+    } while (cur);
+  free (sub_pattern);
+}
+
 /* Set the prepreprocessing context (include search paths, -D/-U).
    PARSE_IN is the preprocessor reader, I is the index of the module,
    and VERBOSE is the verbose flag.  */
@@ -2009,6 +2097,7 @@ set_lipo_c_parsing_context (struct cpp_reader *parse_in, int i, bool verbose)
     {
       unsigned i, j;
 
+      process_include_paths (mod_info);
       /* Setup include paths.  */
       clear_include_chains ();
       for (i = 0; i < mod_info->num_quote_paths; i++)

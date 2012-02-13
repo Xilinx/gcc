@@ -1,5 +1,13 @@
 2012-02-13   Xinliang David Li  <davidxl@google.com>
 
+	* coverage.c: (process_include_paths): New function.
+	(process_include_paths_1): New function.
+	(process_include): New function.
+	(set_lipo_c_parsing_context): Process option -fripa-inc-path-sub=
+
+
+2012-02-13   Xinliang David Li  <davidxl@google.com>
+
 	* tree-optimize.c (execute_fixup_cfg): Using double type in
 	scaling to avoid count overflow during out-of-line copy
 	fixup. (ref: google-4_6 r184162)

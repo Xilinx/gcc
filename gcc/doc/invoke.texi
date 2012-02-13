@@ -403,7 +403,7 @@ Objective-C and Objective-C++ Dialects}.
 -freorder-blocks-and-partition -freorder-functions @gol
 -frerun-cse-after-loop -freschedule-modulo-scheduled-loops @gol
 -fripa -fripa-disallow-asm-modules -fripa-disallow-opt-mismatch @gol
--fripa-no-promote-always-inline-func -fripa-verbose @gol
+-fripa-inc-path-sub=@var{path_mapping} -fripa-no-promote-always-inline-func -fripa-verbose @gol
 -fripa-peel-size-limit -fripa-unroll-size-limit -frounding-math @gol
 -fsched2-use-superblocks -fsched-pressure @gol
 -fsched-spec-load -fsched-spec-load-dangerous @gol
@@ -8350,6 +8350,14 @@ Don't import an auxiliary module, if the GCC command line options used for this
 auxiliary module during the profile-generate stage were different from those used
 for the primary module. Note that any mismatches in warning-related options are
 ignored for this comparison.
+
+@item -fripa-inc-path-sub=@var{path_mapping}
+@opindex fripa-inc-path-sub
+This option allows LIPO profile data associated with one compiler to be usable
+by another compiler at different installation path. A user can use this option
+to specify an include search path mapping so that the compiler can convert include
+search paths stored in gcda files into exisiting paths. The mapping is specified
+as a comma separated sub path pairs in the form: OLD_SUBPATH:NEW_SUBPATH.
 
 @item -fripa-no-promote-always-inline-func
 @opindex fripa-no-promote-always-inline-func

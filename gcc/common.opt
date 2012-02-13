@@ -1144,6 +1144,10 @@ fripa-unroll-size-limit
 Common Report Var(flag_ripa_unroll_size_limit) Init(1) Optimization
 Limit non-const non-FP loop unrolling under dynamic IPA estimates of large code footprint
 
+fripa-inc-path-sub=
+Common Joined RejectNegative Var(lipo_inc_path_pattern)
+Substitute substring in include paths with a new string to allow reuse profile data
+
 fearly-inlining
 Common Report Var(flag_early_inlining) Init(1) Optimization
 Perform early inlining

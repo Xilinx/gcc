@@ -1670,6 +1670,10 @@ common_handle_option (struct gcc_options *opts,
       flag_pmu_profile_generate = xstrdup (arg);
       break;
 
+    case OPT_fripa_inc_path_sub_:
+      lipo_inc_path_pattern = xstrdup (arg);
+      break;
+
     case OPT_fshow_column:
       dc->show_column = value;
       break;
