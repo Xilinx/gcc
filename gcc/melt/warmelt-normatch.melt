@@ -5075,7 +5075,7 @@ for actions concerning a normal match data $NMDAC_DATA.}#
 (defclass class_nrep_match_data_initializer
   :super class_nrep_match_data_action
   :doc #{ A normal match data initializer of
-$CLASS_NREP_MATCH_DATA_INITIALIZER initialize, allocate resource, and
+$CLASS_NREP_MATCH_DATA_INITIALIZER initializes, allocates resource, and
 clears a normal match data given by field $NMDAC_DATA.}#
   :fields ())
 
@@ -5089,7 +5089,7 @@ field $NMDAC_DATA.}#
 (defclass class_nrep_match_data_finalizer
   :super class_nrep_match_data_action
   :doc #{ A normal match data finalizer of
-  $CLASS_NREP_MATCH_DATA_FINALIZER finalizes and unleash any resources
+  $CLASS_NREP_MATCH_DATA_FINALIZER finalizes and unleashes the resources
   associated with a normal match data given by field $NMDAC_DATA.}#
   :fields ())
 
@@ -5259,11 +5259,10 @@ normalized expression.}#
 	(assert_msg "good numindex" (<=i numindex nbdatasteps))
 	(if (<i numindex nbdatasteps)
 	    (progn
-	      (debug "complete_normstep_if_last return non-last normstep" normstep)
+	      (debug "complete_normstep_if_last return non-last normstep=" normstep " numindex=" numindex)
 	      (return normstep)
 	      ))
-	(debug "complete_normstep_if_last last step" step)
-	(debug "complete_normstep_if_last ndata" ndata)
+	(debug "complete_normstep_if_last last step=" step " ndata=" ndata)
 	(assert_msg "check ndata" (is_a ndata class_nrep_simple))
 	(if (is_a ndata class_nrep_matched_data)
 	    (let ( (clearndata (instance class_nrep_match_data_clear
@@ -5271,16 +5270,15 @@ normalized expression.}#
 		   (finalndata (instance class_nrep_match_data_finalizer
 					 :nmdac_data ndata))
 		   )
-	      (debug "complete_normstep_if_last clearndata" clearndata)
-	      (debug "complete_normstep_if_last finalndata" finalndata)
-	      (debug "complete_normstep_if_last normstep" normstep)
+	      (debug "complete_normstep_if_last clearndata=" clearndata " finalndata=" finalndata
+		     "\n normstep=" normstep)
 	      (cond ( (is_object normstep)
 		      (let ( (normsteptup (tuple normstep clearndata finalndata)) )
-			(debug "complete_normstep_if_last new normsteptup" normsteptup)
+			(debug "complete_normstep_if_last new normsteptup=" normsteptup)
 			(return normsteptup)))
 		    ( (null normstep)
 		      (let ( (steptupn (tuple clearndata finalndata)) )
-			(debug "complete_normstep_if_last new steptupn for nil" steptupn)
+			(debug "complete_normstep_if_last new  for nil steptupn=" steptupn)
 			(return steptupn)))
 		    ( (is_multiple normstep)
 		      (let ( (normsteplist (multiple_to_list normstep))
@@ -5288,24 +5286,26 @@ normalized expression.}#
 			(list_append normsteplist clearndata)
 			(list_append normsteplist finalndata)
 			(let ( (newnormstep (list_to_multiple normsteplist)) )
-			  (debug "complete_normstep_if_last newnormstep" newnormstep)
+			  (debug "complete_normstep_if_last newnormstep=" newnormstep)
 			  (return newnormstep)
 			  )))
 		    ( (is_list normstep)
 		      (list_append normstep clearndata)
 		      (list_append normstep finalndata)
-		      (debug "complete_normstep_if_last extended normstep" normstep)
+		      (debug "complete_normstep_if_last extended normstep=" normstep)
 		      (return normstep))
 		    (:else
 		     (debug "complete_normstep_if_last bad normstep" normstep)
 		     (assert_msg "complete_normstep_if_last unexpected normstep" ())
 		     )))
 	  (progn
-	    (debug "complete_normstep_if_last ndata not a matched data" ndata)
-	    (debug "complete_normstep_if_last unchanged normstep" normstep)
+	    (debug "complete_normstep_if_last not a matched data  ndata=" ndata
+		   "\n unchanged normstep" normstep)
 	    (return normstep))
 	  )))))
 
+
+;;;;;;;;;;;;;;;;
 (defun normstep_anyrecv (recv nmctxt sloc)
   (debug "normstep_anyrecv recv" recv)
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
@@ -6873,9 +6873,7 @@ normalized expression.}#
 	   (if (is_a datasymb class_cloned_symbol)
 	       (let ( (:long clonum (get_int (unsafe_get_field :csym_urank datasymb)))
 		      )
-		 (add2out_strconst nodebuf "<font point-size=\"6\">$")
-		 (add2out_longdec nodebuf clonum)
-		 (add2out_strconst nodebuf "</font>")
+		 (add2out nodebuf ##{<font point-size="6">$CLONUM</font>}#)
 		 ))
 	   (add2out_strconst nodebuf "</font></td> <td><font color=\"brown\" face=\"Helvetica Oblique\" point-size=\"6\">")
 	   (add2out_string nodebuf (get_field :named_name (get_field :ctype_keyword datactype)))
