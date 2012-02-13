@@ -1,3 +1,39 @@
+2012-02-13   Diego Novillo  <dnovillo@google.com>
+
+	* pph-in.c (pph_in_binding_level_start): Move earlier into the
+	file.
+	Change return type to cp_binding_level *.
+	Add argument EXISTING_BL and EXISTED_P.
+	If EXISTING_BL is given, and a reference is read from STREAM,
+	the reference read should be the same as EXISTING_BL.
+	If EXISTING_BL is given and a new reference is started,
+	do not allocate a new instance.  Rather, register EXISTING_BL
+	in the cache.
+	(pph_in_binding_level_ref): Rename from pph_in_binding_level.
+	Assert that it always reads a reference record.
+	Update all users.
+	(pph_in_binding_level_1): Move body inside
+	pph_in_merge_body_binding_level.
+	(pph_in_merge_key_binding_level): Move earlier in the file.
+	(pph_in_merge_body_binding_level): Move earlier in the file.
+	(pph_in_merge_body_binding_level_1): Move body into
+	pph_in_merge_body_binding_level.
+	(pph_in_ld_ns): Call pph_in_binding_level_ref.
+	(pph_ensure_namespace_binding_level): Move body into
+	pph_in_merge_key_namespace_decl.  Update all users.
+	(pph_in_merge_key_namespace_decl): Fix comment.
+	(pph_in_global_binding): Call pph_in_binding_level_start.
+	* pph-out.c (pph_out_tree_vec_unchain): Remove.
+	(pph_out_chain_filtered): Remove.
+	(pph_out_binding_level_ref): Rename from
+	pph_out_binding_level.  Always expect to write a reference
+	record.  Update all users.
+	(pph_out_cxx_binding_1): Embed inside pph_out_merge_body_binding_level.
+	Update all users.
+	(pph_out_merge_key_binding_level): Do not filter
+	BL->NAMESPACES.
+	(pph_out_merge_body_binding_level): Likewise.
+
 2012-02-01   Diego Novillo  <dnovillo@google.com>
 
 	* error.c (dump_function_decl): Add missing ';'.

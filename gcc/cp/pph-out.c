@@ -939,10 +939,8 @@ pph_out_token_cache (pph_stream *f, cp_token_cache *cache)
 /******************************************************************* vectors */
 
 /* Note that we use the same format used by streamer_write_chain.
-   This is to support pph_out_chain_filtered, which writes the
-   filtered chain as a VEC.  Since the reader always reads chains
-   using streamer_read_chain, we have to write VECs in exactly the
-   same way as tree chains.  */
+   Since the reader always reads chains using streamer_read_chain, we
+   have to write VECs in exactly the same way as tree chains.  */
 
 /* Return true if T matches FILTER for STREAM.  */
 
@@ -1001,26 +999,6 @@ pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v)
   pph_out_hwi (stream, VEC_length (tree, v));
   FOR_EACH_VEC_ELT (tree, v, i, t)
     pph_out_tree (stream, t);
-}
-
-
-/* Write all the trees in VEC V to STREAM.
-   Clear TREE_CHAIN on every element written out (this is to support
-   writing chains, as they are supposed to be re-chained by the reader).  */
-
-static void
-pph_out_tree_vec_unchain (pph_stream *stream, VEC(tree,gc) *v)
-{
-  unsigned i;
-  tree t;
-  pph_out_hwi (stream, VEC_length (tree, v));
-  FOR_EACH_VEC_ELT (tree, v, i, t)
-    {
-      tree prev = TREE_CHAIN (t);
-      TREE_CHAIN (t) = NULL;
-      pph_out_tree (stream, t);
-      TREE_CHAIN (t) = prev;
-    }
 }
 
 
@@ -1151,18 +1129,6 @@ pph_out_chain (pph_stream *stream, tree first)
 }
 
 
-/* Write a chain of trees to stream starting with FIRST.  Only write
-   the trees that match FILTER.  */
-
-static void
-pph_out_chain_filtered (pph_stream *stream, tree first, unsigned filter)
-{
-  VEC(tree,heap) *w = chain2vec_filter (stream, first, filter);
-  pph_out_tree_vec_unchain (stream, (VEC(tree,gc) *)w);
-  VEC_free (tree, heap, w);
-}
-
-
 /* Write, in reverse, a chain of merge keys to STREAM starting
    with the last element of CHAIN.  Only write the trees that match
    FILTER.  */
@@ -1201,9 +1167,20 @@ pph_out_merge_body_chain (pph_stream *stream, tree chain, unsigned filter)
 
 
 /* Forward declaration to break cyclic dependencies.  */
-static void pph_out_binding_level (pph_stream *, cp_binding_level *, unsigned);
 static void pph_out_merge_key_namespace_decl (pph_stream *stream, tree ns);
 static void pph_out_merge_body_namespace_decl (pph_stream *stream, tree ns);
+
+
+/* Write a reference to binding level BL to STREAM.  */
+
+static void
+pph_out_binding_level_ref (pph_stream *stream, cp_binding_level *bl)
+{
+  enum pph_record_marker marker;
+  marker = pph_out_start_record (stream, bl, PPH_cp_binding_level);
+  gcc_assert (pph_is_reference_or_end_marker (marker));
+  return;
+}
 
 
 /* Helper for pph_out_cxx_binding.  STREAM and CB are as in
@@ -1224,7 +1201,7 @@ pph_out_cxx_binding_1 (pph_stream *stream, cxx_binding *cb)
 
   pph_out_tree (stream, cb->value);
   pph_out_tree (stream, cb->type);
-  pph_out_binding_level (stream, cb->scope, PPHF_NONE);
+  pph_out_binding_level_ref (stream, cb->scope);
   bp = bitpack_create (stream->encoder.w.ob->main_stream);
   bp_pack_value (&bp, cb->value_is_inherited, 1);
   bp_pack_value (&bp, cb->is_local, 1);
@@ -1290,67 +1267,6 @@ pph_out_label_binding (pph_stream *stream, cp_label_binding *lb)
 }
 
 
-/* Helper for pph_out_binding_level.  Write the fields of BL to
-   STREAM.  Do not emit any nodes in BL that do not match FILTER.  */
-
-static void
-pph_out_binding_level_1 (pph_stream *stream, cp_binding_level *bl,
-		         unsigned filter)
-{
-  unsigned i;
-  cp_class_binding *cs;
-  cp_label_binding *sl;
-  struct bitpack_d bp;
-
-  pph_out_tree (stream, bl->this_entity);
-
-  pph_out_uint (stream, VEC_length (cp_class_binding, bl->class_shadowed));
-  FOR_EACH_VEC_ELT (cp_class_binding, bl->class_shadowed, i, cs)
-    pph_out_class_binding (stream, cs);
-
-  pph_out_tree (stream, bl->type_shadowed);
-
-  pph_out_uint (stream, VEC_length (cp_label_binding, bl->shadowed_labels));
-  FOR_EACH_VEC_ELT (cp_label_binding, bl->shadowed_labels, i, sl)
-    pph_out_label_binding (stream, sl);
-
-  pph_out_tree (stream, bl->blocks);
-  pph_out_binding_level (stream, bl->level_chain, filter);
-  pph_out_tree_vec (stream, bl->dead_vars_from_for);
-  pph_out_chain (stream, bl->statement_list);
-  pph_out_uint (stream, bl->binding_depth);
-
-  bp = bitpack_create (stream->encoder.w.ob->main_stream);
-  bp_pack_value (&bp, bl->kind, 4);
-  bp_pack_value (&bp, bl->keep, 1);
-  bp_pack_value (&bp, bl->more_cleanups_ok, 1);
-  bp_pack_value (&bp, bl->have_cleanups, 1);
-  pph_out_bitpack (stream, &bp);
-}
-
-
-/* Write all the fields of cp_binding_level instance BL to STREAM for the
-   non-merging case.  Do not emit any nodes in BL that do not match FILTER.  */
-
-static void
-pph_out_binding_level (pph_stream *stream, cp_binding_level *bl,
-		       unsigned filter)
-{
-  enum pph_record_marker marker;
-
-  marker = pph_out_start_record (stream, bl, PPH_cp_binding_level);
-  if (pph_is_reference_or_end_marker (marker))
-    return;
-
-  pph_out_chain_filtered (stream, bl->names, filter);
-  pph_out_chain_filtered (stream, bl->namespaces, filter);
-  pph_out_chain_filtered (stream, bl->usings, filter);
-  pph_out_chain_filtered (stream, bl->using_directives, filter);
-  pph_out_tree_vec_filtered (stream, bl->static_decls, filter);
-  pph_out_binding_level_1 (stream, bl, filter);
-}
-
-
 /* Iterate over a chain FIRST, apply FILTER, and call output FUNCTION.  */
 
 static void
@@ -1374,13 +1290,18 @@ pph_foreach_out_chain (pph_stream *stream, tree first, unsigned filter,
 static void
 pph_out_merge_key_binding_level (pph_stream *stream, cp_binding_level *bl)
 {
-  unsigned filter1 = PPHF_NO_PREFS | PPHF_NO_BUILTINS;
-  unsigned filter2 = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
-  pph_foreach_out_chain (stream, bl->namespaces, filter1,
+  unsigned filter;
+  enum pph_record_marker marker;
+
+  marker = pph_out_start_record (stream, bl, PPH_cp_binding_level);
+  gcc_assert (marker != PPH_RECORD_END);
+
+  pph_foreach_out_chain (stream, bl->namespaces, PPHF_NONE,
 			 pph_out_merge_key_namespace_decl);
-  pph_out_merge_key_chain (stream, bl->names, filter2);
-  pph_out_merge_key_chain (stream, bl->usings, filter2);
-  pph_out_merge_key_chain (stream, bl->using_directives, filter2);
+  filter = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
+  pph_out_merge_key_chain (stream, bl->names, filter);
+  pph_out_merge_key_chain (stream, bl->usings, filter);
+  pph_out_merge_key_chain (stream, bl->using_directives, filter);
 }
 
 
@@ -1390,15 +1311,47 @@ pph_out_merge_key_binding_level (pph_stream *stream, cp_binding_level *bl)
 static void
 pph_out_merge_body_binding_level (pph_stream *stream, cp_binding_level *bl)
 {
-  unsigned filter1 = PPHF_NO_PREFS | PPHF_NO_BUILTINS;
-  unsigned filter2 = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
-  pph_foreach_out_chain (stream, bl->namespaces, filter1,
+  unsigned i, filter;
+  cp_class_binding *cs;
+  cp_label_binding *sl;
+  struct bitpack_d bp;
+
+  pph_out_binding_level_ref (stream, bl);
+
+  /* Write the fields that need merge reads.  */
+  pph_foreach_out_chain (stream, bl->namespaces, PPHF_NONE,
 			 pph_out_merge_body_namespace_decl);
-  pph_out_merge_body_chain (stream, bl->names, filter2);
-  pph_out_merge_body_chain (stream, bl->usings, filter2);
-  pph_out_merge_body_chain (stream, bl->using_directives, filter2);
-  pph_out_tree_vec_filtered (stream, bl->static_decls, filter2);
-  pph_out_binding_level_1 (stream, bl, filter2);
+  filter = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
+  pph_out_merge_body_chain (stream, bl->names, filter);
+  pph_out_merge_body_chain (stream, bl->usings, filter);
+  pph_out_merge_body_chain (stream, bl->using_directives, filter);
+  pph_out_tree_vec_filtered (stream, bl->static_decls, filter);
+
+  /* Write the remaining fields.  */
+  pph_out_tree (stream, bl->this_entity);
+
+  pph_out_uint (stream, VEC_length (cp_class_binding, bl->class_shadowed));
+  FOR_EACH_VEC_ELT (cp_class_binding, bl->class_shadowed, i, cs)
+    pph_out_class_binding (stream, cs);
+
+  pph_out_tree (stream, bl->type_shadowed);
+
+  pph_out_uint (stream, VEC_length (cp_label_binding, bl->shadowed_labels));
+  FOR_EACH_VEC_ELT (cp_label_binding, bl->shadowed_labels, i, sl)
+    pph_out_label_binding (stream, sl);
+
+  pph_out_tree (stream, bl->blocks);
+  pph_out_binding_level_ref (stream, bl->level_chain);
+  pph_out_tree_vec (stream, bl->dead_vars_from_for);
+  pph_out_chain (stream, bl->statement_list);
+  pph_out_uint (stream, bl->binding_depth);
+
+  bp = bitpack_create (stream->encoder.w.ob->main_stream);
+  bp_pack_value (&bp, bl->kind, 4);
+  bp_pack_value (&bp, bl->keep, 1);
+  bp_pack_value (&bp, bl->more_cleanups_ok, 1);
+  bp_pack_value (&bp, bl->have_cleanups, 1);
+  pph_out_bitpack (stream, &bp);
 }
 
 
@@ -1439,7 +1392,7 @@ pph_out_language_function (pph_stream *stream, struct language_function *lf)
 
   /* FIXME pph.  We are not writing lf->x_named_labels.  */
 
-  pph_out_binding_level (stream, lf->bindings, PPHF_NONE);
+  pph_out_binding_level_ref (stream, lf->bindings);
   pph_out_tree_vec (stream, lf->x_local_names);
 
   /* FIXME pph.  We are not writing lf->extern_decl_map.  */
@@ -1621,7 +1574,7 @@ pph_out_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
 static void
 pph_out_ld_ns (pph_stream *stream, struct lang_decl_ns *ldns)
 {
-  pph_out_binding_level (stream, ldns->level, PPHF_NONE);
+  pph_out_binding_level_ref (stream, ldns->level);
 }
 
 

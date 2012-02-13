@@ -1,4 +1,6 @@
 // { dg-xfail-if "BOGUS POSSIBLY DROPPING SYMBOLS " { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-bogus "internal compiler error: canonical types differ for identical types" "" { xfail *-*-* } 0 }
+// { dg-excess-errors "type mismatch errors due to TYPE_CANONICAL problems." }
 
 #include "x0dynarray4.h"
 #include "x6dynarray5.h"

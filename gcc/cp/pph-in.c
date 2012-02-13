@@ -1017,9 +1017,82 @@ pph_merge_into_chain (tree expr, const char *name, tree *chain)
 
 
 /* Forward declaration to break cyclic dependencies.  */
-static cp_binding_level *pph_in_binding_level (pph_stream *);
 static void pph_in_merge_body_namespace_decl (pph_stream *stream);
 static void pph_in_merge_key_namespace_decl (pph_stream *stream, tree *chain);
+
+
+/* Read the start of a binding level from STREAM.  If the binding
+   level had already been read, *EXISTED_P will be set to true,
+   otherwise it will be set to false.
+
+   If EXISTING_BL is given, it means that the caller already has a
+   binding level instance that it would like to use.  In that case,
+   this function will:
+
+   1- If the record read from STREAM is a reference, the binding level
+      in that reference must be identical to EXISTING_BL.
+
+   2- If the record read from STREAM is a new instance, the binding
+      level given in EXISTING_BL is registered in the cache at the
+      slot location given by this record.  This way, subsesequent
+      internal references to EXISTING_BL will resolve to EXISTING_BL.
+      This is used for binding levels that are already set in the
+      compilation (e.g., scope_chain->bindings).
+
+   If EXISTING_BL is NULL, a new one will be allocated, registered and
+   returned.  */
+
+static cp_binding_level *
+pph_in_binding_level_start (pph_stream *stream, cp_binding_level *existing_bl,
+                            bool *existed_p)
+{
+  unsigned ix, image_ix;
+  enum pph_record_marker marker;
+  cp_binding_level *new_bl;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cp_binding_level);
+  if (marker == PPH_RECORD_END)
+    {
+      *existed_p = true;
+      gcc_assert (existing_bl == NULL);
+      return NULL;
+    }
+  else if (pph_is_reference_marker (marker))
+    {
+      *existed_p = true;
+      new_bl = (cp_binding_level *) pph_cache_find (stream, marker, image_ix,
+						    ix, PPH_cp_binding_level);
+      gcc_assert (existing_bl == NULL || new_bl == existing_bl);
+      return new_bl;
+    }
+
+  /* This is the first time we try to read this binding level, allocate a new
+     instance, if the caller did not provide one.  If *BLP is NULL, it
+     means that the caller does not have a binding level and wants to
+     allocate a new one.  */
+  *existed_p = false;
+  new_bl = (existing_bl) ? existing_bl : ggc_alloc_cleared_cp_binding_level ();
+  pph_cache_insert_at (&stream->cache, new_bl, ix, PPH_cp_binding_level);
+  return new_bl;
+}
+
+
+/* Read and return a cp_binding_level from STREAM.  This function
+   expects to find a reference to a binding level, as it is only
+   called after all the binding levels in STREAM have been
+   instantiated and merged.  */
+
+static cp_binding_level *
+pph_in_binding_level_ref (pph_stream *stream)
+{
+  cp_binding_level *bl;
+  bool existed_p;
+
+  bl = pph_in_binding_level_start (stream, NULL, &existed_p);
+  gcc_assert (existed_p);
+  return bl;
+}
+
 
 /* Helper for pph_in_cxx_binding.  Read and return a cxx_binding
    instance from STREAM.  */
@@ -1047,7 +1120,7 @@ pph_in_cxx_binding_1 (pph_stream *stream)
   type = pph_in_tree (stream);
   ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cxx_binding, cb,
                       cxx_binding_make (value, type));
-  cb->scope = pph_in_binding_level (stream);
+  cb->scope = pph_in_binding_level_ref (stream);
   bp = pph_in_bitpack (stream);
   cb->value_is_inherited = bp_unpack_value (&bp, 1);
   cb->is_local = bp_unpack_value (&bp, 1);
@@ -1133,14 +1206,59 @@ pph_in_label_binding (pph_stream *stream)
 }
 
 
-/* Read the contents of binding level BL from STREAM.  */
+/* Read all the merge keys from STREAM into the cp_binding_level *BLP.  */
 
 static void
-pph_in_binding_level_1 (pph_stream *stream, cp_binding_level *bl)
+pph_in_merge_key_binding_level (pph_stream *stream, cp_binding_level **blp)
 {
-  unsigned i, num;
-  struct bitpack_d bp;
+  unsigned count, num;
+  bool existed_p;
+  cp_binding_level *bl;
 
+  /* Get a new binding level instance.  If *BLP was not given,
+     a new one will be created.  */
+  bl = pph_in_binding_level_start (stream, *blp, &existed_p);
+  if (!existed_p && *blp == NULL)
+    *blp = bl;
+
+  gcc_assert (*blp);
+
+  num = pph_in_hwi (stream);
+  for (count = 0; count < num; ++count)
+    pph_in_merge_key_namespace_decl (stream, &bl->namespaces);
+  pph_in_merge_key_chain (stream, &bl->names);
+  pph_in_merge_key_chain (stream, &bl->usings);
+  pph_in_merge_key_chain (stream, &bl->using_directives);
+}
+
+
+/* Read all the merge bodies from STREAM into the cp_binding_level BL.  */
+
+static void
+pph_in_merge_body_binding_level (pph_stream *stream, cp_binding_level *bl)
+{
+  unsigned i, count, num;
+  cp_binding_level *new_bl;
+  struct bitpack_d bp;
+  bool existed_p;
+
+  /* We should have already registered BL.  Make sure we are reading a
+     reference to it.  */
+  new_bl = pph_in_binding_level_start (stream, bl, &existed_p);
+  gcc_assert (existed_p && new_bl == bl);
+
+  /* Merge the bodies of BL->NAMESPACES, BL->NAMES, BL->USINGS and
+     BL->USING_DIRECTIVES.  */
+  num = pph_in_hwi (stream);
+  for (count = 0; count < num; ++count)
+    pph_in_merge_body_namespace_decl (stream);
+  pph_in_merge_body_chain (stream);
+  pph_in_merge_body_chain (stream);
+  pph_in_merge_body_chain (stream);
+  pph_union_into_tree_vec (&bl->static_decls, pph_in_tree_vec (stream));
+
+  /* Read the remaining fields in BL.  FIXME pph: The following is probably too
+     aggressive in overwriting.  */
   bl->this_entity = pph_in_tree (stream);
 
   num = pph_in_uint (stream);
@@ -1162,7 +1280,7 @@ pph_in_binding_level_1 (pph_stream *stream, cp_binding_level *bl)
     }
 
   bl->blocks = pph_in_tree (stream);
-  bl->level_chain = pph_in_binding_level (stream);
+  bl->level_chain = pph_in_binding_level_ref (stream);
   bl->dead_vars_from_for = pph_in_tree_vec (stream);
   bl->statement_list = pph_in_chain (stream);
   bl->binding_depth = pph_in_uint (stream);
@@ -1172,115 +1290,6 @@ pph_in_binding_level_1 (pph_stream *stream, cp_binding_level *bl)
   bl->keep = bp_unpack_value (&bp, 1);
   bl->more_cleanups_ok = bp_unpack_value (&bp, 1);
   bl->have_cleanups = bp_unpack_value (&bp, 1);
-}
-
-
-/* Read the start of a binding level.  Return true when processing is done.  */
-
-static bool
-pph_in_binding_level_start (pph_stream *stream, cp_binding_level **blp,
-			    unsigned *ixp)
-{
-  unsigned image_ix;
-  enum pph_record_marker marker;
-
-  marker = pph_in_start_record (stream, &image_ix, ixp, PPH_cp_binding_level);
-  if (marker == PPH_RECORD_END)
-    {
-      *blp = NULL;
-      return true;
-    }
-  else if (pph_is_reference_marker (marker))
-    {
-      *blp = (cp_binding_level *)
-          pph_cache_find (stream, marker, image_ix, *ixp, PPH_cp_binding_level);
-      return true;
-    }
-  return false;
-}
-
-
-/* Read and return an instance of cp_binding_level from STREAM.
-   This function is for use when we will not be merging the binding level.  */
-
-static cp_binding_level *
-pph_in_binding_level (pph_stream *stream)
-{
-  unsigned ix;
-  cp_binding_level *bl;
-
-  if (pph_in_binding_level_start (stream, &bl, &ix))
-    return bl;
-
-  bl = ggc_alloc_cleared_cp_binding_level ();
-  pph_cache_insert_at (&stream->cache, bl, ix, PPH_cp_binding_level);
-
-  bl->names = pph_in_chain (stream);
-  bl->namespaces = pph_in_chain (stream);
-  bl->usings = pph_in_chain (stream);
-  bl->using_directives = pph_in_chain (stream);
-  bl->static_decls = pph_in_tree_vec (stream);
-  pph_in_binding_level_1 (stream, bl);
-
-  return bl;
-}
-
-
-/* Read all the merge keys from STREAM into the cp_binding_level BL.
-   If BL is NULL, it means that this is the first time we read BL,
-   so no merging is actually required.  In this case, the merge keys
-   for every symbol and type will be read and cache entries will be
-   created for them, so that their bodies can be read after we finish
-   reading all the merge keys for BL.  */
-
-static void
-pph_in_merge_key_binding_level (pph_stream *stream, cp_binding_level *bl)
-{
-  unsigned count, num;
-  num = pph_in_hwi (stream);
-  for (count = 0; count < num; ++count)
-    pph_in_merge_key_namespace_decl (stream, &bl->namespaces);
-  /* FIXME pph:  The null check should be unnecessary. */
-  pph_in_merge_key_chain (stream, (bl) ? &bl->names : NULL);
-  pph_in_merge_key_chain (stream, (bl) ? &bl->usings : NULL);
-  pph_in_merge_key_chain (stream, (bl) ? &bl->using_directives : NULL);
-}
-
-
-/* Read all the merge bodies from STREAM into the cp_binding_level BL.  */
-
-static void
-pph_in_merge_body_binding_level_1 (pph_stream *stream, cp_binding_level *bl)
-{
-  unsigned count, num;
-  num = pph_in_hwi (stream);
-  for (count = 0; count < num; ++count)
-    pph_in_merge_body_namespace_decl (stream);
-  pph_in_merge_body_chain (stream);
-  pph_in_merge_body_chain (stream);
-  pph_in_merge_body_chain (stream);
-  pph_union_into_tree_vec (&bl->static_decls, pph_in_tree_vec (stream));
-  /* FIXME pph: The following is probably too aggressive in overwriting.  */
-  pph_in_binding_level_1 (stream, bl);
-}
-
-/* Read all the merge bodies from STREAM into the cp_binding_level BL.  */
-
-static void
-pph_in_merge_body_binding_level (pph_stream *stream, cp_binding_level *bl)
-{
-  unsigned ix;
-  cp_binding_level *new_bl;
-
-  if (pph_in_binding_level_start (stream, &new_bl, &ix))
-    {
-      gcc_assert (new_bl == bl);
-      return;
-    }
-
-  /* The binding level is already allocated.  */
-  pph_cache_insert_at (&stream->cache, bl, ix, PPH_cp_binding_level);
-  pph_in_merge_body_binding_level_1 (stream, bl);
 }
 
 
@@ -1323,7 +1332,7 @@ pph_in_language_function (pph_stream *stream)
 
   /* FIXME pph.  We are not reading lf->x_named_labels.  */
 
-  lf->bindings = pph_in_binding_level (stream);
+  lf->bindings = pph_in_binding_level_ref (stream);
   lf->x_local_names = pph_in_tree_vec (stream);
 
   /* FIXME pph.  We are not reading lf->extern_decl_map.  */
@@ -1537,10 +1546,7 @@ pph_in_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
 static void
 pph_in_ld_ns (pph_stream *stream, struct lang_decl_ns *ldns)
 {
-  if (ldns->level == NULL)
-    ldns->level = pph_in_binding_level (stream);
-  else
-    pph_in_merge_body_binding_level (stream, ldns->level);
+  ldns->level = pph_in_binding_level_ref (stream);
 }
 
 
@@ -2244,19 +2250,6 @@ pph_in_tree_header (pph_stream *stream, bool *fully_read_p)
 }
 
 
-/* Ensure that a binding level exists for a namespace DECL. */
-
-static void
-pph_ensure_namespace_binding_level (tree decl)
-{
-  if (!DECL_LANG_SPECIFIC (decl))
-    {
-      retrofit_lang_decl (decl);
-      NAMESPACE_LEVEL (decl) = ggc_alloc_cleared_cp_binding_level ();
-    }
-}
-
-
 /* Read all the merge keys for the names under namespace DECL from
    STREAM.  */
 
@@ -2316,18 +2309,11 @@ pph_in_merge_key_namespace_decl (pph_stream *stream, tree *chain)
   is_namespace_alias = pph_in_bool (stream);
   if (!is_namespace_alias)
     {
-      /* FIXME pph this comment is broken.  */
-      /* If this is the first time we see DECL, it will not have
-	 a decl_lang nor a binding level associated with it.  This
-	 means that we do not actually need to do any merging, so
-	 we just read all the merge keys for its binding level.
-
-	 This will create cache entries for every symbol and type
-	 under DECL, but it will not try to attempt any merging.
-	 This is fine.  The namespace will be populated once we read
-	 DECL's body.  */
-      pph_ensure_namespace_binding_level (decl);
-      pph_in_merge_key_binding_level (stream, NAMESPACE_LEVEL (decl));
+      /* If this is the first time we see DECL, it will not have a decl_lang
+	 structure associated with it.  Create it, if needed.  */
+      if (!DECL_LANG_SPECIFIC (decl))
+	retrofit_lang_decl (decl);
+      pph_in_merge_key_binding_level (stream, &NAMESPACE_LEVEL (decl));
     }
 
   if (flag_pph_tracer)
@@ -2392,7 +2378,7 @@ pph_in_merge_body_namespace_decl (pph_stream *stream)
     {
       gcc_assert (DECL_LANG_SPECIFIC (decl));
       gcc_assert (NAMESPACE_LEVEL (decl));
-      pph_in_merge_body_binding_level_1 (stream, NAMESPACE_LEVEL (decl));
+      pph_in_merge_body_binding_level (stream, NAMESPACE_LEVEL (decl));
     }
 
   if (flag_pph_tracer)
@@ -2871,46 +2857,35 @@ pph_in_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 }
 
 
-/* Read global bindings from STREAM into scope_chain->bindings.  Note
-   that this does not call pph_in_binding_level because that would
-   overwrite the fields merged by pph_in_merge_keys.  */
+/* Read global bindings from STREAM and merge them into
+   scope_chain->bindings.  Bindings are merged at every level starting
+   at the global bindings from STREAM.  */
 
 static void
 pph_in_global_binding (pph_stream *stream)
 {
-  unsigned image_ix, ix;
-  enum pph_record_marker marker;
-  cp_binding_level *bl;
+  cp_binding_level *bl, *other_bl;
+  bool existed_p;
 
   bl = scope_chain->bindings;
-  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cp_binding_level);
-  gcc_assert (marker != PPH_RECORD_END);
+  other_bl = pph_in_binding_level_start (stream, bl, &existed_p);
 
-  if (pph_is_reference_marker (marker))
-    {
-      /* If we found a reference to BL, it should be the same.  This happens
-	 when we pull BL from a nested PPH image.  */
-      cp_binding_level *other_bl;
-      other_bl = (cp_binding_level *) pph_cache_find (stream, marker, image_ix,
-						      ix, PPH_cp_binding_level);
-      gcc_assert (other_bl == bl);
-    }
-  else
-    {
-      /* Note that here we do not allocate a new binding level.  Since we
-	 are reading into the global one, we register the current
-	 scope_chain->bindings into the cache.  Otherwise, we would be
-	 associating these symbols into the global binding level from
-	 STREAM, instead of the current translation unit.  */
-      pph_cache_insert_at (&stream->cache, bl, ix, PPH_cp_binding_level);
-    }
+  /* If we found a reference to scope_chain->bindings, it should be
+     the same instance.  This happens when we pull BL from a nested
+     PPH image.  Otherwise, the call pph_in_binding_level_start should
+     have registered scope_chain->bindings in the cache.  */
+  gcc_assert (existed_p || other_bl == bl);
 
   /* Read the merge keys and merge them into the current compilation
      context.  Since we have registered scope_chain->bindings in the
      same slot IX that the writer used, the trees read now will be
      bound to scope_chain->bindings.  */
-  pph_in_merge_key_binding_level (stream, bl);
-  pph_in_merge_body_binding_level_1 (stream, bl);
+  pph_in_merge_key_binding_level (stream, &bl);
+
+  /* Once all the symbols and types at every binding level have been
+     merged to the corresponding binding levels in the current
+     compilation, read all the bodies.  */
+  pph_in_merge_body_binding_level (stream, bl);
 }
 
 
