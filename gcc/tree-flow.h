@@ -622,6 +622,9 @@ extern bool may_propagate_copy_into_asm (tree);
 /* In tree-ssa-loop-ch.c  */
 bool do_while_loop_p (struct loop *);
 
+/* In tree-ssa-fold.c */
+int ssa_combine (gimple_stmt_iterator *);
+
 /* Affine iv.  */
 
 typedef struct

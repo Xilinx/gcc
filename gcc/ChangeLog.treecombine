@@ -1,3 +1,10 @@
+2012-02-14  Andrew Pinski  <apinski@cavium.com>
+
+	* tree-ssa-forwprop.c: Split the combing functions out into ...
+	* tree-ssa-fold.c: this.
+	* Makefile.in (OBJS): Add tree-ssa-fold.o.
+	(tree-ssa-fold.o): New file.
+
 2012-02-13  Andrew Pinski  <apinski@cavium.com>
 
 	* tree-ssa-forwprop.c (simplify_bitwise_binary): Fix merge of the
