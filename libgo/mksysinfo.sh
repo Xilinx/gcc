@@ -66,6 +66,7 @@ cat > sysinfo.c <<EOF
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/times.h>
 #include <sys/wait.h>
 #include <sys/un.h>
 #if defined(HAVE_SYS_USER_H)
@@ -192,7 +193,7 @@ grep '^const _SHUT_' gen-sysinfo.go |
   sed -e 's/^\(const \)_\(SHUT[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
 
 # The net package requires some const definitions.
-for m in IPV6_V6ONLY IPPROTO_IPV6 IPV6_JOIN_GROUP IPV6_LEAVE_GROUP IPV6_TCLASS; do
+for m in IP_PKTINFO IPV6_V6ONLY IPPROTO_IPV6 IPV6_JOIN_GROUP IPV6_LEAVE_GROUP IPV6_TCLASS; do
   if ! grep "^const $m " ${OUT} >/dev/null 2>&1; then
     echo "const $m = 0" >> ${OUT}
   fi
@@ -368,6 +369,15 @@ if test "$timestruc" != ""; then
         -e 's/tv_nsec *[a-zA-Z0-9_]*/Nsec Timestruc_nsec_t/' >> ${OUT}
 fi
 
+# The tms struct.
+grep '^type _tms ' gen-sysinfo.go | \
+    sed -e 's/type _tms/type Tms/' \
+      -e 's/tms_utime/Utime/' \
+      -e 's/tms_stime/Stime/' \
+      -e 's/tms_cutime/Cutime/' \
+      -e 's/tms_cstime/Cstime/' \
+    >> ${OUT}
+
 # The stat type.
 # Prefer largefile variant if available.
 stat=`grep '^type _stat64 ' gen-sysinfo.go || true`
@@ -482,6 +492,44 @@ echo $msghdr | \
       -e 's/msg_controllen *[a-zA-Z0-9_]*/Controllen Msghdr_controllen_t/' \
       -e 's/msg_flags/Flags/' \
     >> ${OUT}
+
+# The MSG_ flags for Msghdr.
+grep '^const _MSG_' gen-sysinfo.go | \
+  sed -e 's/^\(const \)_\(MSG_[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
+
+# The cmsghdr struct.
+cmsghdr=`grep '^type _cmsghdr ' gen-sysinfo.go`
+if test -n "$cmsghdr"; then
+  cmsghdr_len=`echo $cmsghdr | sed -n -e 's/^.*cmsg_len \([^ ]*\);.*$/\1/p'`
+  echo "type Cmsghdr_len_t $cmsghdr_len" >> ${OUT}
+  echo "$cmsghdr" | \
+      sed -e 's/_cmsghdr/Cmsghdr/' \
+        -e 's/cmsg_len *[a-zA-Z0-9_]*/Len Cmsghdr_len_t/' \
+        -e 's/cmsg_level/Level/' \
+        -e 's/cmsg_type/Type/' \
+        -e 's/\[\]/[0]/' \
+      >> ${OUT}
+
+  # The size of the cmsghdr struct.
+  echo 'var SizeofCmsghdr = int(unsafe.Sizeof(Cmsghdr{}))' >> ${OUT}
+fi
+
+# The SCM_ flags for Cmsghdr.
+grep '^const _SCM_' gen-sysinfo.go | \
+  sed -e 's/^\(const \)_\(SCM_[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
+
+# The ucred struct.
+grep '^type _ucred ' gen-sysinfo.go | \
+    sed -e 's/_ucred/Ucred/' \
+      -e 's/pid/Pid/' \
+      -e 's/uid/Uid/' \
+      -e 's/gid/Gid/' \
+    >> ${OUT}
+
+# The size of the ucred struct.
+if grep 'type Ucred ' ${OUT} >/dev/null 2>&1; then
+  echo 'var SizeofUcred = int(unsafe.Sizeof(Ucred{}))' >> ${OUT}
+fi  
 
 # The ip_mreq struct.
 grep '^type _ip_mreq ' gen-sysinfo.go | \

@@ -1,3 +1,480 @@
+2012-02-09  Tristan Gingold  <gingold@adacore.com>
+
+	* gcc-interface/Makefile.in: Remove .sym rule (not used).
+	Remove adamsg.o object (requires native message compiler).
+	* init.c (CMA$_EXIT_THREAD, MTH$_FLOOVEMAT, SS$_INTDIV): Define as a
+	macro instead of as extern int.
+	(ADA$_ALREADY_OPEN, ADA$_CONSTRAINT_ERRO, ADA$_DATA_ERROR)
+	(ADA$_DEVICE_ERROR, ADA$_END_ERROR, ADA$_FAC_MODE_MISMAT)
+	(ADA$_IOSYSFAILED, ADA$_KEYSIZERR, ADA$_KEY_MISMATCH)
+	(ADA$_LAYOUT_ERROR, ADA$_LINEXCMRS, ADA$_MAXLINEXC)
+	(ADA$_MODE_ERROR, ADA$_MRN_MISMATCH, ADA$_MRS_MISMATCH)
+	(ADA$_NAME_ERROR, ADA$_NOT_OPEN, ADA$_ORG_MISMATCH)
+	(ADA$_PROGRAM_ERROR, ADA$_RAT_MISMATCH, ADA$_RFM_MISMATCH)
+	(ADA$_STAOVF, ADA$_STATUS_ERROR, ADA$_STORAGE_ERROR)
+	(ADA$_UNSUPPORTED, ADA$_USE_ERROR): Likewise.
+	(struct cond_except): Field cond is now an unsigned int.
+	(dec_ada_cond_except_table): Adjust.
+	(cond_except_table): Likewise.
+	(cond_resignal_table): Likewise.
+	(__gnat_default_resignal_p): Fix style.
+
+2012-02-08  Vincent Celier  <celier@adacore.com>
+
+	* gcc-interface/Make-lang.in: Add g-byorma.o to gnatbind objects
+	(g-buorma is now imported by sinput).
+	Update dependencies.
+	* scn.adb (Initialize_Scanner): Call Check_For_BOM
+	* sinput-p.adb (Source_File_Is_Subunit): Call Check_For_BOM
+	* sinput.adb: New procedure Check_For_BOM
+	* sinput.ads: New procedure Check_For_BOM
+
+2012-02-08  Vincent Pucci  <pucci@adacore.com>
+
+	* impunit.adb: Dimension package names updated
+	* Makefile.rtl: s-dim added
+	* sem_dim.adb (Is_Procedure_Put_Call): minor changes
+	(Is_Dim_IO_Package_Instantiation): minor changes
+	* sem_dim.ads: minor changes in comments
+	* snames.ads-tmpl: Name_Dim added Name_Dim_Float_IO and
+	Name_Dim_Integer_IO removed
+	* s-dim.ads: New package. Define the dimension terminology.
+	* s-diflio.adb, s-diinio.adb, s-dimkio.ads, s-dimmks.ads,
+	* s-dmotpr.ads: Package names updated.
+	* s-diflio.ads, s-diinio.ads: Documentation added and package
+	names updated.
+
+2012-02-08  Gary Dismukes  <dismukes@adacore.com>
+
+	* gcc-interface/utils2.c (build_call_alloc_dealloc_proc): Revise test
+	for storage pools to test for an underlying record type rather than
+	testing Is_Tagged_Type, so that simple storage pools will be handled
+	the same as normal Ada storage pools.
+
+2012-02-08  Yannick Moy  <moy@adacore.com>
+
+	* gnat_rm.texi: Minor reshuffling to place restriction at
+	appropriate place.
+
+2012-02-08  Bob Duff  <duff@adacore.com>
+
+	* warnsw.adb (Set_Warning_Switch): Set Warn_On_Suspicious_Modulus_Value
+	False for '-gnatwA', to suppress these warnings.
+
+2012-02-08  Vincent Celier  <celier@adacore.com>
+
+	* sinput-p.adb (Source_File_Is_Subunit): Check for BOM before
+	starting to scan, so that UTF8 encoding is taken into account.
+
+2012-02-08  Arnaud Charlet  <charlet@adacore.com>
+
+	* s-tasren.adb, s-tasren.ads (Internal_Complete_Rendezvous): New
+	function.
+	(Complete_Rendezvous): Now call Internal_Complete_Rendezvous.
+	(Exceptional_Complete_Rendezvous): Mark No_Return.
+
+2012-02-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* exp_aggr.adb (Compile_Time_Known_Composite_Value):
+	New predicate to compute whether a composite value can be
+	evaluated at compile time.
+	(Component_Not_OK_For_Backend): Use Compile_Time_Known_Value for all
+	expressions of elementary type and Compile_Time_Known_Composite_Value
+	for all other expressions.
+	(Expand_Record_Aggregate): Convert to assignments in the case
+	of a type with mutable components if the aggregate cannot be
+	built statically.
+
+2012-02-08  Gary Dismukes  <dismukes@adacore.com>
+
+	* aspects.ads (type Aspect_Id): Add Simple_Storage_Pool_Type.
+	(Impl_Defined_Aspects): Add association for
+	Aspect_Simple_Storage_Pool_Type.
+	(Aspect_Names): Add
+	association for Aspect_Simple_Storage_Pool_Type.
+	* aspects.adb:
+	(Canonical_Aspect): Add association for Simple_Storage_Pool_Type.
+	* exp_attr.adb (Expand_N_Attribute_Reference):
+	Change name to Name_Simple_Storage_Pool_Type.
+	* exp_ch4.adb (Expand_N_Allocator): Change
+	name to Name_Simple_Storage_Pool_Type.
+	* exp_intr.adb (Expand_Unc_Deallocation): Change name to
+	Name_Simple_Storage_Pool_Type.	* freeze.adb (Freeze_Entity):
+	Change names to Name_Simple_Storage_Pool_Type.	* par-prag.adb:
+	Change names to Name_Simple_Storage_Pool_Type.	* sem_attr.adb:
+	(Analyze_Attribute): Change name to Name_Simple_Storage_Pool_Type.
+	* sem_ch13.adb (Analyze_Attribute_Definition_Clause):
+	Change name to Name_Simple_Storage_Pool_Type.
+	* sem_prag.adb:
+	(Analyze_Pragma): Change name to Name_Simple_Storage_Pool_Type.
+	(Sig_Flags): Change name to Name_Simple_Storage_Pool_Type.
+	* sem_res.adb (Resolve_Allocator): Change name to
+	Name_Simple_Storage_Pool_Type.	* snames.ads-tmpl:
+	(Name_Simple_Storage_Pool_Type): New name constant.
+	(type Pragma_Id): Change name to Name_Simple_Storage_Pool_Type and
+	move to main pragma section because it no longer matches the
+	attribute name.
+	* snames.adb-tmpl (Get_Pragma_Id): Remove test for
+	Name_Simple_Storage_Pool.
+	(Is_Pragma_Name): Remove test for Name_Simple_Storage_Pool.
+
+2012-02-08  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_ugn.texi: Add some clarification to -gnatwA and -gnatws.
+
+2012-02-08  Pascal Obry  <obry@adacore.com>
+
+	* prj.adb (Compute_All_Imported_Projects): Use new
+	For_Project_And_Aggregated_Context to ensure proper context is
+	used for encapsulated aggregate libraries.
+	* prj-proc.adb (Recursive_Process): Call
+	Process_Aggregated_Projects earlier to ensure that all dependent
+	projects are set with the proper encapsulated status.
+
+2012-02-08  Pascal Obry  <obry@adacore.com>
+
+	* s-os_lib.adb (Normalize_Arguments): Properly escape last \ in null
+	terminated string.
+
+2012-02-08  Pascal Obry  <obry@adacore.com>
+
+	* prj.ads, prj.adb (For_Project_And_Aggregated_Context): New
+	generic routine with a context parameter.
+
+2012-02-08  Robert Dewar  <dewar@adacore.com>
+
+	* a-coinve.adb, sem_util.adb, sem_ch8.adb, a-cobove.adb,
+	a-convec.adb: Minor reformatting and code reorganization.
+
+2012-02-08  Steve Baird  <baird@adacore.com>
+
+	* sem_cat.adb (In_Preelaborated_Unit): A child
+	unit instantiation does not inherit preelaboration requirements
+	from its parent.
+
+2012-02-08  Gary Dismukes  <dismukes@adacore.com>
+
+	* aspects.ads (type Aspect_Id): Add Aspect_Simple_Storage_Pool.
+	(Impl_Defined_Aspects): Add entry for Aspect_Simple_Storage_Pool.
+	(Aspect_Argument): Add Name entry for Aspect_Simple_Storage_Pool.
+	(Aspect_Names): Add entry for Aspect_Simple_Storage_Pool.
+	* aspects.adb (Canonical_Aspect): Add entry for
+	Aspect_Simple_Storage_Pool.
+	* exp_attr.adb (Expand_N_Attribute_Reference): Handle case of
+	Attribute_Simple_Storage_Pool in the same way as Storage_Pool
+	(add conversion, analyze/resolve). For the Storage_Size attribute,
+	for the simple pool case, locate and use the simple pool type's
+	Storage_Size function (if any), otherwise evaluate to zero.
+	* exp_ch4.adb (Expand_N_Allocator): In the case of an allocator
+	for an access type with an associated simple storage pool,
+	locate and use the pool type's Allocate.
+	* exp_intr.adb (Expand_Unc_Deallocation): In the case where the
+	access type has a simple storage pool, locate the pool type's
+	Deallocate procedure (if present) and use it as the procedure
+	to call on the Free operation.
+	* freeze.adb (Freeze_Entity): In the case of a full type for
+	a private type defined with pragma Simple_Storage_Pool, check
+	that the full type is also appropriate for the pragma. For
+	a simple storage pool type, validate that the operations
+	Allocate, Deallocate (if present), and Storage_Size
+	(if present) are defined with appropriate expected profiles.
+	(Validate_Simple_Pool_Op_Formal): New procedure
+	(Validate_Simple_Pool_Operation): New procedure Add with and
+	use of Rtsfind.
+	* par-prag.adb: Add Pragma_Simple_Storage_Pool to case statement
+	(no action required).
+	* sem_attr.adb (Analyze_Attribute): For the case of the
+	Storage_Pool attribute, give a warning if the prefix type has an
+	associated simple storage pool, and rewrite the attribute as a
+	raise of Program_Error. In the case of the Simple_Storage_Pool
+	attribute, check that the prefix type has an associated simple
+	storage pool, and set the attribute type to the pool's type.
+	* sem_ch13.adb (Analyze_Aspect_Specifications): Add
+	Aspect_Simple_Storage_Pool case choice.
+	(Analyze_Attribute_Definition_Clause): Add
+	Aspect_Simple_Storage_Pool to case for Ignore_Rep_Clauses
+	(no action). Add handling for Simple_Storage_Pool attribute
+	definition, requiring the name to denote a simple storage pool
+	object.
+	(Check_Aspect_At_Freeze_Point): For a simple storage pool
+	aspect, set the type to that of the name specified for the aspect.
+	* sem_prag.adb (Analyze_Pragma): Add handling for pragma
+	Simple_Storage_Pool, requiring that it applies to a library-level
+	type declared in a package declaration that is a limited private
+	or limited record type.
+	* sem_res.adb (Resolve_Allocator): Flag an attempt to call a
+	build-in-place function in an allocator for an access type with
+	a simple storage pool as unsupported.
+	* snames.ads-tmpl: Add Name_Simple_Storage_Pool.
+	(type Attribute_Id): Add Attribute_Simple_Storage_Pool.
+	(type Pragma_Id): Add Pragma_Simple_Storage_Pool.
+	* snames.adb-tmpl (Get_Pragma_Id): Handle case of
+	Name_Simple_Storage_Pool.
+	(Is_Pragma_Name): Return True for Name_Simple_Storage_Pool.
+
+2012-02-08  Cyrille Comar  <comar@adacore.com>
+
+	* projects.texi: Clarify doc for interfaces.
+
+2012-02-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/Make-lang.in (GCC_LINKERFLAGS): New variable.
+	(GCC_LINK): Use it.
+
+2012-02-01  Tristan Gingold  <gingold@adacore.com>
+
+	* gcc-interface/trans.c (Loop_Statement_to_gnu): Use sizetype
+	instead of size_type_node.
+
+2012-01-30  Nicolas Roche  <roche@adacore.com>
+
+	* gcc-interface/Make-lang.in: Update dependencies.
+	* gcc-interface/Makefile.in: Use system-vxworks-system-ppc-mils.ads
+	when needed.
+	Remove Linker_Options -crtbe when building sjlj run-time.
+
+2012-01-30  Robert Dewar  <dewar@adacore.com>
+
+	* sem.adb (Analyze): Call Analyze_Mod for N_Op_Mod mode.
+	* sem_ch3.adb (Modular_Type_Declaration): Warn on mod value of
+	form 2 * small-literal.
+	* sem_ch4.adb (Analyze_Mod): New procedure (warn on suspicious
+	mod value).
+	* sem_ch4.ads (Analyze_Mod): New procedure.
+
+2012-01-30  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb: sem_ch6.adb (Analyze_Expression_Function): Copy
+	types and return expression when building spec for implicit
+	body, to preserve global references that may be present in an
+	instantiation.
+
+2012-01-30  Matthew Heaney  <heaney@adacore.com>
+
+	* a-convec.adb, a-coinve.adb, a-cobove.adb (Sort,
+	Reverse_Elements): Check for cursor tampering.
+
+2012-01-30  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_util.adb (Is_Fully_Initialized_Type): In Ada 2012, a
+	type with aspect Default_Value or Default_Component_Value is
+	fully initialized, and use of variables of such types do not
+	generate warnings.
+
+2012-01-30  Javier Miranda  <miranda@adacore.com>
+
+PR ada/15846
+	* sem_ch8.adb (Analyze_Subprogram_Renaming):
+	Handle self-renaming when the renamed entity is referenced using
+	its expanded name.
+
+2012-01-30  Vincent Celier  <celier@adacore.com>
+
+	* projects.texi: Add documentation for attribute Interfaces.
+
+2012-01-30  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_ch7.adb (Build_Finalizer_Call): Set loc again.
+	* exp_ch11.adb (Expand_At_End_Handler): Do not provide a source
+	location for the wrapped call to the original AT_END routine
+	and the subsequent return statement.
+
+2012-01-30  Pascal Obry  <obry@adacore.com>
+
+	* s-rannum.adb: Minor reformatting.
+
+2012-01-30  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* a-calend-vms.adb, a-calend.adb: Increment the number of leap seconds
+	to 25 and add the hard time value for 2012-06-30.
+
+2012-01-30  Robert Dewar  <dewar@adacore.com>
+
+	* a-strhas.ads, einfo.adb, einfo.ads, exp_ch7.adb, exp_ch9.adb,
+	freeze.adb, prj.adb, prj.ads, prj-nmsc.adb, prj-proc.adb, s-llflex.ads,
+	s-ransee.adb, s-ransee.ads, sem_ch13.adb, sem_dim.adb, sem_prag.adb:
+	Minor reformatting/code reorganization.
+
+2012-01-30  Thomas Quinot  <quinot@adacore.com>
+
+	* s-rannum.adb, s-ransee.adb, s-ransee.ads (Get_Seed): Return
+	Unsigned_64 rather than Duration.
+	(System.Random_Numbers.Reset): Use full value of seed
+	(do not truncate sub-second bits).
+
+2012-01-30  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_cat.adb, sem_ch12.adb: Minor reformatting.
+
+2012-01-30  Yannick Moy  <moy@adacore.com>
+
+	* gnat_ugn.texi: Minor correction of GNAT UG, to take into
+	account changes to -gnatwa and more recent warnings.
+
+2012-01-30  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_ch7.adb (Build_Finalizer_Call): Do not provide a source
+	location when creating a call to a finalizer.
+	* exp_ch11.adb (Expand_Exception_Handlers): Do not provide
+	a source location for the first actual of Save_Occurrence for
+	consistency sake.
+
+2012-01-30  Ed Schonberg  <schonberg@adacore.com>
+
+	* einfo.ads, einfo,adb: New attribute on scalar types:
+	Default_Aspect_Value New attribute on  array types:
+	Default_Aspect_Component_Value Move attribute Related_Array_Object
+	to a different position to accomodate new aspect attributes.
+	* freeze.adb (Freeze_Entity): Use new attributes to retrieve value
+	of defaults set with an aspect specification, rather than using
+	the list of aspects attached to the type, to prevent issues with
+	partial views.
+	* sem_ch13.adb (Analyze_Aspect_Specifications): For aspects
+	Default_Value and Default_Component _Value, store corresponding
+	expression in type entity.
+	(Check_Aspect_At_End_Of_Declaration): If the default aspects
+	are declared on the full view, use the full view to resolve the
+	correseponding expression.
+	* exp_ch3.adb (Init_Component): Use attribute
+	Default_Aspect_Component_Value to perform default initialization,
+	rather than relying on the rep item list for the type.
+	(Get_Simple_Init_Val): Ditto.
+
+2012-01-30  Thomas Quinot  <quinot@adacore.com>
+
+	* a-strhas.ads: Document risk of collision attack.
+
+2012-01-30  Yannick Moy  <moy@adacore.com>
+
+	* gnat_ugn.texi: Minor update wrt warning switches.
+
+2012-01-30  Vincent Celier  <celier@adacore.com>
+
+	* prj-nmsc.adb (Check_Interfaces): Report an error when a
+	unit from Library_Interface is not a unit of the project.
+
+2012-01-30  Vincent Pucci  <pucci@adacore.com>
+
+	* sem_prag.adb (Make_Aspect_For_PPC_In_Gen_Sub_Decl): Parent
+	links fixed inside PPC pragmas.
+	* sem_ch12.adb: Move call to Make_Aspect_For_PPC_In_Gen_Sub_Decl.
+
+2012-01-30  Thomas Quinot  <quinot@adacore.com>
+
+	* s-ransee.ads: Minor reformatting.
+
+2012-01-30  Pascal Obry  <obry@adacore.com>
+
+	* prj.ads, prj.adb (For_Each_Source): Add support for skipping
+	sources coming from an encapsulated library.
+
+2012-01-30  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch3.adb (Process-Full_View): fix typo.
+	* sem_ch13.adb (Aalyze_Aspect_Specifications): if predicates
+	appear on a private type and the full view is available, ensure
+	existence of freeze node for full view.
+	(Build_Predicate_Function): Attach predicate function to both
+	views of a private type.
+
+2012-01-30  Vincent Celier  <celier@adacore.com>
+
+	* prj-nmsc.adb (Check_Interfaces): Compute the Lib_Interface_ALIs
+	for the project if either attribute Library_Interface or
+	Interfaces is declared.
+	(Check_Stand_Alone_Library): Use Lib_Interface_ALIs computed in
+	Check_Interfaces.
+
+2012-01-30  Pascal Obry  <obry@adacore.com>
+
+	* prj-proc.adb (Recursive_Process): Set From_Encapsulated_Lib
+	boolean value to true in the process list created by this routine.
+	* prj.ads (Project_List_Element): New field From_Encapsulated_Lib.
+	Continued work for KA06-021.
+	* prj.adb (Compute_All_Imported_Projects): Set
+	From_Encapsulated_Lib boolean flag.
+
+2012-01-30  Vincent Pucci  <pucci@adacore.com>
+
+	* sem_dim.adb (Expand_Put_Call_With_Dimension_Symbol): Minor
+	code clean up.
+	* s-diflio.ads: Minor change.
+
+2012-01-30  Javier Miranda  <miranda@adacore.com>
+
+	* exp_ch9.adb (Build_Dispatching_Requeue): Add missing call
+	to Get_Entry_Index.  Required to generate code which provides
+	the correct value of Entry_Index in the target entry.
+
+2012-01-30  Nicolas Roche  <roche@adacore.com>
+
+	* system-vxworks-ppc.ads: Add pragma Linker_Options -crtbe to
+	fix issue with zcx on VxWorks5.
+
+2012-01-30  Pascal Obry  <obry@adacore.com>
+
+	* prj.ads, prj.adb (For_Every_Project_Imported): Remove
+	In_Aggregate_Lib.
+	(For_Every_Project_Imported_Context): New generic routine with
+	a context parameter.
+	* prj-nmsc.adb: Revert to use For_Every_Project_Imported Avoid
+	distributed complexity.
+	* prj-env.adb, prj-conf.adb, makeutl.adb, gnatcmd.adb: Ditto.
+
+2012-01-30  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_aggr.adb (Expand_Record_Aggregate): After creating the
+	_parent aggregate for an extension aggregate, check whether it
+	requires delayed (top-down) expansion.
+
+2012-01-30  Vincent Pucci  <pucci@adacore.com>
+
+	* sem_dim.adb (Expand_Put_Call_With_Dimension_Symbol): Rewritten.
+	* snames.ads-tmpl: Name_Item and Name_Symbols added.
+	* s-diflio.adb, s-diflio.ads, s-diinio.adb, s-diinio.ads: Rename
+	and change the position of parameter Symbols in every Put routine.
+	* s-dimmks.ads: Convert long float type Mks_Type into long
+	long float.
+	* s-llflex.ads: Modifications in comments.
+
+2012-01-30  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* sem_ch12.adb (Earlier): Do not use the
+	top level source locations of the two input nodes.
+
+2012-01-30  Robert Dewar  <dewar@adacore.com>
+
+	* einfo.ads, sem_prag.adb, sem_attr.adb, aspects.ads,
+	sem_cat.adb, sem_aggr.adb, exp_aggr.adb: Minor reformatting.
+
+2012-01-30  Robert Dewar  <dewar@adacore.com>
+
+	* a-cdlili.adb, a-cidlli.adb, a-cbdlli.adb: Minor reformatting.
+
+2012-01-30  Olivier Hainque  <hainque@adacore.com>
+
+	* sigtramp-ppcvxw.c (CFI_COMMON_REGS): Add rule for r1 back +
+	comments.
+
+2012-01-30  Thomas Quinot  <quinot@adacore.com>
+
+	* gnat_rm.texi, sem_dist.adb, sem_dist.ads, einfo.ads, sem_prag.adb,
+	sem_ch12.adb, sem_attr.adb, aspects.adb, aspects.ads, par-prag.adb,
+	sem_cat.adb, snames.ads-tmpl (Sem_Dist.Is_Valid_Remote_Object_Type):
+	New subprogram (extracted from
+	Sem_Cat.Validate_Remote_Access_Object_Type_Declaration).
+	(Einfo.Is_Remote_Types): Now applies to generic types. Update
+	documentation accordingly.
+	(Sem_Ch12.Analyze_Associations): A RACW type is acceptable as
+	actual for a formal type to which a pragma Remote_Access_Type
+	applies.
+	(Aspects, Par.Prag, Sem_Prag): Support for new pramga/aspect
+	Remote_Access_Type.
+	(Sem_Attr.Analyze_Attribute, case Stub_Type): Attribute can
+	be applied to a generic type if pragma Remote_Access_Type
+	applies, in which case the type of the attribute is
+	System.Partition_Interface.RACW_Stub_Type.
+
 2012-01-27  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/decl.c (gnat_to_gnu_entity) <E_Procedure>: Do not set

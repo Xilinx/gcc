@@ -478,6 +478,11 @@ AC_CHECK_FUNCS(sem_timedwait)
 CFLAGS="$CFLAGS_hold"
 LIBS="$LIBS_hold"
 
+LIBS_hold="$LIBS"
+LIBS="$LIBS $MATH_LIBS"
+AC_CHECK_FUNCS(matherr)
+LIBS="$LIBS_hold"
+
 AC_CACHE_CHECK([for __sync_bool_compare_and_swap_4],
 [libgo_cv_func___sync_bool_compare_and_swap_4],
 [AC_LINK_IFELSE([
@@ -492,6 +497,20 @@ if test "$libgo_cv_func___sync_bool_compare_and_swap_4" = "yes"; then
     [Define to 1 if the compiler provides the __sync_bool_compare_and_swap function for uint32])
 fi
 
+AC_CACHE_CHECK([for __sync_bool_compare_and_swap_8],
+[libgo_cv_func___sync_bool_compare_and_swap_8],
+[AC_LINK_IFELSE([
+typedef unsigned int uint64  __attribute__ ((mode (DI)));
+uint64 i;
+int main() { return __sync_bool_compare_and_swap (&i, 0, 1); }
+],
+[libgo_cv_func___sync_bool_compare_and_swap_8=yes],
+[libgo_cv_func___sync_bool_compare_and_swap_8=no])])
+if test "$libgo_cv_func___sync_bool_compare_and_swap_8" = "yes"; then
+  AC_DEFINE(HAVE_SYNC_BOOL_COMPARE_AND_SWAP_8, 1,
+    [Define to 1 if the compiler provides the __sync_bool_compare_and_swap function for uint64])
+fi
+
 AC_CACHE_CHECK([for __sync_fetch_and_add_4],
 [libgo_cv_func___sync_fetch_and_add_4],
 [AC_LINK_IFELSE([
@@ -504,6 +523,20 @@ int main() { return __sync_fetch_and_add (&i, 1); }
 if test "$libgo_cv_func___sync_fetch_and_add_4" = "yes"; then
   AC_DEFINE(HAVE_SYNC_FETCH_AND_ADD_4, 1,
     [Define to 1 if the compiler provides the __sync_fetch_and_add function for uint32])
+fi
+
+AC_CACHE_CHECK([for __sync_add_and_fetch_8],
+[libgo_cv_func___sync_add_and_fetch_8],
+[AC_LINK_IFELSE([
+typedef unsigned int uint64  __attribute__ ((mode (DI)));
+uint64 i;
+int main() { return __sync_add_and_fetch (&i, 1); }
+],
+[libgo_cv_func___sync_add_and_fetch_8=yes],
+[libgo_cv_func___sync_add_and_fetch_8=no])])
+if test "$libgo_cv_func___sync_add_and_fetch_8" = "yes"; then
+  AC_DEFINE(HAVE_SYNC_ADD_AND_FETCH_8, 1,
+    [Define to 1 if the compiler provides the __sync_add_and_fetch function for uint64])
 fi
 
 dnl For x86 we want to use the -minline-all-stringops option to avoid
@@ -521,6 +554,23 @@ if test "$libgo_cv_c_stringops" = yes; then
   STRINGOPS_FLAG=-minline-all-stringops
 fi
 AC_SUBST(STRINGOPS_FLAG)
+
+dnl For x86 we want to compile the math library with -mfancy-math-387
+dnl -funsafe-math-optimizations so that we can use the builtin
+dnl instructions directly.
+AC_CACHE_CHECK([whether compiler supports -mfancy-math-387],
+[libgo_cv_c_fancymath],
+[CFLAGS_hold=$CFLAGS
+CFLAGS="$CFLAGS -mfancy-math-387"
+AC_COMPILE_IFELSE([int i;],
+[libgo_cv_c_fancymath=yes],
+[libgo_cv_c_fancymath=no])
+CFLAGS=$CFLAGS_hold])
+MATH_FLAG=
+if test "$libgo_cv_c_fancymath" = yes; then
+  MATH_FLAG="-mfancy-math-387 -funsafe-math-optimizations"
+fi
+AC_SUBST(MATH_FLAG)
 
 CFLAGS_hold=$CFLAGS
 CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE"
@@ -548,6 +598,104 @@ AC_CACHE_CHECK([epoll_event data.fd offset],
 [libgo_cv_c_epoll_event_fd_offset=0])])
 STRUCT_EPOLL_EVENT_FD_OFFSET=${libgo_cv_c_epoll_event_fd_offset}
 AC_SUBST(STRUCT_EPOLL_EVENT_FD_OFFSET)
+
+dnl See if struct exception is defined in <math.h>.
+AC_CHECK_TYPE([struct exception],
+[libgo_has_struct_exception=yes],
+[libgo_has_struct_exception=no],
+[#include <math.h>])
+if test "$libgo_has_struct_exception" = "yes"; then
+  AC_DEFINE(HAVE_STRUCT_EXCEPTION, 1,
+            [Define to 1 if <math.h> defines struct exception])
+fi
+
+dnl See whether setcontext changes the value of TLS variables.
+AC_CACHE_CHECK([whether setcontext clobbers TLS variables],
+[libgo_cv_lib_setcontext_clobbers_tls],
+[CFLAGS_hold="$CFLAGS"
+CFLAGS="$PTHREAD_CFLAGS"
+LIBS_hold="$LIBS"
+LIBS="$LIBS $PTHREAD_LIBS"
+AC_CHECK_SIZEOF([void *])
+AS_VAR_ARITH([ptr_type_size], [$ac_cv_sizeof_void_p \* 8])
+AC_RUN_IFELSE(
+  [AC_LANG_SOURCE([
+#include <pthread.h>
+#include <stdlib.h>
+#include <ucontext.h>
+#include <unistd.h>
+
+__thread int tls;
+
+static char stack[[10 * 1024 * 1024]];
+static ucontext_t c;
+
+/* Called via makecontext/setcontext.  */
+
+static void
+cfn (void)
+{
+  exit (tls);
+}
+
+/* Called via pthread_create.  */
+
+static void *
+tfn (void *dummy)
+{
+  /* The thread should still see this value after calling
+     setcontext.  */
+  tls = 0;
+
+  setcontext (&c);
+
+  /* The call to setcontext should not return.  */
+  abort ();
+}
+
+int
+main ()
+{
+  pthread_t tid;
+
+  /* The thread should not see this value.  */
+  tls = 1;
+
+  if (getcontext (&c) < 0)
+    abort ();
+
+  c.uc_stack.ss_sp = stack;
+  c.uc_stack.ss_flags = 0;
+  c.uc_stack.ss_size = sizeof stack;
+  c.uc_link = NULL;
+  makecontext (&c, cfn, 0);
+
+  if (pthread_create (&tid, NULL, tfn, NULL) != 0)
+    abort ();
+
+  if (pthread_join (tid, NULL) != 0)
+    abort ();
+
+  /* The thread should have called exit.  */
+  abort ();
+}
+])],
+[libgo_cv_lib_setcontext_clobbers_tls=no],
+[libgo_cv_lib_setcontext_clobbers_tls=yes],
+[case "$target:$ptr_type_size" in
+  i?86-*-solaris2.1[[01]]:64 | x86_64*-*-solaris2.1[[01]]:64)
+    libgo_cv_lib_setcontext_clobbers_tls=yes ;;
+  *)
+    libgo_cv_lib_setcontext_clobbers_tls=no ;;
+ esac
+])
+CFLAGS="$CFLAGS_hold"
+LIBS="$LIBS_hold"
+])
+if test "$libgo_cv_lib_setcontext_clobbers_tls" = "yes"; then
+  AC_DEFINE(SETCONTEXT_CLOBBERS_TLS, 1,
+	    [Define if setcontext clobbers TLS variables])
+fi
 
 AC_CACHE_SAVE
 

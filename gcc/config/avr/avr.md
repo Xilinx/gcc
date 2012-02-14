@@ -57,12 +57,6 @@
    (LPM_REGNO	0)	; implicit target register of LPM
    (TMP_REGNO	0)	; temporary register r0
    (ZERO_REGNO	1)	; zero register r1
-
-   ;; RAM addresses of some SFRs common to all Devices.
-
-   (SREG_ADDR   0x5F)   ; Status Register
-   (SP_ADDR     0x5D)   ; Stack Pointer
-   (RAMPZ_ADDR  0x5B)   ; Address' high part when loading via ELPM
    ])
 
 (define_c_enum "unspec"
@@ -1152,7 +1146,7 @@
       };
 
     if (*asm_code[which_alternative])
-      return asm_code [which_alternative];
+      return asm_code[which_alternative];
 
     return avr_out_plus (operands, NULL, NULL);
   }
@@ -1221,7 +1215,7 @@
       };
 
     if (*asm_code[which_alternative])
-      return asm_code [which_alternative];
+      return asm_code[which_alternative];
 
     return avr_out_plus (operands, NULL, NULL);
   }
@@ -1346,13 +1340,13 @@
 	(mult:QI (match_operand:QI 1 "register_operand" "")
 		 (match_operand:QI 2 "register_operand" "")))]
   ""
-  "{
-  if (!AVR_HAVE_MUL)
-    {
-      emit_insn (gen_mulqi3_call (operands[0], operands[1], operands[2]));
-      DONE;
-    }
-}")
+  {
+    if (!AVR_HAVE_MUL)
+      {
+        emit_insn (gen_mulqi3_call (operands[0], operands[1], operands[2]));
+        DONE;
+      }
+  })
 
 (define_insn "*mulqi3_enh"
   [(set (match_operand:QI 0 "register_operand" "=r")
@@ -4381,7 +4375,9 @@
 	 (label_ref (match_operand 3 "" ""))
 	 (pc)))]
   ""
-  "* return avr_out_sbxx_branch (insn, operands);"
+  {
+    return avr_out_sbxx_branch (insn, operands);
+  }
   [(set (attr "length")
 	(if_then_else (and (ge (minus (pc) (match_dup 3)) (const_int -2046))
 			   (le (minus (pc) (match_dup 3)) (const_int 2046)))
@@ -4559,8 +4555,9 @@
                       (label_ref (match_operand 0 "" ""))
                       (pc)))]
   ""
-  "*
-   return ret_cond_branch (operands[1], avr_jump_mode (operands[0],insn), 0);"
+  {
+    return ret_cond_branch (operands[1], avr_jump_mode (operands[0], insn), 0);
+  }
   [(set_attr "type" "branch1")
    (set_attr "cc" "clobber")])
 
@@ -4574,8 +4571,9 @@
                       (pc)
                       (label_ref (match_operand 0 "" ""))))]
   ""
-  "*
-   return ret_cond_branch (operands[1], avr_jump_mode (operands[0], insn), 1);"
+  {
+    return ret_cond_branch (operands[1], avr_jump_mode (operands[0], insn), 1);
+  }
   [(set_attr "type" "branch1")
    (set_attr "cc" "clobber")])
 
@@ -4587,8 +4585,9 @@
                       (pc)
                       (label_ref (match_operand 0 "" ""))))]
   ""
-  "*
-   return ret_cond_branch (operands[1], avr_jump_mode (operands[0], insn), 1);"
+  {
+    return ret_cond_branch (operands[1], avr_jump_mode (operands[0], insn), 1);
+  }
   [(set_attr "type" "branch")
    (set_attr "cc" "clobber")])
 
@@ -4769,10 +4768,9 @@
 	      (use (label_ref (match_dup 3)))
 	      (clobber (match_dup 6))])]
   ""
-  "
-{
-  operands[6] = gen_reg_rtx (HImode);
-}")
+  {
+    operands[6] = gen_reg_rtx (HImode);
+  })
 
 
 ;; ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -4791,7 +4789,7 @@
   [(set (mem:QI (match_operand 0 "low_io_address_operand" "n"))
         (and:QI (mem:QI (match_dup 0))
                 (match_operand:QI 1 "single_zero_operand" "n")))]
-  "optimize > 0"
+  ""
   {
     operands[2] = GEN_INT (exact_log2 (~INTVAL (operands[1]) & 0xff));
     return "cbi %i0,%2";
@@ -4803,7 +4801,7 @@
   [(set (mem:QI (match_operand 0 "low_io_address_operand" "n"))
         (ior:QI (mem:QI (match_dup 0))
                 (match_operand:QI 1 "single_one_operand" "n")))]
-  "optimize > 0"
+  ""
   {
     operands[2] = GEN_INT (exact_log2 (INTVAL (operands[1]) & 0xff));
     return "sbi %i0,%2";
@@ -4823,8 +4821,10 @@
 			  (const_int 0)])
 	 (label_ref (match_operand 3 "" ""))
 	 (pc)))]
-  "(optimize > 0)"
-  "* return avr_out_sbxx_branch (insn, operands);"
+  ""
+  {
+    return avr_out_sbxx_branch (insn, operands);
+  }
   [(set (attr "length")
 	(if_then_else (and (ge (minus (pc) (match_dup 3)) (const_int -2046))
                            (le (minus (pc) (match_dup 3)) (const_int 2046)))
@@ -4843,7 +4843,7 @@
 			  (const_int 0)])
 	 (label_ref (match_operand 2 "" ""))
 	 (pc)))]
-  "(optimize > 0)"
+  ""
 {
   operands[3] = operands[2];
   operands[2] = GEN_INT (7);
@@ -4870,8 +4870,10 @@
 			  (const_int 0)])
 	 (label_ref (match_operand 3 "" ""))
 	 (pc)))]
-  "(optimize > 0)"
-  "* return avr_out_sbxx_branch (insn, operands);"
+  ""
+  {
+    return avr_out_sbxx_branch (insn, operands);
+  }
   [(set (attr "length")
 	(if_then_else (and (ge (minus (pc) (match_dup 3)) (const_int -2046))
                            (le (minus (pc) (match_dup 3)) (const_int 2045)))
@@ -4889,7 +4891,7 @@
 			  (const_int 0)])
 	 (label_ref (match_operand 2 "" ""))
 	 (pc)))]
-  "(optimize > 0)"
+  ""
 {
   operands[3] = operands[2];
   operands[2] = GEN_INT (7);
@@ -4924,26 +4926,27 @@
   {
     CC_STATUS_INIT;
     if (test_hard_reg_class (ADDW_REGS, operands[0]))
-      output_asm_insn (AS2 (sbiw,%0,1) CR_TAB
-                       AS2 (sbc,%C0,__zero_reg__) CR_TAB
-                       AS2 (sbc,%D0,__zero_reg__) "\n", operands);
+      output_asm_insn ("sbiw %0,1" CR_TAB
+                       "sbc %C0,__zero_reg__" CR_TAB
+                       "sbc %D0,__zero_reg__", operands);
     else
-      output_asm_insn (AS2 (subi,%A0,1) CR_TAB
-                       AS2 (sbc,%B0,__zero_reg__) CR_TAB
-                       AS2 (sbc,%C0,__zero_reg__) CR_TAB
-                       AS2 (sbc,%D0,__zero_reg__) "\n", operands);
+      output_asm_insn ("subi %A0,1" CR_TAB
+                       "sbc %B0,__zero_reg__" CR_TAB
+                       "sbc %C0,__zero_reg__" CR_TAB
+                       "sbc %D0,__zero_reg__", operands);
 
     switch (avr_jump_mode (operands[2], insn))
       {
       case 1:
-        return AS1 (brcc,%2);
+        return "brcc %2";
       case 2:
-        return (AS1 (brcs,.+2) CR_TAB
-                AS1 (rjmp,%2));
+        return "brcs .+2\;rjmp %2";
+      case 3:
+        return "brcs .+4\;jmp %2";
       }
 
-    return (AS1 (brcs,.+4) CR_TAB
-            AS1 (jmp,%2));
+    gcc_unreachable();
+    return "";
   })
 
 (define_peephole
@@ -4960,25 +4963,27 @@
 		      (label_ref (match_operand 2 "" ""))
 		      (pc)))]
   ""
-  "*
-{
-  CC_STATUS_INIT;
-  if (test_hard_reg_class (ADDW_REGS, operands[0]))
-    output_asm_insn (AS2 (sbiw,%0,1), operands);
-  else
-    output_asm_insn (AS2 (subi,%A0,1) CR_TAB
-		     AS2 (sbc,%B0,__zero_reg__) \"\\n\", operands);
-  switch (avr_jump_mode (operands[2],insn))
   {
-    case 1:
-      return AS1 (brcc,%2);
-    case 2:
-      return (AS1 (brcs,.+2) CR_TAB
-              AS1 (rjmp,%2));
-  }
-  return (AS1 (brcs,.+4) CR_TAB
-          AS1 (jmp,%2));
-}")
+    CC_STATUS_INIT;
+    if (test_hard_reg_class (ADDW_REGS, operands[0]))
+      output_asm_insn ("sbiw %0,1", operands);
+    else
+      output_asm_insn ("subi %A0,1" CR_TAB
+                       "sbc %B0,__zero_reg__", operands);
+
+    switch (avr_jump_mode (operands[2], insn))
+      {
+      case 1:
+        return "brcc %2";
+      case 2:
+        return "brcs .+2\;rjmp %2";
+      case 3:
+        return "brcs .+4\;jmp %2";
+      }
+
+    gcc_unreachable();
+    return "";
+  })
 
 (define_peephole
   [(set (match_operand:QI 0 "d_register_operand" "")
@@ -4992,23 +4997,26 @@
 		      (label_ref (match_operand 1 "" ""))
 		      (pc)))]
   ""
-  "*
-{
-  CC_STATUS_INIT;
-  cc_status.value1 = operands[0];
-  cc_status.flags |= CC_OVERFLOW_UNUSABLE;
-  output_asm_insn (AS2 (subi,%A0,1), operands);
-  switch (avr_jump_mode (operands[1],insn))
   {
-    case 1:
-      return AS1 (brcc,%1);
-    case 2:
-      return (AS1 (brcs,.+2) CR_TAB
-              AS1 (rjmp,%1));
-  }
-  return (AS1 (brcs,.+4) CR_TAB
-          AS1 (jmp,%1));
-}")
+    CC_STATUS_INIT;
+    cc_status.value1 = operands[0];
+    cc_status.flags |= CC_OVERFLOW_UNUSABLE;
+
+    output_asm_insn ("subi %A0,1", operands);
+
+    switch (avr_jump_mode (operands[1], insn))
+      {
+      case 1:
+        return "brcc %1";
+      case 2:
+        return "brcs .+2\;rjmp %1";
+      case 3:
+        return "brcs .+4\;jmp %1";
+      }
+
+    gcc_unreachable();
+    return "";
+  })
 
 
 (define_peephole ; "*cpse.eq"
@@ -5947,8 +5955,6 @@
     operands[4] = simplify_gen_subreg (QImode, operands[0], HImode, 1);
   })
 
-(include "avr-dimode.md")
-
 (define_insn_and_split "*extzv.qihi2"
   [(set (match_operand:HI 0 "register_operand"                      "=r")
         (zero_extend:HI 
@@ -5968,3 +5974,6 @@
     operands[3] = simplify_gen_subreg (QImode, operands[0], HImode, 0);
     operands[4] = simplify_gen_subreg (QImode, operands[0], HImode, 1);
   })
+
+
+(include "avr-dimode.md")

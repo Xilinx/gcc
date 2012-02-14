@@ -3540,8 +3540,19 @@ rs6000_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
       case vec_to_scalar:
       case scalar_to_vec:
       case cond_branch_not_taken:
-      case vec_perm:
         return 1;
+
+      case vec_perm:
+	if (TARGET_VSX)
+	  return 4;
+	else
+	  return 1;
+
+      case vec_promote_demote:
+        if (TARGET_VSX)
+          return 5;
+        else
+          return 1;
 
       case cond_branch_taken:
         return 3;
@@ -7006,17 +7017,14 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
   if (!TARGET_IEEEQUAD && TARGET_LONG_DOUBLE_128
       && mode == TFmode && GET_CODE (operands[1]) == CONST_DOUBLE)
     {
-      /* DImode is used, not DFmode, because simplify_gen_subreg doesn't
-	 know how to get a DFmode SUBREG of a TFmode.  */
-      enum machine_mode imode = (TARGET_E500_DOUBLE ? DFmode : DImode);
-      rs6000_emit_move (simplify_gen_subreg (imode, operands[0], mode, 0),
-			simplify_gen_subreg (imode, operands[1], mode, 0),
-			imode);
-      rs6000_emit_move (simplify_gen_subreg (imode, operands[0], mode,
-					     GET_MODE_SIZE (imode)),
-			simplify_gen_subreg (imode, operands[1], mode,
-					     GET_MODE_SIZE (imode)),
-			imode);
+      rs6000_emit_move (simplify_gen_subreg (DFmode, operands[0], mode, 0),
+			simplify_gen_subreg (DFmode, operands[1], mode, 0),
+			DFmode);
+      rs6000_emit_move (simplify_gen_subreg (DFmode, operands[0], mode,
+					     GET_MODE_SIZE (DFmode)),
+			simplify_gen_subreg (DFmode, operands[1], mode,
+					     GET_MODE_SIZE (DFmode)),
+			DFmode);
       return;
     }
 
@@ -24031,7 +24039,8 @@ rs6000_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
 	rtx fnmem, fn_reg, toc_reg;
 
 	if (!TARGET_POINTERS_TO_NESTED_FUNCTIONS)
-	  error ("-mno-r11 must not be used if you have trampolines");
+	  error ("You cannot take the address of a nested function if you use "
+		 "the -mno-pointers-to-nested-functions option.");
 
 	fnmem = gen_const_mem (Pmode, force_reg (Pmode, fnaddr));
 	fn_reg = gen_reg_rtx (Pmode);
