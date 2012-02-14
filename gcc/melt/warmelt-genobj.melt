@@ -188,6 +188,7 @@
 (defclass class_objcompute
   :super class_objdestinstr
   :fields (obcpt_expr			;expression list or object or tuple
+	   obcpt_type			;ctype of expression
 	   ))
 
 ;; get argument instruction
@@ -664,9 +665,10 @@
       )))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; variadic function to make an objcompute out of a macrostring
-(defun make_objcompute (loc :rest)
+(defun make_objcompute (loc ctyp :rest)
   (debug "make_objcompute loc=" loc)
   (assert_msg "make_objcompute check loc" (or (null loc) (is_a loc discr_mixed_location)))
+  (assert_msg "make_objcompute check ctyp" (is_a ctyp class_ctype))
   (let ( (arglist (make_list discr_list)) 
 	 )
     (forever 
@@ -700,6 +702,7 @@
 	    (instance  class_objcompute
 		       :obdi_destlist (make_list discr_list)
 		       :obcpt_expr (list_to_multiple arglist discr_multiple)
+		       :obcpt_type ctyp
 		       :obi_loc loc))
 	   )
       (debug "make_objcompute res=" res)
@@ -1187,6 +1190,7 @@ $SBUF.}#
 	      bodfel
 	      (make_objcompute 
 	       ()
+	       ctype_void
 	       ##{/*checkfreshenv*/ if (($OPREVENV)
 					&& melt_magic_discr((melt_ptr_t)($OFRESHENV)) != MELTOBMAG_CLOSURE)
   	           warning(0, "bad MELT FRESH_ENV @%p in system data <%s:%d>",
@@ -1244,6 +1248,7 @@ $SBUF.}#
 	(list_append oiniprolog
 		     (instance class_objcompute
 			       :obdi_destlist lisdest
+			       :obcpt_type ctype_value
 			       :obcpt_expr (make_stringconst discr_verbatim_string "modargp_"))
 		     )
 	)
@@ -1374,7 +1379,7 @@ $SBUF.}#
 	(append_commentconst oinibody "set retinit from boxloc")
 	;; emit setting the retinit from the boxloc
 	(let ( (osetretinit
-		(make_objcompute ()
+		(make_objcompute () ctype_value
 				 ##{/* finalfreshenvget */ melt_container_value((melt_ptr_t)($BOXLOC))}#))
 	       )
 	  (put_objdest osetretinit retinit)
@@ -1671,6 +1676,7 @@ $SBUF.}#
 	   (res  (instance class_objcompute
 			   :obi_loc nloc
 			   :obdi_destlist ()
+			   :obcpt_type ctype_void
 			   :obcpt_expr ostr))
 	   )  
       (debug "compilobj_nrep_comment ostr=" ostr " res=" res)
@@ -1975,7 +1981,8 @@ $SBUF.}#
   (let ( 
 	(nloc (unsafe_get_field :nrep_loc nexi))
 	(nbindx (unsafe_get_field :nexit_bind nexi))
-	(nval (unsafe_get_field :nexit_val nexi)) )
+	(nval (unsafe_get_field :nexit_val nexi)) 
+	)
     (assert_msg "check nbindx" (is_a nbindx class_label_binding))
     (let ( 
 	  (inslist (make_list discr_list)) 
@@ -1995,6 +2002,7 @@ $SBUF.}#
 	  (obcom (instance class_objcompute
 			   :obi_loc nloc
 			   :obdi_destlist destlist
+			   :obcpt_type ctype_value
 			   :obcpt_expr oval))
 	  )
       (list_append inslist obcom)
@@ -2978,7 +2986,7 @@ $SBUF.}#
 	 (nidx (unsafe_get_field :nunth_index nunc))
 	 (otup (compile_obj ntup gcx))
 	 (oidx (compile_obj nidx gcx))
-	 (ounc (make_objcompute nloc ##{/*unsafenthcomp*/((meltmultiple_ptr_t)($OTUP))->tabval[$OIDX]}#
+	 (ounc (make_objcompute nloc ctype_value ##{/*unsafenthcomp*/((meltmultiple_ptr_t)($OTUP))->tabval[$OIDX]}#
 				))
 	)
     (debug "compilobj_nrep_unsafe_nth_component otup=" otup " oidx=" oidx " ounc=" ounc)
@@ -3537,6 +3545,7 @@ $SBUF.}#
 			     ;; dont fill :obi_loc
 			     :obdi_destlist destlis
 			     :obcpt_expr explis
+			     :obcpt_type typrecv
 			     )) 
 	      )
 	 (list_append destlis desto)
@@ -3570,6 +3579,7 @@ $SBUF.}#
 			;; dont fill :obi_loc
 			:obdi_destlist destlis
 			:obcpt_expr explis
+			:obcpt_type ctype_long
 			)) 
 	 )
     (assert_msg "check typdesto" (== typdesto ctype_long))
@@ -3595,6 +3605,7 @@ $SBUF.}#
 			;; dont fill :obi_loc
 			:obdi_destlist destlis
 			:obcpt_expr explis
+			:obcpt_type ctype_cstring
 			)) 
 	 )
     (assert_msg "check typdesto" (== typdesto ctype_cstring))
@@ -3618,6 +3629,7 @@ $SBUF.}#
 			;; dont fill :obi_loc
 			:obdi_destlist destlis
 			:obcpt_expr explis
+			:obcpt_type typdesto
 			)) 
 	 )
     (list_append destlis desto)
@@ -3678,6 +3690,7 @@ $SBUF.}#
 			;; dont fill :obi_loc
 			:obdi_destlist destlist
 			:obcpt_expr resv
+			:obcpt_type ctype_value
 			))
 	 )
     (list_append destlist desto)
@@ -3932,6 +3945,7 @@ $SBUF.}#
 	  (ocomp (instance 
 		  class_objcompute
 		  :obi_loc nloc
+		  :obcpt_type nctyp
 		  :obcpt_expr otuple))
 	  )
       (debug "compilobj_nrep_variadic_argument ocomp=" ocomp)
@@ -3970,6 +3984,7 @@ $SBUF.}#
 	  (ocomp (instance 
 		  class_objcompute
 		  :obi_loc nloc
+		  :obcpt_type ctype_void
 		  :obcpt_expr otuple))
 	  )
       (debug "compilobj_nrep_consumevariadic ocomp=" ocomp)
@@ -4895,12 +4910,14 @@ $SBUF.}#
 	 (setq res 
 	       (make_objcompute 
 		nloc
+		ctype_void
 		##{MELT_STORE_PREDEF($NAMEPRED,($OVAL))}#)))
        )
      ( (is_integerbox npred)
        (setq res 
 	     (make_objcompute
 	      nloc
+	      ctype_void
 	      ##{melt_store_predefined($NPRED,($OVAL))}#))
        )
      (:else
@@ -4983,6 +5000,7 @@ $SBUF.}#
 					     :obi_loc nloc
 					     :obdi_destlist (list ocontenvloc)
 					     :obcpt_expr oex
+					     :obcpt_type ctype_value
 					     ))
 			    )
 			(list_append obodl oputrout)
@@ -5334,7 +5352,7 @@ $SBUF.}#
 	)
     (debug "compilobj_nrep_matchlabel stepixv=" stepixv " nstep=" nstep)
     (shortbacktrace_dbg "compilobj_nrep_matchlabel" 12)
-(let ( (objm (make_objcompute nloc ##{??compilobj_nrep_matchlabel
+(let ( (objm (make_objcompute nloc ctype_void ##{??compilobj_nrep_matchlabel
 #error incomplete compilobj_nrep_matchlabel
 /*nstep=*/ $NSTEP
 /*stepixv=*/ $STEPIXV
@@ -5361,7 +5379,7 @@ $SBUF.}#
     (debug "compilobj_nrep_matchflag nrfla=" nrfla " nrmatch=" nrmatch)
     (shortbacktrace_dbg "compilobj_nrep_matchflag" 12)
     (let ( (objm
-	    (make_objcompute nloc ##{??compilobj_nrep_matchflag
+	    (make_objcompute nloc ctype_void ##{??compilobj_nrep_matchflag
 			     #error incomplete compilobj_nrep_matchflag
 			     /*nrfla=*/ $NRFLA
 			     }#))
@@ -5390,7 +5408,7 @@ $SBUF.}#
     (shortbacktrace_dbg "compilobj_nrep_matchdatainit" 10)
     (debug "compilobj_nrep_matchdatainit ndata=" ndata "\n ndatatype=" ndatatype
 	   " ndatarank=" ndatarank "\n matdata=" matdata "\n altmatch=" altmatch)
-    (let ( (objc (make_objcompute nloc ##{??compilobj_nrep_matchdatainit
+    (let ( (objc (make_objcompute nloc ctype_void ##{??compilobj_nrep_matchdatainit
 #error incomplete compilobj_nrep_matchdatainit
 /*ndata=*/ $NDATA
 /*ndatatype=*/ $NDATATYPE
@@ -5421,7 +5439,7 @@ $SBUF.}#
 	)
     (shortbacktrace_dbg "compilobj_nrep_matchdatainit" 10)
     (debug "compilobj_nrep_matchedata  altmatch=" altmatch)
-    (let ( (objc (make_objcompute nloc ##{??compilobj_nrep_matchedata
+    (let ( (objc (make_objcompute nloc nctype ##{??compilobj_nrep_matchedata
  /*nrmrank=*/ $NRMRANK
 #error incomplete compilobj_nrep_matchedata 
 }#))
@@ -5446,7 +5464,7 @@ $SBUF.}#
 	(altmatch (get_field :gncx_altmatch gcx))
 	)
     (debug "compilobj_nrep_matchjump  altmatch=" altmatch)
-    (let ( (objc (make_objcompute nloc ##{??compilobj_nrep_matchjump
+    (let ( (objc (make_objcompute nloc ctype_void ##{??compilobj_nrep_matchjump
 #error incomplete compilobj_nrep_matchjump 
 }#))
 	   )
@@ -6073,11 +6091,13 @@ $SBUF.}#
        (debug "compiltst_normtester_ortransmit ncursrc=" ncursrc " ncurdst=" ncurdst " nix=" nix)
        (let ( 
 	     (osrc (compile_obj ncursrc gcx))
+	     (dstype (get_field :nocc_ctyp ncurdst))
 	     (odst (compile_obj ncurdst gcx))
 	     (dstlist (make_list discr_list))
 	     (ocomp (instance class_objcompute
 		     :obi_loc nloc
 		     :obdi_destlist dstlist
+		     :obcpt_type dstype
 		     :obcpt_expr osrc))
 	     )
 	 (list_append dstlist odst)
