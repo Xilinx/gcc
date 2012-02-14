@@ -1777,16 +1777,16 @@ meltgc_strbuf_reserve (melt_ptr_t outbuf_p, unsigned reslen)
       /* to help catching monster buffer overflow */
       if (newsiz > MELT_BIGLEN)
 	{
-	  static long sbufthreshold;
+	  static unsigned long sbufthreshold;
 	  if (newsiz > sbufthreshold && melt_flag_debug) 
 	    {
-	      int shownsize = 0;
+	      unsigned int shownsize = 0;
 	      long rnd = melt_lrand() & 0xffffff;
 	      sbufthreshold = ((newsiz + (sbufthreshold / 4)) | 0xff) + 1;
 	      shownsize = (int)(5000 + (sbufthreshold/(MELT_BIGLEN/16)));
 	      gcc_assert ((shownsize * 3L) < newsiz);
 	      /* we generate a quasirandom marker to ease searching */
-	      debugeprintf_raw("\n\n##########%06x##\n", rnd);
+	      debugeprintf_raw("\n\n##########%06lx##\n", rnd);
 	      debugeprintf
 		("MELT string buffer @%p of length %ld growing very big to %ld\n", 
 		 outbufv,    
@@ -1795,12 +1795,12 @@ meltgc_strbuf_reserve (melt_ptr_t outbuf_p, unsigned reslen)
 	      debugeprintf("MELT big string buffer starts with %d bytes:\n%.*s\n",
 			   shownsize, shownsize,
 			   buf_outbufv->bufzn + buf_outbufv->bufstart);
-	      debugeprintf_raw("##########%06x##\n", rnd);
+	      debugeprintf_raw("##########%06lx##\n", rnd);
 	      debugeprintf("MELT big string buffer ends with %d bytes:\n%.*s\n",
 			   shownsize, shownsize,
 			   buf_outbufv->bufzn + buf_outbufv->bufend
 			   - shownsize);
-	      debugeprintf_raw("##########%06x##\n", rnd);
+	      debugeprintf_raw("##########%06lx##\n", rnd);
 	      melt_dbgshortbacktrace ("MELT big string buffer", 20);
 	    }
 	}
@@ -5699,11 +5699,11 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 
  static void melt_linemap_compute_current_location (struct reading_st *rd);
 
- #define READ_ERROR(Fmt,...)	do {					\
-   melt_linemap_compute_current_location (rd);				\
-   error_at(rd->rsrcloc, Fmt, ##__VA_ARGS__);				\
-   melt_fatal_error("MELT read failure <%s:%d>",				\
-	       lbasename(__FILE__), __LINE__);				\
+ #define READ_ERROR(Fmt,...)    do {                                    \
+   melt_linemap_compute_current_location (rd);                          \
+   error_at(rd->rsrcloc, Fmt, ##__VA_ARGS__);                           \
+   melt_fatal_error("MELT read failure <%s:%d>",                        \
+               lbasename(__FILE__), __LINE__);                          \
  } while(0)
 
  #define READ_WARNING(Fmt,...)	do {					\
@@ -6721,6 +6721,9 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
  {
    int lineno = rd->rlineno;
    location_t loc = 0;
+ #if MELT_HAVE_DEBUG
+   char curlocbuf[100];
+ #endif
    MELT_ENTERFRAME (3, NULL);
  #define sexprv  meltfram__.mcfr_varptr[0]
  #define contv   meltfram__.mcfr_varptr[1]
@@ -6730,6 +6733,10 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    (void) skipspace_getc (rd, COMMENT_SKIP);
    melt_linemap_compute_current_location (rd);
    loc = rd->rsrcloc;
+   MELT_LOCATION_HERE_PRINTF (curlocbuf,
+			     "readsexpr @ %s:%d:%d",
+			      lbasename(LOCATION_FILE(loc)),  
+			      LOCATION_LINE (loc), LOCATION_COLUMN(loc));
    contv = meltgc_readseqlist (rd, endc);
    sexprv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) contv, loc, 0);
    MELT_EXITFRAME ();
@@ -6909,6 +6916,9 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    int escaped = 0;
    int quoted = 0;
    location_t loc = 0;
+ #if MELT_HAVE_DEBUG
+   char curlocbuf[100];
+ #endif
    MELT_ENTERFRAME (6, NULL);
  #define readv    meltfram__.mcfr_varptr[0]
  #define strv     meltfram__.mcfr_varptr[1]
@@ -6917,6 +6927,10 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
  #define sbufv    meltfram__.mcfr_varptr[4]
    melt_linemap_compute_current_location (rd);
    loc = rd->rsrcloc;
+   MELT_LOCATION_HERE_PRINTF (curlocbuf,
+			     "readmacrostringsequence @ %s:%d:%d",
+			       lbasename(LOCATION_FILE(loc)),  
+			       LOCATION_LINE (loc), LOCATION_COLUMN(loc));
    seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
    sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
    if (rdcurc() == '$' && rdfollowc(1)=='\'') 
@@ -6936,6 +6950,11 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        skipspace_getc(rd, COMMENT_NO);
        continue;
      }
+   loc = rd->rsrcloc;
+   MELT_LOCATION_HERE_PRINTF (curlocbuf,
+     "readmacrostringsequence inside @ %s:%d:%d",
+     lbasename(LOCATION_FILE(loc)),  
+     LOCATION_LINE (loc), LOCATION_COLUMN(loc));
      if (rdcurc()=='}' && rdfollowc(1)=='#') {
        rdnext (); 
        rdnext ();
@@ -7228,11 +7247,20 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    int c = 0;
    char *nam = 0;
    int lineno = rd->rlineno;
+   location_t loc = 0;
+ #if MELT_HAVE_DEBUG
+   char curlocbuf[120];
+ #endif
    MELT_ENTERFRAME (4, NULL);
  #define readv   meltfram__.mcfr_varptr[0]
  #define compv   meltfram__.mcfr_varptr[1]
  #define seqv    meltfram__.mcfr_varptr[2]
  #define altv    meltfram__.mcfr_varptr[3]
+   loc = rd->rsrcloc;
+   MELT_LOCATION_HERE_PRINTF (curlocbuf,
+     "readvalstart @ %s:%d:%d",
+     lbasename(LOCATION_FILE(loc)),  
+     LOCATION_LINE (loc), LOCATION_COLUMN(loc));
    readv = NULL;
    c = skipspace_getc (rd, COMMENT_SKIP);
    /*   debugeprintf ("start meltgc_readval line %d col %d char %c", rd->rlineno, rd->rcol,
@@ -7296,7 +7324,6 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    else if (c == '\'')
      {
        bool got = false;
-       location_t loc = 0;
        rdnext ();
        compv = meltgc_readval (rd, &got);
        if (!got)
@@ -7307,6 +7334,10 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
        melt_linemap_compute_current_location (rd);
        loc = rd->rsrcloc;
+       MELT_LOCATION_HERE_PRINTF (curlocbuf,
+				  "readval quote @ %s:%d:%d",
+				  lbasename(LOCATION_FILE(loc)),  
+				  LOCATION_LINE (loc), LOCATION_COLUMN(loc));
        readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
        *pgot = TRUE;
        goto end;
@@ -7327,6 +7358,10 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
        melt_linemap_compute_current_location (rd);
        loc = rd->rsrcloc;
+       MELT_LOCATION_HERE_PRINTF (curlocbuf,
+				  "readval exclaim @ %s:%d:%d",
+				  lbasename(LOCATION_FILE(loc)),  
+				  LOCATION_LINE (loc), LOCATION_COLUMN(loc));
        readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
        *pgot = TRUE;
        goto end;
@@ -7338,6 +7373,10 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        rdnext ();
        melt_linemap_compute_current_location (rd);
        loc = rd->rsrcloc;
+       MELT_LOCATION_HERE_PRINTF (curlocbuf,
+				  "readval backquote @ %s:%d:%d",
+				  lbasename(LOCATION_FILE(loc)),  
+				  LOCATION_LINE (loc), LOCATION_COLUMN(loc));
        compv = meltgc_readval (rd, &got);
        if (!got)
 	 READ_ERROR ("MELT: expecting value after backquote %.20s",
@@ -7357,6 +7396,10 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        rdnext ();
        melt_linemap_compute_current_location (rd);
        loc = rd->rsrcloc;
+       MELT_LOCATION_HERE_PRINTF (curlocbuf,
+				  "readval comma @ %s:%d:%d",
+				  lbasename(LOCATION_FILE(loc)),  
+				  LOCATION_LINE (loc), LOCATION_COLUMN(loc));
        compv = meltgc_readval (rd, &got);
        if (!got)
 	 READ_ERROR ("MELT: expecting value after comma %.20s", &rdcurc ());
@@ -7375,6 +7418,10 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        rdnext ();
        melt_linemap_compute_current_location (rd);
        loc = rd->rsrcloc;
+       MELT_LOCATION_HERE_PRINTF (curlocbuf,
+				  "readval at @ %s:%d:%d",
+				  lbasename(LOCATION_FILE(loc)),  
+				  LOCATION_LINE (loc), LOCATION_COLUMN(loc));
        compv = meltgc_readval (rd, &got);
        if (!got)
 	 READ_ERROR ("MELT: expecting value after at %.20s", &rdcurc ());
@@ -7393,6 +7440,10 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        rdnext ();
        melt_linemap_compute_current_location (rd);
        loc = rd->rsrcloc;
+       MELT_LOCATION_HERE_PRINTF (curlocbuf,
+				  "readval question @ %s:%d:%d",
+				  lbasename(LOCATION_FILE(loc)),  
+				  LOCATION_LINE (loc), LOCATION_COLUMN(loc));
        compv = meltgc_readval (rd, &got);
        if (!got)
 	 READ_ERROR ("MELT: expecting value after question %.20s", &rdcurc ());
@@ -7684,6 +7735,9 @@ melt_inform_str (melt_ptr_t mixloc_p, const char *msg,
 melt_ptr_t
 meltgc_read_file (const char *filnam, const char *locnam)
 {
+ #if MELT_HAVE_DEBUG
+   char curlocbuf[100];
+ #endif
   struct reading_st rds;
   FILE *fil = 0;
   struct reading_st *rd = 0;
@@ -7763,9 +7817,15 @@ meltgc_read_file (const char *filnam, const char *locnam)
   while (!rdeof ())
     {
       bool got = FALSE;
+      location_t loc = 0;
       skipspace_getc (rd, COMMENT_SKIP);
       if (rdeof ())
 	break;
+      loc = rd->rsrcloc;
+      MELT_LOCATION_HERE_PRINTF (curlocbuf,
+				 "readfile @ %s:%d:%d",
+				 lbasename(LOCATION_FILE(loc)),  
+				 LOCATION_LINE (loc), LOCATION_COLUMN(loc));
       valv = meltgc_readval (rd, &got);
       if (!got)
 	READ_ERROR ("MELT: no value read %.20s", &rdcurc ());

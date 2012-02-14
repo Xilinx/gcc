@@ -1,3 +1,12 @@
+2011-02-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_strbuf_reserve) Improve big buffer debugging.
+	(READ_ERROR): Untabify.
+	(meltgc_readsexpr, meltgc_readmacrostringsequence)
+	(meltgc_read_file): Use MELT_LOCATION_HERE_PRINTF...
+	* melt/warmelt-base.melt (increment): New primitive.
+	* melt/warmelt-debug.melt (dbgout_strbuf_method): New method for
+	dbg_output on discr_strbuf.
+
 2011-02-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-normatch.melt (class_nrep_match_data_initializer):

@@ -609,6 +609,93 @@ $TORANK}#
 
 (install_method discr_string  dbg_output dbgout_string_method)
 
+;;; string buffer debug output
+(defun dbgout_strbuf_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (assert_msg "check self" (is_strbuf self))
+  (let ( (dis (discrim self)) 
+	 (disname (get_field :named_name dis))
+	 (sbuf  (unsafe_get_field :dbgi_out dbgi))
+	 (:long ulen (strbuf_usedlength self))
+	 )
+    (if (>i ulen 20) (add2out_indent sbuf depth))
+    (add2out sbuf "strbuf." DISNAME "[ulen=" ulen "]<\"") 
+    (if (<=i depth 1)
+	(cond
+	 ( (<i ulen 4000)
+	   (code_chunk 
+	    outallstrbufchk
+	    #{/*$OUTALLSTRBUFCHK*/ meltgc_add_out_cstr_len
+	    ((melt_ptr_t)$SBUF, 
+	     melt_strbuf_str ((melt_ptr_t)$SELF),
+	     (int) $ULEN);
+	    }#)
+	   )
+	 (:else
+	   (code_chunk 
+	    outbigslicstrbufchk
+	    #{/*$OUTBIGSLICSTRBUFCHK*/ 
+            const int startslice = 1000;
+            const int endslice = 2500;
+            gcc_assert (startslice + endslice < (int)$ULEN - 5);
+	    meltgc_add_out_cstr_len
+	       ((melt_ptr_t)$SBUF, 
+	        melt_strbuf_str ((melt_ptr_t)$SELF),
+	       startslice);
+            meltgc_out_printf
+	       ((melt_ptr_t)$SBUF,
+		"\"\n ... %d bytes skipped\n ...\"", 
+                (int)$ULEN - (startslice+endslice));
+	    meltgc_add_out_cstr_len
+	       ((melt_ptr_t)$SBUF, 
+	        (melt_strbuf_str ((melt_ptr_t)$SELF)) + $ULEN - endslice,
+		endslice);
+	    }#
+	    ))
+	  ))
+      (cond
+       ( (<i ulen 1000)
+	   (code_chunk 
+	    outalltinystrbufchk
+	    #{ /*$OUTALLTINYSTRBUFCHK*/ meltgc_add_out_cstr_len
+	    ((melt_ptr_t)$SBUF, 
+	     melt_strbuf_str ((melt_ptr_t)$SELF),
+	     (int) $ULEN);
+	    }#
+	    )
+	   )
+	 (:else
+	   (code_chunk 
+	    outtinyslicstrbufchk
+	    #{ /*+$OUTTINYSLICSTRBUFCHK*/ 
+            const int startslice = 100;
+            const int endslice = 550;
+            gcc_assert (startslice + endslice < (int)$ULEN - 5);
+	    meltgc_add_out_cstr_len
+	       ((melt_ptr_t)$SBUF, 
+	        melt_strbuf_str ((melt_ptr_t)$SELF),
+	       startslice);
+            meltgc_out_printf
+	       ((melt_ptr_t)$SBUF,
+		"\"\n ... %d bytes skipped\n ...\"", 
+                (int)$ULEN - (startslice+endslice));
+	    meltgc_add_out_cstr_len
+	       ((melt_ptr_t)$SBUF, 
+	        (melt_strbuf_str ((melt_ptr_t)$SELF)) + $ULEN - endslice,
+		endslice); 
+            /*-$OUTTINYSLICSTRBUFCHK*/
+	    }#
+	    )
+	   )
+	  )
+    (add2out sbuf "\">") 
+    (if (>i ulen 60) (add2out_indent sbuf depth))
+    ))
+(install_method discr_strbuf  dbg_output dbgout_strbuf_method)
+
+;;;;;;;;;;;;;;;;
+			 
+	
 ;; integer debug output
 (defun dbgout_integer_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))

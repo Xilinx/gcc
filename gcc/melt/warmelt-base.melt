@@ -3696,6 +3696,11 @@ polyhedron values.}#
 #endif /*melt_variadic_index*/
 }#)
 
+
+(defprimitive increment (:long left incr) :void
+  :doc #{Increment $LEFT (when variable) with $INCR.}#
+  #{ /*increment*/ $LEFT += $INCR; 
+  }#)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  ;; keep the alphanumerical order
@@ -3794,6 +3799,7 @@ polyhedron values.}#
  generate_flavored_melt_module
  get_globpredef
  ignore
+ increment
  inform_plain
  inform_strv
  informsg_plain
