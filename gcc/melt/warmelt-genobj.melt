@@ -166,6 +166,13 @@
   :fields (obcx_loc			;optional location
 	   ))
 
+(defclass class_objflag
+  :super class_generated_c_code
+  :fields (obflag_matchflag
+	   obflag_name
+	   obflag_rank
+	   ))
+
 ;;;; instructions
 (defclass class_objinstr
   :super class_generated_c_code
@@ -263,9 +270,9 @@
 	   ))
 
 ;; a block for compiling new matches with flags
-(defclass class_objflagblock
+(defclass class_objmatchflagblock
   :super class_objanyblock
-  :fields (oflablo_flags 		;the tuple of flags
+  :fields (omchflgblo_flags 		;the tuple of flags
 	   ))
 
 ;; unique label instr
@@ -588,6 +595,7 @@
  class_objlocatedexpv
  class_objlocv
  class_objloop
+ class_objmatchflagblock
  class_objmsend
  class_objmultiallocblock
  class_objmultiapply
@@ -2757,6 +2765,9 @@ $SBUF.}#
   (let ( (loc (unsafe_get_field :nrep_loc nsq))
 	 (var (unsafe_get_field :nstq_var nsq))
 	 (exp (unsafe_get_field :nstq_exp nsq))
+	 )
+    (debug "compilobj_nrep_setq loc=" loc " var=" var " exp=" exp)
+    (let (
 	 (cexp (compile_obj exp gcx))
 	 (cvar (compile_obj var gcx))
 	 (cres (put_objdest cexp cvar))
@@ -2768,7 +2779,7 @@ $SBUF.}#
 	 (unsafe_put_fields cres :obi_loc loc))
     (debug "compilobj_nrep_setq cres=" cres)
     cres
-    ))
+    )))
 (install_method class_nrep_setq compile_obj compilobj_nrep_setq)
 
 
@@ -3569,9 +3580,9 @@ $SBUF.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_integer (recv desto)
+  (debug "putobjdest_integer recv=" recv " desto=" desto)
   (assert_msg "check recv" (is_integerbox recv))
   (assert_msg "check desto" (is_a desto class_objlocv))
-  (debug "putobjdest_integer recv=" recv)
   (let ( (destlis (make_list discr_list))
 	 (explis (make_list discr_list))
 	 (typdesto (unsafe_get_field :obv_type desto))
@@ -5272,10 +5283,16 @@ $SBUF.}#
 (install_method class_nrep_match compile_obj compilobj_nrep_match)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+
+
+
+
 (defclass class_alternate_match_nrep_data 
   :super class_root
   :fields (altmatchn_prev		;the previous
 	   altmatchn_nrep		;the current nrep_altmatch
+	   altmatchn_flagmap		;mapping from match flags to objflags
 	   )
   )
 (export_class class_alternate_match_nrep_data)
@@ -5284,7 +5301,8 @@ $SBUF.}#
 (defun compilobj_nrep_altmatch (nmat gcx)
   (assert_msg "check nmat" (is_a nmat class_nrep_altmatch))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
-  (debug "compilobj_nrep_altmatch nmat=" nmat "\n gcx=" gcx)
+  (debug "compilobj_nrep_altmatch nmat=" nmat "\n** gcx=" gcx 
+	 "\n** class_objmatchflagblock=" class_objmatchflagblock "\n")
   (let ( 
 	(nloc (unsafe_get_field :nrep_loc nmat))
 	(nctyp (unsafe_get_field :nexpr_ctyp nmat))
@@ -5294,11 +5312,14 @@ $SBUF.}#
 	(nflags (unsafe_get_field :namatch_flags nmat))
 	(obodyl (make_list discr_list))
 	(oldaltmatch (get_field :gncx_altmatch gcx))
+	(oflagmap (make_mapobject discr_map_objects 
+				  (+i 5 (*i 2 (multiple_length nflags)))))
 	(altmatch (instance class_alternate_match_nrep_data 
 			    :altmatchn_prev oldaltmatch
 			    :altmatchn_nrep nmat
-			    ))
-	)
+			    :altmatchn_flagmap oflagmap
+			    )))
+							      
     (debug "compilobj_nrep_altmatch nmatched=" nmatched " nres=" nres 
 	   " nflags=" nflags " nctyp=" nctyp
 	   " nbody=" nbody " oldaltmatch=" oldaltmatch)
@@ -5311,32 +5332,37 @@ $SBUF.}#
 			      :oclr_vloc obvares))
 	  )
       (list_append obodyl ocleares)
-      (foreach_in_multiple
-       (nbody)
-       (curncomp :long bodix)
-       (debug  "compilobj_nrep_altmatch curncomp=" curncomp " bodix=" bodix)
-       (let ( (curocomp (compile_obj curncomp gcx))
-	      )
-	 (debug "compilobj_nrep_altmatch curocomp=" curocomp)
-	 (assert_msg "check curocomp object" (is_object curocomp))
-	 (list_append obodyl curocomp)
-	 ))
-      (debug "compilobj_nrep_altmatch obodyl=" obodyl)
+      ;;
+      (debug "compilobj_nrep_altmatch nflags=" nflags)
       (let ( (oflags 
 	      (multiple_map
 	       nflags
 	       (lambda (curnflag :long fix)
+		 (debug "compilobj_nrep_altmatch/lambda curnflag=" curnflag " fix=" fix)
 		 (let ( (curoflag (compile_obj curnflag gcx))
 			)
+		   (debug "compilobj_nrep_altmatch/lambda curoflag=" curoflag)
 		   (return curoflag))))
 	      )
 	     )
 	(debug "compilobj_nrep_altmatch oflags=" oflags)
-	)
-      (dispose_objloc obvares gcx)
-      (put_fields gcx :gncx_altmatch oldaltmatch)
-      (assert_msg "@@unimplemented compilobj_nrep_altmatch")
-      )))
+	;;
+	(debug "compilobj_nrep_altmatch nbody=" nbody)
+	(foreach_in_multiple
+	 (nbody)
+	 (curncomp :long bodix)
+	 (debug  "compilobj_nrep_altmatch curncomp=" curncomp " bodix=" bodix)
+	 (let ( (curocomp (compile_obj curncomp gcx))
+		)
+	   (debug "compilobj_nrep_altmatch curocomp=" curocomp)
+	   (assert_msg "check curocomp object" (is_object curocomp))
+	   (list_append obodyl curocomp)
+	   ))
+	(debug "compilobj_nrep_altmatch obodyl=" obodyl)
+	(dispose_objloc obvares gcx)
+	(put_fields gcx :gncx_altmatch oldaltmatch)
+	(assert_msg "@@unimplemented compilobj_nrep_altmatch")
+	))))
 (install_method class_nrep_altmatch compile_obj compilobj_nrep_altmatch)
 
 
@@ -5367,26 +5393,34 @@ $SBUF.}#
 
 
 ;;;;;;;;;;;;;;;;
+;; the compilation of a match flag should give a 
 (defun compilobj_nrep_matchflag (nmflag gcx)
   (debug "compilobj_nrep_matchflag nmflag=" nmflag "\n of discrim=" (discrim nmflag)
-	 "\n gcx=" gcx)
+	 "\n** gcx=" gcx)
   (assert_msg "check nmflag" (is_a nmflag class_nrep_match_flag))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (let ( (nloc (unsafe_get_field :nrep_loc nmflag))
 	 (nrfla (unsafe_get_field :nrpfla_flag nmflag))
 	 (nrmatch (unsafe_get_field :nrpfla_nmatch nmflag))
+	 (altmatchdata (get_field :gncx_altmatch gcx))
+	 (oflagmap (get_field :altmatchn_flagmap altmatchdata))
 	 )
-    (debug "compilobj_nrep_matchflag nrfla=" nrfla " nrmatch=" nrmatch)
-    (shortbacktrace_dbg "compilobj_nrep_matchflag" 12)
-    (let ( (objm
-	    (make_objcompute nloc ctype_void ##{??compilobj_nrep_matchflag
-			     #error incomplete compilobj_nrep_matchflag
-			     /*nrfla=*/ $NRFLA
-			     }#))
+    (debug "compilobj_nrep_matchflag nrfla=" nrfla " nrmatch=" nrmatch " oflagmap=" oflagmap)
+    (assert_msg "check oflagmap" (is_mapobject oflagmap))
+    (let ( (objmf (mapobject_get oflagmap nmflag))
 	   )
-      (error_plain nloc "not fully implemented compilobj_nrep_matchflag")
-      (debug "compilobj_nrep_matchflag objm=" objm)
-      (return objm)
+      (if objmf
+	  (progn
+	    (debug "compilobj_nrep_matchflag found & returning objmf=" objmf)
+	    (assert_msg "check ojbmf" (is_a objmf class_objflag))
+	    (return objmf)))
+      (setq objmf (instance class_objflag
+			    :obflag_matchflag nmflag
+			    :obflag_name (get_field :mflag_string nrfla)
+			    :obflag_rank (get_field :mflag_rank nrfla)))
+      (mapobject_put oflagmap nmflag objmf)
+      (debug "compilobj_nrep_matchflag new objmf=" objmf " in updated oflagmap=" oflagmap)
+      (return objmf)
       )))
 
 (install_method class_nrep_match_flag compile_obj compilobj_nrep_matchflag)
