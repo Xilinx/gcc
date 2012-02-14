@@ -4555,7 +4555,7 @@ lab_endgetargs:;
       /*objgoto */ goto mtch1_0;
       ;
 
-    /*objlabel */ mtch1_0:
+    /*objlabel */ mtch1_0:;
       MELT_LOCATION ("warmelt-genobj.melt:883:/ objlabel");
       ;
       /*^cond */
@@ -4594,7 +4594,7 @@ lab_endgetargs:;
 	}
       ;
 
-    /*objlabel */ mtch1_1:
+    /*objlabel */ mtch1_1:;
       MELT_LOCATION ("warmelt-genobj.melt:883:/ objlabel");
       ;
       /*^quasiblock */
@@ -4615,7 +4615,7 @@ lab_endgetargs:;
       /*objgoto */ goto mtch1__end /*endmatch */ ;
       ;
 
-    /*objlabel */ mtch1_2:
+    /*objlabel */ mtch1_2:;
       MELT_LOCATION ("warmelt-genobj.melt:885:/ objlabel");
       ;
       /*^clear */
@@ -4671,7 +4671,7 @@ lab_endgetargs:;
 	}
       ;
 
-    /*objlabel */ mtch1_3:
+    /*objlabel */ mtch1_3:;
       MELT_LOCATION ("warmelt-genobj.melt:887:/ objlabel");
       ;
       /*^clear */
@@ -4717,7 +4717,7 @@ lab_endgetargs:;
 	}
       ;
 
-    /*objlabel */ mtch1_4:
+    /*objlabel */ mtch1_4:;
       MELT_LOCATION ("warmelt-genobj.melt:885:/ objlabel");
       ;
       /*^quasiblock */
@@ -4857,7 +4857,7 @@ lab_endgetargs:;
       /*objgoto */ goto mtch1__end /*endmatch */ ;
       ;
 
-    /*objlabel */ mtch1_5:
+    /*objlabel */ mtch1_5:;
       MELT_LOCATION ("warmelt-genobj.melt:898:/ objlabel");
       ;
       /*^clear */
@@ -4902,7 +4902,7 @@ lab_endgetargs:;
 	}
       ;
 
-    /*objlabel */ mtch1_6:
+    /*objlabel */ mtch1_6:;
       MELT_LOCATION ("warmelt-genobj.melt:898:/ objlabel");
       ;
       /*^quasiblock */
@@ -5022,7 +5022,7 @@ lab_endgetargs:;
       /*objgoto */ goto mtch1__end /*endmatch */ ;
       ;
 
-    /*objlabel */ mtch1_7:
+    /*objlabel */ mtch1_7:;
       MELT_LOCATION ("warmelt-genobj.melt:908:/ objlabel");
       ;
       /*^quasiblock */
@@ -5194,7 +5194,7 @@ lab_endgetargs:;
       /*objgoto */ goto mtch1__end /*endmatch */ ;
       ;
 
-    /*objlabel */ mtch1__end:
+    /*objlabel */ mtch1__end:;
       MELT_LOCATION ("warmelt-genobj.melt:882:/ objlabel");
       ;
     }

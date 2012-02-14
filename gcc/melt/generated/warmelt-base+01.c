@@ -3586,7 +3586,7 @@ lab_endgetargs:;
       /*objgoto */ goto mtch1_0;
       ;
 
-    /*objlabel */ mtch1_0:
+    /*objlabel */ mtch1_0:;
       MELT_LOCATION ("warmelt-base.melt:1315:/ objlabel");
       ;
       /*^clear */
@@ -3642,7 +3642,7 @@ lab_endgetargs:;
 	}
       ;
 
-    /*objlabel */ mtch1_1:
+    /*objlabel */ mtch1_1:;
       MELT_LOCATION ("warmelt-base.melt:1317:/ objlabel");
       ;
       /*^clear */
@@ -3688,7 +3688,7 @@ lab_endgetargs:;
 	}
       ;
 
-    /*objlabel */ mtch1_2:
+    /*objlabel */ mtch1_2:;
       MELT_LOCATION ("warmelt-base.melt:1315:/ objlabel");
       ;
       /*^quasiblock */
@@ -3789,7 +3789,7 @@ lab_endgetargs:;
       /*objgoto */ goto mtch1__end /*endmatch */ ;
       ;
 
-    /*objlabel */ mtch1_3:
+    /*objlabel */ mtch1_3:;
       MELT_LOCATION ("warmelt-base.melt:1322:/ objlabel");
       ;
       /*^quasiblock */
@@ -3855,7 +3855,7 @@ lab_endgetargs:;
       /*objgoto */ goto mtch1__end /*endmatch */ ;
       ;
 
-    /*objlabel */ mtch1__end:
+    /*objlabel */ mtch1__end:;
       MELT_LOCATION ("warmelt-base.melt:1314:/ objlabel");
       ;
     }

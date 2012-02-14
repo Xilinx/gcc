@@ -2196,7 +2196,7 @@ lab_endgetargs:;
 				  /*objgoto */ goto mtch1_0;
 				  ;
 
-				/*objlabel */ mtch1_0:
+				/*objlabel */ mtch1_0:;
 				  MELT_LOCATION
 				    ("warmelt-debug.melt:332:/ objlabel");
 				  ;
@@ -2237,7 +2237,7 @@ lab_endgetargs:;
 				    }
 				  ;
 
-				/*objlabel */ mtch1_1:
+				/*objlabel */ mtch1_1:;
 				  MELT_LOCATION
 				    ("warmelt-debug.melt:332:/ objlabel");
 				  ;
@@ -2284,7 +2284,7 @@ lab_endgetargs:;
 				  /*objgoto */ goto mtch1__end /*endmatch */ ;
 				  ;
 
-				/*objlabel */ mtch1_2:
+				/*objlabel */ mtch1_2:;
 				  MELT_LOCATION
 				    ("warmelt-debug.melt:335:/ objlabel");
 				  ;
@@ -2302,7 +2302,7 @@ lab_endgetargs:;
 				  /*objgoto */ goto mtch1__end /*endmatch */ ;
 				  ;
 
-				/*objlabel */ mtch1__end:
+				/*objlabel */ mtch1__end:;
 				  MELT_LOCATION
 				    ("warmelt-debug.melt:331:/ objlabel");
 				  ;

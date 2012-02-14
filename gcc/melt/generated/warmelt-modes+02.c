@@ -2981,7 +2981,7 @@ lab_endgetargs:;
 	    /*objgoto */ goto mtch1_0;
 	    ;
 
-	  /*objlabel */ mtch1_0:
+	  /*objlabel */ mtch1_0:;
 	    MELT_LOCATION ("warmelt-modes.melt:2721:/ objlabel");
 	    ;
 	    /*^clear */
@@ -3098,7 +3098,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_1:
+	  /*objlabel */ mtch1_1:;
 	    MELT_LOCATION ("warmelt-modes.melt:2722:/ objlabel");
 	    ;
 	    /*^clear */
@@ -3143,7 +3143,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_2:
+	  /*objlabel */ mtch1_2:;
 	    MELT_LOCATION ("warmelt-modes.melt:2723:/ objlabel");
 	    ;
 	    /*^clear */
@@ -3188,7 +3188,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_3:
+	  /*objlabel */ mtch1_3:;
 	    MELT_LOCATION ("warmelt-modes.melt:2724:/ objlabel");
 	    ;
 	    /*^clear */
@@ -3233,7 +3233,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_4:
+	  /*objlabel */ mtch1_4:;
 	    MELT_LOCATION ("warmelt-modes.melt:2725:/ objlabel");
 	    ;
 	    /*^clear */
@@ -3278,7 +3278,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_5:
+	  /*objlabel */ mtch1_5:;
 	    MELT_LOCATION ("warmelt-modes.melt:2727:/ objlabel");
 	    ;
 	    /*^clear */
@@ -3325,7 +3325,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_6:
+	  /*objlabel */ mtch1_6:;
 	    MELT_LOCATION ("warmelt-modes.melt:2729:/ objlabel");
 	    ;
 	    /*^clear */
@@ -3370,7 +3370,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_7:
+	  /*objlabel */ mtch1_7:;
 	    MELT_LOCATION ("warmelt-modes.melt:2730:/ objlabel");
 	    ;
 	    /*^clear */
@@ -3415,7 +3415,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_8:
+	  /*objlabel */ mtch1_8:;
 	    MELT_LOCATION ("warmelt-modes.melt:2731:/ objlabel");
 	    ;
 	    /*^clear */
@@ -3460,7 +3460,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_9:
+	  /*objlabel */ mtch1_9:;
 	    MELT_LOCATION ("warmelt-modes.melt:2721:/ objlabel");
 	    ;
 	    /*^quasiblock */
@@ -4662,7 +4662,7 @@ lab_endgetargs:;
 	    /*objgoto */ goto mtch1__end /*endmatch */ ;
 	    ;
 
-	  /*objlabel */ mtch1_10:
+	  /*objlabel */ mtch1_10:;
 	    MELT_LOCATION ("warmelt-modes.melt:2874:/ objlabel");
 	    ;
 	    /*^quasiblock */
@@ -4766,7 +4766,7 @@ lab_endgetargs:;
 	    /*objgoto */ goto mtch1__end /*endmatch */ ;
 	    ;
 
-	  /*objlabel */ mtch1__end:
+	  /*objlabel */ mtch1__end:;
 	    MELT_LOCATION ("warmelt-modes.melt:2720:/ objlabel");
 	    ;
 	  }
@@ -5597,7 +5597,7 @@ lab_endgetargs:;
 	    /*objgoto */ goto mtch1_0;
 	    ;
 
-	  /*objlabel */ mtch1_0:
+	  /*objlabel */ mtch1_0:;
 	    MELT_LOCATION ("warmelt-modes.melt:2920:/ objlabel");
 	    ;
 	    /*^clear */
@@ -5774,7 +5774,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_1:
+	  /*objlabel */ mtch1_1:;
 	    MELT_LOCATION ("warmelt-modes.melt:2921:/ objlabel");
 	    ;
 	    /*^clear */
@@ -5819,7 +5819,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_2:
+	  /*objlabel */ mtch1_2:;
 	    MELT_LOCATION ("warmelt-modes.melt:2922:/ objlabel");
 	    ;
 	    /*^clear */
@@ -5864,7 +5864,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_3:
+	  /*objlabel */ mtch1_3:;
 	    MELT_LOCATION ("warmelt-modes.melt:2923:/ objlabel");
 	    ;
 	    /*^clear */
@@ -5909,7 +5909,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_4:
+	  /*objlabel */ mtch1_4:;
 	    MELT_LOCATION ("warmelt-modes.melt:2924:/ objlabel");
 	    ;
 	    /*^clear */
@@ -5954,7 +5954,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_5:
+	  /*objlabel */ mtch1_5:;
 	    MELT_LOCATION ("warmelt-modes.melt:2925:/ objlabel");
 	    ;
 	    /*^clear */
@@ -6001,7 +6001,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_6:
+	  /*objlabel */ mtch1_6:;
 	    MELT_LOCATION ("warmelt-modes.melt:2927:/ objlabel");
 	    ;
 	    /*^clear */
@@ -6046,7 +6046,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_7:
+	  /*objlabel */ mtch1_7:;
 	    MELT_LOCATION ("warmelt-modes.melt:2928:/ objlabel");
 	    ;
 	    /*^clear */
@@ -6091,7 +6091,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_8:
+	  /*objlabel */ mtch1_8:;
 	    MELT_LOCATION ("warmelt-modes.melt:2929:/ objlabel");
 	    ;
 	    /*^clear */
@@ -6136,7 +6136,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_9:
+	  /*objlabel */ mtch1_9:;
 	    MELT_LOCATION ("warmelt-modes.melt:2930:/ objlabel");
 	    ;
 	    /*^clear */
@@ -6181,7 +6181,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_10:
+	  /*objlabel */ mtch1_10:;
 	    MELT_LOCATION ("warmelt-modes.melt:2931:/ objlabel");
 	    ;
 	    /*^clear */
@@ -6226,7 +6226,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_11:
+	  /*objlabel */ mtch1_11:;
 	    MELT_LOCATION ("warmelt-modes.melt:2932:/ objlabel");
 	    ;
 	    /*^clear */
@@ -6271,7 +6271,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_12:
+	  /*objlabel */ mtch1_12:;
 	    MELT_LOCATION ("warmelt-modes.melt:2933:/ objlabel");
 	    ;
 	    /*^clear */
@@ -6316,7 +6316,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_13:
+	  /*objlabel */ mtch1_13:;
 	    MELT_LOCATION ("warmelt-modes.melt:2934:/ objlabel");
 	    ;
 	    /*^clear */
@@ -6361,7 +6361,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_14:
+	  /*objlabel */ mtch1_14:;
 	    MELT_LOCATION ("warmelt-modes.melt:2935:/ objlabel");
 	    ;
 	    /*^clear */
@@ -6406,7 +6406,7 @@ lab_endgetargs:;
 	      }
 	    ;
 
-	  /*objlabel */ mtch1_15:
+	  /*objlabel */ mtch1_15:;
 	    MELT_LOCATION ("warmelt-modes.melt:2920:/ objlabel");
 	    ;
 	    /*^quasiblock */
@@ -8476,7 +8476,7 @@ lab_endgetargs:;
 	    /*objgoto */ goto mtch1__end /*endmatch */ ;
 	    ;
 
-	  /*objlabel */ mtch1_16:
+	  /*objlabel */ mtch1_16:;
 	    MELT_LOCATION ("warmelt-modes.melt:3210:/ objlabel");
 	    ;
 	    /*^quasiblock */
@@ -8494,7 +8494,7 @@ lab_endgetargs:;
 	    /*objgoto */ goto mtch1__end /*endmatch */ ;
 	    ;
 
-	  /*objlabel */ mtch1__end:
+	  /*objlabel */ mtch1__end:;
 	    MELT_LOCATION ("warmelt-modes.melt:2919:/ objlabel");
 	    ;
 	  }

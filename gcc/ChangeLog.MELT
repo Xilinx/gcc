@@ -1,6 +1,49 @@
 
 2011-02-14  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	{{Regenerate}}
+	* gcc/melt/generated/warmelt-base+01.c: Regenerate.
+	* gcc/melt/generated/warmelt-base+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-base+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-base.c: Regenerate.
+	* gcc/melt/generated/warmelt-debug+01.c: Regenerate.
+	* gcc/melt/generated/warmelt-debug+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-debug+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-debug.c: Regenerate.
+	* gcc/melt/generated/warmelt-first+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-first+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-first.c: Regenerate.
+	* gcc/melt/generated/warmelt-genobj+01.c: Regenerate.
+	* gcc/melt/generated/warmelt-genobj+03.c: Regenerate.
+	* gcc/melt/generated/warmelt-genobj+05.c: Regenerate.
+	* gcc/melt/generated/warmelt-genobj+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-genobj+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-genobj.c: Regenerate.
+	* gcc/melt/generated/warmelt-macro+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-macro+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-macro.c: Regenerate.
+	* gcc/melt/generated/warmelt-modes+01.c: Regenerate.
+	* gcc/melt/generated/warmelt-modes+02.c: Regenerate.
+	* gcc/melt/generated/warmelt-modes+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-modes+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-modes.c: Regenerate.
+	* gcc/melt/generated/warmelt-normal+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-normal+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-normal.c: Regenerate.
+	* gcc/melt/generated/warmelt-normatch+04.c: Regenerate.
+	* gcc/melt/generated/warmelt-normatch+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-normatch+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-normatch.c: Regenerate.
+	* gcc/melt/generated/warmelt-outobj+01.c: Regenerate.
+	* gcc/melt/generated/warmelt-outobj+02.c: Regenerate.
+	* gcc/melt/generated/warmelt-outobj+03.c: Regenerate.
+	* gcc/melt/generated/warmelt-outobj+04.c: Regenerate.
+	* gcc/melt/generated/warmelt-outobj+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-outobj+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-outobj.c: Regenerate.
+
+2011-02-14  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (buffer_limit_cont): New private
 	container.
 	(get_code_buffer_limit, put_code_buffer_limit): New functions.
