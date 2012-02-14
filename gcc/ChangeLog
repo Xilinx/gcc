@@ -1,3 +1,238 @@
+2012-02-14  Walter Lee  <walt@tilera.com>
+
+	* config.gcc: Handle tilegx and tilepro.
+	* configure.ac (gcc_cv_as_dwarf2_debug_line): Enable test for
+	tilegx and tilepro.
+	Add HAVE_AS_TLS check for tilegx and tilepro.
+	* configure: Regenerate.
+	* doc/contrib.texi: Add Mat Hostetter and self.
+	* doc/extend.texi (TILE-Gx Built-in Functions): New node.
+	Document instruction intrinsics and network accessing intrinsics.
+	(TILEPro Built-in Functions): New node.  Document instruction
+	intrinsics and network accessing intrinsics.
+	* doc/install.texi (Specific, tilegx-*-linux*): Document it.
+	(Specific, tilepro-*-linux*): Likewise.
+	* doc/invoke.texi (TILE-Gx Options): New section.
+	(TILEPro Options): New section.
+	* doc/md.texi (TILE-Gx): New section.
+	(TILEPro): New section.
+	* common/config/tilegx/tilegx-common.c: New file.
+	* common/config/tilepro/tilepro-common.c: New file.
+	* config/tilegx/constraints.md: New file.
+	* config/tilegx/linux.h: New file.
+	* config/tilegx/mul-tables.c: New file.
+	* config/tilegx/predicates.md: New file.
+	* config/tilegx/sync.md: New file.
+	* config/tilegx/t-tilegx: New file.
+	* config/tilegx/tilegx-builtins.h: New file.
+	* config/tilegx/tilegx-c.c: New file.
+	* config/tilegx/tilegx-generic.md: New file.
+	* config/tilegx/tilegx-modes.def: New file.
+	* config/tilegx/tilegx-multiply.h: New file.
+	* config/tilegx/tilegx-protos.h: New file.
+	* config/tilegx/tilegx.c: New file.
+	* config/tilegx/tilegx.h: New file.
+	* config/tilegx/tilegx.md: New file.
+	* config/tilegx/tilegx.opt: New file.
+	* config/tilepro/constraints.md: New file.
+	* config/tilepro/gen-mul-tables.cc: New file.
+	* config/tilepro/linux.h: New file.
+	* config/tilepro/mul-tables.c: New file.
+	* config/tilepro/predicates.md: New file.
+	* config/tilepro/t-tilepro: New file.
+	* config/tilepro/tilepro-builtins.h: New file.
+	* config/tilepro/tilepro-c.c: New file.
+	* config/tilepro/tilepro-generic.md: New file.
+	* config/tilepro/tilepro-modes.def: New file.
+	* config/tilepro/tilepro-multiply.h: New file.
+	* config/tilepro/tilepro-protos.h: New file.
+	* config/tilepro/tilepro.c: New file.
+	* config/tilepro/tilepro.h: New file.
+	* config/tilepro/tilepro.md: New file.
+	* config/tilepro/tilepro.opt: New file.
+
+2012-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/52210
+	* tree-vect-slp.c (vect_get_and_check_slp_defs): Call
+	vect_model_simple_cost with two entry vect_def_type array instead
+	of an address of dt.
+
+2012-02-14  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/52178
+	* tree-streamer-in.c (lto_input_ts_field_decl_tree_pointers):
+	Do not stream DECL_QUALIFIER.
+	* tree-streamer-out.c (write_ts_field_decl_tree_pointers): Likewise.
+	* tree.c (free_lang_data_in_decl): Free DECL_QUALIFIER.
+	(find_decls_types_r): Do not walk DECL_QUALIFIER.
+
+2012-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/52181
+	* c-decl.c (merge_decls): Copy DECL_USER_ALIGN bit from olddecl to
+	newdecl.
+
+2012-02-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/52172
+	* cselib.h (cselib_subst_to_values_from_insn): New prototype.
+	* cselib.c (cselib_subst_to_values_from_insn): New function.
+	* sched-deps.c (add_insn_mem_dependence,
+	sched_analyze_1, sched_analyze_2): Use it.
+
+2012-02-13  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/52214
+	* predict.c (predict_paths_for_bb): Fix thinko in prevoius patch.
+
+2012-02-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c (LINK_COMMAND_SPEC): Deal with -fgnu-tm.
+	(GTM_SELF_SPECS): Define if not already defined.
+	(driver_self_specs): Add GTM_SELF_SPECS.
+        * config/darwin.h (LINK_COMMAND_SPEC_A): Deal with -fgnu-tm.
+        (GTM_SELF_SPECS): Define.
+	* config/i386/cygwin.h (GTM_SELF_SPECS): Likewise.
+	* config/i386/mingw32.h (GTM_SELF_SPECS): Likewise.
+
+2012-02-13  Jakub Jelinek  <jakub@redhat.com>
+
+	* cselib.c (expand_loc): Return sp, fp, hfp or cfa base reg right
+	away if seen.
+
+	* cselib.c (dump_cselib_val): Don't assume l->setting_insn is
+	non-NULL.
+
+	PR middle-end/52230
+	* omp-low.c (expand_omp_for): If a static schedule without
+	chunk size has NULL region->cont, force fd.chunk_size to be
+	integer_zero_node.
+
+2012-02-13  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR c/52190
+	* doc/extend.texi : Fix another __atomic_compare_exchange typo.
+
+2012-02-13  Richard Guenther  <rguenther@suse.de>
+
+	PR translation/52211
+	* passes.c (enable_disable_pass): Fix typo.
+
+2012-02-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/52209
+	* expr.c (expand_expr_real_2) <case BIT_NOT_EXPR>: Only expand using
+	XOR for reduce_bit_field if type is unsigned.
+
+2012-02-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.h (CANNOT_CHANGE_MODE_CLASS): In 64-bit mode,
+	disallow changes from SFmode to mode with different size in FP regs.
+
+2012-02-12  Robert Millan  <rmh@gnu.org>
+            Gerald Pfeifer <gerald@pfeifer.com>
+
+	* ginclude/stddef.h [__FreeBSD_kernel__] (__size_t): Do not define.
+	Tweak comment.
+
+2012-02-11  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR rtl-optimization/52175
+	* reorg.c (fill_slots_from_thread): Don't apply add/sub optimization
+	to frame-related instructions.
+
+2012-02-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51910
+	* tlink.c (demangled_hash_entry): Change mangled to a VEC.
+	(demangle_new_symbols): Fill it.
+	(scan_linker_output): Walk it.
+	(start_tweaking): Split out from scan_linker_output.
+	(maybe_tweak): Update sym->chosen.
+	* Makefile.in (COLLECT2_OBJS): Add vec.o and gcc-none.o
+
+2012-02-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/52132
+	* reg-stack.c (subst_stack_regs_in_debug_insn): Don't use
+	get_true_reg.
+
+2012-02-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* compare-elim.c (find_comparisons_in_bb): Eliminate only compares
+	having the same mode as previous compare.
+
+2012-02-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.c (sparc_flat_expand_prologue): Use emit_use.
+	* config/sparc/sparc.md (UNSPECV_GOTO): Delete.
+	(nonlocal_goto_internal): Likewise.
+	(nonlocal_goto): Emit a use and an indirect jump directly.
+
+2012-02-10  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR c/52190
+	* doc/extend.texi : Update comments for __atomic_compare_exchange and
+	__atomic_{is,always}_lock_free.
+
+2012-02-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52146
+	* config/i386/i386.c (ix86_legitimate_address_p): Disallow
+	negative constant address for x32.
+
+2012-02-10  Richard Henderson  <rth@redhat.com>
+
+	* tree-ssa-dce.c (propagate_necessity): Handle GIMPLE_TRANSACTION.
+	* tree-ssa-operands.c (parse_ssa_operands): Add virtual operands
+	for GIMPLE_TRANSACTION.  Tidy if's into a switch.
+
+2012-02-10  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+	    Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/50031
+	* targhooks.c (default_builtin_vectorization_cost): Handle
+	vec_promote_demote.
+	* target.h (enum vect_cost_for_stmt): Add vec_promote_demote.
+	* tree-vect-loop.c (vect_get_single_scalar_iteraion_cost): Handle
+	all types of reduction and pattern statements.
+	(vect_estimate_min_profitable_iters): Likewise.
+	* tree-vect-stmts.c (vect_model_promotion_demotion_cost): New function.
+	(vect_get_load_cost): Use vec_perm for permutations; add dump logic
+	for explicit realigns.
+	(vectorizable_conversion): Call vect_model_promotion_demotion_cost.
+	* config/spu/spu.c (spu_builtin_vectorization_cost): Handle
+	vec_promote_demote.
+	* config/i386/i386.c (ix86_builtin_vectorization_cost): Likewise.
+	* config/rs6000/rs6000.c (rs6000_builtin_vectorization_cost): Update
+	vec_perm for VSX and handle vec_promote_demote.
+
+2012-02-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/52177
+	* builtins.c (fold_builtin_atomic_always_lock_free,
+	expand_builtin_atomic_always_lock_free,
+	fold_builtin_atomic_is_lock_free, expand_builtin_atomic_is_lock_free):
+	Return and/or test boolean_true_node/boolean_false_node instead of
+	integer_one_node/integer_zero_node.
+
+2012-02-10  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/48600
+	* predict.c (predict_paths_for_bb): Prevent looping.
+	(predict_paths_leading_to_edge, predict_paths_leading_to): Update.
+
+2012-02-10  Roman Zhuykov  <zhroma@ispras.ru>
+
+	* config/arm/arm.c (output_move_double): In one case properly
+	count number of instructions that will be emitted.
+
+2012-02-10  Richard Guenther  <rguenther@suse.de>
+
+	PR translation/52193
+	* cgraphunit.c (cgraph_mark_functions_to_output): Fix typo.
+
 2012-02-09  Peter Bergner  <bergner@vnet.ibm.com>
 
 	PR middle-end/52140
@@ -19,8 +254,8 @@
 2012-02-08  Magnus Granberg  <zorry@gentoo.org>
 
 	PR driver/48524
-	* gcc.c (switch_matches) Support switches with separated form, -D
-	and -U.
+	* gcc.c (switch_matches) Support switches with separated form,
+	-D and -U.
 
 2012-02-08  Georg-Johann Lay  <avr@gjlay.de>
 
@@ -42,8 +277,7 @@
 	PR tree-optimization/46886
 	* tree-flow.h (do_while_loop_p): Declare.
 	* tree-ssa-loop-ch.c (do_while_loop_p): Export.
-	* tree-parloops.c (parallelize_loops): Only parallelize do-while
-	loops.
+	* tree-parloops.c (parallelize_loops): Only parallelize do-while loops.
 
 2012-02-08  Andrew MacLeod  <amacleod@redhat.com>
 
@@ -112,7 +346,7 @@
 	newline in -alias dumps.
 
 2012-02-07  Kai Tietz  <ktietz@redhat.com>
-            Dave Korn  <dave.korn.cygwin@gmail.com>
+	    Dave Korn  <dave.korn.cygwin@gmail.com>
 
 	PR target/40068
 	* config/i386/winnt-cxx.c (i386_pe_adjust_class_at_definition):
@@ -145,7 +379,8 @@
 	(epiphany_start_function): Handle multiple interrupt arguments and/or
 	forwarder_section attribute.
 
-	* config/epiphany/epiphany.h (LIB_SPEC): Link libc again after libgloss.
+	* config/epiphany/epiphany.h (LIB_SPEC): Link libc again after
+	libgloss.
 
 2012-02-07  Alan Modra  <amodra@gmail.com>
 
@@ -226,13 +461,11 @@
 	to vect_is_simple_use_1 and vect_is_simple_use.
 	(vectorizable_live_operation): Likewise.
 	* tree-vect-patterns.c (widened_name_p,
-	vect_recog_vector_vector_shift_pattern, check_bool_pattern):
-	Likewise.
+	vect_recog_vector_vector_shift_pattern, check_bool_pattern): Likewise.
 	* tree-vect-stmts.c (process_use, vect_get_vec_def_for_operand,
-	vectorizable_call, vectorizable_conversion,
-	vectorizable_assignment, vectorizable_shift,
-	vectorizable_operation, vectorizable_store, vectorizable_load):
-	Likewise.
+	vectorizable_call, vectorizable_conversion, vectorizable_assignment,
+	vectorizable_shift,vectorizable_operation, vectorizable_store,
+	vectorizable_load): Likewise.
 	(vect_is_simple_cond): Add an argument, pass it to
 	vect_is_simple_use_1.
 	(vectorizable_condition): Update calls to vect_is_simple_cond,
@@ -365,8 +598,7 @@
 
 2012-01-31  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
 
-	config/arm/thumb2.md (thumb2_mov_notscc): Use MVN for true
-	condition.
+	* config/arm/thumb2.md (thumb2_mov_notscc): Use MVN for true condition.
 
 2012-01-31  Jakub Jelinek  <jakub@redhat.com>
 
@@ -466,7 +698,7 @@
 
 2012-01-29  Uros Bizjak  <ubizjak@gmail.com>
 
-	* config/alpha/alpha.c (alpha_option_overrride): Default to
+	* config/alpha/alpha.c (alpha_option_override): Default to
 	full IEEE compliance mode for Go language.
 
 2011-01-29  Tijl Coosemans  <tijl@coosemans.org>

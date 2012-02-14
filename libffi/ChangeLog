@@ -1,3 +1,20 @@
+2012-02-13  Kai Tietz  <ktietz@redhat.com>
+
+	PR libffi/52221
+	* src/x86/ffi.c (ffi_prep_raw_closure_loc): Add thiscall
+	support for X86_WIN32.
+	(FFI_INIT_TRAMPOLINE_THISCALL): Fix displacement.
+
+2012-02-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* src/sparc/v9.S (STACKFRAME): Bump to 176.
+
+2012-02-10  Kai Tietz  <ktietz@redhat.com>
+
+	* configure.ac (AM_LTLDFLAGS): Add -no-undefine for x64
+	windows target.
+	* configure: Regenerated.
+	
 2012-02-08  Kai Tietz  <ktietz@redhat.com>
 
 	* src/prep_cif.c (ffi_prep_cif): Allow for X86_WIN32

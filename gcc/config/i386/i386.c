@@ -11932,6 +11932,13 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
   rtx base, index, disp;
   HOST_WIDE_INT scale;
 
+  /* Since constant address in x32 is signed extended to 64bit,
+     we have to prevent addresses from 0x80000000 to 0xffffffff.  */
+  if (TARGET_X32
+      && CONST_INT_P (addr)
+      && INTVAL (addr) < 0)
+    return false;
+
   if (ix86_decompose_address (addr, &parts) <= 0)
     /* Decomposition failed.  */
     return false;
@@ -35336,6 +35343,7 @@ ix86_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
         return ix86_cost->cond_not_taken_branch_cost;
 
       case vec_perm:
+      case vec_promote_demote:
         return ix86_cost->vec_stmt_cost;
 
       default:

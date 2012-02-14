@@ -7146,9 +7146,12 @@ This built-in function implements an atomic compare and exchange operation.
 This compares the contents of @code{*@var{ptr}} with the contents of
 @code{*@var{expected}} and if equal, writes @var{desired} into
 @code{*@var{ptr}}.  If they are not equal, the current contents of
-@code{*@var{ptr}} is written into @code{*@var{expected}}.
+@code{*@var{ptr}} is written into @code{*@var{expected}}.  @var{weak} is true
+for weak compare_exchange, and false for the strong variation.  Many targets 
+only offer the strong variation and ignore the parameter.  When in doubt, use
+the strong variation.
 
-True is returned if @code{*@var{desired}} is written into
+True is returned if @var{desired} is written into
 @code{*@var{ptr}} and the execution is considered to conform to the
 memory model specified by @var{success_memmodel}.  There are no
 restrictions on what memory model can be used here.
@@ -7242,27 +7245,32 @@ All memory orders are valid.
 
 @end deftypefn
 
-@deftypefn {Built-in Function} bool __atomic_always_lock_free (size_t size)
+@deftypefn {Built-in Function} bool __atomic_always_lock_free (size_t size,  void *ptr)
 
-This built-in function returns true if objects of size bytes will always
-generate lock free atomic instructions for the target architecture.
-Otherwise false is returned.
+This built-in function returns true if objects of @var{size} bytes will always
+generate lock free atomic instructions for the target architecture.  
+@var{size} must resolve to a compile time constant and the result also resolves to compile time constant.
 
-size must resolve to a compile time constant.
+@var{ptr} is an optional pointer to the object which may be used to determine
+alignment.  A value of 0 indicates typical alignment should be used.  The 
+compiler may also ignore this parameter.
 
 @smallexample
-if (_atomic_always_lock_free (sizeof (long long)))
+if (_atomic_always_lock_free (sizeof (long long), 0))
 @end smallexample
 
 @end deftypefn
 
-@deftypefn {Built-in Function} bool __atomic_is_lock_free (size_t size)
+@deftypefn {Built-in Function} bool __atomic_is_lock_free (size_t size, void *ptr)
 
-This built-in function returns true if objects of size bytes will always
+This built-in function returns true if objects of @var{size} bytes will always
 generate lock free atomic instructions for the target architecture.  If
 it is not known to be lock free a call is made to a runtime routine named
 @code{__atomic_is_lock_free}.
 
+@var{ptr} is an optional pointer to the object which may be used to determine
+alignment.  A value of 0 indicates typical alignment should be used.  The 
+compiler may also ignore this parameter.
 @end deftypefn
 
 @node Object Size Checking
@@ -8523,6 +8531,8 @@ instructions, but allow the compiler to schedule those calls.
 * SPARC VIS Built-in Functions::
 * SPU Built-in Functions::
 * TI C6X Built-in Functions::
+* TILE-Gx Built-in Functions::
+* TILEPro Built-in Functions::
 @end menu
 
 @node Alpha Built-in Functions
@@ -13709,6 +13719,78 @@ int _abs (int)
 int _abs2 (int)
 
 @end smallexample
+
+@node TILE-Gx Built-in Functions
+@subsection TILE-Gx Built-in Functions
+
+GCC provides intrinsics to access every instruction of the TILE-Gx
+processor.  The intrinsics are of the form:
+
+@smallexample
+
+unsigned long long __insn_@var{op} (...)
+
+@end smallexample
+
+Where @var{op} is the name of the instruction.  Refer to the ISA manual
+for the complete list of instructions.
+
+GCC also provides intrinsics to directly access the network registers.
+The intrinsics are:
+
+@smallexample
+
+unsigned long long __tile_idn0_receive (void)
+unsigned long long __tile_idn1_receive (void)
+unsigned long long __tile_udn0_receive (void)
+unsigned long long __tile_udn1_receive (void)
+unsigned long long __tile_udn2_receive (void)
+unsigned long long __tile_udn3_receive (void)
+void __tile_idn_send (unsigned long long)
+void __tile_udn_send (unsigned long long)
+
+@end smallexample
+
+The intrinsic @code{void __tile_network_barrier (void)} is used to
+guarantee that no network operatons before it will be reordered with
+those after it.
+
+@node TILEPro Built-in Functions
+@subsection TILEPro Built-in Functions
+
+GCC provides intrinsics to access every instruction of the TILEPro
+processor.  The intrinsics are of the form:
+
+@smallexample
+
+unsigned __insn_@var{op} (...)
+
+@end smallexample
+
+Where @var{op} is the name of the instruction.  Refer to the ISA manual
+for the complete list of instructions.
+
+GCC also provides intrinsics to directly access the network registers.
+The intrinsics are:
+
+@smallexample
+
+unsigned __tile_idn0_receive (void)
+unsigned __tile_idn1_receive (void)
+unsigned __tile_sn_receive (void)
+unsigned __tile_udn0_receive (void)
+unsigned __tile_udn1_receive (void)
+unsigned __tile_udn2_receive (void)
+unsigned __tile_udn3_receive (void)
+void __tile_idn_send (unsigned)
+void __tile_sn_send (unsigned)
+void __tile_udn_send (unsigned)
+
+@end smallexample
+
+The intrinsic @code{void __tile_network_barrier (void)} is used to
+guarantee that no network operatons before it will be reordered with
+those after it.
 
 @node Target Format Checks
 @section Format Checks Specific to Particular Target Machines
