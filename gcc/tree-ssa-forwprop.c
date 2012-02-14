@@ -1757,6 +1757,10 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi)
   tree def1_arg1, def2_arg1;
   enum tree_code def1_code, def2_code;
 
+  gcc_assert (code == BIT_AND_EXPR
+	      || code == BIT_XOR_EXPR
+	      || code == BIT_IOR_EXPR);
+
   def1_code = TREE_CODE (arg1);
   def1_arg1 = arg1;
   if (TREE_CODE (arg1) == SSA_NAME)
@@ -1866,10 +1870,7 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi)
     }
 
   /* Combine successive equal operations with constants.  */
-  if ((code == BIT_AND_EXPR
-       || code == BIT_IOR_EXPR
-       || code == BIT_XOR_EXPR)
-      && def1_code == code 
+  if (def1_code == code 
       && TREE_CODE (arg2) == INTEGER_CST
       && TREE_CODE (gimple_assign_rhs2 (def1)) == INTEGER_CST)
     {
@@ -1879,6 +1880,54 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi)
       gimple_assign_set_rhs2 (stmt, cst);
       update_stmt (stmt);
       return true;
+    }
+
+   /* Fold (A OP1 B) OP0 (C OP1 B) to (A OP0 C) OP1 B. */
+   if (def1_code == def2_code
+       && (def1_code == BIT_AND_EXPR
+	   || def1_code == BIT_XOR_EXPR
+	   || def1_code == BIT_IOR_EXPR)
+       && operand_equal_for_phi_arg_p (gimple_assign_rhs2 (def1),
+				       gimple_assign_rhs2 (def2)))
+    {
+      tree b = gimple_assign_rhs2 (def1);
+      tree a = def1_arg1;
+      tree c = def2_arg1;
+      tree inner = fold_build2 (code, TREE_TYPE (arg2), a, c);
+      if (integer_zerop (inner))
+	{
+	  if (def1_code == BIT_AND_EXPR)
+	    gimple_assign_set_rhs_from_tree (gsi, inner);
+	  else
+	    gimple_assign_set_rhs_from_tree (gsi, b);
+	  update_stmt (stmt);
+	  return true;
+	}
+      else if (TREE_CODE (inner) == SSA_NAME)
+	{
+      	  tree outer = fold_build2 (def1_code, TREE_TYPE (inner),
+				    inner, b);
+	  gimple_assign_set_rhs_from_tree (gsi, outer);
+	  update_stmt (stmt);
+	  return true;
+	}
+      else
+	{
+	  gimple newop;
+	  tree tem;
+	  tem = create_tmp_reg (TREE_TYPE (arg2), NULL);
+	  newop = gimple_build_assign_with_ops (code, tem, a, c);
+	  tem = make_ssa_name (tem, newop);
+	  gimple_assign_set_lhs (newop, tem);
+	  gimple_set_location (newop, gimple_location (stmt));
+	  /* Make sure to re-process the new stmt as it's walking upwards.  */
+	  gsi_insert_before (gsi, newop, GSI_NEW_STMT);
+	  gimple_assign_set_rhs1 (stmt, tem);
+	  gimple_assign_set_rhs2 (stmt, b);
+	  gimple_assign_set_rhs_code (stmt, def1_code);
+	  update_stmt (stmt);
+	  return true;
+	}
     }
 
   /* Canonicalize X ^ ~0 to ~X.  */
