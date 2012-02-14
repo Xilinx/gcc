@@ -2112,11 +2112,12 @@ contains_array_notation_expr (tree expr)
   tree *array_list = NULL;
   int list_size = 0;
   an_reduce_type type = REDUCE_UNKNOWN;
-  
+
+  if (!expr)
+    return false;
   if (TREE_CODE (expr) == FUNCTION_DECL)
     if (is_builtin_array_notation_fn (DECL_NAME (expr), &type))
       return true;
-  
   
   extract_array_notation_exprs (expr, false, &array_list, &list_size);
   if (array_list == NULL || list_size == 0)

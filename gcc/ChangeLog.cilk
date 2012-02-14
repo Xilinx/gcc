@@ -1,3 +1,8 @@
+2012-02-14  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-array-notation.c (contains_array_notation_exprs): Added a check
+	for NULL expr.
+
 2012-02-13  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-array-notation.c (fix_builtin_array_notation_fn): Added a
