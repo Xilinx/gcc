@@ -44,6 +44,7 @@ along with GCC; see the file COPYING3.  If not see
 extern int array_notation_label_no;
 extern void extract_array_notation_exprs (tree, bool, tree **, int *);
 extern tree fix_unary_array_notation_exprs (tree);
+extern bool contains_array_notation_expr (tree);
 struct pragma_simd_values local_simd_values;
 
 /* The lexer.  */
@@ -9119,7 +9120,8 @@ cp_parser_compound_statement (cp_parser *parser, tree in_statement_expr,
   cp_parser_require (parser, CPP_CLOSE_BRACE, RT_CLOSE_BRACE);
 
   if (flag_enable_cilk)
-    compound_stmt = fix_array_notation_exprs (compound_stmt);
+    if (contains_array_notation_expr (compound_stmt))
+      compound_stmt = fix_array_notation_exprs (compound_stmt);
   return compound_stmt;
 }
 

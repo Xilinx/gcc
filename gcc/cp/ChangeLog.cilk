@@ -1,3 +1,8 @@
+2012-02-14  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* parser.c (cp_parser_compound_stmt): Added a check to see if the
+	compound statement has array notations inside it.
+
 2012-02-13  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* call.c (build_conditional_expr): Added a check for ARRAY_NOTATION_REF.
