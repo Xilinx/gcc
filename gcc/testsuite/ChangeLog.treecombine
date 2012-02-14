@@ -1,5 +1,12 @@
 2012-02-13  Andrew Pinski  <apinski@cavium.com>
 
+	PR middle-end/33512
+	* gcc.dg/tree-ssa/andor-3.c: New testcase.
+	* gcc.dg/tree-ssa/andor-4.c: New testcase.
+	* gcc.dg/tree-ssa/andor-5.c: New testcase.
+
+2012-02-13  Andrew Pinski  <apinski@cavium.com>
+
 	* gcc.dg/tree-ssa/forwprop-17.c: New testcase.
 
 
