@@ -1,5 +1,21 @@
 2012-02-13  Andrew Pinski  <apinski@cavium.com>
 
+	* fold-const.c (fold_comparison): Handle ((CAST)~X).
+	* tree-ssa-forwprop.c (combine_cond_expr_cond): Swap operands so
+	that fold_binary_loc would not return a non-folded tree.
+	Don't call canonicalize_cond_expr_cond.
+	(forward_propagate_into_comparison_1): Also try combine casts into the
+	comparisons.
+	(expand_possible_comparison): New function.
+	(forward_propagate_into_comparison): Call expand_possible_comparison.
+	(forward_propagate_into_gimple_cond): Take also a gsi.
+	Call expand_possible_comparison.
+	(forward_propagate_into_cond): Call expand_possible_comparison.
+	(ssa_forward_propagate_and_combine): Update call to
+	forward_propagate_into_gimple_cond.
+
+2012-02-13  Andrew Pinski  <apinski@cavium.com>
+
 	PR middle-end/33512
 	* tree-ssa-forwprop.c (defcodefor_name): New function.
 	(simplify_bitwise_binary): Use defcodefor_name.
