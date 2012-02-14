@@ -1085,7 +1085,12 @@ lab_endgetargs:;
 
 
 	  /*^cond */
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHTYPE_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if (
+			 /*ifisa */
+			 melt_is_instance_of ((melt_ptr_t)
+					      (( /*!FINISHTYPE_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -1127,7 +1132,12 @@ lab_endgetargs:;
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_LIST */ meltfrout->tabval[2]))));;
 		MELT_LOCATION ("warmelt-base.melt:1775:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHTYPE_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!FINISHTYPE_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -1164,7 +1174,12 @@ lab_endgetargs:;
 		  }		/*noelse */
 		;
 		MELT_LOCATION ("warmelt-base.melt:1779:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])), (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])),
+						    (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -1351,7 +1366,13 @@ lab_endgetargs:;
 
 
     /*^cond */
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!FINISHDECL_DELAYED_QUEUE */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -1370,7 +1391,13 @@ lab_endgetargs:;
       }
     ;
     MELT_LOCATION ("warmelt-base.melt:1808:/ cond");
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!FINISHDECL_DELAYED_QUEUE */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -1660,7 +1687,12 @@ lab_endgetargs:;
 
 
 	  /*^cond */
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if (
+			 /*ifisa */
+			 melt_is_instance_of ((melt_ptr_t)
+					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -1703,7 +1735,12 @@ lab_endgetargs:;
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_LIST */ meltfrout->tabval[2]))));;
 		MELT_LOCATION ("warmelt-base.melt:1841:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -1740,7 +1777,12 @@ lab_endgetargs:;
 		  }		/*noelse */
 		;
 		MELT_LOCATION ("warmelt-base.melt:1845:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])), (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])),
+						    (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -1941,7 +1983,12 @@ lab_endgetargs:;
 
 
 	  /*^cond */
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if (
+			 /*ifisa */
+			 melt_is_instance_of ((melt_ptr_t)
+					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -1983,7 +2030,12 @@ lab_endgetargs:;
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_LIST */ meltfrout->tabval[2]))));;
 		MELT_LOCATION ("warmelt-base.melt:1868:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -2020,7 +2072,12 @@ lab_endgetargs:;
 		  }		/*noelse */
 		;
 		MELT_LOCATION ("warmelt-base.melt:1872:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])), (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])),
+						    (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -2206,7 +2263,13 @@ lab_endgetargs:;
 
 
     /*^cond */
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!FINISHDECL_DELAYED_QUEUE */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -2225,7 +2288,13 @@ lab_endgetargs:;
       }
     ;
     MELT_LOCATION ("warmelt-base.melt:1898:/ cond");
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!FINISHDECL_DELAYED_QUEUE */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -2497,7 +2566,12 @@ lab_endgetargs:;
 
 
 	  /*^cond */
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if (
+			 /*ifisa */
+			 melt_is_instance_of ((melt_ptr_t)
+					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -2540,7 +2614,12 @@ lab_endgetargs:;
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_LIST */ meltfrout->tabval[2]))));;
 		MELT_LOCATION ("warmelt-base.melt:1930:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -2577,7 +2656,12 @@ lab_endgetargs:;
 		  }		/*noelse */
 		;
 		MELT_LOCATION ("warmelt-base.melt:1934:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])), (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])),
+						    (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -2761,7 +2845,12 @@ lab_endgetargs:;
 
 
 	  /*^cond */
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if (
+			 /*ifisa */
+			 melt_is_instance_of ((melt_ptr_t)
+					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -2803,7 +2892,12 @@ lab_endgetargs:;
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_LIST */ meltfrout->tabval[2]))));;
 		MELT_LOCATION ("warmelt-base.melt:1955:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -2840,7 +2934,12 @@ lab_endgetargs:;
 		  }		/*noelse */
 		;
 		MELT_LOCATION ("warmelt-base.melt:1959:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])), (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])),
+						    (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -3017,7 +3116,13 @@ lab_endgetargs:;
 
 
     /*^cond */
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!FINISHDECL_DELAYED_QUEUE */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -3036,7 +3141,13 @@ lab_endgetargs:;
       }
     ;
     MELT_LOCATION ("warmelt-base.melt:1984:/ cond");
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!FINISHDECL_DELAYED_QUEUE */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -3318,7 +3429,12 @@ lab_endgetargs:;
 
 
 	  /*^cond */
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if (
+			 /*ifisa */
+			 melt_is_instance_of ((melt_ptr_t)
+					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -3361,7 +3477,12 @@ lab_endgetargs:;
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_LIST */ meltfrout->tabval[2]))));;
 		MELT_LOCATION ("warmelt-base.melt:2016:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -3398,7 +3519,12 @@ lab_endgetargs:;
 		  }		/*noelse */
 		;
 		MELT_LOCATION ("warmelt-base.melt:2020:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])), (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])),
+						    (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -3590,7 +3716,12 @@ lab_endgetargs:;
 
 
 	  /*^cond */
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if (
+			 /*ifisa */
+			 melt_is_instance_of ((melt_ptr_t)
+					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -3632,7 +3763,12 @@ lab_endgetargs:;
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_LIST */ meltfrout->tabval[2]))));;
 		MELT_LOCATION ("warmelt-base.melt:2041:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -3669,7 +3805,12 @@ lab_endgetargs:;
 		  }		/*noelse */
 		;
 		MELT_LOCATION ("warmelt-base.melt:2045:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])), (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])),
+						    (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -3846,7 +3987,13 @@ lab_endgetargs:;
 
 
     /*^cond */
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!FINISHDECL_DELAYED_QUEUE */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -3865,7 +4012,13 @@ lab_endgetargs:;
       }
     ;
     MELT_LOCATION ("warmelt-base.melt:2070:/ cond");
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!FINISHDECL_DELAYED_QUEUE */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -4138,7 +4291,12 @@ lab_endgetargs:;
 
 
 	  /*^cond */
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if (
+			 /*ifisa */
+			 melt_is_instance_of ((melt_ptr_t)
+					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -4181,7 +4339,12 @@ lab_endgetargs:;
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_LIST */ meltfrout->tabval[2]))));;
 		MELT_LOCATION ("warmelt-base.melt:2102:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -4218,7 +4381,12 @@ lab_endgetargs:;
 		  }		/*noelse */
 		;
 		MELT_LOCATION ("warmelt-base.melt:2106:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])), (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])),
+						    (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -4402,7 +4570,12 @@ lab_endgetargs:;
 
 
 	  /*^cond */
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if (
+			 /*ifisa */
+			 melt_is_instance_of ((melt_ptr_t)
+					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -4444,7 +4617,12 @@ lab_endgetargs:;
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_LIST */ meltfrout->tabval[2]))));;
 		MELT_LOCATION ("warmelt-base.melt:2127:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -4481,7 +4659,12 @@ lab_endgetargs:;
 		  }		/*noelse */
 		;
 		MELT_LOCATION ("warmelt-base.melt:2131:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])), (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])),
+						    (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -4658,7 +4841,13 @@ lab_endgetargs:;
 
 
     /*^cond */
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!FINISHDECL_DELAYED_QUEUE */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -4677,7 +4866,13 @@ lab_endgetargs:;
       }
     ;
     MELT_LOCATION ("warmelt-base.melt:2156:/ cond");
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!FINISHDECL_DELAYED_QUEUE */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -4949,7 +5144,12 @@ lab_endgetargs:;
 
 
 	  /*^cond */
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if (
+			 /*ifisa */
+			 melt_is_instance_of ((melt_ptr_t)
+					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -4992,7 +5192,12 @@ lab_endgetargs:;
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_LIST */ meltfrout->tabval[2]))));;
 		MELT_LOCATION ("warmelt-base.melt:2188:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -5029,7 +5234,12 @@ lab_endgetargs:;
 		  }		/*noelse */
 		;
 		MELT_LOCATION ("warmelt-base.melt:2192:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])), (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])),
+						    (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -5213,7 +5423,12 @@ lab_endgetargs:;
 
 
 	  /*^cond */
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if (
+			 /*ifisa */
+			 melt_is_instance_of ((melt_ptr_t)
+					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -5255,7 +5470,12 @@ lab_endgetargs:;
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_LIST */ meltfrout->tabval[2]))));;
 		MELT_LOCATION ("warmelt-base.melt:2213:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -5292,7 +5512,12 @@ lab_endgetargs:;
 		  }		/*noelse */
 		;
 		MELT_LOCATION ("warmelt-base.melt:2217:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])), (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])),
+						    (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -5461,7 +5686,13 @@ lab_endgetargs:;
 
 
     /*^cond */
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!FINISHDECL_DELAYED_QUEUE */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -5480,7 +5711,13 @@ lab_endgetargs:;
       }
     ;
     MELT_LOCATION ("warmelt-base.melt:2245:/ cond");
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!FINISHDECL_DELAYED_QUEUE */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -5753,7 +5990,12 @@ lab_endgetargs:;
 
 
 	  /*^cond */
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if (
+			 /*ifisa */
+			 melt_is_instance_of ((melt_ptr_t)
+					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -5796,7 +6038,12 @@ lab_endgetargs:;
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_LIST */ meltfrout->tabval[2]))));;
 		MELT_LOCATION ("warmelt-base.melt:2277:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -5833,7 +6080,12 @@ lab_endgetargs:;
 		  }		/*noelse */
 		;
 		MELT_LOCATION ("warmelt-base.melt:2281:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])), (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])),
+						    (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -6019,7 +6271,12 @@ lab_endgetargs:;
 
 
 	  /*^cond */
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if (
+			 /*ifisa */
+			 melt_is_instance_of ((melt_ptr_t)
+					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -6061,7 +6318,12 @@ lab_endgetargs:;
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_LIST */ meltfrout->tabval[2]))));;
 		MELT_LOCATION ("warmelt-base.melt:2302:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -6098,7 +6360,12 @@ lab_endgetargs:;
 		  }		/*noelse */
 		;
 		MELT_LOCATION ("warmelt-base.melt:2306:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])), (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])),
+						    (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -6268,7 +6535,13 @@ lab_endgetargs:;
 
 
     /*^cond */
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!FINISHDECL_DELAYED_QUEUE */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -6287,7 +6560,13 @@ lab_endgetargs:;
       }
     ;
     MELT_LOCATION ("warmelt-base.melt:2331:/ cond");
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!FINISHDECL_DELAYED_QUEUE */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -6560,7 +6839,12 @@ lab_endgetargs:;
 
 
 	  /*^cond */
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if (
+			 /*ifisa */
+			 melt_is_instance_of ((melt_ptr_t)
+					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -6603,7 +6887,12 @@ lab_endgetargs:;
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_LIST */ meltfrout->tabval[2]))));;
 		MELT_LOCATION ("warmelt-base.melt:2363:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -6640,7 +6929,12 @@ lab_endgetargs:;
 		  }		/*noelse */
 		;
 		MELT_LOCATION ("warmelt-base.melt:2367:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])), (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])),
+						    (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -6826,7 +7120,12 @@ lab_endgetargs:;
 
 
 	  /*^cond */
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if (
+			 /*ifisa */
+			 melt_is_instance_of ((melt_ptr_t)
+					      (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+					      (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+	    )			/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -6868,7 +7167,12 @@ lab_endgetargs:;
 		   ((meltobject_ptr_t)
 		    (( /*!DISCR_LIST */ meltfrout->tabval[2]))));;
 		MELT_LOCATION ("warmelt-base.melt:2388:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!FINISHDECL_DELAYED_QUEUE */ meltfrout->tabval[0])),
+						    (melt_ptr_t) (( /*!CLASS_DELAYED_QUEUE */ meltfrout->tabval[1])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -6905,7 +7209,12 @@ lab_endgetargs:;
 		  }		/*noelse */
 		;
 		MELT_LOCATION ("warmelt-base.melt:2392:/ cond");
-		/*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])), (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5]))))	/*then */
+		/*cond */ if (
+			       /*ifisa */
+			       melt_is_instance_of ((melt_ptr_t)
+						    (( /*!INITIAL_SYSTEM_DATA */ meltfrout->tabval[3])),
+						    (melt_ptr_t) (( /*!CLASS_SYSTEM_DATA */ meltfrout->tabval[5])))
+		  )		/*then */
 		  {
 		    /*^cond.then */
 		    /*^block */
@@ -7087,7 +7396,13 @@ lab_endgetargs:;
   {
 
     MELT_LOCATION ("warmelt-base.melt:2451:/ cond");
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) ( /*_.C__V2*/ meltfptr[1]), (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[0]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					( /*_.C__V2*/ meltfptr[1]),
+					(melt_ptr_t) (( /*!CLASS_CONTAINER */
+						       meltfrout->tabval[0])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^block */
@@ -7263,7 +7578,13 @@ lab_endgetargs:;
 #endif /*MELT_HAVE_DEBUG */
     ;
     MELT_LOCATION ("warmelt-base.melt:2462:/ cond");
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!VALUE_DESCRIPTOR_LIST_CONTAINER */ meltfrout->tabval[1])), (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[2]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!VALUE_DESCRIPTOR_LIST_CONTAINER */ meltfrout->tabval[1])),
+					(melt_ptr_t) (( /*!CLASS_CONTAINER */
+						       meltfrout->tabval[2])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -7385,7 +7706,13 @@ lab_endgetargs:;
   {
 
     MELT_LOCATION ("warmelt-base.melt:2466:/ cond");
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!VALUE_DESCRIPTOR_LIST_CONTAINER */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!VALUE_DESCRIPTOR_LIST_CONTAINER */ meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_CONTAINER */
+						       meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */

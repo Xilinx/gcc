@@ -11547,7 +11547,14 @@ lab_endgetargs:;
   {
 
     MELT_LOCATION ("warmelt-first.melt:3960:/ cond");
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!CONTAINER_CTYPE_GTY_DICT */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!CONTAINER_CTYPE_GTY_DICT */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_CONTAINER */
+						       meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
@@ -11666,7 +11673,14 @@ lab_endgetargs:;
   {
 
     MELT_LOCATION ("warmelt-first.melt:3965:/ cond");
-    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*!CONTAINER_CTYPE_DICT */ meltfrout->tabval[0])), (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[1]))))	/*then */
+    /*cond */ if (
+		   /*ifisa */
+		   melt_is_instance_of ((melt_ptr_t)
+					(( /*!CONTAINER_CTYPE_DICT */
+					  meltfrout->tabval[0])),
+					(melt_ptr_t) (( /*!CLASS_CONTAINER */
+						       meltfrout->tabval[1])))
+      )				/*then */
       {
 	/*^cond.then */
 	/*^getslot */
