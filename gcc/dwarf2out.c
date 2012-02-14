@@ -8858,7 +8858,7 @@ add_top_level_skeleton_die_attrs (dw_die_ref die)
 {
   /* The splitter will fill in the file name.  It would be good to allocate
      a fairly large string here to make it easy for the splitter though.  */
-  const char *dwo_file_name = "<current file>";
+  const char *dwo_file_name = concat (aux_base_name, ".dwo", NULL);
   dw_attr_ref attr;
 
   add_AT_lineptr (die, DW_AT_stmt_list, debug_line_section_label);
