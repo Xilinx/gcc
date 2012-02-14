@@ -1152,7 +1152,7 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi)
   tree arg2 = gimple_assign_rhs2 (stmt);
   enum tree_code code = gimple_assign_rhs_code (stmt);
   tree res;
-  tree def1_arg1, def1_arg2, def2_arg1, def2_arg2;
+  tree def1_arg1, def1_arg2 = NULL_TREE, def2_arg1, def2_arg2 = NULL_TREE;
   enum tree_code def1_code, def2_code;
 
   gcc_assert (code == BIT_AND_EXPR

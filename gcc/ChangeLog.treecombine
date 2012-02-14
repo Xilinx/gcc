@@ -1,5 +1,10 @@
 2012-02-14  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (simplify_bitwise_binary): Initialize def1_arg2
+	and def2_arg2 to NULL.
+
+2012-02-14  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-forwprop.c: Split the combing functions out into ...
 	* tree-ssa-fold.c: this.
 	* Makefile.in (OBJS): Add tree-ssa-fold.o.
