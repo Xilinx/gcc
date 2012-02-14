@@ -1,5 +1,10 @@
 2012-02-13  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-forwprop.c (simplify_bitwise_binary): Fix merge of the
+	last two patches.
+
+2012-02-13  Andrew Pinski  <apinski@cavium.com>
+
 	* fold-const.c (fold_comparison): Handle ((CAST)~X).
 	* tree-ssa-forwprop.c (combine_cond_expr_cond): Swap operands so
 	that fold_binary_loc would not return a non-folded tree.

@@ -1908,8 +1908,7 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi)
   tree arg2 = gimple_assign_rhs2 (stmt);
   enum tree_code code = gimple_assign_rhs_code (stmt);
   tree res;
-  gimple def1 = NULL, def2 = NULL;
-  tree def1_arg1, def2_arg1;
+  tree def1_arg1, def1_arg2, def2_arg1, def2_arg2;
   enum tree_code def1_code, def2_code;
 
   gcc_assert (code == BIT_AND_EXPR
@@ -2029,26 +2028,23 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi)
        && (def1_code == BIT_AND_EXPR
 	   || def1_code == BIT_XOR_EXPR
 	   || def1_code == BIT_IOR_EXPR)
-       && operand_equal_for_phi_arg_p (gimple_assign_rhs2 (def1),
-				       gimple_assign_rhs2 (def2)))
+       && operand_equal_for_phi_arg_p (def1_arg2,
+				       def2_arg2))
     {
-      tree b = gimple_assign_rhs2 (def1);
-      tree a = def1_arg1;
-      tree c = def2_arg1;
-      tree inner = fold_build2 (code, TREE_TYPE (arg2), a, c);
+      tree inner = fold_build2 (code, TREE_TYPE (arg2), def1_arg1, def2_arg1);
       if (integer_zerop (inner))
 	{
 	  if (def1_code == BIT_AND_EXPR)
 	    gimple_assign_set_rhs_from_tree (gsi, inner);
 	  else
-	    gimple_assign_set_rhs_from_tree (gsi, b);
+	    gimple_assign_set_rhs_from_tree (gsi, def1_arg2);
 	  update_stmt (stmt);
 	  return true;
 	}
       else if (TREE_CODE (inner) == SSA_NAME)
 	{
       	  tree outer = fold_build2 (def1_code, TREE_TYPE (inner),
-				    inner, b);
+				    inner, def1_arg2);
 	  gimple_assign_set_rhs_from_tree (gsi, outer);
 	  update_stmt (stmt);
 	  return true;
@@ -2058,14 +2054,14 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi)
 	  gimple newop;
 	  tree tem;
 	  tem = create_tmp_reg (TREE_TYPE (arg2), NULL);
-	  newop = gimple_build_assign_with_ops (code, tem, a, c);
+	  newop = gimple_build_assign_with_ops (code, tem, def1_arg1, def2_arg1);
 	  tem = make_ssa_name (tem, newop);
 	  gimple_assign_set_lhs (newop, tem);
 	  gimple_set_location (newop, gimple_location (stmt));
 	  /* Make sure to re-process the new stmt as it's walking upwards.  */
 	  gsi_insert_before (gsi, newop, GSI_NEW_STMT);
 	  gimple_assign_set_rhs1 (stmt, tem);
-	  gimple_assign_set_rhs2 (stmt, b);
+	  gimple_assign_set_rhs2 (stmt, def1_arg2);
 	  gimple_assign_set_rhs_code (stmt, def1_code);
 	  update_stmt (stmt);
 	  return true;
