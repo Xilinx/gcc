@@ -31,6 +31,54 @@
 ;;    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+;; the limit for our [generated C code] implementation and declaration
+;; buffer length. The biggest file is often in melt-stage2. 5Mbytes is
+;; not enough!
+(definstance buffer_limit_cont class_container
+  :container_value '6700000)
+
+
+(defun get_code_buffer_limit () 
+  :doc #{Function to retrieve the generated code buffer limit. 
+See also $PUT_CODE_BUFFER_LIMIT}#
+  !buffer_limit_cont)
+
+(defun put_code_buffer_limit (lim)
+  :doc #{Function to verbosely change the generated code buffer limit
+between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
+  (let ( (:long l (get_int lim))
+	 )
+    (debug "put_buffer_limit l=" l)
+    (if (and (>=i l 2097152) 		;; 2097152 == 2^21 = 2Mbytes
+	     (<=i l 134217728) 		;; 134217728 = 2^27 = 128Mbytes
+	     )
+	(let ( (vlim (make_integerbox discr_constant_integer l))
+	       ) 
+	  (code_chunk informbuflimchk 
+		      #{ /*$INFORMBUFLIMCHK*/ inform (UNKNOWN_LOCATION, 
+			 "MELT code buffer limit set to %ld Kb = %ld Mb", 
+			 ($L) >>10, ($L) >> 20);
+		      }#)
+	  (set_content buffer_limit_cont vlim)
+	  )
+      )))
+
+
+;;;;;;;;;;;;;;;;
+(defun code_buffer_limit_optset (optsymb :cstring csopt)
+  (let ( (:long lim 0) )
+    (code_chunk getlimchk
+		#{/*$GETLIMCHK*/ $LIM = atoi($CSOPT);
+		}#)
+    (if (>i lim 0)
+	(put_code_buffer_limit (make_integerbox discr_constant_integer 
+						(*i lim 1024))))))
+
+(register_option 'code_buffer_limit
+		 '"set limit in kilobytes for the generated code buffer size"
+		 code_buffer_limit_optset)
+
+
 (defun outdeclinit_root (recv sbuf)
   (debug "outdeclinit_root recv=" recv)
   (assert_msg "outdeclinit_root unimplemented catchall" ())
@@ -45,6 +93,10 @@
     (assert_msg "check cnam" (is_string cnam))
     (assert_msg "check olocvar"  olocvar)
     (output_c_code olocvar declbuf implbuf depth)
+    (assert_msg "check limited declbuf" 
+		(<i (strbuf_usedlength declbuf) (get_int !buffer_limit_cont)))
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     )
   )
 (install_method class_objinitelem output_c_code outpucod_objinielem)
@@ -80,7 +132,10 @@
      (debug obpredef " output_predef bad obpredef=" obpredef)
      (assert_msg "invalid obpredef" ())
      )
-   ))
+   )
+  (assert_msg "check limited implbuf" 
+	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+  )
 
 ;;; output code for a predef
 (defun outpucod_predef (obpred declbuf implbuf :long depth)
@@ -248,6 +303,8 @@
       (add2sbuf_indentnl sbuf depth)
       ;; output the fill
       )
+    (assert_msg "check limited sbuf" 
+		(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
     )
   )
 (install_method class_objinitobject output_c_initial_fill outcinitfill_objinitobject)
@@ -326,6 +383,8 @@
 	 (add2sbuf_indentnl sbuf 2)
 	 (add2sbuf_strconst sbuf "};")
 	 (add2sbuf_indentnl sbuf 1)
+	 (assert_msg "check limited sbuf" 
+		     (<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
 	 )
        ( (null oiopredef)
 	 (return ()))
@@ -386,6 +445,8 @@
     (add2sbuf_strconst sbuf ".nbval = ")
     (add2sbuf_longdec sbuf (get_int recv))
     (add2sbuf_strconst sbuf ";")
+    (assert_msg "check limited sbuf" 
+		(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objinitmultiple output_c_initial_fill outcinitfill_objinitmultiple)
 
@@ -400,7 +461,7 @@
 
 (defun outcinitfill_objinitclosure (recv sbuf ptrstr :long depth)
   (assert_msg "outcinitfill_objinitclosure check recv" (is_a recv class_objinitclosure))
-  (debug recv "outcinitfill_objinitclosure recv=" recv " ptrstr=" ptrstr)
+  (debug "outcinitfill_objinitclosure recv=" recv " ptrstr=" ptrstr)
   (assert_msg "outcinitfill_objinitclosure check ptrstr" (is_string ptrstr))
   (let ( (cnam (unsafe_get_field :oie_cname recv)) 
 	 (olocvar (unsafe_get_field :oie_locvar recv))
@@ -449,6 +510,8 @@
 	  (add2sbuf_strconst sbuf ");")
 	  (add2sbuf_indentnl sbuf depthp1)
 	  ))
+    (assert_msg "check limited sbuf" 
+		(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objinitclosure output_c_initial_fill outcinitfill_objinitclosure)
 
@@ -549,7 +612,10 @@
 	(add2sbuf_indentnl sbuf 1)
 	)
       )
-    ))
+    )
+  (assert_msg "check limited sbuf" 
+	      (<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
+  )
 (install_method class_objinitroutine output_c_initial_fill outcinitfill_objinitroutine)
 
 
@@ -612,125 +678,135 @@
 	  (add2sbuf_strconst sbuf ".val)-1);")
 	  )
       ;; else datalen > 256
-      ;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
       ;; the C standard gives some limitation on constant strings. We
       ;; avoid generating a huge constant string as single source to a
       ;; strcpy. We break that in a sequence of memcpy on big chunks
       ;; ended by a smaller strcpy.
       (let ( (:long ix 0)
 	     )
+	(debug "outcinitfill_objinitstring big datalen=" datalen)
 	(add2sbuf_strconst sbuf "/*big inistring*/")
 	(add2sbuf_indentnl sbuf 1)
-	(forever inistrloop
-		 (cond
-		  ;; end reached
-		  ((>=i ix datalen) 
-		   (exit inistrloop))
-		  ;; end nearly reached
-		  ((>i (+i ix 72) datalen)
-		   (add2sbuf_strconst sbuf "/*end big inistring*/ strncpy(")
-		   (add2sbuf_string sbuf ptrstr)
-		   (add2sbuf_strconst sbuf "->")
-		   (add2sbuf_string sbuf cnam)
-		   (add2sbuf_strconst sbuf ".val + ")
-		   (add2sbuf_longdec sbuf ix)
-		   (add2sbuf_strconst sbuf ", \"")
-		   (add2out_cencsubstring sbuf strdata ix (-i datalen ix))
-		   (add2sbuf_strconst sbuf "\", sizeof (") 
-		   (add2sbuf_string sbuf ptrstr)
-		   (add2sbuf_strconst sbuf "->")
-		   (add2sbuf_string sbuf cnam)
-		   (add2sbuf_strconst sbuf ".val) - ")
-		   (add2sbuf_longdec sbuf (+i ix 1))
-		   (add2sbuf_strconst sbuf ");")
-		   (add2sbuf_indentnl sbuf 1)
-		   (exit inistrloop)
-		   )
-		  ;; very big remaining
-		  ((<i ix (-i datalen 256))
-		   (add2sbuf_strconst sbuf "/*really big chunk inistring*/")
-		   (add2sbuf_indentnl sbuf 1)
-		   (add2sbuf_strconst sbuf "memcpy (")
-		   (add2sbuf_string sbuf ptrstr)
-		   (add2sbuf_strconst sbuf "->")
-		   (add2sbuf_string sbuf cnam)
-		   (add2sbuf_strconst sbuf ".val + ")
-		   (add2sbuf_longdec sbuf ix)
-		   (add2sbuf_strconst sbuf ",")
-		   ;; compile time catanation of constant string
-		   (add2sbuf_indentnl sbuf 8)
-		   (add2sbuf_strconst sbuf "\"")
-		   (add2out_cencsubstring sbuf strdata ix 64)
-		   (add2sbuf_strconst sbuf "\"")
-		   (add2sbuf_indentnl sbuf 8)
-		   (add2sbuf_strconst sbuf "\"")
-		   (add2out_cencsubstring sbuf strdata (+i 64 ix) 64)
-		   (add2sbuf_strconst sbuf "\"")
-		   (add2sbuf_indentnl sbuf 8)
-		   (add2sbuf_strconst sbuf "\"")
-		   (add2out_cencsubstring sbuf strdata (+i 128 ix) 64)
-		   (add2sbuf_strconst sbuf "\"")
-		   (add2sbuf_indentnl sbuf 8)
-		   (add2sbuf_strconst sbuf "\"")
-		   (add2out_cencsubstring sbuf strdata (+i 192 ix) 64)
-		   (add2sbuf_strconst sbuf "\",")
-		   (add2sbuf_indentnl sbuf 8)
-		   (add2sbuf_strconst sbuf " /*big*/ 256);")
-		   (add2sbuf_indentnl sbuf 1)
-		   (setq ix (+i ix 256))
-		   (void)
-		   )
-		  ;; less big remaining
-		  ((<i ix (-i datalen 128))
-		   (add2sbuf_strconst sbuf "/*quite big chunk inistring*/")
-		   (add2sbuf_indentnl sbuf 1)
-		   (add2sbuf_strconst sbuf "memcpy (")
-		   (add2sbuf_string sbuf ptrstr)
-		   (add2sbuf_strconst sbuf "->")
-		   (add2sbuf_string sbuf cnam)
-		   (add2sbuf_strconst sbuf ".val + ")
-		   (add2sbuf_longdec sbuf ix)
-		   (add2sbuf_strconst sbuf ",")
-		   ;; compile time catanation of constant string
-		   (add2sbuf_indentnl sbuf 8)
-		   (add2sbuf_strconst sbuf "\"")
-		   (add2out_cencsubstring sbuf strdata ix 64)
-		   (add2sbuf_strconst sbuf "\"")
-		   (add2sbuf_indentnl sbuf 8)
-		   (add2sbuf_strconst sbuf "\"")
-		   (add2out_cencsubstring sbuf strdata (+i 64 ix) 64)
-		   (add2sbuf_strconst sbuf "\",")
-		   (add2sbuf_indentnl sbuf 8)
-		   (add2sbuf_strconst sbuf " /*lessbig*/ 128);")
-		   (add2sbuf_indentnl sbuf 1)
-		   (setq ix (+i ix 128))
-		   (void)
-		   )
-		  ;; even less big remaining
-		  ((<i ix (-i datalen 64))
-		   (add2sbuf_strconst sbuf "/*almost big chunk inistring*/")
-		   (add2sbuf_indentnl sbuf 1)
-		   (add2sbuf_strconst sbuf "memcpy (")
-		   (add2sbuf_string sbuf ptrstr)
-		   (add2sbuf_strconst sbuf "->")
-		   (add2sbuf_string sbuf cnam)
-		   (add2sbuf_strconst sbuf ".val + ")
-		   (add2sbuf_longdec sbuf ix)
-		   (add2sbuf_strconst sbuf ",")
-		   (add2sbuf_indentnl sbuf 8)
-		   (add2sbuf_strconst sbuf "\"")
-		   (add2out_cencsubstring sbuf strdata ix 64)
-		   (add2sbuf_strconst sbuf "\",")
-		   (add2sbuf_indentnl sbuf 8)
-		   (add2sbuf_strconst sbuf " /*evenlessbig*/ 64);")
-		   (add2sbuf_indentnl sbuf 1)
-		   (setq ix (+i ix 64))
-		   (void)
-		   )
-		  )
-		 (void)
-		 )
+	(forever
+	 inistrloop
+	 (debug "outcinitfill_objinitstring ix=" ix " sbuflen=" (strbuf_usedlength sbuf))
+	 (assert_msg "check limited sbuf" 
+		     (<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
+	 (cond
+	  ;; end reached
+	  ((>=i ix datalen) 
+	   (exit inistrloop))
+	  ;; end nearly reached
+	  ((>i (+i ix 72) datalen)
+	   (add2sbuf_strconst sbuf "/*end big inistring*/ strncpy(")
+	   (add2sbuf_string sbuf ptrstr)
+	   (add2sbuf_strconst sbuf "->")
+	   (add2sbuf_string sbuf cnam)
+	   (add2sbuf_strconst sbuf ".val + ")
+	   (add2sbuf_longdec sbuf ix)
+	   (add2sbuf_strconst sbuf ", \"")
+	   (add2out_cencsubstring sbuf strdata ix (-i datalen ix))
+	   (add2sbuf_strconst sbuf "\", sizeof (") 
+	   (add2sbuf_string sbuf ptrstr)
+	   (add2sbuf_strconst sbuf "->")
+	   (add2sbuf_string sbuf cnam)
+	   (add2sbuf_strconst sbuf ".val) - ")
+	   (add2sbuf_longdec sbuf (+i ix 1))
+	   (add2sbuf_strconst sbuf ");")
+	   (add2sbuf_indentnl sbuf 1)
+	   (exit inistrloop)
+	   )
+	  ;; very big remaining
+	  ((<i ix (-i datalen 256))
+	   (add2sbuf_strconst sbuf "/*really big chunk inistring*/")
+	   (add2sbuf_indentnl sbuf 1)
+	   (add2sbuf_strconst sbuf "memcpy (")
+	   (add2sbuf_string sbuf ptrstr)
+	   (add2sbuf_strconst sbuf "->")
+	   (add2sbuf_string sbuf cnam)
+	   (add2sbuf_strconst sbuf ".val + ")
+	   (add2sbuf_longdec sbuf ix)
+	   (add2sbuf_strconst sbuf ",")
+	   ;; compile time catanation of constant string
+	   (add2sbuf_indentnl sbuf 8)
+	   (add2sbuf_strconst sbuf "\"")
+	   (add2out_cencsubstring sbuf strdata ix 64)
+	   (add2sbuf_strconst sbuf "\"")
+	   (add2sbuf_indentnl sbuf 8)
+	   (add2sbuf_strconst sbuf "\"")
+	   (add2out_cencsubstring sbuf strdata (+i 64 ix) 64)
+	   (add2sbuf_strconst sbuf "\"")
+	   (add2sbuf_indentnl sbuf 8)
+	   (add2sbuf_strconst sbuf "\"")
+	   (add2out_cencsubstring sbuf strdata (+i 128 ix) 64)
+	   (add2sbuf_strconst sbuf "\"")
+	   (add2sbuf_indentnl sbuf 8)
+	   (add2sbuf_strconst sbuf "\"")
+	   (add2out_cencsubstring sbuf strdata (+i 192 ix) 64)
+	   (add2sbuf_strconst sbuf "\",")
+	   (add2sbuf_indentnl sbuf 8)
+	   (add2sbuf_strconst sbuf " /*big*/ 256);")
+	   (add2sbuf_indentnl sbuf 1)
+	   ;;(setq ix (+i ix 256))
+	   (increment ix 256)
+	   (void)
+	   )
+	  ;; less big remaining
+	  ((<i ix (-i datalen 128))
+	   (add2sbuf_strconst sbuf "/*quite big chunk inistring*/")
+	   (add2sbuf_indentnl sbuf 1)
+	   (add2sbuf_strconst sbuf "memcpy (")
+	   (add2sbuf_string sbuf ptrstr)
+	   (add2sbuf_strconst sbuf "->")
+	   (add2sbuf_string sbuf cnam)
+	   (add2sbuf_strconst sbuf ".val + ")
+	   (add2sbuf_longdec sbuf ix)
+	   (add2sbuf_strconst sbuf ",")
+	   ;; compile time catanation of constant string
+	   (add2sbuf_indentnl sbuf 8)
+	   (add2sbuf_strconst sbuf "\"")
+	   (add2out_cencsubstring sbuf strdata ix 64)
+	   (add2sbuf_strconst sbuf "\"")
+	   (add2sbuf_indentnl sbuf 8)
+	   (add2sbuf_strconst sbuf "\"")
+	   (add2out_cencsubstring sbuf strdata (+i 64 ix) 64)
+	   (add2sbuf_strconst sbuf "\",")
+	   (add2sbuf_indentnl sbuf 8)
+	   (add2sbuf_strconst sbuf " /*lessbig*/ 128);")
+	   (add2sbuf_indentnl sbuf 1)
+	   (increment ix 128)
+	   ;;(setq ix (+i ix 128))
+	   (void)
+	   )
+	  ;; even less big remaining
+	  ((<i ix (-i datalen 64))
+	   (add2sbuf_strconst sbuf "/*almost big chunk inistring*/")
+	   (add2sbuf_indentnl sbuf 1)
+	   (add2sbuf_strconst sbuf "memcpy (")
+	   (add2sbuf_string sbuf ptrstr)
+	   (add2sbuf_strconst sbuf "->")
+	   (add2sbuf_string sbuf cnam)
+	   (add2sbuf_strconst sbuf ".val + ")
+	   (add2sbuf_longdec sbuf ix)
+	   (add2sbuf_strconst sbuf ",")
+	   (add2sbuf_indentnl sbuf 8)
+	   (add2sbuf_strconst sbuf "\"")
+	   (add2out_cencsubstring sbuf strdata ix 64)
+	   (add2sbuf_strconst sbuf "\",")
+	   (add2sbuf_indentnl sbuf 8)
+	   (add2sbuf_strconst sbuf " /*evenlessbig*/ 64);")
+	   (add2sbuf_indentnl sbuf 1)
+	   (increment ix 64)
+	   ;;(setq ix (+i ix 64))
+	   (void)
+	   )
+	  )
+	 (void)
+	 )
 	(add2sbuf_indentnl sbuf 1)
+	(assert_msg "check limited sbuf" 
+		    (<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
 	))))
 (install_method class_objinitstring output_c_initial_fill outcinitfill_objinitstring)
 
@@ -783,6 +859,8 @@
     (add2sbuf_longdec sbuf (get_int odata))
     (add2sbuf_strconst sbuf ";")
     (add2sbuf_indentnl sbuf depthp1)
+    (assert_msg "check limited sbuf" 
+		(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objinitboxinteger output_c_initial_fill outcinitfill_objinitboxedinteger)
 
@@ -828,6 +906,8 @@
     (output_c_code (unsafe_get_field :oie_discr recv) () sbuf depthp1)
     (add2sbuf_strconst sbuf ");")
     (add2sbuf_indentnl sbuf depth)
+    (assert_msg "check limited sbuf" 
+		(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objinitpair output_c_initial_fill outcinitfill_objinitpair)
 ;;;;;;;;;;;;;;;;
@@ -871,6 +951,8 @@
     (output_c_code (unsafe_get_field :oie_discr recv) () sbuf depthp1)
     (add2sbuf_strconst sbuf ");")
     (add2sbuf_indentnl sbuf depth)
+    (assert_msg "check limited sbuf" 
+		(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
     )
   )
 (install_method class_objinitlist output_c_initial_fill outcinitfill_objinitlist)
@@ -939,6 +1021,8 @@
 	(add2sbuf_indentnl implbuf 0)
 	(add2sbuf_strconst implbuf "#endif /*MELTGCC_NOLINENUMBERING*/")
 	(add2sbuf_indentnl implbuf depth)
+	(assert_msg "check limited implbuf" 
+		    (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
 	)))
 
 ;; we really want to avoid outputint the same location twice, so we
@@ -995,6 +1079,8 @@
 	      (add2sbuf_indentnl implbuf 0)
 	      (add2sbuf_strconst implbuf "#endif")
 	      (add2sbuf_indentnl implbuf depth)
+	      (assert_msg "check limited implbuf" 
+			  (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
 	      (return)
 	      )
 	  )
@@ -1027,6 +1113,8 @@
        )
      )
     (output_raw_location loc implbuf depth msg)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 
 
@@ -1119,6 +1207,8 @@
 	       (add2sbuf_string dsbuf oname)
 	       (add2sbuf_strconst dsbuf ";")
 	       (add2sbuf_indentnl dsbuf 0))
+	     (assert_msg "check limited dsbuf" 
+			 (<i (strbuf_usedlength dsbuf) (get_int !buffer_limit_cont)))
 	     ))
 	  )
       (progn
@@ -1127,6 +1217,8 @@
       )
     (add2sbuf_strconst dsbuf "  long _spare_; }")
     (add2sbuf_indentnl dsbuf 0)
+    (assert_msg "check limited dsbuf" 
+		(<i (strbuf_usedlength dsbuf) (get_int !buffer_limit_cont)))
     ;; end of curframe
     ))
 
@@ -1181,7 +1273,10 @@
 	   (add2sbuf_strconst implbuf ");")
 	   (add2sbuf_indentnl implbuf 3)
 	   )
-	  ))))
+	  ))
+       (assert_msg "check limited implbuf" 
+		   (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+       ))
     ;;    (add2sbuf_indentnl implbuf 1)
     ))
 
@@ -1252,6 +1347,8 @@
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " melt_topframe = (struct melt_callframe_st *) &meltfram__;")
     (add2sbuf_indentnl implbuf 0)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 
 ;;; output code for a procroutine
@@ -1339,16 +1436,18 @@
     (add2sbuf_strconst implbuf "/*getargs*/")
     (add2sbuf_indentnl implbuf 0)
     (assert_msg "check ogargs" (is_multiple_or_null ogargs))
-    (multiple_every
-     ogargs
-     (lambda (curget :long curank) 
-       (add2sbuf_indentnl implbuf 1)
-       (add2sbuf_strconst implbuf "/*getarg#")
-       (add2sbuf_longdec implbuf curank)
-       (add2sbuf_strconst implbuf "*/")
-       (add2sbuf_indentnl implbuf 1)
-       (output_c_code curget declbuf implbuf 1)
-       ))
+    (foreach_in_multiple
+     (ogargs)
+     (curget :long curank) 
+     (add2sbuf_indentnl implbuf 1)
+     (add2sbuf_strconst implbuf "/*getarg#")
+     (add2sbuf_longdec implbuf curank)
+     (add2sbuf_strconst implbuf "*/")
+     (add2sbuf_indentnl implbuf 1)
+     (output_c_code curget declbuf implbuf 1)
+     (assert_msg "check limited implbuf" 
+		 (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+     )
     (add2sbuf_strconst implbuf ";")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " goto lab_endgetargs;")
@@ -1365,7 +1464,10 @@
        (if (and curbody (not (is_a curbody class_objpurevalue)))
 	   (progn
 	     (output_c_code curbody declbuf implbuf 0)
-	     (add2sbuf_indentnl implbuf 0)))))
+	     (add2sbuf_indentnl implbuf 0)))
+       (assert_msg "check limited implbuf" 
+		    (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+       ))
     ;; end of implementation
     (add2sbuf_strconst implbuf ";")
     (add2sbuf_indentnl implbuf 0)
@@ -1404,6 +1506,10 @@
     (add2sbuf_strconst implbuf "*/")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+    (assert_msg "check limited declbuf" 
+		(<i (strbuf_usedlength declbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_procroutineobj output_c_code outpucod_procroutine)
 
@@ -1414,15 +1520,17 @@
 (defun output_curframe_cdat_struct (idatup implbuf)
   (add2sbuf_indentnl implbuf 1)
   (add2sbuf_strconst implbuf "struct cdata_st {")
-  (multiple_every
-   idatup
-   (lambda (curdat :long curk) 
-     (add2sbuf_indentnl implbuf 1)
-     (output_c_declinit curdat implbuf)))
+  (foreach_in_multiple
+   (idatup)
+   (curdat :long curk) 
+   (add2sbuf_indentnl implbuf 1)
+   (output_c_declinit curdat implbuf))
   (add2sbuf_indentnl implbuf 0)
   (add2sbuf_strconst implbuf " long spare_;")
   (add2sbuf_indentnl implbuf 0)
   (add2sbuf_strconst implbuf "}")
+  (assert_msg "check limited implbuf" 
+	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
   )
 
 ;;; output the cdata structure fill
@@ -1457,6 +1565,8 @@
   (add2sbuf_indentnl implbuf 0)
   (add2sbuf_strconst implbuf " melt_prohibit_garbcoll = FALSE;")
   (add2sbuf_indentnl implbuf 0)
+  (assert_msg "check limited implbuf" 
+	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
   )
 
 
@@ -1641,7 +1751,8 @@
 	     (let ( (:long chunkix (+i chunkcount 1))
 		    (newchunkbuf (make_strbuf discr_strbuf))
 		    )
-	       (setq chunkcount (+i chunkcount 1))
+	       ;;(setq chunkcount (+i chunkcount 1))
+	       (increment chunkcount 1)
 	       (list_append chunkbuflist newchunkbuf)
 	       (setq chunkbuf newchunkbuf)))
 	 ;; clear the previous location memoization
@@ -1654,6 +1765,8 @@
 	   )
 	 (output_c_code curbody declbuf chunkbuf 1)
 	 (add2sbuf_indentnl chunkbuf 1)
+	 (assert_msg "check limited chunkbuf" 
+		     (<i (strbuf_usedlength chunkbuf) (get_int !buffer_limit_cont)))
 	 ))
       ;; clear the previous location memoization
       (unsafe_put_fields prevloc_container :container_value ())
@@ -1740,6 +1853,8 @@
 	 (add2sbuf_longdec implbuf chunkix)
 	 (add2sbuf_strconst implbuf "*/")
 	 (add2sbuf_indentnl implbuf 0)
+	 (assert_msg "check limited implbuf" 
+		     (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
 	 )
 	)
       )
@@ -1791,6 +1906,10 @@
     (add2sbuf_strconst implbuf " */") 
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+    (assert_msg "check limited declbuf" 
+		(<i (strbuf_usedlength declbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_initialroutineobj output_c_code outpucod_initialroutine)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1854,6 +1973,8 @@
 	  )
 	(add2sbuf_indentnl implbuf depth)
 	))
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objgetarg output_c_code outpucod_getarg)
 
@@ -1934,6 +2055,8 @@
 	  )
 	(add2sbuf_indentnl implbuf depth)
 	))
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objgetargrest output_c_code outpucod_getargrest)
 
@@ -1964,6 +2087,8 @@
       (add2sbuf_strconst implbuf "/*_?*/ meltfram__.")
       (add2sbuf_string implbuf lcnam)))
     )
+  (assert_msg "check limited implbuf" 
+	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
   )
 (install_method class_objlocv output_c_code outpucod_objlocv)
 
@@ -1980,6 +2105,8 @@
     (add2sbuf_strconst implbuf "*/ meltfclos->tabval[")
     (add2sbuf_longdec implbuf (get_int ooff))
     (add2sbuf_strconst implbuf "])")
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objcloccv output_c_code outpucod_objcloccv)
 
@@ -1998,6 +2125,8 @@
     (add2sbuf_strconst implbuf "*/ meltfrout->tabval[")
     (add2sbuf_longdec implbuf (get_int ooff))
     (add2sbuf_strconst implbuf "])")
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objconstv output_c_code outpucod_objconstv)
 
@@ -2006,28 +2135,33 @@
 (defun output_code_instructions_list (lis declbuf implbuf boxeddepth)
   (assert_msg "check lis" (is_list_or_null lis))
   (assert_msg "check boxeddepth" (is_integerbox boxeddepth))
-   (let ( (:long depth (get_int boxeddepth)) )
-     (add2sbuf_indentnl implbuf depth)
-     (foreach_in_list
-      (lis) 
-      (pair cur)
-      (cond 
-       ( (is_a cur class_objplainblock)
-	 (add2sbuf_indentnl implbuf depth)
-	 (let ( (bloc (unsafe_get_field :obi_loc cur))
-		(bodyl (unsafe_get_field :oblo_bodyl cur))
-		(epil (unsafe_get_field :oblo_epil cur))
-		)
-	   (if bloc (output_location bloc implbuf depth "quasiblock"))
-	   (if bodyl (output_code_instructions_list bodyl declbuf implbuf boxeddepth))
-	   (if epil (output_code_instructions_list epil declbuf implbuf boxeddepth))
-	)
+  (let ( (:long depth (get_int boxeddepth)) )
+    (add2sbuf_indentnl implbuf depth)
+    (foreach_in_list
+     (lis) 
+     (pair cur)
+     (cond 
+      ( (is_a cur class_objplainblock)
+	(add2sbuf_indentnl implbuf depth)
+	(let ( (bloc (unsafe_get_field :obi_loc cur))
+	       (bodyl (unsafe_get_field :oblo_bodyl cur))
+	       (epil (unsafe_get_field :oblo_epil cur))
+	       )
+	  (if bloc (output_location bloc implbuf depth "quasiblock"))
+	  (if bodyl (output_code_instructions_list bodyl declbuf implbuf boxeddepth))
+	  (if epil (output_code_instructions_list epil declbuf implbuf boxeddepth))
+	  )
 	)
       ( (and cur (is_not_a cur class_objpurevalue))
 	(add2sbuf_indentnl implbuf depth)
 	(output_c_code cur declbuf implbuf depth)
 	(add2sbuf_strconst implbuf ";"))
-      )))
+      )					;end cond
+     (assert_msg "check limited implbuf" 
+		 (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+     (assert_msg "check limited declbuf" 
+		 (<i (strbuf_usedlength declbuf) (get_int !buffer_limit_cont)))
+     ))
   )
   
 
@@ -2051,6 +2185,8 @@
 	  (output_code_instructions_list epil declbuf implbuf boxdepthp1)))
     (add2sbuf_strconst implbuf "}")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     )
   )
 (install_method class_objanyblock output_c_code outpucod_objanyblock)
@@ -2083,6 +2219,8 @@
      (assert_msg "check curstru" (is_a curstru class_objinitelem))
      (add2sbuf_indentnl implbuf depthp1)
      (output_c_declinit curstru implbuf)
+     (assert_msg "check limited implbuf" 
+		 (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
      )
     (add2sbuf_strconst implbuf " long ")
     (add2sbuf_string implbuf oname)
@@ -2103,6 +2241,8 @@
      (oallstruct)
      (curstru :long strix)
      (output_c_initial_fill curstru implbuf onameptr depthp1)
+     (assert_msg "check limited implbuf" 
+		 (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
      (add2sbuf_indentnl implbuf depthp1)   
      )
     ;;
@@ -2118,7 +2258,8 @@
     (add2sbuf_strconst implbuf "} /*end multiallocblock*/")
     (add2sbuf_indentnl implbuf depth)
     )
-  (compile_warning "outpucod_objmultiallocblock could be incomplete")
+  (assert_msg "check limited implbuf" 
+	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
   )
 (install_method class_objmultiallocblock output_c_code outpucod_objmultiallocblock)
 
@@ -2140,22 +2281,26 @@
     (add2sbuf_strconst implbuf "*/ {")
     (add2sbuf_indentnl implbuf depth)
     (output_location oloc "citerbefore")
-    (multiple_every 
-     obefore 
-     (lambda (obef :long ix)
-       (output_c_code obef declbuf implbuf (get_int boxdepthp1))
-       ))
+    (foreach_in_multiple 
+     (obefore)
+     (obef :long ix)
+     (output_c_code obef declbuf implbuf (get_int boxdepthp1))
+     (assert_msg "check limited implbuf" 
+		 (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+     )
     (add2sbuf_indentnl implbuf depth)
     (output_location oloc "citerbody")
     (if (is_list bodyl)
 	(output_code_instructions_list bodyl declbuf implbuf boxdepthp1))
     (add2sbuf_indentnl implbuf depth)
     (output_location oloc "citerafter")
-    (multiple_every 
-     oafter 
-     (lambda (oaft :long ix)
-       (output_c_code oaft declbuf implbuf (get_int boxdepthp1))
-       ))
+    (foreach_in_multiple
+     (oafter)
+     (oaft :long ix)
+     (output_c_code oaft declbuf implbuf (get_int boxdepthp1))
+     (assert_msg "check limited implbuf" 
+		 (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+     )
     (add2sbuf_indentnl implbuf depth)
     (output_location oloc "citerepil")
     (if (is_list epil)
@@ -2168,6 +2313,8 @@
     (add2sbuf_strconst implbuf "*/")
     (add2sbuf_indentnl implbuf depth)
     )
+  (assert_msg "check limited implbuf" 
+	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
   )
 (install_method class_objciterblock output_c_code outpucod_objciterblock)
 
@@ -2186,6 +2333,8 @@
     (add2sbuf_string implbuf comstr)
     (add2sbuf_strconst implbuf " **/;")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objcommentinstr output_c_code outpucod_objcommentinstr)
 
@@ -2220,6 +2369,8 @@
     (add2sbuf_string implbuf comstr)
     (add2sbuf_strconst implbuf "*/")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     )
   )
 (install_method class_objcommentedblock output_c_code outpucod_objcommentedblock)
@@ -2235,8 +2386,10 @@
   (let ( (obrank (unsafe_get_field :oblab_rank oblab)) )
     (if obrank
 	(add2sbuf_longdec implbuf (get_int (unsafe_get_field :oblab_rank oblab)))))
-  (add2sbuf_strconst implbuf ":")
+  (add2sbuf_strconst implbuf ": ;")
   (add2sbuf_indentnl implbuf depth)
+  (assert_msg "check limited implbuf" 
+	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
   (output_location (unsafe_get_field :obi_loc oblab) implbuf depth "objlabel")
   )
 (install_method class_objlabelinstr output_c_code outpucod_objlabelinstr)
@@ -2254,7 +2407,9 @@
 	(add2sbuf_longdec implbuf (get_int obrank))))
   (add2sbuf_strconst implbuf ";")
   (add2sbuf_indentnl implbuf depth)
-)
+  (assert_msg "check limited implbuf" 
+	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+  )
 (install_method class_objgotoinstr output_c_code outpucod_objgotoinstr)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2267,6 +2422,8 @@
     (add2sbuf_cident sbuf cnam)
     (add2sbuf_strconst sbuf "_")
     (add2sbuf_longdec sbuf rk)
+    (assert_msg "check limited sbuf" 
+		(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
     ))
 
 ;;; output code for objloop
@@ -2316,9 +2473,13 @@
 	       (if (and curepil (not (is_a curepil class_objpurevalue)))
 		   (output_c_code curepil declbuf implbuf depthp1))
 	       (add2sbuf_strconst implbuf ";")
+	       (assert_msg "check limited implbuf" 
+			   (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
 	       (add2sbuf_indentnl implbuf depthp1))))))
     (add2sbuf_strconst implbuf "}")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     )
   )
 (install_method class_objloop output_c_code outpucod_objloop)
@@ -2337,7 +2498,9 @@
     (add2sbuf_strconst implbuf " goto labexit_")
     (add2sbuf_clonsym implbuf olab)	
     (add2sbuf_strconst implbuf ";}")
-    (add2sbuf_indentnl implbuf depth)    
+    (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))    
     ))
 (install_method class_objexit output_c_code outpucod_objexit)
 
@@ -2355,7 +2518,9 @@
     (add2sbuf_strconst implbuf " goto labloop_")
     (add2sbuf_clonsym implbuf olab)	
     (add2sbuf_strconst implbuf ";}")
-    (add2sbuf_indentnl implbuf depth)    
+    (add2sbuf_indentnl implbuf depth) 
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))   
     ))
 (install_method class_objagain output_c_code outpucod_objagain)
 
@@ -2381,18 +2546,26 @@
 	   (list_every
 	    cexp 
 	    (lambda (expcur) 
-	      (output_c_code expcur declbuf implbuf (get_int boxdepthp1)))))
+	      (output_c_code expcur declbuf implbuf (get_int boxdepthp1))
+	      (assert_msg "check limited implbuf" 
+			  (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+	      )))
 	  ((is_multiple cexp)
 	   (if (>i (multiple_length cexp) 2)
 	       (add2sbuf_indentnl implbuf (+i 1 depth)))
 	   (multiple_every
 	    cexp
 	    (lambda (expcur) 
-	      (output_c_code expcur declbuf implbuf (get_int boxdepthp1)))))
+	      (output_c_code expcur declbuf implbuf (get_int boxdepthp1))
+	      (assert_msg "check limited implbuf" 
+			  (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+	      )))
 	  (:else
 	   (output_c_code cexp declbuf implbuf (+i depth 1))
 	   ))
     (add2sbuf_strconst implbuf ";")
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objcompute output_c_code outpucod_objcompute)
 
@@ -2432,6 +2605,8 @@
       (add2sbuf_strconst implbuf "} /*noelse*/")
       )
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ) 
   )
 (install_method class_objcond output_c_code outpucod_objcond)
@@ -2465,6 +2640,8 @@
     (add2sbuf_string implbuf ccond)
     (add2sbuf_strconst implbuf "*/")
     (add2sbuf_indentnl implbuf depthp1)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objcppif output_c_code outpucod_objcppif)
 
@@ -2488,6 +2665,8 @@
       (output_c_code oilocv declbuf implbuf depth)
       (add2sbuf_strconst implbuf "));")
       (add2sbuf_indentnl implbuf depth))
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objinternsymbol output_c_code outpucod_objinternsymbol)
 
@@ -2510,6 +2689,8 @@
       (output_c_code oilocv declbuf implbuf depth)
       (add2sbuf_strconst implbuf "));")
       (add2sbuf_indentnl implbuf depth))
+    (assert_msg "check limited implbuf" 
+	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objinternkeyword output_c_code outpucod_objinternkeyword)
 
@@ -2547,6 +2728,8 @@
       (add2sbuf_cident implbuf nsy)
       (add2sbuf_strconst implbuf "; }")
       (add2sbuf_indentnl implbuf depth)
+      (assert_msg "check limited implbuf" 
+		  (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
       )))
 (install_method class_objgetnamedsymbol output_c_code outpucod_objgetnamedsymbol)
 
@@ -2580,6 +2763,8 @@
       (add2sbuf_cident implbuf nkw)
       (add2sbuf_strconst implbuf "; }")
       (add2sbuf_indentnl implbuf depth)
+      (assert_msg "check limited implbuf" 
+		  (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
       )))
 (install_method class_objgetnamedkeyword output_c_code outpucod_objgetnamedkeyword)
 
@@ -2608,40 +2793,45 @@
 	  (add2sbuf_strconst implbuf "memset(&argtab, 0, sizeof(argtab));")
 	  (add2sbuf_indentnl implbuf (+i 1 depth))
 	  ;; output the initialization of argtab and fill the paramdesclist
-	  (multiple_every
-	   oargs
-	   (lambda (curarg :long curank)
-	     (assert_msg "outputcod_objapply check curarg not objinstr" (not (is_a curarg class_objinstr)))
-	     (if (>i curank 0)
-		 (let ( (curctyp (get_ctype curarg ())) )
-		   (assert_msg "check curctyp" (is_a curctyp class_ctype))
-		   (output_location aloc implbuf (get_int boxdepthp1) "apply.arg")
-		   (add2sbuf_strconst implbuf "argtab[")
-		   (add2sbuf_longdec implbuf  (-i curank 1))
-		   (add2sbuf_strconst implbuf "].")
-		   (list_append paramdesclist (unsafe_get_field :ctype_parstring curctyp))
-		   (cond ( (null curarg)
-			   (add2sbuf_strconst implbuf "meltbp_aptr = (melt_ptr_t*)NULL")) 
-			 ( (is_a curarg class_objnil)
-			   (add2sbuf_strconst implbuf "meltbp_aptr = /*nil*/(melt_ptr_t*)NULL"))
-			 ( (== curctyp ctype_value)
-			   (add2sbuf_strconst implbuf "meltbp_aptr = (melt_ptr_t*) &")
-			   (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
-			   )
-			 (:else 
-			  (add2sbuf_string implbuf (unsafe_get_field :ctype_argfield curctyp))
-			  (add2sbuf_strconst implbuf " = ")
-			  (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
-			  ))
-		   (add2sbuf_strconst implbuf ";")
-		   (add2sbuf_indentnl implbuf (get_int boxdepthp1))
-		   ))))
+	  (foreach_in_multiple
+	   (oargs)
+	   (curarg :long curank)
+	   (assert_msg "outputcod_objapply check curarg not objinstr" (not (is_a curarg class_objinstr)))
+	   (if (>i curank 0)
+	       (let ( (curctyp (get_ctype curarg ())) )
+		 (assert_msg "check curctyp" (is_a curctyp class_ctype))
+		 (output_location aloc implbuf (get_int boxdepthp1) "apply.arg")
+		 (add2sbuf_strconst implbuf "argtab[")
+		 (add2sbuf_longdec implbuf  (-i curank 1))
+		 (add2sbuf_strconst implbuf "].")
+		 (list_append paramdesclist (unsafe_get_field :ctype_parstring curctyp))
+		 (cond ( (null curarg)
+			 (add2sbuf_strconst implbuf "meltbp_aptr = (melt_ptr_t*)NULL")) 
+		       ( (is_a curarg class_objnil)
+			 (add2sbuf_strconst implbuf "meltbp_aptr = /*nil*/(melt_ptr_t*)NULL"))
+		       ( (== curctyp ctype_value)
+			 (add2sbuf_strconst implbuf "meltbp_aptr = (melt_ptr_t*) &")
+			 (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+			 )
+		       (:else 
+			(add2sbuf_string implbuf (unsafe_get_field :ctype_argfield curctyp))
+			(add2sbuf_strconst implbuf " = ")
+			(output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+			))
+		 (add2sbuf_strconst implbuf ";")
+		 (add2sbuf_indentnl implbuf (get_int boxdepthp1))
+		 ))
+	   (assert_msg "check limited implbuf" 
+		       (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+	   )
 	  ))
 ;;; output the destination(s)
     (list_every 
      adest
      (lambda (curdest) 
        (output_c_code curdest declbuf implbuf (get_int boxdepthp1))
+       (assert_msg "check limited implbuf" 
+		   (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
        (add2sbuf_strconst implbuf " = ")))
     ;; output the apply and the closure
     (add2sbuf_strconst implbuf " melt_apply ((meltclosure_ptr_t)(")
@@ -2669,6 +2859,8 @@
     (add2sbuf_indentnl implbuf (+i 1 depth))
     (add2sbuf_strconst implbuf "}")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     )
   )
 (install_method class_objapply output_c_code outpucod_objapply)
@@ -2728,6 +2920,8 @@
 		    (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
 		    ))
 	     (add2sbuf_strconst implbuf ";")
+	     (assert_msg "check limited implbuf" 
+			 (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
 	     (add2sbuf_indentnl implbuf (get_int boxdepthp1))
 	     ))
 	  ))
@@ -2736,6 +2930,8 @@
      (odest)
      (curpair curdest) 
      (output_c_code curdest declbuf implbuf (get_int boxdepthp1))
+     (assert_msg "check limited implbuf" 
+		  (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
      (add2sbuf_strconst implbuf " = "))
     ;;
     (assert_msg "check orecv object" (is_object orecv))
@@ -2761,6 +2957,8 @@
     (add2sbuf_indentnl implbuf (+i 1 depth))
     (add2sbuf_strconst implbuf "}")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objmsend output_c_code outpucod_objmsend)
 
@@ -2821,31 +3019,34 @@
 	  (add2sbuf_strconst implbuf "memset(&argtab, 0, sizeof(argtab));")
 	  (add2sbuf_indentnl implbuf (+i 1 depth))
 	  ;; output the initialization of argtab and fill the paramdesclist
-	  (multiple_every
-	   oargs
-	   (lambda (curarg :long curank)
-	     (if (>i curank 0)
-		 (let ( (curctyp (get_ctype curarg ())) )
-		   (assert_msg "check curctyp" (is_a curctyp class_ctype))
-		   (output_location aloc implbuf (get_int boxdepthp1) "multiapply.arg")
-		   (add2sbuf_strconst implbuf "argtab[")
-		   (add2sbuf_longdec implbuf  (-i curank 1))
-		   (add2sbuf_strconst implbuf "].")
-		   (list_append paramdesclist (unsafe_get_field :ctype_parstring curctyp))
-		   (cond
-		    ( (null curarg)
-		      (add2sbuf_strconst implbuf "meltbp_aptr = (melt_ptr_t*)NULL"))
-		    ( (== curctyp ctype_value)
-		      (add2sbuf_strconst implbuf "meltbp_aptr = (melt_ptr_t*) &")
-		      (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
-		      )
-		    (:else
-		     (add2sbuf_string implbuf (unsafe_get_field :ctype_argfield curctyp))
-		     (add2sbuf_strconst implbuf " = ")
-		     (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
-		     ))
-		   (add2sbuf_strconst implbuf ";")
-		   ))))
+	  (foreach_in_multiple
+	   (oargs)
+	   (curarg :long curank)
+	   (if (>i curank 0)
+	       (let ( (curctyp (get_ctype curarg ())) )
+		 (assert_msg "check curctyp" (is_a curctyp class_ctype))
+		 (output_location aloc implbuf (get_int boxdepthp1) "multiapply.arg")
+		 (add2sbuf_strconst implbuf "argtab[")
+		 (add2sbuf_longdec implbuf  (-i curank 1))
+		 (add2sbuf_strconst implbuf "].")
+		 (list_append paramdesclist (unsafe_get_field :ctype_parstring curctyp))
+		 (cond
+		  ( (null curarg)
+		    (add2sbuf_strconst implbuf "meltbp_aptr = (melt_ptr_t*)NULL"))
+		  ( (== curctyp ctype_value)
+		    (add2sbuf_strconst implbuf "meltbp_aptr = (melt_ptr_t*) &")
+		    (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+		    )
+		  (:else
+		   (add2sbuf_string implbuf (unsafe_get_field :ctype_argfield curctyp))
+		   (add2sbuf_strconst implbuf " = ")
+		   (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
+		   ))
+		 (add2sbuf_strconst implbuf ";")
+		 ))
+	   (assert_msg "check limited implbuf" 
+		       (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+	   )
 	  (add2sbuf_indentnl implbuf (get_int boxdepthp1))
 	  ))
     ;; output the initialization of restab
@@ -2919,6 +3120,8 @@
     (add2sbuf_indentnl implbuf (+i 1 depth))
     (add2sbuf_strconst implbuf "}")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 
 (install_method class_objmultiapply output_c_code outpucod_objmultiapply)
@@ -2976,9 +3179,9 @@
     (if (>i nbarg 0)
 	(progn
 	  ;; output the initialization of argtab and fill the paramdesclist
-	  (multiple_every
-	   oargs
-	   (lambda (curarg :long curank)
+	  (foreach_in_multiple
+	   (oargs)
+	   (curarg :long curank)
 	     (let ( (curctyp (get_ctype curarg ())) )
 	       (assert_msg "check curctyp" (is_a curctyp class_ctype))
 	       (output_location oloc implbuf (get_int boxdepthp1) "multimsend.arg")
@@ -2999,7 +3202,10 @@
 		 (output_c_code curarg declbuf implbuf (get_int boxdepthp1))
 		 ))
 	       (add2sbuf_strconst implbuf ";")
-	       )))
+	       )
+	     (assert_msg "check limited implbuf" 
+			 (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+	     )
 	  (add2sbuf_indentnl implbuf (get_int boxdepthp1))
 	  ))
     ;; output the initialization of restab
@@ -3071,6 +3277,8 @@
     (add2sbuf_indentnl implbuf (+i 1 depth))
     (add2sbuf_strconst implbuf "}")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objmultimsend output_c_code outpucod_objmultimsend)
 
@@ -3086,6 +3294,8 @@
     (add2sbuf_strconst implbuf "/*clear*/ ")
     (output_c_code cvl declbuf implbuf (+i depth 1))
     (add2sbuf_strconst implbuf " = 0 ")
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     )
   )
 (install_method class_objclear output_c_code outpucod_objclear)
@@ -3116,10 +3326,14 @@
      (dstpair dst) 
      (add2sbuf_indentnl implbuf (+i depth 1))
      (output_c_code dst declbuf implbuf (get_int boxdepthp1))
+     (assert_msg "check limited implbuf" 
+		  (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
      (add2sbuf_strconst implbuf " =")))
   (add2sbuf_indentnl implbuf (+i depth 1))
   (add2sbuf_strconst implbuf "newobj; };")
   (add2sbuf_indentnl implbuf depth)
+  (assert_msg "check limited implbuf" 
+	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
   )
 (install_method class_objrawallocobj output_c_code outpucod_objrawallocobj)
 
@@ -3140,6 +3354,8 @@
      destlist
      (lambda (dst) 
        (output_c_code dst declbuf implbuf (get_int boxdepthp1))
+       (assert_msg "check limited implbuf" 
+		   (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
        (add2sbuf_strconst implbuf " =")))
     (add2sbuf_indentnl implbuf (+i depth 1))
     (add2sbuf_strconst implbuf "meltgc_new_closure((meltobject_ptr_t)(")
@@ -3150,6 +3366,8 @@
     (output_c_code olen declbuf implbuf (get_int boxdepthp1))
     (add2sbuf_strconst implbuf "));")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objnewclosure  output_c_code outpucod_objnewclosure)
 
@@ -3243,6 +3461,8 @@
      (output_c_code oval declbuf implbuf depth)
      (add2sbuf_strconst implbuf ");")
      (add2sbuf_indentnl implbuf depth)
+     (assert_msg "check limited implbuf" 
+		 (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
      )
     )
   )
@@ -3274,6 +3494,8 @@
     (output_c_code ohead declbuf implbuf depth)
     (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
 ))
 (install_method class_objputpairhead output_c_code outpucod_objputpairhead)
 
@@ -3298,6 +3520,8 @@
     (output_c_code otail declbuf implbuf depth)
     (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
 ))
 (install_method class_objputpairtail output_c_code outpucod_objputpairtail)
 
@@ -3327,6 +3551,8 @@
     (output_c_code olast declbuf implbuf depth)
     (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
 ))
 (install_method class_objputlist output_c_code outpucod_objputlist)
 
@@ -3354,9 +3580,13 @@
      destlist
      (lambda (dst)    
        (output_c_code dst declbuf implbuf (get_int boxdepthp1))
+       (assert_msg "check limited implbuf" 
+		   (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
        (add2sbuf_strconst implbuf " = ")))
     (add2sbuf_strconst implbuf "slot; };")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objgetslot output_c_code outpucod_objgetslot)
 
@@ -3431,6 +3661,8 @@
 	)
       )
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objputslot output_c_code outpucod_objputslot)
 
@@ -3473,6 +3705,8 @@
     (output_c_code orout declbuf implbuf depth)
     (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     )
   )
 (install_method class_objputclosurout output_c_code outpucod_objputclosurout)
@@ -3507,6 +3741,8 @@
     (output_c_code ocval declbuf implbuf depth)
     (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objputclosedv output_c_code outpucod_objputclosedv)
 
@@ -3545,6 +3781,8 @@
     (output_c_code ocval declbuf implbuf depth)
     (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objputclosednotnullv output_c_code outpucod_objputclosednotnullv)
 
@@ -3582,6 +3820,8 @@
     (output_c_code ocval declbuf implbuf depth)
     (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     )
   )
 (install_method class_objputroutconst output_c_code outpucod_objputroutconst)
@@ -3613,6 +3853,8 @@
     (output_c_code ocval declbuf implbuf depth)
     (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     )
   )
 (install_method class_objputroutconstnotnull output_c_code outpucod_objputroutconstnotnull)
@@ -3651,6 +3893,8 @@
     (output_c_code ovloc declbuf implbuf depth)
     (add2sbuf_strconst implbuf ");")
     (add2sbuf_indentnl implbuf depth)
+    (assert_msg "check limited implbuf" 
+		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 (install_method class_objputxtraresult output_c_code  outpucod_objputxtraresult)
 
@@ -3664,7 +3908,10 @@
     (foreach_in_multiple
      (cont)
      (comp :long ix)
-     (output_c_code comp declbuf implbuf (get_int boxdepthp1)))))
+     (output_c_code comp declbuf implbuf (get_int boxdepthp1))
+     (assert_msg "check limited implbuf" 
+		 (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+     )))
 (install_method class_objexpv output_c_code outpucod_objexpv)
 
 ;;; output a located expression
@@ -3692,12 +3939,17 @@
     (foreach_in_multiple
      (cont)
      (comp :long ix)
-     (output_c_code comp declbuf implbuf (get_int boxdepthp1)))
+     (output_c_code comp declbuf implbuf (get_int boxdepthp1))
+     (assert_msg "check limited implbuf" 
+		 (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+     )
     (if (== otyp ctype_void)
 	(progn
 	  (add2sbuf_strconst implbuf ";}")
 	  (add2sbuf_indentnl implbuf depth)))
     )
+  (assert_msg "check limited implbuf" 
+		 (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
   )
 (install_method class_objlocatedexpv output_c_code outpucod_objlocatedexpv)
 
@@ -3705,6 +3957,8 @@
 (defun outpucod_verbatimstring (vstr declbuf implbuf :long depth)
   (assert_msg "check vstr" (== (discrim vstr) discr_verbatim_string))
   (add2sbuf_string implbuf vstr)
+  (assert_msg "check limited implbuf" 
+	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
   )
 
 
@@ -3718,6 +3972,8 @@
   (add2sbuf_strconst implbuf " \"")
   (add2sbuf_cencstring implbuf vstr)
   (add2sbuf_strconst implbuf "\"")
+  (assert_msg "check limited implbuf" 
+	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
   )
 (install_method discr_string output_c_code outpucod_string)
 
@@ -3737,6 +3993,8 @@
   (add2sbuf_strconst implbuf ";")
   (add2sbuf_indentnl implbuf depth)
   (add2sbuf_strconst implbuf "/*finalret*/ goto labend_rout ")
+  (assert_msg "check limited implbuf" 
+	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
   )
 (install_method class_objfinalreturn output_c_code outpucod_finalreturn)
 
@@ -3771,28 +4029,30 @@
     (add2sbuf_strconst implbuf "/* exported ")
     (add2sbuf_longdec implbuf (mapstring_count rawdictfields))
     (add2sbuf_strconst implbuf " field offsets */")
-    (multiple_every 
-     sortedfields
-     (lambda (fld :long ix)
-       (assert_msg "check fld" (is_a fld class_field))
-       (add2sbuf_indentnl implbuf 0)
-       (add2sbuf_strconst implbuf "const int meltfieldoff__")
-       (add2sbuf_cident implbuf (unsafe_get_field :named_name fld))
-       (add2sbuf_strconst implbuf " = ")
-       (add2sbuf_longdec implbuf (get_int fld))
-       (add2sbuf_strconst implbuf ";")
-       (add2sbuf_strconst implbuf " /* in ")
-       (add2sbuf_string implbuf (get_field :named_name (get_field :fld_ownclass fld)))
-       (add2sbuf_strconst implbuf " */")
-       ))
+    (foreach_in_multiple 
+     (sortedfields)
+     (fld :long ix)
+     (assert_msg "check fld" (is_a fld class_field))
+     (add2sbuf_indentnl implbuf 0)
+     (add2sbuf_strconst implbuf "const int meltfieldoff__")
+     (add2sbuf_cident implbuf (unsafe_get_field :named_name fld))
+     (add2sbuf_strconst implbuf " = ")
+     (add2sbuf_longdec implbuf (get_int fld))
+     (add2sbuf_strconst implbuf ";")
+     (add2sbuf_strconst implbuf " /* in ")
+     (add2sbuf_string implbuf (get_field :named_name (get_field :fld_ownclass fld)))
+     (add2sbuf_strconst implbuf " */")
+     (assert_msg "check limited implbuf" 
+		 (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+     )
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "/* exported ")
     (add2sbuf_longdec implbuf (mapstring_count rawdictclasses))
     (add2sbuf_strconst implbuf " class lengths */")
-    (multiple_every
-     sortedclasses
-     (lambda (cla :long ix)
+    (foreach_in_multiple
+     (sortedclasses)
+     (cla :long ix)
        (assert_msg "check cla" (is_a cla class_class))
        (add2sbuf_indentnl implbuf 0)
        (add2sbuf_strconst implbuf "const int meltclasslen__")
@@ -3801,7 +4061,9 @@
        (add2sbuf_longdec implbuf 
 			 (multiple_length (unsafe_get_field :class_fields cla)))
        (add2sbuf_strconst implbuf ";")
-       ))
+       (assert_msg "check limited implbuf" 
+		   (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+       )
     (add2sbuf_indentnl implbuf 0)
     ))
 
@@ -4254,7 +4516,8 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 		   (assert_msg "check curfil index" 
 			       (==i (get_int curfil) filix))
 		   (setq hisecfilerk filix)
-		   (setq nbsecfiles (+i nbsecfiles 1))
+		   (increment nbsecfiles 1)
+		   ;;(setq nbsecfiles (+i nbsecfiles 1))
 		   (let ( (secfilpath (get_field :secfil_path curfil))
 			  (secdeclbuf (get_field :secfil_declbuf curfil))
 			  (secimplbuf (get_field :secfil_implbuf curfil))
@@ -4504,8 +4767,10 @@ notice for file named $NAME.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values 
  compile_list_sexpr
- melt_argument
  generate_gplv3plus_copyright_notice_c_comment 
+ get_code_buffer_limit
+ melt_argument
+ put_code_buffer_limit
  translate_to_c_one_or_more_melt_files
  )
 
