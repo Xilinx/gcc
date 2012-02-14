@@ -1,3 +1,8 @@
+2012-02-14  Jing Yu  <jingyu@google.com>
+	Google ref 42402-p2
+	* config/arm/arm.h: Emit GNU-stack note for all arm targets by
+	default.
+
 2012-02-13   Xinliang David Li  <davidxl@google.com>
 
 	* coverage.c: (process_include_paths): New function.
