@@ -2300,6 +2300,20 @@ meltrout_163_warmelt_normal_LAMBDA___59__ (meltclosure_ptr_t meltclosp_,
 					   union meltparam_un *meltxrestab_);
 
 
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_164_warmelt_normal_NORMEXP_CHEADER (meltclosure_ptr_t meltclosp_,
+					     melt_ptr_t meltfirstargp_,
+					     const melt_argdescr_cell_t
+					     meltxargdescr_[],
+					     union meltparam_un *meltxargtab_,
+					     const melt_argdescr_cell_t
+					     meltxresdescr_[],
+					     union meltparam_un
+					     *meltxrestab_);
+
+
 void *start_module_melt (void *);
 
 /* define different names when debugging or not */
@@ -2437,6 +2451,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_40 (struct
 								frame_start_module_melt_st
 								*, char *);
 void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_41 (struct
+								frame_start_module_melt_st
+								*, char *);
+void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_42 (struct
 								frame_start_module_melt_st
 								*, char *);
 static void forward_or_mark_module_start_frame_warmelt_normal (struct
