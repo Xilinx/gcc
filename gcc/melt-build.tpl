@@ -408,9 +408,9 @@ ENDFOR melt_translator_file+]
    (define lastindex stageindex)
 +]
 
-## the stamp for [+melt_stage+], using an order only prerequisite
+## the stamp for [+melt_stage+]
 #@ [+ (. (tpl-file-line))+]
-[+melt_stage+]-fullstage.stamp:  melt-run.h | [+melt_stage+]/warmelt.modlis \
+[+melt_stage+]-fullstage.stamp:  melt-run.h  [+melt_stage+]/warmelt.modlis \
 [+FOR melt_translator_file "\\\n"+] [+melt_stage+]-[+base+]-module.stamp [+ENDFOR melt_translator_file+]
 	echo "#$@ generated" > $@-tmp
 	$(MD5SUM) melt-run.h >> $@-tmp
