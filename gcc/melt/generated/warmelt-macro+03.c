@@ -21488,7 +21488,7 @@ lab_endgetargs:;
 		  MELT_LOCATION ("warmelt-macro.melt:5237:/ locexp");
 
 #if MELT_HAVE_DEBUG
-		  if (melt_flag_debug)
+		  if (melt_need_debug (0))
 		    melt_dbgshortbacktrace (("mexpand_variadic before calling hookfun for else"), (15));
 #endif
 		  ;
@@ -22366,7 +22366,7 @@ lab_endgetargs:;
 			MELT_LOCATION ("warmelt-macro.melt:5271:/ locexp");
 
 #if MELT_HAVE_DEBUG
-			if (melt_flag_debug)
+			if (melt_need_debug (0))
 			  melt_dbgshortbacktrace (("mexpand_variadic before calling hookfun for casefirst"), (15));
 #endif
 			;

@@ -15029,7 +15029,7 @@ lab_endgetargs:;
       ;
       /*^putpairtail */
       /*putpairtail */
-      melt_assertmsg ("putpairtail /146ca55b checkpair",
+      melt_assertmsg ("putpairtail /2d29c44d checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NSETFLAG__V25*/ meltfptr[24]))
 		      == MELTOBMAG_PAIR);
@@ -15878,7 +15878,7 @@ lab_endgetargs:;
       ;
       /*^putpairtail */
       /*putpairtail */
-      melt_assertmsg ("putpairtail /16ad1f30 checkpair",
+      melt_assertmsg ("putpairtail /14e853b8 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NSETFLAG__V26*/ meltfptr[25]))
 		      == MELTOBMAG_PAIR);
@@ -34371,7 +34371,7 @@ lab_endgetargs:;
 					    ("warmelt-normatch.melt:5941:/ locexp");
 
 #if MELT_HAVE_DEBUG
-					  if (melt_flag_debug)
+					  if (melt_need_debug (0))
 					    melt_dbgshortbacktrace (("normtestmatch_cmatcher unexpected curexp"), (20));
 #endif
 					  ;
@@ -50751,7 +50751,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normatch.melt:6455:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (melt_flag_debug)
+      if (melt_need_debug (0))
 	melt_dbgshortbacktrace (("normexp_altmatch start"), (20));
 #endif
       ;

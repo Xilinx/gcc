@@ -14,16 +14,16 @@ const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown
 /* hash of preprocessed melt-run.h generating this */
 const char melt_prepromd5meltrun[]="c29a0d7a96ab92182d46b296f5dc3f9a";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="d2b771515dea56b0bd934036f3ed0e2b";
+const char melt_primaryhexmd5[]="f1036e729543e1580d1a4100e3fa8659";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
  /*nosecfile*/ (const char*)0,
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-genobj+01.c #1 */ "c6a1f840bee20502d032eb6191042e48",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-genobj+02.c #2 */ "793a14651a2d4214522b69595c48ce0b",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-genobj+03.c #3 */ "4f9eb078a2a1c6b4adf5a36a2cb7b2ce",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-genobj+04.c #4 */ "5bc84d10f10b5d56815c624c12a819fd",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-genobj+05.c #5 */ "f7c6ac696eeb8d78e47d18cd28fb52bf",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-genobj+01.c #1 */ "2a5f3462a039872d7f36ec19b1f80b46",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-genobj+02.c #2 */ "9bcbc76ab71391d88e5b965dd0212dda",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-genobj+03.c #3 */ "23a05c0919794a64ce1d7a2f19673125",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-genobj+04.c #4 */ "bc55b35890f8caf59f0c32bd85a659d1",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-genobj+05.c #5 */ "c341551b6d7560fac8b783c6cfe641cb",
  /*nosecfile*/ (const char*)0,
  (const char*)0 };
 
@@ -31,9 +31,9 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=5;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="0beec5b5d04803047ce4d149a031649f" ;
+const char melt_cumulated_hexmd5[]="f06353305e20dc112d4cbf82b04ca1ae" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_genobj_mds__0beec5b5d04803047ce4d149a031649f 1
+#define meltmod_warmelt_genobj_mds__f06353305e20dc112d4cbf82b04ca1ae 1
 #include "warmelt-genobj+melttime.h"
 /* end of melt descriptor file */

@@ -29928,7 +29928,7 @@ lab_endgetargs:;
 				      ("warmelt-macro.melt:1930:/ locexp");
 
 #if MELT_HAVE_DEBUG
-				    if (melt_flag_debug)
+				    if (melt_need_debug (0))
 				      melt_dbgshortbacktrace (("flatten_for_c_code_expansion strange comp"), (15));
 #endif
 				    ;

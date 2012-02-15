@@ -21292,7 +21292,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normal.melt:5847:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (melt_flag_debug)
+      if (melt_need_debug (0))
 	melt_dbgshortbacktrace (("normexp_define"), (7));
 #endif
       ;

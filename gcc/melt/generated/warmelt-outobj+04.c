@@ -13825,7 +13825,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-outobj.melt:4584:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (melt_flag_debug)
+      if (melt_need_debug (0))
 	melt_dbgshortbacktrace (("translate_macroexpanded_list ended"), (25));
 #endif
       ;

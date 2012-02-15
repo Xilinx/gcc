@@ -10094,7 +10094,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normal.melt:4134:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (melt_flag_debug)
+      if (melt_need_debug (0))
 	melt_dbgshortbacktrace (("normletrec_lambda ended"), (15));
 #endif
       ;
@@ -12014,7 +12014,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normal.melt:4190:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (melt_flag_debug)
+      if (melt_need_debug (0))
 	melt_dbgshortbacktrace (("normletrec_tuple ended"), (15));
 #endif
       ;
@@ -23911,7 +23911,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normal.melt:4614:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (melt_flag_debug)
+      if (melt_need_debug (0))
 	melt_dbgshortbacktrace (("normexp_letrec ending"), (15));
 #endif
       ;

@@ -4772,7 +4772,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-normal.melt:989:/ locexp");
 
 #if MELT_HAVE_DEBUG
-      if (melt_flag_debug)
+      if (melt_need_debug (0))
 	melt_dbgshortbacktrace (("normalize_tuple"), (8));
 #endif
       ;
@@ -13811,7 +13811,7 @@ lab_endgetargs:;
 	    MELT_LOCATION ("warmelt-normal.melt:1297:/ locexp");
 
 #if MELT_HAVE_DEBUG
-	    if (melt_flag_debug)
+	    if (melt_need_debug (0))
 	      melt_dbgshortbacktrace (("normex_symbol null psloc"), (10));
 #endif
 	    ;
@@ -13854,7 +13854,7 @@ lab_endgetargs:;
 	    MELT_LOCATION ("warmelt-normal.melt:1303:/ locexp");
 
 #if MELT_HAVE_DEBUG
-	    if (melt_flag_debug)
+	    if (melt_need_debug (0))
 	      melt_dbgshortbacktrace (("normex_symbol null bind"), (15));
 #endif
 	    ;

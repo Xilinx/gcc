@@ -14,14 +14,14 @@ const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown
 /* hash of preprocessed melt-run.h generating this */
 const char melt_prepromd5meltrun[]="c29a0d7a96ab92182d46b296f5dc3f9a";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="93ff920bfc07bd4b4bdccf68e5c7c097";
+const char melt_primaryhexmd5[]="4d1f86e1aee8f47fc5ee51288940a58c";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
  /*nosecfile*/ (const char*)0,
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+01.c #1 */ "420fe4c175cfbcd2c6d3c324b2f3cd62",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+01.c #1 */ "f10363ae89865f06fcec122bbc1163c3",
  /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+02.c #2 */ "7a95bddbea9bb5d05a19f9862ba3bef0",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+03.c #3 */ "d6091582fef4933860b3a1e008fa8520",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+03.c #3 */ "8344460a343672af684f641e7ce75593",
  /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+04.c #4 */ "87162c2cb2f1e22307b1e5a09fd99b68",
  /*nosecfile*/ (const char*)0,
  /*nosecfile*/ (const char*)0,
@@ -31,9 +31,9 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=4;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="2ec189351ac3abec95a26a38f9868907" ;
+const char melt_cumulated_hexmd5[]="1c587519ddbda0122e693ee62b4ec3ef" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_macro_mds__2ec189351ac3abec95a26a38f9868907 1
+#define meltmod_warmelt_macro_mds__1c587519ddbda0122e693ee62b4ec3ef 1
 #include "warmelt-macro+melttime.h"
 /* end of melt descriptor file */
