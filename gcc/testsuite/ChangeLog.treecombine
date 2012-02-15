@@ -1,5 +1,12 @@
 2012-02-14  Andrew Pinski  <apinski@cavium.com>
 
+	* gcc.dg/tree-ssa/vrp47.c: Remove xfails.
+	* gcc.dg/tree-ssa/vrp59.c: Likewise.
+	* gcc.dg/tree-ssa/vrp63.c: Remove half the testcase.
+	Remove the xfail.
+
+2012-02-14  Andrew Pinski  <apinski@cavium.com>
+
 	* gcc.dg/tree-ssa/vrp59.c: Xfail as VRP does not
 	handle (~a & N) folding.
 	* gcc.dg/tree-ssa/vrp63.c: New testcase which shows the

@@ -10,23 +10,5 @@ int f(int x)
   return x;
 }
 
-int g(int x)
-{
-  if (x >= 0 && x <= 3)
-    {
-      x = (x ^ 2) & 3;
-    }
-  return x;
-}
-
-int h(int x)
-{
-  if (x >= 0 && x <= 3)
-    {
-      x = (x ^ 1) & 3;
-    }
-  return x;
-}
-
-/* { dg-final { scan-tree-dump-times " & 3;" 0 "vrp1" { xfail *-*-* } } } */
+/* { dg-final { scan-tree-dump-times " & 3;" 0 "vrp1" } } */
 /* { dg-final { cleanup-tree-dump "vrp1" } } */

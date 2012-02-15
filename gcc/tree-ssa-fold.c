@@ -1145,7 +1145,7 @@ defcodefor_name (tree name, enum tree_code *code, tree *arg1, tree *arg2)
    Return true if a transformation applied, otherwise return false.  */
 
 static bool
-simplify_bitwise_binary (gimple_stmt_iterator *gsi)
+simplify_bitwise_binary (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp)
 {
   gimple stmt = gsi_stmt (*gsi);
   tree arg1 = gimple_assign_rhs1 (stmt);
@@ -1403,6 +1403,19 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi)
        update_stmt (stmt);
        return true;
     }
+
+  /* Fold ~X & N into X ^ N if X's nonzerobits is equal to N. */
+  if (nonzerobitsp
+      && code == BIT_AND_EXPR
+      && def1_code == BIT_NOT_EXPR
+      && TREE_CODE (arg2) == INTEGER_CST
+      && double_int_equal_p (tree_to_double_int (arg2), nonzerobitsp (def1_arg1)))
+   {
+      gimple_assign_set_rhs_with_ops_1 (gsi, BIT_XOR_EXPR,
+					def1_arg1, arg2, NULL_TREE);
+      update_stmt (gsi_stmt (*gsi));
+      return true;
+   }
 
   /* Try simple folding for X op !X, and X op X.  */
   res = simplify_bitwise_binary_1 (code, TREE_TYPE (arg1), arg1, arg2);
@@ -1963,7 +1976,7 @@ combine_conversions (gimple_stmt_iterator *gsi)
    optimizer.  */
 
 int
-ssa_combine (gimple_stmt_iterator *gsi)
+ssa_combine (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobits_p)
 {
   bool changed = false;
 
@@ -1998,7 +2011,7 @@ ssa_combine (gimple_stmt_iterator *gsi)
 	else if (code == BIT_AND_EXPR
 		 || code == BIT_IOR_EXPR
 		 || code == BIT_XOR_EXPR)
-	  changed = simplify_bitwise_binary (gsi);
+	  changed = simplify_bitwise_binary (gsi, nonzerobits_p);
 	else if (code == PLUS_EXPR
 		 || code == MINUS_EXPR)
 	  changed = associate_plusminus (gsi);

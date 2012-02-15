@@ -1,5 +1,22 @@
 2012-02-14  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-flow.h (nonzerobits_t): New type.
+	(ssa_combine): Add nonzerobits_t argument.
+	* tree-ssa-fold.c (simplify_bitwise_binary): Add
+	nonzerobitsp argument.
+	Fold ~X & N into X ^ N if X's nonzerobits are the same as N.
+	(ssa_combine): Add nonzerobitsp argument.
+	Update call to simplify_bitwise_binary.
+	* tree-ssa-forwprop.c (ssa_forward_propagate_and_combine):
+	Update call to ssa_combine.
+	* tree-vrp.c (remove_range_assertions): Remove asserts from
+	gimple debug also.
+	(vrp_nonzerop): New function.
+	(simplify_stmt_using_ranges): Call ssa_combine before doing any
+	other simplification.
+
+2012-02-14  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (simplify_bitwise_binary): Add fold of "(X ^ Y) & Y"
 	as "~X & Y".
 

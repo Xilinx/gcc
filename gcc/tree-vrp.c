@@ -5524,7 +5524,14 @@ remove_range_assertions (void)
 	gimple stmt = gsi_stmt (si);
 	gimple use_stmt;
 
-	if (is_gimple_assign (stmt)
+        if (is_gimple_debug (stmt)
+	    && TREE_CODE (gimple_debug_bind_get_value (stmt)) == ASSERT_EXPR)
+	  {
+	    tree assrt = gimple_debug_bind_get_value (stmt);
+	    gimple_debug_bind_set_var (stmt, ASSERT_EXPR_VAR (assrt));
+	    gsi_next (&si);
+	  }
+	else if (is_gimple_assign (stmt)
 	    && gimple_assign_rhs_code (stmt) == ASSERT_EXPR)
 	  {
 	    tree rhs = gimple_assign_rhs1 (stmt);
@@ -7474,12 +7481,39 @@ simplify_float_conversion_using_ranges (gimple_stmt_iterator *gsi, gimple stmt)
   return true;
 }
 
+static double_int
+vrp_nonzerop (tree op)
+{
+  double_int may_be_nonzero;
+  double_int must_be_nonzero;
+  value_range_t vr = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
+
+  if (op == NULL)
+    return double_int_minus_one;
+
+  if (TREE_CODE (op) == SSA_NAME)
+    vr = *get_value_range (op);
+  else if (is_gimple_min_invariant (op))
+    set_value_range_to_value (&vr, op, NULL);
+  else
+    return double_int_minus_one;
+  
+  if (!zero_nonzero_bits_from_vr (&vr, &may_be_nonzero, &must_be_nonzero))
+    return double_int_minus_one;
+  return may_be_nonzero;
+}
+
 /* Simplify STMT using ranges if possible.  */
 
 static bool
 simplify_stmt_using_ranges (gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
+
+  /* First try doing a ssa combine. */
+  if (ssa_combine (gsi, vrp_nonzerop))
+    return true;
+
   if (is_gimple_assign (stmt))
     {
       enum tree_code rhs_code = gimple_assign_rhs_code (stmt);

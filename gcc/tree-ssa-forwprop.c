@@ -982,7 +982,7 @@ ssa_forward_propagate_and_combine (void)
       prev_initialized = false;
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi);)
 	{
-	  int did_something = ssa_combine (&gsi);
+	  int did_something = ssa_combine (&gsi, NULL);
 	  if (did_something == 2)
 	    cfg_changed = 1;
 	  if (did_something)

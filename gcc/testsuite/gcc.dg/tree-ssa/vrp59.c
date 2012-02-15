@@ -31,5 +31,5 @@ int h(int x)
   return x;
 }
 
-/* { dg-final { scan-tree-dump-times " & 3;" 0 "vrp1" { xfail *-*-* } } } */
+/* { dg-final { scan-tree-dump-times " & 3;" 0 "vrp1" } } */
 /* { dg-final { cleanup-tree-dump "vrp1" } } */
