@@ -34,7 +34,7 @@ proc dg-pph-hdr { subdir test options mapflag suffix } {
 
     set nshort "$subdir/[file tail $test]"
     set bname "[file rootname [file tail $nshort]]"
-    verbose -log "\nTesting $nshort, $options"
+    verbose -log "\nTesting header $nshort, $options"
 
     set dg-do-what-default preparse
     dg-test -keep-output $test "-fpph-gen $options $mapflag $stable" ""
@@ -57,7 +57,7 @@ proc dg-pph-neg { subdir test options mapflag suffix } {
 
     set nshort "$subdir/[file tail $test]"
     set bname "[file rootname [file tail $nshort]]"
-    verbose -log "\nTesting $nshort, $options"
+    verbose -log "\nTesting negative $nshort, $options"
 
     set dg-do-what-default compile
     dg-test -keep-output $test "$options $mapflag $stable" ""
@@ -86,7 +86,7 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
     set dg-do-what-default compile
     set nshort "$subdir/[file tail $test]"
     set bname "[file rootname [file tail $nshort]]"
-    verbose -log "\nTesting $nshort, $options"
+    verbose -log "\nTesting positive $nshort, $options"
 
     # Determine whether this is an assembly comparison test
     set is_exec [llength [grep $test "dg-do run"]]

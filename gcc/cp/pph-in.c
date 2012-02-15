@@ -1464,8 +1464,8 @@ pph_in_merge_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
   struct bitpack_d bp;
 
   bp = pph_in_bitpack (stream);
-  /* FIXME pph: At present, we are only merging the anticipated bit.
-     The rest are simply overwritten.  */
+  /* FIXME pph: At present, we are only merging the anticipated and odr_used
+     bits.  The rest are simply overwritten.  */
   ldb->selector = bp_unpack_value (&bp, 16);
   ldb->language = (enum languages) bp_unpack_value (&bp, 4);
   ldb->use_template = bp_unpack_value (&bp, 2);
@@ -1476,7 +1476,7 @@ pph_in_merge_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
   ldb->anticipated_p &= bp_unpack_value (&bp, 1);
   ldb->friend_attr = bp_unpack_value (&bp, 1);
   ldb->template_conv_p = bp_unpack_value (&bp, 1);
-  ldb->odr_used = bp_unpack_value (&bp, 1);
+  ldb->odr_used |= bp_unpack_value (&bp, 1);
   ldb->u2sel = bp_unpack_value (&bp, 1);
 }
 
@@ -1620,6 +1620,87 @@ pph_in_lang_decl (pph_stream *stream, tree decl)
 
 
 /********************************************************* tree base classes */
+
+
+/* Stream in the language-independent parts of EXPR's body.  */
+
+static void
+pph_in_lang_indep_tree_body (pph_stream *stream, tree expr)
+{
+  struct lto_input_block *ib = stream->encoder.r.ib;
+  struct data_in *data_in = stream->encoder.r.data_in;
+  streamer_read_tree_body (ib, data_in, expr);
+}
+
+
+/* Stream in the language-independent parts of EXPR's body.  */
+
+static void
+pph_in_merge_lang_indep_tree_body (pph_stream *stream, tree expr)
+{
+  enum tree_code code = TREE_CODE (expr);
+  bool decl_comdat;
+  tree decl_comdat_group;
+  bool decl_declared_inline;
+  tree decl_result;
+
+  if (CODE_CONTAINS_STRUCT (code, TS_DECL_WITH_VIS))
+    {
+      decl_comdat = DECL_COMDAT (expr);
+      decl_comdat_group = DECL_COMDAT_GROUP (expr);
+      /* FIXME pph: These too?
+	 bool decl_common = DECL_COMMON (expr);
+	 bool decl_weak = DECL_WEAK (expr);
+	 enum symbol_visibility decl_visibility = DECL_VISIBILITY (expr);
+	 bool decl_visibility_specified = DECL_VISIBILITY_SPECIFIED (expr);
+	 tree decl_section_name = DECL_SECTION_NAME (expr);
+      */
+    }
+  if (CODE_CONTAINS_STRUCT (code, TS_FUNCTION_DECL))
+    {
+      decl_declared_inline = DECL_DECLARED_INLINE_P (expr);
+    }
+  if (code == FUNCTION_DECL)
+    {
+      decl_result = DECL_RESULT (expr);
+      /* FIXME pph: These too?
+	 decl_arguments = DECL_ARGUMENTS (expr);
+      */
+    }
+
+  /* FIXME pph: Also see the functions below for more potential fields.
+	unpack_ts_decl_with_vis_value_fields
+	lto_input_ts_decl_with_vis_tree_pointers
+	unpack_ts_function_decl_value_fields
+	lto_input_ts_decl_non_common_tree_pointers
+  */
+
+  pph_in_lang_indep_tree_body (stream, expr);
+
+  if (CODE_CONTAINS_STRUCT (code, TS_DECL_WITH_VIS))
+    {
+      decl_comdat ? DECL_COMDAT (expr) = true : 0;
+      decl_comdat_group ? DECL_COMDAT_GROUP (expr) = decl_comdat_group : 0;
+      /* FIXME pph: These too?
+	 decl_common ? DECL_COMMON (expr) = true : 0;
+	 decl_weak ? DECL_WEAK (expr) = true : 0;
+	 decl_visibility ? DECL_VISIBILITY (expr) = decl_visibility : 0;
+	 decl_visibility_specified ? DECL_VISIBILITY_SPECIFIED (expr) = true : 0;
+	 decl_section_name ? DECL_SECTION_NAME (expr) = decl_section_name : 0;
+      */
+    }
+  if (CODE_CONTAINS_STRUCT (code, TS_FUNCTION_DECL))
+    {
+      decl_declared_inline ? DECL_DECLARED_INLINE_P (expr) = true : 0;
+    }
+  if (code == FUNCTION_DECL)
+    {
+      decl_result ? DECL_RESULT (expr) = decl_result : 0;
+      /* FIXME pph: These too?
+	 decl_arguments ? DECL_ARGUMENTS (expr) = decl_arguments : 0;
+      */
+    }
+}
 
 
 /* Read in the tree_common fields.  */
@@ -1851,51 +1932,18 @@ pph_in_tcc_type (pph_stream *stream, tree type)
 }
 
 
-/* Read from STREAM the body of tcc_declaration tree DECL.  */
+/* Reset the external state for a function DECL.  */
 
 static void
-pph_in_tcc_declaration_tail (pph_stream *stream, tree decl)
+pph_reset_external (tree decl)
 {
-  DECL_INITIAL (decl) = pph_in_tree (stream);
-  DECL_ABSTRACT_ORIGIN (decl) = pph_in_tree (stream);
-
-  /* The tree streamer only writes DECL_CHAIN for PARM_DECL nodes.
-     We need to read DECL_CHAIN for variables and functions because
-     they are sometimes chained together in places other than regular
-     tree chains.  For example in BINFO_VTABLEs, the decls are chained
-     together).  */
-  if (TREE_CODE (decl) == VAR_DECL
-      || TREE_CODE (decl) == FUNCTION_DECL)
-    DECL_CHAIN (decl) = pph_in_tree (stream);
-
-  /* Handle some individual decl nodes.  */
-  switch (TREE_CODE (decl))
-    {
-    case FUNCTION_DECL:
-      DECL_SAVED_TREE (decl) = pph_in_tree (stream);
-      break;
-
-    case TYPE_DECL:
-      DECL_ORIGINAL_TYPE (decl) = pph_in_tree (stream);
-      break;
-
-    case TEMPLATE_DECL:
-      DECL_TEMPLATE_RESULT (decl) = pph_in_tree (stream);
-      DECL_TEMPLATE_PARMS (decl) = pph_in_tree (stream);
-      break;
-
-    default:
-      break;
-    }
-
   /* When the declaration was compiled originally, the parser marks
      it DECL_EXTERNAL, to avoid emitting it more than once.  It also
      remembers the true external state in DECL_NOT_REALLY_EXTERN.  So,
      if both bits are set, the declaration should not be considered
      external.  */
-  if (TREE_CODE (decl) == FUNCTION_DECL
-      && DECL_LANG_SPECIFIC (decl)
-      && DECL_NOT_REALLY_EXTERN (decl)
+  gcc_assert (DECL_LANG_SPECIFIC (decl));
+  if (DECL_NOT_REALLY_EXTERN (decl)
       && DECL_EXTERNAL (decl))
     {
       DECL_EXTERNAL (decl) = 0;
@@ -1910,7 +1958,52 @@ static void
 pph_in_tcc_declaration (pph_stream *stream, tree decl)
 {
   pph_in_lang_decl (stream, decl);
-  pph_in_tcc_declaration_tail (stream, decl);
+  DECL_INITIAL (decl) = pph_in_tree (stream);
+  DECL_ABSTRACT_ORIGIN (decl) = pph_in_tree (stream);
+
+  /* Handle some individual decl nodes.  */
+  switch (TREE_CODE (decl))
+    {
+      /* The tree streamer only writes TREE_CHAIN for PARM_DECL nodes.
+         We need to read TREE_CHAIN for variables and functions because
+         they are sometimes chained together in places other than regular
+         tree chains.  For example in BINFO_VTABLEs, the decls are chained
+         together).  */
+
+    case VAR_DECL:
+      TREE_CHAIN (decl) = pph_in_tree (stream);
+      break;
+
+    case FUNCTION_DECL:
+      TREE_CHAIN (decl) = pph_in_tree (stream);
+      DECL_SAVED_TREE (decl) = pph_in_tree (stream);
+      pph_reset_external (decl);
+      break;
+
+    case TYPE_DECL:
+      DECL_ORIGINAL_TYPE (decl) = pph_in_tree (stream);
+      break;
+
+    case TEMPLATE_DECL:
+      DECL_TEMPLATE_RESULT (decl) = pph_in_tree (stream);
+      DECL_TEMPLATE_PARMS (decl) = pph_in_tree (stream);
+      break;
+
+    default:
+      break;
+    }
+}
+
+
+/* Read a tree from STREAM, and if non-null, assign to *FIELD.  */
+
+static void
+pph_in_nonnull_tree (tree *field, pph_stream *stream)
+{
+  tree candidate;
+  candidate = pph_in_tree (stream);
+  if (candidate)
+    *field = candidate;
 }
 
 
@@ -1919,9 +2012,46 @@ pph_in_tcc_declaration (pph_stream *stream, tree decl)
 static void
 pph_in_merge_tcc_declaration (pph_stream *stream, tree decl)
 {
+  pph_in_merge_lang_indep_tree_body (stream, decl);
   pph_in_lang_decl (stream, decl);
-  /* FIXME pph: Some of the tail may not be necessary.  */
-  pph_in_tcc_declaration_tail (stream, decl);
+
+  /* FIXME pph: Some of the following may not be necessary.  */
+
+  pph_in_nonnull_tree (&DECL_INITIAL (decl), stream);
+  pph_in_nonnull_tree (&DECL_ABSTRACT_ORIGIN (decl), stream);
+
+  /* Handle some individual decl nodes.  */
+  switch (TREE_CODE (decl))
+    {
+      /* The tree streamer only writes TREE_CHAIN for PARM_DECL nodes.
+         We need to read TREE_CHAIN for variables and functions because
+         they are sometimes chained together in places other than regular
+         tree chains.  For example in BINFO_VTABLEs, the decls are chained
+         together).  However, in merging, we will actually ignore the new
+	 chain, and thus not overwrite the previous one.  */
+
+    case VAR_DECL:
+      /* ignore TREE_CHAIN (decl) = */ pph_in_tree (stream);
+      break;
+
+    case FUNCTION_DECL:
+      /* ignore TREE_CHAIN (decl) = */ pph_in_tree (stream);
+      pph_in_nonnull_tree (&DECL_SAVED_TREE (decl), stream);
+      pph_reset_external (decl);
+      break;
+
+    case TYPE_DECL:
+      DECL_ORIGINAL_TYPE (decl) = pph_in_tree (stream);
+      break;
+
+    case TEMPLATE_DECL:
+      DECL_TEMPLATE_RESULT (decl) = pph_in_tree (stream);
+      DECL_TEMPLATE_PARMS (decl) = pph_in_tree (stream);
+      break;
+
+    default:
+      break;
+    }
 }
 
 
@@ -1946,12 +2076,9 @@ pph_in_identifier_bindings (pph_stream *stream, tree expr)
 static void
 pph_in_tree_body (pph_stream *stream, tree expr)
 {
-  struct lto_input_block *ib = stream->encoder.r.ib;
-  struct data_in *data_in = stream->encoder.r.data_in;
   bool handled_p;
 
-  /* Read the language-independent parts of EXPR's body.  */
-  streamer_read_tree_body (ib, data_in, expr);
+  pph_in_lang_indep_tree_body (stream, expr);
 
   /* Handle common tree code classes first.  */
   handled_p = true;
@@ -2119,35 +2246,24 @@ pph_in_tree_body (pph_stream *stream, tree expr)
 static void
 pph_in_merge_tree_body (pph_stream *stream, tree expr)
 {
-  struct lto_input_block *ib = stream->encoder.r.ib;
-  struct data_in *data_in = stream->encoder.r.data_in;
-
-  /* Read the language-independent parts of EXPR's body.  */
-  streamer_read_tree_body (ib, data_in, expr);
-
   /* Handle common tree code classes first.  */
   switch (TREE_CODE_CLASS (TREE_CODE (expr)))
     {
       case tcc_declaration:
 	{
-	  /* If we are reading a merge body, it means that EXPR is already in
-	     some chain.  Given that EXPR may now be in a different location
-	     in the chain, we need to make sure we do not lose it.
-	     FIXME pph: We should just not save TREE_CHAIN for merge bodies.  */
-	  tree saved_expr_chain = TREE_CHAIN (expr);
-       pph_in_merge_tcc_declaration (stream, expr);
-	  TREE_CHAIN (expr) = saved_expr_chain;
+	  pph_in_merge_tcc_declaration (stream, expr);
 	}
        break;
 
       case tcc_type:
-       pph_in_tcc_type (stream, expr);
-       break;
+	pph_in_lang_indep_tree_body (stream, expr);
+	pph_in_tcc_type (stream, expr);
+	break;
 
       default:
-       fatal_error ("PPH: unrecognized tree node '%s'",
-                    pph_tree_code_text (TREE_CODE (expr)));
-       break;
+	fatal_error ("PPH: unrecognized tree node '%s'",
+		     pph_tree_code_text (TREE_CODE (expr)));
+	break;
     }
 }
 

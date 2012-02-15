@@ -1,3 +1,14 @@
+2012-02-15   Lawrence Crowl  <crowl@google.com>
+
+	* lib/dg-pph.exp: Clarify kind of test in log file.
+	* g++.dg/pph/x0funcinl1.h: New.
+	* g++.dg/pph/x0funcinl2.h: New.
+	* g++.dg/pph/x0funcinl3.h: New.
+	* g++.dg/pph/x3funcinl12.cc: New.
+	* g++.dg/pph/x3funcinl13.cc: New.
+	* g++.dg/pph/x4funcinl21.cc: New.
+	* g++.dg/pph/x4funcinl31.cc: New.
+
 2012-02-13   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x7dynarray5.cc: Add expected failure due to

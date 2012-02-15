@@ -1,3 +1,18 @@
+2012-02-15   Lawrence Crowl  <crowl@google.com>
+
+	* pph-in.c (pph_in_merge_ld_base): Merge odr_used.
+	(pph_in_lang_indep_tree_body): New, replacing idiom.
+	(pph_in_merge_lang_indep_tree_body): Decl merge corresponding to above.
+	(pph_reset_external): New, from refactoring.
+        (pph_in_tcc_declaration_tail): Moved into pph_in_tcc_declaration.
+	(pph_in_tcc_declaration): As above.  Factor out pph_reset_external.
+	(pph_in_nonnull_tree): New.
+	(pph_in_merge_tcc_declaration): Do serious decl merging.
+	(pph_in_identifier_bindings): Factor out pph_in_lang_indep_tree_body.
+	(pph_in_merge_tree_body): Factor out pph_in_lang_indep_tree_body.
+	Move pph_in_lang_indep_tree_body and TREE_CHAIN save/restore into
+	pph_in_merge_tcc_declaration.  Do some spacing corrections.
+
 2012-02-13   Diego Novillo  <dnovillo@google.com>
 
 	* pph-in.c (pph_in_binding_level_start): Move earlier into the
