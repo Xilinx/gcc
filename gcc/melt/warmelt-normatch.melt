@@ -5041,12 +5041,14 @@ matches. Field $NAMATCH_MATCHED is the normal matched
 stuff. $NAMATCH_RESULT gives if any the result of the
 match. $NAMATCH_BODY is the body tuple, in particular labels of
 $CLASS_NREP_MATCH_LABEL. $NAMATCH_FLAGS is the tuple of normal flags,
-instances of $CLASS_NREP_MATCH_FLAG.}#
+instances of $CLASS_NREP_MATCH_FLAG, and $NAMATCH_MDATAS is the tuple
+of normal data, instances of $CLASS_NREP_MATCHED_DATA.}#
   :fields (
 	   namatch_matched		;the normal matched stuff
 	   namatch_result		;the local for the result
 	   namatch_body			;the body
 	   namatch_flags		;the tuple of normalized flags
+	   namatch_mdatas		;the tuple of normalized match data
 	   ))
 
 (defclass class_nrep_match_label
@@ -6225,9 +6227,11 @@ normalized expression.}#
     (return nlab)
     ))
 
+
+;;;;;;;;;;;;;;;;
 ;;; utility to normalize a matched data with a match normalization context
 (defun altmatch_normalize_mdata (mdata nmctxt)
-  (debug "altmatch_normalize_mdata mdata" mdata)
+  (debug "altmatch_normalize_mdata mdata=" mdata)
   (assert_msg "altmatch_normalize_mdata check mdata" (is_a mdata class_matched_data))
   (assert_msg "altmatch_normalize_mdata check nmctxt" (is_a nmctxt class_match_normalization_context))
   (let ( (datamap (unsafe_get_field :matnorx_datamap nmctxt))
@@ -6237,14 +6241,14 @@ normalized expression.}#
 	 )
     (if ndata
 	(progn
-	  (debug "altmatch_normalize_mdata found ndata" ndata)
+	  (debug "altmatch_normalize_mdata found ndata=" ndata)
 	  (return ndata)))
     (if (is_a mdata class_matched_normal_data)
 	(progn 
 	  (setq ndata (unsafe_get_field :mdata_orig mdata))
 	  (debug "altmatch_normalize_mdata got normal ndata=" ndata " from mdata=" mdata))
-      (let ( (msymb (unsafe_get_field :mdata_symb mdata))
-	     (mctyp (unsafe_get_field :mdata_ctype mdata))
+      (let ( (msymb (get_field :mdata_symb mdata))
+	     (mctyp (get_field :mdata_ctype mdata))
 	     (sloc (get_field :loca_location 
 				   (get_field :mdata_orig mdata)))
 	     (:long datacount (mapobject_count datamap))
@@ -6259,13 +6263,17 @@ normalized expression.}#
 				    :nrep_loc ()
 				    :nmdac_data newdata))
 	    )
+	(debug "altmatch_normalize_mdata make newdata=" newdata 
+	       "\n* for mdata=" mdata)
 	(setq ndata newdata)
 	(list_append bodyl newdatainit)
-	(debug "altmatch_normalize_mdata made newdata=" newdata)
 	))
     (mapobject_put datamap mdata ndata)
     (list_append mdataqueue mdata)
-    (debug "altmatch_normalize_mdata final ndata" ndata)
+    (debug "altmatch_normalize_mdata final ndata=" ndata 
+	   "\n* for mdata=" mdata
+	   "\n* updated datamap=" datamap 
+	   "\n* updated mdataqueue=" mdataqueue)
     (return ndata)
     ))
 
@@ -6451,7 +6459,7 @@ normalized expression.}#
   (assert_msg "check match recv" (is_a recv class_source_match))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug "normexp_altmatch recv" recv)
+  (debug "normexp_altmatch recv=" recv)
   (shortbacktrace_dbg "normexp_altmatch start" 20)
   (let ( (sloc (or (unsafe_get_field :loca_location recv) psloc))
 	 (smatsx (unsafe_get_field :smat_matchedx recv))
@@ -6589,10 +6597,10 @@ normalized expression.}#
 		   (mg_altdraw_graphviz mdata dotprefix))))
 	 (let ( (nmctxt (altmatch_make_match_normalization_context matctx matresctyp sloc))
 		)
-	   (debug "normexp_altmatch before altmatch_normalize_match_context nmctxt" nmctxt)
+	   (debug "normexp_altmatch before altmatch_normalize_match_context nmctxt=" nmctxt)
 	   ;;
 	   (altmatch_normalize_match_context mdata sloc nmctxt)
-	   (debug "normexp_altmatch after altmatch_normalize_match_context nmctxt" nmctxt)
+	   (debug "normexp_altmatch after altmatch_normalize_match_context nmctxt=" nmctxt)
 	   (let ( 
 		 (nresloc (unsafe_get_field :matnorx_resloc nmctxt))
 		 (nresmatch (unsafe_get_field :matnorx_nmatch nmctxt))
@@ -6602,9 +6610,9 @@ normalized expression.}#
 		 (nresbind (get_field :nocc_bind nresloc))
 		 (nflagslist (make_list discr_list))
 		 )
-	     (debug "normexp_altmatch nresloc" nresloc)
-	     (debug "normexp_altmatch nbodyl" nbodyl)
-	     (debug "normexp_altmatch nflagmap" nflagmap)
+	     (debug "normexp_altmatch nresloc=" nresloc 
+		    "\n* nbodyl=" nbodyl
+		    "\n* nflagmap=" nflagmap)
 	     (foreach_in_mapobject
 	      (nflagmap)
 	      (curflag curnormflag)
@@ -6634,9 +6642,8 @@ normalized expression.}#
 			   :namatch_body (list_to_multiple nbodyl)
 			   :namatch_flags sortedflagstup
 			   )
-	       (debug "normexp_altmatch nresmatch" nresmatch)
-	       (debug "normexp_altmatch final nresbind" nresbind)
-	       (debug "normexp_altmatch final nresloc" nresloc)
+	       (debug "normexp_altmatch nresmatch=" nresmatch)
+	       (debug "normexp_altmatch final nresbind=" nresbind " nresloc=" nresloc)
 	       (warning_plain sloc "@@??implemented normexp_altmatch")
 	       (compile_warning "@@??implemented normexp_altmatch")
 	       (return nresloc (list nresbind))

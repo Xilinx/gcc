@@ -1,6 +1,26 @@
 
 2011-02-15  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-macro.melt (class_source_cheader): new class.
+	(mexpand_cheader): New macro expander for it.
+
+	* melt/warmelt-normexp.melt (normexp_cheader): New incomplete
+	method for normal_exp on class_source_cheader.
+
+	* melt/warmelt-normatch.melt (class_nrep_altmatch): New
+	namatch_mdatas field.
+	(altmatch_normalize_mdata, normexp_altmatch): Better debug.
+
+	* melt/warmelt-genobj.melt (class_alternate_match_nrep_data): New
+	altmatchn_datamap field.
+	(compilobj_nrep_altmatch): Initialize it.
+
+	* testsuite/melt/tcheader.melt: New test file.
+
+	* testsuite/melt/tmatch-tuple.melt: Improve comment.
+
+2011-02-15  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

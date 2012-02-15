@@ -6786,6 +6786,25 @@ source location.}#
        ))))
 (install_method class_source_store_predefined normal_exp normexp_store_predefined)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; normalize a cheader
+(defun normexp_cheader (recv env ncx psloc)
+  (debug "normexp_cheader recv=" recv "\n* ncx=" ncx)
+  (assert_msg "check cheader recv" (is_a recv class_source_cheader))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (let ( 
+	(sloc (unsafe_get_field :loca_location recv))
+	)
+    (assert_msg "@$@unimplemented normexp_cheader")
+))
+(install_method class_source_cheader normal_exp normexp_cheader)
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  check_ctype_nargs
  compile_obj

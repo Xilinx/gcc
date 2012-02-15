@@ -5299,6 +5299,7 @@ $SBUF.}#
   :fields (altmatchn_prev		;the previous
 	   altmatchn_nrep		;the current nrep_altmatch
 	   altmatchn_flagmap		;mapping from match flags to objflags
+	   altmatchn_datamap		;mapping from nrep matched data to objvalues
 	   )
   )
 (export_class class_alternate_match_nrep_data)
@@ -5320,6 +5321,8 @@ $SBUF.}#
 	(oldaltmatch (get_field :gncx_altmatch gcx))
 	(oflagmap (make_mapobject discr_map_objects 
 				  (+i 5 (*i 2 (multiple_length nflags)))))
+	(odatamap (make_mapobject discr_map_objects
+				  10))
 	(altmatch (instance class_alternate_match_nrep_data 
 			    :altmatchn_prev oldaltmatch
 			    :altmatchn_nrep nmat

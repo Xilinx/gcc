@@ -172,6 +172,16 @@ the expression.}#
   :fields (scomm_str
 	   ))
 
+;;;; source cheader
+(defclass class_source_cheader
+  :doc #{The internal $CLASS_SOURCE_C_HEADER is for $C_HEADER abstract
+syntax.  $SCHEADER_CODESTRING gives the code string to add into the
+declaration part. }#
+  :super class_source
+  :fields (scheader_codestring
+	   )
+)
+
 ;;;; source quote
 (defclass class_source_quote
   :doc #{The internal $SCLASS_SOURCE_QUOTE is for $QUOTE abstract syntax. $SQUOTED is the quoted stuff.}#
@@ -5438,6 +5448,36 @@ remain.}#)
  skips MELT code. Syntax is (COMMENT <string>) to insert a comment in
  the generated C code, or (COMMENT ...) to skip some syntax.}#)
 
+;;;;;;;;;;;;;;;;
+;;;;;;;; for CHEADER
+(defun mexpand_cheader  (sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont))) 
+	 (cheadstr (pair_head curpair))
+	 )
+    (if (pair_tail curpair)
+	(warning_plain loc "CHEADER should have only one string argument"_))
+    (if (not (is_string cheadstr))
+	(progn
+	  (warning_plain loc "CHEADER without string is ignored"_)
+	  (return)
+	  )
+      )
+    (let ( (sch (instance class_source_cheader
+			   :loca_location loc
+			   :scheader_codestr cheadstr)) )
+      (debug "mexpand_cheader gives sch=" sch)
+      (return sch)
+)))
+(install_initial_macro 'cheader mexpand_cheader)
+(export_macro 
+ cheader mexpand_cheader
+ :doc #{The $CHEADER syntax inserts C code in the header part of the generated code.}#)
+
+;;;;;;;;;;;;;;;;
 ;;;;;;;; for PROGN
 ;; internal routine to make a progn from a pairlist at a location
 (defun pairlist_to_progn (pair loc env mexpander)
@@ -6277,6 +6317,7 @@ remain.}#)
  class_source_compilewarning
  class_source_cppif
  class_source_current_module_environment_container
+ class_source_cheader
  class_source_defciterator
  class_source_defclass
  class_source_defcmatcher
