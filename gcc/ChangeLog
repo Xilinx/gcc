@@ -1,3 +1,123 @@
+2012-02-14  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR middle-end/52142
+	* ipa-inline.c (can_inline_edge_p): Do not inline tm_pure
+	functions into non-tm_pure functions.
+
+2012-02-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR lto/52178
+	* gimple.c (iterative_hash_gimple_type): Use RECORD_OR_UNION_TYPE_P.
+	(iterative_hash_canonical_type): Likewise.
+	* tree-ssa-pre.c (fini_pre): Clean up the CFG only after purging all
+	the dead edges.
+
+2012-02-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* haifa-sched.c (prune_ready_list): Ensure that if there is a
+	sched-group insn, it either remains alone or the entire list is
+	pruned.
+
+2012-02-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/install.texi (Prerequisites): Fix grammar.
+	(Configuration): Likewise.
+
+2012-02-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/install.texi (Prerequisites): Suggest building GMP, MPFR and
+	MPC as part of GCC before describing configuring with --with-gmp etc.
+	(Installing GCC: Configuration): --with-gmp etc. aren't needed if
+	sources are present.
+
+2012-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/51950
+	* dwarf2out.c (clone_tree_hash): New function.
+	(copy_decls_walk): Use it instead of clone_tree.
+
+2012-02-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52244
+	PR tree-optimization/51528
+	* tree-sra.c (analyze_access_subtree): Only create INTEGER_TYPE
+	replacements for integral types.
+
+2012-02-14  Walter Lee  <walt@tilera.com>
+
+	* config.gcc: Handle tilegx and tilepro.
+	* configure.ac (gcc_cv_as_dwarf2_debug_line): Enable test for
+	tilegx and tilepro.
+	Add HAVE_AS_TLS check for tilegx and tilepro.
+	* configure: Regenerate.
+	* doc/contrib.texi: Add Mat Hostetter and self.
+	* doc/extend.texi (TILE-Gx Built-in Functions): New node.
+	Document instruction intrinsics and network accessing intrinsics.
+	(TILEPro Built-in Functions): New node.  Document instruction
+	intrinsics and network accessing intrinsics.
+	* doc/install.texi (Specific, tilegx-*-linux*): Document it.
+	(Specific, tilepro-*-linux*): Likewise.
+	* doc/invoke.texi (TILE-Gx Options): New section.
+	(TILEPro Options): New section.
+	* doc/md.texi (TILE-Gx): New section.
+	(TILEPro): New section.
+	* common/config/tilegx/tilegx-common.c: New file.
+	* common/config/tilepro/tilepro-common.c: New file.
+	* config/tilegx/constraints.md: New file.
+	* config/tilegx/linux.h: New file.
+	* config/tilegx/mul-tables.c: New file.
+	* config/tilegx/predicates.md: New file.
+	* config/tilegx/sync.md: New file.
+	* config/tilegx/t-tilegx: New file.
+	* config/tilegx/tilegx-builtins.h: New file.
+	* config/tilegx/tilegx-c.c: New file.
+	* config/tilegx/tilegx-generic.md: New file.
+	* config/tilegx/tilegx-modes.def: New file.
+	* config/tilegx/tilegx-multiply.h: New file.
+	* config/tilegx/tilegx-protos.h: New file.
+	* config/tilegx/tilegx.c: New file.
+	* config/tilegx/tilegx.h: New file.
+	* config/tilegx/tilegx.md: New file.
+	* config/tilegx/tilegx.opt: New file.
+	* config/tilepro/constraints.md: New file.
+	* config/tilepro/gen-mul-tables.cc: New file.
+	* config/tilepro/linux.h: New file.
+	* config/tilepro/mul-tables.c: New file.
+	* config/tilepro/predicates.md: New file.
+	* config/tilepro/t-tilepro: New file.
+	* config/tilepro/tilepro-builtins.h: New file.
+	* config/tilepro/tilepro-c.c: New file.
+	* config/tilepro/tilepro-generic.md: New file.
+	* config/tilepro/tilepro-modes.def: New file.
+	* config/tilepro/tilepro-multiply.h: New file.
+	* config/tilepro/tilepro-protos.h: New file.
+	* config/tilepro/tilepro.c: New file.
+	* config/tilepro/tilepro.h: New file.
+	* config/tilepro/tilepro.md: New file.
+	* config/tilepro/tilepro.opt: New file.
+
+2012-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/52210
+	* tree-vect-slp.c (vect_get_and_check_slp_defs): Call
+	vect_model_simple_cost with two entry vect_def_type array instead
+	of an address of dt.
+
+2012-02-14  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/52178
+	* tree-streamer-in.c (lto_input_ts_field_decl_tree_pointers):
+	Do not stream DECL_QUALIFIER.
+	* tree-streamer-out.c (write_ts_field_decl_tree_pointers): Likewise.
+	* tree.c (free_lang_data_in_decl): Free DECL_QUALIFIER.
+	(find_decls_types_r): Do not walk DECL_QUALIFIER.
+
+2012-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/52181
+	* c-decl.c (merge_decls): Copy DECL_USER_ALIGN bit from olddecl to
+	newdecl.
+
 2012-02-13  Jakub Jelinek  <jakub@redhat.com>
 
 	PR bootstrap/52172

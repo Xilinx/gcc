@@ -1,6 +1,6 @@
 /* Process declarations and variables for C++ compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -2214,7 +2214,12 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
       SET_DECL_INIT_PRIORITY (olddecl, DECL_INIT_PRIORITY (newdecl));
       DECL_HAS_INIT_PRIORITY_P (olddecl) = 1;
     }
-  /* Likewise for DECL_USER_ALIGN and DECL_PACKED.  */
+  /* Likewise for DECL_ALIGN, DECL_USER_ALIGN and DECL_PACKED.  */
+  if (DECL_ALIGN (olddecl) > DECL_ALIGN (newdecl))
+    {
+      DECL_ALIGN (newdecl) = DECL_ALIGN (olddecl);
+      DECL_USER_ALIGN (newdecl) |= DECL_USER_ALIGN (olddecl);
+    }
   DECL_USER_ALIGN (olddecl) = DECL_USER_ALIGN (newdecl);
   if (TREE_CODE (newdecl) == FIELD_DECL)
     DECL_PACKED (olddecl) = DECL_PACKED (newdecl);
@@ -10504,14 +10509,15 @@ static tree
 local_variable_p_walkfn (tree *tp, int *walk_subtrees,
 			 void *data ATTRIBUTE_UNUSED)
 {
-  if (local_variable_p (*tp) && !DECL_ARTIFICIAL (*tp))
+  /* Check DECL_NAME to avoid including temporaries.  We don't check
+     DECL_ARTIFICIAL because we do want to complain about 'this'.  */
+  if (local_variable_p (*tp) && DECL_NAME (*tp))
     return *tp;
   else if (TYPE_P (*tp))
     *walk_subtrees = 0;
 
   return NULL_TREE;
 }
-
 
 /* Check that ARG, which is a default-argument expression for a
    parameter DECL, is valid.  Returns ARG, or ERROR_MARK_NODE, if
@@ -10573,7 +10579,10 @@ check_default_argument (tree decl, tree arg)
   var = cp_walk_tree_without_duplicates (&arg, local_variable_p_walkfn, NULL);
   if (var)
     {
-      error ("default argument %qE uses local variable %qD", arg, var);
+      if (DECL_NAME (var) == this_identifier)
+	permerror (input_location, "default argument %qE uses %qD", arg, var);
+      else
+	error ("default argument %qE uses local variable %qD", arg, var);
       return error_mark_node;
     }
 
