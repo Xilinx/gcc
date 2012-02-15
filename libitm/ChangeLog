@@ -1,3 +1,34 @@
+2012-02-14  Richard Henderson  <rth@redhat.com>
+
+	* config/x86/target.h (GTM_longjmp): Correct the .cfi corrections.
+
+2012-02-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/x86/target.h (GTM_longjmp): Correct .cfi directives.
+
+2012-02-14  Torvald Riegel  <triegel@redhat.com>
+
+	* libitm_i.h (GTM::gtm_rwlog_entry): New.
+	(GTM::gtm_thread): Add read and write logs.
+	(GTM::dispatch_ml_wt): Declare.
+	* retry.cc (parse_default_method): Support ml_wt.
+	* method-ml.cc: New file.
+	* Makefile.am: Add method-ml.cc.
+	* Makefile.in: Regenerate.
+
+2012-02-14  Torvald Riegel  <triegel@redhat.com>
+
+	* dispatch.h (GTM::abi_dispatch::supports): New.
+	(GTM::method_group::reinit): New.
+	* retry.cc (GTM::gtm_thread::decide_retry_strategy): Use reinit().
+	(GTM::gtm_thread::number_of_threads_changed): Check that the method
+	supports the current situation.
+
+2012-02-14  Torvald Riegel  <triegel@redhat.com>
+
+	* util.cc (GTM::xcalloc): New.
+	* common.h (GTM::xcalloc): Declare.
+
 2012-02-14  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* config/sparc/target.h (cpu_relax): Read from CC register.
