@@ -1032,6 +1032,32 @@ cilk_output_metadata (void)
   return;
 }
 
+/* This function will go through an RTL of type MEM and then check to see if
+ * the register is PSEUDO, if so then we replace it with stack_pointer_rtx.
+ * This is mainly used to find the DWARF codes for parameters that are pushed
+ * in the stack.
+ */
+static rtx
+cilk_fix_stack_reg (rtx mem_rtx)
+{
+  if (!mem_rtx || !MEM_P (mem_rtx))
+    return mem_rtx;
+
+  if (REG_P (XEXP (mem_rtx, 0)))
+    {
+      if (REGNO (XEXP (mem_rtx, 0)) >= FIRST_PSEUDO_REGISTER)
+	XEXP (mem_rtx, 0) = stack_pointer_rtx;
+    }
+  else if (GET_CODE (XEXP (mem_rtx, 0)) == PLUS)
+    {
+      rtx tmp_rtx = XEXP (mem_rtx, 0);
+      if (REG_P (XEXP (tmp_rtx, 0)))
+	if (REGNO (XEXP (tmp_rtx, 0)) >= FIRST_PSEUDO_REGISTER)
+	  XEXP (XEXP (mem_rtx, 0), 0) = stack_pointer_rtx;
+    }
+  return mem_rtx;
+}
+
 rtx
 expand_builtin_cilk_metadata (const char *annotation ATTRIBUTE_UNUSED,
 			      tree exp ATTRIBUTE_UNUSED)
@@ -1062,7 +1088,14 @@ expand_builtin_cilk_metadata (const char *annotation ATTRIBUTE_UNUSED,
 	  reg_rtx = XEXP (ii_rtx, 0);
 	  if (reg_rtx)
 	    if (GET_CODE (reg_rtx) == USE)
-	      metadata_info.reg_rtx = XEXP (reg_rtx, 0);
+	      {
+		reg_rtx = XEXP (reg_rtx, 0);
+		if (REG_P (reg_rtx))
+		  metadata_info.reg_rtx = reg_rtx;
+		else if (MEM_P (reg_rtx)) /* this means we are using stack */
+		  metadata_info.reg_rtx = cilk_fix_stack_reg (reg_rtx);
+	      }
+	  
 	}
 
       loc_ref = loc_descriptor (metadata_info.reg_rtx, VOIDmode,
