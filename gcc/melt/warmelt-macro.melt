@@ -5451,27 +5451,45 @@ remain.}#)
 ;;;;;;;;;;;;;;;;
 ;;;;;;;; for CHEADER
 (defun mexpand_cheader  (sexpr env mexpander)
+  (debug "mexpand_cheader sexpr=" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
-	 (cheadstr (pair_head curpair))
+	 (chead (pair_head curpair))
 	 )
     (if (pair_tail curpair)
-	(warning_plain loc "CHEADER should have only one string argument"_))
-    (if (not (is_string cheadstr))
-	(progn
-	  (warning_plain loc "CHEADER without string is ignored"_)
-	  (return)
-	  )
+	(warning_plain loc "CHEADER should have only one argument"))
+    (debug "mexpand_cheader chead=" chead)
+    (cond
+     ((is_string chead)
+      (void)
       )
+     ((is_a chead class_sexpr_macrostring)
+      (let ( (sbuf (make_strbuf discr_strbuf))
+	     (scont (get_field :sexp_contents chead))
+	     (sloc (get_field :loca_location chead))
+	     )
+	(if sloc (setq loc sloc))
+	(foreach_in_list
+	 (scont)
+	 (curpair curarg)
+	 (add2out sbuf curarg)
+	 )
+	(setq chead (strbuf2string discr_verbatim_string sbuf))
+	))
+     (:else
+      (error_plain loc "CHEADER without string or macrostring"_)
+      (return)
+      )
+     )
     (let ( (sch (instance class_source_cheader
-			   :loca_location loc
-			   :scheader_codestring cheadstr)) )
+			  :loca_location loc
+			  :scheader_codestring chead)) )
       (debug "mexpand_cheader gives sch=" sch)
       (return sch)
-)))
+      )))
 (install_initial_macro 'cheader mexpand_cheader)
 (export_macro 
  cheader mexpand_cheader

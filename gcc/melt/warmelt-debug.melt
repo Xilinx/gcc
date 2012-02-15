@@ -628,66 +628,64 @@ $TORANK}#
 	    #{/*$OUTALLSTRBUFCHK*/ meltgc_add_out_cstr_len
 	    ((melt_ptr_t)$SBUF, 
 	     melt_strbuf_str ((melt_ptr_t)$SELF),
-	     (int) $ULEN);
+	     (int) $ULEN)		;
 	    }#)
 	   )
 	 (:else
-	   (code_chunk 
-	    outbigslicstrbufchk
-	    #{/*$OUTBIGSLICSTRBUFCHK*/ 
-            const int startslice = 1000;
-            const int endslice = 2500;
-            gcc_assert (startslice + endslice < (int)$ULEN - 5);
-	    meltgc_add_out_cstr_len
-	       ((melt_ptr_t)$SBUF, 
-	        melt_strbuf_str ((melt_ptr_t)$SELF),
-	       startslice);
-            meltgc_out_printf
-	       ((melt_ptr_t)$SBUF,
-		"\"\n ... %d bytes skipped\n ...\"", 
-                (int)$ULEN - (startslice+endslice));
-	    meltgc_add_out_cstr_len
-	       ((melt_ptr_t)$SBUF, 
-	        (melt_strbuf_str ((melt_ptr_t)$SELF)) + $ULEN - endslice,
-		endslice);
-	    }#
-	    ))
-	  ))
+	  (code_chunk 
+	   outbigslicstrbufchk
+	   #{/*$OUTBIGSLICSTRBUFCHK*/ 
+	   const int startslice = 1000			       ;
+	   const int endslice = 2500			       ;
+	   gcc_assert (startslice + endslice < (int)$ULEN - 5) ;
+	   meltgc_add_out_cstr_len
+	   ((melt_ptr_t)$SBUF, 
+	    melt_strbuf_str ((melt_ptr_t)$SELF),
+	    startslice)			;
+	   meltgc_out_printf
+	   ((melt_ptr_t)$SBUF,
+	    "\"\n ... %d bytes skipped\n ...\"", 
+	    (int)$ULEN - (startslice+endslice))	;
+	   meltgc_add_out_cstr_len
+	   ((melt_ptr_t)$SBUF, 
+	    (melt_strbuf_str ((melt_ptr_t)$SELF)) + $ULEN - endslice,
+	    endslice)			;
+	   }#
+	   ))
+	 )
       (cond
        ( (<i ulen 1000)
-	   (code_chunk 
-	    outalltinystrbufchk
-	    #{ /*$OUTALLTINYSTRBUFCHK*/ meltgc_add_out_cstr_len
-	    ((melt_ptr_t)$SBUF, 
-	     melt_strbuf_str ((melt_ptr_t)$SELF),
-	     (int) $ULEN);
-	    }#
-	    )
-	   )
-	 (:else
-	   (code_chunk 
-	    outtinyslicstrbufchk
-	    #{ /*+$OUTTINYSLICSTRBUFCHK*/ 
-            const int startslice = 100;
-            const int endslice = 550;
-            gcc_assert (startslice + endslice < (int)$ULEN - 5);
-	    meltgc_add_out_cstr_len
-	       ((melt_ptr_t)$SBUF, 
-	        melt_strbuf_str ((melt_ptr_t)$SELF),
-	       startslice);
-            meltgc_out_printf
-	       ((melt_ptr_t)$SBUF,
-		"\"\n ... %d bytes skipped\n ...\"", 
-                (int)$ULEN - (startslice+endslice));
-	    meltgc_add_out_cstr_len
-	       ((melt_ptr_t)$SBUF, 
-	        (melt_strbuf_str ((melt_ptr_t)$SELF)) + $ULEN - endslice,
-		endslice); 
-            /*-$OUTTINYSLICSTRBUFCHK*/
-	    }#
-	    )
-	   )
+	 (code_chunk 
+	  outalltinystrbufchk
+	  #{ /*$OUTALLTINYSTRBUFCHK*/ meltgc_add_out_cstr_len
+	  ((melt_ptr_t)$SBUF, 
+	   melt_strbuf_str ((melt_ptr_t)$SELF),
+	   (int) $ULEN)			;
+	  }#
 	  )
+	 )
+       (:else
+	(code_chunk 
+	 outtinyslicstrbufchk
+	 #{ /*+$OUTTINYSLICSTRBUFCHK*/ 
+	 const int startslice = 100			     ;
+	 const int endslice = 550			     ;
+	 gcc_assert (startslice + endslice < (int)$ULEN - 5) ;
+	 meltgc_add_out_cstr_len
+	 ((melt_ptr_t)$SBUF, 
+	  melt_strbuf_str ((melt_ptr_t)$SELF),
+	  startslice)			;
+	 meltgc_out_printf
+	 ((melt_ptr_t)$SBUF,
+	  "\"\n ... %d bytes skipped\n ...\"", 
+	  (int)$ULEN - (startslice+endslice)) ;
+	 meltgc_add_out_cstr_len
+	 ((melt_ptr_t)$SBUF, 
+	  (melt_strbuf_str ((melt_ptr_t)$SELF)) + $ULEN - endslice,
+	  endslice)			; 
+	 /*-$OUTTINYSLICSTRBUFCHK*/
+	 }#
+	 ))))
     (add2out sbuf "\">") 
     (if (>i ulen 60) (add2out_indent sbuf depth))
     ))

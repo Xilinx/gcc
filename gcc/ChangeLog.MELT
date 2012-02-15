@@ -1,5 +1,9 @@
 
 2011-02-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-debug.melt (dbgout_strbuf_method): Better.
+	* melt/warmelt-macro.melt (mexpand_cheader): Ok.
+
+2011-02-15  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-macro.melt (class_source_cheader): new class.
 	(mexpand_cheader): New macro expander for it.
