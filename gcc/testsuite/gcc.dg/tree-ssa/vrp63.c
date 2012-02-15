@@ -5,8 +5,7 @@ int f(int x)
 {
   if (x >= 0 && x <= 3)
     {
-      x = x ^ 3;
-      x = x & 3;
+      x = (x ^ 3) & 3;
     }
   return x;
 }
@@ -15,8 +14,7 @@ int g(int x)
 {
   if (x >= 0 && x <= 3)
     {
-      x = x ^ 2;
-      x = x & 3;
+      x = (x ^ 2) & 3;
     }
   return x;
 }
@@ -25,8 +23,7 @@ int h(int x)
 {
   if (x >= 0 && x <= 3)
     {
-      x = x ^ 1;
-      x = x & 3;
+      x = (x ^ 1) & 3;
     }
   return x;
 }

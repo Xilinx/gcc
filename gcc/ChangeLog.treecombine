@@ -1,5 +1,10 @@
 2012-02-14  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (simplify_bitwise_binary): Add fold of "(X ^ Y) & Y"
+	as "~X & Y".
+
+2012-02-14  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (simplify_bitwise_binary): Initialize def1_arg2
 	and def2_arg2 to NULL.
 

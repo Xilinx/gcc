@@ -1167,6 +1167,7 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi)
 
   def2_code = TREE_CODE (arg2);
   def2_arg1 = arg2;
+
   if (def2_code == SSA_NAME)
     defcodefor_name (arg2, &def2_code, &def2_arg1, &def2_arg2);
 
@@ -1321,6 +1322,86 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi)
       gcc_assert (gsi_stmt (*gsi) == stmt);
       update_stmt (stmt);
       return true;
+    }
+
+  /* Fold (X ^ Y) & Y as ~X & Y.  */
+  if (code == BIT_AND_EXPR
+      && def1_code == BIT_XOR_EXPR
+      && operand_equal_for_phi_arg_p (def1_arg2, arg2))
+    {
+       gimple newop;
+       tree tem;
+       tem = create_tmp_reg (TREE_TYPE (arg2), NULL);
+       newop = gimple_build_assign_with_ops (BIT_NOT_EXPR, tem, def1_arg1,
+					     NULL_TREE);
+       tem = make_ssa_name (tem, newop);
+       gimple_assign_set_lhs (newop, tem);
+       gimple_set_location (newop, gimple_location (stmt));
+       /* Make sure to re-process the new stmt as it's walking upwards.  */
+       gsi_insert_before (gsi, newop, GSI_NEW_STMT);
+       gimple_assign_set_rhs1 (stmt, tem);
+       update_stmt (stmt);
+       return true;
+    }
+
+  /* Fold (X ^ Y) & X as ~Y & X.  */
+  if (code == BIT_AND_EXPR
+      && def1_code == BIT_XOR_EXPR
+      && operand_equal_for_phi_arg_p (def1_arg1, arg2))
+    {
+       gimple newop;
+       tree tem;
+       tem = create_tmp_reg (TREE_TYPE (arg2), NULL);
+       newop = gimple_build_assign_with_ops (BIT_NOT_EXPR, tem, def1_arg2,
+					     NULL_TREE);
+       tem = make_ssa_name (tem, newop);
+       gimple_assign_set_lhs (newop, tem);
+       gimple_set_location (newop, gimple_location (stmt));
+       /* Make sure to re-process the new stmt as it's walking upwards.  */
+       gsi_insert_before (gsi, newop, GSI_NEW_STMT);
+       gimple_assign_set_rhs1 (stmt, tem);
+       update_stmt (stmt);
+       return true;
+    }
+
+  /* Fold Y & (X ^ Y) as Y & ~X.  */
+  if (code == BIT_AND_EXPR
+      && def2_code == BIT_XOR_EXPR
+      && operand_equal_for_phi_arg_p (def2_arg2, arg1))
+    {
+       gimple newop;
+       tree tem;
+       tem = create_tmp_reg (TREE_TYPE (arg1), NULL);
+       newop = gimple_build_assign_with_ops (BIT_NOT_EXPR, tem, def2_arg1,
+					     NULL_TREE);
+       tem = make_ssa_name (tem, newop);
+       gimple_assign_set_lhs (newop, tem);
+       gimple_set_location (newop, gimple_location (stmt));
+       /* Make sure to re-process the new stmt as it's walking upwards.  */
+       gsi_insert_before (gsi, newop, GSI_NEW_STMT);
+       gimple_assign_set_rhs2 (stmt, tem);
+       update_stmt (stmt);
+       return true;
+    }
+
+  /* Fold X & (X ^ Y) as X & ~Y.  */
+  if (code == BIT_AND_EXPR
+      && def2_code == BIT_XOR_EXPR
+      && operand_equal_for_phi_arg_p (def2_arg1, arg1))
+    {
+       gimple newop;
+       tree tem;
+       tem = create_tmp_reg (TREE_TYPE (arg1), NULL);
+       newop = gimple_build_assign_with_ops (BIT_NOT_EXPR, tem, def2_arg2,
+					     NULL_TREE);
+       tem = make_ssa_name (tem, newop);
+       gimple_assign_set_lhs (newop, tem);
+       gimple_set_location (newop, gimple_location (stmt));
+       /* Make sure to re-process the new stmt as it's walking upwards.  */
+       gsi_insert_before (gsi, newop, GSI_NEW_STMT);
+       gimple_assign_set_rhs2 (stmt, tem);
+       update_stmt (stmt);
+       return true;
     }
 
   /* Try simple folding for X op !X, and X op X.  */
