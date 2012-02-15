@@ -1,4 +1,17 @@
 
+2011-02-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (shortbacktrace_dbg): Use
+	melt_need_debug to skip backtraces...
+
+	* melt/warmelt-genobj.melt (class_objflag): Inherit from
+	class_objpurevalue not class_generated_c_code.
+	(compile2obj_procedure, compile2obj_initproc): Add long ~~~ line
+	in first debug message.
+	(putobjdest_objvalue, putobjdest_integer, putobjdest_string)
+	(putobjdest_null, putobjdest_objanyblock, putobjdest_objloop)
+	(putobjdest_objexit, putobjdest_objcond, putobjdest_objcppif):
+	Check that desto is just a class_objpurevalue.
+
 2011-02-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt (class_objflag): New class.
 	(class_objflagblock) Renamed as...

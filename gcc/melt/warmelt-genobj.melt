@@ -167,7 +167,7 @@
 	   ))
 
 (defclass class_objflag
-  :super class_generated_c_code
+  :super class_objpurevalue
   :fields (obflag_matchflag
 	   obflag_name
 	   obflag_rank
@@ -932,7 +932,8 @@ $SBUF.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compile a single procedure
 (defun compile2obj_procedure (pro modctx compicache :long num)
-  (debug "compile2obj_procedure pro=" pro " num=" num)
+  (debug "compile2obj_procedure pro=" pro " num=" num
+	 "\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n")
   (assert_msg "check pro" (is_a pro class_nrep_routproc))
   (assert_msg "check compicache" (is_mapobject compicache))
   (assert_msg "check modctx" (is_a modctx class_module_context))
@@ -1095,8 +1096,12 @@ $SBUF.}#
 
 ;;;; compile the initial procedure into an object
 (defun compile2obj_initproc (ipro modctx idata compicache procurmodenvlist importvalues)
-  (debug "compile2obj_initproc ipro=" ipro " modctx=" modctx " compicache=" compicache
-	 " procurmodenvlist=" procurmodenvlist " importvalues=" importvalues)
+  (debug "compile2obj_initproc ipro=" ipro 
+	 "\n* modctx=" modctx "\n* compicache=" compicache
+	 "\n* procurmodenvlist=" procurmodenvlist 
+	 "\n* importvalues=" importvalues
+	 "\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
+	 )
   (assert_msg "check ipro" (is_a ipro class_nrep_initproc))
   (assert_msg "check idata" (is_list idata))
   (assert_msg "check modctx" (is_a modctx class_module_context))
@@ -3516,9 +3521,9 @@ $SBUF.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_objvalue (recv desto)
   (assert_msg "check recv" (is_a recv class_objvalue))
-  (assert_msg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check desto" (is_a desto class_objpurevalue))
   (let ( (typrecv (unsafe_get_field :obv_type recv))
-	 (typdesto (unsafe_get_field :obv_type desto)) 
+	 (typdesto (get_field :obv_type desto)) 
 	 )
     (cond
      ;; special case when receiver is void
@@ -3580,12 +3585,13 @@ $SBUF.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_integer (recv desto)
-  (debug "putobjdest_integer recv=" recv " desto=" desto)
+  (debug "putobjdest_integer recv=" recv "\n* desto=" desto
+	 "\n* of discrim:" (discrim desto) "\n* class_objlocv=" class_objlocv)
   (assert_msg "check recv" (is_integerbox recv))
-  (assert_msg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check desto" (is_a desto class_objpurevalue))
   (let ( (destlis (make_list discr_list))
 	 (explis (make_list discr_list))
-	 (typdesto (unsafe_get_field :obv_type desto))
+	 (typdesto (get_field :obv_type desto))
 	 (obc (instance class_objcompute
 			;; dont fill :obi_loc
 			:obdi_destlist destlis
@@ -3607,7 +3613,7 @@ $SBUF.}#
 ;;; useful to compile (let ( (:cstring foo "abc") ) ...)
 (defun putobjdest_string (recv desto)
   (assert_msg "check recv" (is_string recv))
-  (assert_msg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check desto" (is_a desto class_objpurevalue))
   (debug "putobjdest_string recv=" recv " desto=" desto)
   (let ( (destlis (make_list discr_list))
 	 (explis (make_list discr_list))
@@ -3630,7 +3636,7 @@ $SBUF.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_null (recv desto)
   (assert_msg "check recv" (null recv))
-  (assert_msg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check desto" (is_a desto class_objpurevalue))
   (debug "putobjdest_null recv=" recv " desto=" desto)
   (if (melt_need_dbg 0) (shortbacktrace_dbg "putobjdest_null" 15))
   (let ( (destlis (make_list discr_list))
@@ -3655,7 +3661,7 @@ $SBUF.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_objanyblock (recv desto)
   (assert_msg "check recv" (is_a recv class_objanyblock))
-  (assert_msg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check desto" (is_a desto class_objpurevalue))
   (let ( (obl (unsafe_get_field :oblo_bodyl recv))
 	 (oep (unsafe_get_field :oblo_epil recv))
 	 )
@@ -3693,7 +3699,7 @@ $SBUF.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun putobjdest_objloop (recv desto)
   (assert_msg "check recv" (is_a recv class_objloop))
-  (assert_msg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check desto" (is_a desto class_objpurevalue))
   (let ( (epil (unsafe_get_field :oblo_epil recv)) 
 	 (resv (unsafe_get_field :obloop_resv recv))
 	 (destlist (make_list discr_list))
@@ -3718,7 +3724,7 @@ $SBUF.}#
 ;;; do nothing when puting a destination into an objexit
 (defun putobjdest_objexit (recv desto)
   (assert_msg "check recv" (is_a recv class_objexit))
-  (assert_msg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check desto" (is_a desto class_objpurevalue))
   recv
   )
 (install_method class_objexit put_objdest putobjdest_objexit)
@@ -4006,7 +4012,7 @@ $SBUF.}#
 ;;;;;;;;;;;;;
 (defun putobjdest_objcond (recv desto)
   (assert_msg "check recv" (is_a recv class_objcond))
-  (assert_msg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check desto" (is_a desto class_objpurevalue))
   (let ( (othen (unsafe_get_field :obcond_then recv))
 	 (oelse (unsafe_get_field :obcond_else recv)) 
 	 )
@@ -4049,7 +4055,7 @@ $SBUF.}#
 ;;;;;;;;;;;;;
 (defun putobjdest_objcppif (recv desto)
   (assert_msg "check recv" (is_a recv class_objcppif))
-  (assert_msg "check desto" (is_a desto class_objlocv))
+  (assert_msg "check desto" (is_a desto class_objpurevalue))
   (let ( (othen (unsafe_get_field :obifp_then recv))
 	 (oelse (unsafe_get_field :obifp_else recv)) 
 	 )
@@ -5415,6 +5421,7 @@ $SBUF.}#
 	    (assert_msg "check ojbmf" (is_a objmf class_objflag))
 	    (return objmf)))
       (setq objmf (instance class_objflag
+			    :obv_type ctype_long
 			    :obflag_matchflag nmflag
 			    :obflag_name (get_field :mflag_string nrfla)
 			    :obflag_rank (get_field :mflag_rank nrfla)))
