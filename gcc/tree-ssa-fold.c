@@ -1409,7 +1409,8 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp)
       && code == BIT_AND_EXPR
       && def1_code == BIT_NOT_EXPR
       && TREE_CODE (arg2) == INTEGER_CST
-      && double_int_equal_p (tree_to_double_int (arg2), nonzerobitsp (def1_arg1)))
+      && double_int_equal_p (tree_to_double_int (arg2),
+			     nonzerobitsp (def1_arg1)))
    {
       gimple_assign_set_rhs_with_ops_1 (gsi, BIT_XOR_EXPR,
 					def1_arg1, arg2, NULL_TREE);
