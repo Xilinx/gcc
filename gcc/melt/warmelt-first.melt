@@ -842,6 +842,7 @@ subclasses are produced by macro expanders.}# )
 	   mocx_filetuple		;vector for different generated files
 	   mocx_cflags			;cflags of generated module
 	   mocx_linkflags		;linkflags of generated module
+	   mocx_cheaderlist		;list of cheaders
 	   )
   :doc #{The internal $CLASS_MODULE_CONTEXT describes the whole module
 context of a translation. $MOCX_MODULENAME gives the module name,

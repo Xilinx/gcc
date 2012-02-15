@@ -6796,8 +6796,13 @@ source location.}#
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
+	(modctx (get_field :nctx_modulcontext ncx))
+	(mcheadlist (get_field :mocx_cheaderlist modctx))
 	)
-    (assert_msg "@$@unimplemented normexp_cheader")
+    (assert_msg "check modctx" (is_a modctx class_module_context))
+    (assert_msg "check mcheadlist" (is_list mcheadlist))
+    (list_append mcheadlist recv)
+    (return)
 ))
 (install_method class_source_cheader normal_exp normexp_cheader)
 

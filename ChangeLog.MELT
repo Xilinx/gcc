@@ -1,4 +1,7 @@
 
+2011-02-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* INSTALL/README-MELT-PLUGIN: Mention CHEADER
+
 2012-02-14  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	MELT branch merged with trunk rev 184203 using svnmerge

@@ -141,9 +141,18 @@ Comments about the MELT plugin (including its installation script) are
 welcome by email to <basile@starynkevitch.net> [please mention MELT in
 the subject line]
 
+################################################################
+NEWS for ....
+
+    Language improvements
+    =====================
+
+Add CHEADER macro to insert header c-code.
+
+
 #######################################################################
 NEWS for 0.9.3 MELT plugin for gcc-4.6 (and future gcc-4.7)
-January ??th, 2012
+January 27th, 2012
 
 New features:
 

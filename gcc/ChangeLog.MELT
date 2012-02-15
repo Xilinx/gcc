@@ -1,5 +1,12 @@
 
 2011-02-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (class_module_context): New field
+	mocx_cheaderlist.
+	* melt/warmelt-normexp.melt (normexp_cheader): Done.
+	* melt/warmelt-outobj.melt (compile_list_sexpr): Add cheader
+	emission.
+
+2011-02-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-debug.melt (dbgout_strbuf_method): Better.
 	* melt/warmelt-macro.melt (mexpand_cheader): Ok.
 
