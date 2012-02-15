@@ -5468,7 +5468,7 @@ remain.}#)
       )
     (let ( (sch (instance class_source_cheader
 			   :loca_location loc
-			   :scheader_codestr cheadstr)) )
+			   :scheader_codestring cheadstr)) )
       (debug "mexpand_cheader gives sch=" sch)
       (return sch)
 )))
