@@ -1,5 +1,8 @@
 
 2011-02-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (normbind_matchbind): Perhaps incorrect.
+
+2011-02-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt (compilobj_nrep_altmatch): Initialize
 	odatamap.
 	(compilobj_nrep_matchdatainit, compilobj_nrep_matchedata):

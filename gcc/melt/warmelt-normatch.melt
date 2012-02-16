@@ -2671,6 +2671,8 @@ $MATCHBIND_NBOCC is the number of occurrences.}#
   (assert_msg "check bind" (is_a bind class_matched_binding))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
+  (debug "normbind_matchbind bind=" bind "\n ncx=" ncx)
+  (shortbacktrace_dbg "normbind_matchbind" 7)
   (let ( (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
 	 (symb (unsafe_get_field :binder bind))
 	 (mdata (unsafe_get_field :matchbind_data bind))
@@ -2683,6 +2685,7 @@ $MATCHBIND_NBOCC is the number of occurrences.}#
 			  :nocc_symb symb
 			  :nocc_bind bind) ) 
 	 )
+    (debug "normbind_matchbind syocc=" syocc)
     ;; increment the number of occurrences
     (put_int boxnbocc (+i nbocc 1))
     ;; cache the result & return it
