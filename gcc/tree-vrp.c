@@ -5524,7 +5524,8 @@ remove_range_assertions (void)
 	gimple stmt = gsi_stmt (si);
 	gimple use_stmt;
 
-        if (is_gimple_debug (stmt)
+        if (gimple_debug_bind_p (stmt)
+	    && gimple_debug_bind_get_value (stmt)
 	    && TREE_CODE (gimple_debug_bind_get_value (stmt)) == ASSERT_EXPR)
 	  {
 	    tree assrt = gimple_debug_bind_get_value (stmt);

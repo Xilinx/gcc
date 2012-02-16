@@ -1,3 +1,9 @@
+2012-02-15  Andrew Pinski  <apinski@cavium.com>
+
+	* tree-vrp.c (remove_range_assertions): Use gimple_debug_bind_p
+	instead of is_gimple_debug.  Also check gimple_debug_bind_get_value
+	before checking the tree code.
+
 2012-02-14  Andrew Pinski  <apinski@cavium.com>
 
 	* tree-flow.h (nonzerobits_t): New type.
