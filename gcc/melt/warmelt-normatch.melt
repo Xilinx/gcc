@@ -6231,7 +6231,8 @@ normalized expression.}#
 ;;;;;;;;;;;;;;;;
 ;;; utility to normalize a matched data with a match normalization context
 (defun altmatch_normalize_mdata (mdata nmctxt)
-  (debug "altmatch_normalize_mdata mdata=" mdata)
+  (debug "altmatch_normalize_mdata mdata=" mdata "\n* of discrim:" (discrim mdata) "\n")
+  (shortbacktrace_dbg "altmatch_normalize_mdata" 7)
   (assert_msg "altmatch_normalize_mdata check mdata" (is_a mdata class_matched_data))
   (assert_msg "altmatch_normalize_mdata check nmctxt" (is_a nmctxt class_match_normalization_context))
   (let ( (datamap (unsafe_get_field :matnorx_datamap nmctxt))
@@ -6241,41 +6242,52 @@ normalized expression.}#
 	 )
     (if ndata
 	(progn
-	  (debug "altmatch_normalize_mdata found ndata=" ndata)
+	  (debug "altmatch_normalize_mdata found cached ndata=" ndata)
 	  (return ndata)))
+    ;;
+    ;; test if mdata is the original data to be matched - ie the first
+    ;; argument to our (match ...)
     (if (is_a mdata class_matched_normal_data)
 	(progn 
 	  (setq ndata (unsafe_get_field :mdata_orig mdata))
-	  (debug "altmatch_normalize_mdata got normal ndata=" ndata " from mdata=" mdata))
+	  (list_append mdataqueue mdata)
+	  (mapobject_put datamap mdata ndata)
+	  (debug "altmatch_normalize_mdata return normal ndata=" ndata 
+		 "\n of disrim=" (discrim ndata)
+		 "\n from mdata=" mdata
+		 "\n updated mdataqueue=" mdataqueue
+		 "\n updated datamap=" datamap)
+	  (return ndata)
+	  )
       (let ( (msymb (get_field :mdata_symb mdata))
 	     (mctyp (get_field :mdata_ctype mdata))
 	     (sloc (get_field :loca_location 
-				   (get_field :mdata_orig mdata)))
+			      (get_field :mdata_orig mdata)))
 	     (:long datacount (mapobject_count datamap))
 	     (newdata (instance class_nrep_matched_data
 				:nrep_loc sloc
 				:nrmatd_ctype mctyp
 				:nrmatd_mdata mdata
 				:nrmatd_rank (make_integerbox discr_constant_integer
-							      (+i datacount 1))
-		       ))
+							      datacount)
+				))
 	     (newdatainit (instance class_nrep_match_data_initializer
 				    :nrep_loc ()
 				    :nmdac_data newdata))
-	    )
+	     )
 	(debug "altmatch_normalize_mdata make newdata=" newdata 
-	       "\n* for mdata=" mdata)
+	       "\n* for mdata=" mdata
+	       "\n* of discrim:" (discrim mdata))
 	(setq ndata newdata)
 	(list_append bodyl newdatainit)
-	))
-    (mapobject_put datamap mdata ndata)
-    (list_append mdataqueue mdata)
-    (debug "altmatch_normalize_mdata final ndata=" ndata 
-	   "\n* for mdata=" mdata
-	   "\n* updated datamap=" datamap 
-	   "\n* updated mdataqueue=" mdataqueue)
-    (return ndata)
-    ))
+	(mapobject_put datamap mdata ndata)
+	(list_append mdataqueue mdata)
+	(debug "altmatch_normalize_mdata final ndata=" ndata 
+	       "\n* for mdata=" mdata
+	       "\n* updated datamap=" datamap 
+	       "\n* updated mdataqueue=" mdataqueue)
+	(return ndata)
+	))))
 
 
 (defun altmatch_handle_normalized_mdata (matdata ndata nmctxt)
@@ -6454,6 +6466,8 @@ normalized expression.}#
        )))
   )
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalize a match alternate
 (defun normexp_altmatch (recv env ncx psloc)
   (assert_msg "check match recv" (is_a recv class_source_match))
@@ -6606,9 +6620,11 @@ normalized expression.}#
 		 (nresmatch (unsafe_get_field :matnorx_nmatch nmctxt))
 		 (nbodyl (unsafe_get_field :matnorx_bodylist nmctxt))
 		 (nflagmap (unsafe_get_field :matnorx_flagmap nmctxt))
+		 (ndatamap (unsafe_get_field :matnorx_datamap nmctxt))
 		 (nendlab (unsafe_get_field :matnorx_endlabel nmctxt))
 		 (nresbind (get_field :nocc_bind nresloc))
 		 (nflagslist (make_list discr_list))
+		 (ndatalist (make_list discr_list))
 		 )
 	     (debug "normexp_altmatch nresloc=" nresloc 
 		    "\n* nbodyl=" nbodyl
@@ -6636,18 +6652,57 @@ normalized expression.}#
 	       (put_fields nresbind
 			   :letbind_expr nresmatch)
 	       (assert_msg "check nresmatch" (is_a nresmatch class_nrep_altmatch))
-	       (put_fields nresmatch
-			   :namatch_matched nmatx ;; normal matched stuff
-			   :namatch_result nresloc
-			   :namatch_body (list_to_multiple nbodyl)
-			   :namatch_flags sortedflagstup
-			   )
-	       (debug "normexp_altmatch nresmatch=" nresmatch)
-	       (debug "normexp_altmatch final nresbind=" nresbind " nresloc=" nresloc)
-	       (warning_plain sloc "@@??implemented normexp_altmatch")
-	       (compile_warning "@@??implemented normexp_altmatch")
-	       (return nresloc (list nresbind))
-	       ))))))))
+;;;
+	       (debug "normexp_altmatch ndatamap=" ndatamap)
+	       (foreach_in_mapobject
+		(ndatamap)
+		(curndata curnorm)
+		(debug "normexp_altmatch curndata=" curndata 
+		       "\n** of discrim:" (discrim curndata)
+		       "\n* curnorm=" curnorm
+		       "\n** of discrim:" (discrim curnorm)
+		       "\n")
+		(if (is_a curnorm class_nrep_matched_data)
+		    (let (
+			  )
+		      (debug "normexp_altmatch good curnorm=" curnorm)
+		      (list_append ndatalist curnorm)
+		      ))
+		)
+	       (debug "normexp_altmatch ndatalist=" ndatalist)
+	       (let ( (:long nbndata (list_length ndatalist))
+		      (ndatatup (make_multiple discr_multiple nbndata))
+		      )
+		 (foreach_in_list
+		  (ndatalist)
+		  (curpaird curndata)
+		  (debug "normexp_altmatch curndata=" curndata)
+		  (assert_msg "check curndata" (is_a curndata class_nrep_matched_data))
+		  (let ( (:long curnrk (get_int (get_field  :nrmatd_rank curndata)))
+			 (:long curnrkm1 (-i curnrk 1))
+			 )
+		    (assert_msg "check curnrk" (>i curnrk 0))
+		    (assert_msg "emprty datatup slot" 
+				(null (multiple_nth ndatatup curnrkm1)))
+		    (multiple_put_nth ndatatup curnrkm1 curndata)
+		    )
+		  )
+		 (debug "normexp_altmatch ndatatup=" ndatatup)
+;;;
+		 (put_fields nresmatch
+			     :namatch_matched nmatx ;; normal matched stuff
+			     :namatch_result nresloc
+			     :namatch_body (list_to_multiple nbodyl)
+			     :namatch_flags sortedflagstup
+			     :namatch_mdatas ndatatup
+			     )
+		 (debug "normexp_altmatch nresmatch=" nresmatch
+			"\n* of discrim:" (discrim nresmatch))
+		 (debug "normexp_altmatch final nresbind=" nresbind " nresloc=" nresloc)
+		 (warning_plain sloc "@@??implemented normexp_altmatch")
+		 (compile_warning "@@??implemented normexp_altmatch")
+		 (return nresloc (list nresbind))
+		 )))))))))
 
 (defun alternate_match_optset (optsymb :cstring opts)
   (debug "alternate_match_optset optsymb" optsymb)

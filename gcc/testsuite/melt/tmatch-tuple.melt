@@ -14,7 +14,10 @@
 
 (defun tmatch1_tup (x f)
   (match x
-         ( ?(tuple ?n ?_)
-	    (f n x))))
+         ( ?(tuple 
+             ?n 
+             ?_
+	     ?m)
+            (f n m))))
 
 ;; eof tmatch-tuple.melt

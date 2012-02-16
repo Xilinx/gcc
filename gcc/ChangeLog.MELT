@@ -1,4 +1,14 @@
 
+2011-02-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (altmatch_normalize_mdata): Improve,
+	but not making instance oc class_nrep_matched_data for the
+	originally matched normal thing.
+	(normexp_altmatch): Compute also the datamap to fill the
+	namatch_mdatas of the result.
+
+	* testsuite/melt/tmatch-tuple.melt: Add one more argument to
+	tuple.
+
 2011-02-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
