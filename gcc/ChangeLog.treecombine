@@ -1,5 +1,20 @@
 2012-02-15  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-flow.h (ssa_combine): Make return value bool.
+	* tree-ssa-fold.c (remove_prop_source_from_use): Delete.
+	(forward_propagate_into_comparison): Make return value bool.
+	Allow the other passes remove the dead code.
+	(forward_propagate_into_cond): Boolize.
+	(forward_propagate_into_gimple_cond): Make return value bool.
+	Allow the other passes remove the dead code.
+	(combine_conversions): Likewise.
+	(ssa_combine): Make return value bool.
+	Remove logic that returned 1 vs 2.
+	* tree-ssa-forwprop.c (ssa_forward_propagate_and_combine):
+	Change to run cfgcleanup if ssa_combine just returns nonzero.
+
+2012-02-15  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-forwprop.c (forward_prop_nonzero): New function.
 	(ssa_forward_propagate_and_combine): Pass forward_prop_nonzero
 	to ssa_combine.

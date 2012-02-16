@@ -991,11 +991,10 @@ ssa_forward_propagate_and_combine (void)
       prev_initialized = false;
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi);)
 	{
-	  int did_something = ssa_combine (&gsi, forward_prop_nonzero);
-	  if (did_something == 2)
-	    cfg_changed = 1;
+	  bool did_something = ssa_combine (&gsi, forward_prop_nonzero);
 	  if (did_something)
 	    {
+	      cfg_changed = 1;
 	      /* If the stmt changed then re-visit it and the statements
 		 inserted before it.  */
 	      if (!prev_initialized)

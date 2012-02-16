@@ -624,7 +624,7 @@ bool do_while_loop_p (struct loop *);
 
 /* In tree-ssa-fold.c */
 typedef double_int (*nonzerobits_t)(tree var);
-int ssa_combine (gimple_stmt_iterator *, nonzerobits_t);
+bool ssa_combine (gimple_stmt_iterator *, nonzerobits_t);
 
 /* Affine iv.  */
 
