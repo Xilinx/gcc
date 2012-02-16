@@ -1,3 +1,8 @@
+2012-02-16   Lawrence Crowl  <crowl@google.com>
+
+	* pph-in.c (pph_in_merge_lang_indep_tree_body): Avoid a false "used
+	uninitialized" error message.
+
 2012-02-15   Lawrence Crowl  <crowl@google.com>
 
 	* pph-in.c (pph_in_merge_ld_base): Merge odr_used.

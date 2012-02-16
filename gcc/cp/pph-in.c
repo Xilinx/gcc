@@ -1639,10 +1639,10 @@ static void
 pph_in_merge_lang_indep_tree_body (pph_stream *stream, tree expr)
 {
   enum tree_code code = TREE_CODE (expr);
-  bool decl_comdat;
-  tree decl_comdat_group;
-  bool decl_declared_inline;
-  tree decl_result;
+  bool decl_comdat = false;
+  tree decl_comdat_group = NULL;
+  bool decl_declared_inline = false;
+  tree decl_result = NULL;
 
   if (CODE_CONTAINS_STRUCT (code, TS_DECL_WITH_VIS))
     {
