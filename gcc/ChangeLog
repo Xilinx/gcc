@@ -1,3 +1,38 @@
+2012-02-16  Kai Tietz  <ktietz@redhat.com>
+
+	* config/i386/i386.c (legitimate_pic_address_disp_p): Allow
+	interger-constant displacement for UNSPEC_PCREL.
+
+2012-02-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/52208
+	* ira-costs.c (scan_one_insn): Don't decrease mem_cost
+	for MEMs with REG_EQUIV, if the MEM isn't general_operand.
+
+	PR tree-optimization/52255
+	* tree-vect-loop-manip.c (slpeel_tree_peel_loop_to_edge): If
+	loop->header has virtual PHI, but exit_e->dest doesn't, add
+	virtual PHI to exit_e->dest and adjust all uses after the loop.
+
+	PR debug/52260
+	* dwarf2out.c (copy_decls_walk): Fill in *slot before traversing
+	children with clone_tree_hash, not after it.
+
+2012-02-16  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/darwin.h (ASM_OUTPUT_LABELREF): Add user label prefix for
+	extended identifiers.
+
+2012-02-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/51929
+	* cgraphunit.c (verify_edge_corresponds_to_fndecl): If node is
+	a same_body_alias, also test whether e->callee isn't a former
+	or current clone of the decl this is a same body alias of.
+
+	PR translation/52264
+	* cgraphunit.c (verify_cgraph_node): Fix a typo.
+
 2012-02-15  Sandra Loosemore  <sandra@codesourcery.com>
 
 	* doc/invoke.texi: Clean up "n-bit/byte/word" modifiers.
