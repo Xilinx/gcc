@@ -5317,16 +5317,18 @@ $SBUF.}#
 	(nres (unsafe_get_field :namatch_result nmat))
 	(nbody (unsafe_get_field :namatch_body nmat))
 	(nflags (unsafe_get_field :namatch_flags nmat))
+	(nmdatas (unsafe_get_field :namatch_mdatas nmat))
 	(obodyl (make_list discr_list))
 	(oldaltmatch (get_field :gncx_altmatch gcx))
 	(oflagmap (make_mapobject discr_map_objects 
 				  (+i 5 (*i 2 (multiple_length nflags)))))
 	(odatamap (make_mapobject discr_map_objects
-				  10))
+				  (+i 7 (*i 2 (multiple_length nmdatas)))))
 	(altmatch (instance class_alternate_match_nrep_data 
 			    :altmatchn_prev oldaltmatch
 			    :altmatchn_nrep nmat
 			    :altmatchn_flagmap oflagmap
+			    :altmatchn_datamap odatamap
 			    )))
 							      
     (debug "compilobj_nrep_altmatch nmatched=" nmatched " nres=" nres 
@@ -5448,21 +5450,29 @@ $SBUF.}#
 	(ndatarank (get_field :nrmatd_rank ndata))
 	(matdata (get_field :nrmatd_mdata ndata))
 	(altmatch (get_field :gncx_altmatch gcx))
+	(symb (or (get_field :mdata_symb matdata) (clone_symbol 'matchdata)))
 	)
     (shortbacktrace_dbg "compilobj_nrep_matchdatainit" 10)
-    (debug "compilobj_nrep_matchdatainit ndata=" ndata "\n ndatatype=" ndatatype
-	   " ndatarank=" ndatarank "\n matdata=" matdata "\n altmatch=" altmatch)
-    (let ( (objc (make_objcompute nloc ctype_void ##{??compilobj_nrep_matchdatainit
-#error incomplete compilobj_nrep_matchdatainit
-/*ndata=*/ $NDATA
-/*ndatatype=*/ $NDATATYPE
-/*matdata=*/ $MATDATA
-}#))
-	   )
-      (error_plain nloc "not fully implemented compilobj_nrep_matchdatainit")
-      (debug "compilobj_nrep_matchdatainit objc=" objc)
-      (return objc)
-    )))
+    (debug "compilobj_nrep_matchdatainit ndata=" ndata "\n* ndatatype=" ndatatype
+	   "\n* ndatarank=" ndatarank 
+	   "\n* matdata=" matdata "\n* altmatch=" altmatch
+	   "\n* symb=" symb)
+    (let (
+	  (obvloc (get_free_objloctyped gcx symb ndatatype))
+	  (aldatamap (get_field :altmatchn_datamap altmatch))
+	  (obcl (instance class_objclear
+			  :obi_loc nloc
+			  :oclr_vloc obvloc))
+	  )
+      (debug "compilobj_nrep_matchdatainit obvloc=" obvloc
+	     "\n* obcl=" obcl
+	     "\n* aldatamap=" aldatamap)
+      (assert_msg "unknown ndata in aldatamap" (null (mapobject_get aldatamap ndata)))
+      (mapobject_put aldatamap ndata obvloc)
+      (debug "compilobj_nrep_matchdatainit updated aldatamap=" aldatamap 
+	     "\n*return obcl=" obcl)
+      (return obcl)
+      )))
 
 (install_method class_nrep_match_data_initializer compile_obj compilobj_nrep_matchdatainit)
 
@@ -5480,18 +5490,15 @@ $SBUF.}#
 	(nrmdata (get_field :nrmatd_mdata nmdat))
 	(nrmrank (get_field :nrmatd_rank nmdat))
 	(altmatch (get_field :gncx_altmatch gcx))
+	(aldatamap (get_field :altmatchn_datamap altmatch))
+	(obmdat (mapobject_get aldatamap nmdat))
 	)
     (shortbacktrace_dbg "compilobj_nrep_matchdatainit" 10)
-    (debug "compilobj_nrep_matchedata  altmatch=" altmatch)
-    (let ( (objc (make_objcompute nloc nctype ##{??compilobj_nrep_matchedata
- /*nrmrank=*/ $NRMRANK
-#error incomplete compilobj_nrep_matchedata 
-}#))
-	   )
-      (error_plain nloc "not fully implemented compilobj_nrep_matchedata")
-      (debug "compilobj_nrep_matchedata objc=" objc)
-      (return objc)
-    )))
+    (debug "compilobj_nrep_matchedata  altmatch=" altmatch "\n aldatamap=" aldatamap 
+	   "\n obmdat=" obmdat "\n.. of discrim=" (discrim obmdat))
+    (assert_msg "check obmdat" (is_a obmdat class_objvalue))
+    (return obmdat)
+    ))
 
 (install_method class_nrep_matched_data compile_obj compilobj_nrep_matchedata)
 
