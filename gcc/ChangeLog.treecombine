@@ -1,5 +1,13 @@
 2012-02-15  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-forwprop.c (forward_prop_nonzero): New function.
+	(ssa_forward_propagate_and_combine): Pass forward_prop_nonzero
+	to ssa_combine.
+	* tree-ssa-fold.c (simplify_bitwise_binary): nonzerobitsp will never
+	be non NULL.
+
+2012-02-15  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-vrp.c (remove_range_assertions): Use gimple_debug_bind_p
 	instead of is_gimple_debug.  Also check gimple_debug_bind_get_value
 	before checking the tree code.

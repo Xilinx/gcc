@@ -870,6 +870,15 @@ forward_propagate_comparison (gimple stmt)
   return remove_prop_source_from_use (name);
 }
 
+/* Implement a simple nonzero function, just return
+   the integer value if it is known.  */
+static double_int
+forward_prop_nonzero (tree val)
+{
+  if (TREE_CODE (val) == INTEGER_CST)
+    return tree_to_double_int (val);
+  return double_int_minus_one;
+}
 
 /* Main entry point for the forward propagation and statement combine
    optimizer.  */
@@ -982,7 +991,7 @@ ssa_forward_propagate_and_combine (void)
       prev_initialized = false;
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi);)
 	{
-	  int did_something = ssa_combine (&gsi, NULL);
+	  int did_something = ssa_combine (&gsi, forward_prop_nonzero);
 	  if (did_something == 2)
 	    cfg_changed = 1;
 	  if (did_something)

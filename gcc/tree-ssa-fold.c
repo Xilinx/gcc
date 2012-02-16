@@ -1405,8 +1405,7 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp)
     }
 
   /* Fold ~X & N into X ^ N if X's nonzerobits is equal to N. */
-  if (nonzerobitsp
-      && code == BIT_AND_EXPR
+  if (code == BIT_AND_EXPR
       && def1_code == BIT_NOT_EXPR
       && TREE_CODE (arg2) == INTEGER_CST
       && double_int_equal_p (tree_to_double_int (arg2),
