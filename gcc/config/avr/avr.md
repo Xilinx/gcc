@@ -68,7 +68,7 @@
    UNSPEC_FMULSU
    UNSPEC_COPYSIGN
    UNSPEC_IDENTITY
-   UNSPEC_MAP_BITS
+   UNSPEC_INSERT_BITS
    ])
 
 (define_c_enum "unspecv"
@@ -144,7 +144,7 @@
    ashlhi, ashrhi, lshrhi,
    ashlsi, ashrsi, lshrsi,
    ashlpsi, ashrpsi, lshrpsi,
-   map_bits,
+   insert_bits,
    no"
   (const_string "no"))
 
@@ -155,9 +155,10 @@
 ;; ijmp : ISA has no EICALL/EIJMP        eijmp : ISA has EICALL/EIJMP
 ;; lpm  : ISA has no LPMX                lpmx  : ISA has LPMX
 ;; elpm : ISA has ELPM but no ELPMX      elpmx : ISA has ELPMX
+;; no_xmega: non-XMEGA core              xmega : XMEGA core
 
 (define_attr "isa"
-  "mov,movw, rjmp,jmp, ijmp,eijmp, lpm,lpmx, elpm,elpmx,
+  "mov,movw, rjmp,jmp, ijmp,eijmp, lpm,lpmx, elpm,elpmx, no_xmega,xmega,
    standard"
   (const_string "standard"))
 
@@ -203,6 +204,14 @@
 
          (and (eq_attr "isa" "elpmx")
               (match_test "AVR_HAVE_ELPMX"))
+         (const_int 1)
+
+         (and (eq_attr "isa" "xmega")
+              (match_test "AVR_XMEGA"))
+         (const_int 1)
+
+         (and (eq_attr "isa" "no_xmega")
+              (match_test "!AVR_XMEGA"))
          (const_int 1)
          ] (const_int 0)))
 
@@ -580,15 +589,17 @@
 ;; handled by generic movhi insn.
 
 (define_insn "movhi_sp_r"
-  [(set (match_operand:HI 0 "stack_register_operand"                "=q,q")
-        (unspec_volatile:HI [(match_operand:HI 1 "register_operand"  "r,r")
-                             (match_operand:HI 2 "const_int_operand" "L,P")]
+  [(set (match_operand:HI 0 "stack_register_operand"                "=q,q,q")
+        (unspec_volatile:HI [(match_operand:HI 1 "register_operand"  "r,r,r")
+                             (match_operand:HI 2 "const_int_operand" "L,P,LP")]
                             UNSPECV_WRITE_SP))]
   "!AVR_HAVE_8BIT_SP"
   "@
 	out __SP_H__,%B1\;out __SP_L__,%A1
-	cli\;out __SP_H__,%B1\;sei\;out __SP_L__,%A1"
-  [(set_attr "length" "2,4")
+	cli\;out __SP_H__,%B1\;sei\;out __SP_L__,%A1
+	out __SP_L__,%A1\;out __SP_H__,%B1"
+  [(set_attr "length" "2,4,2")
+   (set_attr "isa" "no_xmega,no_xmega,xmega")
    (set_attr "cc" "none")])
 
 (define_peephole2
@@ -5264,28 +5275,20 @@
   [(set_attr "length" "9")
    (set_attr "cc" "clobber")])
 
-(define_insn "map_bitsqi"
-  [(set (match_operand:QI 0 "register_operand"             "=d")
-        (unspec:QI [(match_operand:SI 1 "const_int_operand" "n")
-                    (match_operand:QI 2 "register_operand"  "r")]
-                   UNSPEC_MAP_BITS))]
-  ""
-  {
-    return avr_out_map_bits (insn, operands, NULL);
-  }
-  [(set_attr "adjust_len" "map_bits")
-   (set_attr "cc" "clobber")])
 
-(define_insn "map_bitshi"
-  [(set (match_operand:HI 0 "register_operand"               "=&r")
-        (unspec:HI [(match_operand:DI 1 "const_double_operand" "n")
-                    (match_operand:HI 2 "register_operand"     "r")]
-                   UNSPEC_MAP_BITS))]
+;; __builtin_avr_insert_bits
+
+(define_insn "insert_bits"
+  [(set (match_operand:QI 0 "register_operand"              "=r  ,d  ,r")
+        (unspec:QI [(match_operand:SI 1 "const_int_operand"  "C0f,Cxf,C0f")
+                    (match_operand:QI 2 "register_operand"   "r  ,r  ,r")
+                    (match_operand:QI 3 "nonmemory_operand"  "n  ,0  ,0")]
+                   UNSPEC_INSERT_BITS))]
   ""
   {
-    return avr_out_map_bits (insn, operands, NULL);
+    return avr_out_insert_bits (operands, NULL);
   }
-  [(set_attr "adjust_len" "map_bits")
+  [(set_attr "adjust_len" "insert_bits")
    (set_attr "cc" "clobber")])
 
 
