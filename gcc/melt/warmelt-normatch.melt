@@ -2672,7 +2672,7 @@ $MATCHBIND_NBOCC is the number of occurrences.}#
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
   (debug "normbind_matchbind bind=" bind "\n ncx=" ncx)
-  (shortbacktrace_dbg "normbind_matchbind" 7)
+  (shortbacktrace_dbg "normbind_matchbind" 18)
   (let ( (sycmap  (unsafe_get_field :nctx_symbcachemap ncx))
 	 (symb (unsafe_get_field :binder bind))
 	 (mdata (unsafe_get_field :matchbind_data bind))
@@ -2685,7 +2685,10 @@ $MATCHBIND_NBOCC is the number of occurrences.}#
 			  :nocc_symb symb
 			  :nocc_bind bind) ) 
 	 )
-    (debug "normbind_matchbind syocc=" syocc)
+    (debug "normbind_matchbind syocc=" syocc
+	   "\n* mdata=" mdata "\n of discrim:" (discrim mdata))
+    (compile_warning 
+     "perhaps the locsymocc should be bound in normstep_msuccwhenflag")
     ;; increment the number of occurrences
     (put_int boxnbocc (+i nbocc 1))
     ;; cache the result & return it
@@ -3786,12 +3789,12 @@ the flags of the $STEP with an extra context $CTX.}#
 
 
 (defun translpat_varpat (recv mdata mcase varmap psloc)
-  (debug "translpat_varpat recv" recv)
+  (debug "translpat_varpat recv=" recv " mdata=" mdata " mcase=" mcase 
+	 " varmap=" varmap)
   (assert_msg "check recv" (is_a recv class_source_pattern_variable))
-  (debug "translpat_varpat mdata" mdata)
   (assert_msg "check mdata" (is_a mdata class_matched_data))
-  (debug "translpat_varpat mcase" mcase)
   (assert_msg "check mcase" (is_a mcase class_match_case))
+  (shortbacktrace_dbg "translpat_varpat" 15)
   (let ( 
 	(sloc (or (unsafe_get_field :loca_location recv) psloc))
 	(symb (unsafe_get_field :spatvar_symb recv))
@@ -3818,9 +3821,10 @@ the flags of the $STEP with an extra context $CTX.}#
        (foreach_in_list
 	(mhandlers)
 	(curpair curhandler)
+	(debug "translpat_varpat before calling curhandler=" curhandler
+	       " recv=" recv " mdata=" mdata)
 	(curhandler recv mdata mcase symbval flagstep mflag sloc))
-       (debug "translpat_varpat return mflag" mflag)
-       (debug "translpat_varpat return flagstep" flagstep)
+       (debug "translpat_varpat return mflag=" mflag " flagstep=" flagstep)
        (return flagstep mflag)
        )
      (:else
@@ -4955,10 +4959,8 @@ the flags of the $STEP with an extra context $CTX.}#
       (multicall 
        (mstep mflag)
        (translate_pattern curpat mdata curmcase varmap sloc)
-       (debug "translate_matchcase got mstep" mstep)
-       (debug "translate_matchcase got mflag" mflag)
-       (debug "translate_matchcase got curbody" curbody)
-       (debug "translate_matchcase got varmap" varmap)
+       (debug "translate_matchcase got mstep=" mstep " mflag=" mflag
+	      " curbody=" curbody " varmap=" varmap)
        (foreach_in_mapobject
 	(varmap)
 	(cursym curmdata)
@@ -4970,11 +4972,11 @@ the flags of the $STEP with an extra context $CTX.}#
 				    :matchbind_nbocc (make_integerbox discr_integer 0)
 				    ))
 	       )
-	  (debug "translate_matchcase matchbind" matchbind)
+	  (debug "translate_matchcase matchbind=" matchbind)
 	  (put_env newenv matchbind)
 	  ))
-       (debug "translate_matchcase updated newenv" newenv)
-       (debug "translate_matchcase before normalizing curbody" curbody)
+       (debug "translate_matchcase updated newenv=" newenv
+	      "\n before normalizing curbody=" curbody)
        (multicall
 	(nbody nbinds)
 	(normalize_tuple curbody newenv ncx sloc)
@@ -5777,7 +5779,7 @@ normalized expression.}#
 ;;;;;;;;;;;;;;;;
 
 (defun normstep_msuccwhenflag (step nmctxt sloc)
-  (debug "normstep_msuccwhenflag step" step)
+  (debug "normstep_msuccwhenflag step=" step)
   (assert_msg "check step" (is_a step class_match_step_success_when_flag))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
@@ -5788,12 +5790,10 @@ normalized expression.}#
 	  (mbinds (unsafe_get_field :mstepsuccess_binds step))
 	  (matbody (unsafe_get_field :mstepsuccess_body step))
 	  )
-    (debug "normstep_msuccwhenflag mflag" matflag)
-    (debug "normstep_msuccwhenflag matvarocc" matvarocc)
-    (debug "normstep_msuccwhenflag mbinds" mbinds)
-    (debug "normstep_msuccwhenflag matbody" matbody)
-    (debug "normstep_msuccwhenflag mthen" matthen)
-    (debug "normstep_msuccwhenflag nmatresloc" nmatresloc)
+    (debug "normstep_msuccwhenflag matflag=" matflag
+	   " matvarocc=" matvarocc " mbinds=" mbinds " matbody=" matbody
+	   " matthen=" matthen " nmatresloc=" nmatresloc)
+    (shortbacktrace_dbg "normstep_msuccwhenflag" 14)
     (let (
 	  (nthen (altmatch_normalize_step matthen nmctxt))
 	  (nflag (altmatch_normalize_flag matflag nmctxt))

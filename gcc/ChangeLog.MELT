@@ -1,4 +1,10 @@
 
+2011-02-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (normbind_matchbind): Might be wrong.
+	(translpat_varpat): Better debug.
+	(translate_matchcase): Ditto.
+	(normstep_msuccwhenflag): Likewise.
+
 2011-02-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (normbind_matchbind): Perhaps incorrect.
 
