@@ -2,19 +2,23 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package html provides functions for escaping and unescaping HTML text.
 package html
 
 import (
 	"bytes"
-	"os"
 	"strings"
-	"utf8"
+	"unicode/utf8"
 )
+
+type writer interface {
+	WriteString(string) (int, error)
+}
 
 // These replacements permit compatibility with old numeric entities that 
 // assumed Windows-1252 encoding.
 // http://www.whatwg.org/specs/web-apps/current-work/multipage/tokenization.html#consume-a-character-reference
-var replacementTable = [...]int{
+var replacementTable = [...]rune{
 	'\u20AC', // First entry is what 0x80 should be replaced with.
 	'\u0081',
 	'\u201A',
@@ -79,23 +83,23 @@ func unescapeEntity(b []byte, dst, src int, attribute bool) (dst1, src1 int) {
 			i++
 		}
 
-		x := 0
+		x := '\x00'
 		for i < len(s) {
 			c = s[i]
 			i++
 			if hex {
 				if '0' <= c && c <= '9' {
-					x = 16*x + int(c) - '0'
+					x = 16*x + rune(c) - '0'
 					continue
 				} else if 'a' <= c && c <= 'f' {
-					x = 16*x + int(c) - 'a' + 10
+					x = 16*x + rune(c) - 'a' + 10
 					continue
 				} else if 'A' <= c && c <= 'F' {
-					x = 16*x + int(c) - 'A' + 10
+					x = 16*x + rune(c) - 'A' + 10
 					continue
 				}
 			} else if '0' <= c && c <= '9' {
-				x = 10*x + int(c) - '0'
+				x = 10*x + rune(c) - '0'
 				continue
 			}
 			if c != ';' {
@@ -195,7 +199,7 @@ func lower(b []byte) []byte {
 
 const escapedChars = `&'<>"`
 
-func escape(w writer, s string) os.Error {
+func escape(w writer, s string) error {
 	i := strings.IndexAny(s, escapedChars)
 	for i != -1 {
 		if _, err := w.WriteString(s[:i]); err != nil {
@@ -234,8 +238,8 @@ func EscapeString(s string) string {
 	if strings.IndexAny(s, escapedChars) == -1 {
 		return s
 	}
-	buf := bytes.NewBuffer(nil)
-	escape(buf, s)
+	var buf bytes.Buffer
+	escape(&buf, s)
 	return buf.String()
 }
 

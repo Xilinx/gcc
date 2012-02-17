@@ -7,7 +7,6 @@ package draw
 import (
 	"image"
 	"image/color"
-	"image/ycbcr"
 	"testing"
 )
 
@@ -51,13 +50,13 @@ func bench(b *testing.B, dcm, scm, mcm color.Model, op Op) {
 		}
 		dst = dst1
 	default:
-		panic("unreachable")
+		b.Fatal("unknown destination color model", dcm)
 	}
 
 	var src image.Image
 	switch scm {
 	case nil:
-		src = &image.Uniform{color.RGBA{0x11, 0x22, 0x33, 0xff}}
+		src = &image.Uniform{C: color.RGBA{0x11, 0x22, 0x33, 0xff}}
 	case color.RGBAModel:
 		src1 := image.NewRGBA(image.Rect(0, 0, srcw, srch))
 		for y := 0; y < srch; y++ {
@@ -97,7 +96,7 @@ func bench(b *testing.B, dcm, scm, mcm color.Model, op Op) {
 			}
 		}
 		src = src1
-	case ycbcr.YCbCrColorModel:
+	case color.YCbCrModel:
 		yy := make([]uint8, srcw*srch)
 		cb := make([]uint8, srcw*srch)
 		cr := make([]uint8, srcw*srch)
@@ -106,17 +105,17 @@ func bench(b *testing.B, dcm, scm, mcm color.Model, op Op) {
 			cb[i] = uint8(5 * i % 0x100)
 			cr[i] = uint8(7 * i % 0x100)
 		}
-		src = &ycbcr.YCbCr{
+		src = &image.YCbCr{
 			Y:              yy,
 			Cb:             cb,
 			Cr:             cr,
 			YStride:        srcw,
 			CStride:        srcw,
-			SubsampleRatio: ycbcr.SubsampleRatio444,
+			SubsampleRatio: image.YCbCrSubsampleRatio444,
 			Rect:           image.Rect(0, 0, srcw, srch),
 		}
 	default:
-		panic("unreachable")
+		b.Fatal("unknown source color model", scm)
 	}
 
 	var mask image.Image
@@ -137,7 +136,7 @@ func bench(b *testing.B, dcm, scm, mcm color.Model, op Op) {
 		}
 		mask = mask1
 	default:
-		panic("unreachable")
+		b.Fatal("unknown mask color model", mcm)
 	}
 
 	b.StartTimer()
@@ -146,7 +145,7 @@ func bench(b *testing.B, dcm, scm, mcm color.Model, op Op) {
 		x := 3 * i % (dstw - srcw)
 		y := 7 * i % (dsth - srch)
 
-		DrawMask(dst, dst.Bounds().Add(image.Point{x, y}), src, image.ZP, mask, image.ZP, op)
+		DrawMask(dst, dst.Bounds().Add(image.Pt(x, y)), src, image.ZP, mask, image.ZP, op)
 	}
 }
 
@@ -177,7 +176,7 @@ func BenchmarkNRGBASrc(b *testing.B) {
 }
 
 func BenchmarkYCbCr(b *testing.B) {
-	bench(b, color.RGBAModel, ycbcr.YCbCrColorModel, nil, Over)
+	bench(b, color.RGBAModel, color.YCbCrModel, nil, Over)
 }
 
 func BenchmarkGlyphOver(b *testing.B) {

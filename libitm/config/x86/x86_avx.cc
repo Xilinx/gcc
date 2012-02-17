@@ -22,8 +22,61 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
+#include "config.h"
+
 #include "libitm_i.h"
 #include "dispatch.h"
+
+extern "C" {
+
+#ifndef HAVE_AS_AVX
+// If we don't have an AVX capable assembler, we didn't set -mavx on the
+// command-line either, which means that libitm.h defined neither this type
+// nor the functions in this file.  Define the type and unconditionally
+// wrap the file in extern "C" to make up for the lack of pre-declaration.
+typedef float _ITM_TYPE_M256 __attribute__((vector_size(32), may_alias));
+#endif
+
+// Re-define the memcpy implementations so that we can frob the
+// interface to deal with possibly missing AVX instruction set support.
+
+#ifdef HAVE_AS_AVX
+#define RETURN(X)	return X
+#define STORE(X,Y)	X = Y
+#define OUTPUT(T)	_ITM_TYPE_##T
+#define INPUT(T,X)	, _ITM_TYPE_##T X
+#else
+/* Emit vmovaps (%rax),%ymm0.  */
+#define RETURN(X) \
+  asm volatile(".byte 0xc5,0xfc,0x28,0x00" : "=m"(X) : "a"(&X))
+/* Emit vmovaps %ymm0,(%rax); vzeroupper.  */
+#define STORE(X,Y) \
+  asm volatile(".byte 0xc5,0xfc,0x29,0x00,0xc5,0xf8,0x77" : "=m"(X) : "a"(&X))
+#define OUTPUT(T)	void
+#define INPUT(T,X)
+#endif
+
+#undef ITM_READ_MEMCPY
+#define ITM_READ_MEMCPY(T, LSMOD, TARGET, M2)				\
+OUTPUT(T) ITM_REGPARM _ITM_##LSMOD##T (const _ITM_TYPE_##T *ptr)	\
+{									\
+  _ITM_TYPE_##T v;							\
+  TARGET memtransfer##M2(&v, ptr, sizeof(_ITM_TYPE_##T), false,		\
+			 GTM::abi_dispatch::NONTXNAL,			\
+			 GTM::abi_dispatch::LSMOD);			\
+  RETURN(v);								\
+}
+
+#undef ITM_WRITE_MEMCPY
+#define ITM_WRITE_MEMCPY(T, LSMOD, TARGET, M2)				\
+void ITM_REGPARM _ITM_##LSMOD##T (_ITM_TYPE_##T *ptr INPUT(T,in))	\
+{									\
+  _ITM_TYPE_##T v;							\
+  STORE(v, in);								\
+  TARGET memtransfer##M2(ptr, &v, sizeof(_ITM_TYPE_##T), false,		\
+			 GTM::abi_dispatch::LSMOD,			\
+			 GTM::abi_dispatch::NONTXNAL);			\
+}
 
 // ??? Use memcpy for now, until we have figured out how to best instantiate
 // these loads/stores.
@@ -35,61 +88,4 @@ _ITM_LM256 (const _ITM_TYPE_M256 *ptr)
   GTM::GTM_LB (ptr, sizeof (*ptr));
 }
 
-// Helpers for re-aligning two 128-bit values.
-#ifdef __XOP__
-const __v16qi GTM::GTM_vpperm_shift[16] =
-{
-  {  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 },
-  {  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16 },
-  {  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17 },
-  {  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18 },
-  {  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 },
-  {  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 },
-  {  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21 },
-  {  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 },
-  {  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23 },
-  {  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 },
-  { 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 },
-  { 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 },
-  { 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27 },
-  { 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28 },
-  { 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29 },
-  { 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30 },
-};
-#else
-# define INSN0		"movdqa  %xmm1, %xmm0"
-# define INSN(N)	"vpalignr $" #N ", %xmm0, %xmm1, %xmm0"
-# define TABLE_ENT_0	INSN0 "\n\tret\n\t"
-# define TABLE_ENT(N)	".balign 8\n\t" INSN(N) "\n\tret\n\t"
-
-asm(".pushsection .text\n\
-	.balign 16\n\
-	.globl	GTM_vpalignr_table\n\
-	.hidden	GTM_vpalignr_table\n\
-	.type	GTM_vpalignr_table, @function\n\
-GTM_vpalignr_table:\n\t"
-	TABLE_ENT_0
-	TABLE_ENT(1)
-	TABLE_ENT(2)
-	TABLE_ENT(3)
-	TABLE_ENT(4)
-	TABLE_ENT(5)
-	TABLE_ENT(6)
-	TABLE_ENT(7)
-	TABLE_ENT(8)
-	TABLE_ENT(9)
-	TABLE_ENT(10)
-	TABLE_ENT(11)
-	TABLE_ENT(12)
-	TABLE_ENT(13)
-	TABLE_ENT(14)
-	TABLE_ENT(15)
-	".balign 8\n\
-	.size	GTM_vpalignr_table, .-GTM_vpalignr_table\n\
-	.popsection");
-
-# undef INSN0
-# undef INSN
-# undef TABLE_ENT_0
-# undef TABLE_ENT
-#endif
+} // extern "C"

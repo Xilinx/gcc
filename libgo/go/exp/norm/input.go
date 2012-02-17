@@ -4,17 +4,17 @@
 
 package norm
 
-import "utf8"
+import "unicode/utf8"
 
 type input interface {
 	skipASCII(p int) int
-	skipNonStarter() int
+	skipNonStarter(p int) int
 	appendSlice(buf []byte, s, e int) []byte
 	copySlice(buf []byte, s, e int)
 	charinfo(p int) (uint16, int)
 	decomposeNFC(p int) uint16
 	decomposeNFKC(p int) uint16
-	hangul(p int) uint32
+	hangul(p int) rune
 }
 
 type inputString string
@@ -25,8 +25,7 @@ func (s inputString) skipASCII(p int) int {
 	return p
 }
 
-func (s inputString) skipNonStarter() int {
-	p := 0
+func (s inputString) skipNonStarter(p int) int {
 	for ; p < len(s) && !utf8.RuneStart(s[p]); p++ {
 	}
 	return p
@@ -55,12 +54,12 @@ func (s inputString) decomposeNFKC(p int) uint16 {
 	return nfkcDecompTrie.lookupStringUnsafe(string(s[p:]))
 }
 
-func (s inputString) hangul(p int) uint32 {
+func (s inputString) hangul(p int) rune {
 	if !isHangulString(string(s[p:])) {
 		return 0
 	}
 	rune, _ := utf8.DecodeRuneInString(string(s[p:]))
-	return uint32(rune)
+	return rune
 }
 
 type inputBytes []byte
@@ -71,8 +70,7 @@ func (s inputBytes) skipASCII(p int) int {
 	return p
 }
 
-func (s inputBytes) skipNonStarter() int {
-	p := 0
+func (s inputBytes) skipNonStarter(p int) int {
 	for ; p < len(s) && !utf8.RuneStart(s[p]); p++ {
 	}
 	return p
@@ -98,10 +96,10 @@ func (s inputBytes) decomposeNFKC(p int) uint16 {
 	return nfkcDecompTrie.lookupUnsafe(s[p:])
 }
 
-func (s inputBytes) hangul(p int) uint32 {
+func (s inputBytes) hangul(p int) rune {
 	if !isHangul(s[p:]) {
 		return 0
 	}
 	rune, _ := utf8.DecodeRune(s[p:])
-	return uint32(rune)
+	return rune
 }

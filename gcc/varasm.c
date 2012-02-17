@@ -564,7 +564,7 @@ default_function_section (tree decl, enum node_frequency freq,
 /* Return the section for function DECL.
 
    If DECL is NULL_TREE, return the text section.  We can be passed
-   NULL_TREE under some circumstances by dbxout.c at least. 
+   NULL_TREE under some circumstances by dbxout.c at least.
 
    If FORCE_COLD is true, return cold function section ignoring
    the frequency info of cgraph_node.  */
@@ -1198,16 +1198,23 @@ make_decl_rtl (tree decl)
   else if (TREE_CODE (decl) != FUNCTION_DECL && DECL_REGISTER (decl))
     {
       const char *asmspec = name+1;
+      enum machine_mode mode = DECL_MODE (decl);
       reg_number = decode_reg_name (asmspec);
       /* First detect errors in declaring global registers.  */
       if (reg_number == -1)
 	error ("register name not specified for %q+D", decl);
       else if (reg_number < 0)
 	error ("invalid register name for %q+D", decl);
-      else if (TYPE_MODE (TREE_TYPE (decl)) == BLKmode)
+      else if (mode == BLKmode)
 	error ("data type of %q+D isn%'t suitable for a register",
 	       decl);
-      else if (! HARD_REGNO_MODE_OK (reg_number, TYPE_MODE (TREE_TYPE (decl))))
+      else if (!in_hard_reg_set_p (accessible_reg_set, mode, reg_number))
+	error ("the register specified for %q+D cannot be accessed"
+	       " by the current target", decl);
+      else if (!in_hard_reg_set_p (operand_reg_set, mode, reg_number))
+	error ("the register specified for %q+D is not general enough"
+	       " to be used as a register variable", decl);
+      else if (!HARD_REGNO_MODE_OK (reg_number, mode))
 	error ("register specified for %q+D isn%'t suitable for data type",
                decl);
       /* Now handle properly declared static register variables.  */
@@ -1230,7 +1237,7 @@ make_decl_rtl (tree decl)
 	     confused with that register and be eliminated.  This usage is
 	     somewhat suspect...  */
 
-	  SET_DECL_RTL (decl, gen_rtx_raw_REG (DECL_MODE (decl), reg_number));
+	  SET_DECL_RTL (decl, gen_rtx_raw_REG (mode, reg_number));
 	  ORIGINAL_REGNO (DECL_RTL (decl)) = reg_number;
 	  REG_USERVAR_P (DECL_RTL (decl)) = 1;
 
@@ -1242,7 +1249,7 @@ make_decl_rtl (tree decl)
 	      name = IDENTIFIER_POINTER (DECL_NAME (decl));
 	      ASM_DECLARE_REGISTER_GLOBAL (asm_out_file, decl, reg_number, name);
 #endif
-	      nregs = hard_regno_nregs[reg_number][DECL_MODE (decl)];
+	      nregs = hard_regno_nregs[reg_number][mode];
 	      while (nregs > 0)
 		globalize_reg (decl, reg_number + --nregs);
 	    }
@@ -1928,7 +1935,7 @@ assemble_variable (tree decl, int top_level ATTRIBUTE_UNUSED,
 
   /* Emulated TLS had better not get this far.  */
   gcc_checking_assert (targetm.have_tls || !DECL_THREAD_LOCAL_P (decl));
-              
+
   last_assemble_variable_decl = 0;
 
   /* Normally no need to say anything here for external references,
@@ -2109,7 +2116,9 @@ incorporeal_function_p (tree decl)
 	return true;
 
       name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
-      if (is_builtin_name (name))
+      /* Atomic or sync builtins which have survived this far will be
+	 resolved externally and therefore are not incorporeal.  */
+      if (strncmp (name, "__builtin_", 10) == 0)
 	return true;
     }
   return false;
@@ -2852,7 +2861,7 @@ compare_constant (const tree t1, const tree t2)
 	      return 0;
 	    link2 = TREE_CHAIN (link2);
 	  }
-	
+
 	return 1;
       }
 
@@ -5754,7 +5763,7 @@ finish_aliases_1 (void)
 	       && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
 	{
 	  error ("%q+D aliased to external symbol %qE",
-		 p->decl, p->target);	  
+		 p->decl, p->target);
 	  p->emitted_diags |= ALIAS_DIAG_TO_EXTERN;
 	}
     }
@@ -5785,13 +5794,10 @@ void
 assemble_alias (tree decl, tree target)
 {
   tree target_decl;
-  bool is_weakref = false;
 
   if (lookup_attribute ("weakref", DECL_ATTRIBUTES (decl)))
     {
       tree alias = DECL_ASSEMBLER_NAME (decl);
-
-      is_weakref = true;
 
       ultimate_transparent_alias_target (&target);
 
@@ -5820,7 +5826,7 @@ assemble_alias (tree decl, tree target)
 	  if (lookup_attribute ("ifunc", DECL_ATTRIBUTES (decl)))
 	    error_at (DECL_SOURCE_LOCATION (decl),
 		      "ifunc is not supported in this configuration");
-	  else	
+	  else
 	    error_at (DECL_SOURCE_LOCATION (decl),
 		      "only weak aliases are supported in this configuration");
 	  return;
@@ -5829,12 +5835,6 @@ assemble_alias (tree decl, tree target)
 #endif
     }
   TREE_USED (decl) = 1;
-
-  /* A quirk of the initial implementation of aliases required that the user
-     add "extern" to all of them.  Which is silly, but now historical.  Do
-     note that the symbol is in fact locally defined.  */
-  if (! is_weakref)
-    DECL_EXTERNAL (decl) = 0;
 
   /* Allow aliases to aliases.  */
   if (TREE_CODE (decl) == FUNCTION_DECL)
@@ -5961,7 +5961,7 @@ dump_tm_clone_pairs (VEC(tm_alias_pair,heap) *tm_alias_pairs)
 
       if (!switched)
 	{
-	  switch_to_section (get_named_section (NULL, ".tm_clone_table", 3));
+	  switch_to_section (targetm.asm_out.tm_clone_table_section ());
 	  assemble_align (POINTER_SIZE);
 	  switched = true;
 	}
@@ -5971,6 +5971,14 @@ dump_tm_clone_pairs (VEC(tm_alias_pair,heap) *tm_alias_pairs)
       assemble_integer (XEXP (DECL_RTL (dst), 0),
 			POINTER_SIZE / BITS_PER_UNIT, POINTER_SIZE, 1);
     }
+}
+
+/* Provide a default for the tm_clone_table section.  */
+
+section *
+default_clone_table_section (void)
+{
+  return get_named_section (NULL, ".tm_clone_table", 3);
 }
 
 /* Helper comparison function for qsorting by the DECL_UID stored in
@@ -6019,7 +6027,7 @@ finish_tm_clone_pairs (void)
    the visibility type VIS, which must not be VISIBILITY_DEFAULT.  */
 
 void
-default_assemble_visibility (tree decl ATTRIBUTE_UNUSED, 
+default_assemble_visibility (tree decl ATTRIBUTE_UNUSED,
 			     int vis ATTRIBUTE_UNUSED)
 {
 #ifdef HAVE_GAS_HIDDEN
@@ -6903,11 +6911,14 @@ default_binds_local_p_1 (const_tree exp, int shlib)
   /* A non-decl is an entry in the constant pool.  */
   if (!DECL_P (exp))
     local_p = true;
-  /* Weakrefs may not bind locally, even though the weakref itself is
-     always static and therefore local.
-     FIXME: We can resolve this more curefuly by looking at the weakref
-     alias.  */
-  else if (lookup_attribute ("weakref", DECL_ATTRIBUTES (exp)))
+  /* Weakrefs may not bind locally, even though the weakref itself is always
+     static and therefore local.  Similarly, the resolver for ifunc functions
+     might resolve to a non-local function.
+     FIXME: We can resolve the weakref case more curefuly by looking at the
+     weakref alias.  */
+  else if (lookup_attribute ("weakref", DECL_ATTRIBUTES (exp))
+	   || (TREE_CODE (exp) == FUNCTION_DECL
+	       && lookup_attribute ("ifunc", DECL_ATTRIBUTES (exp))))
     local_p = false;
   /* Static variables are always local.  */
   else if (! TREE_PUBLIC (exp))
@@ -7518,6 +7529,120 @@ make_debug_expr_from_rtl (const_rtx exp)
   SET_DECL_RTL (ddecl, dval);
   return dval;
 }
+
+#ifdef ELF_ASCII_ESCAPES
+/* Default ASM_OUTPUT_LIMITED_STRING for ELF targets.  */
+
+void
+default_elf_asm_output_limited_string (FILE *f, const char *s)
+{
+  int escape;
+  unsigned char c;
+
+  fputs (STRING_ASM_OP, f);
+  putc ('"', f);
+  while (*s != '\0')
+    {
+      c = *s;
+      escape = ELF_ASCII_ESCAPES[c];
+      switch (escape)
+	{
+	case 0:
+	  putc (c, f);
+	  break;
+	case 1:
+	  /* TODO: Print in hex with fast function, important for -flto. */
+	  fprintf (f, "\\%03o", c);
+	  break;
+	default:
+	  putc ('\\', f);
+	  putc (escape, f);
+	  break;
+	}
+      s++;
+    }
+  putc ('\"', f);
+  putc ('\n', f);
+}
+
+/* Default ASM_OUTPUT_ASCII for ELF targets.  */
+
+void
+default_elf_asm_output_ascii (FILE *f, const char *s, unsigned int len)
+{
+  const char *limit = s + len;
+  const char *last_null = NULL;
+  unsigned bytes_in_chunk = 0;
+  unsigned char c;
+  int escape;
+
+  for (; s < limit; s++)
+    {
+      const char *p;
+
+      if (bytes_in_chunk >= 60)
+	{
+	  putc ('\"', f);
+	  putc ('\n', f);
+	  bytes_in_chunk = 0;
+	}
+
+      if (s > last_null)
+	{
+	  for (p = s; p < limit && *p != '\0'; p++)
+	    continue;
+	  last_null = p;
+	}
+      else
+	p = last_null;
+
+      if (p < limit && (p - s) <= (long) ELF_STRING_LIMIT)
+	{
+	  if (bytes_in_chunk > 0)
+	    {
+	      putc ('\"', f);
+	      putc ('\n', f);
+	      bytes_in_chunk = 0;
+	    }
+
+	  default_elf_asm_output_limited_string (f, s);
+	  s = p;
+	}
+      else
+	{
+	  if (bytes_in_chunk == 0)
+	    fputs (ASCII_DATA_ASM_OP "\"", f);
+
+	  c = *s;
+	  escape = ELF_ASCII_ESCAPES[c];
+	  switch (escape)
+	    {
+	    case 0:
+	      putc (c, f);
+	      bytes_in_chunk++;
+	      break;
+	    case 1:
+	      /* TODO: Print in hex with fast function, important for -flto. */
+	      fprintf (f, "\\%03o", c);
+	      bytes_in_chunk += 4;
+	      break;
+	    default:
+	      putc ('\\', f);
+	      putc (escape, f);
+	      bytes_in_chunk += 2;
+	      break;
+	    }
+
+	}
+    }
+
+  if (bytes_in_chunk > 0)
+    {
+      putc ('\"', f);
+      putc ('\n', f);
+    }
+}
+#endif
 
 static GTY(()) section *elf_init_array_section;
 static GTY(()) section *elf_fini_array_section;

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -108,7 +108,8 @@ package body Ch6 is
    --    end [DESIGNATOR];
 
    --  SUBPROGRAM_RENAMING_DECLARATION ::=
-   --    SUBPROGRAM_SPECIFICATION renames callable_entity_NAME;
+   --    SUBPROGRAM_SPECIFICATION renames callable_entity_NAME
+   --      [ASPECT_SPECIFICATIONS];
 
    --  SUBPROGRAM_BODY_STUB ::=
    --    SUBPROGRAM_SPECIFICATION is separate;
@@ -506,6 +507,7 @@ package body Ch6 is
             Scan; -- past RENAMES
             Set_Name (Rename_Node, P_Name);
             Set_Specification (Rename_Node, Specification_Node);
+            P_Aspect_Specifications (Rename_Node);
             TF_Semicolon;
             Pop_Scope_Stack;
             return Rename_Node;
@@ -770,7 +772,10 @@ package body Ch6 is
                       (N_Expression_Function, Sloc (Specification_Node));
                   Set_Specification (Body_Node, Specification_Node);
                   Set_Expression (Body_Node, P_Expression);
-                  T_Semicolon;
+
+                  --  Expression functions can carry pre/postconditions
+
+                  P_Aspect_Specifications (Body_Node);
                   Pop_Scope_Stack;
 
                --  Subprogram body case
@@ -1679,7 +1684,7 @@ package body Ch6 is
 
          if Ada_Version < Ada_2012 then
             Error_Msg_SC -- CODEFIX
-              ("ALIASED not allowed in extended return in Ada2012?");
+              ("ALIASED not allowed in extended return in Ada 2012?");
          else
             Error_Msg_SC -- CODEFIX
               ("ALIASED not allowed in extended return");

@@ -5,6 +5,7 @@
 package filepath_test
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -259,19 +260,19 @@ type Node struct {
 var tree = &Node{
 	"testdata",
 	[]*Node{
-		&Node{"a", nil, 0},
-		&Node{"b", []*Node{}, 0},
-		&Node{"c", nil, 0},
-		&Node{
+		{"a", nil, 0},
+		{"b", []*Node{}, 0},
+		{"c", nil, 0},
+		{
 			"d",
 			[]*Node{
-				&Node{"x", nil, 0},
-				&Node{"y", []*Node{}, 0},
-				&Node{
+				{"x", nil, 0},
+				{"y", []*Node{}, 0},
+				{
 					"z",
 					[]*Node{
-						&Node{"u", nil, 0},
-						&Node{"v", nil, 0},
+						{"u", nil, 0},
+						{"v", nil, 0},
 					},
 					0,
 				},
@@ -295,6 +296,7 @@ func makeTree(t *testing.T) {
 			fd, err := os.Create(path)
 			if err != nil {
 				t.Errorf("makeTree: %v", err)
+				return
 			}
 			fd.Close()
 		} else {
@@ -317,7 +319,7 @@ func checkMarks(t *testing.T, report bool) {
 // Assumes that each node name is unique. Good enough for a test.
 // If clear is true, any incoming error is cleared before return. The errors
 // are always accumulated, though.
-func mark(path string, info *os.FileInfo, err os.Error, errors *[]os.Error, clear bool) os.Error {
+func mark(path string, info os.FileInfo, err error, errors *[]error, clear bool) error {
 	if err != nil {
 		*errors = append(*errors, err)
 		if clear {
@@ -325,8 +327,9 @@ func mark(path string, info *os.FileInfo, err os.Error, errors *[]os.Error, clea
 		}
 		return err
 	}
+	name := info.Name()
 	walkTree(tree, tree.name, func(path string, n *Node) {
-		if n.name == info.Name {
+		if n.name == name {
 			n.mark++
 		}
 	})
@@ -335,18 +338,18 @@ func mark(path string, info *os.FileInfo, err os.Error, errors *[]os.Error, clea
 
 func TestWalk(t *testing.T) {
 	makeTree(t)
-	errors := make([]os.Error, 0, 10)
+	errors := make([]error, 0, 10)
 	clear := true
-	markFn := func(path string, info *os.FileInfo, err os.Error) os.Error {
+	markFn := func(path string, info os.FileInfo, err error) error {
 		return mark(path, info, err, &errors, clear)
 	}
 	// Expect no errors.
 	err := filepath.Walk(tree.name, markFn)
 	if err != nil {
-		t.Errorf("no error expected, found: %s", err)
+		t.Fatalf("no error expected, found: %s", err)
 	}
 	if len(errors) != 0 {
-		t.Errorf("unexpected errors: %s", errors)
+		t.Fatalf("unexpected errors: %s", errors)
 	}
 	checkMarks(t, true)
 	errors = errors[0:0]
@@ -368,7 +371,7 @@ func TestWalk(t *testing.T) {
 		tree.entries[3].mark--
 		err := filepath.Walk(tree.name, markFn)
 		if err != nil {
-			t.Errorf("expected no error return from Walk, %s", err)
+			t.Fatalf("expected no error return from Walk, got %s", err)
 		}
 		if len(errors) != 2 {
 			t.Errorf("expected 2 errors, got %d: %s", len(errors), errors)
@@ -387,7 +390,7 @@ func TestWalk(t *testing.T) {
 		clear = false // error will stop processing
 		err = filepath.Walk(tree.name, markFn)
 		if err == nil {
-			t.Errorf("expected error return from Walk")
+			t.Fatalf("expected error return from Walk")
 		}
 		if len(errors) != 1 {
 			t.Errorf("expected 1 error, got %d: %s", len(errors), errors)
@@ -421,10 +424,73 @@ var basetests = []PathTest{
 	{"a/b/c.x", "c.x"},
 }
 
+var winbasetests = []PathTest{
+	{`c:\`, `\`},
+	{`c:.`, `.`},
+	{`c:\a\b`, `b`},
+	{`c:a\b`, `b`},
+	{`c:a\b\c`, `c`},
+	{`\\host\share\`, `\`},
+	{`\\host\share\a`, `a`},
+	{`\\host\share\a\b`, `b`},
+}
+
 func TestBase(t *testing.T) {
-	for _, test := range basetests {
-		if s := filepath.ToSlash(filepath.Base(test.path)); s != test.result {
+	tests := basetests
+	if runtime.GOOS == "windows" {
+		// make unix tests work on windows
+		for i, _ := range tests {
+			tests[i].result = filepath.Clean(tests[i].result)
+		}
+		// add windows specific tests
+		tests = append(tests, winbasetests...)
+	}
+	for _, test := range tests {
+		if s := filepath.Base(test.path); s != test.result {
 			t.Errorf("Base(%q) = %q, want %q", test.path, s, test.result)
+		}
+	}
+}
+
+var dirtests = []PathTest{
+	{"", "."},
+	{".", "."},
+	{"/.", "/"},
+	{"/", "/"},
+	{"////", "/"},
+	{"/foo", "/"},
+	{"x/", "x"},
+	{"abc", "."},
+	{"abc/def", "abc"},
+	{"a/b/.x", "a/b"},
+	{"a/b/c.", "a/b"},
+	{"a/b/c.x", "a/b"},
+}
+
+var windirtests = []PathTest{
+	{`c:\`, `c:\`},
+	{`c:.`, `c:.`},
+	{`c:\a\b`, `c:\a`},
+	{`c:a\b`, `c:a`},
+	{`c:a\b\c`, `c:a\b`},
+	{`\\host\share\`, `\\host\share\`},
+	{`\\host\share\a`, `\\host\share\`},
+	{`\\host\share\a\b`, `\\host\share\a`},
+}
+
+func TestDir(t *testing.T) {
+	tests := dirtests
+	if runtime.GOOS == "windows" {
+		// make unix tests work on windows
+		for i, _ := range tests {
+			tests[i].result = filepath.Clean(tests[i].result)
+		}
+		// add windows specific tests
+		tests = append(tests, windirtests...)
+	}
+	for _, test := range tests {
+		if s := filepath.Dir(test.path); s != test.result {
+			t.Errorf("Dir(%q) = %q, want %q", test.path, s, test.result)
 		}
 	}
 }
@@ -482,6 +548,7 @@ func TestIsAbs(t *testing.T) {
 }
 
 type EvalSymlinksTest struct {
+	// If dest is empty, the path is created; otherwise the dest is symlinked to the path.
 	path, dest string
 }
 
@@ -509,31 +576,42 @@ var EvalSymlinksAbsWindowsTests = []EvalSymlinksTest{
 	{`c:\`, `c:\`},
 }
 
-func testEvalSymlinks(t *testing.T, tests []EvalSymlinksTest) {
-	for _, d := range tests {
-		if p, err := filepath.EvalSymlinks(d.path); err != nil {
-			t.Errorf("EvalSymlinks(%q) error: %v", d.path, err)
-		} else if filepath.Clean(p) != filepath.Clean(d.dest) {
-			t.Errorf("EvalSymlinks(%q)=%q, want %q", d.path, p, d.dest)
-		}
-	}
+// simpleJoin builds a file name from the directory and path.
+// It does not use Join because we don't want ".." to be evaluated.
+func simpleJoin(dir, path string) string {
+	return dir + string(filepath.Separator) + path
 }
 
 func TestEvalSymlinks(t *testing.T) {
-	defer os.RemoveAll("test")
+	tmpDir, err := ioutil.TempDir("", "evalsymlink")
+	if err != nil {
+		t.Fatal("creating temp dir:", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// /tmp may itself be a symlink! Avoid the confusion, although
+	// it means trusting the thing we're testing.
+	tmpDir, err = filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Fatal("eval symlink for tmp dir:", err)
+	}
+
+	// Create the symlink farm using relative paths.
 	for _, d := range EvalSymlinksTestDirs {
-		var err os.Error
+		var err error
+		path := simpleJoin(tmpDir, d.path)
 		if d.dest == "" {
-			err = os.Mkdir(d.path, 0755)
+			err = os.Mkdir(path, 0755)
 		} else {
 			if runtime.GOOS != "windows" {
-				err = os.Symlink(d.dest, d.path)
+				err = os.Symlink(d.dest, path)
 			}
 		}
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
+
 	var tests []EvalSymlinksTest
 	if runtime.GOOS == "windows" {
 		for _, d := range EvalSymlinksTests {
@@ -545,26 +623,17 @@ func TestEvalSymlinks(t *testing.T) {
 	} else {
 		tests = EvalSymlinksTests
 	}
-	// relative
-	testEvalSymlinks(t, tests)
-	// absolute
-/* These tests do not work in the gccgo test environment.
-	goroot, err := filepath.EvalSymlinks(os.Getenv("GOROOT"))
-	if err != nil {
-		t.Fatalf("EvalSymlinks(%q) error: %v", os.Getenv("GOROOT"), err)
-	}
-	testroot := filepath.Join(goroot, "src", "pkg", "path", "filepath")
-	for i, d := range tests {
-		tests[i].path = filepath.Join(testroot, d.path)
-		tests[i].dest = filepath.Join(testroot, d.dest)
-	}
-	if runtime.GOOS == "windows" {
-		for _, d := range EvalSymlinksAbsWindowsTests {
-			tests = append(tests, d)
+
+	// Evaluate the symlink farm.
+	for _, d := range tests {
+		path := simpleJoin(tmpDir, d.path)
+		dest := simpleJoin(tmpDir, d.dest)
+		if p, err := filepath.EvalSymlinks(path); err != nil {
+			t.Errorf("EvalSymlinks(%q) error: %v", d.path, err)
+		} else if filepath.Clean(p) != filepath.Clean(dest) {
+			t.Errorf("Clean(%q)=%q, want %q", path, p, dest)
 		}
 	}
-	testEvalSymlinks(t, tests)
-*/
 }
 
 /* These tests do not work in the gccgo test environment.
@@ -573,19 +642,22 @@ func TestEvalSymlinks(t *testing.T) {
 var abstests = []string{
 	"../AUTHORS",
 	"pkg/../../AUTHORS",
-	"Make.pkg",
-	"pkg/Makefile",
+	"Make.inc",
+	"pkg/math",
 	".",
-	"$GOROOT/src/Make.pkg",
-	"$GOROOT/src/../src/Make.pkg",
+	"$GOROOT/src/Make.inc",
+	"$GOROOT/src/../src/Make.inc",
 	"$GOROOT/misc/cgo",
 	"$GOROOT",
 }
 
 func TestAbs(t *testing.T) {
+	t.Logf("test needs to be rewritten; disabled")
+	return
+
 	oldwd, err := os.Getwd()
 	if err != nil {
-		t.Fatal("Getwd failed: " + err.String())
+		t.Fatal("Getwd failed: " + err.Error())
 	}
 	defer os.Chdir(oldwd)
 	goroot := os.Getenv("GOROOT")
@@ -596,14 +668,16 @@ func TestAbs(t *testing.T) {
 		info, err := os.Stat(path)
 		if err != nil {
 			t.Errorf("%s: %s", path, err)
+			continue
 		}
 
 		abspath, err := filepath.Abs(path)
 		if err != nil {
 			t.Errorf("Abs(%q) error: %v", path, err)
+			continue
 		}
 		absinfo, err := os.Stat(abspath)
-		if err != nil || absinfo.Ino != info.Ino {
+		if err != nil || !os.SameFile(absinfo, info) {
 			t.Errorf("Abs(%q)=%q, not the same file", path, abspath)
 		}
 		if !filepath.IsAbs(abspath) {
@@ -634,6 +708,10 @@ var reltests = []RelTests{
 	{"a/b/../c", "a/b", "../b"},
 	{"a/b/c", "a/c/d", "../../c/d"},
 	{"a/b", "c/d", "../../c/d"},
+	{"a/b/c/d", "a/b", "../.."},
+	{"a/b/c/d", "a/b/", "../.."},
+	{"a/b/c/d/", "a/b", "../.."},
+	{"a/b/c/d/", "a/b/", "../.."},
 	{"../../a/b", "../../a/b/c/d", "c/d"},
 	{"/a/b", "/a/b", "."},
 	{"/a/b/.", "/a/b", "."},
@@ -645,6 +723,10 @@ var reltests = []RelTests{
 	{"/a/b/../c", "/a/b", "../b"},
 	{"/a/b/c", "/a/c/d", "../../c/d"},
 	{"/a/b", "/c/d", "../../c/d"},
+	{"/a/b/c/d", "/a/b", "../.."},
+	{"/a/b/c/d", "/a/b/", "../.."},
+	{"/a/b/c/d/", "/a/b", "../.."},
+	{"/a/b/c/d/", "/a/b/", "../.."},
 	{"/../../a/b", "/../../a/b/c/d", "c/d"},
 	{".", "a/b", "a/b"},
 	{".", "..", ".."},

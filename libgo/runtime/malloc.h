@@ -123,10 +123,9 @@ enum
 
 	// Max number of threads to run garbage collection.
 	// 2, 3, and 4 are all plausible maximums depending
-	// on the hardware details of the machine.  The second
-	// proc is the one that helps the most (after the first),
-	// so start with just 2 for now.
-	MaxGcproc = 2,
+	// on the hardware details of the machine.  The garbage
+	// collector scales well to 4 cpus.
+	MaxGcproc = 4,
 };
 
 // A generic linked list of blocks.  (Typically the block is bigger than sizeof(MLink).)
@@ -236,7 +235,7 @@ struct MStats
 };
 
 extern MStats mstats
-  __asm__ ("libgo_runtime.runtime.MemStats");
+  __asm__ ("libgo_runtime.runtime.VmemStats");
 
 
 // Size classes.  Computed and initialized by InitSizes.
@@ -405,7 +404,6 @@ enum
 	FlagNoGC = 1<<2,	// must not free or scan for pointers
 };
 
-void	runtime_Mprof_Init(void);
 void	runtime_MProf_Malloc(void*, uintptr);
 void	runtime_MProf_Free(void*, uintptr);
 void	runtime_MProf_Mark(void (*scan)(byte *, int64));
@@ -423,4 +421,4 @@ extern int32 runtime_malloc_profile;
 
 struct __go_func_type;
 bool	runtime_getfinalizer(void *p, bool del, void (**fn)(void*), const struct __go_func_type **ft);
-void	runtime_walkfintab(void (*fn)(void*), void (*scan)(byte*, int64));
+void	runtime_walkfintab(void (*fn)(void*), void (*scan)(byte *, int64));

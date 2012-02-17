@@ -451,10 +451,6 @@ buf_flush (unix_stream * s)
   if (s->ndirty != 0)
     return -1;
 
-#ifdef _WIN32
-  _commit (s->fd);
-#endif
-
   return 0;
 }
 
@@ -1116,9 +1112,9 @@ tempfile (st_parameter_open *opp)
 
 #if defined(HAVE_CRLF) && defined(O_BINARY)
       fd = open (template, O_RDWR | O_CREAT | O_EXCL | O_BINARY,
-		 S_IREAD | S_IWRITE);
+		 S_IRUSR | S_IWUSR);
 #else
-      fd = open (template, O_RDWR | O_CREAT | O_EXCL, S_IREAD | S_IWRITE);
+      fd = open (template, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
 #endif
     }
   while (fd == -1 && errno == EEXIST);

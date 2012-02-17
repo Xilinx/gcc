@@ -1,5 +1,6 @@
 /* Primary expression subroutines
-   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011, 2012
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -223,6 +224,9 @@ match_integer_constant (gfc_expr **result, int signflag)
     kind = gfc_default_integer_kind;
   if (kind == -1)
     return MATCH_ERROR;
+
+  if (kind == 4 && gfc_option.flag_integer4_kind == 8)
+    kind = 8;
 
   if (gfc_validate_kind (BT_INTEGER, kind, true) < 0)
     {
@@ -636,6 +640,26 @@ done:
 	  goto cleanup;
 	}
       kind = gfc_default_double_kind;
+
+      if (kind == 4)
+	{
+	  if (gfc_option.flag_real4_kind == 8)
+	    kind = 8;
+	  if (gfc_option.flag_real4_kind == 10)
+	    kind = 10;
+	  if (gfc_option.flag_real4_kind == 16)
+	    kind = 16;
+	}
+
+      if (kind == 8)
+	{
+	  if (gfc_option.flag_real8_kind == 4)
+	    kind = 4;
+	  if (gfc_option.flag_real8_kind == 10)
+	    kind = 10;
+	  if (gfc_option.flag_real8_kind == 16)
+	    kind = 16;
+	}
       break;
 
     case 'q':
@@ -665,6 +689,26 @@ done:
     default:
       if (kind == -2)
 	kind = gfc_default_real_kind;
+
+      if (kind == 4)
+	{
+	  if (gfc_option.flag_real4_kind == 8)
+	    kind = 8;
+	  if (gfc_option.flag_real4_kind == 10)
+	    kind = 10;
+	  if (gfc_option.flag_real4_kind == 16)
+	    kind = 16;
+	}
+
+      if (kind == 8)
+	{
+	  if (gfc_option.flag_real8_kind == 4)
+	    kind = 4;
+	  if (gfc_option.flag_real8_kind == 10)
+	    kind = 10;
+	  if (gfc_option.flag_real8_kind == 16)
+	    kind = 16;
+	}
 
       if (gfc_validate_kind (BT_REAL, kind, true) < 0)
 	{
@@ -1789,13 +1833,17 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
 
   if (gfc_peek_ascii_char () == '[')
     {
-      if (sym->attr.dimension)
+      if ((sym->ts.type != BT_CLASS && sym->attr.dimension)
+	  || (sym->ts.type == BT_CLASS && CLASS_DATA (sym)
+	      && CLASS_DATA (sym)->attr.dimension))
 	{
 	  gfc_error ("Array section designator, e.g. '(:)', is required "
 		     "besides the coarray designator '[...]' at %C");
 	  return MATCH_ERROR;
 	}
-      if (!sym->attr.codimension)
+      if ((sym->ts.type != BT_CLASS && !sym->attr.codimension)
+	  || (sym->ts.type == BT_CLASS && CLASS_DATA (sym)
+	      && !CLASS_DATA (sym)->attr.codimension))
 	{
 	  gfc_error ("Coarray designator at %C but '%s' is not a coarray",
 		     sym->name);
@@ -1817,20 +1865,27 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
 	  && !(gfc_matching_procptr_assignment
 	       && sym->attr.flavor == FL_PROCEDURE))
       || (sym->ts.type == BT_CLASS && sym->attr.class_ok
-	  && CLASS_DATA (sym)->attr.dimension))
+	  && (CLASS_DATA (sym)->attr.dimension
+	      || CLASS_DATA (sym)->attr.codimension)))
     {
-      /* In EQUIVALENCE, we don't know yet whether we are seeing
-	 an array, character variable or array of character
-	 variables.  We'll leave the decision till resolve time.  */
+      gfc_array_spec *as;
+
       tail = extend_ref (primary, tail);
       tail->type = REF_ARRAY;
 
-      m = gfc_match_array_ref (&tail->u.ar, equiv_flag ? NULL : sym->as,
-			       equiv_flag,
-			       sym->ts.type == BT_CLASS
-			       ? (CLASS_DATA (sym)->as
-				  ? CLASS_DATA (sym)->as->corank : 0)
-			       : (sym->as ? sym->as->corank : 0));
+      /* In EQUIVALENCE, we don't know yet whether we are seeing
+	 an array, character variable or array of character
+	 variables.  We'll leave the decision till resolve time.  */
+
+      if (equiv_flag)
+	as = NULL;
+      else if (sym->ts.type == BT_CLASS && CLASS_DATA (sym))
+	as = CLASS_DATA (sym)->as;
+      else
+	as = sym->as;
+
+      m = gfc_match_array_ref (&tail->u.ar, as, equiv_flag,
+			       as ? as->corank : 0);
       if (m != MATCH_YES)
 	return m;
 
@@ -2315,171 +2370,162 @@ build_actual_constructor (gfc_structure_ctor_component **comp_head,
   return SUCCESS;
 }
 
-match
-gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result,
-				 bool parent)
+
+gfc_try
+gfc_convert_to_structure_constructor (gfc_expr *e, gfc_symbol *sym, gfc_expr **cexpr,
+				      gfc_actual_arglist **arglist,
+				      bool parent)
 {
+  gfc_actual_arglist *actual;
   gfc_structure_ctor_component *comp_tail, *comp_head, *comp_iter;
   gfc_constructor_base ctor_head = NULL;
   gfc_component *comp; /* Is set NULL when named component is first seen */
-  gfc_expr *e;
-  locus where;
-  match m;
   const char* last_name = NULL;
+  locus old_locus;
+  gfc_expr *expr;
+
+  expr = parent ? *cexpr : e;
+  old_locus = gfc_current_locus;
+  if (parent)
+    ; /* gfc_current_locus = *arglist->expr ? ->where;*/
+  else
+    gfc_current_locus = expr->where;
 
   comp_tail = comp_head = NULL;
 
-  if (!parent && gfc_match_char ('(') != MATCH_YES)
-    goto syntax;
-
-  where = gfc_current_locus;
-
-  gfc_find_component (sym, NULL, false, true);
-
-  /* Check that we're not about to construct an ABSTRACT type.  */
   if (!parent && sym->attr.abstract)
     {
-      gfc_error ("Can't construct ABSTRACT type '%s' at %C", sym->name);
-      return MATCH_ERROR;
+      gfc_error ("Can't construct ABSTRACT type '%s' at %L",
+		 sym->name, &expr->where);
+      goto cleanup;
     }
 
-  /* Match the component list and store it in a list together with the
-     corresponding component names.  Check for empty argument list first.  */
-  if (gfc_match_char (')') != MATCH_YES)
+  comp = sym->components;
+  actual = parent ? *arglist : expr->value.function.actual;
+  for ( ; actual; )
     {
-      comp = sym->components;
-      do
+      gfc_component *this_comp = NULL;
+
+      if (!comp_head)
+	comp_tail = comp_head = gfc_get_structure_ctor_component ();
+      else
 	{
-	  gfc_component *this_comp = NULL;
-
-	  if (comp == sym->components && sym->attr.extension
-	      && comp->ts.type == BT_DERIVED
-	      && comp->ts.u.derived->attr.zero_comp)
-	    /* Skip empty parents.  */ 
-	    comp = comp->next;
-
-	  if (!comp_head)
-	    comp_tail = comp_head = gfc_get_structure_ctor_component ();
-	  else
-	    {
-	      comp_tail->next = gfc_get_structure_ctor_component ();
-	      comp_tail = comp_tail->next;
-	    }
-	  comp_tail->name = XCNEWVEC (char, GFC_MAX_SYMBOL_LEN + 1);
-	  comp_tail->val = NULL;
-	  comp_tail->where = gfc_current_locus;
-
-	  /* Try matching a component name.  */
-	  if (gfc_match_name (comp_tail->name) == MATCH_YES 
-	      && gfc_match_char ('=') == MATCH_YES)
-	    {
-	      if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Structure"
-				  " constructor with named arguments at %C")
-		  == FAILURE)
-		goto cleanup;
-
-	      last_name = comp_tail->name;
-	      comp = NULL;
-	    }
-	  else
-	    {
-	      /* Components without name are not allowed after the first named
-		 component initializer!  */
-	      if (!comp)
-		{
-		  if (last_name)
-		    gfc_error ("Component initializer without name after"
-			       " component named %s at %C!", last_name);
-		  else if (!parent)
-		    gfc_error ("Too many components in structure constructor at"
-			       " %C!");
-		  goto cleanup;
-		}
-
-	      gfc_current_locus = comp_tail->where;
-	      strncpy (comp_tail->name, comp->name, GFC_MAX_SYMBOL_LEN + 1);
-	    }
-
-	  /* Find the current component in the structure definition and check
-	     its access is not private.  */
-	  if (comp)
-	    this_comp = gfc_find_component (sym, comp->name, false, false);
-	  else
-	    {
-	      this_comp = gfc_find_component (sym,
-					      (const char *)comp_tail->name,
-					      false, false);
-	      comp = NULL; /* Reset needed!  */
-	    }
-
-	  /* Here we can check if a component name is given which does not
-	     correspond to any component of the defined structure.  */
-	  if (!this_comp)
+	  comp_tail->next = gfc_get_structure_ctor_component ();
+	  comp_tail = comp_tail->next;
+       	}
+      if (actual->name)
+	{
+	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Structure"
+			      " constructor with named arguments at %C")
+	      == FAILURE)
 	    goto cleanup;
 
-	  /* Check if this component is already given a value.  */
-	  for (comp_iter = comp_head; comp_iter != comp_tail; 
-	       comp_iter = comp_iter->next)
+	  comp_tail->name = xstrdup (actual->name);
+	  last_name = comp_tail->name;
+	  comp = NULL;
+	}
+      else
+	{
+	  /* Components without name are not allowed after the first named
+	     component initializer!  */
+	  if (!comp)
 	    {
-	      gcc_assert (comp_iter);
-	      if (!strcmp (comp_iter->name, comp_tail->name))
-		{
-		  gfc_error ("Component '%s' is initialized twice in the"
-			     " structure constructor at %C!", comp_tail->name);
-		  goto cleanup;
-		}
-	    }
-
-	  /* Match the current initializer expression.  */
-	  if (this_comp->attr.proc_pointer)
-	    gfc_matching_procptr_assignment = 1;
-	  m = gfc_match_expr (&comp_tail->val);
-	  gfc_matching_procptr_assignment = 0;
-	  if (m == MATCH_NO)
-	    goto syntax;
-	  if (m == MATCH_ERROR)
-	    goto cleanup;
-
-	  /* F2008, R457/C725, for PURE C1283.  */
-          if (this_comp->attr.pointer && gfc_is_coindexed (comp_tail->val))
-	    {
-	      gfc_error ("Coindexed expression to pointer component '%s' in "
-			 "structure constructor at %C!", comp_tail->name);
+	      if (last_name)
+		gfc_error ("Component initializer without name after component"
+			   " named %s at %L!", last_name,
+			   actual->expr ? &actual->expr->where
+					: &gfc_current_locus);
+	      else
+		gfc_error ("Too many components in structure constructor at "
+			   "%L!", actual->expr ? &actual->expr->where
+					       : &gfc_current_locus);
 	      goto cleanup;
- 	    }
-
-
-	  /* If not explicitly a parent constructor, gather up the components
-	     and build one.  */
-	  if (comp && comp == sym->components
-		&& sym->attr.extension
-		&& (comp_tail->val->ts.type != BT_DERIVED
-		      ||
-		    comp_tail->val->ts.u.derived != this_comp->ts.u.derived))
-	    {
-	      gfc_current_locus = where;
-	      gfc_free_expr (comp_tail->val);
-	      comp_tail->val = NULL;
-
-	      m = gfc_match_structure_constructor (comp->ts.u.derived, 
-						   &comp_tail->val, true);
-	      if (m == MATCH_NO)
-		goto syntax;
-	      if (m == MATCH_ERROR)
-		goto cleanup;
 	    }
 
- 	  if (comp)
-	    comp = comp->next;
-
-	  if (parent && !comp)
-	    break;
+	  comp_tail->name = xstrdup (comp->name);
 	}
 
-      while (gfc_match_char (',') == MATCH_YES);
+      /* Find the current component in the structure definition and check
+	     its access is not private.  */
+      if (comp)
+	this_comp = gfc_find_component (sym, comp->name, false, false);
+      else
+	{
+	  this_comp = gfc_find_component (sym, (const char *)comp_tail->name,
+					  false, false);
+	  comp = NULL; /* Reset needed!  */
+	}
 
-      if (!parent && gfc_match_char (')') != MATCH_YES)
-	goto syntax;
+      /* Here we can check if a component name is given which does not
+	 correspond to any component of the defined structure.  */
+      if (!this_comp)
+	goto cleanup;
+
+      comp_tail->val = actual->expr;
+      if (actual->expr != NULL)
+	comp_tail->where = actual->expr->where;
+      actual->expr = NULL;
+
+      /* Check if this component is already given a value.  */
+      for (comp_iter = comp_head; comp_iter != comp_tail; 
+	   comp_iter = comp_iter->next)
+	{
+	  gcc_assert (comp_iter);
+	  if (!strcmp (comp_iter->name, comp_tail->name))
+	    {
+	      gfc_error ("Component '%s' is initialized twice in the structure"
+			 " constructor at %L!", comp_tail->name,
+			 comp_tail->val ? &comp_tail->where
+					: &gfc_current_locus);
+	      goto cleanup;
+	    }
+	}
+
+      /* F2008, R457/C725, for PURE C1283.  */
+      if (this_comp->attr.pointer && comp_tail->val
+	  && gfc_is_coindexed (comp_tail->val))
+     	{
+       	  gfc_error ("Coindexed expression to pointer component '%s' in "
+		     "structure constructor at %L!", comp_tail->name,
+		     &comp_tail->where);
+	  goto cleanup;
+	}
+
+          /* If not explicitly a parent constructor, gather up the components
+             and build one.  */
+          if (comp && comp == sym->components
+                && sym->attr.extension
+		&& comp_tail->val
+                && (comp_tail->val->ts.type != BT_DERIVED
+                      ||
+                    comp_tail->val->ts.u.derived != this_comp->ts.u.derived))
+            {
+              gfc_try m;
+	      gfc_actual_arglist *arg_null = NULL;
+
+	      actual->expr = comp_tail->val;
+	      comp_tail->val = NULL;
+
+              m = gfc_convert_to_structure_constructor (NULL,
+					comp->ts.u.derived, &comp_tail->val,
+					comp->ts.u.derived->attr.zero_comp
+					  ? &arg_null : &actual, true);
+              if (m == FAILURE)
+                goto cleanup;
+
+	      if (comp->ts.u.derived->attr.zero_comp)
+		{
+		  comp = comp->next;
+		  continue;
+		}
+            }
+
+      if (comp)
+	comp = comp->next;
+      if (parent && !comp)
+	break;
+
+      actual = actual->next;
     }
 
   if (build_actual_constructor (&comp_head, &ctor_head, sym) == FAILURE)
@@ -2488,9 +2534,8 @@ gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result,
   /* No component should be left, as this should have caused an error in the
      loop constructing the component-list (name that does not correspond to any
      component in the structure definition).  */
-  if (comp_head)
+  if (comp_head && sym->attr.extension)
     {
-      gcc_assert (sym->attr.extension);
       for (comp_iter = comp_head; comp_iter; comp_iter = comp_iter->next)
 	{
 	  gfc_error ("component '%s' at %L has already been set by a "
@@ -2499,18 +2544,33 @@ gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result,
 	}
       goto cleanup;
     }
+  else
+    gcc_assert (!comp_head);
 
-  e = gfc_get_structure_constructor_expr (BT_DERIVED, 0, &where);
-  e->ts.u.derived = sym;
-  e->value.constructor = ctor_head;
+  if (parent)
+    {
+      expr = gfc_get_structure_constructor_expr (BT_DERIVED, 0, &gfc_current_locus);
+      expr->ts.u.derived = sym;
+      expr->value.constructor = ctor_head;
+      *cexpr = expr;
+    }
+  else
+    {
+      expr->ts.u.derived = sym;
+      expr->ts.kind = 0;
+      expr->ts.type = BT_DERIVED;
+      expr->value.constructor = ctor_head;
+      expr->expr_type = EXPR_STRUCTURE;
+    }
 
-  *result = e;
-  return MATCH_YES;
+  gfc_current_locus = old_locus; 
+  if (parent)
+    *arglist = actual;
+  return SUCCESS;
 
-syntax:
-  gfc_error ("Syntax error in structure constructor at %C");
+  cleanup:
+  gfc_current_locus = old_locus; 
 
-cleanup:
   for (comp_iter = comp_head; comp_iter; )
     {
       gfc_structure_ctor_component *next = comp_iter->next;
@@ -2518,7 +2578,45 @@ cleanup:
       comp_iter = next;
     }
   gfc_constructor_free (ctor_head);
-  return MATCH_ERROR;
+
+  return FAILURE;
+}
+
+
+match
+gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result)
+{
+  match m;
+  gfc_expr *e;
+  gfc_symtree *symtree;
+
+  gfc_get_sym_tree (sym->name, NULL, &symtree, false);   /* Can't fail */
+
+  e = gfc_get_expr ();
+  e->symtree = symtree;
+  e->expr_type = EXPR_FUNCTION;
+
+  gcc_assert (sym->attr.flavor == FL_DERIVED
+	      && symtree->n.sym->attr.flavor == FL_PROCEDURE);
+  e->value.function.esym = sym;
+  e->symtree->n.sym->attr.generic = 1;
+
+   m = gfc_match_actual_arglist (0, &e->value.function.actual);
+   if (m != MATCH_YES)
+     {
+       gfc_free_expr (e);
+       return m;
+     }
+
+   if (gfc_convert_to_structure_constructor (e, sym, NULL, NULL, false)
+       != SUCCESS)
+     {
+       gfc_free_expr (e);
+       return MATCH_ERROR;
+     }
+
+   *result = e;
+   return MATCH_YES;
 }
 
 
@@ -2715,7 +2813,7 @@ gfc_match_rvalue (gfc_expr **result)
       if (sym == NULL)
 	m = MATCH_ERROR;
       else
-	m = gfc_match_structure_constructor (sym, &e, false);
+	goto generic_function;
       break;
 
     /* If we're here, then the name is known to be the name of a
@@ -2801,7 +2899,10 @@ gfc_match_rvalue (gfc_expr **result)
       e->value.function.actual = actual_arglist;
       e->where = gfc_current_locus;
 
-      if (sym->as != NULL)
+      if (sym->ts.type == BT_CLASS && sym->attr.class_ok
+	  && CLASS_DATA (sym)->as)
+	e->rank = CLASS_DATA (sym)->as->rank;
+      else if (sym->as != NULL)
 	e->rank = sym->as->rank;
 
       if (!sym->attr.function
@@ -2847,10 +2948,28 @@ gfc_match_rvalue (gfc_expr **result)
 	  && gfc_get_default_type (sym->name, sym->ns)->type == BT_DERIVED)
 	gfc_set_default_type (sym, 0, sym->ns);
 
-      /* If the symbol has a dimension attribute, the expression is a
+      /* If the symbol has a (co)dimension attribute, the expression is a
 	 variable.  */
 
-      if (sym->attr.dimension)
+      if (sym->attr.dimension || sym->attr.codimension)
+	{
+	  if (gfc_add_flavor (&sym->attr, FL_VARIABLE,
+			      sym->name, NULL) == FAILURE)
+	    {
+	      m = MATCH_ERROR;
+	      break;
+	    }
+
+	  e = gfc_get_expr ();
+	  e->symtree = symtree;
+	  e->expr_type = EXPR_VARIABLE;
+	  m = gfc_match_varspec (e, 0, false, true);
+	  break;
+	}
+
+      if (sym->ts.type == BT_CLASS && sym->attr.class_ok
+	  && (CLASS_DATA (sym)->attr.dimension
+	      || CLASS_DATA (sym)->attr.codimension))
 	{
 	  if (gfc_add_flavor (&sym->attr, FL_VARIABLE,
 			      sym->name, NULL) == FAILURE)
@@ -2988,6 +3107,12 @@ gfc_match_rvalue (gfc_expr **result)
       e = gfc_get_expr ();
       e->symtree = symtree;
       e->expr_type = EXPR_FUNCTION;
+
+      if (sym->attr.flavor == FL_DERIVED)
+	{
+	  e->value.function.esym = sym;
+	  e->symtree->n.sym->attr.generic = 1;
+	}
 
       m = gfc_match_actual_arglist (0, &e->value.function.actual);
       break;

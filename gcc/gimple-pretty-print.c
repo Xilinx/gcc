@@ -345,10 +345,6 @@ dump_binary_rhs (pretty_printer *buffer, gimple gs, int spc, int flags)
     case VEC_PACK_TRUNC_EXPR:
     case VEC_PACK_SAT_EXPR:
     case VEC_PACK_FIX_TRUNC_EXPR:
-    case VEC_EXTRACT_EVEN_EXPR:
-    case VEC_EXTRACT_ODD_EXPR:
-    case VEC_INTERLEAVE_HIGH_EXPR:
-    case VEC_INTERLEAVE_LOW_EXPR:
     case VEC_WIDEN_LSHIFT_HI_EXPR:
     case VEC_WIDEN_LSHIFT_LO_EXPR:
       for (p = tree_code_name [(int) code]; *p; p++)
@@ -697,6 +693,9 @@ dump_gimple_call (pretty_printer *buffer, gimple gs, int spc, int flags)
     pp_string (buffer, " [return slot optimization]");
   if (gimple_call_tail_p (gs))
     pp_string (buffer, " [tail call]");
+
+  if (fn == NULL)
+    return;
 
   /* Dump the arguments of _ITM_beginTransaction sanely.  */
   if (TREE_CODE (fn) == ADDR_EXPR)
@@ -1596,9 +1595,11 @@ dump_gimple_phi (pretty_printer *buffer, gimple phi, int spc, int flags)
       pp_points_to_solution (buffer, &pi->pt);
       newline_and_indent (buffer, spc);
       if (pi->align != 1)
-	pp_printf (buffer, "# ALIGN = %u, MISALIGN = %u",
-		   pi->align, pi->misalign);
-      newline_and_indent (buffer, spc);
+	{
+	  pp_printf (buffer, "# ALIGN = %u, MISALIGN = %u",
+		     pi->align, pi->misalign);
+	  newline_and_indent (buffer, spc);
+	}
       pp_string (buffer, "# ");
     }
 
@@ -1768,6 +1769,8 @@ dump_gimple_omp_atomic_load (pretty_printer *buffer, gimple gs, int spc,
   else
     {
       pp_string (buffer, "#pragma omp atomic_load");
+      if (gimple_omp_atomic_need_value_p (gs))
+	pp_string (buffer, " [needed]");
       newline_and_indent (buffer, spc + 2);
       dump_generic_node (buffer, gimple_omp_atomic_load_lhs (gs),
 	  		 spc, flags, false);
@@ -1795,7 +1798,10 @@ dump_gimple_omp_atomic_store (pretty_printer *buffer, gimple gs, int spc,
     }
   else
     {
-      pp_string (buffer, "#pragma omp atomic_store (");
+      pp_string (buffer, "#pragma omp atomic_store ");
+      if (gimple_omp_atomic_need_value_p (gs))
+	pp_string (buffer, "[needed] ");
+      pp_character (buffer, '(');
       dump_generic_node (buffer, gimple_omp_atomic_store_val (gs),
 	  		 spc, flags, false);
       pp_character (buffer, ')');

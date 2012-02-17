@@ -23,7 +23,8 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Names to predefine in the preprocessor for this target machine.  */
 
-struct base_arch_s {
+struct base_arch_s
+{
   /* Assembler only.  */
   int asm_only;
 
@@ -45,15 +46,24 @@ struct base_arch_s {
   /* Core have 'EICALL' and 'EIJMP' instructions.  */
   int have_eijmp_eicall;
 
-  /* Reserved for xmega architecture.  */
-  int reserved;
+  /* This is an XMEGA core.  */
+  int xmega_p;
 
-  /* Reserved for xmega architecture.  */
-  int reserved2;
+  /* This core has the RAMPD special function register
+     and thus also the RAMPX, RAMPY and RAMPZ registers.  */
+  int have_rampd;
   
   /* Default start of data section address for architecture.  */
   int default_data_section_start;
 
+  /* Offset between SFR address and RAM address:
+     SFR-address = RAM-address - sfr_offset  */
+  int sfr_offset;
+
+  /* Number of 64k segments in the flash.  */
+  int n_segments;
+
+  /* Architecture id to built-in define __AVR_ARCH__ (NULL -> no macro) */
   const char *const macro;
   
   /* Architecture name.  */
@@ -75,7 +85,12 @@ enum avr_arch
   ARCH_AVR4,
   ARCH_AVR5,
   ARCH_AVR51,
-  ARCH_AVR6
+  ARCH_AVR6,
+  ARCH_AVRXMEGA2,
+  ARCH_AVRXMEGA4,
+  ARCH_AVRXMEGA5,
+  ARCH_AVRXMEGA6,
+  ARCH_AVRXMEGA7
 };
 
 struct mcu_type_s {
@@ -125,18 +140,60 @@ extern const struct mcu_type_s *avr_current_device;
 extern const struct mcu_type_s avr_mcu_types[];
 extern const struct base_arch_s avr_arch_types[];
 
+typedef struct
+{
+  /* Id of the address space as used in c_register_addr_space */
+  unsigned char id;
+
+  /* Flavour of memory: 0 = RAM, 1 = Flash */
+  int memory_class;
+
+  /* Width of pointer (in bytes) */
+  int pointer_size;
+
+  /* Name of the address space as visible to the user */
+  const char *name;
+
+  /* Segment (i.e. 64k memory chunk) number.  */
+  int segment;
+} avr_addrspace_t;
+
+extern const avr_addrspace_t avr_addrspace[];
+
+/* Known address spaces */
+
+enum
+  {
+    ADDR_SPACE_RAM,
+    ADDR_SPACE_FLASH,
+    ADDR_SPACE_FLASH1,
+    ADDR_SPACE_FLASH2,
+    ADDR_SPACE_FLASH3,
+    ADDR_SPACE_FLASH4,
+    ADDR_SPACE_FLASH5,
+    ADDR_SPACE_MEMX
+  };
+
 #define TARGET_CPU_CPP_BUILTINS()	avr_cpu_cpp_builtins (pfile)
 
 #define AVR_HAVE_JMP_CALL (avr_current_arch->have_jmp_call && !TARGET_SHORT_CALLS)
 #define AVR_HAVE_MUL (avr_current_arch->have_mul)
 #define AVR_HAVE_MOVW (avr_current_arch->have_movw_lpmx)
 #define AVR_HAVE_LPMX (avr_current_arch->have_movw_lpmx)
-#define AVR_HAVE_RAMPZ (avr_current_arch->have_elpm)
+#define AVR_HAVE_ELPM (avr_current_arch->have_elpm)
+#define AVR_HAVE_ELPMX (avr_current_arch->have_elpmx)
+#define AVR_HAVE_RAMPD (avr_current_arch->have_rampd)
+#define AVR_HAVE_RAMPX (avr_current_arch->have_rampd)
+#define AVR_HAVE_RAMPY (avr_current_arch->have_rampd)
+#define AVR_HAVE_RAMPZ (avr_current_arch->have_elpm             \
+                        || avr_current_arch->have_rampd)
 #define AVR_HAVE_EIJMP_EICALL (avr_current_arch->have_eijmp_eicall)
 #define AVR_HAVE_8BIT_SP (avr_current_device->short_sp || TARGET_TINY_STACK)
 
 #define AVR_2_BYTE_PC (!AVR_HAVE_EIJMP_EICALL)
 #define AVR_3_BYTE_PC (AVR_HAVE_EIJMP_EICALL)
+
+#define AVR_XMEGA (avr_current_arch->xmega_p)
 
 #define BITS_BIG_ENDIAN 0
 #define BYTES_BIG_ENDIAN 0
@@ -391,6 +448,11 @@ typedef struct avr_args {
 
 #define NO_FUNCTION_CSE
 
+#define REGISTER_TARGET_PRAGMAS()                                       \
+  do {                                                                  \
+    avr_register_target_pragmas();                                      \
+  } while (0)
+
 #define TEXT_SECTION_ASM_OP "\t.text"
 
 #define DATA_SECTION_ASM_OP "\t.data"
@@ -447,12 +509,6 @@ typedef struct avr_args {
     "__SP_L__","__SP_H__","argL","argH"}
 
 #define FINAL_PRESCAN_INSN(insn, operand, nop) final_prescan_insn (insn, operand,nop)
-
-#define PRINT_OPERAND(STREAM, X, CODE) print_operand (STREAM, X, CODE)
-
-#define PRINT_OPERAND_PUNCT_VALID_P(CODE) ((CODE) == '~' || (CODE) == '!')
-
-#define PRINT_OPERAND_ADDRESS(STREAM, X) print_operand_address(STREAM, X)
 
 #define ASM_OUTPUT_REG_PUSH(STREAM, REGNO)	\
 {						\
@@ -572,22 +628,6 @@ mmcu=*:-mmcu=%*}"
 #define TEST_HARD_REG_CLASS(CLASS, REGNO) \
   TEST_HARD_REG_BIT (reg_class_contents[ (int) (CLASS)], REGNO)
 
-/* Note that the other files fail to use these
-   in some of the places where they should.  */
-
-#if defined(__STDC__) || defined(ALMOST_STDC)
-#define AS2(a,b,c) #a " " #b "," #c
-#define AS2C(b,c) " " #b "," #c
-#define AS3(a,b,c,d) #a " " #b "," #c "," #d
-#define AS1(a,b) #a " " #b
-#else
-#define AS1(a,b) "a	b"
-#define AS2(a,b,c) "a	b,c"
-#define AS2C(b,c) " b,c"
-#define AS3(a,b,c,d) "a	b,c,d"
-#endif
-#define OUT_AS1(a,b) output_asm_insn (AS1(a,b), operands)
-#define OUT_AS2(a,b,c) output_asm_insn (AS2(a,b,c), operands)
 #define CR_TAB "\n\t"
 
 #define DWARF2_ADDR_SIZE 4
@@ -637,3 +677,5 @@ struct GTY(()) machine_function
 #define PUSH_ROUNDING(X)	(X)
 
 #define ACCUMULATE_OUTGOING_ARGS avr_accumulate_outgoing_args()
+
+#define INIT_EXPANDERS avr_init_expanders()

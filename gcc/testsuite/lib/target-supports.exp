@@ -1,5 +1,5 @@
 #   Copyright (C) 1999, 2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-#   2011 Free Software Foundation, Inc.
+#   2011, 2012 Free Software Foundation, Inc.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -716,6 +716,15 @@ proc check_effective_target_fopenmp {} {
     } "-fopenmp"]
 }
 
+# Return 1 if compilation with -fgnu-tm is error-free for trivial
+# code, 0 otherwise.
+
+proc check_effective_target_fgnu_tm {} {
+    return [check_no_compiler_messages fgnu_tm object {
+	void foo (void) { }
+    } "-fgnu-tm"]
+}
+
 # Return 1 if the target supports mmap, 0 otherwise.
 
 proc check_effective_target_mmap {} {
@@ -890,6 +899,53 @@ proc check_effective_target_mips_newabi_large_long_double { } {
     } "-mabi=64"]
 }
 
+# Return true if the target is a MIPS target that has access
+# to the LL and SC instructions.
+
+proc check_effective_target_mips_llsc { } {
+    if { ![istarget mips*-*-*] } {
+	return 0
+    }
+    # Assume that these instructions are always implemented for
+    # non-elf* targets, via emulation if necessary.
+    if { ![istarget *-*-elf*] } {
+	return 1
+    }
+    # Otherwise assume LL/SC support for everything but MIPS I.
+    return [check_no_compiler_messages mips_llsc assembly {
+	#if __mips == 1
+	#error FOO
+	#endif
+    }]
+}
+
+# Return true if the target is a MIPS target that uses in-place relocations.
+
+proc check_effective_target_mips_rel { } {
+    if { ![istarget mips*-*-*] } {
+	return 0
+    }
+    return [check_no_compiler_messages mips_rel object {
+	#if (defined _ABIN32 && _MIPS_SIM == _ABIN32) \
+	    || (defined _ABI64 && _MIPS_SIM == _ABI64)
+	#error FOO
+	#endif
+    }]
+}
+
+# Return true if the target is a MIPS target that uses the EABI.
+
+proc check_effective_target_mips_eabi { } {
+    if { ![istarget mips*-*-*] } {
+	return 0
+    }
+    return [check_no_compiler_messages mips_eabi object {
+	#ifndef __mips_eabi
+	#error FOO
+	#endif
+    }]
+}
+
 # Return 1 if the current multilib does not generate PIC by default.
 
 proc check_effective_target_nonpic { } {
@@ -983,6 +1039,28 @@ proc check_effective_target_fortran_real_16 { } {
 	end
     }]
 }
+
+
+# Return 1 if the target supports SQRT for the largest floating-point
+# type. (Some targets lack the libm support for this FP type.)
+# On most targets, this check effectively checks either whether sqrtl is
+# available or on __float128 systems whether libquadmath is installed,
+# which provides sqrtq.
+#
+# When the target name changes, replace the cached result.
+
+proc check_effective_target_fortran_largest_fp_has_sqrt { } {
+    return [check_no_compiler_messages fortran_largest_fp_has_sqrt executable {
+	! Fortran
+        use iso_fortran_env, only: real_kinds
+        integer,parameter:: maxFP = real_kinds(ubound(real_kinds,dim=1))
+	real(kind=maxFP), volatile :: x
+        x = 2.0_maxFP
+	x = sqrt (x)
+	end
+    }]
+}
+
 
 # Return 1 if the target supports Fortran integer kinds larger than
 # integer(8), 0 otherwise.
@@ -1775,6 +1853,7 @@ proc check_effective_target_vect_cmdline_needed { } {
 	     || ([istarget powerpc*-*-*]
 		 && ([check_effective_target_powerpc_spe]
 		     || [check_effective_target_powerpc_altivec]))
+	     || ([istarget sparc*-*-*] && [check_effective_target_sparc_vis])
              || [istarget spu-*-*]
 	     || ([istarget arm*-*-*] && [check_effective_target_arm_neon]) } {
 	   set et_vect_cmdline_needed_saved 0
@@ -1828,7 +1907,9 @@ proc check_effective_target_vect_intfloat_cvt { } {
         if { [istarget i?86-*-*]
               || ([istarget powerpc*-*-*]
                    && ![istarget powerpc-*-linux*paired*])
-              || [istarget x86_64-*-*] } {
+              || [istarget x86_64-*-*] 
+              || ([istarget arm*-*-*]
+                  && [check_effective_target_arm_neon_ok])} {
            set et_vect_intfloat_cvt_saved 1
         }
     }
@@ -1864,7 +1945,9 @@ proc check_effective_target_vect_uintfloat_cvt { } {
         if { [istarget i?86-*-*]
 	      || ([istarget powerpc*-*-*]
 		  && ![istarget powerpc-*-linux*paired*])
-	      || [istarget x86_64-*-*] } {
+	      || [istarget x86_64-*-*] 
+	      || ([istarget arm*-*-*]
+		  && [check_effective_target_arm_neon_ok])} {
            set et_vect_uintfloat_cvt_saved 1
         }
     }
@@ -1887,7 +1970,9 @@ proc check_effective_target_vect_floatint_cvt { } {
         if { [istarget i?86-*-*]
               || ([istarget powerpc*-*-*]
                    && ![istarget powerpc-*-linux*paired*])
-              || [istarget x86_64-*-*] } {
+              || [istarget x86_64-*-*]
+              || ([istarget arm*-*-*]
+                  && [check_effective_target_arm_neon_ok])} {
            set et_vect_floatint_cvt_saved 1
         }
     }
@@ -1907,7 +1992,9 @@ proc check_effective_target_vect_floatuint_cvt { } {
     } else {
         set et_vect_floatuint_cvt_saved 0
         if { ([istarget powerpc*-*-*]
-	      && ![istarget powerpc-*-linux*paired*]) } {
+	      && ![istarget powerpc-*-linux*paired*])
+	    || ([istarget arm*-*-*]
+	        && [check_effective_target_arm_neon_ok])} {
            set et_vect_floatuint_cvt_saved 1
         }
     }
@@ -2475,7 +2562,7 @@ proc check_effective_target_ultrasparc_hw { } {
 # instructions.  We check this by attempting: "bmask %g0, %g0, %g0"
 
 proc check_effective_target_ultrasparc_vis2_hw { } {
-    return [check_runtime ultrasparc_hw {
+    return [check_runtime ultrasparc_vis2_hw {
 	int main() { __asm__(".word 0x81b00320"); return 0; }
     } "-mcpu=ultrasparc3"]
 }
@@ -2484,9 +2571,25 @@ proc check_effective_target_ultrasparc_vis2_hw { } {
 # instructions.  We check this by attempting: "addxc %g0, %g0, %g0"
 
 proc check_effective_target_ultrasparc_vis3_hw { } {
-    return [check_runtime ultrasparc_hw {
+    return [check_runtime ultrasparc_vis3_hw {
 	int main() { __asm__(".word 0x81b00220"); return 0; }
     } "-mcpu=niagara3"]
+}
+
+# Return 1 if this is a Sparc target with VIS enabled.
+
+proc check_effective_target_sparc_vis { } {
+    if { [istarget sparc*-*-*] } {
+	return [check_no_compiler_messages sparc_vis object {
+	    #ifndef __VIS__
+	    #error not VIS
+	    #else
+	    int dummy;
+	    #endif
+	}]
+    } else {
+	return 0
+    }
 }
 
 # Return 1 if the target supports hardware vector shift operation.
@@ -2708,10 +2811,13 @@ proc check_effective_target_vect_perm { } {
         verbose "check_effective_target_vect_perm: using cached result" 2
     } else {
         set et_vect_perm_saved 0
-        if { [istarget powerpc*-*-*]
+        if { [is-effective-target arm_neon_ok]
+	     || [istarget powerpc*-*-*]
              || [istarget spu-*-*]
 	     || [istarget i?86-*-*]
-	     || [istarget x86_64-*-*] } {
+	     || [istarget x86_64-*-*]
+	     || ([istarget mips*-*-*]
+		 && [check_effective_target_mpaired_single]) } {
             set et_vect_perm_saved 1
         }
     }
@@ -2731,7 +2837,8 @@ proc check_effective_target_vect_perm_byte { } {
         verbose "check_effective_target_vect_perm_byte: using cached result" 2
     } else {
         set et_vect_perm_byte_saved 0
-        if { [istarget powerpc*-*-*]
+        if { [is-effective-target arm_neon_ok]
+	     || [istarget powerpc*-*-*]
              || [istarget spu-*-*] } {
             set et_vect_perm_byte_saved 1
         }
@@ -2752,7 +2859,8 @@ proc check_effective_target_vect_perm_short { } {
         verbose "check_effective_target_vect_perm_short: using cached result" 2
     } else {
         set et_vect_perm_short_saved 0
-        if { [istarget powerpc*-*-*]
+        if { [is-effective-target arm_neon_ok]
+	     || [istarget powerpc*-*-*]
              || [istarget spu-*-*] } {
             set et_vect_perm_short_saved 1
         }
@@ -3190,9 +3298,14 @@ proc check_effective_target_vect_aligned_arrays { } {
 	verbose "check_effective_target_vect_aligned_arrays: using cached result" 2
     } else {
 	set et_vect_aligned_arrays_saved 0
-        if { (([istarget x86_64-*-*]
-              || [istarget i?86-*-*]) && [is-effective-target lp64])
-              || [istarget spu-*-*] } {
+        if { ([istarget x86_64-*-*] || [istarget i?86-*-*]) } {
+	    if { ([is-effective-target lp64]
+	          && ( ![check_avx_available]
+		     || [check_prefer_avx128])) } {
+	         set et_vect_aligned_arrays_saved 1
+	    }
+	}
+        if [istarget spu-*-*] {
 	    set et_vect_aligned_arrays_saved 1
 	}
     }
@@ -3337,7 +3450,8 @@ proc check_effective_target_vect_cond_mixed { } {
     } else {
 	set et_vect_cond_mixed_saved 0
 	if { [istarget i?86-*-*]
-	     || [istarget x86_64-*-*] } {
+	     || [istarget x86_64-*-*]
+	     || [istarget powerpc*-*-*] } {
 	   set et_vect_cond_mixed_saved 1
 	}
     }
@@ -3424,11 +3538,14 @@ proc check_effective_target_vect_extract_even_odd { } {
     } else {
         set et_vect_extract_even_odd_saved 0 
         if { [istarget powerpc*-*-*] 
+            || [is-effective-target arm_neon_ok]
              || [istarget i?86-*-*]
              || [istarget x86_64-*-*]
              || [istarget ia64-*-*]
-             || [istarget spu-*-*] } {
-           set et_vect_extract_even_odd_saved 1
+             || [istarget spu-*-*]
+	     || ([istarget mips*-*-*]
+		 && [check_effective_target_mpaired_single]) } {
+	    set et_vect_extract_even_odd_saved 1
         }
     }
 
@@ -3446,10 +3563,13 @@ proc check_effective_target_vect_interleave { } {
     } else {
         set et_vect_interleave_saved 0
         if { [istarget powerpc*-*-*]
+            || [is-effective-target arm_neon_ok]
              || [istarget i?86-*-*]
              || [istarget x86_64-*-*]
              || [istarget ia64-*-*]
-             || [istarget spu-*-*] } {
+             || [istarget spu-*-*]
+	     || ([istarget mips*-*-*]
+		 && [check_effective_target_mpaired_single]) } {
            set et_vect_interleave_saved 1
         }
     }
@@ -3489,13 +3609,14 @@ foreach N {2 3 4 8} {
 proc check_effective_target_vect_multiple_sizes { } {
     global et_vect_multiple_sizes_saved
 
-    if [info exists et_vect_multiple_sizes_saved] {
-        verbose "check_effective_target_vect_multiple_sizes: using cached result" 2
-    } else {
-        set et_vect_multiple_sizes_saved 0
-        if { ([istarget arm*-*-*] && [check_effective_target_arm_neon]) } {
-           set et_vect_multiple_sizes_saved 1
-        }
+    set et_vect_multiple_sizes_saved 0
+    if { ([istarget arm*-*-*] && [check_effective_target_arm_neon]) } {
+       set et_vect_multiple_sizes_saved 1
+    }
+    if { ([istarget x86_64-*-*] || [istarget i?86-*-*]) } {
+      if { ([check_avx_available] && ![check_prefer_avx128]) } {
+	set et_vect_multiple_sizes_saved 1
+      }
     }
 
     verbose "check_effective_target_vect_multiple_sizes: returning $et_vect_multiple_sizes_saved" 2
@@ -3602,11 +3723,81 @@ proc check_effective_target_sync_int_128 { } {
     }
 }
 
-# Return 1 if the target supports atomic operations on "long long".
+# Return 1 if the target supports atomic operations on "int_128" values
+# and can execute them.
 
-proc check_effective_target_sync_long_long { } {
+proc check_effective_target_sync_int_128_runtime { } {
     if { ([istarget x86_64-*-*] || [istarget i?86-*-*])
 	 && ![is-effective-target ia32] } {
+	return [check_cached_effective_target sync_int_128_available {
+	    check_runtime_nocache sync_int_128_available {
+		#include "cpuid.h"
+		int main ()
+		{
+		  unsigned int eax, ebx, ecx, edx;
+		  if (__get_cpuid (1, &eax, &ebx, &ecx, &edx))
+		    return !(ecx & bit_CMPXCHG16B);
+		  return 1;
+		}
+	    } ""
+	}]
+    } else {
+	return 0
+    }
+}
+
+# Return 1 if the target supports atomic operations on "long long".
+#
+# Note: 32bit x86 targets require -march=pentium in dg-options.
+
+proc check_effective_target_sync_long_long { } {
+    if { [istarget x86_64-*-*]
+	 || [istarget i?86-*-*])
+	 || [istarget arm*-*-*]
+	 || [istarget alpha*-*-*] } {
+	return 1
+    } else {
+	return 0
+    }
+}
+
+# Return 1 if the target supports atomic operations on "long long"
+# and can execute them.
+#
+# Note: 32bit x86 targets require -march=pentium in dg-options.
+
+proc check_effective_target_sync_long_long_runtime { } {
+    if { [istarget x86_64-*-*]
+	 || [istarget i?86-*-*] } {
+	return [check_cached_effective_target sync_long_long_available {
+	    check_runtime_nocache sync_long_long_available {
+		#include "cpuid.h"
+		int main ()
+		{
+		  unsigned int eax, ebx, ecx, edx;
+		  if (__get_cpuid (1, &eax, &ebx, &ecx, &edx))
+		    return !(edx & bit_CMPXCHG8B);
+		  return 1;
+		}
+	    } ""
+	}]
+    } elseif { [istarget arm*-*-linux-gnueabi] } {
+	return [check_runtime sync_longlong_runtime {
+	    #include <stdlib.h>
+	    int main ()
+	    {
+	      long long l1;
+
+	      if (sizeof (long long) != 8)
+		exit (1);
+
+	      /* Just check for native; checking for kernel fallback is tricky.  */
+	      asm volatile ("ldrexd r0,r1, [%0]" : : "r" (&l1) : "r0", "r1");
+
+	      exit (0);
+	    }
+	} "" ]
+    } elseif { [istarget alpha*-*-*] } {
 	return 1
     } else {
 	return 0
@@ -3635,38 +3826,13 @@ proc check_effective_target_sync_int_long { } {
 	     || [istarget powerpc*-*-*]
 	     || [istarget sparc64-*-*]
 	     || [istarget sparcv9-*-*]
-	     || [istarget mips*-*-*] } {
+	     || [check_effective_target_mips_llsc] } {
            set et_sync_int_long_saved 1
         }
     }
 
     verbose "check_effective_target_sync_int_long: returning $et_sync_int_long_saved" 2
     return $et_sync_int_long_saved
-}
-
-# Return 1 if the target supports atomic operations on "long long" and can
-# execute them
-# So far only put checks in for ARM, others may want to add their own
-proc check_effective_target_sync_longlong { } {
-    return [check_runtime sync_longlong_runtime {
-      #include <stdlib.h>
-      int main ()
-      {
-	long long l1;
-
-	if (sizeof (long long) != 8)
-	  exit (1);
-
-      #ifdef __arm__
-	/* Just check for native; checking for kernel fallback is tricky.  */
-	asm volatile ("ldrexd r0,r1, [%0]" : : "r" (&l1) : "r0", "r1");
-      #else
-      # error "Add other suitable archs here"
-      #endif
-
-	exit (0);
-      }
-    } "" ]
 }
 
 # Return 1 if the target supports atomic operations on "char" and "short".
@@ -3690,7 +3856,7 @@ proc check_effective_target_sync_char_short { } {
 	     || [istarget powerpc*-*-*]
 	     || [istarget sparc64-*-*]
 	     || [istarget sparcv9-*-*]
-	     || [istarget mips*-*-*] } {
+	     || [check_effective_target_mips_llsc] } {
            set et_sync_char_short_saved 1
         }
     }
@@ -4062,6 +4228,39 @@ proc check_effective_target_automatic_stack_alignment  { } {
     return 0;
 }
 
+# Return true if we are compiling for AVX target.
+
+proc check_avx_available { } {
+  if { [check_no_compiler_messages avx_available assembly {
+    #ifndef __AVX__
+    #error unsupported
+    #endif
+  } ""] } {
+    return 1;
+  }
+  return 0;
+}
+
+# Return true if 32- and 16-bytes vectors are available.
+
+proc check_effective_target_vect_sizes_32B_16B { } {
+  return [check_avx_available];
+}
+
+# Return true if 128-bits vectors are preferred even if 256-bits vectors
+# are available.
+
+proc check_prefer_avx128 { } {
+    if ![check_avx_available] {
+      return 0;
+    }
+    return [check_no_messages_and_pattern avx_explicit "xmm" assembly {
+      float a[1024],b[1024],c[1024];
+      void foo (void) { int i; for (i = 0; i < 1024; i++) a[i]=b[i]+c[i];}
+    } "-O2 -ftree-vectorize"]
+}
+
+
 # Return 1 if avx instructions can be compiled.
 
 proc check_effective_target_avx { } {
@@ -4248,6 +4447,24 @@ proc check_effective_target_c++ { } {
  return 0
 }
 
+# Check which language standard is active by checking for the presence of
+# one of the C++11 -std flags.  This assumes that the default for the
+# compiler is C++98, and that there will never be multiple -std= arguments
+# on the command line.
+proc check_effective_target_c++11 { } {
+    if ![check_effective_target_c++] {
+	return 0
+    }
+    return [check-flags { { } { } { -std=c++0x -std=gnu++0x -std=c++11 -std=gnu++11 } }]
+}
+
+proc check_effective_target_c++98 { } {
+    if ![check_effective_target_c++] {
+	return 0
+    }
+    return [check-flags { { } { } { } { -std=c++0x -std=gnu++0x -std=c++11 -std=gnu++11 } }]
+}
+
 # Return 1 if expensive testcases should be run.
 
 proc check_effective_target_run_expensive_tests { } {
@@ -4364,4 +4581,12 @@ proc check_effective_target_non_strict_align {} {
 	c *z;
 	void foo(void) { z = (c *) y; }
     } "-Wcast-align"]
+}
+
+# Return 1 if the target has <ucontext.h>.
+
+proc check_effective_target_ucontext_h { } {
+    return [check_no_compiler_messages ucontext_h assembly {
+	#include <ucontext.h>
+    }]
 }

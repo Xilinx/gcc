@@ -1,5 +1,5 @@
 /* All matcher functions.
-   Copyright (C) 2003, 2005, 2007, 2008, 2010
+   Copyright (C) 2003, 2005, 2007, 2008, 2010, 2012
    Free Software Foundation, Inc.
    Contributed by Steven Bosscher
 
@@ -52,7 +52,7 @@ match gfc_match_label (void);
 match gfc_match_small_int (int *);
 match gfc_match_small_int_expr (int *, gfc_expr **);
 match gfc_match_name (char *);
-match gfc_match_name_C (char *buffer);
+match gfc_match_name_C (const char **buffer);
 match gfc_match_symbol (gfc_symbol **, int);
 match gfc_match_sym_tree (gfc_symtree **, int);
 match gfc_match_intrinsic_op (gfc_intrinsic_op *);
@@ -196,7 +196,6 @@ match gfc_match_volatile (void);
 /* Fortran 2003 c interop.
    TODO: some of these should be moved to another file rather than decl.c */
 void set_com_block_bind_c (gfc_common_head *, int);
-gfc_try set_binding_label (char *, const char *, int);
 gfc_try set_verify_bind_c_sym (gfc_symbol *, int);
 gfc_try set_verify_bind_c_com_block (gfc_common_head *, int);
 gfc_try get_bind_c_idents (void);
@@ -206,7 +205,7 @@ match gfc_match_bind_c (gfc_symbol *, bool);
 match gfc_get_type_attr_spec (symbol_attribute *, char*);
 
 /* primary.c.  */
-match gfc_match_structure_constructor (gfc_symbol *, gfc_expr **, bool);
+match gfc_match_structure_constructor (gfc_symbol *, gfc_expr **);
 match gfc_match_variable (gfc_expr **, int);
 match gfc_match_equiv_variable (gfc_expr **);
 match gfc_match_actual_arglist (int, gfc_actual_arglist **);
@@ -249,7 +248,7 @@ match gfc_match_expr (gfc_expr **);
 
 /* module.c.  */
 match gfc_match_use (void);
-void gfc_use_module (void);
+void gfc_use_modules (void);
 
 #endif  /* GFC_MATCH_H  */
 

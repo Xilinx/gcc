@@ -619,6 +619,9 @@ extern bool may_propagate_copy (tree, tree);
 extern bool may_propagate_copy_into_stmt (gimple, tree);
 extern bool may_propagate_copy_into_asm (tree);
 
+/* In tree-ssa-loop-ch.c  */
+bool do_while_loop_p (struct loop *);
+
 /* Affine iv.  */
 
 typedef struct
@@ -789,6 +792,7 @@ extern bool maybe_duplicate_eh_stmt_fn (struct function *, gimple,
 extern bool maybe_duplicate_eh_stmt (gimple, gimple);
 extern bool verify_eh_edges (gimple);
 extern bool verify_eh_dispatch_edge (gimple);
+extern void maybe_remove_unreachable_handlers (void);
 
 /* In tree-ssa-pre.c  */
 struct pre_expr_d;

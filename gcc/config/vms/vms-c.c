@@ -227,6 +227,42 @@ vms_pragma_message (cpp_reader *pfile ATTRIBUTE_UNUSED)
 #endif
 }
 
+/* Handle '#pragma __extern_prefix'  */
+
+static GTY(()) tree saved_extern_prefix;
+
+static void
+vms_pragma_extern_prefix (cpp_reader * ARG_UNUSED (dummy))
+{
+  enum cpp_ttype tok;
+  tree x;
+
+  tok = pragma_lex (&x);
+  if (tok == CPP_NAME)
+    {
+      const char *op = IDENTIFIER_POINTER (x);
+
+      if (!strcmp (op, "__save"))
+        saved_extern_prefix = pragma_extern_prefix;
+      else if (!strcmp (op, "__restore"))
+        pragma_extern_prefix = saved_extern_prefix;
+      else
+        warning (OPT_Wpragmas,
+                 "malformed '#pragma __extern_prefix', ignoring");
+      return;
+    }
+  else if (tok != CPP_STRING)
+    {
+      warning (OPT_Wpragmas,
+               "malformed '#pragma __extern_prefix', ignoring");
+    }
+  else
+    {
+      /* Note that the length includes the null terminator.  */
+      pragma_extern_prefix = (TREE_STRING_LENGTH (x) > 1 ? x : NULL);
+    }
+}
+
 /* Add vms-specific pragma.  */
 
 void
@@ -245,4 +281,52 @@ vms_c_register_pragma (void)
   c_register_pragma (NULL, "__extern_model", vms_pragma_extern_model);
   c_register_pragma (NULL, "extern_model", vms_pragma_extern_model);
   c_register_pragma (NULL, "__message", vms_pragma_message);
+  c_register_pragma (NULL, "__extern_prefix", vms_pragma_extern_prefix);
+}
+
+/* Standard modules list.  */
+static const char * const vms_std_modules[] = { "rtldef", "starlet_c", NULL };
+
+/* Find include modules in the include path.  */
+
+void
+vms_c_register_includes (const char *sysroot,
+                         const char *iprefix ATTRIBUTE_UNUSED, int stdinc)
+{
+  static const char dir_separator_str[] = { DIR_SEPARATOR, 0 };
+  struct cpp_dir *dir;
+
+  /* Add on standard include pathes.  */
+  if (!stdinc)
+    return;
+
+  for (dir = get_added_cpp_dirs (SYSTEM); dir != NULL; dir = dir->next)
+    {
+      const char * const *lib;
+      for (lib = vms_std_modules; *lib != NULL; lib++)
+        {
+          char *path;
+          struct stat st;
+
+          if (sysroot != NULL)
+            path = concat (sysroot, dir->name, dir_separator_str, *lib, NULL);
+          else
+            path = concat (dir->name, dir_separator_str, *lib, NULL);
+
+          if (stat (path, &st) == 0 && S_ISDIR (st.st_mode))
+            {
+              cpp_dir *p;
+
+              p = XNEW (cpp_dir);
+              p->next = NULL;
+              p->name = path;
+              p->sysp = 1;
+              p->construct = 0;
+              p->user_supplied_p = 0;
+              add_cpp_dir_path (p, SYSTEM);
+            }
+          else
+            free (path);
+        }
+    }
 }

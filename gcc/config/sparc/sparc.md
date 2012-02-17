@@ -28,6 +28,7 @@
   [(UNSPEC_MOVE_PIC		0)
    (UNSPEC_UPDATE_RETURN	1)
    (UNSPEC_LOAD_PCREL_SYM	2)
+   (UNSPEC_FRAME_BLOCKAGE      3)
    (UNSPEC_MOVE_PIC_LABEL	5)
    (UNSPEC_SETH44		6)
    (UNSPEC_SETM44		7)
@@ -41,6 +42,7 @@
    (UNSPEC_MOVE_GOTDATA		19)
 
    (UNSPEC_MEMBAR		20)
+   (UNSPEC_ATOMIC		21)
 
    (UNSPEC_TLSGD		30)
    (UNSPEC_TLSLDM		31)
@@ -97,7 +99,6 @@
 (define_constants
   [(UNSPECV_BLOCKAGE		0)
    (UNSPECV_FLUSHW		1)
-   (UNSPECV_GOTO		2)
    (UNSPECV_FLUSH		4)
    (UNSPECV_SAVEW		6)
    (UNSPECV_CAS			8)
@@ -5649,7 +5650,7 @@
 		   (match_operand:SI 2 "arith_operand" "rI,rI,rI")))
    (clobber (match_scratch:SI 3 "=X,X,&h"))]
   "TARGET_V8PLUS"
-  "* return output_v8plus_shift (operands, insn, \"sllx\");"
+  "* return output_v8plus_shift (insn ,operands, \"sllx\");"
   [(set_attr "type" "multi")
    (set_attr "length" "5,5,6")])
 
@@ -5759,7 +5760,7 @@
 		     (match_operand:SI 2 "arith_operand" "rI,rI,rI")))
    (clobber (match_scratch:SI 3 "=X,X,&h"))]
   "TARGET_V8PLUS"
-  "* return output_v8plus_shift (operands, insn, \"srax\");"
+  "* return output_v8plus_shift (insn, operands, \"srax\");"
   [(set_attr "type" "multi")
    (set_attr "length" "5,5,6")])
 
@@ -5849,7 +5850,7 @@
 		     (match_operand:SI 2 "arith_operand" "rI,rI,rI")))
    (clobber (match_scratch:SI 3 "=X,X,&h"))]
   "TARGET_V8PLUS"
-  "* return output_v8plus_shift (operands, insn, \"srlx\");"
+  "* return output_v8plus_shift (insn, operands, \"srlx\");"
   [(set_attr "type" "multi")
    (set_attr "length" "5,5,6")])
 
@@ -6374,6 +6375,25 @@
   ""
   [(set_attr "length" "0")])
 
+;; Do not schedule instructions accessing memory before this point.
+
+(define_expand "frame_blockage"
+  [(set (match_dup 0)
+	(unspec:BLK [(match_dup 1)] UNSPEC_FRAME_BLOCKAGE))]
+  ""
+{
+  operands[0] = gen_rtx_MEM (BLKmode, gen_rtx_SCRATCH (Pmode));
+  MEM_VOLATILE_P (operands[0]) = 1;
+  operands[1] = stack_pointer_rtx;
+})
+
+(define_insn "*frame_blockage<P:mode>"
+  [(set (match_operand:BLK 0 "" "")
+	(unspec:BLK [(match_operand:P 1 "" "")] UNSPEC_FRAME_BLOCKAGE))]
+  ""
+  ""
+  [(set_attr "length" "0")])
+
 (define_expand "probe_stack"
   [(set (match_operand 0 "memory_operand" "") (const_int 0))]
   ""
@@ -6503,6 +6523,7 @@
    (match_operand 3 "memory_operand" "")]
   ""
 {
+  rtx i7 = gen_rtx_REG (Pmode, RETURN_ADDR_REGNUM);
   rtx r_label = copy_to_reg (operands[1]);
   rtx r_sp = adjust_address_nv (operands[2], Pmode, 0);
   rtx r_fp = operands[3];
@@ -6519,43 +6540,18 @@
   /* Restore frame pointer for containing function.  */
   emit_move_insn (hard_frame_pointer_rtx, r_fp);
   emit_stack_restore (SAVE_NONLOCAL, r_sp);
+  emit_move_insn (i7, r_i7);
 
   /* USE of hard_frame_pointer_rtx added for consistency;
      not clear if really needed.  */
   emit_use (hard_frame_pointer_rtx);
   emit_use (stack_pointer_rtx);
+  emit_use (i7);
 
-  /* We need to smuggle the load of %i7 as it is a fixed register.  */
-  emit_jump_insn (gen_nonlocal_goto_internal (r_label, r_i7));
+  emit_jump_insn (gen_indirect_jump (r_label));
   emit_barrier ();
   DONE;
 })
-
-(define_insn "nonlocal_goto_internal"
-  [(unspec_volatile [(match_operand 0 "register_operand" "r")
-                     (match_operand 1 "memory_operand" "m")] UNSPECV_GOTO)]
-  "GET_MODE (operands[0]) == Pmode && GET_MODE (operands[1]) == Pmode"
-{
-  if (flag_delayed_branch)
-    {
-      if (TARGET_ARCH64)
-	return "jmp\t%0\n\t ldx\t%1, %%i7";
-      else
-	return "jmp\t%0\n\t ld\t%1, %%i7";
-    }
-  else
-    {
-      if (TARGET_ARCH64)
-	return "ldx\t%1, %%i7\n\tjmp\t%0\n\t nop";
-      else
-	return "ld\t%1, %%i7\n\tjmp\t%0\n\t nop";
-    }
-}
-  [(set (attr "type") (const_string "multi"))
-   (set (attr "length")
-	(if_then_else (eq_attr "delayed_branch" "true")
-		      (const_int 2)
-		      (const_int 3)))])
 
 (define_expand "builtin_setjmp_receiver"
   [(label_ref (match_operand 0 "" ""))]
@@ -7829,60 +7825,6 @@
     }
   DONE;
 })
-
-(define_expand "zero_extend_v8qi_vis"
-  [(set (match_operand:V8QI 0 "register_operand" "")
-        (vec_merge:V8QI
-          (vec_duplicate:V8QI
-            (match_operand:QI 1 "memory_operand" ""))
-          (match_dup 2)
-          (const_int 254)))]
-  "TARGET_VIS"
-{
-  if (! REG_P (XEXP (operands[1], 0)))
-    {
-      rtx addr = force_reg (Pmode, XEXP (operands[1], 0));
-      operands[1] = replace_equiv_address (operands[1], addr);
-    }
-  operands[2] = CONST0_RTX (V8QImode);
-})
-
-(define_expand "zero_extend_v4hi_vis"
-  [(set (match_operand:V4HI 0 "register_operand" "")
-        (vec_merge:V4HI
-          (vec_duplicate:V4HI
-            (match_operand:HI 1 "memory_operand" ""))
-          (match_dup 2)
-          (const_int 14)))]
-  "TARGET_VIS"
-{
-  if (! REG_P (XEXP (operands[1], 0)))
-    {
-      rtx addr = force_reg (Pmode, XEXP (operands[1], 0));
-      operands[1] = replace_equiv_address (operands[1], addr);
-    }
-  operands[2] = CONST0_RTX (V4HImode);
-})
-
-(define_insn "*zero_extend_v8qi_<P:mode>_insn"
-  [(set (match_operand:V8QI 0 "register_operand" "=e")
-        (vec_merge:V8QI
-          (vec_duplicate:V8QI
-            (mem:QI (match_operand:P 1 "register_operand" "r")))
-          (match_operand:V8QI 2 "const_zero_operand" "Y")
-          (const_int 254)))]
-  "TARGET_VIS"
-  "ldda\t[%1] 0xd0, %0")
-
-(define_insn "*zero_extend_v4hi_<P:mode>_insn"
-  [(set (match_operand:V4HI 0 "register_operand" "=e")
-        (vec_merge:V4HI
-          (vec_duplicate:V4HI
-            (mem:HI (match_operand:P 1 "register_operand" "r")))
-          (match_operand:V4HI 2 "const_zero_operand" "Y")
-          (const_int 14)))]
-  "TARGET_VIS"
-  "ldda\t[%1] 0xd2, %0")
 
 (define_expand "vec_init<mode>"
   [(match_operand:VMALL 0 "register_operand" "")

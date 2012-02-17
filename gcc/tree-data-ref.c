@@ -1,5 +1,5 @@
 /* Data references and dependences detectors.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr>
 
@@ -85,6 +85,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "langhooks.h"
 #include "tree-affine.h"
+#include "params.h"
 
 static struct datadep_stats
 {
@@ -1385,17 +1386,33 @@ initialize_data_dependence_relation (struct data_reference *a,
       return res;
     }
 
-  /* When the references are exactly the same, don't spend time doing
-     the data dependence tests, just initialize the ddr and return.  */
+  /* The case where the references are exactly the same.  */
   if (operand_equal_p (DR_REF (a), DR_REF (b), 0))
     {
+     if (loop_nest
+        && !object_address_invariant_in_loop_p (VEC_index (loop_p, loop_nest, 0),
+       					        DR_BASE_OBJECT (a)))
+      {
+        DDR_ARE_DEPENDENT (res) = chrec_dont_know;
+        return res;
+      }
       DDR_AFFINE_P (res) = true;
       DDR_ARE_DEPENDENT (res) = NULL_TREE;
       DDR_SUBSCRIPTS (res) = VEC_alloc (subscript_p, heap, DR_NUM_DIMENSIONS (a));
       DDR_LOOP_NEST (res) = loop_nest;
       DDR_INNER_LOOP (res) = 0;
       DDR_SELF_REFERENCE (res) = true;
-      compute_self_dependence (res);
+      for (i = 0; i < DR_NUM_DIMENSIONS (a); i++)
+       {
+         struct subscript *subscript;
+
+         subscript = XNEW (struct subscript);
+         SUB_CONFLICTS_IN_A (subscript) = conflict_fn_not_known ();
+         SUB_CONFLICTS_IN_B (subscript) = conflict_fn_not_known ();
+         SUB_LAST_CONFLICT (subscript) = chrec_dont_know;
+         SUB_DISTANCE (subscript) = chrec_dont_know;
+         VEC_safe_push (subscript_p, heap, DDR_SUBSCRIPTS (res), subscript);
+       }
       return res;
     }
 
@@ -4040,8 +4057,7 @@ compute_affine_dependence (struct data_dependence_relation *ddr,
     }
 
   /* Analyze only when the dependence relation is not yet known.  */
-  if (DDR_ARE_DEPENDENT (ddr) == NULL_TREE
-      && !DDR_SELF_REFERENCE (ddr))
+  if (DDR_ARE_DEPENDENT (ddr) == NULL_TREE)
     {
       dependence_stats.num_dependence_tests++;
 
@@ -4116,45 +4132,13 @@ compute_affine_dependence (struct data_dependence_relation *ddr,
     fprintf (dump_file, ")\n");
 }
 
-/* This computes the dependence relation for the same data
-   reference into DDR.  */
-
-void
-compute_self_dependence (struct data_dependence_relation *ddr)
-{
-  unsigned int i;
-  struct subscript *subscript;
-
-  if (DDR_ARE_DEPENDENT (ddr) != NULL_TREE)
-    return;
-
-  for (i = 0; VEC_iterate (subscript_p, DDR_SUBSCRIPTS (ddr), i, subscript);
-       i++)
-    {
-      if (SUB_CONFLICTS_IN_A (subscript))
-	free_conflict_function (SUB_CONFLICTS_IN_A (subscript));
-      if (SUB_CONFLICTS_IN_B (subscript))
-	free_conflict_function (SUB_CONFLICTS_IN_B (subscript));
-
-      /* The accessed index overlaps for each iteration.  */
-      SUB_CONFLICTS_IN_A (subscript)
-	= conflict_fn (1, affine_fn_cst (integer_zero_node));
-      SUB_CONFLICTS_IN_B (subscript)
-	= conflict_fn (1, affine_fn_cst (integer_zero_node));
-      SUB_LAST_CONFLICT (subscript) = chrec_dont_know;
-    }
-
-  /* The distance vector is the zero vector.  */
-  save_dist_v (ddr, lambda_vector_new (DDR_NB_LOOPS (ddr)));
-  save_dir_v (ddr, lambda_vector_new (DDR_NB_LOOPS (ddr)));
-}
-
 /* Compute in DEPENDENCE_RELATIONS the data dependence graph for all
    the data references in DATAREFS, in the LOOP_NEST.  When
    COMPUTE_SELF_AND_RR is FALSE, don't compute read-read and self
-   relations.  */
+   relations.  Return true when successful, i.e. data references number
+   is small enough to be handled.  */
 
-void
+bool
 compute_all_dependences (VEC (data_reference_p, heap) *datarefs,
 			 VEC (ddr_p, heap) **dependence_relations,
 			 VEC (loop_p, heap) *loop_nest,
@@ -4163,6 +4147,18 @@ compute_all_dependences (VEC (data_reference_p, heap) *datarefs,
   struct data_dependence_relation *ddr;
   struct data_reference *a, *b;
   unsigned int i, j;
+
+  if ((int) VEC_length (data_reference_p, datarefs)
+      > PARAM_VALUE (PARAM_LOOP_MAX_DATAREFS_FOR_DATADEPS))
+    {
+      struct data_dependence_relation *ddr;
+
+      /* Insert a single relation into dependence_relations:
+	 chrec_dont_know.  */
+      ddr = initialize_data_dependence_relation (NULL, NULL, loop_nest);
+      VEC_safe_push (ddr_p, heap, *dependence_relations, ddr);
+      return false;
+    }
 
   FOR_EACH_VEC_ELT (data_reference_p, datarefs, i, a)
     for (j = i + 1; VEC_iterate (data_reference_p, datarefs, j, b); j++)
@@ -4179,8 +4175,11 @@ compute_all_dependences (VEC (data_reference_p, heap) *datarefs,
       {
 	ddr = initialize_data_dependence_relation (a, a, loop_nest);
 	VEC_safe_push (ddr_p, heap, *dependence_relations, ddr);
-	compute_self_dependence (ddr);
+        if (loop_nest)
+   	  compute_affine_dependence (ddr, VEC_index (loop_p, loop_nest, 0));
       }
+
+  return true;
 }
 
 /* Stores the locations of memory references in STMT to REFERENCES.  Returns
@@ -4202,7 +4201,7 @@ get_references_in_stmt (gimple stmt, VEC (data_ref_loc, heap) **references)
   if ((stmt_code == GIMPLE_CALL
        && !(gimple_call_flags (stmt) & (ECF_CONST | ECF_PURE)))
       || (stmt_code == GIMPLE_ASM
-	  && gimple_asm_volatile_p (stmt)))
+	  && (gimple_asm_volatile_p (stmt) || gimple_vuse (stmt))))
     clobbers_memory = true;
 
   if (!gimple_vuse (stmt))
@@ -4355,7 +4354,7 @@ find_data_references_in_bb (struct loop *loop, basic_block bb,
    TODO: This function should be made smarter so that it can handle address
    arithmetic as if they were array accesses, etc.  */
 
-tree
+static tree
 find_data_references_in_loop (struct loop *loop,
 			      VEC (data_reference_p, heap) **datarefs)
 {
@@ -4444,19 +4443,10 @@ compute_data_dependences_for_loop (struct loop *loop,
      dependences.  */
   if (!loop
       || !find_loop_nest (loop, loop_nest)
-      || find_data_references_in_loop (loop, datarefs) == chrec_dont_know)
-    {
-      struct data_dependence_relation *ddr;
-
-      /* Insert a single relation into dependence_relations:
-	 chrec_dont_know.  */
-      ddr = initialize_data_dependence_relation (NULL, NULL, *loop_nest);
-      VEC_safe_push (ddr_p, heap, *dependence_relations, ddr);
-      res = false;
-    }
-  else
-    compute_all_dependences (*datarefs, dependence_relations, *loop_nest,
-			     compute_self_and_read_read_dependences);
+      || find_data_references_in_loop (loop, datarefs) == chrec_dont_know
+      || !compute_all_dependences (*datarefs, dependence_relations, *loop_nest,
+				   compute_self_and_read_read_dependences))
+    res = false;
 
   if (dump_file && (dump_flags & TDF_STATS))
     {
@@ -4524,9 +4514,8 @@ compute_data_dependences_for_bb (basic_block bb,
   if (find_data_references_in_bb (NULL, bb, datarefs) == chrec_dont_know)
     return false;
 
-  compute_all_dependences (*datarefs, dependence_relations, NULL,
-                           compute_self_and_read_read_dependences);
-  return true;
+  return compute_all_dependences (*datarefs, dependence_relations, NULL,
+				  compute_self_and_read_read_dependences);
 }
 
 /* Entry point (for testing only).  Analyze all the data references

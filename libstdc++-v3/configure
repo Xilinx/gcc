@@ -561,7 +561,7 @@ PACKAGE_STRING='package-unused version-unused'
 PACKAGE_BUGREPORT=''
 PACKAGE_URL=''
 
-ac_unique_file="src/ios.cc"
+ac_unique_file="src/shared/hashtable-aux.cc"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
@@ -602,7 +602,7 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
-LIBSUPCXX_PICFLAGS
+PIC_CXXFLAGS
 WARN_FLAGS
 OPTIMIZE_CXXFLAGS
 TOPLEVEL_INCLUDES
@@ -618,10 +618,6 @@ CPU_DEFINES_SRCDIR
 ATOMIC_FLAGS
 ATOMIC_WORD_SRCDIR
 ATOMICITY_SRCDIR
-BUILD_EPUB_FALSE
-BUILD_EPUB_TRUE
-DBTOEPUB
-RUBY
 BUILD_PDF_FALSE
 BUILD_PDF_TRUE
 PDFLATEX
@@ -632,6 +628,8 @@ BUILD_HTML_FALSE
 BUILD_HTML_TRUE
 BUILD_XML_FALSE
 BUILD_XML_TRUE
+BUILD_EPUB_FALSE
+BUILD_EPUB_TRUE
 XSL_STYLE_DIR
 XMLLINT
 XSLTPROC
@@ -666,6 +664,9 @@ LIBICONV
 OPT_LDFLAGS
 SECTION_LDFLAGS
 GLIBCXX_LIBS
+ENABLE_PYTHONDIR_FALSE
+ENABLE_PYTHONDIR_TRUE
+python_mod_dir
 ENABLE_EXTERN_TEMPLATE_FALSE
 ENABLE_EXTERN_TEMPLATE_TRUE
 EXTRA_CXX_FLAGS
@@ -858,6 +859,7 @@ enable_libstdcxx_debug
 enable_cxx_flags
 enable_fully_dynamic_string
 enable_extern_template
+with_python_dir
 enable_libstdcxx_time
 enable_tls
 enable_rpath
@@ -866,6 +868,7 @@ with_system_libunwind
 enable_linux_futex
 enable_symvers
 enable_libstdcxx_visibility
+enable_libstdcxx_threads
 with_gxx_include_dir
 enable_version_specific_runtime_libs
 '
@@ -1536,7 +1539,7 @@ Optional Features:
   --enable-concept-checks use Boost-derived template checks [default=no]
   --enable-libstdcxx-debug-flags=FLAGS
                           pass compiler FLAGS when building debug library
-                          [default="-g3 -O0"]
+                          [default="-gdwarf-4 -g3 -O0"]
   --enable-libstdcxx-debug
                           build extra debug library [default=no]
   --enable-cxx-flags=FLAGS
@@ -1556,6 +1559,8 @@ Optional Features:
                           [default=yes]
   --enable-libstdcxx-visibility
                           enables visibility safe usage [default=yes]
+  --enable-libstdcxx-threads
+                          enable C++11 threads support [default=auto]
   --enable-version-specific-runtime-libs
                           Specify that runtime libraries should be installed
                           in a compiler-specific directory
@@ -1570,6 +1575,8 @@ Optional Packages:
   --with-pic              try to use only PIC/non-PIC objects [default=use
                           both]
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
+  --with-python-dir       the location to install Python modules. This path is
+                          relative starting from the prefix.
   --with-gnu-ld           assume the C compiler uses GNU ld default=no
   --with-libiconv-prefix[=DIR]  search for libiconv in DIR/include and DIR/lib
   --without-libiconv-prefix     don't search for libiconv in includedir and libdir
@@ -4861,7 +4868,7 @@ $as_echo "$ac_cv_path_EGREP" >&6; }
   # expandable list at autoconf time; the second provides an expandable list
   # (i.e., shell variable) at configure time.
 
-  SUBDIRS='include libsupc++ python src doc po testsuite'
+  SUBDIRS='include libsupc++ python src src/c++98 src/c++11 doc po testsuite'
 
   # These need to be absolute paths, yet at the same time need to
   # canonicalize only relative paths, because then amd will not unmount
@@ -9702,7 +9709,7 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
       ;;
 
     # Unfortunately, older versions of FreeBSD 2 do not have this feature.
-    freebsd2*)
+    freebsd2.*)
       archive_cmds='$LD -Bshareable -o $lib $libobjs $deplibs $linker_flags'
       hardcode_direct=yes
       hardcode_minus_L=yes
@@ -10618,7 +10625,7 @@ freebsd* | dragonfly*)
     objformat=`/usr/bin/objformat`
   else
     case $host_os in
-    freebsd[123]*) objformat=aout ;;
+    freebsd[23].*) objformat=aout ;;
     *) objformat=elf ;;
     esac
   fi
@@ -10636,7 +10643,7 @@ freebsd* | dragonfly*)
   esac
   shlibpath_var=LD_LIBRARY_PATH
   case $host_os in
-  freebsd2*)
+  freebsd2.*)
     shlibpath_overrides_runpath=yes
     ;;
   freebsd3.[01]* | freebsdelf3.[01]*)
@@ -11488,7 +11495,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11491 "configure"
+#line 11498 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -11594,7 +11601,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11597 "configure"
+#line 11604 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -12526,7 +12533,7 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
         esac
         ;;
 
-      freebsd[12]*)
+      freebsd2.*)
         # C++ shared libraries reported to be fairly broken before
 	# switch to ELF
         ld_shlibs_CXX=no
@@ -14301,7 +14308,7 @@ freebsd* | dragonfly*)
     objformat=`/usr/bin/objformat`
   else
     case $host_os in
-    freebsd[123]*) objformat=aout ;;
+    freebsd[23].*) objformat=aout ;;
     *) objformat=elf ;;
     esac
   fi
@@ -14319,7 +14326,7 @@ freebsd* | dragonfly*)
   esac
   shlibpath_var=LD_LIBRARY_PATH
   case $host_os in
-  freebsd2*)
+  freebsd2.*)
     shlibpath_overrides_runpath=yes
     ;;
   freebsd3.[01]* | freebsdelf3.[01]*)
@@ -14952,7 +14959,7 @@ fi
     #
     # Fake what AC_TRY_COMPILE does.  XXX Look at redoing this new-style.
     cat > conftest.$ac_ext << EOF
-#line 14955 "configure"
+#line 14962 "configure"
 struct S { ~S(); };
 void bar();
 void foo()
@@ -15127,12 +15134,13 @@ main ()
 typedef bool atomic_type;
        atomic_type c1;
        atomic_type c2;
-       const atomic_type c3(0);
-       __sync_fetch_and_add(&c1, c2);
-       __sync_val_compare_and_swap(&c1, c3, c2);
-       __sync_lock_test_and_set(&c1, c3);
-       __sync_lock_release(&c1);
-       __sync_synchronize();
+       atomic_type c3(0);
+       __atomic_fetch_add(&c1, c2, __ATOMIC_RELAXED);
+       __atomic_compare_exchange_n(&c1, &c2, c3, true, __ATOMIC_ACQ_REL,
+				   __ATOMIC_RELAXED);
+       __atomic_test_and_set(&c1, __ATOMIC_RELAXED);
+       __atomic_load_n(&c1, __ATOMIC_RELAXED);
+
   ;
   return 0;
 }
@@ -15147,11 +15155,6 @@ rm -f core conftest.err conftest.$ac_objext \
 
 fi
 
-  if test $glibcxx_cv_atomic_bool = yes; then
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_1 1" >>confdefs.h
-
-  fi
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $glibcxx_cv_atomic_bool" >&5
 $as_echo "$glibcxx_cv_atomic_bool" >&6; }
 
@@ -15173,12 +15176,13 @@ main ()
 typedef short atomic_type;
        atomic_type c1;
        atomic_type c2;
-       const atomic_type c3(0);
-       __sync_fetch_and_add(&c1, c2);
-       __sync_val_compare_and_swap(&c1, c3, c2);
-       __sync_lock_test_and_set(&c1, c3);
-       __sync_lock_release(&c1);
-       __sync_synchronize();
+       atomic_type c3(0);
+       __atomic_fetch_add(&c1, c2, __ATOMIC_RELAXED);
+       __atomic_compare_exchange_n(&c1, &c2, c3, true, __ATOMIC_ACQ_REL,
+				   __ATOMIC_RELAXED);
+       __atomic_test_and_set(&c1, __ATOMIC_RELAXED);
+       __atomic_load_n(&c1, __ATOMIC_RELAXED);
+
   ;
   return 0;
 }
@@ -15193,11 +15197,6 @@ rm -f core conftest.err conftest.$ac_objext \
 
 fi
 
-  if test $glibcxx_cv_atomic_short = yes; then
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_2 1" >>confdefs.h
-
-  fi
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $glibcxx_cv_atomic_short" >&5
 $as_echo "$glibcxx_cv_atomic_short" >&6; }
 
@@ -15219,12 +15218,13 @@ main ()
 typedef int atomic_type;
        atomic_type c1;
        atomic_type c2;
-       const atomic_type c3(0);
-       __sync_fetch_and_add(&c1, c2);
-       __sync_val_compare_and_swap(&c1, c3, c2);
-       __sync_lock_test_and_set(&c1, c3);
-       __sync_lock_release(&c1);
-       __sync_synchronize();
+       atomic_type c3(0);
+       __atomic_fetch_add(&c1, c2, __ATOMIC_RELAXED);
+       __atomic_compare_exchange_n(&c1, &c2, c3, true, __ATOMIC_ACQ_REL,
+				   __ATOMIC_RELAXED);
+       __atomic_test_and_set(&c1, __ATOMIC_RELAXED);
+       __atomic_load_n(&c1, __ATOMIC_RELAXED);
+
   ;
   return 0;
 }
@@ -15239,11 +15239,6 @@ rm -f core conftest.err conftest.$ac_objext \
 
 fi
 
-  if test $glibcxx_cv_atomic_int = yes; then
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_4 1" >>confdefs.h
-
-  fi
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $glibcxx_cv_atomic_int" >&5
 $as_echo "$glibcxx_cv_atomic_int" >&6; }
 
@@ -15265,12 +15260,13 @@ main ()
 typedef long long atomic_type;
        atomic_type c1;
        atomic_type c2;
-       const atomic_type c3(0);
-       __sync_fetch_and_add(&c1, c2);
-       __sync_val_compare_and_swap(&c1, c3, c2);
-       __sync_lock_test_and_set(&c1, c3);
-       __sync_lock_release(&c1);
-       __sync_synchronize();
+       atomic_type c3(0);
+       __atomic_fetch_add(&c1, c2, __ATOMIC_RELAXED);
+       __atomic_compare_exchange_n(&c1, &c2, c3, true, __ATOMIC_ACQ_REL,
+				   __ATOMIC_RELAXED);
+       __atomic_test_and_set(&c1, __ATOMIC_RELAXED);
+       __atomic_load_n(&c1, __ATOMIC_RELAXED);
+
   ;
   return 0;
 }
@@ -15285,11 +15281,6 @@ rm -f core conftest.err conftest.$ac_objext \
 
 fi
 
-  if test $glibcxx_cv_atomic_long_long = yes; then
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_8 1" >>confdefs.h
-
-  fi
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $glibcxx_cv_atomic_long_long" >&5
 $as_echo "$glibcxx_cv_atomic_long_long" >&6; }
 
@@ -15303,18 +15294,19 @@ $as_echo "$glibcxx_cv_atomic_long_long" >&6; }
   # Fake what AC_TRY_COMPILE does.
 
     cat > conftest.$ac_ext << EOF
-#line 15306 "configure"
+#line 15297 "configure"
 int main()
 {
   typedef bool atomic_type;
   atomic_type c1;
   atomic_type c2;
-  const atomic_type c3(0);
-  __sync_fetch_and_add(&c1, c2);
-  __sync_val_compare_and_swap(&c1, c3, c2);
-  __sync_lock_test_and_set(&c1, c3);
-  __sync_lock_release(&c1);
-  __sync_synchronize();
+  atomic_type c3(0);
+  __atomic_fetch_add(&c1, c2, __ATOMIC_RELAXED);
+  __atomic_compare_exchange_n(&c1, &c2, c3, true, __ATOMIC_ACQ_REL,
+			      __ATOMIC_RELAXED);
+  __atomic_test_and_set(&c1, __ATOMIC_RELAXED);
+  __atomic_load_n(&c1, __ATOMIC_RELAXED);
+
   return 0;
 }
 EOF
@@ -15329,9 +15321,6 @@ $as_echo_n "checking for atomic builtins for bool... " >&6; }
       if grep __sync_ conftest.s >/dev/null 2>&1 ; then
 	glibcxx_cv_atomic_bool=no
       else
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_1 1" >>confdefs.h
-
 	glibcxx_cv_atomic_bool=yes
       fi
     fi
@@ -15340,18 +15329,19 @@ $as_echo "$glibcxx_cv_atomic_bool" >&6; }
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 15343 "configure"
+#line 15332 "configure"
 int main()
 {
   typedef short atomic_type;
   atomic_type c1;
   atomic_type c2;
-  const atomic_type c3(0);
-  __sync_fetch_and_add(&c1, c2);
-  __sync_val_compare_and_swap(&c1, c3, c2);
-  __sync_lock_test_and_set(&c1, c3);
-  __sync_lock_release(&c1);
-  __sync_synchronize();
+  atomic_type c3(0);
+  __atomic_fetch_add(&c1, c2, __ATOMIC_RELAXED);
+  __atomic_compare_exchange_n(&c1, &c2, c3, true, __ATOMIC_ACQ_REL,
+			      __ATOMIC_RELAXED);
+  __atomic_test_and_set(&c1, __ATOMIC_RELAXED);
+  __atomic_load_n(&c1, __ATOMIC_RELAXED);
+
   return 0;
 }
 EOF
@@ -15366,9 +15356,6 @@ $as_echo_n "checking for atomic builtins for short... " >&6; }
       if grep __sync_ conftest.s >/dev/null 2>&1 ; then
 	glibcxx_cv_atomic_short=no
       else
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_2 1" >>confdefs.h
-
 	glibcxx_cv_atomic_short=yes
       fi
     fi
@@ -15377,19 +15364,20 @@ $as_echo "$glibcxx_cv_atomic_short" >&6; }
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 15380 "configure"
+#line 15367 "configure"
 int main()
 {
   // NB: _Atomic_word not necessarily int.
   typedef int atomic_type;
   atomic_type c1;
   atomic_type c2;
-  const atomic_type c3(0);
-  __sync_fetch_and_add(&c1, c2);
-  __sync_val_compare_and_swap(&c1, c3, c2);
-  __sync_lock_test_and_set(&c1, c3);
-  __sync_lock_release(&c1);
-  __sync_synchronize();
+  atomic_type c3(0);
+  __atomic_fetch_add(&c1, c2, __ATOMIC_RELAXED);
+  __atomic_compare_exchange_n(&c1, &c2, c3, true, __ATOMIC_ACQ_REL,
+			      __ATOMIC_RELAXED);
+  __atomic_test_and_set(&c1, __ATOMIC_RELAXED);
+  __atomic_load_n(&c1, __ATOMIC_RELAXED);
+
   return 0;
 }
 EOF
@@ -15404,9 +15392,6 @@ $as_echo_n "checking for atomic builtins for int... " >&6; }
       if grep __sync_ conftest.s >/dev/null 2>&1 ; then
 	glibcxx_cv_atomic_int=no
       else
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_4 1" >>confdefs.h
-
 	glibcxx_cv_atomic_int=yes
       fi
     fi
@@ -15415,18 +15400,19 @@ $as_echo "$glibcxx_cv_atomic_int" >&6; }
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 15418 "configure"
+#line 15403 "configure"
 int main()
 {
   typedef long long atomic_type;
   atomic_type c1;
   atomic_type c2;
-  const atomic_type c3(0);
-  __sync_fetch_and_add(&c1, c2);
-  __sync_val_compare_and_swap(&c1, c3, c2);
-  __sync_lock_test_and_set(&c1, c3);
-  __sync_lock_release(&c1);
-  __sync_synchronize();
+  atomic_type c3(0);
+  __atomic_fetch_add(&c1, c2, __ATOMIC_RELAXED);
+  __atomic_compare_exchange_n(&c1, &c2, c3, true, __ATOMIC_ACQ_REL,
+			      __ATOMIC_RELAXED);
+  __atomic_test_and_set(&c1, __ATOMIC_RELAXED);
+  __atomic_load_n(&c1, __ATOMIC_RELAXED);
+
   return 0;
 }
 EOF
@@ -15441,9 +15427,6 @@ $as_echo_n "checking for atomic builtins for long long... " >&6; }
       if grep __sync_ conftest.s >/dev/null 2>&1 ; then
 	glibcxx_cv_atomic_long_long=no
       else
-
-$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS_8 1" >>confdefs.h
-
 	glibcxx_cv_atomic_long_long=yes
       fi
     fi
@@ -15461,8 +15444,14 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-  # Set atomicity_dir to builtins if either of above tests pass.
-  if test $glibcxx_cv_atomic_int = yes || test $glibcxx_cv_atomic_bool = yes ; then
+  # Set atomicity_dir to builtins if all of above tests pass.
+  if test $glibcxx_cv_atomic_bool = yes \
+     && test $glibcxx_cv_atomic_short = yes \
+     && test $glibcxx_cv_atomic_int = yes \
+     && test $glibcxx_cv_atomic_long_long = yes ; then
+
+$as_echo "#define _GLIBCXX_ATOMIC_BUILTINS 1" >>confdefs.h
+
     atomicity_dir=cpu/generic/atomicity_builtins
   fi
 
@@ -15491,7 +15480,7 @@ $as_echo "$as_me: WARNING: Performance of certain classes will degrade as a resu
   # unnecessary for this test.
 
     cat > conftest.$ac_ext << EOF
-#line 15494 "configure"
+#line 15483 "configure"
 int main()
 {
   _Decimal32 d1;
@@ -15533,7 +15522,7 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
   # unnecessary for this test.
 
     cat > conftest.$ac_ext << EOF
-#line 15536 "configure"
+#line 15525 "configure"
 template<typename T1, typename T2>
   struct same
   { typedef T2 type; };
@@ -15567,7 +15556,7 @@ $as_echo "$enable_int128" >&6; }
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 15570 "configure"
+#line 15559 "configure"
 template<typename T1, typename T2>
   struct same
   { typedef T2 type; };
@@ -17127,7 +17116,7 @@ if test "${enable_libstdcxx_debug_flags+set}" = set; then :
       *)          as_fn_error "--enable-libstdcxx-debug-flags needs compiler flags as arguments" "$LINENO" 5 ;;
      esac
 else
-  enable_libstdcxx_debug_flags="-g3 -O0"
+  enable_libstdcxx_debug_flags="-gdwarf-4 -g3 -O0"
 fi
 
 
@@ -17260,6 +17249,26 @@ $as_echo "$enable_extern_template" >&6; }
 
 
 
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for custom python install directory" >&5
+$as_echo_n "checking for custom python install directory... " >&6; }
+
+# Check whether --with-python-dir was given.
+if test "${with_python_dir+set}" = set; then :
+  withval=$with_python_dir; with_python_dir=$withval
+else
+  with_python_dir="no"
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ${with_python_dir}" >&5
+$as_echo "${with_python_dir}" >&6; }
+
+# Needed for installing Python modules during make install.
+python_mod_dir="${with_python_dir}"
+
+
+
+
 # Checks for operating systems support that doesn't require linking.
 
 
@@ -17306,10 +17315,10 @@ fi
 
 
       if test $glibcxx_cv_abs_float = yes; then
-        $as_echo "#define __CORRECT_ISO_CPP_MATH_H_PROTO1 1" >>confdefs.h
+	$as_echo "#define __CORRECT_ISO_CPP_MATH_H_PROTO1 1" >>confdefs.h
 
       else
-        $as_echo "#define __CORRECT_ISO_CPP_MATH_H_PROTO2 1" >>confdefs.h
+	$as_echo "#define __CORRECT_ISO_CPP_MATH_H_PROTO2 1" >>confdefs.h
 
       fi
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $glibcxx_cv_abs_float" >&5
@@ -17367,7 +17376,7 @@ fi
       # autoheader cannot handle indented templates.
 
       if test $glibcxx_cv_abs_long = yes; then
-        $as_echo "#define __CORRECT_ISO_CPP_STDLIB_H_PROTO 1" >>confdefs.h
+	$as_echo "#define __CORRECT_ISO_CPP_STDLIB_H_PROTO 1" >>confdefs.h
 
       fi
       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $glibcxx_cv_abs_long" >&5
@@ -19802,107 +19811,6 @@ $as_echo "#define _GLIBCXX_USE_NANOSLEEP 1" >>confdefs.h
 
   CXXFLAGS="$ac_save_CXXFLAGS"
   LIBS="$ac_save_LIBS"
-  ac_ext=c
-ac_cpp='$CPP $CPPFLAGS'
-ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_c_compiler_gnu
-
-
-
-# For gthread support
-
-
-  ac_ext=cpp
-ac_cpp='$CXXCPP $CPPFLAGS'
-ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
-ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
-ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
-
-
-  ac_save_CXXFLAGS="$CXXFLAGS"
-  CXXFLAGS="$CXXFLAGS -fno-exceptions \
-	-I${toplevel_srcdir}/libgcc -I${toplevel_builddir}/libgcc"
-
-  target_thread_file=`$CXX -v 2>&1 | sed -n 's/^Thread model: //p'`
-  case $target_thread_file in
-    posix)
-      CXXFLAGS="$CXXFLAGS -DSUPPORTS_WEAK -DGTHREAD_USE_WEAK -D_PTHREADS"
-  esac
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether it can be safely assumed that mutex_timedlock is available" >&5
-$as_echo_n "checking whether it can be safely assumed that mutex_timedlock is available... " >&6; }
-
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <unistd.h>
-int
-main ()
-{
-
-      // In case of POSIX threads check _POSIX_TIMEOUTS.
-      #if (defined(_PTHREADS) \
-          && (!defined(_POSIX_TIMEOUTS) || _POSIX_TIMEOUTS <= 0))
-      #error
-      #endif
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_compile "$LINENO"; then :
-  ac_gthread_use_mutex_timedlock=1
-else
-  ac_gthread_use_mutex_timedlock=0
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-
-
-cat >>confdefs.h <<_ACEOF
-#define _GTHREAD_USE_MUTEX_TIMEDLOCK $ac_gthread_use_mutex_timedlock
-_ACEOF
-
-
-  if test $ac_gthread_use_mutex_timedlock = 1 ; then res_mutex_timedlock=yes ;
-  else res_mutex_timedlock=no ; fi
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $res_mutex_timedlock" >&5
-$as_echo "$res_mutex_timedlock" >&6; }
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for gthreads library" >&5
-$as_echo_n "checking for gthreads library... " >&6; }
-
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include "gthr.h"
-int
-main ()
-{
-
-      #ifndef __GTHREADS_CXX0X
-      #error
-      #endif
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_compile "$LINENO"; then :
-  ac_has_gthreads=yes
-else
-  ac_has_gthreads=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_has_gthreads" >&5
-$as_echo "$ac_has_gthreads" >&6; }
-
-  if test x"$ac_has_gthreads" = x"yes"; then
-
-$as_echo "#define _GLIBCXX_HAS_GTHREADS 1" >>confdefs.h
-
-  fi
-
-  CXXFLAGS="$ac_save_CXXFLAGS"
   ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -65550,6 +65458,146 @@ done
 
 
 
+# For gthread support.  Depends on GLIBCXX_ENABLE_SYMVERS.
+
+   # Check whether --enable-libstdcxx-threads was given.
+if test "${enable_libstdcxx_threads+set}" = set; then :
+  enableval=$enable_libstdcxx_threads;
+      case "$enableval" in
+       yes|no) ;;
+       *) as_fn_error "Argument to enable/disable libstdcxx-threads must be yes or no" "$LINENO" 5 ;;
+      esac
+
+else
+  enable_libstdcxx_threads=auto
+fi
+
+
+
+  if test x$enable_libstdcxx_threads = xauto ||
+     test x$enable_libstdcxx_threads = xyes; then
+
+
+  ac_ext=cpp
+ac_cpp='$CXXCPP $CPPFLAGS'
+ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+
+  ac_save_CXXFLAGS="$CXXFLAGS"
+  CXXFLAGS="$CXXFLAGS -fno-exceptions \
+	-I${toplevel_srcdir}/libgcc -I${toplevel_builddir}/libgcc"
+
+  target_thread_file=`$CXX -v 2>&1 | sed -n 's/^Thread model: //p'`
+  case $target_thread_file in
+    posix)
+      CXXFLAGS="$CXXFLAGS -DSUPPORTS_WEAK -DGTHREAD_USE_WEAK -D_PTHREADS"
+  esac
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether it can be safely assumed that mutex_timedlock is available" >&5
+$as_echo_n "checking whether it can be safely assumed that mutex_timedlock is available... " >&6; }
+
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <unistd.h>
+int
+main ()
+{
+
+      // In case of POSIX threads check _POSIX_TIMEOUTS.
+      #if (defined(_PTHREADS) \
+	  && (!defined(_POSIX_TIMEOUTS) || _POSIX_TIMEOUTS <= 0))
+      #error
+      #endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  ac_gthread_use_mutex_timedlock=1
+else
+  ac_gthread_use_mutex_timedlock=0
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+
+cat >>confdefs.h <<_ACEOF
+#define _GTHREAD_USE_MUTEX_TIMEDLOCK $ac_gthread_use_mutex_timedlock
+_ACEOF
+
+
+  if test $ac_gthread_use_mutex_timedlock = 1 ; then res_mutex_timedlock=yes ;
+  else res_mutex_timedlock=no ; fi
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $res_mutex_timedlock" >&5
+$as_echo "$res_mutex_timedlock" >&6; }
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for gthreads library" >&5
+$as_echo_n "checking for gthreads library... " >&6; }
+
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include "gthr.h"
+int
+main ()
+{
+
+      #ifndef __GTHREADS_CXX0X
+      #error
+      #endif
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"; then :
+  case $target_os in
+	  # gthreads support breaks symbol versioning on Solaris 8/9 (PR
+	  # libstdc++/52189).
+          solaris2.[89]*)
+	    if test x$enable_symvers = xno; then
+	      ac_has_gthreads=yes
+	    elif test x$enable_libstdcxx_threads = xyes; then
+	      { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: You have requested C++11 threads support, but" >&5
+$as_echo "$as_me: WARNING: You have requested C++11 threads support, but" >&2;}
+	      { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: this breaks symbol versioning." >&5
+$as_echo "$as_me: WARNING: this breaks symbol versioning." >&2;}
+	      ac_has_gthreads=yes
+	    else
+	      ac_has_gthreads=no
+	    fi
+	    ;;
+	  *)
+	    ac_has_gthreads=yes
+	    ;;
+        esac
+else
+  ac_has_gthreads=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  else
+    ac_has_gthreads=no
+  fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_has_gthreads" >&5
+$as_echo "$ac_has_gthreads" >&6; }
+
+  if test x"$ac_has_gthreads" = x"yes"; then
+
+$as_echo "#define _GLIBCXX_HAS_GTHREADS 1" >>confdefs.h
+
+  fi
+
+  CXXFLAGS="$ac_save_CXXFLAGS"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+
 # Define documentation rules conditionally.
 
 # See if makeinfo has been installed and is modern enough
@@ -65784,8 +65832,8 @@ fi
 
 
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for stylesheets used in generation of documentation" >&5
-$as_echo_n "checking for stylesheets used in generation of documentation... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for docbook stylesheets for documentation creation" >&5
+$as_echo_n "checking for docbook stylesheets for documentation creation... " >&6; }
 glibcxx_stylesheets=no
 if test x${XSLTPROC} = xyes && echo '<title/>' | xsltproc --noout --nonet --xinclude http://docbook.sourceforge.net/release/xsl-ns/current/xhtml-1_1/docbook.xsl - 2>/dev/null; then
   glibcxx_stylesheets=yes
@@ -65816,6 +65864,27 @@ $as_echo "$as_me: $XSL_STYLE_DIR" >&6;}
 else
   glibcxx_stylesheets=no
 fi
+
+# Check for epub3 dependencies.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for epub3 stylesheets for documentation creation" >&5
+$as_echo_n "checking for epub3 stylesheets for documentation creation... " >&6; }
+glibcxx_epub_stylesheets=no
+if test x"$glibcxx_local_stylesheets" = x"yes"; then
+   if test -f "$XSL_STYLE_DIR/epub3/chunk.xsl"; then
+      glibcxx_epub_stylesheets=yes
+   fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $glibcxx_epub_stylesheets" >&5
+$as_echo "$glibcxx_epub_stylesheets" >&6; }
+ if test x"$glibcxx_epub_stylesheets" = x"yes"; then
+  BUILD_EPUB_TRUE=
+  BUILD_EPUB_FALSE='#'
+else
+  BUILD_EPUB_TRUE='#'
+  BUILD_EPUB_FALSE=
+fi
+
+
 
 
 # Check for xml/html dependencies.
@@ -65856,7 +65925,7 @@ else
 fi
 
 
-# Check for pdf/epub dependencies.
+# Check for pdf dependencies.
 # Extract the first word of "dblatex", so it can be a program name with args.
 set dummy dblatex; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -65940,92 +66009,6 @@ fi
 else
   BUILD_PDF_TRUE='#'
   BUILD_PDF_FALSE=
-fi
-
-
-# Extract the first word of "ruby", so it can be a program name with args.
-set dummy ruby; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if test "${ac_cv_prog_RUBY+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$RUBY"; then
-  ac_cv_prog_RUBY="$RUBY" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_prog_RUBY="yes"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  test -z "$ac_cv_prog_RUBY" && ac_cv_prog_RUBY="no"
-fi
-fi
-RUBY=$ac_cv_prog_RUBY
-if test -n "$RUBY"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $RUBY" >&5
-$as_echo "$RUBY" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-# Extract the first word of "dbtoepub", so it can be a program name with args.
-set dummy dbtoepub; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if test "${ac_cv_prog_DBTOEPUB+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$DBTOEPUB"; then
-  ac_cv_prog_DBTOEPUB="$DBTOEPUB" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_prog_DBTOEPUB="yes"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  test -z "$ac_cv_prog_DBTOEPUB" && ac_cv_prog_DBTOEPUB="no"
-fi
-fi
-DBTOEPUB=$ac_cv_prog_DBTOEPUB
-if test -n "$DBTOEPUB"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $DBTOEPUB" >&5
-$as_echo "$DBTOEPUB" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
- if test $ac_cv_prog_RUBY = "yes" &&
-	       test $ac_cv_prog_DBTOEPUB = "yes"; then
-  BUILD_EPUB_TRUE=
-  BUILD_EPUB_FALSE='#'
-else
-  BUILD_EPUB_TRUE='#'
-  BUILD_EPUB_FALSE=
 fi
 
 
@@ -66128,6 +66111,15 @@ fi
 else
   ENABLE_EXTERN_TEMPLATE_TRUE='#'
   ENABLE_EXTERN_TEMPLATE_FALSE=
+fi
+
+
+    if test $python_mod_dir != no; then
+  ENABLE_PYTHONDIR_TRUE=
+  ENABLE_PYTHONDIR_FALSE='#'
+else
+  ENABLE_PYTHONDIR_TRUE='#'
+  ENABLE_PYTHONDIR_FALSE=
 fi
 
 
@@ -66412,9 +66404,9 @@ $as_echo "$gxx_include_dir" >&6; }
 
 
 if test "$enable_shared" = yes; then
-  LIBSUPCXX_PICFLAGS="-prefer-pic"
+  PIC_CXXFLAGS="-prefer-pic"
 else
-  LIBSUPCXX_PICFLAGS=
+  PIC_CXXFLAGS=
 fi
 
 
@@ -66433,7 +66425,7 @@ ac_config_files="$ac_config_files scripts/extract_symvers"
 # append it here.  Only modify Makefiles that have just been created.
 #
 # Also, get rid of this simulated-VPATH thing that automake does.
-ac_config_files="$ac_config_files include/Makefile libsupc++/Makefile python/Makefile src/Makefile doc/Makefile po/Makefile testsuite/Makefile"
+ac_config_files="$ac_config_files include/Makefile libsupc++/Makefile python/Makefile src/Makefile src/c++98/Makefile src/c++11/Makefile doc/Makefile po/Makefile testsuite/Makefile"
 
 
 ac_config_commands="$ac_config_commands generate-headers"
@@ -66584,6 +66576,10 @@ if test -z "${ENABLE_EXTERN_TEMPLATE_TRUE}" && test -z "${ENABLE_EXTERN_TEMPLATE
   as_fn_error "conditional \"ENABLE_EXTERN_TEMPLATE\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
+if test -z "${ENABLE_PYTHONDIR_TRUE}" && test -z "${ENABLE_PYTHONDIR_FALSE}"; then
+  as_fn_error "conditional \"ENABLE_PYTHONDIR\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${ENABLE_SYMVERS_TRUE}" && test -z "${ENABLE_SYMVERS_FALSE}"; then
   as_fn_error "conditional \"ENABLE_SYMVERS\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
@@ -66620,6 +66616,10 @@ if test -z "${BUILD_INFO_TRUE}" && test -z "${BUILD_INFO_FALSE}"; then
   as_fn_error "conditional \"BUILD_INFO\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
+if test -z "${BUILD_EPUB_TRUE}" && test -z "${BUILD_EPUB_FALSE}"; then
+  as_fn_error "conditional \"BUILD_EPUB\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${BUILD_XML_TRUE}" && test -z "${BUILD_XML_FALSE}"; then
   as_fn_error "conditional \"BUILD_XML\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
@@ -66634,10 +66634,6 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${BUILD_PDF_TRUE}" && test -z "${BUILD_PDF_FALSE}"; then
   as_fn_error "conditional \"BUILD_PDF\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${BUILD_EPUB_TRUE}" && test -z "${BUILD_EPUB_FALSE}"; then
-  as_fn_error "conditional \"BUILD_EPUB\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 
@@ -67635,6 +67631,8 @@ do
     "libsupc++/Makefile") CONFIG_FILES="$CONFIG_FILES libsupc++/Makefile" ;;
     "python/Makefile") CONFIG_FILES="$CONFIG_FILES python/Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
+    "src/c++98/Makefile") CONFIG_FILES="$CONFIG_FILES src/c++98/Makefile" ;;
+    "src/c++11/Makefile") CONFIG_FILES="$CONFIG_FILES src/c++11/Makefile" ;;
     "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
     "po/Makefile") CONFIG_FILES="$CONFIG_FILES po/Makefile" ;;
     "testsuite/Makefile") CONFIG_FILES="$CONFIG_FILES testsuite/Makefile" ;;
@@ -69449,6 +69447,28 @@ _EOF
    { ml_norecursion=; unset ml_norecursion;}
  ;;
     "src/Makefile":F) cat > vpsed$$ << \_EOF
+s!`test -f '$<' || echo '$(srcdir)/'`!!
+_EOF
+   sed -f vpsed$$ $ac_file > tmp$$
+   mv tmp$$ $ac_file
+   rm vpsed$$
+   echo 'MULTISUBDIR =' >> $ac_file
+   ml_norecursion=yes
+   . ${multi_basedir}/config-ml.in
+   { ml_norecursion=; unset ml_norecursion;}
+ ;;
+    "src/c++98/Makefile":F) cat > vpsed$$ << \_EOF
+s!`test -f '$<' || echo '$(srcdir)/'`!!
+_EOF
+   sed -f vpsed$$ $ac_file > tmp$$
+   mv tmp$$ $ac_file
+   rm vpsed$$
+   echo 'MULTISUBDIR =' >> $ac_file
+   ml_norecursion=yes
+   . ${multi_basedir}/config-ml.in
+   { ml_norecursion=; unset ml_norecursion;}
+ ;;
+    "src/c++11/Makefile":F) cat > vpsed$$ << \_EOF
 s!`test -f '$<' || echo '$(srcdir)/'`!!
 _EOF
    sed -f vpsed$$ $ac_file > tmp$$

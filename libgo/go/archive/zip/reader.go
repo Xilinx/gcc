@@ -7,18 +7,19 @@ package zip
 import (
 	"bufio"
 	"compress/flate"
+	"encoding/binary"
+	"errors"
 	"hash"
 	"hash/crc32"
-	"encoding/binary"
 	"io"
 	"io/ioutil"
 	"os"
 )
 
 var (
-	FormatError       = os.NewError("zip: not a valid zip file")
-	UnsupportedMethod = os.NewError("zip: unsupported compression algorithm")
-	ChecksumError     = os.NewError("zip: checksum error")
+	ErrFormat    = errors.New("zip: not a valid zip file")
+	ErrAlgorithm = errors.New("zip: unsupported compression algorithm")
+	ErrChecksum  = errors.New("zip: checksum error")
 )
 
 type Reader struct {
@@ -44,7 +45,7 @@ func (f *File) hasDataDescriptor() bool {
 }
 
 // OpenReader will open the Zip file specified by name and return a ReadCloser.
-func OpenReader(name string) (*ReadCloser, os.Error) {
+func OpenReader(name string) (*ReadCloser, error) {
 	f, err := os.Open(name)
 	if err != nil {
 		return nil, err
@@ -55,16 +56,17 @@ func OpenReader(name string) (*ReadCloser, os.Error) {
 		return nil, err
 	}
 	r := new(ReadCloser)
-	if err := r.init(f, fi.Size); err != nil {
+	if err := r.init(f, fi.Size()); err != nil {
 		f.Close()
 		return nil, err
 	}
+	r.f = f
 	return r, nil
 }
 
 // NewReader returns a new Reader reading from r, which is assumed to
 // have the given size in bytes.
-func NewReader(r io.ReaderAt, size int64) (*Reader, os.Error) {
+func NewReader(r io.ReaderAt, size int64) (*Reader, error) {
 	zr := new(Reader)
 	if err := zr.init(r, size); err != nil {
 		return nil, err
@@ -72,7 +74,7 @@ func NewReader(r io.ReaderAt, size int64) (*Reader, os.Error) {
 	return zr, nil
 }
 
-func (z *Reader) init(r io.ReaderAt, size int64) os.Error {
+func (z *Reader) init(r io.ReaderAt, size int64) error {
 	end, err := readDirectoryEnd(r, size)
 	if err != nil {
 		return err
@@ -88,12 +90,12 @@ func (z *Reader) init(r io.ReaderAt, size int64) os.Error {
 
 	// The count of files inside a zip is truncated to fit in a uint16.
 	// Gloss over this by reading headers until we encounter
-	// a bad one, and then only report a FormatError or UnexpectedEOF if
+	// a bad one, and then only report a ErrFormat or UnexpectedEOF if
 	// the file count modulo 65536 is incorrect.
 	for {
 		f := &File{zipr: r, zipsize: size}
 		err = readDirectoryHeader(f, buf)
-		if err == FormatError || err == io.ErrUnexpectedEOF {
+		if err == ErrFormat || err == io.ErrUnexpectedEOF {
 			break
 		}
 		if err != nil {
@@ -110,13 +112,13 @@ func (z *Reader) init(r io.ReaderAt, size int64) os.Error {
 }
 
 // Close closes the Zip file, rendering it unusable for I/O.
-func (rc *ReadCloser) Close() os.Error {
+func (rc *ReadCloser) Close() error {
 	return rc.f.Close()
 }
 
 // Open returns a ReadCloser that provides access to the File's contents.
-// It is safe to Open and Read from files concurrently.
-func (f *File) Open() (rc io.ReadCloser, err os.Error) {
+// Multiple files may be read concurrently.
+func (f *File) Open() (rc io.ReadCloser, err error) {
 	bodyOffset, err := f.findBodyOffset()
 	if err != nil {
 		return
@@ -133,7 +135,7 @@ func (f *File) Open() (rc io.ReadCloser, err os.Error) {
 	case Deflate:
 		rc = flate.NewReader(r)
 	default:
-		err = UnsupportedMethod
+		err = ErrAlgorithm
 	}
 	if rc != nil {
 		rc = &checksumReader{rc, crc32.NewIEEE(), f, r}
@@ -148,10 +150,10 @@ type checksumReader struct {
 	zipr io.Reader // for reading the data descriptor
 }
 
-func (r *checksumReader) Read(b []byte) (n int, err os.Error) {
+func (r *checksumReader) Read(b []byte) (n int, err error) {
 	n, err = r.rc.Read(b)
 	r.hash.Write(b[:n])
-	if err != os.EOF {
+	if err != io.EOF {
 		return
 	}
 	if r.f.hasDataDescriptor() {
@@ -160,21 +162,21 @@ func (r *checksumReader) Read(b []byte) (n int, err os.Error) {
 		}
 	}
 	if r.hash.Sum32() != r.f.CRC32 {
-		err = ChecksumError
+		err = ErrChecksum
 	}
 	return
 }
 
-func (r *checksumReader) Close() os.Error { return r.rc.Close() }
+func (r *checksumReader) Close() error { return r.rc.Close() }
 
-func readFileHeader(f *File, r io.Reader) os.Error {
+func readFileHeader(f *File, r io.Reader) error {
 	var b [fileHeaderLen]byte
 	if _, err := io.ReadFull(r, b[:]); err != nil {
 		return err
 	}
 	c := binary.LittleEndian
 	if sig := c.Uint32(b[:4]); sig != fileHeaderSignature {
-		return FormatError
+		return ErrFormat
 	}
 	f.ReaderVersion = c.Uint16(b[4:6])
 	f.Flags = c.Uint16(b[6:8])
@@ -197,7 +199,7 @@ func readFileHeader(f *File, r io.Reader) os.Error {
 
 // findBodyOffset does the minimum work to verify the file has a header
 // and returns the file body offset.
-func (f *File) findBodyOffset() (int64, os.Error) {
+func (f *File) findBodyOffset() (int64, error) {
 	r := io.NewSectionReader(f.zipr, f.headerOffset, f.zipsize-f.headerOffset)
 	var b [fileHeaderLen]byte
 	if _, err := io.ReadFull(r, b[:]); err != nil {
@@ -205,7 +207,7 @@ func (f *File) findBodyOffset() (int64, os.Error) {
 	}
 	c := binary.LittleEndian
 	if sig := c.Uint32(b[:4]); sig != fileHeaderSignature {
-		return 0, FormatError
+		return 0, ErrFormat
 	}
 	filenameLen := int(c.Uint16(b[26:28]))
 	extraLen := int(c.Uint16(b[28:30]))
@@ -214,15 +216,15 @@ func (f *File) findBodyOffset() (int64, os.Error) {
 
 // readDirectoryHeader attempts to read a directory header from r.
 // It returns io.ErrUnexpectedEOF if it cannot read a complete header,
-// and FormatError if it doesn't find a valid header signature.
-func readDirectoryHeader(f *File, r io.Reader) os.Error {
+// and ErrFormat if it doesn't find a valid header signature.
+func readDirectoryHeader(f *File, r io.Reader) error {
 	var b [directoryHeaderLen]byte
 	if _, err := io.ReadFull(r, b[:]); err != nil {
 		return err
 	}
 	c := binary.LittleEndian
 	if sig := c.Uint32(b[:4]); sig != directoryHeaderSignature {
-		return FormatError
+		return ErrFormat
 	}
 	f.CreatorVersion = c.Uint16(b[4:6])
 	f.ReaderVersion = c.Uint16(b[6:8])
@@ -250,7 +252,7 @@ func readDirectoryHeader(f *File, r io.Reader) os.Error {
 	return nil
 }
 
-func readDataDescriptor(r io.Reader, f *File) os.Error {
+func readDataDescriptor(r io.Reader, f *File) error {
 	var b [dataDescriptorLen]byte
 	if _, err := io.ReadFull(r, b[:]); err != nil {
 		return err
@@ -262,7 +264,7 @@ func readDataDescriptor(r io.Reader, f *File) os.Error {
 	return nil
 }
 
-func readDirectoryEnd(r io.ReaderAt, size int64) (dir *directoryEnd, err os.Error) {
+func readDirectoryEnd(r io.ReaderAt, size int64) (dir *directoryEnd, err error) {
 	// look for directoryEndSignature in the last 1k, then in the last 65k
 	var b []byte
 	for i, bLen := range []int64{1024, 65 * 1024} {
@@ -270,7 +272,7 @@ func readDirectoryEnd(r io.ReaderAt, size int64) (dir *directoryEnd, err os.Erro
 			bLen = size
 		}
 		b = make([]byte, int(bLen))
-		if _, err := r.ReadAt(b, size-bLen); err != nil && err != os.EOF {
+		if _, err := r.ReadAt(b, size-bLen); err != nil && err != io.EOF {
 			return nil, err
 		}
 		if p := findSignatureInBlock(b); p >= 0 {
@@ -278,7 +280,7 @@ func readDirectoryEnd(r io.ReaderAt, size int64) (dir *directoryEnd, err os.Erro
 			break
 		}
 		if i == 1 || bLen == size {
-			return nil, FormatError
+			return nil, ErrFormat
 		}
 	}
 

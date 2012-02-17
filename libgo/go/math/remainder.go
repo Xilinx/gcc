@@ -29,23 +29,25 @@ package math
 // Remainder returns the IEEE 754 floating-point remainder of x/y.
 //
 // Special cases are:
-//	Remainder(x, NaN) = NaN
+//	Remainder(±Inf, y) = NaN
 //	Remainder(NaN, y) = NaN
-//	Remainder(Inf, y) = NaN
 //	Remainder(x, 0) = NaN
-//	Remainder(x, Inf) = x
+//	Remainder(x, ±Inf) = x
+//	Remainder(x, NaN) = NaN
 func Remainder(x, y float64) float64 {
+	return remainder(x, y)
+}
+
+func remainder(x, y float64) float64 {
 	const (
 		Tiny    = 4.45014771701440276618e-308 // 0x0020000000000000
 		HalfMax = MaxFloat64 / 2
 	)
-	// TODO(rsc): Remove manual inlining of IsNaN, IsInf
-	// when compiler does it for us
 	// special cases
 	switch {
-	case x != x || y != y || x < -MaxFloat64 || x > MaxFloat64 || y == 0: // IsNaN(x) || IsNaN(y) || IsInf(x, 0) || y == 0:
+	case IsNaN(x) || IsNaN(y) || IsInf(x, 0) || y == 0:
 		return NaN()
-	case y < -MaxFloat64 || y > MaxFloat64: // IsInf(y):
+	case IsInf(y, 0):
 		return x
 	}
 	sign := false

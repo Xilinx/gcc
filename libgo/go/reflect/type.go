@@ -69,7 +69,7 @@ type Type interface {
 
 	// PkgPath returns the type's package path.
 	// The package path is a full package import path like "encoding/base64".
-	// PkgPath returns an empty string for unnamed types.
+	// PkgPath returns an empty string for unnamed or predeclared types.
 	PkgPath() string
 
 	// Size returns the number of bytes needed to store
@@ -188,7 +188,7 @@ type Type interface {
 
 // A Kind represents the specific kind of type that a Type represents.
 // The zero Kind is not a valid kind.
-type Kind uint8
+type Kind uint
 
 const (
 	Invalid Kind = iota
@@ -243,7 +243,7 @@ type commonType struct {
 	align      int8
 	fieldAlign uint8
 	size       uintptr
-	hash	   uint32
+	hash       uint32
 	hashfn     func(unsafe.Pointer, uintptr)
 	equalfn    func(unsafe.Pointer, unsafe.Pointer, uintptr)
 	string     *string
@@ -455,15 +455,16 @@ func (t *uncommonType) Method(i int) (m Method) {
 	if p.name != nil {
 		m.Name = *p.name
 	}
-	flag := uint32(0)
+	fl := flag(Func) << flagKindShift
 	if p.pkgPath != nil {
 		m.PkgPath = *p.pkgPath
-		flag |= flagRO
+		fl |= flagRO
 	}
-	m.Type = toType(p.typ)
+	mt := toCommonType(p.typ)
+	m.Type = mt.toType()
 	x := new(unsafe.Pointer)
 	*x = p.tfn
-	m.Func = valueFromIword(flag, m.Type, iword(uintptr(unsafe.Pointer(x))))
+	m.Func = Value{mt, unsafe.Pointer(x), fl | flagIndir}
 	m.Index = i
 	return
 }
@@ -769,7 +770,7 @@ func (t *structType) Field(i int) (f StructField) {
 	if i < 0 || i >= len(t.fields) {
 		return
 	}
-	p := t.fields[i]
+	p := &t.fields[i]
 	f.Type = toType(p.typ)
 	if p.name != nil {
 		f.Name = *p.name
@@ -788,6 +789,14 @@ func (t *structType) Field(i int) (f StructField) {
 		f.Tag = StructTag(*p.tag)
 	}
 	f.Offset = p.offset
+
+	// NOTE(rsc): This is the only allocation in the interface
+	// presented by a reflect.Type.  It would be nice to avoid,
+	// at least in the common cases, but we need to make sure
+	// that misbehaving clients of reflect cannot affect other
+	// uses of reflect.  One possibility is CL 5371098, but we
+	// postponed that ugliness until there is a demonstrated
+	// need for the performance.  This is issue 2320.
 	f.Index = []int{i}
 	return
 }
@@ -868,10 +877,12 @@ L:
 
 	if n == 1 {
 		// Found matching field.
-		if len(ff.Index) <= depth {
+		if depth >= len(ff.Index) {
 			ff.Index = make([]int, depth+1)
 		}
-		ff.Index[depth] = fi
+		if len(ff.Index) > 1 {
+			ff.Index[depth] = fi
+		}
 	} else {
 		// None or more than one matching field found.
 		fd = inf
@@ -903,9 +914,6 @@ func toCommonType(p *runtime.Type) *commonType {
 		return nil
 	}
 	x := unsafe.Pointer(p)
-	if uintptr(x)&reflectFlags != 0 {
-		panic("reflect: invalid interface value")
-	}
 	return (*commonType)(x)
 }
 
@@ -967,10 +975,12 @@ func (t *commonType) runtimeType() *runtime.Type {
 // PtrTo returns the pointer type with element t.
 // For example, if t represents type Foo, PtrTo(t) represents *Foo.
 func PtrTo(t Type) Type {
-	// If t records its pointer-to type, use it.
-	ct := t.(*commonType)
+	return t.(*commonType).ptrTo()
+}
+
+func (ct *commonType) ptrTo() *commonType {
 	if p := ct.ptrToThis; p != nil {
-		return toType(p)
+		return toCommonType(p)
 	}
 
 	// Otherwise, synthesize one.
@@ -982,7 +992,7 @@ func PtrTo(t Type) Type {
 	if m := ptrMap.m; m != nil {
 		if p := m[ct]; p != nil {
 			ptrMap.RUnlock()
-			return p.commonType.toType()
+			return &p.commonType
 		}
 	}
 	ptrMap.RUnlock()
@@ -994,13 +1004,22 @@ func PtrTo(t Type) Type {
 	if p != nil {
 		// some other goroutine won the race and created it
 		ptrMap.Unlock()
-		return p
+		return &p.commonType
 	}
 
-	rt := (*runtime.Type)(unsafe.Pointer(ct))
+	s := "*" + *ct.string
+
+	canonicalTypeLock.RLock()
+	r, ok := canonicalType[s]
+	canonicalTypeLock.RUnlock()
+	if ok {
+		ptrMap.m[ct] = (*ptrType)(unsafe.Pointer(r.(*commonType)))
+		ptrMap.Unlock()
+		return r.(*commonType)
+	}
 
 	rp := new(runtime.PtrType)
-	
+
 	// initialize p using *byte's ptrType as a prototype.
 	// have to do assignment as ptrType, not runtime.PtrType,
 	// in order to write to unexported fields.
@@ -1008,7 +1027,6 @@ func PtrTo(t Type) Type {
 	bp := (*ptrType)(unsafe.Pointer(unsafe.Typeof((*byte)(nil)).(*runtime.PtrType)))
 	*p = *bp
 
-	s := "*" + *ct.string
 	p.string = &s
 
 	// For the type structures linked into the binary, the
@@ -1016,15 +1034,19 @@ func PtrTo(t Type) Type {
 	// Create a good hash for the new string by using
 	// the FNV-1 hash's mixing function to combine the
 	// old hash and the new "*".
-	p.hash = ct.hash*16777619 ^ '*'
+	// p.hash = ct.hash*16777619 ^ '*'
+	// This is the gccgo version.
+	p.hash = (ct.hash << 4) + 9
 
 	p.uncommonType = nil
 	p.ptrToThis = nil
 	p.elem = (*runtime.Type)(unsafe.Pointer(ct))
 
+	p = canonicalize(p).(*ptrType)
+
 	ptrMap.m[ct] = p
 	ptrMap.Unlock()
-	return p.commonType.toType()
+	return &p.commonType
 }
 
 func (t *commonType) Implements(u Type) bool {

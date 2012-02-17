@@ -4,12 +4,6 @@
 
 package token
 
-import (
-	"gob"
-	"io"
-	"os"
-)
-
 type serializedFile struct {
 	// fields correspond 1:1 to fields with same (lower-case) name in File
 	Name  string
@@ -24,19 +18,10 @@ type serializedFileSet struct {
 	Files []serializedFile
 }
 
-func (s *serializedFileSet) Read(r io.Reader) os.Error {
-	return gob.NewDecoder(r).Decode(s)
-}
-
-func (s *serializedFileSet) Write(w io.Writer) os.Error {
-	return gob.NewEncoder(w).Encode(s)
-}
-
-// Read reads the fileset from r into s; s must not be nil.
-// If r does not also implement io.ByteReader, it will be wrapped in a bufio.Reader.
-func (s *FileSet) Read(r io.Reader) os.Error {
+// Read calls decode to deserialize a file set into s; s must not be nil.
+func (s *FileSet) Read(decode func(interface{}) error) error {
 	var ss serializedFileSet
-	if err := ss.Read(r); err != nil {
+	if err := decode(&ss); err != nil {
 		return err
 	}
 
@@ -54,8 +39,8 @@ func (s *FileSet) Read(r io.Reader) os.Error {
 	return nil
 }
 
-// Write writes the fileset s to w.
-func (s *FileSet) Write(w io.Writer) os.Error {
+// Write calls encode to serialize the file set s.
+func (s *FileSet) Write(encode func(interface{}) error) error {
 	var ss serializedFileSet
 
 	s.mutex.Lock()
@@ -67,5 +52,5 @@ func (s *FileSet) Write(w io.Writer) os.Error {
 	ss.Files = files
 	s.mutex.Unlock()
 
-	return ss.Write(w)
+	return encode(ss)
 }

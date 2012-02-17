@@ -175,7 +175,7 @@ addr_object_size (struct object_size_info *osi, const_tree ptr,
       unsigned HOST_WIDE_INT sz;
 
       if (!osi || (object_size_type & 1) != 0
-	  || TREE_CODE (pt_var) != SSA_NAME)
+	  || TREE_CODE (TREE_OPERAND (pt_var, 0)) != SSA_NAME)
 	{
 	  sz = compute_builtin_object_size (TREE_OPERAND (pt_var, 0),
 					    object_size_type & ~1);
@@ -465,6 +465,7 @@ pass_through_call (const_gimple call)
       case BUILT_IN_MEMSET_CHK:
       case BUILT_IN_STRCPY_CHK:
       case BUILT_IN_STRNCPY_CHK:
+      case BUILT_IN_STPNCPY_CHK:
       case BUILT_IN_STRCAT_CHK:
       case BUILT_IN_STRNCAT_CHK:
       case BUILT_IN_ASSUME_ALIGNED:

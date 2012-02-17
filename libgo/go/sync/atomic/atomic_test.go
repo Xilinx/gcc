@@ -636,6 +636,7 @@ func init() {
 		// 64-bit system; clear uintptr tests
 		hammer32[2].f = nil
 		hammer32[5].f = nil
+		hammer32[6].f = nil
 	}
 }
 
@@ -760,6 +761,7 @@ func init() {
 		// 32-bit system; clear uintptr tests
 		hammer64[2].f = nil
 		hammer64[5].f = nil
+		hammer64[6].f = nil
 	}
 }
 
@@ -1037,7 +1039,7 @@ func TestStoreLoadSeqCst32(t *testing.T) {
 				if my != i && his != i {
 					t.Fatalf("store/load are not sequentially consistent: %d/%d (%d)", my, his, i)
 				}
-				ack[me][(i-1)%3] = -1
+				StoreInt32(&ack[me][(i-1)%3], -1)
 			}
 			c <- true
 		}(p)
@@ -1078,7 +1080,7 @@ func TestStoreLoadSeqCst64(t *testing.T) {
 				if my != i && his != i {
 					t.Fatalf("store/load are not sequentially consistent: %d/%d (%d)", my, his, i)
 				}
-				ack[me][(i-1)%3] = -1
+				StoreInt64(&ack[me][(i-1)%3], -1)
 			}
 			c <- true
 		}(p)

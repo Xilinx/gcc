@@ -5,7 +5,6 @@
 package build
 
 import (
-	"exec"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -28,7 +27,7 @@ var buildPkgs = []struct {
 			GoFiles:      []string{"pkgtest.go"},
 			SFiles:       []string{"sqrt_" + runtime.GOARCH + ".s"},
 			Package:      "pkgtest",
-			Imports:      []string{"os"},
+			Imports:      []string{"bytes"},
 			TestImports:  []string{"fmt", "pkgtest"},
 			TestGoFiles:  sortstr([]string{"sqrt_test.go", "sqrt_" + runtime.GOARCH + "_test.go"}),
 			XTestGoFiles: []string{"xsqrt_test.go"},
@@ -37,23 +36,31 @@ var buildPkgs = []struct {
 	{
 		"go/build/cmdtest",
 		&DirInfo{
-			GoFiles: []string{"main.go"},
-			Package: "main",
-			Imports: []string{"go/build/pkgtest"},
+			GoFiles:     []string{"main.go"},
+			Package:     "main",
+			Imports:     []string{"go/build/pkgtest"},
+			TestImports: []string{},
 		},
 	},
 	{
 		"go/build/cgotest",
 		&DirInfo{
-			CgoFiles: []string{"cgotest.go"},
-			CFiles:   []string{"cgotest.c"},
-			Imports:  []string{"C", "unsafe"},
-			Package:  "cgotest",
+			CgoFiles:    ifCgo([]string{"cgotest.go"}),
+			CFiles:      []string{"cgotest.c"},
+			HFiles:      []string{"cgotest.h"},
+			Imports:     []string{"C", "unsafe"},
+			TestImports: []string{},
+			Package:     "cgotest",
 		},
 	},
 }
 
-const cmdtestOutput = "3"
+func ifCgo(x []string) []string {
+	if DefaultContext.CgoEnabled {
+		return x
+	}
+	return nil
+}
 
 func TestBuild(t *testing.T) {
 	for _, tt := range buildPkgs {
@@ -64,39 +71,38 @@ func TestBuild(t *testing.T) {
 			t.Errorf("ScanDir(%#q): %v", tt.dir, err)
 			continue
 		}
+		// Don't bother testing import positions.
+		tt.info.ImportPos, tt.info.TestImportPos = info.ImportPos, info.TestImportPos
 		if !reflect.DeepEqual(info, tt.info) {
 			t.Errorf("ScanDir(%#q) = %#v, want %#v\n", tt.dir, info, tt.info)
 			continue
 		}
-
-		s, err := Build(tree, tt.dir, info)
-		if err != nil {
-			t.Errorf("Build(%#q): %v", tt.dir, err)
-			continue
-		}
-
-		if err := s.Run(); err != nil {
-			t.Errorf("Run(%#q): %v", tt.dir, err)
-			continue
-		}
-
-		if tt.dir == "go/build/cmdtest" {
-			bin := s.Output[0]
-			b, err := exec.Command(bin).CombinedOutput()
-			if err != nil {
-				t.Errorf("exec %s: %v", bin, err)
-				continue
-			}
-			if string(b) != cmdtestOutput {
-				t.Errorf("cmdtest output: %s want: %s", b, cmdtestOutput)
-			}
-		}
-
-		// Deferred because cmdtest depends on pkgtest.
-		defer func(s *Script) {
-			if err := s.Nuke(); err != nil {
-				t.Errorf("nuking: %v", err)
-			}
-		}(s)
 	}
+}
+
+func TestMatch(t *testing.T) {
+	ctxt := DefaultContext
+	what := "default"
+	match := func(tag string) {
+		if !ctxt.match(tag) {
+			t.Errorf("%s context should match %s, does not", what, tag)
+		}
+	}
+	nomatch := func(tag string) {
+		if ctxt.match(tag) {
+			t.Errorf("%s context should NOT match %s, does", what, tag)
+		}
+	}
+
+	match(runtime.GOOS + "," + runtime.GOARCH)
+	match(runtime.GOOS + "," + runtime.GOARCH + ",!foo")
+	nomatch(runtime.GOOS + "," + runtime.GOARCH + ",foo")
+
+	what = "modified"
+	ctxt.BuildTags = []string{"foo"}
+	match(runtime.GOOS + "," + runtime.GOARCH)
+	match(runtime.GOOS + "," + runtime.GOARCH + ",foo")
+	nomatch(runtime.GOOS + "," + runtime.GOARCH + ",!foo")
+	match(runtime.GOOS + "," + runtime.GOARCH + ",!bar")
+	nomatch(runtime.GOOS + "," + runtime.GOARCH + ",bar")
 }

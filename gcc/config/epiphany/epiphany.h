@@ -43,9 +43,11 @@ along with GCC; see the file COPYING3.  If not see
     } while (0)
 
 /* Pick up the libgloss library. One day we may do this by linker script, but
-   for now its static. */
+   for now its static.
+   libgloss might use errno/__errno, which might not have been needed when we
+   saw libc the first time, so link with libc a second time.  */
 #undef LIB_SPEC
-#define LIB_SPEC "%{!shared:%{g*:-lg} %{!p:%{!pg:-lc}}%{p:-lc_p}%{pg:-lc_p}} -lepiphany"
+#define LIB_SPEC "%{!shared:%{g*:-lg} %{!p:%{!pg:-lc}}%{p:-lc_p}%{pg:-lc_p}} -lepiphany %{!shared:%{!p:%{!pg:-lc}}%{p:-lc_p}%{pg:-lc_p}}"
 
 #define LINK_SPEC "%{v}"
 
@@ -565,13 +567,13 @@ typedef struct GTY (()) machine_function
 #define FRAME_ADDR_RTX(frame) \
   ((frame) == hard_frame_pointer_rtx ? arg_pointer_rtx : NULL)
 
+#define EPIPHANY_RETURN_REGNO \
+  ((current_function_decl != NULL \
+    && epiphany_is_interrupt_p (current_function_decl)) \
+   ? IRET_REGNUM : GPR_LR)
 /* This is not only for dwarf unwind info, but also for the benefit of
    df-scan.c to tell it that LR is live at the function start.  */
-#define INCOMING_RETURN_ADDR_RTX \
-  gen_rtx_REG (Pmode, \
-	       (current_function_decl != NULL \
-		&& epiphany_is_interrupt_p (current_function_decl) \
-	       ? IRET_REGNUM : GPR_LR))
+#define INCOMING_RETURN_ADDR_RTX gen_rtx_REG (Pmode, EPIPHANY_RETURN_REGNO)
 
 /* However, we haven't implemented the rest needed for dwarf2 unwind info.  */
 #define DWARF2_UNWIND_INFO 0
@@ -579,6 +581,8 @@ typedef struct GTY (()) machine_function
 #define RETURN_ADDR_RTX(count, frame) \
   (count ? NULL_RTX \
    : gen_rtx_UNSPEC (SImode, gen_rtvec (1, const0_rtx), UNSPEC_RETURN_ADDR))
+
+#define DWARF_FRAME_RETURN_COLUMN DWARF_FRAME_REGNUM (EPIPHANY_RETURN_REGNO)
 
 /* Trampolines.
    An epiphany trampoline looks like this:
@@ -601,6 +605,21 @@ typedef struct GTY (()) machine_function
 #define HAVE_POST_DECREMENT TARGET_POST_INC
 #define HAVE_POST_MODIFY_DISP TARGET_POST_MODIFY
 #define HAVE_POST_MODIFY_REG TARGET_POST_MODIFY
+
+/* Currently, the only users of the USE_*CREMENT macros are
+   move_by_pieces / store_by_pieces_1 .  We don't want them to use
+   POST_MODIFY modes, because we got ample addressing range for the
+   reg+offset addressing mode; besides, there are short index+offset loads,
+   but the only short post-modify load uses POST_MODIFY_REG.
+   Moreover, using auto-increment in move_by_pieces from structure copying
+   in the prologue causes confused debug output.
+   If another pass starts using these macros where the use of these
+   addressing modes would make more sense, we can try checking the
+   current pass.  */
+#define USE_LOAD_POST_INCREMENT(MODE) 0
+#define USE_LOAD_POST_DECREMENT(MODE) 0
+#define USE_STORE_POST_INCREMENT(MODE) 0
+#define USE_STORE_POST_DECREMENT(MODE) 0
 
 /* Recognize any constant value that is a valid address.  */
 #define CONSTANT_ADDRESS_P(X) \
@@ -761,6 +780,31 @@ do {							\
    to a multiple of 2**LOG bytes.  */
 #define ASM_OUTPUT_ALIGN(FILE,LOG) \
 do { if ((LOG) != 0) fprintf (FILE, "\t.balign %d\n", 1 << (LOG)); } while (0)
+
+/* This is how to declare the size of a function.  */
+#undef ASM_DECLARE_FUNCTION_SIZE
+#define ASM_DECLARE_FUNCTION_SIZE(FILE, FNAME, DECL)			\
+  do									\
+    {									\
+      const char *__name = (FNAME);					\
+      tree attrs = DECL_ATTRIBUTES ((DECL));				\
+									\
+      if (!flag_inhibit_size_directive)					\
+	{								\
+	  if (lookup_attribute ("forwarder_section", attrs))			\
+	    {								\
+	      const char *prefix = "__forwarder_dst_";			\
+	      char *dst_name						\
+		= (char *) alloca (strlen (prefix) + strlen (__name) + 1); \
+									\
+	      strcpy (dst_name, prefix);				\
+	      strcat (dst_name, __name);				\
+	      __name = dst_name;					\
+	    }								\
+	  ASM_OUTPUT_MEASURED_SIZE ((FILE), __name);			\
+	}								\
+    }									\
+  while (0)
 
 /* Debugging information.  */
 
@@ -814,19 +858,10 @@ do { if ((LOG) != 0) fprintf (FILE, "\t.balign %d\n", 1 << (LOG)); } while (0)
 enum epiphany_function_type
 {
   EPIPHANY_FUNCTION_UNKNOWN, EPIPHANY_FUNCTION_NORMAL,
-  /* These are interrupt handlers.  The name corresponds to the register
-     name that contains the return address.  */
-  EPIPHANY_FUNCTION_ILINK1, EPIPHANY_FUNCTION_ILINK2,
-  /* These are interrupt handlers. The name corresponds to which type
-     of interrupt handler we're dealing with. */
-  EPIPHANY_FUNCTION_RESET, EPIPHANY_FUNCTION_SOFTWARE_EXCEPTION,
-  EPIPHANY_FUNCTION_TIMER, EPIPHANY_FUNCTION_DMA0,
-  EPIPHANY_FUNCTION_DMA1, EPIPHANY_FUNCTION_STATIC_FLAG,
-  EPIPHANY_FUNCTION_SWI
+  EPIPHANY_FUNCTION_INTERRUPT
 };
 
-#define EPIPHANY_INTERRUPT_P(TYPE) \
-  ((TYPE) >= EPIPHANY_FUNCTION_RESET && (TYPE) <= EPIPHANY_FUNCTION_SWI)
+#define EPIPHANY_INTERRUPT_P(TYPE) ((TYPE) == EPIPHANY_FUNCTION_INTERRUPT)
 
 /* Compute the type of a function from its DECL.  */
 
@@ -877,5 +912,9 @@ extern struct rtl_opt_pass pass_resolve_sw_modes;
 /* This will need to be adjusted when FP_CONTRACT_ON is properly
    implemented.  */
 #define TARGET_FUSED_MADD (flag_fp_contract_mode == FP_CONTRACT_FAST)
+
+#undef ASM_DECLARE_FUNCTION_NAME
+#define ASM_DECLARE_FUNCTION_NAME(FILE, NAME, DECL) \
+  epiphany_start_function ((FILE), (NAME), (DECL))
 
 #endif /* !GCC_EPIPHANY_H */

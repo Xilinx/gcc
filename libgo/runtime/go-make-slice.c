@@ -31,14 +31,14 @@ __go_make_slice2 (const struct __go_type_descriptor *td, uintptr_t len,
 
   ilen = (int) len;
   if (ilen < 0 || (uintptr_t) ilen != len)
-    __go_panic_msg ("makeslice: len out of range");
+    runtime_panicstring ("makeslice: len out of range");
 
   icap = (int) cap;
   if (cap < len
       || (uintptr_t) icap != cap
       || (std->__element_type->__size > 0
 	  && cap > (uintptr_t) -1U / std->__element_type->__size))
-    __go_panic_msg ("makeslice: cap out of range");
+    runtime_panicstring ("makeslice: cap out of range");
 
   ret.__count = ilen;
   ret.__capacity = icap;
@@ -56,4 +56,28 @@ struct __go_open_array
 __go_make_slice1 (const struct __go_type_descriptor *td, uintptr_t len)
 {
   return __go_make_slice2 (td, len, len);
+}
+
+struct __go_open_array
+__go_make_slice2_big (const struct __go_type_descriptor *td, uint64_t len,
+		      uint64_t cap)
+{
+  uintptr_t slen;
+  uintptr_t scap;
+
+  slen = (uintptr_t) len;
+  if ((uint64_t) slen != len)
+    runtime_panicstring ("makeslice: len out of range");
+
+  scap = (uintptr_t) cap;
+  if ((uint64_t) scap != cap)
+    runtime_panicstring ("makeslice: cap out of range");
+
+  return __go_make_slice2 (td, slen, scap);
+}
+
+struct __go_open_array
+__go_make_slice1_big (const struct __go_type_descriptor *td, uint64_t len)
+{
+  return __go_make_slice2_big (td, len, len);
 }

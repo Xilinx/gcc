@@ -59,10 +59,6 @@ func testLevelDict(t *testing.T, fn string, b0 []byte, level int, d string) {
 		}
 		defer zlibw.Close()
 		_, err = zlibw.Write(b0)
-		if err == os.EPIPE {
-			// Fail, but do not report the error, as some other (presumably reported) error broke the pipe.
-			return
-		}
 		if err != nil {
 			t.Errorf("%s (level=%d, dict=%q): %v", fn, level, d, err)
 			return
@@ -128,8 +124,8 @@ func TestWriterDict(t *testing.T) {
 
 func TestWriterDictIsUsed(t *testing.T) {
 	var input = []byte("Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")
-	buf := bytes.NewBuffer(nil)
-	compressor, err := NewWriterDict(buf, BestCompression, input)
+	var buf bytes.Buffer
+	compressor, err := NewWriterDict(&buf, BestCompression, input)
 	if err != nil {
 		t.Errorf("error in NewWriterDict: %s", err)
 		return

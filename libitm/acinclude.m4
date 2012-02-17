@@ -95,6 +95,20 @@ AC_DEFUN([LIBITM_CHECK_SIZE_T_MANGLING], [
     [Define to the letter to which size_t is mangled.])
 ])
 
+dnl Check if as supports AVX instructions.
+AC_DEFUN([LIBITM_CHECK_AS_AVX], [
+case "${target_cpu}" in
+i[[34567]]86 | x86_64)
+  AC_CACHE_CHECK([if the assembler supports AVX], libitm_cv_as_avx, [
+    AC_TRY_COMPILE([], [asm("vzeroupper");],
+		   [libitm_cv_as_avx=yes], [libitm_cv_as_avx=no])
+  ])
+  if test x$libitm_cv_as_avx = xyes; then
+    AC_DEFINE(HAVE_AS_AVX, 1, [Define to 1 if the assembler supports AVX.])
+  fi
+  ;;
+esac])
+
 sinclude(../libtool.m4)
 dnl The lines below arrange for aclocal not to bring an installed
 dnl libtool.m4 into aclocal.m4, while still arranging for automake to
@@ -155,6 +169,7 @@ dnl  OPT_LDFLAGS='-Wl,-O1' if possible
 dnl  LD (as a side effect of testing)
 dnl Sets:
 dnl  with_gnu_ld
+dnl  libitm_ld_is_gold (possibly)
 dnl  libitm_gnu_ld_version (possibly)
 dnl
 dnl The last will be a single integer, e.g., version 1.23.45.0.67.89 will
@@ -186,9 +201,13 @@ AC_DEFUN([LIBITM_CHECK_LINKER_FEATURES], [
 
   # Start by getting the version number.  I think the libtool test already
   # does some of this, but throws away the result.
+  libitm_ld_is_gold=no
+  if $LD --version 2>/dev/null | grep 'GNU gold'> /dev/null 2>&1; then
+    libitm_ld_is_gold=yes
+  fi
   changequote(,)
-  ldver=`$LD --version 2>/dev/null | head -1 | \
-         sed -e 's/GNU ld \(version \)\{0,1\}\(([^)]*) \)\{0,1\}\([0-9.][0-9.]*\).*/\3/'`
+  ldver=`$LD --version 2>/dev/null |
+         sed -e 's/GNU gold /GNU ld /;s/GNU ld version /GNU ld /;s/GNU ld ([^)]*) /GNU ld /;s/GNU ld \([0-9.][0-9.]*\).*/\1/; q'`
   changequote([,])
   libitm_gnu_ld_version=`echo $ldver | \
          $AWK -F. '{ if (NF<3) [$]3=0; print ([$]1*100+[$]2)*100+[$]3 }'`
@@ -242,6 +261,36 @@ AC_DEFUN([LIBITM_CHECK_LINKER_FEATURES], [
 
 
 dnl
+dnl Check if the linker used supports linker maps to clear hardware
+dnl capabilities.  This is only supported by Sun ld at the moment.
+dnl
+dnl Defines:
+dnl  HWCAP_LDFLAGS='-Wl,-M,clearcap.map' if possible
+dnl  LD (as a side effect of testing)
+dnl
+AC_DEFUN([LIBITM_CHECK_LINKER_HWCAP], [
+  test -z "$HWCAP_LDFLAGS" && HWCAP_LDFLAGS=''
+  AC_REQUIRE([AC_PROG_LD])
+
+  ac_save_LDFLAGS="$LDFLAGS"
+  LDFLAGS="$LFLAGS -Wl,-M,$srcdir/clearcap.map"
+
+  AC_MSG_CHECKING([for ld that supports -Wl,-M,mapfile])
+  AC_TRY_LINK([], [return 0;], [ac_hwcap_ldflags=yes],[ac_hwcap_ldflags=no])
+  if test "$ac_hwcap_ldflags" = "yes"; then
+    HWCAP_LDFLAGS="-Wl,-M,$srcdir/clearcap.map $HWCAP_LDFLAGS"
+  fi
+  AC_MSG_RESULT($ac_hwcap_ldflags)
+
+  LDFLAGS="$ac_save_LDFLAGS"
+
+  AC_SUBST(HWCAP_LDFLAGS)
+
+  AM_CONDITIONAL(HAVE_HWCAP, test $ac_hwcap_ldflags != no)
+])
+
+
+dnl
 dnl Add version tags to symbols in shared library (or not), additionally
 dnl marking other symbols as private/local (or not).
 dnl
@@ -258,16 +307,46 @@ AC_DEFUN([LIBITM_ENABLE_SYMVERS], [
 
 LIBITM_ENABLE(symvers,yes,[=STYLE],
   [enables symbol versioning of the shared library],
-  [permit yes|no|gnu])
+  [permit yes|no|gnu*|sun])
 
 # If we never went through the LIBITM_CHECK_LINKER_FEATURES macro, then we
 # don't know enough about $LD to do tricks...
 AC_REQUIRE([LIBITM_CHECK_LINKER_FEATURES])
-# FIXME  The following test is too strict, in theory.
-if test $enable_shared = no ||
-        test "x$LD" = x ||
-        test x$libitm_gnu_ld_version = x; then
-  enable_symvers=no
+
+# Turn a 'yes' into a suitable default.
+if test x$enable_symvers = xyes ; then
+  # FIXME  The following test is too strict, in theory.
+  if test $enable_shared = no || test "x$LD" = x; then
+    enable_symvers=no
+  else
+    if test $with_gnu_ld = yes ; then
+      enable_symvers=gnu
+    else
+      case ${target_os} in
+        # Sun symbol versioning exists since Solaris 2.5.
+        solaris2.[[5-9]]* | solaris2.1[[0-9]]*)
+          enable_symvers=sun ;;
+        *)
+          enable_symvers=no ;;
+      esac
+    fi
+  fi
+fi
+
+# Check if 'sun' was requested on non-Solaris 2 platforms.
+if test x$enable_symvers = xsun ; then
+  case ${target_os} in
+    solaris2*)
+      # All fine.
+      ;;
+    *)
+      # Unlikely to work.
+      AC_MSG_WARN([=== You have requested Sun symbol versioning, but])
+      AC_MSG_WARN([=== you are not targetting Solaris 2.])
+      AC_MSG_WARN([=== Symbol versioning will be disabled.])
+      enable_symvers=no
+      ;;
+  esac
 fi
 
 # Check to see if libgcc_s exists, indicating that shared libgcc is possible.
@@ -304,11 +383,11 @@ libitm_min_gnu_ld_version=21400
 
 # Check to see if unspecified "yes" value can win, given results above.
 # Change "yes" into either "no" or a style name.
-if test $enable_symvers = yes; then
-  if test $with_gnu_ld = yes &&
-     test $libitm_shared_libgcc = yes;
-  then
+if test $enable_symvers != no && test $libitm_shared_libgcc = yes; then
+  if test $with_gnu_ld = yes; then
     if test $libitm_gnu_ld_version -ge $libitm_min_gnu_ld_version ; then
+      enable_symvers=gnu
+    elif test $libitm_ld_is_gold = yes ; then
       enable_symvers=gnu
     else
       # The right tools, the right setup, but too old.  Fallbacks?
@@ -328,6 +407,8 @@ if test $enable_symvers = yes; then
         enable_symvers=no
       fi
     fi
+  elif test $enable_symvers = sun; then
+    : All interesting versions of Sun ld support sun style symbol versioning.
   else
     # just fail for now
     AC_MSG_WARN([=== You have requested some kind of symbol versioning, but])
@@ -339,5 +420,7 @@ if test $enable_symvers = yes; then
 fi
 
 AM_CONDITIONAL(LIBITM_BUILD_VERSIONED_SHLIB, test $enable_symvers != no)
+AM_CONDITIONAL(LIBITM_BUILD_VERSIONED_SHLIB_GNU, test $enable_symvers = gnu)
+AM_CONDITIONAL(LIBITM_BUILD_VERSIONED_SHLIB_SUN, test $enable_symvers = sun)
 AC_MSG_NOTICE(versioning on shared library symbols is $enable_symvers)
 ])

@@ -10,7 +10,7 @@ import (
 	"image/color"
 	"image/png"
 	"io/ioutil"
-	"rand"
+	"math/rand"
 	"os"
 	"testing"
 )
@@ -36,7 +36,7 @@ func delta(u0, u1 uint32) int64 {
 	return d
 }
 
-func readPng(filename string) (image.Image, os.Error) {
+func readPng(filename string) (image.Image, error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err
@@ -54,14 +54,14 @@ func TestWriter(t *testing.T) {
 			continue
 		}
 		// Encode that image as JPEG.
-		buf := bytes.NewBuffer(nil)
-		err = Encode(buf, m0, &Options{Quality: tc.quality})
+		var buf bytes.Buffer
+		err = Encode(&buf, m0, &Options{Quality: tc.quality})
 		if err != nil {
 			t.Error(tc.filename, err)
 			continue
 		}
 		// Decode that JPEG.
-		m1, err := Decode(buf)
+		m1, err := Decode(&buf)
 		if err != nil {
 			t.Error(tc.filename, err)
 			continue
@@ -105,7 +105,7 @@ func BenchmarkEncodeRGBOpaque(b *testing.B) {
 		}
 	}
 	if !img.Opaque() {
-		panic("expected image to be opaque")
+		b.Fatal("expected image to be opaque")
 	}
 	b.SetBytes(640 * 480 * 4)
 	b.StartTimer()

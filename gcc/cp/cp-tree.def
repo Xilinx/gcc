@@ -281,8 +281,9 @@ DEFTREECODE (EH_SPEC_BLOCK, "eh_spec_block", tcc_statement, 2)
 DEFTREECODE (HANDLER, "handler", tcc_statement, 2)
 
 /* A MUST_NOT_THROW_EXPR wraps an expression that may not
-   throw, and must call terminate if it does.  */
-DEFTREECODE (MUST_NOT_THROW_EXPR, "must_not_throw_expr", tcc_expression, 1)
+   throw, and must call terminate if it does.  The second argument
+   is a condition, used in templates to express noexcept (condition).  */
+DEFTREECODE (MUST_NOT_THROW_EXPR, "must_not_throw_expr", tcc_expression, 2)
 
 /* A CLEANUP_STMT marks the point at which a declaration is fully
    constructed.  The CLEANUP_EXPR is run on behalf of CLEANUP_DECL
@@ -419,7 +420,7 @@ DEFTREECODE (TYPE_PACK_EXPANSION, "type_pack_expansion", tcc_type, 0)
 
    EXPR_PACK_EXPANSION plays precisely the same role as TYPE_PACK_EXPANSION,
    but will be used for expressions.  */
-DEFTREECODE (EXPR_PACK_EXPANSION, "expr_pack_expansion", tcc_expression, 2)
+DEFTREECODE (EXPR_PACK_EXPANSION, "expr_pack_expansion", tcc_expression, 3)
 
 /* Selects the Ith parameter out of an argument pack. This node will
    be used when instantiating pack expansions; see

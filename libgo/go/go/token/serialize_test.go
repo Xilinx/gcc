@@ -6,14 +6,14 @@ package token
 
 import (
 	"bytes"
+	"encoding/gob"
 	"fmt"
-	"os"
 	"testing"
 )
 
 // equal returns nil if p and q describe the same file set;
 // otherwise it returns an error describing the discrepancy.
-func equal(p, q *FileSet) os.Error {
+func equal(p, q *FileSet) error {
 	if p == q {
 		// avoid deadlock if p == q
 		return nil
@@ -70,12 +70,18 @@ func equal(p, q *FileSet) os.Error {
 
 func checkSerialize(t *testing.T, p *FileSet) {
 	var buf bytes.Buffer
-	if err := p.Write(&buf); err != nil {
+	encode := func(x interface{}) error {
+		return gob.NewEncoder(&buf).Encode(x)
+	}
+	if err := p.Write(encode); err != nil {
 		t.Errorf("writing fileset failed: %s", err)
 		return
 	}
 	q := NewFileSet()
-	if err := q.Read(&buf); err != nil {
+	decode := func(x interface{}) error {
+		return gob.NewDecoder(&buf).Decode(x)
+	}
+	if err := q.Read(decode); err != nil {
 		t.Errorf("reading fileset failed: %s", err)
 		return
 	}

@@ -2016,7 +2016,7 @@ gfc_match_open (void)
   /* Checks on the ROUND specifier.  */
   if (open->round)
     {
-      if (gfc_notify_std (GFC_STD_F2003, "Fortran F2003: ROUND= at %C "
+      if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: ROUND= at %C "
 	  "not allowed in Fortran 95") == FAILURE)
       goto cleanup;
 
@@ -2294,6 +2294,24 @@ gfc_resolve_close (gfc_close *close)
 
   if (gfc_reference_st_label (close->err, ST_LABEL_TARGET) == FAILURE)
     return FAILURE;
+
+  if (close->unit == NULL)
+    {
+      /* Find a locus from one of the arguments to close, when UNIT is
+	 not specified.  */
+      locus loc = gfc_current_locus;
+      if (close->status)
+	loc = close->status->where;
+      else if (close->iostat)
+	loc = close->iostat->where;
+      else if (close->iomsg)
+	loc = close->iomsg->where;
+      else if (close->err)
+	loc = close->err->where;
+
+      gfc_error ("CLOSE statement at %L requires a UNIT number", &loc);
+      return FAILURE;
+    }
 
   if (close->unit->expr_type == EXPR_CONSTANT
       && close->unit->ts.type == BT_INTEGER

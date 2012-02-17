@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"log"
-	"utf8"
+	"unicode/utf8"
 )
 
 const blockSize = 64
@@ -65,11 +65,13 @@ func (n trieNode) mostFrequentStride() int {
 				counts[stride]++
 			}
 			v = t.value
+		} else {
+			v = 0
 		}
 	}
 	var maxs, maxc int
 	for stride, cnt := range counts {
-		if cnt > maxc {
+		if cnt > maxc || (cnt == maxc && stride < maxs) {
 			maxs, maxc = stride, cnt
 		}
 	}
@@ -94,9 +96,9 @@ func (n trieNode) countSparseEntries() int {
 	return count
 }
 
-func (n *trieNode) insert(rune int, value uint16) {
+func (n *trieNode) insert(r rune, value uint16) {
 	var p [utf8.UTFMax]byte
-	sz := utf8.EncodeRune(p[:], rune)
+	sz := utf8.EncodeRune(p[:], r)
 
 	for i := 0; i < sz; i++ {
 		if n.leaf {

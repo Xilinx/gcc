@@ -410,6 +410,7 @@
 	  || (GET_CODE (op) == UNSPEC
 	      && (XINT (op, 1) == UNSPEC_GOT
 		  || XINT (op, 1) == UNSPEC_GOTOFF
+		  || XINT (op, 1) == UNSPEC_PCREL
 		  || XINT (op, 1) == UNSPEC_GOTPCREL)))
 	return true;
       if (GET_CODE (op) != PLUS
@@ -808,8 +809,9 @@
        (match_operand 0 "const0_operand")))
 
 ;; Return true if op if a valid address for LEA, and does not contain
-;; a segment override.
-(define_predicate "lea_address_operand"
+;; a segment override.  Defined as a special predicate to allow
+;; mode-less const_int operands pass to address_operand.
+(define_special_predicate "lea_address_operand"
   (match_operand 0 "address_operand")
 {
   struct ix86_address parts;

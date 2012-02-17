@@ -23,11 +23,10 @@ var tests = []struct {
 	{"foobar", "0  \"foobar\""},
 
 	// maps
-	{map[string]int{"a": 1, "b": 2},
-		`0  map[string] int (len = 2) {
+	{map[string]int{"a": 1},
+		`0  map[string]int (len = 1) {
 		1  .  "a": 1
-		2  .  "b": 2
-		3  }`},
+		2  }`},
 
 	// pointers
 	{new(int), "0  *0"},
@@ -67,7 +66,7 @@ func TestPrint(t *testing.T) {
 	var buf bytes.Buffer
 	for _, test := range tests {
 		buf.Reset()
-		if _, err := Fprint(&buf, nil, test.x, nil); err != nil {
+		if err := Fprint(&buf, nil, test.x, nil); err != nil {
 			t.Errorf("Fprint failed: %s", err)
 		}
 		if s, ts := trim(buf.String()), trim(test.s); s != ts {

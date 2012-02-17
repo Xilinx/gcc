@@ -1,5 +1,5 @@
 /* Vectorizer
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Dorit Naishlos <dorit@il.ibm.com>
 
@@ -487,8 +487,8 @@ typedef struct _stmt_vec_info {
         pattern).  */
   gimple related_stmt;
 
-  /* Used to keep a def stmt of a pattern stmt if such exists.  */
-  gimple pattern_def_stmt;
+  /* Used to keep a sequence of def stmts of a pattern stmt if such exists.  */
+  gimple_seq pattern_def_seq;
 
   /* List of datarefs that are known to have the same alignment as the dataref
      of this stmt.  */
@@ -561,7 +561,7 @@ typedef struct _stmt_vec_info {
 
 #define STMT_VINFO_IN_PATTERN_P(S)         (S)->in_pattern_p
 #define STMT_VINFO_RELATED_STMT(S)         (S)->related_stmt
-#define STMT_VINFO_PATTERN_DEF_STMT(S)     (S)->pattern_def_stmt
+#define STMT_VINFO_PATTERN_DEF_SEQ(S)      (S)->pattern_def_seq
 #define STMT_VINFO_SAME_ALIGN_REFS(S)      (S)->same_align_refs
 #define STMT_VINFO_DEF_TYPE(S)             (S)->def_type
 #define STMT_VINFO_GROUP_FIRST_ELEMENT(S)  (S)->first_element
@@ -808,9 +808,11 @@ extern bool vect_can_advance_ivs_p (loop_vec_info);
 extern unsigned int current_vector_size;
 extern tree get_vectype_for_scalar_type (tree);
 extern tree get_same_sized_vectype (tree, tree);
-extern bool vect_is_simple_use (tree, loop_vec_info, bb_vec_info, gimple *,
+extern bool vect_is_simple_use (tree, gimple, loop_vec_info,
+			        bb_vec_info, gimple *,
                                 tree *,  enum vect_def_type *);
-extern bool vect_is_simple_use_1 (tree, loop_vec_info, bb_vec_info, gimple *,
+extern bool vect_is_simple_use_1 (tree, gimple, loop_vec_info,
+				  bb_vec_info, gimple *,
 				  tree *,  enum vect_def_type *, tree *);
 extern bool supportable_widening_operation (enum tree_code, gimple, tree, tree,
                                             tree *, tree *, enum tree_code *,
@@ -848,6 +850,7 @@ extern void vect_get_store_cost (struct data_reference *, int, unsigned int *);
 extern bool vect_supportable_shift (enum tree_code, tree);
 extern void vect_get_vec_defs (tree, tree, gimple, VEC (tree, heap) **,
 			       VEC (tree, heap) **, slp_tree, int);
+extern tree vect_gen_perm_mask (tree, unsigned char *);
 
 /* In tree-vect-data-refs.c.  */
 extern bool vect_can_force_dr_alignment_p (const_tree, unsigned int);
@@ -929,7 +932,7 @@ extern void vect_slp_transform_bb (basic_block);
    Additional pattern recognition functions can (and will) be added
    in the future.  */
 typedef gimple (* vect_recog_func_ptr) (VEC (gimple, heap) **, tree *, tree *);
-#define NUM_PATTERNS 9
+#define NUM_PATTERNS 10
 void vect_pattern_recog (loop_vec_info);
 
 /* In tree-vectorizer.c.  */

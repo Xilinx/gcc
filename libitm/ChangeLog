@@ -1,3 +1,419 @@
+2012-02-15  Iain Sandoe  <iains@gcc.gnu.org>
+	    Patrick Marlier  <patrick.marlier@gmail.com>
+
+	PR libitm/52220
+	* alloc_cpp.cc: No dummy definitions for darwin.
+	* eh_cpp.cc: Likewise.
+
+2012-02-14  Richard Henderson  <rth@redhat.com>
+
+	* config/x86/target.h (GTM_longjmp): Correct the .cfi corrections.
+
+2012-02-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/x86/target.h (GTM_longjmp): Correct .cfi directives.
+
+2012-02-14  Torvald Riegel  <triegel@redhat.com>
+
+	* libitm_i.h (GTM::gtm_rwlog_entry): New.
+	(GTM::gtm_thread): Add read and write logs.
+	(GTM::dispatch_ml_wt): Declare.
+	* retry.cc (parse_default_method): Support ml_wt.
+	* method-ml.cc: New file.
+	* Makefile.am: Add method-ml.cc.
+	* Makefile.in: Regenerate.
+
+2012-02-14  Torvald Riegel  <triegel@redhat.com>
+
+	* dispatch.h (GTM::abi_dispatch::supports): New.
+	(GTM::method_group::reinit): New.
+	* retry.cc (GTM::gtm_thread::decide_retry_strategy): Use reinit().
+	(GTM::gtm_thread::number_of_threads_changed): Check that the method
+	supports the current situation.
+
+2012-02-14  Torvald Riegel  <triegel@redhat.com>
+
+	* util.cc (GTM::xcalloc): New.
+	* common.h (GTM::xcalloc): Declare.
+
+2012-02-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/target.h (cpu_relax): Read from CC register.
+	* config/sparc/sjlj.S (GTM_longjmp): Restore %fp atomically.
+
+2012-02-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/x86/target.h (GTM_longjmp): Jump indirect from memory address.
+
+2012-02-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* configure.tgt (target_cpu): Handle sparc and sparc64/sparcv9.
+	* config/sparc/cacheline.h: New file.
+	* config/sparc/target.h: Likewise.
+	* config/sparc/sjlj.S: Likewise.
+	* config/linux/sparc/futex_bits.h: Likewise.
+
+2012-02-13  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* configure.ac (link_itm): Fix comment.
+	* configure: Regenerate.
+	* testsuite/lib/libitm.exp: Do not pass -litm for the link.
+
+2012-01-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libitm/51822
+	* testsuite/libitm.c++/c++.exp (lang_link_flags): Add -shared-libgcc.
+	Correct libgomp references.
+
+2012-01-24  Torvald Riegel  <triegel@redhat.com>
+
+	* config/linux/rwlock.cc (GTM::gtm_rwlock::write_unlock): Fix reader
+	wake-up.
+
+2012-01-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/x86/target.h (gtm_jmpbuf) [__x86_64__]: Move rip to the
+	end of structure.
+	* config/x86/sjlj.S (_ITM_beginTransaction) [__x86_64__]: Update
+	offset values.  Do not copy return address.  Decrement stack
+	by 56 bytes only.
+	(GTM_longjump) [__x86_64__]: Update offset values.
+
+2012-01-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR libitm/51830
+	* config/x86/sjlj.S (_ITM_beginTransaction) [!__x86_64__]: Load
+	the first function argument to %eax.
+
+2012-01-23  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* libitm.h (_ITM_getThreadnum): Remove.
+	* libitm.map (_ITM_getThreadnum): Remove from LIBITM_1.0.
+
+2012-01-23  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* clearcap.map: New file.
+	* acinclude.m4 (LIBITM_CHECK_LINKER_HWCAP): New test.
+	* configure.ac: Call it.
+	Clear HWCAP_LDFLAGS if defaulting to -mavx.
+	* Makefile.am (AM_LDFLAGS): Add $(HWCAP_LDFLAGS)
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+	* testsuite/Makefile.in: Regenerate.
+
+2012-01-17  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libitm/51173
+	* testsuite/libitm.c++/static_ctor.C: Skip test, note PR, remove
+	include, exclude options.
+
+2012-01-14  Torvald Riegel  <triegel@redhat.com>
+
+	* local.cc (GTM::gtm_undolog::rollback): Truncate undo log after
+	rolling back.
+	* containers.h (GTM::vector::set_size): New.
+
+2012-01-14  Torvald Riegel  <triegel@redhat.com>
+
+	PR libitm/51855
+	* config/generic/tls.h (GTM::mask_stack_top): New.
+	(GTM::mask_stack_bottom): Declare.
+	* config/generic/tls.c (GTM::mask_stack_bottom): New.
+	* local.cc (gtm_undolog::rollback): Filter out any updates that
+	overlap the libitm stack.  Add current transaction as parameter.
+	* libitm_i.h (GTM::gtm_undolog::rollback): Adapt.
+	* beginend.cc (GTM::gtm_thread::rollback): Adapt.
+	* testsuite/libitm.c/stackundo.c: New test.
+
+2012-01-10  Richard Henderson  <rth@redhat.com>
+
+	* libitm_i.h (_Unwind_DeleteException): Declare weak.
+	* eh_cpp.cc (_Unwind_DeleteException): Define for
+	!HAVE_ELF_STYLE_WEAKREF.
+
+2012-01-08  Torvald Riegel  <triegel@redhat.com>
+
+	* local.cc (GTM_LB): Use GTM::gtm_undolog.
+	(GTM::gtm_thread::drop_references_undolog): Remove.
+	(GTM::gtm_thread::commit_undolog,
+	GTM::gtm_thread::rollback_undolog): Move to ...
+	* libitm_i.h (GTM::gtm_undolog): ...here. New.
+	(GTM::gtm_undolog_entry): Remove.
+	(GTM::gtm_thread): Adapt.
+	* beginend.cc (GTM::gtm_thread::rollback): Adapt.
+	(GTM::gtm_thread::trycommit): Adapt.
+	* method-serial.cc (serial_dispatch::log): Adapt.
+	* method-gl.cc (gl_wt_dispatch::pre_write): Adapt.
+	(gl_wt_dispatch::store): Fix likely/unlikely.
+	* containers.h (GTM::vector::resize): Add additional_capacity
+	parameter and handle it.
+	(GTM::vector::resize_noinline): New/adapt.
+	(GTM::vector::push): New.
+
+2012-01-06  Richard Henderson  <rth@redhat.com>
+
+	* configure.tgt: Support powerpc-linux and powerpc-darwin.
+	* config/linux/powerpc/futex_bits.h: New file.
+	* config/powerpc/cacheline.h: New file.
+	* config/powerpc/sjlj.S: New file.
+	* config/powerpc/target.h: New file.
+	* config/generic/asmcfi.h (cfi_offset): New.
+	(cfi_restore, cfi_undefined): New.
+
+2012-01-05  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR other/51171
+	* testsuite/libitm.c/reentrant.c: Remove xfail.
+	(thread): Pass x to pure().
+	From Patrik Marlier <patrick.marlier@gmail.com>.
+
+2011-12-24  Torvald Riegel  <triegel@redhat.com>
+
+	* beginend.cc (GTM::gtm_thread::trycommit): Don't enforce
+	privatization safety if already in serial mode.
+
+2011-12-24  Torvald Riegel  <triegel@redhat.com>
+
+	* beginend.cc (GTM::gtm_thread::restart): Add and handle
+	finish_serial_upgrade parameter.
+	* libitm.h (GTM::gtm_thread::restart): Adapt declaration.
+	* config/linux/rwlock.cc (GTM::gtm_rwlock::write_lock_generic):
+	Don't unset reader flag.
+	(GTM::gtm_rwlock::write_upgrade_finish): New.
+	* config/posix/rwlock.cc: Same.
+	* config/linux/rwlock.h (GTM::gtm_rwlock::write_upgrade_finish):
+	Declare.
+	* config/posix/rwlock.h: Same.
+	* method-serial.cc (GTM::gtm_thread::serialirr_mode): Unset reader
+	flag after commit or after rollback when restarting.
+
+2011-12-24  Torvald Riegel  <triegel@redhat.com>
+
+	* beginend.cc (GTM::gtm_thread::begin_transaction): Add comment.
+	(GTM::gtm_thread::try_commit): Changed memory order.
+	* config/linux/alpha/futex_bits.h (sys_futex0): Take atomic int
+	as parameter.
+	* config/linux/x86/futex_bits.h (sys_futex0): Same.
+	* config/linux/sh/futex_bits.h (sys_futex0): Same.
+	* config/linux/futex_bits.h (sys_futex0): Same.
+	* config/linux/futex.cc (futex_wait, futex_wake): Same.
+	* config/linux/futex.h (futex_wait, futex_wake): Same.
+	* config/linux/rwlock.h (gtm_rwlock::writers,
+	gtm_rwlock::writer_readers, gtm_rwlock::readers): Change to atomic
+	ints.
+	* config/linux/rwlock.cc (gtm_rwlock::read_lock,
+	gtm_rwlock::write_lock_generic, gtm_rwlock::read_unlock,
+	gtm_rwlock::write_unlock): Fix memory orders and fences.
+	* config/posix/rwlock.cc (gtm_rwlock::read_lock,
+	gtm_rwlock::write_lock_generic, gtm_rwlock::read_unlock,
+	gtm_rwlock::write_unlock): Same.
+	* config/linux/rwlock.h (gtm_rwlock::summary): Change to atomic int.
+	* method-gl.cc (gl_mg::init, gl_wt_dispatch::memtransfer_static,
+	gl_wt_dispatch::memset_static, gl_wt_dispatch::begin_or_restart):
+	Add comments.
+	(gl_wt_dispatch::pre_write, gl_wt_dispatch::validate,
+	gl_wt_dispatch::load, gl_wt_dispatch::store,
+	gl_wt_dispatch::try_commit, gl_wt_dispatch::rollback): Fix memory
+	orders and fences.  Add comments.
+
+2011-12-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* Makefile.am (AM_CXXFLAGS): Put $(XCFLAGS) first.
+	* Makefile.in: Regenerated.
+
+2011-12-17  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* configure.tgt: Add sh* case.
+	* config/sh/target.h: New file.
+	* config/sh/sjlj.S: New file.
+	* config/linux/sh/futex_bits.h: New file.
+
+2011-12-14  Richard Henderson  <rth@redhat.com>
+
+	* config/arm/hwcap.h, config/arm/hwcap.cc: New files.
+	* config/arm/sjlj.S, config/arm/target.h: New files.
+	* config/generic/asmcfi.h (cfi_adjust_cfa_offset): New.
+	(cfi_rel_offset): New.
+	* config/linux/futex_bits.h: New file.
+	* config/linux/futex.cc: Include futex_bits.h here...
+	* config/linux/futex.h: ... not here.
+	* Makefile.am (libitm_la_SOURCES) <ARCH_ARM>: Add hwcap.cc.
+	* configure.ac (ARCH_AM): New conditional.
+	* Makefile.in, configure: Rebuild.
+	* configure.tgt: Handle ARM.
+
+2011-12-13  Richard Henderson  <rth@redhat.com>
+
+	* config/posix/rwlock.cc (gtm_rwlock::write_lock_generic): Fix
+	signed/unsigned comparison werror.
+
+	* local_atomic: New file.
+	* libitm_i.h: Include it.
+	(gtm_thread::shared_state): Use atomic template.
+	* beginend.cc (GTM::gtm_clock): Use atomic template.
+	(global_tid): Use atomic template if 64-bit atomics available.
+	(gtm_thread::gtm_thread): Update shared_state access.
+	(gtm_thread::trycommit): Likewise.
+	(choose_code_path): Update global_tid access.
+	* method-gl.cc (gl_mg::orec): Use atomic template.  Update all users.
+	* stmlock.h (GTM::gtm_clock): Use atomic template.
+	(gtm_get_clock, gtm_inc_clock): Update accesses.
+	* config/linux/rwlock.cc (gtm_rwlock::read_lock): Remove
+	redundant __sync_synchronize after atomic shared_state access.
+	* config/posix/rwlock.cc (gtm_rwlock::read_lock): Likewise.
+	(gtm_rwlock::write_lock_generic): Likewise.
+	(gtm_rwlock::read_unlock): Likewise.
+	* config/alpha/target.h (atomic_read_barrier): Remove.
+	(atomic_write_barrier): Remove.
+	* config/x86/target.h (atomic_read_barrier): Remove.
+	(atomic_write_barrier): Remove.
+
+2011-11-30  Richard Henderson  <rth@redhat.com>
+
+	* libitm_i.h (GTM_longjmp): Swap first and second arguments.
+	* beginend.c (_ITM_abortTransaction): Update to match.
+	(GTM::gtm_thread::restart): Likewise.
+	* config/alpha/sjlj.S (GTM_longjmp): Likewise.
+	* config/x86/sjlj.S (GTM_longjmp): Likewise.
+
+2011-11-23  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* Makefile.am (libitm_la_LDFLAGS): Remove "-no-undefined".
+	* Makefile.in: Regenerate.
+
+2011-11-22  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* configure.ac: Use GCC_CHECK_ELF_STYLE_WEAKREF.
+	* alloc_cpp.cc: Generate dummy functions if we don't
+	HAVE_ELF_STYLE_WEAKREF.
+	* eh_cpp.cc: Likewise.
+	* configure: Regenerate.
+	* aclocal.m4:  Likewise.
+	* config.h.in: Likewise.
+	* Makefile.in: Likewise.
+	* testsuite/Makefile.in: Likewise.
+
+2011-11-22  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/x86/sjlj.S (CONCAT1, CONCAT2, SYM): Respond to
+	__USER_LABEL_PREFIX__ for targets that use it.
+	(TYPE, SIZE, HIDDEN): New macros to assist on non-elf targets.
+	(_ITM_beginTransaction): Use SYM, TYPE, SIZE macros to assist
+	in portability to non-elf targets.
+	(GTM_longjmp): Likewise.
+	* libitm_i.h (begin_transaction): Apply __USER_LABEL_PREFIX__
+	where required.
+
+2011-11-22  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* testsuite/libitm.c/memcpy-1.c: Allow for MAP_ANON spelling.
+	* testsuite/libitm.c/memset-1.c: Likewise.
+
+2011-11-21  Andreas Tobler  <andreast@fgznet.ch>
+
+	* configure: Regenerate.
+
+2011-11-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* acinclude.m4 (LIBITM_CHECK_LINKER_FEATURES): Handle gold.
+	(LIBITM_ENABLE_SYMVERS): Handle sun style.
+	* Makefile.am: Handle sun style versioning.
+	(libitm_la_LINK): Add $(libitm_la_LDFLAGS).
+	* configure: Regenerate.
+	* Makefile.in: Regenerate.
+
+2011-11-18  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/generic/asmcfi.h: Fix comment.
+	* config/x86/sjlj.S (_ITM_beginTransaction): Provide ELF PIC code
+	sequence without .hidden support, error for non-ELF targets.
+	(GTM_longjmp) [__ELF__]: Only use .hidden if
+	HAVE_ATTRIBUTE_VISIBILITY.
+
+2011-11-17  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* alloc_cpp.cc [__osf__] (_ZnwX, _ZdlPv, _ZnaX, _ZdaPv,
+	_ZnwXRKSt9nothrow_t, _ZdlPvRKSt9nothrow_t, _ZdaPvRKSt9nothrow_t):
+	Dummy functions.
+	* eh_cpp.cc [__osf__] (__cxa_allocate_exception, __cxa_throw,
+	__cxa_begin_catch, __cxa_end_catch, __cxa_tm_cleanup): Likewise.
+
+2011-11-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR bootstrap/51098
+	* acinclude.m4 (LIBITM_CHECK_AS_AVX): Fix target selector.
+	* configure: Regenerate.
+
+2011-11-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/lib/libitm.exp: Check ia32 instead of ilp32.
+
+2011-11-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/alpha/sjlj.S (_ITM_beginTransaction) [!__ELF__]: Don't use
+	.hidden.
+	(.note.GNU-stack): Only use if __linux__.
+	* alloc_cpp.cc [!__osf__] (_ZnaXRKSt9nothrow_t): Dummy function.
+	* testsuite/libitm.c/notx.c: Use dg-options "-pthread".
+	* testsuite/libitm.c/reentrant.c: Likewise.
+	* testsuite/libitm.c/simple-2.c: Likewise.
+	* testsuite/libitm.c/txrelease.c: Likewise.
+	* testsuite/libitm.c++/static_ctor.C: Likewise.
+
+2011-11-10  Richard Henderson  <rth@redhat.com>
+
+	* config/x86/x86_avx.cc: Remove #undef __AVX__ hack.  Tidy comments.
+	* Makefile.am (x86_avx.lo): Only add -mavx if ARCH_X86_AVX.
+	* configure.ac (ARCH_X86_AVX): New conditional.
+	* Makefile.in, configure: Rebuild.
+
+2011-11-09  Richard Henderson  <rth@redhat.com>
+
+	* acinclude.m4 (LIBITM_CHECK_AS_AVX): New.
+	* configure.ac: Use it.
+	* config.h.in, configure: Rebuild.
+	* config/x86/x86_avx.cc: Handle !HAVE_AS_AVX.
+
+2011-11-09  Richard Henderson  <rth@redhat.com>
+
+	* barrier.tpl, memcpy.cc, memset.cc, method-wbetl.cc: Remove file.
+	* config/alpha/unaligned.h: Remove file.
+	* config/generic/unaligned.h: Remove file.
+	* config/x86/unaligned.h: Remove file.
+	* config/generic/cachepage.h: Remove file.
+	* config/posix/cachepage.cc: Remove file.
+	* config/generic/cacheline.cc: Remove file.
+	* config/x86/cacheline.cc: Remove file.
+	* config/generic/cacheline.h (gtm_cacheline): Remove the
+	store_mask, copy_mask, copy_mask_wb methods.
+	* config/x86/cacheline.h: Likewise.
+	* config/alpha/cacheline.h: Fall back to generic after setting size.
+	* config/generic/tls.cc (gtm_mask_stack): Remove.
+	* config/x86/x86_avx.cc (GTM_vpperm_shift): Remove.
+	(GTM_vpalignr_table): Remove.
+	* config/x86/x86_sse.cc (GTM_palignr_table): Remove.
+	(GTM_pshift_table): Remove.
+	* config/libitm_i.h: Don't include cachepage.h.
+	* Makefile.am (libitm_la_SOURCES): Remove cacheline.cc, cachepage.cc
+	* Makefile.in, testsuite/Makefile.in: Rebuild.
+
+2011-11-09  Richard Henderson  <rth@redhat.com>
+
+	* config/x86/cacheline.h (gtm_cacheline::store_mask): Use .byte
+	to emit branch prediction hint.
+
+	* config/x86/sjlj.S: Protect elf directives with __ELF__.
+	Protect .note.GNU-stack with __linux__.
+
+	* configure.ac (GCC_AS_CFI_PSEUDO_OP): Test it.
+	* configure, aclocal.m4, config.h.in: Rebuild.
+	* config/generic/asmcfi.h: New file.
+	* config/x86/sjlj.S: Use it.
+
+2011-11-08  Richard Henderson  <rth@redhat.com>
+
+	* local.cc (_ITM_LB): Use a normal call, not a function alias.
+
 2011-11-08  Richard Henderson  <rth@redhat.com>
 
 	* configure.tgt: Test correct directory for supported cpus.

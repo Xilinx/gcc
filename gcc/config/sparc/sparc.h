@@ -716,8 +716,7 @@ extern enum cmodel sparc_cmodel;
 
 /* Due to the ARCH64 discrepancy above we must override this next
    macro too.  */
-#define REGMODE_NATURAL_SIZE(MODE) \
-  ((TARGET_ARCH64 && FLOAT_MODE_P (MODE)) ? 4 : UNITS_PER_WORD)
+#define REGMODE_NATURAL_SIZE(MODE) sparc_regmode_natural_size (MODE)
 
 /* Value is 1 if hard register REGNO can hold a value of machine-mode MODE.
    See sparc.c for how we initialize this.  */
@@ -735,20 +734,7 @@ extern int sparc_mode_class[];
    register window instruction in the prologue.  */
 #define HARD_REGNO_RENAME_OK(FROM, TO) ((FROM) != 1)
 
-/* Value is 1 if it is a good idea to tie two pseudo registers
-   when one has mode MODE1 and one has mode MODE2.
-   If HARD_REGNO_MODE_OK could produce different values for MODE1 and MODE2,
-   for any hard reg, then this must be 0 for correct output.
-
-   For V9: SFmode can't be combined with other float modes, because they can't
-   be allocated to the %d registers.  Also, DFmode won't fit in odd %f
-   registers, but SFmode will.  */
-#define MODES_TIEABLE_P(MODE1, MODE2) \
-  ((MODE1) == (MODE2)						\
-   || (GET_MODE_CLASS (MODE1) == GET_MODE_CLASS (MODE2)		\
-       && (! TARGET_V9						\
-	   || (GET_MODE_CLASS (MODE1) != MODE_FLOAT		\
-	       || (MODE1 != SFmode && MODE2 != SFmode)))))
+#define MODES_TIEABLE_P(MODE1, MODE2) sparc_modes_tieable_p (MODE1, MODE2)
 
 /* Specify the registers used for certain standard purposes.
    The values of these macros are register numbers.  */
@@ -908,18 +894,21 @@ extern enum reg_class sparc_regno_reg_class[FIRST_PSEUDO_REGISTER];
 
 #define REGNO_REG_CLASS(REGNO) sparc_regno_reg_class[(REGNO)]
 
-/* Defines invalid mode changes.  Borrowed from pa64-regs.h.
+/* Defines invalid mode changes.  Borrowed from the PA port.
 
    SImode loads to floating-point registers are not zero-extended.
    The definition for LOAD_EXTEND_OP specifies that integer loads
    narrower than BITS_PER_WORD will be zero-extended.  As a result,
    we inhibit changes from SImode unless they are to a mode that is
-   identical in size.  */
+   identical in size.
+
+   Likewise for SFmode, since word-mode paradoxical subregs are
+   problematic on big-endian architectures.  */
 
 #define CANNOT_CHANGE_MODE_CLASS(FROM, TO, CLASS)		\
   (TARGET_ARCH64						\
-   && (FROM) == SImode						\
-   && GET_MODE_SIZE (FROM) != GET_MODE_SIZE (TO)		\
+   && GET_MODE_SIZE (FROM) == 4					\
+   && GET_MODE_SIZE (TO) != 4					\
    ? reg_classes_intersect_p (CLASS, FP_REGS) : 0)
 
 /* This is the order in which to allocate registers normally.
@@ -1769,3 +1758,8 @@ extern int sparc_indent_opcode;
 #define MASK_DEBUG_ALL			MASK_DEBUG_OPTIONS
 
 #define TARGET_DEBUG_OPTIONS		(sparc_debug & MASK_DEBUG_OPTIONS)
+
+/* By default, use the weakest memory model for the cpu.  */
+#ifndef SUBTARGET_DEFAULT_MEMORY_MODEL
+#define SUBTARGET_DEFAULT_MEMORY_MODEL	SMM_DEFAULT
+#endif

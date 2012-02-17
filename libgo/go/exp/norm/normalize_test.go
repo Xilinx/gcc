@@ -28,13 +28,13 @@ func runPosTests(t *testing.T, name string, f Form, fn positionFunc, tests []Pos
 		if pos != test.pos {
 			t.Errorf("%s:%d: position is %d; want %d", name, i, pos, test.pos)
 		}
-		runes := []int(test.buffer)
+		runes := []rune(test.buffer)
 		if rb.nrune != len(runes) {
 			t.Errorf("%s:%d: reorder buffer lenght is %d; want %d", name, i, rb.nrune, len(runes))
 			continue
 		}
 		for j, want := range runes {
-			found := int(rb.runeAt(j))
+			found := rune(rb.runeAt(j))
 			if found != want {
 				t.Errorf("%s:%d: rune at %d is %U; want %U", name, i, j, found, want)
 			}
@@ -253,7 +253,7 @@ var quickSpanNFDTests = []PositionTest{
 	{"\u0316\u0300cd", 6, ""},
 	{"\u043E\u0308b", 5, ""},
 	// incorrectly ordered combining characters
-	{"ab\u0300\u0316", 1, ""}, // TODO(mpvl): we could skip 'b' as well.
+	{"ab\u0300\u0316", 1, ""}, // TODO: we could skip 'b' as well.
 	{"ab\u0300\u0316cd", 1, ""},
 	// Hangul
 	{"같은", 0, ""},
@@ -385,8 +385,8 @@ func runAppendTests(t *testing.T, name string, f Form, fn appendFunc, tests []Ap
 		}
 		if outs != test.out {
 			// Find first rune that differs and show context.
-			ir := []int(outs)
-			ig := []int(test.out)
+			ir := []rune(outs)
+			ig := []rune(test.out)
 			for j := 0; j < len(ir) && j < len(ig); j++ {
 				if ir[j] == ig[j] {
 					continue
@@ -465,6 +465,7 @@ var appendTests = []AppendTest{
 	{"\u0300", "\xFC\x80\x80\x80\x80\x80\u0300", "\u0300\xFC\x80\x80\x80\x80\x80\u0300"},
 	{"\xF8\x80\x80\x80\x80\u0300", "\u0300", "\xF8\x80\x80\x80\x80\u0300\u0300"},
 	{"\xFC\x80\x80\x80\x80\x80\u0300", "\u0300", "\xFC\x80\x80\x80\x80\x80\u0300\u0300"},
+	{"\xF8\x80\x80\x80", "\x80\u0300\u0300", "\xF8\x80\x80\x80\x80\u0300\u0300"},
 }
 
 func appendF(f Form, out []byte, s string) []byte {
@@ -475,16 +476,30 @@ func appendStringF(f Form, out []byte, s string) []byte {
 	return f.AppendString(out, s)
 }
 
+func bytesF(f Form, out []byte, s string) []byte {
+	buf := []byte{}
+	buf = append(buf, out...)
+	buf = append(buf, s...)
+	return f.Bytes(buf)
+}
+
+func stringF(f Form, out []byte, s string) []byte {
+	outs := string(out) + s
+	return []byte(f.String(outs))
+}
+
 func TestAppend(t *testing.T) {
 	runAppendTests(t, "TestAppend", NFKC, appendF, appendTests)
 	runAppendTests(t, "TestAppendString", NFKC, appendStringF, appendTests)
+	runAppendTests(t, "TestBytes", NFKC, bytesF, appendTests)
+	runAppendTests(t, "TestString", NFKC, stringF, appendTests)
 }
 
-func doFormBenchmark(b *testing.B, f Form, s string) {
+func doFormBenchmark(b *testing.B, inf, f Form, s string) {
 	b.StopTimer()
-	in := []byte(s)
+	in := inf.Bytes([]byte(s))
 	buf := make([]byte, 2*len(in))
-	b.SetBytes(int64(len(s)))
+	b.SetBytes(int64(len(in)))
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		buf = f.Append(buf[0:0], in...)
@@ -495,16 +510,43 @@ func doFormBenchmark(b *testing.B, f Form, s string) {
 var ascii = strings.Repeat("There is nothing to change here! ", 500)
 
 func BenchmarkNormalizeAsciiNFC(b *testing.B) {
-	doFormBenchmark(b, NFC, ascii)
+	doFormBenchmark(b, NFC, NFC, ascii)
 }
 func BenchmarkNormalizeAsciiNFD(b *testing.B) {
-	doFormBenchmark(b, NFD, ascii)
+	doFormBenchmark(b, NFC, NFD, ascii)
 }
 func BenchmarkNormalizeAsciiNFKC(b *testing.B) {
-	doFormBenchmark(b, NFKC, ascii)
+	doFormBenchmark(b, NFC, NFKC, ascii)
 }
 func BenchmarkNormalizeAsciiNFKD(b *testing.B) {
-	doFormBenchmark(b, NFKD, ascii)
+	doFormBenchmark(b, NFC, NFKD, ascii)
+}
+
+func BenchmarkNormalizeNFC2NFC(b *testing.B) {
+	doFormBenchmark(b, NFC, NFC, txt_all)
+}
+func BenchmarkNormalizeNFC2NFD(b *testing.B) {
+	doFormBenchmark(b, NFC, NFD, txt_all)
+}
+func BenchmarkNormalizeNFD2NFC(b *testing.B) {
+	doFormBenchmark(b, NFD, NFC, txt_all)
+}
+func BenchmarkNormalizeNFD2NFD(b *testing.B) {
+	doFormBenchmark(b, NFD, NFD, txt_all)
+}
+
+// Hangul is often special-cased, so we test it separately.
+func BenchmarkNormalizeHangulNFC2NFC(b *testing.B) {
+	doFormBenchmark(b, NFC, NFC, txt_kr)
+}
+func BenchmarkNormalizeHangulNFC2NFD(b *testing.B) {
+	doFormBenchmark(b, NFC, NFD, txt_kr)
+}
+func BenchmarkNormalizeHangulNFD2NFC(b *testing.B) {
+	doFormBenchmark(b, NFD, NFC, txt_kr)
+}
+func BenchmarkNormalizeHangulNFD2NFD(b *testing.B) {
+	doFormBenchmark(b, NFD, NFD, txt_kr)
 }
 
 func doTextBenchmark(b *testing.B, s string) {
@@ -642,3 +684,6 @@ const txt_cn = `您可以自由： 复制、发行、展览、表演、放映、
 署名 — 您必须按照作者或者许可人指定的方式对作品进行署名。
 相同方式共享 — 如果您改变、转换本作品或者以本作品为基础进行创作，
 您只能采用与本协议相同的许可协议发布基于本作品的演绎作品。`
+
+const txt_cjk = txt_cn + txt_jp + txt_kr
+const txt_all = txt_vn + twoByteUtf8 + threeByteUtf8 + txt_cjk

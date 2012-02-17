@@ -4,17 +4,14 @@
 
 package des
 
-import (
-	"os"
-	"strconv"
-)
+import "strconv"
 
 // The DES block size in bytes.
 const BlockSize = 8
 
 type KeySizeError int
 
-func (k KeySizeError) String() string {
+func (k KeySizeError) Error() string {
 	return "crypto/des: invalid key size " + strconv.Itoa(int(k))
 }
 
@@ -24,7 +21,7 @@ type Cipher struct {
 }
 
 // NewCipher creates and returns a new Cipher.
-func NewCipher(key []byte) (*Cipher, os.Error) {
+func NewCipher(key []byte) (*Cipher, error) {
 	if len(key) != 8 {
 		return nil, KeySizeError(len(key))
 	}
@@ -37,13 +34,13 @@ func NewCipher(key []byte) (*Cipher, os.Error) {
 // BlockSize returns the DES block size, 8 bytes.
 func (c *Cipher) BlockSize() int { return BlockSize }
 
-// Encrypts the 8-byte buffer src and stores the result in dst.
+// Encrypt encrypts the 8-byte buffer src and stores the result in dst.
 // Note that for amounts of data larger than a block,
 // it is not safe to just call Encrypt on successive blocks;
 // instead, use an encryption mode like CBC (see crypto/cipher/cbc.go).
 func (c *Cipher) Encrypt(dst, src []byte) { encryptBlock(c.subkeys[:], dst, src) }
 
-// Decrypts the 8-byte buffer src and stores the result in dst.
+// Decrypt decrypts the 8-byte buffer src and stores the result in dst.
 func (c *Cipher) Decrypt(dst, src []byte) { decryptBlock(c.subkeys[:], dst, src) }
 
 // Reset zeros the key data, so that it will no longer
@@ -60,7 +57,7 @@ type TripleDESCipher struct {
 }
 
 // NewCipher creates and returns a new Cipher.
-func NewTripleDESCipher(key []byte) (*TripleDESCipher, os.Error) {
+func NewTripleDESCipher(key []byte) (*TripleDESCipher, error) {
 	if len(key) != 24 {
 		return nil, KeySizeError(len(key))
 	}

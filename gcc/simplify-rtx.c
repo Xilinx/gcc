@@ -2953,7 +2953,7 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
 		}
 	    }
 	}
-      else
+      else if (SCALAR_INT_MODE_P (mode))
 	{
 	  /* 0/x is 0 (or x&0 if x has side-effects).  */
 	  if (trueop0 == CONST0_RTX (mode)
@@ -3947,7 +3947,7 @@ simplify_plus_minus (enum rtx_code code, enum machine_mode mode, rtx op0,
 	      /* ~a -> (-a - 1) */
 	      if (n_ops != 7)
 		{
-		  ops[n_ops].op = constm1_rtx;
+		  ops[n_ops].op = CONSTM1_RTX (mode);
 		  ops[n_ops++].neg = this_neg;
 		  ops[i].op = XEXP (this_op, 0);
 		  ops[i].neg = !this_neg;

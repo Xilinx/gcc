@@ -12,7 +12,7 @@
 #	  This includes return parameters.
 #	* The parameter lists must give a type for each argument:
 #	   the (x, y, z int) shorthand is not allowed.
-#	* If the return parameter is an error number, it must be named errno.
+#	* If the return parameter is an error, it must be named err.
 
 # A line beginning with //sysnb is like //sys, except that the
 # goroutine will not be suspended during the execution of the library
@@ -96,15 +96,11 @@ BEGIN {
     cfnresult = line
 
     printf("// Automatically generated wrapper for %s/%s\n", gofnname, cfnname)
-    printf("func c_%s(%s) %s%s__asm__(\"%s\")\n",
-	   cfnname, cfnparams, cfnresult, cfnresult == "" ? "" : " ", cfnname)
+    printf("//extern %s\n", cfnname)
+    printf("func c_%s(%s) %s\n", cfnname, cfnparams, cfnresult)
     printf("func %s(%s) %s%s%s%s{\n",
 	   gofnname, gofnparams, gofnresults == "" ? "" : "(", gofnresults,
 	   gofnresults == "" ? "" : ")", gofnresults == "" ? "" : " ")
-
-    if (blocking) {
-	print "\tentersyscall()"
-    }
 
     loc = gofnname "/" cfnname ":"
 
@@ -151,7 +147,8 @@ BEGIN {
 		status = 1
 		next
 	    }
-	    args = args "StringBytePtr(" goname ")"
+	    printf("\t_p%d := StringBytePtr(%s)\n", goarg, goname)
+	    args = sprintf("%s_p%d", args, goarg)
 	} else if (gotype ~ /^\[\](.*)/) {
 	    if (ctype !~ /^\*/ || cargs[carg + 1] == "") {
 		print loc, "bad C type for slice:", gotype, ctype | "cat 1>&2"
@@ -192,6 +189,10 @@ BEGIN {
 	next
     }
 
+    if (blocking) {
+	print "\tentersyscall()"
+    }
+
     printf("\t")
     if (gofnresults != "") {
 	printf("_r := ")
@@ -216,13 +217,13 @@ BEGIN {
 	    goname = goparam[1]
 	    gotype = goparam[2]
 
-	    if (goname == "errno") {
+	    if (goname == "err") {
 		if (cfnresult ~ /^\*/) {
 		    print "\tif _r == nil {"
 		} else {
 		    print "\tif _r < 0 {"
 		}
-		print "\t\terrno = GetErrno()"
+		print "\t\terr = GetErrno()"
 		print "\t}"
 	    } else if (gotype == "uintptr" && cfnresult ~ /^\*/) {
 		printf("\t%s = (%s)(unsafe.Pointer(_r))\n", goname, gotype)

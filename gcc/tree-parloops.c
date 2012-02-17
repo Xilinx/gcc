@@ -1,5 +1,5 @@
 /* Loop autoparallelization.
-   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr> and
    Zdenek Dvorak <dvorakz@suse.cz>.
@@ -387,8 +387,14 @@ loop_parallel_p (struct loop *loop, struct obstack * parloop_obstack)
   datarefs = VEC_alloc (data_reference_p, heap, 10);
   dependence_relations = VEC_alloc (ddr_p, heap, 10 * 10);
   loop_nest = VEC_alloc (loop_p, heap, 3);
-  compute_data_dependences_for_loop (loop, true, &loop_nest, &datarefs,
-				     &dependence_relations);
+  if (! compute_data_dependences_for_loop (loop, true, &loop_nest, &datarefs,
+					   &dependence_relations))
+    {
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	fprintf (dump_file, "  FAILED: cannot analyze data dependencies\n");
+      ret = false;
+      goto end;
+    }
   if (dump_file && (dump_flags & TDF_DETAILS))
     dump_data_dependence_relations (dump_file, dependence_relations);
 
@@ -405,6 +411,7 @@ loop_parallel_p (struct loop *loop, struct obstack * parloop_obstack)
     fprintf (dump_file,
 	     "  FAILED: data dependencies exist across iterations\n");
 
+ end:
   VEC_free (loop_p, heap, loop_nest);
   free_dependence_relations (dependence_relations);
   free_data_refs (datarefs);
@@ -2176,7 +2183,10 @@ parallelize_loops (void)
 	  || loop_has_blocks_with_irreducible_flag (loop)
 	  || (loop_preheader_edge (loop)->src->flags & BB_IRREDUCIBLE_LOOP)
 	  /* FIXME: the check for vector phi nodes could be removed.  */
-	  || loop_has_vector_phi_nodes (loop))
+	  || loop_has_vector_phi_nodes (loop)
+	  /* FIXME: transform_to_exit_first_loop does not handle not
+	     header-copied loops correctly - see PR46886.  */
+	  || !do_while_loop_p (loop))
 	continue;
       estimated = max_stmt_executions_int (loop, false);
       /* FIXME: Bypass this check as graphite doesn't update the

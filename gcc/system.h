@@ -47,9 +47,14 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 
 /* Use the unlocked open routines from libiberty.  */
-#ifdef fopen /* fopen is a #define on VMS.  */
-#undef fopen
-#endif
+
+/* Some of these are #define on some systems, e.g. on AIX to redirect
+   the names to 64bit capable functions for LARGE_FILES support. These
+   redefs are pointless here so we can override them.  */
+
+#undef fopen 
+#undef freopen 
+
 #define fopen(PATH,MODE) fopen_unlocked(PATH,MODE)
 #define fdopen(FILDES,MODE) fdopen_unlocked(FILDES,MODE)
 #define freopen(PATH,MODE,STREAM) freopen_unlocked(PATH,MODE,STREAM)
@@ -442,6 +447,10 @@ extern void *sbrk (int);
 extern char *strstr (const char *, const char *);
 #endif
 
+#if defined (HAVE_DECL_STPCPY) && !HAVE_DECL_STPCPY
+extern char *stpcpy (char *, const char *);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
@@ -798,7 +807,7 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	LABEL_ALIGN_AFTER_BARRIER_MAX_SKIP JUMP_ALIGN_MAX_SKIP 		\
 	CAN_DEBUG_WITHOUT_FP UNLIKELY_EXECUTED_TEXT_SECTION_NAME	\
 	HOT_TEXT_SECTION_NAME LEGITIMATE_CONSTANT_P ALWAYS_STRIP_DOTDOT	\
-	OUTPUT_ADDR_CONST_EXTRA
+	OUTPUT_ADDR_CONST_EXTRA SMALL_REGISTER_CLASSES
 
 /* Target macros only used for code built for the target, that have
    moved to libgcc-tm.h or have never been present elsewhere.  */

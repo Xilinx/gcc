@@ -22,8 +22,8 @@ type Regexp struct {
 	Flags    Flags
 	Sub      []*Regexp  // subexpressions, if any
 	Sub0     [1]*Regexp // storage for short Sub
-	Rune     []int      // matched runes, for OpLiteral, OpCharClass
-	Rune0    [2]int     // storage for short Rune
+	Rune     []rune     // matched runes, for OpLiteral, OpCharClass
+	Rune0    [2]rune    // storage for short Rune
 	Min, Max int        // min, max for OpRepeat
 	Cap      int        // capturing index, for OpCapture
 	Name     string     // capturing name, for OpCapture
@@ -252,7 +252,7 @@ func (re *Regexp) String() string {
 
 const meta = `\.+*?()|[]{}^$`
 
-func escape(b *bytes.Buffer, r int, force bool) {
+func escape(b *bytes.Buffer, r rune, force bool) {
 	if unicode.IsPrint(r) {
 		if strings.IndexRune(meta, r) >= 0 || force {
 			b.WriteRune('\\')
@@ -277,7 +277,7 @@ func escape(b *bytes.Buffer, r int, force bool) {
 	default:
 		if r < 0x100 {
 			b.WriteString(`\x`)
-			s := strconv.Itob(r, 16)
+			s := strconv.FormatInt(int64(r), 16)
 			if len(s) == 1 {
 				b.WriteRune('0')
 			}
@@ -285,7 +285,7 @@ func escape(b *bytes.Buffer, r int, force bool) {
 			break
 		}
 		b.WriteString(`\x{`)
-		b.WriteString(strconv.Itob(r, 16))
+		b.WriteString(strconv.FormatInt(int64(r), 16))
 		b.WriteString(`}`)
 	}
 }
@@ -302,4 +302,20 @@ func (re *Regexp) MaxCap() int {
 		}
 	}
 	return m
+}
+
+// CapNames walks the regexp to find the names of capturing groups.
+func (re *Regexp) CapNames() []string {
+	names := make([]string, re.MaxCap()+1)
+	re.capNames(names)
+	return names
+}
+
+func (re *Regexp) capNames(names []string) {
+	if re.Op == OpCapture {
+		names[re.Cap] = re.Name
+	}
+	for _, sub := range re.Sub {
+		sub.capNames(names)
+	}
 }

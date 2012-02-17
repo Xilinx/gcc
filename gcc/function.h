@@ -87,10 +87,13 @@ struct GTY(()) emit_status {
 };
 
 
-/* Indexed by pseudo register number, gives the rtx for that pseudo.
-   Allocated in parallel with regno_pointer_align.
-   FIXME: We could put it into emit_status struct, but gengtype is not able to deal
-   with length attribute nested in top level structures.  */
+/* Indexed by register number, gives an rtx for that register (and only
+   that register).  For pseudo registers, it is the unique rtx for
+   that pseudo.  For hard registers, it is an rtx of the mode specified
+   by reg_raw_mode.
+
+   FIXME: We could put it into emit_status struct, but gengtype is not
+   able to deal with length attribute nested in top level structures.  */
 
 extern GTY ((length ("crtl->emit.x_reg_rtx_no"))) rtx * regno_reg_rtx;
 
@@ -752,6 +755,10 @@ extern void used_types_insert (tree);
 
 extern int get_next_funcdef_no (void);
 extern int get_last_funcdef_no (void);
+
+#ifdef HAVE_simple_return
+extern bool requires_stack_frame_p (rtx, HARD_REG_SET, HARD_REG_SET);
+#endif                        
 
 /* In predict.c */
 extern bool optimize_function_for_size_p (struct function *);

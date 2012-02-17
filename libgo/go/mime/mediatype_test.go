@@ -249,7 +249,28 @@ func TestParseMediaTypeBogus(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected an error parsing invalid media type; got type %q, params %#v", mt, params)
 	}
-	if err.String() != "mime: invalid media parameter" {
+	if err.Error() != "mime: invalid media parameter" {
 		t.Errorf("expected invalid media parameter; got error %q", err)
+	}
+}
+
+type formatTest struct {
+	typ    string
+	params map[string]string
+	want   string
+}
+
+var formatTests = []formatTest{
+	{"noslash", nil, ""},
+	{"foo/BAR", nil, "foo/bar"},
+	{"foo/BAR", map[string]string{"X": "Y"}, "foo/bar; x=Y"},
+}
+
+func TestFormatMediaType(t *testing.T) {
+	for i, tt := range formatTests {
+		got := FormatMediaType(tt.typ, tt.params)
+		if got != tt.want {
+			t.Errorf("%d. FormatMediaType(%q, %v) = %q; want %q", i, tt.typ, tt.params, got, tt.want)
+		}
 	}
 }
