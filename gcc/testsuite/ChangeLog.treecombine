@@ -1,5 +1,9 @@
 2012-02-16  Andrew Pinski  <apinski@cavium.com>
 
+	* gcc.dg/tree-ssa/pr21031.c: Fix testcase for the updated forwprop.
+
+2012-02-16  Andrew Pinski  <apinski@cavium.com>
+
 	* gcc.dg/tree-ssa/forwprop-19.c: New testcase.
 
 2012-02-14  Andrew Pinski  <apinski@cavium.com>
