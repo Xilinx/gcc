@@ -1,3 +1,36 @@
+2012-02-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR translation/52232
+	PR translation/52234
+	PR translation/52245
+	PR translation/52246
+	PR translation/52262
+	PR translation/52273
+	* gfortran.dg/coarray_22.f90: Update dg-error.
+	* gfortran.dg/allocate_alloc_opt_4.f90: Ditto.
+
+2012-02-17  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/51753
+	* lib/gcc-simulate-thread.exp: Load timeout.exp.
+	(simulate-thread): Use default timeout.
+
+2012-02-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/52248
+	* g++.dg/ext/timevar1.C: New.
+
+2012-02-16  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/52126
+	* g++.dg/template/using21.C: New.
+	* g++.dg/template/using22.C: Likewise.
+
+2012-02-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51415
+	* g++.dg/cpp0x/lambda/lambda-err1.C: New.
+
 2012-02-16  Jakub Jelinek  <jakub@redhat.com>
 
 	PR tree-optimization/52255

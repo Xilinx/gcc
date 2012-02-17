@@ -729,7 +729,7 @@ AC_DEFUN([GLIBCXX_EXPORT_FLAGS], [
   # OPTIMIZE_CXXFLAGS = -O3 -fstrict-aliasing -fvtable-gc
   AC_SUBST(OPTIMIZE_CXXFLAGS)
 
-  WARN_FLAGS='-Wall -Wextra -Wwrite-strings -Wcast-qual'
+  WARN_FLAGS='-Wall -Wextra -Wwrite-strings -Wcast-qual -Wabi'
   AC_SUBST(WARN_FLAGS)
 ])
 
@@ -3328,7 +3328,14 @@ dnl Check if gthread implementation defines the types and functions
 dnl required by the c++0x thread library.  Conforming gthread
 dnl implementations can define __GTHREADS_CXX0X to enable use with c++0x.
 dnl
+dnl GLIBCXX_ENABLE_SYMVERS must be done before this.
+dnl
 AC_DEFUN([GLIBCXX_CHECK_GTHREADS], [
+  GLIBCXX_ENABLE(libstdcxx-threads,auto,,[enable C++11 threads support])
+
+  if test x$enable_libstdcxx_threads = xauto || 
+     test x$enable_libstdcxx_threads = xyes; then
+
   AC_LANG_SAVE
   AC_LANG_CPLUSPLUS
 
@@ -3367,7 +3374,28 @@ AC_DEFUN([GLIBCXX_CHECK_GTHREADS], [
       #ifndef __GTHREADS_CXX0X
       #error
       #endif
-    ], [ac_has_gthreads=yes], [ac_has_gthreads=no])
+    ], [case $target_os in
+	  # gthreads support breaks symbol versioning on Solaris 8/9 (PR
+	  # libstdc++/52189).
+          solaris2.[[89]]*)
+	    if test x$enable_symvers = xno; then
+	      ac_has_gthreads=yes
+	    elif test x$enable_libstdcxx_threads = xyes; then
+	      AC_MSG_WARN([You have requested C++11 threads support, but])
+	      AC_MSG_WARN([this breaks symbol versioning.])
+	      ac_has_gthreads=yes
+	    else
+	      ac_has_gthreads=no
+	    fi
+	    ;;
+	  *)
+	    ac_has_gthreads=yes
+	    ;;
+        esac],
+       [ac_has_gthreads=no])
+  else
+    ac_has_gthreads=no
+  fi
 
   AC_MSG_RESULT([$ac_has_gthreads])
 
@@ -3561,6 +3589,17 @@ AC_MSG_RESULT(${with_python_dir})
 python_mod_dir="${with_python_dir}"
 AC_SUBST(python_mod_dir)
 GLIBCXX_CONDITIONAL(ENABLE_PYTHONDIR, test $python_mod_dir != no)
+])
+
+dnl
+dnl Check to see if -Werror is disabled.
+dnl
+dnl --enable-werror/--disable-werror
+AC_DEFUN([GLIBCXX_ENABLE_WERROR], [
+  AC_MSG_CHECKING([for -Werror])
+  GLIBCXX_ENABLE(werror,$1,,[turns on -Werror])
+  AC_MSG_RESULT($enable_werror)
+  GLIBCXX_CONDITIONAL(ENABLE_WERROR, test $enable_werror = yes)
 ])
 
 

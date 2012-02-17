@@ -1,3 +1,134 @@
+2012-02-17  Ed Schonberg  <schonberg@adacore.com>
+
+	* exp_ch6.adb (Legal_Copy): If layout is not
+	determined in the front-end, do not emit error message when
+	by-reference actual is potentially unaligned.
+	* gcc-interface/decl.c (gnat_to_gnu_field): Better error message for
+	illegal representation clause on tagged or aliased component, or on
+	by-reference type with forced alignment.
+
+2012-02-17  Nicolas Roche  <roche@adacore.com>
+
+	* gcc-interface/Makefile.in: Ensure FORCE_DEBUG_ADAFLAGS variables is
+	propagated by gnatlib-sjlj and gnatlib-zcx targets.
+	* gcc-interface/Make-lang.in: Update dependencies.
+
+2012-02-17  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_ch12.adb (Analyze_Package_Instantiation): For an
+	instantiation in an RCI library unit, omit the instance body
+	if the RCI library unit is the instance itself (E.2.3(18)),
+	but include the body if the instantiation is within the RCI
+	declaration (12.3(12)).
+
+2012-02-17  Steve Baird  <baird@adacore.com>
+
+	* sem_prag.adb (Analyze_PPC_In_Decl_Part): Pre'Class and
+	Post'Class aspects can only be specified for a primitive operation
+	of a tagged type.
+
+2012-02-17  Yannick Moy  <moy@adacore.com>
+
+	* gnat_rm.texi: Minor shuffling.
+
+2012-02-17  Ed Schonberg  <schonberg@adacore.com>
+
+	* aspects.adb: Expression functions can carry pre/postconditions.
+	* par-ch6.adb (P_Subprogram): look for optional pre/postconditions
+	in an expression function.
+	* sem_prag (Check_Precondition_Postcondition): legal on expression
+	functions.
+
+2012-02-17  Vincent Pucci  <pucci@adacore.com>
+
+	* a-cdlili.adb, a-cidlli.adb, a-cihama.adb, a-cimutr.adb,
+	* a-ciorma.adb, a-cohama.adb, a-coinve.adb, a-comutr.adb,
+	* a-convec.adb, a-coorma.adb (Adjust): New routine.
+	(Constant_Reference): Increment Busy and Lock counters.
+	(Reference): Increase Busy and Lock counters.
+	(Finalize): New routine.
+	* a-cihase.adb, a-ciorse.adb, a-cohase.adb, a-coorse.adb:
+	(Adjust): New routine.	(Constant_Reference): Increment Busy
+	and Lock counters.
+	(Finalize): New routine.
+	* a-cdlili.ads, a-cidlli.ads, a-cihama.ads, a-cihase.ads,
+	* a-cimutr.ads, a-ciorma.ads, a-ciorse.ads, a-cohama.ads,
+	* a-cohase.ads, a-coinve.ads, a-comutr.ads, a-convec.ads,
+	* a-coorma.ads, a-coorse: Controlled component added to the
+	reference types.
+
+2012-02-17  Robert Dewar  <dewar@adacore.com>
+
+	* restrict.adb (Check_Restriction): Add special handling for
+	No_Obsolescent_Features.
+
+2012-02-17  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_util.adb (Find_Finalize_Address): When dealing with an
+	internally built full view for a type with unknown discriminants,
+	use the original record type.
+
+2012-02-17  Robert Dewar  <dewar@adacore.com>
+
+	* sem_dim.adb: Minor reformatting.
+
+2012-02-17  Yannick Moy  <moy@adacore.com>
+
+	* gnat_rm.texi: Minor rewording.
+
+2012-02-17  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_aggr.adb: Minor reformatting.
+
+2012-02-17  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_ugn.texi: Update doc for -gnatw.m to include 2*x case.
+
+2012-02-17  Vincent Pucci  <pucci@adacore.com>
+
+	* sem_dim.adb (Is_Dim_IO_Package_Entity): New routine.
+	(Is_Dim_IO_Package_Instantiation): Is_Dim_IO_Package_Entity
+	call added.
+	(Is_Procedure_Put_Call): Is_Dim_IO_Package_Entity
+	call added.
+	* s-dim.ads: Make package Pure.
+
+2012-02-17  Gary Dismukes  <dismukes@adacore.com>
+
+	* prj-nmsc.adb: Minor reformatting.
+
+2012-02-17  Yannick Moy  <moy@adacore.com>
+
+	* gnat_rm.texi: Update GNAT RM with a separate chapter on restrictions.
+
+2012-02-17  Yannick Moy  <moy@adacore.com>
+
+	* gnat_ugn.texi: Fix typos.
+
+2012-02-17  Pascal Obry  <obry@adacore.com>
+
+	* prj-nmsc.adb: prj-nmsc.adb (Check_Aggregated): Check that an
+	aggregate is not Externally_Built.
+
+2012-02-17  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_aggr.adb (Resolve_Record_Aggregate): If a composite
+	component has a box association, copy the default value using
+	the current scope as the scope of internal types, to prevent
+	scoping anomalies in gigi.
+
+2012-02-17  Robert Dewar  <dewar@adacore.com>
+
+	* sem_dim.adb, sem_dim.ads, s-tasren.adb, prj.adb, prj.ads, freeze.adb,
+	sem_res.adb, exp_ch4.adb, sinput.adb, sinput.ads, exp_aggr.adb,
+	exp_intr.adb, s-os_lib.adb: Minor reformatting.
+
+2012-02-17  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Is_Non_Overriding_Operation): Add warning if the
+	old operation is abstract, the relevant type is not abstract,
+	and the new subprogram fails to override.
+
 2012-02-15  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc-interface/trans.c (Identifier_to_gnu): Move block retrieving the

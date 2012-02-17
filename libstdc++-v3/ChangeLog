@@ -1,3 +1,33 @@
+2012-02-17  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/47058
+	* acinclude.m4 (GLIBCXX_ENABLE_WERROR): New.
+	(GLIBCXX_EXPORT_FLAGS): Add -Wabi to WARN_FLAGS
+	* configure.ac: Use it.
+	* fragment.am: Set WERROR_FLAG conditionally on --disable-werror.
+	* configure: Regenerate.
+	* python/Makefile.in: Same.
+	* Makefile.in: Same.
+	* doc/Makefile.in: Same.
+	* include/Makefile.in: Same.
+	* po/Makefile.in: Same.
+	* python/Makefile.in: Same.
+	* src/Makefile.in: Same.
+	* src/c++11/Makefile.in: Same.
+	* src/c++98/Makefile.in: Same.
+	* testsuite/Makefile.in: Same.
+
+2012-02-17  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libstdc++/52189
+	* acinclude.m4 (GLIBCXX_CHECK_GTHREADS): Handle
+	--enable-libstdcxx-threads.
+	Disable on Solaris 8/9 with symbol versioning.
+	* configure.ac (GLIBCXX_CHECK_GTHREADS): Move after
+	GLIBCXX_ENABLE_SYMVERS.
+	* configure: Regenerate.
+	* doc/xml/manual/configure.xml (--enable-libstdcxx-threads): Explain.
+
 2012-02-15  DJ Delorie  <dj@redhat.com>
 
 	* src/c++98/locale.cc (locale::facet::_S_get_c_locale): Fix typo.
