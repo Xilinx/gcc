@@ -1,10 +1,26 @@
 2012-02-17  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (valid_simple_gimple): New function.
+	(build_simple_gimple): New function.
+	(extract_simple_gimple): New function.
+	(defcodefor_name): Set *code, *arg1, *arg2 even if there
+	is no definition.
+	(simplify_bitwise_binary): Return tree type and split out to ...
+	(simplify_bitwise_binary_2): This. Instead of updating the statement,
+	return a tree which contains the simplified expression.
+	Also call simplify_bitwise_binary_3 if we want to do some recursion.
+	(simplify_bitwise_binary_3): New function.
+	(ssa_combine): Handle simplify_bitwise_binary returning a tree.
+	Expanding the tree if needed.
+
+2012-02-17  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-forwprop.c (delete_dead_code_uptil): Take a
 	gimple_stmt_iterator instead.  Reverse the order
 	of the statement walk and start at the previous
 	instruction of UNTIL instead.
-	(ssa_forward_propagate_and_combine): Update call to delete_dead_code_uptil
+	(ssa_forward_propagate_and_combine): Update call to
+	delete_dead_code_uptil.
 
 2012-02-16  Andrew Pinski  <apinski@cavium.com>
 
