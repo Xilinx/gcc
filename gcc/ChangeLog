@@ -1,3 +1,297 @@
+2012-02-16  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi: Clean up "that"/"which" confusion.
+
+2012-02-17  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* system.h: Poison SMALL_REGISTER_CLASSES
+	* config/rl78/rl78.h: Replace SMALL_REGISTER_CLASSES with hook.
+	* config/rx/rx.h: Remove SMALL_REGISTER_CLASSES.
+
+2012-02-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/52285
+	* tree-tailcall.c (find_tail_calls): Ignore gimple_clobber_p stmts
+	when deciding if a call is a tail call or tail recursion.
+
+2012-02-16  Kai Tietz  <ktietz@redhat.com>
+
+	* config/i386/i386.c (legitimate_pic_address_disp_p): Allow
+	interger-constant displacement for UNSPEC_PCREL.
+
+2012-02-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/52208
+	* ira-costs.c (scan_one_insn): Don't decrease mem_cost
+	for MEMs with REG_EQUIV, if the MEM isn't general_operand.
+
+	PR tree-optimization/52255
+	* tree-vect-loop-manip.c (slpeel_tree_peel_loop_to_edge): If
+	loop->header has virtual PHI, but exit_e->dest doesn't, add
+	virtual PHI to exit_e->dest and adjust all uses after the loop.
+
+	PR debug/52260
+	* dwarf2out.c (copy_decls_walk): Fill in *slot before traversing
+	children with clone_tree_hash, not after it.
+
+2012-02-16  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/darwin.h (ASM_OUTPUT_LABELREF): Add user label prefix for
+	extended identifiers.
+
+2012-02-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/51929
+	* cgraphunit.c (verify_edge_corresponds_to_fndecl): If node is
+	a same_body_alias, also test whether e->callee isn't a former
+	or current clone of the decl this is a same body alias of.
+
+	PR translation/52264
+	* cgraphunit.c (verify_cgraph_node): Fix a typo.
+
+2012-02-15  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi: Clean up "n-bit/byte/word" modifiers.
+
+2012-02-15  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/52199
+	* config/rs6000/rs6000.c (rs6000_expand_vector_init): Use
+	force_reg instead of copy_to_reg for better optimization.  Force
+	non-register or memory operands into a register.
+
+2012-02-15  Andrew MacLeod  <amacleod@redhat.com>
+
+	* extend.texi: Reserve upper bits of memory model for future use.
+
+2012-01-15  Georg-Johann Lay  <avr@gjlay.de>
+	    Anatoly Sokolov <aesok@post.ru>
+	    Eric Weddington <eric.weddington@atmel.com>
+
+	PR target/52261
+	* config/avr/avr-devices.c (avr_arch_types): Add avrxmega2,
+	avrxmega4, avrxmega5, avrxmega6, avrxmega7.
+	Rewrite initializers for .macro.
+	* config/avr/avr-mcus.def (AVR_MCU): Add known MCUs:
+	avrxmega2: atxmega16a4, atxmega16d4, atxmega16x1, atxmega32a4
+	atxmega32d4, atxmega32x1.
+	avrxmega4: atxmega64a3, atxmega64d3.
+	avrxmega5: atxmega64a1, atxmega64a1u.
+	avrxmega6: atxmega128a3, atxmega128d3, atxmega192a3, atxmega192d3,
+	atxmega256a3, atxmega256a3b, atxmega256a3bu, atxmega256d3.
+	avrxmega7: atxmega128a1, atxmega128a1u.
+	* config/avr/avr.h (enum avr_arch): Add: ARCH_AVRXMEGA2,
+	ARCH_AVRXMEGA4,	ARCH_AVRXMEGA5, ARCH_AVRXMEGA6, ARCH_AVRXMEGA7.
+	(struct base_arch_s): Rename reserved to xmega_p.
+	Rename reserved2 to have_rampd.
+	(AVR_XMEGA): New define.
+	(AVR_HAVE_RAMPD, AVR_HAVE_RAMPX, AVR_HAVE_RAMPY): New defines.
+	(AVR_HAVE_RAMPZ): Change definition to fit xmega.
+	* config/avr/predicates.md (io_address_operand): Take into
+	account SFR offset.
+	(low_io_address_operand): Ditto.
+	(high_io_address_operand): Ditto.
+	* config/avr/avr.md (isa): Add alternatives no_xmega, xmega.
+	(enabled, movhi_sp_r): Use them.
+	* config/avr/avr-c.c (avr_cpu_cpp_builtins): Use
+	cpp_define_formatted to built-in define __AVR_ARCH__.
+	(__AVR_XMEGA__): New built-in define.
+	(__AVR_HAVE_RAMPD__): New built-in define.
+	(__AVR_HAVE_RAMPX__): New built-in define.
+	(__AVR_HAVE_RAMPY__): New built-in define.
+	(__AVR_HAVE_RAMPZ__): Change condition when to built-in define it.
+
+	* config/avr/avr.c (avr_addr_t): Add ccp, rampd, rampx, rampy.
+	(avr_option_override): Initialize them.
+	(sreg_rtx, rampd_rtx, rampx_rtx, rampy_rtx): New GTY rtx.
+	(avr_init_expanders): Initialize them. No more block several calls.
+	(emit_push_sfr): New static function.
+	(avr_prologue_setup_frame): Use it to push SREG, RAMPD/X/Y/Z as needed.
+	Handle AVR_XMEGA.
+	(expand_epilogue): Handle AVR_XMEGA. Pop RAMPD/X/Y/Z as needed.
+	(avr_print_operand): Print addreeses as symbols for
+	RAMPX, RAMPY, RAMPD, CCP.
+	(output_movhi): Handle AVR_XMEGA when writing to SP.
+	(avr_out_movhi_mr_r_xmega): New static function.
+	(out_movhi_mr_r): Forward to avr_out_movhi_mr_r_xmega for AVR_XMEGA.
+	(avr_file_start): Print symbol defines for __RAMPX__,  __RAMPY__,
+	__RAMPD__,  __CCP__ as needed.
+
+	* config/avr/multilib.h: Regenerate.
+	* config/avr/t-multilib: Regenerate.
+	* config/avr/avr-tables.opt: Regenerate.
+
+2012-02-15  Tobias Grosser <grosser@fim.uni-passau.de>
+
+	PR tree-optimization/50561
+	* graphite-flattening.c (lst_project_loop): Do not
+	remove old scattering dimensions after flattening.
+	(lst_do_flatten): Likewise.
+
+2012-02-15  Georg-Johann Lay  <avr@gjlay.de>
+
+	* doc/extend.texi (AVR Built-in Functions): Remove doc for
+	__builtin_avr_map8, __builtin_avr_map16.
+	Document __builtin_avr_insert_bits.
+
+	* config/avr/avr.md (map_bitsqi, map_bitshi): Remove.
+	(insert_bits): New insn.
+	(adjust_len.map_bits): Rename to insert_bits.
+	(UNSPEC_MAP_BITS): Rename to UNSPEC_INSERT_BITS.
+	* avr-protos.h (avr_out_map_bits): Remove.
+	(avr_out_insert_bits, avr_has_nibble_0xf): New.
+	* config/avr/constraints.md (Cxf,C0f): New.
+	* config/avr/avr.c (avr_cpu_cpp_builtins): Remove built-in
+	defines __BUILTIN_AVR_MAP8, __BUILTIN_AVR_MAP16.
+	New built-in define __BUILTIN_AVR_INSERT_BITS.
+	* config/avr/avr.c (TARGET_FOLD_BUILTIN): New define.
+	(enum avr_builtin_id): Add AVR_BUILTIN_INSERT_BITS.
+	(avr_move_bits): Rewrite.
+	(avr_fold_builtin, avr_map_metric, avr_map_decompose): New static
+	functions.
+	(avr_map_op_t): New typedef.
+	(avr_map_op): New static variable.
+	(avr_out_insert_bits, avr_has_nibble_0xf): New functions.
+	(adjust_insn_length): Handle ADJUST_LEN_INSERT_BITS.
+	(avr_init_builtins): Add definition for __builtin_avr_insert_bits.
+	(bdesc_3arg, avr_expand_triop_builtin): New.
+	(avr_expand_builtin): Use them. And handle AVR_BUILTIN_INSERT_BITS.
+	(avr_revert_map, avr_swap_map, avr_id_map, avr_sig_map): Remove.
+	(avr_map_hamming_byte, avr_map_hamming_nonstrict): Remove.
+	(avr_map_equal_p, avr_map_sig_p): Remove.
+	(avr_out_swap_bits, avr_out_revert_bits, avr_out_map_bits): Remove.
+	(bdesc_2arg): Remove AVR_BUILTIN_MAP8, AVR_BUILTIN_MAP16.
+	(adjust_insn_length): Remove handling for ADJUST_LEN_MAP_BITS.
+	(enum avr_builtin_id): Remove AVR_BUILTIN_MAP8, AVR_BUILTIN_MAP16.
+	(avr_init_builtins): Remove __builtin_avr_map8, __builtin_avr_map16.
+	(avr_expand_builtin): Remove AVR_BUILTIN_MAP8, AVR_BUILTIN_MAP16.
+
+2012-02-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* config/c6x/c6x.md (reserve_cycles): New attribute.
+	* config/c6x/c6x.c (c6x_sched_reorder_1): Ensure insns we predicate
+	don't reserve functional units after the branch occurs.
+
+2012-02-14  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR middle-end/52142
+	* ipa-inline.c (can_inline_edge_p): Do not inline tm_pure
+	functions into non-tm_pure functions.
+
+2012-02-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR lto/52178
+	* gimple.c (iterative_hash_gimple_type): Use RECORD_OR_UNION_TYPE_P.
+	(iterative_hash_canonical_type): Likewise.
+	* tree-ssa-pre.c (fini_pre): Clean up the CFG only after purging all
+	the dead edges.
+
+2012-02-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* haifa-sched.c (prune_ready_list): Ensure that if there is a
+	sched-group insn, it either remains alone or the entire list is
+	pruned.
+
+2012-02-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/install.texi (Prerequisites): Fix grammar.
+	(Configuration): Likewise.
+
+2012-02-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/install.texi (Prerequisites): Suggest building GMP, MPFR and
+	MPC as part of GCC before describing configuring with --with-gmp etc.
+	(Installing GCC: Configuration): --with-gmp etc. aren't needed if
+	sources are present.
+
+2012-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/51950
+	* dwarf2out.c (clone_tree_hash): New function.
+	(copy_decls_walk): Use it instead of clone_tree.
+
+2012-02-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52244
+	PR tree-optimization/51528
+	* tree-sra.c (analyze_access_subtree): Only create INTEGER_TYPE
+	replacements for integral types.
+
+2012-02-14  Walter Lee  <walt@tilera.com>
+
+	* config.gcc: Handle tilegx and tilepro.
+	* configure.ac (gcc_cv_as_dwarf2_debug_line): Enable test for
+	tilegx and tilepro.
+	Add HAVE_AS_TLS check for tilegx and tilepro.
+	* configure: Regenerate.
+	* doc/contrib.texi: Add Mat Hostetter and self.
+	* doc/extend.texi (TILE-Gx Built-in Functions): New node.
+	Document instruction intrinsics and network accessing intrinsics.
+	(TILEPro Built-in Functions): New node.  Document instruction
+	intrinsics and network accessing intrinsics.
+	* doc/install.texi (Specific, tilegx-*-linux*): Document it.
+	(Specific, tilepro-*-linux*): Likewise.
+	* doc/invoke.texi (TILE-Gx Options): New section.
+	(TILEPro Options): New section.
+	* doc/md.texi (TILE-Gx): New section.
+	(TILEPro): New section.
+	* common/config/tilegx/tilegx-common.c: New file.
+	* common/config/tilepro/tilepro-common.c: New file.
+	* config/tilegx/constraints.md: New file.
+	* config/tilegx/linux.h: New file.
+	* config/tilegx/mul-tables.c: New file.
+	* config/tilegx/predicates.md: New file.
+	* config/tilegx/sync.md: New file.
+	* config/tilegx/t-tilegx: New file.
+	* config/tilegx/tilegx-builtins.h: New file.
+	* config/tilegx/tilegx-c.c: New file.
+	* config/tilegx/tilegx-generic.md: New file.
+	* config/tilegx/tilegx-modes.def: New file.
+	* config/tilegx/tilegx-multiply.h: New file.
+	* config/tilegx/tilegx-protos.h: New file.
+	* config/tilegx/tilegx.c: New file.
+	* config/tilegx/tilegx.h: New file.
+	* config/tilegx/tilegx.md: New file.
+	* config/tilegx/tilegx.opt: New file.
+	* config/tilepro/constraints.md: New file.
+	* config/tilepro/gen-mul-tables.cc: New file.
+	* config/tilepro/linux.h: New file.
+	* config/tilepro/mul-tables.c: New file.
+	* config/tilepro/predicates.md: New file.
+	* config/tilepro/t-tilepro: New file.
+	* config/tilepro/tilepro-builtins.h: New file.
+	* config/tilepro/tilepro-c.c: New file.
+	* config/tilepro/tilepro-generic.md: New file.
+	* config/tilepro/tilepro-modes.def: New file.
+	* config/tilepro/tilepro-multiply.h: New file.
+	* config/tilepro/tilepro-protos.h: New file.
+	* config/tilepro/tilepro.c: New file.
+	* config/tilepro/tilepro.h: New file.
+	* config/tilepro/tilepro.md: New file.
+	* config/tilepro/tilepro.opt: New file.
+
+2012-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/52210
+	* tree-vect-slp.c (vect_get_and_check_slp_defs): Call
+	vect_model_simple_cost with two entry vect_def_type array instead
+	of an address of dt.
+
+2012-02-14  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/52178
+	* tree-streamer-in.c (lto_input_ts_field_decl_tree_pointers):
+	Do not stream DECL_QUALIFIER.
+	* tree-streamer-out.c (write_ts_field_decl_tree_pointers): Likewise.
+	* tree.c (free_lang_data_in_decl): Free DECL_QUALIFIER.
+	(find_decls_types_r): Do not walk DECL_QUALIFIER.
+
+2012-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/52181
+	* c-decl.c (merge_decls): Copy DECL_USER_ALIGN bit from olddecl to
+	newdecl.
+
 2012-02-13  Jakub Jelinek  <jakub@redhat.com>
 
 	PR bootstrap/52172

@@ -2929,8 +2929,6 @@ Gogo::convert_named_types()
 
   Runtime::convert_types(this);
 
-  Function_type::convert_types(this);
-
   this->named_types_are_converted_ = true;
 }
 
@@ -4180,6 +4178,11 @@ Variable::get_backend_variable(Gogo* gogo, Named_object* function,
 					    package != NULL,
 					    Gogo::is_hidden_name(name),
 					    this->location_);
+	  else if (function == NULL)
+	    {
+	      go_assert(saw_errors());
+	      bvar = backend->error_variable();
+	    }
 	  else
 	    {
 	      tree fndecl = function->func_value()->get_decl();

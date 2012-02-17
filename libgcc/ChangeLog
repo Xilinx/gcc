@@ -1,3 +1,56 @@
+2012-02-15  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR libitm/52220
+	* config/darwin-crt-tm.c: Correct typo.
+	
+2012-02-15  Iain Sandoe  <iains@gcc.gnu.org>
+	    Patrick Marlier  <patrick.marlier@gmail.com>
+
+	PR libitm/52220
+	* config/darwin-crt-tm.c: Generate dummy functions.
+
+2012-02-15  Iain Sandoe  <iains@gcc.gnu.org>
+	    Patrick Marlier  <patrick.marlier@gmail.com>
+
+	PR libitm/52042
+	* config/darwin-crt-tm.c (getTMCloneTable): New function.
+	(__doTMRegistrations): Call it.
+	(__doTMdeRegistrations): Likewise. 
+
+2012-01-15  Georg-Johann Lay  <avr@gjlay.de>
+	    Anatoly Sokolov <aesok@post.ru>
+	    Eric Weddington <eric.weddington@atmel.com>
+
+	PR target/52261
+	* config/avr/lib1funcs.S (__prologue_saves__): Handle AVR_XMEGA
+	(__epilogue_restores__): Ditto.
+
+2012-02-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/51921
+	PR target/52205
+	* config/sparc/sol2-unwind.h (sparc64_is_sighandler): Add support for
+	Solaris 11 and slightly reformat.
+	(sparc_is_sighandler): Likewise.
+
+2012-02-14  Walter Lee  <walt@tilera.com>
+
+	* config.host: Handle tilegx and tilepro.
+	* config/tilegx/sfp-machine.h: New file.
+	* config/tilegx/sfp-machine32.h: New file.
+	* config/tilegx/sfp-machine64.h: New file.
+	* config/tilegx/t-crtstuff: New file.
+	* config/tilegx/t-softfp: New file.
+	* config/tilegx/t-tilegx: New file.
+	* config/tilepro/atomic.c: New file.
+	* config/tilepro/atomic.h: New file.
+	* config/tilepro/linux-unwind.h: New file.
+	* config/tilepro/sfp-machine.h: New file.
+	* config/tilepro/softdivide.c: New file.
+	* config/tilepro/softmpy.S: New file.
+	* config/tilepro/t-crtstuff: New file.
+	* config/tilepro/t-tilepro: New file.
+
 2012-02-07  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	PR libstdc++/51296
