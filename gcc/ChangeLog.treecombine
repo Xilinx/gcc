@@ -1,5 +1,14 @@
 2012-02-17  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (simplify_bitwise_binary_2): Set
+	def1_arg1/def1_arg2/def2_arg1/def2_arg2 for non SSA_NAME case.
+	Replace calls to fold_build2/fold_build1 with build2/build1 since
+	fold will unfold the simplified trees.
+	Call simplify_bitwise_binary_3 in the cases where we can if we are
+	returning a newly created bitwise tree.
+
+2012-02-17  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (valid_simple_gimple): New function.
 	(build_simple_gimple): New function.
 	(extract_simple_gimple): New function.

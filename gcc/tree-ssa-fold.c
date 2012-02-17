@@ -35,6 +35,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple.h"
 #include "expr.h"
 
+static tree simplify_bitwise_binary_3 (gimple_stmt_iterator *gsi,
+				       nonzerobits_t nonzerobitsp,
+			   	       tree arg1, tree arg2,
+				       enum tree_code code);
 
 /* Get the statement we can propagate from into NAME skipping
    trivial copies.  Returns the statement which defines the
@@ -1226,10 +1230,6 @@ defcodefor_name (tree name, enum tree_code *code, tree *arg1, tree *arg2)
     }
 }
 
-static tree simplify_bitwise_binary_3 (gimple_stmt_iterator *gsi,
-				       nonzerobits_t nonzerobitsp,
-			   	       tree arg1, tree arg2,
-				       enum tree_code code);
 /* Simplify bitwise binary operations.
    Return the tree of what the code was transformed into.  */
 
@@ -1254,12 +1254,26 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
 
   if (def1_code == SSA_NAME)
     defcodefor_name (arg1, &def1_code, &def1_arg1, &def1_arg2);
+  else if (BINARY_CLASS_P (arg1) || COMPARISON_CLASS_P (arg1))
+    {
+      def1_arg1 = TREE_OPERAND (arg1, 0);
+      def1_arg2 = TREE_OPERAND (arg1, 1);
+    }
+  else if (UNARY_CLASS_P (arg1))
+    def1_arg1 = TREE_OPERAND (arg1, 0);
 
   def2_code = TREE_CODE (arg2);
   def2_arg1 = arg2;
 
   if (def2_code == SSA_NAME)
     defcodefor_name (arg2, &def2_code, &def2_arg1, &def2_arg2);
+  else if (BINARY_CLASS_P (arg1) || COMPARISON_CLASS_P (arg1))
+    {
+      def2_arg1 = TREE_OPERAND (arg2, 0);
+      def2_arg2 = TREE_OPERAND (arg2, 1);
+    }
+  else if (UNARY_CLASS_P (arg1))
+    def2_arg1 = TREE_OPERAND (arg2, 0);
 
   /* Try to optimize away the AND based on the nonzero bits info. */
   if (code == BIT_AND_EXPR)
@@ -1317,7 +1331,7 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
     {
       tree tmp;
       tmp = simplify_bitwise_binary_3 (gsi, nonzerobitsp, def1_arg1, def2_arg1, code);
-      return fold_convert_loc (loc, type, tmp);
+      return build1_loc (loc, NOP_EXPR, type, tmp);
     }
 
   /* (a | CST1) & CST2  ->  (a & CST2) | (CST1 & CST2).  */
@@ -1332,7 +1346,7 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
       tem = simplify_bitwise_binary_3 (gsi, nonzerobitsp, def1_arg1, arg2, code);
       if (integer_zerop (cst))
 	return tem;
-      return fold_build2_loc (loc, def1_code, type, tem, cst);
+      return build2_loc (loc, def1_code, type, tem, cst);
     }
 
   /* Combine successive equal operations with constants.  */
@@ -1361,14 +1375,14 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
 	    return def1_arg2;
 	}
       else
-      	return fold_build2 (def1_code, type, inner, def1_arg2);
+      	return build2 (def1_code, type, inner, def1_arg2);
     }
 
   /* Canonicalize X ^ ~0 to ~X.  */
   if (code == BIT_XOR_EXPR
       && TREE_CODE (arg2) == INTEGER_CST
       && integer_all_onesp (arg2))
-    return fold_build1 (BIT_NOT_EXPR, type, arg1);
+    return build1 (BIT_NOT_EXPR, type, arg1);
 
   /* Fold (X ^ Y) & Y as ~X & Y.  */
   if (code == BIT_AND_EXPR
@@ -1376,8 +1390,8 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
       && operand_equal_for_phi_arg_p (def1_arg2, arg2))
     {
       tree tem;
-      tem = fold_build1 (BIT_NOT_EXPR, type, def1_arg1);
-      return fold_build2 (code, type, arg2, tem);
+      tem = build1 (BIT_NOT_EXPR, type, def1_arg1);
+      return build2 (code, type, arg2, tem);
     }
 
   /* Fold (X ^ Y) & X as ~Y & X.  */
@@ -1386,8 +1400,8 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
       && operand_equal_for_phi_arg_p (def1_arg1, arg2))
     {
       tree tem;
-      tem = fold_build1 (BIT_NOT_EXPR, type, def1_arg2);
-      return fold_build2 (code, type, arg2, tem);
+      tem = build1 (BIT_NOT_EXPR, type, def1_arg2);
+      return build2 (code, type, arg2, tem);
     }
 
   /* Fold Y & (X ^ Y) as Y & ~X.  */
@@ -1396,8 +1410,8 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
       && operand_equal_for_phi_arg_p (def2_arg2, arg1))
     {
       tree tem;
-      tem = fold_build1 (BIT_NOT_EXPR, type, def2_arg1);
-      return fold_build2 (code, type, arg1, tem);
+      tem = build1 (BIT_NOT_EXPR, type, def2_arg1);
+      return build2 (code, type, arg1, tem);
     }
     
 
@@ -1407,8 +1421,8 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
       && operand_equal_for_phi_arg_p (def2_arg1, arg1))
     {
       tree tem;
-      tem = fold_build1 (BIT_NOT_EXPR, type, def2_arg2);
-      return fold_build2 (code, type, arg1, tem);
+      tem = build1 (BIT_NOT_EXPR, type, def2_arg2);
+      return build2 (code, type, arg1, tem);
     }
 
   /* Fold ~X & N into X ^ N if X's nonzerobits is equal to N. */
@@ -1453,7 +1467,7 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
 	      /* (Y | ~X) & X -> X & Y */
 	      /* (Y & ~X) | X -> X | Y */
 	      if (coden == BIT_NOT_EXPR && a1 == x)
-		return fold_build2 (code, type, x, def1_arg1);
+		return simplify_bitwise_binary_3 (gsi, nonzerobitsp, x, def1_arg1, code);
 	    }
 	}
       if (def2_code == ocode)
@@ -1472,7 +1486,7 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
 	      /* (~X | Y) & X -> X & Y */
 	      /* (~X & Y) | X -> X | Y */
 	      if (coden == BIT_NOT_EXPR && a1 == x)
-		return fold_build2 (code, type, x, def2_arg2);
+		return simplify_bitwise_binary_3 (gsi, nonzerobitsp, def2_arg2, x, code);
 	    }
 	  if (TREE_CODE (def2_arg2) == SSA_NAME)
 	    {
@@ -1482,7 +1496,7 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
 	      /* (Y | ~X) & X -> X & Y */
 	      /* (Y & ~X) | X -> X | Y */
 	      if (coden == BIT_NOT_EXPR && a1 == x)
-		return fold_build2 (code, type, x, def2_arg1);
+		return simplify_bitwise_binary_3 (gsi, nonzerobitsp, x, def2_arg1, code);
 	    }
 	}
     }
