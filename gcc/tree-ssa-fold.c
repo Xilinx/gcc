@@ -1267,12 +1267,12 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
 
   if (def2_code == SSA_NAME)
     defcodefor_name (arg2, &def2_code, &def2_arg1, &def2_arg2);
-  else if (BINARY_CLASS_P (arg1) || COMPARISON_CLASS_P (arg1))
+  else if (BINARY_CLASS_P (arg2) || COMPARISON_CLASS_P (arg2))
     {
       def2_arg1 = TREE_OPERAND (arg2, 0);
       def2_arg2 = TREE_OPERAND (arg2, 1);
     }
-  else if (UNARY_CLASS_P (arg1))
+  else if (UNARY_CLASS_P (arg2))
     def2_arg1 = TREE_OPERAND (arg2, 0);
 
   /* Try to optimize away the AND based on the nonzero bits info. */
@@ -1391,7 +1391,7 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
     {
       tree tem;
       tem = build1 (BIT_NOT_EXPR, type, def1_arg1);
-      return build2 (code, type, arg2, tem);
+      return simplify_bitwise_binary_3 (gsi, nonzerobitsp, tem, arg2, code);
     }
 
   /* Fold (X ^ Y) & X as ~Y & X.  */
@@ -1401,7 +1401,7 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
     {
       tree tem;
       tem = build1 (BIT_NOT_EXPR, type, def1_arg2);
-      return build2 (code, type, arg2, tem);
+      return simplify_bitwise_binary_3 (gsi, nonzerobitsp, tem, arg2, code);
     }
 
   /* Fold Y & (X ^ Y) as Y & ~X.  */
@@ -1411,7 +1411,7 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
     {
       tree tem;
       tem = build1 (BIT_NOT_EXPR, type, def2_arg1);
-      return build2 (code, type, arg1, tem);
+      return simplify_bitwise_binary_3 (gsi, nonzerobitsp, tem, arg1, code);
     }
     
 
@@ -1422,7 +1422,7 @@ simplify_bitwise_binary_2 (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp
     {
       tree tem;
       tem = build1 (BIT_NOT_EXPR, type, def2_arg2);
-      return build2 (code, type, arg1, tem);
+      return simplify_bitwise_binary_3 (gsi, nonzerobitsp, tem, arg1, code);
     }
 
   /* Fold ~X & N into X ^ N if X's nonzerobits is equal to N. */
@@ -1817,20 +1817,21 @@ out:
    Returns true if there were any changes made.  Else it returns 0.  */
  
 static bool
-combine_conversions (gimple_stmt_iterator *gsi)
+combine_conversions (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp)
 {
   gimple stmt = gsi_stmt (*gsi);
   gimple def_stmt;
-  tree op0, lhs;
+  tree op0;
+  tree ltype;
   enum tree_code code = gimple_assign_rhs_code (stmt);
 
   gcc_checking_assert (CONVERT_EXPR_CODE_P (code)
 		       || code == FLOAT_EXPR
 		       || code == FIX_TRUNC_EXPR);
 
-  lhs = gimple_assign_lhs (stmt);
+  ltype = TREE_TYPE (gimple_assign_lhs (stmt));
   op0 = gimple_assign_rhs1 (stmt);
-  if (useless_type_conversion_p (TREE_TYPE (lhs), TREE_TYPE (op0)))
+  if (useless_type_conversion_p (ltype, TREE_TYPE (op0)))
     {
       gimple_assign_set_rhs_code (stmt, TREE_CODE (op0));
       return true;
@@ -1846,7 +1847,7 @@ combine_conversions (gimple_stmt_iterator *gsi)
   if (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (def_stmt)))
     {
       tree defop0 = gimple_assign_rhs1 (def_stmt);
-      tree type = TREE_TYPE (lhs);
+      tree type = ltype;
       tree inside_type = TREE_TYPE (defop0);
       tree inter_type = TREE_TYPE (op0);
       int inside_int = INTEGRAL_TYPE_P (inside_type);
@@ -1953,18 +1954,13 @@ combine_conversions (gimple_stmt_iterator *gsi)
 	  && inter_unsignedp)
 	{
 	  tree tem;
-	  tem = fold_build2 (BIT_AND_EXPR, inside_type,
-			     defop0,
-			     double_int_to_tree
-			       (inside_type, double_int_mask (inter_prec)));
-	  if (!useless_type_conversion_p (type, inside_type))
-	    {
-	      tem = force_gimple_operand_gsi (gsi, tem, true, NULL_TREE, true,
-					      GSI_SAME_STMT);
-	      gimple_assign_set_rhs1 (stmt, tem);
-	    }
-	  else
-	    gimple_assign_set_rhs_from_tree (gsi, tem);
+	  tem = double_int_to_tree (inside_type, double_int_mask (inter_prec));
+
+	  tem = simplify_bitwise_binary_3 (gsi, nonzerobitsp, defop0,
+					   tem, BIT_AND_EXPR);
+	  tem = force_gimple_operand_gsi (gsi, tem, true, NULL_TREE, true,
+					  GSI_SAME_STMT);
+	  gimple_assign_set_rhs1 (stmt, tem);
 	  update_stmt (gsi_stmt (*gsi));
 	  return true;
 	}
@@ -2012,7 +2008,7 @@ ssa_combine (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobits_p)
 	else if (CONVERT_EXPR_CODE_P (code)
 		 || code == FLOAT_EXPR
 		 || code == FIX_TRUNC_EXPR)
-	  changed = combine_conversions (gsi);
+	  changed = combine_conversions (gsi, nonzerobits_p);
 	break;
       }
 

@@ -1,5 +1,15 @@
 2012-02-17  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (simplify_bitwise_binary_2): Fix typo
+	in handling non SSA_NAMEs for arg2.
+	Use simplify_bitwise_binary_3 instead of build2 to fold more.
+	(combine_conversions): Take nonzerobits_t.
+	Replace explict usage of TREE_TYPE (lhs) with a preloaded variable.
+	Use simplify_bitwise_binary_3 instead of fold_build2.
+	(ssa_combine): Update call to combine_conversions.
+
+2012-02-17  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (simplify_bitwise_binary_2): Set
 	def1_arg1/def1_arg2/def2_arg1/def2_arg2 for non SSA_NAME case.
 	Replace calls to fold_build2/fold_build1 with build2/build1 since
