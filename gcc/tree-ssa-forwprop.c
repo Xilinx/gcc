@@ -912,14 +912,14 @@ forward_prop_nonzero (tree val)
 /* Delete possible dead code in BB which might have been caused
    unused by ssa_combine until statement UNTIL. */
 static void
-delete_dead_code_uptil (basic_block bb, gimple until)
+delete_dead_code_uptil (gimple_stmt_iterator until)
 {
   gimple_stmt_iterator gsi;
-  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi);)
+  gsi = until;
+  gsi_prev (&gsi);
+  for (; !gsi_end_p (gsi);)
     {
       gimple stmt = gsi_stmt (gsi);
-      if (stmt == until)
-	return;
       if (gimple_get_lhs (stmt)
 	  && TREE_CODE (gimple_get_lhs (stmt)) == SSA_NAME
 	  && has_zero_uses (gimple_get_lhs (stmt))
@@ -934,12 +934,12 @@ delete_dead_code_uptil (basic_block bb, gimple until)
 	      fprintf (dump_file, "\n");
 	    }
 	  i2 = gsi;
-	  gsi_next (&gsi);
+	  gsi_prev (&gsi);
 	  gsi_remove (&i2, true);
 	  release_defs (stmt);
 	  continue;
 	}
-      gsi_next (&gsi);
+      gsi_prev (&gsi);
     }
 }
 
@@ -1065,7 +1065,7 @@ ssa_forward_propagate_and_combine (void)
 	    {
 	      cfg_changed = true;
 	      did_replace = true;
-	      delete_dead_code_uptil (bb, stmt);
+	      delete_dead_code_uptil (gsi);
 	      if (gsi_end_p (gsi))
 		gsi = gsi_start_bb (bb);
 	      else

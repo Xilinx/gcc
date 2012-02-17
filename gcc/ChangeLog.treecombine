@@ -1,3 +1,11 @@
+2012-02-17  Andrew Pinski  <apinski@cavium.com>
+
+	* tree-ssa-forwprop.c (delete_dead_code_uptil): Take a
+	gimple_stmt_iterator instead.  Reverse the order
+	of the statement walk and start at the previous
+	instruction of UNTIL instead.
+	(ssa_forward_propagate_and_combine): Update call to delete_dead_code_uptil
+
 2012-02-16  Andrew Pinski  <apinski@cavium.com>
 
 	* tree-ssa-ccp.c (ccp_finalize): Fix extra ;.
