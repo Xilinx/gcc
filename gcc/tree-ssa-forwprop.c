@@ -880,6 +880,40 @@ forward_prop_nonzero (tree val)
   return double_int_minus_one;
 }
 
+/* Delete possible dead code in BB which might have been caused
+   unused by ssa_combine until statement UNTIL. */
+static void
+delete_dead_code_uptil (basic_block bb, gimple until)
+{
+  gimple_stmt_iterator gsi;
+  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi);)
+    {
+      gimple stmt = gsi_stmt (gsi);
+      if (stmt == until)
+	return;
+      if (gimple_get_lhs (stmt)
+	  && TREE_CODE (gimple_get_lhs (stmt)) == SSA_NAME
+	  && has_zero_uses (gimple_get_lhs (stmt))
+	  && !stmt_could_throw_p (stmt)
+	  && !gimple_has_side_effects (stmt))
+	{
+	  gimple_stmt_iterator i2;
+	  if (dump_file && dump_flags & TDF_DETAILS)
+	    {
+	      fprintf (dump_file, "Removing dead stmt ");
+	      print_gimple_stmt (dump_file, stmt, 0, 0);
+	      fprintf (dump_file, "\n");
+	    }
+	  i2 = gsi;
+	  gsi_next (&gsi);
+	  gsi_remove (&i2, true);
+	  release_defs (stmt);
+	  continue;
+	}
+      gsi_next (&gsi);
+    }
+}
+
 /* Main entry point for the forward propagation and statement combine
    optimizer.  */
 
@@ -893,8 +927,7 @@ ssa_forward_propagate_and_combine (void)
 
   FOR_EACH_BB (bb)
     {
-      gimple_stmt_iterator gsi, prev;
-      bool prev_initialized;
+      gimple_stmt_iterator gsi;
 
       /* Apply forward propagation to all stmts in the basic-block.
 	 Note we update GSI within the loop as necessary.  */
@@ -988,28 +1021,44 @@ ssa_forward_propagate_and_combine (void)
 
       /* Combine stmts with the stmts defining their operands.
 	 Note we update GSI within the loop as necessary.  */
-      prev_initialized = false;
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi);)
 	{
-	  bool did_something = ssa_combine (&gsi, forward_prop_nonzero);
-	  if (did_something)
+	  bool did_replace = false;
+	  gimple stmt = gsi_stmt (gsi);
+
+	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    {
-	      cfg_changed = 1;
-	      /* If the stmt changed then re-visit it and the statements
-		 inserted before it.  */
-	      if (!prev_initialized)
+	      fprintf (dump_file, "Folding statement: ");
+	      print_gimple_stmt (dump_file, stmt, 0, TDF_SLIM);
+	    }
+
+	  if (ssa_combine (&gsi, forward_prop_nonzero))
+	    {
+	      cfg_changed = true;
+	      did_replace = true;
+	      delete_dead_code_uptil (bb, stmt);
+	      if (gsi_end_p (gsi))
 		gsi = gsi_start_bb (bb);
 	      else
-		{
-		  gsi = prev;
-		  gsi_next (&gsi);
+	 	{
+		  gsi_prev_nondebug (&gsi);
+		  if (gsi_end_p (gsi))
+		    gsi = gsi_start_bb (bb);
 		}
 	    }
 	  else
+	    gsi_next (&gsi);
+
+	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    {
-	      prev = gsi;
-	      prev_initialized = true;
-	      gsi_next (&gsi);
+	      if (did_replace)
+		{
+		  fprintf (dump_file, "Folded into: ");
+		  print_gimple_stmt (dump_file, stmt, 0, TDF_SLIM);
+		  fprintf (dump_file, "\n");
+		}
+	      else
+		fprintf (dump_file, "Not folded\n");
 	    }
 	}
     }

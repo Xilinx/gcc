@@ -1,3 +1,22 @@
+2012-02-16  Andrew Pinski  <apinski@cavium.com>
+
+	* tree-ssa-fold.c (expand_possible_comparison): Add reversed_edges
+	argument.
+	Set *reversed_edges argument if we had TRUTH_NOT_EXPR or BIT_NOT_EXPR
+	and strip off the TRUTH_NOT_EXPR and BIT_NOT_EXPR.
+	(forward_propagate_into_comparison): Loop around on
+	forward_propagate_into_comparison_1 and expand_possible_comparison.
+	Allow for reversed_edges only with ssa_name.
+	(forward_propagate_into_comparison): Loop around on
+	forward_propagate_into_comparison_1 and expand_possible_comparison.
+	Deal with reversed_edges.
+	(forward_propagate_into_cond): Loop around on
+	forward_propagate_into_comparison_1 and expand_possible_comparison.
+	* tree-ssa-forwprop.c (delete_dead_code_uptil): New function.
+	(ssa_forward_propagate_and_combine): Print out more debugging info
+	in the dump.
+	Also delete dead code if ssa_combine did something.
+
 2012-02-15  Andrew Pinski  <apinski@cavium.com>
 
 	* tree-flow.h (ssa_combine): Make return value bool.

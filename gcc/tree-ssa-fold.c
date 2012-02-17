@@ -332,7 +332,8 @@ forward_propagate_into_comparison_1 (gimple stmt,
 }
 
 static tree
-expand_possible_comparison (tree tmp, gimple_stmt_iterator *gsi)
+expand_possible_comparison (tree tmp, gimple_stmt_iterator *gsi,
+			    bool *reversed_edges)
 {
   tree tmp1;
   gimple stmt = gsi_stmt (*gsi);
@@ -340,9 +341,17 @@ expand_possible_comparison (tree tmp, gimple_stmt_iterator *gsi)
   if (!tmp)
     return NULL;
 
+  if (TREE_CODE (tmp) == TRUTH_NOT_EXPR
+       || TREE_CODE (tmp) == BIT_NOT_EXPR)
+    {
+      *reversed_edges ^= true;
+      tmp = TREE_OPERAND (tmp, 0);
+    }
+
   tmp1 = canonicalize_cond_expr_cond (tmp);
   if (tmp1)
     return tmp1;
+
   if (!COMPARISON_CLASS_P (tmp))
     return NULL;
   op0 = TREE_OPERAND (tmp, 0);
@@ -384,8 +393,7 @@ expand_possible_comparison (tree tmp, gimple_stmt_iterator *gsi)
 
 /* Propagate from the ssa name definition statements of the assignment
    from a comparison at *GSI into the conditional if that simplifies it.
-   Returns 1 if the stmt was modified and 2 if the CFG needs cleanup,
-   otherwise returns 0.  */
+   Returns true if the stmt was modified therwise returns false.  */
 
 static bool 
 forward_propagate_into_comparison (gimple_stmt_iterator *gsi)
@@ -395,16 +403,36 @@ forward_propagate_into_comparison (gimple_stmt_iterator *gsi)
   tree type = TREE_TYPE (gimple_assign_lhs (stmt));
   tree rhs1 = gimple_assign_rhs1 (stmt);
   tree rhs2 = gimple_assign_rhs2 (stmt);
+  enum tree_code code = gimple_assign_rhs_code (stmt);
+  tree tmp1 = NULL_TREE;
+  bool reversed_edges = false;
 
   /* Combine the comparison with defining statements.  */
-  tmp = forward_propagate_into_comparison_1 (stmt,
-					     gimple_assign_rhs_code (stmt),
-					     type, rhs1, rhs2);
-  if (tmp)
-    tmp = expand_possible_comparison (tmp, gsi);
-  if (tmp && useless_type_conversion_p (type, TREE_TYPE (tmp)))
+  do {
+    tmp = forward_propagate_into_comparison_1 (stmt,
+					       code,
+					       type, rhs1, rhs2);
+    if (!tmp)
+      break;
+    if (!useless_type_conversion_p (type, TREE_TYPE (tmp)))
+      break;
+    tmp = expand_possible_comparison (tmp, gsi, &reversed_edges);
+    if (!tmp)
+      break;
+    tmp1 = tmp;
+    gimple_cond_get_ops_from_tree (tmp, &code, &rhs1, &rhs2);
+  } while (tmp);
+
+  if (reversed_edges && TREE_CODE (tmp1) == SSA_NAME)
     {
-      gimple_assign_set_rhs_from_tree (gsi, tmp);
+      tmp1 = fold_build1 (BIT_NOT_EXPR, TREE_TYPE (tmp1), tmp1);
+      reversed_edges = false;
+    }
+  /* We cannot handle reversing the edges as we have no edges to reverse
+     here. */
+  if (!reversed_edges && tmp1 && useless_type_conversion_p (type, TREE_TYPE (tmp1)))
+    {
+      gimple_assign_set_rhs_from_tree (gsi, tmp1);
       fold_stmt (gsi);
       update_stmt (gsi_stmt (*gsi));
 
@@ -424,31 +452,49 @@ forward_propagate_into_comparison (gimple_stmt_iterator *gsi)
 static bool
 forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt)
 {
-  tree tmp;
+  tree tmp, tmp1 = NULL_TREE;
   enum tree_code code = gimple_cond_code (stmt);
   tree rhs1 = gimple_cond_lhs (stmt);
   tree rhs2 = gimple_cond_rhs (stmt);
+  bool reversed_edges = false;
 
   /* We can do tree combining on SSA_NAME and comparison expressions.  */
   if (TREE_CODE_CLASS (gimple_cond_code (stmt)) != tcc_comparison)
     return 0;
-
-  tmp = forward_propagate_into_comparison_1 (stmt, code,
-					     boolean_type_node,
-					     rhs1, rhs2);
-  tmp = expand_possible_comparison (tmp, gsi);
-  if (tmp)
+  do
     {
-      if (dump_file && tmp)
+      tmp = forward_propagate_into_comparison_1 (stmt, code,
+						 boolean_type_node,
+						 rhs1, rhs2);
+      if (!tmp)
+	break;
+      tmp = expand_possible_comparison (tmp, gsi, &reversed_edges);
+      if (!tmp)
+	break;
+      tmp1 = tmp;
+      gimple_cond_get_ops_from_tree (tmp, &code, &rhs1, &rhs2);
+    } while (tmp);
+
+  if (tmp1)
+    {
+      if (dump_file && tmp1)
 	{
 	  fprintf (dump_file, "  Replaced '");
 	  print_gimple_expr (dump_file, stmt, 0, 0);
 	  fprintf (dump_file, "' with '");
-	  print_generic_expr (dump_file, tmp, 0);
+	  print_generic_expr (dump_file, tmp1, 0);
 	  fprintf (dump_file, "'\n");
 	}
 
-      gimple_cond_set_condition_from_tree (stmt, unshare_expr (tmp));
+      gimple_cond_set_condition_from_tree (stmt, unshare_expr (tmp1));
+      /* Switch around the edges if expand_poosible_comparison tells us
+         we need to. */
+      if (reversed_edges)
+        {
+          basic_block bb = gimple_bb (stmt);
+          EDGE_SUCC (bb, 0)->flags ^= (EDGE_TRUE_VALUE|EDGE_FALSE_VALUE);
+          EDGE_SUCC (bb, 1)->flags ^= (EDGE_TRUE_VALUE|EDGE_FALSE_VALUE);
+	}
       update_stmt (stmt);
 
       return true;
@@ -489,11 +535,24 @@ forward_propagate_into_cond (gimple_stmt_iterator *gsi_p)
   /* We can do tree combining on SSA_NAME and comparison expressions.  */
   if (COMPARISON_CLASS_P (cond))
     {
-      tmp = forward_propagate_into_comparison_1 (stmt, TREE_CODE (cond),
-					         boolean_type_node,
-					         TREE_OPERAND (cond, 0),
-					         TREE_OPERAND (cond, 1));
-      tmp = expand_possible_comparison (tmp, gsi_p);
+      enum tree_code code = TREE_CODE (cond);
+      tree rhs1 = TREE_OPERAND (cond, 0);
+      tree rhs2 = TREE_OPERAND (cond, 1);
+      tree tmp1 = NULL_TREE;
+       do
+	{
+          tmp = forward_propagate_into_comparison_1 (stmt, code,
+						     boolean_type_node,
+						     rhs1, rhs2);
+	  if (!tmp)
+	    break;
+	  tmp = expand_possible_comparison (tmp, gsi_p, &swap);
+	  if (!tmp)
+	    break;
+	  tmp1 = tmp;
+          gimple_cond_get_ops_from_tree (tmp, &code, &rhs1, &rhs2);
+	} while (tmp);
+      tmp = tmp1;
     }
   else if (TREE_CODE (cond) == SSA_NAME)
     {
