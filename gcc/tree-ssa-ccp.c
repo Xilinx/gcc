@@ -837,7 +837,7 @@ ccp_finalize (void)
 
   free (const_val);
   const_val = NULL;
-  return something_changed;;
+  return something_changed;
 }
 
 

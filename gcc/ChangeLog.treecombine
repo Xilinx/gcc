@@ -1,5 +1,15 @@
 2012-02-16  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-ccp.c (ccp_finalize): Fix extra ;.
+	* tree-ssa-fold.c (simplify_bitwise_binary):
+	Fold BIT_AND_EXPR based on nonzero bits.
+	Fold BIT_IOR_EXPR based on nonzero bits.
+	* tree-ssa-forwporp.c (forward_prop_nonzero):
+	Add a simple calucation of the zero bits
+	based on the definition of the ssa_name.
+
+2012-02-16  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (expand_possible_comparison): Add reversed_edges
 	argument.
 	Set *reversed_edges argument if we had TRUTH_NOT_EXPR or BIT_NOT_EXPR

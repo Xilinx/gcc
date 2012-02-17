@@ -875,8 +875,37 @@ forward_propagate_comparison (gimple stmt)
 static double_int
 forward_prop_nonzero (tree val)
 {
+  if (val == NULL_TREE)
+    return double_int_minus_one;
   if (TREE_CODE (val) == INTEGER_CST)
     return tree_to_double_int (val);
+  if (TREE_CODE (val) == SSA_NAME)
+    {
+      gimple def = SSA_NAME_DEF_STMT (val);
+      if (is_gimple_assign (def))
+	{
+	  double_int lhs, rhs;
+	  enum tree_code code = gimple_assign_rhs_code (def);
+	  /* Only handle IOR/XOR and AND currently.  The others are much
+	     harder.  */
+	  if (code == BIT_IOR_EXPR
+	      || code == BIT_XOR_EXPR)
+	    {
+	      lhs = forward_prop_nonzero (gimple_assign_rhs1 (def));
+	      if (double_int_minus_one_p (lhs))
+		return lhs;
+	      rhs = forward_prop_nonzero (gimple_assign_rhs2 (def));
+	      return double_int_ior (lhs, rhs);
+	    }
+	  if (code == BIT_AND_EXPR)
+	    {
+	      double_int lhs, rhs;
+	      lhs = forward_prop_nonzero (gimple_assign_rhs1 (def));
+	      rhs = forward_prop_nonzero (gimple_assign_rhs2 (def));
+	      return double_int_and (lhs, rhs);
+	    }
+	}
+    }
   return double_int_minus_one;
 }
 

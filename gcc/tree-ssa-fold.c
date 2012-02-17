@@ -1180,6 +1180,44 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp)
   if (def2_code == SSA_NAME)
     defcodefor_name (arg2, &def2_code, &def2_arg1, &def2_arg2);
 
+  /* Try to optimize away the AND based on the nonzero bits info. */
+  if (code == BIT_AND_EXPR)
+    {
+      double_int nzop1 = nonzerobitsp (arg1);
+      double_int nzop2;
+      if (TREE_CODE (arg2) == INTEGER_CST)
+	{
+	  double_int val2 = tree_to_double_int (arg2);
+	  if (double_int_zero_p (double_int_and_not (nzop1, val2)))
+	    {
+	      gimple_assign_set_rhs_from_tree (gsi, arg1);
+	      update_stmt (gsi_stmt (*gsi));
+	      return true;
+	    }
+        }
+        nzop2 = nonzerobitsp (arg2);
+        /* If we are clearing all the nonzero bits, the result is zero.  */
+        if (double_int_zero_p (double_int_and (nzop1, nzop2)))
+	  {
+	    tree res = fold_convert (TREE_TYPE (arg1), integer_zero_node);
+	    gimple_assign_set_rhs_from_tree (gsi, res);
+	    update_stmt (gsi_stmt (*gsi));
+	    return true;
+	  }
+    }
+
+  /* A | C is C if all bits of A that might be nonzero are on in C.  */
+  if (code == BIT_IOR_EXPR
+      && TREE_CODE (arg2) == INTEGER_CST
+      && double_int_zero_p (double_int_and_not (nonzerobitsp (arg1),
+						tree_to_double_int (arg2))))
+						
+    {
+      gimple_assign_set_rhs_from_tree (gsi, arg2);
+      update_stmt (gsi_stmt (*gsi));
+      return true;
+    }
+
   /* Try to fold (type) X op CST -> (type) (X op ((type-x) CST)).  */
   if (TREE_CODE (arg2) == INTEGER_CST
       && CONVERT_EXPR_CODE_P (def1_code)
