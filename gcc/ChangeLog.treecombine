@@ -1,5 +1,10 @@
 2012-02-18  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (combine_conversions): Fix creation of the new tree.
+	Use the original code instead of NOP_EXPR.
+
+2012-02-18  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (simplify_not_neg_expr): Take a loc, code, a type
 	and an operand instead of a gimple_stmt_iterator.
 	(gimple_fold_unary_loc): Call simplify_not_neg_expr.

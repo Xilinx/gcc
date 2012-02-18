@@ -1993,14 +1993,14 @@ combine_conversions (location_t loc, enum tree_code code, tree ltype,
 		&& TYPE_MODE (type) == TYPE_MODE (inter_type))
 	  && ! final_ptr
 	  && (! final_vec || inter_prec == inside_prec))
-	return gimple_fold_build1_loc (loc, NOP_EXPR, ltype, defop0, nonzerobitsp);
+	return gimple_fold_build1_loc (loc, code, ltype, defop0, nonzerobitsp);
 
       /* If we have a sign-extension of a zero-extended value, we can
 	 replace that by a single zero-extension.  */
       if (inside_int && inter_int && final_int
 	  && inside_prec < inter_prec && inter_prec < final_prec
 	  && inside_unsignedp && !inter_unsignedp)
-	return gimple_fold_build1_loc (loc, NOP_EXPR, ltype, defop0, nonzerobitsp);
+	return gimple_fold_build1_loc (loc, code, ltype, defop0, nonzerobitsp);
 
       /* Two conversions in a row are not needed unless:
 	 - some conversion is floating-point (overstrict for now), or
@@ -2025,7 +2025,7 @@ combine_conversions (location_t loc, enum tree_code code, tree ltype,
 	  && ! (final_ptr && inside_prec != inter_prec)
 	  && ! (final_prec != GET_MODE_BITSIZE (TYPE_MODE (type))
 		&& TYPE_MODE (type) == TYPE_MODE (inter_type)))
-	return gimple_fold_build1_loc (loc, NOP_EXPR, ltype, defop0, nonzerobitsp);
+	return gimple_fold_build1_loc (loc, code, ltype, defop0, nonzerobitsp);
 
       /* A truncation to an unsigned type should be canonicalized as
 	 bitwise and of a mask.  */
@@ -2039,7 +2039,7 @@ combine_conversions (location_t loc, enum tree_code code, tree ltype,
 
 	  tem = gimple_fold_build2_loc (loc, BIT_AND_EXPR, TREE_TYPE (tem),
 					defop0, tem, nonzerobitsp);
-	  return gimple_fold_build1_loc (loc, NOP_EXPR, ltype, tem, nonzerobitsp);
+	  return gimple_fold_build1_loc (loc, code, ltype, tem, nonzerobitsp);
 	}
     }
 
