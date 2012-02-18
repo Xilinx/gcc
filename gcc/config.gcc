@@ -2040,6 +2040,12 @@ powerpc-*-linux* | powerpc64-*-linux*)
 	if test x${enable_secureplt} = xyes; then
 		tm_file="rs6000/secureplt.h ${tm_file}"
 	fi
+	# Pull in spec changes for GRTEv2 configurations.
+	case ${target} in
+	*-grtev2-*)
+	    tm_file="${tm_file} rs6000/linux-grtev2.h"
+	    ;;
+	esac
 	;;
 powerpc-wrs-vxworks|powerpc-wrs-vxworksae)
 	tm_file="${tm_file} elfos.h freebsd-spec.h rs6000/sysv4.h"
