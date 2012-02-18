@@ -1,5 +1,17 @@
 2012-02-17  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (combine_conversions): Take a loc, code, a type
+	and an operand instead of a gimple_stmt_iterator.
+	Return a tree of the simplified tree, calling gimple_fold_build1_loc
+	if needed.
+	(gimple_fold_binary_loc): Move to right above ssa_combine.
+	(gimple_fold_unary_loc): Likewise.
+	Call combine_conversions for conversions.
+	(ssa_combine): Remove call to combine_conversions since that is
+	handled by gimple_fold_unary_loc now.
+
+2012-02-17  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (gimple_fold_build2_loc): New function.
 	(gimple_fold_build1_loc): New function.
 	(simplify_bitwise_binary_1): Even if fold_stmt will handle them,
