@@ -1,5 +1,25 @@
 2012-02-17  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (gimple_fold_build2_loc): New function.
+	(gimple_fold_build1_loc): New function.
+	(simplify_bitwise_binary_1): Even if fold_stmt will handle them,
+	handle them here so we can reduce the number of temps that might
+	be used.
+	(simplify_bitwise_binary_2): Rename back to simplify_bitwise_binary.
+	Take location and type instead of gimple_stmt_iterator.
+	Use gimple_fold_build2 instead of simplify_bitwise_binary_3/build2.
+	Use gimple_fold_build1 instead of build1 in some cases.
+	(simplify_bitwise_binary_3): Remove.
+	(gimple_fold_binary_loc): New function.
+	(gimple_fold_unary_loc): New function.
+	(combine_conversions): Use gimple_fold_build2_loc instead of
+	simplify_bitwise_binary_3.
+	(ssa_combine): Call gimple_fold_binary_loc/gimple_fold_unary_loc.
+	Remove special casing of the bitwise operator as those are now handled
+	via gimple_fold_binary_loc.
+
+2012-02-17  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (simplify_bitwise_binary_2): Fix typo
 	in handling non SSA_NAMEs for arg2.
 	Use simplify_bitwise_binary_3 instead of build2 to fold more.
