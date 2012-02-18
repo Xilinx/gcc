@@ -1628,52 +1628,6 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
   return NULL;
 }
 
-static tree
-gimple_fold_binary_loc (location_t loc, enum tree_code code,
-			tree type, tree arg1, tree arg2,
-			nonzerobits_t nonzerobitsp)
-{
-  gcc_assert (IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (code))
-              && TREE_CODE_LENGTH (code) == 2
-              && arg1 != NULL_TREE
-              && arg2 != NULL_TREE);
-
-  if (commutative_tree_code (code)
-      && tree_swap_operands_p (arg1, arg2, true))
-    {
-      tree t = arg1;
-      arg1 = arg2;
-      arg2 = t;
-    }
-
-
-  switch (code)
-    {
-      case BIT_AND_EXPR:
-      case BIT_XOR_EXPR:
-      case BIT_IOR_EXPR:
-	return simplify_bitwise_binary (loc, code, type, arg1, arg2,
-					nonzerobitsp);
-      default:
-	return NULL_TREE;
-    }
-}
-static tree
-gimple_fold_unary_loc (location_t loc, enum tree_code code,
-		       tree type, tree arg1,
-		       nonzerobits_t nonzerobitsp)
-{
-  gcc_assert (IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (code))
-              && TREE_CODE_LENGTH (code) == 1
-              && arg1 != NULL_TREE);
-  (void)loc;
-  (void)type;
-  (void)nonzerobitsp;
-  /* FIXME this should handle BIT_NOT_EXPR and NEGATE_EXPR and more. */
-  return NULL_TREE;
-}
-
-
 /* Perform re-associations of the plus or minus statement STMT that are
    always permitted.  Returns true if the CFG was changed.  */
 
@@ -1963,33 +1917,25 @@ out:
 /* Combine two conversions in a row for the second conversion at *GSI.
    Returns true if there were any changes made.  Else it returns 0.  */
  
-static bool
-combine_conversions (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp)
+static tree
+combine_conversions (location_t loc, enum tree_code code, tree ltype,
+		     tree op0, nonzerobits_t nonzerobitsp)
 {
-  gimple stmt = gsi_stmt (*gsi);
   gimple def_stmt;
-  tree op0;
-  tree ltype;
-  enum tree_code code = gimple_assign_rhs_code (stmt);
 
   gcc_checking_assert (CONVERT_EXPR_CODE_P (code)
 		       || code == FLOAT_EXPR
 		       || code == FIX_TRUNC_EXPR);
 
-  ltype = TREE_TYPE (gimple_assign_lhs (stmt));
-  op0 = gimple_assign_rhs1 (stmt);
   if (useless_type_conversion_p (ltype, TREE_TYPE (op0)))
-    {
-      gimple_assign_set_rhs_code (stmt, TREE_CODE (op0));
-      return true;
-    }
+    return op0;
 
   if (TREE_CODE (op0) != SSA_NAME)
-    return false;
+    return NULL_TREE;
 
   def_stmt = SSA_NAME_DEF_STMT (op0);
   if (!is_gimple_assign (def_stmt))
-    return false;
+    return NULL_TREE;
 
   if (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (def_stmt)))
     {
@@ -2024,12 +1970,7 @@ combine_conversions (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp)
 	  && (((inter_int || inter_ptr) && final_int)
 	      || (inter_float && final_float))
 	  && inter_prec >= final_prec)
-	{
-	  gimple_assign_set_rhs1 (stmt, unshare_expr (defop0));
-	  gimple_assign_set_rhs_code (stmt, TREE_CODE (defop0));
-	  update_stmt (stmt);
-	  return true;
-	}
+	return unshare_expr (defop0);
 
       /* Likewise, if the intermediate and initial types are either both
 	 float or both integer, we don't need the middle conversion if the
@@ -2047,22 +1988,14 @@ combine_conversions (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp)
 		&& TYPE_MODE (type) == TYPE_MODE (inter_type))
 	  && ! final_ptr
 	  && (! final_vec || inter_prec == inside_prec))
-	{
-	  gimple_assign_set_rhs1 (stmt, defop0);
-	  update_stmt (stmt);
-	  return true;
-	}
+	return gimple_fold_build1_loc (loc, NOP_EXPR, ltype, defop0, nonzerobitsp);
 
       /* If we have a sign-extension of a zero-extended value, we can
 	 replace that by a single zero-extension.  */
       if (inside_int && inter_int && final_int
 	  && inside_prec < inter_prec && inter_prec < final_prec
 	  && inside_unsignedp && !inter_unsignedp)
-	{
-	  gimple_assign_set_rhs1 (stmt, defop0);
-	  update_stmt (stmt);
-	  return true;
-	}
+	return gimple_fold_build1_loc (loc, NOP_EXPR, ltype, defop0, nonzerobitsp);
 
       /* Two conversions in a row are not needed unless:
 	 - some conversion is floating-point (overstrict for now), or
@@ -2087,11 +2020,7 @@ combine_conversions (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp)
 	  && ! (final_ptr && inside_prec != inter_prec)
 	  && ! (final_prec != GET_MODE_BITSIZE (TYPE_MODE (type))
 		&& TYPE_MODE (type) == TYPE_MODE (inter_type)))
-	{
-	  gimple_assign_set_rhs1 (stmt, defop0);
-	  update_stmt (stmt);
-	  return true;
-	}
+	return gimple_fold_build1_loc (loc, NOP_EXPR, ltype, defop0, nonzerobitsp);
 
       /* A truncation to an unsigned type should be canonicalized as
 	 bitwise and of a mask.  */
@@ -2101,20 +2030,64 @@ combine_conversions (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp)
 	  && inter_unsignedp)
 	{
 	  tree tem;
-	  location_t loc = gimple_location (stmt);
 	  tem = double_int_to_tree (inside_type, double_int_mask (inter_prec));
 
 	  tem = gimple_fold_build2_loc (loc, BIT_AND_EXPR, TREE_TYPE (tem),
 					defop0, tem, nonzerobitsp);
-	  tem = force_gimple_operand_gsi (gsi, tem, true, NULL_TREE, true,
-					  GSI_SAME_STMT);
-	  gimple_assign_set_rhs1 (stmt, tem);
-	  update_stmt (gsi_stmt (*gsi));
-	  return true;
+	  return gimple_fold_build1_loc (loc, NOP_EXPR, ltype, tem, nonzerobitsp);
 	}
     }
 
-  return false;
+  return NULL_TREE;
+}
+
+static tree
+gimple_fold_binary_loc (location_t loc, enum tree_code code,
+			tree type, tree arg1, tree arg2,
+			nonzerobits_t nonzerobitsp)
+{
+  gcc_assert (IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (code))
+              && TREE_CODE_LENGTH (code) == 2
+              && arg1 != NULL_TREE
+              && arg2 != NULL_TREE);
+
+  if (commutative_tree_code (code)
+      && tree_swap_operands_p (arg1, arg2, true))
+    {
+      tree t = arg1;
+      arg1 = arg2;
+      arg2 = t;
+    }
+
+
+  switch (code)
+    {
+      case BIT_AND_EXPR:
+      case BIT_XOR_EXPR:
+      case BIT_IOR_EXPR:
+	return simplify_bitwise_binary (loc, code, type, arg1, arg2,
+					nonzerobitsp);
+      default:
+	return NULL_TREE;
+    }
+}
+static tree
+gimple_fold_unary_loc (location_t loc, enum tree_code code,
+		       tree type, tree arg1,
+		       nonzerobits_t nonzerobitsp)
+{
+  gcc_assert (IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (code))
+              && TREE_CODE_LENGTH (code) == 1
+              && arg1 != NULL_TREE);
+  switch (code)
+    {
+      CASE_CONVERT:
+      case FLOAT_EXPR:
+      case FIX_TRUNC_EXPR:
+	return combine_conversions (loc, code, type, arg1, nonzerobitsp);
+      default:
+	return NULL_TREE;
+    }
 }
 
 /* Main entry point for the forward propagation and statement combine
@@ -2164,10 +2137,6 @@ ssa_combine (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobits_p)
 	else if (code == PLUS_EXPR
 		 || code == MINUS_EXPR)
 	  changed = associate_plusminus (gsi);
-	else if (CONVERT_EXPR_CODE_P (code)
-		 || code == FLOAT_EXPR
-		 || code == FIX_TRUNC_EXPR)
-	  changed = combine_conversions (gsi, nonzerobits_p);
 	break;
       }
 
