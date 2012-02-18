@@ -735,31 +735,36 @@ forward_propagate_into_cond (gimple_stmt_iterator *gsi_p)
 
    Returns true when the statement was changed.  */
 
-static bool 
-simplify_not_neg_expr (gimple_stmt_iterator *gsi_p)
+static tree 
+simplify_not_neg_expr (location_t loc ATTRIBUTE_UNUSED, enum tree_code code,
+		       tree type ATTRIBUTE_UNUSED, tree rhs,
+		       nonzerobits_t nonzerobitsp ATTRIBUTE_UNUSED)
 {
-  gimple stmt = gsi_stmt (*gsi_p);
-  tree rhs = gimple_assign_rhs1 (stmt);
-  gimple rhs_def_stmt = SSA_NAME_DEF_STMT (rhs);
+  gimple rhs_def_stmt;
+  if (code != BIT_NOT_EXPR && code != NEGATE_EXPR)
+    return NULL_TREE;
+  
+  if (TREE_CODE (rhs) == code)
+    return TREE_OPERAND (rhs, 0);
+
+  if (TREE_CODE (rhs) != SSA_NAME)
+    return NULL_TREE;
+
+  rhs_def_stmt = SSA_NAME_DEF_STMT (rhs);
 
   /* See if the RHS_DEF_STMT has the same form as our statement.  */
   if (is_gimple_assign (rhs_def_stmt)
-      && gimple_assign_rhs_code (rhs_def_stmt) == gimple_assign_rhs_code (stmt))
+      && gimple_assign_rhs_code (rhs_def_stmt) == code)
     {
       tree rhs_def_operand = gimple_assign_rhs1 (rhs_def_stmt);
 
       /* Verify that RHS_DEF_OPERAND is a suitable SSA_NAME.  */
       if (TREE_CODE (rhs_def_operand) == SSA_NAME
 	  && ! SSA_NAME_OCCURS_IN_ABNORMAL_PHI (rhs_def_operand))
-	{
-	  gimple_assign_set_rhs_from_tree (gsi_p, rhs_def_operand);
-	  stmt = gsi_stmt (*gsi_p);
-	  update_stmt (stmt);
-	  return true;
-	}
+	return rhs_def_operand;
     }
 
-  return false;
+  return NULL_TREE;
 }
 
 /* STMT is a SWITCH_EXPR for which we attempt to find equivalent forms of
@@ -2085,6 +2090,9 @@ gimple_fold_unary_loc (location_t loc, enum tree_code code,
       case FLOAT_EXPR:
       case FIX_TRUNC_EXPR:
 	return combine_conversions (loc, code, type, arg1, nonzerobitsp);
+      case BIT_NOT_EXPR:
+      case NEGATE_EXPR:
+	return simplify_not_neg_expr (loc, code, type, arg1, nonzerobitsp);
       default:
 	return NULL_TREE;
     }
@@ -2125,10 +2133,6 @@ ssa_combine (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobits_p)
 	/* FIXME this part should not be needed.  */
 	if (newexpr)
 	  ;
-	else if ((code == BIT_NOT_EXPR
-	     || code == NEGATE_EXPR)
-	    && TREE_CODE (rhs1) == SSA_NAME)
-	  changed = simplify_not_neg_expr (gsi);
 	else if (code == COND_EXPR)
 	 /* In this case the entire COND_EXPR is in rhs1. */
 	 changed = forward_propagate_into_cond (gsi);
