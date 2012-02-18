@@ -1,3 +1,15 @@
+2012-02-18  Andrew Pinski  <apinski@cavium.com>
+
+	* tree-ssa-fold.c (gimple_fold_build2_loc): Fix formating.
+	(gimple_fold_build1_loc): Likewise.
+	(nonzerobits_1): New function.
+	(nonzerobits): New function.
+	(simplify_bitwise_binary): Use nonzerobits instead of calling
+	argument directly.
+	* tree-ssa-forwprop.c (forward_prop_nonzero): Just return
+	double_int_minus_one as the generic function now handles the heavy
+	lifting.
+
 2012-02-17  Andrew Pinski  <apinski@cavium.com>
 
 	* tree-ssa-fold.c (gimple_fold_build2_loc): New function.

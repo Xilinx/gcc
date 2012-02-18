@@ -41,9 +41,10 @@ static tree gimple_fold_binary_loc (location_t, enum tree_code, tree, tree,
 static tree gimple_fold_unary_loc (location_t, enum tree_code, tree, tree,
 				   nonzerobits_t);
 
-static tree gimple_fold_build2_loc (location_t loc, enum tree_code code,
-				    tree type, tree arg1, tree arg2,
-				    nonzerobits_t nonzerobitsp)
+static tree
+gimple_fold_build2_loc (location_t loc, enum tree_code code,
+			tree type, tree arg1, tree arg2,
+			nonzerobits_t nonzerobitsp)
 {
   tree tem;
   if (commutative_tree_code (code)
@@ -60,14 +61,84 @@ static tree gimple_fold_build2_loc (location_t loc, enum tree_code code,
     return tem;
   return build2_loc (loc, code, type, arg1, arg2);
 }
-static tree gimple_fold_build1_loc (location_t loc, enum tree_code code,
-				    tree type, tree arg1,
-				    nonzerobits_t nonzerobitsp)
+static tree
+gimple_fold_build1_loc (location_t loc, enum tree_code code,
+			tree type, tree arg1,
+			nonzerobits_t nonzerobitsp)
 {
   tree tem = gimple_fold_unary_loc (loc, code, type, arg1, nonzerobitsp);
   if (tem)
     return tem;
   return build1_loc (loc, code, type, arg1);
+}
+
+static double_int nonzerobits (tree var, nonzerobits_t func);
+
+static double_int
+nonzerobits_1 (enum tree_code code, tree type, tree op0, tree op1,
+	       nonzerobits_t func)
+{
+  double_int rhs, lhs;
+  if (code == MEM_REF)
+    return double_int_minus_one;
+  if (code == BIT_IOR_EXPR
+      || code == BIT_XOR_EXPR)
+     {
+       lhs = nonzerobits (op0, func);
+       if (double_int_minus_one_p (lhs))
+         return lhs;
+       rhs = nonzerobits (op1, func);
+       return double_int_ior (lhs, rhs);
+     }
+  if (code == BIT_AND_EXPR)
+    {
+      double_int lhs, rhs;
+      lhs = nonzerobits (op0, func);
+      rhs = nonzerobits (op1, func);
+      return double_int_and (lhs, rhs);
+    }
+  if (TREE_CODE_CLASS (code) == tcc_comparison)
+    return double_int_one;
+  /* FIXME: Handle conversions. */
+  (void)type;
+  return double_int_minus_one;
+}
+
+static double_int
+nonzerobits (tree val, nonzerobits_t func)
+{
+  double_int t = double_int_minus_one;
+  if (val == NULL_TREE)
+    return double_int_minus_one;
+  if (TREE_CODE (val) == INTEGER_CST)
+    return tree_to_double_int (val);
+  if (UNARY_CLASS_P (val))
+    t = nonzerobits_1 (TREE_CODE (val), TREE_TYPE (val),
+		       TREE_OPERAND (val, 0), NULL_TREE, func);
+  if (BINARY_CLASS_P (val) || COMPARISON_CLASS_P (val))
+    t = nonzerobits_1 (TREE_CODE (val), TREE_TYPE (val),
+		       TREE_OPERAND (val, 0), TREE_OPERAND (val, 1), func);
+
+  if (TREE_CODE (val) == SSA_NAME)
+    {
+      gimple def = SSA_NAME_DEF_STMT (val);
+      if (is_gimple_assign (def))
+        {
+	  enum tree_code code = gimple_assign_rhs_code (def);
+	  tree op0 = gimple_assign_rhs1 (def);
+	  tree op1 = gimple_assign_rhs2 (def);
+	  tree type = TREE_TYPE (gimple_assign_lhs (def));
+	  if (TREE_CODE_CLASS (code) == tcc_unary)
+	    t = nonzerobits_1 (code, type, op0, NULL_TREE, func);
+	  if (TREE_CODE_CLASS (code) == tcc_binary
+	      || TREE_CODE_CLASS (code) == tcc_comparison)
+	    t = nonzerobits_1 (code, type, op0, op1, func);
+	}
+    }
+  if (!double_int_minus_one_p (t))
+    return t;
+  /* Fall back to pass specific nonzero function.  */
+  return func (val);
 }
 
 /* Get the statement we can propagate from into NAME skipping
@@ -843,7 +914,8 @@ constant_pointer_difference (tree p1, tree p2)
    memset (p + 4, ' ', 3);
    into
    memcpy (p, "abcd   ", 7);
-   call if the latter can be stored by pieces during expansion.  */
+   call if the latter can be stored by pieces during expansion.
+   FIXME: this should be moved to somewhere.  */
 
 static bool
 simplify_builtin_call (gimple_stmt_iterator *gsi_p, tree callee2)
@@ -1308,7 +1380,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
   /* Try to optimize away the AND based on the nonzero bits info. */
   if (code == BIT_AND_EXPR)
     {
-      double_int nzop1 = nonzerobitsp (arg1);
+      double_int nzop1 = nonzerobits (arg1, nonzerobitsp);
       double_int nzop2;
       if (TREE_CODE (arg2) == INTEGER_CST)
 	{
@@ -1316,7 +1388,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 	  if (double_int_zero_p (double_int_and_not (nzop1, val2)))
 	    return arg1;
         }
-        nzop2 = nonzerobitsp (arg2);
+        nzop2 = nonzerobits (arg2, nonzerobitsp);
         /* If we are clearing all the nonzero bits, the result is zero.  */
         if (double_int_zero_p (double_int_and (nzop1, nzop2)))
 	  return fold_convert (TREE_TYPE (arg1), integer_zero_node);
@@ -1325,7 +1397,8 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
   /* A | C is C if all bits of A that might be nonzero are on in C.  */
   if (code == BIT_IOR_EXPR
       && TREE_CODE (arg2) == INTEGER_CST
-      && double_int_zero_p (double_int_and_not (nonzerobitsp (arg1),
+      && double_int_zero_p (double_int_and_not (nonzerobits (arg1,
+							     nonzerobitsp),
 						tree_to_double_int (arg2))))
 						
     return arg2;
@@ -1476,7 +1549,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       && def1_code == BIT_NOT_EXPR
       && TREE_CODE (arg2) == INTEGER_CST
       && double_int_equal_p (tree_to_double_int (arg2),
-			     nonzerobitsp (def1_arg1)))
+			     nonzerobits (def1_arg1, nonzerobitsp)))
       return gimple_fold_build2_loc (loc, BIT_XOR_EXPR, type, def1_arg1, arg2,
 				     nonzerobitsp);
 
