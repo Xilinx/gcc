@@ -5564,6 +5564,7 @@ Binary_expression::do_lower(Gogo* gogo, Named_object*,
 	    && op != OPERATOR_RSHIFT)
 	  {
 	    // May be a type error--let it be diagnosed later.
+	    return this;
 	  }
 	else if (is_comparison)
 	  {
@@ -5667,6 +5668,7 @@ Binary_expression::do_lower(Gogo* gogo, Named_object*,
 	    && op != OPERATOR_RSHIFT)
 	  {
 	    // May be a type error--let it be diagnosed later.
+	    return this;
 	  }
 	else if (is_comparison)
 	  {
@@ -5750,6 +5752,7 @@ Binary_expression::do_lower(Gogo* gogo, Named_object*,
 	    && left_type->base() != right_type->base())
 	  {
 	    // May be a type error--let it be diagnosed later.
+	    return this;
 	  }
 	else if (op == OPERATOR_EQEQ || op == OPERATOR_NOTEQ)
 	  {
@@ -11780,7 +11783,7 @@ Selector_expression::lower_method_expression(Gogo* gogo)
 	   p != method_parameters->end();
 	   ++p, ++i)
 	{
-	  if (!p->name().empty() && p->name() != Import::import_marker)
+	  if (!p->name().empty())
 	    parameters->push_back(*p);
 	  else
 	    {
