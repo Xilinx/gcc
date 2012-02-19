@@ -507,7 +507,7 @@ expand_possible_comparison (tree tmp, gimple_stmt_iterator *gsi,
    from a comparison at *GSI into the conditional if that simplifies it.
    Returns true if the stmt was modified therwise returns false.  */
 
-static bool 
+static tree 
 forward_propagate_into_comparison (gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
@@ -537,23 +537,15 @@ forward_propagate_into_comparison (gimple_stmt_iterator *gsi)
     gimple_cond_get_ops_from_tree (tmp, &code, &rhs1, &rhs2);
   } while (tmp);
 
-  if (reversed_edges && TREE_CODE (tmp1) == SSA_NAME)
+  if (tmp1
+      && useless_type_conversion_p (type, TREE_TYPE (tmp1)))
     {
-      tmp1 = fold_build1 (BIT_NOT_EXPR, TREE_TYPE (tmp1), tmp1);
-      reversed_edges = false;
-    }
-  /* We cannot handle reversing the edges as we have no edges to reverse
-     here. */
-  if (!reversed_edges && tmp1 && useless_type_conversion_p (type, TREE_TYPE (tmp1)))
-    {
-      gimple_assign_set_rhs_from_tree (gsi, tmp1);
-      fold_stmt (gsi);
-      update_stmt (gsi_stmt (*gsi));
-
-      return true;
+      if (reversed_edges && tmp1)
+	tmp1 = fold_build1 (BIT_NOT_EXPR, TREE_TYPE (tmp1), tmp1);
+      return tmp1;
     }
 
-  return false;
+  return NULL_TREE;
 }
 
 /* Propagate from the ssa name definition statements of COND_EXPR
@@ -2152,7 +2144,7 @@ ssa_combine (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobits_p)
 	 /* In this case the entire COND_EXPR is in rhs1. */
 	 changed = forward_propagate_into_cond (gsi);
 	else if (TREE_CODE_CLASS (code) == tcc_comparison)
-	  changed = forward_propagate_into_comparison (gsi);
+	  newexpr = forward_propagate_into_comparison (gsi);
 	else if (code == PLUS_EXPR
 		 || code == MINUS_EXPR)
 	  changed = associate_plusminus (gsi);

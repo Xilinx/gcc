@@ -1,3 +1,10 @@
+2012-02-19  Andrew Pinski  <apinski@cavium.com>
+
+	* tree-ssa-fold.c (forward_propagate_into_comparison): Return tree
+	instead of bool.
+	(ssa_combine): Handle the return type change of
+	forward_propagate_into_comparison.
+
 2012-02-18  Andrew Pinski  <apinski@cavium.com>
 
 	* fold-const.c (fold_undefer_overflow_warnings): Split out into ...
@@ -11,7 +18,6 @@
 	(forward_propagate_into_comparison): Update call to forward_propagate_into_comparison_1.
 	(forward_propagate_into_gimple_cond): Likewise.
 	(forward_propagate_into_cond): Likewise.
-
 
 2012-02-18  Andrew Pinski  <apinski@cavium.com>
 
