@@ -1,5 +1,20 @@
 2012-02-18  Andrew Pinski  <apinski@cavium.com>
 
+	* fold-const.c (fold_undefer_overflow_warnings): Split out into ...
+	(fold_undefer_overflow_warnings_loc): this.
+	* tree.h (fold_undefer_overflow_warnings_loc): Prototype.
+	* tree-ssa-fold.c (combine_cond_expr_cond): Change argument stmt for a location
+	and a nowarnings bool.
+	(forward_propagate_into_comparison_1): Change argument stmt for a location and
+	a nowarnings bool.
+	Update call to combine_cond_expr_cond.
+	(forward_propagate_into_comparison): Update call to forward_propagate_into_comparison_1.
+	(forward_propagate_into_gimple_cond): Likewise.
+	(forward_propagate_into_cond): Likewise.
+
+
+2012-02-18  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (combine_conversions): Fix creation of the new tree.
 	Use the original code instead of NOP_EXPR.
 

@@ -5295,6 +5295,7 @@ extern tree fold_abs_const (tree, tree);
 extern tree fold_indirect_ref_1 (location_t, tree, tree);
 extern void fold_defer_overflow_warnings (void);
 extern void fold_undefer_overflow_warnings (bool, const_gimple, int);
+extern void fold_undefer_overflow_warnings_loc (bool, location_t, int);
 extern void fold_undefer_and_ignore_overflow_warnings (void);
 extern bool fold_deferring_overflow_warnings_p (void);
 extern tree fold_fma (location_t, tree, tree, tree, tree);

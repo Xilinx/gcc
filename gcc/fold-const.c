@@ -249,8 +249,20 @@ fold_defer_overflow_warnings (void)
 void
 fold_undefer_overflow_warnings (bool issue, const_gimple stmt, int code)
 {
-  const char *warnmsg;
   location_t locus;
+  if (stmt == NULL)
+    locus = input_location;
+  else
+    locus = gimple_location (stmt);
+  if (stmt)
+    issue &= !gimple_no_warning_p (stmt);
+  return fold_undefer_overflow_warnings_loc (issue, locus, code);
+}
+
+void
+fold_undefer_overflow_warnings_loc (bool issue, location_t locus, int code)
+{
+  const char *warnmsg;
 
   gcc_assert (fold_deferring_overflow_warnings > 0);
   --fold_deferring_overflow_warnings;
@@ -269,9 +281,6 @@ fold_undefer_overflow_warnings (bool issue, const_gimple stmt, int code)
   if (!issue || warnmsg == NULL)
     return;
 
-  if (gimple_no_warning_p (stmt))
-    return;
-
   /* Use the smallest code level when deciding to issue the
      warning.  */
   if (code == 0 || code > (int) fold_deferred_overflow_code)
@@ -280,10 +289,6 @@ fold_undefer_overflow_warnings (bool issue, const_gimple stmt, int code)
   if (!issue_strict_overflow_warning (code))
     return;
 
-  if (stmt == NULL)
-    locus = input_location;
-  else
-    locus = gimple_location (stmt);
   warning_at (locus, OPT_Wstrict_overflow, "%s", warnmsg);
 }
 
