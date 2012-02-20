@@ -508,18 +508,16 @@ expand_possible_comparison (tree tmp, gimple_stmt_iterator *gsi,
    Returns true if the stmt was modified therwise returns false.  */
 
 static tree 
-forward_propagate_into_comparison (gimple_stmt_iterator *gsi)
+forward_propagate_into_comparison (location_t loc,
+				   enum tree_code code,
+				   tree type, tree rhs1,
+				   tree rhs2,
+				   nonzerobits_t nonzerobits ATTRIBUTE_UNUSED)
 {
-  gimple stmt = gsi_stmt (*gsi);
   tree tmp;
-  tree type = TREE_TYPE (gimple_assign_lhs (stmt));
-  tree rhs1 = gimple_assign_rhs1 (stmt);
-  tree rhs2 = gimple_assign_rhs2 (stmt);
-  enum tree_code code = gimple_assign_rhs_code (stmt);
-  location_t loc = gimple_location (stmt);
-  bool nowarnings = gimple_no_warning_p (stmt);
   tree tmp1 = NULL_TREE;
   bool reversed_edges = false;
+  gcc_assert (TREE_CODE_CLASS (code) == tcc_comparison);
 
   /* Combine the comparison with defining statements.  */
   do {
@@ -527,7 +525,7 @@ forward_propagate_into_comparison (gimple_stmt_iterator *gsi)
     tree reversed;
     tmp = forward_propagate_into_comparison_1 (loc, code,
 					       type, rhs1, rhs2,
-					       nowarnings);
+					       false);
     if (!tmp)
       break;
     if (!useless_type_conversion_p (type, TREE_TYPE (tmp)))
@@ -2080,6 +2078,9 @@ gimple_fold_binary_loc (location_t loc, enum tree_code code,
       arg2 = t;
     }
 
+  if (TREE_CODE_CLASS (code) == tcc_comparison)
+    return forward_propagate_into_comparison (loc, code, type, arg1, arg2,
+					      nonzerobitsp);
 
   switch (code)
     {
@@ -2152,8 +2153,6 @@ ssa_combine (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobits_p)
 	else if (code == COND_EXPR)
 	 /* In this case the entire COND_EXPR is in rhs1. */
 	 changed = forward_propagate_into_cond (gsi);
-	else if (TREE_CODE_CLASS (code) == tcc_comparison)
-	  newexpr = forward_propagate_into_comparison (gsi);
 	else if (code == PLUS_EXPR
 		 || code == MINUS_EXPR)
 	  changed = associate_plusminus (gsi);

@@ -1,5 +1,14 @@
 2012-02-20  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (forward_propagate_into_comparison): Take a loc,
+	code, a type and an operand instead of a gimple_stmt_iterator.
+	(gimple_fold_binary_loc): Call forward_propagate_into_comparison
+	for tcc_comparison code class.
+	(ssa_combine): Remove special handling of tcc_comparison as
+	gimple_fold_binary_loc handles it.
+
+2012-02-20  Andrew Pinski  <apinski@cavium.com>
+
 	* tree.c (save_expr): Don't wrap a SSA_NAME with a save_expr.
 	* tree-ssa-fold.c (forward_propagate_into_comparison): Change
 	how we handle the looping.  Don't expand the comparison
