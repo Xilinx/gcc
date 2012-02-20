@@ -1,5 +1,9 @@
 
 2011-02-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-opengpu.melt (opengpu_affine_accessed_array):
+	More, but code should be factored out...
+
+2011-02-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (normpat_instancepat)
 	(normpat_tuplepat, normpat_anymatchpat, normexp_match): Better debug.
 	(normbind_matchbind): write a binding to be overwritten in
