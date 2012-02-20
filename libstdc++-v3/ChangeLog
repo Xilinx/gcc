@@ -1,3 +1,61 @@
+2012-02-17  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/51798 continued.
+	* acinclude.m4 (GLIBCXX_ENABLE_ATOMIC_BUILTINS): Grep for
+	__atomic_, not __sync.
+	* configure: Regenerated.
+	
+2012-02-17  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/47058
+	* acinclude.m4 (GLIBCXX_ENABLE_WERROR): New.
+	(GLIBCXX_EXPORT_FLAGS): Add -Wabi to WARN_FLAGS
+	* configure.ac: Use it.
+	* fragment.am: Set WERROR_FLAG conditionally on --disable-werror.
+	* configure: Regenerate.
+	* python/Makefile.in: Same.
+	* Makefile.in: Same.
+	* doc/Makefile.in: Same.
+	* include/Makefile.in: Same.
+	* po/Makefile.in: Same.
+	* python/Makefile.in: Same.
+	* src/Makefile.in: Same.
+	* src/c++11/Makefile.in: Same.
+	* src/c++98/Makefile.in: Same.
+	* testsuite/Makefile.in: Same.
+
+2012-02-17  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libstdc++/52189
+	* acinclude.m4 (GLIBCXX_CHECK_GTHREADS): Handle
+	--enable-libstdcxx-threads.
+	Disable on Solaris 8/9 with symbol versioning.
+	* configure.ac (GLIBCXX_CHECK_GTHREADS): Move after
+	GLIBCXX_ENABLE_SYMVERS.
+	* configure: Regenerate.
+	* doc/xml/manual/configure.xml (--enable-libstdcxx-threads): Explain.
+
+2012-02-15  DJ Delorie  <dj@redhat.com>
+
+	* src/c++98/locale.cc (locale::facet::_S_get_c_locale): Fix typo.
+
+2012-02-15  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/51368
+	* acinclude.m4 (GLIBCXX_ENABLE_PYTHON): New.
+	* configure.ac: Use it.
+	* python/Makefile.am: Same.
+	* configure: Regenerate.
+	* python/Makefile.in: Regenerate.
+	* Makefile.in: Same.
+	* doc/Makefile.in: Same.
+	* include/Makefile.in: Same.
+	* po/Makefile.in: Same.
+	* src/Makefile.in: Same.
+	* src/c++11/Makefile.in: Same.
+	* src/c++98/Makefile.in: Same.
+	* testsuite/Makefile.in: Same.
+
 2012-02-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* 30_threads/thread/native_handle/typesizes.cc: Do not run on cygwin.
@@ -30,7 +88,7 @@
 	* libsupc++/guard.cc (__cxa_guard_acquire): Same.
 
 2012-02-10  Benjamin Kosnik  <bkoz@redhat.com>
-            Jonathan Wakely  <jwakely.gcc@gmail.com>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	PR libstdc++/51798 continued.
 	* acinclude.m4 (GLIBCXX_ENABLE_ATOMIC_BUILTINS): Use __atomic_*

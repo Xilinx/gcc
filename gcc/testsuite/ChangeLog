@@ -1,3 +1,78 @@
+2012-02-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52295
+	* gfortran.dg/interface_35.f90: Use -std=f2003.
+	* gfortran.dg/proc_ptr_comp_20.f90: Remove dg-warning.
+	* gfortran.dg/interface_assignment_4.f90: Ditto.
+	* gfortran.dg/bessel_1.f90: Ditto.
+	* gfortran.dg/func_result_6.f90: Ditto.
+	* gfortran.dg/hypot_1.f90: Ditto.
+	* gfortran.dg/proc_ptr_comp_21.f90: Ditto.
+
+2012-02-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR translation/52232
+	PR translation/52234
+	PR translation/52245
+	PR translation/52246
+	PR translation/52262
+	PR translation/52273
+	* gfortran.dg/coarray_22.f90: Update dg-error.
+	* gfortran.dg/allocate_alloc_opt_4.f90: Ditto.
+
+2012-02-17  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/51753
+	* lib/gcc-simulate-thread.exp: Load timeout.exp.
+	(simulate-thread): Use default timeout.
+
+2012-02-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/52248
+	* g++.dg/ext/timevar1.C: New.
+
+2012-02-16  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/52126
+	* g++.dg/template/using21.C: New.
+	* g++.dg/template/using22.C: Likewise.
+
+2012-02-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51415
+	* g++.dg/cpp0x/lambda/lambda-err1.C: New.
+
+2012-02-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/52255
+	* gcc.c-torture/compile/pr52255.c: New test.
+
+	PR debug/52260
+	* g++.dg/debug/dwarf2/pr52260.C: New test.
+
+	PR middle-end/51929
+	* g++.dg/ipa/pr51929.C: New test.
+
+2012-02-15  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/52199
+	* gcc.target/powerpc/pr52199.c: New file.
+
+2012-02-15  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/52152
+	* objc.dg/stabs-1.m: xfail on mips-sgi-irix6.5.
+
+2012-02-15  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/pr51867.c: Don't include <math.h>.
+	(sqrtf): Declare.
+
+2012-02-15  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.dg/lto/20091013-1_1.c: xfail for avr.
+	* gcc.dg/lto/20091013-1_2.c: xfail for avr.
+
 2012-02-15  Tobias Grosser <grosser@fim.uni-passau.de>
 
 	PR tree-optimization/50561

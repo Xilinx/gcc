@@ -33,8 +33,6 @@ AC_SUBST(CFLAGS)
 
 AM_MAINTAINER_MODE
 
-AC_INCLUDES_DEFAULT
-
 AC_PROG_LD
 AC_PROG_RANLIB
 AC_CHECK_TOOL(OBJCOPY, objcopy, missing-objcopy)
@@ -455,7 +453,7 @@ no)
   ;;
 esac
 
-AC_CHECK_HEADERS(sys/mman.h syscall.h sys/epoll.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h sys/socket.h net/if.h sys/prctl.h)
+AC_CHECK_HEADERS(sys/mman.h syscall.h sys/epoll.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h sys/socket.h net/if.h sys/prctl.h sys/mount.h sys/vfs.h sys/statfs.h)
 
 AC_CHECK_HEADERS([linux/filter.h linux/netlink.h linux/rtnetlink.h], [], [],
 [#ifdef HAVE_SYS_SOCKET_H
@@ -469,7 +467,8 @@ AC_CHECK_FUNCS(strerror_r strsignal wait4 mincore setenv)
 AM_CONDITIONAL(HAVE_STRERROR_R, test "$ac_cv_func_strerror_r" = yes)
 AM_CONDITIONAL(HAVE_WAIT4, test "$ac_cv_func_wait4" = yes)
 
-AC_CHECK_FUNCS(epoll_create1 faccessat fchmodat fchownat futimesat inotify_add_watch inotify_init inotify_rm_watch mkdirat mknodat openat renameat splice tee unlinkat unshare)
+AC_CHECK_FUNCS(epoll_create1 faccessat fallocate fchmodat fchownat futimesat inotify_add_watch inotify_init inotify_rm_watch mkdirat mknodat openat renameat splice tee unlinkat unshare)
+AC_TYPE_OFF_T
 AC_CHECK_TYPES([loff_t])
 
 CFLAGS_hold="$CFLAGS"
@@ -611,6 +610,21 @@ if test "$libgo_has_struct_exception" = "yes"; then
             [Define to 1 if <math.h> defines struct exception])
 fi
 
+dnl Check if makecontext expects the uc_stack member of ucontext to point
+dnl to the top of the stack.
+case "$target" in
+  sparc*-*-solaris2.[[89]]*)
+    libgo_cv_lib_makecontext_stack_top=yes
+    ;;
+  *)
+    libgo_cv_lib_makecontext_stack_top=no
+    ;;
+esac
+if test "$libgo_cv_lib_makecontext_stack_top" = "yes"; then
+  AC_DEFINE(MAKECONTEXT_STACK_TOP, 1,
+	    [Define if makecontext expects top of stack in uc_stack.])
+fi
+
 dnl See whether setcontext changes the value of TLS variables.
 AC_CACHE_CHECK([whether setcontext clobbers TLS variables],
 [libgo_cv_lib_setcontext_clobbers_tls],
@@ -667,6 +681,9 @@ main ()
     abort ();
 
   c.uc_stack.ss_sp = stack;
+#ifdef MAKECONTEXT_STACK_TOP
+  c.uc_stack.ss_sp += sizeof stack;
+#endif
   c.uc_stack.ss_flags = 0;
   c.uc_stack.ss_size = sizeof stack;
   c.uc_link = NULL;
