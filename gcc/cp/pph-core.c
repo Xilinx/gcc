@@ -1396,7 +1396,7 @@ pph_init (void)
 	fatal_error ("Cannot create %s for writing: %m", flag_pph_logfile);
     }
   else
-    pph_logfile = stdout;
+    pph_logfile = stderr;
 
   if (flag_pph_tracer >= 1)
     fprintf (pph_logfile, "PPH: Initializing.\n");

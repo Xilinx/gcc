@@ -1,3 +1,7 @@
+2012-02-20   Diego Novillo  <dnovillo@google.com>
+
+	* pph-core.c (pph_init): Use stderr for -fpph-tracer.
+
 2012-02-16   Lawrence Crowl  <crowl@google.com>
 
 	* pph-in.c (pph_in_merge_lang_indep_tree_body): Avoid a false "used
