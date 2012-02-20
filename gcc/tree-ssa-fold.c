@@ -523,6 +523,8 @@ forward_propagate_into_comparison (gimple_stmt_iterator *gsi)
 
   /* Combine the comparison with defining statements.  */
   do {
+    tree canonicalized;
+    tree reversed;
     tmp = forward_propagate_into_comparison_1 (loc, code,
 					       type, rhs1, rhs2,
 					       nowarnings);
@@ -530,11 +532,18 @@ forward_propagate_into_comparison (gimple_stmt_iterator *gsi)
       break;
     if (!useless_type_conversion_p (type, TREE_TYPE (tmp)))
       break;
-    tmp = expand_possible_comparison (tmp, gsi, &reversed_edges);
-    if (!tmp)
-      break;
-    tmp1 = tmp;
-    gimple_cond_get_ops_from_tree (tmp, &code, &rhs1, &rhs2);
+    reversed = tmp;
+    if (TREE_CODE (tmp) == TRUTH_NOT_EXPR
+       || TREE_CODE (tmp) == BIT_NOT_EXPR)
+    {
+      reversed_edges ^= true;
+      reversed = TREE_OPERAND (tmp, 0);
+    }
+    canonicalized = canonicalize_cond_expr_cond (reversed);
+    if (!canonicalized)
+      return tmp;
+    tmp1 = canonicalized;
+    gimple_cond_get_ops_from_tree (canonicalized, &code, &rhs1, &rhs2);
   } while (tmp);
 
   if (tmp1

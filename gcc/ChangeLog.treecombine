@@ -1,3 +1,11 @@
+2012-02-20  Andrew Pinski  <apinski@cavium.com>
+
+	* tree.c (save_expr): Don't wrap a SSA_NAME with a save_expr.
+	* tree-ssa-fold.c (forward_propagate_into_comparison): Change
+	how we handle the looping.  Don't expand the comparison
+	instead return if the new expression if canonicalize_cond_expr_cond
+	returns NULL.
+
 2012-02-19  Andrew Pinski  <apinski@cavium.com>
 
 	* tree-ssa-fold.c (forward_propagate_into_comparison): Return tree

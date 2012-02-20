@@ -2717,6 +2717,10 @@ save_expr (tree expr)
   if (contains_placeholder_p (inner))
     return t;
 
+  /* A ssa_name never needs a save expression wrapped around it. */
+  if (TREE_CODE (t) == SSA_NAME)
+    return t;
+
   t = build1 (SAVE_EXPR, TREE_TYPE (expr), t);
   SET_EXPR_LOCATION (t, EXPR_LOCATION (expr));
 
