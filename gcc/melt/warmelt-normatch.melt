@@ -1118,6 +1118,8 @@ scanning variables.}#
 					:nocc_bind newbind
 					))
 		     )
+		 (debug "normpat_instancepat newbind=" newbind 
+			"\n* newlocc=" newlocc)
 		 (multiple_put_nth 
 		  (get_field :ntinst_fieldlocs tester) 
 		  (get_int curfld)
@@ -1311,7 +1313,8 @@ scanning variables.}#
 					:nocc_bind newbind
 					))
 		     )
-		 (debug "normpat_tuplepat newlocc=" newlocc)
+		 (debug "normpat_tuplepat newlocc=" newlocc
+			"\n* newbind=" newbind)
 		 (multiple_put_nth
 		  (get_field :nttuple_components  tester)
 		  patix
@@ -1679,7 +1682,7 @@ scanning variables.}#
 					     :letbind_expr ncurin)
 				   )
 			     )
-			(debug "normpat_anymatchpat newb" newb)
+			(debug "normpat_anymatchpat newb=" newb)
 			(put_env newenv newb)
 			))))
 		 (setq env newenv)
@@ -1767,6 +1770,7 @@ scanning variables.}#
 				 )
 			    ;; put the clocc in the symbol cache map
 			    (mapobject_put (get_field :nctx_symbcachemap ncx) csym clocc)
+			    (debug "normpat_anymatchpat clocc=" clocc)
 			    clocc
 			    ))))
 		      (newtester 
@@ -2315,6 +2319,7 @@ scanning variables.}#
 				  :nocc_bind cbind))
 		 )
 	     (assert_msg "check no binding" (null nbindmatx))
+	     (debug "normexp_match clocc=" clocc)
 	     ;; put the clocc in the symbol cache map
 	     (mapobject_put (get_field :nctx_symbcachemap ncx) csym clocc)
 	     (setq nbindmatx (list cbind))
@@ -2553,7 +2558,7 @@ scanning variables.}#
 			      :letbind_type wholectype
 			      :letbind_expr nmatch))
 	     )
-	 (debug "normexp_match csym" csym)
+	 (debug "normexp_match csym=" csym "\n cbind=" cbind)
 	 (put_fields clocc :nocc_bind cbind)
 	 (debug "normexp_match clocc" clocc)
 	 ;; put the clocc in the symbol cache map
@@ -2667,6 +2672,8 @@ $MATCHBIND_NBOCC is the number of occurrences.}#
 	   matchbind_nbocc
 	   ))
 
+
+;;;;;;;;;;;;;;;;
 (defun normbind_matchbind (bind env ncx procs psloc)
   (assert_msg "check bind" (is_a bind class_matched_binding))
   (assert_msg "check env" (is_a env class_environment))
@@ -2683,16 +2690,17 @@ $MATCHBIND_NBOCC is the number of occurrences.}#
 			  :nrep_loc psloc
 			  :nocc_ctyp (get_field :mdata_ctype mdata) 
 			  :nocc_symb symb
+			  ;; the bind is put here, but will be overwritten inside normstep_msuccwhenflag
 			  :nocc_bind bind) ) 
 	 )
     (debug "normbind_matchbind syocc=" syocc
 	   "\n* mdata=" mdata "\n of discrim:" (discrim mdata))
-    (compile_warning 
-     "perhaps the locsymocc should be bound in normstep_msuccwhenflag")
     ;; increment the number of occurrences
     (put_int boxnbocc (+i nbocc 1))
     ;; cache the result & return it
     (mapobject_put sycmap symb syocc)
+    (debug "normbind_matchbind updated sycmap=" sycmap
+	   "\n for syocc=" syocc)
     syocc
     ))
 (install_method class_matched_binding  normalize_binding normbind_matchbind)
@@ -5794,6 +5802,38 @@ normalized expression.}#
 	   " matvarocc=" matvarocc " mbinds=" mbinds " matbody=" matbody
 	   " matthen=" matthen " nmatresloc=" nmatresloc)
     (shortbacktrace_dbg "normstep_msuccwhenflag" 14)
+    (if (null mbinds) (setq mbinds (make_list discr_list)))
+    (assert_msg "check mbinds" (is_list mbinds))
+    (foreach_in_multiple 
+     (matvarocc)
+     (curvarocc :long vix)
+     (debug "normstep_msuccwhenflag curvarocc=" curvarocc " mbinds=" mbinds " vix=" vix)
+     (assert_msg "check curvarocc" (is_a curvarocc class_nrep_locsymocc))
+     (let ( (vmbind (get_field :nocc_bind curvarocc))
+	    (vsym (get_field :nocc_symb curvarocc))
+	    (vctyp (get_field :nocc_ctyp curvarocc))
+	    (vnloc (or (get_field :nrep_loc curvarocc) nsloc))
+	    (vmdata (get_field :matchbind_data vmbind))
+	   )
+       (debug "normstep_msuccwhenflag vix=" vix " vmbind=" vmbind " vmdata=" vmdata)
+       (assert_msg "check vmbind" (is_a vmbind class_matched_binding))
+       (assert_msg "check vmdata" (is_a vmdata class_matched_data))
+       (let ( (nvdata (altmatch_normalize_mdata vmdata nmctxt))
+	      (nvbind (instance class_normal_let_binding
+				 :letbind_loc vnloc
+				 :binder vsym
+				 :letbind_type vctyp 
+				 :letbind_expr nvdata
+				))
+	     )
+	 (debug "normstep_msuccwhenflag vix=" vix " nvdata=" nvdata " nvbind=" nvbind)
+	 (list_prepend mbinds nvbind)
+	 (put_fields curvarocc :nocc_bind nvbind)
+	 (debug "normstep_msuccwhenflag updated mbinds=" mbinds 
+		"\n& updated curvarocc=" curvarocc	
+		" vix=" vix)
+     )))
+    (debug "normstep_msuccwhenflag got mbinds=" mbinds)
     (let (
 	  (nthen (altmatch_normalize_step matthen nmctxt))
 	  (nflag (altmatch_normalize_flag matflag nmctxt))
@@ -6095,6 +6135,7 @@ normalized expression.}#
 				     :letbind_type amctype
 				     :letbind_expr ndata))
 	     )
+	(debug "normstep_mtestmatcher newambinding=" newambinding)
 	(if (!= amctype datctype)
 	    (progn
 	      (error_strv nsloc "invalid matched data ctype in matcher"
@@ -6143,7 +6184,7 @@ normalized expression.}#
 					:letbind_type curctype
 					:letbind_expr curins)
 			      ) )
-	     (debug "normstep_mtestmatcher newbinding" newbinding)
+	     (debug "normstep_mtestmatcher newbinding=" newbinding)
 	     (put_env newenv newbinding)
 	     (list_append newbindlist newbinding)
 	     )
@@ -6388,7 +6429,8 @@ normalized expression.}#
 			   :matnorx_matchctxt matctx
 			   ))
 	)
-    (debug "altmatch_make_match_normalization_context result nmctxt" nmctxt)
+    (debug "altmatch_make_match_normalization_context result nmctxt=" nmctxt
+	   "\n* mrbind=" mrbind)
     (return nmctxt)
     ))
 
@@ -6652,8 +6694,6 @@ normalized expression.}#
 		      discr_multiple
 		      ))
 		    )
-	       (put_fields nresbind
-			   :letbind_expr nresmatch)
 	       (assert_msg "check nresmatch" (is_a nresmatch class_nrep_altmatch))
 ;;;
 	       (debug "normexp_altmatch ndatamap=" ndatamap)
@@ -6704,7 +6744,8 @@ normalized expression.}#
 		 (debug "normexp_altmatch final nresbind=" nresbind " nresloc=" nresloc)
 		 (warning_plain sloc "@@??implemented normexp_altmatch")
 		 (compile_warning "@@??implemented normexp_altmatch")
-		 (return nresloc (list nresbind))
+		 ;; we probably should do something with nresmatch...
+		 (return nresmatch (list nresbind))
 		 )))))))))
 
 (defun alternate_match_optset (optsymb :cstring opts)

@@ -1,4 +1,12 @@
 
+2011-02-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (normpat_instancepat)
+	(normpat_tuplepat, normpat_anymatchpat, normexp_match): Better debug.
+	(normbind_matchbind): write a binding to be overwritten in
+	normstep_msuccwhenflag.
+	(normstep_msuccwhenflag): Better. Also normalize the data.
+	(normexp_altmatch): Still incomplete.
+
 2011-02-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (normbind_matchbind): Might be wrong.
 	(translpat_varpat): Better debug.
