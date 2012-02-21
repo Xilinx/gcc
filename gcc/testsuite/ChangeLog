@@ -1,3 +1,40 @@
+2012-02-20  Kai Tietz  <ktietz@redhat.com>
+
+	* gcc.dg/bf-ms-layout-3.c: New testcase.
+
+2012-02-20  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR testsuite/52229
+	PR fortran/32380
+	* gfortran.dg/vect/pr32380.f:  XFAIL on PowerPC and ia-64.
+
+2012-02-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52298
+	* gcc.dg/torture/pr52298.c: New testcase.
+	* gcc.dg/vect/pr52298.c: Likewise.
+
+2012-02-20  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.dg/pr52132.c: Fix FAIL on 16-bit int platforms.
+	* gcc.c-torture/execute/pr52286.c: Ditto.
+
+2012-02-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/52286
+	* gcc.c-torture/execute/pr52286.c: New test.
+
+2012-02-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52295
+	* gfortran.dg/interface_35.f90: Use -std=f2003.
+	* gfortran.dg/proc_ptr_comp_20.f90: Remove dg-warning.
+	* gfortran.dg/interface_assignment_4.f90: Ditto.
+	* gfortran.dg/bessel_1.f90: Ditto.
+	* gfortran.dg/func_result_6.f90: Ditto.
+	* gfortran.dg/hypot_1.f90: Ditto.
+	* gfortran.dg/proc_ptr_comp_21.f90: Ditto.
+
 2012-02-17  Tobias Burnus  <burnus@net-b.de>
 
 	PR translation/52232

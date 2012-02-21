@@ -1,3 +1,22 @@
+2012-02-20  Kai Tietz  <ktietz@redhat.com>
+
+	PR libstdc++/52300
+	* gthr.h (GTHREAD_USE_WEAK): Define as zero for mingw.
+
+	* config.host (i686-*-mingw*): Set md_unwind_header only for dw2-mode
+	to w32-unwind.h header.
+
+2012-02-19  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config.host (mips64*-*-linux*, mipsisa64*-*-linux*)
+	(mips*-*-linux*): Remove t-slibgcc-libgcc.
+	* config/mips/t-mips16 (LIB1ASMFUNCS): Remove __mips16_rdhwr.
+	* config/mips/mips16.S (__mips16_rdhwr): Delete.
+
+2012-02-19  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips16.S (CALL_STUB_RET): Add CFI information.
+
 2012-02-15  Iain Sandoe  <iains@gcc.gnu.org>
 
 	PR libitm/52220

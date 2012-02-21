@@ -592,6 +592,9 @@ struct target_globals *mips16_globals;
    and returned from mips_sched_reorder2.  */
 static int cached_can_issue_more;
 
+/* True if the output uses __mips16_rdhwr.  */
+static bool mips_need_mips16_rdhwr_p;
+
 /* Index R is the smallest register class that contains register R.  */
 const enum reg_class mips_regno_to_class[FIRST_PSEUDO_REGISTER] = {
   LEA_REGS,	LEA_REGS,	M16_REGS,	V1_REG,
@@ -2842,7 +2845,9 @@ mips_get_tp (void)
   tp = gen_reg_rtx (Pmode);
   if (TARGET_MIPS16)
     {
+      mips_need_mips16_rdhwr_p = true;
       fn = mips16_stub_function ("__mips16_rdhwr");
+      SYMBOL_REF_FLAGS (fn) |= SYMBOL_FLAG_LOCAL;
       if (!call_insn_operand (fn, VOIDmode))
 	fn = force_reg (Pmode, fn);
       emit_insn (PMODE_INSN (gen_tls_get_tp_mips16, (tp, fn)));
@@ -5827,6 +5832,33 @@ mips_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
   return addr;
 }
 
+/* Declare a unique, locally-binding function called NAME, then start
+   its definition.  */
+
+static void
+mips_start_unique_function (const char *name)
+{
+  tree decl;
+
+  decl = build_decl (BUILTINS_LOCATION, FUNCTION_DECL,
+		     get_identifier (name),
+		     build_function_type_list (void_type_node, NULL_TREE));
+  DECL_RESULT (decl) = build_decl (BUILTINS_LOCATION, RESULT_DECL,
+				   NULL_TREE, void_type_node);
+  TREE_PUBLIC (decl) = 1;
+  TREE_STATIC (decl) = 1;
+
+  DECL_COMDAT_GROUP (decl) = DECL_ASSEMBLER_NAME (decl);
+
+  targetm.asm_out.unique_section (decl, 0);
+  switch_to_section (get_named_section (decl, NULL, 0));
+
+  targetm.asm_out.globalize_label (asm_out_file, name);
+  fputs ("\t.hidden\t", asm_out_file);
+  assemble_name (asm_out_file, name);
+  putc ('\n', asm_out_file);
+}
+
 /* Start a definition of function NAME.  MIPS16_P indicates whether the
    function contains MIPS16 code.  */
 
@@ -5863,6 +5895,26 @@ mips_end_function_definition (const char *name)
       assemble_name (asm_out_file, name);
       fputs ("\n", asm_out_file);
     }
+}
+
+/* Output a definition of the __mips16_rdhwr function.  */
+
+static void
+mips_output_mips16_rdhwr (void)
+{
+  const char *name;
+
+  name = "__mips16_rdhwr";
+  mips_start_unique_function (name);
+  mips_start_function_definition (name, false);
+  fprintf (asm_out_file,
+	   "\t.set\tpush\n"
+	   "\t.set\tmips32r2\n"
+	   "\t.set\tnoreorder\n"
+	   "\trdhwr\t$3,$29\n"
+	   "\t.set\tpop\n"
+	   "\tj\t$31\n");
+  mips_end_function_definition (name);
 }
 
 /* Return true if calls to X can use R_MIPS_CALL* relocations.  */
@@ -6387,7 +6439,20 @@ mips16_build_call_stub (rtx retval, rtx *fn_ptr, rtx args_size, int fp_code)
       assemble_start_function (stubdecl, stubname);
       mips_start_function_definition (stubname, false);
 
-      if (!fp_ret_p)
+      if (fp_ret_p)
+	{
+	  fprintf (asm_out_file, "\t.cfi_startproc\n");
+
+	  /* Create a fake CFA 4 bytes below the stack pointer.
+	     This works around unwinders (like libgcc's) that expect
+	     the CFA for non-signal frames to be unique.  */
+	  fprintf (asm_out_file, "\t.cfi_def_cfa 29,-4\n");
+
+	  /* "Save" $sp in itself so we don't use the fake CFA.
+	     This is: DW_CFA_val_expression r29, { DW_OP_reg29 }.  */
+	  fprintf (asm_out_file, "\t.cfi_escape 0x16,29,1,0x6d\n");
+	}
+      else
 	{
 	  /* Load the address of the MIPS16 function into $25.  Do this
 	     first so that targets with coprocessor interlocks can use
@@ -6405,12 +6470,7 @@ mips16_build_call_stub (rtx retval, rtx *fn_ptr, rtx args_size, int fp_code)
 	 registers.  */
       mips_output_args_xfer (fp_code, 't');
 
-      if (!fp_ret_p)
-	{
-	  /* Jump to the previously-loaded address.  */
-	  output_asm_insn ("jr\t%^", NULL);
-	}
-      else
+      if (fp_ret_p)
 	{
 	  /* Save the return address in $18 and call the non-MIPS16 function.
 	     The stub's caller knows that $18 might be clobbered, even though
@@ -6418,6 +6478,7 @@ mips16_build_call_stub (rtx retval, rtx *fn_ptr, rtx args_size, int fp_code)
 	  fprintf (asm_out_file, "\tmove\t%s,%s\n",
 		   reg_names[GP_REG_FIRST + 18], reg_names[RETURN_ADDR_REGNUM]);
 	  output_asm_insn (MIPS_CALL ("jal", &fn, 0, -1), &fn);
+	  fprintf (asm_out_file, "\t.cfi_register 31,18\n");
 
 	  /* Move the result from floating-point registers to
 	     general registers.  */
@@ -6470,6 +6531,12 @@ mips16_build_call_stub (rtx retval, rtx *fn_ptr, rtx args_size, int fp_code)
 	      gcc_unreachable ();
 	    }
 	  fprintf (asm_out_file, "\tjr\t%s\n", reg_names[GP_REG_FIRST + 18]);
+	  fprintf (asm_out_file, "\t.cfi_endproc\n");
+	}
+      else
+	{
+	  /* Jump to the previously-loaded address.  */
+	  output_asm_insn ("jr\t%^", NULL);
 	}
 
 #ifdef ASM_DECLARE_FUNCTION_SIZE
@@ -8451,6 +8518,15 @@ mips_file_start (void)
     fprintf (asm_out_file, "\n%s -G value = %d, Arch = %s, ISA = %d\n",
 	     ASM_COMMENT_START,
 	     mips_small_data_threshold, mips_arch_info->name, mips_isa);
+}
+
+/* Implement TARGET_ASM_CODE_END.  */
+
+static void
+mips_code_end (void)
+{
+  if (mips_need_mips16_rdhwr_p)
+    mips_output_mips16_rdhwr ();
 }
 
 /* Make the last instruction frame-related and note that it performs
@@ -17342,6 +17418,8 @@ mips_expand_vec_minmax (rtx target, rtx op0, rtx op1,
 #define TARGET_ASM_FILE_START mips_file_start
 #undef TARGET_ASM_FILE_START_FILE_DIRECTIVE
 #define TARGET_ASM_FILE_START_FILE_DIRECTIVE true
+#undef TARGET_ASM_CODE_END
+#define TARGET_ASM_CODE_END mips_code_end
 
 #undef TARGET_INIT_LIBFUNCS
 #define TARGET_INIT_LIBFUNCS mips_init_libfuncs

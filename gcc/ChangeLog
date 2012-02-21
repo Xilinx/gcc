@@ -1,3 +1,82 @@
+2012-02-20  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/sparc.md (load_pcrel_sym<P:mode>): Explain why we
+	don't use the "rd %pc" instruction on v9 for PIC register loads.
+
+2012-02-20  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR middle-end/52141
+	* trans-mem.c (ipa_tm_scan_irr_block): Error out on GIMPLE_ASM's
+	in a transaction safe function.
+
+2012-02-20  Kai Tietz  <ktietz@redhat.com>
+
+	PR target/52238
+	* stor-layout.c (place_field): Handle desired_align for
+	ms-bitfields, too.
+
+2012-02-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52298
+	* tree-vect-stmts.c (vectorizable_store): Properly use
+	STMT_VINFO_DR_STEP instead of DR_STEP when vectorizing
+	outer loops.
+	(vectorizable_load): Likewise.
+	* tree-vect-data-refs.c (vect_analyze_data_ref_access):
+	Access DR_STEP after ensuring it is not NULL.
+
+2012-02-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/52286
+	* fold-const.c (fold_binary_loc): For (X & C1) | C2
+	optimization use double_int_to_tree instead of build_int_cst_wide,
+	rewrite to use double_int vars.
+
+2012-02-20  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/50166
+	* acinclude.m4 (gcc_AC_INITFINI_ARRAY): Require gcc_SUN_LD_VERSION.
+	Define _start.
+	Remove -e 0 from $gcc_cv_ld invocation.
+	Only use __GLIBC_PREREQ if defined.
+	Enable on Solaris since Solaris 8 patch.
+	(gcc_SUN_LD_VERSION): New macro.
+	* configure.ac (ld_ver) <*-*-solaris2*>: Refer to
+	gcc_SUN_LD_VERSION for version number format.
+	* configure: Regenerate.
+	* varasm.c (get_elf_initfini_array_priority_section): Set
+	SECTION_NOTYPE for non-default priority.
+	Use get_section instead of get_unnamed_section to emit
+	.init_array/.fini_array with default priority.
+
+2012-02-19  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_need_mips16_rdhwr_p): New variable.
+	(mips_get_tp): Set it.  Record that __mips16_rdhwr binds locally.
+	(mips_start_unique_function, mips_output_mips16_rdhwr)
+	(mips_code_end): New functions.
+	(TARGET_ASM_CODE_END): Define.
+
+2012-02-19  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips16_build_call_stub): Add CFI information
+	to stubs with non-sibling calls.
+
+2012-02-18  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi (-fira-* options): Copy-edit.
+	(ira-* parameters): Copy-edit.
+
+2012-02-17  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi: Minor copy-edits to bring into conformance with
+	GCC coding conventions.
+
+2012-02-17  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi: Consistently hyphenate "big-endian"/"little-endian"
+	when used as adjectives.
+
 2012-02-16  Sandra Loosemore  <sandra@codesourcery.com>
 
 	* doc/invoke.texi: Clean up "that"/"which" confusion.
