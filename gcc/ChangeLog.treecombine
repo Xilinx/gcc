@@ -1,5 +1,18 @@
 2012-02-21  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (constant_pointer_difference): Move back to
+	tree-ssa-forwprop.c.
+	(simplify_builtin_call): Likewise.
+	(ssa_combine): Don't call simplify_builtin_call.
+	* tree-ssa-forwprop.c (constant_pointer_difference): Moved back
+	from tree-ssa-fold.c
+	(simplify_builtin_call): Likewise.
+	(ssa_forward_propagate_and_combine): Before calling ssa_combine,
+	call simplify_builtin_call and also don't call gsi_next if
+	simplify_builtin_call did something.
+
+2012-02-21  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (combine_cond_expr_cond): Strip off
 	all conversions from bool to bool types and not just the
 	useless ones.
