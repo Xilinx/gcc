@@ -301,8 +301,10 @@ combine_cond_expr_cond (location_t loc, enum tree_code code, tree type,
   /* Require that we got a boolean type out if we put one in.  */
   gcc_assert (TREE_CODE (TREE_TYPE (t)) == TREE_CODE (type));
 
-  /* Even if we get a bool type, strip the useless type conversions. */
-  STRIP_USELESS_TYPE_CONVERSION (t);
+  /* Even if we get a bool type, strip the boolean types conversions off. */
+  while (CONVERT_EXPR_P (t)
+	 && TREE_CODE (TREE_TYPE (TREE_OPERAND (t, 0))) == BOOLEAN_TYPE)
+    t = TREE_OPERAND (t, 0);
 
   /* If we had a != 0 and we just reduced it down to a, then
      return NULL as this is already the canonicalize form. */
@@ -540,8 +542,6 @@ forward_propagate_into_comparison (location_t loc,
 					       false);
     if (!tmp)
       break;
-    if (!useless_type_conversion_p (type, TREE_TYPE (tmp)))
-      break;
     reversed = tmp;
     if (TREE_CODE (tmp) == TRUTH_NOT_EXPR
 	|| TREE_CODE (tmp) == BIT_NOT_EXPR)
@@ -556,11 +556,12 @@ forward_propagate_into_comparison (location_t loc,
     gimple_cond_get_ops_from_tree (canonicalized, &code, &rhs1, &rhs2);
   } while (tmp);
 
-  if (tmp1
-      && useless_type_conversion_p (type, TREE_TYPE (tmp1)))
+  if (tmp1)
     {
       if (reversed_edges)
 	tmp1 = build1 (BIT_NOT_EXPR, TREE_TYPE (tmp1), tmp1);
+      if (!useless_type_conversion_p (type, TREE_TYPE (tmp1)))
+	tmp1 = build1 (NOP_EXPR, type, tmp1);
       return tmp1;
     }
 
@@ -610,6 +611,12 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt,
       else
 	return false;
     }
+  /* Strip off the conversion from a boolean type to a boolean
+     type, they are worthless for GIMPLE_COND.
+     Note this is done as we use boolean_type_node here. */
+  while (CONVERT_EXPR_P (tmp)
+	 && TREE_CODE (TREE_TYPE (TREE_OPERAND (tmp, 0))) == BOOLEAN_TYPE)
+    tmp = TREE_OPERAND (tmp, 0);
 
   if (TREE_CODE (tmp) == TRUTH_NOT_EXPR
       || TREE_CODE (tmp) == BIT_NOT_EXPR)

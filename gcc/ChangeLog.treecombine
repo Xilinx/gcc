@@ -1,3 +1,15 @@
+2012-02-21  Andrew Pinski  <apinski@cavium.com>
+
+	* tree-ssa-fold.c (combine_cond_expr_cond): Strip off
+	all conversions from bool to bool types and not just the
+	useless ones.
+	(forward_propagate_into_comparison): Ignore the type conversions
+	inside the loop.
+	Convert the type of the returned expression to type.
+	(forward_propagate_into_gimple_cond): Strip off all
+	conversions from bool to bool types as GIMPLE_COND
+	does care what type of bool it takes.
+
 2012-02-20  Andrew Pinski  <apinski@cavium.com>
 
 	* tree-ssa-fold.c (combine_cond_expr_cond): Strip off
