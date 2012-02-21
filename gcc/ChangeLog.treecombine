@@ -1,5 +1,18 @@
 2012-02-20  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (combine_cond_expr_cond): Strip off
+	the useless type conversions after fold_binary.
+	Check to see if we change from (A) != 0 to just A if A
+	is not a comparison or a ssa_name.
+	(forward_propagate_into_comparison): Use build1 instead
+	of fold_build1.
+	(forward_propagate_into_gimple_cond): Take a nonzerobits_t also.
+	Cleanup and use gimple_fold_binary_loc instead of doing calling
+	forward_propagate_into_comparison_1/expand_possible_comparison.
+	(ssa_combine): Update call to forward_propagate_into_gimple_cond.
+
+2012-02-20  Andrew Pinski  <apinski@cavium.com>
+
 	* fold-const.c (fold_undefer_overflow_warnings): Don't
 	use return of a void function.
 
