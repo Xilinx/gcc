@@ -1,5 +1,13 @@
 
 2011-02-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (dbgout_maptree_method): Typo.
+
+	* melt/xtramelt-opengpu.melt (opengpu_affine_accessed_array):
+	Better... Added lots of assert for unhandled cases.
+
+	* testsuite/melt/topengpu-vecsum.c: Better indentation.
+
+2011-02-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt (opengpu_affine_accessed_array):
 	Typos..
 

@@ -3009,7 +3009,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 (defprimitive mapbasicblock_nth_attr (map :long n) :basic_block
  #{(melt_nthattr_mapbasicblocks((struct meltmapbasicblocks_st*)($map), 
 				   (int)($n)))}#)
-;; primitive to get the nth value of a mapobject
+;; primitive to get the nth value of a mapbasicblock
 (defprimitive mapbasicblock_nth_val (map :long n) :value
  #{(melt_nthval_mapbasicblocks((struct meltmapbasicblocks_st*)($map),
 				  (int)($n)))}#)
@@ -3428,7 +3428,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   (let ( (dis (discrim self)) 
 	 (:long mapcount (maptree_count self))
 	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
-    (add2out_strconst out " !bbmap.")
+    (add2out_strconst out " !treemap.")
     (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
     (add2out_strconst out "/")
     (add2out_longdec out mapcount)
@@ -3442,7 +3442,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
      (add2out_strconst out " == ")
      (dbg_out trval dbgi (+i depth 2))
      )
-    (add2out_strconst out "}!")
+    (add2out_strconst out " }!")
     (add2out_indentnl out depth)
     ))
 (install_method discr_map_trees dbg_output dbgout_maptree_method)

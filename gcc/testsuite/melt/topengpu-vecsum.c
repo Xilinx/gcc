@@ -8,11 +8,12 @@
   ## it could be useful to pass -ftree-parallelize-loops=4 which
 triggers autopar in tree-parloops.c */
 
-void myvecsum (int sz, 
-               /* NB: without the restrict below, the loop is not parallel for graphite */
-               float* restrict tres,
-               float* restrict tx,
-               float* restrict ty)
+void 
+myvecsum (int sz, 
+          /* NB: without the restrict below, the loop is not parallel for graphite */
+          float* restrict tres,
+          float* restrict tx,
+          float* restrict ty)
 {
   int ix;
   for (ix = 0; 
