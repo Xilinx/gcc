@@ -256,7 +256,7 @@ fold_undefer_overflow_warnings (bool issue, const_gimple stmt, int code)
     locus = gimple_location (stmt);
   if (stmt)
     issue &= !gimple_no_warning_p (stmt);
-  return fold_undefer_overflow_warnings_loc (issue, locus, code);
+  fold_undefer_overflow_warnings_loc (issue, locus, code);
 }
 
 void

@@ -1,5 +1,10 @@
 2012-02-20  Andrew Pinski  <apinski@cavium.com>
 
+	* fold-const.c (fold_undefer_overflow_warnings): Don't
+	use return of a void function.
+
+2012-02-20  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (forward_propagate_into_comparison): Take a loc,
 	code, a type and an operand instead of a gimple_stmt_iterator.
 	(gimple_fold_binary_loc): Call forward_propagate_into_comparison
