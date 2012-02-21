@@ -475,13 +475,13 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 		  "\n rhs1="   dbg_tree_briefly rhs1 "\n rhs2="   dbg_tree_briefly rhs2)
 	   )
 	 (?(gimple_assign_mult ?(tree_ssa_name ?lvar ?lvalu ?lvers ?ldefstmt)
-			       ?(tree_ssa_name ?rvar1 ?rvalu1 ?rvers1 ?rdefstmt1) ?(tree_integer_cst ?rmul))
+			       ?(tree_ssa_name ?rvar ?rvalu ?rvers ?rdefstmt) ?(tree_integer_cst ?rmul))
 	   (debug "opengpu_affine_accessed_array assign_mult cst lvar="  lvar 
-		  "\n rvar1="   rvar1 " rmul=" rmul "\n" )
+		  "\n rvar="   rvar " rmul=" rmul "\n" )
 	   (let ( (lvarprop (maptree_get treeprop lvar))
-		  (rvar1prop (maptree_get treeprop rvar1))
+		  (rvarprop (maptree_get treeprop rvar))
 		 )
-	     (debug "opengpu_affine_accessed_array assign_mult lvarprop=" lvarprop " rvar1prop=" rvar1prop)
+	     (debug "opengpu_affine_accessed_array assign_mult lvarprop=" lvarprop " rvarprop=" rvarprop)
 	     (shortbacktrace_dbg "opengpu_affine_accessed_array incomplete" 10)
 	     (if (null lvarprop)
 		 (let (

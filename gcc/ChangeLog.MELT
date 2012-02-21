@@ -1,4 +1,8 @@
 
+2011-02-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-opengpu.melt (opengpu_affine_accessed_array):
+	Typos..
+
 2011-02-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt (opengpu_affine_accessed_array):
 	More, but code should be factored out...
