@@ -457,66 +457,6 @@ forward_propagate_into_comparison_1 (location_t loc,
   return tmp;
 }
 
-static tree
-expand_possible_comparison (tree tmp, gimple_stmt_iterator *gsi,
-			    bool *reversed_edges)
-{
-  tree tmp1;
-  gimple stmt = gsi_stmt (*gsi);
-  tree op0, op1;
-  if (!tmp)
-    return NULL;
-
-  if (TREE_CODE (tmp) == TRUTH_NOT_EXPR
-      || TREE_CODE (tmp) == BIT_NOT_EXPR)
-    {
-      *reversed_edges ^= true;
-      tmp = TREE_OPERAND (tmp, 0);
-    }
-
-  tmp1 = canonicalize_cond_expr_cond (tmp);
-  if (tmp1)
-    return tmp1;
-
-  if (!COMPARISON_CLASS_P (tmp))
-    return NULL;
-  op0 = TREE_OPERAND (tmp, 0);
-  op1 = TREE_OPERAND (tmp, 1);
-  if (!is_gimple_val (op1))
-    return NULL;
-  if (UNARY_CLASS_P (op0)
-      && is_gimple_val (TREE_OPERAND (op0, 0)))
-    {
-      tree var = create_tmp_reg (TREE_TYPE (op0), NULL);
-      gimple newop;
-      newop = gimple_build_assign_with_ops (TREE_CODE (op0),
-					    var, TREE_OPERAND (op0, 0), NULL); 
-      var = make_ssa_name (var, newop);
-      gimple_assign_set_lhs (newop, var);
-      gimple_set_location (newop, gimple_location (stmt));
-      gsi_insert_before (gsi, newop, GSI_SAME_STMT);
-      return fold_build2_loc (gimple_location (stmt), TREE_CODE (tmp),
-			      TREE_TYPE (tmp), var, op1);
-    }
-  if (BINARY_CLASS_P (op0)
-      && is_gimple_val (TREE_OPERAND (op0, 0))
-      && is_gimple_val (TREE_OPERAND (op0, 1)))
-    {
-      tree var = create_tmp_reg (TREE_TYPE (op0), NULL);
-      gimple newop;
-      newop = gimple_build_assign_with_ops (TREE_CODE (op0),
-					    var, TREE_OPERAND (op0, 0),
-					    TREE_OPERAND (op0, 1)); 
-      var = make_ssa_name (var, newop);
-      gimple_assign_set_lhs (newop, var);
-      gimple_set_location (newop, gimple_location (stmt));
-      gsi_insert_before (gsi, newop, GSI_SAME_STMT);
-      return fold_build2_loc (gimple_location (stmt), TREE_CODE (tmp),
-			      TREE_TYPE (tmp), var, op1);
-    }
-  return NULL;
-}
-
 /* Propagate from the ssa name definition statements of the assignment
    from a comparison at *GSI into the conditional if that simplifies it.
    Returns true if the stmt was modified therwise returns false.  */
@@ -571,9 +511,7 @@ forward_propagate_into_comparison (location_t loc,
 /* Propagate from the ssa name definition statements of COND_EXPR
    in GIMPLE_COND statement STMT into the conditional if that simplifies it.
    Returns zero if no statement was changed, one if there were
-   changes and two if cfg_cleanup needs to run.
-
-   This must be kept in sync with forward_propagate_into_cond.  */
+   changes and two if cfg_cleanup needs to run.  */
 
 static bool
 forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt,
@@ -677,96 +615,102 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt,
    Returns true zero if the stmt was changed.  */
 
 static bool
-forward_propagate_into_cond (gimple_stmt_iterator *gsi_p)
+forward_propagate_into_cond (gimple_stmt_iterator *gsi,
+			     nonzerobits_t nonzerobits)
 {
-  gimple stmt = gsi_stmt (*gsi_p);
+  gimple stmt = gsi_stmt (*gsi);
   tree tmp = NULL_TREE;
   tree cond = gimple_assign_rhs1 (stmt);
   location_t loc = gimple_location (stmt);
-  bool nowarnings = gimple_no_warning_p (stmt);
   bool swap = false;
+  enum tree_code code;
+  tree rhs1;
+  tree rhs2;
 
   /* We can do tree combining on SSA_NAME and comparison expressions.  */
   if (COMPARISON_CLASS_P (cond))
     {
-      enum tree_code code = TREE_CODE (cond);
-      tree rhs1 = TREE_OPERAND (cond, 0);
-      tree rhs2 = TREE_OPERAND (cond, 1);
-      tree tmp1 = NULL_TREE;
-       do
-	{
-          tmp = forward_propagate_into_comparison_1 (loc, code,
-						     boolean_type_node,
-						     rhs1, rhs2,
-						     nowarnings);
-	  if (!tmp)
-	    break;
-	  tmp = expand_possible_comparison (tmp, gsi_p, &swap);
-	  if (!tmp)
-	    break;
-	  tmp1 = tmp;
-          gimple_cond_get_ops_from_tree (tmp, &code, &rhs1, &rhs2);
-	} while (tmp);
-      tmp = tmp1;
+      code = TREE_CODE (cond);
+      rhs1 = TREE_OPERAND (cond, 0);
+      rhs2 = TREE_OPERAND (cond, 1);
     }
   else if (TREE_CODE (cond) == SSA_NAME)
     {
-      enum tree_code code;
-      tree name = cond;
-      gimple def_stmt = get_prop_source_stmt (name, true, NULL);
-      if (!def_stmt || !can_propagate_from (def_stmt))
-	return false;
-
-      code = gimple_assign_rhs_code (def_stmt);
-      if (TREE_CODE_CLASS (code) == tcc_comparison)
-	tmp = fold_build2_loc (gimple_location (def_stmt),
-			       code,
-			       boolean_type_node,
-			       gimple_assign_rhs1 (def_stmt),
-			       gimple_assign_rhs2 (def_stmt));
-      else if ((code == BIT_NOT_EXPR
-		&& TYPE_PRECISION (TREE_TYPE (cond)) == 1)
-	       || (code == BIT_XOR_EXPR
-		   && integer_onep (gimple_assign_rhs2 (def_stmt))))
-	{
-	  tmp = gimple_assign_rhs1 (def_stmt);
-	  swap = true;
-	}
+      code = NE_EXPR;
+      rhs1 = cond;
+      rhs2 = build_zero_cst (TREE_TYPE (cond));
     }
+  else
+    return false;
 
-  if (tmp
-      && is_gimple_condexpr (tmp))
+  tmp = gimple_fold_binary_loc (loc, code, TREE_TYPE (cond), rhs1, rhs2,
+			        nonzerobits);
+
+  if (!tmp)
+    return false;
+
+  /* Strip off the conversion from a boolean type to a boolean
+     type, they are worthless for GIMPLE_COND.
+     Note this is done as we use boolean_type_node here. */
+  while (CONVERT_EXPR_P (tmp)
+	 && TREE_CODE (TREE_TYPE (TREE_OPERAND (tmp, 0))) == BOOLEAN_TYPE)
+    tmp = TREE_OPERAND (tmp, 0);
+
+  if (TREE_CODE (tmp) == TRUTH_NOT_EXPR
+      || TREE_CODE (tmp) == BIT_NOT_EXPR)
     {
-      if (dump_file && tmp)
-	{
-	  fprintf (dump_file, "  Replaced '");
-	  print_generic_expr (dump_file, cond, 0);
-	  fprintf (dump_file, "' with '");
-	  print_generic_expr (dump_file, tmp, 0);
-	  fprintf (dump_file, "'\n");
-	}
-
-      if (integer_onep (tmp))
-	gimple_assign_set_rhs_from_tree (gsi_p, gimple_assign_rhs2 (stmt));
-      else if (integer_zerop (tmp))
-	gimple_assign_set_rhs_from_tree (gsi_p, gimple_assign_rhs3 (stmt));
-      else
-	{
-	  gimple_assign_set_rhs1 (stmt, unshare_expr (tmp));
-	  if (swap)
-	    {
-	      tree t = gimple_assign_rhs2 (stmt);
-	      gimple_assign_set_rhs2 (stmt, gimple_assign_rhs3 (stmt));
-	      gimple_assign_set_rhs3 (stmt, t);
-	    }
-	}
-      stmt = gsi_stmt (*gsi_p);
-      update_stmt (stmt);
-
-      return true;
+      swap = true;
+      tmp = TREE_OPERAND (tmp, 0);
     }
 
-  return false;
+  if (CONVERT_EXPR_P (tmp))
+    {
+      tree t = TREE_OPERAND (tmp, 0);
+      /* If we just changed a != 0 to be the same as (bool)a
+         then don't do anything as we will produce the same
+         result and cause an infinite loop.  */
+      if (code == NE_EXPR && integer_zerop (rhs2) &&
+	  operand_equal_for_phi_arg_p (t, rhs1))
+	return false;
+      tmp = build2_loc (loc, NE_EXPR, boolean_type_node, t,
+			build_zero_cst (TREE_TYPE (t)));
+    }
+
+  tmp = extract_simple_gimple (loc, gsi, tmp);
+  if (!tmp)
+    return false;
+
+  if (!is_gimple_condexpr (tmp))
+    return false;
+
+  if (dump_file && tmp)
+    {
+      fprintf (dump_file, "  Replaced '");
+      print_generic_expr (dump_file, cond, 0);
+      fprintf (dump_file, "' with '");
+      print_generic_expr (dump_file, tmp, 0);
+      fprintf (dump_file, "'\n");
+    }
+
+  if ((!swap && integer_onep (tmp))
+      || (swap && integer_zerop (tmp)))
+    gimple_assign_set_rhs_from_tree (gsi, gimple_assign_rhs2 (stmt));
+  else if ((swap && integer_onep (tmp))
+     	   || (!swap && integer_zerop (tmp)))
+    gimple_assign_set_rhs_from_tree (gsi, gimple_assign_rhs3 (stmt));
+  else
+    {
+       gimple_assign_set_rhs1 (stmt, unshare_expr (tmp));
+       if (swap)
+	{
+	  tree t = gimple_assign_rhs2 (stmt);
+	  gimple_assign_set_rhs2 (stmt, gimple_assign_rhs3 (stmt));
+	  gimple_assign_set_rhs3 (stmt, t);
+	}
+    }
+  stmt = gsi_stmt (*gsi);
+  update_stmt (stmt);
+  return true;
 }
 
 /* If we have lhs = ~x (STMT), look and see if earlier we had x = ~y.
@@ -1890,7 +1834,7 @@ ssa_combine (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobits_p)
 	  ;
 	else if (code == COND_EXPR)
 	 /* In this case the entire COND_EXPR is in rhs1. */
-	 changed = forward_propagate_into_cond (gsi);
+	 changed = forward_propagate_into_cond (gsi, nonzerobits_p);
 	else if (code == PLUS_EXPR
 		 || code == MINUS_EXPR)
 	  changed = associate_plusminus (gsi);

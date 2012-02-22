@@ -1,5 +1,14 @@
 2012-02-21  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (expand_possible_comparison): Delete.
+	(forward_propagate_into_cond): Add nonzerobits argument.
+	Call gimple_fold_binary_loc instead of looping on
+	forward_propagate_into_comparison_1.
+	Clean up the code after calling gimple_fold_binary_loc.
+	(ssa_combine): Update call to nonzerobits.
+
+2012-02-21  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (constant_pointer_difference): Move back to
 	tree-ssa-forwprop.c.
 	(simplify_builtin_call): Likewise.
