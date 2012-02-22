@@ -34,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "gimple.h"
 #include "expr.h"
+#include "tree-ssa-propagate.h"
 
 static tree gimple_fold_binary_loc (location_t, enum tree_code, tree, tree,
 				    tree, nonzerobits_t);
@@ -72,7 +73,7 @@ gimple_fold_build1_loc (location_t loc, enum tree_code code,
   return build1_loc (loc, code, type, arg1);
 }
 
-static tree extract_simple_gimple (location_t, gimple_stmt_iterator *, tree);
+static tree extract_simple_gimple (gimple_stmt_iterator *, tree);
 static double_int nonzerobits (tree var, nonzerobits_t func);
 
 static double_int
@@ -575,7 +576,7 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt,
 			build_zero_cst (TREE_TYPE (t)));
     }
 
-  tmp = extract_simple_gimple (loc, gsi, tmp);
+  tmp = extract_simple_gimple (gsi, tmp);
   if (!tmp)
     return false;
 
@@ -614,7 +615,7 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt,
    in the rhs of statement STMT into the conditional if that simplifies it.
    Returns true zero if the stmt was changed.  */
 
-static bool
+static tree
 forward_propagate_into_cond (gimple_stmt_iterator *gsi,
 			     nonzerobits_t nonzerobits)
 {
@@ -626,6 +627,9 @@ forward_propagate_into_cond (gimple_stmt_iterator *gsi,
   enum tree_code code;
   tree rhs1;
   tree rhs2;
+  tree op1 = gimple_assign_rhs2 (stmt);
+  tree op2 = gimple_assign_rhs3 (stmt);
+  tree type = TREE_TYPE (op1);
 
   /* We can do tree combining on SSA_NAME and comparison expressions.  */
   if (COMPARISON_CLASS_P (cond))
@@ -641,13 +645,13 @@ forward_propagate_into_cond (gimple_stmt_iterator *gsi,
       rhs2 = build_zero_cst (TREE_TYPE (cond));
     }
   else
-    return false;
+    return NULL_TREE;
 
   tmp = gimple_fold_binary_loc (loc, code, TREE_TYPE (cond), rhs1, rhs2,
 			        nonzerobits);
 
   if (!tmp)
-    return false;
+    return NULL_TREE;
 
   /* Strip off the conversion from a boolean type to a boolean
      type, they are worthless for GIMPLE_COND.
@@ -671,17 +675,10 @@ forward_propagate_into_cond (gimple_stmt_iterator *gsi,
          result and cause an infinite loop.  */
       if (code == NE_EXPR && integer_zerop (rhs2) &&
 	  operand_equal_for_phi_arg_p (t, rhs1))
-	return false;
+	return NULL_TREE;
       tmp = build2_loc (loc, NE_EXPR, boolean_type_node, t,
 			build_zero_cst (TREE_TYPE (t)));
     }
-
-  tmp = extract_simple_gimple (loc, gsi, tmp);
-  if (!tmp)
-    return false;
-
-  if (!is_gimple_condexpr (tmp))
-    return false;
 
   if (dump_file && tmp)
     {
@@ -694,23 +691,18 @@ forward_propagate_into_cond (gimple_stmt_iterator *gsi,
 
   if ((!swap && integer_onep (tmp))
       || (swap && integer_zerop (tmp)))
-    gimple_assign_set_rhs_from_tree (gsi, gimple_assign_rhs2 (stmt));
+    return op1;
   else if ((swap && integer_onep (tmp))
      	   || (!swap && integer_zerop (tmp)))
-    gimple_assign_set_rhs_from_tree (gsi, gimple_assign_rhs3 (stmt));
-  else
+    return op2;
+
+  if (swap)
     {
-       gimple_assign_set_rhs1 (stmt, unshare_expr (tmp));
-       if (swap)
-	{
-	  tree t = gimple_assign_rhs2 (stmt);
-	  gimple_assign_set_rhs2 (stmt, gimple_assign_rhs3 (stmt));
-	  gimple_assign_set_rhs3 (stmt, t);
-	}
+      tree t = op1;
+      op1 = op2;
+      op2 = t;
     }
-  stmt = gsi_stmt (*gsi);
-  update_stmt (stmt);
-  return true;
+  return build3 (COND_EXPR, type, tmp, op1, op2);
 }
 
 /* If we have lhs = ~x (STMT), look and see if earlier we had x = ~y.
@@ -944,48 +936,18 @@ simplify_bitwise_binary_1 (enum tree_code code, tree type,
   return NULL_TREE;
 }
 
-static inline bool
-valid_simple_gimple (tree newexpr)
-{
-  if (is_gimple_val (newexpr))
-    return true;
-  if (UNARY_CLASS_P (newexpr)
-     && is_gimple_val (TREE_OPERAND (newexpr, 0)))
-    return true;
-  if (BINARY_CLASS_P (newexpr)
-      && is_gimple_val (TREE_OPERAND (newexpr, 0))
-      && is_gimple_val (TREE_OPERAND (newexpr, 1)))
-    return true;
-  return false;
-}
-
-static tree build_simple_gimple (location_t loc, gimple_stmt_iterator *gsi, tree expr)
-{
-  gimple newop;
-  tree op1, tem;
-  if (is_gimple_val (expr))
-    return expr;
-  op1 = extract_simple_gimple (loc, gsi, expr);
-  tem = create_tmp_reg (TREE_TYPE (op1), NULL);
-  newop = gimple_build_assign (tem, op1);
-  tem = make_ssa_name (tem, newop);
-  gimple_assign_set_lhs (newop, tem);
-  gimple_set_location (newop, loc);
-  gsi_insert_before (gsi, newop, GSI_SAME_STMT);
-  return tem;
-}
 
 static tree
-extract_simple_gimple (location_t loc, gimple_stmt_iterator *gsi, tree expr)
+extract_simple_gimple (gimple_stmt_iterator *gsi, tree expr)
 {
   enum tree_code code = TREE_CODE (expr);
-  if (valid_simple_gimple (expr))
+  if (valid_gimple_rhs_p (expr))
     return expr;
   if (UNARY_CLASS_P (expr))
     {
-      tree op1 = build_simple_gimple (loc, gsi, TREE_OPERAND (expr, 0));
-      if (op1 == NULL_TREE)
-	return NULL_TREE;
+      tree op1;
+      op1 = force_gimple_operand_gsi (gsi, TREE_OPERAND (expr, 0), true, NULL, true,
+                                      GSI_SAME_STMT);
       return build1 (code, TREE_TYPE (expr), op1);
     }
   /* For comparisons, create a tmp variable to hold the comparison
@@ -995,18 +957,40 @@ extract_simple_gimple (location_t loc, gimple_stmt_iterator *gsi, tree expr)
     {
       tree tmp = build2 (code, boolean_type_node, TREE_OPERAND (expr, 0),
 			 TREE_OPERAND (expr, 1));
-      tmp = build_simple_gimple (loc, gsi, tmp);
+      tmp = force_gimple_operand_gsi (gsi, tmp, true, NULL, true,
+                                      GSI_SAME_STMT);
       return build1 (NOP_EXPR, TREE_TYPE (expr), tmp);
     }
   if (BINARY_CLASS_P (expr) || COMPARISON_CLASS_P (expr))
     {
-      tree op1 = build_simple_gimple (loc, gsi, TREE_OPERAND (expr, 0));
-      tree op2 = build_simple_gimple (loc, gsi, TREE_OPERAND (expr, 1));
-      if (op1 == NULL_TREE)
-	return NULL_TREE;
-      if (op2 == NULL_TREE)
-	return NULL_TREE;
+      tree op1, op2;
+      op1 = force_gimple_operand_gsi (gsi, TREE_OPERAND (expr, 0), true,
+				      NULL, true, GSI_SAME_STMT);
+      op2 = force_gimple_operand_gsi (gsi, TREE_OPERAND (expr, 1), true,
+				      NULL, true, GSI_SAME_STMT);
       return build2 (code, TREE_TYPE (expr), op1, op2);
+    }
+  if (TREE_CODE (expr) == COND_EXPR)
+    {
+      tree op1, op2;
+      tree cond = TREE_OPERAND (expr, 0);
+      if (COMPARISON_CLASS_P (cond))
+	{
+	  tree op1, op2;
+	  op1 = force_gimple_operand_gsi (gsi, TREE_OPERAND (cond, 0), true,
+					  NULL, true, GSI_SAME_STMT);
+	  op2 = force_gimple_operand_gsi (gsi, TREE_OPERAND (cond, 1), true,
+					  NULL, true, GSI_SAME_STMT);
+	  cond = build2 (TREE_CODE (cond), TREE_TYPE (cond), op1, op2);
+	}
+      else
+	cond = force_gimple_operand_gsi (gsi, cond, true,
+					 NULL, true, GSI_SAME_STMT);
+      op1 = force_gimple_operand_gsi (gsi, TREE_OPERAND (expr, 1), true,
+				      NULL, true, GSI_SAME_STMT);
+      op2 = force_gimple_operand_gsi (gsi, TREE_OPERAND (expr, 2), true,
+				      NULL, true, GSI_SAME_STMT);
+      return build3 (code, TREE_TYPE (expr), cond, op1, op2);
     }
   return NULL_TREE;
 }
@@ -1754,7 +1738,7 @@ ssa_combine (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobits_p)
 	  ;
 	else if (code == COND_EXPR)
 	 /* In this case the entire COND_EXPR is in rhs1. */
-	 changed = forward_propagate_into_cond (gsi, nonzerobits_p);
+	 newexpr = forward_propagate_into_cond (gsi, nonzerobits_p);
 	break;
       }
 
@@ -1777,7 +1761,7 @@ ssa_combine (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobits_p)
   /* For right now only handle the assign case. */
   gcc_assert (gimple_code (stmt) == GIMPLE_ASSIGN);
   /* Handle the simple case of folding to one expression. */
-  newexpr = extract_simple_gimple (gimple_location (stmt), gsi, newexpr);
+  newexpr = extract_simple_gimple (gsi, newexpr);
   if (newexpr == NULL_TREE)
     return false;
   gimple_assign_set_rhs_from_tree (gsi, newexpr);

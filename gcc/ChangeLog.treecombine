@@ -1,5 +1,21 @@
 2012-02-22  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c: Include tree-ssa-propagate.h.
+	(forward_propagate_into_gimple_cond): Update call to
+	extract_simple_gimple.
+	(forward_propagate_into_cond): Return tree instead of bool.
+	(valid_simple_gimple): Remove.
+	(build_simple_gimple): Remove.
+	(extract_simple_gimple): Remove loc argument.
+	Use valid_gimple_rhs_p instead of valid_simple_gimple.
+	Use force_gimple_operand_gsi instead of build_simple_gimple.
+	Handle COND_EXPR also.
+	(ssa_combine): Handle the new return type of
+	forward_propagate_into_cond.
+	Update call to extract_simple_gimple.
+
+2012-02-22  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (associate_plusminus): Take a loc,
 	code, a type and operands instead of a gimple_stmt_iterator.
 	(gimple_fold_binary_loc): Call associate_plusminus for
