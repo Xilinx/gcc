@@ -1,11 +1,19 @@
 2012-02-21  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (associate_plusminus): Return a tree
+	and add nonzerobitsp as an argument.
+	Don't modify the statement.  Also don't loop as that
+	will be taken care of.  Return the simplified tree.
+	(ssa_combine): Update call to associate_plusminus.
+
+2012-02-21  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (expand_possible_comparison): Delete.
 	(forward_propagate_into_cond): Add nonzerobits argument.
 	Call gimple_fold_binary_loc instead of looping on
 	forward_propagate_into_comparison_1.
 	Clean up the code after calling gimple_fold_binary_loc.
-	(ssa_combine): Update call to nonzerobits.
+	(ssa_combine): Update call to forward_propagate_into_cond.
 
 2012-02-21  Andrew Pinski  <apinski@cavium.com>
 
