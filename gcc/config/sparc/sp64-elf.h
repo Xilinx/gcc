@@ -39,7 +39,6 @@ along with GCC; see the file COPYING3.  If not see
 #undef ASM_SPEC
 #define ASM_SPEC "\
 -s %{fpic|fPIC|fpie|fPIE:-K PIC} \
-%{mlittle-endian:-EL} \
 %(asm_cpu) %(asm_arch) \
 "
 
@@ -47,30 +46,18 @@ along with GCC; see the file COPYING3.  If not see
 #undef LINK_SPEC
 #define LINK_SPEC "\
 %{v:-V} \
-%{mlittle-endian:-EL} \
 "
 
-/* We need something a little simpler for the embedded environment.
-   Profiling doesn't really work yet so we just copy the default.  */
 #undef STARTFILE_SPEC
-#define STARTFILE_SPEC "\
-%{!shared:%{pg:gcrt0.o%s}%{!pg:%{p:mcrt0.o%s}%{!p:crt0.o%s}}} \
-crtbegin.o%s \
-"
+#define STARTFILE_SPEC "crt0.o%s crti.o%s crtbegin.o%s"
 
 #undef ENDFILE_SPEC
 #define ENDFILE_SPEC \
-  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
-   crtend.o%s"
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+   crtend.o%s crtn.o%s"
 
 /* Use the default (for now).  */
 #undef LIB_SPEC
-
-#undef BYTES_BIG_ENDIAN
-#define BYTES_BIG_ENDIAN (! TARGET_LITTLE_ENDIAN)
-
-#undef WORDS_BIG_ENDIAN
-#define WORDS_BIG_ENDIAN (! TARGET_LITTLE_ENDIAN)
 
 #undef  LOCAL_LABEL_PREFIX
 #define LOCAL_LABEL_PREFIX  "."

@@ -1,5 +1,6 @@
 /* { dg-do compile } */
 /* { dg-skip-if "" { *-*-* } { "-O0" } { "" } } */
+/* { dg-options "-ffat-lto-objects" } */
 
 typedef unsigned char uint8_t;
 typedef unsigned int uint32_t;
@@ -48,7 +49,7 @@ template<typename T> void MemoryRegion<T>::create(u32bit n)    {
 template<typename T> class SecureVector : public MemoryRegion<T>    {
 public:
     SecureVector<T>& operator=(const MemoryRegion<T>& in)          {
-	if(this != &in) set(in);
+	if(this != &in) this->set(in);
     }
 };
 class OctetString    {

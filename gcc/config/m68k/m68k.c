@@ -47,6 +47,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-codes.h"
 #include "ggc.h"
 #include "opts.h"
+#include "optabs.h"
 
 enum reg_class regno_reg_class[] =
 {
@@ -135,9 +136,8 @@ static int m68k_sched_first_cycle_multipass_dfa_lookahead (void);
 static bool m68k_can_eliminate (const int, const int);
 static void m68k_conditional_register_usage (void);
 static bool m68k_legitimate_address_p (enum machine_mode, rtx, bool);
-static bool m68k_handle_option (struct gcc_options *, struct gcc_options *,
-				const struct cl_decoded_option *, location_t);
 static void m68k_option_override (void);
+static void m68k_override_options_after_change (void);
 static rtx find_addr_reg (rtx);
 static const char *singlemove_string (rtx *);
 static void m68k_output_mi_thunk (FILE *, tree, HOST_WIDE_INT,
@@ -151,7 +151,7 @@ static bool m68k_save_reg (unsigned int regno, bool interrupt_handler);
 static bool m68k_ok_for_sibcall_p (tree, tree);
 static bool m68k_tls_symbol_p (rtx);
 static rtx m68k_legitimize_address (rtx, rtx, enum machine_mode);
-static bool m68k_rtx_costs (rtx, int, int, int *, bool);
+static bool m68k_rtx_costs (rtx, int, int, int, int *, bool);
 #if M68K_HONOR_TARGET_STRICT_ALIGNMENT
 static bool m68k_return_in_memory (const_tree, const_tree);
 #endif
@@ -159,15 +159,13 @@ static void m68k_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 static void m68k_trampoline_init (rtx, tree, rtx);
 static int m68k_return_pops_args (tree, tree, int);
 static rtx m68k_delegitimize_address (rtx);
-static void m68k_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+static void m68k_function_arg_advance (cumulative_args_t, enum machine_mode,
 				       const_tree, bool);
-static rtx m68k_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+static rtx m68k_function_arg (cumulative_args_t, enum machine_mode,
 			      const_tree, bool);
 static bool m68k_cannot_force_const_mem (enum machine_mode mode, rtx x);
-
-
-/* Specify the identification number of the library being built */
-const char *m68k_library_id_string = "_current_shared_library_a5_offset_";
+static bool m68k_output_addr_const_extra (FILE *, rtx);
+static void m68k_init_sync_libfuncs (void) ATTRIBUTE_UNUSED;
 
 /* Initialize the GCC target structure.  */
 
@@ -238,11 +236,11 @@ const char *m68k_library_id_string = "_current_shared_library_a5_offset_";
 #define TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD	\
   m68k_sched_first_cycle_multipass_dfa_lookahead
 
-#undef TARGET_HANDLE_OPTION
-#define TARGET_HANDLE_OPTION m68k_handle_option
-
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE m68k_option_override
+
+#undef TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE
+#define TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE m68k_override_options_after_change
 
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS m68k_rtx_costs
@@ -302,6 +300,13 @@ const char *m68k_library_id_string = "_current_shared_library_a5_offset_";
 #undef TARGET_LEGITIMATE_CONSTANT_P
 #define TARGET_LEGITIMATE_CONSTANT_P m68k_legitimate_constant_p
 
+#undef TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA
+#define TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA m68k_output_addr_const_extra
+
+/* The value stored by TAS.  */
+#undef TARGET_ATOMIC_TEST_AND_SET_TRUEVAL
+#define TARGET_ATOMIC_TEST_AND_SET_TRUEVAL 128
+
 static const struct attribute_spec m68k_attribute_table[] =
 {
   /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
@@ -324,7 +329,7 @@ struct gcc_target targetm = TARGET_INITIALIZER;
    generated 68881 code for 68020 and 68030 targets unless explicitly told
    not to.  */
 #define FL_FOR_isa_20    (FL_FOR_isa_10 | FL_ISA_68020 \
-			  | FL_BITFIELD | FL_68881)
+			  | FL_BITFIELD | FL_68881 | FL_CAS)
 #define FL_FOR_isa_40    (FL_FOR_isa_20 | FL_ISA_68040)
 #define FL_FOR_isa_cpu32 (FL_FOR_isa_10 | FL_ISA_68020)
 
@@ -385,20 +390,10 @@ static const struct m68k_target_selection all_devices[] =
    Used for -march selection.  */
 static const struct m68k_target_selection all_isas[] =
 {
-  { "68000",    m68000,     NULL,  u68000,   isa_00,    FL_FOR_isa_00 },
-  { "68010",    m68010,     NULL,  u68010,   isa_10,    FL_FOR_isa_10 },
-  { "68020",    m68020,     NULL,  u68020,   isa_20,    FL_FOR_isa_20 },
-  { "68030",    m68030,     NULL,  u68030,   isa_20,    FL_FOR_isa_20 },
-  { "68040",    m68040,     NULL,  u68040,   isa_40,    FL_FOR_isa_40 },
-  { "68060",    m68060,     NULL,  u68060,   isa_40,    FL_FOR_isa_40 },
-  { "cpu32",    cpu32,      NULL,  ucpu32,   isa_20,    FL_FOR_isa_cpu32 },
-  { "isaa",     mcf5206e,   NULL,  ucfv2,    isa_a,     (FL_FOR_isa_a
-							 | FL_CF_HWDIV) },
-  { "isaaplus", mcf5271,    NULL,  ucfv2,    isa_aplus, (FL_FOR_isa_aplus
-							 | FL_CF_HWDIV) },
-  { "isab",     mcf5407,    NULL,  ucfv4,    isa_b,     FL_FOR_isa_b },
-  { "isac",     unk_device, NULL,  ucfv4,    isa_c,     (FL_FOR_isa_c
-							 | FL_CF_HWDIV) },
+#define M68K_ISA(NAME,DEVICE,MICROARCH,ISA,FLAGS) \
+  { NAME, DEVICE, NULL, u##MICROARCH, ISA, FLAGS },
+#include "m68k-isas.def"
+#undef M68K_ISA
   { NULL,       unk_device, NULL,  unk_arch, isa_max,   0 }
 };
 
@@ -406,24 +401,10 @@ static const struct m68k_target_selection all_isas[] =
    device.  Used for -mtune selection.  */
 static const struct m68k_target_selection all_microarchs[] =
 {
-  { "68000",    m68000,     NULL,  u68000,    isa_00,  FL_FOR_isa_00 },
-  { "68010",    m68010,     NULL,  u68010,    isa_10,  FL_FOR_isa_10 },
-  { "68020",    m68020,     NULL,  u68020,    isa_20,  FL_FOR_isa_20 },
-  { "68020-40", m68020,     NULL,  u68020_40, isa_20,  FL_FOR_isa_20 },
-  { "68020-60", m68020,     NULL,  u68020_60, isa_20,  FL_FOR_isa_20 },
-  { "68030",    m68030,     NULL,  u68030,    isa_20,  FL_FOR_isa_20 },
-  { "68040",    m68040,     NULL,  u68040,    isa_40,  FL_FOR_isa_40 },
-  { "68060",    m68060,     NULL,  u68060,    isa_40,  FL_FOR_isa_40 },
-  { "cpu32",    cpu32,      NULL,  ucpu32,    isa_20,  FL_FOR_isa_cpu32 },
-  { "cfv1",     mcf51qe,    NULL,  ucfv1,     isa_c,   FL_FOR_isa_c },
-  { "cfv2",     mcf5206,    NULL,  ucfv2,     isa_a,   FL_FOR_isa_a },
-  { "cfv3",     mcf5307,    NULL,  ucfv3,     isa_a,   (FL_FOR_isa_a
-							| FL_CF_HWDIV) },
-  { "cfv4",     mcf5407,    NULL,  ucfv4,     isa_b,   FL_FOR_isa_b },
-  { "cfv4e",    mcf547x,    NULL,  ucfv4e,    isa_b,   (FL_FOR_isa_b
-							| FL_CF_USP
-							| FL_CF_EMAC
-							| FL_CF_FPU) },
+#define M68K_MICROARCH(NAME,DEVICE,MICROARCH,ISA,FLAGS) \
+  { NAME, DEVICE, NULL, u##MICROARCH, ISA, FLAGS },
+#include "m68k-microarchs.def"
+#undef M68K_MICROARCH
   { NULL,       unk_device, NULL,  unk_arch,  isa_max, 0 }
 };
 
@@ -458,78 +439,6 @@ const char *m68k_symbolic_jump;
 enum M68K_SYMBOLIC_CALL m68k_symbolic_call_var;
 
 
-/* See whether TABLE has an entry with name NAME.  Return true and
-   store the entry in *ENTRY if so, otherwise return false and
-   leave *ENTRY alone.  */
-
-static bool
-m68k_find_selection (const struct m68k_target_selection **entry,
-		     const struct m68k_target_selection *table,
-		     const char *name)
-{
-  size_t i;
-
-  for (i = 0; table[i].name; i++)
-    if (strcmp (table[i].name, name) == 0)
-      {
-	*entry = table + i;
-	return true;
-      }
-  return false;
-}
-
-/* Implement TARGET_HANDLE_OPTION.  */
-
-static bool
-m68k_handle_option (struct gcc_options *opts, struct gcc_options *opts_set,
-		    const struct cl_decoded_option *decoded,
-		    location_t loc ATTRIBUTE_UNUSED)
-{
-  size_t code = decoded->opt_index;
-  const char *arg = decoded->arg;
-  int value = decoded->value;
-
-  gcc_assert (opts == &global_options);
-  gcc_assert (opts_set == &global_options_set);
-
-  switch (code)
-    {
-    case OPT_march_:
-      return m68k_find_selection (&m68k_arch_entry, all_isas, arg);
-
-    case OPT_mcpu_:
-      return m68k_find_selection (&m68k_cpu_entry, all_devices, arg);
-
-    case OPT_mtune_:
-      return m68k_find_selection (&m68k_tune_entry, all_microarchs, arg);
-
-    case OPT_m68020_40:
-      return (m68k_find_selection (&m68k_tune_entry, all_microarchs,
-				   "68020-40")
-	      && m68k_find_selection (&m68k_cpu_entry, all_devices, "68020"));
-
-    case OPT_m68020_60:
-      return (m68k_find_selection (&m68k_tune_entry, all_microarchs,
-				   "68020-60")
-	      && m68k_find_selection (&m68k_cpu_entry, all_devices, "68020"));
-
-    case OPT_mshared_library_id_:
-      if (value > MAX_LIBRARY_ID)
-	error ("-mshared-library-id=%s is not between 0 and %d",
-	       arg, MAX_LIBRARY_ID);
-      else
-        {
-	  char *tmp;
-	  asprintf (&tmp, "%d", (value * -4) - 4);
-	  m68k_library_id_string = tmp;
-	}
-      return true;
-
-    default:
-      return true;
-    }
-}
-
 /* Implement TARGET_OPTION_OVERRIDE.  */
 
 static void
@@ -537,6 +446,15 @@ m68k_option_override (void)
 {
   const struct m68k_target_selection *entry;
   unsigned long target_mask;
+
+  if (global_options_set.x_m68k_arch_option)
+    m68k_arch_entry = &all_isas[m68k_arch_option];
+
+  if (global_options_set.x_m68k_cpu_option)
+    m68k_cpu_entry = &all_devices[(int) m68k_cpu_option];
+
+  if (global_options_set.x_m68k_tune_option)
+    m68k_tune_entry = &all_microarchs[(int) m68k_tune_option];
 
   /* User can choose:
 
@@ -727,6 +645,19 @@ m68k_option_override (void)
 	m68k_sched_mac = MAC_CF_MAC;
       else
 	m68k_sched_mac = MAC_NO;
+    }
+}
+
+/* Implement TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE.  */
+
+static void
+m68k_override_options_after_change (void)
+{
+  if (m68k_sched_cpu == CPU_UNKNOWN)
+    {
+      flag_schedule_insns = 0;
+      flag_schedule_insns_after_reload = 0;
+      flag_modulo_sched = 0;
     }
 }
 
@@ -1030,6 +961,10 @@ m68k_expand_prologue (void)
   rtx limit, src, dest;
 
   m68k_compute_frame_layout ();
+
+  if (flag_stack_usage_info)
+    current_function_static_stack_size
+      = current_frame.size + current_frame.offset;
 
   /* If the stack limit is a symbol, we can check it here,
      before actually allocating the space.  */
@@ -1354,7 +1289,7 @@ m68k_expand_epilogue (bool sibcall_p)
 			   EH_RETURN_STACKADJ_RTX));
 
   if (!sibcall_p)
-    emit_jump_insn (gen_rtx_RETURN (VOIDmode));
+    emit_jump_insn (ret_rtx);
 }
 
 /* Return true if X is a valid comparison operator for the dbcc 
@@ -1464,7 +1399,7 @@ m68k_ok_for_sibcall_p (tree decl, tree exp)
 /* On the m68k all args are always pushed.  */
 
 static rtx
-m68k_function_arg (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
+m68k_function_arg (cumulative_args_t cum ATTRIBUTE_UNUSED,
 		   enum machine_mode mode ATTRIBUTE_UNUSED,
 		   const_tree type ATTRIBUTE_UNUSED,
 		   bool named ATTRIBUTE_UNUSED)
@@ -1473,9 +1408,11 @@ m68k_function_arg (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
 }
 
 static void
-m68k_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+m68k_function_arg_advance (cumulative_args_t cum_v, enum machine_mode mode,
 			   const_tree type, bool named ATTRIBUTE_UNUSED)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
+
   *cum += (mode != BLKmode
 	   ? (GET_MODE_SIZE (mode) + 3) & ~3
 	   : (int_size_in_bytes (type) + 3) & ~3);
@@ -2838,8 +2775,8 @@ const_int_cost (HOST_WIDE_INT i)
 }
 
 static bool
-m68k_rtx_costs (rtx x, int code, int outer_code, int *total,
-		bool speed ATTRIBUTE_UNUSED)
+m68k_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
+		int *total, bool speed ATTRIBUTE_UNUSED)
 {
   switch (code)
     {
@@ -4275,7 +4212,8 @@ notice_update_cc (rtx exp, rtx insn)
       && GET_MODE_CLASS (GET_MODE (XEXP (cc_status.value2, 0))) == MODE_FLOAT)
     {
       cc_status.flags = CC_IN_68881;
-      if (!FP_REG_P (XEXP (cc_status.value2, 0)))
+      if (!FP_REG_P (XEXP (cc_status.value2, 0))
+	  && FP_REG_P (XEXP (cc_status.value2, 1)))
 	cc_status.flags |= CC_REVERSED;
     }
 }
@@ -4613,9 +4551,9 @@ m68k_get_reloc_decoration (enum m68k_reloc reloc)
     }
 }
 
-/* m68k implementation of OUTPUT_ADDR_CONST_EXTRA.  */
+/* m68k implementation of TARGET_OUTPUT_ADDR_CONST_EXTRA.  */
 
-bool
+static bool
 m68k_output_addr_const_extra (FILE *file, rtx x)
 {
   if (GET_CODE (x) == UNSPEC)
@@ -6590,6 +6528,12 @@ m68k_conditional_register_usage (void)
     }
   if (flag_pic)
     fixed_regs[PIC_REG] = call_used_regs[PIC_REG] = 1;
+}
+
+static void
+m68k_init_sync_libfuncs (void)
+{
+  init_sync_libfuncs (UNITS_PER_WORD);
 }
 
 #include "gt-m68k.h"

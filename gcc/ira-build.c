@@ -93,15 +93,35 @@ int ira_copies_num;
    basic block.  */
 static int last_basic_block_before_change;
 
-/* The following function allocates the loop tree nodes.  If LOOPS_P
-   is FALSE, the nodes corresponding to the loops (except the root
-   which corresponds the all function) will be not allocated but nodes
-   will still be allocated for basic blocks.  */
+/* Initialize some members in loop tree node NODE.  Use LOOP_NUM for
+   the member loop_num.  */
 static void
-create_loop_tree_nodes (bool loops_p)
+init_loop_tree_node (struct ira_loop_tree_node *node, int loop_num)
+{
+  int max_regno = max_reg_num ();
+
+  node->regno_allocno_map
+    = (ira_allocno_t *) ira_allocate (sizeof (ira_allocno_t) * max_regno);
+  memset (node->regno_allocno_map, 0, sizeof (ira_allocno_t) * max_regno);
+  memset (node->reg_pressure, 0, sizeof (node->reg_pressure));
+  node->all_allocnos = ira_allocate_bitmap ();
+  node->modified_regnos = ira_allocate_bitmap ();
+  node->border_allocnos = ira_allocate_bitmap ();
+  node->local_copies = ira_allocate_bitmap ();
+  node->loop_num = loop_num;
+  node->children = NULL;
+  node->subloops = NULL;
+}
+
+
+/* The following function allocates the loop tree nodes.  If
+   CURRENT_LOOPS is NULL, the nodes corresponding to the loops (except
+   the root which corresponds the all function) will be not allocated
+   but nodes will still be allocated for basic blocks.  */
+static void
+create_loop_tree_nodes (void)
 {
   unsigned int i, j;
-  int max_regno;
   bool skip_p;
   edge_iterator ei;
   edge e;
@@ -122,17 +142,21 @@ create_loop_tree_nodes (bool loops_p)
       ira_bb_nodes[i].border_allocnos = NULL;
       ira_bb_nodes[i].local_copies = NULL;
     }
+  if (current_loops == NULL)
+    {
+      ira_loop_nodes = ((struct ira_loop_tree_node *)
+			ira_allocate (sizeof (struct ira_loop_tree_node)));
+      init_loop_tree_node (ira_loop_nodes, 0);
+      return;
+    }
   ira_loop_nodes = ((struct ira_loop_tree_node *)
 		    ira_allocate (sizeof (struct ira_loop_tree_node)
 				  * VEC_length (loop_p, ira_loops.larray)));
-  max_regno = max_reg_num ();
   FOR_EACH_VEC_ELT (loop_p, ira_loops.larray, i, loop)
     {
       if (loop != ira_loops.tree_root)
 	{
 	  ira_loop_nodes[i].regno_allocno_map = NULL;
-	  if (! loops_p)
-	    continue;
 	  skip_p = false;
 	  FOR_EACH_EDGE (e, ei, loop->header->preds)
 	    if (e->src != loop->latch
@@ -154,16 +178,7 @@ create_loop_tree_nodes (bool loops_p)
 	  if (skip_p)
 	    continue;
 	}
-      ira_loop_nodes[i].regno_allocno_map
-	= (ira_allocno_t *) ira_allocate (sizeof (ira_allocno_t) * max_regno);
-      memset (ira_loop_nodes[i].regno_allocno_map, 0,
-	      sizeof (ira_allocno_t) * max_regno);
-      memset (ira_loop_nodes[i].reg_pressure, 0,
-	      sizeof (ira_loop_nodes[i].reg_pressure));
-      ira_loop_nodes[i].all_allocnos = ira_allocate_bitmap ();
-      ira_loop_nodes[i].modified_regnos = ira_allocate_bitmap ();
-      ira_loop_nodes[i].border_allocnos = ira_allocate_bitmap ();
-      ira_loop_nodes[i].local_copies = ira_allocate_bitmap ();
+      init_loop_tree_node (&ira_loop_nodes[i], loop->num);
     }
 }
 
@@ -175,10 +190,11 @@ more_one_region_p (void)
   unsigned int i;
   loop_p loop;
 
-  FOR_EACH_VEC_ELT (loop_p, ira_loops.larray, i, loop)
-    if (ira_loop_nodes[i].regno_allocno_map != NULL
-	&& ira_loop_tree_root != &ira_loop_nodes[i])
-      return true;
+  if (current_loops != NULL)
+    FOR_EACH_VEC_ELT (loop_p, ira_loops.larray, i, loop)
+      if (ira_loop_nodes[i].regno_allocno_map != NULL
+	  && ira_loop_tree_root != &ira_loop_nodes[i])
+	return true;
   return false;
 }
 
@@ -205,8 +221,11 @@ finish_loop_tree_nodes (void)
   unsigned int i;
   loop_p loop;
 
-  FOR_EACH_VEC_ELT (loop_p, ira_loops.larray, i, loop)
-    finish_loop_tree_node (&ira_loop_nodes[i]);
+  if (current_loops == NULL)
+    finish_loop_tree_node (&ira_loop_nodes[0]);
+  else
+    FOR_EACH_VEC_ELT (loop_p, ira_loops.larray, i, loop)
+      finish_loop_tree_node (&ira_loop_nodes[i]);
   ira_free (ira_loop_nodes);
   for (i = 0; i < (unsigned int) last_basic_block_before_change; i++)
     {
@@ -227,30 +246,39 @@ finish_loop_tree_nodes (void)
 
 
 /* The following recursive function adds LOOP to the loop tree
-   hierarchy.  LOOP is added only once.  */
+   hierarchy.  LOOP is added only once.  If LOOP is NULL we adding
+   loop designating the whole function when CFG loops are not
+   built.  */
 static void
 add_loop_to_tree (struct loop *loop)
 {
+  int loop_num;
   struct loop *parent;
   ira_loop_tree_node_t loop_node, parent_node;
 
   /* We can not use loop node access macros here because of potential
      checking and because the nodes are not initialized enough
      yet.  */
-  if (loop_outer (loop) != NULL)
+  if (loop != NULL && loop_outer (loop) != NULL)
     add_loop_to_tree (loop_outer (loop));
-  if (ira_loop_nodes[loop->num].regno_allocno_map != NULL
-      && ira_loop_nodes[loop->num].children == NULL)
+  loop_num = loop != NULL ? loop->num : 0;
+  if (ira_loop_nodes[loop_num].regno_allocno_map != NULL
+      && ira_loop_nodes[loop_num].children == NULL)
     {
       /* We have not added loop node to the tree yet.  */
-      loop_node = &ira_loop_nodes[loop->num];
+      loop_node = &ira_loop_nodes[loop_num];
       loop_node->loop = loop;
       loop_node->bb = NULL;
-      for (parent = loop_outer (loop);
-	   parent != NULL;
-	   parent = loop_outer (parent))
-	if (ira_loop_nodes[parent->num].regno_allocno_map != NULL)
-	  break;
+      if (loop == NULL)
+	parent = NULL;
+      else
+	{
+	  for (parent = loop_outer (loop);
+	       parent != NULL;
+	       parent = loop_outer (parent))
+	    if (ira_loop_nodes[parent->num].regno_allocno_map != NULL)
+	      break;
+	}
       if (parent == NULL)
 	{
 	  loop_node->next = NULL;
@@ -299,21 +327,13 @@ setup_loop_tree_level (ira_loop_tree_node_t loop_node, int level)
 static void
 form_loop_tree (void)
 {
-  unsigned int i;
   basic_block bb;
   struct loop *parent;
   ira_loop_tree_node_t bb_node, loop_node;
-  loop_p loop;
 
   /* We can not use loop/bb node access macros because of potential
      checking and because the nodes are not initialized enough
      yet.  */
-  FOR_EACH_VEC_ELT (loop_p, ira_loops.larray, i, loop)
-     if (ira_loop_nodes[i].regno_allocno_map != NULL)
-       {
-	 ira_loop_nodes[i].children = NULL;
-	 ira_loop_nodes[i].subloops = NULL;
-       }
   FOR_EACH_BB (bb)
     {
       bb_node = &ira_bb_nodes[bb->index];
@@ -323,18 +343,23 @@ form_loop_tree (void)
       bb_node->children = NULL;
       bb_node->subloop_next = NULL;
       bb_node->next = NULL;
-      for (parent = bb->loop_father;
-	   parent != NULL;
-	   parent = loop_outer (parent))
-	if (ira_loop_nodes[parent->num].regno_allocno_map != NULL)
-	  break;
+      if (current_loops == NULL)
+	parent = NULL;
+      else
+	{
+	  for (parent = bb->loop_father;
+	       parent != NULL;
+	       parent = loop_outer (parent))
+	    if (ira_loop_nodes[parent->num].regno_allocno_map != NULL)
+	      break;
+	}
       add_loop_to_tree (parent);
-      loop_node = &ira_loop_nodes[parent->num];
+      loop_node = &ira_loop_nodes[parent == NULL ? 0 : parent->num];
       bb_node->next = loop_node->children;
       bb_node->parent = loop_node;
       loop_node->children = bb_node;
     }
-  ira_loop_tree_root = IRA_LOOP_NODE_BY_INDEX (ira_loops.tree_root->num);
+  ira_loop_tree_root = IRA_LOOP_NODE_BY_INDEX (0);
   ira_loop_tree_height = setup_loop_tree_level (ira_loop_tree_root, 0);
   ira_assert (ira_loop_tree_root->regno_allocno_map != NULL);
 }
@@ -353,6 +378,7 @@ rebuild_regno_allocno_maps (void)
   loop_p loop;
   ira_allocno_iterator ai;
 
+  ira_assert (current_loops != NULL);
   max_regno = max_reg_num ();
   FOR_EACH_VEC_ELT (loop_p, ira_loops.larray, l, loop)
     if (ira_loop_nodes[l].regno_allocno_map != NULL)
@@ -442,7 +468,6 @@ ira_create_object (ira_allocno_t a, int subword)
   OBJECT_MIN (obj) = INT_MAX;
   OBJECT_MAX (obj) = -1;
   OBJECT_LIVE_RANGES (obj) = NULL;
-  OBJECT_ADD_DATA (obj) = NULL;
 
   VEC_safe_push (ira_object_t, heap, ira_object_id_map_vec, obj);
   ira_object_id_map
@@ -838,7 +863,7 @@ ira_print_expanded_allocno (ira_allocno_t a)
   if ((bb = ALLOCNO_LOOP_TREE_NODE (a)->bb) != NULL)
     fprintf (ira_dump_file, ",b%d", bb->index);
   else
-    fprintf (ira_dump_file, ",l%d", ALLOCNO_LOOP_TREE_NODE (a)->loop->num);
+    fprintf (ira_dump_file, ",l%d", ALLOCNO_LOOP_TREE_NODE (a)->loop_num);
   if (ALLOCNO_CAP_MEMBER (a) != NULL)
     {
       fprintf (ira_dump_file, ":");
@@ -1402,17 +1427,17 @@ initiate_cost_vectors (void)
 
 /* Allocate and return a cost vector VEC for ACLASS.  */
 int *
-ira_allocate_cost_vector (enum reg_class aclass)
+ira_allocate_cost_vector (reg_class_t aclass)
 {
-  return (int *) pool_alloc (cost_vector_pool[aclass]);
+  return (int *) pool_alloc (cost_vector_pool[(int) aclass]);
 }
 
 /* Free a cost vector VEC for ACLASS.  */
 void
-ira_free_cost_vector (int *vec, enum reg_class aclass)
+ira_free_cost_vector (int *vec, reg_class_t aclass)
 {
   ira_assert (vec != NULL);
-  pool_free (cost_vector_pool[aclass], vec);
+  pool_free (cost_vector_pool[(int) aclass], vec);
 }
 
 /* Finish work with hard register cost vectors.  Release allocation
@@ -1622,6 +1647,7 @@ create_loop_tree_node_allocnos (ira_loop_tree_node_t loop_node)
       edge e;
       VEC (edge, heap) *edges;
 
+      ira_assert (current_loops != NULL);
       FOR_EACH_EDGE (e, ei, loop_node->loop->header->preds)
 	if (e->src != loop_node->loop->latch)
 	  create_loop_allocnos (e);
@@ -1806,6 +1832,29 @@ low_pressure_loop_node_p (ira_loop_tree_node_t node)
   return true;
 }
 
+#ifdef STACK_REGS
+/* Return TRUE if LOOP has a complex enter or exit edge.  We don't
+   form a region from such loop if the target use stack register
+   because reg-stack.c can not deal with such edges.  */
+static bool
+loop_with_complex_edge_p (struct loop *loop)
+{
+  int i;
+  edge_iterator ei;
+  edge e;
+  VEC (edge, heap) *edges;
+
+  FOR_EACH_EDGE (e, ei, loop->header->preds)
+    if (e->flags & EDGE_EH)
+      return true;
+  edges = get_loop_exit_edges (loop);
+  FOR_EACH_VEC_ELT (edge, edges, i, e)
+    if (e->flags & EDGE_COMPLEX)
+      return true;
+  return false;
+}
+#endif
+
 /* Sort loops for marking them for removal.  We put already marked
    loops first, then less frequent loops next, and then outer loops
    next.  */
@@ -1826,9 +1875,8 @@ loop_compare_func (const void *v1p, const void *v2p)
   if ((diff = (int) loop_depth (l1->loop) - (int) loop_depth (l2->loop)) != 0)
     return diff;
   /* Make sorting stable.  */
-  return l1->loop->num - l2->loop->num;
+  return l1->loop_num - l2->loop_num;
 }
-
 
 /* Mark loops which should be removed from regional allocation.  We
    remove a loop with low register pressure inside another loop with
@@ -1836,7 +1884,12 @@ loop_compare_func (const void *v1p, const void *v2p)
    hardly helps (for irregular register file architecture it could
    help by choosing a better hard register in the loop but we prefer
    faster allocation even in this case).  We also remove cheap loops
-   if there are more than IRA_MAX_LOOPS_NUM of them.  */
+   if there are more than IRA_MAX_LOOPS_NUM of them.  Loop with EH
+   exit or enter edges are removed too because the allocation might
+   require put pseudo moves on the EH edges (we could still do this
+   for pseudos with caller saved hard registers in some cases but it
+   is impossible to say here or during top-down allocation pass what
+   hard register the pseudos get finally).  */
 static void
 mark_loops_for_removal (void)
 {
@@ -1844,6 +1897,7 @@ mark_loops_for_removal (void)
   ira_loop_tree_node_t *sorted_loops;
   loop_p loop;
 
+  ira_assert (current_loops != NULL);
   sorted_loops
     = (ira_loop_tree_node_t *) ira_allocate (sizeof (ira_loop_tree_node_t)
 					     * VEC_length (loop_p,
@@ -1859,8 +1913,12 @@ mark_loops_for_removal (void)
 	  }
 	sorted_loops[n++] = &ira_loop_nodes[i];
 	ira_loop_nodes[i].to_remove_p
-	  = (low_pressure_loop_node_p (ira_loop_nodes[i].parent)
-	     && low_pressure_loop_node_p (&ira_loop_nodes[i]));
+	  = ((low_pressure_loop_node_p (ira_loop_nodes[i].parent)
+	      && low_pressure_loop_node_p (&ira_loop_nodes[i]))
+#ifdef STACK_REGS
+	     || loop_with_complex_edge_p (ira_loop_nodes[i].loop)
+#endif
+	     );
       }
   qsort (sorted_loops, n, sizeof (ira_loop_tree_node_t), loop_compare_func);
   for (i = 0; n - i + 1 > IRA_MAX_LOOPS_NUM; i++)
@@ -1870,7 +1928,7 @@ mark_loops_for_removal (void)
 	fprintf
 	  (ira_dump_file,
 	   "  Mark loop %d (header %d, freq %d, depth %d) for removal (%s)\n",
-	   sorted_loops[i]->loop->num, sorted_loops[i]->loop->header->index,
+	   sorted_loops[i]->loop_num, sorted_loops[i]->loop->header->index,
 	   sorted_loops[i]->loop->header->frequency,
 	   loop_depth (sorted_loops[i]->loop),
 	   low_pressure_loop_node_p (sorted_loops[i]->parent)
@@ -1887,6 +1945,7 @@ mark_all_loops_for_removal (void)
   int i;
   loop_p loop;
 
+  ira_assert (current_loops != NULL);
   FOR_EACH_VEC_ELT (loop_p, ira_loops.larray, i, loop)
     if (ira_loop_nodes[i].regno_allocno_map != NULL)
       {
@@ -1901,7 +1960,7 @@ mark_all_loops_for_removal (void)
 	  fprintf
 	    (ira_dump_file,
 	     "  Mark loop %d (header %d, freq %d, depth %d) for removal\n",
-	     ira_loop_nodes[i].loop->num,
+	     ira_loop_nodes[i].loop_num,
 	     ira_loop_nodes[i].loop->header->index,
 	     ira_loop_nodes[i].loop->header->frequency,
 	     loop_depth (ira_loop_nodes[i].loop));
@@ -2191,6 +2250,8 @@ remove_low_level_allocnos (void)
 static void
 remove_unnecessary_regions (bool all_p)
 {
+  if (current_loops == NULL)
+    return;
   if (all_p)
     mark_all_loops_for_removal ();
   else
@@ -2969,19 +3030,20 @@ update_conflict_hard_reg_costs (void)
 
   FOR_EACH_ALLOCNO (a, ai)
     {
-      enum reg_class aclass = ALLOCNO_CLASS (a);
-      enum reg_class pref = reg_preferred_class (ALLOCNO_REGNO (a));
+      reg_class_t aclass = ALLOCNO_CLASS (a);
+      reg_class_t pref = reg_preferred_class (ALLOCNO_REGNO (a));
 
-      if (reg_class_size[pref] != 1)
+      if (reg_class_size[(int) pref] != 1)
 	continue;
-      index = ira_class_hard_reg_index[aclass][ira_class_hard_regs[pref][0]];
+      index = ira_class_hard_reg_index[(int) aclass]
+				      [ira_class_hard_regs[(int) pref][0]];
       if (index < 0)
 	continue;
       if (ALLOCNO_CONFLICT_HARD_REG_COSTS (a) == NULL
 	  || ALLOCNO_HARD_REG_COSTS (a) == NULL)
 	continue;
       min = INT_MAX;
-      for (i = ira_class_hard_regs_num[aclass] - 1; i >= 0; i--)
+      for (i = ira_class_hard_regs_num[(int) aclass] - 1; i >= 0; i--)
 	if (ALLOCNO_HARD_REG_COSTS (a)[i] > ALLOCNO_CLASS_COST (a)
 	    && min > ALLOCNO_HARD_REG_COSTS (a)[i])
 	  min = ALLOCNO_HARD_REG_COSTS (a)[i];
@@ -2995,23 +3057,20 @@ update_conflict_hard_reg_costs (void)
 }
 
 /* Create a internal representation (IR) for IRA (allocnos, copies,
-   loop tree nodes).  If LOOPS_P is FALSE the nodes corresponding to
-   the loops (except the root which corresponds the all function) and
-   correspondingly allocnos for the loops will be not created.  Such
-   parameter value is used for Chaitin-Briggs coloring.  The function
-   returns TRUE if we generate loop structure (besides nodes
-   representing all function and the basic blocks) for regional
-   allocation.  A true return means that we really need to flatten IR
-   before the reload.  */
+   loop tree nodes).  The function returns TRUE if we generate loop
+   structure (besides nodes representing all function and the basic
+   blocks) for regional allocation.  A true return means that we
+   really need to flatten IR before the reload.  */
 bool
-ira_build (bool loops_p)
+ira_build (void)
 {
-  df_analyze ();
+  bool loops_p;
 
+  df_analyze ();
   initiate_cost_vectors ();
   initiate_allocnos ();
   initiate_copies ();
-  create_loop_tree_nodes (loops_p);
+  create_loop_tree_nodes ();
   form_loop_tree ();
   create_allocnos ();
   ira_costs ();
@@ -3080,8 +3139,8 @@ ira_build (bool loops_p)
 	    }
 	}
       fprintf (ira_dump_file, "  regions=%d, blocks=%d, points=%d\n",
-	       VEC_length (loop_p, ira_loops.larray), n_basic_blocks,
-	       ira_max_point);
+	       current_loops == NULL ? 1 : VEC_length (loop_p, ira_loops.larray),
+	       n_basic_blocks, ira_max_point);
       fprintf (ira_dump_file,
 	       "    allocnos=%d (big %d), copies=%d, conflicts=%d, ranges=%d\n",
 	       ira_allocnos_num, nr_big, ira_copies_num, n, nr);

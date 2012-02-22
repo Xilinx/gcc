@@ -297,8 +297,11 @@ find_comparisons_in_bb (struct dom_walk_data *data ATTRIBUTE_UNUSED,
       src = conforming_compare (insn);
       if (src)
 	{
+	  enum machine_mode src_mode = GET_MODE (src);
+
 	  /* Eliminate a compare that's redundant with the previous.  */
 	  if (last_cmp_valid
+	      && src_mode == last_cmp->orig_mode
 	      && rtx_equal_p (last_cmp->in_a, XEXP (src, 0))
 	      && rtx_equal_p (last_cmp->in_b, XEXP (src, 1)))
 	    {
@@ -311,7 +314,7 @@ find_comparisons_in_bb (struct dom_walk_data *data ATTRIBUTE_UNUSED,
 	  last_cmp->prev_clobber = last_clobber;
 	  last_cmp->in_a = XEXP (src, 0);
 	  last_cmp->in_b = XEXP (src, 1);
-	  last_cmp->orig_mode = GET_MODE (SET_DEST (single_set (insn)));
+	  last_cmp->orig_mode = src_mode;
 	  VEC_safe_push (comparison_struct_p, heap, all_compares, last_cmp);
 
 	  /* It's unusual, but be prepared for comparison patterns that
@@ -356,7 +359,7 @@ find_comparisons_in_bb (struct dom_walk_data *data ATTRIBUTE_UNUSED,
 
       /* Look to see if the flags register is live outgoing here, and
 	 incoming to any successor not part of the extended basic block.  */
-      if (bitmap_bit_p (&DF_LIVE_BB_INFO (bb)->out, targetm.flags_regnum))
+      if (bitmap_bit_p (df_get_live_out (bb), targetm.flags_regnum))
 	{
 	  edge e;
 	  edge_iterator ei;
@@ -364,7 +367,7 @@ find_comparisons_in_bb (struct dom_walk_data *data ATTRIBUTE_UNUSED,
 	  FOR_EACH_EDGE (e, ei, bb->succs)
 	    {
 	      basic_block dest = e->dest;
-	      if (bitmap_bit_p (&DF_LIVE_BB_INFO (dest)->in,
+	      if (bitmap_bit_p (df_get_live_in (bb),
 				targetm.flags_regnum)
 		  && !single_pred_p (dest))
 		{
@@ -580,8 +583,6 @@ try_eliminate_compare (struct comparison *cmp)
 static unsigned int
 execute_compare_elim_after_reload (void)
 {
-  df_set_flags (DF_DEFER_INSN_RESCAN);
-  df_live_add_problem ();
   df_analyze ();
 
   gcc_checking_assert (all_compares == NULL);
@@ -602,8 +603,6 @@ execute_compare_elim_after_reload (void)
 
       VEC_free (comparison_struct_p, heap, all_compares);
       all_compares = NULL;
-
-      df_analyze ();
     }
 
   return 0;
@@ -636,7 +635,6 @@ struct rtl_opt_pass pass_compare_elim_after_reload =
   TODO_df_finish
   | TODO_df_verify
   | TODO_verify_rtl_sharing
-  | TODO_dump_func
   | TODO_ggc_collect			/* todo_flags_finish */
  }
 };

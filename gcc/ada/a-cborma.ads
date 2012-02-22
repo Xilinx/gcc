@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2004-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -31,6 +31,8 @@
 -- This unit was originally developed by Matthew J Heaney.                  --
 ------------------------------------------------------------------------------
 
+with Ada.Iterator_Interfaces;
+
 private with Ada.Containers.Red_Black_Trees;
 private with Ada.Streams;
 
@@ -47,7 +49,12 @@ package Ada.Containers.Bounded_Ordered_Maps is
 
    function Equivalent_Keys (Left, Right : Key_Type) return Boolean;
 
-   type Map (Capacity : Count_Type) is tagged private;
+   type Map (Capacity : Count_Type) is tagged private with
+      Constant_Indexing => Constant_Reference,
+      Variable_Indexing => Reference,
+      Default_Iterator  => Iterate,
+      Iterator_Element  => Element_Type;
+
    pragma Preelaborable_Initialization (Map);
 
    type Cursor is private;
@@ -56,6 +63,11 @@ package Ada.Containers.Bounded_Ordered_Maps is
    Empty_Map : constant Map;
 
    No_Element : constant Cursor;
+
+   function Has_Element (Position : Cursor) return Boolean;
+
+   package Map_Iterator_Interfaces is new
+     Ada.Iterator_Interfaces (Cursor, Has_Element);
 
    function "=" (Left, Right : Map) return Boolean;
 
@@ -83,7 +95,32 @@ package Ada.Containers.Bounded_Ordered_Maps is
      (Container : in out Map;
       Position  : Cursor;
       Process   : not null access
-                   procedure (Key : Key_Type; Element : in out Element_Type));
+                    procedure (Key : Key_Type; Element : in out Element_Type));
+
+   type Constant_Reference_Type
+      (Element : not null access constant Element_Type) is private
+   with
+      Implicit_Dereference => Element;
+
+   type Reference_Type (Element : not null access Element_Type) is private
+   with
+      Implicit_Dereference => Element;
+
+   function Constant_Reference
+     (Container : aliased Map;
+      Position  : Cursor) return Constant_Reference_Type;
+
+   function Reference
+     (Container : aliased in out Map;
+      Position  : Cursor) return Reference_Type;
+
+   function Constant_Reference
+     (Container : aliased Map;
+      Key       : Key_Type) return Constant_Reference_Type;
+
+   function Reference
+     (Container : aliased in out Map;
+      Key       : Key_Type) return Reference_Type;
 
    procedure Assign (Target : in out Map; Source : Map);
 
@@ -159,8 +196,6 @@ package Ada.Containers.Bounded_Ordered_Maps is
 
    function Contains (Container : Map; Key : Key_Type) return Boolean;
 
-   function Has_Element (Position : Cursor) return Boolean;
-
    function "<" (Left, Right : Cursor) return Boolean;
 
    function ">" (Left, Right : Cursor) return Boolean;
@@ -181,6 +216,15 @@ package Ada.Containers.Bounded_Ordered_Maps is
      (Container : Map;
       Process   : not null access procedure (Position : Cursor));
 
+   function Iterate
+     (Container : Map)
+      return Map_Iterator_Interfaces.Reversible_Iterator'Class;
+
+   function Iterate
+     (Container : Map;
+      Start     : Cursor)
+      return Map_Iterator_Interfaces.Reversible_Iterator'Class;
+
 private
 
    pragma Inline (Next);
@@ -192,7 +236,7 @@ private
       Right   : Count_Type;
       Color   : Red_Black_Trees.Color_Type := Red_Black_Trees.Red;
       Key     : Key_Type;
-      Element : Element_Type;
+      Element : aliased Element_Type;
    end record;
 
    package Tree_Types is
@@ -201,16 +245,28 @@ private
    type Map (Capacity : Count_Type) is
      new Tree_Types.Tree_Type (Capacity) with null record;
 
-   type Map_Access is access all Map;
-   for Map_Access'Storage_Size use 0;
-
    use Red_Black_Trees;
    use Tree_Types;
    use Ada.Streams;
 
+   procedure Write
+     (Stream    : not null access Root_Stream_Type'Class;
+      Container : Map);
+
+   for Map'Write use Write;
+
+   procedure Read
+     (Stream    : not null access Root_Stream_Type'Class;
+      Container : out Map);
+
+   for Map'Read use Read;
+
+   type Map_Access is access all Map;
+   for Map_Access'Storage_Size use 0;
+
    type Cursor is record
       Container : Map_Access;
-      Node      : Count_Type;
+      Node      : Count_Type := 0;
    end record;
 
    procedure Write
@@ -225,20 +281,38 @@ private
 
    for Cursor'Read use Read;
 
-   No_Element : constant Cursor := Cursor'(null, 0);
-
-   procedure Write
-     (Stream    : not null access Root_Stream_Type'Class;
-      Container : Map);
-
-   for Map'Write use Write;
+   type Constant_Reference_Type
+      (Element : not null access constant Element_Type) is null record;
 
    procedure Read
-     (Stream    : not null access Root_Stream_Type'Class;
-      Container : out Map);
+     (Stream : not null access Root_Stream_Type'Class;
+      Item   : out Constant_Reference_Type);
 
-   for Map'Read use Read;
+   for Constant_Reference_Type'Read use Read;
+
+   procedure Write
+     (Stream : not null access Root_Stream_Type'Class;
+      Item   : Constant_Reference_Type);
+
+   for Constant_Reference_Type'Write use Write;
+
+   type Reference_Type
+      (Element : not null access Element_Type) is null record;
+
+   procedure Read
+     (Stream : not null access Root_Stream_Type'Class;
+      Item   : out Reference_Type);
+
+   for Reference_Type'Read use Read;
+
+   procedure Write
+     (Stream : not null access Root_Stream_Type'Class;
+      Item   : Reference_Type);
+
+   for Reference_Type'Write use Write;
 
    Empty_Map : constant Map := Map'(Tree_Type with Capacity => 0);
+
+   No_Element : constant Cursor := Cursor'(null, 0);
 
 end Ada.Containers.Bounded_Ordered_Maps;

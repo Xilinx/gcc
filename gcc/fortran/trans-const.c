@@ -75,11 +75,11 @@ gfc_build_string_const (int length, const char *s)
   tree len;
 
   str = build_string (length, s);
-  len = build_int_cst (NULL_TREE, length);
+  len = size_int (length);
   TREE_TYPE (str) =
     build_array_type (gfc_character1_type_node,
 		      build_range_type (gfc_charlen_type_node,
-					integer_one_node, len));
+					size_one_node, len));
   return str;
 }
 
@@ -104,11 +104,11 @@ gfc_build_wide_string_const (int kind, int length, const gfc_char_t *string)
   str = build_string (size, s);
   free (s);
 
-  len = build_int_cst (NULL_TREE, length);
+  len = size_int (length);
   TREE_TYPE (str) =
     build_array_type (gfc_get_char_type (kind),
 		      build_range_type (gfc_charlen_type_node,
-					integer_one_node, len));
+					size_one_node, len));
   return str;
 }
 
@@ -358,6 +358,8 @@ gfc_conv_constant_to_tree (gfc_expr * expr)
 void
 gfc_conv_constant (gfc_se * se, gfc_expr * expr)
 {
+  gfc_ss *ss;
+
   /* We may be receiving an expression for C_NULL_PTR or C_NULL_FUNPTR.  If
      so, the expr_type will not yet be an EXPR_CONSTANT.  We need to make
      it so here.  */
@@ -380,14 +382,18 @@ gfc_conv_constant (gfc_se * se, gfc_expr * expr)
       return;
     }
 
-  if (se->ss != NULL)
+  ss = se->ss;
+  if (ss != NULL)
     {
-      gcc_assert (se->ss != gfc_ss_terminator);
-      gcc_assert (se->ss->type == GFC_SS_SCALAR);
-      gcc_assert (se->ss->expr == expr);
+      gfc_ss_info *ss_info;
 
-      se->expr = se->ss->data.scalar.expr;
-      se->string_length = se->ss->string_length;
+      ss_info = ss->info;
+      gcc_assert (ss != gfc_ss_terminator);
+      gcc_assert (ss_info->type == GFC_SS_SCALAR);
+      gcc_assert (ss_info->expr == expr);
+
+      se->expr = ss_info->data.scalar.value;
+      se->string_length = ss_info->string_length;
       gfc_advance_se_ss_chain (se);
       return;
     }

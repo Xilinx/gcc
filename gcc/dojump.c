@@ -36,6 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "ggc.h"
 #include "basic-block.h"
 #include "output.h"
+#include "tm_p.h"
 
 static bool prefer_and_bit_test (enum machine_mode, int);
 static void do_jump_by_parts_greater (tree, tree, int, rtx, rtx, int);
@@ -143,6 +144,8 @@ static GTY(()) rtx shift_test;
 static bool
 prefer_and_bit_test (enum machine_mode mode, int bitnum)
 {
+  bool speed_p;
+
   if (and_test == 0)
     {
       /* Set up rtxes for the two variations.  Use NULL as a placeholder
@@ -167,8 +170,9 @@ prefer_and_bit_test (enum machine_mode mode, int bitnum)
 						 mode);
   XEXP (XEXP (shift_test, 0), 1) = GEN_INT (bitnum);
 
-  return (rtx_cost (and_test, IF_THEN_ELSE, optimize_insn_for_speed_p ())
-	  <= rtx_cost (shift_test, IF_THEN_ELSE, optimize_insn_for_speed_p ()));
+  speed_p = optimize_insn_for_speed_p ();
+  return (rtx_cost (and_test, IF_THEN_ELSE, 0, speed_p)
+	  <= rtx_cost (shift_test, IF_THEN_ELSE, 0, speed_p));
 }
 
 /* Subroutine of do_jump, dealing with exploded comparisons of the type
@@ -1045,7 +1049,7 @@ do_compare_rtx_and_jump (rtx op0, rtx op1, enum rtx_code code, int unsignedp,
     }
   else
     {
-      if (GET_MODE_CLASS (mode) == MODE_FLOAT
+      if (SCALAR_FLOAT_MODE_P (mode)
 	  && ! can_compare_p (code, mode, ccp_jump)
 	  && can_compare_p (swap_condition (code), mode, ccp_jump))
 	{
@@ -1056,7 +1060,7 @@ do_compare_rtx_and_jump (rtx op0, rtx op1, enum rtx_code code, int unsignedp,
 	  op1 = tmp;
 	}
 
-      else if (GET_MODE_CLASS (mode) == MODE_FLOAT
+      else if (SCALAR_FLOAT_MODE_P (mode)
 	       && ! can_compare_p (code, mode, ccp_jump)
 
 	       /* Never split ORDERED and UNORDERED.  These must be implemented.  */

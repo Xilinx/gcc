@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -171,6 +171,17 @@ package Sem_Attr is
       --  which it is useful to be able to call this elaboration procedure from
       --  Ada code, e.g. if it is necessary to do selective reelaboration to
       --  fix some error.
+
+      --------------------
+      -- Elab_Subp_Body --
+      --------------------
+
+      Attribute_Elab_Subp_Body => True,
+      --  This attribute can only be applied to a library level subprogram
+      --  name and is only relevant in CodePeer mode. It returns the entity
+      --  for the corresponding elaboration procedure for elaborating the body
+      --  of the referenced subprogram unit. This is used in the main generated
+      --  elaboration procedure by the binder in CodePeer mode only.
 
       ---------------
       -- Elab_Spec --
@@ -596,12 +607,12 @@ package Sem_Attr is
      (Typ          : Entity_Id;
       Nam          : TSS_Name_Type;
       Partial_View : Entity_Id := Empty) return Boolean;
-   --  For a limited type Typ, return True iff the given attribute is
-   --  available. For Ada 05, availability is defined by 13.13.2(36/1). For Ada
-   --  95, an attribute is considered to be available if it has been specified
-   --  using an attribute definition clause for the type, or for its full view,
-   --  or for an ancestor of either. Parameter Partial_View is used only
-   --  internally, when checking for an attribute definition clause that is not
-   --  visible (Ada 95 only).
+   --  For a limited type Typ, return True if and only if the given attribute
+   --  is available. For Ada 2005, availability is defined by 13.13.2(36/1).
+   --  For Ada 95, an attribute is considered to be available if it has been
+   --  specified using an attribute definition clause for the type, or for its
+   --  full view, or for an ancestor of either. Parameter Partial_View is used
+   --  only internally, when checking for an attribute definition clause that
+   --  is not visible (Ada 95 only).
 
 end Sem_Attr;

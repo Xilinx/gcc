@@ -69,13 +69,11 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef ASM_SPEC
 #define ASM_SPEC "%{fpic|fPIC|fpie|fPIE:-K PIC} \
-%{mlittle-endian:-EL} \
 %(asm_cpu) %(asm_arch) %(asm_relax)"
 
 #undef STDC_0_IN_SYSTEM_HEADERS
 
-/* Attempt to enable execute permissions on the stack.  */
-#define ENABLE_EXECUTE_STACK NETBSD_ENABLE_EXECUTE_STACK
+#define HAVE_ENABLE_EXECUTE_STACK
 
 /* Below here exists the merged NetBSD/sparc & NetBSD/sparc64 compiler
    description, allowing one to build 32-bit or 64-bit applications

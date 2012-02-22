@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1992-2009, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2011, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -39,13 +39,13 @@ pragma Polling (Off);
 --  operations. It causes infinite loops and other problems.
 
 with Ada.Unchecked_Conversion;
-with Ada.Unchecked_Deallocation;
 
 with Interfaces.C;
 
 with System.Task_Info;
 with System.Tasking.Debug;
 with System.Interrupt_Management;
+with System.OS_Constants;
 with System.OS_Primitives;
 with System.IO;
 
@@ -57,6 +57,7 @@ with System.Soft_Links;
 
 package body System.Task_Primitives.Operations is
 
+   package OSC renames System.OS_Constants;
    package SSL renames System.Soft_Links;
 
    use System.Tasking;
@@ -78,9 +79,6 @@ package body System.Task_Primitives.Operations is
    --  a time; it is used to execute in mutual exclusion from all other tasks.
    --  Used mainly in Single_Lock mode, but also to protect All_Tasks_List
 
-   ATCB_Key : aliased pthread_key_t;
-   --  Key used to find the Ada Task_Id associated with a thread
-
    Environment_Task_Id : Task_Id;
    --  A variable to hold Task_Id for the environment task
 
@@ -92,8 +90,6 @@ package body System.Task_Primitives.Operations is
 
    Dispatching_Policy : Character;
    pragma Import (C, Dispatching_Policy, "__gl_task_dispatching_policy");
-
-   Real_Time_Clock_Id : constant clockid_t := CLOCK_REALTIME;
 
    Unblocked_Signal_Mask : aliased sigset_t;
 
@@ -129,6 +125,13 @@ package body System.Task_Primitives.Operations is
 
    package body Specific is separate;
    --  The body of this package is target specific
+
+   ----------------------------------
+   -- ATCB allocation/deallocation --
+   ----------------------------------
+
+   package body ATCB_Allocation is separate;
+   --  The body of this package is shared across several targets
 
    ---------------------------------
    -- Support for foreign threads --
@@ -167,7 +170,7 @@ package body System.Task_Primitives.Operations is
       --  cases (e.g. shutdown of the Server_Task in System.Interrupts) we
       --  need to send the Abort signal to a task.
 
-      if ZCX_By_Default and then GCC_ZCX_Support then
+      if ZCX_By_Default then
          return;
       end if;
 
@@ -252,7 +255,7 @@ package body System.Task_Primitives.Operations is
          pragma Assert (Result = 0);
       end if;
 
-      Result := pthread_mutex_init (L, Attributes'Access);
+      Result := pthread_mutex_init (L.WO'Access, Attributes'Access);
       pragma Assert (Result = 0 or else Result = ENOMEM);
 
       if Result = ENOMEM then
@@ -311,7 +314,7 @@ package body System.Task_Primitives.Operations is
    procedure Finalize_Lock (L : not null access Lock) is
       Result : Interfaces.C.int;
    begin
-      Result := pthread_mutex_destroy (L);
+      Result := pthread_mutex_destroy (L.WO'Access);
       pragma Assert (Result = 0);
    end Finalize_Lock;
 
@@ -332,7 +335,7 @@ package body System.Task_Primitives.Operations is
       Result : Interfaces.C.int;
 
    begin
-      Result := pthread_mutex_lock (L);
+      Result := pthread_mutex_lock (L.WO'Access);
       Ceiling_Violation := Result = EINVAL;
 
       --  Assumes the cause of EINVAL is a priority ceiling violation
@@ -378,7 +381,7 @@ package body System.Task_Primitives.Operations is
    procedure Unlock (L : not null access Lock) is
       Result : Interfaces.C.int;
    begin
-      Result := pthread_mutex_unlock (L);
+      Result := pthread_mutex_unlock (L.WO'Access);
       pragma Assert (Result = 0);
    end Unlock;
 
@@ -569,7 +572,7 @@ package body System.Task_Primitives.Operations is
       TS     : aliased timespec;
       Result : Interfaces.C.int;
    begin
-      Result := clock_gettime (Real_Time_Clock_Id, TS'Unchecked_Access);
+      Result := clock_gettime (OSC.CLOCK_RT_Ada, TS'Unchecked_Access);
       pragma Assert (Result = 0);
       return To_Duration (TS);
    end Monotonic_Clock;
@@ -580,7 +583,7 @@ package body System.Task_Primitives.Operations is
 
    function RT_Resolution return Duration is
    begin
-      --  The clock_getres (Real_Time_Clock_Id) function appears to return
+      --  The clock_getres (OSC.CLOCK_RT_Ada) function appears to return
       --  the interrupt resolution of the realtime clock and not the actual
       --  resolution of reading the clock. Even though this last value is
       --  only guaranteed to be 100 Hz, at least the Origin 200 appears to
@@ -701,15 +704,6 @@ package body System.Task_Primitives.Operations is
          pragma Assert (Result = 0);
       end if;
    end Enter_Task;
-
-   --------------
-   -- New_ATCB --
-   --------------
-
-   function New_ATCB (Entry_Num : Task_Entry_Index) return Task_Id is
-   begin
-      return new Ada_Task_Control_Block (Entry_Num);
-   end New_ATCB;
 
    -------------------
    -- Is_Valid_Task --
@@ -842,9 +836,15 @@ package body System.Task_Primitives.Operations is
       --  do not need to manipulate caller's signal mask at this point.
       --  All tasks in RTS will have All_Tasks_Mask initially.
 
+      --  Note: the use of Unrestricted_Access in the following call is needed
+      --  because otherwise we have an error of getting a access-to-volatile
+      --  value which points to a non-volatile object. But in this case it is
+      --  safe to do this, since we know we have no problems with aliasing and
+      --  Unrestricted_Access bypasses this check.
+
       Result :=
         pthread_create
-          (T.Common.LL.Thread'Access,
+          (T.Common.LL.Thread'Unrestricted_Access,
            Attributes'Access,
            Thread_Body_Access (Wrapper),
            To_Address (T));
@@ -871,9 +871,15 @@ package body System.Task_Primitives.Operations is
              (Attributes'Access, To_Int (T.Common.Task_Info.Scope));
          pragma Assert (Result = 0);
 
+         --  Note: the use of Unrestricted_Access in the following call
+         --  is needed because otherwise we have an error of getting a
+         --  access-to-volatile value which points to a non-volatile object.
+         --  But in this case it is safe to do this, since we know we have no
+         --  aliasing problems and Unrestricted_Access bypasses this check.
+
          Result :=
            pthread_create
-             (T.Common.LL.Thread'Access,
+             (T.Common.LL.Thread'Unrestricted_Access,
               Attributes'Access,
               Thread_Body_Access (Wrapper),
               To_Address (T));
@@ -904,12 +910,7 @@ package body System.Task_Primitives.Operations is
    ------------------
 
    procedure Finalize_TCB (T : Task_Id) is
-      Result  : Interfaces.C.int;
-      Tmp     : Task_Id := T;
-      Is_Self : constant Boolean := T = Self;
-
-      procedure Free is new
-        Ada.Unchecked_Deallocation (Ada_Task_Control_Block, Task_Id);
+      Result : Interfaces.C.int;
 
    begin
       if not Single_Lock then
@@ -924,11 +925,7 @@ package body System.Task_Primitives.Operations is
          Known_Tasks (T.Known_Tasks_Index) := null;
       end if;
 
-      Free (Tmp);
-
-      if Is_Self then
-         Specific.Set (null);
-      end if;
+      ATCB_Allocation.Free_ATCB (T);
    end Finalize_TCB;
 
    ---------------
@@ -1344,5 +1341,18 @@ package body System.Task_Primitives.Operations is
          Abort_Handler_Installed := True;
       end if;
    end Initialize;
+
+   -----------------------
+   -- Set_Task_Affinity --
+   -----------------------
+
+   procedure Set_Task_Affinity (T : ST.Task_Id) is
+      pragma Unreferenced (T);
+
+   begin
+      --  Setting task affinity is not supported by the underlying system
+
+      null;
+   end Set_Task_Affinity;
 
 end System.Task_Primitives.Operations;

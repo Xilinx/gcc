@@ -5,16 +5,20 @@
 package os
 
 import (
+	"io"
 	"syscall"
 	"unsafe"
 )
 
-func libc_dup(fd int) int __asm__ ("dup")
-func libc_opendir(*byte) *syscall.DIR __asm__ ("opendir")
-func libc_closedir(*syscall.DIR) int __asm__ ("closedir")
+//extern opendir
+func libc_opendir(*byte) *syscall.DIR
+
+//extern closedir
+func libc_closedir(*syscall.DIR) int
 
 // FIXME: pathconf returns long, not int.
-func libc_pathconf(*byte, int) int __asm__ ("pathconf")
+//extern pathconf
+func libc_pathconf(*byte, int) int
 
 func clen(n []byte) int {
 	for i := 0; i < len(n); i++ {
@@ -25,15 +29,14 @@ func clen(n []byte) int {
 	return len(n)
 }
 
-var elen int;
+var elen int
 
-// Negative count means read until EOF.
-func (file *File) Readdirnames(count int) (names []string, err Error) {
+func (file *File) readdirnames(n int) (names []string, err error) {
 	if elen == 0 {
-		var dummy syscall.Dirent;
+		var dummy syscall.Dirent
 		elen = (unsafe.Offsetof(dummy.Name) +
-			libc_pathconf(syscall.StringBytePtr(file.name),	syscall.PC_NAME_MAX) +
-			1);
+			libc_pathconf(syscall.StringBytePtr(file.name), syscall.PC_NAME_MAX) +
+			1)
 	}
 
 	if file.dirinfo == nil {
@@ -44,29 +47,37 @@ func (file *File) Readdirnames(count int) (names []string, err Error) {
 
 	entry_dirent := unsafe.Pointer(&file.dirinfo.buf[0]).(*syscall.Dirent)
 
-	size := count
+	size := n
 	if size < 0 {
 		size = 100
+		n = -1
 	}
+
 	names = make([]string, 0, size) // Empty with room to grow.
 
 	dir := file.dirinfo.dir
 	if dir == nil {
 		return names, NewSyscallError("opendir", syscall.GetErrno())
-	}	
+	}
 
-	for count != 0 {
+	for n != 0 {
 		var result *syscall.Dirent
 		i := libc_readdir_r(dir, entry_dirent, &result)
+		if i != 0 {
+			return names, NewSyscallError("readdir_r", i)
+		}
 		if result == nil {
-			break
+			break // EOF
 		}
 		var name = string(result.Name[0:clen(result.Name[0:])])
-		if name == "." || name == ".." {	// Useless names
+		if name == "." || name == ".." { // Useless names
 			continue
 		}
-		count--
 		names = append(names, name)
+		n--
+	}
+	if n >= 0 && len(names) == 0 {
+		return names, io.EOF
 	}
 	return names, nil
 }

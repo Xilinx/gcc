@@ -4,7 +4,6 @@
 
 package math
 
-
 /*
 	Floating-point hyperbolic tangent.
 
@@ -13,6 +12,11 @@ package math
 */
 
 // Tanh computes the hyperbolic tangent of x.
+//
+// Special cases are:
+//	Tanh(±0) = ±0
+//	Tanh(±Inf) = ±1
+//	Tanh(NaN) = NaN
 func Tanh(x float64) float64 {
 	if x < 0 {
 		x = -x

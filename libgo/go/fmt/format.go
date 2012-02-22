@@ -7,7 +7,8 @@ package fmt
 import (
 	"bytes"
 	"strconv"
-	"utf8"
+	"unicode"
+	"unicode/utf8"
 )
 
 const (
@@ -50,6 +51,7 @@ type fmt struct {
 	sharp       bool
 	space       bool
 	unicode     bool
+	uniQuote    bool // Use 'x'= prefix for %U if printable.
 	zero        bool
 }
 
@@ -63,6 +65,7 @@ func (f *fmt) clearflags() {
 	f.sharp = false
 	f.space = false
 	f.unicode = false
+	f.uniQuote = false
 	f.zero = false
 }
 
@@ -151,18 +154,28 @@ func putint(buf []byte, base, val uint64, digits string) int {
 	return i - 1
 }
 
+var (
+	trueBytes  = []byte("true")
+	falseBytes = []byte("false")
+)
+
 // fmt_boolean formats a boolean.
 func (f *fmt) fmt_boolean(v bool) {
 	if v {
-		f.padString("true")
+		f.pad(trueBytes)
 	} else {
-		f.padString("false")
+		f.pad(falseBytes)
 	}
 }
 
 // integer; interprets prec but not wid.  Once formatted, result is sent to pad()
 // and then flags are cleared.
 func (f *fmt) integer(a int64, base uint64, signedness bool, digits string) {
+	// precision of 0 and value of 0 means "print nothing"
+	if f.precPresent && f.prec == 0 && a == 0 {
+		return
+	}
+
 	var buf []byte = f.intbuf[0:]
 	negative := signedness == signed && a < 0
 	if negative {
@@ -232,6 +245,24 @@ func (f *fmt) integer(a int64, base uint64, signedness bool, digits string) {
 		i--
 		buf[i] = ' '
 	}
+
+	// If we want a quoted char for %#U, move the data up to make room.
+	if f.unicode && f.uniQuote && a >= 0 && a <= unicode.MaxRune && unicode.IsPrint(rune(a)) {
+		runeWidth := utf8.RuneLen(rune(a))
+		width := 1 + 1 + runeWidth + 1 // space, quote, rune, quote
+		copy(buf[i-width:], buf[i:])   // guaranteed to have enough room.
+		i -= width
+		// Now put " 'x'" at the end.
+		j := len(buf) - width
+		buf[j] = ' '
+		j++
+		buf[j] = '\''
+		j++
+		utf8.EncodeRune(buf[j:], rune(a))
+		j += runeWidth
+		buf[j] = '\''
+	}
+
 	f.pad(buf[i:])
 }
 
@@ -257,31 +288,18 @@ func (f *fmt) fmt_s(s string) {
 }
 
 // fmt_sx formats a string as a hexadecimal encoding of its bytes.
-func (f *fmt) fmt_sx(s string) {
-	t := ""
+func (f *fmt) fmt_sx(s, digits string) {
+	// TODO: Avoid buffer by pre-padding.
+	var b bytes.Buffer
 	for i := 0; i < len(s); i++ {
 		if i > 0 && f.space {
-			t += " "
+			b.WriteByte(' ')
 		}
 		v := s[i]
-		t += string(ldigits[v>>4])
-		t += string(ldigits[v&0xF])
+		b.WriteByte(digits[v>>4])
+		b.WriteByte(digits[v&0xF])
 	}
-	f.padString(t)
-}
-
-// fmt_sX formats a string as an uppercase hexadecimal encoding of its bytes.
-func (f *fmt) fmt_sX(s string) {
-	t := ""
-	for i := 0; i < len(s); i++ {
-		if i > 0 && f.space {
-			t += " "
-		}
-		v := s[i]
-		t += string(udigits[v>>4])
-		t += string(udigits[v&0xF])
-	}
-	f.padString(t)
+	f.pad(b.Bytes())
 }
 
 // fmt_q formats a string as a double-quoted, escaped Go string constant.
@@ -291,9 +309,25 @@ func (f *fmt) fmt_q(s string) {
 	if f.sharp && strconv.CanBackquote(s) {
 		quoted = "`" + s + "`"
 	} else {
-		quoted = strconv.Quote(s)
+		if f.plus {
+			quoted = strconv.QuoteToASCII(s)
+		} else {
+			quoted = strconv.Quote(s)
+		}
 	}
 	f.padString(quoted)
+}
+
+// fmt_qc formats the integer as a single-quoted, escaped Go character constant.
+// If the character is not valid Unicode, it will print '\ufffd'.
+func (f *fmt) fmt_qc(c int64) {
+	var quoted []byte
+	if f.plus {
+		quoted = strconv.AppendQuoteRuneToASCII(f.intbuf[0:0], rune(c))
+	} else {
+		quoted = strconv.AppendQuoteRune(f.intbuf[0:0], rune(c))
+	}
+	f.pad(quoted)
 }
 
 // floating-point
@@ -305,60 +339,73 @@ func doPrec(f *fmt, def int) int {
 	return def
 }
 
-// Add a plus sign or space to the floating-point string representation if missing and required.
-func (f *fmt) plusSpace(s string) {
-	if s[0] != '-' {
+// formatFloat formats a float64; it is an efficient equivalent to  f.pad(strconv.FormatFloat()...).
+func (f *fmt) formatFloat(v float64, verb byte, prec, n int) {
+	// We leave one byte at the beginning of f.intbuf for a sign if needed,
+	// and make it a space, which we might be able to use.
+	f.intbuf[0] = ' '
+	slice := strconv.AppendFloat(f.intbuf[0:1], v, verb, prec, n)
+	// Add a plus sign or space to the floating-point string representation if missing and required.
+	// The formatted number starts at slice[1].
+	switch slice[1] {
+	case '-', '+':
+		// We're set; drop the leading space.
+		slice = slice[1:]
+	default:
+		// There's no sign, but we might need one.
 		if f.plus {
-			s = "+" + s
+			slice[0] = '+'
 		} else if f.space {
-			s = " " + s
+			// space is already there
+		} else {
+			slice = slice[1:]
 		}
 	}
-	f.padString(s)
+	f.pad(slice)
 }
 
 // fmt_e64 formats a float64 in the form -1.23e+12.
-func (f *fmt) fmt_e64(v float64) { f.plusSpace(strconv.Ftoa64(v, 'e', doPrec(f, 6))) }
+func (f *fmt) fmt_e64(v float64) { f.formatFloat(v, 'e', doPrec(f, 6), 64) }
 
 // fmt_E64 formats a float64 in the form -1.23E+12.
-func (f *fmt) fmt_E64(v float64) { f.plusSpace(strconv.Ftoa64(v, 'E', doPrec(f, 6))) }
+func (f *fmt) fmt_E64(v float64) { f.formatFloat(v, 'E', doPrec(f, 6), 64) }
 
 // fmt_f64 formats a float64 in the form -1.23.
-func (f *fmt) fmt_f64(v float64) { f.plusSpace(strconv.Ftoa64(v, 'f', doPrec(f, 6))) }
+func (f *fmt) fmt_f64(v float64) { f.formatFloat(v, 'f', doPrec(f, 6), 64) }
 
 // fmt_g64 formats a float64 in the 'f' or 'e' form according to size.
-func (f *fmt) fmt_g64(v float64) { f.plusSpace(strconv.Ftoa64(v, 'g', doPrec(f, -1))) }
+func (f *fmt) fmt_g64(v float64) { f.formatFloat(v, 'g', doPrec(f, -1), 64) }
 
 // fmt_g64 formats a float64 in the 'f' or 'E' form according to size.
-func (f *fmt) fmt_G64(v float64) { f.plusSpace(strconv.Ftoa64(v, 'G', doPrec(f, -1))) }
+func (f *fmt) fmt_G64(v float64) { f.formatFloat(v, 'G', doPrec(f, -1), 64) }
 
 // fmt_fb64 formats a float64 in the form -123p3 (exponent is power of 2).
-func (f *fmt) fmt_fb64(v float64) { f.plusSpace(strconv.Ftoa64(v, 'b', 0)) }
+func (f *fmt) fmt_fb64(v float64) { f.formatFloat(v, 'b', 0, 64) }
 
 // float32
 // cannot defer to float64 versions
 // because it will get rounding wrong in corner cases.
 
 // fmt_e32 formats a float32 in the form -1.23e+12.
-func (f *fmt) fmt_e32(v float32) { f.plusSpace(strconv.Ftoa32(v, 'e', doPrec(f, 6))) }
+func (f *fmt) fmt_e32(v float32) { f.formatFloat(float64(v), 'e', doPrec(f, 6), 32) }
 
 // fmt_E32 formats a float32 in the form -1.23E+12.
-func (f *fmt) fmt_E32(v float32) { f.plusSpace(strconv.Ftoa32(v, 'E', doPrec(f, 6))) }
+func (f *fmt) fmt_E32(v float32) { f.formatFloat(float64(v), 'E', doPrec(f, 6), 32) }
 
 // fmt_f32 formats a float32 in the form -1.23.
-func (f *fmt) fmt_f32(v float32) { f.plusSpace(strconv.Ftoa32(v, 'f', doPrec(f, 6))) }
+func (f *fmt) fmt_f32(v float32) { f.formatFloat(float64(v), 'f', doPrec(f, 6), 32) }
 
 // fmt_g32 formats a float32 in the 'f' or 'e' form according to size.
-func (f *fmt) fmt_g32(v float32) { f.plusSpace(strconv.Ftoa32(v, 'g', doPrec(f, -1))) }
+func (f *fmt) fmt_g32(v float32) { f.formatFloat(float64(v), 'g', doPrec(f, -1), 32) }
 
 // fmt_G32 formats a float32 in the 'f' or 'E' form according to size.
-func (f *fmt) fmt_G32(v float32) { f.plusSpace(strconv.Ftoa32(v, 'G', doPrec(f, -1))) }
+func (f *fmt) fmt_G32(v float32) { f.formatFloat(float64(v), 'G', doPrec(f, -1), 32) }
 
 // fmt_fb32 formats a float32 in the form -123p3 (exponent is power of 2).
-func (f *fmt) fmt_fb32(v float32) { f.padString(strconv.Ftoa32(v, 'b', 0)) }
+func (f *fmt) fmt_fb32(v float32) { f.formatFloat(float64(v), 'b', 0, 32) }
 
 // fmt_c64 formats a complex64 according to the verb.
-func (f *fmt) fmt_c64(v complex64, verb int) {
+func (f *fmt) fmt_c64(v complex64, verb rune) {
 	f.buf.WriteByte('(')
 	r := real(v)
 	for i := 0; ; i++ {
@@ -384,7 +431,7 @@ func (f *fmt) fmt_c64(v complex64, verb int) {
 }
 
 // fmt_c128 formats a complex128 according to the verb.
-func (f *fmt) fmt_c128(v complex128, verb int) {
+func (f *fmt) fmt_c128(v complex128, verb rune) {
 	f.buf.WriteByte('(')
 	r := real(v)
 	for i := 0; ; i++ {

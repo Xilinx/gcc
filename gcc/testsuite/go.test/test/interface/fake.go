@@ -12,20 +12,20 @@ package main
 import "reflect"
 
 type T struct {
-	f float32
-	g float32
+	F float32
+	G float32
 
-	s string
-	t string
+	S string
+	T string
 
-	u uint32
-	v uint32
+	U uint32
+	V uint32
 
-	w uint32
-	x uint32
+	W uint32
+	X uint32
 
-	y uint32
-	z uint32
+	Y uint32
+	Z uint32
 }
 
 func add(s, t string) string {
@@ -40,40 +40,40 @@ func assert(b bool) {
 
 func main() {
 	var x T
-	x.f = 1.0
-	x.g = x.f
-	x.s = add("abc", "def")
-	x.t = add("abc", "def")
-	x.u = 1
-	x.v = 2
-	x.w = 1<<28
-	x.x = 2<<28
-	x.y = 0x12345678
-	x.z = x.y
+	x.F = 1.0
+	x.G = x.F
+	x.S = add("abc", "def")
+	x.T = add("abc", "def")
+	x.U = 1
+	x.V = 2
+	x.W = 1 << 28
+	x.X = 2 << 28
+	x.Y = 0x12345678
+	x.Z = x.Y
 
 	// check mem and string
-	v := reflect.NewValue(x)
-	i := v.(*reflect.StructValue).Field(0)
-	j := v.(*reflect.StructValue).Field(1)
+	v := reflect.ValueOf(x)
+	i := v.Field(0)
+	j := v.Field(1)
 	assert(i.Interface() == j.Interface())
 
-	s := v.(*reflect.StructValue).Field(2)
-	t := v.(*reflect.StructValue).Field(3)
+	s := v.Field(2)
+	t := v.Field(3)
 	assert(s.Interface() == t.Interface())
 
 	// make sure different values are different.
 	// make sure whole word is being compared,
 	// not just a single byte.
-	i = v.(*reflect.StructValue).Field(4)
-	j = v.(*reflect.StructValue).Field(5)
+	i = v.Field(4)
+	j = v.Field(5)
 	assert(i.Interface() != j.Interface())
 
-	i = v.(*reflect.StructValue).Field(6)
-	j = v.(*reflect.StructValue).Field(7)
+	i = v.Field(6)
+	j = v.Field(7)
 	assert(i.Interface() != j.Interface())
 
-	i = v.(*reflect.StructValue).Field(8)
-	j = v.(*reflect.StructValue).Field(9)
+	i = v.Field(8)
+	j = v.Field(9)
 	assert(i.Interface() == j.Interface())
 }
 

@@ -1,7 +1,7 @@
 // The template and inlines for the -*- C++ -*- complex number classes.
 
 // Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-// 2006, 2007, 2008, 2009, 2010
+// 2006, 2007, 2008, 2009, 2010, 2011
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -142,10 +142,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       // _GLIBCXX_RESOLVE_LIB_DEFECTS
       // DR 387. std::complex over-encapsulated.
       constexpr _Tp 
-      real() const { return _M_real; }
+      real() { return _M_real; }
 
       constexpr _Tp 
-      imag() const { return _M_imag; }
+      imag() { return _M_imag; }
 #else
       ///  Return real part of complex number.
       _Tp& 
@@ -531,12 +531,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   // Values
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
   template<typename _Tp>
-    inline constexpr _Tp
+    constexpr _Tp
     real(const complex<_Tp>& __z)
     { return __z.real(); }
-    
+
   template<typename _Tp>
-    inline constexpr _Tp
+    constexpr _Tp
     imag(const complex<_Tp>& __z)
     { return __z.imag(); }
 #else
@@ -1035,8 +1035,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	                 : std::pow(complex<_Tp>(__x), __y);
     }
 
-  // 26.2.3  complex specializations
-  // complex<float> specialization
+  /// 26.2.3  complex specializations
+  /// complex<float> specialization
   template<>
     struct complex<float>
     {
@@ -1046,7 +1046,14 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _GLIBCXX_CONSTEXPR complex(_ComplexT __z) : _M_value(__z) { }
 
       _GLIBCXX_CONSTEXPR complex(float __r = 0.0f, float __i = 0.0f)
-      : _M_value(__r + __i * 1.0fi) { }
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      : _M_value{ __r, __i } { }
+#else
+      {
+	__real__ _M_value = __r;
+	__imag__ _M_value = __i;
+      }
+#endif
 
       explicit _GLIBCXX_CONSTEXPR complex(const complex<double>&);
       explicit _GLIBCXX_CONSTEXPR complex(const complex<long double>&);	
@@ -1055,10 +1062,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       // _GLIBCXX_RESOLVE_LIB_DEFECTS
       // DR 387. std::complex over-encapsulated.
       constexpr float 
-      real() const { return __real__ _M_value; }
+      real() { return __real__ _M_value; }
 
       constexpr float 
-      imag() const { return __imag__ _M_value; }
+      imag() { return __imag__ _M_value; }
 #else
       float& 
       real() { return __real__ _M_value; }
@@ -1175,8 +1182,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _ComplexT _M_value;
     };
 
-  // 26.2.3  complex specializations
-  // complex<double> specialization
+  /// 26.2.3  complex specializations
+  /// complex<double> specialization
   template<>
     struct complex<double>
     {
@@ -1186,7 +1193,14 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _GLIBCXX_CONSTEXPR complex(_ComplexT __z) : _M_value(__z) { }
 
       _GLIBCXX_CONSTEXPR complex(double __r = 0.0, double __i = 0.0)
-      : _M_value(__r + __i * 1.0i) { }
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      : _M_value{ __r, __i } { }
+#else
+      {
+	__real__ _M_value = __r;
+	__imag__ _M_value = __i;
+      }
+#endif
 
       _GLIBCXX_CONSTEXPR complex(const complex<float>& __z)
       : _M_value(__z.__rep()) { }
@@ -1197,10 +1211,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       // _GLIBCXX_RESOLVE_LIB_DEFECTS
       // DR 387. std::complex over-encapsulated.
       constexpr double 
-      real() const { return __real__ _M_value; }
+      real() { return __real__ _M_value; }
 
       constexpr double 
-      imag() const { return __imag__ _M_value; }
+      imag() { return __imag__ _M_value; }
 #else
       double& 
       real() { return __real__ _M_value; }
@@ -1316,8 +1330,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _ComplexT _M_value;
     };
 
-  // 26.2.3  complex specializations
-  // complex<long double> specialization
+  /// 26.2.3  complex specializations
+  /// complex<long double> specialization
   template<>
     struct complex<long double>
     {
@@ -1328,7 +1342,14 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
       _GLIBCXX_CONSTEXPR complex(long double __r = 0.0L, 
 				 long double __i = 0.0L)
-      : _M_value(__r + __i * 1.0Li) { }
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      : _M_value{ __r, __i } { }
+#else
+      {
+	__real__ _M_value = __r;
+	__imag__ _M_value = __i;
+      }
+#endif
 
       _GLIBCXX_CONSTEXPR complex(const complex<float>& __z)
       : _M_value(__z.__rep()) { }
@@ -1340,10 +1361,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       // _GLIBCXX_RESOLVE_LIB_DEFECTS
       // DR 387. std::complex over-encapsulated.
       constexpr long double 
-      real() const { return __real__ _M_value; }
+      real() { return __real__ _M_value; }
 
       constexpr long double 
-      imag() const { return __imag__ _M_value; }
+      imag() { return __imag__ _M_value; }
 #else
       long double& 
       real() { return __real__ _M_value; }
@@ -1665,12 +1686,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     std::complex<_Tp>
     __complex_acosh(const std::complex<_Tp>& __z)
     {
-      std::complex<_Tp> __t((__z.real() - __z.imag())
-			    * (__z.real() + __z.imag()) - _Tp(1.0),
-			    _Tp(2.0) * __z.real() * __z.imag());
-      __t = std::sqrt(__t);
-
-      return std::log(__t + __z);
+      // Kahan's formula.
+      return _Tp(2.0) * std::log(std::sqrt(_Tp(0.5) * (__z + _Tp(1.0)))
+				 + std::sqrt(_Tp(0.5) * (__z - _Tp(1.0))));
     }
 
 #if _GLIBCXX_USE_C99_COMPLEX_TR1

@@ -86,28 +86,58 @@ store_exe_path (const char * argv0)
 #define DIR_SEPARATOR '/'
 #endif
 
-  char buf[PATH_MAX], *cwd, *path;
+  char buf[PATH_MAX], *path;
+  const char *cwd;
 
   /* This can only happen if store_exe_path is called multiple times.  */
   if (please_free_exe_path_when_done)
     free ((char *) exe_path);
 
-  /* On the simulator argv is not set.  */
-  if (argv0 == NULL || argv0[0] == '/')
+  /* Reading the /proc/self/exe symlink is Linux-specific(?), but if
+     it works it gives the correct answer.  */
+#ifdef HAVE_READLINK
+  int len;
+  if ((len = readlink ("/proc/self/exe", buf, sizeof (buf) - 1)) != -1)
+    {
+      buf[len] = '\0';
+      exe_path = strdup (buf);
+      please_free_exe_path_when_done = 1;
+      return;
+    }
+#endif
+
+  /* If the path is absolute or on a simulator where argv is not set.  */
+#ifdef __MINGW32__
+  if (argv0 == NULL
+      || ('A' <= argv0[0] && argv0[0] <= 'Z' && argv0[1] == ':')
+      || ('a' <= argv0[0] && argv0[0] <= 'z' && argv0[1] == ':')
+      || (argv0[0] == '/' && argv0[1] == '/')
+      || (argv0[0] == '\\' && argv0[1] == '\\'))
+#else
+  if (argv0 == NULL || argv0[0] == DIR_SEPARATOR)
+#endif
     {
       exe_path = argv0;
       please_free_exe_path_when_done = 0;
       return;
     }
 
-  memset (buf, 0, sizeof (buf));
 #ifdef HAVE_GETCWD
   cwd = getcwd (buf, sizeof (buf));
 #else
-  cwd = "";
+  cwd = NULL;
 #endif
 
-  /* exe_path will be cwd + "/" + argv[0] + "\0" */
+  if (!cwd)
+    {
+      exe_path = argv0;
+      please_free_exe_path_when_done = 0;
+      return;
+    }
+
+  /* exe_path will be cwd + "/" + argv[0] + "\0".  This will not work
+     if the executable is not in the cwd, but at this point we're out
+     of better ideas.  */
   size_t pathlen = strlen (cwd) + 1 + strlen (argv0) + 1;
   path = malloc (pathlen);
   snprintf (path, pathlen, "%s%c%s", cwd, DIR_SEPARATOR, argv0);
@@ -121,6 +151,42 @@ char *
 full_exe_path (void)
 {
   return (char *) exe_path;
+}
+
+
+char *addr2line_path;
+
+/* Find addr2line and store the path.  */
+
+void
+find_addr2line (void)
+{
+#ifdef HAVE_ACCESS
+#define A2L_LEN 10
+  char *path = getenv ("PATH");
+  if (!path)
+    return;
+  size_t n = strlen (path);
+  char ap[n + 1 + A2L_LEN];
+  size_t ai = 0;
+  for (size_t i = 0; i < n; i++)
+    {
+      if (path[i] != ':')
+	ap[ai++] = path[i];
+      else
+	{
+	  ap[ai++] = '/';
+	  memcpy (ap + ai, "addr2line", A2L_LEN);
+	  if (access (ap, R_OK|X_OK) == 0)
+	    {
+	      addr2line_path = strdup (ap);
+	      return;
+	    }
+	  else
+	    ai = 0;
+	}
+    }
+#endif
 }
 
 
@@ -170,6 +236,9 @@ init (void)
   /* if (argc > 1 && strcmp(argv[1], "--resume") == 0) resume();  */
 #endif
 
+  if (options.backtrace == 1)
+    find_addr2line ();
+
   random_seed_i4 (NULL, NULL, NULL);
 }
 
@@ -183,4 +252,6 @@ cleanup (void)
   
   if (please_free_exe_path_when_done)
     free ((char *) exe_path);
+
+  free (addr2line_path);
 }

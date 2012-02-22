@@ -117,10 +117,27 @@ hook_bool_mode_rtx_true (enum machine_mode mode ATTRIBUTE_UNUSED,
   return true;
 }
 
+/* Generic hook that takes (enum machine_mode, unsigned HOST_WIDE_INT)
+   and returns false.  */
+bool
+hook_bool_mode_uhwi_false (enum machine_mode mode ATTRIBUTE_UNUSED,
+			   unsigned HOST_WIDE_INT value ATTRIBUTE_UNUSED)
+{
+  return false;
+}
+
 /* Generic hook that takes (FILE *, const char *) and does nothing.  */
 void
 hook_void_FILEptr_constcharptr (FILE *a ATTRIBUTE_UNUSED, const char *b ATTRIBUTE_UNUSED)
 {
+}
+
+/* Generic hook that takes (FILE *, rtx) and returns false.  */
+bool
+hook_bool_FILEptr_rtx_false (FILE *a ATTRIBUTE_UNUSED,
+			     rtx b ATTRIBUTE_UNUSED)
+{
+  return false;
 }
 
 /* Used for the TARGET_ASM_CAN_OUTPUT_MI_THUNK hook.  */
@@ -149,6 +166,13 @@ default_can_output_mi_thunk_no_vcall (const_tree a ATTRIBUTE_UNUSED,
 				      const_tree d ATTRIBUTE_UNUSED)
 {
   return c == 0;
+}
+
+int
+hook_int_uint_mode_1 (unsigned int a ATTRIBUTE_UNUSED,
+		      enum machine_mode b ATTRIBUTE_UNUSED)
+{
+  return 1;
 }
 
 int
@@ -258,11 +282,12 @@ hook_bool_uintp_uintp_false (unsigned int *a ATTRIBUTE_UNUSED,
 }
 
 bool
-hook_bool_rtx_int_int_intp_bool_false (rtx a ATTRIBUTE_UNUSED,
-				       int b ATTRIBUTE_UNUSED,
-				       int c ATTRIBUTE_UNUSED,
-				       int *d ATTRIBUTE_UNUSED,
-				       bool speed_p ATTRIBUTE_UNUSED)
+hook_bool_rtx_int_int_int_intp_bool_false (rtx a ATTRIBUTE_UNUSED,
+					   int b ATTRIBUTE_UNUSED,
+					   int c ATTRIBUTE_UNUSED,
+					   int d ATTRIBUTE_UNUSED,
+					   int *e ATTRIBUTE_UNUSED,
+					   bool speed_p ATTRIBUTE_UNUSED)
 {
   return false;
 }

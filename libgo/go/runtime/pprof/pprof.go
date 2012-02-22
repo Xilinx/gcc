@@ -12,15 +12,17 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"os"
 	"runtime"
 	"sync"
 )
 
+// BUG(rsc): CPU profiling is broken on OS X, due to an Apple kernel bug.
+// For details, see http://code.google.com/p/go/source/detail?r=35b716c94225.
+
 // WriteHeapProfile writes a pprof-formatted heap profile to w.
 // If a write to w returns an error, WriteHeapProfile returns that error.
 // Otherwise, WriteHeapProfile returns nil.
-func WriteHeapProfile(w io.Writer) os.Error {
+func WriteHeapProfile(w io.Writer) error {
 	// Find out how many records there are (MemProfile(nil, false)),
 	// allocate that many records, and get the data.
 	// There's a race—more records might be added between
@@ -73,7 +75,8 @@ func WriteHeapProfile(w io.Writer) os.Error {
 
 	// Print memstats information too.
 	// Pprof will ignore, but useful for people.
-	s := &runtime.MemStats
+	s := new(runtime.MemStats)
+	runtime.ReadMemStats(s)
 	fmt.Fprintf(b, "\n# runtime.MemStats\n")
 	fmt.Fprintf(b, "# Alloc = %d\n", s.Alloc)
 	fmt.Fprintf(b, "# TotalAlloc = %d\n", s.TotalAlloc)
@@ -116,7 +119,7 @@ var cpu struct {
 // StartCPUProfile enables CPU profiling for the current process.
 // While profiling, the profile will be buffered and written to w.
 // StartCPUProfile returns an error if profiling is already enabled.
-func StartCPUProfile(w io.Writer) os.Error {
+func StartCPUProfile(w io.Writer) error {
 	// The runtime routines allow a variable profiling rate,
 	// but in practice operating systems cannot trigger signals
 	// at more than about 500 Hz, and our processing of the

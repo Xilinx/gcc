@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -659,5 +659,15 @@ package Sem is
    --
    --  Item is never an instantiation. Instead, the instance declaration is
    --  passed, and (if the instantiation is the main unit), the instance body.
+
+   --  Debugging:
+
+   function ss (Index : Int) return Scope_Stack_Entry;
+   pragma Export (Ada, ss);
+   --  "ss" = "scope stack"; returns the Index'th entry in the Scope_Stack
+
+   function sst return Scope_Stack_Entry;
+   pragma Export (Ada, sst);
+   --  "sst" = "scope stack top"; same as ss(Scope_Stack.Last)
 
 end Sem;

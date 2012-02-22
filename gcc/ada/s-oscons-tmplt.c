@@ -7,7 +7,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2000-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2000-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -78,8 +78,16 @@ pragma Style_Checks ("M32766");
  **  $ RUN xoscons
  **/
 
+/* Feature macro definitions */
+
 #if defined (__linux__) && !defined (_XOPEN_SOURCE)
 /** For Linux _XOPEN_SOURCE must be defined, otherwise IOV_MAX is not defined
+ **/
+#define _XOPEN_SOURCE 500
+
+#elif defined (__alpha__) && defined (__osf__)
+/** For Tru64 UNIX, _XOPEN_SOURCE must be defined, otherwise CLOCK_REALTIME
+ ** is not defined.
  **/
 #define _XOPEN_SOURCE 500
 
@@ -93,10 +101,15 @@ pragma Style_Checks ("M32766");
 #endif
 #endif
 
+/* Include gsocket.h before any system header so it can redefine FD_SETSIZE */
+
+#include "gsocket.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
 #include <fcntl.h>
+#include <time.h>
 
 #if defined (__alpha__) && defined (__osf__)
 /** Tru64 is unable to do vector IO operations with default value of IOV_MAX,
@@ -129,8 +142,6 @@ pragma Style_Checks ("M32766");
 # include <vxWorks.h>
 #endif
 
-#include "gsocket.h"
-
 #ifdef DUMMY
 
 # if defined (TARGET)
@@ -145,7 +156,7 @@ pragma Style_Checks ("M32766");
 
 # define NATIVE
 
-#endif
+#endif /* DUMMY */
 
 #ifndef TARGET
 # error Please define TARGET
@@ -161,6 +172,11 @@ pragma Style_Checks ("M32766");
 
 #ifdef __APPLE__
 # include <_types.h>
+#endif
+
+#ifdef __linux__
+# include <pthread.h>
+# include <signal.h>
 #endif
 
 #ifdef NATIVE
@@ -207,7 +223,7 @@ int counter = 0;
   : : "i" (__LINE__));
 /* Freeform text */
 
-#endif
+#endif /* NATIVE */
 
 #define CST(name,comment) C(#name,String,name,comment)
 
@@ -920,6 +936,21 @@ CND(VEOL2, "Alternative EOL")
 
 #endif /* HAVE_TERMIOS */
 
+/*
+
+   -----------------------------
+   -- Pseudo terminal library --
+   -----------------------------
+
+*/
+
+#if defined (__FreeBSD__) || defined (linux)
+# define PTY_Library "-lutil"
+#else
+# define PTY_Library ""
+#endif
+CST(PTY_Library, "for g-exptty")
+
 /**
  **  Sockets constants
  **/
@@ -1219,6 +1250,26 @@ CND(IP_PKTINFO, "Get datagram info")
 CND(SIZEOF_tv_sec, "tv_sec")
 #define SIZEOF_tv_usec (sizeof tv.tv_usec)
 CND(SIZEOF_tv_usec, "tv_usec")
+/*
+
+   --  Maximum allowed value for tv_sec
+*/
+
+/**
+ ** On Solaris and IRIX, field tv_sec in struct timeval has an undocumented
+ ** hard-wired limit of 100 million.
+ ** On IA64 HP-UX the limit is 2**31 - 1.
+ **/
+#if defined (sun) || (defined (__mips) && defined (__sgi))
+# define MAX_tv_sec "100_000_000"
+
+#elif defined (__hpux__)
+# define MAX_tv_sec "16#7fffffff#"
+
+#else
+# define MAX_tv_sec "2 ** (SIZEOF_tv_sec * 8 - 1) - 1"
+#endif
+CNS(MAX_tv_sec, "")
 }
 /*
 
@@ -1236,12 +1287,18 @@ CND(SIZEOF_sockaddr_in6, "struct sockaddr_in6")
 
 #define SIZEOF_fd_set (sizeof (fd_set))
 CND(SIZEOF_fd_set, "fd_set");
+CND(FD_SETSIZE, "Max fd value");
 
 #define SIZEOF_struct_hostent (sizeof (struct hostent))
 CND(SIZEOF_struct_hostent, "struct hostent");
 
 #define SIZEOF_struct_servent (sizeof (struct servent))
 CND(SIZEOF_struct_servent, "struct servent");
+
+#if defined (__linux__)
+#define SIZEOF_sigset (sizeof (sigset_t))
+CND(SIZEOF_sigset, "sigset");
+#endif
 /*
 
    --  Fields of struct msghdr
@@ -1286,6 +1343,110 @@ CST(Inet_Pton_Linkname, "")
 
 #endif /* HAVE_SOCKETS */
 
+/*
+
+   ---------------------
+   -- Threads support --
+   ---------------------
+
+   --  Clock identifier definitions
+
+*/
+
+/* Note: On HP-UX, CLOCK_REALTIME is an enum, not a macro. */
+
+#if defined(CLOCK_REALTIME) || defined (__hpux__)
+# define HAVE_CLOCK_REALTIME
+#endif
+
+#ifdef HAVE_CLOCK_REALTIME
+CND(CLOCK_REALTIME, "System realtime clock")
+#endif
+
+#ifdef CLOCK_MONOTONIC
+CND(CLOCK_MONOTONIC, "System monotonic clock")
+#endif
+
+#ifdef CLOCK_FASTEST
+CND(CLOCK_FASTEST, "Fastest clock")
+#endif
+
+#if defined (__sgi)
+CND(CLOCK_SGI_FAST,  "SGI fast clock")
+CND(CLOCK_SGI_CYCLE, "SGI CPU clock")
+#endif
+
+#ifndef CLOCK_THREAD_CPUTIME_ID
+# define CLOCK_THREAD_CPUTIME_ID -1
+#endif
+CND(CLOCK_THREAD_CPUTIME_ID, "Thread CPU clock")
+
+#if defined(__APPLE__)
+/* There's no clock_gettime or clock_id's on Darwin, generate a dummy value */
+# define CLOCK_RT_Ada "-1"
+
+#elif defined(FreeBSD) || defined(_AIX)
+/** On these platforms use system provided monotonic clock instead of
+ ** the default CLOCK_REALTIME. We then need to set up cond var attributes
+ ** appropriately (see thread.c).
+ **/
+# define CLOCK_RT_Ada "CLOCK_MONOTONIC"
+# define NEED_PTHREAD_CONDATTR_SETCLOCK
+
+#elif defined(HAVE_CLOCK_REALTIME)
+/* By default use CLOCK_REALTIME */
+# define CLOCK_RT_Ada "CLOCK_REALTIME"
+#endif
+
+#ifdef CLOCK_RT_Ada
+CNS(CLOCK_RT_Ada, "")
+#endif
+
+#if defined (__APPLE__) || defined (__linux__) || defined (DUMMY)
+/*
+
+   --  Sizes of pthread data types
+
+*/
+
+#if defined (__APPLE__) || defined (DUMMY)
+/*
+   --  (on Darwin, these are just placeholders)
+
+*/
+#define PTHREAD_SIZE            __PTHREAD_SIZE__
+#define PTHREAD_ATTR_SIZE       __PTHREAD_ATTR_SIZE__
+#define PTHREAD_MUTEXATTR_SIZE  __PTHREAD_MUTEXATTR_SIZE__
+#define PTHREAD_MUTEX_SIZE      __PTHREAD_MUTEX_SIZE__
+#define PTHREAD_CONDATTR_SIZE   __PTHREAD_CONDATTR_SIZE__
+#define PTHREAD_COND_SIZE       __PTHREAD_COND_SIZE__
+#define PTHREAD_RWLOCKATTR_SIZE __PTHREAD_RWLOCKATTR_SIZE__
+#define PTHREAD_RWLOCK_SIZE     __PTHREAD_RWLOCK_SIZE__
+#define PTHREAD_ONCE_SIZE       __PTHREAD_ONCE_SIZE__
+#else
+#define PTHREAD_SIZE            (sizeof (pthread_t))
+#define PTHREAD_ATTR_SIZE       (sizeof (pthread_attr_t))
+#define PTHREAD_MUTEXATTR_SIZE  (sizeof (pthread_mutexattr_t))
+#define PTHREAD_MUTEX_SIZE      (sizeof (pthread_mutex_t))
+#define PTHREAD_CONDATTR_SIZE   (sizeof (pthread_condattr_t))
+#define PTHREAD_COND_SIZE       (sizeof (pthread_cond_t))
+#define PTHREAD_RWLOCKATTR_SIZE (sizeof (pthread_rwlockattr_t))
+#define PTHREAD_RWLOCK_SIZE     (sizeof (pthread_rwlock_t))
+#define PTHREAD_ONCE_SIZE       (sizeof (pthread_once_t))
+#endif
+
+CND(PTHREAD_SIZE,            "pthread_t")
+CND(PTHREAD_ATTR_SIZE,       "pthread_attr_t")
+CND(PTHREAD_MUTEXATTR_SIZE,  "pthread_mutexattr_t")
+CND(PTHREAD_MUTEX_SIZE,      "pthread_mutex_t")
+CND(PTHREAD_CONDATTR_SIZE,   "pthread_condattr_t")
+CND(PTHREAD_COND_SIZE,       "pthread_cond_t")
+CND(PTHREAD_RWLOCKATTR_SIZE, "pthread_rwlockattr_t")
+CND(PTHREAD_RWLOCK_SIZE,     "pthread_rwlock_t")
+CND(PTHREAD_ONCE_SIZE,       "pthread_once_t")
+
+#endif /* __APPLE__ || __linux__ */
+
 /**
  **  System-specific constants follow
  **  Each section should be activated if compiling for the corresponding
@@ -1307,7 +1468,7 @@ CST(Inet_Pton_Linkname, "")
 CND(OK,    "VxWorks generic success")
 CND(ERROR, "VxWorks generic error")
 
-#endif
+#endif /* __vxworks */
 
 #if defined (__MINGW32__) || defined (DUMMY)
 /*
@@ -1325,50 +1486,14 @@ CND(WSAVERNOTSUPPORTED, "Version not supported")
 CND(WSANOTINITIALISED,  "Winsock not initialized")
 CND(WSAEDISCON,         "Disconnected")
 
-#endif
+#endif /* __MINGW32__ */
+
+/**
+ ** End of constants definitions
+ **/
 
 #ifdef NATIVE
    putchar ('\n');
-#endif
-
-#if defined (__APPLE__) || defined (DUMMY)
-/*
-
-   -------------------------------
-   -- Darwin-specific constants --
-   -------------------------------
-
-   --  These constants may be used only within the Darwin version of the GNAT
-   --  runtime library.
-*/
-
-#define PTHREAD_SIZE __PTHREAD_SIZE__
-CND(PTHREAD_SIZE, "Pad in pthread_t")
-
-#define PTHREAD_ATTR_SIZE __PTHREAD_ATTR_SIZE__
-CND(PTHREAD_ATTR_SIZE, "Pad in pthread_attr_t")
-
-#define PTHREAD_MUTEXATTR_SIZE __PTHREAD_MUTEXATTR_SIZE__
-CND(PTHREAD_MUTEXATTR_SIZE, "Pad in pthread_mutexattr_t")
-
-#define PTHREAD_MUTEX_SIZE __PTHREAD_MUTEX_SIZE__
-CND(PTHREAD_MUTEX_SIZE, "Pad in pthread_mutex_t")
-
-#define PTHREAD_CONDATTR_SIZE __PTHREAD_CONDATTR_SIZE__
-CND(PTHREAD_CONDATTR_SIZE, "Pad in pthread_condattr_t")
-
-#define PTHREAD_COND_SIZE __PTHREAD_COND_SIZE__
-CND(PTHREAD_COND_SIZE, "Pad in pthread_cond_t")
-
-#define PTHREAD_RWLOCKATTR_SIZE __PTHREAD_RWLOCKATTR_SIZE__
-CND(PTHREAD_RWLOCKATTR_SIZE, "Pad in pthread_rwlockattr_t")
-
-#define PTHREAD_RWLOCK_SIZE __PTHREAD_RWLOCK_SIZE__
-CND(PTHREAD_RWLOCK_SIZE, "Pad in pthread_rwlock_t")
-
-#define PTHREAD_ONCE_SIZE __PTHREAD_ONCE_SIZE__
-CND(PTHREAD_ONCE_SIZE, "Pad in pthread_once_t")
-
 #endif
 
 /*

@@ -1,5 +1,5 @@
 /* Single-image implementation of GNU Fortran Coarray Library
-   Copyright (C) 2011
+   Copyright (C) 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Tobias Burnus <burnus@net-b.de>
 
@@ -26,15 +26,35 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #include "libcaf.h"
 #include <stdio.h>  /* For fputs and fprintf.  */
-#include <stdlib.h> /* For exit.  */
+#include <stdlib.h> /* For exit and malloc.  */
+#include <string.h> /* For memcpy and memset.  */
+#include <stdarg.h> /* For variadic arguments.  */
 
 /* Define GFC_CAF_CHECK to enable run-time checking.  */
 /* #define GFC_CAF_CHECK  1  */
 
-
 /* Single-image implementation of the CAF library.
    Note: For performance reasons -fcoarry=single should be used
    rather than this library.  */
+
+/* Global variables.  */
+caf_static_t *caf_static_list = NULL;
+
+
+/* Keep in sync with mpi.c.  */
+static void
+caf_runtime_error (const char *message, ...)
+{
+  va_list ap;
+  fprintf (stderr, "Fortran runtime error: ");
+  va_start (ap, message);
+  vfprintf (stderr, message, ap);
+  va_end (ap);
+  fprintf (stderr, "\n");
+
+  /* FIXME: Shutdown the Fortran RTL to flush the buffer.  PR 43849.  */
+  exit (EXIT_FAILURE);
+}
 
 void
 _gfortran_caf_init (int *argc __attribute__ ((unused)),
@@ -45,21 +65,92 @@ _gfortran_caf_init (int *argc __attribute__ ((unused)),
   *num_images = 1;
 }
 
+
 void
 _gfortran_caf_finalize (void)
 {
+  while (caf_static_list != NULL)
+    {
+      caf_static_t *tmp = caf_static_list->prev;
+      free (caf_static_list->token[0]);
+      free (caf_static_list->token);
+      free (caf_static_list);
+      caf_static_list = tmp;
+    }
 }
 
-int
-_gfortran_caf_sync_all (char *errmsg __attribute__ ((unused)),
+
+void *
+_gfortran_caf_register (ptrdiff_t size, caf_register_t type, void ***token,
+			int *stat, char *errmsg, int errmsg_len)
+{
+  void *local;
+
+  local = malloc (size);
+  *token = malloc (sizeof (void*) * 1);
+  (*token)[0] = local;
+
+  if (unlikely (local == NULL || token == NULL))
+    {
+      const char msg[] = "Failed to allocate coarray";
+      if (stat)
+	{
+	  *stat = 1;
+	  if (errmsg_len > 0)
+	    {
+	      int len = ((int) sizeof (msg) > errmsg_len) ? errmsg_len
+							  : (int) sizeof (msg);
+	      memcpy (errmsg, msg, len);
+	      if (errmsg_len > len)
+		memset (&errmsg[len], ' ', errmsg_len-len);
+	    }
+	  return NULL;
+	}
+      else
+	  caf_runtime_error (msg);
+    }
+
+  if (stat)
+    *stat = 0;
+
+  if (type == CAF_REGTYPE_COARRAY_STATIC)
+    {
+      caf_static_t *tmp = malloc (sizeof (caf_static_t));
+      tmp->prev  = caf_static_list;
+      tmp->token = *token;
+      caf_static_list = tmp;
+    }
+  return local;
+}
+
+
+void
+_gfortran_caf_deregister (void ***token, int *stat,
+			  char *errmsg __attribute__ ((unused)),
+			  int errmsg_len __attribute__ ((unused)))
+{
+  free ((*token)[0]);
+  free (*token);
+
+  if (stat)
+    *stat = 0;
+}
+
+
+void
+_gfortran_caf_sync_all (int *stat,
+			char *errmsg __attribute__ ((unused)),
 			int errmsg_len __attribute__ ((unused)))
 {
-  return 0;
+  if (stat)
+    *stat = 0;
 }
 
-int
+
+void
 _gfortran_caf_sync_images (int count __attribute__ ((unused)),
 			   int images[] __attribute__ ((unused)),
+			   int *stat,
 			   char *errmsg __attribute__ ((unused)),
 			   int errmsg_len __attribute__ ((unused)))
 {
@@ -71,22 +162,14 @@ _gfortran_caf_sync_images (int count __attribute__ ((unused)),
       {
 	fprintf (stderr, "COARRAY ERROR: Invalid image index %d to SYNC "
 		 "IMAGES", images[i]);
-	exit (1);
+	exit (EXIT_FAILURE);
       }
 #endif
 
-  return 0;
+  if (stat)
+    *stat = 0;
 }
 
-void
-_gfortran_caf_critical (void)
-{
-}
-
-void
-_gfortran_caf_end_critical (void)
-{
-}
 
 void
 _gfortran_caf_error_stop_str (const char *string, int32_t len)
@@ -98,6 +181,7 @@ _gfortran_caf_error_stop_str (const char *string, int32_t len)
 
   exit (1);
 }
+
 
 void
 _gfortran_caf_error_stop (int32_t error)

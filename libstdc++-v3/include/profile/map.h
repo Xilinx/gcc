@@ -5,27 +5,21 @@
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
 // terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2, or (at your option)
+// Free Software Foundation; either version 3, or (at your option)
 // any later version.
-
+//
 // This library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
-// You should have received a copy of the GNU General Public License along
-// with this library; see the file COPYING.  If not, write to the Free
-// Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
-// USA.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
 
-// As a special exception, you may use this file as part of a free software
-// library without restriction.  Specifically, if other files instantiate
-// templates or use macros or inline functions from this file, or you compile
-// this file and link it with other files to produce an executable, this
-// file does not by itself cause the resulting executable to be covered by
-// the GNU General Public License.  This exception does not however
-// invalidate any other reasons why the executable file might be covered by
-// the GNU General Public License.
+// You should have received a copy of the GNU General Public License along
+// with this library; see the file COPYING3.  If not see
+// <http://www.gnu.org/licenses/>.
 
 /** @file profile/map.h
  *  This file is a GNU profile extension to the Standard C++ Library.
@@ -92,6 +86,7 @@ namespace __profile
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       map(map&& __x)
+      noexcept(is_nothrow_copy_constructible<_Compare>::value)
       : _Base(std::move(__x))
       { }
 
@@ -101,7 +96,7 @@ namespace __profile
       : _Base(__l, __c, __a) { }
 #endif
 
-      ~map()
+      ~map() _GLIBCXX_NOEXCEPT
       { __profcxx_map_to_unordered_map_destruct(this); }
 
       map&
@@ -137,44 +132,44 @@ namespace __profile
 
       // iterators:
       iterator 
-      begin()
+      begin() _GLIBCXX_NOEXCEPT
       { return _Base::begin(); }
 
       const_iterator
-      begin() const
+      begin() const _GLIBCXX_NOEXCEPT
       { return _Base::begin(); }
 
       iterator
-      end()
+      end() _GLIBCXX_NOEXCEPT
       { return _Base::end(); }
 
       const_iterator
-      end() const
+      end() const _GLIBCXX_NOEXCEPT
       { return _Base::end(); }
 
       reverse_iterator
-      rbegin()
+      rbegin() _GLIBCXX_NOEXCEPT
       { 
         __profcxx_map_to_unordered_map_invalidate(this);
         return reverse_iterator(end()); 
       }
 
       const_reverse_iterator
-      rbegin() const
+      rbegin() const _GLIBCXX_NOEXCEPT
       {
         __profcxx_map_to_unordered_map_invalidate(this);
         return const_reverse_iterator(end());
       }
 
       reverse_iterator
-      rend()
+      rend() _GLIBCXX_NOEXCEPT
       {
         __profcxx_map_to_unordered_map_invalidate(this);
         return reverse_iterator(begin());
       }
 
       const_reverse_iterator
-      rend() const
+      rend() const _GLIBCXX_NOEXCEPT
       {
         __profcxx_map_to_unordered_map_invalidate(this);
         return const_reverse_iterator(begin());
@@ -182,22 +177,22 @@ namespace __profile
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       const_iterator
-      cbegin() const
+      cbegin() const noexcept
       { return const_iterator(_Base::begin()); }
 
       const_iterator
-      cend() const
+      cend() const noexcept
       { return const_iterator(_Base::end()); }
 
       const_reverse_iterator
-      crbegin() const
+      crbegin() const noexcept
       {
         __profcxx_map_to_unordered_map_invalidate(this);
         return const_reverse_iterator(end());
       }
 
       const_reverse_iterator
-      crend() const
+      crend() const noexcept
       {
         __profcxx_map_to_unordered_map_invalidate(this);
         return const_reverse_iterator(begin());
@@ -326,6 +321,10 @@ namespace __profile
         __profcxx_map_to_unordered_map_erase(this, size(), 1);
         return __i;
       }
+
+      iterator
+      erase(iterator __position)
+      { return erase(const_iterator(__position)); }
 #else
       void
       erase(iterator __position)
@@ -359,12 +358,11 @@ namespace __profile
 #endif
 
       void
-
       swap(map& __x)
       { _Base::swap(__x); }
 
       void
-      clear()
+      clear() _GLIBCXX_NOEXCEPT
       { this->erase(begin(), end()); }
 
       // observers:
@@ -443,10 +441,10 @@ namespace __profile
       }
 
       _Base& 
-      _M_base() { return *this; }
+      _M_base() _GLIBCXX_NOEXCEPT       { return *this; }
 
       const _Base&
-      _M_base() const { return *this; }
+      _M_base() const _GLIBCXX_NOEXCEPT { return *this; }
 
     };
 

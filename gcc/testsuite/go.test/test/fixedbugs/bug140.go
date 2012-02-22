@@ -7,8 +7,17 @@
 package main
 
 func main() {
-	if true {} else L1: ;
-	if true {} else L2: main() ;
+	if true {
+	} else {
+	L1:
+		goto L1
+	}
+	if true {
+	} else {
+		goto L2
+	L2:
+		main()
+	}
 }
 
 /*

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2006-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2006-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,6 +31,52 @@
 
 package System.Generic_Array_Operations is
 pragma Pure (Generic_Array_Operations);
+
+   ---------------------
+   -- Back_Substitute --
+   ---------------------
+
+   generic
+      type Scalar is private;
+      type Matrix is array (Integer range <>, Integer range <>) of Scalar;
+      with function "-" (Left, Right : Scalar) return Scalar is <>;
+      with function "*" (Left, Right : Scalar) return Scalar is <>;
+      with function "/" (Left, Right : Scalar) return Scalar is <>;
+      with function Is_Non_Zero (X : Scalar) return Boolean is <>;
+   procedure Back_Substitute (M, N : in out Matrix);
+
+   --------------
+   -- Diagonal --
+   --------------
+
+   generic
+      type Scalar is private;
+      type Vector is array (Integer range <>) of Scalar;
+      type Matrix is array (Integer range <>, Integer range <>) of Scalar;
+   function Diagonal (A : Matrix) return Vector;
+
+   -----------------------
+   -- Forward_Eliminate --
+   -----------------------
+
+   --  Use elementary row operations to put square matrix M in row echolon
+   --  form. Identical row operations are performed on matrix N, must have the
+   --  same number of rows as M.
+
+   generic
+      type Scalar is private;
+      type Real is digits <>;
+      type Matrix is array (Integer range <>, Integer range <>) of Scalar;
+      with function "abs" (Right : Scalar) return Real'Base is <>;
+      with function "-" (Left, Right : Scalar) return Scalar is <>;
+      with function "*" (Left, Right : Scalar) return Scalar is <>;
+      with function "/" (Left, Right : Scalar) return Scalar is <>;
+      Zero : Scalar;
+      One  : Scalar;
+   procedure Forward_Eliminate
+     (M   : in out Matrix;
+      N   : in out Matrix;
+      Det : out Scalar);
 
    --------------------------
    -- Square_Matrix_Length --
@@ -242,6 +288,18 @@ pragma Pure (Generic_Array_Operations);
      (Left  : Left_Vector;
       Right : Right_Vector) return Result_Scalar;
 
+   -------------
+   -- L2_Norm --
+   -------------
+
+   generic
+      type X_Scalar is private;
+      type Result_Real is digits <>;
+      type X_Vector is array (Integer range <>) of X_Scalar;
+      with function "abs" (Right : X_Scalar) return Result_Real is <>;
+      with function Sqrt (X : Result_Real'Base) return Result_Real'Base is <>;
+   function L2_Norm (X : X_Vector) return Result_Real'Base;
+
    -------------------
    -- Outer_Product --
    -------------------
@@ -331,6 +389,52 @@ pragma Pure (Generic_Array_Operations);
    function Matrix_Matrix_Product
      (Left  : Left_Matrix;
       Right : Right_Matrix) return Result_Matrix;
+
+   ----------------------------
+   -- Matrix_Vector_Solution --
+   ----------------------------
+
+   generic
+      type Scalar is private;
+      type Vector is array (Integer range <>) of Scalar;
+      type Matrix is array (Integer range <>, Integer range <>) of Scalar;
+      with procedure Back_Substitute (M, N : in out Matrix) is <>;
+      with procedure Forward_Eliminate
+             (M   : in out Matrix;
+              N   : in out Matrix;
+              Det : out Scalar) is <>;
+   function Matrix_Vector_Solution (A : Matrix; X : Vector) return Vector;
+
+   ----------------------------
+   -- Matrix_Matrix_Solution --
+   ----------------------------
+
+   generic
+      type Scalar is private;
+      type Matrix is array (Integer range <>, Integer range <>) of Scalar;
+      with procedure Back_Substitute (M, N : in out Matrix) is <>;
+      with procedure Forward_Eliminate
+             (M   : in out Matrix;
+              N   : in out Matrix;
+              Det : out Scalar) is <>;
+   function Matrix_Matrix_Solution (A : Matrix; X : Matrix) return Matrix;
+
+   ----------
+   -- Sqrt --
+   ----------
+
+   generic
+      type Real is digits <>;
+   function Sqrt (X : Real'Base) return Real'Base;
+
+   -----------------
+   -- Swap_Column --
+   -----------------
+
+   generic
+      type Scalar is private;
+      type Matrix is array (Integer range <>, Integer range <>) of Scalar;
+   procedure Swap_Column (A : in out Matrix; Left, Right : Integer);
 
    ---------------
    -- Transpose --

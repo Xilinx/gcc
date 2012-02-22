@@ -440,9 +440,12 @@ convert_to_integer (tree type, tree expr)
 	  /* Only convert in ISO C99 mode.  */
 	  if (!TARGET_C99_FUNCTIONS)
 	    break;
-	  if (outprec < TYPE_PRECISION (long_integer_type_node)
-	      || (outprec == TYPE_PRECISION (long_integer_type_node)
+	  if (outprec < TYPE_PRECISION (integer_type_node)
+	      || (outprec == TYPE_PRECISION (integer_type_node)
 		  && !TYPE_UNSIGNED (type)))
+	    fn = mathfn_built_in (s_intype, BUILT_IN_ICEIL);
+	  else if (outprec == TYPE_PRECISION (long_integer_type_node)
+		   && !TYPE_UNSIGNED (type))
 	    fn = mathfn_built_in (s_intype, BUILT_IN_LCEIL);
 	  else if (outprec == TYPE_PRECISION (long_long_integer_type_node)
 		   && !TYPE_UNSIGNED (type))
@@ -453,9 +456,12 @@ convert_to_integer (tree type, tree expr)
 	  /* Only convert in ISO C99 mode.  */
 	  if (!TARGET_C99_FUNCTIONS)
 	    break;
-	  if (outprec < TYPE_PRECISION (long_integer_type_node)
-	      || (outprec == TYPE_PRECISION (long_integer_type_node)
+	  if (outprec < TYPE_PRECISION (integer_type_node)
+	      || (outprec == TYPE_PRECISION (integer_type_node)
 		  && !TYPE_UNSIGNED (type)))
+	    fn = mathfn_built_in (s_intype, BUILT_IN_IFLOOR);
+	  else if (outprec == TYPE_PRECISION (long_integer_type_node)
+		   && !TYPE_UNSIGNED (type))
 	    fn = mathfn_built_in (s_intype, BUILT_IN_LFLOOR);
 	  else if (outprec == TYPE_PRECISION (long_long_integer_type_node)
 		   && !TYPE_UNSIGNED (type))
@@ -463,9 +469,15 @@ convert_to_integer (tree type, tree expr)
 	  break;
 
 	CASE_FLT_FN (BUILT_IN_ROUND):
-	  if (outprec < TYPE_PRECISION (long_integer_type_node)
-	      || (outprec == TYPE_PRECISION (long_integer_type_node)
+	  /* Only convert in ISO C99 mode.  */
+	  if (!TARGET_C99_FUNCTIONS)
+	    break;
+	  if (outprec < TYPE_PRECISION (integer_type_node)
+	      || (outprec == TYPE_PRECISION (integer_type_node)
 		  && !TYPE_UNSIGNED (type)))
+	    fn = mathfn_built_in (s_intype, BUILT_IN_IROUND);
+	  else if (outprec == TYPE_PRECISION (long_integer_type_node)
+		   && !TYPE_UNSIGNED (type))
 	    fn = mathfn_built_in (s_intype, BUILT_IN_LROUND);
 	  else if (outprec == TYPE_PRECISION (long_long_integer_type_node)
 		   && !TYPE_UNSIGNED (type))
@@ -478,9 +490,15 @@ convert_to_integer (tree type, tree expr)
 	    break;
 	  /* ... Fall through ...  */
 	CASE_FLT_FN (BUILT_IN_RINT):
-	  if (outprec < TYPE_PRECISION (long_integer_type_node)
-	      || (outprec == TYPE_PRECISION (long_integer_type_node)
+	  /* Only convert in ISO C99 mode.  */
+	  if (!TARGET_C99_FUNCTIONS)
+	    break;
+	  if (outprec < TYPE_PRECISION (integer_type_node)
+	      || (outprec == TYPE_PRECISION (integer_type_node)
 		  && !TYPE_UNSIGNED (type)))
+	    fn = mathfn_built_in (s_intype, BUILT_IN_IRINT);
+	  else if (outprec == TYPE_PRECISION (long_integer_type_node)
+		   && !TYPE_UNSIGNED (type))
 	    fn = mathfn_built_in (s_intype, BUILT_IN_LRINT);
 	  else if (outprec == TYPE_PRECISION (long_long_integer_type_node)
 		   && !TYPE_UNSIGNED (type))
@@ -583,7 +601,7 @@ convert_to_integer (tree type, tree expr)
 	     be cleared.  */
 	  if (TYPE_UNSIGNED (type) != TYPE_UNSIGNED (TREE_TYPE (expr))
 	      && (TYPE_PRECISION (TREE_TYPE (expr))
-		  != GET_MODE_BITSIZE (TYPE_MODE (TREE_TYPE (expr)))))
+		  != GET_MODE_PRECISION (TYPE_MODE (TREE_TYPE (expr)))))
 	    code = CONVERT_EXPR;
 	  else
 	    code = NOP_EXPR;
@@ -602,7 +620,7 @@ convert_to_integer (tree type, tree expr)
 	 type corresponding to its mode, then do a nop conversion
 	 to TYPE.  */
       else if (TREE_CODE (type) == ENUMERAL_TYPE
-	       || outprec != GET_MODE_BITSIZE (TYPE_MODE (type)))
+	       || outprec != GET_MODE_PRECISION (TYPE_MODE (type)))
 	return build1 (NOP_EXPR, type,
 		       convert (lang_hooks.types.type_for_mode
 				(TYPE_MODE (type), TYPE_UNSIGNED (type)),
@@ -727,6 +745,15 @@ convert_to_integer (tree type, tree expr)
 	    tree arg0 = get_unwidened (TREE_OPERAND (expr, 0), type);
 	    tree arg1 = get_unwidened (TREE_OPERAND (expr, 1), type);
 
+	    /* Do not try to narrow operands of pointer subtraction;
+	       that will interfere with other folding.  */
+	    if (ex_form == MINUS_EXPR
+		&& CONVERT_EXPR_P (arg0)
+		&& CONVERT_EXPR_P (arg1)
+		&& POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (arg0, 0)))
+		&& POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (arg1, 0))))
+	      break;
+
 	    if (outprec >= BITS_PER_WORD
 		|| TRULY_NOOP_TRUNCATION (outprec, inprec)
 		|| inprec > TYPE_PRECISION (TREE_TYPE (arg0))
@@ -833,6 +860,10 @@ convert_to_integer (tree type, tree expr)
 	  break;
 	}
 
+      /* When parsing long initializers, we might end up with a lot of casts.
+	 Shortcut this.  */
+      if (TREE_CODE (expr) == INTEGER_CST)
+	return fold_convert (type, expr);
       return build1 (CONVERT_EXPR, type, expr);
 
     case REAL_TYPE:

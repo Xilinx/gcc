@@ -2,13 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// This package aids in the testing of code that uses channels.
+// Package script aids in the testing of code that uses channels.
 package script
 
 import (
 	"fmt"
-	"os"
-	"rand"
+	"math/rand"
 	"reflect"
 	"strings"
 )
@@ -134,19 +133,19 @@ type empty struct {
 }
 
 func newEmptyInterface(e empty) reflect.Value {
-	return reflect.NewValue(e).(*reflect.StructValue).Field(0)
+	return reflect.ValueOf(e).Field(0)
 }
 
 func (s Send) send() {
 	// With reflect.ChanValue.Send, we must match the types exactly. So, if
 	// s.Channel is a chan interface{} we convert s.Value to an interface{}
 	// first.
-	c := reflect.NewValue(s.Channel).(*reflect.ChanValue)
+	c := reflect.ValueOf(s.Channel)
 	var v reflect.Value
-	if iface, ok := c.Type().(*reflect.ChanType).Elem().(*reflect.InterfaceType); ok && iface.NumMethod() == 0 {
+	if iface := c.Type().Elem(); iface.Kind() == reflect.Interface && iface.NumMethod() == 0 {
 		v = newEmptyInterface(empty{s.Value})
 	} else {
-		v = reflect.NewValue(s.Value)
+		v = reflect.ValueOf(s.Value)
 	}
 	c.Send(v)
 }
@@ -162,7 +161,7 @@ func (s Close) getSend() sendAction { return s }
 
 func (s Close) getChannel() interface{} { return s.Channel }
 
-func (s Close) send() { reflect.NewValue(s.Channel).(*reflect.ChanValue).Close() }
+func (s Close) send() { reflect.ValueOf(s.Channel).Close() }
 
 // A ReceivedUnexpected error results if no active Events match a value
 // received from a channel.
@@ -171,7 +170,7 @@ type ReceivedUnexpected struct {
 	ready []*Event
 }
 
-func (r ReceivedUnexpected) String() string {
+func (r ReceivedUnexpected) Error() string {
 	names := make([]string, len(r.ready))
 	for i, v := range r.ready {
 		names[i] = v.name
@@ -183,7 +182,7 @@ func (r ReceivedUnexpected) String() string {
 // Events.
 type SetupError string
 
-func (s SetupError) String() string { return string(s) }
+func (s SetupError) Error() string { return string(s) }
 
 func NewEvent(name string, predecessors []*Event, action action) *Event {
 	e := &Event{name, false, predecessors, action}
@@ -223,7 +222,7 @@ func NewEvent(name string, predecessors []*Event, action action) *Event {
 // the other. At each receive step, all the receive channels are considered,
 // thus Perform may see a value from a channel that is not in the current ready
 // set and fail.
-func Perform(seed int64, events []*Event) (err os.Error) {
+func Perform(seed int64, events []*Event) (err error) {
 	r := rand.New(rand.NewSource(seed))
 
 	channels, err := getChannels(events)
@@ -269,7 +268,7 @@ Outer:
 }
 
 // getChannels returns all the channels listed in any receive events.
-func getChannels(events []*Event) ([]interface{}, os.Error) {
+func getChannels(events []*Event) ([]interface{}, error) {
 	channels := make([]interface{}, len(events))
 
 	j := 0
@@ -278,7 +277,7 @@ func getChannels(events []*Event) ([]interface{}, os.Error) {
 			continue
 		}
 		c := event.action.getChannel()
-		if _, ok := reflect.NewValue(c).(*reflect.ChanValue); !ok {
+		if reflect.ValueOf(c).Kind() != reflect.Chan {
 			return nil, SetupError("one of the channel values is not a channel")
 		}
 
@@ -303,7 +302,7 @@ func getChannels(events []*Event) ([]interface{}, os.Error) {
 // channel repeatedly, wrapping them up as either a channelRecv or
 // channelClosed structure, and forwards them to the multiplex channel.
 func recvValues(multiplex chan<- interface{}, channel interface{}) {
-	c := reflect.NewValue(channel).(*reflect.ChanValue)
+	c := reflect.ValueOf(channel)
 
 	for {
 		v, ok := c.Recv()
@@ -326,7 +325,7 @@ type channelRecv struct {
 }
 
 // readyEvents returns the subset of events that are ready.
-func readyEvents(events []*Event) ([]*Event, os.Error) {
+func readyEvents(events []*Event) ([]*Event, error) {
 	ready := make([]*Event, len(events))
 
 	j := 0

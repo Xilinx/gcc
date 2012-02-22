@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2010, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2011, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -37,6 +37,10 @@
     and the subsection "Specifying How Stack Checking is Done".  The handlers
     installed by this file are used to catch the resulting signals that come
     from these probes failing (i.e. touching protected pages).  */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* This file should be kept synchronized with 2sinit.ads, 2sinit.adb,
    s-init-ae653-cert.adb and s-init-xi-sparc.adb.  All these files implement
@@ -215,6 +219,19 @@ nanosleep (struct timestruc_t *Rqtp, struct timestruc_t *Rmtp)
 
 #endif /* _AIXVERSION_430 */
 
+/* Version of AIX before 5.3 don't have pthread_condattr_setclock:
+ * supply it as a weak symbol here so that if linking on a 5.3 or newer
+ * machine, we get the real one.
+ */
+
+#ifndef _AIXVERSION_530
+#pragma weak pthread_condattr_setclock
+int
+pthread_condattr_setclock (pthread_condattr_t *attr, clockid_t cl) {
+  return 0;
+}
+#endif
+
 static void
 __gnat_error_handler (int sig,
 		      siginfo_t *si ATTRIBUTE_UNUSED,
@@ -354,7 +371,7 @@ __gnat_error_handler (int sig, siginfo_t *si, void *ucontext)
 	  ((volatile char *)
 	   ((long) si->si_addr & - getpagesize ()))[getpagesize ()];
 	  exception = &storage_error;
-	  msg = "stack overflow (or erroneous memory access)";
+	  msg = "stack overflow or erroneous memory access";
 	}
       break;
 
@@ -374,7 +391,7 @@ __gnat_error_handler (int sig, siginfo_t *si, void *ucontext)
     }
 
   recurse = 0;
-  Raise_From_Signal_Handler (exception, (const char *) msg);
+  Raise_From_Signal_Handler (exception, CONST_CAST (char *, msg));
 }
 
 void
@@ -640,7 +657,7 @@ __gnat_error_handler (int sig, siginfo_t *si ATTRIBUTE_UNUSED, void *ucontext)
 	 that this is quite acceptable, since a "real" SIGSEGV can only
 	 occur as the result of an erroneous program.  */
       exception = &storage_error;
-      msg = "stack overflow (or erroneous memory access)";
+      msg = "stack overflow or erroneous memory access";
       break;
 
     case SIGBUS:
@@ -759,16 +776,35 @@ extern struct Exception_Data _abort_signal;
    connecting that handler, with the effects described in the sigaction
    man page:
 
-          SA_SIGINFO [...]
-          If cleared and the signal is caught, the first argument is
-          also the signal number but the second argument is the signal
-          code identifying the cause of the signal. The third argument
-          points to a sigcontext_t structure containing the receiving
-          process's context when the signal was delivered.  */
+          SA_SIGINFO   If set and the signal is caught, sig is passed as the
+                       first argument to the signal-catching function.  If the
+                       second argument is not equal to NULL, it points to a
+                       siginfo_t structure containing the reason why the
+                       signal was generated [see siginfo(5)]; the third
+                       argument points to a ucontext_t structure containing
+                       the receiving process's context when the signal was
+                       delivered [see ucontext(5)].  If cleared and the signal
+                       is caught, the first argument is also the signal number
+                       but the second argument is the signal code identifying
+                       the cause of the signal. The third argument points to a
+                       sigcontext_t structure containing the receiving
+                       process's context when the signal was delivered. This
+                       is the default behavior (see signal(5) for more
+                       details).  Additionally, when SA_SIGINFO is set for a
+                       signal, multiple occurrences of that signal will be
+                       queued for delivery in FIFO order (see sigqueue(3) for
+                       a more detailed explanation of this concept), if those
+                       occurrences of that signal were generated using
+                       sigqueue(3).  */
 
 static void
-__gnat_error_handler (int sig, int code, sigcontext_t *sc ATTRIBUTE_UNUSED)
+__gnat_error_handler (int sig, siginfo_t *reason, void *uc ATTRIBUTE_UNUSED)
 {
+  /* This handler is installed with SA_SIGINFO cleared, but there's no
+     prototype for the resulting alternative three-argument form, so we
+     have to hack around this by casting reason to the int actually
+     passed.  */
+  int code = (int) reason;
   struct Exception_Data *exception;
   const char *msg;
 
@@ -801,7 +837,7 @@ __gnat_error_handler (int sig, int code, sigcontext_t *sc ATTRIBUTE_UNUSED)
 		 the stack into a guard page, not an attempt to
 		 write to .text or something.  */
 	  exception = &storage_error;
-	  msg = "SIGSEGV: (stack overflow or erroneous memory access)";
+	  msg = "SIGSEGV: stack overflow or erroneous memory access";
 	}
       else
 	{
@@ -853,9 +889,13 @@ __gnat_install_handler (void)
 
   /* Setup signal handler to map synchronous signals to appropriate
      exceptions.  Make sure that the handler isn't interrupted by another
-     signal that might cause a scheduling event!  */
+     signal that might cause a scheduling event!
 
-  act.sa_handler = __gnat_error_handler;
+     The handler is installed with SA_SIGINFO cleared, but there's no
+     C++ prototype for the three-argument form, so fake it by using
+     sa_sigaction and casting the arguments instead.  */
+
+  act.sa_sigaction = __gnat_error_handler;
   act.sa_flags = SA_NODEFER + SA_RESTART;
   sigfillset (&act.sa_mask);
   sigemptyset (&act.sa_mask);
@@ -995,7 +1035,7 @@ __gnat_error_handler (int sig, siginfo_t *si, void *ucontext ATTRIBUTE_UNUSED)
 	  ((volatile char *)
 	   ((long) si->si_addr & - getpagesize ()))[getpagesize ()];
 	  exception = &storage_error;
-	  msg = "stack overflow (or erroneous memory access)";
+	  msg = "stack overflow or erroneous memory access";
 	}
       break;
 
@@ -1027,7 +1067,7 @@ __gnat_install_handler (void)
      exceptions.  Make sure that the handler isn't interrupted by another
      signal that might cause a scheduling event!  */
 
-  act.sa_handler = __gnat_error_handler;
+  act.sa_sigaction = __gnat_error_handler;
   act.sa_flags = SA_NODEFER | SA_RESTART | SA_SIGINFO;
   sigemptyset (&act.sa_mask);
 
@@ -1077,12 +1117,12 @@ int __gnat_features_set = 0;
 
 /* These codes are in standard message libraries.  */
 extern int C$_SIGKILL;
-extern int CMA$_EXIT_THREAD;
 extern int SS$_DEBUG;
-extern int SS$_INTDIV;
 extern int LIB$_KEYNOTFOU;
 extern int LIB$_ACTIMAGE;
-extern int MTH$_FLOOVEMAT;       /* Some ACVC_21 CXA tests */
+#define CMA$_EXIT_THREAD 4227492
+#define MTH$_FLOOVEMAT 1475268       /* Some ACVC_21 CXA tests */
+#define SS$_INTDIV 1156
 
 /* These codes are non standard, which is to say the author is
    not sure if they are defined in the standard message libraries
@@ -1091,7 +1131,7 @@ extern int MTH$_FLOOVEMAT;       /* Some ACVC_21 CXA tests */
 #define FDL$_UNPRIKW 11829410
 
 struct cond_except {
-  const int *cond;
+  unsigned int cond;
   const struct Exception_Data *except;
 };
 
@@ -1141,76 +1181,73 @@ extern struct Exception_Data *Coded_Exception (Exception_Code);
 extern Exception_Code Base_Code_In (Exception_Code);
 
 /* DEC Ada exceptions are not defined in a header file, so they
-   must be declared as external addresses.  */
+   must be declared.  */
 
-extern int ADA$_PROGRAM_ERROR;
-extern int ADA$_LOCK_ERROR;
-extern int ADA$_EXISTENCE_ERROR;
-extern int ADA$_KEY_ERROR;
-extern int ADA$_KEYSIZERR;
-extern int ADA$_STAOVF;
-extern int ADA$_CONSTRAINT_ERRO;
-extern int ADA$_IOSYSFAILED;
-extern int ADA$_LAYOUT_ERROR;
-extern int ADA$_STORAGE_ERROR;
-extern int ADA$_DATA_ERROR;
-extern int ADA$_DEVICE_ERROR;
-extern int ADA$_END_ERROR;
-extern int ADA$_MODE_ERROR;
-extern int ADA$_NAME_ERROR;
-extern int ADA$_STATUS_ERROR;
-extern int ADA$_NOT_OPEN;
-extern int ADA$_ALREADY_OPEN;
-extern int ADA$_USE_ERROR;
-extern int ADA$_UNSUPPORTED;
-extern int ADA$_FAC_MODE_MISMAT;
-extern int ADA$_ORG_MISMATCH;
-extern int ADA$_RFM_MISMATCH;
-extern int ADA$_RAT_MISMATCH;
-extern int ADA$_MRS_MISMATCH;
-extern int ADA$_MRN_MISMATCH;
-extern int ADA$_KEY_MISMATCH;
-extern int ADA$_MAXLINEXC;
-extern int ADA$_LINEXCMRS;
+#define ADA$_ALREADY_OPEN	0x0031a594
+#define ADA$_CONSTRAINT_ERRO	0x00318324
+#define ADA$_DATA_ERROR		0x003192c4
+#define ADA$_DEVICE_ERROR	0x003195e4
+#define ADA$_END_ERROR		0x00319904
+#define ADA$_FAC_MODE_MISMAT	0x0031a8b3
+#define ADA$_IOSYSFAILED	0x0031af04
+#define ADA$_KEYSIZERR		0x0031aa3c
+#define ADA$_KEY_MISMATCH	0x0031a8e3
+#define ADA$_LAYOUT_ERROR	0x00319c24
+#define ADA$_LINEXCMRS		0x0031a8f3
+#define ADA$_MAXLINEXC		0x0031a8eb
+#define ADA$_MODE_ERROR		0x00319f44
+#define ADA$_MRN_MISMATCH	0x0031a8db
+#define ADA$_MRS_MISMATCH	0x0031a8d3
+#define ADA$_NAME_ERROR		0x0031a264
+#define ADA$_NOT_OPEN		0x0031a58c
+#define ADA$_ORG_MISMATCH	0x0031a8bb
+#define ADA$_PROGRAM_ERROR	0x00318964
+#define ADA$_RAT_MISMATCH	0x0031a8cb
+#define ADA$_RFM_MISMATCH	0x0031a8c3
+#define ADA$_STAOVF		0x00318cac
+#define ADA$_STATUS_ERROR	0x0031a584
+#define ADA$_STORAGE_ERROR	0x00318c84
+#define ADA$_UNSUPPORTED	0x0031a8ab
+#define ADA$_USE_ERROR		0x0031a8a4
 
 /* DEC Ada specific conditions.  */
 static const struct cond_except dec_ada_cond_except_table [] = {
-  {&ADA$_PROGRAM_ERROR,   &program_error},
-  {&ADA$_USE_ERROR,       &Use_Error},
-  {&ADA$_KEYSIZERR,       &program_error},
-  {&ADA$_STAOVF,          &storage_error},
-  {&ADA$_CONSTRAINT_ERRO, &constraint_error},
-  {&ADA$_IOSYSFAILED,     &Device_Error},
-  {&ADA$_LAYOUT_ERROR,    &Layout_Error},
-  {&ADA$_STORAGE_ERROR,   &storage_error},
-  {&ADA$_DATA_ERROR,      &Data_Error},
-  {&ADA$_DEVICE_ERROR,    &Device_Error},
-  {&ADA$_END_ERROR,       &End_Error},
-  {&ADA$_MODE_ERROR,      &Mode_Error},
-  {&ADA$_NAME_ERROR,      &Name_Error},
-  {&ADA$_STATUS_ERROR,    &Status_Error},
-  {&ADA$_NOT_OPEN,        &Use_Error},
-  {&ADA$_ALREADY_OPEN,    &Use_Error},
-  {&ADA$_USE_ERROR,       &Use_Error},
-  {&ADA$_UNSUPPORTED,     &Use_Error},
-  {&ADA$_FAC_MODE_MISMAT, &Use_Error},
-  {&ADA$_ORG_MISMATCH,    &Use_Error},
-  {&ADA$_RFM_MISMATCH,    &Use_Error},
-  {&ADA$_RAT_MISMATCH,    &Use_Error},
-  {&ADA$_MRS_MISMATCH,    &Use_Error},
-  {&ADA$_MRN_MISMATCH,    &Use_Error},
-  {&ADA$_KEY_MISMATCH,    &Use_Error},
-  {&ADA$_MAXLINEXC,       &constraint_error},
-  {&ADA$_LINEXCMRS,       &constraint_error},
-  {0,                     0}
+  {ADA$_PROGRAM_ERROR,   &program_error},
+  {ADA$_USE_ERROR,       &Use_Error},
+  {ADA$_KEYSIZERR,       &program_error},
+  {ADA$_STAOVF,          &storage_error},
+  {ADA$_CONSTRAINT_ERRO, &constraint_error},
+  {ADA$_IOSYSFAILED,     &Device_Error},
+  {ADA$_LAYOUT_ERROR,    &Layout_Error},
+  {ADA$_STORAGE_ERROR,   &storage_error},
+  {ADA$_DATA_ERROR,      &Data_Error},
+  {ADA$_DEVICE_ERROR,    &Device_Error},
+  {ADA$_END_ERROR,       &End_Error},
+  {ADA$_MODE_ERROR,      &Mode_Error},
+  {ADA$_NAME_ERROR,      &Name_Error},
+  {ADA$_STATUS_ERROR,    &Status_Error},
+  {ADA$_NOT_OPEN,        &Use_Error},
+  {ADA$_ALREADY_OPEN,    &Use_Error},
+  {ADA$_USE_ERROR,       &Use_Error},
+  {ADA$_UNSUPPORTED,     &Use_Error},
+  {ADA$_FAC_MODE_MISMAT, &Use_Error},
+  {ADA$_ORG_MISMATCH,    &Use_Error},
+  {ADA$_RFM_MISMATCH,    &Use_Error},
+  {ADA$_RAT_MISMATCH,    &Use_Error},
+  {ADA$_MRS_MISMATCH,    &Use_Error},
+  {ADA$_MRN_MISMATCH,    &Use_Error},
+  {ADA$_KEY_MISMATCH,    &Use_Error},
+  {ADA$_MAXLINEXC,       &constraint_error},
+  {ADA$_LINEXCMRS,       &constraint_error},
+  {0,                    0}
 };
 
 #if 0
    /* Already handled by a pragma Import_Exception
       in Aux_IO_Exceptions */
-  {&ADA$_LOCK_ERROR,      &Lock_Error},
-  {&ADA$_EXISTENCE_ERROR, &Existence_Error},
-  {&ADA$_KEY_ERROR,       &Key_Error},
+  {ADA$_LOCK_ERROR,      &Lock_Error},
+  {ADA$_EXISTENCE_ERROR, &Existence_Error},
+  {ADA$_KEY_ERROR,       &Key_Error},
 #endif
 
 #endif /* IN_RTS */
@@ -1218,8 +1255,8 @@ static const struct cond_except dec_ada_cond_except_table [] = {
 /* Non-DEC Ada specific conditions.  We could probably also put
    SS$_HPARITH here and possibly SS$_ACCVIO, SS$_STKOVF.  */
 static const struct cond_except cond_except_table [] = {
-  {&MTH$_FLOOVEMAT, &constraint_error},
-  {&SS$_INTDIV,     &constraint_error},
+  {MTH$_FLOOVEMAT, &constraint_error},
+  {SS$_INTDIV,     &constraint_error},
   {0,               0}
 };
 
@@ -1257,7 +1294,7 @@ resignal_predicate (int code);
 
 static const int * const cond_resignal_table [] = {
   &C$_SIGKILL,
-  &CMA$_EXIT_THREAD,
+  (int *)CMA$_EXIT_THREAD,
   &SS$_DEBUG,
   &LIB$_KEYNOTFOU,
   &LIB$_ACTIMAGE,
@@ -1284,8 +1321,8 @@ __gnat_default_resignal_p (int code)
       return 1;
 
   for (i = 0, iexcept = 0;
-       cond_resignal_table [i] &&
-       !(iexcept = LIB$MATCH_COND (&code, &cond_resignal_table [i]));
+       cond_resignal_table [i]
+         && !(iexcept = LIB$MATCH_COND (&code, &cond_resignal_table [i]));
        i++);
 
   return iexcept;
@@ -1370,7 +1407,7 @@ __gnat_handle_vms_condition (int *sigargs, void *mechargs)
       msg = message;
 
       exception->Name_Length = 19;
-      /* ??? The full name really should be get sys$getmsg returns.  */
+      /* ??? The full name really should be get SYS$GETMSG returns.  */
       exception->Full_Name = "IMPORTED_EXCEPTION";
       exception->Import_Code = base_code;
 
@@ -1394,7 +1431,7 @@ __gnat_handle_vms_condition (int *sigargs, void *mechargs)
 	else
 	  {
 	    exception = &storage_error;
-	    msg = "stack overflow (or erroneous memory access)";
+	    msg = "stack overflow or erroneous memory access";
 	  }
 	__gnat_adjust_context_for_raise (SS$_ACCVIO, (void *)mechargs);
 	break;
@@ -1720,6 +1757,31 @@ __gnat_set_features (void)
   __gnat_features_set = 1;
 }
 
+/* Return true if the VMS version is 7.x.  */
+
+extern unsigned int LIB$GETSYI (int *, ...);
+
+#define SYI$_VERSION 0x1000
+
+int
+__gnat_is_vms_v7 (void)
+{
+  struct descriptor_s desc;
+  char version[8];
+  int status;
+  int code = SYI$_VERSION;
+
+  desc.len = sizeof (version);
+  desc.mbz = 0;
+  desc.adr = version;
+
+  status = LIB$GETSYI (&code, 0, &desc);
+  if ((status & 1) == 1 && version[1] == '7' && version[2] == '.')
+    return 1;
+  else
+    return 0;
+}
+
 /*******************/
 /* FreeBSD Section */
 /*******************/
@@ -1756,8 +1818,8 @@ __gnat_error_handler (int sig,
       break;
 
     case SIGBUS:
-      exception = &constraint_error;
-      msg = "SIGBUS";
+      exception = &storage_error;
+      msg = "SIGBUS: possible stack overflow";
       break;
 
     default:
@@ -1854,7 +1916,8 @@ __gnat_clear_exception_count (void)
 /* Handle different SIGnal to exception mappings in different VxWorks
    versions.   */
 static void
-__gnat_map_signal (int sig)
+__gnat_map_signal (int sig, void *si ATTRIBUTE_UNUSED,
+		   struct sigcontext *sc ATTRIBUTE_UNUSED)
 {
   struct Exception_Data *exception;
   const char *msg;
@@ -1949,9 +2012,7 @@ __gnat_map_signal (int sig)
    propagation after the required low level adjustments.  */
 
 void
-__gnat_error_handler (int sig,
-		      void *si ATTRIBUTE_UNUSED,
-		      struct sigcontext *sc ATTRIBUTE_UNUSED)
+__gnat_error_handler (int sig, void *si, struct sigcontext *sc)
 {
   sigset_t mask;
 
@@ -1963,7 +2024,22 @@ __gnat_error_handler (int sig,
   sigdelset (&mask, sig);
   sigprocmask (SIG_SETMASK, &mask, NULL);
 
-  __gnat_map_signal (sig);
+#if defined (__PPC__) && defined(_WRS_KERNEL)
+  /* On PowerPC, kernel mode, we process signals through a Call Frame Info
+     trampoline, voiding the need for myriads of fallback_frame_state
+     variants in the ZCX runtime.  We have no simple way to distinguish ZCX
+     from SJLJ here, so we do this for SJLJ as well even though this is not
+     necessary.  This only incurs a few extra instructions and a tiny
+     amount of extra stack usage.  */
+
+  #include "sigtramp.h"
+
+  __gnat_sigtramp (sig, (void *)si, (void *)sc,
+		   (sighandler_t *)&__gnat_map_signal);
+
+#else
+  __gnat_map_signal (sig, si, sc);
+#endif
 }
 
 void
@@ -1998,7 +2074,7 @@ __gnat_init_float (void)
      to get correct Ada semantics.  Note that for AE653 vThreads, the HW
      overflow settings are an OS configuration issue.  The instructions
      below have no effect.  */
-#if defined (_ARCH_PPC) && !defined (_SOFT_FLOAT) && !defined (VTHREADS)
+#if defined (_ARCH_PPC) && !defined (_SOFT_FLOAT) && (!defined (VTHREADS) || defined (__VXWORKSMILS__))
 #if defined (__SPE__)
   {
      const unsigned long spefscr_mask = 0xfffffff3;
@@ -2216,11 +2292,32 @@ __gnat_is_stack_guard (mach_vm_address_t addr)
   return 0;
 }
 
+#define HAVE_GNAT_ADJUST_CONTEXT_FOR_RAISE
+
+void
+__gnat_adjust_context_for_raise (int signo ATTRIBUTE_UNUSED,
+				 void *ucontext ATTRIBUTE_UNUSED)
+{
+#if defined (__x86_64__)
+  /* Work around radar #10302855/pr50678, where the unwinders (libunwind or
+     libgcc_s depending on the system revision) and the DWARF unwind data for
+     the sigtramp have different ideas about register numbering (causing rbx
+     and rdx to be transposed)..  */
+  ucontext_t *uc = (ucontext_t *)ucontext ;
+  unsigned long t = uc->uc_mcontext->__ss.__rbx;
+
+  uc->uc_mcontext->__ss.__rbx = uc->uc_mcontext->__ss.__rdx;
+  uc->uc_mcontext->__ss.__rdx = t;
+#endif
+}
+
 static void
-__gnat_error_handler (int sig, siginfo_t *si, void *ucontext ATTRIBUTE_UNUSED)
+__gnat_error_handler (int sig, siginfo_t *si, void *ucontext)
 {
   struct Exception_Data *exception;
   const char *msg;
+
+  __gnat_adjust_context_for_raise (sig, ucontext);
 
   switch (sig)
     {
@@ -2402,4 +2499,8 @@ __gnat_adjust_context_for_raise (int signo ATTRIBUTE_UNUSED,
      the unwinder adjustment is still desired.  */
 }
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

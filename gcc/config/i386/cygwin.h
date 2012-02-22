@@ -36,7 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef ENDFILE_SPEC
 #define ENDFILE_SPEC \
-  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s}\
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s}\
    crtend.o%s"
 
 /* Normally, -lgcc is not needed since everything in it is in the DLL, but we
@@ -126,6 +126,8 @@ along with GCC; see the file COPYING3.  If not see
    and the -pthread flag is not recognized.  */
 #undef GOMP_SELF_SPECS
 #define GOMP_SELF_SPECS ""
+#undef GTM_SELF_SPECS
+#define GTM_SELF_SPECS ""
 
 /* This matches SHLIB_SONAME and SHLIB_SOVERSION in t-cygwin. */
 #if DWARF2_UNWIND_INFO
@@ -136,5 +138,5 @@ along with GCC; see the file COPYING3.  If not see
 #define LIBGCC_SONAME "cyggcc_s" LIBGCC_EH_EXTN "-1.dll"
 
 /* We should find a way to not have to update this manually.  */
-#define LIBGCJ_SONAME "cyggcj" /*LIBGCC_EH_EXTN*/ "-12.dll"
+#define LIBGCJ_SONAME "cyggcj" /*LIBGCC_EH_EXTN*/ "-13.dll"
 

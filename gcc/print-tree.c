@@ -321,7 +321,7 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
       if (indent <= 4)
 	print_node_brief (file, "type", TREE_TYPE (node), indent + 4);
     }
-  else
+  else if (CODE_CONTAINS_STRUCT (code, TS_TYPED))
     {
       print_node (file, "type", TREE_TYPE (node), indent + 4);
       if (TREE_TYPE (node))
@@ -424,6 +424,8 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	fputs (" built-in", file);
       if (code == FUNCTION_DECL && DECL_STATIC_CHAIN (node))
 	fputs (" static-chain", file);
+      if (TREE_CODE (node) == FUNCTION_DECL && decl_is_tm_clone (node))
+	fputs (" tm-clone", file);
 
       if (code == FIELD_DECL && DECL_PACKED (node))
 	fputs (" packed", file);
@@ -911,7 +913,6 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 		print_node (file, "stmt", tsi_stmt (i), indent + 4);
 	      }
 	  }
-	  print_node (file, "chain", TREE_CHAIN (node), indent + 4);
 	  break;
 
 	case BLOCK:

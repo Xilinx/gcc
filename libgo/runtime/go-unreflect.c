@@ -4,6 +4,7 @@
    Use of this source code is governed by a BSD-style
    license that can be found in the LICENSE file.  */
 
+#include "runtime.h"
 #include "go-alloc.h"
 #include "go-type.h"
 #include "interface.h"
@@ -18,6 +19,9 @@ struct __go_empty_interface
 Unreflect (struct __go_empty_interface type, void *object)
 {
   struct __go_empty_interface ret;
+
+  if (((uintptr_t) type.__type_descriptor & reflectFlags) != 0)
+    runtime_panicstring ("invalid interface value");
 
   /* FIXME: We should check __type_descriptor to verify that this is
      really a type descriptor.  */

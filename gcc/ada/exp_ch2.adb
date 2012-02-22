@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -24,6 +24,7 @@
 ------------------------------------------------------------------------------
 
 with Atree;    use Atree;
+with Checks;   use Checks;
 with Debug;    use Debug;
 with Einfo;    use Einfo;
 with Elists;   use Elists;
@@ -354,9 +355,9 @@ package body Exp_Ch2 is
       elsif Is_Protected_Component (E) then
          if No_Run_Time_Mode then
             return;
+         else
+            Expand_Protected_Component (N);
          end if;
-
-         Expand_Protected_Component (N);
 
       elsif Ekind (E) = E_Entry_Index_Parameter then
          Expand_Entry_Index_Parameter (N);
@@ -396,6 +397,45 @@ package body Exp_Ch2 is
          end if;
 
          Write_Eol;
+      end if;
+
+      --  Set Atomic_Sync_Required if necessary for atomic variable
+
+      if Nkind_In (N, N_Identifier, N_Expanded_Name)
+        and then Ekind (E) = E_Variable
+        and then (Is_Atomic (E) or else Is_Atomic (Etype (E)))
+      then
+         declare
+            Set  : Boolean;
+
+         begin
+            --  If variable is atomic, but type is not, setting depends on
+            --  disable/enable state for the variable.
+
+            if Is_Atomic (E) and then not Is_Atomic (Etype (E)) then
+               Set := not Atomic_Synchronization_Disabled (E);
+
+            --  If variable is not atomic, but its type is atomic, setting
+            --  depends on disable/enable state for the type.
+
+            elsif not Is_Atomic (E) and then Is_Atomic (Etype (E)) then
+               Set := not Atomic_Synchronization_Disabled (Etype (E));
+
+            --  Else both variable and type are atomic (see outer if), and we
+            --  disable if either variable or its type have sync disabled.
+
+            else
+               Set := (not Atomic_Synchronization_Disabled (E))
+                        and then
+                      (not Atomic_Synchronization_Disabled (Etype (E)));
+            end if;
+
+            --  Set flag if required
+
+            if Set then
+               Activate_Atomic_Synchronization (N);
+            end if;
+         end;
       end if;
 
       --  Interpret possible Current_Value for variable case
@@ -520,9 +560,6 @@ package body Exp_Ch2 is
          then
             Note_Possible_Modification (N, Sure => True);
          end if;
-
-         Rewrite (N, New_Occurrence_Of (Renamed_Object (Entity (N)), Loc));
-         return;
       end if;
 
       --  What we need is a reference to the corresponding component of the
@@ -531,6 +568,9 @@ package body Exp_Ch2 is
       --  accept parameters record. We first have to do an unchecked conversion
       --  to turn this into a pointer to the parameter record and then we
       --  select the required parameter field.
+
+      --  The same processing applies to protected entries, where the Accept_
+      --  Address is also the address of the Parameters record.
 
       P_Comp_Ref :=
         Make_Selected_Component (Loc,

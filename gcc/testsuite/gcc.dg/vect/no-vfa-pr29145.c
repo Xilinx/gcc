@@ -1,5 +1,4 @@
 /* { dg-require-effective-target vect_int } */
-/* { dg-add-options quad_vectors } */
 
 #include <stdarg.h>
 #include "tree-vect.h"
@@ -48,6 +47,6 @@ int main(void)
   return 0;
 }
 
-/* { dg-final { scan-tree-dump-times "vectorized 0 loops" 2 "vect"  { xfail vect_no_align } } } */
-/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect"  { xfail vect_no_align } } } */
+/* { dg-final { scan-tree-dump-times "vectorized 0 loops" 2 "vect" } } */
+/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 1 "vect" } } */
 /* { dg-final { cleanup-tree-dump "vect" } } */

@@ -70,10 +70,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef ENDFILE_SPEC
 #define ENDFILE_SPEC		\
-  "%{ffast-math|funsafe-math-optimizations:crtfm%O%s} \
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfm%O%s} \
    %(netbsd_endfile_spec)"
 
-
-/* Attempt to enable execute permissions on the stack.  */
-
-#define ENABLE_EXECUTE_STACK NETBSD_ENABLE_EXECUTE_STACK
+#define HAVE_ENABLE_EXECUTE_STACK

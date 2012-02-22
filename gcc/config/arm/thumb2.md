@@ -207,7 +207,9 @@
 (define_insn "*thumb2_movhi_insn"
   [(set (match_operand:HI 0 "nonimmediate_operand" "=r,r,m,r")
 	(match_operand:HI 1 "general_operand"      "rI,n,r,m"))]
-  "TARGET_THUMB2"
+  "TARGET_THUMB2
+  && (register_operand (operands[0], HImode)
+     || register_operand (operands[1], HImode))"
   "@
    mov%?\\t%0, %1\\t%@ movhi
    movw%?\\t%0, %L1\\t%@ movhi
@@ -257,7 +259,7 @@
 	(not:SI (match_operator:SI 1 "arm_comparison_operator"
 		 [(match_operand 2 "cc_register" "") (const_int 0)])))]
   "TARGET_THUMB2"
-  "ite\\t%D1\;mov%D1\\t%0, #0\;mvn%d1\\t%0, #1"
+  "ite\\t%D1\;mvn%D1\\t%0, #0\;mvn%d1\\t%0, #1"
   [(set_attr "conds" "use")
    (set_attr "length" "10")]
 )
@@ -684,6 +686,7 @@
 	  (match_operand:SI 2 "low_reg_or_int_operand" "")]))]
   "TARGET_THUMB2
    && peep2_regno_dead_p(0, CC_REGNUM)
+   && (CONST_INT_P (operands[2]) || operands[1] == operands[0])
    && ((GET_CODE(operands[3]) != ROTATE && GET_CODE(operands[3]) != ROTATERT)
        || REG_P(operands[2]))"
   [(parallel
@@ -696,10 +699,10 @@
 )
 
 (define_insn "*thumb2_shiftsi3_short"
-  [(set (match_operand:SI   0 "low_register_operand" "=l")
+  [(set (match_operand:SI   0 "low_register_operand" "=l,l")
 	(match_operator:SI  3 "shift_operator"
-	 [(match_operand:SI 1 "low_register_operand"  "l")
-	  (match_operand:SI 2 "low_reg_or_int_operand" "lM")]))
+	 [(match_operand:SI 1 "low_register_operand"  "0,l")
+	  (match_operand:SI 2 "low_reg_or_int_operand" "l,M")]))
    (clobber (reg:CC CC_REGNUM))]
   "TARGET_THUMB2 && reload_completed
    && ((GET_CODE(operands[3]) != ROTATE && GET_CODE(operands[3]) != ROTATERT)
@@ -779,26 +782,6 @@
    (set_attr "length" "2")]
 )
 
-(define_insn "divsi3"
-  [(set (match_operand:SI	  0 "s_register_operand" "=r")
-	(div:SI (match_operand:SI 1 "s_register_operand"  "r")
-		(match_operand:SI 2 "s_register_operand"  "r")))]
-  "TARGET_THUMB2 && arm_arch_hwdiv"
-  "sdiv%?\t%0, %1, %2"
-  [(set_attr "predicable" "yes")
-   (set_attr "insn" "sdiv")]
-)
-
-(define_insn "udivsi3"
-  [(set (match_operand:SI	   0 "s_register_operand" "=r")
-	(udiv:SI (match_operand:SI 1 "s_register_operand"  "r")
-		 (match_operand:SI 2 "s_register_operand"  "r")))]
-  "TARGET_THUMB2 && arm_arch_hwdiv"
-  "udiv%?\t%0, %1, %2"
-  [(set_attr "predicable" "yes")
-   (set_attr "insn" "udiv")]
-)
-
 (define_insn "*thumb2_subsi_short"
   [(set (match_operand:SI 0 "low_register_operand" "=l")
 	(minus:SI (match_operand:SI 1 "low_register_operand" "l")
@@ -836,7 +819,7 @@
   "operands[4] = GEN_INT (- INTVAL (operands[2]));"
 )
 
-(define_insn "*thumb2_addsi3_compare0"
+(define_insn "thumb2_addsi3_compare0"
   [(set (reg:CC_NOOV CC_REGNUM)
 	(compare:CC_NOOV
 	  (plus:SI (match_operand:SI 1 "s_register_operand" "l,  0, r")
@@ -969,7 +952,7 @@
         (if_then_else
 	    (and (ge (minus (match_dup 1) (pc)) (const_int 2))
 	         (le (minus (match_dup 1) (pc)) (const_int 128))
-	         (eq (symbol_ref ("which_alternative")) (const_int 0)))
+	         (not (match_test "which_alternative")))
 	    (const_int 2)
 	    (const_int 8)))]
 )
@@ -992,7 +975,7 @@
         (if_then_else
 	    (and (ge (minus (match_dup 1) (pc)) (const_int 2))
 	         (le (minus (match_dup 1) (pc)) (const_int 128))
-	         (eq (symbol_ref ("which_alternative")) (const_int 0)))
+	         (not (match_test "which_alternative")))
 	    (const_int 2)
 	    (const_int 8)))]
 )
@@ -1118,3 +1101,55 @@
   "
   operands[2] = GEN_INT (32 - INTVAL (operands[2]));
   ")
+
+;; Define the subtract-one-and-jump insns so loop.c
+;; knows what to generate.
+(define_expand "doloop_end"
+  [(use (match_operand 0 "" ""))      ; loop pseudo
+   (use (match_operand 1 "" ""))      ; iterations; zero if unknown
+   (use (match_operand 2 "" ""))      ; max iterations
+   (use (match_operand 3 "" ""))      ; loop level
+   (use (match_operand 4 "" ""))]     ; label
+  "TARGET_32BIT"
+  "
+ {
+   /* Currently SMS relies on the do-loop pattern to recognize loops
+      where (1) the control part consists of all insns defining and/or
+      using a certain 'count' register and (2) the loop count can be
+      adjusted by modifying this register prior to the loop.
+      ??? The possible introduction of a new block to initialize the
+      new IV can potentially affect branch optimizations.  */
+   if (optimize > 0 && flag_modulo_sched)
+   {
+     rtx s0;
+     rtx bcomp;
+     rtx loc_ref;
+     rtx cc_reg;
+     rtx insn;
+     rtx cmp;
+
+     /* Only use this on innermost loops.  */
+     if (INTVAL (operands[3]) > 1)
+       FAIL;
+
+     if (GET_MODE (operands[0]) != SImode)
+       FAIL;
+
+     s0 = operands [0];
+     if (TARGET_THUMB2)
+       insn = emit_insn (gen_thumb2_addsi3_compare0 (s0, s0, GEN_INT (-1)));
+     else
+       insn = emit_insn (gen_addsi3_compare0 (s0, s0, GEN_INT (-1)));
+
+     cmp = XVECEXP (PATTERN (insn), 0, 0);
+     cc_reg = SET_DEST (cmp);
+     bcomp = gen_rtx_NE (VOIDmode, cc_reg, const0_rtx);
+     loc_ref = gen_rtx_LABEL_REF (VOIDmode, operands [4]);
+     emit_jump_insn (gen_rtx_SET (VOIDmode, pc_rtx,
+                                  gen_rtx_IF_THEN_ELSE (VOIDmode, bcomp,
+                                                        loc_ref, pc_rtx)));
+     DONE;
+   }else
+      FAIL;
+ }")
+

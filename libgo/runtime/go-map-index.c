@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#include "runtime.h"
 #include "go-alloc.h"
 #include "go-assert.h"
 #include "map.h"
@@ -18,14 +19,14 @@ __go_map_rehash (struct __go_map *map)
 {
   const struct __go_map_descriptor *descriptor;
   const struct __go_type_descriptor *key_descriptor;
-  size_t key_offset;
+  uintptr_t key_offset;
   size_t key_size;
-  size_t (*hashfn) (const void *, size_t);
-  size_t old_bucket_count;
+  uintptr_t (*hashfn) (const void *, uintptr_t);
+  uintptr_t old_bucket_count;
   void **old_buckets;
-  size_t new_bucket_count;
+  uintptr_t new_bucket_count;
   void **new_buckets;
-  size_t i;
+  uintptr_t i;
 
   descriptor = map->__descriptor;
 
@@ -78,12 +79,19 @@ __go_map_index (struct __go_map *map, const void *key, _Bool insert)
 {
   const struct __go_map_descriptor *descriptor;
   const struct __go_type_descriptor *key_descriptor;
-  size_t key_offset;
-  _Bool (*equalfn) (const void*, const void*, size_t);
+  uintptr_t key_offset;
+  _Bool (*equalfn) (const void*, const void*, uintptr_t);
   size_t key_hash;
   size_t key_size;
   size_t bucket_index;
   char *entry;
+
+  if (map == NULL)
+    {
+      if (insert)
+	runtime_panicstring ("assignment to entry in nil map");
+      return NULL;
+    }
 
   descriptor = map->__descriptor;
 

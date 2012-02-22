@@ -722,7 +722,7 @@ do {									\
 
 /* A C expression for the cost of a branch instruction.  A value of 1
    is the default; other values are interpreted relative to that.  */
-#define BRANCH_COST(speed_p, predictable_p) 1
+#define BRANCH_COST(speed_p, predictable_p) s390_branch_cost
 
 /* Nonzero if access to memory by bytes is slow and undesirable.  */
 #define SLOW_BYTE_ACCESS 1
@@ -904,4 +904,6 @@ do {									\
 
 /* Reads can reuse write prefetches, used by tree-ssa-prefetch-loops.c.  */
 #define READ_CAN_USE_WRITE_PREFETCH 1
+
+extern const int processor_flags_table[];
 #endif

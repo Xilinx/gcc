@@ -2,15 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// This package provides access to DWARF debugging information
-// loaded from executable files, as defined in the DWARF 2.0 Standard
-// at http://dwarfstd.org/doc/dwarf-2.0.0.pdf
+// Package dwarf provides access to DWARF debugging information loaded from
+// executable files, as defined in the DWARF 2.0 Standard at
+// http://dwarfstd.org/doc/dwarf-2.0.0.pdf
 package dwarf
 
-import (
-	"encoding/binary"
-	"os"
-)
+import "encoding/binary"
 
 // Data represents the DWARF debugging information
 // loaded from an executable file (for example, an ELF or Mach-O executable).
@@ -40,7 +37,7 @@ type Data struct {
 // The []byte arguments are the data from the corresponding debug section
 // in the object file; for example, for an ELF object, abbrev is the contents of
 // the ".debug_abbrev" section.
-func New(abbrev, aranges, frame, info, line, pubnames, ranges, str []byte) (*Data, os.Error) {
+func New(abbrev, aranges, frame, info, line, pubnames, ranges, str []byte) (*Data, error) {
 	d := &Data{
 		abbrev:      abbrev,
 		aranges:     aranges,

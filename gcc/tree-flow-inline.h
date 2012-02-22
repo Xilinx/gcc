@@ -145,16 +145,6 @@ var_ann (const_tree t)
   return p ? *p : NULL;
 }
 
-/* Return the variable annotation for T, which must be a _DECL node.
-   Create the variable annotation if it doesn't exist.  */
-static inline var_ann_t
-get_var_ann (tree var)
-{
-  var_ann_t *p = DECL_VAR_ANN_PTR (var);
-  gcc_checking_assert (p);
-  return *p ? *p : create_var_ann (var);
-}
-
 /* Get the number of the next statement uid to be allocated.  */
 static inline unsigned int
 gimple_stmt_max_uid (struct function *fn)
@@ -568,7 +558,7 @@ phi_arg_index_from_use (use_operand_p use)
 static inline void
 set_is_used (tree var)
 {
-  var_ann_t ann = get_var_ann (var);
+  var_ann_t ann = var_ann (var);
   ann->used = true;
 }
 
@@ -737,9 +727,11 @@ clear_and_done_ssa_iter (ssa_op_iter *ptr)
 static inline void
 op_iter_init (ssa_op_iter *ptr, gimple stmt, int flags)
 {
-  /* We do not support iterating over virtual defs or uses without
+  /* PHI nodes require a different iterator initialization path.  We
+     do not support iterating over virtual defs or uses without
      iterating over defs or uses at the same time.  */
-  gcc_checking_assert ((!(flags & SSA_OP_VDEF) || (flags & SSA_OP_DEF))
+  gcc_checking_assert (gimple_code (stmt) != GIMPLE_PHI
+		       && (!(flags & SSA_OP_VDEF) || (flags & SSA_OP_DEF))
 		       && (!(flags & SSA_OP_VUSE) || (flags & SSA_OP_USE)));
   ptr->defs = (flags & (SSA_OP_DEF|SSA_OP_VDEF)) ? gimple_def_ops (stmt) : NULL;
   if (!(flags & SSA_OP_VDEF)
@@ -868,11 +860,14 @@ num_ssa_operands (gimple stmt, int flags)
   tree t;
   int num = 0;
 
+  gcc_checking_assert (gimple_code (stmt) != GIMPLE_PHI);
   FOR_EACH_SSA_TREE_OPERAND (t, stmt, iter, flags)
     num++;
   return num;
 }
 
+static inline use_operand_p
+op_iter_init_phiuse (ssa_op_iter *ptr, gimple phi, int flags);
 
 /* Delink all immediate_use information for STMT.  */
 static inline void
@@ -882,7 +877,7 @@ delink_stmt_imm_use (gimple stmt)
    use_operand_p use_p;
 
    if (ssa_operands_active ())
-     FOR_EACH_SSA_USE_OPERAND (use_p, stmt, iter, SSA_OP_ALL_USES)
+     FOR_EACH_PHI_OR_STMT_USE (use_p, stmt, iter, SSA_OP_ALL_USES)
        delink_imm_use (use_p);
 }
 

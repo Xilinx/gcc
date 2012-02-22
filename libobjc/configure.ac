@@ -27,7 +27,7 @@ GCC_TOPLEV_SUBDIRS
 # We need the following definitions because AC_PROG_LIBTOOL relies on them
 PACKAGE=libobjc
 # Version is pulled out to make it a bit easier to change using sed.
-VERSION=3:0:0
+VERSION=4:0:0
 AC_SUBST(VERSION)
 
 # This works around the fact that libtool configuration may change LD
@@ -216,15 +216,6 @@ AC_CHECK_HEADERS(sched.h)
 # -----------
 # Miscellanea
 # -----------
-
-AC_MSG_CHECKING([for thread model used by GCC])
-target_thread_file=`$CC -v 2>&1 | sed -n 's/^Thread model: //p'`
-AC_MSG_RESULT([$target_thread_file]) 
-
-if test $target_thread_file != single; then
-  AC_DEFINE(HAVE_GTHR_DEFAULT, 1,
-        [Define if the compiler has a thread header that is non single.])
-fi 
 
 # Check if we have thread-local storage
 GCC_CHECK_TLS

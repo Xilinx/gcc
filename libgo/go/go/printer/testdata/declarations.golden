@@ -7,10 +7,10 @@ package imports
 import "io"
 
 import (
-	_	"io"
+	_ "io"
 )
 
-import _	"io"
+import _ "io"
 
 import (
 	"io"
@@ -20,40 +20,39 @@ import (
 
 import (
 	"io"
-	aLongRename	"io"
+	aLongRename "io"
 
-	b	"io"
+	b "io"
 )
 
 import (
 	"unrenamed"
-	renamed	"renameMe"
-	.	"io"
-	_	"io"
+	renamed "renameMe"
+	. "io"
+	_ "io"
 	"io"
-	.	"os"
+	. "os"
 )
 
 // no newlines between consecutive single imports, but
 // respect extra line breaks in the source (at most one empty line)
-import _	"io"
-import _	"io"
-import _	"io"
+import _ "io"
+import _ "io"
+import _ "io"
 
-import _	"os"
-import _	"os"
-import _	"os"
+import _ "os"
+import _ "os"
+import _ "os"
 
-
-import _	"fmt"
-import _	"fmt"
-import _	"fmt"
+import _ "fmt"
+import _ "fmt"
+import _ "fmt"
 
 import "foo"	// a comment
 import "bar"	// a comment
 
 import (
-	_	"foo"
+	_ "foo"
 	// a comment
 	"bar"
 	"foo"	// a comment
@@ -63,17 +62,17 @@ import (
 // comments + renames
 import (
 	"unrenamed"	// a comment
-	renamed		"renameMe"
-	.		"io"		/* a comment */
-	_		"io/ioutil"	// a comment
+	renamed "renameMe"
+	. "io"		/* a comment */
+	_ "io/ioutil"	// a comment
 	"io"		// testing alignment
-	.		"os"
+	. "os"
 	// a comment
 )
 
 // a case that caused problems in the past (comment placement)
 import (
-	.	"fmt"
+	. "fmt"
 	"io"
 	"malloc"	// for the malloc count test only
 	"math"
@@ -81,12 +80,52 @@ import (
 	"testing"
 )
 
+// more import examples
+import (
+	"xxx"
+	"much longer name"	// comment
+	"short name"		// comment
+)
+
+import (
+	_ "xxx"
+	"much longer name"	// comment
+)
+
+import (
+	mymath "math"
+	"/foo/bar/long_package_path"	// a comment
+)
+
+import (
+	"package_a"	// comment
+	"package_b"
+	my_better_c "package_c"	// comment
+	"package_d"		// comment
+	my_e "package_e"	// comment
+
+	"package_a"	// comment
+	"package_bb"
+	"package_ccc"	// comment
+	"package_dddd"	// comment
+)
 
 // at least one empty line between declarations of different kind
-import _	"io"
+import _ "io"
 
 var _ int
 
+// at least one empty line between declarations of the same kind
+// if there is associated documentation (was issue 2570)
+type T1 struct{}
+
+// T2 comment
+type T2 struct {
+}	// should be a two-line struct
+
+// T3 comment
+type T2 struct {
+}	// should be a two-line struct
 
 // printing of constant literals
 const (
@@ -129,9 +168,7 @@ const (
 bar`
 )
 
-
 func _() {
-	// the following decls need a semicolon at the end
 	type _ int
 	type _ *int
 	type _ []int
@@ -146,7 +183,6 @@ func _() {
 	var _ chan int
 	var _ func() int
 
-	// the following decls don't need a semicolon at the end
 	type _ struct{}
 	type _ *struct{}
 	type _ []struct{}
@@ -176,7 +212,6 @@ func _() {
 	var _ func() interface{}
 }
 
-
 // don't lose blank lines in grouped declarations
 const (
 	_	int	= 0
@@ -193,7 +228,6 @@ const (
 	_
 )
 
-
 type (
 	_	int
 	_	struct{}
@@ -203,7 +237,6 @@ type (
 	// a comment
 	_	map[string]int
 )
-
 
 var (
 	_	int	= 0
@@ -216,7 +249,6 @@ var (
 	// a comment
 	_	bool
 )
-
 
 // don't lose blank lines in this struct
 type _ struct {
@@ -266,6 +298,14 @@ type _ struct {
 	}
 }
 
+// no blank lines in empty structs and interfaces, but leave 1- or 2-line layout alone
+type _ struct{}
+type _ struct {
+}
+
+type _ interface{}
+type _ interface {
+}
 
 // no tabs for single or ungrouped decls
 func _() {
@@ -302,11 +342,11 @@ func _() {
 	)
 	// some entries have a type
 	const (
-		xxxxxx		= 1
-		x		= 2
-		xxx		= 3
+		xxxxxx			= 1
+		x			= 2
+		xxx			= 3
 		yyyyyyyy	float	= iota
-		yyyy		= "bar"
+		yyyy			= "bar"
 		yyy
 		yy	= 2
 	)
@@ -336,7 +376,7 @@ func _() {
 		xxx		string
 		yyyyyyyy	int	= 1234
 		y		float	= 3.14
-		yyyy		= "bar"
+		yyyy			= "bar"
 		yyy		string	= "foo"
 	)
 	// mixed entries - all comments should be aligned
@@ -344,7 +384,7 @@ func _() {
 		a, b, c			int
 		x			= 10
 		d			int			// comment
-		y			= 20			// comment
+		y				= 20		// comment
 		f, ff, fff, ffff	int	= 0, 1, 2, 3	// comment
 	)
 	// respect original line breaks
@@ -372,6 +412,32 @@ func _() {
 	)
 }
 
+// alignment of "=" in consecutive lines (extended example from issue 1414)
+const (
+	umax	uint	= ^uint(0)		// maximum value for a uint
+	bpu		= 1 << (5 + umax>>63)	// bits per uint
+	foo
+	bar	= -1
+)
+
+// typical enum
+const (
+	a	MyType	= iota
+	abcd
+	b
+	c
+	def
+)
+
+// excerpt from godoc.go
+var (
+	goroot		= flag.String("goroot", runtime.GOROOT(), "Go root directory")
+	testDir		= flag.String("testdir", "", "Go root subdirectory - for testing only (faster startups)")
+	pkgPath		= flag.String("path", "", "additional package directories (colon-separated)")
+	filter		= flag.String("filter", "", "filter file containing permitted package directory paths")
+	filterMin	= flag.Int("filter_minutes", 0, "filter file update interval in minutes; disabled if <= 0")
+	filterDelay	delayTime	// actual filter update interval in minutes; usually filterDelay == filterMin, but filterDelay may back off exponentially
+)
 
 // formatting of structs
 type _ struct{}
@@ -440,13 +506,11 @@ type _ struct {
 	r, s	float	// this line should be indented
 }
 
-
 // difficult cases
 type _ struct {
 	bool		// comment
 	text	[]byte	// comment
 }
-
 
 // formatting of interfaces
 type EI interface{}
@@ -473,7 +537,6 @@ type _ interface {	// this comment must not change indentation
 	gggggggggggg(x, y, z int)	// hurray
 }
 
-
 // formatting of variable declarations
 func _() {
 	type day struct {
@@ -491,7 +554,6 @@ func _() {
 	)
 }
 
-
 // formatting of multi-line variable declarations
 var a1, b1, c1 int	// all on one line
 
@@ -504,7 +566,6 @@ var (
 	a4, b4, c4	int	// this line should be indented
 )
 
-
 func _() {
 	var privateKey2 = &Block{Type:	"RSA PRIVATE KEY",
 		Headers:	map[string]string{},
@@ -515,7 +576,6 @@ func _() {
 		},
 	}
 }
-
 
 func _() {
 	var Universe = Scope{
@@ -560,7 +620,6 @@ func _() {
 	}
 }
 
-
 // alignment of map composite entries
 var _ = map[int]int{
 	// small key sizes: always align even if size ratios are large
@@ -584,20 +643,17 @@ var _ = map[int]int{
 	abcde:	a,	// align with previous line
 }
 
-
 func _() {
 	var _ = T{
 		a,	// must introduce trailing comma
 	}
 }
 
-
 // formatting of function results
 func _() func()				{}
 func _() func(int)			{ return nil }
 func _() func(int) int			{ return nil }
 func _() func(int) func(int) func()	{ return nil }
-
 
 // formatting of consecutive single-line functions
 func _()	{}
@@ -626,7 +682,6 @@ func _() int {
 	return x
 }
 
-
 // making function declarations safe for new semicolon rules
 func _() { /* multi-line func because of comment */
 }
@@ -634,7 +689,6 @@ func _() { /* multi-line func because of comment */
 func _() {
 	/* multi-line func because block is on multiple lines */
 }
-
 
 // ellipsis parameters
 func _(...int)
@@ -657,59 +711,139 @@ func _(x ...func(...int))
 func _(x ...map[string]int)
 func _(x ...chan int)
 
-
 // these parameter lists must remain multi-line since they are multi-line in the source
 func _(bool,
-int) {
+	int) {
 }
 func _(x bool,
-y int) {
+	y int) {
 }
 func _(x,
-y bool) {
+	y bool) {
 }
 func _(bool,	// comment
-int) {
+	int) {
 }
 func _(x bool,	// comment
-y int) {
+	y int) {
 }
 func _(x,	// comment
-y bool) {
+	y bool) {
 }
 func _(bool,	// comment
-// comment
-int) {
+	// comment
+	int) {
 }
 func _(x bool,	// comment
-// comment
-y int) {
+	// comment
+	y int) {
 }
 func _(x,	// comment
-// comment
-y bool) {
+	// comment
+	y bool) {
 }
 func _(bool,
-// comment
-int) {
+	// comment
+	int) {
 }
 func _(x bool,
-// comment
-y int) {
+	// comment
+	y int) {
 }
 func _(x,
-// comment
-y bool) {
+	// comment
+	y bool) {
 }
 func _(x,	// comment
-y,	// comment
-z bool) {
+	y,	// comment
+	z bool) {
 }
 func _(x,	// comment
-y,	// comment
-z bool) {
+	y,	// comment
+	z bool) {
 }
 func _(x int,	// comment
-y float,	// comment
-z bool) {
+	y float,	// comment
+	z bool) {
+}
+
+// properly indent multi-line signatures
+func ManageStatus(in <-chan *Status, req <-chan Request,
+	stat chan<- *TargetInfo,
+	TargetHistorySize int) {
+}
+
+func MultiLineSignature0(
+	a, b, c int,
+) {
+}
+
+func MultiLineSignature1(
+	a, b, c int,
+	u, v, w float,
+) {
+}
+
+func MultiLineSignature2(
+	a, b,
+	c int,
+) {
+}
+
+func MultiLineSignature3(
+	a, b,
+	c int, u, v,
+	w float,
+	x ...int) {
+}
+
+func MultiLineSignature4(
+	a, b, c int,
+	u, v,
+	w float,
+	x ...int) {
+}
+
+func MultiLineSignature5(
+	a, b, c int,
+	u, v, w float,
+	p, q,
+	r string,
+	x ...int) {
+}
+
+// make sure it also works for methods in interfaces
+type _ interface {
+	MultiLineSignature0(
+		a, b, c int,
+	)
+
+	MultiLineSignature1(
+		a, b, c int,
+		u, v, w float,
+	)
+
+	MultiLineSignature2(
+		a, b,
+		c int,
+	)
+
+	MultiLineSignature3(
+		a, b,
+		c int, u, v,
+		w float,
+		x ...int)
+
+	MultiLineSignature4(
+		a, b, c int,
+		u, v,
+		w float,
+		x ...int)
+
+	MultiLineSignature5(
+		a, b, c int,
+		u, v, w float,
+		p, q,
+		r string,
+		x ...int)
 }

@@ -7,6 +7,7 @@
 // See malloc.h for an overview.
 
 #include "runtime.h"
+#include "arch.h"
 #include "malloc.h"
 
 void*
@@ -22,6 +23,8 @@ runtime_MCache_Alloc(MCache *c, int32 sizeclass, uintptr size, int32 zeroed)
 		// Replenish using central lists.
 		n = runtime_MCentral_AllocList(&runtime_mheap.central[sizeclass],
 			runtime_class_to_transfercount[sizeclass], &first);
+		if(n == 0)
+			runtime_throw("out of memory");
 		l->list = first;
 		l->nlist = n;
 		c->size += n*size;
@@ -46,7 +49,7 @@ runtime_MCache_Alloc(MCache *c, int32 sizeclass, uintptr size, int32 zeroed)
 			v->next = nil;
 		}
 	}
-	c->local_alloc += size;
+	c->local_cachealloc += size;
 	c->local_objects++;
 	return v;
 }
@@ -88,7 +91,7 @@ runtime_MCache_Free(MCache *c, void *v, int32 sizeclass, uintptr size)
 	l->list = p;
 	l->nlist++;
 	c->size += size;
-	c->local_alloc -= size;
+	c->local_cachealloc -= size;
 	c->local_objects--;
 
 	if(l->nlist >= MaxMCacheListLen) {

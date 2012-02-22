@@ -5,10 +5,9 @@
 package quick
 
 import (
-	"rand"
+	"math/rand"
 	"reflect"
 	"testing"
-	"os"
 )
 
 func fBool(a bool) bool { return a }
@@ -63,7 +62,7 @@ func fIntptr(a *int) *int {
 	return &b
 }
 
-func reportError(property string, err os.Error, t *testing.T) {
+func reportError(property string, err error, t *testing.T) {
 	if err != nil {
 		t.Errorf("%s: %s", property, err)
 	}
@@ -102,7 +101,7 @@ type myStruct struct {
 }
 
 func (m myStruct) Generate(r *rand.Rand, _ int) reflect.Value {
-	return reflect.NewValue(myStruct{x: 42})
+	return reflect.ValueOf(myStruct{x: 42})
 }
 
 func myStructProperty(in myStruct) bool { return in.x == 42 }

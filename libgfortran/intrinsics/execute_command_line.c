@@ -1,5 +1,5 @@
 /* Implementation of the EXECUTE_COMMAND_LINE intrinsic.
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2011 Free Software Foundation, Inc.
    Contributed by FranÃ§ois-Xavier Coudert.
 
 This file is part of the GNU Fortran runtime library (libgfortran).
@@ -26,10 +26,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include "libgfortran.h"
 #include <string.h>
 #include <stdbool.h>
-
-#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
-#endif
+
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -38,9 +36,12 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #endif
 
 
-enum { EXEC_NOERROR = 0, EXEC_SYSTEMFAILED };
+enum { EXEC_SYNCHRONOUS = -2, EXEC_NOERROR = 0, EXEC_SYSTEMFAILED,
+       EXEC_CHILDFAILED };
 static const char *cmdmsg_values[] =
-  { "", "Execution of child process impossible" };
+  { "",
+    "Termination status of the command-language interpreter cannot be obtained",
+    "Execution of child process impossible" };
 
 
 
@@ -49,7 +50,7 @@ set_cmdstat (int *cmdstat, int value)
 {
   if (cmdstat)
     *cmdstat = value;
-  else if (value != 0)
+  else if (value > EXEC_NOERROR)
     runtime_error ("Could not execute command line");
 }
 
@@ -74,10 +75,10 @@ execute_command_line (const char *command, bool wait, int *exitstat,
       /* Asynchronous execution.  */
       pid_t pid;
 
-      set_cmdstat (cmdstat, 0);
+      set_cmdstat (cmdstat, EXEC_NOERROR);
 
       if ((pid = fork()) < 0)
-	set_cmdstat (cmdstat, EXEC_SYSTEMFAILED);
+	set_cmdstat (cmdstat, EXEC_CHILDFAILED);
       else if (pid == 0)
 	{
 	  /* Child process.  */
@@ -91,13 +92,15 @@ execute_command_line (const char *command, bool wait, int *exitstat,
       /* Synchronous execution.  */
       int res = system (cmd);
 
-      if (!wait)
-	set_cmdstat (cmdstat, -2);
-      else if (res == -1)
+      if (res == -1)
 	set_cmdstat (cmdstat, EXEC_SYSTEMFAILED);
+      else if (!wait)
+	set_cmdstat (cmdstat, EXEC_SYNCHRONOUS);
       else
+	set_cmdstat (cmdstat, EXEC_NOERROR);
+
+      if (res != -1)
 	{
-	  set_cmdstat (cmdstat, 0);
 #if defined(WEXITSTATUS) && defined(WIFEXITED)
 	  *exitstat = WIFEXITED(res) ? WEXITSTATUS(res) : res;
 #else
@@ -107,7 +110,7 @@ execute_command_line (const char *command, bool wait, int *exitstat,
     }
 
   /* Now copy back to the Fortran string if needed.  */
-  if (cmdstat && *cmdstat > 0)
+  if (cmdstat && *cmdstat > EXEC_NOERROR)
     {
       if (cmdmsg)
 	fstrcpy (cmdmsg, cmdmsg_len, cmdmsg_values[*cmdstat],

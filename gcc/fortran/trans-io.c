@@ -295,7 +295,7 @@ gfc_build_io_library_fndecls (void)
   types[IOPARM_type_pchar] = pchar_type_node;
   pad_size = 16 * TREE_INT_CST_LOW (TYPE_SIZE_UNIT (pchar_type_node));
   pad_size += 32 * TREE_INT_CST_LOW (TYPE_SIZE_UNIT (integer_type_node));
-  pad_idx = build_index_type (build_int_cst (NULL_TREE, pad_size - 1));
+  pad_idx = build_index_type (size_int (pad_size - 1));
   types[IOPARM_type_pad] = build_array_type (char_type_node, pad_idx);
 
   /* pad actually contains pointers and integers so it needs to have an
@@ -826,13 +826,13 @@ add_case (int label_value, gfc_st_label * label, stmtblock_t * body)
   if (label == NULL)
     return;			/* No label, no case */
 
-  value = build_int_cst (NULL_TREE, label_value);
+  value = build_int_cst (integer_type_node, label_value);
 
   /* Make a backend label for this case.  */
   tmp = gfc_build_label_decl (NULL_TREE);
 
   /* And the case itself.  */
-  tmp = build3_v (CASE_LABEL_EXPR, value, NULL_TREE, tmp);
+  tmp = build_case_label (value, NULL_TREE, tmp);
   gfc_add_expr_to_block (body, tmp);
 
   /* Jump to the label.  */
@@ -1937,6 +1937,7 @@ transfer_array_component (tree expr, gfc_component * cm, locus * where)
   int n;
   gfc_ss *ss;
   gfc_se se;
+  gfc_array_info *ss_array;
 
   gfc_start_block (&block);
   gfc_init_se (&se, NULL);
@@ -1946,25 +1947,22 @@ transfer_array_component (tree expr, gfc_component * cm, locus * where)
      care of this task, because we don't have a gfc_expr at hand.
      Build one manually, as in gfc_trans_subarray_assign.  */
 
-  ss = gfc_get_ss ();
-  ss->type = GFC_SS_COMPONENT;
-  ss->expr = NULL;
-  ss->shape = gfc_get_shape (cm->as->rank);
-  ss->next = gfc_ss_terminator;
-  ss->data.info.dimen = cm->as->rank;
-  ss->data.info.descriptor = expr;
-  ss->data.info.data = gfc_conv_array_data (expr);
-  ss->data.info.offset = gfc_conv_array_offset (expr);
+  ss = gfc_get_array_ss (gfc_ss_terminator, NULL, cm->as->rank,
+			 GFC_SS_COMPONENT);
+  ss_array = &ss->info->data.array;
+  ss_array->shape = gfc_get_shape (cm->as->rank);
+  ss_array->descriptor = expr;
+  ss_array->data = gfc_conv_array_data (expr);
+  ss_array->offset = gfc_conv_array_offset (expr);
   for (n = 0; n < cm->as->rank; n++)
     {
-      ss->data.info.dim[n] = n;
-      ss->data.info.start[n] = gfc_conv_array_lbound (expr, n);
-      ss->data.info.stride[n] = gfc_index_one_node;
+      ss_array->start[n] = gfc_conv_array_lbound (expr, n);
+      ss_array->stride[n] = gfc_index_one_node;
 
-      mpz_init (ss->shape[n]);
-      mpz_sub (ss->shape[n], cm->as->upper[n]->value.integer,
+      mpz_init (ss_array->shape[n]);
+      mpz_sub (ss_array->shape[n], cm->as->upper[n]->value.integer,
                cm->as->lower[n]->value.integer);
-      mpz_add_ui (ss->shape[n], ss->shape[n], 1);
+      mpz_add_ui (ss_array->shape[n], ss_array->shape[n], 1);
     }
 
   /* Once we got ss, we use scalarizer to create the loop.  */
@@ -1999,10 +1997,8 @@ transfer_array_component (tree expr, gfc_component * cm, locus * where)
   gfc_add_block_to_block (&block, &loop.pre);
   gfc_add_block_to_block (&block, &loop.post);
 
-  for (n = 0; n < cm->as->rank; n++)
-    mpz_clear (ss->shape[n]);
-  free (ss->shape);
-
+  gcc_assert (ss_array->shape != NULL);
+  gfc_free_shape (&ss_array->shape, cm->as->rank);
   gfc_cleanup_loop (&loop);
 
   return gfc_finish_block (&block);
@@ -2051,7 +2047,7 @@ transfer_expr (gfc_se * se, gfc_typespec * ts, tree addr_expr, gfc_code * code)
   switch (ts->type)
     {
     case BT_INTEGER:
-      arg2 = build_int_cst (NULL_TREE, kind);
+      arg2 = build_int_cst (integer_type_node, kind);
       if (last_dt == READ)
 	function = iocall[IOCALL_X_INTEGER];
       else
@@ -2060,7 +2056,7 @@ transfer_expr (gfc_se * se, gfc_typespec * ts, tree addr_expr, gfc_code * code)
       break;
 
     case BT_REAL:
-      arg2 = build_int_cst (NULL_TREE, kind);
+      arg2 = build_int_cst (integer_type_node, kind);
       if (last_dt == READ)
 	{
 	  if (gfc_real16_is_float128 && ts->kind == 16)
@@ -2079,7 +2075,7 @@ transfer_expr (gfc_se * se, gfc_typespec * ts, tree addr_expr, gfc_code * code)
       break;
 
     case BT_COMPLEX:
-      arg2 = build_int_cst (NULL_TREE, kind);
+      arg2 = build_int_cst (integer_type_node, kind);
       if (last_dt == READ)
 	{
 	  if (gfc_real16_is_float128 && ts->kind == 16)
@@ -2098,7 +2094,7 @@ transfer_expr (gfc_se * se, gfc_typespec * ts, tree addr_expr, gfc_code * code)
       break;
 
     case BT_LOGICAL:
-      arg2 = build_int_cst (NULL_TREE, kind);
+      arg2 = build_int_cst (integer_type_node, kind);
       if (last_dt == READ)
 	function = iocall[IOCALL_X_LOGICAL];
       else
@@ -2119,7 +2115,7 @@ transfer_expr (gfc_se * se, gfc_typespec * ts, tree addr_expr, gfc_code * code)
 	      arg2 = TYPE_MAX_VALUE (TYPE_DOMAIN (TREE_TYPE (tmp)));
 	      arg2 = fold_convert (gfc_charlen_type_node, arg2);
 	    }
-	  arg3 = build_int_cst (NULL_TREE, kind);
+	  arg3 = build_int_cst (integer_type_node, kind);
 	  if (last_dt == READ)
 	    function = iocall[IOCALL_X_CHARACTER_WIDE];
 	  else
@@ -2203,9 +2199,9 @@ transfer_array_desc (gfc_se * se, gfc_typespec * ts, tree addr_expr)
   if (ts->type == BT_CHARACTER)
     charlen_arg = se->string_length;
   else
-    charlen_arg = build_int_cst (NULL_TREE, 0);
+    charlen_arg = build_int_cst (gfc_charlen_type_node, 0);
 
-  kind_arg = build_int_cst (NULL_TREE, ts->kind);
+  kind_arg = build_int_cst (integer_type_node, ts->kind);
 
   tmp = gfc_build_addr_expr (NULL_TREE, dt_parm);
   if (last_dt == READ)

@@ -24,7 +24,7 @@
 #undef LIB_SPEC
 #undef ENDFILE_SPEC
 #undef  LINK_SPEC
-#define LINK_SPEC "%{mrelax:--relax}"
+#define LINK_SPEC "%{mrelax:%{!r:--relax}}"
 #undef  STARTFILE_SPEC
 #define STARTFILE_SPEC "%{!mno-crt0:%{!shared:%{pg:gcrt0%O%s}%{!pg:%{p:mcrt0%O%s}%{!p:crt0%O%s}}}}"
 
@@ -54,6 +54,8 @@
       builtin_define (TARGET_ALLOW_LIW ?	\
 		      "__LIW__" : "__NO_LIW__");\
 						\
+      builtin_define (TARGET_ALLOW_SETLB  ?	\
+		      "__SETLB__" : "__NO_SETLB__");\
     }						\
   while (0)
 
@@ -385,12 +387,6 @@ enum reg_class
 
 #define LIMIT_RELOAD_CLASS(MODE, CLASS) \
   (!TARGET_AM33 && (MODE == QImode || MODE == HImode) ? DATA_REGS : CLASS)
-
-/* Return the maximum number of consecutive registers
-   needed to represent mode MODE in a register of class CLASS.  */
-
-#define CLASS_MAX_NREGS(CLASS, MODE)	\
-  ((GET_MODE_SIZE (MODE) + UNITS_PER_WORD - 1) / UNITS_PER_WORD)
 
 /* A class that contains registers which the compiler must always
    access in a mode that is the same size as the mode in which it

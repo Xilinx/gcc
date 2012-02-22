@@ -1,6 +1,7 @@
 /* { dg-do compile } */
-/* { dg-options "-O -fprofile-generate -fdump-ipa-tree_profile_ipa" } */
-/* { dg-final { scan-ipa-dump "/profile-dir-2.gcda" "tree_profile_ipa" } } */
+/* { dg-require-profiling "-fprofile-generate" } */
+/* { dg-options "-O -fprofile-generate -fdump-ipa-cgraph" } */
+/* { dg-final { scan-ipa-dump "/profile-dir-2.gcda" "cgraph" } } */
 
 int
 main(void)
@@ -8,4 +9,4 @@ main(void)
   return 0;
 }
 
-/* { dg-final { cleanup-ipa-dump "tree_profile_ipa" } } */
+/* { dg-final { cleanup-ipa-dump "cgraph" } } */

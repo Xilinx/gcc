@@ -62,6 +62,43 @@ namespace __gnu_debug
   __check_singular_aux(const _Safe_iterator_base* __x)
   { return __x->_M_singular(); }
 
+  /** The precision to which we can calculate the distance between
+   *  two iterators.
+   */
+  enum _Distance_precision
+    {
+      __dp_equality, //< Can compare iterator equality, only
+      __dp_sign,     //< Can determine equality and ordering
+      __dp_exact     //< Can determine distance precisely
+    };
+
+  /** Determine the distance between two iterators with some known
+   *	precision.
+  */
+  template<typename _Iterator1, typename _Iterator2>
+    inline std::pair<typename std::iterator_traits<_Iterator1>::difference_type,
+		     _Distance_precision>
+    __get_distance(const _Iterator1& __lhs, const _Iterator2& __rhs,
+		   std::random_access_iterator_tag)
+    { return std::make_pair(__rhs - __lhs, __dp_exact); }
+
+  template<typename _Iterator1, typename _Iterator2>
+    inline std::pair<typename std::iterator_traits<_Iterator1>::difference_type,
+		     _Distance_precision>
+    __get_distance(const _Iterator1& __lhs, const _Iterator2& __rhs,
+		   std::forward_iterator_tag)
+    { return std::make_pair(__lhs == __rhs? 0 : 1, __dp_equality); }
+
+  template<typename _Iterator1, typename _Iterator2>
+    inline std::pair<typename std::iterator_traits<_Iterator1>::difference_type,
+		     _Distance_precision>
+    __get_distance(const _Iterator1& __lhs, const _Iterator2& __rhs)
+    {
+      typedef typename std::iterator_traits<_Iterator1>::iterator_category
+	  _Category;
+      return __get_distance(__lhs, __rhs, _Category());
+    }
+
   /** \brief Safe iterator wrapper.
    *
    *  The class template %_Safe_iterator is a wrapper around an
@@ -77,16 +114,6 @@ namespace __gnu_debug
     class _Safe_iterator : public _Safe_iterator_base
     {
       typedef _Safe_iterator _Self;
-
-      /** The precision to which we can calculate the distance between
-       *  two iterators.
-       */
-      enum _Distance_precision
-	{
-	  __dp_equality, //< Can compare iterator equality, only
-	  __dp_sign,     //< Can determine equality and ordering
-	  __dp_exact     //< Can determine distance precisely
-	};
 
       /// The underlying iterator
       _Iterator _M_current;
@@ -353,8 +380,12 @@ namespace __gnu_debug
       bool
       _M_before_dereferenceable() const
       {
-	_Self __it = *this;
-	return __it._M_incrementable() && (++__it)._M_dereferenceable();
+	if (this->_M_incrementable())
+	{
+	  _Iterator __base = base();
+	  return ++__base != _M_get_sequence()->_M_base().end();
+	}
+	return false;
       }
 
       /// Is the iterator incrementable?
@@ -379,30 +410,6 @@ namespace __gnu_debug
       const _Sequence*
       _M_get_sequence() const
       { return static_cast<const _Sequence*>(_M_sequence); }
-
-    /** Determine the distance between two iterators with some known
-     *	precision.
-    */
-    template<typename _Iterator1, typename _Iterator2>
-      static std::pair<difference_type, _Distance_precision>
-      _M_get_distance(const _Iterator1& __lhs, const _Iterator2& __rhs)
-      {
-        typedef typename std::iterator_traits<_Iterator1>::iterator_category
-	  _Category;
-        return _M_get_distance(__lhs, __rhs, _Category());
-      }
-
-    template<typename _Iterator1, typename _Iterator2>
-      static std::pair<difference_type, _Distance_precision>
-      _M_get_distance(const _Iterator1& __lhs, const _Iterator2& __rhs,
-		      std::random_access_iterator_tag)
-      { return std::make_pair(__rhs - __lhs, __dp_exact); }
-
-    template<typename _Iterator1, typename _Iterator2>
-      static std::pair<difference_type, _Distance_precision>
-      _M_get_distance(const _Iterator1& __lhs, const _Iterator2& __rhs,
-		    std::forward_iterator_tag)
-      { return std::make_pair(__lhs == __rhs? 0 : 1, __dp_equality); }
 
       /// Is this iterator equal to the sequence's begin() iterator?
       bool _M_is_begin() const

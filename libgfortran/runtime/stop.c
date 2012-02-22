@@ -1,8 +1,8 @@
 /* Implementation of the STOP statement.
-   Copyright 2002, 2005, 2007, 2009, 2010 Free Software Foundation, Inc.
+   Copyright 2002, 2005, 2007, 2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
 
-This file is part of the GNU Fortran 95 runtime library (libgfortran).
+This file is part of the GNU Fortran runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public
@@ -24,7 +24,9 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
 #include "libgfortran.h"
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 /* A numeric STOP statement.  */
 
@@ -40,7 +42,7 @@ stop_numeric (GFC_INTEGER_4 code)
   else
     st_printf ("STOP %d\n", (int)code);
 
-  sys_exit (code);
+  exit (code);
 }
 
 
@@ -54,7 +56,7 @@ void
 stop_numeric_f08 (GFC_INTEGER_4 code)
 {
   st_printf ("STOP %d\n", (int)code);
-  sys_exit (code);
+  exit (code);
 }
 
 
@@ -65,12 +67,11 @@ stop_string (const char *string, GFC_INTEGER_4 len)
 {
   if (string)
     {
-      st_printf ("STOP ");
-      while (len--)
-	st_printf ("%c", *(string++));
-      st_printf ("\n");
+      estr_write ("STOP ");
+      (void) write (STDERR_FILENO, string, len);
+      estr_write ("\n");
     }
-  sys_exit (0);
+  exit (0);
 }
 
 
@@ -86,12 +87,11 @@ export_proto(error_stop_string);
 void
 error_stop_string (const char *string, GFC_INTEGER_4 len)
 {
-  st_printf ("ERROR STOP ");
-  while (len--)
-    st_printf ("%c", *(string++));
-  st_printf ("\n");
+  estr_write ("ERROR STOP ");
+  (void) write (STDERR_FILENO, string, len);
+  estr_write ("\n");
 
-  sys_exit (1);
+  exit (1);
 }
 
 
@@ -105,5 +105,5 @@ void
 error_stop_numeric (GFC_INTEGER_4 code)
 {
   st_printf ("ERROR STOP %d\n", (int) code);
-  sys_exit (code);
+  exit (code);
 }

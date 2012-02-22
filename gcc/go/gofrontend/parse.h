@@ -75,7 +75,7 @@ class Parse
     // The variable name.
     std::string name;
     // The location of the variable.
-    source_location location;
+    Location location;
     // The expression.
     Expression* expr;
 
@@ -131,6 +131,9 @@ class Parse
   // A set of Enclosing_var entries.
   typedef std::set<Enclosing_var, Enclosing_var_comparison> Enclosing_vars;
 
+  // Used to detect duplicate parameter/result names.
+  typedef std::map<std::string, const Typed_identifier*> Names;
+
   // Peek at the current token from the lexer.
   const Token*
   peek_token();
@@ -144,13 +147,18 @@ class Parse
   unget_token(const Token&);
 
   // The location of the current token.
-  source_location
+  Location
   location();
 
   // For break and continue we keep a stack of statements with
   // associated labels (if any).  The top of the stack is used for a
   // break or continue statement with no label.
-  typedef std::vector<std::pair<Statement*, const Label*> > Bc_stack;
+  typedef std::vector<std::pair<Statement*, Label*> > Bc_stack;
+
+  // Map from type switch variables to the variables they mask, so
+  // that a use of the type switch variable can become a use of the
+  // real variable.
+  typedef Unordered_map(Named_object*, Named_object*) Type_switch_vars;
 
   // Parser nonterminals.
   void identifier_list(Typed_identifier_list*);
@@ -165,12 +173,13 @@ class Parse
   void field_decl(Struct_field_list*);
   Type* pointer_type();
   Type* channel_type();
-  Function_type* signature(Typed_identifier*, source_location);
+  void check_signature_names(const Typed_identifier_list*, Names*);
+  Function_type* signature(Typed_identifier*, Location);
   bool parameters(Typed_identifier_list**, bool* is_varargs);
   Typed_identifier_list* parameter_list(bool* is_varargs);
   void parameter_decl(bool, Typed_identifier_list*, bool*, bool*);
   bool result(Typed_identifier_list**);
-  source_location block();
+  Location block();
   Type* interface_type();
   void method_spec(Typed_identifier_list*);
   void declaration();
@@ -184,30 +193,30 @@ class Parse
   void var_decl();
   void var_spec(void*);
   void init_vars(const Typed_identifier_list*, Type*, Expression_list*,
-		 bool is_coloneq, source_location);
+		 bool is_coloneq, Location);
   bool init_vars_from_call(const Typed_identifier_list*, Type*, Expression*,
-			   bool is_coloneq, source_location);
+			   bool is_coloneq, Location);
   bool init_vars_from_map(const Typed_identifier_list*, Type*, Expression*,
-			  bool is_coloneq, source_location);
+			  bool is_coloneq, Location);
   bool init_vars_from_receive(const Typed_identifier_list*, Type*,
-			      Expression*, bool is_coloneq, source_location);
+			      Expression*, bool is_coloneq, Location);
   bool init_vars_from_type_guard(const Typed_identifier_list*, Type*,
 				 Expression*, bool is_coloneq,
-				 source_location);
+				 Location);
   Named_object* init_var(const Typed_identifier&, Type*, Expression*,
 			 bool is_coloneq, bool type_from_init, bool* is_new);
-  Named_object* create_dummy_global(Type*, Expression*, source_location);
-  void simple_var_decl_or_assignment(const std::string&, source_location,
+  Named_object* create_dummy_global(Type*, Expression*, Location);
+  void simple_var_decl_or_assignment(const std::string&, Location,
 				     Range_clause*, Type_switch*);
   void function_decl();
   Typed_identifier* receiver();
   Expression* operand(bool may_be_sink);
   Expression* enclosing_var_reference(Named_object*, Named_object*,
-				      source_location);
-  Expression* composite_lit(Type*, int depth, source_location);
+				      Location);
+  Expression* composite_lit(Type*, int depth, Location);
   Expression* function_lit();
   Expression* create_closure(Named_object* function, Enclosing_vars*,
-			     source_location);
+			     Location);
   Expression* primary_expr(bool may_be_sink, bool may_be_composite_lit,
 			   bool* is_type_switch);
   Expression* selector(Expression*, bool* is_type_switch);
@@ -218,12 +227,12 @@ class Parse
   bool expression_may_start_here();
   Expression* unary_expr(bool may_be_sink, bool may_be_composite_lit,
 			 bool* is_type_switch);
-  Expression* qualified_expr(Expression*, source_location);
-  Expression* id_to_expression(const std::string&, source_location);
-  void statement(const Label*);
+  Expression* qualified_expr(Expression*, Location);
+  Expression* id_to_expression(const std::string&, Location);
+  void statement(Label*);
   bool statement_may_start_here();
-  void labeled_stmt(const std::string&, source_location);
-  Expression* simple_stat(bool, bool, Range_clause*, Type_switch*);
+  void labeled_stmt(const std::string&, Location);
+  Expression* simple_stat(bool, bool*, Range_clause*, Type_switch*);
   bool simple_stat_may_start_here();
   void statement_list();
   bool statement_list_may_start_here();
@@ -236,26 +245,25 @@ class Parse
   void go_or_defer_stat();
   void return_stat();
   void if_stat();
-  void switch_stat(const Label*);
-  Statement* expr_switch_body(const Label*, Expression*, source_location);
+  void switch_stat(Label*);
+  Statement* expr_switch_body(Label*, Expression*, Location);
   void expr_case_clause(Case_clauses*, bool* saw_default);
   Expression_list* expr_switch_case(bool*);
-  Statement* type_switch_body(const Label*, const Type_switch&,
-			      source_location);
+  Statement* type_switch_body(Label*, const Type_switch&, Location);
   void type_case_clause(Named_object*, Type_case_clauses*, bool* saw_default);
   void type_switch_case(std::vector<Type*>*, bool*);
-  void select_stat(const Label*);
+  void select_stat(Label*);
   void comm_clause(Select_clauses*, bool* saw_default);
   bool comm_case(bool*, Expression**, Expression**, Expression**,
 		 std::string*, std::string*, bool*);
   bool send_or_recv_stmt(bool*, Expression**, Expression**, Expression**,
 			 std::string*, std::string*);
-  void for_stat(const Label*);
+  void for_stat(Label*);
   void for_clause(Expression**, Block**);
   void range_clause_decl(const Typed_identifier_list*, Range_clause*);
   void range_clause_expr(const Expression_list*, Range_clause*);
-  void push_break_statement(Statement*, const Label*);
-  void push_continue_statement(Statement*, const Label*);
+  void push_break_statement(Statement*, Label*);
+  void push_continue_statement(Statement*, Label*);
   void pop_break_statement();
   void pop_continue_statement();
   Statement* find_bc_statement(const Bc_stack*, const std::string&);
@@ -285,6 +293,10 @@ class Parse
   Statement*
   find_bc_statement(const Bc_stack*, const std::string&) const;
 
+  // Mark a variable as used.
+  void
+  mark_var_used(Named_object*);
+
   // The lexer output we are parsing.
   Lex* lex_;
   // The current token.
@@ -293,6 +305,8 @@ class Parse
   Token unget_token_;
   // Whether unget_token_ is valid.
   bool unget_token_valid_;
+  // Whether the function we are parsing had errors in the signature.
+  bool is_erroneous_function_;
   // The code we are generating.
   Gogo* gogo_;
   // A stack of statements for which break may be used.
@@ -304,6 +318,8 @@ class Parse
   // References from the local function to variables defined in
   // enclosing functions.
   Enclosing_vars enclosing_vars_;
+  // Map from type switch variables to real variables.
+  Type_switch_vars type_switch_vars_;
 };
 
 

@@ -544,8 +544,9 @@ conditional_replacement (basic_block cond_bb, basic_block middle_bb,
   /* To handle special cases like floating point comparison, it is easier and
      less error-prone to build a tree and gimplify it on the fly though it is
      less efficient.  */
-  cond = fold_build2 (gimple_cond_code (stmt), boolean_type_node,
-		      gimple_cond_lhs (stmt), gimple_cond_rhs (stmt));
+  cond = fold_build2_loc (gimple_location (stmt),
+			  gimple_cond_code (stmt), boolean_type_node,
+			  gimple_cond_lhs (stmt), gimple_cond_rhs (stmt));
 
   /* We need to know which is the true edge and which is the false
      edge so that we know when to invert the condition below.  */
@@ -554,7 +555,8 @@ conditional_replacement (basic_block cond_bb, basic_block middle_bb,
       || (e0 == false_edge && integer_onep (arg0))
       || (e1 == true_edge && integer_zerop (arg1))
       || (e1 == false_edge && integer_onep (arg1)))
-    cond = fold_build1 (TRUTH_NOT_EXPR, TREE_TYPE (cond), cond);
+    cond = fold_build1_loc (gimple_location (stmt),
+			    TRUTH_NOT_EXPR, TREE_TYPE (cond), cond);
 
   /* Insert our new statements at the end of conditional block before the
      COND_STMT.  */
@@ -589,6 +591,38 @@ conditional_replacement (basic_block cond_bb, basic_block middle_bb,
   return true;
 }
 
+/* Update *ARG which is defined in STMT so that it contains the
+   computed value if that seems profitable.  Return true if the
+   statement is made dead by that rewriting.  */
+
+static bool
+jump_function_from_stmt (tree *arg, gimple stmt)
+{
+  enum tree_code code = gimple_assign_rhs_code (stmt);
+  if (code == ADDR_EXPR)
+    {
+      /* For arg = &p->i transform it to p, if possible.  */
+      tree rhs1 = gimple_assign_rhs1 (stmt);
+      HOST_WIDE_INT offset;
+      tree tem = get_addr_base_and_unit_offset (TREE_OPERAND (rhs1, 0),
+						&offset);
+      if (tem
+	  && TREE_CODE (tem) == MEM_REF
+	  && double_int_zero_p
+	       (double_int_add (mem_ref_offset (tem),
+				shwi_to_double_int (offset))))
+	{
+	  *arg = TREE_OPERAND (tem, 0);
+	  return true;
+	}
+    }
+  /* TODO: Much like IPA-CP jump-functions we want to handle constant
+     additions symbolically here, and we'd need to update the comparison
+     code that compares the arg + cst tuples in our caller.  For now the
+     code above exactly handles the VEC_BASE pattern from vec.h.  */
+  return false;
+}
+
 /*  The function value_replacement does the main work of doing the value
     replacement.  Return true if the replacement is done.  Otherwise return
     false.
@@ -600,6 +634,7 @@ value_replacement (basic_block cond_bb, basic_block middle_bb,
 		   edge e0, edge e1, gimple phi,
 		   tree arg0, tree arg1)
 {
+  gimple_stmt_iterator gsi;
   gimple cond;
   edge true_edge, false_edge;
   enum tree_code code;
@@ -609,8 +644,32 @@ value_replacement (basic_block cond_bb, basic_block middle_bb,
   if (HONOR_SIGNED_ZEROS (TYPE_MODE (TREE_TYPE (arg1))))
     return false;
 
-  if (!empty_block_p (middle_bb))
-    return false;
+  /* Allow a single statement in MIDDLE_BB that defines one of the PHI
+     arguments.  */
+  gsi = gsi_after_labels (middle_bb);
+  if (!gsi_end_p (gsi))
+    {
+      if (is_gimple_debug (gsi_stmt (gsi)))
+	gsi_next_nondebug (&gsi);
+      if (!gsi_end_p (gsi))
+	{
+	  gimple stmt = gsi_stmt (gsi);
+	  tree lhs;
+	  gsi_next_nondebug (&gsi);
+	  if (!gsi_end_p (gsi))
+	    return false;
+	  if (!is_gimple_assign (stmt))
+	    return false;
+	  /* Now try to adjust arg0 or arg1 according to the computation
+	     in the single statement.  */
+	  lhs = gimple_assign_lhs (stmt);
+	  if (!((lhs == arg0
+		 && jump_function_from_stmt (&arg0, stmt))
+		|| (lhs == arg1
+		    && jump_function_from_stmt (&arg1, stmt))))
+	    return false;
+	}
+    }
 
   cond = last_stmt (cond_bb);
   code = gimple_cond_code (cond);
@@ -1267,10 +1326,7 @@ cond_store_replacement (basic_block middle_bb, basic_block join_bb,
   /* 2) Create a temporary where we can store the old content
         of the memory touched by the store, if we need to.  */
   if (!condstoretemp || TREE_TYPE (lhs) != TREE_TYPE (condstoretemp))
-    {
-      condstoretemp = create_tmp_reg (TREE_TYPE (lhs), "cstore");
-      get_var_ann (condstoretemp);
-    }
+    condstoretemp = create_tmp_reg (TREE_TYPE (lhs), "cstore");
   add_referenced_var (condstoretemp);
 
   /* 3) Insert a load from the memory of the store to the temporary
@@ -1319,8 +1375,10 @@ cond_if_else_store_replacement_1 (basic_block then_bb, basic_block else_bb,
 
   if (then_assign == NULL
       || !gimple_assign_single_p (then_assign)
+      || gimple_clobber_p (then_assign)
       || else_assign == NULL
-      || !gimple_assign_single_p (else_assign))
+      || !gimple_assign_single_p (else_assign)
+      || gimple_clobber_p (else_assign))
     return false;
 
   lhs = gimple_assign_lhs (then_assign);
@@ -1353,10 +1411,7 @@ cond_if_else_store_replacement_1 (basic_block then_bb, basic_block else_bb,
   /* 2) Create a temporary where we can store the old content
 	of the memory touched by the store, if we need to.  */
   if (!condstoretemp || TREE_TYPE (lhs) != TREE_TYPE (condstoretemp))
-    {
-      condstoretemp = create_tmp_reg (TREE_TYPE (lhs), "cstore");
-      get_var_ann (condstoretemp);
-    }
+    condstoretemp = create_tmp_reg (TREE_TYPE (lhs), "cstore");
   add_referenced_var (condstoretemp);
 
   /* 3) Create a PHI node at the join block, with one argument
@@ -1452,7 +1507,7 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
         continue;
 
       then_store = DR_STMT (then_dr);
-      then_lhs = gimple_assign_lhs (then_store);
+      then_lhs = gimple_get_lhs (then_store);
       found = false;
 
       FOR_EACH_VEC_ELT (data_reference_p, else_datarefs, j, else_dr)
@@ -1461,7 +1516,7 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
             continue;
 
           else_store = DR_STMT (else_dr);
-          else_lhs = gimple_assign_lhs (else_store);
+          else_lhs = gimple_get_lhs (else_store);
 
           if (operand_equal_p (then_lhs, else_lhs, 0))
             {
@@ -1588,8 +1643,7 @@ struct gimple_opt_pass pass_phiopt =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func
-    | TODO_ggc_collect
+  TODO_ggc_collect
     | TODO_verify_ssa
     | TODO_verify_flow
     | TODO_verify_stmts	 		/* todo_flags_finish */
@@ -1617,8 +1671,7 @@ struct gimple_opt_pass pass_cselim =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func
-    | TODO_ggc_collect
+  TODO_ggc_collect
     | TODO_verify_ssa
     | TODO_verify_flow
     | TODO_verify_stmts	 		/* todo_flags_finish */

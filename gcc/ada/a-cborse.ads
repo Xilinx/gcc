@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2004-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 2004-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -31,6 +31,8 @@
 -- This unit was originally developed by Matthew J Heaney.                  --
 ------------------------------------------------------------------------------
 
+with Ada.Iterator_Interfaces;
+
 private with Ada.Containers.Red_Black_Trees;
 private with Ada.Streams;
 
@@ -46,7 +48,11 @@ package Ada.Containers.Bounded_Ordered_Sets is
 
    function Equivalent_Elements (Left, Right : Element_Type) return Boolean;
 
-   type Set (Capacity : Count_Type) is tagged private;
+   type Set (Capacity : Count_Type) is tagged private
+   with Constant_Indexing => Constant_Reference,
+        Default_Iterator  => Iterate,
+        Iterator_Element  => Element_Type;
+
    pragma Preelaborable_Initialization (Set);
 
    type Cursor is private;
@@ -55,6 +61,11 @@ package Ada.Containers.Bounded_Ordered_Sets is
    Empty_Set : constant Set;
 
    No_Element : constant Cursor;
+
+   function Has_Element (Position : Cursor) return Boolean;
+
+   package Set_Iterator_Interfaces is new
+     Ada.Iterator_Interfaces (Cursor, Has_Element);
 
    function "=" (Left, Right : Set) return Boolean;
 
@@ -78,6 +89,16 @@ package Ada.Containers.Bounded_Ordered_Sets is
    procedure Query_Element
      (Position : Cursor;
       Process  : not null access procedure (Element : Element_Type));
+
+   type Constant_Reference_Type
+      (Element : not null access constant Element_Type) is
+   private
+   with
+      Implicit_Dereference => Element;
+
+   function Constant_Reference
+     (Container : aliased Set;
+      Position  : Cursor) return Constant_Reference_Type;
 
    procedure Assign (Target : in out Set; Source : Set);
 
@@ -171,8 +192,6 @@ package Ada.Containers.Bounded_Ordered_Sets is
 
    function Contains (Container : Set; Item : Element_Type) return Boolean;
 
-   function Has_Element (Position : Cursor) return Boolean;
-
    function "<" (Left, Right : Cursor) return Boolean;
 
    function ">" (Left, Right : Cursor) return Boolean;
@@ -192,6 +211,15 @@ package Ada.Containers.Bounded_Ordered_Sets is
    procedure Reverse_Iterate
      (Container : Set;
       Process   : not null access procedure (Position : Cursor));
+
+   function Iterate
+     (Container : Set)
+      return Set_Iterator_Interfaces.Reversible_Iterator'class;
+
+   function Iterate
+     (Container : Set;
+      Start     : Cursor)
+      return Set_Iterator_Interfaces.Reversible_Iterator'class;
 
    generic
       type Key_Type (<>) is private;
@@ -231,6 +259,40 @@ package Ada.Containers.Bounded_Ordered_Sets is
          Process   : not null access
                        procedure (Element : in out Element_Type));
 
+      type Reference_Type (Element : not null access Element_Type) is private
+      with
+         Implicit_Dereference => Element;
+
+      function Reference_Preserving_Key
+        (Container : aliased in out Set;
+         Position  : Cursor) return Reference_Type;
+
+      function Constant_Reference
+        (Container : aliased Set;
+         Key       : Key_Type) return Constant_Reference_Type;
+
+      function Reference_Preserving_Key
+        (Container : aliased in out Set;
+         Key       : Key_Type) return Reference_Type;
+
+   private
+      type Reference_Type
+         (Element : not null access Element_Type) is null record;
+
+      use Ada.Streams;
+
+      procedure Read
+        (Stream : not null access Root_Stream_Type'Class;
+         Item   : out Reference_Type);
+
+      for Reference_Type'Read use Read;
+
+      procedure Write
+        (Stream : not null access Root_Stream_Type'Class;
+         Item   : Reference_Type);
+
+      for Reference_Type'Write use Write;
+
    end Generic_Keys;
 
 private
@@ -243,7 +305,7 @@ private
       Left    : Count_Type;
       Right   : Count_Type;
       Color   : Red_Black_Trees.Color_Type := Red_Black_Trees.Red;
-      Element : Element_Type;
+      Element : aliased Element_Type;
    end record;
 
    package Tree_Types is
@@ -252,30 +314,8 @@ private
    type Set (Capacity : Count_Type) is
      new Tree_Types.Tree_Type (Capacity) with null record;
 
-   type Set_Access is access all Set;
-   for Set_Access'Storage_Size use 0;
-
-   type Cursor is record
-      Container : Set_Access;
-      Node      : Count_Type;
-   end record;
-
    use Tree_Types;
    use Ada.Streams;
-
-   procedure Write
-     (Stream : not null access Root_Stream_Type'Class;
-      Item   : Cursor);
-
-   for Cursor'Write use Write;
-
-   procedure Read
-     (Stream : not null access Root_Stream_Type'Class;
-      Item   : out Cursor);
-
-   for Cursor'Read use Read;
-
-   No_Element : constant Cursor := Cursor'(null, 0);
 
    procedure Write
      (Stream    : not null access Root_Stream_Type'Class;
@@ -289,6 +329,49 @@ private
 
    for Set'Read use Read;
 
+   type Set_Access is access all Set;
+   for Set_Access'Storage_Size use 0;
+
+   --  Note: If a Cursor object has no explicit initialization expression,
+   --  it must default initialize to the same value as constant No_Element.
+   --  The Node component of type Cursor has scalar type Count_Type, so it
+   --  requires an explicit initialization expression of its own declaration,
+   --  in order for objects of record type Cursor to properly initialize.
+
+   type Cursor is record
+      Container : Set_Access;
+      Node      : Count_Type := 0;
+   end record;
+
+   procedure Write
+     (Stream : not null access Root_Stream_Type'Class;
+      Item   : Cursor);
+
+   for Cursor'Write use Write;
+
+   procedure Read
+     (Stream : not null access Root_Stream_Type'Class;
+      Item   : out Cursor);
+
+   for Cursor'Read use Read;
+
+   type Constant_Reference_Type
+      (Element : not null access constant Element_Type) is null record;
+
+   procedure Read
+     (Stream : not null access Root_Stream_Type'Class;
+      Item   : out Constant_Reference_Type);
+
+   for Constant_Reference_Type'Read use Read;
+
+   procedure Write
+     (Stream : not null access Root_Stream_Type'Class;
+      Item   : Constant_Reference_Type);
+
+   for Constant_Reference_Type'Write use Write;
+
    Empty_Set : constant Set := Set'(Tree_Type with Capacity => 0);
+
+   No_Element : constant Cursor := Cursor'(null, 0);
 
 end Ada.Containers.Bounded_Ordered_Sets;

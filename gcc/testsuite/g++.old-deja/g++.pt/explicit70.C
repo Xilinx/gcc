@@ -18,7 +18,7 @@ template int S<int>::t; // { dg-error "duplicate explicit instantiation" }
 template class S<double>;
 template class S<double>; // { dg-error "duplicate explicit instantiation" } 
 
-extern template void f(double); // { dg-error "extern" } extern not allowed
+extern template void f(double); // { dg-error "extern" "" { target c++98 } }
 inline template class S<float>; // { dg-error "inline" } inline not allowed
 
 template <class T>
@@ -41,4 +41,4 @@ template <class T>
 void g(T);
 
 template void g(int); // { dg-error "no definition available" "no def" }
-// { dg-message "instantiated" "inst" { target *-*-* } 43 }
+// { dg-message "required" "inst" { target *-*-* } 43 }

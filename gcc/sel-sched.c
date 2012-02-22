@@ -794,8 +794,8 @@ substitute_reg_in_expr (expr_t expr, insn_t insn, bool undo)
 	  /* Do not allow clobbering the address register of speculative
              insns.  */
 	  if ((EXPR_SPEC_DONE_DS (expr) & SPECULATIVE)
-              && bitmap_bit_p (VINSN_REG_USES (EXPR_VINSN (expr)),
-			       expr_dest_regno (expr)))
+              && register_unavailable_p (VINSN_REG_USES (EXPR_VINSN (expr)),
+					 expr_dest_reg (expr)))
 	    EXPR_TARGET_AVAILABLE (expr) = false;
 
 	  return true;
@@ -813,18 +813,12 @@ count_occurrences_1 (rtx *cur_rtx, void *arg)
 {
   rtx_search_arg_p p = (rtx_search_arg_p) arg;
 
-  /* The last param FOR_GCSE is true, because otherwise it performs excessive
-    substitutions like
-	r8 = r33
-	r16 = r33
-    for the last insn it presumes r33 equivalent to r8, so it changes it to
-    r33.  Actually, there's no change, but it spoils debugging.  */
-  if (exp_equiv_p (*cur_rtx, p->x, 0, true))
+  if (REG_P (*cur_rtx) && REGNO (*cur_rtx) == REGNO (p->x))
     {
-      /* Bail out if we occupy more than one register.  */
-      if (REG_P (*cur_rtx)
-          && HARD_REGISTER_P (*cur_rtx)
-          && hard_regno_nregs[REGNO(*cur_rtx)][GET_MODE (*cur_rtx)] > 1)
+      /* Bail out if mode is different or more than one register is used.  */
+      if (GET_MODE (*cur_rtx) != GET_MODE (p->x)
+          || (HARD_REGISTER_P (*cur_rtx)
+	      && hard_regno_nregs[REGNO(*cur_rtx)][GET_MODE (*cur_rtx)] > 1))
         {
           p->n = 0;
           return 1;
@@ -837,7 +831,6 @@ count_occurrences_1 (rtx *cur_rtx, void *arg)
     }
 
   if (GET_CODE (*cur_rtx) == SUBREG
-      && REG_P (p->x)
       && (!REG_P (SUBREG_REG (*cur_rtx))
 	  || REGNO (SUBREG_REG (*cur_rtx)) == REGNO (p->x)))
     {
@@ -859,6 +852,7 @@ count_occurrences_equiv (rtx what, rtx where)
 {
   struct rtx_search_arg arg;
 
+  gcc_assert (REG_P (what));
   arg.x = what;
   arg.n = 0;
 
@@ -1581,7 +1575,7 @@ verify_target_availability (expr_t expr, regset used_regs,
   regno = expr_dest_regno (expr);
   mode = GET_MODE (EXPR_LHS (expr));
   target_available = EXPR_TARGET_AVAILABLE (expr) == 1;
-  n = reload_completed ? hard_regno_nregs[regno][mode] : 1;
+  n = HARD_REGISTER_NUM_P (regno) ? hard_regno_nregs[regno][mode] : 1;
 
   live_available = hard_available = true;
   for (i = 0; i < n; i++)
@@ -3631,12 +3625,12 @@ av_set_could_be_blocked_by_bookkeeping_p (av_set_t orig_ops, void *static_params
      renaming.  Check with the right register instead.  */
   if (sparams->dest && REG_P (sparams->dest))
     {
-      unsigned regno = REGNO (sparams->dest);
+      rtx reg = sparams->dest;
       vinsn_t failed_vinsn = INSN_VINSN (sparams->failed_insn);
 
-      if (bitmap_bit_p (VINSN_REG_SETS (failed_vinsn), regno)
-	  || bitmap_bit_p (VINSN_REG_USES (failed_vinsn), regno)
-	  || bitmap_bit_p (VINSN_REG_CLOBBERS (failed_vinsn), regno))
+      if (register_unavailable_p (VINSN_REG_SETS (failed_vinsn), reg)
+	  || register_unavailable_p (VINSN_REG_USES (failed_vinsn), reg)
+	  || register_unavailable_p (VINSN_REG_CLOBBERS (failed_vinsn), reg))
 	return true;
     }
 
@@ -4663,9 +4657,10 @@ create_block_for_bookkeeping (edge e1, edge e2)
 }
 
 /* Return insn after which we must insert bookkeeping code for path(s) incoming
-   into E2->dest, except from E1->src.  */
+   into E2->dest, except from E1->src.  If the returned insn immediately
+   precedes a fence, assign that fence to *FENCE_TO_REWIND.  */
 static insn_t
-find_place_for_bookkeeping (edge e1, edge e2)
+find_place_for_bookkeeping (edge e1, edge e2, fence_t *fence_to_rewind)
 {
   insn_t place_to_insert;
   /* Find a basic block that can hold bookkeeping.  If it can be found, do not
@@ -4707,9 +4702,14 @@ find_place_for_bookkeeping (edge e1, edge e2)
 	sel_print ("Pre-existing bookkeeping block is %i\n", book_block->index);
     }
 
-  /* If basic block ends with a jump, insert bookkeeping code right before it.  */
+  *fence_to_rewind = NULL;
+  /* If basic block ends with a jump, insert bookkeeping code right before it.
+     Notice if we are crossing a fence when taking PREV_INSN.  */
   if (INSN_P (place_to_insert) && control_flow_insn_p (place_to_insert))
-    place_to_insert = PREV_INSN (place_to_insert);
+    {
+      *fence_to_rewind = flist_lookup (fences, place_to_insert);
+      place_to_insert = PREV_INSN (place_to_insert);
+    }
 
   return place_to_insert;
 }
@@ -4784,20 +4784,22 @@ generate_bookkeeping_insn (expr_t c_expr, edge e1, edge e2)
   insn_t join_point, place_to_insert, new_insn;
   int new_seqno;
   bool need_to_exchange_data_sets;
+  fence_t fence_to_rewind;
 
   if (sched_verbose >= 4)
     sel_print ("Generating bookkeeping insn (%d->%d)\n", e1->src->index,
 	       e2->dest->index);
 
   join_point = sel_bb_head (e2->dest);
-  place_to_insert = find_place_for_bookkeeping (e1, e2);
-  if (!place_to_insert)
-    return NULL;
+  place_to_insert = find_place_for_bookkeeping (e1, e2, &fence_to_rewind);
   new_seqno = find_seqno_for_bookkeeping (place_to_insert, join_point);
   need_to_exchange_data_sets
     = sel_bb_empty_p (BLOCK_FOR_INSN (place_to_insert));
 
   new_insn = emit_bookkeeping_insn (place_to_insert, c_expr, new_seqno);
+
+  if (fence_to_rewind)
+    FENCE_INSN (fence_to_rewind) = new_insn;
 
   /* When inserting bookkeeping insn in new block, av sets should be
      following: old basic block (that now holds bookkeeping) data sets are
@@ -6675,7 +6677,7 @@ move_op (insn_t insn, av_set_t orig_ops, expr_t expr_vliw,
 {
   struct moveop_static_params sparams;
   struct cmpd_local_params lparams;
-  bool res;
+  int res;
 
   /* Init params for code_motion_path_driver.  */
   sparams.dest = dest;
@@ -6693,6 +6695,8 @@ move_op (insn_t insn, av_set_t orig_ops, expr_t expr_vliw,
   /* Set appropriate hooks and data.  */
   code_motion_path_driver_info = &move_op_hooks;
   res = code_motion_path_driver (insn, orig_ops, NULL, &lparams, &sparams);
+
+  gcc_assert (res != -1);
 
   if (sparams.was_renamed)
     EXPR_WAS_RENAMED (expr_vliw) = true;
@@ -6868,7 +6872,7 @@ sel_region_init (int rgn)
   for (i = 0; i < current_nr_blocks; i++)
     VEC_quick_push (basic_block, bbs, BASIC_BLOCK (BB_TO_BLOCK (i)));
 
-  sel_init_bbs (bbs, NULL);
+  sel_init_bbs (bbs);
 
   if (flag_sel_sched_pipelining)
     setup_current_loop_nest (rgn, &bbs);
@@ -6877,13 +6881,13 @@ sel_region_init (int rgn)
 
   /* Initialize luids and dependence analysis which both sel-sched and haifa
      need.  */
-  sched_init_luids (bbs, NULL, NULL, NULL);
+  sched_init_luids (bbs);
   sched_deps_init (false);
 
   /* Initialize haifa data.  */
   rgn_setup_sched_infos ();
   sel_set_sched_flags ();
-  haifa_init_h_i_d (bbs, NULL, NULL, NULL);
+  haifa_init_h_i_d (bbs);
 
   sel_compute_priorities (rgn);
   init_deps_global ();
@@ -7215,7 +7219,7 @@ sel_region_target_finish (bool reset_sched_cycles_p)
 
 	  /* Extend luids so that insns generated by the target will
 	     get zero luid.  */
-	  sched_init_luids (NULL, NULL, NULL, NULL);
+	  sched_extend_luids ();
 	}
     }
 
@@ -7269,6 +7273,7 @@ sel_region_finish (bool reset_sched_cycles_p)
 
   finish_deps_global ();
   sched_finish_luids ();
+  VEC_free (haifa_deps_insn_data_def, heap, h_d_i_d);
 
   sel_finish_bbs ();
   BITMAP_FREE (blocks_to_reschedule);

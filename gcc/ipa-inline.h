@@ -48,7 +48,7 @@ typedef VEC(condition,gc) *conditions;
    must be true in order for clause to be true.  */
 
 #define MAX_CLAUSES 8
-typedef int clause_t;
+typedef unsigned int clause_t;
 struct GTY(()) predicate
 {
   clause_t clause[MAX_CLAUSES + 1];
@@ -85,9 +85,6 @@ struct GTY(()) inline_summary
 
   /* False when there something makes inlining impossible (such as va_arg).  */
   unsigned inlinable : 1;
-  /* False when there something makes versioning impossible.
-     Currently computed and used only by ipa-cp.  */
-  unsigned versionable : 1;
 
   /* Information about function that will result after applying all the
      inline decisions present in the callgraph.  Generally kept up to
@@ -101,14 +98,53 @@ struct GTY(()) inline_summary
   int time;
   int size;
 
+  /* Conditional size/time information.  The summaries are being
+     merged during inlining.  */
   conditions conds;
   VEC(size_time_entry,gc) *entry;
 };
+
 
 typedef struct inline_summary inline_summary_t;
 DEF_VEC_O(inline_summary_t);
 DEF_VEC_ALLOC_O(inline_summary_t,gc);
 extern GTY(()) VEC(inline_summary_t,gc) *inline_summary_vec;
+
+/* Information kept about parameter of call site.  */
+struct inline_param_summary
+{
+  /* REG_BR_PROB_BASE based probability that parameter will change in between
+     two invocation of the calls.
+     I.e. loop invariant parameters
+     REG_BR_PROB_BASE/estimated_iterations and regular
+     parameters REG_BR_PROB_BASE.
+
+     Value 0 is reserved for compile time invariants. */
+  int change_prob;
+};
+typedef struct inline_param_summary inline_param_summary_t;
+DEF_VEC_O(inline_param_summary_t);
+DEF_VEC_ALLOC_O(inline_param_summary_t,heap);
+
+/* Information kept about callgraph edges.  */
+struct inline_edge_summary
+{
+  /* Estimated size and time of the call statement.  */
+  int call_stmt_size;
+  int call_stmt_time;
+  /* Depth of loop nest, 0 means no nesting.  */
+  unsigned short int loop_depth;
+  struct predicate *predicate;
+  /* Array indexed by parameters.
+     0 means that parameter change all the time, REG_BR_PROB_BASE means
+     that parameter is constant.  */
+  VEC (inline_param_summary_t, heap) *param;
+};
+
+typedef struct inline_edge_summary inline_edge_summary_t;
+DEF_VEC_O(inline_edge_summary_t);
+DEF_VEC_ALLOC_O(inline_edge_summary_t,heap);
+extern VEC(inline_edge_summary_t,heap) *inline_edge_summary_vec;
 
 typedef struct edge_growth_cache_entry
 {
@@ -123,6 +159,7 @@ extern VEC(edge_growth_cache_entry,heap) *edge_growth_cache;
 /* In ipa-inline-analysis.c  */
 void debug_inline_summary (struct cgraph_node *);
 void dump_inline_summaries (FILE *f);
+void dump_inline_summary (FILE * f, struct cgraph_node *node);
 void inline_generate_summary (void);
 void inline_read_summary (void);
 void inline_write_summary (cgraph_node_set, varpool_node_set);
@@ -130,6 +167,10 @@ void inline_free_summary (void);
 void initialize_inline_failed (struct cgraph_edge *);
 int estimate_time_after_inlining (struct cgraph_node *, struct cgraph_edge *);
 int estimate_size_after_inlining (struct cgraph_node *, struct cgraph_edge *);
+void estimate_ipcp_clone_size_and_time (struct cgraph_node *,
+					VEC (tree, heap) *known_vals,
+					VEC (tree, heap) *known_binfos,
+					int *, int *);
 int do_estimate_growth (struct cgraph_node *);
 void inline_merge_summary (struct cgraph_edge *edge);
 int do_estimate_edge_growth (struct cgraph_edge *edge);
@@ -152,6 +193,12 @@ inline_summary (struct cgraph_node *node)
   return VEC_index (inline_summary_t, inline_summary_vec, node->uid);
 }
 
+static inline struct inline_edge_summary *
+inline_edge_summary (struct cgraph_edge *edge)
+{
+  return VEC_index (inline_edge_summary_t,
+		    inline_edge_summary_vec, edge->uid);
+}
 
 /* Return estimated unit growth after inlning all calls to NODE.
    Quick accesors to the inline growth caches.  
@@ -194,7 +241,7 @@ estimate_edge_time (struct cgraph_edge *edge)
   if ((int)VEC_length (edge_growth_cache_entry, edge_growth_cache) <= edge->uid
       || !(ret = VEC_index (edge_growth_cache_entry,
 			    edge_growth_cache,
-			    edge->uid)->size))
+			    edge->uid)->time))
     return do_estimate_edge_time (edge);
   return ret - (ret > 0);
 }

@@ -226,6 +226,7 @@ along with GCC; see the file COPYING3.  If not see
 #define FL_ISA_B     (1 << 15)
 #define FL_ISA_C     (1 << 16)
 #define FL_FIDOA     (1 << 17)
+#define FL_CAS	     (1 << 18)	/* Support cas insn.  */
 #define FL_MMU 	     0   /* Used by multilib machinery.  */
 #define FL_UCLINUX   0   /* Used by multilib machinery.  */
 
@@ -236,6 +237,7 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_COLDFIRE_FPU	(m68k_fpu == FPUTYPE_COLDFIRE)
 #define TARGET_68881		(m68k_fpu == FPUTYPE_68881)
 #define TARGET_FIDOA		((m68k_cpu_flags & FL_FIDOA) != 0)
+#define TARGET_CAS		((m68k_cpu_flags & FL_CAS) != 0)
 
 /* Size (in bytes) of FPU registers.  */
 #define TARGET_FP_REG_SIZE	(TARGET_COLDFIRE ? 8 : 12)
@@ -935,42 +937,7 @@ do { if (cc_prev_status.flags & CC_IN_68881)			\
 
 #define PRINT_OPERAND_ADDRESS(FILE, ADDR) print_operand_address (FILE, ADDR)
 
-#define OUTPUT_ADDR_CONST_EXTRA(FILE, X, FAIL)		\
-do {							\
-  if (! m68k_output_addr_const_extra (FILE, (X)))	\
-    goto FAIL;						\
-} while (0);
-
-/* Values used in the MICROARCH argument to M68K_DEVICE.  */
-enum uarch_type
-{
-  u68000,
-  u68010,
-  u68020,
-  u68020_40,
-  u68020_60,
-  u68030,
-  u68040,
-  u68060,
-  ucpu32,
-  ucfv1,
-  ucfv2,
-  ucfv3,
-  ucfv4,
-  ucfv4e,
-  ucfv5,
-  unk_arch
-};
-
-/* An enumeration of all supported target devices.  */
-enum target_device
-{
-#define M68K_DEVICE(NAME,ENUM_VALUE,FAMILY,MULTILIB,MICROARCH,ISA,FLAGS) \
-  ENUM_VALUE,
-#include "m68k-devices.def"
-#undef M68K_DEVICE
-  unk_device
-};
+#include "config/m68k/m68k-opts.h"
 
 enum fpu_type
 {
@@ -987,7 +954,6 @@ enum m68k_function_kind
 };
 
 /* Variables in m68k.c; see there for details.  */
-extern const char *m68k_library_id_string;
 extern enum target_device m68k_cpu;
 extern enum uarch_type m68k_tune;
 extern enum fpu_type m68k_fpu;

@@ -104,7 +104,7 @@ should_duplicate_loop_header_p (basic_block header, struct loop *loop,
 
 /* Checks whether LOOP is a do-while style loop.  */
 
-static bool
+bool
 do_while_loop_p (struct loop *loop)
 {
   gimple stmt = last_stmt (loop->latch);
@@ -278,7 +278,6 @@ struct gimple_opt_pass pass_ch =
   0,					/* todo_flags_start */
   TODO_cleanup_cfg
     | TODO_verify_ssa
-    | TODO_verify_flow
-    | TODO_dump_func			/* todo_flags_finish */
+    | TODO_verify_flow			/* todo_flags_finish */
  }
 };

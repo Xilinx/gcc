@@ -31,7 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 
 extern int register_move_cost (enum machine_mode, reg_class_t, reg_class_t);
-extern int memory_move_cost (enum machine_mode, enum reg_class, bool);
+extern int memory_move_cost (enum machine_mode, reg_class_t, bool);
 extern int memory_move_secondary_cost (enum machine_mode, reg_class_t, bool);
 
 /* Maximum number of reloads we can need.  */
@@ -420,7 +420,7 @@ extern void reload_cse_regs (rtx);
 extern void init_reload (void);
 
 /* The reload pass itself.  */
-extern int reload (rtx, int);
+extern bool reload (rtx, int);
 
 /* Mark the slots in regs_ever_live for the hard regs
    used by pseudo-reg number REGNO.  */

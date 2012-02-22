@@ -418,11 +418,6 @@ extern enum reg_class score_char_to_class[256];
 #define SECONDARY_OUTPUT_RELOAD_CLASS(CLASS, MODE, X) \
   score_secondary_reload_class (CLASS, MODE, X)
 
-/* Return the maximum number of consecutive registers
-   needed to represent mode MODE in a register of class CLASS.  */
-#define CLASS_MAX_NREGS(CLASS, MODE) \
-  ((GET_MODE_SIZE (MODE) + UNITS_PER_WORD - 1) / UNITS_PER_WORD)
-
 #define CANNOT_CHANGE_MODE_CLASS(FROM, TO, CLASS)    \
   (GET_MODE_SIZE (FROM) != GET_MODE_SIZE (TO)        \
    ? reg_classes_intersect_p (HI_REG, (CLASS)) : 0)
@@ -606,14 +601,6 @@ typedef struct score_args
 #define REVERSIBLE_CC_MODE(MODE)        1
 
 /* Describing Relative Costs of Operations  */
-/* Compute extra cost of moving data between one register class and another.  */
-#define REGISTER_MOVE_COST(MODE, FROM, TO) \
-  score_register_move_cost (MODE, FROM, TO)
-
-/* Moves to and from memory are quite expensive */
-#define MEMORY_MOVE_COST(MODE, CLASS, TO_P) \
-  (4 + memory_move_secondary_cost ((MODE), (CLASS), (TO_P)))
-
 /* Try to generate sequences that don't involve branches.  */
 #define BRANCH_COST(speed_p, predictable_p) 2
 

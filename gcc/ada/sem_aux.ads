@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -97,16 +97,24 @@ package Sem_Aux is
    --  Returns the argument unchanged if it is not one of these cases.
 
    function Constant_Value (Ent : Entity_Id) return Node_Id;
-   --  Id is a variable, constant, named integer, or named real entity. This
+   --  Ent is a variable, constant, named integer, or named real entity. This
    --  call obtains the initialization expression for the entity. Will return
    --  Empty for for a deferred constant whose full view is not available or
    --  in some other cases of internal entities, which cannot be treated as
    --  constants from the point of view of constant folding. Empty is also
    --  returned for variables with no initialization expression.
 
+   function Effectively_Has_Constrained_Partial_View
+     (Typ  : Entity_Id;
+      Scop : Entity_Id) return Boolean;
+   --  Return True if Typ has attribute Has_Constrained_Partial_View set to
+   --  True; in addition, within a generic body, return True if a subtype is
+   --  a descendant of an untagged generic formal private or derived type, and
+   --  the subtype is not an unconstrained array subtype (RM 3.3(23.10/3)).
+
    function Enclosing_Dynamic_Scope (Ent : Entity_Id) return Entity_Id;
    --  For any entity, Ent, returns the closest dynamic scope in which the
-   --  entity is declared or Standard_Standard for library-level entities
+   --  entity is declared or Standard_Standard for library-level entities.
 
    function First_Discriminant (Typ : Entity_Id) return Entity_Id;
    --  Typ is a type with discriminants. The discriminants are the first
@@ -146,6 +154,9 @@ package Sem_Aux is
    function First_Tag_Component (Typ : Entity_Id) return Entity_Id;
    --  Typ must be a tagged record type. This function returns the Entity for
    --  the first _Tag field in the record type.
+
+   function In_Generic_Body (Id : Entity_Id) return Boolean;
+   --  Determine whether entity Id appears inside a generic body
 
    function Is_By_Copy_Type (Ent : Entity_Id) return Boolean;
    --  Ent is any entity. Returns True if Ent is a type entity where the type
@@ -217,9 +228,22 @@ package Sem_Aux is
    function Number_Discriminants (Typ : Entity_Id) return Pos;
    --  Typ is a type with discriminants, yields number of discriminants in type
 
+   function Initialization_Suppressed (Typ : Entity_Id) return Boolean;
+   pragma Inline (Initialization_Suppressed);
+   --  Returns True if initialization should be suppressed for the given type
+   --  or subtype. This is true if Suppress_Initialization is set either for
+   --  the subtype itself, or for the corresponding base type.
+
    function Ultimate_Alias (Prim : Entity_Id) return Entity_Id;
    pragma Inline (Ultimate_Alias);
    --  Return the last entity in the chain of aliased entities of Prim. If Prim
    --  has no alias return Prim.
+
+   function Unit_Declaration_Node (Unit_Id : Entity_Id) return Node_Id;
+   --  Unit_Id is the simple name of a program unit, this function returns the
+   --  corresponding xxx_Declaration node for the entity. Also applies to the
+   --  body entities for subprograms, tasks and protected units, in which case
+   --  it returns the subprogram, task or protected body node for it. The unit
+   --  may be a child unit with any number of ancestors.
 
 end Sem_Aux;

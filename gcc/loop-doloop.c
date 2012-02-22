@@ -78,6 +78,8 @@ doloop_condition_get (rtx doloop_pat)
   rtx inc_src;
   rtx condition;
   rtx pattern;
+  rtx cc_reg = NULL_RTX;
+  rtx reg_orig = NULL_RTX;
 
   /* The canonical doloop pattern we expect has one of the following
      forms:
@@ -96,7 +98,16 @@ doloop_condition_get (rtx doloop_pat)
      2)  (set (reg) (plus (reg) (const_int -1))
          (set (pc) (if_then_else (reg != 0)
 	                         (label_ref (label))
-			         (pc))).  */
+			         (pc))).  
+
+     Some targets (ARM) do the comparison before the branch, as in the
+     following form:
+
+     3) (parallel [(set (cc) (compare ((plus (reg) (const_int -1), 0)))
+                   (set (reg) (plus (reg) (const_int -1)))])
+        (set (pc) (if_then_else (cc == NE)
+                                (label_ref (label))
+                                (pc))) */
 
   pattern = PATTERN (doloop_pat);
 
@@ -104,19 +115,47 @@ doloop_condition_get (rtx doloop_pat)
     {
       rtx cond;
       rtx prev_insn = prev_nondebug_insn (doloop_pat);
+      rtx cmp_arg1, cmp_arg2;
+      rtx cmp_orig;
 
-      /* We expect the decrement to immediately precede the branch.  */
+      /* In case the pattern is not PARALLEL we expect two forms
+	 of doloop which are cases 2) and 3) above: in case 2) the
+	 decrement immediately precedes the branch, while in case 3)
+	 the compare and decrement instructions immediately precede
+	 the branch.  */
 
       if (prev_insn == NULL_RTX || !INSN_P (prev_insn))
         return 0;
 
       cmp = pattern;
-      inc = PATTERN (PREV_INSN (doloop_pat));
+      if (GET_CODE (PATTERN (prev_insn)) == PARALLEL)
+        {
+	  /* The third case: the compare and decrement instructions
+	     immediately precede the branch.  */
+	  cmp_orig = XVECEXP (PATTERN (prev_insn), 0, 0);
+	  if (GET_CODE (cmp_orig) != SET)
+	    return 0;
+	  if (GET_CODE (SET_SRC (cmp_orig)) != COMPARE)
+	    return 0;
+	  cmp_arg1 = XEXP (SET_SRC (cmp_orig), 0);
+          cmp_arg2 = XEXP (SET_SRC (cmp_orig), 1);
+	  if (cmp_arg2 != const0_rtx 
+	      || GET_CODE (cmp_arg1) != PLUS)
+	    return 0;
+	  reg_orig = XEXP (cmp_arg1, 0);
+	  if (XEXP (cmp_arg1, 1) != GEN_INT (-1) 
+	      || !REG_P (reg_orig))
+	    return 0;
+	  cc_reg = SET_DEST (cmp_orig);
+	  
+	  inc = XVECEXP (PATTERN (prev_insn), 0, 1);
+	}
+      else
+        inc = PATTERN (prev_insn);
       /* We expect the condition to be of the form (reg != 0)  */
       cond = XEXP (SET_SRC (cmp), 0);
       if (GET_CODE (cond) != NE || XEXP (cond, 1) != const0_rtx)
         return 0;
-
     }
   else
     {
@@ -162,11 +201,15 @@ doloop_condition_get (rtx doloop_pat)
     return 0;
 
   if ((XEXP (condition, 0) == reg)
+      /* For the third case:  */  
+      || ((cc_reg != NULL_RTX)
+	  && (XEXP (condition, 0) == cc_reg)
+	  && (reg_orig == reg))
       || (GET_CODE (XEXP (condition, 0)) == PLUS
-		   && XEXP (XEXP (condition, 0), 0) == reg))
+	  && XEXP (XEXP (condition, 0), 0) == reg))
    {
      if (GET_CODE (pattern) != PARALLEL)
-     /*  The second form we expect:
+     /*  For the second form we expect:
 
          (set (reg) (plus (reg) (const_int -1))
          (set (pc) (if_then_else (reg != 0)
@@ -181,7 +224,24 @@ doloop_condition_get (rtx doloop_pat)
                      (set (reg) (plus (reg) (const_int -1)))
                      (additional clobbers and uses)])
 
-         So we return that form instead.
+        For the third form we expect:
+
+        (parallel [(set (cc) (compare ((plus (reg) (const_int -1)), 0))
+                   (set (reg) (plus (reg) (const_int -1)))])
+        (set (pc) (if_then_else (cc == NE)
+                                (label_ref (label))
+                                (pc))) 
+
+        which is equivalent to the following:
+
+        (parallel [(set (cc) (compare (reg,  1))
+                   (set (reg) (plus (reg) (const_int -1)))
+                   (set (pc) (if_then_else (NE == cc)
+                                           (label_ref (label))
+                                           (pc))))])
+
+        So we return the second form instead for the two cases.
+
      */
         condition = gen_rtx_fmt_ee (NE, VOIDmode, inc_src, const1_rtx);
 
@@ -334,14 +394,11 @@ add_test (rtx cond, edge *e, basic_block dest)
    describes the loop, DESC describes the number of iterations of the
    loop, and DOLOOP_INSN is the low-overhead looping insn to emit at the
    end of the loop.  CONDITION is the condition separated from the
-   DOLOOP_SEQ.  COUNT is the number of iterations of the LOOP.
-   ZERO_EXTEND_P says to zero extend COUNT after the increment of it to
-   word_mode from FROM_MODE.  */
+   DOLOOP_SEQ.  COUNT is the number of iterations of the LOOP.  */
 
 static void
 doloop_modify (struct loop *loop, struct niter_desc *desc,
-	       rtx doloop_seq, rtx condition, rtx count,
-	       bool zero_extend_p, enum machine_mode from_mode)
+	       rtx doloop_seq, rtx condition, rtx count)
 {
   rtx counter_reg;
   rtx tmp, noloop = NULL_RTX;
@@ -405,7 +462,7 @@ doloop_modify (struct loop *loop, struct niter_desc *desc,
 	 Note that the maximum value loaded is iterations_max - 1.  */
       if (desc->niter_max
 	  <= ((unsigned HOST_WIDEST_INT) 1
-	      << (GET_MODE_BITSIZE (mode) - 1)))
+	      << (GET_MODE_PRECISION (mode) - 1)))
 	nonneg = 1;
       break;
 
@@ -415,11 +472,7 @@ doloop_modify (struct loop *loop, struct niter_desc *desc,
     }
 
   if (increment_count)
-    count = simplify_gen_binary (PLUS, from_mode, count, const1_rtx);
-
-  if (zero_extend_p)
-    count = simplify_gen_unary (ZERO_EXTEND, word_mode,
-				count, from_mode);
+    count = simplify_gen_binary (PLUS, mode, count, const1_rtx);
 
   /* Insert initialization of the count register into the loop header.  */
   start_sequence ();
@@ -555,7 +608,6 @@ doloop_optimize (struct loop *loop)
   struct niter_desc *desc;
   unsigned word_mode_size;
   unsigned HOST_WIDE_INT word_mode_max;
-  bool zero_extend_p = false;
 
   if (dump_file)
     fprintf (dump_file, "Doloop: Processing loop %d.\n", loop->num);
@@ -595,7 +647,7 @@ doloop_optimize (struct loop *loop)
 
   max_cost
     = COSTS_N_INSNS (PARAM_VALUE (PARAM_MAX_ITERATIONS_COMPUTATION_COST));
-  if (rtx_cost (desc->niter_expr, SET, optimize_loop_for_speed_p (loop))
+  if (set_src_cost (desc->niter_expr, optimize_loop_for_speed_p (loop))
       > max_cost)
     {
       if (dump_file)
@@ -617,7 +669,7 @@ doloop_optimize (struct loop *loop)
   doloop_seq = gen_doloop_end (doloop_reg, iterations, iterations_max,
 			       GEN_INT (level), start_label);
 
-  word_mode_size = GET_MODE_BITSIZE (word_mode);
+  word_mode_size = GET_MODE_PRECISION (word_mode);
   word_mode_max
 	  = ((unsigned HOST_WIDE_INT) 1 << (word_mode_size - 1) << 1) - 1;
   if (! doloop_seq
@@ -625,12 +677,13 @@ doloop_optimize (struct loop *loop)
       /* Before trying mode different from the one in that # of iterations is
 	 computed, we must be sure that the number of iterations fits into
 	 the new mode.  */
-      && (word_mode_size >= GET_MODE_BITSIZE (mode)
+      && (word_mode_size >= GET_MODE_PRECISION (mode)
 	  || desc->niter_max <= word_mode_max))
     {
-      if (word_mode_size > GET_MODE_BITSIZE (mode))
+      if (word_mode_size > GET_MODE_PRECISION (mode))
 	{
-	  zero_extend_p = true;
+	  count = simplify_gen_unary (ZERO_EXTEND, word_mode,
+				      count, mode);
 	  iterations = simplify_gen_unary (ZERO_EXTEND, word_mode,
 					   iterations, mode);
 	  iterations_max = simplify_gen_unary (ZERO_EXTEND, word_mode,
@@ -674,8 +727,7 @@ doloop_optimize (struct loop *loop)
       return false;
     }
 
-  doloop_modify (loop, desc, doloop_seq, condition, count,
-		 zero_extend_p, mode);
+  doloop_modify (loop, desc, doloop_seq, condition, count);
   return true;
 }
 

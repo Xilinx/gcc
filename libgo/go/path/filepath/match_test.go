@@ -5,16 +5,15 @@
 package filepath_test
 
 import (
-	"os"
 	. "path/filepath"
-	"testing"
 	"runtime"
+	"testing"
 )
 
 type MatchTest struct {
 	pattern, s string
 	match      bool
-	err        os.Error
+	err        error
 }
 
 var matchTests = []MatchTest{
@@ -69,6 +68,13 @@ var matchTests = []MatchTest{
 	{"*x", "xxx", true, nil},
 }
 
+func errp(e error) string {
+	if e == nil {
+		return "<nil>"
+	}
+	return e.Error()
+}
+
 func TestMatch(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		// XXX: Don't pass for windows.
@@ -77,7 +83,7 @@ func TestMatch(t *testing.T) {
 	for _, tt := range matchTests {
 		ok, err := Match(tt.pattern, tt.s)
 		if ok != tt.match || err != tt.err {
-			t.Errorf("Match(%#q, %#q) = %v, %v want %v, nil", tt.pattern, tt.s, ok, err, tt.match)
+			t.Errorf("Match(%#q, %#q) = %v, %q want %v, %q", tt.pattern, tt.s, ok, errp(err), tt.match, errp(tt.err))
 		}
 	}
 }
@@ -116,6 +122,16 @@ func TestGlob(t *testing.T) {
 		}
 		if !contains(matches, tt.result) {
 			t.Errorf("Glob(%#q) = %#v want %v", tt.pattern, matches, tt.result)
+		}
+	}
+	for _, pattern := range []string{"no_match", "../*/no_match"} {
+		matches, err := Glob(pattern)
+		if err != nil {
+			t.Errorf("Glob error for %q: %s", pattern, err)
+			continue
+		}
+		if len(matches) != 0 {
+			t.Errorf("Glob(%#q) = %#v want []", pattern, matches)
 		}
 	}
 }

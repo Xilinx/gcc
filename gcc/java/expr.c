@@ -1,6 +1,6 @@
 /* Process expressions for the GNU compiler for the Java(TM) language.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008, 2010 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008, 2010, 2011 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -27,6 +27,12 @@ The Free Software Foundation is independent of Sun Microsystems, Inc.  */
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
+#include "tm.h"			/* For INT_TYPE_SIZE,
+				   TARGET_VTABLE_USES_DESCRIPTORS,
+				   BITS_PER_UNIT,
+				   MODIFY_JNI_METHOD_CALL and
+				   PARM_BOUNDARY.  */
+				   
 #include "tree.h"
 #include "flags.h"
 #include "java-tree.h"
@@ -930,7 +936,7 @@ build_java_arrayaccess (tree array, tree type, tree index)
 		  size_exp);
 
   /* Sum the byte offset and the address of the data field.  */
-  node = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (node), node, index);
+  node = fold_build_pointer_plus (node, index);
 
   /* Finally, return
 
@@ -1737,12 +1743,8 @@ build_field_ref (tree self_value, tree self_class, tree name)
 					 1, otable_index),
 			field_offset);
 	  
-	  field_offset = fold (convert (sizetype, field_offset));
 	  self_value = java_check_reference (self_value, check);
-	  address 
-	    = fold_build2 (POINTER_PLUS_EXPR, 
-			   TREE_TYPE (self_value),
-			   self_value, field_offset);
+	  address = fold_build_pointer_plus (self_value, field_offset);
 	  address = fold_convert (build_pointer_type (TREE_TYPE (field_decl)),
 				  address);
 	  return fold_build1 (INDIRECT_REF, TREE_TYPE (field_decl), address);
@@ -1874,8 +1876,8 @@ expand_java_switch (tree selector, int default_pc)
 			NULL_TREE, NULL_TREE);
   java_add_stmt (switch_expr);
 
-  x = build3 (CASE_LABEL_EXPR, void_type_node, NULL_TREE, NULL_TREE,
-	      create_artificial_label (input_location));
+  x = build_case_label (NULL_TREE, NULL_TREE,
+			create_artificial_label (input_location));
   append_to_statement_list (x, &SWITCH_BODY (switch_expr));
 
   x = build1 (GOTO_EXPR, void_type_node, lookup_label (default_pc));
@@ -1891,8 +1893,8 @@ expand_java_add_case (tree switch_expr, int match, int target_pc)
 
   value = build_int_cst (TREE_TYPE (switch_expr), match);
   
-  x = build3 (CASE_LABEL_EXPR, void_type_node, value, NULL_TREE,
-	      create_artificial_label (input_location));
+  x = build_case_label (value, NULL_TREE,
+			create_artificial_label (input_location));
   append_to_statement_list (x, &SWITCH_BODY (switch_expr));
 
   x = build1 (GOTO_EXPR, void_type_node, lookup_label (target_pc));
@@ -2071,7 +2073,7 @@ static void
 rewrite_arglist_getcaller (VEC(tree,gc) **arglist)
 {
   tree retaddr 
-    = build_call_expr (built_in_decls[BUILT_IN_RETURN_ADDRESS],
+    = build_call_expr (builtin_decl_explicit (BUILT_IN_RETURN_ADDRESS),
 		       1, integer_zero_node);
 
   DECL_UNINLINABLE (current_function_decl) = 1;
@@ -2249,8 +2251,7 @@ build_known_method_ref (tree method, tree method_type ATTRIBUTE_UNUSED,
 	  method_index++;
 	}
       method_index *= int_size_in_bytes (method_type_node);
-      ref = fold_build2 (POINTER_PLUS_EXPR, method_ptr_type_node,
-			 ref, size_int (method_index));
+      ref = fold_build_pointer_plus_hwi (ref, method_index);
       ref = build1 (INDIRECT_REF, method_type_node, ref);
       func = build3 (COMPONENT_REF, nativecode_ptr_type_node,
 		     ref, lookup_field (&method_type_node, ncode_ident),
@@ -2343,8 +2344,7 @@ build_invokevirtual (tree dtable, tree method, tree special)
 				   size_int (TARGET_VTABLE_USES_DESCRIPTORS));
     }
 
-  func = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (dtable), dtable,
-		      convert (sizetype, method_index));
+  func = fold_build_pointer_plus (dtable, method_index);
 
   if (TARGET_VTABLE_USES_DESCRIPTORS)
     func = build1 (NOP_EXPR, nativecode_ptr_type_node, func);
@@ -2544,12 +2544,12 @@ expand_invoke (int opcode, int method_ref_index, int nargs ATTRIBUTE_UNUSED)
       return;
     }
 
-  method_type = TREE_TYPE (method);
-  arg_list = pop_arguments (method_type);
+  arg_list = pop_arguments (TREE_TYPE (method));
   flush_quick_stack ();
 
   maybe_rewrite_invocation (&method, &arg_list, &method_signature,
 			    &special);
+  method_type = TREE_TYPE (method);
 
   func = NULL_TREE;
   if (opcode == OPCODE_invokestatic)
@@ -2649,7 +2649,6 @@ build_jni_stub (tree method)
   method_args = DECL_ARGUMENTS (method);
   block = build_block (env_var, NULL_TREE, method_args, NULL_TREE);
   TREE_SIDE_EFFECTS (block) = 1;
-  TREE_TYPE (block) = TREE_TYPE (TREE_TYPE (method));
 
   /* Compute the local `env' by calling _Jv_GetJNIEnvNewFrame.  */
   body = build2 (MODIFY_EXPR, ptr_type_node, env_var,
@@ -2934,8 +2933,10 @@ expand_java_field_op (int is_static, int is_putting, int field_ref_index)
 			    field_ref, new_value);
 
       if (TREE_THIS_VOLATILE (field_decl))
-	java_add_stmt
-	  (build_call_expr (built_in_decls[BUILT_IN_SYNCHRONIZE], 0));
+	{
+	  tree sync = builtin_decl_explicit (BUILT_IN_SYNC_SYNCHRONIZE);
+	  java_add_stmt (build_call_expr (sync, 0));
+	}
       	  
       java_add_stmt (modify_expr);
     }
@@ -2953,8 +2954,10 @@ expand_java_field_op (int is_static, int is_putting, int field_ref_index)
       java_add_stmt (modify_expr);
 
       if (TREE_THIS_VOLATILE (field_decl))
-	java_add_stmt 
-	  (build_call_expr (built_in_decls[BUILT_IN_SYNCHRONIZE], 0));
+	{
+	  tree sync = builtin_decl_explicit (BUILT_IN_SYNC_SYNCHRONIZE);
+	  java_add_stmt (build_call_expr (sync, 0));
+	}
 
       push_value (temp);
     }      
@@ -3543,7 +3546,7 @@ process_jvm_instruction (int PC, const unsigned char* byte_ops,
 	  break; \
 	} \
       default: \
-        error ("unrecogized wide sub-instruction"); \
+        error ("unrecognized wide sub-instruction"); \
       } \
   }
 

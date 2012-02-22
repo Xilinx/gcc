@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// The path package implements utility routines for manipulating
-// slash-separated filename paths.
+// Package path implements utility routines for manipulating slash-separated
+// filename paths.
 package path
 
 import (
@@ -159,4 +159,22 @@ func Base(path string) string {
 // IsAbs returns true if the path is absolute.
 func IsAbs(path string) bool {
 	return len(path) > 0 && path[0] == '/'
+}
+
+// Dir returns the all but the last element of path, typically the path's directory.
+// Trailing path separators are removed before processing.
+// If the path is empty, Dir returns ".".
+// If the path consists entirely of separators, Dir returns a single separator.
+// The returned path does not end in a separator unless it is the root directory.
+func Dir(path string) string {
+	dir, _ := Split(path)
+	dir = Clean(dir)
+	last := len(dir) - 1
+	if last > 0 && dir[last] == '/' {
+		dir = dir[:last]
+	}
+	if dir == "" {
+		dir = "."
+	}
+	return dir
 }

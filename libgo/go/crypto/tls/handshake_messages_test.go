@@ -5,7 +5,7 @@
 package tls
 
 import (
-	"rand"
+	"math/rand"
 	"reflect"
 	"testing"
 	"testing/quick"
@@ -14,25 +14,27 @@ import (
 var tests = []interface{}{
 	&clientHelloMsg{},
 	&serverHelloMsg{},
+	&finishedMsg{},
 
 	&certificateMsg{},
 	&certificateRequestMsg{},
 	&certificateVerifyMsg{},
 	&certificateStatusMsg{},
 	&clientKeyExchangeMsg{},
-	&finishedMsg{},
 	&nextProtoMsg{},
 }
 
 type testMessage interface {
 	marshal() []byte
 	unmarshal([]byte) bool
+	equal(interface{}) bool
 }
 
 func TestMarshalUnmarshal(t *testing.T) {
 	rand := rand.New(rand.NewSource(0))
+
 	for i, iface := range tests {
-		ty := reflect.NewValue(iface).Type()
+		ty := reflect.ValueOf(iface).Type()
 
 		n := 100
 		if testing.Short() {
@@ -54,16 +56,17 @@ func TestMarshalUnmarshal(t *testing.T) {
 			}
 			m2.marshal() // to fill any marshal cache in the message
 
-			if !reflect.DeepEqual(m1, m2) {
+			if !m1.equal(m2) {
 				t.Errorf("#%d got:%#v want:%#v %x", i, m2, m1, marshaled)
 				break
 			}
 
-			if i >= 2 {
-				// The first two message types (ClientHello and
-				// ServerHello) are allowed to have parsable
-				// prefixes because the extension data is
-				// optional.
+			if i >= 3 {
+				// The first three message types (ClientHello,
+				// ServerHello and Finished) are allowed to
+				// have parsable prefixes because the extension
+				// data is optional and the length of the
+				// Finished varies across versions.
 				for j := 0; j < len(marshaled); j++ {
 					if m2.unmarshal(marshaled[0:j]) {
 						t.Errorf("#%d unmarshaled a prefix of length %d of %#v", i, j, m1)
@@ -121,11 +124,11 @@ func (*clientHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m.ocspStapling = rand.Intn(10) > 5
 	m.supportedPoints = randomBytes(rand.Intn(5)+1, rand)
 	m.supportedCurves = make([]uint16, rand.Intn(5)+1)
-	for i, _ := range m.supportedCurves {
+	for i := range m.supportedCurves {
 		m.supportedCurves[i] = uint16(rand.Intn(30000))
 	}
 
-	return reflect.NewValue(m)
+	return reflect.ValueOf(m)
 }
 
 func (*serverHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
@@ -146,7 +149,7 @@ func (*serverHelloMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 		}
 	}
 
-	return reflect.NewValue(m)
+	return reflect.ValueOf(m)
 }
 
 func (*certificateMsg) Generate(rand *rand.Rand, size int) reflect.Value {
@@ -156,7 +159,7 @@ func (*certificateMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	for i := 0; i < numCerts; i++ {
 		m.certificates[i] = randomBytes(rand.Intn(10)+1, rand)
 	}
-	return reflect.NewValue(m)
+	return reflect.ValueOf(m)
 }
 
 func (*certificateRequestMsg) Generate(rand *rand.Rand, size int) reflect.Value {
@@ -167,13 +170,13 @@ func (*certificateRequestMsg) Generate(rand *rand.Rand, size int) reflect.Value 
 	for i := 0; i < numCAs; i++ {
 		m.certificateAuthorities[i] = randomBytes(rand.Intn(15)+1, rand)
 	}
-	return reflect.NewValue(m)
+	return reflect.ValueOf(m)
 }
 
 func (*certificateVerifyMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &certificateVerifyMsg{}
 	m.signature = randomBytes(rand.Intn(15)+1, rand)
-	return reflect.NewValue(m)
+	return reflect.ValueOf(m)
 }
 
 func (*certificateStatusMsg) Generate(rand *rand.Rand, size int) reflect.Value {
@@ -184,23 +187,23 @@ func (*certificateStatusMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	} else {
 		m.statusType = 42
 	}
-	return reflect.NewValue(m)
+	return reflect.ValueOf(m)
 }
 
 func (*clientKeyExchangeMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &clientKeyExchangeMsg{}
 	m.ciphertext = randomBytes(rand.Intn(1000)+1, rand)
-	return reflect.NewValue(m)
+	return reflect.ValueOf(m)
 }
 
 func (*finishedMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &finishedMsg{}
 	m.verifyData = randomBytes(12, rand)
-	return reflect.NewValue(m)
+	return reflect.ValueOf(m)
 }
 
 func (*nextProtoMsg) Generate(rand *rand.Rand, size int) reflect.Value {
 	m := &nextProtoMsg{}
 	m.proto = randomString(rand.Intn(255), rand)
-	return reflect.NewValue(m)
+	return reflect.ValueOf(m)
 }

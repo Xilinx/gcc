@@ -6,7 +6,7 @@
  *                                                                          *
  *                              C Header File                               *
  *                                                                          *
- *          Copyright (C) 1992-2010, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2011, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -31,6 +31,10 @@
 
 /* This file contains definitions to access front-end functions and
    variables used by gigi.  */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* comperr:  */
 
@@ -88,13 +92,15 @@ extern void Set_Identifier_Casing (Char *, const Char *);
 
 /* err_vars: */
 
-#define Error_Msg_Node_2     err_vars__error_msg_node_2
-#define Error_Msg_Uint_1     err_vars__error_msg_uint_1
-#define Error_Msg_Uint_2     err_vars__error_msg_uint_2
+#define Error_Msg_Node_2        err_vars__error_msg_node_2
+#define Error_Msg_Uint_1        err_vars__error_msg_uint_1
+#define Error_Msg_Uint_2        err_vars__error_msg_uint_2
+#define Serious_Errors_Detected err_vars__serious_errors_detected
 
-extern Entity_Id             Error_Msg_Node_2;
-extern Uint                  Error_Msg_Uint_1;
-extern Uint                  Error_Msg_Uint_2;
+extern Entity_Id Error_Msg_Node_2;
+extern Uint      Error_Msg_Uint_1;
+extern Uint      Error_Msg_Uint_2;
+extern Nat       Serious_Errors_Detected;
 
 /* exp_ch11:  */
 
@@ -251,3 +257,7 @@ extern void Set_Has_No_Elaboration_Code	(Node_Id, Boolean);
 extern Boolean Backend_Overflow_Checks_On_Target;
 extern Boolean Stack_Check_Probes_On_Target;
 extern Boolean Stack_Check_Limits_On_Target;
+
+#ifdef __cplusplus
+}
+#endif

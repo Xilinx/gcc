@@ -15,9 +15,9 @@
 
 void
 Gogo::import_unsafe(const std::string& local_name, bool is_local_name_exported,
-		    source_location location)
+		    Location location)
 {
-  location_t bloc = BUILTINS_LOCATION;
+  Location bloc = Linemap::predeclared_location();
 
   bool add_to_globals;
   Package* package = this->add_imported_package("unsafe", local_name,
@@ -31,7 +31,10 @@ Gogo::import_unsafe(const std::string& local_name, bool is_local_name_exported,
       return;
     }
 
+  package->set_location(location);
   package->set_is_imported();
+
+  this->imports_.insert(std::make_pair("unsafe", package));
 
   Bindings* bindings = package->bindings();
 
@@ -40,7 +43,8 @@ Gogo::import_unsafe(const std::string& local_name, bool is_local_name_exported,
   if (no == NULL)
     {
       Type* type = Type::make_pointer_type(Type::make_void_type());
-      no = bindings->add_type("Pointer", package, type, UNKNOWN_LOCATION);
+      no = bindings->add_type("Pointer", package, type,
+			      Linemap::unknown_location());
     }
   else
     {
@@ -85,7 +89,7 @@ Gogo::import_unsafe(const std::string& local_name, bool is_local_name_exported,
     this->add_named_object(no);
 
   // Typeof.
-  Type* empty_interface = Type::make_interface_type(NULL, bloc);
+  Type* empty_interface = Type::make_empty_interface_type(bloc);
   Typed_identifier_list* parameters = new Typed_identifier_list;
   parameters->push_back(Typed_identifier("i", empty_interface, bloc));
   results = new Typed_identifier_list;

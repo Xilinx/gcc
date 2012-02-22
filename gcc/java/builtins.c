@@ -283,10 +283,7 @@ static tree
 build_addr_sum (tree type, tree addr, tree offset)
 {
   tree ptr_type = build_pointer_type (type);
-  return fold_build2 (POINTER_PLUS_EXPR,
-		      ptr_type,
-		      fold_convert (ptr_type, addr),
-		      fold_convert (sizetype, offset));
+  return fold_build_pointer_plus (fold_convert (ptr_type, addr), offset);
 }
 
 /* Make sure that this-arg is non-NULL.  This is a security check.  */
@@ -322,16 +319,15 @@ compareAndSwapInt_builtin (tree method_return_type ATTRIBUTE_UNUSED,
 			   tree orig_call)
 {
   enum machine_mode mode = TYPE_MODE (int_type_node);
-  if (direct_optab_handler (sync_compare_and_swap_optab, mode)
-      != CODE_FOR_nothing
-      || flag_use_atomic_builtins)
+  if (can_compare_and_swap_p (mode, flag_use_atomic_builtins))
     {
       tree addr, stmt;
+      enum built_in_function fncode = BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_4;
       UNMARSHAL5 (orig_call);
       (void) value_type; /* Avoid set but not used warning.  */
 
       addr = build_addr_sum (int_type_node, obj_arg, offset_arg);
-      stmt = build_call_expr (built_in_decls[BUILT_IN_BOOL_COMPARE_AND_SWAP_4],
+      stmt = build_call_expr (builtin_decl_explicit (fncode),
 			      3, addr, expected_arg, value_arg);
 
       return build_check_this (stmt, this_arg);
@@ -344,20 +340,20 @@ compareAndSwapLong_builtin (tree method_return_type ATTRIBUTE_UNUSED,
 			    tree orig_call)
 {
   enum machine_mode mode = TYPE_MODE (long_type_node);
-  if (direct_optab_handler (sync_compare_and_swap_optab, mode)
-      != CODE_FOR_nothing
-      || (GET_MODE_SIZE (mode) <= GET_MODE_SIZE (word_mode)
-	  && flag_use_atomic_builtins))
-    /* We don't trust flag_use_atomic_builtins for multi-word
-       compareAndSwap.  Some machines such as ARM have atomic libfuncs
-       but not the multi-word versions.  */
+  /* We don't trust flag_use_atomic_builtins for multi-word compareAndSwap.
+     Some machines such as ARM have atomic libfuncs but not the multi-word
+     versions.  */
+  if (can_compare_and_swap_p (mode,
+			      (flag_use_atomic_builtins
+			       && GET_MODE_SIZE (mode) <= UNITS_PER_WORD)))
     {
       tree addr, stmt;
+      enum built_in_function fncode = BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_8;
       UNMARSHAL5 (orig_call);
       (void) value_type; /* Avoid set but not used warning.  */
 
       addr = build_addr_sum (long_type_node, obj_arg, offset_arg);
-      stmt = build_call_expr (built_in_decls[BUILT_IN_BOOL_COMPARE_AND_SWAP_8],
+      stmt = build_call_expr (builtin_decl_explicit (fncode),
 			      3, addr, expected_arg, value_arg);
 
       return build_check_this (stmt, this_arg);
@@ -369,20 +365,18 @@ compareAndSwapObject_builtin (tree method_return_type ATTRIBUTE_UNUSED,
 			      tree orig_call)
 {
   enum machine_mode mode = TYPE_MODE (ptr_type_node);
-  if (direct_optab_handler (sync_compare_and_swap_optab, mode)
-      != CODE_FOR_nothing
-      || flag_use_atomic_builtins)
+  if (can_compare_and_swap_p (mode, flag_use_atomic_builtins))
   {
     tree addr, stmt;
-    int builtin;
+    enum built_in_function builtin;
 
     UNMARSHAL5 (orig_call);
     builtin = (POINTER_SIZE == 32 
-	       ? BUILT_IN_BOOL_COMPARE_AND_SWAP_4 
-	       : BUILT_IN_BOOL_COMPARE_AND_SWAP_8);
+	       ? BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_4 
+	       : BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_8);
 
     addr = build_addr_sum (value_type, obj_arg, offset_arg);
-    stmt = build_call_expr (built_in_decls[builtin],
+    stmt = build_call_expr (builtin_decl_explicit (builtin),
 			    3, addr, expected_arg, value_arg);
 
     return build_check_this (stmt, this_arg);
@@ -402,7 +396,7 @@ putVolatile_builtin (tree method_return_type ATTRIBUTE_UNUSED,
     = fold_convert (build_pointer_type (build_type_variant (value_type, 0, 1)),
 		    addr);
   
-  stmt = build_call_expr (built_in_decls[BUILT_IN_SYNCHRONIZE], 0);
+  stmt = build_call_expr (builtin_decl_explicit (BUILT_IN_SYNC_SYNCHRONIZE), 0);
   modify_stmt = fold_build2 (MODIFY_EXPR, value_type,
 			     build_java_indirect_ref (value_type, addr,
 						      flag_check_references),
@@ -426,8 +420,7 @@ getVolatile_builtin (tree method_return_type ATTRIBUTE_UNUSED,
     = fold_convert (build_pointer_type (build_type_variant 
 					(method_return_type, 0, 1)), addr);
   
-  stmt = build_call_expr (built_in_decls[BUILT_IN_SYNCHRONIZE], 0);
-  
+  stmt = build_call_expr (builtin_decl_explicit (BUILT_IN_SYNC_SYNCHRONIZE), 0);
   tmp = build_decl (BUILTINS_LOCATION, VAR_DECL, NULL, method_return_type);
   DECL_IGNORED_P (tmp) = 1;
   DECL_ARTIFICIAL (tmp) = 1;
@@ -450,8 +443,7 @@ VMSupportsCS8_builtin (tree method_return_type,
 {
   enum machine_mode mode = TYPE_MODE (long_type_node);
   gcc_assert (method_return_type == boolean_type_node);
-  if (direct_optab_handler (sync_compare_and_swap_optab, mode)
-      != CODE_FOR_nothing)
+  if (can_compare_and_swap_p (mode, false))
     return boolean_true_node;
   else
     return boolean_false_node;
@@ -484,8 +476,7 @@ define_builtin (enum built_in_function val,
   if (flags & BUILTIN_CONST)
     TREE_READONLY (decl) = 1;
 
-  implicit_built_in_decls[val] = decl;
-  built_in_decls[val] = decl;
+  set_builtin_decl (val, decl, true);
 }
 
 
@@ -573,21 +564,21 @@ initialize_builtins (void)
 		  boolean_ftype_boolean_boolean,
 		  "__builtin_expect",
 		  BUILTIN_CONST | BUILTIN_NOTHROW);
-  define_builtin (BUILT_IN_BOOL_COMPARE_AND_SWAP_4, 
+  define_builtin (BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_4, 
 		  "__sync_bool_compare_and_swap_4",
 		  build_function_type_list (boolean_type_node,
 					    int_type_node, 
 					    build_pointer_type (int_type_node),
 					    int_type_node, NULL_TREE), 
 		  "__sync_bool_compare_and_swap_4", 0);
-  define_builtin (BUILT_IN_BOOL_COMPARE_AND_SWAP_8, 
+  define_builtin (BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_8, 
 		  "__sync_bool_compare_and_swap_8",
 		  build_function_type_list (boolean_type_node,
 					    long_type_node, 
 					    build_pointer_type (long_type_node),
 					    int_type_node, NULL_TREE), 
 		  "__sync_bool_compare_and_swap_8", 0);
-  define_builtin (BUILT_IN_SYNCHRONIZE, "__sync_synchronize",
+  define_builtin (BUILT_IN_SYNC_SYNCHRONIZE, "__sync_synchronize",
 		  build_function_type_list (void_type_node, NULL_TREE),
 		  "__sync_synchronize", BUILTIN_NOTHROW);
   
@@ -628,7 +619,7 @@ check_for_builtin (tree method, tree call)
 	         with the BC-ABI.  */
 	      if (flag_indirect_dispatch)
 	        return call;
-	      fn = built_in_decls[java_builtins[i].builtin_code];
+	      fn = builtin_decl_explicit (java_builtins[i].builtin_code);
 	      if (fn == NULL_TREE)
 		return call;
 	      return java_build_function_call_expr (fn, call);

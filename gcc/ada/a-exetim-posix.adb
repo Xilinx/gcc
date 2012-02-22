@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---         Copyright (C) 2007-2010, Free Software Foundation, Inc.          --
+--         Copyright (C) 2007-2011, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -34,6 +34,7 @@
 with Ada.Task_Identification;  use Ada.Task_Identification;
 with Ada.Unchecked_Conversion;
 
+with System.OS_Constants; use System.OS_Constants;
 with System.OS_Interface; use System.OS_Interface;
 
 with Interfaces.C; use Interfaces.C;
@@ -112,9 +113,6 @@ package body Ada.Execution_Time is
       pragma Import (C, clock_gettime, "clock_gettime");
       --  Function from the POSIX.1b Realtime Extensions library
 
-      CLOCK_THREAD_CPUTIME_ID : constant := 3;
-      --  Identifier for the clock returning per-task CPU time
-
    begin
       if T = Ada.Task_Identification.Null_Task_Id then
          raise Program_Error;
@@ -126,6 +124,19 @@ package body Ada.Execution_Time is
 
       return To_CPU_Time (To_Duration (TS));
    end Clock;
+
+   --------------------------
+   -- Clock_For_Interrupts --
+   --------------------------
+
+   function Clock_For_Interrupts return CPU_Time is
+   begin
+      --  According to AI 0170-1, D.14(18.1/3), if Interrupt_Clocks_Supported
+      --  is set to False the function raises Program_Error.
+
+      raise Program_Error;
+      return CPU_Time_First;
+   end Clock_For_Interrupts;
 
    -----------
    -- Split --

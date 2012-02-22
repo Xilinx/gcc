@@ -549,12 +549,6 @@ enum reg_class {
    : GET_MODE_SIZE (MODE) >= 4 ? (MODE)			\
    : mode_for_size (BITS_PER_WORD, GET_MODE_CLASS (MODE), 0))
 
-/* Return the maximum number of consecutive registers
-   needed to represent mode MODE in a register of class CLASS.  */
-
-#define CLASS_MAX_NREGS(CLASS, MODE)				\
- ((GET_MODE_SIZE (MODE) + UNITS_PER_WORD - 1) / UNITS_PER_WORD)
-
 /* Return the class of registers that cannot change mode from FROM to TO.  */
 
 #define CANNOT_CHANGE_MODE_CLASS(FROM, TO, CLASS)		\
@@ -1293,26 +1287,6 @@ do {							\
 #define PUT_SDB_FUNCTION_END(LINE)
 
 #define PUT_SDB_EPILOGUE_END(NAME) ((void)(NAME))
-
-/* Macros for mips-tfile.c to encapsulate stabs in ECOFF, and for
-   mips-tdump.c to print them out.
-
-   These must match the corresponding definitions in gdb/mipsread.c.
-   Unfortunately, gcc and gdb do not currently share any directories.  */
-
-#define CODE_MASK 0x8F300
-#define MIPS_IS_STAB(sym) (((sym)->index & 0xFFF00) == CODE_MASK)
-#define MIPS_MARK_STAB(code) ((code)+CODE_MASK)
-#define MIPS_UNMARK_STAB(code) ((code)-CODE_MASK)
-
-/* Override some mips-tfile definitions.  */
-
-#define SHASH_SIZE 511
-#define THASH_SIZE 55
-
-/* Align ecoff symbol tables to avoid OSF1/1.3 nm complaints.  */
-
-#define ALIGN_SYMTABLE_OFFSET(OFFSET) (((OFFSET) + 7) & ~7)
 
 /* The system headers under Alpha systems are generally C++-aware.  */
 #define NO_IMPLICIT_EXTERN_C

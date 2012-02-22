@@ -236,4 +236,6 @@ along with GCC; see the file COPYING3.  If not see
 #undef  WCHAR_TYPE_SIZE
 #define WCHAR_TYPE_SIZE BITS_PER_WORD
 
-#define MD_UNWIND_SUPPORT "config/m68k/linux-unwind.h"
+/* Install the __sync libcalls.  */
+#undef TARGET_INIT_LIBFUNCS
+#define TARGET_INIT_LIBFUNCS  m68k_init_sync_libfuncs

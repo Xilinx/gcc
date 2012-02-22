@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// The debug package contains facilities for programs to debug themselves
-// while they are running.
+// Package debug contains facilities for programs to debug themselves while
+// they are running.
 package debug
 
 import (
@@ -52,7 +52,7 @@ func stack() []byte {
 			if err != nil {
 				continue
 			}
-			lines = bytes.Split(data, []byte{'\n'}, -1)
+			lines = bytes.Split(data, []byte{'\n'})
 			lastFile = file
 		}
 		line-- // in stack trace, lines are 1-indexed but our array is 0-indexed

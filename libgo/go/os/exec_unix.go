@@ -2,9 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// +build darwin freebsd linux netbsd openbsd
+
 package os
 
 import (
+	"errors"
 	"runtime"
 	"syscall"
 )
@@ -22,9 +25,9 @@ const (
 // the options
 
 // Wait waits for the Process to exit or stop, and then returns a
-// Waitmsg describing its status and an Error, if any. The options
+// Waitmsg describing its status and an error, if any. The options
 // (WNOHANG etc.) affect the behavior of the Wait call.
-func (p *Process) Wait(options int) (w *Waitmsg, err Error) {
+func (p *Process) Wait(options int) (w *Waitmsg, err error) {
 	if p.Pid == -1 {
 		return nil, EINVAL
 	}
@@ -35,8 +38,12 @@ func (p *Process) Wait(options int) (w *Waitmsg, err Error) {
 		options ^= WRUSAGE
 	}
 	pid1, e := syscall.Wait4(p.Pid, &status, options, rusage)
-	if e != 0 {
+	if e != nil {
 		return nil, NewSyscallError("wait", e)
+	}
+	// With WNOHANG pid is 0 if child has not exited.
+	if pid1 != 0 && options&WSTOPPED == 0 {
+		p.done = true
 	}
 	w = new(Waitmsg)
 	w.Pid = pid1
@@ -45,8 +52,19 @@ func (p *Process) Wait(options int) (w *Waitmsg, err Error) {
 	return w, nil
 }
 
+// Signal sends a signal to the Process.
+func (p *Process) Signal(sig Signal) error {
+	if p.done {
+		return errors.New("os: process already finished")
+	}
+	if e := syscall.Kill(p.Pid, int(sig.(UnixSignal))); e != nil {
+		return e
+	}
+	return nil
+}
+
 // Release releases any resources associated with the Process.
-func (p *Process) Release() Error {
+func (p *Process) Release() error {
 	// NOOP for unix.
 	p.Pid = -1
 	// no need for a finalizer anymore
@@ -54,10 +72,7 @@ func (p *Process) Release() Error {
 	return nil
 }
 
-// FindProcess looks for a running process by its pid.
-// The Process it returns can be used to obtain information
-// about the underlying operating system process.
-func FindProcess(pid int) (p *Process, err Error) {
+func findProcess(pid int) (p *Process, err error) {
 	// NOOP for unix.
 	return newProcess(pid, 0), nil
 }

@@ -23,25 +23,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "c-family/c-pragma.h"
 
-/* A token type for keywords, as opposed to ordinary identifiers.  */
-#define CPP_KEYWORD ((enum cpp_ttype) (N_TTYPES + 1))
-
-/* A token type for template-ids.  If a template-id is processed while
-   parsing tentatively, it is replaced with a CPP_TEMPLATE_ID token;
-   the value of the CPP_TEMPLATE_ID is whatever was returned by
-   cp_parser_template_id.  */
-#define CPP_TEMPLATE_ID ((enum cpp_ttype) (CPP_KEYWORD + 1))
-
-/* A token type for nested-name-specifiers.  If a
-   nested-name-specifier is processed while parsing tentatively, it is
-   replaced with a CPP_NESTED_NAME_SPECIFIER token; the value of the
-   CPP_NESTED_NAME_SPECIFIER is whatever was returned by
-   cp_parser_nested_name_specifier_opt.  */
-#define CPP_NESTED_NAME_SPECIFIER ((enum cpp_ttype) (CPP_TEMPLATE_ID + 1))
-
-/* The number of token types, including C++-specific ones.  */
-#define N_CP_TTYPES ((int) (CPP_NESTED_NAME_SPECIFIER + 1))
-
 /* A token's value and its associated deferred access checks and
    qualifying scope.  */
 
@@ -188,6 +169,10 @@ typedef struct GTY(()) cp_unparsed_functions_entry_d {
   /* Functions with defintions that require post-processing.  Functions
      appear in this list in declaration order.  */
   VEC(tree,gc) *funs_with_definitions;
+
+  /* Non-static data members with initializers that require post-processing.
+     FIELD_DECLs appear in this list in declaration order.  */
+  VEC(tree,gc) *nsdmis;
 } cp_unparsed_functions_entry;
 
 DEF_VEC_O(cp_unparsed_functions_entry);
@@ -344,6 +329,10 @@ typedef struct GTY(()) cp_parser {
      a local class.  */
   bool in_function_body;
 
+  /* Nonzero if we're processing a __transaction_atomic or
+     __transaction_relaxed statement.  */
+  unsigned char in_transaction;
+
   /* TRUE if we can auto-correct a colon to a scope operator.  */
   bool colon_corrects_to_scope_p;
 
@@ -367,9 +356,7 @@ typedef struct GTY(()) cp_parser {
 } cp_parser;
 
 /* In parser.c  */
-#ifdef ENABLE_CHECKING
-extern void cp_lexer_dump_tokens (FILE *, VEC(cp_token,gc) *, unsigned);
 extern void cp_lexer_debug_tokens (VEC(cp_token,gc) *);
-#endif
+extern void cp_debug_parser (FILE *, cp_parser *);
 
 #endif  /* GCC_CP_PARSER_H  */

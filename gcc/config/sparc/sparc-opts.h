@@ -41,7 +41,20 @@ enum processor_type {
   PROCESSOR_ULTRASPARC,
   PROCESSOR_ULTRASPARC3,
   PROCESSOR_NIAGARA,
-  PROCESSOR_NIAGARA2
+  PROCESSOR_NIAGARA2,
+  PROCESSOR_NIAGARA3,
+  PROCESSOR_NIAGARA4,
+  PROCESSOR_NATIVE
+};
+
+/* Sparc system memory model.  See Appendix D in the Sparc V9 manual
+   for formal specification, and Appendix J for more discussion.  */
+enum sparc_memory_model_type {
+  SMM_DEFAULT,	/* Uninitialized.  */
+  SMM_RMO,	/* Relaxed Memory Order.  */
+  SMM_PSO,	/* Partial Store Order.  */
+  SMM_TSO,	/* Total Store Order.  */
+  SMM_SC	/* Sequential Consistency.  */
 };
 
 #endif

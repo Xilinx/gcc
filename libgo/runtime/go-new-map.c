@@ -4,8 +4,8 @@
    Use of this source code is governed by a BSD-style
    license that can be found in the LICENSE file.  */
 
+#include "runtime.h"
 #include "go-alloc.h"
-#include "go-panic.h"
 #include "map.h"
 
 /* List of prime numbers, copied from libstdc++/src/hashtable.c.  */
@@ -73,8 +73,8 @@ static const unsigned long prime_list[] = /* 256 + 1 or 256 + 48 + 1 */
 
 /* Return the next number from PRIME_LIST >= N.  */
 
-unsigned long
-__go_map_next_prime (unsigned long n)
+uintptr_t
+__go_map_next_prime (uintptr_t n)
 {
   size_t low;
   size_t high;
@@ -106,10 +106,12 @@ __go_map_next_prime (unsigned long n)
 struct __go_map *
 __go_new_map (const struct __go_map_descriptor *descriptor, uintptr_t entries)
 {
+  int ientries;
   struct __go_map *ret;
 
-  if ((uintptr_t) (int) entries != entries)
-    __go_panic_msg ("map size out of range");
+  ientries = (int) entries;
+  if (ientries < 0 || (uintptr_t) ientries != entries)
+    runtime_panicstring ("map size out of range");
 
   if (entries == 0)
     entries = 5;
@@ -122,4 +124,18 @@ __go_new_map (const struct __go_map_descriptor *descriptor, uintptr_t entries)
   ret->__buckets = (void **) __go_alloc (entries * sizeof (void *));
   __builtin_memset (ret->__buckets, 0, entries * sizeof (void *));
   return ret;
+}
+
+/* Allocate a new map when the argument to make is a large type.  */
+
+struct __go_map *
+__go_new_map_big (const struct __go_map_descriptor *descriptor,
+		  uint64_t entries)
+{
+  uintptr_t sentries;
+
+  sentries = (uintptr_t) entries;
+  if ((uint64_t) sentries != entries)
+    runtime_panicstring ("map size out of range");
+  return __go_new_map (descriptor, sentries);
 }

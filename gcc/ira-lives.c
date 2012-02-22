@@ -285,7 +285,7 @@ static void
 mark_pseudo_regno_subword_live (int regno, int subword)
 {
   ira_allocno_t a = ira_curr_regno_allocno_map[regno];
-  int n, nregs;
+  int n;
   enum reg_class pclass;
   ira_object_t obj;
 
@@ -303,14 +303,14 @@ mark_pseudo_regno_subword_live (int regno, int subword)
     }
 
   pclass = ira_pressure_class_translate[ALLOCNO_CLASS (a)];
-  nregs = ira_reg_class_max_nregs[pclass][ALLOCNO_MODE (a)];
-  gcc_assert (nregs == n);
+  gcc_assert
+    (n == ira_reg_class_max_nregs[ALLOCNO_CLASS (a)][ALLOCNO_MODE (a)]);
   obj = ALLOCNO_OBJECT (a, subword);
 
   if (sparseset_bit_p (objects_live, OBJECT_CONFLICT_ID (obj)))
     return;
 
-  inc_register_pressure (pclass, nregs);
+  inc_register_pressure (pclass, 1);
   make_object_born (obj);
 }
 
@@ -414,7 +414,7 @@ static void
 mark_pseudo_regno_subword_dead (int regno, int subword)
 {
   ira_allocno_t a = ira_curr_regno_allocno_map[regno];
-  int n, nregs;
+  int n;
   enum reg_class cl;
   ira_object_t obj;
 
@@ -430,8 +430,8 @@ mark_pseudo_regno_subword_dead (int regno, int subword)
     return;
 
   cl = ira_pressure_class_translate[ALLOCNO_CLASS (a)];
-  nregs = ira_reg_class_max_nregs[cl][ALLOCNO_MODE (a)];
-  gcc_assert (nregs == n);
+  gcc_assert
+    (n == ira_reg_class_max_nregs[ALLOCNO_CLASS (a)][ALLOCNO_MODE (a)]);
 
   obj = ALLOCNO_OBJECT (a, subword);
   if (!sparseset_bit_p (objects_live, OBJECT_CONFLICT_ID (obj)))
@@ -726,18 +726,21 @@ mark_hard_reg_early_clobbers (rtx insn, bool live_p)
 static enum reg_class
 single_reg_class (const char *constraints, rtx op, rtx equiv_const)
 {
-  int ignore_p;
+  int curr_alt, c;
+  bool ignore_p;
   enum reg_class cl, next_cl;
-  int c;
 
   cl = NO_REGS;
-  for (ignore_p = false;
+  for (ignore_p = false, curr_alt = 0;
        (c = *constraints);
        constraints += CONSTRAINT_LEN (c, constraints))
-    if (c == '#')
+    if (c == '#' || !recog_data.alternative_enabled_p[curr_alt])
       ignore_p = true;
     else if (c == ',')
-      ignore_p = false;
+      {
+	curr_alt++;
+	ignore_p = false;
+      }
     else if (! ignore_p)
       switch (c)
 	{
@@ -873,7 +876,7 @@ single_reg_operand_class (int op_num)
 void
 ira_implicitly_set_insn_hard_regs (HARD_REG_SET *set)
 {
-  int i, c, regno = 0;
+  int i, curr_alt, c, regno = 0;
   bool ignore_p;
   enum reg_class cl;
   rtx op;
@@ -895,11 +898,16 @@ ira_implicitly_set_insn_hard_regs (HARD_REG_SET *set)
 	  mode = (GET_CODE (op) == SCRATCH
 		  ? GET_MODE (op) : PSEUDO_REGNO_MODE (regno));
 	  cl = NO_REGS;
-	  for (ignore_p = false; (c = *p); p += CONSTRAINT_LEN (c, p))
-	    if (c == '#')
+	  for (ignore_p = false, curr_alt = 0;
+	       (c = *p);
+	       p += CONSTRAINT_LEN (c, p))
+	    if (c == '#' || !recog_data.alternative_enabled_p[curr_alt])
 	      ignore_p = true;
 	    else if (c == ',')
-	      ignore_p = false;
+	      {
+		curr_alt++;
+		ignore_p = false;
+	      }
 	    else if (! ignore_p)
 	      switch (c)
 		{
@@ -1115,7 +1123,7 @@ process_bb_node_lives (ira_loop_tree_node_t loop_tree_node)
 
 	  if (internal_flag_ira_verbose > 2 && ira_dump_file != NULL)
 	    fprintf (ira_dump_file, "   Insn %u(l%d): point = %d\n",
-		     INSN_UID (insn), loop_tree_node->parent->loop->num,
+		     INSN_UID (insn), loop_tree_node->parent->loop_num,
 		     curr_point);
 
 	  /* Mark each defined value as live.  We need to do this for

@@ -5,7 +5,6 @@
 package rsa
 
 import (
-	"big"
 	"bytes"
 	"crypto"
 	"crypto/rand"
@@ -13,6 +12,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"io"
+	"math/big"
 	"testing"
 	"testing/quick"
 )
@@ -168,7 +168,7 @@ func TestSignPKCS1v15(t *testing.T) {
 	for i, test := range signPKCS1v15Tests {
 		h := sha1.New()
 		h.Write([]byte(test.in))
-		digest := h.Sum()
+		digest := h.Sum(nil)
 
 		s, err := SignPKCS1v15(nil, rsaPrivateKey, crypto.SHA1, digest)
 		if err != nil {
@@ -186,7 +186,7 @@ func TestVerifyPKCS1v15(t *testing.T) {
 	for i, test := range signPKCS1v15Tests {
 		h := sha1.New()
 		h.Write([]byte(test.in))
-		digest := h.Sum()
+		digest := h.Sum(nil)
 
 		sig, _ := hex.DecodeString(test.out)
 
@@ -195,12 +195,6 @@ func TestVerifyPKCS1v15(t *testing.T) {
 			t.Errorf("#%d %s", i, err)
 		}
 	}
-}
-
-func bigFromString(s string) *big.Int {
-	ret := new(big.Int)
-	ret.SetString(s, 10)
-	return ret
 }
 
 // In order to generate new test vectors you'll need the PEM form of this key:
@@ -216,10 +210,12 @@ func bigFromString(s string) *big.Int {
 
 var rsaPrivateKey = &PrivateKey{
 	PublicKey: PublicKey{
-		N: bigFromString("9353930466774385905609975137998169297361893554149986716853295022578535724979677252958524466350471210367835187480748268864277464700638583474144061408845077"),
+		N: fromBase10("9353930466774385905609975137998169297361893554149986716853295022578535724979677252958524466350471210367835187480748268864277464700638583474144061408845077"),
 		E: 65537,
 	},
-	D: bigFromString("7266398431328116344057699379749222532279343923819063639497049039389899328538543087657733766554155839834519529439851673014800261285757759040931985506583861"),
-	P: bigFromString("98920366548084643601728869055592650835572950932266967461790948584315647051443"),
-	Q: bigFromString("94560208308847015747498523884063394671606671904944666360068158221458669711639"),
+	D: fromBase10("7266398431328116344057699379749222532279343923819063639497049039389899328538543087657733766554155839834519529439851673014800261285757759040931985506583861"),
+	Primes: []*big.Int{
+		fromBase10("98920366548084643601728869055592650835572950932266967461790948584315647051443"),
+		fromBase10("94560208308847015747498523884063394671606671904944666360068158221458669711639"),
+	},
 }

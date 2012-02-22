@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -23,18 +23,20 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This package contains routines called when a fatal internal compiler
---  error is detected. Calls to these routines cause termination of the
---  current compilation with appropriate error output.
+--  This package contains routines called when a fatal internal compiler error
+--  is detected. Calls to these routines cause termination of the current
+--  compilation with appropriate error output.
 
 with Atree;    use Atree;
 with Debug;    use Debug;
 with Errout;   use Errout;
 with Gnatvsn;  use Gnatvsn;
+with Lib;      use Lib;
 with Namet;    use Namet;
 with Opt;      use Opt;
 with Osint;    use Osint;
 with Output;   use Output;
+with Sinfo;    use Sinfo;
 with Sinput;   use Sinput;
 with Sprint;   use Sprint;
 with Sdefault; use Sdefault;
@@ -44,6 +46,7 @@ with Types;    use Types;
 
 with Ada.Exceptions; use Ada.Exceptions;
 
+with System.OS_Lib;     use System.OS_Lib;
 with System.Soft_Links; use System.Soft_Links;
 
 package body Comperr is
@@ -142,6 +145,12 @@ package body Comperr is
          else
             Error_Msg_N ("cannot generate 'S'C'I'L", Current_Error_Node);
          end if;
+      end if;
+
+      --  If we are in CodePeer mode, we must also delete SCIL files
+
+      if CodePeer_Mode then
+         Delete_SCIL_Files;
       end if;
 
       --  If any errors have already occurred, then we guess that the abort
@@ -422,8 +431,105 @@ package body Comperr is
          Source_Dump;
          raise Unrecoverable_Error;
       end if;
-
    end Compiler_Abort;
+
+   -----------------------
+   -- Delete_SCIL_Files --
+   -----------------------
+
+   procedure Delete_SCIL_Files is
+      Main      : Node_Id;
+      Unit_Name : Node_Id;
+
+      Success : Boolean;
+      pragma Unreferenced (Success);
+
+      procedure Decode_Name_Buffer;
+      --  Replace "__" by "." in Name_Buffer, and adjust Name_Len accordingly
+
+      ------------------------
+      -- Decode_Name_Buffer --
+      ------------------------
+
+      procedure Decode_Name_Buffer is
+         J : Natural;
+         K : Natural;
+
+      begin
+         J := 1;
+         K := 0;
+         while J <= Name_Len loop
+            K := K + 1;
+
+            if J < Name_Len
+              and then Name_Buffer (J) = '_'
+              and then Name_Buffer (J + 1) = '_'
+            then
+               Name_Buffer (K) := '.';
+               J := J + 1;
+            else
+               Name_Buffer (K) := Name_Buffer (J);
+            end if;
+
+            J := J + 1;
+         end loop;
+
+         Name_Len := K;
+      end Decode_Name_Buffer;
+
+   --  Start of processing for Decode_Name_Buffer
+
+   begin
+      --  If parsing was not successful, no Main_Unit is available, so return
+      --  immediately.
+
+      if Main_Source_File = No_Source_File then
+         return;
+      end if;
+
+      --  Retrieve unit name, and remove old versions of SCIL/<unit>.scil and
+      --  SCIL/<unit>__body.scil, ditto for .scilx files.
+
+      Main := Unit (Cunit (Main_Unit));
+
+      case Nkind (Main) is
+         when N_Subprogram_Body | N_Package_Declaration =>
+            Unit_Name := Defining_Unit_Name (Specification (Main));
+
+         when N_Package_Body =>
+            Unit_Name := Corresponding_Spec (Main);
+
+         --  Should never happen, but can be ignored in production
+
+         when others =>
+            pragma Assert (False);
+            return;
+      end case;
+
+      case Nkind (Unit_Name) is
+         when N_Defining_Identifier =>
+            Get_Name_String (Chars (Unit_Name));
+
+         when N_Defining_Program_Unit_Name =>
+            Get_Name_String (Chars (Defining_Identifier (Unit_Name)));
+            Decode_Name_Buffer;
+
+         --  Should never happen, but can be ignored in production
+
+         when others =>
+            pragma Assert (False);
+            return;
+      end case;
+
+      Delete_File
+        ("SCIL/" & Name_Buffer (1 .. Name_Len) & ".scil", Success);
+      Delete_File
+        ("SCIL/" & Name_Buffer (1 .. Name_Len) & ".scilx", Success);
+      Delete_File
+        ("SCIL/" & Name_Buffer (1 .. Name_Len) & "__body.scil", Success);
+      Delete_File
+        ("SCIL/" & Name_Buffer (1 .. Name_Len) & "__body.scilx", Success);
+   end Delete_SCIL_Files;
 
    -----------------
    -- Repeat_Char --

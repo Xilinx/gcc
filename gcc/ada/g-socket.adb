@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---                     Copyright (C) 2001-2010, AdaCore                     --
+--                     Copyright (C) 2001-2011, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -38,8 +36,8 @@ with Ada.Unchecked_Conversion;
 
 with Interfaces.C.Strings;
 
-with GNAT.Sockets.Thin_Common;          use GNAT.Sockets.Thin_Common;
-with GNAT.Sockets.Thin;                 use GNAT.Sockets.Thin;
+with GNAT.Sockets.Thin_Common; use GNAT.Sockets.Thin_Common;
+with GNAT.Sockets.Thin;        use GNAT.Sockets.Thin;
 
 with GNAT.Sockets.Linker_Options;
 pragma Warnings (Off, GNAT.Sockets.Linker_Options);
@@ -197,6 +195,11 @@ package body GNAT.Sockets is
    procedure Narrow (Item : in out Socket_Set_Type);
    --  Update Last as it may be greater than the real last socket
 
+   procedure Check_For_Fd_Set (Fd : Socket_Type);
+   pragma Inline (Check_For_Fd_Set);
+   --  Raise Constraint_Error if Fd is less than 0 or greater than or equal to
+   --  FD_SETSIZE, on platforms where fd_set is a bitmap.
+
    --  Types needed for Datagram_Socket_Stream_Type
 
    type Datagram_Socket_Stream_Type is new Root_Stream_Type with record
@@ -243,11 +246,11 @@ package body GNAT.Sockets is
    --  Type and Stream_Socket_Stream_Type.
 
    procedure Wait_On_Socket
-     (Socket    : Socket_Type;
-      For_Read  : Boolean;
-      Timeout   : Selector_Duration;
-      Selector  : access Selector_Type := null;
-      Status    : out Selector_Status);
+     (Socket   : Socket_Type;
+      For_Read : Boolean;
+      Timeout  : Selector_Duration;
+      Selector : access Selector_Type := null;
+      Status   : out Selector_Status);
    --  Common code for variants of socket operations supporting a timeout:
    --  block in Check_Selector on Socket for at most the indicated timeout.
    --  If For_Read is True, Socket is added to the read set for this call, else
@@ -465,6 +468,33 @@ package body GNAT.Sockets is
       end if;
    end Bind_Socket;
 
+   ----------------------
+   -- Check_For_Fd_Set --
+   ----------------------
+
+   procedure Check_For_Fd_Set (Fd : Socket_Type) is
+      use SOSC;
+
+   begin
+      --  On Windows, fd_set is a FD_SETSIZE array of socket ids:
+      --  no check required. Warnings suppressed because condition
+      --  is known at compile time.
+
+      pragma Warnings (Off);
+      if Target_OS = Windows then
+         pragma Warnings (On);
+
+         return;
+
+      --  On other platforms, fd_set is an FD_SETSIZE bitmap: check
+      --  that Fd is within range (otherwise behaviour is undefined).
+
+      elsif Fd < 0 or else Fd >= SOSC.FD_SETSIZE then
+         raise Constraint_Error
+           with "invalid value for socket set: " & Image (Fd);
+      end if;
+   end Check_For_Fd_Set;
+
    --------------------
    -- Check_Selector --
    --------------------
@@ -579,7 +609,10 @@ package body GNAT.Sockets is
       Socket : Socket_Type)
    is
       Last : aliased C.int := C.int (Item.Last);
+
    begin
+      Check_For_Fd_Set (Socket);
+
       if Item.Last /= No_Socket then
          Remove_Socket_From_Set (Item.Set'Access, C.int (Socket));
          Last_Socket_In_Set (Item.Set'Access, Last'Unchecked_Access);
@@ -698,11 +731,11 @@ package body GNAT.Sockets is
       --  Wait for socket to become available for writing
 
       Wait_On_Socket
-        (Socket    => Socket,
-         For_Read  => False,
-         Timeout   => Timeout,
-         Selector  => Selector,
-         Status    => Status);
+        (Socket   => Socket,
+         For_Read => False,
+         Timeout  => Timeout,
+         Selector => Selector,
+         Status   => Status);
 
       --  Reset the socket to blocking I/O
 
@@ -1456,6 +1489,8 @@ package body GNAT.Sockets is
       Socket : Socket_Type) return Boolean
    is
    begin
+      Check_For_Fd_Set (Socket);
+
       return Item.Last /= No_Socket
         and then Socket <= Item.Last
         and then Is_Socket_In_Set (Item.Set'Access, C.int (Socket)) /= 0;
@@ -1545,11 +1580,11 @@ package body GNAT.Sockets is
    --------------------
 
    procedure Wait_On_Socket
-     (Socket    : Socket_Type;
-      For_Read  : Boolean;
-      Timeout   : Selector_Duration;
-      Selector  : access Selector_Type := null;
-      Status    : out Selector_Status)
+     (Socket   : Socket_Type;
+      For_Read : Boolean;
+      Timeout  : Selector_Duration;
+      Selector : access Selector_Type := null;
+      Status   : out Selector_Status)
    is
       type Local_Selector_Access is access Selector_Type;
       for Local_Selector_Access'Storage_Size use Selector_Type'Size;
@@ -2102,6 +2137,8 @@ package body GNAT.Sockets is
 
    procedure Set (Item : in out Socket_Set_Type; Socket : Socket_Type) is
    begin
+      Check_For_Fd_Set (Socket);
+
       if Item.Last = No_Socket then
 
          --  Uninitialized socket set, make sure it is properly zeroed out

@@ -1,5 +1,6 @@
 ; -*- buffer-read-only: t -*-
-; Generated automatically by genopt.sh from arm-cores.def and arm-arches.def.
+; Generated automatically by genopt.sh from arm-cores.def, arm-arches.def
+; and arm-fpus.def.
 
 ; Copyright (C) 2011 Free Software Foundation, Inc.
 ;
@@ -231,7 +232,13 @@ EnumValue
 Enum(processor_type) String(arm1156t2f-s) Value(arm1156t2fs)
 
 EnumValue
+Enum(processor_type) String(generic-armv7-a) Value(genericv7a)
+
+EnumValue
 Enum(processor_type) String(cortex-a5) Value(cortexa5)
+
+EnumValue
+Enum(processor_type) String(cortex-a7) Value(cortexa7)
 
 EnumValue
 Enum(processor_type) String(cortex-a8) Value(cortexa8)
@@ -247,6 +254,9 @@ Enum(processor_type) String(cortex-r4) Value(cortexr4)
 
 EnumValue
 Enum(processor_type) String(cortex-r4f) Value(cortexr4f)
+
+EnumValue
+Enum(processor_type) String(cortex-r5) Value(cortexr5)
 
 EnumValue
 Enum(processor_type) String(cortex-m4) Value(cortexm4)
@@ -316,26 +326,87 @@ EnumValue
 Enum(arm_arch) String(armv6-m) Value(16)
 
 EnumValue
-Enum(arm_arch) String(armv7) Value(17)
+Enum(arm_arch) String(armv6s-m) Value(17)
 
 EnumValue
-Enum(arm_arch) String(armv7-a) Value(18)
+Enum(arm_arch) String(armv7) Value(18)
 
 EnumValue
-Enum(arm_arch) String(armv7-r) Value(19)
+Enum(arm_arch) String(armv7-a) Value(19)
 
 EnumValue
-Enum(arm_arch) String(armv7-m) Value(20)
+Enum(arm_arch) String(armv7-r) Value(20)
 
 EnumValue
-Enum(arm_arch) String(armv7e-m) Value(21)
+Enum(arm_arch) String(armv7-m) Value(21)
 
 EnumValue
-Enum(arm_arch) String(ep9312) Value(22)
+Enum(arm_arch) String(armv7e-m) Value(22)
 
 EnumValue
-Enum(arm_arch) String(iwmmxt) Value(23)
+Enum(arm_arch) String(ep9312) Value(23)
 
 EnumValue
-Enum(arm_arch) String(iwmmxt2) Value(24)
+Enum(arm_arch) String(iwmmxt) Value(24)
+
+EnumValue
+Enum(arm_arch) String(iwmmxt2) Value(25)
+
+Enum
+Name(arm_fpu) Type(int)
+Known ARM FPUs (for use with the -mfpu= option):
+
+EnumValue
+Enum(arm_fpu) String(fpa) Value(0)
+
+EnumValue
+Enum(arm_fpu) String(fpe2) Value(1)
+
+EnumValue
+Enum(arm_fpu) String(fpe3) Value(2)
+
+EnumValue
+Enum(arm_fpu) String(maverick) Value(3)
+
+EnumValue
+Enum(arm_fpu) String(vfp) Value(4)
+
+EnumValue
+Enum(arm_fpu) String(vfpv3) Value(5)
+
+EnumValue
+Enum(arm_fpu) String(vfpv3-fp16) Value(6)
+
+EnumValue
+Enum(arm_fpu) String(vfpv3-d16) Value(7)
+
+EnumValue
+Enum(arm_fpu) String(vfpv3-d16-fp16) Value(8)
+
+EnumValue
+Enum(arm_fpu) String(vfpv3xd) Value(9)
+
+EnumValue
+Enum(arm_fpu) String(vfpv3xd-fp16) Value(10)
+
+EnumValue
+Enum(arm_fpu) String(neon) Value(11)
+
+EnumValue
+Enum(arm_fpu) String(neon-fp16) Value(12)
+
+EnumValue
+Enum(arm_fpu) String(vfpv4) Value(13)
+
+EnumValue
+Enum(arm_fpu) String(vfpv4-d16) Value(14)
+
+EnumValue
+Enum(arm_fpu) String(fpv4-sp-d16) Value(15)
+
+EnumValue
+Enum(arm_fpu) String(neon-vfpv4) Value(16)
+
+EnumValue
+Enum(arm_fpu) String(vfp3) Value(17)
 

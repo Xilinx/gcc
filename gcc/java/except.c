@@ -488,7 +488,7 @@ build_exception_object_ref (tree type)
      The java object is immediately before the generic exception header.  */
   obj = build_exception_object_var ();
   obj = fold_convert (build_pointer_type (type), obj);
-  obj = build2 (POINTER_PLUS_EXPR, TREE_TYPE (obj), obj,
+  obj = fold_build_pointer_plus (obj,
 		fold_build1 (NEGATE_EXPR, sizetype,
 			     TYPE_SIZE_UNIT (TREE_TYPE (obj))));
   obj = build1 (INDIRECT_REF, type, obj);
@@ -520,8 +520,8 @@ expand_end_java_handler (struct eh_range *range)
 	    type = throwable_type_node;
 	  eh_type = prepare_eh_table_type (type);
 
-	  x = build_call_expr (built_in_decls[BUILT_IN_EH_POINTER],
-				1, integer_zero_node);
+	  x = build_call_expr (builtin_decl_explicit (BUILT_IN_EH_POINTER),
+			       1, integer_zero_node);
 	  x = build2 (MODIFY_EXPR, void_type_node, exc_obj, x);
 	  tsi_link_after (&stmts_i, x, TSI_CONTINUE_LINKING);
 

@@ -7,7 +7,6 @@ package io_test
 import (
 	"bytes"
 	. "io"
-	"os"
 	"strings"
 	"testing"
 )
@@ -19,7 +18,7 @@ type Buffer struct {
 	WriterTo   // conflicts with and hides bytes.Buffer's WriterTo.
 }
 
-// Simple tests, primarily to verify the ReadFrom and WriteTo callouts inside Copy and Copyn.
+// Simple tests, primarily to verify the ReadFrom and WriteTo callouts inside Copy and CopyN.
 
 func TestCopy(t *testing.T) {
 	rb := new(Buffer)
@@ -51,33 +50,33 @@ func TestCopyWriteTo(t *testing.T) {
 	}
 }
 
-func TestCopyn(t *testing.T) {
+func TestCopyN(t *testing.T) {
 	rb := new(Buffer)
 	wb := new(Buffer)
 	rb.WriteString("hello, world.")
-	Copyn(wb, rb, 5)
+	CopyN(wb, rb, 5)
 	if wb.String() != "hello" {
-		t.Errorf("Copyn did not work properly")
+		t.Errorf("CopyN did not work properly")
 	}
 }
 
-func TestCopynReadFrom(t *testing.T) {
+func TestCopyNReadFrom(t *testing.T) {
 	rb := new(Buffer)
 	wb := new(bytes.Buffer) // implements ReadFrom.
 	rb.WriteString("hello")
-	Copyn(wb, rb, 5)
+	CopyN(wb, rb, 5)
 	if wb.String() != "hello" {
-		t.Errorf("Copyn did not work properly")
+		t.Errorf("CopyN did not work properly")
 	}
 }
 
-func TestCopynWriteTo(t *testing.T) {
+func TestCopyNWriteTo(t *testing.T) {
 	rb := new(bytes.Buffer) // implements WriteTo.
 	wb := new(Buffer)
 	rb.WriteString("hello, world.")
-	Copyn(wb, rb, 5)
+	CopyN(wb, rb, 5)
 	if wb.String() != "hello" {
-		t.Errorf("Copyn did not work properly")
+		t.Errorf("CopyN did not work properly")
 	}
 }
 
@@ -85,72 +84,122 @@ type noReadFrom struct {
 	w Writer
 }
 
-func (w *noReadFrom) Write(p []byte) (n int, err os.Error) {
+func (w *noReadFrom) Write(p []byte) (n int, err error) {
 	return w.w.Write(p)
 }
 
-func TestCopynEOF(t *testing.T) {
+func TestCopyNEOF(t *testing.T) {
 	// Test that EOF behavior is the same regardless of whether
-	// argument to Copyn has ReadFrom.
+	// argument to CopyN has ReadFrom.
 
 	b := new(bytes.Buffer)
 
-	n, err := Copyn(&noReadFrom{b}, strings.NewReader("foo"), 3)
+	n, err := CopyN(&noReadFrom{b}, strings.NewReader("foo"), 3)
 	if n != 3 || err != nil {
-		t.Errorf("Copyn(noReadFrom, foo, 3) = %d, %v; want 3, nil", n, err)
+		t.Errorf("CopyN(noReadFrom, foo, 3) = %d, %v; want 3, nil", n, err)
 	}
 
-	n, err = Copyn(&noReadFrom{b}, strings.NewReader("foo"), 4)
-	if n != 3 || err != os.EOF {
-		t.Errorf("Copyn(noReadFrom, foo, 4) = %d, %v; want 3, EOF", n, err)
+	n, err = CopyN(&noReadFrom{b}, strings.NewReader("foo"), 4)
+	if n != 3 || err != EOF {
+		t.Errorf("CopyN(noReadFrom, foo, 4) = %d, %v; want 3, EOF", n, err)
 	}
 
-	n, err = Copyn(b, strings.NewReader("foo"), 3) // b has read from
+	n, err = CopyN(b, strings.NewReader("foo"), 3) // b has read from
 	if n != 3 || err != nil {
-		t.Errorf("Copyn(bytes.Buffer, foo, 3) = %d, %v; want 3, nil", n, err)
+		t.Errorf("CopyN(bytes.Buffer, foo, 3) = %d, %v; want 3, nil", n, err)
 	}
 
-	n, err = Copyn(b, strings.NewReader("foo"), 4) // b has read from
-	if n != 3 || err != os.EOF {
-		t.Errorf("Copyn(bytes.Buffer, foo, 4) = %d, %v; want 3, EOF", n, err)
+	n, err = CopyN(b, strings.NewReader("foo"), 4) // b has read from
+	if n != 3 || err != EOF {
+		t.Errorf("CopyN(bytes.Buffer, foo, 4) = %d, %v; want 3, EOF", n, err)
 	}
 }
 
 func TestReadAtLeast(t *testing.T) {
 	var rb bytes.Buffer
+	testReadAtLeast(t, &rb)
+}
+
+// A version of bytes.Buffer that returns n > 0, EOF on Read
+// when the input is exhausted.
+type dataAndEOFBuffer struct {
+	bytes.Buffer
+}
+
+func (r *dataAndEOFBuffer) Read(p []byte) (n int, err error) {
+	n, err = r.Buffer.Read(p)
+	if n > 0 && r.Buffer.Len() == 0 && err == nil {
+		err = EOF
+	}
+	return
+}
+
+func TestReadAtLeastWithDataAndEOF(t *testing.T) {
+	var rb dataAndEOFBuffer
+	testReadAtLeast(t, &rb)
+}
+
+func testReadAtLeast(t *testing.T, rb ReadWriter) {
 	rb.Write([]byte("0123"))
 	buf := make([]byte, 2)
-	n, err := ReadAtLeast(&rb, buf, 2)
+	n, err := ReadAtLeast(rb, buf, 2)
 	if err != nil {
 		t.Error(err)
 	}
-	n, err = ReadAtLeast(&rb, buf, 4)
+	n, err = ReadAtLeast(rb, buf, 4)
 	if err != ErrShortBuffer {
 		t.Errorf("expected ErrShortBuffer got %v", err)
 	}
 	if n != 0 {
 		t.Errorf("expected to have read 0 bytes, got %v", n)
 	}
-	n, err = ReadAtLeast(&rb, buf, 1)
+	n, err = ReadAtLeast(rb, buf, 1)
 	if err != nil {
 		t.Error(err)
 	}
 	if n != 2 {
 		t.Errorf("expected to have read 2 bytes, got %v", n)
 	}
-	n, err = ReadAtLeast(&rb, buf, 2)
-	if err != os.EOF {
+	n, err = ReadAtLeast(rb, buf, 2)
+	if err != EOF {
 		t.Errorf("expected EOF, got %v", err)
 	}
 	if n != 0 {
 		t.Errorf("expected to have read 0 bytes, got %v", n)
 	}
 	rb.Write([]byte("4"))
-	n, err = ReadAtLeast(&rb, buf, 2)
+	n, err = ReadAtLeast(rb, buf, 2)
 	if err != ErrUnexpectedEOF {
 		t.Errorf("expected ErrUnexpectedEOF, got %v", err)
 	}
 	if n != 1 {
 		t.Errorf("expected to have read 1 bytes, got %v", n)
+	}
+}
+
+func TestTeeReader(t *testing.T) {
+	src := []byte("hello, world")
+	dst := make([]byte, len(src))
+	rb := bytes.NewBuffer(src)
+	wb := new(bytes.Buffer)
+	r := TeeReader(rb, wb)
+	if n, err := ReadFull(r, dst); err != nil || n != len(src) {
+		t.Fatalf("ReadFull(r, dst) = %d, %v; want %d, nil", n, err, len(src))
+	}
+	if !bytes.Equal(dst, src) {
+		t.Errorf("bytes read = %q want %q", dst, src)
+	}
+	if !bytes.Equal(wb.Bytes(), src) {
+		t.Errorf("bytes written = %q want %q", wb.Bytes(), src)
+	}
+	if n, err := r.Read(dst); n != 0 || err != EOF {
+		t.Errorf("r.Read at EOF = %d, %v want 0, EOF", n, err)
+	}
+	rb = bytes.NewBuffer(src)
+	pr, pw := Pipe()
+	pr.Close()
+	r = TeeReader(rb, pw)
+	if n, err := ReadFull(r, dst); n != 0 || err != ErrClosedPipe {
+		t.Errorf("closed tee: ReadFull(r, dst) = %d, %v; want 0, EPIPE", n, err)
 	}
 }

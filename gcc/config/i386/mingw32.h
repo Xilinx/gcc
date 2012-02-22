@@ -78,16 +78,12 @@ along with GCC; see the file COPYING3.  If not see
 #define SUB_LINK_ENTRY SUB_LINK_ENTRY32
 #endif
 
-/* Override the standard choice of /usr/include as the default prefix
-   to try when searching for header files.  */
-#undef STANDARD_INCLUDE_DIR
-#define STANDARD_INCLUDE_DIR "/mingw/include"
-#undef STANDARD_INCLUDE_COMPONENT
-#define STANDARD_INCLUDE_COMPONENT "MINGW"
+#undef NATIVE_SYSTEM_HEADER_COMPONENT
+#define NATIVE_SYSTEM_HEADER_COMPONENT "MINGW"
 
 #undef CPP_SPEC
 #define CPP_SPEC "%{posix:-D_POSIX_SOURCE} %{mthreads:-D_MT} " \
-		 "%{" SPEC_PTHREAD1 ":-D_REENTRANCE} " \
+		 "%{" SPEC_PTHREAD1 ":-D_REENTRANT} " \
 		 "%{" SPEC_PTHREAD2 ": } "
 
 /* For Windows applications, include more libraries, but always include
@@ -143,7 +139,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef ENDFILE_SPEC
 #define ENDFILE_SPEC \
-  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
   crtend.o%s"
 
 /* Override startfile prefix defaults.  */
@@ -160,11 +156,12 @@ along with GCC; see the file COPYING3.  If not see
 #undef OUTPUT_QUOTED_STRING
 #define OUTPUT_QUOTED_STRING(FILE, STRING)               \
 do {						         \
+  const char *_string = (const char *) (STRING);	 \
   char c;					         \
 						         \
-  putc ('\"', asm_file);			         \
+  putc ('\"', (FILE));				         \
 						         \
-  while ((c = *string++) != 0)			         \
+  while ((c = *_string++) != 0)			         \
     {						         \
       if (c == '\\')				         \
 	c = '/';				         \
@@ -172,14 +169,14 @@ do {						         \
       if (ISPRINT (c))                                   \
         {                                                \
           if (c == '\"')			         \
-	    putc ('\\', asm_file);		         \
-          putc (c, asm_file);			         \
+	    putc ('\\', (FILE));		         \
+          putc (c, (FILE));			         \
         }                                                \
       else                                               \
-        fprintf (asm_file, "\\%03o", (unsigned char) c); \
+        fprintf ((FILE), "\\%03o", (unsigned char) c);	 \
     }						         \
 						         \
-  putc ('\"', asm_file);			         \
+  putc ('\"', (FILE));					 \
 } while (0)
 
 /* Define as short unsigned for compatibility with MS runtime.  */
@@ -188,7 +185,10 @@ do {						         \
 
 /* mingw32 uses the  -mthreads option to enable thread support.  */
 #undef GOMP_SELF_SPECS
-#define GOMP_SELF_SPECS "%{fopenmp: -mthreads}"
+#define GOMP_SELF_SPECS "%{fopenmp|ftree-parallelize-loops=*: " \
+			"-mthreads -pthread}"
+#undef GTM_SELF_SPECS
+#define GTM_SELF_SPECS "%{fgnu-tm:-mthreads -pthread}"
 
 /* mingw32 atexit function is safe to use in shared libraries.  Use it
    to register C++ static destructors.  */
@@ -218,33 +218,9 @@ do {						         \
 /* Let defaults.h definition of TARGET_USE_JCR_SECTION apply. */
 #undef TARGET_USE_JCR_SECTION
 
-#undef MINGW_ENABLE_EXECUTE_STACK
-#define MINGW_ENABLE_EXECUTE_STACK     \
-extern void __enable_execute_stack (void *);    \
-void         \
-__enable_execute_stack (void *addr)					\
-{									\
-  MEMORY_BASIC_INFORMATION b;						\
-  if (!VirtualQuery (addr, &b, sizeof(b)))				\
-    abort ();								\
-  VirtualProtect (b.BaseAddress, b.RegionSize, PAGE_EXECUTE_READWRITE,	\
-		  &b.Protect);						\
-}
-
-#undef ENABLE_EXECUTE_STACK
-#define ENABLE_EXECUTE_STACK MINGW_ENABLE_EXECUTE_STACK
+#define HAVE_ENABLE_EXECUTE_STACK
 #undef  CHECK_EXECUTE_STACK_ENABLED
 #define CHECK_EXECUTE_STACK_ENABLED flag_setstackexecutable
-
-#ifdef IN_LIBGCC2
-#include <windows.h>
-#endif
-
-/* For 64-bit Windows we can't use DW2 unwind info. Also for multilib
-   builds we can't use it, too.  */
-#if !TARGET_64BIT_DEFAULT && !defined (TARGET_BI_ARCH)
-#define MD_UNWIND_SUPPORT "config/i386/w32-unwind.h"
-#endif
 
 /* This matches SHLIB_SONAME and SHLIB_SOVERSION in t-cygming. */
 /* This matches SHLIB_SONAME and SHLIB_SOVERSION in t-cygwin. */
@@ -256,5 +232,4 @@ __enable_execute_stack (void *addr)					\
 #define LIBGCC_SONAME "libgcc_s" LIBGCC_EH_EXTN "-1.dll"
 
 /* We should find a way to not have to update this manually.  */
-#define LIBGCJ_SONAME "libgcj" /*LIBGCC_EH_EXTN*/ "-12.dll"
-
+#define LIBGCJ_SONAME "libgcj" /*LIBGCC_EH_EXTN*/ "-13.dll"

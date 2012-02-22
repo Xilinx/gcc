@@ -1,6 +1,6 @@
 /* Definitions of target machine for GCC for IA-32.
    Copyright (C) 1988, 1992, 1994, 1995, 1996, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -19,6 +19,12 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
+/* In i386-common.c.  */
+extern bool ix86_handle_option (struct gcc_options *opts,
+				struct gcc_options *opts_set ATTRIBUTE_UNUSED,
+				const struct cl_decoded_option *decoded,
+				location_t loc);
+
 /* Functions in i386.c */
 extern bool ix86_target_stack_probe (void);
 extern bool ix86_can_use_return_insn_p (void);
@@ -26,6 +32,7 @@ extern void ix86_setup_frame_addresses (void);
 
 extern HOST_WIDE_INT ix86_initial_elimination_offset (int, int);
 extern void ix86_expand_prologue (void);
+extern void ix86_maybe_emit_epilogue_vzeroupper (void);
 extern void ix86_expand_epilogue (int);
 extern void ix86_expand_split_stack_prologue (void);
 
@@ -67,8 +74,8 @@ extern void split_double_mode (enum machine_mode, rtx[], int, rtx[], rtx[]);
 extern const char *output_set_got (rtx, rtx);
 extern const char *output_387_binary_op (rtx, rtx*);
 extern const char *output_387_reg_move (rtx, rtx*);
-extern const char *output_fix_trunc (rtx, rtx*, int);
-extern const char *output_fp_compare (rtx, rtx*, int, int);
+extern const char *output_fix_trunc (rtx, rtx*, bool);
+extern const char *output_fp_compare (rtx, rtx*, bool, bool);
 extern const char *output_adjust_stack_and_probe (rtx);
 extern const char *output_probe_stack_range (rtx, rtx);
 
@@ -84,6 +91,12 @@ extern void ix86_fixup_binary_operands_no_copy (enum rtx_code,
 extern void ix86_expand_binary_operator (enum rtx_code,
 					 enum machine_mode, rtx[]);
 extern bool ix86_binary_operator_ok (enum rtx_code, enum machine_mode, rtx[]);
+extern bool ix86_lea_outperforms (rtx, unsigned int, unsigned int,
+				  unsigned int, unsigned int);
+extern bool ix86_avoid_lea_for_add (rtx, rtx[]);
+extern bool ix86_use_lea_for_mov (rtx, rtx[]);
+extern bool ix86_avoid_lea_for_addr (rtx, rtx[]);
+extern void ix86_split_lea_for_addr (rtx[], enum machine_mode);
 extern bool ix86_lea_for_add_ok (rtx, rtx[]);
 extern bool ix86_vec_interleave_v2df_operator_ok (rtx operands[3], bool high);
 extern bool ix86_dep_by_shift_count (const_rtx set_insn, const_rtx use_insn);
@@ -98,6 +111,8 @@ extern void ix86_expand_convert_uns_sixf_sse (rtx, rtx);
 extern void ix86_expand_convert_uns_sidf_sse (rtx, rtx);
 extern void ix86_expand_convert_uns_sisf_sse (rtx, rtx);
 extern void ix86_expand_convert_sign_didf_sse (rtx, rtx);
+extern void ix86_expand_vector_convert_uns_vsivsf (rtx, rtx);
+extern rtx ix86_expand_adjust_ufix_to_sfix_si (rtx, rtx *);
 extern enum ix86_fpcmp_strategy ix86_fp_comparison_strategy (enum rtx_code);
 extern void ix86_expand_fp_absneg_operator (enum rtx_code, enum machine_mode,
 					    rtx[]);
@@ -112,9 +127,11 @@ extern bool ix86_expand_int_movcc (rtx[]);
 extern bool ix86_expand_fp_movcc (rtx[]);
 extern bool ix86_expand_fp_vcond (rtx[]);
 extern bool ix86_expand_int_vcond (rtx[]);
+extern void ix86_expand_vec_perm (rtx[]);
+extern bool ix86_expand_vec_perm_const (rtx[]);
 extern void ix86_expand_sse_unpack (rtx[], bool, bool);
 extern bool ix86_expand_int_addcc (rtx[]);
-extern rtx ix86_expand_call (rtx, rtx, rtx, rtx, rtx, int);
+extern rtx ix86_expand_call (rtx, rtx, rtx, rtx, rtx, bool);
 extern void ix86_split_call_vzeroupper (rtx, rtx);
 extern void x86_initialize_trampoline (rtx, rtx, rtx);
 extern rtx ix86_zero_extend_to_Pmode (rtx);
@@ -127,9 +144,9 @@ extern bool ix86_check_movabs (rtx, int);
 extern void ix86_split_idivmod (enum machine_mode, rtx[], bool);
 
 extern rtx assign_386_stack_local (enum machine_mode, enum ix86_stack_slot);
-extern int ix86_attr_length_immediate_default (rtx, int);
+extern int ix86_attr_length_immediate_default (rtx, bool);
 extern int ix86_attr_length_address_default (rtx);
-extern int ix86_attr_length_vex_default (rtx, int, int);
+extern int ix86_attr_length_vex_default (rtx, bool, bool);
 
 extern enum machine_mode ix86_fp_compare_mode (enum rtx_code);
 
@@ -157,6 +174,7 @@ extern void x86_emit_floatuns (rtx [2]);
 extern void ix86_emit_fp_unordered_jump (rtx);
 
 extern void ix86_emit_i387_log1p (rtx, rtx);
+extern void ix86_emit_i387_round (rtx, rtx);
 extern void ix86_emit_swdivsf (rtx, rtx, rtx, enum machine_mode);
 extern void ix86_emit_swsqrtsf (rtx, rtx, enum machine_mode, bool);
 
@@ -167,6 +185,7 @@ extern void ix86_expand_lfloorceil (rtx, rtx, bool);
 extern void ix86_expand_rint (rtx, rtx);
 extern void ix86_expand_floorceil (rtx, rtx, bool);
 extern void ix86_expand_floorceildf_32 (rtx, rtx, bool);
+extern void ix86_expand_round_sse4 (rtx, rtx);
 extern void ix86_expand_round (rtx, rtx);
 extern void ix86_expand_rounddf_32 (rtx, rtx);
 extern void ix86_expand_trunc (rtx, rtx);
@@ -193,13 +212,12 @@ extern unsigned int ix86_get_callcvt (const_tree);
 
 #endif
 
-extern rtx ix86_tls_get_addr (void);
 extern rtx ix86_tls_module_base (void);
 
 extern void ix86_expand_vector_init (bool, rtx, rtx);
 extern void ix86_expand_vector_set (bool, rtx, rtx, int);
 extern void ix86_expand_vector_extract (bool, rtx, rtx, int);
-extern void ix86_expand_reduc_v4sf (rtx (*)(rtx, rtx, rtx), rtx, rtx);
+extern void ix86_expand_reduc (rtx (*)(rtx, rtx, rtx), rtx, rtx);
 
 extern void ix86_expand_vec_extract_even_odd (rtx, rtx, rtx, unsigned);
 extern bool ix86_expand_pinsr (rtx *);
@@ -271,7 +289,7 @@ extern int asm_preferred_eh_data_format (int, int);
 extern enum attr_cpu ix86_schedule;
 #endif
 
-extern const char * ix86_output_call_insn (rtx insn, rtx call_op, int addr_op);
+extern const char * ix86_output_call_insn (rtx insn, rtx call_op);
 
 #ifdef RTX_CODE
 /* Target data for multipass lookahead scheduling.
