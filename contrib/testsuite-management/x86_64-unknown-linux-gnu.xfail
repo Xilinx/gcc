@@ -53,6 +53,7 @@ FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc  (test for errors, l
 FAIL: 23_containers/vector/requirements/dr438/insert_neg.cc (test for excess errors)
 FAIL: gcc.c-torture/execute/vshuf-v2di.c execution,  -Os
 FAIL: gcc.c-torture/execute/vshuf-v8hi.c execution,  -Os
+FAIL: gcc.c-torture/execute/vshuf-v16qi.c execution,  -Os
 FAIL: gcc.target/i386/pr27827.c scan-assembler fmul[ \t]*%st
 
 # *** libitm for unix
