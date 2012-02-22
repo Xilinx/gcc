@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2011, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2012, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -661,8 +661,8 @@ __gnat_error_handler (int sig, siginfo_t *si ATTRIBUTE_UNUSED, void *ucontext)
       break;
 
     case SIGBUS:
-      exception = &constraint_error;
-      msg = "SIGBUS";
+      exception = &storage_error;
+      msg = "SIGBUS: possible stack overflow";
       break;
 
     case SIGFPE:
@@ -1239,8 +1239,6 @@ static const struct cond_except dec_ada_cond_except_table [] = {
   {ADA$_KEY_MISMATCH,    &Use_Error},
   {ADA$_MAXLINEXC,       &constraint_error},
   {ADA$_LINEXCMRS,       &constraint_error},
-  {0,                    0}
-};
 
 #if 0
    /* Already handled by a pragma Import_Exception
@@ -1249,6 +1247,9 @@ static const struct cond_except dec_ada_cond_except_table [] = {
   {ADA$_EXISTENCE_ERROR, &Existence_Error},
   {ADA$_KEY_ERROR,       &Key_Error},
 #endif
+
+  {0,                    0}
+};
 
 #endif /* IN_RTS */
 

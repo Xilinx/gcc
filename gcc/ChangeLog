@@ -1,14 +1,64 @@
-2012-01-21  Georg-Johann Lay  <avr@gjlay.de>
+2012-02-22  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/18145
+	* config/avr/avr.c (avr_asm_output_aligned_decl_common): Skip
+	setting avr_need_clear_bss_p for __gnu_lto* symbols.
+
+2012-02-22  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.h (avr_accumulate_outgoing_args): Return int.
+	* config/avr/avr.c (avr_accumulate_outgoing_args): Return int.	
+
+2012-02-22  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (LIB_TLS_SPEC): Enforce use of alternate thread
+	library on Solaris 8 even without TLS support.
+	* configure: Regenerate.
+
+2012-02-22  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52329
+	* gimple-fold.c (fold_stmt_1): Also canonicalize ADDR_EXPRs
+	for GIMPLE_DEBUG stmts.
+
+2012-02-22  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/51782
+	* emit-rtl.c (set_mem_attributes_minus_bitpos): Set address space
+	according to the base object.
+
+2012-02-22  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR rtl-optimization/50063
+	* config/avr/avr.md (movhi_sp_r): Handle -1 (unknown IRQ state)
+	and 2 (8-bit SP) in operand 2.
+	* config/avr/avr.c (avr_prologue_setup_frame): Adjust prologue
+	setup to use movhi_sp_r instead of vanilla move to write SP.
+	Adjust REG_CFA notes to superseed unspec.
+	(expand_epilogue): Adjust epilogue setup to use movhi_sp_r instead
+	of vanilla move.
+	As function body might contain CLI or SEI: Use irq_state 0 (IRQ
+	known to be off) only with TARGET_NO_INTERRUPTS. Never use
+	irq_state 1 (IRQ known to be on) here.
+
+2012-02-21  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* ira.c (check_allocation): Use REG_WORDS_BIG_ENDIAN, not
+	WORDS_BIG_ENDIAN.
+	* ira-color.c (setup_profitable_hard_regs, check_hard_reg_p,
+	assign_hard_reg): Likewise.
+
+2012-02-21  Georg-Johann Lay  <avr@gjlay.de>
 
 	* config/avr/avr.md (neghi2): Remove "!d,0" alternative. Tweak "r,0".
 
-2012-01-21  Georg-Johann Lay  <avr@gjlay.de>
+2012-02-21  Georg-Johann Lay  <avr@gjlay.de>
 
 	* config/avr/avr.md
 	(*dec-and-branchhi!=-1.d.clobber): New text peephole.
 	(*dec-and-branchhi!=-1.l.clobber): New text peephole.
 
-2012-01-21  Georg-Johann Lay  <avr@gjlay.de>
+2012-02-21  Georg-Johann Lay  <avr@gjlay.de>
 
 	* config/avr/avr-protos.h (avr_accumulate_outgoing_args): Move
 	prototype from here to...
@@ -17,7 +67,7 @@
 2012-02-21  Richard Earnshaw  <rearnsha@arm.com>
 
 	PR target/52294
-	* thumb2.md (thumb2_shiftsi3_short): Split register and 	
+	* thumb2.md (thumb2_shiftsi3_short): Split register and
 	immediate shifts.  For register shifts tie operands 0 and 1.
 	(peephole2 for above): Check that register-controlled shifts
 	have suitably tied operands.
