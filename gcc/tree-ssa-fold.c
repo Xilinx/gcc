@@ -334,13 +334,41 @@ combine_cond_expr_cond (location_t loc, enum tree_code code, tree type,
 static tree
 forward_propagate_into_comparison_1 (location_t loc,
 				     enum tree_code code, tree type,
-				     tree op0, tree op1, bool nowarnings)
+				     tree op0, tree op1, bool nowarnings,
+				     nonzerobits_t nonzerobitsp)
 {
   tree tmp = NULL_TREE;
   tree rhs0 = NULL_TREE, rhs1 = NULL_TREE;
   tree rhs01 = NULL_TREE, rhs11 = NULL_TREE;
   bool single_use0_p = false, single_use1_p = false;
   bool single_use01_p = false, single_use11_p = false;
+
+  if (code == NE_EXPR
+      && TREE_CODE (op0) == SSA_NAME
+      && integer_zerop (op1))
+    {
+      gimple def_stmt = get_prop_source_stmt (op0, false, &single_use0_p);
+      /* Try to simplify (a|b)!=0 to a!=0 | b!=0 if either a!=0 simplifies
+	 or b!=0 does. */
+      if (def_stmt && can_propagate_from (def_stmt)
+	  && gimple_assign_rhs_code (def_stmt) == BIT_IOR_EXPR)
+	{
+	  tree arg1, arg2, arg11, arg21;
+	  arg1 = gimple_assign_rhs1 (def_stmt);
+	  arg2 = gimple_assign_rhs2 (def_stmt);
+	  arg11 = gimple_fold_binary_loc (loc, NE_EXPR, type, arg1, op1, nonzerobitsp);
+	  arg21 = gimple_fold_binary_loc (loc, NE_EXPR, type, arg2, op1, nonzerobitsp);
+	  if (arg11 || arg21)
+	    {
+	      if (arg11 == NULL)
+		arg11 = build2_loc (loc, NE_EXPR, type, arg1, op1);
+	      if (arg21 == NULL)
+		arg21 = build2_loc (loc, NE_EXPR, type, arg2, op1);
+	      return gimple_fold_binary_loc (loc, BIT_IOR_EXPR, type, arg11, arg21,
+					     nonzerobitsp);
+	    }
+        }
+    }
 
   /* FIXME: this really should not be using combine_cond_expr_cond (fold_binary)
      but matching the patterns directly.  */
@@ -480,7 +508,7 @@ forward_propagate_into_comparison (location_t loc,
     tree reversed;
     tmp = forward_propagate_into_comparison_1 (loc, code,
 					       type, rhs1, rhs2,
-					       false);
+					       false, nonzerobits);
     if (!tmp)
       break;
     reversed = tmp;
@@ -550,6 +578,7 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt,
       else
 	return false;
     }
+
   /* Strip off the conversion from a boolean type to a boolean
      type, they are worthless for GIMPLE_COND.
      Note this is done as we use boolean_type_node here. */
@@ -1087,6 +1116,22 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 						tree_to_double_int (arg2))))
 						
     return arg2;
+
+  /* Fold a!=0|b!=0 if a and b are the same type to (a|b)!=0 . */
+  if (code == BIT_IOR_EXPR
+      && def1_code == NE_EXPR
+      && integer_zerop (def1_arg2)
+      && def2_code == NE_EXPR
+      && integer_zerop (def2_arg2)
+      && types_compatible_p (TREE_TYPE (def1_arg1), TREE_TYPE (def2_arg1)))
+   {
+     tree tmp = gimple_fold_build2_loc (loc, code, TREE_TYPE (def1_arg1),
+					def1_arg1, def2_arg1, nonzerobitsp);
+     return gimple_fold_build2_loc (loc, NE_EXPR, type, tmp,
+				    build_int_cst_type (TREE_TYPE (def1_arg1),
+							0),
+				    nonzerobitsp);
+   }
 
   /* Try to fold (type) X op CST -> (type) (X op ((type-x) CST)).  */
   if (TREE_CODE (arg2) == INTEGER_CST

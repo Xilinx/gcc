@@ -1,5 +1,15 @@
 2012-02-22  Andrew Pinski  <apinski@cavium.com>
 
+	PR tree-opt/52345
+	* tree-ssa-fold.c (forward_propagate_into_comparison_1): 
+	Add nonzerobitsp argument.
+	Try to simplify "(a|b)!=0 to a!=0 | b!=0" if either a!=0 or b!=0
+	simplifies.
+	(simplify_bitwise_binary): Fold "a!=0|b!=0" into (a|b)!=0
+	if a and b are the same type.
+
+2012-02-22  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c: Include tree-ssa-propagate.h.
 	(forward_propagate_into_gimple_cond): Update call to
 	extract_simple_gimple.
