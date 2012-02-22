@@ -1356,6 +1356,27 @@ melt_nthval_mapbasicblocks (struct meltmapbasicblocks_st *map_s, int ix)
   return map_s->entab[ix].e_va;
 }				/*end generated map nth value for CTYPE_BASIC_BLOCK */
 
+ /* map auxiliary data access for CTYPE_BASIC_BLOCK */
+static inline melt_ptr_t
+melt_auxdata_mapbasicblocks (melt_ptr_t map_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPBASICBLOCKS)
+    return ((struct meltmapbasicblocks_st *) map_p)->meltmap_aux;
+  return NULL;
+}
+
+ /* map auxiliary data put for CTYPE_BASIC_BLOCK */
+static inline melt_ptr_t
+melt_auxput_mapbasicblocks (melt_ptr_t map_p, melt_ptr_t val_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPBASICBLOCKS)
+    {
+      ((struct meltmapbasicblocks_st *) map_p)->meltmap_aux = val_p;
+      meltgc_touch_dest (map_p, val_p);
+    }
+  return NULL;
+}
+
 /***end of map support for GTY ctype CTYPE_BASIC_BLOCK **/
 
  /*gtyctype #2 CTYPE_BITMAP */
@@ -1438,6 +1459,27 @@ melt_nthval_mapbitmaps (struct meltmapbitmaps_st *map_s, int ix)
     return 0;
   return map_s->entab[ix].e_va;
 }				/*end generated map nth value for CTYPE_BITMAP */
+
+ /* map auxiliary data access for CTYPE_BITMAP */
+static inline melt_ptr_t
+melt_auxdata_mapbitmaps (melt_ptr_t map_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPBITMAPS)
+    return ((struct meltmapbitmaps_st *) map_p)->meltmap_aux;
+  return NULL;
+}
+
+ /* map auxiliary data put for CTYPE_BITMAP */
+static inline melt_ptr_t
+melt_auxput_mapbitmaps (melt_ptr_t map_p, melt_ptr_t val_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPBITMAPS)
+    {
+      ((struct meltmapbitmaps_st *) map_p)->meltmap_aux = val_p;
+      meltgc_touch_dest (map_p, val_p);
+    }
+  return NULL;
+}
 
 /***end of map support for GTY ctype CTYPE_BITMAP **/
 
@@ -1522,6 +1564,27 @@ melt_nthval_mapedges (struct meltmapedges_st *map_s, int ix)
   return map_s->entab[ix].e_va;
 }				/*end generated map nth value for CTYPE_EDGE */
 
+ /* map auxiliary data access for CTYPE_EDGE */
+static inline melt_ptr_t
+melt_auxdata_mapedges (melt_ptr_t map_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPEDGES)
+    return ((struct meltmapedges_st *) map_p)->meltmap_aux;
+  return NULL;
+}
+
+ /* map auxiliary data put for CTYPE_EDGE */
+static inline melt_ptr_t
+melt_auxput_mapedges (melt_ptr_t map_p, melt_ptr_t val_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPEDGES)
+    {
+      ((struct meltmapedges_st *) map_p)->meltmap_aux = val_p;
+      meltgc_touch_dest (map_p, val_p);
+    }
+  return NULL;
+}
+
 /***end of map support for GTY ctype CTYPE_EDGE **/
 
  /*gtyctype #4 CTYPE_GIMPLE */
@@ -1604,6 +1667,27 @@ melt_nthval_mapgimples (struct meltmapgimples_st *map_s, int ix)
     return 0;
   return map_s->entab[ix].e_va;
 }				/*end generated map nth value for CTYPE_GIMPLE */
+
+ /* map auxiliary data access for CTYPE_GIMPLE */
+static inline melt_ptr_t
+melt_auxdata_mapgimples (melt_ptr_t map_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPGIMPLES)
+    return ((struct meltmapgimples_st *) map_p)->meltmap_aux;
+  return NULL;
+}
+
+ /* map auxiliary data put for CTYPE_GIMPLE */
+static inline melt_ptr_t
+melt_auxput_mapgimples (melt_ptr_t map_p, melt_ptr_t val_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPGIMPLES)
+    {
+      ((struct meltmapgimples_st *) map_p)->meltmap_aux = val_p;
+      meltgc_touch_dest (map_p, val_p);
+    }
+  return NULL;
+}
 
 /***end of map support for GTY ctype CTYPE_GIMPLE **/
 
@@ -1692,6 +1776,27 @@ melt_nthval_mapgimpleseqs (struct meltmapgimpleseqs_st *map_s, int ix)
   return map_s->entab[ix].e_va;
 }				/*end generated map nth value for CTYPE_GIMPLE_SEQ */
 
+ /* map auxiliary data access for CTYPE_GIMPLE_SEQ */
+static inline melt_ptr_t
+melt_auxdata_mapgimpleseqs (melt_ptr_t map_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPGIMPLESEQS)
+    return ((struct meltmapgimpleseqs_st *) map_p)->meltmap_aux;
+  return NULL;
+}
+
+ /* map auxiliary data put for CTYPE_GIMPLE_SEQ */
+static inline melt_ptr_t
+melt_auxput_mapgimpleseqs (melt_ptr_t map_p, melt_ptr_t val_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPGIMPLESEQS)
+    {
+      ((struct meltmapgimpleseqs_st *) map_p)->meltmap_aux = val_p;
+      meltgc_touch_dest (map_p, val_p);
+    }
+  return NULL;
+}
+
 /***end of map support for GTY ctype CTYPE_GIMPLE_SEQ **/
 
  /*gtyctype #6 CTYPE_LOOP */
@@ -1774,6 +1879,27 @@ melt_nthval_maploops (struct meltmaploops_st *map_s, int ix)
     return 0;
   return map_s->entab[ix].e_va;
 }				/*end generated map nth value for CTYPE_LOOP */
+
+ /* map auxiliary data access for CTYPE_LOOP */
+static inline melt_ptr_t
+melt_auxdata_maploops (melt_ptr_t map_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPLOOPS)
+    return ((struct meltmaploops_st *) map_p)->meltmap_aux;
+  return NULL;
+}
+
+ /* map auxiliary data put for CTYPE_LOOP */
+static inline melt_ptr_t
+melt_auxput_maploops (melt_ptr_t map_p, melt_ptr_t val_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPLOOPS)
+    {
+      ((struct meltmaploops_st *) map_p)->meltmap_aux = val_p;
+      meltgc_touch_dest (map_p, val_p);
+    }
+  return NULL;
+}
 
 /***end of map support for GTY ctype CTYPE_LOOP **/
 
@@ -1858,6 +1984,27 @@ melt_nthval_maprtvecs (struct meltmaprtvecs_st *map_s, int ix)
   return map_s->entab[ix].e_va;
 }				/*end generated map nth value for CTYPE_RTVEC */
 
+ /* map auxiliary data access for CTYPE_RTVEC */
+static inline melt_ptr_t
+melt_auxdata_maprtvecs (melt_ptr_t map_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPRTVECS)
+    return ((struct meltmaprtvecs_st *) map_p)->meltmap_aux;
+  return NULL;
+}
+
+ /* map auxiliary data put for CTYPE_RTVEC */
+static inline melt_ptr_t
+melt_auxput_maprtvecs (melt_ptr_t map_p, melt_ptr_t val_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPRTVECS)
+    {
+      ((struct meltmaprtvecs_st *) map_p)->meltmap_aux = val_p;
+      meltgc_touch_dest (map_p, val_p);
+    }
+  return NULL;
+}
+
 /***end of map support for GTY ctype CTYPE_RTVEC **/
 
  /*gtyctype #8 CTYPE_RTX */
@@ -1941,6 +2088,27 @@ melt_nthval_maprtxs (struct meltmaprtxs_st *map_s, int ix)
   return map_s->entab[ix].e_va;
 }				/*end generated map nth value for CTYPE_RTX */
 
+ /* map auxiliary data access for CTYPE_RTX */
+static inline melt_ptr_t
+melt_auxdata_maprtxs (melt_ptr_t map_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPRTXS)
+    return ((struct meltmaprtxs_st *) map_p)->meltmap_aux;
+  return NULL;
+}
+
+ /* map auxiliary data put for CTYPE_RTX */
+static inline melt_ptr_t
+melt_auxput_maprtxs (melt_ptr_t map_p, melt_ptr_t val_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPRTXS)
+    {
+      ((struct meltmaprtxs_st *) map_p)->meltmap_aux = val_p;
+      meltgc_touch_dest (map_p, val_p);
+    }
+  return NULL;
+}
+
 /***end of map support for GTY ctype CTYPE_RTX **/
 
  /*gtyctype #9 CTYPE_TREE */
@@ -2023,6 +2191,27 @@ melt_nthval_maptrees (struct meltmaptrees_st *map_s, int ix)
     return 0;
   return map_s->entab[ix].e_va;
 }				/*end generated map nth value for CTYPE_TREE */
+
+ /* map auxiliary data access for CTYPE_TREE */
+static inline melt_ptr_t
+melt_auxdata_maptrees (melt_ptr_t map_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPTREES)
+    return ((struct meltmaptrees_st *) map_p)->meltmap_aux;
+  return NULL;
+}
+
+ /* map auxiliary data put for CTYPE_TREE */
+static inline melt_ptr_t
+melt_auxput_maptrees (melt_ptr_t map_p, melt_ptr_t val_p)
+{
+  if (melt_magic_discr (map_p) == MELTOBMAG_MAPTREES)
+    {
+      ((struct meltmaptrees_st *) map_p)->meltmap_aux = val_p;
+      meltgc_touch_dest (map_p, val_p);
+    }
+  return NULL;
+}
 
 /***end of map support for GTY ctype CTYPE_TREE **/
 
@@ -2352,4 +2541,4 @@ melt_nthval_maptrees (struct meltmaptrees_st *map_s, int ix)
 
 
 /*** End of declaration file meltrunsup.h generated on 2012 Feb 22
- * by GCC MELT 4.7.0 20120222 (experimental) [melt-branch revision 184459] MELT_0.9.3+ . ***/
+ * by GCC MELT 4.7.0 20120222 (experimental) [melt-branch revision 184468] MELT_0.9.3+ . ***/

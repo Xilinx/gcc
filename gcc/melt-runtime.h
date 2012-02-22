@@ -489,6 +489,13 @@ static inline void melt_store_predefined(int, melt_ptr_t);
 #define MELT_PREDEF(Glob)  melt_fetch_predefined(MELTGLOB_##Glob)
 #define MELT_STORE_PREDEF(Glob,P) melt_store_predefined(MELTGLOB_##Glob, (P))
 
+
+
+/* forward declarations of touching functions; they can appear in meltrunsup.h */
+static inline void meltgc_touch_dest (void *touchedptr, void *destptr);
+static inline void meltgc_touch (void* touchedptr);
+
+
 /* File meltrunsup.h is inside melt/generated/ */
 #include "meltrunsup.h"
 
@@ -627,6 +634,7 @@ melt_magic_discr (melt_ptr_t p)
 #endif /*ENABLE_GC_CHECKING*/
   return p->u_discr->meltobj_magic;
 }
+
 
 /* likewise, but without testing for null */
 static inline int
