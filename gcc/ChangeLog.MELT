@@ -1,5 +1,20 @@
 
 2011-02-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (mapobject_aux, mapobject_auxput)
+	(mapstring_aux, mapstring_auxput): New primitives.
+
+	* melt/warmelt-debug.melt (dbgout_mapobject_method)
+	(dbgout_mapstring_method): Display the auxiliary data if depth is
+	0 or 1...
+
+	* melt/xtramelt-ana-base.melt (mapbasicblock_aux)
+	(mapbasicblock_auxput, mapedge_aux, mapedge_auxput, mapgimple_aux)
+	(mapgimple_auxput, maptree_aux, maptree_auxput): New primitives.
+	More :doc strings.
+	(dbgout_boxedge_method, dbgout_mapedge_method): Display auxiliary
+	data...
+
+2011-02-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{adding auxiliary data inside MELT maps}}
 	* melt-runtime.h (meltgc_touch_dest, meltgc_touch): Pre declared
 	before include of meltrunsup.h.

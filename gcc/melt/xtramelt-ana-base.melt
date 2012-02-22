@@ -90,26 +90,40 @@
 
 ;;;;;;;;;;;;;;;; map associating GCC gimple-s to non-null MELT values
 (defprimitive is_mapgimple (map) :long
+  :doc #{Test if $MAP is a map of gimples.}#
   #{ (melt_magic_discr((melt_ptr_t)($map)) == MELTOBMAG_MAPGIMPLES) }#)
 (defprimitive mapgimple_size (map) :long
+  :doc #{Give the allocated size of a map of gimples $MAP.}#
  #{ (melt_size_mapgimples((struct meltmapgimples_st*)($map))) }#)
 ;; primitive to get the attribute count of a mapgimple
 (defprimitive mapgimple_count (map) :long
+  :doc #{Give the used count of a map of gimples $MAP.}#
   #{ (melt_count_mapgimples((struct meltmapgimples_st*)($map))) }# )
 ;; get an entry in a mapgimple from a C gimple
-(defprimitive mapgimple_get (map :gimple bb) :value
-  #{(melt_get_mapgimples(($map), ($bb)))}#)
+(defprimitive mapgimple_get (map :gimple g) :value
+  :doc #{Safely get the value associated to gimple $G in map of gimples $MAP.}#
+  #{(melt_get_mapgimples(($MAP), ($G)))}#)
 ;; primitive for making a new map of gimples
 (defprimitive make_mapgimple (discr :long len) :value
+  :doc #{Make a map of gimple keys of given $DISCR and $LEN.}#
  #{(meltgc_new_mapgimples((meltobject_ptr_t) ($discr), ($len)))}#)
 ;; primitive for putting into a map of gimples
-(defprimitive mapgimple_put (map :gimple key :value val) :void
-  #{melt_put_mapgimples(($map), 
-			($key), (melt_ptr_t) ($val))}#)
-;; primivite for removing from a map of gimples
-(defprimitive mapgimple_remove (map :gimple key) :void
-  #{meltgc_remove_mapgimples(($map), ($key))}#)
-
+(defprimitive mapgimple_put (map :gimple gkey :value val) :void
+  :doc #{Safely put in map of gimple $MAP the gimple key $GKEY associated to $VAL.}#
+  #{melt_put_mapgimples(($MAP), 
+			($GKEY), (melt_ptr_t) ($VAL))}#)
+;; primitive for removing from a map of gimples
+(defprimitive mapgimple_remove (map :gimple gkey) :void
+  :doc #{Safely remove in map of gimple $MAP the entry for gimple key $GKEY.}#
+  #{meltgc_remove_mapgimples(($MAP), ($GKEY))}#)
+;; get the auxiliary data from map of gimples
+(defprimitive mapgimple_aux (map) :value
+  :doc #{Safely retrieve the auxiliary data of map of gimples $MAP.}#
+  #{melt_auxdata_mapgimples((melt_ptr_t)$MAP)}#)
+;; put the auxiliary data in map of gimples
+(defprimitive mapgimple_auxput (map aux) :void
+  :doc #{Safely put the auxiliary data of map of gimples $MAP as $AUX.}#
+  #{melt_auxput_mapgimples((melt_ptr_t)$MAP,(melt_ptr_t)$AUX)}#)
 ;; primitive to get the nth gimple of a mapgimple
 (defprimitive mapgimple_nth_attr (map :long n) :gimple
   #{(melt_nthattr_mapgimples((struct meltmapgimples_st*)($map), (int)($n)))}#)
@@ -164,25 +178,40 @@
 
 ;;;;;;;;;;;;;;;; map associating GCC edge-s to non-null MELT values
 (defprimitive is_mapedge (map) :long
+  :doc #{Test if $MAP is a map keyed by edges.}#
   #{ (melt_magic_discr((melt_ptr_t)($map)) == MELTOBMAG_MAPEDGES) }#)
 (defprimitive mapedge_size (map) :long
+  :doc #{Get the allocated size of an edge map $MAP.}#
  #{ (melt_size_mapedges((struct meltmapedges_st*)($map))) }#)
 ;; primitive to get the attribute count of a mapedge
 (defprimitive mapedge_count (map) :long
+  :doc #{Get the counted length of an edge map $MAP.}#
   #{ (melt_count_mapedges((struct meltmapedges_st*)($map))) }# )
 ;; get an entry in a mapedge from a C edge
-(defprimitive mapedge_get (map :edge bb) :value
-  #{(melt_get_mapedges(($map), ($bb)))}#)
+(defprimitive mapedge_get (map :edge ed) :value
+  :doc #{Get the value in edge map $MAP associted to edge $ED.}#
+  #{(melt_get_mapedges(($MAP), ($ED)))}#)
 ;; primitive for making a new map of edges
 (defprimitive make_mapedge (discr :long len) :value
+  :doc #{Make a new map of edges with $DISCR and initial $LEN.}#
  #{(meltgc_new_mapedges((meltobject_ptr_t) ($discr), ($len)))}#)
 ;; primitive for putting into a map of edges
-(defprimitive mapedge_put (map :edge key :value val) :void
-  #{melt_put_mapedges(($map), 
-		      ($key), (melt_ptr_t) ($val))}#)
-;; primivite for removing from a map of edges
+(defprimitive mapedge_put (map :edge ekey :value val) :void
+  :doc #{Safely put into map $MAP the edge $EKEY associated to value $VAL.}#
+  #{melt_put_mapedges(($MAP), 
+		      ($EKEY), (melt_ptr_t) ($VAL))}#)
+;; primitive for removing from a map of edges
 (defprimitive mapedge_remove (map :edge key) :void
+  :doc #{Safely remove in map $MAP the entry for edge $EKEY.}#
   #{meltgc_remove_mapedges(($map), ($key))}#)
+;; retrieve the auxiliary data in a map of edges
+(defprimitive mapedge_aux (map) :value
+  :doc #{Retrieve the auxiliary data of edge map $MAP.}#
+  #{melt_auxdata_mapedges ((melt_ptr_t)$MAP)}#)
+;; put the auxiliary data in a map of edges
+(defprimitive mapedge_auxput (map aux) :void
+  :doc #{Put the auxiliary data of edge map $MAP as $AUX.}#
+  #{melt_auxput_mapedges((melt_ptr_t)$MAP, (melt_ptr_t)$AUX)}#)
 
 ;; primitive to get the nth edge of a mapedge
 (defprimitive mapedge_nth_attr (map :long n) :edge
@@ -2985,26 +3014,40 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;;;;;;;;;;;;;;;;
 
 (defprimitive is_mapbasicblock (map) :long
+  :doc #{Test if $MAP is a map keyed by basicblocks.}#
   #{(melt_magic_discr((melt_ptr_t)($map)) == MELTOBMAG_MAPBASICBLOCKS)}# )
 (defprimitive mapbasicblock_size (map) :long
+  :doc #{Retrieve the allocated size of a basicblock map.}#
   #{(melt_size_mapbasicblocks((struct meltmapbasicblocks_st*)($map)))}#)
 ;; primitive to get the attribute count of a mapbasicblock
 (defprimitive mapbasicblock_count (map) :long
+  :doc #{Retrieve the used count of a map of basicblocks.}#
   #{(melt_count_mapbasicblocks((struct meltmapbasicblocks_st*)($map)))}#)
 ;; get an entry in a mapbasicblock from a C basicblock
 (defprimitive mapbasicblock_get (map :basic_block bb) :value
+  :doc #{Safely get in a a basic block map $MAP the value associated to basic block $BB.}#
   #{(melt_get_mapbasicblocks(($map), ($bb)))}#)
 ;; primitive for making a new map of basicblocks
 (defprimitive make_mapbasicblock (discr :long len) :value
+  :doc #{Make a map keyed by basic blocks, of given $DISCR and allocated $LEN.}#
   #{(meltgc_new_mapbasicblocks( (meltobject_ptr_t) ($discr),
 				   ($len)))}#)
 ;; primitive for putting into a map of basicblocks
 (defprimitive mapbasicblock_put (map :basic_block key :value val) :void
+  :doc #{Put into map $MAP the basic_block $KEY associated to $VAL.}#
   #{melt_put_mapbasicblocks(($map), ($key), (melt_ptr_t) ($val))}#)
-;; primivite for removing from a map of basicblocks
+;; primitive for removing from a map of basicblocks
 (defprimitive mapbasicblock_remove (map :basic_block key) :void
+  :doc #{Remove from map $MAP the entry for basic_block $KEY.}#
  #{meltgc_remove_mapbasicblocks(($map), ($key))}#)
-
+;; primitive to get the auxiliary data of a basicblocks map
+(defprimitive mapbasicblock_aux (map) :value
+  :doc #{Safely retrieve the auxiliary data of map of basic blocks $MAP.}#
+  #{melt_auxdata_mapbasicblocks((melt_ptr_t)$MAP)}#)
+;; put
+(defprimitive mapbasicblock_auxput (map aux) :void
+  :doc #{Safely put the auxiliary data of map of basic blocks $MAP to $AUX.}#
+  #{melt_auxput_mapbasicblocks((melt_ptr_t)$MAP)}#)
 ;; primitive to get the nth basicblock of a mapbasicblock
 (defprimitive mapbasicblock_nth_attr (map :long n) :basic_block
  #{(melt_nthattr_mapbasicblocks((struct meltmapbasicblocks_st*)($map), 
@@ -3080,25 +3123,40 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;;;;;;;;;;;;;;;;
 
 (defprimitive is_maptree (map) :long
+  :doc #{Test if $MAP is a map of trees.}#
   #{ (melt_magic_discr((melt_ptr_t)($map)) == MELTOBMAG_MAPTREES) }#)
 (defprimitive maptree_size (map) :long
+  :doc #{Safely retrieve allocated size of map of trees $MAP.}#
  #{ (melt_size_maptrees((struct meltmaptrees_st*)($map))) }#)
 ;; primitive to get the attribute count of a maptree
 (defprimitive maptree_count (map) :long
+  :doc #{Safely retrieve used count of map of trees $MAP.}#
   #{ (melt_count_maptrees((struct meltmaptrees_st*)($map))) }# )
 ;; get an entry in a maptree from a C tree
-(defprimitive maptree_get (map :tree bb) :value
-  #{(melt_get_maptrees(($map), ($bb)))}#)
+(defprimitive maptree_get (map :tree tr) :value
+  :doc #{Safely get in map of trees $MAP value associated to tree $TR.}#
+  #{(melt_get_maptrees(($MAP), ($TR)))}#)
 ;; primitive for making a new map of trees
 (defprimitive make_maptree (discr :long len) :value
- #{(meltgc_new_maptrees((meltobject_ptr_t) ($discr), ($len)))}#)
+  :doc #{Make a map of trees with discriminant $DISCR and initial size $LEN.}#
+ #{(meltgc_new_maptrees((meltobject_ptr_t) ($DISCR), ($LEN)))}#)
 ;; primitive for putting into a map of trees
-(defprimitive maptree_put (map :tree key :value val) :void
-  #{melt_put_maptrees(($map), 
-		      ($key), (melt_ptr_t) ($val))}#)
-;; primivite for removing from a map of trees
-(defprimitive maptree_remove (map :tree key) :void
-  #{meltgc_remove_maptrees( (struct meltmaptrees_st*) ($map), ($key))}#)
+(defprimitive maptree_put (map :tree trkey :value val) :void
+  :doc #{Safely put in map of trees $MAP associated to tree $TRKEY the non-nil value $VAL.}#
+  #{melt_put_maptrees(($MAP),  ($TRKEY), 
+		      (melt_ptr_t) ($VAL))}#)
+;; primitive for removing from a map of trees
+(defprimitive maptree_remove (map :tree trkey) :void
+  :doc #{Safely remove in map of trees $MAP entry for tree $TRKEY.}#
+  #{meltgc_remove_maptrees( (struct meltmaptrees_st*) ($MAP), ($TRKEY))}#)
+;; primitive to retrieve the auxiliary data of a map of trees
+(defprimitive maptree_aux (map) :value
+  :doc #{Safely retrieve in map of trees $MAP the auxiliary data.}#
+  #{melt_auxdata_maptrees ((melt_ptr_t)$MAP)}#)
+;; primitive to put the auxiliary data of a map of trees
+(defprimitive maptree_auxput (map aux) :void
+  :doc #{Safely put in map of trees $MAP the auxiliary data to $AUX.}#
+  #{melt_auxput_maptrees ((melt_ptr_t)$MAP, (melt_ptr_t)$AUX)}#)
 
 ;; primitive to get the nth tree of a maptree
 (defprimitive maptree_nth_attr (map :long n) :tree
@@ -3400,12 +3458,18 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   (assert_msg "check self" (is_mapbasicblock self))
   (let ( (dis (discrim self)) 
 	 (:long mapcount (mapbasicblock_count self))
-	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
+	 (out  (unsafe_get_field :dbgi_out dbgi)) 
+	 (aux (mapbasicblock_aux self))
+	 ) 
     (add2out_strconst out " !bbmap.")
     (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
     (add2out_strconst out "/")
     (add2out_longdec out mapcount)
     (add2out_strconst out "!{")
+    (if (and aux (<=i depth 1))
+	(progn
+	  (add2out out " aux:")
+	  (dbg_out aux dbgi (+i depth 3))))
     (foreach_mapbasicblock
      (self)
      (:basic_block bbatt :value bbval)
@@ -3427,12 +3491,19 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   (assert_msg "check self" (is_maptree self))
   (let ( (dis (discrim self)) 
 	 (:long mapcount (maptree_count self))
+	 (aux (maptree_aux self))
 	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
     (add2out_strconst out " !treemap.")
     (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
     (add2out_strconst out "/")
     (add2out_longdec out mapcount)
     (add2out_strconst out "!{ ")
+    (if (and (<=i depth 1)
+	     aux)
+	(progn
+	  (add2out out " aux:")
+	  (dbg_out aux dbgi (+i depth 3))
+	  ))
     (foreach_maptree
      (self)
      (:tree tratt :value trval)
@@ -3447,6 +3518,39 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
     ))
 (install_method discr_map_trees dbg_output dbgout_maptree_method)
 
+
+
+;;;; edgemap debug
+(defun dbgout_mapedge_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (assert_msg "check self" (is_mapedge self))
+  (let ( (dis (discrim self)) 
+	 (:long mapcount (mapedge_count self))
+	 (out  (unsafe_get_field :dbgi_out dbgi)) 
+	 (aux (mapedge_aux self))
+	 ) 
+    (add2out_strconst out " !edgemap.")
+    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
+    (add2out_strconst out "/")
+    (add2out_longdec out mapcount)
+    (add2out_strconst out "!{")
+    (if (and aux (<=i depth 1))
+	(progn
+	  (add2out out " aux:")
+	  (dbg_out aux dbgi (+i depth 3))))
+    (foreach_mapedge
+     (self)
+     (:edge edatt :value bbval)
+     (add2out_indentnl out (+i depth 1))
+     (add2out_strconst out "*")
+     (output_edge out edatt)
+     (add2out_strconst out " == ")
+     (dbg_out bbval dbgi (+i depth 2))
+     )
+    (add2out_strconst out "}!")
+    (add2out_indentnl out depth)
+    ))
+(install_method discr_map_edges dbg_output dbgout_mapedge_method)
 
 
 
@@ -4446,13 +4550,17 @@ Don't scan operands of the added $G.}#
  make_ppl_polyhedron_cloned
  make_ppl_polyhedron_same 
  make_tree  
+ mapbasicblock_aux
+ mapbasicblock_auxput
  mapbasicblock_count
  mapbasicblock_get
  mapbasicblock_nth_attr
  mapbasicblock_nth_val 
  mapbasicblock_put
  mapbasicblock_remove  
- mapbasicblock_size 
+ mapbasicblock_size
+ mapedge_aux 
+ mapedge_auxput 
  mapedge_count
  mapedge_get
  mapedge_nth_attr
@@ -4460,6 +4568,8 @@ Don't scan operands of the added $G.}#
  mapedge_put
  mapedge_remove
  mapedge_size
+ mapgimple_aux
+ mapgimple_auxput
  mapgimple_count
  mapgimple_get
  mapgimple_nth_attr
@@ -4475,6 +4585,8 @@ Don't scan operands of the added $G.}#
  maploop_remove
  maploop_size
  maptree_count
+ maptree_aux
+ maptree_auxput
  maptree_get
  maptree_nth_attr
  maptree_nth_val

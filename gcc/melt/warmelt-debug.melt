@@ -2,7 +2,7 @@
 ;; file warmelt-debug.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2009, 2010, 2011 Free Software Foundation, Inc.
+    Copyright 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -970,7 +970,16 @@ $TORANK}#
 	      (nextdepthbox (make_integerbox discr_integer (+i 2 depth)))
 	      (countbox (make_integerbox discr_integer 0))
 	      (tupl (make_multiple discr_multiple mapcount))
+	      (aux (mapobject_aux self))
 	      )
+	  (if (and 
+	       (notnull aux)
+	       (<=i depth 1))
+	      (progn
+		(add2out out " aux:")
+		(dbg_out aux dbgi (+i depth 3))
+		(add2out_indent out (+i depth 1)))
+	    )
 	  ;; fill the tupl with (attribute value rank) entries
 	  (mapobject_every
 	   self
@@ -1045,7 +1054,17 @@ $TORANK}#
     (add2sbuf_strconst sbuf "/")
     (add2sbuf_longdec sbuf mapcount)
     (if (melt_really_need_debug (+i depth 2))
-	(progn
+	(let (
+	      (aux (mapstring_aux self))
+	      )
+	  (if (and 
+	       (notnull aux)
+	       (<=i depth 1))
+	      (progn
+		(add2out sbuf " aux:")
+		(dbg_out aux dbgi (+i depth 3))
+		(add2out_indentnl sbuf (+i depth 1)))
+	    )
 	  ;; fill the tuple with string, value, rank triples
 	  (mapstring_every 
 	   self
