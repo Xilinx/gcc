@@ -3262,6 +3262,7 @@ meltgc_new_mapobjects (meltobject_ptr_t discr_p, unsigned len)
 			(struct meltmapobjects_st, map_space),
 			maplen * sizeof (struct entryobjectsmelt_st));
   mapobject_newmapv->discr = object_discrv;
+  mapobject_newmapv->meltmap_aux = NULL;
   if (len > 0)
     {
       mapobject_newmapv->entab = mapobject_newmapv->map_space;
@@ -3593,6 +3594,7 @@ meltgc_new_mapstrings (meltobject_ptr_t discr_p, unsigned len)
 		  + 8 * sizeof(void*));
   newmapv = meltgc_allocate (sizeof (struct meltmapstrings_st), 0);
   mapstring_newmapv->discr = object_discrv;
+  mapstring_newmapv->meltmap_aux = NULL;
   if (len > 0)
     {
       /* the newmapv is always young */
@@ -3924,6 +3926,7 @@ struct meltmappointers_st
   meltobject_ptr_t discr;
   unsigned count;
   unsigned char lenix;
+  melt_ptr_t meltmap_aux;
   struct entrypointermelt_st *entab;
   /* the following field is usually the value of entab (for
      objects in the young zone), to allocate the object and its fields
@@ -3977,6 +3980,7 @@ meltgc_raw_new_mappointers (meltobject_ptr_t discr_p, unsigned len)
 			 map_space),
 			primlen * sizeof (struct entrypointermelt_st));
   map_newmapv->discr = object_discrv;
+  map_newmapv->meltmap_aux = NULL;
   map_newmapv->count = 0;
   map_newmapv->lenix = lenix;
   if (len > 0)

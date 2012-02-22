@@ -1609,6 +1609,8 @@ typedef melt_ptr_t meltroutfun_t (struct meltclosure_st* meltclosp_,
    (add2sbuf_indentnl outbuf 3)
    (add2sbuf_strconst outbuf "unsigned char lenix;")
    (add2sbuf_indentnl outbuf 3)
+   (add2sbuf_strconst outbuf "melt_ptr_t meltmap_aux;")
+   (add2sbuf_indentnl outbuf 3)
    (add2sbuf_strconst outbuf "struct ")
    (add2sbuf_string outbuf (get_field :ctypg_entrystruct curctyp))
    (add2sbuf_strconst outbuf "* GTY ((length (\"melt_primtab[%h.lenix]\"))) entab;")
@@ -1949,6 +1951,8 @@ melt_forwarded_copy (melt_ptr_t p)
    (add2sbuf_indentnl outbuf 2)
    (add2sbuf_strconst outbuf "dst->lenix = src->lenix;")
    (add2sbuf_indentnl outbuf 2)
+   (add2sbuf_strconst outbuf "dst->meltmap_aux = src->meltmap_aux;")
+   (add2sbuf_indentnl outbuf 2)
    (add2sbuf_strconst outbuf "if (siz > 0 && src->entab) {")
    (add2sbuf_indentnl outbuf 3)
    (add2sbuf_strconst outbuf "dst->entab = ggc_alloc_vec_")
@@ -2109,6 +2113,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	  struct $MAPSTRUCT *dst = 
             (struct $MAPSTRUCT *) meltgc_raw_new_mappointers((meltobject_ptr_t)newdiscrv, newlen);
 	  unsigned ix = 0;
+	  dst->meltmap_aux = src->meltmap_aux;
 	  if (src->entab)
             for (ix=0; ix<oldlen; 
 		 ix++) {
@@ -2310,6 +2315,8 @@ melt_scanning (melt_ptr_t p)
    (add2sbuf_strconst outbuf "*) p;")
    (add2sbuf_indentnl outbuf 2)
    (add2sbuf_strconst outbuf "int siz=0, ix=0;")
+   (add2sbuf_indentnl outbuf 2)
+   (add2sbuf_strconst outbuf "MELT_FORWARDED(src->meltmap_aux);")
    (add2sbuf_indentnl outbuf 2)
    (add2sbuf_strconst outbuf "if (!src->entab) break;")
    (add2sbuf_indentnl outbuf 2)

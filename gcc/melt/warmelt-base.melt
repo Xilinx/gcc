@@ -2557,6 +2557,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
   :valdesc_membchunk #{$' /* from VALDESC_MAPOBJECTS in warmelt-base.melt */
   unsigned count;
   unsigned char lenix;
+  melt_ptr_t meltmap_aux;
   struct entryobjectsmelt_st *GTY ((length ("melt_primtab[%h.lenix]")))
     entab;
   /* the following field is usually the value of entab (for
@@ -2585,6 +2586,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
      dst->discr = src->discr;
      dst->count = src->count;
      dst->lenix = src->lenix;
+     dst->meltmap_aux = src->meltmap_aux;
      if (siz > 0 && src->entab)
        {
        /* Don't need a cleared allocation.  */
@@ -2602,6 +2604,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
      dst = (struct meltmapobjects_st*) 
          meltgc_new_mapobjects ((meltobject_ptr_t)newdiscrv, newlen);
      resv = dst;
+     dst->meltmap_aux = src->meltmap_aux;
      for (srcix = 0; srcix < srclen; srcix++) {
        meltobject_ptr_t curat = NULL;
        melt_ptr_t curva = NULL;
@@ -2618,6 +2621,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
   }#
   :valdesc_forwchunk #{$' /* forwarding from VALDESC_MAPOBJECTS */
     int siz, ix;
+    MELT_FORWARDED(src->meltmap_aux);
     if (!src->entab)
       break;
     siz = melt_primtab[src->lenix];
@@ -2658,6 +2662,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
   :valdesc_membchunk #{$' /* from VALDESC_MAPSTRINGS in warmelt-base.melt */
   unsigned count;
   unsigned char lenix;
+  melt_ptr_t meltmap_aux;
   struct entrystringsmelt_st *GTY ((length ("melt_primtab[%h.lenix]")))
     entab;
   }#
@@ -2679,6 +2684,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
         dst->discr = src->discr;
         dst->count = src->count;
         dst->lenix = src->lenix;
+        dst->meltmap_aux = src->meltmap_aux;
         if (siz > 0 && src->entab)
           {
           /* Don't need a cleared allocation.  */
@@ -2695,6 +2701,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
      unsigned srcix = 0;
      dst = (struct meltmapstrings_st*) meltgc_new_mapstrings ((meltobject_ptr_t)newdiscrv, newlen);
      resv = dst;
+     dst->meltmap_aux = src->meltmap_aux;
      for (srcix = 0; srcix < srclen; srcix++) {
        const char* curat = NULL;
        melt_ptr_t curva = NULL;
@@ -2713,6 +2720,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
   }#
   :valdesc_forwchunk #{$' /* forwarding from VALDESC_MAPSTRINGS */
      int ix, siz;
+     MELT_FORWARDED(src->meltmap_aux);
      if (!src->entab)
        break;
      siz = melt_primtab[src->lenix];

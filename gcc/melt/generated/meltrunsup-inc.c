@@ -434,6 +434,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (siz > 0 && src->entab)
 	  {
 	    /* Don't need a cleared allocation.  */
@@ -470,6 +471,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (siz > 0 && src->entab)
 	  {
 	    /* Don't need a cleared allocation.  */
@@ -991,6 +993,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab = ggc_alloc_vec_entrybasicblockmelt_st (siz);
@@ -1030,6 +1033,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab = ggc_alloc_vec_entrybitmapmelt_st (siz);
@@ -1069,6 +1073,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab = ggc_alloc_vec_entryedgemelt_st (siz);
@@ -1108,6 +1113,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab = ggc_alloc_vec_entrygimplemelt_st (siz);
@@ -1147,6 +1153,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab = ggc_alloc_vec_entrygimpleseqmelt_st (siz);
@@ -1186,6 +1193,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab = ggc_alloc_vec_entryloopmelt_st (siz);
@@ -1225,6 +1233,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab = ggc_alloc_vec_entryrtvecmelt_st (siz);
@@ -1264,6 +1273,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab = ggc_alloc_vec_entryrtxmelt_st (siz);
@@ -1303,6 +1313,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst->discr = src->discr;
 	dst->count = src->count;
 	dst->lenix = src->lenix;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (siz > 0 && src->entab)
 	  {
 	    dst->entab = ggc_alloc_vec_entrytreemelt_st (siz);
@@ -1424,6 +1435,7 @@ melt_scanning (melt_ptr_t p)
 	struct meltmapobjects_st *src = (struct meltmapobjects_st *) p;
 	/* forwarding from VALDESC_MAPOBJECTS */
 	int siz, ix;
+	MELT_FORWARDED (src->meltmap_aux);
 	if (!src->entab)
 	  break;
 	siz = melt_primtab[src->lenix];
@@ -1460,6 +1472,7 @@ melt_scanning (melt_ptr_t p)
 	struct meltmapstrings_st *src = (struct meltmapstrings_st *) p;
 	/* forwarding from VALDESC_MAPSTRINGS */
 	int ix, siz;
+	MELT_FORWARDED (src->meltmap_aux);
 	if (!src->entab)
 	  break;
 	siz = melt_primtab[src->lenix];
@@ -1706,6 +1719,7 @@ melt_scanning (melt_ptr_t p)
 	struct meltmapbasicblocks_st *src =
 	  (struct meltmapbasicblocks_st *) p;
 	int siz = 0, ix = 0;
+	MELT_FORWARDED (src->meltmap_aux);
 	if (!src->entab)
 	  break;
 	siz = melt_primtab[src->lenix];
@@ -1737,6 +1751,7 @@ melt_scanning (melt_ptr_t p)
       {
 	struct meltmapbitmaps_st *src = (struct meltmapbitmaps_st *) p;
 	int siz = 0, ix = 0;
+	MELT_FORWARDED (src->meltmap_aux);
 	if (!src->entab)
 	  break;
 	siz = melt_primtab[src->lenix];
@@ -1768,6 +1783,7 @@ melt_scanning (melt_ptr_t p)
       {
 	struct meltmapedges_st *src = (struct meltmapedges_st *) p;
 	int siz = 0, ix = 0;
+	MELT_FORWARDED (src->meltmap_aux);
 	if (!src->entab)
 	  break;
 	siz = melt_primtab[src->lenix];
@@ -1799,6 +1815,7 @@ melt_scanning (melt_ptr_t p)
       {
 	struct meltmapgimples_st *src = (struct meltmapgimples_st *) p;
 	int siz = 0, ix = 0;
+	MELT_FORWARDED (src->meltmap_aux);
 	if (!src->entab)
 	  break;
 	siz = melt_primtab[src->lenix];
@@ -1830,6 +1847,7 @@ melt_scanning (melt_ptr_t p)
       {
 	struct meltmapgimpleseqs_st *src = (struct meltmapgimpleseqs_st *) p;
 	int siz = 0, ix = 0;
+	MELT_FORWARDED (src->meltmap_aux);
 	if (!src->entab)
 	  break;
 	siz = melt_primtab[src->lenix];
@@ -1861,6 +1879,7 @@ melt_scanning (melt_ptr_t p)
       {
 	struct meltmaploops_st *src = (struct meltmaploops_st *) p;
 	int siz = 0, ix = 0;
+	MELT_FORWARDED (src->meltmap_aux);
 	if (!src->entab)
 	  break;
 	siz = melt_primtab[src->lenix];
@@ -1892,6 +1911,7 @@ melt_scanning (melt_ptr_t p)
       {
 	struct meltmaprtvecs_st *src = (struct meltmaprtvecs_st *) p;
 	int siz = 0, ix = 0;
+	MELT_FORWARDED (src->meltmap_aux);
 	if (!src->entab)
 	  break;
 	siz = melt_primtab[src->lenix];
@@ -1923,6 +1943,7 @@ melt_scanning (melt_ptr_t p)
       {
 	struct meltmaprtxs_st *src = (struct meltmaprtxs_st *) p;
 	int siz = 0, ix = 0;
+	MELT_FORWARDED (src->meltmap_aux);
 	if (!src->entab)
 	  break;
 	siz = melt_primtab[src->lenix];
@@ -1954,6 +1975,7 @@ melt_scanning (melt_ptr_t p)
       {
 	struct meltmaptrees_st *src = (struct meltmaptrees_st *) p;
 	int siz = 0, ix = 0;
+	MELT_FORWARDED (src->meltmap_aux);
 	if (!src->entab)
 	  break;
 	siz = melt_primtab[src->lenix];
@@ -2398,6 +2420,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	  (struct meltmapbasicblocks_st *)
 	  meltgc_raw_new_mappointers ((meltobject_ptr_t) newdiscrv, newlen);
 	unsigned ix = 0;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (src->entab)
 	  for (ix = 0; ix < oldlen; ix++)
 	    {
@@ -2432,6 +2455,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	  (struct meltmapbitmaps_st *)
 	  meltgc_raw_new_mappointers ((meltobject_ptr_t) newdiscrv, newlen);
 	unsigned ix = 0;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (src->entab)
 	  for (ix = 0; ix < oldlen; ix++)
 	    {
@@ -2466,6 +2490,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	  (struct meltmapedges_st *)
 	  meltgc_raw_new_mappointers ((meltobject_ptr_t) newdiscrv, newlen);
 	unsigned ix = 0;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (src->entab)
 	  for (ix = 0; ix < oldlen; ix++)
 	    {
@@ -2500,6 +2525,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	  (struct meltmapgimples_st *)
 	  meltgc_raw_new_mappointers ((meltobject_ptr_t) newdiscrv, newlen);
 	unsigned ix = 0;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (src->entab)
 	  for (ix = 0; ix < oldlen; ix++)
 	    {
@@ -2535,6 +2561,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	  (struct meltmapgimpleseqs_st *)
 	  meltgc_raw_new_mappointers ((meltobject_ptr_t) newdiscrv, newlen);
 	unsigned ix = 0;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (src->entab)
 	  for (ix = 0; ix < oldlen; ix++)
 	    {
@@ -2569,6 +2596,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	  (struct meltmaploops_st *)
 	  meltgc_raw_new_mappointers ((meltobject_ptr_t) newdiscrv, newlen);
 	unsigned ix = 0;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (src->entab)
 	  for (ix = 0; ix < oldlen; ix++)
 	    {
@@ -2603,6 +2631,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	  (struct meltmaprtvecs_st *)
 	  meltgc_raw_new_mappointers ((meltobject_ptr_t) newdiscrv, newlen);
 	unsigned ix = 0;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (src->entab)
 	  for (ix = 0; ix < oldlen; ix++)
 	    {
@@ -2637,6 +2666,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	  (struct meltmaprtxs_st *)
 	  meltgc_raw_new_mappointers ((meltobject_ptr_t) newdiscrv, newlen);
 	unsigned ix = 0;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (src->entab)
 	  for (ix = 0; ix < oldlen; ix++)
 	    {
@@ -2671,6 +2701,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	  (struct meltmaptrees_st *)
 	  meltgc_raw_new_mappointers ((meltobject_ptr_t) newdiscrv, newlen);
 	unsigned ix = 0;
+	dst->meltmap_aux = src->meltmap_aux;
 	if (src->entab)
 	  for (ix = 0; ix < oldlen; ix++)
 	    {
@@ -2784,6 +2815,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	dst = (struct meltmapobjects_st *)
 	  meltgc_new_mapobjects ((meltobject_ptr_t) newdiscrv, newlen);
 	resv = dst;
+	dst->meltmap_aux = src->meltmap_aux;
 	for (srcix = 0; srcix < srclen; srcix++)
 	  {
 	    meltobject_ptr_t curat = NULL;
@@ -2819,6 +2851,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	  (struct meltmapstrings_st *)
 	  meltgc_new_mapstrings ((meltobject_ptr_t) newdiscrv, newlen);
 	resv = dst;
+	dst->meltmap_aux = src->meltmap_aux;
 	for (srcix = 0; srcix < srclen; srcix++)
 	  {
 	    const char *curat = NULL;
@@ -3058,5 +3091,5 @@ end:
 #undef compv
 
 
-/*** End of code file meltrunsup-inc.c generated on 2012 Feb 15
- * by GCC MELT 4.7.0 20120215 (experimental) [melt-branch revision 184272] MELT_0.9.3+ . ***/
+/*** End of code file meltrunsup-inc.c generated on 2012 Feb 22
+ * by GCC MELT 4.7.0 20120222 (experimental) [melt-branch revision 184459] MELT_0.9.3+ . ***/

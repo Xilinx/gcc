@@ -2,7 +2,7 @@
 ;; file warmelt-first.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -407,6 +407,8 @@ or data. A possible alternate keyword is given by $CTYPE_ALTKEYWORD.
 	   ctypg_mapsizefun		;name of map size function
 	   ctypg_mapnattfun		;name of map nth attr function
 	   ctypg_mapnvalfun		;name of map nth value function 
+	   ctypg_mapauxdatafun		;name of map auxiliary data retrieval function
+	   ctypg_mapauxputfun		;name of map auxiliary data put function
 
 	   )
   :doc #{The $CLASS_CTYPE_GTY is a subclass of $CLASS_CTYPE and
@@ -2092,6 +2094,8 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :ctypg_mapsizefun    '"melt_size_maptrees"
   :ctypg_mapnattfun    '"melt_nthattr_maptrees"
   :ctypg_mapnvalfun    '"melt_nthval_maptrees"	
+  :ctypg_mapauxdatafun     '"melt_auxdata_maptrees"
+  :ctypg_mapauxputfun     '"melt_auxput_maptrees"
   )
 (install_ctype_descr ctype_tree "GCC tree pointer")
 
@@ -2108,26 +2112,28 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :ctype_resfield '"meltbp_gimpleptr"
   :ctype_marker '"gt_ggc_mx_gimple_statement_d"
 ;; GTY ctype
-  :ctypg_boxedmagic '"MELTOBMAG_GIMPLE"
-  :ctypg_mapmagic '"MELTOBMAG_MAPGIMPLES"
-  :ctypg_boxedstruct '"meltgimple_st"
-  :ctypg_boxedunimemb '"u_gimple"
-  :ctypg_entrystruct '"entrygimplemelt_st"
-  :ctypg_mapstruct '"meltmapgimples_st"
-  :ctypg_boxdiscr  discr_gimple
-  :ctypg_mapdiscr  discr_map_gimples
-  :ctypg_mapunimemb    '"u_mapgimples"
-  :ctypg_boxfun        '"meltgc_new_gimple"
-  :ctypg_unboxfun      '"melt_gimple_content"
-  :ctypg_updateboxfun  '"meltgc_gimple_updatebox"
-  :ctypg_newmapfun     '"meltgc_new_mapgimples"
-  :ctypg_mapgetfun     '"melt_get_mapgimples"
-  :ctypg_mapputfun     '"melt_put_mapgimples"
-  :ctypg_mapremovefun  '"melt_remove_mapgimples"
-  :ctypg_mapcountfun   '"melt_count_mapgimples"
-  :ctypg_mapsizefun    '"melt_size_mapgimples"
-  :ctypg_mapnattfun    '"melt_nthattr_mapgimples"
-  :ctypg_mapnvalfun    '"melt_nthval_mapgimples"	
+  :ctypg_boxedmagic      '"MELTOBMAG_GIMPLE"
+  :ctypg_mapmagic        '"MELTOBMAG_MAPGIMPLES"
+  :ctypg_boxedstruct     '"meltgimple_st"
+  :ctypg_boxedunimemb    '"u_gimple"
+  :ctypg_entrystruct     '"entrygimplemelt_st"
+  :ctypg_mapstruct       '"meltmapgimples_st"
+  :ctypg_boxdiscr        discr_gimple
+  :ctypg_mapdiscr        discr_map_gimples
+  :ctypg_mapunimemb    	 '"u_mapgimples"
+  :ctypg_boxfun        	 '"meltgc_new_gimple"
+  :ctypg_unboxfun      	 '"melt_gimple_content"
+  :ctypg_updateboxfun  	 '"meltgc_gimple_updatebox"
+  :ctypg_newmapfun     	 '"meltgc_new_mapgimples"
+  :ctypg_mapgetfun     	 '"melt_get_mapgimples"
+  :ctypg_mapputfun     	 '"melt_put_mapgimples"
+  :ctypg_mapremovefun  	 '"melt_remove_mapgimples"
+  :ctypg_mapcountfun   	 '"melt_count_mapgimples"
+  :ctypg_mapsizefun    	 '"melt_size_mapgimples"
+  :ctypg_mapnattfun    	 '"melt_nthattr_mapgimples"
+  :ctypg_mapnvalfun    	 '"melt_nthval_mapgimples"
+  :ctypg_mapauxdatafun   '"melt_auxdata_mapgimples"
+  :ctypg_mapauxputfun    '"melt_auxput_mapgimples"	
   )
 (install_ctype_descr ctype_gimple "GCC gimple pointer")
 
@@ -2165,7 +2171,9 @@ Keyword is :gimple_seq.}#
   :ctypg_mapcountfun   '"melt_count_mapgimpleseqs"
   :ctypg_mapsizefun    '"melt_size_mapgimpleseqs"
   :ctypg_mapnattfun    '"melt_nthattr_mapgimpleseqs"
-  :ctypg_mapnvalfun    '"melt_nthval_mapgimpleseqs"	
+  :ctypg_mapnvalfun    '"melt_nthval_mapgimpleseqs"
+  :ctypg_mapauxdatafun   '"melt_auxdata_mapgimpleseqs"
+  :ctypg_mapauxputfun    '"melt_auxput_mapgimpleseqs"	
   )
 (install_ctype_descr ctype_gimple_seq "GCC gimple_seq pointer")
 
@@ -2192,18 +2200,20 @@ Keyword is :basic_block.}#
   :ctypg_mapstruct '"meltmapbasicblocks_st"
   :ctypg_boxdiscr  discr_basic_block
   :ctypg_mapdiscr  discr_map_basic_blocks
-  :ctypg_mapunimemb    '"u_mapbasicblocks"
-  :ctypg_boxfun        '"meltgc_new_basicblock"
-  :ctypg_unboxfun      '"melt_basicblock_content"
-  :ctypg_updateboxfun  '"meltgc_basicblock_updatebox"
-  :ctypg_newmapfun     '"meltgc_new_mapbasicblocks"
-  :ctypg_mapgetfun     '"melt_get_mapbasicblocks"
-  :ctypg_mapputfun     '"melt_put_mapbasicblocks"
-  :ctypg_mapremovefun  '"melt_remove_mapbasicblocks"
-  :ctypg_mapcountfun   '"melt_count_mapbasicblocks"
-  :ctypg_mapsizefun    '"melt_size_mapbasicblocks"
-  :ctypg_mapnattfun    '"melt_nthattr_mapbasicblocks"
-  :ctypg_mapnvalfun    '"melt_nthval_mapbasicblocks"	
+  :ctypg_mapunimemb    	   '"u_mapbasicblocks"
+  :ctypg_boxfun        	   '"meltgc_new_basicblock"
+  :ctypg_unboxfun      	   '"melt_basicblock_content"
+  :ctypg_updateboxfun  	   '"meltgc_basicblock_updatebox"
+  :ctypg_newmapfun     	   '"meltgc_new_mapbasicblocks"
+  :ctypg_mapgetfun     	   '"melt_get_mapbasicblocks"
+  :ctypg_mapputfun     	   '"melt_put_mapbasicblocks"
+  :ctypg_mapremovefun  	   '"melt_remove_mapbasicblocks"
+  :ctypg_mapcountfun   	   '"melt_count_mapbasicblocks"
+  :ctypg_mapsizefun    	   '"melt_size_mapbasicblocks"
+  :ctypg_mapnattfun    	   '"melt_nthattr_mapbasicblocks"
+  :ctypg_mapnvalfun    	   '"melt_nthval_mapbasicblocks"
+  :ctypg_mapauxdatafun     '"melt_auxdata_mapbasicblocks"
+  :ctypg_mapauxputfun      '"melt_auxput_mapbasicblocks"	
   )
 (install_ctype_descr ctype_basic_block "GCC basic_block")
 
@@ -2229,18 +2239,20 @@ Keyword is :edge.}#
   :ctypg_mapstruct '"meltmapedges_st"
   :ctypg_boxdiscr  discr_edge
   :ctypg_mapdiscr  discr_map_edges
-  :ctypg_mapunimemb    '"u_mapedges"
-  :ctypg_boxfun        '"meltgc_new_edge"
-  :ctypg_unboxfun      '"melt_edge_content"
-  :ctypg_updateboxfun  '"meltgc_edge_updatebox"
-  :ctypg_newmapfun     '"meltgc_new_mapedges"
-  :ctypg_mapgetfun     '"melt_get_mapedges"
-  :ctypg_mapputfun     '"melt_put_mapedges"
-  :ctypg_mapremovefun  '"melt_remove_mapedges"
-  :ctypg_mapcountfun   '"melt_count_mapedges"
-  :ctypg_mapsizefun    '"melt_size_mapedges"
-  :ctypg_mapnattfun    '"melt_nthattr_mapedges"
-  :ctypg_mapnvalfun    '"melt_nthval_mapedges"	
+  :ctypg_mapunimemb    	 '"u_mapedges"
+  :ctypg_boxfun        	 '"meltgc_new_edge"
+  :ctypg_unboxfun      	 '"melt_edge_content"
+  :ctypg_updateboxfun  	 '"meltgc_edge_updatebox"
+  :ctypg_newmapfun     	 '"meltgc_new_mapedges"
+  :ctypg_mapgetfun     	 '"melt_get_mapedges"
+  :ctypg_mapputfun     	 '"melt_put_mapedges"
+  :ctypg_mapremovefun  	 '"melt_remove_mapedges"
+  :ctypg_mapcountfun   	 '"melt_count_mapedges"
+  :ctypg_mapsizefun    	 '"melt_size_mapedges"
+  :ctypg_mapnattfun    	 '"melt_nthattr_mapedges"
+  :ctypg_mapnvalfun    	 '"melt_nthval_mapedges"
+  :ctypg_mapauxdatafun     '"melt_auxdata_mapedges"
+  :ctypg_mapauxputfun     '"melt_auxput_mapedges"	
   )
 (install_ctype_descr ctype_edge "GCC edge")
 
@@ -2262,22 +2274,24 @@ Keyword is :loop.}#
   :ctypg_mapmagic '"MELTOBMAG_MAPLOOPS"
   :ctypg_boxedstruct '"meltloop_st"
   :ctypg_boxedunimemb '"u_loop"
-  :ctypg_entrystruct '"entryloopmelt_st"
-  :ctypg_mapstruct '"meltmaploops_st"
-  :ctypg_boxdiscr  discr_loop
-  :ctypg_mapdiscr  discr_map_loops
-  :ctypg_mapunimemb    '"u_maploops"
-  :ctypg_boxfun        '"meltgc_new_loop"
-  :ctypg_unboxfun      '"melt_loop_content"
-  :ctypg_updateboxfun  '"melt_loop_updatebox"
-  :ctypg_newmapfun     '"meltgc_new_maploops"
-  :ctypg_mapgetfun     '"melt_get_maploops"
-  :ctypg_mapputfun     '"melt_put_maploops"
-  :ctypg_mapremovefun  '"melt_remove_maploops"
-  :ctypg_mapcountfun   '"melt_count_maploops"
-  :ctypg_mapsizefun    '"melt_size_maploops"
-  :ctypg_mapnattfun    '"melt_nthattr_maploops"
-  :ctypg_mapnvalfun    '"melt_nthval_maploops"	
+  :ctypg_entrystruct       '"entryloopmelt_st"
+  :ctypg_mapstruct         '"meltmaploops_st"
+  :ctypg_boxdiscr          discr_loop
+  :ctypg_mapdiscr          discr_map_loops
+  :ctypg_mapunimemb    	   '"u_maploops"
+  :ctypg_boxfun        	   '"meltgc_new_loop"
+  :ctypg_unboxfun      	   '"melt_loop_content"
+  :ctypg_updateboxfun  	   '"melt_loop_updatebox"
+  :ctypg_newmapfun     	   '"meltgc_new_maploops"
+  :ctypg_mapgetfun     	   '"melt_get_maploops"
+  :ctypg_mapputfun     	   '"melt_put_maploops"
+  :ctypg_mapremovefun  	   '"melt_remove_maploops"
+  :ctypg_mapcountfun   	   '"melt_count_maploops"
+  :ctypg_mapsizefun    	   '"melt_size_maploops"
+  :ctypg_mapnattfun    	   '"melt_nthattr_maploops"
+  :ctypg_mapnvalfun    	   '"melt_nthval_maploops"		
+  :ctypg_mapauxdatafun     '"melt_auxdata_maploops"
+  :ctypg_mapauxputfun      '"melt_auxput_maploops"
   )
 (install_ctype_descr ctype_loop "GCC loop")
 
@@ -2315,6 +2329,8 @@ Keyword is :rtx.}#
   :ctypg_mapsizefun    '"melt_size_maprtxs"
   :ctypg_mapnattfun    '"melt_nthattr_maprtxs"
   :ctypg_mapnvalfun    '"melt_nthval_maprtxs"	
+  :ctypg_mapauxdatafun     '"melt_auxdata_maprtxs"
+  :ctypg_mapauxputfun     '"melt_auxput_maprtxs"
   )
 (install_ctype_descr ctype_rtx "GCC rtx")
 
@@ -2340,18 +2356,20 @@ Keyword is :bitmap.}#
   :ctypg_mapstruct '"meltmapbitmaps_st"
   :ctypg_boxdiscr  discr_bitmap
   :ctypg_mapdiscr  discr_map_bitmaps
-  :ctypg_mapunimemb    '"u_mapbitmaps"
-  :ctypg_boxfun        '"meltgc_new_bitmap"
-  :ctypg_unboxfun      '"melt_bitmap_content"
-  :ctypg_updateboxfun  '"meltgc_bitmap_updatebox"
-  :ctypg_newmapfun     '"meltgc_new_mapbitmaps"
-  :ctypg_mapgetfun     '"melt_get_mapbitmaps"
-  :ctypg_mapputfun     '"melt_put_mapbitmaps"
-  :ctypg_mapremovefun  '"melt_remove_mapbitmaps"
-  :ctypg_mapcountfun   '"melt_count_mapbitmaps"
-  :ctypg_mapsizefun    '"melt_size_mapbitmaps"
-  :ctypg_mapnattfun    '"melt_nthattr_mapbitmaps"
-  :ctypg_mapnvalfun    '"melt_nthval_mapbitmaps"	
+  :ctypg_mapunimemb    	   '"u_mapbitmaps"
+  :ctypg_boxfun        	   '"meltgc_new_bitmap"
+  :ctypg_unboxfun      	   '"melt_bitmap_content"
+  :ctypg_updateboxfun  	   '"meltgc_bitmap_updatebox"
+  :ctypg_newmapfun     	   '"meltgc_new_mapbitmaps"
+  :ctypg_mapgetfun     	   '"melt_get_mapbitmaps"
+  :ctypg_mapputfun     	   '"melt_put_mapbitmaps"
+  :ctypg_mapremovefun  	   '"melt_remove_mapbitmaps"
+  :ctypg_mapcountfun   	   '"melt_count_mapbitmaps"
+  :ctypg_mapsizefun    	   '"melt_size_mapbitmaps"
+  :ctypg_mapnattfun    	   '"melt_nthattr_mapbitmaps"
+  :ctypg_mapnvalfun    	   '"melt_nthval_mapbitmaps"
+  :ctypg_mapauxdatafun     '"melt_auxdata_mapbitmaps"
+  :ctypg_mapauxputfun      '"melt_auxput_mapbitmaps"	
   )
 (install_ctype_descr ctype_bitmap "GCC bitmap")
 
@@ -2377,18 +2395,20 @@ Keyword is :rtvec.}#
   :ctypg_mapstruct '"meltmaprtvecs_st"
   :ctypg_boxdiscr  discr_rtvec
   :ctypg_mapdiscr  discr_map_rtvecs
-  :ctypg_mapunimemb    '"u_maprtvecs"
-  :ctypg_boxfun        '"meltgc_new_rtvec"
-  :ctypg_unboxfun      '"melt_rtvec_content"
-  :ctypg_updateboxfun  '"meltgc_rtvec_updatebox"
-  :ctypg_newmapfun     '"meltgc_new_maprtvecs"
-  :ctypg_mapgetfun     '"melt_get_maprtvecs"
-  :ctypg_mapputfun     '"melt_put_maprtvecs"
-  :ctypg_mapremovefun  '"melt_remove_maprtvecs"
-  :ctypg_mapcountfun   '"melt_count_maprtvecs"
-  :ctypg_mapsizefun    '"melt_size_maprtvecs"
-  :ctypg_mapnattfun    '"melt_nthattr_maprtvecs"
-  :ctypg_mapnvalfun    '"melt_nthval_maprtvecs"
+  :ctypg_mapunimemb    	   '"u_maprtvecs"
+  :ctypg_boxfun        	   '"meltgc_new_rtvec"
+  :ctypg_unboxfun      	   '"melt_rtvec_content"
+  :ctypg_updateboxfun  	   '"meltgc_rtvec_updatebox"
+  :ctypg_newmapfun     	   '"meltgc_new_maprtvecs"
+  :ctypg_mapgetfun     	   '"melt_get_maprtvecs"
+  :ctypg_mapputfun     	   '"melt_put_maprtvecs"
+  :ctypg_mapremovefun  	   '"melt_remove_maprtvecs"
+  :ctypg_mapcountfun   	   '"melt_count_maprtvecs"
+  :ctypg_mapsizefun    	   '"melt_size_maprtvecs"
+  :ctypg_mapnattfun    	   '"melt_nthattr_maprtvecs"
+  :ctypg_mapnvalfun    	   '"melt_nthval_maprtvecs"
+  :ctypg_mapauxdatafun     '"melt_auxdata_maprtvecs"
+  :ctypg_mapauxputfun      '"melt_auxput_maprtvecs"
   )
 (install_ctype_descr ctype_rtvec "GCC rtvec")
 
