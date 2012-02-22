@@ -196,8 +196,9 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 	(ivlist (make_list discr_list))
 	)
     (debug "opengpu_candidate_induction_variables curloop=" curloop 
-	   " curloopexitedgetuple=" curloopexitedgetuple
-	   " bbloophead=" bbloophead " bblooplatch=" bblooplatch)
+	   "\n* curloopexitedgetuple=" curloopexitedgetuple
+	   "\n* bbloophead=" bbloophead 
+	   "\n* bblooplatch=" bblooplatch)
     (foreach_in_multiple
      (curloopexitedgetuple)
      (exitedgev :long edgix)
@@ -351,6 +352,8 @@ and $OPGPULC_GIMPLE the gimple making it.}#
        (debug "opengpu_affine_accessed_array tvar=" dbg_tree_briefly tvar " curindvar=" curindvar)
        (maptree_put treeprop tvar curindvar)
        ))
+    (maptree_auxput treeprop (tuple 'treeprop inductionvars))
+    (maptree_auxput arrayprop (tuple 'arrayprop inductionvars))
     (debug "opengpu_affine_accessed_array treeprop=" treeprop " inductionvars=" inductionvars "\n")
     ;; scan the bodies
     (foreach_in_multiple 
@@ -568,9 +571,21 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 		  "\n rhs1="  dbg_tree_briefly rhs1 "\n rhs2="  dbg_tree_briefly rhs2)
 	   (assert_msg "opengpu_affine_accessed_array incomplete")
 	   )
-	 (?(gimple_cond_with_edges ?edtrue ?edfalse)
-	   (debug "opengpu_affine_accessed_array gimple_cond_with_edges edtrue=" edtrue "\n edfalse=" edfalse)
-	   )
+	 (?(and 
+	    ?(gimple_cond_with_edges ?edtrue ?edfalse)
+	    ?(gimple_cond_less ?(tree_ssa_name ?lvar ?lvalu ?lvers ?ldefstmt) 
+			       ?(tree_ssa_name ?rvar ?rvalu ?rvers ?rdefstmt) )
+	    )
+	   (debug "opengpu_affine_accessed_array gimple_cond< g=" g 
+		  "\n lvar=" dbg_tree_briefly lvar
+		  "\n rvar=" dbg_tree_briefly rvar
+		  "\n* edtrue=" edtrue "\n* edfalse=" edfalse)
+	   (let ( (lvarprop (maptree_get treeprop lvar))
+		  (rvarprop (maptree_get treeprop rvar))
+		  )
+	     (debug "opengpu_affine_accessed_array gimple_cond< lvarprop=" lvarprop
+		    "\n rvarprop=" rvarprop)
+	   ))
 	 (?_ 
 	  (debug "opengpu_affine_accessed_array unexpected g=" g)
 	  (warning_at_gimple g "unexpected gimple for opengpu_affine_accessed_array")
@@ -750,16 +765,21 @@ and $OPGPULC_GIMPLE the gimple making it.}#
      (:tree fundecl)
      (debug "opengpudetect_exec fundecl=" fundecl "\n\n")
      (let ( (fundeclval (make_tree discr_tree fundecl)) 
+	    (:long bbnum 0)
 	    (gpudata (instance class_opengpu_data
 			       :opengpu_passcount (make_integerbox discr_constant_integer passcounter)
 			       :opengpu_fundecl fundeclval
 			       ))
+	    (:basic_block bbentry (cfun_cfg_entry_block))
+	    (:basic_block bbexit (cfun_cfg_exit_block))
 	    )
-       (debug "opengpudetect_exec gpudata=" gpudata)
+       (debug "opengpudetect_exec gpudata=" gpudata
+	      "\n* bbentry=" bbentry "\n* bbexit=" bbexit "\n")
        (each_bb_current_fun
 	()
 	(:basic_block bb)
-	(debug "opengpudetect_exec bb=" bb)
+	(increment bbnum 1)
+	(debug "opengpudetect_exec bb=" bb " bbnum#" bbnum "\n")
 	)
 ;;;
        (debug "opengpudetect_exec after each_bb_cfun before each_loop fundecl=" dbg_tree_briefly fundecl)

@@ -4473,7 +4473,7 @@ Don't scan operands of the added $G.}#
  gimple_cond_false
  gimple_cond_greater
  gimple_cond_greater_or_equal
- gimple_cond_less  
+ gimple_cond_less
  gimple_cond_lessequal
  gimple_cond_notequal
  gimple_cond_true   
