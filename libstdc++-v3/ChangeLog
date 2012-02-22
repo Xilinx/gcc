@@ -1,10 +1,87 @@
 2012-02-17  Benjamin Kosnik  <bkoz@redhat.com>
 
+	PR libstdc++/50349
+	* config/abi/pre/gnu.ver: Only one local.
+	* config/abi/pre/gnu-versioned-namespace.ver: Same.
+
+2012-02-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/52317 (cont)
+	* include/profile/unordered_map: Ad Library Exception comment.
+	* include/profile/set: Likewise.
+	* include/profile/base.h: Likewise.
+	* include/profile/impl/profiler_list_to_slist.h: Likewise.
+	* include/profile/impl/profiler_container_size.h: Likewise.
+	* include/profile/impl/profiler_vector_size.h: Likewise.
+	* include/profile/impl/profiler_hash_func.h: Likewise.
+	* include/profile/impl/profiler_trace.h: Likewise.
+	* include/profile/impl/profiler_list_to_vector.h: Likewise.
+	* include/profile/impl/profiler_vector_to_list.h: Likewise.
+	* include/profile/impl/profiler.h: Likewise.
+	* include/profile/impl/profiler_state.h: Likewise.
+	* include/profile/impl/profiler_map_to_unordered_map.h: Likewise.
+	* include/profile/impl/profiler_algos.h: Likewise.
+	* include/profile/impl/profiler_hashtable_size.h: Likewise.
+	* include/profile/impl/profiler_node.h: Likewise.
+	* include/profile/vector: Likewise.
+	* include/profile/unordered_set: Likewise.
+	* include/profile/map.h: Likewise.
+	* include/profile/map: Likewise.
+
+2012-02-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/52317
+	* python/Makefile.am: Update boilerplate license text to GPLv3.
+	* include/profile/unordered_map: Likewise.
+	* include/profile/set: Likewise.
+	* include/profile/base.h: Likewise.
+	* include/profile/impl/profiler_list_to_slist.h: Likewise.
+	* include/profile/impl/profiler_container_size.h: Likewise.
+	* include/profile/impl/profiler_vector_size.h: Likewise.
+	* include/profile/impl/profiler_hash_func.h: Likewise.
+	* include/profile/impl/profiler_trace.h: Likewise.
+	* include/profile/impl/profiler_list_to_vector.h: Likewise.
+	* include/profile/impl/profiler_vector_to_list.h: Likewise.
+	* include/profile/impl/profiler.h: Likewise.
+	* include/profile/impl/profiler_state.h: Likewise.
+	* include/profile/impl/profiler_map_to_unordered_map.h: Likewise.
+	* include/profile/impl/profiler_algos.h: Likewise.
+	* include/profile/impl/profiler_hashtable_size.h: Likewise.
+	* include/profile/impl/profiler_node.h: Likewise.
+	* include/profile/vector: Likewise.
+	* include/profile/unordered_set: Likewise.
+	* include/profile/map.h: Likewise.
+	* include/profile/map: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/
+	wchar_t/dr1261.cc: Likewise.
+	* testsuite/21_strings/basic_string/numeric_conversions/
+	char/dr1261.cc: Likewise.
+	* testsuite/20_util/reference_wrapper/invoke-2.cc: Likewise.
+
+2012-02-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/52241
+	* src/c++98/tree.cc (local_Rb_tree_increment,
+	local_Rb_tree_decrement): Add.
+	(_Rb_tree_increment(const _Rb_tree_node_base*),
+	_Rb_tree_decrement(const _Rb_tree_node_base*)): Use the latter.
+	(_Rb_tree_increment(_Rb_tree_node_base*),
+	_Rb_tree_decrement(_Rb_tree_node_base*)): New.
+
+2012-02-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/52309
+	* include/bits/hashtable_policy.h (_Equality_base<, true,>::
+    	_M_equal(const _Hashtable&)): Compare values with operator==.
+	* testsuite/23_containers/unordered_set/operators/52309.cc: New.
+
+2012-02-17  Benjamin Kosnik  <bkoz@redhat.com>
+
 	PR libstdc++/51798 continued.
 	* acinclude.m4 (GLIBCXX_ENABLE_ATOMIC_BUILTINS): Grep for
 	__atomic_, not __sync.
 	* configure: Regenerated.
-	
+
 2012-02-17  Benjamin Kosnik  <bkoz@redhat.com>
 
 	PR libstdc++/47058

@@ -1,6 +1,7 @@
+// { dg-do compile }
 // { dg-options "-std=gnu++0x" }
-// { dg-do compile}
-// Copyright (C) 2011 Free Software Foundation, Inc.
+
+// Copyright (C) 2012 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -17,30 +18,11 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-// 20.6.4 function object return types [func.ret]
-#include <functional>
+#include <unordered_set>
 
-struct X
-{
-    int f(int) { return 0; }
-    int i;
-};
-
-void test01()
-{
-  typedef int (X::*mfp)(int);
-  typedef int X::*mp;
-  mfp m = &X::f;
-  mp m2 = &X::i;
-  X x = { };
-  std::ref(m)(x, 1);
-  std::ref(m)(&x, 1);
-  int& i1 __attribute__((unused)) = std::ref(m2)(x);
-  int& i2 __attribute__((unused)) = std::ref(m2)(&x);
-}
-
-int main()
-{
-  test01();
-  return 0;
-}
+// libstdc++/52309
+struct value {};
+struct hash { std::size_t operator()(const value&) const; };
+bool operator==(value const&, value const&);
+std::unordered_set<value, hash> set;
+bool z = (set == set);

@@ -1,3 +1,49 @@
+2012-02-21  Kai Tietz  <ktietz@redhat.com>
+
+	* gcc.dg/bf-ms-layout-3.c: Mark char typed bitfield
+	as extension.
+
+2012-02-21  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52324
+	* gcc.dg/tree-ssa/ssa-lim-10.c: New testcase.
+
+2012-02-21  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR middle-end/51782
+	* gcc.target/avr/torture/pr51782-1.c: New test.
+
+2012-02-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/52318
+	* gcc.dg/pr52318.c: New test.
+
+2012-02-20  Kai Tietz  <ktietz@redhat.com>
+
+	* gcc.dg/bf-ms-layout-3.c: New testcase.
+
+2012-02-20  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR testsuite/52229
+	PR fortran/32380
+	* gfortran.dg/vect/pr32380.f:  XFAIL on PowerPC and ia-64.
+
+2012-02-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52298
+	* gcc.dg/torture/pr52298.c: New testcase.
+	* gcc.dg/vect/pr52298.c: Likewise.
+
+2012-02-20  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.dg/pr52132.c: Fix FAIL on 16-bit int platforms.
+	* gcc.c-torture/execute/pr52286.c: Ditto.
+
+2012-02-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/52286
+	* gcc.c-torture/execute/pr52286.c: New test.
+
 2012-02-18  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/52295
