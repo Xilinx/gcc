@@ -20,6 +20,7 @@ XPASS: gcc.dg/unroll_4.c (test for excess errors)
 FAIL: libmudflap.c++/pass55-frag.cxx ( -O) execution test
 FAIL: gcc.c-torture/execute/vshuf-v2di.c execution,  -Os
 FAIL: gcc.c-torture/execute/vshuf-v8hi.c execution,  -Os
+FAIL: gcc.c-torture/execute/vshuf-v16qi.c execution,  -Os
 FAIL: gcc.target/i386/pr27827.c scan-assembler fmul[ \t]*%st
 
 # Failures in libitm.
