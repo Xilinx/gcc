@@ -2939,7 +2939,9 @@ melt_scanning (melt_ptr_t p)
 	   	      :ctypg_mapcountfun   ?(some_string_value ?mapcountfun)
 	   	      :ctypg_mapsizefun	   ?(some_string_value ?mapsizefun)	 
 	   	      :ctypg_mapnattfun	   ?(some_string_value ?mapnattfun)	 
-	   	      :ctypg_mapnvalfun	   ?(some_string_value ?mapnvalfun)	 
+	   	      :ctypg_mapnvalfun	   ?(some_string_value ?mapnvalfun)
+		      :ctypg_mapauxdatafun ?(some_string_value ?mapauxdatafun)
+		      :ctypg_mapauxputfun  ?(some_string_value ?mapauxputfun)
 		      )
 	    (add2sbuf_indentnl outbuf 0)
 	    (add2sbuf_strconst outbuf "/***map support for GTY ctype ")
@@ -3207,6 +3209,48 @@ melt_scanning (melt_ptr_t p)
 	      (add2sbuf_strconst outbuf "/*no map nth value function*/"))
 	     )
 	    (add2sbuf_indentnl outbuf 0)
+;;;
+;;; generate the map auxiliary data access function
+	    (cond 
+	     ((is_string mapauxdatafun)
+	      (add2out 
+	       outbuf
+	       ##{ /* map auxiliary data access for $CTYPNAM */
+	       static inline melt_ptr_t $MAPAUXDATAFUN (melt_ptr_t map_p)
+	       {
+	         if (melt_magic_discr (map_p) == $MAPMAGIC)
+		   return ((struct $MAPSTRUCT*)map_p)->meltmap_aux;
+		 return NULL;
+	       }
+	       }#)
+	      )
+	     (:else
+	      (add2out outbuf ##{/*no map auxiliary data access function for $CTYPNAM*/}#)
+	     ))
+	    (add2sbuf_indentnl outbuf 0)
+;;;
+;;; generate the map auxiliary data putter function
+	    (cond 
+	     ((is_string mapauxputfun)
+	      (add2out 
+	       outbuf
+	       ##{ /* map auxiliary data put for $CTYPNAM */
+	       static inline melt_ptr_t $MAPAUXPUTFUN (melt_ptr_t map_p, melt_ptr_t val_p)
+	       {
+	         if (melt_magic_discr (map_p) == $MAPMAGIC) {
+		   ((struct $MAPSTRUCT*)map_p)->meltmap_aux = val_p;
+		   meltgc_touch_dest (map_p, val_p);
+                 }
+		 return NULL;
+	       }
+	       }#)
+	      )
+	     (:else
+	      (add2out outbuf ##{/*no map auxiliary data put function for $CTYPNAM*/}#)
+	     ))
+	    (add2sbuf_indentnl outbuf 0)
+	      
+
 ;;;;;;;;;;
 ;;; trailer of map support
 	    (add2sbuf_strconst outbuf "/***end of map support for GTY ctype ")

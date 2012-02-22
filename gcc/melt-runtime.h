@@ -1595,6 +1595,9 @@ melt_ptr_t meltgc_popfirst_list (melt_ptr_t list_p);
 /* return the length of a list, 0 for nil, or -1 iff non list */
 int melt_list_length (melt_ptr_t list_p);
 
+
+
+
 /* allocate e new empty mapobjects */
 melt_ptr_t meltgc_new_mapobjects (meltobject_ptr_t discr_p,
 					unsigned len);
@@ -1657,6 +1660,29 @@ melt_nthval_mapobjects (meltmapobjects_ptr_t mapobject_p, int ix)
   return mapobject_p->entab[ix].e_va;
 }
 
+/* auxiliary data for mapobjects */
+
+static inline melt_ptr_t
+melt_auxdata_mapobjects (melt_ptr_t map_p)
+{
+  if (melt_magic_discr(map_p) == MELTOBMAG_MAPOBJECTS)
+    return ((struct meltmapobjects_st *)map_p)->meltmap_aux;
+  return NULL;
+}
+
+static inline void 
+melt_auxput_mapobjects (melt_ptr_t map_p, melt_ptr_t val_p)
+{
+  if (melt_magic_discr(map_p) == MELTOBMAG_MAPOBJECTS)
+    {
+      ((struct meltmapobjects_st *)map_p)->meltmap_aux = val_p;
+      meltgc_touch_dest (map_p, val_p);
+    }
+}
+
+
+
+
 /* allocate a new empty mapstrings */
 melt_ptr_t meltgc_new_mapstrings (meltobject_ptr_t discr_p,
 					unsigned len);
@@ -1717,6 +1743,26 @@ melt_nthval_mapstrings (struct meltmapstrings_st *mapstring_p, int ix)
   if ((const void *) at == (const void *) HTAB_DELETED_ENTRY)
     return 0;
   return mapstring_p->entab[ix].e_va;
+}
+
+/* auxiliary data for mapstrings */
+
+static inline melt_ptr_t
+melt_auxdata_mapstrings (melt_ptr_t map_p)
+{
+  if (melt_magic_discr(map_p) == MELTOBMAG_MAPSTRINGS)
+    return ((struct meltmapstrings_st *)map_p)->meltmap_aux;
+  return NULL;
+}
+
+static inline void 
+melt_auxput_mapstrings (melt_ptr_t map_p, melt_ptr_t val_p)
+{
+  if (melt_magic_discr(map_p) == MELTOBMAG_MAPSTRINGS)
+    {
+      ((struct meltmapstrings_st *)map_p)->meltmap_aux = val_p;
+      meltgc_touch_dest (map_p, val_p);
+    }
 }
 
 /* allocate a new routine object of given DISCR and of length LEN,

@@ -1,6 +1,14 @@
 
 2011-02-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{adding auxiliary data inside MELT maps}}
+	* melt-runtime.h (melt_auxdata_mapobjects, melt_auxput_mapobjects)
+	(melt_auxdata_mapstrings, melt_auxput_mapstrings): New functions.
+
+	* melt/warmelt-mode.melt (generate_runtypesupport_mapfun):
+	Generate auxiliary data accessor & setter functions.
+
+2011-02-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{adding auxiliary data inside MELT maps}}
 	* melt-runtime.c (meltgc_new_mapobjects, meltgc_new_mapstrings)
 	(meltgc_raw_new_mappointers): Clear the meltmap_aux field.
 	(struct meltmappointers_st): New meltmap_aux field.
