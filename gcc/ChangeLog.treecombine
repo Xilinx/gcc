@@ -1,3 +1,12 @@
+2012-02-22  Andrew Pinski  <apinski@cavium.com>
+
+	* tree-ssa-fold.c (associate_plusminus): Take a loc,
+	code, a type and operands instead of a gimple_stmt_iterator.
+	(gimple_fold_binary_loc): Call associate_plusminus for
+	MINUS_EXPR and PLUS_EXPR.
+	(ssa_combine): Remove the call to associate_plusminus
+	since it is handled by gimple_fold_binary_loc now.
+
 2012-02-21  Andrew Pinski  <apinski@cavium.com>
 
 	* tree-ssa-fold.c (associate_plusminus): Return a tree

@@ -1333,14 +1333,9 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
    always permitted.  Returns true if the CFG was changed.  */
 
 static tree
-associate_plusminus (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobitsp)
+associate_plusminus (location_t loc, enum tree_code code, tree type,
+		     tree rhs1, tree rhs2, nonzerobits_t nonzerobitsp)
 {
-  gimple stmt = gsi_stmt (*gsi);
-  tree rhs1 = gimple_assign_rhs1 (stmt);
-  tree rhs2 = gimple_assign_rhs2 (stmt);
-  enum tree_code code = gimple_assign_rhs_code (stmt);
-  location_t loc = gimple_location (stmt);
-  tree type = TREE_TYPE (rhs1);
 
   /* We can't reassociate at all for saturating types.  */
   if (TYPE_SATURATING (type))
@@ -1692,6 +1687,10 @@ gimple_fold_binary_loc (location_t loc, enum tree_code code,
       case BIT_IOR_EXPR:
 	return simplify_bitwise_binary (loc, code, type, arg1, arg2,
 					nonzerobitsp);
+      case PLUS_EXPR:
+      case MINUS_EXPR:
+	return associate_plusminus (loc, code, type, arg1, arg2,
+				    nonzerobitsp);
       default:
 	return NULL_TREE;
     }
@@ -1756,9 +1755,6 @@ ssa_combine (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobits_p)
 	else if (code == COND_EXPR)
 	 /* In this case the entire COND_EXPR is in rhs1. */
 	 changed = forward_propagate_into_cond (gsi, nonzerobits_p);
-	else if (code == PLUS_EXPR
-		 || code == MINUS_EXPR)
-	  newexpr = associate_plusminus (gsi, nonzerobits_p);
 	break;
       }
 
