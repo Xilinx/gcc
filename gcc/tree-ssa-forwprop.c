@@ -166,37 +166,6 @@ static bool forward_propagate_addr_expr (tree name, tree rhs);
 /* Set to true if we delete EH edges during the optimization.  */
 static bool cfg_changed;
 
-/* Get the next statement we can propagate NAME's value into skipping
-   trivial copies.  Returns the statement that is suitable as a
-   propagation destination or NULL_TREE if there is no such one.
-   This only returns destinations in a single-use chain.  FINAL_NAME_P
-   if non-NULL is written to the ssa name that represents the use.  */
-
-static gimple
-get_prop_dest_stmt (tree name, tree *final_name_p)
-{
-  use_operand_p use;
-  gimple use_stmt;
-
-  do {
-    /* If name has multiple uses, bail out.  */
-    if (!single_imm_use (name, &use, &use_stmt))
-      return NULL;
-
-    /* If this is not a trivial copy, we found it.  */
-    if (!gimple_assign_ssa_name_copy_p (use_stmt)
-	|| gimple_assign_rhs1 (use_stmt) != name)
-      break;
-
-    /* Continue searching uses of the copy destination.  */
-    name = gimple_assign_lhs (use_stmt);
-  } while (1);
-
-  if (final_name_p)
-    *final_name_p = name;
-
-  return use_stmt;
-}
 
 /* Checks if the destination ssa name in DEF_STMT can be used as
    propagation source.  Returns true if so, otherwise false.  */
@@ -237,46 +206,6 @@ can_propagate_from (gimple def_stmt)
     }
 
   return true;
-}
-
-/* Remove a chain of dead statements starting at the definition of
-   NAME.  The chain is linked via the first operand of the defining statements.
-   If NAME was replaced in its only use then this function can be used
-   to clean up dead stmts.  The function handles already released SSA
-   names gracefully.
-   Returns true if cleanup-cfg has to run.  */
-
-static bool
-remove_prop_source_from_use (tree name)
-{
-  gimple_stmt_iterator gsi;
-  gimple stmt;
-  bool cfg_changed = false;
-
-  do {
-    basic_block bb;
-
-    if (SSA_NAME_IN_FREE_LIST (name)
-	|| SSA_NAME_IS_DEFAULT_DEF (name)
-	|| !has_zero_uses (name))
-      return cfg_changed;
-
-    stmt = SSA_NAME_DEF_STMT (name);
-    if (gimple_code (stmt) == GIMPLE_PHI
-	|| gimple_has_side_effects (stmt))
-      return cfg_changed;
-
-    bb = gimple_bb (stmt);
-    gsi = gsi_for_stmt (stmt);
-    unlink_stmt_vdef (stmt);
-    gsi_remove (&gsi, true);
-    release_defs (stmt);
-    cfg_changed |= gimple_purge_dead_eh_edges (bb);
-
-    name = is_gimple_assign (stmt) ? gimple_assign_rhs1 (stmt) : NULL_TREE;
-  } while (name && TREE_CODE (name) == SSA_NAME);
-
-  return cfg_changed;
 }
 
 /* We've just substituted an ADDR_EXPR into stmt.  Update all the

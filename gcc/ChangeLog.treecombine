@@ -1,3 +1,12 @@
+2012-02-23  Andrew Pinski  <apinski@cavium.com>
+
+	* tree-ssa-forwprop.c (get_prop_dest_stmt): Remove.
+	(remove_prop_source_from_use): Remove.
+	* tree-ssa-fold.c (forward_propagate_into_gimple_cond):
+	If we used the first operand for proping, then
+	prop the comparison into the GIMPLE_COND.
+	(forward_propagate_into_cond): Likewise for the COND_EXPR.
+
 2012-02-22  Andrew Pinski  <apinski@cavium.com>
 
 	* tree-ssa-forwprop.c (forward_propagate_addr_expr): Remove.

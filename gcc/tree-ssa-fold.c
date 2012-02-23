@@ -609,11 +609,15 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt,
   tree rhs2 = gimple_cond_rhs (stmt);
   location_t loc = gimple_location (stmt);
   bool reversed_edges = false;
+  bool proping = false;
 
   if (code == NE_EXPR
       && TREE_CODE (TREE_TYPE (rhs1)) == BOOLEAN_TYPE
       && integer_zerop (rhs2))
-    defcodefor_name (rhs1, &code, &rhs1, &rhs2);
+    {
+      defcodefor_name (rhs1, &code, &rhs1, &rhs2);
+      proping = true;
+    }
 
   /* We can do tree combining on SSA_NAME and comparison expressions.  */
   if (TREE_CODE_CLASS (code) != tcc_comparison)
@@ -637,6 +641,10 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt,
 	  tmp = build2 (NE_EXPR, boolean_type_node, rhs1,
 			build_zero_cst (TREE_TYPE (rhs1)));
         }
+      /* If we had propragating a comparison into a != 0 case
+	 then just do that propragation. */
+      else if (proping)
+	  tmp = build2 (code, boolean_type_node, rhs1, rhs2);
       else
 	return false;
     }
@@ -726,6 +734,11 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
 
   tmp = gimple_fold_binary_loc (loc, code, TREE_TYPE (cond), rhs1, rhs2,
 			        nonzerobits);
+
+  /* If we had a SSA name before and we did not simplify the comparison,
+     then just propragate the comparison.  */
+  if (!tmp && TREE_CODE (cond) == SSA_NAME)
+    tmp = build2_loc (loc, code, TREE_TYPE (cond), rhs1, rhs2);
 
   if (!tmp)
     return NULL_TREE;
