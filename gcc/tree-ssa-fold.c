@@ -412,8 +412,10 @@ forward_propagate_into_comparison_1 (location_t loc,
       && code0 == BIT_IOR_EXPR)
     {
       tree arg11, arg21;
-      arg11 = gimple_fold_binary_loc (loc, NE_EXPR, type, arg1, op1, nonzerobitsp);
-      arg21 = gimple_fold_binary_loc (loc, NE_EXPR, type, arg2, op1, nonzerobitsp);
+      arg11 = gimple_fold_binary_loc (loc, NE_EXPR, type, arg1, op1,
+				      nonzerobitsp);
+      arg21 = gimple_fold_binary_loc (loc, NE_EXPR, type, arg2, op1,
+				      nonzerobitsp);
       if (arg11 || arg21)
 	{
 	  if (arg11 == NULL)
@@ -608,8 +610,13 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt,
   location_t loc = gimple_location (stmt);
   bool reversed_edges = false;
 
+  if (code == NE_EXPR
+      && TREE_CODE (TREE_TYPE (rhs1)) == BOOLEAN_TYPE
+      && integer_zerop (rhs2))
+    defcodefor_name (rhs1, &code, &rhs1, &rhs2);
+
   /* We can do tree combining on SSA_NAME and comparison expressions.  */
-  if (TREE_CODE_CLASS (gimple_cond_code (stmt)) != tcc_comparison)
+  if (TREE_CODE_CLASS (code) != tcc_comparison)
     return 0;
 
   tmp = gimple_fold_binary_loc (loc, code, boolean_type_node, rhs1, rhs2,
@@ -712,19 +719,10 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
 
   gcc_assert (code1 == COND_EXPR);
 
-  /* We can do tree combining on SSA_NAME and comparison expressions.  */
-  if (COMPARISON_CLASS_P (cond))
-    {
-      code = TREE_CODE (cond);
-      rhs1 = TREE_OPERAND (cond, 0);
-      rhs2 = TREE_OPERAND (cond, 1);
-    }
-  else
-    {
-      code = NE_EXPR;
-      rhs1 = cond;
-      rhs2 = build_zero_cst (TREE_TYPE (cond));
-    }
+  defcodefor_name (cond, &code, &rhs1, &rhs2);
+  /* We can do tree combining on comparison expressions.  */
+  if (TREE_CODE_CLASS (code) != tcc_comparison)
+    return NULL_TREE;
 
   tmp = gimple_fold_binary_loc (loc, code, TREE_TYPE (cond), rhs1, rhs2,
 			        nonzerobits);
@@ -785,36 +783,72 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
 				 nonzerobits);
 }
 
-/* If we have lhs = ~x (STMT), look and see if earlier we had x = ~y.
-   If so, we can change STMT into lhs = y which can later be copy
-   propagated.  Similarly for negation.
-
-   This could trivially be formulated as a forward propagation
-   to immediate uses.  However, we already had an implementation
-   from DOM which used backward propagation via the use-def links.
-
-   It turns out that backward propagation is actually faster as
-   there's less work to do for each NOT/NEG expression we find.
-   Backwards propagation needs to look at the statement in a single
-   backlink.  Forward propagation needs to look at potentially more
-   than one forward link.
-
-   Returns true when the statement was changed.  */
+/* Simplify not, negative, and absolute expressions.  */
 
 static tree 
-simplify_not_neg_expr (location_t loc ATTRIBUTE_UNUSED, enum tree_code code,
-		       tree type ATTRIBUTE_UNUSED, tree rhs,
-		       nonzerobits_t nonzerobitsp ATTRIBUTE_UNUSED)
+simplify_not_neg_abs_expr (location_t loc, enum tree_code code,
+		           tree type, tree rhs,
+		           nonzerobits_t nonzerobitsp)
 {
-  tree arg1;
+  tree arg1, arg2;
   enum tree_code code0;
 
-  if (code != BIT_NOT_EXPR && code != NEGATE_EXPR)
+  if (code != BIT_NOT_EXPR && code != NEGATE_EXPR && code != ABS_EXPR)
     return NULL_TREE;
   
-  defcodefor_name (rhs, &code0, &arg1, NULL);
+  defcodefor_name (rhs, &code0, &arg1, &arg2);
+
+  /* ABS (ABS (a)) -> ABS (a). */
+  if (code == ABS_EXPR && code0 == code)
+    return rhs;
+
+  /* ABS (-a) -> ABS (a) */
+  if (code == ABS_EXPR && code0 == NEGATE_EXPR)
+    return gimple_fold_build1_loc (loc, code, type, arg1, nonzerobitsp);
+
+  /* ~(~ (a)) -> a and -(-a) -> a */
   if (code0 == code)
     return arg1;
+
+  /* ~ (-a) -> a - 1 */
+  if (code == BIT_NOT_EXPR
+      && code0 == NEGATE_EXPR)
+    return gimple_fold_build2_loc (loc, MINUS_EXPR, type, arg1,
+				   build_int_cst_type (type, 1), nonzerobitsp);
+  /* - (~a) -> a + 1 */
+  if (code == NEGATE_EXPR
+      && code0 == BIT_NOT_EXPR)
+    return gimple_fold_build2_loc (loc, PLUS_EXPR, type, arg1,
+				   build_int_cst_type (type, 1), nonzerobitsp);
+
+  /* ~ (X ^ C) for C constant is X ^ D where D = ~C.  */
+  if (code == BIT_NOT_EXPR
+      && code0 == BIT_XOR_EXPR
+      && TREE_CODE (arg2) == INTEGER_CST)
+    {
+      tree cst = fold_build1 (code, type, arg2);
+      return gimple_fold_build2_loc (loc, code0, type, arg1, cst,
+				     nonzerobitsp);
+    }
+
+  /* fold ~ (a CMP b) to a PMC b if there is a PMC.  */
+  if (code == BIT_NOT_EXPR
+      && TREE_CODE_CLASS (code0) == tcc_comparison)
+    {
+      tree op_type = TREE_TYPE (arg1);
+      if (!(FLOAT_TYPE_P (op_type)
+            && flag_trapping_math
+            && code0 != ORDERED_EXPR && code0 != UNORDERED_EXPR
+            && code0 != NE_EXPR && code0 != EQ_EXPR))
+	{
+	  code0 = invert_tree_comparison (code0,
+					  HONOR_NANS (TYPE_MODE (op_type)));
+	  if (code != ERROR_MARK)
+	    return gimple_fold_build2_loc (loc, code0, type, arg1, arg2,
+					   nonzerobitsp);
+	}
+    }
+
 
   return NULL_TREE;
 }
@@ -1346,6 +1380,8 @@ associate_plusminus (location_t loc, enum tree_code code, tree type,
   if (TYPE_SATURATING (type))
     return NULL_TREE;
 
+  /* FIXME: This should be using defcodefor_name. */
+
   /* First contract negates.  */
 
   /* A +- (-B) -> A -+ B.  */
@@ -1729,7 +1765,8 @@ gimple_fold_unary_loc (location_t loc, enum tree_code code,
 	return combine_conversions (loc, code, type, arg1, nonzerobitsp);
       case BIT_NOT_EXPR:
       case NEGATE_EXPR:
-	return simplify_not_neg_expr (loc, code, type, arg1, nonzerobitsp);
+      case ABS_EXPR:
+	return simplify_not_neg_abs_expr (loc, code, type, arg1, nonzerobitsp);
       default:
 	return NULL_TREE;
     }

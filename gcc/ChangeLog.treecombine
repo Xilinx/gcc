@@ -1,5 +1,25 @@
 2012-02-22  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (forward_propagate_into_comparison_1): Fix
+	formatting.
+	(forward_propagate_into_gimple_cond): If we have != 0 and the
+	comparison type is bool, then use defcodefor_name to get the
+	conditional.
+	(forward_propagate_into_cond): Use defcodefor_name to get the
+	condition.
+	(simplify_not_neg_expr): Rename to ...
+	(simplify_not_neg_abs_expr): this.
+	Simplify ABS (ABS (a)) -> ABS (a).
+	Simplify ABS (-a) -> ABS (a).
+	Simplify ~ (-a) -> a - 1.
+	Simplify - (~a) -> a + 1
+	Simplify ~ (X ^ C) for C constant is X ^ ~C.
+	Simplify ~ (a CMP b) to be using the inverted comparison if there is one.
+	(associate_plusminus): Add a comment about using defcodefor_name.
+	(gimple_fold_unary_loc): Handle ABS_EXPR.
+
+2012-02-22  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (defcodefor_name): Move to right below
 	can_propagate_from.  Handle more than SSA_NAMES like
 	real expressions.
