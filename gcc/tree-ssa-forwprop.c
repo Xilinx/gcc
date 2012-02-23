@@ -797,79 +797,6 @@ forward_propagate_addr_expr (tree name, tree rhs)
 }
 
 
-/* Forward propagate the comparison defined in STMT like
-   cond_1 = x CMP y to uses of the form
-     a_1 = (T')cond_1
-     a_1 = !cond_1
-     a_1 = cond_1 != 0
-   Returns true if stmt is now unused.  */
-
-static bool
-forward_propagate_comparison (gimple stmt)
-{
-  tree name = gimple_assign_lhs (stmt);
-  gimple use_stmt;
-  tree tmp = NULL_TREE;
-  gimple_stmt_iterator gsi;
-  enum tree_code code;
-  tree lhs;
-
-  /* Don't propagate ssa names that occur in abnormal phis.  */
-  if ((TREE_CODE (gimple_assign_rhs1 (stmt)) == SSA_NAME
-       && SSA_NAME_OCCURS_IN_ABNORMAL_PHI (gimple_assign_rhs1 (stmt)))
-      || (TREE_CODE (gimple_assign_rhs2 (stmt)) == SSA_NAME
-        && SSA_NAME_OCCURS_IN_ABNORMAL_PHI (gimple_assign_rhs2 (stmt))))
-    return false;
-
-  /* Do not un-cse comparisons.  But propagate through copies.  */
-  use_stmt = get_prop_dest_stmt (name, &name);
-  if (!use_stmt
-      || !is_gimple_assign (use_stmt))
-    return false;
-
-  code = gimple_assign_rhs_code (use_stmt);
-  lhs = gimple_assign_lhs (use_stmt);
-  if (!INTEGRAL_TYPE_P (TREE_TYPE (lhs)))
-    return false;
-
-  /* We can propagate the condition into a statement that
-     computes the logical negation of the comparison result.  */
-  if ((code == BIT_NOT_EXPR
-       && TYPE_PRECISION (TREE_TYPE (lhs)) == 1)
-      || (code == BIT_XOR_EXPR
-	  && integer_onep (gimple_assign_rhs2 (use_stmt))))
-    {
-      tree type = TREE_TYPE (gimple_assign_rhs1 (stmt));
-      bool nans = HONOR_NANS (TYPE_MODE (type));
-      enum tree_code inv_code;
-      inv_code = invert_tree_comparison (gimple_assign_rhs_code (stmt), nans);
-      if (inv_code == ERROR_MARK)
-	return false;
-
-      tmp = build2 (inv_code, TREE_TYPE (lhs), gimple_assign_rhs1 (stmt),
-		    gimple_assign_rhs2 (stmt));
-    }
-  else
-    return false;
-
-  gsi = gsi_for_stmt (use_stmt);
-  gimple_assign_set_rhs_from_tree (&gsi, unshare_expr (tmp));
-  use_stmt = gsi_stmt (gsi);
-  update_stmt (use_stmt);
-
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    {
-      fprintf (dump_file, "  Replaced '");
-      print_gimple_expr (dump_file, stmt, 0, dump_flags);
-      fprintf (dump_file, "' with '");
-      print_gimple_expr (dump_file, use_stmt, 0, dump_flags);
-      fprintf (dump_file, "'\n");
-    }
-
-  /* Remove defining statements.  */
-  return remove_prop_source_from_use (name);
-}
-
 /* Implement a simple nonzero function.
    Since the ssa_combine will only ask if it cannot figure out
    itself, we can just return double_int_minus_one since forwprop
@@ -1307,12 +1234,6 @@ ssa_forward_propagate_and_combine (void)
 		}
 	      else
 		gsi_next (&gsi);
-	    }
-	  else if (TREE_CODE_CLASS (code) == tcc_comparison)
-	    {
-	      if (forward_propagate_comparison (stmt))
-	        cfg_changed = true;
-	      gsi_next (&gsi);
 	    }
 	  else
 	    gsi_next (&gsi);
