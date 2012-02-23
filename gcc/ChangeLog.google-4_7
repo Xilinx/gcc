@@ -1,0 +1,4 @@
+2012-02-23   Diego Novillo  <dnovillo@google.com>
+
+	* BASE-VER: Change to 4.7.0-google.
+	* DEV-PHASE: Change to prerelease.
