@@ -1,5 +1,10 @@
 2012-02-22  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (simplify_not_neg_abs_expr): Fix typo
+	for the ~(a CMP b) simplifier.
+
+2012-02-22  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (forward_propagate_into_comparison_1): Fix
 	formatting.
 	(forward_propagate_into_gimple_cond): If we have != 0 and the

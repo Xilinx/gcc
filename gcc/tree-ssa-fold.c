@@ -843,7 +843,7 @@ simplify_not_neg_abs_expr (location_t loc, enum tree_code code,
 	{
 	  code0 = invert_tree_comparison (code0,
 					  HONOR_NANS (TYPE_MODE (op_type)));
-	  if (code != ERROR_MARK)
+	  if (code0 != ERROR_MARK)
 	    return gimple_fold_build2_loc (loc, code0, type, arg1, arg2,
 					   nonzerobitsp);
 	}
