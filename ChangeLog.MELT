@@ -1,4 +1,8 @@
 
+2012-02-23  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* INSTALL/README-MELT-PLUGIN: Mention auxiliary data in maps
+
 2012-02-22  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	MELT branch merged with trunk rev 184458 using svnmerge

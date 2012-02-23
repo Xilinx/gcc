@@ -150,6 +150,13 @@ NEWS for ....
 Add CHEADER macro to insert header c-code.
 
 
+    Runtime 
+    =======
+
+Hash maps have an auxiliary data value, which can be accessed and set
+at will.
+
+
 #######################################################################
 NEWS for 0.9.3 MELT plugin for gcc-4.6 (and future gcc-4.7)
 January 27th, 2012
