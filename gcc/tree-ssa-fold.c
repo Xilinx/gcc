@@ -256,6 +256,47 @@ can_propagate_from (gimple def_stmt)
   return true;
 }
 
+/* Given a ssa_name in NAME see if it was defined by an assignment and
+   set CODE to be the code and ARG1 to the first operand on the rhs and ARG2
+   to the second operand on the rhs. */
+static inline void
+defcodefor_name (tree name, enum tree_code *code, tree *arg1, tree *arg2)
+{
+  gimple def;
+  enum tree_code code1;
+  tree arg11;
+  tree arg21;
+  bool single_use;
+  
+  code1 = TREE_CODE (name);
+  arg11 = name;
+  arg21 = NULL_TREE;
+  single_use = true;
+  if (code1 == SSA_NAME)
+    {
+      def = get_prop_source_stmt (name, false, &single_use);
+      if (def && can_propagate_from (def)
+	  && is_gimple_assign (def))
+	{
+	  code1 = gimple_assign_rhs_code (def);
+	  arg11 = gimple_assign_rhs1 (def);
+          arg21 = gimple_assign_rhs2 (def);
+	}
+    }
+  else if (BINARY_CLASS_P (name) || COMPARISON_CLASS_P (name))
+    {
+      arg11 = TREE_OPERAND (name, 0);
+      arg21 = TREE_OPERAND (name, 1);
+    }
+  else if (UNARY_CLASS_P (name))
+    arg11 = TREE_OPERAND (name, 0);
+  
+  *code = code1;
+  *arg1 = arg11;
+  if (arg2)
+    *arg2 = arg21;
+}
+
 /* Return the rhs of a gimple_assign STMT in a form of a single tree,
    converted to type TYPE.
 
@@ -360,41 +401,17 @@ forward_propagate_into_comparison_1 (location_t loc,
   tree rhs01 = NULL_TREE, rhs11 = NULL_TREE;
   bool single_use0_p = false, single_use1_p = false;
   bool single_use01_p = false, single_use11_p = false;
+  enum tree_code code0;
+
+  tree arg1, arg2;
+
+  defcodefor_name (op0, &code0, &arg1, &arg2);
 
   if (code == NE_EXPR
-      && TREE_CODE (op0) == SSA_NAME
-      && integer_zerop (op1))
+      && integer_zerop (op1)
+      && code0 == BIT_IOR_EXPR)
     {
-      gimple def_stmt = get_prop_source_stmt (op0, false, &single_use0_p);
-      /* Try to simplify (a|b)!=0 to a!=0 | b!=0 if either a!=0 simplifies
-	 or b!=0 does. */
-      if (def_stmt && can_propagate_from (def_stmt)
-	  && gimple_assign_rhs_code (def_stmt) == BIT_IOR_EXPR)
-	{
-	  tree arg1, arg2, arg11, arg21;
-	  arg1 = gimple_assign_rhs1 (def_stmt);
-	  arg2 = gimple_assign_rhs2 (def_stmt);
-	  arg11 = gimple_fold_binary_loc (loc, NE_EXPR, type, arg1, op1, nonzerobitsp);
-	  arg21 = gimple_fold_binary_loc (loc, NE_EXPR, type, arg2, op1, nonzerobitsp);
-	  if (arg11 || arg21)
-	    {
-	      if (arg11 == NULL)
-		arg11 = build2_loc (loc, NE_EXPR, type, arg1, op1);
-	      if (arg21 == NULL)
-		arg21 = build2_loc (loc, NE_EXPR, type, arg2, op1);
-	      return gimple_fold_binary_loc (loc, BIT_IOR_EXPR, type, arg11, arg21,
-					     nonzerobitsp);
-	    }
-        }
-    }
-  /* FIXME this should be merged with above. */
-  if (code == NE_EXPR
-      && TREE_CODE (op0) == BIT_IOR_EXPR
-      && integer_zerop (op1))
-    {
-      tree arg1, arg2, arg11, arg21;
-      arg1 = TREE_OPERAND (op0, 0);
-      arg2 = TREE_OPERAND (op0, 1);
+      tree arg11, arg21;
       arg11 = gimple_fold_binary_loc (loc, NE_EXPR, type, arg1, op1, nonzerobitsp);
       arg21 = gimple_fold_binary_loc (loc, NE_EXPR, type, arg2, op1, nonzerobitsp);
       if (arg11 || arg21)
@@ -702,14 +719,12 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
       rhs1 = TREE_OPERAND (cond, 0);
       rhs2 = TREE_OPERAND (cond, 1);
     }
-  else if (TREE_CODE (cond) == SSA_NAME)
+  else
     {
       code = NE_EXPR;
       rhs1 = cond;
       rhs2 = build_zero_cst (TREE_TYPE (cond));
     }
-  else
-    return NULL_TREE;
 
   tmp = gimple_fold_binary_loc (loc, code, TREE_TYPE (cond), rhs1, rhs2,
 			        nonzerobits);
@@ -791,29 +806,15 @@ simplify_not_neg_expr (location_t loc ATTRIBUTE_UNUSED, enum tree_code code,
 		       tree type ATTRIBUTE_UNUSED, tree rhs,
 		       nonzerobits_t nonzerobitsp ATTRIBUTE_UNUSED)
 {
-  gimple rhs_def_stmt;
+  tree arg1;
+  enum tree_code code0;
+
   if (code != BIT_NOT_EXPR && code != NEGATE_EXPR)
     return NULL_TREE;
   
-  if (TREE_CODE (rhs) == code)
-    return TREE_OPERAND (rhs, 0);
-
-  if (TREE_CODE (rhs) != SSA_NAME)
-    return NULL_TREE;
-
-  rhs_def_stmt = SSA_NAME_DEF_STMT (rhs);
-
-  /* See if the RHS_DEF_STMT has the same form as our statement.  */
-  if (is_gimple_assign (rhs_def_stmt)
-      && gimple_assign_rhs_code (rhs_def_stmt) == code)
-    {
-      tree rhs_def_operand = gimple_assign_rhs1 (rhs_def_stmt);
-
-      /* Verify that RHS_DEF_OPERAND is a suitable SSA_NAME.  */
-      if (TREE_CODE (rhs_def_operand) == SSA_NAME
-	  && ! SSA_NAME_OCCURS_IN_ABNORMAL_PHI (rhs_def_operand))
-	return rhs_def_operand;
-    }
+  defcodefor_name (rhs, &code0, &arg1, NULL);
+  if (code0 == code)
+    return arg1;
 
   return NULL_TREE;
 }
@@ -1060,31 +1061,6 @@ extract_simple_gimple (gimple_stmt_iterator *gsi, tree expr)
   return NULL_TREE;
 }
 
-/* Given a ssa_name in NAME see if it was defined by an assignment and
-   set CODE to be the code and ARG1 to the first operand on the rhs and ARG2
-   to the second operand on the rhs. */
-static inline void
-defcodefor_name (tree name, enum tree_code *code, tree *arg1, tree *arg2)
-{
-  gimple def;
-  gcc_assert (TREE_CODE (name) == SSA_NAME);
-  def = SSA_NAME_DEF_STMT (name);
-  if (is_gimple_assign (def))
-    {
-      *code = gimple_assign_rhs_code (def);
-      *arg1 = gimple_assign_rhs1 (def);
-      if (arg2)
-        *arg2 = gimple_assign_rhs2 (def);
-    }
-  else
-    {
-      *code = SSA_NAME;
-      *arg1 = name;
-      if (arg2)
-        *arg2 = NULL;
-    }
-}
-
 /* Simplify bitwise binary operations.
    Return the tree of what the code was transformed into.  */
 
@@ -1101,31 +1077,9 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 	      || code == BIT_XOR_EXPR
 	      || code == BIT_IOR_EXPR);
 
-  def1_code = TREE_CODE (arg1);
-  def1_arg1 = arg1;
+  defcodefor_name (arg1, &def1_code, &def1_arg1, &def1_arg2);
 
-  if (def1_code == SSA_NAME)
-    defcodefor_name (arg1, &def1_code, &def1_arg1, &def1_arg2);
-  else if (BINARY_CLASS_P (arg1) || COMPARISON_CLASS_P (arg1))
-    {
-      def1_arg1 = TREE_OPERAND (arg1, 0);
-      def1_arg2 = TREE_OPERAND (arg1, 1);
-    }
-  else if (UNARY_CLASS_P (arg1))
-    def1_arg1 = TREE_OPERAND (arg1, 0);
-
-  def2_code = TREE_CODE (arg2);
-  def2_arg1 = arg2;
-
-  if (def2_code == SSA_NAME)
-    defcodefor_name (arg2, &def2_code, &def2_arg1, &def2_arg2);
-  else if (BINARY_CLASS_P (arg2) || COMPARISON_CLASS_P (arg2))
-    {
-      def2_arg1 = TREE_OPERAND (arg2, 0);
-      def2_arg2 = TREE_OPERAND (arg2, 1);
-    }
-  else if (UNARY_CLASS_P (arg2))
-    def2_arg1 = TREE_OPERAND (arg2, 0);
+  defcodefor_name (arg2, &def2_code, &def2_arg1, &def2_arg2);
 
   /* Try to optimize away the AND based on the nonzero bits info. */
   if (code == BIT_AND_EXPR)
@@ -1330,64 +1284,50 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       if (def1_code == ocode)
 	{
 	  tree x = arg2;
+	  enum tree_code coden;
+	  tree a1, a2;
 	  /* ( X | Y) & X -> X */
 	  /* ( X & Y) | X -> X */
 	  if (x == def1_arg1
 	      || x == def1_arg2)
 	    return x;
-	  if (TREE_CODE (def1_arg1) == SSA_NAME)
-	    {
-	      enum tree_code coden;
-	      tree a1, a2;
-	      defcodefor_name (def1_arg1, &coden, &a1, &a2);
-	      /* (~X | Y) & X -> X & Y */
-	      /* (~X & Y) | X -> X | Y */
-	      if (coden == BIT_NOT_EXPR && a1 == x)
-		return gimple_fold_build2_loc (loc, code, type, def1_arg2, x,
-					       nonzerobitsp);
-	    }
-	  if (TREE_CODE (def1_arg2) == SSA_NAME)
-	    {
-	      enum tree_code coden;
-	      tree a1, a2;
-	      defcodefor_name (def1_arg2, &coden, &a1, &a2);
-	      /* (Y | ~X) & X -> X & Y */
-	      /* (Y & ~X) | X -> X | Y */
-	      if (coden == BIT_NOT_EXPR && a1 == x)
-		return gimple_fold_build2_loc (loc, code, type, x, def1_arg1,
-					       nonzerobitsp);
-	    }
+          /* (~X | Y) & X -> X & Y */
+           /* (~X & Y) | X -> X | Y */
+
+	  if (coden == BIT_NOT_EXPR && a1 == x)
+	    return gimple_fold_build2_loc (loc, code, type, def1_arg2, x,
+					   nonzerobitsp);
+
+	  defcodefor_name (def1_arg2, &coden, &a1, &a2);
+	  /* (Y | ~X) & X -> X & Y */
+	  /* (Y & ~X) | X -> X | Y */
+	  if (coden == BIT_NOT_EXPR && a1 == x)
+	    return gimple_fold_build2_loc (loc, code, type, x, def1_arg1,
+					   nonzerobitsp);
 	}
       if (def2_code == ocode)
 	{
 	  tree x = arg1;
+	  enum tree_code coden;
+	  tree a1;
 	  /* X & ( X | Y) -> X */
 	  /* X | ( X & Y) -> X */
 	  if (x == def2_arg1
 	      || x == def2_arg2)
 	    return x;
-	  if (TREE_CODE (def2_arg1) == SSA_NAME)
-	    {
-	      enum tree_code coden;
-	      tree a1;
-	      defcodefor_name (def2_arg1, &coden, &a1, NULL);
-	      /* (~X | Y) & X -> X & Y */
-	      /* (~X & Y) | X -> X | Y */
-	      if (coden == BIT_NOT_EXPR && a1 == x)
-		return gimple_fold_build2_loc (loc, code, type, def2_arg2, x,
-					       nonzerobitsp);
-	    }
-	  if (TREE_CODE (def2_arg2) == SSA_NAME)
-	    {
-	      enum tree_code coden;
-	      tree a1 = NULL;
-	      defcodefor_name (def2_arg2, &coden, &a1, NULL);
-	      /* (Y | ~X) & X -> X & Y */
-	      /* (Y & ~X) | X -> X | Y */
-	      if (coden == BIT_NOT_EXPR && a1 == x)
-		return gimple_fold_build2_loc (loc, code, type, x, def2_arg1,
-					       nonzerobitsp);
-	    }
+	  defcodefor_name (def2_arg1, &coden, &a1, NULL);
+	  /* (~X | Y) & X -> X & Y */
+	  /* (~X & Y) | X -> X | Y */
+	  if (coden == BIT_NOT_EXPR && a1 == x)
+	    return gimple_fold_build2_loc (loc, code, type, def2_arg2, x,
+					   nonzerobitsp);
+
+	  defcodefor_name (def2_arg2, &coden, &a1, NULL);
+	  /* (Y | ~X) & X -> X & Y */
+	  /* (Y & ~X) | X -> X | Y */
+	  if (coden == BIT_NOT_EXPR && a1 == x)
+	    return gimple_fold_build2_loc (loc, code, type, x, def2_arg1,
+					   nonzerobitsp);
 	}
     }
 

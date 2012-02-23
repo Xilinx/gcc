@@ -1,5 +1,17 @@
 2012-02-22  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (defcodefor_name): Move to right below
+	can_propagate_from.  Handle more than SSA_NAMES like
+	real expressions.
+	(forward_propagate_into_comparison_1): Use defcodefor_name
+	for the folding of "(a|b)!=0", simplifies the code a lot.
+	(simplify_not_neg_expr): Use defcodefor_name.  Simplifies
+	the code a lot.
+	(simplify_bitwise_binary): Call defcodefor_name for every
+	kind of tree.  Simplifies the code a lot.
+
+2012-02-22  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c (gimple_fold_build3_loc): New function.
 	(forward_propagate_into_comparison_1): Handle the case where
 	the op0 is not a SSA_NAME for the (a|b)!=0 folding.
