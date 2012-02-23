@@ -1,3 +1,31 @@
+2012-02-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR c/52290
+	* c-decl.c (start_function): Exit early if decl1 is not FUNTION_DECL.
+
+2012-02-23  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md (code_stdname): Add ior, xor.
+	(xior): New code iterator.
+	(*<code_stdname><mode>qi.byte0): Use xior instead of ior.
+	(*<code_stdname><mode>qi.byte1-3): Ditto.
+
+2012-02-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/52019
+	* ipa-split.c (find_return_bb, find_retval, visit_bb): Ignore
+	CLOBBER stmts.
+
+2012-02-23  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* acinclude.m4: Use HAVE_INITFINI_ARRAY_SUPPORT instead of
+	HAVE_INITFINI_ARRAY to work around namespace pollution in
+	certain versions of newlib system headers.
+	* config.in: Regenerate.
+	* configure: Regenerate.
+	* config/initfini-array.h: Use HAVE_INITFINI_ARRAY_SUPPORT
+	instead of HAVE_INITFINI_ARRAY.
+
 2012-02-22  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/52330
