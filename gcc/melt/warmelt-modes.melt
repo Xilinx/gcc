@@ -1280,7 +1280,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	 (assert_msg "check curead" (is_list_or_null curead))
 	 (list_append2list rlist curead))))
     ;; macro expand it
-    (let ( (xlist (macroexpand_toplevel_list rlist curenv)) 
+    (let ( (xlist (macroexpand_toplevel_list rlist curenv mdinfo)) 
 	   )
       ;; scan the expanded input, and fill mdinfo appropriately.
       (makedoc_scaninput mdinfo arglist xlist)

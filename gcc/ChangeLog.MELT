@@ -1,4 +1,24 @@
 
+2011-02-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Should generate useless C code for every generating device
+	-defprimitive defciterator etc... to test the syntactic
+	correctnees of its generated C code.}}
+	* melt/warmelt-macro.melt (class_source_generator_device): New
+	class.
+	All the macro expansion functions take a module context as fourth arguments.
+
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Pass
+	the modctx to macro expansion. Warn for short number of
+	expressions.
+
+	* melt/warmelt-modes.melt (makedoc_docmd): Pass the makedoc info
+	as module context to macroexpand_toplevel_list...
+
+	* melt/xtramelt-ana-base.melt: Improved citerators &
+	primitives. Some might generate syntactically wrong C code...
+
+	* melt/xtramelt-opengpu.melt: More debug...
+
 2011-02-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt: More...
 

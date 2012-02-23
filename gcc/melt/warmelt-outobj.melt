@@ -4352,7 +4352,7 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility function to translate a macroexpanded list
 (defun translate_macroexpanded_list (xlist modnamstr modctx ncx)
-  (debug "translate_macroexpanded_list modnamstr=" modnamstr)
+  (debug "translate_macroexpanded_list modnamstr=" modnamstr "\n* modctx=" modctx)
   (assert_msg "check xlist" (is_list xlist))
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check modctx" (is_a modctx class_module_context))
@@ -4650,8 +4650,14 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 	)
     (debug "compile_list_sexpr initial ncx=" ncx)
     (assert_msg "check ncx" (is_a ncx class_normalization_context))
-    (let ( (xlist (macroexpand_toplevel_list lsexp inienv)) 
+    (let ( (xlist (macroexpand_toplevel_list lsexp inienv macroexpand_1 modctx)) 
+	   (:long lenxlist (list_length xlist))
 	   )
+      (if (<=i lenxlist 3)
+	  (code_chunk warnshortchk
+		      #{/*$WARNSHORTCHK*/
+		      warning (0, "MELT expanded few (%d) expresssions", $LENXLIST);
+		      }#))
       (translate_macroexpanded_list xlist modnamstr modctx ncx)
 ))
 	;;

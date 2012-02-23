@@ -138,19 +138,23 @@
   :doc #{Iterate inside the $GIMAP value -a map from gimples to values- for each gimple $ATT and value $VAL.}#
   ;; before expansion
   #{
-   /*$eachgimap*/ int $eachgimap#_rk=0;
-   for ($eachgimap#_rk=0;
-        $eachgimap#_rk<melt_size_mapgimples((struct meltmapgimples_st*)($gimap));
-	$eachgimap#_rk++) {
-   gimple $eachgimap#_tr=melt_nthattr_mapgimples((struct meltmapgimples_st*)($gimap), $eachgimap#_rk);
-   if (!$eachgimap#_tr) continue;
-   $att = $eachgimap#_tr;
-   $val =melt_nthval_mapgimples((struct meltmapgimples_st*)($gimap), 
-				   $eachgimap#_rk);
+   /*$EACHGIMAP*/ int $EACHGIMAP#_rk=0;
+   for ($EACHGIMAP#_rk=0;
+        $EACHGIMAP#_rk < melt_size_mapgimples((struct meltmapgimples_st*)($GIMAP));
+	$EACHGIMAP#_rk++) {
+   $ATT = (gimple) NULL;
+   $VAL = NULL;
+   gimple $EACHGIMAP#_gi = ((struct meltmapgimples_st*)($GIMAP))->entab[$EACHGIMAP#_rk].e_at;
+   if (!$EACHGIMAP#_gi 
+       || (void*) $EACHGIMAP#_gi ==  (void*) HTAB_DELETED_ENTRY) continue;
+   $ATT = $EACHGIMAP#_gi;
+   $VAL = ((struct meltmapgimples_st*)($GIMAP))->entab[$EACHGIMAP#_rk].e_va;
    }#
   ;;after expansion
    #{
-   } /*end $eachgimap*/
+   } /*end $EACHGIMAP*/
+   $ATT = (gimple) NULL;
+   $VAL = NULL;
    }#
   )
 
@@ -230,66 +234,92 @@
    for ($EACHEDGEMAP#_rk=0;
         $EACHEDGEMAP#_rk<melt_size_mapedges((struct meltmapedges_st*)($EDGMAP));
 	$EACHEDGEMAP#_rk++) {
-   edge $EACHEDGEMAP#_tr=melt_nthattr_mapedges((struct meltmapedges_st*)($EDGMAP), $EACHEDGEMAP#_rk);
-   if (!$EACHEDGEMAP#_tr) continue;
-   $att = $EACHEDGEMAP#_tr;
-   $val =melt_nthval_mapedges((struct meltmapedges_st*)($EDGMAP), 
-				   $EACHEDGEMAP#_rk);
+   edge $EACHEDGEMAP#_ed = ((struct meltmapedges_st*)($EDGMAP))->entab[$EACHEDGEMAP#_rk].e_at;
+   $ATT = NULL;
+   $VAL = NULL;
+   if (!$EACHEDGEMAP#_ed 
+       || (void*) $EACHEDGEMAP#_ed == (void*) HTAB_DELETED_ENTRY) 
+     continue;
+   $ATT = $EACHEDGEMAP#_ed;
+   $VAL = ((struct meltmapedges_st*)($EDGMAP))->entab[$EACHEDGEMAP#_rk].e_va;
    }#
   ;;after expansion
    #{
    } /*end $EACHEDGEMAP*/
+   $ATT = NULL;
+   $VAL = NULL;
    }#
   )
 
 ;;;;;;;;;;;;;;;; map associating GCC loop-s to non-null MELT values
 (defprimitive is_maploop (map) :long
+  :doc #{Test if $MAP is a map of loops.}#
   #{ (melt_magic_discr((melt_ptr_t)($map)) == MELTOBMAG_MAPLOOPS) }#)
+
 (defprimitive maploop_size (map) :long
+  :doc #{Return allocated size of loop map $MAP.}#
  #{ (melt_size_maploops((struct meltmaploops_st*)($map))) }#)
+
 ;; primitive to get the attribute count of a maploop
 (defprimitive maploop_count (map) :long
+  :doc #{Return used count of loop map $MAP.}#
   #{ (melt_count_maploops((struct meltmaploops_st*)($map))) }# )
+
 ;; get an entry in a maploop from a C loop
-(defprimitive maploop_get (map :tree bb) :value
-  #{(melt_get_maploops(($map), ($bb)))}#)
+(defprimitive maploop_get (map :loop lo) :value
+  :doc #{Safely get in $MAP value associated to loop $LO.}#
+  #{(melt_get_maploops(($map), ($lo)))}#)
+
 ;; primitive for making a new map of loops
 (defprimitive make_maploop (discr :long len) :value
+  :doc #{Make a map of loops with given $DISCR and estimated $LEN.}#
  #{(meltgc_new_maploops((meltobject_ptr_t) ($discr), ($len)))}#)
+
 ;; primitive for putting into a map of loops
-(defprimitive maploop_put (map :tree key :value val) :void
-  #{melt_put_maploops(($map), 
-		      ($key), (melt_ptr_t) ($val))}#)
-;; primivite for removing from a map of loops
-(defprimitive maploop_remove (map :tree key) :void
-  #{meltgc_remove_maploops(($map), ($key))}#)
+(defprimitive maploop_put (map :loop keylo :value val) :void
+  :doc #{Safely put in $MAP loop $KEYLO associated to $VAL.}#
+  #{melt_put_maploops(($MAP), 
+		      ($KEYLO), (melt_ptr_t) ($VAL))}#)
+
+;; primitive for removing from a map of loops
+(defprimitive maploop_remove (map :loop keylo) :void
+  :doc #{Safely remove in $MAP entry for loop $KEYLO}#
+  #{meltgc_remove_maploops(($MAP), ($KEYLO))}#)
 
 ;; primitive to get the nth loop of a maploop
 (defprimitive maploop_nth_attr (map :long n) :loop
   #{(melt_nthattr_maploops(($map), (int)($n)))}#)
+
 ;; primitive to get the nth value of a maploop
 (defprimitive maploop_nth_val (map :long n) :value
   #{(melt_nthval_maploops(($map), (int)($n)))}# )
+
 ;; iterator inside maploop
 (defciterator foreach_maploop 
   (loomap)				; startformals
   eachloomap 				;state symbol
-  (:loop att :value val)	;local formals
+  (:loop loatt :value val)	;local formals
   ;; before expansion
-  #{
-   /*$eachloomap*/ int $eachloomap#_rk=0;
-   for ($eachloomap#_rk=0;
-        $eachloomap#_rk<melt_size_maploops((struct meltmaploops_st*)($loomap));
-	$eachloomap#_rk++) {
-   loop_p $eachloomap#_tr=melt_nthattr_maploops((struct meltmaploops_st*)($loomap), $eachloomap#_rk);
-   if (!$eachloomap#_tr) continue;
-   $att = $eachloomap#_tr;
-   $val =melt_nthval_maploops((struct meltmaploops_st*)($loomap), 
-				   $eachloomap#_rk);
+  #{ /*$EACHLOOMAP*/ int $EACHLOOMAP#_rk=0;
+   for ($EACHLOOMAP#_rk=0;
+        $EACHLOOMAP#_rk < melt_size_maploops((struct meltmaploops_st*)($LOOMAP));
+	$EACHLOOMAP#_rk++) {
+   $LOATT = NULL;
+   $VAL = NULL;
+   loop_p $EACHLOOMAP#_lo = 
+     ((struct meltmaploops_st*)($LOOMAP))->entab[$EACHLOOMAP#_rk].e_at;
+   if (!$EACHLOOMAP#_lo
+       || (void*) $EACHLOOMAP#_lo == (void*) HTAB_DELETED_ENTRY) 
+     continue;
+   $LOATT = $EACHLOOMAP#_lo;
+   $VAL = 
+     ((struct meltmaploops_st*)($LOOMAP))->entab[$EACHLOOMAP#_rk].e_va;
    }#
   ;;after expansion
    #{
-   } /*end $eachloomap*/
+   } /*end $EACHLOOMAP*/
+   $LOATT = NULL;
+   $VAL = NULL;
    }#
   )
 
@@ -3171,19 +3201,24 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   (:tree tratt :value trval)	;local formals
   ;; before expansion
   #{
-   /*eachtrmap*/ int $eachmaptr#_rk=0;
-   for ($eachmaptr#_rk=0;
-        $eachmaptr#_rk<melt_size_maptrees((struct meltmaptrees_st*)($trmap));
-	$eachmaptr#_rk++) {
-   tree $eachmaptr#_tr=melt_nthattr_maptrees((struct meltmaptrees_st*)($trmap), $eachmaptr#_rk);
-   if (!$eachmaptr#_tr) continue;
-   $tratt = $eachmaptr#_tr;
-   $trval =melt_nthval_maptrees((struct meltmaptrees_st*)($trmap), 
-				   $eachmaptr#_rk);
+   /*$EACHMAPTR*/ int $EACHMAPTR#_rk=0;
+   for ($EACHMAPTR#_rk=0;
+        $EACHMAPTR#_rk<melt_size_maptrees((struct meltmaptrees_st*)($TRMAP));
+	$EACHMAPTR#_rk++) {
+   tree $EACHMAPTR#_tr = ((struct meltmaptrees_st*)($TRMAP))->entab[$EACHMAPTR#_rk].e_at;
+   $TRATT = (tree) NULL;
+   $TRVAL = (melt_ptr_t) NULL;
+   if (!$EACHMAPTR#_tr 
+       || (void*) $EACHMAPTR#_tr == (void*) HTAB_DELETED_ENTRY) 
+     continue;
+   $TRATT = $EACHMAPTR#_tr;
+   $TRVAL = ((struct meltmaptrees_st*)($TRMAP))->entab[$EACHMAPTR#_rk].e_va;
    }#
   ;;after expansion
    #{
-   } /*endeachtrmap*/
+   } /*end $EACHMAPTR*/
+   $TRATT = (tree) NULL;
+   $TRVAL = (melt_ptr_t) NULL;
    }#
   )
 
