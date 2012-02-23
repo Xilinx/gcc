@@ -1446,8 +1446,13 @@ dump_function_decl (tree t, int flags)
 
       if (TREE_CODE (fntype) == METHOD_TYPE)
 	{
+	  tree type_this = type_of_this_parm (fntype);
+	  tree type_class = type_this ? TREE_TYPE (type_this) : NULL;
 	  pp_base (cxx_pp)->padding = pp_before;
-	  pp_cxx_cv_qualifier_seq (cxx_pp, class_of_this_parm (fntype));
+	  if (type_class)
+	    pp_cxx_cv_qualifier_seq (cxx_pp, class_of_this_parm (fntype));
+	  else
+	    pp_cxx_ws_string (cxx_pp, M_("<null>"));;
 	}
 
       if (flags & TFF_EXCEPTION_SPECIFICATION)

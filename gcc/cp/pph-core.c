@@ -381,7 +381,7 @@ pph_trace_tree (tree t, const char *name,
 		enum pph_trace_end end, enum pph_trace_kind kind)
 {
   char end_char, kind_char, decl_char;
-  bool is_merge, is_decl;
+  bool is_merge, is_decl, is_type;
   bool emit = false;
 
   switch (kind)
@@ -418,6 +418,7 @@ pph_trace_tree (tree t, const char *name,
   end_char = end == pph_trace_front ? '{' : '}';
 
   is_decl = DECL_P (t);
+  is_type = TYPE_P (t);
   if (is_decl)
     decl_char = 'D';
   else if (TYPE_P (t))
@@ -425,9 +426,9 @@ pph_trace_tree (tree t, const char *name,
   else
     decl_char = '.';
 
-  if (is_merge && is_decl && flag_pph_tracer >= 2)
+  if (is_merge && flag_pph_tracer >= 2)
     emit = true;
-  else if ((is_merge || is_decl) && flag_pph_tracer >= 3)
+  else if ((is_merge || is_decl || is_type) && flag_pph_tracer >= 3)
     emit = true;
   else if (!EXPR_P (t) && flag_pph_tracer >= 4)
     emit = true;

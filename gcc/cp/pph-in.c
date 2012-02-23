@@ -2502,6 +2502,39 @@ pph_in_merge_body_namespace_decl (pph_stream *stream)
 }
 
 
+/* Merge the attributes of a READ_EXPR into an existing EXPR.  */
+
+static void
+pph_merge_tree_attributes (tree expr, tree read_expr)
+{
+  enum tree_code code = TREE_CODE (read_expr);
+  /* Collected from print_node.  */
+  TREE_USED (expr) |= TREE_USED (read_expr);
+  TREE_NOTHROW (expr) |= TREE_NOTHROW (read_expr);
+  TREE_PUBLIC (expr) |= TREE_PUBLIC (read_expr);
+  TREE_PRIVATE (expr) |= TREE_PRIVATE (read_expr);
+  TREE_PROTECTED (expr) |= TREE_PROTECTED (read_expr);
+  TREE_STATIC (expr) |= TREE_STATIC (read_expr);
+  TREE_DEPRECATED (expr) |= TREE_DEPRECATED (read_expr);
+  TREE_VISITED (expr) |= TREE_VISITED (read_expr);
+  if (TREE_CODE_CLASS (code) == tcc_declaration)
+    {
+      if (CODE_CONTAINS_STRUCT (code, TS_DECL_COMMON))
+	{
+	  DECL_INTERFACE_KNOWN (expr) |= DECL_INTERFACE_KNOWN (read_expr);
+	}
+      if (CODE_CONTAINS_STRUCT (code, TS_DECL_WITH_VIS))
+	{
+	  DECL_WEAK (expr) |= DECL_WEAK (read_expr);
+	}
+      if (code == FUNCTION_DECL)
+	{
+	  DECL_DECLARED_INLINE_P (expr) |= DECL_DECLARED_INLINE_P (read_expr);
+	}
+    }
+}
+
+
 /* Read a merge key from STREAM.  If CHAIN is not NULL and the merge
    key read from STREAM is not found in *CHAIN, the newly allocated
    tree is added to it.  If no CHAIN is given, then the tree is just
@@ -2537,6 +2570,8 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
          the existing tree that matches READ_EXPR. Otherwise, EXPR is the
          newly allocated READ_EXPR.  */
       expr = pph_merge_into_chain (read_expr, name, chain);
+      if (expr != read_expr)
+	pph_merge_tree_attributes (expr, read_expr);
     }
   else
     {
@@ -2609,10 +2644,19 @@ pph_in_tree (pph_stream *stream)
 
   if (marker == PPH_RECORD_START_MUTATED)
     {
-      /* When reading a mutated tree, we only need to re-read its
-         body, the tree itself is already in the cache for another
-         PPH image.  */
+      tree read_expr;
+      bool fully_read_p;
+      /* When reading a mutated tree, the tree itself is already in the
+	 cache for another PPH image.  */
       expr = (tree) pph_cache_find (stream, marker, image_ix, ix, PPH_any_tree);
+      read_expr = pph_in_tree_header (stream, &fully_read_p);
+      /* FIXME pph: We should really merge into the existing tree,
+	 but that requires significant changes to the generic streamer.
+	 Here, for mutated records, overwriting would be simpler.  */
+      pph_merge_tree_attributes (expr, read_expr);
+      ggc_free (read_expr);
+      if (fully_read_p)
+	return expr;
     }
   else if (marker == PPH_RECORD_START_MERGE_BODY)
     {

@@ -1,3 +1,14 @@
+2012-02-23   Lawrence Crowl  <crowl@google.com>
+
+	* pph-core.c (pph_trace_tree): Trace trees as well as decls.
+	* cp-tree.h (class_of_this_parm): Protect against null type.
+	* error.c (dump_function_decl): Protect against null type.
+	* pph-out.c (pph_out_tree): Write tree header for mutated trees.
+	* pph-in.c (pph_merge_tree_attributes): New.
+	(pph_in_merge_key_tree): Merge tree attributes.
+	(pph_in_tree): Read tree header for mutated trees.
+	Merge their attributes.
+
 2012-02-20   Diego Novillo  <dnovillo@google.com>
 
 	* pph-core.c (pph_init): Use stderr for -fpph-tracer.

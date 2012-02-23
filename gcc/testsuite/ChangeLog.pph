@@ -1,3 +1,7 @@
+2012-02-23   Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/x2incomplete4.cc: Make expected assembley diff.
+
 2012-02-15   Lawrence Crowl  <crowl@google.com>
 
 	* lib/dg-pph.exp: Clarify kind of test in log file.

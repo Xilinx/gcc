@@ -2355,16 +2355,7 @@ pph_out_tree (pph_stream *stream, tree expr)
 
   if (marker == PPH_RECORD_START || marker == PPH_RECORD_START_MUTATED)
     {
-      /* This is the first time we see EXPR, write it out.  */
-      if (marker == PPH_RECORD_START)
-        {
-          /* We only need to write EXPR's header if it needs to be
-             re-allocated when reading.  If we are writing the mutated
-             state of an existing tree, then we only need to write its
-             body.  */
-          pph_out_tree_header (stream, expr);
-        }
-
+      pph_out_tree_header (stream, expr);
       pph_out_tree_body (stream, expr);
     }
   else if (marker == PPH_RECORD_START_MERGE_BODY)

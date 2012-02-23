@@ -4836,7 +4836,8 @@ type_of_this_parm (const_tree fntype)
 static inline tree
 class_of_this_parm (const_tree fntype)
 {
-  return TREE_TYPE (type_of_this_parm (fntype));
+  tree type_this = type_of_this_parm (fntype);
+  return type_this ? TREE_TYPE (type_this) : NULL;
 }
 
 /* A parameter list indicating for a function with no parameters,
