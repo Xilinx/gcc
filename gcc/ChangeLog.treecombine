@@ -1,5 +1,11 @@
 2012-02-23  Andrew Pinski  <apinski@cavium.com>
 
+	* gimple-ssa-combine.c (simplify_bitwise_binary): Fix
+	simplifing of a!=0|b!=0 for non integer types.
+	Add simplifing of a==0&b==0 to (a|b)==0.
+
+2012-02-23  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-fold.c: Rename to ...
 	* gimple-ssa-combine.c: This.
 	Do s/gimple_fold/gimple_combine/ replacement.

@@ -1163,11 +1163,29 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       && integer_zerop (def1_arg2)
       && def2_code == NE_EXPR
       && integer_zerop (def2_arg2)
-      && types_compatible_p (TREE_TYPE (def1_arg1), TREE_TYPE (def2_arg1)))
+      && types_compatible_p (TREE_TYPE (def1_arg1), TREE_TYPE (def2_arg1))
+      && INTEGRAL_TYPE_P (TREE_TYPE (def1_arg1)))
    {
      tree tmp = gimple_combine_build2_loc (loc, code, TREE_TYPE (def1_arg1),
 					def1_arg1, def2_arg1, nonzerobitsp);
      return gimple_combine_build2_loc (loc, NE_EXPR, type, tmp,
+				    build_int_cst_type (TREE_TYPE (def1_arg1),
+							0),
+				    nonzerobitsp);
+   }
+
+  /* Fold a==0&b==0 if a and b are the same type to (a|b)==0 . */
+  if (code == BIT_AND_EXPR
+      && def1_code == EQ_EXPR
+      && integer_zerop (def1_arg2)
+      && def2_code == EQ_EXPR
+      && integer_zerop (def2_arg2)
+      && types_compatible_p (TREE_TYPE (def1_arg1), TREE_TYPE (def2_arg1))
+      && INTEGRAL_TYPE_P (TREE_TYPE (def1_arg1)))
+   {
+     tree tmp = gimple_combine_build2_loc (loc, BIT_IOR_EXPR, TREE_TYPE (def1_arg1),
+					def1_arg1, def2_arg1, nonzerobitsp);
+     return gimple_combine_build2_loc (loc, EQ_EXPR, type, tmp,
 				    build_int_cst_type (TREE_TYPE (def1_arg1),
 							0),
 				    nonzerobitsp);
