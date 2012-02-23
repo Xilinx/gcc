@@ -1,5 +1,18 @@
 2012-02-22  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c (gimple_fold_build3_loc): New function.
+	(forward_propagate_into_comparison_1): Handle the case where
+	the op0 is not a SSA_NAME for the (a|b)!=0 folding.
+	(forward_propagate_into_gimple_cond): Reindent.
+	(forward_propagate_into_cond): Take a loc,
+	code, a type and operands instead of a gimple_stmt_iterator.
+	Also call gimple_fold_build3_loc instead of build3.
+	(gimple_fold_ternary_loc): New function.
+	(ssa_combine): Call gimple_fold_ternary_loc.
+	Don't call forward_propagate_into_cond.
+
+2012-02-22  Andrew Pinski  <apinski@cavium.com>
+
 	PR tree-opt/52345
 	* tree-ssa-fold.c (forward_propagate_into_comparison_1): 
 	Add nonzerobitsp argument.

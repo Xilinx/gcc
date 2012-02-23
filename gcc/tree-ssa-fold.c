@@ -42,6 +42,9 @@ static tree gimple_fold_binary_loc (location_t, enum tree_code, tree, tree,
 static tree gimple_fold_unary_loc (location_t, enum tree_code, tree, tree,
 				   nonzerobits_t);
 
+static tree gimple_fold_ternary_loc (location_t, enum tree_code, tree, tree,
+				     tree, tree, nonzerobits_t);
+
 static tree
 gimple_fold_build2_loc (location_t loc, enum tree_code code,
 			tree type, tree arg1, tree arg2,
@@ -62,6 +65,21 @@ gimple_fold_build2_loc (location_t loc, enum tree_code code,
     return tem;
   return build2_loc (loc, code, type, arg1, arg2);
 }
+
+static tree
+gimple_fold_build3_loc (location_t loc, enum tree_code code,
+			tree type, tree arg1, tree arg2, tree arg3,
+			nonzerobits_t nonzerobitsp)
+{
+  tree tem;
+
+  tem = gimple_fold_ternary_loc (loc, code, type, arg1, arg2, arg3,
+				 nonzerobitsp);
+  if (tem)
+    return tem;
+  return build3_loc (loc, code, type, arg1, arg2, arg3);
+}
+
 static tree
 gimple_fold_build1_loc (location_t loc, enum tree_code code,
 			tree type, tree arg1,
@@ -369,6 +387,26 @@ forward_propagate_into_comparison_1 (location_t loc,
 	    }
         }
     }
+  /* FIXME this should be merged with above. */
+  if (code == NE_EXPR
+      && TREE_CODE (op0) == BIT_IOR_EXPR
+      && integer_zerop (op1))
+    {
+      tree arg1, arg2, arg11, arg21;
+      arg1 = TREE_OPERAND (op0, 0);
+      arg2 = TREE_OPERAND (op0, 1);
+      arg11 = gimple_fold_binary_loc (loc, NE_EXPR, type, arg1, op1, nonzerobitsp);
+      arg21 = gimple_fold_binary_loc (loc, NE_EXPR, type, arg2, op1, nonzerobitsp);
+      if (arg11 || arg21)
+	{
+	  if (arg11 == NULL)
+	    arg11 = build2_loc (loc, NE_EXPR, type, arg1, op1);
+	  if (arg21 == NULL)
+	    arg21 = build2_loc (loc, NE_EXPR, type, arg2, op1);
+	  return gimple_fold_build2_loc (loc, BIT_IOR_EXPR, type, arg11, arg21,
+					 nonzerobitsp);
+	}
+    }
 
   /* FIXME: this really should not be using combine_cond_expr_cond (fold_binary)
      but matching the patterns directly.  */
@@ -617,27 +655,27 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt,
 
   if (dump_file && tmp)
     {
-	  fprintf (dump_file, "  Replaced '");
-	  print_gimple_expr (dump_file, stmt, 0, 0);
-	  fprintf (dump_file, "' with '");
-	  print_generic_expr (dump_file, tmp, 0);
-	  fprintf (dump_file, "'\n");
-	  if (reversed_edges)
-	    fprintf (dump_file, "with reversed edges.\n");
-	}
-
-      gimple_cond_set_condition_from_tree (stmt, unshare_expr (tmp));
-      /* Switch around the edges if expand_poosible_comparison tells us
-         we need to. */
+      fprintf (dump_file, "  Replaced '");
+      print_gimple_expr (dump_file, stmt, 0, 0);
+      fprintf (dump_file, "' with '");
+      print_generic_expr (dump_file, tmp, 0);
+      fprintf (dump_file, "'\n");
       if (reversed_edges)
-        {
-          basic_block bb = gimple_bb (stmt);
-          EDGE_SUCC (bb, 0)->flags ^= (EDGE_TRUE_VALUE|EDGE_FALSE_VALUE);
-          EDGE_SUCC (bb, 1)->flags ^= (EDGE_TRUE_VALUE|EDGE_FALSE_VALUE);
-	}
-      update_stmt (stmt);
+	fprintf (dump_file, "with reversed edges.\n");
+    }
 
-      return true;
+   gimple_cond_set_condition_from_tree (stmt, unshare_expr (tmp));
+   /* Switch around the edges if expand_poosible_comparison tells us
+      we need to. */
+  if (reversed_edges)
+    {
+       basic_block bb = gimple_bb (stmt);
+       EDGE_SUCC (bb, 0)->flags ^= (EDGE_TRUE_VALUE|EDGE_FALSE_VALUE);
+       EDGE_SUCC (bb, 1)->flags ^= (EDGE_TRUE_VALUE|EDGE_FALSE_VALUE);
+     }
+  update_stmt (stmt);
+
+  return true;
 }
 
 /* Propagate from the ssa name definition statements of COND_EXPR
@@ -645,20 +683,17 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt,
    Returns true zero if the stmt was changed.  */
 
 static tree
-forward_propagate_into_cond (gimple_stmt_iterator *gsi,
+forward_propagate_into_cond (location_t loc, enum tree_code code1,
+			     tree type, tree cond, tree op1, tree op2,
 			     nonzerobits_t nonzerobits)
 {
-  gimple stmt = gsi_stmt (*gsi);
   tree tmp = NULL_TREE;
-  tree cond = gimple_assign_rhs1 (stmt);
-  location_t loc = gimple_location (stmt);
   bool swap = false;
   enum tree_code code;
   tree rhs1;
   tree rhs2;
-  tree op1 = gimple_assign_rhs2 (stmt);
-  tree op2 = gimple_assign_rhs3 (stmt);
-  tree type = TREE_TYPE (op1);
+
+  gcc_assert (code1 == COND_EXPR);
 
   /* We can do tree combining on SSA_NAME and comparison expressions.  */
   if (COMPARISON_CLASS_P (cond))
@@ -731,7 +766,8 @@ forward_propagate_into_cond (gimple_stmt_iterator *gsi,
       op1 = op2;
       op2 = t;
     }
-  return build3 (COND_EXPR, type, tmp, op1, op2);
+  return gimple_fold_build3_loc (loc, COND_EXPR, type, tmp, op1, op2,
+				 nonzerobits);
 }
 
 /* If we have lhs = ~x (STMT), look and see if earlier we had x = ~y.
@@ -1688,6 +1724,19 @@ combine_conversions (location_t loc, enum tree_code code, tree ltype,
 }
 
 static tree
+gimple_fold_ternary_loc (location_t loc, enum tree_code code,
+			 tree type, tree arg1, tree arg2, tree arg3,
+			 nonzerobits_t nonzerobitsp)
+{
+  gcc_assert (IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (code))
+	      && TREE_CODE_LENGTH (code) == 3);
+  if (code == COND_EXPR)
+    return forward_propagate_into_cond (loc, code, type, arg1, arg2, arg3,
+					nonzerobitsp);
+  return NULL_TREE;
+}
+
+static tree
 gimple_fold_binary_loc (location_t loc, enum tree_code code,
 			tree type, tree arg1, tree arg2,
 			nonzerobits_t nonzerobitsp)
@@ -1763,6 +1812,7 @@ ssa_combine (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobits_p)
       {
 	tree rhs1 = gimple_assign_rhs1 (stmt);
 	tree rhs2 = gimple_assign_rhs2 (stmt);
+	tree rhs3 = gimple_assign_rhs3 (stmt);
 	tree ltype = TREE_TYPE (gimple_assign_lhs (stmt));
 	location_t loc = gimple_location (stmt);
 	enum tree_code code = gimple_assign_rhs_code (stmt);
@@ -1771,19 +1821,15 @@ ssa_combine (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobits_p)
 	if (TREE_CODE_CLASS (code) == tcc_reference)
 	  return false;
 
+	if (TREE_CODE_LENGTH (code) == 3)
+	  newexpr = gimple_fold_ternary_loc (loc, code, ltype, rhs1, rhs2,
+					     rhs3, nonzerobits_p);
 	if (TREE_CODE_LENGTH (code) == 2)
 	  newexpr = gimple_fold_binary_loc (loc, code, ltype, rhs1, rhs2,
 					    nonzerobits_p);
 	else if (TREE_CODE_LENGTH (code) == 1)
 	  newexpr = gimple_fold_unary_loc (loc, code, ltype, rhs1,
 					   nonzerobits_p);
-
-	/* FIXME this part should not be needed.  */
-	if (newexpr)
-	  ;
-	else if (code == COND_EXPR)
-	 /* In this case the entire COND_EXPR is in rhs1. */
-	 newexpr = forward_propagate_into_cond (gsi, nonzerobits_p);
 	break;
       }
 
