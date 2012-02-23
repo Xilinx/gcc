@@ -19485,16 +19485,18 @@ lab_endgetargs:;
     /*^apply */
     /*apply */
     {
-      union meltparam_un argtab[1];
+      union meltparam_un argtab[2];
       memset (&argtab, 0, sizeof (argtab));
       /*^apply.arg */
       argtab[0].meltbp_aptr = (melt_ptr_t *) & /*_.CURENV__V10*/ meltfptr[9];
+      /*^apply.arg */
+      argtab[1].meltbp_aptr = (melt_ptr_t *) & /*_.MDINFO__V30*/ meltfptr[29];
       /*_.XLIST__V42*/ meltfptr[41] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!MACROEXPAND_TOPLEVEL_LIST */ meltfrout->
 		      tabval[13])),
 		    (melt_ptr_t) ( /*_.RLIST__V15*/ meltfptr[14]),
-		    (MELTBPARSTR_PTR ""), argtab, "",
+		    (MELTBPARSTR_PTR MELTBPARSTR_PTR ""), argtab, "",
 		    (union meltparam_un *) 0);
     }
     ;
