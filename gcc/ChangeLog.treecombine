@@ -1,5 +1,20 @@
 2012-02-23  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-fold.c: Rename to ...
+	* gimple-ssa-combine.c: This.
+	Do s/gimple_fold/gimple_combine/ replacement.
+	(nonzerobits_1): Use truth_value_p instead of
+	checking just for tcc_comparison.
+	(forward_propagate_into_comparison_1): Add a comment in
+	front of the simplification of "(a|b)!=0" to "a!=0|b!=0".
+	(truth_valued_ssa_name): Add a FIXME comment about using nonzerobits.
+	* Makefile.in (OBJS): Replace tree-ssa-fold.o with
+	gimple-ssa-combine.o.
+	(tree-ssa-fold.o): Rename to ...
+	(gimple-ssa-combine.o): This.  Add tree-ssa-propagate.h.
+
+2012-02-23  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-forwprop.c (get_prop_dest_stmt): Remove.
 	(remove_prop_source_from_use): Remove.
 	* tree-ssa-fold.c (forward_propagate_into_gimple_cond):
