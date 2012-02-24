@@ -13966,6 +13966,7 @@ get_some_local_dynamic_name (void)
    d -- print duplicated register operand for AVX instruction.
    D -- print condition for SSE cmp instruction.
    P -- if PIC, print an @PLT suffix.
+   I -- if X32, print positive 32bit integer.
    X -- don't print any sort of PIC '@' suffix for a symbol.
    & -- print some in-use local-dynamic symbol name.
    H -- print a memory address offset by 8; used for sse high-parts
@@ -14172,6 +14173,7 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	case 'x':
 	case 'X':
 	case 'P':
+	case 'I':
 	  break;
 
 	case 's':
@@ -14571,7 +14573,7 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	  x = const0_rtx;
 	}
 
-      if (code != 'P')
+      if (code != 'P' && code != 'I')
 	{
 	  if (CONST_INT_P (x) || GET_CODE (x) == CONST_DOUBLE)
 	    {
@@ -14588,7 +14590,15 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	    }
 	}
       if (CONST_INT_P (x))
-	fprintf (file, HOST_WIDE_INT_PRINT_DEC, INTVAL (x));
+	{
+	  /* Since constant address in x32 is signed extended to 64bit,
+	     we print it as positive 32bit integer.  */
+	  if (TARGET_X32 && code == 'I')
+	    fprintf (file, HOST_WIDE_INT_PRINT_DEC,
+		     INTVAL (x) & 0xffffffff);
+	  else
+	    fprintf (file, HOST_WIDE_INT_PRINT_DEC, INTVAL (x));
+	}
       else if (flag_pic || MACHOPIC_INDIRECT)
 	output_pic_addr_const (file, x, code);
       else
