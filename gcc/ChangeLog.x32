@@ -1,14 +1,12 @@
-2012-02-23  H.J. Lu  <hongjiu.lu@intel.com>
-
-	PR target/52352
-	PR target/52364
-	* config/i386/i386.md (*movabs<mode>_1): Remove the second form.
-	(*movabs<mode>_2): Likewise.
-
-2012-02-10  H.J. Lu  <hongjiu.lu@intel.com>
+2012-02-24  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/52146
-	* config/i386/i386.md (movabs split for x32): New.
+	* config/i386/i386.c (ix86_print_operand): Add 'I' to code and
+	print constant address as positive 32bit integer for x32.
+
+	* config/i386/i386.md (*movabs<mode>_1): Replace :DI with :P and
+	replace %P with %I.
+	(*movabs<mode>_2): Likewise.
 
 2012-02-10  Uros Bizjak  <ubizjak@gmail.com>
 
