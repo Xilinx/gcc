@@ -839,7 +839,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
   (assert_msg "check arglist" (is_list arglist))
-  ;(assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (expreslist (list)) 
 	 (:long count 0)
 	 )
@@ -849,7 +849,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
      (if (>i count 0)
 	 (multicall 
 	  (curexp xtraexp)
-	  (macroexpand_1 curarg env mexpander modctx)
+	  (mexpander curarg env mexpander modctx)
 	  (list_append expreslist curexp)
 	  (cond 
 	   ((is_multiple xtraexp)
@@ -880,7 +880,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
   (assert_msg "check arglist" (is_list arglist))
-  ;(assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (expreslist (expand_restlist_as_list arglist env mexpander modctx))
 	 )
     (list_to_multiple expreslist discr_multiple)))
@@ -891,7 +891,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 (defun expand_pairlist_as_list (pair env mexpander modctx)
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))  
-  ;(assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (expreslist (list)) 
 	 )
     (forever exploop
@@ -901,7 +901,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 	       (setq pair (pair_tail pair))
 	       (multicall 
 		(curexp xtraexp)
-		(macroexpand_1 curarg env mexpander modctx)
+		(mexpander curarg env mexpander modctx)
 		(list_append expreslist curexp)
 		(cond 
 		 ((is_multiple xtraexp)
@@ -930,9 +930,9 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 (defun expand_pairlist_as_tuple (pair env mexpander modctx)
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
-  ;(assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check modctx" (is_object modctx))
   (if (is_pair pair)
-      (let ( (expreslist (expand_pairlist_as_list pair env mexpander))
+      (let ( (expreslist (expand_pairlist_as_list pair env mexpander modctx))
 	     )
 	(list_to_multiple expreslist discr_multiple))))
 
@@ -941,13 +941,13 @@ $SPAC_OUTARGS are the output sub-patterns.}#
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
-  ;(assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	 (sloc (unsafe_get_field :loca_location sexpr))
 	 (soper (pair_head (list_first scont)))
-	 (xargtup (expand_restlist_as_tuple scont env mexpander))
+	 (xargtup (expand_restlist_as_tuple scont env mexpander modctx))
 	 (xoper (if (is_a soper class_sexpr) 
-		    (macroexpand_1 soper env mexpander modctx) 
+		    (mexpander soper env mexpander modctx) 
 		  soper))
 	 )
     (instance class_source_apply
@@ -961,9 +961,10 @@ $SPAC_OUTARGS are the output sub-patterns.}#
   (debug "expand_msend sexpr=" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check end" (is_a env class_environment))
+  (if (null mexpander) (setq mexpander macroexpand_1))
   (assert_msg "check mexpander" (is_closure mexpander))
   (assert_msg "check opnam" (is_a opnam class_symbol))
-  ;(assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	 (sloc (unsafe_get_field :loca_location sexpr))
 	 (spair (pair_tail (list_first scont)))
@@ -976,7 +977,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 			  :loca_location sloc
 			  :msend_selsymb opnam
 			  :msend_recv (if (is_a xrecv class_sexpr)
-					  (macroexpand_1 xrecv env mexpander modctx)
+					  (mexpander xrecv env mexpander modctx)
 					xrecv)
 			  :sargop_args argtup
 			  ))
@@ -993,7 +994,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
   (assert_msg "check fld" (is_a fld class_field))
-  ;(assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check modctx" (is_object modctx))
   (debug "expand_fieldexpr sexpr" sexpr)
   (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	 (sloc (unsafe_get_field :loca_location sexpr))
@@ -1004,7 +1005,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
     ;; 	   (?(list ?(and ?flnam ?(instance class_keyword))
     ;; 		   ?subexpr)
     ;; 	     (let (
-    ;; 		   (mexp (macroexpand_1 subexpr env mexpander))
+    ;; 		   (mexp (mexpander subexpr env mexpander modctx))
     ;; 		   (res (instance class_source_get_field
     ;; 				  :loca_location sloc
     ;; 				  :suget_obj mexp
@@ -1030,7 +1031,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
       (assert_msg "same oper as field"
 		  (==s (get_field :named_name fld) (get_field :named_name operexp)))
       (let ( 
-	    (mexp (macroexpand_1 subsexp env mexpander modctx))
+	    (mexp (mexpander subsexp env mexpander modctx))
 	    (res (instance class_source_get_field
 			   :loca_location sloc
 			   :suget_obj mexp
@@ -1052,7 +1053,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
   (assert_msg "check citer" (is_a citer class_citerator))
-  ;(assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	 (sloc (unsafe_get_field :loca_location sexpr))
 	 (spair (pair_tail (list_first scont)))
@@ -1070,7 +1071,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 		(setq stargs (expand_pairlist_as_tuple (list_first stacont) env mexpander modctx))
 		)
 	    (setq stargs (if starexp (tuple
-				      (macroexpand_1 starexp env mexpander modctx)
+				      (mexpander starexp env mexpander modctx)
 				      ))))
 	  (setq spair (pair_tail spair))
 	  )
@@ -1115,7 +1116,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
   (assert_msg "check cmat" (is_a cmat class_cmatcher))
-  ;(assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	 (sloc (unsafe_get_field :loca_location sexpr))
 	 (spair (pair_tail (list_first scont)))
@@ -1158,7 +1159,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
   (assert_msg "check fmat" (is_a fmat class_funmatcher))
-  ;(assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	 (sloc (unsafe_get_field :loca_location sexpr))
 	 (spair (pair_tail (list_first scont)))
@@ -1206,7 +1207,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
   (if (null mexpander) (setq mexpander macroexpand_1))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
-  ;(assert_msg "check modctx" (is_object modctx)
+  (assert_msg "check modctx" (is_object modctx))
   (if (is_a sexpr class_sexpr)
       (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	     (sloc (unsafe_get_field :loca_location sexpr))
@@ -1226,31 +1227,31 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 	     (cond ( (is_a opbind class_macro_binding)
 		     (let ( (mexp (unsafe_get_field :mbind_expanser opbind)) )
 		       (assert_msg "check mexp" (is_closure mexp))
-		       (let ( (resm (mexp sexpr env mexpander)) )
+		       (let ( (resm (mexp sexpr env mexpander modctx)) )
 			 (debug "macroexpand_1 result for macro resm" resm)
 			 (return resm)
 			 )))
 		   ( (is_a opbind class_selector_binding)
-		     (let ( (ress (expand_msend soper sexpr env mexpander)) )
+		     (let ( (ress (expand_msend soper sexpr env mexpander modctx)) )
 		       (debug "macroexpand_1 result for send ress" ress)
 		       (return ress)
 		       ))
 		   ( (is_a opbind class_primitive_binding)
 		     (let ( (resp (expand_primitive (unsafe_get_field :pbind_primitive opbind) 
-						    sexpr env mexpander)) )
+						    sexpr env mexpander modctx)) )
 		       (debug "macroexpand_1 result for primitive resp" resp)
 		       (return resp)
 		       ))
 		   ( (is_a opbind class_citerator_binding)
 		     (let ( (citer (unsafe_get_field :cbind_citerator opbind))
-			    (resc (expand_citeration citer sexpr env mexpander))
+			    (resc (expand_citeration citer sexpr env mexpander modctx))
 			    )
 		       (debug "macroexpand_1 result for citerator resc" resc)
 		       (return resc)
 		       ))
 		   ( (is_a opbind class_cmatcher_binding)
 		     (let ( (cmatch (unsafe_get_field :cmbind_matcher opbind))
-			    (resc (expand_cmatchexpr cmatch sexpr env mexpander))
+			    (resc (expand_cmatchexpr cmatch sexpr env mexpander modctx))
 			    )
 		       (debug "macroexpand_1 result for cmatcher resc" resc)
 		       (return resc)
@@ -1264,39 +1265,42 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 		       ))
 		   ( (is_a opbind class_field_binding)
 		     (let ( (field (unsafe_get_field :flbind_field opbind)) 
-			    (resf (expand_fieldexpr field sexpr env mexpander))
+			    (resf (expand_fieldexpr field sexpr env mexpander modctx))
 			    )
 		       (debug "macroexpand_1 result for field resf" resf)
 		       (return resf)
 		       ))
 		   ;; formals and local variables are always applied.
 		   ( (is_a opbind class_formal_binding)
-		     (expand_apply sexpr env mexpander))
+		     (expand_apply sexpr env mexpander modctx))
 		   ( (is_a opbind class_let_binding)
-		     (expand_apply sexpr env mexpander))
+		     (expand_apply sexpr env mexpander modctx))
 		   ;;; [imported] value bindings are handled case by case
 		   ( (is_a opbind class_value_binding)
 		     (let ( (val (unsafe_get_field :vbind_value opbind))
 			    )
 		       (cond
 			( (is_closure val)
-			  (expand_apply sexpr env mexpander)
+			  (expand_apply sexpr env mexpander modctx)
 			  )
 			( (is_a val class_primitive)
-			  (expand_primitive val sexpr env mexpander)
+			  (expand_primitive val sexpr env mexpander modctx)
 			  )
 			( (is_a val class_selector) 
-			  (let ( (ress (expand_msend soper sexpr env mexpander)) )
+			  (let ( (ress 
+				  (expand_msend soper sexpr env mexpander modctx)) )
 			    (debug "macroexpand_1 result for send ress" ress)
 			    (return ress)
 			    )
 			  )
 			( (is_a val class_citerator)
-			  (let ( (resc (expand_citeration val sexpr env mexpander)) )
+			  (let ( (resc 
+				  (expand_citeration val sexpr env mexpander modctx)) )
 			    (debug "macroexpand_1 result for send resc" resc)
 			    (return resc)))
 			( (is_a val class_cmatcher)
-			  (let ( (resc (expand_cmatchexpr val sexpr env mexpander)) )
+			  (let ( (resc
+				  (expand_cmatchexpr val sexpr env mexpander modctx)) )
 			    (debug "macroexpand_1 result for cmatch resc" resc)
 			    (return resc)))
 			( (is_a val class_funmatcher)
@@ -1304,7 +1308,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 			    (debug "macroexpand_1 result for funmatch resf" resf)
 			    (return resf)))
 			( (is_a val class_field)
-			  (let ( (resf (expand_fieldexpr val sexpr env mexpander)) )
+			  (let ( (resf (expand_fieldexpr val sexpr env mexpander modctx)) )
 			    (debug "macroexpand_1 result for field resf" resf)
 			    (return resf)))
 			(:else
@@ -1320,7 +1324,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 		      (not (melt_is_bootstrapping))
 		      )
 		     (let ( (macthunk (lambda ()
-					(macroexpand_1 sexpr env mexpander)
+					(mexpander sexpr env mexpander modctx)
 					))
 			   (lazymac (instance class_source_lazy_macro_expansion
 					      :loca_location sloc
@@ -1341,7 +1345,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 			 (get_field :named_name soper)
 			 ))
 		   ;; if opbind is null, we should expand to a class_source_lazy_macro_expansion
-		    (let ( (resa (expand_apply sexpr env mexpander))) 
+		    (let ( (resa (expand_apply sexpr env mexpander modctx))) 
 		      (debug "macroexpand_1 result for apply resa" resa)
 		      (return resa)
 		      )
@@ -1351,7 +1355,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 	   (debug "macroexpand_1 result for null")
 	   (return ()))
 	 (:else 
-	  (let ( (resca (expand_apply sexpr env mexpander)) )
+	  (let ( (resca (expand_apply sexpr env mexpander modctx)) )
 	    (debug "macroexpand_1 result complex apply resca" resca)
 	    (return resca)
 	    ))))
@@ -1364,10 +1368,11 @@ $SPAC_OUTARGS are the output sub-patterns.}#
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	 (sloc (unsafe_get_field :loca_location sexpr))
 	 (soper (pair_head (list_first scont)))
-	 (xargtup (expand_restlist_as_tuple scont env mexpander))
+	 (xargtup (expand_restlist_as_tuple scont env mexpander modctx))
 	 )
     (instance class_source_primitive
 	      :loca_location sloc
@@ -1410,6 +1415,7 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
   (let ( (mins (unsafe_get_field :amatch_in matcher))
 	 (mouts (unsafe_get_field :amatch_out matcher))
 	 (mexpander (unsafe_get_field :pctx_mexpander pctx))
+	 (modctx (get_field :pctx_modctx pctx))
 	 (:long nbmins (multiple_length mins))
 	 (:long nbouts (multiple_length mouts))
 	 (paircont (instance class_container :container_value pairs))
@@ -1421,7 +1427,7 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
 		      (if (is_pair curpair)
 			  (let ( (curin (pair_head curpair)) )
 			    (put_fields paircont :container_value (pair_tail curpair))
-			    (macroexpand_1 curin env mexpander))
+			    (mexpander curin env mexpander modctx))
 			(error_strv psloc "missing in argument for matcher"
 				    (get_field :named_name matcher))
 			)))))
@@ -1640,6 +1646,7 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
    ( (is_a sexpr class_sexpr)
      (let ( (scont (unsafe_get_field :sexp_contents sexpr))
 	    (sloc (unsafe_get_field :loca_location sexpr))
+	    (modctx (get_field :pctx_modctx pctx))
 	    (curpair (list_first scont))
 	    (soper (pair_head curpair)) )
        (debug "patternexpand_1 sexpr" sexpr)
@@ -1647,7 +1654,7 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
        (if (!= soper 'question)
 	   ;; non-question expr: return the constant pattern with...
 	   (let ( (mexpander (unsafe_get_field :pctx_mexpander pctx)) 
-		  (exp (macroexpand_1 sexpr env mexpander))
+		  (exp (mexpander sexpr env mexpander modctx))
 		  (pat (instance class_source_pattern_constant
 				 :loca_location sloc
 				 :pat_weight '1
@@ -1730,7 +1737,7 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
 	 "\n* modctx=" modctx) 
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check slist" (is_list slist))
-  ;(assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check modctx" (is_object modctx))
   (if (null mexpander) (setq mexpander macroexpand_1))
   (debug "macroexpand_toplevel_list mexpander=" mexpander)
   (assert_msg "check mexpander" (is_closure mexpander))
@@ -2051,7 +2058,7 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
   (debug "mexpand_defprimitive sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  ;(assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont)))
@@ -2567,7 +2574,7 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
     ;; parse & macroexpand the matchfun expr
     (let ( (mfa (pair_head curpair)) )
       (if mfa
-	  (setq matchfunx (macroexpand_1 mfa env mexpander))
+	  (setq matchfunx (mexpander mfa env mexpander modctx))
 	(error_plain loc "bad matchfun for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"_))
       )
     (debug "mexpand_defunmatcher matchfunx" matchfunx)
@@ -2575,7 +2582,7 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
     (setq curpair (pair_tail curpair))
     (let ( (afa (pair_head curpair)) )
       (if afa
-	  (setq applyfunx (macroexpand_1 afa env mexpander))
+	  (setq applyfunx (mexpander afa env mexpander modctx))
 	;; apply function is optional, can be missing.
 	)
       )
@@ -2584,7 +2591,7 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
     (setq curpair (pair_tail curpair))
     (let ( (dta (pair_head curpair)) )
       (if dta
-	  (setq datax (macroexpand_1 dta env mexpander))
+	  (setq datax (mexpander dta env mexpander modctx))
 	;; data is optional, so no error if missing
 	))
     (debug "mexpand_defunmatcher datax" datax)
@@ -2641,6 +2648,7 @@ function. Syntax is (DEFUNMATCHER <symbol> <in-formals> <out-formals>
 (defun mexpand_defun (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check modctx" (is_object modctx))
   (debug "mexp.defun sexpr" sexpr)
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
@@ -2687,7 +2695,7 @@ function. Syntax is (DEFUNMATCHER <symbol> <in-formals> <out-formals>
 	    (setq curpair (pair_tail curpair))  ;; consume it
 	    ))
       ;; handle the body
-      (let ( (bodytup (expand_pairlist_as_tuple curpair newenv mexpander)) 
+      (let ( (bodytup (expand_pairlist_as_tuple curpair newenv mexpander modctx)) 
 	     (sdefun
 	      (instance class_source_defun
 			:loca_location loc
@@ -2841,7 +2849,7 @@ to define a function like $DEFUN does. Use $EXPORT_VALUES to make that name visi
 ;;;;;;;;;;;;;;;; the defclass expander
 
 ;; internal routine with multiple results to scan the defclass
-(defun scan_defclass (sexpr env mexpander)
+(defun scan_defclass (sexpr env mexpander modctx)
   (let ( (predef ())
 	 (supernam ())
 	 (superbind ())
@@ -2924,7 +2932,7 @@ to define a function like $DEFUN does. Use $EXPORT_VALUES to make that name visi
 		      ))
 		  ( (== curkw ':predef)
 		    (if predef (error_plain loc "duplicate predef in DEFCLASS"_))
-		    (setq predef (macroexpand_1 curval env mexpander))
+		    (setq predef (mexpander curval env mexpander modctx))
 		    (cond
 		     ( (is_integerbox predef) 
 		       ()
@@ -2967,7 +2975,7 @@ to define a function like $DEFUN does. Use $EXPORT_VALUES to make that name visi
   (debug "mexp.defclass sexpr" sexpr)
   (multicall 
    (symb loc supernam superbind superclass predef fieldnams fieldsloc docv)
-   (scan_defclass sexpr env mexpander)
+   (scan_defclass sexpr env mexpander modctx)
    (debug "mexp.defclass scanned symb" symb)
    (debug "mexp.defclass scanned loc" loc)
    (debug "mexp.defclass scanned supernam" supernam)
@@ -3110,7 +3118,7 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 ;;;;;;;;;;;;;;;; the definstance expander
 
 ;; internal to parse a field assignment in a given class (or without class, for put_field)
-(defun parse_field_assignment (cla loc fldkw expr env mexpander)
+(defun parse_field_assignment (cla loc fldkw expr env mexpander modctx)
   (debug "start parse_field_assignment cla" cla)
   (debug "start parse_field_assignment loc" loc)
   (debug "start parse_field_assignment fldkw" fldkw)
@@ -3122,6 +3130,7 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
   (assert_msg "check fldkw" (is_a fldkw class_keyword))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check modctx" (is_object modctx))
   ;; expr is an sexpr or a symbol or a string or ...
   (let ( (fld ()) )
     ;; if we have a class, find the field inside
@@ -3194,7 +3203,7 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 	    )))			  
     ;;end when fld has to be found in the environment
     (assert_msg "check fld" (is_a fld class_field))
-    (let ( (xex (macroexpand_1 expr env mexpander)) 
+    (let ( (xex (mexpander expr env mexpander modctx)) 
 	   (fa (instance class_source_fieldassign 
 			 :loca_location loc
 			 :sfla_field fld
@@ -3268,14 +3277,14 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 			      (if objnum (error_plain loc "duplicate :obj_num in DEFINSTANCE"_))
 			      (setq objnum 
 				    (if (is_a curexp class_sexpr)
-					(macroexpand_1 curexp env mexpander)
+					(mexpander curexp env mexpander modctx)
 				      curexp))
 			      )
 			    ( (== curfkw ':predef)
 			      (if predef (error_plain loc "duplicate :predef in DEFINSTANCE"_))
 			      (setq predef 
 				    (if (is_a curexp class_sexpr)
-					(macroexpand_1 curexp env mexpander)
+					(mexpander curexp env mexpander modctx)
 				      curexp))
 			      )
 			    ( (== curfkw ':doc)
@@ -3283,7 +3292,8 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 			      (setq docv curexp)
 			      )
 			    (:else 
-			     (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
+			     (let  ( (flda 
+				      (parse_field_assignment cla loc curfkw curexp env mexpander modctx)) )
 			       (if flda 
 				   (list_append fldlist flda)
 				 )
@@ -3323,6 +3333,8 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 (defun mexpand_defselector (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check modctx" (is_object modctx))
+  (if (null mexpander) (setq mexpander macroexpand_1))
   (debug "mexp.definstance sexpr" sexpr)
   (let ( (predef ())
 	 (objnum ())
@@ -3405,14 +3417,14 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 			      (if curexp (error_plain loc "duplicate :obj_num in DEFSELECTOR"_))
 			      (setq objnum 
 				    (if (is_a curexp class_sexpr)
-					(macroexpand_1 curexp env mexpander)
+					(mexpander curexp env mexpander modctx)
 				      curexp))
 			      )
 			    ( (== curfkw ':predef)
 			      (if curexp (error_plain loc "duplicate :predef in DEFSELECTOR"_))
 			      (setq predef 
 				    (if (is_a curexp class_sexpr)
-					(macroexpand_1 curexp env mexpander)
+					(mexpander curexp env mexpander modctx)
 				      curexp))
 			      )
 			    ( (== curfkw ':doc)
@@ -3433,7 +3445,7 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 				   (error_plain loc "first :formals of DEFSELECTOR should be a :value"))
 			      )))
 			    (:else 
-			     (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
+			     (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander modctx)) )
 			       (if flda 
 				   (list_append fldlist flda)
 				 )
@@ -3509,7 +3521,8 @@ messages. Syntax is (DEFSELECTOR <symbol> <selector-class> [:doc
 		     (error_plain loc "expecting keyword in INSTANCE"_))
 		 (setq curpair (pair_tail curpair))
 		 (let ( (curexp (pair_head curpair)) )
-		   (let  ( (flda (parse_field_assignment cla loc curfkw curexp env mexpander)) )
+		   (let  ( (flda 
+			    (parse_field_assignment cla loc curfkw curexp env mexpander modctx)) )
 		     (debug "mexpand_instance flda" flda)
 		     (if flda 
 			 (list_append fldlist flda)
@@ -3538,6 +3551,8 @@ messages. Syntax is (DEFSELECTOR <symbol> <selector-class> [:doc
   (debug "mexpand_load start sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check modctx" (is_object modctx))
+  (if (null mexpander) (setq mexpander macroexpand_1))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont)))
@@ -3546,7 +3561,7 @@ messages. Syntax is (DEFSELECTOR <symbol> <selector-class> [:doc
     (if (pair_tail curpair)
 	(error_plain loc "LOAD expects one argument"))
     (if (is_a filnam class_sexpr)
-	(setq filnam (macroexpand_1 filnam env mexpander modctx)))
+	(setq filnam (mexpander filnam env mexpander modctx)))
     (if (is_a filnam class_named)
 	(setq filnam (unsafe_get_field :named_name filnam)))
     (cond 
@@ -3867,6 +3882,9 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 (defun mexpand_unsafe_put_fields (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (fields ())
 	 (fieldnams ())
 	 (cont (unsafe_get_field :sexp_contents sexpr))
@@ -3875,7 +3893,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 	 (objsrc (pair_head curpair))
 	 (objexp 
 	  (if (is_a objsrc class_sexpr)
-	      (macroexpand_1 objsrc env mexpander)
+	      (mexpander objsrc env mexpander modctx)
 	    objsrc))
 	 )
     (setq curpair (pair_tail curpair))
@@ -3888,7 +3906,7 @@ expression context.  See also $INSTANCE and $DEFCLASS.}# )
 		     (error_plain loc "expecting heyword in UNSAFE_PUT_FIELDS"_))
 		 (setq curpair (pair_tail curpair))
 		 (let ( (curexp (pair_head curpair)) )
-		   (let  ( (flda (parse_field_assignment () loc curfkw curexp env mexpander)) )
+		   (let  ( (flda (parse_field_assignment () loc curfkw curexp env mexpander modctx)) )
 		     (if flda 
 			 (list_append fldlist flda)
 		       ))))
@@ -3912,6 +3930,7 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
 (defun mexpand_put_fields (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (if (null mexpander) (setq mexpander macroexpand_1))
   (let ( (fields ())
 	 (fieldnams ())
 	 (cont (unsafe_get_field :sexp_contents sexpr))
@@ -3920,7 +3939,7 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
 	 (objsrc (pair_head curpair))
 	 (objexp 
 	  (if (is_a objsrc class_sexpr)
-	      (macroexpand_1 objsrc env mexpander)
+	      (mexpander objsrc env mexpander modctx)
 	    objsrc))
 	 )
     (setq curpair (pair_tail curpair))
@@ -3933,7 +3952,8 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
 		     (error_plain loc "expecting heyword in PUT_FIELDS"_))
 		 (setq curpair (pair_tail curpair))
 		 (let ( (curexp (pair_head curpair)) )
-		   (let  ( (flda (parse_field_assignment () loc curfkw curexp env mexpander)) )
+		   (let  ( (flda 
+			    (parse_field_assignment () loc curfkw curexp env mexpander modctx)) )
 		     (if flda 
 			 (list_append fldlist flda)
 		       ))))
@@ -3973,7 +3993,7 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
       (if curpair (error_plain loc "UNSAFE_GET_FIELD with more than two sons"_))
       ;; it is not a field assignment but we use the parse_field_assignment
       ;; routine to get the field and the expression
-      (let  ( (flda (parse_field_assignment () loc curfkw curexp env mexpander)) )
+      (let  ( (flda (parse_field_assignment () loc curfkw curexp env mexpander modctx)) )
 	(if (not (is_a flda class_source_fieldassign))
 	    (progn 
 	      (error_plain loc "bad field and expression in UNSAFE_GET_FIELD"_)
@@ -4014,7 +4034,7 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
       (if curpair (error_plain loc "UNSAFE_GET_FIELD with more than two sons"_))
       ;; it is not a field assignment but we use the parse_field_assignment
       ;; routine to get the field and the expression
-      (let  ( (flda (parse_field_assignment () loc curfkw curexp env mexpander)) )
+      (let  ( (flda (parse_field_assignment () loc curfkw curexp env mexpander modctx)) )
 	(if (not (is_a flda class_source_fieldassign))
 	    (progn 
 	      (error_plain loc "bad field and expression in GET_FIELD"_)
@@ -4041,6 +4061,8 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
 (defun mexpand_setq (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont)))
@@ -4057,7 +4079,7 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
       (instance class_source_setq 
 		:loca_location loc
 		:sstq_var cursym
-		:sstq_expr  (macroexpand_1 curexp env mexpander)
+		:sstq_expr  (mexpander curexp env mexpander modctx)
 		)
       )))
 (install_initial_macro 'setq mexpand_setq)
@@ -4069,9 +4091,11 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
 
 ;;;;; the if expanser
 (defun mexpand_if (sexpr env mexpander modctx)
+  (debug "mexpand_if sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug "mexpand_if sexpr" sexpr)
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -4082,15 +4106,16 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
     (setq curpair (pair_tail curpair))
     (if (not (is_pair curpair))
 	(error_plain loc "missing then in IF"_))
-    (let ( (xcond (macroexpand_1 curif env mexpander)) )
+    (let ( (xcond (mexpander curif env mexpander modctx)) )
       (debug "mexpand_if xcond" xcond)
       (let ( (curthen (pair_head curpair)) )
 	(setq curpair (pair_tail curpair))
-	(let ( (xthen (macroexpand_1 curthen env mexpander)) )
+	(let ( (xthen (mexpander curthen env mexpander modctx)) 
+	       )
 	  (debug "mexpand_if xthen" xthen)
 	  (if (is_pair curpair)
 	      (let ( (curelse (pair_head curpair)) 
-		     (xelse (macroexpand_1 curelse env mexpander)) )
+		     (xelse (mexpander curelse env mexpander modctx)) )
 		(debug "mexpand_if xelse" xelse)
 		(setq curpair (pair_tail curpair))
 		(if (is_pair curpair)
@@ -4121,6 +4146,8 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
 (defun mexpand_cppif (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
   (debug "mexpand_cppif sexpr" sexpr)
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -4133,7 +4160,7 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
     (setq curpair (pair_tail curpair))
     (if (not (is_pair curpair))
 	(error_plain loc "missing then in CPPIF"_))
-    (let ( (xcond (macroexpand_1 curif env mexpander)) )
+    (let ( (xcond (mexpander curif env mexpander modctx)) )
       (debug "mexpand_cppif xcond" xcond)
       (cond 
        ( (is_string xcond) ())
@@ -4143,13 +4170,13 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
 	(return ())))
       (let ( (curthen (pair_head curpair)) )
 	(setq curpair (pair_tail curpair))
-	(let ( (xthen (macroexpand_1 curthen env mexpander)) 
+	(let ( (xthen (mexpander curthen env mexpander modctx)) 
 	       (xelse ())
 	       )
 	  (debug "mexpand_cppif xthen" xthen)
 	  (if (is_pair curpair)
 	      (let ( (curelse (pair_head curpair)) 
-		     (gotxelse (macroexpand_1 curelse env mexpander)) )
+		     (gotxelse (mexpander curelse env mexpander modctx)) )
 		(debug "mexpand_cppif gotxelse" gotxelse)
 		(setq curpair (pair_tail curpair))
 		(setq xelse gotxelse)
@@ -4285,7 +4312,8 @@ condition is a string such as "4.5." or a list of strings.}#)
 		    (if restpairs 
 			(setq res (pairlist_to_progn restpairs 
 						     (unsafe_get_field :loca_location curcond) 
-						     env mexpander)))
+						     env mexpander
+						     modctx)))
 		    (debug "mexpand_cond res for :else" res)
 		    ))
 		( (is_a curcond class_sexpr)
@@ -4295,27 +4323,31 @@ condition is a string such as "4.5." or a list of strings.}#)
 			 (curcondrestpairs (pair_tail (list_first curcondcont))) 
 			 )
 		    (cond ( (null curcondrestpairs)
-			    (setq res (instance class_source_or
-						:loca_location curcondloc
-						:sor_disj (tuple
-							   (macroexpand_1 curcondtest env mexpander)
-							   res)))
+			    (setq res 
+				  (instance class_source_or
+					    :loca_location curcondloc
+					    :sor_disj
+					    (tuple
+					     (mexpander curcondtest env mexpander modctx)
+					     res)))
 			    (debug "mexpand_cond res for monoexp cond" res)
 			    )
 			  ( (null (pair_tail curcondrestpairs))
-			    (setq res (instance class_source_ifelse
-						:loca_location curcondloc
-						:sif_test (macroexpand_1 curcondtest env mexpander)
-						:sif_then (macroexpand_1 (pair_head curcondrestpairs) env mexpander)
-						:sif_else res
+			    (setq res
+				  (instance class_source_ifelse
+					    :loca_location curcondloc
+					    :sif_test (mexpander curcondtest env mexpander modctx)
+					    :sif_then (mexpander (pair_head curcondrestpairs) env mexpander modctx)
+					    :sif_else res
 						))
 			    (debug "mexpand_cond res for biexp cond" res)
 			    )
 			  (:else 
-			   (setq res (instance class_source_ifelse
-					       :loca_location curcondloc
-					       :sif_test (macroexpand_1 curcondtest env mexpander)
-					       :sif_then (pairlist_to_progn curcondrestpairs curcondloc env mexpander)
+			   (setq res
+				 (instance class_source_ifelse
+					   :loca_location curcondloc
+					   :sif_test (mexpander curcondtest env mexpander modctx)
+					   :sif_then (pairlist_to_progn curcondrestpairs curcondloc env mexpander modctx)
 					       :sif_else res))
 			   (debug "mexpand_cond res for manyexp cond" res)
 			   ))
@@ -4349,9 +4381,11 @@ condition is a string such as "4.5." or a list of strings.}#)
 ;;; (AND a1 a2) is expansed into (IF a1 a2)
 ;;; (AND a1 a2 a3) is expansed into (IF a1 (IF a2 a3))
 (defun mexpand_and (sexpr env mexpander modctx)
+  (debug  "mexpand_and sexpr:" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug  "mexpand_and sexpr:" sexpr)
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -4359,7 +4393,8 @@ condition is a string such as "4.5." or a list of strings.}#)
 	(cxtup (pairlist_to_multiple 
 		curpair
 		discr_multiple
-		(lambda (c) (macroexpand_1 c env mexpander)
+		(lambda (c) 
+		  (mexpander c env mexpander modctx)
 		  )))
 	(:long nbcomp (multiple_length cxtup))
 	)
@@ -4509,13 +4544,16 @@ condition is a string such as "4.5." or a list of strings.}#)
   (debug "mexpand_or sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(cxtup (pairlist_to_multiple 
 		(pair_tail (list_first cont))
 		discr_multiple
-		(lambda (c) (macroexpand_1 c env mexpander)
+		(lambda (c) 
+		  (mexpander c env mexpander modctx)
 		  )))
 	(:long nbcomp (multiple_length cxtup))
 	)
@@ -4574,13 +4612,15 @@ condition is a string such as "4.5." or a list of strings.}#)
   (debug "mexpand_container sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
   (assert_msg "check class_container has one field"
 	      (==i 1 (multiple_length
 		     (get_field :class_fields class_container))))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
-	(xargtup (expand_restlist_as_tuple cont env mexpander))
+	(xargtup (expand_restlist_as_tuple cont env mexpander modctx))
 	(:long nbarg (multiple_length xargtup))
 	(arg1 (multiple_nth xargtup 0))
 	(spredclasscont (instance class_source_fetch_predefined
@@ -4588,7 +4628,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 				  :sfepd_predef 'CLASS_CONTAINER))
 	(clabind (find_env env 'class_container))
 	(flda (parse_field_assignment 
-	       class_container loc :container_value arg1 env mexpander))
+	       class_container loc :container_value arg1 env mexpander modctx))
 	(sinst (instance 
 		class_source_instance
 		:loca_location loc
@@ -4656,13 +4696,14 @@ condition is a string such as "4.5." or a list of strings.}#)
   (debug "mexpand_content sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check modctx" (is_object modctx))
   (assert_msg "check class_container has one field"
 	      (==i 1 (multiple_length
 		     (get_field :class_fields class_container))))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
-	(xargtup (expand_restlist_as_tuple cont env mexpander))
+	(xargtup (expand_restlist_as_tuple cont env mexpander modctx))
 	(:long nbarg (multiple_length xargtup))
 	(arg1 (multiple_nth xargtup 0))
 	(spredclasscont (instance class_source_fetch_predefined
@@ -4712,7 +4753,7 @@ condition is a string such as "4.5." or a list of strings.}#)
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
-	(xargtup (expand_restlist_as_tuple cont env mexpander))
+	(xargtup (expand_restlist_as_tuple cont env mexpander modctx))
 	(res (instance class_source_tuple
 	      :loca_location loc
 	      :sargop_args xargtup))
@@ -4759,7 +4800,7 @@ condition is a string such as "4.5." or a list of strings.}#)
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
-	(xargtup (expand_restlist_as_tuple cont env mexpander))
+	(xargtup (expand_restlist_as_tuple cont env mexpander modctx))
 	(res  (instance class_source_list
 	      :loca_location loc
 	      :sargop_args xargtup))
@@ -4803,13 +4844,14 @@ condition is a string such as "4.5." or a list of strings.}#)
 (defun mexpand_match (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  ;(assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check modctx" (is_object modctx))
+  (if (null mexpander) (setq mexpander macroexpand_1))
   (debug "mexpand_match sexpr" sexpr)
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(msexp (pair_head (pair_tail (list_first cont))))
-	(matsx (macroexpand_1 msexp env mexpander))
+	(matsx (mexpander msexp env mexpander modctx))
 	(mexptuple (pairlist_to_multiple 
 		    (pair_tail (pair_tail (list_first cont)))
 		    discr_multiple
@@ -4847,7 +4889,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 					(debug "mexpand_match curpat" cp)
 					(assert_msg "check curpat" cp)
 					cp))
-			 (curbody (expand_pairlist_as_tuple curmatchrestpairs env mexpander))
+			 (curbody (expand_pairlist_as_tuple curmatchrestpairs env mexpander modctx))
 			 (curcase (instance class_source_match_case
 					    :loca_location curmatchloc
 					    :scam_patt curpat
@@ -4896,6 +4938,8 @@ condition is a string such as "4.5." or a list of strings.}#)
   (debug "mexpand_letbinding sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -4939,7 +4983,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 	(error_plain loc "missing variable in letbinding"_))
     (if curarg
 	(progn 
-	  (setq expr (macroexpand_1 curarg env mexpander))
+	  (setq expr (mexpander curarg env mexpander modctx))
 	  (setq curpair (pair_tail curpair))
 	  (setq curarg (pair_head curpair))
 	  (if curarg (error_plain loc "too long letbinding"_))
@@ -4975,8 +5019,11 @@ condition is a string such as "4.5." or a list of strings.}#)
 
 ;;; the LET expander itself
 (defun mexpand_let (sexpr env mexpander modctx)
+  (debug "mexpand_let sexpr=" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -4996,7 +5043,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 		   (lambda (b) 
 		     (if (is_not_a b class_sexpr)
 			 (error_plain loc "sexpr expected in LET binding"))
-		     (mexpand_letbinding b env mexpander))))
+		     (mexpand_letbinding b env mexpander modctx))))
 	  (error_plain loc "missing letbinding-s in LET"_))
       )
     (multiple_every
@@ -5012,8 +5059,9 @@ condition is a string such as "4.5." or a list of strings.}#)
 	 (assert_msg "mexp.let not list lb" (not (is_list lb)))
 	 (put_env newenv lb)
 	 )))
-    (setq bodytup (pairlist_to_multiple restpair discr_multiple 
-					(lambda (e) (macroexpand_1 e newenv mexpander))))
+    (setq bodytup (pairlist_to_multiple 
+		   restpair discr_multiple 
+		   (lambda (e) (mexpander e newenv mexpander modctx))))
     (let ( (letr
 	    (instance class_source_let
 		      :loca_location loc
@@ -5051,9 +5099,11 @@ condition is a string such as "4.5." or a list of strings.}#)
 ;;;;;;;;;;;;;;;;
 ;;; the LETREC expander itself
 (defun mexpand_letrec (sexpr env mexpander modctx)
+  (debug "mexpand_letrec sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug "mexpand_letrec sexpr" sexpr)
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check modctx" (is_object modctx))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -5155,7 +5205,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 	       (cursexpr :long expix)
 	       (let ( 
 		     (curloc (or (get_field :loca_location cursexpr) loc))
-		     (curexp (macroexpand_1 cursexpr newenv mexpander))
+		     (curexp (mexpander cursexpr newenv mexpander modctx))
 		     (curbind (multiple_nth bindtup expix))
 		     )
 		 (if (null (is_recursively_constructible curexp))
@@ -5179,8 +5229,9 @@ condition is a string such as "4.5." or a list of strings.}#)
 	  (error_plain loc "missing letbinding-s in LETREC"_))
       )
     (debug "mexpand_letrec srcbindtup" srcbindtup)
-    (setq bodytup (pairlist_to_multiple restpair discr_multiple 
-					(lambda (e) (macroexpand_1 e newenv mexpander))))
+    (setq bodytup (pairlist_to_multiple 
+		   restpair discr_multiple 
+		   (lambda (e) (mexpander e newenv mexpander modctx))))
     (if (<=i (multiple_length bodytup) 0)
 	(error_plain loc "emptyy body in LETREC"))
 	     (let ( (letr
@@ -5206,6 +5257,8 @@ condition is a string such as "4.5." or a list of strings.}#)
 (defun mexpand_lambda (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check mexpander" (is_closure mexpander))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
@@ -5222,8 +5275,9 @@ condition is a string such as "4.5." or a list of strings.}#)
        (lb :long ix) 
        (assert_msg "check lb" (is_a lb class_formal_binding))
        (put_env newenv lb))
-      (let ( (bodytup (pairlist_to_multiple curpair discr_multiple 
-					    (lambda (e) (macroexpand_1 e newenv mexpander)))) 
+      (let ( (bodytup (pairlist_to_multiple
+		       curpair discr_multiple 
+		       (lambda (e) (mexpander e newenv mexpander modctx)))) 
 	     (lambr 
 	      (instance class_source_lambda
 			:loca_location loc
@@ -5254,6 +5308,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 (defun mexpand_variadic (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (firstpair (pair_tail (list_first cont))) 
@@ -5289,7 +5344,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 	 (let (  (bodytup (pairlist_to_multiple 
 			   caserest 
 			   discr_multiple
-			   (lambda (e) (macroexpand_1 e env mexpander)))) 
+			   (lambda (e) (mexpander e env mexpander modctx)))) 
 		 )
 	   (debug "mexpand_variadic else bodytup before hookfun" bodytup)
 	   (debug "mexpand_variadic hookfun before" hookfun)
@@ -5318,8 +5373,9 @@ condition is a string such as "4.5." or a list of strings.}#)
 	      (mapobject_put varbindmap fbisymb fbi)
 	      (put_env newenv fbi)
 	      ))
-	   (let ( (bodytup (pairlist_to_multiple caserest discr_multiple 
-						 (lambda (e) (macroexpand_1 e newenv mexpander))))
+	   (let ( (bodytup (pairlist_to_multiple
+			    caserest discr_multiple 
+			    (lambda (e) (mexpander e newenv mexpander modctx))))
 		  (sifvariadic (instance class_source_ifvariadic
 					 :loca_location loc
 					 :sifvariadic_argbind args
@@ -5375,6 +5431,8 @@ remain.}#)
 (defun mexpand_multicall (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
@@ -5392,7 +5450,7 @@ remain.}#)
 	(if (not (is_a curcallexp class_sexpr))
 	    (error_plain loc "missing called expression in MULTICALL"_))
 	(setq curpair (pair_tail curpair))
-	(let ( (curcall (macroexpand_1 curcallexp env mexpander)) )
+	(let ( (curcall (mexpander curcallexp env mexpander modctx)) )
 	  ;; check the called subexpression
 	  (cond 
 	   ((or (is_a curcall class_source_apply)
@@ -5405,8 +5463,9 @@ remain.}#)
 	  (multiple_every restup 
 			  (lambda (lb) (put_env newenv lb)
 			    ))
-	  (let ( (bodytup (pairlist_to_multiple curpair discr_multiple 
-						(lambda (e) (macroexpand_1 e newenv mexpander)))) 
+	  (let ( (bodytup (pairlist_to_multiple 
+			   curpair discr_multiple 
+			   (lambda (e) (mexpander e newenv mexpander modctx)))) 
 		 (mulcr
 		  (instance class_source_multicall
 			    :loca_location loc
@@ -5434,6 +5493,7 @@ remain.}#)
 (defun mexpand_quote (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
@@ -5472,6 +5532,7 @@ remain.}#)
 (defun mexpand_comment  (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
@@ -5503,6 +5564,7 @@ remain.}#)
   (debug "mexpand_cheader sexpr=" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
@@ -5547,14 +5609,15 @@ remain.}#)
 ;;;;;;;;;;;;;;;;
 ;;;;;;;; for PROGN
 ;; internal routine to make a progn from a pairlist at a location
-(defun pairlist_to_progn (pair loc env mexpander)
+(defun pairlist_to_progn (pair loc env mexpander modctx)
   (assert_msg "check env" (is_a env class_environment))
   (debug "pairlist_to_progn pair" pair)
   (assert_msg "check_pair" (is_pair pair))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (bodytup (pairlist_to_multiple 
 		   pair 
 		   discr_multiple
-		   (lambda (e) (macroexpand_1 e env mexpander)))) 
+		   (lambda (e) (mexpander e env mexpander modctx)))) 
 	 (sprogn
 	  (instance class_source_progn
 		    :loca_location loc
@@ -5565,12 +5628,15 @@ remain.}#)
     ))
 
 ;; internal routine to make a return from a pairlist at a location
-(defun pairlist_to_return (pair loc env mexpander)
+(defun pairlist_to_return (pair loc env mexpander modctx)
   (assert_msg "check env" (is_a env class_environment))
-  (let ( (bodytup (pairlist_to_multiple 
-		   pair 
-		   discr_multiple
-		   (lambda (e) (macroexpand_1 e env mexpander)))) )
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check modctx" (is_object modctx))
+  (let ( (bodytup
+	  (pairlist_to_multiple 
+	   pair 
+	   discr_multiple
+	   (lambda (e) (mexpander e env mexpander modctx)))) )
     (instance class_source_return
 	      :loca_location loc
 	      :sargop_args bodytup
@@ -5592,7 +5658,8 @@ remain.}#)
 	    (pairlist_to_progn pairs
 			       sloc
 			       env
-			       mexpander)) )
+			       mexpander
+			       modctx)) )
       (return progr)
       )))
 (install_initial_macro 'progn mexpand_progn)
@@ -5604,12 +5671,16 @@ remain.}#)
 
 ;;;; the return expanser
 (defun mexpand_return (sexpr env mexpander modctx)
+  (debug "mexpand_return sexpr=" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (retr
 	  (pairlist_to_return (pair_tail (list_first (unsafe_get_field :sexp_contents sexpr)))
 			      (unsafe_get_field :loca_location sexpr)
 			      env
-			      mexpander)) 
+			      mexpander
+			      modctx)) 
 	 )
     (return retr)
     ))
@@ -5624,12 +5695,15 @@ remain.}#)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; the forever expanser
 (defun mexpand_forever (sexpr env mexpander modctx)
+  (debug "mexpand_forever sexpr=" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
 	 (slabnam (pair_head curpair))
-	 (xlabnam (macroexpand_1 slabnam env mexpander))
+	 (xlabnam (mexpander slabnam env mexpander modctx))
 	 (newenv (fresh_env env))
 	 )
     (if (is_not_a xlabnam class_symbol)
@@ -5644,7 +5718,7 @@ remain.}#)
       (let ( (bodytup (pairlist_to_multiple
 		       curpair
 		       discr_multiple
-		       (lambda (e) (macroexpand_1 e newenv mexpander)))) 
+		       (lambda (e) (mexpander e newenv mexpander modctx)))) 
 	     (forr
 	      (instance class_source_forever
 			:loca_location loc
@@ -5664,12 +5738,15 @@ remain.}#)
 ;;;;;;;;;;;;;;;;
 ;;;; the exit expanser
 (defun mexpand_exit (sexpr env mexpander modctx)
+  (debug "mexpand_exit sexpr=" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check mexpander" (is_closure mexpander))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
 	 (slabnam (pair_head curpair))
-	 (xlabnam (macroexpand_1 slabnam env mexpander))
+	 (xlabnam (mexpander slabnam env mexpander modctx))
 	 (newenv (fresh_env env))
 	 )
     (if (is_not_a xlabnam class_symbol)
@@ -5686,7 +5763,7 @@ remain.}#)
       (let ( (bodytup (pairlist_to_multiple
 		       curpair
 		       discr_multiple
-		       (lambda (e) (macroexpand_1 e newenv mexpander)))) 
+		       (lambda (e) (mexpander e newenv mexpander modctx)))) 
 	     (exr
 	      (instance class_source_exit
 			:loca_location loc
@@ -5706,11 +5783,13 @@ remain.}#)
 (defun mexpand_again (sexpr env mexpander modctx)
   (debug "mexpand_again sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
 	 (slabnam (pair_head curpair))
-	 (xlabnam (macroexpand_1 slabnam env mexpander))
+	 (xlabnam (mexpander slabnam env mexpander modctx))
 	 )
     (setq curpair (pair_tail curpair))
     (if (is_not_a xlabnam class_symbol)
@@ -5745,14 +5824,16 @@ remain.}#)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; compile time warning (compile_warning msg expr)
 ;; we don't issue the warning at expansion phase, but at normalization phase.
-(defun  mexpand_compile_warning (sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+(defun mexpand_compile_warning (sexpr env mexpander modctx)
   (debug "mexpand_compile_warning sexpr" sexpr)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check modctx" (is_object modctx))
+  (if (null mexpander) (setq mexpander macroexpand_1))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
 	 (curpair (pair_tail (list_first cont))) 
 	 (smsg (pair_head curpair))
-	 (xmsg (macroexpand_1 smsg env mexpander))
+	 (xmsg (mexpander smsg env mexpander modctx))
 	 )
     (if (not (is_string xmsg))
 	(progn
@@ -5760,7 +5841,7 @@ remain.}#)
 	  (return ())))
     (setq curpair (pair_tail curpair))
     (let ( (sexp (pair_head curpair))
-	   (xexp (macroexpand_1 sexp env mexpander))
+	   (xexp (mexpander sexp env mexpander modctx))
 	   )
       (setq curpair (pair_tail curpair))
       (if (notnull curpair)
@@ -5788,14 +5869,16 @@ remain.}#)
 ;;; where assert_failed is a primitive
 
 (defun mexpand_assert_msg (sexpr env mexpander modctx)
+  (debug "mexpand_assert_msg sexpr=" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug "mexpand_assert_msg sexpr" sexpr)
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(curpair (pair_tail (list_first cont)))
-	(xmsg (macroexpand_1 (pair_head curpair)  env mexpander))
+	(xmsg (mexpander (pair_head curpair)  env mexpander modctx))
 	(xtest ())
 	(assfail_symb 'assert_failed)
 	(assfail_binding (find_env env assfail_symb))
@@ -5806,7 +5889,7 @@ remain.}#)
     (cond ( (is_pair curpair)
 	    (if (pair_tail curpair)
 		(error_plain loc "extra arg for (ASSERT_MSG <msg> <test>)"_))
-	    (setq xtest (macroexpand_1 (pair_head curpair) env mexpander)))
+	    (setq xtest (mexpander (pair_head curpair) env mexpander modctx)))
 	  (:else
 	   (setq xtest ())
 	   (warning_strv loc "empty ASSERT_MSG" xmsg)
@@ -5875,14 +5958,16 @@ remain.}#)
 ;;; where count is (the_meltcallcount) if not given
 
 (defun mexpand_debug_msg (sexpr env mexpander modctx)
+  (debug "mexpand_debug_msg sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug "mexpand_debug_msg sexpr" sexpr)
+  (assert_msg "check modctx" (is_object modctx))
+  (assert_msg "check mexpander" (is_closure mexpander))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(curpair (pair_tail (list_first cont)))
-	(xval (macroexpand_1 (pair_head curpair)  env mexpander)) 
+	(xval (mexpander (pair_head curpair)  env mexpander modctx)) 
 	(xmsg ())
 	(xcount ())
 	)
@@ -5890,11 +5975,11 @@ remain.}#)
     (setq curpair (pair_tail curpair))
     (if (not (is_pair curpair))
 	(error_plain loc "missing message in DEBUG_MSG"_))
-    (setq xmsg  (macroexpand_1 (pair_head curpair) env mexpander))
+    (setq xmsg  (mexpander (pair_head curpair) env mexpander modctx))
     (setq curpair (pair_tail curpair))
     (if (is_pair curpair)
 	(progn
-	  (setq xcount (macroexpand_1 (pair_head curpair) env mexpander))
+	  (setq xcount (mexpander (pair_head curpair) env mexpander modctx))
 	  (setq curpair (pair_tail curpair))))
     (if curpair
 	(error_plain loc "too many arguments to DEBUG_MSG"_))
@@ -5945,9 +6030,10 @@ remain.}#)
 ;;; where count is (the_meltcallcount) 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun mexpand_debug  (sexpr env mexpander modctx)
+  (debug "mexpand_debug sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug "mexpand_debug sexpr" sexpr)
+  (assert_msg "check modctx" (is_object modctx))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -5960,7 +6046,7 @@ remain.}#)
 	(theneeddbgbind (find_env env 'melt_need_dbg))
 	(theincrdbgbind (find_env env 'melt_increment_dbgcounter))
 	(curpair (pair_tail (list_first cont)))
-	(xarglist (expand_pairlist_as_list curpair env mexpander))
+	(xarglist (expand_pairlist_as_list curpair env mexpander modctx))
 	(dbgarglist (list ()))
 	)
     (if (not (is_string dfilnam))
@@ -6054,9 +6140,11 @@ remain.}#)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; export_values macro (export_values <symbol> ...)
 (defun mexpand_export_values (sexpr env mexpander modctx)
+  (debug "mexpand_export_values sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug "mexpand_export_values sexpr" sexpr)
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check modctx" (is_object modctx))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -6064,7 +6152,7 @@ remain.}#)
 	(symbtup (pairlist_to_multiple 
 		  curpair discr_multiple
 		  (lambda (s)
-		    (let ( (sym  (macroexpand_1 s env mexpander)) )
+		    (let ( (sym  (mexpander s env mexpander modctx)) )
 		      (if (is_not_a sym class_symbol)
 			  (progn
 			    (debug "mexpand_export_values bad sym" sym)
@@ -6084,20 +6172,22 @@ remain.}#)
 ;;;;
 ;;; export_macro macro (export_macro <symbol> <expander> [:doc <documentation>])
 (defun mexpand_export_macro (sexpr env mexpander modctx)
+  (debug "mexpand_export_macro sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug "mexpand_export_macro sexpr" sexpr)
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check modctx" (is_object modctx))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(curpair (pair_tail (list_first cont)))
-	(symb (macroexpand_1 (pair_head curpair) env mexpander))
+	(symb (mexpander (pair_head curpair) env mexpander modctx))
 	(doc ())
 	)
     (if (is_not_a symb class_symbol)
 	(error_plain loc "(EXPORT_MACRO <sym> <expander>) expecting symbol"_))
     (setq curpair (pair_tail curpair))
-    (let ( (expv (macroexpand_1 (pair_head curpair) env mexpander)) 
+    (let ( (expv (mexpander (pair_head curpair) env mexpander modctx)) 
 	   )
       (setq curpair (pair_tail curpair))
       (if (== (pair_head curpair) ':doc)
@@ -6125,14 +6215,16 @@ remain.}#)
 ;;;;
 ;;; export_patmacro macro (export_patmacro <symbol> <patexpander> <macexpander> [:doc <docum>])
 (defun mexpand_export_patmacro (sexpr env mexpander modctx)
+  (debug "mexpand_export_patmacro sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug "mexpand_export_patmacro sexpr" sexpr)
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check modctx" (is_object modctx))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(curpair (pair_tail (list_first cont)))
-	(symb (macroexpand_1 (pair_head curpair) env mexpander))
+	(symb (mexpander (pair_head curpair) env mexpander modctx))
 	(patexpv ())		    ;set later to the pattern expander
 	(macexpv ())		    ;set later to the macro expander
 	(doc ())		    ;set later to the documentation if any
@@ -6140,11 +6232,11 @@ remain.}#)
     (if (is_not_a symb class_symbol)
 	(error_plain loc "(EXPORT_PATMACRO <sym> <patexpander> <macexpander> [:doc <docum>]) expecting symbol"_))
     (setq curpair (pair_tail curpair))
-    (setq patexpv (macroexpand_1 (pair_head curpair) env mexpander))
+    (setq patexpv (mexpander (pair_head curpair) env mexpander modctx))
     (if (null patexpv)
 	(error_plain loc  "(EXPORT_PATMACRO <sym> <patexpander> <macexpander> [:doc <docum>]) expecting patexpander"_))
     (setq curpair (pair_tail curpair))
-    (setq macexpv (macroexpand_1 (pair_head curpair) env mexpander))
+    (setq macexpv (mexpander (pair_head curpair) env mexpander modctx))
     (if (null macexpv)
 	(error_plain loc  "(EXPORT_PATMACRO <sym> <patexpander> <macexpander> [:doc <docum>]) expecting macexpander"_))
     (setq curpair (pair_tail curpair))
@@ -6173,6 +6265,8 @@ remain.}#)
 (defun mexpand_export_class (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
   (debug "mexpand_export_class sexpr" sexpr)
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -6181,7 +6275,7 @@ remain.}#)
 	(symbtup (pairlist_to_multiple 
 		  curpair discr_multiple
 		  (lambda (s)
-		    (let ( (sym  (macroexpand_1 s env mexpander)) )
+		    (let ( (sym  (mexpander s env mexpander modctx)) )
 		      (if (is_not_a sym class_symbol)
 			  (error_plain loc "(EXPORT_CLASS <sym>...) expecting symbol"_))
 		      sym
@@ -6198,9 +6292,11 @@ remain.}#)
 
 ;;; export_synonym macro (export_synonym <newname> <oldname>  [:doc <documentation>])
 (defun mexpand_export_synonym (sexpr env mexpander modctx)
+  (debug "mexpand_export_synonym sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug "mexpand_export_synonym sexpr" sexpr)
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
@@ -6210,13 +6306,13 @@ remain.}#)
 	(doc ())
 	)
     ;; handle the newsymb
-    (setq newsymb (macroexpand_1 (pair_head curpair) env mexpander))
+    (setq newsymb (mexpander (pair_head curpair) env mexpander modctx))
     (debug "mexpander_export_synonym newsymb" newsymb)
     (if (is_not_a newsymb class_symbol)
 	(error_plain loc "bad new name in (EXPORT_SYNONYM <newname> <oldname> [:doc <docum>])"))	
     (setq curpair (pair_tail curpair))
     ;; handle the oldsymb
-    (setq oldsymb (macroexpand_1 (pair_head curpair) env mexpander))
+    (setq oldsymb (mexpander (pair_head curpair) env mexpander modctx))
     (debug "mexpander_export_synonym oldsymb" oldsymb)
     (if (is_not_a oldsymb class_symbol)
 	(error_plain loc "bad old name in (EXPORT_SYNONYM <newname> <oldname> [:doc <docum>])"))	
@@ -6245,6 +6341,7 @@ remain.}#)
 (defun mexpand_current_module_environment_container (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check modctx" (is_object modctx))
   (debug "mexpand_current_module_environment_container sexpr" sexpr)
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -6268,6 +6365,8 @@ remain.}#)
 (defun mexpand_parent_module_environment (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
   (debug "mexpand_parent_module_environment sexpr" sexpr)
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -6289,9 +6388,10 @@ remain.}#)
 ;;;;;;;;;;;;;;;;
 ;;;; update_current_module_environment_container macro 
 (defun mexpand_update_current_module_environment_container  (sexpr env mexpander modctx)
+  (debug "mexpand_update_current_module_environment_container sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug "mexpand_update_current_module_environment_container sexpr" sexpr)
+  (assert_msg "check modctx" (is_object modctx))
   (let (
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(cont (unsafe_get_field :sexp_contents sexpr))
@@ -6313,14 +6413,16 @@ remain.}#)
 ;;;;;;;;;;;;;;;;
 
 (defun mexpand_fetch_predefined (sexpr env mexpander modctx)
+  (debug "mexpand_fetch_predefined sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug "mexpand_fetch_predefined sexpr" sexpr)
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(curpair (pair_tail (list_first cont)))
-	(spredef (macroexpand_1 (pair_head curpair) env mexpander))
+	(spredef (mexpander (pair_head curpair) env mexpander modctx))
 	)
     (if (null curpair) 
 	(error_plain loc "(FETCH_PREDEFINED <predef-name-or-rank>) missing argument"_))
@@ -6339,14 +6441,16 @@ remain.}#)
 
 ;;;;;;;;;;;;;;;;
 (defun mexpand_store_predefined (sexpr env mexpander modctx)
+  (debug "mexpand_store_predefined sexpr" sexpr)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check env" (is_a env class_environment))
-  (debug "mexpand_store_predefined sexpr" sexpr)
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
   (let (
 	(cont (unsafe_get_field :sexp_contents sexpr))
 	(loc  (unsafe_get_field :loca_location sexpr))
 	(curpair (pair_tail (list_first cont)))
-	(spredef (macroexpand_1 (pair_head curpair) env mexpander))
+	(spredef (mexpander (pair_head curpair) env mexpander modctx))
 	(sval ())
 	)
     (if (null curpair) 
@@ -6354,7 +6458,7 @@ remain.}#)
     (setq curpair (pair_tail curpair))
     (if (null curpair) 
 	(error_plain loc "(STORE_PREDEFINED <predef-name-or-rank> <value>) missing predef"_))
-    (setq sval (macroexpand_1 (pair_head curpair) env mexpander))
+    (setq sval (mexpander (pair_head curpair) env mexpander modctx))
     (if (notnull (pair_tail curpair))
 	(error_plain loc "(STORE_PREDEFINED <predef-name-or-rank> <value>) extra argument"_))
     (if (not (or (is_a spredef class_symbol) (is_integerbox spredef)))

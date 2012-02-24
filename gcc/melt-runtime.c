@@ -11027,8 +11027,8 @@ melt_dbgshortbacktrace (const char *msg, int maxdepth)
 {
   int curdepth = 1;
   struct melt_callframe_st *fr = 0;
-  if (maxdepth < 2)
-    maxdepth = 2;
+  if (maxdepth < 3)
+    maxdepth = 3;
   fprintf (stderr, "\nSHORT BACKTRACE[#%ld] %s;", melt_dbgcounter,
 	   msg ? msg : "/");
   for (fr = melt_topframe; fr != NULL && curdepth < maxdepth;
@@ -11055,10 +11055,11 @@ melt_dbgshortbacktrace (const char *msg, int maxdepth)
 	      if (funinf.dli_fname)
 		/* Just print the basename of the *.so since it has an
 		   md5sum in the path.  */
-		fprintf (stderr, "\n  %s ", lbasename (funinf.dli_fname));
+		fprintf (stderr, "\n  %s", lbasename (funinf.dli_fname));
 	      if (funinf.dli_sname)
-		fprintf (stderr, "\n  [%s=%p] ", 
+		fprintf (stderr, " [%s=%p]", 
 			 funinf.dli_sname, funinf.dli_saddr);
+	      fputc('\n', stderr);
 	    }
 	    else 
 	      fputs (" ?", stderr);
@@ -11068,10 +11069,10 @@ melt_dbgshortbacktrace (const char *msg, int maxdepth)
       else
 	fprintf (stderr, "_ ");
 #if MELT_HAVE_DEBUG
-      if (fr->mcfr_flocs)
-	fprintf (stderr, "{%s} ", fr->mcfr_flocs);
+      if (fr->mcfr_flocs && fr->mcfr_flocs[0])
+	fprintf (stderr, "%s\n", fr->mcfr_flocs);
       else
-	fputs (" ", stderr);
+	fputs (" ?", stderr);
 #endif
     };
   if (fr)

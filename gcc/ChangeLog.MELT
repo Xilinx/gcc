@@ -1,4 +1,10 @@
 
+2011-02-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_dbgshortbacktrace): More pretty output.
+
+	* melt/warmelt-macro.melt: All macro-expanders get an object
+	modctx and use the mexpander argument, not macroexpand_1...
+
 2011-02-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
