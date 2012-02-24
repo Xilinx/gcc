@@ -94,8 +94,7 @@
 )
 
 (defclass my_class_selector
-  :super my_class_named
-  :predef CLASS_SELECTOR
+  :super class_selector
   :fields ( sel_extra
 ))
 

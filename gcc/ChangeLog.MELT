@@ -1,5 +1,14 @@
 
 2011-02-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/test0.melt: Improved.
+	* testsuite/melt/tmacrostring.melt: Improve.
+	* melt/warmelt-outobj.melt (syntestgen_primitive): Better.
+	(syntestgen_citerator, syntestgen_cmatcher): Stub.
+	(emit_syntax_testing_routine): Don't need modnamstr formal.
+	(translate_macroexpanded_list): Call emit_syntax_testing_routine
+	at better place.
+
+2011-02-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt (class_module_context): Add
 	mocx_gendevlist field.
 

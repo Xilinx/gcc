@@ -3,19 +3,20 @@
 
 ;;; this tests the macrostring read syntax
 #| 
-  ./cc1 -Wno-shadow -fmelt=runfile \
-  -fmelt-dynlibdir=. -fmelt-compile-script=./built-melt-cc-script \
-  -fmelt-gensrcdir=. -fmelt-tempdir=/tmp \
-  -fmelt-init="@warmelt2"  -fmelt-arg=tmacrostring.melt
+ ./cc1 -fmelt-mode=runfile  -fmelt-module-path=melt-stage1:melt-modules \
+    -fmelt-source-path=melt-stage1:melt-sources \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt -fmelt-workdir=melt-workdir \
+    -fmelt-arg=tmacrostring.melt  \
+     -fmelt-debug empty-file-for-melt.c
 |#
 
-(defprimitive say (:cstring s) :void
-  #{ /*saying*/ printf("saying: %s\n", $s); 
-     fflush(stdout);
+(defprimitive mystrlen (:cstring s) :long
+  #{ $S ? strlen($S) : 0
   }#
 )
 
-(defun doit () (say "hello world"))
+(defun doit () 
+  (make_integerbox discr_integer (mystrlen "hello world")))
 
 (doit)
 

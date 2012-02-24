@@ -4222,10 +4222,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (add2sbuf_strconst debuf "/* hexmd5checksum of secondary C files */")
     (add2sbuf_indentnl debuf 0)
     (add2sbuf_strconst debuf "const char* const melt_secondaryhexmd5tab[]={")
+    ;;
+    (debug "output_melt_descriptor secfiles=" secfiles)
     (foreach_in_multiple
      (secfiles)
      (curfil :long filix)
-     (debug curfil "output_melt_descriptor curfil=" curfil " filix=" filix)
+     (debug "output_melt_descriptor curfil=" curfil " filix=" filix)
      (add2sbuf_indentnl debuf 1)
      (if curfil
 	 (progn
@@ -4409,7 +4411,8 @@ $MODCTX is the module context, and $IX is the index.}#
 		     (add2sbuf_cident nambuf (get_field :named_name fsymb))
 		     (strbuf2string discr_verbatim_string nambuf))) 
 	    )
-       (mapobject_put replmap curformal gensy)
+       (mapobject_put replmap fsymb gensy)
+       (debug "syntestgen_primitive updated replmap=" replmap "\n with fsymb=" fsymb "\n with gensy=" gensy)
        (add2out sbuf (get_field :ctype_cname ftype) " " gensy " =0;")
        (add2sbuf_indentnl sbuf 1)
        ))				;end foreach priformals
@@ -4421,10 +4424,12 @@ $MODCTX is the module context, and $IX is the index.}#
 	  ))
 ;;;
     (if dloc (output_raw_location dloc sbuf 0 "primitive-syntax"))
+    (debug "syntestgen_primitive primexpan=" primexpan)
     (add2sbuf_indentnl sbuf 0)
     (foreach_in_multiple 
      (primexpan) 
      (curexpan :long pix)
+     (debug "syntestgen_primitive curexpan=" curexpan)
      (if (is_object curexpan)
 	 (let ( (curepl (mapobject_get replmap curexpan))
 		)
@@ -4432,7 +4437,7 @@ $MODCTX is the module context, and $IX is the index.}#
 	   (add2out sbuf curepl))
        (add2out sbuf curexpan)))
     ;;
-    (add2out sbuf "} /*end primitive-syntax ")
+    (add2out sbuf ";} /*end primitive-syntax ")
     (add2sbuf_ccomstring sbuf prinam)
     (add2out sbuf "*/")
   (add2sbuf_indentnl sbuf 0)
@@ -4460,7 +4465,10 @@ $MODCTX is the module context, and $IX is the index.}#
   (assert_msg "check modctx" (is_a modctx class_module_context))
   (let ( (dloc (get_field :loca_location gendev))
 	 )
-    (warning_plain dloc "unimplemented syntestgen_citerator")
+    (warning_plain dloc "unimplemented syntestgen_citerator")  
+    (add2sbuf_indentnl sbuf 0)
+    (add2out sbuf ##{/*should generate for citerator $IX*/}#)
+    (add2sbuf_indentnl sbuf 0)
     ))
 
 (install_method class_citerator syntax_test_generator syntestgen_citerator)
@@ -4476,36 +4484,42 @@ $MODCTX is the module context, and $IX is the index.}#
   (let ( (dloc (get_field :loca_location gendev))
 	 )
     (warning_plain dloc "unimplemented syntestgen_cmatcher")
+    (add2sbuf_indentnl sbuf 0)
+    (add2out sbuf ##{/*should generate for cmatcher $IX*/}#)
+    (add2sbuf_indentnl sbuf 0)
     ))
 
 (install_method class_cmatcher syntax_test_generator syntestgen_cmatcher)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun emit_syntax_testing_routine (gendevtup modnamstr modctx sbuf)
-  (debug "emit_syntax_testing_routine gendevtup=" gendevtup " modnamstr=" modnamstr 
+(defun emit_syntax_testing_routine (gendevtup modctx sbuf)
+  (debug "emit_syntax_testing_routine gendevtup=" gendevtup 
 	 " sbuf=" sbuf)
   (assert_msg "check gendevtup" (is_multiple gendevtup))
-  (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check modctx" (is_a modctx class_module_context))
   (assert_msg "check sbuf" (is_strbuf sbuf))
   (let ( 
 	(:long nbgendev (multiple_length gendevtup))
+	(modnam (get_field :mocx_modulename modctx))
 	(syntestname 
 	 (let ( (nabuf (make_strbuf discr_strbuf)) )
 	   (add2out nabuf "melt_syntax_tester_")
-	   (add2sbuf_cident nabuf modnamstr)
-	   (strbuf2string discr_strbuf nabuf)))
+	   (add2sbuf_cident nabuf modnam)
+	   (strbuf2string discr_verbatim_string nabuf)))
 	)
+    (debug "emit_syntax_testing_routine syntestname=" syntestname)
+    (assert_msg "check syntestname" (is_string syntestname))
     (add2sbuf_indentnl sbuf 0)
+    (add2sbuf_indentnl sbuf 0)
+    (add2out sbuf "#if 0 && MELT_HAVE_DEBUG /***@@@@temporary emit_syntax_testing_routine@@@*/")
     (add2sbuf_indentnl sbuf 0)
     (add2out 
      sbuf ##{
-     #if MELT_HAVE_DEBUG && 0 /***@@@@temporary emit_syntax_testing_routine@@@*/
-     /* generated syntax checking routine for $NBGENDEV C generating devices */
-     void MELT_MODULE_VISIBILITY
-     $SYNTESTNAME (void) {
-     if (1) return;
-     }#)
+/* generated syntax checking routine for $NBGENDEV C generating devices */
+void MELT_MODULE_VISIBILITY
+$SYNTESTNAME (void) {
+if (1) return;
+}#)
     (foreach_in_multiple
      (gendevtup)
      (curgendev :long gix)
@@ -4523,13 +4537,16 @@ $MODCTX is the module context, and $IX is the index.}#
        (debug "emit_syntax_testing_routine after syntax_test_generator repr=" repr "\n gix#" gix "\n")
        )
      (add2sbuf_indentnl sbuf 0)
+     ) ;; end foreach gendevtup
+     (add2sbuf_indentnl sbuf 0)
      (add2out 
       sbuf 
-      ##{} /* end generated $SYNTESTNAME */
-      #endif /*MELT_HAVE_DEBUG*/}#)
+      ##{} /* end generated $SYNTESTNAME */}#)
+     (add2sbuf_indentnl sbuf 0)
+     (add2out sbuf "#endif /*MELT_HAVE_DEBUG syntaxcheck*/")
      (add2sbuf_indentnl sbuf 0)
      (add2sbuf_indentnl sbuf 0)
-     )))
+     ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility function to translate a macroexpanded list
 (defun translate_macroexpanded_list (xlist modnamstr modctx ncx)
@@ -4663,6 +4680,7 @@ $MODCTX is the module context, and $IX is the index.}#
 	    (add2sbuf_indentnl declbuf 0)
 	    ))
       ;;;
+      ;;
       (assert_msg "check prolist" (is_list prolist))
       (list_every
        prolist
@@ -4681,14 +4699,6 @@ $MODCTX is the module context, and $IX is the index.}#
        melt_fatal_error ("MELT translation of %s halted after MELT compilation: got %ld MELT errors",
 			 melt_string_str($modnamstr), melt_error_counter) ;
        }#)
-      ;;
-      ;;;;; generate the syntax generator
-      (let ( (gendevtup (list_to_multiple discr_multiple gendevlist))
-	     (:long nbgendev (multiple_length gendevtup))
-	     )
-	(debug "compile_list_sexpr gendevtup=" gendevtup)
-	(if nbgendev
-	    (emit_syntax_testing_routine gendevtup modnamstr modctx implbuf)))
       ;;
       ;;;;; compile each procedure
       (assert_msg "check objlist" (is_list objlist))
@@ -4716,6 +4726,20 @@ $MODCTX is the module context, and $IX is the index.}#
 	     (output_c_code obel declbuf outimplbuf 0)))
 ;;;
 	  (debug "compile_list_sexpr final modnamstr=" modnamstr " iniobj=" iniobj) 
+	  (add2sbuf_indentnl implbuf 0)
+	  (add2sbuf_indentnl implbuf 0)
+          ;;;;; emit the syntax generator
+	  (let ( (gendevtup (list_to_multiple  gendevlist discr_multiple))
+		 (:long nbgendev (multiple_length gendevtup))
+		 )
+	    (debug "compile_list_sexpr before emit_syntax_testing_routine gendevtup=" gendevtup " gendevlist=" gendevlist)
+	    (if nbgendev
+		(emit_syntax_testing_routine gendevtup modctx implbuf)
+	      (add2sbuf_strconst implbuf "/*no syntax testing generated*/")
+	      ))
+	  ;;
+	  (add2sbuf_indentnl implbuf 0)
+	  ;;;; emit the initial routine
 	  (output_c_code iniobj declbuf implbuf 0)
 	  (output_exported_offsets modctx declbuf implbuf)
 	  (code_chunk outputcfile
