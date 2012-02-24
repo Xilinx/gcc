@@ -1,5 +1,19 @@
 
 2011-02-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (class_module_context): Add
+	mocx_gendevlist field.
+
+	* melt/warmelt-macro.melt (register_generator_device): New function.
+	(mexpand_defprimitive, mexpand_defciterator, mexpand_defcmatcher):
+	Use it.
+
+	* melt/warmelt-outobj.melt (syntax_test_generator): New selector.
+	(syntestgen_any): Catch-all method for it.
+	(syntestgen_primitive): Method for it on class_primitive.
+	(syntestgen_citerator): New method stub for it on class_citerator.
+	(syntestgen_cmatcher): New method stub for it on class_matcher.
+
+2011-02-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

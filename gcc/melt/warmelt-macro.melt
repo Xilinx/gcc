@@ -829,7 +829,6 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;; first pass, macro expansion
-(compile_warning "perhaps should document below")
 
 
 (defun expand_restlist_as_list (arglist env mexpander modctx)
@@ -935,6 +934,32 @@ $SPAC_OUTARGS are the output sub-patterns.}#
       (let ( (expreslist (expand_pairlist_as_list pair env mexpander modctx))
 	     )
 	(list_to_multiple expreslist discr_multiple))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun register_generator_device (defin repr modctx)
+  :doc #{Function to register some C generating device in the module
+  context, to be able to generate for syntax correctness a dummy
+  syntax-testing C function.}# 
+  (debug "register_generator_device defin=" defin 
+	 "\n* repr=" repr "\n* modctx=" modctx "\n")
+  (assert_msg "check defin" (is_a defin class_source_definition))
+  (assert_msg "check repr" (is_object repr))
+  (assert_msg "check modctx" (is_object modctx))
+  (if (is_a modctx class_module_context)
+      (let ( (sloc (get_field :loca_location defin))
+	     (mgendevlist (get_field :mocx_gendevlist modctx))
+	     (gendev (instance class_source_generator_device
+			       :loca_location sloc
+			       :srcgen_defin defin
+			       :srcgen_repr repr))
+	     )
+	(list_append mgendevlist gendev)
+	(debug "register_generator_device gendev=" gendev 
+	       "\n* updated mgendevlist=" mgendevlist)
+	)))
+
+
 
 ;;; expand an s-expression known to be an application
 (defun expand_apply (sexpr env mexpander modctx)
@@ -2152,6 +2177,8 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
 	    ;;
 	    (warn_if_redefined symb env loc)
 	    (put_env env pbind)
+	    (debug "mexpand_defprimitive registering device sdefpri=" sdefpri " primit=" primit)
+	    (register_generator_device sdefpri primit modctx)
 	    (debug "mexpand_defprimitive result sdefpri" sdefpri)
 	    (return sdefpri)
 	    ))))))
@@ -2297,7 +2324,9 @@ $CLASS_PRIMITIVE_BINDING and the $CODE_CHUNK macro.}# )
       ;; fill the citerator binding
       (unsafe_put_fields citbind :cbind_citerdef srcit)
       (put_env env citbind)
-      (debug "parsed citerator citer" citer)
+      (debug "mexpand_defciterator registering device srcit=" srcit " citer=" citer)
+      (register_generator_device srcit citer modctx)
+      (debug "mexpand_defciterator parsed citerator citer" citer)
       (return srcit)
       )))
 (install_initial_macro 'defciterator mexpand_defciterator)
@@ -2485,6 +2514,8 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
       (check_c_expansion expoper loc substmap)
       (debug "mexpand_defcmatcher sdefcmatch" sdefcmatch)
       (put_env env cmbind)
+      (debug "mexpand_defcmatcher registering device sdefcmatch=" sdefcmatch " cmatch=" cmatch)
+      (register_generator_device sdefcmatch cmatch modctx)
       (return sdefcmatch)
       )
     ))
@@ -6574,6 +6605,7 @@ remain.}#)
  patternexpand_expr
  patternexpand_pairlist_as_tuple
  pattern_weight_tuple
+ register_generator_device
  )			  ;end of values for source representations
 
 

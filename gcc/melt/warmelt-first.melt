@@ -845,6 +845,7 @@ subclasses are produced by macro expanders.}# )
 	   mocx_cflags			;cflags of generated module
 	   mocx_linkflags		;linkflags of generated module
 	   mocx_cheaderlist		;list of cheaders
+	   mocx_gendevlist		;list of generator devices
 	   )
   :doc #{The internal $CLASS_MODULE_CONTEXT describes the whole module
 context of a translation. $MOCX_MODULENAME gives the module name,
@@ -853,7 +854,10 @@ $MOCX_EXPCLASSDICT gives the dictionnary of exported classes, and
 $MOCX_INITIALENV the initial environment. $MOCX_FUNCOUNT is a boxed
 integer counting the defined functions (excluding $LAMBDA-s, counting
 only $DEFUN), used to help generate C code in several files, described
-in $MOCX_FILETUPLE.  For gurus!}# )
+in $MOCX_FILETUPLE. $MOCX_CFLAGS is for the C compilation flags of the
+module. $MOCX_LINKFLAGS is for the linking flags. $MOCX_CHEADERLIST is
+the list of cheader. $MOCX_GENDEVLIST is the list of instances of
+$CLASS_SOURCE_GENERATOR_DEVICE. For gurus!}# )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; normalization context

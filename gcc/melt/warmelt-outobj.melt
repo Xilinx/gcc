@@ -4346,9 +4346,190 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
     )
   )
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;
+(defselector syntax_test_generator
+  class_selector
+  :doc #{Selector to emit C syntax for testing purposes of a generator
+device.  Reciever is the representation -e.g. $CLASS_PRIMITIVE,
+... $GENDEV is the generator device, $SBUF is the string buffer,
+$MODCTX is the module context, and $IX is the index.}#
+  :formals (recv gendev sbuf modctx :long ix)
+)
+
+(defun syntestgen_any (recv gendev sbuf modctx :long ix)
+  (let ( (dis (discrim recv))
+	 (disname (get_field :named_name dis))
+	 (dloc (get_field :loca_location gendev))
+	 )
+    (debug "syntestgen_any recv=" recv "\n* dis=" dis
+	   "\n* gendev=" gendev
+	   "\n* sbuf=" sbuf
+	   "\n* modctx=" modctx
+	   "\n* ix=" ix)
+    (error_strv dloc "unimplemented SYNTAX_TEST_GENERATOR method for " disname)
+    (assert_msg "check gendev" (is_a gendev class_source_generator_device))
+    (assert_msg "check sbuf" (is_strbuf sbuf))
+    (assert_msg "check modctx" (is_a modctx class_module_context))
+    (assert_msg "@$@unimplemented syntax_test_generator")
+))
+(install_method discr_any_receiver syntax_test_generator syntestgen_any)
+		
 
 
+;;;;;;;;;;;;;;;;
+(defun syntestgen_primitive (recv gendev sbuf modctx :long ix)
+  (debug "syntestgen_primitive recv=" recv " gendev=" gendev)
+  (assert_msg "check recv" (is_a recv class_primitive))
+  (assert_msg "check gendev" (is_a gendev class_source_generator_device))
+  (assert_msg "check sbuf" (is_strbuf sbuf))
+  (assert_msg "check modctx" (is_a modctx class_module_context))
+  (let ( (dloc (get_field :loca_location gendev))
+	 (prinam (get_field :named_name recv))
+	 (priformals (get_field :prim_formals recv))
+	 (pritype (get_field :prim_type recv))
+	 (primexpan (get_field :prim_expansion recv))
+	 (replmap (make_mapobject discr_map_objects 
+				  (+i 5 (*i 2 (multiple_length priformals)))))
+	 )
+    (add2out sbuf "/*primitive-syntax ")
+    (add2sbuf_ccomstring sbuf prinam)
+    (add2out sbuf "*/ {")
+    (add2sbuf_indentnl sbuf 1)
+    (foreach_in_multiple
+     (priformals)
+     (curformal :long fix)
+     (debug "syntestgen_primitive curformal=" curformal " fix=" fix)
+     (assert_msg "check curformal" (is_a curformal class_formal_binding))
+     (let ( (fsymb (get_field :binder curformal))
+	    (ftype (get_field :fbind_type curformal))
+	    (gensy (let ( (nambuf (make_strbuf discr_strbuf))
+			  )
+		     (add2out nambuf "f_" fix "_")
+		     (add2sbuf_cident nambuf (get_field :named_name fsymb))
+		     (strbuf2string discr_verbatim_string nambuf))) 
+	    )
+       (mapobject_put replmap curformal gensy)
+       (add2out sbuf (get_field :ctype_cname ftype) " " gensy " =0;")
+       (add2sbuf_indentnl sbuf 1)
+       ))				;end foreach priformals
+    ;;
+    (if (!= pritype ctype_void)
+	(let  ( (pritynam (get_field :ctype_cname pritype))
+		)
+	  (add2out sbuf ##{$PRITYNAM primres_$IX = }#)
+	  ))
+;;;
+    (if dloc (output_raw_location dloc sbuf 0 "primitive-syntax"))
+    (add2sbuf_indentnl sbuf 0)
+    (foreach_in_multiple 
+     (primexpan) 
+     (curexpan :long pix)
+     (if (is_object curexpan)
+	 (let ( (curepl (mapobject_get replmap curexpan))
+		)
+	   (assert_msg "check curepl" curepl)
+	   (add2out sbuf curepl))
+       (add2out sbuf curexpan)))
+    ;;
+    (add2out sbuf "} /*end primitive-syntax ")
+    (add2sbuf_ccomstring sbuf prinam)
+    (add2out sbuf "*/")
+  (add2sbuf_indentnl sbuf 0)
+  (if (!= pritype ctype_void)
+      (let  ( (pritynam (get_field :ctype_cname pritype))
+	      )
+	(add2out sbuf ##{if (primres_$IX) return ;}#
+		 )
+	))
+  (add2sbuf_indentnl sbuf 0)
+  ))
 
+(install_method class_primitive syntax_test_generator syntestgen_primitive)
+
+
+;;;
+
+
+;;;;;;;;;;;;;;;;
+(defun syntestgen_citerator (recv gendev sbuf modctx :long ix)
+  (debug "syntestgen_citerator recv=" recv " gendev=" gendev)
+  (assert_msg "check recv" (is_a recv class_citerator))
+  (assert_msg "check gendev" (is_a gendev class_source_generator_device))
+  (assert_msg "check sbuf" (is_strbuf sbuf))
+  (assert_msg "check modctx" (is_a modctx class_module_context))
+  (let ( (dloc (get_field :loca_location gendev))
+	 )
+    (warning_plain dloc "unimplemented syntestgen_citerator")
+    ))
+
+(install_method class_citerator syntax_test_generator syntestgen_citerator)
+
+
+;;;;;;;;;;;;;;;;
+(defun syntestgen_cmatcher (recv gendev sbuf modctx :long ix)
+  (debug "syntestgen_cmatcher recv=" recv " gendev=" gendev)
+  (assert_msg "check recv" (is_a recv class_cmatcher))
+  (assert_msg "check gendev" (is_a gendev class_source_generator_device))
+  (assert_msg "check sbuf" (is_strbuf sbuf))
+  (assert_msg "check modctx" (is_a modctx class_module_context))
+  (let ( (dloc (get_field :loca_location gendev))
+	 )
+    (warning_plain dloc "unimplemented syntestgen_cmatcher")
+    ))
+
+(install_method class_cmatcher syntax_test_generator syntestgen_cmatcher)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun emit_syntax_testing_routine (gendevtup modnamstr modctx sbuf)
+  (debug "emit_syntax_testing_routine gendevtup=" gendevtup " modnamstr=" modnamstr 
+	 " sbuf=" sbuf)
+  (assert_msg "check gendevtup" (is_multiple gendevtup))
+  (assert_msg "check modnamstr" (is_string modnamstr))
+  (assert_msg "check modctx" (is_a modctx class_module_context))
+  (assert_msg "check sbuf" (is_strbuf sbuf))
+  (let ( 
+	(:long nbgendev (multiple_length gendevtup))
+	(syntestname 
+	 (let ( (nabuf (make_strbuf discr_strbuf)) )
+	   (add2out nabuf "melt_syntax_tester_")
+	   (add2sbuf_cident nabuf modnamstr)
+	   (strbuf2string discr_strbuf nabuf)))
+	)
+    (add2sbuf_indentnl sbuf 0)
+    (add2sbuf_indentnl sbuf 0)
+    (add2out 
+     sbuf ##{
+     #if MELT_HAVE_DEBUG && 0 /***@@@@temporary emit_syntax_testing_routine@@@*/
+     /* generated syntax checking routine for $NBGENDEV C generating devices */
+     void MELT_MODULE_VISIBILITY
+     $SYNTESTNAME (void) {
+     if (1) return;
+     }#)
+    (foreach_in_multiple
+     (gendevtup)
+     (curgendev :long gix)
+     (add2sbuf_indentnl sbuf 1)
+     (debug "emit_syntax_testing_routine curgendev=" curgendev "\n gix#" gix)
+     (assert_msg "check curgendev" (is_a curgendev class_source_generator_device))
+     (let ( (:long sucgix (+i gix 1))
+	    (repr (get_field :srcgen_repr curgendev))
+	    )
+       (add2sbuf_indentnl sbuf 0)
+       (add2out sbuf ##{/* generating device #$SUCGIX */}#)
+       (add2sbuf_indentnl sbuf 0)
+       (debug "emit_syntax_testing_routine before syntax_test_generator repr=" repr)
+       (syntax_test_generator repr curgendev sbuf modctx gix)
+       (debug "emit_syntax_testing_routine after syntax_test_generator repr=" repr "\n gix#" gix "\n")
+       )
+     (add2sbuf_indentnl sbuf 0)
+     (add2out 
+      sbuf 
+      ##{} /* end generated $SYNTESTNAME */
+      #endif /*MELT_HAVE_DEBUG*/}#)
+     (add2sbuf_indentnl sbuf 0)
+     (add2sbuf_indentnl sbuf 0)
+     )))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility function to translate a macroexpanded list
 (defun translate_macroexpanded_list (xlist modnamstr modctx ncx)
@@ -4368,6 +4549,7 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 	(:long endclock 0)
 	(inienv (unsafe_get_field :mocx_initialenv modctx))
 	(cheadlist (unsafe_get_field :mocx_cheaderlist modctx))
+	(gendevlist (get_field :mocx_gendevlist modctx))
 	(firstx (pair_head (list_first xlist)))
 	(firstloc (if (is_a firstx class_source) (unsafe_get_field :loca_location firstx)))
 	(iniproc (unsafe_get_field :nctx_initproc ncx))
@@ -4500,6 +4682,15 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 			 melt_string_str($modnamstr), melt_error_counter) ;
        }#)
       ;;
+      ;;;;; generate the syntax generator
+      (let ( (gendevtup (list_to_multiple discr_multiple gendevlist))
+	     (:long nbgendev (multiple_length gendevtup))
+	     )
+	(debug "compile_list_sexpr gendevtup=" gendevtup)
+	(if nbgendev
+	    (emit_syntax_testing_routine gendevtup modnamstr modctx implbuf)))
+      ;;
+      ;;;;; compile each procedure
       (assert_msg "check objlist" (is_list objlist))
       (let ( (inipro (unsafe_get_field :nctx_initproc ncx)) 
 	     (inidata (unsafe_get_field :nctx_datalist ncx))
@@ -4617,8 +4808,8 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 	     #endif /* HAVE_CLOCK && CLOCKS_PER_SEC */
 	     /* end translate_macroexpanded_list $ENDMODNAM */ }#)
 	    (shortbacktrace_dbg "translate_macroexpanded_list ended" 25)
-	    )))))
-  )
+	    ))))))
+  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compile a list of sexpressions as a module starting from a given environment
@@ -4645,6 +4836,7 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 			  :mocx_cheaderlist (make_list discr_list)
 			  ;; :mocx_cflags (make_list discr_list)
 			  ;; :mocx_linkflags (make_list discr_list)
+			  :mocx_gendevlist (make_list discr_list)
 			  ))
 	(ncx (create_normcontext modctx)) 
 	)
@@ -4659,14 +4851,14 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 		      warning (0, "MELT expanded few (%d) expresssions", $LENXLIST);
 		      }#))
       (translate_macroexpanded_list xlist modnamstr modctx ncx)
-))
+   ))
 	;;
       (code_chunk 
          check_errors_after_generation
-	 #{ /*$check_errors_after_generation*/
+	 #{ /*$CHECK_ERRORS_AFTER_GENERATION*/
 	 if (melt_error_counter>0) 
 	    melt_fatal_error ("MELT translation of %s halted after generation: got %ld MELT errors",  
-			      melt_string_str($modnamstr), melt_error_counter);
+			      melt_string_str($MODNAMSTR), melt_error_counter);
 	 }#)
   (message_dbg "ended compile_list_sexpr")
   )
@@ -4808,6 +5000,7 @@ notice for file named $NAME.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values 
+ syntax_test_generator
  compile_list_sexpr
  generate_gplv3plus_copyright_notice_c_comment 
  get_code_buffer_limit
