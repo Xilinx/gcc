@@ -1,3 +1,10 @@
+2012-02-24  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combin.c (forward_propagate_into_cond):
+	Simplify 'A?1:0' to '(type)A'.
+	Simplify 'A?0:1' to '(type)!A'.
+	(combine_conversions): Use defcodefor_name.
+
 2012-02-23  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c (simplify_bitwise_binary): Fix

@@ -729,6 +729,25 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
 
   gcc_assert (code1 == COND_EXPR);
 
+  /* A ? 1 : 0  -> (type) A. */
+  if (integer_onep (op1)
+      && integer_zerop (op2)
+      && INTEGRAL_TYPE_P (type))
+    return gimple_combine_build1_loc (loc, NOP_EXPR, type, cond, nonzerobits);
+
+  /* A ? 0 : 1 -> (type) !A */
+  if (integer_onep (op1)
+      && integer_zerop (op2)
+      && INTEGRAL_TYPE_P (type))
+    {
+      tree tmp = gimple_combine_build1_loc (loc, BIT_NOT_EXPR,
+					    TREE_TYPE (cond), cond,
+					    nonzerobits);
+      return gimple_combine_build1_loc (loc, NOP_EXPR, type, tmp,
+					nonzerobits);
+    }
+
+  /* If all else, try to simplify the condition. */
   defcodefor_name (cond, &code, &rhs1, &rhs2);
   /* We can do tree combining on comparison expressions.  */
   if (TREE_CODE_CLASS (code) != tcc_comparison)
@@ -1613,7 +1632,8 @@ static tree
 combine_conversions (location_t loc, enum tree_code code, tree ltype,
 		     tree op0, nonzerobits_t nonzerobitsp)
 {
-  gimple def_stmt;
+  enum tree_code defopcode;
+  tree defop0;
 
   gcc_checking_assert (CONVERT_EXPR_CODE_P (code)
 		       || code == FLOAT_EXPR
@@ -1622,16 +1642,10 @@ combine_conversions (location_t loc, enum tree_code code, tree ltype,
   if (useless_type_conversion_p (ltype, TREE_TYPE (op0)))
     return op0;
 
-  if (TREE_CODE (op0) != SSA_NAME)
-    return NULL_TREE;
+  defcodefor_name (op0, &defopcode, &defop0, NULL);
 
-  def_stmt = SSA_NAME_DEF_STMT (op0);
-  if (!is_gimple_assign (def_stmt))
-    return NULL_TREE;
-
-  if (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (def_stmt)))
+  if (CONVERT_EXPR_CODE_P (defopcode))
     {
-      tree defop0 = gimple_assign_rhs1 (def_stmt);
       tree type = ltype;
       tree inside_type = TREE_TYPE (defop0);
       tree inter_type = TREE_TYPE (op0);
