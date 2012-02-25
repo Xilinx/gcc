@@ -36,19 +36,40 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "tree-ssa-propagate.h"
 
-static tree gimple_combine_binary_loc (location_t, enum tree_code, tree, tree,
-				    tree, nonzerobits_t);
 
-static tree gimple_combine_unary_loc (location_t, enum tree_code, tree, tree,
-				   nonzerobits_t);
+
+/* Implement a simple nonzero function. Most of the work is done
+   in nonzerobits_1. */
+static double_int
+gimple_default_nonzero_bits (tree val ATTRIBUTE_UNUSED)
+{
+  return double_int_minus_one;
+}
+
+static nonzerobits_t nonzerobitsf = gimple_default_nonzero_bits;
+
+/* Set the nonzerbits hook to NONZEROBITSP. */
+void
+gimple_combine_set_nonzerobits (nonzerobits_t nonzerobitsp)
+{
+  /* NULL means set it to the default one. */
+  if (nonzerobitsp == NULL)
+    nonzerobitsp = gimple_default_nonzero_bits;
+  nonzerobitsf = nonzerobitsp;
+}
+
+
+static tree gimple_combine_binary_loc (location_t, enum tree_code, tree, tree,
+				    tree);
+
+static tree gimple_combine_unary_loc (location_t, enum tree_code, tree, tree);
 
 static tree gimple_combine_ternary_loc (location_t, enum tree_code, tree, tree,
-				     tree, tree, nonzerobits_t);
+				     tree, tree);
 
 static tree
 gimple_combine_build2_loc (location_t loc, enum tree_code code,
-			tree type, tree arg1, tree arg2,
-			nonzerobits_t nonzerobitsp)
+			tree type, tree arg1, tree arg2)
 {
   tree tem;
   if (commutative_tree_code (code)
@@ -59,8 +80,7 @@ gimple_combine_build2_loc (location_t loc, enum tree_code code,
       arg2 = t;
     }
 
-  tem = gimple_combine_binary_loc (loc, code, type, arg1, arg2,
-				nonzerobitsp);
+  tem = gimple_combine_binary_loc (loc, code, type, arg1, arg2);
   if (tem)
     return tem;
   return build2_loc (loc, code, type, arg1, arg2);
@@ -68,13 +88,11 @@ gimple_combine_build2_loc (location_t loc, enum tree_code code,
 
 static tree
 gimple_combine_build3_loc (location_t loc, enum tree_code code,
-			tree type, tree arg1, tree arg2, tree arg3,
-			nonzerobits_t nonzerobitsp)
+			tree type, tree arg1, tree arg2, tree arg3)
 {
   tree tem;
 
-  tem = gimple_combine_ternary_loc (loc, code, type, arg1, arg2, arg3,
-				 nonzerobitsp);
+  tem = gimple_combine_ternary_loc (loc, code, type, arg1, arg2, arg3);
   if (tem)
     return tem;
   return build3_loc (loc, code, type, arg1, arg2, arg3);
@@ -82,21 +100,19 @@ gimple_combine_build3_loc (location_t loc, enum tree_code code,
 
 static tree
 gimple_combine_build1_loc (location_t loc, enum tree_code code,
-			tree type, tree arg1,
-			nonzerobits_t nonzerobitsp)
+			tree type, tree arg1)
 {
-  tree tem = gimple_combine_unary_loc (loc, code, type, arg1, nonzerobitsp);
+  tree tem = gimple_combine_unary_loc (loc, code, type, arg1);
   if (tem)
     return tem;
   return build1_loc (loc, code, type, arg1);
 }
 
 static tree extract_simple_gimple (gimple_stmt_iterator *, tree);
-static double_int nonzerobits (tree var, nonzerobits_t func);
+static double_int nonzerobits (tree var);
 
 static double_int
-nonzerobits_1 (enum tree_code code, tree type, tree op0, tree op1,
-	       nonzerobits_t func)
+nonzerobits_1 (enum tree_code code, tree type, tree op0, tree op1)
 {
   double_int rhs, lhs;
   if (code == MEM_REF)
@@ -104,17 +120,17 @@ nonzerobits_1 (enum tree_code code, tree type, tree op0, tree op1,
   if (code == BIT_IOR_EXPR
       || code == BIT_XOR_EXPR)
      {
-       lhs = nonzerobits (op0, func);
+       lhs = nonzerobits (op0);
        if (double_int_minus_one_p (lhs))
          return lhs;
-       rhs = nonzerobits (op1, func);
+       rhs = nonzerobits (op1);
        return double_int_ior (lhs, rhs);
      }
   if (code == BIT_AND_EXPR)
     {
       double_int lhs, rhs;
-      lhs = nonzerobits (op0, func);
-      rhs = nonzerobits (op1, func);
+      lhs = nonzerobits (op0);
+      rhs = nonzerobits (op1);
       return double_int_and (lhs, rhs);
     }
   if (truth_value_p (code))
@@ -125,7 +141,7 @@ nonzerobits_1 (enum tree_code code, tree type, tree op0, tree op1,
 }
 
 static double_int
-nonzerobits (tree val, nonzerobits_t func)
+nonzerobits (tree val)
 {
   double_int t = double_int_minus_one;
   if (val == NULL_TREE)
@@ -134,10 +150,10 @@ nonzerobits (tree val, nonzerobits_t func)
     return tree_to_double_int (val);
   if (UNARY_CLASS_P (val))
     t = nonzerobits_1 (TREE_CODE (val), TREE_TYPE (val),
-		       TREE_OPERAND (val, 0), NULL_TREE, func);
+		       TREE_OPERAND (val, 0), NULL_TREE);
   if (BINARY_CLASS_P (val) || COMPARISON_CLASS_P (val))
     t = nonzerobits_1 (TREE_CODE (val), TREE_TYPE (val),
-		       TREE_OPERAND (val, 0), TREE_OPERAND (val, 1), func);
+		       TREE_OPERAND (val, 0), TREE_OPERAND (val, 1));
 
   if (TREE_CODE (val) == SSA_NAME)
     {
@@ -149,16 +165,16 @@ nonzerobits (tree val, nonzerobits_t func)
 	  tree op1 = gimple_assign_rhs2 (def);
 	  tree type = TREE_TYPE (gimple_assign_lhs (def));
 	  if (TREE_CODE_CLASS (code) == tcc_unary)
-	    t = nonzerobits_1 (code, type, op0, NULL_TREE, func);
+	    t = nonzerobits_1 (code, type, op0, NULL_TREE);
 	  if (TREE_CODE_CLASS (code) == tcc_binary
 	      || TREE_CODE_CLASS (code) == tcc_comparison)
-	    t = nonzerobits_1 (code, type, op0, op1, func);
+	    t = nonzerobits_1 (code, type, op0, op1);
 	}
     }
   if (!double_int_minus_one_p (t))
     return t;
   /* Fall back to pass specific nonzero function.  */
-  return func (val);
+  return nonzerobitsf (val);
 }
 
 /* Get the statement we can propagate from into NAME skipping
@@ -393,8 +409,7 @@ combine_cond_expr_cond (location_t loc, enum tree_code code, tree type,
 static tree
 forward_propagate_into_comparison_1 (location_t loc,
 				     enum tree_code code, tree type,
-				     tree op0, tree op1, bool nowarnings,
-				     nonzerobits_t nonzerobitsp)
+				     tree op0, tree op1, bool nowarnings)
 {
   tree tmp = NULL_TREE;
   tree rhs0 = NULL_TREE, rhs1 = NULL_TREE;
@@ -414,18 +429,15 @@ forward_propagate_into_comparison_1 (location_t loc,
       && code0 == BIT_IOR_EXPR)
     {
       tree arg11, arg21;
-      arg11 = gimple_combine_binary_loc (loc, NE_EXPR, type, arg1, op1,
-				      nonzerobitsp);
-      arg21 = gimple_combine_binary_loc (loc, NE_EXPR, type, arg2, op1,
-				      nonzerobitsp);
+      arg11 = gimple_combine_binary_loc (loc, NE_EXPR, type, arg1, op1);
+      arg21 = gimple_combine_binary_loc (loc, NE_EXPR, type, arg2, op1);
       if (arg11 || arg21)
 	{
 	  if (arg11 == NULL)
 	    arg11 = build2_loc (loc, NE_EXPR, type, arg1, op1);
 	  if (arg21 == NULL)
 	    arg21 = build2_loc (loc, NE_EXPR, type, arg2, op1);
-	  return gimple_combine_build2_loc (loc, BIT_IOR_EXPR, type, arg11, arg21,
-					 nonzerobitsp);
+	  return gimple_combine_build2_loc (loc, BIT_IOR_EXPR, type, arg11, arg21);
 	}
     }
 
@@ -553,8 +565,7 @@ static tree
 forward_propagate_into_comparison (location_t loc,
 				   enum tree_code code,
 				   tree type, tree rhs1,
-				   tree rhs2,
-				   nonzerobits_t nonzerobits ATTRIBUTE_UNUSED)
+				   tree rhs2)
 {
   tree tmp;
   tree tmp1 = NULL_TREE;
@@ -567,7 +578,7 @@ forward_propagate_into_comparison (location_t loc,
     tree reversed;
     tmp = forward_propagate_into_comparison_1 (loc, code,
 					       type, rhs1, rhs2,
-					       false, nonzerobits);
+					       false);
     if (!tmp)
       break;
     reversed = tmp;
@@ -602,8 +613,7 @@ forward_propagate_into_comparison (location_t loc,
    changes and two if cfg_cleanup needs to run.  */
 
 static bool
-forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt,
-				    nonzerobits_t nonzerobits)
+forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt)
 {
   tree tmp;
   enum tree_code code = gimple_cond_code (stmt);
@@ -625,8 +635,7 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt,
   if (TREE_CODE_CLASS (code) != tcc_comparison)
     return 0;
 
-  tmp = gimple_combine_binary_loc (loc, code, boolean_type_node, rhs1, rhs2,
-			         nonzerobits);
+  tmp = gimple_combine_binary_loc (loc, code, boolean_type_node, rhs1, rhs2);
   if (!tmp)
     {
       /* Canonicalize _Bool == 0 and _Bool != 1 to _Bool != 0 by
@@ -718,8 +727,7 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt,
 
 static tree
 forward_propagate_into_cond (location_t loc, enum tree_code code1,
-			     tree type, tree cond, tree op1, tree op2,
-			     nonzerobits_t nonzerobits)
+			     tree type, tree cond, tree op1, tree op2)
 {
   tree tmp = NULL_TREE;
   bool swap = false;
@@ -733,7 +741,7 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
   if (integer_onep (op1)
       && integer_zerop (op2)
       && INTEGRAL_TYPE_P (type))
-    return gimple_combine_build1_loc (loc, NOP_EXPR, type, cond, nonzerobits);
+    return gimple_combine_build1_loc (loc, NOP_EXPR, type, cond);
 
   /* A ? 0 : 1 -> (type) !A */
   if (integer_onep (op1)
@@ -741,10 +749,8 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
       && INTEGRAL_TYPE_P (type))
     {
       tree tmp = gimple_combine_build1_loc (loc, BIT_NOT_EXPR,
-					    TREE_TYPE (cond), cond,
-					    nonzerobits);
-      return gimple_combine_build1_loc (loc, NOP_EXPR, type, tmp,
-					nonzerobits);
+					    TREE_TYPE (cond), cond);
+      return gimple_combine_build1_loc (loc, NOP_EXPR, type, tmp);
     }
 
   /* If all else, try to simplify the condition. */
@@ -753,8 +759,7 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
   if (TREE_CODE_CLASS (code) != tcc_comparison)
     return NULL_TREE;
 
-  tmp = gimple_combine_binary_loc (loc, code, TREE_TYPE (cond), rhs1, rhs2,
-			        nonzerobits);
+  tmp = gimple_combine_binary_loc (loc, code, TREE_TYPE (cond), rhs1, rhs2);
 
   /* If we had a SSA name before and we did not simplify the comparison,
      then just propragate the comparison.  */
@@ -813,16 +818,14 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
       op1 = op2;
       op2 = t;
     }
-  return gimple_combine_build3_loc (loc, COND_EXPR, type, tmp, op1, op2,
-				 nonzerobits);
+  return gimple_combine_build3_loc (loc, COND_EXPR, type, tmp, op1, op2);
 }
 
 /* Simplify not, negative, and absolute expressions.  */
 
 static tree 
 simplify_not_neg_abs_expr (location_t loc, enum tree_code code,
-		           tree type, tree rhs,
-		           nonzerobits_t nonzerobitsp)
+		           tree type, tree rhs)
 {
   tree arg1, arg2;
   enum tree_code code0;
@@ -838,7 +841,7 @@ simplify_not_neg_abs_expr (location_t loc, enum tree_code code,
 
   /* ABS (-a) -> ABS (a) */
   if (code == ABS_EXPR && code0 == NEGATE_EXPR)
-    return gimple_combine_build1_loc (loc, code, type, arg1, nonzerobitsp);
+    return gimple_combine_build1_loc (loc, code, type, arg1);
 
   /* ~(~ (a)) -> a and -(-a) -> a */
   if (code0 == code)
@@ -848,12 +851,12 @@ simplify_not_neg_abs_expr (location_t loc, enum tree_code code,
   if (code == BIT_NOT_EXPR
       && code0 == NEGATE_EXPR)
     return gimple_combine_build2_loc (loc, MINUS_EXPR, type, arg1,
-				   build_int_cst_type (type, 1), nonzerobitsp);
+				   build_int_cst_type (type, 1));
   /* - (~a) -> a + 1 */
   if (code == NEGATE_EXPR
       && code0 == BIT_NOT_EXPR)
     return gimple_combine_build2_loc (loc, PLUS_EXPR, type, arg1,
-				   build_int_cst_type (type, 1), nonzerobitsp);
+				   build_int_cst_type (type, 1));
 
   /* ~ (X ^ C) for C constant is X ^ D where D = ~C.  */
   if (code == BIT_NOT_EXPR
@@ -861,8 +864,7 @@ simplify_not_neg_abs_expr (location_t loc, enum tree_code code,
       && TREE_CODE (arg2) == INTEGER_CST)
     {
       tree cst = fold_build1 (code, type, arg2);
-      return gimple_combine_build2_loc (loc, code0, type, arg1, cst,
-				     nonzerobitsp);
+      return gimple_combine_build2_loc (loc, code0, type, arg1, cst);
     }
 
   /* fold ~ (a CMP b) to a PMC b if there is a PMC.  */
@@ -878,8 +880,7 @@ simplify_not_neg_abs_expr (location_t loc, enum tree_code code,
 	  code0 = invert_tree_comparison (code0,
 					  HONOR_NANS (TYPE_MODE (op_type)));
 	  if (code0 != ERROR_MARK)
-	    return gimple_combine_build2_loc (loc, code0, type, arg1, arg2,
-					   nonzerobitsp);
+	    return gimple_combine_build2_loc (loc, code0, type, arg1, arg2);
 	}
     }
 
@@ -1136,7 +1137,7 @@ extract_simple_gimple (gimple_stmt_iterator *gsi, tree expr)
 
 static tree
 simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
-			 tree arg1, tree arg2, nonzerobits_t nonzerobitsp)
+			 tree arg1, tree arg2)
 {
   tree res;
   tree def1_arg1, def1_arg2 = NULL_TREE, def2_arg1, def2_arg2 = NULL_TREE;
@@ -1152,7 +1153,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
   /* Try to optimize away the AND based on the nonzero bits info. */
   if (code == BIT_AND_EXPR)
     {
-      double_int nzop1 = nonzerobits (arg1, nonzerobitsp);
+      double_int nzop1 = nonzerobits (arg1);
       double_int nzop2;
       if (TREE_CODE (arg2) == INTEGER_CST)
 	{
@@ -1160,7 +1161,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 	  if (double_int_zero_p (double_int_and_not (nzop1, val2)))
 	    return arg1;
         }
-        nzop2 = nonzerobits (arg2, nonzerobitsp);
+        nzop2 = nonzerobits (arg2);
         /* If we are clearing all the nonzero bits, the result is zero.  */
         if (double_int_zero_p (double_int_and (nzop1, nzop2)))
 	  return fold_convert (TREE_TYPE (arg1), integer_zero_node);
@@ -1169,8 +1170,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
   /* A | C is C if all bits of A that might be nonzero are on in C.  */
   if (code == BIT_IOR_EXPR
       && TREE_CODE (arg2) == INTEGER_CST
-      && double_int_zero_p (double_int_and_not (nonzerobits (arg1,
-							     nonzerobitsp),
+      && double_int_zero_p (double_int_and_not (nonzerobits (arg1),
 						tree_to_double_int (arg2))))
 						
     return arg2;
@@ -1185,11 +1185,10 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       && INTEGRAL_TYPE_P (TREE_TYPE (def1_arg1)))
    {
      tree tmp = gimple_combine_build2_loc (loc, code, TREE_TYPE (def1_arg1),
-					def1_arg1, def2_arg1, nonzerobitsp);
+					def1_arg1, def2_arg1);
      return gimple_combine_build2_loc (loc, NE_EXPR, type, tmp,
 				    build_int_cst_type (TREE_TYPE (def1_arg1),
-							0),
-				    nonzerobitsp);
+							0));
    }
 
   /* Fold a==0&b==0 if a and b are the same type to (a|b)==0 . */
@@ -1202,11 +1201,10 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       && INTEGRAL_TYPE_P (TREE_TYPE (def1_arg1)))
    {
      tree tmp = gimple_combine_build2_loc (loc, BIT_IOR_EXPR, TREE_TYPE (def1_arg1),
-					def1_arg1, def2_arg1, nonzerobitsp);
+					def1_arg1, def2_arg1);
      return gimple_combine_build2_loc (loc, EQ_EXPR, type, tmp,
 				    build_int_cst_type (TREE_TYPE (def1_arg1),
-							0),
-				    nonzerobitsp);
+							0));
    }
 
   /* Try to fold (type) X op CST -> (type) (X op ((type-x) CST)).  */
@@ -1218,7 +1216,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       tree tmp, cst;
       cst = fold_convert_loc (loc, TREE_TYPE (def1_arg1), arg2);
       tmp = gimple_combine_build2_loc (loc, code, TREE_TYPE (cst), def1_arg1,
-				    cst, nonzerobitsp);
+				    cst);
       /* Don't use fold here since it undos this conversion.  */
       return build1_loc (loc, NOP_EXPR, TREE_TYPE (arg1), tmp);
     }
@@ -1241,7 +1239,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
     {
       tree tmp;
       tmp = gimple_combine_build2_loc (loc, code, TREE_TYPE (def1_arg1), def1_arg1,
-				    def2_arg1, nonzerobitsp);
+				    def2_arg1);
       return build1_loc (loc, NOP_EXPR, type, tmp);
     }
 
@@ -1255,11 +1253,10 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 			      arg2, def1_arg2);
       tree tem;
       tem = gimple_combine_build2_loc (loc, code, type, def1_arg1,
-				    arg2, nonzerobitsp);
+				    arg2);
       if (integer_zerop (cst))
 	return tem;
-      return gimple_combine_build2_loc (loc, def1_code, type, tem, cst,
-				     nonzerobitsp);
+      return gimple_combine_build2_loc (loc, def1_code, type, tem, cst);
     }
 
   /* Combine successive equal operations with constants.  */
@@ -1268,8 +1265,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       && TREE_CODE (def1_arg2) == INTEGER_CST)
     {
       tree cst = fold_build2 (code, type, arg2, def1_arg2);
-      return gimple_combine_build2_loc (loc, code, type, def1_arg1, cst,
-				     nonzerobitsp);
+      return gimple_combine_build2_loc (loc, code, type, def1_arg1, cst);
     }
 
    /* Fold (A OP1 B) OP0 (C OP1 B) to (A OP0 C) OP1 B. */
@@ -1280,8 +1276,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
        && operand_equal_for_phi_arg_p (def1_arg2,
 				       def2_arg2))
     {
-      tree inner = gimple_combine_build2_loc (loc, code, type, def1_arg1, def2_arg1,
-				           nonzerobitsp);
+      tree inner = gimple_combine_build2_loc (loc, code, type, def1_arg1, def2_arg1);
       if (integer_zerop (inner))
 	{
 	  if (def1_code == BIT_AND_EXPR)
@@ -1290,16 +1285,14 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 	    return def1_arg2;
 	}
       else
-      	return gimple_combine_build2_loc (loc, def1_code, type, inner, def1_arg2,
-				       nonzerobitsp);
+      	return gimple_combine_build2_loc (loc, def1_code, type, inner, def1_arg2);
     }
 
   /* Canonicalize X ^ ~0 to ~X.  */
   if (code == BIT_XOR_EXPR
       && TREE_CODE (arg2) == INTEGER_CST
       && integer_all_onesp (arg2))
-    return gimple_combine_build1_loc (loc, BIT_NOT_EXPR, type, arg1,
-				   nonzerobitsp);
+    return gimple_combine_build1_loc (loc, BIT_NOT_EXPR, type, arg1);
 
   /* Fold (X ^ Y) & Y as ~X & Y.  */
   if (code == BIT_AND_EXPR
@@ -1307,10 +1300,8 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       && operand_equal_for_phi_arg_p (def1_arg2, arg2))
     {
       tree tem;
-      tem = gimple_combine_build1_loc (loc, BIT_NOT_EXPR, type, def1_arg1,
-				    nonzerobitsp);
-      return gimple_combine_build2_loc (loc, code, type, tem, arg2,
-				     nonzerobitsp);
+      tem = gimple_combine_build1_loc (loc, BIT_NOT_EXPR, type, def1_arg1);
+      return gimple_combine_build2_loc (loc, code, type, tem, arg2);
     }
 
   /* Fold (X ^ Y) & X as ~Y & X.  */
@@ -1319,10 +1310,8 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       && operand_equal_for_phi_arg_p (def1_arg1, arg2))
     {
       tree tem;
-      tem = gimple_combine_build1_loc (loc, BIT_NOT_EXPR, type, def2_arg1,
-				    nonzerobitsp);
-      return gimple_combine_build2_loc (loc, code, type, tem, arg2,
-				     nonzerobitsp);
+      tem = gimple_combine_build1_loc (loc, BIT_NOT_EXPR, type, def2_arg1);
+      return gimple_combine_build2_loc (loc, code, type, tem, arg2);
     }
 
   /* Fold Y & (X ^ Y) as Y & ~X.  */
@@ -1331,10 +1320,8 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       && operand_equal_for_phi_arg_p (def2_arg2, arg1))
     {
       tree tem;
-      tem = gimple_combine_build1_loc (loc, BIT_NOT_EXPR, type, def2_arg1,
-				    nonzerobitsp);
-      return gimple_combine_build2_loc (loc, code, type, tem, arg1,
-				     nonzerobitsp);
+      tem = gimple_combine_build1_loc (loc, BIT_NOT_EXPR, type, def2_arg1);
+      return gimple_combine_build2_loc (loc, code, type, tem, arg1);
     }
     
 
@@ -1344,10 +1331,8 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       && operand_equal_for_phi_arg_p (def2_arg1, arg1))
     {
       tree tem;
-      tem = gimple_combine_build1_loc (loc, BIT_NOT_EXPR, type, def2_arg2,
-				    nonzerobitsp);
-      return gimple_combine_build2_loc (loc, code, type, tem, arg1,
-				     nonzerobitsp);
+      tem = gimple_combine_build1_loc (loc, BIT_NOT_EXPR, type, def2_arg2);
+      return gimple_combine_build2_loc (loc, code, type, tem, arg1);
     }
 
   /* Fold ~X & N into X ^ N if X's nonzerobits is equal to N. */
@@ -1355,9 +1340,8 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       && def1_code == BIT_NOT_EXPR
       && TREE_CODE (arg2) == INTEGER_CST
       && double_int_equal_p (tree_to_double_int (arg2),
-			     nonzerobits (def1_arg1, nonzerobitsp)))
-      return gimple_combine_build2_loc (loc, BIT_XOR_EXPR, type, def1_arg1, arg2,
-				     nonzerobitsp);
+			     nonzerobits (def1_arg1)))
+      return gimple_combine_build2_loc (loc, BIT_XOR_EXPR, type, def1_arg1, arg2);
 
   /* Try simple folding for X op !X, and X op X.  */
   res = simplify_bitwise_binary_1 (code, TREE_TYPE (arg1), arg1, arg2);
@@ -1381,15 +1365,13 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
            /* (~X & Y) | X -> X | Y */
 
 	  if (coden == BIT_NOT_EXPR && a1 == x)
-	    return gimple_combine_build2_loc (loc, code, type, def1_arg2, x,
-					   nonzerobitsp);
+	    return gimple_combine_build2_loc (loc, code, type, def1_arg2, x);
 
 	  defcodefor_name (def1_arg2, &coden, &a1, &a2);
 	  /* (Y | ~X) & X -> X & Y */
 	  /* (Y & ~X) | X -> X | Y */
 	  if (coden == BIT_NOT_EXPR && a1 == x)
-	    return gimple_combine_build2_loc (loc, code, type, x, def1_arg1,
-					   nonzerobitsp);
+	    return gimple_combine_build2_loc (loc, code, type, x, def1_arg1);
 	}
       if (def2_code == ocode)
 	{
@@ -1405,15 +1387,13 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 	  /* (~X | Y) & X -> X & Y */
 	  /* (~X & Y) | X -> X | Y */
 	  if (coden == BIT_NOT_EXPR && a1 == x)
-	    return gimple_combine_build2_loc (loc, code, type, def2_arg2, x,
-					   nonzerobitsp);
+	    return gimple_combine_build2_loc (loc, code, type, def2_arg2, x);
 
 	  defcodefor_name (def2_arg2, &coden, &a1, NULL);
 	  /* (Y | ~X) & X -> X & Y */
 	  /* (Y & ~X) | X -> X | Y */
 	  if (coden == BIT_NOT_EXPR && a1 == x)
-	    return gimple_combine_build2_loc (loc, code, type, x, def2_arg1,
-					   nonzerobitsp);
+	    return gimple_combine_build2_loc (loc, code, type, x, def2_arg1);
 	}
     }
 
@@ -1425,7 +1405,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 
 static tree
 associate_plusminus (location_t loc, enum tree_code code, tree type,
-		     tree rhs1, tree rhs2, nonzerobits_t nonzerobitsp)
+		     tree rhs1, tree rhs2)
 {
   tree def1_arg1, def1_arg2 = NULL_TREE, def2_arg1, def2_arg2 = NULL_TREE;
   enum tree_code def1_code, def2_code;
@@ -1446,15 +1426,13 @@ associate_plusminus (location_t loc, enum tree_code code, tree type,
     {
       code = (code == MINUS_EXPR) ? PLUS_EXPR : MINUS_EXPR;
       return gimple_combine_build2_loc (loc, code, type, rhs1, 
-					def2_arg1,
-					nonzerobitsp);
+					def2_arg1);
     }
 
   /* (-A) + B -> B - A.  */
   if (code == PLUS_EXPR && def1_code == NEGATE_EXPR)
     return gimple_combine_build2_loc (loc, MINUS_EXPR, type, rhs2, 
-				      def1_arg1,
-				      nonzerobitsp);
+				      def1_arg1);
 
   /* We can't reassociate floating-point or fixed-point plus or minus
      because of saturation to +-Inf.  */
@@ -1491,7 +1469,7 @@ associate_plusminus (location_t loc, enum tree_code code, tree type,
 	    return def1_arg2;
 	  else
 	    return gimple_combine_build1_loc (loc, NEGATE_EXPR, type,
-					   def1_arg2, nonzerobitsp);
+					   def1_arg2);
 	}
       else if (operand_equal_p (def1_arg2, rhs2, 0)
 	       && code != def1_code)
@@ -1504,8 +1482,7 @@ associate_plusminus (location_t loc, enum tree_code code, tree type,
 	  tree cst = fold_binary (code, type,
 				  def1_arg1, rhs2);
 	  if (cst && !TREE_OVERFLOW (cst))
-	    return gimple_combine_build2_loc (loc, def1_code, type, cst, def1_arg2,
-					   nonzerobitsp);
+	    return gimple_combine_build2_loc (loc, def1_code, type, cst, def1_arg2);
 	}
       else if (TREE_CODE (rhs2) == INTEGER_CST
 	       && TREE_CODE (def1_arg2) == INTEGER_CST
@@ -1515,8 +1492,7 @@ associate_plusminus (location_t loc, enum tree_code code, tree type,
 	  tree cst = fold_binary (code, type,
 				  def1_arg2, rhs2);
 	  if (cst && !TREE_OVERFLOW (cst))
-	    return gimple_combine_build2_loc (loc, PLUS_EXPR, type, def1_arg1, cst,
-					   nonzerobitsp);
+	    return gimple_combine_build2_loc (loc, PLUS_EXPR, type, def1_arg1, cst);
 	}
     }
   else if (def1_code == BIT_NOT_EXPR
@@ -1530,7 +1506,7 @@ associate_plusminus (location_t loc, enum tree_code code, tree type,
 	       && integer_onep (rhs1))
 	/* ~A + 1 -> -A.  */
 	return gimple_combine_build1_loc (loc, NEGATE_EXPR, type,
-				       def1_arg1, nonzerobitsp);
+				       def1_arg1);
     }
 
   if (def2_code == PLUS_EXPR
@@ -1544,7 +1520,7 @@ associate_plusminus (location_t loc, enum tree_code code, tree type,
 	    return def2_arg2;
 	  else
 	    return gimple_combine_build1_loc (loc, NEGATE_EXPR, type,
-					   def2_arg2, nonzerobitsp);
+					   def2_arg2);
 	}
       else if (operand_equal_p (def2_arg2, rhs1, 0)
 	       && code != def2_code)
@@ -1554,7 +1530,7 @@ associate_plusminus (location_t loc, enum tree_code code, tree type,
 	    return def2_arg1;
 	  else
 	    return gimple_combine_build1_loc (loc, NEGATE_EXPR, type,
-					   def2_arg1, nonzerobitsp);
+					   def2_arg1);
 	}
       else if (TREE_CODE (rhs1) == INTEGER_CST
 	       && TREE_CODE (def2_arg1) == INTEGER_CST)
@@ -1566,7 +1542,7 @@ associate_plusminus (location_t loc, enum tree_code code, tree type,
 	    {
 	      code = (code == def2_code ? PLUS_EXPR : MINUS_EXPR);
 	      return gimple_combine_build2_loc (loc, code, type, cst,
-					     def2_arg2, nonzerobitsp);
+					     def2_arg2);
 	    }
 	}
       else if (TREE_CODE (rhs1) == INTEGER_CST
@@ -1579,7 +1555,7 @@ associate_plusminus (location_t loc, enum tree_code code, tree type,
 				  rhs1, def2_arg2);
 	  if (cst && !TREE_OVERFLOW (cst))
 	    return gimple_combine_build2_loc (loc, code, type, cst,
-					   def2_arg1, nonzerobitsp);
+					   def2_arg1);
 	}
     }
   else if (def2_code == BIT_NOT_EXPR
@@ -1599,7 +1575,7 @@ associate_plusminus (location_t loc, enum tree_code code, tree type,
  
 static tree
 combine_conversions (location_t loc, enum tree_code code, tree ltype,
-		     tree op0, nonzerobits_t nonzerobitsp)
+		     tree op0)
 {
   enum tree_code defopcode;
   tree defop0;
@@ -1663,14 +1639,14 @@ combine_conversions (location_t loc, enum tree_code code, tree ltype,
 		&& TYPE_MODE (type) == TYPE_MODE (inter_type))
 	  && ! final_ptr
 	  && (! final_vec || inter_prec == inside_prec))
-	return gimple_combine_build1_loc (loc, code, ltype, defop0, nonzerobitsp);
+	return gimple_combine_build1_loc (loc, code, ltype, defop0);
 
       /* If we have a sign-extension of a zero-extended value, we can
 	 replace that by a single zero-extension.  */
       if (inside_int && inter_int && final_int
 	  && inside_prec < inter_prec && inter_prec < final_prec
 	  && inside_unsignedp && !inter_unsignedp)
-	return gimple_combine_build1_loc (loc, code, ltype, defop0, nonzerobitsp);
+	return gimple_combine_build1_loc (loc, code, ltype, defop0);
 
       /* Two conversions in a row are not needed unless:
 	 - some conversion is floating-point (overstrict for now), or
@@ -1695,7 +1671,7 @@ combine_conversions (location_t loc, enum tree_code code, tree ltype,
 	  && ! (final_ptr && inside_prec != inter_prec)
 	  && ! (final_prec != GET_MODE_BITSIZE (TYPE_MODE (type))
 		&& TYPE_MODE (type) == TYPE_MODE (inter_type)))
-	return gimple_combine_build1_loc (loc, code, ltype, defop0, nonzerobitsp);
+	return gimple_combine_build1_loc (loc, code, ltype, defop0);
 
       /* A truncation to an unsigned type should be canonicalized as
 	 bitwise and of a mask.  */
@@ -1708,8 +1684,8 @@ combine_conversions (location_t loc, enum tree_code code, tree ltype,
 	  tem = double_int_to_tree (inside_type, double_int_mask (inter_prec));
 
 	  tem = gimple_combine_build2_loc (loc, BIT_AND_EXPR, TREE_TYPE (tem),
-					defop0, tem, nonzerobitsp);
-	  return gimple_combine_build1_loc (loc, code, ltype, tem, nonzerobitsp);
+					defop0, tem);
+	  return gimple_combine_build1_loc (loc, code, ltype, tem);
 	}
     }
 
@@ -1718,21 +1694,18 @@ combine_conversions (location_t loc, enum tree_code code, tree ltype,
 
 static tree
 gimple_combine_ternary_loc (location_t loc, enum tree_code code,
-			 tree type, tree arg1, tree arg2, tree arg3,
-			 nonzerobits_t nonzerobitsp)
+			 tree type, tree arg1, tree arg2, tree arg3)
 {
   gcc_assert (IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (code))
 	      && TREE_CODE_LENGTH (code) == 3);
   if (code == COND_EXPR)
-    return forward_propagate_into_cond (loc, code, type, arg1, arg2, arg3,
-					nonzerobitsp);
+    return forward_propagate_into_cond (loc, code, type, arg1, arg2, arg3);
   return NULL_TREE;
 }
 
 static tree
 gimple_combine_binary_loc (location_t loc, enum tree_code code,
-			tree type, tree arg1, tree arg2,
-			nonzerobits_t nonzerobitsp)
+			tree type, tree arg1, tree arg2)
 {
   gcc_assert (IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (code))
               && TREE_CODE_LENGTH (code) == 2
@@ -1748,28 +1721,24 @@ gimple_combine_binary_loc (location_t loc, enum tree_code code,
     }
 
   if (TREE_CODE_CLASS (code) == tcc_comparison)
-    return forward_propagate_into_comparison (loc, code, type, arg1, arg2,
-					      nonzerobitsp);
+    return forward_propagate_into_comparison (loc, code, type, arg1, arg2);
 
   switch (code)
     {
       case BIT_AND_EXPR:
       case BIT_XOR_EXPR:
       case BIT_IOR_EXPR:
-	return simplify_bitwise_binary (loc, code, type, arg1, arg2,
-					nonzerobitsp);
+	return simplify_bitwise_binary (loc, code, type, arg1, arg2);
       case PLUS_EXPR:
       case MINUS_EXPR:
-	return associate_plusminus (loc, code, type, arg1, arg2,
-				    nonzerobitsp);
+	return associate_plusminus (loc, code, type, arg1, arg2);
       default:
 	return NULL_TREE;
     }
 }
 static tree
 gimple_combine_unary_loc (location_t loc, enum tree_code code,
-		       tree type, tree arg1,
-		       nonzerobits_t nonzerobitsp)
+		       tree type, tree arg1)
 {
   gcc_assert (IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (code))
               && TREE_CODE_LENGTH (code) == 1
@@ -1779,11 +1748,11 @@ gimple_combine_unary_loc (location_t loc, enum tree_code code,
       CASE_CONVERT:
       case FLOAT_EXPR:
       case FIX_TRUNC_EXPR:
-	return combine_conversions (loc, code, type, arg1, nonzerobitsp);
+	return combine_conversions (loc, code, type, arg1);
       case BIT_NOT_EXPR:
       case NEGATE_EXPR:
       case ABS_EXPR:
-	return simplify_not_neg_abs_expr (loc, code, type, arg1, nonzerobitsp);
+	return simplify_not_neg_abs_expr (loc, code, type, arg1);
       default:
 	return NULL_TREE;
     }
@@ -1793,7 +1762,7 @@ gimple_combine_unary_loc (location_t loc, enum tree_code code,
    optimizer.  */
 
 bool
-ssa_combine (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobits_p)
+ssa_combine (gimple_stmt_iterator *gsi)
 {
   bool changed = false;
   tree newexpr = NULL_TREE;
@@ -1817,13 +1786,11 @@ ssa_combine (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobits_p)
 
 	if (TREE_CODE_LENGTH (code) == 3)
 	  newexpr = gimple_combine_ternary_loc (loc, code, ltype, rhs1, rhs2,
-					     rhs3, nonzerobits_p);
+					     rhs3);
 	if (TREE_CODE_LENGTH (code) == 2)
-	  newexpr = gimple_combine_binary_loc (loc, code, ltype, rhs1, rhs2,
-					    nonzerobits_p);
+	  newexpr = gimple_combine_binary_loc (loc, code, ltype, rhs1, rhs2);
 	else if (TREE_CODE_LENGTH (code) == 1)
-	  newexpr = gimple_combine_unary_loc (loc, code, ltype, rhs1,
-					   nonzerobits_p);
+	  newexpr = gimple_combine_unary_loc (loc, code, ltype, rhs1);
 	break;
       }
 
@@ -1832,7 +1799,7 @@ ssa_combine (gimple_stmt_iterator *gsi, nonzerobits_t nonzerobits_p)
       break;
 
     case GIMPLE_COND:
-      changed = forward_propagate_into_gimple_cond (gsi, stmt, nonzerobits_p);
+      changed = forward_propagate_into_gimple_cond (gsi, stmt);
       break;
 
     case GIMPLE_CALL:

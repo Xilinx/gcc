@@ -7512,7 +7512,7 @@ simplify_stmt_using_ranges (gimple_stmt_iterator *gsi)
   gimple stmt = gsi_stmt (*gsi);
 
   /* First try doing a ssa combine. */
-  if (ssa_combine (gsi, vrp_nonzerop))
+  if (ssa_combine (gsi))
     return true;
 
   if (is_gimple_assign (stmt))
@@ -7900,6 +7900,7 @@ execute_vrp (void)
   edge e;
   switch_update *su;
 
+  gimple_combine_set_nonzerobits (vrp_nonzerop);
   loop_optimizer_init (LOOPS_NORMAL | LOOPS_HAVE_RECORDED_EXITS);
   rewrite_into_loop_closed_ssa (NULL, TODO_update_ssa);
   scev_initialize ();
@@ -7966,6 +7967,7 @@ execute_vrp (void)
 
   scev_finalize ();
   loop_optimizer_finalize ();
+  gimple_combine_set_nonzerobits (NULL);
   return 0;
 }
 

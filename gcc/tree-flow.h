@@ -621,9 +621,10 @@ extern bool may_propagate_copy_into_asm (tree);
 /* In tree-ssa-loop-ch.c  */
 bool do_while_loop_p (struct loop *);
 
-/* In tree-ssa-fold.c */
+/* In gimple-ssa-combine.c */
 typedef double_int (*nonzerobits_t)(tree var);
-bool ssa_combine (gimple_stmt_iterator *, nonzerobits_t);
+void gimple_combine_set_nonzerobits (nonzerobits_t);
+bool ssa_combine (gimple_stmt_iterator *t);
 
 /* Affine iv.  */
 

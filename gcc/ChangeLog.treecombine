@@ -1,3 +1,21 @@
+2012-02-25  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c: Remove nonzerobits_t argument from
+	all the functions and update the function calls.
+	(gimple_default_nonzero_bits): New function.
+	(gimple_default_nonzero_bits): New static variable.
+	(gimple_combine_set_nonzerobits): New function.
+	* tree-flow.h (gimple_combine_set_nonzerobits): New prototype.
+	(ssa_combine): Remove nonzerobits_t argument.
+	* tree-ssa-forwprop.c (forward_prop_nonzero): Remove.
+	(ssa_forward_propagate_and_combine): Update call to
+	ssa_combine.
+	* tree-vrp.c (simplify_stmt_using_ranges): Update call
+	to ssa_combine.
+	(execute_vrp): Call gimple_combine_set_nonzerobits twice;
+	setting up the nonzerobits hook for VRP and removing it.
+	
+
 2012-02-24  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c (associate_plusminus): Move

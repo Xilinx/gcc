@@ -726,17 +726,6 @@ forward_propagate_addr_expr (tree name, tree rhs)
 }
 
 
-/* Implement a simple nonzero function.
-   Since the ssa_combine will only ask if it cannot figure out
-   itself, we can just return double_int_minus_one since forwprop
-   does not have any extra information.  Like keeping track of the
-   ranges or address bits.  */
-static double_int
-forward_prop_nonzero (tree val ATTRIBUTE_UNUSED)
-{
-  return double_int_minus_one;
-}
-
 /* Delete possible dead code in BB which might have been caused
    unused by ssa_combine until statement UNTIL. */
 static void
@@ -1187,7 +1176,7 @@ ssa_forward_propagate_and_combine (void)
 		  && DECL_BUILT_IN_CLASS (callee) == BUILT_IN_NORMAL)
 		did_replace = simplify_builtin_call (&gsi, callee);
 	    }
-	  if (!did_replace && ssa_combine (&gsi, forward_prop_nonzero))
+	  if (!did_replace && ssa_combine (&gsi))
 	    {
 	      cfg_changed = true;
 	      did_replace = true;
