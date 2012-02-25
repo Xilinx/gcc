@@ -1,4 +1,7 @@
 
+2011-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (syntestgen_cmatcher): Code.
+
 2011-02-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (substitute_formals_for_syntest)
 	(expand_tuple_for_syntest): New utilities functions.
