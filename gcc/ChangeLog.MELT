@@ -1,5 +1,27 @@
 
 2011-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{syntax-check C emission passing.}}
+	* melt/warmelt-first.melt (discrim, the_meltcallcount)
+	(the_callcount, is_mapobject, mapobject_size, mapobject_nth_attr)
+	(mapobject_nth_val, foreach_in_mapobject, foreach_in_mapstring)
+	(is_routine, routine_descr): Improve generated C code.
+
+	* melt/warmelt-base.melt (zerop, longbacktrace_dbg, checkval_dbg)
+	(make_strbuf, add2out_cencstrbuf, add2out_ccomstrbuf): Improve
+	generated code.
+
+	* melt/warmelt-macro.melt (macroexpand_toplevel_list): Warn only
+	when an s-expr is macroexpanded into null at top-level.
+
+	* melt/warmelt-outobj.melt (syntestgen_cmatcher): Emit semi-colon.
+	(emit_syntax_testing_routine): Remove #if 0 from emitted C code,
+	now compiled when MELT_HAVE_DEBUG...
+
+	* melt/xtramelt-ana-base.melt: Improve generated C code.
+
+	* melt/xtramelt-parse-infix-syntax.melt: Improve generated C code.
+
+2011-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (syntestgen_citerator)
 	(syntestgen_cmatcher): Better.
 

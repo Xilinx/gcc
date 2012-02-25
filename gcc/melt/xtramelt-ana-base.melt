@@ -288,11 +288,11 @@
 
 ;; primitive to get the nth loop of a maploop
 (defprimitive maploop_nth_attr (map :long n) :loop
-  #{(melt_nthattr_maploops(($map), (int)($n)))}#)
+  #{(melt_nthattr_maploops((struct meltmaploops_st*)($MAP), (int)($N)))}#)
 
 ;; primitive to get the nth value of a maploop
 (defprimitive maploop_nth_val (map :long n) :value
-  #{(melt_nthval_maploops(($map), (int)($n)))}# )
+  #{(melt_nthval_maploops((struct meltmaploops_st*)($MAP), (int)($N)))}# )
 
 ;; iterator inside maploop
 (defciterator foreach_maploop 
@@ -379,7 +379,7 @@ current :tree and :gimple. Stop walking if the closure gives null.}#
 
 (defprimitive loop_inner (:loop lo) :loop
   :doc #{The inner if any of loop $LO}#
-  #{($LO)?(($LO)->inner):(loop)0}#)
+  #{($LO)?(($LO)->inner):(loop_p)NULL}#)
 
 (defprimitive loop_index_number (:loop lo) :long
   :doc #{The index number if any of loop $LO}#
@@ -1631,8 +1631,8 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;;; return the index of a switch
 (defprimitive gimple_switch_index (:gimple gs) :tree
   :doc #{Retrieve the index of gimple switch $GS.}#
-  #{ (($gs) && gimple_code($gs) == GIMPLE_SWITCH) ? 
-  gimple_switch_index_ptr($gs) : NULL }#)
+  #{ (($GS) && gimple_code($GS) == GIMPLE_SWITCH) ? 
+  gimple_switch_index($GS) : (tree) NULL }#)
 
 ;;; return a tree label
 (defprimitive gimple_switch_label (:gimple gs :long n) :tree
@@ -1688,12 +1688,14 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 
 ;;; safely retrieve the N-th argdeftree of a gimple phinode
 (defprimitive gimple_phi_nth_arg_def (:gimple g :long n) :tree
-  #{ ( ($g && gimple_code($g) == GIMPLE_PHI && n >= 0 && n < gimple_phi_num_args ($g)) 
-       ? gimple_phi_arg_def($g, $n) : NULL) }#)
+  #{ ( ($g && gimple_code($G) == GIMPLE_PHI && $N >= 0 
+	   && $N < gimple_phi_num_args ($G)) 
+       ? gimple_phi_arg_def($G, $N) : NULL) }#)
 ;;; safely retrieve the N-th argedge of a gimple phinode
 (defprimitive gimple_phi_nth_arg_edge (:gimple g :long n) :edge
-  #{ ( ($g && gimple_code($g) == GIMPLE_PHI && n >= 0 && n < gimple_phi_num_args ($g)) 
-       ? gimple_phi_arg_edge($g, $n) : NULL) }#)
+  #{ ( ($g && gimple_code($G) == GIMPLE_PHI 
+	   && $N >= 0 && $N < gimple_phi_num_args ($G)) 
+       ? gimple_phi_arg_edge($G, $N) : (edge) NULL) }#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; issue a notice or a warning at a gimple location
@@ -1764,10 +1766,10 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   }# )
 
 (defprimitive tree_type (:tree tr) :tree
-  #{(($tr)?TREE_TYPE($tr):NULL)}#)
+  #{(($TR) ? TREE_TYPE($TR) : (tree) NULL)}#)
 
 (defprimitive tree_uid (:tree tr) :long
-  #{(($tr) ? (long) DECL_UID($tr) : NULL)}#)
+  #{(($TR) ? (long) DECL_UID($TR) : 0L)}#)
 
 (defprimitive tree_chain_prepend (:tree purpose value chain) :tree
 	:doc #{Create a new TREE_LIST node with $PURPOSE and $VALUE trees
@@ -2059,16 +2061,18 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
      $PARMNAME = IDENTIFIER_POINTER(DECL_NAME($TR));
    }# )
 
+
 (defcmatcher tree_result_decl
   (:tree tr)
   (:tree tnam ttyp)
   treeresd				;statesym
   ;; test expansion
-  #{ /*$TREERESD ?*/ (($TR) && TREE_CODE($TR) == RESULT_DECL)) }#
+  #{ /*$TREERESD ?*/ (($TR) && TREE_CODE($TR) == RESULT_DECL) }#
   ;; fill expansion
   #{ /*$TREERESD !*/ 
    $TNAM = DECL_NAME($TR);
-   $TTYP = TREE_TYPE($TR); }# )
+   $TTYP = TREE_TYPE($TR); 
+  }# )
 
 ;; pattern for a parm_decl of given name
 (defcmatcher tree_result_decl_of_name 
@@ -2240,8 +2244,10 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   (:tree tr)
   (:cstring name)
   treeident
-  #{ /*$TREEIDENT ?*/ $TR && TREE_CODE ($TR) == IDENTIFIER_NODE }#
-  #{ /*$TREEIDENT !*/ $NAME = (const char*) IDENTIFIER_POINTER ($TR) }#
+  #{ /*tree_identifier  $TREEIDENT ?*/ $TR 
+         && TREE_CODE ($TR) == IDENTIFIER_NODE }#
+  #{ /*tree_identifier $TREEIDENT !*/ $NAME = (const char*) IDENTIFIER_POINTER ($TR); 
+}#
 )
 
 ;;; pattern tree_list matches any tree list node
@@ -2468,11 +2474,11 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   )
   tranycplxy
 
-  #{ /* $TRANYCPLXY ? */ 
-      (($tr) && TREE_CODE($tr) == COMPLES_TYPE)
+  #{ /* tree_complex_type $TRANYCPLXY ? */ 
+      (($tr) && TREE_CODE($tr) == COMPLEX_TYPE)
   }#
 
-  #{ /* $TRANYCPLXY ! */
+  #{ /* tree_complex_type $TRANYCPLXY ! */
       $type = TYPE_NAME($tr);
       $size = TYPE_SIZE($tr);
   }#
@@ -2485,9 +2491,10 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
    :long n )
   treeintk
   ;; test expander
-  #{ /*$treeintk ?*/ (($TR) && TREE_CODE($TR) == INTEGER_CST && host_integerp($TR, 0)) }#
+  #{ /*tree_integer_cst $TREEINTK ?*/ (($TR) && TREE_CODE($TR) == INTEGER_CST 
+		      && host_integerp($TR, 0)) }#
   ;; fill expander
-  #{ /*$treeintk !*/ $n  = tree_low_cst(($tr), 0);
+  #{ /*tree_integer_cst $TREEINTK !*/ $N  = tree_low_cst(($TR), 0);
   }#  )
 
 
@@ -3062,22 +3069,27 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   :doc #{Make a map keyed by basic blocks, of given $DISCR and allocated $LEN.}#
   #{(meltgc_new_mapbasicblocks( (meltobject_ptr_t) ($discr),
 				   ($len)))}#)
+
 ;; primitive for putting into a map of basicblocks
 (defprimitive mapbasicblock_put (map :basic_block key :value val) :void
   :doc #{Put into map $MAP the basic_block $KEY associated to $VAL.}#
   #{melt_put_mapbasicblocks(($map), ($key), (melt_ptr_t) ($val))}#)
+
 ;; primitive for removing from a map of basicblocks
 (defprimitive mapbasicblock_remove (map :basic_block key) :void
   :doc #{Remove from map $MAP the entry for basic_block $KEY.}#
  #{meltgc_remove_mapbasicblocks(($map), ($key))}#)
+
 ;; primitive to get the auxiliary data of a basicblocks map
 (defprimitive mapbasicblock_aux (map) :value
   :doc #{Safely retrieve the auxiliary data of map of basic blocks $MAP.}#
   #{melt_auxdata_mapbasicblocks((melt_ptr_t)$MAP)}#)
+
 ;; put
 (defprimitive mapbasicblock_auxput (map aux) :void
   :doc #{Safely put the auxiliary data of map of basic blocks $MAP to $AUX.}#
-  #{melt_auxput_mapbasicblocks((melt_ptr_t)$MAP)}#)
+  #{melt_auxput_mapbasicblocks((melt_ptr_t)$MAP, (melt_ptr_t)$AUX)}#)
+
 ;; primitive to get the nth basicblock of a mapbasicblock
 (defprimitive mapbasicblock_nth_attr (map :long n) :basic_block
  #{(melt_nthattr_mapbasicblocks((struct meltmapbasicblocks_st*)($map), 
@@ -3940,8 +3952,9 @@ Don't scan operands of the added $G.}#
 (defprimitive gimple_seq_boxed_add_stmt (bgs :gimple g) :void
   :doc #{Add to end of boxed gimple_seq $BGS the gimple $G. May fill $BGS if it contained a null gimple_seq.}#
   #{/*gimple_seq_boxed_add_stmt*/
-  if (melt_magic_discr((melt_ptr_t)($BGS)) == MELTOBMAG_GIMPLESEQ && $G != (gimple)0) 
-     gimple_seq_add_stmt (&(((meltgimpleseq_st*)($BGS))->val), ($G));}#
+  if (melt_magic_discr((melt_ptr_t)($BGS)) == MELTOBMAG_GIMPLESEQ 
+     && $G != (gimple)NULL) 
+     gimple_seq_add_stmt (&(((struct meltgimpleseq_st*)($BGS))->val), ($G));}#
 )
 
 (defprimitive gimplify_seq_boxed_add_stmt (bgs :gimple g) :void
@@ -3949,14 +3962,14 @@ Don't scan operands of the added $G.}#
   Don't scan operands of the added $G.}#
   #{/*gimple_seq_boxed_add_stmt*/
   if (melt_magic_discr((melt_ptr_t)($BGS)) == MELTOBMAG_GIMPLESEQ && $G != (gimple)0) 
-     gimplify_seq_add_stmt (&(((meltgimpleseq_st*)($BGS))->val), ($G));}#
+     gimplify_seq_add_stmt (&(((struct meltgimpleseq_st*)($BGS))->val), ($G));}#
 )
 
 (defprimitive gimple_seq_boxed_add_seq  (bgs :gimple_seq gs) :void
   :doc #{Add to end of boxed gimple_seq $BGS the gimple_seq $GS. May fill $BGS if it contained a null gimple_seq.}#
   #{/*gimple_seq_boxed_add_seq*/
   if (melt_magic_discr((melt_ptr_t)($BGS)) == MELTOBMAG_GIMPLESEQ && $GS != (gimple_seq)0) 
-     gimple_seq_add_seq (&(((meltgimpleseq_st*)($BGS))->val), ($GS));}#
+     gimple_seq_add_seq (&(((struct meltgimpleseq_st*)($BGS))->val), ($GS));}#
 )
 
 (defprimitive gimple_build_return (:tree tr) :gimple

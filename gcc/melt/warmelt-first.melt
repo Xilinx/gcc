@@ -996,7 +996,7 @@ compiled C abstract syntax trees (that is @code{:tree} and
 ;; primitive to get the discriminant of a value
 (defprimitive discrim (v) :value
   :doc #{Safely gives the discriminant of a value (even if it is null).}#
-  #{(melt_discr((melt_ptr_t)($v)))}#)
+  #{((melt_ptr_t) (melt_discr((melt_ptr_t)($v))))}#)
 
 ;; primitive to get the integer inside a boxed or mixed integer or objnum
 (defprimitive get_int (v) :long
@@ -1021,8 +1021,22 @@ compiled C abstract syntax trees (that is @code{:tree} and
 
 
 ;;; the call counter - do not redefine the name, it is used by expansion of debug_msg macro!
-(defprimitive the_meltcallcount () :long "meltcallcount")
-(defprimitive the_callcount () :long "meltcallcount")
+(defprimitive the_meltcallcount () :long 
+#{#ifdef meltcallcount
+meltcallcount /* the_meltcallcount */
+#else
+0L
+#endif /* meltcallcount the_meltcallcount */
+}#)
+
+(defprimitive the_callcount () :long  
+#{#ifdef meltcallcount
+meltcallcount /* the_callcount */
+#else
+0L
+#endif /* meltcallcount the_callcount */
+}#)
+
 ;;; the current frame depth
 (defprimitive the_framedepth () :long "(melt_curframdepth())")
 
@@ -1251,46 +1265,58 @@ an integer $I if $I is greater than $N.}#
 ;;;; test
 (defprimitive is_mapobject (map) :long
   :doc #{Test if given $MAP is an object map.}#
-  #{(melt_magic_discr((melt_ptr_t)($map)) == MELTOBMAG_MAPOBJECTS)}#)
+  #{/*is_mapobject:*/(melt_magic_discr((melt_ptr_t)($MAP)) == MELTOBMAG_MAPOBJECTS)}#)
+
 ;; primitive to get the allocated size of a mapobject
 (defprimitive mapobject_size (map) :long
   :doc #{Safely retrieve the allocated size of given object-map $MAP or else 0.}#
-  #{(melt_size_mapobjects((meltmapobjects_ptr_t)($map)))}#)
+  #{(melt_size_mapobjects((meltmapobjects_ptr_t)($MAP)))}#)
+
 ;; primitive to get the attribute count of a mapobject
 (defprimitive mapobject_count (map) :long
   :doc #{Safely retrieve the count of given object-map $MAP or else 0.}#
   #{(melt_count_mapobjects((meltmapobjects_ptr_t)($map)))}#)
+
 ;; primitive to get the nth attribute of a mapobject
 (defprimitive mapobject_nth_attr (map :long n) :value
   :doc #{Safely retrieve from given object-map $MAP its $N-th attribute or else null.}#
-  #{(melt_nthattr_mapobjects((meltmapobjects_ptr_t)($map), (int)($n)))}#)
+  #{/*mapobject_nth_attr:*/ (melt_ptr_t) (melt_nthattr_mapobjects((meltmapobjects_ptr_t)($MAP), 
+								  (int)($N)))}#)
+
 ;; primitive to get the nth value of a mapobject
 (defprimitive mapobject_nth_val (map :long n) :value
   :doc #{Safely retrieve from given object-map $MAP its $N-th value or else null.}#
-  #{(melt_nthval_mapobjects((meltmapobjects_ptr_t)($map), (int)($n)))}#)
+  #{(melt_nthval_mapobjects((meltmapobjects_ptr_t)($MAP), (int)($N)))}#)
+
 ;; primitive to get the value of an attribute in a mapobject
 (defprimitive mapobject_get (map attr) :value
   :doc #{Safely get from given object-map $MAP the value associated to $ATTR or else null.}#
-  #{melt_get_mapobjects((meltmapobjects_ptr_t)($map), (meltobject_ptr_t)($attr))}#)
+  #{/*mapobject_get*/ melt_get_mapobjects((meltmapobjects_ptr_t)($MAP), 
+					  (meltobject_ptr_t)($ATTR))}#)
+
 ;; primitive for making a new map of objects
 (defprimitive make_mapobject (discr :long len) :value
   :doc #{Make an object-map of discriminant $DISCR and initial size $LEN or null.}#
   #{(meltgc_new_mapobjects( (meltobject_ptr_t) ($discr), ($len)))}#)
+
 ;; primitive for putting into a map of objects
 (defprimitive mapobject_put (map key val) :void
   :doc #{Safely put into object-map $MAP the given $KEY with $VAL.}#
   #{meltgc_put_mapobjects( (meltmapobjects_ptr_t) ($map), 
 			   (meltobject_ptr_t) ($key), 
 			   (melt_ptr_t)($val))}#)
+
 ;; primitive for removing from a map of objects
 (defprimitive mapobject_remove (map key) :void
   :doc #{Safely remove from object-map $MAP the given $KEY.}#
   #{meltgc_remove_mapobjects( (meltmapobjects_ptr_t) ($map), 
 			      (meltobject_ptr_t)($key))}#)
+
 ;; primitive accessing the auxiliary data for a map of objects
 (defprimitive mapobject_aux (map) :value
   :doc #{Safely access the auxiliary data of object-map $MAP.}#
   #{melt_auxdata_mapobjects ((melt_ptr_t) ($MAP))}#)
+
 ;; primitive putting the auxiliary data for a map of objects
 (defprimitive mapobject_auxput (map val) :void
   :doc #{Safely access the auxiliary data of object-map $MAP.}#
@@ -1305,24 +1331,25 @@ an integer $I if $I is greater than $N.}#
   given $OBJMAP and retrieves a $CURAT attribute and its $CURVA
   value.}#
   ;; before expansion
-  #{ /*$eachobmap :*/ int $eachobmap#_ix=0, $eachobmap#_siz=0;
-  for ($eachobmap#_ix=0; 
-     /* we retrieve in $eachobmap#_siz the size at each iteration since it could change. */
-       $eachobmap#_ix>=0 
-       && ($eachobmap#_siz= 
-	     melt_size_mapobjects((meltmapobjects_ptr_t)$objmap))>0
-       && $eachobmap#_ix < $eachobmap#_siz;
-       $eachobmap#_ix++) {
+  #{ /* foreach_in_mapobject $EACHOBMAP :*/ int $EACHOBMAP#_ix=0, $EACHOBMAP#_siz=0;
+  for ($EACHOBMAP#_ix=0; 
+     /* we retrieve in $EACHOBMAP#_siz the size at each iteration since it could change. */
+       $EACHOBMAP#_ix>=0 
+       && ($EACHOBMAP#_siz= 
+	     melt_size_mapobjects((meltmapobjects_ptr_t)$OBJMAP))>0
+       && $EACHOBMAP#_ix < $EACHOBMAP#_siz;
+       $EACHOBMAP#_ix++) {
     $curat = NULL;
     $curva = NULL;
-    $curat = ((meltmapobjects_ptr_t)$objmap)->entab[$eachobmap#_ix].e_at;
-    if ($curat == HTAB_DELETED_ENTRY) { $curat = NULL; continue; };
-    if (!$curat) continue;
-    $curva = ((meltmapobjects_ptr_t)$objmap)->entab[$eachobmap#_ix].e_va;
-    if (!$curva) continue; 
+    $curat = (melt_ptr_t) (((meltmapobjects_ptr_t)$OBJMAP)->entab[$EACHOBMAP#_ix].e_at);
+    if ($CURAT == HTAB_DELETED_ENTRY) { $CURAT = NULL; 
+                                        continue; };
+    if (!$CURAT) continue;
+    $curva = ((meltmapobjects_ptr_t)$OBJMAP)->entab[$EACHOBMAP#_ix].e_va;
+    if (!$CURVA) continue; 
 }#
 ;;; after expansion
-  #{ /* end $eachobmap */
+  #{ /* foreach_in_mapobject end $EACHOBMAP */
     $curat = NULL;  
     $curva = NULL;  }
 }#
@@ -1379,38 +1406,45 @@ $CURVA value. If $CURVA happens to be an instance of $CLASS_NAMED
 with a name equal to the string key, we use it as $CURAT otherwise we
 make a $CURAT string.}#
   ;; before expansion
-  #{ /*$eachstrmap :*/ int $eachstrmap#_ix=0, $eachstrmap#_siz=0;
-  for ($eachstrmap#_ix=0; 
-     /* we retrieve in $eachstrmap#_siz the size at each iteration since it could change. */
-       $eachstrmap#_ix>=0 && ($eachstrmap#_siz= melt_size_mapstrings($strmap))>0
-       && $eachstrmap#_ix < $eachstrmap#_siz;
-       $eachstrmap#_ix++) {
-    const char* $eachstrmap#_str = NULL;
-    const char* $eachstrmap#_nam = NULL;
+  #{ /*foreach_in_mapstring $EACHSTRMAP :*/ int $EACHSTRMAP#_ix=0, $EACHSTRMAP#_siz=0;
+  for ($EACHSTRMAP#_ix=0; 
+     /* we retrieve in $EACHSTRMAP#_siz the size at each iteration since it could change. */
+       $EACHSTRMAP#_ix>=0 
+       && ($EACHSTRMAP#_siz =
+            melt_size_mapstrings((struct meltmapstrings_st*)$STRMAP)) > 0
+       && $EACHSTRMAP#_ix < $EACHSTRMAP#_siz;
+       $EACHSTRMAP#_ix++) {
+    const char* $EACHSTRMAP#_str = NULL;
+    const char* $EACHSTRMAP#_nam = NULL;
     $curat = NULL;
     $curva = NULL;
-    $eachstrmap#_str = ((struct meltmapstrings_st*)$strmap)->entab[$eachstrmap#_ix].e_at;
-    if ($eachstrmap#_str == HTAB_DELETED_ENTRY) { $curat = NULL; continue; };
-    if (!$eachstrmap#_str) continue;
-    $curva = ((struct meltmapstrings_st*)$strmap)->entab[$eachstrmap#_ix].e_va;
-    if (!$curva) continue; 
-    if (melt_is_instance_of($curva, MELT_PREDEF (CLASS_NAMED)) 
-	&& ($curat = melt_object_nth_field ((melt_ptr_t) $curva, MELTFIELD_NAMED_NAME)) != NULL		   
-	&& ($eachstrmap#_nam = melt_string_str ((melt_ptr_t) $curat)) != (char*)0
-	&& !strcmp ($eachstrmap#_nam, $eachstrmap#_str))
-      $curat = $curat;
+    $EACHSTRMAP#_str = 
+      ((struct meltmapstrings_st*)$STRMAP)->entab[$eachstrmap#_ix].e_at;
+    if (!$EACHSTRMAP#_str || $EACHSTRMAP#_str == HTAB_DELETED_ENTRY)
+      continue;
+    $CURVA = ((struct meltmapstrings_st*)$STRMAP)->entab[$EACHSTRMAP#_ix].e_va;
+    if (!$CURVA) 
+     continue; 
+    if (melt_is_instance_of($CURVA, MELT_PREDEF (CLASS_NAMED)) 
+	&& ($CURAT = melt_object_nth_field ((melt_ptr_t) $CURVA, 
+					    MELTFIELD_NAMED_NAME)) != NULL
+	&& ($eachstrmap#_nam =
+			     melt_string_str ((melt_ptr_t) $CURAT)) != (char*)0
+	&& !strcmp ($EACHSTRMAP#_nam, $EACHSTRMAP#_str))
+      $CURAT = $CURAT;
     else {
-      $curat = NULL;
-      $curat =  meltgc_new_stringdup((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), $eachstrmap#_str);
+      $CURAT = NULL;
+      $CURAT = 
+          meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), $EACHSTRMAP#_str);
     }
-    $eachstrmap#_str = (const char*)0;
-    $eachstrmap#_nam = (const char*)0;
+    $EACHSTRMAP#_str = (const char*)0;
+    $EACHSTRMAP#_nam = (const char*)0;
 }#
 ;;; after expansion
-  #{ /* end $eachstrmap */
+  #{ /* end foreach_in_mapstring $EACHSTRMAP */
     $curat = NULL;  
-    $curva = NULL;  }
-}#
+    $curva = NULL;  
+  }}#
 )
 
 
@@ -1419,11 +1453,13 @@ make a $CURAT string.}#
 ;; test
 (defprimitive is_routine (rou) :long
   :doc #{Test if value $ROU is a routine.}#
-  #{(melt_magic_discr((melt_ptr_t)($rou)) == MELTOBMAG_ROUTINE)}#)
+  #{(melt_magic_discr((melt_ptr_t)($ROU)) == MELTOBMAG_ROUTINE)}#)
+
 ;;; descriptive string of a routine
 (defprimitive routine_descr (rou) :value
   :doc #{Retrieve the descriptive value string of a routine $ROU or else null.}#
-  #{(meltgc_new_stringdup(melt_routine_descrstr((melt_ptr_t)($rou))))}#)
+  #{/*routine_descr:*/ (meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
+					      melt_routine_descrstr ((melt_ptr_t)($ROU))))}#)
 ;;; size of a routine
 (defprimitive routine_size  (rou) :long
   :doc #{Gives the size of a routine value $ROU, i.e. its number of constants.}#

@@ -1794,8 +1794,11 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
        (debug "macroexpand_toplevel_list mex=" mex)
        (cond
 	( (null mex)
-	  (warning_plain (or (get_field :loca_location sexp) prevloc)
-			 "null expansion for toplevel MELT s-expression")
+	  (let ( (sexploc (get_field :loca_location sexp))
+		 )
+	    (if sexploc 
+		(warning_plain sexploc
+			       "null expansion for toplevel MELT s-expression")))
 	  )
 	( (is_multiple mex)
 	  (foreach_in_multiple
@@ -1813,7 +1816,7 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
 	  (code_chunk warnshortreschk
 		      #{/*$WARNSHORTRESCHK*/
 		      warning(0, "MELT expanded list of %ld s-expressions into short list of %ld source elements",
-				 $SLISTLEN, $RESLISTLEN);
+				 $SLISTLEN, $RESLISTLEN) ;
 		      }#))
       )
     (return reslist)
@@ -2737,7 +2740,7 @@ function. Syntax is (DEFUNMATCHER <symbol> <in-formals> <out-formals>
 			))
 	     )
 	(put_fields fbind :fubind_defun sdefun)
-	sdefun
+	(return sdefun)
 	))))
 (install_initial_macro 'defun mexpand_defun)
 (export_macro defun mexpand_defun

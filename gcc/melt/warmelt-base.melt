@@ -342,7 +342,8 @@ Return 0 for non-boxed integer values.}#
   #{(($v) != NULL)}#)
 
 ;;; zero test (for numbers)
-(defprimitive zerop (:long i)  :long :doc #{Test that $I is zero.}# #{(($i) == OL)}#)
+(defprimitive zerop (:long i)  :long :doc #{Test that $I is zero.}# 
+  #{/*zerop:*/ (($I) == 0L)}#)
 
 ;;; debug on dumpfile
 (defprimitive outcstring_dbg (:cstring s) :void :doc #{output a debug string $S.}#
@@ -678,7 +679,7 @@ an integer $I if $I is lower than $N.}#
 
 (defprimitive longbacktrace_dbg (:cstring msg :long maxdepth) :void
   :doc #{Detailed debug backtrace with message $MSG up to $MAXDEPTH.}#
-  #{debugbacktrace(($msg), (int)(maxdepth))}#)
+  #{debugbacktrace(($MSG), (int)($MAXDEPTH))}#)
 
 
 (defprimitive checkval_dbg (val :cstring msg) :value
@@ -697,7 +698,7 @@ an integer $I if $I is lower than $N.}#
 ;; primitive to make a strbuf
 (defprimitive make_strbuf (discr) :value
   :doc #{Make a new stringbuffer value of given $DISCR - or null if bad $DISCR.}#
-  #{meltgc_new_strbuf((meltobject_ptr_t)($discr), (char*)0)}#)
+  #{(melt_ptr_t) meltgc_new_strbuf((meltobject_ptr_t)($DISCR), (const char*)0)}#)
 
 ;; reserve space for optimization purposes
 (defprimitive strbuf_reserve (sbuf :long siz) :void
@@ -1179,7 +1180,7 @@ strinbuffer $SBUF, take care to not overwrite an old file named $VNAM if it was 
 ;; primitive to add a strbuf, C encoded, into a outbuf
 (defprimitive add2out_cencstrbuf (out asbuf) :void 
   :doc #{Add to output $OUT the C-encoded stringbuffer $ASBUF.}#
-  #{meltgc_add_out_cstr((melt_ptr_t)($out), melt_out_str((melt_ptr_t)($asbuf)))}#)
+  #{meltgc_add_out_cstr((melt_ptr_t)($out), melt_strbuf_str((melt_ptr_t)($ASBUF)))}#)
 
 ;; primitive to add a string value, Ccomment encoded, into a outbuf
 (defprimitive add2out_ccomstring (out str) :void 
@@ -1189,7 +1190,8 @@ strinbuffer $SBUF, take care to not overwrite an old file named $VNAM if it was 
 ;; primitive to add a strbuf, C encoded, into a outbuf
 (defprimitive add2out_ccomstrbuf (out asbuf) :void 
   :doc #{Add to $OUT the C-comment encoded stringbuffer $ASBUF.}#
-  #{meltgc_add_out_ccomment((melt_ptr_t)($out), melt_out_str((melt_ptr_t)($asbuf)))}#)
+  #{meltgc_add_out_ccomment((melt_ptr_t)($OUT), 
+                            melt_strbuf_str((melt_ptr_t)($ASBUF)))}#)
 
 ;; primitive to add a cstring const, Ccomment encoded, into a outbuf
 (defprimitive add2out_ccomconst (out :cstring cstr) :void 
