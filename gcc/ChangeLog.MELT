@@ -1,5 +1,9 @@
 
 2011-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (syntestgen_citerator)
+	(syntestgen_cmatcher): Better.
+
+2011-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (syntestgen_cmatcher): Code.
 
 2011-02-24  Basile Starynkevitch  <basile@starynkevitch.net>
