@@ -1,3 +1,36 @@
+2012-02-23  Kai Tietz  <ktietz@redhat.com>
+
+	* config/i386/i386.c (ix86_delegitimize_address): Handle
+	UNSPEC_PCREL plus displacement.
+
+2012-02-24  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/52261
+	* config/avr/avr.c (avr_out_movhi_mr_r_xmega): Use base
+	to test for unusedness in st X addressing.
+
+2012-02-24  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52361
+	* gimple.c (walk_gimple_op): Use predicates with less redundant
+	tests.
+	(is_gimple_reg_type): Move inline ...
+	* gimple.h (is_gimple_reg_type): ... here.
+
+2012-02-24  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52361
+	* passes.c (execute_function_todo): When verifying SSA form
+	verify gimple form first.
+	* tree-ssa.c (verify_ssa): Do not verify gimple form here.
+
+2012-02-24  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52355
+	* fold-const.c (fold_addr_of_array_ref_difference): New function.
+	(fold_binary_loc): Use it to extend the existing &a[i] - &a[j]
+	folding.
+
 2012-02-13  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
 
 	* tree-if-conv (predicate_scalar_phi): Commentary typo fix.
