@@ -1268,7 +1268,7 @@ meltrout_72_warmelt_first_DEBUG_MSG_FUN (meltclosure_ptr_t meltclosp_,
 /*getargs*/
 
   /*getarg#0 */
-  MELT_LOCATION ("warmelt-first.melt:4321:/ getarg");
+  MELT_LOCATION ("warmelt-first.melt:4361:/ getarg");
  /*_.VAL__V2*/ meltfptr[1] = (melt_ptr_t) meltfirstargp_;
 
   /*getarg#1 */
@@ -1302,7 +1302,7 @@ lab_endgetargs:;
 /*anyblock*/
   {
 
-    MELT_LOCATION ("warmelt-first.melt:4322:/ quasiblock");
+    MELT_LOCATION ("warmelt-first.melt:4362:/ quasiblock");
 
 
     /*^getslot */
@@ -1316,7 +1316,7 @@ lab_endgetargs:;
  /*_#IS_CLOSURE__L3*/ meltfnum[2] =
       (melt_magic_discr ((melt_ptr_t) ( /*_.DBGMSGFUN__V4*/ meltfptr[3])) ==
        MELTOBMAG_CLOSURE);;
-    MELT_LOCATION ("warmelt-first.melt:4323:/ cond");
+    MELT_LOCATION ("warmelt-first.melt:4363:/ cond");
     /*cond */ if ( /*_#IS_CLOSURE__L3*/ meltfnum[2])	/*then */
       {
 	/*^cond.then */
@@ -1324,7 +1324,7 @@ lab_endgetargs:;
 	/*anyblock */
 	{
 
-	  MELT_LOCATION ("warmelt-first.melt:4324:/ apply");
+	  MELT_LOCATION ("warmelt-first.melt:4364:/ apply");
 	  /*apply */
 	  {
 	    union meltparam_un argtab[4];
@@ -1349,7 +1349,7 @@ lab_endgetargs:;
 	  /*_.IF___V5*/ meltfptr[4] = /*_.DBGMSGFUN__V6*/ meltfptr[5];;
 	  /*epilog */
 
-	  MELT_LOCATION ("warmelt-first.melt:4323:/ clear");
+	  MELT_LOCATION ("warmelt-first.melt:4363:/ clear");
 	     /*clear *//*_.DBGMSGFUN__V6*/ meltfptr[5] = 0;
 	}
 	;
@@ -1364,17 +1364,17 @@ lab_endgetargs:;
 
     /*_.LET___V3*/ meltfptr[2] = /*_.IF___V5*/ meltfptr[4];;
 
-    MELT_LOCATION ("warmelt-first.melt:4322:/ clear");
+    MELT_LOCATION ("warmelt-first.melt:4362:/ clear");
 	   /*clear *//*_.DBGMSGFUN__V4*/ meltfptr[3] = 0;
     /*^clear */
 	   /*clear *//*_#IS_CLOSURE__L3*/ meltfnum[2] = 0;
     /*^clear */
 	   /*clear *//*_.IF___V5*/ meltfptr[4] = 0;
-    MELT_LOCATION ("warmelt-first.melt:4321:/ quasiblock");
+    MELT_LOCATION ("warmelt-first.melt:4361:/ quasiblock");
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V3*/ meltfptr[2];;
-    MELT_LOCATION ("warmelt-first.melt:4321:/ finalreturn");
+    MELT_LOCATION ("warmelt-first.melt:4361:/ finalreturn");
     ;
     /*finalret */ goto labend_rout;
     /*epilog */

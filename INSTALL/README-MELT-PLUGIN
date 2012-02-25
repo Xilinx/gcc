@@ -144,18 +144,26 @@ the subject line]
 ################################################################
 NEWS for ....
 
-    Language improvements
-    =====================
+   Language improvements
+   =====================
 
 Add CHEADER macro to insert header c-code.
 
 
-    Runtime 
-    =======
+   Runtime 
+   =======
 
 Hash maps have an auxiliary data value, which can be accessed and set
 at will.
 
+   Translator
+   ==========
+
+All C-generating devices (primitives, c-iterators, ...) emit their
+code in a syntax checking C function, which is never called, but is
+emitted to ensure the emittable C code is syntactically correct. This
+catch typos in (defprimitive ...) etc... even for e.g. yet unused
+primitives.
 
 #######################################################################
 NEWS for 0.9.3 MELT plugin for gcc-4.6 (and future gcc-4.7)

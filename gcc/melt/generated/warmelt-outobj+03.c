@@ -1920,7 +1920,124 @@ meltrout_119_warmelt_outobj_OUTPUT_MELT_DESCRIPTOR (meltclosure_ptr_t
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_120_warmelt_outobj_TRANSLATE_MACROEXPANDED_LIST (meltclosure_ptr_t
+meltrout_120_warmelt_outobj_SYNTESTGEN_ANY (meltclosure_ptr_t meltclosp_,
+					    melt_ptr_t meltfirstargp_,
+					    const melt_argdescr_cell_t
+					    meltxargdescr_[],
+					    union meltparam_un *meltxargtab_,
+					    const melt_argdescr_cell_t
+					    meltxresdescr_[],
+					    union meltparam_un *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_121_warmelt_outobj_SUBSTITUTE_FORMALS_FOR_SYNTEST (meltclosure_ptr_t
+							    meltclosp_,
+							    melt_ptr_t
+							    meltfirstargp_,
+							    const
+							    melt_argdescr_cell_t
+							    meltxargdescr_[],
+							    union meltparam_un
+							    *meltxargtab_,
+							    const
+							    melt_argdescr_cell_t
+							    meltxresdescr_[],
+							    union meltparam_un
+							    *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_122_warmelt_outobj_EXPAND_TUPLE_FOR_SYNTEST (meltclosure_ptr_t
+						      meltclosp_,
+						      melt_ptr_t
+						      meltfirstargp_,
+						      const
+						      melt_argdescr_cell_t
+						      meltxargdescr_[],
+						      union meltparam_un
+						      *meltxargtab_,
+						      const
+						      melt_argdescr_cell_t
+						      meltxresdescr_[],
+						      union meltparam_un
+						      *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_123_warmelt_outobj_SYNTESTGEN_PRIMITIVE (meltclosure_ptr_t
+						  meltclosp_,
+						  melt_ptr_t meltfirstargp_,
+						  const melt_argdescr_cell_t
+						  meltxargdescr_[],
+						  union meltparam_un
+						  *meltxargtab_,
+						  const melt_argdescr_cell_t
+						  meltxresdescr_[],
+						  union meltparam_un
+						  *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_124_warmelt_outobj_SYNTESTGEN_CITERATOR (meltclosure_ptr_t
+						  meltclosp_,
+						  melt_ptr_t meltfirstargp_,
+						  const melt_argdescr_cell_t
+						  meltxargdescr_[],
+						  union meltparam_un
+						  *meltxargtab_,
+						  const melt_argdescr_cell_t
+						  meltxresdescr_[],
+						  union meltparam_un
+						  *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_125_warmelt_outobj_SYNTESTGEN_CMATCHER (meltclosure_ptr_t meltclosp_,
+						 melt_ptr_t meltfirstargp_,
+						 const melt_argdescr_cell_t
+						 meltxargdescr_[],
+						 union meltparam_un
+						 *meltxargtab_,
+						 const melt_argdescr_cell_t
+						 meltxresdescr_[],
+						 union meltparam_un
+						 *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_126_warmelt_outobj_EMIT_SYNTAX_TESTING_ROUTINE (meltclosure_ptr_t
+							 meltclosp_,
+							 melt_ptr_t
+							 meltfirstargp_,
+							 const
+							 melt_argdescr_cell_t
+							 meltxargdescr_[],
+							 union meltparam_un
+							 *meltxargtab_,
+							 const
+							 melt_argdescr_cell_t
+							 meltxresdescr_[],
+							 union meltparam_un
+							 *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_127_warmelt_outobj_TRANSLATE_MACROEXPANDED_LIST (meltclosure_ptr_t
 							  meltclosp_,
 							  melt_ptr_t
 							  meltfirstargp_,
@@ -1939,7 +2056,7 @@ meltrout_120_warmelt_outobj_TRANSLATE_MACROEXPANDED_LIST (meltclosure_ptr_t
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_121_warmelt_outobj_LAMBDA___26__ (meltclosure_ptr_t meltclosp_,
+meltrout_128_warmelt_outobj_LAMBDA___26__ (meltclosure_ptr_t meltclosp_,
 					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
 					   meltxargdescr_[],
@@ -1952,7 +2069,7 @@ meltrout_121_warmelt_outobj_LAMBDA___26__ (meltclosure_ptr_t meltclosp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_122_warmelt_outobj_LAMBDA___27__ (meltclosure_ptr_t meltclosp_,
+meltrout_129_warmelt_outobj_LAMBDA___27__ (meltclosure_ptr_t meltclosp_,
 					   melt_ptr_t meltfirstargp_,
 					   const melt_argdescr_cell_t
 					   meltxargdescr_[],
@@ -1965,7 +2082,7 @@ meltrout_122_warmelt_outobj_LAMBDA___27__ (meltclosure_ptr_t meltclosp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_123_warmelt_outobj_COMPILE_LIST_SEXPR (meltclosure_ptr_t meltclosp_,
+meltrout_130_warmelt_outobj_COMPILE_LIST_SEXPR (meltclosure_ptr_t meltclosp_,
 						melt_ptr_t meltfirstargp_,
 						const melt_argdescr_cell_t
 						meltxargdescr_[],
@@ -1980,7 +2097,7 @@ meltrout_123_warmelt_outobj_COMPILE_LIST_SEXPR (meltclosure_ptr_t meltclosp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_124_warmelt_outobj_TRANSLATE_TO_C_ONE_OR_MORE_MELT_FILES
+meltrout_131_warmelt_outobj_TRANSLATE_TO_C_ONE_OR_MORE_MELT_FILES
 (meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
 union meltparam_un *meltxargtab_, const melt_argdescr_cell_t meltxresdescr_[],
 union meltparam_un *meltxrestab_);
@@ -1989,7 +2106,7 @@ union meltparam_un *meltxrestab_);
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_125_warmelt_outobj_GENERATE_GPLV3PLUS_COPYRIGHT_NOTICE_C_COMMENT
+meltrout_132_warmelt_outobj_GENERATE_GPLV3PLUS_COPYRIGHT_NOTICE_C_COMMENT
 (meltclosure_ptr_t meltclosp_, melt_ptr_t meltfirstargp_, const melt_argdescr_cell_t meltxargdescr_[],
 union meltparam_un *meltxargtab_, const melt_argdescr_cell_t meltxresdescr_[],
 union meltparam_un *meltxrestab_);
@@ -2045,6 +2162,9 @@ void MELT_MODULE_VISIBILITY warmelt_outobj_initialmeltchunk_11 (struct
 								frame_start_module_melt_st
 								*, char *);
 void MELT_MODULE_VISIBILITY warmelt_outobj_initialmeltchunk_12 (struct
+								frame_start_module_melt_st
+								*, char *);
+void MELT_MODULE_VISIBILITY warmelt_outobj_initialmeltchunk_13 (struct
 								frame_start_module_melt_st
 								*, char *);
 static void forward_or_mark_module_start_frame_warmelt_outobj (struct

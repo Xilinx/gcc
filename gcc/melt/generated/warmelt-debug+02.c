@@ -1009,7 +1009,8 @@ lab_endgetargs:;
 
 
  /*_.DIS__V6*/ meltfptr[4] =
-      (melt_discr ((melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1])));;
+      ((melt_ptr_t)
+       (melt_discr ((melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]))));;
     MELT_LOCATION ("warmelt-debug.melt:1176:/ getslot");
     {
       melt_ptr_t slot = 0;
@@ -1513,7 +1514,8 @@ lab_endgetargs:;
 
 
  /*_.DIS__V6*/ meltfptr[4] =
-      (melt_discr ((melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1])));;
+      ((melt_ptr_t)
+       (melt_discr ((melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]))));;
     MELT_LOCATION ("warmelt-debug.melt:1210:/ getslot");
     {
       melt_ptr_t slot = 0;
@@ -3266,7 +3268,8 @@ lab_endgetargs:;
 
 
  /*_.DIS__V4*/ meltfptr[3] =
-      (melt_discr ((melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1])));;
+      ((melt_ptr_t)
+       (melt_discr ((melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]))));;
     MELT_LOCATION ("warmelt-debug.melt:1287:/ getslot");
     {
       melt_ptr_t slot = 0;
@@ -3901,7 +3904,8 @@ lab_endgetargs:;
 
 
  /*_.DIS__V8*/ meltfptr[6] =
-      (melt_discr ((melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1])));;
+      ((melt_ptr_t)
+       (melt_discr ((melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]))));;
     MELT_LOCATION ("warmelt-debug.melt:1315:/ getslot");
     {
       melt_ptr_t slot = 0;
@@ -4437,7 +4441,8 @@ lab_endgetargs:;
 
 
  /*_.DIS__V4*/ meltfptr[3] =
-      (melt_discr ((melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1])));;
+      ((melt_ptr_t)
+       (melt_discr ((melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]))));;
     MELT_LOCATION ("warmelt-debug.melt:1354:/ getslot");
     {
       melt_ptr_t slot = 0;
@@ -5037,7 +5042,8 @@ lab_endgetargs:;
 
 
  /*_.DIS__V8*/ meltfptr[6] =
-      (melt_discr ((melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1])));;
+      ((melt_ptr_t)
+       (melt_discr ((melt_ptr_t) ( /*_.SELF__V2*/ meltfptr[1]))));;
     MELT_LOCATION ("warmelt-debug.melt:1378:/ getslot");
     {
       melt_ptr_t slot = 0;
@@ -5382,9 +5388,10 @@ lab_endgetargs:;
     /*^compute */
 
  /*_.SBUF__V3*/ meltfptr[2] =
+      (melt_ptr_t)
       meltgc_new_strbuf ((meltobject_ptr_t)
 			 (( /*!DISCR_STRBUF */ meltfrout->tabval[0])),
-			 (char *) 0);;
+			 (const char *) 0);;
     /*^compute */
 
  /*_.OCCMAP__V4*/ meltfptr[3] =
