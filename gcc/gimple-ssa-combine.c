@@ -37,7 +37,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-ssa-propagate.h"
 
 
-
 /* Implement a simple nonzero function. Most of the work is done
    in nonzerobits_1. */
 static double_int
@@ -896,51 +895,43 @@ simplify_gimple_switch (gimple stmt)
 {
   tree cond = gimple_switch_index (stmt);
   tree def, to, ti;
-  gimple def_stmt;
+  enum tree_code code;
+  tree defto = NULL;
 
+  defcodefor_name (cond, &code, &def, NULL);
   /* The optimization that we really care about is removing unnecessary
      casts.  That will let us do much better in propagating the inferred
      constant at the switch target.  */
-  if (TREE_CODE (cond) == SSA_NAME)
+  while (CONVERT_EXPR_CODE_P (code))
     {
-      def_stmt = SSA_NAME_DEF_STMT (cond);
-      if (is_gimple_assign (def_stmt))
-	{
-	  if (gimple_assign_rhs_code (def_stmt) == NOP_EXPR)
-	    {
-	      int need_precision;
-	      bool fail;
+      int need_precision;
 
-	      def = gimple_assign_rhs1 (def_stmt);
+      to = TREE_TYPE (cond);
+      ti = TREE_TYPE (def);
 
-	      /* ??? Why was Jeff testing this?  We are gimple...  */
-	      gcc_checking_assert (is_gimple_val (def));
+      /* If we have an extension that preserves value, then we
+	 can copy the source value into the switch.  */
 
-	      to = TREE_TYPE (cond);
-	      ti = TREE_TYPE (def);
+      need_precision = TYPE_PRECISION (ti);
+      if (! INTEGRAL_TYPE_P (ti))
+	break;
+      else if (TYPE_UNSIGNED (to) && !TYPE_UNSIGNED (ti))
+	break;
+      else if (!TYPE_UNSIGNED (to) && TYPE_UNSIGNED (ti))
+	need_precision += 1;
+      if (TYPE_PRECISION (to) < need_precision)
+	break;
 
-	      /* If we have an extension that preserves value, then we
-		 can copy the source value into the switch.  */
+      defto = def;
 
-	      need_precision = TYPE_PRECISION (ti);
-	      fail = false;
-	      if (! INTEGRAL_TYPE_P (ti))
-		fail = true;
-	      else if (TYPE_UNSIGNED (to) && !TYPE_UNSIGNED (ti))
-		fail = true;
-	      else if (!TYPE_UNSIGNED (to) && TYPE_UNSIGNED (ti))
-		need_precision += 1;
-	      if (TYPE_PRECISION (to) < need_precision)
-		fail = true;
+      defcodefor_name (def, &code, &def, NULL);
+    }
 
-	      if (!fail)
-		{
-		  gimple_switch_set_index (stmt, def);
-		  update_stmt (stmt);
-		  return true;
-		}
-	    }
-	}
+  if (defto)
+    {
+      gimple_switch_set_index (stmt, defto);
+      update_stmt (stmt);
+      return true;
     }
 
   return false;
@@ -953,7 +944,8 @@ simplify_gimple_switch (gimple stmt)
 static bool
 truth_valued_ssa_name (tree name)
 {
-  gimple def;
+  enum tree_code code;
+  tree arg1;
   tree type = TREE_TYPE (name);
 
   if (!INTEGRAL_TYPE_P (type))
@@ -962,11 +954,9 @@ truth_valued_ssa_name (tree name)
      necessarily one and so ~X is not equal to !X.  */
   if (TYPE_PRECISION (type) == 1)
     return true;
-  /* FIXME this should be using nonzerobits here. */
-  def = SSA_NAME_DEF_STMT (name);
-  if (is_gimple_assign (def))
-    return truth_value_p (gimple_assign_rhs_code (def));
-  return false;
+  defcodefor_name (name, &code, &arg1, NULL);
+  /* FIXME this should also be using nonzerobits here. */
+  return truth_value_p (code);
 }
 
 /* Helper routine for simplify_bitwise_binary_1 function.
@@ -980,26 +970,14 @@ lookup_logical_inverted_value (tree name)
 {
   tree op1, op2;
   enum tree_code code;
-  gimple def;
 
-  /* If name has none-intergal type, or isn't a SSA_NAME, then
-     return.  */
-  if (TREE_CODE (name) != SSA_NAME
-      || !INTEGRAL_TYPE_P (TREE_TYPE (name)))
-    return NULL_TREE;
-  def = SSA_NAME_DEF_STMT (name);
-  if (!is_gimple_assign (def))
+  /* If name has none-intergal type then return.  */
+  if (!INTEGRAL_TYPE_P (TREE_TYPE (name)))
     return NULL_TREE;
 
-  code = gimple_assign_rhs_code (def);
-  op1 = gimple_assign_rhs1 (def);
-  op2 = NULL_TREE;
+  defcodefor_name (name, &code, &op1, &op2);
 
-  /* Get for EQ_EXPR or BIT_XOR_EXPR operation the second operand.
-     If CODE isn't an EQ_EXPR, BIT_XOR_EXPR, or BIT_NOT_EXPR, then return.  */
-  if (code == EQ_EXPR || code == NE_EXPR
-      || code == BIT_XOR_EXPR)
-    op2 = gimple_assign_rhs2 (def);
+  /* If CODE isn't an EQ_EXPR, BIT_XOR_EXPR, or BIT_NOT_EXPR, then return.  */
 
   switch (code)
     {

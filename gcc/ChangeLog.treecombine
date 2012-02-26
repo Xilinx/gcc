@@ -1,5 +1,12 @@
 2012-02-25  Andrew Pinski  <apinski@cavium.com>
 
+	* gimple-ssa-combine.c (simplify_gimple_switch): Convert over
+	to using defcodefor_name.  Also loop over the ssa_name.
+	(truth_valued_ssa_name): Use defcodefor_name.
+	(lookup_logical_inverted_value): Likewise.
+
+2012-02-25  Andrew Pinski  <apinski@cavium.com>
+
 	* gimple-ssa-combine.c: Remove nonzerobits_t argument from
 	all the functions and update the function calls.
 	(gimple_default_nonzero_bits): New function.
@@ -14,7 +21,6 @@
 	to ssa_combine.
 	(execute_vrp): Call gimple_combine_set_nonzerobits twice;
 	setting up the nonzerobits hook for VRP and removing it.
-	
 
 2012-02-24  Andrew Pinski  <apinski@cavium.com>
 
