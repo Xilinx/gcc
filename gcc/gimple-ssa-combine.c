@@ -440,6 +440,25 @@ forward_propagate_into_comparison_1 (location_t loc,
 	}
     }
 
+  /* Try to simplify (a|b)==0 to a==0&b==0 but only do this
+     if one of (a==0) or (b==0) simplifies.  */
+  if (code == EQ_EXPR
+      && integer_zerop (op1)
+      && code0 == BIT_IOR_EXPR)
+    {
+      tree arg11, arg21;
+      arg11 = gimple_combine_binary_loc (loc, EQ_EXPR, type, arg1, op1);
+      arg21 = gimple_combine_binary_loc (loc, EQ_EXPR, type, arg2, op1);
+      if (arg11 || arg21)
+	{
+	  if (arg11 == NULL)
+	    arg11 = build2_loc (loc, EQ_EXPR, type, arg1, op1);
+	  if (arg21 == NULL)
+	    arg21 = build2_loc (loc, EQ_EXPR, type, arg2, op1);
+	  return gimple_combine_build2_loc (loc, BIT_AND_EXPR, type, arg11, arg21);
+	}
+    }
+
   /* FIXME: this really should not be using combine_cond_expr_cond (fold_binary)
      but matching the patterns directly.  */
 

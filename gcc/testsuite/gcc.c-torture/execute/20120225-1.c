@@ -1,4 +1,5 @@
-#include <assert.h>
+#define assert(a) do {if (!(a)) __builtin_abort(); } while (0)
+
 int f(int a, int b) __attribute__((noinline,noclone));
 int f(int a, int b)
 {
