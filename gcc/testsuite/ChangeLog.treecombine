@@ -1,5 +1,9 @@
 2012-02-18  Andrew Pinski  <apinski@cavium.com>
 
+	* gcc.c-torture/execute/20120225-1.c: New testcase.
+
+2012-02-18  Andrew Pinski  <apinski@cavium.com>
+
 	* gcc.dg/tree-ssa/vrp47.c: Remove the dom2 check
 	as it fails because we have y&x rather than x&y.
 
