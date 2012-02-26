@@ -449,6 +449,13 @@ forward_propagate_into_comparison_1 (location_t loc,
       tree arg11, arg21;
       arg11 = gimple_combine_binary_loc (loc, EQ_EXPR, type, arg1, op1);
       arg21 = gimple_combine_binary_loc (loc, EQ_EXPR, type, arg2, op1);
+      /* If we have a BIT_NOT_EXPR then this did not simplify after all. */
+      if (arg11 && (TREE_CODE (arg11) == BIT_NOT_EXPR
+		    || TREE_CODE (arg11) == TRUTH_NOT_EXPR))
+	arg11 = NULL_TREE;
+      if (arg21 && (TREE_CODE (arg21) == BIT_NOT_EXPR
+		    || TREE_CODE (arg21) == TRUTH_NOT_EXPR))
+	arg21 = NULL_TREE;
       if (arg11 || arg21)
 	{
 	  if (arg11 == NULL)
@@ -593,20 +600,18 @@ forward_propagate_into_comparison (location_t loc,
   /* Combine the comparison with defining statements.  */
   do {
     tree canonicalized;
-    tree reversed;
     tmp = forward_propagate_into_comparison_1 (loc, code,
 					       type, rhs1, rhs2,
 					       false);
     if (!tmp)
       break;
-    reversed = tmp;
     if (TREE_CODE (tmp) == TRUTH_NOT_EXPR
 	|| TREE_CODE (tmp) == BIT_NOT_EXPR)
     {
       reversed_edges ^= true;
-      reversed = TREE_OPERAND (tmp, 0);
+      tmp = TREE_OPERAND (tmp, 0);
     }
-    canonicalized = canonicalize_cond_expr_cond (reversed);
+    canonicalized = canonicalize_cond_expr_cond (tmp);
     if (!canonicalized)
       {
 	if (reversed_edges)
@@ -777,8 +782,28 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
       return gimple_combine_build1_loc (loc, NOP_EXPR, type, tmp);
     }
 
+  /* bool == 0 ? b : a -> bool ? b : a */
+  /* bool != 1 ? b : a -> bool ? b : a */
+  if (((TREE_CODE (cond) == EQ_EXPR
+	 && integer_zerop (TREE_OPERAND (cond, 1)))
+	|| (TREE_CODE (cond) == NE_EXPR
+	    && integer_onep (TREE_OPERAND (cond, 1))))
+      && (TREE_CODE (TREE_TYPE (TREE_OPERAND (cond, 0))) == BOOLEAN_TYPE
+	  || (INTEGRAL_TYPE_P (TREE_TYPE (TREE_OPERAND (cond, 0)))
+	      && TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (cond, 0))) == 1)))
+    return gimple_combine_build3_loc (loc, COND_EXPR, type,
+				      TREE_OPERAND (cond, 0), op2, op1);
+
   /* If all else, try to simplify the condition. */
   defcodefor_name (cond, &code, &rhs1, &rhs2);
+
+  /* If we have a = ~b;  a?c:d then convert it to b==0?c:d */
+  if (code == BIT_NOT_EXPR || code == TRUTH_NOT_EXPR)
+    {
+      code = EQ_EXPR;
+      rhs2 = build_zero_cst (TREE_TYPE (rhs1));
+    }
+
   /* We can do tree combining on comparison expressions.  */
   if (TREE_CODE_CLASS (code) != tcc_comparison)
     return NULL_TREE;

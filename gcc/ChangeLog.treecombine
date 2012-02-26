@@ -1,6 +1,18 @@
 2012-02-26  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c (forward_propagate_into_comparison_1):
+	If we got a NOT when trying to fold a==0 then ignore it
+	as it is not simplified at all.
+	(forward_propagate_into_comparison): Fix a bug when returning
+	early and reversed_edges is true.
+	(forward_propagate_into_cond): Simplify bool==0?a:b and
+	bool!=1?a:b to bool?b:a.
+	If we had a = ~b; a?c:d then fold try to fold it as
+	a = b==0; a?c:d;
+
+2012-02-26  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (forward_propagate_into_comparison_1):
 	Try to simplify (a|b)==0 as a==0&b==0.
 
 2012-02-26  Andrew Pinski  <apinski@cavium.com>
