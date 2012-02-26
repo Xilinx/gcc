@@ -1,3 +1,8 @@
+2012-02-26  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (forward_propagate_into_comparison):
+	Fix a bug when returning early.
+
 2012-02-25  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c (simplify_gimple_switch): Convert over

@@ -589,7 +589,13 @@ forward_propagate_into_comparison (location_t loc,
     }
     canonicalized = canonicalize_cond_expr_cond (reversed);
     if (!canonicalized)
-      return tmp;
+      {
+	if (reversed_edges)
+	  tmp = build1 (BIT_NOT_EXPR, TREE_TYPE (tmp), tmp);
+	if (!useless_type_conversion_p (type, TREE_TYPE (tmp)))
+	  tmp = build1 (NOP_EXPR, type, tmp);
+	return tmp;
+      }
     tmp1 = canonicalized;
     gimple_cond_get_ops_from_tree (canonicalized, &code, &rhs1, &rhs2);
   } while (tmp);
