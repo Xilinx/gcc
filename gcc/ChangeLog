@@ -1,3 +1,54 @@
+2012-02-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/52352
+	* config/i386/i386.md (*movabs<mode>_1): Enable only for
+	TARGET_LP64.
+	(*movabs<mode>_2): Likewise.
+
+2012-02-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52375
+	* config/arm/neon.md (vashr<mode>3, vlshr<mode>3): Use
+	s_register_operand in the test instead of REG_P.  Don't call
+	gen_reg_rtx if it won't be used.
+
+	PR tree-optimization/52376
+	* ipa-split.c (split_function): Ignore CLOBBER stmts.
+
+2012-02-27  Stuart Henderson  <shenders@gcc.gnu.org>
+
+	* ifcvt.c (noce_get_condition): Check condition variable is not
+	small_register_classes_for_mode_p before accepting.
+
+2012-02-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*movabs<mode>_1): Fix operand 1 constraints.
+
+2012-02-27  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	Revert:
+	2012-01-09  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+	* config/arm/arm-cores.def (cortex-a15): Use cortex_a15_tune for
+	tuning parameters.
+	* config/arm/arm.c (arm_cortex_a15_tune): New static variable.
+
+2012-02-27  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh.h: Delete dead GO_IF_LEGITIMATE_INDEX macro.
+
+2012-02-26  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/predicates.md: Remove blank lines.
+	* config/sh/sh.c: Fix typos in comments.
+	* config/sh/constraints.md: Likewise.
+	* config/sh/sh.md: Remove blank lines.
+	Fix typos in comments.  Use ;; as comment characters.
+
+2012-02-26  Walter Lee  <walt@tilera.com>
+
+	* config/tilegx/tilegx.c (match_pcrel_step2): Fix instruction pattern.
+	(replace_mov_pcrel_step2): Ditto.
+
 2012-02-25  Alexandre Oliva  <aoliva@redhat.com>
 
 	PR debug/52001
@@ -30,8 +81,7 @@
 2012-02-24  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/52361
-	* gimple.c (walk_gimple_op): Use predicates with less redundant
-	tests.
+	* gimple.c (walk_gimple_op): Use predicates with less redundant tests.
 	(is_gimple_reg_type): Move inline ...
 	* gimple.h (is_gimple_reg_type): ... here.
 
@@ -46,8 +96,7 @@
 
 	PR middle-end/52355
 	* fold-const.c (fold_addr_of_array_ref_difference): New function.
-	(fold_binary_loc): Use it to extend the existing &a[i] - &a[j]
-	folding.
+	(fold_binary_loc): Use it to extend the existing &a[i] - &a[j] folding.
 
 2012-02-13  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
 
@@ -61,8 +110,7 @@
 
 2012-02-23  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
 
-	* tree-into-ssa (update_ssa): Avoid trailing whitespace in
-	dump_file.
+	* tree-into-ssa (update_ssa): Avoid trailing whitespace in dump_file.
 	* tree-ssa-sccvn.c (print_scc): Ditto.
 
 2012-02-23  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>

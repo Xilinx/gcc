@@ -1,3 +1,28 @@
+2012-02-27  Tristan Gingold  <gingold@adacore.com>
+
+	* gnat.dg/array20.ad[sb]: New test.
+
+2012-02-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52375
+	* gcc.target/arm/pr52375.c: New test.
+	* gcc.c-torture/compile/pr52375.c: New test.
+
+2012-02-27  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gfortran.dg/typebound_operator_9.f03: Skip on SPU.
+	* gcc.dg/torture/builtin-complex-1.c: Skip "float" tests on SPU.
+
+2012-02-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/aggr19.adb: New test.
+	* gnat.dg/aggr19_pkg.ad[sb]: New helper.
+
+2012-02-26  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/49263
+	* gcc.target/sh/pr49263.c: New.
+
 2012-02-24  Andrew MacLeod  <amacleod@redhat.com>
 
 	* gcc.dg/simulate-thread/simulate-thread.gdb: Use return value from
