@@ -1,5 +1,23 @@
 2012-02-26  Andrew Pinski  <apinski@cavium.com>
 
+	* gimple-ssa-combine.c: Remove the _loc from the functions name
+	as all functions take a location.
+	(gimple_combine_ternary): Export.
+	(gimple_combine_binary): Likewise.
+	(gimple_combine_unary): Likewise.
+	* tree-flow.h (gimple_combine_binary): New prototype.
+	(gimple_combine_unary): Likewise.
+	(gimple_combine_ternary): Likewise.
+	* tree-vrp.c (extract_range_from_cond_expr): Move below
+	extract_range_from_comparison.
+	Try to reduce the comparison and don't do a merge if it
+	does reduce.
+	(extract_range_from_assignment): Call gimple_combine_binary/
+	gimple_combine_ternary/gimple_combine_unary on the expression
+	before trying to extract the range.
+
+2012-02-26  Andrew Pinski  <apinski@cavium.com>
+
 	* gimple-ssa-combine.c (forward_propagate_into_comparison_1):
 	If we got a NOT when trying to fold a==0 then ignore it
 	as it is not simplified at all.

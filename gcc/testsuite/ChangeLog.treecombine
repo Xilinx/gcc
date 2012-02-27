@@ -1,3 +1,7 @@
+2012-02-26  Andrew Pinski  <apinski@cavium.com>
+
+	* gcc.dg/tree-ssa/vrp64.c: New testcase.
+
 2012-02-18  Andrew Pinski  <apinski@cavium.com>
 
 	* gcc.c-torture/execute/20120225-1.c: New testcase.

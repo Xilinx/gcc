@@ -3212,41 +3212,6 @@ extract_range_from_unary_expr (value_range_t *vr, enum tree_code code,
   extract_range_from_unary_expr_1 (vr, code, type, &vr0, TREE_TYPE (op0));
 }
 
-
-/* Extract range information from a conditional expression STMT based on
-   the ranges of each of its operands and the expression code.  */
-
-static void
-extract_range_from_cond_expr (value_range_t *vr, gimple stmt)
-{
-  tree op0, op1;
-  value_range_t vr0 = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
-  value_range_t vr1 = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
-
-  /* Get value ranges for each operand.  For constant operands, create
-     a new value range with the operand to simplify processing.  */
-  op0 = gimple_assign_rhs2 (stmt);
-  if (TREE_CODE (op0) == SSA_NAME)
-    vr0 = *(get_value_range (op0));
-  else if (is_gimple_min_invariant (op0))
-    set_value_range_to_value (&vr0, op0, NULL);
-  else
-    set_value_range_to_varying (&vr0);
-
-  op1 = gimple_assign_rhs3 (stmt);
-  if (TREE_CODE (op1) == SSA_NAME)
-    vr1 = *(get_value_range (op1));
-  else if (is_gimple_min_invariant (op1))
-    set_value_range_to_value (&vr1, op1, NULL);
-  else
-    set_value_range_to_varying (&vr1);
-
-  /* The resulting value range is the union of the operand ranges */
-  vrp_meet (&vr0, &vr1);
-  copy_value_range (vr, &vr0);
-}
-
-
 /* Extract range information from a comparison expression EXPR based
    on the range of its operand and the expression code.  */
 
@@ -3281,6 +3246,55 @@ extract_range_from_comparison (value_range_t *vr, enum tree_code code,
     set_value_range_to_truthvalue (vr, type);
 }
 
+/* Extract range information from a conditional expression STMT based on
+   the ranges of each of its operands and the expression code.  */
+
+static void
+extract_range_from_cond_expr (value_range_t *vr, tree cond, tree op0, tree op1)
+{
+  value_range_t vr0 = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
+  value_range_t vr1 = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
+  value_range_t vrc = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
+
+  if (TREE_CODE (cond) == SSA_NAME || is_gimple_min_invariant(cond))
+    cond = build2 (NE_EXPR, boolean_type_node, cond,
+		   build_zero_cst (TREE_TYPE (cond)));
+  if (COMPARISON_CLASS_P (cond))
+    extract_range_from_comparison (vr, TREE_CODE (cond),
+				   TREE_TYPE (cond),
+				   TREE_OPERAND (cond, 0),
+				   TREE_OPERAND (cond, 1));
+
+  /* Get value ranges for each operand.  For constant operands, create
+     a new value range with the operand to simplify processing.  */
+  if (TREE_CODE (op0) == SSA_NAME)
+    vr0 = *(get_value_range (op0));
+  else if (is_gimple_min_invariant (op0))
+    set_value_range_to_value (&vr0, op0, NULL);
+  else
+    set_value_range_to_varying (&vr0);
+
+  if (TREE_CODE (op1) == SSA_NAME)
+    vr1 = *(get_value_range (op1));
+  else if (is_gimple_min_invariant (op1))
+    set_value_range_to_value (&vr1, op1, NULL);
+  else
+    set_value_range_to_varying (&vr1);
+
+  /* The resulting value range is the union of the operand ranges
+     if vrc is varrying.  Otherwise it is the range of the operand. */
+  cond = value_range_constant_singleton (&vrc);
+  if (cond == NULL_TREE)
+    {
+      vrp_meet (&vr0, &vr1);
+      copy_value_range (vr, &vr0);
+    }
+  else if (integer_zerop (cond))
+    copy_value_range (vr, &vr0);
+  else
+    copy_value_range (vr, &vr1);
+}
+
 /* Try to derive a nonnegative or nonzero range out of STMT relying
    primarily on generic routines in fold in conjunction with range data.
    Store the result in *VR */
@@ -3309,31 +3323,46 @@ extract_range_basic (value_range_t *vr, gimple stmt)
 static void
 extract_range_from_assignment (value_range_t *vr, gimple stmt)
 {
+  tree newexpr = NULL_TREE;
   enum tree_code code = gimple_assign_rhs_code (stmt);
+  tree exprtype = gimple_expr_type (stmt);
+  location_t loc = gimple_location (stmt);
+  tree op0, op1, op2;
+  op0 = gimple_assign_rhs1 (stmt);
+  op1 = gimple_assign_rhs2 (stmt);
+  op2 = gimple_assign_rhs3 (stmt);
+
+  if (TREE_CODE_CLASS (code) == tcc_binary
+      || TREE_CODE_CLASS (code) == tcc_comparison)
+    newexpr = gimple_combine_binary (loc, code, exprtype, op0, op1);
+  else if (code == COND_EXPR)
+    newexpr = gimple_combine_ternary (loc, code, exprtype, op0, op1, op2);
+  else if (TREE_CODE_CLASS (code) == tcc_unary)
+    newexpr = gimple_combine_unary (loc, code, exprtype, op0);
+
+  if (newexpr
+      && get_gimple_rhs_class (TREE_CODE (newexpr)) != GIMPLE_INVALID_RHS
+      && valid_gimple_rhs_p (newexpr))
+    extract_ops_from_tree_1 (newexpr, &code, &op0, &op1, &op2);
 
   if (code == ASSERT_EXPR)
-    extract_range_from_assert (vr, gimple_assign_rhs1 (stmt));
+    extract_range_from_assert (vr, op0);
   else if (code == SSA_NAME)
-    extract_range_from_ssa_name (vr, gimple_assign_rhs1 (stmt));
+    extract_range_from_ssa_name (vr, op0);
   else if (TREE_CODE_CLASS (code) == tcc_binary)
-    extract_range_from_binary_expr (vr, gimple_assign_rhs_code (stmt),
-				    gimple_expr_type (stmt),
-				    gimple_assign_rhs1 (stmt),
-				    gimple_assign_rhs2 (stmt));
+    extract_range_from_binary_expr (vr, code,
+				    exprtype,
+				    op0,
+				    op1);
   else if (TREE_CODE_CLASS (code) == tcc_unary)
-    extract_range_from_unary_expr (vr, gimple_assign_rhs_code (stmt),
-				   gimple_expr_type (stmt),
-				   gimple_assign_rhs1 (stmt));
+    extract_range_from_unary_expr (vr, code, exprtype, op0);
   else if (code == COND_EXPR)
-    extract_range_from_cond_expr (vr, stmt);
+    extract_range_from_cond_expr (vr, op0, op1, op2);
   else if (TREE_CODE_CLASS (code) == tcc_comparison)
-    extract_range_from_comparison (vr, gimple_assign_rhs_code (stmt),
-				   gimple_expr_type (stmt),
-				   gimple_assign_rhs1 (stmt),
-				   gimple_assign_rhs2 (stmt));
+    extract_range_from_comparison (vr, code, exprtype, op0, op1);
   else if (get_gimple_rhs_class (code) == GIMPLE_SINGLE_RHS
-	   && is_gimple_min_invariant (gimple_assign_rhs1 (stmt)))
-    set_value_range_to_value (vr, gimple_assign_rhs1 (stmt), NULL);
+	   && is_gimple_min_invariant (op0))
+    set_value_range_to_value (vr, op0, NULL);
   else
     set_value_range_to_varying (vr);
 

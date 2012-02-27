@@ -625,6 +625,10 @@ bool do_while_loop_p (struct loop *);
 typedef double_int (*nonzerobits_t)(tree var);
 void gimple_combine_set_nonzerobits (nonzerobits_t);
 bool ssa_combine (gimple_stmt_iterator *t);
+tree gimple_combine_binary (location_t, enum tree_code, tree, tree, tree);
+tree gimple_combine_unary (location_t, enum tree_code, tree, tree);
+tree gimple_combine_ternary (location_t, enum tree_code, tree, tree, tree,
+			     tree);
 
 /* Affine iv.  */
 
