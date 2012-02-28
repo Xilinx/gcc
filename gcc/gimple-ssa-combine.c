@@ -124,7 +124,30 @@ gimple_combine_build1 (location_t loc, enum tree_code code,
 }
 
 static tree extract_simple_gimple (gimple_stmt_iterator *, tree);
-static double_int nonzerobits (tree var);
+
+/* Report that what we got for VAL's nonzerobits (a) if it is
+   not just the type's nonzerobits.  */
+static double_int
+nonzerobits_report (double_int a, tree val)
+{
+  tree type;
+  double_int nonzero;
+  if (!dump_file || !(dump_flags & TDF_DETAILS))
+    return a;
+
+  type = TREE_TYPE (val);
+
+  nonzero = mask_for_type (type);
+  if (double_int_equal_p (nonzero, a))
+    return a;
+
+  fprintf (dump_file, "Found nonzerobits for '");
+  print_generic_expr (dump_file, val, 0);
+  fprintf (dump_file, "' as "HOST_WIDE_INT_PRINT_DOUBLE_HEX "\n",
+	   a.high, a.low);
+
+  return a;
+}
 
 static double_int
 nonzerobits (tree val)
@@ -132,13 +155,16 @@ nonzerobits (tree val)
   double_int nonzero, lhs, rhs;
   tree op0, op1, op2;
   enum tree_code code;
+  tree type;
 
   if (val == NULL_TREE)
     return double_int_minus_one;
 
-  nonzero = mask_for_type (TREE_TYPE (val));
+  type = TREE_TYPE (val);
 
-  if (!INTEGRAL_TYPE_P (TREE_TYPE (val)))
+  nonzero = mask_for_type (type);
+
+  if (!INTEGRAL_TYPE_P (type))
     return nonzero;
 
   if (TREE_CODE (val) == INTEGER_CST)
@@ -150,7 +176,7 @@ nonzerobits (tree val)
       double_int t = nonzerobitsf (val);
       t = double_int_and (t, nonzero);
       if (!double_int_equal_p (t, nonzero))
-        return t;
+        return nonzerobits_report (t, val);
     }
 
   defcodefor_name_3 (val, &code, &op0, &op1, &op2);
@@ -171,21 +197,38 @@ nonzerobits (tree val)
 	if (double_int_equal_p (lhs, nonzero))
           return lhs;
 	rhs = nonzerobits (op1);
-	return double_int_ior (lhs, rhs);
+	return nonzerobits_report (double_int_ior (lhs, rhs), val);
       case COND_EXPR:
 	lhs = nonzerobits (op1);
 	if (double_int_equal_p (lhs, nonzero))
 	  return lhs;
 	 rhs = nonzerobits (op2);
-	return double_int_ior (lhs, rhs);
+	return nonzerobits_report (double_int_ior (lhs, rhs), val);
       case BIT_AND_EXPR:
 	lhs = nonzerobits (op0);
 	rhs = nonzerobits (op1);
-	return double_int_and (lhs, rhs);
+	return nonzerobits_report (double_int_and (lhs, rhs), val);
 #if 0
       /* Handle BIT_FIELD_REF with the width. */
       case BIT_FIELD_REF:
 #endif
+      CASE_CONVERT:
+	  {
+	    tree rtype = TREE_TYPE (op0);
+	    bool uns;
+	    double_int mask;
+	    double_int rmask = nonzerobits (op0);
+	    /* First extend mask and value according to the original type.  */
+	    uns = (TREE_CODE (rtype) == INTEGER_TYPE
+	           && TYPE_IS_SIZETYPE (rtype) ? 0 : TYPE_UNSIGNED (rtype));
+	    mask = double_int_ext (rmask, TYPE_PRECISION (rtype), uns);
+
+	    /* Then extend mask and value according to the target type.  */
+	    uns = (TREE_CODE (type) == INTEGER_TYPE && TYPE_IS_SIZETYPE (type)
+	           ? 0 : TYPE_UNSIGNED (type));
+	    mask = double_int_ext (mask, TYPE_PRECISION (type), uns);
+	    return nonzerobits_report (double_int_and (mask, nonzero), val);
+	  }
       default:
 	return nonzero;
     }
@@ -699,6 +742,13 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt)
       proping = true;
     }
 
+  /* If we had a = ~b; if(a!=0) then do it as b==0 */
+  if (code == BIT_NOT_EXPR || code == TRUTH_NOT_EXPR)
+    {
+      code = EQ_EXPR;
+      rhs2 = build_zero_cst (TREE_TYPE (rhs1));
+    }
+
   /* We can do tree combining on SSA_NAME and comparison expressions.  */
   if (TREE_CODE_CLASS (code) != tcc_comparison)
     return 0;
@@ -747,12 +797,20 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt)
       /* If we just changed a != 0 to be the same as (bool)a
          then don't do anything as we will produce the same
          result and cause an infinite loop.  */
-      if (code == NE_EXPR && integer_zerop (rhs2) &&
-	  operand_equal_for_phi_arg_p (t, rhs1))
+      if (code == NE_EXPR && integer_zerop (rhs2)
+	  && operand_equal_for_phi_arg_p (t, rhs1))
 	return false;
       tmp = build2_loc (loc, NE_EXPR, boolean_type_node, t,
 			build_zero_cst (TREE_TYPE (t)));
     }
+
+  /* If we just changed a != 0 to be the same as a
+      then don't do anything as we will produce the same
+      result and cause an infinite loop.  */
+  if (code == NE_EXPR && integer_zerop (rhs2)
+      && operand_equal_for_phi_arg_p (tmp, rhs1)
+      && !proping)
+    return false;
 
   tmp = extract_simple_gimple (gsi, tmp);
   if (!tmp)

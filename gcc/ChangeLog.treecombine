@@ -1,3 +1,14 @@
+2012-02-28  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (nonzerobits_report): New function
+	to report when we find a non "-1" from nonzerobits.
+	(nonzerobits): Use nonzerobits_report.
+	Handle CASE_CONVERT.
+	(forward_propagate_into_gimple_cond): Handle proping
+	of ~a into if(a!=0).
+	Handle the case where we did a simplification from a!=0
+	to a.
+
 2012-02-27  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c (mask_for_type): New function.
