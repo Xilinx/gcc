@@ -67,6 +67,10 @@ mxl-soft-mul
 Target Mask(SOFT_MUL)
 Use the soft multiply emulation (default)
 
+mxl-reorder
+Target Mask(REORDER)
+Use reorder instructions (default)
+
 mxl-soft-div
 Target Mask(SOFT_DIV)
 Use the software emulation for divides (default)
