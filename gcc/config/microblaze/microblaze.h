@@ -57,7 +57,7 @@ extern enum pipeline_type microblaze_pipe;
 
 /* Default target_flags if no switches are specified  */
 #define TARGET_DEFAULT      (MASK_SOFT_MUL | MASK_SOFT_DIV | MASK_SOFT_FLOAT \
-                             | TARGET_ENDIAN_DEFAULT)
+                             | TARGET_ENDIAN_DEFAULT |MASK_REORDER)
 
 /* Do we have CLZ?  */
 #define TARGET_HAS_CLZ      (TARGET_PATTERN_COMPARE && microblaze_has_clz)
@@ -81,6 +81,7 @@ extern enum pipeline_type microblaze_pipe;
 	"%{mno-xl-barrel-shift:%<mxl-barrel-shift}", 	\
 	"%{mno-xl-pattern-compare:%<mxl-pattern-compare}", \
 	"%{mxl-soft-div:%<mno-xl-soft-div}", 		\
+	"%{mxl-reorder:%<mno-xl-reorder}", 		\
 	"%{msoft-float:%<mhard-float}"
 
 /* Tell collect what flags to pass to nm.  */
@@ -783,9 +784,11 @@ do {									\
 
 /* Handle interrupt attribute.  */
 extern int interrupt_handler;
+extern int fast_interrupt;
 extern int save_volatiles;
 
 #define INTERRUPT_HANDLER_NAME "_interrupt_handler"
+#define FAST_INTERRUPT_NAME "_fast_interrupt"
 
 /* These #define added for C++.  */
 #define UNALIGNED_SHORT_ASM_OP          ".data16"
