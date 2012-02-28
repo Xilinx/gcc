@@ -1,3 +1,20 @@
+2012-02-27  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (mask_for_type): New function.
+	(gimple_default_nonzero_bits): Return -1 in the unsigned
+	type of val.
+	(nonzerobits_1): Remove.
+	(nonzerobits): Rewrite using defcode_for_name_3.
+	Also ask the hook before using defcode_for_name_3.
+	(defcodefor_name): Rename to ...
+	(defcodefor_name_3): this.
+	Use extract_ops_from_tree_1 instead of doing it manually.
+	(truth_valued_ssa_name): Move to right below combine_cond_expr_cond.
+	Also use nonzerobits.
+	(simplify_bitwise_binary): Simplify XOR to IOR if the two sides
+	shares no set bits in common.
+	Canonicalize (a & C1) | C2.
+
 2012-02-26  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c: Remove the _loc from the functions name

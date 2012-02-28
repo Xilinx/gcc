@@ -37,12 +37,37 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-ssa-propagate.h"
 
 
+static inline void defcodefor_name_3 (tree name, enum tree_code *code,
+				      tree *arg1, tree *arg2, tree *arg3);
+#define defcodefor_name(n,c,a1,a2)  defcodefor_name_3(n,c,a1,a2,NULL)
+
+/* Generate a mask for the TYPE.  */
+static double_int
+mask_for_type (tree type)
+{
+  int width;
+  if (type == NULL_TREE)
+    return double_int_minus_one;
+  width = TYPE_PRECISION (type);
+
+  if (TREE_CODE (type) == VECTOR_TYPE)
+    width = TYPE_VECTOR_SUBPARTS (type) * TYPE_PRECISION (TREE_TYPE (type));
+  else if (TREE_CODE (type) == COMPLEX_TYPE)
+    width = TYPE_PRECISION (TREE_TYPE (type)) * 2;
+  
+  return double_int_mask (width);
+}
+
 /* Implement a simple nonzero function. Most of the work is done
    in nonzerobits_1. */
 static double_int
-gimple_default_nonzero_bits (tree val ATTRIBUTE_UNUSED)
+gimple_default_nonzero_bits (tree val)
 {
-  return double_int_minus_one;
+  tree type;
+  if (val == NULL_TREE)
+    return double_int_minus_one;
+  type = TREE_TYPE (val);
+  return mask_for_type (type);
 }
 
 static nonzerobits_t nonzerobitsf = gimple_default_nonzero_bits;
@@ -102,69 +127,68 @@ static tree extract_simple_gimple (gimple_stmt_iterator *, tree);
 static double_int nonzerobits (tree var);
 
 static double_int
-nonzerobits_1 (enum tree_code code, tree type, tree op0, tree op1)
-{
-  double_int rhs, lhs;
-  if (code == MEM_REF)
-    return double_int_minus_one;
-  if (code == BIT_IOR_EXPR
-      || code == BIT_XOR_EXPR)
-     {
-       lhs = nonzerobits (op0);
-       if (double_int_minus_one_p (lhs))
-         return lhs;
-       rhs = nonzerobits (op1);
-       return double_int_ior (lhs, rhs);
-     }
-  if (code == BIT_AND_EXPR)
-    {
-      double_int lhs, rhs;
-      lhs = nonzerobits (op0);
-      rhs = nonzerobits (op1);
-      return double_int_and (lhs, rhs);
-    }
-  if (truth_value_p (code))
-    return double_int_one;
-  /* FIXME: Handle conversions. */
-  (void)type;
-  return double_int_minus_one;
-}
-
-static double_int
 nonzerobits (tree val)
 {
-  double_int t = double_int_minus_one;
+  double_int nonzero, lhs, rhs;
+  tree op0, op1, op2;
+  enum tree_code code;
+
   if (val == NULL_TREE)
     return double_int_minus_one;
-  if (TREE_CODE (val) == INTEGER_CST)
-    return tree_to_double_int (val);
-  if (UNARY_CLASS_P (val))
-    t = nonzerobits_1 (TREE_CODE (val), TREE_TYPE (val),
-		       TREE_OPERAND (val, 0), NULL_TREE);
-  if (BINARY_CLASS_P (val) || COMPARISON_CLASS_P (val))
-    t = nonzerobits_1 (TREE_CODE (val), TREE_TYPE (val),
-		       TREE_OPERAND (val, 0), TREE_OPERAND (val, 1));
 
+  nonzero = mask_for_type (TREE_TYPE (val));
+
+  if (!INTEGRAL_TYPE_P (TREE_TYPE (val)))
+    return nonzero;
+
+  if (TREE_CODE (val) == INTEGER_CST)
+    return double_int_and (tree_to_double_int (val), nonzero);
+
+  /* If we have a SSA_NAME, ask the hook first. */
   if (TREE_CODE (val) == SSA_NAME)
     {
-      gimple def = SSA_NAME_DEF_STMT (val);
-      if (is_gimple_assign (def))
-        {
-	  enum tree_code code = gimple_assign_rhs_code (def);
-	  tree op0 = gimple_assign_rhs1 (def);
-	  tree op1 = gimple_assign_rhs2 (def);
-	  tree type = TREE_TYPE (gimple_assign_lhs (def));
-	  if (TREE_CODE_CLASS (code) == tcc_unary)
-	    t = nonzerobits_1 (code, type, op0, NULL_TREE);
-	  if (TREE_CODE_CLASS (code) == tcc_binary
-	      || TREE_CODE_CLASS (code) == tcc_comparison)
-	    t = nonzerobits_1 (code, type, op0, op1);
-	}
+      double_int t = nonzerobitsf (val);
+      t = double_int_and (t, nonzero);
+      if (!double_int_equal_p (t, nonzero))
+        return t;
     }
-  if (!double_int_minus_one_p (t))
-    return t;
-  /* Fall back to pass specific nonzero function.  */
-  return nonzerobitsf (val);
+
+  defcodefor_name_3 (val, &code, &op0, &op1, &op2);
+
+  /* Truth value based codes are always have just one bit set. */
+  if (truth_value_p (code))
+    return double_int_one;
+
+  switch (code)
+    {
+      case MEM_REF:
+	return nonzero;
+      case BIT_IOR_EXPR:
+      case BIT_XOR_EXPR:
+      case MAX_EXPR:
+      case MIN_EXPR:
+	lhs = nonzerobits (op0);
+	if (double_int_equal_p (lhs, nonzero))
+          return lhs;
+	rhs = nonzerobits (op1);
+	return double_int_ior (lhs, rhs);
+      case COND_EXPR:
+	lhs = nonzerobits (op1);
+	if (double_int_equal_p (lhs, nonzero))
+	  return lhs;
+	 rhs = nonzerobits (op2);
+	return double_int_ior (lhs, rhs);
+      case BIT_AND_EXPR:
+	lhs = nonzerobits (op0);
+	rhs = nonzerobits (op1);
+	return double_int_and (lhs, rhs);
+#if 0
+      /* Handle BIT_FIELD_REF with the width. */
+      case BIT_FIELD_REF:
+#endif
+      default:
+	return nonzero;
+    }
 }
 
 /* Get the statement we can propagate from into NAME skipping
@@ -266,18 +290,23 @@ can_propagate_from (gimple def_stmt)
    set CODE to be the code and ARG1 to the first operand on the rhs and ARG2
    to the second operand on the rhs. */
 static inline void
-defcodefor_name (tree name, enum tree_code *code, tree *arg1, tree *arg2)
+defcodefor_name_3 (tree name, enum tree_code *code, tree *arg1, tree *arg2,
+		   tree *arg3)
 {
   gimple def;
   enum tree_code code1;
   tree arg11;
   tree arg21;
+  tree arg31;
   bool single_use;
+  enum gimple_rhs_class grhs_class;
   
   code1 = TREE_CODE (name);
   arg11 = name;
   arg21 = NULL_TREE;
   single_use = true;
+  grhs_class = get_gimple_rhs_class (code1);
+
   if (code1 == SSA_NAME)
     {
       def = get_prop_source_stmt (name, false, &single_use);
@@ -287,20 +316,21 @@ defcodefor_name (tree name, enum tree_code *code, tree *arg1, tree *arg2)
 	  code1 = gimple_assign_rhs_code (def);
 	  arg11 = gimple_assign_rhs1 (def);
           arg21 = gimple_assign_rhs2 (def);
+          arg31 = gimple_assign_rhs3 (def);
 	}
     }
-  else if (BINARY_CLASS_P (name) || COMPARISON_CLASS_P (name))
-    {
-      arg11 = TREE_OPERAND (name, 0);
-      arg21 = TREE_OPERAND (name, 1);
-    }
-  else if (UNARY_CLASS_P (name))
-    arg11 = TREE_OPERAND (name, 0);
+  else if (grhs_class == GIMPLE_TERNARY_RHS
+	   || GIMPLE_BINARY_RHS
+	   || GIMPLE_UNARY_RHS
+	   || GIMPLE_SINGLE_RHS)
+    extract_ops_from_tree_1 (name, &code1, &arg11, &arg21, &arg31);
   
   *code = code1;
   *arg1 = arg11;
   if (arg2)
     *arg2 = arg21;
+  if (arg3)
+    *arg3 = arg31;
 }
 
 /* Return the rhs of a gimple_assign STMT in a form of a single tree,
@@ -390,6 +420,24 @@ combine_cond_expr_cond (location_t loc, enum tree_code code, tree type,
   fold_undefer_overflow_warnings_loc (!nowarnings, loc, 0);
 
   return t;
+}
+
+/* Checks if expression has type of one-bit precision, or is a known
+   truth-valued expression.  */
+static bool
+truth_valued_ssa_name (tree name)
+{
+  tree type = TREE_TYPE (name);
+
+  if (!INTEGRAL_TYPE_P (type))
+    return false;
+  /* Don't check here for BOOLEAN_TYPE as the precision isn't
+     necessarily one and so ~X is not equal to !X.  */
+  if (TYPE_PRECISION (type) == 1)
+    return true;
+  /* If the only bits which are maybe nonzero is the first bit,
+     then this is a truth valued name. */
+  return double_int_one_p (nonzerobits (name));
 }
 
 /* Combine the comparison OP0 CODE OP1 at LOC with the defining statements
@@ -978,28 +1026,6 @@ simplify_gimple_switch (gimple stmt)
   return false;
 }
 
-
-
-/* Checks if expression has type of one-bit precision, or is a known
-   truth-valued expression.  */
-static bool
-truth_valued_ssa_name (tree name)
-{
-  enum tree_code code;
-  tree arg1;
-  tree type = TREE_TYPE (name);
-
-  if (!INTEGRAL_TYPE_P (type))
-    return false;
-  /* Don't check here for BOOLEAN_TYPE as the precision isn't
-     necessarily one and so ~X is not equal to !X.  */
-  if (TYPE_PRECISION (type) == 1)
-    return true;
-  defcodefor_name (name, &code, &arg1, NULL);
-  /* FIXME this should also be using nonzerobits here. */
-  return truth_value_p (code);
-}
-
 /* Helper routine for simplify_bitwise_binary_1 function.
    Return for the SSA name NAME the expression X if it mets condition
    NAME = !X. Otherwise return NULL_TREE.
@@ -1194,6 +1220,14 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 						
     return arg2;
 
+  /* If we are XORing two things that have no bits in common,
+     convert them into an IOR.  This helps to detect rotation encoded
+     using those methods and possibly other simplifications.  */
+  if (code == BIT_XOR_EXPR
+      && double_int_zero_p (double_int_and (nonzerobits (arg1),
+					    nonzerobits (arg2))))
+    return gimple_combine_build2 (loc, BIT_IOR_EXPR, type, arg1, arg2);
+
   /* Fold a!=0|b!=0 if a and b are the same type to (a|b)!=0 . */
   if (code == BIT_IOR_EXPR
       && def1_code == NE_EXPR
@@ -1260,6 +1294,29 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       tmp = gimple_combine_build2 (loc, code, TREE_TYPE (def1_arg1), def1_arg1,
 				   def2_arg1);
       return build1_loc (loc, NOP_EXPR, type, tmp);
+    }
+
+  /* Canonicalize (a & C1) | C2.  */
+  if (code == BIT_IOR_EXPR
+      && def1_code == BIT_AND_EXPR
+      && TREE_CODE (arg2) == INTEGER_CST
+      && TREE_CODE (def1_arg2) == INTEGER_CST)
+    {
+      double_int c1, c2, msk;
+      int width = TYPE_PRECISION (type);
+      c1 = tree_to_double_int (def1_arg2);
+      c2 = tree_to_double_int (arg2);
+
+      /* If (C1&C2) == C1, then (a&C1)|C2 becomes C2.  */
+      if (double_int_equal_p (double_int_and (c1, c2), c1))
+	return arg2;
+
+      msk = double_int_mask (width);
+
+      /* If (C1|C2) == ~0 then (X&C1)|C2 becomes X|C2.  */
+      if (double_int_zero_p (double_int_and_not (msk,
+						 double_int_ior (c1, c2))))
+	return gimple_combine_build2 (loc, code, type, def1_arg1, arg2);
     }
 
   /* (a | CST1) & CST2  ->  (a & CST2) | (CST1 & CST2).  */
