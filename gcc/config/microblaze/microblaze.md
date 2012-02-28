@@ -346,6 +346,29 @@
 (automata_option "time")
 (automata_option "progress")
 
+
+(define_insn "bswaphi2"
+  [(set (match_operand:HI 0 "register_operand" "+r")
+        (bswap:HI (match_dup 0)))]
+  "TARGET_REORDER"
+  "swaph %0, %0"
+)
+
+(define_insn "bswapsi2"
+  [(set (match_operand:SI 0 "register_operand" "=r")
+        (bswap:SI (match_operand:SI 1 "register_operand" "r")))]
+  "TARGET_REORDER"
+  "swapb %0, %1"
+)
+
+
+(define_insn "bswap"
+  [(set (match_operand:HI 0 "register_operand" "=r")
+        (bswap:HI (match_operand:HI 1 "register_operand" "r")))]
+  "TARGET_REORDER"
+  "swaph %0, %1"
+)
+
 ;;----------------------------------------------------------------
 ;; Microblaze delay slot description
 ;;----------------------------------------------------------------
@@ -1021,7 +1044,7 @@
 (define_insn "movsi_status"
   [(set (match_operand:SI 0 "register_operand" "=d,d,z")
         (match_operand:SI 1 "register_operand" "z,d,d"))]
-  "interrupt_handler"
+  "interrupt_handler || fast_interrupt"
   "@
 	mfs\t%0,%1  #mfs
 	addk\t%0,%1,r0 #add movsi
@@ -1966,7 +1989,7 @@
   [(return)]
   "microblaze_can_use_return_insn ()"
   { 
-    if (microblaze_is_interrupt_handler ())
+    if (microblaze_is_interrupt_handler () || microblaze_is_fast_interrupt())
         return "rtid\tr14, 0\;%#";
     else
         return "rtsd\tr15, 8\;%#";
@@ -1984,7 +2007,7 @@
               (return)])]
   ""
   {	
-    if (microblaze_is_interrupt_handler ())
+    if (microblaze_is_interrupt_handler () || microblaze_is_fast_interrupt())
         return "rtid\tr14,0 \;%#";
     else
         return "rtsd\tr15,8 \;%#";

@@ -195,11 +195,13 @@ enum reg_class microblaze_regno_to_class[] =
 		       and epilogue and use appropriate interrupt return.
    save_volatiles    - Similiar to interrupt handler, but use normal return.  */
 int interrupt_handler;
+int fast_interrupt;
 int save_volatiles;
 
 const struct attribute_spec microblaze_attribute_table[] = {
   /* name         min_len, max_len, decl_req, type_req, fn_type, req_handler */
   {"interrupt_handler", 0,       0,     true,    false,   false,        NULL},
+  {"fast_interrupt", 0,       0,     true,    false,   false,        NULL},
   {"save_volatiles"   , 0,       0,     true,    false,   false,        NULL},
   { NULL,        	0,       0,    false,    false,   false,        NULL}
 };
@@ -1499,6 +1501,17 @@ microblaze_interrupt_function_p (tree func)
   return a != NULL_TREE;
 }
 
+static int
+microblaze_fast_interrupt_function_p (tree func)
+{
+  tree a;
+
+  if (TREE_CODE (func) != FUNCTION_DECL)
+    return 0;
+
+  a = lookup_attribute ("fast_interrupt", DECL_ATTRIBUTES (func));
+  return a != NULL_TREE;
+}
 /* Return true if FUNC is an interrupt function which uses
    normal return, indicated by the "save_volatiles" attribute.  */
 
@@ -1523,6 +1536,11 @@ microblaze_is_interrupt_handler (void)
   return interrupt_handler;
 }
 
+int
+microblaze_is_fast_interrupt (void)
+{
+  return fast_interrupt;
+}
 /* Determine of register must be saved/restored in call.  */
 static int
 microblaze_must_save_register (int regno)
@@ -1541,7 +1559,7 @@ microblaze_must_save_register (int regno)
     {
       if (regno == MB_ABI_SUB_RETURN_ADDR_REGNUM)
 	return 1;
-      if ((interrupt_handler || save_volatiles) &&
+      if ((fast_interrupt || interrupt_handler || save_volatiles) &&
 	  (regno >= 3 && regno <= 12))
 	return 1;
     }
@@ -1555,6 +1573,12 @@ microblaze_must_save_register (int regno)
 	return 1;
     }
 
+  if (fast_interrupt)
+    {
+      if (df_regs_ever_live_p (regno)
+	  || regno == MB_ABI_MSR_SAVE_REG)
+	return 1;
+    }
   if (save_volatiles)
     {
       if (df_regs_ever_live_p (regno)
@@ -1624,6 +1648,8 @@ compute_frame_size (HOST_WIDE_INT size)
 
   interrupt_handler =
     microblaze_interrupt_function_p (current_function_decl);
+  fast_interrupt =
+    microblaze_fast_interrupt_function_p (current_function_decl);
   save_volatiles = microblaze_save_volatiles (current_function_decl);
 
   gp_reg_size = 0;
@@ -1657,7 +1683,7 @@ compute_frame_size (HOST_WIDE_INT size)
   total_size += gp_reg_size;
 
   /* Add 4 bytes for MSR.  */
-  if (interrupt_handler)
+  if (interrupt_handler || fast_interrupt)
     total_size += 4;
 
   /* No space to be allocated for link register in leaf functions with no other
@@ -2149,7 +2175,7 @@ save_restore_insns (int prologue)
   base_reg_rtx = stack_pointer_rtx;
 
   /* For interrupt_handlers, need to save/restore the MSR.  */
-  if (interrupt_handler)
+  if (interrupt_handler || fast_interrupt)
     {
       isr_mem_rtx = gen_rtx_MEM (SImode,
 				 gen_rtx_PLUS (Pmode, base_reg_rtx,
@@ -2163,7 +2189,7 @@ save_restore_insns (int prologue)
       isr_msr_rtx = gen_rtx_REG (SImode, ST_REG);
     }
 
-  if (interrupt_handler && !prologue)
+  if ((interrupt_handler && !prologue) ||( fast_interrupt && !prologue) )
     {
       emit_move_insn (isr_reg_rtx, isr_mem_rtx);
       emit_move_insn (isr_msr_rtx, isr_reg_rtx);
@@ -2183,7 +2209,7 @@ save_restore_insns (int prologue)
 	  reg_rtx = gen_rtx_REG (SImode, regno);
 	  insn = gen_rtx_PLUS (Pmode, base_reg_rtx, GEN_INT (gp_offset));
 	  mem_rtx = gen_rtx_MEM (SImode, insn);
-	  if (interrupt_handler || save_volatiles)
+	  if (interrupt_handler || save_volatiles || fast_interrupt)
 	    /* Do not optimize in flow analysis.  */
 	    MEM_VOLATILE_P (mem_rtx) = 1;
 
@@ -2201,7 +2227,7 @@ save_restore_insns (int prologue)
 	}
     }
 
-  if (interrupt_handler && prologue)
+  if ((interrupt_handler && prologue) || (fast_interrupt && prologue))
     {
       emit_move_insn (isr_reg_rtx, isr_msr_rtx);
       emit_move_insn (isr_mem_rtx, isr_reg_rtx);
@@ -2231,10 +2257,12 @@ microblaze_function_prologue (FILE * file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
       fputs ("\t.ent\t", file);
       if (interrupt_handler && strcmp (INTERRUPT_HANDLER_NAME, fnname))
 	fputs ("_interrupt_handler", file);
+      else if (fast_interrupt && strcmp (FAST_INTERRUPT_NAME, fnname))
+	fputs ("_fast_interrupt", file);
       else
 	assemble_name (file, fnname);
       fputs ("\n", file);
-      if (!interrupt_handler)
+      if (!interrupt_handler || !fast_interrupt)
 	ASM_OUTPUT_TYPE_DIRECTIVE (file, fnname, "function");
     }
 
@@ -2587,6 +2615,11 @@ microblaze_globalize_label (FILE * stream, const char *name)
   if (interrupt_handler && strcmp (name, INTERRUPT_HANDLER_NAME))
     {
       fputs (INTERRUPT_HANDLER_NAME, stream);
+      fputs ("\n\t.globl\t", stream);
+    }
+  if (fast_interrupt && strcmp (name, FAST_INTERRUPT_NAME))
+    {
+      fputs (FAST_INTERRUPT_NAME, stream);
       fputs ("\n\t.globl\t", stream);
     }
   assemble_name (stream, name);
