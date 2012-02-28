@@ -1,3 +1,57 @@
+2012-02-28  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	PR target/51534
+	* gcc.target/arm/neon/pr51534.c: New testcase.
+
+2012-02-28  Richard Guenther  <rguenther@suse.de>
+
+	PR target/52407
+	* gcc.dg/torture/pr52407.c: New testcase.
+
+2012-02-28  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+	* gcc.target/arm/vfp1.c (dg_do run): Run on all eabi variants.
+	* gcc.target/arm/vfp2.c: Likewise.
+	* gcc.target/arm/vfp3.c: Likewise.
+	* gcc.target/arm/vfp4.c: Likewise.
+	* gcc.target/arm/vfp5.c: Likewise.
+	* gcc.target/arm/vfp6.c: Likewise.
+	* gcc.target/arm/vfp7.c: Likewise.
+	* gcc.target/arm/vfp8.c: Likewise.
+	* gcc.target/arm/vfp9.c: Likewise.
+	* gcc.target/arm/vfp10.c: Likewise.
+	* gcc.target/arm/vfp11.c: Likewise.
+	* gcc.target/arm/vfp12.c: Likewise.
+	* gcc.target/arm/vfp13.c: Likewise.
+	* gcc.target/arm/vfp14.c: Likewise.
+	* gcc.target/arm/vfp15.c: Likewise.
+	* gcc.target/arm/vfp16.c: Likewise.
+	* gcc.target/arm/vfp17.c: Likewise.
+	* gcc.target/arm/neon-constants.h: New file.
+	* gcc.target/arm/neon-vect1.c: New test.
+	* gcc.target/arm/neon-vect2.c: New test.
+	* gcc.target/arm/neon-vect3.c: New test.
+	* gcc.target/arm/neon-vect4.c: New test.
+	* gcc.target/arm/neon-vect5.c: New test.
+	* gcc.target/arm/neon-vect6.c: New test.
+	* gcc.target/arm/neon-vect7.c: New test.
+	* gcc.target/arm/neon-vect8.c: New test.
+
+2012-02-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52402
+	* gcc.dg/torture/pr52402.c: New testcase.
+
+2012-02-28  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/52400
+	* g++.dg/lto/pr52400_0.C: New testcase.
+
+2012-02-28  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.target/avr/torture/builtins-1.c: New test.
+	* gcc.target/avr/torture/builtins-error.c: New test.
+
 2012-02-28  Kai Tietz  <ktietz@redhat.com>
 
 	* gcc.target/i386/pr46939.c (long): Fix LP64 vs LLP64

@@ -1,3 +1,118 @@
+2012-02-28  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* gcc.c (display_help): Document --help=common and sort entries
+	alphabetically.
+
+2012-02-28  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* doc/install.texi: Document check-$LANG specific shortcuts
+
+2012-02-28  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	PR target/51534
+	* config/arm/arm.c (neon_builtin_data): Add entries for vcgeu
+	and vcgtu.
+	* config/arm/arm_neon.h: Regenerate.
+	* config/arm/neon.md (unspec): Add UNSPEC_VCGEU, and UNSPEC_VCGTU.
+	(neon_vcgeu): New insn.
+	(neon_vcgtu): Likewise.
+	* config/arm/neon.ml (s_8_32, u_8_32): New lists.
+	(ops): Unsigned comparison intrinsics call a different
+	builtin.
+
+2012-02-28  Richard Guenther  <rguenther@suse.de>
+
+	PR target/52407
+	* config/i386/i386.c (ix86_expand_vector_set): Fix element
+	ordering for the VEC_CONCAT for two element vectors for
+	V2SFmode, V2SImode and V2DImode.
+
+2012-02-28  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/49448
+	* config.gcc (arm*-*-linux*): Use an unambiguous pattern for
+	detecting big-endian triplets.
+
+2012-02-28  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm.c (aapcs_vfp_is_call_or_return_candidate): Only use the machine
+	mode if there is no type information available.
+
+2012-02-28  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR tree-optimization/53207
+	* doc/invoke.texi: Document as experimental and relying on graphite.
+
+2012-02-28  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr-devices.c (avr_mcu_type): Adjust NULL part
+	of initializer to changes from r184614.
+	
+2012-02-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52395
+	* tree-sra.c (build_ref_for_offset): Also look at the base
+	TYPE_ALIGN when figuring out the alignment of the replacement.
+
+2012-02-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52402
+	* ipa-prop.c (ipa_modify_call_arguments): Properly use
+	mis-aligned types when creating the accesses at the call site.
+
+2012-02-28  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/builtins.def: New file.
+	* config/avr/t-avr (avr.o, avr-c.o): Depend on it.
+	* config/avr/avr.c (enum avr_builtin_id): Use it.
+	(avr_init_builtins): Use it. And use avr_bdesc.
+	(bdesc_1arg): Remove.
+	(bdesc_2arg): Remove.
+	(bdesc_3arg): Remove.
+	(struct avr_builtin_description): Add field n_args.
+	(avr_bdesc): New static variable using builtins.def.
+	(avr_expand_builtin): Use it.
+	Don't call avr_expand_delay_cycles if op0 is not CONST_INT.
+	(avr_fold_builtin): Fold AVR_BUILTIN_SWAP.
+	Don't fold AVR_BUILTIN_INSERT_BITS if arg0 is not INTEGER_CST.
+
+2012-02-28  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/52148
+	* config/avr/avr.md (movmem_<mode>): Replace match_operand that
+	match only one single hard register with respective hard reg rtx.
+	(movmemx_<mode>): Ditto.
+	* config/avr/avr.c (avr_emit_movmemhi): Adapt expanding to new
+	insn anatomy of movmem[x]_<mode>.
+	(avr_out_movmem): Same for printing assembler and operand usage.
+
+2012-02-28  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49868
+	PR target/52261
+	* doc/extend.texi (AVR Named Address Spaces): No more try to fix
+	address spaces located outside of device flash.
+
+	* config/avr/avr.h (base_arch_s): Remove field n_segments.
+	(mcu_type_s): Add field n_flash.
+	* config/avr/avr-devices.c (avr_arch_types): Remove .n_segments.
+	Set .have_elpm and .have_elpmx to 1 for avrxmega4 and avrxmega5.
+	(AVR_MCU): Add N_FLASH argument.
+	* config/avr/avr-mcus.def (AVR_MCU): Add initializer for .n_flash.
+	* config/avr/avr-c.c (avr_cpu_cpp_builtins): Only define built-in
+	macro __FLASH<n> if that address space makes sense for the device.
+	* config/avr/avr.c (avr_out_lpm): Don't try to fix address spaces
+	outside of target flash.
+	(avr_asm_named_section): Ditto.
+	(avr_asm_select_section): Ditto.
+	(avr_addr_space_convert): Ditto.
+	(avr_emit_movmemhi): Ditto.
+	(avr_nonconst_pointer_addrspace, avr_pgm_check_var_decl): Error if
+	address space is outside of device flash.
+	(avr_insert_attributes): Ditto.
+	(avr_xload_libgcc_p): Use avr_current_device->n_flash instead of
+	avr_current_arch->n_segments.
+
 2012-02-27  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/52352

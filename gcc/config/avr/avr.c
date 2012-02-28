@@ -2577,7 +2577,7 @@ avr_xload_libgcc_p (enum machine_mode mode)
   int n_bytes = GET_MODE_SIZE (mode);
   
   return (n_bytes > 1
-          || avr_current_arch->n_segments > 1);
+          || avr_current_device->n_flash > 1);
 }
 
 
@@ -2773,10 +2773,7 @@ avr_out_lpm (rtx insn, rtx *op, int *plen)
 
   regno_dest = REGNO (dest);
 
-  /* Cut down segment number to a number the device actually supports.
-     We do this late to preserve the address space's name for diagnostics.  */
-
-  segment = avr_addrspace[as].segment % avr_current_arch->n_segments;
+  segment = avr_addrspace[as].segment;
 
   /* Set RAMPZ as needed.  */
 
@@ -7101,6 +7098,7 @@ avr_nonconst_pointer_addrspace (tree typ)
 
   if (POINTER_TYPE_P (typ))
     {
+      addr_space_t as;
       tree target = TREE_TYPE (typ);
 
       /* Pointer to function: Test the function's return type.  */
@@ -7113,12 +7111,16 @@ avr_nonconst_pointer_addrspace (tree typ)
       while (TREE_CODE (target) == ARRAY_TYPE)
         target = TREE_TYPE (target);
 
-      if (!ADDR_SPACE_GENERIC_P (TYPE_ADDR_SPACE (target))
-          && !TYPE_READONLY (target))
-        {
-          /* Pointers to non-generic address space must be const.  */
+      /* Pointers to non-generic address space must be const.
+         Refuse address spaces outside the device's flash.  */
           
-          return TYPE_ADDR_SPACE (target);
+      as = TYPE_ADDR_SPACE (target);
+        
+      if (!ADDR_SPACE_GENERIC_P (as)
+          && (!TYPE_READONLY (target)
+              || avr_addrspace[as].segment >= avr_current_device->n_flash))
+        {
+          return as;
         }
 
       /* Scan pointer's target type.  */
@@ -7180,12 +7182,29 @@ avr_pgm_check_var_decl (tree node)
 
   if (reason)
     {
-      if (TYPE_P (node))
-        error ("pointer targeting address space %qs must be const in %qT",
-               avr_addrspace[as].name, node);
+      avr_edump ("%?: %s, %d, %d\n",
+                 avr_addrspace[as].name,
+                 avr_addrspace[as].segment, avr_current_device->n_flash);
+      if (avr_addrspace[as].segment >= avr_current_device->n_flash)
+        {
+          if (TYPE_P (node))
+            error ("%qT uses address space %qs beyond flash of %qs",
+                   node, avr_addrspace[as].name, avr_current_device->name);
+          else
+            error ("%s %q+D uses address space %qs beyond flash of %qs",
+                   reason, node, avr_addrspace[as].name,
+                   avr_current_device->name);
+        }
       else
-        error ("pointer targeting address space %qs must be const in %s %q+D",
-               avr_addrspace[as].name, reason, node);
+        {
+          if (TYPE_P (node))
+            error ("pointer targeting address space %qs must be const in %qT",
+                   avr_addrspace[as].name, node);
+          else
+            error ("pointer targeting address space %qs must be const"
+                   " in %s %q+D",
+                   avr_addrspace[as].name, reason, node);
+        }
     }
 
   return reason == NULL;
@@ -7203,6 +7222,7 @@ avr_insert_attributes (tree node, tree *attributes)
       && (TREE_STATIC (node) || DECL_EXTERNAL (node))
       && avr_progmem_p (node, *attributes))
     {
+      addr_space_t as;
       tree node0 = node;
 
       /* For C++, we have to peel arrays in order to get correct
@@ -7214,11 +7234,19 @@ avr_insert_attributes (tree node, tree *attributes)
 
       if (error_mark_node == node0)
         return;
+
+      as = TYPE_ADDR_SPACE (TREE_TYPE (node));
+
+      if (avr_addrspace[as].segment >= avr_current_device->n_flash)
+        {
+          error ("variable %q+D located in address space %qs"
+                 " beyond flash of %qs",
+                 node, avr_addrspace[as].name, avr_current_device->name);
+        }
       
       if (!TYPE_READONLY (node0)
           && !TREE_READONLY (node))
         {
-          addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (node));
           const char *reason = "__attribute__((progmem))";
 
           if (!ADDR_SPACE_GENERIC_P (as))
@@ -7403,7 +7431,7 @@ avr_asm_named_section (const char *name, unsigned int flags, tree decl)
   if (flags & AVR_SECTION_PROGMEM)
     {
       addr_space_t as = (flags & AVR_SECTION_PROGMEM) / SECTION_MACH_DEP;
-      int segment = avr_addrspace[as].segment % avr_current_arch->n_segments;
+      int segment = avr_addrspace[as].segment;
       const char *old_prefix = ".rodata";
       const char *new_prefix = progmem_section_prefix[segment];
       
@@ -7518,7 +7546,7 @@ avr_asm_select_section (tree decl, int reloc, unsigned HOST_WIDE_INT align)
       && avr_progmem_p (decl, DECL_ATTRIBUTES (decl)))
     {
       addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (decl));
-      int segment = avr_addrspace[as].segment % avr_current_arch->n_segments;
+      int segment = avr_addrspace[as].segment;
       
       if (sect->common.flags & SECTION_NAMED)
         {
@@ -9852,7 +9880,7 @@ avr_addr_space_convert (rtx src, tree type_from, tree type_to)
              
       msb = ADDR_SPACE_GENERIC_P (as_from)
         ? 0x80
-        : avr_addrspace[as_from].segment % avr_current_arch->n_segments;
+        : avr_addrspace[as_from].segment;
 
       src = force_reg (Pmode, src);
       
@@ -9907,7 +9935,7 @@ avr_emit_movmemhi (rtx *xop)
   HOST_WIDE_INT count;
   enum machine_mode loop_mode;
   addr_space_t as = MEM_ADDR_SPACE (xop[1]);
-  rtx loop_reg, addr0, addr1, a_src, a_dest, insn, xas, reg_x;
+  rtx loop_reg, addr1, a_src, a_dest, insn, xas;
   rtx a_hi8 = NULL_RTX;
 
   if (avr_mem_flash_p (xop[0]))
@@ -9936,10 +9964,10 @@ avr_emit_movmemhi (rtx *xop)
     }
   else
     {
-      int segment = avr_addrspace[as].segment % avr_current_arch->n_segments;
+      int segment = avr_addrspace[as].segment;
       
       if (segment
-          && avr_current_arch->n_segments > 1)
+          && avr_current_device->n_flash > 1)
         {
           a_hi8 = GEN_INT (segment);
           emit_move_insn (rampz_rtx, a_hi8 = copy_to_mode_reg (QImode, a_hi8));
@@ -9963,11 +9991,7 @@ avr_emit_movmemhi (rtx *xop)
         X = destination address  */
 
   emit_move_insn (lpm_addr_reg_rtx, addr1);
-  addr1 = lpm_addr_reg_rtx;
-
-  reg_x = gen_rtx_REG (HImode, REG_X);
-  emit_move_insn (reg_x, a_dest);
-  addr0 = reg_x;
+  emit_move_insn (gen_rtx_REG (HImode, REG_X), a_dest);
 
   /* FIXME: Register allocator does a bad job and might spill address
         register(s) inside the loop leading to additional move instruction
@@ -9982,23 +10006,19 @@ avr_emit_movmemhi (rtx *xop)
       /* Load instruction ([E]LPM or LD) is known at compile time:
          Do the copy-loop inline.  */
       
-      rtx (*fun) (rtx, rtx, rtx, rtx, rtx, rtx, rtx, rtx)
+      rtx (*fun) (rtx, rtx, rtx)
         = QImode == loop_mode ? gen_movmem_qi : gen_movmem_hi;
 
-      insn = fun (addr0, addr1, xas, loop_reg,
-                  addr0, addr1, tmp_reg_rtx, loop_reg);
+      insn = fun (xas, loop_reg, loop_reg);
     }
   else
     {
-      rtx loop_reg16 = gen_rtx_REG (HImode, 24);
-      rtx r23 = gen_rtx_REG (QImode, 23);
-      rtx (*fun) (rtx, rtx, rtx, rtx, rtx, rtx, rtx, rtx, rtx, rtx, rtx)
+      rtx (*fun) (rtx, rtx)
         = QImode == loop_mode ? gen_movmemx_qi : gen_movmemx_hi;
 
-      emit_move_insn (r23, a_hi8);
+      emit_move_insn (gen_rtx_REG (QImode, 23), a_hi8);
       
-      insn = fun (addr0, addr1, xas, loop_reg, addr0, addr1,
-                  lpm_reg_rtx, loop_reg16, r23, r23, GEN_INT (avr_addr.rampz));
+      insn = fun (xas, GEN_INT (avr_addr.rampz));
     }
 
   set_mem_addr_space (SET_SRC (XVECEXP (insn, 0, 0)), as);
@@ -10009,31 +10029,26 @@ avr_emit_movmemhi (rtx *xop)
 
 
 /* Print assembler for movmem_qi, movmem_hi insns...
-       $0, $4 : & dest
-       $1, $5 : & src
-       $2     : Address Space
-       $3, $7 : Loop register
-       $6     : Scratch register
-
-   ...and movmem_qi_elpm, movmem_hi_elpm insns.
-   
-       $8, $9 : hh8 (& src)
-       $10    : RAMPZ_ADDR
+       $0     : Address Space
+       $1, $2 : Loop register
+       Z      : Source address
+       X      : Destination address
 */
 
 const char*
-avr_out_movmem (rtx insn ATTRIBUTE_UNUSED, rtx *xop, int *plen)
+avr_out_movmem (rtx insn ATTRIBUTE_UNUSED, rtx *op, int *plen)
 {
-  addr_space_t as = (addr_space_t) INTVAL (xop[2]);
-  enum machine_mode loop_mode = GET_MODE (xop[3]);
-
-  bool sbiw_p = test_hard_reg_class (ADDW_REGS, xop[3]);
-
-  gcc_assert (REG_X == REGNO (xop[0])
-              && REG_Z == REGNO (xop[1]));
+  addr_space_t as = (addr_space_t) INTVAL (op[0]);
+  enum machine_mode loop_mode = GET_MODE (op[1]);
+  bool sbiw_p = test_hard_reg_class (ADDW_REGS, op[1]);
+  rtx xop[3];
 
   if (plen)
     *plen = 0;
+
+  xop[0] = op[0];
+  xop[1] = op[1];
+  xop[2] = tmp_reg_rtx;
 
   /* Loop label */
 
@@ -10048,16 +10063,16 @@ avr_out_movmem (rtx insn ATTRIBUTE_UNUSED, rtx *xop, int *plen)
       
     case ADDR_SPACE_GENERIC:
 
-      avr_asm_len ("ld %6,%a1+", xop, plen, 1);
+      avr_asm_len ("ld %2,Z+", xop, plen, 1);
       break;
       
     case ADDR_SPACE_FLASH:
 
       if (AVR_HAVE_LPMX)
-        avr_asm_len ("lpm %6,%a1+", xop, plen, 1);
+        avr_asm_len ("lpm %2,%Z+", xop, plen, 1);
       else
         avr_asm_len ("lpm" CR_TAB
-                     "adiw %1,1", xop, plen, 2);
+                     "adiw r30,1", xop, plen, 2);
       break;
       
     case ADDR_SPACE_FLASH1:
@@ -10067,31 +10082,31 @@ avr_out_movmem (rtx insn ATTRIBUTE_UNUSED, rtx *xop, int *plen)
     case ADDR_SPACE_FLASH5:
 
       if (AVR_HAVE_ELPMX)
-        avr_asm_len ("elpm %6,%a1+", xop, plen, 1);
+        avr_asm_len ("elpm %2,Z+", xop, plen, 1);
       else
         avr_asm_len ("elpm" CR_TAB
-                     "adiw %1,1", xop, plen, 2);
+                     "adiw r30,1", xop, plen, 2);
       break;
     }
 
   /* Store with post-increment */
 
-  avr_asm_len ("st %a0+,%6", xop, plen, 1);
+  avr_asm_len ("st X+,%2", xop, plen, 1);
 
   /* Decrement loop-counter and set Z-flag */
 
   if (QImode == loop_mode)
     {
-      avr_asm_len ("dec %3", xop, plen, 1);
+      avr_asm_len ("dec %1", xop, plen, 1);
     }
   else if (sbiw_p)
     {
-      avr_asm_len ("sbiw %3,1", xop, plen, 1);
+      avr_asm_len ("sbiw %1,1", xop, plen, 1);
     }
   else
     {
-      avr_asm_len ("subi %A3,1" CR_TAB
-                   "sbci %B3,0", xop, plen, 2);
+      avr_asm_len ("subi %A1,1" CR_TAB
+                   "sbci %B1,0", xop, plen, 2);
     }
 
   /* Loop until zero */
@@ -10513,17 +10528,12 @@ avr_out_insert_bits (rtx *op, int *plen)
 
 enum avr_builtin_id
   {
-    AVR_BUILTIN_NOP,
-    AVR_BUILTIN_SEI,
-    AVR_BUILTIN_CLI,
-    AVR_BUILTIN_WDR,
-    AVR_BUILTIN_SLEEP,
-    AVR_BUILTIN_SWAP,
-    AVR_BUILTIN_INSERT_BITS,
-    AVR_BUILTIN_FMUL,
-    AVR_BUILTIN_FMULS,
-    AVR_BUILTIN_FMULSU,
-    AVR_BUILTIN_DELAY_CYCLES
+    
+#define DEF_BUILTIN(NAME, N_ARGS, ID, TYPE, CODE) ID,
+#include "builtins.def"  
+#undef DEF_BUILTIN
+
+    AVR_BUILTIN_COUNT
   };
 
 static void
@@ -10535,14 +10545,6 @@ avr_init_builtin_int24 (void)
   (*lang_hooks.types.register_builtin_type) (int24_type, "__int24");
   (*lang_hooks.types.register_builtin_type) (uint24_type, "__uint24");
 }
-
-#define DEF_BUILTIN(NAME, TYPE, CODE)                                   \
-  do                                                                    \
-    {                                                                   \
-      add_builtin_function ((NAME), (TYPE), (CODE), BUILT_IN_MD,        \
-                            NULL, NULL_TREE);                           \
-    } while (0)
-
 
 /* Implement `TARGET_INIT_BUILTINS' */
 /* Set up all builtin functions for this target.  */
@@ -10583,57 +10585,35 @@ avr_init_builtins (void)
                                 unsigned_char_type_node,
                                 NULL_TREE);
 
-  DEF_BUILTIN ("__builtin_avr_nop", void_ftype_void, AVR_BUILTIN_NOP);
-  DEF_BUILTIN ("__builtin_avr_sei", void_ftype_void, AVR_BUILTIN_SEI);
-  DEF_BUILTIN ("__builtin_avr_cli", void_ftype_void, AVR_BUILTIN_CLI);
-  DEF_BUILTIN ("__builtin_avr_wdr", void_ftype_void, AVR_BUILTIN_WDR);
-  DEF_BUILTIN ("__builtin_avr_sleep", void_ftype_void, AVR_BUILTIN_SLEEP);
-  DEF_BUILTIN ("__builtin_avr_swap", uchar_ftype_uchar, AVR_BUILTIN_SWAP);
-  DEF_BUILTIN ("__builtin_avr_delay_cycles", void_ftype_ulong, 
-               AVR_BUILTIN_DELAY_CYCLES);
-
-  DEF_BUILTIN ("__builtin_avr_fmul", uint_ftype_uchar_uchar, 
-               AVR_BUILTIN_FMUL);
-  DEF_BUILTIN ("__builtin_avr_fmuls", int_ftype_char_char, 
-               AVR_BUILTIN_FMULS);
-  DEF_BUILTIN ("__builtin_avr_fmulsu", int_ftype_char_uchar, 
-               AVR_BUILTIN_FMULSU);
-
-  DEF_BUILTIN ("__builtin_avr_insert_bits", uchar_ftype_ulong_uchar_uchar,
-               AVR_BUILTIN_INSERT_BITS);
-
+#define DEF_BUILTIN(NAME, N_ARGS, ID, TYPE, CODE)                       \
+  add_builtin_function (NAME, TYPE, ID, BUILT_IN_MD, NULL, NULL_TREE);
+#include "builtins.def"  
+#undef DEF_BUILTIN
+  
   avr_init_builtin_int24 ();
 }
 
-#undef DEF_BUILTIN
 
 struct avr_builtin_description
 {
-  const enum insn_code icode;
-  const char *const name;
-  const enum avr_builtin_id id;
+  enum insn_code icode;
+  const char *name;
+  enum avr_builtin_id id;
+  int n_args;
 };
 
 static const struct avr_builtin_description
-bdesc_1arg[] =
+avr_bdesc[] =
   {
-    { CODE_FOR_rotlqi3_4, "__builtin_avr_swap", AVR_BUILTIN_SWAP }
+
+#define DEF_BUILTIN(NAME, N_ARGS, ID, TYPE, ICODE)      \
+    { ICODE, NAME, ID, N_ARGS },
+#include "builtins.def"  
+#undef DEF_BUILTIN
+
+    { CODE_FOR_nothing, NULL, 0, -1 }
   };
 
-static const struct avr_builtin_description
-bdesc_2arg[] =
-  {
-    { CODE_FOR_fmul, "__builtin_avr_fmul", AVR_BUILTIN_FMUL },
-    { CODE_FOR_fmuls, "__builtin_avr_fmuls", AVR_BUILTIN_FMULS },
-    { CODE_FOR_fmulsu, "__builtin_avr_fmulsu", AVR_BUILTIN_FMULSU }
-  };
-
-static const struct avr_builtin_description
-bdesc_3arg[] =
-  {
-    { CODE_FOR_insert_bits, "__builtin_avr_insert_bits",
-      AVR_BUILTIN_INSERT_BITS }
-  };
 
 /* Subroutine of avr_expand_builtin to take care of unop insns.  */
 
@@ -10816,7 +10796,6 @@ avr_expand_builtin (tree exp, rtx target,
                     int ignore ATTRIBUTE_UNUSED)
 {
   size_t i;
-  const struct avr_builtin_description *d;
   tree fndecl = TREE_OPERAND (CALL_EXPR_FN (exp), 0);
   const char* bname = IDENTIFIER_POINTER (DECL_NAME (fndecl));
   unsigned int id = DECL_FUNCTION_CODE (fndecl);
@@ -10829,31 +10808,16 @@ avr_expand_builtin (tree exp, rtx target,
       emit_insn (gen_nopv (GEN_INT(1)));
       return 0;
       
-    case AVR_BUILTIN_SEI:
-      emit_insn (gen_enable_interrupt ());
-      return 0;
-      
-    case AVR_BUILTIN_CLI:
-      emit_insn (gen_disable_interrupt ());
-      return 0;
-      
-    case AVR_BUILTIN_WDR:
-      emit_insn (gen_wdr ());
-      return 0;
-      
-    case AVR_BUILTIN_SLEEP:
-      emit_insn (gen_sleep ());
-      return 0;
-      
     case AVR_BUILTIN_DELAY_CYCLES:
       {
         arg0 = CALL_EXPR_ARG (exp, 0);
         op0 = expand_expr (arg0, NULL_RTX, VOIDmode, EXPAND_NORMAL);
 
-        if (! CONST_INT_P (op0))
+        if (!CONST_INT_P (op0))
           error ("%s expects a compile time integer constant", bname);
+        else
+          avr_expand_delay_cycles (op0);
 
-        avr_expand_delay_cycles (op0);
         return 0;
       }
 
@@ -10871,18 +10835,31 @@ avr_expand_builtin (tree exp, rtx target,
       }
     }
 
-  for (i = 0, d = bdesc_1arg; i < ARRAY_SIZE (bdesc_1arg); i++, d++)
-    if (d->id == id)
-      return avr_expand_unop_builtin (d->icode, exp, target);
-
-  for (i = 0, d = bdesc_2arg; i < ARRAY_SIZE (bdesc_2arg); i++, d++)
-    if (d->id == id)
-      return avr_expand_binop_builtin (d->icode, exp, target);
-
-  for (i = 0, d = bdesc_3arg; i < ARRAY_SIZE (bdesc_3arg); i++, d++)
-    if (d->id == id)
-      return avr_expand_triop_builtin (d->icode, exp, target);
-
+  for (i = 0; avr_bdesc[i].name; i++)
+    {
+      const struct avr_builtin_description *d = &avr_bdesc[i];
+      
+      if (d->id == id)
+        switch (d->n_args)
+          {
+          case 0:
+            emit_insn ((GEN_FCN (d->icode)) (target));
+            return 0;
+            
+          case 1:
+            return avr_expand_unop_builtin (d->icode, exp, target);
+            
+          case 2:
+            return avr_expand_binop_builtin (d->icode, exp, target);
+            
+          case 3:
+            return avr_expand_triop_builtin (d->icode, exp, target);
+            
+          default:
+            gcc_unreachable();
+        }
+    }
+  
   gcc_unreachable ();
 }
 
@@ -10904,17 +10881,32 @@ avr_fold_builtin (tree fndecl, int n_args ATTRIBUTE_UNUSED, tree *arg,
     default:
       break;
 
+    case AVR_BUILTIN_SWAP:
+      {
+        return fold_build2 (LROTATE_EXPR, val_type, arg[0],
+                            build_int_cst (val_type, 4));
+      }
+  
     case AVR_BUILTIN_INSERT_BITS:
       {
         tree tbits = arg[1];
         tree tval = arg[2];
         tree tmap;
         tree map_type = TREE_VALUE (TYPE_ARG_TYPES (TREE_TYPE (fndecl)));
-        double_int map = tree_to_double_int (arg[0]);
+        double_int map;
         bool changed = false;
         unsigned i;
         avr_map_op_t best_g;
+
+        if (TREE_CODE (arg[0]) != INTEGER_CST)
+          {
+            /* No constant as first argument: Don't fold this and run into
+               error in avr_expand_builtin.  */
+            
+            break;
+          }
         
+        map = tree_to_double_int (arg[0]);
         tmap = double_int_to_tree (map_type, map);
 
         if (TREE_CODE (tval) != INTEGER_CST
