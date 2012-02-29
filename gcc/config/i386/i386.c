@@ -13247,6 +13247,19 @@ ix86_delegitimize_address (rtx x)
 
   if (TARGET_64BIT)
     {
+      if (GET_CODE (x) == CONST
+          && GET_CODE (XEXP (x, 0)) == PLUS
+          && GET_MODE (XEXP (x, 0)) == Pmode
+          && CONST_INT_P (XEXP (XEXP (x, 0), 1))
+          && GET_CODE (XEXP (XEXP (x, 0), 0)) == UNSPEC
+          && XINT (XEXP (XEXP (x, 0), 0), 1) == UNSPEC_PCREL)
+        {
+	  rtx x2 = XVECEXP (XEXP (XEXP (x, 0), 0), 0, 0);
+	  x = gen_rtx_PLUS (Pmode, XEXP (XEXP (x, 0), 1), x2);
+	  if (MEM_P (orig_x))
+	    x = replace_equiv_address_nv (orig_x, x);
+	  return x;
+	}
       if (GET_CODE (x) != CONST
 	  || GET_CODE (XEXP (x, 0)) != UNSPEC
 	  || (XINT (XEXP (x, 0), 1) != UNSPEC_GOTPCREL
@@ -14097,6 +14110,13 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	  return;
 
 	case 'H':
+	  if (!offsettable_memref_p (x))
+	    {
+	      output_operand_lossage ("operand is not an offsettable memory "
+				      "reference, invalid operand "
+				      "code 'H'");
+	      return;
+	    }
 	  /* It doesn't actually matter what mode we use here, as we're
 	     only going to use this for printing.  */
 	  x = adjust_address_nv (x, DImode, 8);
@@ -33548,9 +33568,9 @@ ix86_expand_vector_set (bool mmx_ok, rtx target, rtx val, int elt)
 	  tmp = gen_reg_rtx (GET_MODE_INNER (mode));
 	  ix86_expand_vector_extract (true, tmp, target, 1 - elt);
 	  if (elt == 0)
-	    tmp = gen_rtx_VEC_CONCAT (mode, tmp, val);
-	  else
 	    tmp = gen_rtx_VEC_CONCAT (mode, val, tmp);
+	  else
+	    tmp = gen_rtx_VEC_CONCAT (mode, tmp, val);
 	  emit_insn (gen_rtx_SET (VOIDmode, target, tmp));
 	  return;
 	}
@@ -33564,9 +33584,9 @@ ix86_expand_vector_set (bool mmx_ok, rtx target, rtx val, int elt)
       tmp = gen_reg_rtx (GET_MODE_INNER (mode));
       ix86_expand_vector_extract (false, tmp, target, 1 - elt);
       if (elt == 0)
-	tmp = gen_rtx_VEC_CONCAT (mode, tmp, val);
-      else
 	tmp = gen_rtx_VEC_CONCAT (mode, val, tmp);
+      else
+	tmp = gen_rtx_VEC_CONCAT (mode, tmp, val);
       emit_insn (gen_rtx_SET (VOIDmode, target, tmp));
       return;
 

@@ -60,9 +60,6 @@ struct base_arch_s
      SFR-address = RAM-address - sfr_offset  */
   int sfr_offset;
 
-  /* Number of 64k segments in the flash.  */
-  int n_segments;
-
   /* Architecture id to built-in define __AVR_ARCH__ (NULL -> no macro) */
   const char *const macro;
   
@@ -129,6 +126,9 @@ struct mcu_type_s {
   /* Start of data section.  */
   int data_section_start;
   
+  /* Number of 64k segments in the flash.  */
+  int n_flash;
+
   /* Name of device library.  */
   const char *const library_name; 
 };
@@ -676,6 +676,10 @@ struct GTY(()) machine_function
    required in order for pushes to be generated.  */
 #define PUSH_ROUNDING(X)	(X)
 
+/* Define prototype here to avoid build warning.  Some files using
+   ACCUMULATE_OUTGOING_ARGS (directly or indirectly) include
+   tm.h but not tm_p.h.  */
+extern int avr_accumulate_outgoing_args (void);
 #define ACCUMULATE_OUTGOING_ARGS avr_accumulate_outgoing_args()
 
 #define INIT_EXPANDERS avr_init_expanders()
