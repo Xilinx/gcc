@@ -204,10 +204,10 @@ gfmeltgcc_revision: GCCMELT-REVISION MELT-Plugin-Makefile
 	$(SED) 's/^ *//' < $< | $(SED) 's/ *$$//'| $(SED) 's/ /_/g'  > $@-tmp
 	mv $@-tmp $@
 
-# intermediate file for the md5sum
+# intermediate file for the md5sum of preprocessed expansion of melt-run.proto.h
 gfmeltgcc_run_md5: $(MELTGCC_RUNTIME_INCLUDES) MELT-Plugin-Makefile  melt-run.proto.h \
                    $(wildcard $(MELTGCC_PLUGIN_DIR)/include/*.h) melt-runtime.h  melt/generated/meltrunsup.h
-	$(CC)  -C -E -DMELT_IS_PLUGIN -Imelt/generated -I. $(MELTGCC_INCLUDEFLAGS) \
+	$(CC)  -C -E -DMELT_IS_PLUGIN -Imelt/generated -I. $(MELTGCC_INCLUDEFLAGS) melt-run.proto.h \
 	 | grep -v '^#' | md5sum | cut -c 1-32 > $@-tmp
 	mv $@-tmp $@
 

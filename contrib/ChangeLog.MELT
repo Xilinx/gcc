@@ -1,4 +1,8 @@
 
+2012-03-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (gfmeltgcc_run_md5): Really preprocess
+	melt-run.proto.h and compute md5sum of expansion.
+
 2012-01-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (melt-runtime-params-inc.c): Use gfmeltgcc_revision.
 	(install-melt-default-modules-list): Install the various flavors.
