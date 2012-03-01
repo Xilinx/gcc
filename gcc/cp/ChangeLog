@@ -1,4 +1,91 @@
+2012-02-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/52312
+	* typeck.c (check_literal_operator_args): Initialize *long_double_p
+	and *long_long_unsigned_p even if processing_template_decl.
+
+2012-02-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/52248
+	* decl.c (define_label): Use timevar_cond_start/stop.
+
+2012-02-16  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/52126
+	* decl.c (xref_basetypes): call dependent_scope_p instead of
+	dependent_type_p.
+
+2012-02-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51415
+	* error.c (dump_expr): Handle lambda closures specifically.
+
+2012-02-14  Jason Merrill  <jason@redhat.com>
+
+	* parser.c (cp_parser_explicit_instantiation): Give a warning
+	for ignored attributes on explicit class instantiation.
+
+2012-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/52247
+	* pt.c (tsubst_copy_asm_operands): For LABEL_DECL values call
+	lookup_label on label's name and set TREE_USED.
+
+2012-02-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/39055
+	* decl.c (local_variable_p_walkfn): Don't check DECL_ARTIFICIAL.
+
+2012-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/52181
+	* decl.c (duplicate_decls): If olddecl has bigger DECL_ALIGN than
+	newdecl, copy DECL_ALIGN to newdecl and or DECL_USER_ALIGN bits.
+
+2012-02-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51675
+	* semantics.c (cx_check_missing_mem_inits): Handle unions.
+	Fix constexpr default constructor logic.
+
+	PR c++/52035
+	* pt.c (tsubst): Strip uninstantiated typedef.
+
+2012-02-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/52088
+	* cvt.c (build_expr_type_conversion): Check for template conversion.
+
+2012-01-31  Jason Merrill  <jason@redhat.com>
+
+	PR c++/52043
+	* cp-tree.h (PACK_EXPANSION_LOCAL_P): New.
+	* pt.c (make_pack_expansion, tsubst_initializer_list): Set it.
+	(tsubst_pack_expansion): Check it.
+
+2012-01-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51327
+	* class.c (explain_non_literal_class): Correctly handle implicitly
+	deleted constructors.
+
+2012-01-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/51852
+	* pt.c (tsubst_pack_expansion): Delete and restore
+	local_specialization whenever need_local_specialization, not just
+	when saved_local_specializations is non-NULL.
+
+2012-01-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51370
+	* error.c (dump_decl, [TEMPLATE_ID_EXPR]): Handle error_mark_node
+	as TREE_OPERAND (t, 1).
+
 2012-01-24  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51917
+	* decl.c (xref_basetypes): Check VEC_length instead of VEC_space.
 
 	PR c++/51973
 	* tree.c (called_fns_equal): Check template args.

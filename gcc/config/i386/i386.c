@@ -11823,6 +11823,13 @@ legitimate_pic_address_disp_p (rtx disp)
             break;
 	  if (GET_CODE (op0) == LABEL_REF)
 	    return true;
+	  if (GET_CODE (op0) == CONST
+	      && GET_CODE (XEXP (op0, 0)) == UNSPEC
+	      && XINT (XEXP (op0, 0), 1) == UNSPEC_PCREL)
+	    return true;
+	  if (GET_CODE (op0) == UNSPEC
+	      && XINT (op0, 1) == UNSPEC_PCREL)
+	    return true;
 	  if (GET_CODE (op0) != SYMBOL_REF)
 	    break;
 	  /* FALLTHRU */
@@ -11931,6 +11938,13 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
   struct ix86_address parts;
   rtx base, index, disp;
   HOST_WIDE_INT scale;
+
+  /* Since constant address in x32 is signed extended to 64bit,
+     we have to prevent addresses from 0x80000000 to 0xffffffff.  */
+  if (TARGET_X32
+      && CONST_INT_P (addr)
+      && INTVAL (addr) < 0)
+    return false;
 
   if (ix86_decompose_address (addr, &parts) <= 0)
     /* Decomposition failed.  */
@@ -13227,6 +13241,19 @@ ix86_delegitimize_address (rtx x)
 
   if (TARGET_64BIT)
     {
+      if (GET_CODE (x) == CONST
+          && GET_CODE (XEXP (x, 0)) == PLUS
+          && GET_MODE (XEXP (x, 0)) == Pmode
+          && CONST_INT_P (XEXP (XEXP (x, 0), 1))
+          && GET_CODE (XEXP (XEXP (x, 0), 0)) == UNSPEC
+          && XINT (XEXP (XEXP (x, 0), 0), 1) == UNSPEC_PCREL)
+        {
+	  rtx x2 = XVECEXP (XEXP (XEXP (x, 0), 0), 0, 0);
+	  x = gen_rtx_PLUS (Pmode, XEXP (XEXP (x, 0), 1), x2);
+	  if (MEM_P (orig_x))
+	    x = replace_equiv_address_nv (orig_x, x);
+	  return x;
+	}
       if (GET_CODE (x) != CONST
 	  || GET_CODE (XEXP (x, 0)) != UNSPEC
 	  || (XINT (XEXP (x, 0), 1) != UNSPEC_GOTPCREL
@@ -14077,6 +14104,13 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	  return;
 
 	case 'H':
+	  if (!offsettable_memref_p (x))
+	    {
+	      output_operand_lossage ("operand is not an offsettable memory "
+				      "reference, invalid operand "
+				      "code 'H'");
+	      return;
+	    }
 	  /* It doesn't actually matter what mode we use here, as we're
 	     only going to use this for printing.  */
 	  x = adjust_address_nv (x, DImode, 8);
@@ -33528,9 +33562,9 @@ ix86_expand_vector_set (bool mmx_ok, rtx target, rtx val, int elt)
 	  tmp = gen_reg_rtx (GET_MODE_INNER (mode));
 	  ix86_expand_vector_extract (true, tmp, target, 1 - elt);
 	  if (elt == 0)
-	    tmp = gen_rtx_VEC_CONCAT (mode, tmp, val);
-	  else
 	    tmp = gen_rtx_VEC_CONCAT (mode, val, tmp);
+	  else
+	    tmp = gen_rtx_VEC_CONCAT (mode, tmp, val);
 	  emit_insn (gen_rtx_SET (VOIDmode, target, tmp));
 	  return;
 	}
@@ -33544,9 +33578,9 @@ ix86_expand_vector_set (bool mmx_ok, rtx target, rtx val, int elt)
       tmp = gen_reg_rtx (GET_MODE_INNER (mode));
       ix86_expand_vector_extract (false, tmp, target, 1 - elt);
       if (elt == 0)
-	tmp = gen_rtx_VEC_CONCAT (mode, tmp, val);
-      else
 	tmp = gen_rtx_VEC_CONCAT (mode, val, tmp);
+      else
+	tmp = gen_rtx_VEC_CONCAT (mode, tmp, val);
       emit_insn (gen_rtx_SET (VOIDmode, target, tmp));
       return;
 
@@ -35336,7 +35370,8 @@ ix86_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
         return ix86_cost->cond_not_taken_branch_cost;
 
       case vec_perm:
-        return 1;
+      case vec_promote_demote:
+        return ix86_cost->vec_stmt_cost;
 
       default:
         gcc_unreachable ();

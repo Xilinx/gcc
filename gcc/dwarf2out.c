@@ -1177,7 +1177,8 @@ dwarf2out_switch_text_section (void)
 
   var_location_switch_text_section ();
 
-  set_cur_line_info_table (sect);
+  if (cold_text_section != NULL)
+    set_cur_line_info_table (sect);
 }
 
 /* And now, the subset of the debugging information support code necessary
@@ -7406,6 +7407,32 @@ copy_ancestor_tree (dw_die_ref unit, dw_die_ref die, htab_t decl_table)
   return copy;
 }
 
+/* Like clone_tree, but additionally enter all the children into
+   the hash table decl_table.  */
+
+static dw_die_ref
+clone_tree_hash (dw_die_ref die, htab_t decl_table)
+{
+  dw_die_ref c;
+  dw_die_ref clone = clone_die (die);
+  struct decl_table_entry *entry;
+  void **slot = htab_find_slot_with_hash (decl_table, die,
+					  htab_hash_pointer (die), INSERT);
+  /* Assert that DIE isn't in the hash table yet.  If it would be there
+     before, the ancestors would be necessarily there as well, therefore
+     clone_tree_hash wouldn't be called.  */
+  gcc_assert (*slot == HTAB_EMPTY_ENTRY);
+  entry = XCNEW (struct decl_table_entry);
+  entry->orig = die;
+  entry->copy = clone;
+  *slot = entry;
+
+  FOR_EACH_CHILD (die, c,
+		  add_child_die (clone, clone_tree_hash (c, decl_table)));
+
+  return clone;
+}
+
 /* Walk the DIE and its children, looking for references to incomplete
    or trivial types that are unmarked (i.e., that are not in the current
    type_unit).  */
@@ -7442,11 +7469,7 @@ copy_decls_walk (dw_die_ref unit, dw_die_ref die, htab_t decl_table)
           else
             {
               dw_die_ref parent = unit;
-              dw_die_ref copy = clone_tree (targ);
-
-              /* Make sure the cloned tree is marked as part of the
-                 type unit.  */
-              mark_dies (copy);
+	      dw_die_ref copy = clone_die (targ);
 
               /* Record in DECL_TABLE that TARG has been copied.
                  Need to do this now, before the recursive call,
@@ -7456,6 +7479,14 @@ copy_decls_walk (dw_die_ref unit, dw_die_ref die, htab_t decl_table)
               entry->orig = targ;
               entry->copy = copy;
               *slot = entry;
+
+	      FOR_EACH_CHILD (targ, c,
+			      add_child_die (copy,
+					     clone_tree_hash (c, decl_table)));
+
+              /* Make sure the cloned tree is marked as part of the
+                 type unit.  */
+              mark_dies (copy);
 
               /* If TARG has surrounding context, copy its ancestor tree
                  into the new type unit.  */
@@ -9898,9 +9929,6 @@ modified_type_die (tree type, int is_const_type, int is_volatile_type,
 	   useful source coordinates anyway.  */
 	name = DECL_NAME (name);
       add_name_attribute (mod_type_die, IDENTIFIER_POINTER (name));
-      add_gnat_descriptive_type_attribute (mod_type_die, type, context_die);
-      if (TYPE_ARTIFICIAL (type))
-	add_AT_flag (mod_type_die, DW_AT_artificial, 1);
     }
   /* This probably indicates a bug.  */
   else if (mod_type_die && mod_type_die->die_tag == DW_TAG_base_type)
@@ -9928,6 +9956,10 @@ modified_type_die (tree type, int is_const_type, int is_volatile_type,
 
   if (sub_die != NULL)
     add_AT_die_ref (mod_type_die, DW_AT_type, sub_die);
+
+  add_gnat_descriptive_type_attribute (mod_type_die, type, context_die);
+  if (TYPE_ARTIFICIAL (type))
+    add_AT_flag (mod_type_die, DW_AT_artificial, 1);
 
   return mod_type_die;
 }
@@ -15462,11 +15494,7 @@ add_gnat_descriptive_type_attribute (dw_die_ref die, tree type,
   dtype_die = lookup_type_die (dtype);
   if (!dtype_die)
     {
-      /* The descriptive type indirectly references TYPE if this is also the
-	 case for TYPE itself.  Do not deal with the circularity here.  */
-      TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (type)) = 1;
       gen_type_die (dtype, context_die);
-      TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (type)) = 0;
       dtype_die = lookup_type_die (dtype);
       gcc_assert (dtype_die);
     }
@@ -16353,9 +16381,6 @@ gen_array_type_die (tree type, dw_die_ref context_die)
 
   array_die = new_die (DW_TAG_array_type, scope_die, type);
   add_name_attribute (array_die, type_tag (type));
-  add_gnat_descriptive_type_attribute (array_die, type, context_die);
-  if (TYPE_ARTIFICIAL (type))
-    add_AT_flag (array_die, DW_AT_artificial, 1);
   equate_type_number_to_die (type, array_die);
 
   if (TREE_CODE (type) == VECTOR_TYPE)
@@ -16414,6 +16439,10 @@ gen_array_type_die (tree type, dw_die_ref context_die)
 #endif
 
   add_type_attribute (array_die, element_type, 0, 0, context_die);
+
+  add_gnat_descriptive_type_attribute (array_die, type, context_die);
+  if (TYPE_ARTIFICIAL (type))
+    add_AT_flag (array_die, DW_AT_artificial, 1);
 
   if (get_AT (array_die, DW_AT_name))
     add_pubtype (type, array_die);
@@ -16658,9 +16687,6 @@ gen_enumeration_type_die (tree type, dw_die_ref context_die)
 			  scope_die_for (type, context_die), type);
       equate_type_number_to_die (type, type_die);
       add_name_attribute (type_die, type_tag (type));
-      add_gnat_descriptive_type_attribute (type_die, type, context_die);
-      if (TYPE_ARTIFICIAL (type))
-	add_AT_flag (type_die, DW_AT_artificial, 1);
       if (dwarf_version >= 4 || !dwarf_strict)
 	{
 	  if (ENUM_IS_SCOPED (type))
@@ -16716,6 +16742,10 @@ gen_enumeration_type_die (tree type, dw_die_ref context_die)
 	    add_AT_int (enum_die, DW_AT_const_value,
 			tree_low_cst (value, tree_int_cst_sgn (value) > 0));
 	}
+
+      add_gnat_descriptive_type_attribute (type_die, type, context_die);
+      if (TYPE_ARTIFICIAL (type))
+	add_AT_flag (type_die, DW_AT_artificial, 1);
     }
   else
     add_AT_flag (type_die, DW_AT_declaration, 1);
@@ -18628,12 +18658,7 @@ gen_struct_or_union_type_die (tree type, dw_die_ref context_die,
       if (old_die)
 	add_AT_specification (type_die, old_die);
       else
-	{
-	  add_name_attribute (type_die, type_tag (type));
-	  add_gnat_descriptive_type_attribute (type_die, type, context_die);
-	  if (TYPE_ARTIFICIAL (type))
-	    add_AT_flag (type_die, DW_AT_artificial, 1);
-	}
+	add_name_attribute (type_die, type_tag (type));
     }
   else
     remove_AT (type_die, DW_AT_declaration);
@@ -18665,6 +18690,10 @@ gen_struct_or_union_type_die (tree type, dw_die_ref context_die,
       push_decl_scope (type);
       gen_member_die (type, type_die);
       pop_decl_scope ();
+
+      add_gnat_descriptive_type_attribute (type_die, type, context_die);
+      if (TYPE_ARTIFICIAL (type))
+	add_AT_flag (type_die, DW_AT_artificial, 1);
 
       /* GNU extension: Record what type our vtable lives in.  */
       if (TYPE_VFIELD (type))

@@ -1364,8 +1364,19 @@ func TestFieldByName(t *testing.T) {
 }
 
 func TestImportPath(t *testing.T) {
-	if path := TypeOf(&base64.Encoding{}).Elem().PkgPath(); path != "libgo_encoding.base64" {
-		t.Errorf(`TypeOf(&base64.Encoding{}).Elem().PkgPath() = %q, want "libgo_encoding.base64"`, path)
+	tests := []struct {
+		t    Type
+		path string
+	}{
+		{TypeOf(&base64.Encoding{}).Elem(), "libgo_encoding.base64"},
+		{TypeOf(uint(0)), ""},
+		{TypeOf(map[string]int{}), ""},
+		{TypeOf((*error)(nil)).Elem(), ""},
+	}
+	for _, test := range tests {
+		if path := test.t.PkgPath(); path != test.path {
+			t.Errorf("%v.PkgPath() = %q, want %q", test.t, path, test.path)
+		}
 	}
 }
 
@@ -1517,6 +1528,18 @@ func TestAddr(t *testing.T) {
 	if p.X != 4 {
 		t.Errorf("Addr.Elem.Set valued to set value in top value")
 	}
+
+	// Verify that taking the address of a type gives us a pointer
+	// which we can convert back using the usual interface
+	// notation.
+	var s struct {
+		B *bool
+	}
+	ps := ValueOf(&s).Elem().Field(0).Addr().Interface()
+	*(ps.(**bool)) = new(bool)
+	if s.B == nil {
+		t.Errorf("Addr.Interface direct assignment failed")
+	}
 }
 
 /* gccgo does do allocations here.
@@ -1524,15 +1547,19 @@ func TestAddr(t *testing.T) {
 func noAlloc(t *testing.T, n int, f func(int)) {
 	// once to prime everything
 	f(-1)
-	runtime.MemStats.Mallocs = 0
+	memstats := new(runtime.MemStats)
+	runtime.ReadMemStats(memstats)
+	oldmallocs := memstats.Mallocs
 
 	for j := 0; j < n; j++ {
 		f(j)
 	}
 	// A few allocs may happen in the testing package when GOMAXPROCS > 1, so don't
 	// require zero mallocs.
-	if runtime.MemStats.Mallocs > 5 {
-		t.Fatalf("%d mallocs after %d iterations", runtime.MemStats.Mallocs, n)
+	runtime.ReadMemStats(memstats)
+	mallocs := memstats.Mallocs - oldmallocs
+	if mallocs > 5 {
+		t.Fatalf("%d mallocs after %d iterations", mallocs, n)
 	}
 }
 

@@ -266,6 +266,7 @@ void	runtime_args(int32, byte**);
 void	runtime_osinit();
 void	runtime_goargs(void);
 void	runtime_goenvs(void);
+void	runtime_goenvs_unix(void);
 void	runtime_throw(const char*) __attribute__ ((noreturn));
 void	runtime_panicstring(const char*) __attribute__ ((noreturn));
 void*	runtime_mal(uintptr);
@@ -285,6 +286,7 @@ void	runtime_exitsyscall(void) __asm__("libgo_syscall.syscall.exitsyscall");
 void	siginit(void);
 bool	__go_sigsend(int32 sig);
 int64	runtime_nanotime(void);
+int64	runtime_cputicks(void);
 
 void	runtime_stoptheworld(void);
 void	runtime_starttheworld(bool);
@@ -346,7 +348,7 @@ void	runtime_panic(Eface);
 #define runtime_strcmp(s1, s2) __builtin_strcmp((s1), (s2))
 #define runtime_mcmp(a, b, s) __builtin_memcmp((a), (b), (s))
 #define runtime_memmove(a, b, s) __builtin_memmove((a), (b), (s))
-#define runtime_exit(s) _exit(s)
+#define runtime_exit(s) exit(s)
 MCache*	runtime_allocmcache(void);
 void	free(void *v);
 struct __go_func_type;

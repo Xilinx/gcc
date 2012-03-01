@@ -142,6 +142,20 @@ package body Ada.Containers.Doubly_Linked_Lists is
       end loop;
    end Adjust;
 
+   procedure Adjust (Control : in out Reference_Control_Type) is
+   begin
+      if Control.Container /= null then
+         declare
+            C : List renames Control.Container.all;
+            B : Natural renames C.Busy;
+            L : Natural renames C.Lock;
+         begin
+            B := B + 1;
+            L := L + 1;
+         end;
+      end if;
+   end Adjust;
+
    ------------
    -- Append --
    ------------
@@ -244,7 +258,20 @@ package body Ada.Containers.Doubly_Linked_Lists is
 
       pragma Assert (Vet (Position), "bad cursor in Constant_Reference");
 
-      return (Element => Position.Node.Element'Access);
+      declare
+         C : List renames Position.Container.all;
+         B : Natural renames C.Busy;
+         L : Natural renames C.Lock;
+      begin
+         return R : constant Constant_Reference_Type :=
+                      (Element => Position.Node.Element'Access,
+                       Control =>
+                         (Controlled with Container'Unrestricted_Access))
+         do
+            B := B + 1;
+            L := L + 1;
+         end return;
+      end;
    end Constant_Reference;
 
    --------------
@@ -439,6 +466,22 @@ package body Ada.Containers.Doubly_Linked_Lists is
          begin
             B := B - 1;
          end;
+      end if;
+   end Finalize;
+
+   procedure Finalize (Control : in out Reference_Control_Type) is
+   begin
+      if Control.Container /= null then
+         declare
+            C : List renames Control.Container.all;
+            B : Natural renames C.Busy;
+            L : Natural renames C.Lock;
+         begin
+            B := B - 1;
+            L := L - 1;
+         end;
+
+         Control.Container := null;
       end if;
    end Finalize;
 
@@ -1336,7 +1379,19 @@ package body Ada.Containers.Doubly_Linked_Lists is
 
       pragma Assert (Vet (Position), "bad cursor in function Reference");
 
-      return (Element => Position.Node.Element'Access);
+      declare
+         C : List renames Position.Container.all;
+         B : Natural renames C.Busy;
+         L : Natural renames C.Lock;
+      begin
+         return R : constant Reference_Type :=
+                      (Element => Position.Node.Element'Access,
+                       Control => (Controlled with Position.Container))
+         do
+            B := B + 1;
+            L := L + 1;
+         end return;
+      end;
    end Reference;
 
    ---------------------
@@ -2009,6 +2064,7 @@ package body Ada.Containers.Doubly_Linked_Lists is
 
       declare
          L : List renames Position.Container.all;
+
       begin
          if L.Length = 0 then
             return False;
@@ -2030,23 +2086,21 @@ package body Ada.Containers.Doubly_Linked_Lists is
             return False;
          end if;
 
-         if Position.Node.Prev = null
-           and then Position.Node /= L.First
-         then
+         if Position.Node.Prev = null and then Position.Node /= L.First then
             return False;
          end if;
 
-         pragma Assert (Position.Node.Prev /= null
-                          or else Position.Node = L.First);
+         pragma Assert
+           (Position.Node.Prev /= null
+             or else Position.Node = L.First);
 
-         if Position.Node.Next = null
-           and then Position.Node /= L.Last
-         then
+         if Position.Node.Next = null and then Position.Node /= L.Last then
             return False;
          end if;
 
-         pragma Assert (Position.Node.Next /= null
-                          or else Position.Node = L.Last);
+         pragma Assert
+           (Position.Node.Next /= null
+             or else Position.Node = L.Last);
 
          if L.Length = 1 then
             return L.First = L.Last;
@@ -2075,13 +2129,11 @@ package body Ada.Containers.Doubly_Linked_Lists is
          if L.Length = 2 then
             if L.First.Next /= L.Last then
                return False;
-            end if;
-
-            if L.Last.Prev /= L.First then
+            elsif L.Last.Prev /= L.First then
                return False;
+            else
+               return True;
             end if;
-
-            return True;
          end if;
 
          if L.First.Next = L.Last then
@@ -2092,13 +2144,17 @@ package body Ada.Containers.Doubly_Linked_Lists is
             return False;
          end if;
 
-         if Position.Node = L.First then  -- eliminates earlier disjunct
+         --  Eliminate earlier possibility
+
+         if Position.Node = L.First then
             return True;
          end if;
 
          pragma Assert (Position.Node.Prev /= null);
 
-         if Position.Node = L.Last then  -- eliminates earlier disjunct
+         --  Eliminate earlier possibility
+
+         if Position.Node = L.Last then
             return True;
          end if;
 
@@ -2115,9 +2171,7 @@ package body Ada.Containers.Doubly_Linked_Lists is
          if L.Length = 3 then
             if L.First.Next /= Position.Node then
                return False;
-            end if;
-
-            if L.Last.Prev /= Position.Node then
+            elsif L.Last.Prev /= Position.Node then
                return False;
             end if;
          end if;
@@ -2134,11 +2188,12 @@ package body Ada.Containers.Doubly_Linked_Lists is
      (Stream : not null access Root_Stream_Type'Class;
       Item   : List)
    is
-      Node : Node_Access := Item.First;
+      Node : Node_Access;
 
    begin
       Count_Type'Base'Write (Stream, Item.Length);
 
+      Node := Item.First;
       while Node /= null loop
          Element_Type'Write (Stream, Node.Element);
          Node := Node.Next;

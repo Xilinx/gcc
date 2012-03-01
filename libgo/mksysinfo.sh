@@ -55,6 +55,9 @@ cat > sysinfo.c <<EOF
 #if defined(HAVE_SYS_MMAN_H)
 #include <sys/mman.h>
 #endif
+#if defined(HAVE_SYS_PRCTL_H)
+#include <sys/prctl.h>
+#endif
 #if defined(HAVE_SYS_PTRACE_H)
 #include <sys/ptrace.h>
 #endif
@@ -63,6 +66,7 @@ cat > sysinfo.c <<EOF
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/times.h>
 #include <sys/wait.h>
 #include <sys/un.h>
 #if defined(HAVE_SYS_USER_H)
@@ -88,6 +92,15 @@ cat > sysinfo.c <<EOF
 #endif
 #if defined(HAVE_NET_IF_H)
 #include <net/if.h>
+#endif
+#if defined(HAVE_SYS_MOUNT_H)
+#include <sys/mount.h>
+#endif
+#if defined(HAVE_SYS_VFS_H)
+#include <sys/vfs.h>
+#endif
+#if defined(HAVE_STATFS_H)
+#include <sys/statfs.h>
 #endif
 
 /* Constants that may only be defined as expressions on some systems,
@@ -189,7 +202,7 @@ grep '^const _SHUT_' gen-sysinfo.go |
   sed -e 's/^\(const \)_\(SHUT[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
 
 # The net package requires some const definitions.
-for m in IPV6_V6ONLY IPPROTO_IPV6 IPV6_JOIN_GROUP IPV6_LEAVE_GROUP; do
+for m in IP_PKTINFO IPV6_V6ONLY IPPROTO_IPV6 IPV6_JOIN_GROUP IPV6_LEAVE_GROUP IPV6_TCLASS; do
   if ! grep "^const $m " ${OUT} >/dev/null 2>&1; then
     echo "const $m = 0" >> ${OUT}
   fi
@@ -209,6 +222,10 @@ fi
 if ! grep '^const EPOLL_CLOEXEC' ${OUT} >/dev/null 2>&1; then
   echo "const EPOLL_CLOEXEC = 02000000" >> ${OUT}
 fi
+
+# Prctl constants.
+grep '^const _PR_' gen-sysinfo.go |
+  sed -e 's/^\(const \)_\(PR_[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
 
 # Ptrace constants.
 grep '^const _PTRACE' gen-sysinfo.go |
@@ -243,7 +260,7 @@ if ! grep '^const PTRACE_O_MASK' ${OUT} > /dev/null 2>&1; then
   echo "const PTRACE_O_MASK = 0x7f" >> ${OUT}
 fi
 if ! grep '^const _PTRACE_GETEVENTMSG' ${OUT} > /dev/null 2>&1; then
-  echo "const _PTRACE_GETEVENTMSG = 0x4201" >> ${OUT}
+  echo "const PTRACE_GETEVENTMSG = 0x4201" >> ${OUT}
 fi
 if ! grep '^const PTRACE_EVENT_FORK' ${OUT} > /dev/null 2>&1; then
   echo "const PTRACE_EVENT_FORK = 1" >> ${OUT}
@@ -361,6 +378,15 @@ if test "$timestruc" != ""; then
         -e 's/tv_nsec *[a-zA-Z0-9_]*/Nsec Timestruc_nsec_t/' >> ${OUT}
 fi
 
+# The tms struct.
+grep '^type _tms ' gen-sysinfo.go | \
+    sed -e 's/type _tms/type Tms/' \
+      -e 's/tms_utime/Utime/' \
+      -e 's/tms_stime/Stime/' \
+      -e 's/tms_cutime/Cutime/' \
+      -e 's/tms_cstime/Cstime/' \
+    >> ${OUT}
+
 # The stat type.
 # Prefer largefile variant if available.
 stat=`grep '^type _stat64 ' gen-sysinfo.go || true`
@@ -476,6 +502,44 @@ echo $msghdr | \
       -e 's/msg_flags/Flags/' \
     >> ${OUT}
 
+# The MSG_ flags for Msghdr.
+grep '^const _MSG_' gen-sysinfo.go | \
+  sed -e 's/^\(const \)_\(MSG_[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
+
+# The cmsghdr struct.
+cmsghdr=`grep '^type _cmsghdr ' gen-sysinfo.go`
+if test -n "$cmsghdr"; then
+  cmsghdr_len=`echo $cmsghdr | sed -n -e 's/^.*cmsg_len \([^ ]*\);.*$/\1/p'`
+  echo "type Cmsghdr_len_t $cmsghdr_len" >> ${OUT}
+  echo "$cmsghdr" | \
+      sed -e 's/_cmsghdr/Cmsghdr/' \
+        -e 's/cmsg_len *[a-zA-Z0-9_]*/Len Cmsghdr_len_t/' \
+        -e 's/cmsg_level/Level/' \
+        -e 's/cmsg_type/Type/' \
+        -e 's/\[\]/[0]/' \
+      >> ${OUT}
+
+  # The size of the cmsghdr struct.
+  echo 'var SizeofCmsghdr = int(unsafe.Sizeof(Cmsghdr{}))' >> ${OUT}
+fi
+
+# The SCM_ flags for Cmsghdr.
+grep '^const _SCM_' gen-sysinfo.go | \
+  sed -e 's/^\(const \)_\(SCM_[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
+
+# The ucred struct.
+grep '^type _ucred ' gen-sysinfo.go | \
+    sed -e 's/_ucred/Ucred/' \
+      -e 's/pid/Pid/' \
+      -e 's/uid/Uid/' \
+      -e 's/gid/Gid/' \
+    >> ${OUT}
+
+# The size of the ucred struct.
+if grep 'type Ucred ' ${OUT} >/dev/null 2>&1; then
+  echo 'var SizeofUcred = int(unsafe.Sizeof(Ucred{}))' >> ${OUT}
+fi  
+
 # The ip_mreq struct.
 grep '^type _ip_mreq ' gen-sysinfo.go | \
     sed -e 's/_ip_mreq/IPMreq/' \
@@ -504,6 +568,26 @@ grep '^type _ipv6_mreq ' gen-sysinfo.go | \
 if ! grep 'type IPv6Mreq ' ${OUT} >/dev/null 2>&1; then
   echo 'type IPv6Mreq struct { Multiaddr [16]byte; Interface uint32; }' >> ${OUT}
 fi
+
+# The size of the ipv6_mreq struct.
+echo 'var SizeofIPv6Mreq = int(unsafe.Sizeof(IPv6Mreq{}))' >> ${OUT}
+
+# The ip_mreqn struct.
+grep '^type _ip_mreqn ' gen-sysinfo.go | \
+    sed -e 's/_ip_mreqn/IPMreqn/' \
+      -e 's/imr_multiaddr/Multiaddr/' \
+      -e 's/imr_address/Address/' \
+      -e 's/imr_ifindex/Ifindex/' \
+      -e 's/_in_addr/[4]byte/g' \
+    >> ${OUT}
+
+# We need IPMreq to compile the net package.
+if ! grep 'type IPMreqn ' ${OUT} >/dev/null 2>&1; then
+  echo 'type IPMreqn struct { Multiaddr [4]byte; Interface [4]byte; Ifindex int32 }' >> ${OUT}
+fi
+
+# The size of the ip_mreqn struct.
+echo 'var SizeofIPMreqn = int(unsafe.Sizeof(IPMreqn{}))' >> ${OUT}
 
 # Try to guess the type to use for fd_set.
 fd_set=`grep '^type _fd_set ' gen-sysinfo.go || true`
@@ -690,5 +774,36 @@ for n in IGNBRK BRKINT IGNPAR PARMRK INPCK ISTRIP INLCR IGNCR ICRNL IUCLC \
     grep "^const _$n " gen-sysinfo.go | \
 	sed -e 's/^\(const \)_\([^=]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
 done
+
+# The mount flags
+grep '^const _MS_' gen-sysinfo.go |
+    sed -e 's/^\(const \)_\(MS_[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
+
+# The fallocate flags.
+grep '^const _FALLOC_' gen-sysinfo.go |
+    sed -e 's/^\(const \)_\(FALLOC_[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
+
+# The statfs struct.
+# Prefer largefile variant if available.
+statfs=`grep '^type _statfs64 ' gen-sysinfo.go || true`
+if test "$statfs" != ""; then
+  grep '^type _statfs64 ' gen-sysinfo.go
+else
+  grep '^type _statfs ' gen-sysinfo.go
+fi | sed -e 's/type _statfs64/type Statfs_t/' \
+	 -e 's/type _statfs/type Statfs_t/' \
+	 -e 's/f_type/Type/' \
+	 -e 's/f_bsize/Bsize/' \
+	 -e 's/f_blocks/Blocks/' \
+	 -e 's/f_bfree/Bfree/' \
+	 -e 's/f_bavail/Bavail/' \
+	 -e 's/f_files/Files/' \
+	 -e 's/f_ffree/Ffree/' \
+	 -e 's/f_fsid/Fsid/' \
+	 -e 's/f_namelen/Namelen/' \
+	 -e 's/f_frsize/Frsize/' \
+	 -e 's/f_flags/Flags/' \
+	 -e 's/f_spare/Spare/' \
+    >> ${OUT}
 
 exit $?

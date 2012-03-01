@@ -834,8 +834,15 @@ Gogo::write_globals()
 	      else if (init == NULL_TREE)
 		;
 	      else if (TREE_CONSTANT(init))
-		this->backend()->global_variable_set_init(var,
-							  tree_to_expr(init));
+		{
+		  if (expression_requires(no->var_value()->init(), NULL, no))
+		    error_at(no->location(),
+			     "initialization expression for %qs depends "
+			     "upon itself",
+			     no->message_name().c_str());
+		  this->backend()->global_variable_set_init(var,
+							    tree_to_expr(init));
+		}
 	      else if (is_sink)
 		var_init_tree = init;
 	      else
@@ -2422,8 +2429,8 @@ Gogo::make_trampoline(tree fnaddr, tree closure, Location location)
   x = save_expr(x);
 
   // Initialize the trampoline.
-  tree ini = build_call_expr(builtin_decl_implicit(BUILT_IN_INIT_TRAMPOLINE),
-			     3, x, fnaddr, closure);
+  tree calldecl = builtin_decl_implicit(BUILT_IN_INIT_HEAP_TRAMPOLINE);
+  tree ini = build_call_expr(calldecl, 3, x, fnaddr, closure);
 
   // On some targets the trampoline address needs to be adjusted.  For
   // example, when compiling in Thumb mode on the ARM, the address

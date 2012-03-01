@@ -1,7 +1,7 @@
 /* Language-independent node constructors for parse phase of GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
    1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011 Free Software Foundation, Inc.
+   2011, 2012 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -4596,7 +4596,10 @@ free_lang_data_in_decl (tree decl)
   free_lang_data_in_one_sizepos (&DECL_SIZE (decl));
   free_lang_data_in_one_sizepos (&DECL_SIZE_UNIT (decl));
   if (TREE_CODE (decl) == FIELD_DECL)
-    free_lang_data_in_one_sizepos (&DECL_FIELD_OFFSET (decl));
+    {
+      free_lang_data_in_one_sizepos (&DECL_FIELD_OFFSET (decl));
+      DECL_QUALIFIER (decl) = NULL_TREE;
+    }
 
  if (TREE_CODE (decl) == FUNCTION_DECL)
     {
@@ -4800,7 +4803,6 @@ find_decls_types_r (tree *tp, int *ws, void *data)
 	{
 	  fld_worklist_push (DECL_FIELD_OFFSET (t), fld);
 	  fld_worklist_push (DECL_BIT_FIELD_TYPE (t), fld);
-	  fld_worklist_push (DECL_QUALIFIER (t), fld);
 	  fld_worklist_push (DECL_FIELD_BIT_OFFSET (t), fld);
 	  fld_worklist_push (DECL_FCONTEXT (t), fld);
 	}
@@ -5036,6 +5038,9 @@ find_decls_types_in_node (struct cgraph_node *n, struct free_lang_data_d *fld)
       for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
 	{
 	  gimple stmt = gsi_stmt (si);
+
+	  if (is_gimple_call (stmt))
+	    find_decls_types (gimple_call_fntype (stmt), fld);
 
 	  for (i = 0; i < gimple_num_ops (stmt); i++)
 	    {
@@ -9524,6 +9529,10 @@ build_common_builtin_nodes (void)
   local_define_builtin ("__builtin_init_trampoline", ftype,
 			BUILT_IN_INIT_TRAMPOLINE,
 			"__builtin_init_trampoline", ECF_NOTHROW | ECF_LEAF);
+  local_define_builtin ("__builtin_init_heap_trampoline", ftype,
+			BUILT_IN_INIT_HEAP_TRAMPOLINE,
+			"__builtin_init_heap_trampoline",
+			ECF_NOTHROW | ECF_LEAF);
 
   ftype = build_function_type_list (ptr_type_node, ptr_type_node, NULL_TREE);
   local_define_builtin ("__builtin_adjust_trampoline", ftype,

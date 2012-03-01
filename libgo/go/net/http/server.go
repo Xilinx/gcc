@@ -341,7 +341,7 @@ func (w *response) WriteHeader(code int) {
 		}
 	} else {
 		// If no content type, apply sniffing algorithm to body.
-		if w.header.Get("Content-Type") == "" {
+		if w.header.Get("Content-Type") == "" && w.req.Method != "HEAD" {
 			w.needSniff = true
 		}
 	}
@@ -569,14 +569,15 @@ func (c *conn) serve() {
 		if err == nil {
 			return
 		}
-		if c.rwc != nil { // may be nil if connection hijacked
-			c.rwc.Close()
-		}
 
 		var buf bytes.Buffer
 		fmt.Fprintf(&buf, "http: panic serving %v: %v\n", c.remoteAddr, err)
 		buf.Write(debug.Stack())
 		log.Print(buf.String())
+
+		if c.rwc != nil { // may be nil if connection hijacked
+			c.rwc.Close()
+		}
 	}()
 
 	if tlsConn, ok := c.rwc.(*tls.Conn); ok {
@@ -954,8 +955,8 @@ func Serve(l net.Listener, handler Handler) error {
 type Server struct {
 	Addr           string        // TCP address to listen on, ":http" if empty
 	Handler        Handler       // handler to invoke, http.DefaultServeMux if nil
-	ReadTimeout    time.Duration // the net.Conn.SetReadTimeout value for new connections
-	WriteTimeout   time.Duration // the net.Conn.SetWriteTimeout value for new connections
+	ReadTimeout    time.Duration // maximum duration before timing out read of the request
+	WriteTimeout   time.Duration // maximum duration before timing out write of the response
 	MaxHeaderBytes int           // maximum size of request headers, DefaultMaxHeaderBytes if 0
 }
 
@@ -989,10 +990,10 @@ func (srv *Server) Serve(l net.Listener) error {
 			return e
 		}
 		if srv.ReadTimeout != 0 {
-			rw.SetReadTimeout(srv.ReadTimeout.Nanoseconds())
+			rw.SetReadDeadline(time.Now().Add(srv.ReadTimeout))
 		}
 		if srv.WriteTimeout != 0 {
-			rw.SetWriteTimeout(srv.WriteTimeout.Nanoseconds())
+			rw.SetWriteDeadline(time.Now().Add(srv.WriteTimeout))
 		}
 		c, err := srv.newConn(rw)
 		if err != nil {
@@ -1077,8 +1078,8 @@ func ListenAndServeTLS(addr string, certFile string, keyFile string, handler Han
 // of the server's certificate followed by the CA's certificate.
 //
 // If srv.Addr is blank, ":https" is used.
-func (s *Server) ListenAndServeTLS(certFile, keyFile string) error {
-	addr := s.Addr
+func (srv *Server) ListenAndServeTLS(certFile, keyFile string) error {
+	addr := srv.Addr
 	if addr == "" {
 		addr = ":https"
 	}
@@ -1100,7 +1101,7 @@ func (s *Server) ListenAndServeTLS(certFile, keyFile string) error {
 	}
 
 	tlsListener := tls.NewListener(conn, config)
-	return s.Serve(tlsListener)
+	return srv.Serve(tlsListener)
 }
 
 // TimeoutHandler returns a Handler that runs h with the given time limit.

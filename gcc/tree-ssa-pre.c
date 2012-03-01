@@ -2792,6 +2792,23 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	return folded;
       }
       break;
+    case WITH_SIZE_EXPR:
+      {
+	tree genop0 = create_component_ref_by_pieces_1 (block, ref, operand,
+							stmts, domstmt);
+	pre_expr op1expr = get_or_alloc_expr_for (currop->op0);
+	tree genop1;
+
+	if (!genop0)
+	  return NULL_TREE;
+
+	genop1 = find_or_generate_expression (block, op1expr, stmts, domstmt);
+	if (!genop1)
+	  return NULL_TREE;
+
+	return fold_build2 (currop->opcode, currop->type, genop0, genop1);
+      }
+      break;
     case BIT_FIELD_REF:
       {
 	tree folded;
@@ -4819,6 +4836,9 @@ init_pre (bool do_fre)
 static void
 fini_pre (bool do_fre)
 {
+  bool do_eh_cleanup = !bitmap_empty_p (need_eh_cleanup);
+  bool do_ab_cleanup = !bitmap_empty_p (need_ab_cleanup);
+
   free (postorder);
   VEC_free (bitmap_set_t, heap, value_expressions);
   BITMAP_FREE (inserted_exprs);
@@ -4834,21 +4854,17 @@ fini_pre (bool do_fre)
 
   free_dominance_info (CDI_POST_DOMINATORS);
 
-  if (!bitmap_empty_p (need_eh_cleanup))
-    {
-      gimple_purge_all_dead_eh_edges (need_eh_cleanup);
-      cleanup_tree_cfg ();
-    }
+  if (do_eh_cleanup)
+    gimple_purge_all_dead_eh_edges (need_eh_cleanup);
+
+  if (do_ab_cleanup)
+    gimple_purge_all_dead_abnormal_call_edges (need_ab_cleanup);
 
   BITMAP_FREE (need_eh_cleanup);
-
-  if (!bitmap_empty_p (need_ab_cleanup))
-    {
-      gimple_purge_all_dead_abnormal_call_edges (need_ab_cleanup);
-      cleanup_tree_cfg ();
-    }
-
   BITMAP_FREE (need_ab_cleanup);
+
+  if (do_eh_cleanup || do_ab_cleanup)
+    cleanup_tree_cfg ();
 
   if (!do_fre)
     loop_optimizer_finalize ();

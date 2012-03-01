@@ -60,6 +60,54 @@ G	runtime_g0;	// idle goroutine for m0
 static __thread G *g;
 static __thread M *m;
 
+#ifndef SETCONTEXT_CLOBBERS_TLS
+
+static inline void
+initcontext(void)
+{
+}
+
+static inline void
+fixcontext(ucontext_t *c __attribute__ ((unused)))
+{
+}
+
+# else
+
+# if defined(__x86_64__) && defined(__sun__)
+
+// x86_64 Solaris 10 and 11 have a bug: setcontext switches the %fs
+// register to that of the thread which called getcontext.  The effect
+// is that the address of all __thread variables changes.  This bug
+// also affects pthread_self() and pthread_getspecific.  We work
+// around it by clobbering the context field directly to keep %fs the
+// same.
+
+static __thread greg_t fs;
+
+static inline void
+initcontext(void)
+{
+	ucontext_t c;
+
+	getcontext(&c);
+	fs = c.uc_mcontext.gregs[REG_FSBASE];
+}
+
+static inline void
+fixcontext(ucontext_t* c)
+{
+	c->uc_mcontext.gregs[REG_FSBASE] = fs;
+}
+
+# else
+
+#  error unknown case for SETCONTEXT_CLOBBERS_TLS
+
+# endif
+
+#endif
+
 // We can not always refer to the TLS variables directly.  The
 // compiler will call tls_get_addr to get the address of the variable,
 // and it may hold it in a register across a call to schedule.  When
@@ -248,7 +296,9 @@ runtime_gogo(G* newg)
 #endif
 	g = newg;
 	newg->fromgogo = true;
+	fixcontext(&newg->context);
 	setcontext(&newg->context);
+	runtime_throw("gogo setcontext returned");
 }
 
 // Save context and call fn passing g as a parameter.  This is like
@@ -259,6 +309,8 @@ static void runtime_mcall(void (*)(G*)) __attribute__ ((noinline));
 static void
 runtime_mcall(void (*pfn)(G*))
 {
+	M *mp;
+	G *gp;
 #ifndef USING_SPLIT_STACK
 	int i;
 #endif
@@ -267,27 +319,45 @@ runtime_mcall(void (*pfn)(G*))
 	// collector.
 	__builtin_unwind_init();
 
-	if(g == m->g0)
+	mp = m;
+	gp = g;
+	if(gp == mp->g0)
 		runtime_throw("runtime: mcall called on m->g0 stack");
 
-	if(g != nil) {
+	if(gp != nil) {
 
 #ifdef USING_SPLIT_STACK
 		__splitstack_getcontext(&g->stack_context[0]);
 #else
-		g->gcnext_sp = &i;
+		gp->gcnext_sp = &i;
 #endif
-		g->fromgogo = false;
-		getcontext(&g->context);
+		gp->fromgogo = false;
+		getcontext(&gp->context);
+
+		// When we return from getcontext, we may be running
+		// in a new thread.  That means that m and g may have
+		// changed.  They are global variables so we will
+		// reload them, but the addresses of m and g may be
+		// cached in our local stack frame, and those
+		// addresses may be wrong.  Call functions to reload
+		// the values for this thread.
+		mp = runtime_m();
+		gp = runtime_g();
 	}
-	if (g == nil || !g->fromgogo) {
+	if (gp == nil || !gp->fromgogo) {
 #ifdef USING_SPLIT_STACK
-		__splitstack_setcontext(&m->g0->stack_context[0]);
+		__splitstack_setcontext(&mp->g0->stack_context[0]);
 #endif
-		m->g0->entry = (byte*)pfn;
-		m->g0->param = g;
-		g = m->g0;
-		setcontext(&m->g0->context);
+		mp->g0->entry = (byte*)pfn;
+		mp->g0->param = gp;
+
+		// It's OK to set g directly here because this case
+		// can not occur if we got here via a setcontext to
+		// the getcontext call just above.
+		g = mp->g0;
+
+		fixcontext(&mp->g0->context);
+		setcontext(&mp->g0->context);
 		runtime_throw("runtime: mcall function returned");
 	}
 }
@@ -311,6 +381,8 @@ runtime_schedinit(void)
 	m->g0 = g;
 	m->curg = g;
 	g->m = m;
+
+	initcontext();
 
 	m->nomemprof++;
 	runtime_mallocinit();
@@ -472,7 +544,7 @@ mcommoninit(M *m)
 	runtime_atomicstorep((void**)&runtime_allm, m);
 
 	m->id = runtime_sched.mcount++;
-	m->fastrand = 0x49f6428aUL + m->id;
+	m->fastrand = 0x49f6428aUL + m->id + runtime_cputicks();
 
 	if(m->mcache == nil)
 		m->mcache = runtime_allocmcache();
@@ -844,6 +916,8 @@ runtime_mstart(void* mp)
 	m = (M*)mp;
 	g = m->g0;
 
+	initcontext();
+
 	g->entry = nil;
 	g->param = nil;
 
@@ -854,7 +928,9 @@ runtime_mstart(void* mp)
 	__splitstack_getcontext(&g->stack_context[0]);
 #else
 	g->gcinitial_sp = &mp;
-	g->gcstack_size = StackMin;
+	// Setting gcstack_size to 0 is a marker meaning that gcinitial_sp
+	// is the top of the stack, not the bottom.
+	g->gcstack_size = 0;
 	g->gcnext_sp = &mp;
 #endif
 	getcontext(&g->context);
@@ -1212,6 +1288,8 @@ __go_go(void (*fn)(void*), void* arg)
 #else
 		sp = newg->gcinitial_sp;
 		spsize = newg->gcstack_size;
+		if(spsize == 0)
+			runtime_throw("bad spsize in __go_go");
 		newg->gcnext_sp = sp;
 #endif
 	} else {
@@ -1238,6 +1316,9 @@ __go_go(void (*fn)(void*), void* arg)
 
 	getcontext(&newg->context);
 	newg->context.uc_stack.ss_sp = sp;
+#ifdef MAKECONTEXT_STACK_TOP
+	newg->context.uc_stack.ss_sp += spsize;
+#endif
 	newg->context.uc_stack.ss_size = spsize;
 	makecontext(&newg->context, kickoff, 0);
 

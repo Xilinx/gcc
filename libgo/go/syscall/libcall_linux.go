@@ -139,14 +139,6 @@ func PtracePokeData(pid int, addr uintptr, data []byte) (count int, err error) {
 	return ptracePoke(PTRACE_POKEDATA, PTRACE_PEEKDATA, pid, addr, data)
 }
 
-func PtraceGetRegs(pid int, regsout *PtraceRegs) (err error) {
-	return ptrace(PTRACE_GETREGS, pid, 0, uintptr(unsafe.Pointer(regsout)))
-}
-
-func PtraceSetRegs(pid int, regs *PtraceRegs) (err error) {
-	return ptrace(PTRACE_SETREGS, pid, 0, uintptr(unsafe.Pointer(regs)))
-}
-
 func PtraceSetOptions(pid int, options int) (err error) {
 	return ptrace(PTRACE_SETOPTIONS, pid, 0, uintptr(options))
 }
@@ -186,9 +178,8 @@ func PtraceDetach(pid int) (err error) { return ptrace(PTRACE_DETACH, pid, 0, 0)
 //sys	Faccessat(dirfd int, path string, mode uint32, flags int) (err error)
 //faccessat(dirfd int, pathname *byte, mode int, flags int) int
 
-// FIXME: Only in glibc 2.10 and later.
-// //sys	Fallocate(fd int, mode uint32, off int64, len int64) (err error)
-// //fallocate(fd int, mode int, offset Offset_t, len Offset_t) int
+//sys	Fallocate(fd int, mode uint32, off int64, len int64) (err error)
+//fallocate(fd int, mode int, offset Offset_t, len Offset_t) int
 
 //sys	Fchmodat(dirfd int, path string, mode uint32, flags int) (err error)
 //fchmodat(dirfd int, pathname *byte, mode Mode_t, flags int) int
@@ -199,13 +190,13 @@ func PtraceDetach(pid int) (err error) { return ptrace(PTRACE_DETACH, pid, 0, 0)
 //sys	Flock(fd int, how int) (err error)
 //flock(fd int, how int) int
 
-// FIXME: mksysinfo statfs
-// //sys	Fstatfs(fd int, buf *Statfs_t) (err error)
-// //fstatfs(fd int, buf *Statfs_t) int
+//sys	Fstatfs(fd int, buf *Statfs_t) (err error)
+//fstatfs(fd int, buf *Statfs_t) int
 
-// FIXME: Only available as a syscall.
-// //sysnb	Gettid() (tid int)
-// //gettid() Pid_t
+func Gettid() (tid int) {
+	r1, _, _ := Syscall(SYS_GETTID, 0, 0, 0)
+	return int(r1)
+}
 
 // FIXME: mksysinfo linux_dirent
 //    Or just abandon this function.
@@ -290,9 +281,8 @@ func Splice(rfd int, roff *int64, wfd int, woff *int64, len int, flags int) (n i
 	return
 }
 
-// FIXME: mksysinfo statfs
-// //sys	Statfs(path string, buf *Statfs_t) (err error)
-// //statfs(path *byte, buf *Statfs_t) int
+//sys	Statfs(path string, buf *Statfs_t) (err error)
+//statfs(path *byte, buf *Statfs_t) int
 
 // FIXME: Only in glibc 2.6 and later.
 // //sys	SyncFileRange(fd int, off int64, n int64, flags int) (err error)
