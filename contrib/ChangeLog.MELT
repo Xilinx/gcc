@@ -1,5 +1,9 @@
 
 2012-03-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (melt-runtime-params-inc.c): Just use the
+	gfmeltgcc_revision file, without using tr..
+
+2012-03-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* MELT-Plugin-Makefile (gfmeltgcc_run_md5): Really preprocess
 	melt-run.proto.h and compute md5sum of expansion.
 
