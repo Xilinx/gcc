@@ -1,3 +1,142 @@
+2012-03-01  Release Manager
+
+	* GCC 4.6.3 released.
+
+2012-02-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	Revert:
+	2012-02-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline:
+	2011-11-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR tree-optimization/51118
+	* fold-const.c (fold_checksum_tree): Check for TS_TYPED structure
+	before using TREE_TYPE accessor on expr.
+
+2012-02-23  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from trunk
+	2012-02-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/52286
+	* fold-const.c (fold_binary_loc): For (X & C1) | C2
+	optimization use double_int_to_tree instead of build_int_cst_wide,
+	rewrite to use double_int vars.
+
+2012-02-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR c/52290
+	* c-decl.c (start_function): Exit early if decl1 is not FUNTION_DECL.
+
+2012-02-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52330
+	* config/i386/i386.c (ix86_print_operand) <case 'H'>: Error out if x
+	is not offsettable memory reference.
+
+2012-02-21  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/52294
+	* thumb2.md (thumb2_shiftsi3_short): Split register and
+	immediate shifts.  For register shifts tie operands 0 and 1.
+	(peephole2 for above): Check that register-controlled shifts
+	have suitably tied operands.
+
+2012-02-21  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.md ("fixuns_trunc<mode>si2"): Replace
+	TARGET_HARD_FLOAT with TARGET_HARD_DFP.
+
+2012-02-20  Kai Tietz  <ktietz@redhat.com>
+
+	PR target/52238
+	* stor-layout.c (place_field): Handle desired_align for
+	ms-bitfields, too.
+
+2012-02-20  Kai Tietz  <ktietz@redhat.com>
+
+	PR libstdc++/52300
+	* gthr.h (GTHREAD_USE_WEAK): Define as zero for mingw.
+
+2012-02-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/52260
+	* dwarf2out.c (copy_decls_walk): Fill in *slot before traversing
+	children with clone_tree_hash, not after it.
+
+2012-02-15  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	Backport from mainline
+	2012-02-15  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/52199
+	* config/rs6000/rs6000.c (rs6000_expand_vector_init): Use
+	force_reg instead of copy_to_reg for better optimization.  Force
+	non-register or memory operands into a register.
+
+2012-02-15  Richard Guenther  <rguenther@suse.de>
+
+	Backport from mainline
+	2012-02-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46886
+	* tree-flow.h (do_while_loop_p): Declare.
+	* tree-ssa-loop-ch.c (do_while_loop_p): Export.
+	* tree-parloops.c (parallelize_loops): Only parallelize do-while
+	loops.
+
+2012-02-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/51921
+	PR target/52205
+	* config/sparc/sol2-unwind.h (sparc64_is_sighandler): Add support for
+	Solaris 11 and slightly reformat.
+	(sparc_is_sighandler): Likewise.
+
+2012-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	Backported from mainline
+	2012-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/51950
+	* dwarf2out.c (clone_tree_hash): New function.
+	(copy_decls_walk): Use it instead of clone_tree.
+
+	PR c/52181
+	* c-decl.c (merge_decls): Copy DECL_USER_ALIGN bit from olddecl to
+	newdecl.
+
+	2012-02-13  Jakub Jelinek  <jakub@redhat.com>
+
+	* cselib.c (dump_cselib_val): Don't assume l->setting_insn is
+	non-NULL.
+
+	PR middle-end/52230
+	* omp-low.c (expand_omp_for): If a static schedule without
+	chunk size has NULL region->cont, force fd.chunk_size to be
+	integer_zero_node.
+
+	PR bootstrap/51969
+	Backported from mainline
+	2011-11-08  Michael Matz  <matz@suse.de>
+
+	* gengtype.c (write_field_root): Avoid out-of-scope access of newv.
+
+2012-02-14  Bin Cheng  <bin.cheng@arm.com>
+
+	Backport from mainline.
+	2011-06-08  Julian Brown  <julian@codesourcery.com>
+
+	* config/arm/arm.c (arm_libcall_uses_aapcs_base): Use correct ABI
+	for double-precision helper functions in hard-float mode if only
+	single-precision arithmetic is supported in hardware.
+
+2012-02-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* compare-elim.c (find_comparisons_in_bb): Eliminate only compares
+	having the same mode as previous compare.
+
 2012-02-09  Jack Howarth  <howarth@bromo.med.uc.edu>
 
 	Backported from mainline
@@ -87,7 +226,7 @@
 
 2012-02-09  Peter Bergner  <bergner@vnet.ibm.com>
 
-	Backport from mainline 
+	Backport from mainline
 	2012-02-09  Peter Bergner  <bergner@vnet.ibm.com>
 
 	PR middle-end/52140
@@ -95,7 +234,7 @@
 
 2012-02-09  Andrey Belevantsev  <abel@ispras.ru>
 
-	Backport from mainline 
+	Backport from mainline
 	2012-01-20  Andrey Belevantsev  <abel@ispras.ru>
 
 	PR target/51106
@@ -109,11 +248,11 @@
 	bit position to it (if any).
 
 2012-02-07  Kai Tietz  <ktietz@redhat.com>
-            Dave Korn  <dave.korn.cygwin@gmail.com>
+	    Dave Korn  <dave.korn.cygwin@gmail.com>
 
-        PR target/40068
-        * config/i386/winnt-cxx.c (i386_pe_adjust_class_at_definition):
-        Take care that typinfo gets dllexport-attribute.
+	PR target/40068
+	* config/i386/winnt-cxx.c (i386_pe_adjust_class_at_definition):
+	Take care that typinfo gets dllexport-attribute.
 
 2012-02-07  Alan Modra  <amodra@gmail.com>
 
@@ -3582,7 +3721,8 @@
 	PR lto/47497
 	* lto-symtab.c (lto_cgraph_replace_node): Do not set thunk.alias.
 	(lto_symtab_merge_cgraph_nodes_1): Update thunk.alias pointers here.
-	* cgraph.h (cgraph_same_body_alias, cgraph_add_thunk): Add node pointers.
+	* cgraph.h (cgraph_same_body_alias, cgraph_add_thunk): Add node
+	pointers.
 	* cgraph.c (cgraph_same_body_alias_1, cgraph_same_body_alias,
 	cgraph_add_thunk): Add node pointers.
 	* lto-cgraph.c (lto_output_node): Verify that thunks&aliases are
