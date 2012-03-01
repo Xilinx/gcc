@@ -1,4 +1,8 @@
 
+2012-03-01  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	MELT branch merged with trunk rev 184686 using svnmerge
+
 2012-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* INSTALL/README-MELT-PLUGIN: Mention syntax-checking emission.

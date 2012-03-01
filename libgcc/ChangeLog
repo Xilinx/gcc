@@ -1,3 +1,30 @@
+2012-02-28  Kai Tietz  <ktietz@redhat.com>
+
+	* config/i386/sfp-machine.h (_FP_STRUCT_LAYOUT): Define it
+	for mingw-targets as attribute gcc_struct.
+
+2012-02-28  Ian Lance Taylor  <iant@google.com>
+
+	* generic-morestack.c (__splitstack_releasecontext): Correct call
+	to __morestack_release_segments.
+
+2012-02-27  Samuel Thibault  <samuel.thibault@ens-lyon.org>
+
+	PR target/52390
+	* generic-morestack.c (__generic_morestack_set_initial_sp): Test
+	for __linux__ when removing signals from __morestack_fullmask.
+
+2012-02-23  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/52261
+	* config/avr/lib1funcs.S (__AVR__XMEGA__): Fix tippo to __AVR_XMEGA__.
+
+2012-02-23  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/ia64/crtbegin.S: Use HAVE_INITFINI_ARRAY_SUPPORT
+	instead of HAVE_INITFINI_ARRAY.
+	* config/ia64/crtend.S: Likewise.
+
 2012-02-20  Kai Tietz  <ktietz@redhat.com>
 
 	PR libstdc++/52300
@@ -21,7 +48,7 @@
 
 	PR libitm/52220
 	* config/darwin-crt-tm.c: Correct typo.
-	
+
 2012-02-15  Iain Sandoe  <iains@gcc.gnu.org>
 	    Patrick Marlier  <patrick.marlier@gmail.com>
 
@@ -34,7 +61,7 @@
 	PR libitm/52042
 	* config/darwin-crt-tm.c (getTMCloneTable): New function.
 	(__doTMRegistrations): Call it.
-	(__doTMdeRegistrations): Likewise. 
+	(__doTMdeRegistrations): Likewise.
 
 2012-01-15  Georg-Johann Lay  <avr@gjlay.de>
 	    Anatoly Sokolov <aesok@post.ru>
