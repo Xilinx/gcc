@@ -1,3 +1,19 @@
+2012-02-17  Walter Lee  <walt@tilera.com>
+
+	* MAINTAINERS: (Write After Approval): Delete myself.
+
+2012-02-14  Walter Lee  <walt@tilera.com>
+
+	* MAINTAINERS (tilegx port): Add myself.
+	(tilepro port): Add myself.
+	(Write After Approval): Add myself.
+
+2012-02-12  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* MAINTAINERS (Various Maintainers): Add Diego Novillo,
+	Gerald Pfeifer and Joseph Myers as docstring relicensing
+	maintainers.
+
 2012-02-09  Bin Cheng  <bin.cheng@arm.com>
 
 	* MAINTAINERS (write-after-approval): Add myself.

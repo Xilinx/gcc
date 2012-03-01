@@ -2491,7 +2491,7 @@ Parse::operand(bool may_be_sink)
       if (token->is_op(OPERATOR_LPAREN))
 	{
 	  this->advance_token();
-	  ret = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+	  ret = this->expression(PRECEDENCE_NORMAL, may_be_sink, true, NULL);
 	  if (!this->peek_token()->is_op(OPERATOR_RPAREN))
 	    error_at(this->location(), "missing %<)%>");
 	  else
@@ -3948,8 +3948,9 @@ Parse::return_stat()
 	   ++p)
 	{
 	  Named_object* no = this->gogo_->lookup((*p)->name(), NULL);
-	  go_assert(no != NULL);
-	  if (!no->is_result_variable())
+	  if (no == NULL)
+	    go_assert(saw_errors());
+	  else if (!no->is_result_variable())
 	    error_at(location, "%qs is shadowed during return",
 		     (*p)->message_name().c_str());
 	}

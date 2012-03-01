@@ -104,6 +104,8 @@ sparc port		Eric Botcazou		ebotcazou@libertysurf.fr
 spu port		Trevor Smigiel		trevor_smigiel@playstation.sony.com
 spu port		David Edelsohn		dje.gcc@gmail.com
 spu port		Ulrich Weigand		uweigand@de.ibm.com
+tilegx port		Walter Lee		walt@tilera.com
+tilepro port		Walter Lee		walt@tilera.com
 v850 port		Nick Clifton		nickc@redhat.com
 vax port		Matt Thomas		matt@3am-software.com
 x86-64 port		Jan Hubicka		jh@suse.cz
@@ -211,6 +213,9 @@ build machinery (*.in)	Alexandre Oliva		aoliva@redhat.com
 build machinery (*.in)	Ralf Wildenhues		Ralf.Wildenhues@gmx.de
 docs co-maintainer	Gerald Pfeifer		gerald@pfeifer.com
 docs co-maintainer	Joseph Myers		joseph@codesourcery.com
+docstring relicensing	Diego Novillo		dnovillo@google.com
+docstring relicensing	Gerald Pfeifer		gerald@pfeifer.com
+docstring relicensing	Joseph Myers		joseph@codesourcery.com
 predict.def		Jan Hubicka		jh@suse.cz
 contrib/regression	Geoff Keating		geoffk@geoffk.org
 gcov			Jan Hubicka		jh@suse.cz

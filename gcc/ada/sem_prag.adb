@@ -278,7 +278,7 @@ package body Sem_Prag is
       --  overriding operation (see ARM12 6.6.1 (7)).
 
       if Class_Present (N) then
-         declare
+         Class_Wide_Condition : declare
             T   : constant Entity_Id := Find_Dispatching_Type (S);
 
             ACW : Entity_Id := Empty;
@@ -365,9 +365,23 @@ package body Sem_Prag is
 
             procedure Replace_Type is new Traverse_Proc (Process);
 
+         --  Start of processing for Class_Wide_Condition
+
          begin
+            if not Present (T) then
+               Error_Msg_Name_1 :=
+                 Chars (Identifier (Corresponding_Aspect (N)));
+
+               Error_Msg_Name_2 := Name_Class;
+
+               Error_Msg_N
+                 ("aspect `%''%` can only be specified for a primitive " &
+                  "operation of a tagged type",
+                  Corresponding_Aspect (N));
+            end if;
+
             Replace_Type (Get_Pragma_Arg (Arg1));
-         end;
+         end Class_Wide_Condition;
       end if;
 
       --  Remove the subprogram from the scope stack now that the pre-analysis
@@ -1818,6 +1832,7 @@ package body Sem_Prag is
                  ("aspect % requires ''Class for null procedure");
 
             elsif not Nkind_In (PO, N_Subprogram_Declaration,
+                                    N_Expression_Function,
                                     N_Generic_Subprogram_Declaration,
                                     N_Entry_Declaration)
             then
@@ -14930,14 +14945,15 @@ package body Sem_Prag is
       --  Follow subprogram renaming chain
 
       Result := Def_Id;
-      while Is_Subprogram (Result)
+
+      if Is_Subprogram (Result)
         and then
           Nkind (Parent (Declaration_Node (Result))) =
                                          N_Subprogram_Renaming_Declaration
         and then Present (Alias (Result))
-      loop
+      then
          Result := Alias (Result);
-      end loop;
+      end if;
 
       return Result;
    end Get_Base_Subprogram;
