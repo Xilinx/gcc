@@ -597,6 +597,9 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 	       "\n* arrayprop=" arrayprop
 	       "\n\n=~=~=~=~=~=~#" gimplecnt "\n\n\n")
 	)
+       (debug "opengpu_affine_accessed_array done arrayprop=" arrayprop
+	      "\n treeprop=" treeprop 
+	      "\n gimplecnt=" gimplecnt "\n\n")
        ))
     )
   )
@@ -613,17 +616,21 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 	(:basic_block bblooplatch (loop_latch curloop))
 	)
     (debug "opengpudetect_handle_parallel_loop curloop=" curloop 
-	   " bbloophead=" bbloophead " with nbsucc=" (basicblock_nb_succ bbloophead)
-	   " bblooplatch=" bblooplatch
-	   " curloopbodytuple=" curloopbodytuple
-	   " curloopexitedgetuple=" curloopexitedgetuple " loopix=" loopix)
+	   "\n bbloophead=" bbloophead "\n with nbsucc=" (basicblock_nb_succ bbloophead)
+	   "\n bblooplatch=" bblooplatch
+	   "\n curloopbodytuple=" curloopbodytuple
+	   "\n curloopexitedgetuple=" curloopexitedgetuple "\n loopix=" loopix
+	   "\n before call to opengpu_candidate_induction_variables")
     (let ( (inductionvars (opengpu_candidate_induction_variables curloopval))
 	   )
-      (debug "opengpudetect_handle_parallel_loop inductionvars=" inductionvars
-	     "\n bbloophead=" bbloophead "\n bblooplatch=" bblooplatch)
+      (debug "opengpudetect_handle_parallel_loop got inductionvars=" inductionvars
+	     "\n* bbloophead=" bbloophead 
+	     "\n* bblooplatch=" bblooplatch "\n loopix=" loopix
+	     "\n after call to opengpu_candidate_induction_variables\n")
       (let ( (arrptr (opengpu_affine_accessed_array inductionvars curloopbodytuple curloop))
 	     )
-	(debug "opengpudetect_handle_parallel_loop arrptr=" arrptr)
+	(debug "opengpudetect_handle_parallel_loop after opengpu_affine_accessed_array arrptr=" arrptr
+	       "\n loopix=" loopix)
       )
     )))
 
