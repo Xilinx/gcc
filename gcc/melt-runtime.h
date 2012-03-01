@@ -726,12 +726,23 @@ void meltgc_container_put (melt_ptr_t cont, melt_ptr_t val);
 
 /* return the phinodes of a boxed basicblock */
 static inline gimple_seq
-melt_basicblock_phinodes(melt_ptr_t box)
+melt_basicblock_phinodes (melt_ptr_t box)
 {
   struct meltbasicblock_st* b = (struct meltbasicblock_st*)box;
   if (!b || b->discr->meltobj_magic != MELTOBMAG_BASICBLOCK || !b->val)
     return NULL;
   return phi_nodes(b->val);
+}
+
+
+/* return the gimpleseq of a boxed basicblock */
+static inline gimple_seq
+melt_basicblock_gimpleseq (melt_ptr_t box)
+{
+  struct meltbasicblock_st* b = (struct meltbasicblock_st*)box;
+  if (!b || b->discr->meltobj_magic != MELTOBMAG_BASICBLOCK || !b->val)
+    return NULL;
+  return bb_seq(b->val);
 }
 
 

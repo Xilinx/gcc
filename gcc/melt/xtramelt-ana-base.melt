@@ -2216,11 +2216,11 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
    )
   treeblock				;statesym
   ;; test expander
-   #{/*$treeblock ?*/ (($tr) && TREE_CODE($tr) == BLOCK)}#
+   #{/*tree_block $TREEBLOCK ?*/ (($TR) && TREE_CODE($TR) == BLOCK)}#
   ;; fill expander
-   #{ /*$treeblock !*/
-   $trvars = BLOCK_VARS($tr);
-   $trsubblocks =BLOCK_SUBBLOCKS($tr);
+   #{ /*tree_block $TREEBLOCK !*/
+   $TRVARS = BLOCK_VARS($TR);
+   $TRSUBBLOCKS = BLOCK_SUBBLOCKS($TR);
    }# )
 
 ;;;;;;;;;;;;;;;;
@@ -2230,10 +2230,10 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
  (:tree trtype trbasetype)
  treeoffsettype
  ;; expander
- #{/*$TREEOFFSETTYPE ?*/ (($TR) && TREE_CODE($TR) == OFFSET_TYPE) }#
+ #{/*tree_offset_type $TREEOFFSETTYPE ?*/ (($TR) && TREE_CODE($TR) == OFFSET_TYPE) }#
  ;; filler
- #{/*$TREEOFFSETTYPE !*/ $TRTYPE = TREE_TYPE($TR);
-   $TRBASETYPE = TREE_OFFSET_BASETYPE ($TR);
+ #{/*tree_offset_type $TREEOFFSETTYPE !*/ $TRTYPE = TREE_TYPE($TR);
+   $TRBASETYPE = TYPE_OFFSET_BASETYPE ($TR);
  }#)
 
 
@@ -2711,16 +2711,22 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 (defprimitive null_basicblock () :basic_block #{((basic_block)0)}#)
 
 (defprimitive make_basicblock (discr :basic_block bb) :value
- #{/*make_basicblock*/(meltgc_new_basicblock((meltobject_ptr_t)($discr),($bb)))}# )
+  :doc #{Box with given $DISCR the raw basic block $BB into a value.}#
+ #{/*make_basicblock*/(meltgc_new_basicblock((meltobject_ptr_t)($DISCR),($BB)))}# )
 
 (defprimitive basicblock_content (v) :basic_block
- #{(melt_basicblock_content((melt_ptr_t)($v)))}# )
+  :doc #{Safely retrieve the raw basic block inside value $V}#
+ #{(melt_basicblock_content ((melt_ptr_t)($V)))}# )
 
 (defprimitive basicblock_gimpleseq (v) :gimple_seq
-  #{(melt_basicblock_gimpleseq((melt_ptr_t)($v)))}# )
+  :doc #{Safely retrieve the sequence of statements inside a boxed
+  basic block value $V.}#
+  #{(melt_basicblock_gimpleseq ((melt_ptr_t)($V)))}# )
   
 (defprimitive basicblock_phinodes (v) :gimple_seq
-  #{(melt_basicblock_phinodes((melt_ptr_t)($v)))}# )
+  :doc #{Safely retrieve the phinodes, if any, inside a boxed basic
+  block value $V.}# 
+  #{(melt_basicblock_phinodes ((melt_ptr_t)($V)))}# )
   
 (defprimitive ppstrbuf_gimple (sbuf :long indent :gimple g) :void
   #{ meltgc_ppstrbuf_gimple((melt_ptr_t)($sbuf), 

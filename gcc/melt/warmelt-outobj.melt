@@ -4456,6 +4456,8 @@ $MODCTX is the module context, and $IX is the index.}#
 	  ))
 ;;;
     (if dloc (output_raw_location dloc sbuf 0 "primitive-syntax"))
+    (if (!= pritype ctype_void) 
+	(add2out sbuf "    "))
     (debug "syntestgen_primitive primexpan=" primexpan)
     (expand_tuple_for_syntest sbuf replmap primexpan dloc)
     ;;

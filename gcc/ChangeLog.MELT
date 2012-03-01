@@ -1,4 +1,13 @@
 
+2011-03-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_basicblock_gimpleseq): New function.
+
+	* melt/warmelt-outobj.melt (syntestgen_primitive): Emit spaces.
+
+	* melt/xtramelt-ana-base.melt (tree_offset_type): Use
+	TYPE_OFFSET_BASETYPE, not TREE_OFFSET_BASETYPE which never
+	existed.
+
 2011-02-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
