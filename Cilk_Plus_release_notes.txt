@@ -12,14 +12,25 @@ following features from the Intel Cilk Plus Language Specification:
 	- reduction
 	- private
    Note: These pragmas are supported for the innermost loops only.
+* Array Notations: Array notations are supported for C and C++. Along with 
+  this, we have also implemented the following builtin reduction functions:
+        - __sec_reduce_add
+        - __sec_reduce_mul
+        - __sec_reduce_max
+        - __sec_reduce_min
+        - __sec_reduce_max_ind
+        - __sec_reduce_min_ind
+        - __sec_reduce_all_zero
+        - __sec_reduce_all_nonzero
+        - __sec_reduce_any_zero
+        - __sec_reduce_any_nonzero
+        - __sec_implicit_index     
 
 The following features are not implemented in this release
-* Array notations
 * Elemental functions
 
 Known Issues:
 * Exception support - Exceptions are not supported for Cilk keywords.
-* Metadata for tools like Cilkscreen is not generated.
 
 ----------------------------------------------------------------------------
 Intel and Cilk are trademarks of Intel Corporation in the U.S. and/or other 

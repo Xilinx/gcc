@@ -13,6 +13,8 @@ It includes the following features:
 2) Reducers provide an easy, lock-free way to deal with shared data.
 3) Pragmas that communicate SIMD information to the vectorizer to help ensure
    that the loops are vectorized correctly/easily.
+4) Array notations (including builtin reduction functions) to directly express
+   high-level parallel vector array operations.
 
 This implementation has been tested on the x86 (both 32 and 64 bit)  
 architectures.  There is very little architecture-specific code and it should 
