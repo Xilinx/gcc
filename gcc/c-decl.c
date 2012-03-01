@@ -2436,6 +2436,7 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
     memcpy ((char *) olddecl + sizeof (struct tree_common),
 	    (char *) newdecl + sizeof (struct tree_common),
 	    sizeof (struct tree_decl_common) - sizeof (struct tree_common));
+    DECL_USER_ALIGN (olddecl) = DECL_USER_ALIGN (newdecl);
     switch (TREE_CODE (olddecl))
       {
       case FUNCTION_DECL:
@@ -7593,7 +7594,8 @@ start_function (struct c_declspecs *declspecs, struct c_declarator *declarator,
 
   /* If the declarator is not suitable for a function definition,
      cause a syntax error.  */
-  if (decl1 == 0)
+  if (decl1 == 0
+      || TREE_CODE (decl1) != FUNCTION_DECL)
     return 0;
 
   loc = DECL_SOURCE_LOCATION (decl1);
