@@ -2273,7 +2273,7 @@ melt_syntax_tester_warmelt_debug (void)
   {
     long primf_0_DEPTH = 0;
     long primres_1 =
-/*MELT_REALLY_NEED_DEBUG*/ (melt_need_debug ((int) primf_0_DEPTH));
+      /*MELT_REALLY_NEED_DEBUG */ (melt_need_debug ((int) primf_0_DEPTH));
     if (primres_1)
       return;
   }				/*end primitive-syntax MELT_REALLY_NEED_DEBUG */
@@ -2284,7 +2284,7 @@ melt_syntax_tester_warmelt_debug (void)
 /*primitive-syntax MELT_HAS_FLAG_DEBUG_SET*/
   {
     long primres_2 =
-/*MELT_HAS_FLAG_DEBUG_SET*/ melt_flag_debug;
+      /*MELT_HAS_FLAG_DEBUG_SET */ melt_flag_debug;
     if (primres_2)
       return;
   }				/*end primitive-syntax MELT_HAS_FLAG_DEBUG_SET */
