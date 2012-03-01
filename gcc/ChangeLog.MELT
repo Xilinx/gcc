@@ -1,5 +1,8 @@
 
 2011-03-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.4-
+
+2011-03-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_basicblock_gimpleseq): New function.
 
 	* melt/warmelt-outobj.melt (syntestgen_primitive): Emit spaces.
