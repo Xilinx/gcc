@@ -3326,19 +3326,12 @@ extract_range_from_assignment (value_range_t *vr, gimple stmt)
   tree newexpr = NULL_TREE;
   enum tree_code code = gimple_assign_rhs_code (stmt);
   tree exprtype = gimple_expr_type (stmt);
-  location_t loc = gimple_location (stmt);
   tree op0, op1, op2;
   op0 = gimple_assign_rhs1 (stmt);
   op1 = gimple_assign_rhs2 (stmt);
   op2 = gimple_assign_rhs3 (stmt);
 
-  if (TREE_CODE_CLASS (code) == tcc_binary
-      || TREE_CODE_CLASS (code) == tcc_comparison)
-    newexpr = gimple_combine_binary (loc, code, exprtype, op0, op1);
-  else if (code == COND_EXPR)
-    newexpr = gimple_combine_ternary (loc, code, exprtype, op0, op1, op2);
-  else if (TREE_CODE_CLASS (code) == tcc_unary)
-    newexpr = gimple_combine_unary (loc, code, exprtype, op0);
+  newexpr = ssa_combine (stmt);
 
   if (newexpr
       && get_gimple_rhs_class (TREE_CODE (newexpr)) != GIMPLE_INVALID_RHS
@@ -4394,6 +4387,37 @@ register_edge_assert_for_2 (tree name, edge e, gimple_stmt_iterator bsi,
     {
       register_new_assert_for (name, name, comp_code, val, NULL, e, bsi);
       retval = true;
+    }
+
+  /* In the case of NAME >= 0 and NAME being defined as
+     NAME = (int) NAME2 we can assert NAME < (unsigned)SIGNED_MIN. */
+  if (comp_code == GE_EXPR
+      && integer_zerop (val)
+      && INTEGRAL_TYPE_P (TREE_TYPE (val))
+      && !TYPE_UNSIGNED (TREE_TYPE (val)))
+    {
+      gimple def_stmt = SSA_NAME_DEF_STMT (name);
+      tree name2 = NULL_TREE;
+      if (gimple_assign_cast_p (def_stmt))
+	{
+	  if (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (def_stmt))
+	      && TYPE_UNSIGNED (TREE_TYPE (gimple_assign_rhs1 (def_stmt)))
+	      && (TYPE_PRECISION (gimple_expr_type (def_stmt))
+		  == TYPE_PRECISION (TREE_TYPE (gimple_assign_rhs1 (def_stmt)))))
+	    name2 = gimple_assign_rhs1 (def_stmt);
+	}
+
+      if (name2
+      	  && TREE_CODE (name2) == SSA_NAME
+	  && INTEGRAL_TYPE_P (TREE_TYPE (name2))
+	  && live_on_edge (e, name2)
+	  && !has_single_use (name2))
+	{
+	  tree tmp = fold_convert (TREE_TYPE (name2),
+				   TYPE_MIN_VALUE (TREE_TYPE (name)));
+
+	  register_new_assert_for (name2, name2, LT_EXPR, tmp, NULL, e, bsi);
+	}
     }
 
   /* In the case of NAME <= CST and NAME being defined as
@@ -6128,6 +6152,9 @@ vrp_visit_cond_stmt (gimple stmt, edge *taken_edge_p)
 {
   tree val;
   bool sop;
+  tree op0, op1;
+  enum tree_code code;
+  bool reversed = false;
 
   *taken_edge_p = NULL;
 
@@ -6195,12 +6222,40 @@ vrp_visit_cond_stmt (gimple stmt, edge *taken_edge_p)
      4 more predicates folded in SPEC.  */
   sop = false;
 
-  val = vrp_evaluate_conditional_warnv_with_ops (gimple_cond_code (stmt),
-						 gimple_cond_lhs (stmt),
-						 gimple_cond_rhs (stmt),
-						 false, &sop, NULL);
+  /* Try using the tree combiner first. */
+  val = ssa_combine (stmt);
+
+  if (val && TREE_CODE (val) == BIT_NOT_EXPR)
+    {
+      reversed = true;
+      val = TREE_OPERAND (val, 0);
+    }
+
+  if (val && COMPARISON_CLASS_P (val) && valid_gimple_rhs_p (val))
+    {
+      code = TREE_CODE (val);
+      op0 = TREE_OPERAND (val, 0);
+      op1 = TREE_OPERAND (val, 1);
+    }
+  else
+    {
+      code = gimple_cond_code (stmt);
+      op0 = gimple_cond_lhs (stmt);
+      op1 = gimple_cond_rhs (stmt);
+      reversed = false;
+    }
+
+   if (!val || !is_gimple_min_invariant (val))
+      val = vrp_evaluate_conditional_warnv_with_ops (code,
+						     op0,
+						     op1,
+						     false, &sop, NULL);
+
   if (val)
     {
+      if (reversed)
+	val = fold_build1 (BIT_NOT_EXPR, TREE_TYPE (val), val);
+
       if (!sop)
 	*taken_edge_p = find_taken_edge (gimple_bb (stmt), val);
       else
@@ -6348,31 +6403,40 @@ static enum ssa_prop_result
 vrp_visit_switch_stmt (gimple stmt, edge *taken_edge_p)
 {
   tree op, val;
-  value_range_t *vr;
   size_t i = 0, j = 0;
   bool take_default;
+  value_range_t vr = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
 
   *taken_edge_p = NULL;
-  op = gimple_switch_index (stmt);
-  if (TREE_CODE (op) != SSA_NAME)
+  op = ssa_combine (stmt);
+
+  if (!op
+      || (!is_gimple_min_invariant (op) && TREE_CODE (op) != SSA_NAME))
+    op = gimple_switch_index (stmt);
+
+  if (!is_gimple_min_invariant (op) && TREE_CODE (op) != SSA_NAME)
     return SSA_PROP_VARYING;
 
-  vr = get_value_range (op);
+  if (TREE_CODE (op) == SSA_NAME)
+    vr = *(get_value_range (op));
+  else
+    set_value_range_to_value (&vr, op, NULL);
+
   if (dump_file && (dump_flags & TDF_DETAILS))
     {
       fprintf (dump_file, "\nVisiting switch expression with operand ");
       print_generic_expr (dump_file, op, 0);
       fprintf (dump_file, " with known range ");
-      dump_value_range (dump_file, vr);
+      dump_value_range (dump_file, &vr);
       fprintf (dump_file, "\n");
     }
 
-  if (vr->type != VR_RANGE
-      || symbolic_range_p (vr))
+  if (vr.type != VR_RANGE
+      || symbolic_range_p (&vr))
     return SSA_PROP_VARYING;
 
   /* Find the single edge that is taken from the switch expression.  */
-  take_default = !find_case_label_range (stmt, vr->min, vr->max, &i, &j);
+  take_default = !find_case_label_range (stmt, vr.min, vr.max, &i, &j);
 
   /* Check if the range spans no CASE_LABEL. If so, we only reach the default
      label */
@@ -7539,9 +7603,11 @@ static bool
 simplify_stmt_using_ranges (gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
+  tree newexpr;
 
   /* First try doing a ssa combine. */
-  if (ssa_combine (gsi))
+  newexpr = ssa_combine (stmt);
+  if (replace_rhs_after_ssa_combine (gsi, newexpr))
     return true;
 
   if (is_gimple_assign (stmt))

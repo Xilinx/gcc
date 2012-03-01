@@ -1,3 +1,61 @@
+2012-02-29  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (gimple_combine_build1): Simplify
+	(bool)(a CMP b) into just (a CMP b).
+	(truth_valued_ssa_name): a nonzero value of one is also
+	a truth value.
+	(forward_propagate_into_comparison_1):
+	Use defcodefor_name_3 instead of defcodefor_name.
+	Try to simplify (a?b:c) CMP d into a?(b CMP d) : (c CMP d)
+	if either b CMP d or c CMP d simplifies down to a
+	constant.
+	(forward_propagate_into_comparison): Use only way of returning
+	deleting duplicated code.
+	(forward_propagate_into_gimple_cond): Change return type to tree.
+	Only take a statement.
+	Don't do the replacement of the statement here.
+	(forward_propagate_into_cond): Handle "bool == 0 ? b : a"
+	and "bool != 1" with a call to gimple_combine_build3.
+	Simplify "A ? B : 0" to "A & B" if B is bool expr.
+	Simplify "A ? 0 : B".
+	Simplify "A ? B : 1".
+	Simplify "A ? 1 : B".
+	(simplify_gimple_switch): Change return type to tree.
+	Don't update the statement here.
+	(extract_simple_gimple): Delete, force_gimple_operand_gsi does the
+	same thing.
+	(simplify_bitwise_binary): Use build_int_cst instead of fold_convert.
+	Simplify A ^| B if A or B is known to be zero.
+	Simplify A & B if A or B is known to be zero.
+	(gimple_combine_binary): For assert expressions, just return NULL.
+	If both arguments are constant, use fold_binary_loc to fold them into
+	constants. 
+	(ssa_combine): Return a tree and take a statment instead of a
+	statement iterator.
+	(replace_rhs_after_ssa_combine): New function.
+	* tree-flow.h (ssa_combine): Return tree and take a gimple.
+	(replace_rhs_after_ssa_combine): New prototype.
+	* tree-ssa-ccp (const_val_size): New variable.
+	(get_value): If this is a new ssa name return a varying variable.
+	(set_value_varying): Return right away if this is a new ssa name.
+	(set_lattice_value): Likewise.
+	(ccp_initialize): Set const_val_size.
+	(do_dbg_cnt): Only do up to const_val_size.
+	(ccp_nonzerop): New function.
+	(ccp_fold_stmt): Add commented out code since it does not currently
+	work.
+	(do_ssa_ccp): Set the nonzerobits hook.
+	* tree-ssa-forwprop.c (ssa_forward_propagate_and_combine): Update call
+	to ssa_combine.  Call replace_rhs_after_ssa_combine.
+	* tree-vrp.c (extract_range_from_assignment): Call ssa_combine
+	instead of gimple_combine_* directly.
+	(register_edge_assert_for_2): Handle (int)UNAME >= 0 as
+	UNAME < (unsigned)SIGNED_MIN for the asserts.
+	(vrp_visit_cond_stmt): Call ssa_combine and try to use that result.
+	(vrp_visit_switch_stmt): Likewise.
+	(simplify_stmt_using_ranges): Update for the change in return type
+	of ssa_coombine.  Call replace_rhs_after_ssa_combine.
+
 2012-02-28  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c (nonzerobits_report): New function

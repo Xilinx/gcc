@@ -166,6 +166,7 @@ typedef struct prop_value_d prop_value_t;
    memory reference used to store (i.e., the LHS of the assignment
    doing the store).  */
 static prop_value_t *const_val;
+static unsigned const_val_size;
 
 static void canonicalize_float_value (prop_value_t *);
 static bool ccp_fold_stmt (gimple_stmt_iterator *);
@@ -298,9 +299,13 @@ static inline prop_value_t *
 get_value (tree var)
 {
   prop_value_t *val;
+  static prop_value_t varying_val = {VARYING, NULL_TREE, {-1, -1}};
 
   if (const_val == NULL)
     return NULL;
+
+  if (const_val_size <= SSA_NAME_VERSION (var))
+    return &varying_val;
 
   val = &const_val[SSA_NAME_VERSION (var)];
   if (val->lattice_val == UNINITIALIZED)
@@ -337,7 +342,11 @@ get_constant_value (tree var)
 static inline void
 set_value_varying (tree var)
 {
-  prop_value_t *val = &const_val[SSA_NAME_VERSION (var)];
+  prop_value_t *val;
+  if (const_val_size <= SSA_NAME_VERSION (var))
+    return;
+
+  val = &const_val[SSA_NAME_VERSION (var)];
 
   val->lattice_val = VARYING;
   val->value = NULL_TREE;
@@ -434,7 +443,12 @@ static bool
 set_lattice_value (tree var, prop_value_t new_val)
 {
   /* We can deal with old UNINITIALIZED values just fine here.  */
-  prop_value_t *old_val = &const_val[SSA_NAME_VERSION (var)];
+  prop_value_t *old_val;
+
+  if (const_val_size <= SSA_NAME_VERSION (var))
+    return false;
+
+  old_val = &const_val[SSA_NAME_VERSION (var)];
 
   canonicalize_float_value (&new_val);
 
@@ -716,6 +730,7 @@ ccp_initialize (void)
   basic_block bb;
 
   const_val = XCNEWVEC (prop_value_t, num_ssa_names);
+  const_val_size = num_ssa_names;
 
   /* Initialize simulation flags for PHI nodes and statements.  */
   FOR_EACH_BB (bb)
@@ -776,7 +791,7 @@ static void
 do_dbg_cnt (void)
 {
   unsigned i;
-  for (i = 0; i < num_ssa_names; i++)
+  for (i = 0; i < const_val_size; i++)
     {
       if (!dbg_cnt (ccp))
         {
@@ -1852,6 +1867,22 @@ fold_builtin_alloca_with_align (gimple stmt)
   return fold_convert (TREE_TYPE (lhs), build_fold_addr_expr (var));
 }
 
+static double_int
+ccp_nonzerop (tree var)
+{
+  prop_value_t val;
+  if (var == NULL)
+    return double_int_minus_one;
+
+  val = get_value_for_expr (var, true);
+  if (val.lattice_val != CONSTANT)
+    return double_int_minus_one;
+  if (TREE_CODE (val.value) != INTEGER_CST)
+    return double_int_minus_one;
+  return double_int_ior (tree_to_double_int (val.value),
+		      val.mask);
+}
+
 /* Fold the stmt at *GSI with CCP specific information that propagating
    and regular folding does not catch.  */
 
@@ -1859,6 +1890,15 @@ static bool
 ccp_fold_stmt (gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
+#if 0
+  tree newexpr;
+
+  /* FIXME: this should work but currently does not causing stage2 to
+     be miscompiled. */
+  newexpr = ssa_combine (stmt);
+  if (replace_rhs_after_ssa_combine (gsi, newexpr))
+    return true;
+#endif
 
   switch (gimple_code (stmt))
     {
@@ -2136,12 +2176,14 @@ static unsigned int
 do_ssa_ccp (void)
 {
   unsigned int todo = 0;
+  gimple_combine_set_nonzerobits (ccp_nonzerop);
   calculate_dominance_info (CDI_DOMINATORS);
   ccp_initialize ();
   ssa_propagate (ccp_visit_stmt, ccp_visit_phi_node);
   if (ccp_finalize ())
     todo = (TODO_cleanup_cfg | TODO_update_ssa | TODO_remove_unused_locals);
   free_dominance_info (CDI_DOMINATORS);
+  gimple_combine_set_nonzerobits (NULL);
   return todo;
 }
 

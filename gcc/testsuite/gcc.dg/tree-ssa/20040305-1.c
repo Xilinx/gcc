@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-O2 -fdump-tree-cddce2 -fdump-tree-forwprop1-details" } */
+/* { dg-options "-O2 -fno-tree-ccp -fdump-tree-cddce2 -fdump-tree-forwprop1-details" } */
   
 int abarney[2];
 int afred[1];
@@ -23,7 +23,7 @@ void foo(int edx, int eax)
  
 
 /* Verify that we did a forward propagation.  */
-/* { dg-final { scan-tree-dump-times "Replaced" 1 "forwprop1"} } */
+/* { dg-final { scan-tree-dump-times "Folded" 1 "forwprop1"} } */
 /* { dg-final { cleanup-tree-dump "forwprop1" } } */
 
 /* After cddce we should have two IF statements remaining as the other

@@ -3,7 +3,7 @@
    Make sure that a != 0 is propagated into the "if" statement.  */
 
 /* { dg-do compile } */
-/* { dg-options "-O1 -fdump-tree-forwprop1-details" } */
+/* { dg-options "-O1 -fno-tree-ccp -fdump-tree-forwprop1-details" } */
 
 int
 foo (int a)

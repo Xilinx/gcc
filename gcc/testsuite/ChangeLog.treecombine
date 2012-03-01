@@ -1,3 +1,15 @@
+2012-03-01  Andrew Pinski  <apinski@cavium.com>
+
+	* gcc.dg/tree-ssa/20040305-1.c: Turn ccp off.
+	Update for the change in the dump file.
+	* gcc.dg/tree-ssa/forwprop-3.: Turn ccp off.
+	Update for the change in the dump file.
+	* gcc.dg/tree-ssa/pr21031.c: Turn ccp off.
+	* gcc.dg/tree-ssa/ssa-fre-2.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-3.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-4.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-fre-5.c: Likewise.
+
 2012-02-26  Andrew Pinski  <apinski@cavium.com>
 
 	* gcc.dg/tree-ssa/vrp64.c: New testcase.

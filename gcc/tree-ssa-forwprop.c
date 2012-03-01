@@ -1163,6 +1163,7 @@ ssa_forward_propagate_and_combine (void)
 	{
 	  bool did_replace = false;
 	  gimple stmt = gsi_stmt (gsi);
+	  tree newexpr = NULL_TREE;
 
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    {
@@ -1176,19 +1177,23 @@ ssa_forward_propagate_and_combine (void)
 		  && DECL_BUILT_IN_CLASS (callee) == BUILT_IN_NORMAL)
 		did_replace = simplify_builtin_call (&gsi, callee);
 	    }
-	  if (!did_replace && ssa_combine (&gsi))
+	  if (!did_replace)
+	    newexpr = ssa_combine (stmt);
+
+	  if (dump_file && (dump_flags & TDF_DETAILS))
+	    if (newexpr)
+	      {
+	        print_generic_expr (dump_file, newexpr, TDF_SLIM);
+	        fprintf (dump_file, "\n");
+	      }
+
+	  if (replace_rhs_after_ssa_combine (&gsi, newexpr))
 	    {
 	      cfg_changed = true;
 	      did_replace = true;
 	      delete_dead_code_uptil (gsi);
 	      if (gsi_end_p (gsi))
 		gsi = gsi_start_bb (bb);
-	      else
-	 	{
-		  gsi_prev_nondebug (&gsi);
-		  if (gsi_end_p (gsi))
-		    gsi = gsi_start_bb (bb);
-		}
 	    }
 	  else if (!did_replace)
 	    gsi_next (&gsi);
@@ -1200,6 +1205,11 @@ ssa_forward_propagate_and_combine (void)
 		  fprintf (dump_file, "Folded into: ");
 		  print_gimple_stmt (dump_file, stmt, 0, TDF_SLIM);
 		  fprintf (dump_file, "\n");
+		  if (newexpr)
+		    {
+		      print_generic_expr (dump_file, newexpr, TDF_SLIM);
+		      fprintf (dump_file, "\n");
+		    }
 		}
 	      else
 		fprintf (dump_file, "Not folded\n");

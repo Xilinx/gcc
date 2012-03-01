@@ -117,13 +117,20 @@ static tree
 gimple_combine_build1 (location_t loc, enum tree_code code,
 		       tree type, tree arg1)
 {
+  /* Convert (bool)a CMP b into just a CMP b.  Only do this while
+     building the tree as it useless otherwise.  */
+  if (CONVERT_EXPR_CODE_P (code)
+      && TREE_CODE (type) == BOOLEAN_TYPE
+      && COMPARISON_CLASS_P (arg1))
+    return gimple_combine_build2 (loc, TREE_CODE (arg1), type,
+				  TREE_OPERAND (arg1, 0),
+				  TREE_OPERAND (arg1, 1));
+
   tree tem = gimple_combine_unary (loc, code, type, arg1);
   if (tem)
     return tem;
   return build1_loc (loc, code, type, arg1);
 }
-
-static tree extract_simple_gimple (gimple_stmt_iterator *, tree);
 
 /* Report that what we got for VAL's nonzerobits (a) if it is
    not just the type's nonzerobits.  */
@@ -470,6 +477,7 @@ combine_cond_expr_cond (location_t loc, enum tree_code code, tree type,
 static bool
 truth_valued_ssa_name (tree name)
 {
+  double_int nz;
   tree type = TREE_TYPE (name);
 
   if (!INTEGRAL_TYPE_P (type))
@@ -478,9 +486,10 @@ truth_valued_ssa_name (tree name)
      necessarily one and so ~X is not equal to !X.  */
   if (TYPE_PRECISION (type) == 1)
     return true;
-  /* If the only bits which are maybe nonzero is the first bit,
+  /* If the only bits which are maybe nonzero is the first or no bits,
      then this is a truth valued name. */
-  return double_int_one_p (nonzerobits (name));
+  nz = nonzerobits (name);
+  return double_int_one_p (nz) || double_int_zero_p (nz);
 }
 
 /* Combine the comparison OP0 CODE OP1 at LOC with the defining statements
@@ -499,9 +508,9 @@ forward_propagate_into_comparison_1 (location_t loc,
   bool single_use01_p = false, single_use11_p = false;
   enum tree_code code0;
 
-  tree arg1, arg2;
+  tree arg1, arg2, arg3;
 
-  defcodefor_name (op0, &code0, &arg1, &arg2);
+  defcodefor_name_3 (op0, &code0, &arg1, &arg2, &arg3);
 
   /* Try to simplify (a|b)!=0 to a!=0|b!=0 but only do this
      if one of (a!=0) or (b!=0) simplifies.  */
@@ -545,6 +554,25 @@ forward_propagate_into_comparison_1 (location_t loc,
 	  if (arg21 == NULL)
 	    arg21 = build2_loc (loc, EQ_EXPR, type, arg2, op1);
 	  return gimple_combine_build2 (loc, BIT_AND_EXPR, type, arg11, arg21);
+	}
+    }
+
+  /* If we have (a ? b : c) CMP op1 and either b CMP op1 or c CMP op1
+     simplifies to a constant, then produce a ? (b CMP op1) : (c CMP op1)
+     which will simplify to something containing a | or a &.  */
+  if (code0 == COND_EXPR)
+    {
+      tree arg11, arg21;
+      arg11 = gimple_combine_binary (loc, code, type, arg2, op1);
+      arg21 = gimple_combine_binary (loc, code, type, arg3, op1);
+      if ((arg11 && TREE_CODE (arg11) == INTEGER_CST)
+          || (arg21 && TREE_CODE (arg21) == INTEGER_CST))
+	{
+	  if (arg11 == NULL)
+	    arg11 = build2_loc (loc, code, type, arg2, op1);
+	  if (arg21 == NULL)
+	    arg21 = build2_loc (loc, code, type, arg3, op1);
+	  return gimple_combine_build3 (loc, COND_EXPR, type, arg1, arg11, arg21);
 	}
     }
 
@@ -696,15 +724,13 @@ forward_propagate_into_comparison (location_t loc,
     canonicalized = canonicalize_cond_expr_cond (tmp);
     if (!canonicalized)
       {
-	if (reversed_edges)
-	  tmp = build1 (BIT_NOT_EXPR, TREE_TYPE (tmp), tmp);
-	if (!useless_type_conversion_p (type, TREE_TYPE (tmp)))
-	  tmp = build1 (NOP_EXPR, type, tmp);
-	return tmp;
+	tmp1 = tmp;
+	break;
       }
     tmp1 = canonicalized;
     gimple_cond_get_ops_from_tree (canonicalized, &code, &rhs1, &rhs2);
   } while (tmp);
+
 
   if (tmp1)
     {
@@ -723,8 +749,8 @@ forward_propagate_into_comparison (location_t loc,
    Returns zero if no statement was changed, one if there were
    changes and two if cfg_cleanup needs to run.  */
 
-static bool
-forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt)
+static tree
+forward_propagate_into_gimple_cond (gimple stmt)
 {
   tree tmp;
   enum tree_code code = gimple_cond_code (stmt);
@@ -751,7 +777,7 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt)
 
   /* We can do tree combining on SSA_NAME and comparison expressions.  */
   if (TREE_CODE_CLASS (code) != tcc_comparison)
-    return 0;
+    return NULL_TREE;
 
   tmp = gimple_combine_binary (loc, code, boolean_type_node, rhs1, rhs2);
   if (!tmp)
@@ -775,7 +801,7 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt)
       else if (proping)
 	  tmp = build2 (code, boolean_type_node, rhs1, rhs2);
       else
-	return false;
+	return NULL_TREE;
     }
 
   /* Strip off the conversion from a boolean type to a boolean
@@ -799,7 +825,7 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt)
          result and cause an infinite loop.  */
       if (code == NE_EXPR && integer_zerop (rhs2)
 	  && operand_equal_for_phi_arg_p (t, rhs1))
-	return false;
+	return NULL_TREE;
       tmp = build2_loc (loc, NE_EXPR, boolean_type_node, t,
 			build_zero_cst (TREE_TYPE (t)));
     }
@@ -810,41 +836,13 @@ forward_propagate_into_gimple_cond (gimple_stmt_iterator *gsi, gimple stmt)
   if (code == NE_EXPR && integer_zerop (rhs2)
       && operand_equal_for_phi_arg_p (tmp, rhs1)
       && !proping)
-    return false;
+    return NULL_TREE;
 
-  tmp = extract_simple_gimple (gsi, tmp);
-  if (!tmp)
-    return false;
-
-  tmp = canonicalize_cond_expr_cond (tmp);
-
-  if (!tmp)
-   return false;
-
-
-  if (dump_file && tmp)
-    {
-      fprintf (dump_file, "  Replaced '");
-      print_gimple_expr (dump_file, stmt, 0, 0);
-      fprintf (dump_file, "' with '");
-      print_generic_expr (dump_file, tmp, 0);
-      fprintf (dump_file, "'\n");
-      if (reversed_edges)
-	fprintf (dump_file, "with reversed edges.\n");
-    }
-
-   gimple_cond_set_condition_from_tree (stmt, unshare_expr (tmp));
-   /* Switch around the edges if expand_poosible_comparison tells us
-      we need to. */
   if (reversed_edges)
-    {
-       basic_block bb = gimple_bb (stmt);
-       EDGE_SUCC (bb, 0)->flags ^= (EDGE_TRUE_VALUE|EDGE_FALSE_VALUE);
-       EDGE_SUCC (bb, 1)->flags ^= (EDGE_TRUE_VALUE|EDGE_FALSE_VALUE);
-     }
-  update_stmt (stmt);
+    tmp = build1 (BIT_NOT_EXPR, TREE_TYPE (tmp), tmp);
 
-  return true;
+
+  return tmp;
 }
 
 /* Propagate from the ssa name definition statements of COND_EXPR
@@ -863,6 +861,20 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
 
   gcc_assert (code1 == COND_EXPR);
 
+  /* bool == 0 ? b : a -> bool ? b : a */
+  /* bool != 1 ? b : a -> bool ? b : a */
+  /* This is done first so we only the other simplifiers
+     don't have bool == 0 or bool != 1 and only bool. */
+  if (((TREE_CODE (cond) == EQ_EXPR
+	 && integer_zerop (TREE_OPERAND (cond, 1)))
+	|| (TREE_CODE (cond) == NE_EXPR
+	    && integer_onep (TREE_OPERAND (cond, 1))))
+      && (TREE_CODE (TREE_TYPE (TREE_OPERAND (cond, 0))) == BOOLEAN_TYPE
+	  || (INTEGRAL_TYPE_P (TREE_TYPE (TREE_OPERAND (cond, 0)))
+	      && TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (cond, 0))) == 1)))
+    return gimple_combine_build3 (loc, COND_EXPR, type,
+				  TREE_OPERAND (cond, 0), op2, op1);
+
   /* A ? 1 : 0  -> (type) A. */
   if (integer_onep (op1)
       && integer_zerop (op2)
@@ -879,17 +891,41 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
       return gimple_combine_build1 (loc, NOP_EXPR, type, tmp);
     }
 
-  /* bool == 0 ? b : a -> bool ? b : a */
-  /* bool != 1 ? b : a -> bool ? b : a */
-  if (((TREE_CODE (cond) == EQ_EXPR
-	 && integer_zerop (TREE_OPERAND (cond, 1)))
-	|| (TREE_CODE (cond) == NE_EXPR
-	    && integer_onep (TREE_OPERAND (cond, 1))))
-      && (TREE_CODE (TREE_TYPE (TREE_OPERAND (cond, 0))) == BOOLEAN_TYPE
-	  || (INTEGRAL_TYPE_P (TREE_TYPE (TREE_OPERAND (cond, 0)))
-	      && TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (cond, 0))) == 1)))
-    return gimple_combine_build3 (loc, COND_EXPR, type,
-				  TREE_OPERAND (cond, 0), op2, op1);
+  /* A ? B : 0 -> A & B  if B is a bool expr. */
+  if (integer_zerop (op2)
+      && truth_valued_ssa_name (op1))
+    {
+      cond = gimple_combine_build1 (loc, NOP_EXPR, type, cond);
+      return gimple_combine_build2 (loc, BIT_AND_EXPR, type, cond, op1);
+    }
+
+  /* A ? 0 : B -> !A & B if B is a bool expr. */
+  if (integer_zerop (op1)
+      && truth_valued_ssa_name (op2))
+    {
+      cond = gimple_combine_build2 (loc, BIT_XOR_EXPR, TREE_TYPE (cond), cond,
+				 build_int_cst (TREE_TYPE (cond), 1));
+      cond = gimple_combine_build1 (loc, NOP_EXPR, type, cond);
+      return gimple_combine_build2 (loc, BIT_AND_EXPR, type, cond, op2);
+    }
+
+  /* A ? B : 1 -> !A | B  if B is a bool expr. */
+  if (integer_onep (op2)
+      && truth_valued_ssa_name (op1))
+    {
+      cond = gimple_combine_build2 (loc, BIT_XOR_EXPR, TREE_TYPE (cond), cond,
+				 build_int_cst (TREE_TYPE (cond), 1));
+      cond = gimple_combine_build1 (loc, NOP_EXPR, type, cond);
+      return gimple_combine_build2 (loc, BIT_IOR_EXPR, type, cond, op1);
+    }
+
+  /* A ? 1 : B -> A | B if B is a bool expr. */
+  if (integer_onep (op1)
+      && truth_valued_ssa_name (op2))
+    {
+      cond = gimple_combine_build1 (loc, NOP_EXPR, type, cond);
+      return gimple_combine_build2 (loc, BIT_IOR_EXPR, type, cond, op2);
+    }
 
   /* If all else, try to simplify the condition. */
   defcodefor_name (cond, &code, &rhs1, &rhs2);
@@ -964,6 +1000,7 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
       op1 = op2;
       op2 = t;
     }
+
   return gimple_combine_build3 (loc, COND_EXPR, type, tmp, op1, op2);
 }
 
@@ -1037,7 +1074,7 @@ simplify_not_neg_abs_expr (location_t loc, enum tree_code code,
 /* STMT is a SWITCH_EXPR for which we attempt to find equivalent forms of
    the condition which we may be able to optimize better.  */
 
-static bool
+static tree
 simplify_gimple_switch (gimple stmt)
 {
   tree cond = gimple_switch_index (stmt);
@@ -1074,14 +1111,7 @@ simplify_gimple_switch (gimple stmt)
       defcodefor_name (def, &code, &def, NULL);
     }
 
-  if (defto)
-    {
-      gimple_switch_set_index (stmt, defto);
-      update_stmt (stmt);
-      return true;
-    }
-
-  return false;
+  return defto;
 }
 
 /* Helper routine for simplify_bitwise_binary_1 function.
@@ -1175,65 +1205,6 @@ simplify_bitwise_binary_1 (enum tree_code code, tree type,
   return NULL_TREE;
 }
 
-
-static tree
-extract_simple_gimple (gimple_stmt_iterator *gsi, tree expr)
-{
-  enum tree_code code = TREE_CODE (expr);
-  if (valid_gimple_rhs_p (expr))
-    return expr;
-  if (UNARY_CLASS_P (expr))
-    {
-      tree op1;
-      op1 = force_gimple_operand_gsi (gsi, TREE_OPERAND (expr, 0), true, NULL, true,
-                                      GSI_SAME_STMT);
-      return build1 (code, TREE_TYPE (expr), op1);
-    }
-  /* For comparisons, create a tmp variable to hold the comparison
-     if the type is not bool. */
-  if (COMPARISON_CLASS_P (expr)
-      && TREE_CODE (TREE_TYPE (expr)) != BOOLEAN_TYPE)
-    {
-      tree tmp = build2 (code, boolean_type_node, TREE_OPERAND (expr, 0),
-			 TREE_OPERAND (expr, 1));
-      tmp = force_gimple_operand_gsi (gsi, tmp, true, NULL, true,
-                                      GSI_SAME_STMT);
-      return build1 (NOP_EXPR, TREE_TYPE (expr), tmp);
-    }
-  if (BINARY_CLASS_P (expr) || COMPARISON_CLASS_P (expr))
-    {
-      tree op1, op2;
-      op1 = force_gimple_operand_gsi (gsi, TREE_OPERAND (expr, 0), true,
-				      NULL, true, GSI_SAME_STMT);
-      op2 = force_gimple_operand_gsi (gsi, TREE_OPERAND (expr, 1), true,
-				      NULL, true, GSI_SAME_STMT);
-      return build2 (code, TREE_TYPE (expr), op1, op2);
-    }
-  if (TREE_CODE (expr) == COND_EXPR)
-    {
-      tree op1, op2;
-      tree cond = TREE_OPERAND (expr, 0);
-      if (COMPARISON_CLASS_P (cond))
-	{
-	  tree op1, op2;
-	  op1 = force_gimple_operand_gsi (gsi, TREE_OPERAND (cond, 0), true,
-					  NULL, true, GSI_SAME_STMT);
-	  op2 = force_gimple_operand_gsi (gsi, TREE_OPERAND (cond, 1), true,
-					  NULL, true, GSI_SAME_STMT);
-	  cond = build2 (TREE_CODE (cond), TREE_TYPE (cond), op1, op2);
-	}
-      else
-	cond = force_gimple_operand_gsi (gsi, cond, true,
-					 NULL, true, GSI_SAME_STMT);
-      op1 = force_gimple_operand_gsi (gsi, TREE_OPERAND (expr, 1), true,
-				      NULL, true, GSI_SAME_STMT);
-      op2 = force_gimple_operand_gsi (gsi, TREE_OPERAND (expr, 2), true,
-				      NULL, true, GSI_SAME_STMT);
-      return build3 (code, TREE_TYPE (expr), cond, op1, op2);
-    }
-  return NULL_TREE;
-}
-
 /* Simplify bitwise binary operations.
    Return the tree of what the code was transformed into.  */
 
@@ -1267,7 +1238,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
         nzop2 = nonzerobits (arg2);
         /* If we are clearing all the nonzero bits, the result is zero.  */
         if (double_int_zero_p (double_int_and (nzop1, nzop2)))
-	  return fold_convert (TREE_TYPE (arg1), integer_zero_node);
+	  return build_int_cst (TREE_TYPE (arg1), 0);
     }
 
   /* A | C is C if all bits of A that might be nonzero are on in C.  */
@@ -1277,6 +1248,26 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 						tree_to_double_int (arg2))))
 						
     return arg2;
+
+  /* A | B -> A if B is known to be zero */
+  /* A ^ B -> A if B is known to be zero */
+  if ((code == BIT_IOR_EXPR
+       || code == BIT_XOR_EXPR)
+      && double_int_zero_p (nonzerobits (arg2)))
+    return arg1;
+
+  /* A | B -> B if A is known to be zero */
+  /* A ^ B -> B if A is known to be zero */
+  if ((code == BIT_IOR_EXPR
+       || code == BIT_XOR_EXPR)
+      && double_int_zero_p (nonzerobits (arg1)))
+    return arg2;
+
+  /* A & B -> 0 if A or B are known to be zero */
+  if (code == BIT_AND_EXPR
+      && (double_int_zero_p (nonzerobits (arg1))
+	  || double_int_zero_p (nonzerobits (arg2))))
+    return build_int_cst (type, 0);
 
   /* If we are XORing two things that have no bits in common,
      convert them into an IOR.  This helps to detect rotation encoded
@@ -1718,6 +1709,8 @@ combine_conversions (location_t loc, enum tree_code code, tree ltype,
 		       || code == FLOAT_EXPR
 		       || code == FIX_TRUNC_EXPR);
 
+
+
   if (useless_type_conversion_p (ltype, TREE_TYPE (op0)))
     return op0;
 
@@ -1841,10 +1834,17 @@ tree
 gimple_combine_binary (location_t loc, enum tree_code code,
 		       tree type, tree arg1, tree arg2)
 {
+  if (code == ASSERT_EXPR)
+    return NULL_TREE;
+
   gcc_assert (IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (code))
               && TREE_CODE_LENGTH (code) == 2
               && arg1 != NULL_TREE
               && arg2 != NULL_TREE);
+
+  /* Call fold if we have two constants. */
+  if (is_gimple_min_invariant (arg1) && is_gimple_min_invariant (arg2))
+    return fold_binary_loc (loc, code, type, arg1, arg2);
 
   if (commutative_tree_code (code)
       && tree_swap_operands_p (arg1, arg2, true))
@@ -1896,14 +1896,9 @@ gimple_combine_unary (location_t loc, enum tree_code code,
 /* Main entry point for the forward propagation and statement combine
    optimizer.  */
 
-bool
-ssa_combine (gimple_stmt_iterator *gsi)
+tree
+ssa_combine (gimple stmt)
 {
-  bool changed = false;
-  tree newexpr = NULL_TREE;
-
-  gimple stmt = gsi_stmt (*gsi);
-
   switch (gimple_code (stmt))
     {
     case GIMPLE_ASSIGN:
@@ -1915,45 +1910,103 @@ ssa_combine (gimple_stmt_iterator *gsi)
 	location_t loc = gimple_location (stmt);
 	enum tree_code code = gimple_assign_rhs_code (stmt);
 
-	/* We cannot fold memory references. */
+	/* We cannot fold memory references right now. */
 	if (TREE_CODE_CLASS (code) == tcc_reference)
-	  return false;
+	  return NULL_TREE;
 
 	if (TREE_CODE_LENGTH (code) == 3)
-	  newexpr = gimple_combine_ternary (loc, code, ltype, rhs1, rhs2,
+	  return gimple_combine_ternary (loc, code, ltype, rhs1, rhs2,
 					    rhs3);
 	if (TREE_CODE_LENGTH (code) == 2)
-	  newexpr = gimple_combine_binary (loc, code, ltype, rhs1, rhs2);
+	  return gimple_combine_binary (loc, code, ltype, rhs1, rhs2);
 	else if (TREE_CODE_LENGTH (code) == 1)
-	  newexpr = gimple_combine_unary (loc, code, ltype, rhs1);
+	  return gimple_combine_unary (loc, code, ltype, rhs1);
 	break;
       }
 
     case GIMPLE_SWITCH:
-      changed = simplify_gimple_switch (stmt);
+      return simplify_gimple_switch (stmt);
       break;
 
     case GIMPLE_COND:
-      changed = forward_propagate_into_gimple_cond (gsi, stmt);
+      return forward_propagate_into_gimple_cond (stmt);
       break;
 
     case GIMPLE_CALL:
     default:;
     }
 
-  if (changed)
-    return true;
-  if (!newexpr)
-    return false;
-  /* For right now only handle the assign case. */
-  gcc_assert (gimple_code (stmt) == GIMPLE_ASSIGN);
-  /* Handle the simple case of folding to one expression. */
-  newexpr = extract_simple_gimple (gsi, newexpr);
-  if (newexpr == NULL_TREE)
-    return false;
-  gimple_assign_set_rhs_from_tree (gsi, newexpr);
-  update_stmt (gsi_stmt (*gsi));
-  return true;
+  return NULL_TREE;
 }
 
+bool
+replace_rhs_after_ssa_combine (gimple_stmt_iterator *gsi, tree newexpr)
+{
+  gimple stmt;
+
+  if (newexpr == NULL_TREE)
+    return false;
+
+  stmt = gsi_stmt (*gsi);
+  switch (gimple_code (stmt))
+    {
+    case GIMPLE_ASSIGN:
+      {
+	newexpr = force_gimple_operand_gsi (gsi, newexpr, false, NULL, true,
+					    GSI_SAME_STMT);
+	gimple_assign_set_rhs_from_tree (gsi, newexpr);
+	update_stmt (gsi_stmt (*gsi));
+	return true;
+      }
+
+    case GIMPLE_SWITCH:
+      {
+	newexpr = force_gimple_operand_gsi (gsi, newexpr, true, NULL, true,
+					    GSI_SAME_STMT);
+	gimple_switch_set_index (gsi_stmt (*gsi), newexpr);
+	update_stmt (gsi_stmt (*gsi));
+	return true;
+      }
+      break;
+
+    case GIMPLE_COND:
+      {
+	bool reversed_edges = false;
+	if (TREE_CODE (newexpr) == TRUTH_NOT_EXPR
+	    || TREE_CODE (newexpr) == BIT_NOT_EXPR)
+	  {
+	    reversed_edges = true;
+	    newexpr = TREE_OPERAND (newexpr, 0);
+	  }
+
+	/* Since we might not get a comparison out of the folding. */
+	if (!COMPARISON_CLASS_P (newexpr))
+	  newexpr = build2 (NE_EXPR, boolean_type_node, newexpr,
+			    build_int_cst (TREE_TYPE (newexpr), 0));
+
+	newexpr = force_gimple_operand_gsi (gsi, newexpr, false, NULL, true,
+					    GSI_SAME_STMT);
+	newexpr = canonicalize_cond_expr_cond (newexpr);
+	if (newexpr == NULL_TREE)
+	  return false;
+	gimple_cond_set_condition_from_tree (stmt, unshare_expr (newexpr));
+	if (reversed_edges)
+	  {
+	    basic_block bb = gimple_bb (stmt);
+	    EDGE_SUCC (bb, 0)->flags ^= (EDGE_TRUE_VALUE|EDGE_FALSE_VALUE);
+	    EDGE_SUCC (bb, 1)->flags ^= (EDGE_TRUE_VALUE|EDGE_FALSE_VALUE);
+	  }
+	update_stmt (gsi_stmt (*gsi));
+	return true;
+      }
+      break;
+
+    case GIMPLE_CALL:
+      /* Handle replacing calls with simple expressions like constants. */
+      return false;
+
+    default:;
+    }
+  return false;
+}
 
