@@ -142,19 +142,21 @@ welcome by email to <basile@starynkevitch.net> [please mention MELT in
 the subject line]
 
 ################################################################
-NEWS for ....
+NEWS for 0.9.4
 
    Language improvements
    =====================
 
-Add CHEADER macro to insert header c-code.
+Add CHEADER macro to insert header c-code. For example
+
+   (cheader #{#include <readline/readline.h>}#)
 
 
    Runtime 
    =======
 
 Hash maps have an auxiliary data value, which can be accessed and set
-at will.
+at will. 
 
    Translator
    ==========
