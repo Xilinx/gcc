@@ -1,5 +1,9 @@
 
 2011-03-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h: Include "hwint.h" explicitly.
+	* melt-module.mk: Add GCCMELT_MODULE_EXTRALIBES.
+
+2011-03-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt: More debug.
 	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.4
 

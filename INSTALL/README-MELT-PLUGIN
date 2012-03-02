@@ -142,8 +142,17 @@ As root, copy it appropriately:
 
    cp -v -R -p /tmp/meltinstall/. /.
 
+#### uninstallation
 
-For packagers: notice that the MELT plugin should be entirely rebuilt
+Since all MELT related files are installed under 
+$(gcc-4.6 -print-file-name=plugin) you can just do as root
+   rm -v -r -f $(gcc-4.6 -print-file-name=plugin)/*melt*
+
+to uninstall MELT
+
+
+########## For packagers
+Notice that the MELT plugin should be entirely rebuilt
 even for small changes of the compiler (e.g. when upgrading gcc from
 4.6.2 to 4.6.3).
 
@@ -164,6 +173,7 @@ If all goes well, you get a /tmp/gcc-melt-plugin.tgz gnuzipped tar
 archive for the MELT plugin. This is only needed to people making a
 new MELT plugin source archive.
 
+
 ################ 
 
 Comments about the MELT plugin (including its installation script) are
@@ -171,7 +181,8 @@ welcome by email to <basile@starynkevitch.net> [please mention MELT in
 the subject line] and to <gcc-melt@googlegroups.com>
 
 ################################################################
-NEWS for 0.9.4
+NEWS for 0.9.4 MELT plugin for GCC 4.6 (and 4.7 when available)
+released on March 02nd, 2012
 
    Language improvements
    =====================
@@ -179,7 +190,13 @@ NEWS for 0.9.4
 Add CHEADER macro to insert header c-code. For example
 
    (cheader #{#include <readline/readline.h>}#)
+or 
+   (cheader #{inline int succ(int x) { return x+1;}}#)
 
+[you still need dirty tricks to link an external library into a MELT
+module; as a temporary workaround, consider editing melt-module.mk for
+them, perhaps defining GCCMELT_MODULE_EXTRALIBES there, or link
+manually the library into melt.so meta-plugin]
 
    Runtime 
    =======
@@ -195,6 +212,11 @@ code in a syntax checking C function, which is never called, but is
 emitted to ensure the emittable C code is syntactically correct. This
 catch typos in (defprimitive ...) etc... even for e.g. yet unused
 primitives.
+
+   Bugs 
+   ====
+
+Many bugs have been corrected.
 
 #######################################################################
 NEWS for 0.9.3 MELT plugin for gcc-4.6 (and future gcc-4.7)
@@ -476,10 +498,14 @@ Many bugfixes
 Thanks to Pierre Vittet for code contributions (notably thru Google
 Summer of Code), Alexandre Lissy and Allan McRae for bug reports.
 
-(MELT development is partly funded thru OpenGPU [FUI call] & GlobalGCC
-[ITEA call] projects by French DGCIS).
-
 #######################################################################
 NEWS for 0.7 MELT plugin for gcc-4.6
 
 April 29th, 2011: first release, melt-0.7-plugin-for-gcc-4.6
+
+################################################################
+(MELT development is partly funded thru OpenGPU [FUI call] & GlobalGCC
+[ITEA call] projects by French DGCIS).
+
+
+################################################################

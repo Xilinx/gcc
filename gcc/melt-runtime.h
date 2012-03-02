@@ -73,8 +73,11 @@ extern void fatal_error (const char *, ...);
 
 #include "gcc-plugin.h"
 
-/* we include toplev.h for the error routines */
+/* We include toplev.h for the error routines. */
 #include "toplev.h"
+
+/* We need hwint.h for  HOST_WIDE_INT */
+#include "hwint.h"
 
 extern const char melt_runtime_build_date[];
 
