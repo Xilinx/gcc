@@ -936,6 +936,10 @@ runtime_gc(int32 force)
 	const byte *p;
 	bool extra;
 
+	// Make sure all registers are saved on stack so that
+	// scanstack sees them.
+	__builtin_unwind_init();
+
 	// The gc is turned off (via enablegc) until
 	// the bootstrap has completed.
 	// Also, malloc gets called in the guts
@@ -1061,11 +1065,11 @@ runtime_gc(int32 force)
 		runtime_gc(1);
 }
 
-void runtime_UpdateMemStats(void)
-  __asm__("libgo_runtime.runtime.UpdateMemStats");
+void runtime_ReadMemStats(MStats *)
+  __asm__("libgo_runtime.runtime.ReadMemStats");
 
 void
-runtime_UpdateMemStats(void)
+runtime_ReadMemStats(MStats *stats)
 {
 	M *m;
 
@@ -1078,6 +1082,7 @@ runtime_UpdateMemStats(void)
 	m->gcing = 1;
 	runtime_stoptheworld();
 	cachestats();
+	*stats = mstats;
 	m->gcing = 0;
 	runtime_semrelease(&gcsema);
 	runtime_starttheworld(false);

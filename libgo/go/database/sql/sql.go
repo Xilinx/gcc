@@ -47,7 +47,6 @@ type RawBytes []byte
 //     // NULL value
 //  }
 //
-// TODO(bradfitz): add other types.
 type NullString struct {
 	String string
 	Valid  bool // Valid is true if String is not NULL
@@ -69,6 +68,84 @@ func (ns NullString) SubsetValue() (interface{}, error) {
 		return nil, nil
 	}
 	return ns.String, nil
+}
+
+// NullInt64 represents an int64 that may be null.
+// NullInt64 implements the ScannerInto interface so
+// it can be used as a scan destination, similar to NullString.
+type NullInt64 struct {
+	Int64 int64
+	Valid bool // Valid is true if Int64 is not NULL
+}
+
+// ScanInto implements the ScannerInto interface.
+func (n *NullInt64) ScanInto(value interface{}) error {
+	if value == nil {
+		n.Int64, n.Valid = 0, false
+		return nil
+	}
+	n.Valid = true
+	return convertAssign(&n.Int64, value)
+}
+
+// SubsetValue implements the driver SubsetValuer interface.
+func (n NullInt64) SubsetValue() (interface{}, error) {
+	if !n.Valid {
+		return nil, nil
+	}
+	return n.Int64, nil
+}
+
+// NullFloat64 represents a float64 that may be null.
+// NullFloat64 implements the ScannerInto interface so
+// it can be used as a scan destination, similar to NullString.
+type NullFloat64 struct {
+	Float64 float64
+	Valid   bool // Valid is true if Float64 is not NULL
+}
+
+// ScanInto implements the ScannerInto interface.
+func (n *NullFloat64) ScanInto(value interface{}) error {
+	if value == nil {
+		n.Float64, n.Valid = 0, false
+		return nil
+	}
+	n.Valid = true
+	return convertAssign(&n.Float64, value)
+}
+
+// SubsetValue implements the driver SubsetValuer interface.
+func (n NullFloat64) SubsetValue() (interface{}, error) {
+	if !n.Valid {
+		return nil, nil
+	}
+	return n.Float64, nil
+}
+
+// NullBool represents a bool that may be null.
+// NullBool implements the ScannerInto interface so
+// it can be used as a scan destination, similar to NullString.
+type NullBool struct {
+	Bool  bool
+	Valid bool // Valid is true if Bool is not NULL
+}
+
+// ScanInto implements the ScannerInto interface.
+func (n *NullBool) ScanInto(value interface{}) error {
+	if value == nil {
+		n.Bool, n.Valid = false, false
+		return nil
+	}
+	n.Valid = true
+	return convertAssign(&n.Bool, value)
+}
+
+// SubsetValue implements the driver SubsetValuer interface.
+func (n NullBool) SubsetValue() (interface{}, error) {
+	if !n.Valid {
+		return nil, nil
+	}
+	return n.Bool, nil
 }
 
 // ScannerInto is an interface used by Scan.
@@ -479,8 +556,11 @@ func (tx *Tx) Query(query string, args ...interface{}) (*Rows, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer stmt.Close()
-	return stmt.Query(args...)
+	rows, err := stmt.Query(args...)
+	if err == nil {
+		rows.closeStmt = stmt
+	}
+	return rows, err
 }
 
 // QueryRow executes a query that is expected to return at most one row.
@@ -800,6 +880,10 @@ func (rs *Rows) Columns() ([]string, error) {
 // be modified and held indefinitely. The copy can be avoided by using
 // an argument of type *RawBytes instead; see the documentation for
 // RawBytes for restrictions on its use.
+//
+// If an argument has type *interface{}, Scan copies the value
+// provided by the underlying driver without conversion. If the value
+// is of type []byte, a copy is made and the caller owns the result.
 func (rs *Rows) Scan(dest ...interface{}) error {
 	if rs.closed {
 		return errors.New("sql: Rows closed")
@@ -822,6 +906,12 @@ func (rs *Rows) Scan(dest ...interface{}) error {
 	for _, dp := range dest {
 		b, ok := dp.(*[]byte)
 		if !ok {
+			continue
+		}
+		if *b == nil {
+			// If the []byte is now nil (for a NULL value),
+			// don't fall through to below which would
+			// turn it into a non-nil 0-length byte slice
 			continue
 		}
 		if _, ok = dp.(*RawBytes); ok {
@@ -865,17 +955,10 @@ func (r *Row) Scan(dest ...interface{}) error {
 	if r.err != nil {
 		return r.err
 	}
-	defer r.rows.Close()
-	if !r.rows.Next() {
-		return ErrNoRows
-	}
-	err := r.rows.Scan(dest...)
-	if err != nil {
-		return err
-	}
 
 	// TODO(bradfitz): for now we need to defensively clone all
-	// []byte that the driver returned, since we're about to close
+	// []byte that the driver returned (not permitting 
+	// *RawBytes in Rows.Scan), since we're about to close
 	// the Rows in our defer, when we return from this function.
 	// the contract with the driver.Next(...) interface is that it
 	// can return slices into read-only temporary memory that's
@@ -890,14 +973,17 @@ func (r *Row) Scan(dest ...interface{}) error {
 		if _, ok := dp.(*RawBytes); ok {
 			return errors.New("sql: RawBytes isn't allowed on Row.Scan")
 		}
-		b, ok := dp.(*[]byte)
-		if !ok {
-			continue
-		}
-		clone := make([]byte, len(*b))
-		copy(clone, *b)
-		*b = clone
 	}
+
+	defer r.rows.Close()
+	if !r.rows.Next() {
+		return ErrNoRows
+	}
+	err := r.rows.Scan(dest...)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
