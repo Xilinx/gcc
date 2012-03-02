@@ -1,3 +1,46 @@
+2012-03-02  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	* gcc.target/arm/sat-1.c: New test.
+
+2012-03-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/46716
+	* gcc.target/i386/pr46176.c: New test.
+
+2012-03-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/51989
+	* g++.dg/cpp0x/sfinae32.C: New.
+
+2012-03-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52406
+	* gcc.dg/torture/pr52406.c: New testcase.
+
+2012-03-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52325
+	* gfortran.dg/derived_comp_array_ref_8.f90: New.
+	* gfortran.dg/nullify_2.f90: Update dg-error.
+	* gfortran.dg/nullify_4.f90: Ditto.
+	* gfortran.dg/pointer_init_6.f90: Ditto.
+
+2012-03-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52270
+	* gfortran.dg/class_51.f90: New.
+
+2012-03-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52452
+	* gfortran.dg/intrinsic_8.f90: New.
+
+2012-03-01  Kai Tietz  <ktietz@redhat.com>
+
+	* gcc.dg/torture/pr47917.c: Make test using POSIX-printf
+	routines on mingw targets.
+	* gcc.dg/vect/pr46126.c (uintptr_t): Add support for LLP64 target.
+
 2012-03-01  Jakub Jelinek  <jakub@redhat.com>
 
 	PR tree-optimization/52445
@@ -90,18 +133,15 @@
 
 2012-02-28  Kai Tietz  <ktietz@redhat.com>
 
-	* gcc.target/i386/pr46939.c (long): Fix LP64 vs LLP64
-	issue.
+	* gcc.target/i386/pr46939.c (long): Fix LP64 vs LLP64 issue.
 	* gcc.target/i386/pr45352-2.c: Likewise.
-	* gcc.target/i386/bitfield3.c: Add -mno-ms-bitfields for
-	mingw targets.
-	* gcc.target/i386/xop-vshift-1.c(random): Use on mingw
+	* gcc.target/i386/bitfield3.c: Add -mno-ms-bitfields for mingw targets.
+	* gcc.target/i386/xop-vshift-1.c (random): Use on mingw
 	targets instead rand.
 	* gcc.target/i386/sse4_1-blendps-2.c: Likewise.
 	* gcc.target/i386/sse2-mul-1.c: Likewise.
 	* gcc.target/i386/sse4_1-blendps.c: Likewise.
-	* gcc.target/i386/pad-6b.c: Adjust test for x64 mingw
-	target.
+	* gcc.target/i386/pad-6b.c: Adjust test for x64 mingw target.
 	* gcc.target/i386/pad-1.c: Likewise.
 	* gcc.target/i386/pad-9.c: Likewise.
 	* gcc.target/i386/pad-2.c: Likewise.
@@ -187,8 +227,7 @@
 
 2012-02-23  Kai Tietz  <ktietz@redhat.com>
 
-	* gcc.dg/pack-test-5.c: Add -mno-ms-bitfields option
-	for mingw-targets.
+	* gcc.dg/pack-test-5.c: Add -mno-ms-bitfields option for mingw-targets.
 	* gcc.dg/Wpadded.c: Likewise.
 	* gcc.dg/bf-ms-layout-2.c: Adjust offsets to fit ms-bitfield
 	structure-layout.
@@ -198,8 +237,7 @@
 	targets.
 	* gcc.dg/stack-usage-1.c (SIZE): Provide proper SIZE for x64 mingw
 	target.
-	* gcc.dg/tls/thr-cse-1.c: Provide proper pattern for x64 mingw
-	target.
+	* gcc.dg/tls/thr-cse-1.c: Provide proper pattern for x64 mingw target.
 	* gcc.dg/tls/opt-11.c (memset): Use __extension__ to avoid fail
 	on x64 mingw target.
 	* gcc.dg/bf-ms-attrib.c: Adjust expected size for ms_struct layout.
