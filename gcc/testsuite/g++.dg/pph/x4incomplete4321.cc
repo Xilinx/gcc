@@ -1,5 +1,6 @@
 // pph asm xdiff 64351
-// XFAIL missing constructors
+// xfail-if BOGUS MISSFUN
+// missing constructors
 
 #include "x0incomplete3.h"
 #include "x0incomplete2.h"

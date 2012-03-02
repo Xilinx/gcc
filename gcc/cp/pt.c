@@ -46,6 +46,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "tree-iterator.h"
 #include "vecprim.h"
+#include "strptrmap.h"
 
 /* The type of functions taking a tree, and some additional data, and
    returning an int.  */
@@ -20675,14 +20676,11 @@ pph_dump_pending_templates_list (FILE *stream)
 
 /* Emit the pending_templates list to STREAM.  */
 
-void
+static void
 pph_out_pending_templates_list (pph_stream *stream)
 {
   int count = 0;
   struct pending_template *cur;
-
-  if (flag_pph_dump_tree)
-    pph_dump_pending_templates_list (stderr);
 
   /* Count the number of items.  */
   for (cur = pending_templates; cur != NULL;  cur = cur->next )
@@ -20696,7 +20694,7 @@ pph_out_pending_templates_list (pph_stream *stream)
 
 /* Load and merge the pending_templates list from STREAM.  */
 
-void
+static void
 pph_in_pending_templates_list (pph_stream *stream)
 { 
   unsigned count = pph_in_uint (stream);
@@ -20715,17 +20713,27 @@ pph_in_pending_templates_list (pph_stream *stream)
         pending_templates = pt;
       last_pending_template = pt;
     }
-
-  if (flag_pph_dump_tree)
-    pph_dump_pending_templates_list (stderr);
 }
 
 
-/* A callback of htab_traverse. Just extracts a (type) tree from SLOT
-   and writes it out for PPH using the AUXillary information. */
+/* A callback of htab_traverse.  Writes out the PPH the merge keys for SLOT
+   using the AUXillary information. */
 
 static int
-pph_out_spec_entry_slot (void **slot, void *aux)
+pph_out_key_spec_entry_slot (void **slot, void *aux)
+{
+  pph_stream *stream = (pph_stream *)aux;
+  struct spec_entry *entry = (struct spec_entry *) *slot;
+  pph_out_merge_key_tree (stream, entry->spec, true);
+  return 1;
+}
+
+
+/* A callback of htab_traverse.  Writes out the PPH the merge bodies for SLOT
+   using the AUXillary information. */
+
+static int
+pph_out_body_spec_entry_slot (void **slot, void *aux)
 {
   pph_stream *stream = (pph_stream *)aux;
   struct spec_entry *entry = (struct spec_entry *) *slot;
@@ -20735,16 +20743,18 @@ pph_out_spec_entry_slot (void **slot, void *aux)
   return 1;
 }
 
-/* Emit a spec_entry TABLE to STREAM.  */
+
+/* Write a spec_entry TABLE to STREAM using FUNC.  */
 
 static void
-pph_out_spec_entry_htab (pph_stream *stream, htab_t *table)
+pph_out_spec_entry_htab (pph_stream *stream, htab_t *table,
+			 int (*func)(void **slot, void *aux))
 {
   if (*table)
     {
       /*FIXME pph: This write may be unstable.  */
       pph_out_uint (stream, htab_elements (*table));
-      htab_traverse_noresize (*table, pph_out_spec_entry_slot, stream);
+      htab_traverse_noresize (*table, func, stream);
     }
   else
     pph_out_uint (stream, 0);
@@ -20766,7 +20776,8 @@ pph_dump_spec_entry_slot (void **slot, void *aux)
   return 1;
 }
 
-/* Dump a spec_entry TABLE to STREAM.  */
+
+/* Dump keys in spec_entry TABLE to STREAM.  */
 
 static void
 pph_dump_spec_entry_htab (FILE *stream, const char *name, htab_t *table)
@@ -20781,14 +20792,50 @@ pph_dump_spec_entry_htab (FILE *stream, const char *name, htab_t *table)
     fprintf (stream, "PPH: NULL %s spec_entry elements\n", name);
 }
 
-/* Load and merge a spec_entry TABLE from STREAM.  */
+
+/* Search for a decl or type key READ_EXPR within the specialization name
+   table HOLDER.  Read the name necessary for that search from STREAM and
+   update *NAME_P with the string found.  */
+
+static tree
+pph_in_search_key_spec (pph_stream *stream, tree read_expr,
+			const char **name_p, void *holder)
+{
+  tree expr;
+  strptrmap_t *spec_tbl = (strptrmap_t*)holder;
+  *name_p = pph_in_string (stream);
+  expr = (tree)strptrmap_insert (spec_tbl, *name_p, read_expr);
+  if (expr)
+    return expr;
+  else
+    return read_expr;
+}
+
+
+/* Load merge keys for a spec_entry TABLE from STREAM.  */
 
 static void
-pph_in_spec_entry_htab (pph_stream *stream, htab_t *table)
+pph_in_keys_spec_entry_htab (pph_stream *stream, pph_merge_searcher searcher,
+			     strptrmap_t *spec_tbl)
 {
   unsigned count = pph_in_uint (stream);
   if (flag_pph_debug >= 2)
-    fprintf (pph_logfile, "PPH: loading %d spec_entries\n", count );
+    fprintf (pph_logfile, "PPH: loading keys for %d spec_entries\n", count );
+  for (; count > 0; --count)
+    {
+      pph_in_merge_key_tree_with_searcher (stream, (void*)spec_tbl, searcher);
+    }
+}
+
+
+/* Load merge bodies for a spec_entry TABLE from STREAM.  */
+
+static void
+pph_in_bodies_spec_entry_htab (pph_stream *stream, htab_t *table)
+{
+  unsigned count = pph_in_uint (stream);
+  if (flag_pph_debug >= 2)
+    fprintf (pph_logfile, "PPH: loading bodies %d spec_entries\n", count );
   for (; count > 0; --count)
     {
       hashval_t hash;
@@ -20804,30 +20851,73 @@ pph_in_spec_entry_htab (pph_stream *stream, htab_t *table)
 }
 
 
-/* Emit all spec_entry tables to STREAM. */
+/* Write merge keys for template state to STREAM. */
 
 void
-pph_out_spec_entry_tables (pph_stream *stream)
+pph_out_merge_key_template_state (pph_stream *stream ATTRIBUTE_UNUSED)
 {
-  pph_out_spec_entry_htab (stream, &decl_specializations);
-  if (flag_pph_dump_tree)
-    pph_dump_spec_entry_htab (pph_logfile, "decl", &decl_specializations);
-  pph_out_spec_entry_htab (stream, &type_specializations);
-  if (flag_pph_dump_tree)
-    pph_dump_spec_entry_htab (pph_logfile, "type", &type_specializations);
+  pph_out_spec_entry_htab (stream, &decl_specializations,
+			   pph_out_key_spec_entry_slot);
+  pph_out_spec_entry_htab (stream, &type_specializations,
+			   pph_out_key_spec_entry_slot);
 }
 
-/* Load and merge all spec_entry tables from STREAM.  */
+
+/* Write merge bodies for template state to STREAM. */
 
 void
-pph_in_spec_entry_tables (pph_stream *stream)
+pph_out_merge_body_template_state (pph_stream *stream)
 {
-  pph_in_spec_entry_htab (stream, &decl_specializations);
+  pph_out_spec_entry_htab (stream, &decl_specializations,
+			   pph_out_body_spec_entry_slot);
+  pph_out_spec_entry_htab (stream, &type_specializations,
+			   pph_out_body_spec_entry_slot);
+  pph_out_pending_templates_list (stream);
   if (flag_pph_dump_tree)
-    pph_dump_spec_entry_htab (pph_logfile, "decl", &decl_specializations);
-  pph_in_spec_entry_htab (stream, &type_specializations);
+    {
+      pph_dump_spec_entry_htab (pph_logfile, "decl", &decl_specializations);
+      pph_dump_spec_entry_htab (pph_logfile, "type", &type_specializations);
+      pph_dump_pending_templates_list (stderr);
+    }
+}
+
+
+/* Tables for merging decl and type specializations.  */
+
+static strptrmap_t *decl_spec_tbl = NULL;
+static strptrmap_t *type_spec_tbl = NULL;
+
+
+/* Read merge keys for template state from STREAM.  */
+
+void
+pph_in_merge_key_template_state (pph_stream *stream ATTRIBUTE_UNUSED)
+{
+  if (!decl_spec_tbl)
+    decl_spec_tbl = strptrmap_create ();
+  if (!type_spec_tbl)
+    type_spec_tbl = strptrmap_create ();
+  pph_in_keys_spec_entry_htab (stream, pph_in_search_key_spec,
+			       decl_spec_tbl);
+  pph_in_keys_spec_entry_htab (stream, pph_in_search_key_spec,
+			       type_spec_tbl);
+}
+
+
+/* Read merge keys for template state from STREAM.  */
+
+void
+pph_in_merge_body_template_state (pph_stream *stream)
+{
+  pph_in_bodies_spec_entry_htab (stream, &decl_specializations);
+  pph_in_bodies_spec_entry_htab (stream, &type_specializations);
+  pph_in_pending_templates_list (stream);
   if (flag_pph_dump_tree)
-    pph_dump_spec_entry_htab (pph_logfile, "type", &type_specializations);
+    {
+      pph_dump_spec_entry_htab (pph_logfile, "type", &type_specializations);
+      pph_dump_spec_entry_htab (pph_logfile, "decl", &decl_specializations);
+      pph_dump_pending_templates_list (stderr);
+    }
 }
 
 

@@ -839,7 +839,7 @@ pph_include_handler (cpp_reader *reader,
 	read_text_file_p = false;
       else
 	warning_at (loc, OPT_Wmissing_pph,
-		    "cannot open PPH file %s for reading: %m\n"
+		    "cannot open PPH file %s for reading: %m; "
 		    "using original header %s", pph_file, name);
     }
 

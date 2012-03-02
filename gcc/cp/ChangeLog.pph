@@ -1,3 +1,57 @@
+2012-03-01   Lawrence Crowl  <crowl@google.com>
+
+	* pph-core.c (pph_include_handler): Make warning message a single line.
+	* Make-lang.in (cp/pt.o): Depend on strptrmap.h.
+	* pph.h (pph_out_merge_key_tree): Made extern.
+	(pph_in_string): Made extern.
+	(typedef pph_merge_searcher): New.
+	(pph_in_merge_key_tree_with_searcher): Made extern.
+	(pph_out_pending_templates_list): Removed.
+	(pph_out_spec_entry_tables): Removed.
+	(pph_in_pending_templates_list): Removed.
+	(pph_in_spec_entry_tables): Removed.
+	(pph_out_merge_key_template_state): New.
+	(pph_out_merge_body_template_state): New.
+	(pph_in_merge_key_template_state): New.
+	(pph_in_merge_body_template_state): New.
+	* pt.c (#include "strptrmap.h"): New.
+	(pph_out_pending_templates_list): Move dump to higher level.
+	(pph_in_pending_templates_list): Make static.
+	(pph_out_key_spec_entry_slot): New.
+	(pph_out_spec_entry_slot): Renamed to pph_out_body_spec_entry_slot.
+	(pph_out_spec_entry_htab): Make slot function a parameter.
+	(pph_in_search_key_spec): New.
+	(pph_in_keys_spec_entry_htab): New.
+	(pph_in_spec_entry_htab): Rename to pph_in_bodies_spec_entry_htab.
+	(pph_out_merge_key_template_state): New.
+	(pph_out_spec_entry_tables): Rename to
+	pph_out_merge_body_template_state.  Pass search functions.  Add call
+	to pph_out_pending_templates_list.  Move dumping here.
+	(static strptrmap_t *decl_spec_tbl): New.
+	(static strptrmap_t *type_spec_tbl): New.
+	(pph_in_merge_key_template_state): New.
+	(pph_in_spec_entry_tables): Rename to pph_in_merge_body_template_state.
+	Add call to pph_in_pending_templates_list.  Move dumping here.
+	* pph-out.c (pph_out_merge_key_tree): Made extern.  Added bool
+	parameter to force merge name emission, which is used for template
+	type specialization merging.
+	(pph_out_global_binding): Split into pph_out_global_binding_keys and
+	pph_out_global_binding_bodies.
+	(pph_write_file): Change calls for emitting global bindings and
+	template state.
+	* pph-in.c (pph_in_string): Make extern.
+	(pph_in_merge_key_tree): Factor out searching into function parameter.
+	Rename to pph_in_merge_key_tree_with_searcher.  Always merge trees
+	when a match is found.  Make extern.
+	(pph_in_search_key_decl_on_chain): New.
+	(pph_in_merge_key_decl_on_chain): New.
+	(pph_in_search_key_type_in_field): New.
+	(pph_in_merge_key_type_in_field): New.
+	(pph_in_global_binding): Split into pph_in_global_binding_keys and
+	pph_in_global_binding_bodies.
+	(pph_read_file_1): Change calls for emitting global bindings and
+        template state.
+
 2012-02-23   Lawrence Crowl  <crowl@google.com>
 
 	* pph-core.c (pph_trace_tree): Trace trees as well as decls.

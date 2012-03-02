@@ -1,9 +1,8 @@
-// { dg-xfail-if "BOGUS POSSIBLY DROPPING SYMBOLS " { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "internal compiler error: canonical types differ for identical types" "" { xfail *-*-* } 0 }
-// { dg-excess-errors "type mismatch errors due to TYPE_CANONICAL problems." }
+// {    xfail-if "DEPENDENT" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-bogus "ext/atomicity.h:48:61: error: void value not ignored as it ought to be" "" { xfail *-*-* } 0 }
 
 #include "x0dynarray4.h"
-#include "x6dynarray5.h"
+#include "x6dynarray5.h" // { dg-bogus "warning: cannot open PPH file x6dynarray5.pph" "" { xfail *-*-* } }
 
 #include <algorithm>
 #include <iostream>

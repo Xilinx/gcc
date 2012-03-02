@@ -37,13 +37,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "parser.h"
 
 
-/****************************************************** forward declarations */
-
-
-/* Forward declarations to avoid circular references.  */
-static void pph_out_merge_key_tree (pph_stream *, tree);
-
-
 /***************************************************** stream initialization */
 
 
@@ -1012,7 +1005,7 @@ pph_out_merge_key_vec (pph_stream *stream, VEC(tree,gc) *v)
   tree t;
   pph_out_hwi (stream, VEC_length (tree, v));
   FOR_EACH_VEC_ELT_REVERSE (tree, v, i, t)
-    pph_out_merge_key_tree (stream, t);
+    pph_out_merge_key_tree (stream, t, false);
 }
 
 
@@ -2274,8 +2267,8 @@ pph_out_merge_body_namespace_decl (pph_stream *stream, tree decl)
 
 /* Write the merge key for tree EXPR to STREAM.  */
 
-static void
-pph_out_merge_key_tree (pph_stream *stream, tree expr)
+void
+pph_out_merge_key_tree (pph_stream *stream, tree expr, bool name_type)
 {
   if (pph_out_start_merge_key_tree_record (stream, expr))
     return;
@@ -2299,11 +2292,13 @@ pph_out_merge_key_tree (pph_stream *stream, tree expr)
 	  tree type = TREE_TYPE (expr);
 	  pph_out_bool (stream, is_implicit);
 	  if (is_implicit)
-	    pph_out_merge_key_tree (stream, type);
+	    pph_out_merge_key_tree (stream, type, false);
 	}
     }
   else
     {
+      if (name_type)
+	pph_out_merge_name (stream, expr);
       gcc_assert (TYPE_P (expr));
     }
 
@@ -2580,10 +2575,10 @@ pph_out_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 }
 
 
-/* Write the global bindings in scope_chain to STREAM.  */
+/* Write the keys for global bindings in scope_chain to STREAM.  */
 
 static void
-pph_out_global_binding (pph_stream *stream)
+pph_out_global_binding_keys (pph_stream *stream)
 {
   cp_binding_level *bl;
 
@@ -2618,6 +2613,15 @@ pph_out_global_binding (pph_stream *stream)
   /* Emit all the merge keys for objects that need to be merged when
      reading multiple PPH images.  */
   pph_out_merge_key_binding_level (stream, bl);
+}
+
+
+/* Write the bodies for global bindings in scope_chain to STREAM.  */
+
+static void
+pph_out_global_binding_bodies (pph_stream *stream)
+{
+  cp_binding_level *bl = scope_chain->bindings;
 
   /* Now emit all the bodies.  */
   pph_out_merge_body_binding_level (stream, bl);
@@ -2642,19 +2646,17 @@ pph_write_file (pph_stream *stream)
   idents_used = cpp_lt_capture (parse_in);
   pph_out_identifiers (stream, &idents_used);
 
-  /* Emit the bindings for the global namespace.  */
-  pph_out_global_binding (stream);
+  /* Emit the bindings for namespace scopes and template state.  */
+  pph_out_global_binding_keys (stream);
+  pph_out_merge_key_template_state (stream);
+  pph_out_global_binding_bodies (stream);
+  pph_out_merge_body_template_state (stream);
 
   /* Emit other global state kept by the parser.  FIXME pph, these
      globals should be fields in struct cp_parser.  */
   pph_out_tree (stream, keyed_classes);
   pph_out_tree_vec (stream, unemitted_tinfo_decls);
-
-  pph_out_pending_templates_list (stream);
-  pph_out_spec_entry_tables (stream);
-
   pph_out_tree (stream, static_aggregates);
-
   pph_out_decl2_hidden_state (stream);
 
   /* Emit the symbol table.  */

@@ -1,5 +1,6 @@
-// { dg-xfail-if "ICE" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-excess-errors "Embedded text merging problems" }
+// { dg-xfail-if "BOGUS INTRINSIC RETURN" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-bogus "ext/atomicity.h:48:61: error: void value not ignored as it ought to be" "" { xfail *-*-* } 0 }
+
 #include <algorithm>
 #include <iostream>
 

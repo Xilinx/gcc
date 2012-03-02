@@ -50,7 +50,8 @@ DEF_VEC_ALLOC_P(char_p,heap);
 
 
 /* Forward declarations to avoid circularity.  */
-static tree pph_in_merge_key_tree (pph_stream *, tree *);
+static tree pph_in_merge_key_decl_on_chain (pph_stream *, tree *);
+static tree pph_in_merge_key_type_in_var (pph_stream *, tree *);
 
 
 /***************************************************** stream initialization */
@@ -193,7 +194,7 @@ pph_in_bytes (pph_stream *stream, void *p, size_t n)
 
 /* Read and return a string from STREAM.  */
 
-static const char *
+const char *
 pph_in_string (pph_stream *stream)
 {
   const char *s = streamer_read_string (stream->encoder.r.data_in,
@@ -859,7 +860,7 @@ pph_in_merge_key_chain (pph_stream *stream, tree *chain)
 
   count = pph_in_hwi (stream);
   for (i = 0; i < count; i++)
-    pph_in_merge_key_tree (stream, chain);
+    pph_in_merge_key_decl_on_chain (stream, chain);
 }
 
 
@@ -884,7 +885,7 @@ pph_in_merge_body_chain (pph_stream *stream)
    address.
 
    This TOC is indexed by two values: the merge key read by
-   pph_in_merge_key_tree and the context in which we are doing this
+   pph_in_merge_key_decl_on_chain and the context in which we are doing this
    merge.  */
 static htab_t merge_toc = NULL;
 
@@ -2535,13 +2536,14 @@ pph_merge_tree_attributes (tree expr, tree read_expr)
 }
 
 
-/* Read a merge key from STREAM.  If CHAIN is not NULL and the merge
-   key read from STREAM is not found in *CHAIN, the newly allocated
-   tree is added to it.  If no CHAIN is given, then the tree is just
-   allocated and added to the pickle cache.  */
+/* Read a merge key from STREAM,
+   using the SEARCHER to find a matching existing tree within HOLDER.
+   If the search succeeds, merge into the existing tree and use that.
+   In any event, the resulting tree is added to the pickle cache.  */
 
-static tree
-pph_in_merge_key_tree (pph_stream *stream, tree *chain)
+tree
+pph_in_merge_key_tree_with_searcher (pph_stream *stream, void *holder,
+				     pph_merge_searcher searcher)
 {
   enum pph_record_marker marker;
   unsigned image_ix, ix;
@@ -2560,28 +2562,14 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
      language-independent bitfields for the new tree.  */
   read_expr = pph_in_tree_header (stream, &fully_read_p);
   gcc_assert (!fully_read_p);
-  gcc_assert (chain);
+  gcc_assert (holder);
 
-  if (DECL_P (read_expr))
-    {
-      name = pph_in_string (stream);
-      /* If we are merging into an existing CHAIN.  Look for a match in
-         CHAIN to READ_EXPR's header.  If we found a match, EXPR will be
-         the existing tree that matches READ_EXPR. Otherwise, EXPR is the
-         newly allocated READ_EXPR.  */
-      expr = pph_merge_into_chain (read_expr, name, chain);
-      if (expr != read_expr)
-	pph_merge_tree_attributes (expr, read_expr);
-    }
-  else
-    {
-      gcc_assert (TYPE_P (read_expr));
-      if (*chain)
-	expr = *chain;
-      else
-	expr = read_expr;
-    }
+  expr = searcher (stream, read_expr, &name, holder);
   gcc_assert (expr != NULL);
+
+  if (expr != read_expr)
+    pph_merge_tree_attributes (expr, read_expr);
+
   pph_cache_insert_at (&stream->cache, expr, ix,
 		       pph_tree_code_to_tag (expr));
 
@@ -2596,7 +2584,7 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
 	{
 	  bool is_implicit = pph_in_bool (stream);
 	  if (is_implicit)
-	    pph_in_merge_key_tree (stream, &(TREE_TYPE (expr)));
+	    pph_in_merge_key_type_in_var (stream, &(TREE_TYPE (expr)));
 	}
     }
   else
@@ -2609,6 +2597,60 @@ pph_in_merge_key_tree (pph_stream *stream, tree *chain)
 				      : pph_trace_merged_key);
 
   return expr;
+}
+
+
+/* Search in HOLDER for an existing decl that matches READ_EXPR.
+   Read the match string from STREAM and assign to *NAME_P.  */
+
+static tree
+pph_in_search_key_decl_on_chain (pph_stream *stream, tree read_expr,
+				const char **name_p, void *holder)
+{
+  gcc_assert (DECL_P (read_expr));
+  *name_p = pph_in_string (stream);
+  /* If we are merging into an existing CHAIN.  Look for a match in
+     CHAIN to READ_EXPR's header.  If we found a match, EXPR will be
+     the existing tree that matches READ_EXPR. Otherwise, EXPR is the
+     newly allocated READ_EXPR.  */
+  return pph_merge_into_chain (read_expr, *name_p, (tree*)holder);
+}
+
+
+/* Read a decl merge key from STREAM and search for matches on the CHAIN.  */
+
+static tree
+pph_in_merge_key_decl_on_chain (pph_stream *stream, tree *chain)
+{
+  return pph_in_merge_key_tree_with_searcher (stream, (void*) chain,
+					      pph_in_search_key_decl_on_chain);
+}
+
+
+/* Search in HOLDER for an existing type that matches READ_EXPR.
+   The HOLDER is its decl's type field.  */
+
+static tree
+pph_in_search_key_type_in_field (pph_stream *stream ATTRIBUTE_UNUSED,
+	tree read_expr, const char **name_p ATTRIBUTE_UNUSED, void *holder)
+{
+  tree *field = (tree*)holder;
+  gcc_assert (TYPE_P (read_expr));
+  if (*field)
+    return *field;
+  else
+    return read_expr;
+}
+
+
+/* Read a type merge key from STREAM and search for matches in its decl's
+   type field.  */
+
+static tree
+pph_in_merge_key_type_in_var (pph_stream *stream, tree *field)
+{
+  return pph_in_merge_key_tree_with_searcher (stream, (void*) field,
+					      pph_in_search_key_type_in_field);
 }
 
 
@@ -3017,12 +3059,12 @@ pph_in_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 }
 
 
-/* Read global bindings from STREAM and merge them into
+/* Read keys global bindings from STREAM and merge them into
    scope_chain->bindings.  Bindings are merged at every level starting
    at the global bindings from STREAM.  */
 
 static void
-pph_in_global_binding (pph_stream *stream)
+pph_in_global_binding_keys (pph_stream *stream)
 {
   cp_binding_level *bl, *other_bl;
   bool existed_p;
@@ -3041,6 +3083,17 @@ pph_in_global_binding (pph_stream *stream)
      same slot IX that the writer used, the trees read now will be
      bound to scope_chain->bindings.  */
   pph_in_merge_key_binding_level (stream, &bl);
+}
+
+
+/* Read global bindings from STREAM and merge them into
+   scope_chain->bindings.  Bindings are merged at every level starting
+   at the global bindings from STREAM.  */
+
+static void
+pph_in_global_binding_bodies (pph_stream *stream)
+{
+  cp_binding_level *bl = scope_chain->bindings;
 
   /* Once all the symbols and types at every binding level have been
      merged to the corresponding binding levels in the current
@@ -3119,20 +3172,18 @@ pph_read_file_1 (pph_stream *stream)
      working towards an identical line_table in pph and non-pph.  */
   cpp_lt_replay (parse_in, &idents_used, &cpp_token_replay_loc);
 
-  /* Read the bindings from STREAM.  */
-  pph_in_global_binding (stream);
+  /* Read the namespace scope bindings and template state from STREAM.  */
+  pph_in_global_binding_keys (stream);
+  pph_in_merge_key_template_state (stream);
+  pph_in_global_binding_bodies (stream);
+  pph_in_merge_body_template_state (stream);
 
   /* Read and merge the other global state collected during parsing of
      the original header.  */
   pph_union_into_chain (&keyed_classes, pph_in_tree (stream));
   pph_union_into_tree_vec (&unemitted_tinfo_decls, pph_in_tree_vec (stream));
-
-  pph_in_pending_templates_list (stream);
-  pph_in_spec_entry_tables (stream);
-
   file_static_aggregates = pph_in_tree (stream);
   static_aggregates = chainon (file_static_aggregates, static_aggregates);
-
   pph_in_decl2_hidden_state (stream);
 
   /* Read and process the symbol table.  */

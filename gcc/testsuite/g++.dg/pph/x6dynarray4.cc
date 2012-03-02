@@ -1,7 +1,6 @@
-// { dg-xfail-if "BOGUS MERGING" { "*-*-*" } { "-fpph-map=pph.map" } }
-// Too many failures to diagnose.
+// {    xfail-if "DEPENDENT" { "*-*-*" } { "-fpph-map=pph.map" } }
 
-#include "x6dynarray5.h"
+#include "x6dynarray5.h" // { dg-bogus "cannot open PPH file x6dynarray5.pph" "" { xfail *-*-* } }
 
 #include <algorithm>
 

@@ -1,3 +1,34 @@
+2012-03-01   Lawrence Crowl  <crowl@google.com>
+
+	* lib/dg-pph.exp: Change search for dg-xfail-if to xfail-if.
+	* g++.dg/pph/d0include-next.h: Put dg-warning in comment.
+	* g++.dg/pph/x2incomplete4.cc: Add documentary xfail-if.
+	* g++.dg/pph/x4incomplete4321.cc: Change documentary to xfail-if.
+	* g++.dg/pph/x4tmplclass2.cc: Change documentary to xfail-if.
+	* g++.dg/pph/x4tmplfuncinln.cc: Mark pph asm xokay.
+	* g++.dg/pph/x4tmplfuncninl.cc: Mark pph asm xokay.
+	* g++.dg/pph/x5dynarray7.h: Add documentary xfail-if.
+	* g++.dg/pph/x6dynarray3.cc: Add documentary xfail-if.
+	* g++.dg/pph/x6dynarray4.cc: Change to xfail on included pph.
+	* g++.dg/pph/x6dynarray5.h: Change to xfail on included pph.
+	* g++.dg/pph/x6dynarray6.h: Add documentary xfail-if.
+	* g++.dg/pph/x6rtti.cc: Remove excess-errors filter.
+	Add bogus rtti mismatch.  Make xfail-if documentary.
+	* g++.dg/pph/x7dynarray5.cc: Change to xfail on included pph.
+	(The bogus void intrinsic is a fail-over reading the textual header.)
+	* g++.dg/pph/x7dynarray6.cc: Change to xfail on bogus void intrinsic.
+	* g++.dg/pph/x7dynarray7.cc: Remove excess-errors filter.
+	Add bogus void intrinsic.  Change xfail-if message.
+	* g++.dg/pph/x7rtti.cc: Add documentary xfail-if.  Put failures on
+	separate lines/statements.  Put dg-bogus on offending lines.
+	* g++.dg/pph/z4nontrivinit.cc: Change documentary to xfail-if.
+	* g++.dg/pph/z4tmplclass1.cc: Change in failing asm output.
+	Change documentary to xfail-if.
+	* g++.dg/pph/z4tmplclass2.cc: Change in failing asm output.
+	Change documentary to xfail-if.
+	* g++.dg/pph/z4tmplfuncinln.cc: Mark pph asm xokay.
+	* g++.dg/pph/z4tmplfuncninl.cc: Mark pph asm xokay.
+
 2012-02-23   Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/x2incomplete4.cc: Make expected assembley diff.

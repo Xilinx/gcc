@@ -2914,7 +2914,11 @@ write_template_arg_literal (const tree value)
     switch (TREE_CODE (value))
       {
       case CONST_DECL:
-	write_integer_cst (DECL_INITIAL (value));
+	{
+	  tree initial = DECL_INITIAL (value);
+	  gcc_assert (TREE_CODE (initial) == INTEGER_CST);
+	  write_integer_cst (value);
+	}
 	break;
 
       case INTEGER_CST:

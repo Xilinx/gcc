@@ -1,10 +1,11 @@
-// { dg-xfail-if "rtti problems" { *-*-* } { "-fpph-map=pph.map" } }
-// { dg-excess-errors "operator match problems due to type merging." }
+// {    xfail-if "BOGUS RTTI" { "*-*-*" } { "-fpph-map=pph.map" } }
 // FIXME pph - We should make this a run test.
 
 #include "x5rtti1.h"
 
 int main()
 {
-    return poly1() != nonp1() && hpol1() == hnpl1();
+    bool a = poly1() != nonp1(); // { dg-bogus "no match for 'operator!='" "" { xfail *-*-* } }
+    bool b = hpol1() == hnpl1(); // { dg-bogus "no match for 'operator=='" "" { xfail *-*-* } }
+    return !(a && b);
 }

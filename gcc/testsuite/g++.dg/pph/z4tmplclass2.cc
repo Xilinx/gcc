@@ -1,5 +1,5 @@
-// pph asm xdiff 26423
-// xfail DUPVAR DUPFUNC
+// pph asm xdiff 44158
+// xfail-if BOGUS DUPVAR DUPFUNC
 
 #include "x0tmplclass23.h"
 #include "x0tmplclass24.h"

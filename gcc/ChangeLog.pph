@@ -1,3 +1,9 @@
+2012-03-01   Lawrence Crowl  <crowl@google.com>
+
+	* strptrmap.h: New.
+	* strptrmap.c: New.
+	* Makefile.in: Added entries for strptrmap.h and strptrmap.c.
+
 2012-02-08   Diego Novillo  <dnovillo@google.com>
 
 	Merge from trunk rev 183972.

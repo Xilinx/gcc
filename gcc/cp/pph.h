@@ -153,6 +153,7 @@ extern void pph_out_uint (pph_stream *stream, unsigned int value);
 extern void pph_out_location (pph_stream *stream, location_t loc);
 extern void pph_out_tree (pph_stream *stream, tree t);
 extern void pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v);
+extern void pph_out_merge_key_tree (pph_stream *, tree, bool);
 extern void pph_out_record_marker (pph_stream *stream,
 			enum pph_record_marker marker, enum pph_tag tag);
 void pph_add_decl_to_symtab (tree, enum pph_symtab_action, bool, bool);
@@ -160,7 +161,12 @@ void pph_add_decl_to_symtab (tree, enum pph_symtab_action, bool, bool);
 /* In pph-in.c.  */
 extern unsigned int pph_in_uint (pph_stream *stream);
 extern location_t pph_in_location (pph_stream *stream);
+extern const char *pph_in_string (pph_stream *stream);
 extern tree pph_in_tree (pph_stream *stream);
+typedef tree (*pph_merge_searcher)(pph_stream *stream, tree read_expr,
+				   const char **name, void *holder);
+extern tree pph_in_merge_key_tree_with_searcher (pph_stream *stream,
+	void *holder, pph_merge_searcher searcher);
 extern VEC(tree,gc) *pph_in_tree_vec (pph_stream *stream);
 extern void pph_union_into_tree_vec (VEC(tree,gc) **into, VEC(tree,gc) *from);
 extern enum pph_record_marker pph_in_record_marker (pph_stream *stream,
@@ -179,10 +185,10 @@ extern struct binding_table_s *pph_in_binding_table (pph_stream *);
 extern void pph_set_global_identifier_bindings (void);
 
 /* In pt.c.  */
-extern void pph_out_pending_templates_list (pph_stream *);
-extern void pph_out_spec_entry_tables (pph_stream *);
-extern void pph_in_pending_templates_list (pph_stream *);
-extern void pph_in_spec_entry_tables (pph_stream *);
+extern void pph_out_merge_key_template_state (pph_stream *);
+extern void pph_out_merge_body_template_state (pph_stream *);
+extern void pph_in_merge_key_template_state (pph_stream *);
+extern void pph_in_merge_body_template_state (pph_stream *);
 
 /* FIXME pph: These functions should be moved to tree.c on merge.  */
 extern VEC(tree,heap) *chain2vec (tree chain);  /* In pph-out.c.  */

@@ -1,5 +1,5 @@
 // pph asm xdiff 51443
-// xfail DUPFUNC
+// xfail-if BOGUS DUPFUNC
 
 #include "x0tmplclass21.h"
 #include "x0tmplclass22.h"
