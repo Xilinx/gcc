@@ -1,4 +1,8 @@
 
+2012-03-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{quasi 0.9.4}}
+	* INSTALL/README-MELT-PLUGIN: Mention 0.9.4 & improve text.
+
 2012-03-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{prerelease 0.9.4-rc1}}
 

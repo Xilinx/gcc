@@ -558,7 +558,8 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 				)
 			  (maptree_put arrayprop rvar1 aprop)
 			  (debug "opengpu_affine_accessed_array updated arrayprop=" arrayprop
-				 " oldaprop=" oldaprop)
+				 "\n oldaprop=" oldaprop
+				 "\n aprop=" aprop)
 			  (assert_msg "check no oldaprop" (null oldaprop))
 			  ))
 			(?_

@@ -13,6 +13,33 @@ C code (and the MELT translator is implemented in MELT).
 If installing MELT as plugin to some existing gcc-4.6 installation
 tree, with the support of plugins enabled.
 
+
+################ quick steps for Debian/Unstable or Ubuntu or derived distributions ####
+
+## Run as root (e.g. with sudo):
+  apt-get install gcc-4.6 g++-4.6 make texinfo texi2html autogen gawk
+  apt-get build-dep gcc-4.6
+  apt-get install libppl-dev libppl-c-dev gcc-4.6-plugin-dev 
+
+## then retrieve the MELT plugin release, and cd into it, then
+  make all
+  make install DESTDIR=/tmp/meltinstall
+## The first "make all" needs 15 minutes, less than 1Gb disk, 4Gb RAM, and
+## *cannot be* a parallel "make -j all"
+
+## finally, as root copy the destination to install MELT
+  cp -v -p -R /tmp/meltinstall/. /.
+
+## Since MELT may generate and compile C code on the fly, you'll need its build
+## dependencies even to run it..
+
+## You need to rebuild & reinstall MELT even for minor GCC release
+##   upgrades (ie. from GCC 4.6.2 to 4.6.3).
+
+
+#########################################################################
+################################################################ DETAILS
+
 ################ step 1
 
 First, ensure that GCC 4.6 is correctly installed and has been built
@@ -22,16 +49,29 @@ Experimental, package gcc-4.6):
  % gcc-4.6 -v
 Using built-in specs.
 COLLECT_GCC=/usr/bin/gcc-4.6
-COLLECT_LTO_WRAPPER=/usr/lib/x86_64-linux-gnu/gcc/x86_64-linux-gnu/4.6.1/lto-wrapper
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.6/lto-wrapper
 Target: x86_64-linux-gnu
-Configured with: ../src/configure -v --with-pkgversion='Debian 4.6.1-2' --with-bugurl=file:///usr/share/doc/gcc-4.6/README.Bugs --enable-languages=c,c++,fortran,objc,obj-c++,go --prefix=/usr --program-suffix=-4.6 --enable-shared --enable-multiarch --with-multiarch-defaults=x86_64-linux-gnu --enable-linker-build-id --with-system-zlib --libexecdir=/usr/lib/x86_64-linux-gnu --without-included-gettext --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.6 --libdir=/usr/lib/x86_64-linux-gnu --enable-nls --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-plugin --enable-objc-gc --with-arch-32=i586 --with-tune=generic --enable-checking=release --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Debian 4.6.3-1' 
+ --with-bugurl=file:///usr/share/doc/gcc-4.6/README.Bugs 
+ --enable-languages=c,c++,fortran,objc,obj-c++,go --prefix=/usr 
+ --program-suffix=-4.6 --enable-shared --enable-linker-build-id 
+ --with-system-zlib --libexecdir=/usr/lib --without-included-gettext 
+ --enable-threads=posix --with-gxx-include-dir=/usr/include/c++/4.6 
+ --libdir=/usr/lib --enable-nls --with-sysroot=/ --enable-clocale=gnu 
+ --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-plugin 
+ --enable-objc-gc --with-arch-32=i586 --with-tune=generic 
+ --enable-checking=release --build=x86_64-linux-gnu 
+ --host=x86_64-linux-gnu --target=x86_64-linux-gnu
 Thread model: posix
-gcc version 4.6.1 (Debian 4.6.1-2) 
+gcc version 4.6.3 (Debian 4.6.3-1) 
 
 Be sure that you have all the development packages for all libraries
 used by GCC (e.g. run 'apt-get build-dep gcc' on Debian). In
 particular, you'll need the headers of CLOOG, PPL, MPC, MPFR, GMP
 libraries.
+
+Ensure that your system have recent autogen, GNU make, gawk (GNU awk), texinfo,
+texi2html utilities
 
 ################ step 2
 
@@ -40,28 +80,28 @@ installed. (On Debian, you'll need the gcc-4.6-plugin-dev package).
 
 So you should have something like
 % gcc-4.6 -print-file-name=plugin 
-/usr/lib/gcc/x86_64-linux-gnu/4.6.1/plugin
+/usr/lib/gcc/x86_64-linux-gnu/4.6.3/plugin
 
 Be sure that this plugin subdirectory is populated correctly since it
 contains an include file.
 
 % ls -l $(gcc-4.6 -print-file-name=plugin)
 total 4
-drwxr-xr-x 8 root root 4096 Mar 30 14:16 include
+drwxr-xr-x 8 root root 20480 Mar  2 13:53 include
 
 Be sure that this include subdirectory contains meaningful files for
 GCC, like those for GIMPLE
 % ls -l $(gcc-4.6 -print-file-name=plugin)/include/gimple.* 
--rw-r--r-- 1 root root  13735 Mar 30 04:02 /usr/lib/gcc/x86_64-linux-gnu/4.6.1/plugin/include/gimple.def
--rw-r--r-- 1 root root 123008 Mar 30 04:02 /usr/lib/gcc/x86_64-linux-gnu/4.6.1/plugin/include/gimple.h
+-rw-r--r-- 1 root root  13735 Mar  1 20:31 /usr/lib/gcc/x86_64-linux-gnu/4.6/plugin/include/gimple.def
+-rw-r--r-- 1 root root 123008 Mar  1 20:31 /usr/lib/gcc/x86_64-linux-gnu/4.6/plugin/include/gimple.h
+
 
 Be sure that the gengtype executable and its gtype.state textual data
 file is available somewhere. On Debian/Sid the package
 gcc-4.6-plugin-dev provides: 
-% ls -l /usr/lib/x86_64-linux-gnu/gcc/x86_64-linux-gnu/4.6/gengtype /usr/lib/x86_64-linux-gnu/gcc/x86_64-linux-gnu/4.6/gtype.state
+-rwxr-xr-x 1 root root 163840 Mar  1 20:38 /usr/lib/gcc/x86_64-linux-gnu/4.6/gengtype
+-rw-r--r-- 1 root root 614004 Mar  1 20:38 /usr/lib/gcc/x86_64-linux-gnu/4.6/gtype.state
 
--rwxr-xr-x 1 root root 163840 Jul  5 16:48 /usr/lib/x86_64-linux-gnu/gcc/x86_64-linux-gnu/4.6/gengtype
--rw-r--r-- 1 root root 614004 Jul  5 16:48 /usr/lib/x86_64-linux-gnu/gcc/x86_64-linux-gnu/4.6/gtype.state
 
 and you get these files with 
   $(gcc-4.6 -print-file-name=gengtype) 
@@ -77,10 +117,11 @@ file is indeed the one related to your gcc-4.6:
 ;;; The format of this file is tied to a particular version of GCC.
 ;;; Don't parse this file wihout knowing GCC gengtype internals.
 ;;; This file should be parsed by the same gengtype which wrote it.
-;;; file gtype.state generated on Tue Jul  5 09:03:22 2011
+;;; file gtype.state generated on Thu Mar  1 16:22:41 2012
 
 
-(!version  "4.6.1")
+(!version  "4.6.3")
+
 
 
 ################ step 3
@@ -91,31 +132,21 @@ symlink to a MELT-Plugin-Makefile file. Please look into that file.
 
 Use
     make all
-to build the MELT plugin which takes some time, because MELT is
-retranslating itself.
+to build the MELT plugin which takes some time (15 minutes), because MELT is
+retranslating itself. It cannot be a parallel make -j
 
 Use
-   make install
+   make install DESTDIR=/tmp/meltinstall
 to install the MELT plugin. The usual DESTDIR behave as expected.
+As root, copy it appropriately:
+
+   cp -v -R -p /tmp/meltinstall/. /.
+
 
 For packagers: notice that the MELT plugin should be entirely rebuilt
 even for small changes of the compiler (e.g. when upgrading gcc from
-4.6.0 to 4.6.1).
+4.6.2 to 4.6.3).
 
-
-###
-Previous releases of MELT plugin have been built with the
-built-melt-plugin.sh script, using
-# building the plugin
- ./build-melt-plugin.sh -v -b -s GCC=gcc-4.6 \
-    -G $(gcc-4.6 -print-file-name=gengtype) \
-    -T $(gcc-4.6 -print-file-name=gtype.state) \
-    -M $PWD
-
-# installing the plugin
- ./build-melt-plugin.sh -v -i -s DESTDIR=/tmp/meltplugindestdir -M $PWD
-# or perhaps
- ./build-melt-plugin.sh -v -i -s HOSTADMINCMD=sudo -M $PWD
 
 
 ################
@@ -127,9 +158,7 @@ instance, I am running it with something similar to
 
    /usr/src/Lang/gcc-melt-branch/contrib/make-melt-source-tar.sh \
        /usr/src/Lang/gcc-melt-branch \
-       /tmp/gcc-melt-plugin  \
-        $(gcc-4.6 -print-file-name=gengtype) \ 
-        -v -r $(gcc-4.6 -print-file-name=gtype.state)
+       /tmp/gcc-melt-plugin 
 
 If all goes well, you get a /tmp/gcc-melt-plugin.tgz gnuzipped tar
 archive for the MELT plugin. This is only needed to people making a
@@ -139,7 +168,7 @@ new MELT plugin source archive.
 
 Comments about the MELT plugin (including its installation script) are
 welcome by email to <basile@starynkevitch.net> [please mention MELT in
-the subject line]
+the subject line] and to <gcc-melt@googlegroups.com>
 
 ################################################################
 NEWS for 0.9.4
