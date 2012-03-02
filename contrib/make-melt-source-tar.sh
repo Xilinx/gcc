@@ -141,4 +141,14 @@ if [ -n "$gengtype_prog" ]; then
     $gengtype_prog $gengtype_args -P $gccmelt_tarbase/gt-melt-runtime-$gengtype_version-plugin.h $gccmelt_tarbase/melt-runtime.h  $gccmelt_tarbase/melt/generated/meltrunsup.h
 fi
 
-tar czvf $gccmelt_tarbase.tgz -C $(dirname $gccmelt_tarbase) $(basename $gccmelt_tarbase)
+tar -cvf $gccmelt_tarbase-tmp.tar \
+   --exclude-backups --exclude='*~' --exclude='*%' \
+   -C $(dirname $gccmelt_tarbase) $(basename $gccmelt_tarbase)
+
+## we use tardy http://tardy.sourceforge.net/ to remove our name and
+## group.. and make a tarball owned by melt/gcc
+
+tardy -User_NAme melt -Group_NAme gcc $gccmelt_tarbase-tmp.tar $gccmelt_tarbase.tar 
+
+rm -f $gccmelt_tarbase-tmp.tar 
+gzip -v9 $gccmelt_tarbase.tar
