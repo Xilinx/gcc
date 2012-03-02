@@ -35,7 +35,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define GLIBC_DYNAMIC_LINKER64 RUNTIME_ROOT_PREFIX "/lib64/ld-linux-x86-64.so.2"
 #define GLIBC_DYNAMIC_LINKERX32 RUNTIME_ROOT_PREFIX "/libx32/ld-linux-x32.so.2"
 
-/* These may be provided by config/linux-grtev2.h.  */
+/* These may be provided by config/linux-grtev*.h.  */
 #ifndef LINUX_GRTE_EXTRA_SPECS
 #define LINUX_GRTE_EXTRA_SPECS
 #endif
