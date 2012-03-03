@@ -2096,6 +2096,11 @@ replace_rhs_after_ssa_combine (gimple_stmt_iterator *gsi, tree newexpr)
     {
     case GIMPLE_ASSIGN:
       {
+	tree lhs = gimple_assign_lhs (stmt);
+	if (!useless_type_conversion_p (TREE_TYPE (lhs), TREE_TYPE (newexpr)))
+	  newexpr = build1 (NOP_EXPR, TREE_TYPE (lhs), newexpr);
+	if (TREE_CODE (lhs) != SSA_NAME && !is_gimple_val (newexpr))
+	  return false;
 	newexpr = force_gimple_operand_gsi (gsi, newexpr, false, NULL, true,
 					    GSI_SAME_STMT);
 	gimple_assign_set_rhs_from_tree (gsi, newexpr);

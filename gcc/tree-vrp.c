@@ -7608,7 +7608,8 @@ vrp_valueizer (tree op)
     return op;
 
   if (vr->type == VR_RANGE
-      && operand_equal_p (vr->min, vr->max, 0))
+      && operand_equal_p (vr->min, vr->max, 0)
+      && is_gimple_min_invariant (vr->min))
     return vr->min;
   return op;
 }

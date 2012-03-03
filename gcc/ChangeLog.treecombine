@@ -1,3 +1,12 @@
+2012-03-03  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (replace_rhs_after_ssa_combine): Handle
+	mismatched types better.  Also reject if we are replacing into
+	a lhs which is not a SSA_NAME if the new expression is not
+	a is_gimple_val.
+	* tree-vrp.c (vrp_valueizer): Only consider invariants
+	as a way to valueize.
+
 2012-03-02  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c (valuzeierf): Rename to ...
