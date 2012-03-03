@@ -1,3 +1,35 @@
+2012-03-02  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (get_prop_source_stmt): Move up.
+	(can_propagate_from): Likewise.
+	(gimple_default_valueizer): New function.
+	(valuzeierf): New variable.
+	(gimple_combine_build1): Fix C90 code.
+	(defcodefor_name_3): Call valuzeierf on the name.
+	Don't call get_prop_source_stmt as valuzeierf
+	should provide what we are looking for.
+	Call valuzeierf on the arguments before returning.
+	(forward_propagate_into_cond): Use build_int_cst_type.
+	Simplify "1 ? A : B" to "A".
+	Simplify "0 ? A : B" to "B".
+	(simplify_gimple_switch): Return the def if the code is
+	INTEGER_CST and the original cond was not def.
+	(simplify_bitwise_binary): Use build_zero_cst.
+	(associate_plusminus): Simplify "A+-0" and "0+-A".
+	Simplify "A-A" to 0.
+	Also try to handle ADDR_EXPR differences.
+	(gimple_combine_ternary): Call valuzeierf on the arguments.
+	Call fold if all are constants.
+	(gimple_combine_binary): Call valuzeierf on the arguments.
+	(gimple_combine_unary): Call valuzeierf on the arguments.
+	Call fold if all are constants.
+	(ssa_combine): If we have a simple assignment from a ssa_name
+	then call valuzeirf on the argument.
+	Simplify how we call gimple_combine_*.
+	(replace_rhs_after_ssa_combine): Use build_zero_cst.
+	* tree-flow.h (valueizer_t): New type.
+	(gimple_combine_set_valueizer): New prototype.
+
 2012-02-29  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c (gimple_combine_build1): Simplify

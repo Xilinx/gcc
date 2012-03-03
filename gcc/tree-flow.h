@@ -623,7 +623,9 @@ bool do_while_loop_p (struct loop *);
 
 /* In gimple-ssa-combine.c */
 typedef double_int (*nonzerobits_t)(tree var);
+typedef tree (*valueizer_t)(tree var);
 void gimple_combine_set_nonzerobits (nonzerobits_t);
+void gimple_combine_set_valueizer (valueizer_t);
 tree ssa_combine (gimple);
 tree gimple_combine_binary (location_t, enum tree_code, tree, tree, tree);
 tree gimple_combine_unary (location_t, enum tree_code, tree, tree);

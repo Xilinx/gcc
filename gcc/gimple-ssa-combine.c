@@ -70,7 +70,143 @@ gimple_default_nonzero_bits (tree val)
   return mask_for_type (type);
 }
 
+/* Get the statement we can propagate from into NAME skipping
+   trivial copies.  Returns the statement which defines the
+   propagation source or NULL_TREE if there is no such one.
+   If SINGLE_USE_ONLY is set considers only sources which have
+   a single use chain up to NAME.  If SINGLE_USE_P is non-null,
+   it is set to whether the chain to NAME is a single use chain
+   or not.  SINGLE_USE_P is not written to if SINGLE_USE_ONLY is set.  */
+
+static gimple
+get_prop_source_stmt (tree name, bool single_use_only, bool *single_use_p)
+{
+  bool single_use = true;
+
+  do {
+    gimple def_stmt = SSA_NAME_DEF_STMT (name);
+
+    if (!has_single_use (name))
+      {
+	single_use = false;
+	if (single_use_only)
+	  return NULL;
+      }
+
+    /* If name is defined by a PHI node or is the default def, bail out.  */
+    if (!is_gimple_assign (def_stmt))
+      return NULL;
+
+    /* If def_stmt is not a simple copy, we possibly found it.  */
+    if (!gimple_assign_ssa_name_copy_p (def_stmt))
+      {
+	tree rhs;
+
+	if (!single_use_only && single_use_p)
+	  *single_use_p = single_use;
+
+	/* We can look through pointer conversions in the search
+	   for a useful stmt for the comparison folding.  */
+	rhs = gimple_assign_rhs1 (def_stmt);
+	if (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (def_stmt))
+	    && TREE_CODE (rhs) == SSA_NAME
+	    && POINTER_TYPE_P (TREE_TYPE (gimple_assign_lhs (def_stmt)))
+	    && POINTER_TYPE_P (TREE_TYPE (rhs)))
+	  name = rhs;
+	else
+	  return def_stmt;
+      }
+    else
+      {
+	/* Continue searching the def of the copy source name.  */
+	name = gimple_assign_rhs1 (def_stmt);
+      }
+  } while (1);
+}
+
+/* Checks if the destination ssa name in DEF_STMT can be used as
+   propagation source.  Returns true if so, otherwise false.  */
+
+static bool
+can_propagate_from (gimple def_stmt)
+{
+  gcc_assert (is_gimple_assign (def_stmt));
+
+  /* If the rhs has side-effects we cannot propagate from it.  */
+  if (gimple_has_volatile_ops (def_stmt))
+    return false;
+
+  /* If the rhs is a load we cannot propagate from it.  */
+  if (TREE_CODE_CLASS (gimple_assign_rhs_code (def_stmt)) == tcc_reference
+      || TREE_CODE_CLASS (gimple_assign_rhs_code (def_stmt)) == tcc_declaration)
+    return false;
+
+  /* Constants can be always propagated.  */
+  if (gimple_assign_single_p (def_stmt)
+      && is_gimple_min_invariant (gimple_assign_rhs1 (def_stmt)))
+    return true;
+
+  /* We cannot propagate ssa names that occur in abnormal phi nodes.  */
+  if (stmt_references_abnormal_ssa_name (def_stmt))
+    return false;
+
+  /* If the definition is a conversion of a pointer to a function type,
+     then we can not apply optimizations as some targets require
+     function pointers to be canonicalized and in this case this
+     optimization could eliminate a necessary canonicalization.  */
+  if (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (def_stmt)))
+    {
+      tree rhs = gimple_assign_rhs1 (def_stmt);
+      if (POINTER_TYPE_P (TREE_TYPE (rhs))
+          && TREE_CODE (TREE_TYPE (TREE_TYPE (rhs))) == FUNCTION_TYPE)
+        return false;
+    }
+
+  return true;
+}
+
+static tree
+gimple_default_valueizer (tree val)
+{
+  tree name = val;
+  gimple def_stmt;
+
+  if (TREE_CODE (val) != SSA_NAME)
+    return val;
+
+  do {
+    def_stmt = SSA_NAME_DEF_STMT (name);
+
+    /* If name is defined by a PHI node or is the default def, bail out.  */
+    if (!is_gimple_assign (def_stmt))
+      {
+	if (!SSA_NAME_OCCURS_IN_ABNORMAL_PHI (name))
+	  return name;
+	return val;
+      }
+
+    /* If def_stmt is not a simple copy, we possibly found it.  */
+    if (!gimple_assign_ssa_name_copy_p (def_stmt))
+      break;
+    else
+      /* Continue searching the def of the copy source name.  */
+      name = gimple_assign_rhs1 (def_stmt);
+  } while (1);
+  
+  /* If we got a constant, return that constant. */
+  if (gimple_assign_single_p (def_stmt)
+      && is_gimple_min_invariant (gimple_assign_rhs1 (def_stmt)))
+    return gimple_assign_rhs1 (def_stmt);
+
+  /* If got a name that occurs in an abnormal phi, ignore it. */
+  if (SSA_NAME_OCCURS_IN_ABNORMAL_PHI (name))
+    return val;
+
+  return name;
+}
+
 static nonzerobits_t nonzerobitsf = gimple_default_nonzero_bits;
+static valueizer_t valuzeierf = gimple_default_valueizer;
 
 /* Set the nonzerbits hook to NONZEROBITSP. */
 void
@@ -117,6 +253,8 @@ static tree
 gimple_combine_build1 (location_t loc, enum tree_code code,
 		       tree type, tree arg1)
 {
+  tree tem;
+
   /* Convert (bool)a CMP b into just a CMP b.  Only do this while
      building the tree as it useless otherwise.  */
   if (CONVERT_EXPR_CODE_P (code)
@@ -126,7 +264,7 @@ gimple_combine_build1 (location_t loc, enum tree_code code,
 				  TREE_OPERAND (arg1, 0),
 				  TREE_OPERAND (arg1, 1));
 
-  tree tem = gimple_combine_unary (loc, code, type, arg1);
+  tem = gimple_combine_unary (loc, code, type, arg1);
   if (tem)
     return tem;
   return build1_loc (loc, code, type, arg1);
@@ -241,101 +379,6 @@ nonzerobits (tree val)
     }
 }
 
-/* Get the statement we can propagate from into NAME skipping
-   trivial copies.  Returns the statement which defines the
-   propagation source or NULL_TREE if there is no such one.
-   If SINGLE_USE_ONLY is set considers only sources which have
-   a single use chain up to NAME.  If SINGLE_USE_P is non-null,
-   it is set to whether the chain to NAME is a single use chain
-   or not.  SINGLE_USE_P is not written to if SINGLE_USE_ONLY is set.  */
-
-static gimple
-get_prop_source_stmt (tree name, bool single_use_only, bool *single_use_p)
-{
-  bool single_use = true;
-
-  do {
-    gimple def_stmt = SSA_NAME_DEF_STMT (name);
-
-    if (!has_single_use (name))
-      {
-	single_use = false;
-	if (single_use_only)
-	  return NULL;
-      }
-
-    /* If name is defined by a PHI node or is the default def, bail out.  */
-    if (!is_gimple_assign (def_stmt))
-      return NULL;
-
-    /* If def_stmt is not a simple copy, we possibly found it.  */
-    if (!gimple_assign_ssa_name_copy_p (def_stmt))
-      {
-	tree rhs;
-
-	if (!single_use_only && single_use_p)
-	  *single_use_p = single_use;
-
-	/* We can look through pointer conversions in the search
-	   for a useful stmt for the comparison folding.  */
-	rhs = gimple_assign_rhs1 (def_stmt);
-	if (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (def_stmt))
-	    && TREE_CODE (rhs) == SSA_NAME
-	    && POINTER_TYPE_P (TREE_TYPE (gimple_assign_lhs (def_stmt)))
-	    && POINTER_TYPE_P (TREE_TYPE (rhs)))
-	  name = rhs;
-	else
-	  return def_stmt;
-      }
-    else
-      {
-	/* Continue searching the def of the copy source name.  */
-	name = gimple_assign_rhs1 (def_stmt);
-      }
-  } while (1);
-}
-
-/* Checks if the destination ssa name in DEF_STMT can be used as
-   propagation source.  Returns true if so, otherwise false.  */
-
-static bool
-can_propagate_from (gimple def_stmt)
-{
-  gcc_assert (is_gimple_assign (def_stmt));
-
-  /* If the rhs has side-effects we cannot propagate from it.  */
-  if (gimple_has_volatile_ops (def_stmt))
-    return false;
-
-  /* If the rhs is a load we cannot propagate from it.  */
-  if (TREE_CODE_CLASS (gimple_assign_rhs_code (def_stmt)) == tcc_reference
-      || TREE_CODE_CLASS (gimple_assign_rhs_code (def_stmt)) == tcc_declaration)
-    return false;
-
-  /* Constants can be always propagated.  */
-  if (gimple_assign_single_p (def_stmt)
-      && is_gimple_min_invariant (gimple_assign_rhs1 (def_stmt)))
-    return true;
-
-  /* We cannot propagate ssa names that occur in abnormal phi nodes.  */
-  if (stmt_references_abnormal_ssa_name (def_stmt))
-    return false;
-
-  /* If the definition is a conversion of a pointer to a function type,
-     then we can not apply optimizations as some targets require
-     function pointers to be canonicalized and in this case this
-     optimization could eliminate a necessary canonicalization.  */
-  if (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (def_stmt)))
-    {
-      tree rhs = gimple_assign_rhs1 (def_stmt);
-      if (POINTER_TYPE_P (TREE_TYPE (rhs))
-          && TREE_CODE (TREE_TYPE (TREE_TYPE (rhs))) == FUNCTION_TYPE)
-        return false;
-    }
-
-  return true;
-}
-
 /* Given a ssa_name in NAME see if it was defined by an assignment and
    set CODE to be the code and ARG1 to the first operand on the rhs and ARG2
    to the second operand on the rhs. */
@@ -348,20 +391,22 @@ defcodefor_name_3 (tree name, enum tree_code *code, tree *arg1, tree *arg2,
   tree arg11;
   tree arg21;
   tree arg31;
-  bool single_use;
   enum gimple_rhs_class grhs_class;
-  
+
+  name = valuzeierf (name);
+
   code1 = TREE_CODE (name);
   arg11 = name;
   arg21 = NULL_TREE;
-  single_use = true;
+  arg31 = NULL_TREE;
   grhs_class = get_gimple_rhs_class (code1);
 
   if (code1 == SSA_NAME)
     {
-      def = get_prop_source_stmt (name, false, &single_use);
-      if (def && can_propagate_from (def)
-	  && is_gimple_assign (def))
+      def = SSA_NAME_DEF_STMT (name);
+      
+      if (def && is_gimple_assign (def)
+	  && can_propagate_from (def))
 	{
 	  code1 = gimple_assign_rhs_code (def);
 	  arg11 = gimple_assign_rhs1 (def);
@@ -374,7 +419,16 @@ defcodefor_name_3 (tree name, enum tree_code *code, tree *arg1, tree *arg2,
 	   || GIMPLE_UNARY_RHS
 	   || GIMPLE_SINGLE_RHS)
     extract_ops_from_tree_1 (name, &code1, &arg11, &arg21, &arg31);
+
+  if (arg11)
+    arg11 = valuzeierf (arg11);
   
+  if (arg21)
+    arg21 = valuzeierf (arg21);
+
+  if (arg31)
+    arg31 = valuzeierf (arg31);
+
   *code = code1;
   *arg1 = arg11;
   if (arg2)
@@ -904,7 +958,7 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
       && truth_valued_ssa_name (op2))
     {
       cond = gimple_combine_build2 (loc, BIT_XOR_EXPR, TREE_TYPE (cond), cond,
-				 build_int_cst (TREE_TYPE (cond), 1));
+				 build_int_cst_type (TREE_TYPE (cond), 1));
       cond = gimple_combine_build1 (loc, NOP_EXPR, type, cond);
       return gimple_combine_build2 (loc, BIT_AND_EXPR, type, cond, op2);
     }
@@ -914,7 +968,7 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
       && truth_valued_ssa_name (op1))
     {
       cond = gimple_combine_build2 (loc, BIT_XOR_EXPR, TREE_TYPE (cond), cond,
-				 build_int_cst (TREE_TYPE (cond), 1));
+				 build_int_cst_type (TREE_TYPE (cond), 1));
       cond = gimple_combine_build1 (loc, NOP_EXPR, type, cond);
       return gimple_combine_build2 (loc, BIT_IOR_EXPR, type, cond, op1);
     }
@@ -926,6 +980,14 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
       cond = gimple_combine_build1 (loc, NOP_EXPR, type, cond);
       return gimple_combine_build2 (loc, BIT_IOR_EXPR, type, cond, op2);
     }
+
+  /* 1 ? A : B -> A. */
+  if (integer_onep (cond))
+    return op1;
+
+  /* 0 ? A : B -> A. */
+  if (integer_zerop (cond))
+    return op2;
 
   /* If all else, try to simplify the condition. */
   defcodefor_name (cond, &code, &rhs1, &rhs2);
@@ -1083,6 +1145,10 @@ simplify_gimple_switch (gimple stmt)
   tree defto = NULL;
 
   defcodefor_name (cond, &code, &def, NULL);
+
+  if (code == INTEGER_CST && cond != def)
+    return def;
+
   /* The optimization that we really care about is removing unnecessary
      casts.  That will let us do much better in propagating the inferred
      constant at the switch target.  */
@@ -1238,7 +1304,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
         nzop2 = nonzerobits (arg2);
         /* If we are clearing all the nonzero bits, the result is zero.  */
         if (double_int_zero_p (double_int_and (nzop1, nzop2)))
-	  return build_int_cst (TREE_TYPE (arg1), 0);
+	  return build_zero_cst (TREE_TYPE (arg1));
     }
 
   /* A | C is C if all bits of A that might be nonzero are on in C.  */
@@ -1267,7 +1333,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
   if (code == BIT_AND_EXPR
       && (double_int_zero_p (nonzerobits (arg1))
 	  || double_int_zero_p (nonzerobits (arg2))))
-    return build_int_cst (type, 0);
+    return build_zero_cst (type);
 
   /* If we are XORing two things that have no bits in common,
      convert them into an IOR.  This helps to detect rotation encoded
@@ -1289,8 +1355,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
      tree tmp = gimple_combine_build2 (loc, code, TREE_TYPE (def1_arg1),
 				       def1_arg1, def2_arg1);
      return gimple_combine_build2 (loc, NE_EXPR, type, tmp,
-				   build_int_cst_type (TREE_TYPE (def1_arg1),
-						       0));
+				   build_zero_cst (TREE_TYPE (def1_arg1)));
    }
 
   /* Fold a==0&b==0 if a and b are the same type to (a|b)==0 . */
@@ -1305,8 +1370,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
      tree tmp = gimple_combine_build2 (loc, BIT_IOR_EXPR, TREE_TYPE (def1_arg1),
 				       def1_arg1, def2_arg1);
      return gimple_combine_build2 (loc, EQ_EXPR, type, tmp,
-				   build_int_cst_type (TREE_TYPE (def1_arg1),
-						       0));
+				   build_zero_cst (TREE_TYPE (def1_arg1)));
    }
 
   /* Try to fold (type) X op CST -> (type) (X op ((type-x) CST)).  */
@@ -1535,14 +1599,54 @@ associate_plusminus (location_t loc, enum tree_code code, tree type,
   tree def1_arg1, def1_arg2 = NULL_TREE, def2_arg1, def2_arg2 = NULL_TREE;
   enum tree_code def1_code, def2_code;
 
+  gcc_assert (code == PLUS_EXPR || code == MINUS_EXPR);
+
+  if (!FLOAT_TYPE_P (type))
+    {
+      if (integer_zerop (rhs2))
+	return rhs1;
+      if (integer_zerop (rhs1))
+	{
+	  if (code == PLUS_EXPR)
+	    return rhs2;
+	  return gimple_combine_build1 (loc, NEGATE_EXPR, type, rhs2);
+	}
+    }
+  else
+    {
+      if (fold_real_zero_addition_p (type, rhs2, code == MINUS_EXPR))
+	return rhs1;
+
+      if (fold_real_zero_addition_p (type, rhs1, 0))
+	{
+	  if (code == PLUS_EXPR)
+	    return rhs2;
+	  return gimple_combine_build1 (loc, NEGATE_EXPR, type, rhs2);
+	}
+    }
+
+   if (code == MINUS_EXPR
+       && (!FLOAT_TYPE_P (type) || !HONOR_NANS (TYPE_MODE (type)))
+           && operand_equal_p (rhs1, rhs2, 0))
+      return build_zero_cst (type);
+
   /* We can't reassociate at all for saturating types.  */
   if (TYPE_SATURATING (type))
     return NULL_TREE;
 
-  gcc_assert (code == PLUS_EXPR || code == MINUS_EXPR);
-
   defcodefor_name (rhs1, &def1_code, &def1_arg1, &def1_arg2);
   defcodefor_name (rhs2, &def2_code, &def2_arg1, &def2_arg2);
+
+  if (code == MINUS_EXPR)
+    /* Try folding difference of addresses.  */
+    {
+      HOST_WIDE_INT diff;
+
+      if ((def1_code == ADDR_EXPR
+           && def2_code == ADDR_EXPR)
+          && ptr_difference_const (def1_arg1, def2_arg1, &diff))
+        return build_int_cst_type (type, diff);
+    }
 
   /* First contract negates.  */
 
@@ -1825,6 +1929,16 @@ gimple_combine_ternary (location_t loc, enum tree_code code,
 {
   gcc_assert (IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (code))
 	      && TREE_CODE_LENGTH (code) == 3);
+
+  arg1 = valuzeierf (arg1);
+  arg2 = valuzeierf (arg2);
+  arg3 = valuzeierf (arg3);
+
+  /* Call fold if we have three constants. */
+  if (is_gimple_min_invariant (arg1) && is_gimple_min_invariant (arg2)
+       && is_gimple_min_invariant (arg3))
+    return fold_ternary_loc (loc, code, type, arg1, arg2, arg3);
+
   if (code == COND_EXPR)
     return forward_propagate_into_cond (loc, code, type, arg1, arg2, arg3);
   return NULL_TREE;
@@ -1841,6 +1955,9 @@ gimple_combine_binary (location_t loc, enum tree_code code,
               && TREE_CODE_LENGTH (code) == 2
               && arg1 != NULL_TREE
               && arg2 != NULL_TREE);
+
+  arg1 = valuzeierf (arg1);
+  arg2 = valuzeierf (arg2);
 
   /* Call fold if we have two constants. */
   if (is_gimple_min_invariant (arg1) && is_gimple_min_invariant (arg2))
@@ -1878,6 +1995,13 @@ gimple_combine_unary (location_t loc, enum tree_code code,
   gcc_assert (IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (code))
               && TREE_CODE_LENGTH (code) == 1
               && arg1 != NULL_TREE);
+
+  arg1 = valuzeierf (arg1);
+
+  /* Call fold if we have a constant. */
+  if (is_gimple_min_invariant (arg1))
+    return fold_unary_loc (loc, code, type, arg1);
+
   switch (code)
     {
       CASE_CONVERT:
@@ -1909,18 +2033,28 @@ ssa_combine (gimple stmt)
 	tree ltype = TREE_TYPE (gimple_assign_lhs (stmt));
 	location_t loc = gimple_location (stmt);
 	enum tree_code code = gimple_assign_rhs_code (stmt);
+	if (code == SSA_NAME)
+	  {
+	    tree newrhs = valuzeierf (rhs1);
+	    return newrhs == rhs1 ? NULL : newrhs;
+	   }
 
-	/* We cannot fold memory references right now. */
-	if (TREE_CODE_CLASS (code) == tcc_reference)
-	  return NULL_TREE;
-
-	if (TREE_CODE_LENGTH (code) == 3)
-	  return gimple_combine_ternary (loc, code, ltype, rhs1, rhs2,
-					    rhs3);
-	if (TREE_CODE_LENGTH (code) == 2)
-	  return gimple_combine_binary (loc, code, ltype, rhs1, rhs2);
-	else if (TREE_CODE_LENGTH (code) == 1)
-	  return gimple_combine_unary (loc, code, ltype, rhs1);
+	switch (get_gimple_rhs_class (code))
+	  {
+	    /* We don't handle these yet except SSA_NAME
+	       which is done above. */
+	    case GIMPLE_SINGLE_RHS:
+	      return NULL_TREE;
+	    case GIMPLE_BINARY_RHS:
+	       return gimple_combine_binary (loc, code, ltype, rhs1, rhs2);
+	    case GIMPLE_TERNARY_RHS:
+	       return gimple_combine_ternary (loc, code, ltype, rhs1, rhs2,
+					      rhs3);
+	    case GIMPLE_UNARY_RHS:
+	      return gimple_combine_unary (loc, code, ltype, rhs1);
+	    default:
+              gcc_unreachable ();
+	  }
 	break;
       }
 
@@ -1982,7 +2116,7 @@ replace_rhs_after_ssa_combine (gimple_stmt_iterator *gsi, tree newexpr)
 	/* Since we might not get a comparison out of the folding. */
 	if (!COMPARISON_CLASS_P (newexpr))
 	  newexpr = build2 (NE_EXPR, boolean_type_node, newexpr,
-			    build_int_cst (TREE_TYPE (newexpr), 0));
+			    build_zero_cst (TREE_TYPE (newexpr)));
 
 	newexpr = force_gimple_operand_gsi (gsi, newexpr, false, NULL, true,
 					    GSI_SAME_STMT);
