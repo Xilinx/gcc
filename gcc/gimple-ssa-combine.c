@@ -165,14 +165,22 @@ can_propagate_from (gimple def_stmt)
   return true;
 }
 
+static nonzerobits_t nonzerobitsf = gimple_default_nonzero_bits;
+static valueizer_t valueizerv = NULL;
+
 static tree
-gimple_default_valueizer (tree val)
+valueizerf (tree val)
 {
-  tree name = val;
+  tree name;
   gimple def_stmt;
+
+  if (valueizerv)
+    val = valueizerv (val);
 
   if (TREE_CODE (val) != SSA_NAME)
     return val;
+
+  name = val;
 
   do {
     def_stmt = SSA_NAME_DEF_STMT (name);
@@ -204,10 +212,6 @@ gimple_default_valueizer (tree val)
 
   return name;
 }
-
-static nonzerobits_t nonzerobitsf = gimple_default_nonzero_bits;
-static valueizer_t valuzeierf = gimple_default_valueizer;
-
 /* Set the nonzerbits hook to NONZEROBITSP. */
 void
 gimple_combine_set_nonzerobits (nonzerobits_t nonzerobitsp)
@@ -216,6 +220,12 @@ gimple_combine_set_nonzerobits (nonzerobits_t nonzerobitsp)
   if (nonzerobitsp == NULL)
     nonzerobitsp = gimple_default_nonzero_bits;
   nonzerobitsf = nonzerobitsp;
+}
+
+void
+gimple_combine_set_valueizer (valueizer_t valueizerp)
+{
+  valueizerv = valueizerp;
 }
 
 static tree
@@ -393,7 +403,7 @@ defcodefor_name_3 (tree name, enum tree_code *code, tree *arg1, tree *arg2,
   tree arg31;
   enum gimple_rhs_class grhs_class;
 
-  name = valuzeierf (name);
+  name = valueizerf (name);
 
   code1 = TREE_CODE (name);
   arg11 = name;
@@ -421,13 +431,13 @@ defcodefor_name_3 (tree name, enum tree_code *code, tree *arg1, tree *arg2,
     extract_ops_from_tree_1 (name, &code1, &arg11, &arg21, &arg31);
 
   if (arg11)
-    arg11 = valuzeierf (arg11);
+    arg11 = valueizerf (arg11);
   
   if (arg21)
-    arg21 = valuzeierf (arg21);
+    arg21 = valueizerf (arg21);
 
   if (arg31)
-    arg31 = valuzeierf (arg31);
+    arg31 = valueizerf (arg31);
 
   *code = code1;
   *arg1 = arg11;
@@ -1930,9 +1940,9 @@ gimple_combine_ternary (location_t loc, enum tree_code code,
   gcc_assert (IS_EXPR_CODE_CLASS (TREE_CODE_CLASS (code))
 	      && TREE_CODE_LENGTH (code) == 3);
 
-  arg1 = valuzeierf (arg1);
-  arg2 = valuzeierf (arg2);
-  arg3 = valuzeierf (arg3);
+  arg1 = valueizerf (arg1);
+  arg2 = valueizerf (arg2);
+  arg3 = valueizerf (arg3);
 
   /* Call fold if we have three constants. */
   if (is_gimple_min_invariant (arg1) && is_gimple_min_invariant (arg2)
@@ -1956,8 +1966,8 @@ gimple_combine_binary (location_t loc, enum tree_code code,
               && arg1 != NULL_TREE
               && arg2 != NULL_TREE);
 
-  arg1 = valuzeierf (arg1);
-  arg2 = valuzeierf (arg2);
+  arg1 = valueizerf (arg1);
+  arg2 = valueizerf (arg2);
 
   /* Call fold if we have two constants. */
   if (is_gimple_min_invariant (arg1) && is_gimple_min_invariant (arg2))
@@ -1996,7 +2006,7 @@ gimple_combine_unary (location_t loc, enum tree_code code,
               && TREE_CODE_LENGTH (code) == 1
               && arg1 != NULL_TREE);
 
-  arg1 = valuzeierf (arg1);
+  arg1 = valueizerf (arg1);
 
   /* Call fold if we have a constant. */
   if (is_gimple_min_invariant (arg1))
@@ -2035,7 +2045,7 @@ ssa_combine (gimple stmt)
 	enum tree_code code = gimple_assign_rhs_code (stmt);
 	if (code == SSA_NAME)
 	  {
-	    tree newrhs = valuzeierf (rhs1);
+	    tree newrhs = valueizerf (rhs1);
 	    return newrhs == rhs1 ? NULL : newrhs;
 	   }
 

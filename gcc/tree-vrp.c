@@ -7597,6 +7597,22 @@ vrp_nonzerop (tree op)
   return may_be_nonzero;
 }
 
+static tree
+vrp_valueizer (tree op)
+{
+  value_range_t *vr;
+  if (op == NULL || TREE_CODE (op) != SSA_NAME)
+    return op;
+  vr = get_value_range (op);
+  if (vr == NULL)
+    return op;
+
+  if (vr->type == VR_RANGE
+      && operand_equal_p (vr->min, vr->max, 0))
+    return vr->min;
+  return op;
+}
+
 /* Simplify STMT using ranges if possible.  */
 
 static bool
@@ -7909,6 +7925,9 @@ vrp_finalize (void)
 
   values_propagated = true;
 
+  gimple_combine_set_nonzerobits (vrp_nonzerop);
+  gimple_combine_set_valueizer (vrp_valueizer);
+
   if (dump_file)
     {
       fprintf (dump_file, "\nValue ranges after VRP:\n\n");
@@ -7941,6 +7960,9 @@ vrp_finalize (void)
      and not available.  */
   vr_value = NULL;
   vr_phi_edge_counts = NULL;
+
+  gimple_combine_set_nonzerobits (NULL);
+  gimple_combine_set_valueizer (NULL);
 }
 
 
@@ -7995,7 +8017,6 @@ execute_vrp (void)
   edge e;
   switch_update *su;
 
-  gimple_combine_set_nonzerobits (vrp_nonzerop);
   loop_optimizer_init (LOOPS_NORMAL | LOOPS_HAVE_RECORDED_EXITS);
   rewrite_into_loop_closed_ssa (NULL, TODO_update_ssa);
   scev_initialize ();
@@ -8062,7 +8083,6 @@ execute_vrp (void)
 
   scev_finalize ();
   loop_optimizer_finalize ();
-  gimple_combine_set_nonzerobits (NULL);
   return 0;
 }
 

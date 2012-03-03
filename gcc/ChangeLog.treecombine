@@ -1,5 +1,20 @@
 2012-03-02  Andrew Pinski  <apinski@cavium.com>
 
+	* gimple-ssa-combine.c (valuzeierf): Rename to ...
+	(valueizerv): This.  Default to NULL.
+	(gimple_default_valueizer): Rename to ...
+	(valueizerf): This.
+	Call valueizerv on the argument before doing anything
+	else.
+	(gimple_combine_set_valueizer): New function.
+	s/valuzeierf/valueizerv/ globally.
+	* tree-vrp.c (vrp_valueizer): New function.
+	(vrp_finalize): Call gimple_combine_set_nonzerobits
+	and gimple_combine_set_valueizer.
+	(execute_vrp): Don't call gimple_combine_set_nonzerobits.
+
+2012-03-02  Andrew Pinski  <apinski@cavium.com>
+
 	* gimple-ssa-combine.c (get_prop_source_stmt): Move up.
 	(can_propagate_from): Likewise.
 	(gimple_default_valueizer): New function.
