@@ -362,6 +362,9 @@ runtime_mcall(void (*pfn)(G*))
 	}
 }
 
+// Keep trace of scavenger's goroutine for deadlock detection.
+static G *scvg;
+
 // The bootstrap sequence is:
 //
 //	call osinit
@@ -413,6 +416,8 @@ runtime_schedinit(void)
 	// Can not enable GC until all roots are registered.
 	// mstats.enablegc = 1;
 	m->nomemprof--;
+
+	scvg = __go_go(runtime_MHeap_Scavenger, nil);
 }
 
 extern void main_init(void) __asm__ ("__go_init_main");
@@ -536,18 +541,20 @@ runtime_idlegoroutine(void)
 static void
 mcommoninit(M *m)
 {
-	// Add to runtime_allm so garbage collector doesn't free m
-	// when it is just in a register or thread-local storage.
-	m->alllink = runtime_allm;
-	// runtime_Cgocalls() iterates over allm w/o schedlock,
-	// so we need to publish it safely.
-	runtime_atomicstorep((void**)&runtime_allm, m);
-
 	m->id = runtime_sched.mcount++;
 	m->fastrand = 0x49f6428aUL + m->id + runtime_cputicks();
 
 	if(m->mcache == nil)
 		m->mcache = runtime_allocmcache();
+
+	runtime_callers(1, m->createstack, nelem(m->createstack));
+	
+	// Add to runtime_allm so garbage collector doesn't free m
+	// when it is just in a register or thread-local storage.
+	m->alllink = runtime_allm;
+	// runtime_NumCgoCall() iterates over allm w/o schedlock,
+	// so we need to publish it safely.
+	runtime_atomicstorep(&runtime_allm, m);
 }
 
 // Try to increment mcpu.  Report whether succeeded.
@@ -784,9 +791,12 @@ top:
 		mput(m);
 	}
 
-	v = runtime_atomicload(&runtime_sched.atomic);
-	if(runtime_sched.grunning == 0)
-		runtime_throw("all goroutines are asleep - deadlock!");
+	// Look for deadlock situation: one single active g which happens to be scvg.
+	if(runtime_sched.grunning == 1 && runtime_sched.gwait == 0) {
+		if(scvg->status == Grunning || scvg->status == Gsyscall)
+			runtime_throw("all goroutines are asleep - deadlock!");
+	}
+
 	m->nextg = nil;
 	m->waitnextg = 1;
 	runtime_noteclear(&m->havenextg);
@@ -795,6 +805,7 @@ top:
 	// Entersyscall might have decremented mcpu too, but if so
 	// it will see the waitstop and take the slow path.
 	// Exitsyscall never increments mcpu beyond mcpumax.
+	v = runtime_atomicload(&runtime_sched.atomic);
 	if(atomic_waitstop(v) && atomic_mcpu(v) <= atomic_mcpumax(v)) {
 		// set waitstop = 0 (known to be 1)
 		runtime_xadd(&runtime_sched.atomic, -1<<waitstopShift);
@@ -1470,11 +1481,17 @@ runtime_mid()
 	return m->id;
 }
 
-int32 runtime_Goroutines (void)
-  __asm__ ("libgo_runtime.runtime.Goroutines");
+int32 runtime_NumGoroutine (void)
+  __asm__ ("libgo_runtime.runtime.NumGoroutine");
 
 int32
-runtime_Goroutines()
+runtime_NumGoroutine()
+{
+	return runtime_sched.gcount;
+}
+
+int32
+runtime_gcount(void)
 {
 	return runtime_sched.gcount;
 }

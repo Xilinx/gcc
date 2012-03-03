@@ -12,8 +12,8 @@
 //
 // Functions of the form
 //     func BenchmarkXxx(*testing.B)
-// are considered benchmarks, and are executed by gotest when the -test.bench
-// flag is provided.
+// are considered benchmarks, and are executed by the "go test" command when
+// the -test.bench flag is provided.
 //
 // A sample benchmark function looks like this:
 //     func BenchmarkHello(b *testing.B) {
@@ -38,16 +38,25 @@
 //         }
 //     }
 //
-// The package also runs and verifies example code. Example functions
-// include an introductory comment that is compared with the standard output
-// of the function when the tests are run, as in this example of an example:
+// The package also runs and verifies example code. Example functions may
+// include a concluding comment that begins with "Output:" and is compared with
+// the standard output of the function when the tests are run, as in these
+// examples of an example:
 //
-//     // hello
 //     func ExampleHello() {
 //             fmt.Println("hello")
+//             // Output: hello
 //     }
 //
-// Example functions without comments are compiled but not executed.
+//     func ExampleSalutations() {
+//             fmt.Println("hello, and")
+//             fmt.Println("goodbye")
+//             // Output:
+//             // hello, and
+//             // goodbye
+//     }
+//
+// Example functions without output comments are compiled but not executed.
 //
 // The naming convention to declare examples for a function F, a type T and
 // method M on type T are:
@@ -64,6 +73,9 @@
 //     func ExampleT_suffix() { ... }
 //     func ExampleT_M_suffix() { ... }
 //
+// The entire test file is presented as the example when it contains a single
+// example function, at least one other function, type, variable, or constant
+// declaration, and no test or benchmark functions.
 package testing
 
 import (
@@ -81,7 +93,7 @@ var (
 	// The short flag requests that tests run more quickly, but its functionality
 	// is provided by test writers themselves.  The testing package is just its
 	// home.  The all.bash installation script sets it to make installation more
-	// efficient, but by default the flag is off so a plain "gotest" will do a
+	// efficient, but by default the flag is off so a plain "go test" will do a
 	// full test of the package.
 	short = flag.Bool("test.short", false, "run smaller test suite to save time")
 
@@ -162,7 +174,7 @@ func (c *common) Fail() { c.failed = true }
 func (c *common) Failed() bool { return c.failed }
 
 // FailNow marks the function as having failed and stops its execution.
-// Execution will continue at the next Test.
+// Execution will continue at the next test or benchmark.
 func (c *common) FailNow() {
 	c.Fail()
 
@@ -225,19 +237,6 @@ func (c *common) Fatalf(format string, args ...interface{}) {
 	c.FailNow()
 }
 
-// TODO(dsymonds): Consider hooking into runtime·traceback instead.
-func (c *common) stack() {
-	for i := 2; ; i++ { // Caller we care about is the user, 2 frames up
-		pc, file, line, ok := runtime.Caller(i)
-		f := runtime.FuncForPC(pc)
-		if !ok || f == nil {
-			break
-		}
-		c.Logf("%s:%d (0x%x)", file, line, pc)
-		c.Logf("\t%s", f.Name())
-	}
-}
-
 // Parallel signals that this test is to be run in parallel with (and only with) 
 // other parallel tests in this CPU group.
 func (t *T) Parallel() {
@@ -246,7 +245,7 @@ func (t *T) Parallel() {
 }
 
 // An internal type but exported because it is cross-package; part of the implementation
-// of gotest.
+// of the "go test" command.
 type InternalTest struct {
 	Name string
 	F    func(*T)
@@ -260,14 +259,12 @@ func tRunner(t *T, test *InternalTest) {
 	// a call to runtime.Goexit, record the duration and send
 	// a signal saying that the test is done.
 	defer func() {
-		// Consider any uncaught panic a failure.
-		if err := recover(); err != nil {
-			t.failed = true
-			t.Log(err)
-			t.stack()
-		}
-
 		t.duration = time.Now().Sub(t.start)
+		// If the test panicked, print any test output before dying.
+		if err := recover(); err != nil {
+			t.report()
+			panic(err)
+		}
 		t.signal <- t
 	}()
 
@@ -275,7 +272,7 @@ func tRunner(t *T, test *InternalTest) {
 }
 
 // An internal function but exported because it is cross-package; part of the implementation
-// of gotest.
+// of the "go test" command.
 func Main(matchString func(pat, str string) (bool, error), tests []InternalTest, benchmarks []InternalBenchmark, examples []InternalExample) {
 	flag.Parse()
 	parseCpuList()
