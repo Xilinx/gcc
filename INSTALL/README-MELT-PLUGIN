@@ -181,8 +181,8 @@ welcome by email to <basile@starynkevitch.net> [please mention MELT in
 the subject line] and to <gcc-melt@googlegroups.com>
 
 ################################################################
-NEWS for 0.9.4 MELT plugin for GCC 4.6 (and 4.7 when available)
-released on March 02nd, 2012
+NEWS for 0.9.4.b MELT plugin for GCC 4.6 (and 4.7 when available)
+released on March 05nd, 2012
 
    Language improvements
    =====================
@@ -217,6 +217,10 @@ primitives.
    ====
 
 Many bugs have been corrected.
+
+[Notably, the 0.9.4 release of march 02nd 2012, -not this 0.9.4.b-
+didn't generate documentation correctly]
+
 
 #######################################################################
 NEWS for 0.9.3 MELT plugin for gcc-4.6 (and future gcc-4.7)
