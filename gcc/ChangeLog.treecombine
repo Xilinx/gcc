@@ -1,5 +1,29 @@
 2012-03-03  Andrew Pinski  <apinski@cavium.com>
 
+	* gimple-fold.c: Add a comment saying this should
+	move almost all of it should be moved over to gimple-ssa-combine.c
+	(maybe_fold_or_comparisons): Remove comment about going into 
+	gimple-fold-inline.h since this no longer applies after LTO is used.
+	* gimple-ssa-combine.c (gimple_default_nonzero_bits): Remove.
+	(nonzerobitsf): Default to NULL.
+	(gimple_combine_set_nonzerobits): Don't change the value if it was
+	NULL.
+	(nonzerobits): Move handling of INTEGER_CST to after calling of
+	defcodefor_name_3.
+	Don't call nonzerobitsf if it is NULL.
+	(simplify_mult_expr): New function.
+	(associate_plusminus): Rename to ...
+	(simplify_plusminus): This.
+	(simplify_pointer_plus): New function.
+	(gimple_combine_binary): If fold_binary return NULL, then continue
+	we might be able to simplify better.
+	Handle the rename of associate_plusminus to simplify_plusminus.
+	Call simplify_mult_expr and simplify_pointer_plus.
+	(gimple_combine_addr_expr): New function.
+	(ssa_combine): Call gimple_combine_addr_expr for ADDR_EXPRs.
+
+2012-03-03  Andrew Pinski  <apinski@cavium.com>
+
 	* gimple-ssa-combine.c (replace_rhs_after_ssa_combine): Handle
 	mismatched types better.  Also reject if we are replacing into
 	a lhs which is not a SSA_NAME if the new expression is not

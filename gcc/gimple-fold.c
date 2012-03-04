@@ -32,6 +32,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "gimple-fold.h"
 
+/* FIXME: this file should almost all moved over to gimple-ssa-combine.c. */
+
 /* Return true when DECL can be referenced from current unit.
    We can get declarations that are not possible to reference for
    various reasons:
@@ -2408,11 +2410,7 @@ maybe_fold_or_comparisons (enum tree_code code1, tree op1a, tree op1b,
 /* Fold STMT to a constant using VALUEIZE to valueize SSA names.
 
    Either NULL_TREE, a simplified but non-constant or a constant
-   is returned.
-
-   ???  This should go into a gimple-fold-inline.h file to be eventually
-   privatized with the single valueize function used in the various TUs
-   to avoid the indirect function call overhead.  */
+   is returned.  */
 
 tree
 gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))

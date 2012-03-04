@@ -58,18 +58,6 @@ mask_for_type (tree type)
   return double_int_mask (width);
 }
 
-/* Implement a simple nonzero function. Most of the work is done
-   in nonzerobits_1. */
-static double_int
-gimple_default_nonzero_bits (tree val)
-{
-  tree type;
-  if (val == NULL_TREE)
-    return double_int_minus_one;
-  type = TREE_TYPE (val);
-  return mask_for_type (type);
-}
-
 /* Get the statement we can propagate from into NAME skipping
    trivial copies.  Returns the statement which defines the
    propagation source or NULL_TREE if there is no such one.
@@ -165,7 +153,7 @@ can_propagate_from (gimple def_stmt)
   return true;
 }
 
-static nonzerobits_t nonzerobitsf = gimple_default_nonzero_bits;
+static nonzerobits_t nonzerobitsf = NULL;
 static valueizer_t valueizerv = NULL;
 
 static tree
@@ -216,9 +204,6 @@ valueizerf (tree val)
 void
 gimple_combine_set_nonzerobits (nonzerobits_t nonzerobitsp)
 {
-  /* NULL means set it to the default one. */
-  if (nonzerobitsp == NULL)
-    nonzerobitsp = gimple_default_nonzero_bits;
   nonzerobitsf = nonzerobitsp;
 }
 
@@ -322,11 +307,8 @@ nonzerobits (tree val)
   if (!INTEGRAL_TYPE_P (type))
     return nonzero;
 
-  if (TREE_CODE (val) == INTEGER_CST)
-    return double_int_and (tree_to_double_int (val), nonzero);
-
   /* If we have a SSA_NAME, ask the hook first. */
-  if (TREE_CODE (val) == SSA_NAME)
+  if (TREE_CODE (val) == SSA_NAME && nonzerobitsf)
     {
       double_int t = nonzerobitsf (val);
       t = double_int_and (t, nonzero);
@@ -342,6 +324,8 @@ nonzerobits (tree val)
 
   switch (code)
     {
+      case INTEGER_CST:
+	return double_int_and (tree_to_double_int (op0), nonzero);
       case MEM_REF:
 	return nonzero;
       case BIT_IOR_EXPR:
@@ -1599,11 +1583,41 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
   return NULL;
 }
 
+/* Simplify a multiply expression if possible. */
+static tree
+simplify_mult_expr (location_t loc, enum tree_code code, tree type,
+		    tree rhs1, tree rhs2)
+{
+  tree def1_arg1, def1_arg2 = NULL_TREE;
+  enum tree_code def1_code;
+  gcc_assert (code == MULT_EXPR);
+
+  defcodefor_name (rhs1, &def1_code, &def1_arg1, &def1_arg2);
+
+  /*  (A + B) * C -> A*C + B*C if either A*C or B*C simplifies. */
+  if (INTEGRAL_TYPE_P (type)
+      && def1_code == PLUS_EXPR)
+    {
+      tree arg1 = gimple_combine_binary (loc, code, type, def1_arg1, rhs2);
+      tree arg2 = gimple_combine_binary (loc, code, type, def1_arg2, rhs2);
+      if (arg1 || arg2)
+	{
+	  if (arg1 == NULL)
+	    arg1 = build2_loc (loc, code, type, def1_arg1, rhs2);
+	  if (arg2 == NULL)
+	    arg2 = build2_loc (loc, code, type, def1_arg2, rhs2);
+	  return gimple_combine_build2 (loc, PLUS_EXPR, type, arg1, arg2);
+	}
+    }
+  return NULL_TREE;
+}
+
+
 /* Perform re-associations of the plus or minus statement STMT that are
-   always permitted.  Returns true if the CFG was changed.  */
+   always permitted.  */
 
 static tree
-associate_plusminus (location_t loc, enum tree_code code, tree type,
+simplify_plusminus (location_t loc, enum tree_code code, tree type,
 		     tree rhs1, tree rhs2)
 {
   tree def1_arg1, def1_arg2 = NULL_TREE, def2_arg1, def2_arg2 = NULL_TREE;
@@ -1823,8 +1837,6 @@ combine_conversions (location_t loc, enum tree_code code, tree ltype,
 		       || code == FLOAT_EXPR
 		       || code == FIX_TRUNC_EXPR);
 
-
-
   if (useless_type_conversion_p (ltype, TREE_TYPE (op0)))
     return op0;
 
@@ -1933,6 +1945,39 @@ combine_conversions (location_t loc, enum tree_code code, tree ltype,
   return NULL_TREE;
 }
 
+static tree
+simplify_pointer_plus (location_t loc, enum tree_code code,
+		       tree type, tree op0, tree op1)
+{
+  tree def1_arg1, def1_arg2 = NULL_TREE;
+  enum tree_code def1_code;
+
+  gcc_assert (code == POINTER_PLUS_EXPR);
+  if (TREE_CODE (op0) == ADDR_EXPR
+      && TREE_CODE (op1) == INTEGER_CST)
+    {
+      tree off = fold_convert (ptr_type_node, op1);
+      return build_fold_addr_expr_loc (loc,
+			               fold_build2 (MEM_REF,
+						    TREE_TYPE (TREE_TYPE (op0)),
+						    unshare_expr (op0), off));
+    }
+  defcodefor_name (op0, &def1_code, &def1_arg1, &def1_arg2);
+
+  /* (PTR +p B) +p A -> PTR +p (B + A) */
+  if (def1_code == POINTER_PLUS_EXPR
+      && ptrofftype_p (TREE_TYPE (op1))
+      && ptrofftype_p (TREE_TYPE (def1_arg2)))
+    {
+      tree inner;
+      tree arg11 = gimple_combine_build1 (loc, NOP_EXPR, sizetype, op1);
+      tree arg12 = gimple_combine_build1 (loc, NOP_EXPR, sizetype, def1_arg2);
+      inner = gimple_combine_build2 (loc, PLUS_EXPR, sizetype, arg11, arg12);
+      return gimple_combine_build2 (loc, POINTER_PLUS_EXPR, type, def1_arg1, inner);
+    }
+  return NULL_TREE;
+}
+
 tree
 gimple_combine_ternary (location_t loc, enum tree_code code,
 			tree type, tree arg1, tree arg2, tree arg3)
@@ -1971,7 +2016,11 @@ gimple_combine_binary (location_t loc, enum tree_code code,
 
   /* Call fold if we have two constants. */
   if (is_gimple_min_invariant (arg1) && is_gimple_min_invariant (arg2))
-    return fold_binary_loc (loc, code, type, arg1, arg2);
+    {
+      tree tmp = fold_binary_loc (loc, code, type, arg1, arg2);
+      if (tmp)
+	return tmp;
+    }
 
   if (commutative_tree_code (code)
       && tree_swap_operands_p (arg1, arg2, true))
@@ -1992,7 +2041,11 @@ gimple_combine_binary (location_t loc, enum tree_code code,
 	return simplify_bitwise_binary (loc, code, type, arg1, arg2);
       case PLUS_EXPR:
       case MINUS_EXPR:
-	return associate_plusminus (loc, code, type, arg1, arg2);
+	return simplify_plusminus (loc, code, type, arg1, arg2);
+      case MULT_EXPR:
+	return simplify_mult_expr (loc, code, type, arg1, arg2);
+      case POINTER_PLUS_EXPR:
+	return simplify_pointer_plus (loc, code, type, arg1, arg2);
       default:
 	return NULL_TREE;
     }
@@ -2027,6 +2080,27 @@ gimple_combine_unary (location_t loc, enum tree_code code,
     }
 }
 
+/* Try to simplify an ADDR_EXPR. */
+static tree
+gimple_combine_addr_expr (tree addr_expr)
+{
+  gcc_assert (TREE_CODE (addr_expr) == ADDR_EXPR);
+  if (!is_gimple_min_invariant (addr_expr))
+    {
+      HOST_WIDE_INT offset;
+      tree base;
+      base = get_addr_base_and_unit_offset_1 (TREE_OPERAND (addr_expr, 0),
+					      &offset,
+					      valueizerf);
+      if (base
+	  && (CONSTANT_CLASS_P (base)
+	      || decl_address_invariant_p (base)))
+	return build_invariant_address (TREE_TYPE (addr_expr),
+					base, offset);
+    }
+  return NULL;
+}
+
 /* Main entry point for the forward propagation and statement combine
    optimizer.  */
 
@@ -2054,6 +2128,10 @@ ssa_combine (gimple stmt)
 	    /* We don't handle these yet except SSA_NAME
 	       which is done above. */
 	    case GIMPLE_SINGLE_RHS:
+	      if (code == ADDR_EXPR)
+		return gimple_combine_addr_expr (rhs1);
+	      if (TREE_CODE_CLASS (code) == tcc_declaration)
+		return get_symbol_constant_value (rhs1);
 	      return NULL_TREE;
 	    case GIMPLE_BINARY_RHS:
 	       return gimple_combine_binary (loc, code, ltype, rhs1, rhs2);
