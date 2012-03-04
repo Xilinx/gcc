@@ -2828,22 +2828,26 @@ shiftcosts (rtx x)
 {
   int value;
 
+  /* There is no pattern for constant first operand.  */
+  if (CONST_INT_P (XEXP (x, 0)))
+    return MAX_COST;
+
   if (TARGET_SHMEDIA)
-    return 1;
+    return COSTS_N_INSNS (1);
 
   if (GET_MODE_SIZE (GET_MODE (x)) > UNITS_PER_WORD)
     {
       if (GET_MODE (x) == DImode
 	  && CONST_INT_P (XEXP (x, 1))
 	  && INTVAL (XEXP (x, 1)) == 1)
-	return 2;
+	return COSTS_N_INSNS (2);
 
       /* Everything else is invalid, because there is no pattern for it.  */
       return MAX_COST;
     }
   /* If shift by a non constant, then this will be expensive.  */
   if (!CONST_INT_P (XEXP (x, 1)))
-    return SH_DYNAMIC_SHIFT_COST;
+    return COSTS_N_INSNS (SH_DYNAMIC_SHIFT_COST);
 
   /* Otherwise, return the true cost in instructions.  Cope with out of range
      shift counts more or less arbitrarily.  */
@@ -2855,10 +2859,10 @@ shiftcosts (rtx x)
       /* If SH3, then we put the constant in a reg and use shad.  */
       if (cost > 1 + SH_DYNAMIC_SHIFT_COST)
 	cost = 1 + SH_DYNAMIC_SHIFT_COST;
-      return cost;
+      return COSTS_N_INSNS (cost);
     }
   else
-    return shift_insns[value];
+    return COSTS_N_INSNS (shift_insns[value]);
 }
 
 /* Return the cost of an AND/XOR/IOR operation.  */
@@ -3091,7 +3095,7 @@ sh_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
     case ASHIFT:
     case ASHIFTRT:
     case LSHIFTRT:
-      *total = COSTS_N_INSNS (shiftcosts (x));
+      *total = shiftcosts (x);
       return true;
 
     case DIV:
@@ -8158,10 +8162,8 @@ sh_dwarf_register_span (rtx reg)
   return
     gen_rtx_PARALLEL (VOIDmode,
 		      gen_rtvec (2,
-				 gen_rtx_REG (SFmode,
-					      DBX_REGISTER_NUMBER (regno+1)),
-				 gen_rtx_REG (SFmode,
-					      DBX_REGISTER_NUMBER (regno))));
+				 gen_rtx_REG (SFmode, regno + 1),
+				 gen_rtx_REG (SFmode, regno)));
 }
 
 static enum machine_mode

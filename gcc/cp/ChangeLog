@@ -1,3 +1,23 @@
+2012-03-03  Jason Merrill  <jason@redhat.com>
+
+	* init.c (perform_member_init): Cope with uninstantiated NSDMI.
+
+	Core 1270
+	* call.c (build_aggr_conv): Call reshape_init.
+	(convert_like_real): Likewise.
+	* typeck2.c (process_init_constructor): Clear TREE_CONSTANT if
+	not all constant.
+
+	* mangle.c (write_nested_name): Use decl_mangling_context.
+	(write_prefix, write_template_prefix): Likewise.
+
+	PR c++/36797
+	* mangle.c (write_expression): Improve diagnostic for TRAIT_EXPR.
+
+	* class.c (add_method): Always build an OVERLOAD for using-decls.
+	* search.c (lookup_member): Handle getting an OVERLOAD for a
+	single function.
+
 2012-03-02  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/51989
