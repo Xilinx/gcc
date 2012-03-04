@@ -1,4 +1,19 @@
+2012-03-04  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (simplify_mult_expr):
+	Simplify "A*0", "A*1", "A*-1" and "(A+A)*C" for integer types.
+	(simplify_pointer_plus): Simplify &D + C into an invariant address.
+	(gimple_combine_unary): Use fold_unary_ignore_overflow_loc.
+	* tree-ssa-sccvn.c (try_to_simplify): Return the rhs if it is a
+	constant already.
+	Call ssa_combine and return the expression if it is a
+	valid_gimple_rhs_p.
+	(init_scc_vn): Setup the gimple combine's valueizer.
+	(free_scc_vn): Unset the gimple combine's valueizer.
+
 2012-03-03  Andrew Pinski  <apinski@cavium.com>
+
+	Starting to move gimple-fold.c and fold-const.c over to gimple-ssa-combine.c
 
 	* gimple-fold.c: Add a comment saying this should
 	move almost all of it should be moved over to gimple-ssa-combine.c

@@ -1594,20 +1594,38 @@ simplify_mult_expr (location_t loc, enum tree_code code, tree type,
 
   defcodefor_name (rhs1, &def1_code, &def1_arg1, &def1_arg2);
 
-  /*  (A + B) * C -> A*C + B*C if either A*C or B*C simplifies. */
-  if (INTEGRAL_TYPE_P (type)
-      && def1_code == PLUS_EXPR)
+  if (!FLOAT_TYPE_P (type))
     {
-      tree arg1 = gimple_combine_binary (loc, code, type, def1_arg1, rhs2);
-      tree arg2 = gimple_combine_binary (loc, code, type, def1_arg2, rhs2);
-      if (arg1 || arg2)
+      /* A * 0 -> 0 */
+      if (integer_zerop (rhs2))
+	return rhs2;
+      /* A * 1 -> 1 */
+      if (integer_onep (rhs2))
+	return rhs1;
+      /* A * -1 -> -A */
+      if (integer_all_onesp (rhs2))
+	return gimple_combine_build1 (loc, NEGATE_EXPR, type, rhs1);
+      /*  (A + B) * C -> A*C + B*C if either A*C or B*C simplifies. */
+      if (def1_code == PLUS_EXPR)
 	{
-	  if (arg1 == NULL)
-	    arg1 = build2_loc (loc, code, type, def1_arg1, rhs2);
-	  if (arg2 == NULL)
-	    arg2 = build2_loc (loc, code, type, def1_arg2, rhs2);
-	  return gimple_combine_build2 (loc, PLUS_EXPR, type, arg1, arg2);
+	  tree arg1 = gimple_combine_binary (loc, code, type, def1_arg1, rhs2);
+	  tree arg2 = gimple_combine_binary (loc, code, type, def1_arg2, rhs2);
+	  if (arg1 || arg2)
+	    {
+	      if (arg1 == NULL)
+		arg1 = build2_loc (loc, code, type, def1_arg1, rhs2);
+	      if (arg2 == NULL)
+		arg2 = build2_loc (loc, code, type, def1_arg2, rhs2);
+	      return gimple_combine_build2 (loc, PLUS_EXPR, type, arg1, arg2);
+	    }
 	}
+     /* (A + A) * C -> A * 2 * C */
+     if (def1_code == PLUS_EXPR && TREE_CODE (rhs2) == INTEGER_CST
+	    && operand_equal_p (def1_arg1, def1_arg2, 0))
+	return gimple_combine_build2 (loc, MULT_EXPR, type, def1_arg1,
+				      fold_build2_loc (loc, MULT_EXPR, type,
+						       build_int_cst (type, 2),
+						       rhs2));
     }
   return NULL_TREE;
 }
@@ -1953,6 +1971,14 @@ simplify_pointer_plus (location_t loc, enum tree_code code,
   enum tree_code def1_code;
 
   gcc_assert (code == POINTER_PLUS_EXPR);
+  /* Pointer plus constant can be represented as invariant address.  */
+  if (host_integerp (op1, 1)
+      && TREE_CODE (op0) == ADDR_EXPR
+      && is_gimple_min_invariant (op0))
+    return build_invariant_address (TREE_TYPE (op0),
+				    TREE_OPERAND (op0, 0),
+				    TREE_INT_CST_LOW (op1));
+
   if (TREE_CODE (op0) == ADDR_EXPR
       && TREE_CODE (op1) == INTEGER_CST)
     {
@@ -1962,6 +1988,7 @@ simplify_pointer_plus (location_t loc, enum tree_code code,
 						    TREE_TYPE (TREE_TYPE (op0)),
 						    unshare_expr (op0), off));
     }
+
   defcodefor_name (op0, &def1_code, &def1_arg1, &def1_arg2);
 
   /* (PTR +p B) +p A -> PTR +p (B + A) */
@@ -2063,7 +2090,7 @@ gimple_combine_unary (location_t loc, enum tree_code code,
 
   /* Call fold if we have a constant. */
   if (is_gimple_min_invariant (arg1))
-    return fold_unary_loc (loc, code, type, arg1);
+    return fold_unary_ignore_overflow_loc (loc, code, type, arg1);
 
   switch (code)
     {

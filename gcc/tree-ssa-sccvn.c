@@ -3125,6 +3125,20 @@ try_to_simplify (gimple stmt)
   if (code == SSA_NAME)
     return NULL_TREE;
 
+  /* For rhs being constant, just return the constant. */
+  if (gimple_assign_single_p (stmt)
+      && is_gimple_min_invariant (gimple_assign_rhs1 (stmt)))
+    return gimple_assign_rhs1 (stmt);
+
+  /* First try combining based on our current lattice.
+     FIXME: the rest should just be just removed as the combining
+     should catch everything.
+     gcc.dg/tree-ssa/ssa-fre-32.c is one example. VCE folding is
+     also not done. */
+  tem = ssa_combine (stmt);
+  if (tem && valid_gimple_rhs_p (tem))
+    return tem;
+
   /* First try constant folding based on our current lattice.  */
   tem = gimple_fold_stmt_to_constant_1 (stmt, vn_valueize);
   if (tem
@@ -3795,6 +3809,7 @@ init_scc_vn (void)
   allocate_vn_table (valid_info);
   optimistic_info = XCNEW (struct vn_tables_s);
   allocate_vn_table (optimistic_info);
+  gimple_combine_set_valueizer (vn_valueize);
 }
 
 void
@@ -3823,6 +3838,7 @@ free_scc_vn (void)
   XDELETE (valid_info);
   free_vn_table (optimistic_info);
   XDELETE (optimistic_info);
+  gimple_combine_set_valueizer (NULL);
 }
 
 /* Set *ID if we computed something useful in RESULT.  */
