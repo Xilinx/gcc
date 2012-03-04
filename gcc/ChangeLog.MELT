@@ -1,5 +1,5 @@
 
-2011-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
+2011-03-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate for 0.9.4.b release}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
@@ -39,7 +39,7 @@
 	* melt/generated/warmelt-outobj+melttime.h: Regenerate.
 	* melt/generated/warmelt-outobj.c: Regenerate.
 
-2011-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
+2011-03-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.4.b
 
@@ -52,7 +52,7 @@
 	* melt/warmelt-modes.melt (makedoc_docmd): Check program
 	arguments. Count output. Fail if not significant output.
 
-2011-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
+2011-03-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tmakedoc.melt: New.
 
 	* melt/warmelt-modes.melt (class_makedoc_info): Add
