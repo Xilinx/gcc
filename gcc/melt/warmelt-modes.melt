@@ -175,6 +175,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 
 
 (defclass class_makedoc_info
+  :doc #{The $CLASS_MAKEDOC_INFO aggregates data for generating documentation.}#
   :super class_proped
   :fields (
 	   ;; lists
@@ -196,8 +197,20 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	   mkdoc_docsymap
 	   ;; map from documented classes to list of documented subclasses
 	   mkdoc_subclassmap
+	   ;; boxed counter of documented output
+	   mkdoc_boxcounter
 	   )
 )
+
+;; increment the documentation counter
+(defun increment_mkdoc_counter (mdinfo)
+  (assert_msg "check mdinfo" (is_a mdinfo class_makedoc_info))
+  (let ( (dcountbox (get_field :mkdoc_boxcounter mdinfo))
+	 (:long dcnt (get_int dcountbox))
+	 )
+    (assert_msg "check dcount" (is_integerbox dcountbox))
+    (put_int dcountbox (+i dcnt 1)))
+  )
 
 
 (defun makedoc_scaninput (mdinfo arglist xlist)
@@ -659,9 +672,10 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	  (add2sbuf_indentnl outb 0) 
 	  )
       )
-    ;;; output the class description
+;;; output the class description
     (makedoc_outdoc outb doc "@strong{class description:} ")
     (add2sbuf_indentnl outb 0) 
+    (increment_mkdoc_counter mdinfo)
     )
   )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -715,6 +729,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
        (makedoc_outdoc outb mdoc "@strong{macro description:} ")
        (add2sbuf_indentnl outb 0) 
        )
+     (increment_mkdoc_counter mdinfo)
      )
     )
   )
@@ -781,6 +796,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
        (makedoc_outdoc outb mdoc "@strong{pattern macro description:} ")
        (add2sbuf_indentnl outb 0) 
        )
+     (increment_mkdoc_counter mdinfo)
      )
     )
   )
@@ -908,7 +924,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
      (alphasortedclassdeftuple)
      (curcladef :long claix)
      (assert_msg "check curcladef" (is_a curcladef class_source_defclass))
-     (makedoc_outclassdef mdinfo outb curcladef claix)
+     (makedoc_outclassdef mdinfo outb curcladef claix) ;which also increments the counter
      )
     )
   )
@@ -941,6 +957,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
     (makedoc_outformals outb args "@strong{primitive formals:}")
     ;;; output the primitive description
     (makedoc_outdoc outb doc "@strong{primitive description:} ")
+    (increment_mkdoc_counter mdinfo)
     (add2sbuf_indentnl outb 0) 
     ))
 
@@ -1010,6 +1027,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
     (makedoc_outformals outb args "@strong{Function formals:}")
     ;;; output the function description
     (makedoc_outdoc outb doc "@strong{Function description:} ")
+    (increment_mkdoc_counter mdinfo)
     (add2sbuf_indentnl outb 0) 
     ))
 
@@ -1034,7 +1052,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
      (sortedfuntup)
      (curfundef :long funix)
      (assert_msg "check curfun" (is_a curfundef class_source_defun))
-     (makedoc_outfunctiondef mdinfo outb curfundef funix)
+     (makedoc_outfunctiondef mdinfo outb curfundef funix) ;also increments the counter
      (add2sbuf_indentnl outb 0)
      )
     )
@@ -1085,8 +1103,9 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
        (makedoc_outformals outb (get_field :citer_start_formals citer) "@strong{c-iterator start formals:}")
        (add2sbuf_indentnl outb 0)
        (makedoc_outformals outb (get_field :citer_body_formals citer) "@strong{c-iterator body formals:}")
-;;; output the function description
+;;; output the citerator description
        (makedoc_outdoc outb sdoc "@strong{C-iterator description:} ")
+       (increment_mkdoc_counter mdinfo)
        (add2sbuf_indentnl outb 0) 
        )
      )
@@ -1156,6 +1175,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
        (add2sbuf_indentnl outb 0)
        (makedoc_outdoc outb sdoc "@strong{C-matcher description:} ")
        (add2sbuf_indentnl outb 0)
+       (increment_mkdoc_counter mdinfo)
        )
      )
     )
@@ -1171,70 +1191,81 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
   (assert_msg "check outarg" (is_string outarg))
   (let ( (outb (make_strbuf discr_strbuf)) 
 	 )
-	 (add2sbuf_strconst outb "@c **** makedoc generated file ")
-	 (add2sbuf_string outb outarg)
-	 (add2sbuf_indentnl outb 0)
-	 (code_chunk 
-	  outdat
-	  #{time_t now = 0;
-	  time (&now);
-	  meltgc_add_out_raw ($outb, "@c **** generated ");
-	  meltgc_add_out_raw ($outb, ctime (&now));
-	  }#
-	  )
-	 (add2sbuf_strconst outb "@node MELT Programming Reference")
-	 (add2sbuf_indentnl outb 0)
-	 (add2sbuf_strconst outb "@chapter MELT Programming Reference")
-	 (add2sbuf_indentnl outb 0)
-	 (add2sbuf_indentnl outb 0)
+    (add2sbuf_strconst outb "@c **** makedoc generated file ")
+    (add2sbuf_string outb outarg)
+    (add2sbuf_indentnl outb 0)
+    (code_chunk 
+     outdat
+     #{time_t now = 0					   ;
+     time (&now)					   ;
+     meltgc_add_out_raw ($outb, "@c **** generated ")	   ;
+     meltgc_add_out_raw ($outb, ctime (&now))		   ;
+     }#
+     )
+    (add2sbuf_strconst outb "@node MELT Programming Reference")
+    (add2sbuf_indentnl outb 0)
+    (add2sbuf_strconst outb "@chapter MELT Programming Reference")
+    (add2sbuf_indentnl outb 0)
+    (add2sbuf_indentnl outb 0)
 
-	 ;; Some people suggested outputting an GFDL license. But
-	 ;; others objected.  A paragraph of code doing that was
-	 ;; removed after rev.160339 see
-	 ;; http://gcc.gnu.org/ml/gcc-patches/2010-06/msg00767.html
-	 ;; http://gcc.gnu.org/ml/gcc/2010-05/msg00674.html
-	 ;; http://gcc.gnu.org/ml/gcc/2010-05/msg00125.html
-	 ;; http://gcc.gnu.org/ml/gcc/2010-05/msg00749.html etc.
+    ;; Some people suggested outputting an GFDL license. But
+    ;; others objected.  A paragraph of code doing that was
+    ;; removed after rev.160339 see
+    ;; http://gcc.gnu.org/ml/gcc-patches/2010-06/msg00767.html
+    ;; http://gcc.gnu.org/ml/gcc/2010-05/msg00674.html
+    ;; http://gcc.gnu.org/ml/gcc/2010-05/msg00125.html
+    ;; http://gcc.gnu.org/ml/gcc/2010-05/msg00749.html etc.
 
-	 (add2sbuf_strconst outb "@menu")
-	 (add2sbuf_indentnl outb 0)
-	 (add2sbuf_strconst outb "* MELT macros:: The MELT macros.")
-	 (add2sbuf_indentnl outb 0)
-	 (add2sbuf_strconst outb "* MELT patterns:: The MELT pattern macros.")
-	 (add2sbuf_indentnl outb 0)
-	 (add2sbuf_strconst outb "* MELT classes:: The MELT classes.")
-	 (add2sbuf_indentnl outb 0)
-	 (add2sbuf_strconst outb "* MELT primitives:: The MELT primitives.")
-	 (add2sbuf_indentnl outb 0)
-	 (add2sbuf_strconst outb "* MELT functions:: The MELT functions.")
-	 (add2sbuf_indentnl outb 0)
-	 (add2sbuf_strconst outb "* MELT c-iterators:: The MELT c-iterators.")
-	 (add2sbuf_indentnl outb 0)
-	 (add2sbuf_strconst outb "* MELT c-matchers:: The MELT c-matchers.")
-	 (add2sbuf_indentnl outb 0)
-	 (add2sbuf_strconst outb "@end menu")
-	 (add2sbuf_indentnl outb 0)
-	 ;; generate macro related stuff
-	 (makedoc_genmacro mdinfo outb)
-	 ;; generate patmacro related stuff
-	 (makedoc_genpatmacro mdinfo outb)
-	 ;; generate class related stuff
-	 (makedoc_genclass mdinfo outb)
-	 ;; generate primitive related stuff
-	 (makedoc_genprimitive mdinfo outb)
-	 ;; generate function related stuff
-	 (makedoc_genfunction mdinfo outb)
-	 ;; generate c-iterators related stuff
-	 (makedoc_genciterator mdinfo outb)
-	 ;; generate c-matchers related stuff
-	 (makedoc_gencmatcher mdinfo outb)
-	 (add2sbuf_indentnl outb 0)
-	 (add2sbuf_strconst outb "@c **** end of makedoc generated file ")
-	 (add2sbuf_string outb outarg)
-	 (add2sbuf_indentnl outb 0)	   
-	 (output_sbuf_strval outb outarg)
+    (add2sbuf_strconst outb "@menu")
+    (add2sbuf_indentnl outb 0)
+    (add2sbuf_strconst outb "* MELT macros:: The MELT macros.")
+    (add2sbuf_indentnl outb 0)
+    (add2sbuf_strconst outb "* MELT patterns:: The MELT pattern macros.")
+    (add2sbuf_indentnl outb 0)
+    (add2sbuf_strconst outb "* MELT classes:: The MELT classes.")
+    (add2sbuf_indentnl outb 0)
+    (add2sbuf_strconst outb "* MELT primitives:: The MELT primitives.")
+    (add2sbuf_indentnl outb 0)
+    (add2sbuf_strconst outb "* MELT functions:: The MELT functions.")
+    (add2sbuf_indentnl outb 0)
+    (add2sbuf_strconst outb "* MELT c-iterators:: The MELT c-iterators.")
+    (add2sbuf_indentnl outb 0)
+    (add2sbuf_strconst outb "* MELT c-matchers:: The MELT c-matchers.")
+    (add2sbuf_indentnl outb 0)
+    (add2sbuf_strconst outb "@end menu")
+    (add2sbuf_indentnl outb 0)
+    ;; generate macro related stuff
+    (makedoc_genmacro mdinfo outb)
+    ;; generate patmacro related stuff
+    (makedoc_genpatmacro mdinfo outb)
+    ;; generate class related stuff
+    (makedoc_genclass mdinfo outb)
+    ;; generate primitive related stuff
+    (makedoc_genprimitive mdinfo outb)
+    ;; generate function related stuff
+    (makedoc_genfunction mdinfo outb)
+    ;; generate c-iterators related stuff
+    (makedoc_genciterator mdinfo outb)
+    ;; generate c-matchers related stuff
+    (makedoc_gencmatcher mdinfo outb)
+    (add2sbuf_indentnl outb 0)
+    (add2sbuf_strconst outb "@c **** end of makedoc generated file ")
+    (add2sbuf_string outb outarg)
+    (add2sbuf_indentnl outb 0)	   
+    (output_sbuf_strval outb outarg)
+    (let ( (:long countdoc (get_int (get_field :mkdoc_boxcounter mdinfo)))
+	   )
+      (if countdoc 
+	  (code_chunk informdocountchk #{/*$INFORMDOCOUNTCHK*/ 
+		      inform (UNKNOWN_LOCATION,
+			      "MELT makedoc [#%ld]: generated %ld documentation items",
+			      melt_dbgcounter, $COUNTDOC) ;
+		      }#)
+	(errormsg_plain "MELT makedoc generate no documentation items"))
+      (assert_msg "makedoc check counter" (>i countdoc 0))
+      )
     )
-)
+  )
 
 ;;;;;;;;;;;;;;;;
 ;;;;;
@@ -1264,6 +1295,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 		   :mkdoc_predefmap (make_mapobject discr_map_objects 200)
 		   :mkdoc_docsymap (make_mapobject discr_map_objects 400)
 		   :mkdoc_subclassmap (make_mapobject discr_map_objects 400)
+		   :mkdoc_boxcounter (make_integerbox discr_integer 0)
 		   ))
 	)
     (put_fields melt_mode_container :container_value mdinfo)

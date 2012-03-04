@@ -1,4 +1,13 @@
 
+2011-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tmakedoc.melt: New.
+
+	* melt/warmelt-modes.melt (class_makedoc_info): Add
+	mkdoc_boxcounter field.
+	(increment_mkdoc_counter): New function.
+	Call it appropriately.
+	(makedoc_docmd): Test it.
+
 2011-03-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c

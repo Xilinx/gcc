@@ -1,0 +1,34 @@
+;; file tmakedoc.melt -*- lisp -*-
+
+#| run in buildir/gcc
+ ln -s $GCCMELT_SOURCE/gcc/testsuite/melt/tmakedoc.melt 
+
+ ./cc1 -fmelt-mode=translatetomodule  -fmelt-module-path=melt-stage2:melt-modules \
+    -fmelt-source-path=melt-stage2:melt-sources \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 -fmelt-workdir=melt-workdir \
+    -fmelt-arg=tmakedoc.melt \
+    -fmelt-debug empty-file-for-melt.c
+
+ ./cc1 -fmelt-mode=makedoc  -fmelt-module-path=melt-stage2:melt-modules \
+    -fmelt-source-path=melt-stage2:melt-sources \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 -fmelt-workdir=melt-workdir \
+    -fmelt-arg=tmakedoc.melt \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+
+(defclass class_foo 
+  :doc #{This is $CLASS_FOO. Why do we need $FOO_F1 and $FOO_F2 inside?}#
+  :super class_proped
+  :fields (foo_f1 foo_f2)
+  )
+
+(defun funa (x)
+  :doc #{This is the $FUNA function with $X}#
+  (or (get_field :foo_f1 x) x))
+
+(defprimitive primb (:long i) :long
+  :doc #{This is the $PRIMB primitive with $I.}#
+  #{/*PRIMB*/ 3*($I)}#)
+
+;; eof tmakedoc.melt
