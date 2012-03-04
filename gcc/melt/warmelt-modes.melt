@@ -1073,7 +1073,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	 (rawcitertup (list_to_multiple rawciterlist discr_multiple))
 	 (sortedcitertup (multiple_sort rawcitertup compare_named_alpha discr_multiple))
 	 )
-    (debug rawciterlist "makedoc_genciterator rawciterlist=" rawciterlist
+    (debug "makedoc_genciterator rawciterlist=" rawciterlist
 	   " sortedcitertup=" sortedcitertup)
     (add2sbuf_strconst outb "There are ")
     (add2sbuf_longdec outb (multiple_length sortedcitertup))
@@ -1298,9 +1298,14 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 		   :mkdoc_boxcounter (make_integerbox discr_integer 0)
 		   ))
 	)
+    (debug "makedoc_docmd arglist=" arglist " outarg=" outarg)    ;; read into rlist all the stuff
+    (if (not (is_list rlist))
+	(errormsg_plain 
+	 "makedoc MELT mode needs an -f[plugin-arg-]melt-arglist of comma-separated *.melt file[s]"))
+    (if (not (is_string outarg))
+	(errormsg_plain 
+	 "makedoc MELT mode needs an -f[plugin-arg-]melt-output *.texi file"))
     (put_fields melt_mode_container :container_value mdinfo)
-    (debug "makedoc_docmd arglist=" arglist " outarg=" outarg)
-    ;; read into rlist all the stuff
     (assert_msg "check rlist" (is_list rlist))
     (list_every 
      arglist 
@@ -1312,12 +1317,20 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	 (assert_msg "check curead" (is_list_or_null curead))
 	 (list_append2list rlist curead))))
     ;; macro expand it
-    (let ( (xlist (macroexpand_toplevel_list rlist curenv mdinfo)) 
+    (debug "makedoc_docmd have read rlist=" rlist)
+    (let ( (xlist (macroexpand_toplevel_list rlist curenv macroexpand_1 mdinfo)) 
 	   )
+      (debug "makedoc_docmd macro-expanded rlist=" rlist
+	     "\n* into xlist=" xlist)
       ;; scan the expanded input, and fill mdinfo appropriately.
       (makedoc_scaninput mdinfo arglist xlist)
+      (debug "makedoc_docmd after scan mdinfo=" mdinfo)
       ;; generate the output
       (makedoc_genoutput mdinfo outarg)
+      (debug "makedoc_docmd done mdinfo=" mdinfo " outarg=" outarg)
+      ;; the mode succeeds if some doc has been generated
+      (if (>i (get_int (get_field :mkdoc_boxcounter mdinfo)) 0)
+	  (return :true))
       ))
   )
 

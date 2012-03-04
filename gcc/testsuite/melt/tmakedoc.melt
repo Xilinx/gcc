@@ -3,16 +3,18 @@
 #| run in buildir/gcc
  ln -s $GCCMELT_SOURCE/gcc/testsuite/melt/tmakedoc.melt 
 
- ./cc1 -fmelt-mode=translatetomodule  -fmelt-module-path=melt-stage2:melt-modules \
+ ## check once that this file is correct:
+ ./cc1 -fmelt-mode=translatequickly  -fmelt-module-path=melt-stage2:melt-modules \
     -fmelt-source-path=melt-stage2:melt-sources \
-    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 -fmelt-workdir=melt-workdir \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt -fmelt-workdir=melt-workdir \
     -fmelt-arg=tmakedoc.melt \
-    -fmelt-debug empty-file-for-melt.c
+     empty-file-for-melt.c
 
+ ## generate documentation with it
  ./cc1 -fmelt-mode=makedoc  -fmelt-module-path=melt-stage2:melt-modules \
     -fmelt-source-path=melt-stage2:melt-sources \
-    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 -fmelt-workdir=melt-workdir \
-    -fmelt-arg=tmakedoc.melt \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt -fmelt-workdir=melt-workdir \
+    -fmelt-arglist=tmakedoc.melt -fmelt-output=tmakedoc.texi \
     -fmelt-debug empty-file-for-melt.c
 |#
 

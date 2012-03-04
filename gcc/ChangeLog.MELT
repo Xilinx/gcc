@@ -1,5 +1,18 @@
 
 2011-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.4.b
+
+	* melt/warmelt-macro.melt (macroexpand_toplevel_list): Better
+	debug & asserts.
+
+	* melt/warmelt-debug.melt (dbgout_closure_method): More pretty
+	output.
+
+	* melt/warmelt-modes.melt (makedoc_docmd): Check program
+	arguments. Count output. Fail if not significant output.
+
+2011-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tmakedoc.melt: New.
 
 	* melt/warmelt-modes.melt (class_makedoc_info): Add

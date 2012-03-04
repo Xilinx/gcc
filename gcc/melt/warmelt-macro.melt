@@ -1760,12 +1760,12 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
   (debug "macroexpand_toplevel_list slist=" slist 
 	 "\n* mexpander=" mexpander
 	 "\n* modctx=" modctx) 
+  (debug "macroexpand_toplevel_list mexpander=" mexpander)
+  (if (null mexpander) (setq mexpander macroexpand_1))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check slist" (is_list slist))
-  (assert_msg "check modctx" (is_object modctx))
-  (if (null mexpander) (setq mexpander macroexpand_1))
-  (debug "macroexpand_toplevel_list mexpander=" mexpander)
   (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check modctx" (is_object modctx))
   (let ( (:long slistlen (list_length slist)) 
 	 (reslist (make_list discr_list)) 
 	 (prevloc ())
