@@ -23,7 +23,6 @@ var dot = []string{
 	"error.go",
 	"file.go",
 	"os_test.go",
-	"time.go",
 	"types.go",
 }
 
@@ -406,7 +405,7 @@ func TestHardLink(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat %q failed: %v", from, err)
 	}
-	if !tostat.(*FileStat).SameFile(fromstat.(*FileStat)) {
+	if !SameFile(tostat, fromstat) {
 		t.Errorf("link %q, %q did not create hard link", to, from)
 	}
 }
@@ -442,7 +441,7 @@ func TestSymLink(t *testing.T) {
 	if err != nil {
 		t.Fatalf("stat %q failed: %v", from, err)
 	}
-	if !tostat.(*FileStat).SameFile(fromstat.(*FileStat)) {
+	if !SameFile(tostat, fromstat) {
 		t.Errorf("symlink %q, %q did not create symlink", to, from)
 	}
 	fromstat, err = Lstat(from)
@@ -656,7 +655,7 @@ func TestChtimes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Stat %s: %s", f.Name(), err)
 	}
-	preStat := st.(*FileStat)
+	preStat := st
 
 	// Move access and modification time back a second
 	at := Atime(preStat)
@@ -670,7 +669,7 @@ func TestChtimes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("second Stat %s: %s", f.Name(), err)
 	}
-	postStat := st.(*FileStat)
+	postStat := st
 
 	/* Plan 9:
 		Mtime is the time of the last change of content.  Similarly, atime is set whenever the
@@ -740,19 +739,6 @@ func TestChdirAndGetwd(t *testing.T) {
 		}
 	}
 	fd.Close()
-}
-
-func TestTime(t *testing.T) {
-	// Just want to check that Time() is getting something.
-	// A common failure mode on Darwin is to get 0, 0,
-	// because it returns the time in registers instead of
-	// filling in the structure passed to the system call.
-	// Too bad the compiler doesn't know that
-	// 365.24*86400 is an integer.
-	sec, nsec, err := Time()
-	if sec < (2009-1970)*36524*864 {
-		t.Errorf("Time() = %d, %d, %s; not plausible", sec, nsec, err)
-	}
 }
 
 func TestSeek(t *testing.T) {

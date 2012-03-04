@@ -1,3 +1,20 @@
+FAIL: g++.dg/abi/mangle17.C -std=gnu++98  (test for warnings, line 11)
+FAIL: g++.dg/abi/mangle17.C -std=gnu++11  (test for warnings, line 10)
+FAIL: g++.dg/abi/mangle17.C -std=gnu++11  (test for warnings, line 11)
+FAIL: g++.dg/abi/mangle17.C -std=gnu++98 (internal compiler error)
+FAIL: g++.dg/abi/mangle17.C -std=gnu++98 (test for excess errors)
+FAIL: g++.dg/abi/mangle17.C -std=gnu++11 (test for excess errors)
+FAIL: g++.dg/abi/mangle17.C -std=gnu++98  (test for warnings, line 10)
+FAIL: g++.dg/abi/mangle17.C -std=gnu++11 (internal compiler error)
+FAIL: g++.dg/pph/x2incomplete4.cc (assembly equality, sums 21766=>06918)
+FAIL: g++.dg/pph/x4tmplfuncinln.cc (assembly equality, sums 14419=>31851)
+FAIL: g++.dg/pph/x4tmplfuncninl.cc (assembly equality, sums 51578=>04500)
+FAIL: g++.dg/pph/x6dynarray5.h -fpph-gen  -fpph-map=pph.map -fno-dwarf2-cfi-asm (test for excess errors)
+FAIL: g++.dg/pph/z4tmplclass1.cc (assembly equality, sums 54665=>61001)
+FAIL: g++.dg/pph/z4tmplclass2.cc (assembly equality, sums 44158=>46847)
+FAIL: g++.dg/pph/z4tmplfuncinln.cc (assembly equality, sums 14419=>31851)
+FAIL: g++.dg/pph/z4tmplfuncninl.cc (assembly equality, sums 14419=>31851)
+
 XPASS: gcc.dg/guality/example.c -O2 -flto -flto-partition=none  execution test
 XPASS: gcc.dg/guality/example.c -O2 -flto  execution test
 XPASS: gcc.dg/guality/inline-params.c -O2 -flto -flto-partition=none  execution test

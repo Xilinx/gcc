@@ -1,3 +1,9 @@
+2012-03-04   Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 184817.
+
+	BASE-VER: Update to 4.8.0-pph.
+
 2012-03-01   Lawrence Crowl  <crowl@google.com>
 
 	* strptrmap.h: New.

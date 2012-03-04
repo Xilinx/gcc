@@ -1526,10 +1526,12 @@ build_ref_for_offset (location_t loc, tree base, HOST_WIDE_INT offset,
      we can extract more optimistic alignment information
      by looking at the access mode.  That would constrain the
      alignment of base + base_offset which we would need to
-     adjust according to offset.
-     ???  But it is not at all clear that prev_base is an access
-     that was in the IL that way, so be conservative for now.  */
+     adjust according to offset.  */
   align = get_pointer_alignment_1 (base, &misalign);
+  if (misalign == 0
+      && (TREE_CODE (prev_base) == MEM_REF
+	  || TREE_CODE (prev_base) == TARGET_MEM_REF))
+    align = MAX (align, TYPE_ALIGN (TREE_TYPE (prev_base)));
   misalign += (double_int_sext (tree_to_double_int (off),
 				TYPE_PRECISION (TREE_TYPE (off))).low
 	       * BITS_PER_UNIT);
@@ -2172,11 +2174,21 @@ analyze_access_subtree (struct access *root, struct access *parent,
 	      && (root->grp_scalar_write || root->grp_assignment_write))))
     {
       bool new_integer_type;
-      if (TREE_CODE (root->type) == ENUMERAL_TYPE)
+      /* Always create access replacements that cover the whole access.
+         For integral types this means the precision has to match.
+	 Avoid assumptions based on the integral type kind, too.  */
+      if (INTEGRAL_TYPE_P (root->type)
+	  && (TREE_CODE (root->type) != INTEGER_TYPE
+	      || TYPE_PRECISION (root->type) != root->size)
+	  /* But leave bitfield accesses alone.  */
+	  && (root->offset % BITS_PER_UNIT) == 0)
 	{
 	  tree rt = root->type;
-	  root->type = build_nonstandard_integer_type (TYPE_PRECISION (rt),
+	  root->type = build_nonstandard_integer_type (root->size,
 						       TYPE_UNSIGNED (rt));
+	  root->expr = build_ref_for_offset (UNKNOWN_LOCATION,
+					     root->base, root->offset,
+					     root->type, NULL, false);
 	  new_integer_type = true;
 	}
       else

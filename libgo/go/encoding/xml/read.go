@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // BUG(rsc): Mapping between XML elements and data structures is inherently flawed:
@@ -265,12 +266,17 @@ func (p *Decoder) unmarshal(val reflect.Value, start *StartElement) error {
 		saveData = v
 
 	case reflect.Struct:
-		sv = v
-		typ := sv.Type()
+		typ := v.Type()
 		if typ == nameType {
 			v.Set(reflect.ValueOf(start.Name))
 			break
 		}
+		if typ == timeType {
+			saveData = v
+			break
+		}
+
+		sv = v
 		tinfo, err = getTypeInfo(typ)
 		if err != nil {
 			return err
@@ -472,6 +478,14 @@ func copyValue(dst reflect.Value, src []byte) (err error) {
 			src = []byte{}
 		}
 		t.SetBytes(src)
+	case reflect.Struct:
+		if t.Type() == timeType {
+			tv, err := time.Parse(time.RFC3339, string(src))
+			if err != nil {
+				return err
+			}
+			t.Set(reflect.ValueOf(tv))
+		}
 	}
 	return nil
 }
@@ -541,19 +555,21 @@ Loop:
 	panic("unreachable")
 }
 
-// Have already read a start element.
-// Read tokens until we find the end element.
-// Token is taking care of making sure the
-// end element matches the start element we saw.
-func (p *Decoder) Skip() error {
+// Skip reads tokens until it has consumed the end element
+// matching the most recent start element already consumed.
+// It recurs if it encounters a start element, so it can be used to
+// skip nested structures.
+// It returns nil if it finds an end element matching the start
+// element; otherwise it returns an error describing the problem.
+func (d *Decoder) Skip() error {
 	for {
-		tok, err := p.Token()
+		tok, err := d.Token()
 		if err != nil {
 			return err
 		}
 		switch tok.(type) {
 		case StartElement:
-			if err := p.Skip(); err != nil {
+			if err := d.Skip(); err != nil {
 				return err
 			}
 		case EndElement:

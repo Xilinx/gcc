@@ -456,7 +456,7 @@ func allocate(rtyp reflect.Type, p uintptr, indir int) uintptr {
 	}
 	if *(*unsafe.Pointer)(up) == nil {
 		// Allocate object.
-		*(*unsafe.Pointer)(up) = unsafe.New(rtyp)
+		*(*unsafe.Pointer)(up) = unsafe.Pointer(reflect.New(rtyp).Pointer())
 	}
 	return *(*uintptr)(up)
 }
@@ -609,7 +609,7 @@ func (dec *Decoder) decodeMap(mtyp reflect.Type, state *decoderState, p uintptr,
 	// Maps cannot be accessed by moving addresses around the way
 	// that slices etc. can.  We must recover a full reflection value for
 	// the iteration.
-	v := reflect.ValueOf(unsafe.Unreflect(mtyp, unsafe.Pointer(p)))
+	v := reflect.NewAt(mtyp, unsafe.Pointer(p)).Elem()
 	n := int(state.decodeUint())
 	for i := 0; i < n; i++ {
 		key := decodeIntoValue(state, keyOp, keyIndir, allocValue(mtyp.Key()), ovfl)
@@ -662,7 +662,7 @@ func (dec *Decoder) decodeSlice(atyp reflect.Type, state *decoderState, p uintpt
 	// Always write a header at p.
 	hdrp := (*reflect.SliceHeader)(unsafe.Pointer(p))
 	if hdrp.Cap < n {
-		hdrp.Data = uintptr(unsafe.NewArray(atyp.Elem(), n))
+		hdrp.Data = reflect.MakeSlice(atyp, n, n).Pointer()
 		hdrp.Cap = n
 	}
 	hdrp.Len = n
@@ -690,7 +690,11 @@ func (dec *Decoder) decodeInterface(ityp reflect.Type, state *decoderState, p ui
 	// Create a writable interface reflect.Value.  We need one even for the nil case.
 	ivalue := allocValue(ityp)
 	// Read the name of the concrete type.
-	b := make([]byte, state.decodeUint())
+	nr := state.decodeUint()
+	if nr < 0 || nr > 1<<31 { // zero is permissible for anonymous types
+		errorf("invalid type name length %d", nr)
+	}
+	b := make([]byte, nr)
 	state.b.Read(b)
 	name := string(b)
 	if name == "" {
@@ -965,16 +969,16 @@ func (dec *Decoder) gobDecodeOpFor(ut *userTypeInfo) (*decOp, int) {
 		// Caller has gotten us to within one indirection of our value.
 		if i.indir > 0 {
 			if *(*unsafe.Pointer)(p) == nil {
-				*(*unsafe.Pointer)(p) = unsafe.New(ut.base)
+				*(*unsafe.Pointer)(p) = unsafe.Pointer(reflect.New(ut.base).Pointer())
 			}
 		}
 		// Now p is a pointer to the base type.  Do we need to climb out to
 		// get to the receiver type?
 		var v reflect.Value
 		if ut.decIndir == -1 {
-			v = reflect.ValueOf(unsafe.Unreflect(rcvrType, unsafe.Pointer(&p)))
+			v = reflect.NewAt(rcvrType, unsafe.Pointer(&p)).Elem()
 		} else {
-			v = reflect.ValueOf(unsafe.Unreflect(rcvrType, p))
+			v = reflect.NewAt(rcvrType, p).Elem()
 		}
 		state.dec.decodeGobDecoder(state, v)
 	}

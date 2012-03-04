@@ -25,10 +25,11 @@ import (
 
 // A Context specifies the supporting context for a build.
 type Context struct {
-	GOARCH     string   // target architecture
-	GOOS       string   // target operating system
-	CgoEnabled bool     // whether cgo can be used
-	BuildTags  []string // additional tags to recognize in +build lines
+	GOARCH      string   // target architecture
+	GOOS        string   // target operating system
+	CgoEnabled  bool     // whether cgo can be used
+	BuildTags   []string // additional tags to recognize in +build lines
+	UseAllFiles bool     // use files regardless of +build lines, file names
 
 	// By default, ScanDir uses the operating system's
 	// file system calls to read directories and files.
@@ -116,10 +117,11 @@ func envOr(name, def string) string {
 }
 
 type DirInfo struct {
-	Package        string            // Name of package in dir
-	PackageComment *ast.CommentGroup // Package comments from GoFiles
-	ImportPath     string            // Import path of package in dir
-	Imports        []string          // All packages imported by GoFiles
+	Package        string                      // Name of package in dir
+	PackageComment *ast.CommentGroup           // Package comments from GoFiles
+	ImportPath     string                      // Import path of package in dir
+	Imports        []string                    // All packages imported by GoFiles
+	ImportPos      map[string][]token.Position // Source code location of imports
 
 	// Source files
 	GoFiles  []string // .go files in dir (excluding CgoFiles, TestGoFiles, XTestGoFiles)
@@ -134,9 +136,10 @@ type DirInfo struct {
 	CgoLDFLAGS   []string // Cgo LDFLAGS directives
 
 	// Test information
-	TestGoFiles  []string // _test.go files in package
-	XTestGoFiles []string // _test.go files outside package
-	TestImports  []string // All packages imported by (X)TestGoFiles
+	TestGoFiles   []string // _test.go files in package
+	XTestGoFiles  []string // _test.go files outside package
+	TestImports   []string // All packages imported by (X)TestGoFiles
+	TestImportPos map[string][]token.Position
 }
 
 func (d *DirInfo) IsCommand() bool {
@@ -223,8 +226,9 @@ func (ctxt *Context) ScanDir(dir string) (info *DirInfo, err error) {
 
 	var Sfiles []string // files with ".S" (capital S)
 	var di DirInfo
-	imported := make(map[string]bool)
-	testImported := make(map[string]bool)
+	var firstFile string
+	imported := make(map[string][]token.Position)
+	testImported := make(map[string][]token.Position)
 	fset := token.NewFileSet()
 	for _, d := range dirs {
 		if d.IsDir() {
@@ -235,7 +239,7 @@ func (ctxt *Context) ScanDir(dir string) (info *DirInfo, err error) {
 			strings.HasPrefix(name, ".") {
 			continue
 		}
-		if !ctxt.goodOSArchFile(name) {
+		if !ctxt.UseAllFiles && !ctxt.goodOSArchFile(name) {
 			continue
 		}
 
@@ -248,12 +252,13 @@ func (ctxt *Context) ScanDir(dir string) (info *DirInfo, err error) {
 			continue
 		}
 
-		// Look for +build comments to accept or reject the file.
 		filename, data, err := ctxt.readFile(dir, name)
 		if err != nil {
 			return nil, err
 		}
-		if !ctxt.shouldBuild(data) {
+
+		// Look for +build comments to accept or reject the file.
+		if !ctxt.UseAllFiles && !ctxt.shouldBuild(data) {
 			continue
 		}
 
@@ -279,9 +284,6 @@ func (ctxt *Context) ScanDir(dir string) (info *DirInfo, err error) {
 		}
 
 		pkg := string(pf.Name.Name)
-		if pkg == "main" && di.Package != "" && di.Package != "main" {
-			continue
-		}
 		if pkg == "documentation" {
 			continue
 		}
@@ -291,15 +293,11 @@ func (ctxt *Context) ScanDir(dir string) (info *DirInfo, err error) {
 			pkg = pkg[:len(pkg)-len("_test")]
 		}
 
-		if pkg != di.Package && di.Package == "main" {
-			// Found non-main package but was recording
-			// information about package main.  Reset.
-			di = DirInfo{}
-		}
 		if di.Package == "" {
 			di.Package = pkg
+			firstFile = name
 		} else if pkg != di.Package {
-			return nil, fmt.Errorf("%s: found packages %s and %s", dir, pkg, di.Package)
+			return nil, fmt.Errorf("%s: found packages %s (%s) and %s (%s)", dir, di.Package, firstFile, pkg, name)
 		}
 		if pf.Doc != nil {
 			if di.PackageComment != nil {
@@ -327,9 +325,9 @@ func (ctxt *Context) ScanDir(dir string) (info *DirInfo, err error) {
 					log.Panicf("%s: parser returned invalid quoted string: <%s>", filename, quoted)
 				}
 				if isTest {
-					testImported[path] = true
+					testImported[path] = append(testImported[path], fset.Position(spec.Pos()))
 				} else {
-					imported[path] = true
+					imported[path] = append(imported[path], fset.Position(spec.Pos()))
 				}
 				if path == "C" {
 					if isTest {
@@ -366,12 +364,14 @@ func (ctxt *Context) ScanDir(dir string) (info *DirInfo, err error) {
 		return nil, fmt.Errorf("%s: no Go source files", dir)
 	}
 	di.Imports = make([]string, len(imported))
+	di.ImportPos = imported
 	i := 0
 	for p := range imported {
 		di.Imports[i] = p
 		i++
 	}
 	di.TestImports = make([]string, len(testImported))
+	di.TestImportPos = testImported
 	i = 0
 	for p := range testImported {
 		di.TestImports[i] = p

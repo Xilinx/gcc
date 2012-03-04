@@ -75,7 +75,8 @@ func WriteHeapProfile(w io.Writer) error {
 
 	// Print memstats information too.
 	// Pprof will ignore, but useful for people.
-	s := &runtime.MemStats
+	s := new(runtime.MemStats)
+	runtime.ReadMemStats(s)
 	fmt.Fprintf(b, "\n# runtime.MemStats\n")
 	fmt.Fprintf(b, "# Alloc = %d\n", s.Alloc)
 	fmt.Fprintf(b, "# TotalAlloc = %d\n", s.TotalAlloc)
@@ -105,6 +106,44 @@ func WriteHeapProfile(w io.Writer) error {
 		if t.Mallocs > 0 {
 			fmt.Fprintf(b, "#   %d * (%d = %d - %d)\n", t.Size, t.Mallocs-t.Frees, t.Mallocs, t.Frees)
 		}
+	}
+	return b.Flush()
+}
+
+// WriteThreadProfile writes a pprof-formatted thread creation profile to w.
+// If a write to w returns an error, WriteThreadProfile returns that error.
+// Otherwise, WriteThreadProfile returns nil.
+func WriteThreadProfile(w io.Writer) error {
+	// Find out how many records there are (ThreadProfile(nil)),
+	// allocate that many records, and get the data.
+	// There's a race—more records (threads) might be added between
+	// the two calls—so allocate a few extra records for safety
+	// and also try again if we're very unlucky.
+	// The loop should only execute one iteration in the common case.
+	var p []runtime.ThreadProfileRecord
+	n, ok := runtime.ThreadProfile(nil)
+	for {
+		// Allocate room for a slightly bigger profile,
+		// in case a few more entries have been added
+		// since the call to ThreadProfile.
+		p = make([]runtime.ThreadProfileRecord, n+10)
+		n, ok = runtime.ThreadProfile(p)
+		if ok {
+			p = p[0:n]
+			break
+		}
+		// Profile grew; try again.
+	}
+
+	b := bufio.NewWriter(w)
+	fmt.Fprintf(b, "thread creation profile: %d threads\n", n)
+	for i := range p {
+		r := &p[i]
+		fmt.Fprintf(b, "@")
+		for _, pc := range r.Stack() {
+			fmt.Fprintf(b, " %#x", pc)
+		}
+		fmt.Fprintf(b, "\n")
 	}
 	return b.Flush()
 }
