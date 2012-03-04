@@ -22,33 +22,26 @@ type netFD struct {
 	closing bool
 
 	// immutable until Close
-	sysfd   int
-	family  int
-	proto   int
-	sysfile *os.File
-	cr      chan bool
-	cw      chan bool
-	net     string
-	laddr   Addr
-	raddr   Addr
+	sysfd       int
+	family      int
+	sotype      int
+	isConnected bool
+	sysfile     *os.File
+	cr          chan bool
+	cw          chan bool
+	net         string
+	laddr       Addr
+	raddr       Addr
 
 	// owned by client
-	rdeadline_delta int64
-	rdeadline       int64
-	rio             sync.Mutex
-	wdeadline_delta int64
-	wdeadline       int64
-	wio             sync.Mutex
+	rdeadline int64
+	rio       sync.Mutex
+	wdeadline int64
+	wio       sync.Mutex
 
 	// owned by fd wait server
 	ncr, ncw int
 }
-
-type InvalidConnError struct{}
-
-func (e *InvalidConnError) Error() string   { return "invalid net.Conn" }
-func (e *InvalidConnError) Temporary() bool { return false }
-func (e *InvalidConnError) Timeout() bool   { return false }
 
 // A pollServer helps FDs determine when to retry a non-blocking
 // read or write after they get EAGAIN.  When an FD needs to wait,
@@ -276,20 +269,20 @@ func startServer() {
 	pollserver = p
 }
 
-func newFD(fd, family, proto int, net string) (f *netFD, err error) {
+func newFD(fd, family, sotype int, net string) (*netFD, error) {
 	onceStartServer.Do(startServer)
-	if e := syscall.SetNonblock(fd, true); e != nil {
-		return nil, e
+	if err := syscall.SetNonblock(fd, true); err != nil {
+		return nil, err
 	}
-	f = &netFD{
+	netfd := &netFD{
 		sysfd:  fd,
 		family: family,
-		proto:  proto,
+		sotype: sotype,
 		net:    net,
 	}
-	f.cr = make(chan bool, 1)
-	f.cw = make(chan bool, 1)
-	return f, nil
+	netfd.cr = make(chan bool, 1)
+	netfd.cw = make(chan bool, 1)
+	return netfd, nil
 }
 
 func (fd *netFD) setAddr(laddr, raddr Addr) {
@@ -305,8 +298,8 @@ func (fd *netFD) setAddr(laddr, raddr Addr) {
 	fd.sysfile = os.NewFile(fd.sysfd, fd.net+":"+ls+"->"+rs)
 }
 
-func (fd *netFD) connect(ra syscall.Sockaddr) (err error) {
-	err = syscall.Connect(fd.sysfd, ra)
+func (fd *netFD) connect(ra syscall.Sockaddr) error {
+	err := syscall.Connect(fd.sysfd, ra)
 	if err == syscall.EINPROGRESS {
 		pollserver.WaitWrite(fd)
 		var e int
@@ -388,11 +381,6 @@ func (fd *netFD) Read(p []byte) (n int, err error) {
 	if fd.sysfile == nil {
 		return 0, os.EINVAL
 	}
-	if fd.rdeadline_delta > 0 {
-		fd.rdeadline = pollserver.Now() + fd.rdeadline_delta
-	} else {
-		fd.rdeadline = 0
-	}
 	for {
 		n, err = syscall.Read(fd.sysfile.Fd(), p)
 		if err == syscall.EAGAIN {
@@ -404,7 +392,7 @@ func (fd *netFD) Read(p []byte) (n int, err error) {
 		}
 		if err != nil {
 			n = 0
-		} else if n == 0 && err == nil && fd.proto != syscall.SOCK_DGRAM {
+		} else if n == 0 && err == nil && fd.sotype != syscall.SOCK_DGRAM {
 			err = io.EOF
 		}
 		break
@@ -423,11 +411,6 @@ func (fd *netFD) ReadFrom(p []byte) (n int, sa syscall.Sockaddr, err error) {
 	defer fd.rio.Unlock()
 	fd.incref()
 	defer fd.decref()
-	if fd.rdeadline_delta > 0 {
-		fd.rdeadline = pollserver.Now() + fd.rdeadline_delta
-	} else {
-		fd.rdeadline = 0
-	}
 	for {
 		n, sa, err = syscall.Recvfrom(fd.sysfd, p, 0)
 		if err == syscall.EAGAIN {
@@ -456,11 +439,6 @@ func (fd *netFD) ReadMsg(p []byte, oob []byte) (n, oobn, flags int, sa syscall.S
 	defer fd.rio.Unlock()
 	fd.incref()
 	defer fd.decref()
-	if fd.rdeadline_delta > 0 {
-		fd.rdeadline = pollserver.Now() + fd.rdeadline_delta
-	} else {
-		fd.rdeadline = 0
-	}
 	for {
 		n, oobn, flags, sa, err = syscall.Recvmsg(fd.sysfd, p, oob, 0)
 		if err == syscall.EAGAIN {
@@ -482,7 +460,7 @@ func (fd *netFD) ReadMsg(p []byte, oob []byte) (n, oobn, flags int, sa syscall.S
 	return
 }
 
-func (fd *netFD) Write(p []byte) (n int, err error) {
+func (fd *netFD) Write(p []byte) (int, error) {
 	if fd == nil {
 		return 0, os.EINVAL
 	}
@@ -493,13 +471,9 @@ func (fd *netFD) Write(p []byte) (n int, err error) {
 	if fd.sysfile == nil {
 		return 0, os.EINVAL
 	}
-	if fd.wdeadline_delta > 0 {
-		fd.wdeadline = pollserver.Now() + fd.wdeadline_delta
-	} else {
-		fd.wdeadline = 0
-	}
-	nn := 0
 
+	var err error
+	nn := 0
 	for {
 		var n int
 		n, err = syscall.Write(fd.sysfile.Fd(), p[nn:])
@@ -539,11 +513,6 @@ func (fd *netFD) WriteTo(p []byte, sa syscall.Sockaddr) (n int, err error) {
 	defer fd.wio.Unlock()
 	fd.incref()
 	defer fd.decref()
-	if fd.wdeadline_delta > 0 {
-		fd.wdeadline = pollserver.Now() + fd.wdeadline_delta
-	} else {
-		fd.wdeadline = 0
-	}
 	for {
 		err = syscall.Sendto(fd.sysfd, p, 0, sa)
 		if err == syscall.EAGAIN {
@@ -571,11 +540,6 @@ func (fd *netFD) WriteMsg(p []byte, oob []byte, sa syscall.Sockaddr) (n int, oob
 	defer fd.wio.Unlock()
 	fd.incref()
 	defer fd.decref()
-	if fd.wdeadline_delta > 0 {
-		fd.wdeadline = pollserver.Now() + fd.wdeadline_delta
-	} else {
-		fd.wdeadline = 0
-	}
 	for {
 		err = syscall.Sendmsg(fd.sysfd, p, oob, sa, 0)
 		if err == syscall.EAGAIN {
@@ -596,18 +560,13 @@ func (fd *netFD) WriteMsg(p []byte, oob []byte, sa syscall.Sockaddr) (n int, oob
 	return
 }
 
-func (fd *netFD) accept(toAddr func(syscall.Sockaddr) Addr) (nfd *netFD, err error) {
+func (fd *netFD) accept(toAddr func(syscall.Sockaddr) Addr) (netfd *netFD, err error) {
 	if fd == nil || fd.sysfile == nil {
 		return nil, os.EINVAL
 	}
 
 	fd.incref()
 	defer fd.decref()
-	if fd.rdeadline_delta > 0 {
-		fd.rdeadline = pollserver.Now() + fd.rdeadline_delta
-	} else {
-		fd.rdeadline = 0
-	}
 
 	// See ../syscall/exec.go for description of ForkLock.
 	// It is okay to hold the lock across syscall.Accept
@@ -636,13 +595,13 @@ func (fd *netFD) accept(toAddr func(syscall.Sockaddr) Addr) (nfd *netFD, err err
 	syscall.CloseOnExec(s)
 	syscall.ForkLock.RUnlock()
 
-	if nfd, err = newFD(s, fd.family, fd.proto, fd.net); err != nil {
+	if netfd, err = newFD(s, fd.family, fd.sotype, fd.net); err != nil {
 		syscall.Close(s)
 		return nil, err
 	}
-	lsa, _ := syscall.Getsockname(nfd.sysfd)
-	nfd.setAddr(toAddr(lsa), toAddr(rsa))
-	return nfd, nil
+	lsa, _ := syscall.Getsockname(netfd.sysfd)
+	netfd.setAddr(toAddr(lsa), toAddr(rsa))
+	return netfd, nil
 }
 
 func (fd *netFD) dup() (f *os.File, err error) {

@@ -190,7 +190,7 @@ func TestDirJoin(t *testing.T) {
 		if err != nil {
 			t.Fatalf("stat of %s: %v", name, err)
 		}
-		if !gfi.(*os.FileStat).SameFile(wfi.(*os.FileStat)) {
+		if !os.SameFile(gfi, wfi) {
 			t.Errorf("%s got different file", name)
 		}
 	}
@@ -224,16 +224,15 @@ func TestEmptyDirOpenCWD(t *testing.T) {
 
 func TestServeFileContentType(t *testing.T) {
 	const ctype = "icecream/chocolate"
-	override := false
 	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		if override {
+		if r.FormValue("override") == "1" {
 			w.Header().Set("Content-Type", ctype)
 		}
 		ServeFile(w, r, "testdata/file")
 	}))
 	defer ts.Close()
-	get := func(want string) {
-		resp, err := Get(ts.URL)
+	get := func(override, want string) {
+		resp, err := Get(ts.URL + "?override=" + override)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -241,9 +240,8 @@ func TestServeFileContentType(t *testing.T) {
 			t.Errorf("Content-Type mismatch: got %q, want %q", h, want)
 		}
 	}
-	get("text/plain; charset=utf-8")
-	override = true
-	get(ctype)
+	get("0", "text/plain; charset=utf-8")
+	get("1", ctype)
 }
 
 func TestServeFileMimeType(t *testing.T) {

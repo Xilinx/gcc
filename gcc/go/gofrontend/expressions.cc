@@ -522,8 +522,8 @@ Expression::convert_interface_to_interface(Translate_context* context,
       // first field is just the type descriptor of the object.
       go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)),
 			"__type_descriptor") == 0);
-      go_assert(TREE_TYPE(field) == TREE_TYPE(rhs_type_descriptor));
-      elt->value = rhs_type_descriptor;
+      elt->value = fold_convert_loc(location.gcc_location(),
+				    TREE_TYPE(field), rhs_type_descriptor);
     }
   else
     {
@@ -5564,6 +5564,7 @@ Binary_expression::do_lower(Gogo* gogo, Named_object*,
 	    && op != OPERATOR_RSHIFT)
 	  {
 	    // May be a type error--let it be diagnosed later.
+	    return this;
 	  }
 	else if (is_comparison)
 	  {
@@ -5667,6 +5668,7 @@ Binary_expression::do_lower(Gogo* gogo, Named_object*,
 	    && op != OPERATOR_RSHIFT)
 	  {
 	    // May be a type error--let it be diagnosed later.
+	    return this;
 	  }
 	else if (is_comparison)
 	  {
@@ -5750,6 +5752,7 @@ Binary_expression::do_lower(Gogo* gogo, Named_object*,
 	    && left_type->base() != right_type->base())
 	  {
 	    // May be a type error--let it be diagnosed later.
+	    return this;
 	  }
 	else if (op == OPERATOR_EQEQ || op == OPERATOR_NOTEQ)
 	  {
@@ -5824,15 +5827,46 @@ Binary_expression::do_lower(Gogo* gogo, Named_object*,
   }
 
   // String constant expressions.
-  if (op == OPERATOR_PLUS
-      && left->type()->is_string_type()
-      && right->type()->is_string_type())
+  if (left->type()->is_string_type() && right->type()->is_string_type())
     {
       std::string left_string;
       std::string right_string;
       if (left->string_constant_value(&left_string)
 	  && right->string_constant_value(&right_string))
-	return Expression::make_string(left_string + right_string, location);
+	{
+	  if (op == OPERATOR_PLUS)
+	    return Expression::make_string(left_string + right_string,
+					   location);
+	  else if (is_comparison)
+	    {
+	      int cmp = left_string.compare(right_string);
+	      bool r;
+	      switch (op)
+		{
+		case OPERATOR_EQEQ:
+		  r = cmp == 0;
+		  break;
+		case OPERATOR_NOTEQ:
+		  r = cmp != 0;
+		  break;
+		case OPERATOR_LT:
+		  r = cmp < 0;
+		  break;
+		case OPERATOR_LE:
+		  r = cmp <= 0;
+		  break;
+		case OPERATOR_GT:
+		  r = cmp > 0;
+		  break;
+		case OPERATOR_GE:
+		  r = cmp >= 0;
+		  break;
+		default:
+		  go_unreachable();
+		}
+	      return Expression::make_boolean(r, location);
+	    }
+	}
     }
 
   // Special case for shift of a floating point constant.
@@ -7657,7 +7691,10 @@ Builtin_call_expression::do_lower(Gogo* gogo, Named_object* function,
 	    this->set_is_error();
 	    return this;
 	  }
-	this->lower_varargs(gogo, function, inserter, slice_type, 2);
+	Type* element_type = slice_type->array_type()->element_type();
+	this->lower_varargs(gogo, function, inserter,
+			    Type::make_array_type(element_type, NULL),
+			    2);
       }
       break;
 
@@ -7741,6 +7778,10 @@ Builtin_call_expression::lower_make()
       return Expression::make_error(this->location());
     }
 
+  bool have_big_args = false;
+  Type* uintptr_type = Type::lookup_integer_type("uintptr");
+  int uintptr_bits = uintptr_type->integer_type()->bits();
+
   ++parg;
   Expression* len_arg;
   if (parg == args->end())
@@ -7764,6 +7805,9 @@ Builtin_call_expression::lower_make()
 	  this->report_error(_("bad size for make"));
 	  return Expression::make_error(this->location());
 	}
+      if (len_arg->type()->integer_type() != NULL
+	  && len_arg->type()->integer_type()->bits() > uintptr_bits)
+	have_big_args = true;
       ++parg;
     }
 
@@ -7776,6 +7820,9 @@ Builtin_call_expression::lower_make()
 	  this->report_error(_("bad capacity when making slice"));
 	  return Expression::make_error(this->location());
 	}
+      if (cap_arg->type()->integer_type() != NULL
+	  && cap_arg->type()->integer_type()->bits() > uintptr_bits)
+	have_big_args = true;
       ++parg;
     }
 
@@ -7798,16 +7845,26 @@ Builtin_call_expression::lower_make()
   if (is_slice)
     {
       if (cap_arg == NULL)
-	call = Runtime::make_call(Runtime::MAKESLICE1, loc, 2, type_arg,
-				  len_arg);
+	call = Runtime::make_call((have_big_args
+				   ? Runtime::MAKESLICE1BIG
+				   : Runtime::MAKESLICE1),
+				  loc, 2, type_arg, len_arg);
       else
-	call = Runtime::make_call(Runtime::MAKESLICE2, loc, 3, type_arg,
-				  len_arg, cap_arg);
+	call = Runtime::make_call((have_big_args
+				   ? Runtime::MAKESLICE2BIG
+				   : Runtime::MAKESLICE2),
+				  loc, 3, type_arg, len_arg, cap_arg);
     }
   else if (is_map)
-    call = Runtime::make_call(Runtime::MAKEMAP, loc, 2, type_arg, len_arg);
+    call = Runtime::make_call((have_big_args
+			       ? Runtime::MAKEMAPBIG
+			       : Runtime::MAKEMAP),
+			      loc, 2, type_arg, len_arg);
   else if (is_chan)
-    call = Runtime::make_call(Runtime::MAKECHAN, loc, 2, type_arg, len_arg);
+    call = Runtime::make_call((have_big_args
+			       ? Runtime::MAKECHANBIG
+			       : Runtime::MAKECHAN),
+			      loc, 2, type_arg, len_arg);
   else
     go_unreachable();
 
@@ -8624,16 +8681,20 @@ Builtin_call_expression::do_check_types(Gogo*)
 	      break;
 	  }
 
+	// The language says that the second argument must be
+	// assignable to a slice of the element type of the first
+	// argument.  We already know the first argument is a slice
+	// type.
+	Array_type* at = args->front()->type()->array_type();
+	Type* arg2_type = Type::make_array_type(at->element_type(), NULL);
 	std::string reason;
-	if (!Type::are_assignable(args->front()->type(), args->back()->type(),
-				  &reason))
+	if (!Type::are_assignable(arg2_type, args->back()->type(), &reason))
 	  {
 	    if (reason.empty())
-	      this->report_error(_("arguments 1 and 2 have different types"));
+	      this->report_error(_("argument 2 has invalid type"));
 	    else
 	      {
-		error_at(this->location(),
-			 "arguments 1 and 2 have different types (%s)",
+		error_at(this->location(), "argument 2 has invalid type (%s)",
 			 reason.c_str());
 		this->set_is_error();
 	      }
@@ -10000,7 +10061,8 @@ Call_expression::do_get_tree(Translate_context* context)
 
   // This is to support builtin math functions when using 80387 math.
   tree excess_type = NULL_TREE;
-  if (TREE_CODE(fndecl) == FUNCTION_DECL
+  if (optimize
+      && TREE_CODE(fndecl) == FUNCTION_DECL
       && DECL_IS_BUILTIN(fndecl)
       && DECL_BUILT_IN_CLASS(fndecl) == BUILT_IN_NORMAL
       && nargs > 0
@@ -10593,7 +10655,7 @@ Array_index_expression::do_check_types(Gogo*)
   if (this->end_ != NULL && !array_type->is_slice_type())
     {
       if (!this->array_->is_addressable())
-	this->report_error(_("array is not addressable"));
+	this->report_error(_("slice of unaddressable value"));
       else
 	this->array_->address_taken(true);
     }
@@ -10642,11 +10704,28 @@ Array_index_expression::do_get_tree(Translate_context* context)
 
   if (array_type->length() == NULL && !DECL_P(array_tree))
     array_tree = save_expr(array_tree);
-  tree length_tree = array_type->length_tree(gogo, array_tree);
-  if (length_tree == error_mark_node)
-    return error_mark_node;
-  length_tree = save_expr(length_tree);
-  tree length_type = TREE_TYPE(length_tree);
+
+  tree length_tree = NULL_TREE;
+  if (this->end_ == NULL || this->end_->is_nil_expression())
+    {
+      length_tree = array_type->length_tree(gogo, array_tree);
+      if (length_tree == error_mark_node)
+	return error_mark_node;
+      length_tree = save_expr(length_tree);
+    }
+
+  tree capacity_tree = NULL_TREE;
+  if (this->end_ != NULL)
+    {
+      capacity_tree = array_type->capacity_tree(gogo, array_tree);
+      if (capacity_tree == error_mark_node)
+	return error_mark_node;
+      capacity_tree = save_expr(capacity_tree);
+    }
+
+  tree length_type = (length_tree != NULL_TREE
+		      ? TREE_TYPE(length_tree)
+		      : TREE_TYPE(capacity_tree));
 
   tree bad_index = boolean_false_node;
 
@@ -10669,7 +10748,9 @@ Array_index_expression::do_get_tree(Translate_context* context)
 					       ? GE_EXPR
 					       : GT_EXPR),
 					      boolean_type_node, start_tree,
-					      length_tree));
+					      (this->end_ == NULL
+					       ? length_tree
+					       : capacity_tree)));
 
   int code = (array_type->length() != NULL
 	      ? (this->end_ == NULL
@@ -10716,12 +10797,6 @@ Array_index_expression::do_get_tree(Translate_context* context)
 
   // Array slice.
 
-  tree capacity_tree = array_type->capacity_tree(gogo, array_tree);
-  if (capacity_tree == error_mark_node)
-    return error_mark_node;
-  capacity_tree = fold_convert_loc(loc.gcc_location(), length_type,
-                                   capacity_tree);
-
   tree end_tree;
   if (this->end_->is_nil_expression())
     end_tree = length_tree;
@@ -10740,7 +10815,6 @@ Array_index_expression::do_get_tree(Translate_context* context)
 
       end_tree = fold_convert_loc(loc.gcc_location(), length_type, end_tree);
 
-      capacity_tree = save_expr(capacity_tree);
       tree bad_end = fold_build2_loc(loc.gcc_location(), TRUTH_OR_EXPR,
                                      boolean_type_node,
 				     fold_build2_loc(loc.gcc_location(),
@@ -10834,13 +10908,6 @@ Expression*
 Expression::make_array_index(Expression* array, Expression* start,
 			     Expression* end, Location location)
 {
-  // Taking a slice of a composite literal requires moving the literal
-  // onto the heap.
-  if (end != NULL && array->is_composite_literal())
-    {
-      array = Expression::make_heap_composite(array, location);
-      array = Expression::make_unary(OPERATOR_MULT, array, location);
-    }
   return new Array_index_expression(array, start, end, location);
 }
 
@@ -11711,10 +11778,21 @@ Selector_expression::lower_method_expression(Gogo* gogo)
   const Typed_identifier_list* method_parameters = method_type->parameters();
   if (method_parameters != NULL)
     {
+      int i = 0;
       for (Typed_identifier_list::const_iterator p = method_parameters->begin();
 	   p != method_parameters->end();
-	   ++p)
-	parameters->push_back(*p);
+	   ++p, ++i)
+	{
+	  if (!p->name().empty())
+	    parameters->push_back(*p);
+	  else
+	    {
+	      char buf[20];
+	      snprintf(buf, sizeof buf, "$param%d", i);
+	      parameters->push_back(Typed_identifier(buf, p->type(),
+						     p->location()));
+	    }
+	}
     }
 
   const Typed_identifier_list* method_results = method_type->results();
@@ -11774,14 +11852,14 @@ Selector_expression::lower_method_expression(Gogo* gogo)
     }
 
   Expression_list* args;
-  if (method_parameters == NULL)
+  if (parameters->size() <= 1)
     args = NULL;
   else
     {
       args = new Expression_list();
-      for (Typed_identifier_list::const_iterator p = method_parameters->begin();
-	   p != method_parameters->end();
-	   ++p)
+      Typed_identifier_list::const_iterator p = parameters->begin();
+      ++p;
+      for (; p != parameters->end(); ++p)
 	{
 	  vno = gogo->lookup(p->name(), NULL);
 	  go_assert(vno != NULL);
@@ -11953,10 +12031,6 @@ class Struct_construction_expression : public Expression
     return new Struct_construction_expression(this->type_, this->vals_->copy(),
 					      this->location());
   }
-
-  bool
-  do_is_addressable() const
-  { return true; }
 
   tree
   do_get_tree(Translate_context*);
@@ -12238,10 +12312,6 @@ protected:
 
   void
   do_check_types(Gogo*);
-
-  bool
-  do_is_addressable() const
-  { return true; }
 
   void
   do_export(Export*) const;

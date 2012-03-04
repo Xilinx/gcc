@@ -880,7 +880,7 @@ Gogo::declare_function(const std::string& name, Function_type* type,
       else if (rtype->forward_declaration_type() != NULL)
 	{
 	  Forward_declaration_type* ftype = rtype->forward_declaration_type();
-	  return ftype->add_method_declaration(name, type, location);
+	  return ftype->add_method_declaration(name, NULL, type, location);
 	}
       else
 	go_unreachable();
@@ -1205,13 +1205,13 @@ Specific_type_functions::type(Type* t)
     {
     case Type::TYPE_NAMED:
       {
+	Named_type* nt = t->named_type();
 	if (!t->compare_is_identity(this->gogo_) && t->is_comparable())
-	  t->type_functions(this->gogo_, t->named_type(), NULL, NULL, &hash_fn,
-			    &equal_fn);
+	  t->type_functions(this->gogo_, nt, NULL, NULL, &hash_fn, &equal_fn);
 
 	// If this is a struct type, we don't want to make functions
 	// for the unnamed struct.
-	Type* rt = t->named_type()->real_type();
+	Type* rt = nt->real_type();
 	if (rt->struct_type() == NULL)
 	  {
 	    if (Type::traverse(rt, this) == TRAVERSE_EXIT)
@@ -1219,8 +1219,20 @@ Specific_type_functions::type(Type* t)
 	  }
 	else
 	  {
-	    if (rt->struct_type()->traverse_field_types(this) == TRAVERSE_EXIT)
-	      return TRAVERSE_EXIT;
+	    // If this type is defined in another package, then we don't
+	    // need to worry about the unexported fields.
+	    bool is_defined_elsewhere = nt->named_object()->package() != NULL;
+	    const Struct_field_list* fields = rt->struct_type()->fields();
+	    for (Struct_field_list::const_iterator p = fields->begin();
+		 p != fields->end();
+		 ++p)
+	      {
+		if (is_defined_elsewhere
+		    && Gogo::is_hidden_name(p->field_name()))
+		  continue;
+		if (Type::traverse(p->type(), this) == TRAVERSE_EXIT)
+		  return TRAVERSE_EXIT;
+	      }
 	  }
 
 	return TRAVERSE_SKIP_COMPONENTS;
@@ -1520,6 +1532,8 @@ Lower_parse_tree::expression(Expression** pexpr)
 				  &this->inserter_, this->iota_value_);
       if (enew == e)
 	break;
+      if (enew->traverse_subexpressions(this) == TRAVERSE_EXIT)
+	return TRAVERSE_EXIT;
       *pexpr = enew;
     }
   return TRAVERSE_SKIP_COMPONENTS;
@@ -2845,6 +2859,7 @@ Gogo::do_exports()
   exp.export_globals(this->package_name(),
 		     this->unique_prefix(),
 		     this->package_priority(),
+		     this->imports_,
 		     (this->need_init_fn_ && !this->is_main_package()
 		      ? this->get_init_fn_name()
 		      : ""),
@@ -2914,8 +2929,6 @@ Gogo::convert_named_types()
   Type::convert_builtin_named_types(this);
 
   Runtime::convert_types(this);
-
-  Function_type::convert_types(this);
 
   this->named_types_are_converted_ = true;
 }
@@ -3262,7 +3275,10 @@ Function::export_func_with_type(Export* exp, const std::string& name,
   if (fntype->is_method())
     {
       exp->write_c_string("(");
-      exp->write_type(fntype->receiver()->type());
+      const Typed_identifier* receiver = fntype->receiver();
+      exp->write_name(receiver->name());
+      exp->write_c_string(" ");
+      exp->write_type(receiver->type());
       exp->write_c_string(") ");
     }
 
@@ -3282,6 +3298,8 @@ Function::export_func_with_type(Export* exp, const std::string& name,
 	    first = false;
 	  else
 	    exp->write_c_string(", ");
+	  exp->write_name(p->name());
+	  exp->write_c_string(" ");
 	  if (!is_varargs || p + 1 != parameters->end())
 	    exp->write_type(p->type());
 	  else
@@ -3296,7 +3314,7 @@ Function::export_func_with_type(Export* exp, const std::string& name,
   const Typed_identifier_list* results = fntype->results();
   if (results != NULL)
     {
-      if (results->size() == 1)
+      if (results->size() == 1 && results->begin()->name().empty())
 	{
 	  exp->write_c_string(" ");
 	  exp->write_type(results->begin()->type());
@@ -3313,6 +3331,8 @@ Function::export_func_with_type(Export* exp, const std::string& name,
 		first = false;
 	      else
 		exp->write_c_string(", ");
+	      exp->write_name(p->name());
+	      exp->write_c_string(" ");
 	      exp->write_type(p->type());
 	    }
 	  exp->write_c_string(")");
@@ -3336,9 +3356,10 @@ Function::import_func(Import* imp, std::string* pname,
   if (imp->peek_char() == '(')
     {
       imp->require_c_string("(");
+      std::string name = imp->read_name();
+      imp->require_c_string(" ");
       Type* rtype = imp->read_type();
-      *preceiver = new Typed_identifier(Import::import_marker, rtype,
-					imp->location());
+      *preceiver = new Typed_identifier(name, rtype, imp->location());
       imp->require_c_string(") ");
     }
 
@@ -3354,6 +3375,9 @@ Function::import_func(Import* imp, std::string* pname,
       parameters = new Typed_identifier_list();
       while (true)
 	{
+	  std::string name = imp->read_name();
+	  imp->require_c_string(" ");
+
 	  if (imp->match_c_string("..."))
 	    {
 	      imp->advance(3);
@@ -3363,8 +3387,8 @@ Function::import_func(Import* imp, std::string* pname,
 	  Type* ptype = imp->read_type();
 	  if (*is_varargs)
 	    ptype = Type::make_array_type(ptype, NULL);
-	  parameters->push_back(Typed_identifier(Import::import_marker,
-						 ptype, imp->location()));
+	  parameters->push_back(Typed_identifier(name, ptype,
+						 imp->location()));
 	  if (imp->peek_char() != ',')
 	    break;
 	  go_assert(!*is_varargs);
@@ -3384,17 +3408,18 @@ Function::import_func(Import* imp, std::string* pname,
       if (imp->peek_char() != '(')
 	{
 	  Type* rtype = imp->read_type();
-	  results->push_back(Typed_identifier(Import::import_marker, rtype,
-					      imp->location()));
+	  results->push_back(Typed_identifier("", rtype, imp->location()));
 	}
       else
 	{
 	  imp->require_c_string("(");
 	  while (true)
 	    {
+	      std::string name = imp->read_name();
+	      imp->require_c_string(" ");
 	      Type* rtype = imp->read_type();
-	      results->push_back(Typed_identifier(Import::import_marker,
-						  rtype, imp->location()));
+	      results->push_back(Typed_identifier(name, rtype,
+						  imp->location()));
 	      if (imp->peek_char() != ',')
 		break;
 	      imp->require_c_string(", ");
@@ -3834,6 +3859,24 @@ Variable::add_preinit_statement(Gogo* gogo, Statement* s)
   b->set_end_location(s->location());
 }
 
+// Whether this variable has a type.
+
+bool
+Variable::has_type() const
+{
+  if (this->type_ == NULL)
+    return false;
+
+  // A variable created in a type switch case nil does not actually
+  // have a type yet.  It will be changed to use the initializer's
+  // type in determine_type.
+  if (this->is_type_switch_var_
+      && this->type_->is_nil_constant_as_type())
+    return false;
+
+  return true;
+}
+
 // In an assignment which sets a variable to a tuple of EXPR, return
 // the type of the first element of the tuple.
 
@@ -4148,6 +4191,11 @@ Variable::get_backend_variable(Gogo* gogo, Named_object* function,
 					    package != NULL,
 					    Gogo::is_hidden_name(name),
 					    this->location_);
+	  else if (function == NULL)
+	    {
+	      go_assert(saw_errors());
+	      bvar = backend->error_variable();
+	    }
 	  else
 	    {
 	      tree fndecl = function->func_value()->get_decl();
@@ -4293,11 +4341,12 @@ Type_declaration::add_method(const std::string& name, Function* function)
 
 Named_object*
 Type_declaration::add_method_declaration(const std::string&  name,
+					 Package* package,
 					 Function_type* type,
 					 Location location)
 {
-  Named_object* ret = Named_object::make_function_declaration(name, NULL, type,
-							      location);
+  Named_object* ret = Named_object::make_function_declaration(name, package,
+							      type, location);
   this->methods_.push_back(ret);
   return ret;
 }

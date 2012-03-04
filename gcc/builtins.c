@@ -1,7 +1,7 @@
 /* Expand builtin functions.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
-   Free Software Foundation, Inc.
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
+   2012 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -477,6 +477,35 @@ get_object_or_type_alignment (tree exp)
   return align;
 }
 
+/* For a pointer valued expression EXP compute values M and N such that
+   M divides (EXP - N) and such that N < M.  Store N in *BITPOSP and return M.
+
+   If EXP is not a pointer, 0 is returned.  */
+
+unsigned int
+get_pointer_alignment_1 (tree exp, unsigned HOST_WIDE_INT *bitposp)
+{
+  STRIP_NOPS (exp);
+
+  if (TREE_CODE (exp) == ADDR_EXPR)
+    return get_object_alignment_1 (TREE_OPERAND (exp, 0), bitposp);
+  else if (TREE_CODE (exp) == SSA_NAME
+	   && POINTER_TYPE_P (TREE_TYPE (exp)))
+    {
+      struct ptr_info_def *pi = SSA_NAME_PTR_INFO (exp);
+      if (!pi)
+	{
+	  *bitposp = 0;
+	  return BITS_PER_UNIT;
+	}
+      *bitposp = pi->misalign * BITS_PER_UNIT;
+      return pi->align * BITS_PER_UNIT;
+    }
+
+  *bitposp = 0;
+  return POINTER_TYPE_P (TREE_TYPE (exp)) ? BITS_PER_UNIT : 0;
+}
+
 /* Return the alignment in bits of EXP, a pointer valued expression.
    The alignment returned is, by default, the alignment of the thing that
    EXP points to.  If it is not a POINTER_TYPE, 0 is returned.
@@ -487,25 +516,18 @@ get_object_or_type_alignment (tree exp)
 unsigned int
 get_pointer_alignment (tree exp)
 {
-  STRIP_NOPS (exp);
+  unsigned HOST_WIDE_INT bitpos = 0;
+  unsigned int align;
+  
+  align = get_pointer_alignment_1 (exp, &bitpos);
 
-  if (TREE_CODE (exp) == ADDR_EXPR)
-    return get_object_alignment (TREE_OPERAND (exp, 0));
-  else if (TREE_CODE (exp) == SSA_NAME
-	   && POINTER_TYPE_P (TREE_TYPE (exp)))
-    {
-      struct ptr_info_def *pi = SSA_NAME_PTR_INFO (exp);
-      unsigned align;
-      if (!pi)
-	return BITS_PER_UNIT;
-      if (pi->misalign != 0)
-	align = (pi->misalign & -pi->misalign);
-      else
-	align = pi->align;
-      return align * BITS_PER_UNIT;
-    }
+  /* align and bitpos now specify known low bits of the pointer.
+     ptr & (align - 1) == bitpos.  */
 
-  return POINTER_TYPE_P (TREE_TYPE (exp)) ? BITS_PER_UNIT : 0;
+  if (bitpos != 0)
+    align = (bitpos & -bitpos);
+
+  return align;
 }
 
 /* Compute the length of a C string.  TREE_STRING_LENGTH is not the right
@@ -4832,7 +4854,7 @@ round_trampoline_addr (rtx tramp)
 }
 
 static rtx
-expand_builtin_init_trampoline (tree exp)
+expand_builtin_init_trampoline (tree exp, bool onstack)
 {
   tree t_tramp, t_func, t_chain;
   rtx m_tramp, r_tramp, r_chain, tmp;
@@ -4849,13 +4871,16 @@ expand_builtin_init_trampoline (tree exp)
   m_tramp = gen_rtx_MEM (BLKmode, r_tramp);
   MEM_NOTRAP_P (m_tramp) = 1;
 
-  /* The TRAMP argument should be the address of a field within the
-     local function's FRAME decl.  Let's see if we can fill in the
-     to fill in the MEM_ATTRs for this memory.  */
+  /* If ONSTACK, the TRAMP argument should be the address of a field
+     within the local function's FRAME decl.  Either way, let's see if
+     we can fill in the MEM_ATTRs for this memory.  */
   if (TREE_CODE (t_tramp) == ADDR_EXPR)
     set_mem_attributes_minus_bitpos (m_tramp, TREE_OPERAND (t_tramp, 0),
 				     true, 0);
 
+  /* Creator of a heap trampoline is responsible for making sure the
+     address is aligned to at least STACK_BOUNDARY.  Normally malloc
+     will ensure this anyhow.  */
   tmp = round_trampoline_addr (r_tramp);
   if (tmp != r_tramp)
     {
@@ -4875,10 +4900,13 @@ expand_builtin_init_trampoline (tree exp)
   /* Generate insns to initialize the trampoline.  */
   targetm.calls.trampoline_init (m_tramp, t_func, r_chain);
 
-  trampolines_created = 1;
+  if (onstack)
+    {
+      trampolines_created = 1;
 
-  warning_at (DECL_SOURCE_LOCATION (t_func), OPT_Wtrampolines,
-              "trampoline generated for nested function %qD", t_func);
+      warning_at (DECL_SOURCE_LOCATION (t_func), OPT_Wtrampolines,
+		  "trampoline generated for nested function %qD", t_func);
+    }
 
   return const0_rtx;
 }
@@ -5611,15 +5639,15 @@ fold_builtin_atomic_always_lock_free (tree arg0, tree arg1)
   /* If the object has smaller alignment, the the lock free routines cannot
      be used.  */
   if (type_align < mode_align)
-    return integer_zero_node;
+    return boolean_false_node;
 
   /* Check if a compare_and_swap pattern exists for the mode which represents
      the required size.  The pattern is not allowed to fail, so the existence
      of the pattern indicates support is present.  */
   if (can_compare_and_swap_p (mode, true))
-    return integer_one_node;
+    return boolean_true_node;
   else
-    return integer_zero_node;
+    return boolean_false_node;
 }
 
 /* Return true if the parameters to call EXP represent an object which will
@@ -5643,7 +5671,7 @@ expand_builtin_atomic_always_lock_free (tree exp)
     }
 
   size = fold_builtin_atomic_always_lock_free (arg0, arg1);
-  if (size == integer_one_node)
+  if (size == boolean_true_node)
     return const1_rtx;
   return const0_rtx;
 }
@@ -5658,8 +5686,8 @@ fold_builtin_atomic_is_lock_free (tree arg0, tree arg1)
     return NULL_TREE;
   
   /* If it isn't always lock free, don't generate a result.  */
-  if (fold_builtin_atomic_always_lock_free (arg0, arg1) == integer_one_node)
-    return integer_one_node;
+  if (fold_builtin_atomic_always_lock_free (arg0, arg1) == boolean_true_node)
+    return boolean_true_node;
 
   return NULL_TREE;
 }
@@ -5689,7 +5717,7 @@ expand_builtin_atomic_is_lock_free (tree exp)
 
   /* If the value is known at compile time, return the RTX for it.  */
   size = fold_builtin_atomic_is_lock_free (arg0, arg1);
-  if (size == integer_one_node)
+  if (size == boolean_true_node)
     return const1_rtx;
 
   return NULL_RTX;
@@ -5748,7 +5776,6 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
      set of builtins.  */
   if (!optimize
       && !called_as_built_in (fndecl)
-      && DECL_ASSEMBLER_NAME_SET_P (fndecl)
       && fcode != BUILT_IN_ALLOCA
       && fcode != BUILT_IN_ALLOCA_WITH_ALIGN
       && fcode != BUILT_IN_FREE)
@@ -6303,7 +6330,9 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       return const0_rtx;
 
     case BUILT_IN_INIT_TRAMPOLINE:
-      return expand_builtin_init_trampoline (exp);
+      return expand_builtin_init_trampoline (exp, true);
+    case BUILT_IN_INIT_HEAP_TRAMPOLINE:
+      return expand_builtin_init_trampoline (exp, false);
     case BUILT_IN_ADJUST_TRAMPOLINE:
       return expand_builtin_adjust_trampoline (exp);
 

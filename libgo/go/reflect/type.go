@@ -69,7 +69,7 @@ type Type interface {
 
 	// PkgPath returns the type's package path.
 	// The package path is a full package import path like "encoding/base64".
-	// PkgPath returns an empty string for unnamed types.
+	// PkgPath returns an empty string for unnamed or predeclared types.
 	PkgPath() string
 
 	// Size returns the number of bytes needed to store
@@ -789,6 +789,14 @@ func (t *structType) Field(i int) (f StructField) {
 		f.Tag = StructTag(*p.tag)
 	}
 	f.Offset = p.offset
+
+	// NOTE(rsc): This is the only allocation in the interface
+	// presented by a reflect.Type.  It would be nice to avoid,
+	// at least in the common cases, but we need to make sure
+	// that misbehaving clients of reflect cannot affect other
+	// uses of reflect.  One possibility is CL 5371098, but we
+	// postponed that ugliness until there is a demonstrated
+	// need for the performance.  This is issue 2320.
 	f.Index = []int{i}
 	return
 }
@@ -999,6 +1007,17 @@ func (ct *commonType) ptrTo() *commonType {
 		return &p.commonType
 	}
 
+	s := "*" + *ct.string
+
+	canonicalTypeLock.RLock()
+	r, ok := canonicalType[s]
+	canonicalTypeLock.RUnlock()
+	if ok {
+		ptrMap.m[ct] = (*ptrType)(unsafe.Pointer(r.(*commonType)))
+		ptrMap.Unlock()
+		return r.(*commonType)
+	}
+
 	rp := new(runtime.PtrType)
 
 	// initialize p using *byte's ptrType as a prototype.
@@ -1008,7 +1027,6 @@ func (ct *commonType) ptrTo() *commonType {
 	bp := (*ptrType)(unsafe.Pointer(unsafe.Typeof((*byte)(nil)).(*runtime.PtrType)))
 	*p = *bp
 
-	s := "*" + *ct.string
 	p.string = &s
 
 	// For the type structures linked into the binary, the
@@ -1016,11 +1034,15 @@ func (ct *commonType) ptrTo() *commonType {
 	// Create a good hash for the new string by using
 	// the FNV-1 hash's mixing function to combine the
 	// old hash and the new "*".
-	p.hash = ct.hash*16777619 ^ '*'
+	// p.hash = ct.hash*16777619 ^ '*'
+	// This is the gccgo version.
+	p.hash = (ct.hash << 4) + 9
 
 	p.uncommonType = nil
 	p.ptrToThis = nil
 	p.elem = (*runtime.Type)(unsafe.Pointer(ct))
+
+	p = canonicalize(p).(*ptrType)
 
 	ptrMap.m[ct] = p
 	ptrMap.Unlock()

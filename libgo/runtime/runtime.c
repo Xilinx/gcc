@@ -115,7 +115,7 @@ runtime_goargs(void)
 }
 
 void
-runtime_goenvs(void)
+runtime_goenvs_unix(void)
 {
 	String *s;
 	int32 i, n;
@@ -182,4 +182,36 @@ runtime_fastrand1(void)
 		x ^= 0x88888eefUL;
 	m->fastrand = x;
 	return x;
+}
+
+int64
+runtime_cputicks(void)
+{
+#if defined(__386__) || defined(__x86_64__)
+  uint32 low, high;
+  asm("rdtsc" : "=a" (low), "=d" (high));
+  return (int64)(((uint64)high << 32) | (uint64)low);
+#else
+  // FIXME: implement for other processors.
+  return 0;
+#endif
+}
+
+struct funcline_go_return
+{
+  String retfile;
+  int32 retline;
+};
+
+struct funcline_go_return
+runtime_funcline_go(void *f, uintptr targetpc)
+  __asm__("libgo_runtime.runtime.funcline_go");
+
+struct funcline_go_return
+runtime_funcline_go(void *f __attribute__((unused)),
+		    uintptr targetpc __attribute__((unused)))
+{
+  struct funcline_go_return ret;
+  runtime_memclr(&ret, sizeof ret);
+  return ret;
 }

@@ -1,3 +1,68 @@
+2012-02-27  Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR libffi/52223
+	* Makefile.am (FLAGS_TO_PASS): Define.
+	* Makefile.in: Regenerate.
+
+2012-02-23  Kai Tietz  <ktietz@redhat.com>
+
+	PR libffi/52221
+	* src/x86/ffi.c (ffi_closure_raw_THISCALL): New
+	prototype.
+	(ffi_prep_raw_closure_loc): Use ffi_closure_raw_THISCALL for
+	thiscall-convention.
+	(ffi_raw_call): Use ffi_prep_args_raw.
+	* src/x86/win32.S (ffi_closure_raw_THISCALL): Add
+	implementation for stub.
+
+2012-02-13  Kai Tietz  <ktietz@redhat.com>
+
+	PR libffi/52221
+	* src/x86/ffi.c (ffi_prep_raw_closure_loc): Add thiscall
+	support for X86_WIN32.
+	(FFI_INIT_TRAMPOLINE_THISCALL): Fix displacement.
+
+2012-02-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* src/sparc/v9.S (STACKFRAME): Bump to 176.
+
+2012-02-10  Kai Tietz  <ktietz@redhat.com>
+
+	* configure.ac (AM_LTLDFLAGS): Add -no-undefine for x64
+	windows target.
+	* configure: Regenerated.
+	
+2012-02-08  Kai Tietz  <ktietz@redhat.com>
+
+	* src/prep_cif.c (ffi_prep_cif): Allow for X86_WIN32
+	also FFI_THISCALL.
+	* src/x86/ffi.c (ffi_closure_THISCALL): Add prototype.
+	(FFI_INIT_TRAMPOLINE_THISCALL): New trampoline code.
+	(ffi_prep_closure_loc): Add FFI_THISCALL support.
+	* src/x86/ffitarget.h (FFI_TRAMPOLINE_SIZE): Adjust size.
+	* src/x86/win32.S (ffi_closure_THISCALL): New closure code
+	for thiscall-calling convention.
+	* testsuite/libffi.call/closure_thiscall.c: New test.
+
+2012-01-28  Kai Tietz  <ktietz@redhat.com>
+
+	* src/libffi/src/x86/ffi.c (ffi_call_win32): Add new
+	argument to prototype for specify calling-convention.
+	(ffi_call): Add support for stdcall/thiscall convention.
+	(ffi_prep_args): Likewise.
+	(ffi_raw_call): Likewise.
+	* src/x86/ffitarget.h (ffi_abi): Add FFI_THISCALL and
+	FFI_FASTCALL.
+	* src/x86/win32.S (_ffi_call_win32): Add support for
+	fastcall/thiscall calling-convention calls.
+	* testsuite/libffi.call/fastthis1_win32.c: New test.
+	* testsuite/libffi.call/fastthis2_win32.c: New test.
+	* testsuite/libffi.call/fastthis3_win32.c: New test.
+	* testsuite/libffi.call/strlen2_win32.c: New test.
+	* testsuite/libffi.call/many2_win32.c: New test.
+	* testsuite/libffi.call/struct1_win32.c: New test.
+	* testsuite/libffi.call/struct2_win32.c: New test.
+
 2012-01-23  Andreas Schwab  <schwab@linux-m68k.org>
 
 	* src/m68k/sysv.S (ffi_call_SYSV): Properly test for plain

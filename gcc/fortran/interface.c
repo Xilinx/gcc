@@ -1292,9 +1292,10 @@ check_interface0 (gfc_interface *p, const char *interface_name)
 	  return 1;
 	}
 
+      /* F2003, C1207. F2008, C1207.  */
       if (p->sym->attr.proc == PROC_INTERNAL
-	  && gfc_notify_std (GFC_STD_GNU, "Extension: Internal procedure '%s' "
-			     "in %s at %L", p->sym->name, interface_name,
+	  && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Internal procedure "
+			     "'%s' in %s at %L", p->sym->name, interface_name,
 			     &p->sym->declared_at) == FAILURE)
 	return 1;
     }
@@ -2305,7 +2306,7 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 	    && a->expr->ts.type == BT_CHARACTER)
 	{
 	  if (where)
-	    gfc_error ("Actual argument argument at %L to allocatable or "
+	    gfc_error ("Actual argument at %L to allocatable or "
 		       "pointer dummy argument '%s' must have a deferred "
 		       "length type parameter if and only if the dummy has one",
 		       &a->expr->where, f->sym->name);
@@ -2429,7 +2430,7 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 	{
 	  if (where)
 	    gfc_error ("Coindexed ASYNCHRONOUS or VOLATILE actual argument at "
-		       "at %L requires that dummy %s' has neither "
+		       "%L requires that dummy '%s' has neither "
 		       "ASYNCHRONOUS nor VOLATILE", &a->expr->where,
 		       f->sym->name);
 	  return 0;

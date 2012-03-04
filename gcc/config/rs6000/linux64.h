@@ -367,8 +367,8 @@ extern int dot_symbols;
 #undef	LINK_OS_DEFAULT_SPEC
 #define LINK_OS_DEFAULT_SPEC "%(link_os_linux)"
 
-#define GLIBC_DYNAMIC_LINKER32 "/lib/ld.so.1"
-#define GLIBC_DYNAMIC_LINKER64 "/lib64/ld64.so.1"
+#define GLIBC_DYNAMIC_LINKER32 RUNTIME_ROOT_PREFIX "/lib/ld.so.1"
+#define GLIBC_DYNAMIC_LINKER64 RUNTIME_ROOT_PREFIX "/lib64/ld64.so.1"
 #define UCLIBC_DYNAMIC_LINKER32 "/lib/ld-uClibc.so.0"
 #define UCLIBC_DYNAMIC_LINKER64 "/lib/ld64-uClibc.so.0"
 #if DEFAULT_LIBC == LIBC_UCLIBC

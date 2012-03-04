@@ -200,9 +200,12 @@ compute_codesize_estimate(void)
 static unsigned int
 execute_cleanup_cfg_post_optimizing (void)
 {
+  unsigned int todo = 0;
+
   /* Estimate the code footprint for hot BBs before we enter RTL */
   compute_codesize_estimate();
-  cleanup_tree_cfg ();
+  if (cleanup_tree_cfg ())
+    todo |= TODO_update_ssa;
   maybe_remove_unreachable_handlers ();
   cleanup_dead_labels ();
   group_case_labels ();
@@ -235,7 +238,7 @@ execute_cleanup_cfg_post_optimizing (void)
 	    }
 	}
     }
-  return 0;
+  return todo;
 }
 
 struct gimple_opt_pass pass_cleanup_cfg_post_optimizing =

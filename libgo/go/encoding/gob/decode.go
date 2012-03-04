@@ -690,7 +690,11 @@ func (dec *Decoder) decodeInterface(ityp reflect.Type, state *decoderState, p ui
 	// Create a writable interface reflect.Value.  We need one even for the nil case.
 	ivalue := allocValue(ityp)
 	// Read the name of the concrete type.
-	b := make([]byte, state.decodeUint())
+	nr := state.decodeUint()
+	if nr < 0 || nr > 1<<31 { // zero is permissible for anonymous types
+		errorf("invalid type name length %d", nr)
+	}
+	b := make([]byte, nr)
 	state.b.Read(b)
 	name := string(b)
 	if name == "" {
@@ -1039,9 +1043,9 @@ func (dec *Decoder) compatibleType(fr reflect.Type, fw typeId, inProgress map[re
 		// Extract and compare element types.
 		var sw *sliceType
 		if tt, ok := builtinIdToType[fw]; ok {
-			sw = tt.(*sliceType)
-		} else {
-			sw = dec.wireType[fw].SliceT
+			sw, _ = tt.(*sliceType)
+		} else if wire != nil {
+			sw = wire.SliceT
 		}
 		elem := userType(t.Elem()).base
 		return sw != nil && dec.compatibleType(elem, sw.Elem, inProgress)

@@ -2,6 +2,11 @@
 
 	* testsuite-management/x86_64-grtev3-linux-gnu.xfail: New file.
 
+2012-02-29   Sharad Singhai  <singhai@google.com>
+
+	* testsuite-management/x86_64-unknown-linux-gnu.xfail: Add
+	gcc.dg/pr52086.c failure due to non-standard configuration.
+
 2012-02-22  Ollie Wild  <aaw@google.com>
 
 	* testsuite-management/x86_64-unknown-linux-gnu.xfail: Add

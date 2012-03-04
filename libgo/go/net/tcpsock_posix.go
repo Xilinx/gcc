@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"syscall"
+	"time"
 )
 
 // BUG(rsc): On OpenBSD, listening on the "tcp" network does not listen for
@@ -66,7 +67,7 @@ func (c *TCPConn) ok() bool { return c != nil && c.fd != nil }
 
 // Implementation of the Conn interface - see Conn for documentation.
 
-// Read implements the net.Conn Read method.
+// Read implements the Conn Read method.
 func (c *TCPConn) Read(b []byte) (n int, err error) {
 	if !c.ok() {
 		return 0, os.EINVAL
@@ -82,7 +83,7 @@ func (c *TCPConn) ReadFrom(r io.Reader) (int64, error) {
 	return genericReadFrom(c, r)
 }
 
-// Write implements the net.Conn Write method.
+// Write implements the Conn Write method.
 func (c *TCPConn) Write(b []byte) (n int, err error) {
 	if !c.ok() {
 		return 0, os.EINVAL
@@ -134,28 +135,28 @@ func (c *TCPConn) RemoteAddr() Addr {
 	return c.fd.raddr
 }
 
-// SetTimeout implements the net.Conn SetTimeout method.
-func (c *TCPConn) SetTimeout(nsec int64) error {
+// SetDeadline implements the Conn SetDeadline method.
+func (c *TCPConn) SetDeadline(t time.Time) error {
 	if !c.ok() {
 		return os.EINVAL
 	}
-	return setTimeout(c.fd, nsec)
+	return setDeadline(c.fd, t)
 }
 
-// SetReadTimeout implements the net.Conn SetReadTimeout method.
-func (c *TCPConn) SetReadTimeout(nsec int64) error {
+// SetReadDeadline implements the Conn SetReadDeadline method.
+func (c *TCPConn) SetReadDeadline(t time.Time) error {
 	if !c.ok() {
 		return os.EINVAL
 	}
-	return setReadTimeout(c.fd, nsec)
+	return setReadDeadline(c.fd, t)
 }
 
-// SetWriteTimeout implements the net.Conn SetWriteTimeout method.
-func (c *TCPConn) SetWriteTimeout(nsec int64) error {
+// SetWriteDeadline implements the Conn SetWriteDeadline method.
+func (c *TCPConn) SetWriteDeadline(t time.Time) error {
 	if !c.ok() {
 		return os.EINVAL
 	}
-	return setWriteTimeout(c.fd, nsec)
+	return setWriteDeadline(c.fd, t)
 }
 
 // SetReadBuffer sets the size of the operating system's
@@ -222,13 +223,13 @@ func (c *TCPConn) File() (f *os.File, err error) { return c.fd.dup() }
 // DialTCP connects to the remote address raddr on the network net,
 // which must be "tcp", "tcp4", or "tcp6".  If laddr is not nil, it is used
 // as the local address for the connection.
-func DialTCP(net string, laddr, raddr *TCPAddr) (c *TCPConn, err error) {
+func DialTCP(net string, laddr, raddr *TCPAddr) (*TCPConn, error) {
 	if raddr == nil {
-		return nil, &OpError{"dial", "tcp", nil, errMissingAddress}
+		return nil, &OpError{"dial", net, nil, errMissingAddress}
 	}
-	fd, e := internetSocket(net, laddr.toAddr(), raddr.toAddr(), syscall.SOCK_STREAM, 0, "dial", sockaddrToTCP)
-	if e != nil {
-		return nil, e
+	fd, err := internetSocket(net, laddr.toAddr(), raddr.toAddr(), syscall.SOCK_STREAM, 0, "dial", sockaddrToTCP)
+	if err != nil {
+		return nil, err
 	}
 	return newTCPConn(fd), nil
 }
@@ -244,17 +245,17 @@ type TCPListener struct {
 // Net must be "tcp", "tcp4", or "tcp6".
 // If laddr has a port of 0, it means to listen on some available port.
 // The caller can use l.Addr() to retrieve the chosen address.
-func ListenTCP(net string, laddr *TCPAddr) (l *TCPListener, err error) {
+func ListenTCP(net string, laddr *TCPAddr) (*TCPListener, error) {
 	fd, err := internetSocket(net, laddr.toAddr(), nil, syscall.SOCK_STREAM, 0, "listen", sockaddrToTCP)
 	if err != nil {
 		return nil, err
 	}
-	errno := syscall.Listen(fd.sysfd, listenBacklog())
-	if errno != nil {
+	err = syscall.Listen(fd.sysfd, listenerBacklog)
+	if err != nil {
 		closesocket(fd.sysfd)
-		return nil, &OpError{"listen", "tcp", laddr, errno}
+		return nil, &OpError{"listen", net, laddr, err}
 	}
-	l = new(TCPListener)
+	l := new(TCPListener)
 	l.fd = fd
 	return l, nil
 }
@@ -294,12 +295,13 @@ func (l *TCPListener) Close() error {
 // Addr returns the listener's network address, a *TCPAddr.
 func (l *TCPListener) Addr() Addr { return l.fd.laddr }
 
-// SetTimeout sets the deadline associated with the listener
-func (l *TCPListener) SetTimeout(nsec int64) error {
+// SetDeadline sets the deadline associated with the listener.
+// A zero time value disables the deadline.
+func (l *TCPListener) SetDeadline(t time.Time) error {
 	if l == nil || l.fd == nil {
 		return os.EINVAL
 	}
-	return setTimeout(l.fd, nsec)
+	return setDeadline(l.fd, t)
 }
 
 // File returns a copy of the underlying os.File, set to blocking mode.

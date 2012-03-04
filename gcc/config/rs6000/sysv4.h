@@ -803,7 +803,10 @@ extern int fixuplabelno;
 
 #define LINK_START_LINUX_SPEC ""
 
-#define GLIBC_DYNAMIC_LINKER "/lib/ld.so.1"
+#ifndef RUNTIME_ROOT_PREFIX
+#define RUNTIME_ROOT_PREFIX ""
+#endif
+#define GLIBC_DYNAMIC_LINKER RUNTIME_ROOT_PREFIX "/lib/ld.so.1"
 #define UCLIBC_DYNAMIC_LINKER "/lib/ld-uClibc.so.0"
 #if DEFAULT_LIBC == LIBC_UCLIBC
 #define CHOOSE_DYNAMIC_LINKER(G, U) "%{mglibc:" G ";:" U "}"
@@ -881,6 +884,11 @@ ncrtn.o%s"
 #define CPP_OS_OPENBSD_SPEC "%{posix:-D_POSIX_SOURCE} %{pthread:-D_POSIX_THREADS}"
 #endif
 
+/* These may be provided by rs6000/linux-grtev2.h.  */
+#ifndef LINUX_GRTE_EXTRA_SPECS
+#define LINUX_GRTE_EXTRA_SPECS
+#endif
+
 /* Define any extra SPECS that the compiler needs to generate.  */
 /* Override rs6000.h definition.  */
 #undef	SUBTARGET_EXTRA_SPECS
@@ -949,6 +957,7 @@ ncrtn.o%s"
   { "cpp_os_openbsd",		CPP_OS_OPENBSD_SPEC },			\
   { "cpp_os_default",		CPP_OS_DEFAULT_SPEC },			\
   { "fbsd_dynamic_linker",	FBSD_DYNAMIC_LINKER },			\
+  LINUX_GRTE_EXTRA_SPECS						\
   SUBSUBTARGET_EXTRA_SPECS
 
 #define	SUBSUBTARGET_EXTRA_SPECS

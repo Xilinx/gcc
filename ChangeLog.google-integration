@@ -1,3 +1,15 @@
+2012-02-17   Doug Kwan  <dougkwan@google.com>
+
+	* gcc/config.gcc (powerpc*-*-linux): Pull in GRTEv2 spec changes if
+	target matches *-grtev2-*.
+	* gcc/config/rs6000/linux64.h (GLIB_DYNAMIC_LINKER{32,64}): Add
+	runtime root prefix to glibc's dynamic linker.
+	* gcc/config/rs6000/linux-grtev2.h: New file.
+	* gcc/config/rs6000/sysv4.h (GLIB_DYNAMIC_LINKER): Add
+	runtime root prefix to glibc's dynamic linker.
+	(LINUX_GRTE_EXTRA_SPECS): Define to be empty if no definition found.
+	(SUBTARGET_EXTRA_SPECS): Include LINUX_GRTE_EXTRA_SPECS.
+
 2011-10-12   Diego Novillo  <dnovillo@google.com>
 
 	* README.google-integration: Remove.
