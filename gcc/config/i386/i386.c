@@ -9296,7 +9296,7 @@ pro_epilogue_adjust_stack (rtx dest, rtx src, rtx offset,
   rtx insn;
   bool add_frame_related_expr = false;
 
-  if (! TARGET_64BIT)
+  if (Pmode == SImode)
     insn = gen_pro_epilogue_adjust_stack_si_add (dest, src, offset);
   else if (x86_64_immediate_operand (offset, DImode))
     insn = gen_pro_epilogue_adjust_stack_di_add (dest, src, offset);
@@ -10330,7 +10330,7 @@ ix86_expand_prologue (void)
       emit_insn (ix86_gen_allocate_stack_worker (eax, eax));
 
       /* Use the fact that AX still contains ALLOCATE.  */
-      adjust_stack_insn = (TARGET_64BIT
+      adjust_stack_insn = (Pmode == DImode
 			   ? gen_pro_epilogue_adjust_stack_di_sub
 			   : gen_pro_epilogue_adjust_stack_si_sub);
 
@@ -14136,7 +14136,8 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	    rtx x;
 
 	    if (!optimize
-	        || optimize_function_for_size_p (cfun) || !TARGET_BRANCH_PREDICTION_HINTS)
+	        || optimize_function_for_size_p (cfun)
+		|| !TARGET_BRANCH_PREDICTION_HINTS)
 	      return;
 
 	    x = find_reg_note (current_output_insn, REG_BR_PROB, 0);
@@ -14147,8 +14148,9 @@ ix86_print_operand (FILE *file, rtx x, int code)
 		if (pred_val < REG_BR_PROB_BASE * 45 / 100
 		    || pred_val > REG_BR_PROB_BASE * 55 / 100)
 		  {
-		    int taken = pred_val > REG_BR_PROB_BASE / 2;
-		    int cputaken = final_forward_branch_p (current_output_insn) == 0;
+		    bool taken = pred_val > REG_BR_PROB_BASE / 2;
+		    bool cputaken
+		      = final_forward_branch_p (current_output_insn) == 0;
 
 		    /* Emit hints only in the case default branch prediction
 		       heuristics would fail.  */
@@ -14482,7 +14484,7 @@ ix86_print_operand_address (FILE *file, rtx addr)
 
       /* Print SImode registers for zero-extended addresses to force
 	 addr32 prefix.  Otherwise print DImode registers to avoid it.  */
-      if (TARGET_64BIT)
+      if (TARGET_64BIT && GET_MODE (addr) == DImode)
 	code = ((GET_CODE (addr) == ZERO_EXTEND
 		 || GET_CODE (addr) == AND)
 		? 'l'

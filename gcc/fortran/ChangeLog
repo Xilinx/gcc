@@ -1,3 +1,38 @@
+2012-03-04  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50981
+	* gfortran.h (gfc_is_class_container_ref): New prototype.
+	* class.c (gfc_is_class_container_ref): New function.
+	* trans-expr.c (gfc_conv_procedure_call): Add a "_data" component
+	reference to polymorphic actual arguments.
+
+2012-03-04  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50981
+	* trans-expr.c (gfc_conv_procedure_call): Save se->ss's value. 
+	Handle the case of unallocated arrays passed to elemental procedures.
+
+2012-03-04  Mikael Morin  <mikael@gcc.gnu.org>
+
+	* trans.h (struct gfc_ss_info): Move can_be_null_ref component from
+	the data::scalar subcomponent to the toplevel.
+	* trans-expr.c (gfc_conv_expr): Update component reference.
+	* trans-array.c (gfc_add_loop_ss_code): Ditto.
+	(gfc_walk_elemental_function_args): Ditto.  Move the conditional setting
+	the field out of the scalar-only block.
+
+2012-03-04  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/36160
+	* error.c (gfc_widechar_display_length, gfc_wide_display_length):
+	New functions.
+	(print_wide_char_into_buffer): Return length written.
+	(show_locus): Fix locus displayed when wide characters are present.
+
+2012-03-04  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* module.c (gfc_use_module): Improve error message some more.
+
 2012-03-03  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	PR fortran/52313
