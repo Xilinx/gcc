@@ -1,7 +1,7 @@
 /* file gcc/testsuite/melt/topengpu-vecmuls.c */
 
 /* run in $GCCMELT_BUILD/gcc 
-  ln -s $GCCMELT_SOURCE/gcc/testsuite/melt/topengpu-vecsum.c .
+  ln -s $GCCMELT_SOURCE/gcc/testsuite/melt/topengpu-vecmuls.c .
  ./cc1 -std=gnu99 -fmelt-mode=opengpu -fmelt-init=@melt-default-modules-quicklybuilt -fmelt-module-path=melt-modules:. -fmelt-source-path=melt-sources:. -fmelt-workdir=melt-workdir -fmelt-debug -O2 -fgraphite -floop-parallelize-all  topengpu-vecmuls.c
   ## it could be useful to pass -fdump-tree-all -fdump-ipa-all
 

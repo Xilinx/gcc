@@ -1,5 +1,10 @@
 
 2011-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-opengpu.melt: More debugging.
+
+	* testsuite/melt/topengpu-vecmuls.c: Better comment.
+
+2011-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_ppout_basicblock): Show a _ for empty basic blocks.
 
 	* melt/xtramelt-ana-base.melt (==bb): New primitive.
