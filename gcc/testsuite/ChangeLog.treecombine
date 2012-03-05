@@ -1,5 +1,10 @@
 2012-03-01  Andrew Pinski  <apinski@cavium.com>
 
+	* gcc.dg/tree-ssa/ssa-fre-32.c: Turn off forwprop
+	since that will do the optimization also.
+
+2012-03-01  Andrew Pinski  <apinski@cavium.com>
+
 	* c-c++-common/restrict-2.c: Update testcase for (a+C)*D
 	simplifing.
 	* gcc.dg/vect/slp-11a.c: Use divide instead of mutliply

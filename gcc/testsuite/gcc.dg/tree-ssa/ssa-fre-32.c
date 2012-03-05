@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-O -fdump-tree-fre1-details" } */
+/* { dg-options "-O -fdump-tree-fre1-details -fno-tree-forwprop" } */
 
 _Complex float 
 foo (_Complex float x)

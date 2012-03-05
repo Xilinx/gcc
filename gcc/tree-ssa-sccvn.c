@@ -46,6 +46,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-ssa-sccvn.h"
 #include "gimple-fold.h"
 
+/* Uncomment to find to see what folding ssa_combine currently misses
+   in fre.  */
+/* #define DEBUG_SSA_COMBINE */
+
 /* This algorithm is based on the SCC algorithm presented by Keith
    Cooper and L. Taylor Simpson in "SCC-Based Value numbering"
    (http://citeseer.ist.psu.edu/41805.html).  In
@@ -3020,9 +3024,16 @@ simplify_binary_expression (gimple stmt)
       && host_integerp (op1, 1)
       && TREE_CODE (op0) == ADDR_EXPR
       && is_gimple_min_invariant (op0))
-    return build_invariant_address (TREE_TYPE (op0),
+    {
+    tree tmp = build_invariant_address (TREE_TYPE (op0),
 				    TREE_OPERAND (op0, 0),
 				    TREE_INT_CST_LOW (op1));
+#ifdef DEBUG_SSA_COMBINE
+	debug_generic_expr (tmp);
+	debug_gimple_stmt (stmt);
+#endif
+	return tmp;
+    }
 
   /* Avoid folding if nothing changed.  */
   if (op0 == gimple_assign_rhs1 (stmt)
@@ -3030,6 +3041,25 @@ simplify_binary_expression (gimple stmt)
     return NULL_TREE;
 
   fold_defer_overflow_warnings ();
+
+  /* Try swapping so fold_binary does not return a new tree. */
+  if (commutative_tree_code (code)
+      && tree_swap_operands_p (op0, op1, true))
+    {
+      tree tmp = op0;
+      op0 = op1;
+      op1 = tmp;
+    }
+
+  /* Try swapping for comparison so fold_binary does not return a new tree. */
+  if (TREE_CODE_CLASS (code) == tcc_comparison
+      && tree_swap_operands_p (op0, op1, true))
+    {
+      tree tmp = op0;
+      op0 = op1;
+      op1 = tmp;
+      code = swap_tree_comparison (code);
+    }
 
   result = fold_binary (code, gimple_expr_type (stmt), op0, op1);
   if (result)
@@ -3043,7 +3073,13 @@ simplify_binary_expression (gimple stmt)
      Otherwise, we will end up with unbounded expressions if
      fold does anything at all.  */
   if (result && valid_gimple_rhs_p (result))
+    {
+#ifdef DEBUG_SSA_COMBINE
+      debug_generic_expr (result);
+	debug_gimple_stmt (stmt);
+#endif
     return result;
+    }
 
   return NULL_TREE;
 }
@@ -3106,7 +3142,13 @@ simplify_unary_expression (gimple stmt)
     {
       STRIP_USELESS_TYPE_CONVERSION (result);
       if (valid_gimple_rhs_p (result))
+	{
+#ifdef DEBUG_SSA_COMBINE
+	debug_generic_expr (result);
+	debug_gimple_stmt (stmt);
+#endif
         return result;
+	}
     }
 
   return NULL_TREE;
@@ -3139,12 +3181,19 @@ try_to_simplify (gimple stmt)
   if (tem && valid_gimple_rhs_p (tem))
     return tem;
 
+
   /* First try constant folding based on our current lattice.  */
   tem = gimple_fold_stmt_to_constant_1 (stmt, vn_valueize);
   if (tem
       && (TREE_CODE (tem) == SSA_NAME
 	  || is_gimple_min_invariant (tem)))
-    return tem;
+    {
+#ifdef DEBUG_SSA_COMBINE
+      debug_generic_expr (tem);
+	debug_gimple_stmt (stmt);
+#endif
+      return tem;
+    }
 
   /* If that didn't work try combining multiple statements.  */
   switch (TREE_CODE_CLASS (code))

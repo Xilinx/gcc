@@ -1,5 +1,35 @@
 2012-03-04  Andrew Pinski  <apinski@cavium.com>
 
+	* gimple-ssa-combine.c (can_propagate_from):
+	Fix the case for reference class with a
+	SSA_NAME as the first operand.
+	(forward_propagate_into_comparison_1): Simplify "A CMP A".
+	(forward_propagate_into_comparison): Don't cycle if
+	we got a constant.
+	(simplify_plusminus): Simplify "A - C" to "A + -C".
+	(simplify_complex_expr): New function.
+	(simplify_view_convert): New function.
+	(simplify_real_imag_parts): New function.
+	(simplify_pointer_plus): Simplify "A +p 0" to A.
+	(gimple_combine_binary): Call simplify_complex_expr
+	for COMPLEX_EXPR.
+	(gimple_combine_unary): Call simplify_view_convert
+	for VCEs.
+	Call simplify_real_imag_parts for REALPART_EXPR
+	and IMAGPART_EXPR.
+	(ssa_combine): Handle reference cases where the first
+	operand is a SSA_NAME.
+	* tree-ssa-sccvn.c (DEBUG_SSA_COMBINE): Commented out define.
+	(simplify_binary_expression): Add debugging for places where
+	ssa_combine might miss.
+	Swap the operands if needed so that fold_binary does not
+	return a new tree (this should go to the mainline).
+	(simplify_unary_expression): Add debugging for places where
+	ssa_combine might miss.
+	(try_to_simplify): Likewise.
+
+2012-03-04  Andrew Pinski  <apinski@cavium.com>
+
 	* gimple-ssa-combine.c (simplify_mult_expr):
 	Simplify "A*0", "A*1", "A*-1" and "(A+A)*C" for integer types.
 	(simplify_pointer_plus): Simplify &D + C into an invariant address.

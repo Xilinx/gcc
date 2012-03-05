@@ -118,16 +118,26 @@ get_prop_source_stmt (tree name, bool single_use_only, bool *single_use_p)
 static bool
 can_propagate_from (gimple def_stmt)
 {
+  enum tree_code code;
+  tree rhs1;
   gcc_assert (is_gimple_assign (def_stmt));
 
   /* If the rhs has side-effects we cannot propagate from it.  */
   if (gimple_has_volatile_ops (def_stmt))
     return false;
 
+  code = gimple_assign_rhs_code (def_stmt);
+  rhs1 = gimple_assign_rhs1 (def_stmt);
+
   /* If the rhs is a load we cannot propagate from it.  */
-  if (TREE_CODE_CLASS (gimple_assign_rhs_code (def_stmt)) == tcc_reference
-      || TREE_CODE_CLASS (gimple_assign_rhs_code (def_stmt)) == tcc_declaration)
-    return false;
+  if ((TREE_CODE_CLASS (code) == tcc_reference
+       && !((code == REALPART_EXPR
+             || code == IMAGPART_EXPR
+             || code == VIEW_CONVERT_EXPR
+             || code == BIT_FIELD_REF)
+            && TREE_CODE (TREE_OPERAND (rhs1, 0)) == SSA_NAME))
+      || TREE_CODE_CLASS (code) == tcc_declaration)
+     return false;
 
   /* Constants can be always propagated.  */
   if (gimple_assign_single_p (def_stmt)
@@ -579,6 +589,39 @@ forward_propagate_into_comparison_1 (location_t loc,
 	}
     }
 
+  /* Try to simplify A CMP A. */
+  if (operand_equal_p (op0, op1, 0))
+    {
+      switch (code)
+	{
+	case EQ_EXPR:
+	  if (! FLOAT_TYPE_P (TREE_TYPE (op0))
+	      || ! HONOR_NANS (TYPE_MODE (TREE_TYPE (op0))))
+	    return constant_boolean_node (1, type);
+	  break;
+
+	case GE_EXPR:
+	case LE_EXPR:
+	  if (! FLOAT_TYPE_P (TREE_TYPE (op0))
+	      || ! HONOR_NANS (TYPE_MODE (TREE_TYPE (op0))))
+	    return constant_boolean_node (1, type);
+	  return gimple_combine_build2 (loc, EQ_EXPR, type, op0, op1);
+
+	case NE_EXPR:
+	  /* For NE, we can only do this simplification if integer
+	     or we don't honor IEEE floating point NaNs.  */
+	  if (FLOAT_TYPE_P (TREE_TYPE (op0))
+	      && HONOR_NANS (TYPE_MODE (TREE_TYPE (op0))))
+	    break;
+	  /* ... fall through ...  */
+	case GT_EXPR:
+	case LT_EXPR:
+	  return constant_boolean_node (0, type);
+	default:
+	  break;
+	}
+    }
+
   /* Try to simplify (a|b)==0 to a==0&b==0 but only do this
      if one of (a==0) or (b==0) simplifies.  */
   if (code == EQ_EXPR
@@ -769,6 +812,11 @@ forward_propagate_into_comparison (location_t loc,
       reversed_edges ^= true;
       tmp = TREE_OPERAND (tmp, 0);
     }
+    if (TREE_CODE (tmp) == INTEGER_CST)
+      {
+        tmp1 = tmp;
+	break;
+      }
     canonicalized = canonicalize_cond_expr_cond (tmp);
     if (!canonicalized)
       {
@@ -1643,6 +1691,13 @@ simplify_plusminus (location_t loc, enum tree_code code, tree type,
 
   gcc_assert (code == PLUS_EXPR || code == MINUS_EXPR);
 
+  /* A - C -> A + -C if -C will not wrap. */
+  if (code == MINUS_EXPR && TREE_CODE (rhs2) == INTEGER_CST
+      && (TYPE_OVERFLOW_WRAPS (type) || may_negate_without_overflow_p (rhs2)))
+    return gimple_combine_build2 (loc, PLUS_EXPR, type, rhs1,
+				  gimple_combine_build1 (loc, NEGATE_EXPR,
+							 type, rhs2));
+
   if (!FLOAT_TYPE_P (type))
     {
       if (integer_zerop (rhs2))
@@ -1963,6 +2018,89 @@ combine_conversions (location_t loc, enum tree_code code, tree ltype,
   return NULL_TREE;
 }
 
+/* Try to simplify Complex Expression with the two arguments, OP0, and OP1. */
+static tree
+simplify_complex_expr (tree rhs1, tree rhs2)
+{
+  tree def1_arg1, def2_arg1;
+  enum tree_code def1_code, def2_code;
+
+  defcodefor_name (rhs1, &def1_code, &def1_arg1, NULL);
+  defcodefor_name (rhs2, &def2_code, &def2_arg1, NULL);
+
+  /* COMPLEX <REAL <a>, IMAG <a> > == def1_arg1. */
+  if (def1_code == REALPART_EXPR && def2_code == IMAGPART_EXPR
+      && TREE_OPERAND (def1_arg1, 0) == TREE_OPERAND (def2_arg1, 0))
+    return TREE_OPERAND (def1_arg1, 0);
+  
+  return NULL_TREE;
+}
+
+static tree
+simplify_view_convert (location_t loc, enum tree_code code, tree ltype,
+		       tree op0)
+{
+  tree def1_arg1, def1_arg2;
+  enum tree_code def1_code;
+  gcc_assert (code == VIEW_CONVERT_EXPR);
+
+  if (useless_type_conversion_p (TREE_TYPE (op0), ltype))
+    return op0;
+
+  defcodefor_name (op0, &def1_code, &def1_arg1, &def1_arg2);
+
+  if (def1_code == VIEW_CONVERT_EXPR)
+    return gimple_combine_build1 (loc, code, ltype,
+				  TREE_OPERAND (def1_arg1, 0));
+
+  if (def1_code == INTEGER_CST
+      || def1_code == REAL_CST
+      || def1_code == COMPLEX_CST
+      || def1_code == VECTOR_CST
+      || def1_code == STRING_CST)
+    {
+      int len;
+      unsigned char buffer[64];
+      len = native_encode_expr (def1_arg1, buffer, sizeof (buffer));
+      if (len != 0)
+	return native_interpret_expr (ltype, buffer, len);
+    }
+  
+  return NULL_TREE;
+}
+
+static tree
+simplify_real_imag_parts (enum tree_code code, tree rhs1)
+{
+  tree def1_arg1, def1_arg2;
+  enum tree_code def1_code;
+
+  gcc_assert (code == REALPART_EXPR
+	     || code == IMAGPART_EXPR);
+
+  defcodefor_name (rhs1, &def1_code, &def1_arg1, &def1_arg2);
+
+  /* Simplify REALPART<COMPLEX <a,b>> to a */
+  /* Simplify IMAGPART<COMPLEX <a,b>> to b */
+  if (def1_code == COMPLEX_EXPR)
+    {
+      if (code == REALPART_EXPR)
+	return def1_arg1;
+      else
+	return def1_arg2;
+    }
+  /* Simplify REALPART<COMPLEX_CST <a,b>> to a */
+  /* Simplify IMAGPART<COMPLEX_CST <a,b>> to b */
+  if (def1_code == COMPLEX_CST)
+    {
+      if (code == REALPART_EXPR)
+	return TREE_REALPART (def1_arg1);
+      else
+	return TREE_IMAGPART (def1_arg1);
+    }
+  return NULL_TREE;
+}
+
 static tree
 simplify_pointer_plus (location_t loc, enum tree_code code,
 		       tree type, tree op0, tree op1)
@@ -1971,6 +2109,11 @@ simplify_pointer_plus (location_t loc, enum tree_code code,
   enum tree_code def1_code;
 
   gcc_assert (code == POINTER_PLUS_EXPR);
+
+  /* A +p 0 -> A. */
+  if (integer_zerop (op1))
+    return op0;
+
   /* Pointer plus constant can be represented as invariant address.  */
   if (host_integerp (op1, 1)
       && TREE_CODE (op0) == ADDR_EXPR
@@ -2073,6 +2216,8 @@ gimple_combine_binary (location_t loc, enum tree_code code,
 	return simplify_mult_expr (loc, code, type, arg1, arg2);
       case POINTER_PLUS_EXPR:
 	return simplify_pointer_plus (loc, code, type, arg1, arg2);
+      case COMPLEX_EXPR:
+	return simplify_complex_expr (arg1, arg2);
       default:
 	return NULL_TREE;
     }
@@ -2102,6 +2247,11 @@ gimple_combine_unary (location_t loc, enum tree_code code,
       case NEGATE_EXPR:
       case ABS_EXPR:
 	return simplify_not_neg_abs_expr (loc, code, type, arg1);
+      case VIEW_CONVERT_EXPR:
+	return simplify_view_convert (loc, code, type, arg1);
+      case REALPART_EXPR:
+      case IMAGPART_EXPR:
+	return simplify_real_imag_parts (code, arg1);
       default:
 	return NULL_TREE;
     }
@@ -2159,6 +2309,22 @@ ssa_combine (gimple stmt)
 		return gimple_combine_addr_expr (rhs1);
 	      if (TREE_CODE_CLASS (code) == tcc_declaration)
 		return get_symbol_constant_value (rhs1);
+	      if ((code == VIEW_CONVERT_EXPR
+		   || code == REALPART_EXPR
+		   || code == IMAGPART_EXPR)
+		  && TREE_CODE (TREE_OPERAND (rhs1, 0)) == SSA_NAME)
+		return gimple_combine_unary (loc, code, ltype,
+					     TREE_OPERAND (rhs1, 0));
+	       else if (code == BIT_FIELD_REF
+			&& TREE_CODE (TREE_OPERAND (rhs1, 0)) == SSA_NAME)
+		{
+		  tree val = TREE_OPERAND (rhs1, 0);
+		  return gimple_combine_ternary (loc,
+					         code,
+					         ltype, val,
+					         TREE_OPERAND (rhs1, 1),
+					         TREE_OPERAND (rhs1, 2));
+		}
 	      return NULL_TREE;
 	    case GIMPLE_BINARY_RHS:
 	       return gimple_combine_binary (loc, code, ltype, rhs1, rhs2);
