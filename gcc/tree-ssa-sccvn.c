@@ -47,7 +47,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple-fold.h"
 
 /* Uncomment to find to see what folding ssa_combine currently misses
-   in fre.  */
+   in VN.  */
 /* #define DEBUG_SSA_COMBINE */
 
 /* This algorithm is based on the SCC algorithm presented by Keith

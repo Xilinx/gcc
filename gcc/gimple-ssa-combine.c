@@ -670,6 +670,12 @@ forward_propagate_into_comparison_1 (location_t loc,
   /* FIXME: this really should not be using combine_cond_expr_cond (fold_binary)
      but matching the patterns directly.  */
 
+  /* First try without combining since it might already be able to folded. */
+  tmp = fold_binary_loc (loc, code, type, op0, op1);
+  if (tmp && is_gimple_min_invariant (tmp))
+    return tmp;
+  tmp = NULL_TREE;
+
   /* For comparisons use the first operand, that is likely to
      simplify comparisons against constants.  */
   if (TREE_CODE (op0) == SSA_NAME)
@@ -860,7 +866,14 @@ forward_propagate_into_gimple_cond (gimple stmt)
       && TREE_CODE (TREE_TYPE (rhs1)) == BOOLEAN_TYPE
       && integer_zerop (rhs2))
     {
+      /* If the conditional is already a constant don't
+	 touch it. */
+      if (TREE_CODE (rhs1) == INTEGER_CST)
+	return NULL_TREE;
+
       defcodefor_name (rhs1, &code, &rhs1, &rhs2);
+      if (code == INTEGER_CST)
+        return rhs1;
       proping = true;
     }
 
@@ -874,6 +887,7 @@ forward_propagate_into_gimple_cond (gimple stmt)
   /* We can do tree combining on SSA_NAME and comparison expressions.  */
   if (TREE_CODE_CLASS (code) != tcc_comparison)
     return NULL_TREE;
+
 
   tmp = gimple_combine_binary (loc, code, boolean_type_node, rhs1, rhs2);
   if (!tmp)
@@ -936,7 +950,6 @@ forward_propagate_into_gimple_cond (gimple stmt)
 
   if (reversed_edges)
     tmp = build1 (BIT_NOT_EXPR, TREE_TYPE (tmp), tmp);
-
 
   return tmp;
 }

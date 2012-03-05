@@ -23,7 +23,7 @@ void foo(int edx, int eax)
  
 
 /* Verify that we did a forward propagation.  */
-/* { dg-final { scan-tree-dump-times "Folded" 1 "forwprop1"} } */
+/* { dg-final { scan-tree-dump-times "Folded" 2 "forwprop1"} } */
 /* { dg-final { cleanup-tree-dump "forwprop1" } } */
 
 /* After cddce we should have two IF statements remaining as the other

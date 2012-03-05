@@ -1,3 +1,19 @@
+2012-03-05  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-fold.c: Add comments about
+	what has been moved to ssa_combine
+	and what needs needs to be moved.
+	* gimple-ssa-combine.c (forward_propagate_into_comparison_1):
+	Try calling fold_binary_loc first before doing any combining.
+	(forward_propagate_into_gimple_cond): Handle the case where
+	we already have a constant.
+	* tree-ssa-ccp.c: Add a way to print out the cases where
+	ssa_combine misses.
+	(ccp_fold): If this is assigning from a simple constant, just
+	return the constant.
+	(do_ssa_ccp): Setup the gimple_combine valueizer hook.
+	* tree-ssa-sccvn.c: Fix a comment about the ssa_combine debug.
+
 2012-03-04  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c (can_propagate_from):

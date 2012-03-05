@@ -136,6 +136,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 
 
+/* Uncomment to find to see what folding ssa_combine currently misses
+   in ccp.  */
+/* #define DEBUG_SSA_COMBINE */
+
 /* Possible lattice values.  */
 typedef enum
 {
@@ -1058,6 +1062,16 @@ static tree
 ccp_fold (gimple stmt)
 {
   location_t loc = gimple_location (stmt);
+
+  /* For rhs being constant, just return the constant. */
+  if (gimple_assign_single_p (stmt)
+      && is_gimple_min_invariant (gimple_assign_rhs1 (stmt)))
+    return gimple_assign_rhs1 (stmt);
+
+  tree t = ssa_combine (stmt);
+  if (t && is_gimple_min_invariant (t))
+    return t;
+
   switch (gimple_code (stmt))
     {
     case GIMPLE_COND:
@@ -1066,7 +1080,15 @@ ccp_fold (gimple stmt)
         tree op0 = valueize_op (gimple_cond_lhs (stmt));
         tree op1 = valueize_op (gimple_cond_rhs (stmt));
         enum tree_code code = gimple_cond_code (stmt);
-        return fold_binary_loc (loc, code, boolean_type_node, op0, op1);
+        t = fold_binary_loc (loc, code, boolean_type_node, op0, op1);
+#ifdef DEBUG_SSA_COMBINE
+	if (t && is_gimple_min_invariant (t))
+	  {
+	    debug_gimple_stmt (stmt);
+	    debug_generic_expr (t);
+	  }
+#endif
+	return t;
       }
 
     case GIMPLE_SWITCH:
@@ -1077,7 +1099,15 @@ ccp_fold (gimple stmt)
 
     case GIMPLE_ASSIGN:
     case GIMPLE_CALL:
-      return gimple_fold_stmt_to_constant_1 (stmt, valueize_op);
+      t = gimple_fold_stmt_to_constant_1 (stmt, valueize_op);
+#ifdef DEBUG_SSA_COMBINE
+      if (t && is_gimple_min_invariant (t))
+	{
+	  debug_gimple_stmt (stmt);
+	  debug_generic_expr (t);
+	}
+#endif
+      return t;
 
     default:
       gcc_unreachable ();
@@ -2177,6 +2207,7 @@ do_ssa_ccp (void)
 {
   unsigned int todo = 0;
   gimple_combine_set_nonzerobits (ccp_nonzerop);
+  gimple_combine_set_valueizer (valueize_op);
   calculate_dominance_info (CDI_DOMINATORS);
   ccp_initialize ();
   ssa_propagate (ccp_visit_stmt, ccp_visit_phi_node);
@@ -2184,6 +2215,7 @@ do_ssa_ccp (void)
     todo = (TODO_cleanup_cfg | TODO_update_ssa | TODO_remove_unused_locals);
   free_dominance_info (CDI_DOMINATORS);
   gimple_combine_set_nonzerobits (NULL);
+  gimple_combine_set_valueizer (NULL);
   return todo;
 }
 

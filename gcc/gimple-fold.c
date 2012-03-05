@@ -2429,6 +2429,7 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
               tree rhs = gimple_assign_rhs1 (stmt);
               enum tree_code_class kind = TREE_CODE_CLASS (subcode);
 
+	      /* SSA_COMBINE: Already moved. */
               if (TREE_CODE (rhs) == SSA_NAME)
                 {
                   /* If the RHS is an SSA_NAME, return its known constant value,
@@ -2476,6 +2477,7 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
 
               if (kind == tcc_reference)
 		{
+		  /* SSA_COMBINE: Already moved. */
 		  if ((TREE_CODE (rhs) == VIEW_CONVERT_EXPR
 		       || TREE_CODE (rhs) == REALPART_EXPR
 		       || TREE_CODE (rhs) == IMAGPART_EXPR)
@@ -2486,6 +2488,7 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
 					     TREE_CODE (rhs),
 					     TREE_TYPE (rhs), val);
 		    }
+		  /* SSA_COMBINE: Already moved. */
 		  else if (TREE_CODE (rhs) == BIT_FIELD_REF
 			   && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME)
 		    {
@@ -2496,6 +2499,7 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
 					       TREE_OPERAND (rhs, 1),
 					       TREE_OPERAND (rhs, 2));
 		    }
+		  /* SSA_COMBINE: NEEDS to be moved. */
 		  else if (TREE_CODE (rhs) == MEM_REF
 			   && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME)
 		    {
@@ -2510,8 +2514,10 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
 			    rhs = tem;
 			}
 		    }
+		  /* SSA_COMBINE: NEEDS to be moved. */
 		  return fold_const_aggregate_ref_1 (rhs, valueize);
 		}
+	      /* SSA_COMBINE: Already moved. */
               else if (kind == tcc_declaration)
                 return get_symbol_constant_value (rhs);
               return rhs;
@@ -2530,6 +2536,7 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
 		 useless_type_conversion_p places for restrict qualification
 		 of pointer types should not apply here.
 		 Substitution later will only substitute to allowed places.  */
+	      /* SSA_COMBINE: NEEDS to be moved ???? Do we really need this  ???? */
 	      if (CONVERT_EXPR_CODE_P (subcode)
 		  && POINTER_TYPE_P (TREE_TYPE (lhs))
 		  && POINTER_TYPE_P (TREE_TYPE (op0))
@@ -2550,6 +2557,7 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
               tree op0 = (*valueize) (gimple_assign_rhs1 (stmt));
               tree op1 = (*valueize) (gimple_assign_rhs2 (stmt));
 
+	      /* SSA_COMBINE: Already moved. */
 	      /* Translate &x + CST into an invariant form suitable for
 	         further propagation.  */
 	      if (gimple_assign_rhs_code (stmt) == POINTER_PLUS_EXPR
@@ -2597,6 +2605,7 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
           }
       }
 
+    /* SSA_COMBINE: NEEDS to be moved. */
     case GIMPLE_CALL:
       {
 	tree fn;

@@ -1,3 +1,10 @@
+2012-03-05  Andrew Pinski  <apinski@cavium.com>
+
+	* gcc.dg/tree-ssa/20040305-1.c: Update count of Folded to 2.
+	* gcc.dg/tree-ssa/vrp23.c: Disable CCP since
+	it will turn bool > 1 to 0 and forwprop comes along,
+	and props bool into bool > 0.
+
 2012-03-01  Andrew Pinski  <apinski@cavium.com>
 
 	* gcc.dg/tree-ssa/ssa-fre-32.c: Turn off forwprop
