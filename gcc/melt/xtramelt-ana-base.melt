@@ -341,15 +341,6 @@
 )
 
 
-;; debugloop is ok even for nil
-(defprimitive debugloop (:loop lo :cstring msg) :void
-  #{#warning DEBUGLOOP primitive is obsolete; use DEBUG in your MELT code
-do {debugeprintfnonl("debugloop %s @%p ", $MSG, (void*)$LO);
-  if (melt_flag_debug) { if ($LO) flow_loop_dump($LO, stderr, NULL, 1); }
-  fputc('\n',stderr); 
- }while(0)  }#
-)
-
 
 (defprimitive walk_use_def_chain_depth_first (:value clos val :tree trvar) :void
   :doc #{Walk in a depth first order the use-def chaine of SSA
@@ -2700,22 +2691,31 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   
 (defprimitive is_basicblock (v) :long
+  :doc #{Test if $V is a boxed basic block value.}#
  #{ (melt_magic_discr((melt_ptr_t)($v)) == MELTOBMAG_BASICBLOCK)}# )
 
 (defprimitive isnull_basicblock (:basic_block bb) :long
- #{($bb == (basic_block)0)}# )
+  :doc #{Test if $BB is the null raw basic block.}#
+  #{($BB == (basic_block)0)}# )
+
+(defprimitive ==bb (:basic_block bb1 bb2) :long
+  :doc #{Identity [i.e. pointer equality] of raw basic_blocks.}#
+  #{ ($BB1) == ($BB2) }#)
 
 (defprimitive notnull_basicblock (:basic_block bb) :long
+  :doc #{Test if $BB is a real not null raw basic_block.}#
  #{($bb != (basic_block)0)}# )
 
-(defprimitive null_basicblock () :basic_block #{((basic_block)0)}#)
+(defprimitive null_basicblock () :basic_block
+  :doc #{Gives the null raw basic_block pointer}#
+  #{((basic_block)0)}#)
 
 (defprimitive make_basicblock (discr :basic_block bb) :value
-  :doc #{Box with given $DISCR the raw basic block $BB into a value.}#
+  :doc #{Box with given $DISCR the raw basic_block $BB into a value.}#
  #{/*make_basicblock*/(meltgc_new_basicblock((meltobject_ptr_t)($DISCR),($BB)))}# )
 
 (defprimitive basicblock_content (v) :basic_block
-  :doc #{Safely retrieve the raw basic block inside value $V}#
+  :doc #{Safely retrieve the raw basic_block inside value $V}#
  #{(melt_basicblock_content ((melt_ptr_t)($V)))}# )
 
 (defprimitive basicblock_gimpleseq (v) :gimple_seq
@@ -2729,18 +2729,22 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   #{(melt_basicblock_phinodes ((melt_ptr_t)($V)))}# )
   
 (defprimitive ppstrbuf_gimple (sbuf :long indent :gimple g) :void
+  :doc #{Pretty-print inside strbuf $SBUF with indentation $INDENT the raw gimple $G.}#
   #{ meltgc_ppstrbuf_gimple((melt_ptr_t)($sbuf), 
-			       (int) ($indent), ($g)) }# )
+			       (int) ($INDENT), ($G)) }# )
 
 (defprimitive ppstrbuf_gimple_seq (sbuf :long indent :gimple_seq gseq) :void
-  #{ meltgc_ppstrbuf_gimple_seq((melt_ptr_t)($sbuf),
-				   (int) ($indent), ($gseq)) }# )
+  :doc #{Pretty-print inside strbuf $SBUF with indentation $INDENT the raw gimple_seq $GSEQ.}#
+  #{ meltgc_ppstrbuf_gimple_seq((melt_ptr_t)($SBUF),
+				   (int) ($INDENT), ($GSEQ)) }# )
 
 (defprimitive ppstrbuf_tree (sbuf :long indent :tree t) :void
+  :doc #{Pretty-print inside strbuf $SBUF with indentation $INDENT the raw tree $T.}#
   #{ meltgc_ppstrbuf_tree((melt_ptr_t)($sbuf), 
-			     (int) ($indent), ($t)) }# )
+			     (int) ($INDENT), ($T)) }# )
 
 (defprimitive ppstrbuf_basicblock (sbuf :long indent :basic_block bb) :void
+  :doc #{Pretty-print inside strbuf $SBUF with indentation $INDENT the raw basic_block $BB.}#
   #{ meltgc_ppstrbuf_basicblock((melt_ptr_t)($sbuf),
 				   (int) ($indent), ($bb)) }# )
 
@@ -3753,18 +3757,20 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   eachcgrdcl
   (:tree decl)
   ;;before expansion
-#{ /* $eachcgrdcl */
-   struct cgraph_node *$eachcgrdcl#_nd = NULL; 
-   for ($eachcgrdcl#_nd = cgraph_nodes; 
-   $eachcgrdcl#_nd != NULL; 
-   $eachcgrdcl#_nd = $eachcgrdcl#_nd->next) {
-   tree  $eachcgrdcl#_dcl = NULL;
-   $eachcgrdcl#_dcl = $eachcgrdcl#_nd->decl;
-   if (!$eachcgrdcl#_dcl) continue;
-   $decl = $eachcgrdcl#_dcl;
+#{ /*  each_cgraph_decl $EACHCGRDCL */
+   struct cgraph_node *$EACHCGRDCL#_nd = NULL; 
+   for ($EACHCGRDCL#_nd = cgraph_nodes; 
+   $EACHCGRDCL#_nd != NULL; 
+   $EACHCGRDCL#_nd = $EACHCGRDCL#_nd->next) {
+     tree  $EACHCGRDCL#_dcl = NULL;
+     $EACHCGRDCL#_dcl = $EACHCGRDCL#_nd->decl;
+     $DECL = (tree) NULL;
+     if (!$EACHCGRDCL#_dcl) continue;
+     $DECL = $EACHCGRDCL#_dcl;
    }#
    ;; after expansion
-#{ /* end $eachcgrdcl */ } }#
+#{ /* end  each_cgraph_decl $EACHCGRDCL */ $DECL = (tree)NULL; 
+ } }#
 )
 
 
@@ -3773,11 +3779,12 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   ()
   withcfundecl
   (:tree cfundecl)
-  #{ /*before $WITHCFUNDECL*/
+  #{ /*starting with_cfun_decl $WITHCFUNDECL*/
+   $CFUNDECL = (tree) NULL;
    if (cfun) {
      $CFUNDECL = cfun->decl;
   }#
-  #{ /*after $WITHCFUNDECL*/ }
+  #{ /*end with_cfun_decl $WITHCFUNDECL*/ }
   }#)
 
 
@@ -3789,20 +3796,22 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
    :basic_block curbb 
    )	
   ;;before expansion
-  #{ /* start $EACHBBCURFUN */ const int $EACHBBCURFUN#_line = __LINE__;
+  #{ /* start each_bb_current_fun $EACHBBCURFUN */ const int $EACHBBCURFUN#_line = __LINE__;
+   $CURBB = (basic_block) NULL;
    if (cfun && cfun->cfg) {
      basic_block  $EACHBBCURFUN#_bb = NULL;
-    FOR_EACH_BB_FN($EACHBBCURFUN#_bb, cfun) {
-      if (!$EACHBBCURFUN#_bb) continue;
-      $CURBB  = $EACHBBCURFUN#_bb;
+     FOR_EACH_BB_FN($EACHBBCURFUN#_bb, cfun) {
+       $CURBB = (basic_block) NULL;
+       if (!$EACHBBCURFUN#_bb) continue;
+       $CURBB  = $EACHBBCURFUN#_bb;
  }#
  ;;after expansion
- #{ }} else 
+ #{ /* ending each_bb_current_fun $EACHBBCURFUN */ }} else 
       melt_fatal_error_at_line
        ($EACHBBCURFUN#_line,
 	"each_bb_current_fun used with invalid cfun=%p [$EACHBBCURFUN]", 
 	cfun);
-  /* end $EACHBBCURFUN */  
+  /* end each_bb_current_fun $EACHBBCURFUN */  
  }# )
 
 ;;; iterate on evey basicblock of the current cfun & its decl
@@ -3814,22 +3823,30 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
    :tree cfundecl
    )	
   ;;before expansion
-  #{ /* start $EACHBBCFUN */ const $EACHBBCFUN#_line = __LINE__;
+  #{ /* start each_bb_cfun $EACHBBCFUN */ const $EACHBBCFUN#_line = __LINE__;
+   $CFUNBB = (basic_block) NULL;
+   $CFUNDECL = (tree) NULL;
    if (cfun && cfun->cfg) {
      basic_block  $EACHBBCFUN#_bb = NULL;
-     $cfundecl  = cfun->decl;
+     $CFUNDECL  = cfun->decl;
     FOR_EACH_BB_FN($EACHBBCFUN#_bb, cfun) {
+      $CFUNBB = (basic_block) NULL;
       if (!$EACHBBCFUN#_bb) continue;
-      $cfunbb  = $EACHBBCFUN#_bb;
+      $CFUNBB  = $EACHBBCFUN#_bb;
  }#
  ;;after expansion
- #{  } /* end FOR_EACH_BB_FN $EACHBBCFUN */ 
+ #{  /*ending each_bb_cfun  $EACHBBCFUN */
+      $CFUNBB = (basic_block) NULL;
+       } /* end FOR_EACH_BB_FN $EACHBBCFUN */ 
+     $CFUNDECL = (tree) NULL;
    } else /* no cfg in $EACHBBCFUN */
       melt_fatal_error_at_line 
        ($EACHBBCFUN#_line,
 	"each_bb_cfun used with invalid cfun=%p without cfg [$EACHBBCFUN]", 
 	cfun);
-  /* end $eachbbcfun */  
+   $CFUNBB = (basic_block) NULL;
+   $CFUNDECL = (tree) NULL;
+  /* end  each_bb_cfun $EACHBBCFUN */  
  }# )
 
 ;;; iterate on evey local declaration of the current cfun
@@ -3840,7 +3857,9 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
    :tree tlocdecl :long ix
   )
   ;;before expansion
-  #{ /* start $EACHLOCALCFUN */ const int $EACHLOCALCFUN#_line = __LINE__;
+  #{ /* start each_local_decl_cfun $EACHLOCALCFUN */ const int $EACHLOCALCFUN#_line = __LINE__;
+   $TLOCDECL = (tree) NULL;
+   $IX = 0;
    if (!cfun)
      melt_fatal_error_at_line
       ($EACHLOCALCFUN#_line,
@@ -3853,33 +3872,15 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
         $IX = $EACHLOCALCFUN#_ix;
   }#
   ;; after expansion
-  #{ /* end $EACHLOCALCFUN */
+  #{ /* ending each_local_decl_cfun $EACHLOCALCFUN */
         $TLOCDECL = NULL_TREE;
       }; /* end FOR_EACH_LOCAL_DECL $EACHLOCALCFUN */
     $EACHLOCALCFUN#_tdcl = NULL_TREE;
     $EACHLOCALCFUN#_ix = 0;
-    } /* end if cfun $EACHLOCALCFUN */ 
+    } /* end  each_local_decl_cfun if cfun $EACHLOCALCFUN */ 
   }#
 )
 
-;; debug_tree is ok even for nil trees
-(defprimitive debugtree (:cstring msg :tree tr) :void
-  #{#warning debugtree primitive is obsolete; use DEBUG in your MELT code
-do {debugeprintfnonl("debugtree %s @%p /%s ", $msg, (void*)$tr, 
-		       ($tr)?tree_code_name[TREE_CODE($tr)]:" *niltree*");
-  if (melt_flag_debug) debug_tree($tr);}while(0)
-  }#
-)
-
-
-;; debug_edge is ok even for nil
-(defprimitive debugedge (:cstring msg :edge eg) :void
-  #{#warning debugedge primitive is obsolete; use DEBUG in your MELT code
- do {debugeprintfnonl("debugedge %s @%p ", $msg, (void*)$eg);
-  if (melt_flag_debug) { if ($eg) dump_edge_info(stderr,$eg,1);
-  fputc('\n',stderr); }
- }while(0)  }#
-)
 
 ;; the basic block source of an edge
 (defprimitive edge_src_bb (:edge eg) :basic_block
@@ -3909,29 +3910,6 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
     meltgc_new_mixloc((meltobject_ptr_t)($dis), (melt_ptr_t)($val), 
 		      ($num), (location_t)gimple_location(($g))):NULL) }#)
 
-;; debug_gimple_stmt is ok even for nil gimples
-(defprimitive debuggimple(:cstring msg :gimple g) :void
-  #{#warning debuggimple primitive is obsolete; use DEBUG in your MELT code
-do{debugeprintfnonl("debuggimple %s @%p /%s ", $msg , (void*)$g, 
-			 ($g)?gimple_code_name[gimple_code($g)]: "*nil*");
-  if ($g && gimple_location($g))
-    debugeprintf_raw("{%s:%d} ", LOCATION_FILE(gimple_location($g)), 
-		     LOCATION_LINE(gimple_location($g)));
-  if (melt_flag_debug) debug_gimple_stmt($g);} while(0)
-}# )
-
-(defprimitive debuggimpleseq(:cstring msg :gimple_seq gs) :void
-  #{#warning debuggimpleseq is obsolete; use DEBUG in your MELT code
- do{debugeprintf("debuggimpleseq %s @%p", $msg, (void*)$gs);
-  if (melt_flag_debug && $gs) debug_gimple_seq($gs);}while(0) 
-  }#)
-
-(defprimitive debugbasicblock(:cstring msg :basic_block bb) :void
-  #{#warning debugbasicblock is obsolete; use DEBUG in your MELT code
-do{debugeprintf("debugbasicblock %s @%p", $msg, (void*)$bb);
-  if (melt_flag_debug && $bb) debug_bb($bb);}while(0) 
-}#
-)
 
 
 (defprimitive gimple_seq_add_stmt (:gimple_seq gs :gimple g) :void
@@ -4405,6 +4383,7 @@ Don't scan operands of the added $G.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
+ ==bb
  ==e
  ==g
  ==t
@@ -4433,13 +4412,6 @@ Don't scan operands of the added $G.}#
  debug_ppl_constraint
  debug_ppl_linear_expression
  debug_ppl_polyhedron 
- debugbasicblock
- debugedge
- debuggimple
- debuggimpleseq
- debugloop
- debugtree
- debugtreecodenum
  dominated_by_bb_iterator
  dominated_by_other
  dominated_by_other

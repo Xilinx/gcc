@@ -11353,7 +11353,7 @@ meltgc_ppout_basicblock (melt_ptr_t out_p, int indentsp,
       meltgc_add_out_raw ((melt_ptr_t) outv, ".}");
     }
   else
-    meltgc_add_out_raw ((melt_ptr_t) outv, ";");
+    meltgc_add_out_raw ((melt_ptr_t) outv, "_;");
 end:
   MELT_EXITFRAME ();
 #undef sbufv

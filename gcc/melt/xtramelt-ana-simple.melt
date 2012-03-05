@@ -2,7 +2,7 @@
 ;; file xtramelt-ana-simple.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2009, 2011 Free Software Foundation, Inc.
+    Copyright 2009, 2011, 2012 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -247,7 +247,6 @@
    ( ?(gimple_assign_binaryop ?lhs ?rhs1 ?rhs2 ?opcod)
       (debug "smallana_gimple gimple_assign_binaryop lhs=" lhs
 	     " rhs1=" rhs1 " rhs2=" rhs2)
-      (debugtreecodenum  "smallana_gimple gimple_assign_binaryop opcod" opcod)
       ;;(shortbacktrace_dbg "smallana_gimple gimple_assign_binaryop unexpected" 15)
       (assert_msg "smallana_gimple gimple_assign_binaryop unhandled" ())
       )

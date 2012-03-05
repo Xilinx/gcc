@@ -1,5 +1,22 @@
 
 2011-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_ppout_basicblock): Show a _ for empty basic blocks.
+
+	* melt/xtramelt-ana-base.melt (==bb): New primitive.
+	Improved some documentation of primitives or citerators.
+	(each_cgraph_decl, with_cfun_decl, each_bb_cfun)
+	(each_local_decl_cfun): Slightly improved.
+	(debugtree, debugedge, debuggimple, debuggimpleseq)
+	(debugbasicblock, debugtreecodenum): Removed.
+
+	* melt/xtramelt-ana-simple.melt (smallana_gimple): Don't use
+	debugtreecodenum.
+
+	* melt/xtramelt-opengpu.melt: More debugging.
+
+	* testsuite/melt/topengpu-vecmuls.c: New file.
+
+2011-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-modes.melt (make_docgenfunction): Sort defun-s by
 	symbol names.
 

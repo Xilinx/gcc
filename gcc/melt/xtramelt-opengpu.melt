@@ -788,10 +788,16 @@ and $OPGPULC_GIMPLE the gimple making it.}#
 	()
 	(:basic_block bb)
 	(increment bbnum 1)
-	(debug "opengpudetect_exec bb=" bb " bbnum#" bbnum "\n")
+	(debug "opengpudetect_exec bb=" bb " bbnum#" bbnum 
+	       (cond ((==bb bb bbentry) " entry")
+		     ((==bb bb bbexit) " exit")
+		     (:else " internal"))
+	       "\n")
 	)
 ;;;
-       (debug "opengpudetect_exec after each_bb_cfun before each_loop fundecl=" dbg_tree_briefly fundecl)
+       (debug "opengpudetect_exec after each_bb_cfun bbnum=" bbnum 
+	      "\n before each_loop fundecl=" dbg_tree_briefly fundecl
+	      "\n")
        (each_loop 
 	()
 	(:loop curloop :long loopix)
