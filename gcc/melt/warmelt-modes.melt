@@ -1042,8 +1042,13 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
   (add2sbuf_indentnl outb 0)
   (let ( (rawfunlist (get_field :mkdoc_functions mdinfo))
 	 (rawfuntup (list_to_multiple rawfunlist discr_multiple))
-	 (sortedfuntup (multiple_sort rawfuntup compare_named_alpha discr_multiple))
+	 (sortedfuntup (multiple_sort 
+			rawfuntup 
+			(lambda (df1 df2) 
+			  (compare_named_alpha (get_field :sdef_name df1) (get_field :sdef_name df2)))
+			discr_multiple))
 	 )
+    (debug "makedoc_genfunction rawfuntup=" rawfuntup "\n* sortedfuntup=" sortedfuntup)
     (add2sbuf_strconst outb "There are ")
     (add2sbuf_longdec outb (multiple_length sortedfuntup))
     (add2sbuf_strconst outb " functions.")
@@ -1052,6 +1057,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
      (sortedfuntup)
      (curfundef :long funix)
      (assert_msg "check curfun" (is_a curfundef class_source_defun))
+     (debug "makedoc_genfunction curfundef=" curfundef " funix=" funix)
      (makedoc_outfunctiondef mdinfo outb curfundef funix) ;also increments the counter
      (add2sbuf_indentnl outb 0)
      )

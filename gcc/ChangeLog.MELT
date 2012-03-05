@@ -1,4 +1,8 @@
 
+2011-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-modes.melt (make_docgenfunction): Sort defun-s by
+	symbol names.
+
 2011-03-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate for 0.9.4.b release}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
