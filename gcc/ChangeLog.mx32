@@ -1,3 +1,7 @@
+2012-03-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.opt: Update comments for -mx86-64.
+
 2011-12-12  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config.gcc: Check --with-multilib-list for x86-64 Linux targets

@@ -420,7 +420,7 @@ Generate 32bit x86-64 code
 
 mx86-64
 Target Undocumented Mask(ISA_64BIT) Var(ix86_isa_flags) Save
-Generate 32bit or 64bit x86-64 code
+Generate i386 code or x86-64 code
 
 mmmx
 Target Report Mask(ISA_MMX) Var(ix86_isa_flags) Save
