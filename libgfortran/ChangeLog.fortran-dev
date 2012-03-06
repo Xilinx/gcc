@@ -1,3 +1,10 @@
+2012-03-06  Tobias Burnus  <burnus@net-b.de>
+
+	* ISO_Fortran_binding.h: New.
+	* libgfortran.h: Include it.
+	(descriptor_dimension): Replace by a CFI_dim_t typedef.
+	(GFC_DIMENSION_SET): Also set extent.
+
 2010-09-01  Paul Thomas  <pault@gcc.gnu.org>
 
 	* libgfortran.h: Add 'sm' and 'extent' fields to structure

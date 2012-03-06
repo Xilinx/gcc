@@ -319,25 +319,12 @@ internal_proto(big_endian);
 # endif
 #endif
 
-typedef struct descriptor_dimension
-{
-  index_type _stride;
-  index_type _lbound;
-  index_type _ubound;
-  index_type _sm;
-  index_type _extent;
-}
 
-descriptor_dimension;
+#include "ISO_Fortran_binding.h"
 
-#define GFC_ARRAY_DESCRIPTOR(r, type) \
-struct {\
-  type *data;\
-  size_t offset;\
-  index_type dtype;\
-  index_type size;\
-  descriptor_dimension dim[r];\
-}
+typedef CFI_dim_t descriptor_dimension;
+#define GFC_ARRAY_DESCRIPTOR(r, type) CFI_GFC_CDESC_T (r, type)
+
 
 /* Commonly used array descriptor types.  */
 typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, void) gfc_array_void;
@@ -381,23 +368,31 @@ typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_LOGICAL_16) gfc_array_l16;
 #define GFC_DESCRIPTOR_DATA(desc) ((desc)->data)
 #define GFC_DESCRIPTOR_DTYPE(desc) ((desc)->dtype)
 
-#define GFC_DIMENSION_LBOUND(dim) ((dim)._lbound)
+#define GFC_DIMENSION_LBOUND(dim) ((dim).lower_bound)
+/* Old. */
 #define GFC_DIMENSION_UBOUND(dim) ((dim)._ubound)
-#define GFC_DIMENSION_STRIDE(dim) ((dim)._stride)
-#define GFC_DIMENSION_EXTENT(dim) ((dim)._ubound + 1 - (dim)._lbound)
+#define GFC_DIMENSION_EXTENT(dim) ((dim).ubound + 1 - (dim).lower_bound)
+
+/* New. */
+/*
+  #define GFC_DIMENSION_UBOUND(dim) ((dim).lower_bound + (dim).extent - 1)
+  #define GFC_DIMENSION_EXTENT(dim) ((dim).extent)
+*/
+
 #define GFC_DIMENSION_SET(dim,lb,ub,str) \
   do \
     { \
-      (dim)._lbound = lb;			\
+      (dim).lower_bound = lb;			\
       (dim)._ubound = ub;			\
+      (dim).extent = ub-lb+1;			\
       (dim)._stride = str;			\
     } while (0)
 	    
 
-#define GFC_DESCRIPTOR_LBOUND(desc,i) ((desc)->dim[i]._lbound)
+#define GFC_DESCRIPTOR_LBOUND(desc,i) ((desc)->dim[i].lower_bound)
 #define GFC_DESCRIPTOR_UBOUND(desc,i) ((desc)->dim[i]._ubound)
 #define GFC_DESCRIPTOR_EXTENT(desc,i) ((desc)->dim[i]._ubound + 1 \
-				      - (desc)->dim[i]._lbound)
+				      - (desc)->dim[i].lower_bound)
 #define GFC_DESCRIPTOR_EXTENT_BYTES(desc,i) \
   (GFC_DESCRIPTOR_EXTENT(desc,i) * GFC_DESCRIPTOR_SIZE(desc))
 
