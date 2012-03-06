@@ -1,4 +1,13 @@
 
+2011-03-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{much faster build, when useless...; a second make after a first
+	one take only 30sec instead of 3 min..}}
+
+	* melt-build.tpl: More touch operation, notably for
+	melt-stage0-*/*.so. All touches are suitably echoed...
+
+	* melt-build.mk: Regenerate.
+
 2011-03-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt: More debugging.
 

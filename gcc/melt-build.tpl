@@ -230,8 +230,8 @@ melt-stage0-[+zeroflavor+]/[+base+].$(MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5)
 	@echo  [+ (. (tpl-file-line))+] $@  "real!melt-workdir=$(realpath melt-workdir)"
 	-ls -l melt-stage0-[+zeroflavor+]/[+base+]*  melt-workdir/[+base+]*
 	$(LN_S) -v -f $(realpath melt-workdir)/$(notdir $@) $@
-	@touch $@
-	@echo  [+ (. (tpl-file-line))+] touched $@
+	touch -c $@
+	@echo  '@@touched' $@ [+ (. (tpl-file-line))+]
 	-ls -l melt-stage0-[+zeroflavor+]/[+base+]* melt-workdir/$(notdir $@) $@
 
 #@ stage 0 for [+base+] flavor [+zeroflavor+]  descfiles [+ (. (tpl-file-line))+] 
@@ -249,6 +249,8 @@ melt-stage0-[+zeroflavor+]/[+base+].[+zeroflavor+].so: \
 	@echo  [+ (. (tpl-file-line))+] $@
 	cd melt-stage0-[+zeroflavor+]/ ; $(LN_S) -v -f $(notdir $<) $(notdir $@)
 	-ls -l $< $@
+	touch -c $@
+	@echo  '@@touched' $@ [+ (. (tpl-file-line))+] 
 	$(MD5SUM) $@ > melt-stage0-[+base+].[+zeroflavor+]-module.stamp-tmp
 	$(melt_move_if_change) melt-stage0-[+base+].[+zeroflavor+]-module.stamp-tmp \
              melt-stage0-[+base+].[+zeroflavor+]-module.stamp
@@ -358,8 +360,8 @@ melt-stage0-[+zeroflavor+]-fullstage.stamp: \
               GCCMELT_MODULE_FLAVOR=quicklybuilt \
 	      GCCMELT_MODULE_SOURCEBASE=[+melt_stage+]/[+ (. outbase)+] \
               GCCMELT_MODULE_BINARYBASE=$(realpath [+melt_stage+])/[+(. outbase)+]
-	@touch $@
-	@echo touched $@  [+ (. (tpl-file-line))+]
+	touch -c $@
+	@echo '@@touched' $@  [+ (. (tpl-file-line))+]
 	$(MD5SUM) $@ > [+melt_stage+]-[+(. outbase)+]-module.stamp-tmp
 	$(melt_move_if_change) [+melt_stage+]-[+(. outbase)+]-module.stamp-tmp [+melt_stage+]-[+(. outbase)+]-module.stamp
 
