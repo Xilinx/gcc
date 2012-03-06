@@ -1,3 +1,7 @@
+2012-03-05   Xinliang David Li  <davidxl@google.com>
+	* Merged revisions 184824,184851 via svnmerge from 
+	svn+ssh://gcc.gnu.org/svn/gcc/branches/google/integration
+
 2012-03-04   Xinliang David Li  <davidxl@google.com>
 
 	* Merged revisions 184370,184482,184682 via svnmerge from 
