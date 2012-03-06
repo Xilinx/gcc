@@ -1,11 +1,5 @@
 2011-11-24  H.J. Lu  <hongjiu.lu@intel.com>
 
-	* config/i386/i386.md (*zero_extendsidi2_x32): New.
-	* config/i386/predicates.md (x86_64_symbolic_immediate_operand):
-	Likewise.
-
-2011-11-24  H.J. Lu  <hongjiu.lu@intel.com>
-
 	* config/i386/i386.c (ix86_option_override_internal): Properly
 	set ix86_gen_leave and ix86_gen_monitor.  Check Pmode == DImode.
 	(legitimize_tls_address): For x32, call gen_tls_global_dynamic_x32
