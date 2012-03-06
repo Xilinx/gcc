@@ -52,6 +52,7 @@ struct elt_list {
 
 static bool cselib_record_memory;
 static bool cselib_preserve_constants;
+static bool cselib_any_perm_equivs;
 static int entry_and_rtx_equal_p (const void *, const void *);
 static hashval_t get_value_hash (const void *);
 static struct elt_list *new_elt_list (struct elt_list *, cselib_val *);
@@ -383,14 +384,21 @@ cselib_clear_table (void)
   cselib_reset_table (1);
 }
 
-/* Remove from hash table all VALUEs except constants
-   and function invariants.  */
+/* Return TRUE if V is a constant, a function invariant or a VALUE
+   equivalence; FALSE otherwise.  */
 
-static int
-preserve_only_constants (void **x, void *info ATTRIBUTE_UNUSED)
+static bool
+invariant_or_equiv_p (cselib_val *v)
 {
-  cselib_val *v = (cselib_val *)*x;
   struct elt_loc_list *l;
+
+  if (v == cfa_base_preserved_val)
+    return true;
+
+  /* Keep VALUE equivalences around.  */
+  for (l = v->locs; l; l = l->next)
+    if (GET_CODE (l->loc) == VALUE)
+      return true;
 
   if (v->locs != NULL
       && v->locs->next == NULL)
@@ -398,7 +406,7 @@ preserve_only_constants (void **x, void *info ATTRIBUTE_UNUSED)
       if (CONSTANT_P (v->locs->loc)
 	  && (GET_CODE (v->locs->loc) != CONST
 	      || !references_value_p (v->locs->loc, 0)))
-	return 1;
+	return true;
       /* Although a debug expr may be bound to different expressions,
 	 we can preserve it as if it was constant, to get unification
 	 and proper merging within var-tracking.  */
@@ -406,24 +414,29 @@ preserve_only_constants (void **x, void *info ATTRIBUTE_UNUSED)
 	  || GET_CODE (v->locs->loc) == DEBUG_IMPLICIT_PTR
 	  || GET_CODE (v->locs->loc) == ENTRY_VALUE
 	  || GET_CODE (v->locs->loc) == DEBUG_PARAMETER_REF)
-	return 1;
-      if (cfa_base_preserved_val)
-	{
-	  if (v == cfa_base_preserved_val)
-	    return 1;
-	  if (GET_CODE (v->locs->loc) == PLUS
-	      && CONST_INT_P (XEXP (v->locs->loc, 1))
-	      && XEXP (v->locs->loc, 0) == cfa_base_preserved_val->val_rtx)
-	    return 1;
-	}
+	return true;
+
+      /* (plus (value V) (const_int C)) is invariant iff V is invariant.  */
+      if (GET_CODE (v->locs->loc) == PLUS
+	  && CONST_INT_P (XEXP (v->locs->loc, 1))
+	  && GET_CODE (XEXP (v->locs->loc, 0)) == VALUE
+	  && invariant_or_equiv_p (CSELIB_VAL_PTR (XEXP (v->locs->loc, 0))))
+	return true;
     }
 
-  /* Keep VALUE equivalences around.  */
-  for (l = v->locs; l; l = l->next)
-    if (GET_CODE (l->loc) == VALUE)
-      return 1;
+  return false;
+}
 
-  htab_clear_slot (cselib_hash_table, x);
+/* Remove from hash table all VALUEs except constants, function
+   invariants and VALUE equivalences.  */
+
+static int
+preserve_constants_and_equivs (void **x, void *info ATTRIBUTE_UNUSED)
+{
+  cselib_val *v = (cselib_val *)*x;
+
+  if (!invariant_or_equiv_p (v))
+    htab_clear_slot (cselib_hash_table, x);
   return 1;
 }
 
@@ -463,9 +476,12 @@ cselib_reset_table (unsigned int num)
     }
 
   if (cselib_preserve_constants)
-    htab_traverse (cselib_hash_table, preserve_only_constants, NULL);
+    htab_traverse (cselib_hash_table, preserve_constants_and_equivs, NULL);
   else
-    htab_empty (cselib_hash_table);
+    {
+      htab_empty (cselib_hash_table);
+      gcc_checking_assert (!cselib_any_perm_equivs);
+    }
 
   n_useless_values = 0;
   n_useless_debug_values = 0;
@@ -2376,6 +2392,8 @@ cselib_add_permanent_equiv (cselib_val *elt, rtx x, rtx insn)
 
   if (nelt != elt)
     {
+      cselib_any_perm_equivs = true;
+
       if (!PRESERVED_VALUE_P (nelt->val_rtx))
 	cselib_preserve_value (nelt);
 
@@ -2383,6 +2401,14 @@ cselib_add_permanent_equiv (cselib_val *elt, rtx x, rtx insn)
     }
 
   cselib_current_insn = save_cselib_current_insn;
+}
+
+/* Return TRUE if any permanent equivalences have been recorded since
+   the table was last initialized.  */
+bool
+cselib_have_permanent_equivalences (void)
+{
+  return cselib_any_perm_equivs;
 }
 
 /* There is no good way to determine how many elements there can be
@@ -2639,6 +2665,7 @@ cselib_init (int record_what)
   value_pool = create_alloc_pool ("value", RTX_CODE_SIZE (VALUE), 100);
   cselib_record_memory = record_what & CSELIB_RECORD_MEMORY;
   cselib_preserve_constants = record_what & CSELIB_PRESERVE_CONSTANTS;
+  cselib_any_perm_equivs = false;
 
   /* (mem:BLK (scratch)) is a special mechanism to conflict with everything,
      see canon_true_dependence.  This is only created once.  */
@@ -2672,6 +2699,7 @@ cselib_finish (void)
 {
   cselib_discard_hook = NULL;
   cselib_preserve_constants = false;
+  cselib_any_perm_equivs = false;
   cfa_base_preserved_val = NULL;
   cfa_base_preserved_regno = INVALID_REGNUM;
   free_alloc_pool (elt_list_pool);

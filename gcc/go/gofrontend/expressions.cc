@@ -3942,10 +3942,6 @@ Unsafe_type_conversion_expression::do_get_tree(Translate_context* context)
     go_assert(et->map_type() != NULL);
   else if (t->channel_type() != NULL)
     go_assert(et->channel_type() != NULL);
-  else if (t->points_to() != NULL && t->points_to()->channel_type() != NULL)
-    go_assert((et->points_to() != NULL
-		&& et->points_to()->channel_type() != NULL)
-	       || et->is_nil_type());
   else if (t->points_to() != NULL)
     go_assert(et->points_to() != NULL || et->is_nil_type());
   else if (et->is_unsafe_pointer_type())
@@ -4304,14 +4300,23 @@ Unary_expression::eval_integer(Operator op, Type* utype, mpz_t uval, mpz_t val,
 	  unsigned HOST_WIDE_INT* phwi = new unsigned HOST_WIDE_INT[count];
 	  memset(phwi, 0, count * sizeof(HOST_WIDE_INT));
 
+	  size_t obits = utype->integer_type()->bits();
+
+	  if (!utype->integer_type()->is_unsigned()
+	      && mpz_sgn(uval) < 0)
+	    {
+	      mpz_t adj;
+	      mpz_init_set_ui(adj, 1);
+	      mpz_mul_2exp(adj, adj, obits);
+	      mpz_add(uval, uval, adj);
+	      mpz_clear(adj);
+	    }
+
 	  size_t ecount;
 	  mpz_export(phwi, &ecount, -1, sizeof(HOST_WIDE_INT), 0, 0, uval);
 	  go_assert(ecount <= count);
 
 	  // Trim down to the number of words required by the type.
-	  size_t obits = utype->integer_type()->bits();
-	  if (!utype->integer_type()->is_unsigned())
-	    ++obits;
 	  size_t ocount = ((obits + HOST_BITS_PER_WIDE_INT - 1)
 			   / HOST_BITS_PER_WIDE_INT);
 	  go_assert(ocount <= count);
@@ -4325,6 +4330,16 @@ Unary_expression::eval_integer(Operator op, Type* utype, mpz_t uval, mpz_t val,
 				 >> clearbits);
 
 	  mpz_import(val, ocount, -1, sizeof(HOST_WIDE_INT), 0, 0, phwi);
+
+	  if (!utype->integer_type()->is_unsigned()
+	      && mpz_tstbit(val, obits - 1))
+	    {
+	      mpz_t adj;
+	      mpz_init_set_ui(adj, 1);
+	      mpz_mul_2exp(adj, adj, obits);
+	      mpz_sub(val, val, adj);
+	      mpz_clear(adj);
+	    }
 
 	  delete[] phwi;
 	}
@@ -4690,29 +4705,33 @@ Unary_expression::do_get_tree(Translate_context* context)
 	// need to check for nil.  We don't bother to check for small
 	// structs because we expect the system to crash on a nil
 	// pointer dereference.
-	HOST_WIDE_INT s = int_size_in_bytes(TREE_TYPE(TREE_TYPE(expr)));
-	if (s == -1 || s >= 4096)
+	tree target_type_tree = TREE_TYPE(TREE_TYPE(expr));
+	if (!VOID_TYPE_P(target_type_tree))
 	  {
-	    if (!DECL_P(expr))
-	      expr = save_expr(expr);
-	    tree compare = fold_build2_loc(loc.gcc_location(), EQ_EXPR,
-                                           boolean_type_node,
-					   expr,
-					   fold_convert(TREE_TYPE(expr),
-							null_pointer_node));
-	    tree crash = Gogo::runtime_error(RUNTIME_ERROR_NIL_DEREFERENCE,
-					     loc);
-	    expr = fold_build2_loc(loc.gcc_location(), COMPOUND_EXPR,
-                                   TREE_TYPE(expr), build3(COND_EXPR,
-                                                           void_type_node,
-                                                           compare, crash,
-                                                           NULL_TREE),
-				   expr);
+	    HOST_WIDE_INT s = int_size_in_bytes(target_type_tree);
+	    if (s == -1 || s >= 4096)
+	      {
+		if (!DECL_P(expr))
+		  expr = save_expr(expr);
+		tree compare = fold_build2_loc(loc.gcc_location(), EQ_EXPR,
+					       boolean_type_node,
+					       expr,
+					       fold_convert(TREE_TYPE(expr),
+							    null_pointer_node));
+		tree crash = Gogo::runtime_error(RUNTIME_ERROR_NIL_DEREFERENCE,
+						 loc);
+		expr = fold_build2_loc(loc.gcc_location(), COMPOUND_EXPR,
+				       TREE_TYPE(expr), build3(COND_EXPR,
+							       void_type_node,
+							       compare, crash,
+							       NULL_TREE),
+				       expr);
+	      }
 	  }
 
 	// If the type of EXPR is a recursive pointer type, then we
 	// need to insert a cast before indirecting.
-	if (TREE_TYPE(TREE_TYPE(expr)) == ptr_type_node)
+	if (VOID_TYPE_P(target_type_tree))
 	  {
 	    Type* pt = this->expr_->type()->points_to();
 	    tree ind = type_to_tree(pt->get_backend(context->gogo()));
@@ -8502,6 +8521,7 @@ Builtin_call_expression::do_check_types(Gogo*)
     case BUILTIN_INVALID:
     case BUILTIN_NEW:
     case BUILTIN_MAKE:
+    case BUILTIN_DELETE:
       return;
 
     case BUILTIN_LEN:
@@ -8670,13 +8690,17 @@ Builtin_call_expression::do_check_types(Gogo*)
 	    this->report_error(_("too many arguments"));
 	    break;
 	  }
+	if (args->front()->type()->is_error()
+	    || args->back()->type()->is_error())
+	  break;
+
+	Array_type* at = args->front()->type()->array_type();
+	Type* e = at->element_type();
 
 	// The language permits appending a string to a []byte, as a
 	// special case.
 	if (args->back()->type()->is_string_type())
 	  {
-	    const Array_type* at = args->front()->type()->array_type();
-	    const Type* e = at->element_type()->forwarded();
 	    if (e->integer_type() != NULL && e->integer_type()->is_byte())
 	      break;
 	  }
@@ -8685,8 +8709,7 @@ Builtin_call_expression::do_check_types(Gogo*)
 	// assignable to a slice of the element type of the first
 	// argument.  We already know the first argument is a slice
 	// type.
-	Array_type* at = args->front()->type()->array_type();
-	Type* arg2_type = Type::make_array_type(at->element_type(), NULL);
+	Type* arg2_type = Type::make_array_type(e, NULL);
 	std::string reason;
 	if (!Type::are_assignable(arg2_type, args->back()->type(), &reason))
 	  {
@@ -8982,7 +9005,10 @@ Builtin_call_expression::do_get_tree(Translate_context* context)
 		    fnname = "__go_print_slice";
 		  }
 		else
-		  go_unreachable();
+		  {
+		    go_assert(saw_errors());
+		    return error_mark_node;
+		  }
 
 		tree call = Gogo::call_builtin(pfndecl,
 					       location,
@@ -9665,8 +9691,11 @@ Call_expression::result_count() const
 Temporary_statement*
 Call_expression::result(size_t i) const
 {
-  go_assert(this->results_ != NULL
-	    && this->results_->size() > i);
+  if (this->results_ == NULL || this->results_->size() <= i)
+    {
+      go_assert(saw_errors());
+      return NULL;
+    }
   return (*this->results_)[i];
 }
 
@@ -10153,6 +10182,11 @@ Call_expression::set_results(Translate_context* context, tree call_tree)
       go_assert(field != NULL_TREE);
 
       Temporary_statement* temp = this->result(i);
+      if (temp == NULL)
+	{
+	  go_assert(saw_errors());
+	  return error_mark_node;
+	}
       Temporary_reference_expression* ref =
 	Expression::make_temporary_reference(temp, loc);
       ref->set_is_lvalue();
@@ -10332,8 +10366,17 @@ tree
 Call_result_expression::do_get_tree(Translate_context* context)
 {
   Call_expression* ce = this->call_->call_expression();
-  go_assert(ce != NULL);
+  if (ce == NULL)
+    {
+      go_assert(this->call_->is_error_expression());
+      return error_mark_node;
+    }
   Temporary_statement* ts = ce->result(this->index_);
+  if (ts == NULL)
+    {
+      go_assert(saw_errors());
+      return error_mark_node;
+    }
   Expression* ref = Expression::make_temporary_reference(ts, this->location());
   return ref->get_tree(context);
 }
@@ -13839,7 +13882,7 @@ tree
 Heap_composite_expression::do_get_tree(Translate_context* context)
 {
   tree expr_tree = this->expr_->get_tree(context);
-  if (expr_tree == error_mark_node)
+  if (expr_tree == error_mark_node || TREE_TYPE(expr_tree) == error_mark_node)
     return error_mark_node;
   tree expr_size = TYPE_SIZE_UNIT(TREE_TYPE(expr_tree));
   go_assert(TREE_CODE(expr_size) == INTEGER_CST);

@@ -453,7 +453,7 @@ no)
   ;;
 esac
 
-AC_CHECK_HEADERS(sys/mman.h syscall.h sys/epoll.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h sys/socket.h net/if.h sys/prctl.h sys/mount.h sys/vfs.h sys/statfs.h)
+AC_CHECK_HEADERS(sys/mman.h syscall.h sys/epoll.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h sys/select.h sys/socket.h net/if.h sys/prctl.h sys/mount.h sys/vfs.h sys/statfs.h sys/timex.h sys/sysinfo.h utime.h linux/reboot.h)
 
 AC_CHECK_HEADERS([linux/filter.h linux/netlink.h linux/rtnetlink.h], [], [],
 [#ifdef HAVE_SYS_SOCKET_H
@@ -461,13 +461,31 @@ AC_CHECK_HEADERS([linux/filter.h linux/netlink.h linux/rtnetlink.h], [], [],
 #endif
 ])
 
+AC_CACHE_CHECK([whether <ustat.h> can be used],
+[libgo_cv_c_ustat_h],
+[CFLAGS_hold=$CFLAGS
+CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE $OSCFLAGS"
+AC_COMPILE_IFELSE(
+[AC_LANG_SOURCE([
+#include <sys/types.h>
+#ifdef HAVE_LINUX_FILTER_H
+#include <linux/filter.h>
+#endif
+#include <ustat.h>
+])], [libgo_cv_c_ustat_h=yes], [libgo_cv_c_ustat_h=no])
+CFLAGS=$CFLAGS_hold])
+if test $libgo_cv_c_ustat_h = yes; then
+  AC_DEFINE(HAVE_USTAT_H, 1,
+    [Define to 1 if you have the <ustat.h> header file and it works.])
+fi
+
 AM_CONDITIONAL(HAVE_SYS_MMAN_H, test "$ac_cv_header_sys_mman_h" = yes)
 
 AC_CHECK_FUNCS(strerror_r strsignal wait4 mincore setenv)
 AM_CONDITIONAL(HAVE_STRERROR_R, test "$ac_cv_func_strerror_r" = yes)
 AM_CONDITIONAL(HAVE_WAIT4, test "$ac_cv_func_wait4" = yes)
 
-AC_CHECK_FUNCS(epoll_create1 faccessat fallocate fchmodat fchownat futimesat inotify_add_watch inotify_init inotify_rm_watch mkdirat mknodat openat renameat splice tee unlinkat unshare)
+AC_CHECK_FUNCS(epoll_create1 faccessat fallocate fchmodat fchownat futimesat inotify_add_watch inotify_init inotify_init1 inotify_rm_watch mkdirat mknodat openat renameat sync_file_range splice tee unlinkat unshare)
 AC_TYPE_OFF_T
 AC_CHECK_TYPES([loff_t])
 

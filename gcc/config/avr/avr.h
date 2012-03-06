@@ -60,9 +60,6 @@ struct base_arch_s
      SFR-address = RAM-address - sfr_offset  */
   int sfr_offset;
 
-  /* Number of 64k segments in the flash.  */
-  int n_segments;
-
   /* Architecture id to built-in define __AVR_ARCH__ (NULL -> no macro) */
   const char *const macro;
   
@@ -129,6 +126,9 @@ struct mcu_type_s {
   /* Start of data section.  */
   int data_section_start;
   
+  /* Number of 64k segments in the flash.  */
+  int n_flash;
+
   /* Name of device library.  */
   const char *const library_name; 
 };
@@ -595,7 +595,9 @@ extern const char *avr_device_to_devicelib (int argc, const char **argv);
    pass to `cc1plus'.  */
 
 #define ASM_SPEC "%{mmcu=avr25:-mmcu=avr2;mmcu=avr35:-mmcu=avr3;mmcu=avr31:-mmcu=avr3;mmcu=avr51:-mmcu=avr5;\
-mmcu=*:-mmcu=%*}"
+mmcu=*:-mmcu=%*} \
+%{mmcu=*:%{!mmcu=avr2:%{!mmcu=at90s8515:%{!mmcu=avr31:%{!mmcu=atmega103:\
+-mno-skip-bug}}}}}"
 
 #define LINK_SPEC "\
 %{mrelax:--relax\
@@ -679,7 +681,7 @@ struct GTY(()) machine_function
 /* Define prototype here to avoid build warning.  Some files using
    ACCUMULATE_OUTGOING_ARGS (directly or indirectly) include
    tm.h but not tm_p.h.  */
-extern bool avr_accumulate_outgoing_args (void);
+extern int avr_accumulate_outgoing_args (void);
 #define ACCUMULATE_OUTGOING_ARGS avr_accumulate_outgoing_args()
 
 #define INIT_EXPANDERS avr_init_expanders()

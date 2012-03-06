@@ -1,4 +1,245 @@
-2012-02-17  Benjamin Kosnik  <bkoz@redhat.com>
+2012-03-05  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_algobase.h (iter_swap): In C++11 mode simply
+	call swap.
+	* include/bits/stl_bvector.h (swap(_Bit_reference,
+	_Bit_reference), swap(_Bit_reference, bool&),
+	swap(bool&, _Bit_reference)): Add.
+	* testsuite/23_containers/vector/bool/swap.cc: New.
+
+2012-03-04  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/43813
+	* include/bits/stl_iterator_base_types.h (_RequireInputIter): New.
+	* include/ext/vstring.h (__versa_string<>::__versa_string
+	(_InputIterator, _InputIterator, const _Alloc&),
+	__versa_string<>::append(_InputIterator, _InputIterator),
+	__versa_string<>::assign(_InputIterator, _InputIterator),
+	__versa_string<>::insert(iterator, _InputIterator,
+	_InputIterator), __versa_string<>::replace(iterator, iterator,
+	_InputIterator, _InputIterator)): Use it.
+	* include/bits/stl_list.h (list<>::list(_InputIterator,
+	_InputIterator, const allocator_type&), list<>::assign(_InputIterator,
+	_InputIterator), list<>::insert(iterator, _InputIterator,
+	_InputIterator)): Likewise.
+	* include/bits/stl_vector.h (vector<>::vector(_InputIterator,
+	_InputIterator, const allocator_type&), vector<>::assign(_InputIterator,
+	_InputIterator), vectort<>::insert(iterator, _InputIterator,
+	_InputIterator)): Likewise.
+	* include/bits/stl_deque.h (deque<>::deque(_InputIterator,
+	_InputIterator, const allocator_type&), deque<>::deque(_InputIterator,
+	_InputIterator), deque<>::insert(iterator, _InputIterator,
+	_InputIterator)): Likewise.
+	* include/bits/stl_bvector.h (vector<>::vector(_InputIterator,
+	_InputIterator, const allocator_type&), vector<>::deque(_InputIterator,
+	_InputIterator), vector<>::insert(iterator, _InputIterator,
+	_InputIterator)): Likewise.
+	* include/bits/forward_list.h (forward_list<>::forward_list
+	(_InputIterator, _InputIterator, const allocator_type&),
+	forward_list<>::assign(_InputIterator, _InputIterator),
+	forward_list<>::insert_after(const_iterator, _InputIterator,
+	_InputIterator)): Likewise.
+	(forward_list<>::_M_initialize_dispatch(,, __true_type): Remove.
+	(forward_list<>::_M_range_initialize): Add, adjust everywhere.
+	* include/bits/forward_list.tcc: Adjust.
+	* include/debug/forward_list: Adjust.
+	* include/debug/vector: Likewise.
+	* include/debug/deque: Likewise.
+	* include/debug/list: Likewise.
+	* testsuite/ext/vstring/requirements/do_the_right_thing.cc: New.
+	* testsuite/23_containers/forward_list/requirements/
+	do_the_right_thing.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/
+	do_the_right_thing.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/
+	do_the_right_thing.cc: Likewise.
+	* testsuite/23_containers/list/requirements/
+	do_the_right_thing.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	assign_neg.cc: Adjust dg-error line number.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	assign_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	assign_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	assign_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2012-03-04  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/52433
+	* include/debug/safe_iterator.h (_Safe_iterator): Add move
+	constructor and move assignment operator.
+	* testsuite/23_containers/vector/debug/52433.cc: New.
+
+2012-03-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/limits (numeric_limits): Fix returns per C++11.
+	* testsuite/18_support/numeric_limits/primary.cc: New.
+
+2012-03-02  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/c_global/cstdio: Remove extraneous extern.
+	* include/c_std/cstdio: Same.
+
+2012-03-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/abi/post/solaris2.8/baseline_symbols.txt: Regenerate.
+	* config/abi/post/solaris2.8/sparcv9/baseline_symbols.txt: Likewise.
+	* config/abi/post/solaris2.10/baseline_symbols.txt: Likewise.
+	* config/abi/post/solaris2.10/amd64/baseline_symbols.txt: Likewise.
+	* config/abi/post/solaris2.10/sparcv9/baseline_symbols.txt: Likewise.
+
+2012-03-01  Benjamin Kosnik  <bkoz@redhat.com>
+            Ramana Radhakrishnan <ramana@gcc.gnu.org>
+
+	PR libstdc++/51785
+	* acinclude.m4 (GLIBCXX_CHECK_STDIO_PROTO): New.
+	* configure.ac: Call it.
+	* configure: Regenerate.
+	* config.h.in: Same.
+	* config/os/gnu-linux/os_defines.h: Conditionally undefine
+	_GLIBCXX_HAVE_GETS.
+	* include/c_global/cstdio: Conditionally declare deprecated gets.
+	* include/c_std/cstdio: Same.
+
+2012-03-01  Michael Spertus  <mike_spertus@symantec.com>
+
+	* include/tr2/type_traits (typelist): To __reflection_typelist.
+	(first, rest, empty): Remove.
+
+2012-03-01  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/Makefile.am (CLEANFILES): Add *.gdb.
+	* testsuite/Makefile.in: Regenerate.
+
+2012-02-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/abi/post/x86_64-linux-gnu/x32/baseline_symbols.txt: Update.
+
+2012-02-28  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/52191
+	* testsuite/util/testsuite_abi.cc (compare_symbols): Check new
+	symbols added into the latest version. Mark tls entities as
+	undesignated.
+
+2012-02-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/52414
+	* src/Makefile.am (libstdc++-symbols.ver): Only remove comment lines
+	if they are at the beginning of lines (with optional whitespace before
+	#).
+	* src/Makefile.in: Regenerated.
+
+2012-02-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/abi/post/i386-linux-gnu/baseline_symbols.txt: Update.
+	* config/abi/post/i486-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/powerpc64-linux-gnu/32/baseline_symbols.txt:
+	Likewise.
+	* config/abi/post/powerpc64-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/powerpc-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/s390-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/s390x-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/x86_64-linux-gnu/32/baseline_symbols.txt: Likewise.
+	* config/abi/post/x86_64-linux-gnu/baseline_symbols.txt: Likewise.
+
+2012-02-27  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libstdc++/52188
+	* acinclude.m4 (GLIBCXX_ENABLE_SYMVERS): Remove symvers_renaming.
+	Remove ENABLE_SYMVERS_SOL2.
+	* configure: Regenerate.
+	* src/Makefile.am [ENABLE_SYMVERS] (libstdc++-symbols.ver):
+	Postprocess mapfile.
+	[ENABLE_SYMVERS_GNU]: Remove ENABLE_SYMVERS_SOL2 handling.
+	* src/Makefile.in: Regenerate.
+
+	* config/abi/pre/gnu.ver (GLIBCXX_3.4.5) [!__sun__ && !__svr4__]:
+	Don't export
+	_ZNSt19istreambuf_iteratorI[cw]St11char_traitsI[cw]EEppEv.
+
+2012-02-25  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR testsuite/52201
+	* testsuite/29_atomics/atomic/operators/pointer_partial_void.cc:
+	Require	atomic builtins.
+	* testsuite/29_atomics/atomic/operators/51811.cc: Likewise.
+
+2012-02-23  Jason Merrill  <jason@redhat.com>
+
+	* include/bits/locale_facets.h (class num_get): Undo reordering of
+	do_get virtual functions.
+
+2012-02-14  Edward Smith-Rowland  <3dw4rd@verizon.net>
+
+	* testsuite/26_numerics/random/
+	uniform_real_distribution/requirements/typedefs.cc: Check param_type.
+	* testsuite/26_numerics/random/
+	piecewise_constant_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	chi_squared_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	normal_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	uniform_int_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	poisson_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	bernoulli_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	discrete_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	weibull_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	cauchy_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	negative_binomial_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	gamma_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	fisher_f_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	exponential_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	binomial_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	lognormal_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	extreme_value_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	piecewise_linear_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	student_t_distribution/requirements/typedefs.cc: Ditto.
+	* testsuite/26_numerics/random/
+	geometric_distribution/requirements/typedefs.cc: Ditto.
+
+2012-02-21  Benjamin Kosnik  <bkoz@redhat.com>
 
 	PR libstdc++/50349
 	* config/abi/pre/gnu.ver: Only one local.
