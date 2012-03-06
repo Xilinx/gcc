@@ -28,6 +28,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "gimple.h"
 #include "parser.h"
+#include "hashtab.h"
 #include "ggc.h"
 
 /* The GIMPLE parser.  Note: do not use this variable directly.  It is
@@ -43,6 +44,84 @@ extern void gp_dump (FILE *, gimple_parser *);
 
 /* EOF token.  */
 static gimple_token gl_eof_token = { CPP_EOF, 0, 0, 0 };
+
+/* Gimple symbol table.  */
+
+static GTY ((if_marked ("gimple_symtab_entry_marked_p"),
+	     param_is (struct gimple_symtab_entry_def)))
+  htab_t gimple_symtab;
+
+/* Return the hash value of the declaration name of a gimple_symtab_entry_def
+   object pointed by ENTRY.  */
+
+static hashval_t
+gimple_symtab_entry_hash (const void *entry)
+{
+  const struct gimple_symtab_entry_def *base =
+    (const struct gimple_symtab_entry_def *)entry;
+  return IDENTIFIER_HASH_VALUE (base->id);
+}
+
+/* Returns non-zero if ENTRY1 and ENTRY2 point to gimple_symtab_entry_def
+   objects corresponding to the same declaration.  */
+
+static int
+gimple_symtab_eq_hash (const void *entry1, const void *entry2)
+{
+  const struct gimple_symtab_entry_def *base1 =
+    (const struct gimple_symtab_entry_def *)entry1;
+  const struct gimple_symtab_entry_def *base2 =
+    (const struct gimple_symtab_entry_def *)entry2;
+
+  return (base1->id == base2->id);
+}
+
+/* Returns non-zero if P points to an gimple_symtab_entry_def struct that needs
+   to be marked for GC.  */
+
+static int
+gimple_symtab_entry_marked_p (const void *p)
+{
+  const struct gimple_symtab_entry_def *base =
+     (const struct gimple_symtab_entry_def *) p;
+
+  /* Keep this only if the common IDENTIFIER_NODE of the symtab chain
+     is marked which it will be if at least one of the DECLs in the
+     chain is marked.  */
+  return ggc_marked_p (base->id);
+}
+
+
+/* Lazily initialize hash tables.  */
+
+static void
+gimple_symtab_maybe_init_hash_table (void)
+{
+  if (gimple_symtab)
+    return;
+
+  gimple_symtab =
+    htab_create_ggc (1021, gimple_symtab_entry_hash,
+		     gimple_symtab_eq_hash, NULL);
+}
+
+/* Registers DECL with the gimple symbol table as having identifier ID.  */
+
+static void
+gimple_symtab_register_decl (tree decl, tree id)
+{
+  gimple_symtab_entry_t new_entry;
+  void **slot;
+
+  new_entry = ggc_alloc_cleared_gimple_symtab_entry_def ();
+  new_entry->id = id;
+  new_entry->decl = decl;
+
+  gimple_symtab_maybe_init_hash_table ();
+  slot = htab_find_slot (gimple_symtab, new_entry, INSERT); 
+  if (*slot == NULL)
+    *slot = new_entry;
+}
 
 /* Return the string representation of token TOKEN.  */
 
@@ -67,6 +146,18 @@ gl_token_as_text (const gimple_token *token)
     }
 }
 
+/* Helper function to register the variable declaration having token NAME_TOKEN
+   in the global gimple symbol table.  */
+
+static void
+gimple_register_var_decl_in_symtab (const gimple_token *name_token)
+{
+  const char *name = gl_token_as_text(name_token);
+  tree id = get_identifier(name);
+  tree decl = build_decl(name_token->location, VAR_DECL, get_identifier(name), void_type_node);
+
+  gimple_symtab_register_decl (decl,id);
+}
 
 /* Return true if we have reached the end of LEXER's token buffer.  */
 
@@ -807,6 +898,7 @@ gp_parse_type (gimple_parser *parser, const gimple_token *token)
     }
 }
 
+
 /* The Declaration section within a .gimple file can consist of 
    a) Declaration of variables.
    b) Declaration of functions.
@@ -870,18 +962,21 @@ gp_parse_type (gimple_parser *parser, const gimple_token *token)
 static void
 gp_parse_var_decl (gimple_parser *parser)
 {
-  const gimple_token *next_token;
+  const gimple_token *next_token, *name_token;
   enum tree_code code ;
-
+ 
   gl_consume_expected_token (parser->lexer, CPP_LESS);
-  gl_consume_expected_token (parser->lexer, CPP_NAME);
-  gl_consume_expected_token (parser->lexer, CPP_COMMA);
+  name_token = gl_consume_expected_token (parser->lexer, CPP_NAME);
 
+  gimple_register_var_decl_in_symtab (name_token);
+
+  gl_consume_expected_token (parser->lexer, CPP_COMMA);
   next_token = gl_consume_token (parser->lexer);
   code = gl_tree_code_for_token (next_token);
   switch (code)
     {
     case INTEGER_TYPE:
+      gl_consume_expected_token (parser->lexer, CPP_LESS);
       gl_consume_expected_token (parser->lexer, CPP_NUMBER);
       gl_consume_expected_token (parser->lexer, CPP_RSHIFT);
       break;
@@ -981,6 +1076,7 @@ gp_init (const char *fname)
   gimple_parser *parser = ggc_alloc_cleared_gimple_parser ();
   line_table = parser->line_table = ggc_alloc_cleared_line_maps ();
   parser->ident_hash = ident_hash;
+  
   linemap_init (parser->line_table);
   parser->lexer = gl_init (parser, fname);
 
@@ -1403,6 +1499,7 @@ gimple_main (void)
   if (parser->lexer->filename == NULL)
     return;
 
+  gimple_symtab_maybe_init_hash_table();
   gl_lex (parser->lexer);
   gp_parse (parser);
   gp_finish (parser);

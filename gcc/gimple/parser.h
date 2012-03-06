@@ -27,6 +27,19 @@ along with GCC; see the file COPYING3.  If not see
 #include "vec.h"
 
 
+/* The GIMPLE symbol table entry.  */
+
+struct GTY(()) gimple_symtab_entry_def 
+{
+  /* symbol table entry key, an identifier.  */
+  tree id;
+
+  /* symbol table entry, a DECL.  */
+  tree decl;
+};
+
+typedef struct gimple_symtab_entry_def *gimple_symtab_entry_t;
+
 /* A GIMPLE token.  */
 
 typedef struct GTY(()) gimple_token {
@@ -81,7 +94,7 @@ typedef struct GTY(()) gimple_parser {
   struct GTY((skip)) ht *ident_hash;
 } gimple_parser;
 
-
+ 
 /* In parser.c  */
 extern void gimple_main (void);
 

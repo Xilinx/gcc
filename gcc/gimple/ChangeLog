@@ -1,3 +1,22 @@
+2012-03-01  Sandeep Soni  <soni.sandeepb@gmail.com>
+
+	* parser.c : Include hashtab.h.
+	(gimple_symtab): New. The symbol table.
+	(gimple_symtab_entry_hash): New.
+	(gimple_symtab_eq_hash): New.
+	(gimple_symtab_entry_marked_p):New.
+	(gimple_symtab_maybe_init_hash_table):New.
+	(gimple_symtab_register_decl):New.
+	(gimple_register_var_decl_in_symtab):New.
+	(gp_parse_var_decl): Put declaration in the symbol table.
+	(gimple_main): Creates the symbol table
+	* parser.h : (struct gimple_symtab_entry_def): New.
+
+2011-10-11  Sandeep Soni  <soni.sandeepb@gmail.com>
+
+	* parser.c (gp_parse_var_decl): Fixed a bug for the 
+	missing symbol 'CPP_LESS' in the 'INTEGER_TYPE' declaration.
+
 2011-05-13  Sandeep Soni  <soni.sandeepb@gmail.com>
 
 	* parser.c (gl_gimple_code_for_token): New.
