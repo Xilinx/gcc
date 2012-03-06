@@ -1,0 +1,33 @@
+2011-12-02  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* include/cilk/cilk.h: Updated to version 2068.
+	* include/cilk/cilk_api.h: Likewise.
+	* include/cilk/cilk_undocumented.h: Likewise.
+	* include/cilk/common.h: Likewise.
+	* include/cilk/reducer_file.h: Likewise.
+	* include/cilk/reducer_opand.h: Likewise.
+	* include/cilk/reducer_opxor.h: Likewise.
+	* include/cilktools/cilkscreen.h: Likewise.
+	* include/cilktools/cilkview.h: Likewise.
+	* include/internal/abi.h: Likewise.
+	* include/internal/cilk_version.h: Likewise.
+	* include/internal/metacall.h: Likewise.
+	* include/internal/rev.mk: Likewise.
+	* runtime/c_reducers.c: Likewise.
+	* runtime/cilk-abi-cilk-for.cpp: Likewise.
+	* runtime/cilk-abi.c: Likewise.
+	* runtime/cilk-ittnotify.c: Likewise.
+	* runtime/except-gcc.h: Likewise.
+	* runtime/full_frame.c: Likewise.
+	* runtime/global_state.cpp: Likewise.
+	* runtime/global_state.h: Likewise.
+	* runtime/local_state.c: Likewise.
+	* runtime/metacall_impl.c: Likewise.
+	* runtime/metacall_impl.h: Likewise.
+	* runtime/os-unix.c: Likewise.
+	* runtime/os.h: Likewise.
+	* runtime/reducer_impl.cpp: Likewise.
+	* runtime/rts-common.h: Likewise.
+	* runtime/scheduler.c: Likewise.
+	* runtime/sysdep-unix.c: Likewise.
+	* runtime/unix_symbols.t: Likewise.
