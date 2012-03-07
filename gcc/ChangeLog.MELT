@@ -1,5 +1,8 @@
 
 2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	(MELT_UNLIKELY): Remove redefinition.
+
+2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_interrupted, meltgc_handle_interrupt): New
 	declarations.
 	(MELT_UNLIKELY, MELT_CHECK_INTERRUPT): New macros.

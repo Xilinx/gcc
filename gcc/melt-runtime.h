@@ -143,11 +143,6 @@ extern long melt_error_counter;
 extern volatile sig_atomic_t melt_interrupted;
 void meltgc_handle_interrupt (void);
 
-#if __GCC__ > 3
-#define MELT_UNLIKELY(C) __builtin_expect((C),0)
-#else 
-#define MELT_UNLIKELY(C) (C)
-#endif
 
 /* the MELT translator should generate calls to melt_check_interrupt at safe places.  */
 #define MELT_CHECK_INTERRUPT() do { if (MELT_UNLIKELY(melt_interrupted)) \
