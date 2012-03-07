@@ -1030,27 +1030,6 @@ routine procedures.}#
     ))
 
 
-;; wrap a normal let around a tuple of normalized expressions and a bindinglist
-(defun wrap_normal_letseq (tupnexp bindlist loc)
-  (assert_msg "check tupnexp" (is_multiple_or_null tupnexp))
-  (assert_msg "check bindlist" (is_list_or_null bindlist))
-  (list_every
-   bindlist 
-   (lambda (cbind) 
-     (if (not (is_a cbind class_normal_let_binding))
-	 (debug "wrap_normal_letseq tuplexp=" tupnexp
-		" bindlist=" bindlist
-		" cbind=" cbind))
-     (assert_msg "check cbind wrapnormletseq" 
-		 (is_a cbind class_normal_let_binding))))
-  (let ( (wnlet
-	  (instance class_nrep_let
-		    :nrep_loc loc
-		    :nlet_bindings (list_to_multiple bindlist)
-		    :nlet_body tupnexp))
-	 )
-    (return wnlet)))
-
 ;; wrap a normal let around a single normalized expression & a bindinglist
 (defun wrap_normal_let1 (nexp bindlist loc)
   (assert_msg "check bindlist" (is_list_or_null bindlist))
@@ -1074,6 +1053,63 @@ routine procedures.}#
 	wnlet)
     nexp
     ))
+
+;; wrap a normal let around a tuple of normalized expressions and a bindinglist
+;; add an interrupt check
+(defun wrap_normal_letseq (tupnexp bindlist loc)
+  (debug "wrap_normal_letseq tupnexp=" tupnexp " bindlist=" bindlist " loc=" loc)
+  (shortbacktrace_dbg "wrap_normal_letseq" 6)
+  (assert_msg "check tupnexp" (is_multiple_or_null tupnexp))
+  (assert_msg "check bindlist" (is_list_or_null bindlist))
+  (let ( (:long nbnexp (multiple_length tupnexp))
+	 )
+    (cond
+     ( (not (is_multiple tupnexp))
+       (let ( (wnletn (wrap_normal_let1 tupnexp bindlist loc))
+	      )
+       (debug "wrap_normal_letseq non-tuple tupnexp=" tupnexp 
+	      "\n return wnletn=" wnletn)
+       (return wnletn)))
+     ( (==i nbnexp 0)
+       (assert_msg "check nbnexp" (>i nbnexp 0)))
+     ( (==i nbnexp 1)
+       (let ( (subnexp (multiple_nth tupnexp 0))
+	      (wnlet1 (wrap_normal_let1 subnexp bindlist loc))
+	      )
+	 ;; single subexpression
+	 (debug "wrap_normal_letseq return wnlet1=" wnlet1)
+	 (return wnlet1)
+	 ))
+     ( :else				;more than one sub-expression
+       (let (
+	     (ncheckint (instance class_nrep_checkinterrupt
+				  :nrep_loc loc))
+	     (growntup (make_multiple discr_multiple (+i nbnexp 1)))
+	     )
+	 (multiple_put_nth growntup 0 ncheckint)
+	 (foreach_in_multiple 
+	  (tupnexp)
+	  (curnexp :long nix)
+	  (assert_msg "check curnexp" (or (is_not_object curnexp) (is_a curnexp class_nrep)))
+	  (multiple_put_nth growntup (+i nix 1) curnexp))
+	 (list_every
+	  bindlist 
+	  (lambda (cbind) 
+	    (if (not (is_a cbind class_normal_let_binding))
+		(debug "wrap_normal_letseq tuplexp=" tupnexp
+		       " bindlist=" bindlist
+		       " cbind=" cbind))
+	    (assert_msg "check cbind wrapnormletseq" 
+			(is_a cbind class_normal_let_binding))))
+	 (let ( (wnlet
+		 (instance class_nrep_let
+			   :nrep_loc loc
+			   :nlet_bindings (list_to_multiple bindlist)
+			   :nlet_body growntup))
+		)
+	   (debug "wrap_normal_letseq return wnlet=" wnlet)
+	   (return wnlet)))))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; utility to check that every normalized argument has a passable ctype
@@ -3345,8 +3381,14 @@ source location.}#
 			       :nocc_ctyp ctype_void
 			       :nocc_symb csym
 			       :nocc_bind cbind))
-	      (nthenlet (wrap_normal_letseq nthen letbindthenlist loc))
-	      (nelselet (wrap_normal_letseq nelse nelsebindings loc))
+	      (nthenlet 
+	       (progn
+		 (debug "normexp_ifvariadic wrapping nthen=" nthen)
+		 (wrap_normal_letseq nthen letbindthenlist loc)))
+	      (nelselet 
+	       (progn 
+		 (debug "normexp_ifvariadic wrapping nelse=" nelse)
+		 (wrap_normal_letseq nelse nelsebindings loc)))
 	      (nbindlist (list cbind))
 	      (nifv (instance class_nrep_ifvariadic
 			      :nrep_loc loc

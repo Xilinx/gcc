@@ -1,4 +1,8 @@
 
+2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-normal.melt (wrap_normal_letseq): Handle non-tuple,
+	1-tuple, and put an interrupt check for tuples of degree >= 2.
 
 2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
