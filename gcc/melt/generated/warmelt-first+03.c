@@ -1313,6 +1313,9 @@ lab_endgetargs:;
       meltfptr[3] = slot;
     };
     ;
+    MELT_LOCATION ("warmelt-first.melt:4363:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#IS_CLOSURE__L3*/ meltfnum[2] =
       (melt_magic_discr ((melt_ptr_t) ( /*_.DBGMSGFUN__V4*/ meltfptr[3])) ==
        MELTOBMAG_CLOSURE);;
@@ -1324,7 +1327,10 @@ lab_endgetargs:;
 	/*anyblock */
 	{
 
-	  MELT_LOCATION ("warmelt-first.melt:4364:/ apply");
+	  MELT_LOCATION ("warmelt-first.melt:4364:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^apply */
 	  /*apply */
 	  {
 	    union meltparam_un argtab[4];

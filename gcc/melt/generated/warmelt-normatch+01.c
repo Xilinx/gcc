@@ -2418,6 +2418,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -2441,7 +2444,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:166:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:166:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -2512,6 +2518,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -2571,6 +2580,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_CONSTANT */ meltfrout->tabval[2])));;
@@ -2657,6 +2669,9 @@ lab_endgetargs:;
       meltfptr[17] = slot;
     };
     ;
+    MELT_LOCATION ("warmelt-normatch.melt:173:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#IS_OBJECT__L5*/ meltfnum[1] =
       (melt_magic_discr ((melt_ptr_t) ( /*_.SCONST__V15*/ meltfptr[14])) ==
        MELTOBMAG_OBJECT);;
@@ -2717,6 +2732,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_LIST__L6*/ meltfnum[0] =
 	(melt_magic_discr ((melt_ptr_t) ( /*_.BINDLIST__V22*/ meltfptr[21]))
 	 == MELTOBMAG_LIST);;
@@ -2768,8 +2786,9 @@ lab_endgetargs:;
     /*_.IFCPP___V24*/ meltfptr[23] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    /*^compute */
-
+    MELT_LOCATION ("warmelt-normatch.melt:180:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#IS_OBJECT__L7*/ meltfnum[0] =
       (melt_magic_discr ((melt_ptr_t) ( /*_.SCONST__V15*/ meltfptr[14])) ==
        MELTOBMAG_OBJECT);;
@@ -2802,6 +2821,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
      /*_#MELT_NEED_DBG__L9*/ meltfnum[8] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -2825,7 +2847,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:181:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:181:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -2921,6 +2947,9 @@ lab_endgetargs:;
 	/*anyblock */
 	{
 
+	  MELT_LOCATION ("warmelt-normatch.melt:184:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
    /*_#NULL__L11*/ meltfnum[9] =
 	    (( /*_.MCST__V19*/ meltfptr[18]) == NULL);;
 	  MELT_LOCATION ("warmelt-normatch.melt:184:/ cond");
@@ -2931,6 +2960,9 @@ lab_endgetargs:;
 	      /*anyblock */
 	      {
 
+		MELT_LOCATION ("warmelt-normatch.melt:187:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
 		MELT_LOCATION ("warmelt-normatch.melt:185:/ quasiblock");
 
 
@@ -2978,6 +3010,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
        /*_#MELT_NEED_DBG__L12*/ meltfnum[8] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -3001,7 +3036,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:188:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:188:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[5];
@@ -3082,7 +3121,10 @@ lab_endgetargs:;
 						       meltfptr[28]));
 		}
 		;
-		MELT_LOCATION ("warmelt-normatch.melt:190:/ cond");
+		MELT_LOCATION ("warmelt-normatch.melt:190:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^cond */
 		/*cond */ if ( /*_.NBINDCONST__V36*/ meltfptr[35])	/*then */
 		  {
 		    /*^cond.then */
@@ -3090,6 +3132,9 @@ lab_endgetargs:;
 		    /*anyblock */
 		    {
 
+		      /*^checkinterrupt */
+		      MELT_CHECK_INTERRUPT ();
+		      ;
 		      /*^apply */
 		      /*apply */
 		      {
@@ -3126,6 +3171,9 @@ lab_endgetargs:;
 		MELT_LOCATION ("warmelt-normatch.melt:191:/ compute");
 		/*_.NCST__V21*/ meltfptr[19] = /*_.SETQ___V43*/ meltfptr[38] =
 		  /*_.NCONST__V35*/ meltfptr[28];;
+		MELT_LOCATION ("warmelt-normatch.melt:185:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
 		/*_.MULTI___V34*/ meltfptr[27] =
 		  /*_.SETQ___V43*/ meltfptr[38];;
 
@@ -3171,6 +3219,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
        /*_#MELT_NEED_DBG__L14*/ meltfnum[12] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -3194,7 +3245,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:194:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:194:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[5];
@@ -3312,6 +3367,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L16*/ meltfnum[8] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -3335,7 +3393,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:196:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:196:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -3404,6 +3465,9 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-normatch.melt:197:/ quasiblock");
 
 
+    /*^checkinterrupt */
+    MELT_CHECK_INTERRUPT ();
+    ;
     /*^msend */
     /*msend */
     {
@@ -3435,6 +3499,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L18*/ meltfnum[9] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -3458,7 +3525,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:198:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:198:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -3531,6 +3601,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L20*/ meltfnum[8] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECTYP__V54*/ meltfptr[35]),
 			     (melt_ptr_t) (( /*!CLASS_CTYPE */ meltfrout->
@@ -3583,8 +3656,9 @@ lab_endgetargs:;
     /*_.IFCPP___V59*/ meltfptr[38] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    /*^compute */
-
+    MELT_LOCATION ("warmelt-normatch.melt:200:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#__L21*/ meltfnum[12] =
       (( /*_.RECTYP__V54*/ meltfptr[35]) != ( /*_.CTYP__V4*/ meltfptr[3]));;
     MELT_LOCATION ("warmelt-normatch.melt:200:/ cond");
@@ -3756,7 +3830,10 @@ lab_endgetargs:;
 	   /*clear *//*_.IFCPP___V49*/ meltfptr[27] = 0;
     /*^clear */
 	   /*clear *//*_.LET___V53*/ meltfptr[36] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:165:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:165:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V14*/ meltfptr[12];;
@@ -3912,6 +3989,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -3935,7 +4015,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:218:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:218:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -4006,6 +4089,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -4065,6 +4151,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_CONSTRUCT */ meltfrout->tabval[2])));;
@@ -4150,6 +4239,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#__L5*/ meltfnum[1] =
 	(( /*_.CTYP__V4*/ meltfptr[3]) ==
 	 (( /*!CTYPE_VALUE */ meltfrout->tabval[3])));;
@@ -4234,6 +4326,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L7*/ meltfnum[1] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -4257,7 +4352,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:229:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:229:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[7];
@@ -4330,7 +4429,10 @@ lab_endgetargs:;
 	  /*_.IFCPP___V21*/ meltfptr[20] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	  MELT_LOCATION ("warmelt-normatch.melt:230:/ msend");
+	  MELT_LOCATION ("warmelt-normatch.melt:230:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^msend */
 	  /*msend */
 	  {
 	    union meltparam_un argtab[3];
@@ -4369,6 +4471,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L9*/ meltfnum[7] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -4392,7 +4497,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:231:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:231:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[7];
@@ -4500,6 +4609,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L11*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -4523,7 +4635,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:233:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:233:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -4604,7 +4719,10 @@ lab_endgetargs:;
 	   /*clear *//*_.IFCPP___V18*/ meltfptr[17] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V30*/ meltfptr[26] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:217:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:217:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V14*/ meltfptr[12];;
@@ -4757,6 +4875,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -4780,7 +4901,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:243:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:243:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -4851,6 +4975,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -4910,6 +5037,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_OBJECT */
@@ -4996,6 +5126,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L5*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.SCLA__V16*/ meltfptr[15]),
 			     (melt_ptr_t) (( /*!CLASS_CLASS */ meltfrout->
@@ -5055,6 +5188,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_MULTIPLE__L6*/ meltfnum[0] =
 	(melt_magic_discr ((melt_ptr_t) ( /*_.SFIELDS__V17*/ meltfptr[16])) ==
 	 MELTOBMAG_MULTIPLE);;
@@ -5130,6 +5266,9 @@ lab_endgetargs:;
 	  /*anyblock */
 	  {
 
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#IS_A__L8*/ meltfnum[0] =
 	      melt_is_instance_of ((melt_ptr_t)
 				   ( /*_.FLDPA__V22*/ meltfptr[20]),
@@ -5221,6 +5360,9 @@ lab_endgetargs:;
 	  /*anyblock */
 	  {
 
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#IS_A__L9*/ meltfnum[0] =
 	      melt_is_instance_of ((melt_ptr_t) ( /*_.F__V27*/ meltfptr[26]),
 				   (melt_ptr_t) (( /*!CLASS_FIELD */
@@ -5314,6 +5456,9 @@ lab_endgetargs:;
 											      /*_.FPAT__V32*/
 	    meltfptr[27] = slot;
 	  };
+	  ;
+	  MELT_LOCATION ("warmelt-normatch.melt:262:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
 	  ;
   /*_#SUBCLASS_OR_EQ__L10*/ meltfnum[0] =
 	    (( /*_.SCLA__V16*/ meltfptr[15] == /*_.FLCLA__V31*/ meltfptr[26])
@@ -5459,7 +5604,10 @@ lab_endgetargs:;
    /*_.IFELSE___V33*/ meltfptr[32] = NULL;;
 	    }
 	  ;
-	  MELT_LOCATION ("warmelt-normatch.melt:268:/ msend");
+	  MELT_LOCATION ("warmelt-normatch.melt:268:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^msend */
 	  /*msend */
 	  {
 	    union meltparam_un argtab[3];
@@ -5533,6 +5681,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L12*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -5556,7 +5707,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:271:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:271:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -5638,7 +5792,10 @@ lab_endgetargs:;
 	   /*clear *//*_.IFCPP___V20*/ meltfptr[18] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V40*/ meltfptr[34] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:242:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:242:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V14*/ meltfptr[12];;
@@ -5784,6 +5941,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L1*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -5853,6 +6013,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L2*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -5876,7 +6039,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:282:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:282:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -5955,6 +6121,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[2] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.CTYP__V4*/ meltfptr[3]),
 			     (melt_ptr_t) (( /*!CLASS_CTYPE */ meltfrout->
@@ -6014,6 +6183,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L5*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_COMPOSITE */ meltfrout->tabval[3])));;
@@ -6104,6 +6276,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L6*/ meltfnum[2] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -6127,7 +6302,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:287:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:287:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -6199,6 +6377,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L8*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.SOP__V19*/ meltfptr[18]),
 			     (melt_ptr_t) (( /*!CLASS_ANY_MATCHER */
@@ -6306,6 +6487,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L9*/ meltfnum[2] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -6329,7 +6513,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:293:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:293:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -6402,6 +6589,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L11*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.MB__V30*/ meltfptr[29]),
 			     (melt_ptr_t) (( /*!CLASS_FORMAL_BINDING */
@@ -6528,6 +6718,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L12*/ meltfnum[2] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.MATCTYP__V41*/ meltfptr[40]),
 			     (melt_ptr_t) (( /*!CLASS_CTYPE */ meltfrout->
@@ -6597,6 +6790,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L13*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -6620,7 +6816,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:305:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:305:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -6686,8 +6885,9 @@ lab_endgetargs:;
     /*_.IFCPP___V47*/ meltfptr[45] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    /*^compute */
-
+    MELT_LOCATION ("warmelt-normatch.melt:306:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#__L15*/ meltfnum[2] =
       (( /*_.CTYP__V4*/ meltfptr[3]) != ( /*_.MATCTYP__V41*/ meltfptr[40]));;
     MELT_LOCATION ("warmelt-normatch.melt:306:/ cond");
@@ -6749,6 +6949,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
      /*_#MELT_NEED_DBG__L16*/ meltfnum[0] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -6772,7 +6975,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:311:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:311:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[9];
@@ -6887,6 +7094,9 @@ lab_endgetargs:;
   /*_.IFELSE___V51*/ meltfptr[47] = NULL;;
       }
     ;
+    MELT_LOCATION ("warmelt-normatch.melt:317:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
     MELT_LOCATION ("warmelt-normatch.melt:315:/ quasiblock");
 
 
@@ -6934,6 +7144,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L18*/ meltfnum[16] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -6957,7 +7170,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:318:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:318:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -7023,7 +7239,10 @@ lab_endgetargs:;
     /*_.IFCPP___V63*/ meltfptr[54] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:319:/ cond");
+    MELT_LOCATION ("warmelt-normatch.melt:319:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^cond */
     /*cond */ if ( /*_.BINDINS__V62*/ meltfptr[53])	/*then */
       {
 	/*^cond.then */
@@ -7031,6 +7250,9 @@ lab_endgetargs:;
 	/*anyblock */
 	{
 
+	  /*^checkinterrupt */
+	  MELT_CHECK_INTERRUPT ();
+	  ;
 	  /*^apply */
 	  /*apply */
 	  {
@@ -7079,6 +7301,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L20*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -7102,7 +7327,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:320:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:320:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -7207,6 +7435,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L23*/ meltfnum[0] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -7230,7 +7461,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:324:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:324:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -7347,6 +7582,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L25*/ meltfnum[23] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -7370,7 +7608,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:328:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:328:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[7];
@@ -7451,6 +7693,9 @@ lab_endgetargs:;
 	  /*anyblock */
 	  {
 
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#IS_A__L27*/ meltfnum[0] =
 	      melt_is_instance_of ((melt_ptr_t)
 				   ( /*_.CURCTYPE__V80*/ meltfptr[79]),
@@ -7505,7 +7750,10 @@ lab_endgetargs:;
 	  /*_.IFCPP___V85*/ meltfptr[81] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	  MELT_LOCATION ("warmelt-normatch.melt:330:/ msend");
+	  MELT_LOCATION ("warmelt-normatch.melt:330:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^msend */
 	  /*msend */
 	  {
 	    union meltparam_un argtab[3];
@@ -7544,6 +7792,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L28*/ meltfnum[23] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -7567,7 +7818,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:331:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:331:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -7684,6 +7939,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L30*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -7707,7 +7965,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:333:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:333:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -7773,8 +8034,9 @@ lab_endgetargs:;
     /*_.IFCPP___V92*/ meltfptr[88] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    /*^compute */
-
+    MELT_LOCATION ("warmelt-normatch.melt:315:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
     /*_.MULTI___V60*/ meltfptr[48] = /*_.IFCPP___V92*/ meltfptr[88];;
 
     MELT_LOCATION ("warmelt-normatch.melt:315:/ clear");
@@ -7828,7 +8090,10 @@ lab_endgetargs:;
 	   /*clear *//*_.IFELSE___V51*/ meltfptr[47] = 0;
     /*^clear */
 	   /*clear *//*_.MULTI___V60*/ meltfptr[48] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:280:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:280:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V16*/ meltfptr[14];;
@@ -7982,6 +8247,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -8005,7 +8273,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:343:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:343:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -8076,6 +8347,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -8135,6 +8409,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_OR */
@@ -8204,6 +8481,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L5*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -8227,7 +8507,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:346:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:346:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -8485,6 +8768,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L13*/ meltfnum[9] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -8508,7 +8794,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:372:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:372:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -8581,6 +8870,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_MULTIPLE__L15*/ meltfnum[11] =
 	(melt_magic_discr ((melt_ptr_t) ( /*_.SDISJ__V20*/ meltfptr[19])) ==
 	 MELTOBMAG_MULTIPLE);;
@@ -8674,6 +8966,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L17*/ meltfnum[9] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -8697,7 +8992,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:378:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:378:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -8764,7 +9063,10 @@ lab_endgetargs:;
 	  /*_.IFCPP___V38*/ meltfptr[37] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	  MELT_LOCATION ("warmelt-normatch.melt:379:/ msend");
+	  MELT_LOCATION ("warmelt-normatch.melt:379:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^msend */
 	  /*msend */
 	  {
 	    union meltparam_un argtab[3];
@@ -8867,6 +9169,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_MAPOBJECT__L24*/ meltfnum[23] =
 	/*is_mapobject: */
 	(melt_magic_discr ((melt_ptr_t) ( /*_.PMAPOR__V43*/ meltfptr[39])) ==
@@ -8926,6 +9231,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#__L25*/ meltfnum[23] =
 	(( /*_.OLDVARHDLER__V45*/ meltfptr[44]) ==
 	 ( /*_.OWNVARHANDLER__V24*/ meltfptr[23]));;
@@ -9016,6 +9324,9 @@ lab_endgetargs:;
 	  /*anyblock */
 	  {
 
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#IS_A__L26*/ meltfnum[23] =
 	      melt_is_instance_of ((melt_ptr_t)
 				   ( /*_.CURSYM__V50*/ meltfptr[48]),
@@ -9077,6 +9388,9 @@ lab_endgetargs:;
 	  /*anyblock */
 	  {
 
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#IS_A__L27*/ meltfnum[23] =
 	      melt_is_instance_of ((melt_ptr_t)
 				   ( /*_.CURPATVAR__V51*/ meltfptr[50]),
@@ -9137,6 +9451,9 @@ lab_endgetargs:;
 	  /*anyblock */
 	  {
 
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
 	    MELT_LOCATION ("warmelt-normatch.melt:399:/ cond");
 	    /*cond */ if (
 			   /*ifisa */
@@ -9218,8 +9535,9 @@ lab_endgetargs:;
 	  /*_.IFCPP___V56*/ meltfptr[54] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	  /*^compute */
-
+	  MELT_LOCATION ("warmelt-normatch.melt:400:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
   /*_.MAPOBJECT_GET__V59*/ meltfptr[56] =
 	    /*mapobject_get */
 	    melt_get_mapobjects ((meltmapobjects_ptr_t)
@@ -9294,6 +9612,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L30*/ meltfnum[29] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -9317,7 +9638,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:403:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:403:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -9433,6 +9757,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L32*/ meltfnum[30] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -9456,7 +9783,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:406:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:406:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -9560,7 +9890,10 @@ lab_endgetargs:;
 	   /*clear *//*_.IFCPP___V35*/ meltfptr[31] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V64*/ meltfptr[60] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:342:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:342:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V18*/ meltfptr[14];;
@@ -9703,6 +10036,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -9726,7 +10062,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:355:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:355:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -9798,6 +10137,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.MVAR__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_VARIABLE */ meltfrout->tabval[1])));;
@@ -9856,6 +10198,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#__L4*/ meltfnum[0] =
 	(( /*_.MYPCN__V3*/ meltfptr[2]) ==
 	 (( /*~PCN */ meltfclos->tabval[0])));;
@@ -9931,9 +10276,12 @@ lab_endgetargs:;
 
     MELT_LOCATION ("warmelt-normatch.melt:358:/ clear");
 	   /*clear *//*_.MSYMB__V13*/ meltfptr[11] = 0;
+    MELT_LOCATION ("warmelt-normatch.melt:354:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
     /*epilog */
 
-    MELT_LOCATION ("warmelt-normatch.melt:354:/ clear");
+    /*^clear */
 	   /*clear *//*_.IFCPP___V5*/ meltfptr[4] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V9*/ meltfptr[5] = 0;
@@ -10074,6 +10422,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -10097,7 +10448,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:417:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:417:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -10168,6 +10522,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -10227,6 +10584,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_AND */
@@ -10305,6 +10665,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_MULTIPLE__L5*/ meltfnum[1] =
 	(melt_magic_discr ((melt_ptr_t) ( /*_.SCONJ__V16*/ meltfptr[15])) ==
 	 MELTOBMAG_MULTIPLE);;
@@ -10372,7 +10735,10 @@ lab_endgetargs:;
 
 
 
-	  MELT_LOCATION ("warmelt-normatch.melt:427:/ msend");
+	  MELT_LOCATION ("warmelt-normatch.melt:427:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^msend */
 	  /*msend */
 	  {
 	    union meltparam_un argtab[3];
@@ -10425,6 +10791,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L7*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -10448,7 +10817,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:429:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:429:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -10525,7 +10897,10 @@ lab_endgetargs:;
 	   /*clear *//*_.IFCPP___V17*/ meltfptr[16] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V21*/ meltfptr[20] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:416:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:416:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V14*/ meltfptr[12];;
@@ -10661,6 +11036,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -10684,7 +11062,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:569:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:569:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -10761,6 +11142,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.NTEST__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_NORMTESTER_ANY */
@@ -10820,6 +11204,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V3*/ meltfptr[2]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -10898,6 +11285,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_OBJECT__L5*/ meltfnum[1] =
 	(melt_magic_discr ((melt_ptr_t) ( /*_.NMATCHED__V13*/ meltfptr[12]))
 	 == MELTOBMAG_OBJECT);;
@@ -10956,6 +11346,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_MAPOBJECT__L6*/ meltfnum[0] =
 	/*is_mapobject: */
 	(melt_magic_discr ((melt_ptr_t) ( /*_.STUFFMAP__V14*/ meltfptr[13]))
@@ -11020,8 +11413,9 @@ lab_endgetargs:;
 			   ( /*_.STUFFMAP__V14*/ meltfptr[13]),
 			   (meltobject_ptr_t) ( /*_.NMATCHED__V13*/
 					       meltfptr[12]));;
-    /*^compute */
-
+    MELT_LOCATION ("warmelt-normatch.melt:580:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#IS_LIST__L7*/ meltfnum[1] =
       (melt_magic_discr ((melt_ptr_t) ( /*_.NTL__V21*/ meltfptr[20])) ==
        MELTOBMAG_LIST);;
@@ -11086,6 +11480,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_LIST__L8*/ meltfnum[0] =
 	(melt_magic_discr ((melt_ptr_t) ( /*_.NTLIST__V25*/ meltfptr[23])) ==
 	 MELTOBMAG_LIST);;
@@ -11161,6 +11558,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L9*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -11184,7 +11584,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:589:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:589:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -11282,7 +11685,10 @@ lab_endgetargs:;
 	   /*clear *//*_.IFCPP___V17*/ meltfptr[15] = 0;
     /*^clear */
 	   /*clear *//*_.LET___V19*/ meltfptr[17] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:568:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:568:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V12*/ meltfptr[10];;
@@ -11415,6 +11821,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -11438,7 +11847,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:599:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:599:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -11515,6 +11927,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.CURTESTER__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_NORMTESTER_ANY */
@@ -11574,6 +11989,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.THENTESTER__V3*/ meltfptr[2]),
 			     (melt_ptr_t) (( /*!CLASS_NORMTESTER_ANY */
@@ -11633,6 +12051,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
       MELT_LOCATION ("warmelt-normatch.melt:603:/ getslot");
       {
 	melt_ptr_t slot = 0;
@@ -11711,6 +12132,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_LIST__L6*/ meltfnum[0] =
 	(melt_magic_discr ((melt_ptr_t) ( /*_.THENCOME__V15*/ meltfptr[12]))
 	 == MELTOBMAG_LIST);;
@@ -11781,6 +12205,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_NOT_A__L7*/ meltfnum[1] =
 	!melt_is_instance_of ((melt_ptr_t) ( /*_.CURTESTER__V2*/ meltfptr[1]),
 			      (melt_ptr_t) (( /*!CLASS_NORMTESTER_SUCCESS */
@@ -11830,7 +12257,10 @@ lab_endgetargs:;
     /*_.IFCPP___V18*/ meltfptr[16] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:609:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:609:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*^putslot */
@@ -11846,6 +12276,9 @@ lab_endgetargs:;
     meltgc_touch ( /*_.CURTESTER__V2*/ meltfptr[1]);
     ;
 
+    MELT_LOCATION ("warmelt-normatch.melt:611:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#IS_A__L8*/ meltfnum[0] =
       melt_is_instance_of ((melt_ptr_t) ( /*_.CURTESTER__V2*/ meltfptr[1]),
 			   (melt_ptr_t) (( /*!CLASS_NORMTESTER_DISJUNCTION */
@@ -11886,6 +12319,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
      /*_#MELT_NEED_DBG__L9*/ meltfnum[1] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -11909,7 +12345,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:613:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:613:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -12011,6 +12451,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
       /*_#MELT_NEED_DBG__L12*/ meltfnum[1] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -12034,7 +12477,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:617:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:617:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[5];
@@ -12108,6 +12555,9 @@ lab_endgetargs:;
 		MELT_LOCATION ("warmelt-normatch.melt:618:/ quasiblock");
 
 
+		/*^checkinterrupt */
+		MELT_CHECK_INTERRUPT ();
+		;
 		/*^quasiblock */
 
 
@@ -12151,6 +12601,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
       /*_#MELT_NEED_DBG__L14*/ meltfnum[12] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -12174,7 +12627,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:619:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:619:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[5];
@@ -12245,7 +12702,10 @@ lab_endgetargs:;
 		/*_.IFCPP___V33*/ meltfptr[32] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 		;
-		MELT_LOCATION ("warmelt-normatch.melt:620:/ apply");
+		MELT_LOCATION ("warmelt-normatch.melt:620:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^apply */
 		/*apply */
 		{
 		  union meltparam_un argtab[1];
@@ -12280,6 +12740,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
       /*_#MELT_NEED_DBG__L16*/ meltfnum[1] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -12303,7 +12766,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:621:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:621:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[5];
@@ -12431,6 +12898,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L18*/ meltfnum[12] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -12454,7 +12924,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:624:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:624:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -12520,7 +12993,10 @@ lab_endgetargs:;
     /*_.IFCPP___V42*/ meltfptr[38] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:598:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:598:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.IFCPP___V42*/ meltfptr[38];;
@@ -12663,6 +13139,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -12686,7 +13165,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:629:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:629:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -12775,6 +13257,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.NEWTESTER__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_NORMTESTER_ANY */
@@ -12834,6 +13319,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.TESTERCONT__V3*/ meltfptr[2]),
 			     (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->
@@ -12923,6 +13411,9 @@ lab_endgetargs:;
       /*anyblock */
       {
 
+	/*^checkinterrupt */
+	MELT_CHECK_INTERRUPT ();
+	;
 
 #if MELT_HAVE_DEBUG
 	MELT_LOCATION ("warmelt-normatch.melt:636:/ cppif.then");
@@ -12939,6 +13430,9 @@ lab_endgetargs:;
 #endif
 	    ;
 	  }
+	  ;
+	  /*^checkinterrupt */
+	  MELT_CHECK_INTERRUPT ();
 	  ;
      /*_#MELT_NEED_DBG__L5*/ meltfnum[1] =
 	    /*MELT_NEED_DBG */
@@ -12963,7 +13457,10 @@ lab_endgetargs:;
 		  0L
 #endif /* meltcallcount the_meltcallcount */
 		  ;;
-		MELT_LOCATION ("warmelt-normatch.melt:636:/ apply");
+		MELT_LOCATION ("warmelt-normatch.melt:636:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^apply */
 		/*apply */
 		{
 		  union meltparam_un argtab[5];
@@ -13059,8 +13556,9 @@ lab_endgetargs:;
     /*_.NEXTESTER__V21*/ meltfptr[17] = NULL;;
 	  }
 	;
-	/*^compute */
-
+	MELT_LOCATION ("warmelt-normatch.melt:639:/ checkinterrupt");
+	MELT_CHECK_INTERRUPT ();
+	;
    /*_#IS_A__L7*/ meltfnum[0] =
 	  melt_is_instance_of ((melt_ptr_t)
 			       ( /*_.NEXTESTER__V21*/ meltfptr[17]),
@@ -13120,9 +13618,12 @@ lab_endgetargs:;
 	     /*clear *//*_#IS_A__L7*/ meltfnum[0] = 0;
 	/*^clear */
 	     /*clear *//*_.IFELSE___V22*/ meltfptr[21] = 0;
+	MELT_LOCATION ("warmelt-normatch.melt:634:/ checkinterrupt");
+	MELT_CHECK_INTERRUPT ();
+	;
 	/*epilog */
 
-	MELT_LOCATION ("warmelt-normatch.melt:634:/ clear");
+	/*^clear */
 	     /*clear *//*_.IFCPP___V16*/ meltfptr[15] = 0;
 	/*^clear */
 	     /*clear *//*_.LET___V20*/ meltfptr[16] = 0;
@@ -13153,6 +13654,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L8*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -13176,7 +13680,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:642:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:642:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -13249,6 +13756,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
       /*^cond */
       /*cond */ if ( /*_.CURTESTER__V13*/ meltfptr[12])	/*then */
 	{
@@ -13292,7 +13802,10 @@ lab_endgetargs:;
     /*_.IFCPP___V28*/ meltfptr[16] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:644:/ cond");
+    MELT_LOCATION ("warmelt-normatch.melt:644:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^cond */
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
@@ -13325,7 +13838,10 @@ lab_endgetargs:;
 	;
       }				/*noelse */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:645:/ apply");
+    MELT_LOCATION ("warmelt-normatch.melt:645:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^apply */
     /*apply */
     {
       union meltparam_un argtab[1];
@@ -13358,6 +13874,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L10*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -13381,7 +13900,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:646:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:646:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -13464,7 +13986,10 @@ lab_endgetargs:;
 	   /*clear *//*_.PUT_TESTER_THEN__V30*/ meltfptr[17] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V31*/ meltfptr[15] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:628:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:628:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V12*/ meltfptr[10];;
@@ -13611,6 +14136,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -13634,7 +14162,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:654:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:654:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -13715,6 +14246,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L3*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -13738,7 +14272,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:655:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:655:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -13821,6 +14358,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L5*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.NEWTESTER__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_NORMTESTER_ANY */
@@ -13880,6 +14420,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L6*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PARTESTER__V3*/ meltfptr[2]),
 			     (melt_ptr_t) (( /*!CLASS_NORMTESTER_ANY */
@@ -13932,8 +14475,9 @@ lab_endgetargs:;
     /*_.IFCPP___V15*/ meltfptr[10] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    /*^compute */
-
+    MELT_LOCATION ("warmelt-normatch.melt:659:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#NULL__L7*/ meltfnum[0] =
       (( /*_.UPDATLIST__V4*/ meltfptr[3]) == NULL);;
     MELT_LOCATION ("warmelt-normatch.melt:659:/ cond");
@@ -13974,6 +14518,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_LIST__L8*/ meltfnum[1] =
 	(melt_magic_discr ((melt_ptr_t) ( /*_.UPDATLIST__V4*/ meltfptr[3])) ==
 	 MELTOBMAG_LIST);;
@@ -14034,6 +14581,9 @@ lab_endgetargs:;
       /*anyblock */
       {
 
+	/*^checkinterrupt */
+	MELT_CHECK_INTERRUPT ();
+	;
 
 #if MELT_HAVE_DEBUG
 	MELT_LOCATION ("warmelt-normatch.melt:664:/ cppif.then");
@@ -14050,6 +14600,9 @@ lab_endgetargs:;
 #endif
 	    ;
 	  }
+	  ;
+	  /*^checkinterrupt */
+	  MELT_CHECK_INTERRUPT ();
 	  ;
      /*_#MELT_NEED_DBG__L9*/ meltfnum[1] =
 	    /*MELT_NEED_DBG */
@@ -14074,7 +14627,10 @@ lab_endgetargs:;
 		  0L
 #endif /* meltcallcount the_meltcallcount */
 		  ;;
-		MELT_LOCATION ("warmelt-normatch.melt:664:/ apply");
+		MELT_LOCATION ("warmelt-normatch.melt:664:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^apply */
 		/*apply */
 		{
 		  union meltparam_un argtab[5];
@@ -14142,8 +14698,9 @@ lab_endgetargs:;
 	/*_.IFCPP___V24*/ meltfptr[23] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	;
-	/*^compute */
-
+	MELT_LOCATION ("warmelt-normatch.melt:666:/ checkinterrupt");
+	MELT_CHECK_INTERRUPT ();
+	;
    /*_#NULL__L11*/ meltfnum[9] =
 	  (( /*_.PARTESTER__V3*/ meltfptr[2]) == NULL);;
 	MELT_LOCATION ("warmelt-normatch.melt:666:/ cond");
@@ -14179,6 +14736,9 @@ lab_endgetargs:;
 	    /*anyblock */
 	    {
 
+	      MELT_LOCATION ("warmelt-normatch.melt:668:/ checkinterrupt");
+	      MELT_CHECK_INTERRUPT ();
+	      ;
      /*_#IS_A__L12*/ meltfnum[1] =
 		melt_is_instance_of ((melt_ptr_t)
 				     ( /*_.PARTESTER__V3*/ meltfptr[2]),
@@ -14210,6 +14770,10 @@ lab_endgetargs:;
 		      meltfptr[31] = slot;
 		    };
 		    ;
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:673:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
        /*_#NULL__L13*/ meltfnum[12] =
 		      (( /*_.ELTEST__V31*/ meltfptr[30]) == NULL);;
 		    MELT_LOCATION ("warmelt-normatch.melt:673:/ cond");
@@ -14220,7 +14784,11 @@ lab_endgetargs:;
 			/*anyblock */
 			{
 
-			  MELT_LOCATION ("warmelt-normatch.melt:674:/ cond");
+			  MELT_LOCATION
+			    ("warmelt-normatch.melt:674:/ checkinterrupt");
+			  MELT_CHECK_INTERRUPT ();
+			  ;
+			  /*^cond */
 			  /*cond */ if (
 					 /*ifisa */
 					 melt_is_instance_of ((melt_ptr_t)
@@ -14274,6 +14842,9 @@ lab_endgetargs:;
 			      ;
 			    }
 			    ;
+			    /*^checkinterrupt */
+			    MELT_CHECK_INTERRUPT ();
+			    ;
 	   /*_#MELT_NEED_DBG__L14*/ meltfnum[13] =
 			      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -14299,7 +14870,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 				    ;;
 				  MELT_LOCATION
-				    ("warmelt-normatch.melt:675:/ apply");
+				    ("warmelt-normatch.melt:675:/ checkinterrupt");
+				  MELT_CHECK_INTERRUPT ();
+				  ;
+				  /*^apply */
 				  /*apply */
 				  {
 				    union meltparam_un argtab[5];
@@ -14428,6 +15002,10 @@ lab_endgetargs:;
 						  meltfptr[34]);
 
 
+				MELT_LOCATION
+				  ("warmelt-normatch.melt:682:/ checkinterrupt");
+				MELT_CHECK_INTERRUPT ();
+				;
 	  /*_#__L16*/ meltfnum[14] =
 				  (( /*_.CURTEST__V39*/ meltfptr[35]) ==
 				   ( /*_.PARTESTER__V3*/ meltfptr[2]));;
@@ -14458,6 +15036,10 @@ lab_endgetargs:;
 				    }
 				    ;
 				  }	/*noelse */
+				;
+				MELT_LOCATION
+				  ("warmelt-normatch.melt:684:/ checkinterrupt");
+				MELT_CHECK_INTERRUPT ();
 				;
 	  /*_#__L17*/ meltfnum[13] =
 				  (( /*_.CURTEST__V39*/ meltfptr[35]) ==
@@ -14530,6 +15112,10 @@ lab_endgetargs:;
 			;
 		      }
 		    ;
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:689:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
        /*_#IS_A__L18*/ meltfnum[17] =
 		      melt_is_instance_of ((melt_ptr_t)
 					   ( /*_.THTEST__V32*/ meltfptr[31]),
@@ -14560,6 +15146,10 @@ lab_endgetargs:;
 						  meltfptr[40]);
 
 
+				MELT_LOCATION
+				  ("warmelt-normatch.melt:693:/ checkinterrupt");
+				MELT_CHECK_INTERRUPT ();
+				;
 	  /*_#__L19*/ meltfnum[18] =
 				  (( /*_.CURTEST__V44*/ meltfptr[43]) ==
 				   ( /*_.THTEST__V32*/ meltfptr[31]));;
@@ -14590,6 +15180,10 @@ lab_endgetargs:;
 				    }
 				    ;
 				  }	/*noelse */
+				;
+				MELT_LOCATION
+				  ("warmelt-normatch.melt:695:/ checkinterrupt");
+				MELT_CHECK_INTERRUPT ();
 				;
 	  /*_#__L20*/ meltfnum[19] =
 				  (( /*_.CURTEST__V44*/ meltfptr[43]) ==
@@ -14655,6 +15249,9 @@ lab_endgetargs:;
 			      ;
 			    }
 			    ;
+			    /*^checkinterrupt */
+			    MELT_CHECK_INTERRUPT ();
+			    ;
 	   /*_#MELT_NEED_DBG__L21*/ meltfnum[20] =
 			      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -14680,7 +15277,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 				    ;;
 				  MELT_LOCATION
-				    ("warmelt-normatch.melt:698:/ apply");
+				    ("warmelt-normatch.melt:698:/ checkinterrupt");
+				  MELT_CHECK_INTERRUPT ();
+				  ;
+				  /*^apply */
 				  /*apply */
 				  {
 				    union meltparam_un argtab[5];
@@ -14763,7 +15363,11 @@ lab_endgetargs:;
 			  /*_.IFCPP___V45*/ meltfptr[44] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 			  ;
-			  MELT_LOCATION ("warmelt-normatch.melt:699:/ apply");
+			  MELT_LOCATION
+			    ("warmelt-normatch.melt:699:/ checkinterrupt");
+			  MELT_CHECK_INTERRUPT ();
+			  ;
+			  /*^apply */
 			  /*apply */
 			  {
 			    union meltparam_un argtab[2];
@@ -14804,6 +15408,9 @@ lab_endgetargs:;
 			      ;
 			    }
 			    ;
+			    /*^checkinterrupt */
+			    MELT_CHECK_INTERRUPT ();
+			    ;
 	   /*_#MELT_NEED_DBG__L23*/ meltfnum[21] =
 			      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -14829,7 +15436,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 				    ;;
 				  MELT_LOCATION
-				    ("warmelt-normatch.melt:700:/ apply");
+				    ("warmelt-normatch.melt:700:/ checkinterrupt");
+				  MELT_CHECK_INTERRUPT ();
+				  ;
+				  /*^apply */
 				  /*apply */
 				  {
 				    union meltparam_un argtab[5];
@@ -15007,9 +15617,12 @@ lab_endgetargs:;
 	    ;
 	  }
 	;
+	MELT_LOCATION ("warmelt-normatch.melt:662:/ checkinterrupt");
+	MELT_CHECK_INTERRUPT ();
+	;
 	/*epilog */
 
-	MELT_LOCATION ("warmelt-normatch.melt:662:/ clear");
+	/*^clear */
 	     /*clear *//*_.IFCPP___V24*/ meltfptr[23] = 0;
 	/*^clear */
 	     /*clear *//*_#NULL__L11*/ meltfnum[9] = 0;
@@ -15041,6 +15654,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L25*/ meltfnum[20] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -15064,7 +15680,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:706:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:706:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -15131,14 +15750,20 @@ lab_endgetargs:;
     /*_.IFCPP___V55*/ meltfptr[51] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:707:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:707:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.UPDATLIST__V4*/ meltfptr[3];;
     MELT_LOCATION ("warmelt-normatch.melt:707:/ finalreturn");
     ;
     /*finalret */ goto labend_rout;
-    MELT_LOCATION ("warmelt-normatch.melt:653:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:653:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.RETURN___V59*/ meltfptr[50];;
@@ -15302,6 +15927,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -15325,7 +15953,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:718:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:718:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -15396,6 +16027,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -15543,6 +16177,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
       /*^cond */
       /*cond */ if (( /*nil */ NULL))	/*then */
 	{
@@ -15603,7 +16240,10 @@ lab_endgetargs:;
 	   /*clear *//*_.PSLOC__V16*/ meltfptr[15] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V17*/ meltfptr[16] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:717:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:717:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V12*/ meltfptr[7];;
@@ -15753,6 +16393,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -15776,7 +16419,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:734:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:734:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -15847,6 +16493,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -15906,6 +16555,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN */
@@ -16055,6 +16707,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L5*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -16078,7 +16733,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:741:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:741:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -16170,6 +16828,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
       /*^cond */
       /*cond */ if (( /*nil */ NULL))	/*then */
 	{
@@ -16229,7 +16890,10 @@ lab_endgetargs:;
 	   /*clear *//*_.IFCPP___V19*/ meltfptr[18] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V23*/ meltfptr[19] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:733:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:733:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V14*/ meltfptr[12];;
@@ -16405,6 +17069,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L1*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V8*/ meltfptr[7]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -16464,6 +17131,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L2*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.LOCOCC__V4*/ meltfptr[3]),
 			     (melt_ptr_t) (( /*!CLASS_NREP_LOCSYMOCC */
@@ -16532,6 +17202,9 @@ lab_endgetargs:;
       /*anyblock */
       {
 
+	/*^checkinterrupt */
+	MELT_CHECK_INTERRUPT ();
+	;
 
 #if MELT_HAVE_DEBUG
 	MELT_LOCATION ("warmelt-normatch.melt:762:/ cppif.then");
@@ -16548,6 +17221,9 @@ lab_endgetargs:;
 #endif
 	    ;
 	  }
+	  ;
+	  /*^checkinterrupt */
+	  MELT_CHECK_INTERRUPT ();
 	  ;
      /*_#MELT_NEED_DBG__L3*/ meltfnum[0] =
 	    /*MELT_NEED_DBG */
@@ -16572,7 +17248,10 @@ lab_endgetargs:;
 		  0L
 #endif /* meltcallcount the_meltcallcount */
 		  ;;
-		MELT_LOCATION ("warmelt-normatch.melt:762:/ apply");
+		MELT_LOCATION ("warmelt-normatch.melt:762:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^apply */
 		/*apply */
 		{
 		  union meltparam_un argtab[5];
@@ -16639,7 +17318,10 @@ lab_endgetargs:;
 	/*_.IFCPP___V18*/ meltfptr[17] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	;
-	MELT_LOCATION ("warmelt-normatch.melt:764:/ cond");
+	MELT_LOCATION ("warmelt-normatch.melt:764:/ checkinterrupt");
+	MELT_CHECK_INTERRUPT ();
+	;
+	/*^cond */
 	/*cond */ if (
 		       /*ifisa */
 		       melt_is_instance_of ((melt_ptr_t)
@@ -16708,6 +17390,9 @@ lab_endgetargs:;
 	    /*anyblock */
 	    {
 
+	      MELT_LOCATION ("warmelt-normatch.melt:768:/ checkinterrupt");
+	      MELT_CHECK_INTERRUPT ();
+	      ;
      /*_#IS_A__L6*/ meltfnum[0] =
 		melt_is_instance_of ((melt_ptr_t)
 				     ( /*_.TSTUFF__V6*/ meltfptr[5]),
@@ -16819,6 +17504,9 @@ lab_endgetargs:;
 		    MELT_LOCATION ("warmelt-normatch.melt:779:/ quasiblock");
 
 
+		    /*^checkinterrupt */
+		    MELT_CHECK_INTERRUPT ();
+		    ;
        /*_.MAKE_LIST__V32*/ meltfptr[25] =
 		      (meltgc_new_list
 		       ((meltobject_ptr_t)
@@ -16929,7 +17617,11 @@ lab_endgetargs:;
 		      ;
 		    }
 		    ;
-		    MELT_LOCATION ("warmelt-normatch.melt:789:/ apply");
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:789:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
+		    /*^apply */
 		    /*apply */
 		    {
 		      union meltparam_un argtab[1];
@@ -16964,6 +17656,9 @@ lab_endgetargs:;
 			;
 		      }
 		      ;
+		      /*^checkinterrupt */
+		      MELT_CHECK_INTERRUPT ();
+		      ;
 	 /*_#MELT_NEED_DBG__L7*/ meltfnum[6] =
 			/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -16988,7 +17683,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 			      ;;
 			    MELT_LOCATION
-			      ("warmelt-normatch.melt:790:/ apply");
+			      ("warmelt-normatch.melt:790:/ checkinterrupt");
+			    MELT_CHECK_INTERRUPT ();
+			    ;
+			    /*^apply */
 			    /*apply */
 			    {
 			      union meltparam_un argtab[5];
@@ -17079,7 +17777,11 @@ lab_endgetargs:;
 							meltfptr[26]));
 		    }
 		    ;
-		    MELT_LOCATION ("warmelt-normatch.melt:793:/ apply");
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:793:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
+		    /*^apply */
 		    /*apply */
 		    {
 		      /*_.CURHDLER__V41*/ meltfptr[37] =
@@ -17137,9 +17839,12 @@ lab_endgetargs:;
 	    ;
 	  }
 	;
+	MELT_LOCATION ("warmelt-normatch.melt:760:/ checkinterrupt");
+	MELT_CHECK_INTERRUPT ();
+	;
 	/*epilog */
 
-	MELT_LOCATION ("warmelt-normatch.melt:760:/ clear");
+	/*^clear */
 	     /*clear *//*_.IFCPP___V18*/ meltfptr[17] = 0;
 	/*^clear */
 	     /*clear *//*_.NTSAME_IDENTICAL__V22*/ meltfptr[18] = 0;
@@ -17166,7 +17871,10 @@ lab_endgetargs:;
 	   /*clear *//*_.CURHDLER__V15*/ meltfptr[14] = 0;
     /*^clear */
 	   /*clear *//*_.FOREVER___V16*/ meltfptr[15] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:753:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:753:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V13*/ meltfptr[11];;
@@ -17280,7 +17988,10 @@ lab_endgetargs:;
       ;
     }
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:773:/ cond");
+    MELT_LOCATION ("warmelt-normatch.melt:773:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^cond */
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
@@ -17330,6 +18041,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -17353,7 +18067,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:774:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:774:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -17451,9 +18168,12 @@ lab_endgetargs:;
 					 tabval[0])));
     }
     ;
+    MELT_LOCATION ("warmelt-normatch.melt:771:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
     /*epilog */
 
-    MELT_LOCATION ("warmelt-normatch.melt:771:/ clear");
+    /*^clear */
 	   /*clear *//*_.IFCPP___V3*/ meltfptr[2] = 0;
     /*^clear */
 	   /*clear *//*_.NTEST_COMEFROM__V7*/ meltfptr[3] = 0;
@@ -17593,6 +18313,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -17616,7 +18339,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:806:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:806:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -17693,6 +18419,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_VARIABLE */ meltfrout->tabval[1])));;
@@ -17751,6 +18480,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -18068,6 +18800,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L5*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -18091,7 +18826,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:821:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:821:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -18168,8 +18906,9 @@ lab_endgetargs:;
     /*_.IFCPP___V26*/ meltfptr[25] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    /*^compute */
-
+    MELT_LOCATION ("warmelt-normatch.melt:824:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#IS_A__L7*/ meltfnum[0] =
       melt_is_instance_of ((melt_ptr_t) ( /*_.LOCOCC__V22*/ meltfptr[21]),
 			   (melt_ptr_t) (( /*!CLASS_NREP_LOCSYMOCC */
@@ -18199,6 +18938,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
      /*_#MELT_NEED_DBG__L8*/ meltfnum[1] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -18222,7 +18964,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:826:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:826:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -18290,7 +19036,10 @@ lab_endgetargs:;
 	  /*_.IFCPP___V31*/ meltfptr[27] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	  MELT_LOCATION ("warmelt-normatch.melt:827:/ apply");
+	  MELT_LOCATION ("warmelt-normatch.melt:827:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^apply */
 	  /*apply */
 	  {
 	    union meltparam_un argtab[6];
@@ -18349,6 +19098,9 @@ lab_endgetargs:;
 	/*anyblock */
 	{
 
+	  MELT_LOCATION ("warmelt-normatch.melt:830:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
    /*_#IS_A__L10*/ meltfnum[8] =
 	    melt_is_instance_of ((melt_ptr_t)
 				 ( /*_.LOCOCC__V22*/ meltfptr[21]),
@@ -18378,6 +19130,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
        /*_#MELT_NEED_DBG__L11*/ meltfnum[1] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -18401,7 +19156,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:831:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:831:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[5];
@@ -18533,6 +19292,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
        /*_#MELT_NEED_DBG__L13*/ meltfnum[11] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -18556,7 +19318,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:837:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:837:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[5];
@@ -18634,6 +19400,9 @@ lab_endgetargs:;
 		/*anyblock */
 		{
 
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
        /*_#__L15*/ meltfnum[1] =
 		    (( /*_.PATSYM__V45*/ meltfptr[44]) ==
 		     ( /*_.PATVAR__V20*/ meltfptr[19]));;
@@ -18705,6 +19474,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
        /*_#MELT_NEED_DBG__L16*/ meltfnum[11] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -18728,7 +19500,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:839:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:839:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[5];
@@ -18800,8 +19576,9 @@ lab_endgetargs:;
 		/*_.IFCPP___V52*/ meltfptr[47] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 		;
-		/*^compute */
-
+		MELT_LOCATION ("warmelt-normatch.melt:840:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
      /*_#NULL__L18*/ meltfnum[1] =
 		  (( /*_.REALOCOCC__V43*/ meltfptr[39]) == NULL);;
 		MELT_LOCATION ("warmelt-normatch.melt:840:/ cond");
@@ -18816,7 +19593,11 @@ lab_endgetargs:;
 			("warmelt-normatch.melt:842:/ quasiblock");
 
 
-		      MELT_LOCATION ("warmelt-normatch.melt:843:/ msend");
+		      MELT_LOCATION
+			("warmelt-normatch.melt:843:/ checkinterrupt");
+		      MELT_CHECK_INTERRUPT ();
+		      ;
+		      /*^msend */
 		      /*msend */
 		      {
 			union meltparam_un argtab[1];
@@ -18834,7 +19615,10 @@ lab_endgetargs:;
 		      }
 		      ;
 		      MELT_LOCATION
-			("warmelt-normatch.melt:844:/ quasiblock");
+			("warmelt-normatch.melt:844:/ checkinterrupt");
+		      MELT_CHECK_INTERRUPT ();
+		      ;
+		      /*^quasiblock */
 
 
 		      /*^rawallocobj */
@@ -18898,7 +19682,10 @@ lab_endgetargs:;
 		      /*_.CBIND__V59*/ meltfptr[58] =
 			/*_.INST__V60*/ meltfptr[59];;
 		      MELT_LOCATION
-			("warmelt-normatch.melt:850:/ quasiblock");
+			("warmelt-normatch.melt:850:/ checkinterrupt");
+		      MELT_CHECK_INTERRUPT ();
+		      ;
+		      /*^quasiblock */
 
 
 		      /*^rawallocobj */
@@ -18979,6 +19766,9 @@ lab_endgetargs:;
 			  ;
 			}
 			;
+			/*^checkinterrupt */
+			MELT_CHECK_INTERRUPT ();
+			;
 	 /*_#MELT_NEED_DBG__L19*/ meltfnum[11] =
 			  /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -19003,7 +19793,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 				;;
 			      MELT_LOCATION
-				("warmelt-normatch.melt:856:/ apply");
+				("warmelt-normatch.melt:856:/ checkinterrupt");
+			      MELT_CHECK_INTERRUPT ();
+			      ;
+			      /*^apply */
 			      /*apply */
 			      {
 				union meltparam_un argtab[5];
@@ -19081,7 +19874,11 @@ lab_endgetargs:;
 		      /*_.IFCPP___V63*/ meltfptr[62] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 		      ;
-		      MELT_LOCATION ("warmelt-normatch.melt:857:/ cond");
+		      MELT_LOCATION
+			("warmelt-normatch.melt:857:/ checkinterrupt");
+		      MELT_CHECK_INTERRUPT ();
+		      ;
+		      /*^cond */
 		      /*cond */ if (
 				     /*ifisa */
 				     melt_is_instance_of ((melt_ptr_t)
@@ -19143,6 +19940,9 @@ lab_endgetargs:;
 			  ;
 			}
 			;
+			/*^checkinterrupt */
+			MELT_CHECK_INTERRUPT ();
+			;
 	 /*_#MELT_NEED_DBG__L21*/ meltfnum[19] =
 			  /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -19167,7 +19967,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 				;;
 			      MELT_LOCATION
-				("warmelt-normatch.melt:860:/ apply");
+				("warmelt-normatch.melt:860:/ checkinterrupt");
+			      MELT_CHECK_INTERRUPT ();
+			      ;
+			      /*^apply */
 			      /*apply */
 			      {
 				union meltparam_un argtab[5];
@@ -19321,6 +20124,9 @@ lab_endgetargs:;
 			  ;
 			}
 			;
+			/*^checkinterrupt */
+			MELT_CHECK_INTERRUPT ();
+			;
 	 /*_#MELT_NEED_DBG__L23*/ meltfnum[11] =
 			  /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -19345,7 +20151,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 				;;
 			      MELT_LOCATION
-				("warmelt-normatch.melt:865:/ apply");
+				("warmelt-normatch.melt:865:/ checkinterrupt");
+			      MELT_CHECK_INTERRUPT ();
+			      ;
+			      /*^apply */
 			      /*apply */
 			      {
 				union meltparam_un argtab[5];
@@ -19458,6 +20267,10 @@ lab_endgetargs:;
 		    /*anyblock */
 		    {
 
+		      MELT_LOCATION
+			("warmelt-normatch.melt:871:/ checkinterrupt");
+		      MELT_CHECK_INTERRUPT ();
+		      ;
        /*_#IS_A__L25*/ meltfnum[19] =
 			melt_is_instance_of ((melt_ptr_t)
 					     ( /*_.REALOCOCC__V43*/
@@ -19489,6 +20302,9 @@ lab_endgetargs:;
 				;
 			      }
 			      ;
+			      /*^checkinterrupt */
+			      MELT_CHECK_INTERRUPT ();
+			      ;
 	   /*_#MELT_NEED_DBG__L26*/ meltfnum[11] =
 				/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -19516,7 +20332,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 				      ;;
 				    MELT_LOCATION
-				      ("warmelt-normatch.melt:872:/ apply");
+				      ("warmelt-normatch.melt:872:/ checkinterrupt");
+				    MELT_CHECK_INTERRUPT ();
+				    ;
+				    /*^apply */
 				    /*apply */
 				    {
 				      union meltparam_un argtab[5];
@@ -19600,7 +20419,10 @@ lab_endgetargs:;
 #endif /*MELT_HAVE_DEBUG */
 			    ;
 			    MELT_LOCATION
-			      ("warmelt-normatch.melt:873:/ apply");
+			      ("warmelt-normatch.melt:873:/ checkinterrupt");
+			    MELT_CHECK_INTERRUPT ();
+			    ;
+			    /*^apply */
 			    /*apply */
 			    {
 			      union meltparam_un argtab[6];
@@ -19671,6 +20493,10 @@ lab_endgetargs:;
 			  /*anyblock */
 			  {
 
+			    MELT_LOCATION
+			      ("warmelt-normatch.melt:877:/ checkinterrupt");
+			    MELT_CHECK_INTERRUPT ();
+			    ;
 	 /*_#IS_A__L28*/ meltfnum[26] =
 			      melt_is_instance_of ((melt_ptr_t)
 						   ( /*_.REALOCOCC__V43*/
@@ -19690,7 +20516,10 @@ lab_endgetargs:;
 
 
 				  MELT_LOCATION
-				    ("warmelt-normatch.melt:879:/ msend");
+				    ("warmelt-normatch.melt:879:/ checkinterrupt");
+				  MELT_CHECK_INTERRUPT ();
+				  ;
+				  /*^msend */
 				  /*msend */
 				  {
 				    union meltparam_un argtab[1];
@@ -19748,6 +20577,9 @@ lab_endgetargs:;
 				      ;
 				    }
 				    ;
+				    /*^checkinterrupt */
+				    MELT_CHECK_INTERRUPT ();
+				    ;
 	     /*_#MELT_NEED_DBG__L29*/ meltfnum[11] =
 				      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -19775,7 +20607,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 					    ;;
 					  MELT_LOCATION
-					    ("warmelt-normatch.melt:882:/ apply");
+					    ("warmelt-normatch.melt:882:/ checkinterrupt");
+					  MELT_CHECK_INTERRUPT ();
+					  ;
+					  /*^apply */
 					  /*apply */
 					  {
 					    union meltparam_un argtab[5];
@@ -19861,6 +20696,9 @@ lab_endgetargs:;
 				  /*anyblock */
 				  {
 
+				    /*^checkinterrupt */
+				    MELT_CHECK_INTERRUPT ();
+				    ;
 	     /*_#IS_A__L31*/ meltfnum[29] =
 				      melt_is_instance_of ((melt_ptr_t)
 							   ( /*_.BXCLOCC__V85*/ meltfptr[53]), (melt_ptr_t) (( /*!CLASS_NREP_LOCSYMOCC */ meltfrout->tabval[4])));;
@@ -19930,6 +20768,10 @@ lab_endgetargs:;
 												      /*_.PREVCTYP__V92*/
 				    meltfptr[60] = slot;
 				  };
+				  ;
+				  MELT_LOCATION
+				    ("warmelt-normatch.melt:888:/ checkinterrupt");
+				  MELT_CHECK_INTERRUPT ();
 				  ;
 	   /*_#__L32*/ meltfnum[11] =
 				    (( /*_.CTYP__V84*/ meltfptr[68]) !=
@@ -20154,7 +20996,10 @@ lab_endgetargs:;
 				  /*^clear */
 		     /*clear *//*_#__L32*/ meltfnum[11] = 0;
 				  MELT_LOCATION
-				    ("warmelt-normatch.melt:898:/ cond");
+				    ("warmelt-normatch.melt:898:/ checkinterrupt");
+				  MELT_CHECK_INTERRUPT ();
+				  ;
+				  /*^cond */
 				  /*cond */ if (
 						 /*ifisa */
 						 melt_is_instance_of ((melt_ptr_t) ( /*_.LOCOCC__V22*/ meltfptr[21]),
@@ -20209,6 +21054,9 @@ lab_endgetargs:;
 				      ;
 				    }
 				    ;
+				    /*^checkinterrupt */
+				    MELT_CHECK_INTERRUPT ();
+				    ;
 	     /*_#MELT_NEED_DBG__L33*/ meltfnum[29] =
 				      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -20236,7 +21084,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 					    ;;
 					  MELT_LOCATION
-					    ("warmelt-normatch.melt:901:/ apply");
+					    ("warmelt-normatch.melt:901:/ checkinterrupt");
+					  MELT_CHECK_INTERRUPT ();
+					  ;
+					  /*^apply */
 					  /*apply */
 					  {
 					    union meltparam_un argtab[5];
@@ -20366,6 +21217,9 @@ lab_endgetargs:;
 				  /*anyblock */
 				  {
 
+				    /*^checkinterrupt */
+				    MELT_CHECK_INTERRUPT ();
+				    ;
 				    /*^cond */
 				    /*cond */ if (( /*nil */ NULL))	/*then */
 				      {
@@ -20510,6 +21364,9 @@ lab_endgetargs:;
 	      /*anyblock */
 	      {
 
+		MELT_LOCATION ("warmelt-normatch.melt:912:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
      /*_#NULL__L35*/ meltfnum[11] =
 		  (( /*_.LOCOCC__V22*/ meltfptr[21]) == NULL);;
 		MELT_LOCATION ("warmelt-normatch.melt:912:/ cond");
@@ -20524,6 +21381,9 @@ lab_endgetargs:;
 			("warmelt-normatch.melt:913:/ quasiblock");
 
 
+		      /*^checkinterrupt */
+		      MELT_CHECK_INTERRUPT ();
+		      ;
 		      /*^msend */
 		      /*msend */
 		      {
@@ -20542,7 +21402,10 @@ lab_endgetargs:;
 		      }
 		      ;
 		      MELT_LOCATION
-			("warmelt-normatch.melt:914:/ quasiblock");
+			("warmelt-normatch.melt:914:/ checkinterrupt");
+		      MELT_CHECK_INTERRUPT ();
+		      ;
+		      /*^quasiblock */
 
 
 		      /*^rawallocobj */
@@ -20606,7 +21469,10 @@ lab_endgetargs:;
 		      /*_.CBIND__V111*/ meltfptr[68] =
 			/*_.INST__V112*/ meltfptr[53];;
 		      MELT_LOCATION
-			("warmelt-normatch.melt:920:/ quasiblock");
+			("warmelt-normatch.melt:920:/ checkinterrupt");
+		      MELT_CHECK_INTERRUPT ();
+		      ;
+		      /*^quasiblock */
 
 
 		      /*^rawallocobj */
@@ -20687,6 +21553,9 @@ lab_endgetargs:;
 			  ;
 			}
 			;
+			/*^checkinterrupt */
+			MELT_CHECK_INTERRUPT ();
+			;
 	 /*_#MELT_NEED_DBG__L36*/ meltfnum[29] =
 			  /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -20711,7 +21580,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 				;;
 			      MELT_LOCATION
-				("warmelt-normatch.melt:926:/ apply");
+				("warmelt-normatch.melt:926:/ checkinterrupt");
+			      MELT_CHECK_INTERRUPT ();
+			      ;
+			      /*^apply */
 			      /*apply */
 			      {
 				union meltparam_un argtab[7];
@@ -20871,6 +21743,9 @@ lab_endgetargs:;
 			  ;
 			}
 			;
+			/*^checkinterrupt */
+			MELT_CHECK_INTERRUPT ();
+			;
 	 /*_#MELT_NEED_DBG__L38*/ meltfnum[19] =
 			  /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -20895,7 +21770,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 				;;
 			      MELT_LOCATION
-				("warmelt-normatch.melt:931:/ apply");
+				("warmelt-normatch.melt:931:/ checkinterrupt");
+			      MELT_CHECK_INTERRUPT ();
+			      ;
+			      /*^apply */
 			      /*apply */
 			      {
 				union meltparam_un argtab[9];
@@ -21031,6 +21909,9 @@ lab_endgetargs:;
 		      /*anyblock */
 		      {
 
+			/*^checkinterrupt */
+			MELT_CHECK_INTERRUPT ();
+			;
 			/*^cond */
 			/*cond */ if (( /*nil */ NULL))	/*then */
 			  {
@@ -21150,7 +22031,10 @@ lab_endgetargs:;
 	   /*clear *//*_#IS_A__L7*/ meltfnum[0] = 0;
     /*^clear */
 	   /*clear *//*_.IFELSE___V30*/ meltfptr[26] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:805:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:805:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V14*/ meltfptr[12];;
@@ -21302,6 +22186,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -21325,7 +22212,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:950:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:950:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -21402,6 +22292,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_JOKER_VARIABLE */ meltfrout->tabval[1])));;
@@ -21460,6 +22353,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -21512,7 +22408,10 @@ lab_endgetargs:;
     /*_.IFCPP___V12*/ meltfptr[7] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:949:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:949:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.IFCPP___V12*/ meltfptr[7];;
@@ -21663,6 +22562,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -21686,7 +22588,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:964:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:964:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -21763,6 +22668,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -21822,6 +22730,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_INSTANCE */ meltfrout->tabval[2])));;
@@ -22095,7 +23006,10 @@ lab_endgetargs:;
   /*_.TESTLIST__V27*/ meltfptr[26] = NULL;;
       }
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:981:/ msend");
+    MELT_LOCATION ("warmelt-normatch.melt:981:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^msend */
     /*msend */
     {
       union meltparam_un argtab[3];
@@ -22120,6 +23034,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L5*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PATCLA__V19*/ meltfptr[18]),
 			     (melt_ptr_t) (( /*!CLASS_CLASS */ meltfrout->
@@ -22181,6 +23098,9 @@ lab_endgetargs:;
       /*anyblock */
       {
 
+	/*^checkinterrupt */
+	MELT_CHECK_INTERRUPT ();
+	;
 
 #if MELT_HAVE_DEBUG
 	MELT_LOCATION ("warmelt-normatch.melt:987:/ cppif.then");
@@ -22197,6 +23117,9 @@ lab_endgetargs:;
 #endif
 	    ;
 	  }
+	  ;
+	  /*^checkinterrupt */
+	  MELT_CHECK_INTERRUPT ();
 	  ;
      /*_#MELT_NEED_DBG__L6*/ meltfnum[0] =
 	    /*MELT_NEED_DBG */
@@ -22221,7 +23144,10 @@ lab_endgetargs:;
 		  0L
 #endif /* meltcallcount the_meltcallcount */
 		  ;;
-		MELT_LOCATION ("warmelt-normatch.melt:987:/ apply");
+		MELT_LOCATION ("warmelt-normatch.melt:987:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^apply */
 		/*apply */
 		{
 		  union meltparam_un argtab[5];
@@ -22289,7 +23215,10 @@ lab_endgetargs:;
 	/*_.IFCPP___V33*/ meltfptr[32] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	;
-	MELT_LOCATION ("warmelt-normatch.melt:990:/ cond");
+	MELT_LOCATION ("warmelt-normatch.melt:990:/ checkinterrupt");
+	MELT_CHECK_INTERRUPT ();
+	;
+	/*^cond */
 	/*cond */ if (
 		       /*ifisa */
 		       melt_is_instance_of ((melt_ptr_t)
@@ -22358,6 +23287,9 @@ lab_endgetargs:;
 	    /*anyblock */
 	    {
 
+	      MELT_LOCATION ("warmelt-normatch.melt:994:/ checkinterrupt");
+	      MELT_CHECK_INTERRUPT ();
+	      ;
      /*_#IS_A__L9*/ meltfnum[0] =
 		melt_is_instance_of ((melt_ptr_t)
 				     ( /*_.TSTUFF__V24*/ meltfptr[23]),
@@ -22504,8 +23436,10 @@ lab_endgetargs:;
 		       ((meltobject_ptr_t)
 			(( /*!DISCR_MULTIPLE */ meltfrout->tabval[12])),
 			( /*_#MULTIPLE_LENGTH__L10*/ meltfnum[9])));;
-		    /*^compute */
-
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:1012:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
        /*_.MAKE_LIST__V49*/ meltfptr[42] =
 		      (meltgc_new_list
 		       ((meltobject_ptr_t)
@@ -22642,6 +23576,9 @@ lab_endgetargs:;
 			;
 		      }
 		      ;
+		      /*^checkinterrupt */
+		      MELT_CHECK_INTERRUPT ();
+		      ;
 	 /*_#MELT_NEED_DBG__L11*/ meltfnum[10] =
 			/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -22666,7 +23603,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 			      ;;
 			    MELT_LOCATION
-			      ("warmelt-normatch.melt:1023:/ apply");
+			      ("warmelt-normatch.melt:1023:/ checkinterrupt");
+			    MELT_CHECK_INTERRUPT ();
+			    ;
+			    /*^apply */
 			    /*apply */
 			    {
 			      union meltparam_un argtab[5];
@@ -22744,7 +23684,11 @@ lab_endgetargs:;
 		    /*_.IFCPP___V53*/ meltfptr[52] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 		    ;
-		    MELT_LOCATION ("warmelt-normatch.melt:1024:/ apply");
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:1024:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
+		    /*^apply */
 		    /*apply */
 		    {
 		      union meltparam_un argtab[1];
@@ -22792,6 +23736,9 @@ lab_endgetargs:;
 			;
 		      }
 		      ;
+		      /*^checkinterrupt */
+		      MELT_CHECK_INTERRUPT ();
+		      ;
 	 /*_#MELT_NEED_DBG__L13*/ meltfnum[11] =
 			/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -22816,7 +23763,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 			      ;;
 			    MELT_LOCATION
-			      ("warmelt-normatch.melt:1027:/ apply");
+			      ("warmelt-normatch.melt:1027:/ checkinterrupt");
+			    MELT_CHECK_INTERRUPT ();
+			    ;
+			    /*^apply */
 			    /*apply */
 			    {
 			      union meltparam_un argtab[5];
@@ -22894,7 +23844,11 @@ lab_endgetargs:;
 		    /*_.IFCPP___V59*/ meltfptr[58] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 		    ;
-		    MELT_LOCATION ("warmelt-normatch.melt:1028:/ apply");
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:1028:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
+		    /*^apply */
 		    /*apply */
 		    {
 		      /*_.CURHDLER__V63*/ meltfptr[59] =
@@ -22923,6 +23877,9 @@ lab_endgetargs:;
 			;
 		      }
 		      ;
+		      /*^checkinterrupt */
+		      MELT_CHECK_INTERRUPT ();
+		      ;
 	 /*_#MELT_NEED_DBG__L15*/ meltfnum[10] =
 			/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -22947,7 +23904,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 			      ;;
 			    MELT_LOCATION
-			      ("warmelt-normatch.melt:1029:/ apply");
+			      ("warmelt-normatch.melt:1029:/ checkinterrupt");
+			    MELT_CHECK_INTERRUPT ();
+			    ;
+			    /*^apply */
 			    /*apply */
 			    {
 			      union meltparam_un argtab[5];
@@ -23083,9 +24043,12 @@ lab_endgetargs:;
 	    ;
 	  }
 	;
+	MELT_LOCATION ("warmelt-normatch.melt:985:/ checkinterrupt");
+	MELT_CHECK_INTERRUPT ();
+	;
 	/*epilog */
 
-	MELT_LOCATION ("warmelt-normatch.melt:985:/ clear");
+	/*^clear */
 	     /*clear *//*_.IFCPP___V33*/ meltfptr[32] = 0;
 	/*^clear */
 	     /*clear *//*_.NTINST_CLASS__V37*/ meltfptr[33] = 0;
@@ -23119,6 +24082,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L17*/ meltfnum[11] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -23142,7 +24108,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1034:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1034:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -23247,7 +24216,10 @@ lab_endgetargs:;
   /*_.TESTLOCCL__V72*/ meltfptr[42] = NULL;;
       }
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1036:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1036:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*^rawallocobj */
@@ -23308,6 +24280,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L19*/ meltfnum[9] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -23331,7 +24306,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1057:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1057:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -23411,6 +24389,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_LIST__L21*/ meltfnum[1] =
 	(melt_magic_discr ((melt_ptr_t) ( /*_.TESTLOCCL__V72*/ meltfptr[42]))
 	 == MELTOBMAG_LIST);;
@@ -23497,6 +24478,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L23*/ meltfnum[11] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -23520,7 +24504,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1062:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1062:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[7];
@@ -23601,6 +24589,9 @@ lab_endgetargs:;
 	  /*anyblock */
 	  {
 
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#IS_A__L25*/ meltfnum[9] =
 	      melt_is_instance_of ((melt_ptr_t)
 				   ( /*_.CURPATF__V84*/ meltfptr[34]),
@@ -23801,6 +24792,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L26*/ meltfnum[1] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -23824,7 +24818,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1081:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1081:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -23891,8 +24889,9 @@ lab_endgetargs:;
 	  /*_.IFCPP___V98*/ meltfptr[97] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	  /*^compute */
-
+	  MELT_LOCATION ("warmelt-normatch.melt:1082:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
   /*_#__L28*/ meltfnum[11] =
 	    (( /*_.CURFLDCLA__V95*/ meltfptr[38]) ==
 	     ( /*_.PATCLA__V19*/ meltfptr[18]));;
@@ -23910,6 +24909,9 @@ lab_endgetargs:;
 	      /*anyblock */
 	      {
 
+		MELT_LOCATION ("warmelt-normatch.melt:1083:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
     /*_#SUBCLASS_OF__L29*/ meltfnum[9] =
 		  melt_is_subclass_of ((meltobject_ptr_t)
 				       ( /*_.PATCLA__V19*/ meltfptr[18]),
@@ -24003,6 +25005,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L30*/ meltfnum[0] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -24026,7 +25031,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1085:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1085:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -24116,6 +25125,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L32*/ meltfnum[9] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -24139,7 +25151,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1088:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1088:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -24229,6 +25245,9 @@ lab_endgetargs:;
 		/*anyblock */
 		{
 
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
      /*_#IS_A__L34*/ meltfnum[0] =
 		    melt_is_instance_of ((melt_ptr_t)
 					 ( /*_.TESTLOCSY__V116*/
@@ -24285,6 +25304,9 @@ lab_endgetargs:;
 		/*^cppif.else */
 		/*_.IFCPP___V117*/ meltfptr[116] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
+		;
+		MELT_LOCATION ("warmelt-normatch.melt:1094:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
 		;
 		MELT_LOCATION ("warmelt-normatch.melt:1095:/ cond");
 		/*cond */ if (
@@ -24447,6 +25469,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L36*/ meltfnum[9] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -24470,7 +25495,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1100:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1100:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -24539,8 +25568,9 @@ lab_endgetargs:;
 	  /*_.IFCPP___V126*/ meltfptr[122] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	  /*^compute */
-
+	  MELT_LOCATION ("warmelt-normatch.melt:1102:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
   /*_#NULL__L38*/ meltfnum[0] =
 	    (( /*_.CURLOCCL__V110*/ meltfptr[106]) == NULL);;
 	  MELT_LOCATION ("warmelt-normatch.melt:1102:/ cond");
@@ -24579,7 +25609,10 @@ lab_endgetargs:;
      /*_.NAMED_NAME__V132*/ meltfptr[131] = NULL;;
 		  }
 		;
-		MELT_LOCATION ("warmelt-normatch.melt:1104:/ apply");
+		MELT_LOCATION ("warmelt-normatch.melt:1104:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^apply */
 		/*apply */
 		{
 		  /*_.NEWSYM__V133*/ meltfptr[132] =
@@ -24591,7 +25624,10 @@ lab_endgetargs:;
 				(union meltparam_un *) 0);
 		}
 		;
-		MELT_LOCATION ("warmelt-normatch.melt:1105:/ quasiblock");
+		MELT_LOCATION ("warmelt-normatch.melt:1105:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^quasiblock */
 
 
 		/*^rawallocobj */
@@ -24639,7 +25675,10 @@ lab_endgetargs:;
 		;
 		/*_.NFLEXP__V134*/ meltfptr[133] =
 		  /*_.INST__V135*/ meltfptr[134];;
-		MELT_LOCATION ("warmelt-normatch.melt:1109:/ quasiblock");
+		MELT_LOCATION ("warmelt-normatch.melt:1109:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^quasiblock */
 
 
 		/*^rawallocobj */
@@ -24698,7 +25737,10 @@ lab_endgetargs:;
 		;
 		/*_.NEWBIND__V136*/ meltfptr[135] =
 		  /*_.INST__V137*/ meltfptr[136];;
-		MELT_LOCATION ("warmelt-normatch.melt:1114:/ quasiblock");
+		MELT_LOCATION ("warmelt-normatch.melt:1114:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^quasiblock */
 
 
 		/*^rawallocobj */
@@ -24774,6 +25816,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
       /*_#MELT_NEED_DBG__L39*/ meltfnum[9] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -24797,7 +25842,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:1121:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:1121:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[7];
@@ -24971,6 +26020,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
       /*_#MELT_NEED_DBG__L42*/ meltfnum[9] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -24994,7 +26046,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:1129:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:1129:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[5];
@@ -25092,6 +26148,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
       /*_#MELT_NEED_DBG__L44*/ meltfnum[42] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -25115,7 +26174,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:1131:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:1131:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[5];
@@ -25251,6 +26314,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L46*/ meltfnum[9] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -25274,7 +26340,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1134:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1134:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -25343,7 +26413,10 @@ lab_endgetargs:;
 	  /*_.IFCPP___V155*/ meltfptr[151] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	  MELT_LOCATION ("warmelt-normatch.melt:1135:/ msend");
+	  MELT_LOCATION ("warmelt-normatch.melt:1135:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^msend */
 	  /*msend */
 	  {
 	    union meltparam_un argtab[3];
@@ -25382,6 +26455,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L48*/ meltfnum[39] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -25405,7 +26481,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1136:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1136:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[7];
@@ -25570,6 +26650,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L50*/ meltfnum[9] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -25593,7 +26676,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1140:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1140:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -25716,6 +26802,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L52*/ meltfnum[39] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -25739,7 +26828,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1142:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1142:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -25805,7 +26897,10 @@ lab_endgetargs:;
     /*_.IFCPP___V168*/ meltfptr[132] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:963:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:963:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.IFCPP___V168*/ meltfptr[132];;
@@ -25922,7 +27017,10 @@ lab_endgetargs:;
       ;
     }
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:999:/ cond");
+    MELT_LOCATION ("warmelt-normatch.melt:999:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^cond */
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
@@ -25972,6 +27070,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -25995,7 +27096,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1000:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1000:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -26093,9 +27197,12 @@ lab_endgetargs:;
 					 tabval[0])));
     }
     ;
+    MELT_LOCATION ("warmelt-normatch.melt:997:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
     /*epilog */
 
-    MELT_LOCATION ("warmelt-normatch.melt:997:/ clear");
+    /*^clear */
 	   /*clear *//*_.IFCPP___V3*/ meltfptr[2] = 0;
     /*^clear */
 	   /*clear *//*_.NTEST_COMEFROM__V7*/ meltfptr[3] = 0;
@@ -26202,6 +27309,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L1*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PF1__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_FIELD_PATTERN */
@@ -26261,6 +27371,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L2*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PF2__V3*/ meltfptr[2]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_FIELD_PATTERN */
@@ -26421,8 +27534,9 @@ lab_endgetargs:;
 
  /*_#WPF2__L4*/ meltfnum[3] =
       (melt_get_int ((melt_ptr_t) ( /*_.PAT_WEIGHT__V12*/ meltfptr[11])));;
-    /*^compute */
-
+    MELT_LOCATION ("warmelt-normatch.melt:1050:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#I__L5*/ meltfnum[4] =
       (( /*_#WPF2__L4*/ meltfnum[3]) == ( /*_#WPF2__L4*/ meltfnum[3]));;
     MELT_LOCATION ("warmelt-normatch.melt:1050:/ cond");
@@ -26440,6 +27554,9 @@ lab_endgetargs:;
 	/*anyblock */
 	{
 
+	  MELT_LOCATION ("warmelt-normatch.melt:1051:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
    /*_#I__L6*/ meltfnum[5] =
 	    (( /*_#WPF1__L3*/ meltfnum[0]) < ( /*_#WPF2__L4*/ meltfnum[3]));;
 	  MELT_LOCATION ("warmelt-normatch.melt:1051:/ cond");
@@ -26503,7 +27620,10 @@ lab_endgetargs:;
 	   /*clear *//*_#I__L5*/ meltfnum[4] = 0;
     /*^clear */
 	   /*clear *//*_.IFELSE___V13*/ meltfptr[12] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:1042:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1042:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V8*/ meltfptr[6];;
@@ -26622,6 +27742,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -26645,7 +27768,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1070:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1070:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -26773,6 +27899,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L3*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -26796,7 +27925,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1074:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1074:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -26869,6 +28001,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L5*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PREVTESTER__V8*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_NORMTESTER_ANYTESTER */
@@ -26921,7 +28056,10 @@ lab_endgetargs:;
     /*_.IFCPP___V13*/ meltfptr[9] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1076:/ apply");
+    MELT_LOCATION ("warmelt-normatch.melt:1076:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^apply */
     /*apply */
     {
       union meltparam_un argtab[1];
@@ -26965,6 +28103,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L6*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -26988,7 +28129,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1078:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1078:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -27054,7 +28198,10 @@ lab_endgetargs:;
     /*_.IFCPP___V16*/ meltfptr[4] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1069:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1069:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.IFCPP___V16*/ meltfptr[4];;
@@ -27204,6 +28351,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -27227,7 +28377,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1157:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1157:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -27310,6 +28463,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -27369,6 +28525,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_TUPLE */
@@ -27581,6 +28740,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L6*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -27604,7 +28766,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1171:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1171:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -27683,6 +28848,9 @@ lab_endgetargs:;
       /*anyblock */
       {
 
+	/*^checkinterrupt */
+	MELT_CHECK_INTERRUPT ();
+	;
 
 #if MELT_HAVE_DEBUG
 	MELT_LOCATION ("warmelt-normatch.melt:1175:/ cppif.then");
@@ -27699,6 +28867,9 @@ lab_endgetargs:;
 #endif
 	    ;
 	  }
+	  ;
+	  /*^checkinterrupt */
+	  MELT_CHECK_INTERRUPT ();
 	  ;
      /*_#MELT_NEED_DBG__L8*/ meltfnum[6] =
 	    /*MELT_NEED_DBG */
@@ -27723,7 +28894,10 @@ lab_endgetargs:;
 		  0L
 #endif /* meltcallcount the_meltcallcount */
 		  ;;
-		MELT_LOCATION ("warmelt-normatch.melt:1175:/ apply");
+		MELT_LOCATION ("warmelt-normatch.melt:1175:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^apply */
 		/*apply */
 		{
 		  union meltparam_un argtab[5];
@@ -27790,8 +28964,12 @@ lab_endgetargs:;
 	/*_.IFCPP___V29*/ meltfptr[28] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	;
-	/*^compute */
-
+	MELT_LOCATION ("warmelt-normatch.melt:1177:/ checkinterrupt");
+	MELT_CHECK_INTERRUPT ();
+	;
+	/*^checkinterrupt */
+	MELT_CHECK_INTERRUPT ();
+	;
    /*_#IS_A__L10*/ meltfnum[0] =
 	  melt_is_instance_of ((melt_ptr_t) ( /*_.TSTUFF__V19*/ meltfptr[18]),
 			       (melt_ptr_t) (( /*!CLASS_NORMTESTER_TUPLE */
@@ -27885,6 +29063,9 @@ lab_endgetargs:;
 		  ;
 		}
 		;
+		/*^checkinterrupt */
+		MELT_CHECK_INTERRUPT ();
+		;
        /*_#MELT_NEED_DBG__L14*/ meltfnum[11] =
 		  /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -27908,7 +29089,11 @@ lab_endgetargs:;
 			0L
 #endif /* meltcallcount the_meltcallcount */
 			;;
-		      MELT_LOCATION ("warmelt-normatch.melt:1181:/ apply");
+		      MELT_LOCATION
+			("warmelt-normatch.melt:1181:/ checkinterrupt");
+		      MELT_CHECK_INTERRUPT ();
+		      ;
+		      /*^apply */
 		      /*apply */
 		      {
 			union meltparam_un argtab[5];
@@ -28006,6 +29191,9 @@ lab_endgetargs:;
 	    /*anyblock */
 	    {
 
+	      MELT_LOCATION ("warmelt-normatch.melt:1184:/ checkinterrupt");
+	      MELT_CHECK_INTERRUPT ();
+	      ;
      /*_#IS_A__L16*/ meltfnum[12] =
 		melt_is_instance_of ((melt_ptr_t)
 				     ( /*_.TSTUFF__V19*/ meltfptr[18]),
@@ -28122,8 +29310,10 @@ lab_endgetargs:;
 		       ((meltobject_ptr_t)
 			(( /*!DISCR_MULTIPLE */ meltfrout->tabval[10])),
 			( /*_#NBCOMP__L5*/ meltfnum[1])));;
-		    /*^compute */
-
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:1198:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
        /*_.MAKE_LIST__V49*/ meltfptr[36] =
 		      (meltgc_new_list
 		       ((meltobject_ptr_t)
@@ -28249,6 +29439,9 @@ lab_endgetargs:;
 			;
 		      }
 		      ;
+		      /*^checkinterrupt */
+		      MELT_CHECK_INTERRUPT ();
+		      ;
 	 /*_#MELT_NEED_DBG__L17*/ meltfnum[11] =
 			/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -28273,7 +29466,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 			      ;;
 			    MELT_LOCATION
-			      ("warmelt-normatch.melt:1208:/ apply");
+			      ("warmelt-normatch.melt:1208:/ checkinterrupt");
+			    MELT_CHECK_INTERRUPT ();
+			    ;
+			    /*^apply */
 			    /*apply */
 			    {
 			      union meltparam_un argtab[5];
@@ -28351,7 +29547,11 @@ lab_endgetargs:;
 		    /*_.IFCPP___V53*/ meltfptr[52] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 		    ;
-		    MELT_LOCATION ("warmelt-normatch.melt:1209:/ apply");
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:1209:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
+		    /*^apply */
 		    /*apply */
 		    {
 		      union meltparam_un argtab[1];
@@ -28399,6 +29599,9 @@ lab_endgetargs:;
 			;
 		      }
 		      ;
+		      /*^checkinterrupt */
+		      MELT_CHECK_INTERRUPT ();
+		      ;
 	 /*_#MELT_NEED_DBG__L19*/ meltfnum[17] =
 			/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -28423,7 +29626,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 			      ;;
 			    MELT_LOCATION
-			      ("warmelt-normatch.melt:1212:/ apply");
+			      ("warmelt-normatch.melt:1212:/ checkinterrupt");
+			    MELT_CHECK_INTERRUPT ();
+			    ;
+			    /*^apply */
 			    /*apply */
 			    {
 			      union meltparam_un argtab[5];
@@ -28501,7 +29707,11 @@ lab_endgetargs:;
 		    /*_.IFCPP___V59*/ meltfptr[58] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 		    ;
-		    MELT_LOCATION ("warmelt-normatch.melt:1213:/ apply");
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:1213:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
+		    /*^apply */
 		    /*apply */
 		    {
 		      /*_.CURHDLER__V63*/ meltfptr[59] =
@@ -28530,6 +29740,9 @@ lab_endgetargs:;
 			;
 		      }
 		      ;
+		      /*^checkinterrupt */
+		      MELT_CHECK_INTERRUPT ();
+		      ;
 	 /*_#MELT_NEED_DBG__L21*/ meltfnum[11] =
 			/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -28554,7 +29767,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 			      ;;
 			    MELT_LOCATION
-			      ("warmelt-normatch.melt:1214:/ apply");
+			      ("warmelt-normatch.melt:1214:/ checkinterrupt");
+			    MELT_CHECK_INTERRUPT ();
+			    ;
+			    /*^apply */
 			    /*apply */
 			    {
 			      union meltparam_un argtab[5];
@@ -28686,9 +29902,12 @@ lab_endgetargs:;
 	    ;
 	  }
 	;
+	MELT_LOCATION ("warmelt-normatch.melt:1173:/ checkinterrupt");
+	MELT_CHECK_INTERRUPT ();
+	;
 	/*epilog */
 
-	MELT_LOCATION ("warmelt-normatch.melt:1173:/ clear");
+	/*^clear */
 	     /*clear *//*_.IFCPP___V29*/ meltfptr[28] = 0;
 	/*^clear */
 	     /*clear *//*_#IS_A__L10*/ meltfnum[0] = 0;
@@ -28722,6 +29941,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L23*/ meltfnum[17] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -28745,7 +29967,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1221:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1221:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -28850,7 +30075,10 @@ lab_endgetargs:;
   /*_.TESTLOCCL__V73*/ meltfptr[45] = NULL;;
       }
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1224:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1224:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*^rawallocobj */
@@ -28899,6 +30127,9 @@ lab_endgetargs:;
 
 
 
+	  MELT_LOCATION ("warmelt-normatch.melt:1235:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
   /*_#IS_NOT_A__L26*/ meltfnum[0] =
 	    !melt_is_instance_of ((melt_ptr_t)
 				  ( /*_.SUBPA__V78*/ meltfptr[59]),
@@ -28911,6 +30142,9 @@ lab_endgetargs:;
 	      /*anyblock */
 	      {
 
+		MELT_LOCATION ("warmelt-normatch.melt:1237:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
     /*_.MAKE_INTEGERBOX__V79*/ meltfptr[60] =
 		  (meltgc_new_int
 		   ((meltobject_ptr_t)
@@ -29002,6 +30236,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L27*/ meltfnum[6] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -29025,7 +30262,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1240:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1240:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -29092,7 +30332,10 @@ lab_endgetargs:;
     /*_.IFCPP___V82*/ meltfptr[30] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1241:/ apply");
+    MELT_LOCATION ("warmelt-normatch.melt:1241:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^apply */
     /*apply */
     {
       union meltparam_un argtab[1];
@@ -29153,6 +30396,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L29*/ meltfnum[17] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -29176,7 +30422,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1255:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1255:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -29262,6 +30511,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_LIST__L31*/ meltfnum[6] =
 	(melt_magic_discr ((melt_ptr_t) ( /*_.TESTLOCCL__V73*/ meltfptr[45]))
 	 == MELTOBMAG_LIST);;
@@ -29348,6 +30600,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L33*/ meltfnum[17] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -29371,7 +30626,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1262:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1262:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[7];
@@ -29450,6 +30709,9 @@ lab_endgetargs:;
 	  /*anyblock */
 	  {
 
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#IS_A__L35*/ meltfnum[6] =
 	      melt_is_instance_of ((melt_ptr_t)
 				   ( /*_.CURTUPAT__V97*/ meltfptr[60]),
@@ -29607,6 +30869,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L37*/ meltfnum[6] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -29630,7 +30895,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1279:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1279:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[7];
@@ -29724,6 +30993,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L39*/ meltfnum[37] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -29747,7 +31019,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1282:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1282:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -29837,6 +31113,9 @@ lab_endgetargs:;
 		/*anyblock */
 		{
 
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
      /*_#IS_A__L41*/ meltfnum[6] =
 		    melt_is_instance_of ((melt_ptr_t)
 					 ( /*_.TESTLOCSY__V120*/
@@ -29893,6 +31172,9 @@ lab_endgetargs:;
 		/*^cppif.else */
 		/*_.IFCPP___V121*/ meltfptr[120] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
+		;
+		MELT_LOCATION ("warmelt-normatch.melt:1288:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
 		;
 		MELT_LOCATION ("warmelt-normatch.melt:1289:/ cond");
 		/*cond */ if (
@@ -30062,6 +31344,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L44*/ meltfnum[43] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -30085,7 +31370,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1294:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1294:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -30154,8 +31443,9 @@ lab_endgetargs:;
 	  /*_.IFCPP___V130*/ meltfptr[126] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	  /*^compute */
-
+	  MELT_LOCATION ("warmelt-normatch.melt:1296:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
   /*_#NULL__L46*/ meltfnum[44] =
 	    (( /*_.CURLOCCL__V114*/ meltfptr[110]) == NULL);;
 	  MELT_LOCATION ("warmelt-normatch.melt:1296:/ cond");
@@ -30169,7 +31459,10 @@ lab_endgetargs:;
 		MELT_LOCATION ("warmelt-normatch.melt:1297:/ quasiblock");
 
 
-		MELT_LOCATION ("warmelt-normatch.melt:1298:/ apply");
+		MELT_LOCATION ("warmelt-normatch.melt:1298:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^apply */
 		/*apply */
 		{
 		  /*_.NEWSYM__V136*/ meltfptr[135] =
@@ -30180,6 +31473,9 @@ lab_endgetargs:;
 				(union meltparam_un *) 0, "",
 				(union meltparam_un *) 0);
 		}
+		;
+		MELT_LOCATION ("warmelt-normatch.melt:1299:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
 		;
     /*_.MAKE_INTEGERBOX__V137*/ meltfptr[136] =
 		  (meltgc_new_int
@@ -30234,7 +31530,10 @@ lab_endgetargs:;
 		;
 		/*_.NUNTHEXP__V138*/ meltfptr[137] =
 		  /*_.INST__V139*/ meltfptr[138];;
-		MELT_LOCATION ("warmelt-normatch.melt:1304:/ quasiblock");
+		MELT_LOCATION ("warmelt-normatch.melt:1304:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^quasiblock */
 
 
 		/*^rawallocobj */
@@ -30293,7 +31592,10 @@ lab_endgetargs:;
 		;
 		/*_.NEWBIND__V140*/ meltfptr[139] =
 		  /*_.INST__V141*/ meltfptr[140];;
-		MELT_LOCATION ("warmelt-normatch.melt:1309:/ quasiblock");
+		MELT_LOCATION ("warmelt-normatch.melt:1309:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^quasiblock */
 
 
 		/*^rawallocobj */
@@ -30369,6 +31671,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
       /*_#MELT_NEED_DBG__L47*/ meltfnum[43] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -30392,7 +31697,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:1316:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:1316:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[7];
@@ -30561,6 +31870,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
       /*_#MELT_NEED_DBG__L49*/ meltfnum[47] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -30584,7 +31896,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:1325:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:1325:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[5];
@@ -30682,6 +31998,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
       /*_#MELT_NEED_DBG__L51*/ meltfnum[43] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -30705,7 +32024,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:1327:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:1327:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[5];
@@ -30839,6 +32162,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L53*/ meltfnum[47] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -30862,7 +32188,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1330:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1330:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[7];
@@ -30937,7 +32267,10 @@ lab_endgetargs:;
 	  /*_.IFCPP___V159*/ meltfptr[155] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	  MELT_LOCATION ("warmelt-normatch.melt:1331:/ msend");
+	  MELT_LOCATION ("warmelt-normatch.melt:1331:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^msend */
 	  /*msend */
 	  {
 	    union meltparam_un argtab[3];
@@ -30976,6 +32309,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L55*/ meltfnum[43] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -30999,7 +32335,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1332:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1332:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[7];
@@ -31142,6 +32482,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L57*/ meltfnum[47] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -31165,7 +32508,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1334:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1334:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -31248,6 +32594,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L59*/ meltfnum[44] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -31271,7 +32620,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1335:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1335:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -31389,7 +32741,10 @@ lab_endgetargs:;
 	   /*clear *//*_.IFCPP___V68*/ meltfptr[64] = 0;
     /*^clear */
 	   /*clear *//*_.LET___V72*/ meltfptr[43] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:1156:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1156:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V14*/ meltfptr[12];;
@@ -31504,7 +32859,10 @@ lab_endgetargs:;
       ;
     }
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1189:/ cond");
+    MELT_LOCATION ("warmelt-normatch.melt:1189:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^cond */
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
@@ -31554,6 +32912,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -31577,7 +32938,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1190:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1190:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -31675,9 +33039,12 @@ lab_endgetargs:;
 					 tabval[0])));
     }
     ;
+    MELT_LOCATION ("warmelt-normatch.melt:1187:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
     /*epilog */
 
-    MELT_LOCATION ("warmelt-normatch.melt:1187:/ clear");
+    /*^clear */
 	   /*clear *//*_.IFCPP___V3*/ meltfptr[2] = 0;
     /*^clear */
 	   /*clear *//*_.NTEST_COMEFROM__V7*/ meltfptr[3] = 0;
@@ -31887,8 +33254,9 @@ lab_endgetargs:;
 
  /*_#WP2__L2*/ meltfnum[1] =
       (melt_get_int ((melt_ptr_t) ( /*_.PAT_WEIGHT__V8*/ meltfptr[7])));;
-    /*^compute */
-
+    MELT_LOCATION ("warmelt-normatch.melt:1250:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#I__L3*/ meltfnum[2] =
       (( /*_#WP1__L1*/ meltfnum[0]) == ( /*_#WP2__L2*/ meltfnum[1]));;
     MELT_LOCATION ("warmelt-normatch.melt:1250:/ cond");
@@ -31906,6 +33274,9 @@ lab_endgetargs:;
 	/*anyblock */
 	{
 
+	  MELT_LOCATION ("warmelt-normatch.melt:1251:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
    /*_#I__L4*/ meltfnum[3] =
 	    (( /*_#WP1__L1*/ meltfnum[0]) < ( /*_#WP2__L2*/ meltfnum[1]));;
 	  MELT_LOCATION ("warmelt-normatch.melt:1251:/ cond");
@@ -32084,6 +33455,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -32107,7 +33481,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1268:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1268:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -32235,6 +33612,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L3*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -32258,7 +33638,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1272:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1272:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -32331,6 +33714,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L5*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PREVTESTER__V8*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_NORMTESTER_ANYTESTER */
@@ -32383,7 +33769,10 @@ lab_endgetargs:;
     /*_.IFCPP___V13*/ meltfptr[9] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1274:/ apply");
+    MELT_LOCATION ("warmelt-normatch.melt:1274:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^apply */
     /*apply */
     {
       union meltparam_un argtab[1];
@@ -32427,6 +33816,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L6*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -32450,7 +33842,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1276:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1276:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -32516,7 +33911,10 @@ lab_endgetargs:;
     /*_.IFCPP___V16*/ meltfptr[4] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1267:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1267:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.IFCPP___V16*/ meltfptr[4];;
@@ -32666,6 +34064,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -32689,7 +34090,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1344:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1344:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -32772,6 +34176,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -32831,6 +34238,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_AND */
@@ -32935,7 +34345,10 @@ lab_endgetargs:;
   /*_.CONJPATS__V16*/ meltfptr[15] = NULL;;
       }
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1350:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1350:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*^rawallocobj */
@@ -33022,6 +34435,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L6*/ meltfnum[0] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -33045,7 +34461,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1373:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1373:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[7];
@@ -33119,7 +34539,10 @@ lab_endgetargs:;
 	  /*_.IFCPP___V22*/ meltfptr[21] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	  MELT_LOCATION ("warmelt-normatch.melt:1375:/ msend");
+	  MELT_LOCATION ("warmelt-normatch.melt:1375:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^msend */
 	  /*msend */
 	  {
 	    union meltparam_un argtab[3];
@@ -33158,6 +34581,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L8*/ meltfnum[6] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -33181,7 +34607,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1376:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1376:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[7];
@@ -33290,6 +34720,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L10*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -33313,7 +34746,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1379:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1379:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -33393,7 +34829,10 @@ lab_endgetargs:;
 	   /*clear *//*_.SUBHDLER__V19*/ meltfptr[18] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V31*/ meltfptr[27] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:1343:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1343:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V14*/ meltfptr[12];;
@@ -33514,6 +34953,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -33537,7 +34979,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1353:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1353:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -33636,8 +35081,9 @@ lab_endgetargs:;
   /*_.PREVTESTER__V8*/ meltfptr[4] = NULL;;
       }
     ;
-    /*^compute */
-
+    MELT_LOCATION ("warmelt-normatch.melt:1357:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#IS_A__L3*/ meltfnum[1] =
       melt_is_instance_of ((melt_ptr_t) ( /*_.PREVTESTER__V8*/ meltfptr[4]),
 			   (melt_ptr_t) (( /*!CLASS_NORMTESTER_ANY */
@@ -33667,6 +35113,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
      /*_#MELT_NEED_DBG__L4*/ meltfnum[0] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -33690,7 +35139,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1358:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1358:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -33758,7 +35211,10 @@ lab_endgetargs:;
 	  /*_.IFCPP___V10*/ meltfptr[9] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	  MELT_LOCATION ("warmelt-normatch.melt:1359:/ apply");
+	  MELT_LOCATION ("warmelt-normatch.melt:1359:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^apply */
 	  /*apply */
 	  {
 	    union meltparam_un argtab[1];
@@ -33818,6 +35274,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
      /*_#MELT_NEED_DBG__L6*/ meltfnum[4] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -33841,7 +35300,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1362:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1362:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -33909,7 +35372,10 @@ lab_endgetargs:;
 	  /*_.IFCPP___V16*/ meltfptr[9] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	  MELT_LOCATION ("warmelt-normatch.melt:1363:/ apply");
+	  MELT_LOCATION ("warmelt-normatch.melt:1363:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^apply */
 	  /*apply */
 	  {
 	    /*_.HDLER__V20*/ meltfptr[10] =
@@ -33920,7 +35386,10 @@ lab_endgetargs:;
 			  (union meltparam_un *) 0);
 	  }
 	  ;
-	  MELT_LOCATION ("warmelt-normatch.melt:1364:/ cond");
+	  MELT_LOCATION ("warmelt-normatch.melt:1364:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^cond */
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
@@ -33971,6 +35440,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
      /*_#MELT_NEED_DBG__L8*/ meltfnum[0] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -33994,7 +35466,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1365:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1365:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -34100,6 +35576,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L10*/ meltfnum[4] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -34123,7 +35602,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1367:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1367:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -34202,7 +35684,10 @@ lab_endgetargs:;
 	   /*clear *//*_.IFELSE___V9*/ meltfptr[8] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V26*/ meltfptr[22] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:1352:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1352:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V7*/ meltfptr[3];;
@@ -34348,6 +35833,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -34371,7 +35859,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1393:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1393:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -34465,6 +35956,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -34524,6 +36018,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_OR */
@@ -34760,7 +36257,10 @@ lab_endgetargs:;
       melt_get_mapobjects ((meltmapobjects_ptr_t)
 			   ( /*_.MAPOR__V21*/ meltfptr[20]),
 			   (meltobject_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]));;
-    MELT_LOCATION ("warmelt-normatch.melt:1407:/ apply");
+    MELT_LOCATION ("warmelt-normatch.melt:1407:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^apply */
     /*apply */
     {
       /*_.SORTEDORSYMBS__V24*/ meltfptr[23] =
@@ -34770,6 +36270,9 @@ lab_endgetargs:;
 		    (melt_ptr_t) ( /*_.ORVARMAP__V23*/ meltfptr[22]), (""),
 		    (union meltparam_un *) 0, "", (union meltparam_un *) 0);
     }
+    ;
+    MELT_LOCATION ("warmelt-normatch.melt:1408:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
     ;
  /*_.MAKE_LIST__V25*/ meltfptr[24] =
       (meltgc_new_list
@@ -34911,7 +36414,10 @@ lab_endgetargs:;
       (melt_ptr_t) ( /*_.PVARLOCMAP__V20*/ meltfptr[19]);
     ;
     /*_.LAMBDA___V28*/ meltfptr[27] = /*_.LAMBDA___V29*/ meltfptr[28];;
-    MELT_LOCATION ("warmelt-normatch.melt:1419:/ apply");
+    MELT_LOCATION ("warmelt-normatch.melt:1419:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^apply */
     /*apply */
     {
       union meltparam_un argtab[1];
@@ -34927,7 +36433,10 @@ lab_endgetargs:;
 		    (union meltparam_un *) 0);
     }
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1441:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1441:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*^rawallocobj */
@@ -34970,6 +36479,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L5*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -34993,7 +36505,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1444:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1444:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -35077,6 +36592,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_MAPOBJECT__L7*/ meltfnum[0] =
 	/*is_mapobject: */
 	(melt_magic_discr ((melt_ptr_t) ( /*_.ORVARMAP__V23*/ meltfptr[22]))
@@ -35146,6 +36664,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L8*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -35169,7 +36690,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1447:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1447:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -35246,7 +36770,10 @@ lab_endgetargs:;
     /*_.IFCPP___V39*/ meltfptr[34] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1450:/ apply");
+    MELT_LOCATION ("warmelt-normatch.melt:1450:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^apply */
     /*apply */
     {
       union meltparam_un argtab[1];
@@ -35261,7 +36788,10 @@ lab_endgetargs:;
 		    (union meltparam_un *) 0);
     }
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1451:/ apply");
+    MELT_LOCATION ("warmelt-normatch.melt:1451:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^apply */
     /*apply */
     {
       /*_.HDLER__V44*/ meltfptr[40] =
@@ -35294,6 +36824,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L10*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -35317,7 +36850,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1453:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1453:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -35432,6 +36968,9 @@ lab_endgetargs:;
 		/*anyblock */
 		{
 
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
      /*_#IS_A__L14*/ meltfnum[13] =
 		    melt_is_instance_of ((melt_ptr_t)
 					 ( /*_.CURORVAR__V52*/ meltfptr[51]),
@@ -35499,6 +37038,9 @@ lab_endgetargs:;
 		  meltfptr[53] = slot;
 		};
 		;
+		MELT_LOCATION ("warmelt-normatch.melt:1467:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
    /*_#IS_A__L15*/ meltfnum[13] =
 		  melt_is_instance_of ((melt_ptr_t)
 				       ( /*_.ORVARLOCC__V55*/ meltfptr[53]),
@@ -35515,6 +37057,9 @@ lab_endgetargs:;
 			("warmelt-normatch.melt:1468:/ quasiblock");
 
 
+		      /*^checkinterrupt */
+		      MELT_CHECK_INTERRUPT ();
+		      ;
 		      /*^quasiblock */
 
 
@@ -35543,7 +37088,11 @@ lab_endgetargs:;
 		      ;
 		      /*_.ORVARCONT__V56*/ meltfptr[55] =
 			/*_.INST__V57*/ meltfptr[56];;
-		      MELT_LOCATION ("warmelt-normatch.melt:1469:/ cond");
+		      MELT_LOCATION
+			("warmelt-normatch.melt:1469:/ checkinterrupt");
+		      MELT_CHECK_INTERRUPT ();
+		      ;
+		      /*^cond */
 		      /*cond */ if (
 				     /*ifisa */
 				     melt_is_instance_of ((melt_ptr_t)
@@ -35614,11 +37163,17 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normatch.melt:1473:/ quasiblock");
 
 
+	  MELT_LOCATION ("warmelt-normatch.melt:1474:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
   /*_.MAKE_LIST__V59*/ meltfptr[53] =
 	    (meltgc_new_list
 	     ((meltobject_ptr_t)
 	      (( /*!DISCR_LIST */ meltfrout->tabval[4]))));;
-	  MELT_LOCATION ("warmelt-normatch.melt:1480:/ apply");
+	  MELT_LOCATION ("warmelt-normatch.melt:1480:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^apply */
 	  /*apply */
 	  {
 	    union meltparam_un argtab[1];
@@ -35722,6 +37277,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L16*/ meltfnum[13] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -35745,7 +37303,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1485:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1485:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -35885,6 +37447,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L18*/ meltfnum[16] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -35908,7 +37473,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1491:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1491:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[7];
@@ -36007,6 +37576,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L20*/ meltfnum[13] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -36030,7 +37602,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1493:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1493:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[7];
@@ -36104,7 +37680,10 @@ lab_endgetargs:;
 	  /*_.IFCPP___V73*/ meltfptr[69] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	  MELT_LOCATION ("warmelt-normatch.melt:1494:/ apply");
+	  MELT_LOCATION ("warmelt-normatch.melt:1494:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^apply */
 	  /*apply */
 	  {
 	    union meltparam_un argtab[1];
@@ -36121,7 +37700,10 @@ lab_endgetargs:;
 			  (union meltparam_un *) 0);
 	  }
 	  ;
-	  MELT_LOCATION ("warmelt-normatch.melt:1495:/ cond");
+	  MELT_LOCATION ("warmelt-normatch.melt:1495:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^cond */
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
@@ -36172,6 +37754,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L22*/ meltfnum[16] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -36195,7 +37780,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1496:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1496:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -36266,7 +37855,10 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normatch.melt:1498:/ quasiblock");
 
 
-	  MELT_LOCATION ("warmelt-normatch.melt:1499:/ quasiblock");
+	  MELT_LOCATION ("warmelt-normatch.melt:1499:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^quasiblock */
 
 
 	  /*^rawallocobj */
@@ -36349,7 +37941,10 @@ lab_endgetargs:;
 	  ;
 	  /*_.SUBDISJHANDLER__V84*/ meltfptr[83] =
 	    /*_.LAMBDA___V85*/ meltfptr[84];;
-	  MELT_LOCATION ("warmelt-normatch.melt:1517:/ msend");
+	  MELT_LOCATION ("warmelt-normatch.melt:1517:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^msend */
 	  /*msend */
 	  {
 	    union meltparam_un argtab[3];
@@ -36388,6 +37983,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L24*/ meltfnum[13] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -36411,7 +38009,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1519:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1519:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -36515,6 +38117,9 @@ lab_endgetargs:;
 	    meltfptr[88] = slot;
 	  };
 	  ;
+	  MELT_LOCATION ("warmelt-normatch.melt:1523:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
   /*_.MAKE_LIST__V93*/ meltfptr[92] =
 	    (meltgc_new_list
 	     ((meltobject_ptr_t)
@@ -36615,6 +38220,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L26*/ meltfnum[16] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -36638,7 +38246,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1533:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1533:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -36731,6 +38343,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L28*/ meltfnum[13] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -36754,7 +38369,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1535:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1535:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[7];
@@ -36829,7 +38448,10 @@ lab_endgetargs:;
 	  /*_.IFCPP___V100*/ meltfptr[96] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	  MELT_LOCATION ("warmelt-normatch.melt:1536:/ apply");
+	  MELT_LOCATION ("warmelt-normatch.melt:1536:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^apply */
 	  /*apply */
 	  {
 	    union meltparam_un argtab[1];
@@ -36845,6 +38467,9 @@ lab_endgetargs:;
 			  (MELTBPARSTR_PTR ""), argtab, "",
 			  (union meltparam_un *) 0);
 	  }
+	  ;
+	  MELT_LOCATION ("warmelt-normatch.melt:1540:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
 	  ;
   /*_#NULL__L30*/ meltfnum[16] =
 	    (( /*_.LASTDISJ__V91*/ meltfptr[87]) == NULL);;
@@ -36926,6 +38551,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L31*/ meltfnum[13] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -36949,7 +38577,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1545:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1545:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -37068,6 +38700,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L33*/ meltfnum[16] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -37091,7 +38726,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1550:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1550:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -37175,6 +38813,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L35*/ meltfnum[13] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -37198,7 +38839,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1551:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1551:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -37278,7 +38922,10 @@ lab_endgetargs:;
 						tabval[33])), (0));
     ;
     /*_.LAMBDA___V118*/ meltfptr[64] = /*_.LAMBDA___V119*/ meltfptr[68];;
-    MELT_LOCATION ("warmelt-normatch.melt:1553:/ apply");
+    MELT_LOCATION ("warmelt-normatch.melt:1553:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^apply */
     /*apply */
     {
       union meltparam_un argtab[1];
@@ -37311,6 +38958,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L37*/ meltfnum[16] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -37334,7 +38984,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1569:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1569:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -37400,7 +39053,13 @@ lab_endgetargs:;
     /*_.IFCPP___V121*/ meltfptr[70] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1571:/ apply");
+    MELT_LOCATION ("warmelt-normatch.melt:1570:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    MELT_LOCATION ("warmelt-normatch.melt:1571:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^apply */
     /*apply */
     {
       union meltparam_un argtab[1];
@@ -37476,6 +39135,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L39*/ meltfnum[13] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -37499,7 +39161,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1574:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1574:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -37596,6 +39261,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L41*/ meltfnum[16] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -37619,7 +39287,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1578:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1578:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -37739,7 +39410,10 @@ lab_endgetargs:;
 	   /*clear *//*_.LET___V117*/ meltfptr[63] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V130*/ meltfptr[101] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:1392:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1392:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V14*/ meltfptr[12];;
@@ -37858,7 +39532,10 @@ lab_endgetargs:;
 			   (( /*~ORVARMAP */ meltfclos->tabval[0])),
 			   (meltobject_ptr_t) ( /*_.ORSYMB__V2*/
 					       meltfptr[1]));;
-    MELT_LOCATION ("warmelt-normatch.melt:1424:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1424:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*^rawallocobj */
@@ -37919,6 +39596,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L2*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.CURVARPAT__V4*/ meltfptr[3]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_VARIABLE */ meltfrout->tabval[1])));;
@@ -37994,6 +39674,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L3*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -38017,7 +39700,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1434:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1434:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -38121,6 +39807,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L5*/ meltfnum[3] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -38144,7 +39833,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1437:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1437:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -38210,7 +39902,10 @@ lab_endgetargs:;
     /*_.IFCPP___V13*/ meltfptr[9] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1438:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1438:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.CURORVAR__V5*/ meltfptr[4];;
@@ -38346,6 +40041,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -38369,7 +40067,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1502:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1502:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -38433,7 +40134,10 @@ lab_endgetargs:;
     /*_.IFCPP___V3*/ meltfptr[2] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1503:/ apply");
+    MELT_LOCATION ("warmelt-normatch.melt:1503:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^apply */
     /*apply */
     {
       union meltparam_un argtab[1];
@@ -38485,6 +40189,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L3*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -38508,7 +40215,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1508:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1508:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -38580,7 +40290,10 @@ lab_endgetargs:;
     /*_.IFCPP___V10*/ meltfptr[9] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1510:/ apply");
+    MELT_LOCATION ("warmelt-normatch.melt:1510:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^apply */
     /*apply */
     {
       union meltparam_un argtab[1];
@@ -38613,6 +40326,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L5*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -38636,7 +40352,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1511:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1511:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -38702,7 +40421,10 @@ lab_endgetargs:;
     /*_.IFCPP___V15*/ meltfptr[11] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1512:/ cond");
+    MELT_LOCATION ("warmelt-normatch.melt:1512:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^cond */
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
@@ -38753,6 +40475,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L7*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -38776,7 +40501,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1513:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1513:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -38856,7 +40584,10 @@ lab_endgetargs:;
 	   /*clear *//*_.IFCPP___V15*/ meltfptr[11] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V19*/ meltfptr[15] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:1501:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1501:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V8*/ meltfptr[4];;
@@ -38971,6 +40702,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L2*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.CURORVAR__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_NORMAL_OR_VARIABLE */
@@ -39066,8 +40800,9 @@ lab_endgetargs:;
   /*_.ORSYMB__V8*/ meltfptr[7] = NULL;;
       }
     ;
-    /*^compute */
-
+    MELT_LOCATION ("warmelt-normatch.melt:1561:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#IS_A__L3*/ meltfnum[1] =
       melt_is_instance_of ((melt_ptr_t) ( /*_.ORLOCSY__V6*/ meltfptr[5]),
 			   (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->
@@ -39141,6 +40876,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L4*/ meltfnum[3] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -39164,7 +40902,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1564:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1564:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -39235,7 +40976,10 @@ lab_endgetargs:;
     /*_.IFCPP___V12*/ meltfptr[9] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1565:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1565:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.ORLOCSY__V6*/ meltfptr[5];;
@@ -39258,7 +41002,10 @@ lab_endgetargs:;
 	   /*clear *//*_.IFCPP___V12*/ meltfptr[9] = 0;
     /*^clear */
 	   /*clear *//*_.RETURN___V16*/ meltfptr[10] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:1555:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1555:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V5*/ meltfptr[3];;
@@ -39407,6 +41154,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -39430,7 +41180,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1589:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1589:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -39513,6 +41266,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -39572,6 +41328,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_MATCHER */ meltfrout->tabval[2])));;
@@ -39791,7 +41550,10 @@ lab_endgetargs:;
       meltfptr[22] = slot;
     };
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1605:/ msend");
+    MELT_LOCATION ("warmelt-normatch.melt:1605:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^msend */
     /*msend */
     {
       union meltparam_un argtab[1];
@@ -39836,6 +41598,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L5*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.MAT__V15*/ meltfptr[14]),
 			     (melt_ptr_t) (( /*!CLASS_ANY_MATCHER */
@@ -39895,6 +41660,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L6*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t)
 			     ( /*_.MATOPBIND__V16*/ meltfptr[15]),
@@ -39965,6 +41733,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L7*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -39988,7 +41759,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1610:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1610:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -40112,6 +41886,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L9*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -40135,7 +41912,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1614:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1614:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -40208,7 +41988,13 @@ lab_endgetargs:;
     /*anyblock */
     {
 
-      MELT_LOCATION ("warmelt-normatch.melt:1616:/ apply");
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
+      MELT_LOCATION ("warmelt-normatch.melt:1616:/ checkinterrupt");
+      MELT_CHECK_INTERRUPT ();
+      ;
+      /*^apply */
       /*apply */
       {
 	union meltparam_un argtab[1];
@@ -40287,7 +42073,10 @@ lab_endgetargs:;
     /*^clear */
 	   /*clear *//*_.IFCPP___V41*/ meltfptr[37] = 0;
     /*_.MATVAR__V44*/ meltfptr[38] = /*_.LET___V35*/ meltfptr[31];;
-    MELT_LOCATION ("warmelt-normatch.melt:1621:/ msend");
+    MELT_LOCATION ("warmelt-normatch.melt:1621:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^msend */
     /*msend */
     {
       union meltparam_un argtab[3];
@@ -40322,6 +42111,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L12*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -40345,7 +42137,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1623:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1623:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -40411,6 +42206,9 @@ lab_endgetargs:;
     /*_.IFCPP___V46*/ meltfptr[35] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
+    MELT_LOCATION ("warmelt-normatch.melt:1626:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
     MELT_LOCATION ("warmelt-normatch.melt:1624:/ quasiblock");
 
 
@@ -40458,6 +42256,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L14*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -40481,7 +42282,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1627:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1627:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -40553,7 +42357,10 @@ lab_endgetargs:;
     /*_.IFCPP___V53*/ meltfptr[52] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1628:/ cond");
+    MELT_LOCATION ("warmelt-normatch.melt:1628:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^cond */
     /*cond */ if ( /*_.BINDINS__V52*/ meltfptr[51])	/*then */
       {
 	/*^cond.then */
@@ -40561,6 +42368,9 @@ lab_endgetargs:;
 	/*anyblock */
 	{
 
+	  /*^checkinterrupt */
+	  MELT_CHECK_INTERRUPT ();
+	  ;
 	  /*^apply */
 	  /*apply */
 	  {
@@ -40673,7 +42483,10 @@ lab_endgetargs:;
     /*^compute */
 
     /*_.TESTER__V64*/ meltfptr[63] = ( /*nil */ NULL);;
-    MELT_LOCATION ("warmelt-normatch.melt:1637:/ cond");
+    MELT_LOCATION ("warmelt-normatch.melt:1637:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^cond */
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
@@ -40835,6 +42648,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L17*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -40858,7 +42674,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1642:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1642:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -40936,8 +42755,9 @@ lab_endgetargs:;
  /*_#NBINARGS__L19*/ meltfnum[17] =
       (melt_multiple_length
        ((melt_ptr_t) ( /*_.INARGS__V17*/ meltfptr[16])));;
-    /*^compute */
-
+    MELT_LOCATION ("warmelt-normatch.melt:1644:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#MULTIPLE_LENGTH__L20*/ meltfnum[1] =
       (melt_multiple_length
        ((melt_ptr_t) ( /*_.INMATCHS__V60*/ meltfptr[59])));;
@@ -40995,6 +42815,9 @@ lab_endgetargs:;
 	;
       }				/*noelse */
     ;
+    MELT_LOCATION ("warmelt-normatch.melt:1649:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#I__L22*/ meltfnum[21] =
       (( /*_#NBINARGS__L19*/ meltfnum[17]) > (0));;
     MELT_LOCATION ("warmelt-normatch.melt:1649:/ cond");
@@ -41008,6 +42831,9 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normatch.melt:1650:/ quasiblock");
 
 
+	  /*^checkinterrupt */
+	  MELT_CHECK_INTERRUPT ();
+	  ;
 	  /*^apply */
 	  /*apply */
 	  {
@@ -41054,6 +42880,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
       /*_#MELT_NEED_DBG__L24*/ meltfnum[23] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -41077,7 +42906,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:1654:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:1654:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[5];
@@ -41155,7 +42988,10 @@ lab_endgetargs:;
 		  (melt_multiple_nth
 		   ((melt_ptr_t) ( /*_.INMATCHS__V60*/ meltfptr[59]),
 		    ( /*_#IX__L23*/ meltfnum[22])));;
-		MELT_LOCATION ("warmelt-normatch.melt:1656:/ msend");
+		MELT_LOCATION ("warmelt-normatch.melt:1656:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^msend */
 		/*msend */
 		{
 		  union meltparam_un argtab[1];
@@ -41214,6 +43050,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
       /*_#MELT_NEED_DBG__L26*/ meltfnum[24] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -41237,7 +43076,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:1659:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:1659:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[5];
@@ -41315,6 +43158,9 @@ lab_endgetargs:;
 		/*anyblock */
 		{
 
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
       /*_#IS_A__L28*/ meltfnum[23] =
 		    melt_is_instance_of ((melt_ptr_t)
 					 ( /*_.CURMATCH__V81*/ meltfptr[77]),
@@ -41388,6 +43234,9 @@ lab_endgetargs:;
 		    ;
 		  }
 		  ;
+		  /*^checkinterrupt */
+		  MELT_CHECK_INTERRUPT ();
+		  ;
       /*_#MELT_NEED_DBG__L29*/ meltfnum[24] =
 		    /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -41411,7 +43260,11 @@ lab_endgetargs:;
 			  0L
 #endif /* meltcallcount the_meltcallcount */
 			  ;;
-			MELT_LOCATION ("warmelt-normatch.melt:1662:/ apply");
+			MELT_LOCATION
+			  ("warmelt-normatch.melt:1662:/ checkinterrupt");
+			MELT_CHECK_INTERRUPT ();
+			;
+			/*^apply */
 			/*apply */
 			{
 			  union meltparam_un argtab[7];
@@ -41489,8 +43342,9 @@ lab_endgetargs:;
 		/*_.IFCPP___V90*/ meltfptr[85] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 		;
-		/*^compute */
-
+		MELT_LOCATION ("warmelt-normatch.melt:1663:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
     /*_#__L31*/ meltfnum[23] =
 		  (( /*_.CURCTYPE__V82*/ meltfptr[81]) !=
 		   ( /*_.MATCHTYPE__V83*/ meltfptr[82]));;
@@ -41694,6 +43548,9 @@ lab_endgetargs:;
 			("warmelt-normatch.melt:1678:/ quasiblock");
 
 
+		      /*^checkinterrupt */
+		      MELT_CHECK_INTERRUPT ();
+		      ;
 		      MELT_LOCATION ("warmelt-normatch.melt:1680:/ cond");
 		      /*cond */ if (
 				     /*ifisa */
@@ -41800,6 +43657,9 @@ lab_endgetargs:;
 			  ;
 			}
 			;
+			/*^checkinterrupt */
+			MELT_CHECK_INTERRUPT ();
+			;
 	/*_#MELT_NEED_DBG__L32*/ meltfnum[24] =
 			  /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -41824,7 +43684,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 				;;
 			      MELT_LOCATION
-				("warmelt-normatch.melt:1685:/ apply");
+				("warmelt-normatch.melt:1685:/ checkinterrupt");
+			      MELT_CHECK_INTERRUPT ();
+			      ;
+			      /*^apply */
 			      /*apply */
 			      {
 				union meltparam_un argtab[5];
@@ -41902,7 +43765,11 @@ lab_endgetargs:;
 		      /*_.IFCPP___V104*/ meltfptr[98] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 		      ;
-		      MELT_LOCATION ("warmelt-normatch.melt:1686:/ apply");
+		      MELT_LOCATION
+			("warmelt-normatch.melt:1686:/ checkinterrupt");
+		      MELT_CHECK_INTERRUPT ();
+		      ;
+		      /*^apply */
 		      /*apply */
 		      {
 			union meltparam_un argtab[1];
@@ -41979,7 +43846,10 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normatch.melt:1688:/ compute");
 	  /*_.ENV__V19*/ meltfptr[18] = /*_.SETQ___V109*/ meltfptr[105] =
 	    /*_.NEWENV__V74*/ meltfptr[67];;
-	  MELT_LOCATION ("warmelt-normatch.melt:1689:/ cond");
+	  MELT_LOCATION ("warmelt-normatch.melt:1689:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^cond */
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
@@ -42047,6 +43917,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L34*/ meltfnum[32] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -42070,7 +43943,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1692:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1692:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -42148,8 +44024,9 @@ lab_endgetargs:;
  /*_#NBOUTARGS__L36*/ meltfnum[23] =
       (melt_multiple_length
        ((melt_ptr_t) ( /*_.OUTARGS__V18*/ meltfptr[17])));;
-    /*^compute */
-
+    MELT_LOCATION ("warmelt-normatch.melt:1694:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#MULTIPLE_LENGTH__L37*/ meltfnum[17] =
       (melt_multiple_length
        ((melt_ptr_t) ( /*_.OUTMATCHS__V61*/ meltfptr[60])));;
@@ -42228,6 +44105,9 @@ lab_endgetargs:;
       /*anyblock */
       {
 
+	/*^checkinterrupt */
+	MELT_CHECK_INTERRUPT ();
+	;
 
 #if MELT_HAVE_DEBUG
 	MELT_LOCATION ("warmelt-normatch.melt:1704:/ cppif.then");
@@ -42244,6 +44124,9 @@ lab_endgetargs:;
 #endif
 	    ;
 	  }
+	  ;
+	  /*^checkinterrupt */
+	  MELT_CHECK_INTERRUPT ();
 	  ;
      /*_#MELT_NEED_DBG__L39*/ meltfnum[20] =
 	    /*MELT_NEED_DBG */
@@ -42268,7 +44151,10 @@ lab_endgetargs:;
 		  0L
 #endif /* meltcallcount the_meltcallcount */
 		  ;;
-		MELT_LOCATION ("warmelt-normatch.melt:1704:/ apply");
+		MELT_LOCATION ("warmelt-normatch.melt:1704:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^apply */
 		/*apply */
 		{
 		  union meltparam_un argtab[5];
@@ -42335,8 +44221,12 @@ lab_endgetargs:;
 	/*_.IFCPP___V121*/ meltfptr[90] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	;
-	/*^compute */
-
+	MELT_LOCATION ("warmelt-normatch.melt:1706:/ checkinterrupt");
+	MELT_CHECK_INTERRUPT ();
+	;
+	/*^checkinterrupt */
+	MELT_CHECK_INTERRUPT ();
+	;
    /*_#IS_A__L41*/ meltfnum[24] =
 	  melt_is_instance_of ((melt_ptr_t)
 			       ( /*_.TSTUFF__V117*/ meltfptr[82]),
@@ -42462,8 +44352,10 @@ lab_endgetargs:;
 		      (melt_multiple_nth
 		       ((melt_ptr_t) ( /*_.NINS__V51*/ meltfptr[37]),
 			( /*_#IX__L45*/ meltfnum[21])));;
-		    /*^compute */
-
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:1715:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
       /*_#__L47*/ meltfnum[46] =
 		      (( /*_.CURINARG__V129*/ meltfptr[67]) !=
 		       ( /*_.NTHINS__V130*/ meltfptr[98]));;
@@ -42520,7 +44412,10 @@ lab_endgetargs:;
 		/*clear *//*_#LET___L46*/ meltfnum[45] = 0;
 	      }			/*endciterblock FOREACH_IN_MULTIPLE */
 	      ;
-	      MELT_LOCATION ("warmelt-normatch.melt:1718:/ cond");
+	      MELT_LOCATION ("warmelt-normatch.melt:1718:/ checkinterrupt");
+	      MELT_CHECK_INTERRUPT ();
+	      ;
+	      /*^cond */
 	      /*cond */ if ( /*_#GOOD__L44*/ meltfnum[20])	/*then */
 		{
 		  /*^cond.then */
@@ -42544,6 +44439,9 @@ lab_endgetargs:;
 #endif
 			;
 		      }
+		      ;
+		      /*^checkinterrupt */
+		      MELT_CHECK_INTERRUPT ();
 		      ;
 	 /*_#MELT_NEED_DBG__L50*/ meltfnum[48] =
 			/*MELT_NEED_DBG */
@@ -42569,7 +44467,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 			      ;;
 			    MELT_LOCATION
-			      ("warmelt-normatch.melt:1720:/ apply");
+			      ("warmelt-normatch.melt:1720:/ checkinterrupt");
+			    MELT_CHECK_INTERRUPT ();
+			    ;
+			    /*^apply */
 			    /*apply */
 			    {
 			      union meltparam_un argtab[5];
@@ -42785,6 +44686,9 @@ lab_endgetargs:;
 	      /*anyblock */
 	      {
 
+		/*^checkinterrupt */
+		MELT_CHECK_INTERRUPT ();
+		;
 		/*^cond */
 		/*cond */ if (( /*nil */ NULL))	/*then */
 		  {
@@ -42856,6 +44760,9 @@ lab_endgetargs:;
 	    /*anyblock */
 	    {
 
+	      MELT_LOCATION ("warmelt-normatch.melt:1736:/ checkinterrupt");
+	      MELT_CHECK_INTERRUPT ();
+	      ;
      /*_#IS_A__L52*/ meltfnum[47] =
 		melt_is_instance_of ((melt_ptr_t)
 				     ( /*_.TSTUFF__V117*/ meltfptr[82]),
@@ -43008,7 +44915,11 @@ lab_endgetargs:;
 		    ;
 		    /*_.LAMBDA___V153*/ meltfptr[132] =
 		      /*_.LAMBDA___V154*/ meltfptr[141];;
-		    MELT_LOCATION ("warmelt-normatch.melt:1749:/ apply");
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:1749:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
+		    /*^apply */
 		    /*apply */
 		    {
 		      union meltparam_un argtab[1];
@@ -43026,7 +44937,15 @@ lab_endgetargs:;
 				    (union meltparam_un *) 0);
 		    }
 		    ;
-		    MELT_LOCATION ("warmelt-normatch.melt:1785:/ apply");
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:1777:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:1785:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
+		    /*^apply */
 		    /*apply */
 		    {
 		      /*_.MULTIPLE_TO_LIST__V156*/ meltfptr[96] =
@@ -43192,6 +45111,9 @@ lab_endgetargs:;
 			;
 		      }
 		      ;
+		      /*^checkinterrupt */
+		      MELT_CHECK_INTERRUPT ();
+		      ;
 	 /*_#MELT_NEED_DBG__L53*/ meltfnum[46] =
 			/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -43216,7 +45138,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 			      ;;
 			    MELT_LOCATION
-			      ("warmelt-normatch.melt:1793:/ apply");
+			      ("warmelt-normatch.melt:1793:/ checkinterrupt");
+			    MELT_CHECK_INTERRUPT ();
+			    ;
+			    /*^apply */
 			    /*apply */
 			    {
 			      union meltparam_un argtab[5];
@@ -43294,7 +45219,11 @@ lab_endgetargs:;
 		    /*_.IFCPP___V160*/ meltfptr[159] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 		    ;
-		    MELT_LOCATION ("warmelt-normatch.melt:1794:/ apply");
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:1794:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
+		    /*^apply */
 		    /*apply */
 		    {
 		      union meltparam_un argtab[1];
@@ -43336,7 +45265,11 @@ lab_endgetargs:;
 		      ;
 		    }
 		    ;
-		    MELT_LOCATION ("warmelt-normatch.melt:1798:/ apply");
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:1798:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
+		    /*^apply */
 		    /*apply */
 		    {
 		      /*_.CURHDLER__V166*/ meltfptr[165] =
@@ -43400,9 +45333,12 @@ lab_endgetargs:;
 	    ;
 	  }
 	;
+	MELT_LOCATION ("warmelt-normatch.melt:1702:/ checkinterrupt");
+	MELT_CHECK_INTERRUPT ();
+	;
 	/*epilog */
 
-	MELT_LOCATION ("warmelt-normatch.melt:1702:/ clear");
+	/*^clear */
 	     /*clear *//*_.IFCPP___V121*/ meltfptr[90] = 0;
 	/*^clear */
 	     /*clear *//*_#IS_A__L41*/ meltfnum[24] = 0;
@@ -43456,6 +45392,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L55*/ meltfnum[20] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -43479,7 +45418,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1804:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1804:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -43552,6 +45494,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L57*/ meltfnum[46] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.TESTER__V64*/ meltfptr[63]),
 			     (melt_ptr_t) (( /*!CLASS_NORMTESTER_MATCHER */
@@ -43648,6 +45593,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L58*/ meltfnum[47] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -43671,7 +45619,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1808:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1808:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -43791,6 +45742,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L61*/ meltfnum[23] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -43814,7 +45768,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1814:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1814:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -43896,7 +45854,10 @@ lab_endgetargs:;
 	    (melt_multiple_nth
 	     ((melt_ptr_t) ( /*_.OUTARGS__V18*/ meltfptr[17]),
 	      ( /*_#IXM__L60*/ meltfnum[32])));;
-	  MELT_LOCATION ("warmelt-normatch.melt:1817:/ quasiblock");
+	  MELT_LOCATION ("warmelt-normatch.melt:1817:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^quasiblock */
 
 
 	  /*^rawallocobj */
@@ -43968,6 +45929,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L63*/ meltfnum[1] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -43991,7 +45955,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1828:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1828:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[7];
@@ -44077,7 +46045,10 @@ lab_endgetargs:;
 	    ;
 	  }
 	  ;
-	  MELT_LOCATION ("warmelt-normatch.melt:1830:/ msend");
+	  MELT_LOCATION ("warmelt-normatch.melt:1830:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^msend */
 	  /*msend */
 	  {
 	    union meltparam_un argtab[3];
@@ -44116,6 +46087,9 @@ lab_endgetargs:;
 	      ;
 	    }
 	    ;
+	    /*^checkinterrupt */
+	    MELT_CHECK_INTERRUPT ();
+	    ;
     /*_#MELT_NEED_DBG__L65*/ meltfnum[20] =
 	      /*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -44139,7 +46113,11 @@ lab_endgetargs:;
 		    0L
 #endif /* meltcallcount the_meltcallcount */
 		    ;;
-		  MELT_LOCATION ("warmelt-normatch.melt:1831:/ apply");
+		  MELT_LOCATION
+		    ("warmelt-normatch.melt:1831:/ checkinterrupt");
+		  MELT_CHECK_INTERRUPT ();
+		  ;
+		  /*^apply */
 		  /*apply */
 		  {
 		    union meltparam_un argtab[5];
@@ -44264,6 +46242,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L67*/ meltfnum[24] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -44287,7 +46268,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1835:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1835:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -44383,6 +46367,9 @@ lab_endgetargs:;
 	   /*clear *//*_.IFCPP___V171*/ meltfptr[133] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V199*/ meltfptr[195] = 0;
+    MELT_LOCATION ("warmelt-normatch.melt:1624:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
     /*_.MULTI___V50*/ meltfptr[36] = /*_.LET___V59*/ meltfptr[54];;
 
     MELT_LOCATION ("warmelt-normatch.melt:1624:/ clear");
@@ -44406,6 +46393,9 @@ lab_endgetargs:;
 	   /*clear *//*_.IFCPP___V46*/ meltfptr[35] = 0;
     /*^clear */
 	   /*clear *//*_.MULTI___V50*/ meltfptr[36] = 0;
+    MELT_LOCATION ("warmelt-normatch.melt:1839:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#__L69*/ meltfnum[17] =
       (( /*_.ENV__V19*/ meltfptr[18]) != ( /*_.OLDENV__V20*/ meltfptr[19]));;
     MELT_LOCATION ("warmelt-normatch.melt:1839:/ cond");
@@ -44416,7 +46406,10 @@ lab_endgetargs:;
 	/*anyblock */
 	{
 
-	  MELT_LOCATION ("warmelt-normatch.melt:1840:/ cond");
+	  MELT_LOCATION ("warmelt-normatch.melt:1840:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
+	  ;
+	  /*^cond */
 	  /*cond */ if (
 			 /*ifisa */
 			 melt_is_instance_of ((melt_ptr_t)
@@ -44488,9 +46481,12 @@ lab_endgetargs:;
 	   /*clear *//*_.LET___V34*/ meltfptr[30] = 0;
     /*^clear */
 	   /*clear *//*_#__L69*/ meltfnum[17] = 0;
+    MELT_LOCATION ("warmelt-normatch.melt:1588:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
     /*epilog */
 
-    MELT_LOCATION ("warmelt-normatch.melt:1588:/ clear");
+    /*^clear */
 	   /*clear *//*_.IFCPP___V6*/ meltfptr[5] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V10*/ meltfptr[6] = 0;
@@ -44595,7 +46591,10 @@ lab_endgetargs:;
       ;
     }
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1728:/ cond");
+    MELT_LOCATION ("warmelt-normatch.melt:1728:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^cond */
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
@@ -44645,6 +46644,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -44668,7 +46670,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1729:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1729:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -44766,9 +46771,12 @@ lab_endgetargs:;
 					 tabval[0])));
     }
     ;
+    MELT_LOCATION ("warmelt-normatch.melt:1726:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
     /*epilog */
 
-    MELT_LOCATION ("warmelt-normatch.melt:1726:/ clear");
+    /*^clear */
 	   /*clear *//*_.IFCPP___V3*/ meltfptr[2] = 0;
     /*^clear */
 	   /*clear *//*_.NTEST_COMEFROM__V7*/ meltfptr[3] = 0;
@@ -44859,7 +46867,10 @@ lab_endgetargs:;
 /*anyblock*/
   {
 
-    MELT_LOCATION ("warmelt-normatch.melt:1740:/ cond");
+    MELT_LOCATION ("warmelt-normatch.melt:1740:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^cond */
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
@@ -44920,6 +46931,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -44943,7 +46957,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1742:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1742:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -45041,9 +47058,12 @@ lab_endgetargs:;
 					 tabval[0])));
     }
     ;
+    MELT_LOCATION ("warmelt-normatch.melt:1739:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
     /*epilog */
 
-    MELT_LOCATION ("warmelt-normatch.melt:1739:/ clear");
+    /*^clear */
 	   /*clear *//*_.IFCPP___V3*/ meltfptr[2] = 0;
     /*^clear */
 	   /*clear *//*_.NTEST_COMEFROM__V7*/ meltfptr[3] = 0;
@@ -45157,6 +47177,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L2*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -45180,7 +47203,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1752:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1752:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -45251,6 +47277,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[2] =
 	melt_is_instance_of ((melt_ptr_t)
 			     ( /*_.CUROUTMATCH__V2*/ meltfptr[1]),
@@ -45331,7 +47360,10 @@ lab_endgetargs:;
   /*_.BINDER__V10*/ meltfptr[9] = NULL;;
       }
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1754:/ apply");
+    MELT_LOCATION ("warmelt-normatch.melt:1754:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^apply */
     /*apply */
     {
       /*_.CSYM__V11*/ meltfptr[10] =
@@ -45365,7 +47397,10 @@ lab_endgetargs:;
   /*_.CURTYP__V12*/ meltfptr[11] = NULL;;
       }
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1756:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1756:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*^rawallocobj */
@@ -45418,7 +47453,10 @@ lab_endgetargs:;
 			  (( /*nil */ NULL)), "LETBIND_EXPR");
     ;
     /*_.CBIND__V13*/ meltfptr[12] = /*_.INST__V14*/ meltfptr[13];;
-    MELT_LOCATION ("warmelt-normatch.melt:1765:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1765:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*^rawallocobj */
@@ -45521,6 +47559,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L5*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -45544,7 +47585,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1773:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1773:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -45627,7 +47671,10 @@ lab_endgetargs:;
 	   /*clear *//*_.NCTX_SYMBCACHEMAP__V17*/ meltfptr[16] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V18*/ meltfptr[17] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:1751:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1751:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V9*/ meltfptr[4];;
@@ -45746,6 +47793,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -45769,7 +47819,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1823:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1823:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -45845,7 +47898,10 @@ lab_endgetargs:;
       ;
     }
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1825:/ apply");
+    MELT_LOCATION ("warmelt-normatch.melt:1825:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^apply */
     /*apply */
     {
       union meltparam_un argtab[1];
@@ -45861,7 +47917,10 @@ lab_endgetargs:;
 		    (union meltparam_un *) 0);
     }
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1822:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1822:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] =
@@ -46010,6 +48069,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -46033,7 +48095,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1849:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1849:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -46116,6 +48181,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.PCN__V5*/ meltfptr[4]),
 			     (melt_ptr_t) (( /*!CLASS_PATTERN_CONTEXT */
@@ -46175,6 +48243,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.RECV__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_SOURCE_PATTERN_CONSTANT */ meltfrout->tabval[2])));;
@@ -46496,6 +48567,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L5*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -46519,7 +48593,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1865:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1865:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -46591,8 +48668,9 @@ lab_endgetargs:;
     /*^compute */
 
     /*_.CURHDLER__V32*/ meltfptr[31] = /*_.HDLER__V4*/ meltfptr[3];;
-    /*^compute */
-
+    MELT_LOCATION ("warmelt-normatch.melt:1869:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#IS_OBJECT__L7*/ meltfnum[0] =
       (melt_magic_discr ((melt_ptr_t) ( /*_.SCONST__V16*/ meltfptr[15])) ==
        MELTOBMAG_OBJECT);;
@@ -46644,6 +48722,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L8*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -46667,7 +48748,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1871:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1871:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -46741,6 +48825,9 @@ lab_endgetargs:;
       /*anyblock */
       {
 
+	/*^checkinterrupt */
+	MELT_CHECK_INTERRUPT ();
+	;
 
 #if MELT_HAVE_DEBUG
 	MELT_LOCATION ("warmelt-normatch.melt:1874:/ cppif.then");
@@ -46757,6 +48844,9 @@ lab_endgetargs:;
 #endif
 	    ;
 	  }
+	  ;
+	  /*^checkinterrupt */
+	  MELT_CHECK_INTERRUPT ();
 	  ;
      /*_#MELT_NEED_DBG__L10*/ meltfnum[8] =
 	    /*MELT_NEED_DBG */
@@ -46781,7 +48871,10 @@ lab_endgetargs:;
 		  0L
 #endif /* meltcallcount the_meltcallcount */
 		  ;;
-		MELT_LOCATION ("warmelt-normatch.melt:1874:/ apply");
+		MELT_LOCATION ("warmelt-normatch.melt:1874:/ checkinterrupt");
+		MELT_CHECK_INTERRUPT ();
+		;
+		/*^apply */
 		/*apply */
 		{
 		  union meltparam_un argtab[5];
@@ -46848,7 +48941,10 @@ lab_endgetargs:;
 	/*_.IFCPP___V41*/ meltfptr[40] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	;
-	MELT_LOCATION ("warmelt-normatch.melt:1876:/ cond");
+	MELT_LOCATION ("warmelt-normatch.melt:1876:/ checkinterrupt");
+	MELT_CHECK_INTERRUPT ();
+	;
+	/*^cond */
 	/*cond */ if (
 		       /*ifisa */
 		       melt_is_instance_of ((melt_ptr_t)
@@ -46917,6 +49013,9 @@ lab_endgetargs:;
 	    /*anyblock */
 	    {
 
+	      MELT_LOCATION ("warmelt-normatch.melt:1879:/ checkinterrupt");
+	      MELT_CHECK_INTERRUPT ();
+	      ;
      /*_#IS_A__L13*/ meltfnum[8] =
 		melt_is_instance_of ((melt_ptr_t)
 				     ( /*_.TSTUFF__V21*/ meltfptr[20]),
@@ -47028,6 +49127,9 @@ lab_endgetargs:;
 		    MELT_LOCATION ("warmelt-normatch.melt:1890:/ quasiblock");
 
 
+		    /*^checkinterrupt */
+		    MELT_CHECK_INTERRUPT ();
+		    ;
        /*_.MAKE_LIST__V55*/ meltfptr[48] =
 		      (meltgc_new_list
 		       ((meltobject_ptr_t)
@@ -47139,7 +49241,11 @@ lab_endgetargs:;
 		      ;
 		    }
 		    ;
-		    MELT_LOCATION ("warmelt-normatch.melt:1900:/ apply");
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:1900:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
+		    /*^apply */
 		    /*apply */
 		    {
 		      union meltparam_un argtab[1];
@@ -47174,6 +49280,9 @@ lab_endgetargs:;
 			;
 		      }
 		      ;
+		      /*^checkinterrupt */
+		      MELT_CHECK_INTERRUPT ();
+		      ;
 	 /*_#MELT_NEED_DBG__L14*/ meltfnum[13] =
 			/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -47198,7 +49307,10 @@ lab_endgetargs:;
 #endif /* meltcallcount the_meltcallcount */
 			      ;;
 			    MELT_LOCATION
-			      ("warmelt-normatch.melt:1901:/ apply");
+			      ("warmelt-normatch.melt:1901:/ checkinterrupt");
+			    MELT_CHECK_INTERRUPT ();
+			    ;
+			    /*^apply */
 			    /*apply */
 			    {
 			      union meltparam_un argtab[5];
@@ -47289,7 +49401,11 @@ lab_endgetargs:;
 							meltfptr[49]));
 		    }
 		    ;
-		    MELT_LOCATION ("warmelt-normatch.melt:1904:/ apply");
+		    MELT_LOCATION
+		      ("warmelt-normatch.melt:1904:/ checkinterrupt");
+		    MELT_CHECK_INTERRUPT ();
+		    ;
+		    /*^apply */
 		    /*apply */
 		    {
 		      /*_.CURHDLER__V64*/ meltfptr[60] =
@@ -47347,9 +49463,12 @@ lab_endgetargs:;
 	    ;
 	  }
 	;
+	MELT_LOCATION ("warmelt-normatch.melt:1872:/ checkinterrupt");
+	MELT_CHECK_INTERRUPT ();
+	;
 	/*epilog */
 
-	MELT_LOCATION ("warmelt-normatch.melt:1872:/ clear");
+	/*^clear */
 	     /*clear *//*_.IFCPP___V41*/ meltfptr[40] = 0;
 	/*^clear */
 	     /*clear *//*_.NTSAME_IDENTICAL__V45*/ meltfptr[41] = 0;
@@ -47383,6 +49502,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L16*/ meltfnum[14] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -47406,7 +49528,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1910:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1910:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -47518,7 +49643,10 @@ lab_endgetargs:;
 	   /*clear *//*_.IFCPP___V26*/ meltfptr[25] = 0;
     /*^clear */
 	   /*clear *//*_.LET___V30*/ meltfptr[26] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:1848:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1848:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V14*/ meltfptr[12];;
@@ -47622,7 +49750,10 @@ lab_endgetargs:;
 /*anyblock*/
   {
 
-    MELT_LOCATION ("warmelt-normatch.melt:1883:/ cond");
+    MELT_LOCATION ("warmelt-normatch.melt:1883:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^cond */
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
@@ -47683,6 +49814,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -47706,7 +49840,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1885:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1885:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -47804,9 +49941,12 @@ lab_endgetargs:;
 					 tabval[0])));
     }
     ;
+    MELT_LOCATION ("warmelt-normatch.melt:1882:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
     /*epilog */
 
-    MELT_LOCATION ("warmelt-normatch.melt:1882:/ clear");
+    /*^clear */
 	   /*clear *//*_.IFCPP___V3*/ meltfptr[2] = 0;
     /*^clear */
 	   /*clear *//*_.NTEST_COMEFROM__V7*/ meltfptr[3] = 0;
@@ -47924,6 +50064,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -47947,7 +50090,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1928:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1928:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -48018,7 +50164,10 @@ lab_endgetargs:;
       (meltgc_new_stringdup
        ((meltobject_ptr_t) (( /*!DISCR_STRING */ meltfrout->tabval[1])),
 	( /*_?*/ meltfram__.loc_CSTRING__o0)));;
-    MELT_LOCATION ("warmelt-normatch.melt:1930:/ cond");
+    MELT_LOCATION ("warmelt-normatch.melt:1930:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^cond */
     /*cond */ if (
 		   /*ifisa */
 		   melt_is_instance_of ((melt_ptr_t)
@@ -48071,6 +50220,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L3*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -48094,7 +50246,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1931:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1931:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -48161,7 +50316,10 @@ lab_endgetargs:;
     /*_.IFCPP___V9*/ meltfptr[8] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:1932:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1932:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] =
@@ -48177,7 +50335,10 @@ lab_endgetargs:;
 	   /*clear *//*_.IFCPP___V9*/ meltfptr[8] = 0;
     /*^clear */
 	   /*clear *//*_.RETURN___V13*/ meltfptr[9] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:1927:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1927:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V7*/ meltfptr[3];;
@@ -48296,6 +50457,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_OUT__L1*/ meltfnum[0] =
 	(melt_is_out ((melt_ptr_t) /*_.OUT__V2*/ meltfptr[1]));;
       MELT_LOCATION ("warmelt-normatch.melt:1957:/ cond");
@@ -48353,6 +50517,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L2*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.NTEST__V3*/ meltfptr[2]),
 			     (melt_ptr_t) (( /*!CLASS_NORMTESTER_ANY */
@@ -48451,6 +50618,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#I__L5*/ meltfnum[4] =
 	(( /*_#CLANAMLEN__L3*/ meltfnum[0]) > (6));;
       MELT_LOCATION ("warmelt-normatch.melt:1966:/ cond");
@@ -48524,9 +50694,12 @@ lab_endgetargs:;
 	   /*clear *//*_#IX__L4*/ meltfnum[3] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V10*/ meltfptr[9] = 0;
+    MELT_LOCATION ("warmelt-normatch.melt:1956:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
     /*epilog */
 
-    MELT_LOCATION ("warmelt-normatch.melt:1956:/ clear");
+    /*^clear */
 	   /*clear *//*_.IFCPP___V4*/ meltfptr[3] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V6*/ meltfptr[4] = 0;
@@ -48674,6 +50847,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -48697,7 +50873,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1986:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1986:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[9];
@@ -48788,6 +50967,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
       /*^cond */
       /*cond */ if (( /*nil */ NULL))	/*then */
 	{
@@ -48972,6 +51154,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -48995,7 +51180,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:1993:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:1993:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -49066,6 +51254,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L3*/ meltfnum[1] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.NTEST__V2*/ meltfptr[1]),
 			     (melt_ptr_t) (( /*!CLASS_NORMTESTER_ANY */
@@ -49125,6 +51316,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_A__L4*/ meltfnum[0] =
 	melt_is_instance_of ((melt_ptr_t) ( /*_.MG__V3*/ meltfptr[2]),
 			     (melt_ptr_t) (( /*!CLASS_MATCH_GRAPHIC */
@@ -49229,6 +51423,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L5*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -49252,7 +51449,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:2001:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:2001:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[7];
@@ -49330,6 +51530,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_OUT__L7*/ meltfnum[0] =
 	(melt_is_out ((melt_ptr_t) /*_.NODOUT__V15*/ meltfptr[14]));;
       MELT_LOCATION ("warmelt-normatch.melt:2002:/ cond");
@@ -49387,6 +51590,9 @@ lab_endgetargs:;
     /*anyblock */
     {
 
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#IS_OUT__L8*/ meltfnum[1] =
 	(melt_is_out ((melt_ptr_t) /*_.EDGOUT__V16*/ meltfptr[15]));;
       MELT_LOCATION ("warmelt-normatch.melt:2003:/ cond");
@@ -49451,7 +51657,10 @@ lab_endgetargs:;
 		      ("<font color=\"blue\" face=\"Times-Roman Bold\" point-size=\"10\">"));
     }
     ;
-    MELT_LOCATION ("warmelt-normatch.melt:2008:/ apply");
+    MELT_LOCATION ("warmelt-normatch.melt:2008:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^apply */
     /*apply */
     {
       union meltparam_un argtab[1];
@@ -49509,6 +51718,9 @@ lab_endgetargs:;
       meltgc_out_add_indent ((melt_ptr_t) ( /*_.NODOUT__V15*/ meltfptr[14]),
 			     (2), 0);;
     }
+    ;
+    MELT_LOCATION ("warmelt-normatch.melt:2017:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
     ;
  /*_#IS_MIXLOC__L10*/ meltfnum[1] =
       (melt_magic_discr ((melt_ptr_t) ( /*_.NLOC__V13*/ meltfptr[12])) ==
@@ -49585,8 +51797,9 @@ lab_endgetargs:;
   /*_.IFELSE___V26*/ meltfptr[25] = NULL;;
       }
     ;
-    /*^compute */
-
+    MELT_LOCATION ("warmelt-normatch.melt:2027:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
  /*_#IS_A__L11*/ meltfnum[10] =
       melt_is_instance_of ((melt_ptr_t) ( /*_.NMATCHED__V14*/ meltfptr[13]),
 			   (melt_ptr_t) (( /*!CLASS_NREP_LOCSYMOCC */
@@ -49695,6 +51908,9 @@ lab_endgetargs:;
 					     ( /*_.NAMED_NAME__V30*/
 					      meltfptr[29])));
 	  }
+	  ;
+	  MELT_LOCATION ("warmelt-normatch.melt:2036:/ checkinterrupt");
+	  MELT_CHECK_INTERRUPT ();
 	  ;
    /*_#I__L13*/ meltfnum[12] =
 	    (( /*_#NMARANK__L12*/ meltfnum[11]) > (0));;
@@ -49806,6 +52022,9 @@ lab_endgetargs:;
 	;
       }
       ;
+      /*^checkinterrupt */
+      MELT_CHECK_INTERRUPT ();
+      ;
    /*_#MELT_NEED_DBG__L15*/ meltfnum[11] =
 	/*MELT_NEED_DBG */
 #if MELT_HAVE_DEBUG
@@ -49829,7 +52048,10 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-normatch.melt:2047:/ apply");
+	    MELT_LOCATION ("warmelt-normatch.melt:2047:/ checkinterrupt");
+	    MELT_CHECK_INTERRUPT ();
+	    ;
+	    /*^apply */
 	    /*apply */
 	    {
 	      union meltparam_un argtab[5];
@@ -49925,7 +52147,10 @@ lab_endgetargs:;
 	   /*clear *//*_#IS_A__L11*/ meltfnum[10] = 0;
     /*^clear */
 	   /*clear *//*_.IFCPP___V31*/ meltfptr[26] = 0;
-    MELT_LOCATION ("warmelt-normatch.melt:1992:/ quasiblock");
+    MELT_LOCATION ("warmelt-normatch.melt:1992:/ checkinterrupt");
+    MELT_CHECK_INTERRUPT ();
+    ;
+    /*^quasiblock */
 
 
     /*_.RETVAL___V1*/ meltfptr[0] = /*_.LET___V12*/ meltfptr[10];;
