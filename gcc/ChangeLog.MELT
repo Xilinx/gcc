@@ -1,5 +1,11 @@
 
-2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>:
+2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-genobj.melt (class_objcheckinterrupt): New class.
+	(compilobj_nrep_checkinterrupt): Use it.
+	* melt/warmelt-outobj.melt (outpucod_objcheckinterrupt): New
+	method for output_c_code of class_objcheckinterrupt.
+
+2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

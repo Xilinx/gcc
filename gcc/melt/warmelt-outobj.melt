@@ -2165,7 +2165,16 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
   )
   
 
-
+;;;;;;;;;;;;;;;;
+(defun outpucod_objcheckinterrupt (obchi declbuf implbuf :long depth)
+  (assert_msg "check ochi" (is_a obchi class_objcheckinterrupt))
+  (let ( (oloc (unsafe_get_field :obi_loc obchi))
+	 )
+    (if oloc (output_location oloc implbuf depth "checkinterrupt"))
+    (add2out implbuf " MELT_CHECK_INTERRUPT();")
+    (add2sbuf_indentnl implbuf depth)
+))
+(install_method class_objcheckinterrupt output_c_code outpucod_objcheckinterrupt)
 
 ;; output code for objanyblock
 (defun outpucod_objanyblock (oblo declbuf implbuf :long depth)

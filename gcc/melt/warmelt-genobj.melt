@@ -184,6 +184,10 @@
   :fields (obci_comment
 	   ))
 
+(defclass class_objcheckinterrupt
+  :super class_objinstr
+  :fields (
+	   ))
 
 ;;;; instructions with a list of destinations (computes, calls, sends, etc...)
 (defclass class_objdestinstr
@@ -556,6 +560,7 @@
  class_objagain
  class_objapply
  class_objanyblock
+ class_objcheckinterrupt
  class_objplainblock
  class_objciterblock
  class_objclear
@@ -2997,8 +3002,8 @@ $SBUF.}#
   (assert_msg "check nchint" (is_a nchint class_nrep_checkinterrupt))
   (let (
 	(nloc (unsafe_get_field :nrep_loc nchint))
-	(ochint (make_objcompute nloc ctype_void
-				 ##{/*checkinterrupt*/ MELT_CHECK_INTERRUPT()}#))
+	(ochint (instance class_objcheckinterrupt
+			  :obi_loc nloc))
 	)
     (debug "compilobj_nrep_checkinterrupt ochint=" ochint)
     (return ochint)
