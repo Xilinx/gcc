@@ -1,3 +1,22 @@
+2012-03-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_print_operand_punct_valid_p): Add '^'.
+	(ix86_print_operand): Handle '^'.
+	* config/i386/i386.md (*strmovdi_rex_1): Macroize memory operands
+	using P mode iterator.  Add %^ to asm template to conditionally emit
+	addr32 prefix.
+	(*rep_movdi_rex64): Ditto.
+	(*strsetdi_rex_1): Ditto.
+	(*rep_stosdi_rex64): Ditto.
+	(*strmov{si,hi,qi}_1): Add %^ to asm template to
+	conditionally emit addr32 prefix.
+	(*rep_mov{si,qi}): Ditto.
+	(*strset{si,hi,qi}): Ditto.
+	(*rep_stos{si,qi}): Ditto.
+	(*cmpstrnqi_nz_1): Ditto.
+	(*cmpstrnqi_1): Ditto.
+	(*strlenqi_1): Ditto.
+
 2012-03-07  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (function_value_64): Return pointers in
