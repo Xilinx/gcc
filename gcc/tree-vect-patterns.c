@@ -1,5 +1,5 @@
 /* Analysis Utilities for Loop Vectorization.
-   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Dorit Nuzman <dorit@il.ibm.com>
 
@@ -109,7 +109,8 @@ widened_name_p (tree name, gimple use_stmt, tree *half_type, gimple *def_stmt,
   stmt_vinfo = vinfo_for_stmt (use_stmt);
   loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_vinfo);
 
-  if (!vect_is_simple_use (name, loop_vinfo, NULL, def_stmt, &def, &dt))
+  if (!vect_is_simple_use (name, use_stmt, loop_vinfo, NULL, def_stmt, &def,
+			   &dt))
     return false;
 
   if (dt != vect_internal_def
@@ -133,8 +134,8 @@ widened_name_p (tree name, gimple use_stmt, tree *half_type, gimple *def_stmt,
       || (TYPE_PRECISION (type) < (TYPE_PRECISION (*half_type) * 2)))
     return false;
 
-  if (!vect_is_simple_use (oprnd0, loop_vinfo, NULL, &dummy_gimple, &dummy,
-                           &dt))
+  if (!vect_is_simple_use (oprnd0, *def_stmt, loop_vinfo,
+			   NULL, &dummy_gimple, &dummy, &dt))
     return false;
 
   return true;
@@ -1550,7 +1551,8 @@ vect_recog_vector_vector_shift_pattern (VEC (gimple, heap) **stmts,
 	 != TYPE_PRECISION (TREE_TYPE (oprnd0)))
     return NULL;
 
-  if (!vect_is_simple_use (oprnd1, loop_vinfo, NULL, &def_stmt, &def, &dt))
+  if (!vect_is_simple_use (oprnd1, last_stmt, loop_vinfo, NULL, &def_stmt,
+			   &def, &dt))
     return NULL;
 
   if (dt != vect_internal_def)
@@ -1926,7 +1928,7 @@ check_bool_pattern (tree var, loop_vec_info loop_vinfo)
   tree def, rhs1;
   enum tree_code rhs_code;
 
-  if (!vect_is_simple_use (var, loop_vinfo, NULL, &def_stmt, &def, &dt))
+  if (!vect_is_simple_use (var, NULL, loop_vinfo, NULL, &def_stmt, &def, &dt))
     return false;
 
   if (dt != vect_internal_def)
@@ -1966,6 +1968,11 @@ check_bool_pattern (tree var, loop_vec_info loop_vinfo)
       if (TREE_CODE_CLASS (rhs_code) == tcc_comparison)
 	{
 	  tree vecitype, comp_vectype;
+
+	  /* If the comparison can throw, then is_gimple_condexpr will be
+	     false and we can't make a COND_EXPR/VEC_COND_EXPR out of it.  */
+	  if (stmt_could_throw_p (def_stmt))
+	    return false;
 
 	  comp_vectype = get_vectype_for_scalar_type (TREE_TYPE (rhs1));
 	  if (comp_vectype == NULL_TREE)

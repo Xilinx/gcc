@@ -14968,7 +14968,15 @@ package body Sem_Ch3 is
             then
                Set_Ekind (Id, Ekind (Prev));         --  will be reset later
                Set_Class_Wide_Type (Id, Class_Wide_Type (Prev));
-               Set_Etype (Class_Wide_Type (Id), Id);
+
+               --  If the incomplete type is completed by a private declaration
+               --  the class-wide type remains associated with the incomplete
+               --  type, to prevent order-of-elaboration issues in gigi, else
+               --  we associate the class-wide type with the known full view.
+
+               if Nkind (N) /= N_Private_Type_Declaration then
+                  Set_Etype (Class_Wide_Type (Id), Id);
+               end if;
             end if;
 
          --  Case of full declaration of private type
@@ -16808,6 +16816,21 @@ package body Sem_Ch3 is
    --  Start of processing for Modular_Type_Declaration
 
    begin
+      --  If the mod expression is (exactly) 2 * literal, where literal is
+      --  64 or less,then almost certainly the * was meant to be **. Warn!
+
+      if Warn_On_Suspicious_Modulus_Value
+        and then Nkind (Mod_Expr) = N_Op_Multiply
+        and then Nkind (Left_Opnd (Mod_Expr)) = N_Integer_Literal
+        and then Intval (Left_Opnd (Mod_Expr)) = Uint_2
+        and then Nkind (Right_Opnd (Mod_Expr)) = N_Integer_Literal
+        and then Intval (Right_Opnd (Mod_Expr)) <= Uint_64
+      then
+         Error_Msg_N ("suspicious MOD value, was '*'* intended'??", Mod_Expr);
+      end if;
+
+      --  Proceed with analysis of mod expression
+
       Analyze_And_Resolve (Mod_Expr, Any_Integer);
       Set_Etype (T, T);
       Set_Ekind (T, E_Modular_Integer_Type);
@@ -18180,7 +18203,7 @@ package body Sem_Ch3 is
 
       if Has_Predicates (Priv_T) then
          Set_Predicate_Function (Priv_T, Predicate_Function (Full_T));
-         Set_Has_Predicates (Priv_T);
+         Set_Has_Predicates (Full_T);
       end if;
    end Process_Full_View;
 

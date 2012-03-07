@@ -1,9 +1,17 @@
+2012-03-02   Sharad Singhai  <singhai@google.com>
+
+	Mainline merge rev 184776 until start of gcc 4.8 branch.
+
 2012-03-02   Ollie Wild  <aaw@google.com>
 
 	* config.gcc: Add *-grtev3-* target support.
 	* config/i386/linux.h: Comment fixup.
 	* config/i386/linux64.h: Comment fixup.
 	* config/linux-grtev3.h: New file.
+
+2012-02-29   Sharad Singhai  <singhai@google.com>
+
+	Mainline merge rev 184667.
 
 2012-01-30   Sharad Singhai  <singhai@google.com>
 

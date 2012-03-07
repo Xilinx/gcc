@@ -326,9 +326,8 @@ gfc_sym_mangled_identifier (gfc_symbol * sym)
 
   /* Prevent the mangling of identifiers that have an assigned
      binding label (mainly those that are bind(c)).  */
-  if (sym->attr.is_bind_c == 1
-      && sym->binding_label[0] != '\0')
-    return get_identifier(sym->binding_label);
+  if (sym->attr.is_bind_c == 1 && sym->binding_label)
+    return get_identifier (sym->binding_label);
   
   if (sym->module == NULL)
     return gfc_sym_identifier (sym);
@@ -352,7 +351,7 @@ gfc_sym_mangled_function_id (gfc_symbol * sym)
      provided, and remove the other checks.  Then we could use it
      for other things if we wished.  */
   if ((sym->attr.is_bind_c == 1 || sym->attr.is_iso_c == 1) &&
-      sym->binding_label[0] != '\0')
+      sym->binding_label)
     /* use the binding label rather than the mangled name */
     return get_identifier (sym->binding_label);
 
@@ -3687,7 +3686,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	}
       else if ((!sym->attr.dummy || sym->ts.deferred)
 		&& (sym->ts.type == BT_CLASS
-		&& CLASS_DATA (sym)->attr.pointer))
+		&& CLASS_DATA (sym)->attr.class_pointer))
 	continue;
       else if ((!sym->attr.dummy || sym->ts.deferred)
 		&& (sym->attr.allocatable
@@ -4684,6 +4683,22 @@ generate_local_decl (gfc_symbol * sym)
 	  && sym->ts.type == BT_CHARACTER && sym->ts.is_c_interop
 	  && sym->ns->proc_name != NULL && sym->ns->proc_name->attr.is_bind_c)
 	gfc_conv_scalar_char_value (sym, NULL, NULL);
+
+      /* Unused procedure passed as dummy argument.  */
+      if (sym->attr.flavor == FL_PROCEDURE)
+	{
+	  if (!sym->attr.referenced)
+	    {
+	      if (gfc_option.warn_unused_dummy_argument)
+		gfc_warning ("Unused dummy argument '%s' at %L", sym->name,
+			     &sym->declared_at);	     
+	    }
+
+	  /* Silence bogus "unused parameter" warnings from the
+	     middle end.  */
+	  if (sym->backend_decl != NULL_TREE)
+		TREE_NO_WARNING (sym->backend_decl) = 1;
+	}
     }
 
   /* Make sure we convert the types of the derived types from iso_c_binding
@@ -5341,7 +5356,8 @@ gfc_generate_function_code (gfc_namespace * ns)
 							 null_pointer_node));
 	  else if (sym->ts.type == BT_CLASS
 		   && CLASS_DATA (sym)->attr.allocatable
-		   && sym->attr.dimension == 0 && sym->result == sym)
+		   && CLASS_DATA (sym)->attr.dimension == 0
+		   && sym->result == sym)
 	    {
 	      tmp = CLASS_DATA (sym)->backend_decl;
 	      tmp = fold_build3_loc (input_location, COMPONENT_REF,

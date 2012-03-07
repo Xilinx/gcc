@@ -1850,7 +1850,7 @@ expand_cbranchsi4 (rtx *operands, enum rtx_code comparison, int probability)
 }
 
 /* ??? How should we distribute probabilities when more than one branch
-   is generated.  So far we only have soem ad-hoc observations:
+   is generated.  So far we only have some ad-hoc observations:
    - If the operands are random, they are likely to differ in both parts.
    - If comparing items in a hash chain, the operands are random or equal;
      operation should be EQ or NE.
@@ -5380,7 +5380,7 @@ sh_reorg (void)
 
   /* If relaxing, generate pseudo-ops to associate function calls with
      the symbols they call.  It does no harm to not generate these
-     pseudo-ops.  However, when we can generate them, it enables to
+     pseudo-ops.  However, when we can generate them, it enables the
      linker to potentially relax the jsr to a bsr, and eliminate the
      register load and, possibly, the constant pool entry.  */
 
@@ -9201,13 +9201,6 @@ fldi_ok (void)
   return 1;
 }
 
-int
-tertiary_reload_operand (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
-{
-  enum rtx_code code = GET_CODE (op);
-  return code == MEM || (TARGET_SH4 && code == CONST_DOUBLE);
-}
-
 /* Return the TLS type for TLS symbols, 0 for otherwise.  */
 enum tls_model
 tls_symbolic_operand (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
@@ -9259,7 +9252,7 @@ reg_unused_after (rtx reg, rtx insn)
 
 #if 0
       /* If this is a label that existed before reload, then the register
-	 if dead here.  However, if this is a label added by reorg, then
+	 is dead here.  However, if this is a label added by reorg, then
 	 the register may still be live here.  We can't tell the difference,
 	 so we just ignore labels completely.  */
       if (code == CODE_LABEL)
@@ -9569,7 +9562,7 @@ sh_legitimate_index_p (enum machine_mode mode, rtx op)
 	{
 	  int size;
 
-	  /* Check if this the address of an unaligned load / store.  */
+	  /* Check if this is the address of an unaligned load / store.  */
 	  if (mode == VOIDmode)
 	    return CONST_OK_FOR_I06 (INTVAL (op));
 

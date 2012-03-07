@@ -1064,23 +1064,24 @@ package body Sem_Ch13 is
 
                --  Aspects corresponding to attribute definition clauses
 
-               when Aspect_Address        |
-                    Aspect_Alignment      |
-                    Aspect_Bit_Order      |
-                    Aspect_Component_Size |
-                    Aspect_External_Tag   |
-                    Aspect_Input          |
-                    Aspect_Machine_Radix  |
-                    Aspect_Object_Size    |
-                    Aspect_Output         |
-                    Aspect_Read           |
-                    Aspect_Size           |
-                    Aspect_Small          |
-                    Aspect_Storage_Pool   |
-                    Aspect_Storage_Size   |
-                    Aspect_Stream_Size    |
-                    Aspect_Value_Size     |
-                    Aspect_Write          =>
+               when Aspect_Address             |
+                    Aspect_Alignment           |
+                    Aspect_Bit_Order           |
+                    Aspect_Component_Size      |
+                    Aspect_External_Tag        |
+                    Aspect_Input               |
+                    Aspect_Machine_Radix       |
+                    Aspect_Object_Size         |
+                    Aspect_Output              |
+                    Aspect_Read                |
+                    Aspect_Size                |
+                    Aspect_Small               |
+                    Aspect_Simple_Storage_Pool |
+                    Aspect_Storage_Pool        |
+                    Aspect_Storage_Size        |
+                    Aspect_Stream_Size         |
+                    Aspect_Value_Size          |
+                    Aspect_Write               =>
 
                   --  Construct the attribute definition clause
 
@@ -1200,6 +1201,12 @@ package body Sem_Ch13 is
                   Delay_Required := True;
                   Set_Is_Delayed_Aspect (Aspect);
                   Set_Has_Default_Aspect (Base_Type (Entity (Ent)));
+
+                  if Is_Scalar_Type (E) then
+                     Set_Default_Aspect_Value (Entity (Ent), Expr);
+                  else
+                     Set_Default_Aspect_Component_Value (Entity (Ent), Expr);
+                  end if;
 
                when Aspect_Attach_Handler =>
                   Aitem :=
@@ -1424,6 +1431,10 @@ package body Sem_Ch13 is
                   --  missing in cases like subtype X is Y, and we would not
                   --  have a place to build the predicate function).
 
+                  --  If the type is private, indicate that its completion
+                  --  has a freeze node, because that is the one that will be
+                  --  visible at freeze time.
+
                   Set_Has_Predicates (E);
 
                   if Is_Private_Type (E)
@@ -1431,6 +1442,7 @@ package body Sem_Ch13 is
                   then
                      Set_Has_Predicates (Full_View (E));
                      Set_Has_Delayed_Aspects (Full_View (E));
+                     Ensure_Freeze_Node (Full_View (E));
                   end if;
 
                   Ensure_Freeze_Node (E);
@@ -2199,13 +2211,14 @@ package body Sem_Ch13 is
             --  legality, e.g. failing to provide a stream attribute for a
             --  type may make a program illegal.
 
-            when Attribute_External_Tag |
-                 Attribute_Input        |
-                 Attribute_Output       |
-                 Attribute_Read         |
-                 Attribute_Storage_Pool |
-                 Attribute_Storage_Size |
-                 Attribute_Write        =>
+            when Attribute_External_Tag        |
+                 Attribute_Input               |
+                 Attribute_Output              |
+                 Attribute_Read                |
+                 Attribute_Simple_Storage_Pool |
+                 Attribute_Storage_Pool        |
+                 Attribute_Storage_Size        |
+                 Attribute_Write               =>
                null;
 
             --  Other cases are errors ("attribute& cannot be set with
@@ -3152,7 +3165,7 @@ package body Sem_Ch13 is
 
          --  Storage_Pool attribute definition clause
 
-         when Attribute_Storage_Pool => Storage_Pool : declare
+         when Attribute_Storage_Pool | Attribute_Simple_Storage_Pool => declare
             Pool : Entity_Id;
             T    : Entity_Id;
 
@@ -3183,8 +3196,24 @@ package body Sem_Ch13 is
                return;
             end if;
 
-            Analyze_And_Resolve
-              (Expr, Class_Wide_Type (RTE (RE_Root_Storage_Pool)));
+            if Id = Attribute_Storage_Pool then
+               Analyze_And_Resolve
+                 (Expr, Class_Wide_Type (RTE (RE_Root_Storage_Pool)));
+
+            --  In the Simple_Storage_Pool case, we allow a variable of any
+            --  simple storage pool type, so we Resolve without imposing an
+            --  expected type.
+
+            else
+               Analyze_And_Resolve (Expr);
+
+               if not Present (Get_Rep_Pragma
+                                 (Etype (Expr), Name_Simple_Storage_Pool_Type))
+               then
+                  Error_Msg_N
+                    ("expression must be of a simple storage pool type", Expr);
+               end if;
+            end if;
 
             if not Denotes_Variable (Expr) then
                Error_Msg_N ("storage pool must be a variable", Expr);
@@ -3269,7 +3298,7 @@ package body Sem_Ch13 is
                Error_Msg_N ("incorrect reference to a Storage Pool", Expr);
                return;
             end if;
-         end Storage_Pool;
+         end;
 
          ------------------
          -- Storage_Size --
@@ -5056,6 +5085,12 @@ package body Sem_Ch13 is
          Set_Has_Predicates (SId);
          Set_Predicate_Function (Typ, SId);
 
+         --  The predicate function is shared between views of a type.
+
+         if Is_Private_Type (Typ) and then Present (Full_View (Typ)) then
+            Set_Predicate_Function (Full_View (Typ), SId);
+         end if;
+
          Spec :=
            Make_Function_Specification (Loc,
              Defining_Unit_Name       => SId,
@@ -6012,6 +6047,18 @@ package body Sem_Ch13 is
          if No (T) then
             Check_Aspect_At_Freeze_Point (ASN);
             return;
+
+         --  The default values attributes may be defined in the private part,
+         --  and the analysis of the expression may take place when only the
+         --  partial view is visible. The expression must be scalar, so use
+         --  the full view to resolve.
+
+         elsif (A_Id = Aspect_Default_Value
+                  or else
+                A_Id = Aspect_Default_Component_Value)
+            and then Is_Private_Type (T)
+         then
+            Preanalyze_Spec_Expression (End_Decl_Expr, Full_View (T));
          else
             Preanalyze_Spec_Expression (End_Decl_Expr, T);
          end if;
@@ -6117,6 +6164,13 @@ package body Sem_Ch13 is
 
          when Aspect_Small =>
             T := Universal_Real;
+
+         --  For a simple storage pool, we have to retrieve the type of the
+         --  pool object associated with the aspect's corresponding attribute
+         --  definition clause.
+
+         when Aspect_Simple_Storage_Pool =>
+            T := Etype (Expression (Aspect_Rep_Item (ASN)));
 
          when Aspect_Storage_Pool =>
             T := Class_Wide_Type (RTE (RE_Root_Storage_Pool));

@@ -64,6 +64,8 @@ typedef enum ffi_abi {
 #ifdef X86_WIN32
   FFI_SYSV,
   FFI_STDCALL,
+  FFI_THISCALL,
+  FFI_FASTCALL,
   /* TODO: Add fastcall support for the sake of completeness */
   FFI_DEFAULT_ABI = FFI_SYSV,
 #endif
@@ -101,7 +103,7 @@ typedef enum ffi_abi {
 #define FFI_NATIVE_RAW_API 0
 #else
 #ifdef X86_WIN32
-#define FFI_TRAMPOLINE_SIZE 13
+#define FFI_TRAMPOLINE_SIZE 52
 #else
 #ifdef X86_WIN64
 #define FFI_TRAMPOLINE_SIZE 29

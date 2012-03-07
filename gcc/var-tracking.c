@@ -5298,6 +5298,7 @@ reverse_op (rtx val, const_rtx expr, rtx insn)
 {
   rtx src, arg, ret;
   cselib_val *v;
+  struct elt_loc_list *l;
   enum rtx_code code;
 
   if (GET_CODE (expr) != SET)
@@ -5332,6 +5333,18 @@ reverse_op (rtx val, const_rtx expr, rtx insn)
   v = cselib_lookup (XEXP (src, 0), GET_MODE (XEXP (src, 0)), 0, VOIDmode);
   if (!v || !cselib_preserved_value_p (v))
     return;
+
+  /* Use canonical V to avoid creating multiple redundant expressions
+     for different VALUES equivalent to V.  */
+  v = canonical_cselib_val (v);
+
+  /* Adding a reverse op isn't useful if V already has an always valid
+     location.  Ignore ENTRY_VALUE, while it is always constant, we should
+     prefer non-ENTRY_VALUE locations whenever possible.  */
+  for (l = v->locs; l; l = l->next)
+    if (CONSTANT_P (l->loc)
+	&& (GET_CODE (l->loc) != CONST || !references_value_p (l->loc, 0)))
+      return;
 
   switch (GET_CODE (src))
     {
@@ -8216,9 +8229,14 @@ emit_note_insn_var_location (void **varp, void *data)
       /* Make sure that the call related notes come first.  */
       while (NEXT_INSN (insn)
 	     && NOTE_P (insn)
-	     && NOTE_DURING_CALL_P (insn))
+	     && ((NOTE_KIND (insn) == NOTE_INSN_VAR_LOCATION
+		  && NOTE_DURING_CALL_P (insn))
+		 || NOTE_KIND (insn) == NOTE_INSN_CALL_ARG_LOCATION))
 	insn = NEXT_INSN (insn);
-      if (NOTE_P (insn) && NOTE_DURING_CALL_P (insn))
+      if (NOTE_P (insn)
+	  && ((NOTE_KIND (insn) == NOTE_INSN_VAR_LOCATION
+	       && NOTE_DURING_CALL_P (insn))
+	      || NOTE_KIND (insn) == NOTE_INSN_CALL_ARG_LOCATION))
 	note = emit_note_after (NOTE_INSN_VAR_LOCATION, insn);
       else
 	note = emit_note_before (NOTE_INSN_VAR_LOCATION, insn);

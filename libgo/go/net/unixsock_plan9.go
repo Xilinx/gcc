@@ -8,6 +8,7 @@ package net
 
 import (
 	"os"
+	"time"
 )
 
 // UnixConn is an implementation of the Conn interface
@@ -16,12 +17,12 @@ type UnixConn bool
 
 // Implementation of the Conn interface - see Conn for documentation.
 
-// Read implements the net.Conn Read method.
+// Read implements the Conn Read method.
 func (c *UnixConn) Read(b []byte) (n int, err error) {
 	return 0, os.EPLAN9
 }
 
-// Write implements the net.Conn Write method.
+// Write implements the Conn Write method.
 func (c *UnixConn) Write(b []byte) (n int, err error) {
 	return 0, os.EPLAN9
 }
@@ -44,28 +45,28 @@ func (c *UnixConn) RemoteAddr() Addr {
 	return nil
 }
 
-// SetTimeout implements the net.Conn SetTimeout method.
-func (c *UnixConn) SetTimeout(nsec int64) error {
+// SetDeadline implements the Conn SetDeadline method.
+func (c *UnixConn) SetDeadline(t time.Time) error {
 	return os.EPLAN9
 }
 
-// SetReadTimeout implements the net.Conn SetReadTimeout method.
-func (c *UnixConn) SetReadTimeout(nsec int64) error {
+// SetReadDeadline implements the Conn SetReadDeadline method.
+func (c *UnixConn) SetReadDeadline(t time.Time) error {
 	return os.EPLAN9
 }
 
-// SetWriteTimeout implements the net.Conn SetWriteTimeout method.
-func (c *UnixConn) SetWriteTimeout(nsec int64) error {
+// SetWriteDeadline implements the Conn SetWriteDeadline method.
+func (c *UnixConn) SetWriteDeadline(t time.Time) error {
 	return os.EPLAN9
 }
 
-// ReadFrom implements the net.PacketConn ReadFrom method.
+// ReadFrom implements the PacketConn ReadFrom method.
 func (c *UnixConn) ReadFrom(b []byte) (n int, addr Addr, err error) {
 	err = os.EPLAN9
 	return
 }
 
-// WriteTo implements the net.PacketConn WriteTo method.
+// WriteTo implements the PacketConn WriteTo method.
 func (c *UnixConn) WriteTo(b []byte, addr Addr) (n int, err error) {
 	err = os.EPLAN9
 	return

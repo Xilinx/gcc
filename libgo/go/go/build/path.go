@@ -7,7 +7,6 @@ package build
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -81,7 +80,6 @@ func (t *Tree) HasPkg(pkg string) bool {
 		return false
 	}
 	return !fi.IsDir()
-	// TODO(adg): check object version is consistent
 }
 
 var (
@@ -105,14 +103,14 @@ func FindTree(path string) (tree *Tree, pkg string, err error) {
 				continue
 			}
 			tree = t
-			pkg = path[len(tpath):]
+			pkg = filepath.ToSlash(path[len(tpath):])
 			return
 		}
 		err = fmt.Errorf("path %q not inside a GOPATH", path)
 		return
 	}
 	tree = defaultTree
-	pkg = path
+	pkg = filepath.ToSlash(path)
 	for _, t := range Path {
 		if t.HasSrc(pkg) {
 			tree = t
@@ -150,9 +148,7 @@ var (
 func init() {
 	root := runtime.GOROOT()
 	t, err := newTree(root)
-	if err != nil {
-		log.Printf("invalid GOROOT %q: %v", root, err)
-	} else {
+	if err == nil {
 		t.Goroot = true
 		Path = []*Tree{t}
 	}
@@ -163,9 +159,9 @@ func init() {
 		}
 		t, err := newTree(p)
 		if err != nil {
-			log.Printf("invalid GOPATH %q: %v", p, err)
 			continue
 		}
+
 		Path = append(Path, t)
 		gcImportArgs = append(gcImportArgs, "-I", t.PkgDir())
 		ldImportArgs = append(ldImportArgs, "-L", t.PkgDir())

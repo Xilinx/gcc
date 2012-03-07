@@ -3774,7 +3774,13 @@ gfc_default_initializer (gfc_typespec *ts)
       gfc_constructor *ctor = gfc_constructor_get();
 
       if (comp->initializer)
-	ctor->expr = gfc_copy_expr (comp->initializer);
+	{
+	  ctor->expr = gfc_copy_expr (comp->initializer);
+	  if ((comp->ts.type != comp->initializer->ts.type
+	       || comp->ts.kind != comp->initializer->ts.kind)
+	      && !comp->attr.pointer && !comp->attr.proc_pointer)
+	    gfc_convert_type_warn (ctor->expr, &comp->ts, 2, false);
+	}
 
       if (comp->attr.allocatable
 	  || (comp->ts.type == BT_CLASS && CLASS_DATA (comp)->attr.allocatable))
@@ -3805,9 +3811,12 @@ gfc_get_variable_expr (gfc_symtree *var)
   e->symtree = var;
   e->ts = var->n.sym->ts;
 
-  if (var->n.sym->as != NULL)
+  if ((var->n.sym->as != NULL && var->n.sym->ts.type != BT_CLASS)
+      || (var->n.sym->ts.type == BT_CLASS && CLASS_DATA (var->n.sym)
+	  && CLASS_DATA (var->n.sym)->as))
     {
-      e->rank = var->n.sym->as->rank;
+      e->rank = var->n.sym->ts.type == BT_CLASS
+		? CLASS_DATA (var->n.sym)->as->rank : var->n.sym->as->rank;
       e->ref = gfc_get_ref ();
       e->ref->type = REF_ARRAY;
       e->ref->u.ar.type = AR_FULL;
@@ -3836,7 +3845,8 @@ gfc_lval_expr_from_sym (gfc_symbol *sym)
       lval->ref->u.ar.type = AR_FULL;
       lval->ref->u.ar.dimen = lval->rank;
       lval->ref->u.ar.where = sym->declared_at;
-      lval->ref->u.ar.as = sym->as;
+      lval->ref->u.ar.as = sym->ts.type == BT_CLASS
+			   ? CLASS_DATA (sym)->as : sym->as;
     }
 
   return lval;

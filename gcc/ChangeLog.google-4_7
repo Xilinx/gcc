@@ -1,3 +1,7 @@
+2012-03-07  Diego Novillo  <dnovillo@google.com>
+
+	Merge from google/main rev 184996.
+
 2012-02-26  Ollie Wild  <aaw@google.com>
 
 	* BASE-VER: Change to 4.7.x-google.

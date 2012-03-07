@@ -882,9 +882,6 @@ case "${target}" in
   tic54x-*-*)
     noconfigdirs="$noconfigdirs target-libgloss gdb"
     ;;
-  cr16-*-*)
-    noconfigdirs="$noconfigdirs gdb"
-    ;;
   d10v-*-*)
     noconfigdirs="$noconfigdirs target-libgloss"
     ;;

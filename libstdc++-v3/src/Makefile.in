@@ -289,6 +289,7 @@ port_specific_symbol_files = @port_specific_symbol_files@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
+python_mod_dir = @python_mod_dir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -312,6 +313,8 @@ PWD_COMMAND = $${PWDCMD-pwd}
 STAMP = echo timestamp >
 toolexecdir = $(glibcxx_toolexecdir)
 toolexeclibdir = $(glibcxx_toolexeclibdir)
+@ENABLE_WERROR_FALSE@WERROR_FLAG = 
+@ENABLE_WERROR_TRUE@WERROR_FLAG = $(WERROR)
 
 # These bits are all figured out from configure.  Look in acinclude.m4
 # or configure.ac to see how they are set.  See GLIBCXX_EXPORT_FLAGS.
@@ -319,7 +322,7 @@ CONFIG_CXXFLAGS = \
 	$(SECTION_FLAGS) $(EXTRA_CXX_FLAGS) -frandom-seed=$@
 
 WARN_CXXFLAGS = \
-	$(WARN_FLAGS) $(WERROR) -fdiagnostics-show-location=once -Wabi
+	$(WARN_FLAGS) $(WERROR_FLAG) -fdiagnostics-show-location=once 
 
 
 # -I/-D flags to pass when compiling.
@@ -396,16 +399,27 @@ CXXLINK = $(LIBTOOL) --tag CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link \
 @ENABLE_SYMVERS_DARWIN_TRUE@@ENABLE_SYMVERS_TRUE@version_arg = -Wl,-exported_symbols_list,libstdc++-symbols.explist
 @ENABLE_SYMVERS_FALSE@version_arg = 
 @ENABLE_SYMVERS_GNU_NAMESPACE_TRUE@@ENABLE_SYMVERS_TRUE@version_arg = -Wl,--version-script=libstdc++-symbols.ver
-@ENABLE_SYMVERS_GNU_TRUE@@ENABLE_SYMVERS_SOL2_FALSE@@ENABLE_SYMVERS_TRUE@version_arg = -Wl,--version-script=libstdc++-symbols.ver
-@ENABLE_SYMVERS_GNU_TRUE@@ENABLE_SYMVERS_SOL2_TRUE@@ENABLE_SYMVERS_TRUE@version_arg = -Wl,--version-script,libstdc++-symbols.ver-sol2
+@ENABLE_SYMVERS_GNU_TRUE@@ENABLE_SYMVERS_TRUE@version_arg = -Wl,--version-script=libstdc++-symbols.ver
 @ENABLE_SYMVERS_SUN_TRUE@@ENABLE_SYMVERS_TRUE@version_arg = -Wl,-M,libstdc++-symbols.ver-sun
 @ENABLE_SYMVERS_DARWIN_TRUE@@ENABLE_SYMVERS_TRUE@version_dep = libstdc++-symbols.explist
 @ENABLE_SYMVERS_FALSE@version_dep = 
 @ENABLE_SYMVERS_GNU_NAMESPACE_TRUE@@ENABLE_SYMVERS_TRUE@version_dep = libstdc++-symbols.ver
-@ENABLE_SYMVERS_GNU_TRUE@@ENABLE_SYMVERS_SOL2_FALSE@@ENABLE_SYMVERS_TRUE@version_dep = libstdc++-symbols.ver
-@ENABLE_SYMVERS_GNU_TRUE@@ENABLE_SYMVERS_SOL2_TRUE@@ENABLE_SYMVERS_TRUE@version_dep = libstdc++-symbols.ver-sol2
+@ENABLE_SYMVERS_GNU_TRUE@@ENABLE_SYMVERS_TRUE@version_dep = libstdc++-symbols.ver
 @ENABLE_SYMVERS_SUN_TRUE@@ENABLE_SYMVERS_TRUE@version_dep = libstdc++-symbols.ver-sun
-debugdir = debug
+@GLIBCXX_BUILD_DEBUG_FALSE@STAMP_DEBUG = 
+
+# Added rules.
+# 1 debug library
+# 2 supra-convenience library
+@GLIBCXX_BUILD_DEBUG_TRUE@STAMP_DEBUG = build-debug
+@GLIBCXX_BUILD_DEBUG_FALSE@STAMP_INSTALL_DEBUG = 
+@GLIBCXX_BUILD_DEBUG_TRUE@STAMP_INSTALL_DEBUG = install-debug
+@GLIBCXX_BUILD_DEBUG_FALSE@CLEAN_DEBUG = 
+@GLIBCXX_BUILD_DEBUG_TRUE@CLEAN_DEBUG = debug
+
+# Build a debug variant.
+# Take care to fix all possibly-relative paths.
+debugdir = ${glibcxx_builddir}/src/debug
 all: all-recursive
 
 .SUFFIXES:
@@ -655,8 +669,8 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-recursive
 
-clean-am: clean-generic clean-libtool clean-toolexeclibLTLIBRARIES \
-	mostlyclean-am
+clean-am: clean-generic clean-libtool clean-local \
+	clean-toolexeclibLTLIBRARIES mostlyclean-am
 
 distclean: distclean-recursive
 	-rm -f Makefile
@@ -727,7 +741,7 @@ uninstall-am: uninstall-toolexeclibLTLIBRARIES
 
 .PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
 	all all-am all-local check check-am clean clean-generic \
-	clean-libtool clean-toolexeclibLTLIBRARIES ctags \
+	clean-libtool clean-local clean-toolexeclibLTLIBRARIES ctags \
 	ctags-recursive distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags dvi dvi-am html html-am info \
 	info-am install install-am install-data install-data-am \
@@ -749,22 +763,22 @@ vpath % $(top_srcdir)
 # Symbol versioning for shared libraries.
 @ENABLE_SYMVERS_TRUE@libstdc++-symbols.ver:  ${glibcxx_srcdir}/$(SYMVER_FILE) \
 @ENABLE_SYMVERS_TRUE@		$(port_specific_symbol_files)
-@ENABLE_SYMVERS_TRUE@	cp ${glibcxx_srcdir}/$(SYMVER_FILE) ./libstdc++-symbols.ver
-@ENABLE_SYMVERS_TRUE@	chmod +w ./libstdc++-symbols.ver
+@ENABLE_SYMVERS_TRUE@	cp ${glibcxx_srcdir}/$(SYMVER_FILE) $@.tmp
+@ENABLE_SYMVERS_TRUE@	chmod +w $@.tmp
 @ENABLE_SYMVERS_TRUE@	if test "x$(port_specific_symbol_files)" != x; then \
 @ENABLE_SYMVERS_TRUE@	  if grep '^# Appended to version file.' \
 @ENABLE_SYMVERS_TRUE@	       $(port_specific_symbol_files) /dev/null > /dev/null 2>&1; then \
-@ENABLE_SYMVERS_TRUE@	    cat $(port_specific_symbol_files) >> $@; \
+@ENABLE_SYMVERS_TRUE@	    cat $(port_specific_symbol_files) >> $@.tmp; \
 @ENABLE_SYMVERS_TRUE@	  else \
-@ENABLE_SYMVERS_TRUE@	    sed -n '1,/DO NOT DELETE/p' $@ > tmp.top; \
-@ENABLE_SYMVERS_TRUE@	    sed -n '/DO NOT DELETE/,$$p' $@ > tmp.bottom; \
-@ENABLE_SYMVERS_TRUE@	    cat tmp.top $(port_specific_symbol_files) tmp.bottom > $@; \
+@ENABLE_SYMVERS_TRUE@	    sed -n '1,/DO NOT DELETE/p' $@.tmp > tmp.top; \
+@ENABLE_SYMVERS_TRUE@	    sed -n '/DO NOT DELETE/,$$p' $@.tmp > tmp.bottom; \
+@ENABLE_SYMVERS_TRUE@	    cat tmp.top $(port_specific_symbol_files) tmp.bottom > $@.tmp; \
 @ENABLE_SYMVERS_TRUE@	    rm tmp.top tmp.bottom; \
 @ENABLE_SYMVERS_TRUE@	  fi; \
 @ENABLE_SYMVERS_TRUE@	fi
-@ENABLE_SYMVERS_GNU_TRUE@@ENABLE_SYMVERS_SOL2_TRUE@@ENABLE_SYMVERS_TRUE@libstdc++-symbols.ver-sol2 : libstdc++-symbols.ver
-@ENABLE_SYMVERS_GNU_TRUE@@ENABLE_SYMVERS_SOL2_TRUE@@ENABLE_SYMVERS_TRUE@	sed -e '/^#ifdef HAVE_SYMVER_SYMBOL_RENAMING_RUNTIME_SUPPORT/,/^#endif/d' $< \
-@ENABLE_SYMVERS_GNU_TRUE@@ENABLE_SYMVERS_SOL2_TRUE@@ENABLE_SYMVERS_TRUE@	 > $@ || (rm -f $@ ; exit 1)
+@ENABLE_SYMVERS_TRUE@	$(EGREP) -v '^[ 	]*#(#| |$$)' $@.tmp | \
+@ENABLE_SYMVERS_TRUE@	  $(COMPILE) -E -P -include config.h - > $@ || (rm -f $@ ; exit 1)
+@ENABLE_SYMVERS_TRUE@	rm -f $@.tmp
 @ENABLE_SYMVERS_SUN_TRUE@@ENABLE_SYMVERS_TRUE@libstdc++-symbols.ver-sun : libstdc++-symbols.ver \
 @ENABLE_SYMVERS_SUN_TRUE@@ENABLE_SYMVERS_TRUE@		$(toplevel_srcdir)/contrib/make_sunver.pl \
 @ENABLE_SYMVERS_SUN_TRUE@@ENABLE_SYMVERS_TRUE@		$(libstdc___la_OBJECTS) $(libstdc___la_LIBADD)
@@ -785,13 +799,15 @@ vpath % $(top_srcdir)
 @ENABLE_SYMVERS_DARWIN_TRUE@@ENABLE_SYMVERS_TRUE@	    sed 's,/\([^/.]*\)\.la,/.libs/\1.a,g'` \
 @ENABLE_SYMVERS_DARWIN_TRUE@@ENABLE_SYMVERS_TRUE@	 > $@ || (rm -f $@ ; exit 1)
 
-# Added rules.
-# 1 debug library
-# 2 supra-convenience library
-@GLIBCXX_BUILD_DEBUG_TRUE@all-local: libstdc++convenience.la build_debug
-@GLIBCXX_BUILD_DEBUG_TRUE@install-data-local: install_debug
-@GLIBCXX_BUILD_DEBUG_FALSE@all-local: libstdc++convenience.la
-@GLIBCXX_BUILD_DEBUG_FALSE@install-data-local:
+# Control additional build primary rules.
+# EXTRA_LTLIBRARIES =
+all-once: libstdc++convenience.la $(STAMP_DEBUG)
+install-data-once: $(STAMP_INSTALL_DEBUG)
+
+all-local: all-once
+install-data-local: install-data-once
+clean-local:
+	rm -rf libstdc++convenience.la stamp* $(CLEAN_DEBUG)
 
 # Make a non-installed convenience library, so that --disable-static
 # may work.
@@ -801,12 +817,10 @@ libstdc++convenience.la: $(toolexeclib_LTLIBRARIES)
 	  cp .libs/libstdc++convenience.a .libs/libstdc++.a; \
 	fi; \
 	echo `date` > stamp-libstdc++convenience;
-
-# Build a set of debug objects here.
-# Take care to fix all possibly-relative paths.
 stamp-debug:
 	if test ! -d ${debugdir}; then \
 	  mkdir -p ${debugdir}; \
+	  for d in $(SUBDIRS); do mkdir -p  ${debugdir}/$$d; done; \
 	  (cd ${debugdir}; \
 	  sed -e 's/top_builddir = \.\./top_builddir = ..\/../' \
 	      -e 's/top_build_prefix = \.\./top_build_prefix = ..\/../' \
@@ -814,19 +828,33 @@ stamp-debug:
 	      -e 's/VPATH = \.\./VPATH = ..\/../' \
 	      -e 's/glibcxx_basedir = \.\./glibcxx_basedir = ..\/../' \
 	      -e 's/MKDIR_P = \.\./MKDIR_P = ..\/../' \
-	      -e 's/all-local: build_debug/all-local:/' \
-	      -e 's/install-data-local: install_debug/install-data-local:/' \
-	  < ../Makefile > Makefile) ; \
+	  < ../Makefile > Makefile ; \
+	  for d in . $(SUBDIRS); do \
+	  sed -e 's/top_builddir = \.\./top_builddir = ..\/../' \
+	      -e 's/top_build_prefix = \.\./top_build_prefix = ..\/../' \
+	      -e 's/srcdir = \.\./srcdir = ..\/../' \
+	      -e 's/VPATH = \.\./VPATH = ..\/../' \
+	      -e 's/glibcxx_basedir = \.\./glibcxx_basedir = ..\/../' \
+	      -e 's/MKDIR_P = \.\./MKDIR_P = ..\/../' \
+	  < ../$$d/Makefile > $$d/Makefile ; \
+	  done) ; \
 	fi; \
 	echo `date` > stamp-debug;
 
-build_debug: stamp-debug
-	(cd ${debugdir} && $(MAKE) CXXFLAGS='$(DEBUG_FLAGS)' all)
+build-debug: stamp-debug
+	  (cd ${debugdir}; \
+	  mv Makefile Makefile.tmp; \
+	  sed -e 's,all-local: all-once,all-local:,' \
+	      -e 's,install-data-local: install-data-once,install-data-local:,' \
+	      -e 's,src/c,src/debug/c,' \
+	  < Makefile.tmp > Makefile ; \
+	  $(MAKE) CXXFLAGS='$(DEBUG_FLAGS)' \
+	  toolexeclibdir=$(glibcxx_toolexeclibdir)/debug all) ;
 
-# Install debug library here.
-install_debug:
-	(cd ${debugdir} && $(MAKE) \
-	toolexeclibdir=$(glibcxx_toolexeclibdir)/debug install)
+# Install debug library.
+install-debug: build-debug
+	(cd ${debugdir} && $(MAKE) CXXFLAGS='$(DEBUG_FLAGS)' \
+	toolexeclibdir=$(glibcxx_toolexeclibdir)/debug install) ;
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
