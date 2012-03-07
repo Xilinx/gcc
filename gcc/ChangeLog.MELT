@@ -1,6 +1,18 @@
 
 2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-normal.melt (normexp_apply): Change message when
+	non-value first argument.  Add void binding to check interrupts.
+	(normexp_msend, normexp_return, normexp_if, normexp_ifelse)
+	(normexp_forever, normexp_citeration, normexp_unsafe_put_fields)
+	(normexp_put_fields, normexp_instance): Add void binding to check
+	interrupts.
+
+	* melt/warmelt-normatch.melt (normexp_match, normexp_altmatch):
+	Add void binding to check interrupts.
+
+2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-normal.melt (wrap_normal_letseq): Handle non-tuple,
 	1-tuple, and put an interrupt check for tuples of degree >= 2.
 

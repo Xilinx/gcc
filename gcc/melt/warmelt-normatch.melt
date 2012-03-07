@@ -2293,12 +2293,23 @@ scanning variables.}#
 	 (testlist (make_list discr_list))
 	 (wholectype ())		;the ctype of the whole match
 	 (oldtester ())			;the previous tester
+	 (cintsymb (clone_symbol 'match_inter_))
+	 (nchint (instance class_nrep_checkinterrupt
+			   :nrep_loc sloc))
+	 (cintbind (instance class_normal_let_binding
+			     :binder cintsymb
+			     :letbind_type ctype_void
+			     :letbind_expr nchint))	 
 	 )
-    (debug "normexp_match smatsx" smatsx)
+    (debug "normexp_match smatsx=" smatsx " cintbind=" cintbind)
     (multicall
      (nmatx nbindmatx)
      (normal_exp smatsx env ncx sloc)
-     (debug "normexp_match nmatx=" nmatx " scases=" scases)
+     (debug "normexp_match nmatx=" nmatx " nbindmatx=" nbindmatx " scases=" scases)
+     (if (is_list nbindmatx)
+	 (list_append nbindmatx cintbind)
+       (setq nbindmatx (list cintbind)))
+     ;;
      (let ( (ctyp (get_ctype nmatx env)) 
 	    )
        (debug "normexp_match ctyp" ctyp)
@@ -6525,14 +6536,23 @@ normalized expression.}#
 	 (scases (unsafe_get_field :smat_cases recv))
 	 (:long nbcases (multiple_length scases))
 	 (firststep ())
+	 (cintsymb (clone_symbol 'altmatch_inter_))
+	 (nchint (instance class_nrep_checkinterrupt
+			   :nrep_loc sloc))
+	 (cintbind (instance class_normal_let_binding
+			     :binder cintsymb
+			     :letbind_type ctype_void
+			     :letbind_expr nchint))
 	 )
-    (debug "normexp_altmatch scases" scases)
-    (debug "normexp_altmatch smatsx" smatsx)
+    (debug "normexp_altmatch scases=" scases " smatsx=" smatsx)
     (multicall
      (nmatx nbindmatx)
      (normal_exp smatsx env ncx sloc)
-     (debug "normexp_altmatch nmatx" nmatx)
-     (debug "normexp_altmatch nbindmatx" nbindmatx)
+     (debug "normexp_altmatch nmatx=" nmatx " nbindmatx=" nbindmatx)
+     (if (is_list nbindmatx)
+	 (list_append nbindmatx cintbind)
+       (setq nbindmatx (list cintbind)))
+     (debug "normexp_altmatch updated nbindmatx=" nbindmatx)
      (let ( (matctyp (get_ctype nmatx env))
 	    (mcasetup (make_multiple discr_multiple nbcases))
 	    (msteplist (make_list discr_list))

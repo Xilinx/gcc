@@ -1964,12 +1964,29 @@ source location.}#
 		   )
 	      (debug "normexp_apply nargfirstctype" nargfirstctype)
 	      (if (!= nargfirstctype ctype_value)
-		  (error_plain sloc "first argument to function should be a value")
+		  (error_plain sloc
+			       "first argument of function application should be a value")
 	      ))
 	))
       ;;
       (check_ctype_nargs nargs env sloc)
       (setq nbindargs (list_append2list nbindargs nbindfun))
+      ;; add a void binding to check interrupts
+      (let ( (cintsym (clone_symbol sfusymb))
+	     (nchint (instance class_nrep_checkinterrupt
+			       :nrep_loc sloc))
+	     (cintbind (instance class_normal_let_binding
+				 :letbind_loc sloc
+				 :binder cintsym
+				 :letbind_type ctype_void
+				 :letbind_expr nchint))
+	     )
+	(if (null nbindargs)
+	    (setq nbindargs (list cintbind))
+	  (list_append nbindargs cintbind))
+	)
+      (assert_msg "check nbindargs" (is_list nbindargs))
+      ;;
       (let ( (csym (clone_symbol sfusymb))
 	     (cbind (instance class_normal_let_binding
 			      :letbind_loc sloc
@@ -1989,8 +2006,6 @@ source location.}#
 				:nocc_bind cbind
 				)) 
 	     )
-	(if (not (is_list nbindargs))
-	    (setq nbindargs (make_list discr_list)))
 	(list_append nbindargs cbind)
 	(return clocc nbindargs)
 	)))))
@@ -2028,6 +2043,22 @@ source location.}#
       (nargs nbindargs)
       (normalize_tuple msargs env ncx sloc)
       (assert_msg "check nbindargs" (is_list_or_null nbindargs))
+      ;; add a void binding to check interrupts
+      (let ( 
+	     (cintsym (clone_symbol selnam))
+	     (nint (instance class_nrep_checkinterrupt
+			     :nrep_loc sloc))
+	     (cintbind (instance class_normal_let_binding
+				 :letbind_loc sloc
+				 :binder cintsym
+				 :letbind_type ctype_void
+				 :letbind_expr nint))
+	    )
+	(if (is_list nbindargs)
+	    (list_append nbindargs cintbind)
+	  (setq nbindargs (list cintbind)))
+	)
+      ;;
       (setq nbindrecv (list_append2list nbindrecv nbindargs))
       (check_ctype_nargs nargs env sloc)
       (let ( (selformals
@@ -2157,11 +2188,24 @@ source location.}#
 	     (error_plain sloc "main return is not a value"))
 	 (if (null nbindrets) 
 	     (setq nbindrets (make_list discr_list)))
-	 (multiple_every
-	  nrets
-	  (lambda (ncomp :long ix)
-	    (if (>i ix 0)
-		(multiple_put_nth toth (-i ix 1) ncomp))))
+	 ;; add a void binding to check interrupts
+	 (let ( (rintsymb (clone_symbol '_retint_))
+		(nchint (instance class_nrep_checkinterrupt
+				  :nrep_loc sloc))
+		(rintbind (instance class_normal_let_binding
+				    :binder rintsymb
+				    :letbind_type ctype_void
+				    :letbind_expr nchint
+				    ))
+	       )
+	   (list_append nbindrets rintbind)
+	   )
+	 ;;
+	 (foreach_in_multiple
+	  (nrets)
+	  (ncomp :long ix)
+	  (if (>i ix 0)
+	      (multiple_put_nth toth (-i ix 1) ncomp)))
 	 (let ( (nret
 		 (instance class_nrep_return
 			   :nrep_loc sloc
@@ -2186,12 +2230,24 @@ source location.}#
 	 (stest (unsafe_get_field :sif_test recv))
 	 (ctypif ctype_void)
 	 (sthen (unsafe_get_field :sif_then recv))
+	 (cintsymb (clone_symbol '_if_inter_))
+	 (nchint (instance class_nrep_checkinterrupt
+			   :nrep_loc sloc))
+	 (cintbind (instance class_normal_let_binding
+			     :binder cintsymb
+			     :letbind_type ctype_void
+			     :letbind_expr nchint))
 	 )
     (multicall 
      (ntest nbindif)	     ;nbindif is also the whole result binding
      (normal_exp stest env ncx sloc)
      (assert_msg "check nbindif test" (is_list_or_null nbindif))
-     (debug "normexp_if ntest" ntest)
+     (debug "normexp_if ntest=" ntest " cintbind=" cintbind)
+     ;; prepend the check interrupt binding
+     (if (null nbindif) 
+	 (setq nbindif (list cintbind))
+       (list_prepend nbindif cintbind))
+     ;;
      ;; in practice we don't need to make a common super-
      ;; environment with nbindif since all relevant bindings there are
      ;; generated, with unique cloned symbols, and these bindings 
@@ -2256,6 +2312,18 @@ source location.}#
      (normal_exp stest env ncx sloc)
      (debug "normexp_ifelse ntest" ntest)
      (assert_msg "check nbindif test" (is_list_or_null nbindif))
+     ;; prepend interrupt check void binding
+     (let ( (cintsymb (clone_symbol '_ifelse_inter_))
+	    (nchint (instance class_nrep_checkinterrupt
+			      :nrep_loc sloc))
+	    (cintbind (instance class_normal_let_binding
+				:binder cintsymb
+				:letbind_type ctype_void
+				:letbind_expr nchint))
+	   )
+       (if (is_list nbindif)
+	   (list_prepend nbindif cintbind)
+	 (setq nbindif (list cintbind))))
      ;; in practice we don't need to make a common super-
      ;; environment with nbindif since all relevant bindings there are
      ;; generated, with unique cloned symbols, and these bindings 
@@ -2802,8 +2870,15 @@ source location.}#
 	 (sfields (unsafe_get_field :suput_fields recv))
 	 (:long nbfields (multiple_length sfields))
 	 (nfields (make_multiple discr_multiple nbfields))
-	 (nbindlist (make_list discr_list)) 
-	 (csym (clone_symbol 'unsafput_))
+	 (csym (clone_symbol 'unsafput_)) 
+	 (cintsymb (clone_symbol 'unsafput_inter_))
+	 (nchint (instance class_nrep_checkinterrupt
+			      :nrep_loc sloc))
+	 (cintbind (instance class_normal_let_binding
+			     :binder cintsymb
+			     :letbind_type ctype_void
+			     :letbind_expr nchint))
+	 (nbindlist (list cintbind)) 
 	 (cbind (instance class_normal_let_binding
 			  :binder csym
 			  :letbind_loc sloc
@@ -2819,7 +2894,7 @@ source location.}#
     (multicall
      (nobj nobjbind)
      (normal_exp sobj env ncx sloc)
-     (list_append2list nbindlist  nobjbind)
+     (list_append2list nbindlist nobjbind)
      (multiple_every 
       sfields
       (lambda (fla :long ix) 
@@ -2839,7 +2914,7 @@ source location.}#
 				  :nfla_val nexp)) )
 	     (multiple_put_nth nfields ix nfla)
 	     (let ( (fctyp (get_ctype nexp env)) )
-	       (debug "normexp_instance fctyp" fctyp)
+	       (debug "normexp_unsafe_put_fields fctyp" fctyp)
 	       (if (!= fctyp ctype_value)
 		   (error_strv 
 		    fsloc 
@@ -2871,8 +2946,15 @@ source location.}#
 	 (sfields (unsafe_get_field :suput_fields recv))
 	 (:long nbfields (multiple_length sfields))
 	 (nfields (make_multiple discr_multiple nbfields))
-	 (nbindlist (make_list discr_list)) 
 	 (csym (clone_symbol 'putfld_))
+	 (cintsymb (clone_symbol 'putfld_inter_))
+	 (nchint (instance class_nrep_checkinterrupt
+			      :nrep_loc sloc))
+	 (cintbind (instance class_normal_let_binding
+			     :binder cintsymb
+			     :letbind_type ctype_void
+			     :letbind_expr nchint))
+	 (nbindlist (list cintbind)) 
 	 (cbind (instance class_normal_let_binding
 			  :binder csym
 			  :letbind_loc sloc
@@ -3036,7 +3118,14 @@ source location.}#
 	 (sclasym (if (is_a sclabind class_any_binding) (unsafe_get_field :binder sclabind)))
 	 (cladata (if (is_a sclasym class_symbol) 
 		      (normal_exp sclasym env ncx sloc)))
-	 (bindlist (make_list discr_list))
+	 (cintsymb (clone_symbol 'instance_inter_))
+	 (nchint (instance class_nrep_checkinterrupt
+			   :nrep_loc sloc))
+	 (cintbind (instance class_normal_let_binding
+			     :binder cintsymb
+			     :letbind_type ctype_void
+			     :letbind_expr nchint))
+	 (bindlist (list cintbind))
 	 )
     ;; initial checks about class
     (cond 
@@ -3158,7 +3247,20 @@ source location.}#
       (multicall
        (nbody nbodbindings)
        (normalize_tuple sbody newenv ncx sloc)
-       (debug "normexp_forever again slbind" slbind)
+       (debug "normexp_forever again slbind=" slbind " nbody=" nbody " nbodbindings=" nbodbindings)
+       ;; prepend an interrupt check binding
+       (let ( (cintsymb (clone_symbol 'forever_inter_))
+	      (nchint (instance class_nrep_checkinterrupt
+				:nrep_loc sloc))
+	      (cintbind (instance class_normal_let_binding
+				  :binder cintsymb
+				  :letbind_type ctype_void
+				  :letbind_expr nchint))
+	     )
+	 (if (null nbodbindings) 
+	     (setq nbodbindings (list cintbind))
+	   (list_prepend nbodbindings cintbind))
+	 )
        (assert_msg "check did2 put resy" (== (unsafe_get_field :labind_clonsy slbind) resy))
        (assert_msg "check size slbind" (<i (get_int labind_clonsy) (object_length slbind)))
        (let (
@@ -5258,11 +5360,13 @@ source location.}#
 	  (debug "normexp_citeration nbody=" nbody " nbodbindings=" nbodbindings)
 	  (let ( (citstate (unsafe_get_field :citer_state soper))
 		 (citstsym (clone_symbol citstate))
+		 (nchint (instance class_nrep_checkinterrupt
+				   :nrep_loc sloc))
 		 (citstbind (instance class_normal_let_binding
 				      :letbind_loc sloc
 				      :binder citstsym
 				      :letbind_type ctype_void
-				      :letbind_expr ()))
+				      :letbind_expr nchint))
 		 (citstocc (instance class_nrep_locsymocc
 				     :nrep_loc sloc
 				     :nocc_ctyp ctype_void
