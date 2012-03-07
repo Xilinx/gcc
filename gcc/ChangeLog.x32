@@ -1,5 +1,11 @@
 2012-03-07  Uros Bizjak  <ubizjak@gmail.com>
 
+	* config/i386/predicates.md (x86_64_zext_general_operand): New.
+	* config/i386/i386.md (*zero_extendsidi2_rex64): Change operand 1
+	predicate to x86_64_zext_general_operand.  Accept "Z" constraint.
+
+2012-03-07  Uros Bizjak  <ubizjak@gmail.com>
+
 	* config/i386/i386.c (ix86_print_operand_punct_valid_p): Add '^'.
 	(ix86_print_operand): Handle '^'.
 	* config/i386/i386.md (*strmovdi_rex_1): Macroize memory operands
