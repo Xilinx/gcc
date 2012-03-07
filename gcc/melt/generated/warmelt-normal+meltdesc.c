@@ -12,9 +12,9 @@ const char melt_modulename[]="warmelt-normal";
 const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.7.0/melt-modules/warmelt-normal";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="b93293badcabce2d23cd9bf8739482bf";
+const char melt_prepromd5meltrun[]="689174668893de2e5bef7b8732fe553f";
 /* hexmd5checksum of primary C file */
-const char melt_primaryhexmd5[]="3110df12db00a969c9883bc0dde2ed65";
+const char melt_primaryhexmd5[]="ba19676a0186de51f59d0afbb9808865";
 
 /* hexmd5checksum of secondary C files */
 const char* const melt_secondaryhexmd5tab[]={
@@ -31,9 +31,9 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=5;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="369398976493a205241e8842609714fd" ;
+const char melt_cumulated_hexmd5[]="3df7f676baab5aa751d7df09644b7bb1" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_normal_mds__369398976493a205241e8842609714fd 1
+#define meltmod_warmelt_normal_mds__3df7f676baab5aa751d7df09644b7bb1 1
 #include "warmelt-normal+melttime.h"
 /* end of melt descriptor file */
