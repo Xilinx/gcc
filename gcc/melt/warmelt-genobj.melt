@@ -2992,6 +2992,21 @@ $SBUF.}#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_checkinterrupt (nchint gcx)
+  (debug "compilobj_nrep_checkinterrupt nchint=" nchint)
+  (assert_msg "check nchint" (is_a nchint class_nrep_checkinterrupt))
+  (let (
+	(nloc (unsafe_get_field :nrep_loc nchint))
+	(ochint (make_objcompute nloc ctype_void
+				 ##{/*checkinterrupt*/ MELT_CHECK_INTERRUPT()}#))
+	)
+    (debug "compilobj_nrep_checkinterrupt ochint=" ochint)
+    (return ochint)
+    ))
+
+(install_method class_nrep_checkinterrupt compile_obj compilobj_nrep_checkinterrupt)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile an unsafe nth component
 (defun compilobj_nrep_unsafe_nth_component (nunc gcx)
   (assert_msg "check nunc" (is_a nunc class_nrep_unsafe_nth_component))

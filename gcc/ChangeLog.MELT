@@ -1,4 +1,17 @@
 
+2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_interrupted, meltgc_handle_interrupt): New
+	declarations.
+	(MELT_UNLIKELY, MELT_CHECK_INTERRUPT): New macros.
+
+	* melt-runtime.c (melt_interrupted): New definition.
+	(meltgc_handle_interrupt): Unimplemented routine.
+
+	* melt/warmelt-normal.melt (class_nrep_checkinterrupt): New class.
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_checkinterrupt): New
+	method for compile_obj on class_nrep_checkinterrupt.
+
 2011-03-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{much faster build, when useless...; a second make after a first
 	one take only 30sec instead of 3 min..}}

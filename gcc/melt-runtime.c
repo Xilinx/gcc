@@ -143,6 +143,8 @@ void melt_break_alptr_2_at (const char*msg, const char* fil, int line);
 
 #include "melt-runtime.h"
 
+volatile sig_atomic_t melt_interrupted;
+
 #define MELT_DESC_FILESUFFIX "+meltdesc.c"
 #define MELT_TIME_FILESUFFIX "+melttime.h"
 #define MELT_DEFAULT_FLAVOR "optimized"
@@ -13532,6 +13534,16 @@ melt_sparebreakpoint_2_at (const char*fil, int lin, void*ptr, const char*msg) {
   debugeprintf ("melt_sparebreakpoint_2_at msg %s", msg);
 }
 #endif /*ENABLE_CHECKING*/
+
+
+void 
+meltgc_handle_interrupt (void)
+{
+  MELT_ENTEREMPTYFRAME(NULL);
+  MELT_LOCATION_HERE("inside meltgc_handle_interrupt");
+  melt_fatal_error("unimplemented meltgc_handle_interrupt");
+  MELT_EXITFRAME();
+}
 
 
 

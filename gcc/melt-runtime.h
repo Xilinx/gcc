@@ -101,7 +101,7 @@ extern char* melt_gccversionstr;
 extern const int melt_gcc_version;
 
 /* the version string of MELT */
-#define MELT_VERSION_STRING "0.9.4.b"
+#define MELT_VERSION_STRING "0.9.4+"
 
 /* return a read only version string */
 extern const char* melt_version_str(void);
@@ -139,6 +139,19 @@ struct melt_callframe_st /* forward declaration */;
 extern long melt_dbgcounter;
 extern long melt_debugskipcount;
 extern long melt_error_counter;
+
+extern volatile sig_atomic_t melt_interrupted;
+void meltgc_handle_interrupt (void);
+
+#if __GCC__ > 3
+#define MELT_UNLIKELY(C) __builtin_expect((C),0)
+#else 
+#define MELT_UNLIKELY(C) (C)
+#endif
+
+/* the MELT translator should generate calls to melt_check_interrupt at safe places.  */
+#define MELT_CHECK_INTERRUPT() do { if (MELT_UNLIKELY(melt_interrupted)) \
+      meltgc_handle_interrupt(); } while(0)
 
 #ifndef MELT_HAVE_DEBUG
 #define MELT_HAVE_DEBUG 0

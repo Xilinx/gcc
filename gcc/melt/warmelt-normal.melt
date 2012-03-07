@@ -272,6 +272,14 @@ part, $NIFP_ELSE the else part, $NIFP_CTYP the ctype.}#
 	   nprogn_last
 	   ))
 
+(defclass class_nrep_checkinterrupt
+  :doc #{The $CLASS_NREP_CHECKINTERRUPT is an internal expression to check interrupts, 
+  corresponding to emission of the melt_check_interrupt() C macro. 
+  It is emitted at safe places.}#
+  :super class_nrep_expression
+  :fields ()
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (compile_warning ":doc missing below")
 ;; normalized unsafe get field
@@ -707,6 +715,7 @@ routine procedures.}#
  class_nrep_apply
  class_nrep_chunk
  class_nrep_citeration
+ class_nrep_checkinterrupt
  class_nrep_closedocc
  class_nrep_comment 
  class_nrep_constant
