@@ -1,3 +1,11 @@
+2012-03-07  Sriraman Tallam  <tmsriram@google.com>
+
+ 	* libgcc/config/i386/i386-cpuinfo.c: New file.
+	* libgcc/config/i386/t-cpuinfo: New file.
+	* libgcc/config.host: Include t-cpuinfo.
+	* libgcc/config/i386/libgcc-glibc.ver: Version symbols __cpu_model
+	and __cpu_features.
+
 2011-12-16   Rong Xu  <xur@google.com>
 
 	* libgcc/libgcov.c (gcov_merge_gcda_file): reset summary_pos.
