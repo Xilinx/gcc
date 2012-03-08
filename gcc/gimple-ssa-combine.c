@@ -41,6 +41,7 @@ static inline void defcodefor_name_3 (tree name, enum tree_code *code,
 				      tree *arg1, tree *arg2, tree *arg3);
 #define defcodefor_name(n,c,a1,a2)  defcodefor_name_3(n,c,a1,a2,NULL)
 
+
 /* Generate a mask for the TYPE.  */
 static double_int
 mask_for_type (tree type)
@@ -275,6 +276,12 @@ gimple_combine_build1 (location_t loc, enum tree_code code,
   return build1_loc (loc, code, type, arg1);
 }
 
+static tree
+gimple_combine_convert (location_t loc, tree type, tree arg)
+{
+  return gimple_combine_build1 (loc, NOP_EXPR, type, arg);
+}
+
 /* Report that what we got for VAL's nonzerobits (a) if it is
    not just the type's nonzerobits.  */
 static double_int
@@ -476,8 +483,7 @@ rhs_to_tree (tree type, gimple stmt)
 
 static tree
 combine_cond_expr_cond (location_t loc, enum tree_code code, tree type,
-			tree op0, tree op1, bool invariant_only,
-			bool nowarnings)
+			tree op0, tree op1, bool invariant_only)
 {
   tree t;
 
@@ -496,11 +502,10 @@ combine_cond_expr_cond (location_t loc, enum tree_code code, tree type,
     }
 
   t = fold_binary_loc (loc, code, type, op0, op1);
+  fold_undefer_and_ignore_overflow_warnings ();
+
   if (!t)
-    {
-      fold_undefer_overflow_warnings (false, NULL, 0);
-      return NULL_TREE;
-    }
+    return NULL_TREE;
 
   /* Require that we got a boolean type out if we put one in.  */
   gcc_assert (TREE_CODE (TREE_TYPE (t)) == TREE_CODE (type));
@@ -520,12 +525,7 @@ combine_cond_expr_cond (location_t loc, enum tree_code code, tree type,
 
   /* Bail out if we required an invariant but didn't get one.  */
   if (!t || (invariant_only && !is_gimple_min_invariant (t)))
-    {
-      fold_undefer_overflow_warnings (false, NULL, 0);
-      return NULL_TREE;
-    }
-
-  fold_undefer_overflow_warnings_loc (!nowarnings, loc, 0);
+    return NULL_TREE;
 
   return t;
 }
@@ -555,9 +555,9 @@ truth_valued_ssa_name (tree name)
    were no simplifying combines.  */
 
 static tree
-forward_propagate_into_comparison_1 (location_t loc,
-				     enum tree_code code, tree type,
-				     tree op0, tree op1, bool nowarnings)
+forward_propagate_into_comparison (location_t loc,
+				   enum tree_code code, tree type,
+				   tree op0, tree op1)
 {
   tree tmp = NULL_TREE;
   tree rhs0 = NULL_TREE, rhs1 = NULL_TREE;
@@ -569,6 +569,62 @@ forward_propagate_into_comparison_1 (location_t loc,
   tree arg1, arg2, arg3;
 
   defcodefor_name_3 (op0, &code0, &arg1, &arg2, &arg3);
+
+  /* (a^b) != 0 -> a != b */
+  /* (a^b) == 0 -> a == b */
+  if (code0 == BIT_XOR_EXPR
+      && (code == NE_EXPR || code == EQ_EXPR)
+      && integer_zerop (op1))
+    return gimple_combine_build2 (loc, code, type, arg1, arg2);
+
+#if 0
+  /* FIXME: this introduces some bugs. */
+  /* Try to simplify (a!=b) as a ^ b != 0 if a^b simplifies. */
+  if ((code == NE_EXPR || code == EQ_EXPR)
+      && INTEGRAL_TYPE_P (TREE_TYPE (op0))
+      && TREE_CODE (op1) != INTEGER_CST)
+    {
+      tree tmp = gimple_combine_binary (loc, BIT_XOR_EXPR, TREE_TYPE (op0), op0, op1);
+      if (tmp && TREE_CODE (tmp) != BIT_XOR_EXPR)
+	return gimple_combine_build2 (loc, code, type, tmp, build_int_cst (TREE_TYPE (tmp), 0));
+    }
+#endif
+
+  /* ((X)bool) != N where N is no 0 or 1 is always true. */
+  /* ((X)bool) == N where N is no 0 or 1 is always false. */
+  if (CONVERT_EXPR_CODE_P (code0)
+      && (code == NE_EXPR || code == EQ_EXPR)
+      && TREE_CODE (TREE_TYPE (arg1)) == BOOLEAN_TYPE
+      && !integer_zerop (op1) && !integer_onep (op1)
+      && TREE_CODE (op1) == INTEGER_CST)
+   return build_int_cst (type, code == NE_EXPR);
+
+  /* ((X)A) == N to A == N' where X and the type of A have the same
+     precision but different signness.
+     Disable this for HAVE_canonicalize_funcptr_for_compare targets
+     if the inner type is a pointer to a function type.  */
+  if (CONVERT_EXPR_CODE_P (code0)
+      && (code == NE_EXPR || code == EQ_EXPR)
+      && TYPE_PRECISION (TREE_TYPE (arg1)) == TYPE_PRECISION (TREE_TYPE (op1)))
+    {
+      tree inner_type = TREE_TYPE (arg1);
+      tree outer_type = TREE_TYPE (op1);
+      if (1
+#ifdef HAVE_canonicalize_funcptr_for_compare
+	  && (!HAVE_canonicalize_funcptr_for_compare
+	      || TREE_CODE (inner_type) != POINTER_TYPE
+	      || TREE_CODE (TREE_TYPE (inner_type)) != FUNCTION_TYPE)
+#endif
+	  && TREE_CODE (op1) == INTEGER_CST
+	  && (TYPE_UNSIGNED (inner_type) != TYPE_UNSIGNED (outer_type)
+	      || POINTER_TYPE_P (inner_type) != POINTER_TYPE_P (outer_type)))
+	{
+	  return gimple_combine_build2 (loc, code, type, arg1,
+					gimple_combine_convert (loc,
+							       inner_type,
+							       op1));
+	}
+    }
 
   /* Try to simplify (a|b)!=0 to a!=0|b!=0 but only do this
      if one of (a!=0) or (b!=0) simplifies.  */
@@ -667,12 +723,39 @@ forward_propagate_into_comparison_1 (location_t loc,
 	}
     }
 
+  /* Try to simplify bool != 0 to just bool. */
+  /* Try to simplify bool == 0 to just !bool. */
+  if ((code == NE_EXPR || code == EQ_EXPR)
+      && TREE_CODE (TREE_TYPE (op1)) == BOOLEAN_TYPE
+      && integer_zerop (op1))
+    {
+      if (code == EQ_EXPR)
+        op0 = gimple_combine_build2 (loc, BIT_XOR_EXPR, TREE_TYPE (op0), op0,
+				     build_int_cst_type (TREE_TYPE (op0), 1));
+      op0 = gimple_combine_convert (loc, type, op0);
+      return op0;
+    }
+
+  /* Try to simplify bool == 1 to just bool. */
+  /* Try to simplify bool != 1 to just !bool. */
+  if ((code == NE_EXPR || code == EQ_EXPR)
+      && TREE_CODE (TREE_TYPE (op1)) == BOOLEAN_TYPE
+      && integer_onep (op1))
+    {
+      if (code == NE_EXPR)
+        op0 = gimple_combine_build2 (loc, BIT_XOR_EXPR, TREE_TYPE (op0), op0,
+				     build_int_cst_type (TREE_TYPE (op0), 1));
+      op0 = gimple_combine_convert (loc, type, op0);
+      return op0;
+    }
+
+
   /* FIXME: this really should not be using combine_cond_expr_cond (fold_binary)
      but matching the patterns directly.  */
 
   /* First try without combining since it might already be able to folded. */
   tmp = fold_binary_loc (loc, code, type, op0, op1);
-  if (tmp && is_gimple_min_invariant (tmp))
+  if (tmp)
     return tmp;
   tmp = NULL_TREE;
 
@@ -685,7 +768,7 @@ forward_propagate_into_comparison_1 (location_t loc,
 	{
 	  rhs0 = rhs_to_tree (TREE_TYPE (op1), def_stmt);
 	  tmp = combine_cond_expr_cond (loc, code, type, rhs0, op1,
-					!single_use0_p, nowarnings);
+					!single_use0_p);
 	  if (tmp)
 	    return tmp;
 	  /* If we have a conversion, try to combine with what we have before.  */
@@ -698,10 +781,11 @@ forward_propagate_into_comparison_1 (location_t loc,
 		{
 		  rhs01 = rhs_to_tree (TREE_TYPE (TREE_OPERAND (rhs0, 0)),
 					  def_stmt1);
-		  rhs01 = fold_convert (TREE_TYPE (op0), rhs01);
+		  rhs01 = gimple_combine_convert (loc, TREE_TYPE (op0),
+						  rhs01);
 		  single_use01_p &= single_use0_p;
 		  tmp = combine_cond_expr_cond (loc, code, type, rhs01, op1,
-						!single_use01_p, nowarnings);
+						!single_use01_p);
 		  if (tmp)
 		    return tmp;
 		}
@@ -717,8 +801,7 @@ forward_propagate_into_comparison_1 (location_t loc,
 	{
 	  rhs1 = rhs_to_tree (TREE_TYPE (op0), def_stmt);
 	  tmp = combine_cond_expr_cond (loc, code, type,
-					op0, rhs1, !single_use1_p,
-					nowarnings);
+					op0, rhs1, !single_use1_p);
 	  if (tmp)
 	    return tmp;
 	  /* If we have a conversion, try to combine with what we have before.  */
@@ -731,11 +814,10 @@ forward_propagate_into_comparison_1 (location_t loc,
 		{
 		  rhs11 = rhs_to_tree (TREE_TYPE (TREE_OPERAND (rhs1, 0)),
 					  def_stmt1);
-		  rhs11 = fold_convert (TREE_TYPE (op0), rhs11);
+		  rhs11 = gimple_combine_convert (loc, TREE_TYPE (op0), rhs11);
 		  single_use11_p &= single_use1_p;
 		  tmp = combine_cond_expr_cond (loc, code, type,
-						op0, rhs11, !single_use01_p,
-						nowarnings);
+						op0, rhs11, !single_use01_p);
 		  if (tmp)
 		    return tmp;
 		}
@@ -749,8 +831,7 @@ forward_propagate_into_comparison_1 (location_t loc,
     {
       tmp = combine_cond_expr_cond (loc, code, type,
 				    rhs0, rhs1,
-				    !(single_use0_p && single_use1_p),
-				    nowarnings);
+				    !(single_use0_p && single_use1_p));
       if (tmp)
 	return tmp;
     }
@@ -759,8 +840,7 @@ forward_propagate_into_comparison_1 (location_t loc,
     {
       tmp = combine_cond_expr_cond (loc, code, type,
 				    rhs01, rhs1,
-				    !(single_use01_p && single_use1_p),
-				    nowarnings);
+				    !(single_use01_p && single_use1_p));
       if (tmp)
 	return tmp;
     }
@@ -769,8 +849,7 @@ forward_propagate_into_comparison_1 (location_t loc,
     {
       tmp = combine_cond_expr_cond (loc, code, type,
 				    rhs0, rhs11,
-				    !(single_use0_p && single_use11_p),
-				    nowarnings);
+				    !(single_use0_p && single_use11_p));
       if (tmp)
 	return tmp;
     }
@@ -779,71 +858,12 @@ forward_propagate_into_comparison_1 (location_t loc,
     {
       tmp = combine_cond_expr_cond (loc, code, type,
 				    rhs01, rhs11,
-				    !(single_use01_p && single_use11_p),
-				    nowarnings);
+				    !(single_use01_p && single_use11_p));
       if (tmp)
 	return tmp;
     }
 
-
   return tmp;
-}
-
-/* Propagate from the ssa name definition statements of the assignment
-   from a comparison at *GSI into the conditional if that simplifies it.
-   Returns true if the stmt was modified therwise returns false.  */
-
-static tree 
-forward_propagate_into_comparison (location_t loc,
-				   enum tree_code code,
-				   tree type, tree rhs1,
-				   tree rhs2)
-{
-  tree tmp;
-  tree tmp1 = NULL_TREE;
-  bool reversed_edges = false;
-  gcc_assert (TREE_CODE_CLASS (code) == tcc_comparison);
-
-  /* Combine the comparison with defining statements.  */
-  do {
-    tree canonicalized;
-    tmp = forward_propagate_into_comparison_1 (loc, code,
-					       type, rhs1, rhs2,
-					       false);
-    if (!tmp)
-      break;
-    if (TREE_CODE (tmp) == TRUTH_NOT_EXPR
-	|| TREE_CODE (tmp) == BIT_NOT_EXPR)
-    {
-      reversed_edges ^= true;
-      tmp = TREE_OPERAND (tmp, 0);
-    }
-    if (TREE_CODE (tmp) == INTEGER_CST)
-      {
-        tmp1 = tmp;
-	break;
-      }
-    canonicalized = canonicalize_cond_expr_cond (tmp);
-    if (!canonicalized)
-      {
-	tmp1 = tmp;
-	break;
-      }
-    tmp1 = canonicalized;
-    gimple_cond_get_ops_from_tree (canonicalized, &code, &rhs1, &rhs2);
-  } while (tmp);
-
-
-  if (tmp1)
-    {
-      if (reversed_edges)
-	tmp1 = build1 (BIT_NOT_EXPR, TREE_TYPE (tmp1), tmp1);
-      if (!useless_type_conversion_p (type, TREE_TYPE (tmp1)))
-	tmp1 = build1 (NOP_EXPR, type, tmp1);
-      return tmp1;
-    }
-
-  return NULL_TREE;
 }
 
 /* Propagate from the ssa name definition statements of COND_EXPR
@@ -888,27 +908,12 @@ forward_propagate_into_gimple_cond (gimple stmt)
   if (TREE_CODE_CLASS (code) != tcc_comparison)
     return NULL_TREE;
 
-
   tmp = gimple_combine_binary (loc, code, boolean_type_node, rhs1, rhs2);
   if (!tmp)
     {
-      /* Canonicalize _Bool == 0 and _Bool != 1 to _Bool != 0 by
-	 swapping edges.  */
-      if ((TREE_CODE (TREE_TYPE (rhs1)) == BOOLEAN_TYPE
-	   || (INTEGRAL_TYPE_P (TREE_TYPE (rhs1))
-	       && TYPE_PRECISION (TREE_TYPE (rhs1)) == 1))
-          && ((code == EQ_EXPR
-	       && integer_zerop (rhs2))
-	      || (code == NE_EXPR
-		  && integer_onep (rhs2))))
-	{
-	  reversed_edges = true;
-	  tmp = build2 (NE_EXPR, boolean_type_node, rhs1,
-			build_zero_cst (TREE_TYPE (rhs1)));
-        }
       /* If we had propragating a comparison into a != 0 case
 	 then just do that propragation. */
-      else if (proping)
+      if (proping)
 	  tmp = build2 (code, boolean_type_node, rhs1, rhs2);
       else
 	return NULL_TREE;
@@ -970,25 +975,11 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
 
   gcc_assert (code1 == COND_EXPR);
 
-  /* bool == 0 ? b : a -> bool ? b : a */
-  /* bool != 1 ? b : a -> bool ? b : a */
-  /* This is done first so we only the other simplifiers
-     don't have bool == 0 or bool != 1 and only bool. */
-  if (((TREE_CODE (cond) == EQ_EXPR
-	 && integer_zerop (TREE_OPERAND (cond, 1)))
-	|| (TREE_CODE (cond) == NE_EXPR
-	    && integer_onep (TREE_OPERAND (cond, 1))))
-      && (TREE_CODE (TREE_TYPE (TREE_OPERAND (cond, 0))) == BOOLEAN_TYPE
-	  || (INTEGRAL_TYPE_P (TREE_TYPE (TREE_OPERAND (cond, 0)))
-	      && TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (cond, 0))) == 1)))
-    return gimple_combine_build3 (loc, COND_EXPR, type,
-				  TREE_OPERAND (cond, 0), op2, op1);
-
   /* A ? 1 : 0  -> (type) A. */
   if (integer_onep (op1)
       && integer_zerop (op2)
       && INTEGRAL_TYPE_P (type))
-    return gimple_combine_build1 (loc, NOP_EXPR, type, cond);
+    return gimple_combine_convert (loc, type, cond);
 
   /* A ? 0 : 1 -> (type) !A */
   if (integer_onep (op1)
@@ -997,14 +988,14 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
     {
       tree tmp = gimple_combine_build1 (loc, BIT_NOT_EXPR,
 					TREE_TYPE (cond), cond);
-      return gimple_combine_build1 (loc, NOP_EXPR, type, tmp);
+      return gimple_combine_convert (loc, type, tmp);
     }
 
   /* A ? B : 0 -> A & B  if B is a bool expr. */
   if (integer_zerop (op2)
       && truth_valued_ssa_name (op1))
     {
-      cond = gimple_combine_build1 (loc, NOP_EXPR, type, cond);
+      cond = gimple_combine_convert (loc, type, cond);
       return gimple_combine_build2 (loc, BIT_AND_EXPR, type, cond, op1);
     }
 
@@ -1014,7 +1005,7 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
     {
       cond = gimple_combine_build2 (loc, BIT_XOR_EXPR, TREE_TYPE (cond), cond,
 				 build_int_cst_type (TREE_TYPE (cond), 1));
-      cond = gimple_combine_build1 (loc, NOP_EXPR, type, cond);
+      cond = gimple_combine_convert (loc, type, cond);
       return gimple_combine_build2 (loc, BIT_AND_EXPR, type, cond, op2);
     }
 
@@ -1024,7 +1015,7 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
     {
       cond = gimple_combine_build2 (loc, BIT_XOR_EXPR, TREE_TYPE (cond), cond,
 				 build_int_cst_type (TREE_TYPE (cond), 1));
-      cond = gimple_combine_build1 (loc, NOP_EXPR, type, cond);
+      cond = gimple_combine_convert (loc, type, cond);
       return gimple_combine_build2 (loc, BIT_IOR_EXPR, type, cond, op1);
     }
 
@@ -1032,7 +1023,7 @@ forward_propagate_into_cond (location_t loc, enum tree_code code1,
   if (integer_onep (op1)
       && truth_valued_ssa_name (op2))
     {
-      cond = gimple_combine_build1 (loc, NOP_EXPR, type, cond);
+      cond = gimple_combine_convert (loc, type, cond);
       return gimple_combine_build2 (loc, BIT_IOR_EXPR, type, cond, op2);
     }
 
@@ -1291,7 +1282,7 @@ lookup_logical_inverted_value (tree name)
    operations CODE, if one operand has the logically inverted
    value of the other.  */
 static tree
-simplify_bitwise_binary_1 (enum tree_code code, tree type,
+simplify_bitwise_binary_1 (location_t loc, enum tree_code code, tree type,
 			   tree arg1, tree arg2)
 {
   tree anot;
@@ -1306,7 +1297,7 @@ simplify_bitwise_binary_1 (enum tree_code code, tree type,
       && (code == BIT_AND_EXPR || code == BIT_IOR_EXPR))
     return arg1;
   if (arg1 == arg2 && code == BIT_XOR_EXPR)
-    return fold_convert (type, integer_zero_node);
+    return gimple_combine_convert (loc, type, integer_zero_node);
 
   /* See if we have in arguments logical-not patterns.  */
   if (((anot = lookup_logical_inverted_value (arg1)) == NULL_TREE
@@ -1317,10 +1308,10 @@ simplify_bitwise_binary_1 (enum tree_code code, tree type,
 
   /* X & !X -> 0.  */
   if (code == BIT_AND_EXPR)
-    return fold_convert (type, integer_zero_node);
+    return gimple_combine_convert (loc, type, integer_zero_node);
   /* X | !X -> 1 and X ^ !X -> 1, if X is truth-valued.  */
   if (truth_valued_ssa_name (anot))
-    return fold_convert (type, integer_one_node);
+    return gimple_combine_convert (loc, type, integer_one_node);
 
   /* ??? Otherwise result is (X != 0 ? X : 1).  not handled.  */
   return NULL_TREE;
@@ -1435,11 +1426,11 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       && int_fits_type_p (arg2, TREE_TYPE (def1_arg1)))
     {
       tree tmp, cst;
-      cst = fold_convert_loc (loc, TREE_TYPE (def1_arg1), arg2);
+      cst = gimple_combine_convert (loc, TREE_TYPE (def1_arg1), arg2);
       tmp = gimple_combine_build2 (loc, code, TREE_TYPE (cst), def1_arg1,
 				   cst);
       /* Don't use fold here since it undos this conversion.  */
-      return build1_loc (loc, NOP_EXPR, TREE_TYPE (arg1), tmp);
+      return gimple_combine_convert (loc, TREE_TYPE (arg1), tmp);
     }
 
   /* For bitwise binary operations apply operand conversions to the
@@ -1568,7 +1559,6 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       return gimple_combine_build2 (loc, code, type, tem, arg1);
     }
     
-
   /* Fold X & (X ^ Y) as X & ~Y.  */
   if (code == BIT_AND_EXPR
       && def2_code == BIT_XOR_EXPR
@@ -1587,8 +1577,52 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 			     nonzerobits (def1_arg1)))
       return gimple_combine_build2 (loc, BIT_XOR_EXPR, type, def1_arg1, arg2);
 
+  if (code == BIT_XOR_EXPR
+      && def1_code == BIT_XOR_EXPR)
+    {
+      /* ( A ^ B) ^ A -> B */
+      if (operand_equal_for_phi_arg_p (arg2, def1_arg1))
+	return def1_arg2;
+
+      /* ( A ^ B) ^ B -> A */
+      if (operand_equal_for_phi_arg_p (arg2, def1_arg2))
+	return def1_arg1;
+    }
+
+  if (code == BIT_XOR_EXPR
+      && def2_code == BIT_XOR_EXPR)
+    {
+      /* A ^ ( A ^ B) -> B */
+      if (operand_equal_for_phi_arg_p (arg1, def2_arg1))
+	return def2_arg2;
+
+      /* B ^ ( A ^ B) -> A */
+      if (operand_equal_for_phi_arg_p (arg1, def2_arg2))
+	return def2_arg1;
+    }
+
+  if ((code == BIT_IOR_EXPR || code == BIT_AND_EXPR)
+      && def1_code == code)
+    {
+      /* ( A | B) | A -> A | B aka arg1 */
+      /* ( B | A) | A -> B | A aka arg1 */
+      if (operand_equal_for_phi_arg_p (arg2, def1_arg1)
+	  || operand_equal_for_phi_arg_p (arg2, def1_arg2))
+	return arg1;
+    }
+
+  if ((code == BIT_IOR_EXPR || code == BIT_AND_EXPR)
+      && def2_code == code)
+    {
+      /* A | ( A | B) -> A | B aka arg2 */
+      /* A | ( B | A) -> B | A aka arg2 */
+      if (operand_equal_for_phi_arg_p (arg1, def2_arg1)
+	  || operand_equal_for_phi_arg_p (arg1, def2_arg2))
+	return arg2;
+    }
+
   /* Try simple folding for X op !X, and X op X.  */
-  res = simplify_bitwise_binary_1 (code, TREE_TYPE (arg1), arg1, arg2);
+  res = simplify_bitwise_binary_1 (loc, code, TREE_TYPE (arg1), arg1, arg2);
   if (res != NULL_TREE)
     return res;
 
@@ -2138,7 +2172,7 @@ simplify_pointer_plus (location_t loc, enum tree_code code,
   if (TREE_CODE (op0) == ADDR_EXPR
       && TREE_CODE (op1) == INTEGER_CST)
     {
-      tree off = fold_convert (ptr_type_node, op1);
+      tree off = gimple_combine_convert (loc, ptr_type_node, op1);
       return build_fold_addr_expr_loc (loc,
 			               fold_build2 (MEM_REF,
 						    TREE_TYPE (TREE_TYPE (op0)),
@@ -2153,8 +2187,8 @@ simplify_pointer_plus (location_t loc, enum tree_code code,
       && ptrofftype_p (TREE_TYPE (def1_arg2)))
     {
       tree inner;
-      tree arg11 = gimple_combine_build1 (loc, NOP_EXPR, sizetype, op1);
-      tree arg12 = gimple_combine_build1 (loc, NOP_EXPR, sizetype, def1_arg2);
+      tree arg11 = gimple_combine_convert (loc, sizetype, op1);
+      tree arg12 = gimple_combine_convert (loc, sizetype, def1_arg2);
       inner = gimple_combine_build2 (loc, PLUS_EXPR, sizetype, arg11, arg12);
       return gimple_combine_build2 (loc, POINTER_PLUS_EXPR, type, def1_arg1, inner);
     }

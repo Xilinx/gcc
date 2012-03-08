@@ -1,3 +1,39 @@
+2012-03-08  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (gimple_combine_convert): New function.
+	(combine_cond_expr_cond): Remove the nowarnings argument.
+	Use fold_undefer_and_ignore_overflow_warnings instead of
+	calling fold_undefer_overflow_warnings.
+	(forward_propagate_into_comparison_1): Rename to ..
+	(forward_propagate_into_comparison): This. Removing the old
+	forward_propagate_into_comparison.
+	Simplify (a^b) !=/== 0 To a !=/== b.
+	Simplify ((X)bool) != N where N is not 0 or 1.
+	Simplify ((X)A) == N to A == N' where X and the type of A only
+	differ by signess.
+	Simplify bool == 0 to just bool.
+	Simplify bool != 0 to just !bool.
+	Simplify bool == 1 to just bool.
+	Simplify bool != 1 to just !bool.
+	Don't check is_gimple_min_invariant after the fold_binary.
+	Update the call to combine_cond_expr_cond.
+	Use gimple_combine_convert instead of fold_convert.
+	(forward_propagate_into_gimple_cond): Don't Canonicalize
+	as gimple_combine_binary will do that now.
+	(forward_propagate_into_cond): Likewise.
+	Use gimple_combine_convert instead of
+	gimple_combine_build1 (.., NOP_EXPR).
+	(simplify_bitwise_binary_1): Add loc argument.
+	Use gimple_combine_convert instead of fold_convert.
+	(simplify_bitwise_binary): Use gimple_combine_convert
+	instead of fold_convert.
+	Simplify ( A ^ B) ^ A to A and related reassociated ones.
+	Simplify ( A | B) | A to (A | B) and related reassociated ones.
+	Simplify ( A & B) | A to (A & B) and related reassociated ones.
+	Update call to simplify_bitwise_binary_1.
+	(simplify_pointer_plus): Use gimple_combine_convert
+	instead of fold_convert and gimple_combine_build1 (..., NOP_EXPR).
+
 2012-03-05  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-fold.c: Add comments about
