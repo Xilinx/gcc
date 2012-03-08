@@ -363,6 +363,11 @@
 ;;========================================================================
 ;; Move stuff around
 
+;; "loadqi_libgcc"
+;; "loadhi_libgcc"
+;; "loadpsi_libgcc"    
+;; "loadsi_libgcc"    
+;; "loadsf_libgcc"    
 (define_expand "load<mode>_libgcc"
   [(set (match_dup 3)
         (match_dup 2))
@@ -377,7 +382,12 @@
     operands[1] = replace_equiv_address (operands[1], operands[3]);
     set_mem_addr_space (operands[1], ADDR_SPACE_FLASH);
   })
-    
+
+;; "load_qi_libgcc"
+;; "load_hi_libgcc"
+;; "load_psi_libgcc"    
+;; "load_si_libgcc"    
+;; "load_sf_libgcc"    
 (define_insn "load_<mode>_libgcc"
   [(set (reg:MOVMODE 22)
         (match_operand:MOVMODE 0 "memory_operand" "m,m"))]
@@ -418,9 +428,15 @@
     DONE;
   })
 
+;; "xloadqi_A"
+;; "xloadhi_A"
+;; "xloadpsi_A"
+;; "xloadsi_A"
+;; "xloadsf_A"
 (define_insn_and_split "xload<mode>_A"
   [(set (match_operand:MOVMODE 0 "register_operand" "=r")
         (match_operand:MOVMODE 1 "memory_operand"    "m"))
+   (clobber (reg:MOVMODE 22))
    (clobber (reg:QI 21))
    (clobber (reg:HI REG_Z))]
   "can_create_pseudo_p()
@@ -461,7 +477,7 @@
   {
     return avr_out_xload (insn, operands, NULL);
   }
-  [(set_attr "length" "3,4")
+  [(set_attr "length" "4,4")
    (set_attr "adjust_len" "*,xload")
    (set_attr "isa" "lpmx,lpm")
    (set_attr "cc" "none")])
@@ -1691,6 +1707,29 @@
    (set_attr "cc" "clobber")])
 
 ;; Handle small constants
+
+;; Special case of a += 2*b as frequently seen with accesses to int arrays.
+;; This is shorter, faster than MUL and has lower register pressure.
+
+(define_insn_and_split "*umaddqihi4.2"
+  [(set (match_operand:HI 0 "register_operand"                                  "=r")
+        (plus:HI (mult:HI (zero_extend:HI (match_operand:QI 1 "register_operand" "r"))
+                          (const_int 2))
+                 (match_operand:HI 2 "register_operand"                          "r")))]
+  "!reload_completed
+   && !reg_overlap_mentioned_p (operands[0], operands[1])"
+  { gcc_unreachable(); }
+  "&& 1"
+  [(set (match_dup 0)
+        (match_dup 2))
+   ; *addhi3_zero_extend
+   (set (match_dup 0)
+        (plus:HI (zero_extend:HI (match_dup 1))
+                 (match_dup 0)))
+   ; *addhi3_zero_extend
+   (set (match_dup 0)
+        (plus:HI (zero_extend:HI (match_dup 1))
+                 (match_dup 0)))])
 
 ;; "umaddqihi4.uconst"
 ;; "maddqihi4.sconst"
@@ -5391,6 +5430,53 @@
   }
   [(set_attr "adjust_len" "insert_bits")
    (set_attr "cc" "clobber")])
+
+
+;; __builtin_avr_flash_segment
+
+;; Just a helper for the next "official" expander.
+
+(define_expand "flash_segment1"
+  [(set (match_operand:QI 0 "register_operand" "")
+        (subreg:QI (match_operand:PSI 1 "register_operand" "")
+                   2))
+   (set (cc0)
+        (compare (match_dup 0)
+                 (const_int 0)))
+   (set (pc)
+        (if_then_else (ge (cc0)
+                          (const_int 0))
+                      (label_ref (match_operand 2 "" ""))
+                      (pc)))
+   (set (match_dup 0)
+        (const_int -1))])
+
+(define_expand "flash_segment"
+  [(parallel [(match_operand:QI 0 "register_operand" "")
+              (match_operand:PSI 1 "register_operand" "")])]
+  ""
+  {
+    rtx label = gen_label_rtx ();
+    emit (gen_flash_segment1 (operands[0], operands[1], label));
+    emit_label (label);
+    DONE;
+  })
+
+;; Actually, it's too late now to work out address spaces known at compiletime.
+;; Best place would be to fold ADDR_SPACE_CONVERT_EXPR in avr_fold_builtin.
+;; However, avr_addr_space_convert can add some built-in knowledge for PSTR
+;; so that ADDR_SPACE_CONVERT_EXPR in the built-in must not be resolved.
+
+(define_insn_and_split "*split.flash_segment"
+  [(set (match_operand:QI 0 "register_operand"                        "=d")
+        (subreg:QI (lo_sum:PSI (match_operand:QI 1 "nonmemory_operand" "ri")
+                               (match_operand:HI 2 "register_operand"  "r"))
+                   2))]
+  ""
+  { gcc_unreachable(); }
+  ""
+  [(set (match_dup 0)
+        (match_dup 1))])
 
 
 ;; Parity

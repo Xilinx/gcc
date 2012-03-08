@@ -1,4 +1,10 @@
 
+2011-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-build.tpl (meltframe.args): Add -Iinclude-fixed if it exists.
+
+	* melt-build.mk: Regenerate.
+
 2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate, with interrupt checks}}
 	* melt/generated/warmelt-base+01.c: Regenerate.

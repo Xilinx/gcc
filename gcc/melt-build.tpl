@@ -682,17 +682,20 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
 # test that the melt-runtime follows MELT coding rules; this also tests
 # a real MELT pass on real code, like our melt-runtime.c
 # test melt-runtime [+ (. (tpl-file-line))+]
-	@echo  $(melt_make_cc1flags) -O -Wno-shadow $(meltarg_mode)=meltframe  \
+	@echo  $(melt_make_cc1flags) >  meltframe.args-tmp
+	@echo  $(meltarg_mode)=meltframe  \
 	      $(meltarg_makefile)=$(melt_make_module_makefile) \
 	      $(meltarg_makecmd)=$(MAKE) \
               "$(meltarg_modulecflags)='$(melt_cflags)'" \
 	      $(meltarg_tempdir)=. $(MELT_DEBUG) $(meltarg_init)=@melt-default-modules-quicklybuilt \
-	     $(meltarg_arg)=$<  -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) \
 	     $(meltarg_module_path)=$(realpath melt-modules) \
 	     $(meltarg_source_path)=$(realpath melt-sources) \
-       $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) -o /dev/null > meltframe.args-tmp
+       $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) >>  meltframe.args-tmp
+	@echo -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) -o /dev/null >> meltframe.args-tmp
+	@echo -Iinclude/ >> meltframe.args-tmp
+	[ -d include-fixed ] && echo -Iinclude-fixed/ >> meltframe.args-tmp
+	@echo  -O -Wno-shadow  >> meltframe.args-tmp
 	@cat melt-runtime.args >> meltframe.args-tmp
-	echo -Iinclude/ >> meltframe.args-tmp
 	@$(melt_move_if_change) meltframe.args-tmp meltframe.args
 	@echo; echo; echo; echo -n meltframe.args: ; cat meltframe.args ; echo "***** doing " meltframe  [+ (. (tpl-file-line))+]
 	$(melt_make_cc1) @meltframe.args

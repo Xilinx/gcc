@@ -1123,11 +1123,11 @@ expand_prologue (void)
           emit_push_sfr (rampy_rtx, false /* frame-related */, true /* clr */);
         }
 
-      if (AVR_HAVE_RAMPZ 
+      if (AVR_HAVE_RAMPZ
           && TEST_HARD_REG_BIT (set, REG_Z)
           && TEST_HARD_REG_BIT (set, REG_Z + 1))
         {
-          emit_push_sfr (rampz_rtx, false /* frame-related */, true /* clr */);
+          emit_push_sfr (rampz_rtx, false /* frame-related */, AVR_HAVE_RAMPD);
         }
     }  /* is_interrupt is_signal */
 
@@ -1347,12 +1347,12 @@ expand_epilogue (bool sibcall_p)
       /* Restore RAMPZ/Y/X/D using tmp_reg as scratch.
          The conditions to restore them must be tha same as in prologue.  */
       
-      if (AVR_HAVE_RAMPX
-          && TEST_HARD_REG_BIT (set, REG_X)
-          && TEST_HARD_REG_BIT (set, REG_X + 1))
+      if (AVR_HAVE_RAMPZ
+          && TEST_HARD_REG_BIT (set, REG_Z)
+          && TEST_HARD_REG_BIT (set, REG_Z + 1))
         {
           emit_pop_byte (TMP_REGNO);
-          emit_move_insn (rampx_rtx, tmp_reg_rtx);
+          emit_move_insn (rampz_rtx, tmp_reg_rtx);
         }
 
       if (AVR_HAVE_RAMPY
@@ -1364,12 +1364,12 @@ expand_epilogue (bool sibcall_p)
           emit_move_insn (rampy_rtx, tmp_reg_rtx);
         }
 
-      if (AVR_HAVE_RAMPZ
-          && TEST_HARD_REG_BIT (set, REG_Z)
-          && TEST_HARD_REG_BIT (set, REG_Z + 1))
+      if (AVR_HAVE_RAMPX
+          && TEST_HARD_REG_BIT (set, REG_X)
+          && TEST_HARD_REG_BIT (set, REG_X + 1))
         {
           emit_pop_byte (TMP_REGNO);
-          emit_move_insn (rampz_rtx, tmp_reg_rtx);
+          emit_move_insn (rampx_rtx, tmp_reg_rtx);
         }
 
       if (AVR_HAVE_RAMPD)
@@ -2762,7 +2762,14 @@ avr_out_lpm (rtx insn, rtx *op, int *plen)
       break; /* POST_INC */
 
     } /* switch CODE (addr) */
+
+  if (xop[4] == xstring_e && AVR_HAVE_RAMPD)
+    {
+      /* Reset RAMPZ to 0 so that EBI devices don't read garbage from RAM */
       
+      avr_asm_len ("out __RAMPZ__,__zero_reg__", xop, plen, 1);
+    }
+
   return "";
 }
 
@@ -2782,8 +2789,9 @@ avr_out_xload (rtx insn ATTRIBUTE_UNUSED, rtx *op, int *plen)
   if (plen)
     *plen = 0;
 
-  avr_asm_len ("ld %3,%a2" CR_TAB
-               "sbrs %1,7", xop, plen, 2);
+  avr_asm_len ("sbrc %1,7" CR_TAB
+               "ld %3,%a2" CR_TAB
+               "sbrs %1,7", xop, plen, 3);
 
   avr_asm_len (AVR_HAVE_LPMX ? "lpm %3,%a2" : "lpm", xop, plen, 1);
 
@@ -10431,6 +10439,19 @@ avr_init_builtins (void)
                                 unsigned_char_type_node,
                                 unsigned_char_type_node,
                                 NULL_TREE);
+
+  tree const_memx_void_node
+      = build_qualified_type (void_type_node,
+                              TYPE_QUAL_CONST
+                              | ENCODE_QUAL_ADDR_SPACE (ADDR_SPACE_MEMX));
+
+  tree const_memx_ptr_type_node
+      = build_pointer_type_for_mode (const_memx_void_node, PSImode, false);
+  
+  tree char_ftype_const_memx_ptr
+      = build_function_type_list (char_type_node,
+                                  const_memx_ptr_type_node,
+                                  NULL);
 
 #define DEF_BUILTIN(NAME, N_ARGS, ID, TYPE, CODE)                       \
   add_builtin_function (NAME, TYPE, ID, BUILT_IN_MD, NULL, NULL_TREE);

@@ -5910,7 +5910,8 @@ cp_parser_postfix_dot_deref_expression (cp_parser *parser,
 
   /* If this is a `->' operator, dereference the pointer.  */
   if (token_type == CPP_DEREF)
-    postfix_expression = build_x_arrow (postfix_expression);
+    postfix_expression = build_x_arrow (postfix_expression,
+					tf_warning_or_error);
   /* Check to see whether or not the expression is type-dependent.  */
   dependent_p = type_dependent_expression_p (postfix_expression);
   /* The identifier following the `->' or `.' is not qualified.  */
@@ -13122,9 +13123,6 @@ cp_parser_explicit_instantiation (cp_parser* parser)
       tree type;
 
       type = check_tag_decl (&decl_specifiers);
-      if (decl_specifiers.attributes)
-	warning (OPT_Wattributes,
-		 "attributes ignored on explicit type instantiation");
       /* Turn access control back on for names used during
 	 template instantiation.  */
       pop_deferring_access_checks ();
