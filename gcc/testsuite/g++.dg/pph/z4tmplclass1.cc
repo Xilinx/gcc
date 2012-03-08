@@ -1,5 +1,5 @@
-// pph asm xdiff 54665
-// xfail-if BOGUS DUPFUNC
+// pph asm xokay 15070
+// Label numbers are different.
 
 #include "x0tmplclass13.h"
 #include "x0tmplclass14.h"

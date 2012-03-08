@@ -445,6 +445,16 @@ pph_trace_tree (tree t, const char *name,
 }
 
 
+/* Print a note into the tracing stream.  */
+
+void
+pph_trace_note (const char *type, const char *value)
+{
+  if ( flag_pph_tracer >= 3 )
+    fprintf (pph_logfile, "PPH: %s: %s\n", type, value);
+}
+
+
 /************************************************* pph pointer mapping cache */
 
 

@@ -1,4 +1,5 @@
-// pph asm xokay 27667
+// { dg-xfail-if "ICE" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-bogus "x4keyed.cc:13:1: internal compiler error: in cgraph_analyze_functions, at cgraphunit.c:1210" "" { xfail *-*-* } 0 }
 
 #include "x0keyed1.h"
 #include "x0keyed2.h"

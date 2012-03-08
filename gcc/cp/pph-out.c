@@ -1477,6 +1477,15 @@ pph_out_struct_function (pph_stream *stream, struct function *fn)
 }
 
 
+/* Write the struct function instance for DECL to STREAM.  */
+
+static void
+pph_out_struct_function_for_decl (pph_stream *stream, tree decl)
+{
+  pph_out_struct_function (stream, DECL_STRUCT_FUNCTION (decl));
+}
+
+
 /* Write all the fields in lang_decl_base instance LDB to OB.  */
 
 static void
@@ -1795,6 +1804,7 @@ pph_out_lang_type (pph_stream *stream, tree type)
   else
     pph_out_lang_type_ptrmem (stream, &lt->u.ptrmem);
 }
+
 
 /* Write machine_mode value MODE to STREAM.  */
 
@@ -2160,7 +2170,8 @@ pph_merge_name (tree expr)
 		   | TFF_SCOPE
 		   | TFF_DECL_SPECIFIERS
 		   | TFF_CLASS_KEY_OR_ENUM
-		   | TFF_RETURN_TYPE;
+		   | TFF_RETURN_TYPE
+		   | TFF_LOC_FOR_TEMPLATE_PARMS;
 
   if (TYPE_P (expr))
     expr = TYPE_NAME (expr);
@@ -2202,6 +2213,7 @@ static void
 pph_out_merge_name (pph_stream *stream, tree expr)
 {
   char *name = pph_merge_name (expr);
+  pph_trace_note ("merge name", name);
   pph_out_string (stream, name);
   free (name);
 }
@@ -2299,7 +2311,12 @@ pph_out_merge_key_tree (pph_stream *stream, tree expr, bool name_type)
     {
       if (name_type)
 	pph_out_merge_name (stream, expr);
-      gcc_assert (TYPE_P (expr));
+      if (CLASS_TYPE_P (expr))
+	{
+	  unsigned filter = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
+	  pph_out_merge_key_chain (stream, TYPE_FIELDS (expr), filter);
+	  pph_out_merge_key_chain (stream, TYPE_METHODS (expr), filter);
+	}
     }
 
   if (flag_pph_tracer)
@@ -2463,6 +2480,14 @@ pph_out_cgraph_node (pph_stream *stream, struct cgraph_node *node)
   pph_out_bitpack (stream, &bp);
 }
 
+/* Emit callgraph for DECL to STREAM.  */
+
+static void
+pph_out_cgraph_node_for_decl (pph_stream *stream, tree decl)
+{
+  pph_out_cgraph_node (stream, cgraph_get_node (decl));
+}
+
 
 /* Add DECL to the symbol table for pph_out_stream.  ACTION determines
    how DECL should be presented to the middle-end when reading this
@@ -2516,8 +2541,8 @@ pph_out_symtab (pph_stream *stream)
 	}
       else if (entry->action == PPH_SYMTAB_EXPAND)
 	{
-	  pph_out_struct_function (stream, DECL_STRUCT_FUNCTION (entry->decl));
-	  pph_out_cgraph_node (stream, cgraph_get_node (entry->decl));
+	  pph_out_struct_function_for_decl (stream, entry->decl);
+	  pph_out_cgraph_node_for_decl (stream, entry->decl);
 	}
       else
 	gcc_unreachable ();

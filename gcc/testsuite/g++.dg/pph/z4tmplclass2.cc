@@ -1,5 +1,5 @@
-// pph asm xdiff 44158
-// xfail-if BOGUS DUPVAR DUPFUNC
+// pph asm xokay 62353
+// Labels are different.  Two variable definitions have moved
 
 #include "x0tmplclass23.h"
 #include "x0tmplclass24.h"

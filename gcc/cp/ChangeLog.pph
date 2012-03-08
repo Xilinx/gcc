@@ -1,3 +1,21 @@
+2012-03-07   Lawrence Crowl  <crowl@google.com>
+
+	* cp-tree.h (TFF_LOC_FOR_TEMPLATE_PARMS): New.
+	* error.c (dump_location_qualifier): New.
+	(dump_type): Add source location qualifier to template type parameter
+	identifiers.
+	* mangle.c (write_template_arg_literal): Revert to prior code.
+	* pph-streamer.h (pph_trace_note): New.
+	* pph-core.c (pph_trace_note): New.
+	* pph-out.c (pph_out_struct_function_for_decl): New.
+	(pph_out_cgraph_node_for_decl): New.
+	(pph_out_symtab): Update to use functions above.
+	(pph_merge_name): Add TFF_LOC_FOR_TEMPLATE_PARMS for pretty name.
+	(pph_out_merge_name): Trace merge names.
+	(pph_out_merge_key_tree): Emit merge keys for class fields and methods.
+	* pph-in.c (pph_in_merge_key_tree_with_searcher): Merge in keys for
+	class fields and methods.
+
 2012-03-01   Lawrence Crowl  <crowl@google.com>
 
 	* pph-core.c (pph_include_handler): Make warning message a single line.

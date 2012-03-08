@@ -350,6 +350,25 @@ dump_alias_template_specialization (tree t, int flags)
 		       flags & ~TFF_TEMPLATE_HEADER);
 }
 
+
+/* Dump a location of a DECL as a qualifier, depending on FLAGS.  */
+
+static void
+dump_location_qualifier (tree decl, int flags)
+{
+if (flags & TFF_LOC_FOR_TEMPLATE_PARMS)
+  {
+    expanded_location xloc = expand_location (DECL_SOURCE_LOCATION (decl));
+    char *buffer = (char*)xmalloc (strlen (xloc.file) + 46);
+    if (xloc.column != 0)
+      sprintf (buffer, "`%s:%d:%d`", xloc.file, xloc.line, xloc.column);
+    else
+      sprintf (buffer, "`%s:%d`", xloc.file, xloc.line);
+    pp_cxx_ws_string (cxx_pp, buffer);
+    free (buffer);
+  }
+}
+
 /* Dump a human-readable equivalent of TYPE.  FLAGS controls the
    format.  */
 
@@ -466,6 +485,7 @@ dump_type (tree t, int flags)
       {
 	tree decl = TYPE_NAME (t);
 	pp_cxx_cv_qualifier_seq (cxx_pp, t);
+	dump_location_qualifier (decl, flags);
 	if (decl)
 	  {
 	    tree ident = DECL_NAME (decl);

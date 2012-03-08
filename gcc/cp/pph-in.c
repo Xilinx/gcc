@@ -2589,6 +2589,11 @@ pph_in_merge_key_tree_with_searcher (pph_stream *stream, void *holder,
     }
   else
     {
+      if (CLASS_TYPE_P (expr))
+	{
+	  pph_in_merge_key_chain (stream, &TYPE_FIELDS (expr));
+	  pph_in_merge_key_chain (stream, &TYPE_METHODS (expr));
+	}
     }
 
   if (flag_pph_tracer)

@@ -1,4 +1,7 @@
-// pph asm xokay 32642
+// { dg-xfail-if "ICE" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-bogus "x4keyex.cc:28:1: internal compiler error: in cgraph_analyze_functions, at cgraphunit.c:1210" "" { xfail *-*-* } 0 }
+
+// formerly was asm xokay 32642
 //
 // This test case fails to compare because LFB/LFE labels are different.
 //
