@@ -1,3 +1,7 @@
+2012-03-08  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/predicates.md (indirect_branch_operand): Simplify.
+
 2012-03-07  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/predicates.md (x86_64_zext_general_operand): New.
