@@ -1,10 +1,264 @@
+2012-03-08  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52530
+	Revert:
+	2012-03-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_print_operand_address): Only handle
+	zero-extended DImode addresses.
+
+2012-03-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (gcc_cv_as_ix86_tlsldmplt): Add label.
+	* configure: Regenerate.
+
+2012-03-08  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/52496
+	* config/avr/avr.c (avr_mem_clobber): New static function.
+	(avr_expand_delay_cycles): Add memory clobber operand to
+	delay_cycles_1, delay_cycles_2, delay_cycles_3, delay_cycles_4.
+	* config/avr/avr.md (unspec): Add UNSPEC_MEMORY_BARRIER.
+	(enable_interrupt, disable_interrupt): New expander.
+	(nopv, sleep, wdr): New expanders.
+	(delay_cycles_1): Add memory clobber.
+	(delay_cycles_2): Add memory clobber.
+	(delay_cycles_3): Add memory clobber.
+	(delay_cycles_4): Add memory clobber.
+	(cli_sei): New insn from former "enable_interrupt",
+	"disable_interrupt" with memory clobber.
+	(*wdt): New insn from former "wdt" with memory clobber.
+	(*nopv): Similar, but for "nopv".
+	(*sleep): Similar, but for "sleep".
+
+2012-03-07  Oleg Endo  <olegendo@gcc.gnu.org>
+	    Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR target/52503
+	* config/sh/sh.opt (msoft-atomic): Use Var instead of Mask.
+	* config/sh/linux.h (TARGET_DEFAULT): Remove MASK_SOFT_ATOMIC.
+	(SUBTARGET_OVERRIDE_OPTIONS): Define.
+
+2012-03-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/predicates.md (x86_64_zext_general_operand): New.
+	* config/i386/i386.md (*zero_extendsidi2_rex64): Change operand 1
+	predicate to x86_64_zext_general_operand.  Accept "Z" constraint.
+
+2012-03-07  Walter Lee  <walt@tilera.com>
+
+	* config/tilegx/tilegx.c (tilegx_expand_prologue): Don't generate
+	REG_CFA_* notes for the stack pointer.
+	(tilegx_expand_epilogue): Restore stack pointer by adjusting it by
+	EH_RETURN_STACKADJ_RTX.
+	* config/tilepro/tilepro.c (tilepro_expand_prologue): Don't
+	generate REG_CFA_* notes for the stack pointer.
+	(tilepro_expand_epilogue): Restore stack pointer by adjusting it
+	by EH_RETURN_STACKADJ_RTX.
+
+2012-03-07  Georg-Johann Lay  <avr@gjlay.de>
+
+	* doc/invoke.texi (AVR Built-in Macros): Correct condition for
+	when __AVR_3_BYTE_PC__ is defined.
+
+2012-03-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_print_operand_punct_valid_p): Add '^'.
+	(ix86_print_operand): Handle '^'.
+	* config/i386/i386.md (*strmovdi_rex_1): Macroize memory operands
+	using P mode iterator.  Add %^ to asm template to conditionally emit
+	addr32 prefix.
+	(*rep_movdi_rex64): Ditto.
+	(*strsetdi_rex_1): Ditto.
+	(*rep_stosdi_rex64): Ditto.
+	(*strmov{si,hi,qi}_1): Add %^ to asm template to
+	conditionally emit addr32 prefix.
+	(*rep_mov{si,qi}): Ditto.
+	(*strset{si,hi,qi}): Ditto.
+	(*rep_stos{si,qi}): Ditto.
+	(*cmpstrnqi_nz_1): Ditto.
+	(*cmpstrnqi_1): Ditto.
+	(*strlenqi_1): Ditto.
+
+2012-03-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (function_value_64): Return pointers in
+	word_mode instead of Pmode.
+	(ix86_promote_function_mode): Likewise.
+
+2012-03-07  Richard Guenther  <rguenther@suse.de>
+
+	* coverage.c (get_gcov_type): Use type_for_mode.
+	(get_gcov_unsigned_t): Likewise.
+	* expr.c (store_constructor): Use type_for_mode.
+	(try_casesi): Likewise.
+	* tree-ssa-loop-ivopts.c (add_standard_iv_candidates_for_size): Remove.
+	(add_standard_iv_candidates): Use standard type trees.
+	* dojump.c (do_jump): Remove dead code.
+
+2012-03-07  Richard Guenther  <rguenther@suse.de>
+
+	* c-typeck.c (pointer_diff): Use c_common_type_for_size.
+
+2012-03-07  Richard Guenther  <rguenther@suse.de>
+
+	* convert.c (strip_float_extensions): Move ...
+	* tree.c (strip_float_extensions): ... here.
+
+2012-03-07  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/52484
+	* config/avr/avr.md (xload<mode>_A): Add R22... to register footprint.
+
+2012-03-07  Richard Guenther  <rguenther@suse.de>
+
+	* omp-low.c (extract_omp_for_data): Use signed_type_for.
+	(expand_omp_for_generic): Likewise.
+	(expand_omp_for_static_nochunk): Likewise.
+	(expand_omp_for_static_chunk): Likewise.
+	* tree-vect-stmts.c (vect_gen_perm_mask): Use type_for_mode.
+	* tree-vect-slp.c (vect_transform_slp_perm_load): Likewise.
+	* tree-vect-loop-manip.c (vect_gen_niters_for_prolog_loop):
+	Use unsigned_type_for.
+	(vect_create_cond_for_align_checks): Use signed_type_for.
+
+2012-03-07  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/52203
+	* sel-sched.c (estimate_insn_cost): New parameter pempty.  Adjust
+	all callers to pass NULL except ...
+	(reset_sched_cycles_in_current_ebb): ... here, save the value
+	in new variable 'empty'.  Increase issue_rate only for
+	non-empty insns.
+
+2012-03-07  Ralf Corsépius  <ralf.corsepius@rtems.org>
+
+	PR target/51417
+	* Makefile.in: Let install-gcc-ar depend on installdirs,
+	gcc-ar$(exeext), gcc-nm$(exeext), gcc-ranlib$(exeext).
+	Don't double canonicalize if cross-compiling.
+
+2012-03-07  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/52506
+	* gcc/config/avr/avr.c (expand_epilogue): Fix order of restoration
+	to: RAMPZ, RAMPY, RAMPX, RAMPD.
+	(expand_prologue): Only clear RAMPZ if it has effect on RAM-read.
+
+2012-03-07  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/52505
+	* config/avr/avr.c (avr_out_xload): Don't read unintentionally
+	from RAM.
+	* config/avr/avr.md (xload_8): Adjust insn length.
+
+2012-03-07  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/52461
+	* gcc/config/avr/avr.c (avr_out_lpm): Clear RAMPZ after usage
+	if RAMPZ affects reading from RAM.
+
+2012-03-07  Richard Guenther  <rguenther@suse.de>
+
+	PR pch/52518
+	PR pch/38987
+	* doc/invoke.texi (Precompiled Headers): Remove sentence that
+	suggests you can include PCHs from inside another header.
+
+2012-03-07  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR middle-end/52515
+	* rtl.h (pc_rtx, cc0_rtx, ret_rtx, simple_return_rtx): Add GTY markers.
+
+2012-03-07  Kai Tietz  <ktietz@redhat.com>
+
+	* doc/invoke.texi (fwritable-relocated-rdata): Document
+	new Cygwin/MinGW target option.
+	* config/i386/winnt.c (i386_pe_unique_section): Ignore
+	reloc if flag -fwritable-relocated-rdata is not set.
+	(i386_pe_section_type_flags): Likewise.
+	* config/i386/cygming.opt (fwritable-relocated-rdata):
+	Add new flag variable flag_writable_rel_rdata.
+
+2012-03-07  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-math-opts.c (convert_mult_to_widen): Check actual
+	precision against gimple constraints.
+
+2012-03-06  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR middle-end/52372
+	* rtl.h (pc_rtx, ret_rtx, simple_return_rtx, cc0_rtx): Redefine as
+	variables.
+	(GR_PC, GR_CC0, GR_RETURN, GR_SIMPLE_RETURN): Delete.
+	* emit-rtl.c (pc_rtx, ret_rtx, simple_return_rtx, cc0_rtx): New
+	variables.
+	(init_emit_regs): Move associated initialization to...
+	(init_emit_once): ...here.
+
+2012-03-06  Richard Henderson  <rth@redhat.com>
+
+	* config/m68k/m68k.h (ISA_HAS_TAS): New.
+	* config/m68k/sync.md (atomic_test_and_set): Use it.
+	(atomic_test_and_set_1): Likewise.
+
+2012-03-06  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/50310
+	* config/rs6000/vector.md (vector_uneq<mode>): Add support for
+	UNEQ, LTGT, ORDERED, and UNORDERED IEEE vector comparisons.
+	(vector_ltgt<mode>): Likewise.
+	(vector_ordered<mode>): Likewise.
+	(vector_unordered<mode>): Likewise.
+	* config/rs6000/rs6000.c (rs6000_emit_vector_compare_inner): Likewise.
+
+2012-03-06  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c: New typedef for tm_region_p.
+	Define vector types for tm_region_p.
+	(tm_region_init): Replace region_worklist to a vector called
+	bb_regions.
+
+2012-03-06  Richard Guenther  <rguenther@suse.de>
+
+	* fold-const.c (build_fold_addr_expr_with_type_loc): Fold
+	MEM_REF with constant pointer operand.
+
+2012-03-06  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52493
+	* tree-ssa-alias.c (ptr_derefs_may_alias_p): Robustify.
+
+2012-03-06  Tristan Gingold  <gingold@adacore.com>
+
+	* config/vms/vms-c.c (vms_pragma_nomember_alignment): Handle octaword.
+	(external_model_kind): Improve documentation.
+	(vms_pragma_extern_model): Handle relaxed_redef.
+	(vms_c_register_pragma): Allow expansion for nomember_alignment.
+
+2012-03-06  Georg-Johann Lay  <avr@gjlay.de>
+
+	* doc/invoke.texi (AVR Options): -mmcu=: Document the XMEGA cores.
+	Explain RAMPD, RAMPX, RAMPDY, RAMPZ usage by avr-gcc.
+	Some more notes on EIND usage and reorder EIND subsection.
+
+2012-03-06  Tristan Gingold  <gingold@adacore.com>
+
+	* config/vms/vms.c (VMS_CRTL_LDBL): Rename from VMS_CRTL_PRNTF.
+	* config/vms/vms-crtlmap.map: Rename PRNTF to LDBL.
+
+2012-03-06  Tristan Gingold  <gingold@adacore.com>
+
+	* config/vms/t-vmsnative (version): Define.
+	* config/vms/t-vms (STMP_FIXPROTO, STMP_FIXINC, version): Remove.
+
 2012-03-06  Andrey Belevantsev  <abel@ispras.ru>
 
 	PR rtl-optimization/52250
 	* sel-sched-ir.c (maybe_tidy_empty_bb): Try harder to find a bb
 	to put note list into.  Unconditionally call move_bb_info.
 	(move_bb_info): Do not assert the blocks being in the same region,
-	just drop the note list if they are not. 
+	just drop the note list if they are not.
 
 2012-03-06  Oleg Endo  <olegendo@gcc.gnu.org>
 
@@ -113,8 +367,7 @@
 	* genautomata.c (parse_automata_opt): New static function.
 	(initiate_automaton_gen): Remove all option handling code.  Remove
 	argc argument.  All callers changed.
-	(main): Call init_rtx_reader_args_cb with the new function as
-	argument.
+	(main): Call init_rtx_reader_args_cb with the new function as argument.
 
 2012-03-05  Richard Guenther  <rguenther@suse.de>
 
@@ -983,6 +1236,10 @@
 	PR tree-optimization/52318
 	* gimple-fold.c (gimplify_and_update_call_from_tree): Add
 	vdef also to non-pure/const call stmts in the sequence.
+
+2012-02-21  Tristan Gingold  <gingold@adacore.com>
+
+	* config/vms/vms-ld.c (main): Fix IDENTIFICATION padding.
 
 2012-02-20  David S. Miller  <davem@davemloft.net>
 
