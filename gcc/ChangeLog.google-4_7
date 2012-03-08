@@ -1,3 +1,42 @@
+2012-03-07  Sriraman Tallam  <tmsriram@google.com>
+
+	Backport from google/main rev 185083
+
+	        * config/i386/i386.c (build_struct_with_one_bit_fields): New function.
+	        (make_var_decl): New function.
+	        (get_field_from_struct): New function.
+	        (fold_builtin_target): New function.
+	        (ix86_fold_builtin): New function.
+	        (ix86_expand_builtin): Expand new builtins by folding them.
+	        (make_platform_builtin): New functions.
+	        (ix86_init_platform_type_builtins): Make the new builtins.
+	        (ix86_init_builtins): Make new builtins to detect CPU type.
+	        (TARGET_FOLD_BUILTIN): New macro.
+	        (IX86_BUILTIN_CPU_SUPPORTS_CMOV): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_MMX): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_POPCOUNT): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_SSE): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_SSE2): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_SSE3): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_SSSE3): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_SSE4_1): New enum value.
+	        (IX86_BUILTIN_CPU_SUPPORTS_SSE4_2): New enum value.
+	        (IX86_BUILTIN_CPU_INIT): New enum value.
+	        (IX86_BUILTIN_CPU_IS_AMD): New enum value.
+	        (IX86_BUILTIN_CPU_IS_INTEL): New enum value.
+	        (IX86_BUILTIN_CPU_IS_INTEL_ATOM): New enum value.
+	        (IX86_BUILTIN_CPU_IS_INTEL_CORE2): New enum value.
+	        (IX86_BUILTIN_CPU_IS_INTEL_COREI7_NEHALEM): New enum value.
+	        (IX86_BUILTIN_CPU_IS_INTEL_COREI7_WESTMERE): New enum value.
+	        (IX86_BUILTIN_CPU_IS_INTEL_COREI7_SANDYBRIDGE): New enum value.
+	        (IX86_BUILTIN_CPU_IS_AMDFAM10_BARCELONA): New enum value.
+	        (IX86_BUILTIN_CPU_IS_AMDFAM10_SHANGHAI): New enum value.
+	        (IX86_BUILTIN_CPU_IS_AMDFAM10_ISTANBUL): New enum value.
+	        (IX86_BUILTIN_CPU_IS_AMDFAM15H_BDVER1): New enum value.
+	        (IX86_BUILTIN_CPU_IS_AMDFAM15H_BDVER2): New enum value.
+	        * config/i386/i386-builtin-types.def: New function type.
+	        * testsuite/gcc.target/builtin_target.c: New testcase.
+
 2012-03-07  Diego Novillo  <dnovillo@google.com>
 
 	Merge from google/main rev 184996.

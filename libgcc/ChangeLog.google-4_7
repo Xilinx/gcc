@@ -1,0 +1,10 @@
+2012-03-07  Sriraman Tallam  <tmsriram@google.com>
+
+	Backport from google/main rev 185083
+
+	        * libgcc/config/i386/i386-cpuinfo.c: New file.
+	        * libgcc/config/i386/t-cpuinfo: New file.
+	        * libgcc/config.host: Include t-cpuinfo.
+	        * libgcc/config/i386/libgcc-glibc.ver: Version symbols __cpu_model
+	        and __cpu_features.
+
