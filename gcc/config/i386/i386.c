@@ -7240,8 +7240,8 @@ function_value_64 (enum machine_mode orig_mode, enum machine_mode mode,
     }
   else if (POINTER_TYPE_P (valtype))
     {
-      /* Pointers are always returned in Pmode. */
-      mode = Pmode;
+      /* Pointers are always returned in word_mode.  */
+      mode = word_mode;
     }
 
   ret = construct_container (mode, orig_mode, valtype, 1,
@@ -7312,7 +7312,8 @@ ix86_function_value (const_tree valtype, const_tree fntype_or_decl,
   return ix86_function_value_1 (valtype, fntype_or_decl, orig_mode, mode);
 }
 
-/* Pointer function arguments and return values are promoted to Pmode.  */
+/* Pointer function arguments and return values are promoted to
+   word_mode.  */
 
 static enum machine_mode
 ix86_promote_function_mode (const_tree type, enum machine_mode mode,
@@ -7322,7 +7323,7 @@ ix86_promote_function_mode (const_tree type, enum machine_mode mode,
   if (type != NULL_TREE && POINTER_TYPE_P (type))
     {
       *punsignedp = POINTERS_EXTEND_UNSIGNED;
-      return Pmode;
+      return word_mode;
     }
   return default_promote_function_mode (type, mode, punsignedp, fntype,
 					for_return);
@@ -13742,6 +13743,7 @@ get_some_local_dynamic_name (void)
    ; -- print a semicolon (after prefixes due to bug in older gas).
    ~ -- print "i" if TARGET_AVX2, "f" otherwise.
    @ -- print a segment register of thread base pointer load
+   ^ -- print addr32 prefix if TARGET_64BIT and Pmode != word_mode
  */
 
 void
@@ -14247,6 +14249,11 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	  putc (TARGET_AVX2 ? 'i' : 'f', file);
 	  return;
 
+	case '^':
+	  if (TARGET_64BIT && Pmode != word_mode)
+	    fputs ("addr32 ", file);
+	  return;
+
 	default:
 	    output_operand_lossage ("invalid operand code '%c'", code);
 	}
@@ -14386,8 +14393,8 @@ ix86_print_operand (FILE *file, rtx x, int code)
 static bool
 ix86_print_operand_punct_valid_p (unsigned char code)
 {
-  return (code == '@' || code == '*' || code == '+'
-	  || code == '&' || code == ';' || code == '~');
+  return (code == '@' || code == '*' || code == '+' || code == '&'
+	  || code == ';' || code == '~' || code == '^');
 }
 
 /* Print a memory operand whose address is ADDR.  */
@@ -14484,7 +14491,7 @@ ix86_print_operand_address (FILE *file, rtx addr)
 
       /* Print SImode registers for zero-extended addresses to force
 	 addr32 prefix.  Otherwise print DImode registers to avoid it.  */
-      if (TARGET_64BIT && GET_MODE (addr) == DImode)
+      if (TARGET_64BIT)
 	code = ((GET_CODE (addr) == ZERO_EXTEND
 		 || GET_CODE (addr) == AND)
 		? 'l'
