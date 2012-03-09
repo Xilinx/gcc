@@ -267,6 +267,7 @@ static const char *compare_debug_dump_opt_spec_function (int, const char **);
 static const char *compare_debug_self_opt_spec_function (int, const char **);
 static const char *compare_debug_auxbase_opt_spec_function (int, const char **);
 static const char *pass_through_libs_spec_func (int, const char **);
+static const char *replace_extension_spec_func (int, const char **);
 
 /* The Specs Language
 
@@ -479,7 +480,14 @@ proper position among the other output files.  */
 /* config.h can define ASM_FINAL_SPEC to run a post processor after
    the assembler has run.  */
 #ifndef ASM_FINAL_SPEC
-#define ASM_FINAL_SPEC ""
+#define ASM_FINAL_SPEC \
+  "%{gfission: \n\
+       objcopy --extract-dwo \
+	 %{c:%{o*:%*}%{!o*:%b%O}}%{!c:%g%O} \
+	 %{c:%{o*:%:replace-extension(%{o*:%*} .dwo)}%{!o*:%b.dwo}}%{!c:%b.dwo} \n\
+       objcopy --strip-dwo \
+	 %{c:%{o*:%*}%{!o*:%b%O}}%{!c:%g%O} \
+    }"
 #endif
 
 /* config.h can define CPP_SPEC to provide extra args to the C preprocessor
@@ -1260,6 +1268,7 @@ static const struct spec_function static_spec_functions[] =
   { "compare-debug-self-opt",	compare_debug_self_opt_spec_function },
   { "compare-debug-auxbase-opt", compare_debug_auxbase_opt_spec_function },
   { "pass-through-libs",	pass_through_libs_spec_func },
+  { "replace-extension",	replace_extension_spec_func },
 #ifdef EXTRA_SPEC_FUNCTIONS
   EXTRA_SPEC_FUNCTIONS
 #endif
@@ -8317,4 +8326,28 @@ pass_through_libs_spec_func (int argc, const char **argv)
 	free (old);
     }
   return prepended;
+}
+
+/* %:replace-extension spec function.  Replaces the extension of the
+   first argument with the second argument.  */
+
+const char *
+replace_extension_spec_func (int argc, const char **argv)
+{
+  char *name;
+  char *p;
+  char *result;
+
+  if (argc != 2)
+    fatal_error ("too few arguments to %%:replace-extension");
+
+  name = xstrdup (argv[0]);
+  p = strrchr (name, '.');
+  if (p != NULL)
+      *p = '\0';
+
+  result = concat (name, argv[1], NULL);
+
+  free (name);
+  return result;
 }

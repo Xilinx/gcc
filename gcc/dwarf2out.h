@@ -171,6 +171,7 @@ dw_vec_const;
 
 typedef struct GTY(()) dw_val_struct {
   enum dw_val_class val_class;
+  unsigned int val_index;
   union dw_val_struct_union
     {
       rtx GTY ((tag ("dw_val_class_addr"))) val_addr;
