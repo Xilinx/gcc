@@ -2296,15 +2296,11 @@ if test $in_tree_ld != yes ; then
   else
     case "${target}" in
       *-*-solaris2*)
+	# See acinclude.m4 (gcc_SUN_LD_VERSION) for the version number
+	# format.
 	#
-	# Solaris 2 ld -V output looks like this for a regular version:
-	#
-	# ld: Software Generation Utilities - Solaris Link Editors: 5.11-1.1699
-	#
-	# but test versions add stuff at the end:
-	#
-	# ld: Software Generation Utilities - Solaris Link Editors: 5.11-1.1701:onnv-ab196087-6931056-03/25/10
-	#
+	# Don't reuse gcc_gv_sun_ld_vers_* in case a linker other than
+	# /usr/ccs/bin/ld has been configured.
 	ld_ver=`$gcc_cv_ld -V 2>&1`
 	if echo "$ld_ver" | grep 'Solaris Link Editors' > /dev/null; then
 	  ld_vers=`echo $ld_ver | sed -n \
@@ -3268,6 +3264,13 @@ case "$target" in
     if test $set_have_as_tls = no; then
       LIBS=
     fi
+    # Even without TLS support on Solaris 8, explicitly link with libthread
+    # to guarantee that the alternate thread library is used.
+    case "$target" in
+      *-*-solaris2.8)
+	LIBS=-lthread
+	;;
+    esac
     # Always define LIB_TLS_SPEC, even without TLS support.
     AC_DEFINE_UNQUOTED(LIB_TLS_SPEC, "$LIBS",
         [Define to the library containing __tls_get_addr/___tls_get_addr.])
@@ -3721,7 +3724,8 @@ foo:	nop
 
     gcc_GAS_CHECK_FEATURE([R_386_TLS_LDM_PLT reloc],
         gcc_cv_as_ix86_tlsldmplt,,,
-	[call    tls_ld@tlsldmplt],
+	[tls_ld:
+	 call    tls_ld@tlsldmplt],
 	[if test x$gcc_cv_ld != x \
 	 && $gcc_cv_ld -o conftest conftest.o -G > /dev/null 2>&1; then
 	   gcc_cv_as_ix86_tlsldmplt=yes

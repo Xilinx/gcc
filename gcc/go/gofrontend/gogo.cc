@@ -628,7 +628,7 @@ Gogo::start_function(const std::string& name, Function_type* type,
       Variable* this_param = new Variable(receiver->type(), NULL, false,
 					  true, true, location);
       std::string rname = receiver->name();
-      if (rname.empty())
+      if (rname.empty() || Gogo::is_sink_name(rname))
 	{
 	  // We need to give receivers a name since they wind up in
 	  // DECL_ARGUMENTS.  FIXME.
@@ -638,8 +638,7 @@ Gogo::start_function(const std::string& name, Function_type* type,
 	  ++count;
 	  rname = buf;
 	}
-      if (!Gogo::is_sink_name(rname))
-	block->bindings()->add_variable(rname, NULL, this_param);
+      block->bindings()->add_variable(rname, NULL, this_param);
     }
 
   const Typed_identifier_list* parameters = type->parameters();
@@ -2500,6 +2499,9 @@ Build_recover_thunks::function(Named_object* orig_no)
 
   Call_expression* call = Expression::make_call(fn, args, false, location);
 
+  // Any varargs call has already been lowered.
+  call->set_varargs_are_lowered();
+
   Statement* s;
   if (orig_fntype->results() == NULL || orig_fntype->results()->empty())
     s = Statement::make_statement(call, true);
@@ -2859,6 +2861,7 @@ Gogo::do_exports()
   exp.export_globals(this->package_name(),
 		     this->unique_prefix(),
 		     this->package_priority(),
+		     this->imports_,
 		     (this->need_init_fn_ && !this->is_main_package()
 		      ? this->get_init_fn_name()
 		      : ""),
@@ -3274,7 +3277,10 @@ Function::export_func_with_type(Export* exp, const std::string& name,
   if (fntype->is_method())
     {
       exp->write_c_string("(");
-      exp->write_type(fntype->receiver()->type());
+      const Typed_identifier* receiver = fntype->receiver();
+      exp->write_name(receiver->name());
+      exp->write_c_string(" ");
+      exp->write_type(receiver->type());
       exp->write_c_string(") ");
     }
 
@@ -3294,6 +3300,8 @@ Function::export_func_with_type(Export* exp, const std::string& name,
 	    first = false;
 	  else
 	    exp->write_c_string(", ");
+	  exp->write_name(p->name());
+	  exp->write_c_string(" ");
 	  if (!is_varargs || p + 1 != parameters->end())
 	    exp->write_type(p->type());
 	  else
@@ -3308,7 +3316,7 @@ Function::export_func_with_type(Export* exp, const std::string& name,
   const Typed_identifier_list* results = fntype->results();
   if (results != NULL)
     {
-      if (results->size() == 1)
+      if (results->size() == 1 && results->begin()->name().empty())
 	{
 	  exp->write_c_string(" ");
 	  exp->write_type(results->begin()->type());
@@ -3325,6 +3333,8 @@ Function::export_func_with_type(Export* exp, const std::string& name,
 		first = false;
 	      else
 		exp->write_c_string(", ");
+	      exp->write_name(p->name());
+	      exp->write_c_string(" ");
 	      exp->write_type(p->type());
 	    }
 	  exp->write_c_string(")");
@@ -3348,9 +3358,10 @@ Function::import_func(Import* imp, std::string* pname,
   if (imp->peek_char() == '(')
     {
       imp->require_c_string("(");
+      std::string name = imp->read_name();
+      imp->require_c_string(" ");
       Type* rtype = imp->read_type();
-      *preceiver = new Typed_identifier(Import::import_marker, rtype,
-					imp->location());
+      *preceiver = new Typed_identifier(name, rtype, imp->location());
       imp->require_c_string(") ");
     }
 
@@ -3366,6 +3377,9 @@ Function::import_func(Import* imp, std::string* pname,
       parameters = new Typed_identifier_list();
       while (true)
 	{
+	  std::string name = imp->read_name();
+	  imp->require_c_string(" ");
+
 	  if (imp->match_c_string("..."))
 	    {
 	      imp->advance(3);
@@ -3375,8 +3389,8 @@ Function::import_func(Import* imp, std::string* pname,
 	  Type* ptype = imp->read_type();
 	  if (*is_varargs)
 	    ptype = Type::make_array_type(ptype, NULL);
-	  parameters->push_back(Typed_identifier(Import::import_marker,
-						 ptype, imp->location()));
+	  parameters->push_back(Typed_identifier(name, ptype,
+						 imp->location()));
 	  if (imp->peek_char() != ',')
 	    break;
 	  go_assert(!*is_varargs);
@@ -3396,17 +3410,18 @@ Function::import_func(Import* imp, std::string* pname,
       if (imp->peek_char() != '(')
 	{
 	  Type* rtype = imp->read_type();
-	  results->push_back(Typed_identifier(Import::import_marker, rtype,
-					      imp->location()));
+	  results->push_back(Typed_identifier("", rtype, imp->location()));
 	}
       else
 	{
 	  imp->require_c_string("(");
 	  while (true)
 	    {
+	      std::string name = imp->read_name();
+	      imp->require_c_string(" ");
 	      Type* rtype = imp->read_type();
-	      results->push_back(Typed_identifier(Import::import_marker,
-						  rtype, imp->location()));
+	      results->push_back(Typed_identifier(name, rtype,
+						  imp->location()));
 	      if (imp->peek_char() != ',')
 		break;
 	      imp->require_c_string(", ");
@@ -5333,5 +5348,5 @@ Statement_inserter::insert(Statement* s)
   else if (this->var_ != NULL)
     this->var_->add_preinit_statement(this->gogo_, s);
   else
-    go_unreachable();
+    go_assert(saw_errors());
 }

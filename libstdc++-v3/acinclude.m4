@@ -729,7 +729,7 @@ AC_DEFUN([GLIBCXX_EXPORT_FLAGS], [
   # OPTIMIZE_CXXFLAGS = -O3 -fstrict-aliasing -fvtable-gc
   AC_SUBST(OPTIMIZE_CXXFLAGS)
 
-  WARN_FLAGS='-Wall -Wextra -Wwrite-strings -Wcast-qual'
+  WARN_FLAGS='-Wall -Wextra -Wwrite-strings -Wcast-qual -Wabi'
   AC_SUBST(WARN_FLAGS)
 ])
 
@@ -1809,6 +1809,35 @@ AC_DEFUN([GLIBCXX_CHECK_STDLIB_PROTO], [
 ])
 
 dnl
+dnl Check whether required C++ overloads are present in <stdio.h>.
+dnl
+AC_DEFUN([GLIBCXX_CHECK_STDIO_PROTO], [
+
+  AC_LANG_SAVE
+  AC_LANG_CPLUSPLUS
+
+  AC_MSG_CHECKING([for gets declaration])
+  AC_CACHE_VAL(glibcxx_cv_gets, [
+  AC_COMPILE_IFELSE([AC_LANG_SOURCE(
+	  [#include <stdio.h>
+	   namespace test 
+	   {
+              using ::gets;
+	   }
+	])],
+	[glibcxx_cv_gets=yes],
+	[glibcxx_cv_gets=no]
+      )])
+
+  if test $glibcxx_cv_gets = yes; then
+    AC_DEFINE(HAVE_GETS, 1, [Define if gets is available in <stdio.h>.])
+  fi
+  AC_MSG_RESULT($glibcxx_cv_gets)
+
+  AC_LANG_RESTORE
+])
+
+dnl
 dnl Check whether macros, etc are present for <system_error>
 dnl
 AC_DEFUN([GLIBCXX_CHECK_SYSTEM_ERROR], [
@@ -2824,7 +2853,7 @@ EOF
 
     AC_MSG_CHECKING([for atomic builtins for bool])
     if AC_TRY_EVAL(ac_compile); then
-      if grep __sync_ conftest.s >/dev/null 2>&1 ; then
+      if grep __atomic_ conftest.s >/dev/null 2>&1 ; then
 	glibcxx_cv_atomic_bool=no
       else
 	glibcxx_cv_atomic_bool=yes
@@ -2853,7 +2882,7 @@ EOF
 
     AC_MSG_CHECKING([for atomic builtins for short])
     if AC_TRY_EVAL(ac_compile); then
-      if grep __sync_ conftest.s >/dev/null 2>&1 ; then
+      if grep __atomic_ conftest.s >/dev/null 2>&1 ; then
 	glibcxx_cv_atomic_short=no
       else
 	glibcxx_cv_atomic_short=yes
@@ -2883,7 +2912,7 @@ EOF
 
     AC_MSG_CHECKING([for atomic builtins for int])
     if AC_TRY_EVAL(ac_compile); then
-      if grep __sync_ conftest.s >/dev/null 2>&1 ; then
+      if grep __atomic_ conftest.s >/dev/null 2>&1 ; then
 	glibcxx_cv_atomic_int=no
       else
 	glibcxx_cv_atomic_int=yes
@@ -2912,7 +2941,7 @@ EOF
 
     AC_MSG_CHECKING([for atomic builtins for long long])
     if AC_TRY_EVAL(ac_compile); then
-      if grep __sync_ conftest.s >/dev/null 2>&1 ; then
+      if grep __atomic_ conftest.s >/dev/null 2>&1 ; then
 	glibcxx_cv_atomic_long_long=no
       else
 	glibcxx_cv_atomic_long_long=yes
@@ -3264,17 +3293,14 @@ if test $enable_symvers != no ; then
      # The Solaris 2 runtime linker doesn't support the GNU extension of
      # binding the same symbol to different versions
      solaris2*)
-       symvers_renaming=no  ;;
+       ;;
      # Other platforms with GNU symbol versioning (GNU/Linux, more?) do.
      *)
        AC_DEFINE(HAVE_SYMVER_SYMBOL_RENAMING_RUNTIME_SUPPORT, 1,
 	 [Define to 1 if the target runtime linker supports binding the same symbol to different versions.])
-       symvers_renaming=yes  ;;
+       ;;
     esac
-else
-    symvers_renaming=no
 fi
-GLIBCXX_CONDITIONAL(ENABLE_SYMVERS_SOL2, test $symvers_renaming = no)
 
 # Now, set up compatibility support, if any.
 # In addition, need this to deal with std::size_t mangling in
@@ -3589,6 +3615,17 @@ AC_MSG_RESULT(${with_python_dir})
 python_mod_dir="${with_python_dir}"
 AC_SUBST(python_mod_dir)
 GLIBCXX_CONDITIONAL(ENABLE_PYTHONDIR, test $python_mod_dir != no)
+])
+
+dnl
+dnl Check to see if -Werror is disabled.
+dnl
+dnl --enable-werror/--disable-werror
+AC_DEFUN([GLIBCXX_ENABLE_WERROR], [
+  AC_MSG_CHECKING([for -Werror])
+  GLIBCXX_ENABLE(werror,$1,,[turns on -Werror])
+  AC_MSG_RESULT($enable_werror)
+  GLIBCXX_CONDITIONAL(ENABLE_WERROR, test $enable_werror = yes)
 ])
 
 

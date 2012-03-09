@@ -622,16 +622,24 @@ Type::are_assignable_check_hidden(const Type* lhs, const Type* rhs,
 				  std::string* reason)
 {
   // Do some checks first.  Make sure the types are defined.
-  if (rhs != NULL
-      && rhs->forwarded()->forward_declaration_type() == NULL
-      && rhs->is_void_type())
+  if (rhs != NULL && !rhs->is_undefined())
     {
-      if (reason != NULL)
-	*reason = "non-value used as value";
-      return false;
+      if (rhs->is_void_type())
+	{
+	  if (reason != NULL)
+	    *reason = "non-value used as value";
+	  return false;
+	}
+      if (rhs->is_call_multiple_result_type())
+	{
+	  if (reason != NULL)
+	    reason->assign(_("multiple value function call in "
+			     "single value context"));
+	  return false;
+	}
     }
 
-  if (lhs != NULL && lhs->forwarded()->forward_declaration_type() == NULL)
+  if (lhs != NULL && !lhs->is_undefined())
     {
       // Any value may be assigned to the blank identifier.
       if (lhs->is_sink_type())
@@ -639,9 +647,7 @@ Type::are_assignable_check_hidden(const Type* lhs, const Type* rhs,
 
       // All fields of a struct must be exported, or the assignment
       // must be in the same package.
-      if (check_hidden_fields
-	  && rhs != NULL
-	  && rhs->forwarded()->forward_declaration_type() == NULL)
+      if (check_hidden_fields && rhs != NULL && !rhs->is_undefined())
 	{
 	  if (lhs->has_hidden_fields(NULL, reason)
 	      || rhs->has_hidden_fields(NULL, reason))
@@ -715,9 +721,6 @@ Type::are_assignable_check_hidden(const Type* lhs, const Type* rhs,
     {
       if (rhs->interface_type() != NULL)
 	reason->assign(_("need explicit conversion"));
-      else if (rhs->is_call_multiple_result_type())
-	reason->assign(_("multiple value function call in "
-			 "single value context"));
       else if (lhs->named_type() != NULL && rhs->named_type() != NULL)
 	{
 	  size_t len = (lhs->named_type()->name().length()
@@ -1786,6 +1789,12 @@ Type::write_specific_type_functions(Gogo* gogo, Named_type* name,
 				    Function_type* equal_fntype)
 {
   Location bloc = Linemap::predeclared_location();
+
+  if (gogo->specific_type_functions_are_written())
+    {
+      go_assert(saw_errors());
+      return;
+    }
 
   Named_object* hash_fn = gogo->start_function(hash_name, hash_fntype, false,
 					       bloc);
@@ -3111,9 +3120,7 @@ Function_type::is_valid_redeclaration(const Function_type* t,
   // A redeclaration of a function is required to use the same names
   // for the receiver and parameters.
   if (this->receiver() != NULL
-      && this->receiver()->name() != t->receiver()->name()
-      && this->receiver()->name() != Import::import_marker
-      && t->receiver()->name() != Import::import_marker)
+      && this->receiver()->name() != t->receiver()->name())
     {
       if (reason != NULL)
 	*reason = "receiver name changed";
@@ -3129,9 +3136,7 @@ Function_type::is_valid_redeclaration(const Function_type* t,
 	   p2 != parms2->end();
 	   ++p2, ++p1)
 	{
-	  if (p1->name() != p2->name()
-	      && p1->name() != Import::import_marker
-	      && p2->name() != Import::import_marker)
+	  if (p1->name() != p2->name())
 	    {
 	      if (reason != NULL)
 		*reason = "parameter name changed";
@@ -3160,9 +3165,7 @@ Function_type::is_valid_redeclaration(const Function_type* t,
 	   res2 != results2->end();
 	   ++res2, ++res1)
 	{
-	  if (res1->name() != res2->name()
-	      && res1->name() != Import::import_marker
-	      && res2->name() != Import::import_marker)
+	  if (res1->name() != res2->name())
 	    {
 	      if (reason != NULL)
 		*reason = "result name changed";
@@ -3609,6 +3612,8 @@ Function_type::do_export(Export* exp) const
 	    first = false;
 	  else
 	    exp->write_c_string(", ");
+	  exp->write_name(p->name());
+	  exp->write_c_string(" ");
 	  if (!is_varargs || p + 1 != this->parameters_->end())
 	    exp->write_type(p->type());
 	  else
@@ -3624,7 +3629,7 @@ Function_type::do_export(Export* exp) const
   if (results != NULL)
     {
       exp->write_c_string(" ");
-      if (results->size() == 1)
+      if (results->size() == 1 && results->begin()->name().empty())
 	exp->write_type(results->begin()->type());
       else
 	{
@@ -3638,6 +3643,8 @@ Function_type::do_export(Export* exp) const
 		first = false;
 	      else
 		exp->write_c_string(", ");
+	      exp->write_name(p->name());
+	      exp->write_c_string(" ");
 	      exp->write_type(p->type());
 	    }
 	  exp->write_c_string(")");
@@ -3660,6 +3667,9 @@ Function_type::do_import(Import* imp)
       parameters = new Typed_identifier_list();
       while (true)
 	{
+	  std::string name = imp->read_name();
+	  imp->require_c_string(" ");
+
 	  if (imp->match_c_string("..."))
 	    {
 	      imp->advance(3);
@@ -3669,8 +3679,8 @@ Function_type::do_import(Import* imp)
 	  Type* ptype = imp->read_type();
 	  if (is_varargs)
 	    ptype = Type::make_array_type(ptype, NULL);
-	  parameters->push_back(Typed_identifier(Import::import_marker,
-						 ptype, imp->location()));
+	  parameters->push_back(Typed_identifier(name, ptype,
+						 imp->location()));
 	  if (imp->peek_char() != ',')
 	    break;
 	  go_assert(!is_varargs);
@@ -3689,17 +3699,18 @@ Function_type::do_import(Import* imp)
       if (imp->peek_char() != '(')
 	{
 	  Type* rtype = imp->read_type();
-	  results->push_back(Typed_identifier(Import::import_marker, rtype,
-					      imp->location()));
+	  results->push_back(Typed_identifier("", rtype, imp->location()));
 	}
       else
 	{
 	  imp->advance(1);
 	  while (true)
 	    {
+	      std::string name = imp->read_name();
+	      imp->require_c_string(" ");
 	      Type* rtype = imp->read_type();
-	      results->push_back(Typed_identifier(Import::import_marker,
-						  rtype, imp->location()));
+	      results->push_back(Typed_identifier(name, rtype,
+						  imp->location()));
 	      if (imp->peek_char() != ',')
 		break;
 	      imp->require_c_string(", ");
@@ -3739,8 +3750,12 @@ Function_type::copy_with_receiver(Type* receiver_type) const
   go_assert(!this->is_method());
   Typed_identifier* receiver = new Typed_identifier("", receiver_type,
 						    this->location_);
-  return Type::make_function_type(receiver, this->parameters_,
-				  this->results_, this->location_);
+  Function_type* ret = Type::make_function_type(receiver, this->parameters_,
+						this->results_,
+						this->location_);
+  if (this->is_varargs_)
+    ret->set_is_varargs();
+  return ret;
 }
 
 // Make a function type.
@@ -4114,7 +4129,6 @@ Struct_type::do_verify()
   Struct_field_list* fields = this->fields_;
   if (fields == NULL)
     return true;
-  bool ret = true;
   for (Struct_field_list::iterator p = fields->begin();
        p != fields->end();
        ++p)
@@ -4124,7 +4138,6 @@ Struct_type::do_verify()
 	{
 	  error_at(p->location(), "struct field type is incomplete");
 	  p->set_type(Type::make_error_type());
-	  ret = false;
 	}
       else if (p->is_anonymous())
 	{
@@ -4132,19 +4145,17 @@ Struct_type::do_verify()
 	    {
 	      error_at(p->location(), "embedded type may not be a pointer");
 	      p->set_type(Type::make_error_type());
-	      return false;
 	    }
-	  if (t->points_to() != NULL
-	      && t->points_to()->interface_type() != NULL)
+	  else if (t->points_to() != NULL
+		   && t->points_to()->interface_type() != NULL)
 	    {
 	      error_at(p->location(),
 		       "embedded type may not be pointer to interface");
 	      p->set_type(Type::make_error_type());
-	      return false;
 	    }
 	}
     }
-  return ret;
+  return true;
 }
 
 // Whether this contains a pointer.
@@ -5204,10 +5215,7 @@ bool
 Array_type::do_verify()
 {
   if (!this->verify_length())
-    {
-      this->length_ = Expression::make_error(this->length_->location());
-      return false;
-    }
+    this->length_ = Expression::make_error(this->length_->location());
   return true;
 }
 
@@ -5897,10 +5905,7 @@ Map_type::do_verify()
 {
   // The runtime support uses "map[void]void".
   if (!this->key_type_->is_comparable() && !this->key_type_->is_void_type())
-    {
-      error_at(this->location_, "invalid map key type");
-      return false;
-    }
+    error_at(this->location_, "invalid map key type");
   return true;
 }
 
@@ -6469,7 +6474,7 @@ Interface_type::finalize_methods()
 	}
 
       Named_type* nt = t->named_type();
-      if (nt != NULL)
+      if (nt != NULL && it->parse_methods_ != NULL)
 	{
 	  std::vector<Named_type*>::const_iterator q;
 	  for (q = seen.begin(); q != seen.end(); ++q)
@@ -7185,7 +7190,7 @@ Interface_type::do_export(Export* exp) const
 	{
 	  if (pm->name().empty())
 	    {
-	      exp->write_c_string("$ ");
+	      exp->write_c_string("? ");
 	      exp->write_type(pm->type());
 	    }
 	  else
@@ -7209,6 +7214,8 @@ Interface_type::do_export(Export* exp) const
 			first = false;
 		      else
 			exp->write_c_string(", ");
+		      exp->write_name(pp->name());
+		      exp->write_c_string(" ");
 		      if (!is_varargs || pp + 1 != parameters->end())
 			exp->write_type(pp->type());
 		      else
@@ -7226,7 +7233,7 @@ Interface_type::do_export(Export* exp) const
 	      if (results != NULL)
 		{
 		  exp->write_c_string(" ");
-		  if (results->size() == 1)
+		  if (results->size() == 1 && results->begin()->name().empty())
 		    exp->write_type(results->begin()->type());
 		  else
 		    {
@@ -7241,6 +7248,8 @@ Interface_type::do_export(Export* exp) const
 			    first = false;
 			  else
 			    exp->write_c_string(", ");
+			  exp->write_name(p->name());
+			  exp->write_c_string(" ");
 			  exp->write_type(p->type());
 			}
 		      exp->write_c_string(")");
@@ -7267,7 +7276,7 @@ Interface_type::do_import(Import* imp)
     {
       std::string name = imp->read_identifier();
 
-      if (name == "$")
+      if (name == "?")
 	{
 	  imp->require_c_string(" ");
 	  Type* t = imp->read_type();
@@ -7287,6 +7296,9 @@ Interface_type::do_import(Import* imp)
 	  parameters = new Typed_identifier_list;
 	  while (true)
 	    {
+	      std::string name = imp->read_name();
+	      imp->require_c_string(" ");
+
 	      if (imp->match_c_string("..."))
 		{
 		  imp->advance(3);
@@ -7296,8 +7308,8 @@ Interface_type::do_import(Import* imp)
 	      Type* ptype = imp->read_type();
 	      if (is_varargs)
 		ptype = Type::make_array_type(ptype, NULL);
-	      parameters->push_back(Typed_identifier(Import::import_marker,
-						     ptype, imp->location()));
+	      parameters->push_back(Typed_identifier(name, ptype,
+						     imp->location()));
 	      if (imp->peek_char() != ',')
 		break;
 	      go_assert(!is_varargs);
@@ -7316,17 +7328,18 @@ Interface_type::do_import(Import* imp)
 	  if (imp->peek_char() != '(')
 	    {
 	      Type* rtype = imp->read_type();
-	      results->push_back(Typed_identifier(Import::import_marker,
-						  rtype, imp->location()));
+	      results->push_back(Typed_identifier("", rtype, imp->location()));
 	    }
 	  else
 	    {
 	      imp->advance(1);
 	      while (true)
 		{
+		  std::string name = imp->read_name();
+		  imp->require_c_string(" ");
 		  Type* rtype = imp->read_type();
-		  results->push_back(Typed_identifier(Import::import_marker,
-						      rtype, imp->location()));
+		  results->push_back(Typed_identifier(name, rtype,
+						      imp->location()));
 		  if (imp->peek_char() != ',')
 		    break;
 		  imp->require_c_string(", ");
@@ -7875,7 +7888,6 @@ Named_type::do_verify()
   if (this->local_methods_ != NULL)
     {
       Struct_type* st = this->type_->struct_type();
-      bool found_dup = false;
       if (st != NULL)
 	{
 	  for (Bindings::const_declarations_iterator p =
@@ -7889,12 +7901,9 @@ Named_type::do_verify()
 		  error_at(p->second->location(),
 			   "method %qs redeclares struct field name",
 			   Gogo::message_name(name).c_str());
-		  found_dup = true;
 		}
 	    }
 	}
-      if (found_dup)
-	return false;
     }
 
   return true;

@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 1992-2011, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2012, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -615,9 +615,13 @@ __gnat_adjust_context_for_raise (int signo ATTRIBUTE_UNUSED, void *ucontext)
   if (signo == SIGSEGV && pc && *pc == 0x00240c83)
     mcontext->gregs[REG_ESP] += 4096 + 4 * sizeof (unsigned long);
 #elif defined (__x86_64__)
-  unsigned long *pc = (unsigned long *)mcontext->gregs[REG_RIP];
-  /* The pattern is "orq $0x0,(%rsp)" for a probe in 64-bit mode.  */
-  if (signo == SIGSEGV && pc && (*pc & 0xffffffffff) == 0x00240c8348)
+  unsigned long long *pc = (unsigned long long *)mcontext->gregs[REG_RIP];
+  if (signo == SIGSEGV && pc
+      /* The pattern is "orq $0x0,(%rsp)" for a probe in 64-bit mode.  */
+      && ((*pc & 0xffffffffffLL) == 0x00240c8348LL
+	  /* The pattern may also be "orl $0x0,(%esp)" for a probe in
+	     x32 mode.  */
+	  || (*pc & 0xffffffffLL) == 0x00240c83LL))
     mcontext->gregs[REG_RSP] += 4096 + 4 * sizeof (unsigned long);
 #elif defined (__ia64__)
   /* ??? The IA-64 unwinder doesn't compensate for signals.  */
@@ -661,8 +665,8 @@ __gnat_error_handler (int sig, siginfo_t *si ATTRIBUTE_UNUSED, void *ucontext)
       break;
 
     case SIGBUS:
-      exception = &constraint_error;
-      msg = "SIGBUS";
+      exception = &storage_error;
+      msg = "SIGBUS: possible stack overflow";
       break;
 
     case SIGFPE:
@@ -1239,8 +1243,6 @@ static const struct cond_except dec_ada_cond_except_table [] = {
   {ADA$_KEY_MISMATCH,    &Use_Error},
   {ADA$_MAXLINEXC,       &constraint_error},
   {ADA$_LINEXCMRS,       &constraint_error},
-  {0,                    0}
-};
 
 #if 0
    /* Already handled by a pragma Import_Exception
@@ -1249,6 +1251,9 @@ static const struct cond_except dec_ada_cond_except_table [] = {
   {ADA$_EXISTENCE_ERROR, &Existence_Error},
   {ADA$_KEY_ERROR,       &Key_Error},
 #endif
+
+  {0,                    0}
+};
 
 #endif /* IN_RTS */
 

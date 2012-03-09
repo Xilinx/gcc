@@ -886,6 +886,10 @@ build_aggr_conv (tree type, tree ctor, int flags)
   tree field = next_initializable_field (TYPE_FIELDS (type));
   tree empty_ctor = NULL_TREE;
 
+  ctor = reshape_init (type, ctor, tf_none);
+  if (ctor == error_mark_node)
+    return NULL;
+
   for (; field; field = next_initializable_field (DECL_CHAIN (field)))
     {
       tree ftype = TREE_TYPE (field);
@@ -3736,7 +3740,7 @@ resolve_args (VEC(tree,gc) *args, tsubst_flags_t complain)
 	    error ("invalid use of void expression");
 	  return NULL;
 	}
-      else if (invalid_nonstatic_memfn_p (arg, tf_warning_or_error))
+      else if (invalid_nonstatic_memfn_p (arg, complain))
 	return NULL;
     }
   return args;
@@ -5795,6 +5799,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	  expr = build2 (COMPLEX_EXPR, totype, real, imag);
 	  return fold_if_not_in_template (expr);
 	}
+      expr = reshape_init (totype, expr, complain);
       return get_target_expr (digest_init (totype, expr, complain));
 
     default:

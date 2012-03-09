@@ -2129,6 +2129,26 @@ package body Freeze is
             Next_Entity (Comp);
          end loop;
 
+         --  Check compatibility of Scalar_Storage_Order with Bit_Order, if the
+         --  former is specified.
+
+         ADC := Get_Attribute_Definition_Clause
+                  (Rec, Attribute_Scalar_Storage_Order);
+
+         if Present (ADC)
+           and then Reverse_Bit_Order (Rec) /= Reverse_Storage_Order (Rec)
+         then
+            if Bytes_Big_Endian = not Reverse_Storage_Order (Rec) then
+               Error_Msg_N
+                 ("Scalar_Storage_Order High_Order_First is inconsistent with"
+                  & " Bit_Order", ADC);
+            else
+               Error_Msg_N
+                 ("Scalar_Storage_Order Low_Order_First is inconsistent with"
+                  & " Bit_Order", ADC);
+            end if;
+         end if;
+
          --  Deal with Bit_Order aspect specifying a non-default bit order
 
          if Reverse_Bit_Order (Rec) and then Base_Type (Rec) = Rec then
@@ -4407,10 +4427,12 @@ package body Freeze is
          --  the size and alignment values. This processing is not required for
          --  generic types, since generic types do not play any part in code
          --  generation, and so the size and alignment values for such types
-         --  are irrelevant.
+         --  are irrelevant. Ditto for types declared within a generic unit,
+         --  which may have components that depend on generic parameters, and
+         --  that will be recreated in an instance.
 
-         if Is_Generic_Type (E) then
-            return Result;
+         if Inside_A_Generic then
+            null;
 
          --  Otherwise we call the layout procedure
 

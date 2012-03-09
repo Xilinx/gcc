@@ -3753,7 +3753,9 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
   if (!STMT_VINFO_DATA_REF (stmt_info))
     return false;
 
-  if (tree_int_cst_compare (DR_STEP (dr), size_zero_node) < 0)
+  if (tree_int_cst_compare (loop && nested_in_vect_loop_p (loop, stmt)
+			    ? STMT_VINFO_DR_STEP (stmt_info) : DR_STEP (dr),
+			    size_zero_node) < 0)
     {
       if (vect_print_dump_info (REPORT_DETAILS))
         fprintf (vect_dump, "negative step for store.");
@@ -4097,9 +4099,8 @@ vect_gen_perm_mask (tree vectype, unsigned char *sel)
   if (!can_vec_perm_p (TYPE_MODE (vectype), false, sel))
     return NULL;
 
-  mask_elt_type
-    = lang_hooks.types.type_for_size
-    (TREE_INT_CST_LOW (TYPE_SIZE (TREE_TYPE (vectype))), 1);
+  mask_elt_type = lang_hooks.types.type_for_mode
+		    (int_mode_for_mode (TYPE_MODE (TREE_TYPE (vectype))), 1);
   mask_type = get_vectype_for_scalar_type (mask_elt_type);
 
   mask_vec = NULL;
@@ -4266,7 +4267,10 @@ vectorizable_load (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
   if (!STMT_VINFO_DATA_REF (stmt_info))
     return false;
 
-  negative = tree_int_cst_compare (DR_STEP (dr), size_zero_node) < 0;
+  negative = tree_int_cst_compare (nested_in_vect_loop
+				   ? STMT_VINFO_DR_STEP (stmt_info)
+				   : DR_STEP (dr),
+				   size_zero_node) < 0;
   if (negative && ncopies > 1)
     {
       if (vect_print_dump_info (REPORT_DETAILS))
@@ -4653,7 +4657,7 @@ vectorizable_load (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
      This can only occur when vectorizing memory accesses in the inner-loop
      nested within an outer-loop that is being vectorized.  */
 
-  if (loop && nested_in_vect_loop_p (loop, stmt)
+  if (nested_in_vect_loop
       && (TREE_INT_CST_LOW (DR_STEP (dr))
 	  % GET_MODE_SIZE (TYPE_MODE (vectype)) != 0))
     {
