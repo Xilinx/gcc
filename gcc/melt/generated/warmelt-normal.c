@@ -3423,13 +3423,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:48:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CLASS_KEYWORD) /*27 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:43:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CLASS_KEYWORD) /*22 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:49:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:44:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3440,13 +3440,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:50:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CLASS_LOCATED) /*28 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:45:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CLASS_LOCATED) /*23 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:51:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:46:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3457,14 +3457,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:52:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:47:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (CLASS_MELT_MODE) /*29 */ ;;
+	MELT_PREDEF (CLASS_MELT_MODE) /*24 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:53:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:48:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3475,13 +3475,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:54:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CLASS_NAMED) /*30 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:49:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CLASS_NAMED) /*25 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:55:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:50:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3492,14 +3492,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:56:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:51:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (CLASS_PRIMITIVE) /*31 */ ;;
+	MELT_PREDEF (CLASS_PRIMITIVE) /*26 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:57:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:52:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3510,13 +3510,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:58:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CLASS_PROPED) /*32 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:53:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CLASS_PROPED) /*27 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:59:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:54:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3527,13 +3527,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:60:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CLASS_ROOT) /*33 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:55:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CLASS_ROOT) /*28 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:61:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:56:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3544,14 +3544,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:62:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:57:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (CLASS_SELECTOR) /*34 */ ;;
+	MELT_PREDEF (CLASS_SELECTOR) /*29 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:63:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:58:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3562,13 +3562,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:64:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CLASS_SEXPR) /*35 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:59:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CLASS_SEXPR) /*30 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:65:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:60:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3579,14 +3579,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:66:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:61:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (CLASS_SEXPR_MACROSTRING) /*36 */ ;;
+	MELT_PREDEF (CLASS_SEXPR_MACROSTRING) /*31 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:67:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:62:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3596,13 +3596,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:68:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CLASS_SYMBOL) /*37 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:63:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CLASS_SYMBOL) /*32 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:69:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:64:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3613,14 +3613,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:70:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:65:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (CLASS_SYSTEM_DATA) /*38 */ ;;
+	MELT_PREDEF (CLASS_SYSTEM_DATA) /*33 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:71:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:66:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3631,14 +3631,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:72:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:67:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (CTYPE_BASIC_BLOCK) /*39 */ ;;
+	MELT_PREDEF (CTYPE_BASIC_BLOCK) /*34 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:73:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:68:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3649,13 +3649,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:74:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_BITMAP) /*40 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:69:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_BITMAP) /*35 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:75:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:70:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3666,13 +3666,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:76:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_CSTRING) /*41 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:71:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_CSTRING) /*36 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:77:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:72:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3683,13 +3683,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:78:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_EDGE) /*42 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:73:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_EDGE) /*37 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:79:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:74:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3700,13 +3700,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:80:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_GIMPLE) /*43 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:75:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_GIMPLE) /*38 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:81:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:76:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3717,14 +3717,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:82:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:77:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (CTYPE_GIMPLE_SEQ) /*44 */ ;;
+	MELT_PREDEF (CTYPE_GIMPLE_SEQ) /*39 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:83:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:78:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3735,13 +3735,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:84:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_LONG) /*45 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:79:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_LONG) /*40 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:85:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:80:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3752,13 +3752,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:86:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_LOOP) /*46 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:81:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_LOOP) /*41 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:87:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:82:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3769,14 +3769,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:88:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:83:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (CTYPE_PPL_COEFFICIENT) /*47 */ ;;
+	MELT_PREDEF (CTYPE_PPL_COEFFICIENT) /*42 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:89:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:84:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3786,14 +3786,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:90:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:85:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (CTYPE_PPL_CONSTRAINT) /*48 */ ;;
+	MELT_PREDEF (CTYPE_PPL_CONSTRAINT) /*43 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:91:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:86:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3803,14 +3803,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:92:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:87:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (CTYPE_PPL_CONSTRAINT_SYSTEM) /*49 */ ;;
+	MELT_PREDEF (CTYPE_PPL_CONSTRAINT_SYSTEM) /*44 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:93:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:88:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3820,14 +3820,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:94:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:89:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (CTYPE_PPL_GENERATOR) /*50 */ ;;
+	MELT_PREDEF (CTYPE_PPL_GENERATOR) /*45 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:95:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:90:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3837,14 +3837,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:96:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:91:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (CTYPE_PPL_GENERATOR_SYSTEM) /*51 */ ;;
+	MELT_PREDEF (CTYPE_PPL_GENERATOR_SYSTEM) /*46 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:97:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:92:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3854,14 +3854,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:98:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:93:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (CTYPE_PPL_LINEAR_EXPRESSION) /*52 */ ;;
+	MELT_PREDEF (CTYPE_PPL_LINEAR_EXPRESSION) /*47 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:99:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:94:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3871,14 +3871,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:100:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:95:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (CTYPE_PPL_POLYHEDRON) /*53 */ ;;
+	MELT_PREDEF (CTYPE_PPL_POLYHEDRON) /*48 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:101:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:96:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3888,13 +3888,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:102:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_RTVEC) /*54 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:97:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_RTVEC) /*49 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:103:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:98:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3905,13 +3905,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:104:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_RTX) /*55 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:99:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_RTX) /*50 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:105:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:100:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3922,13 +3922,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:106:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_TREE) /*56 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:101:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_TREE) /*51 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:107:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:102:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3939,13 +3939,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:108:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_VALUE) /*57 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:103:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_VALUE) /*52 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:109:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:104:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3956,13 +3956,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:110:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_VOID) /*58 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:105:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (CTYPE_VOID) /*53 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:111:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:106:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3973,14 +3973,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:112:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:107:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_BASIC_BLOCK) /*59 */ ;;
+	MELT_PREDEF (DISCR_BASIC_BLOCK) /*54 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:113:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:108:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -3991,13 +3991,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:114:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_BITMAP) /*60 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:109:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_BITMAP) /*55 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:115:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:110:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4008,14 +4008,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:116:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:111:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_ANY_RECEIVER) /*61 */ ;;
+	MELT_PREDEF (DISCR_ANY_RECEIVER) /*56 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:117:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:112:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4026,14 +4026,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:118:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:113:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_CHARACTER_INTEGER) /*62 */ ;;
+	MELT_PREDEF (DISCR_CHARACTER_INTEGER) /*57 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:119:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:114:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4043,14 +4043,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:120:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:115:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_CLASS_SEQUENCE) /*63 */ ;;
+	MELT_PREDEF (DISCR_CLASS_SEQUENCE) /*58 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:121:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:116:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4060,13 +4060,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:122:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_CLOSURE) /*64 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:117:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_CLOSURE) /*59 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:123:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:118:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4077,14 +4077,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:124:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:119:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_CONSTANT_INTEGER) /*65 */ ;;
+	MELT_PREDEF (DISCR_CONSTANT_INTEGER) /*60 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:125:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:120:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4094,13 +4094,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:126:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_EDGE) /*66 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:121:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_EDGE) /*61 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:127:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:122:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4111,14 +4111,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:128:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:123:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_FIELD_SEQUENCE) /*67 */ ;;
+	MELT_PREDEF (DISCR_FIELD_SEQUENCE) /*62 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:129:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:124:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4128,13 +4128,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:130:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_GIMPLE) /*68 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:125:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_GIMPLE) /*63 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:131:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:126:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4145,14 +4145,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:132:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:127:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_GIMPLE_SEQ) /*69 */ ;;
+	MELT_PREDEF (DISCR_GIMPLE_SEQ) /*64 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:133:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:128:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4163,13 +4163,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:134:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_INTEGER) /*70 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:129:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_INTEGER) /*65 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:135:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:130:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4180,13 +4180,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:136:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_LIST) /*71 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:131:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_LIST) /*66 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:137:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:132:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4197,13 +4197,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:138:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_LOOP) /*72 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:133:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_LOOP) /*67 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:139:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:134:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4214,14 +4214,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:140:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:135:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_MAP_BASIC_BLOCKS) /*73 */ ;;
+	MELT_PREDEF (DISCR_MAP_BASIC_BLOCKS) /*68 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:141:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:136:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4231,14 +4231,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:142:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:137:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_MAP_BITMAPS) /*74 */ ;;
+	MELT_PREDEF (DISCR_MAP_BITMAPS) /*69 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:143:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:138:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4249,14 +4249,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:144:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:139:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_MAP_EDGES) /*75 */ ;;
+	MELT_PREDEF (DISCR_MAP_EDGES) /*70 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:145:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:140:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4267,14 +4267,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:146:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:141:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_MAP_GIMPLES) /*76 */ ;;
+	MELT_PREDEF (DISCR_MAP_GIMPLES) /*71 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:147:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:142:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4285,14 +4285,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:148:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:143:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_MAP_GIMPLE_SEQS) /*77 */ ;;
+	MELT_PREDEF (DISCR_MAP_GIMPLE_SEQS) /*72 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:149:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:144:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4302,14 +4302,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:150:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:145:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_MAP_LOOPS) /*78 */ ;;
+	MELT_PREDEF (DISCR_MAP_LOOPS) /*73 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:151:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:146:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4320,14 +4320,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:152:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:147:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_MAP_OBJECTS) /*79 */ ;;
+	MELT_PREDEF (DISCR_MAP_OBJECTS) /*74 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:153:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:148:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4338,14 +4338,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:154:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:149:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_MAP_RTVECS) /*80 */ ;;
+	MELT_PREDEF (DISCR_MAP_RTVECS) /*75 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:155:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:150:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4356,14 +4356,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:156:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:151:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_MAP_RTXS) /*81 */ ;;
+	MELT_PREDEF (DISCR_MAP_RTXS) /*76 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:157:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:152:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4374,14 +4374,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:158:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:153:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_MAP_STRINGS) /*82 */ ;;
+	MELT_PREDEF (DISCR_MAP_STRINGS) /*77 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:159:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:154:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4392,14 +4392,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:160:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:155:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_MAP_TREES) /*83 */ ;;
+	MELT_PREDEF (DISCR_MAP_TREES) /*78 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:161:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:156:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4410,14 +4410,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:162:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:157:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_METHOD_MAP) /*84 */ ;;
+	MELT_PREDEF (DISCR_METHOD_MAP) /*79 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:163:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:158:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4428,14 +4428,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:164:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:159:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_MIXED_BIGINT) /*85 */ ;;
+	MELT_PREDEF (DISCR_MIXED_BIGINT) /*80 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:165:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:160:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4446,14 +4446,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:166:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:161:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_MIXED_INTEGER) /*86 */ ;;
+	MELT_PREDEF (DISCR_MIXED_INTEGER) /*81 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:167:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:162:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4463,14 +4463,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:168:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:163:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_MIXED_LOCATION) /*87 */ ;;
+	MELT_PREDEF (DISCR_MIXED_LOCATION) /*82 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:169:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:164:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4480,14 +4480,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:170:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:165:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_MULTIPLE) /*88 */ ;;
+	MELT_PREDEF (DISCR_MULTIPLE) /*83 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:171:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:166:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4498,14 +4498,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:172:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:167:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_NAME_STRING) /*89 */ ;;
+	MELT_PREDEF (DISCR_NAME_STRING) /*84 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:173:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:168:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4516,14 +4516,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:174:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:169:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_NULL_RECEIVER) /*90 */ ;;
+	MELT_PREDEF (DISCR_NULL_RECEIVER) /*85 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:175:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:170:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4533,13 +4533,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:176:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_PAIR) /*91 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:171:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_PAIR) /*86 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:177:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:172:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4550,13 +4550,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:178:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_REAL) /*92 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:173:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_REAL) /*87 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:179:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:174:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4567,13 +4567,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:180:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_ROUTINE) /*93 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:175:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_ROUTINE) /*88 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:181:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:176:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4584,13 +4584,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:182:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_RTVEC) /*94 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:177:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_RTVEC) /*89 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:183:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:178:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4601,13 +4601,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:184:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_RTX) /*95 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:179:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_RTX) /*90 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:185:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:180:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4618,13 +4618,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:186:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_STRBUF) /*96 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:181:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_STRBUF) /*91 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:187:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:182:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4635,13 +4635,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:188:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_STRING) /*97 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:183:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_STRING) /*92 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:189:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:184:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4652,13 +4652,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:190:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_TREE) /*98 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:185:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (DISCR_TREE) /*93 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:191:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:186:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4669,14 +4669,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:192:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:187:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (DISCR_VERBATIM_STRING) /*99 */ ;;
+	MELT_PREDEF (DISCR_VERBATIM_STRING) /*94 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:193:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:188:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4686,14 +4686,14 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:194:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:189:/ locexp");
       /*_.CURPREDEF__V3*/ meltfptr[2] =
-	MELT_PREDEF (INITIAL_SYSTEM_DATA) /*100 */ ;;
+	MELT_PREDEF (INITIAL_SYSTEM_DATA) /*95 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:195:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:190:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -4703,13 +4703,13 @@ lab_endgetargs:;
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:196:/ locexp");
-      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (TRUE) /*101 */ ;;
+      MELT_LOCATION ("warmelt-predef.melt:191:/ locexp");
+      /*_.CURPREDEF__V3*/ meltfptr[2] = MELT_PREDEF (TRUE) /*96 */ ;;
     }
     ;
 
     {
-      MELT_LOCATION ("warmelt-predef.melt:197:/ locexp");
+      MELT_LOCATION ("warmelt-predef.melt:192:/ locexp");
       meltgc_put_mapobjects ((meltmapobjects_ptr_t)
 			     ( /*_.PREDEFMAP__V2*/ meltfptr[1]),
 			     (meltobject_ptr_t) ( /*_.CURPREDEF__V3*/
@@ -5969,7 +5969,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   dbgprintf ("start initialize_module_meltdata_warmelt_normal iniframp__=%p",
 	     (void *) iniframp__);
   melt_assertmsg ("check module initial frame",
-		  iniframp__->mcfr_nbvar == /*minihash */ -2010);
+		  iniframp__->mcfr_nbvar == /*minihash */ -261);
 
   struct cdata_st
   {
@@ -20903,7 +20903,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_999__HAS_EXTRA_WARNINGS.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_PRIMITIVE))));
-  cdat->dobj_999__HAS_EXTRA_WARNINGS.obj_hash = 482257196;
+  cdat->dobj_999__HAS_EXTRA_WARNINGS.obj_hash = 451049007;
   cdat->dobj_999__HAS_EXTRA_WARNINGS.obj_len = 5;
 
   /*inimult dtup_1000__HAS_EXTRA_WARNINGS */
@@ -23668,7 +23668,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_1194__LAST_GLOBPREDEF_INDEX.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_PRIMITIVE))));
-  cdat->dobj_1194__LAST_GLOBPREDEF_INDEX.obj_hash = 270410009;
+  cdat->dobj_1194__LAST_GLOBPREDEF_INDEX.obj_hash = 801824433;
   cdat->dobj_1194__LAST_GLOBPREDEF_INDEX.obj_len = 5;
 
   /*inimult dtup_1195__LAST_GLOBPREDEF_INDEX */
@@ -23823,7 +23823,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_1207__NORMAL_EXP.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V16*/ meltfptr[15]);
-  cdat->dobj_1207__NORMAL_EXP.obj_hash = 488633622;
+  cdat->dobj_1207__NORMAL_EXP.obj_hash = 880670443;
   cdat->dobj_1207__NORMAL_EXP.obj_len = 4;
 
 
@@ -24038,7 +24038,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_1225__GET_CTYPE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V16*/ meltfptr[15]);
-  cdat->dobj_1225__GET_CTYPE.obj_hash = 578999670;
+  cdat->dobj_1225__GET_CTYPE.obj_hash = 549857989;
   cdat->dobj_1225__GET_CTYPE.obj_len = 4;
 
 
@@ -24093,7 +24093,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_1229__COMPILE_OBJ.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V16*/ meltfptr[15]);
-  cdat->dobj_1229__COMPILE_OBJ.obj_hash = 838283337;
+  cdat->dobj_1229__COMPILE_OBJ.obj_hash = 1002167547;
   cdat->dobj_1229__COMPILE_OBJ.obj_len = 4;
 
 
@@ -24520,7 +24520,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   cdat->dobj_1266.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1266.obj_num = 0;
-  cdat->dobj_1266.obj_hash = 104090181;
+  cdat->dobj_1266.obj_hash = 283506826;
   cdat->dobj_1266.obj_len = 2;
 
 
@@ -24567,7 +24567,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   cdat->dobj_1269.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1269.obj_num = 1;
-  cdat->dobj_1269.obj_hash = 795817497;
+  cdat->dobj_1269.obj_hash = 591168061;
   cdat->dobj_1269.obj_len = 2;
 
 
@@ -24614,7 +24614,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   cdat->dobj_1272.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1272.obj_num = 2;
-  cdat->dobj_1272.obj_hash = 64885197;
+  cdat->dobj_1272.obj_hash = 820805703;
   cdat->dobj_1272.obj_len = 2;
 
 
@@ -24661,7 +24661,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   cdat->dobj_1275.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1275.obj_num = 3;
-  cdat->dobj_1275.obj_hash = 430664752;
+  cdat->dobj_1275.obj_hash = 281505748;
   cdat->dobj_1275.obj_len = 2;
 
 
@@ -24708,7 +24708,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   cdat->dobj_1278.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1278.obj_num = 4;
-  cdat->dobj_1278.obj_hash = 303706395;
+  cdat->dobj_1278.obj_hash = 388149968;
   cdat->dobj_1278.obj_len = 2;
 
   /*inimult dtup_1279__NORMALIZE_BINDING */
@@ -24733,7 +24733,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_1280__NORMALIZE_BINDING.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V16*/ meltfptr[15]);
-  cdat->dobj_1280__NORMALIZE_BINDING.obj_hash = 98433471;
+  cdat->dobj_1280__NORMALIZE_BINDING.obj_hash = 789391439;
   cdat->dobj_1280__NORMALIZE_BINDING.obj_len = 4;
 
 
@@ -28294,7 +28294,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   cdat->dobj_1570.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1570.obj_num = 0;
-  cdat->dobj_1570.obj_hash = 699267309;
+  cdat->dobj_1570.obj_hash = 858962601;
   cdat->dobj_1570.obj_len = 2;
 
 
@@ -28341,7 +28341,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   cdat->dobj_1573.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1573.obj_num = 1;
-  cdat->dobj_1573.obj_hash = 113785046;
+  cdat->dobj_1573.obj_hash = 336571368;
   cdat->dobj_1573.obj_len = 2;
 
   /*^iniobj */
@@ -28362,7 +28362,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   cdat->dobj_1574.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1574.obj_num = 2;
-  cdat->dobj_1574.obj_hash = 653234728;
+  cdat->dobj_1574.obj_hash = 452740102;
   cdat->dobj_1574.obj_len = 2;
 
 
@@ -28409,7 +28409,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   cdat->dobj_1577.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1577.obj_num = 3;
-  cdat->dobj_1577.obj_hash = 392298478;
+  cdat->dobj_1577.obj_hash = 869246789;
   cdat->dobj_1577.obj_len = 2;
 
   /*inimult dtup_1578__PREPARE_CONSTRUCTOR_BINDING */
@@ -28435,7 +28435,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_1579__PREPARE_CONSTRUCTOR_BINDING.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V16*/ meltfptr[15]);
-  cdat->dobj_1579__PREPARE_CONSTRUCTOR_BINDING.obj_hash = 617480607;
+  cdat->dobj_1579__PREPARE_CONSTRUCTOR_BINDING.obj_hash = 304058055;
   cdat->dobj_1579__PREPARE_CONSTRUCTOR_BINDING.obj_len = 4;
 
 
@@ -28542,7 +28542,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   cdat->dobj_1587.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1587.obj_num = 0;
-  cdat->dobj_1587.obj_hash = 727712508;
+  cdat->dobj_1587.obj_hash = 479266110;
   cdat->dobj_1587.obj_len = 2;
 
   /*^iniobj */
@@ -28563,7 +28563,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   cdat->dobj_1588.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1588.obj_num = 1;
-  cdat->dobj_1588.obj_hash = 299017437;
+  cdat->dobj_1588.obj_hash = 1057041655;
   cdat->dobj_1588.obj_len = 2;
 
 
@@ -28610,7 +28610,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   cdat->dobj_1591.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1591.obj_num = 2;
-  cdat->dobj_1591.obj_hash = 344104945;
+  cdat->dobj_1591.obj_hash = 152888729;
   cdat->dobj_1591.obj_len = 2;
 
   /*^iniobj */
@@ -28631,7 +28631,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   cdat->dobj_1592.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1592.obj_num = 3;
-  cdat->dobj_1592.obj_hash = 604910459;
+  cdat->dobj_1592.obj_hash = 525570861;
   cdat->dobj_1592.obj_len = 2;
 
   /*^iniobj */
@@ -28652,7 +28652,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   cdat->dobj_1593.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1593.obj_num = 4;
-  cdat->dobj_1593.obj_hash = 844087160;
+  cdat->dobj_1593.obj_hash = 392663153;
   cdat->dobj_1593.obj_len = 2;
 
   /*^iniobj */
@@ -28673,7 +28673,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
   cdat->dobj_1594.meltobj_class =
     (meltobject_ptr_t) (((void *) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_1594.obj_num = 5;
-  cdat->dobj_1594.obj_hash = 7620986;
+  cdat->dobj_1594.obj_hash = 766022381;
   cdat->dobj_1594.obj_len = 2;
 
   /*inimult dtup_1595__NORMAL_LETREC_CONSTRUCTIVE */
@@ -28699,7 +28699,7 @@ initialize_module_meltdata_warmelt_normal (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_1596__NORMAL_LETREC_CONSTRUCTIVE.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V16*/ meltfptr[15]);
-  cdat->dobj_1596__NORMAL_LETREC_CONSTRUCTIVE.obj_hash = 434237286;
+  cdat->dobj_1596__NORMAL_LETREC_CONSTRUCTIVE.obj_hash = 720638953;
   cdat->dobj_1596__NORMAL_LETREC_CONSTRUCTIVE.obj_len = 4;
 
 
@@ -32202,8 +32202,7 @@ start_module_melt (void *modargp_)
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
 /**initial routine prologue**/
   /* set initial frame marking */
-  ((struct melt_callframe_st *) &meltfram__)->mcfr_nbvar =
-    /*minihash */ -2010;
+  ((struct melt_callframe_st *) &meltfram__)->mcfr_nbvar = /*minihash */ -261;
   ((struct melt_callframe_st *) &meltfram__)->mcfr_forwmarkrout =
     forward_or_mark_module_start_frame_warmelt_normal;
  /**COMMENT: get previous environment **/ ;
@@ -108229,7 +108228,7 @@ forward_or_mark_module_start_frame_warmelt_normal (struct melt_callframe_st
   int ix = 0;
   initial_frame_st *meltframptr_ = (initial_frame_st *) fp;
   melt_assertmsg ("check module frame",
-		  meltframptr_->mcfr_nbvar == /*minihash */ -2010);
+		  meltframptr_->mcfr_nbvar == /*minihash */ -261);
   if (!marking && melt_is_forwarding)
     {
       dbgprintf

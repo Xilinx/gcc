@@ -2379,18 +2379,18 @@ melt_auxput_maptrees (melt_ptr_t map_p, melt_ptr_t val_p)
   MELTLENGTH_CLASS_GCC_TRANSFORM_IPA_PASS = 13
 };
 
-/* predefined class CLASS_KEYWORD index 27 */ enum
+/* predefined class CLASS_KEYWORD index 22 */ enum
 {
   MELTLENGTH_CLASS_KEYWORD = 3
 };
 
-/* predefined class CLASS_LOCATED index 28 */ enum
+/* predefined class CLASS_LOCATED index 23 */ enum
 {
   MELTFIELD_LOCA_LOCATION = 1 /*in CLASS_LOCATED */ ,
   MELTLENGTH_CLASS_LOCATED = 2
 };
 
-/* predefined class CLASS_MELT_MODE index 29 */ enum
+/* predefined class CLASS_MELT_MODE index 24 */ enum
 {
   MELTFIELD_MELTMODE_HELP = 2 /*in CLASS_MELT_MODE */ ,
   MELTFIELD_MELTMODE_FUN = 3 /*in CLASS_MELT_MODE */ ,
@@ -2398,13 +2398,13 @@ melt_auxput_maptrees (melt_ptr_t map_p, melt_ptr_t val_p)
   MELTLENGTH_CLASS_MELT_MODE = 5
 };
 
-/* predefined class CLASS_NAMED index 30 */ enum
+/* predefined class CLASS_NAMED index 25 */ enum
 {
   MELTFIELD_NAMED_NAME = 1 /*in CLASS_NAMED */ ,
   MELTLENGTH_CLASS_NAMED = 2
 };
 
-/* predefined class CLASS_PRIMITIVE index 31 */ enum
+/* predefined class CLASS_PRIMITIVE index 26 */ enum
 {
   MELTFIELD_PRIM_FORMALS = 2 /*in CLASS_PRIMITIVE */ ,
   MELTFIELD_PRIM_TYPE = 3 /*in CLASS_PRIMITIVE */ ,
@@ -2412,42 +2412,42 @@ melt_auxput_maptrees (melt_ptr_t map_p, melt_ptr_t val_p)
   MELTLENGTH_CLASS_PRIMITIVE = 5
 };
 
-/* predefined class CLASS_PROPED index 32 */ enum
+/* predefined class CLASS_PROPED index 27 */ enum
 {
   MELTFIELD_PROP_TABLE = 0 /*in CLASS_PROPED */ ,
   MELTLENGTH_CLASS_PROPED = 1
 };
 
-/* predefined class CLASS_ROOT index 33 */ enum
+/* predefined class CLASS_ROOT index 28 */ enum
 {
   MELTLENGTH_CLASS_ROOT = 0
 };
 
-/* predefined class CLASS_SELECTOR index 34 */ enum
+/* predefined class CLASS_SELECTOR index 29 */ enum
 {
   MELTFIELD_SEL_SIGNATURE = 2 /*in CLASS_SELECTOR */ ,
   MELTFIELD_SEL_DATA = 3 /*in CLASS_SELECTOR */ ,
   MELTLENGTH_CLASS_SELECTOR = 4
 };
 
-/* predefined class CLASS_SEXPR index 35 */ enum
+/* predefined class CLASS_SEXPR index 30 */ enum
 {
   MELTFIELD_SEXP_CONTENTS = 2 /*in CLASS_SEXPR */ ,
   MELTLENGTH_CLASS_SEXPR = 3
 };
 
-/* predefined class CLASS_SEXPR_MACROSTRING index 36 */ enum
+/* predefined class CLASS_SEXPR_MACROSTRING index 31 */ enum
 {
   MELTLENGTH_CLASS_SEXPR_MACROSTRING = 3
 };
 
-/* predefined class CLASS_SYMBOL index 37 */ enum
+/* predefined class CLASS_SYMBOL index 32 */ enum
 {
   MELTFIELD_SYMB_DATA = 2 /*in CLASS_SYMBOL */ ,
   MELTLENGTH_CLASS_SYMBOL = 3
 };
 
-/* predefined class CLASS_SYSTEM_DATA index 38 */ enum
+/* predefined class CLASS_SYSTEM_DATA index 33 */ enum
 {
   MELTFIELD_SYSDATA_MODE_DICT = 2 /*in CLASS_SYSTEM_DATA */ ,
   MELTFIELD_SYSDATA_CONT_FRESH_ENV = 3 /*in CLASS_SYSTEM_DATA */ ,
@@ -2495,4 +2495,4 @@ melt_auxput_maptrees (melt_ptr_t map_p, melt_ptr_t val_p)
 
 
 /*** End of declaration file meltrunsup.h generated on 2012 Mar 09
- * by GCC MELT 4.8.0 20120308 (experimental) [melt-branch revision 185148] MELT_0.9.4+ . ***/
+ * by GCC MELT 4.8.0 20120308 (experimental) [melt-branch revision 185155] MELT_0.9.4+ . ***/
