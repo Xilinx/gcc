@@ -5751,9 +5751,9 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
  static melt_ptr_t meltgc_readmacrostringsequence (struct reading_st *rd);
 
  enum commenthandling_en
-   { COMMENT_SKIP, COMMENT_INFIX, COMMENT_NO };
+   { COMMENT_SKIP, COMMENT_NO };
  static int
- skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
+ melt_skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
  {
    int c = 0;
    int incomm = 0;
@@ -5874,70 +5874,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
      }
    else if (c == ';' && comh == COMMENT_SKIP)
      goto readline;
-   /** In infix mode the comment //## <linenum> [<filename>]
-       is handled like #line, inspired by _cpp_do_file_change in
-       libcpp/directives.c */
-   else if (c == '/' && comh == COMMENT_INFIX && rdfollowc (1) == '/'
-	    && rdfollowc (2) == '#' && rdfollowc (3) == '#'
-	    )
-     {
-       char *endp = 0;
-       char *newpath = 0;
-       char* newpathdup = 0;
-       long newlineno = strtol (&rdfollowc (4), &endp, 10);
-       /* take as filename from the first non-space to the last non-space */
-       while (endp && *endp && ISSPACE(*endp)) endp++;
-       if (endp && *endp) newpath=endp;
-       if (endp && newpath) endp += strlen(endp) - 1;
-       while (newpath && ISSPACE(*endp)) endp--;
-       debugeprintf (";;## directive for line newlineno=%ld newpath=%s",
-		     newlineno, newpath);
-       if (newlineno>0 && newpath)
-	 {
-	   int ix= 0;
-	   char *curpath=0;
-	   /* find the newpath in the parsedmeltfilevect or push it
-	      there */
-	   for (ix = 0;
-		VEC_iterate (meltchar_p, parsedmeltfilevect, ix, curpath);
-		ix++)
-	     {
-	       if (curpath && !strcmp(newpath, curpath))
-		 newpathdup = curpath;
-	     }
-	   if (!newpathdup)
-	     {
-	       newpathdup = xstrdup (newpath);
-	       VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, newpathdup);
-	     }
-	   (void) linemap_add (line_table, LC_RENAME_VERBATIM,
-			false, newpathdup, newlineno);
-	 }
-       else if (newlineno>0)
-	 {
-	 }
-       goto readline;
-     }
-   else if (c == '/' && comh == COMMENT_INFIX && rdfollowc (1) == '/')
-     /* monoline // comment syntax in infix mode */
-     goto readline;
-   else if (c == '/' && comh == COMMENT_INFIX && rdfollowc (1) == '*')
-     {
-       /* parse the multiline slash-star comment syntax in infix mode */
-       incomm = 1;
-       rdnext ();
-       c = rdcurc ();
-       goto readagain;
-     }
-   else if (incomm && comh == COMMENT_INFIX && c == '*' && rdfollowc (1) == '/')
-     {
-       /* end a multiline start-slash comment syntax in infix mode */
-       incomm = 0;
-       rdnext ();
-       rdnext ();
-       c = rdcurc ();
-       goto readagain;
-     }
+
    else if (c == '#' && comh == COMMENT_SKIP && rdfollowc (1) == '|')
      {
        incomm = 1;
@@ -6082,7 +6019,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
  readagain:
    compv = NULL;
-   c = skipspace_getc (rd, COMMENT_SKIP);
+   c = melt_skipspace_getc (rd, COMMENT_SKIP);
    if (c == endc)
      {
        rdnext ();
@@ -6288,321 +6225,6 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
  }
 
 
- enum {MELT_INFIXREAD_MAGIC=0x69fd1769};
-
- struct infixreading_st {
-   int infr_magic; /* always MELT_INFIXREAD_MAGIC */
-   struct reading_st infr_reading;
-   struct infixreading_st* infr_prev;
- };
- static struct infixreading_st* curinfixr;
-
- void
- melt_open_infix_file (const char* filnam)
- {
-   struct infixreading_st* previnfix = curinfixr;
-   char* filnamdup = 0;
-   FILE* fil = 0;
-   gcc_assert (!previnfix || previnfix->infr_magic == MELT_INFIXREAD_MAGIC);
-   curinfixr = (struct infixreading_st*) xcalloc (sizeof(struct infixreading_st), 1);
-   memset (curinfixr, 0, sizeof(curinfixr));
-   filnamdup = xstrdup (filnam);
-   /* Store the filnamdup in the parsedmeltfilevect vector to be able
-      to free them at end; we need to duplicate filnam because
-      linemap_add store pointers to it. */
-   VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, filnamdup);
-   debugeprintf ("meltgc_open_infix_file filnamdup %s", filnamdup);
-   fil = fopen (filnamdup, "rt");
-   if (!fil)
-     melt_fatal_error ("cannot open MELT infix file %s - %m", filnamdup);
-   /* warn if the filename has strange characters in its base name,
-      notably + */
-   {
-     const char* filbase = 0;
-     int warn = 0;
-     for (filbase = lbasename (filnamdup); *filbase; filbase++)
-       {
-	 if (ISALNUM (*filbase) || *filbase=='-'
-	     || *filbase=='_' || *filbase=='.')
-	   continue;
-	 warn = 1;
-       }
-     if (warn)
-       warning (0, "MELT infix file name %s has strange characters", filnamdup);
-   }
-   curinfixr->infr_magic = MELT_INFIXREAD_MAGIC;
-   curinfixr->infr_reading.rfil = fil;
-   curinfixr->infr_reading.rpath = filnamdup;
-   curinfixr->infr_reading.rlineno = 0;
-   (void) linemap_add (line_table, LC_RENAME, false, filnamdup, 0);
-   curinfixr->infr_prev = previnfix;
-   skipspace_getc (&curinfixr->infr_reading, COMMENT_INFIX);
- }
-
-
-
-
- melt_ptr_t
- meltgc_infix_lexeme (melt_ptr_t locnam_p, melt_ptr_t delimap_p)
- {
-   int c = 0;
-   struct reading_st *rd = 0;
-   int lineno = 0;
-   location_t loc = 0;
-   char* nam = 0;
-   char delimbuf[4] = {0};
-   MELT_ENTERFRAME (6, NULL);
- #define locnamv    meltfram__.mcfr_varptr[0]
- #define lexv       meltfram__.mcfr_varptr[1]
- #define delimapv   meltfram__.mcfr_varptr[2]
- #define readv      meltfram__.mcfr_varptr[3]
- #define locmixv    meltfram__.mcfr_varptr[4]
-   locnamv = locnam_p;
-   delimapv = delimap_p;
-   if (!curinfixr || curinfixr->infr_magic != MELT_INFIXREAD_MAGIC) {
-     melt_dbgshortbacktrace ("unexpected call to MELT infix_lexeme" ,
-			     100);
-     melt_fatal_error ("MELT infix_lexeme called outside of infix parsing (%s)",
-		       melt_string_str ((melt_ptr_t)locnamv));
-   }
-   if (melt_magic_discr ((melt_ptr_t) locnamv) != MELTOBMAG_STRING)
-     locnamv = 0;
-   curinfixr->infr_reading.rpfilnam = (melt_ptr_t*) (&locnamv);
-   rd = &curinfixr->infr_reading;
-   c = skipspace_getc (rd, COMMENT_INFIX);
-   lineno = rd->rlineno;
-   melt_linemap_compute_current_location (rd);
-   loc = rd->rsrcloc;
-   /* return nil on EOF */
-   if (c < 0 || !rd->rfil || feof(rd->rfil))
-     goto end;
-   memset (delimbuf, 0, sizeof(delimbuf));
-   if (loc == 0)
-     locmixv = meltgc_new_mixint
-       ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_INTEGER),
-	(melt_ptr_t) locnamv, (long) lineno);
-   else
-     locmixv = meltgc_new_mixloc
-       ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_LOCATION),
-	(melt_ptr_t) locnamv, (long) lineno, loc);
-   if (ISDIGIT (c)
-       || ((c == '-' || c == '+')
-	   && (ISDIGIT (rdfollowc (1)) || rdfollowc (1) == '%'
-	       || rdfollowc (1) == '|')))
-     {
-       long num = 0;
-       gcc_assert (MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL) != 0);
-       num = readsimplelong (rd);
-       readv =
-	 meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER),
-			    num);
-       lexv = meltgc_new_raw_object
-	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
-          MELTLENGTH_CLASS_INFIX_INTEGER_LITERAL);
-       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
-	 = (melt_ptr_t) locmixv;
-       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LEXEME_DATA]
-	 = (melt_ptr_t) readv;
-       meltgc_touch (lexv);
-       goto end;
-     }
-   else if (c== '"')
-     {
-       rdnext ();
-       gcc_assert (MELT_PREDEF (CLASS_INFIX_STRING_LITERAL) != 0);
-       readv = meltgc_readstring (rd);
-       lexv = meltgc_new_raw_object
-	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_STRING_LITERAL),
-          MELTLENGTH_CLASS_INFIX_STRING_LITERAL);
-       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
-	 = (melt_ptr_t) locmixv;
-       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LEXEME_DATA]
-	 = (melt_ptr_t) readv;
-       meltgc_touch (lexv);
-       goto end;
-     }
-   else if (c=='#' && rdfollowc(1) == '\'') {
-     /* #'a is the character a */
-     rdnext ();
-     rdnext ();
-     c = rdcurc ();
-     if (ISPRINT (c)) {
-       readv =
-	 meltgc_new_int
-	 ((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARACTER_INTEGER),
-	  c);
-       lexv = meltgc_new_raw_object
-	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
-          MELTLENGTH_CLASS_INFIX_INTEGER_LITERAL);
-       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
-	 = (melt_ptr_t) locmixv;
-       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LEXEME_DATA]
-	 = (melt_ptr_t) readv;
-       meltgc_touch (lexv);
-       goto end;
-     }
-     else
-       READ_ERROR ("MELT INFIX: invalid character end #'%.20s", &rdcurc());
-   }
-   else if (c=='#' && rdfollowc(1) == '\\') {
-     /* #\n is the newline, etc */
-     long esc = 0;
-     switch (rdfollowc(2)) {
-     case 'a' : esc = '\a'; break;
-     case 'b' : esc = '\b'; break;
-     case 't' : esc = '\t'; break;
-     case 'n' : esc = '\n'; break;
-     case 'r' : esc = '\r'; break;
-     case 'v' : esc = '\v'; break;
-     case 'f' : esc = '\f'; break;
-     case '"' : esc = '\"'; break;
-     case '\'' : esc = '\''; break;
-     case '\\' : esc = '\\'; break;
-     case ' ' : case '_': esc = ' '; break;
-     default:
-       READ_ERROR ("MELT INFIX invalid char escape %.4s", &rdcurc ());
-     }
-     rdnext ();
-     rdnext ();
-       readv =
-	 meltgc_new_int
-	 ((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARACTER_INTEGER),
-	  esc);
-       lexv = meltgc_new_raw_object
-	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
-				     MELTLENGTH_CLASS_INFIX_INTEGER_LITERAL);
-       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
-	 = (melt_ptr_t) locmixv;
-       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LEXEME_DATA]
-	 = (melt_ptr_t) readv;
-       meltgc_touch (lexv);
-       goto end;
-   }
-   else if (c=='#' && rdfollowc(1) == '{') {
-     /* #{ starts a macrostring */
-     rdnext ();
-     rdnext ();
-     lexv = meltgc_readmacrostringsequence (rd);
-     goto end;
-   }
-
-   /* two characters delimiters found in the map */
-   else if (ISPUNCT(c) && ISPUNCT(rdfollowc(1))
-	    && ((delimbuf[0]=c),(delimbuf[1]=rdfollowc(1)),
-		(delimbuf[2]=(char)0),
-		(readv = melt_get_mapstrings
-		 ((struct meltmapstrings_st*) delimapv, delimbuf)) != 0)) {
-       gcc_assert (MELT_PREDEF (CLASS_INFIX_DELIMITER) != 0);
-       rdnext ();
-       rdnext ();
-       lexv = meltgc_new_raw_object
-	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_DELIMITER),
-				    MELTLENGTH_CLASS_INFIX_DELIMITER);
-       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
-	 = (melt_ptr_t) locmixv;
-       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LEXEME_DATA]
-	 = (melt_ptr_t) readv;
-       meltgc_touch (lexv);
-       goto end;
-   }
-   /* single character delimiter found in the map */
-   else if (ISPUNCT(c) 
-	    && ((delimbuf[0]=c),(delimbuf[1]=(char)0),
-		(readv = melt_get_mapstrings
-		 ((struct meltmapstrings_st*) delimapv, delimbuf)) != 0)) {
-       gcc_assert (MELT_PREDEF (CLASS_INFIX_DELIMITER) != 0);
-       rdnext ();
-       lexv = meltgc_new_raw_object
-	 ((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_DELIMITER),
-				     MELTLENGTH_CLASS_INFIX_DELIMITER);
-       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]
-	 = (melt_ptr_t) locmixv;
-       ((meltobject_ptr_t) (lexv))->obj_vartab[MELTFIELD_LEXEME_DATA]
-	 = (melt_ptr_t) readv;
-       meltgc_touch (lexv);
-       goto end;
-   }
-   /* common macro to read symbols */					
-#define READ_INFIX_SYMBOL(Claname,Nam,Readv,Lexv) do {			\
-       Nam = readsimplename (rd);					\
-       Readv = meltgc_named_symbol (Nam, MELT_CREATE);			\
-       gcc_assert (MELT_PREDEF (Claname) != 0);				\
-       Lexv = meltgc_new_raw_object					\
-	 ((meltobject_ptr_t)MELT_PREDEF (Claname),			\
-				     MELTLENGTH_##Claname);	       	\
-       ((meltobject_ptr_t) (Lexv))->obj_vartab[MELTFIELD_LOCA_LOCATION]	\
-	 = (melt_ptr_t) locmixv;			       		\
-       ((meltobject_ptr_t) (Lexv))->obj_vartab[MELTFIELD_LEXEME_DATA]	\
-	 = (melt_ptr_t) Readv;						\
-       meltgc_touch (Lexv); } while(0)
-
-   /* keywords start with a colon followed by a letter */
-   else if (c==':' && ISALPHA(rdfollowc(1))) {
-     rdnext ();
-     READ_INFIX_SYMBOL (CLASS_INFIX_KEYWORD,nam,readv,lexv);
-     goto end;
-   }
-
-   else if (ISALPHA(c) || c=='_' || c=='$') {
-     READ_INFIX_SYMBOL (CLASS_INFIX_SYMBOL,nam,readv,lexv);
-     goto end;
-   }
-   else if (c=='+' || c=='-' || c=='|')   {
-     READ_INFIX_SYMBOL (CLASS_INFIX_ADDITIVE_SYMBOL,nam,readv,lexv);
-     goto end;
-   }
-   else if (c=='*' || c=='/' || c=='&' || c=='%')   {
-     READ_INFIX_SYMBOL (CLASS_INFIX_MULTIPLICATIVE_SYMBOL,nam,readv,lexv);
-     goto end;
-   }
-   else if (c=='<' || c=='>' || c=='=' || c=='!' || c=='~' || c=='@') {
-     READ_INFIX_SYMBOL (CLASS_INFIX_RELATIONAL_SYMBOL,nam,readv,lexv);
-       goto end;
-   }
-   else if (c=='\\' && rdfollowc(1)
-	    && (ISALPHA(rdfollowc(1))
-		|| strchr (EXTRANAMECHARS, rdfollowc(1)))) {
-     rdnext ();
-     READ_INFIX_SYMBOL (CLASS_INFIX_SYMBOL,nam,readv,lexv);
-     goto end;
-   }
-   else { /* lexical failure - we abort */
-     READ_ERROR ("MELT INFIX: lexical failure:: got %.20s", &rdcurc ());
-     goto end;
-   }
- end:
-   if (nam)
-     {
-       *nam = 0;
-       obstack_free (&melt_bname_obstack, nam);
-     };
-   curinfixr->infr_reading.rpfilnam = 0;
-   MELT_EXITFRAME ();
-   return (melt_ptr_t) lexv;
- #undef locnamv
- #undef lexv
- #undef delimapv
- #undef readv
- #undef locmixv
- #undef READ_INFIX_SYMBOL
- }
-
- void
- melt_close_infix_file (void)
- {
-   struct infixreading_st* previnfix = curinfixr;
-   if (!curinfixr || curinfixr->infr_magic != MELT_INFIXREAD_MAGIC) {
-     melt_dbgshortbacktrace ("unexpected call to MELT close_infix_file" ,
-			     100);
-     melt_fatal_error ("MELT close_infix_file called outside of infix parsing (%p)",
-		       (void*)curinfixr);
-   }
-   if (curinfixr->infr_reading.rfil)
-     fclose (curinfixr->infr_reading.rfil);
-   memset (curinfixr, 0, sizeof (struct infixreading_st));
-   free (curinfixr);
-   curinfixr = previnfix;
- }
 
 
  melt_ptr_t
@@ -6736,7 +6358,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
  #define locmixv meltfram__.mcfr_varptr[2]
    if (!endc || rdeof ())
      READ_ERROR ("MELT: eof in s-expr (lin%d)", lineno);
-   (void) skipspace_getc (rd, COMMENT_SKIP);
+   (void) melt_skipspace_getc (rd, COMMENT_SKIP);
    melt_linemap_compute_current_location (rd);
    loc = rd->rsrcloc;
    MELT_LOCATION_HERE_PRINTF (curlocbuf,
@@ -6781,7 +6403,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 		  extra double-quotes! */
 	       if (obstack_object_size (&melt_bstring_obstack) <= 1)
 		 warning_at (rd->rsrcloc, 0, "suspicious MELT string starting at end of line");
-	       c = skipspace_getc (rd, COMMENT_NO);
+	       c = melt_skipspace_getc (rd, COMMENT_NO);
 	       continue;
 	     }
 	   else
@@ -6832,7 +6454,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 	       break;
 	     case '\n':
 	     case '\r':
-	       skipspace_getc (rd, COMMENT_NO);
+	       melt_skipspace_getc (rd, COMMENT_NO);
 	       continue;
 	     case ' ':
 	       c = ' ';
@@ -6862,7 +6484,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 			  linbrac);
 		     cc = rdcurc ();
 		     if (cc == '\n')
-		       cc = skipspace_getc (rd, COMMENT_NO);
+		       cc = melt_skipspace_getc (rd, COMMENT_NO);
 		     else
 		       obstack_1grow (&melt_bstring_obstack, (char) cc);
 		     rdnext ();
@@ -6953,7 +6575,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        READ_ERROR("reached end of file in macrostring sequence started line %d; a }# is probably missing.", lineno);
      if (!rdcurc()) {
        /* reached end of line */
-       skipspace_getc(rd, COMMENT_NO);
+       melt_skipspace_getc(rd, COMMENT_NO);
        continue;
      }
    loc = rd->rsrcloc;
@@ -7268,7 +6890,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
      lbasename(LOCATION_FILE(loc)),  
      LOCATION_LINE (loc), LOCATION_COLUMN(loc));
    readv = NULL;
-   c = skipspace_getc (rd, COMMENT_SKIP);
+   c = melt_skipspace_getc (rd, COMMENT_SKIP);
    /*   debugeprintf ("start meltgc_readval line %d col %d char %c", rd->rlineno, rd->rcol,
       ISPRINT (c) ? c : ' '); */
    if (ISDIGIT (c)
@@ -7824,7 +7446,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
     {
       bool got = FALSE;
       location_t loc = 0;
-      skipspace_getc (rd, COMMENT_SKIP);
+      melt_skipspace_getc (rd, COMMENT_SKIP);
       if (rdeof ())
 	break;
       loc = rd->rsrcloc;
@@ -7895,7 +7517,7 @@ meltgc_read_from_rawstring (const char *rawstr, const char *locnam,
   while (rdcurc ())
     {
       bool got = FALSE;
-      skipspace_getc (rd, COMMENT_SKIP);
+      melt_skipspace_getc (rd, COMMENT_SKIP);
       if (!rdcurc () || rdeof ())
 	break;
       valv = meltgc_readval (rd, &got);
@@ -7971,7 +7593,7 @@ meltgc_read_from_val (melt_ptr_t strv_p, melt_ptr_t locnam_p)
   while (rdcurc ())
     {
       bool got = FALSE;
-      skipspace_getc (rd, COMMENT_SKIP);
+      melt_skipspace_getc (rd, COMMENT_SKIP);
       if (!rdcurc () || rdeof ())
 	break;
       valv = meltgc_readval (rd, &got);

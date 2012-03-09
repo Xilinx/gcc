@@ -1,5 +1,27 @@
 
 2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_open_infix_file, meltgc_infix_lexeme):
+	Remove declaration.
+
+	* melt-runtime.c (enum commenthandling_en): Remove COMMENT_INFIX.
+	(skipspace_getc): Renamed as...
+	(melt_skipspace_getc): Rename of skipspace_getc.
+	Remove all infix related code.
+	(melt_compile_source): Update calls to melt_skipspace_getc.
+	(struct infixreading_st): Remove.
+	(melt_open_infix_file, meltgc_infix_lexeme)
+	(melt_close_infix_file): Remove function.
+	(meltgc_intern_keyword, melt_compile_source, meltgc_read_file)
+	(meltgc_read_from_rawstring, meltgc_read_from_val): Update calls
+	to melt_skipspace_getc.
+
+	* melt-predef.list (CLASS_INFIX_ADDITIVE_SYMBOL)
+	(CLASS_INFIX_DELIMITER, CLASS_INFIX_INTEGER_LITERAL)
+	(CLASS_INFIX_LEXEME, CLASS_INFIX_KEYWORD)
+	(CLASS_INFIX_MULTIPLICATIVE_SYMBOL, CLASS_INFIX_RELATIONAL_SYMBOL)
+	(CLASS_INFIX_STRING_LITERAL, CLASS_INFIX_SYMBOL): Poison them.
+
+2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Alternative infix syntax abandonned}}
 	* melt/xtramelt-parse-infix-syntax.melt: Remove file
 	* melt-build.def: Remove reference to above file

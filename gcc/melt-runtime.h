@@ -2388,16 +2388,6 @@ melt_ptr_t meltgc_read_from_rawstring(const char* rawstr, const char* rawlocnam,
    used for locations */
 melt_ptr_t meltgc_read_from_val(melt_ptr_t strv_p, melt_ptr_t locnam_p);
 
-/***** low level routines for infix file parsing *****/
-/* open an infix filepath */
-void melt_open_infix_file (const char*filpath);
-/* close an infix file */
-void melt_close_infix_file (void);
-/* get a lexeme, giving the location file name value and the delimiter
-   hashtable */
-melt_ptr_t meltgc_infix_lexeme (melt_ptr_t locnam_p, melt_ptr_t delimtab_p);
-
-
 /* called from c-common.c in handle_melt_attribute */
 void melt_handle_melt_attribute(tree decl, tree name, const char* attrstr, location_t loch);
 
