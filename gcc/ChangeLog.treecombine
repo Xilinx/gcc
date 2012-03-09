@@ -1,5 +1,31 @@
 2012-03-08  Andrew Pinski  <apinski@cavium.com>
 
+	* Makefile.in (gimple-ssa-combine.o): Remove
+	dependency on tree-ssa-propagate.h.
+	(tree-ssa-sccvn.o): Likewise.
+	(tree-ssa-loop-ivopts.o): Likewise.
+	* gimple-ssa-combine.c: Remove the include to
+	tree-ssa-propagate.h.
+	(gimple_combine_build2): Make global.
+	(gimple_combine_build3): Likewise.
+	(gimple_combine_build1): Likewise.
+	* tree-ssa-propagate.h (valid_gimple_rhs_p): Move prototype to ...
+	* tree-flow.h (valid_gimple_rhs_p): Here.
+	(gimple_combine_build2): Add prototype.
+	(gimple_combine_build1): Add prototype.
+	(gimple_combine_build3): Add prototype.
+	* tree-ssa-ifcombine.c (ifcombine_ifandif):
+	Try using gimple_combine_build2 if maybe_fold_and_comparisons failed.
+	Allow gimple rhs too and all comparisons.
+	(ifcombine_iforif): 
+	Try using gimple_combine_build2 if maybe_fold_or_comparisons failed.
+	Allow gimple rhs too and all comparisons.
+	* tree-ssa-loop-ivopts.c: Remove the include to
+	tree-ssa-propagate.h.
+	* tree-ssa-sccvn.c: Likewise.
+
+2012-03-08  Andrew Pinski  <apinski@cavium.com>
+
 	* gimple-ssa-combine.c (gimple_combine_convert): New function.
 	(combine_cond_expr_cond): Remove the nowarnings argument.
 	Use fold_undefer_and_ignore_overflow_warnings instead of

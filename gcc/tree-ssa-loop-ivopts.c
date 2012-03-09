@@ -90,7 +90,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-affine.h"
 #include "target.h"
 #include "tree-inline.h"
-#include "tree-ssa-propagate.h"
 
 /* FIXME: add_cost and zero_cost defined in exprmed.h conflict with local uses.
  */

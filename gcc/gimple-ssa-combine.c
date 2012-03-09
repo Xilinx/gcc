@@ -34,8 +34,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "gimple.h"
 #include "expr.h"
-#include "tree-ssa-propagate.h"
-
 
 static inline void defcodefor_name_3 (tree name, enum tree_code *code,
 				      tree *arg1, tree *arg2, tree *arg3);
@@ -224,7 +222,7 @@ gimple_combine_set_valueizer (valueizer_t valueizerp)
   valueizerv = valueizerp;
 }
 
-static tree
+tree
 gimple_combine_build2 (location_t loc, enum tree_code code,
 		       tree type, tree arg1, tree arg2)
 {
@@ -243,7 +241,7 @@ gimple_combine_build2 (location_t loc, enum tree_code code,
   return build2_loc (loc, code, type, arg1, arg2);
 }
 
-static tree
+tree
 gimple_combine_build3 (location_t loc, enum tree_code code,
 		       tree type, tree arg1, tree arg2, tree arg3)
 {
@@ -255,7 +253,7 @@ gimple_combine_build3 (location_t loc, enum tree_code code,
   return build3_loc (loc, code, type, arg1, arg2, arg3);
 }
 
-static tree
+tree
 gimple_combine_build1 (location_t loc, enum tree_code code,
 		       tree type, tree arg1)
 {

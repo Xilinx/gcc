@@ -42,7 +42,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "cfgloop.h"
 #include "params.h"
-#include "tree-ssa-propagate.h"
 #include "tree-ssa-sccvn.h"
 #include "gimple-fold.h"
 

@@ -71,7 +71,6 @@ typedef tree (*ssa_prop_get_value_fn) (tree);
 
 /* In tree-ssa-propagate.c  */
 void ssa_propagate (ssa_prop_visit_stmt_fn, ssa_prop_visit_phi_fn);
-bool valid_gimple_rhs_p (tree);
 void move_ssa_defining_stmt_for_defs (gimple, gimple);
 bool update_gimple_call (gimple_stmt_iterator *, tree, int, ...);
 bool update_call_from_tree (gimple_stmt_iterator *, tree);

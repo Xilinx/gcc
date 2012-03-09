@@ -602,6 +602,9 @@ extern void ssanames_print_statistics (void);
 tree fold_const_aggregate_ref (tree);
 tree gimple_fold_stmt_to_constant (gimple, tree (*)(tree));
 
+/* In tree-ssa-propagate.c */
+bool valid_gimple_rhs_p (tree);
+
 /* In tree-ssa-dom.c  */
 extern void dump_dominator_optimization_stats (FILE *);
 extern void debug_dominator_optimization_stats (void);
@@ -631,6 +634,10 @@ tree gimple_combine_binary (location_t, enum tree_code, tree, tree, tree);
 tree gimple_combine_unary (location_t, enum tree_code, tree, tree);
 tree gimple_combine_ternary (location_t, enum tree_code, tree, tree, tree,
 			     tree);
+tree gimple_combine_build2 (location_t, enum tree_code, tree, tree, tree);
+tree gimple_combine_build1 (location_t, enum tree_code, tree, tree);
+tree gimple_combine_build3 (location_t, enum tree_code, tree, tree, tree,
+			    tree);
 bool replace_rhs_after_ssa_combine (gimple_stmt_iterator *, tree);
 
 /* Affine iv.  */

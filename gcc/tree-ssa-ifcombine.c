@@ -369,23 +369,37 @@ ifcombine_ifandif (basic_block inner_cond_bb, basic_block outer_cond_bb)
 	   && TREE_CODE_CLASS (gimple_cond_code (outer_cond)) == tcc_comparison)
     {
       tree t;
+      location_t loci, loco;
+      loci = gimple_location (inner_cond);
+      loco = gimple_location (outer_cond);
 
-      if (!(t = maybe_fold_and_comparisons (gimple_cond_code (inner_cond),
-					    gimple_cond_lhs (inner_cond),
-					    gimple_cond_rhs (inner_cond),
-					    gimple_cond_code (outer_cond),
-					    gimple_cond_lhs (outer_cond),
-					    gimple_cond_rhs (outer_cond))))
-	return false;
-      t = canonicalize_cond_expr_cond (t);
+      /* FIXME: We should move away from using maybe_fold_and_comparisons. */
+      t = maybe_fold_and_comparisons (gimple_cond_code (inner_cond),
+				      gimple_cond_lhs (inner_cond),
+				      gimple_cond_rhs (inner_cond),
+				      gimple_cond_code (outer_cond),
+				      gimple_cond_lhs (outer_cond),
+				      gimple_cond_rhs (outer_cond));
       if (!t)
-	return false;
-      gimple_cond_set_condition_from_tree (inner_cond, t);
-      update_stmt (inner_cond);
+	{
+	  tree lhs = gimple_combine_build2 (loci, gimple_cond_code (inner_cond),
+				 boolean_type_node,
+				 gimple_cond_lhs (inner_cond),
+				 gimple_cond_rhs (inner_cond));
+	  tree rhs = gimple_combine_build2 (loco, gimple_cond_code (outer_cond),
+				 boolean_type_node,
+				 gimple_cond_lhs (outer_cond),
+				 gimple_cond_rhs (outer_cond));
+	  t = gimple_combine_build2 (loci, BIT_AND_EXPR, boolean_type_node, lhs, rhs);
+	  if (!t)
+	    return false;
+	}
 
-      /* Leave CFG optimization to cfg_cleanup.  */
-      gimple_cond_set_condition_from_tree (outer_cond, boolean_true_node);
-      update_stmt (outer_cond);
+      /* We either simplified this to a comparison or a simple gimple.
+	 FIXME: we should add the case where we get a BIT_AND_EXPR of two comparison
+	 but we need to check LOGICAL_OP_NON_SHORT_CIRCUIT. */
+      if (!valid_gimple_rhs_p (t) && !COMPARISON_CLASS_P (t))
+	return false;
 
       if (dump_file)
 	{
@@ -393,6 +407,13 @@ ifcombine_ifandif (basic_block inner_cond_bb, basic_block outer_cond_bb)
 	  print_generic_expr (dump_file, t, 0);
 	  fprintf (dump_file, "\n");
 	}
+
+      gsi = gsi_for_stmt (inner_cond);
+      replace_rhs_after_ssa_combine (&gsi, t);
+
+      /* Leave CFG optimization to cfg_cleanup.  */
+      gimple_cond_set_condition_from_tree (outer_cond, boolean_true_node);
+      update_stmt (outer_cond);
 
       return true;
     }
@@ -410,6 +431,7 @@ ifcombine_iforif (basic_block inner_cond_bb, basic_block outer_cond_bb)
 {
   gimple inner_cond, outer_cond;
   tree name1, name2, bits1, bits2;
+  gimple_stmt_iterator gsi;
 
   inner_cond = last_stmt (inner_cond_bb);
   if (!inner_cond
@@ -517,23 +539,37 @@ ifcombine_iforif (basic_block inner_cond_bb, basic_block outer_cond_bb)
 	   && TREE_CODE_CLASS (gimple_cond_code (outer_cond)) == tcc_comparison)
     {
       tree t;
+      location_t loci, loco;
+      loci = gimple_location (inner_cond);
+      loco = gimple_location (outer_cond);
 
-      if (!(t = maybe_fold_or_comparisons (gimple_cond_code (inner_cond),
-					   gimple_cond_lhs (inner_cond),
-					   gimple_cond_rhs (inner_cond),
-					   gimple_cond_code (outer_cond),
-					   gimple_cond_lhs (outer_cond),
-					   gimple_cond_rhs (outer_cond))))
-	return false;
-      t = canonicalize_cond_expr_cond (t);
+      /* FIXME: We should move away from using maybe_fold_or_comparisons. */
+      t = maybe_fold_or_comparisons (gimple_cond_code (inner_cond),
+				     gimple_cond_lhs (inner_cond),
+				     gimple_cond_rhs (inner_cond),
+				     gimple_cond_code (outer_cond),
+				     gimple_cond_lhs (outer_cond),
+				     gimple_cond_rhs (outer_cond));
       if (!t)
-	return false;
-      gimple_cond_set_condition_from_tree (inner_cond, t);
-      update_stmt (inner_cond);
+	{
+	  tree lhs = gimple_combine_build2 (loci, gimple_cond_code (inner_cond),
+				 boolean_type_node,
+				 gimple_cond_lhs (inner_cond),
+				 gimple_cond_rhs (inner_cond));
+	  tree rhs = gimple_combine_build2 (loco, gimple_cond_code (outer_cond),
+				 boolean_type_node,
+				 gimple_cond_lhs (outer_cond),
+				 gimple_cond_rhs (outer_cond));
+	  t = gimple_combine_build2 (loci, BIT_IOR_EXPR, boolean_type_node, lhs, rhs);
+	  if (!t)
+	    return false;
+	}
 
-      /* Leave CFG optimization to cfg_cleanup.  */
-      gimple_cond_set_condition_from_tree (outer_cond, boolean_false_node);
-      update_stmt (outer_cond);
+      /* We either simplified this to a comparison or a simple gimple.
+	 FIXME: we should add the case where we get a BIT_IOR_EXPR of two comparison
+	 but we need to check LOGICAL_OP_NON_SHORT_CIRCUIT. */
+      if (!valid_gimple_rhs_p (t) && !COMPARISON_CLASS_P (t))
+	return false;
 
       if (dump_file)
 	{
@@ -541,6 +577,13 @@ ifcombine_iforif (basic_block inner_cond_bb, basic_block outer_cond_bb)
 	  print_generic_expr (dump_file, t, 0);
 	  fprintf (dump_file, "\n");
 	}
+
+      gsi = gsi_for_stmt (inner_cond);
+      replace_rhs_after_ssa_combine (&gsi, t);
+
+      /* Leave CFG optimization to cfg_cleanup.  */
+      gimple_cond_set_condition_from_tree (outer_cond, boolean_false_node);
+      update_stmt (outer_cond);
 
       return true;
     }
