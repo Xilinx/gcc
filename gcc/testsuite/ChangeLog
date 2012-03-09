@@ -1,3 +1,77 @@
+2012-03-04  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50981
+	* gfortran.dg/elemental_optional_args_5.f03: Add subcomponent actual
+	argument checks.
+
+2012-03-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/52146
+	* gcc.target/i386/pr52146.c: Update final-scan to allow $-18874240.
+
+2012-03-04  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/50981
+	* gfortran.dg/elemental_optional_args_5.f03: Add array checks.
+
+2012-03-04  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.dg/torture/pr52402.c: Add dg-require-effective-target
+	int32plus.
+
+2012-03-03  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/nsdmi-defer6.C: New.
+
+	Core 1270
+	* g++.dg/cpp0x/initlist65.C: New.
+
+	PR c++/36797
+	* g++.dg/ext/is_empty2.C: New.
+
+2012-03-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/48820
+	* gfortran.dg/assumed_type_3.f90: Undo previous commit.
+
+2012-03-03  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/bind_c_dts_4.f03: Add dg-options -Wc-binding-type.
+	* gfortran.dg/bind_c_implicit_vars.f03: Ditto.
+	* gfortran.dg/bind_c_usage_8.f03: Ditto.
+	* gfortran.dg/c_kind_tests_2.f03: Ditto.
+	* gfortran.dg/class_30.f90: Remove dg-warning line.
+	* gfortran.dg/bind_c_usage_25.f90: New.
+
+2012-03-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/48820
+	* gfortran.dg/assumed_type_1.f90: Correct dg-error.
+	* gfortran.dg/assumed_type_3.f90: Correct dg-error.
+	* gfortran.dg/assumed_type_4.f90: Correct dg-error.
+
+2012-03-03  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/48820
+	* gfortran.dg/assumed_type_1.f90: New.
+	* gfortran.dg/assumed_type_2.f90: New.
+	* gfortran.dg/assumed_type_3.f90: New.
+	* gfortran.dg/assumed_type_4.f90: New.
+
+2012-03-02  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/49486
+	* gcc.target/sh/pr49468-si.c: Skip unsupported test for SH64.
+	* gcc.target/sh/pr49468-di.c: New.
+
+2012-03-02  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* gcc.dg/graphite/pr50561.c: Update.
+
+2012-03-02  Peter Bergner  <bergner@vnet.ibm.com>
+
+	* gcc.target/powerpc/pr52457.c: New test.
+
 2012-03-02  Ulrich Weigand  <ulrich.weigand@linaro.org>
 
 	* gcc.target/arm/sat-1.c: New test.
@@ -5,7 +79,7 @@
 2012-03-02  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/46716
-	* gcc.target/i386/pr46176.c: New test.
+	* gcc.target/i386/pr46716.c: New test.
 
 2012-03-02  Paolo Carlini  <paolo.carlini@oracle.com>
 

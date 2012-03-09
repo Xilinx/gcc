@@ -14194,7 +14194,8 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	    rtx x;
 
 	    if (!optimize
-	        || optimize_function_for_size_p (cfun) || !TARGET_BRANCH_PREDICTION_HINTS)
+	        || optimize_function_for_size_p (cfun)
+		|| !TARGET_BRANCH_PREDICTION_HINTS)
 	      return;
 
 	    x = find_reg_note (current_output_insn, REG_BR_PROB, 0);
@@ -14205,8 +14206,9 @@ ix86_print_operand (FILE *file, rtx x, int code)
 		if (pred_val < REG_BR_PROB_BASE * 45 / 100
 		    || pred_val > REG_BR_PROB_BASE * 55 / 100)
 		  {
-		    int taken = pred_val > REG_BR_PROB_BASE / 2;
-		    int cputaken = final_forward_branch_p (current_output_insn) == 0;
+		    bool taken = pred_val > REG_BR_PROB_BASE / 2;
+		    bool cputaken
+		      = final_forward_branch_p (current_output_insn) == 0;
 
 		    /* Emit hints only in the case default branch prediction
 		       heuristics would fail.  */
@@ -17907,6 +17909,11 @@ ix86_cc_modes_compatible (enum machine_mode m1, enum machine_mode m2)
   if ((m1 == CCGCmode && m2 == CCGOCmode)
       || (m1 == CCGOCmode && m2 == CCGCmode))
     return CCGCmode;
+
+  if (m1 == CCZmode && (m2 == CCGCmode || m2 == CCGOCmode))
+    return m2;
+  else if (m2 == CCZmode && (m1 == CCGCmode || m1 == CCGOCmode))
+    return m1;
 
   switch (m1)
     {

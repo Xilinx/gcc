@@ -1,3 +1,148 @@
+2012-03-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (pro_epilogue_adjust_stack): Check Pmode
+	instead of TARGET_64BIT.
+
+2012-03-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_expand_prologue): Check Pmode to set
+	adjust_stack_insn.
+
+2012-03-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_print_operand_address): Only handle
+	zero-extended DImode addresses.
+
+2012-03-04  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_print_operand) <case '+'>: Declare
+	taken and cputaken as bool.
+
+2012-03-04  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/constraints.md (Ya): New internal constraint.
+	* config/i386/i386.md (zero_extendsidi2): Remove expansion.
+	(*zero_extendsidi2_rex64): Add x,x alternative.
+	(*zero_extendsidi2): Ditto.  Add o,0 alternative.
+	Remove flags reg clobber.  Adjust corresponding splits.
+	(zero_extend<mode>si2): Macroize expander from zero_extendhisi2 and
+	zero_extendqisi2 expanders using SWI12 mode iterator.
+	(zero_extend<mode>si2_and): Macroize insn from
+	zero_extendhisi2_and and zero_extendqisi2_and.  Merge corresponding
+	splitters.
+	(*zero_extend<mode>si2):  Macroize insn from
+	*zero_extendhisi2_movzbl and *zero_extendqisi2_movzbl.
+	(*zero_extend*2_movzbl_and): Remove insn patterns.
+	(zero_extendqihi2_and): Merge corresponding splitter.
+	(*zero_extendqihi2): Rename from *zero_extendqihi2_movzbl.
+	(*zero_extend*2_movzbl_and): Remove insn patterns.
+	(*anddi_1): Split TYPE_IMOVX instructions.
+	(*andsi_1): Use Ya for alternative 2.  Split TYPE_IMOVX instructions.
+	(*andhi_1): Ditto.
+	(and->zext splitter): Add splitter pattern.
+	(zero extend with andsi3 splitter): Adjust zero_extend pattern.
+
+2012-03-04  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi (C++ Dialect Options): Minor copy-edits to
+	x86-specific text.
+	(Debugging Options): Likewise.
+	(Optimize Options): Likewise.
+	(i386 and x86-64 Options): Discuss -march before -mtune, consistently
+	with other architectures.  Use official processor names with correct
+	spelling/capitalization.  Fix formatting and grammar issues.
+	(i386 and x86-64 Windows Options): Similar cleanup here.
+
+2012-03-03  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.md (abssi2): Add TARGET_SH1 condition.
+
+2012-03-03  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (sh_dwarf_register_span): Don't apply
+	DBX_REGISTER_NUMBER.
+
+2012-03-03  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (shiftcosts): Return MAX_COST when the first
+	operand is CONST_INT.  Take COSTS_N_INSNS into account.
+	(sh_rtx_costs): Don't apply COSTS_N_INSNS to the return value
+	of shiftcosts.
+
+2012-03-02  Richard Henderson  <rth@redhat.com>
+
+	* optabs.c (expand_atomic_test_and_set): Honor
+	atomic_test_and_set_trueval even when atomic_test_and_set
+	optab is not in use.
+
+2012-03-02  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR target/48596
+	PR target/48806
+	* config/sh/sh.c (sh_register_move_cost): Increase cost between
+	GENERAL_REGS and FP_REGS for SImode.
+
+2012-03-02  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/49486
+	* config/sh/sh.md (negdi2): Add TARGET_SH1 condition.
+	(absdi2): New expander.
+	(*absdi2, *negabsdi2, negdi_cond): New insns and splits.
+
+2012-03-02  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sync.md (atomic_exchange<mode>): New expander.
+	(atomic_exchange<mode>_soft): New insn.
+
+2012-03-02  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sync.md: Update copyright notice dates.
+	(atomic_compare_and_swap<mode>): Use SImode for return value instead
+	of QImode.
+	(atomic_compare_and_swap<mode>_soft): Likewise.
+
+2012-03-02  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/31640
+	* config/sh/sh.h (LOOP_ALIGN): Move logic to sh_loop_align.
+	* config/sh/sh.c: Update copyright notice dates.
+	(sh_loop_align): Add logic from LOOP_ALIGN.  Don't disable loop
+	alignment for TARGET_HARD_SH4.
+	(sh_option_override): Reduce default function alignment.  Set
+	loop alignment to 4 bytes when not optimizing for size.
+
+2012-03-02  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	PR middle-end/50335
+	* doc/invoke.texi (floop-flatten): Remove.
+	* toplev.c (process_options): Remove references to flag_loop_flatten.
+	* tree-ssa-loop.c (gate_graphite_transform): Same.
+	* common.opt (floop-flatten): Obsolete.
+	* graphite-poly.c (apply_poly_transforms): Remove reference to
+	flag_loop_flatten.
+	* Makefile.in (graphite-flattening.o): Remove.
+	* graphite-flattening.c: Remove.
+
+2012-03-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	* compare-elim.c (find_comparisons_in_bb): Eliminate only compares
+	having mode compatible with the mode of previous compare.  Substitute
+	compare mode of previous compare with the mode, compatible
+	with eliminated and previous compare.
+
+2012-03-02  Peter Bergner  <bergner@vnet.ibm.com>
+
+	* config/rs6000/dfp.md (floatdidd2): New define_insn.
+
+2012-03-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_cc_modes_compatible): Declare CCZmode
+	compatible with CCGOCmode and CCGCmode.
+
+2012-03-02  Peter Bergner  <bergner@vnet.ibm.com>
+
+	* config/rs6000/vsx.md (vsx_set_<mode>): Reorder operands.
+
 2012-03-02  Ulrich Weigand  <ulrich.weigand@linaro.org>
 
 	* config/arm/arm.c (arm_sat_operator_match): New function.
