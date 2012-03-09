@@ -1,10 +1,15 @@
 
 2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
-	{{Regenerate}}
+	* melt-predef.list (CLASS_INFIX_ADDITIVE_SYMBOL)
+	(CLASS_INFIX_DELIMITER, CLASS_INFIX_INTEGER_LITERAL)
+	(CLASS_INFIX_LEXEME): Remove.
+
+2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-predef.list (CLASS_INFIX_KEYWORD)
 	(CLASS_INFIX_MULTIPLICATIVE_SYMBOL, CLASS_INFIX_RELATIONAL_SYMBOL)
 	(CLASS_INFIX_STRING_LITERAL, CLASS_INFIX_SYMBOL): Remove.
 
+	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/warmelt-base+meltdesc.c: Regenerate.

@@ -23,7 +23,8 @@
 ## upgrade-warmelt, remove it entirely, and make upgrade-warmelt
 ## again.  Look into make-warmelt-predef.awk for details.  Don't
 ## forget to remove all MELT related files in the build tree before
-## making upgrade-warmelt.
+## making upgrade-warmelt.  Don't remove more than a few predefined
+## values at a time!
 
 ## predefined-name                              [ @qualifier ]
   CLASS_CITERATOR
@@ -43,18 +44,6 @@
   CLASS_GCC_RTL_PASS
   CLASS_GCC_SIMPLE_IPA_PASS
   CLASS_GCC_TRANSFORM_IPA_PASS	
-
-  CLASS_INFIX_ADDITIVE_SYMBOL                 @POISON
-  CLASS_INFIX_DELIMITER			      @POISON
-  CLASS_INFIX_INTEGER_LITERAL		      @POISON
-  CLASS_INFIX_LEXEME			      @POISON
-
-#  CLASS_INFIX_KEYWORD			      @POISON
-#  CLASS_INFIX_MULTIPLICATIVE_SYMBOL	      @POISON
-#  CLASS_INFIX_RELATIONAL_SYMBOL              @POISON
-#  CLASS_INFIX_STRING_LITERAL		      @POISON
-#  CLASS_INFIX_SYMBOL                         @POISON         
-
   CLASS_KEYWORD
   CLASS_LOCATED
   CLASS_MELT_MODE
