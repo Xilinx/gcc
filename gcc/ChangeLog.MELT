@@ -1,5 +1,13 @@
 
 2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (class_infix_additive_symbol)
+	(class_infix_any_symbol, class_infix_delimiter)
+	(class_infix_integer_literal, class_infix_keyword)
+	(class_infix_lexeme, class_infix_multiplicative_symbol)
+	(class_infix_relational_symbol, class_infix_string_literal)
+	(class_infix_symbol): Remove.
+
+2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_open_infix_file, meltgc_infix_lexeme):
 	Remove declaration.
 

@@ -230,86 +230,6 @@ MELT source with the #$.@{ #$.@} notation.}# )
 
 
 
-;; superclass for infix syntax lexemes
-(defclass class_infix_lexeme
-  :predef CLASS_INFIX_LEXEME
-  :super class_located
-  :fields (lexeme_data)
-  :doc #{The $CLASS_INFIX_LEXEME is the common super-class for infix
-  lexemes [other than $CLASS_SEXPR_MACROSTRING]. The $LEXEME_DATA is the occurring data.}#
-)
-
-;; infix string literal
-(defclass class_infix_string_literal
-  :predef CLASS_INFIX_STRING_LITERAL
-  :super class_infix_lexeme
-  :fields ()
-  :doc #{The $CLASS_INFIX_STRING_LITERAL is for infix string
-literals. $LEXEME_DATA is the parsed string.}# )
-
-;; infix integer literal
-(defclass class_infix_integer_literal
-  :predef CLASS_INFIX_INTEGER_LITERAL
-  :super class_infix_lexeme
-  :fields ()
-  :doc #{The $CLASS_INFIX_INTEGER_LITERAL is for infix integer
-literals. $LEXEME_DATA is the parsed boxed constant integer.}# )
-
-(defclass class_infix_any_symbol
-  :super class_infix_lexeme
-  :doc #{The $CLASS_INFIX_SYMBOL is the superclass of all infix symbol occurrences. $LEXEME_DATA is the parsed symbol.}#
-)
-
-(defclass class_infix_symbol
-  :predef CLASS_INFIX_SYMBOL
-  :super class_infix_any_symbol
-  :fields ()
-  :doc #{The $CLASS_INFIX_SYMBOL is for infix symbol
-occurrences. $LEXEME_DATA is the parsed symbol. A symbol starts with a
-letter, or with an ignored backslash @code{\} to parse special symbols as ordinary
-ones.}#)
-
-(defclass class_infix_additive_symbol
-  :predef CLASS_INFIX_ADDITIVE_SYMBOL
-  :super class_infix_any_symbol
-  :fields ()
-  :doc #{The $CLASS_INFIX_ADDITIVE_SYMBOL is for infix additive
-symbols, starting with @code{+} or @code{-} or @code{|}. Prefix them with an
-ignored backslash @code{\} to have them parsed as an ordinary
-  symbol.}#)
-
-(defclass class_infix_multiplicative_symbol
-  :predef CLASS_INFIX_MULTIPLICATIVE_SYMBOL
-  :super class_infix_any_symbol
-  :fields ()
-  :doc #{The $CLASS_INFIX_MULTIPLICATIVE_SYMBOL is for infix
-multiplicative symbols, starting with @code{*} or @code{/} or @code{&}
-or @code{%}. Prefix them with an ignored backslash @code{\} to have
-them parsed as an ordinary symbol.}#)
-
-(defclass class_infix_relational_symbol
-  :predef CLASS_INFIX_RELATIONAL_SYMBOL
-  :super class_infix_any_symbol
-  :fields ()
-  :doc #{The $CLASS_INFIX_RELATIONAL_SYMBOL is for infix
-relational symbols, starting with @code{<} @code{>} @code{=} @code{!} @code{~} @code{@@}. Prefix them with an ignored backslash @code{\} to have
-them parsed as an ordinary symbol.}#
-)
-
-(defclass class_infix_delimiter
-  :predef CLASS_INFIX_DELIMITER
-  :super class_infix_lexeme
-  :fields ()
-  :doc #{The $CLASS_INFIX_DELIMIER is for delimiters. $LEXEME_DATA is
-  the parsed delimiter.}#)
-
-(defclass class_infix_keyword
-  :predef CLASS_INFIX_KEYWORD
-  :super class_infix_lexeme
-  :fields ()
-  :doc #{The $CLASS_INFIX_KEYWORD is for infix keyword occurrences
--keywords start with a colon @code{:}. $LEXEME_DATA is the parsed keyword symbol.}#)
-
 ;; class of message selectors
 (defclass class_selector
   :super class_named
@@ -4081,16 +4001,6 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_gcc_simple_ipa_pass
  class_gcc_transform_ipa_pass
  class_initial_generation_context
- class_infix_additive_symbol
- class_infix_any_symbol
- class_infix_delimiter
- class_infix_integer_literal
- class_infix_keyword
- class_infix_lexeme 
- class_infix_multiplicative_symbol
- class_infix_relational_symbol
- class_infix_string_literal
- class_infix_symbol
  class_instance_binding
  class_keyword
  class_label_binding
