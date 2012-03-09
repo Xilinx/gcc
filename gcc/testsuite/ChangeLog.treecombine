@@ -1,3 +1,9 @@
+2012-03-08  Andrew Pinski  <apinski@cavium.com>
+
+	* gcc.dg/tree-ssa/vrp63.c: Rename to ...
+	* gcc.dg/tree-ssa/vrp64.c: this due to a merged
+	testcase.
+
 2012-03-05  Andrew Pinski  <apinski@cavium.com>
 
 	* gcc.dg/tree-ssa/20040305-1.c: Update count of Folded to 2.
