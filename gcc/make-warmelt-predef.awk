@@ -1,6 +1,7 @@
-## generator of the MELT file melt/warmeltmelt-predef.melt
 
-#	Copyright (C)  2009,2011  Free Software Foundation, Inc.
+## generator of the MELT file melt/warmelt-predef.melt
+
+#	Copyright (C)  2009,2011,2012  Free Software Foundation, Inc.
 #	Contributed by Basile Starynkevitch  <basile@starynkevitch.net>
 #
 # This file is part of GCC.
@@ -40,6 +41,11 @@ BEGIN {
 		$1, predefcount);
 	printf ("@@ Poisoned MELT predefined %s %d\n", $1, predefcount) > "/dev/stderr"
 	next;
+    }
+    else if ($2 ~ /.*[A-Za-z]+.*/) 
+    {
+	printf ("%s:%d @@ invalid qualifier %s\n", FILENAME, FNR, $2) > "/dev/stderr";
+	exit 1;
     }
     printf("  (code_chunk %s_chk #{ $curpredef = MELT_PREDEF(%s) /*%d*/; }#)\n",
 	   $1, $1, predefcount);

@@ -1,4 +1,8 @@
 2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-predef.list: Use @POISON, not POISON.
+	* make-warmelt-predef.awk: Better error message.
+
+2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 
 	* melt/generated/meltrunsup-inc.c: Regenerate.
