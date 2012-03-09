@@ -1,4 +1,29 @@
 2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Regenerate}}
+
+	* melt/generated/meltrunsup-inc.c
+	* melt/generated/meltrunsup.h
+	* melt/generated/warmelt-base+meltdesc.c
+	* melt/generated/warmelt-base+melttime.h
+	* melt/generated/warmelt-debug+meltdesc.c
+	* melt/generated/warmelt-debug+melttime.h
+	* melt/generated/warmelt-first+meltdesc.c
+	* melt/generated/warmelt-first+melttime.h
+	* melt/generated/warmelt-genobj+meltdesc.c
+	* melt/generated/warmelt-genobj+melttime.h
+	* melt/generated/warmelt-macro+meltdesc.c
+	* melt/generated/warmelt-macro+melttime.h
+	* melt/generated/warmelt-modes+meltdesc.c
+	* melt/generated/warmelt-modes+melttime.h
+	* melt/generated/warmelt-normal+meltdesc.c
+	* melt/generated/warmelt-normal+melttime.h
+	* melt/generated/warmelt-normal.c
+	* melt/generated/warmelt-normatch+meltdesc.c
+	* melt/generated/warmelt-normatch+melttime.h
+	* melt/generated/warmelt-outobj+meltdesc.c
+	* melt/generated/warmelt-outobj+melttime.h
+
+2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-predef.list: Use @POISON, not POISON.
 	* make-warmelt-predef.awk: Better error message.
 
@@ -1912,8 +1937,8 @@
 	* melt-build.mk: Regenerate.
 
 2012-01-09  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt-build.tpl: Add explicit rules for stage zero *meltdesc.c
-	etc...
+	* melt-build.tpl: Add explicit rules for stage zero
+	*meltdesc.c etc...
 	Add rule for melttime.h headers.
 	* melt-build.mk: Regenerate.
 
