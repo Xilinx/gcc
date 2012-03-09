@@ -1,12 +1,12 @@
 ------------------------------------------------------------------------------
 --                                                                          --
---                 GNAT RUN-TIME LIBRARY (GNARL) COMPONENTS                 --
+--                         GNAT RUN-TIME COMPONENTS                         --
 --                                                                          --
---                   S Y S T E M . O S _ I N T E R F A C E                  --
+--                   S Y S T E M . R A N D O M _ S E E D                    --
 --                                                                          --
---                                  B o d y                                 --
+--                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2003-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 2011-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -24,35 +24,28 @@
 -- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
 -- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
--- GNARL was developed by the GNARL team at Florida State University.       --
--- Extensive contributions were provided by Ada Core Technologies, Inc.     --
+-- GNAT was originally developed  by the GNAT team at  New York University. --
+-- Extensive contributions were provided by Ada Core Technologies Inc.      --
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This is a OpenVMS/IA64 version of this package
+--  Version used on OpenVMS systems, where Clock accuracy is too low for
+--  RM A.5.2 (45).
 
---  This package encapsulates all direct interfaces to OS services
---  that are needed by children of System.
+with Interfaces; use Interfaces;
 
-pragma Polling (Off);
---  Turn off polling, we do not want ATC polling to take place during
---  tasking operations. It causes infinite loops and other problems.
+package body System.Random_Seed is
 
-with Interfaces.C; use Interfaces.C;
+   function Sys_Rpcc_64 return Unsigned_64;
+   pragma Import (C, Sys_Rpcc_64, "SYS$RPCC_64");
 
-package body System.OS_Interface is
+   --------------
+   -- Get_Seed --
+   --------------
 
-   -----------------
-   -- sched_yield --
-   -----------------
-
-   function sched_yield return int is
-      procedure sched_yield_base;
-      pragma Import (C, sched_yield_base, "PTHREAD_YIELD_NP");
-
+   function Get_Seed return Interfaces.Unsigned_64 is
    begin
-      sched_yield_base;
-      return 0;
-   end sched_yield;
+      return Sys_Rpcc_64;
+   end Get_Seed;
 
-end System.OS_Interface;
+end System.Random_Seed;
