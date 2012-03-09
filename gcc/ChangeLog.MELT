@@ -1,4 +1,10 @@
 
+2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Alternative infix syntax abandonned}}
+	* melt/xtramelt-parse-infix-syntax.melt: Remove file
+	* melt-build.def: Remove reference to above file
+	* melt-build.mk: Regenerate.
+
 2011-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-build.tpl (meltframe.args): Add -Iinclude-fixed if it exists.

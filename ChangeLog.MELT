@@ -1,4 +1,7 @@
 
+2012-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* INSTALL/README-MELT-PLUGIN: infix syntax abandonned.
+
 2012-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	MELT branch merged with trunk [future 4.8] rev 185094 using svnmerge
