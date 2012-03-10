@@ -1,5 +1,35 @@
 2012-03-09  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (ix86_print_operand): Don't output register
+	in DImode for 64bit indirect branch.
+
+2012-03-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_expand_call): Call sibcall_insn_operand
+	and call_insn_operand with word_mode.  Convert the address to
+	word_mode instead of Pmode.
+
+	* config/i386/i386.md (indirect_jump): Convert address to
+	word_mode for x32.
+	(tablejump): Likewise.
+	(*indirect_jump): Replace :P with :W.
+	(*tablejump_1): Likewise.
+	(*call_vzeroupper): Replace :P with :W.
+	(*call): Likewise.
+	(*sibcall_vzeroupper): Likewise.
+	(*sibcall): Likewise.
+	(*call_value_vzeroupper): Likewise.
+	(*call_value): Likewise.
+	(*sibcall_value_vzeroupper): Likewise.
+	(*sibcall_value): Likewise.
+
+	* config/i386/predicates.md (call_insn_operand): Defined with
+	define_special_predicate.  Allow Pmode for
+	constant_call_address_operand.
+	(sibcall_insn_operand): Likewise.
+
+2012-03-09  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386-protos.h (ix86_output_rex_prefix_p): Removed.
 
 	* config/i386/i386.c (ix86_decompose_address): Update comments.
