@@ -130,7 +130,7 @@ gfc_array_dataptr_type (tree desc)
 #define DTYPE_FIELD 2
 #define SIZE_FIELD 3
 #define DIMENSION_FIELD 4
-#define CAF_TOKEN_FIELD 4
+#define CAF_TOKEN_FIELD 5
 
 #define STRIDE_SUBFIELD 0
 #define LBOUND_SUBFIELD 1
@@ -472,16 +472,13 @@ gfc_conv_descriptor_ubound (tree desc, tree dim)
 tree
 gfc_conv_descriptor_ubound_get (tree desc, tree dim)
 {
-  tree cond, size;
-  tree tmp = gfc_get_element_type (TREE_TYPE (desc));
-  size = size_in_bytes (tmp);
-  size = fold_convert (gfc_array_index_type, size);
-  tmp = fold_build2_loc (input_location, FLOOR_DIV_EXPR, gfc_array_index_type,
-			 gfc_conv_descriptor_extent_get (desc, dim), size);
-  cond = fold_build2_loc (input_location, EQ_EXPR, boolean_type_node, size,
-			  gfc_index_zero_node);
-  tmp = fold_build3_loc (input_location, COND_EXPR, gfc_array_index_type, cond,
-			 gfc_index_zero_node, tmp);
+  tree lb = gfc_conv_descriptor_lbound (desc, dim);
+  tree tmp = gfc_conv_descriptor_extent_get (desc, dim);
+  tmp = fold_build2_loc (input_location, PLUS_EXPR, gfc_array_index_type,
+                         fold_convert (gfc_array_index_type, lb),
+                         fold_convert (gfc_array_index_type, tmp));
+  tmp = fold_build2_loc (input_location, MINUS_EXPR, gfc_array_index_type,
+			 tmp, gfc_index_one_node);
   return tmp;
 }
 
@@ -492,11 +489,12 @@ gfc_conv_descriptor_ubound_set (stmtblock_t *block, tree desc,
   tree tmp;
   tree t = gfc_conv_descriptor_ubound (desc, dim);
   gfc_add_modify (block, t, fold_convert (TREE_TYPE (t), value));
-  tmp = gfc_get_element_type (TREE_TYPE (desc));
-  tmp = size_in_bytes (tmp);
-  tmp = fold_build2_loc (input_location, MULT_EXPR, gfc_array_index_type,
-			 fold_convert (TREE_TYPE (t), value),
+  tmp =  gfc_conv_descriptor_lbound (desc, dim);
+  tmp = fold_build2_loc (input_location, MINUS_EXPR, gfc_array_index_type,
+			 fold_convert (TREE_TYPE (t), t),
 			 fold_convert (TREE_TYPE (t), tmp));
+  tmp = fold_build2_loc (input_location, PLUS_EXPR, gfc_array_index_type,
+			 tmp, gfc_index_one_node);
   gfc_conv_descriptor_extent_set (block, desc, dim, tmp);
 }
 
@@ -542,19 +540,20 @@ gfc_conv_shift_descriptor_lbound (stmtblock_t* block, tree desc,
   diff = fold_build2_loc (input_location, MINUS_EXPR, gfc_array_index_type,
 			  new_lbound, lbound);
 
-  /* Shift ubound and offset accordingly.  This has to be done before
-     updating the lbound, as they depend on the lbound expression!  */
-  ubound = fold_build2_loc (input_location, PLUS_EXPR, gfc_array_index_type,
-			    ubound, diff);
-  gfc_conv_descriptor_ubound_set (block, desc, gfc_rank_cst[dim], ubound);
   offs_diff = fold_build2_loc (input_location, MULT_EXPR, gfc_array_index_type,
 			       diff, stride);
   offs = fold_build2_loc (input_location, MINUS_EXPR, gfc_array_index_type,
 			  offs, offs_diff);
   gfc_conv_descriptor_offset_set (block, desc, offs);
 
-  /* Finally set lbound to value we want.  */
+  /* Set lbound to value we want.  */
   gfc_conv_descriptor_lbound_set (block, desc, gfc_rank_cst[dim], new_lbound);
+
+  /* Update ubound. As it uses internally lbound + extent, it has to be after
+     the lbound expression!  */
+  ubound = fold_build2_loc (input_location, PLUS_EXPR, gfc_array_index_type,
+			    ubound, diff);
+  gfc_conv_descriptor_ubound_set (block, desc, gfc_rank_cst[dim], ubound);
 }
 
 

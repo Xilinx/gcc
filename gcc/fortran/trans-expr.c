@@ -3153,14 +3153,14 @@ gfc_conv_subref_array_arg (gfc_se * parmse, gfc_expr * expr, int g77,
 	  tmp = fold_build2_loc (input_location, PLUS_EXPR,
 				 gfc_array_index_type, tmp,
 				 gfc_index_one_node);
-	  gfc_conv_descriptor_ubound_set (&parmse->pre,
-					  parmse->expr,
-					  gfc_rank_cst[n],
-					  tmp);
 	  gfc_conv_descriptor_lbound_set (&parmse->pre,
 					  parmse->expr,
 					  gfc_rank_cst[n],
 					  gfc_index_one_node);
+	  gfc_conv_descriptor_ubound_set (&parmse->pre,
+					  parmse->expr,
+					  gfc_rank_cst[n],
+					  tmp);
 	  size = gfc_evaluate_now (size, &parmse->pre);
 	  offset = fold_build2_loc (input_location, MINUS_EXPR,
 				    gfc_array_index_type,
@@ -5186,10 +5186,10 @@ gfc_trans_alloc_subarray_assign (tree dest, gfc_component * cm,
 		tmp, gfc_conv_descriptor_lbound_get (dest, gfc_rank_cst[n]));
       tmp = fold_build2_loc (input_location, PLUS_EXPR, gfc_array_index_type,
 			     span, lbound);
-      gfc_conv_descriptor_ubound_set (&block, dest,
-				      gfc_rank_cst[n], tmp);
       gfc_conv_descriptor_lbound_set (&block, dest,
 				      gfc_rank_cst[n], lbound);
+      gfc_conv_descriptor_ubound_set (&block, dest,
+				      gfc_rank_cst[n], tmp);
 
       tmp = fold_build2_loc (input_location, MULT_EXPR, gfc_array_index_type,
 			 gfc_conv_descriptor_lbound_get (dest,

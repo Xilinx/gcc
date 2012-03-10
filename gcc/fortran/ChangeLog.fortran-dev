@@ -1,3 +1,14 @@
+2012-03-10  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-array.c (CAF_TOKEN_FIELD): Set to the correct value.
+	(gfc_conv_descriptor_ubound_get, gfc_conv_descriptor_ubound_set):
+	Remove bogus byte-size handling, correctly handle lower bounds
+	which don't start with unity.
+	(gfc_conv_shift_descriptor_lbound): Reorder to make sure that
+	lbound comes before ubound.
+	* trans-expr.c (gfc_conv_subref_array_arg,
+	gfc_trans_alloc_subarray_assign): Ditto.
+
 2010-09-01  Paul Thomas  <pault@gcc.gnu.org>
 
 	* trans-array.c : Define and subsequently undefine descriptor

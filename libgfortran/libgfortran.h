@@ -369,15 +369,8 @@ typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_LOGICAL_16) gfc_array_l16;
 #define GFC_DESCRIPTOR_DTYPE(desc) ((desc)->dtype)
 
 #define GFC_DIMENSION_LBOUND(dim) ((dim).lower_bound)
-/* Old. */
-#define GFC_DIMENSION_UBOUND(dim) ((dim)._ubound)
-#define GFC_DIMENSION_EXTENT(dim) ((dim).ubound + 1 - (dim).lower_bound)
-
-/* New. */
-/*
-  #define GFC_DIMENSION_UBOUND(dim) ((dim).lower_bound + (dim).extent - 1)
-  #define GFC_DIMENSION_EXTENT(dim) ((dim).extent)
-*/
+#define GFC_DIMENSION_UBOUND(dim) ((dim).lower_bound + (dim).extent - 1)
+#define GFC_DIMENSION_EXTENT(dim) ((dim).extent)
 
 #define GFC_DIMENSION_SET(dim,lb,ub,str) \
   do \

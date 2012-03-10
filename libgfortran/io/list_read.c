@@ -2894,7 +2894,10 @@ get_name:
 
   if (c == '(' && nl->type == BT_CHARACTER)
     {
-      descriptor_dimension chd[1] = { {1, clow, nl->string_length} };
+/* FIXME: Sets stride, lower_bound, _ubound, sm, extent, but extent
+   should be kind dependent. Cf. also PR 52539.  */
+      descriptor_dimension chd[1] = { {1, clow, nl->string_length, 1,
+				       nl->string_length - clow + 1} };
       array_loop_spec ind[1] = { {1, clow, nl->string_length, 1} };
 
       if (nml_parse_qualifier (dtp, chd, ind, -1, nml_err_msg, 
