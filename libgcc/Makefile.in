@@ -334,6 +334,12 @@ LIBUNWIND =
 SHLIBUNWIND_LINK =
 SHLIBUNWIND_INSTALL =
 
+# For -fvisibility=hidden.  We need both a -fvisibility=hidden on
+# the command line, and a #define to prevent libgcc2.h etc from
+# overriding that with #pragmas.  This is set before including $(tmake_file)
+# so it can be overridden on a host-specific basis.
+vis_hide = @vis_hide@
+
 tmake_file = @tmake_file@
 include $(srcdir)/empty.mk $(tmake_file)
 
@@ -362,11 +368,6 @@ ifeq ($(enable_shared),yes)
   ifneq ($(LIBUNWIND),)
     install-libunwind = install-libunwind
   endif
-
-# For -fvisibility=hidden.  We need both a -fvisibility=hidden on
-# the command line, and a #define to prevent libgcc2.h etc from
-# overriding that with #pragmas.
-vis_hide = @vis_hide@
 
 ifneq (,$(vis_hide))
 
