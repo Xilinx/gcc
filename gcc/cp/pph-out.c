@@ -1691,10 +1691,10 @@ pph_out_sorted_fields_type (pph_stream *stream, struct sorted_fields_type *sft)
 }
 
 
-/* Write all the fields in lang_type_class instance LTC to STREAM.  */
+/* Write all the packed bits in lang_type_class instance LTC to STREAM.  */
 
 static void
-pph_out_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
+pph_out_lang_type_class_bits (pph_stream *stream, struct lang_type_class *ltc)
 {
   struct bitpack_d bp;
 
@@ -1745,7 +1745,15 @@ pph_out_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
   bp_pack_value (&bp, ltc->has_complex_move_assign, 1);
   bp_pack_value (&bp, ltc->has_constexpr_ctor, 1);
   pph_out_bitpack (stream, &bp);
+}
 
+
+/* Write all the fields in lang_type_class instance LTC to STREAM.  */
+
+static void
+pph_out_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
+{
+  pph_out_lang_type_class_bits (stream, ltc);
   pph_out_tree (stream, ltc->primary_base);
   pph_out_tree_pair_vec (stream, ltc->vcall_indices);
   pph_out_tree (stream, ltc->vtables);
@@ -1771,6 +1779,16 @@ pph_out_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
   pph_out_tree (stream, ltc->objc_info);
   pph_out_sorted_fields_type (stream, ltc->sorted_fields);
   pph_out_tree (stream, ltc->lambda_expr);
+}
+
+
+/* Write all the merge key fields in lang_type_class instance LTC to STREAM.  */
+
+static void
+pph_out_merge_key_lang_type_class (pph_stream *stream,
+                                  struct lang_type_class *ltc)
+{
+  pph_out_lang_type_class_bits (stream, ltc);
 }
 
 
@@ -1803,6 +1821,24 @@ pph_out_lang_type (pph_stream *stream, tree type)
     pph_out_lang_type_class (stream, &lt->u.c);
   else
     pph_out_lang_type_ptrmem (stream, &lt->u.ptrmem);
+}
+
+
+/* Write the merge keys the lang-specific fields of TYPE to STREAM.  */
+
+static void
+pph_out_merge_key_lang_type (pph_stream *stream, struct lang_type *lt)
+{
+  enum pph_record_marker marker;
+  marker = pph_out_start_record (stream, lt, PPH_lang_type);
+  if (marker == PPH_RECORD_END)
+    return;
+
+  gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
+
+  pph_out_lang_type_header (stream, &lt->u.h);
+  gcc_assert (lt->u.h.is_lang_type_class);
+  pph_out_merge_key_lang_type_class (stream, &lt->u.c);
 }
 
 
@@ -2316,6 +2352,7 @@ pph_out_merge_key_tree (pph_stream *stream, tree expr, bool name_type)
 	  unsigned filter = PPHF_NO_XREFS | PPHF_NO_PREFS | PPHF_NO_BUILTINS;
 	  pph_out_merge_key_chain (stream, TYPE_FIELDS (expr), filter);
 	  pph_out_merge_key_chain (stream, TYPE_METHODS (expr), filter);
+	  pph_out_merge_key_lang_type (stream, TYPE_LANG_SPECIFIC (expr));
 	}
     }
 

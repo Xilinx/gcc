@@ -6042,7 +6042,7 @@ cp_emit_debug_info_for_using (tree t, tree context)
 }
 
 
-/* Write a binding_entry instance BT to STREAM.  */
+/* Write a binding table BT to STREAM.  */
 
 void
 pph_out_binding_table (pph_stream *stream, binding_table bt)
@@ -6065,7 +6065,7 @@ pph_out_binding_table (pph_stream *stream, binding_table bt)
 }
 
 
-/* Read and return a binding_entry instance BT from STREAM.  */
+/* Read and return a binding table BT from STREAM.  */
 
 binding_table
 pph_in_binding_table (pph_stream *stream)

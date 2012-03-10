@@ -444,6 +444,9 @@ struct cpp_options
   /* True to warn about precompiled header files we couldn't use.  */
   bool warn_invalid_pch;
 
+  /* False to warn about a primary file being a system header.  */
+  bool primary_system_header_okay;
+
   /* True if dependencies should be restored from a precompiled header.  */
   bool restore_pch_deps;
 

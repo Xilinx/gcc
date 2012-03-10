@@ -1,0 +1,4 @@
+int func( outer::inner *p )
+{
+    return p->field2;
+}

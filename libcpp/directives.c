@@ -1629,7 +1629,8 @@ do_pragma_poison (cpp_reader *pfile)
 static void
 do_pragma_system_header (cpp_reader *pfile)
 {
-  if (cpp_in_primary_file (pfile))
+  if (!CPP_OPTION (pfile, primary_system_header_okay)
+      && cpp_in_primary_file (pfile))
     cpp_error (pfile, CPP_DL_WARNING,
 	       "#pragma system_header ignored outside include file");
   else

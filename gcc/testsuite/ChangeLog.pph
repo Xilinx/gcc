@@ -1,3 +1,15 @@
+2012-03-09   Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/a0neststruct.cci: New.
+	* g++.dg/pph/a0neststruct1.h: New.
+	* g++.dg/pph/a0neststruct2.h: New.
+	* g++.dg/pph/x0neststruct1.h: New.
+	* g++.dg/pph/x0neststruct2.h: New.
+	* g++.dg/pph/x4neststruct1.cc: New.
+	* g++.dg/pph/x4neststruct2.cc: New.
+	* g++.dg/pph/x0sysheader.h: New.
+	* g++.dg/pph/x1sysheader.cc: New.
+
 2012-03-07   Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/x0dependent.h: New.

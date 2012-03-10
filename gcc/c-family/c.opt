@@ -1017,6 +1017,10 @@ fpreprocessed
 C ObjC C++ ObjC++
 Treat the input file as already preprocessed
 
+fprimary-system-header-okay
+C ObjC C++ ObjC++
+Supress warning about compiling a primary system header file.
+
 ftrack-macro-expansion
 C ObjC C++ ObjC++ JoinedOrMissing RejectNegative UInteger
 ; converted into ftrack-macro-expansion=

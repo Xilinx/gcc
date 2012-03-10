@@ -1,3 +1,10 @@
+2012-03-09   Lawrence Crowl  <crowl@google.com>
+
+	* include/cpplib.h (struct cpp_options): Add option to supress warning
+	about a system header as a primary file.
+	* directives.c (do_pragma_system_header): Implement the effect of the
+	above option.
+
 2012-02-06   Diego Novillo  <dnovillo@google.com>
 
 	* directives.c (_cpp_clear_directive_state): New.

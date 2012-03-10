@@ -385,6 +385,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT__output_pph_:
       pph_out_file = arg;
+      cpp_opts->primary_system_header_okay = true;
       break;
 
     case OPT_A:
@@ -801,6 +802,10 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_fpph_map_:
       add_pph_include_maps (arg);
+      break;
+
+    case OPT_fprimary_system_header_okay:
+      cpp_opts->primary_system_header_okay = true;
       break;
 
     case OPT_idirafter:

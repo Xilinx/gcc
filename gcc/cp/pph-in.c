@@ -895,7 +895,7 @@ typedef struct {
   tree expr;
 
   /* Context where this tree should be inserted into.  */
-  tree *context;
+  void *context;
 
   /* Name of the tree (from pph_merge_name).  */
   const char *name;
@@ -979,16 +979,18 @@ pph_prepend_to_chain (tree expr, tree *chain)
 }
 
 
-/* Merge the just-read header for tree EXPR with NAME onto the CHAIN.  */
+/* Lookup and possibly add an expr, name, and context tuple in the TOC.
+   Return the existing expr found.  If none was found, add an entry
+   and return the argument expr. */
 
 static tree
-pph_merge_into_chain (tree expr, const char *name, tree *chain)
+pph_toc_lookup_add (tree expr, const char *name, void *context)
 {
   merge_toc_entry key;
   tree found;
 
   key.expr = expr;
-  key.context = chain;
+  key.context = context;
   key.name = name;
   found = pph_toc_lookup (merge_toc, &key);
   if (!found)
@@ -996,20 +998,31 @@ pph_merge_into_chain (tree expr, const char *name, tree *chain)
       pph_toc_add (merge_toc, &key);
 
       if (flag_pph_debug >= 3)
-        fprintf (pph_logfile, "PPH: %s NOT found on chain\n", name);
+        fprintf (pph_logfile, "PPH: %s %p NOT found in TOC\n", name, context);
 
-      /* Types (as opposed to type decls) are not on a chain.  */
-      if (chain)
-        return pph_prepend_to_chain (expr, chain);
-      else
-        return expr;
+      return expr;
     }
 
   if (flag_pph_debug >= 3)
-    fprintf (pph_logfile, "PPH: %s FOUND on chain\n", name);
+    fprintf (pph_logfile, "PPH: %s %p FOUND in TOC\n", name, context);
 
   gcc_assert (TREE_CODE (found) == TREE_CODE (expr));
 
+  return found;
+}
+
+
+/* Merge the just-read header for tree EXPR with NAME onto the CHAIN.  */
+
+static tree
+pph_merge_into_chain (tree expr, const char *name, tree *chain)
+{
+  tree found = pph_toc_lookup_add (expr, name, (void*)chain);
+  if (found == expr)
+    {
+      gcc_assert (chain);
+      return pph_prepend_to_chain (expr, chain);
+    }
   return found;
 }
 
@@ -1757,61 +1770,73 @@ pph_in_sorted_fields_type (pph_stream *stream)
 }
 
 
-/* Read all the fields in lang_type_class instance LTC to STREAM.  */
+/* Read and merge the bits in lang_type_class instance LTC to STREAM.  */
 
 static void
-pph_in_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
+pph_in_merge_lang_type_class_bits (pph_stream *stream,
+				   struct lang_type_class *ltc)
 {
   struct bitpack_d bp;
-  enum pph_record_marker marker;
-  unsigned image_ix, ix;
 
   ltc->align = pph_in_uchar (stream);
 
   bp = pph_in_bitpack (stream);
-  ltc->has_mutable = bp_unpack_value (&bp, 1);
-  ltc->com_interface = bp_unpack_value (&bp, 1);
-  ltc->non_pod_class = bp_unpack_value (&bp, 1);
-  ltc->nearly_empty_p = bp_unpack_value (&bp, 1);
-  ltc->user_align = bp_unpack_value (&bp, 1);
-  ltc->has_copy_assign = bp_unpack_value (&bp, 1);
-  ltc->has_new = bp_unpack_value (&bp, 1);
-  ltc->has_array_new = bp_unpack_value (&bp, 1);
-  ltc->gets_delete = bp_unpack_value (&bp, 2);
-  ltc->interface_only = bp_unpack_value (&bp, 1);
-  ltc->interface_unknown = bp_unpack_value (&bp, 1);
-  ltc->contains_empty_class_p = bp_unpack_value (&bp, 1);
-  ltc->anon_aggr = bp_unpack_value (&bp, 1);
-  ltc->non_zero_init = bp_unpack_value (&bp, 1);
-  ltc->empty_p = bp_unpack_value (&bp, 1);
-  ltc->vec_new_uses_cookie = bp_unpack_value (&bp, 1);
-  ltc->declared_class = bp_unpack_value (&bp, 1);
-  ltc->diamond_shaped = bp_unpack_value (&bp, 1);
-  ltc->repeated_base = bp_unpack_value (&bp, 1);
-  ltc->being_defined = bp_unpack_value (&bp, 1);
-  ltc->java_interface = bp_unpack_value (&bp, 1);
-  ltc->debug_requested = bp_unpack_value (&bp, 1);
-  ltc->fields_readonly = bp_unpack_value (&bp, 1);
-  ltc->use_template = bp_unpack_value (&bp, 2);
-  ltc->ptrmemfunc_flag = bp_unpack_value (&bp, 1);
-  ltc->was_anonymous = bp_unpack_value (&bp, 1);
-  ltc->lazy_default_ctor = bp_unpack_value (&bp, 1);
-  ltc->lazy_copy_ctor = bp_unpack_value (&bp, 1);
-  ltc->lazy_copy_assign = bp_unpack_value (&bp, 1);
-  ltc->lazy_destructor = bp_unpack_value (&bp, 1);
-  ltc->has_const_copy_ctor = bp_unpack_value (&bp, 1);
-  ltc->has_complex_copy_ctor = bp_unpack_value (&bp, 1);
-  ltc->has_complex_copy_assign = bp_unpack_value (&bp, 1);
-  ltc->non_aggregate = bp_unpack_value (&bp, 1);
-  ltc->has_complex_dflt = bp_unpack_value (&bp, 1);
-  ltc->has_list_ctor = bp_unpack_value (&bp, 1);
-  ltc->non_std_layout = bp_unpack_value (&bp, 1);
-  ltc->is_literal = bp_unpack_value (&bp, 1);
-  ltc->lazy_move_ctor = bp_unpack_value (&bp, 1);
-  ltc->lazy_move_assign = bp_unpack_value (&bp, 1);
-  ltc->has_complex_move_ctor = bp_unpack_value (&bp, 1);
-  ltc->has_complex_move_assign = bp_unpack_value (&bp, 1);
-  ltc->has_constexpr_ctor = bp_unpack_value (&bp, 1);
+  ltc->has_mutable |= bp_unpack_value (&bp, 1);
+  ltc->com_interface |= bp_unpack_value (&bp, 1);
+  ltc->non_pod_class |= bp_unpack_value (&bp, 1);
+  ltc->nearly_empty_p |= bp_unpack_value (&bp, 1);
+  ltc->user_align |= bp_unpack_value (&bp, 1);
+  ltc->has_copy_assign |= bp_unpack_value (&bp, 1);
+  ltc->has_new |= bp_unpack_value (&bp, 1);
+  ltc->has_array_new |= bp_unpack_value (&bp, 1);
+  ltc->gets_delete |= bp_unpack_value (&bp, 2);
+  ltc->interface_only |= bp_unpack_value (&bp, 1);
+  ltc->interface_unknown |= bp_unpack_value (&bp, 1);
+  ltc->contains_empty_class_p |= bp_unpack_value (&bp, 1);
+  ltc->anon_aggr |= bp_unpack_value (&bp, 1);
+  ltc->non_zero_init |= bp_unpack_value (&bp, 1);
+  ltc->empty_p |= bp_unpack_value (&bp, 1);
+  ltc->vec_new_uses_cookie |= bp_unpack_value (&bp, 1);
+  ltc->declared_class |= bp_unpack_value (&bp, 1);
+  ltc->diamond_shaped |= bp_unpack_value (&bp, 1);
+  ltc->repeated_base |= bp_unpack_value (&bp, 1);
+  ltc->being_defined |= bp_unpack_value (&bp, 1);
+  ltc->java_interface |= bp_unpack_value (&bp, 1);
+  ltc->debug_requested |= bp_unpack_value (&bp, 1);
+  ltc->fields_readonly |= bp_unpack_value (&bp, 1);
+  ltc->use_template |= bp_unpack_value (&bp, 2);
+  ltc->ptrmemfunc_flag |= bp_unpack_value (&bp, 1);
+  ltc->was_anonymous |= bp_unpack_value (&bp, 1);
+  ltc->lazy_default_ctor |= bp_unpack_value (&bp, 1);
+  ltc->lazy_copy_ctor |= bp_unpack_value (&bp, 1);
+  ltc->lazy_copy_assign |= bp_unpack_value (&bp, 1);
+  ltc->lazy_destructor |= bp_unpack_value (&bp, 1);
+  ltc->has_const_copy_ctor |= bp_unpack_value (&bp, 1);
+  ltc->has_complex_copy_ctor |= bp_unpack_value (&bp, 1);
+  ltc->has_complex_copy_assign |= bp_unpack_value (&bp, 1);
+  ltc->non_aggregate |= bp_unpack_value (&bp, 1);
+  ltc->has_complex_dflt |= bp_unpack_value (&bp, 1);
+  ltc->has_list_ctor |= bp_unpack_value (&bp, 1);
+  ltc->non_std_layout |= bp_unpack_value (&bp, 1);
+  ltc->is_literal |= bp_unpack_value (&bp, 1);
+  ltc->lazy_move_ctor |= bp_unpack_value (&bp, 1);
+  ltc->lazy_move_assign |= bp_unpack_value (&bp, 1);
+  ltc->has_complex_move_ctor |= bp_unpack_value (&bp, 1);
+  ltc->has_complex_move_assign |= bp_unpack_value (&bp, 1);
+  ltc->has_constexpr_ctor |= bp_unpack_value (&bp, 1);
+}
+
+/* Read all the fields in lang_type_class instance LTC from STREAM.  */
+
+static void
+pph_in_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
+{
+  enum pph_record_marker marker;
+  unsigned image_ix, ix;
+
+  pph_in_merge_lang_type_class_bits (stream, ltc);
+  /* We are merging even for new classes,
+     because they have been allocated to zero.  */
 
   ltc->primary_base = pph_in_tree (stream);
   ltc->vcall_indices = pph_in_tree_pair_vec (stream);
@@ -1839,6 +1864,16 @@ pph_in_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
   ltc->objc_info = pph_in_tree (stream);
   ltc->sorted_fields = pph_in_sorted_fields_type (stream);
   ltc->lambda_expr = pph_in_tree (stream);
+}
+
+
+/* Merge all the fields in lang_type_class instance LTC from STREAM.  */
+
+static void
+pph_in_merge_key_lang_type_class (pph_stream *stream,
+				  struct lang_type_class *ltc)
+{
+  pph_in_merge_lang_type_class_bits (stream, ltc);
 }
 
 
@@ -1876,6 +1911,34 @@ pph_in_lang_type (pph_stream *stream)
     pph_in_lang_type_ptrmem (stream, &lt->u.ptrmem);
 
   return lt;
+}
+
+
+/* Read merge keys in struct lang_type from STREAM.  */
+
+static void
+pph_in_merge_key_lang_type (pph_stream *stream, struct lang_type **lt_p)
+{
+  enum pph_record_marker marker;
+  unsigned image_ix, ix;
+  struct lang_type *lt = *lt_p;
+
+  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_lang_type);
+  if (marker == PPH_RECORD_END)
+    return;
+
+  gcc_assert (marker == PPH_RECORD_START_NO_CACHE);
+
+  if (! lt)
+    {
+      /* There is no prior lang_type, hence no merging, so allocate it.  */
+      lt = ggc_alloc_cleared_lang_type (sizeof (struct lang_type));
+      *lt_p = lt;
+    }
+
+  pph_in_lang_type_header (stream, &lt->u.h);
+  gcc_assert (lt->u.h.is_lang_type_class);
+  pph_in_merge_key_lang_type_class (stream, &lt->u.c);
 }
 
 
@@ -2593,6 +2656,7 @@ pph_in_merge_key_tree_with_searcher (pph_stream *stream, void *holder,
 	{
 	  pph_in_merge_key_chain (stream, &TYPE_FIELDS (expr));
 	  pph_in_merge_key_chain (stream, &TYPE_METHODS (expr));
+	  pph_in_merge_key_lang_type (stream, &TYPE_LANG_SPECIFIC (expr));
 	}
     }
 

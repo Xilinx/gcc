@@ -1,3 +1,9 @@
+2012-03-09   Lawrence Crowl  <crowl@google.com>
+
+	* c.opt (-fprimary-system-header-okay): New.
+	* c-opts.c (c_common_handle_option): Add handling for
+	-fprimary-system-header-okay.  Make PPH output imply this option.
+
 2012-01-27   Diego Novillo  <dnovillo@google.com>
 
 	* c-common.h (pph_disable_reader): Declare.
