@@ -1,6 +1,6 @@
 /* Common declarations for all of libgfortran.
    Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011
+   2011, 2012
    Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>, and
    Andy Vaught <andy@xena.eas.asu.edu>
@@ -319,7 +319,6 @@ internal_proto(big_endian);
 # endif
 #endif
 
-
 #include "ISO_Fortran_binding.h"
 
 typedef CFI_dim_t descriptor_dimension;
@@ -365,7 +364,7 @@ typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_LOGICAL_16) gfc_array_l16;
 #define GFC_DESCRIPTOR_TYPE(desc) (((desc)->dtype & GFC_DTYPE_TYPE_MASK) \
                                    >> GFC_DTYPE_TYPE_SHIFT)
 #define GFC_DESCRIPTOR_SIZE(desc) ((desc)->dtype >> GFC_DTYPE_SIZE_SHIFT)
-#define GFC_DESCRIPTOR_DATA(desc) ((desc)->data)
+#define GFC_DESCRIPTOR_DATA(desc) ((desc)->base_addr)
 #define GFC_DESCRIPTOR_DTYPE(desc) ((desc)->dtype)
 
 #define GFC_DIMENSION_LBOUND(dim) ((dim).lower_bound)

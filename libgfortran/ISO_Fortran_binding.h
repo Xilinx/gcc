@@ -122,7 +122,7 @@ CFI_dim_t;
 
 typedef struct CFI_cdesc_t
 {
-  void *data; /* FIXME: Should be "base_addr".  */
+  void *base_addr;
   size_t elem_len;
   int version;
   CFI_rank_t rank;
@@ -130,7 +130,7 @@ typedef struct CFI_cdesc_t
   CFI_attribute_t attribute;
   /*FIXME: corank? Other information? Padding? Or not needed
     due to "version"?  */
-  CFI_dim_t dim[CFI_MAX_RANK]; /* Must be last field */
+  CFI_dim_t dim[]; /* Must be last field */
 }
 CFI_cdesc_t;
 
@@ -140,7 +140,7 @@ CFI_cdesc_t;
 
 #define CFI_GFC_CDESC_T(r, type) \
 struct {\
-  type *data;\
+  type *base_addr;\
   size_t offset;\
   CFI_index_t dtype;\
   CFI_index_t size;\

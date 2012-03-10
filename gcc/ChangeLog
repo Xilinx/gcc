@@ -1,3 +1,141 @@
+2012-03-10  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	PR rtl-optimization/52528
+	* combine.c (can_combine_p): Add setting of subst_low_luid
+	before call to expand_field_assignment().
+
+2012-03-09  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi: Use correct names/markup for "GCC", "GDB", "ld",
+	and related program names.
+
+2012-03-09  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi: Use correct names for "DWARF", "stabs", and "ELF".
+
+2012-03-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52530
+	* config/i386/i386.c (ix86_print_operand): Handle 'E' operand modifier.
+	(ix86_print_operand_address): Handle UNSPEC_LEA_ADDR. Do not fallback
+	to set code to 'q'.
+	* config/i386/i386.md (UNSPEC_LEA_ADDR): New unspec.
+	(*movdi_internal_rex64): Use %E operand modifier for lea.
+	(*movsi_internal): Ditto.
+	(*lea_1): Ditto.
+	(*lea<mode>_2): Ditto.
+	(*lea_{3,4,5,6}_zext): Ditto.
+	(*tls_global_dynamic_32_gnu): Ditto.
+	(*tls_global_dynamic_64): Ditto.
+	(*tls_dynamic_gnu2_lea_32): Ditto.
+	(*tls_dynamic_gnu2_lea_64): Ditto.
+	(pro_epilogue_adjust_stack_<mode>_add): Ditto.
+
+2012-03-09  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/rs6000/linux64.h (OPTION_TARGET_CPU_DEFAULT): Do not
+	redefine to be NULL if the current bit-size is different from the
+	configured bit-size.
+
+	* config/rs6000/rs6000.c (rs6000_option_override_internal): If the
+	cpu is defaulted, use PROCESSOR_DEFAULT and PROCESSOR_DEFAULT64 to
+	set the default tuning.  Add asserts to make sure the cpu and tune
+	indexes are defined.  Fix tests for cpu/tune index to use >= 0 to
+	test whether the index is set, instead of > 0.
+	(rs6000_file_start): Do not reset the default cpu if the current
+	bit-size is different from the configured bit-size.
+
+2012-03-09  Tristan Gingold  <gingold@adacore.com>
+
+	* config/vms/vms-crtlmap.map: Add comments.
+	Add entries needed to build Ada RTS.
+
+2012-03-09  Tristan Gingold  <gingold@adacore.com>
+
+	* ginclude/stddef.h: Do not define __size_t on VMS.
+
+2012-03-09  Tristan Gingold  <gingold@adacore.com>
+
+	* c-tree.h (c_default_pointer_mode): New variable.
+	* c-decl.c (c_default_pointer_mode): New variable.
+	(c_build_pointer_type): New function.
+	(grokdeclarator): Call c_build_pointer_type instead
+	of build_pointer_type.
+
+	* config/vms/vms-c.c: Include c-tree.h
+	(saved_pointer_mode): New variable.
+	(handle_pragma_pointer_size): New function.
+	(vms_pragma_pointer_size, vms_pragma_required_pointer_size): Likewise.
+	(vms_c_register_pragma): Register __pointer_size and
+	__required_pointer_size pragmas.
+
+2012-03-09  Tristan Gingold  <gingold@adacore.com>
+
+	* config/vms/vms-c.c (vms_construct_include_filename): New function.
+	(vms_c_register_includes): Reference it.
+
+2012-03-09  Andrew Pinski  <apinski@cavium.com>
+
+	PR middle-end/51988
+	* tree-ssa-phiopt.c: Include tree-pretty-print.h for
+	print_generic_expr.
+	(tree_ssa_phiopt_worker): Go through all the PHIs for
+	value_replacement instead of just the singleton one.
+	(value_replacement): Change return type to int.  Return 0 instead of
+	false.
+	Allow the middle basic block to contain more than just the defining
+	statement.
+	Handle non empty middle basic blocks.
+	* Makefile.in (tree-ssa-phiopt.o): Add tree-pretty-print.h.
+
+2012-03-09  Jiangning Liu  <jiangning.liu@arm.com>
+
+	* tree-scalar-evolution (interpret_rhs_expr): generate chrec for
+	array reference and component reference.
+	(analyze_scalar_evolution_for_address_of): New.
+
+2012-03-08  Jie Zhang  <jzhang918@gmail.com>
+
+	PR target/49862
+	* config/bfin/bfin.c (hwloop_optimize): Fix unused variable warnings.
+	(hwloop_pattern_reg): Fix set but not used warning.
+	(bfin_reorg_loops): Remove unused parameter.
+	(bfin_reorg): Update use of bfin_reorg_loops.
+
+2012-03-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (setup_incoming_varargs_64): Use word_mode
+	with integer parameters in registers.
+	(gen_push): Push register in word_mode instead of Pmode.
+	(ix86_emit_save_regs): Likewise.
+	(ix86_emit_save_regs_using_mov): Save integer registers in word_mode.
+	(gen_pop): Pop register in word_mode instead of Pmode.
+	(ix86_emit_restore_regs_using_pop): Likewise.
+	(ix86_expand_prologue): Replace Pmode with word_mode for push
+	immediate.  Use ix86_gen_pro_epilogue_adjust_stack.  Save and
+	restore RAX and R10 in word_mode.
+	(ix86_emit_restore_regs_using_mov): Restore integer registers
+	in word_mode.
+	(ix86_expand_split_stack_prologue): Save R10_REG and restore in
+	word_mode.
+	(ix86_split_to_parts): Use word_mode with PUT_MODE for push.
+	(ix86_split_long_move): Likewise.
+
+	* config/i386/i386.md (W): New.
+	(*push<mode>2_prologue): Replace :P with :W.
+	(*pop<mode>1): Likewise.
+	(*pop<mode>1_epilogue): Likewise.
+	(push/pop peephole2): Use word_mode scratch registers.
+
+2012-03-08  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/predicates.md (indirect_branch_operand): Simplify.
+
+2012-03-08  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md (*addhi3, addhi3_clobber): Add "w" alternative
+	for constants in [-63,63].
+
 2012-03-08  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/52530
