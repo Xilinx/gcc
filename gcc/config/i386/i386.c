@@ -13766,6 +13766,7 @@ get_some_local_dynamic_name (void)
    Z -- likewise, with special suffixes for x87 instructions.
    * -- print a star (in certain assembler syntax)
    A -- print an absolute memory reference.
+   E -- print address with DImode register names if TARGET_64BIT.
    w -- print the operand as if it's a "word" (HImode) even if it isn't.
    s -- print a shift double count, followed by the assemblers argument
 	delimiter.
@@ -13843,7 +13844,14 @@ ix86_print_operand (FILE *file, rtx x, int code)
 			      TARGET_64BIT && REG_P (x) ? 'q' : 0);
 	  return;
 
+	case 'E':
+	  /* Wrap address in an UNSPEC to declare special handling.  */
+	  if (TARGET_64BIT)
+	    x = gen_rtx_UNSPEC (DImode, gen_rtvec (1, x), UNSPEC_LEA_ADDR);
 
+	  output_address (x);
+	  return;
+	    
 	case 'L':
 	  if (ASSEMBLER_DIALECT == ASM_ATT)
 	    putc ('l', file);
@@ -14455,6 +14463,7 @@ ix86_print_operand_address (FILE *file, rtx addr)
   int scale;
   int ok;
   bool vsib = false;
+  int code = 0;
 
   if (GET_CODE (addr) == UNSPEC && XINT (addr, 1) == UNSPEC_VSIBADDR)
     {
@@ -14464,6 +14473,12 @@ ix86_print_operand_address (FILE *file, rtx addr)
       parts.scale = INTVAL (XVECEXP (addr, 0, 2));
       addr = XVECEXP (addr, 0, 0);
       vsib = true;
+    }
+  else if (GET_CODE (addr) == UNSPEC && XINT (addr, 1) == UNSPEC_LEA_ADDR)
+    {
+      gcc_assert (TARGET_64BIT);
+      ok = ix86_decompose_address (XVECEXP (addr, 0, 0), &parts);
+      code = 'q';
     }
   else
     ok = ix86_decompose_address (addr, &parts);
@@ -14535,15 +14550,15 @@ ix86_print_operand_address (FILE *file, rtx addr)
     }
   else
     {
-      int code = 0;
-
-      /* Print SImode registers for zero-extended addresses to force
-	 addr32 prefix.  Otherwise print DImode registers to avoid it.  */
-      if (TARGET_64BIT)
-	code = ((GET_CODE (addr) == ZERO_EXTEND
-		 || GET_CODE (addr) == AND)
-		? 'l'
-		: 'q');
+      /* Print SImode register names for zero-extended
+	 addresses to force addr32 prefix.  */
+      if (TARGET_64BIT
+	  && (GET_CODE (addr) == ZERO_EXTEND
+	      || GET_CODE (addr) == AND))
+	{
+	  gcc_assert (!code);
+	  code = 'l';
+	}
 
       if (ASSEMBLER_DIALECT == ASM_ATT)
 	{
