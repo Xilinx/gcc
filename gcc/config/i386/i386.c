@@ -14021,8 +14021,7 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	      gcc_unreachable ();
 	    }
 
-	  ix86_print_operand (file, x,
-			      TARGET_64BIT && REG_P (x) ? 'q' : 0);
+	  ix86_print_operand (file, x, 0);
 	  return;
 
 
@@ -22137,11 +22136,13 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
       && !local_symbolic_operand (XEXP (fnaddr, 0), VOIDmode))
     fnaddr = gen_rtx_MEM (QImode, construct_plt_address (XEXP (fnaddr, 0)));
   else if (sibcall
-	   ? !sibcall_insn_operand (XEXP (fnaddr, 0), Pmode)
-	   : !call_insn_operand (XEXP (fnaddr, 0), Pmode))
+	   ? !sibcall_insn_operand (XEXP (fnaddr, 0), word_mode)
+	   : !call_insn_operand (XEXP (fnaddr, 0), word_mode))
     {
-      fnaddr = copy_to_mode_reg (Pmode, XEXP (fnaddr, 0));
-      fnaddr = gen_rtx_MEM (QImode, fnaddr);
+      fnaddr = XEXP (fnaddr, 0);
+      if (GET_MODE (fnaddr) != word_mode)
+	fnaddr = convert_to_mode (word_mode, fnaddr, 1);
+      fnaddr = gen_rtx_MEM (QImode, copy_to_mode_reg (word_mode, fnaddr));
     }
 
   call = gen_rtx_CALL (VOIDmode, fnaddr, callarg1);
