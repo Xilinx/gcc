@@ -11534,7 +11534,7 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
   else
     disp = addr;			/* displacement */
 
-  /* Since address override works only on the (reg) part in fs:(reg),
+  /* Since address override works only on the (reg32) part in fs:(reg32),
      we can't use it as memory operand.  */
   if (Pmode != word_mode && seg == SEG_FS && (base || index))
     return 0;
@@ -12643,6 +12643,17 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	      emit_insn (gen_tls_initial_exec_64_sun (dest, x));
 	      return dest;
 	    }
+	  else if (Pmode == SImode)
+	    {
+	      /* Always generate
+			movl %fs:0, %reg32
+			addl xgottpoff(%rip), %reg32
+		 to support linker IE->LE optimization and avoid
+		 fs:(%reg32) as memory operand.  */
+	      dest = gen_reg_rtx (Pmode);
+	      emit_insn (gen_tls_initial_exec_x32 (dest, x));
+	      return dest;
+	    }
 
 	  pic = NULL;
 	  type = UNSPEC_GOTNTPOFF;
@@ -12676,19 +12687,8 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
       if (TARGET_64BIT || TARGET_ANY_GNU_TLS)
 	{
           base = get_thread_pointer (for_mov || !TARGET_TLS_DIRECT_SEG_REFS);
-	  if (Pmode != word_mode)
-	    {
-	      /* Since address override works only on the (reg) part in
-		 fs:(reg), we can't use it as memory operand.  */
-	      rtx reg = gen_reg_rtx (Pmode);
-	      emit_move_insn (reg, base);
-	      return gen_rtx_PLUS (Pmode, reg, off);
-	    }
-	  else
-	    {
-	      off = force_reg (Pmode, off);
-	      return gen_rtx_PLUS (Pmode, base, off);
-	    }
+	  off = force_reg (Pmode, off);
+	  return gen_rtx_PLUS (Pmode, base, off);
 	}
       else
 	{
@@ -12707,16 +12707,7 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
       if (TARGET_64BIT || TARGET_ANY_GNU_TLS)
 	{
 	  base = get_thread_pointer (for_mov || !TARGET_TLS_DIRECT_SEG_REFS);
-	  if (Pmode != word_mode)
-	    {
-	      /* Since address override works only on the (reg) part in
-		 fs:(reg), we can't use it as memory operand.  */
-	      rtx reg = gen_reg_rtx (Pmode);
-	      emit_move_insn (reg, base);
-	      return gen_rtx_PLUS (Pmode, reg, off);
-	    }
-	  else
-	    return gen_rtx_PLUS (Pmode, base, off);
+	  return gen_rtx_PLUS (Pmode, base, off);
 	}
       else
 	{
@@ -14706,29 +14697,6 @@ i386_asm_output_addr_const_extra (FILE *file, rtx x)
     }
 
   return true;
-}
-
-/* Since x64-64 linker IE->LE transition requires a REX prefix, we
-   output a REX prefix if there isn't one.  */
-
-bool
-ix86_output_rex_prefix_p (rtx dest, rtx op)
-{
-  if (!TARGET_X32
-      || GET_MODE (dest) != SImode
-      || REX_INT_REG_P (dest)
-      || !MEM_P (op))
-    return false;
-
-  op = XEXP (op, 0);
-  if (GET_CODE (op) != CONST)
-    return false;
-
-  op = XEXP (op, 0);
-  if (GET_CODE (op) != UNSPEC)
-    return false;
-
-  return XINT (op, 1) == UNSPEC_GOTNTPOFF;
 }
 
 /* Split one or more double-mode RTL references into pairs of half-mode

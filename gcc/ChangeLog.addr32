@@ -1,3 +1,18 @@
+2012-03-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386-protos.h (ix86_output_rex_prefix_p): Removed.
+
+	* config/i386/i386.c (ix86_decompose_address): Update comments.
+	(legitimize_tls_address): Call gen_tls_initial_exec_x32 if
+	Pmode == SImode for x32.  Don't load TP into register for
+	TLS_MODEL_INITIAL_EXEC and TLS_MODEL_LOCAL_EXEC modes in x32.
+	(ix86_output_rex_prefix_p): Removed.
+
+	* config/i386/i386.md (UNSPEC_TLS_IE_X32): New.
+	(tls_initial_exec_x32): Likewise.
+	(*movsi_internal): Output REX prefix if needed.
+	(*add<mode>_1): Likewise.
+
 2012-03-06  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/i386.md (*zero_extendsidi2_rex64): Allow loading
