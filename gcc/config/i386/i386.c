@@ -21025,14 +21025,9 @@ ix86_adjust_counter (rtx countreg, HOST_WIDE_INT value)
 rtx
 ix86_zero_extend_to_Pmode (rtx exp)
 {
-  rtx r;
-  if (GET_MODE (exp) == VOIDmode)
-    return force_reg (Pmode, exp);
-  if (GET_MODE (exp) == Pmode)
-    return copy_to_mode_reg (Pmode, exp);
-  r = gen_reg_rtx (Pmode);
-  emit_insn (gen_zero_extendsidi2 (r, exp));
-  return r;
+  if (GET_MODE (exp) != Pmode)
+    exp = convert_to_mode (Pmode, exp, 1);
+  return force_reg (Pmode, exp);
 }
 
 /* Divide COUNTREG by SCALE.  */
@@ -22060,11 +22055,11 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
       gcc_unreachable ();
     case loop:
       need_zero_guard = true;
-      size_needed = GET_MODE_SIZE (Pmode);
+      size_needed = GET_MODE_SIZE (word_mode);
       break;
     case unrolled_loop:
       need_zero_guard = true;
-      size_needed = GET_MODE_SIZE (Pmode) * (TARGET_64BIT ? 4 : 2);
+      size_needed = GET_MODE_SIZE (word_mode) * (TARGET_64BIT ? 4 : 2);
       break;
     case rep_prefix_8_byte:
       size_needed = 8;
@@ -22230,13 +22225,13 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
       break;
     case loop:
       expand_set_or_movmem_via_loop (dst, src, destreg, srcreg, NULL,
-				     count_exp, Pmode, 1, expected_size);
+				     count_exp, word_mode, 1, expected_size);
       break;
     case unrolled_loop:
       /* Unroll only by factor of 2 in 32bit mode, since we don't have enough
 	 registers for 4 temporaries anyway.  */
       expand_set_or_movmem_via_loop (dst, src, destreg, srcreg, NULL,
-				     count_exp, Pmode, TARGET_64BIT ? 4 : 2,
+				     count_exp, word_mode, TARGET_64BIT ? 4 : 2,
 				     expected_size);
       break;
     case rep_prefix_8_byte:
@@ -22448,11 +22443,11 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
       gcc_unreachable ();
     case loop:
       need_zero_guard = true;
-      size_needed = GET_MODE_SIZE (Pmode);
+      size_needed = GET_MODE_SIZE (word_mode);
       break;
     case unrolled_loop:
       need_zero_guard = true;
-      size_needed = GET_MODE_SIZE (Pmode) * 4;
+      size_needed = GET_MODE_SIZE (word_mode) * 4;
       break;
     case rep_prefix_8_byte:
       size_needed = 8;
@@ -22623,11 +22618,11 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
       break;
     case loop:
       expand_set_or_movmem_via_loop (dst, NULL, destreg, NULL, promoted_val,
-				     count_exp, Pmode, 1, expected_size);
+				     count_exp, word_mode, 1, expected_size);
       break;
     case unrolled_loop:
       expand_set_or_movmem_via_loop (dst, NULL, destreg, NULL, promoted_val,
-				     count_exp, Pmode, 4, expected_size);
+				     count_exp, word_mode, 4, expected_size);
       break;
     case rep_prefix_8_byte:
       expand_setmem_via_rep_stos (dst, destreg, promoted_val, count_exp,
@@ -22990,13 +22985,13 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
       && !local_symbolic_operand (XEXP (fnaddr, 0), VOIDmode))
     fnaddr = gen_rtx_MEM (QImode, construct_plt_address (XEXP (fnaddr, 0)));
   else if (sibcall
-	   ? !sibcall_insn_operand (XEXP (fnaddr, 0), Pmode)
-	   : !call_insn_operand (XEXP (fnaddr, 0), Pmode))
+	   ? !sibcall_insn_operand (XEXP (fnaddr, 0), word_mode)
+	   : !call_insn_operand (XEXP (fnaddr, 0), word_mode))
     {
       fnaddr = XEXP (fnaddr, 0);
-      if (GET_MODE (fnaddr) != Pmode)
-	fnaddr = convert_to_mode (Pmode, fnaddr, 1);
-      fnaddr = gen_rtx_MEM (QImode, copy_to_mode_reg (Pmode, fnaddr));
+      if (GET_MODE (fnaddr) != word_mode)
+	fnaddr = convert_to_mode (word_mode, fnaddr, 1);
+      fnaddr = gen_rtx_MEM (QImode, copy_to_mode_reg (word_mode, fnaddr));
     }
 
   vec_len = 0;
@@ -24309,10 +24304,13 @@ ix86_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
       /* Load the function address to r11.  Try to load address using
 	 the shorter movl instead of movabs.  We may want to support
 	 movq for kernel mode, but kernel does not use trampolines at
-	 the moment.  */
-      if (x86_64_zext_immediate_operand (fnaddr, VOIDmode))
+	 the moment.  FNADDR is a 32bit address and may not be in
+	 DImode when ptr_mode == SImode.  Always use movl in this
+	 case.  */
+      if (ptr_mode == SImode
+	  || x86_64_zext_immediate_operand (fnaddr, VOIDmode))
 	{
-	  fnaddr = copy_to_mode_reg (DImode, fnaddr);
+	  fnaddr = copy_to_mode_reg (Pmode, fnaddr);
 
 	  mem = adjust_address (m_tramp, HImode, offset);
 	  emit_move_insn (mem, gen_int_mode (0xbb41, HImode));
@@ -24331,9 +24329,9 @@ ix86_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
 	  offset += 10;
 	}
 
-      /* Load static chain using movabs to r10.  Use the
-	 shorter movl instead of movabs for x32.  */
-      if (TARGET_X32)
+      /* Load static chain using movabs to r10.  Use the shorter movl
+         instead of movabs when ptr_mode == SImode.  */
+      if (ptr_mode == SImode)
 	{
 	  opcode = 0xba41;
 	  size = 6;
@@ -31971,7 +31969,7 @@ x86_this_parameter (tree function)
         parm_regs = x86_64_ms_abi_int_parameter_registers;
       else
         parm_regs = x86_64_int_parameter_registers;
-      return gen_rtx_REG (DImode, parm_regs[aggr]);
+      return gen_rtx_REG (Pmode, parm_regs[aggr]);
     }
 
   nregs = ix86_function_regparm (type, function);
