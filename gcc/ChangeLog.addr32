@@ -1,5 +1,26 @@
 2012-03-11  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (legitimize_tls_address): Check Pmode
+	instead of TARGET_X32 when calling gen_tls_global_dynamic_64_<mode>
+	and gen_tls_local_dynamic_base_64_<mode>.
+
+	* config/i386/i386.md (x86_64_mode): Removed.
+	(PTR): Restored.
+	(*tls_global_dynamic_<x86_64_mode>): Renamed to ...
+	(*tls_global_dynamic_64_<mode>): This.
+	(tls_global_dynamic_<x86_64_mode>): Renamed to ...
+	(tls_global_dynamic_64_<mode>): This.
+	(*tls_local_dynamic_base_<x86_64_mode>): Renamed to ...
+	(*tls_local_dynamic_base_64_<mode>): This.
+	(tls_local_dynamic_base_<x86_64_mode>): Renamed to ...
+	(tls_local_dynamic_base_64_<mode>): This.
+	(stack_protect_set_<mode>): Replace ":P" with ":PTR".
+	(stack_tls_protect_set_<mode>): Likewise.
+	(stack_protect_test_<mode>): Likewise.
+	(stack_tls_protect_test_<mode>): Likewise.
+
+2012-03-11  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (ix86_option_override_internal): Updated.
 
 	* config/i386/sse.md (sse3_monitor_<x86_64_mode>): Renamed to

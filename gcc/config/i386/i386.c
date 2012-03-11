@@ -12543,12 +12543,12 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	      rtx rax = gen_rtx_REG (Pmode, AX_REG), insns;
 
 	      start_sequence ();
-	      if (TARGET_X32)
-		emit_call_insn (gen_tls_global_dynamic_x32 (rax, x,
-							    caddr));
+	      if (Pmode == DImode)
+		emit_call_insn (gen_tls_global_dynamic_64_di (rax, x,
+							      caddr));
 	      else
-		emit_call_insn (gen_tls_global_dynamic_64 (rax, x,
-							   caddr));
+		emit_call_insn (gen_tls_global_dynamic_64_si (rax, x,
+							      caddr));
 	      insns = get_insns ();
 	      end_sequence ();
 
@@ -12596,12 +12596,12 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	      rtx rax = gen_rtx_REG (Pmode, AX_REG), insns, eqv;
 
 	      start_sequence ();
-	      if (TARGET_X32)
-	        emit_call_insn (gen_tls_local_dynamic_base_x32 (rax,
-								caddr));
+	      if (Pmode == DImode)
+		emit_call_insn (gen_tls_local_dynamic_base_64_di (rax,
+								  caddr));
 	      else
-	        emit_call_insn (gen_tls_local_dynamic_base_64 (rax,
-							       caddr));
+		emit_call_insn (gen_tls_local_dynamic_base_64_si (rax,
+								  caddr));
 	      insns = get_insns ();
 	      end_sequence ();
 
