@@ -99,11 +99,11 @@ void __cilkrts_init_global_sysdep(global_state_t *g)
 
     __cilkrts_init_tls_variables();
 
-    CILK_ASSERT(g->total_workers >= g->P - 1);
+    CILK_ASSERT(g->nworkers >= g->P - 1);
     g->sysdep = __cilkrts_malloc(sizeof (struct global_sysdep_state));
     CILK_ASSERT(g->sysdep);
     g->sysdep->pthread_t_size = sizeof (pthread_t);
-    if (g->total_workers > g->P - 1) {
+    if (g->nworkers > g->P - 1) {
         g->sysdep->threads = __cilkrts_malloc((g->P - 1) * sizeof (pthread_t));
         CILK_ASSERT(g->sysdep->threads);
     } else {
@@ -156,10 +156,8 @@ NON_COMMON void* __cilkrts_worker_stub(void *arg)
 #endif
 
 #ifdef __INTEL_COMPILER
-#ifdef USE_ITTNOTIFY
-    // Name the threads for Advisor.  They don't want a worker number.
+    // Name the threads for Advisor.  They don't want a worker number
     __itt_thread_set_name("Cilk Worker");
-#endif // defined USE_ITTNOTIFY
 #endif // defined __INTEL_COMPILER
 
     /* Worker startup is serialized
@@ -207,7 +205,15 @@ NON_COMMON void* __cilkrts_worker_stub(void *arg)
 //     return n;
 // }
 
+#define DEFAULT_STACK_SIZE 0x100000
 
+/* return the standard size of stacks to be created.
+ */
+static size_t get_stack_size ()
+{
+    // FIXME: don't know how to get this value in Linux.
+    return DEFAULT_STACK_SIZE;
+}
 
 static void write_version_file (global_state_t *, int);
 
@@ -240,7 +246,9 @@ static void * create_threads_and_work (void * arg)
 
     // Ideally this turns into a tail call that wipes out this stack frame.
     return __cilkrts_worker_stub (arg);
+}
 #endif
+
 void __cilkrts_start_workers(global_state_t *g, int n)
 {
     g->running = 1;
@@ -387,9 +395,9 @@ NORETURN __cilkrts_resume(__cilkrts_worker *w, full_frame *f,
 
     // Notify the Intel tools that we're stealing code
     ITT_SYNC_ACQUIRED(sf->worker);
-#ifdef ENABLE_NOTIFY_ZC_INTRINSIC
-    __notify_zc_intrinsic("cilk_continue", sf);
-#endif // defined ENABLE_NOTIFY_ZC_INTRINSIC
+#ifdef __INTEL_COMPILER
+    __notify_intrinsic("cilk_continue", sf);
+#endif // defined __INTEL_COMPILER
 
     if (f->stack_self) {
         // Notify TBB that we are resuming.
@@ -448,10 +456,6 @@ void __cilkrts_invoke_stack_op(__cilkrts_worker *w,
                                enum __cilk_tbb_stack_op op,
                                __cilkrts_stack *sd)
 {
-    // If we don't have a stack we can't do much, can we?
-    if (NULL == sd)
-        return;
-
     if (0 == sd->stack_op_routine)
     {
         return;
@@ -676,7 +680,8 @@ __cilkrts_stack *__cilkrts_make_stack(__cilkrts_worker *w)
     }
 
     stack_size = w->g->stack_size;
-    CILK_ASSERT(stack_size > 0);
+    if (stack_size == 0)
+        stack_size = (1000000 / PAGE) * PAGE; /* round down to page bound */
 
     p = mmap(0, stack_size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS,
              -1, 0);
@@ -820,7 +825,7 @@ int __cilkrts_sysdep_is_worker_thread_id(global_state_t *g,
 {
 #ifdef __linux__
     pthread_t tid = *(pthread_t *)thread_id;
-    if (i < 0 || i > g->total_workers)
+    if (i < 0 || i > g->nworkers)
         return 0;
     return g->sysdep->threads[i] == tid;
 #else

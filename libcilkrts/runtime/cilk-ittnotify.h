@@ -30,6 +30,7 @@
 #define INCLUDED_CILK_ITTNOTIFY_DOT_H
 
 #ifdef __INTEL_COMPILER
+#define USE_ITTNOTIFY 1
 #endif
 #include <stdio.h>
 

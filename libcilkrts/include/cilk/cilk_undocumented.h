@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2011 
+ * Copyright (C) 2009-2010 
  * Intel Corporation
  * 
  * This file is part of the Intel Cilk Plus Library.  This library is free
@@ -70,11 +70,10 @@ void __cilkrts_cilkscreen_puts(const char *);
 CILK_EXPORT __CILKRTS_NOTHROW
 void *__cilkrts_get_sf(void);
 
-/**
- * Returns the size of stacks created by Cilk.
- */
+struct __cilkrts_worker;
+
 CILK_EXPORT __CILKRTS_NOTHROW
-size_t __cilkrts_get_stack_size(void);
+void __cilkrts_init_worker_sysdep(struct __cilkrts_worker *w);
 
 CILK_EXPORT __CILKRTS_NOTHROW
 int __cilkrts_irml_version(void);
@@ -102,7 +101,6 @@ __CILKRTS_END_EXTERN_C
 
 /* Stubs for the api functions */
 
-#define __cilkrts_get_stack_size() (0)
 #define __cilkrts_synched() (1)
 
 #endif /* CILK_STUB */

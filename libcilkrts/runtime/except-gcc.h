@@ -45,7 +45,6 @@
 
 #include <cilk/common.h>
 #include <exception>
-#include <typeinfo>
 
 struct __cxa_exception;
 
