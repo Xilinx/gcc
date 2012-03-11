@@ -1,3 +1,9 @@
+2012-03-11  Andrew Pinski  <apinski@cavium.com>
+
+	* gcc.dg/tree-ssa/reassoc-11.c: Check
+	forwprop1 dump instead as that does
+	the optimization for bitwise operations.
+
 2012-03-08  Andrew Pinski  <apinski@cavium.com>
 
 	* gcc.dg/tree-ssa/vrp63.c: Rename to ...

@@ -1686,6 +1686,7 @@ and_comparisons_1 (enum tree_code code1, tree op1a, tree op1b,
 		   enum tree_code code2, tree op2a, tree op2b)
 {
   /* First check for ((x CODE1 y) AND (x CODE2 y)).  */
+  /* SSA_COMBINE: Already moved. */
   if (operand_equal_p (op1a, op2a, 0)
       && operand_equal_p (op1b, op2b, 0))
     {
@@ -1698,6 +1699,7 @@ and_comparisons_1 (enum tree_code code1, tree op1a, tree op1b,
     }
 
   /* Likewise the swapped case of the above.  */
+  /* SSA_COMBINE: Already moved. */
   if (operand_equal_p (op1a, op2b, 0)
       && operand_equal_p (op1b, op2a, 0))
     {
@@ -2148,6 +2150,7 @@ or_comparisons_1 (enum tree_code code1, tree op1a, tree op1b,
 		  enum tree_code code2, tree op2a, tree op2b)
 {
   /* First check for ((x CODE1 y) OR (x CODE2 y)).  */
+  /* SSA_COMBINE: Already moved. */
   if (operand_equal_p (op1a, op2a, 0)
       && operand_equal_p (op1b, op2b, 0))
     {
@@ -2160,6 +2163,7 @@ or_comparisons_1 (enum tree_code code1, tree op1a, tree op1b,
     }
 
   /* Likewise the swapped case of the above.  */
+  /* SSA_COMBINE: Already moved. */
   if (operand_equal_p (op1a, op2b, 0)
       && operand_equal_p (op1b, op2a, 0))
     {

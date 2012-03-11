@@ -12919,11 +12919,11 @@ fold_binary_loc (location_t loc,
       if (TREE_CODE (arg0) == BIT_AND_EXPR
 	  && TREE_CODE (arg1) == BIT_AND_EXPR)
 	{
-	  tree arg00 = TREE_OPERAND (arg0, 0);
-	  tree arg01 = TREE_OPERAND (arg0, 1);
-	  tree arg10 = TREE_OPERAND (arg1, 0);
-	  tree arg11 = TREE_OPERAND (arg1, 1);
 	  tree itype = TREE_TYPE (arg0);
+	  tree arg00 = fold_convert_loc (loc, itype, TREE_OPERAND (arg0, 0));
+	  tree arg01 = fold_convert_loc (loc, itype, TREE_OPERAND (arg0, 1));
+	  tree arg10 = fold_convert_loc (loc, itype, TREE_OPERAND (arg1, 0));
+	  tree arg11 = fold_convert_loc (loc, itype, TREE_OPERAND (arg1, 1));
 
 	  if (operand_equal_p (arg01, arg11, 0))
 	    return fold_build2_loc (loc, code, type,

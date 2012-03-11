@@ -1,3 +1,31 @@
+2012-03-11  Andrew Pinski  <apinski@cavium.com>
+
+	* fold-const.c (fold_binary_loc): Fix the types up correctly
+	when folding of (a & c) == (b & c) to (a^b) & c == 0.
+	* gimple-fold.c (and_comparisons_1): Add a comment about what has
+	been moved to gimple-ssa-combine.c and what has not.
+	(or_comparisons_1): Likewise.
+	* gimple-ssa-combine.c (forward_propagate_into_comparison): Renable
+	folding of (a!=b) as a ^ b != 0.
+	(comparison_code): New enum.
+	(comparison_to_compcode): New function.
+	(compcode_to_comparison): New function.
+	(gimple_combine_comparisons): New function.
+	(simplify_bitwise_binary): Use gimple_combine_convert instead of
+	build1_loc.
+	Fixup simplifying of "(A OP1 B) OP0 (C OP1 B)" when OP1 and OP0 are
+	both xor.
+	Do some simple reassiocation.
+	Call gimple_combine_comparisons for when we have
+	"(A CMP0 B) OP (A CMP1 B)".
+	(combine_conversions): Use gimple_combine_build1 more.
+	* tree-ssa-forwprop.c (delete_dead_code_uptil): Return
+	a bool if there was a deletion happen.
+	(ssa_forward_propagate_and_combine): Add TODO_remove_unused_locals
+	if delete_dead_code_uptil returned true.
+	* tree-ssa-ifcombine.c: Add some debugging for the cases where
+	gimple_combine_build2 misses that maybe_fold_and_comparisons catches.
+
 2012-03-08  Andrew Pinski  <apinski@cavium.com>
 
 	* Makefile.in (gimple-ssa-combine.o): Remove

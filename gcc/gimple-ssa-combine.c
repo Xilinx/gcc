@@ -575,8 +575,6 @@ forward_propagate_into_comparison (location_t loc,
       && integer_zerop (op1))
     return gimple_combine_build2 (loc, code, type, arg1, arg2);
 
-#if 0
-  /* FIXME: this introduces some bugs. */
   /* Try to simplify (a!=b) as a ^ b != 0 if a^b simplifies. */
   if ((code == NE_EXPR || code == EQ_EXPR)
       && INTEGRAL_TYPE_P (TREE_TYPE (op0))
@@ -586,7 +584,6 @@ forward_propagate_into_comparison (location_t loc,
       if (tmp && TREE_CODE (tmp) != BIT_XOR_EXPR)
 	return gimple_combine_build2 (loc, code, type, tmp, build_int_cst (TREE_TYPE (tmp), 0));
     }
-#endif
 
   /* ((X)bool) != N where N is no 0 or 1 is always true. */
   /* ((X)bool) == N where N is no 0 or 1 is always false. */
@@ -746,7 +743,6 @@ forward_propagate_into_comparison (location_t loc,
       op0 = gimple_combine_convert (loc, type, op0);
       return op0;
     }
-
 
   /* FIXME: this really should not be using combine_cond_expr_cond (fold_binary)
      but matching the patterns directly.  */
@@ -1224,6 +1220,191 @@ simplify_gimple_switch (gimple stmt)
   return defto;
 }
 
+/* The following constants represent a bit based encoding of GCC's
+   comparison operators.  This encoding simplifies transformations
+   on relational comparison operators, such as AND and OR.  */
+enum comparison_code {
+  COMPCODE_FALSE = 0,
+  COMPCODE_LT = 1,
+  COMPCODE_EQ = 2,
+  COMPCODE_LE = 3,
+  COMPCODE_GT = 4,
+  COMPCODE_LTGT = 5,
+  COMPCODE_GE = 6,
+  COMPCODE_ORD = 7,
+  COMPCODE_UNORD = 8,
+  COMPCODE_UNLT = 9,
+  COMPCODE_UNEQ = 10,
+  COMPCODE_UNLE = 11,
+  COMPCODE_UNGT = 12,
+  COMPCODE_NE = 13,
+  COMPCODE_UNGE = 14,
+  COMPCODE_TRUE = 15
+};
+
+/* Convert a comparison tree code from an enum tree_code representation
+   into a compcode bit-based encoding.  This function is the inverse of
+   compcode_to_comparison.  */
+
+static enum comparison_code
+comparison_to_compcode (enum tree_code code)
+{
+  switch (code)
+    {
+    case LT_EXPR:
+      return COMPCODE_LT;
+    case EQ_EXPR:
+      return COMPCODE_EQ;
+    case LE_EXPR:
+      return COMPCODE_LE;
+    case GT_EXPR:
+      return COMPCODE_GT;
+    case NE_EXPR:
+      return COMPCODE_NE;
+    case GE_EXPR:
+      return COMPCODE_GE;
+    case ORDERED_EXPR:
+      return COMPCODE_ORD;
+    case UNORDERED_EXPR:
+      return COMPCODE_UNORD;
+    case UNLT_EXPR:
+      return COMPCODE_UNLT;
+    case UNEQ_EXPR:
+      return COMPCODE_UNEQ;
+    case UNLE_EXPR:
+      return COMPCODE_UNLE;
+    case UNGT_EXPR:
+      return COMPCODE_UNGT;
+    case LTGT_EXPR:
+      return COMPCODE_LTGT;
+    case UNGE_EXPR:
+      return COMPCODE_UNGE;
+    default:
+      gcc_unreachable ();
+    }
+}
+
+/* Convert a compcode bit-based encoding of a comparison operator back
+   to GCC's enum tree_code representation.  This function is the
+   inverse of comparison_to_compcode.  */
+
+static enum tree_code
+compcode_to_comparison (enum comparison_code code)
+{
+  switch (code)
+    {
+    case COMPCODE_LT:
+      return LT_EXPR;
+    case COMPCODE_EQ:
+      return EQ_EXPR;
+    case COMPCODE_LE:
+      return LE_EXPR;
+    case COMPCODE_GT:
+      return GT_EXPR;
+    case COMPCODE_NE:
+      return NE_EXPR;
+    case COMPCODE_GE:
+      return GE_EXPR;
+    case COMPCODE_ORD:
+      return ORDERED_EXPR;
+    case COMPCODE_UNORD:
+      return UNORDERED_EXPR;
+    case COMPCODE_UNLT:
+      return UNLT_EXPR;
+    case COMPCODE_UNEQ:
+      return UNEQ_EXPR;
+    case COMPCODE_UNLE:
+      return UNLE_EXPR;
+    case COMPCODE_UNGT:
+      return UNGT_EXPR;
+    case COMPCODE_LTGT:
+      return LTGT_EXPR;
+    case COMPCODE_UNGE:
+      return UNGE_EXPR;
+    default:
+      gcc_unreachable ();
+    }
+}
+
+
+/* Return a tree for the comparison which is the combination of
+   doing the AND or OR (depending on CODE) of the two operations LCODE
+   and RCODE on the identical operands LL_ARG and LR_ARG.  Take into account
+   the possibility of trapping if the mode has NaNs, and return NULL_TREE
+   if this makes the transformation invalid.  */
+
+static tree
+gimple_combine_comparisons (location_t loc,
+			   enum tree_code code, enum tree_code lcode,
+			   enum tree_code rcode, tree truth_type,
+			   tree ll_arg, tree lr_arg)
+{
+  bool honor_nans = HONOR_NANS (TYPE_MODE (TREE_TYPE (ll_arg)));
+  enum comparison_code lcompcode = comparison_to_compcode (lcode);
+  enum comparison_code rcompcode = comparison_to_compcode (rcode);
+  int compcode;
+
+  switch (code)
+    {
+    case BIT_AND_EXPR:
+      compcode = lcompcode & rcompcode;
+      break;
+
+    case BIT_IOR_EXPR:
+      compcode = lcompcode | rcompcode;
+      break;
+
+    case BIT_XOR_EXPR:
+      compcode = lcompcode ^ rcompcode;
+      break;
+
+    default:
+      return NULL_TREE;
+    }
+
+  if (!honor_nans)
+    {
+      /* Eliminate unordered comparisons, as well as LTGT and ORD
+	 which are not used unless the mode has NaNs.  */
+      compcode &= ~COMPCODE_UNORD;
+      if (compcode == COMPCODE_LTGT)
+	compcode = COMPCODE_NE;
+      else if (compcode == COMPCODE_ORD)
+	compcode = COMPCODE_TRUE;
+    }
+   else if (flag_trapping_math)
+     {
+	/* Check that the original operation and the optimized ones will trap
+	   under the same condition.  */
+	bool ltrap = (lcompcode & COMPCODE_UNORD) == 0
+		     && (lcompcode != COMPCODE_EQ)
+		     && (lcompcode != COMPCODE_ORD);
+	bool rtrap = (rcompcode & COMPCODE_UNORD) == 0
+		     && (rcompcode != COMPCODE_EQ)
+		     && (rcompcode != COMPCODE_ORD);
+	bool trap = (compcode & COMPCODE_UNORD) == 0
+		    && (compcode != COMPCODE_EQ)
+		    && (compcode != COMPCODE_ORD);
+
+	/* If we changed the conditions that cause a trap, we lose.  */
+	if ((ltrap || rtrap) != trap)
+	  return NULL_TREE;
+      }
+
+  if (compcode == COMPCODE_TRUE)
+    return constant_boolean_node (true, truth_type);
+  else if (compcode == COMPCODE_FALSE)
+    return constant_boolean_node (false, truth_type);
+  else
+    {
+      enum tree_code tcode;
+
+      tcode = compcode_to_comparison ((enum comparison_code) compcode);
+      return gimple_combine_build2 (loc, tcode, truth_type, ll_arg, lr_arg);
+    }
+}
+
+
 /* Helper routine for simplify_bitwise_binary_1 function.
    Return for the SSA name NAME the expression X if it mets condition
    NAME = !X. Otherwise return NULL_TREE.
@@ -1450,7 +1631,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       tree tmp;
       tmp = gimple_combine_build2 (loc, code, TREE_TYPE (def1_arg1), def1_arg1,
 				   def2_arg1);
-      return build1_loc (loc, NOP_EXPR, type, tmp);
+      return gimple_combine_convert (loc, type, tmp);
     }
 
   /* Canonicalize (a & C1) | C2.  */
@@ -1501,7 +1682,7 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       return gimple_combine_build2 (loc, code, type, def1_arg1, cst);
     }
 
-   /* Fold (A OP1 B) OP0 (C OP1 B) to (A OP0 C) OP1 B. */
+   /* Fold (A OP1 B) OP0 (C OP1 B) to (A OP0 C) OP1 (B OP0 B). */
    if (def1_code == def2_code
        && (def1_code == BIT_AND_EXPR
 	   || def1_code == BIT_XOR_EXPR
@@ -1510,15 +1691,10 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 				       def2_arg2))
     {
       tree inner = gimple_combine_build2 (loc, code, type, def1_arg1, def2_arg1);
-      if (integer_zerop (inner))
-	{
-	  if (def1_code == BIT_AND_EXPR)
-	    return inner;
-	  else
-	    return def1_arg2;
-	}
-      else
-      	return gimple_combine_build2 (loc, def1_code, type, inner, def1_arg2);
+      if (code == def1_code && code == BIT_XOR_EXPR)
+	/* (A ^ B) ^ (C ^ B) -> A ^ C since B ^ B is 0. */
+	return inner;
+      return gimple_combine_build2 (loc, def1_code, type, inner, def1_arg2);
     }
 
   /* Canonicalize X ^ ~0 to ~X.  */
@@ -1670,6 +1846,61 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 	  /* (Y & ~X) | X -> X | Y */
 	  if (coden == BIT_NOT_EXPR && a1 == x)
 	    return gimple_combine_build2 (loc, code, type, x, def2_arg1);
+	}
+    }
+
+  /* (A & B) & C, try to simplify A & C if that does not simplify then try B & C
+     if either simplifies then combine it with the other argument. */
+  if (def1_code == code)
+    {
+      tree tmp;
+      /* Try (A & C) & B. */
+      tmp = gimple_combine_binary (loc, code, type, def1_arg1, arg2);
+      if (tmp)
+	return gimple_combine_build2 (loc, code, type, tmp, def1_arg2);
+
+      /* Try (B & C) & A. */
+      tmp = gimple_combine_binary (loc, code, type, def1_arg2, arg2);
+      if (tmp)
+	return gimple_combine_build2 (loc, code, type, tmp, def1_arg1);
+    }
+
+  /* C & (A & B) , try to simplify A & C if that does not simplify then try B & C
+     if either simplifies then combine it with the other argument. */
+  if (def2_code == code)
+    {
+      tree tmp;
+      /* Try (A & C) & B. */
+      tmp = gimple_combine_binary (loc, code, type, def2_arg1, arg1);
+      if (tmp)
+	return gimple_combine_build2 (loc, code, type, tmp, def2_arg2);
+      /* Try (B & C) & A. */
+      tmp = gimple_combine_binary (loc, code, type, def2_arg2, arg1);
+      if (tmp)
+	return gimple_combine_build2 (loc, code, type, tmp, def2_arg1);
+    }
+
+
+  if (TREE_CODE_CLASS (def1_code) == tcc_comparison
+      && TREE_CODE_CLASS (def2_code) == tcc_comparison)
+    {
+      tree result;
+      if (operand_equal_p (def1_arg1, def2_arg1, 0)
+	  && operand_equal_p (def1_arg2, def2_arg2, 0))
+	{
+          result = gimple_combine_comparisons (loc, code, def1_code, def2_code,
+					       type, def1_arg1, def1_arg2);
+	  if (result)
+	    return result;
+	}
+      else if (operand_equal_p (def1_arg1, def2_arg2, 0)
+	       && operand_equal_p (def1_arg2, def2_arg1, 0))
+	{
+          result = gimple_combine_comparisons (loc, code, def1_code,
+					       swap_tree_comparison (def2_code),
+					       type, def1_arg1, def1_arg2);
+	  if (result)
+	    return result;
 	}
     }
 
@@ -1992,7 +2223,7 @@ combine_conversions (location_t loc, enum tree_code code, tree ltype,
 	  && (((inter_int || inter_ptr) && final_int)
 	      || (inter_float && final_float))
 	  && inter_prec >= final_prec)
-	return unshare_expr (defop0);
+	return gimple_combine_build1 (loc, code, ltype, defop0);
 
       /* Likewise, if the intermediate and initial types are either both
 	 float or both integer, we don't need the middle conversion if the
@@ -2052,7 +2283,7 @@ combine_conversions (location_t loc, enum tree_code code, tree ltype,
 	  && inter_unsignedp)
 	{
 	  tree tem;
-	  tem = double_int_to_tree (inside_type, double_int_mask (inter_prec));
+	  tem = double_int_to_tree (TREE_TYPE (defop0), double_int_mask (inter_prec));
 
 	  tem = gimple_combine_build2 (loc, BIT_AND_EXPR, TREE_TYPE (tem),
 				       defop0, tem);

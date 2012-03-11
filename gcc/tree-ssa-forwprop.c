@@ -727,11 +727,13 @@ forward_propagate_addr_expr (tree name, tree rhs)
 
 
 /* Delete possible dead code in BB which might have been caused
-   unused by ssa_combine until statement UNTIL. */
-static void
+   unused by ssa_combine until statement UNTIL.  Return true if
+   a statement was removed. */
+static bool
 delete_dead_code_uptil (gimple_stmt_iterator until)
 {
   gimple_stmt_iterator gsi;
+  bool removed = false;
   gsi = until;
   gsi_prev (&gsi);
   for (; !gsi_end_p (gsi);)
@@ -754,10 +756,12 @@ delete_dead_code_uptil (gimple_stmt_iterator until)
 	  gsi_prev (&gsi);
 	  gsi_remove (&i2, true);
 	  release_defs (stmt);
+	  removed = true;
 	  continue;
 	}
       gsi_prev (&gsi);
     }
+  return removed;
 }
 
 /* For pointers p2 and p1 return p2 - p1 if the
@@ -1191,7 +1195,8 @@ ssa_forward_propagate_and_combine (void)
 	    {
 	      cfg_changed = true;
 	      did_replace = true;
-	      delete_dead_code_uptil (gsi);
+	      if (delete_dead_code_uptil (gsi))
+		todoflags |= TODO_remove_unused_locals;
 	      if (gsi_end_p (gsi))
 		gsi = gsi_start_bb (bb);
 	    }
