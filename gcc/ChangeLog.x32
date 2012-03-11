@@ -1,3 +1,24 @@
+2012-03-11  H.J. Lu  <hongjiu.lu@intel.com>
+	    Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/predicates.md (call_insn_operand): Allow
+	constant_call_address_operand in Pmode only.
+	(sibcall_insn_operand): Ditto.
+	* config/i386/i386.md (*call): Use W mode iterator instead of P mode.
+	(*call_vzeroupper): Ditto.
+	(*sibcall): Ditto.
+	(*sibcall_vzeroupper): Ditto.
+	(*call_value): Ditto.
+	(*call_value_vzeroupper): Ditto.
+	(*sibcall_value): Ditto.
+	(*sibcall_value_vzeroupper): Ditto.
+	(*indirect_jump): Ditto.
+	(*tablejump_1): Ditto.
+	(indirect_jump): Convert memory address to word mode for TARGET_X32.
+	(tablejump): Ditto.
+	* config/i386/i386.c (ix86_expand_call): Convert indirect operands
+	to word mode.
+
 2012-03-08  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (setup_incoming_varargs_64): Use word_mode
