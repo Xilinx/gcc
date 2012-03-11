@@ -3748,10 +3748,10 @@ ix86_option_override_internal (bool main_args_p)
   if (TARGET_64BIT)
     {
       ix86_gen_leave = gen_leave_rex64;
-      if (TARGET_X32)
-	ix86_gen_monitor = gen_sse3_monitor_x32;
+      if (Pmode == DImode)
+	ix86_gen_monitor = gen_sse3_monitor64_di;
       else
-	ix86_gen_monitor = gen_sse3_monitor_64;
+	ix86_gen_monitor = gen_sse3_monitor64_si;
     }
   else
     {

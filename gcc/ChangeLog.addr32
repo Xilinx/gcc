@@ -1,3 +1,11 @@
+2012-03-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_option_override_internal): Updated.
+
+	* config/i386/sse.md (sse3_monitor_<x86_64_mode>): Renamed to
+	...
+	(sse3_monitor64_<mode>): This.
+
 2012-03-11  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/i386.c (ix86_zero_extend_to_Pmode): Rewrite using
