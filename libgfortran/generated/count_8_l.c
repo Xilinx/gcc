@@ -64,11 +64,11 @@ count_8_l (gfc_array_i8 * const restrict retarray,
   if (len < 0)
     len = 0;
 
-  delta = GFC_DESCRIPTOR_STRIDE_BYTES(array,dim);
+  delta = GFC_DESCRIPTOR_SM(array,dim);
 
   for (n = 0; n < dim; n++)
     {
-      sstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(array,n);
+      sstride[n] = GFC_DESCRIPTOR_SM(array,n);
       extent[n] = GFC_DESCRIPTOR_EXTENT(array,n);
 
       if (extent[n] < 0)
@@ -76,7 +76,7 @@ count_8_l (gfc_array_i8 * const restrict retarray,
     }
   for (n = dim; n < rank; n++)
     {
-      sstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(array,n + 1);
+      sstride[n] = GFC_DESCRIPTOR_SM(array,n + 1);
       extent[n] = GFC_DESCRIPTOR_EXTENT(array,n + 1);
 
       if (extent[n] < 0)
@@ -85,23 +85,22 @@ count_8_l (gfc_array_i8 * const restrict retarray,
 
   if (retarray->base_addr == NULL)
     {
-      size_t alloc_size, str;
+      size_t alloc_size, sm;
 
       for (n = 0; n < rank; n++)
         {
           if (n == 0)
-            str = 1;
+            sm = sizeof (GFC_INTEGER_8);
           else
-            str = GFC_DESCRIPTOR_STRIDE(retarray,n-1) * extent[n-1];
+            sm = GFC_DESCRIPTOR_SM (retarray,n-1) * extent[n-1];
 
-	  GFC_DIMENSION_SET(retarray->dim[n], 0, extent[n] - 1, str);
-
+	  GFC_DIMENSION_SET (retarray->dim[n], 0, extent[n], sm);
         }
 
       retarray->offset = 0;
       retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
 
-      alloc_size = sizeof (GFC_INTEGER_8) * GFC_DESCRIPTOR_STRIDE(retarray,rank-1)
+      alloc_size = GFC_DESCRIPTOR_SM (retarray, rank-1)
     		   * extent[rank-1];
 
       if (alloc_size == 0)

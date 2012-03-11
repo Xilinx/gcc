@@ -27,7 +27,7 @@ name`'rtype_qual`_'atype_code (rtype * const restrict retarray,
 
   if (retarray->base_addr == NULL)
     {
-      GFC_DIMENSION_SET(retarray->dim[0], 0, rank-1, 1);
+      GFC_DIMENSION_SET (retarray->dim[0], 0, rank, sizeof (rtype_name));
       retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
       retarray->offset = 0;
       retarray->base_addr = internal_malloc_size (sizeof (rtype_name) * rank);
@@ -130,7 +130,7 @@ void
 
   if (retarray->base_addr == NULL)
     {
-      GFC_DIMENSION_SET(retarray->dim[0], 0, rank - 1, 1);
+      GFC_DIMENSION_SET (retarray->dim[0], 0, rank, sizeof (rtype_name));
       retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
       retarray->offset = 0;
       retarray->base_addr = internal_malloc_size (sizeof (rtype_name) * rank);
@@ -165,7 +165,7 @@ void
   for (n = 0; n < rank; n++)
     {
       sstride[n] = GFC_DESCRIPTOR_STRIDE(array,n);
-      mstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(mask,n);
+      mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
       extent[n] = GFC_DESCRIPTOR_EXTENT(array,n);
       count[n] = 0;
       if (extent[n] <= 0)
@@ -261,7 +261,7 @@ void
 
   if (retarray->base_addr == NULL)
     {
-      GFC_DIMENSION_SET(retarray->dim[0], 0, rank-1, 1);
+      GFC_DIMENSION_SET (retarray->dim[0], 0, rank, sizeof (rtype_name));
       retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
       retarray->offset = 0;
       retarray->base_addr = internal_malloc_size (sizeof (rtype_name) * rank);

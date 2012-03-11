@@ -54,11 +54,11 @@ transpose_c16 (gfc_array_c16 * const restrict ret,
       assert (GFC_DESCRIPTOR_RANK (ret) == 2);
       assert (ret->dtype == source->dtype);
 
-      GFC_DIMENSION_SET(ret->dim[0], 0, GFC_DESCRIPTOR_EXTENT(source,1) - 1,
-			1);
+      GFC_DIMENSION_SET(ret->dim[0], 0, GFC_DESCRIPTOR_EXTENT(source,1),
+			sizeof (GFC_COMPLEX_16));
 
-      GFC_DIMENSION_SET(ret->dim[1], 0, GFC_DESCRIPTOR_EXTENT(source,0) - 1,
-			GFC_DESCRIPTOR_EXTENT(source, 1));
+      GFC_DIMENSION_SET(ret->dim[1], 0, GFC_DESCRIPTOR_EXTENT(source,0),
+			GFC_DESCRIPTOR_EXTENT(source, 1)*sizeof (GFC_COMPLEX_16));
 
       ret->base_addr = internal_malloc_size (sizeof (GFC_COMPLEX_16) * size0 ((array_t *) ret));
       ret->offset = 0;

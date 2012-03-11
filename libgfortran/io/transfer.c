@@ -2042,7 +2042,7 @@ transfer_array (st_parameter_dt *dtp, gfc_array_char *desc, int kind,
   for (n = 0; n < rank; n++)
     {
       count[n] = 0;
-      stride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(desc,n);
+      stride[n] = GFC_DESCRIPTOR_SM(desc,n);
       extent[n] = GFC_DESCRIPTOR_EXTENT(desc,n);
 
       /* If the extent of even one dimension is zero, then the entire
@@ -2789,7 +2789,7 @@ init_loop_spec (gfc_array_char *desc, array_loop_spec *ls,
       empty = empty || (GFC_DESCRIPTOR_UBOUND(desc,i) 
 			< GFC_DESCRIPTOR_LBOUND(desc,i));
 
-      if (GFC_DESCRIPTOR_STRIDE(desc,i) > 0)
+      if (GFC_DESCRIPTOR_SM(desc,i) > 0)
 	{
 	  index += (GFC_DESCRIPTOR_EXTENT(desc,i) - 1)
 	    * GFC_DESCRIPTOR_STRIDE(desc,i);
@@ -3700,8 +3700,8 @@ export_proto(st_set_nml_var_dim);
 
 void
 st_set_nml_var_dim (st_parameter_dt *dtp, GFC_INTEGER_4 n_dim,
-		    index_type stride, index_type lbound,
-		    index_type ubound)
+		    index_type lower_bound, index_type extent,
+		    index_type sm)
 {
   namelist_info * nml;
   int n;
@@ -3710,7 +3710,7 @@ st_set_nml_var_dim (st_parameter_dt *dtp, GFC_INTEGER_4 n_dim,
 
   for (nml = dtp->u.p.ionml; nml->next; nml = nml->next);
 
-  GFC_DIMENSION_SET(nml->dim[n],lbound,ubound,stride);
+  GFC_DIMENSION_SET (nml->dim[n],lower_bound, extent, sm);
 }
 
 /* Reverse memcpy - used for byte swapping.  */

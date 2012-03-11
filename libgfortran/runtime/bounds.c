@@ -233,7 +233,7 @@ index_type count_0 (const gfc_array_l1 * array)
 
   for (n = 0; n < rank; n++)
     {
-      sstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(array,n);
+      sstride[n] = GFC_DESCRIPTOR_SM(array,n);
       extent[n] = GFC_DESCRIPTOR_EXTENT(array,n);
       count[n] = 0;
 

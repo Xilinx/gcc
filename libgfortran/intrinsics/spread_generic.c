@@ -89,7 +89,7 @@ spread_internal (gfc_array_char *ret, const gfc_array_char *source,
 	    {
 	      count[dim] = 0;
 	      extent[dim] = GFC_DESCRIPTOR_EXTENT(source,dim);
-	      sstride[dim] = GFC_DESCRIPTOR_STRIDE_BYTES(source,dim);
+	      sstride[dim] = GFC_DESCRIPTOR_SM(source,dim);
 	      rstride[dim] = rs * size;
 
 	      ub = extent[dim]-1;
@@ -97,7 +97,7 @@ spread_internal (gfc_array_char *ret, const gfc_array_char *source,
 	      dim++;
 	    }
 
-	  GFC_DIMENSION_SET(ret->dim[n], 0, ub, stride);
+	  GFC_DIMENSION_SET (ret->dim[n], 0, ub, stride*size);
 	}
       ret->offset = 0;
       ret->base_addr = internal_malloc_size (rs * size);
@@ -124,7 +124,7 @@ spread_internal (gfc_array_char *ret, const gfc_array_char *source,
 	      ret_extent = GFC_DESCRIPTOR_EXTENT(ret,n);
 	      if (n == *along - 1)
 		{
-		  rdelta = GFC_DESCRIPTOR_STRIDE_BYTES(ret,n);
+		  rdelta = GFC_DESCRIPTOR_SM(ret,n);
 
 		  if (ret_extent != ncopies)
 		    runtime_error("Incorrect extent in return value of SPREAD"
@@ -145,8 +145,8 @@ spread_internal (gfc_array_char *ret, const gfc_array_char *source,
 		    
 		  if (extent[dim] <= 0)
 		    zero_sized = 1;
-		  sstride[dim] = GFC_DESCRIPTOR_STRIDE_BYTES(source,dim);
-		  rstride[dim] = GFC_DESCRIPTOR_STRIDE_BYTES(ret,n);
+		  sstride[dim] = GFC_DESCRIPTOR_SM(source,dim);
+		  rstride[dim] = GFC_DESCRIPTOR_SM(ret,n);
 		  dim++;
 		}
 	    }
@@ -157,7 +157,7 @@ spread_internal (gfc_array_char *ret, const gfc_array_char *source,
 	    {
 	      if (n == *along - 1)
 		{
-		  rdelta = GFC_DESCRIPTOR_STRIDE_BYTES(ret,n);
+		  rdelta = GFC_DESCRIPTOR_SM(ret,n);
 		}
 	      else
 		{
@@ -165,8 +165,8 @@ spread_internal (gfc_array_char *ret, const gfc_array_char *source,
 		  extent[dim] = GFC_DESCRIPTOR_EXTENT(source,dim);
 		  if (extent[dim] <= 0)
 		    zero_sized = 1;
-		  sstride[dim] = GFC_DESCRIPTOR_STRIDE_BYTES(source,dim);
-		  rstride[dim] = GFC_DESCRIPTOR_STRIDE_BYTES(ret,n);
+		  sstride[dim] = GFC_DESCRIPTOR_SM(source,dim);
+		  rstride[dim] = GFC_DESCRIPTOR_SM(ret,n);
 		  dim++;
 		}
 	    }
@@ -247,7 +247,7 @@ spread_internal_scalar (gfc_array_char *ret, const char *source,
     {
       ret->base_addr = internal_malloc_size (ncopies * size);
       ret->offset = 0;
-      GFC_DIMENSION_SET(ret->dim[0], 0, ncopies - 1, 1);
+      GFC_DIMENSION_SET (ret->dim[0], 0, ncopies, size);
     }
   else
     {
@@ -258,7 +258,7 @@ spread_internal_scalar (gfc_array_char *ret, const char *source,
 
   for (n = 0; n < ncopies; n++)
     {
-      dest = (char*)(ret->base_addr + n * GFC_DESCRIPTOR_STRIDE_BYTES(ret,0));
+      dest = (char*)(ret->base_addr + n * GFC_DESCRIPTOR_SM(ret,0));
       memcpy (dest , source, size);
     }
 }

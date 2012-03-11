@@ -99,12 +99,12 @@ reshape_c10 (gfc_array_c10 * const restrict ret,
     {
       index_type alloc_size;
 
-      rs = 1;
+      rs = sizeof (GFC_COMPLEX_10);
       for (n = 0; n < rdim; n++)
 	{
 	  rex = shape_data[n];
 
-	  GFC_DIMENSION_SET(ret->dim[n], 0, rex - 1, rs);
+	  GFC_DIMENSION_SET(ret->dim[n], 0, rex, rs);
 
 	  rs *= rex;
 	}
@@ -113,7 +113,7 @@ reshape_c10 (gfc_array_c10 * const restrict ret,
       if (unlikely (rs < 1))
         alloc_size = 1;
       else
-        alloc_size = rs * sizeof (GFC_COMPLEX_10);
+        alloc_size = rs;
 
       ret->base_addr = internal_malloc_size (alloc_size);
       ret->dtype = (source->dtype & ~GFC_DTYPE_RANK_MASK) | rdim;

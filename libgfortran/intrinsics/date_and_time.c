@@ -276,7 +276,7 @@ secnds (GFC_REAL_4 *x)
 				        & GFC_DTYPE_TYPE_MASK) +
 				    (4 << GFC_DTYPE_SIZE_SHIFT);
 
-  GFC_DIMENSION_SET(avalues->dim[0], 0, 7, 1);
+  GFC_DIMENSION_SET (avalues->dim[0], 0, 8, sizeof (GFC_REAL_4));
 
   date_and_time (NULL, NULL, NULL, avalues, 0, 0, 0);
 

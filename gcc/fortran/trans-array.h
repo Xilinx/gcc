@@ -143,8 +143,10 @@ tree gfc_conv_array_data (tree);
 tree gfc_conv_array_offset (tree);
 /* Return either an INT_CST or an expression for that part of the descriptor.  */
 tree gfc_conv_array_stride (tree, int);
+tree gfc_conv_array_sm (tree, int);
 tree gfc_conv_array_lbound (tree, int);
 tree gfc_conv_array_ubound (tree, int);
+tree gfc_conv_array_extent (tree, int);
 
 /* Set cobounds of an array.  */
 void gfc_trans_array_cobounds (tree, stmtblock_t *, const gfc_symbol *);

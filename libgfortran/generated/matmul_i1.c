@@ -106,21 +106,22 @@ matmul_i1 (gfc_array_i1 * const restrict retarray,
       if (GFC_DESCRIPTOR_RANK (a) == 1)
         {
 	  GFC_DIMENSION_SET(retarray->dim[0], 0,
-	                    GFC_DESCRIPTOR_EXTENT(b,1) - 1, 1);
+	                    GFC_DESCRIPTOR_EXTENT(b,1), sizeof (GFC_INTEGER_1));
         }
       else if (GFC_DESCRIPTOR_RANK (b) == 1)
         {
 	  GFC_DIMENSION_SET(retarray->dim[0], 0,
-	                    GFC_DESCRIPTOR_EXTENT(a,0) - 1, 1);
+	                    GFC_DESCRIPTOR_EXTENT(a,0), sizeof (GFC_INTEGER_1));
         }
       else
         {
 	  GFC_DIMENSION_SET(retarray->dim[0], 0,
-	                    GFC_DESCRIPTOR_EXTENT(a,0) - 1, 1);
+	                    GFC_DESCRIPTOR_EXTENT(a,0), sizeof (GFC_INTEGER_1));
 
           GFC_DIMENSION_SET(retarray->dim[1], 0,
-	                    GFC_DESCRIPTOR_EXTENT(b,1) - 1,
-			    GFC_DESCRIPTOR_EXTENT(retarray,0));
+	                    GFC_DESCRIPTOR_EXTENT(b,1),
+			    GFC_DESCRIPTOR_EXTENT(retarray,0)
+			    * sizeof (GFC_INTEGER_1));
         }
 
       retarray->base_addr

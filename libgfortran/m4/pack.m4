@@ -128,7 +128,7 @@ pack_'rtype_code` ('rtype` *ret, const 'rtype` *array,
       if (extent[n] <= 0)
        zero_sized = 1;
       sstride[n] = GFC_DESCRIPTOR_STRIDE(array,n);
-      mstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(mask,n);
+      mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
     }
   if (sstride[0] == 0)
     sstride[0] = 1;
@@ -165,7 +165,7 @@ pack_'rtype_code` ('rtype` *ret, const 'rtype` *array,
       if (ret->base_addr == NULL)
 	{
 	  /* Setup the array descriptor.  */
-	  GFC_DIMENSION_SET(ret->dim[0], 0, total-1, 1);
+	  GFC_DIMENSION_SET(ret->dim[0], 0, total, sizeof ('rtype_name`));
 
 	  ret->offset = 0;
 

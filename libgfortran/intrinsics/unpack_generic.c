@@ -112,21 +112,21 @@ unpack_internal (gfc_array_char *ret, const gfc_array_char *vector,
       /* The front end has signalled that we need to populate the
 	 return array descriptor.  */
       dim = GFC_DESCRIPTOR_RANK (mask);
-      rs = 1;
+      rs = size;
       for (n = 0; n < dim; n++)
 	{
 	  count[n] = 0;
 	  GFC_DIMENSION_SET(ret->dim[n], 0,
-			    GFC_DESCRIPTOR_EXTENT(mask,n) - 1, rs);
+			    GFC_DESCRIPTOR_EXTENT(mask,n), rs);
 	  extent[n] = GFC_DESCRIPTOR_EXTENT(ret,n);
 	  empty = empty || extent[n] <= 0;
-	  rstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(ret, n);
-	  fstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(field, n);
-	  mstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(mask, n);
+	  rstride[n] = GFC_DESCRIPTOR_SM(ret, n);
+	  fstride[n] = GFC_DESCRIPTOR_SM(field, n);
+	  mstride[n] = GFC_DESCRIPTOR_SM(mask, n);
 	  rs *= extent[n];
 	}
       ret->offset = 0;
-      ret->base_addr = internal_malloc_size (rs * size);
+      ret->base_addr = internal_malloc_size (rs);
     }
   else
     {
@@ -136,16 +136,16 @@ unpack_internal (gfc_array_char *ret, const gfc_array_char *vector,
 	  count[n] = 0;
 	  extent[n] = GFC_DESCRIPTOR_EXTENT(ret,n);
 	  empty = empty || extent[n] <= 0;
-	  rstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(ret, n);
-	  fstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(field, n);
-	  mstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(mask, n);
+	  rstride[n] = GFC_DESCRIPTOR_SM(ret, n);
+	  fstride[n] = GFC_DESCRIPTOR_SM(field, n);
+	  mstride[n] = GFC_DESCRIPTOR_SM(mask, n);
 	}
     }
 
   if (empty)
     return;
 
-  vstride0 = GFC_DESCRIPTOR_STRIDE_BYTES(vector,0);
+  vstride0 = GFC_DESCRIPTOR_SM(vector,0);
   rstride0 = rstride[0];
   fstride0 = fstride[0];
   mstride0 = mstride[0];

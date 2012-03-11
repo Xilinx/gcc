@@ -91,11 +91,12 @@ unpack0_r8 (gfc_array_r8 *ret, const gfc_array_r8 *vector,
 	{
 	  count[n] = 0;
 	  GFC_DIMENSION_SET(ret->dim[n], 0,
-			    GFC_DESCRIPTOR_EXTENT(mask,n) - 1, rs);
+			    GFC_DESCRIPTOR_EXTENT(mask,n),
+			    rs * sizeof (GFC_REAL_8));
 	  extent[n] = GFC_DESCRIPTOR_EXTENT(ret,n);
 	  empty = empty || extent[n] <= 0;
 	  rstride[n] = GFC_DESCRIPTOR_STRIDE(ret,n);
-	  mstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(mask,n);
+	  mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
 	  rs *= extent[n];
 	}
       ret->offset = 0;
@@ -110,7 +111,7 @@ unpack0_r8 (gfc_array_r8 *ret, const gfc_array_r8 *vector,
 	  extent[n] = GFC_DESCRIPTOR_EXTENT(ret,n);
 	  empty = empty || extent[n] <= 0;
 	  rstride[n] = GFC_DESCRIPTOR_STRIDE(ret,n);
-	  mstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(mask,n);
+	  mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
 	}
       if (rstride[0] == 0)
 	rstride[0] = 1;
@@ -235,12 +236,13 @@ unpack1_r8 (gfc_array_r8 *ret, const gfc_array_r8 *vector,
 	{
 	  count[n] = 0;
 	  GFC_DIMENSION_SET(ret->dim[n], 0,
-			    GFC_DESCRIPTOR_EXTENT(mask,n) - 1, rs);
+			    GFC_DESCRIPTOR_EXTENT(mask,n),
+			    rs * sizeof (GFC_REAL_8));
 	  extent[n] = GFC_DESCRIPTOR_EXTENT(ret,n);
 	  empty = empty || extent[n] <= 0;
 	  rstride[n] = GFC_DESCRIPTOR_STRIDE(ret,n);
 	  fstride[n] = GFC_DESCRIPTOR_STRIDE(field,n);
-	  mstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(mask,n);
+	  mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
 	  rs *= extent[n];
 	}
       ret->offset = 0;
@@ -256,7 +258,7 @@ unpack1_r8 (gfc_array_r8 *ret, const gfc_array_r8 *vector,
 	  empty = empty || extent[n] <= 0;
 	  rstride[n] = GFC_DESCRIPTOR_STRIDE(ret,n);
 	  fstride[n] = GFC_DESCRIPTOR_STRIDE(field,n);
-	  mstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(mask,n);
+	  mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
 	}
       if (rstride[0] == 0)
 	rstride[0] = 1;

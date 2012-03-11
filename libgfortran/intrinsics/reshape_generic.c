@@ -87,12 +87,12 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
     {
       index_type alloc_size;
 
-      rs = 1;
+      rs = size;
       for (n = 0; n < rdim; n++)
 	{
 	  rex = shape_data[n];
 
-	  GFC_DIMENSION_SET(ret->dim[n],0,rex - 1,rs);
+	  GFC_DIMENSION_SET (ret->dim[n], 0, rex, rs);
 
 	  rs *= rex;
 	}
@@ -101,7 +101,7 @@ reshape_internal (parray *ret, parray *source, shape_type *shape,
       if (unlikely (rs < 1))
 	alloc_size = 1;
       else
-	alloc_size = rs * size;
+	alloc_size = rs;
 
       ret->base_addr = internal_malloc_size (alloc_size);
 

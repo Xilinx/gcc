@@ -54,11 +54,11 @@ transpose_internal (gfc_array_char *ret, gfc_array_char *source)
     {
       assert (ret->dtype == source->dtype);
 
-      GFC_DIMENSION_SET(ret->dim[0], 0, GFC_DESCRIPTOR_EXTENT(source,1) - 1,
-			1);
+      GFC_DIMENSION_SET (ret->dim[0], 0, GFC_DESCRIPTOR_EXTENT(source,1),
+			 size);
 
-      GFC_DIMENSION_SET(ret->dim[1], 0, GFC_DESCRIPTOR_EXTENT(source,0) - 1,
-			GFC_DESCRIPTOR_EXTENT(source, 1));
+      GFC_DIMENSION_SET (ret->dim[1], 0, GFC_DESCRIPTOR_EXTENT(source,0),
+			 GFC_DESCRIPTOR_EXTENT(source, 1) * size);
 
       ret->base_addr = internal_malloc_size (size * size0 ((array_t*)ret));
       ret->offset = 0;
@@ -87,13 +87,13 @@ transpose_internal (gfc_array_char *ret, gfc_array_char *source)
 
     }
 
-  sxstride = GFC_DESCRIPTOR_STRIDE_BYTES(source,0);
-  systride = GFC_DESCRIPTOR_STRIDE_BYTES(source,1);
+  sxstride = GFC_DESCRIPTOR_SM(source,0);
+  systride = GFC_DESCRIPTOR_SM(source,1);
   xcount = GFC_DESCRIPTOR_EXTENT(source,0);
   ycount = GFC_DESCRIPTOR_EXTENT(source,1);
 
-  rxstride = GFC_DESCRIPTOR_STRIDE_BYTES(ret,0);
-  rystride = GFC_DESCRIPTOR_STRIDE_BYTES(ret,1);
+  rxstride = GFC_DESCRIPTOR_SM(ret,0);
+  rystride = GFC_DESCRIPTOR_SM(ret,1);
 
   rptr = ret->base_addr;
   sptr = source->base_addr;

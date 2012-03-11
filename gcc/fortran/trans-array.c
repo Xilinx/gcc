@@ -132,11 +132,9 @@ gfc_array_dataptr_type (tree desc)
 #define DIMENSION_FIELD 4
 #define CAF_TOKEN_FIELD 5
 
-#define STRIDE_SUBFIELD 0
-#define LBOUND_SUBFIELD 1
-#define UBOUND_SUBFIELD 2
-#define SM_SUBFIELD 3
-#define EXTENT_SUBFIELD 4
+#define LBOUND_SUBFIELD 0
+#define EXTENT_SUBFIELD 1
+#define SM_SUBFIELD 2
 
 /* This provides READ-ONLY access to the data field.  The field itself
    doesn't have the proper type.  */
@@ -306,22 +304,6 @@ gfc_conv_descriptor_token (tree desc)
 }
 
 
-static tree
-gfc_conv_descriptor_stride (tree desc, tree dim)
-{
-  tree tmp;
-  tree field;
-
-  tmp = gfc_conv_descriptor_dimension (desc, dim);
-  field = TYPE_FIELDS (TREE_TYPE (tmp));
-  field = gfc_advance_chain (field, STRIDE_SUBFIELD);
-  gcc_assert (field != NULL_TREE && TREE_TYPE (field) == gfc_array_index_type);
-
-  tmp = fold_build3_loc (input_location, COMPONENT_REF, TREE_TYPE (field),
-			 tmp, field, NULL_TREE);
-  return tmp;
-}
-
 tree
 gfc_conv_descriptor_stride_get (tree desc, tree dim)
 {
@@ -353,13 +335,11 @@ gfc_conv_descriptor_stride_set (stmtblock_t *block, tree desc,
 				tree dim, tree value)
 {
   tree tmp;
-  tree t = gfc_conv_descriptor_stride (desc, dim);
-  gfc_add_modify (block, t, fold_convert (TREE_TYPE (t), value));
   tmp = gfc_get_element_type (TREE_TYPE (desc));
   tmp = size_in_bytes (tmp);
   tmp = fold_build2_loc (input_location, MULT_EXPR, gfc_array_index_type,
-			 fold_convert (TREE_TYPE (t), value),
-			 fold_convert (TREE_TYPE (t), tmp));
+			 fold_convert (gfc_array_index_type, value),
+			 fold_convert (gfc_array_index_type, tmp));
   gfc_conv_descriptor_sm_set (block, desc, dim, tmp);
 }
 
@@ -453,22 +433,6 @@ gfc_conv_descriptor_lbound_set (stmtblock_t *block, tree desc,
   gfc_add_modify (block, t, fold_convert (TREE_TYPE (t), value));
 }
 
-static tree
-gfc_conv_descriptor_ubound (tree desc, tree dim)
-{
-  tree tmp;
-  tree field;
-
-  tmp = gfc_conv_descriptor_dimension (desc, dim);
-  field = TYPE_FIELDS (TREE_TYPE (tmp));
-  field = gfc_advance_chain (field, UBOUND_SUBFIELD);
-  gcc_assert (field != NULL_TREE && TREE_TYPE (field) == gfc_array_index_type);
-
-  tmp = fold_build3_loc (input_location, COMPONENT_REF, TREE_TYPE (field),
-			 tmp, field, NULL_TREE);
-  return tmp;
-}
-
 tree
 gfc_conv_descriptor_ubound_get (tree desc, tree dim)
 {
@@ -487,12 +451,10 @@ gfc_conv_descriptor_ubound_set (stmtblock_t *block, tree desc,
 				tree dim, tree value)
 {
   tree tmp;
-  tree t = gfc_conv_descriptor_ubound (desc, dim);
-  gfc_add_modify (block, t, fold_convert (TREE_TYPE (t), value));
   tmp =  gfc_conv_descriptor_lbound (desc, dim);
   tmp = fold_build2_loc (input_location, MINUS_EXPR, gfc_array_index_type,
-			 fold_convert (TREE_TYPE (t), t),
-			 fold_convert (TREE_TYPE (t), tmp));
+			 fold_convert (gfc_array_index_type, value),
+			 fold_convert (gfc_array_index_type, tmp));
   tmp = fold_build2_loc (input_location, PLUS_EXPR, gfc_array_index_type,
 			 tmp, gfc_index_one_node);
   gfc_conv_descriptor_extent_set (block, desc, dim, tmp);
@@ -526,14 +488,13 @@ void
 gfc_conv_shift_descriptor_lbound (stmtblock_t* block, tree desc,
 				  int dim, tree new_lbound)
 {
-  tree offs, ubound, lbound, stride;
+  tree offs, lbound, stride;
   tree diff, offs_diff;
 
   new_lbound = fold_convert (gfc_array_index_type, new_lbound);
 
   offs = gfc_conv_descriptor_offset_get (desc);
   lbound = gfc_conv_descriptor_lbound_get (desc, gfc_rank_cst[dim]);
-  ubound = gfc_conv_descriptor_ubound_get (desc, gfc_rank_cst[dim]);
   stride = gfc_conv_descriptor_stride_get (desc, gfc_rank_cst[dim]);
 
   /* Get difference (new - old) by which to shift stuff.  */
@@ -548,12 +509,6 @@ gfc_conv_shift_descriptor_lbound (stmtblock_t* block, tree desc,
 
   /* Set lbound to value we want.  */
   gfc_conv_descriptor_lbound_set (block, desc, gfc_rank_cst[dim], new_lbound);
-
-  /* Update ubound. As it uses internally lbound + extent, it has to be after
-     the lbound expression!  */
-  ubound = fold_build2_loc (input_location, PLUS_EXPR, gfc_array_index_type,
-			    ubound, diff);
-  gfc_conv_descriptor_ubound_set (block, desc, gfc_rank_cst[dim], ubound);
 }
 
 
@@ -2785,6 +2740,32 @@ gfc_conv_array_offset (tree descriptor)
 }
 
 
+/* Get an expression for the array stride multiplier.  */
+
+tree
+gfc_conv_array_sm (tree descriptor, int dim)
+{
+  tree tmp;
+  tree type;
+
+  type = TREE_TYPE (descriptor);
+
+  /* For descriptorless arrays use the array size.  */
+  tmp = GFC_TYPE_ARRAY_STRIDE (type, dim);
+  if (tmp != NULL_TREE)
+    {
+      tree size = gfc_get_element_type (TREE_TYPE (descriptor));
+      size = size_in_bytes (size);
+      size = fold_convert (gfc_array_index_type, size);
+      return fold_build2_loc (input_location, MULT_EXPR,
+			      gfc_array_index_type, tmp, size);
+    }
+
+  tmp = gfc_conv_descriptor_sm_get (descriptor, gfc_rank_cst[dim]);
+  return tmp;
+}
+
+
 /* Get an expression for the array stride.  */
 
 tree
@@ -2820,6 +2801,31 @@ gfc_conv_array_lbound (tree descriptor, int dim)
     return tmp;
 
   tmp = gfc_conv_descriptor_lbound_get (descriptor, gfc_rank_cst[dim]);
+  return tmp;
+}
+
+
+/* Like gfc_conv_array_stride, but for the extent.  */
+
+tree
+gfc_conv_array_extent (tree descriptor, int dim)
+{
+  tree tmp;
+  tree type;
+
+  type = TREE_TYPE (descriptor);
+
+  tmp = GFC_TYPE_ARRAY_LBOUND (type, dim);
+  if (tmp != NULL_TREE)
+    {
+      tmp = fold_build2_loc (input_location, MINUS_EXPR,
+			     gfc_array_index_type,
+			     GFC_TYPE_ARRAY_UBOUND (type, dim), tmp);
+      return fold_build2_loc (input_location, PLUS_EXPR,
+			      gfc_array_index_type, tmp, gfc_index_one_node);
+    }
+
+  tmp = gfc_conv_descriptor_extent_get (descriptor, gfc_rank_cst[dim]);
   return tmp;
 }
 

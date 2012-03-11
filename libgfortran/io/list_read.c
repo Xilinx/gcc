@@ -2496,7 +2496,7 @@ nml_read_obj (st_parameter_dt *dtp, namelist_info * nl, index_type offset,
       for (dim = 0; dim < nl->var_rank; dim++)
 	pdata = (void*)(pdata + (nl->ls[dim].idx
 				 - GFC_DESCRIPTOR_LBOUND(nl,dim))
-			* GFC_DESCRIPTOR_STRIDE(nl,dim) * nl->size);
+				   * GFC_DESCRIPTOR_SM(nl,dim));
 
       /* Reset the error flag and try to read next value, if
 	 dtp->u.p.repeat_count=0  */
@@ -2894,10 +2894,7 @@ get_name:
 
   if (c == '(' && nl->type == BT_CHARACTER)
     {
-/* FIXME: Sets stride, lower_bound, _ubound, sm, extent, but extent
-   should be kind dependent. Cf. also PR 52539.  */
-      descriptor_dimension chd[1] = { {1, clow, nl->string_length, 1,
-				       nl->string_length - clow + 1} };
+      descriptor_dimension chd[1] = { {clow, nl->string_length - clow + 1, 1} };
       array_loop_spec ind[1] = { {1, clow, nl->string_length, 1} };
 
       if (nml_parse_qualifier (dtp, chd, ind, -1, nml_err_msg, 

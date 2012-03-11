@@ -55,7 +55,7 @@ bessel_jn_r'rtype_kind` ('rtype` * const restrict ret, int n1, int n2, 'rtype_na
   if (ret->base_addr == NULL)
     {
       size_t size = n2 < n1 ? 0 : n2-n1+1; 
-      GFC_DIMENSION_SET(ret->dim[0], 0, size-1, 1);
+      GFC_DIMENSION_SET(ret->dim[0], 0, size, sizeof ('rtype_name`));
       ret->base_addr = internal_malloc_size (sizeof ('rtype_name`) * size);
       ret->offset = 0;
     }
@@ -122,7 +122,7 @@ bessel_yn_r'rtype_kind` ('rtype` * const restrict ret, int n1, int n2,
   if (ret->base_addr == NULL)
     {
       size_t size = n2 < n1 ? 0 : n2-n1+1; 
-      GFC_DIMENSION_SET(ret->dim[0], 0, size-1, 1);
+      GFC_DIMENSION_SET(ret->dim[0], 0, size, sizeof ('rtype_name`));
       ret->base_addr = internal_malloc_size (sizeof ('rtype_name`) * size);
       ret->offset = 0;
     }

@@ -112,11 +112,9 @@ typedef int32_t CFI_rank_t;
 
 typedef struct CFI_dim_t
 {
-  CFI_index_t _stride;	/* gfortran extension. */
   CFI_index_t lower_bound;
-  CFI_index_t _ubound;	/* gfortran extension. */
-  CFI_index_t sm;
   CFI_index_t extent;
+  CFI_index_t sm;
 }
 CFI_dim_t;
 

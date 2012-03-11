@@ -47,7 +47,7 @@ shape_4 (gfc_array_i4 * const restrict ret,
 
   if (ret->base_addr == NULL)
     {
-      GFC_DIMENSION_SET(ret->dim[0], 0, rank - 1, 1);
+      GFC_DIMENSION_SET(ret->dim[0], 0, rank, sizeof (GFC_INTEGER_4));
       ret->offset = 0;
       ret->base_addr = internal_malloc_size (sizeof (GFC_INTEGER_4) * rank);
     }

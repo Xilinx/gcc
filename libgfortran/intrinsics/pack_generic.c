@@ -121,8 +121,8 @@ pack_internal (gfc_array_char *ret, const gfc_array_char *array,
     {
       count[n] = 0;
       extent[n] = GFC_DESCRIPTOR_EXTENT(array,n);
-      sstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(array,n);
-      mstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(mask,n);
+      sstride[n] = GFC_DESCRIPTOR_SM(array,n);
+      mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
     }
   if (sstride[0] == 0)
     sstride[0] = size;
@@ -150,7 +150,7 @@ pack_internal (gfc_array_char *ret, const gfc_array_char *array,
       if (ret->base_addr == NULL)
 	{
 	  /* Setup the array descriptor.  */
-	  GFC_DIMENSION_SET(ret->dim[0], 0, total-1, 1);
+	  GFC_DIMENSION_SET (ret->dim[0], 0, total, size);
 
 	  ret->offset = 0;
 	  /* internal_malloc_size allocates a single byte for zero size.  */
@@ -172,7 +172,7 @@ pack_internal (gfc_array_char *ret, const gfc_array_char *array,
 	}
     }
 
-  rstride0 = GFC_DESCRIPTOR_STRIDE_BYTES(ret,0);
+  rstride0 = GFC_DESCRIPTOR_SM(ret,0);
   if (rstride0 == 0)
     rstride0 = size;
   sstride0 = sstride[0];
@@ -225,7 +225,7 @@ pack_internal (gfc_array_char *ret, const gfc_array_char *array,
       nelem = ((rptr - ret->base_addr) / rstride0);
       if (n > nelem)
         {
-          sstride0 = GFC_DESCRIPTOR_STRIDE_BYTES(vector,0);
+          sstride0 = GFC_DESCRIPTOR_SM(vector,0);
           if (sstride0 == 0)
             sstride0 = size;
 
@@ -472,7 +472,7 @@ pack_s_internal (gfc_array_char *ret, const gfc_array_char *array,
       if (extent[n] < 0)
 	extent[n] = 0;
 
-      sstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(array,n);
+      sstride[n] = GFC_DESCRIPTOR_SM(array,n);
       ssize *= extent[n];
     }
   if (sstride[0] == 0)
@@ -516,7 +516,7 @@ pack_s_internal (gfc_array_char *ret, const gfc_array_char *array,
 	}
 
       /* Setup the array descriptor.  */
-      GFC_DIMENSION_SET(ret->dim[0],0,total-1,1);
+      GFC_DIMENSION_SET (ret->dim[0], 0, total, size);
 
       ret->offset = 0;
 
@@ -526,7 +526,7 @@ pack_s_internal (gfc_array_char *ret, const gfc_array_char *array,
 	return;
     }
 
-  rstride0 = GFC_DESCRIPTOR_STRIDE_BYTES(ret,0);
+  rstride0 = GFC_DESCRIPTOR_SM(ret,0);
   if (rstride0 == 0)
     rstride0 = size;
   rptr = ret->base_addr;
@@ -580,7 +580,7 @@ pack_s_internal (gfc_array_char *ret, const gfc_array_char *array,
       nelem = ((rptr - ret->base_addr) / rstride0);
       if (n > nelem)
         {
-          sstride0 = GFC_DESCRIPTOR_STRIDE_BYTES(vector,0);
+          sstride0 = GFC_DESCRIPTOR_SM(vector,0);
           if (sstride0 == 0)
             sstride0 = size;
 

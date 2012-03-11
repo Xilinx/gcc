@@ -1342,19 +1342,14 @@ gfc_get_desc_dim_type (void)
   TYPE_NAME (type) = get_identifier ("descriptor_dimension");
   TYPE_PACKED (type) = 1;
 
-  /* Consists of the stride, lbound and ubound members.  */
+  /* Consists of the lower_bound, extent and stride-multiplier members.  */
   decl = gfc_add_field_to_struct_1 (type,
-				    get_identifier ("stride"),
+				    get_identifier ("lower_bound"),
 				    gfc_array_index_type, &chain);
   TREE_NO_WARNING (decl) = 1;
 
   decl = gfc_add_field_to_struct_1 (type,
-				    get_identifier ("lbound"),
-				    gfc_array_index_type, &chain);
-  TREE_NO_WARNING (decl) = 1;
-
-  decl = gfc_add_field_to_struct_1 (type,
-				    get_identifier ("ubound"),
+				    get_identifier ("extent"),
 				    gfc_array_index_type, &chain);
   TREE_NO_WARNING (decl) = 1;
 
@@ -1362,11 +1357,6 @@ gfc_get_desc_dim_type (void)
 				    get_identifier ("sm"),
 				    gfc_array_index_type, &chain);
   TREE_NO_WARNING (decl) = 1;
-  decl = gfc_add_field_to_struct_1 (type,
-				    get_identifier ("extent"),
-				    gfc_array_index_type, &chain);
-  TREE_NO_WARNING (decl) = 1;
-
 
   /* Finish off the type.  */
   gfc_finish_type (type);

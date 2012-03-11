@@ -70,7 +70,7 @@ spread_i8 (gfc_array_i8 *ret, const gfc_array_i8 *source,
   if (ret->base_addr == NULL)
     {
 
-      size_t ub, stride;
+      size_t ext, stride;
 
       /* The front end has signalled that we need to populate the
 	 return array descriptor.  */
@@ -82,7 +82,7 @@ spread_i8 (gfc_array_i8 *ret, const gfc_array_i8 *source,
 	  stride = rs;
 	  if (n == along - 1)
 	    {
-	      ub = ncopies - 1;
+	      ext = ncopies;
 	      rdelta = rs;
 	      rs *= ncopies;
 	    }
@@ -93,11 +93,11 @@ spread_i8 (gfc_array_i8 *ret, const gfc_array_i8 *source,
 	      sstride[dim] = GFC_DESCRIPTOR_STRIDE(source,dim);
 	      rstride[dim] = rs;
 
-	      ub = extent[dim] - 1;
+	      ext = extent[dim];
 	      rs *= extent[dim];
 	      dim++;
 	    }
-	  GFC_DIMENSION_SET(ret->dim[n], 0, ub, stride);
+	  GFC_DIMENSION_SET(ret->dim[n], 0, ext, stride * sizeof(GFC_INTEGER_8));
 	}
       ret->offset = 0;
 
@@ -246,7 +246,7 @@ spread_scalar_i8 (gfc_array_i8 *ret, const GFC_INTEGER_8 *source,
     {
       ret->base_addr = internal_malloc_size (ncopies * sizeof (GFC_INTEGER_8));
       ret->offset = 0;
-      GFC_DIMENSION_SET(ret->dim[0], 0, ncopies - 1, 1);
+      GFC_DIMENSION_SET(ret->dim[0], 0, ncopies, sizeof (GFC_INTEGER_8));
     }
   else
     {

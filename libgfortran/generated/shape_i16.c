@@ -47,7 +47,7 @@ shape_16 (gfc_array_i16 * const restrict ret,
 
   if (ret->base_addr == NULL)
     {
-      GFC_DIMENSION_SET(ret->dim[0], 0, rank - 1, 1);
+      GFC_DIMENSION_SET(ret->dim[0], 0, rank, sizeof (GFC_INTEGER_16));
       ret->offset = 0;
       ret->base_addr = internal_malloc_size (sizeof (GFC_INTEGER_16) * rank);
     }

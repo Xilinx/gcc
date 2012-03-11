@@ -70,22 +70,23 @@ matmul_'rtype_code` ('rtype` * const restrict retarray,
     {
       if (GFC_DESCRIPTOR_RANK (a) == 1)
         {
-	  GFC_DIMENSION_SET(retarray->dim[0], 0,
-	                    GFC_DESCRIPTOR_EXTENT(b,1) - 1, 1);
+	  GFC_DIMENSION_SET (retarray->dim[0], 0,
+			     GFC_DESCRIPTOR_EXTENT(b,1), sizeof ('rtype_name`));
         }
       else if (GFC_DESCRIPTOR_RANK (b) == 1)
         {
-	  GFC_DIMENSION_SET(retarray->dim[0], 0,
-	                    GFC_DESCRIPTOR_EXTENT(a,0) - 1, 1);
+	  GFC_DIMENSION_SET (retarray->dim[0], 0,
+	                     GFC_DESCRIPTOR_EXTENT(a,0), sizeof ('rtype_name`));
         }
       else
         {
-	  GFC_DIMENSION_SET(retarray->dim[0], 0,
-	                    GFC_DESCRIPTOR_EXTENT(a,0) - 1, 1);
+	  GFC_DIMENSION_SET (retarray->dim[0], 0,
+	                     GFC_DESCRIPTOR_EXTENT(a,0), sizeof ('rtype_name`));
 
-          GFC_DIMENSION_SET(retarray->dim[1], 0,
-	                    GFC_DESCRIPTOR_EXTENT(b,1) - 1,
-			    GFC_DESCRIPTOR_EXTENT(retarray,0));
+          GFC_DIMENSION_SET (retarray->dim[1], 0,
+	                     GFC_DESCRIPTOR_EXTENT(b,1),
+			     GFC_DESCRIPTOR_EXTENT(retarray,0)
+			     * sizeof ('rtype_name`));
         }
           
       retarray->base_addr
@@ -177,7 +178,7 @@ sinclude(`matmul_asm_'rtype_code`.m4')dnl
      one.  */
   if (GFC_DESCRIPTOR_RANK (a) == 1)
     {
-      astride = GFC_DESCRIPTOR_STRIDE_BYTES(a,0);
+      astride = GFC_DESCRIPTOR_SM(a,0);
       count = GFC_DESCRIPTOR_EXTENT(a,0);
       xstride = 0;
       rxstride = 0;
@@ -185,14 +186,14 @@ sinclude(`matmul_asm_'rtype_code`.m4')dnl
     }
   else
     {
-      astride = GFC_DESCRIPTOR_STRIDE_BYTES(a,1);
+      astride = GFC_DESCRIPTOR_SM(a,1);
       count = GFC_DESCRIPTOR_EXTENT(a,1);
-      xstride = GFC_DESCRIPTOR_STRIDE_BYTES(a,0);
+      xstride = GFC_DESCRIPTOR_SM(a,0);
       xcount = GFC_DESCRIPTOR_EXTENT(a,0);
     }
   if (GFC_DESCRIPTOR_RANK (b) == 1)
     {
-      bstride = GFC_DESCRIPTOR_STRIDE_BYTES(b,0);
+      bstride = GFC_DESCRIPTOR_SM(b,0);
       assert(count == GFC_DESCRIPTOR_EXTENT(b,0));
       ystride = 0;
       rystride = 0;
@@ -200,9 +201,9 @@ sinclude(`matmul_asm_'rtype_code`.m4')dnl
     }
   else
     {
-      bstride = GFC_DESCRIPTOR_STRIDE_BYTES(b,0);
+      bstride = GFC_DESCRIPTOR_SM(b,0);
       assert(count == GFC_DESCRIPTOR_EXTENT(b,0));
-      ystride = GFC_DESCRIPTOR_STRIDE_BYTES(b,1);
+      ystride = GFC_DESCRIPTOR_SM(b,1);
       ycount = GFC_DESCRIPTOR_EXTENT(b,1);
     }
 

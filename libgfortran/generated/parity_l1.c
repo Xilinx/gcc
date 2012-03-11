@@ -82,23 +82,23 @@ parity_l1 (gfc_array_l1 * const restrict retarray,
 
   if (retarray->base_addr == NULL)
     {
-      size_t alloc_size, str;
+      size_t alloc_size, sm;
 
       for (n = 0; n < rank; n++)
 	{
 	  if (n == 0)
-	    str = 1;
+	    sm = sizeof (GFC_LOGICAL_1);
 	  else
-	    str = GFC_DESCRIPTOR_STRIDE(retarray,n-1) * extent[n-1];
+	    sm = GFC_DESCRIPTOR_SM (retarray,n-1) * extent[n-1];
 
-	  GFC_DIMENSION_SET(retarray->dim[n], 0, extent[n] - 1, str);
+	  GFC_DIMENSION_SET (retarray->dim[n], 0, extent[n], sm);
 
 	}
 
       retarray->offset = 0;
       retarray->dtype = (array->dtype & ~GFC_DTYPE_RANK_MASK) | rank;
 
-      alloc_size = sizeof (GFC_LOGICAL_1) * GFC_DESCRIPTOR_STRIDE(retarray,rank-1)
+      alloc_size = GFC_DESCRIPTOR_SM (retarray, rank-1)
     		   * extent[rank-1];
 
       retarray->base_addr = internal_malloc_size (alloc_size);

@@ -39,11 +39,10 @@ move_alloc (gfc_array_char * from, gfc_array_char * to)
 
   for (i = 0; i < GFC_DESCRIPTOR_RANK (from); i++)
     {
-      GFC_DIMENSION_SET(to->dim[i],GFC_DESCRIPTOR_LBOUND(from,i),
-			GFC_DESCRIPTOR_UBOUND(from,i),
-			GFC_DESCRIPTOR_STRIDE(from,i));
-      GFC_DIMENSION_SET(from->dim[i],GFC_DESCRIPTOR_LBOUND(from,i),
-			GFC_DESCRIPTOR_LBOUND(from,i), 0);
+      GFC_DIMENSION_SET (to->dim[i],GFC_DESCRIPTOR_LBOUND (from,i),
+			 GFC_DESCRIPTOR_EXTENT (from,i),
+			 GFC_DESCRIPTOR_SM (from,i));
+      GFC_DIMENSION_SET (from->dim[i],GFC_DESCRIPTOR_LBOUND (from,i), 0, 0);
     }
 
   to->offset = from->offset;

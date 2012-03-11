@@ -48,7 +48,7 @@ shape_'rtype_kind` ('rtype` * const restrict ret,
 
   if (ret->base_addr == NULL)
     {
-      GFC_DIMENSION_SET(ret->dim[0], 0, rank - 1, 1);
+      GFC_DIMENSION_SET(ret->dim[0], 0, rank, sizeof ('rtype_name`));
       ret->offset = 0;
       ret->base_addr = internal_malloc_size (sizeof ('rtype_name`) * rank);
     }

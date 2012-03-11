@@ -54,7 +54,7 @@ bessel_jn_r10 (gfc_array_r10 * const restrict ret, int n1, int n2, GFC_REAL_10 x
   if (ret->base_addr == NULL)
     {
       size_t size = n2 < n1 ? 0 : n2-n1+1; 
-      GFC_DIMENSION_SET(ret->dim[0], 0, size-1, 1);
+      GFC_DIMENSION_SET(ret->dim[0], 0, size, sizeof (GFC_REAL_10));
       ret->base_addr = internal_malloc_size (sizeof (GFC_REAL_10) * size);
       ret->offset = 0;
     }
@@ -121,7 +121,7 @@ bessel_yn_r10 (gfc_array_r10 * const restrict ret, int n1, int n2,
   if (ret->base_addr == NULL)
     {
       size_t size = n2 < n1 ? 0 : n2-n1+1; 
-      GFC_DIMENSION_SET(ret->dim[0], 0, size-1, 1);
+      GFC_DIMENSION_SET(ret->dim[0], 0, size, sizeof (GFC_REAL_10));
       ret->base_addr = internal_malloc_size (sizeof (GFC_REAL_10) * size);
       ret->offset = 0;
     }

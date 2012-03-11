@@ -55,7 +55,7 @@ minloc0_4_i8 (gfc_array_i4 * const restrict retarray,
 
   if (retarray->base_addr == NULL)
     {
-      GFC_DIMENSION_SET(retarray->dim[0], 0, rank-1, 1);
+      GFC_DIMENSION_SET (retarray->dim[0], 0, rank, sizeof (GFC_INTEGER_4));
       retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
       retarray->offset = 0;
       retarray->base_addr = internal_malloc_size (sizeof (GFC_INTEGER_4) * rank);
@@ -196,7 +196,7 @@ mminloc0_4_i8 (gfc_array_i4 * const restrict retarray,
 
   if (retarray->base_addr == NULL)
     {
-      GFC_DIMENSION_SET(retarray->dim[0], 0, rank - 1, 1);
+      GFC_DIMENSION_SET (retarray->dim[0], 0, rank, sizeof (GFC_INTEGER_4));
       retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
       retarray->offset = 0;
       retarray->base_addr = internal_malloc_size (sizeof (GFC_INTEGER_4) * rank);
@@ -231,7 +231,7 @@ mminloc0_4_i8 (gfc_array_i4 * const restrict retarray,
   for (n = 0; n < rank; n++)
     {
       sstride[n] = GFC_DESCRIPTOR_STRIDE(array,n);
-      mstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(mask,n);
+      mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
       extent[n] = GFC_DESCRIPTOR_EXTENT(array,n);
       count[n] = 0;
       if (extent[n] <= 0)
@@ -364,7 +364,7 @@ sminloc0_4_i8 (gfc_array_i4 * const restrict retarray,
 
   if (retarray->base_addr == NULL)
     {
-      GFC_DIMENSION_SET(retarray->dim[0], 0, rank-1, 1);
+      GFC_DIMENSION_SET (retarray->dim[0], 0, rank, sizeof (GFC_INTEGER_4));
       retarray->dtype = (retarray->dtype & ~GFC_DTYPE_RANK_MASK) | 1;
       retarray->offset = 0;
       retarray->base_addr = internal_malloc_size (sizeof (GFC_INTEGER_4) * rank);

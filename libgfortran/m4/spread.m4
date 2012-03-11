@@ -71,7 +71,7 @@ spread_'rtype_code` ('rtype` *ret, const 'rtype` *source,
   if (ret->base_addr == NULL)
     {
 
-      size_t ub, stride;
+      size_t ext, stride;
 
       /* The front end has signalled that we need to populate the
 	 return array descriptor.  */
@@ -83,7 +83,7 @@ spread_'rtype_code` ('rtype` *ret, const 'rtype` *source,
 	  stride = rs;
 	  if (n == along - 1)
 	    {
-	      ub = ncopies - 1;
+	      ext = ncopies;
 	      rdelta = rs;
 	      rs *= ncopies;
 	    }
@@ -94,11 +94,11 @@ spread_'rtype_code` ('rtype` *ret, const 'rtype` *source,
 	      sstride[dim] = GFC_DESCRIPTOR_STRIDE(source,dim);
 	      rstride[dim] = rs;
 
-	      ub = extent[dim] - 1;
+	      ext = extent[dim];
 	      rs *= extent[dim];
 	      dim++;
 	    }
-	  GFC_DIMENSION_SET(ret->dim[n], 0, ub, stride);
+	  GFC_DIMENSION_SET(ret->dim[n], 0, ext, stride * sizeof('rtype_name`));
 	}
       ret->offset = 0;
 
@@ -247,7 +247,7 @@ spread_scalar_'rtype_code` ('rtype` *ret, const 'rtype_name` *source,
     {
       ret->base_addr = internal_malloc_size (ncopies * sizeof ('rtype_name`));
       ret->offset = 0;
-      GFC_DIMENSION_SET(ret->dim[0], 0, ncopies - 1, 1);
+      GFC_DIMENSION_SET(ret->dim[0], 0, ncopies, sizeof ('rtype_name`));
     }
   else
     {

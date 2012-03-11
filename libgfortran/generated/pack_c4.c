@@ -127,7 +127,7 @@ pack_c4 (gfc_array_c4 *ret, const gfc_array_c4 *array,
       if (extent[n] <= 0)
        zero_sized = 1;
       sstride[n] = GFC_DESCRIPTOR_STRIDE(array,n);
-      mstride[n] = GFC_DESCRIPTOR_STRIDE_BYTES(mask,n);
+      mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
     }
   if (sstride[0] == 0)
     sstride[0] = 1;
@@ -164,7 +164,7 @@ pack_c4 (gfc_array_c4 *ret, const gfc_array_c4 *array,
       if (ret->base_addr == NULL)
 	{
 	  /* Setup the array descriptor.  */
-	  GFC_DIMENSION_SET(ret->dim[0], 0, total-1, 1);
+	  GFC_DIMENSION_SET(ret->dim[0], 0, total, sizeof (GFC_COMPLEX_4));
 
 	  ret->offset = 0;
 
