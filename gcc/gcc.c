@@ -483,10 +483,10 @@ proper position among the other output files.  */
 #define ASM_FINAL_SPEC \
   "%{gfission: \n\
        objcopy --extract-dwo \
-	 %{c:%{o*:%*}%{!o*:%b%O}}%{!c:%g%O} \
+	 %{c:%{o*:%*}%{!o*:%b%O}}%{!c:%U%O} \
 	 %{c:%{o*:%:replace-extension(%{o*:%*} .dwo)}%{!o*:%b.dwo}}%{!c:%b.dwo} \n\
        objcopy --strip-dwo \
-	 %{c:%{o*:%*}%{!o*:%b%O}}%{!c:%g%O} \
+	 %{c:%{o*:%*}%{!o*:%b%O}}%{!c:%U%O} \
     }"
 #endif
 
