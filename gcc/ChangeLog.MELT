@@ -1,6 +1,10 @@
 
 2011-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-base.melt (valdesc_hashlongs): Remove.
+
+2011-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-base.melt (valdesc_hashlongs): Got
 	hashl_bucktab....
 

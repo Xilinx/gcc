@@ -3026,68 +3026,6 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
 (install_value_descriptor valdesc_bucketlongs)
 
 
-;;;;;;;;;;;;;;;; long-keyed bighash tables
-(definstance valdesc_hashlongs class_value_descriptor
-  :doc #{$VALDESC_HASHLONGS describes long-keyed hash-tables made of bucketslongs.}#
-  :named_name '"VALDESC_HASHLONGS"
-  :valdesc_objmagic '"MELTOBMAG_HASHLONGS"
-  :valdesc_struct '"melthashlongs_st"
-  :valdesc_unionmem '"u_hashlongs"
-  :valdesc_membchunk #{$' /* from VALDESC_HASHLONGS in warmelt-base.melt */ 
-     melt_ptr_t hashl_aux; /* auxiliary data */
-     unsigned char hashl_lenix; /* index in melt_primtab for allocated length */
-     unsigned long hashl_ucount;     /* used count, ie total bucket entries */
-      melt_ptr_t GTY ((length("melt_primtab[%h.hashl_lenix]")))
-      hashl_bucktab;
-  /* the following field is usually the value of hashl_bucktab (for
-     objects in the young zone), to allocate the object and its fields
-     at once; hence its GTY-ed length is zero */
-     melt_ptr_t GTY ((length ("0"))) hashl_space[MELT_FLEXIBLE_DIM];
-  }#
-  :valdesc_declchunk #{$' /* decl VALDESC_HASHLONGS  in warmelt-base.melt */ 
-  typedef struct melthashlongs_st* melthashlongs_ptr_t;
-  }#
-  :valdesc_copychunk #{$' /* copy chunk from VALDESC_HASHLONGS  in warmelt-base.melt */
-  /* ggc_alloc_melthashlongs_st should be gengtype generated for VALDESC_MULTIPLE */
-#ifndef ggc_alloc_melthashlongs_st
-#define ggc_alloc_melthashlongs_st() ((struct melthashlongs_st *)(ggc_internal_alloc_stat (sizeof(struct melthashlongs_st) MEM_STAT_INFO)))
-#endif
-   unsigned lnix = src->hashl_lenix;
-   unsigned len = melt_primtab[lnix];
-   unsigned ucnt = 0;
-   unsigned ix = 0;
-   dst = ggc_alloc_melthashlongs_st(); /* don't need a cleared allocation. */
-   dst->discr = src->discr;
-   dst->hashl_aux = src->hashl_aux; 
-   dst->hashl_ucount = src->hashl_ucount;
-   dst->hashl_bucktab = NULL;
-   if (len > 0 && src->hashl_bucktab) {
-      dst->hashl_lenix = src->hashl_lenix;
-      dst->hashl_bucktab = ggc_alloc_vec_melt_ptr_t (len);
-      memcpy (dst->hashl_bucktab, src->hashl_bucktab, len * sizeof(src->hashl_bucktab[0]));
-   }
-   /* end copy chunk VALDESC_HASHLONGS */
-  }#
-  :valdesc_clonechunk #{$' /* cloning from  VALDESC_HASHLONGS in warmelt-base.melt */
-#warning cloning of VALDESC_HASHLONGS not implemented yet in warmelt-base.melt
-   melt_fatal_error ("cloning of VALDESC_HASHLONGS %p not implemented", (void*) src);
-   /* end cloning  VALDESC_HASHLONGS */
-  }#
-  :valdesc_forwchunk #{$' /* forwarding chunk from VALDESC_HASHLONGS in warmelt-base.melt */
-   unsigned lnix = src->hashl_lenix;
-   unsigned ulen = melt_primtab[lnix];
-   unsigned ix = 0;
-   MELT_FORWARDED (src->hashl_aux);
-   for (ix = 0; ix < ulen; ix++) {
-      MELT_FORWARDED (src->hashl_bucktab[ix]);
-      gcc_assert (src->hashl_bucktab[ix] == NULL 
-		  || melt_magic_discr(src->hashl_bucktab[ix]) == MELTOBMAG_BUCKETLONGS);
-   }
-  /* end forwarding VALDESC_HASHLONGS */
-  }#
-  )
-(install_value_descriptor valdesc_hashlongs)
-
 ;;;;;;;;;;;;;;;; string value
 (definstance valdesc_string class_varisized_value_descriptor
   :doc #{$VALDESC_STRING describes string values.}#
@@ -4071,7 +4009,6 @@ polyhedron values.}#
  valdesc_bucketlongs
  valdesc_closure
  valdesc_decay
- valdesc_hashlongs
  valdesc_int
  valdesc_list
  valdesc_mapobjects
