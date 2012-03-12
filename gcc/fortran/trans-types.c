@@ -1701,7 +1701,7 @@ gfc_get_array_descriptor_base (int dimen, int codimen, bool restricted,
 
   /* Add the data member as the first element of the descriptor.  */
   decl = gfc_add_field_to_struct_1 (fat_type,
-				    get_identifier ("data"),
+				    get_identifier ("base_addr"),
 				    (restricted
 				     ? prvoid_type_node
 				     : ptr_type_node), &chain);

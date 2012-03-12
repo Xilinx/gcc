@@ -1,3 +1,8 @@
+2012-03-12  Tobias Burnus  <burnus@net-b.de>
+
+	* intrinsics/iso_c_binding.c (c_f_pointer_u0): Use
+	GFC_DESCRIPTOR_SM instead of GFC_DESCRIPTOR_STRIDE_BYTES.
+
 2012-03-11  Tobias Burnus  <burnus@net-b.de>
 
 	* ISO_Fortran_binding.h (CFI_dim_t): Remove stride/ubound,

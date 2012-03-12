@@ -1,3 +1,8 @@
+2012-03-12  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-types.c (gfc_get_array_descriptor_base): Rename "data"
+	to "base_addr".
+
 2012-03-11  Tobias Burnus  <burnus@net-b.de>
 
 	* trans-array.c (UBOUND_SUBFIELD, STRIDE_SUBFIELD): Remove.

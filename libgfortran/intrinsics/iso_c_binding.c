@@ -103,7 +103,7 @@ ISO_C_BINDING_PREFIX (c_f_pointer_u0) (void *c_ptr_in,
       p = shape->base_addr;
       size = GFC_DESCRIPTOR_SIZE(shape);
 
-      source_stride = GFC_DESCRIPTOR_STRIDE_BYTES(shape,0);
+      source_stride = GFC_DESCRIPTOR_SM(shape,0);
 
       /* shape's length (rank of the output array) */
       shapeSize = GFC_DESCRIPTOR_EXTENT(shape,0);
