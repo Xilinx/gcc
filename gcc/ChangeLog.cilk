@@ -1,3 +1,15 @@
+2012-03-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* attribs.c (decl_attributes): Added a check for elemental function
+	attribute.
+	(is_elem_fn_attribute_p): New function.
+	* c-parser.c (c_parser_attributes): Added a check for vector attribute.
+	(c_parser_elem_fn_processor_clause): New function.
+	(c_parser_elem_fn_uniform_clause): Likewise.
+	(c_parser_elem_fn_linear_clause): Likewise.
+	(c_parser_elem_fn_vlength_clause): Likewise.
+	(c_parser_elem_fn_expr_list): Likewise.
+
 2012-02-15  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (cilk_fix_stack_reg): New function.

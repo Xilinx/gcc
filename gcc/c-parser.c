@@ -65,6 +65,7 @@ extern struct c_expr  fix_array_notation_expr (location_t, enum tree_code,
 extern bool contains_array_notation_expr (tree);
 struct pragma_simd_values local_simd_values;
 
+		    
 
 /* Initialization routine for this file.  */
 
@@ -241,6 +242,8 @@ typedef struct GTY(()) c_parser {
    garbage-collected?  */
 
 static GTY (()) c_parser *the_parser;
+
+static VEC(tree,gc) *c_parser_elem_fn_expr_list (c_parser *parser);
 
 /* Read in and lex a single token, storing it in *TOKEN.  */
 
@@ -3635,7 +3638,12 @@ c_parser_attributes (c_parser *parser)
 		attr_args = NULL_TREE;
 	      else
 		{
-		  expr_list = c_parser_expr_list (parser, false, true, NULL);
+		  if (TREE_CODE (attr_name) == IDENTIFIER_NODE
+		      && simple_cst_equal (attr_name,
+					   get_identifier ("vector")) == 1)
+		    expr_list = c_parser_elem_fn_expr_list (parser);
+		  else
+		    expr_list = c_parser_expr_list (parser, false, true, NULL);
 		  attr_args = build_tree_list_vec (expr_list);
 		  release_tree_vector (expr_list);
 		}
@@ -11869,5 +11877,422 @@ c_parser_array_notation (c_parser *parser, tree initial_index, tree array_value)
   TREE_TYPE (value_tree) = type;
   return value_tree;
 }
+
+static tree
+c_parser_elem_fn_processor_clause (c_parser *parser)
+{
+  c_token *token;
+  tree proc_tree_list = NULL_TREE;
+  VEC(tree,gc) *proc_vec_list = NULL;
+
+  token = c_parser_peek_token (parser);
+  if (!c_parser_next_token_is (parser, CPP_OPEN_PAREN))
+    {
+      c_parser_error (parser, "expected %<)%>");
+      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+      return NULL_TREE;
+    }
+  else
+    c_parser_consume_token (parser);
+
+  proc_vec_list = make_tree_vector ();
+  
+  if (!c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+    {
+      token = c_parser_peek_token (parser);
+      if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
+	  && simple_cst_equal (token->value, get_identifier ("pentium_4")) == 1)
+	{
+	  c_parser_consume_token (parser);
+	  VEC_safe_push (tree, gc, proc_vec_list,
+			 build_string (strlen ("pentium_4"), "pentium_4"));
+	}
+      else if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->value,
+				    get_identifier ("pentium4_sse3")) == 1)
+	{
+	  c_parser_consume_token (parser);
+	  VEC_safe_push (tree, gc, proc_vec_list,
+			 build_string (strlen ("pentium4_sse3"),
+				       "pentium4_sse3"));
+	}
+      else if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->value,
+				    get_identifier ("core2_duo_ssse3")) == 1)
+	{
+	  c_parser_consume_token (parser);
+	  VEC_safe_push (tree, gc, proc_vec_list,
+			 build_string (strlen ("core2_duo_ssse3"),
+				       "core2_duo_ssse3"));
+	}
+      else if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->value,
+				    get_identifier ("core2_duo_sse_4_1")) == 1)
+	{
+	  c_parser_consume_token (parser);
+	  VEC_safe_push (tree, gc, proc_vec_list,
+			 build_string (strlen ("core2_duo_sse_4_1"),
+				       "core2_duo_sse_4_1"));
+	}
+      else if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->value,
+				    get_identifier ("core_i7_sse4_2")) == 1)
+	{
+	  c_parser_consume_token (parser);
+	  VEC_safe_push (tree, gc, proc_vec_list,
+			 build_string (strlen ("core_i7_sse4_2"),
+				       "core_i7_sse4_2"));
+	}
+      else
+	{
+	  sorry ("Processor type not supported");
+	}
+      if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+	c_parser_consume_token (parser);
+      else
+	c_parser_error (parser, "expected %>)%>");
+    }
+  else
+    c_parser_error (parser, "expected %>(%> and CPUID");
+
+  proc_tree_list = build_tree_list_vec (proc_vec_list);
+  release_tree_vector (proc_vec_list);
+  proc_tree_list = build_tree_list (get_identifier ("processor"),
+				    proc_tree_list);
+  return proc_tree_list;
+}
+
+static tree
+c_parser_elem_fn_uniform_clause (c_parser *parser)
+{
+  c_token *token;
+  tree uniform_tree;
+  tree str_token = NULL_TREE;
+  VEC(tree,gc) *uniform_vec = NULL;
+
+  if (!c_parser_next_token_is (parser, CPP_OPEN_PAREN))
+    {
+      c_parser_error (parser, "expected %<)%>");
+      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+      return NULL_TREE;
+    }
+  else
+    c_parser_consume_token (parser);
+  
+  uniform_vec =  make_tree_vector ();
+  while (!c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+    {
+      token = c_parser_peek_token (parser);
+      if (token->value && token->type == CPP_NAME)
+	{
+	  /* convert the variable to a string */
+	  str_token = build_string (strlen (IDENTIFIER_POINTER (token->value)),
+				    IDENTIFIER_POINTER (token->value));
+	  VEC_safe_push (tree, gc, uniform_vec, str_token);
+	  c_parser_consume_token (parser);
+	  if (c_parser_next_token_is (parser, CPP_COMMA))
+	    {
+	      c_parser_consume_token (parser);
+	      if (c_parser_next_token_is_not (parser, CPP_NAME))
+		{
+		  c_parser_error (parser, "expected identifier after %<,%>");
+		  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+		  return NULL_TREE;
+		}
+	    }
+	  else if (c_parser_next_token_is_not (parser, CPP_CLOSE_PAREN))
+	    {
+	      c_parser_error (parser,
+			      "expected %<,%> or %<)%> after identifier");
+	      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+	      return NULL_TREE;
+	    }
+	}
+      else
+	{
+	  c_parser_error (parser, "expected number or comma");
+	  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+	  return NULL_TREE;
+	}
+    }
+  c_parser_consume_token (parser);     
+  uniform_tree = build_tree_list_vec (uniform_vec);
+  release_tree_vector (uniform_vec);
+  uniform_tree = build_tree_list (get_identifier ("uniform"), uniform_tree);
+  return uniform_tree;
+}
+
+static tree
+c_parser_elem_fn_linear_clause (c_parser *parser)
+{
+  c_token *token;
+  VEC(tree,gc) *linear_vec = NULL;
+  tree linear_tree = NULL_TREE;
+  tree var_str, step_size;
+
+  if (!c_parser_next_token_is (parser, CPP_OPEN_PAREN))
+    {
+      c_parser_error (parser, "expected %<)%>");
+      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+      return NULL_TREE;
+    }
+  else
+    c_parser_consume_token (parser);
+  linear_vec = make_tree_vector ();
+  // VEC_safe_push (tree, gc, linear_vec, get_identifier ("linear"));
+
+  while (!c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+    {
+      token = c_parser_peek_token (parser);
+      if (token->value && token->type == CPP_NAME)
+	{
+	  var_str = build_string (strlen (IDENTIFIER_POINTER (token->value)),
+				  IDENTIFIER_POINTER (token->value));
+	  c_parser_consume_token (parser);
+	  if (c_parser_next_token_is (parser, CPP_COLON))
+	    {
+	      c_parser_consume_token (parser);
+	      token = c_parser_peek_token (parser);
+	      if (token->value && token->type == CPP_NUMBER)
+		step_size = token->value;
+	      else
+		{
+		  c_parser_error (parser, "expected step-size");
+		  return NULL_TREE;
+		}
+	      c_parser_consume_token (parser);
+	    }
+	  else
+	    step_size = integer_one_node;
+	  VEC_safe_push (tree, gc, linear_vec, var_str);
+	  VEC_safe_push (tree, gc, linear_vec, step_size);
+	  if (c_parser_next_token_is (parser, CPP_COMMA))
+	    {
+	      c_parser_consume_token (parser);
+	      if (c_parser_next_token_is_not (parser, CPP_NAME))
+		{
+		  c_parser_error (parser,
+				  "expected variable after %<,%>");
+		  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+		  return NULL_TREE;
+		}
+	    }
+	  else if (c_parser_next_token_is_not (parser, CPP_CLOSE_PAREN))
+	    {
+	      c_parser_error (parser,
+			      "expected %<,%> or %<)%> after variable/step");
+	      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+	      return NULL_TREE;
+	    }
+	}
+      else
+	{
+	  c_parser_error (parser, "expected variable name or comma");
+	  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+	  return NULL_TREE;
+	}
+    }
+  c_parser_consume_token (parser); /* consume the ')' */
+  linear_tree = build_tree_list_vec (linear_vec);
+  release_tree_vector (linear_vec);
+  linear_tree = build_tree_list (get_identifier ("linear"), linear_tree);
+  return linear_tree;
+}
+
+static tree
+c_parser_elem_fn_vlength_clause (c_parser *parser)
+{
+  c_token *token;
+  VEC(tree,gc) *vlength_vec = NULL;
+  tree vlength_tree = NULL_TREE;
+
+  if (!c_parser_next_token_is (parser, CPP_OPEN_PAREN))
+    {
+      c_parser_error (parser, "expected %<)%>");
+      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+      return NULL_TREE;
+    }
+  else
+    c_parser_consume_token (parser);
+
+  vlength_vec = make_tree_vector ();
+  // VEC_safe_push (tree, gc, vlength_vec, get_identifier ("vectorlength"));
+  while (!c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+    {
+      token = c_parser_peek_token (parser);
+      if (token->value && token->type == CPP_NUMBER)
+	{
+	  VEC_safe_push (tree, gc, vlength_vec, token->value);
+	  c_parser_consume_token (parser);
+	  if (c_parser_next_token_is (parser, CPP_COMMA))
+	    {
+	      c_parser_consume_token (parser);
+	      if (c_parser_next_token_is_not (parser, CPP_NUMBER))
+		{
+		  c_parser_error (parser, "expected vectorlength after %<,%>");
+		  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+		  return NULL_TREE;
+		}
+	    }
+	  else if (c_parser_next_token_is_not (parser, CPP_CLOSE_PAREN))
+	    {
+	      c_parser_error (parser,
+			      "expected %<,%> or %<)%> after vectorlength");
+	      c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+	      return NULL_TREE;
+	    }
+	}
+      else
+	{
+	  c_parser_error (parser, "expected number or comma");
+	  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+	  return NULL_TREE;
+	}
+    }
+  c_parser_consume_token (parser);
+  vlength_tree = build_tree_list_vec (vlength_vec);
+  release_tree_vector (vlength_vec);
+  vlength_tree = build_tree_list (get_identifier ("vectorlength"),
+				  vlength_tree);
+  return vlength_tree;
+}
+  
+static VEC(tree,gc) *
+c_parser_elem_fn_expr_list (c_parser *parser)
+{
+  c_token *token;
+  VEC(tree,gc) *expr_list = NULL;
+  tree proc_list = NULL_TREE, mask_list = NULL_TREE, uniform_list = NULL_TREE;
+  tree vlength_list = NULL_TREE, linear_list = NULL_TREE;
+
+  expr_list = make_tree_vector ();
+
+  while (!c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+    {
+      token = c_parser_peek_token (parser);
+      if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
+	  && simple_cst_equal (token->value,
+			       get_identifier ("processor")) == 1)
+	{
+	  c_parser_consume_token (parser);
+	  gcc_assert (proc_list == NULL_TREE);
+	  proc_list = c_parser_elem_fn_processor_clause (parser);
+	  if (c_parser_next_token_is (parser, CPP_COMMA))
+	    {
+	      c_parser_consume_token (parser);
+	      if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+		{
+		  c_parser_error (parser, "expected identifier after %<,%>");
+		  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+		  return expr_list;
+		}
+	    }
+	}
+      else if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->value,
+				    get_identifier ("mask")) == 1)
+	{
+	  gcc_assert (mask_list == NULL_TREE);
+	  mask_list = get_identifier ("mask");
+	  if (c_parser_next_token_is (parser, CPP_COMMA))
+	    {
+	      c_parser_consume_token (parser);
+	      if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+		{
+		  c_parser_error (parser, "expected identifier after %<,%>");
+		  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+		  return expr_list;
+		}
+	    }	 
+	}
+      else if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->value,
+				    get_identifier ("unmask")) == 1)
+	{
+	  c_parser_consume_token (parser);
+	  gcc_assert (mask_list == NULL_TREE);
+	  mask_list = get_identifier ("unmask");
+	  if (c_parser_next_token_is (parser, CPP_COMMA))
+	    {
+	      c_parser_consume_token (parser);
+	      if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+		{
+		  c_parser_error (parser, "expected identifier after %<,%>");
+		  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+		  return expr_list;
+		}
+	    }	  
+	}
+      else if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->value,
+				    get_identifier ("vectorlength")) == 1)
+	{
+	  c_parser_consume_token (parser);
+	  gcc_assert (vlength_list == NULL_TREE);
+	  vlength_list = c_parser_elem_fn_vlength_clause (parser);
+	  if (c_parser_next_token_is (parser, CPP_COMMA))
+	    {
+	      c_parser_consume_token (parser);
+	      if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+		{
+		  c_parser_error (parser, "expected identifier after %<,%>");
+		  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+		  return expr_list;
+		}
+	    }	  
+	}
+      else if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->value,
+				    get_identifier ("uniform")) == 1)
+	{
+	  c_parser_consume_token (parser);
+	  gcc_assert (uniform_list == NULL_TREE);
+	  uniform_list = c_parser_elem_fn_uniform_clause (parser);
+	  	  if (c_parser_next_token_is (parser, CPP_COMMA))
+	    {
+	      c_parser_consume_token (parser);
+	      if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+		{
+		  c_parser_error (parser, "expected identifier after %<,%>");
+		  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+		  return expr_list;
+		}
+	    }
+	}
+      else if (token->value && TREE_CODE (token->value) == IDENTIFIER_NODE
+	       && simple_cst_equal (token->value,
+				    get_identifier ("linear")) == 1)
+	{
+	  c_parser_consume_token (parser);
+	  gcc_assert (linear_list == NULL_TREE);
+	  linear_list = c_parser_elem_fn_linear_clause (parser);
+	  	  if (c_parser_next_token_is (parser, CPP_COMMA))
+	    {
+	      c_parser_consume_token (parser);
+	      if (c_parser_next_token_is (parser, CPP_CLOSE_PAREN))
+		{
+		  c_parser_error (parser, "expected identifier after %<,%>");
+		  c_parser_skip_until_found (parser, CPP_CLOSE_PAREN, NULL);
+		  return expr_list;
+		}
+	    }
+	}
+    }
+
+  if (proc_list)
+    VEC_safe_push (tree, gc, expr_list, proc_list);
+  if (vlength_list)
+    VEC_safe_push (tree, gc, expr_list, vlength_list);
+  if (uniform_list)
+    VEC_safe_push (tree, gc, expr_list, uniform_list);
+  if (mask_list)
+    VEC_safe_push (tree, gc, expr_list, mask_list);
+  if (linear_list)
+    VEC_safe_push (tree, gc, expr_list, linear_list);
+  
+  return expr_list;
+}
+	
+
 
 #include "gt-c-parser.h"

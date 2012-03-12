@@ -228,6 +228,18 @@ lookup_attribute_spec (const_tree name)
 			 substring_hash (attr.str, attr.length));
 }
 
+
+static bool
+is_elem_fn_attribute_p (tree name)
+{
+  return is_attribute_p ("mask", name)
+    || is_attribute_p ("unmask", name)
+    || is_attribute_p ("vectorlength", name)
+    || is_attribute_p ("vector", name)
+    || is_attribute_p ("linear", name)
+    || is_attribute_p ("uniform", name);
+}
+
 /* Process the attributes listed in ATTRIBUTES and install them in *NODE,
    which is either a DECL (including a TYPE_DECL) or a TYPE.  If a DECL,
    it should be modified in place; if a TYPE, a copy should be created
@@ -312,8 +324,9 @@ decl_attributes (tree *node, tree attributes, int flags)
 
       if (spec == NULL)
 	{
-	  warning (OPT_Wattributes, "%qE attribute directive ignored",
-		   name);
+	  if (!is_elem_fn_attribute_p (name))
+	    warning (OPT_Wattributes, "%qE attribute directive ignored",
+		     name);
 	  continue;
 	}
       else if (list_length (args) < spec->min_length
