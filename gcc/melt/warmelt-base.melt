@@ -3037,7 +3037,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
      melt_ptr_t hashl_aux; /* auxiliary data */
      unsigned char hashl_lenix; /* index in melt_primtab for allocated length */
      unsigned long hashl_ucount;     /* used count, ie total bucket entries */
-      struct meltbucketlongs_st * GTY ((length("melt_primtab[%h.hashl_lenix]")))
+      struct meltbucketlongs_st** GTY ((length("melt_primtab[%h.hashl_lenix]")))
       hashl_entab;
   /* the following field is usually the value of entab (for
      objects in the young zone), to allocate the object and its fields
@@ -3080,8 +3080,8 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
    /* end cloning  VALDESC_HASHLONGS */
   }#
   :valdesc_forwchunk #{$' /* forwarding chunk from VALDESC_HASHLONGS in warmelt-base.melt */
-   unsigned lnix = src->buckl_lenix;
-   unsigned len = melt_primtab[lnix];
+   unsigned lnix = src->hashl_lenix;
+   unsigned ulen = melt_primtab[lnix];
    unsigned ix = 0;
    MELT_FORWARDED (src->hashl_aux);
    for (ix = 0; ix < ulen; ix++) {

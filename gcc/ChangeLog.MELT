@@ -1,6 +1,15 @@
 
 2011-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-build.tpl ([+melt_stage+]-fullstage.stamp): Depends upon
+	[+melt_stage+]/[+base+].c
+
+	* melt-build.mk: Regenerate.
+
+	* melt/warmelt-base.melt (valdesc_hashlongs): Typos.
+
+2011-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (FLEXIBLE_DIM, HAVE_FLEXIBLE_DIM): Obsolete,
 	replaced by
 	(MELT_FLEXIBLE_DIM, MELT_HAVE_FLEXIBLE_DIM): New macros.
