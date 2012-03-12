@@ -1,5 +1,11 @@
 
 2011-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (FLEXIBLE_DIM, HAVE_FLEXIBLE_DIM): Remove, since
+	use MELT_FLEXIBLE_DIM & MELT_HAVE_FLEXIBLE_DIM instead.
+	* melt-runtime.c (struct meltmappointers_st): Use
+	MELT_FLEXIBLE_DIM.
+
+2011-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt-build.mk: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.

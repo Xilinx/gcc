@@ -3933,7 +3933,7 @@ struct meltmappointers_st
   /* the following field is usually the value of entab (for
      objects in the young zone), to allocate the object and its fields
      at once */
-  struct entrypointermelt_st map_space[FLEXIBLE_DIM];
+  struct entrypointermelt_st map_space[MELT_FLEXIBLE_DIM];
 };
 
 #ifndef ggc_alloc_cleared_vec_entrypointermelt_st

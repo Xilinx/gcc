@@ -274,10 +274,6 @@ melt_need_debug_limit (int depth, int lim) {
 
 
 
-#warning temporary FLEXIBLE_DIM
-#define FLEXIBLE_DIM MELT_FLEXIBLE_DIM
-#define HAVE_FLEXIBLE_DIM  MELT_HAVE_FLEXIBLE_DIM
-
 
 /* array of (at least 100, increasing order but non consecutive)
    primes, zero terminated. Each prime is at least 1/8-th bigger than
