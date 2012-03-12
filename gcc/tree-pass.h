@@ -484,6 +484,7 @@ extern struct gimple_opt_pass pass_all_optimizations;
 extern struct gimple_opt_pass pass_cleanup_cfg_post_optimizing;
 extern struct gimple_opt_pass pass_init_datastructures;
 extern struct gimple_opt_pass pass_fixup_cfg;
+extern struct gimple_opt_pass pass_elem_fn;
 
 extern struct rtl_opt_pass pass_expand;
 extern struct rtl_opt_pass pass_init_function;

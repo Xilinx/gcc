@@ -620,7 +620,8 @@ bind (tree name, tree decl, struct c_scope *scope, bool invisible,
   b->shadowed = 0;
   b->decl = decl;
   b->id = name;
-  b->depth = scope->depth;
+  if (scope)
+    b->depth = scope->depth;
   b->invisible = invisible;
   b->nested = nested;
   b->inner_comp = 0;
@@ -629,8 +630,11 @@ bind (tree name, tree decl, struct c_scope *scope, bool invisible,
 
   b->u.type = NULL;
 
-  b->prev = scope->bindings;
-  scope->bindings = b;
+  if (scope)
+    {
+      b->prev = scope->bindings;
+      scope->bindings = b;
+    }
 
   if (decl_jump_unsafe (decl))
     scope->has_jump_unsafe_decl = 1;
@@ -658,9 +662,11 @@ bind (tree name, tree decl, struct c_scope *scope, bool invisible,
   /* Locate the appropriate place in the chain of shadowed decls
      to insert this binding.  Normally, scope == current_scope and
      this does nothing.  */
-  while (*here && (*here)->depth > scope->depth)
-    here = &(*here)->shadowed;
-
+  if (scope)
+    {
+      while (*here && (*here)->depth > scope->depth)
+	here = &(*here)->shadowed;
+    }
   b->shadowed = *here;
   *here = b;
 }

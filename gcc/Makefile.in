@@ -1453,6 +1453,7 @@ OBJS = \
         cilk.o \
         cilk-low.o \
 	array-notation-common.o \
+	elem-function.o \
 	$(out_object_file) \
 	$(EXTRA_OBJS) \
 	$(host_hook_obj)
@@ -3436,7 +3437,8 @@ lower-subreg.o : lower-subreg.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    insn-config.h $(BASIC_BLOCK_H) $(RECOG_H) $(OBSTACK_H) $(BITMAP_H) \
    $(EXPR_H) $(EXCEPT_H) $(REGS_H) $(TREE_PASS_H) $(DF_H) dce.h
 
-
+elem-function.o: elem-function.c $(CONFIG_H) $(SYSTEM_H) $(TREE_H) $(GIMPLE_H) \
+  $(OPTABS_H) $(RECOG_H)
 
 array-notation-common.o: array-notation-common.c $(CONFIG_H) $(SYSTEM_H) \
     $(TREE_H) $(RTL_H) $(OPTABS_H) $(GIMPLE_H) $(RECOG_H) 

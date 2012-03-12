@@ -327,6 +327,12 @@ decl_attributes (tree *node, tree attributes, int flags)
 	  if (!is_elem_fn_attribute_p (name))
 	    warning (OPT_Wattributes, "%qE attribute directive ignored",
 		     name);
+	  else
+	    {
+	      returned_attrs = tree_cons (name, args, returned_attrs);
+	      DECL_ATTRIBUTES (*anode) = tree_cons (name, args,
+						    DECL_ATTRIBUTES (*anode));
+	    }
 	  continue;
 	}
       else if (list_length (args) < spec->min_length

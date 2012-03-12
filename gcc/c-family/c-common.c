@@ -381,6 +381,7 @@ static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
 static tree handle_alloc_size_attribute (tree *, tree, tree, int, bool *);
 static tree handle_target_attribute (tree *, tree, tree, int, bool *);
 static tree handle_optimize_attribute (tree *, tree, tree, int, bool *);
+static tree handle_vector_attribute (tree *, tree, tree, int, bool *);
 static tree ignore_attribute (tree *, tree, tree, int, bool *);
 static tree handle_no_split_stack_attribute (tree *, tree, tree, int, bool *);
 static tree handle_fnspec_attribute (tree *, tree, tree, int, bool *);
@@ -741,6 +742,8 @@ const struct attribute_spec c_common_attribute_table[] =
 			      handle_target_attribute, false },
   { "optimize",               1, -1, true, false, false,
 			      handle_optimize_attribute, false },
+  { "vector",                 1, -1, true, false, false,
+                              handle_vector_attribute, false },
   /* For internal use only.  The leading '*' both prevents its usage in
      source code and signals that it may be overridden by machine tables.  */
   { "*tm regparm",            0, 0, false, true, true,
@@ -8266,6 +8269,22 @@ parse_optimize_options (tree args, bool attr_p)
 
   VEC_truncate (const_char_p, optimize_args, 0);
   return ret;
+}
+
+static tree
+handle_vector_attribute (tree *node, tree name ATTRIBUTE_UNUSED,
+			 tree args ATTRIBUTE_UNUSED,
+			 int ARG_UNUSED (flags), bool *no_add_attrs)
+{
+  tree opt_list;
+  VEC(tree,gc) *opt_vec = NULL;
+  opt_vec = make_tree_vector ();
+  VEC_safe_push (tree, gc, opt_vec, build_string (2, "O3"));
+  opt_list = build_tree_list_vec (opt_vec);
+  release_tree_vector (opt_vec);
+  handle_optimize_attribute (node, get_identifier ("optimize"), opt_list,
+			     flags, no_add_attrs);
+  return NULL_TREE;
 }
 
 /* For handling "optimize" attribute. arguments as in

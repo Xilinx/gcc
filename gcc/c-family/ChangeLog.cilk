@@ -1,3 +1,7 @@
+2012-03-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-common.c (handle_vector_attribute): New function.
+
 2012-01-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-common.c (c_define_builtins): Added a call to

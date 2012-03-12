@@ -1,3 +1,20 @@
+2012-03-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* attribs.c (decl_attributes): Concatinated existing attributes with
+	vector attributes.
+	* c-decl.c (bind): Added a check if scope is not null.
+	* elem-function.c (rename_elm_fn): New function.
+	(is_elem_fn): Likewise.
+	(find_processor_code): Likewise.
+	(find_vlength_code): Likewise.
+	(create_processor_attribute): Likewise.
+	(create_optimize_attribute): Likewise.
+	(find_suffix): Likewise.
+	(create_elem_fn_nodes): Likewise.
+	(extract_elem_fn_values): Likewise.
+	(create_elem_vec_fn): Likewise.
+	* passes.c (init_optimization_passes): Added elemental function pass.
+
 2012-03-09  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* attribs.c (decl_attributes): Added a check for elemental function
