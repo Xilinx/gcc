@@ -1084,6 +1084,7 @@ ccp_fold (gimple stmt)
 #ifdef DEBUG_SSA_COMBINE
 	if (t && is_gimple_min_invariant (t))
 	  {
+	    fprintf (stderr, "CCP missed GIMPLE_COND:\n");
 	    debug_gimple_stmt (stmt);
 	    debug_generic_expr (t);
 	  }
@@ -1103,6 +1104,7 @@ ccp_fold (gimple stmt)
 #ifdef DEBUG_SSA_COMBINE
       if (t && is_gimple_min_invariant (t))
 	{
+	  fprintf (stderr, "CCP STMT:\n");
 	  debug_gimple_stmt (stmt);
 	  debug_generic_expr (t);
 	}

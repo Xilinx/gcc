@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-O1 -fdump-tree-fre1" } */
+/* { dg-options "-O1 -fdump-tree-forwprop1" } */
 
 void
 arf ()
@@ -7,5 +7,5 @@ arf ()
   if (""[0] == 0)
     blah ();
 }
-/* { dg-final { scan-tree-dump-times "= 0;" 1 "fre1"} } */
-/* { dg-final { cleanup-tree-dump "fre1" } } */
+/* { dg-final { scan-tree-dump-not "if \\(" "forwprop1"} } */
+/* { dg-final { cleanup-tree-dump "forwprop1" } } */

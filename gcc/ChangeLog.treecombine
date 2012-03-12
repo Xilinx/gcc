@@ -1,5 +1,26 @@
 2012-03-11  Andrew Pinski  <apinski@cavium.com>
 
+	* gimple-fold.c (gimple_fold_stmt_to_constant_1):
+	Add/Change comments about what needs to be moved
+	to gimple-ssa-combine.c
+	* gimple-ssa-combine.c: Include gimple-fold.h.
+	(simplify_bitwise_binary): Add simplifying of
+	"(a & B) | (a & C)" to "a & (B|C)".
+	(simplify_pointer_plus): Call fold_binary on the
+	case where both arguments are integer constants.
+	(gimple_combine_binary): Don't call fold_binary
+	for POINTER_PLUS_EXPR since simplify_pointer_plus
+	handle those cases more correctly.
+	(gimple_combine_constructor): New function.
+	(gimple_combine_references): New function.
+	(ssa_combine): Move the handling of SSA_NAME to GIMPLE_SINGLE_RHS.
+	Move the handlng of the reference class to gimple_combine_references.
+	Call gimple_combine_constructor for CONSTRUCTORs.
+	* tree-ssa-ccp.c: Correct the debugging for DEBUG_SSA_COMBINE.
+	* tree-ssa-sccvn.c: Likewise.
+
+2012-03-11  Andrew Pinski  <apinski@cavium.com>
+
 	* fold-const.c (fold_binary_loc): Fix the types up correctly
 	when folding of (a & c) == (b & c) to (a^b) & c == 0.
 	* gimple-fold.c (and_comparisons_1): Add a comment about what has

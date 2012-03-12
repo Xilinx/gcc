@@ -3028,6 +3028,7 @@ simplify_binary_expression (gimple stmt)
 				    TREE_OPERAND (op0, 0),
 				    TREE_INT_CST_LOW (op1));
 #ifdef DEBUG_SSA_COMBINE
+	fprintf (stderr, "VN missed: POINTER_PLUS_EXPR\n");
 	debug_generic_expr (tmp);
 	debug_gimple_stmt (stmt);
 #endif
@@ -3074,8 +3075,9 @@ simplify_binary_expression (gimple stmt)
   if (result && valid_gimple_rhs_p (result))
     {
 #ifdef DEBUG_SSA_COMBINE
+      fprintf (stderr, "VN missed: binary\n");
       debug_generic_expr (result);
-	debug_gimple_stmt (stmt);
+      debug_gimple_stmt (stmt);
 #endif
     return result;
     }
@@ -3143,10 +3145,11 @@ simplify_unary_expression (gimple stmt)
       if (valid_gimple_rhs_p (result))
 	{
 #ifdef DEBUG_SSA_COMBINE
-	debug_generic_expr (result);
-	debug_gimple_stmt (stmt);
+          fprintf (stderr, "VN missed: unary\n");
+	  debug_generic_expr (result);
+	  debug_gimple_stmt (stmt);
 #endif
-        return result;
+          return result;
 	}
     }
 
@@ -3173,9 +3176,7 @@ try_to_simplify (gimple stmt)
 
   /* First try combining based on our current lattice.
      FIXME: the rest should just be just removed as the combining
-     should catch everything.
-     gcc.dg/tree-ssa/ssa-fre-32.c is one example. VCE folding is
-     also not done. */
+     should catch everything. */
   tem = ssa_combine (stmt);
   if (tem && valid_gimple_rhs_p (tem))
     return tem;
@@ -3188,8 +3189,9 @@ try_to_simplify (gimple stmt)
 	  || is_gimple_min_invariant (tem)))
     {
 #ifdef DEBUG_SSA_COMBINE
+      fprintf (stderr, "VN: stmt\n");
       debug_generic_expr (tem);
-	debug_gimple_stmt (stmt);
+      debug_gimple_stmt (stmt);
 #endif
       return tem;
     }

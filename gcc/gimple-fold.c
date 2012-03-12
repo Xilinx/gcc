@@ -2442,6 +2442,7 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
                 }
 	      /* Handle propagating invariant addresses into address
 		 operations.  */
+	      /* SSA_COMBINE: Already moved. */
 	      else if (TREE_CODE (rhs) == ADDR_EXPR
 		       && !is_gimple_min_invariant (rhs))
 		{
@@ -2456,6 +2457,7 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
 		    return build_invariant_address (TREE_TYPE (rhs),
 						    base, offset);
 		}
+	     /* SSA_COMBINE: Already moved. */
 	      else if (TREE_CODE (rhs) == CONSTRUCTOR
 		       && TREE_CODE (TREE_TYPE (rhs)) == VECTOR_TYPE
 		       && (CONSTRUCTOR_NELTS (rhs)
@@ -2503,7 +2505,7 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
 					       TREE_OPERAND (rhs, 1),
 					       TREE_OPERAND (rhs, 2));
 		    }
-		  /* SSA_COMBINE: NEEDS to be moved. */
+		  /* SSA_COMBINE: Already moved. */
 		  else if (TREE_CODE (rhs) == MEM_REF
 			   && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME)
 		    {
@@ -2518,7 +2520,7 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
 			    rhs = tem;
 			}
 		    }
-		  /* SSA_COMBINE: NEEDS to be moved. */
+		  /* SSA_COMBINE: Already moved. */
 		  return fold_const_aggregate_ref_1 (rhs, valueize);
 		}
 	      /* SSA_COMBINE: Already moved. */

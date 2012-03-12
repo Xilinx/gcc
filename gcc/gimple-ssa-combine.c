@@ -1,4 +1,4 @@
-/* Folding of trees in SSA form.
+/* Statement simplification and combining on GIMPLE SSA.
    Copyright (C) 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
@@ -34,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "gimple.h"
 #include "expr.h"
+#include "gimple-fold.h"
 
 static inline void defcodefor_name_3 (tree name, enum tree_code *code,
 				      tree *arg1, tree *arg2, tree *arg3);
@@ -1904,6 +1905,18 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 	}
     }
 
+  /* Simplify (a & B) | (a & C) into a & (B | C) if (B | C) simplifies. */
+  /* Simplify (a & B) ^ (a & C) into a & (B ^ C) if (B ^ C) simplifies. */
+  if ((code == BIT_IOR_EXPR || code == BIT_XOR_EXPR)
+      && def1_code == BIT_AND_EXPR
+      && def2_code == BIT_AND_EXPR
+      && operand_equal_p (def1_arg1, def2_arg1, 0))
+   {
+     tree tmp = gimple_combine_binary (loc, code, type, def1_arg2, def2_arg2);
+     if (tmp)
+       return gimple_combine_build2 (loc, def1_code, type, def1_arg1, tmp);
+   }
+
   return NULL;
 }
 
@@ -2421,6 +2434,11 @@ simplify_pointer_plus (location_t loc, enum tree_code code,
       inner = gimple_combine_build2 (loc, PLUS_EXPR, sizetype, arg11, arg12);
       return gimple_combine_build2 (loc, POINTER_PLUS_EXPR, type, def1_arg1, inner);
     }
+
+  /* Just do a folding for constant integers. */
+  if (TREE_CODE (op0) == INTEGER_CST && TREE_CODE (op1) == INTEGER_CST)
+    return fold_binary_loc (loc, code, type, op0, op1);
+
   return NULL_TREE;
 }
 
@@ -2460,8 +2478,10 @@ gimple_combine_binary (location_t loc, enum tree_code code,
   arg1 = valueizerf (arg1);
   arg2 = valueizerf (arg2);
 
-  /* Call fold if we have two constants. */
-  if (is_gimple_min_invariant (arg1) && is_gimple_min_invariant (arg2))
+  /* Call fold if we have two constants but not for POINTER_PLUS_EXPR
+     since we handle that specially. */
+  if (is_gimple_min_invariant (arg1) && is_gimple_min_invariant (arg2)
+      && code != POINTER_PLUS_EXPR)
     {
       tree tmp = fold_binary_loc (loc, code, type, arg1, arg2);
       if (tmp)
@@ -2554,6 +2574,81 @@ gimple_combine_addr_expr (tree addr_expr)
   return NULL;
 }
 
+/* Try simplifying a CONSTRUCTOR, returns NULL if none can be done. */
+static tree
+gimple_combine_constructor (tree rhs)
+{
+  gcc_assert (TREE_CODE (rhs) == CONSTRUCTOR);
+  if (TREE_CODE (TREE_TYPE (rhs)) == VECTOR_TYPE)
+    {
+      tree zero = build_zero_cst (TREE_TYPE (TREE_TYPE (rhs)));
+      tree val, list;
+      unsigned i;
+      unsigned numelements = TYPE_VECTOR_SUBPARTS (TREE_TYPE (rhs));
+
+      list = NULL_TREE;
+      FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (rhs), i, val)
+	{
+	  val = valueizerf (val);
+	  if (TREE_CODE (val) == INTEGER_CST
+	      || TREE_CODE (val) == REAL_CST
+	      || TREE_CODE (val) == FIXED_CST)
+	    list = tree_cons (NULL_TREE, val, list);
+	  else
+	    return NULL_TREE;
+	}
+      /* If the number of elements in the constructor is greater
+	 then the number of elements in the vector type, then something
+	 went wrong. */
+      if (i > numelements)
+	return NULL_TREE;
+      /* The rest of the elements are zero. */
+      for (; i< numelements; i++)
+	list = tree_cons (NULL_TREE, zero, list);
+
+      return build_vector (TREE_TYPE (rhs), nreverse (list));
+    }
+  return NULL_TREE;
+}
+
+static tree
+gimple_combine_references (location_t loc, tree ltype, tree rhs)
+{ 
+  enum tree_code code = TREE_CODE (rhs);
+
+  if ((code == VIEW_CONVERT_EXPR
+       || code == REALPART_EXPR
+       || code == IMAGPART_EXPR)
+      && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME)
+    return gimple_combine_unary (loc, code, ltype,
+				 TREE_OPERAND (rhs, 0));
+  if (code == BIT_FIELD_REF
+      && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME)
+    {
+      tree val = TREE_OPERAND (rhs, 0);
+      return gimple_combine_ternary (loc,
+				     code,
+				     ltype, val,
+				     TREE_OPERAND (rhs, 1),
+				     TREE_OPERAND (rhs, 2));
+    }
+  if (TREE_CODE (rhs) == MEM_REF
+      && TREE_CODE (TREE_OPERAND (rhs, 0)) == SSA_NAME)
+    {
+      tree val = valueizerf (TREE_OPERAND (rhs, 0));
+      if (TREE_CODE (val) == ADDR_EXPR
+	  && is_gimple_min_invariant (val))
+	{
+	  tree tem = fold_build2 (MEM_REF, TREE_TYPE (rhs),
+				  unshare_expr (val),
+				  TREE_OPERAND (rhs, 1));
+	  if (tem)
+	    rhs = tem;
+	}
+    }
+  return fold_const_aggregate_ref_1 (rhs, valueizerf);
+}
+
 /* Main entry point for the forward propagation and statement combine
    optimizer.  */
 
@@ -2570,37 +2665,24 @@ ssa_combine (gimple stmt)
 	tree ltype = TREE_TYPE (gimple_assign_lhs (stmt));
 	location_t loc = gimple_location (stmt);
 	enum tree_code code = gimple_assign_rhs_code (stmt);
-	if (code == SSA_NAME)
-	  {
-	    tree newrhs = valueizerf (rhs1);
-	    return newrhs == rhs1 ? NULL : newrhs;
-	   }
-
 	switch (get_gimple_rhs_class (code))
 	  {
-	    /* We don't handle these yet except SSA_NAME
-	       which is done above. */
 	    case GIMPLE_SINGLE_RHS:
+	      /* SINGLE_RHS does not have its code updated all the time. */
+	      code = TREE_CODE (rhs1);
+	      if (code == SSA_NAME)
+		{
+		  tree newrhs = valueizerf (rhs1);
+		  return newrhs == rhs1 ? NULL : newrhs;
+		}
 	      if (code == ADDR_EXPR)
 		return gimple_combine_addr_expr (rhs1);
 	      if (TREE_CODE_CLASS (code) == tcc_declaration)
 		return get_symbol_constant_value (rhs1);
-	      if ((code == VIEW_CONVERT_EXPR
-		   || code == REALPART_EXPR
-		   || code == IMAGPART_EXPR)
-		  && TREE_CODE (TREE_OPERAND (rhs1, 0)) == SSA_NAME)
-		return gimple_combine_unary (loc, code, ltype,
-					     TREE_OPERAND (rhs1, 0));
-	       else if (code == BIT_FIELD_REF
-			&& TREE_CODE (TREE_OPERAND (rhs1, 0)) == SSA_NAME)
-		{
-		  tree val = TREE_OPERAND (rhs1, 0);
-		  return gimple_combine_ternary (loc,
-					         code,
-					         ltype, val,
-					         TREE_OPERAND (rhs1, 1),
-					         TREE_OPERAND (rhs1, 2));
-		}
+	      if (code == CONSTRUCTOR)
+		return gimple_combine_constructor (rhs1);
+	      if (TREE_CODE_CLASS (code) == tcc_reference)
+		return gimple_combine_references (loc, ltype, rhs1);
 	      return NULL_TREE;
 	    case GIMPLE_BINARY_RHS:
 	       return gimple_combine_binary (loc, code, ltype, rhs1, rhs2);
