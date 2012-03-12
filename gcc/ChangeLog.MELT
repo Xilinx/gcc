@@ -1,4 +1,13 @@
 
+2011-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-build.tpl (MELT_MAKE_MODULE_XTRAMAKEFLAGS): Export it.
+
+	* melt-build.mk: Regenerate.
+
+	* Makefile.in (MELT_MAKE_MODULE_XTRAMAKEFLAGS): Default  to -j2.
+	(melt.encap): Don't build explicitly warmelt1
+
 2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/generated/meltrunsup.h: Regenerate.

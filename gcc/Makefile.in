@@ -5389,6 +5389,8 @@ $(srcdir)/melt-build.mk: @MAINT@ $(srcdir)/melt-build.def $(srcdir)/melt-build.t
 	cd $(srcdir) && $(AUTOGEN) melt-build.def
 include $(srcdir)/melt-build.mk
 
+MELT_MAKE_MODULE_XTRAMAKEFLAGS ?= -j 2
+
 .PHONY: melt.encap
 
 melt.encap: $(melt_make_cc1_dependency) $(srcdir)/melt-build.mk
@@ -5396,9 +5398,10 @@ melt.encap: $(melt_make_cc1_dependency) $(srcdir)/melt-build.mk
 	$(MAKE) Makefile $(srcdir)/melt-build.mk
 	@echo melt.encap making warmelt0 with melt_cflags= $(melt_cflags)
 	$(MAKE) warmelt0
-	@echo melt.encap making warmelt1 with melt_cflags= $(melt_cflags)
-##  melt_cflags are exported!
-	$(MAKE) warmelt1
+## don't bother making warmelt1 because warmelt2 depends on it
+##	@echo melt.encap making warmelt1 with melt_cflags= $(melt_cflags)
+###  melt_cflags are exported!
+##	$(MAKE) warmelt1
 	@echo melt.encap making warmelt2
 	$(MAKE) warmelt2
 	@echo melt.encap making warmelt
