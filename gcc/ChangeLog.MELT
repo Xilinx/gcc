@@ -1,6 +1,10 @@
 
 2011-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-base.melt (valdesc_hashlongs): Typos.
+
+2011-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-build.tpl ([+melt_stage+]-fullstage.stamp): Depends upon
 	[+melt_stage+]/[+base+].c
 

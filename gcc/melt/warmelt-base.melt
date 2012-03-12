@@ -3037,12 +3037,12 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
      melt_ptr_t hashl_aux; /* auxiliary data */
      unsigned char hashl_lenix; /* index in melt_primtab for allocated length */
      unsigned long hashl_ucount;     /* used count, ie total bucket entries */
-      struct meltbucketlongs_st** GTY ((length("melt_primtab[%h.hashl_lenix]")))
-      hashl_entab;
-  /* the following field is usually the value of entab (for
+      meltbucketlongs_ptr_t* GTY ((length("melt_primtab[%h.hashl_lenix]")))
+      hashl_bucktab;
+  /* the following field is usually the value of hashl_bucktab (for
      objects in the young zone), to allocate the object and its fields
      at once; hence its GTY-ed length is zero */
-     struct meltbucketlongs_st GTY ((length ("0"))) hashl_space[MELT_FLEXIBLE_DIM];
+     melt_ptr_t GTY ((length ("0"))) hashl_space[MELT_FLEXIBLE_DIM];
   }#
   :valdesc_declchunk #{$' /* decl VALDESC_HASHLONGS  in warmelt-base.melt */ 
   typedef struct melthashlongs_st* melthashlongs_ptr_t;
@@ -3052,12 +3052,6 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
 #ifndef ggc_alloc_melthashlongs_st
 #define ggc_alloc_melthashlongs_st() ((struct melthashlongs_st *)(ggc_internal_alloc_stat (sizeof(struct melthashlongs_st) MEM_STAT_INFO)))
 #endif
-#ifndef ggc_alloc_vec_meltbucketlongs_st
-#define ggc_alloc_vec_meltbucketlongs_st(N) ((struct meltbucketlongs_st *) (ggc_internal_vec_alloc_stat (sizeof(struct meltbucketlongs_st), N MEM_STAT_INFO)))
-#endif 
-#ifndef ggc_alloc_cleared_vec_meltbucketlongs_st
-#define ggc_alloc_cleared_vec_meltbucketlongs_st(N) ((struct meltbucketlongs_st *) (ggc_internal_cleared_vec_alloc_stat (sizeof(struct meltbucketlongs_st), N MEM_STAT_INFO)))
-#endif 
    unsigned lnix = src->hashl_lenix;
    unsigned len = melt_primtab[lnix];
    unsigned ucnt = 0;
