@@ -1,3 +1,142 @@
+2012-03-12  Richard Guenther  <rguenther@suse.de>
+
+	* config/arm/arm.c (neon_dereference_pointer): Do not call
+	covert during RTL expansion.
+
+2012-03-12  Tristan Gingold  <gingold@adacore.com>
+
+	* doc/invoke.texi (VMS Options): Merge Alpha/VMS and IA-64/VMS
+	Options.  Mention -mpointer-size.
+
+2012-03-12  Richard Guenther  <rguenther@suse.de>
+
+	* config/alpha/alpha.c (alpha_gimplify_va_arg): Use
+	build_nonstandard_integer_type.
+
+2012-03-12  Richard Guenther  <rguenther@suse.de>
+
+	* tree.c (signed_or_unsigned_type_for): Use
+	build_nonstandard_integer_type.
+	(signed_type_for): Adjust documentation.
+	(unsigned_type_for): Likewise.
+	* tree-pretty-print.c (dump_generic_node): Use standard names
+	for non-standard integer types if available.
+
+2012-03-12  Tristan Gingold  <gingold@adacore.com>
+
+	* config/vms/vms.opt: Add vms-opts.h header.
+	(mmalloc64): Use flag_vms_malloc64 flag instead of MALLOC64
+	target mask.
+	(-mvms-return-codes): Document.
+	(-mpointer-size): New option.
+	(vms_pointer_size): Add enumeration.
+	* config/vms/vms-opts.h: New file.
+	* config/vms/vms.h (TARGET_OS_CPP_BUILTINS): Define
+	__INITIAL_POINTER_SIZE.
+	(POINTER_SIZE, SIZE_TYPE, PTRDIFF_TYPE): Adjust definition.
+	(C_COMMON_OVERRIDE_OPTIONS): Define.
+	(DWARF2_ADDR_SIZE): Define.
+	* config/vms/vms.c (vms_patch_builtins): Adjust condition.
+	* config/vms/vms-protos.h (vms_c_common_override_options):
+	New prototype.
+	* config/vms/vms-c.c (vms_pragma_pointer_size): Ignore pragma
+	if -mno-pointer-size.
+	(vms_c_common_override_options): New function.
+	* config/ia64/vms.h (TARGET_DEFAULT): Remove MASK_MALLOC64.
+	* config/alpha/vms.h (TARGET_DEFAULT): Remove MASK_MALLOC64.
+	(MALLOC_ABI_ALIGNMENT): Use flag_vms_malloc64
+	and flag_vms_pointer_size.
+	(MASK_RETURN_ADDR): Set according to flag_vms_pointer_size.
+	* config.gcc (*-*-*vms*): Define xm_file.
+	(alpha*-dec-*vms*): Do not define xm_file.
+	(alpha64-dec-*vms*): Remove.
+	(ia64-hp-*vms*): Do not define xm_file.  Simplify tm_file
+	and tmake_file.
+
+2012-03-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51721
+	* tree-vrp.c (register_edge_assert_for_2): Add asserts for unsvar
+	if (int) unsvar cmp CST.
+
+2012-03-12  Richard Guenther  <rguenther@suse.de>
+
+        * tree-sra.c (create_access_replacement): Only rename the
+        replacement if we can rewrite it into SSA form.  Properly
+        mark register typed replacements that we cannot rewrite
+        with TREE_ADDRESSABLE.
+	* tree-cfg.c (verify_expr): Fix BIT_FIELD_REF verification
+	for aggregate or BLKmode results.
+
+2012-03-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/52533
+	* tree-vrp.c (register_edge_assert_for_2): Use double_int
+	type for mask, only handle shifts by non-zero in-range
+	shift count, for LE_EXPR and GT_EXPR if new_val is
+	maximum, don't add the assertion.
+
+2012-02-12  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* doc/invoke.texi: Document -mrtm option.
+	* common/config/i386/i386-common.c (OPTION_MASK_ISA_RTM_SET):
+	New.
+	(OPTION_MASK_ISA_RTM_UNSET): Ditto.
+	(ix86_handle_option): Handle OPT_mrtm.
+	* config.gcc (i[34567]86-*-*): Add rtmintrin.h and
+	xtestintrin.h.
+	(x86_64-*-*): Ditto.
+	* i386-builtin-types.def (INT_FTYPE_VOID): New.
+	* config/i386/i386-c.c (ix86_target_macros_internal): Define
+	__RTM__ if needed.
+	(ix86_target_string): Define -mrtm option.
+	(PTA_RTM): New.
+	(ix86_option_override_internal): Extend "corei7-avx" with
+	RTM option. Handle new option.
+	(ix86_valid_target_attribute_inner_p): Add OPT_mrtm.
+	(ix86_builtins): Add IX86_BUILTIN_XBEGIN, IX86_BUILTIN_XEND,
+	IX86_BUILTIN_XTEST.
+	(bdesc_special_args): Ditto.
+	(ix86_init_mmx_sse_builtins): Add IX86_BUILTIN_XABORT.
+	(ix86_expand_special_args_builtin): Handle new built-in type.
+	(ix86_expand_builtin): Handle XABORT instruction.
+	* config/i386/i386.h (TARGET_RTM): New.
+	* config/i386/i386.md (UNSPECV_XBEGIN): New.
+	(UNSPECV_XEND): Ditto.
+	(UNSPECV_XABORT): Ditto.
+	(UNSPECV_XTEST): Ditto.
+	(xbegin): Ditto.
+	(xbegin_1): Ditto.
+	(xend): Ditto.
+	(xabort): Ditto
+	(xtest): Ditto.
+	(xtest_1): Ditto.
+	* config/i386/i386.opt (mrtm): New.
+	* config/i386/immintrin.h: Include rtmintrin.h and
+	xtestintrin.h.
+	* config/i386/rtmintrin.h: New header.
+	* config/i386/xtestintrin.h: Ditto.
+
+2012-03-12  Tristan Gingold  <gingold@adacore.com>
+
+	* ginclude/stddef.h: Adjust previous patch.  Use __VMS__ instead
+	of VMS.
+
+2012-03-12  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (setcc + movzbl to xor + setcc peephole2):
+	Also convert sequences with CC setting arithmetic instruction.
+
+2012-03-11  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi (Option Summary): Move -no-integrated-cpp
+	from C Language Options to Preprocessor Options.
+	(C Dialect Options): Move -no-integrated-cpp documentation
+	from here...
+	(Preprocessor Options): ...to here.  Rewrite the description
+	so it makes more sense, and remove discussion of merging
+	front ends.
+
 2012-03-11  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (ix86_expand_movmem): Use word_mode for size

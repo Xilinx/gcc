@@ -1,3 +1,30 @@
+2012-03-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/51721
+	* gcc.dg/tree-ssa/vrp64.c: New test.
+
+	PR tree-optimization/52533
+	* gcc.c-torture/compile/pr52533.c: New test.
+
+2012-03-12  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* gcc.target/i386/rtm-xabort-1.c: New.
+	* gcc.target/i386/rtm-xbegin-1.c: Ditto.
+	* gcc.target/i386/rtm-xend-1.c: Ditto.
+	* gcc.target/i386/rtm-xtest-1.c: Ditto.
+	* gcc.target/i386/sse-12.c: Test RTM intrinsics.
+	* gcc.target/i386/sse-13.c: Ditto.
+	* gcc.target/i386/sse-14.c: Ditto.
+	* gcc.target/i386/sse-22.c: Ditto.
+	* gcc.target/i386/sse-23.c: Ditto.
+	* g++.dg/other/i386-2.C: Ditto.
+	* g++.dg/other/i386-3.C: Ditto.
+
+2012-03-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52542
+	* gfortran.dg/proc_ptr_35.f90: New.
+
 2012-03-11  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/52530

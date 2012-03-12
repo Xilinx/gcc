@@ -360,7 +360,8 @@ i[34567]86-*-*)
 		       immintrin.h x86intrin.h avxintrin.h xopintrin.h
 		       ia32intrin.h cross-stdarg.h lwpintrin.h popcntintrin.h
 		       lzcntintrin.h bmiintrin.h bmi2intrin.h tbmintrin.h
-		       avx2intrin.h fmaintrin.h f16cintrin.h"
+		       avx2intrin.h fmaintrin.h f16cintrin.h rtmintrin.h
+		       xtestintrin.h"
 	;;
 x86_64-*-*)
 	cpu_type=i386
@@ -373,7 +374,8 @@ x86_64-*-*)
 		       immintrin.h x86intrin.h avxintrin.h xopintrin.h
 		       ia32intrin.h cross-stdarg.h lwpintrin.h popcntintrin.h
 		       lzcntintrin.h bmiintrin.h tbmintrin.h bmi2intrin.h
-		       avx2intrin.h fmaintrin.h f16cintrin.h"
+		       avx2intrin.h fmaintrin.h f16cintrin.h rtmintrin.h
+		       xtestintrin.h"
 	need_64bit_hwint=yes
 	;;
 ia64-*-*)
@@ -735,6 +737,7 @@ case ${target} in
   extra_objs="vms.o"
   target_gtfiles="$target_gtfiles \$(srcdir)/config/vms/vms.c"
   tm_p_file="${tm_p_file} vms/vms-protos.h"
+  xm_file="vms/xm-vms.h"
   c_target_objs="vms-c.o"
   cxx_target_objs="vms-c.o"
   if test x$gnu_ld != xyes; then
@@ -809,14 +812,8 @@ alpha*-dec-osf5.1*)
 	    ;;
 	esac
 	;;
-alpha64-dec-*vms*)
-	tm_file="${tm_file} vms/vms.h vms/vms64.h alpha/vms.h"
-	xm_file="alpha/xm-vms.h vms/xm-vms64.h"
-	tmake_file="${tmake_file} vms/t-vms64 alpha/t-vms"
-	;;
 alpha*-dec-*vms*)
 	tm_file="${tm_file} vms/vms.h alpha/vms.h"
-	xm_file="alpha/xm-vms.h"
 	tmake_file="${tmake_file} alpha/t-vms"
 	;;
 arm-wrs-vxworks)
@@ -1554,9 +1551,8 @@ ia64*-*-hpux*)
 	esac
 	;;
 ia64-hp-*vms*)
-	tm_file="${tm_file} elfos.h ia64/sysv4.h ia64/elf.h vms/vms.h vms/vms64.h ia64/vms.h"
-	xm_file="vms/xm-vms.h vms/xm-vms64.h"
-	tmake_file="${tmake_file} vms/t-vms64 ia64/t-ia64"
+	tm_file="${tm_file} elfos.h ia64/sysv4.h vms/vms.h ia64/vms.h"
+	tmake_file="${tmake_file} ia64/t-ia64"
 	target_cpu_default="0"
 	if test x$gas = xyes
 	then
