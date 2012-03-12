@@ -93,10 +93,10 @@ end program main
 !
 ! CALL 1
 !
-!  sub ((integer(kind=4) *) caf.data, &((struct t * restrict) caf_dt.data)->b,
+!  sub ((integer(kind=4) *) caf.base_addr, &((struct t * restrict) caf_dt.base_addr)->b,
 !       caf.token, 0, caf_dt.token, 4);
 !
-! { dg-final { scan-tree-dump-times "sub \\(\[^,\]*caf.data, &\[^,\]*caf_dt.data.->b, caf.token, 0, caf_dt.token, 4\\)" 1 "original" } }
+! { dg-final { scan-tree-dump-times "sub \\(\[^,\]*caf.base_addr, &\[^,\]*caf_dt.base_addr.->b, caf.token, 0, caf_dt.token, 4\\)" 1 "original" } }
 !
 !  sub2 ((integer(kind=4) *) x1, (integer(kind=4) *) x2,
 !        caf_token.4, NON_LVALUE_EXPR <caf_offset.5>,
@@ -110,7 +110,7 @@ end program main
 !
 ! CALL 4
 !
-! { dg-final { scan-tree-dump-times "sub_opt \\(.integer.kind=4. .. caf.data, caf.token, 0\\)" 1 "original" } }
+! { dg-final { scan-tree-dump-times "sub_opt \\(.integer.kind=4. .. caf.base_addr, caf.token, 0\\)" 1 "original" } }
 !
 ! { dg-final { cleanup-tree-dump "original" } }
 ! { dg-final { cleanup-modules "matrix_data" } }

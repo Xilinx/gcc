@@ -1,5 +1,15 @@
 2012-03-12  Tobias Burnus  <burnus@net-b.de>
 
+	* assumed_type_2.f90: Change "data" to "base_addr" in
+	scan-tree-dump.
+	* block_2.f08: Ditto.
+	* coarray_lib_token_2.f90: Ditto.
+	* coarray_lib_token_3.f90: Ditto.
+	* coarray_lib_token_4.f90: Ditto.
+	* pr43984.f90: Ditto.
+
+2012-03-12  Tobias Burnus  <burnus@net-b.de>
+
 	* gfortran.dg/coarray_12.f90: Update scan-tree-dump-times.
 	* gfortran.dg/contiguous_3.f90: Ditto.
 	* gfortran.dg/array_section_2.f90: Ditto.

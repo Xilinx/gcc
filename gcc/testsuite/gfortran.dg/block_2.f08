@@ -35,5 +35,5 @@ PROGRAM main
     IF (str /= "12345") CALL abort ()
   END BLOCK
 END PROGRAM main
-! { dg-final { scan-tree-dump-times "free \\(\\(void \\*\\) alloc_arr\\.data" 1 "original" } }
+! { dg-final { scan-tree-dump-times "free \\(\\(void \\*\\) alloc_arr\\.base_addr" 1 "original" } }
 ! { dg-final { cleanup-tree-dump "original" } }

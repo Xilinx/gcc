@@ -50,8 +50,8 @@ end subroutine
 
 end
 
-! There should be three loads from iyz.data, not four.
+! There should be three loads from iyz.base_addr, not four.
 
-! { dg-final { scan-tree-dump-times "= iyz.data" 3 "pre" } }
+! { dg-final { scan-tree-dump-times "= iyz.base_addr" 3 "pre" } }
 ! { dg-final { cleanup-tree-dump "pre" } }
 ! { dg-final { cleanup-modules "test" } }
