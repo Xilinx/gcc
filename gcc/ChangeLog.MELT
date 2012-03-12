@@ -1,6 +1,22 @@
 
 2011-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (FLEXIBLE_DIM, HAVE_FLEXIBLE_DIM): Obsolete,
+	replaced by
+	(MELT_FLEXIBLE_DIM, MELT_HAVE_FLEXIBLE_DIM): New macros.
+	(struct melt_bucketlongentry_st): New.
+	(meltgc_new_longsbucket, meltgc_new_longshash): New declarations.
+	(meltgc_install_polling_channel): New declaration.
+
+	* melt-runtime.h (meltgc_handle_interrupt): Add comment.
+	(meltgc_install_polling_channel, meltgc_new_longsbucket)
+	(meltgc_new_longshash): New function stubs.
+
+	* melt/warmelt-base.melt (valdesc_bucketlongs, valdesc_hashlongs):
+	New value descriptor.
+
+2011-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-build.tpl (MELT_MAKE_MODULE_XTRAMAKEFLAGS): Export it.
 
 	* melt-build.mk: Regenerate.

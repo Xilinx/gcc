@@ -2479,7 +2479,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
   unsigned obj_hash;		/* hash code of the object */
   unsigned short obj_num;
   unsigned short obj_len;
-  melt_ptr_t GTY ((length ("%h.obj_len"))) obj_vartab[FLEXIBLE_DIM];
+  melt_ptr_t GTY ((length ("%h.obj_len"))) obj_vartab[MELT_FLEXIBLE_DIM];
   }#
   :valdesc_declchunk #{$' /* decl VALDESC_OBJECT */
 #define meltobj_class discr
@@ -2504,7 +2504,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
     dst = ggc_alloc_meltobject_st
       (oblen*sizeof(void*)
        + offsetof(struct meltobject_st, obj_vartab));
-    /* we cannot copy the whole src, because FLEXIBLE_DIM might be 1 */
+    /* we cannot copy the whole src, because MELT_FLEXIBLE_DIM might be 1 */
     dst->meltobj_class = src->meltobj_class;
     dst->obj_hash = src->obj_hash;
     dst->obj_num = src->obj_num;
@@ -2565,7 +2565,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
   /* the following field is usually the value of entab (for
      objects in the young zone), to allocate the object and its fields
      at once; hence its GTY-ed length is zero */
-  struct entryobjectsmelt_st GTY ((length ("0"))) map_space[FLEXIBLE_DIM];
+  struct entryobjectsmelt_st GTY ((length ("0"))) map_space[MELT_FLEXIBLE_DIM];
   }#
   :valdesc_declchunk #{$' /* decl VALDESC_MAPOBJECTS in warmelt-base.melt */
     typedef struct meltmapobjects_st* meltmapobjects_ptr_t;
@@ -2576,7 +2576,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
 #define ggc_alloc_meltmapobjects_st() ((struct meltmapobjects_st *)(ggc_internal_alloc_stat (sizeof (struct meltmapobjects_st) MEM_STAT_INFO)))
 #endif
 #ifndef ggc_alloc_vec_entryobjectsmelt_st
-#define ggc_alloc_vec_entryobjectsmelt_st(n) ((struct entryobjectsmelt_st *)(ggc_internal_vec_alloc_stat (sizeof (struct entryobjectsmelt_st), n MEM_STAT_INFO)))
+#define ggc_alloc_vec_entryobjectsmelt_st(N) ((struct entryobjectsmelt_st *) (ggc_internal_vec_alloc_stat (sizeof (struct entryobjectsmelt_st), N MEM_STAT_INFO)))
 #endif
 #ifndef  ggc_alloc_cleared_vec_entryobjectsmelt_st
 #define ggc_alloc_cleared_vec_entryobjectsmelt_st(n) ((struct entryobjectsmelt_st *)(ggc_internal_cleared_vec_alloc_stat (sizeof (struct entryobjectsmelt_st), n MEM_STAT_INFO)))
@@ -2791,7 +2791,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
   :valdesc_unionmem '"u_multiple"
   :valdesc_membchunk #{$' /* from VALDESC_MULTIPLE in warmelt-base.melt */
     unsigned nbval;
-    melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
+    melt_ptr_t GTY ((length ("%h.nbval"))) tabval[MELT_FLEXIBLE_DIM];
   }#
   :valdesc_declchunk #{$'  /* decl VALDESC_MULTIPLE in warmelt-base.melt */
 #define MELT_MULTIPLE_STRUCT(N) {               \
@@ -2812,7 +2812,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
       /* Don't need a cleared allocation!  */
       ggc_alloc_meltmultiple_st 
       (nbv*sizeof(void*) + offsetof(struct meltmultiple_st, tabval));
-    /* we cannot copy the whole src, because FLEXIBLE_DIM might be
+    /* we cannot copy the whole src, because MELT_FLEXIBLE_DIM might be
        1 and nbval could be 0 */
     dst->discr = src->discr;
     dst->nbval = src->nbval;
@@ -2850,7 +2850,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
   :valdesc_membchunk #{$' /* from VALDESC_CLOSURE in warmelt-base.melt */
     meltroutine_ptr_t rout;
     unsigned nbval;
-    melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
+    melt_ptr_t GTY ((length ("%h.nbval"))) tabval[MELT_FLEXIBLE_DIM];
   }#
   :valdesc_declchunk #{$' /* decl VALDESC_CLOSURE  in warmelt-base.melt */
 #define MELT_CLOSURE_STRUCT(N) {                \
@@ -2912,7 +2912,7 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
     meltroutfun_t* GTY ((skip)) routfunad;
     melt_ptr_t routdata;
     unsigned nbval;
-    melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
+    melt_ptr_t GTY ((length ("%h.nbval"))) tabval[MELT_FLEXIBLE_DIM];
   }#
   :valdesc_declchunk #{$' /* decl VALDESC_ROUTINE */
 #ifndef meltroutine_ptr_t_TYPEDEFINED
@@ -2966,6 +2966,134 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
 )
 (install_value_descriptor valdesc_routine)
 
+
+
+;;;;;;;;;;;;;;;; long bucket values
+(definstance valdesc_bucketlongs class_varisized_value_descriptor
+  :doc #{$VALDESC_BUCKETLONGS describe internal long-keyed buckets inside long bighashtables.}#
+  :named_name '"VALDESC_BUCKETLONGS"
+  :valdesc_objmagic '"MELTOBMAG_BUCKETLONGS"
+  :valdesc_struct '"meltbucketlongs_st"
+  :valdesc_unionmem '"u_bucketlongs"
+  :valdesc_membchunk #{$' /* from VALDESC_BUCKETLONGS in warmelt-base.melt */ 
+     melt_ptr_t buckl_aux; /* auxiliary data */
+     unsigned char buckl_lenix; /* index in melt_primtab for allocated length */
+     unsigned short buckl_xnum; /* extra number */
+     unsigned buckl_ucount;     /* used count of bucket entries */
+     struct melt_bucketlongentry_st GTY ((length("melt_primtab[%h.buckl_lenix]")))
+        buckl_entab[MELT_FLEXIBLE_DIM]; /* sorted by increasing ebl_at */
+  }#
+  :valdesc_declchunk #{$' /* decl VALDESC_BUCKETLONGS  in warmelt-base.melt */ 
+  typedef struct meltbucketlongs_st* meltbucketlongs_ptr_t;
+  }#
+  :valdesc_copychunk #{$' /* copy chunk from  VALDESC_BUCKETLONGS  in warmelt-base.melt */
+  /* ggc_alloc_meltbucketlongs_st should be gengtype generated for VALDESC_BUCKETLONGS */
+#ifndef ggc_alloc_meltbucketlongs_st
+#define ggc_alloc_meltbucketlongs_st(SIZE) ((struct meltbucketlongs_st *)(ggc_internal_alloc_stat (SIZE MEM_STAT_INFO)))
+#endif
+   unsigned lnix = src->buckl_lenix;
+   unsigned len = melt_primtab[lnix];
+   unsigned ucnt = 0;
+   unsigned ix = 0;
+   dst = /* Don't need a cleared allocation! */
+     ggc_alloc_meltbucketlongs_st (len*sizeof (struct melt_bucketlongentry_st) 
+				   + offsetof(struct meltbucketlongs_st, buckl_entab));
+   dst->discr = src->discr;
+   dst->buckl_aux = src->buckl_aux;
+   dst->buckl_xnum = src->buckl_xnum;
+   ucnt = dst->buckl_ucount = src->buckl_ucount;
+   for (ix = 0; ix < ucnt; ix++)
+     dst->buckl_entab[ix] = src->buckl_entab[ix];
+   for (ix = ucnt; ix < len; ix++) {
+     dst->buckl_entab[ix].ebl_at = 0L;
+     dst->buckl_entab[ix].ebl_va = NULL;
+   }
+   /* end copy chunk VALDESC_BUCKETLONGS */
+  }#
+  ;; no cloning of bucketlongs
+  :valdesc_forwchunk #{$' /* forwarding chunk from VALDESC_BUCKETLONGS in warmelt-base.melt */
+   unsigned lnix = src->buckl_lenix;
+   unsigned len = melt_primtab[lnix];
+   unsigned ucnt = src->buckl_ucount;
+   unsigned ix = 0;
+   MELT_FORWARDED (src->buckl_aux);
+   gcc_assert (ucnt <= len);
+   for (ix = 0; ix < ucnt; ix++)
+      MELT_FORWARDED (src->buckl_entab[ix].ebl_va);
+  /* end forwarding VALDESC_BUCKETLONGS */
+  }#
+  )
+(install_value_descriptor valdesc_bucketlongs)
+
+
+;;;;;;;;;;;;;;;; long-keyed bighash tables
+(definstance valdesc_hashlongs class_value_descriptor
+  :doc #{$VALDESC_HASHLONGS describes long-keyed hash-tables made of bucketslongs.}#
+  :named_name '"VALDESC_HASHLONGS"
+  :valdesc_objmagic '"MELTOBMAG_HASHLONGS"
+  :valdesc_struct '"melthashlongs_st"
+  :valdesc_unionmem '"u_hashlongs"
+  :valdesc_membchunk #{$' /* from VALDESC_HASHLONGS in warmelt-base.melt */ 
+     melt_ptr_t hashl_aux; /* auxiliary data */
+     unsigned char hashl_lenix; /* index in melt_primtab for allocated length */
+     unsigned long hashl_ucount;     /* used count, ie total bucket entries */
+      struct meltbucketlongs_st * GTY ((length("melt_primtab[%h.hashl_lenix]")))
+      hashl_entab;
+  /* the following field is usually the value of entab (for
+     objects in the young zone), to allocate the object and its fields
+     at once; hence its GTY-ed length is zero */
+     struct meltbucketlongs_st GTY ((length ("0"))) hashl_space[MELT_FLEXIBLE_DIM];
+  }#
+  :valdesc_declchunk #{$' /* decl VALDESC_HASHLONGS  in warmelt-base.melt */ 
+  typedef struct melthashlongs_st* melthashlongs_ptr_t;
+  }#
+  :valdesc_copychunk #{$' /* copy chunk from VALDESC_HASHLONGS  in warmelt-base.melt */
+  /* ggc_alloc_melthashlongs_st should be gengtype generated for VALDESC_MULTIPLE */
+#ifndef ggc_alloc_melthashlongs_st
+#define ggc_alloc_melthashlongs_st() ((struct melthashlongs_st *)(ggc_internal_alloc_stat (sizeof(struct melthashlongs_st) MEM_STAT_INFO)))
+#endif
+#ifndef ggc_alloc_vec_meltbucketlongs_st
+#define ggc_alloc_vec_meltbucketlongs_st(N) ((struct meltbucketlongs_st *) (ggc_internal_vec_alloc_stat (sizeof(struct meltbucketlongs_st), N MEM_STAT_INFO)))
+#endif 
+#ifndef ggc_alloc_cleared_vec_meltbucketlongs_st
+#define ggc_alloc_cleared_vec_meltbucketlongs_st(N) ((struct meltbucketlongs_st *) (ggc_internal_cleared_vec_alloc_stat (sizeof(struct meltbucketlongs_st), N MEM_STAT_INFO)))
+#endif 
+   unsigned lnix = src->hashl_lenix;
+   unsigned len = melt_primtab[lnix];
+   unsigned ucnt = 0;
+   unsigned ix = 0;
+   dst = ggc_alloc_melthashlongs_st(); /* don't need a cleared allocation. */
+   dst->discr = src->discr;
+   dst->hashl_aux = src->hashl_aux; 
+   dst->hashl_ucount = src->hashl_ucount;
+   dst->hashl_entab = NULL;
+   if (len > 0 && src->hashl_entab) {
+      dst->hashl_lenix = src->hashl_lenix;
+      dst->hashl_entab = ggc_alloc_vec_meltbucketlongs_st(len);
+      memcpy (dst->hashl_entab, src->hashl_entab, len * sizeof(src->hashl_entab[0]));
+   }
+   /* end copy chunk VALDESC_HASHLONGS */
+  }#
+  :valdesc_clonechunk #{$' /* cloning from  VALDESC_HASHLONGS in warmelt-base.melt */
+#warning cloning of VALDESC_HASHLONGS not implemented yet in warmelt-base.melt
+   melt_fatal_error ("cloning of VALDESC_HASHLONGS %p not implemented", (void*) src);
+   /* end cloning  VALDESC_HASHLONGS */
+  }#
+  :valdesc_forwchunk #{$' /* forwarding chunk from VALDESC_HASHLONGS in warmelt-base.melt */
+   unsigned lnix = src->buckl_lenix;
+   unsigned len = melt_primtab[lnix];
+   unsigned ix = 0;
+   MELT_FORWARDED (src->hashl_aux);
+   for (ix = 0; ix < ulen; ix++) {
+      MELT_FORWARDED (src->hashl_entab[ix]);
+      gcc_assert (src->hashl_entab[ix] == NULL 
+		  || melt_magic_discr(src->hashl_entab[ix]) == MELTOBMAG_BUCKETLONGS);
+   }
+  /* end forwarding VALDESC_HASHLONGS */
+  }#
+  )
+(install_value_descriptor valdesc_hashlongs)
+
 ;;;;;;;;;;;;;;;; string value
 (definstance valdesc_string class_varisized_value_descriptor
   :doc #{$VALDESC_STRING describes string values.}#
@@ -2974,7 +3102,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_struct '"meltstring_st"
   :valdesc_unionmem '"u_string"
   :valdesc_membchunk #{$' /* from VALDESC_STRING in warmelt-base.melt */  
-    char val[FLEXIBLE_DIM];	/* null terminated */
+    char val[MELT_FLEXIBLE_DIM];	/* null terminated */
   }#
   :valdesc_declchunk #{$' /* decl VALDESC_STRING from warmelt-base.melt */
 #define MELT_STRING_STRUCT(N) {			\
@@ -3022,7 +3150,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   /* the following field is usually the value of buf (for
      objects in the young zone), to allocate the object and its fields
      at once; hence its GTY-ed length is zero */
-  char GTY ((length ("0"))) buf_space[FLEXIBLE_DIM];
+  char GTY ((length ("0"))) buf_space[MELT_FLEXIBLE_DIM];
   }#
   :valdesc_copychunk #{$' /* copy chunk from VALDESC_STRBUF */
 /* ggc_alloc_meltstrbuf_st should be gengtype gengtype for VALDESC_STRBUF */
@@ -3247,7 +3375,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
     melt_ptr_t ptrval;
     bool negative;
     unsigned biglen;
-    long GTY ((length ("%h.biglen"))) tabig[FLEXIBLE_DIM];
+    long GTY ((length ("%h.biglen"))) tabig[MELT_FLEXIBLE_DIM];
   }#
   :valdesc_copychunk #{$' /* from VALDESC_MIXBIGINT */
 /* ggc_alloc_meltmixbigint_st should be gengtype generated for VALDESC_MIXBIGINT */
@@ -3946,8 +4074,10 @@ polyhedron values.}#
  tuple_nth
  tuple_sized
  unregister_pass_execution_hook
+ valdesc_bucketlongs
  valdesc_closure
  valdesc_decay
+ valdesc_hashlongs
  valdesc_int
  valdesc_list
  valdesc_mapobjects

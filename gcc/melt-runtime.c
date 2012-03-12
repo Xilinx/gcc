@@ -13158,6 +13158,11 @@ melt_sparebreakpoint_2_at (const char*fil, int lin, void*ptr, const char*msg) {
 #endif /*ENABLE_CHECKING*/
 
 
+/* This meltgc_handle_interrupt routine is called thru the
+   MELT_CHECK_INTERRUPT macro, which is generated in many places in C
+   code generated from MELT.  The MELT_CHECK_INTERRUPT macro is
+   testing the volatile melt_interrupted flag before calling this.
+   Signal handlers should set that flag (with perhaps others). */
 void 
 meltgc_handle_interrupt (void)
 {
@@ -13165,6 +13170,48 @@ meltgc_handle_interrupt (void)
   MELT_LOCATION_HERE("inside meltgc_handle_interrupt");
   melt_fatal_error("unimplemented meltgc_handle_interrupt");
   MELT_EXITFRAME();
+}
+
+
+void
+meltgc_install_polling_channel(melt_ptr_t clos_p, int fd, const char* chnam)
+{
+#if MELT_HAVE_DEBUG
+  char curlocbuf[150];
+#endif
+  MELT_ENTERFRAME (4, NULL);
+#define closv       meltfram__.mcfr_varptr[0]
+  closv = clos_p;
+  MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_install_polling_channel fd=%d chnam=%s", fd, 
+			    chnam?chnam:"*none*");
+#if _POSIX_C_SOURCE >= 200112L
+#else  /* non POSIX 2001 */
+  melt_fatal_error ("meltgc_install_polling_channel fd=%d  chnam=%s not available", 
+    fd, chnam?chnam:"*none*");
+#endif /* _POSIX_C_SOURCE >= 200112L */
+  MELT_EXITFRAME();
+#undef closv
+}
+
+
+#warning meltgc_new_longsbucket & meltgc_new_longshash unimplemented
+/* allocate e new empty longsbucket */
+melt_ptr_t 
+meltgc_new_longsbucket (meltobject_ptr_t discr_p,
+				   unsigned len)
+{
+  melt_fatal_error("meltgc_new_longsbucket unimplemented discr %p len %u",
+    discr_p, len);
+}
+
+/* allocate a new empty longhash */
+
+melt_ptr_t 
+meltgc_new_longshash (meltobject_ptr_t discr_p,
+		      unsigned len)
+{
+  melt_fatal_error("meltgc_new_longshash unimplemented discr %p len %u",
+    discr_p, len);
 }
 
 

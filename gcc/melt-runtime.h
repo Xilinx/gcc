@@ -148,6 +148,8 @@ void meltgc_handle_interrupt (void);
 #define MELT_CHECK_INTERRUPT() do { if (MELT_UNLIKELY(melt_interrupted)) \
       meltgc_handle_interrupt(); } while(0)
 
+
+
 #ifndef MELT_HAVE_DEBUG
 #define MELT_HAVE_DEBUG 0
 #endif /*MELT_HAVE_DEBUG*/
@@ -260,15 +262,22 @@ melt_need_debug_limit (int depth, int lim) {
 
 /* unspecified flexible dimension in structure */
 #if defined(__STDC__) &&  __STDC__VERSION >= 199901L
-#define FLEXIBLE_DIM		/*flexible */
-#define HAVE_FLEXIBLE_DIM 1
+#define MELT_FLEXIBLE_DIM		/*flexible */
+#define MELT_HAVE_FLEXIBLE_DIM 1
 #elsif __GNUC__>=4
-#define FLEXIBLE_DIM /*gcc flexible*/
-#define HAVE_FLEXIBLE_DIM 1
+#define MELT_FLEXIBLE_DIM /*gcc flexible*/
+#define MELT_HAVE_FLEXIBLE_DIM 1
 #else
-#define  FLEXIBLE_DIM /*flexibly*/1
-#define HAVE_FLEXIBLE_DIM 0
+#define MELT_FLEXIBLE_DIM /*flexibly*/1
+#define MELT_HAVE_FLEXIBLE_DIM 0
 #endif
+
+
+
+#warning temporary FLEXIBLE_DIM
+#define FLEXIBLE_DIM MELT_FLEXIBLE_DIM
+#define HAVE_FLEXIBLE_DIM  MELT_HAVE_FLEXIBLE_DIM
+
 
 /* array of (at least 100, increasing order but non consecutive)
    primes, zero terminated. Each prime is at least 1/8-th bigger than
@@ -321,6 +330,16 @@ entryobjectsmelt_st
   meltobject_ptr_t e_at;
   melt_ptr_t e_va;
 };
+
+struct
+GTY (())			/* entry of long buckets */
+melt_bucketlongentry_st 
+{
+  long ebl_at;
+  melt_ptr_t ebl_va;
+};
+
+
 
 /* a union of special pointers which have to be explicitly deleted */
 union melt_special_un
@@ -1366,6 +1385,12 @@ melt_make_raw_object(melt_ptr_t klas, int len, const char*clanam) {
   Newobj = melt_make_raw_object(Klas,Len,Clanam); } while(0)
 #endif
 
+/* install a polled channel with closure CLOS_P for file descriptor FD
+   with name CHNAM */
+void meltgc_install_polling_channel (melt_ptr_t clos_p, int fd, 
+				     const char* chnam);
+
+
 /* get (safely) the length of an object */
 static inline int
 melt_object_length (melt_ptr_t ob)
@@ -1919,6 +1944,14 @@ melt_list_last (melt_ptr_t lis)
 }
 
 
+/* allocate e new empty longsbucket */
+melt_ptr_t meltgc_new_longsbucket (meltobject_ptr_t discr_p,
+				   unsigned len);
+
+
+/* allocate a new empty longhash */
+melt_ptr_t meltgc_new_longshash (meltobject_ptr_t discr_p,
+				 unsigned len);
 
 /***** STRBUF ie string buffers *****/
 
@@ -2595,7 +2628,7 @@ struct melt_callframe_st
   /* Interface: void mcfr_forwmarkrout (void* frame, int marking) */
   struct excepth_melt_st *mcfr_exh;	/* for our exceptions - not implemented yet */
   struct melt_callframe_st *mcfr_prev;
-  melt_ptr_t mcfr_varptr[FLEXIBLE_DIM];
+  melt_ptr_t mcfr_varptr[MELT_FLEXIBLE_DIM];
 };
 
 
