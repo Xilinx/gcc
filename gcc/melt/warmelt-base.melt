@@ -3037,7 +3037,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
      melt_ptr_t hashl_aux; /* auxiliary data */
      unsigned char hashl_lenix; /* index in melt_primtab for allocated length */
      unsigned long hashl_ucount;     /* used count, ie total bucket entries */
-      meltbucketlongs_ptr_t* GTY ((length("melt_primtab[%h.hashl_lenix]")))
+      melt_ptr_t GTY ((length("melt_primtab[%h.hashl_lenix]")))
       hashl_bucktab;
   /* the following field is usually the value of hashl_bucktab (for
      objects in the young zone), to allocate the object and its fields
@@ -3060,11 +3060,11 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
    dst->discr = src->discr;
    dst->hashl_aux = src->hashl_aux; 
    dst->hashl_ucount = src->hashl_ucount;
-   dst->hashl_entab = NULL;
-   if (len > 0 && src->hashl_entab) {
+   dst->hashl_bucktab = NULL;
+   if (len > 0 && src->hashl_bucktab) {
       dst->hashl_lenix = src->hashl_lenix;
-      dst->hashl_entab = ggc_alloc_vec_meltbucketlongs_st(len);
-      memcpy (dst->hashl_entab, src->hashl_entab, len * sizeof(src->hashl_entab[0]));
+      dst->hashl_bucktab = ggc_alloc_vec_melt_ptr_t (len);
+      memcpy (dst->hashl_bucktab, src->hashl_bucktab, len * sizeof(src->hashl_bucktab[0]));
    }
    /* end copy chunk VALDESC_HASHLONGS */
   }#
@@ -3079,9 +3079,9 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
    unsigned ix = 0;
    MELT_FORWARDED (src->hashl_aux);
    for (ix = 0; ix < ulen; ix++) {
-      MELT_FORWARDED (src->hashl_entab[ix]);
-      gcc_assert (src->hashl_entab[ix] == NULL 
-		  || melt_magic_discr(src->hashl_entab[ix]) == MELTOBMAG_BUCKETLONGS);
+      MELT_FORWARDED (src->hashl_bucktab[ix]);
+      gcc_assert (src->hashl_bucktab[ix] == NULL 
+		  || melt_magic_discr(src->hashl_bucktab[ix]) == MELTOBMAG_BUCKETLONGS);
    }
   /* end forwarding VALDESC_HASHLONGS */
   }#
