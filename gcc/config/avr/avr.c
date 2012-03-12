@@ -8983,7 +8983,7 @@ avr_hard_regno_mode_ok (int regno, enum machine_mode mode)
 
 /* Implement `MODE_CODE_BASE_REG_CLASS'.  */
 
-reg_class_t
+enum reg_class
 avr_mode_code_base_reg_class (enum machine_mode mode ATTRIBUTE_UNUSED,
                               addr_space_t as, RTX_CODE outer_code,
                               RTX_CODE index_code ATTRIBUTE_UNUSED)
@@ -9924,7 +9924,7 @@ avr_out_movmem (rtx insn ATTRIBUTE_UNUSED, rtx *op, int *plen)
     case ADDR_SPACE_FLASH:
 
       if (AVR_HAVE_LPMX)
-        avr_asm_len ("lpm %2,%Z+", xop, plen, 1);
+        avr_asm_len ("lpm %2,Z+", xop, plen, 1);
       else
         avr_asm_len ("lpm" CR_TAB
                      "adiw r30,1", xop, plen, 2);
