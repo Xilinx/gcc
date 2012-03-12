@@ -2445,6 +2445,8 @@ static rtx (*ix86_gen_andsp) (rtx, rtx, rtx);
 static rtx (*ix86_gen_allocate_stack_worker) (rtx, rtx);
 static rtx (*ix86_gen_adjust_stack_and_probe) (rtx, rtx, rtx);
 static rtx (*ix86_gen_probe_stack_range) (rtx, rtx, rtx);
+static rtx (*ix86_gen_tls_global_dynamic_64) (rtx, rtx, rtx);
+static rtx (*ix86_gen_tls_local_dynamic_base_64) (rtx, rtx);
 
 /* Preferred alignment for stack boundary in bits.  */
 unsigned int ix86_preferred_stack_boundary;
@@ -3750,9 +3752,19 @@ ix86_option_override_internal (bool main_args_p)
     {
       ix86_gen_leave = gen_leave_rex64;
       if (Pmode == DImode)
-	ix86_gen_monitor = gen_sse3_monitor64_di;
+	{
+	  ix86_gen_monitor = gen_sse3_monitor64_di;
+	  ix86_gen_tls_global_dynamic_64 = gen_tls_global_dynamic_64_di;
+	  ix86_gen_tls_local_dynamic_base_64
+	    = gen_tls_local_dynamic_base_64_di;
+	}
       else
-	ix86_gen_monitor = gen_sse3_monitor64_si;
+	{
+	  ix86_gen_monitor = gen_sse3_monitor64_si;
+	  ix86_gen_tls_global_dynamic_64 = gen_tls_global_dynamic_64_si;
+	  ix86_gen_tls_local_dynamic_base_64
+	    = gen_tls_local_dynamic_base_64_si;
+	}
     }
   else
     {
@@ -12582,7 +12594,8 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	      rtx rax = gen_rtx_REG (Pmode, AX_REG), insns;
 
 	      start_sequence ();
-	      emit_call_insn (gen_tls_global_dynamic_64 (rax, x, caddr));
+	      emit_call_insn (ix86_gen_tls_global_dynamic_64 (rax, x,
+							      caddr));
 	      insns = get_insns ();
 	      end_sequence ();
 
@@ -12630,7 +12643,8 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	      rtx rax = gen_rtx_REG (Pmode, AX_REG), insns, eqv;
 
 	      start_sequence ();
-	      emit_call_insn (gen_tls_local_dynamic_base_64 (rax, caddr));
+	      emit_call_insn (ix86_gen_tls_local_dynamic_base_64 (rax,
+								  caddr));
 	      insns = get_insns ();
 	      end_sequence ();
 
