@@ -1,0 +1,7 @@
+2012-03-12  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/coarray_12.f90: Update scan-tree-dump-times.
+	* gfortran.dg/contiguous_3.f90: Ditto.
+	* gfortran.dg/array_section_2.f90: Ditto.
+	* gfortran.dg/transpose_optimization_2.f90: Ditto.
+	* gfortran.dg/pr32921.f: Ditto.

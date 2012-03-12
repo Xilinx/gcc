@@ -31,10 +31,10 @@ subroutine t2(a1,b1,c2,d2)
   c2 = d2
 end subroutine t2
 
-! { dg-final { scan-tree-dump-times "= a1->dim.0..stride;" 0 "original" } }
-! { dg-final { scan-tree-dump-times "= b1->dim.0..stride;" 0 "original" } }
-! { dg-final { scan-tree-dump-times "= c2->dim.0..stride;" 1 "original" } }
-! { dg-final { scan-tree-dump-times "= d2->dim.0..stride;" 1 "original" } }
+! { dg-final { scan-tree-dump-times "= a1->dim.0..sm" 0 "original" } }
+! { dg-final { scan-tree-dump-times "= b1->dim.0..sm" 0 "original" } }
+! { dg-final { scan-tree-dump-times "= c2->dim.0..sm /.fl. 4;" 1 "original" } }
+! { dg-final { scan-tree-dump-times "= d2->dim.0..sm /.fl. 4;" 1 "original" } }
 
 
 subroutine test3()
@@ -57,7 +57,7 @@ contains
 end subroutine test3
 
 ! Once for test1 (third call), once for test3 (second call)
-! { dg-final { scan-tree-dump-times "data = origptr" 1 "original" } }
+! { dg-final { scan-tree-dump-times "base_addr = origptr" 1 "original" } }
 ! { dg-final { scan-tree-dump-times "_gfortran_internal_pack .&parm" 2 "original" } }
 ! { dg-final { scan-tree-dump-times "_gfortran_internal_unpack .&parm" 2 "original" } }
 

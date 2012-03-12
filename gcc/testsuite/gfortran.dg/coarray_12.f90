@@ -45,33 +45,33 @@ subroutine testAlloc5()
 end subroutine testAlloc5
 
 
-! { dg-final { scan-tree-dump-times "a.dim.0..lbound = 1;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "a.dim.0..ubound = .*nn;" 1 "original" } }
-! { dg-final { scan-tree-dump-times "a.dim.1..lbound = 1;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "a.dim.1..ubound = .*mm;" 1 "original" } }
-! { dg-final { scan-tree-dump-times "a.dim.2..lbound = 1;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "a.dim.2..ubound"          0 "original" } }
+! { dg-final { scan-tree-dump-times "a.dim.0..lower_bound = 1;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "a.dim.0..extent = .*nn - a.dim.0..lower_bound. \\+ 1;" 1 "original" } }
+! { dg-final { scan-tree-dump-times "a.dim.1..lower_bound = 1;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "a.dim.1..extent = .*mm - a.dim.1..lower_bound. \\+ 1;" 1 "original" } }
+! { dg-final { scan-tree-dump-times "a.dim.2..lower_bound = 1;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "a.dim.2..extent"          0 "original" } }
 
-! { dg-final { scan-tree-dump-times "xxx.dim.0..lbound = 1;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "xxx.dim.0..ubound = 1;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "xxx.dim.1..lbound = 1;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "xxx.dim.1..ubound = 7;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "xxx.dim.2..lbound = -5;"    1 "original" } }
-! { dg-final { scan-tree-dump-times "xxx.dim.2..ubound = 8;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "xxx.dim.3..lbound = .*mmm;" 1 "original" } }
-! { dg-final { scan-tree-dump-times "xxx.dim.3..ubound = 2;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "xxx.dim.4..lbound = 1;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "xxx.dim.4..ubound"          0 "original" } }
+! { dg-final { scan-tree-dump-times "xxx.dim.0..lower_bound = 1;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "xxx.dim.0..extent = 2 - xxx.dim.0..lower_bound;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "xxx.dim.1..lower_bound = 1;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "xxx.dim.1..extent = 8 - xxx.dim.1..lower_bound;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "xxx.dim.2..lower_bound = -5;"    1 "original" } }
+! { dg-final { scan-tree-dump-times "xxx.dim.2..extent = 9 - xxx.dim.2..lower_bound;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "xxx.dim.3..lower_bound = .*mmm;" 1 "original" } }
+! { dg-final { scan-tree-dump-times "xxx.dim.3..extent = 3 - xxx.dim.3..lower_bound;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "xxx.dim.4..lower_bound = 1;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "xxx.dim.4..extent"          0 "original" } }
 
-! { dg-final { scan-tree-dump-times "yyy.dim.0..lbound = 1;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "yyy.dim.0..ubound = 1;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "yyy.dim.1..lbound = 1;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "yyy.dim.1..ubound = 7;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "yyy.dim.2..lbound = -5;"    1 "original" } }
-! { dg-final { scan-tree-dump-times "yyy.dim.2..ubound = .*ppp;" 1 "original" } }
-! { dg-final { scan-tree-dump-times "yyy.dim.3..lbound = 1;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "yyy.dim.3..ubound = 1;"     1 "original" } }
-! { dg-final { scan-tree-dump-times "yyy.dim.4..lbound = .*ooo;" 1 "original" } }
-! { dg-final { scan-tree-dump-times "yyy.dim.4..ubound"          0 "original" } }
+! { dg-final { scan-tree-dump-times "yyy.dim.0..lower_bound = 1;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "yyy.dim.0..extent = 2 - yyy.dim.0..lower_bound;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "yyy.dim.1..lower_bound = 1;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "yyy.dim.1..extent = 8 - yyy.dim.1..lower_bound;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "yyy.dim.2..lower_bound = -5;"    1 "original" } }
+! { dg-final { scan-tree-dump-times "yyy.dim.2..extent = .*ppp - yyy.dim.2..lower_bound. \\+ 1;" 1 "original" } }
+! { dg-final { scan-tree-dump-times "yyy.dim.3..lower_bound = 1;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "yyy.dim.3..extent = 2 - yyy.dim.3..lower_bound;"     1 "original" } }
+! { dg-final { scan-tree-dump-times "yyy.dim.4..lower_bound = .*ooo;" 1 "original" } }
+! { dg-final { scan-tree-dump-times "yyy.dim.4..extent"          0 "original" } }
 
 ! { dg-final { cleanup-tree-dump "original" } }
