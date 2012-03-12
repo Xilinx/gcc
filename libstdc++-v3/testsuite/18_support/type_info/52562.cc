@@ -1,11 +1,7 @@
-// { dg-do run { target *-*-freebsd* *-*-netbsd* *-*-linux* *-*-solaris* *-*-cygwin *-*-darwin* mips-sgi-irix6* powerpc-ibm-aix* } }
-// { dg-options " -std=gnu++0x -pthread" { target *-*-freebsd* *-*-netbsd* *-*-linux* mips-sgi-irix6* powerpc-ibm-aix* } }
-// { dg-options " -std=gnu++0x -pthreads" { target *-*-solaris* } }
-// { dg-options " -std=gnu++0x " { target *-*-cygwin *-*-darwin* } }
-// { dg-require-cstdint "" }
-// { dg-require-gthreads "" }
+// { dg-options "-std=gnu++11" }
+// { dg-do compile }
 
-// Copyright (C) 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+// Copyright (C) 2012 Free Software Foundation
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -22,12 +18,13 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-#include <condition_variable>
-#include <thread/all.h>
+#include <typeinfo>
 
-int main()
-{
-  typedef std::condition_variable test_type;
-  __gnu_test::compare_type_to_native_type<test_type>();
-  return 0;
-}
+template<class T> T& lval() noexcept;
+
+// libstdc++/52562
+static_assert(noexcept(lval<std::type_info>().name()), "");
+static_assert(noexcept(lval<std::type_info>().before(lval<std::type_info>())),
+"");
+static_assert(noexcept(lval<std::type_info>() == lval<std::type_info>()), "");
+static_assert(noexcept(lval<std::type_info>() != lval<std::type_info>()), "");
