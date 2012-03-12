@@ -1,5 +1,10 @@
 2012-03-12  Tobias Burnus  <burnus@net-b.de>
 
+	* gfortran.dg/assign_10.f90: Update scan-tree-dump-times.
+	* gfortran.dg/internal_pack_4.f90: Ditto.
+
+2012-03-12  Tobias Burnus  <burnus@net-b.de>
+
 	* assumed_type_2.f90: Change "data" to "base_addr" in
 	scan-tree-dump.
 	* block_2.f08: Ditto.

@@ -71,18 +71,18 @@ spread_internal (gfc_array_char *ret, const gfc_array_char *source,
       /* The front end has signalled that we need to populate the
 	 return array descriptor.  */
 
-      size_t ub, stride;
+      size_t ext, sm;
 
       ret->dtype = (source->dtype & ~GFC_DTYPE_RANK_MASK) | rrank;
       dim = 0;
-      rs = 1;
+      rs = size;
       for (n = 0; n < rrank; n++)
 	{
-	  stride = rs;
+	  sm = rs;
 	  if (n == *along - 1)
 	    {
-	      ub = ncopies - 1;
-	      rdelta = rs * size;
+	      ext = ncopies;
+	      rdelta = rs;
 	      rs *= ncopies;
 	    }
 	  else
@@ -90,17 +90,17 @@ spread_internal (gfc_array_char *ret, const gfc_array_char *source,
 	      count[dim] = 0;
 	      extent[dim] = GFC_DESCRIPTOR_EXTENT(source,dim);
 	      sstride[dim] = GFC_DESCRIPTOR_SM(source,dim);
-	      rstride[dim] = rs * size;
+	      rstride[dim] = rs;
 
-	      ub = extent[dim]-1;
+	      ext = extent[dim];
 	      rs *= extent[dim];
 	      dim++;
 	    }
 
-	  GFC_DIMENSION_SET (ret->dim[n], 0, ub, stride*size);
+	  GFC_DIMENSION_SET (ret->dim[n], 0, ext, sm);
 	}
       ret->offset = 0;
-      ret->base_addr = internal_malloc_size (rs * size);
+      ret->base_addr = internal_malloc_size (rs);
 
       if (rs <= 0)
 	return;

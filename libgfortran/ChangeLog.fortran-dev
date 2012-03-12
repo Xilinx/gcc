@@ -1,5 +1,9 @@
 2012-03-12  Tobias Burnus  <burnus@net-b.de>
 
+	* intrinsics/spread_generic.c (spread_internal): Properly use "sm".
+
+2012-03-12  Tobias Burnus  <burnus@net-b.de>
+
 	* intrinsics/iso_c_binding.c (c_f_pointer_u0): Use
 	GFC_DESCRIPTOR_SM instead of GFC_DESCRIPTOR_STRIDE_BYTES.
 
