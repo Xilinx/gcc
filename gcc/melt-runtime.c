@@ -13194,26 +13194,101 @@ meltgc_install_polling_channel(melt_ptr_t clos_p, int fd, const char* chnam)
 }
 
 
-#warning meltgc_new_longsbucket & meltgc_new_longshash unimplemented
 /* allocate e new empty longsbucket */
 melt_ptr_t 
 meltgc_new_longsbucket (meltobject_ptr_t discr_p,
-				   unsigned len)
+			unsigned len)
 {
-  melt_fatal_error("meltgc_new_longsbucket unimplemented discr %p len %u",
-    discr_p, len);
+  unsigned lenix = 0;
+  unsigned bucklen = 0;
+  unsigned ix = 0;
+  MELT_ENTERFRAME (2, NULL);
+#define discrv       meltfram__.mcfr_varptr[0]
+#define buckv        meltfram__.mcfr_varptr[1]
+  discrv = discr_p;
+  MELT_LOCATION_HERE ("meltgc_new_longsbucket");
+  if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT) 
+    goto end;
+  if (((meltobject_ptr_t) (discrv))->meltobj_magic != MELTOBMAG_BUCKETLONGS)
+    goto end;
+  len += len/16 + 4;
+  for (lenix = 2; 
+       (bucklen = melt_primtab[lenix]) != 0 && bucklen < len; 
+       lenix++)
+    (void)0;
+  if (bucklen == 0)
+    melt_fatal_error("meltgc_new_longsbucket: too big bucket length %u", 
+		     len);
+  buckv = 
+    meltgc_allocate (sizeof (struct meltbucketlongs_st), 
+		     sizeof (struct melt_bucketlongentry_st)*len);
+  ((struct meltbucketlongs_st*)(buckv))->discr = discrv;
+  ((struct meltbucketlongs_st*)(buckv))->buckl_aux = NULL;
+  ((struct meltbucketlongs_st*)(buckv))->buckl_lenix = lenix;
+  ((struct meltbucketlongs_st*)(buckv))->buckl_xnum = 0;
+  ((struct meltbucketlongs_st*)(buckv))->buckl_ucount = 0;
+  memset (((struct meltbucketlongs_st*)(buckv))->buckl_entab,
+	  0, 
+	  len*sizeof(struct melt_bucketlongentry_st));
+ end:
+  MELT_EXITFRAME ();
+  return buckv;
+#undef buckv
+#undef valv
 }
 
-/* allocate a new empty longhash */
 
+
+/* replace the value associated in a bucket of longs to a long key;
+   don't do anything if the key was absent; return the old value
+   associated to that key, or else NULL. */
 melt_ptr_t 
-meltgc_new_longshash (meltobject_ptr_t discr_p,
-		      unsigned len)
+meltgc_longsbucket_replace (melt_ptr_t bucket_p, long key, melt_ptr_t val_p)
 {
-  melt_fatal_error("meltgc_new_longshash unimplemented discr %p len %u",
-    discr_p, len);
+  struct meltbucketlongs_st*buck = NULL;
+  unsigned len = 0;
+  unsigned lo=0, hi=0, md=0, ucnt=0;
+  MELT_ENTERFRAME (3, NULL);
+#define buckv        meltfram__.mcfr_varptr[0]
+#define valv         meltfram__.mcfr_varptr[1]
+#define resv         meltfram__.mcfr_varptr[2]
+  buckv = bucket_p;
+  valv = val_p;
+  if (melt_magic_discr (buckv) != MELTOBMAG_BUCKETLONGS || !valv)
+    goto end;
+  buck = (struct meltbucketlongs_st*)(buckv);
+  len = melt_primtab[buck->buckl_lenix];
+  ucnt = buck->buckl_ucount;
+  gcc_assert (ucnt <= len);
+  if (ucnt == 0) 
+    goto end;
+  lo = 0;
+  hi = ucnt - 1;
+  while (lo + 2 < hi) 
+    {
+      long curk = 0;
+      md = (lo + hi) / 2;
+      curk = buck->buckl_entab[md].ebl_at;
+      if (curk < key)
+	lo = md;
+      else 
+	hi = md;
+    };
+  for (md = lo; md <= hi; md++)
+    if (buck->buckl_entab[md].ebl_at == key) {
+      resv = buck->buckl_entab[md].ebl_va;
+      buck->buckl_entab[md].ebl_va = valv;
+      meltgc_touch_dest (buckv, valv);
+      goto end;
+    }
+ end:
+  MELT_EXITFRAME ();
+  return resv;
+#undef buckv
+#undef bu_buckv
+#undef valv
+#undef resv
 }
-
 
 
 void melt_set_flag_debug (void) 

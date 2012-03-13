@@ -2975,22 +2975,25 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_objmagic '"MELTOBMAG_BUCKETLONGS"
   :valdesc_struct '"meltbucketlongs_st"
   :valdesc_unionmem '"u_bucketlongs"
+  ;;;
   :valdesc_membchunk #{$' /* from VALDESC_BUCKETLONGS in warmelt-base.melt */ 
      melt_ptr_t buckl_aux; /* auxiliary data */
      unsigned char buckl_lenix; /* index in melt_primtab for allocated length */
-     unsigned short buckl_xnum; /* extra number */
+     int buckl_xnum; /* extra number */
      unsigned buckl_ucount;     /* used count of bucket entries */
      struct melt_bucketlongentry_st GTY ((length("melt_primtab[%h.buckl_lenix]")))
         buckl_entab[MELT_FLEXIBLE_DIM]; /* sorted by increasing ebl_at */
   }#
+  ;;;
   :valdesc_declchunk #{$' /* decl VALDESC_BUCKETLONGS  in warmelt-base.melt */ 
   typedef struct meltbucketlongs_st* meltbucketlongs_ptr_t;
-  }#
-  :valdesc_copychunk #{$' /* copy chunk from  VALDESC_BUCKETLONGS  in warmelt-base.melt */
-  /* ggc_alloc_meltbucketlongs_st should be gengtype generated for VALDESC_BUCKETLONGS */
 #ifndef ggc_alloc_meltbucketlongs_st
 #define ggc_alloc_meltbucketlongs_st(SIZE) ((struct meltbucketlongs_st *)(ggc_internal_alloc_stat (SIZE MEM_STAT_INFO)))
 #endif
+  }#
+  ;;;
+  :valdesc_copychunk #{$' /* copy chunk from  VALDESC_BUCKETLONGS  in warmelt-base.melt */
+  /* ggc_alloc_meltbucketlongs_st should be gengtype generated for VALDESC_BUCKETLONGS */
    unsigned lnix = src->buckl_lenix;
    unsigned len = melt_primtab[lnix];
    unsigned ucnt = 0;
@@ -3010,7 +3013,26 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
    }
    /* end copy chunk VALDESC_BUCKETLONGS */
   }#
-  ;; no cloning of bucketlongs
+  :valdesc_clonechunk #{$' /* cloning chunk  from VALDESC_BUCKETLONGS in warmelt-base.melt */
+   unsigned lnix = src->buckl_lenix;
+   unsigned len = melt_primtab[lnix];
+   unsigned cnt = src->buckl_ucount;
+   unsigned dstlen = 0;
+   unsigned ix = 0;
+   gcc_assert (cnt <= len);
+   dst = meltgc_new_longsbucket ((meltobject_ptr_t)newdiscrv, cnt + cnt/8 + 2);
+   dstlen = melt_primtab[dst->buckl_lenix]);
+   dst->buckl_aux = src->buckl_aux;
+   dst->buckl_xnum = src->buckl_xnum;
+   for (ix = 0; ix < cnt; ix++)
+     dst->buckl_entab[ix] = src->buckl_entab[ix];
+   for (ix = cnt; ix < len; ix++) {
+     dst->buckl_entab[ix].ebl_at = 0L;
+     dst->buckl_entab[ix].ebl_va = NULL;
+   }
+   /* end clone chunk VALDESC_BUCKETLONGS */
+  }#
+  ;;
   :valdesc_forwchunk #{$' /* forwarding chunk from VALDESC_BUCKETLONGS in warmelt-base.melt */
    unsigned lnix = src->buckl_lenix;
    unsigned len = melt_primtab[lnix];

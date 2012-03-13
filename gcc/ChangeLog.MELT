@@ -1,4 +1,18 @@
 
+2011-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (melt_longsbucket_get, melt_longsbucket_aux)
+	(melt_longsbucket_xnum, melt_longsbucket_count)
+	(melt_longsbucket_size): New inlined functions.
+	(meltgc_longsbucket_replace, meltgc_longsbucket_put)
+	(meltgc_longsbucket_remove, meltgc_longsbucket_set_aux)
+	(meltgc_longsbucket_set_xnum): New declarations.
+
+	* melt-runtime.c (meltgc_new_longsbucket)
+	(meltgc_longsbucket_replace): New functions.
+
+	* melt/warmelt-base.melt (valdesc_bucketlongs): Add cloning.
+
 2011-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (FLEXIBLE_DIM, HAVE_FLEXIBLE_DIM): Remove, since
 	use MELT_FLEXIBLE_DIM & MELT_HAVE_FLEXIBLE_DIM instead.

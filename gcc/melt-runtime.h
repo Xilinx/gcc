@@ -1945,9 +1945,102 @@ melt_ptr_t meltgc_new_longsbucket (meltobject_ptr_t discr_p,
 				   unsigned len);
 
 
-/* allocate a new empty longhash */
-melt_ptr_t meltgc_new_longshash (meltobject_ptr_t discr_p,
-				 unsigned len);
+/* retrieve value associated in a bucket of longs with dichotomical search or else NULL */
+static inline melt_ptr_t
+melt_longsbucket_get (melt_ptr_t bucketp, long key)
+{
+  struct meltbucketlongs_st*buck = NULL;
+  unsigned lo=0, hi=0, md=0, ucnt=0;
+  if (melt_magic_discr (bucketp) != MELTOBMAG_BUCKETLONGS)
+    return NULL;
+  buck = (struct meltbucketlongs_st*)bucketp;
+  ucnt = buck->buckl_ucount;
+  if (ucnt == 0) 
+    return NULL;
+  gcc_assert (melt_primtab[buck->buckl_lenix] >= ucnt);
+  lo = 0;
+  hi = ucnt - 1;
+  while (lo + 2 < hi) 
+    {
+      long curk = 0;
+      md = (lo + hi) / 2;
+      curk = buck->buckl_entab[md].ebl_at;
+      if (curk < key)
+	lo = md;
+      else if (curk > key)
+	hi = md;
+      else return buck->buckl_entab[md].ebl_va;
+    };
+  for (md = lo; md <= hi; md++)
+    if (buck->buckl_entab[md].ebl_at == key)
+      return buck->buckl_entab[md].ebl_va;
+  return NULL;
+}
+
+/* retrieve the auxiliary data inside a bucket of longs */
+static inline melt_ptr_t
+melt_longsbucket_aux (melt_ptr_t bucketp)
+{
+  struct meltbucketlongs_st*buck = NULL;
+  if (melt_magic_discr (bucketp) != MELTOBMAG_BUCKETLONGS)
+    return NULL;
+  buck = (struct meltbucketlongs_st*)bucketp;
+  return buck->buckl_aux;
+}
+
+/* retrieve the extra number inside a bucket of longs */
+static inline int
+melt_longsbucket_xnum (melt_ptr_t bucketp)
+{
+  struct meltbucketlongs_st*buck = NULL;
+  if (melt_magic_discr (bucketp) != MELTOBMAG_BUCKETLONGS)
+    return 0;
+  buck = (struct meltbucketlongs_st*)bucketp;
+  return buck->buckl_xnum;
+}
+
+/* get the used count of a bucket of longs */
+static inline int
+melt_longsbucket_count (melt_ptr_t bucketp)
+{
+  struct meltbucketlongs_st*buck = NULL;
+  if (melt_magic_discr (bucketp) != MELTOBMAG_BUCKETLONGS)
+    return 0;
+  buck = (struct meltbucketlongs_st*)bucketp;
+  return buck->buckl_ucount;
+}
+
+
+/* get the allocated size of a bucket of longs */
+static inline int
+melt_longsbucket_size (melt_ptr_t bucketp)
+{
+  struct meltbucketlongs_st*buck = NULL;
+  if (melt_magic_discr (bucketp) != MELTOBMAG_BUCKETLONGS)
+    return 0;
+  buck = (struct meltbucketlongs_st*)bucketp;
+  return melt_primtab[buck->buckl_lenix];
+}
+
+
+/* replace the value associated in a bucket of longs to a long key;
+   don't do anything if the key was absent; return the old value
+   associated to that key, or else NULL. */
+melt_ptr_t meltgc_longsbucket_replace (melt_ptr_t bucketp, long key, melt_ptr_t valp);
+
+/* put or replace the value associated in a bucket of longs; return
+   the re-allocated bucket or the same one, or else NULL */
+melt_ptr_t meltgc_longsbucket_put (melt_ptr_t bucketp, long key, melt_ptr_t valp);
+
+/* Remove the value associated in a bucket of longs; return the
+   re-allocated bucket or the same one, or else NULL */
+melt_ptr_t meltgc_longsbucket_remove (melt_ptr_t bucketp, long key, melt_ptr_t valp);
+
+/* Set the auxiliary data in a longsbucket */
+void meltgc_longsbucket_set_aux (melt_ptr_t bucketp, melt_ptr_t auxp);
+
+/* Set the extra number in a longsbucket */
+void meltgc_longsbucket_set_xnum (melt_ptr_t bucketp, int xnum);
 
 /***** STRBUF ie string buffers *****/
 
