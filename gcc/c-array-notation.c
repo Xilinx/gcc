@@ -134,6 +134,15 @@ extract_array_notation_exprs (tree node, bool ignore_builtin_fn,
       *array_list = new_array_list;
       return;
     }
+  else if (TREE_CODE (node) == TREE_LIST)
+    {
+      extract_array_notation_exprs (TREE_PURPOSE (node), ignore_builtin_fn,
+				    array_list, list_size);
+      extract_array_notation_exprs (TREE_VALUE (node), ignore_builtin_fn,
+				    array_list, list_size);
+      extract_array_notation_exprs (TREE_CHAIN (node), ignore_builtin_fn,
+				    array_list, list_size);
+    }
   else if (TREE_CODE (node) == STATEMENT_LIST)
     {
       tree_stmt_iterator ii_tsi;

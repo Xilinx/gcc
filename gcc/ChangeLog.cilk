@@ -1,3 +1,9 @@
+2012-03-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-typeck.c (convert_arguments): Added array notation check for
+	funtion values.
+	* c-array-notation.c (extract_array_notation_exprs): Handled TREE_LIST.
+
 2012-03-11  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* attribs.c (decl_attributes): Concatinated existing attributes with

@@ -3274,7 +3274,10 @@ convert_arguments (tree typelist, VEC(tree,gc) *values,
 
   if (typetail != 0 && TREE_VALUE (typetail) != void_type_node)
     {
-      if (flag_enable_cilk && contains_array_notation_expr (function))
+      if (flag_enable_cilk
+	  && (contains_array_notation_expr (function)
+	      || contains_array_notation_expr
+	      (build_tree_list_vec (values))))
 	;
       else
 	{
