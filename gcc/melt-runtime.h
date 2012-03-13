@@ -141,12 +141,15 @@ extern long melt_debugskipcount;
 extern long melt_error_counter;
 
 extern volatile sig_atomic_t melt_interrupted;
-void meltgc_handle_interrupt (void);
+extern volatile sig_atomic_t melt_got_sigio;
+extern volatile sig_atomic_t melt_got_sigalrm;
+
+void melt_handle_interrupt (void);
 
 
 /* the MELT translator should generate calls to melt_check_interrupt at safe places.  */
 #define MELT_CHECK_INTERRUPT() do { if (MELT_UNLIKELY(melt_interrupted)) \
-      meltgc_handle_interrupt(); } while(0)
+      melt_handle_interrupt(); } while(0)
 
 
 
@@ -2904,6 +2907,10 @@ void meltgc_notify_finish_type_hook (void);
 void meltgc_notify_finish_decl_hook (void);
 
 
+/* Internal unction to be called by MELT code when the
+   :sysdata_inchannel_data is changed.  Called by code_chunk-s inside
+   MELT file melt/warmelt-base.melt.  */
+void meltgc_notify_inchannel_data (void);
 
 /* ====== safer output routines ===== */
 

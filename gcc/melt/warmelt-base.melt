@@ -1885,6 +1885,24 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; handling of interruptible  input channels
+;; the sysdata_inchannel_data is a bucket of such instances
+(defclass class_input_channel_handler 
+  :doc #{Internal class for input channel handling. Its magic number
+  is the file descriptor.}#
+  :super class_proped
+  :fields (inch_sbuf			;the string buffer for input
+	   inch_clos			;the closure to handle it
+	   inch_data			;client data
+	   ))
+
+(defun register_input_channel_handler (clos :long inchfd)
+  (debug "register_input_channel_handler clos=" clos " inchfd=" inchfd)
+  (assert_msg  "@#@unimplemented register_input_channel_handler")
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; handling PLUGIN_ALL_PASSES_START
 ;; private all_passes_start handling queue

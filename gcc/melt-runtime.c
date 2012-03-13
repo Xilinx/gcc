@@ -144,6 +144,8 @@ void melt_break_alptr_2_at (const char*msg, const char* fil, int line);
 #include "melt-runtime.h"
 
 volatile sig_atomic_t melt_interrupted;
+volatile sig_atomic_t melt_got_sigio;
+volatile sig_atomic_t melt_got_sigalrm;
 
 #define MELT_DESC_FILESUFFIX "+meltdesc.c"
 #define MELT_TIME_FILESUFFIX "+melttime.h"
@@ -13158,18 +13160,90 @@ melt_sparebreakpoint_2_at (const char*fil, int lin, void*ptr, const char*msg) {
 #endif /*ENABLE_CHECKING*/
 
 
+
+/* the low level SIGIO signal handler installed thru sigaction, when IO is possible on input channels */
+static void
+melt_raw_sigio_signal(int sig)
+{
+  gcc_assert (sig == SIGIO);
+  melt_got_sigio = 1;
+  melt_interrupted = 1;
+}
+
+
+/* the low level SIGALRM signal handler installed thru sigaction, when
+   an alarm ringed. */
+static void
+melt_raw_sigalrm_signal(int sig)
+{
+  gcc_assert (sig == SIGALRM);
+  melt_got_sigio = 1;
+  melt_interrupted = 1;
+}
+
+
+/* Internal function to be called by MELT code when the
+   :sysdata_inchannel_data is changed.  Called by code_chunk-s inside
+   MELT file melt/warmelt-base.melt.  */
+void
+meltgc_notify_inchannel_data (void)
+{
+  MELT_ENTERFRAME (1, NULL);
+#define inbuckv   meltfram__.mcfr_varptr[0]
+  inbuckv = melt_get_inisysdata (MELTFIELD_SYSDATA_INCHANNEL_DATA);
+  if (inbuckv == NULL)
+    {
+    }
+  else if (melt_magic_discr ((melt_ptr_t) inbuckv) == MELTOBMAG_BUCKETLONGS)
+    {
+    }
+ end:
+  MELT_EXITFRAME ();
+}
+#undef inbuckv
+
+
+
+static void
+meltgc_handle_sigio (void)
+{
+  MELT_ENTERFRAME (1, NULL);
+  MELT_LOCATION_HERE("meltgc_handle_sigio");
+#define inbuckv   meltfram__.mcfr_varptr[0]
+  inbuckv = melt_get_inisysdata (MELTFIELD_SYSDATA_INCHANNEL_DATA);
+  if (melt_magic_discr ((melt_ptr_t) inbuckv) == MELTOBMAG_BUCKETLONGS)
+    {
+    }
+  melt_fatal_error ("meltgc_handle_sigalrm unimplemented pid %d", (int) getpid());
+  MELT_EXITFRAME ();
+}
+
+static void
+meltgc_handle_sigalrm (void)
+{
+  MELT_ENTERFRAME (1, NULL);
+  MELT_LOCATION_HERE("meltgc_handle_sigalrm");
+  melt_fatal_error ("meltgc_handle_sigalrm unimplemented pid %d", (int) getpid());
+  MELT_EXITFRAME ();
+}
+
 /* This meltgc_handle_interrupt routine is called thru the
    MELT_CHECK_INTERRUPT macro, which is generated in many places in C
    code generated from MELT.  The MELT_CHECK_INTERRUPT macro is
    testing the volatile melt_interrupted flag before calling this.
    Signal handlers should set that flag (with perhaps others). */
 void 
-meltgc_handle_interrupt (void)
+melt_handle_interrupt (void)
 {
-  MELT_ENTEREMPTYFRAME(NULL);
-  MELT_LOCATION_HERE("inside meltgc_handle_interrupt");
-  melt_fatal_error ("unimplemented meltgc_handle_interrupt pid %d", (int) getpid());
-  MELT_EXITFRAME();
+  melt_interrupted = 0;
+  if (melt_got_sigio) {
+    melt_got_sigio = 0;
+    meltgc_handle_sigio ();
+  }
+  if (melt_got_sigalrm) {
+    melt_got_sigalrm = 0;
+    meltgc_handle_sigalrm ();
+  }
 }
 
 

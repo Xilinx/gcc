@@ -1,7 +1,20 @@
 
 2011-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
-	* melt-runtime.c (meltgc_new_longsbucket): Default DISR_BUCKET_LONGS.
+	* melt-runtime.h (meltgc_handle_interrupt): Renamed to
+	(melt_handle_interrupt).
+	(melt_got_sigio, melt_got_sigalrm): New volatile variables.
+	(MELT_CHECK_INTERRUPT): Call melt_handle_interrupt.
+	(meltgc_notify_inchannel_data): New function.
+
+	* melt-runtime.c (meltgc_new_longsbucket): Default DISCR_BUCKET_LONGS.
+	(melt_raw_sigio_signal, melt_raw_sigalrm_signal)
+	(meltgc_notify_inchannel_data, meltgc_handle_sigio, meltgc_handle_sigalrm): New functions. 
+	(meltgc_handle_interrupt): Renamed to
+	(melt_handle_interrupt).
+
+	* melt/warmelt-base.melt (class_input_channel_handler): New.
+	(register_input_channel_handler): New stub.
 
 2011-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
