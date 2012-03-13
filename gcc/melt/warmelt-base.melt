@@ -1898,11 +1898,6 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 	   inch_data			;client data
 	   ))
 
-(defun register_input_channel_handler (clos :long inchfd)
-  (debug "register_input_channel_handler clos=" clos " inchfd=" inchfd)
-  (assert_msg  "@#@unimplemented register_input_channel_handler")
-)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; handling PLUGIN_ALL_PASSES_START
 ;; private all_passes_start handling queue

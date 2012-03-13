@@ -1,5 +1,11 @@
 
 2011-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (register_input_channel_handler): Move it
+	to .....
+	* melt/warmelt-modes.melt (register_input_channel_handler): Moved
+	here.
+
+2011-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h (meltgc_handle_interrupt): Renamed to
 	(melt_handle_interrupt).

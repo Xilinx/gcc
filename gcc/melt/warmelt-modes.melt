@@ -3825,5 +3825,10 @@ ASSERT_MSG) is enabled"
 (install_melt_mode translateinit_mode)
 
 
+(defun register_input_channel_handler (clos :long inchfd)
+  (debug "register_input_channel_handler clos=" clos " inchfd=" inchfd)
+  (assert_msg  "@#@unimplemented register_input_channel_handler")
+)
+
 ;;;;
 ;; eof warmelt-modes.melt
