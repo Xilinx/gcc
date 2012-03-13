@@ -13206,9 +13206,8 @@ meltgc_new_longsbucket (meltobject_ptr_t discr_p,
 #define buckv        meltfram__.mcfr_varptr[1]
   discrv = discr_p;
   MELT_LOCATION_HERE ("meltgc_new_longsbucket");
-
-  //  if (!discrv) 
-  //  discrv = MELT_PREDEF (DISCR_BUCKET_LONGS);
+  if (!discrv) 
+    discrv = MELT_PREDEF (DISCR_BUCKET_LONGS);
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT) 
     goto end;
   if (((meltobject_ptr_t) (discrv))->meltobj_magic != MELTOBMAG_BUCKETLONGS)
