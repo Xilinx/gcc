@@ -2019,6 +2019,7 @@ melt_longsbucket_count (melt_ptr_t bucketp)
   if (melt_magic_discr (bucketp) != MELTOBMAG_BUCKETLONGS)
     return 0;
   buck = (struct meltbucketlongs_st*)bucketp;
+  gcc_assert (buck->buckl_ucount <= melt_primtab[buck->buckl_lenix]);
   return buck->buckl_ucount;
 }
 

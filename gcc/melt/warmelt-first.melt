@@ -391,6 +391,9 @@ don't instanciate this class!}#
 	   sysdata_all_ipa_passes_end_hook	;closure for PLUGIN_ALL_IPA_PASSES_END
 	   sysdata_early_gimple_passes_start_hook ;closure for PLUGIN_EARLY_GIMPLE_PASSES_START
 	   sysdata_early_gimple_passes_end_hook ;closure for PLUGIN_EARLY_GIMPLE_PASSES_END
+	   ;;
+	   sysdata_inchannel_data	;data for handling of "asynchronous" interrupting input channel
+	   ;;
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
@@ -1522,6 +1525,122 @@ make a $CURAT string.}#
   #{inform(UNKNOWN_LOCATION, "MELT INFORM [#%ld]: %s * %ld",  melt_dbgcounter, ($msg), ($n))}#
   )
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; BUCKETLONGS primitives & iterator
+
+;; test
+(defprimitive is_bucketlong (buck) :long
+  :doc #{Safely test if $BUCK is a bucket associating sorted longs to values.}#
+ #{(melt_magic_discr((melt_ptr_t) ($BUCK)) == MELTOBMAG_BUCKETLONGS)}#)
+
+;; make
+(defprimitive make_bucketlong (discr :long len) :value
+  :doc #{Make a new bucket of discriminant $DISCR and length $LEN - or else nil.}#
+  #{(meltgc_new_longsbucket((meltobject_ptr_t) $DISCR, ($LEN)))}#)
+
+;; get
+(defprimitive bucketlong_get (buck :long key) :value
+  :doc #{Safely retrieve from bucket of longs $BUCK the value, if any, associated to $KEY, or else nil.}#
+  #{melt_longsbucket_get((melt_ptr_t)$BUCK, $KEY)}#)
+
+;; aux
+(defprimitive bucketlong_aux (buck) :value
+  :doc #{Safely retrieve from  bucket of longs $BUCK the auxiliary data value, or else nil.}#
+  #{melt_longsbucket_aux((melt_ptr_t)$BUCK)}#)
+
+
+;; xnum
+(defprimitive bucketlong_xnum (buck) :long
+  :doc #{Safely retrieve from  bucket of longs $BUCK the extra number, or else 0.}#
+  #{melt_longsbucket_xnum ((melt_ptr_t) $BUCK)}#)
+
+;; setxnum
+(defprimitive bucketlong_setxnum (buck :long n) :void
+  :doc #{Safely set in bucket of longs $BUCK the extra number to $N.}#
+  #{melt_longsbucket_set_xnum ((melt_ptr_t) $BUCK, $N)}#)
+
+
+;; setaux
+(defprimitive bucketlong_setaux (buck aux) :void
+  :doc #{Safely set in bucket of longs $BUCK the auxiliary data to $AUX.}#
+  #{melt_longsbucket_set_aux ((melt_ptr_t) $BUCK, (melt_ptr_t) $AUX)}#)
+
+
+;; count
+(defprimitive bucketlong_count (buck) :long
+  :doc  #{Safely retrieve from  bucket of longs $BUCK the used count of entries, or else 0.}#
+  #{melt_longsbucket_count ((melt_ptr_t) $BUCK)}#)
+
+;; size
+(defprimitive bucketlong_size (buck) :long
+  :doc  #{Safely retrieve from  bucket of longs $BUCK the allocated size for entries, or else 0.}#
+  #{melt_longsbucket_size ((melt_ptr_t) $BUCK)}#)
+
+
+;; replace
+(defprimitive bucketlong_replace (buck :long key :value val) :value
+  :doc #{Safely replace in bucket of longs $BUCK a given $KEY associated to $VAL. 
+  Don't change $BUCK if $KEY wasn't found. Return former value, or else nil.}#
+  #{meltgc_longsbucket_replace ((melt_ptr_t) $BUCK, ($KEY), (melt_ptr_t) $VAL)}#)
+
+
+
+;; put
+(defprimitive bucketlong_put (buck :long key :value val) :value
+  :doc #{Safely put in bucket of longs $BUCK a given $KEY associated
+  to $VAL. Return the bucket, or a grown one on successful put, nil
+  otherwise.}#
+  #{meltgc_longsbucket_put ((melt_ptr_t) $BUCK, ($KEY), (melt_ptr_t) $VAL)}#
+)
+
+;; remove
+(defprimitive bucketlong_remove (buck :long key) :value
+  :doc #{Safely remove in bucket of longs $BUCK a given $KEY. Return
+  the bucket, or a shrinked one on successful remove, nil otherwise.}#
+  #{meltgc_longsbucket_remove ((melt_ptr_t) $BUCK, ($KEY))}#)
+
+
+;; iterator
+(defciterator foreach_in_bucketlong
+  (:value buck)
+  eachbucklong
+  (:long key :value val)
+  ;;
+  :doc #{The $FOREACH_IN_BUCKETLONG c-iterator safely iterates inside
+  given bucket of longs $BUCK, retrieving each key $KEY and value
+  $VAL. The bucket should not change inside the iterator's body.}#
+  ;; before
+  #{ /*foreach_in_bucketlong $EACHBUCKLONG*/ unsigned $EACHBUCKLONG#_ix = 0, $EACHBUCKLONG#_cnt =0;
+  $KEY = 0L;
+  $VAL = NULL;
+  for ($EACHBUCKLONG#_ix = 0;
+       /* retrieve in $EACHBUCKLONG iteration the count, it might change! */
+       ($EACHBUCKLONG#_cnt = melt_longsbucket_count ((melt_ptr_t) $BUCK)) > 0
+       && $EACHBUCKLONG#_ix < $EACHBUCKLONG#_cnt;
+       $EACHBUCKLONG#_ix++) {
+     $KEY = 0L;
+     $VAL = NULL;
+     { 
+       struct melt_bucketlongentry_st* $EACHBUCKLONG#_buent
+         = ((struct meltbucketlongs_st*)$BUCK)->buckl_entab + $EACHBUCKLONG#_ix;
+       if (!$EACHBUCKLONG#_buent->ebl_va) 
+         continue;
+       $KEY = $EACHBUCKLONG#_buent->ebl_at;
+       $VAL = $EACHBUCKLONG#_buent->ebl_va;
+       $EACHBUCKLONG#_buent = NULL;
+     }
+     /*foreach_in_bucketlong $EACHBUCKLONG body:*/
+  }#
+  ;; after
+  #{ /* ending foreach_in_bucketlong $EACHBUCKLONG*/
+     $KEY = 0L;
+     $VAL = NULL; 
+  } /* end foreach_in_bucketlong $EACHBUCKLONG#_ix */
+  }#)
+   
+     
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; the discriminant for name strings
@@ -1745,6 +1864,15 @@ also $CTYPE_RTVEC.}#
   :obj_num MELTOBMAG_RTVEC
   :disc_super discr_any_receiver
   :named_name '"DISCR_RTVEC")
+
+;;; the discriminant for buckets associating longs to values
+(definstance discr_bucket_longs class_discriminant
+  :doc #{The $DISCR_BUCKET_LONGS is the discriminant of buckets for
+  dichotomial mapping of longs to non-nil values. See $VALDESCR_BUCKETLONGS.}#
+  :predef DISCR_BUCKET_LONGS
+  :obj_num MELTOBMAG_BUCKETLONGS
+  :disc_super discr_any_receiver
+  :named_name '"DISCR_BUCKET_LONGS")
 
 ;;; the discriminant for maps of objects
 (definstance discr_map_objects class_discriminant
@@ -4035,18 +4163,28 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 ;;;; export the above primitives
 (export_values				;in alphanumerical order
  !=
+ !=s
  %i
  %iraw
  +i
  /i
  /iraw
  <i
- >i
  ==
- !=s
  ==s
  >=i
+ >i
  assert_failed
+ bucketlong_aux
+ bucketlong_count
+ bucketlong_get
+ bucketlong_put 
+ bucketlong_remove
+ bucketlong_replace
+ bucketlong_setaux
+ bucketlong_setxnum
+ bucketlong_size 
+ bucketlong_xnum
  closure_nth
  closure_routine
  closure_size
@@ -4055,11 +4193,12 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  discrim
  get_int
  get_keywordstr
- get_symbolstr
  get_raw_symbol
+ get_symbolstr
  informsg_long
  informsg_strv
  is_a
+ is_bucketlong
  is_closure
  is_integerbox
  is_list
@@ -4074,14 +4213,15 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  is_routine
  is_string
  list_append
+ list_find
  list_first
  list_first_element
- list_find
  list_last
  list_last_element
  list_length
  list_popfirst
  list_prepend
+ make_bucketlong
  make_integerbox
  make_list
  make_mapobject
@@ -4123,9 +4263,9 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  string>
  string_to_long
  stringconst2val
- the_meltcallcount
  the_callcount
  the_framedepth
+ the_meltcallcount
  the_null_cstring
  )
 
@@ -4151,6 +4291,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  ctype_void  
  discr_any_receiver                        
  discr_basic_block   
+ discr_bucket_longs
  discr_bitmap 
  discr_character_integer                    
  discr_class_sequence                       
@@ -4248,6 +4389,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 (export_values
  foreach_pair
  foreach_pair_between
+ foreach_in_bucketlong
  foreach_in_list
  foreach_in_mapobject
  foreach_in_mapstring

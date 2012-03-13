@@ -1,5 +1,21 @@
 
 2011-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-predef.list (DISCR_BUCKET_LONGS): New.
+
+	* melt-runtime.h (melt_longsbucket_count): Add assert.
+
+	* melt-runtime.c (meltgc_new_longsbucket): Should default DISR_BUCKET_LONGS.
+
+	* melt/warmelt-first.melt (class_system_data): Adding sysdata_inchannel_data slot.
+	(is_bucketlong, make_bucketlong, bucketlong_get, bucketlong_aux)
+	(bucketlong_xnum, bucketlong_setxnum, bucketlong_setaux)
+	(bucketlong_count, bucketlong_size, bucketlong_replace)
+	(bucketlong_put, bucketlong_remove): New primitives.
+	(foreach_in_bucketlong): New citerator.
+	(discr_bucket_longs): New predefined discriminant.
+
+2011-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
