@@ -6293,6 +6293,52 @@ type_hash_canon (unsigned int hashcode, tree type)
     }
 }
 
+/* Data structure used to pass data to the htab_traverse callback used
+   in type_hash_table_traverse.  */
+struct type_hash_traverse {
+  bool (*callback) (unsigned long, tree, void *);
+  void *data;
+};
+
+/* Helper for type_hash_table_traverse.  Retrieve a type hash table element and
+   call FN with it.  Pass DATA as an argument to FN.  If FN returns false,
+   traversal is stopped.  */
+
+static int
+type_hash_table_retrieve_entry (void **slot, void *data)
+{
+  struct type_hash *h = (struct type_hash *) *slot;
+  struct type_hash_traverse *e = (struct type_hash_traverse *) data;
+  return (e->callback (h->hash, h->type, e->data)) ? 1 : 0;
+}
+
+
+/* Walk the type hash table, calling function CALLBACK with every element.
+   CALLBACK receives three arguments:
+	unsigned long	representing the hash value
+	tree		the type with that hash value
+	data		a void * to arbitrary data used by CALLBACK.  */
+
+void
+type_hash_table_traverse (bool (*callback) (unsigned long, tree, void *),
+			  void *data)
+{
+  struct type_hash_traverse e;
+  e.callback = callback;
+  e.data = data;
+  htab_traverse (type_hash_table, type_hash_table_retrieve_entry, &e);
+}
+
+
+/* Return the number of types in the type hash table.  */
+
+size_t
+type_hash_table_length (void)
+{
+  return htab_elements (type_hash_table);
+}
+
+
 /* See if the data pointed to by the type hash table is marked.  We consider
    it marked if the type is marked or if a debug type number or symbol
    table entry has been made for the type.  */
@@ -7212,7 +7258,8 @@ build_type_no_quals (tree t)
 
 #define MAX_INT_CACHED_PREC \
   (HOST_BITS_PER_WIDE_INT > 64 ? HOST_BITS_PER_WIDE_INT : 64)
-static GTY(()) tree nonstandard_integer_type_cache[2 * MAX_INT_CACHED_PREC + 2];
+#define CACHED_PREC_LEN (2 * MAX_INT_CACHED_PREC + 2)
+static GTY(()) tree nonstandard_integer_type_cache[CACHED_PREC_LEN];
 
 /* Builds a signed or unsigned integer type of precision PRECISION.
    Used for C bitfields whose precision does not match that of
@@ -7249,6 +7296,24 @@ build_nonstandard_integer_type (unsigned HOST_WIDE_INT precision,
 
   return ret;
 }
+
+
+/* Walk nonstandard_integer_type_cache, calling CALLBACK on every non-NULL
+   entry.  CALLBACK is called with the current tree and DATA.  If
+   CALLBACK returns false, the walk is aborted.  */
+
+void
+traverse_nonstandard_integer_type_cache (bool (*callback) (tree, void *),
+					 void *data)
+{
+  size_t i;
+
+  for (i = 0; i < CACHED_PREC_LEN; i++)
+    if (nonstandard_integer_type_cache[i])
+      if (!callback (nonstandard_integer_type_cache[i], data))
+	return;
+}
+
 
 /* Create a range of some discrete type TYPE (an INTEGER_TYPE, ENUMERAL_TYPE
    or BOOLEAN_TYPE) with low bound LOWVAL and high bound HIGHVAL.  If SHARED

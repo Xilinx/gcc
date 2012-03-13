@@ -1,5 +1,18 @@
 2012-03-04   Diego Novillo  <dnovillo@google.com>
 
+	* tree.c (type_hash_traverse): Declare.
+	(type_hash_table_retrieve_entry): New.
+	(type_hash_table_traverse): New.
+	(type_hash_table_length): New.
+	(CACHED_PREC_LEN): Factor out of ...
+	(nonstandard_integer_type_cache): ... here.
+	(traverse_nonstandard_integer_type_cache): New.
+	* tree.h (type_hash_table_traverse): Declare.
+	(type_hash_table_length): Declare.
+	(traverse_nonstandard_integer_type_cache): Declare.
+
+2012-03-04   Diego Novillo  <dnovillo@google.com>
+
 	Merge from trunk rev 184817.
 
 	BASE-VER: Update to 4.8.0-pph.

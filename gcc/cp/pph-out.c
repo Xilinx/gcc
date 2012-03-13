@@ -1859,11 +1859,13 @@ pph_out_tcc_type (pph_stream *stream, tree type)
 {
   pph_out_lang_type (stream, type);
   pph_out_tree (stream, TYPE_POINTER_TO (type));
+  if (TREE_CODE (type) == POINTER_TYPE)
+    pph_out_tree (stream, TYPE_NEXT_PTR_TO (type));
   pph_out_tree (stream, TYPE_REFERENCE_TO (type));
   pph_out_tree (stream, TYPE_NEXT_VARIANT (type));
   pph_out_machine_mode (stream, TYPE_MODE (type));
-  /* FIXME pph - Streaming TYPE_CANONICAL generates many type comparison
-     failures.  Why?  */
+  /* We do not write TYPE_CANONICAL.  Instead, we emit the table of
+     canonical types and re-instantiate it on read.  */
   pph_out_tree (stream, TREE_CHAIN (type));
 
   /* The type values cache is built as constants are instantiated,
@@ -2721,7 +2723,11 @@ pph_write_file (pph_stream *stream)
   pph_out_tree (stream, static_aggregates);
   pph_out_decl2_hidden_state (stream);
 
-  /* Emit the symbol table.  */
+  pph_out_canonical_template_parms (stream);
+
+  /* Emit the symbol table.  The symbol table must be emitted at the
+     end because all the symbols read from children PPH images are not
+     known in advance when we start reading this file in the reader.  */
   pph_out_symtab (stream);
 
   if (flag_pph_dump_tree)

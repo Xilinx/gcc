@@ -147,6 +147,7 @@ extern void pph_dump_tree_name (FILE *file, tree t, int flags);
 extern void pph_dump_vec_tree (FILE *file, VEC(tree,gc) *v);
 extern void pph_init_include_tree (void);
 extern void pph_dump_includes (FILE *, pph_stream *, unsigned);
+extern void pph_register_builtin_type (tree);
 
 /* In pph-out.c.  */
 extern void pph_out_uint (pph_stream *stream, unsigned int value);
@@ -189,6 +190,10 @@ extern void pph_out_merge_key_template_state (pph_stream *);
 extern void pph_out_merge_body_template_state (pph_stream *);
 extern void pph_in_merge_key_template_state (pph_stream *);
 extern void pph_in_merge_body_template_state (pph_stream *);
+extern void pph_out_spec_entry_tables (pph_stream *);
+extern void pph_in_spec_entry_tables (pph_stream *);
+extern void pph_out_canonical_template_parms (pph_stream *);
+extern void pph_in_canonical_template_parms (pph_stream *);
 
 /* FIXME pph: These functions should be moved to tree.c on merge.  */
 extern VEC(tree,heap) *chain2vec (tree chain);  /* In pph-out.c.  */

@@ -1,3 +1,30 @@
+2012-03-13   Diego Novillo  <dnovillo@google.com>
+
+	* decl.c (record_builtin_type): Call pph_register_builtin_type.
+	* pph-core.c (pph_cache_add_full_tree_r): New.
+	(pph_cache_add_full_tree): New.
+	(nitc_callback): New.
+	(pph_builtin_types): Declare.
+	(pph_register_builtin_type): New.
+	(pph_cache_add_builtin_types): New.
+	(pph_cache_add_canonical_type): New.
+	(pph_cache_preload): Call pph_cache_add_full_tree instead of
+	pph_cache_add.
+	Call traverse_nonstandard_integer_type_cache with nitc_callback.
+	Call pph_cache_add_builtin_types.
+	Call type_hash_table_traverse.
+	* pph-in.c (pph_in_tcc_type): Read TYP_NEXT_PTR_TO for
+	POINTER_TYPE types.
+	(pph_read_file_1): Call pph_in_canonical_template_parms.
+	* pph-out.c (pph_out_tcc_type): Write TYPE_NEXT_PTR_TO for
+	POINTER_TYPE types.
+	(pph_write_file): Call pph_out_canonical_template_parms.
+	* pph.h (pph_register_builtin_type): Declare.
+	(pph_out_canonical_template_parms): Declare.
+	(pph_in_canonical_template_parms): Declare.
+	* pt.c (pph_out_canonical_template_parms): New.
+	(pph_in_canonical_template_parms): New.
+
 2012-03-09   Lawrence Crowl  <crowl@google.com>
 
 	* name-lookup.c (pph_out_binding_table): Correct comment.

@@ -3472,6 +3472,37 @@ canonical_type_parameter (tree type)
     }
 }
 
+
+/* Write the canonical type parameter table to STREAM.  */
+
+void
+pph_out_canonical_template_parms (pph_stream *stream)
+{
+  tree type;
+  unsigned i;
+
+  pph_out_uint (stream, VEC_length (tree, canonical_template_parms));
+  FOR_EACH_VEC_ELT (tree, canonical_template_parms, i, type)
+    pph_out_tree (stream, type);
+}
+
+
+/* Read the canonical type parameter table from STREAM.  */
+
+void
+pph_in_canonical_template_parms (pph_stream *stream)
+{
+  unsigned i, len;
+
+  len = pph_in_uint (stream);
+  for (i = 0; i < len; i++)
+    {
+      tree parm = pph_in_tree (stream);
+      VEC_safe_push (tree, gc, canonical_template_parms, parm);
+    }
+}
+
+
 /* Return a TEMPLATE_PARM_INDEX, similar to INDEX, but whose
    TEMPLATE_PARM_LEVEL has been decreased by LEVELS.  If such a
    TEMPLATE_PARM_INDEX already exists, it is returned; otherwise, a

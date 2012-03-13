@@ -3436,6 +3436,12 @@ record_builtin_type (enum rid rid_index,
 
   if (tdecl)
     debug_hooks->type_decl (tdecl, 0);
+
+  /* When using pre-parsed headers, we register builtin types in the PPH
+     pickle cache to avoid writing a physical representation of these types
+     and make sure that all references resolve to the same pre-built type.  */
+  if (pph_enabled_p ())
+    pph_register_builtin_type (type);
 }
 
 /* Record one of the standard Java types.

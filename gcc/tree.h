@@ -5190,6 +5190,10 @@ extern void assign_assembler_name_if_neeeded (tree);
 extern void warn_deprecated_use (tree, tree);
 enum tree_node_structure_enum tree_node_structure_for_code (enum tree_code);
 void mark_ts_structures_for (enum tree_code, enum tree_node_structure_enum);
+void type_hash_table_traverse (bool (*) (unsigned long, tree, void *), void *);
+size_t type_hash_table_length (void);
+void traverse_nonstandard_integer_type_cache (bool (*callback) (tree, void *),
+					      void *);
 
 
 /* In cgraph.c */

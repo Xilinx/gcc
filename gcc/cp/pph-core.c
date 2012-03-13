@@ -472,6 +472,82 @@ pph_cache_init (pph_cache *cache)
 static pph_cache *pph_preloaded_cache;
 
 
+/* Callback for cp_walk_tree.  Called from pph_cache_add_full_tree.
+   Add the sub-tree *TP to the cache pointed to by DATA.  Always set
+   WALK_SUBTREES to 1 to traverse every sub-tree.  */
+
+static tree
+pph_cache_add_full_tree_r (tree *tp, int *walk_subtrees, void *data)
+{
+  pph_cache *cache = (pph_cache *) data;
+  pph_cache_add (cache, *tp, NULL, pph_tree_code_to_tag (*tp));
+  *walk_subtrees = 1;
+  return NULL;
+}
+
+
+/* Add tree T and all its children into CACHE.  */
+
+static void
+pph_cache_add_full_tree (pph_cache *cache, tree t)
+{
+  cp_walk_tree (&t, pph_cache_add_full_tree_r, cache, NULL);
+}
+
+
+/* Callback for traverse_nonstandard_integer_type_cache.  Add the
+   full tree TYPE to the cache pointed by DATA.  */
+
+static bool
+nitc_callback (tree type, void *data)
+{
+  pph_cache *cache = (pph_cache *) data;
+  pph_cache_add_full_tree (cache, type);
+  return true;
+}
+
+/* Vector of builtin types to register in the preloaded cache.  */
+static VEC(tree,gc) *pph_builtin_types;
+
+
+/* Register a builtin type to be preloaded when we are setting up the
+   pickle cache.  This is called from record_builtin_type.  */
+
+void
+pph_register_builtin_type (tree type)
+{
+  VEC_safe_push (tree, gc, pph_builtin_types, type);
+}
+
+
+/* Pre-load all the builtin types declared by the compiler.  */
+
+static void
+pph_cache_add_builtin_types (pph_cache *cache)
+{
+  unsigned i;
+  tree type;
+
+  FOR_EACH_VEC_ELT (tree, pph_builtin_types, i, type)
+    pph_cache_add_full_tree (cache, type);
+}
+
+
+/* Callback for type_hash_table_traverse.  DATA points to the cache
+   where we are preloading trees built by the front end on startup.
+   TYPE is the type to preload.  Always return true, so we visit the
+   whole table.  */
+
+static bool
+pph_cache_add_canonical_type (unsigned long h ATTRIBUTE_UNUSED, tree type,
+			      void *data)
+{
+  pph_cache *cache = (pph_cache *) data;
+  pph_cache_add_full_tree (cache, type);
+  return true;
+}
+
+
 /* Pre-load common tree nodes into CACHE.  These nodes are always built by the
    front end, so there is no need to pickle them.  */
 
@@ -481,24 +557,20 @@ pph_cache_preload (pph_cache *cache)
   unsigned i;
 
   for (i = itk_char; i < itk_none; i++)
-    pph_cache_add (cache, integer_types[i], NULL,
-                   pph_tree_code_to_tag (integer_types[i]));
+    pph_cache_add_full_tree (cache, integer_types[i]);
 
   for (i = 0; i < TYPE_KIND_LAST; i++)
-    pph_cache_add (cache, sizetype_tab[i], NULL,
-                   pph_tree_code_to_tag (sizetype_tab[i]));
+    pph_cache_add_full_tree (cache, sizetype_tab[i]);
 
   /* global_trees[] can have NULL entries in it.  Skip them.  */
   for (i = 0; i < TI_MAX; i++)
     if (global_trees[i])
-      pph_cache_add (cache, global_trees[i], NULL,
-                     pph_tree_code_to_tag (global_trees[i]));
+      pph_cache_add_full_tree (cache, global_trees[i]);
 
   /* c_global_trees[] can have NULL entries in it.  Skip them.  */
   for (i = 0; i < CTI_MAX; i++)
     if (c_global_trees[i])
-      pph_cache_add (cache, c_global_trees[i], NULL,
-                     pph_tree_code_to_tag (c_global_trees[i]));
+      pph_cache_add_full_tree (cache, c_global_trees[i]);
 
   /* cp_global_trees[] can have NULL entries in it.  Skip them.  */
   for (i = 0; i < CPTI_MAX; i++)
@@ -508,16 +580,22 @@ pph_cache_preload (pph_cache *cache)
 	continue;
 
       if (cp_global_trees[i])
-	pph_cache_add (cache, cp_global_trees[i], NULL,
-                       pph_tree_code_to_tag (cp_global_trees[i]));
+	pph_cache_add_full_tree (cache, cp_global_trees[i]);
     }
+
+  /* Pre-load the table of nonstandard integer types.  */
+  traverse_nonstandard_integer_type_cache (nitc_callback, (void *) cache);
+
+  /* Pre-load all the builtin types.  */
+  pph_cache_add_builtin_types (cache);
+
+  /* Pre-load the table of canonical types.  */
+  type_hash_table_traverse (pph_cache_add_canonical_type, cache);
 
   /* Add other well-known nodes that should always be taken from the
      current compilation context.  */
-  pph_cache_add (cache, global_namespace, NULL,
-                 pph_tree_code_to_tag (global_namespace));
-  pph_cache_add (cache, DECL_CONTEXT (global_namespace), NULL,
-                 pph_tree_code_to_tag (DECL_CONTEXT (global_namespace)));
+  pph_cache_add_full_tree (cache, global_namespace);
+  pph_cache_add_full_tree (cache, DECL_CONTEXT (global_namespace));
 }
 
 
