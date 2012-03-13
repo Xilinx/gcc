@@ -1,5 +1,29 @@
 
 2011-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Regenerate}}
+	* melt/generated/meltrunsup-inc.c: Regenerate.
+	* melt/generated/meltrunsup.h: Regenerate.
+	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-base+melttime.h: Regenerate.
+	* melt/generated/warmelt-base.c: Regenerate.
+	* melt/generated/warmelt-debug+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-debug+melttime.h: Regenerate.
+	* melt/generated/warmelt-first+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-first+melttime.h: Regenerate.
+	* melt/generated/warmelt-genobj+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-genobj+melttime.h: Regenerate.
+	* melt/generated/warmelt-macro+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-macro+melttime.h: Regenerate.
+	* melt/generated/warmelt-modes+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-modes+melttime.h: Regenerate.
+	* melt/generated/warmelt-normal+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normal+melttime.h: Regenerate.
+	* melt/generated/warmelt-normatch+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-normatch+melttime.h: Regenerate.
+	* melt/generated/warmelt-outobj+meltdesc.c: Regenerate.
+	* melt/generated/warmelt-outobj+melttime.h: Regenerate.
+
+2011-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-base.melt (valdesc_bucketlongs): Typos.
 
@@ -87,7 +111,7 @@
 2011-03-12  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-build.tpl ([+melt_stage+]-fullstage.stamp): Depends upon
-	[+melt_stage+]/[+base+].c
+	[+melt_stage+]/[+base+].c ...
 
 	* melt-build.mk: Regenerate.
 

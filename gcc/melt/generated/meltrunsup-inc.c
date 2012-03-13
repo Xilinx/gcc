@@ -340,9 +340,6 @@ melt_forwarded_copy (melt_ptr_t p)
 	struct meltbucketlongs_st *dst = NULL;
 	/* copy chunk from  VALDESC_BUCKETLONGS  in warmelt-base.melt */
 	/* ggc_alloc_meltbucketlongs_st should be gengtype generated for VALDESC_BUCKETLONGS */
-#ifndef ggc_alloc_meltbucketlongs_st
-#define ggc_alloc_meltbucketlongs_st(SIZE) ((struct meltbucketlongs_st *)(ggc_internal_alloc_stat (SIZE MEM_STAT_INFO)))
-#endif
 	unsigned lnix = src->buckl_lenix;
 	unsigned len = melt_primtab[lnix];
 	unsigned ucnt = 0;
@@ -2776,8 +2773,38 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 
 /******* cloning the 27 value descriptors *******/
 /** cloning value descriptor #1 VALDESC_BUCKETLONGS **/
-      /*no cloning for VALDESC_BUCKETLONGS */
+      /*explicit cloning for VALDESC_BUCKETLONGS */
     case MELTOBMAG_BUCKETLONGS:
+      {
+	struct meltbucketlongs_st *src =
+	  (struct meltbucketlongs_st *) srcvalv;
+	struct meltbucketlongs_st *dst = NULL;
+	/* clone chunk for VALDESC_BUCKETLONGS: */
+	/* cloning chunk  from VALDESC_BUCKETLONGS in warmelt-base.melt */
+	unsigned lnix = src->buckl_lenix;
+	unsigned len = melt_primtab[lnix];
+	unsigned cnt = src->buckl_ucount;
+	unsigned dstlen = 0;
+	unsigned ix = 0;
+	gcc_assert (cnt <= len);
+	dst = (struct meltbucketlongs_st *)
+	  meltgc_new_longsbucket ((meltobject_ptr_t) newdiscrv,
+				  cnt + cnt / 8 + 2);
+	dstlen = melt_primtab[dst->buckl_lenix];
+	dst->buckl_aux = src->buckl_aux;
+	dst->buckl_xnum = src->buckl_xnum;
+	for (ix = 0; ix < cnt; ix++)
+	  dst->buckl_entab[ix] = src->buckl_entab[ix];
+	for (ix = cnt; ix < dstlen; ix++)
+	  {
+	    dst->buckl_entab[ix].ebl_at = 0L;
+	    dst->buckl_entab[ix].ebl_va = NULL;
+	  }
+	/* end clone chunk VALDESC_BUCKETLONGS */
+	;
+	if (dst)
+	  resv = (melt_ptr_t) dst;
+      };
       break;
 /** cloning value descriptor #2 VALDESC_CLOSURE **/
       /*explicit cloning for VALDESC_CLOSURE */
@@ -3154,5 +3181,5 @@ end:
 #undef compv
 
 
-/*** End of code file meltrunsup-inc.c generated on 2012 Mar 12
- * by GCC MELT 4.8.0 20120308 (experimental) [melt-branch revision 185260] MELT_0.9.4+ . ***/
+/*** End of code file meltrunsup-inc.c generated on 2012 Mar 13
+ * by GCC MELT 4.8.0 20120308 (experimental) [melt-branch revision 185278] MELT_0.9.4+ . ***/
