@@ -3020,13 +3020,14 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
    unsigned dstlen = 0;
    unsigned ix = 0;
    gcc_assert (cnt <= len);
-   dst = meltgc_new_longsbucket ((meltobject_ptr_t)newdiscrv, cnt + cnt/8 + 2);
-   dstlen = melt_primtab[dst->buckl_lenix]);
+   dst = (struct meltbucketlongs_st*)
+      meltgc_new_longsbucket ((meltobject_ptr_t)newdiscrv, cnt + cnt/8 + 2);
+   dstlen = melt_primtab[dst->buckl_lenix];
    dst->buckl_aux = src->buckl_aux;
    dst->buckl_xnum = src->buckl_xnum;
    for (ix = 0; ix < cnt; ix++)
      dst->buckl_entab[ix] = src->buckl_entab[ix];
-   for (ix = cnt; ix < len; ix++) {
+   for (ix = cnt; ix < dstlen; ix++) {
      dst->buckl_entab[ix].ebl_at = 0L;
      dst->buckl_entab[ix].ebl_va = NULL;
    }

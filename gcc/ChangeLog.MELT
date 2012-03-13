@@ -1,6 +1,10 @@
 
 2011-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-base.melt (valdesc_bucketlongs): Typos.
+
+2011-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (meltgc_longsbucket_set_xnum): Remove, replaced
 	by...
 	(melt_longsbucket_set_xnum): New inline function.
