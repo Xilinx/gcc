@@ -174,7 +174,7 @@ in the following sections.
 -aux-info @var{filename} -fallow-parameterless-variadic-functions @gol
 -fno-asm  -fno-builtin  -fno-builtin-@var{function} @gol
 -fhosted  -ffreestanding -fopenmp -fms-extensions -fplan9-extensions @gol
--trigraphs  -no-integrated-cpp  -traditional  -traditional-cpp @gol
+-trigraphs  -traditional  -traditional-cpp @gol
 -fallow-single-precision  -fcond-mismatch -flax-vector-conversions @gol
 -fsigned-bitfields  -fsigned-char @gol
 -funsigned-bitfields  -funsigned-char}
@@ -433,7 +433,7 @@ Objective-C and Objective-C++ Dialects}.
 -M  -MM  -MF  -MG  -MP  -MQ  -MT  -nostdinc  @gol
 -P  -fdebug-cpp -ftrack-macro-expansion -fworking-directory @gol
 -remap -trigraphs  -undef  -U@var{macro}  @gol
--Wp,@var{option} -Xpreprocessor @var{option}}
+-Wp,@var{option} -Xpreprocessor @var{option} -no-integrated-cpp}
 
 @item Assembler Option
 @xref{Assembler Options,,Passing Options to the Assembler}.
@@ -569,9 +569,6 @@ Objective-C and Objective-C++ Dialects}.
 -msmall-text  -mlarge-text @gol
 -mmemory-latency=@var{time}}
 
-@emph{DEC Alpha/VMS Options}
-@gccoptlist{-mvms-return-codes -mdebug-main=@var{prefix} -mmalloc64}
-
 @emph{FR30 Options}
 @gccoptlist{-msmall-model -mno-lsim}
 
@@ -629,7 +626,8 @@ Objective-C and Objective-C++ Dialects}.
 -mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 -mavx @gol
 -mavx2 -maes -mpclmul -mfsgsbase -mrdrnd -mf16c -mfma @gol
 -msse4a -m3dnow -mpopcnt -mabm -mbmi -mtbm -mfma4 -mxop -mlzcnt @gol
--mbmi2 -mlwp -mthreads  -mno-align-stringops  -minline-all-stringops @gol
+-mbmi2 -mrtm -mlwp -mthreads @gol
+-mno-align-stringops  -minline-all-stringops @gol
 -minline-stringops-dynamically -mstringop-strategy=@var{alg} @gol
 -mpush-args  -maccumulate-outgoing-args  -m128bit-long-double @gol
 -m96bit-long-double  -mregparm=@var{num}  -msseregparm @gol
@@ -668,9 +666,6 @@ Objective-C and Objective-C++ Dialects}.
 -msched-stop-bits-after-every-cycle -msched-count-spec-in-critical-path @gol
 -msel-sched-dont-check-control-spec -msched-fp-mem-deps-zero-cost @gol
 -msched-max-memory-insns-hard-limit -msched-max-memory-insns=@var{max-insns}}
-
-@emph{IA-64/VMS Options}
-@gccoptlist{-mvms-return-codes -mdebug-main=@var{prefix} -mmalloc64}
 
 @emph{LM32 Options}
 @gccoptlist{-mbarrel-shift-enabled -mdivide-enabled -mmultiply-enabled @gol
@@ -945,6 +940,10 @@ See RS/6000 and PowerPC Options.
 
 @emph{VAX Options}
 @gccoptlist{-mg  -mgnu  -munix}
+
+@emph{VMS Options}
+@gccoptlist{-mvms-return-codes -mdebug-main=@var{prefix} -mmalloc64 @gol
+-mpointer-size=@var{size}}
 
 @emph{VxWorks Options}
 @gccoptlist{-mrtp  -non-static  -Bstatic  -Bdynamic @gol
@@ -1793,17 +1792,6 @@ supported for C, not C++.
 @opindex trigraphs
 Support ISO C trigraphs.  The @option{-ansi} option (and @option{-std}
 options for strict ISO C conformance) implies @option{-trigraphs}.
-
-@item -no-integrated-cpp
-@opindex no-integrated-cpp
-Performs a compilation in two passes: preprocessing and compiling.  This
-option allows a user supplied "cc1", "cc1plus", or "cc1obj" via the
-@option{-B} option.  The user supplied compilation step can then add in
-an additional preprocessing step after normal preprocessing but before
-compiling.  The default is to use the integrated cpp (internal cpp)
-
-The semantics of this option will change if "cc1", "cc1plus", and
-"cc1obj" are merged.
 
 @cindex traditional C language
 @cindex C language, traditional
@@ -4827,8 +4815,8 @@ Allow using extensions of later DWARF standard version than selected with
 
 @item -gvms
 @opindex gvms
-Produce debugging information in VMS debug format (if that is
-supported).  This is the format used by DEBUG on VMS systems.
+Produce debugging information in Alpha/VMS debug format (if that is
+supported).  This is the format used by DEBUG on Alpha/VMS systems.
 
 @item -g@var{level}
 @itemx -ggdb@var{level}
@@ -9300,6 +9288,21 @@ recognize.
 
 If you want to pass an option that takes an argument, you must use
 @option{-Xpreprocessor} twice, once for the option and once for the argument.
+
+@item -no-integrated-cpp
+@opindex no-integrated-cpp
+Perform preprocessing as a separate pass before compilation.
+By default, GCC performs preprocessing as an integrated part of
+input tokenization and parsing.
+If this option is provided, the appropriate language front end
+(@command{cc1}, @command{cc1plus}, or @command{cc1obj} for C, C++,
+and Objective-C, respectively) is instead invoked twice,
+once for preprocessing only and once for actual compilation
+of the preprocessed input.
+This option may be useful in conjunction with the @option{-B} or
+@option{-wrapper} options to specify an alternate preprocessor or
+perform additional processing of the program source between
+normal preprocessing and compilation.
 @end table
 
 @include cppopts.texi
@@ -10327,7 +10330,6 @@ platform.
 * CR16 Options::
 * Darwin Options::
 * DEC Alpha Options::
-* DEC Alpha/VMS Options::
 * FR30 Options::
 * FRV Options::
 * GNU/Linux Options::
@@ -10336,7 +10338,6 @@ platform.
 * i386 and x86-64 Options::
 * i386 and x86-64 Windows Options::
 * IA-64 Options::
-* IA-64/VMS Options::
 * LM32 Options::
 * M32C Options::
 * M32R/D Options::
@@ -10364,6 +10365,7 @@ platform.
 * TILEPro Options::
 * V850 Options::
 * VAX Options::
+* VMS Options::
 * VxWorks Options::
 * x86-64 Options::
 * Xstormy16 Options::
@@ -12388,27 +12390,6 @@ Note that L3 is only valid for EV5.
 @end table
 @end table
 
-@node DEC Alpha/VMS Options
-@subsection DEC Alpha/VMS Options
-
-These @samp{-m} options are defined for the DEC Alpha/VMS implementations:
-
-@table @gcctabopt
-@item -mvms-return-codes
-@opindex mvms-return-codes
-Return VMS condition codes from main.  The default is to return POSIX
-style condition (e.g.@: error) codes.
-
-@item -mdebug-main=@var{prefix}
-@opindex mdebug-main=@var{prefix}
-Flag the first routine whose name starts with @var{prefix} as the main
-routine for the debugger.
-
-@item -mmalloc64
-@opindex mmalloc64
-Default to 64-bit memory allocation routines.
-@end table
-
 @node FR30 Options
 @subsection FR30 Options
 @cindex FR30 Options
@@ -13601,6 +13582,7 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mno-bmi2
 @itemx -mlzcnt
 @itemx -mno-lzcnt
+@itemx -mrtm
 @itemx -mtbm
 @itemx -mno-tbm
 @opindex mmmx
@@ -13611,7 +13593,7 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @opindex mno-3dnow
 These switches enable or disable the use of instructions in the MMX, SSE,
 SSE2, SSE3, SSSE3, SSE4.1, AVX, AVX2, AES, PCLMUL, FSGSBASE, RDRND, F16C,
-FMA, SSE4A, FMA4, XOP, LWP, ABM, BMI, BMI2, LZCNT or 3DNow!@: 
+FMA, SSE4A, FMA4, XOP, LWP, ABM, BMI, BMI2, LZCNT, RTM or 3DNow!@:
 extended instruction sets.
 These extensions are also available as built-in functions: see
 @ref{X86 Built-in Functions}, for details of the functions enabled and
@@ -14319,27 +14301,6 @@ Otherwise, the limit is ``soft'', meaning that non-memory operations
 are preferred when the limit is reached, but memory operations may still
 be scheduled.
 
-@end table
-
-@node IA-64/VMS Options
-@subsection IA-64/VMS Options
-
-These @samp{-m} options are defined for the IA-64/VMS implementations:
-
-@table @gcctabopt
-@item -mvms-return-codes
-@opindex mvms-return-codes
-Return VMS condition codes from @code{main}. The default is to return POSIX-style
-condition (e.g.@ error) codes.
-
-@item -mdebug-main=@var{prefix}
-@opindex mdebug-main=@var{prefix}
-Flag the first routine whose name starts with @var{prefix} as the main
-routine for the debugger.
-
-@item -mmalloc64
-@opindex mmalloc64
-Default to 64-bit memory allocation routines.
 @end table
 
 @node LM32 Options
@@ -18933,6 +18894,34 @@ will assemble with the GNU assembler.
 @item -mg
 @opindex mg
 Output code for G-format floating-point numbers instead of D-format.
+@end table
+
+@node VMS Options
+@subsection VMS Options
+
+These @samp{-m} options are defined for the VMS implementations:
+
+@table @gcctabopt
+@item -mvms-return-codes
+@opindex mvms-return-codes
+Return VMS condition codes from @code{main}. The default is to return POSIX-style
+condition (e.g.@ error) codes.
+
+@item -mdebug-main=@var{prefix}
+@opindex mdebug-main=@var{prefix}
+Flag the first routine whose name starts with @var{prefix} as the main
+routine for the debugger.
+
+@item -mmalloc64
+@opindex mmalloc64
+Default to 64-bit memory allocation routines.
+
+@item -mpointer-size=@var{size}
+@opindex -mpointer-size=@var{size}
+Set the default size of pointers. Possible options for @var{size} are
+@samp{32} or @samp{short} for 32 bit pointers, @samp{64} or @samp{long}
+for 64 bit pointers, and @samp{no} for supporting only 32 bit pointers.
+The later option disables @code{pragma pointer_size}.
 @end table
 
 @node VxWorks Options

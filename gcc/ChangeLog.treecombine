@@ -1,5 +1,11 @@
 2012-03-12  Andrew Pinski  <apinski@cavium.com>
 
+	Revert since there is a better patch implemented now:
+	* tree-vrp.c (register_edge_assert_for_2): Handle (int)UNAME >= 0 as
+	UNAME < (unsigned)SIGNED_MIN for the asserts.
+
+2012-03-12  Andrew Pinski  <apinski@cavium.com>
+
 	* gimple-ssa-combine.c (simplify_mult_expr): Remove the
 	simplification of "(A + B) * C", that should be handled
 	by VN.
