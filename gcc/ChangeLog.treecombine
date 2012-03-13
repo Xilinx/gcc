@@ -1,3 +1,16 @@
+2012-03-12  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (nonzerobits): Add a FIXME for shifts
+	and rotates.
+	(simplify_not_neg_abs_expr): Double check that ABS_EXPR<ABS_EXPR<x>> is
+	not simplified to just x.
+	Simplify - (a + C) to -C + (-a) if -C will not overflow.
+	Simplify - (a - b) to b - a.
+	(simplify_mult_expr): Simplify (-A) * (-B) to A * B.
+	Simplify ABS<A> * ABS<B> to A * B.
+	Simplify (a * C) * D to a * (C*D) if C and D are constants.
+	(simplify_plusminus): Simplify -1 - a to ~a.
+
 2012-03-11  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-fold.c (gimple_fold_stmt_to_constant_1):
