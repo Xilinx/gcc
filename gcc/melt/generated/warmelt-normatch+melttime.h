@@ -5,14 +5,14 @@
 
 
   /* This warmelt-normatch+melttime.h is included from warmelt-normatch+meltdesc.c only. */
-#if meltmod_warmelt_normatch_mds__62160ebc7f099477b6d9367edbc862ec
+#if meltmod_warmelt_normatch_mds__06e4b949af436058325caf0a630a822e
   /* MELT generation timestamp for MELT-STAGE-ZERO/warmelt-normatch */
 /*MELT BOOTSTRAP*/
-const char melt_gen_timestamp[]="Tue Mar 13 14:27:52 2012 CET";
-const long long melt_gen_timenum=1331645272;
+const char melt_gen_timestamp[]="Tue Mar 13 15:58:41 2012 CET";
+const long long melt_gen_timenum=1331650721;
 const char melt_build_timestamp[]= __DATE__ "@" __TIME__;
 
-#else /* ! meltmod_warmelt_normatch_mds__62160ebc7f099477b6d9367edbc862ec */
+#else /* ! meltmod_warmelt_normatch_mds__06e4b949af436058325caf0a630a822e */
 #error invalid timestamp file for MELT-STAGE-ZERO/warmelt-normatch 
-#endif /* meltmod_warmelt_normatch_mds__62160ebc7f099477b6d9367edbc862ec */
+#endif /* meltmod_warmelt_normatch_mds__06e4b949af436058325caf0a630a822e */
 		
