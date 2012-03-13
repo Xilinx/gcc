@@ -1999,6 +1999,18 @@ melt_longsbucket_xnum (melt_ptr_t bucketp)
   return buck->buckl_xnum;
 }
 
+/* Set the extra number in a longsbucket - no GC possible! */
+static inline void 
+melt_longsbucket_set_xnum (melt_ptr_t bucketp, int xnum)
+{
+  struct meltbucketlongs_st*buck = NULL;
+  if (melt_magic_discr (bucketp) != MELTOBMAG_BUCKETLONGS)
+    return;
+  buck = (struct meltbucketlongs_st*)bucketp;
+  buck->buckl_xnum = xnum;
+}
+
+
 /* get the used count of a bucket of longs */
 static inline int
 melt_longsbucket_count (melt_ptr_t bucketp)
@@ -2034,13 +2046,10 @@ melt_ptr_t meltgc_longsbucket_put (melt_ptr_t bucketp, long key, melt_ptr_t valp
 
 /* Remove the value associated in a bucket of longs; return the
    re-allocated bucket or the same one, or else NULL */
-melt_ptr_t meltgc_longsbucket_remove (melt_ptr_t bucketp, long key, melt_ptr_t valp);
+melt_ptr_t meltgc_longsbucket_remove (melt_ptr_t bucketp, long key);
 
 /* Set the auxiliary data in a longsbucket */
 void meltgc_longsbucket_set_aux (melt_ptr_t bucketp, melt_ptr_t auxp);
-
-/* Set the extra number in a longsbucket */
-void meltgc_longsbucket_set_xnum (melt_ptr_t bucketp, int xnum);
 
 /***** STRBUF ie string buffers *****/
 

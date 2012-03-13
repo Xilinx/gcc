@@ -13168,7 +13168,7 @@ meltgc_handle_interrupt (void)
 {
   MELT_ENTEREMPTYFRAME(NULL);
   MELT_LOCATION_HERE("inside meltgc_handle_interrupt");
-  melt_fatal_error("unimplemented meltgc_handle_interrupt");
+  melt_fatal_error ("unimplemented meltgc_handle_interrupt pid %d", (int) getpid());
   MELT_EXITFRAME();
 }
 
@@ -13201,7 +13201,6 @@ meltgc_new_longsbucket (meltobject_ptr_t discr_p,
 {
   unsigned lenix = 0;
   unsigned bucklen = 0;
-  unsigned ix = 0;
   MELT_ENTERFRAME (2, NULL);
 #define discrv       meltfram__.mcfr_varptr[0]
 #define buckv        meltfram__.mcfr_varptr[1]
@@ -13222,7 +13221,7 @@ meltgc_new_longsbucket (meltobject_ptr_t discr_p,
   buckv = 
     meltgc_allocate (sizeof (struct meltbucketlongs_st), 
 		     sizeof (struct melt_bucketlongentry_st)*len);
-  ((struct meltbucketlongs_st*)(buckv))->discr = discrv;
+  ((struct meltbucketlongs_st*)(buckv))->discr = (meltobject_ptr_t) discrv;
   ((struct meltbucketlongs_st*)(buckv))->buckl_aux = NULL;
   ((struct meltbucketlongs_st*)(buckv))->buckl_lenix = lenix;
   ((struct meltbucketlongs_st*)(buckv))->buckl_xnum = 0;
@@ -13232,7 +13231,7 @@ meltgc_new_longsbucket (meltobject_ptr_t discr_p,
 	  len*sizeof(struct melt_bucketlongentry_st));
  end:
   MELT_EXITFRAME ();
-  return buckv;
+  return (melt_ptr_t) buckv;
 #undef buckv
 #undef valv
 }
@@ -13254,7 +13253,7 @@ meltgc_longsbucket_replace (melt_ptr_t bucket_p, long key, melt_ptr_t val_p)
 #define resv         meltfram__.mcfr_varptr[2]
   buckv = bucket_p;
   valv = val_p;
-  if (melt_magic_discr (buckv) != MELTOBMAG_BUCKETLONGS || !valv)
+  if (melt_magic_discr ((melt_ptr_t) buckv) != MELTOBMAG_BUCKETLONGS || !valv)
     goto end;
   buck = (struct meltbucketlongs_st*)(buckv);
   len = melt_primtab[buck->buckl_lenix];
@@ -13277,19 +13276,263 @@ meltgc_longsbucket_replace (melt_ptr_t bucket_p, long key, melt_ptr_t val_p)
   for (md = lo; md <= hi; md++)
     if (buck->buckl_entab[md].ebl_at == key) {
       resv = buck->buckl_entab[md].ebl_va;
-      buck->buckl_entab[md].ebl_va = valv;
-      meltgc_touch_dest (buckv, valv);
+      buck->buckl_entab[md].ebl_va = (melt_ptr_t) valv;
+      meltgc_touch_dest ((melt_ptr_t)buckv,  (melt_ptr_t)valv);
       goto end;
     }
  end:
   MELT_EXITFRAME ();
-  return resv;
+  return (melt_ptr_t) resv;
 #undef buckv
 #undef bu_buckv
 #undef valv
 #undef resv
 }
 
+
+
+
+/* put or replace the value associated in a bucket of longs; return
+   the re-allocated bucket or the same one, or else NULL */
+melt_ptr_t 
+meltgc_longsbucket_put (melt_ptr_t bucket_p, long key, melt_ptr_t val_p)
+{
+  struct meltbucketlongs_st*buck = NULL;
+  unsigned len = 0;
+  unsigned lo=0, hi=0, md=0, ucnt=0;
+  MELT_ENTERFRAME (3, NULL);
+#define buckv        meltfram__.mcfr_varptr[0]
+#define valv         meltfram__.mcfr_varptr[1]
+#define resv         meltfram__.mcfr_varptr[2]
+  buckv = bucket_p;
+  valv = val_p;
+  MELT_LOCATION_HERE ("meltgc_longsbucket_put");
+  resv = NULL;
+  if (melt_magic_discr ((melt_ptr_t) buckv) != MELTOBMAG_BUCKETLONGS || !valv)
+    goto end;
+  buck = (struct meltbucketlongs_st*)(buckv);
+  len = melt_primtab[buck->buckl_lenix];
+  ucnt = buck->buckl_ucount;
+  gcc_assert (ucnt <= len && len > 0);
+  if (ucnt + 1 >= len) 
+    {				/*  buck is nearly full, allocate a bigger one. */
+      struct meltbucketlongs_st*oldbuck = NULL;
+      unsigned newcnt = 0;
+      unsigned ix = 0;
+      bool need_insert = true;
+      MELT_LOCATION_HERE ("meltgc_longsbucket_put growing");
+      resv = meltgc_new_longsbucket (buck->discr, ucnt + ucnt/5 + 8);
+      /* set again buck, because a GC could have occurred */
+      oldbuck = (struct meltbucketlongs_st*)(buckv);
+      buck = (struct meltbucketlongs_st*)(resv);
+      buck->buckl_aux = oldbuck->buckl_aux;
+      buck->buckl_xnum = oldbuck->buckl_xnum;
+      for (ix = 0; ix < ucnt; ix++) 
+	{
+	  long oldkey = oldbuck->buckl_entab[ix].ebl_at;
+	  if (oldkey < key)
+	    {
+	      buck->buckl_entab[newcnt] = oldbuck->buckl_entab[ix];
+	      newcnt++;
+	    }
+	  else if (oldkey == key)
+	    {
+	      buck->buckl_entab[newcnt].ebl_at = key;
+	      buck->buckl_entab[newcnt].ebl_va = (melt_ptr_t) valv;
+	      need_insert = false;
+	      newcnt ++;
+	    }
+	  else 			/* oldkey > key */
+	    {
+	      if (need_insert) 
+		{
+		  buck->buckl_entab[newcnt].ebl_at = key;
+		  buck->buckl_entab[newcnt].ebl_va = (melt_ptr_t) valv;
+		  need_insert = false;
+		  newcnt ++;
+		};
+	      buck->buckl_entab[newcnt] = oldbuck->buckl_entab[ix];
+	      newcnt++;
+	    }
+	};
+      if (need_insert) 
+	{
+	  buck->buckl_entab[newcnt].ebl_at = key;
+	  buck->buckl_entab[newcnt].ebl_va = (melt_ptr_t) valv;
+	  need_insert = false;
+	  newcnt ++;
+	};
+      buck->buckl_ucount = newcnt;
+      gcc_assert (newcnt >= ucnt && newcnt < melt_primtab[buck->buckl_lenix]);
+      meltgc_touch_dest ((melt_ptr_t) buck, (melt_ptr_t) valv);
+    }
+  else if (ucnt == 0) 
+    {				/* buck is empty, add first slot & keep it. */
+      resv = buckv;
+      buck->buckl_entab[0].ebl_at = key;
+      buck->buckl_entab[0].ebl_va = (melt_ptr_t) valv;
+      buck->buckl_ucount = 1;
+      meltgc_touch_dest ((melt_ptr_t) buck, (melt_ptr_t) valv);
+    }
+  else 
+    {				/* buck is not full and non empty, keep it. */
+      resv = buckv;
+      lo = 0;
+      hi = ucnt - 1;
+      while (lo + 2 < hi) 
+	{
+	  long curk = 0;
+	  md = (lo + hi) / 2;
+	  curk = buck->buckl_entab[md].ebl_at;
+	  if (curk < key)
+	    lo = md;
+	  else 
+	    hi = md;
+	};
+      for (md = lo; md <= hi; md++)
+	{
+	  long curk = 0;
+	  curk = buck->buckl_entab[md].ebl_at;
+	  if (curk < key)
+	    continue;
+	  else if (curk == key)
+	    {
+	      buck->buckl_entab[md].ebl_va = (melt_ptr_t) valv;
+	      meltgc_touch_dest ((melt_ptr_t) buck, (melt_ptr_t) valv);
+	      goto end;
+	    }
+	  else {	    /* curk > key, so insert here by moving
+			       further slots downwards. */	
+	    unsigned ix;
+	    for (ix = ucnt; ix >= md; ix--)
+	      buck->buckl_entab[ix+1] = buck->buckl_entab[ix];
+	    buck->buckl_entab[md].ebl_at = key;
+	    buck->buckl_entab[md].ebl_va = (melt_ptr_t) valv;
+	    buck->buckl_ucount = ucnt+1;
+	    meltgc_touch_dest ((melt_ptr_t) buck, (melt_ptr_t) valv);
+	    goto end;
+	  }
+	};
+      if (buck->buckl_entab[ucnt-1].ebl_at < key)
+	{			/* append new slot at end */
+	  buck->buckl_entab[ucnt].ebl_at = key;
+	  buck->buckl_entab[ucnt].ebl_va = (melt_ptr_t) valv;
+	  buck->buckl_ucount = ucnt+1;
+	  meltgc_touch_dest ((melt_ptr_t) buck, (melt_ptr_t) valv);
+	  goto end;
+	}
+    }
+ end:
+  MELT_EXITFRAME ();
+  return (melt_ptr_t) resv;
+#undef buckv
+#undef valv
+#undef resv
+}
+
+
+/* Remove the value associated in a bucket of longs; return the
+   shrinked bucket or the same one, or else NULL */
+melt_ptr_t
+meltgc_longsbucket_remove (melt_ptr_t bucket_p, long key)
+{
+  struct meltbucketlongs_st*buck = NULL;
+  unsigned len = 0;
+  unsigned lo=0, hi=0, md=0, ucnt=0;
+  MELT_ENTERFRAME (2, NULL);
+#define buckv        meltfram__.mcfr_varptr[0]
+#define resv         meltfram__.mcfr_varptr[1]
+  buckv = bucket_p;
+  resv = NULL;
+  MELT_LOCATION_HERE ("meltgc_longsbucket_remove");
+  if (melt_magic_discr ((melt_ptr_t) buckv) != MELTOBMAG_BUCKETLONGS)
+    goto end;
+  buck = (struct meltbucketlongs_st*)(buckv);
+  len = melt_primtab[buck->buckl_lenix];
+  ucnt = buck->buckl_ucount;
+  gcc_assert (ucnt <= len && len > 0);
+  if (len > 10 && 2*ucnt + 3<len) { /* shrink the bucket */
+    struct meltbucketlongs_st*oldbuck = NULL;
+    unsigned ix = 0, newcnt = 0;
+    MELT_LOCATION_HERE ("meltgc_longsbucket_remove shrinking");
+    resv = meltgc_new_longsbucket (buck->discr, ucnt + 1);
+    /* set again buck, because a GC could have occurred */
+    oldbuck = (struct meltbucketlongs_st*)(buckv);
+    buck = (struct meltbucketlongs_st*)(resv);
+    buck->buckl_aux = oldbuck->buckl_aux;
+    buck->buckl_xnum = oldbuck->buckl_xnum;
+    for (ix = 0; ix < ucnt; ix++) 
+      {
+	long oldkey = oldbuck->buckl_entab[ix].ebl_at; 
+	if (oldkey == key)
+	  continue;
+	buck->buckl_entab[newcnt] = oldbuck->buckl_entab[ix];
+	newcnt++;
+      }
+    buck->buckl_ucount = newcnt;
+  }
+  else {			/* keep the bucket */
+      resv = buckv;
+      lo = 0;
+      if (ucnt == 0) 
+	goto end;
+      hi = ucnt - 1;
+      while (lo + 2 < hi) 
+	{
+	  long curk = 0;
+	  md = (lo + hi) / 2;
+	  curk = buck->buckl_entab[md].ebl_at;
+	  if (curk < key)
+	    lo = md;
+	  else 
+	    hi = md;
+	};
+      for (md = lo; md <= hi; md++)
+	{
+	  long curk = 0;
+	  unsigned ix = 0;
+	  curk = buck->buckl_entab[md].ebl_at;
+	  if (curk != key)
+	    continue;
+	  for (ix = md+1; ix<ucnt; ix++)
+	    buck->buckl_entab[ix-1] = buck->buckl_entab[ix];
+	  buck->buckl_entab[ucnt].ebl_at = 0;
+	  buck->buckl_entab[ucnt].ebl_va = NULL;
+	  buck->buckl_ucount = ucnt - 1;
+	  goto end;
+	}
+  }
+ end:
+  MELT_EXITFRAME ();
+  return (melt_ptr_t) resv;
+#undef buckv
+#undef valv
+#undef resv
+}
+
+/* Set the auxiliary data in a longsbucket */
+void 
+meltgc_longsbucket_set_aux (melt_ptr_t bucket_p, melt_ptr_t aux_p)
+{
+  struct meltbucketlongs_st*buck = NULL;
+  MELT_ENTERFRAME (2, NULL);
+#define buckv        meltfram__.mcfr_varptr[0]
+#define auxv         meltfram__.mcfr_varptr[1]
+  buckv = bucket_p;
+  auxv = aux_p;
+  MELT_LOCATION_HERE ("meltgc_longsbucket_set_aux");
+  if (melt_magic_discr ((melt_ptr_t) buckv) != MELTOBMAG_BUCKETLONGS || !auxv)
+    goto end;
+  buck = (struct meltbucketlongs_st*)(buckv);
+  buck->buckl_aux = (melt_ptr_t) auxv;
+  meltgc_touch_dest ((melt_ptr_t) buck, (melt_ptr_t) auxv);
+ end:
+  MELT_EXITFRAME ();
+#undef buckv
+#undef auxv
+}
+
+/*****************************************************************/
 
 void melt_set_flag_debug (void) 
 {

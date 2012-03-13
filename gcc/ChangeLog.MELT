@@ -1,6 +1,18 @@
 
 2011-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (meltgc_longsbucket_set_xnum): Remove, replaced
+	by...
+	(melt_longsbucket_set_xnum): New inline function.
+	(meltgc_longsbucket_remove): Correct signature.
+
+	* melt-runtime.c (meltgc_handle_interrupt): Avoid warning in stub code.
+	(meltgc_new_longsbucket, meltgc_longsbucket_replace): Improve.
+	(meltgc_longsbucket_put, meltgc_longsbucket_remove)
+	(meltgc_longsbucket_set_aux): New functions.
+
+2011-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (melt_longsbucket_get, melt_longsbucket_aux)
 	(melt_longsbucket_xnum, melt_longsbucket_count)
 	(melt_longsbucket_size): New inlined functions.
