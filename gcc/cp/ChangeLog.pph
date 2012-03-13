@@ -1,5 +1,45 @@
 2012-03-13   Diego Novillo  <dnovillo@google.com>
 
+	* decl.c (cp_rest_of_decl_compilation): When generating a PPH
+	file, call pph_add_decl_to_symtab and return.
+	* pph-core.c (tag_strings): Remove "PPH_cgraph_node".
+	* pph-in.c (pph_in_merge_ld_base): Merge
+	ldb->not_really_extern with |=.
+	(pph_in_merge_lang_indep_tree_body): Preserve existing
+	DECL_ARGUMENTS for a FUNCTION_DECL only if the decl already
+	has a DECL_SAVED_TREE.
+	(pph_reset_external): Remove.  Update all users.
+	(pph_in_nonnull_tree): Overwrite *FIELD only if it is
+	currently NULL.
+	(pph_in_cgraph_node): Remove.  Update all users.
+	(pph_node_already_emitted): Remove.  Update all users.
+	(pph_fn_already_expanded): New.
+	(pph_in_symtab): Call it.
+	Read all new fields in pph_symtab_entry.
+	Handle PPH_SYMTAB_EXPAND and PPH_SYMTAB_EXPAND_1 actions.
+	* pph-out.c (pph_out_struct_function_for_decl): Remove.
+	(pph_out_symtab_action): Assert that the action is in the set
+	of known action.
+	(pph_out_cgraph_node): Remove.  Update all users.
+	(pph_out_cgraph_node_for_decl): Remove.  Update all users.
+	(pph_add_decl_to_symtab): Capture global state required to
+	re-play symtab actions in the reader.
+	(pph_out_symtab): Write all new fields from pph_symtab_entry.
+	* pph-streamer.h (struct pph_symtab_entry): Add fields AT_EOF,
+	X_PROCESSING_TEMPLATE_DECL and FUNCTION_DEPTH.
+	* pph.h (enum pph_symtab_action): Add value PPH_SYMTAB_EXPAND_1.
+	(enum pph_tag): Remove value PPH_cgraph_node.  Update all
+	users.
+	(pph_writer_enabled_p): Move to c-family/c-opts.c.
+	(pph_enabled_p): Likewise.
+	* cp/semantics.c (expand_or_defer_fn_1): If we are generating
+	a PPH file, add it to the symbol table and return.
+	(expand_or_defer_fn): Likewise.
+	* toplev.c (compile_file): If -fpph-gen is used, do not
+	generate code.
+
+2012-03-13   Diego Novillo  <dnovillo@google.com>
+
 	* decl.c (record_builtin_type): Call pph_register_builtin_type.
 	* pph-core.c (pph_cache_add_full_tree_r): New.
 	(pph_cache_add_full_tree): New.

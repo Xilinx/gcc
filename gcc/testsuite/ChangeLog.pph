@@ -1,3 +1,15 @@
+2012-03-13   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x2incomplete4.cc: Mark fixed.
+	* g++.dg/pph/x4incomplete4123.cc: Likewise.
+	* g++.dg/pph/x4incomplete4321.cc: Likewise.
+	* g++.dg/pph/x4keyed.cc: Likewise.
+	* g++.dg/pph/x4keyex.cc: Likewise.
+	* g++.dg/pph/x4keyno.cc: Likewise.
+	* g++.dg/pph/x6dynarray5.h: Update expected failure patterns.
+	* g++.dg/pph/x7dynarray6.cc: Likewise.
+	* g++.dg/pph/x7rtti.cc: Likewise.
+
 2012-03-09   Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/a0neststruct.cci: New.

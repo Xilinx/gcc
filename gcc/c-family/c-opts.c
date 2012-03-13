@@ -132,6 +132,24 @@ static void c_finish_options (void);
 static strstrmap_t *include_pph_mapping;
 
 
+/* Return true if we are generating a PPH image.  */
+
+bool
+pph_writer_enabled_p (void)
+{
+  return flag_pph_gen;
+}
+
+
+/* Return true if PPH has been enabled.  */
+
+bool
+pph_enabled_p (void)
+{
+  return pph_writer_enabled_p () || pph_reader_enabled_p ();
+}
+
+
 /* Return true if we have any map from INCLUDE to PPH file.  */
 
 bool

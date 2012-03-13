@@ -5961,11 +5961,14 @@ value_dependent_init_p (tree init)
 void
 cp_rest_of_decl_compilation (tree decl, int top_level, int at_end)
 {
-  rest_of_decl_compilation (decl, top_level, at_end);
-
   /* If we are generating a PPH image, add DECL to its symbol table.  */
   if (pph_writer_enabled_p ())
-    pph_add_decl_to_symtab (decl, PPH_SYMTAB_DECLARE, top_level, at_end);
+    {
+      pph_add_decl_to_symtab (decl, PPH_SYMTAB_DECLARE, top_level, at_end);
+      return;
+    }
+
+  rest_of_decl_compilation (decl, top_level, at_end);
 }
 
 

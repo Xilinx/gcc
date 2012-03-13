@@ -3720,7 +3720,10 @@ expand_or_defer_fn_1 (tree fn)
 {
   /* If we are generating a PPH image, add FN to its symbol table.  */
   if (pph_writer_enabled_p ())
-    pph_add_decl_to_symtab (fn, PPH_SYMTAB_EXPAND, false, at_eof);
+    {
+      pph_add_decl_to_symtab (fn, PPH_SYMTAB_EXPAND_1, false, at_eof);
+      return false;
+    }
 
   /* When the parser calls us after finishing the body of a template
      function, we don't really want to expand the body.  */
@@ -3811,6 +3814,13 @@ expand_or_defer_fn_1 (tree fn)
 void
 expand_or_defer_fn (tree fn)
 {
+  /* If we are generating a PPH image, add FN to its symbol table.  */
+  if (pph_writer_enabled_p ())
+    {
+      pph_add_decl_to_symtab (fn, PPH_SYMTAB_EXPAND, false, at_eof);
+      return;
+    }
+
   if (expand_or_defer_fn_1 (fn))
     {
       function_depth++;

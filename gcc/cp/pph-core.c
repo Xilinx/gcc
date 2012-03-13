@@ -338,7 +338,6 @@ static const char *tag_strings[] =
   "PPH_any_tree",
   "PPH_binding_entry",
   "PPH_binding_table",
-  "PPH_cgraph_node",
   "PPH_cp_binding_level",
   "PPH_cp_class_binding",
   "PPH_cp_label_binding",

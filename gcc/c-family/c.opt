@@ -990,7 +990,7 @@ C++ Var(flag_pph_dump_tree)
 -fpph-dump-tree	Dump global namespace tree around PPH reads/writes.
 
 fpph-gen
-C++
+C++ Var(flag_pph_gen)
 -fpph-gen	Generate a PPH image from the input file
 
 fpph-hdr=

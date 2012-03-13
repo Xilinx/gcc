@@ -39,7 +39,10 @@ enum pph_symtab_action {
   PPH_SYMTAB_DECLARE = 0x23,
 
   /* Expand this function with expand_or_defer_fn.  */
-  PPH_SYMTAB_EXPAND
+  PPH_SYMTAB_EXPAND,
+
+  /* Expand this function with expand_or_defer_fn_1.  */
+  PPH_SYMTAB_EXPAND_1
 };
 
 /* Record markers.  */
@@ -113,7 +116,6 @@ enum pph_tag {
   /* Maintain the tags below in alphabetical order.  */
   PPH_binding_entry,
   PPH_binding_table,
-  PPH_cgraph_node,
   PPH_cp_binding_level,
   PPH_cp_class_binding,
   PPH_cp_label_binding,
@@ -197,23 +199,5 @@ extern void pph_in_canonical_template_parms (pph_stream *);
 
 /* FIXME pph: These functions should be moved to tree.c on merge.  */
 extern VEC(tree,heap) *chain2vec (tree chain);  /* In pph-out.c.  */
-
-
-/* Inline functions.  */
-
-/* Return true if we are generating a PPH image.  */
-static inline bool
-pph_writer_enabled_p (void)
-{
-  return pph_out_file != NULL;
-}
-
-/* Return true if PPH has been enabled.  */
-static inline bool
-pph_enabled_p (void)
-{
-  return pph_writer_enabled_p () || pph_reader_enabled_p ();
-}
-
 
 #endif  /* GCC_CP_PPH_H  */

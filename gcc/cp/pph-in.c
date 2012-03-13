@@ -1483,7 +1483,7 @@ pph_in_merge_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
   ldb->selector = bp_unpack_value (&bp, 16);
   ldb->language = (enum languages) bp_unpack_value (&bp, 4);
   ldb->use_template = bp_unpack_value (&bp, 2);
-  ldb->not_really_extern = bp_unpack_value (&bp, 1);
+  ldb->not_really_extern |= bp_unpack_value (&bp, 1);
   ldb->initialized_in_class = bp_unpack_value (&bp, 1);
   ldb->repo_available_p = bp_unpack_value (&bp, 1);
   ldb->threadprivate_or_deleted_p = bp_unpack_value (&bp, 1);
@@ -1647,7 +1647,13 @@ pph_in_lang_indep_tree_body (pph_stream *stream, tree expr)
 }
 
 
-/* Stream in the language-independent parts of EXPR's body.  */
+/* Merge in from STREAM the language-independent parts of EXPR's body.
+   This merging operates in three phases: (1) fields that need to be
+   preserved are saved, (2) the new body for EXPR is read-in, (3)
+   preserved fields are restored back into EXPR.
+
+   This three stage merging is needed because the generic tree reader
+   is not merge-aware.  */
 
 static void
 pph_in_merge_lang_indep_tree_body (pph_stream *stream, tree expr)
@@ -1657,7 +1663,10 @@ pph_in_merge_lang_indep_tree_body (pph_stream *stream, tree expr)
   tree decl_comdat_group = NULL;
   bool decl_declared_inline = false;
   tree decl_result = NULL;
+  tree decl_arguments = NULL;
 
+  /* Preserve some fields which should not be overwritten by the DECL
+     that we are merging in.  */
   if (CODE_CONTAINS_STRUCT (code, TS_DECL_WITH_VIS))
     {
       decl_comdat = DECL_COMDAT (expr);
@@ -1670,16 +1679,19 @@ pph_in_merge_lang_indep_tree_body (pph_stream *stream, tree expr)
 	 tree decl_section_name = DECL_SECTION_NAME (expr);
       */
     }
+
   if (CODE_CONTAINS_STRUCT (code, TS_FUNCTION_DECL))
     {
       decl_declared_inline = DECL_DECLARED_INLINE_P (expr);
-    }
-  if (code == FUNCTION_DECL)
-    {
-      decl_result = DECL_RESULT (expr);
-      /* FIXME pph: These too?
-	 decl_arguments = DECL_ARGUMENTS (expr);
-      */
+
+      /* DECL_RESULT and DECL_ARGUMENTS are used inside the body
+	 of a function.  Preserve them only if EXPR already has a
+	 body.  */
+      if (DECL_SAVED_TREE (expr))
+	{
+	  decl_result = DECL_RESULT (expr);
+	  decl_arguments = DECL_ARGUMENTS (expr);
+	}
     }
 
   /* FIXME pph: Also see the functions below for more potential fields.
@@ -1689,8 +1701,11 @@ pph_in_merge_lang_indep_tree_body (pph_stream *stream, tree expr)
 	lto_input_ts_decl_non_common_tree_pointers
   */
 
+  /* Read the body of the new decl (this overwrites all the fields of
+     EXPR).  */
   pph_in_lang_indep_tree_body (stream, expr);
 
+  /* Restore values that we do not want overwritten.  */
   if (CODE_CONTAINS_STRUCT (code, TS_DECL_WITH_VIS))
     {
       decl_comdat ? DECL_COMDAT (expr) = true : 0;
@@ -1703,16 +1718,19 @@ pph_in_merge_lang_indep_tree_body (pph_stream *stream, tree expr)
 	 decl_section_name ? DECL_SECTION_NAME (expr) = decl_section_name : 0;
       */
     }
+
   if (CODE_CONTAINS_STRUCT (code, TS_FUNCTION_DECL))
     {
       decl_declared_inline ? DECL_DECLARED_INLINE_P (expr) = true : 0;
-    }
-  if (code == FUNCTION_DECL)
-    {
-      decl_result ? DECL_RESULT (expr) = decl_result : 0;
-      /* FIXME pph: These too?
-	 decl_arguments ? DECL_ARGUMENTS (expr) = decl_arguments : 0;
-      */
+
+      /* DECL_RESULT and DECL_ARGUMENTS are used inside the body
+	 of a function.  Preserve them only if EXPR already has a
+	 body.  */
+      if (DECL_SAVED_TREE (expr))
+	{
+	  decl_result ? DECL_RESULT (expr) = decl_result : 0;
+	  decl_arguments ? DECL_ARGUMENTS (expr) = decl_arguments : 0;
+	}
     }
 }
 
@@ -1997,26 +2015,6 @@ pph_in_tcc_type (pph_stream *stream, tree type)
 }
 
 
-/* Reset the external state for a function DECL.  */
-
-static void
-pph_reset_external (tree decl)
-{
-  /* When the declaration was compiled originally, the parser marks
-     it DECL_EXTERNAL, to avoid emitting it more than once.  It also
-     remembers the true external state in DECL_NOT_REALLY_EXTERN.  So,
-     if both bits are set, the declaration should not be considered
-     external.  */
-  gcc_assert (DECL_LANG_SPECIFIC (decl));
-  if (DECL_NOT_REALLY_EXTERN (decl)
-      && DECL_EXTERNAL (decl))
-    {
-      DECL_EXTERNAL (decl) = 0;
-      DECL_NOT_REALLY_EXTERN (decl) = 0;
-    }
-}
-
-
 /* Read from STREAM the body of tcc_declaration tree DECL.  */
 
 static void
@@ -2042,7 +2040,6 @@ pph_in_tcc_declaration (pph_stream *stream, tree decl)
     case FUNCTION_DECL:
       TREE_CHAIN (decl) = pph_in_tree (stream);
       DECL_SAVED_TREE (decl) = pph_in_tree (stream);
-      pph_reset_external (decl);
       break;
 
     case TYPE_DECL:
@@ -2067,7 +2064,7 @@ pph_in_nonnull_tree (tree *field, pph_stream *stream)
 {
   tree candidate;
   candidate = pph_in_tree (stream);
-  if (candidate)
+  if (candidate && *field == NULL)
     *field = candidate;
 }
 
@@ -2081,7 +2078,6 @@ pph_in_merge_tcc_declaration (pph_stream *stream, tree decl)
   pph_in_lang_decl (stream, decl);
 
   /* FIXME pph: Some of the following may not be necessary.  */
-
   pph_in_nonnull_tree (&DECL_INITIAL (decl), stream);
   pph_in_nonnull_tree (&DECL_ABSTRACT_ORIGIN (decl), stream);
 
@@ -2102,7 +2098,6 @@ pph_in_merge_tcc_declaration (pph_stream *stream, tree decl)
     case FUNCTION_DECL:
       /* ignore TREE_CHAIN (decl) = */ pph_in_tree (stream);
       pph_in_nonnull_tree (&DECL_SAVED_TREE (decl), stream);
-      pph_reset_external (decl);
       break;
 
     case TYPE_DECL:
@@ -2315,10 +2310,8 @@ pph_in_merge_tree_body (pph_stream *stream, tree expr)
   switch (TREE_CODE_CLASS (TREE_CODE (expr)))
     {
       case tcc_declaration:
-	{
-	  pph_in_merge_tcc_declaration (stream, expr);
-	}
-       break;
+	pph_in_merge_tcc_declaration (stream, expr);
+	break;
 
       case tcc_type:
 	pph_in_lang_indep_tree_body (stream, expr);
@@ -2841,90 +2834,6 @@ pph_in_symtab_action (pph_stream *stream)
 }
 
 
-/* Read and return a callgraph node from STREAM.  If this is the first
-   time we read this node, add it to the callgraph.  */
-
-static struct cgraph_node *
-pph_in_cgraph_node (pph_stream *stream)
-{
-  enum pph_record_marker marker;
-  unsigned image_ix, ix;
-  struct cgraph_node *node;
-  tree fndecl;
-  struct bitpack_d bp;
-
-  marker = pph_in_start_record (stream, &image_ix, &ix, PPH_cgraph_node);
-  if (marker == PPH_RECORD_END)
-    return NULL;
-  else if (pph_is_reference_marker (marker))
-    return (struct cgraph_node *) pph_cache_find (stream, marker, image_ix,
-						  ix, PPH_cgraph_node);
-
-  fndecl = pph_in_tree (stream);
-  ALLOC_AND_REGISTER (&stream->cache, ix, PPH_cgraph_node, node,
-                      cgraph_get_create_node (fndecl));
-
-  node->origin = pph_in_cgraph_node (stream);
-  node->nested = pph_in_cgraph_node (stream);
-  node->next_nested = pph_in_cgraph_node (stream);
-  node->next_needed = pph_in_cgraph_node (stream);
-  node->next_sibling_clone = pph_in_cgraph_node (stream);
-  node->prev_sibling_clone = pph_in_cgraph_node (stream);
-  node->clones = pph_in_cgraph_node (stream);
-  node->clone_of = pph_in_cgraph_node (stream);
-  node->same_comdat_group = pph_in_cgraph_node (stream);
-  gcc_assert (node->call_site_hash == NULL);
-  node->former_clone_of = pph_in_tree (stream);
-  gcc_assert (node->aux == NULL);
-  gcc_assert (VEC_empty (ipa_opt_pass, node->ipa_transforms_to_apply));
-
-  gcc_assert (VEC_empty (ipa_ref_t, node->ref_list.references));
-  gcc_assert (VEC_empty (ipa_ref_ptr, node->ref_list.refering));
-
-  gcc_assert (node->local.lto_file_data == NULL);
-  bp = pph_in_bitpack (stream);
-  node->local.local = bp_unpack_value (&bp, 1);
-  node->local.externally_visible = bp_unpack_value (&bp, 1);
-  node->local.finalized = bp_unpack_value (&bp, 1);
-  node->local.can_change_signature = bp_unpack_value (&bp, 1);
-  node->local.redefined_extern_inline = bp_unpack_value (&bp, 1);
-
-  node->global.inlined_to = pph_in_cgraph_node (stream);
-
-  node->rtl.preferred_incoming_stack_boundary = pph_in_uint (stream);
-
-  gcc_assert (VEC_empty (ipa_replace_map_p, node->clone.tree_map));
-  node->thunk.fixed_offset = pph_in_uhwi (stream);
-  node->thunk.virtual_value = pph_in_uhwi (stream);
-  node->thunk.alias = pph_in_tree (stream);
-  bp = pph_in_bitpack (stream);
-  node->thunk.this_adjusting = bp_unpack_value (&bp, 1);
-  node->thunk.virtual_offset_p = bp_unpack_value (&bp, 1);
-  node->thunk.thunk_p = bp_unpack_value (&bp, 1);
-
-  node->count = pph_in_uhwi (stream);
-  node->count_materialization_scale = pph_in_uint (stream);
-
-  bp = pph_in_bitpack (stream);
-  node->needed = bp_unpack_value (&bp, 1);
-  node->address_taken = bp_unpack_value (&bp, 1);
-  node->abstract_and_needed = bp_unpack_value (&bp, 1);
-  node->reachable = bp_unpack_value (&bp, 1);
-  node->reachable_from_other_partition = bp_unpack_value (&bp, 1);
-  node->lowered = bp_unpack_value (&bp, 1);
-  node->analyzed = bp_unpack_value (&bp, 1);
-  node->in_other_partition = bp_unpack_value (&bp, 1);
-  node->process = bp_unpack_value (&bp, 1);
-  node->alias = bp_unpack_value (&bp, 1);
-  node->same_body_alias = bp_unpack_value (&bp, 1);
-  node->frequency = (enum node_frequency) bp_unpack_value (&bp, 2);
-  node->only_called_at_startup = bp_unpack_value (&bp, 1);
-  node->only_called_at_exit = bp_unpack_value (&bp, 1);
-
-  return node;
-}
-
-
 /* Have we already emitted this DECL?  */
 
 static bool
@@ -2938,16 +2847,16 @@ pph_decl_already_emitted (tree decl)
 }
 
 
-/* Have we already emitted this cgraph NODE?  */
+/* Have we already expanded this FN?  */
 
 static bool
-pph_node_already_emitted (struct cgraph_node *node)
+pph_fn_already_expanded (tree fn)
 {
-  static struct pointer_set_t *emitted_nodes = NULL;
-  gcc_assert (node != NULL);
-  if (!emitted_nodes)
-    emitted_nodes = pointer_set_create ();
-  return pointer_set_insert (emitted_nodes, node) != 0;
+  static struct pointer_set_t *expanded_fns = NULL;
+  gcc_assert (fn != NULL);
+  if (!expanded_fns)
+    expanded_fns = pointer_set_create ();
+  return pointer_set_insert (expanded_fns, fn) != 0;
 }
 
 
@@ -2969,44 +2878,74 @@ pph_in_symtab (pph_stream *stream)
   num = pph_in_uint (stream);
   for (i = 0; i < num; i++)
     {
-      enum pph_symtab_action action;
-      tree decl;
-      bool top_level, at_end;
+      pph_symtab_entry entry;
+      struct bitpack_d bp;
 
-      action = pph_in_symtab_action (stream);
-      decl = pph_in_tree (stream);
-      if (action == PPH_SYMTAB_DECLARE)
+      entry.action = pph_in_symtab_action (stream);
+      entry.decl = pph_in_tree (stream);
+      bp = pph_in_bitpack (stream);
+      entry.top_level = bp_unpack_value (&bp, 1);
+      entry.at_end = bp_unpack_value (&bp, 1);
+      entry.at_eof = bp_unpack_value (&bp, 1);
+      entry.x_processing_template_decl = pph_in_int (stream);
+      entry.function_depth = pph_in_int (stream);
+
+      if (entry.action == PPH_SYMTAB_DECLARE)
 	{
-	  struct bitpack_d bp;
-	  bp = pph_in_bitpack (stream);
-	  top_level = bp_unpack_value (&bp, 1);
-	  at_end = bp_unpack_value (&bp, 1);
-          if (pph_decl_already_emitted (decl))
+          if (pph_decl_already_emitted (entry.decl))
             continue;
-
-	  cp_rest_of_decl_compilation (decl, top_level, at_end);
+	  cp_rest_of_decl_compilation (entry.decl, entry.top_level,
+				       entry.at_end);
 	}
-      else if (action == PPH_SYMTAB_EXPAND)
+      else if (entry.action == PPH_SYMTAB_EXPAND
+	       || entry.action == PPH_SYMTAB_EXPAND_1)
 	{
-	  struct cgraph_node *node;
+	  bool prev_processing_template_decl, prev_at_eof;
+	  int prev_function_depth;
+	  bool need_cgraph_node_p;
+	  tree prev_current_function_decl;
 
-	  pph_in_struct_function (stream, decl);
-	  node = pph_in_cgraph_node (stream);
-	  if (node && node->local.finalized)
-	    {
-	      if (pph_node_already_emitted (node))
-		continue;
+	  pph_in_struct_function (stream, entry.decl);
+	  need_cgraph_node_p = pph_in_bool (stream);
+	  if (pph_fn_already_expanded (entry.decl))
+	    continue;
 
-	      /* Since the writer had finalized this cgraph node,
-		 we have to re-play its actions.  To do that, we need
-		 to clear the finalized and reachable bits in the
-		 node, otherwise cgraph_finalize_function will toss
-		 out this node.  */
-	      DECL_EXTERNAL (node->decl) = false;
-	      node->local.finalized = false;
-	      node->reachable = false;
-	      cgraph_finalize_function (node->decl, true);
-	    }
+	  /* ENTRY.DECL was reset to being external by the original
+	     expansion code, so we need to restore its value before
+	     expanding again.  */
+	  DECL_EXTERNAL (entry.decl) = false;
+
+	  /* Re-establish needed global state before calling the
+	     expanders.  FIXME pph, get rid of this by fixing the
+	     expanders.  */
+	  prev_processing_template_decl = processing_template_decl;
+	  prev_at_eof = at_eof;
+	  prev_function_depth = function_depth;
+
+	  processing_template_decl = entry.x_processing_template_decl;
+	  at_eof = entry.at_eof;
+	  function_depth = entry.function_depth;
+
+	  /* Do the expansion.  */
+	  prev_current_function_decl = current_function_decl;
+	  current_function_decl = entry.decl;
+	  push_cfun (DECL_STRUCT_FUNCTION (entry.decl));
+
+	  if (entry.action == PPH_SYMTAB_EXPAND)
+	    expand_or_defer_fn (entry.decl);
+	  else
+	    expand_or_defer_fn_1 (entry.decl);
+
+	  if (need_cgraph_node_p)
+	    cgraph_get_create_node (entry.decl);
+
+	  current_function_decl = prev_current_function_decl;
+	  pop_cfun ();
+
+	  /* Restore global state.  */
+	  processing_template_decl = prev_processing_template_decl;
+	  at_eof = prev_at_eof;
+	  function_depth = prev_function_depth;
 	}
       else
 	gcc_unreachable ();

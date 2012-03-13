@@ -141,6 +141,13 @@ typedef struct pph_symtab_entry
   /* Values to be passed to rest_of_decl_compilation.  */
   unsigned int top_level : 1;
   unsigned int at_end : 1;
+
+  /* Values captured from global state used by expand_or_defer_fn and
+     expand_or_defer_fn_1.  FIXME pph, all this global state should
+     disappear.  */
+  unsigned int at_eof : 1;
+  int x_processing_template_decl;
+  int function_depth;
 } pph_symtab_entry;
 
 DEF_VEC_O(pph_symtab_entry);

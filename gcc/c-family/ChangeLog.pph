@@ -1,3 +1,11 @@
+2012-03-13   Diego Novillo  <dnovillo@google.com>
+
+	* c-common.h (pph_writer_enabled_p): Declare.
+	(pph_enabled_p): Declare.
+	* c-opts.c (pph_writer_enabled_p): New.
+	(pph_enabled_p): New.
+	* c.opt (fpph-gen): Add Var(flag_pph_gen).
+
 2012-03-09   Lawrence Crowl  <crowl@google.com>
 
 	* c.opt (-fprimary-system-header-okay): New.

@@ -590,6 +590,16 @@ extern const char *pph_out_file;
 extern bool
 pph_reader_enabled_p (void);
 
+/* Return true if we are generating a PPH file.  */
+
+extern bool
+pph_writer_enabled_p (void);
+
+/* Return true if we are either generating or reading a PPH file.  */
+
+extern bool
+pph_enabled_p (void);
+
 /* Disable the PPH reader.  */
 
 extern void

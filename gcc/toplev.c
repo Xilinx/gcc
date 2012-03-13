@@ -562,7 +562,7 @@ compile_file (void)
   /* Compilation is now finished except for writing
      what's left of the symbol table output.  */
 
-  if (flag_syntax_only || flag_wpa)
+  if (flag_syntax_only || flag_wpa || flag_pph_gen)
     return;
 
   timevar_start (TV_PHASE_GENERATE);

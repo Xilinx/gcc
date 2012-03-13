@@ -1477,15 +1477,6 @@ pph_out_struct_function (pph_stream *stream, struct function *fn)
 }
 
 
-/* Write the struct function instance for DECL to STREAM.  */
-
-static void
-pph_out_struct_function_for_decl (pph_stream *stream, tree decl)
-{
-  pph_out_struct_function (stream, DECL_STRUCT_FUNCTION (decl));
-}
-
-
 /* Write all the fields in lang_decl_base instance LDB to OB.  */
 
 static void
@@ -2437,96 +2428,12 @@ pph_out_tree (pph_stream *stream, tree expr)
 static inline void
 pph_out_symtab_action (pph_stream *stream, enum pph_symtab_action action)
 {
-  gcc_assert (action == (enum pph_symtab_action)(unsigned char) action);
+  gcc_assert ((action == PPH_SYMTAB_DECLARE
+	       || action == PPH_SYMTAB_EXPAND
+	       || action == PPH_SYMTAB_EXPAND_1)
+              && (enum pph_symtab_action)(unsigned char) action);
   pph_out_uchar (stream, action);
 }
-
-
-/* Emit callgraph NODE to STREAM.  */
-
-static void
-pph_out_cgraph_node (pph_stream *stream, struct cgraph_node *node)
-{
-  struct bitpack_d bp;
-  enum pph_record_marker marker;
-
-  marker = pph_out_start_record (stream, node, PPH_cgraph_node);
-  if (pph_is_reference_or_end_marker (marker))
-    return;
-
-  /* Remove if we start emitting merge keys for this structure.  */
-  gcc_assert (marker == PPH_RECORD_START);
-
-  pph_out_tree (stream, node->decl);
-  pph_out_cgraph_node (stream, node->origin);
-  pph_out_cgraph_node (stream, node->nested);
-  pph_out_cgraph_node (stream, node->next_nested);
-  pph_out_cgraph_node (stream, node->next_needed);
-  pph_out_cgraph_node (stream, node->next_sibling_clone);
-  pph_out_cgraph_node (stream, node->prev_sibling_clone);
-  pph_out_cgraph_node (stream, node->clones);
-  pph_out_cgraph_node (stream, node->clone_of);
-  pph_out_cgraph_node (stream, node->same_comdat_group);
-  gcc_assert (node->call_site_hash == NULL);
-  pph_out_tree (stream, node->former_clone_of);
-  gcc_assert (node->aux == NULL);
-  gcc_assert (VEC_empty (ipa_opt_pass, node->ipa_transforms_to_apply));
-
-  gcc_assert (VEC_empty (ipa_ref_t, node->ref_list.references));
-  gcc_assert (VEC_empty (ipa_ref_ptr, node->ref_list.refering));
-
-  gcc_assert (node->local.lto_file_data == NULL);
-  bp = bitpack_create (stream->encoder.w.ob->main_stream);
-  bp_pack_value (&bp, node->local.local, 1);
-  bp_pack_value (&bp, node->local.externally_visible, 1);
-  bp_pack_value (&bp, node->local.finalized, 1);
-  bp_pack_value (&bp, node->local.can_change_signature, 1);
-  bp_pack_value (&bp, node->local.redefined_extern_inline, 1);
-  pph_out_bitpack (stream, &bp);
-
-  pph_out_cgraph_node (stream, node->global.inlined_to);
-
-  pph_out_uint (stream, node->rtl.preferred_incoming_stack_boundary);
-
-  gcc_assert (VEC_empty (ipa_replace_map_p, node->clone.tree_map));
-  pph_out_uhwi (stream, node->thunk.fixed_offset);
-  pph_out_uhwi (stream, node->thunk.virtual_value);
-  pph_out_tree (stream, node->thunk.alias);
-  bp = bitpack_create (stream->encoder.w.ob->main_stream);
-  bp_pack_value (&bp, node->thunk.this_adjusting, 1);
-  bp_pack_value (&bp, node->thunk.virtual_offset_p, 1);
-  bp_pack_value (&bp, node->thunk.thunk_p, 1);
-  pph_out_bitpack (stream, &bp);
-
-  pph_out_uhwi (stream, node->count);
-  pph_out_uint (stream, node->count_materialization_scale);
-
-  bp = bitpack_create (stream->encoder.w.ob->main_stream);
-  bp_pack_value (&bp, node->needed, 1);
-  bp_pack_value (&bp, node->address_taken, 1);
-  bp_pack_value (&bp, node->abstract_and_needed, 1);
-  bp_pack_value (&bp, node->reachable, 1);
-  bp_pack_value (&bp, node->reachable_from_other_partition, 1);
-  bp_pack_value (&bp, node->lowered, 1);
-  bp_pack_value (&bp, node->analyzed, 1);
-  bp_pack_value (&bp, node->in_other_partition, 1);
-  bp_pack_value (&bp, node->process, 1);
-  bp_pack_value (&bp, node->alias, 1);
-  bp_pack_value (&bp, node->same_body_alias, 1);
-  bp_pack_value (&bp, node->frequency, 2);
-  bp_pack_value (&bp, node->only_called_at_startup, 1);
-  bp_pack_value (&bp, node->only_called_at_exit, 1);
-  pph_out_bitpack (stream, &bp);
-}
-
-/* Emit callgraph for DECL to STREAM.  */
-
-static void
-pph_out_cgraph_node_for_decl (pph_stream *stream, tree decl)
-{
-  pph_out_cgraph_node (stream, cgraph_get_node (decl));
-}
-
 
 /* Add DECL to the symbol table for pph_out_stream.  ACTION determines
    how DECL should be presented to the middle-end when reading this
@@ -2547,6 +2454,17 @@ pph_add_decl_to_symtab (tree decl, enum pph_symtab_action action,
   entry.decl = decl;
   entry.top_level = top_level;
   entry.at_end = at_end;
+
+  /* Capture some global state that is needed when re-playing this
+     entry.  FIXME pph, this should not be needed.  There is even
+     inconsistencies in the values for AT_END, the values passed on by
+     various callers is not necessarily the same as the value for
+     ENTRY.AT_EOF below (sigh).  */
+  entry.x_processing_template_decl = processing_template_decl;
+  entry.function_depth = function_depth;
+  gcc_assert (at_end == at_eof && (at_eof == 0 || at_eof == 1));
+  entry.at_eof = at_eof;
+
   VEC_safe_push (pph_symtab_entry, heap, pph_out_stream->symtab.v, &entry);
 }
 
@@ -2568,23 +2486,23 @@ pph_out_symtab (pph_stream *stream)
   pph_out_uint (stream, VEC_length (pph_symtab_entry, stream->symtab.v));
   FOR_EACH_VEC_ELT (pph_symtab_entry, stream->symtab.v, i, entry)
     {
+      struct bitpack_d bp;
+
       pph_out_symtab_action (stream, entry->action);
       pph_out_tree (stream, entry->decl);
-      if (entry->action == PPH_SYMTAB_DECLARE)
+      bp = bitpack_create (stream->encoder.w.ob->main_stream);
+      bp_pack_value (&bp, entry->top_level, 1);
+      bp_pack_value (&bp, entry->at_end, 1);
+      bp_pack_value (&bp, entry->at_eof, 1);
+      pph_out_bitpack (stream, &bp);
+      pph_out_int (stream, entry->x_processing_template_decl);
+      pph_out_int (stream, entry->function_depth);
+      if (entry->action == PPH_SYMTAB_EXPAND
+	  || entry->action == PPH_SYMTAB_EXPAND_1)
 	{
-	  struct bitpack_d bp;
-	  bp = bitpack_create (stream->encoder.w.ob->main_stream);
-	  bp_pack_value (&bp, entry->top_level, 1);
-	  bp_pack_value (&bp, entry->at_end, 1);
-	  pph_out_bitpack (stream, &bp);
+	  pph_out_struct_function (stream, DECL_STRUCT_FUNCTION (entry->decl));
+	  pph_out_bool (stream, cgraph_get_node (entry->decl) != NULL);
 	}
-      else if (entry->action == PPH_SYMTAB_EXPAND)
-	{
-	  pph_out_struct_function_for_decl (stream, entry->decl);
-	  pph_out_cgraph_node_for_decl (stream, entry->decl);
-	}
-      else
-	gcc_unreachable ();
     }
 }
 
