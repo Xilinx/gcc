@@ -1982,20 +1982,6 @@ simplify_mult_expr (location_t loc, enum tree_code code, tree type,
       /* A * -1 -> -A */
       if (integer_all_onesp (rhs2))
 	return gimple_combine_build1 (loc, NEGATE_EXPR, type, rhs1);
-      /*  (A + B) * C -> A*C + B*C if either A*C or B*C simplifies. */
-      if (def1_code == PLUS_EXPR)
-	{
-	  tree arg1 = gimple_combine_binary (loc, code, type, def1_arg1, rhs2);
-	  tree arg2 = gimple_combine_binary (loc, code, type, def1_arg2, rhs2);
-	  if (arg1 || arg2)
-	    {
-	      if (arg1 == NULL)
-		arg1 = build2_loc (loc, code, type, def1_arg1, rhs2);
-	      if (arg2 == NULL)
-		arg2 = build2_loc (loc, code, type, def1_arg2, rhs2);
-	      return gimple_combine_build2 (loc, PLUS_EXPR, type, arg1, arg2);
-	    }
-	}
 
       /* (A + A) * C -> A * 2 * C */
       if (def1_code == PLUS_EXPR && TREE_CODE (rhs2) == INTEGER_CST

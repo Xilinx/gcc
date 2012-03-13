@@ -1,5 +1,11 @@
 2012-03-12  Andrew Pinski  <apinski@cavium.com>
 
+	* gimple-ssa-combine.c (simplify_mult_expr): Remove the
+	simplification of "(A + B) * C", that should be handled
+	by VN.
+
+2012-03-12  Andrew Pinski  <apinski@cavium.com>
+
 	* gimple-ssa-combine.c (nonzerobits): Add a FIXME for shifts
 	and rotates.
 	(simplify_not_neg_abs_expr): Double check that ABS_EXPR<ABS_EXPR<x>> is
