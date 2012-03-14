@@ -1,3 +1,91 @@
+2012-03-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/52577
+	* c-parser.c (c_parser_postfix_expression)
+	<case RID_BUILTIN_SHUFFLE>: Call mark_exp_read on argument values.
+
+	* config/i386/smmintrin.h: Avoid /* within a comment.
+	* config/i386/nmmintrin.h: Likewise.
+
+2012-03-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (xbegin): Remove constraint from expander.
+
+2012-03-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/predicates.md (constant_call_address_operand): Declare
+	as special predicate.  Update all uses.
+	* config/i386/i386.md: Remove mode from constant_call_address_operand
+	predicates.
+	* config/i386/i386.c (ix86_output_call_insn): Call
+	constant_call_address_operand with VOIDmode.
+
+2012-03-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_decompose_address): Handle subregs of
+	AND zero extended address correctly.
+
+2012-03-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/predicates.md (tls_symbolic_operand): Declare as
+	special predicate.
+	(tls_modbase_operand): Ditto.
+	* config/i386/i386.md: Remove mode from tls_symbolic_operand and
+	tls_modbase_operand predicates.
+
+2012-03-13  Martin Jambor  <mjambor@suse.cz>
+
+	* expr.c (expand_assignment): Handle misaligned scalar writes to
+	memory through top-level MEM_REFs by calling store_bit_field.
+
+2012-03-13  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52134
+	* fold-const.c (fold_binary_loc): Fold (X * Y) & -(1 << CST) to X * Y
+	if Y is a constant multiple of 1 << CST.
+
+2012-03-13  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/52488
+	* config/avr/avr.c (avr_prologue_setup_frame): Cut down stack
+	offset (size) to a value the insns can deal with.
+	(expand_epilogue): Ditto.
+
+2012-03-13  Matthew Gretton-Dann  <matthew.gretton-dann@arm.com>
+
+	* config/arm/neon.ml (ops): Fixup expected instructions for
+	unsigned vector compares.
+
+2012-03-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_decompose_address): Prevent %fs:(%reg)
+	addresses only when %reg is not in word mode.
+
+2012-03-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/microblaze/microblaze.md: Fix typo.
+	* tree-if-conv.c: Likewise.
+	* tree-vect-patterns.c: Likewise.
+
+2012-03-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.gcc (extra_passes): Remove.
+	* configure.ac (extra_passes): Don't substitute.
+	* configure: Regenerate.
+	* Makefile.in (EXTRA_PASSES): Remove.
+	(GCC_PASSES): Remove $(EXTRA_PASSES).
+	(MOSTLYCLEANFILES): Likewise.
+	(native): Likewise.
+	(install-common): Likewise.
+
+2012-03-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.h (TARGET_TLS_INDIRECT_SEG_REFS): New.
+	* config/i386/i386.c (ix86_decompose_address): Use
+	TARGET_TLS_INDIRECT_SEG_REFS to prevent %fs:(%reg) addresses.
+	(legitimize_tls_address): Use TARGET_TLS_INDIRECT_SEG_REFS to load
+	thread pointer to a register.
+
 2012-03-12  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.md (*tls_global_dynamic_64_<mode>): Remove :P

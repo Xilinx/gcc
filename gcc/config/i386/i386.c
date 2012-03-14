@@ -11435,10 +11435,14 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 	{
 	  addr = XEXP (addr, 0);
 
-	  /* Strip subreg.  */
+	  /* Adjust SUBREGs.  */
 	  if (GET_CODE (addr) == SUBREG
 	      && GET_MODE (SUBREG_REG (addr)) == SImode)
 	    addr = SUBREG_REG (addr);
+	  else if (GET_MODE (addr) == DImode)
+	    addr = gen_rtx_SUBREG (SImode, addr, 0);
+	  else
+	    return 0;
 	}
     }
 
@@ -11552,11 +11556,6 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
   else
     disp = addr;			/* displacement */
 
-  /* Since address override works only on the (reg32) part in fs:(reg32),
-     we can't use it as memory operand.  */
-  if (Pmode != word_mode && seg == SEG_FS && (base || index))
-    return 0;
-
   if (index)
     {
       if (REG_P (index))
@@ -11567,6 +11566,12 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
       else
 	return 0;
     }
+
+/* Address override works only on the (%reg) part of %fs:(%reg).  */
+  if (seg != SEG_DEFAULT
+      && ((base && GET_MODE (base) != word_mode)
+	  || (index && GET_MODE (index) != word_mode)))
+    return 0;
 
   /* Extract the integral value of scale.  */
   if (scale_rtx)
@@ -12696,7 +12701,9 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 
       if (TARGET_64BIT || TARGET_ANY_GNU_TLS)
 	{
-          base = get_thread_pointer (for_mov || !TARGET_TLS_DIRECT_SEG_REFS);
+          base = get_thread_pointer (for_mov
+				     || !(TARGET_TLS_DIRECT_SEG_REFS
+					  && TARGET_TLS_INDIRECT_SEG_REFS));
 	  off = force_reg (Pmode, off);
 	  return gen_rtx_PLUS (Pmode, base, off);
 	}
@@ -12716,7 +12723,9 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 
       if (TARGET_64BIT || TARGET_ANY_GNU_TLS)
 	{
-	  base = get_thread_pointer (for_mov || !TARGET_TLS_DIRECT_SEG_REFS);
+	  base = get_thread_pointer (for_mov
+				     || !(TARGET_TLS_DIRECT_SEG_REFS
+					  && TARGET_TLS_INDIRECT_SEG_REFS));
 	  return gen_rtx_PLUS (Pmode, base, off);
 	}
       else
@@ -13249,7 +13258,8 @@ ix86_delegitimize_tls_address (rtx orig_x)
   rtx x = orig_x, unspec;
   struct ix86_address addr;
 
-  if (!TARGET_TLS_DIRECT_SEG_REFS)
+  if (!(TARGET_TLS_DIRECT_SEG_REFS
+	&& TARGET_TLS_INDIRECT_SEG_REFS))
     return orig_x;
   if (MEM_P (x))
     x = XEXP (x, 0);
@@ -23111,7 +23121,7 @@ ix86_split_call_vzeroupper (rtx insn, rtx vzeroupper)
 const char *
 ix86_output_call_insn (rtx insn, rtx call_op)
 {
-  bool direct_p = constant_call_address_operand (call_op, Pmode);
+  bool direct_p = constant_call_address_operand (call_op, VOIDmode);
   bool seh_nop_p = false;
   const char *xasm;
 

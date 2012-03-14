@@ -491,16 +491,16 @@
        (match_operand 0 "local_symbolic_operand")))
 
 ;; Test for various thread-local symbols.
-(define_predicate "tls_symbolic_operand"
+(define_special_predicate "tls_symbolic_operand"
   (and (match_code "symbol_ref")
        (match_test "SYMBOL_REF_TLS_MODEL (op)")))
 
-(define_predicate "tls_modbase_operand"
+(define_special_predicate "tls_modbase_operand"
   (and (match_code "symbol_ref")
        (match_test "op == ix86_tls_module_base ()")))
 
 ;; Test for a pc-relative call operand
-(define_predicate "constant_call_address_operand"
+(define_special_predicate "constant_call_address_operand"
   (match_code "symbol_ref")
 {
   if (ix86_cmodel == CM_LARGE || ix86_cmodel == CM_LARGE_PIC)
@@ -573,16 +573,14 @@
 ;; Test for a valid operand for a call instruction.
 ;; Allow constant call address operands in Pmode only.
 (define_special_predicate "call_insn_operand"
-  (ior (match_test "constant_call_address_operand
-		     (op, mode == VOIDmode ? mode : Pmode)")
+  (ior (match_operand 0 "constant_call_address_operand")
        (match_operand 0 "call_register_no_elim_operand")
        (and (not (match_test "TARGET_X32"))
 	    (match_operand 0 "memory_operand"))))
 
 ;; Similarly, but for tail calls, in which we cannot allow memory references.
 (define_special_predicate "sibcall_insn_operand"
-  (ior (match_test "constant_call_address_operand
-		     (op, mode == VOIDmode ? mode : Pmode)")
+  (ior (match_operand 0 "constant_call_address_operand")
        (match_operand 0 "register_no_elim_operand")))
 
 ;; Match exactly zero.
