@@ -1,3 +1,20 @@
+2012-03-08  Sandeep Soni  <soni.sandeepb@gmail.com>
+
+	* parser.c (gl_lex_token): For every CPP_LSHIFT and CPP_RSHIFT tokens,
+	split the token into two discrete CPP_LESS and CPP_GREATER tokens
+	respectively.
+	(gl_split_token): New. The split function for the case above.
+	(gl_token_is_of_type): New. Checks if the tokens type is the expected
+	type.
+	(gp_parse_var_decl): Changing consumption of CPP_LSHIFT and CPP_RSHIFT
+	tokens into CPP_LESS and CPP_GREATER tokens.
+	(gp_parse_record_type): Ditto.
+	(gp_parse_union_type): Ditto.
+	(gp_parse_cond_stmt): Ditto.
+	(gp_parse_goto_stmt): Ditto.
+	(gp_parse_label_stmt): Ditto.
+	(gp_parse_switch_stmt): Ditto.
+
 2012-03-01  Sandeep Soni  <soni.sandeepb@gmail.com>
 
 	* parser.c : Include hashtab.h.

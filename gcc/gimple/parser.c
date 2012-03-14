@@ -494,7 +494,8 @@ gp_parse_expect_false_label (gimple_parser *parser)
 {
   gl_consume_expected_token (parser->lexer, CPP_LESS);
   gl_consume_expected_token (parser->lexer, CPP_NAME);
-  gl_consume_expected_token (parser->lexer, CPP_RSHIFT);
+  gl_consume_expected_token (parser->lexer, CPP_GREATER);
+  gl_consume_expected_token (parser->lexer, CPP_GREATER);
 }
 
 /* Parse a gimple_cond tuple that is read from the reader PARSER. For now we only 
@@ -516,9 +517,11 @@ gp_parse_cond_stmt (gimple_parser *parser)
 static void
 gp_parse_goto_stmt (gimple_parser *parser)
 {
-  gl_consume_expected_token (parser->lexer, CPP_LSHIFT);
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
   gl_consume_expected_token (parser->lexer, CPP_NAME);
-  gl_consume_expected_token (parser->lexer, CPP_RSHIFT);
+  gl_consume_expected_token (parser->lexer, CPP_GREATER);
+  gl_consume_expected_token (parser->lexer, CPP_GREATER);
 }
 
 /* Parse a gimple_label tuple that is read from the reader PARSER. For now we only 
@@ -527,9 +530,11 @@ gp_parse_goto_stmt (gimple_parser *parser)
 static void
 gp_parse_label_stmt (gimple_parser *parser)
 {
-  gl_consume_expected_token (parser->lexer, CPP_LSHIFT);
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
   gl_consume_expected_token (parser->lexer, CPP_NAME);
-  gl_consume_expected_token (parser->lexer, CPP_RSHIFT);  
+  gl_consume_expected_token (parser->lexer, CPP_GREATER);
+  gl_consume_expected_token (parser->lexer, CPP_GREATER);  
 }
 
 /* Parse a gimple_switch tuple that is read from the reader PARSER. For now we only 
@@ -547,25 +552,23 @@ gp_parse_switch_stmt (gimple_parser *parser)
   gl_consume_expected_token (parser->lexer, CPP_COLON);
   gl_consume_expected_token (parser->lexer, CPP_LESS);
   gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_GREATER);
 
   while (!gl_at_eof (parser->lexer))
     {
       next_token = gl_consume_token (parser->lexer);
       
-      if (next_token->type == CPP_GREATER)
+      if (next_token->type == CPP_COMMA)
         {
-          gl_consume_expected_token (parser->lexer, CPP_COMMA);
           gl_consume_expected_token (parser->lexer, CPP_NAME);
           gl_consume_expected_token (parser->lexer, CPP_NUMBER);
           gl_consume_expected_token (parser->lexer, CPP_COLON);
           gl_consume_expected_token (parser->lexer, CPP_LESS);
-          gl_consume_expected_token (parser->lexer, CPP_NAME);  
+          gl_consume_expected_token (parser->lexer, CPP_NAME);
+          gl_consume_expected_token (parser->lexer, CPP_GREATER);
         }
-      else if (next_token->type == CPP_RSHIFT)
-        {
-          next_token = gl_consume_token (parser->lexer);
-          break;
-        }
+      else if (next_token->type == CPP_GREATER)
+        break;
       else
         error_at (next_token->location, 
 	          "Incorrect use of the gimple_switch statement");
@@ -715,14 +718,14 @@ gp_parse_stmt (gimple_parser *parser, const gimple_token *token)
 static void
 gp_parse_expect_field_decl (gimple_parser *parser)
 {
-  gl_consume_expected_token (parser->lexer, CPP_NAME);
   gl_consume_expected_token (parser->lexer, CPP_LESS);
   gl_consume_expected_token (parser->lexer, CPP_NAME);
   gl_consume_expected_token (parser->lexer, CPP_COMMA);
   gl_consume_expected_token (parser->lexer, CPP_NAME);
   gl_consume_expected_token (parser->lexer, CPP_LESS);
   gl_consume_expected_token (parser->lexer, CPP_NUMBER);
-  gl_consume_expected_token (parser->lexer, CPP_RSHIFT);
+  gl_consume_expected_token (parser->lexer, CPP_GREATER);
+  gl_consume_expected_token (parser->lexer, CPP_GREATER);
 
 }
 
@@ -788,7 +791,9 @@ gp_parse_record_type (gimple_parser *parser)
    };
 
    The tuple representation is done as :
-   UNION_TYPE <some_union,4,FIELD_DECL<first_var,INTEGER_TYPE<4>>,FIELD_DECL<second_var,<REAL_TYPE<4>>>
+   UNION_TYPE <some_union,4,
+      FIELD_DECL <first_var,INTEGER_TYPE<4>>,
+      FIELD_DECL<second_var,<REAL_TYPE<4>>>
 */
 
 /* Recognizer function for Union declarations. The union tuple is read
@@ -844,7 +849,10 @@ gp_parse_expect_const_decl (gimple_parser *parser)
    };
 
    The tuple representation is done as :
-   ENUMERAL_TYPE<some_enum,3,<FIRST,1>,<SECOND,2>,<LAST,5>>
+   ENUMERAL_TYPE<some_enum,3,
+      <FIRST,1>,
+      <SECOND,2>,
+      <LAST,5>>
 */
 
 static void
@@ -860,13 +868,10 @@ gp_parse_enum_type (gimple_parser *parser)
   while (!gl_at_eof (parser->lexer))
     {
       next_token = gl_consume_token (parser->lexer);
-      if (next_token->type == CPP_RSHIFT)
+      if (next_token->type == CPP_GREATER)
 	break;
       else if (next_token->type == CPP_COMMA)
-	{
-	  next_token = gl_consume_token (parser->lexer);
-	  gp_parse_expect_const_decl (parser);
-	}
+	gp_parse_expect_const_decl (parser);
     }  
 }
 
@@ -976,9 +981,11 @@ gp_parse_var_decl (gimple_parser *parser)
   switch (code)
     {
     case INTEGER_TYPE:
+    case REAL_TYPE:
       gl_consume_expected_token (parser->lexer, CPP_LESS);
       gl_consume_expected_token (parser->lexer, CPP_NUMBER);
-      gl_consume_expected_token (parser->lexer, CPP_RSHIFT);
+      gl_consume_expected_token (parser->lexer, CPP_GREATER);
+      gl_consume_expected_token (parser->lexer, CPP_GREATER);
       break;
 
     case ARRAY_TYPE:
@@ -994,7 +1001,8 @@ gp_parse_var_decl (gimple_parser *parser)
       gl_consume_expected_token (parser->lexer, CPP_NAME);
       gl_consume_expected_token (parser->lexer, CPP_LESS);
       gl_consume_expected_token (parser->lexer, CPP_NUMBER);
-      gl_consume_expected_token (parser->lexer, CPP_RSHIFT);
+      gl_consume_expected_token (parser->lexer, CPP_GREATER);
+      gl_consume_expected_token (parser->lexer, CPP_GREATER);
       gl_consume_expected_token (parser->lexer, CPP_GREATER);
       break;
 
@@ -1007,7 +1015,8 @@ gp_parse_var_decl (gimple_parser *parser)
       gl_consume_expected_token (parser->lexer, CPP_NAME);
       gl_consume_expected_token (parser->lexer, CPP_LESS);
       gl_consume_expected_token (parser->lexer, CPP_NUMBER);
-      gl_consume_expected_token (parser->lexer, CPP_RSHIFT);
+      gl_consume_expected_token (parser->lexer, CPP_GREATER);
+      gl_consume_expected_token (parser->lexer, CPP_GREATER);
       gl_consume_expected_token (parser->lexer, CPP_GREATER);
       break;
 
@@ -1016,7 +1025,8 @@ gp_parse_var_decl (gimple_parser *parser)
     case ENUMERAL_TYPE:
       gl_consume_expected_token (parser->lexer, CPP_LESS);
       gl_consume_expected_token (parser->lexer, CPP_NAME);
-      gl_consume_expected_token (parser->lexer, CPP_RSHIFT);
+      gl_consume_expected_token (parser->lexer, CPP_GREATER);
+      gl_consume_expected_token (parser->lexer, CPP_GREATER);
       break;
 
     default: 
@@ -1155,6 +1165,43 @@ narrowest_signed_type (unsigned HOST_WIDE_INT low,
   return itk_none;
 }
 
+/* Returns true if the type of the TOKEN is equal to EXPECTED.  */
+
+static bool
+gl_token_is_of_type (gimple_token *token, enum cpp_ttype expected)
+{
+  return (token->type == expected);
+}
+
+/* Splits the token TOKEN into two tokens FIRST_TOKEN and SECOND_TOKEN.
+   Note that the split should work only if the type of the TOKEN is
+   either CPP_RSHIFT or CPP_LSHIFT which gets split into two tokens
+   of the type CPP_GREATER or CPP_LESS respectively.  */
+
+static void
+gl_split_token (gimple_token *token, gimple_token *first_token,
+		    gimple_token *second_token)
+{
+  switch (token->type)
+    {
+    case CPP_RSHIFT:
+      first_token->type = CPP_GREATER;
+      second_token->type = CPP_GREATER;
+      break;
+
+    case CPP_LSHIFT:
+      first_token->type = CPP_LESS;
+      second_token->type = CPP_LESS;
+      break;
+
+    default:
+      gcc_unreachable();
+    }
+
+  first_token->location = second_token->location = token->location;
+  first_token->flags = second_token->flags = token->flags;
+  first_token->value = second_token->value = token->value;
+}
 
 /* Interpret TOKEN, an integer with FLAGS as classified by cpplib.  */
 
@@ -1449,11 +1496,22 @@ static void
 gl_lex (gimple_lexer *lexer)
 {
   gimple_token token;
+  gimple_token first_token, second_token;
 
   timevar_push (TV_CPP);
 
   while (gl_lex_token (lexer, &token))
-    VEC_safe_push (gimple_token, gc, lexer->tokens, &token);
+    {
+      if (gl_token_is_of_type (&token,CPP_LSHIFT)
+	  || gl_token_is_of_type (&token,CPP_RSHIFT))
+	{
+	  gl_split_token (&token, &first_token, &second_token);
+	  VEC_safe_push (gimple_token, gc, lexer->tokens, &first_token);
+	  VEC_safe_push (gimple_token, gc, lexer->tokens, &second_token);
+        }
+      else 
+	VEC_safe_push (gimple_token, gc, lexer->tokens, &token);
+    }
 
   timevar_pop (TV_CPP);
 }
