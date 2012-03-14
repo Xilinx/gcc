@@ -1575,6 +1575,20 @@ melt_strbuf_usedlength(melt_ptr_t v)
   return 0;
 }
 
+
+static inline void
+melt_strbuf_consume (melt_ptr_t v, int cnt)
+{
+  if (melt_magic_discr (v) == MELTOBMAG_STRBUF && cnt>0)
+    {
+      struct meltstrbuf_st *sb = (struct meltstrbuf_st *) v;
+      if (sb->bufstart + cnt < sb->bufend)
+	sb->bufstart = sb->bufstart + cnt;
+      else
+	sb->bufstart = sb->bufend;
+    }
+}
+
 /* return the length of an output, i.e. the used length of strbuf or
    the current file position of a file */
 long melt_output_length (melt_ptr_t out_p);

@@ -13090,19 +13090,6 @@ meltgc_notify_finish_decl_hook (void)
 }
 
 
-/*****
- * Support for PLUGIN_PASS_EXECUTION
- *****/
-
-/* Obsolete function. No more called.  */
-void 
-meltgc_notify_sysdata_passexec_hook (void)
-{
-  MELT_ENTEREMPTYFRAME (NULL);
-  MELT_LOCATION_HERE ("meltgc_notify_sysdata_passexec_hook");
-  MELT_CHECK_INTERRUPT ();
-  MELT_EXITFRAME ();
-}
 
 /* Routine passed to walk_use_def_chains by meltgc_walk_use_def_chain
    below. */
@@ -13245,10 +13232,15 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
   int nbfd = 0;
   unsigned buckcount = 0, ix = 0;
   int pollres = 0;
-  MELT_ENTERFRAME (3, NULL);
+#if MELT_HAVE_DEBUG
+  char curlocbuf[120];
+#endif
+  MELT_ENTERFRAME (5, NULL);
 #define inbuckv   meltfram__.mcfr_varptr[0]
 #define curhandv  meltfram__.mcfr_varptr[1]
 #define sbufv     meltfram__.mcfr_varptr[2]
+#define seqv      meltfram__.mcfr_varptr[3]
+#define closv     meltfram__.mcfr_varptr[4]
   MELT_LOCATION_HERE("meltgc_poll_inputs");
   inbuckv = inbuck_p;
   if (melt_magic_discr ((melt_ptr_t) inbuckv) != MELTOBMAG_BUCKETLONGS)
@@ -13300,9 +13292,7 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 	  if (!melt_is_instance_of ((melt_ptr_t) curhandv, 
 				    (melt_ptr_t) MELT_PREDEF (CLASS_INPUT_CHANNEL_HANDLER)))
 	    {
-	      warning (0, "MELT polling, closing fd#%d with invalid handler", rfd);
-	      (void) close (rfd);
-	      continue;
+	      melt_fatal_error ("MELT polling, fd#%d with invalid handler", rfd);
 	    }
 	  if (fdtab[ixfd].revents & POLLIN)
 	    {
@@ -13313,16 +13303,47 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 	      if (rdcnt == 0) 
 		{
 		  /* reached end of file. */
+		  union meltparam_un argtab[2];
+		  memset (argtab, 0, sizeof(argtab));
+		  closv =  melt_field_object ((melt_ptr_t) curhandv, MELTFIELD_INCH_CLOS);
+		  seqv = NULL;
+		  argtab[0].meltbp_aptr = (melt_ptr_t *) & seqv;
+		  /* notify the end of file by applying the closure to the handle and NULL */
+		  melt_apply((meltclosure_ptr_t) closv, (melt_ptr_t) curhandv, 
+			     MELTBPARSTR_PTR, argtab, NULL, NULL);
+		  close (rfd);
 		}
 	      else if (rdcnt > 0)
 		{
+		  bool eated = false;
 		  /* did read some bytes */
-		  // sbufv = ((meltobject_ptr_t) curhandv)->objvar_tab[MELTFIELD_INCH_SBUF];
+		  sbufv = melt_field_object ((melt_ptr_t) curhandv, MELTFIELD_INCH_SBUF);
+		  meltgc_add_out_raw_len ((melt_ptr_t) sbufv, rbuf, rdcnt);
+		  do {
+		    const char* bufdata = melt_strbuf_str ((melt_ptr_t) sbufv);
+		    char* buf2nl = bufdata?strstr(bufdata,"\n\n"):NULL;
+		    if (bufdata && buf2nl) {
+		      union meltparam_un argtab[2];
+		      int nbread = buf2nl - bufdata + 2;
+		      ((char*) buf2nl)[1] = '\0';
+		      memset (argtab, 0, sizeof(argtab));
+		      seqv = meltgc_read_from_rawstring (bufdata, NULL, UNKNOWN_LOCATION);
+		      melt_strbuf_consume ((melt_ptr_t) sbufv, nbread);
+		      closv =  melt_field_object ((melt_ptr_t) curhandv, MELTFIELD_INCH_CLOS);
+		      MELT_LOCATION_HERE_PRINTF (curlocbuf, 
+						 "meltgc_poll_inputs handle fd#%d", rfd);
+		      argtab[0].meltbp_aptr = (melt_ptr_t *) & seqv;
+		      melt_apply((meltclosure_ptr_t) closv, (melt_ptr_t) curhandv, 
+				 MELTBPARSTR_PTR, argtab, NULL, NULL);
+		      eated = true;
+		    }
+		  } while (eated);
 		}
 	      gotdata = true;
 	    }
 	  else if (fdtab[ixfd].revents & POLLNVAL)
 	    {
+#warning incomplete meltgc_poll_inputs
 	    }
 	}
     }
@@ -13332,6 +13353,10 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
     free(fdtab), fdtab = NULL;
   MELT_EXITFRAME ();
   return pollres;
+#undef inbuckv
+#undef curhandv
+#undef sbufv
+#undef closv
 }
 
 /* Could be called from many places, when SIGIO signal received, thru
@@ -13341,9 +13366,7 @@ static void
 meltgc_handle_sigio (void)
 {
   static long hdlcounter;
-  struct pollfd *fdtab = NULL;
   bool gotdata = false;
-  int nbfd = 0;
   MELT_ENTERFRAME (1, NULL);
   MELT_LOCATION_HERE("meltgc_handle_sigio");
 #define inbuckv   meltfram__.mcfr_varptr[0]
