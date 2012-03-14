@@ -7366,7 +7366,7 @@ melt_ptr_t
 meltgc_read_file (const char *filnam, const char *locnam)
 {
  #if MELT_HAVE_DEBUG
-   char curlocbuf[100];
+   char curlocbuf[140];
  #endif
   struct reading_st rds;
   FILE *fil = 0;
@@ -7434,6 +7434,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
       warning (0, "MELT file name %s has strange characters", filnamdup);
 
   }
+  MELT_LOCATION_HERE_PRINTF (curlocbuf, "meltgc_read_file start reading %s", filnamdup);
   /*  debugeprintf ("starting loading file %s", filnamdup); */
   rds.rfil = fil;
   rds.rpath = filnamdup;
@@ -7453,7 +7454,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
 	break;
       loc = rd->rsrcloc;
       MELT_LOCATION_HERE_PRINTF (curlocbuf,
-				 "readfile @ %s:%d:%d",
+				 "meltgc_read_file @ %s:%d:%d",
 				 lbasename(LOCATION_FILE(loc)),  
 				 LOCATION_LINE (loc), LOCATION_COLUMN(loc));
       valv = meltgc_readval (rd, &got);
@@ -7487,6 +7488,9 @@ melt_ptr_t
 meltgc_read_from_rawstring (const char *rawstr, const char *locnam,
                             location_t loch)
 {
+ #if MELT_HAVE_DEBUG
+   char curlocbuf[140];
+ #endif
   struct reading_st rds;
   char *rbuf = 0;
   struct reading_st *rd = 0;
@@ -7507,12 +7511,14 @@ meltgc_read_from_rawstring (const char *rawstr, const char *locnam,
     {
       rds.rhas_file_location = true;
       locnamv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), locnam);
+      MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_read_from_rawstring locnam=%s", locnam);
     }
   else
     {
       rds.rhas_file_location = false;
       locnamv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
 				   "<string-buffer>");
+      MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_read_from_rawstring rawstr=%.50s", rawstr);
     }
   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
   rds.rpfilnam = (melt_ptr_t *) & locnamv;
@@ -7541,6 +7547,9 @@ end:
 melt_ptr_t
 meltgc_read_from_val (melt_ptr_t strv_p, melt_ptr_t locnam_p)
 {
+ #if MELT_HAVE_DEBUG
+   char curlocbuf[140];
+ #endif
   struct reading_st rds;
   char *rbuf = 0;
   struct reading_st *rd = 0;
@@ -7584,6 +7593,7 @@ meltgc_read_from_val (melt_ptr_t strv_p, melt_ptr_t locnam_p)
   rds.rcurlin = rbuf;
   rds.rhas_file_location = true;
   rd = &rds;
+  MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_read_from_val rbuf=%.70s", rbuf);
   if (locnamv == NULL)
     {
       rds.rhas_file_location = false;
@@ -7706,7 +7716,8 @@ handle_melt_pragma (cpp_reader *ARG_UNUSED(dummy), void *data)
   if (!pragma_lex || !c_register_pragma_with_expansion_and_data)
     fatal_error ("Cannot use pragma symbol at this level \
                    (maybe you use -flto which is incompatible).");
-
+  MELT_LOCATION_HERE ("handle_melt_pragma");
+  MELT_CHECK_INTERRUPT ();
   token = pragma_lex (&x);
   if (token != CPP_NAME)
     {
@@ -7788,6 +7799,8 @@ melt_pragma_callback (void *gcc_data ATTRIBUTE_UNUSED,
   if (melt_magic_discr ((melt_ptr_t) mulpragmav) != MELTOBMAG_MULTIPLE)
     goto end;
   nb_pragma = (long) (((meltmultiple_ptr_t) mulpragmav)->nbval);
+  MELT_LOCATION_HERE ("melt_pragma_callback");
+  MELT_CHECK_INTERRUPT ();
   for (i_handler = 0; i_handler < (long) nb_pragma; i_handler++)
     {
       cgccpragmav = (( struct meltmultiple_st *) mulpragmav)->tabval[i_handler];
@@ -7828,6 +7841,8 @@ MELT_ENTERFRAME (4, NULL);
 should contain a multiple!");
       goto end;
     }
+  MELT_LOCATION_HERE ("melt_handle_melt_pragma");
+  MELT_CHECK_INTERRUPT ();
   /* We use the i_handler to find the good handler (index handler).  */
   cgccpragmav = melt_multiple_nth ((melt_ptr_t) mulpragmav, i_handler);
   if (cgccpragmav == NULL)
@@ -7886,7 +7901,8 @@ handle_melt_pragma (cpp_reader *ARG_UNUSED(dummy))
   if (! pragma_lex || ! c_register_pragma_with_expansion)
     fatal_error("Cannot use pragma symbol at this level (maybe you use -flto \
 which is incompatible).");
-
+  MELT_LOCATION_HERE ("handle_melt_pragma");
+  MELT_CHECK_INTERRUPT ();
   token = pragma_lex (&x);
   if (token != CPP_NAME)
     {
@@ -7962,6 +7978,8 @@ are in GCC 4.6 support mode).  */
 should contain a multiple!");
       goto end;
     }
+  MELT_LOCATION_HERE ("melt_handle_melt_pragma");
+  MELT_CHECK_INTERRUPT ();
   cgccpragmav = melt_multiple_nth ((melt_ptr_t) mulpragmav, 0);
   pragclov = melt_object_nth_field((melt_ptr_t) cgccpragmav,
                                    MELTFIELD_GCCPRAGMA_HANDLER);
@@ -8013,6 +8031,8 @@ melt_pre_genericize_callback (void *ptr_fndecl,
 			     ((tree) ptr_fndecl));
   pregenv = melt_get_inisysdata (MELTFIELD_SYSDATA_PRE_GENERICIZE);
   pregenmagic = melt_magic_discr ((melt_ptr_t) pregenv);
+  MELT_LOCATION_HERE ("melt_pre_genericize_callback");
+  MELT_CHECK_INTERRUPT ();
   if (pregenmagic == MELTOBMAG_CLOSURE)
     {
       MELT_LOCATION_HERE
@@ -8034,11 +8054,11 @@ melt_startunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
 {
   MELT_ENTERFRAME (1, NULL);
 #define staclosv meltfram__.mcfr_varptr[0]
+  MELT_LOCATION_HERE ("melt_startunit_callback");
+  MELT_CHECK_INTERRUPT ();
   staclosv = melt_get_inisysdata (MELTFIELD_SYSDATA_UNIT_STARTER);
   if (melt_magic_discr ((melt_ptr_t) staclosv) == MELTOBMAG_CLOSURE)
     {
-      MELT_LOCATION_HERE
-	("melt_startunit_callback before applying start unit closure");
       (void) melt_apply ((meltclosure_ptr_t) staclosv,
 			 (melt_ptr_t) NULL, "", NULL, "", NULL);
     }
@@ -8055,6 +8075,8 @@ melt_finishunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
   MELT_ENTERFRAME (1, NULL);
 #define finclosv meltfram__.mcfr_varptr[0]
   finclosv = melt_get_inisysdata (MELTFIELD_SYSDATA_UNIT_FINISHER);
+  MELT_LOCATION_HERE ("melt_finishunit_callback");
+  MELT_CHECK_INTERRUPT ();
   if (melt_magic_discr ((melt_ptr_t) finclosv) == MELTOBMAG_CLOSURE)
     {
       MELT_LOCATION_HERE
@@ -8079,6 +8101,8 @@ melt_passexec_callback (void *gcc_data,
 #define passxhv   meltfram__.mcfr_varptr[0]
 #define passnamev meltfram__.mcfr_varptr[1]
   passxhv = melt_get_inisysdata (MELTFIELD_SYSDATA_PASSEXEC_HOOK);
+  MELT_LOCATION_HERE ("melt_passexec_callback");
+  MELT_CHECK_INTERRUPT ();
   debugeprintf ("melt_passexec_callback pass %p passxhv %p", 
 		(void*) pass, passxhv);
   gcc_assert (pass != NULL);
@@ -12021,6 +12045,8 @@ melt_fatal_info (const char*filename, int lineno)
   fflush (NULL);
 }
 
+
+
 void
 melt_check_failed (const char *msg, const char *filnam,
 		      int lineno, const char *fun)
@@ -12044,6 +12070,8 @@ melt_check_failed (const char *msg, const char *filnam,
 	   lbasename (filnam), lineno, fun, msg);
 }
 
+
+
 /* internal function to run the melt pass after hook, at end of every
    MELT pass exec function.  */
 static void 
@@ -12053,6 +12081,8 @@ meltgc_run_meltpass_after_hook (void)
   int passnumber = current_pass?current_pass->static_pass_number:0;
   MELT_ENTERFRAME (2, NULL);
 #define pahookv      meltfram__.mcfr_varptr[0]
+  MELT_LOCATION_HERE ("meltgc_run_meltpass_after_hook");
+  MELT_CHECK_INTERRUPT ();
   pahookv =  melt_get_inisysdata (MELTFIELD_SYSDATA_MELTPASS_AFTER_HOOK);
   if (pahookv == NULL) 
     goto end;
@@ -12177,6 +12207,9 @@ meltgc_gimple_gate(void)
   int ok = TRUE;
   static const char* modstr;
   FILE *oldf = NULL;
+#if MELT_HAVE_DEBUG
+  char curlocbuf[120];
+#endif
   MELT_ENTERFRAME(6, NULL);
 #define passv        meltfram__.mcfr_varptr[0]
 #define passdictv    meltfram__.mcfr_varptr[1]
@@ -12187,6 +12220,8 @@ meltgc_gimple_gate(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr) 
     goto end;
+  MELT_LOCATION_HERE ("meltgc_gimple_gate");
+  MELT_CHECK_INTERRUPT ();
   gcc_assert(current_pass != NULL);
   gcc_assert(current_pass->name != NULL);
   gcc_assert(current_pass->type == GIMPLE_PASS);
@@ -12208,16 +12243,8 @@ meltgc_gimple_gate(void)
       ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
     }
   debugeprintf ("meltgc_gimple_gate pass %s before apply", current_pass->name);
-#if MELT_HAVE_DEBUG
-  {
-    static char locbuf[120];
-    memset (locbuf, 0, sizeof (locbuf));
-    snprintf (locbuf, sizeof (locbuf) - 1,
-	      "%s:%d:meltgc_gimple_gate pass %s before apply",
-	      lbasename (__FILE__), __LINE__, current_pass->name);
-    meltfram__.mcfr_flocs = locbuf;
-  }
-#endif
+  MELT_LOCATION_HERE_PRINTF (curlocbuf, "meltgc_gimple_gate pass %s before apply", current_pass->name);
+  MELT_CHECK_INTERRUPT ();
   resv = 
     melt_apply ((struct meltclosure_st *) closv,
 		(melt_ptr_t) passv, "",
@@ -12251,6 +12278,9 @@ meltgc_gimple_execute (void)
 {
   unsigned int res = 0;
   static const char* modstr;
+#if MELT_HAVE_DEBUG
+  char curlocbuf[120];
+#endif
   MELT_ENTERFRAME(5, NULL);
 #define passv        meltfram__.mcfr_varptr[0]
 #define passdictv    meltfram__.mcfr_varptr[1]
@@ -12261,6 +12291,8 @@ meltgc_gimple_execute (void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
+  MELT_LOCATION_HERE("meltgc_gimple_execute");
+  MELT_CHECK_INTERRUPT ();
   dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
   gcc_assert (current_pass != NULL);
   gcc_assert (current_pass->name != NULL);
@@ -12298,16 +12330,9 @@ meltgc_gimple_execute (void)
     debugeprintf ("gimple_execute passname %s before apply dbgcounter %ld",
 		  current_pass->name, passdbgcounter);
     /* apply with one extra long result */
-#if MELT_HAVE_DEBUG
-  {
-    static char locbuf[120];
-    memset (locbuf, 0, sizeof (locbuf));
-    snprintf (locbuf, sizeof (locbuf) - 1,
-	      "%s:%d:meltgc_gimple_execute pass %s before apply",
-	      lbasename (__FILE__), __LINE__, current_pass->name);
-    meltfram__.mcfr_flocs = locbuf;
-  }
-#endif
+    MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_gimple_execute pass %s before apply", 
+			      current_pass->name);
+    MELT_CHECK_INTERRUPT ();
     restab[0].meltbp_longptr = &todol;
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
@@ -12323,6 +12348,9 @@ meltgc_gimple_execute (void)
 	  fflush(df);
 	((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
       };
+    MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_gimple_execute pass %s after apply", 
+			      current_pass->name);
+    MELT_CHECK_INTERRUPT ();
     if (resvalv)
       res = (unsigned int) todol;
     meltgc_run_meltpass_after_hook ();
@@ -12345,6 +12373,9 @@ meltgc_gimple_execute (void)
 static bool 
 meltgc_rtl_gate(void)
 {
+#if MELT_HAVE_DEBUG
+  char curlocbuf[120];
+#endif
   int ok = TRUE;
   FILE* oldf = NULL;
   static const char* modstr;
@@ -12358,6 +12389,8 @@ meltgc_rtl_gate(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
+  MELT_LOCATION_HERE ("meltgc_rtl_gate");
+  MELT_CHECK_INTERRUPT ();
   gcc_assert(current_pass != NULL);
   gcc_assert(current_pass->name != NULL);
   gcc_assert(current_pass->type == RTL_PASS);
@@ -12380,21 +12413,15 @@ meltgc_rtl_gate(void)
       oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
       ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
     }
-#if MELT_HAVE_DEBUG
-  {
-    static char locbuf[120];
-    memset (locbuf, 0, sizeof (locbuf));
-    snprintf (locbuf, sizeof (locbuf) - 1,
-	      "%s:%d:meltgc_rtl_gate pass %s before apply",
-	      lbasename (__FILE__), __LINE__, current_pass->name);
-    meltfram__.mcfr_flocs = locbuf;
-  }
-#endif
+  MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_rtl_gate pass %s before apply", current_pass->name);
+  MELT_CHECK_INTERRUPT ();
   resv = 
     melt_apply ((struct meltclosure_st *) closv,
 		(melt_ptr_t) passv, "",
 		(union meltparam_un *) 0, "",
 		(union meltparam_un *) 0);
+  MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_rtl_gate pass %s after apply", current_pass->name);
+  MELT_CHECK_INTERRUPT ();
   if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) 
     {
       FILE *df = melt_get_file ((melt_ptr_t) dumpv);
@@ -12417,6 +12444,9 @@ meltgc_rtl_execute(void)
   unsigned int res = 0;
   FILE* oldf = NULL;
   static const char*modstr;
+#if MELT_HAVE_DEBUG
+  char curlocbuf[120];
+#endif
   MELT_ENTERFRAME(6, NULL);
 #define passv        meltfram__.mcfr_varptr[0]
 #define passdictv    meltfram__.mcfr_varptr[1]
@@ -12427,6 +12457,8 @@ meltgc_rtl_execute(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
+  MELT_LOCATION_HERE ("meltgc_rtl_execute");
+  MELT_CHECK_INTERRUPT ();
   gcc_assert (current_pass != NULL);
   gcc_assert (current_pass->name != NULL);
   gcc_assert (current_pass->type == RTL_PASS);
@@ -12461,21 +12493,17 @@ meltgc_rtl_execute(void)
     debugeprintf ("rtl_execute passname %s before apply",
 		  current_pass->name);
     /* apply with one extra long result */
-#if MELT_HAVE_DEBUG
-  {
-    static char locbuf[120];
-    memset (locbuf, 0, sizeof (locbuf));
-    snprintf (locbuf, sizeof (locbuf) - 1,
-	      "%s:%d:meltgc_rtl_execute pass %s before apply",
-	      lbasename (__FILE__), __LINE__, current_pass->name);
-    meltfram__.mcfr_flocs = locbuf;
-  }
-#endif
+    MELT_LOCATION_HERE_PRINTF (curlocbuf, "meltgc_rtl_execute pass %s before apply", 
+			       current_pass->name);
+    MELT_CHECK_INTERRUPT ();
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
 		  (melt_ptr_t) passv, "",
 		  (union meltparam_un *) 0, MELTBPARSTR_LONG "",
 		  restab);
+    MELT_LOCATION_HERE_PRINTF (curlocbuf, "meltgc_rtl_execute pass %s after apply", 
+			       current_pass->name);
+    MELT_CHECK_INTERRUPT ();
     debugeprintf ("rtl_execute passname %s after apply dbgcounter %ld",
 		  current_pass->name, passdbgcounter);
     if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) 
@@ -12507,6 +12535,9 @@ static bool
 meltgc_simple_ipa_gate(void)
 {
   int ok = TRUE;
+#if MELT_HAVE_DEBUG
+  char curlocbuf[120];
+#endif
   FILE* oldf = NULL;
   static const char*modstr;
   MELT_ENTERFRAME(6, NULL);
@@ -12519,6 +12550,8 @@ meltgc_simple_ipa_gate(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
+  MELT_LOCATION_HERE ("meltgc_simple_ipa_gate");
+  MELT_CHECK_INTERRUPT ();
   gcc_assert(current_pass != NULL);
   gcc_assert(current_pass->name != NULL);
   gcc_assert(current_pass->type == SIMPLE_IPA_PASS);
@@ -12542,16 +12575,9 @@ meltgc_simple_ipa_gate(void)
       ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
     }
   debugeprintf ("meltgc_simple_ipa_gate pass %s before apply", current_pass->name);
-#if MELT_HAVE_DEBUG
-  {
-    static char locbuf[120];
-    memset (locbuf, 0, sizeof (locbuf));
-    snprintf (locbuf, sizeof (locbuf) - 1,
-	      "%s:%d:meltgc_simple_ipa_gate pass %s before apply",
-	      lbasename (__FILE__), __LINE__, current_pass->name);
-    meltfram__.mcfr_flocs = locbuf;
-  }
-#endif
+  MELT_LOCATION_HERE_PRINTF (curlocbuf,
+			     "meltgc_simple_ipa_gate pass %s before apply", current_pass->name);
+  MELT_CHECK_INTERRUPT ();
   resv = 
     melt_apply ((struct meltclosure_st *) closv,
 		(melt_ptr_t) passv, "",
@@ -12559,6 +12585,9 @@ meltgc_simple_ipa_gate(void)
 		(union meltparam_un *) 0);
   debugeprintf ("meltgc_simple_ipa_gate pass %s after apply", current_pass->name);
   ok = (resv != NULL);
+  MELT_LOCATION_HERE_PRINTF (curlocbuf,
+			     "meltgc_simple_ipa_gate pass %s after apply", current_pass->name);
+  MELT_CHECK_INTERRUPT ();
   if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) 
     {
       FILE *df = melt_get_file ((melt_ptr_t) dumpv);
@@ -12586,6 +12615,9 @@ meltgc_simple_ipa_execute(void)
   static const char*modstr;
   FILE* oldf = NULL;
   unsigned int res = 0;
+#if MELT_HAVE_DEBUG
+  char curlocbuf[120];
+#endif
   MELT_ENTERFRAME(6, NULL);
 #define passv        meltfram__.mcfr_varptr[0]
 #define passdictv    meltfram__.mcfr_varptr[1]
@@ -12596,6 +12628,8 @@ meltgc_simple_ipa_execute(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
+  MELT_LOCATION_HERE ("meltgc_simple_ipa_execute");
+  MELT_CHECK_INTERRUPT ();
   gcc_assert (current_pass != NULL);
   gcc_assert (current_pass->name != NULL);
   gcc_assert (current_pass->type == SIMPLE_IPA_PASS);
@@ -12630,16 +12664,9 @@ meltgc_simple_ipa_execute(void)
 	((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
       }
     debugeprintf ("meltgc_simple_ipa_execute pass %s before apply", current_pass->name);
-#if MELT_HAVE_DEBUG
-  {
-    static char locbuf[120];
-    memset (locbuf, 0, sizeof (locbuf));
-    snprintf (locbuf, sizeof (locbuf) - 1,
-	      "%s:%d:meltgc_simple_ipa_execute pass %s before apply",
-	      lbasename (__FILE__), __LINE__, current_pass->name);
-    meltfram__.mcfr_flocs = locbuf;
-  }
-#endif
+    MELT_LOCATION_HERE_PRINTF (curlocbuf, 
+			      "meltgc_simple_ipa_execute pass %s before apply", current_pass->name);
+    MELT_CHECK_INTERRUPT ();
     /* apply with one extra long result */
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
@@ -12653,6 +12680,9 @@ meltgc_simple_ipa_execute(void)
 	  fflush (df);
 	((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
       };
+    MELT_LOCATION_HERE_PRINTF (curlocbuf, 
+			      "meltgc_simple_ipa_execute pass %s after apply", current_pass->name);
+    MELT_CHECK_INTERRUPT ();
     debugeprintf ("simple_ipa_execute passname %s after apply dbgcounter %ld",
 		  current_pass->name, passdbgcounter);
     if (resvalv)
@@ -12682,6 +12712,9 @@ meltgc_register_pass (melt_ptr_t pass_p,
 		      const char*refpassname,
 		      int refpassnum)
 {
+#if MELT_HAVE_DEBUG
+  char curlocbuf[120];
+#endif
   static const char*modstr;
   /* the register_pass_info can be local, since it is only locally
      used in passes.c */
@@ -12694,12 +12727,13 @@ meltgc_register_pass (melt_ptr_t pass_p,
 #define compv        meltfram__.mcfr_varptr[2]
 #define namev        meltfram__.mcfr_varptr[3]
   passv = pass_p;
-  debugeprintf ("meltgc_register_pass start passv %p refpassname %s positioning %s",
-		(void*)passv, refpassname, positioning);
   if (!modstr)
     modstr = melt_argument("mode");
   if (!modstr || !modstr[0])
     goto end;
+  MELT_LOCATION_HERE("meltgc_register_pass");
+  debugeprintf ("meltgc_register_pass start passv %p refpassname %s positioning %s",
+		(void*)passv, refpassname, positioning);
   if (!refpassname || !refpassname[0]) 
     goto end;
   if (!positioning || !positioning[0])
@@ -12750,6 +12784,9 @@ meltgc_register_pass (melt_ptr_t pass_p,
     /* the name of the pass is also strduped and is never deallocated
        (so it it never free-d! */
     gimpass->pass.name = xstrdup(melt_string_str((melt_ptr_t) namev));
+    MELT_LOCATION_HERE_PRINTF (curlocbuf, 
+			      "meltgc_register_pass Gimple pass name %s", gimpass->pass.name);
+    MELT_CHECK_INTERRUPT ();
     gimpass->pass.gate = meltgc_gimple_gate;
     gimpass->pass.execute = meltgc_gimple_execute;
     gimpass->pass.tv_id = TV_PLUGIN_RUN;
@@ -12779,6 +12816,9 @@ meltgc_register_pass (melt_ptr_t pass_p,
     /* the name of the pass is also strduped and is never deallocated
        (so it it never free-d! */
     rtlpass->pass.name = xstrdup(melt_string_str((melt_ptr_t) namev));
+    MELT_LOCATION_HERE_PRINTF (curlocbuf, 
+			      "meltgc_register_pass RTL pass name %s", rtlpass->pass.name);
+    MELT_CHECK_INTERRUPT ();
     rtlpass->pass.gate = meltgc_rtl_gate;
     rtlpass->pass.execute = meltgc_rtl_execute;
     rtlpass->pass.tv_id = TV_PLUGIN_RUN;
@@ -12808,6 +12848,9 @@ meltgc_register_pass (melt_ptr_t pass_p,
     /* the name of the pass is also strduped and is never deallocated
        (so it it never free-d! */
     sipapass->pass.name = xstrdup(melt_string_str((melt_ptr_t) namev));
+    MELT_LOCATION_HERE_PRINTF (curlocbuf, 
+			      "meltgc_register_pass simple IPA pass name %s", sipapass->pass.name);
+    MELT_CHECK_INTERRUPT ();
     sipapass->pass.gate = meltgc_simple_ipa_gate;
     sipapass->pass.execute = meltgc_simple_ipa_execute;
     sipapass->pass.tv_id = TV_PLUGIN_RUN;
@@ -12833,6 +12876,10 @@ meltgc_register_pass (melt_ptr_t pass_p,
     struct ipa_opt_pass_d* tipapass = NULL;
     tipapass = XNEW(struct ipa_opt_pass_d);
     memset(tipapass, 0, sizeof(struct ipa_opt_pass_d));
+    tipapass->pass.name = xstrdup(melt_string_str((melt_ptr_t) namev));
+    MELT_LOCATION_HERE_PRINTF (curlocbuf, 
+			      "meltgc_register_pass transform IPA pass name %s", tipapass->pass.name);
+    MELT_CHECK_INTERRUPT ();
     /* FIXME! */
     /* #warning incomplete transform IPA passes */
     melt_fatal_error ("MELT transform IPA not implemented for passv %p",
@@ -12880,6 +12927,7 @@ meltgc_finishtype_callback (void *gcc_data,
     boxtreev = NULL;
   MELT_LOCATION_HERE
     ("meltgc_finishtype_callback before applying :sysdata_finishtype closure");
+  MELT_CHECK_INTERRUPT ();
   (void) melt_apply ((meltclosure_ptr_t) ftyhookv, (melt_ptr_t) boxtreev,
 		     "", NULL, "", NULL);
   MELT_EXITFRAME();
@@ -12897,6 +12945,8 @@ meltgc_notify_finish_type_hook (void)
      c_parser_declspecs of file c-parser.c */
   MELT_ENTERFRAME (1, NULL);
 #define ftyhookv      meltfram__.mcfr_varptr[0]
+  MELT_LOCATION_HERE ("meltgc_notify_finish_type_hook");
+  MELT_CHECK_INTERRUPT ();
   ftyhookv =  melt_get_inisysdata (MELTFIELD_SYSDATA_FINISHTYPE_HOOK);
   if (ftyhookv == NULL) 
     {
@@ -12935,6 +12985,8 @@ meltgc_finishdecl_callback (void *gcc_data,
   MELT_ENTERFRAME(2, NULL);
 #define fdclhookv      meltfram__.mcfr_varptr[0]
 #define boxtreev      meltfram__.mcfr_varptr[1]
+  MELT_LOCATION_HERE ("meltgc_finishdecl_callback");
+  MELT_CHECK_INTERRUPT ();
   fdclhookv =  melt_get_inisysdata (MELTFIELD_SYSDATA_FINISHDECL_HOOK);
   if (melt_magic_discr ((melt_ptr_t)fdclhookv) != MELTOBMAG_CLOSURE)
     /* this really should ever happen */
@@ -12964,6 +13016,8 @@ meltgc_notify_finish_decl_hook (void)
      finish_decl of file c-decl.c */
   MELT_ENTERFRAME (1, NULL);
 #define ftyhookv      meltfram__.mcfr_varptr[0]
+  MELT_LOCATION_HERE ("meltgc_notify_finish_decl_hook");
+  MELT_CHECK_INTERRUPT ();
 #if MELT_GCC_VERSION >= 4007 /* GCC 4.7 */
   ftyhookv =  melt_get_inisysdata (MELTFIELD_SYSDATA_FINISHDECL_HOOK);
   if (ftyhookv == NULL) 
@@ -13007,6 +13061,8 @@ meltgc_notify_sysdata_passexec_hook (void)
 {
   MELT_ENTERFRAME (2, NULL);
 #define pxhookv      meltfram__.mcfr_varptr[0]
+  MELT_LOCATION_HERE ("meltgc_notify_sysdata_passexec_hook");
+  MELT_CHECK_INTERRUPT ();
   pxhookv =  melt_get_inisysdata (MELTFIELD_SYSDATA_PASSEXEC_HOOK);
   debugeprintf("pxhookv= %p", pxhookv);
   if (pxhookv == NULL) 
@@ -13046,11 +13102,13 @@ meltgc_usedef_internalfun(tree tr, gimple gi, void*data)
   valv = ((melt_ptr_t*)data)[1];
   gcc_assert (melt_magic_discr ((melt_ptr_t) closv) == MELTOBMAG_CLOSURE);
   gcc_assert (tr != NULL);
+  MELT_LOCATION_HERE ("meltgc_usedef_internalfun");
   {
     union meltparam_un argtab[2];
     memset (&argtab, 0, sizeof(argtab));
     argtab[0].meltbp_tree = tr;
     argtab[1].meltbp_gimple = gi;
+    MELT_CHECK_INTERRUPT ();
     resv = melt_apply ((meltclosure_ptr_t) closv,
 		       (melt_ptr_t) valv,
 		       MELTBPARSTR_TREE MELTBPARSTR_GIMPLE,
@@ -13072,6 +13130,8 @@ void meltgc_walk_use_def_chain (melt_ptr_t clos_p, melt_ptr_t val_p, tree trvar,
   /* we need closv & valv to be consecutive! */
 #define closv meltfram__.mcfr_varptr[0]
 #define valv  meltfram__.mcfr_varptr[1]
+  MELT_LOCATION_HERE ("meltgc_walk_use_def_chain");
+  MELT_CHECK_INTERRUPT ();
   closv = clos_p;
   valv = val_p;
   if (!trvar || TREE_CODE (trvar) != SSA_NAME) 
@@ -13095,6 +13155,9 @@ void
 melt_handle_melt_attribute (tree decl, tree name, const char *attrstr,
 			       location_t loch)
 {
+#if MELT_HAVE_DEBUG
+  char curlocbuf[120];
+#endif
   MELT_ENTERFRAME (4, NULL);
 #define seqv       meltfram__.mcfr_varptr[0]
 #define declv      meltfram__.mcfr_varptr[1]
@@ -13102,6 +13165,8 @@ melt_handle_melt_attribute (tree decl, tree name, const char *attrstr,
 #define atclov	   meltfram__.mcfr_varptr[3]
   if (!attrstr || !attrstr[0])
     goto end;
+  MELT_LOCATION_HERE ("melt_handle_melt_attribute");
+  MELT_CHECK_INTERRUPT ();
   seqv = meltgc_read_from_rawstring (attrstr, "*melt-attr*", loch);
   atclov = melt_get_inisysdata (MELTFIELD_SYSDATA_MELTATTR_DEFINER);
   if (melt_magic_discr ((melt_ptr_t) atclov) == MELTOBMAG_CLOSURE)
@@ -13117,19 +13182,13 @@ melt_handle_melt_attribute (tree decl, tree name, const char *attrstr,
       memset (argtab, 0, sizeof (argtab));
       argtab[0].meltbp_aptr = (melt_ptr_t *) & namev;
       argtab[1].meltbp_aptr = (melt_ptr_t *) & seqv;
-#if MELT_HAVE_DEBUG
-  {
-    static char locbuf[120];
-    memset (locbuf, 0, sizeof (locbuf));
-    snprintf (locbuf, sizeof (locbuf) - 1,
-	      "%s:%d:melt_handle_melt_attribute %s before apply",
-	      lbasename (__FILE__), __LINE__, attrstr);
-    meltfram__.mcfr_flocs = locbuf;
-  }
-#endif
+      MELT_LOCATION_HERE_PRINTF (curlocbuf, "melt_handle_melt_attribute %s before apply", attrstr);
+      MELT_CHECK_INTERRUPT ();
       (void) melt_apply ((meltclosure_ptr_t) atclov,
 			    (melt_ptr_t) declv,
 			    MELTBPARSTR_PTR MELTBPARSTR_PTR, argtab, "", NULL);
+      MELT_LOCATION_HERE_PRINTF (curlocbuf, "melt_handle_melt_attribute %s after apply", attrstr);
+      MELT_CHECK_INTERRUPT ();
     }
 end:
   MELT_EXITFRAME ();

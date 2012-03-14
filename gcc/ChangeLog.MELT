@@ -1,4 +1,20 @@
 
+2011-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c (meltgc_read_file, meltgc_read_from_rawstring)
+	(meltgc_read_from_val): Use MELT_LOCATION...
+	(handle_melt_pragma, melt_pragma_callback)
+	(melt_handle_melt_pragma, melt_pre_genericize_callback)
+	(melt_startunit_callback, melt_finishunit_callback)
+	(melt_passexec_callback, meltgc_run_meltpass_after_hook)
+	(meltgc_gimple_gate, meltgc_gimple_execute, meltgc_rtl_gate)
+	(meltgc_rtl_execute, meltgc_simple_ipa_gate)
+	(meltgc_simple_ipa_execute, meltgc_register_pass)
+	(meltgc_finishtype_callback, meltgc_finishdecl_callback)
+	(meltgc_notify_sysdata_passexec_hook, meltgc_usedef_internalfun)
+	(meltgc_walk_use_def_chain, melt_handle_melt_attribute):
+	Likewise. Also do MELT_CHECK_INTERRUPT.
+
 2011-03-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (register_input_channel_handler): Move it
 	to .....
