@@ -739,6 +739,20 @@ plain transforming IPA passes. }#)
 $MELTMODE_HELP is a help string. The $MELTMODE_FUN is the function to
 run the command, and the $MELTMODE_DATA gives additional client
 data. See the $INSTALL_MELT_MODE function. }# )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; handling of interruptible  input channels
+;; the sysdata_inchannel_data is a bucket of such instances
+(defclass class_input_channel_handler 
+  :doc #{Internal class for input channel handling. Its magic number
+  is the file descriptor.}#
+  :predef CLASS_INPUT_CHANNEL_HANDLER
+  :super class_proped
+  :fields (inch_sbuf			;the string buffer for input
+	   inch_clos			;the closure to handle it
+	   inch_data			;client data
+	   ))
 	   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================  source program elements
@@ -4097,19 +4111,20 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 (export_class ;;in alphabetical order, one per line, for convenience
  class_any_binding
  class_any_matcher
+ class_c_generation_context
  class_citerator
  class_citerator_binding
  class_class
  class_class_binding
  class_cloned_symbol
- class_container
- class_cmatcher_binding
  class_cmatcher
+ class_cmatcher_binding
+ class_container
  class_ctype
  class_ctype_gty
  class_defined_value_binding
- class_described_environment
  class_delayed_queue
+ class_described_environment
  class_discriminant 
  class_environment
  class_exported_binding
@@ -4120,15 +4135,16 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_function_binding
  class_funmatcher
  class_funmatcher_binding
- class_c_generation_context
+ class_gcc_any_ipa_pass
  class_gcc_gimple_pass
  class_gcc_pass
  class_gcc_pragma
  class_gcc_rtl_pass
- class_gcc_any_ipa_pass
  class_gcc_simple_ipa_pass
  class_gcc_transform_ipa_pass
+ class_generated_c_code
  class_initial_generation_context
+ class_input_channel_handler
  class_instance_binding
  class_keyword
  class_label_binding
@@ -4139,9 +4155,8 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_melt_mode
  class_module_context
  class_named
- class_normalization_context
  class_normal_let_binding
- class_generated_c_code
+ class_normalization_context
  class_patmacro_binding
  class_primitive
  class_primitive_binding

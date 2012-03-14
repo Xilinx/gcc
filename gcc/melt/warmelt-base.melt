@@ -1544,10 +1544,6 @@ $UNREGISTER_PASS_EXECUTION_HOOK.}#
 		   :sysdata_passexec_hook 
 		   (lambda (passname :long passnum)
 		     (run_all_pass_execution_hooks hooklist passname passnum)))
-	(code_chunk regpassxechook 
-		    #{ /*$REGPASSXECHOOK*/
-		       meltgc_notify_sysdata_passexec_hook (); 
-		       }#)
 	(return)
 	)))
 
@@ -1573,10 +1569,6 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 		     :sysdata_passexec_hook 
 		     (lambda (passname :long passnum)
 		       (run_all_pass_execution_hooks newhooklist passname passnum))))
-	(code_chunk unregpassxechook 
-		    #{ /*$UNREGPASSXECHOOK*/
-		       meltgc_notify_sysdata_passexec_hook (); 
-		       }#)
 )))
 
 ;;register a new pragma handler.
@@ -1886,17 +1878,6 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; handling of interruptible  input channels
-;; the sysdata_inchannel_data is a bucket of such instances
-(defclass class_input_channel_handler 
-  :doc #{Internal class for input channel handling. Its magic number
-  is the file descriptor.}#
-  :super class_proped
-  :fields (inch_sbuf			;the string buffer for input
-	   inch_clos			;the closure to handle it
-	   inch_data			;client data
-	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; handling PLUGIN_ALL_PASSES_START
@@ -2454,7 +2435,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :fields (
 	   ))
 
-(export_class 
+(export_class
  class_value_descriptor 
  class_varisized_value_descriptor)
 

@@ -1,6 +1,29 @@
 
 2011-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-predef.list (CLASS_INPUT_CHANNEL_HANDLER): New.
+
+	* melt-runtime.c: Include <poll.h>
+	(MELT_BUFSIZE): New macro constant.
+	(melt_passexec_callback): Renamed as...
+	(meltgc_passexec_callback): renaming, since a GC function.
+	(melt_raw_sigio_signal, melt_raw_sigalrm_signal): New short signal handlers.
+	(melt_install_signal_handlers): New function to Install them.
+	(melt_really_initialize): Call it. Always register a
+	PLUGIN_PASS_EXECUTION to ensure interrupts are called.
+	(meltgc_notify_sysdata_passexec_hook): Obsolete function.
+	(meltgc_poll_inputs): New function, still incomplete.
+	(meltgc_notify_inchannel_data): Remove.
+	(meltgc_handle_sigio): Most code goes into meltgc_poll_inputs.
+
+	* melt/warmelt-first.melt (class_input_channel_handler): New
+	predefined class, moved from warmelt-base.melt:
+
+	* melt/warmelt-base.melt (class_input_channel_handler): Move to
+	warmelt-first.melt.
+
+2011-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (meltgc_read_file, meltgc_read_from_rawstring)
 	(meltgc_read_from_val): Use MELT_LOCATION...
 	(handle_melt_pragma, melt_pragma_callback)

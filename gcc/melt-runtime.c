@@ -60,6 +60,7 @@ const int melt_gcc_version = MELT_GCC_VERSION;
 /* some system or library headers needed to MELT */
 #include <dirent.h>
 #include <dlfcn.h>
+#include <poll.h>
 #include <ppl_c.h>
 /* meltgc_sort_multiple needs setjmp */
 #include <setjmp.h>
@@ -169,6 +170,9 @@ static int melt_debugging_after_mode;
 
 /* the generating GGC marking routine */
 extern void gt_ggc_mx_melt_un (void *);
+
+/* A nice buffer size for input or output. */
+#define MELT_BUFSIZE 8192
 
 #ifdef MELT_IS_PLUGIN
 int melt_flag_debug =0; /* for MELT plugin */
@@ -8093,17 +8097,17 @@ melt_finishunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
 
 /* The plugin callback for pass execution.  */
 static void
-melt_passexec_callback (void *gcc_data,
+meltgc_passexec_callback (void *gcc_data,
 			void* user_data ATTRIBUTE_UNUSED) 
 {
   struct opt_pass* pass = (struct opt_pass*) gcc_data;
-  MELT_ENTERFRAME (4, NULL);
+  MELT_ENTERFRAME (2, NULL);
 #define passxhv   meltfram__.mcfr_varptr[0]
 #define passnamev meltfram__.mcfr_varptr[1]
   passxhv = melt_get_inisysdata (MELTFIELD_SYSDATA_PASSEXEC_HOOK);
-  MELT_LOCATION_HERE ("melt_passexec_callback");
+  MELT_LOCATION_HERE ("meltgc_passexec_callback");
   MELT_CHECK_INTERRUPT ();
-  debugeprintf ("melt_passexec_callback pass %p passxhv %p", 
+  debugeprintf ("meltgc_passexec_callback pass %p passxhv %p", 
 		(void*) pass, passxhv);
   gcc_assert (pass != NULL);
   if (melt_magic_discr((melt_ptr_t) passxhv) == MELTOBMAG_CLOSURE)
@@ -8118,17 +8122,17 @@ melt_passexec_callback (void *gcc_data,
       {
 	static char locbuf[110];
 	memset (locbuf, 0, sizeof (locbuf));
-	MELT_LOCATION_HERE_PRINTF(locbuf, "melt_passexec_callback [pass %s #%d] before apply",
+	MELT_LOCATION_HERE_PRINTF(locbuf, "meltgc_passexec_callback [pass %s #%d] before apply",
 				  pass->name, pass->static_pass_number);
       }
 #endif 
-      debugeprintf ("melt_passexec_callback before apply pass @ %p %s #%d", 
+      debugeprintf ("meltgc_passexec_callback before apply pass @ %p %s #%d", 
 		    (void*)pass, 
 		    pass->name, pass->static_pass_number);
       (void) melt_apply ((meltclosure_ptr_t) passxhv,
 			 (melt_ptr_t) passnamev,
 			 MELTBPARSTR_LONG, pararg, "", NULL);
-      debugeprintf ("melt_passexec_callback after apply pass @ %p %s #%d", 
+      debugeprintf ("meltgc_passexec_callback after apply pass @ %p %s #%d", 
 		    (void*)pass, 
 		    pass->name, pass->static_pass_number);
     }
@@ -9694,6 +9698,35 @@ meltgc_load_modules_and_do_mode (void)
 }
 
 
+/* the low level SIGIO signal handler installed thru sigaction, when IO is possible on input channels */
+static void
+melt_raw_sigio_signal(int sig)
+{
+  gcc_assert (sig == SIGIO);
+  melt_got_sigio = 1;
+  melt_interrupted = 1;
+}
+
+
+/* the low level SIGALRM signal handler installed thru sigaction, when
+   an alarm ringed. */
+static void
+melt_raw_sigalrm_signal(int sig)
+{
+  gcc_assert (sig == SIGALRM);
+  melt_got_sigio = 1;
+  melt_interrupted = 1;
+}
+
+
+static void
+melt_install_signal_handlers (void)
+{
+  signal (SIGALRM, melt_raw_sigalrm_signal);
+  signal (SIGIO, melt_raw_sigio_signal);
+  debugeprintf ("melt_install_signal_handlers insalled signal handlers for SIGIO %d and SIGALRM %d", SIGIO, SIGALRM);
+}
+
 
 /****
  * Initialize melt.  Called from toplevel.c before pass management.
@@ -9965,6 +9998,9 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     debugeprintf ("melt_really_initialize alz %p-%p (%ld Kw)",
 		  melt_startalz, melt_endalz, (long) wantedwords >> 10);
   }
+  /* Install the signal handlers, even if the signals won't be
+     sent. */
+  melt_install_signal_handlers ();
   /* We are using register_callback here, even if MELT is not compiled
      as a plugin. */
   register_callback (melt_plugin_name, PLUGIN_GGC_MARKING, 
@@ -10006,6 +10042,11 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 		     NULL);
   register_callback (melt_plugin_name, PLUGIN_EARLY_GIMPLE_PASSES_END,
 		     meltgc_early_gimple_passes_end_callback,
+		     NULL);
+  /* TYhe meltgc_passexec_callback is always registered, perhaps just to
+     check for interrupts. */
+  register_callback (melt_plugin_name, PLUGIN_PASS_EXECUTION,
+		     meltgc_passexec_callback,
 		     NULL);
   debugeprintf ("melt_really_initialize cpp_PREFIX=%s", cpp_PREFIX);
   debugeprintf ("melt_really_initialize cpp_EXEC_PREFIX=%s", cpp_EXEC_PREFIX);
@@ -13053,39 +13094,14 @@ meltgc_notify_finish_decl_hook (void)
  * Support for PLUGIN_PASS_EXECUTION
  *****/
 
-/* Function to be called by MELT code when the :sysdata_passexec_hook
-   is changed.  Called by code_chunk-s inside MELT file
-   melt/warmelt-base.melt.  */
+/* Obsolete function. No more called.  */
 void 
 meltgc_notify_sysdata_passexec_hook (void)
 {
-  MELT_ENTERFRAME (2, NULL);
-#define pxhookv      meltfram__.mcfr_varptr[0]
+  MELT_ENTEREMPTYFRAME (NULL);
   MELT_LOCATION_HERE ("meltgc_notify_sysdata_passexec_hook");
   MELT_CHECK_INTERRUPT ();
-  pxhookv =  melt_get_inisysdata (MELTFIELD_SYSDATA_PASSEXEC_HOOK);
-  debugeprintf("pxhookv= %p", pxhookv);
-  if (pxhookv == NULL) 
-    {
-      debugeprintf ("unregister PLUGIN_PASS_EXECUTION %s", melt_plugin_name);
-      unregister_callback (melt_plugin_name, PLUGIN_PASS_EXECUTION);
-    }
-  else if (melt_magic_discr ((melt_ptr_t) pxhookv) == MELTOBMAG_CLOSURE)
-    {
-      debugeprintf ("register PLUGIN_PASS_EXECUTION pxhookv=%p", pxhookv);
-      register_callback (melt_plugin_name, PLUGIN_PASS_EXECUTION,
-			 melt_passexec_callback,
-			 NULL);
-    }
-  else 
-    {
-      /* This should never happen. The calling MELT code should test that 
-	 the :sysdata_passexec_hook is either a closure or null. */
-      melt_fatal_error ("sysdata_passexec_hook has invalid kind magic #%d",
-		        melt_magic_discr ((melt_ptr_t)pxhookv));
-    }
   MELT_EXITFRAME ();
-#undef passxhv
 }
 
 /* Routine passed to walk_use_def_chains by meltgc_walk_use_def_chain
@@ -13220,63 +13236,135 @@ melt_sparebreakpoint_2_at (const char*fil, int lin, void*ptr, const char*msg) {
 
 
 
-/* the low level SIGIO signal handler installed thru sigaction, when IO is possible on input channels */
-static void
-melt_raw_sigio_signal(int sig)
+/* poll the input bucket INBUCK_P with DELAYMS millisecond delay */
+int 
+meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 {
-  gcc_assert (sig == SIGIO);
-  melt_got_sigio = 1;
-  melt_interrupted = 1;
-}
-
-
-/* the low level SIGALRM signal handler installed thru sigaction, when
-   an alarm ringed. */
-static void
-melt_raw_sigalrm_signal(int sig)
-{
-  gcc_assert (sig == SIGALRM);
-  melt_got_sigio = 1;
-  melt_interrupted = 1;
-}
-
-
-/* Internal function to be called by MELT code when the
-   :sysdata_inchannel_data is changed.  Called by code_chunk-s inside
-   MELT file melt/warmelt-base.melt.  */
-void
-meltgc_notify_inchannel_data (void)
-{
-  MELT_ENTERFRAME (1, NULL);
+  struct pollfd *fdtab = NULL;
+  bool gotdata = false;
+  int nbfd = 0;
+  unsigned buckcount = 0, ix = 0;
+  int pollres = 0;
+  MELT_ENTERFRAME (3, NULL);
 #define inbuckv   meltfram__.mcfr_varptr[0]
-  inbuckv = melt_get_inisysdata (MELTFIELD_SYSDATA_INCHANNEL_DATA);
-  if (inbuckv == NULL)
+#define curhandv  meltfram__.mcfr_varptr[1]
+#define sbufv     meltfram__.mcfr_varptr[2]
+  MELT_LOCATION_HERE("meltgc_poll_inputs");
+  inbuckv = inbuck_p;
+  if (melt_magic_discr ((melt_ptr_t) inbuckv) != MELTOBMAG_BUCKETLONGS)
+    goto end;
+  buckcount = melt_longsbucket_count ((melt_ptr_t) inbuckv);
+  ix = 0;
+  fdtab = (struct pollfd*) xcalloc (buckcount+1, sizeof(struct pollfd));
+  if (!fdtab)
+    melt_fatal_error ("meltgc_poll_inputs cannot allocate %d polling slots - %m", 
+		      (buckcount+1));
+  /* Fill fdtab with appropriate polling slots. */
+  for (ix = 0; ix < buckcount; ix++)
     {
-    }
-  else if (melt_magic_discr ((melt_ptr_t) inbuckv) == MELTOBMAG_BUCKETLONGS)
+      long curfd = ((struct meltbucketlongs_st*)inbuckv)->buckl_entab[ix].ebl_at;
+      curhandv = ((struct meltbucketlongs_st*)inbuckv)->buckl_entab[ix].ebl_va;
+      if (curfd <= 0 || !curhandv) 
+	continue;
+      if (!melt_is_instance_of ((melt_ptr_t) curhandv, 
+				(melt_ptr_t) MELT_PREDEF (CLASS_INPUT_CHANNEL_HANDLER)))
+	continue;
+      fdtab[nbfd].fd = (int) curfd;
+      fdtab[nbfd].events = POLLIN;
+      fdtab[nbfd].revents = 0;
+      nbfd++;
+    };
+  debugeprintf ("meltgc_poll_inputs polling nbfd %d delayms %d", nbfd, delayms);
+  if (nbfd > 0) 
     {
+      pollres = poll (fdtab, nbfd, delayms);
+      debugeprintf ("meltgc_poll_inputs pollres %d", pollres);
     }
+  if (pollres > 0)
+    {
+      int ixfd = 0;
+      for (ixfd = 0; ixfd < nbfd; ixfd++)
+	{
+	  int rfd = fdtab[ixfd].fd;
+	  curhandv = melt_longsbucket_get ((melt_ptr_t) inbuckv, (long) rfd);
+	  /* curhandv is very often a valid input_channel_handler. It
+	     may not be if some previous channel handling invalidated
+	     it, which is very weird.  We close the file descriptor and
+	     issue a warning in that unlikely case. */
+	  if (!curhandv)
+	    {
+	      warning (0, "MELT polling, closing fd#%d without handler", rfd);
+	      (void) close (rfd);
+	      continue;
+	    }
+	  if (!melt_is_instance_of ((melt_ptr_t) curhandv, 
+				    (melt_ptr_t) MELT_PREDEF (CLASS_INPUT_CHANNEL_HANDLER)))
+	    {
+	      warning (0, "MELT polling, closing fd#%d with invalid handler", rfd);
+	      (void) close (rfd);
+	      continue;
+	    }
+	  if (fdtab[ixfd].revents & POLLIN)
+	    {
+	      static char rbuf [MELT_BUFSIZE];
+	      int rdcnt = 0;
+	      memset (rbuf, 0, sizeof (rbuf));
+	      rdcnt = read (rfd, rbuf, sizeof(rbuf));
+	      if (rdcnt == 0) 
+		{
+		  /* reached end of file. */
+		}
+	      else if (rdcnt > 0)
+		{
+		  /* did read some bytes */
+		  // sbufv = ((meltobject_ptr_t) curhandv)->objvar_tab[MELTFIELD_INCH_SBUF];
+		}
+	      gotdata = true;
+	    }
+	  else if (fdtab[ixfd].revents & POLLNVAL)
+	    {
+	    }
+	}
+    }
+
  end:
+  if (fdtab) 
+    free(fdtab), fdtab = NULL;
   MELT_EXITFRAME ();
+  return pollres;
 }
-#undef inbuckv
 
-
-
+/* Could be called from many places, when SIGIO signal received, thru
+   melt_handle_interrupt via MELT_CHECK_INTERRUPT macro.  */
+#define MELT_POLL_DELAY_MILLISEC 10
 static void
 meltgc_handle_sigio (void)
 {
+  static long hdlcounter;
+  struct pollfd *fdtab = NULL;
+  bool gotdata = false;
+  int nbfd = 0;
   MELT_ENTERFRAME (1, NULL);
   MELT_LOCATION_HERE("meltgc_handle_sigio");
 #define inbuckv   meltfram__.mcfr_varptr[0]
-  inbuckv = melt_get_inisysdata (MELTFIELD_SYSDATA_INCHANNEL_DATA);
-  if (melt_magic_discr ((melt_ptr_t) inbuckv) == MELTOBMAG_BUCKETLONGS)
-    {
-    }
-  melt_fatal_error ("meltgc_handle_sigalrm unimplemented pid %d", (int) getpid());
+  hdlcounter++;
+  debugeprintf ("meltgc_handle_sigio #%ld", hdlcounter);
+  do {
+    gotdata = false;
+    inbuckv = melt_get_inisysdata (MELTFIELD_SYSDATA_INCHANNEL_DATA);
+    if (melt_magic_discr ((melt_ptr_t) inbuckv) == MELTOBMAG_BUCKETLONGS)
+      gotdata = meltgc_poll_inputs ((melt_ptr_t) inbuckv, MELT_POLL_DELAY_MILLISEC) >0;
+  } while (gotdata);
+  goto end;
+ end:
   MELT_EXITFRAME ();
+#undef inbuckv
+#undef curhandv
 }
 
+
+/* Could be called from many places thru melt_handle_interrupt via
+   MELT_CHECK_INTERRUPT macro.  Not yet implemented. */
 static void
 meltgc_handle_sigalrm (void)
 {
