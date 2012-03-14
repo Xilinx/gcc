@@ -1,0 +1,6 @@
+2012-03-13  Easwaran Raman <eraman@google.com>
+
+	Backport r185349 from google/main
+
+	* include/ext/new_allocator.h (deallocate): Call delete with size if
+	__GXX_DELETE_WITH_SIZE__ is defined.

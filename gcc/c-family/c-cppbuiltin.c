@@ -970,6 +970,8 @@ c_cpp_builtins (cpp_reader *pfile)
      format.  */
   if (ENABLE_DECIMAL_FLOAT && ENABLE_DECIMAL_BID_FORMAT)
     cpp_define (pfile, "__DECIMAL_BID_FORMAT__");
+  if (c_dialect_cxx () && flag_sized_delete)
+    cpp_define (pfile, "__GXX_DELETE_WITH_SIZE__");
 }
 
 /* Pass an object-like macro.  If it doesn't lie in the user's
