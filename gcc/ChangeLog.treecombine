@@ -1,5 +1,10 @@
 2012-03-12  Andrew Pinski  <apinski@cavium.com>
 
+	* gimple-ssa-combine.c (simplify_bitwise_binary): Just handle
+	(A & B) OP (C & B) rather than (A OP1 B) OP0 (C OP1 B).
+
+2012-03-12  Andrew Pinski  <apinski@cavium.com>
+
 	Revert since there is a better patch implemented now:
 	* tree-vrp.c (register_edge_assert_for_2): Handle (int)UNAME >= 0 as
 	UNAME < (unsigned)SIGNED_MIN for the asserts.

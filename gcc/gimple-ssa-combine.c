@@ -1705,19 +1705,13 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       return gimple_combine_build2 (loc, code, type, def1_arg1, cst);
     }
 
-   /* Fold (A OP1 B) OP0 (C OP1 B) to (A OP0 C) OP1 (B OP0 B). */
+   /* Fold (A & B) OP0 (C & B) to (A OP0 C) & B. */
    if (def1_code == def2_code
-       && (def1_code == BIT_AND_EXPR
-	   || def1_code == BIT_XOR_EXPR
-	   || def1_code == BIT_IOR_EXPR)
-       && operand_equal_for_phi_arg_p (def1_arg2,
-				       def2_arg2))
+       && def1_code == BIT_AND_EXPR
+       && operand_equal_for_phi_arg_p (def1_arg2, def2_arg2))
     {
-      tree inner = gimple_combine_build2 (loc, code, type, def1_arg1, def2_arg1);
-      if (code == def1_code && code == BIT_XOR_EXPR)
-	/* (A ^ B) ^ (C ^ B) -> A ^ C since B ^ B is 0. */
-	return inner;
-      return gimple_combine_build2 (loc, def1_code, type, inner, def1_arg2);
+      tree lhs = gimple_combine_build2 (loc, code, type, def1_arg1, def2_arg1);
+      return gimple_combine_build2 (loc, def1_code, type, lhs, def1_arg2);
     }
 
   /* Canonicalize X ^ ~0 to ~X.  */
