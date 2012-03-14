@@ -1935,7 +1935,61 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 
   return NULL;
 }
+static tree
+simplify_shift_rotate (location_t loc, enum tree_code code, tree type,
+		       tree arg0, tree arg1)
+{
+  tree def1_arg0, def1_arg1 = NULL_TREE;
+  enum tree_code def1_code;
+  /* 0 << a -> 0 */
+  /* a << 0 -> a */
+  if (integer_zerop (arg0) || integer_zerop (arg1))
+    return arg0;
 
+  /* -1 R b -> -1 */
+  if ((code == LROTATE_EXPR || code == RROTATE_EXPR)
+      && integer_all_onesp (arg0))
+    return arg0;
+
+  defcodefor_name (arg0, &def1_code, &def1_arg0, &def1_arg1);
+  /* Turn (a OP c1) OP c2 into a OP (c1+c2). */
+  if (def1_code == code && host_integerp (arg1, false)
+      && TREE_INT_CST_LOW (arg1) < TYPE_PRECISION (type)
+      && host_integerp (def1_arg1, false)
+      && TREE_INT_CST_LOW (def1_arg1) < TYPE_PRECISION (type))
+    {
+      HOST_WIDE_INT low = (TREE_INT_CST_LOW (def1_arg1)
+			   + TREE_INT_CST_LOW (arg1));
+
+       /* Deal with a OP (c1 + c2) being undefined but (a OP c1) OP c2
+	  being well defined.  */
+       if (low >= TYPE_PRECISION (type))
+	{
+	  if (code == LROTATE_EXPR || code == RROTATE_EXPR)
+	    low = low % TYPE_PRECISION (type);
+	  else if (TYPE_UNSIGNED (type) || code == LSHIFT_EXPR)
+	    return build_int_cst (type, 0);
+	  else
+	    low = TYPE_PRECISION (type) - 1;
+	 }
+       return gimple_combine_build2 (loc, code, type, def1_arg0,
+				     build_int_cst (type, low));
+    }
+
+  /* Rewrite an LROTATE_EXPR by a constant into an
+     RROTATE_EXPR by a new constant.  */
+  if (code == LROTATE_EXPR && TREE_CODE (arg1) == INTEGER_CST)
+    {
+      tree tem = build_int_cst (TREE_TYPE (arg1),
+				TYPE_PRECISION (type));
+       tem = gimple_combine_build2 (loc, MINUS_EXPR, TREE_TYPE (arg1), tem,
+				    arg1);
+       return gimple_combine_build2 (loc, RROTATE_EXPR, type, arg0, tem);
+    }
+
+
+  return NULL_TREE;
+}
 /* Simplify a multiply expression if possible. */
 static tree
 simplify_mult_expr (location_t loc, enum tree_code code, tree type,
@@ -1989,6 +2043,44 @@ simplify_mult_expr (location_t loc, enum tree_code code, tree type,
   return NULL_TREE;
 }
 
+/* Try to simplify a pointer difference of type TYPE two address expressions of
+   array references AREF0 and AREF1 using location LOC.  Return a
+   simplified expression for the difference or NULL_TREE.  */
+
+static tree
+gimple_combine_addr_ref_difference (location_t loc, tree type,
+				    tree aref0, tree aref1)
+{
+  tree base0 = TREE_OPERAND (aref0, 0);
+  tree base1 = TREE_OPERAND (aref1, 0);
+  tree base_offset = build_int_cst (type, 0);
+
+  /* If the bases are array references as well, recurse.  If the bases
+     are pointer indirections compute the difference of the pointers.
+     If the bases are equal, we are set.  */
+  if ((TREE_CODE (base0) == ARRAY_REF
+       && TREE_CODE (base1) == ARRAY_REF
+       && (base_offset
+	   = gimple_combine_addr_ref_difference (loc, type, base0, base1)))
+      || (INDIRECT_REF_P (base0)
+	  && INDIRECT_REF_P (base1)
+	  && (base_offset = gimple_combine_binary (loc, MINUS_EXPR, type,
+						   TREE_OPERAND (base0, 0),
+						   TREE_OPERAND (base1, 0))))
+      || operand_equal_p (base0, base1, 0))
+    {
+      tree op0 = gimple_combine_convert (loc, type, TREE_OPERAND (aref0, 1));
+      tree op1 = gimple_combine_convert (loc, type, TREE_OPERAND (aref1, 1));
+      tree esz = gimple_combine_convert (loc, type,
+					 array_ref_element_size (aref0));
+      tree diff = gimple_combine_build2 (loc, MINUS_EXPR, type, op0, op1);
+      return gimple_combine_build2 (loc, PLUS_EXPR, type,
+			      base_offset,
+			      gimple_combine_build2 (loc, MULT_EXPR, type,
+					       diff, esz));
+    }
+  return NULL_TREE;
+}
 
 /* Perform re-associations of the plus or minus statement STMT that are
    always permitted.  */
@@ -2044,7 +2136,7 @@ simplify_plusminus (location_t loc, enum tree_code code, tree type,
    if (code == MINUS_EXPR
        && (!FLOAT_TYPE_P (type) || !HONOR_NANS (TYPE_MODE (type)))
            && operand_equal_p (rhs1, rhs2, 0))
-      return build_zero_cst (type);
+    return build_zero_cst (type);
 
   /* We can't reassociate at all for saturating types.  */
   if (TYPE_SATURATING (type))
@@ -2058,11 +2150,41 @@ simplify_plusminus (location_t loc, enum tree_code code, tree type,
     {
       HOST_WIDE_INT diff;
 
-      if ((def1_code == ADDR_EXPR
-           && def2_code == ADDR_EXPR)
+      if (CONVERT_EXPR_CODE_P (def1_code)
+          && CONVERT_EXPR_CODE_P (def2_code)
+	  && TREE_CODE (def1_arg1) == ADDR_EXPR
+	  && TREE_CODE (def2_arg1) == ADDR_EXPR
+	  && INTEGRAL_TYPE_P (type)
+	  && TYPE_PRECISION (type) == TYPE_PRECISION (TREE_TYPE (def1_arg1))
+	  && TYPE_PRECISION (type) == TYPE_PRECISION (TREE_TYPE (def2_arg1))
           && ptr_difference_const (def1_arg1, def2_arg1, &diff))
         return build_int_cst_type (type, diff);
+
+      if (CONVERT_EXPR_CODE_P (def1_code)
+          && CONVERT_EXPR_CODE_P (def2_code)
+	  && INTEGRAL_TYPE_P (type)
+	  && POINTER_TYPE_P (TREE_TYPE (def1_arg1))
+	  && POINTER_TYPE_P (TREE_TYPE (def2_arg1)))
+	{
+	  tree def11, def21;
+	  enum tree_code def1c, def2c;
+	  defcodefor_name (def1_arg1, &def1c, &def11, NULL);
+	  defcodefor_name (def2_arg1, &def2c, &def21, NULL);
+	  if (def1c == ADDR_EXPR
+	      && TREE_CODE (TREE_OPERAND (def11, 0)) == ARRAY_REF
+	      && def2c == ADDR_EXPR
+	      && TREE_CODE (TREE_OPERAND (def21, 0)) == ARRAY_REF)
+	    {
+	      tree tem;
+	      tem = gimple_combine_addr_ref_difference (loc, type,
+						        TREE_OPERAND (def11, 0),
+						        TREE_OPERAND (def21, 0));
+	      if (tem)
+		return tem;
+	    }
+	}
     }
+
 
   /* First contract negates.  */
 
@@ -2532,6 +2654,11 @@ gimple_combine_binary (location_t loc, enum tree_code code,
 
   switch (code)
     {
+      case LSHIFT_EXPR:
+      case RSHIFT_EXPR:
+      case LROTATE_EXPR:
+      case RROTATE_EXPR:
+	return simplify_shift_rotate (loc, code, type, arg1, arg2);
       case BIT_AND_EXPR:
       case BIT_XOR_EXPR:
       case BIT_IOR_EXPR:

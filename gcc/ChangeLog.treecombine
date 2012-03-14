@@ -1,5 +1,15 @@
 2012-03-12  Andrew Pinski  <apinski@cavium.com>
 
+	* gimple-ssa-combine.c (simplify_shift_rotate): New function.
+	(gimple_combine_addr_ref_difference): New function.
+	(simplify_plusminus): Fix up support for doing pointer differences,
+	they will have casts inbetween.
+	Try to simplify (int)&a[i] - (int)&a[j] into i-j.
+	(gimple_combine_binary): Call simplify_shift_rotate for shifts and
+	rotates.
+
+2012-03-12  Andrew Pinski  <apinski@cavium.com>
+
 	* gimple-ssa-combine.c (simplify_bitwise_binary): Just handle
 	(A & B) OP (C & B) rather than (A OP1 B) OP0 (C OP1 B).
 
