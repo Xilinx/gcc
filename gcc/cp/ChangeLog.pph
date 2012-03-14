@@ -1,3 +1,9 @@
+2012-03-14   Diego Novillo  <dnovillo@google.com>
+
+	* pph-in.c (pph_in_merge_key_tree_with_searcher): Detect and
+	diagnose attempts to merge two distinct trees from the same
+	PPH image.
+
 2012-03-13   Diego Novillo  <dnovillo@google.com>
 
 	* decl.c (cp_rest_of_decl_compilation): When generating a PPH

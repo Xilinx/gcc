@@ -2625,7 +2625,23 @@ pph_in_merge_key_tree_with_searcher (pph_stream *stream, void *holder,
   gcc_assert (expr != NULL);
 
   if (expr != read_expr)
-    pph_merge_tree_attributes (expr, read_expr);
+    {
+      /* When STREAM was generated, EXPR and READ_EXPR were saved as
+	 distinct trees (otherwise, we would have gotten READ_EXPR as
+	 an internal reference). That's why we are reading them now as
+	 distinct pointers.
+
+	 So, if we find that EXPR has already been registered in
+	 STREAM's cache, it means that we should not be trying to
+	 merge them.  After all, the writer considered them different
+	 objects.  */
+      if (pph_cache_lookup (&stream->cache, expr, NULL,
+			    pph_tree_code_to_tag (expr)))
+	fatal_error ("Trying to merge distinct trees from the same "
+		     "PPH image %s", stream->name);
+
+      pph_merge_tree_attributes (expr, read_expr);
+    }
 
   pph_cache_insert_at (&stream->cache, expr, ix,
 		       pph_tree_code_to_tag (expr));
