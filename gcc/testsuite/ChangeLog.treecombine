@@ -1,3 +1,7 @@
+2012-03-13  Andrew Pinski  <apinski@cavium.com>
+
+	* gcc.c-torture/execute/20120313-1.c: New testcase.
+
 2012-03-11  Andrew Pinski  <apinski@cavium.com>
 
 	* gcc.dg/tree-ssa/foldstring-1.c: Check
