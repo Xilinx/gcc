@@ -613,6 +613,14 @@ cp_lexer_alloc (void)
 }
 
 
+/* The lexer.   This GC root is required to support running the
+   garbage collector during lexing.  This happens when the lexer loads
+   pre-parsed headers.  Loading these headers calls into the
+   middle-end, which may run the garbage collector.  */
+
+static GTY (()) cp_lexer *the_lexer;
+
+
 /* Create a new main C++ lexer, the lexer that gets tokens from the
    preprocessor.  */
 
@@ -627,7 +635,7 @@ cp_lexer_new_main (void)
      allocating any memory.  */
   cp_parser_initial_pragma (&token);
 
-  lexer = cp_lexer_alloc ();
+  the_lexer = lexer = cp_lexer_alloc ();
 
   /* Put the first token in the buffer.  */
   VEC_quick_push (cp_token, lexer->buffer, &token);
@@ -27497,6 +27505,7 @@ c_parse_file (void)
 				? dk_no_deferred : dk_no_check);
   cp_parser_translation_unit (the_parser);
   the_parser = NULL;
+  the_lexer = NULL;
 
   if (pph_enabled_p ())
     pph_finish ();

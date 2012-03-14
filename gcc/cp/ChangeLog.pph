@@ -1,5 +1,11 @@
 2012-03-14   Diego Novillo  <dnovillo@google.com>
 
+	* parser.c (the_lexer): Declare.
+	(cp_lexer_new_main): Initialize.
+	(c_parse_file): Set to NULL.
+
+2012-03-14   Diego Novillo  <dnovillo@google.com>
+
 	* pph-in.c (pph_in_merge_key_tree_with_searcher): Detect and
 	diagnose attempts to merge two distinct trees from the same
 	PPH image.
