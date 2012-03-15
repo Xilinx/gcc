@@ -467,6 +467,9 @@ extern int x86_prefetch_sse;
 #define TARGET_TLS_DIRECT_SEG_REFS_DEFAULT 0
 #endif
 
+/* Address override works only on the (%reg) part of %fs:(%reg).  */
+#define TARGET_TLS_INDIRECT_SEG_REFS (Pmode == word_mode)
+
 /* Fence to use after loop using storent.  */
 
 extern tree x86_mfence;
@@ -1745,7 +1748,7 @@ do {							\
 /* Specify the machine mode that pointers have.
    After generation of rtl, the compiler makes no further distinction
    between pointers and any other objects of this machine mode.  */
-#define Pmode (TARGET_LP64 ? DImode : SImode)
+#define Pmode (ix86_pmode == PMODE_DI ? DImode : SImode)
 
 /* A C expression whose value is zero if pointers that need to be extended
    from being `POINTER_SIZE' bits wide to `Pmode' are sign-extended and

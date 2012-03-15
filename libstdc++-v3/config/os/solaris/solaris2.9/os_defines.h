@@ -1,6 +1,7 @@
-// Low-level functions for atomic operations: IRIX version  -*- C++ -*-
+// Specific definitions for Solaris 9+  -*- C++ -*-
 
-// Copyright (C) 2001, 2004, 2005, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2000, 2002, 2005, 2009, 2011, 2012
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -22,20 +23,18 @@
 // see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 // <http://www.gnu.org/licenses/>.
 
-#include <mutex.h>
-#include <ext/atomicity.h>
+#ifndef _GLIBCXX_OS_DEFINES
+#define _GLIBCXX_OS_DEFINES 1
 
-namespace __gnu_cxx _GLIBCXX_VISIBILITY(default)
-{
-_GLIBCXX_BEGIN_NAMESPACE_VERSION
+// System-specific #define, typedefs, corrections, etc, go here.  This
+// file will come before all others.
 
-  _Atomic_word
-  __exchange_and_add(volatile _Atomic_word* __mem, int __val) throw ()
-  { return (_Atomic_word) test_then_add((unsigned long*) const_cast<_Atomic_word*>(__mem), __val); }
+#if __cplusplus >= 199711L
+#define __CORRECT_ISO_CPP_MATH_H_PROTO
+#define __CORRECT_ISO_CPP_STDLIB_H_PROTO
+#define __CORRECT_ISO_CPP_STRING_H_PROTO
+#define __CORRECT_ISO_CPP_WCHAR_H_PROTO
+#endif
 
-  void
-  __atomic_add(volatile _Atomic_word* __mem, int __val) throw ()
-  { __exchange_and_add(__mem, __val); }
+#endif
 
-_GLIBCXX_END_NAMESPACE_VERSION
-} // namespace
