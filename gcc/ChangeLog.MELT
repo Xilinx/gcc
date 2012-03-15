@@ -9,6 +9,13 @@
 
 2011-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (melt_strbuf_consume): New inline function.
+
+	* melt-runtime.c (meltgc_notify_sysdata_passexec_hook): Remove.
+	(meltgc_poll_inputs): More.
+
+2011-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/warmelt-base+01.c: Regenerate.
