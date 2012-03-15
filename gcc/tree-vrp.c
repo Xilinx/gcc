@@ -4462,17 +4462,69 @@ register_edge_assert_for_2 (tree name, edge e, gimple_stmt_iterator bsi,
 	}
     }
 
-  /* Similarly add asserts for NAME == CST and NAME being defined as
-     NAME = NAME2 >> CST2.  */
   if (TREE_CODE_CLASS (comp_code) == tcc_comparison
       && TREE_CODE (val) == INTEGER_CST)
     {
       gimple def_stmt = SSA_NAME_DEF_STMT (name);
       tree name2 = NULL_TREE, cst2 = NULL_TREE;
       tree val2 = NULL_TREE;
-      unsigned HOST_WIDE_INT mask[2] = { 0, 0 };
+      double_int mask = double_int_zero;
+      unsigned int prec = TYPE_PRECISION (TREE_TYPE (val));
 
-      /* Extract CST2 from the right shift.  */
+      /* Add asserts for NAME cmp CST and NAME being defined
+	 as NAME = (int) NAME2.  */
+      if (!TYPE_UNSIGNED (TREE_TYPE (val))
+	  && (comp_code == LE_EXPR || comp_code == LT_EXPR
+	      || comp_code == GT_EXPR || comp_code == GE_EXPR)
+	  && gimple_assign_cast_p (def_stmt))
+	{
+	  name2 = gimple_assign_rhs1 (def_stmt);
+	  if (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (def_stmt))
+	      && INTEGRAL_TYPE_P (TREE_TYPE (name2))
+	      && TYPE_UNSIGNED (TREE_TYPE (name2))
+	      && prec == TYPE_PRECISION (TREE_TYPE (name2))
+	      && (comp_code == LE_EXPR || comp_code == GT_EXPR
+		  || !tree_int_cst_equal (val,
+					  TYPE_MIN_VALUE (TREE_TYPE (val))))
+	      && live_on_edge (e, name2)
+	      && !has_single_use (name2))
+	    {
+	      tree tmp, cst;
+	      enum tree_code new_comp_code = comp_code;
+
+	      cst = fold_convert (TREE_TYPE (name2),
+				  TYPE_MIN_VALUE (TREE_TYPE (val)));
+	      /* Build an expression for the range test.  */
+	      tmp = build2 (PLUS_EXPR, TREE_TYPE (name2), name2, cst);
+	      cst = fold_build2 (PLUS_EXPR, TREE_TYPE (name2), cst,
+				 fold_convert (TREE_TYPE (name2), val));
+	      if (comp_code == LT_EXPR || comp_code == GE_EXPR)
+		{
+		  new_comp_code = comp_code == LT_EXPR ? LE_EXPR : GT_EXPR;
+		  cst = fold_build2 (MINUS_EXPR, TREE_TYPE (name2), cst,
+				     build_int_cst (TREE_TYPE (name2), 1));
+		}
+
+	      if (dump_file)
+		{
+		  fprintf (dump_file, "Adding assert for ");
+		  print_generic_expr (dump_file, name2, 0);
+		  fprintf (dump_file, " from ");
+		  print_generic_expr (dump_file, tmp, 0);
+		  fprintf (dump_file, "\n");
+		}
+
+	      register_new_assert_for (name2, tmp, new_comp_code, cst, NULL,
+				       e, bsi);
+
+	      retval = true;
+	    }
+	}
+
+      /* Add asserts for NAME cmp CST and NAME being defined as
+	 NAME = NAME2 >> CST2.
+
+	 Extract CST2 from the right shift.  */
       if (is_gimple_assign (def_stmt)
 	  && gimple_assign_rhs_code (def_stmt) == RSHIFT_EXPR)
 	{
@@ -4480,27 +4532,16 @@ register_edge_assert_for_2 (tree name, edge e, gimple_stmt_iterator bsi,
 	  cst2 = gimple_assign_rhs2 (def_stmt);
 	  if (TREE_CODE (name2) == SSA_NAME
 	      && host_integerp (cst2, 1)
-	      && (unsigned HOST_WIDE_INT) tree_low_cst (cst2, 1)
-		 < 2 * HOST_BITS_PER_WIDE_INT
 	      && INTEGRAL_TYPE_P (TREE_TYPE (name2))
+	      && IN_RANGE (tree_low_cst (cst2, 1), 1, prec - 1)
+	      && prec <= 2 * HOST_BITS_PER_WIDE_INT
 	      && live_on_edge (e, name2)
 	      && !has_single_use (name2))
 	    {
-	      if ((unsigned HOST_WIDE_INT) tree_low_cst (cst2, 1)
-		  < HOST_BITS_PER_WIDE_INT)
-		mask[0] = ((unsigned HOST_WIDE_INT) 1
-			   << tree_low_cst (cst2, 1)) - 1;
-	      else
-		{
-		  mask[1] = ((unsigned HOST_WIDE_INT) 1
-			     << (tree_low_cst (cst2, 1)
-				 - HOST_BITS_PER_WIDE_INT)) - 1;
-		  mask[0] = -1;
-		}
+	      mask = double_int_mask (tree_low_cst (cst2, 1));
 	      val2 = fold_binary (LSHIFT_EXPR, TREE_TYPE (val), val, cst2);
 	    }
 	}
-
       if (val2 != NULL_TREE
 	  && TREE_CODE (val2) == INTEGER_CST
 	  && simple_cst_equal (fold_build2 (RSHIFT_EXPR,
@@ -4515,37 +4556,40 @@ register_edge_assert_for_2 (tree name, edge e, gimple_stmt_iterator bsi,
 	    {
 	      if (!TYPE_UNSIGNED (TREE_TYPE (val)))
 		{
-		  unsigned int prec = TYPE_PRECISION (TREE_TYPE (val));
 		  tree type = build_nonstandard_integer_type (prec, 1);
 		  tmp = build1 (NOP_EXPR, type, name2);
 		  val2 = fold_convert (type, val2);
 		}
 	      tmp = fold_build2 (MINUS_EXPR, TREE_TYPE (tmp), tmp, val2);
-	      new_val = build_int_cst_wide (TREE_TYPE (tmp), mask[0], mask[1]);
+	      new_val = double_int_to_tree (TREE_TYPE (tmp), mask);
 	      new_comp_code = comp_code == EQ_EXPR ? LE_EXPR : GT_EXPR;
 	    }
 	  else if (comp_code == LT_EXPR || comp_code == GE_EXPR)
 	    new_val = val2;
 	  else
 	    {
-	      new_val = build_int_cst_wide (TREE_TYPE (val2),
-					    mask[0], mask[1]);
-	      new_val = fold_binary (BIT_IOR_EXPR, TREE_TYPE (val2),
-				     val2, new_val);
+	      mask = double_int_ior (tree_to_double_int (val2), mask);
+	      if (double_int_minus_one_p (double_int_sext (mask, prec)))
+		new_val = NULL_TREE;
+	      else
+		new_val = double_int_to_tree (TREE_TYPE (val2), mask);
 	    }
 
-	  if (dump_file)
+	  if (new_val)
 	    {
-	      fprintf (dump_file, "Adding assert for ");
-	      print_generic_expr (dump_file, name2, 0);
-	      fprintf (dump_file, " from ");
-	      print_generic_expr (dump_file, tmp, 0);
-	      fprintf (dump_file, "\n");
-	    }
+	      if (dump_file)
+		{
+		  fprintf (dump_file, "Adding assert for ");
+		  print_generic_expr (dump_file, name2, 0);
+		  fprintf (dump_file, " from ");
+		  print_generic_expr (dump_file, tmp, 0);
+		  fprintf (dump_file, "\n");
+		}
 
-	  register_new_assert_for (name2, tmp, new_comp_code, new_val,
-				   NULL, e, bsi);
-	  retval = true;
+	      register_new_assert_for (name2, tmp, new_comp_code, new_val,
+				       NULL, e, bsi);
+	      retval = true;
+	    }
 	}
     }
 

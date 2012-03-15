@@ -50,6 +50,7 @@ package Aspects is
       Aspect_Bit_Order,
       Aspect_Component_Size,
       Aspect_Constant_Indexing,
+      Aspect_Contract_Case,                 -- GNAT
       Aspect_CPU,
       Aspect_Default_Component_Value,
       Aspect_Default_Iterator,
@@ -74,6 +75,7 @@ package Aspects is
       Aspect_Predicate,                     -- GNAT
       Aspect_Priority,
       Aspect_Read,
+      Aspect_Scalar_Storage_Order,          -- GNAT
       Aspect_Simple_Storage_Pool,           -- GNAT
       Aspect_Size,
       Aspect_Small,
@@ -175,6 +177,7 @@ package Aspects is
                             (Aspect_Ada_2005                 => True,
                              Aspect_Ada_2012                 => True,
                              Aspect_Compiler_Unit            => True,
+                             Aspect_Contract_Case            => True,
                              Aspect_Dimension                => True,
                              Aspect_Dimension_System         => True,
                              Aspect_Favor_Top_Level          => True,
@@ -188,6 +191,7 @@ package Aspects is
                              Aspect_Pure_Function            => True,
                              Aspect_Remote_Access_Type       => True,
                              Aspect_Shared                   => True,
+                             Aspect_Scalar_Storage_Order     => True,
                              Aspect_Simple_Storage_Pool      => True,
                              Aspect_Simple_Storage_Pool_Type => True,
                              Aspect_Suppress_Debug_Info      => True,
@@ -204,8 +208,9 @@ package Aspects is
    --  the same aspect attached to the same declaration are allowed.
 
    No_Duplicates_Allowed : constant array (Aspect_Id) of Boolean :=
-                             (Aspect_Test_Case => False,
-                              others           => True);
+                             (Aspect_Contract_Case => False,
+                              Aspect_Test_Case     => False,
+                              others               => True);
 
    --  The following array indicates type aspects that are inherited and apply
    --  to the class-wide type as well.
@@ -257,6 +262,7 @@ package Aspects is
                         Aspect_Bit_Order               => Expression,
                         Aspect_Component_Size          => Expression,
                         Aspect_Constant_Indexing       => Name,
+                        Aspect_Contract_Case           => Expression,
                         Aspect_CPU                     => Expression,
                         Aspect_Default_Component_Value => Expression,
                         Aspect_Default_Iterator        => Name,
@@ -281,6 +287,7 @@ package Aspects is
                         Aspect_Predicate               => Expression,
                         Aspect_Priority                => Expression,
                         Aspect_Read                    => Name,
+                        Aspect_Scalar_Storage_Order    => Expression,
                         Aspect_Simple_Storage_Pool     => Name,
                         Aspect_Size                    => Expression,
                         Aspect_Small                   => Expression,
@@ -322,6 +329,7 @@ package Aspects is
      Aspect_Compiler_Unit                => Name_Compiler_Unit,
      Aspect_Component_Size               => Name_Component_Size,
      Aspect_Constant_Indexing            => Name_Constant_Indexing,
+     Aspect_Contract_Case                => Name_Contract_Case,
      Aspect_CPU                          => Name_CPU,
      Aspect_Default_Iterator             => Name_Default_Iterator,
      Aspect_Default_Value                => Name_Default_Value,
@@ -367,6 +375,7 @@ package Aspects is
      Aspect_Remote_Access_Type           => Name_Remote_Access_Type,
      Aspect_Remote_Call_Interface        => Name_Remote_Call_Interface,
      Aspect_Remote_Types                 => Name_Remote_Types,
+     Aspect_Scalar_Storage_Order         => Name_Scalar_Storage_Order,
      Aspect_Shared                       => Name_Shared,
      Aspect_Shared_Passive               => Name_Shared_Passive,
      Aspect_Simple_Storage_Pool          => Name_Simple_Storage_Pool,

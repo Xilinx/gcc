@@ -1,5 +1,6 @@
 /* gfortran backend interface
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+   2010, 2012
    Free Software Foundation, Inc.
    Contributed by Paul Brook.
 
@@ -604,7 +605,7 @@ build_builtin_fntypes (tree *fntype, tree type)
 static tree
 builtin_type_for_size (int size, bool unsignedp)
 {
-  tree type = lang_hooks.types.type_for_size (size, unsignedp);
+  tree type = gfc_type_for_size (size, unsignedp);
   return type ? type : error_mark_node;
 }
 

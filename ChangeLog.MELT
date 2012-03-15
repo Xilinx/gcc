@@ -1,5 +1,9 @@
 
 2012-03-15  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	MELT branch merged with trunk rev 185416 using svnmerge
+
+2012-03-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* INSTALL/README-MELT-PLUGIN: Mention interrupts and embedded
 	$[...] and $(....) in marostrings.
 
