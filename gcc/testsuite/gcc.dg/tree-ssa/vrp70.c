@@ -1,0 +1,14 @@
+/* { dg-do compile } */
+/* { dg-options "-O2 -fno-tree-ccp -fdump-tree-vrp1" } */
+
+int f(int x)
+{
+  if (x >= 0 && x <= 3)
+    {
+      x = (x ^ 3) & 3;
+    }
+  return x;
+}
+
+/* { dg-final { scan-tree-dump-times " & 3;" 0 "vrp1" } } */
+/* { dg-final { cleanup-tree-dump "vrp1" } } */
