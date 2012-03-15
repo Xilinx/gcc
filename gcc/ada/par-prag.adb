@@ -310,7 +310,7 @@ begin
 
       when Pragma_Ada_83 =>
          Ada_Version := Ada_83;
-         Ada_Version_Explicit := Ada_Version;
+         Ada_Version_Explicit := Ada_83;
 
       ------------
       -- Ada_95 --
@@ -322,7 +322,7 @@ begin
 
       when Pragma_Ada_95 =>
          Ada_Version := Ada_95;
-         Ada_Version_Explicit := Ada_Version;
+         Ada_Version_Explicit := Ada_95;
 
       ---------------------
       -- Ada_05/Ada_2005 --
@@ -1109,6 +1109,7 @@ begin
            Pragma_Compile_Time_Error             |
            Pragma_Compile_Time_Warning           |
            Pragma_Compiler_Unit                  |
+           Pragma_Contract_Case                  |
            Pragma_Convention_Identifier          |
            Pragma_CPP_Class                      |
            Pragma_CPP_Constructor                |

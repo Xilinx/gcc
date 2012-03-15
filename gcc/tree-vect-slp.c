@@ -249,12 +249,14 @@ vect_get_and_check_slp_defs (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
       /* Check if DEF_STMT is a part of a pattern in LOOP and get the def stmt
          from the pattern.  Check that all the stmts of the node are in the
          pattern.  */
-      if (loop && def_stmt && gimple_bb (def_stmt)
-          && flow_bb_inside_loop_p (loop, gimple_bb (def_stmt))
+      if (def_stmt && gimple_bb (def_stmt)
+          && ((loop && flow_bb_inside_loop_p (loop, gimple_bb (def_stmt)))
+	      || (!loop && gimple_bb (def_stmt) == BB_VINFO_BB (bb_vinfo)
+		  && gimple_code (def_stmt) != GIMPLE_PHI))
           && vinfo_for_stmt (def_stmt)
           && STMT_VINFO_IN_PATTERN_P (vinfo_for_stmt (def_stmt))
-          && !STMT_VINFO_RELEVANT (vinfo_for_stmt (def_stmt))
-          && !STMT_VINFO_LIVE_P (vinfo_for_stmt (def_stmt)))
+	  && !STMT_VINFO_RELEVANT (vinfo_for_stmt (def_stmt))
+	  && !STMT_VINFO_LIVE_P (vinfo_for_stmt (def_stmt)))
         {
           pattern = true;
           if (!first && !oprnd_info->first_pattern)
@@ -2015,7 +2017,9 @@ vect_slp_analyze_bb_1 (basic_block bb)
       return NULL;
     }
 
-   if (!vect_analyze_data_ref_dependences (NULL, bb_vinfo, &max_vf)
+  vect_pattern_recog (NULL, bb_vinfo);
+
+  if (!vect_analyze_data_ref_dependences (NULL, bb_vinfo, &max_vf)
        || min_vf > max_vf)
      {
        if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
@@ -2709,9 +2713,8 @@ vect_transform_slp_perm_load (gimple stmt, VEC (tree, heap) *dr_chain,
 
   /* The generic VEC_PERM_EXPR code always uses an integral type of the
      same size as the vector element being permuted.  */
-  mask_element_type
-    = lang_hooks.types.type_for_size
-    (TREE_INT_CST_LOW (TYPE_SIZE (TREE_TYPE (vectype))), 1);
+  mask_element_type = lang_hooks.types.type_for_mode
+		(int_mode_for_mode (TYPE_MODE (TREE_TYPE (vectype))), 1);
   mask_type = get_vectype_for_scalar_type (mask_element_type);
   nunits = TYPE_VECTOR_SUBPARTS (vectype);
   mask = XALLOCAVEC (unsigned char, nunits);

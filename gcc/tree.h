@@ -2088,6 +2088,9 @@ struct GTY(()) tree_omp_clause {
 #define BLOCK_ABSTRACT_ORIGIN(NODE) (BLOCK_CHECK (NODE)->block.abstract_origin)
 #define BLOCK_ABSTRACT(NODE) (BLOCK_CHECK (NODE)->block.abstract_flag)
 
+/* True if BLOCK has the same ranges as its BLOCK_SUPERCONTEXT.  */
+#define BLOCK_SAME_RANGE(NODE) (BLOCK_CHECK (NODE)->base.nameless_flag)
+
 /* An index number for this block.  These values are not guaranteed to
    be unique across functions -- whether or not they are depends on
    the debugging output format in use.  */
@@ -3020,6 +3023,11 @@ struct GTY(()) tree_decl_with_rtl {
    TREE_TYPE may have been modified (in finish_struct).  */
 #define DECL_BIT_FIELD_TYPE(NODE) \
   (FIELD_DECL_CHECK (NODE)->field_decl.bit_field_type)
+
+/* In a FIELD_DECL of a RECORD_TYPE, this is a pointer to the storage
+   representative FIELD_DECL.  */
+#define DECL_BIT_FIELD_REPRESENTATIVE(NODE) \
+  (FIELD_DECL_CHECK (NODE)->field_decl.qualifier)
 
 /* For a FIELD_DECL in a QUAL_UNION_TYPE, records the expression, which
    if nonzero, indicates that the field occupies the type.  */

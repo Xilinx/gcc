@@ -30,7 +30,7 @@ const darwinAMD64 = runtime.GOOS == "darwin" && runtime.GOARCH == "amd64"
 // the arguments, so that we don't pass a 64-bit value when the function
 // expects a 32-bit one.
 func Syscall(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno) {
-	entersyscall()
+	Entersyscall()
 	var r uintptr
 	if unsafe.Sizeof(r) == 4 {
 		r1 := c_syscall32(int32(trap), int32(a1), int32(a2), int32(a3), 0, 0, 0)
@@ -40,12 +40,12 @@ func Syscall(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno) {
 		r = uintptr(r1)
 	}
 	err = GetErrno()
-	exitsyscall()
+	Exitsyscall()
 	return r, 0, err
 }
 
 func Syscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno) {
-	entersyscall()
+	Entersyscall()
 	var r uintptr
 	if unsafe.Sizeof(r) == 4 {
 		r1 := c_syscall32(int32(trap), int32(a1), int32(a2), int32(a3),
@@ -57,7 +57,7 @@ func Syscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno) 
 		r = uintptr(r1)
 	}
 	err = GetErrno()
-	exitsyscall()
+	Exitsyscall()
 	return r, 0, err
 }
 
@@ -162,4 +162,16 @@ func Mmap(fd int, offset int64, length int, prot int, flags int) (data []byte, e
 
 func Munmap(b []byte) (err error) {
 	return mapper.Munmap(b)
+}
+
+// A Signal is a number describing a process signal.
+// It implements the os.Signal interface.
+type Signal int
+
+func (s Signal) Signal() {}
+
+func Signame(s Signal) string
+
+func (s Signal) String() string {
+	return Signame(s)
 }

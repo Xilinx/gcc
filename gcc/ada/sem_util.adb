@@ -4490,11 +4490,11 @@ package body Sem_Util is
       end if;
    end Get_Enum_Lit_From_Pos;
 
-   ---------------------------------------
-   -- Get_Ensures_From_Test_Case_Pragma --
-   ---------------------------------------
+   ---------------------------------
+   -- Get_Ensures_From_CTC_Pragma --
+   ---------------------------------
 
-   function Get_Ensures_From_Test_Case_Pragma (N : Node_Id) return Node_Id is
+   function Get_Ensures_From_CTC_Pragma (N : Node_Id) return Node_Id is
       Args : constant List_Id := Pragma_Argument_Associations (N);
       Res  : Node_Id;
 
@@ -4514,7 +4514,7 @@ package body Sem_Util is
       end if;
 
       return Res;
-   end Get_Ensures_From_Test_Case_Pragma;
+   end Get_Ensures_From_CTC_Pragma;
 
    ------------------------
    -- Get_Generic_Entity --
@@ -4602,16 +4602,16 @@ package body Sem_Util is
       return Entity_Id (Get_Name_Table_Info (Id));
    end Get_Name_Entity_Id;
 
-   ------------------------------------
-   -- Get_Name_From_Test_Case_Pragma --
-   ------------------------------------
+   ------------------------------
+   -- Get_Name_From_CTC_Pragma --
+   ------------------------------
 
-   function Get_Name_From_Test_Case_Pragma (N : Node_Id) return String_Id is
+   function Get_Name_From_CTC_Pragma (N : Node_Id) return String_Id is
       Arg : constant Node_Id :=
               Get_Pragma_Arg (First (Pragma_Argument_Associations (N)));
    begin
       return Strval (Expr_Value_S (Arg));
-   end Get_Name_From_Test_Case_Pragma;
+   end Get_Name_From_CTC_Pragma;
 
    -------------------
    -- Get_Pragma_Id --
@@ -4656,11 +4656,11 @@ package body Sem_Util is
       return R;
    end Get_Renamed_Entity;
 
-   ----------------------------------------
-   -- Get_Requires_From_Test_Case_Pragma --
-   ----------------------------------------
+   ----------------------------------
+   -- Get_Requires_From_CTC_Pragma --
+   ----------------------------------
 
-   function Get_Requires_From_Test_Case_Pragma (N : Node_Id) return Node_Id is
+   function Get_Requires_From_CTC_Pragma (N : Node_Id) return Node_Id is
       Args : constant List_Id := Pragma_Argument_Associations (N);
       Res  : Node_Id;
 
@@ -4677,7 +4677,7 @@ package body Sem_Util is
       end if;
 
       return Res;
-   end Get_Requires_From_Test_Case_Pragma;
+   end Get_Requires_From_CTC_Pragma;
 
    -------------------------
    -- Get_Subprogram_Body --
@@ -6746,6 +6746,25 @@ package body Sem_Util is
       end if;
    end Is_Atomic_Object;
 
+   -----------------------
+   -- Is_Bounded_String --
+   -----------------------
+
+   function Is_Bounded_String (T : Entity_Id) return Boolean is
+      Under : constant Entity_Id := Underlying_Type (Root_Type (T));
+
+   begin
+      --  Check whether T is ultimately derived from Ada.Strings.Superbounded.
+      --  Super_String, or one of the [Wide_]Wide_ versions. This will
+      --  be True for all the Bounded_String types in instances of the
+      --  Generic_Bounded_Length generics, and for types derived from those.
+
+      return Present (Under)
+        and then (Is_RTE (Root_Type (Under), RO_SU_Super_String) or else
+                  Is_RTE (Root_Type (Under), RO_WI_Super_String) or else
+                  Is_RTE (Root_Type (Under), RO_WW_Super_String));
+   end Is_Bounded_String;
+
    -----------------------------
    -- Is_Concurrent_Interface --
    -----------------------------
@@ -7212,6 +7231,14 @@ package body Sem_Util is
              Present (Discriminant_Default_Value (First_Discriminant (Typ)))
            and then Is_Fully_Initialized_Variant (Typ)
          then
+            return True;
+         end if;
+
+         --  We consider bounded string types to be fully initialized, because
+         --  otherwise we get false alarms when the Data component is not
+         --  default-initialized.
+
+         if Is_Bounded_String (Typ) then
             return True;
          end if;
 
@@ -9388,6 +9415,24 @@ package body Sem_Util is
 
       Mark_Allocators (Root_Nod);
    end Mark_Coextensions;
+
+   -----------------
+   -- Must_Inline --
+   -----------------
+
+   function Must_Inline (Subp : Entity_Id) return Boolean is
+   begin
+      return
+        (Optimization_Level = 0
+
+          --  AAMP and VM targets have no support for inlining in the backend.
+          --  Hence we do as much inlining as possible in the front end.
+
+          or else AAMP_On_Target
+          or else VM_Target /= No_VM)
+        and then Has_Pragma_Inline (Subp)
+        and then (Has_Pragma_Inline_Always (Subp) or else Front_End_Inlining);
+   end Must_Inline;
 
    ----------------------
    -- Needs_One_Actual --
@@ -11766,6 +11811,18 @@ package body Sem_Util is
    begin
       Reset_Analyzed (N);
    end Reset_Analyzed_Flags;
+
+   --------------------------------
+   -- Returns_Unconstrained_Type --
+   --------------------------------
+
+   function Returns_Unconstrained_Type (Subp : Entity_Id) return Boolean is
+   begin
+      return Ekind (Subp) = E_Function
+        and then not Is_Scalar_Type (Etype (Subp))
+        and then not Is_Access_Type (Etype (Subp))
+        and then not Is_Constrained (Etype (Subp));
+   end Returns_Unconstrained_Type;
 
    ---------------------------
    -- Safe_To_Capture_Value --
