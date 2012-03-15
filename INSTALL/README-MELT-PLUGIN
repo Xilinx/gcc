@@ -182,8 +182,14 @@ the subject line] and to <gcc-melt@googlegroups.com>
 
 ################################################################
 NEWS for 0.9.5 MELT plugin for GCC 4.6 & 4.7
+not released yet
 
    Alternative infix syntax is abandoned (it was never implemented)
+
+   Accept $(sub sepxr) in macro-string and $[seq sepxr]
+
+   Handle interrupts with asynchronous input channels
+
 
 NEWS for 0.9.4.b MELT plugin for GCC 4.6 (and 4.7 when available)
 released on March 04th, 2012

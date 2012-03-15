@@ -1,4 +1,12 @@
 
+2011-03-15  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c (meltgc_readseqlist): Add check for unexpected }#
+	chars.
+	(meltgc_readmacrostringsequence): Handled embedded $(sub-sexpr)
+	and $[seq expr]
+
+
 2011-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/generated/meltrunsup-inc.c: Regenerate.

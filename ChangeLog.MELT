@@ -1,4 +1,8 @@
 
+2012-03-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* INSTALL/README-MELT-PLUGIN: Mention interrupts and embedded
+	$[...] and $(....) in marostrings.
+
 2012-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* INSTALL/README-MELT-PLUGIN: infix syntax abandonned.
 
