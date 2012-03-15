@@ -1,3 +1,13 @@
+2012-03-15  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (simplify_bitwise_binary): Just handle
+	(A & B) OP (C & B) rather than (A OP1 B) OP0 (C OP1 B).
+	Simplify "(A ^ B) & (A | B)" to "A ^ B".
+	Simplify "(~A & B) | (A & ~B)" to "A ^ B"
+	Disable the full reassociation of the binary bitwise operations.
+	* tree-ssa-ccp (ccp_fold_stmt): Add a little more info about
+	why ssa_combine is disabled.
+
 2012-03-12  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c (simplify_shift_rotate): New function.
@@ -7,11 +17,6 @@
 	Try to simplify (int)&a[i] - (int)&a[j] into i-j.
 	(gimple_combine_binary): Call simplify_shift_rotate for shifts and
 	rotates.
-
-2012-03-12  Andrew Pinski  <apinski@cavium.com>
-
-	* gimple-ssa-combine.c (simplify_bitwise_binary): Just handle
-	(A & B) OP (C & B) rather than (A OP1 B) OP0 (C OP1 B).
 
 2012-03-12  Andrew Pinski  <apinski@cavium.com>
 

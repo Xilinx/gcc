@@ -8,7 +8,7 @@ int f(int a, int b)
   int e = c & a;
   int d1 = b & c;
   int e1 = a & c;
-  return e|d | d1|e1;
+  return e+d + d1+e1;
 }
 
 /* { dg-final { scan-tree-dump-times "~" 4 "forwprop1" } } */

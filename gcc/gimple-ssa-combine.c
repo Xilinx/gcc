@@ -1714,6 +1714,15 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       return gimple_combine_build2 (loc, def1_code, type, lhs, def1_arg2);
     }
 
+   /* Fold (B & A) OP0 (C & B) to (A OP0 C) & B. */
+  if (def1_code == def2_code
+       && def1_code == BIT_AND_EXPR
+       && operand_equal_for_phi_arg_p (def1_arg1, def2_arg1))
+    {
+      tree lhs = gimple_combine_build2 (loc, code, type, def1_arg2, def2_arg2);
+      return gimple_combine_build2 (loc, def1_code, type, lhs, def1_arg1);
+    }
+
   /* Canonicalize X ^ ~0 to ~X.  */
   if (code == BIT_XOR_EXPR
       && TREE_CODE (arg2) == INTEGER_CST
@@ -1767,50 +1776,6 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       && double_int_equal_p (tree_to_double_int (arg2),
 			     nonzerobits (def1_arg1)))
       return gimple_combine_build2 (loc, BIT_XOR_EXPR, type, def1_arg1, arg2);
-
-  if (code == BIT_XOR_EXPR
-      && def1_code == BIT_XOR_EXPR)
-    {
-      /* ( A ^ B) ^ A -> B */
-      if (operand_equal_for_phi_arg_p (arg2, def1_arg1))
-	return def1_arg2;
-
-      /* ( A ^ B) ^ B -> A */
-      if (operand_equal_for_phi_arg_p (arg2, def1_arg2))
-	return def1_arg1;
-    }
-
-  if (code == BIT_XOR_EXPR
-      && def2_code == BIT_XOR_EXPR)
-    {
-      /* A ^ ( A ^ B) -> B */
-      if (operand_equal_for_phi_arg_p (arg1, def2_arg1))
-	return def2_arg2;
-
-      /* B ^ ( A ^ B) -> A */
-      if (operand_equal_for_phi_arg_p (arg1, def2_arg2))
-	return def2_arg1;
-    }
-
-  if ((code == BIT_IOR_EXPR || code == BIT_AND_EXPR)
-      && def1_code == code)
-    {
-      /* ( A | B) | A -> A | B aka arg1 */
-      /* ( B | A) | A -> B | A aka arg1 */
-      if (operand_equal_for_phi_arg_p (arg2, def1_arg1)
-	  || operand_equal_for_phi_arg_p (arg2, def1_arg2))
-	return arg1;
-    }
-
-  if ((code == BIT_IOR_EXPR || code == BIT_AND_EXPR)
-      && def2_code == code)
-    {
-      /* A | ( A | B) -> A | B aka arg2 */
-      /* A | ( B | A) -> B | A aka arg2 */
-      if (operand_equal_for_phi_arg_p (arg1, def2_arg1)
-	  || operand_equal_for_phi_arg_p (arg1, def2_arg2))
-	return arg2;
-    }
 
   /* Try simple folding for X op !X, and X op X.  */
   res = simplify_bitwise_binary_1 (loc, code, TREE_TYPE (arg1), arg1, arg2);
@@ -1866,11 +1831,139 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 	}
     }
 
+  /* (A ^ B) & (A | B) -> A ^ B */
+  if (code == BIT_AND_EXPR
+      && def1_code == BIT_XOR_EXPR
+      && def2_code == BIT_IOR_EXPR
+      && operand_equal_for_phi_arg_p (def1_arg1, def2_arg1)
+      && operand_equal_for_phi_arg_p (def1_arg2, def2_arg2))
+    return arg1;
+
+  /* (A | B) & (A ^ B) -> A ^B */
+  if (code == BIT_AND_EXPR
+      && def2_code == BIT_XOR_EXPR
+      && def1_code == BIT_IOR_EXPR
+      && operand_equal_for_phi_arg_p (def1_arg1, def2_arg1)
+      && operand_equal_for_phi_arg_p (def1_arg2, def2_arg2))
+    return arg2;
+
+  /* (A ^ B) & (B | A) -> A ^ B */
+  if (code == BIT_AND_EXPR
+      && def1_code == BIT_XOR_EXPR
+      && def2_code == BIT_IOR_EXPR
+      && operand_equal_for_phi_arg_p (def1_arg1, def2_arg2)
+      && operand_equal_for_phi_arg_p (def1_arg2, def2_arg1))
+    return arg1;
+
+  /* (A | B) & (B ^ A) -> B ^ A */
+  if (code == BIT_AND_EXPR
+      && def2_code == BIT_XOR_EXPR
+      && def1_code == BIT_IOR_EXPR
+      && operand_equal_for_phi_arg_p (def1_arg1, def2_arg2)
+      && operand_equal_for_phi_arg_p (def1_arg2, def2_arg1))
+    return arg2;
+
+  /* (~A & B) | (A & ~B) -> A ^ B */
+  if (code == BIT_IOR_EXPR
+      && def1_code == BIT_AND_EXPR
+      && def1_code == def2_code)
+    {
+      enum tree_code def1_arg1c;
+      enum tree_code def1_arg2c;
+      enum tree_code def2_arg1c;
+      enum tree_code def2_arg2c;
+      tree def1_arg1_arg1, def1_arg2_arg1;
+      tree def2_arg1_arg1, def2_arg2_arg1;
+      defcodefor_name (def1_arg1, &def1_arg1c, &def1_arg1_arg1, NULL);
+      defcodefor_name (def1_arg1, &def1_arg2c, &def1_arg2_arg1, NULL);
+      defcodefor_name (def2_arg1, &def2_arg1c, &def2_arg1_arg1, NULL);
+      defcodefor_name (def2_arg2, &def2_arg2c, &def2_arg2_arg1, NULL);
+      /* (~A & B) | (~B & A) -> A ^ B */
+      if (def1_arg1c == BIT_NOT_EXPR
+	  && def2_arg1c == BIT_NOT_EXPR
+	  && operand_equal_for_phi_arg_p (def1_arg1_arg1, def2_arg2)
+	  && operand_equal_for_phi_arg_p (def1_arg2, def2_arg1_arg1))
+	return gimple_combine_build2 (loc, BIT_XOR_EXPR, type, def1_arg2,
+				      def2_arg2);
+      /* (~A & B) | (A & ~B) -> A ^ B */
+      if (def1_arg1c == BIT_NOT_EXPR
+	  && def2_arg2c == BIT_NOT_EXPR
+	  && operand_equal_for_phi_arg_p (def1_arg1_arg1, def2_arg1)
+	  && operand_equal_for_phi_arg_p (def1_arg2, def2_arg2_arg1))
+	return gimple_combine_build2 (loc, BIT_XOR_EXPR, type, def1_arg2,
+				      def1_arg2);
+      /* (A & ~B) | (B & ~A) -> A ^ B */
+      if (def1_arg2c == BIT_NOT_EXPR
+	  && def2_arg2c == BIT_NOT_EXPR
+	  && operand_equal_for_phi_arg_p (def1_arg2_arg1, def2_arg1)
+	  && operand_equal_for_phi_arg_p (def1_arg1, def2_arg2_arg1))
+	return gimple_combine_build2 (loc, BIT_XOR_EXPR, type, def1_arg1,
+				      def2_arg1);
+      /* (A & ~B) | (~A & B) -> A ^ B */
+      if (def1_arg2c == BIT_NOT_EXPR
+	  && def2_arg1c == BIT_NOT_EXPR
+	  && operand_equal_for_phi_arg_p (def1_arg2_arg1, def2_arg2)
+	  && operand_equal_for_phi_arg_p (def1_arg1, def2_arg1_arg1))
+	return gimple_combine_build2 (loc, BIT_XOR_EXPR, type, def1_arg1,
+				      def2_arg2);
+    }
+
+  /* The following couple simplifications can be done even without doing
+     reassication. */
+  if (code == BIT_XOR_EXPR
+      && def1_code == BIT_XOR_EXPR)
+    {
+      /* ( A ^ B) ^ A -> B */
+      if (operand_equal_for_phi_arg_p (arg2, def1_arg1))
+       return def1_arg2;
+
+      /* ( A ^ B) ^ B -> A */
+      if (operand_equal_for_phi_arg_p (arg2, def1_arg2))
+       return def1_arg1;
+    }
+
+  if (code == BIT_XOR_EXPR
+      && def2_code == BIT_XOR_EXPR)
+    {
+      /* A ^ ( A ^ B) -> B */
+      if (operand_equal_for_phi_arg_p (arg1, def2_arg1))
+       return def2_arg2;
+
+      /* B ^ ( A ^ B) -> A */
+      if (operand_equal_for_phi_arg_p (arg1, def2_arg2))
+       return def2_arg1;
+    }
+
+  if ((code == BIT_IOR_EXPR || code == BIT_AND_EXPR)
+      && def1_code == code)
+    {
+      /* ( A | B) | A -> A | B aka arg1 */
+      /* ( B | A) | A -> B | A aka arg1 */
+      if (operand_equal_for_phi_arg_p (arg2, def1_arg1)
+         || operand_equal_for_phi_arg_p (arg2, def1_arg2))
+       return arg1;
+    }
+
+  if ((code == BIT_IOR_EXPR || code == BIT_AND_EXPR)
+      && def2_code == code)
+    {
+      /* A | ( A | B) -> A | B aka arg2 */
+      /* A | ( B | A) -> B | A aka arg2 */
+      if (operand_equal_for_phi_arg_p (arg1, def2_arg1)
+         || operand_equal_for_phi_arg_p (arg1, def2_arg2))
+       return arg2;
+    }
+
+
+#if 0
+  /* Disabled for now, need to limit how many expressions we go through,
+     right now it can cause performance issues for testcases like PR 38533  */
   /* (A & B) & C, try to simplify A & C if that does not simplify then try B & C
      if either simplifies then combine it with the other argument. */
   if (def1_code == code)
     {
       tree tmp;
+
       /* Try (A & C) & B. */
       tmp = gimple_combine_binary (loc, code, type, def1_arg1, arg2);
       if (tmp)
@@ -1897,6 +1990,8 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 	return gimple_combine_build2 (loc, code, type, tmp, def2_arg1);
     }
 
+#endif
+
 
   if (TREE_CODE_CLASS (def1_code) == tcc_comparison
       && TREE_CODE_CLASS (def2_code) == tcc_comparison)
@@ -1920,18 +2015,6 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 	    return result;
 	}
     }
-
-  /* Simplify (a & B) | (a & C) into a & (B | C) if (B | C) simplifies. */
-  /* Simplify (a & B) ^ (a & C) into a & (B ^ C) if (B ^ C) simplifies. */
-  if ((code == BIT_IOR_EXPR || code == BIT_XOR_EXPR)
-      && def1_code == BIT_AND_EXPR
-      && def2_code == BIT_AND_EXPR
-      && operand_equal_p (def1_arg1, def2_arg1, 0))
-   {
-     tree tmp = gimple_combine_binary (loc, code, type, def1_arg2, def2_arg2);
-     if (tmp)
-       return gimple_combine_build2 (loc, def1_code, type, def1_arg1, tmp);
-   }
 
   return NULL;
 }

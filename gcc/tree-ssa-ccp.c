@@ -1912,7 +1912,7 @@ ccp_nonzerop (tree var)
   if (TREE_CODE (val.value) != INTEGER_CST)
     return double_int_minus_one;
   return double_int_ior (tree_to_double_int (val.value),
-		      val.mask);
+		         val.mask);
 }
 
 /* Fold the stmt at *GSI with CCP specific information that propagating
@@ -1925,8 +1925,9 @@ ccp_fold_stmt (gimple_stmt_iterator *gsi)
 #if 0
   tree newexpr;
 
-  /* FIXME: this should work but currently does not causing stage2 to
-     be miscompiled. */
+  /* This still fails, fails while compiling libstdc++v3 in stage2 which means
+     cc1plus is miscompiled. */
+  /* Try to simplify using the SSA combiner first. */
   newexpr = ssa_combine (stmt);
   if (replace_rhs_after_ssa_combine (gsi, newexpr))
     return true;
