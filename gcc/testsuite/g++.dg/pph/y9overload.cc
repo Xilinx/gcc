@@ -1,3 +1,5 @@
+// {    xfail-if "UNWANTED ERROR DETECTION" { "*-*-*" } { "-fpph-map=pph.map" } }
+
 #include "x0overload1.h"
 #include "x0overload2.h"
 #include "x1overload3.h"

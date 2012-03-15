@@ -27509,6 +27509,8 @@ c_parse_file (void)
 
   if (pph_enabled_p ())
     pph_finish ();
+  else if (pph_check_main_missing_guard)
+    pph_check_main_guarded ();
 }
 
 #include "gt-cp-parser.h"

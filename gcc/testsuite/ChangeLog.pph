@@ -1,3 +1,16 @@
+2012-03-15   Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/c0anonymous.h: New.
+	* g++.dg/pph/c1anonymous1.h: New.
+	* g++.dg/pph/c1anonymous2.h: New.
+	* g++.dg/pph/c5features1.h: New.
+	* g++.dg/pph/c5features2.h: New.
+	* g++.dg/pph/c7features.cc: New.
+	* g++.dg/pph/d8dupguard.cc: Add xfail-if comment.
+	* g++.dg/pph/x0tmpldfltparm.h: New.
+	* g++.dg/pph/x1tmpldfltparm.cc: New.
+	* g++.dg/pph/y9overload.cc: Add xfail-if comment.
+
 2012-03-13   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x2incomplete4.cc: Mark fixed.

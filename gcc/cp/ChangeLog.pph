@@ -1,3 +1,11 @@
+2012-03-15   Lawrence Crowl  <crowl@google.com>
+
+	* pph.h (pph_check_main_guarded): New.
+	* pph-core.c (pph_check_main_guarded): New.
+	* pph-out.c (pph_writer_finish): Factor out guard check into
+	pph_check_main_guarded.
+	* parser.c (c_parse_file): Add guard check for non-pph compiles.
+
 2012-03-14   Diego Novillo  <dnovillo@google.com>
 
 	* parser.c (the_lexer): Declare.

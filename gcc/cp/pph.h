@@ -144,6 +144,7 @@ extern FILE *pph_logfile;
 extern void pph_init (void);
 extern void pph_loaded (void);
 extern void pph_finish (void);
+extern bool pph_check_main_guarded (void);
 extern void pph_dump_location (FILE *file, location_t loc);
 extern void pph_dump_tree_name (FILE *file, tree t, int flags);
 extern void pph_dump_vec_tree (FILE *file, VEC(tree,gc) *v);

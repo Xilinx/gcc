@@ -585,6 +585,10 @@ extern const char *pch_file;
 
 extern const char *pph_out_file;
 
+/* Whether or not we should check for a guard on the main input file.  */
+
+extern bool pph_check_main_missing_guard;
+
 /* Return true if we have any map from INCLUDE to PPH file.  */
 
 extern bool

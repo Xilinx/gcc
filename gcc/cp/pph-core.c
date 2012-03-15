@@ -1547,6 +1547,19 @@ pph_streamer_finish (void)
 }
 
 
+/* Return true when the main source file is guarded against preprocessor
+   multiple inclusions.  */
+
+bool pph_check_main_guarded (void)
+{
+  const char *offending_file = cpp_main_missing_guard (parse_in);
+  if (offending_file == NULL)
+    return true;
+  error ("header lacks guard for PPH");
+  return false;
+}
+
+
 /* Finalize PPH support.  */
 
 void

@@ -404,6 +404,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
     case OPT__output_pph_:
       pph_out_file = arg;
       cpp_opts->primary_system_header_okay = true;
+      pph_check_main_missing_guard = true;
       break;
 
     case OPT_A:
@@ -812,6 +813,11 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_femit_struct_debug_detailed_:
       set_struct_debug_option (&global_options, loc, arg);
+      break;
+
+    case OPT_fpph_check:
+      cpp_opts->primary_system_header_okay = true;
+      pph_check_main_missing_guard = true;
       break;
 
     case OPT_fpph_hdr_:

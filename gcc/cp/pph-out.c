@@ -2750,16 +2750,11 @@ pph_flush_buffers (pph_stream *stream)
 void
 pph_writer_finish (void)
 {
-  const char *offending_file;
-
   if (pph_out_stream == NULL)
     return;
 
-  offending_file = cpp_main_missing_guard (parse_in);
-  if (offending_file == NULL)
+  if (!pph_check_main_missing_guard || pph_check_main_guarded ())
     pph_write_file (pph_out_stream);
-  else
-    error ("header lacks guard for PPH: %s", offending_file);
 
   pph_stream_close (pph_out_stream);
   pph_out_stream = NULL;

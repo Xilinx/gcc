@@ -1,3 +1,12 @@
+2012-03-15   Lawrence Crowl  <crowl@google.com>
+
+	* c.opt (-fpph-check): New.
+	* c-opts.c (c_common_handle_option): Add OPT_fpph_check.
+	(case OPT__output_pph_): Also imply -fpph-check.
+	* c-common.h (bool pph_check_main_missing_guard): New.
+	* c-common.c (bool pph_check_main_missing_guard): New.
+	(const char *pph_out_file): Explicitly initialize to NULL.
+
 2012-03-13   Diego Novillo  <dnovillo@google.com>
 
 	* c-common.h (pph_writer_enabled_p): Declare.

@@ -981,6 +981,10 @@ fplan9-extensions
 C ObjC Var(flag_plan9_extensions)
 Enable Plan 9 language extensions
 
+fpph-check
+C++
+-fpph-check	Check a header for minimal compatibility with PPH.
+
 fpph-debug=
 C++ Joined RejectNegative UInteger Var(flag_pph_debug)
 -fpph-debug=N   Enable debugging output at level N from PPH support

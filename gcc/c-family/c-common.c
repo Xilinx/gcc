@@ -194,7 +194,11 @@ const char *pch_file;
 /* The file name to which we should write a preparsed header, or
    NULL if no header will be written in this compile.  */
 
-const char *pph_out_file;
+const char *pph_out_file = NULL;
+
+/* Whether or not we should check for a guard on the main input file.  */
+
+bool pph_check_main_missing_guard = false;
 
 /* Nonzero if an ISO standard was selected.  It rejects macros in the
    user's namespace.  */
