@@ -1,5 +1,9 @@
 
 
+2012-03-15  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* simplemelt-gtkmm-probe.cc: New file.
+
 2012-03-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* make-melt-source-tar.sh: Use tardy.
 
