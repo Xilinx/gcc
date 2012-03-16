@@ -1,4 +1,7 @@
 
+2012-03-16  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* simplemelt-gtkmm-probe.cc: Using UI manager....
 
 2012-03-16  Basile Starynkevitch  <basile@starynkevitch.net>
 

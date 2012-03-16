@@ -89,33 +89,35 @@ public:
 
 
 class SmeltTraceWindow : public Gtk::Window {
-    Gtk::VBox _tracevbox;
-    Gtk::MenuBar _tracemenubar;
-    Gtk::CheckMenuItem _tracemenuitem;
-    Gtk::Label _tracelabel;
-    Gtk::ScrolledWindow _tracescrollw;
-    Gtk::TextView _tracetextview;
-    Glib::RefPtr<Gtk::TextTag> _tracetitletag;
-    Glib::RefPtr<Gtk::TextTag> _tracedatetag;
-    Glib::RefPtr<Gtk::TextTag> _tracecommandtag;
-    Glib::RefPtr<Gtk::TextTag> _tracereplytag;
+  Gtk::VBox _tracevbox;
+  Glib::RefPtr<Gtk::ActionGroup> _traceactgroup;
+  Glib::RefPtr<Gtk::CheckMenuItem> _traceitemcheck;
+  Gtk::Label _tracelabel;
+  Gtk::ScrolledWindow _tracescrollw;
+  Gtk::TextView _tracetextview;
+  Glib::RefPtr<Gtk::TextTag> _tracetitletag;
+  Glib::RefPtr<Gtk::TextTag> _tracedatetag;
+  Glib::RefPtr<Gtk::TextTag> _tracecommandtag;
+  Glib::RefPtr<Gtk::TextTag> _tracereplytag;
 public:
-    void add_title(const std::string&);
-    void add_command_from_melt(const std::string&);
-    void add_reply_to_melt(const std::string&);
-    void add_title(const std::ostringstream&outs) {
-        add_title(outs.str());
-    };
-    void add_date(const std::string& ="");
-    void add_reply_to_melt(const std::ostringstream&outs) {
-        add_reply_to_melt(outs.str());
-    };
-    SmeltTraceWindow();
-    ~SmeltTraceWindow () {
-    }
-    bool tracing() {
-        return _tracemenuitem.get_active();
-    };
+  void add_title(const std::string&);
+  void add_command_from_melt(const std::string&);
+  void add_reply_to_melt(const std::string&);
+  void add_title(std::ostringstream&outs) {
+    outs.flush(); 
+    add_title(outs.str());
+  };
+  void add_date(const std::string& ="");
+  void add_reply_to_melt(const std::ostringstream&outs) {
+    add_reply_to_melt(outs.str());
+  };
+  SmeltTraceWindow();
+  ~SmeltTraceWindow () {
+  }
+  bool tracing() {
+    return _traceitemcheck->get_active();
+  };
+  void on_trace_clear();
 };
 
 
@@ -230,6 +232,17 @@ void SmeltTraceWindow::add_title(const std::string &str)
 }
 
 
+void SmeltTraceWindow::on_trace_clear(void)
+{
+  static long nbclear;
+  nbclear++;
+  auto tbuf =  _tracetextview.get_buffer();
+  tbuf->erase(tbuf->begin(), tbuf->end());
+  std::ostringstream out;
+  out << "Erase #" << nbclear;
+  add_title(out);
+}
+
 void SmeltTraceWindow::add_date(const std::string &s)
 {
     struct timeval tv= {0,0};
@@ -261,12 +274,28 @@ SmeltTraceWindow::SmeltTraceWindow()
                                 (int)(getpid()), g_get_host_name());
     _tracelabel.set_markup(labmarkstr);
     _tracelabel.set_justify(Gtk::JUSTIFY_CENTER);
-    _tracevbox.pack_start(_tracemenubar,Gtk::PACK_SHRINK);
-    _tracemenubar.append(_tracemenuitem);
-    _tracemenuitem.set_label("Tracing");
-    _tracemenuitem.set_active(true);
-    _tracemenuitem.signal_toggled().connect
-    (sigc::mem_fun(*SmeltAppl::instance(), &SmeltAppl::on_trace_toggled));
+    /// create the action group
+    {
+      _traceactgroup = Gtk::ActionGroup::create();
+      _traceactgroup->add(Gtk::Action::create("MenuFile_act", "_File"));
+      _traceactgroup->add(Gtk::Action::create("MenuTrace_act", "Trace"),
+			  sigc::mem_fun(*SmeltAppl::instance(), &SmeltAppl::on_trace_toggled));
+      _traceactgroup->add(Gtk::Action::create("MenuClear_act", "Clear"),
+			  sigc::mem_fun(*this,&SmeltTraceWindow::on_trace_clear));
+      auto uimgr = Gtk::UIManager::create();
+      uimgr->insert_action_group(_traceactgroup);
+      Glib::ustring ui_info= R"*(
+<ui>
+<menubar name='MenuBar'>
+<menu action='MenuFile_act'>
+<menuitem action='MenuTrace_act'/>
+<menuitem action='MenuClear_act'/>
+</menu>
+</menubar>
+</ui>
+)*";
+      uimgr->add_ui_from_string(ui_info);
+    }
     _tracevbox.pack_start(_tracelabel,Gtk::PACK_SHRINK);
     _tracevbox.pack_start(_tracescrollw,Gtk::PACK_EXPAND_WIDGET);
     _tracescrollw.add(_tracetextview);
@@ -417,6 +446,8 @@ SmeltAppl::on_trace_toggled(void)
 {
     if (_app_tracewin)
         set_trace(_app_tracewin->tracing());
+    else
+      set_trace(true);
 }
 
 void
