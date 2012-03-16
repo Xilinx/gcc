@@ -1,5 +1,9 @@
 
 
+2012-03-16  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* simplemelt-gtkmm-probe.cc: More.
+
 2012-03-15  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* simplemelt-gtkmm-probe.cc: New file.

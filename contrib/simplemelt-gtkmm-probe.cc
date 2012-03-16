@@ -30,13 +30,21 @@ svn revision 147544 from mid-may 2009; it is not compiled by the GCC
 building process. The compilation command is given near the end of
 file (as a local.var to emacs) */
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <time.h>
+#include <fcntl.h>
+
 #include <gtkmm.h>
 #include <gtksourceviewmm.h>
+#include <utility>
+#include <memory>
 #include <iostream>
 #include <sstream>
 #include <cerrno>
 #include <map>
-#include <libguile.h>
 
 #define SMELT_FATAL(C) do { int er = errno;	\
   std::clog << __FILE__ << ":" << __LINE__	\
@@ -48,183 +56,389 @@ file (as a local.var to emacs) */
 
 
 
-class SmeltMainWindow : public Gtk::Window
-{
-  Gtk::VBox _mainvbox;
-  Gtk::MenuBar _mainmenubar;
-  Gtk::Label _mainlabel;
-public:
-  SmeltMainWindow() : 
-    Gtk::Window() 
-  {
-    set_border_width(5);
-    add(_mainvbox);
-    Glib::ustring labmarkstr = Glib::ustring::compose 
-      ("<big><span color='darkred'>Simple Gcc Melt gtkmm-probe</span></big>\n"
-       "<small>pid %1 on <tt>%2</tt></small>",  
-       (int)(getpid()), g_get_host_name());
-    _mainlabel.set_markup(labmarkstr);
-    _mainlabel.set_justify(Gtk::JUSTIFY_CENTER);
-    _mainvbox.pack_start(_mainmenubar);
-    _mainvbox.pack_start(_mainlabel);
-    show_all();
+static Glib::OptionContext smelt_options_context(" - a simple MELT Gtk probe");
 
-  }
-  virtual ~SmeltMainWindow() 
-  {
-  }
-  virtual bool on_delete_event(GdkEventAny*ev)
-  {
-    // return false to accept the delete event, true to reject it..
-    return Gtk::Window::on_delete_event(ev);
-  }
+class SmeltMainWindow : public Gtk::Window {
+    Gtk::VBox _mainvbox;
+    Gtk::MenuBar _mainmenubar;
+    Gtk::Label _mainlabel;
+public:
+    SmeltMainWindow() :
+        Gtk::Window() {
+        set_border_width(5);
+        add(_mainvbox);
+        Glib::ustring labmarkstr = Glib::ustring::compose
+                                   ("<big><span color='darkred'>Simple Gcc Melt gtkmm-probe</span></big>\n"
+                                    "<small>pid %1 on <tt>%2</tt></small>",
+                                    (int)(getpid()), g_get_host_name());
+        _mainlabel.set_markup(labmarkstr);
+        _mainlabel.set_justify(Gtk::JUSTIFY_CENTER);
+        _mainvbox.pack_start(_mainmenubar);
+        _mainvbox.pack_start(_mainlabel);
+        show_all();
+
+    }
+    virtual ~SmeltMainWindow() {
+    }
+    virtual bool on_delete_event(GdkEventAny*ev) {
+        // return false to accept the delete event, true to reject it..
+        return Gtk::Window::on_delete_event(ev);
+    }
 };
 
 
-static Glib::OptionContext smelt_options("smeltgtk");
 
-class SmeltLowOptionGroup : public Glib::OptionGroup
-{
-  std::string _file_to_melt;
-  std::string _file_from_melt;
+class SmeltTraceWindow : public Gtk::Window {
+    Gtk::VBox _tracevbox;
+    Gtk::MenuBar _tracemenubar;
+    Gtk::CheckMenuItem _tracemenuitem;
+    Gtk::Label _tracelabel;
+    Gtk::ScrolledWindow _tracescrollw;
+    Gtk::TextView _tracetextview;
+    Glib::RefPtr<Gtk::TextTag> _tracetitletag;
+    Glib::RefPtr<Gtk::TextTag> _tracedatetag;
+    Glib::RefPtr<Gtk::TextTag> _tracecommandtag;
+    Glib::RefPtr<Gtk::TextTag> _tracereplytag;
 public:
-  SmeltLowOptionGroup() 
-    : Glib::OptionGroup("smelt_low", "the low level options of smeltgtk",
-			"the low-level options for smeltgtk"),
-      _file_to_melt(), _file_from_melt()
-  {
-    ///
-    Glib::OptionEntry entry_to_melt;
-    entry_to_melt.set_long_name("request-to-MELT");
-    entry_to_melt.set_short_name('R');
-    entry_to_melt.set_description("the file name, or file descriptor number, for channel sending requests to MELT");
-    add_entry_filename(entry_to_melt, _file_to_melt);
-    ///
-    Glib::OptionEntry entry_from_melt;
-    entry_from_melt.set_long_name("command-from-MELT");
-    entry_to_melt.set_short_name('C');
-    entry_to_melt.set_description("the file name, or file descriptor number, for channel recieving commands from MELT");
-    add_entry_filename(entry_from_melt, _file_from_melt);
-  }
-};				// end class SmeltLowOptionGroup
+    void add_title(const std::string&);
+    void add_command_from_melt(const std::string&);
+    void add_reply_to_melt(const std::string&);
+    void add_title(const std::ostringstream&outs) {
+        add_title(outs.str());
+    };
+    void add_date(const std::string& ="");
+    void add_reply_to_melt(const std::ostringstream&outs) {
+        add_reply_to_melt(outs.str());
+    };
+    SmeltTraceWindow();
+    ~SmeltTraceWindow () {
+    }
+    bool tracing() {
+        return _tracemenuitem.get_active();
+    };
+};
 
-class SmeltGuileOptionGroup : public Glib::OptionGroup
-{
+
+class SmeltAppl;
+class SmeltOptionGroup : public Glib::OptionGroup {
+    std::string _file_to_melt;
+    std::string _file_from_melt;
+    bool _trace_melt;
 public:
-  SmeltGuileOptionGroup()
-    : Glib::OptionGroup("smelt_guile", "the GUILE specific options of smeltgtk",
-			"Options for smeltgtk related to GUILE")
-  {
-  }
-};				// end class SmeltGuileOptionGroup
+    SmeltOptionGroup()
+        : Glib::OptionGroup("smelt_low", "the low level options of smeltgtk",
+                            "the low-level options for smeltgtk"),
+        _file_to_melt(), _file_from_melt(), _trace_melt(false) {
+        ///
+        {
+            Glib::OptionEntry entry_to_melt;
+            entry_to_melt.set_long_name("request-to-MELT");
+            entry_to_melt.set_short_name('R');
+            entry_to_melt.set_description("the file name, or file descriptor number, for channel sending requests to MELT");
+            add_entry_filename(entry_to_melt, _file_to_melt);
+        }
+        ///
+        {
+            Glib::OptionEntry entry_from_melt;
+            entry_from_melt.set_long_name("command-from-MELT");
+            entry_from_melt.set_short_name('C');
+            entry_from_melt.set_description("the file name, or file descriptor number, for channel recieving commands from MELT");
+            add_entry_filename(entry_from_melt, _file_from_melt);
+        }
+        ///
+        {
+            Glib::OptionEntry entry_trace_melt;
+            entry_trace_melt.set_long_name("trace");
+            entry_trace_melt.set_short_name('t');
+            entry_trace_melt.set_description("Show trace window");
+            add_entry(entry_trace_melt, _trace_melt);
+        }
+    };
+    void setup_appl(SmeltAppl&);
+};				// end class SmeltOptionGroup
 
 class SmeltAppl
-  // when gtkmm3.4 is available, should inherit from Gtk::Application
-  : public Gtk::Main { 
-  SmeltMainWindow _app_mainwin;	// main window
-  Glib::RefPtr<Glib::IOChannel> _app_reqchan_to_melt; // channel for request to MELT
-  Glib::RefPtr<Glib::IOChannel> _app_cmdchan_from_melt; // channel for commands from MELT
-  std::ostringstream _app_writestream_to_melt; // string buffer for requests to MELT
-  std::string _app_cmdstr_from_melt;	       // the last command from MELT
+    // when gtkmm3.4 is available, should inherit from Gtk::Application
+        : public Gtk::Main {
+    SmeltMainWindow _app_mainwin;	// main window
+    std::unique_ptr<SmeltTraceWindow> _app_tracewin;
+    bool _app_traced;
+    Glib::RefPtr<Glib::IOChannel> _app_reqchan_to_melt; // channel for request to MELT
+    Glib::RefPtr<Glib::IOChannel> _app_cmdchan_from_melt; // channel for commands from MELT
+    std::ostringstream _app_writestream_to_melt; // string buffer for requests to MELT
+    std::string _app_cmdstr_from_melt;	       // the last command from MELT
 protected:
-  bool reqbuf_to_melt_cb(Glib::IOCondition);
-  bool cmdbuf_from_melt_cb(Glib::IOCondition);
-  void process_command_from_melt (std::string& str);
+    bool reqbuf_to_melt_cb(Glib::IOCondition);
+    bool cmdbuf_from_melt_cb(Glib::IOCondition);
+    void process_command_from_melt (std::string& str);
 public:
-  SmeltAppl(int &argc, char**&argv)
-    : Gtk::Main(argc, argv, smelt_options),
-      _app_mainwin()
-  {
-    _app_reqchan_to_melt = Glib::IOChannel::create_from_fd(STDIN_FILENO);
-    _app_cmdchan_from_melt = Glib::IOChannel::create_from_fd(STDOUT_FILENO);
-  };
-  ~SmeltAppl() {};
-  void run (void) { Gtk::Main::run(_app_mainwin); };
+    static SmeltAppl* instance() {
+        return static_cast<SmeltAppl*>(Gtk::Main::instance());
+    };
+    SmeltAppl(int &argc, char**&argv)
+        : Gtk::Main(argc, argv, smelt_options_context),
+          _app_mainwin(),
+          _app_traced(false) {
+    };
+    void set_reqchan_to_melt(const std::string &reqname) {
+        const char* reqcstr = reqname.c_str();
+        char* endstr = nullptr;
+        long reqfd = strtol(reqcstr, &endstr, 10);
+        struct stat reqstat = {};
+        if (reqfd > 0 && reqfd < sysconf(_SC_OPEN_MAX)
+                && endstr && endstr[0] == (char)0
+                && !fstat(reqfd, &reqstat))
+            _app_reqchan_to_melt = Glib::IOChannel::create_from_fd(reqfd);
+        else if ((reqfd = open(reqcstr, O_RDONLY|O_CLOEXEC)) >= 0) {
+            _app_reqchan_to_melt = Glib::IOChannel::create_from_fd(reqfd);
+        } else
+            SMELT_FATAL("cannot open request to MELT channel " << reqname);
+
+    }
+    void set_cmdchan_from_melt(const std::string &cmdname) {
+        const char* cmdcstr = cmdname.c_str();
+        char* endstr = nullptr;
+        long cmdfd = strtol(cmdcstr, &endstr, 10);
+        struct stat cmdstat = {};
+        if (cmdfd > 0 && cmdfd < sysconf(_SC_OPEN_MAX)
+                && endstr && endstr[0] == (char)0
+                && !fstat(cmdfd, &cmdstat))
+            _app_cmdchan_from_melt = Glib::IOChannel::create_from_fd(cmdfd);
+        else if ((cmdfd = open(cmdcstr, O_RDONLY|O_CLOEXEC)) >= 0) {
+            _app_cmdchan_from_melt = Glib::IOChannel::create_from_fd(cmdfd);
+        } else
+            SMELT_FATAL("cannot open command from MELT channel " << cmdname);
+    }
+    ~SmeltAppl() {};
+    void run (void) {
+        Gtk::Main::run(_app_mainwin);
+    };
+    void set_trace(bool =true);
+    void on_trace_toggled(void);
 };				// end class SmeltAppl
 
 
+
+void SmeltTraceWindow::add_title(const std::string &str)
+{
+    auto tbuf =  _tracetextview.get_buffer();
+    tbuf->insert_with_tag(tbuf->end(), str, "title");
+    if (str.empty() || str[str.size()-1] != '\n')
+        tbuf->insert(tbuf->end(), "\n");
+    add_date();
+    tbuf->insert(tbuf->end(), "\n");
+}
+
+
+void SmeltTraceWindow::add_date(const std::string &s)
+{
+    struct timeval tv= {0,0};
+    gettimeofday (&tv,nullptr);
+    time_t now = tv.tv_sec;
+    char timbuf[64];
+    auto tbuf =  _tracetextview.get_buffer();
+    strftime(timbuf, sizeof(timbuf), "%b %d %H:%M:%S", localtime(&now));
+    tbuf->insert_with_tag(tbuf->end(), timbuf, "date");
+    snprintf(timbuf, sizeof(timbuf), ".%02d", (int)(tv.tv_usec / 10000));
+    tbuf->insert_with_tag(tbuf->end(), timbuf, "date");
+    if (!s.empty()) {
+        tbuf->insert_with_tag(tbuf->end(), " ", "date");
+        tbuf->insert_with_tag(tbuf->end(), s, "date");
+    }
+    tbuf->insert(tbuf->end(), "\n");
+}
+
+
+SmeltTraceWindow::SmeltTraceWindow()
+    :  _tracevbox(false, 3)
+{
+    set_border_width(5);
+    set_default_size(380,280);
+    add(_tracevbox);
+    Glib::ustring labmarkstr = Glib::ustring::compose
+                               ("<big><span color='darkred'>Trace Gcc MELT gtkmm-probe</span></big>\n"
+                                "<small>pid %1 on <tt>%2</tt></small>",
+                                (int)(getpid()), g_get_host_name());
+    _tracelabel.set_markup(labmarkstr);
+    _tracelabel.set_justify(Gtk::JUSTIFY_CENTER);
+    _tracevbox.pack_start(_tracemenubar,Gtk::PACK_SHRINK);
+    _tracemenubar.append(_tracemenuitem);
+    _tracemenuitem.set_label("Tracing");
+    _tracemenuitem.set_active(true);
+    _tracemenuitem.signal_toggled().connect
+    (sigc::mem_fun(*SmeltAppl::instance(), &SmeltAppl::on_trace_toggled));
+    _tracevbox.pack_start(_tracelabel,Gtk::PACK_SHRINK);
+    _tracevbox.pack_start(_tracescrollw,Gtk::PACK_EXPAND_WIDGET);
+    _tracescrollw.add(_tracetextview);
+    _tracescrollw.set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
+    _tracetextview.set_editable(false);
+    {
+        auto tbuf =  _tracetextview.get_buffer();
+        _tracetitletag = tbuf->create_tag("title");
+        _tracetitletag->property_foreground() = "darkred";
+        _tracetitletag->property_scale() = 1.1;
+        _tracetitletag->property_weight() = Pango::WEIGHT_BOLD;
+        _tracetitletag->property_family() = "Verdana";
+        _tracetitletag->property_justification() = Gtk::JUSTIFY_CENTER;
+        _tracedatetag = tbuf->create_tag("date");
+        _tracedatetag->property_foreground() = "brown";
+        _tracedatetag->property_background() = "lavender";
+        _tracedatetag->property_scale() = 0.8;
+        _tracecommandtag = tbuf->create_tag("command");
+        _tracecommandtag->property_foreground() = "darkblue";
+        _tracecommandtag->property_family() = "Monospace";
+        _tracecommandtag->property_style() = Pango::STYLE_ITALIC;
+        _tracereplytag = tbuf->create_tag("reply");
+        _tracereplytag->property_foreground() = "saddlebrown";
+        _tracereplytag->property_family() = "Monospace";
+        tbuf->insert_with_tag(tbuf->end(),
+                              "Trace Window Gcc MELT gtkmm-prove\n",
+                              "title");
+        {
+            time_t now = 0;
+            time (&now);
+            char nowbuf[80];
+            strftime (nowbuf, sizeof(nowbuf), "%c\n", localtime(&now));
+            tbuf->insert_with_tag(tbuf->end(),
+                                  Glib::ustring::compose
+                                  ("start at %1\n", nowbuf),
+                                  "date");
+            tbuf->insert(tbuf->end(), "Commands from MELT are ");
+            tbuf->insert_with_tag(tbuf->end(), "like this\n", "command");
+            tbuf->insert(tbuf->end(), "Replies to MELT are ");
+            tbuf->insert_with_tag(tbuf->end(), "like that\n", "reply");
+        }
+    }
+    show_all();
+}
+void SmeltTraceWindow::add_command_from_melt(const std::string& str)
+{
+    auto tbuf =  _tracetextview.get_buffer();
+    add_date();
+    tbuf->insert_with_tag(tbuf->end(), str, "command");
+    if (str.empty() || str[str.size()-1] != '\n')
+        tbuf->insert(tbuf->end(), "\n");
+}
+
+void SmeltOptionGroup::setup_appl(SmeltAppl& app)
+{
+    if (!_file_to_melt.empty())
+        app.set_reqchan_to_melt(_file_to_melt);
+    if (!_file_from_melt.empty())
+        app.set_cmdchan_from_melt(_file_from_melt);
+    if (_trace_melt)
+        app.set_trace(_trace_melt);
+}
+
 /* low level callback to write requests to MELT */
-bool 
+bool
 SmeltAppl::reqbuf_to_melt_cb(Glib::IOCondition outcond)
 {
-  if ((outcond & Glib::IO_OUT) == 0) 
-    SMELT_FATAL ("error when writing requests to MELT");
-  _app_writestream_to_melt.flush();
-  std::string wstr = _app_writestream_to_melt.str();
-  int wsiz = wstr.size();
-  gsize wcnt = 0;
-  int woff = 0;
-  Glib::IOStatus wsta = Glib::IO_STATUS_EOF;
-  const char* wdata = wstr.data();
-  do { 
-    if (wsiz <= 0) 
-      break;
-    wsta = _app_reqchan_to_melt->write(wdata+woff, wsiz, wcnt);
-  switch (wsta) 
-    {
-    case Glib::IO_STATUS_NORMAL:
-    case Glib::IO_STATUS_AGAIN:
-      if (wcnt > 0) {
-	woff += wcnt;
-	wsiz -= wcnt;
-	continue;
-      }
-      break;
-    case Glib::IO_STATUS_ERROR:
-    case Glib::IO_STATUS_EOF:
-      SMELT_FATAL("write error for requests to MELT");
+    if ((outcond & Glib::IO_OUT) == 0)
+        SMELT_FATAL ("error when writing requests to MELT");
+    _app_writestream_to_melt.flush();
+    std::string wstr = _app_writestream_to_melt.str();
+    int wsiz = wstr.size();
+    gsize wcnt = 0;
+    int woff = 0;
+    Glib::IOStatus wsta = Glib::IO_STATUS_EOF;
+    const char* wdata = wstr.data();
+    do {
+        if (wsiz <= 0)
+            break;
+        wsta = _app_reqchan_to_melt->write(wdata+woff, wsiz, wcnt);
+        switch (wsta) {
+        case Glib::IO_STATUS_NORMAL:
+        case Glib::IO_STATUS_AGAIN:
+            if (wcnt > 0) {
+                woff += wcnt;
+                wsiz -= wcnt;
+                continue;
+            }
+            break;
+        case Glib::IO_STATUS_ERROR:
+        case Glib::IO_STATUS_EOF:
+            SMELT_FATAL("write error for requests to MELT");
+        }
+    } while (wsta == Glib::IO_STATUS_AGAIN && wcnt > 0);
+    _app_writestream_to_melt.clear();
+    if (wsiz > 0) {
+        wstr.erase (0, wcnt);
+        _app_writestream_to_melt.str(wstr);
+    } else {
+        _app_writestream_to_melt.str(std::string());
     }
-  } while (wsta == Glib::IO_STATUS_AGAIN && wcnt > 0);
-  _app_writestream_to_melt.clear();
-  if (wsiz > 0) 
-    {
-      wstr.erase (0, wcnt);
-      _app_writestream_to_melt.str(wstr);
-    }
-  else 
-    {
-      _app_writestream_to_melt.str(std::string());
-    }
-  return true;
+    return true;
 }
 
 /* low-level callback to read commands from MELT */
 bool
 SmeltAppl::cmdbuf_from_melt_cb(Glib::IOCondition  incond)
-{  
-  if ((incond & Glib::IO_IN) == 0) 
-    SMELT_FATAL ("error when reading commands from MELT");
-  Glib::ustring buf;
-  _app_cmdchan_from_melt->read_line (buf);
-  if (!buf.empty()) {
-    _app_cmdstr_from_melt.append (buf.c_str());
-    unsigned cmdlen = _app_cmdstr_from_melt.size();
-    if (cmdlen>2 && _app_cmdstr_from_melt[cmdlen-2]=='\n' 
-	&&  (_app_cmdstr_from_melt[cmdlen-1]=='\n' ||  _app_cmdstr_from_melt[cmdlen-1]=='\f'))
-      {
-	std::string curcmd = _app_cmdstr_from_melt;
-	_app_cmdstr_from_melt.erase();
-	process_command_from_melt(curcmd);
-      }
-  }
-  return true;
+{
+    if ((incond & Glib::IO_IN) == 0)
+        SMELT_FATAL ("error when reading commands from MELT");
+    Glib::ustring buf;
+    _app_cmdchan_from_melt->read_line (buf);
+    if (!buf.empty()) {
+        _app_cmdstr_from_melt.append (buf.c_str());
+        unsigned cmdlen = _app_cmdstr_from_melt.size();
+        if (cmdlen>2 && _app_cmdstr_from_melt[cmdlen-2]=='\n'
+                &&  (_app_cmdstr_from_melt[cmdlen-1]=='\n' ||  _app_cmdstr_from_melt[cmdlen-1]=='\f')) {
+            std::string curcmd = _app_cmdstr_from_melt;
+            _app_cmdstr_from_melt.erase();
+            process_command_from_melt(curcmd);
+        }
+    }
+    return true;
+}
+
+void
+SmeltAppl::set_trace(bool traced)
+{
+    if (traced) {
+        if (!_app_tracewin)
+            _app_tracewin.reset (new SmeltTraceWindow());
+        else
+            _app_tracewin->add_title("Tracing resumed");
+        _app_tracewin->show_all();
+        _app_traced = true;
+    } else {
+        if (_app_tracewin) {
+            _app_tracewin->hide();
+            _app_tracewin->add_title("Tracing stopped");
+        }
+        _app_traced = false;
+    }
+}
+
+
+void
+SmeltAppl::on_trace_toggled(void)
+{
+    if (_app_tracewin)
+        set_trace(_app_tracewin->tracing());
 }
 
 void
 SmeltAppl::process_command_from_melt(std::string& str)
 {
+    if (_app_traced) {
+        _app_tracewin->add_command_from_melt(str);
+    }
 }
 
 int main (int argc, char** argv)
 {
-  scm_init_guile ();
-  SmeltAppl app(argc, argv);
-  app.run();
+    SmeltOptionGroup optgroup;
+    smelt_options_context.set_main_group(optgroup);
+    SmeltAppl app(argc, argv);
+    optgroup.setup_appl(app);
+    app.run();
 }
 
-/**** for emacs 
+/**** for emacs
   ++ Local Variables: ++
-  ++ compile-command: "g++ -std=gnu++0x -Wall -O -g $(pkg-config --cflags --libs gtksourceviewmm-3.0  gtkmm-3.0  gtk+-3.0 guile-2.0) -o $HOME/bin/simplemelt-gtkmm-probe simplemelt-gtkmm-probe.cc" ++
+  ++ compile-command: "g++ -std=gnu++0x -Wall -O -g $(pkg-config --cflags --libs gtksourceviewmm-3.0  gtkmm-3.0  gtk+-3.0) -o $HOME/bin/simplemelt-gtkmm-probe simplemelt-gtkmm-probe.cc" ++
   ++ End: ++
   Not needed compilation-directory: "."
  ****/
