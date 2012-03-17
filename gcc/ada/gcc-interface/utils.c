@@ -918,8 +918,6 @@ rest_of_record_type_compilation (tree record_type)
       TYPE_SIZE_UNIT (new_record_type)
 	= size_int (TYPE_ALIGN (record_type) / BITS_PER_UNIT);
 
-      add_parallel_type (TYPE_STUB_DECL (record_type), new_record_type);
-
       /* Now scan all the fields, replacing each field with a new
 	 field corresponding to the new encoding.  */
       for (old_field = TYPE_FIELDS (record_type); old_field;
@@ -1058,7 +1056,12 @@ rest_of_record_type_compilation (tree record_type)
       TYPE_FIELDS (new_record_type)
 	= nreverse (TYPE_FIELDS (new_record_type));
 
-      rest_of_type_decl_compilation (TYPE_STUB_DECL (new_record_type));
+      /* We used to explicitly invoke rest_of_type_decl_compilation on the
+	 parallel type for the sake of STABS.  We don't do it any more, so
+	 as to ensure that the parallel type be processed after the type
+	 by the debug back-end and, thus, prevent it from interfering with
+	 the processing of a recursive type.  */
+      add_parallel_type (TYPE_STUB_DECL (record_type), new_record_type);
     }
 
   rest_of_type_decl_compilation (TYPE_STUB_DECL (record_type));
@@ -4892,11 +4895,14 @@ gnat_write_global_declarations (void)
      the global hash table.  We use a dummy variable for this purpose.  */
   if (!VEC_empty (tree, types_used_by_cur_var_decl))
     {
+      struct varpool_node *node;
       dummy_global
 	= build_decl (BUILTINS_LOCATION, VAR_DECL, NULL_TREE, void_type_node);
       TREE_STATIC (dummy_global) = 1;
       TREE_ASM_WRITTEN (dummy_global) = 1;
-      varpool_mark_needed_node (varpool_node (dummy_global));
+      node = varpool_node (dummy_global);
+      node->force_output = 1;
+      varpool_mark_needed_node (node);
 
       while (!VEC_empty (tree, types_used_by_cur_var_decl))
 	{

@@ -622,16 +622,24 @@ Type::are_assignable_check_hidden(const Type* lhs, const Type* rhs,
 				  std::string* reason)
 {
   // Do some checks first.  Make sure the types are defined.
-  if (rhs != NULL
-      && rhs->forwarded()->forward_declaration_type() == NULL
-      && rhs->is_void_type())
+  if (rhs != NULL && !rhs->is_undefined())
     {
-      if (reason != NULL)
-	*reason = "non-value used as value";
-      return false;
+      if (rhs->is_void_type())
+	{
+	  if (reason != NULL)
+	    *reason = "non-value used as value";
+	  return false;
+	}
+      if (rhs->is_call_multiple_result_type())
+	{
+	  if (reason != NULL)
+	    reason->assign(_("multiple value function call in "
+			     "single value context"));
+	  return false;
+	}
     }
 
-  if (lhs != NULL && lhs->forwarded()->forward_declaration_type() == NULL)
+  if (lhs != NULL && !lhs->is_undefined())
     {
       // Any value may be assigned to the blank identifier.
       if (lhs->is_sink_type())
@@ -639,9 +647,7 @@ Type::are_assignable_check_hidden(const Type* lhs, const Type* rhs,
 
       // All fields of a struct must be exported, or the assignment
       // must be in the same package.
-      if (check_hidden_fields
-	  && rhs != NULL
-	  && rhs->forwarded()->forward_declaration_type() == NULL)
+      if (check_hidden_fields && rhs != NULL && !rhs->is_undefined())
 	{
 	  if (lhs->has_hidden_fields(NULL, reason)
 	      || rhs->has_hidden_fields(NULL, reason))
@@ -715,9 +721,6 @@ Type::are_assignable_check_hidden(const Type* lhs, const Type* rhs,
     {
       if (rhs->interface_type() != NULL)
 	reason->assign(_("need explicit conversion"));
-      else if (rhs->is_call_multiple_result_type())
-	reason->assign(_("multiple value function call in "
-			 "single value context"));
       else if (lhs->named_type() != NULL && rhs->named_type() != NULL)
 	{
 	  size_t len = (lhs->named_type()->name().length()
@@ -4116,7 +4119,6 @@ Struct_type::do_verify()
   Struct_field_list* fields = this->fields_;
   if (fields == NULL)
     return true;
-  bool ret = true;
   for (Struct_field_list::iterator p = fields->begin();
        p != fields->end();
        ++p)
@@ -4126,7 +4128,6 @@ Struct_type::do_verify()
 	{
 	  error_at(p->location(), "struct field type is incomplete");
 	  p->set_type(Type::make_error_type());
-	  ret = false;
 	}
       else if (p->is_anonymous())
 	{
@@ -4134,19 +4135,17 @@ Struct_type::do_verify()
 	    {
 	      error_at(p->location(), "embedded type may not be a pointer");
 	      p->set_type(Type::make_error_type());
-	      return false;
 	    }
-	  if (t->points_to() != NULL
-	      && t->points_to()->interface_type() != NULL)
+	  else if (t->points_to() != NULL
+		   && t->points_to()->interface_type() != NULL)
 	    {
 	      error_at(p->location(),
 		       "embedded type may not be pointer to interface");
 	      p->set_type(Type::make_error_type());
-	      return false;
 	    }
 	}
     }
-  return ret;
+  return true;
 }
 
 // Whether this contains a pointer.
@@ -5206,10 +5205,7 @@ bool
 Array_type::do_verify()
 {
   if (!this->verify_length())
-    {
-      this->length_ = Expression::make_error(this->length_->location());
-      return false;
-    }
+    this->length_ = Expression::make_error(this->length_->location());
   return true;
 }
 
@@ -5899,10 +5895,7 @@ Map_type::do_verify()
 {
   // The runtime support uses "map[void]void".
   if (!this->key_type_->is_comparable() && !this->key_type_->is_void_type())
-    {
-      error_at(this->location_, "invalid map key type");
-      return false;
-    }
+    error_at(this->location_, "invalid map key type");
   return true;
 }
 
@@ -7885,7 +7878,6 @@ Named_type::do_verify()
   if (this->local_methods_ != NULL)
     {
       Struct_type* st = this->type_->struct_type();
-      bool found_dup = false;
       if (st != NULL)
 	{
 	  for (Bindings::const_declarations_iterator p =
@@ -7899,12 +7891,9 @@ Named_type::do_verify()
 		  error_at(p->second->location(),
 			   "method %qs redeclares struct field name",
 			   Gogo::message_name(name).c_str());
-		  found_dup = true;
 		}
 	    }
 	}
-      if (found_dup)
-	return false;
     }
 
   return true;

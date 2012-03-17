@@ -1,3 +1,182 @@
+2012-03-01  Richard Earnshaw  <rearnsha@arm.com>
+
+	* config.gcc (obsolete): Add all ARM targets using the FPA.
+	(with_fpu): Obsolete selection of the FPA or Maverick on ARM.
+	* doc/install.texi: Avoid references to obsolete ARM ports.
+
+2012-03-01  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* config/epiphany/epiphany.md (movmisalign<mode>): New patterns.
+
+2012-03-01  Jeremy Bennett  <jeremy.bennett@embecosm.com>
+	    Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* doc/extend.texi: Expand and update information on interrupt
+	attribute for Epiphany.
+
+2012-03-01  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh-protos.h: Update copyright notice dates.
+	* config/sh/sh.h: Likewise.
+	* config/sh/sh.md: Likewise.
+	* config/sh/constraints.md: Likewise.
+	* config/sh/predicates.md: Likewise.
+
+2012-03-01  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh-protos.h (tertiary_reload_operand): Remove dead function.
+	* config/sh/sh.c (tertiary_reload_operand): Likewise.
+
+2012-03-01  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/constraints.md: Fix comment typo.
+
+2012-03-01  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/52408
+	* config/pa/pa.md (zvdep_imm32): Change type of variable x from int to
+	unsigned HOST_WIDE_INT.
+	(zvdep_imm64): Likewise.
+	(vdepi_ior): Change type of variable x from int to HOST_WIDE_INT.
+	(vdepi_and): Likewise.
+	Likewise for unamed 64-bit patterns.
+	* config/pa/predicates.md (lhs_lshift_cint_operand): Update comment.
+
+2012-03-01  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/52001
+	PR rtl-optimization/52417
+	* cselib.c (cselib_any_perm_equivs): New variable.
+	(cselib_reset_table): Check that it's not set when not
+	preserving constants.
+	(cselib_add_permanent_equiv): Set it.
+	(cselib_have_permanent_equivalences): New.
+	(cselib_init, cselib_finish): Reset it.
+	* cselib.h (cselib_have_permanent_equivalences): Declare.
+	* alias.c (get_addr): Restore earlier behavior when there
+	aren't permanent equivalences.
+
+2012-03-01  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* config/mn10300/mn10300-modes.def: Fix copyright notice.
+	* config/v850/v850-modes.def: Fix copyright notice.
+
+2012-03-01  Georg-Johann Lay  <avr@gjlay.de>
+
+	* doc/extend.texi (AVR Built-in Functions): Document
+	__builtin_avr_flash_segment.
+
+	* config/avr/builtins.def (__builtin_avr_flash_segment): New entry.
+	* config/avr/avr.md (flash_segment, flash_segment1): New expanders.
+	(*split.flash_segment): New insn-and-split.
+	* config/avr/avr.c (avr_init_builtins): Add local variables:
+	const_memx_void_node, const_memx_ptr_type_node,
+	char_ftype_const_memx_ptr.
+
+2012-03-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/52445
+	* tree-ssa-phiopt.c (struct name_to_bb): Remove ssa_name field,
+	add ssa_name_ver, offset and size fields and change store field
+	to bool.
+	(name_to_bb_hash, name_to_bb_eq): Adjust for the above changes.
+	(add_or_mark_expr): Likewise.  Only consider previous stores
+	with the same size and offset.
+	(nt_init_block): Only look at gimple_assign_single_p stmts,
+	doesn't look at rhs2.
+
+2012-03-01  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52443
+	* tree-cfg.c (verify_gimple_assign_unary): Allow any
+	conversions from integral types to pointer types.
+
+2012-03-01  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr-c.c (avr_cpu_cpp_builtins): Restore built-in
+	defines for __UINT24_MAX__, __INT24_MAX__, __INT24_MIN__ 
+	unintentionally removed in r184616.
+
+2012-03-01  Venkataramanan Kumar  <venkataramanan.kumar@amd.com>
+
+	* doc/invoke.texi: Document AMD bdver2 and remove mentioning
+	3DNow from bdver1.
+
+2012-02-29  Jakub Jelinek  <jakub@redhat.com>
+	    Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52437
+	* config/i386/sse.md (vec_set<mode>_0): Swap "*r" and "fF"
+	alternatives, add "e" constraint to the new last alternative
+	and ! to last 3 alternatives.
+
+2012-02-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* dwarf2out.c (modified_type_die): Set DW_AT_GNAT_descriptive_type and
+	DW_AT_artificial attributes at the end of the processing.
+	(gen_array_type_die): Likewise.
+	(gen_enumeration_type_die): Likewise.
+	(gen_struct_or_union_type_die): Likewise.
+	(add_gnat_descriptive_type_attribute): Do not suppress debug info for
+	the parent type.
+
+2012-02-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/52419
+	* expr.c (expand_assignment): If doing misaligned store that doesn't
+	cover all mode bits, perform a RMW cycle.
+
+	PR tree-optimization/52429
+	* tree-parloops.c (separate_decls_in_region_debug): Return early
+	if var is LABEL_DECL.
+
+2012-02-29  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR tree-optimization/52424
+	* tree-ssa-dom.c (dom_opt_leave_block): Push a marker before
+	calling dom_thread_across_edge.
+
+2012-02-29  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.c: Move definition of TARGET macros to end of file.
+
+2012-02-29  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr-protos.h (avr_output_bld): Remove unused prototype.
+	* config/avr/avr.c (avr_output_bld): Remove unused function.
+	(avr_out_sbxx_branch): Use "%T" to print bit position.
+
+2012-02-29  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md: Untabify.
+
+2012-02-29  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md (eqne): New code iterator.
+	(*dec-and-branchsi): Use it in text peephole's condition.
+	(*dec-and-branchhi): Ditto.
+	(*dec-and-branchqi): Ditto.
+
+2012-02-29  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49939
+	* config/avr/avr.h (ASM_SPEC): Add -mno-skip-bug if we know that
+	the device does not have the skip-bug.
+
+2012-02-29  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* doc/invoke.texi (-msoft-atomic): Add more detailed description.
+	(-mbranch-cost, -mcbranchdi -mcmpeqdi -mfused-madd
+	-mpretend-cmove): New.
+
+2012-02-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/52397
+	* df.h (struct df_d): Adjust comment that hard_regs_live_count
+	doesn't count DEBUG_INSN refs.
+	* df-scan.c (df_ref_create_structure): Don't set DF_HARD_REG_LIVE
+	for DEBUG_INSN refs.
+
 2012-02-28  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	Partially revert:
