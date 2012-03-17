@@ -480,7 +480,7 @@ public:
         char* endstr = nullptr;
         long cmdfd = strtol(cmdcstr, &endstr, 10);
         struct stat cmdstat = {};
-        if (cmdfd > 0 && cmdfd < sysconf(_SC_OPEN_MAX)
+        if (cmdfd >= 0 && cmdfd < sysconf(_SC_OPEN_MAX)
                 && endstr && endstr[0] == (char)0
                 && !fstat(cmdfd, &cmdstat))
             _app_cmdchan_from_melt = Glib::IOChannel::create_from_fd(cmdfd);
@@ -495,6 +495,9 @@ public:
     };
     void set_trace(bool =true);
     void on_trace_toggled(void);
+    /// command handlers
+    void tracemsg_cmd(SmeltVector&);
+    void quit_cmd(SmeltVector&);
 };				// end class SmeltAppl
 
 
@@ -916,6 +919,40 @@ SmeltAppl::process_command_from_melt(std::string& str)
             _app_tracewin->add_title(std::string("Command error:") + ex.what());
     }
 }
+
+
+/////////////// tracemsg_cmd
+SmeltCommandSymbol smeltsymb_tracemsg_cmd("tracemsg_cmd",&SmeltAppl::tracemsg_cmd);
+
+void
+SmeltAppl::tracemsg_cmd(SmeltVector&v)
+{
+    auto& msg = v[1].to_string();
+    if (_app_traced && _app_tracewin)
+        _app_tracewin->add_title(msg);
+}
+
+////////////// quit_cmd
+
+SmeltCommandSymbol smeltsymb_quit_cmd("quit_cmd",&SmeltAppl::quit_cmd);
+
+
+static void smelt_quit(void)
+{
+    Gtk::Main::quit();
+}
+
+void
+SmeltAppl::quit_cmd(SmeltVector&v)
+{
+    long delay = (v.size()>0)?v.at(1).as_long():0L;
+    if (delay <= 0)
+        Gtk::Main::quit();
+    else  /* delayed quit; the delay is in milliseconds */
+        Glib::signal_timeout().connect_once(sigc::ptr_fun(&smelt_quit),delay);
+}
+
+
 
 int main (int argc, char** argv)
 {
