@@ -57,6 +57,11 @@ file (as a local.var to emacs) */
   abort();					\
 } while(0)
 
+bool smelt_debugging;
+
+#define SMELT_DEBUG(C) do { if (smelt_debugging)	\
+std::clog <<  __FILE__ << ":" << __LINE__		\
+<< "@" << __func__ << " " << C << std::endl; } while(0)
 
 
 static Glib::OptionContext smelt_options_context(" - a simple MELT Gtk probe");
@@ -160,6 +165,16 @@ public:
             entry_trace_melt.set_description("Show trace window");
             add_entry(entry_trace_melt, _trace_melt);
         }
+        ///
+#ifndef NDEBUG
+        {
+            Glib::OptionEntry entry_debug_melt;
+            entry_debug_melt.set_long_name("debug");
+            entry_debug_melt.set_short_name('D');
+            entry_debug_melt.set_description("Show low level debugging");
+            add_entry(entry_debug_melt, smelt_debugging);
+        }
+#endif
     };
     void setup_appl(SmeltAppl&);
 };				// end class SmeltOptionGroup
@@ -406,8 +421,114 @@ public:
     };
     static SmeltVector parse_string_vector(const std::string& s, int& pos) throw (std::exception);
     static SmeltArg parse_string_arg(const std::string& s, int& pos) throw (std::exception);
-
+    void out(std::ostream&) const;
 };				// end class SmeltArg
+
+
+std::ostream& operator << (std::ostream& os, const SmeltArg&a)
+{
+    a.out(os);
+    return os;
+};
+
+std::ostringstream& operator << (std::ostringstream& os, const SmeltArg&a)
+{
+    a.out(os);
+    return os;
+};
+
+
+std::ostream& operator << (std::ostream& os, const SmeltVector& v)
+{
+    os << "(";
+    for (auto& arg: v) {
+        os << " " << arg;
+    }
+    os << ")";
+    return os;
+}
+
+void SmeltArg::out(std::ostream& os) const
+{
+    switch (_argkind) {
+    case SmeltArg_None:
+        os << "!";
+        break;
+    case SmeltArg_Long:
+        os << _arglong;
+        break;
+    case SmeltArg_Double:
+        os << _argdouble;
+        break;
+    case SmeltArg_String:
+        os << "\"";
+        for (char c : *_argstring) {
+            switch (c) {
+            case '0' ... '9':
+            case 'a' ... 'z':
+            case 'A' ... 'Z':
+                os << c;
+                break;
+            case '\'':
+                os << "\\\'";
+                break;
+            case '\"':
+                os << "\\\"";
+                break;
+            case '\\':
+                os << "\\\\";
+                break;
+            case '\n':
+                os << "\\n";
+                break;
+            case '\r':
+                os << "\\r";
+                break;
+            case '\t':
+                os << "\\t";
+                break;
+            case '\v':
+                os << "\\v";
+                break;
+            case '\f':
+                os << "\\f";
+                break;
+            case '\e':
+                os << "\\e";
+                break;
+            default:
+                if (std::isprint(c)) {
+                    os << c;
+                }  else {
+                    char cbuf[8];
+                    memset (cbuf, 0, sizeof(cbuf));
+                    snprintf(cbuf, sizeof(cbuf), "\\x%02x", ((int)c & 0xff));
+                    os << cbuf;
+                }
+            }
+            break;
+        }
+        os << "\"";
+        break;
+    case SmeltArg_Symbol:
+        assert (_argsymbol != nullptr);
+        os << (_argsymbol->name());
+        break;
+    case SmeltArg_Vector: {
+        int nb=0;
+        assert (_argvector != nullptr);
+        os << "(";
+        for (auto v : *_argvector) {
+            if (nb>0)
+                os << " ";
+            v.out(os);
+            nb++;
+        }
+        os << ")";
+    }
+    break;
+    }
+}
 
 
 class SmeltParseError : public std::runtime_error {
@@ -445,12 +566,29 @@ class SmeltAppl
     bool _app_traced;
     Glib::RefPtr<Glib::IOChannel> _app_reqchan_to_melt; // channel for request to MELT
     Glib::RefPtr<Glib::IOChannel> _app_cmdchan_from_melt; // channel for commands from MELT
+    sigc::connection _app_connreq_to_melt;
+    sigc::connection _app_conncmd_from_melt;
     std::ostringstream _app_writestream_to_melt; // string buffer for requests to MELT
     std::string _app_cmdstr_from_melt;	       // the last command from MELT
 protected:
     bool reqbuf_to_melt_cb(Glib::IOCondition);
     bool cmdbuf_from_melt_cb(Glib::IOCondition);
     void process_command_from_melt (std::string& str);
+    std::ostringstream& outreq() {
+        return _app_writestream_to_melt;
+    };
+    void sendreq (std::ostream& os) {
+        os << std::endl << std::endl;
+        if (os == _app_writestream_to_melt) {
+            os << std::flush;
+            if (!_app_connreq_to_melt) {
+                SMELT_DEBUG("reconnecting requests");
+                _app_connreq_to_melt
+                    = Glib::signal_io().connect(sigc::mem_fun(*this, &SmeltAppl::reqbuf_to_melt_cb),
+                                                _app_reqchan_to_melt, Glib::IO_OUT);
+            }
+        }
+    }
 public:
     static SmeltAppl* instance() {
         return static_cast<SmeltAppl*>(Gtk::Main::instance());
@@ -467,13 +605,17 @@ public:
         struct stat reqstat = {};
         if (reqfd > 0 && reqfd < sysconf(_SC_OPEN_MAX)
                 && endstr && endstr[0] == (char)0
-                && !fstat(reqfd, &reqstat))
+                && !fstat(reqfd, &reqstat)) {
+            SMELT_DEBUG("request to MELT channel fd#" << reqfd);
             _app_reqchan_to_melt = Glib::IOChannel::create_from_fd(reqfd);
-        else if ((reqfd = open(reqcstr, O_RDONLY|O_CLOEXEC)) >= 0) {
+        } else if ((reqfd = open(reqcstr, O_RDONLY|O_CLOEXEC)) >= 0) {
+            SMELT_DEBUG("request to MELT channel file " << reqcstr << " fd#" << reqfd);
             _app_reqchan_to_melt = Glib::IOChannel::create_from_fd(reqfd);
         } else
             SMELT_FATAL("cannot open request to MELT channel " << reqname);
-
+        _app_connreq_to_melt
+            = Glib::signal_io().connect(sigc::mem_fun(*this, &SmeltAppl::reqbuf_to_melt_cb),
+                                        _app_reqchan_to_melt, Glib::IO_OUT);
     }
     void set_cmdchan_from_melt(const std::string &cmdname) {
         const char* cmdcstr = cmdname.c_str();
@@ -482,12 +624,17 @@ public:
         struct stat cmdstat = {};
         if (cmdfd >= 0 && cmdfd < sysconf(_SC_OPEN_MAX)
                 && endstr && endstr[0] == (char)0
-                && !fstat(cmdfd, &cmdstat))
+                && !fstat(cmdfd, &cmdstat)) {
+            SMELT_DEBUG("command from MELT channel fd#" << cmdfd);
             _app_cmdchan_from_melt = Glib::IOChannel::create_from_fd(cmdfd);
-        else if ((cmdfd = open(cmdcstr, O_RDONLY|O_CLOEXEC)) >= 0) {
+        } else if ((cmdfd = open(cmdcstr, O_RDONLY|O_CLOEXEC)) >= 0) {
+            SMELT_DEBUG("command from MELT channel file " << cmdcstr << " fd#" << cmdfd);
             _app_cmdchan_from_melt = Glib::IOChannel::create_from_fd(cmdfd);
         } else
             SMELT_FATAL("cannot open command from MELT channel " << cmdname);
+        _app_conncmd_from_melt =
+            Glib::signal_io().connect(sigc::mem_fun(*this, &SmeltAppl::cmdbuf_from_melt_cb),
+                                      _app_cmdchan_from_melt, Glib::IO_IN);
     }
     ~SmeltAppl() {};
     void run (void) {
@@ -498,6 +645,7 @@ public:
     /// command handlers
     void tracemsg_cmd(SmeltVector&);
     void quit_cmd(SmeltVector&);
+    void echo_cmd(SmeltVector&);
 };				// end class SmeltAppl
 
 
@@ -812,11 +960,17 @@ void SmeltOptionGroup::setup_appl(SmeltAppl& app)
 bool
 SmeltAppl::reqbuf_to_melt_cb(Glib::IOCondition outcond)
 {
+    SMELT_DEBUG("start outcond=" << outcond);
     if ((outcond & Glib::IO_OUT) == 0)
         SMELT_FATAL ("error when writing requests to MELT");
     _app_writestream_to_melt.flush();
     std::string wstr = _app_writestream_to_melt.str();
     int wsiz = wstr.size();
+    SMELT_DEBUG(" wsiz=" << wsiz << " wstr:" << wstr);
+    if (wsiz == 0) {
+        SMELT_DEBUG("disabling write requests");
+        return false;
+    }
     gsize wcnt = 0;
     int woff = 0;
     Glib::IOStatus wsta = Glib::IO_STATUS_EOF;
@@ -853,10 +1007,12 @@ SmeltAppl::reqbuf_to_melt_cb(Glib::IOCondition outcond)
 bool
 SmeltAppl::cmdbuf_from_melt_cb(Glib::IOCondition  incond)
 {
+    SMELT_DEBUG("start incond=" << incond);
     if ((incond & Glib::IO_IN) == 0)
         SMELT_FATAL ("error when reading commands from MELT");
     Glib::ustring buf;
     _app_cmdchan_from_melt->read_line (buf);
+    SMELT_DEBUG("got buf:" << buf);
     if (!buf.empty()) {
         _app_cmdstr_from_melt.append (buf.c_str());
         unsigned cmdlen = _app_cmdstr_from_melt.size();
@@ -873,6 +1029,7 @@ SmeltAppl::cmdbuf_from_melt_cb(Glib::IOCondition  incond)
 void
 SmeltAppl::set_trace(bool traced)
 {
+    SMELT_DEBUG(" traced=" << traced);
     if (traced) {
         if (!_app_tracewin)
             _app_tracewin.reset (new SmeltTraceWindow());
@@ -954,12 +1111,28 @@ SmeltAppl::quit_cmd(SmeltVector&v)
 
 
 
+////////////// echo_cmd
+
+SmeltCommandSymbol smeltsymb_echo_cmd("echo_cmd",&SmeltAppl::echo_cmd);
+
+
+
+void
+SmeltAppl::echo_cmd(SmeltVector&v)
+{
+    v.erase(v.begin());
+    sendreq(outreq() << v);
+}
+
+
+
 int main (int argc, char** argv)
 {
     SmeltOptionGroup optgroup;
     smelt_options_context.set_main_group(optgroup);
     SmeltAppl app(argc, argv);
     optgroup.setup_appl(app);
+    SMELT_DEBUG("running pid " << (int)getpid());
     app.run();
     return 0;
 }
