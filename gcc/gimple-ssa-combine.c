@@ -281,6 +281,12 @@ gimple_combine_convert (location_t loc, tree type, tree arg)
   return gimple_combine_build1 (loc, NOP_EXPR, type, arg);
 }
 
+static tree
+gimple_combine_negate_expr (location_t loc, tree type, tree arg)
+{
+  return gimple_combine_build1 (loc, NEGATE_EXPR, type, arg);
+}
+
 /* Report that what we got for VAL's nonzerobits (a) if it is
    not just the type's nonzerobits.  */
 static double_int
@@ -2123,7 +2129,7 @@ simplify_mult_expr (location_t loc, enum tree_code code, tree type,
 	}
       /* A * -1 -> -A */
       if (integer_all_onesp (rhs2))
-	return gimple_combine_build1 (loc, NEGATE_EXPR, type, rhs1);
+	return gimple_combine_negate_expr (loc, type, rhs1);
 
       /* (A + A) * C -> A * 2 * C */
       if (def1_code == PLUS_EXPR && TREE_CODE (rhs2) == INTEGER_CST
@@ -2192,8 +2198,7 @@ simplify_plusminus (location_t loc, enum tree_code code, tree type,
   if (code == MINUS_EXPR && TREE_CODE (rhs2) == INTEGER_CST
       && (TYPE_OVERFLOW_WRAPS (type) || may_negate_without_overflow_p (rhs2)))
     return gimple_combine_build2 (loc, PLUS_EXPR, type, rhs1,
-				  gimple_combine_build1 (loc, NEGATE_EXPR,
-							 type, rhs2));
+				  gimple_combine_negate_expr (loc, type, rhs2));
 
   if (!FLOAT_TYPE_P (type))
     {
@@ -2211,7 +2216,7 @@ simplify_plusminus (location_t loc, enum tree_code code, tree type,
 	  if (code == PLUS_EXPR)
 	    return rhs2;
 	  /* 0 - A -> -A */
-	  return gimple_combine_build1 (loc, NEGATE_EXPR, type, rhs2);
+	  return gimple_combine_negate_expr (loc, type, rhs2);
 	}
     }
   else
@@ -2223,7 +2228,7 @@ simplify_plusminus (location_t loc, enum tree_code code, tree type,
 	{
 	  if (code == PLUS_EXPR)
 	    return rhs2;
-	  return gimple_combine_build1 (loc, NEGATE_EXPR, type, rhs2);
+	  return gimple_combine_negate_expr (loc, type, rhs2);
 	}
     }
 
@@ -2329,8 +2334,7 @@ simplify_plusminus (location_t loc, enum tree_code code, tree type,
 	  if (def1_code == PLUS_EXPR)
 	    return def1_arg2;
 	  else
-	    return gimple_combine_build1 (loc, NEGATE_EXPR, type,
-					  def1_arg2);
+	    return gimple_combine_negate_expr (loc, type, def1_arg2);
 	}
       else if (operand_equal_p (def1_arg2, rhs2, 0)
 	       && code != def1_code)
@@ -2366,8 +2370,7 @@ simplify_plusminus (location_t loc, enum tree_code code, tree type,
       else if (code == PLUS_EXPR
 	       && integer_onep (rhs1))
 	/* ~A + 1 -> -A.  */
-	return gimple_combine_build1 (loc, NEGATE_EXPR, type,
-				      def1_arg1);
+	return gimple_combine_negate_expr (loc, type, def1_arg1);
     }
 
   if (def2_code == PLUS_EXPR
@@ -2380,8 +2383,7 @@ simplify_plusminus (location_t loc, enum tree_code code, tree type,
 	  if (def2_code == MINUS_EXPR)
 	    return def2_arg2;
 	  else
-	    return gimple_combine_build1 (loc, NEGATE_EXPR, type,
-					  def2_arg2);
+	    return gimple_combine_negate_expr (loc, type, def2_arg2);
 	}
       else if (operand_equal_p (def2_arg2, rhs1, 0)
 	       && code != def2_code)
@@ -2390,8 +2392,7 @@ simplify_plusminus (location_t loc, enum tree_code code, tree type,
 	  if (code == PLUS_EXPR)
 	    return def2_arg1;
 	  else
-	    return gimple_combine_build1 (loc, NEGATE_EXPR, type,
-					  def2_arg1);
+	    return gimple_combine_negate_expr (loc, type, def2_arg1);
 	}
       else if (TREE_CODE (rhs1) == INTEGER_CST
 	       && TREE_CODE (def2_arg1) == INTEGER_CST)
@@ -2591,19 +2592,6 @@ simplify_view_convert (location_t loc, enum tree_code code, tree ltype,
   if (def1_code == VIEW_CONVERT_EXPR)
     return gimple_combine_build1 (loc, code, ltype,
 				  TREE_OPERAND (def1_arg1, 0));
-
-  if (def1_code == INTEGER_CST
-      || def1_code == REAL_CST
-      || def1_code == COMPLEX_CST
-      || def1_code == VECTOR_CST
-      || def1_code == STRING_CST)
-    {
-      int len;
-      unsigned char buffer[64];
-      len = native_encode_expr (def1_arg1, buffer, sizeof (buffer));
-      if (len != 0)
-	return native_interpret_expr (ltype, buffer, len);
-    }
   
   return NULL_TREE;
 }
@@ -2692,6 +2680,63 @@ simplify_pointer_plus (location_t loc, enum tree_code code,
   return NULL_TREE;
 }
 
+static tree
+simplify_mod_expr (location_t loc, enum tree_code code,
+		   tree type, tree arg0, tree arg1)
+{
+  tree def1_arg0, def1_arg1 = NULL_TREE;
+  enum tree_code def1_code;
+
+  /* X % 1 is always zero, but be sure to preserve any side
+     effects in X.  */
+  if (integer_onep (arg1))
+    return build_int_cst (type, 0);
+
+  /* X % 0, return X % 0 unchanged so that we can get the
+     proper warnings and errors.  */
+  if (integer_zerop (arg1))
+    return NULL_TREE;
+
+  /* 0 % X is always zero, but be sure to preserve any side
+     effects in X.  Place this after checking for X == 0.  */
+  if (integer_zerop (arg0))
+    return build_int_cst (type, 0);
+
+  /* X % -1 is zero.  */
+  if (!TYPE_UNSIGNED (type)
+      && TREE_CODE (arg1) == INTEGER_CST
+      && TREE_INT_CST_LOW (arg1) == (unsigned HOST_WIDE_INT) -1
+      && TREE_INT_CST_HIGH (arg1) == -1) 
+    return build_int_cst (type, 0);
+
+#if 0
+  /* FIXME: sign_bit_p is static in fold-const.c */
+  /* X % -C is the same as X % C.  */
+  if (code == TRUNC_MOD_EXPR
+      && !TYPE_UNSIGNED (type)
+      && TREE_CODE (arg1) == INTEGER_CST
+      && !TREE_OVERFLOW (arg1)
+      && TREE_INT_CST_HIGH (arg1) < 0
+      && !TYPE_OVERFLOW_TRAPS (type)
+      /* Avoid this transformation if C is INT_MIN, i.e. C == -C.  */
+      && !sign_bit_p (arg1, arg1))
+    return gimple_combine_build2 (loc, code, type, arg0,
+			          gimple_combine_negate_expr (loc, type,
+							      arg1));
+#endif
+
+  defcodefor_name (arg1, &def1_code, &def1_arg0, &def1_arg1);
+
+  /* X % -Y is the same as X % Y.  */
+  if (code == TRUNC_MOD_EXPR
+      && !TYPE_UNSIGNED (type)
+      && def1_code == NEGATE_EXPR
+      && !TYPE_OVERFLOW_TRAPS (type))
+    return gimple_combine_build2 (loc, code, type, arg0,
+				  def1_arg0);
+ 
+  return NULL_TREE;
+}
 tree
 gimple_combine_ternary (location_t loc, enum tree_code code,
 			tree type, tree arg1, tree arg2, tree arg3)
@@ -2769,6 +2814,11 @@ gimple_combine_binary (location_t loc, enum tree_code code,
 	return simplify_pointer_plus (loc, code, type, arg1, arg2);
       case COMPLEX_EXPR:
 	return simplify_complex_expr (arg1, arg2);
+      case CEIL_MOD_EXPR:
+      case FLOOR_MOD_EXPR:
+      case ROUND_MOD_EXPR:
+      case TRUNC_MOD_EXPR:
+	return simplify_mod_expr (loc, code, type, arg1, arg2);
       default:
 	return NULL_TREE;
     }
@@ -2834,34 +2884,31 @@ static tree
 gimple_combine_constructor (tree rhs)
 {
   gcc_assert (TREE_CODE (rhs) == CONSTRUCTOR);
-  if (TREE_CODE (TREE_TYPE (rhs)) == VECTOR_TYPE)
+  if (TREE_CODE (TREE_TYPE (rhs)) == VECTOR_TYPE
+     && (CONSTRUCTOR_NELTS (rhs)
+	 <= TYPE_VECTOR_SUBPARTS (TREE_TYPE (rhs))))
     {
       tree zero = build_zero_cst (TREE_TYPE (TREE_TYPE (rhs)));
-      tree val, list;
+      tree val, *vec;
       unsigned i;
       unsigned numelements = TYPE_VECTOR_SUBPARTS (TREE_TYPE (rhs));
+      vec = XALLOCAVEC (tree, numelements);
 
-      list = NULL_TREE;
       FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (rhs), i, val)
 	{
 	  val = valueizerf (val);
 	  if (TREE_CODE (val) == INTEGER_CST
 	      || TREE_CODE (val) == REAL_CST
 	      || TREE_CODE (val) == FIXED_CST)
-	    list = tree_cons (NULL_TREE, val, list);
+	    vec[i] = val;
 	  else
 	    return NULL_TREE;
 	}
-      /* If the number of elements in the constructor is greater
-	 then the number of elements in the vector type, then something
-	 went wrong. */
-      if (i > numelements)
-	return NULL_TREE;
       /* The rest of the elements are zero. */
       for (; i< numelements; i++)
-	list = tree_cons (NULL_TREE, zero, list);
+	vec[i] = zero;
 
-      return build_vector (TREE_TYPE (rhs), nreverse (list));
+      return build_vector (TREE_TYPE (rhs), vec);
     }
   return NULL_TREE;
 }

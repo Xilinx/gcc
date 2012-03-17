@@ -1,3 +1,17 @@
+2012-03-17  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (gimple_combine_negate_expr): New function.
+	(simplify_mult_expr): Use gimple_combine_negate_expr instead of
+	gimple_combine_build1 with NEGATE_EXPR.
+	(simplify_plusminus): Likewise.
+	(simplify_view_convert): Remove code that handles constant since we
+	pass it off to fold_build1 already for those cases.
+	(simplify_mod_expr): New function.
+	(gimple_combine_ternary): Call simplify_mod_expr for *_MOD_EXPR's.
+	(gimple_combine_constructor): Fix up constant valueing of
+	CONSTRUCTOR to VECTOR_CST since the last merge change how VECTOR_CST
+	are represented.
+
 2012-03-16  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c (simplify_bitwise_binary):
