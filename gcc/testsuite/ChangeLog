@@ -1,3 +1,34 @@
+2012-03-16  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/misaligned-expand-1.c: New test.
+	* gcc.dg/misaligned-expand-3.c: Likewise.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+	Kai Tietz  <ktietz@redhat.com>
+
+	PR middle-end/48814
+	* gcc.c-torture/execute/pr48814-1.c: New test.
+	* gcc.c-torture/execute/pr48814-2.c: New test.
+	* gcc.dg/tree-ssa/assign-1.c: New test.
+	* gcc.dg/tree-ssa/assign-2.c: New test.
+	* gcc.dg/tree-ssa/assign-3.c: New test.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	* gnat.dg/specs/pack7.ads: New testcase.
+
+2012-03-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52568
+	* gcc.dg/torture/vshuf-4.inc: Add two new tests.
+	* gcc.dg/torture/vshuf-8.inc: Likewise.
+	* gcc.dg/torture/vshuf-16.inc: Likewise.
+	* gcc.dg/torture/vshuf-32.inc: Likewise.
+
+2012-03-15  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/torture/pr52582.C: New.
+
 2012-03-15  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
 
 	* lib/fortran-modules.exp: New file which was forgotten in r185430.

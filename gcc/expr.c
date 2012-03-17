@@ -5461,10 +5461,11 @@ categorize_ctor_elements_1 (const_tree ctor, HOST_WIDE_INT *p_nz_elts,
 
 	case VECTOR_CST:
 	  {
-	    tree v;
-	    for (v = TREE_VECTOR_CST_ELTS (value); v; v = TREE_CHAIN (v))
+	    unsigned i;
+	    for (i = 0; i < VECTOR_CST_NELTS (value); ++i)
 	      {
-		if (!initializer_zerop (TREE_VALUE (v)))
+		tree v = VECTOR_CST_ELT (value, i);
+		if (!initializer_zerop (v))
 		  nz_elts += mult;
 		init_elts += mult;
 	      }
@@ -9122,8 +9123,14 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	      tmp = fold_unary_loc (loc, VIEW_CONVERT_EXPR, type_for_mode, exp);
 	  }
 	if (!tmp)
-	  tmp = build_constructor_from_list (type,
-					     TREE_VECTOR_CST_ELTS (exp));
+	  {
+	    VEC(constructor_elt,gc) *v;
+	    unsigned i;
+	    v = VEC_alloc (constructor_elt, gc, VECTOR_CST_NELTS (exp));
+	    for (i = 0; i < VECTOR_CST_NELTS (exp); ++i)
+	      CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, VECTOR_CST_ELT (exp, i));
+	    tmp = build_constructor (type, v);
+	  }
 	return expand_expr (tmp, ignore ? const0_rtx : target,
 			    tmode, modifier);
       }
@@ -9340,21 +9347,27 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	  MEM_VOLATILE_P (temp) = 1;
 	if (modifier != EXPAND_WRITE
 	    && mode != BLKmode
-	    && align < GET_MODE_ALIGNMENT (mode)
-	    /* If the target does not have special handling for unaligned
-	       loads of mode then it can use regular moves for them.  */
-	    && ((icode = optab_handler (movmisalign_optab, mode))
-		!= CODE_FOR_nothing))
+	    && align < GET_MODE_ALIGNMENT (mode))
 	  {
-	    struct expand_operand ops[2];
+	    if ((icode = optab_handler (movmisalign_optab, mode))
+		!= CODE_FOR_nothing)
+	      {
+		struct expand_operand ops[2];
 
-	    /* We've already validated the memory, and we're creating a
-	       new pseudo destination.  The predicates really can't fail,
-	       nor can the generator.  */
-	    create_output_operand (&ops[0], NULL_RTX, mode);
-	    create_fixed_operand (&ops[1], temp);
-	    expand_insn (icode, 2, ops);
-	    return ops[0].value;
+		/* We've already validated the memory, and we're creating a
+		   new pseudo destination.  The predicates really can't fail,
+		   nor can the generator.  */
+		create_output_operand (&ops[0], NULL_RTX, mode);
+		create_fixed_operand (&ops[1], temp);
+		expand_insn (icode, 2, ops);
+		return ops[0].value;
+	      }
+	    else if (SLOW_UNALIGNED_ACCESS (mode, align))
+	      temp = extract_bit_field (temp, GET_MODE_BITSIZE (mode),
+					0, TYPE_UNSIGNED (TREE_TYPE (exp)),
+					true, (modifier == EXPAND_STACK_PARM
+					       ? NULL_RTX : target),
+					mode, mode);
 	  }
 	return temp;
       }
@@ -10767,8 +10780,9 @@ static rtx
 const_vector_from_tree (tree exp)
 {
   rtvec v;
-  int units, i;
-  tree link, elt;
+  unsigned i;
+  int units;
+  tree elt;
   enum machine_mode inner, mode;
 
   mode = TYPE_MODE (TREE_TYPE (exp));
@@ -10781,10 +10795,9 @@ const_vector_from_tree (tree exp)
 
   v = rtvec_alloc (units);
 
-  link = TREE_VECTOR_CST_ELTS (exp);
-  for (i = 0; link; link = TREE_CHAIN (link), ++i)
+  for (i = 0; i < VECTOR_CST_NELTS (exp); ++i)
     {
-      elt = TREE_VALUE (link);
+      elt = VECTOR_CST_ELT (exp, i);
 
       if (TREE_CODE (elt) == REAL_CST)
 	RTVEC_ELT (v, i) = CONST_DOUBLE_FROM_REAL_VALUE (TREE_REAL_CST (elt),
@@ -10796,10 +10809,6 @@ const_vector_from_tree (tree exp)
 	RTVEC_ELT (v, i) = immed_double_int_const (tree_to_double_int (elt),
 						   inner);
     }
-
-  /* Initialize remaining elements to 0.  */
-  for (; i < units; ++i)
-    RTVEC_ELT (v, i) = CONST0_RTX (inner);
 
   return gen_rtx_CONST_VECTOR (mode, v);
 }

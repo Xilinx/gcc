@@ -1,3 +1,148 @@
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52603
+	* tree-vect-data-refs.c (vect_can_force_dr_alignment_p): Clarify
+	comment.
+
+	Revert
+	2012-03-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52571
+	* tree-vect-data-refs.c (vect_compute_data_ref_alignment): Move
+	flag_section_anchors check ...
+	(vect_can_force_dr_alignment_p): ... here.
+
+2012-03-16  Martin Jambor  <mjambor@suse.cz>
+
+	* expr.c (expand_expr_real_1): handle misaligned scalar reads from
+	memory through MEM_REFs by calling extract_bit_field.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	* fold-const.c (native_interpret_expr): Also support POINTER_TYPE
+	and REFERENCE_TYPE interpretations.
+	(can_native_interpret_type_p): New function.
+	(fold_ternary_loc): Use native encode/interpret to fold
+	BIT_FIELD_REFs of constants.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52584
+	* fold-const.c (fold_ternary_loc): Fold vector typed BIT_FIELD_REFs
+	of vector constants and constructors.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vect-stmts.c (vect_get_vec_def_for_operand): Use
+	VIEW_CONVERT_EXPR to convert constants.
+	(vect_is_simple_use): Treat all constants as vec_constant_def.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+	Kai Tietz  <ktietz@redhat.com>
+
+	PR middle-end/48814
+	* gimplify.c (gimplify_self_mod_expr): Evaluate postfix
+	side-effects completely in the pre-queue and use a temporary
+	for the result.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	* stor-layout.c (finish_bitfield_representative): Fall back
+	to the conservative maximum size if we cannot compute the
+	size of the tail padding.
+
+2012-03-16  Tristan Gingold  <gingold@adacore.com>
+
+	* config/vms/vms.h (TARGET_OS_CPP_BUILTINS): Define
+	__CRTL_VER and __VMS_VER.
+	* config/vms/vms-protos.h: Declare vms_c_get_crtl_ver
+	and vms_c_get_vms_ver.
+	* config/vms/vms-c.c (vms_c_get_crtl_ver, vms_c_get_vms_ver): New
+	functions.
+	* config/alpha/vms.h (VMS_DEFAULT_CRTL_VER)
+	(VMS_DEFAULT_VMS_VER): Define.
+	* config/ia64/vms.h (VMS_DEFAULT_CRTL_VER)
+	(VMS_DEFAULT_VMS_VER): Define.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vect-loop.c (get_initial_def_for_induction): Use
+	build_constructor directly.
+	* tree-vect-stmts.c (vect_get_vec_def_for_operand): Use
+	build_vector_from_val.
+	* tree.c (build_vector_from_val): Avoid creating a constructor
+	first when we want a constant vector.
+
+2012-03-16  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* doc/install.texi (Specific, *-*-solaris2*): Improve wording.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	* tree.h (TREE_VECTOR_CST_ELTS): Remove.
+	(VECTOR_CST_NELTS, VECTOR_CST_ELTS, VECTOR_CST_ELT): New defines.
+	(struct tree_vector): Remove elements member, add variable size
+	elts array member.
+	(build_vector_stat): Declare.
+	(build_vector): Define in terms of build_vector_stat.
+	* tree.c (build_vector): Rename to ...
+	(build_vector_stat): ... this.  Take array of trees as parameter.
+	(build_vector_from_ctor): Adjust.
+	(integer_zerop, integer_onep, integer_all_onesp, iterative_hash_expr,
+	initializer_zerop): Adjust.
+	* cfgexpand.c (expand_debug_expr): Likewise.
+	* expr.c (categorize_ctor_elements_1, expand_expr_real_1,
+	const_vector_from_tree): Likewise.
+	* fold-const.c (const_binop, operand_equal_p, native_encode_vector,
+	native_interpret_vector, fold_unary_loc, vec_cst_ctor_to_array,
+	fold_vec_perm, fold_binary_loc, fold_ternary_loc): Likewise.
+	* tree-streamer-in.c (streamer_alloc_tree): Handle TS_VECTOR.
+	(lto_input_ts_vector_tree_pointers): Adjust.
+	* tree-streamer-out.c (streamer_write_tree_header): Handle TS_VECTOR.
+	(write_ts_vector_tree_pointers): Adjust.
+	* varasm.c (const_hash_1, compare_constant, copy_constant,
+	output_constant): Adjust.
+	* gimple-fold.c (gimple_fold_stmt_to_constant_1): Adjust.
+	* print-tree.c (print_node): Adjust.
+	* tree-pretty-print.c (dump_generic_node): Adjust.
+	* tree-vect-generic.c (uniform_vector_p, vector_element,
+	lower_vec_perm): Adjust.
+	* tree-vect-loop.c (get_initial_def_for_reduction): Adjust.
+	* tree-vect-slp.c (vect_get_constant_vectors,
+	vect_transform_slp_perm_load): Adjust.
+	* tree-vect-stmts.c (vect_gen_perm_mask): Adjust.
+	* expmed.c (make_tree): Adjust.
+	* config/i386/i386.c (ix86_expand_builtin): Adjust.
+	* config/sparc/sparc.c (sparc_handle_vis_mul8x16): Adjust interface
+	and implementation.
+	(sparc_fold_builtin): Adjust.
+
+2012-03-16  Tristan Gingold  <gingold@adacore.com>
+
+	* config.gcc (*-*-*vms*): Define use_gcc_stdint and tm_file.
+	* config/vms/vms-stdint.h: New file.
+
+2012-03-16  Tristan Gingold  <gingold@adacore.com>
+
+	* config.host (alpha64-dec-*vms*, alpha*-dec-*vms*)
+	(ia64-hp-*vms*): Replaced by ...
+	(*-*-*vms*): ... This new entry.
+
+2012-03-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52568
+	* config/i386/i386.c (expand_vec_perm_vperm2f128_vblend): New
+	function.
+	(ix86_expand_vec_perm_const_1): Use it.
+
+	PR target/52568
+	* config/i386/sse.md (UNSPEC_VPERMDF): Remove.
+	(avx2_permv4df): Remove.
+	(avx2_permv4di): Macroize into...
+	(avx2_perm<mode>): ... this using VI8F_256 iterator.
+	(avx2_permv4di_1): Macroize into...
+	(avx2_perm<mode>_1): ... this using VI8F_256 iterator.
+
 2012-03-15  Ulrich Weigand  <ulrich.weigand@linaro.org>
 
 	* combine.c (apply_distributive_law): Do not distribute SUBREG.
