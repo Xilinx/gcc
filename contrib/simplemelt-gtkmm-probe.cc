@@ -43,6 +43,7 @@ file (as a local.var to emacs) */
 #include <memory>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <cerrno>
 #include <map>
 #include <cstdio>
@@ -70,6 +71,21 @@ class SmeltMainWindow : public Gtk::Window {
   Gtk::VBox _mainvbox;
   Gtk::MenuBar _mainmenubar;
   Gtk::Label _mainlabel;
+  Gtk::Notebook _mainnotebook;
+  class ShownFile {
+    friend class SmeltMainWindow;
+    long _sfilnum;		// unique number in _mainsfilemapnum;
+    std::string _sfilname;	// file path
+    Gsv::View _sfilview;	// source view
+  public:
+    ShownFile(SmeltMainWindow*,const std::string&filepath,long num);
+    ShownFile() =delete;
+    ShownFile(const ShownFile&) =delete;
+    ~ShownFile();
+  };
+  static Glib::RefPtr<Gsv::LanguageManager> mainlangman_;
+  static std::map<long,std::shared_ptr<ShownFile> > mainsfilemapnum_;
+  static std::map<std::string,std::shared_ptr<ShownFile> > mainsfiledict_;
 public:
   SmeltMainWindow() :
     Gtk::Window() {
@@ -81,8 +97,9 @@ public:
                                 (int)(getpid()), g_get_host_name());
     _mainlabel.set_markup(labmarkstr);
     _mainlabel.set_justify(Gtk::JUSTIFY_CENTER);
-    _mainvbox.pack_start(_mainmenubar);
-    _mainvbox.pack_start(_mainlabel);
+    _mainvbox.pack_start(_mainmenubar,Gtk::PACK_SHRINK);
+    _mainvbox.pack_start(_mainlabel,Gtk::PACK_SHRINK);
+    _mainvbox.pack_start(_mainnotebook,Gtk::PACK_EXPAND_WIDGET);
     show_all();
 
   }
@@ -92,9 +109,12 @@ public:
     // return false to accept the delete event, true to reject it..
     return Gtk::Window::on_delete_event(ev);
   }
+  void show_file(const std::string&path, long num);
 };
 
-
+Glib::RefPtr<Gsv::LanguageManager> SmeltMainWindow::mainlangman_;
+std::map<long,std::shared_ptr<SmeltMainWindow::ShownFile> > SmeltMainWindow::mainsfilemapnum_;
+std::map<std::string,std::shared_ptr<SmeltMainWindow::ShownFile> > SmeltMainWindow::mainsfiledict_;
 
 class SmeltTraceWindow : public Gtk::Window {
   Gtk::VBox _tracevbox;
@@ -643,6 +663,7 @@ public:
   void tracemsg_cmd(SmeltVector&);
   void quit_cmd(SmeltVector&);
   void echo_cmd(SmeltVector&);
+  void showfile_cmd(SmeltVector&);
 };				// end class SmeltAppl
 
 
@@ -806,7 +827,61 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
   } else throw SmeltParseError("unexpected char", s, pos);
 }
 
+////////////////////////////////////////////////////////////////
+SmeltMainWindow::ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
+  : _sfilnum(num), _sfilname(filepath), _sfilview()
+{
+  assert(mwin != nullptr);
+  if (!mainlangman_)
+    mainlangman_ = Gsv::LanguageManager::get_default();
+  if (access(filepath.c_str(), R_OK))
+    SMELT_FATAL("invalid filepath " << filepath);
+  if (num == 0 || mainsfilemapnum_.find(num) != mainsfilemapnum_.end())
+    throw std::runtime_error(std::string("invalid shown file number"));
+  if (filepath.empty() || mainsfiledict_.find(filepath) != mainsfiledict_.end())
+    throw std::runtime_error(std::string("duplicate shown file name"));
+  auto lang = mainlangman_->guess_language(filepath,"");
+  auto sbuf = _sfilview.get_source_buffer();
+  sbuf->set_language(lang);
+  _sfilview.set_editable(false);
+  {
+    std::ifstream infil(filepath);
+    while (!infil.eof()) {
+      std::string linestr;
+      std::getline(infil,linestr);
+      linestr += "\n";
+      sbuf->insert(sbuf->end(),linestr);
+    }
+    infil.close();
+  }
+  {
+    auto scrowin = new Gtk::ScrolledWindow;
+    scrowin->add (_sfilview);
+    scrowin->set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
+    auto labstr = Glib::ustring::compose("<span size='small' color='darkblue'>#%1</span> "
+                                         "<tt>%2</tt>", num, filepath);
+    auto labw = new Gtk::Label;
+    labw->set_markup(labstr);
+    mwin->_mainnotebook.append_page(*scrowin,*labw);
+    scrowin->show_all();
+    labw->show_all();
+    mwin->_mainnotebook.show_all();
+  }
+  mainsfilemapnum_[num] = std::shared_ptr<ShownFile>(this);
+  mainsfiledict_[filepath] = std::shared_ptr<ShownFile>(this);
+}
 
+SmeltMainWindow::ShownFile::~ShownFile()
+{
+}
+
+void
+SmeltMainWindow::show_file(const std::string&path, long num)
+{
+  new ShownFile(this,path,num);
+}
+
+////////////////////////////////////////////////////////////////
 void SmeltTraceWindow::add_title(const std::string &str)
 {
   auto tbuf =  _tracetextview.get_buffer();
@@ -1080,7 +1155,7 @@ SmeltAppl::process_command_from_melt(std::string& str)
     SMELT_DEBUG("csym@" << (void*)csym);
     if (!csym)
       throw std::runtime_error("invalid command");
-    SMELT_DEBUG("*csym" << csym->name());
+    SMELT_DEBUG("*csym::" << csym->name());
     csym->call(this,v);
   } catch (std::exception ex) {
     std::clog << "Command error:" << ex.what() << std::endl;
@@ -1140,6 +1215,20 @@ SmeltAppl::echo_cmd(SmeltVector&v)
 
 
 
+//////////////// showfile_cmd
+
+SmeltCommandSymbol smeltsymb_showfile_cmd("showfile_cmd",&SmeltAppl::showfile_cmd);
+
+void
+SmeltAppl::showfile_cmd(SmeltVector&v)
+{
+  auto filnam = v.at(1).to_string();
+  auto num = v.at(2).to_long();
+  SMELT_DEBUG("filnam=" << filnam << " num=" << num);
+  _app_mainwin.show_file(filnam,num);
+}
+
+////////////////////////////////////////////////////////////////
 int main (int argc, char** argv)
 {
   SmeltOptionGroup optgroup;

@@ -1,6 +1,10 @@
 
 2012-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* simplemelt-gtkmm-probe.cc: adding showfile_cmd, not working yet.
+
+2012-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* simplemelt-gtkmm-probe.cc: Processing simple commands.
 
 2012-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
