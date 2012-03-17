@@ -1,3 +1,13 @@
+2012-03-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk-spawn.c (cilk_valid_spawn): Unwrapped the call_expr from expr
+	and cleanup point statements.
+	(gimplify_cilk_spawn): Likewise.
+	* function.c (allocate_struct_function): Initialized calls_spawns
+	correctly.
+	* tree.h: Removed cilk_hyper_flag and replaced with cilk_has_spawn.
+	Also added DECL_HAS_SPAWN_P and removed DECL_HYPER_LOOKUP_P.
+
 2012-03-12  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-typeck.c (convert_arguments): Added array notation check for

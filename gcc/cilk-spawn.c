@@ -295,6 +295,10 @@ cilk_valid_spawn (tree exp0)
   if (exp == NULL_TREE)
     return false; /* happens with C++ TARGET_EXPR */
 
+  while (TREE_CODE (exp) == CLEANUP_POINT_EXPR
+	 || TREE_CODE (exp) == EXPR_STMT)
+    exp = TREE_OPERAND (exp, 0);
+  
   /* Now we have a call, or this isn't a valid spawn. */
   /* XXX This will reject any outer non-spawn AGGR_INIT_EXPR
      that is valid because of a spawn inside.  Are there any
@@ -394,7 +398,11 @@ gimplify_cilk_spawn (tree *spawn_p, gimple_seq *before ATTRIBUTE_UNUSED,
       *spawn_p = build_empty_stmt (UNKNOWN_LOCATION);
       return;
     }
-
+  /* Remove cleanup point expr and expr stmt from *spawn_p */
+  while (TREE_CODE (expr) == CLEANUP_POINT_EXPR
+	 || TREE_CODE (expr) == EXPR_STMT)
+    expr = TREE_OPERAND (expr, 0);
+  
   new_args = NULL;
   function = build_cilk_wrapper (expr, &new_args);
 

@@ -12383,6 +12383,7 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	for (i = 0; i < n; i++)
 	  TREE_OPERAND (t, i) = tsubst_copy (TREE_OPERAND (t, i), args,
 					     complain, in_decl);
+	SPAWN_CALL_P (result) = SPAWN_CALL_P (t);
 	return result;
       }
 
@@ -13901,7 +13902,7 @@ tsubst_copy_and_build (tree t,
 					      in_decl,
 					      !qualified_p,
 					      integral_constant_expression_p);
-
+	    SPAWN_CALL_P (function) = SPAWN_CALL_P (t);
 	    if (BASELINK_P (function))
 	      qualified_p = true;
 	  }

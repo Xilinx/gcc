@@ -3564,15 +3564,13 @@ struct GTY(())
 
 /* In a FUNCTION_DECL for a Cilk function, indicates that the
    function is a hyperobject lookup. */
-#define DECL_HYPER_LOOKUP_P(NODE)				\
-  (FUNCTION_DECL_CHECK (NODE)->function_decl.cilk_hyper_flag)
+#define DECL_HAS_SPAWN_P(NODE) \
+  (FUNCTION_DECL_CHECK (NODE)->function_decl.cilk_has_spawn)
 
 /* In a FUNCTION_DECL with a nonzero DECL_CONTEXT, indicates that
    the static chain is an explicit argument.  */
 #define DECL_EXPLICIT_STATIC_CHAIN(NODE)				\
   (FUNCTION_DECL_CHECK (NODE)->function_decl.explicit_static_chain_flag)
-
-
 
 
 /* In a FUNCTION_DECL indicates that a static chain is needed.  */
@@ -3707,7 +3705,7 @@ struct GTY(()) tree_function_decl {
   unsigned looping_const_or_pure_flag : 1;
   unsigned has_debug_args_flag : 1;
   unsigned cilk_knot_type : 2;
-  unsigned cilk_hyper_flag : 1;
+  unsigned cilk_has_spawn : 1;
   signed int kills_registers : DECL_KILLS_REGISTERS_BITS;
   unsigned tm_clone_flag : 1;
 

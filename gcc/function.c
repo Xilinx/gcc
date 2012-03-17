@@ -4420,6 +4420,7 @@ allocate_struct_function (tree fndecl, bool abstract_p)
       cfun->can_throw_non_call_exceptions = flag_non_call_exceptions;
 
       cfun->elem_fn_already_cloned = false;
+      cfun->calls_spawn = DECL_HAS_SPAWN_P (fndecl);
     }
 }
 

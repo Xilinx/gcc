@@ -1,3 +1,11 @@
+2012-03-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* decl.c (finish_function_body): called DECL_HAS_SPAWN_P and set it to
+	calls_spawns.
+	* pt.c (tsubst_copy): Carried the spawn call information from one
+	call expression to another.
+	(tsubst_copy_and_build): Likewise.
+	
 2012-02-14  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* parser.c (cp_parser_compound_stmt): Added a check to see if the

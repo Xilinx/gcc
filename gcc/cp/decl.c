@@ -13402,6 +13402,7 @@ finish_function_body (tree compstmt)
 
   if (cfun->calls_spawn)
     cfun->cilk_frame_decl = cp_make_cilk_frame ();
+  DECL_HAS_SPAWN_P (cfun->decl) = cfun->calls_spawn;
 
   /* Close the block.  */
   finish_compound_stmt (compstmt);
