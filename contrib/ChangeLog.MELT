@@ -1,4 +1,8 @@
 
+2012-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* simplemelt-gtkmm-probe.cc: Parse commands...
+
 2012-03-16  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* simplemelt-gtkmm-probe.cc: Better UI manager....

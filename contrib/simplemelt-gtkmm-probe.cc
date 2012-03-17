@@ -45,6 +45,9 @@ file (as a local.var to emacs) */
 #include <sstream>
 #include <cerrno>
 #include <map>
+#include <cstdio>
+#include <cassert>
+#include <cctype>
 
 #define SMELT_FATAL(C) do { int er = errno;	\
   std::clog << __FILE__ << ":" << __LINE__	\
@@ -161,6 +164,279 @@ public:
     void setup_appl(SmeltAppl&);
 };				// end class SmeltOptionGroup
 
+
+class SmeltSymbol {
+    const std::string _symname;
+    void* _symdata;
+    static std::map<std::string,SmeltSymbol*> dictsym_;
+public:
+    SmeltSymbol(const std::string& name, void* data=nullptr)
+        : _symname(name), _symdata(data) {
+        assert (!name.empty());
+        assert(dictsym_.find(name) == dictsym_.end());
+        dictsym_[_symname] = this;
+    };
+    SmeltSymbol(const SmeltSymbol&) = delete;
+    SmeltSymbol(SmeltSymbol&&) = delete;
+    virtual ~SmeltSymbol() {
+        dictsym_.erase(_symname);
+        _symdata = nullptr;
+    }
+    const std::string& name() const {
+        return _symname;
+    };
+    const void* data() const {
+        return _symdata;
+    };
+    static SmeltSymbol* find(const std::string& name) {
+        return dictsym_[name];
+    };
+};
+
+std::map<std::string,SmeltSymbol*> SmeltSymbol::dictsym_;
+
+enum SmeltArgKind {
+    SmeltArg_None=0,
+    SmeltArg_Long,
+    SmeltArg_Double,
+    SmeltArg_String,
+    SmeltArg_Symbol,
+    SmeltArg_Vector
+};
+
+class SmeltArg;
+
+typedef std::vector<SmeltArg> SmeltVector;
+
+class SmeltArg {
+public:
+private:
+    const SmeltArgKind _argkind;
+    union {
+        long _arglong;
+        double _argdouble;
+        std::string* _argstring;
+        SmeltSymbol* _argsymbol;
+        SmeltVector* _argvector;
+        void* _argptr;
+    };
+public:
+    // accessors
+    SmeltArgKind kind() const {
+        return _argkind;
+    };
+    bool is_null() const {
+        return _argkind == SmeltArg_None;
+    };
+    bool is_long() const {
+        return _argkind == SmeltArg_Long;
+    };
+    bool is_double() const {
+        return _argkind == SmeltArg_Double;
+    };
+    bool is_symbol() const {
+        return _argkind == SmeltArg_Symbol;
+    };
+    bool is_string() const {
+        return _argkind == SmeltArg_String;
+    };
+    bool is_vector() const {
+        return _argkind == SmeltArg_Vector;
+    };
+    operator bool () const {
+        return !is_null();
+    };
+    bool operator ! () const {
+        return is_null();
+    };
+    long as_long() const {
+        return (_argkind==SmeltArg_Long)?_arglong:0L;
+    };
+    double as_double() const {
+        return (_argkind==SmeltArg_Double)?_argdouble:0.0;
+    };
+    SmeltSymbol* symbol_ptr() const {
+        return (_argkind==SmeltArg_Symbol)?_argsymbol:nullptr;
+    };
+    SmeltVector* vecor_ptr() const {
+        return  (_argkind==SmeltArg_Vector)?_argvector:nullptr;
+    };
+    const std::string& as_string() const {
+        static const std::string emptystr;
+        if (_argkind == SmeltArg_String) return *_argstring;
+        return emptystr;
+    };
+    double to_double() const {
+        if (_argkind != SmeltArg_Double) throw std::domain_error("non double arg");
+        return _argdouble;
+    };
+    long to_long() const {
+        if (_argkind != SmeltArg_Long) throw std::domain_error("non long arg");
+        return _arglong;
+    };
+    const std::string &to_string() const {
+        if (_argkind != SmeltArg_String)
+            throw std::domain_error("non string arg");
+        return *_argstring;
+    };
+    SmeltSymbol& to_symbol() const {
+        if (_argkind != SmeltArg_String)
+            throw std::domain_error("non symbol arg");
+        return *_argsymbol;
+    };
+    SmeltVector& to_vector() const {
+        if (_argkind != SmeltArg_Vector)
+            throw std::domain_error("non vector arg");
+        return *_argvector;
+    };
+    /// constructors
+    SmeltArg() : _argkind(SmeltArg_None), _argptr(nullptr) {};
+    SmeltArg(const SmeltArg& a)
+        : _argkind(a._argkind), _argptr(nullptr) {
+        switch (a._argkind) {
+        case SmeltArg_None:
+            break;
+        case SmeltArg_Long:
+            _arglong = a._arglong;
+            break;
+        case SmeltArg_Double:
+            _argdouble = a._argdouble;
+            break;
+        case SmeltArg_String:
+            _argstring = new std::string(*a._argstring);
+            break;
+        case SmeltArg_Symbol:
+            _argsymbol = a._argsymbol;
+            assert (_argsymbol != nullptr);
+            break;
+        case SmeltArg_Vector:
+            _argvector = new SmeltVector(*a._argvector);
+            break;
+        }
+    };
+    SmeltArg(SmeltArg&& a) : _argkind(a._argkind) {
+        switch (a._argkind) {
+        case SmeltArg_None:
+            break;
+        case SmeltArg_Long:
+            _arglong = a._arglong;
+            break;
+        case SmeltArg_Double:
+            _argdouble = a._argdouble;
+            break;
+        case SmeltArg_String:
+            _argstring = a._argstring;
+            break;
+        case SmeltArg_Symbol:
+            _argsymbol = a._argsymbol;
+            assert (_argsymbol != nullptr);
+            break;
+        case SmeltArg_Vector:
+            _argvector = a._argvector;
+            break;
+        }
+        const_cast<SmeltArgKind&>(a._argkind) = SmeltArg_None;
+        a._argptr = nullptr;
+    };
+    void clear() {
+        switch (_argkind) {
+        case SmeltArg_None:
+            break;
+        case SmeltArg_Long:
+            _arglong = 0;
+            break;
+        case SmeltArg_Double:
+            _argdouble = 0.0;
+            break;
+        case SmeltArg_String:
+            delete _argstring;
+            break;
+        case SmeltArg_Symbol:
+            _argsymbol = nullptr;
+            break;
+        case SmeltArg_Vector:
+            delete _argvector;
+            break;
+        }
+        _argptr = nullptr;
+    }
+    ~SmeltArg() {
+        clear();
+    };
+    SmeltArg& operator=(const SmeltArg&a) {
+        if (_argkind != SmeltArg_None) clear();
+        switch (a._argkind) {
+        case SmeltArg_None:
+            break;
+        case SmeltArg_Long:
+            _arglong = a._arglong;
+            break;
+        case SmeltArg_Double:
+            _argdouble = a._argdouble;
+            break;
+        case SmeltArg_String:
+            _argstring = new std::string(*a._argstring);
+            break;
+        case SmeltArg_Symbol:
+            _argsymbol = a._argsymbol;
+            assert (_argsymbol != nullptr);
+            break;
+        case SmeltArg_Vector:
+            _argvector = new SmeltVector(*a._argvector);
+            break;
+        }
+        const_cast<SmeltArgKind&>(_argkind) = a._argkind;
+        return *this;
+    }
+    explicit SmeltArg(std::nullptr_t) : _argkind(SmeltArg_None), _argptr(nullptr) {};
+    explicit SmeltArg(long l) : _argkind(SmeltArg_Long), _arglong(l) {};
+    explicit SmeltArg(double d) : _argkind(SmeltArg_Double), _argdouble(d) {};
+    explicit SmeltArg(const std::string& s)
+        : _argkind(SmeltArg_String), _argptr(nullptr) {
+        _argstring = new std::string(s);
+    }
+    explicit SmeltArg(SmeltSymbol* s): _argkind(SmeltArg_Symbol), _argsymbol(s) {
+        assert(s!=nullptr);
+    };
+    explicit SmeltArg(const SmeltSymbol& s)
+        : _argkind(SmeltArg_Symbol), _argsymbol(const_cast<SmeltSymbol*>(&s)) {};
+    explicit SmeltArg(const SmeltVector& v)
+        : _argkind(SmeltArg_Vector) {
+        _argvector = new SmeltVector(v);
+    };
+    static SmeltVector parse_string_vector(const std::string& s, int& pos) throw (std::exception);
+    static SmeltArg parse_string_arg(const std::string& s, int& pos) throw (std::exception);
+
+};				// end class SmeltArg
+
+
+class SmeltParseError : public std::runtime_error {
+public:
+    SmeltParseError(const std::string& what, std::string str, int pos):
+        std::runtime_error ("SMELT parse error:" + what + " @:" + str.substr(pos)) {};
+    ~SmeltParseError() throw () {};
+};
+
+class SmeltCommandSymbol : public SmeltSymbol {
+public:
+    typedef void (SmeltAppl::*cmdfun_t)(SmeltVector&);
+    friend class SmeltAppl;
+private:
+    cmdfun_t _cmdfun;
+public:
+    SmeltCommandSymbol(const std::string&name, cmdfun_t fun)
+        : SmeltSymbol(name), _cmdfun(fun) {
+    };
+    ~SmeltCommandSymbol() {
+        _cmdfun = nullptr;
+    };
+    cmdfun_t fun() {
+        return _cmdfun;
+    };
+    void call(SmeltAppl*, SmeltVector&);
+};				// end class SmeltCommandSymbol
+
+
 class SmeltAppl
     // when gtkmm3.4 is available, should inherit from Gtk::Application
         : public Gtk::Main {
@@ -221,6 +497,157 @@ public:
     void on_trace_toggled(void);
 };				// end class SmeltAppl
 
+
+SmeltVector
+SmeltArg::parse_string_vector(const std::string& s, int& pos) throw (std::exception)
+{
+    SmeltVector vec;
+    size_t siz = s.size();
+    if (pos<0 || pos>(int)siz)
+        throw std::range_error("position out of range");
+    while (pos < (int)siz) {
+        while (pos < (int)siz && std::isspace(s[pos])) pos++;
+        if (pos >= (int)siz || s[pos] == ')')
+            break;
+        SmeltArg arg = parse_string_arg(s, pos);
+        vec.push_back(arg);
+    }
+    return vec;
+}
+
+SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::exception)
+{
+    size_t siz = s.size();
+    if (pos<0 || pos>(int)siz)
+        throw std::range_error("position out of range");
+    if (pos>=(int)siz) return SmeltArg();
+    while (pos < (int) siz && std::isspace(s[pos])) pos++;
+    if (pos>=(int) siz) return SmeltArg();
+    char c = s[pos];
+    if (std::isdigit(c) ||
+            (pos<(int)siz-1 && (c=='+' || c=='-') && std::isdigit(s[pos+1]))) {
+        // parse a number, choose between the double and the long the longest one
+        char* endlng = nullptr;
+        char* enddbl = nullptr;
+        const char* cstr = s.c_str() + pos;
+        long l = strtol(cstr, &endlng, 0);
+        assert(endlng != nullptr);
+        double d = strtod(cstr, &enddbl);
+        if (enddbl && enddbl > endlng) {
+            pos += endlng - cstr;
+            return SmeltArg(d);
+        } else {
+            assert (endlng > cstr);
+            pos += endlng - cstr;
+            return SmeltArg(l);
+        }
+    } else if (std::isalpha(c) || c=='_') {
+        // parse an existing symbol
+        std::string name;
+        name.reserve(30);
+        int spos = pos;
+        while (pos < (int) siz && (c=s[pos])!=(char)0 && (std::isalnum(c) || c=='$' || c=='_'))
+            name += c;
+        SmeltSymbol* sym = SmeltSymbol::find(name);
+        if (!sym)
+            throw SmeltParseError("unknown symbol", name, spos);
+        return SmeltArg(sym);
+    } else if (c == '"') {
+        // parse a C encoded string
+        std::string str;
+        str.reserve(50);
+        int spos = pos;
+        pos++;
+        while (pos < (int) siz && (c=s[pos])!=(char)0 && c!= '"') {
+            if (c=='\\' && pos+1 < (int) siz) {
+                const char nc = s[pos+1];
+                switch (nc) {
+                case '\\':
+                    str += "\\";
+                    pos += 2;
+                    break;
+                case 'r':
+                    str += "\r";
+                    pos += 2;
+                    break;
+                case 't':
+                    str += "\t";
+                    pos += 2;
+                    break;
+                case 'n':
+                    str += "\n";
+                    pos += 2;
+                    break;
+                case 'f':
+                    str += "\f";
+                    pos += 2;
+                    break;
+                case 'v':
+                    str += "\v";
+                    pos += 2;
+                    break;
+                case 'e':
+                    str += "\e";
+                    pos += 2;
+                    break;
+                case '\"':
+                case 'Q':
+                    str += "\"";
+                    pos += 2;
+                    break;
+                case '_':
+                    str += " ";
+                    pos += 2;
+                    break;
+                case '0' ... '7' : {
+                    const char *ds = s.c_str()+pos+1;
+                    char* end = nullptr;
+                    long l = strtol(ds, &end, 8);
+                    assert (end != nullptr);
+                    pos += 2 + end - ds;
+                    str += (char) l;
+                    break;
+                }
+                case 'x': {
+                    std::string xs;
+                    pos += 2;
+                    if (std::isxdigit(s[pos])) xs += s[pos++];
+                    if (std::isxdigit(s[pos])) xs += s[pos++];
+                    long l = strtol(xs.c_str(), nullptr, 16);
+                    str += (char) l;
+                    break;
+                }
+                default:
+                    throw SmeltParseError("bad string backslash escape", str.substr(spos,4), pos);
+                }
+            } else if (std::isspace(c) || std::isprint(c)) {
+                str += c;
+            } else throw SmeltParseError("bad character in string", str, pos);
+        }
+        if (c != '\"') throw SmeltParseError("unterminated string", str, pos);
+        pos++;
+        return SmeltArg(str);
+    } else if (c == '(') {
+        int spos = pos;
+        pos++;
+        while (pos < (int)siz && std::isspace(s[pos])) pos++;
+        if (pos >= (int)siz)
+            throw SmeltParseError("unbalanced paren for nil", "", pos);
+        if (s[pos] == ')') {
+            pos++;
+            return SmeltArg(nullptr);
+        } else {
+            SmeltVector vect = parse_string_vector(s, pos);
+            while (pos < (int) siz && std::isspace(s[pos])) pos++;
+            if (pos >= (int) siz)
+                throw SmeltParseError("unbalanced paren in vector", s, spos);
+            if (s[pos] == ')')
+                pos++;
+            else throw SmeltParseError("unmatched paren in vector", s, spos);
+            return SmeltArg(vect);
+        }
+    } else throw SmeltParseError("unexpected char", s, pos);
+}
 
 
 void SmeltTraceWindow::add_title(const std::string &str)
@@ -352,6 +779,13 @@ SmeltTraceWindow::SmeltTraceWindow()
     }
     show_all();
 }
+
+void SmeltCommandSymbol::call(SmeltAppl* app, SmeltVector&v)
+{
+    ((*app).*(_cmdfun))(v);
+}
+
+
 void SmeltTraceWindow::add_command_from_melt(const std::string& str)
 {
     auto tbuf =  _tracetextview.get_buffer();
@@ -468,6 +902,19 @@ SmeltAppl::process_command_from_melt(std::string& str)
     if (_app_traced) {
         _app_tracewin->add_command_from_melt(str);
     }
+    int pos = 0;
+    try {
+        SmeltVector v = SmeltArg::parse_string_vector(str, pos);
+        SmeltSymbol& sym = v.at(0).to_symbol();
+        SmeltCommandSymbol* csym = dynamic_cast<SmeltCommandSymbol*>(&sym);
+        if (!csym)
+            throw std::runtime_error("invalid command");
+        csym->call(this,v);
+    } catch (std::exception ex) {
+        std::clog << "Command error:" << ex.what() << std::endl;
+        if (_app_traced)
+            _app_tracewin->add_title(std::string("Command error:") + ex.what());
+    }
 }
 
 int main (int argc, char** argv)
@@ -477,6 +924,7 @@ int main (int argc, char** argv)
     SmeltAppl app(argc, argv);
     optgroup.setup_appl(app);
     app.run();
+    return 0;
 }
 
 /**** for emacs
