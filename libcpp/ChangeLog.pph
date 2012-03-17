@@ -1,3 +1,8 @@
+2012-03-16   Lawrence Crowl  <crowl@google.com>
+
+	* symtab.c (cpp_lt_already_done): New.
+	(cpp_lt_replay): Avoid idempotent macro defines.
+
 2012-03-09   Lawrence Crowl  <crowl@google.com>
 
 	* include/cpplib.h (struct cpp_options): Add option to supress warning

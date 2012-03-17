@@ -1,12 +1,12 @@
 #ifndef X0TMPLDFLTPARM_H
 #define X0TMPLDFLTPARM_H
 
-template< typename T >
+template< typename A >
 struct auxillary
 {
 };
 
-template< typename T, typename U = auxillary< T > >
+template< typename P, typename Q = auxillary< P > >
 struct primary
 {
 };

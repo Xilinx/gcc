@@ -12093,7 +12093,8 @@ start_enum (tree name, tree enumtype, tree underlying_type,
 	 continue.  */
       if (enumtype == error_mark_node)
 	{
-	  name = make_anon_name ();
+	  location_t loc = DECL_SOURCE_LOCATION (TYPE_MAIN_DECL (enumtype));
+	  name = make_anon_name (loc);
 	  enumtype = NULL_TREE;
 	}
 

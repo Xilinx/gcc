@@ -1193,11 +1193,22 @@ cp_lexer_print_token (FILE * stream, cp_token *token)
     case CPP_KEYWORD:
       /* Some keywords have a value that is not an IDENTIFIER_NODE.
 	 For example, `struct' is mapped to an INTEGER_CST.  */
-      if (TREE_CODE (token->u.value) != IDENTIFIER_NODE)
-	break;
-      /* else fall through */
+      if (token->u.value)
+	{
+	  if (TREE_CODE (token->u.value) != IDENTIFIER_NODE)
+	    break;
+	  /* else fall through */
+	}
+      else
+	{
+	  fputs ("<nil>", stream);
+	  break;
+	}
     case CPP_NAME:
-      fputs (IDENTIFIER_POINTER (token->u.value), stream);
+      if (token->u.value)
+	fputs (IDENTIFIER_POINTER (token->u.value), stream);
+      else
+	fputs ("<nil>", stream);
       break;
 
     case CPP_STRING:
@@ -14446,7 +14457,7 @@ cp_parser_enum_specifier (cp_parser* parser)
 	identifier = cp_parser_identifier (parser);
       else
 	{
-	  identifier = make_anon_name ();
+	  identifier = make_anon_name (input_location);
 	  is_anonymous = true;
 	}
     }
@@ -18636,7 +18647,7 @@ cp_parser_class_head (cp_parser* parser,
     {
       /* If the class was unnamed, create a dummy name.  */
       if (!id)
-	id = make_anon_name ();
+	id = make_anon_name (input_location);
       type = xref_tag (class_key, id, /*tag_scope=*/ts_current,
 		       parser->num_template_parameter_lists);
     }

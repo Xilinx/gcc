@@ -5000,7 +5000,7 @@ extern tree pushdecl				(tree);
 extern tree pushdecl_maybe_friend		(tree, bool);
 extern void maybe_push_cleanup_level		(tree);
 extern tree pushtag				(tree, tree, tag_scope);
-extern tree make_anon_name			(void);
+extern tree make_anon_name			(location_t);
 extern tree pushdecl_top_level_maybe_friend	(tree, bool);
 extern tree pushdecl_top_level_and_finish	(tree, tree);
 extern tree check_for_out_of_scope_variable	(tree);

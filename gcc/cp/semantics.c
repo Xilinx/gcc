@@ -2416,7 +2416,7 @@ finish_compound_literal (tree type, tree compound_literal,
 	}
       cp_apply_type_quals_to_decl (cp_type_quals (type), decl);
       decl = pushdecl_top_level (decl);
-      DECL_NAME (decl) = make_anon_name ();
+      DECL_NAME (decl) = make_anon_name (DECL_SOURCE_LOCATION (decl));
       SET_DECL_ASSEMBLER_NAME (decl, DECL_NAME (decl));
       return decl;
     }
@@ -2561,7 +2561,7 @@ begin_class_definition (tree t, tree attributes)
   if (t == error_mark_node || ! MAYBE_CLASS_TYPE_P (t))
     {
       t = make_class_type (RECORD_TYPE);
-      pushtag (make_anon_name (), t, /*tag_scope=*/ts_current);
+      pushtag (make_anon_name (input_location), t, /*tag_scope=*/ts_current);
     }
 
   if (TYPE_BEING_DEFINED (t))

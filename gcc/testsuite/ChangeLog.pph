@@ -1,3 +1,14 @@
+2012-03-16   Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/README: Clarify p category.
+	* g++.dg/pph/c1anonymous1.h: Mark passing.
+	* g++.dg/pph/c1anonymous2.h: Mark passing.
+	* g++.dg/pph/c7features.cc: Mark passing.
+	* g++.dg/pph/p0anonretag.h: New.
+	* g++.dg/pph/p1anonretag.cc: New.
+	* g++.dg/pph/x0tmpldfltparm.h: Disambiguate template param names.
+	* g++.dg/pph/x7rtti.cc: Remove some xfails.
+
 2012-03-15   Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/c0anonymous.h: New.

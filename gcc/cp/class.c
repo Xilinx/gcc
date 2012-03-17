@@ -5640,8 +5640,9 @@ layout_class_type (tree t, tree *virtuals_p)
 	     temporarily give the field a name.  */
 	  if (PCC_BITFIELD_TYPE_MATTERS && !DECL_NAME (field))
 	    {
+	      location_t loc = DECL_SOURCE_LOCATION (field);
 	      was_unnamed_p = true;
-	      DECL_NAME (field) = make_anon_name ();
+	      DECL_NAME (field) = make_anon_name (loc);
 	    }
 #endif
 	  DECL_SIZE (field) = TYPE_SIZE (integer_type);

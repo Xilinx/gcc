@@ -817,6 +817,30 @@ cpp_lt_define_syntax (char *needed, const char *ident, const char *given)
   *needed++ = '\0';
 }
 
+
+/* Return true if a replay in the READER for a definition of the macro IDENT
+   to a WANTED value has already been done.  */
+
+static bool
+cpp_lt_define_done (cpp_reader *reader,
+		    const char *ident_str, unsigned int ident_len,
+		    const char *wanted_str)
+{
+  hashnode node;
+  cpp_hashnode *cpp_node;
+  const char *existing_str;
+  const unsigned char *ident_alt = (const unsigned char *)ident_str;
+  node = ht_lookup (reader->hash_table, ident_alt, ident_len, HT_NO_INSERT);
+  if (!node)
+    return false;
+  cpp_node = CPP_HASHNODE (node);
+  if (cpp_node->type != NT_MACRO)
+    return false;
+  existing_str = lt_query_macro (reader, cpp_node);
+  return strcmp (wanted_str, existing_str) == 0;
+}
+
+
 /* Replay the macro definitions captured by the table of IDENTIFIERS
    into the READER state.  If LOC is non-null, assign *LOC as the
    source_location to all macro definitions replayed.  */
@@ -855,8 +879,12 @@ cpp_lt_replay (cpp_reader *reader, cpp_idents_used* identifiers,
         {
           if (after_str != NULL)
             {
-              cpp_lt_define_syntax (buffer, ident_str, after_str);
-              cpp_define (reader, buffer);
+              if (!cpp_lt_define_done (reader, ident_str, entry->ident_len,
+				       after_str))
+		{
+		  cpp_lt_define_syntax (buffer, ident_str, after_str);
+		  cpp_define (reader, buffer);
+		}
             }
           /* else consistently not macros */
         }
@@ -868,9 +896,13 @@ cpp_lt_replay (cpp_reader *reader, cpp_idents_used* identifiers,
             }
           else if (strcmp (before_str, after_str) != 0)
             {
-              cpp_undef (reader, ident_str);
-              cpp_lt_define_syntax (buffer, ident_str, after_str);
-              cpp_define (reader, buffer);
+              if (!cpp_lt_define_done (reader, ident_str, entry->ident_len,
+				       after_str))
+		{
+		  cpp_undef (reader, ident_str);
+		  cpp_lt_define_syntax (buffer, ident_str, after_str);
+		  cpp_define (reader, buffer);
+		}
             }
           /* else macro with the same definition */
         }

@@ -1,3 +1,22 @@
+2012-03-16   Lawrence Crowl  <crowl@google.com>
+
+	* cp-tree.h (make_anon_name): Add location parameter.
+	* name-lookup.c (static const char anon_char): New.
+	(static const char anon_prefix): New.
+	(edit_anon_name): New.
+	(make_anon_name): Add location parameter.  Use location in creating
+	names for anonymous (tagless) types when using PPH.
+	(make_lambda_name): Fix comment for later.
+	* class.c (layout_class_type): Pass location to make_anon_name.
+	* decl.c (start_enum): Pass location to make_anon_name.
+	* semantics.c (finish_compound_literal): Pass location to
+	make_anon_name.
+	(begin_class_definition): Pass location to make_anon_name.
+	* error.c (dump_type): Protect call against null pointer.
+	* parser.c (cp_lexer_print_token): Protect against null values.
+	(cp_parser_enum_specifier): Pass location to make_anon_name.
+	(cp_parser_class_head): Pass location to make_anon_name.
+
 2012-03-15   Lawrence Crowl  <crowl@google.com>
 
 	* pph.h (pph_check_main_guarded): New.

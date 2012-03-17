@@ -1,8 +1,5 @@
 // FIXME pph: This should be a { dg=do run } (with '=' replaced by '-')
-// { xfail-if "UNKNOWN MACRO AND BOGUS RTTI" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "warning: .__STDC_IEC_559_COMPLEX__. redefined" "" { xfail *-*-* } 0 }
-// { dg-bogus "warning: .__STDC_ISO_10646__. redefined" "" { xfail *-*-* } 0 }
-// { dg-bogus "warning: .__STDC_IEC_559__. redefined" "" { xfail *-*-* } 0 }
+// { xfail-if "BOGUS RTTI" { "*-*-*" } { "-fpph-map=pph.map" } }
 
 #include "x5rtti1.h"
 #include "x5rtti2.h"

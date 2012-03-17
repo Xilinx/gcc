@@ -1978,15 +1978,54 @@ constructor_name_p (tree name, tree type)
 
 static GTY(()) int anon_cnt;
 
+/* Anonymous names may allow a character outside the C++ set.  */
+
+# ifdef JOINER
+static const char anon_char = JOINER;
+static const char anon_prefix[] = { JOINER, '_' };
+# else
+static const char anon_char = '_';
+static const char anon_prefix = ANON_AGGRNAME_PREFIX;
+# endif
+
+/* Edit a BUFFER so that every character
+   is within the assembler identifier set.  */
+
+static void
+edit_anon_name (char *buffer)
+{
+  char value;
+  for (value = *buffer; value != '\0'; value = *++buffer)
+    {
+      if (   ('0' <= value && value <= '9')
+	  || ('A' <= value && value <= 'Z')
+	  || ('a' <= value && value <= 'z')
+	  || (value == '_'))
+	{
+	  /* The character is already within the identifier set.  */
+	  continue;
+	}
+      *buffer = anon_char; /* Change bad character to good one.  */
+    }
+}
+
 /* Return an IDENTIFIER which can be used as a name for
    anonymous structs and unions.  */
 
 tree
-make_anon_name (void)
+make_anon_name (location_t loc)
 {
-  char buf[32];
+  char buf[MAXPATHLEN + 64];
 
-  sprintf (buf, ANON_AGGRNAME_FORMAT, anon_cnt++);
+  if (pph_enabled_p ())
+    {
+      expanded_location xloc = expand_location (loc);
+      sprintf (buf, "%s%s:%d:%d",
+	       anon_prefix, xloc.file, xloc.line, xloc.column);
+      edit_anon_name (buf);
+    }
+  else
+    sprintf (buf, ANON_AGGRNAME_FORMAT, anon_cnt++);
   return get_identifier (buf);
 }
 
@@ -2003,6 +2042,7 @@ make_lambda_name (void)
 {
   char buf[32];
 
+  /* FIXME pph: We will want to tie this name to location for PPH.  */
   sprintf (buf, LAMBDANAME_FORMAT, lambda_cnt++);
   return get_identifier (buf);
 }

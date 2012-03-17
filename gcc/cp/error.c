@@ -485,10 +485,10 @@ dump_type (tree t, int flags)
       {
 	tree decl = TYPE_NAME (t);
 	pp_cxx_cv_qualifier_seq (cxx_pp, t);
-	dump_location_qualifier (decl, flags);
 	if (decl)
 	  {
 	    tree ident = DECL_NAME (decl);
+	    dump_location_qualifier (decl, flags);
 	    if (ident)
 	      pp_cxx_tree_identifier (cxx_pp, ident);
 	    else
