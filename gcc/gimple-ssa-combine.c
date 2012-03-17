@@ -1730,43 +1730,55 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
     return gimple_combine_build1 (loc, BIT_NOT_EXPR, type, arg1);
 
   /* Fold (X ^ Y) & Y as ~X & Y.  */
-  if (code == BIT_AND_EXPR
-      && def1_code == BIT_XOR_EXPR
+  /* Fold (X & Y) ^ Y as ~X & Y.  */
+  if (((code == BIT_AND_EXPR
+        && def1_code == BIT_XOR_EXPR)
+       || (code == BIT_XOR_EXPR
+	   && def1_code == BIT_AND_EXPR))
       && operand_equal_for_phi_arg_p (def1_arg2, arg2))
     {
       tree tem;
       tem = gimple_combine_build1 (loc, BIT_NOT_EXPR, type, def1_arg1);
-      return gimple_combine_build2 (loc, code, type, tem, arg2);
+      return gimple_combine_build2 (loc, BIT_AND_EXPR, type, tem, arg2);
     }
 
   /* Fold (X ^ Y) & X as ~Y & X.  */
-  if (code == BIT_AND_EXPR
-      && def1_code == BIT_XOR_EXPR
+  /* Fold (X & Y) ^ X as ~Y & X.  */
+  if (((code == BIT_AND_EXPR
+        && def1_code == BIT_XOR_EXPR)
+       || (code == BIT_XOR_EXPR
+	   && def1_code == BIT_AND_EXPR))
       && operand_equal_for_phi_arg_p (def1_arg1, arg2))
     {
       tree tem;
-      tem = gimple_combine_build1 (loc, BIT_NOT_EXPR, type, def2_arg1);
-      return gimple_combine_build2 (loc, code, type, tem, arg2);
+      tem = gimple_combine_build1 (loc, BIT_NOT_EXPR, type, def1_arg2);
+      return gimple_combine_build2 (loc, BIT_AND_EXPR, type, tem, arg2);
     }
 
   /* Fold Y & (X ^ Y) as Y & ~X.  */
-  if (code == BIT_AND_EXPR
-      && def2_code == BIT_XOR_EXPR
+  /* Fold Y ^ (X & Y) as Y & ~X.  */
+  if (((code == BIT_AND_EXPR
+        && def2_code == BIT_XOR_EXPR)
+       || (code == BIT_XOR_EXPR
+	   && def2_code == BIT_AND_EXPR))
       && operand_equal_for_phi_arg_p (def2_arg2, arg1))
     {
       tree tem;
       tem = gimple_combine_build1 (loc, BIT_NOT_EXPR, type, def2_arg1);
-      return gimple_combine_build2 (loc, code, type, tem, arg1);
+      return gimple_combine_build2 (loc, BIT_AND_EXPR, type, tem, arg1);
     }
     
   /* Fold X & (X ^ Y) as X & ~Y.  */
-  if (code == BIT_AND_EXPR
-      && def2_code == BIT_XOR_EXPR
+  /* Fold X ^ (X & Y) as X & ~Y.  */
+  if (((code == BIT_AND_EXPR
+        && def2_code == BIT_XOR_EXPR)
+       || (code == BIT_XOR_EXPR
+	   && def2_code == BIT_AND_EXPR))
       && operand_equal_for_phi_arg_p (def2_arg1, arg1))
     {
       tree tem;
       tem = gimple_combine_build1 (loc, BIT_NOT_EXPR, type, def2_arg2);
-      return gimple_combine_build2 (loc, code, type, tem, arg1);
+      return gimple_combine_build2 (loc, BIT_AND_EXPR, type, tem, arg1);
     }
 
   /* Fold ~X & N into X ^ N if X's nonzerobits is equal to N. */
@@ -1989,7 +2001,6 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       if (tmp)
 	return gimple_combine_build2 (loc, code, type, tmp, def2_arg1);
     }
-
 #endif
 
 
