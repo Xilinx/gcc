@@ -1,6 +1,6 @@
 /* Output variables, constants and external declarations, for GNU compiler.
    Copyright (C) 1996, 1997, 1998, 2000, 2001, 2002, 2004, 2005, 2007, 2008,
-   2009, 2010, 2011
+   2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -43,13 +43,6 @@ along with GCC; see the file COPYING3.  If not see
         builtin_define ("__IEEE_FLOAT");	\
     } while (0)
 
-#undef TARGET_DEFAULT
-#if POINTER_SIZE == 64
-#define TARGET_DEFAULT (MASK_FPREGS | MASK_GAS | MASK_MALLOC64)
-#else
-#define TARGET_DEFAULT (MASK_FPREGS | MASK_GAS)
-#endif
-
 #define VMS_DEBUG_MAIN_POINTER "TRANSFER$BREAK$GO"
 
 #undef PCC_STATIC_STRUCT_RETURN
@@ -58,7 +51,9 @@ along with GCC; see the file COPYING3.  If not see
 
 /* The maximum alignment 'malloc' honors.  */
 #undef  MALLOC_ABI_ALIGNMENT
-#define MALLOC_ABI_ALIGNMENT ((TARGET_MALLOC64 ? 16 : 8) * BITS_PER_UNIT)
+#define MALLOC_ABI_ALIGNMENT \
+  ((flag_vms_malloc64 && flag_vms_pointer_size != VMS_POINTER_SIZE_NONE \
+   ? 16 : 8) * BITS_PER_UNIT)
 
 #undef FIXED_REGISTERS
 #define FIXED_REGISTERS  \
@@ -160,11 +155,12 @@ typedef struct {int num_args; enum avms_arg_type atypes[6];} avms_arg_info;
 
 #define DEFAULT_PCC_STRUCT_RETURN 0
 
-#if POINTER_SIZE == 64
 /* Eventhough pointers are 64bits, only 32bit ever remain significant in code
    addresses.  */
-#define MASK_RETURN_ADDR (GEN_INT (0xffffffff))
-#endif
+#define MASK_RETURN_ADDR                                \
+  (flag_vms_pointer_size == VMS_POINTER_SIZE_NONE       \
+   ? constm1_rtx                                        \
+   : GEN_INT (0xffffffff))
 
 #undef  ASM_WEAKEN_LABEL
 #define ASM_WEAKEN_LABEL(FILE, NAME)                            \
@@ -204,10 +200,6 @@ typedef struct {int num_args; enum avms_arg_type atypes[6];} avms_arg_info;
 /* Control how constructors and destructors are emitted.  */
 #define TARGET_ASM_CONSTRUCTOR  vms_asm_out_constructor
 #define TARGET_ASM_DESTRUCTOR   vms_asm_out_destructor
-
-#undef SDB_DEBUGGING_INFO
-#undef MIPS_DEBUGGING_INFO
-#undef DBX_DEBUGGING_INFO
 
 #define DWARF2_DEBUGGING_INFO 1
 #define VMS_DEBUGGING_INFO 1
@@ -297,3 +289,7 @@ do {                                                \
 
 #undef TARGET_VALID_POINTER_MODE
 #define TARGET_VALID_POINTER_MODE vms_valid_pointer_mode
+
+/* Default values for _CRTL_VER and _VMS_VER.  */
+#define VMS_DEFAULT_CRTL_VER 70320000
+#define VMS_DEFAULT_VMS_VER 70320000

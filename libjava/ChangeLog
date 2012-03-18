@@ -1,3 +1,59 @@
+2012-03-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (THREADLIBS): Remove *-*-solaris2.8 handling.
+	* configure: Regenerate.
+
+2012-03-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (libgcj_cv_exidx): Remove IRIX 6 ld workaround.
+	(mips-sgi-irix6*): Remove.
+	(mips-sgi-irix*): Remove.
+	(AC_CHECK_HEADERS): Remove bstring.h.
+	* configure: Regenerate.
+	* include/config.h.in: Regenerate.
+	* configure.host (mips-sgi-irix6*): Remove.
+
+	* include/posix-signal.h [__sgi__]: Remove.
+
+	* gnu/java/net/natPlainDatagramSocketImplPosix.cc
+	[HAVE_BSTRING_H]: Remove.
+	* gnu/java/net/natPlainDatagramSocketImplWin32.cc: Likewise.
+	* gnu/java/net/natPlainSocketImplPosix.cc: Likewise.
+
+2012-03-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (alpha*-dec-osf*): Remove.
+	* configure: Regenerate.
+	* configure.host (alpha*-dec-osf*): Remove.
+
+	* gnu/java/net/natPlainDatagramSocketImplPosix.cc (setOption): Use
+	IPV6_MULTICAST_IF unconditionally.
+	* gnu/java/net/natPlainDatagramSocketImplWin32.cc (setOption):
+	Likewise.
+	* gnu/java/net/natPlainSocketImplPosix.cc
+	(gnu::java::net::PlainSocketImpl::accept): Use ::accept instead of
+	_Jv_accept.
+	* include/posix-signal.h [__alpha__ && __osf__]: Remove.
+	* include/posix.h (_POSIX_PII_SOCKET): Don't define.
+	(_Jv_accept): Remove.
+
+	* java/io/File.java (File._access): Rename to access.
+	Change callers.
+	(File._stat): Likewise.
+	* java/io/File.h: Regenerate.
+	* classpath/lib/java/io/File.class: Regenerate.
+	* java/io/natFilePosix.cc (java::io::File::_access): Rename to
+	access.
+	(java::io::File::_stat): Rename to stat.
+	* java/io/natFileWin32.cc: Likewise.
+
+	* testsuite/libjava.jni/jni.exp (gcj_jni_get_cxxflags_invocation):
+	Remove alpha*-dec-osf* handling.
+	* testsuite/libjava.jvmti/jvmti-interp.exp
+	(gcj_jni_compile_c_to_so): Likewise.
+	* testsuite/libjava.jvmti/jvmti.exp (gcj_jvmti_compile_cxx_to_o):
+	Likewise.
+
 2012-02-23  Patrick Marlier  <patrick.marlier@gmail.com>
 	    Jack Howarth  <howarth@bromo.med.uc.edu>
 

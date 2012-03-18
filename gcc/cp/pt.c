@@ -2870,6 +2870,18 @@ template_template_parameter_p (const_tree parm)
   return DECL_TEMPLATE_TEMPLATE_PARM_P (parm);
 }
 
+/* Return true iff PARM is a DECL representing a type template
+   parameter.  */
+
+bool
+template_type_parameter_p (const_tree parm)
+{
+  return (parm
+	  && (TREE_CODE (parm) == TYPE_DECL
+	      || TREE_CODE (parm) == TEMPLATE_DECL)
+	  && DECL_TEMPLATE_PARM_P (parm));
+}
+
 /* Return the template parameters of T if T is a
    primary template instantiation, NULL otherwise.  */
 
@@ -8125,38 +8137,6 @@ outermost_tinst_level (void)
     while (level->next)
       level = level->next;
   return level;
-}
-
-/* Returns TRUE if PARM is a parameter of the template TEMPL.  */
-
-bool
-parameter_of_template_p (tree parm, tree templ)
-{
-  tree parms;
-  int i;
-
-  if (!parm || !templ)
-    return false;
-
-  gcc_assert (DECL_TEMPLATE_PARM_P (parm));
-  gcc_assert (TREE_CODE (templ) == TEMPLATE_DECL);
-
-  parms = DECL_TEMPLATE_PARMS (templ);
-  parms = INNERMOST_TEMPLATE_PARMS (parms);
-
-  for (i = 0; i < TREE_VEC_LENGTH (parms); ++i)
-    {
-      tree p = TREE_VALUE (TREE_VEC_ELT (parms, i));
-      if (p == error_mark_node)
-	continue;
-
-      if (parm == p
-	  || (DECL_INITIAL (parm)
-	      && DECL_INITIAL (parm) == DECL_INITIAL (p)))
-	return true;
-    }
-
-  return false;
 }
 
 /* DECL is a friend FUNCTION_DECL or TEMPLATE_DECL.  ARGS is the
@@ -14039,11 +14019,35 @@ tsubst_copy_and_build (tree t,
       }
 
     case COND_EXPR:
-      return build_x_conditional_expr
-	(RECUR (TREE_OPERAND (t, 0)),
-	 RECUR (TREE_OPERAND (t, 1)),
-	 RECUR (TREE_OPERAND (t, 2)),
-         complain);
+      {
+	tree cond = RECUR (TREE_OPERAND (t, 0));
+	tree exp1, exp2;
+
+	if (TREE_CODE (cond) == INTEGER_CST)
+	  {
+	    if (integer_zerop (cond))
+	      {
+		++c_inhibit_evaluation_warnings;
+		exp1 = RECUR (TREE_OPERAND (t, 1));
+		--c_inhibit_evaluation_warnings;
+		exp2 = RECUR (TREE_OPERAND (t, 2));
+	      }
+	    else
+	      {
+		exp1 = RECUR (TREE_OPERAND (t, 1));
+		++c_inhibit_evaluation_warnings;
+		exp2 = RECUR (TREE_OPERAND (t, 2));
+		--c_inhibit_evaluation_warnings;
+	      }
+	  }
+	else
+	  {
+	    exp1 = RECUR (TREE_OPERAND (t, 1));
+	    exp2 = RECUR (TREE_OPERAND (t, 2));
+	  }
+
+	return build_x_conditional_expr (cond, exp1, exp2, complain);
+      }
 
     case PSEUDO_DTOR_EXPR:
       return finish_pseudo_destructor_expr

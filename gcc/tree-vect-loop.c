@@ -1649,7 +1649,7 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
 
   vect_analyze_scalar_cycles (loop_vinfo);
 
-  vect_pattern_recog (loop_vinfo);
+  vect_pattern_recog (loop_vinfo, NULL);
 
   /* Data-flow analysis to detect stmts that do not need to be vectorized.  */
 
@@ -3176,6 +3176,8 @@ get_initial_def_for_induction (gimple iv_phi)
     }
   else
     {
+      VEC(constructor_elt,gc) *v;
+
       /* iv_loop is the loop to be vectorized. Create:
 	 vec_init = [X, X+S, X+2*S, X+3*S] (S = step_expr, X = init_expr)  */
       new_var = vect_get_new_vect_var (scalar_type, vect_scalar_var, "var_");
@@ -3188,8 +3190,8 @@ get_initial_def_for_induction (gimple iv_phi)
 	  gcc_assert (!new_bb);
 	}
 
-      t = NULL_TREE;
-      t = tree_cons (NULL_TREE, new_name, t);
+      v = VEC_alloc (constructor_elt, gc, nunits);
+      CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, new_name);
       for (i = 1; i < nunits; i++)
 	{
 	  /* Create: new_name_i = new_name + step_expr  */
@@ -3208,10 +3210,10 @@ get_initial_def_for_induction (gimple iv_phi)
 	      fprintf (vect_dump, "created new init_stmt: ");
 	      print_gimple_stmt (vect_dump, init_stmt, 0, TDF_SLIM);
 	    }
-	  t = tree_cons (NULL_TREE, new_name, t);
+	  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, new_name);
 	}
       /* Create a vector from [new_name_0, new_name_1, ..., new_name_nunits-1]  */
-      vec = build_constructor_from_list (vectype, nreverse (t));
+      vec = build_constructor (vectype, v);
       vec_init = vect_init_vector (iv_phi, vec, vectype, NULL);
     }
 
@@ -3440,7 +3442,7 @@ get_initial_def_for_reduction (gimple stmt, tree init_val,
   enum tree_code code = gimple_assign_rhs_code (stmt);
   tree def_for_init;
   tree init_def;
-  tree t = NULL_TREE;
+  tree *elts;
   int i;
   bool nested_in_vect_loop = false;
   tree init_value;
@@ -3521,23 +3523,31 @@ get_initial_def_for_reduction (gimple stmt, tree init_val,
           def_for_init = build_int_cst (scalar_type, int_init_val);
 
         /* Create a vector of '0' or '1' except the first element.  */
+	elts = XALLOCAVEC (tree, nunits);
         for (i = nunits - 2; i >= 0; --i)
-          t = tree_cons (NULL_TREE, def_for_init, t);
+	  elts[i + 1] = def_for_init;
 
         /* Option1: the first element is '0' or '1' as well.  */
         if (adjustment_def)
           {
-            t = tree_cons (NULL_TREE, def_for_init, t);
-            init_def = build_vector (vectype, t);
+	    elts[0] = def_for_init;
+            init_def = build_vector (vectype, elts);
             break;
           }
 
         /* Option2: the first element is INIT_VAL.  */
-        t = tree_cons (NULL_TREE, init_value, t);
+	elts[0] = init_val;
         if (TREE_CONSTANT (init_val))
-          init_def = build_vector (vectype, t);
+          init_def = build_vector (vectype, elts);
         else
-          init_def = build_constructor_from_list (vectype, t);
+	  {
+	    VEC(constructor_elt,gc) *v;
+	    v = VEC_alloc (constructor_elt, gc, nunits);
+	    CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, init_val);
+	    for (i = 1; i < nunits; ++i)
+	      CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, elts[i]);
+	    init_def = build_constructor (vectype, v);
+	  }
 
         break;
 

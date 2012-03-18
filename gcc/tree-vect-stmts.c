@@ -1227,9 +1227,7 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
   loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_vinfo);
   tree vec_inv;
   tree vec_cst;
-  tree t = NULL_TREE;
   tree def;
-  int i;
   enum vect_def_type dt;
   bool is_simple_use;
   tree vector_type;
@@ -1273,9 +1271,13 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
         if (vect_print_dump_info (REPORT_DETAILS))
           fprintf (vect_dump, "Create vector_cst. nunits = %d", nunits);
 
-        vec_cst = build_vector_from_val (vector_type,
-					 fold_convert (TREE_TYPE (vector_type),
-						       op));
+	if (!types_compatible_p (TREE_TYPE (vector_type), TREE_TYPE (op)))
+	  {
+	    op = fold_unary (VIEW_CONVERT_EXPR, TREE_TYPE (vector_type), op);
+	    gcc_assert (op && CONSTANT_CLASS_P (op));
+	  }
+
+        vec_cst = build_vector_from_val (vector_type, op);
         return vect_init_vector (stmt, vec_cst, vector_type, NULL);
       }
 
@@ -1284,7 +1286,6 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
       {
 	vector_type = get_vectype_for_scalar_type (TREE_TYPE (def));
 	gcc_assert (vector_type);
-	nunits = TYPE_VECTOR_SUBPARTS (vector_type);
 
 	if (scalar_def)
 	  *scalar_def = def;
@@ -1293,13 +1294,7 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
         if (vect_print_dump_info (REPORT_DETAILS))
           fprintf (vect_dump, "Create vector_inv.");
 
-        for (i = nunits - 1; i >= 0; --i)
-          {
-            t = tree_cons (NULL_TREE, def, t);
-          }
-
-	/* FIXME: use build_constructor directly.  */
-        vec_inv = build_constructor_from_list (vector_type, t);
+	vec_inv = build_vector_from_val (vector_type, def);
         return vect_init_vector (stmt, vec_inv, vector_type, NULL);
       }
 
@@ -2271,10 +2266,10 @@ vectorizable_conversion (gimple stmt, gimple_stmt_iterator *gsi,
       /* For WIDEN_MULT_EXPR, if OP0 is a constant, use the type of
 	 OP1.  */
       if (CONSTANT_CLASS_P (op0))
-	ok = vect_is_simple_use_1 (op1, stmt, loop_vinfo, NULL,
+	ok = vect_is_simple_use_1 (op1, stmt, loop_vinfo, bb_vinfo,
 				   &def_stmt, &def, &dt[1], &vectype_in);
       else
-	ok = vect_is_simple_use (op1, stmt, loop_vinfo, NULL, &def_stmt,
+	ok = vect_is_simple_use (op1, stmt, loop_vinfo, bb_vinfo, &def_stmt,
 				 &def, &dt[1]);
 
       if (!ok)
@@ -4091,7 +4086,7 @@ vectorizable_store (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 tree
 vect_gen_perm_mask (tree vectype, unsigned char *sel)
 {
-  tree mask_elt_type, mask_type, mask_vec;
+  tree mask_elt_type, mask_type, mask_vec, *mask_elts;
   int i, nunits;
 
   nunits = TYPE_VECTOR_SUBPARTS (vectype);
@@ -4099,16 +4094,14 @@ vect_gen_perm_mask (tree vectype, unsigned char *sel)
   if (!can_vec_perm_p (TYPE_MODE (vectype), false, sel))
     return NULL;
 
-  mask_elt_type
-    = lang_hooks.types.type_for_size
-    (TREE_INT_CST_LOW (TYPE_SIZE (TREE_TYPE (vectype))), 1);
+  mask_elt_type = lang_hooks.types.type_for_mode
+		    (int_mode_for_mode (TYPE_MODE (TREE_TYPE (vectype))), 1);
   mask_type = get_vectype_for_scalar_type (mask_elt_type);
 
-  mask_vec = NULL;
+  mask_elts = XALLOCAVEC (tree, nunits);
   for (i = nunits - 1; i >= 0; i--)
-    mask_vec = tree_cons (NULL, build_int_cst (mask_elt_type, sel[i]),
-			  mask_vec);
-  mask_vec = build_vector (mask_type, mask_vec);
+    mask_elts[i] = build_int_cst (mask_elt_type, sel[i]);
+  mask_vec = build_vector (mask_type, mask_elts);
 
   return mask_vec;
 }
@@ -5920,7 +5913,7 @@ vect_is_simple_use (tree operand, gimple stmt, loop_vec_info loop_vinfo,
       print_generic_expr (vect_dump, operand, TDF_SLIM);
     }
 
-  if (TREE_CODE (operand) == INTEGER_CST || TREE_CODE (operand) == REAL_CST)
+  if (CONSTANT_CLASS_P (operand))
     {
       *dt = vect_constant_def;
       return true;

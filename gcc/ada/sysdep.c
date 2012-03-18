@@ -251,28 +251,28 @@ __gnat_ttyname (int filedes)
 }
 #endif
 
-#if defined (linux) || defined (sun) || defined (sgi) \
-  || (defined (__osf__) && ! defined (__alpha_vxworks)) || defined (WINNT) \
+#if defined (linux) || defined (sun) \
+  || defined (WINNT) \
   || defined (__MACHTEN__) || defined (__hpux__) || defined (_AIX) \
   || (defined (__svr4__) && defined (i386)) || defined (__Lynx__) \
   || defined (__CYGWIN__) || defined (__FreeBSD__) || defined (__OpenBSD__) \
   || defined (__GLIBC__) || defined (__APPLE__)
 
-#ifdef __MINGW32__
-#if OLD_MINGW
-#include <termios.h>
-#else
-#include <conio.h>  /* for getch(), kbhit() */
-#endif
-#else
-#include <termios.h>
-#endif
+# ifdef __MINGW32__
+#  if OLD_MINGW
+#   include <termios.h>
+#  else
+#   include <conio.h>  /* for getch(), kbhit() */
+#  endif
+# else
+#  include <termios.h>
+# endif
 
 #else
-#if defined (VMS)
+# if defined (VMS)
 extern char *decc$ga_stdscr;
 static int initted = 0;
-#endif
+# endif
 #endif
 
 /* Implements the common processing for getc_immediate and
@@ -309,8 +309,7 @@ getc_immediate_common (FILE *stream,
                        int *avail,
                        int waiting)
 {
-#if defined (linux) || defined (sun) || defined (sgi) \
-    || (defined (__osf__) && ! defined (__alpha_vxworks)) \
+#if defined (linux) || defined (sun) \
     || defined (__CYGWIN32__) || defined (__MACHTEN__) || defined (__hpux__) \
     || defined (_AIX) || (defined (__svr4__) && defined (i386)) \
     || defined (__Lynx__) || defined (__FreeBSD__) || defined (__OpenBSD__) \
@@ -330,8 +329,8 @@ getc_immediate_common (FILE *stream,
       /* Set RAW mode, with no echo */
       termios_rec.c_lflag = termios_rec.c_lflag & ~ICANON & ~ECHO;
 
-#if defined(linux) || defined (sun) || defined (sgi) \
-    || defined (__osf__) || defined (__MACHTEN__) || defined (__hpux__) \
+#if defined(linux) || defined (sun) \
+    || defined (__MACHTEN__) || defined (__hpux__) \
     || defined (_AIX) || (defined (__svr4__) && defined (i386)) \
     || defined (__Lynx__) || defined (__FreeBSD__) || defined (__OpenBSD__) \
     || defined (__GLIBC__) || defined (__APPLE__)
@@ -781,8 +780,8 @@ __gnat_localtime_tzoff (const time_t *timer, const int *is_historic, long *off)
 {
   struct tm tp;
 
-/* AIX, HPUX, SGI Irix, Sun Solaris */
-#if defined (_AIX) || defined (__hpux__) || defined (sgi) || defined (sun)
+/* AIX, HPUX, Sun Solaris */
+#if defined (_AIX) || defined (__hpux__) || defined (sun)
 {
   (*Lock_Task) ();
 
@@ -842,11 +841,11 @@ __gnat_localtime_tzoff (const time_t *timer, const int *is_historic, long *off)
   (*Unlock_Task) ();
 }
 
-/* Darwin, Free BSD, Linux, Tru64, where component tm_gmtoff is present in
+/* Darwin, Free BSD, Linux, where component tm_gmtoff is present in
    struct tm */
 
 #elif defined (__APPLE__) || defined (__FreeBSD__) || defined (linux) ||\
-     (defined (__alpha__) && defined (__osf__)) || defined (__GLIBC__)
+     defined (__GLIBC__)
 {
   localtime_r (timer, &tp);
   *off = tp.tm_gmtoff;

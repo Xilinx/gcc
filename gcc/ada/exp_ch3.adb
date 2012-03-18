@@ -4829,10 +4829,12 @@ package body Exp_Ch3 is
                   --  object renaming declaration ---because these identifiers
                   --  were previously added by Enter_Name to the current scope.
                   --  We must preserve the homonym chain of the source entity
-                  --  as well.
+                  --  as well. We must also preserve the kind of the entity,
+                  --  which may be a constant.
 
                   Set_Chars (Defining_Identifier (N), Chars (Def_Id));
                   Set_Homonym (Defining_Identifier (N), Homonym (Def_Id));
+                  Set_Ekind (Defining_Identifier (N), Ekind (Def_Id));
                   Exchange_Entities (Defining_Identifier (N), Def_Id);
                end;
             end if;
@@ -6115,9 +6117,8 @@ package body Exp_Ch3 is
 
       --  This is done unconditionally to ensure that tools can be linked
       --  properly with user programs compiled with older language versions.
-      --  It might be worth including a switch to revert to a non-composable
-      --  equality for untagged records, even though no program depending on
-      --  non-composability has surfaced ???
+      --  In addition, this is needed because "=" composes for bounded strings
+      --  in all language versions (see Exp_Ch4.Expand_Composite_Equality).
 
       elsif Comes_From_Source (Def_Id)
         and then Convention (Def_Id) = Convention_Ada

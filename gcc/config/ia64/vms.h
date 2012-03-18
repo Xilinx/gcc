@@ -28,11 +28,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Need .debug_line info generated from gcc and gas.  */
 #undef TARGET_DEFAULT
-#if POINTER_SIZE == 64
-#define TARGET_DEFAULT (MASK_DWARF2_ASM | MASK_GNU_AS | MASK_MALLOC64)
-#else
 #define TARGET_DEFAULT (MASK_DWARF2_ASM | MASK_GNU_AS)
-#endif
 
 #define VMS_DEBUG_MAIN_POINTER "TRANSFER$BREAK$GO"
 
@@ -161,3 +157,7 @@ STATIC func_ptr __CTOR_LIST__[1]                                             \
 /* IA64 VMS doesn't fully support COMDAT sections.  */
 
 #define SUPPORTS_ONE_ONLY 0
+
+/* Default values for _CRTL_VER and _VMS_VER.  */
+#define VMS_DEFAULT_CRTL_VER 80300000
+#define VMS_DEFAULT_VMS_VER 80300000

@@ -131,17 +131,25 @@ canonicalize_constructor_val (tree cval)
   if (TREE_CODE (cval) == ADDR_EXPR)
     {
       tree base = get_base_address (TREE_OPERAND (cval, 0));
+      if (!base)
+	return NULL_TREE;
 
-      if (base
-	  && (TREE_CODE (base) == VAR_DECL
-	      || TREE_CODE (base) == FUNCTION_DECL)
+      if ((TREE_CODE (base) == VAR_DECL
+	   || TREE_CODE (base) == FUNCTION_DECL)
 	  && !can_refer_decl_in_current_unit_p (base))
 	return NULL_TREE;
-      if (base && TREE_CODE (base) == VAR_DECL)
+      if (TREE_CODE (base) == VAR_DECL)
 	{
 	  TREE_ADDRESSABLE (base) = 1;
 	  if (cfun && gimple_referenced_vars (cfun))
 	    add_referenced_var (base);
+	}
+      else if (TREE_CODE (base) == FUNCTION_DECL)
+	{
+	  /* Make sure we create a cgraph node for functions we'll reference.
+	     They can be non-existent if the reference comes from an entry
+	     of an external vtable for example.  */
+	  cgraph_get_create_node (base);
 	}
       /* Fixup types in global initializers.  */
       if (TREE_TYPE (TREE_TYPE (cval)) != TREE_TYPE (TREE_OPERAND (cval, 0)))
@@ -2459,21 +2467,22 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
 			   == TYPE_VECTOR_SUBPARTS (TREE_TYPE (rhs))))
 		{
 		  unsigned i;
-		  tree val, list;
+		  tree val, *vec;
 
-		  list = NULL_TREE;
+		  vec = XALLOCAVEC (tree,
+				    TYPE_VECTOR_SUBPARTS (TREE_TYPE (rhs)));
 		  FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (rhs), i, val)
 		    {
 		      val = (*valueize) (val);
 		      if (TREE_CODE (val) == INTEGER_CST
 			  || TREE_CODE (val) == REAL_CST
 			  || TREE_CODE (val) == FIXED_CST)
-			list = tree_cons (NULL_TREE, val, list);
+			vec[i] = val;
 		      else
 			return NULL_TREE;
 		    }
 
-		  return build_vector (TREE_TYPE (rhs), nreverse (list));
+		  return build_vector (TREE_TYPE (rhs), vec);
 		}
 
               if (kind == tcc_reference)
@@ -3114,6 +3123,11 @@ gimple_get_virt_method_for_binfo (HOST_WIDE_INT token, tree known_binfo)
      possibility too late.  */
   if (!can_refer_decl_in_current_unit_p (fn))
     return NULL_TREE;
+
+  /* Make sure we create a cgraph node for functions we'll reference.
+     They can be non-existent if the reference comes from an entry
+     of an external vtable for example.  */
+  cgraph_get_create_node (fn);
 
   return fn;
 }
