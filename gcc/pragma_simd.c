@@ -586,8 +586,12 @@ find_var_decl (tree t, const char *var_name, tree *var)
       }
 
     case VECTOR_CST:
-      find_var_decl (TREE_VECTOR_CST_ELTS (t), var_name,  var);
-      break;
+      {
+	int ii = 0;
+	for (ii = 0; ii < VECTOR_CST_NELTS (t); ii++)
+	  find_var_decl (VECTOR_CST_ELT (t, ii), var_name,  var);
+	break;
+      }
 
     case COMPLEX_CST:
       find_var_decl (TREE_REALPART (t), var_name, var);
@@ -849,11 +853,16 @@ change_var_decl (tree *t, tree new_var, tree var)
       }
 
     case VECTOR_CST:
-      nt = TREE_VECTOR_CST_ELTS (*t);
-      change_var_decl (&nt, new_var,  var);
-      TREE_VECTOR_CST_ELTS (*t) = nt;
-      break;
-
+      {
+	unsigned ii = 0;
+	for (ii = 0; ii < VECTOR_CST_NELTS (*t); ii++)
+	  {
+	    nt = VECTOR_CST_ELT (*t, ii);
+	    change_var_decl (&nt, new_var, var);
+	    VECTOR_CST_ELT (*t, ii) = nt;
+	  }
+	break;
+      }
     case COMPLEX_CST:
       nt  = TREE_REALPART (*t);
       nt2 = TREE_IMAGPART (*t);

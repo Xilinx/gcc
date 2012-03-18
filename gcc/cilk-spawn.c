@@ -1034,8 +1034,12 @@ extract_free_variables (tree t, struct wrapper_data *wd,
       }
 
     case VECTOR_CST:
-      SUBTREE (TREE_VECTOR_CST_ELTS (t));
-      break;
+      {
+	unsigned ii = 0;
+	for (ii = 0; ii < VECTOR_CST_NELTS (t); ii++)
+	  SUBTREE (VECTOR_CST_ELT (t, ii)); 
+	break;
+      }
 
     case COMPLEX_CST:
       SUBTREE (TREE_REALPART (t));
