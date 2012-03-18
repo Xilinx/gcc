@@ -1,3 +1,17 @@
+2012-03-18  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (simplify_view_convert):
+	Simplify VCE <inttype, inttypevar> to just NOP_EXPR <inttypevar>.
+	Simplify VCE <type, NOP_EXPR<inttype, inttype_var>> to
+	VCE<type, inttype_var> if the NOP_EXPR does change the precision.
+	(simplify_minmax_expr): New function.
+	(gimple_combine_binary): Call simplify_minmax_expr for MIN_EXPR
+	and MAX_EXPR.
+	* stor-layout.c (set_min_and_max_values_for_integral_type): Split out
+	into ...
+	(min_and_max_values_for_integral_type): this new function.
+	* tree.h (min_and_max_values_for_integral_type): Add prototype.
+
 2012-03-17  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c (simplify_bitwise_binary):

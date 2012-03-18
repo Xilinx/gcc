@@ -2607,19 +2607,39 @@ static tree
 simplify_view_convert (location_t loc, enum tree_code code, tree ltype,
 		       tree op0)
 {
-  tree def1_arg1, def1_arg2;
+  tree def1_arg1;
   enum tree_code def1_code;
+
   gcc_assert (code == VIEW_CONVERT_EXPR);
 
   if (useless_type_conversion_p (TREE_TYPE (op0), ltype))
     return op0;
+  
+  /* For integral conversions with the same precision or pointer
+     conversions use a NOP_EXPR instead.  */
+  if ((INTEGRAL_TYPE_P (ltype)
+       || POINTER_TYPE_P (ltype))
+      && (INTEGRAL_TYPE_P (TREE_TYPE (op0))
+	  || POINTER_TYPE_P (TREE_TYPE (op0)))
+      && TYPE_PRECISION (ltype) == TYPE_PRECISION (TREE_TYPE (op0)))
+    return gimple_combine_convert (loc, ltype, op0);
 
-  defcodefor_name (op0, &def1_code, &def1_arg1, &def1_arg2);
+  defcodefor_name (op0, &def1_code, &def1_arg1, NULL);
 
   if (def1_code == VIEW_CONVERT_EXPR)
     return gimple_combine_build1 (loc, code, ltype,
 				  TREE_OPERAND (def1_arg1, 0));
-  
+
+  /* Strip inner integral conversions that do not change the precision.  */
+  if (CONVERT_EXPR_CODE_P (def1_code)
+      && (INTEGRAL_TYPE_P (TREE_TYPE (op0))
+	  || POINTER_TYPE_P (TREE_TYPE (op0)))
+      && (INTEGRAL_TYPE_P (TREE_TYPE (def1_arg1))
+	  || POINTER_TYPE_P (TREE_TYPE (def1_arg1)))
+      && (TYPE_PRECISION (TREE_TYPE (op0))
+	  == TYPE_PRECISION (TREE_TYPE (def1_arg1))))
+    return gimple_combine_build1 (loc, VIEW_CONVERT_EXPR, ltype, def1_arg1);
+
   return NULL_TREE;
 }
 
@@ -2703,6 +2723,75 @@ simplify_pointer_plus (location_t loc, enum tree_code code,
   /* Just do a folding for constant integers. */
   if (TREE_CODE (op0) == INTEGER_CST && TREE_CODE (op1) == INTEGER_CST)
     return fold_binary_loc (loc, code, type, op0, op1);
+
+  return NULL_TREE;
+}
+
+static tree
+simplify_minmax_expr (enum tree_code code, tree type, tree arg0, tree arg1)
+{
+  tree def0_arg0, def0_arg1, def1_arg0, def1_arg1;
+  enum tree_code def0_code, def1_code;
+  enum tree_code compl_code;
+
+  tree min_value, max_value;
+
+  /* MAX_EXPR<a, a> -> a */
+  /* MIN_EXPR<a, a> -> a */
+  if (operand_equal_p (arg0, arg1, 0))
+    return arg0;
+
+  if (INTEGRAL_TYPE_P (type))
+    {
+      min_and_max_values_for_integral_type (type, TYPE_PRECISION (type),
+					    TYPE_UNSIGNED (type), &min_value,
+					    &max_value);
+      /* MIN_EXPR<a, INT_MIN> -> INT_MIN */
+      /* MAX_EXPR<a, INT_MIN> -> a */
+      if (operand_equal_p (arg1, min_value, OEP_ONLY_CONST))
+	return code == MIN_EXPR ? arg1 : arg0;
+
+      /* MIN_EXPR<a, INT_MAX> -> a */
+      /* MAX_EXPR<a, INT_MAX> -> INT_MAX */
+      if (operand_equal_p (arg1, max_value, OEP_ONLY_CONST))
+	return code == MAX_EXPR ? arg1 : arg0;
+    }
+
+  defcodefor_name (arg0, &def0_code, &def0_arg0, &def0_arg1);
+  defcodefor_name (arg1, &def1_code, &def1_arg0, &def1_arg1);
+
+  if (code == MIN_EXPR)
+    compl_code = MAX_EXPR;
+  else
+    compl_code = MIN_EXPR;
+
+  /* MIN (MAX (a, b), b) == b.  */
+  /* MIN (MAX (b, a), b) == b.  */
+  if (def0_code == compl_code
+      && (operand_equal_p (def0_arg1, arg1, 0)
+	  || operand_equal_p (def0_arg0, arg1, 0)))
+    return arg1;
+
+  /* MIN (a, MAX (a, b)) == a.  */
+  /* MIN (a, MAX (b, a)) == a.  */
+  if (def1_code == compl_code
+      && (operand_equal_p (arg0, def1_arg0, 0)
+	  || operand_equal_p (arg0, def1_arg1, 0)))
+    return arg0;
+
+  /* MIN (MIN (a, b), a) -> MIN (a, b) */
+  /* MIN (MIN (b, a), a) -> MIN (b, a) */
+  if (def0_code == code
+      && (operand_equal_p (def0_arg1, arg1, 0)
+	  || operand_equal_p (def0_arg0, arg1, 0)))
+    return arg0;
+
+  /* MIN (a, MIN (a, b)) == MIN (a, b).  */
+  /* MIN (a, MIN (b, a)) == MIN (b, a).  */
+  if (def1_code == code
+      && (operand_equal_p (arg0, def1_arg0, 0)
+	  || operand_equal_p (arg0, def1_arg1, 0)))
+    return arg1;
 
   return NULL_TREE;
 }
@@ -2846,6 +2935,9 @@ gimple_combine_binary (location_t loc, enum tree_code code,
       case ROUND_MOD_EXPR:
       case TRUNC_MOD_EXPR:
 	return simplify_mod_expr (loc, code, type, arg1, arg2);
+      case MIN_EXPR:
+      case MAX_EXPR:
+	return simplify_minmax_expr (code, type, arg1, arg2);
       default:
 	return NULL_TREE;
     }

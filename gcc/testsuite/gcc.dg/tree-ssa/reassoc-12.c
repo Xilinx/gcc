@@ -1,5 +1,5 @@
 /* { dg-do compile } */ 
-/* { dg-options "-O2 -fdump-tree-reassoc1-details" } */
+/* { dg-options "-O2 -fdump-tree-reassoc1-details -fno-tree-forwprop -fno-tree-fre -fno-tree-vrp -fno-tree-ccp" } */
 int f(int a, int b)
 {
   /* MAX_EXPR <a, a> should cause it to be equivalent to a.  */

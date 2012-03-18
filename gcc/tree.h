@@ -5672,6 +5672,8 @@ extern void set_decl_abstract_flags (tree, int);
 extern void set_decl_origin_self (tree);
 
 /* In stor-layout.c */
+extern void min_and_max_values_for_integral_type (tree, int, bool, tree *,
+						  tree *);
 extern void set_min_and_max_values_for_integral_type (tree, int, bool);
 extern void fixup_signed_type (tree);
 extern void internal_reference_types (void);

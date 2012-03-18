@@ -1,3 +1,9 @@
+2012-03-18  Andrew Pinski  <apinski@cavium.com>
+
+	* gcc.dg/tree-ssa/reassoc-12.c: Disable
+	forwprop, CCP, FRE and VRP as they all do
+	some simple reassociation on MAX_EXPR.
+
 2012-03-15  Andrew Pinski  <apinski@cavium.com>
 
 	* gcc.dg/tree-ssa/forwprop-18.c: Use + instead of |

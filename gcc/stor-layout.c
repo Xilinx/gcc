@@ -2455,17 +2455,18 @@ initialize_sizetypes (void)
 }
 
 /* TYPE is an integral type, i.e., an INTEGRAL_TYPE, ENUMERAL_TYPE
-   or BOOLEAN_TYPE.  Set TYPE_MIN_VALUE and TYPE_MAX_VALUE
-   for TYPE, based on the PRECISION and whether or not the TYPE
-   IS_UNSIGNED.  PRECISION need not correspond to a width supported
-   natively by the hardware; for example, on a machine with 8-bit,
-   16-bit, and 32-bit register modes, PRECISION might be 7, 23, or
-   61.  */
+   or BOOLEAN_TYPE.  Set *MINP and *MAXP for TYPE, based on the
+   PRECISION and whether or not the TYPE IS_UNSIGNED.  PRECISION
+   need not correspond to a width supported natively by the hardware;
+   for example, on a machine with 8-bit, 16-bit, and 32-bit register
+   modes, PRECISION might be 7, 23, or 61.  */
 
 void
-set_min_and_max_values_for_integral_type (tree type,
-					  int precision,
-					  bool is_unsigned)
+min_and_max_values_for_integral_type (tree type,
+				      int precision,
+				      bool is_unsigned,
+				      tree *minp,
+				      tree *maxp)
 {
   tree min_value;
   tree max_value;
@@ -2504,11 +2505,30 @@ set_min_and_max_values_for_integral_type (tree type,
 				   << (precision - HOST_BITS_PER_WIDE_INT - 1))) - 1
 			       : 0));
     }
-
-  TYPE_MIN_VALUE (type) = min_value;
-  TYPE_MAX_VALUE (type) = max_value;
+  *minp = min_value;
+  *maxp = max_value;
 }
 
+/* TYPE is an integral type, i.e., an INTEGRAL_TYPE, ENUMERAL_TYPE
+   or BOOLEAN_TYPE.  Set TYPE_MIN_VALUE and TYPE_MAX_VALUE
+   for TYPE, based on the PRECISION and whether or not the TYPE
+   IS_UNSIGNED.  PRECISION need not correspond to a width supported
+   natively by the hardware; for example, on a machine with 8-bit,
+   16-bit, and 32-bit register modes, PRECISION might be 7, 23, or
+   61.  */
+
+void
+set_min_and_max_values_for_integral_type (tree type,
+					  int precision,
+					  bool is_unsigned)
+{
+  tree min_value, max_value;
+  min_and_max_values_for_integral_type (type, precision, is_unsigned,
+					&min_value, &max_value);
+  TYPE_MIN_VALUE (type) = min_value;
+  TYPE_MAX_VALUE (type) = max_value;
+  
+}
 /* Set the extreme values of TYPE based on its precision in bits,
    then lay it out.  Used when make_signed_type won't do
    because the tree code is not INTEGER_TYPE.
