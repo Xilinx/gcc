@@ -5829,7 +5829,8 @@ classify_argument (enum machine_mode mode, const_tree type,
 {
   HOST_WIDE_INT bytes =
     (mode == BLKmode) ? int_size_in_bytes (type) : (int) GET_MODE_SIZE (mode);
-  int words = (bytes + (bit_offset % 64) / 8 + UNITS_PER_WORD - 1) / UNITS_PER_WORD;
+  int words
+    = (bytes + (bit_offset % 64) / 8 + UNITS_PER_WORD - 1) / UNITS_PER_WORD;
 
   /* Variable sized entities are always passed/returned in memory.  */
   if (bytes < 0)
@@ -5879,7 +5880,8 @@ classify_argument (enum machine_mode mode, const_tree type,
 		     misaligned integers.  */
 		  if (DECL_BIT_FIELD (field))
 		    {
-		      for (i = (int_bit_position (field) + (bit_offset % 64)) / 8 / 8;
+		      for (i = (int_bit_position (field)
+				+ (bit_offset % 64)) / 8 / 8;
 			   i < ((int_bit_position (field) + (bit_offset % 64))
 			        + tree_low_cst (DECL_SIZE (field), 0)
 				+ 63) / 8 / 8; i++)
@@ -5919,7 +5921,8 @@ classify_argument (enum machine_mode mode, const_tree type,
 						+ bit_offset) % 256);
 		      if (!num)
 			return 0;
-		      pos = (int_bit_position (field) + (bit_offset % 64)) / 8 / 8;
+		      pos = (int_bit_position (field)
+			     + (bit_offset % 64)) / 8 / 8;
 		      for (i = 0; i < num && (i + pos) < words; i++)
 			classes[i + pos] =
 			  merge_classes (subclasses[i], classes[i + pos]);
@@ -6336,21 +6339,27 @@ construct_container (enum machine_mode mode, enum machine_mode orig_mode,
       default:
 	gcc_unreachable ();
       }
-  if (n == 2 && regclass[0] == X86_64_SSE_CLASS
-      && regclass[1] == X86_64_SSEUP_CLASS && mode != BLKmode)
-    return gen_rtx_REG (mode, SSE_REGNO (sse_regno));
+  if (n == 2
+      && regclass[0] == X86_64_SSE_CLASS
+      && regclass[1] == X86_64_SSEUP_CLASS
+      && mode != BLKmode)
+    return gen_reg_or_parallel (mode, orig_mode,
+				SSE_REGNO (sse_regno));
   if (n == 4
       && regclass[0] == X86_64_SSE_CLASS
       && regclass[1] == X86_64_SSEUP_CLASS
       && regclass[2] == X86_64_SSEUP_CLASS
       && regclass[3] == X86_64_SSEUP_CLASS
       && mode != BLKmode)
-    return gen_rtx_REG (mode, SSE_REGNO (sse_regno));
+    return gen_reg_or_parallel (mode, orig_mode,
+				SSE_REGNO (sse_regno));
+  if (n == 2
+      && regclass[0] == X86_64_X87_CLASS
+      && regclass[1] == X86_64_X87UP_CLASS)
+    return gen_rtx_REG (XFmode, FIRST_STACK_REG);
 
   if (n == 2
-      && regclass[0] == X86_64_X87_CLASS && regclass[1] == X86_64_X87UP_CLASS)
-    return gen_rtx_REG (XFmode, FIRST_STACK_REG);
-  if (n == 2 && regclass[0] == X86_64_INTEGER_CLASS
+      && regclass[0] == X86_64_INTEGER_CLASS
       && regclass[1] == X86_64_INTEGER_CLASS
       && (mode == CDImode || mode == TImode || mode == TFmode)
       && intreg[0] + 1 == intreg[1])
@@ -6369,31 +6378,36 @@ construct_container (enum machine_mode mode, enum machine_mode orig_mode,
 	  case X86_64_INTEGERSI_CLASS:
 	    /* Merge TImodes on aligned occasions here too.  */
 	    if (i * 8 + 8 > bytes)
-	      tmpmode = mode_for_size ((bytes - i * 8) * BITS_PER_UNIT, MODE_INT, 0);
+	      tmpmode
+		= mode_for_size ((bytes - i * 8) * BITS_PER_UNIT, MODE_INT, 0);
 	    else if (regclass[i] == X86_64_INTEGERSI_CLASS)
 	      tmpmode = SImode;
 	    else
 	      tmpmode = DImode;
-	    /* We've requested 24 bytes we don't have mode for.  Use DImode.  */
+	    /* We've requested 24 bytes we
+	       don't have mode for.  Use DImode.  */
 	    if (tmpmode == BLKmode)
 	      tmpmode = DImode;
-	    exp [nexps++] = gen_rtx_EXPR_LIST (VOIDmode,
-					       gen_rtx_REG (tmpmode, *intreg),
-					       GEN_INT (i*8));
+	    exp [nexps++]
+	      = gen_rtx_EXPR_LIST (VOIDmode,
+				   gen_rtx_REG (tmpmode, *intreg),
+				   GEN_INT (i*8));
 	    intreg++;
 	    break;
 	  case X86_64_SSESF_CLASS:
-	    exp [nexps++] = gen_rtx_EXPR_LIST (VOIDmode,
-					       gen_rtx_REG (SFmode,
-							    SSE_REGNO (sse_regno)),
-					       GEN_INT (i*8));
+	    exp [nexps++]
+	      = gen_rtx_EXPR_LIST (VOIDmode,
+				   gen_rtx_REG (SFmode,
+						SSE_REGNO (sse_regno)),
+				   GEN_INT (i*8));
 	    sse_regno++;
 	    break;
 	  case X86_64_SSEDF_CLASS:
-	    exp [nexps++] = gen_rtx_EXPR_LIST (VOIDmode,
-					       gen_rtx_REG (DFmode,
-							    SSE_REGNO (sse_regno)),
-					       GEN_INT (i*8));
+	    exp [nexps++]
+	      = gen_rtx_EXPR_LIST (VOIDmode,
+				   gen_rtx_REG (DFmode,
+						SSE_REGNO (sse_regno)),
+				   GEN_INT (i*8));
 	    sse_regno++;
 	    break;
 	  case X86_64_SSE_CLASS:
@@ -6423,10 +6437,11 @@ construct_container (enum machine_mode mode, enum machine_mode orig_mode,
 	      default:
 		gcc_unreachable ();
 	      }
-	    exp [nexps++] = gen_rtx_EXPR_LIST (VOIDmode,
-					       gen_rtx_REG (tmpmode,
-							    SSE_REGNO (sse_regno)),
-					       GEN_INT (pos*8));
+	    exp [nexps++]
+	      = gen_rtx_EXPR_LIST (VOIDmode,
+				   gen_rtx_REG (tmpmode,
+						SSE_REGNO (sse_regno)),
+				   GEN_INT (pos*8));
 	    sse_regno++;
 	    break;
 	  default:
@@ -9287,7 +9302,7 @@ pro_epilogue_adjust_stack (rtx dest, rtx src, rtx offset,
   rtx insn;
   bool add_frame_related_expr = false;
 
-  if (! TARGET_64BIT)
+  if (Pmode == SImode)
     insn = gen_pro_epilogue_adjust_stack_si_add (dest, src, offset);
   else if (x86_64_immediate_operand (offset, DImode))
     insn = gen_pro_epilogue_adjust_stack_di_add (dest, src, offset);
@@ -10321,7 +10336,7 @@ ix86_expand_prologue (void)
       emit_insn (ix86_gen_allocate_stack_worker (eax, eax));
 
       /* Use the fact that AX still contains ALLOCATE.  */
-      adjust_stack_insn = (TARGET_64BIT
+      adjust_stack_insn = (Pmode == DImode
 			   ? gen_pro_epilogue_adjust_stack_di_sub
 			   : gen_pro_epilogue_adjust_stack_si_sub);
 
@@ -14127,7 +14142,8 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	    rtx x;
 
 	    if (!optimize
-	        || optimize_function_for_size_p (cfun) || !TARGET_BRANCH_PREDICTION_HINTS)
+	        || optimize_function_for_size_p (cfun)
+		|| !TARGET_BRANCH_PREDICTION_HINTS)
 	      return;
 
 	    x = find_reg_note (current_output_insn, REG_BR_PROB, 0);
@@ -14138,8 +14154,9 @@ ix86_print_operand (FILE *file, rtx x, int code)
 		if (pred_val < REG_BR_PROB_BASE * 45 / 100
 		    || pred_val > REG_BR_PROB_BASE * 55 / 100)
 		  {
-		    int taken = pred_val > REG_BR_PROB_BASE / 2;
-		    int cputaken = final_forward_branch_p (current_output_insn) == 0;
+		    bool taken = pred_val > REG_BR_PROB_BASE / 2;
+		    bool cputaken
+		      = final_forward_branch_p (current_output_insn) == 0;
 
 		    /* Emit hints only in the case default branch prediction
 		       heuristics would fail.  */
@@ -14473,7 +14490,7 @@ ix86_print_operand_address (FILE *file, rtx addr)
 
       /* Print SImode registers for zero-extended addresses to force
 	 addr32 prefix.  Otherwise print DImode registers to avoid it.  */
-      if (TARGET_64BIT)
+      if (TARGET_64BIT && GET_MODE (addr) == DImode)
 	code = ((GET_CODE (addr) == ZERO_EXTEND
 		 || GET_CODE (addr) == AND)
 		? 'l'
@@ -17817,6 +17834,11 @@ ix86_cc_modes_compatible (enum machine_mode m1, enum machine_mode m2)
   if ((m1 == CCGCmode && m2 == CCGOCmode)
       || (m1 == CCGOCmode && m2 == CCGCmode))
     return CCGCmode;
+
+  if (m1 == CCZmode && (m2 == CCGCmode || m2 == CCGOCmode))
+    return m2;
+  else if (m2 == CCZmode && (m1 == CCGCmode || m1 == CCGOCmode))
+    return m1;
 
   switch (m1)
     {
