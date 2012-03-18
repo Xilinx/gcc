@@ -83,7 +83,6 @@ class SmeltMainWindow : public Gtk::Window {
     ShownFile(const ShownFile&) =delete;
     ~ShownFile();
   };
-  static Glib::RefPtr<Gsv::LanguageManager> mainlangman_;
   static std::map<long,std::shared_ptr<ShownFile> > mainsfilemapnum_;
   static std::map<std::string,std::shared_ptr<ShownFile> > mainsfiledict_;
 public:
@@ -101,7 +100,6 @@ public:
     _mainvbox.pack_start(_mainlabel,Gtk::PACK_SHRINK);
     _mainvbox.pack_start(_mainnotebook,Gtk::PACK_EXPAND_WIDGET);
     show_all();
-
   }
   virtual ~SmeltMainWindow() {
   }
@@ -112,7 +110,7 @@ public:
   void show_file(const std::string&path, long num);
 };
 
-Glib::RefPtr<Gsv::LanguageManager> SmeltMainWindow::mainlangman_;
+
 std::map<long,std::shared_ptr<SmeltMainWindow::ShownFile> > SmeltMainWindow::mainsfilemapnum_;
 std::map<std::string,std::shared_ptr<SmeltMainWindow::ShownFile> > SmeltMainWindow::mainsfiledict_;
 
@@ -580,6 +578,7 @@ public:
 class SmeltAppl
   // when gtkmm3.4 is available, should inherit from Gtk::Application
     : public Gtk::Main {
+  Glib::RefPtr<Gsv::LanguageManager> _app_langman;
   SmeltMainWindow _app_mainwin;	// main window
   std::unique_ptr<SmeltTraceWindow> _app_tracewin;
   bool _app_traced;
@@ -609,6 +608,7 @@ protected:
     }
   }
 public:
+  Glib::RefPtr<Gsv::LanguageManager> langman() const { return _app_langman; };
   static SmeltAppl* instance() {
     return static_cast<SmeltAppl*>(Gtk::Main::instance());
   };
@@ -616,6 +616,7 @@ public:
     : Gtk::Main(argc, argv, smelt_options_context),
       _app_mainwin(),
       _app_traced(false) {
+    _app_langman = Gsv::LanguageManager::get_default();
   };
   void set_reqchan_to_melt(const std::string &reqname) {
     const char* reqcstr = reqname.c_str();
@@ -831,16 +832,20 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
 SmeltMainWindow::ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
   : _sfilnum(num), _sfilname(filepath), _sfilview()
 {
+  SMELT_DEBUG("filepath=" << filepath << " num=" << num);
   assert(mwin != nullptr);
-  if (!mainlangman_)
-    mainlangman_ = Gsv::LanguageManager::get_default();
   if (access(filepath.c_str(), R_OK))
     SMELT_FATAL("invalid filepath " << filepath);
   if (num == 0 || mainsfilemapnum_.find(num) != mainsfilemapnum_.end())
     throw std::runtime_error(std::string("invalid shown file number"));
   if (filepath.empty() || mainsfiledict_.find(filepath) != mainsfiledict_.end())
     throw std::runtime_error(std::string("duplicate shown file name"));
-  auto lang = mainlangman_->guess_language(filepath,"");
+  SMELT_DEBUG("guessing language for filepath=" << filepath);
+  auto langman = SmeltAppl::instance()->langman();
+  auto lang = langman->guess_language(filepath,std::string());
+  assert (lang);
+  SMELT_DEBUG("guessed lang id=" << (lang->get_id().c_str()) <<
+	      " name=" << (lang->get_name().c_str()));
   auto sbuf = _sfilview.get_source_buffer();
   sbuf->set_language(lang);
   _sfilview.set_editable(false);
