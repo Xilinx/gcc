@@ -1,5 +1,13 @@
 2012-03-17  Andrew Pinski  <apinski@cavium.com>
 
+	* gimple-ssa-combine.c (simplify_bitwise_binary):
+	Simplify (~a) ^ (~b) to a ^ b.
+	Simplify (~a) | (~b) to ~(a&b).
+	Simplify (~a) & (~b) to ~(a|b).
+	Simplify (~a) ^ C to a ^ (~C) where C is a constant.
+
+2012-03-17  Andrew Pinski  <apinski@cavium.com>
+
 	* gimple-ssa-combine.c (gimple_combine_negate_expr): New function.
 	(simplify_mult_expr): Use gimple_combine_negate_expr instead of
 	gimple_combine_build1 with NEGATE_EXPR.

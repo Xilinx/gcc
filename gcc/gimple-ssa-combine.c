@@ -1972,6 +1972,33 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
        return arg2;
     }
 
+  if (def1_code == BIT_NOT_EXPR
+      && def2_code == BIT_NOT_EXPR)
+    {
+      enum tree_code inner_code;
+      tree inner;
+      /* (~a) ^ (~b) -> a ^ b */
+      if (code == BIT_XOR_EXPR)
+	return gimple_combine_build2 (loc, BIT_XOR_EXPR, type, def1_arg1,
+				      def2_arg1);
+      /* (~a) | (~b) -> ~(a&b) */
+      /* (~a) & (~b) -> ~(a|b) */
+      inner_code = (code == BIT_IOR_EXPR) ? BIT_AND_EXPR : BIT_IOR_EXPR;
+      inner = gimple_combine_build2 (loc, inner_code, type, def1_arg1,
+				     def2_arg1);
+      return gimple_combine_build1 (loc, BIT_NOT_EXPR, type, inner);
+    }
+
+  /* (~a) ^ C -> a ^ (~C) */
+  if (code == BIT_XOR_EXPR
+      && def1_code == BIT_NOT_EXPR
+      && TREE_CODE (arg2) == INTEGER_CST)
+    {
+      tree inner = gimple_combine_build1 (loc, BIT_NOT_EXPR, type, arg2);
+      return gimple_combine_build2 (loc, BIT_XOR_EXPR, type, def1_arg1, inner);
+    }
+  
+
 
 #if 0
   /* Disabled for now, need to limit how many expressions we go through,
