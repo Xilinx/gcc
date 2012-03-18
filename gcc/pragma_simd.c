@@ -587,7 +587,7 @@ find_var_decl (tree t, const char *var_name, tree *var)
 
     case VECTOR_CST:
       {
-	int ii = 0;
+	unsigned ii = 0;
 	for (ii = 0; ii < VECTOR_CST_NELTS (t); ii++)
 	  find_var_decl (VECTOR_CST_ELT (t, ii), var_name,  var);
 	break;
