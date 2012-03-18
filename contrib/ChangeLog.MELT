@@ -1,5 +1,9 @@
 
-2012-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
+2012-03-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* simplemelt-gtkmm-probe.cc: Initialize GtkSourceViewMM early!
+
+2012-03-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* simplemelt-gtkmm-probe.cc: Cannot use
 	Gsv::LanguageManager::get_default !

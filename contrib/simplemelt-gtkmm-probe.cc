@@ -608,7 +608,9 @@ protected:
     }
   }
 public:
-  Glib::RefPtr<Gsv::LanguageManager> langman() const { return _app_langman; };
+  Glib::RefPtr<Gsv::LanguageManager> langman() const {
+    return _app_langman;
+  };
   static SmeltAppl* instance() {
     return static_cast<SmeltAppl*>(Gtk::Main::instance());
   };
@@ -616,6 +618,7 @@ public:
     : Gtk::Main(argc, argv, smelt_options_context),
       _app_mainwin(),
       _app_traced(false) {
+    Gsv::init(); /// initialize GtkSourceviewMM very early!
     _app_langman = Gsv::LanguageManager::get_default();
   };
   void set_reqchan_to_melt(const std::string &reqname) {
@@ -845,7 +848,7 @@ SmeltMainWindow::ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&fil
   auto lang = langman->guess_language(filepath,std::string());
   assert (lang);
   SMELT_DEBUG("guessed lang id=" << (lang->get_id().c_str()) <<
-	      " name=" << (lang->get_name().c_str()));
+              " name=" << (lang->get_name().c_str()));
   auto sbuf = _sfilview.get_source_buffer();
   sbuf->set_language(lang);
   _sfilview.set_editable(false);
