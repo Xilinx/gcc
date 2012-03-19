@@ -38,6 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-dump.h"
 #include "splay-tree.h"
 #include "pointer-set.h"
+#include "pph.h"
 
 /* The number of nested classes being processed.  If we are not in the
    scope of any class, this is zero.  */
@@ -1862,6 +1863,9 @@ finish_struct_methods (tree t)
   method_vec = CLASSTYPE_METHOD_VEC (t);
   if (!method_vec)
     return;
+
+  if (pph_writer_enabled_p ())
+    pph_add_type_to_symtab (t, PPH_SYMTAB_FINISH_STRUCT_METHODS);
 
   len = VEC_length (tree, method_vec);
 

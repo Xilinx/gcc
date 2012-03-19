@@ -2430,7 +2430,8 @@ pph_out_symtab_action (pph_stream *stream, enum pph_symtab_action action)
 {
   gcc_assert ((action == PPH_SYMTAB_DECLARE
 	       || action == PPH_SYMTAB_EXPAND
-	       || action == PPH_SYMTAB_EXPAND_1)
+	       || action == PPH_SYMTAB_EXPAND_1
+	       || action == PPH_SYMTAB_FINISH_STRUCT_METHODS)
               && (enum pph_symtab_action)(unsigned char) action);
   pph_out_uchar (stream, action);
 }
@@ -2465,6 +2466,25 @@ pph_add_decl_to_symtab (tree decl, enum pph_symtab_action action,
   gcc_assert (at_end == at_eof && (at_eof == 0 || at_eof == 1));
   entry.at_eof = at_eof;
 
+  VEC_safe_push (pph_symtab_entry, heap, pph_out_stream->symtab.v, &entry);
+}
+
+
+/* Add TYPE to the symbol table, to be re-played according to ACTION.  */
+
+void
+pph_add_type_to_symtab (tree type, enum pph_symtab_action action)
+{
+  pph_symtab_entry entry;
+
+  if (pph_out_stream == NULL)
+    return;
+
+  gcc_assert (TYPE_P (type));
+
+  memset (&entry, 0, sizeof (entry));
+  entry.action = action;
+  entry.decl = type;
   VEC_safe_push (pph_symtab_entry, heap, pph_out_stream->symtab.v, &entry);
 }
 

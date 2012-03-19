@@ -2003,15 +2003,6 @@ pph_in_tcc_type (pph_stream *stream, tree type)
     default:
       break;
     }
-
-  /* If TYPE has a METHOD_VEC, we need to resort it.  Name lookup in
-     classes relies on the specific ordering of the class method
-     pointers.  Since we generally instantiate them in a different
-     order than the original compile, the pointer values will be
-     different.  This will cause name lookups to fail, unless we
-     resort the vector.  */
-  if (CLASS_TYPE_P (type) && CLASSTYPE_METHOD_VEC (type))
-    finish_struct_methods (type);
 }
 
 
@@ -2845,7 +2836,10 @@ static inline enum pph_symtab_action
 pph_in_symtab_action (pph_stream *stream)
 {
   enum pph_symtab_action m = (enum pph_symtab_action) pph_in_uchar (stream);
-  gcc_assert (m == PPH_SYMTAB_DECLARE || m == PPH_SYMTAB_EXPAND);
+  gcc_assert (m == PPH_SYMTAB_DECLARE
+	      || m == PPH_SYMTAB_EXPAND
+	      || m == PPH_SYMTAB_EXPAND_1
+	      || m == PPH_SYMTAB_FINISH_STRUCT_METHODS);
   return m;
 }
 
@@ -2962,6 +2956,18 @@ pph_in_symtab (pph_stream *stream)
 	  processing_template_decl = prev_processing_template_decl;
 	  at_eof = prev_at_eof;
 	  function_depth = prev_function_depth;
+	}
+      else if (entry.action == PPH_SYMTAB_FINISH_STRUCT_METHODS)
+	{
+	  tree type = entry.decl;
+
+	  /* If TYPE has a METHOD_VEC, we need to resort it.  Name
+	     lookup in classes relies on the specific ordering of the
+	     class method pointers.  Since we generally instantiate
+	     them in a different order than the original compile, the
+	     pointer values will be different.  This will cause name
+	     lookups to fail, unless we resort the vector.  */
+	  finish_struct_methods (type);
 	}
       else
 	gcc_unreachable ();
