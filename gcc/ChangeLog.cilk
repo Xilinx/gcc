@@ -1,3 +1,11 @@
+2012-03-18  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-array-notation.c (expand_array_notation_exprs): New function.
+	(fix_array_notation_call_expr): Likewise.
+	* c-parser.c (c_parser_compound_statement): Added a check for array
+	notation exprs.
+	(c_parser_expr_no_commas): Removed call to fix_array_notation_expr.
+
 2012-03-17  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk-spawn.c (extract_free_variables): Removed TREE_VECTOR_CST_ELTS

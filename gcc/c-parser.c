@@ -63,6 +63,7 @@ extern tree fix_conditional_array_notations (tree);
 extern struct c_expr  fix_array_notation_expr (location_t, enum tree_code,
 					      struct c_expr);
 extern bool contains_array_notation_expr (tree);
+extern tree expand_array_notation_exprs (tree);
 struct pragma_simd_values local_simd_values;
 
 		    
@@ -4128,6 +4129,8 @@ c_parser_compound_statement (c_parser *parser)
     }
   stmt = c_begin_compound_stmt (true);
   c_parser_compound_statement_nostart (parser);
+  if (contains_array_notation_expr (stmt))
+    stmt = expand_array_notation_exprs (stmt);
   return c_end_compound_stmt (brace_loc, stmt, true);
 }
 
@@ -5478,8 +5481,6 @@ c_parser_expr_no_commas (c_parser *parser, struct c_expr *after)
       code = BIT_IOR_EXPR;
       break;
     default:
-      if (TREE_CODE (lhs.value) == CALL_EXPR)
-	lhs = fix_array_notation_expr (op_location, TREE_CODE (lhs.value), lhs);
       return lhs;
     }
   c_parser_consume_token (parser);
