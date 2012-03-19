@@ -1,5 +1,14 @@
 2012-03-19   Diego Novillo  <dnovillo@google.com>
 
+	* pph-streamer.h (struct pph_replay_entry): Rename from
+	pph_symtab_entry.
+	Rename field DECL to TO_REPLAY.
+	Update all users.
+	(struct pph_replay): Rename from pph_symtab.
+	(enum pph_replay_action): Rename from pph_symtab_action.
+
+2012-03-19   Diego Novillo  <dnovillo@google.com>
+
 	* Make-lang.in (cp/class.o): Add dependency on PPH_H.
 	* class.c (finish_struct_methods): If pph_writer_enabled_p
 	returns true, call pph_add_type_to_symtab.
@@ -10,15 +19,6 @@
 	(pph_add_type_to_symtab): New.
 	* pph.h (enum pph_symtab_action): Add PPH_SYMTAB_FINISH_STRUCT_METHODS.
 	(pph_add_type_to_symtab): Declare.
-
-2012-03-19   Diego Novillo  <dnovillo@google.com>
-
-	* pph-streamer.h (struct pph_replay_entry): Rename from
-	pph_symtab_entry.
-	Rename field DECL to TO_REPLAY.
-	Update all users.
-	(struct pph_replay): Rename from pph_symtab.
-	(enum pph_replay_action): Rename from pph_symtab_action.
 
 2012-03-17   Diego Novillo  <dnovillo@google.com>
 
