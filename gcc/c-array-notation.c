@@ -49,6 +49,8 @@ static tree fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var);
 bool contains_array_notation_expr (tree expr);
 extern bool is_sec_implicit_index_fn (tree);
 extern int extract_sec_implicit_index_arg (tree fn);
+tree expand_array_notation_exprs (tree t);
+
 /* This function is to find the rank of an array notation expression.
  * For example, an array notation of A[:][:] has a rank of 2.
  */
@@ -2134,3 +2136,301 @@ contains_array_notation_expr (tree expr)
   else
     return true;
 }
+
+/* this function will fix up array notation exprs inside void function calls.*/
+static tree
+fix_array_notation_call_expr (tree arg)
+{
+  tree *array_list = NULL;
+  int list_size = 0;
+  int rank = 0, ii = 0, jj = 0;
+  tree **array_ops, *array_var, *array_operand, jj_tree, loop;
+  tree **array_value, **array_stride, **array_length, **array_start;
+  tree *body_label, *body_label_expr, *exit_label, *exit_label_expr;
+  tree *compare_expr, *if_stmt_label, *expr_incr, *ind_init;
+  bool **count_down, **array_vector;
+  
+  find_rank (arg, false, &rank);
+  if (rank == 0)
+    return arg;
+  
+  extract_array_notation_exprs (arg, true, &array_list, &list_size);
+
+  if (list_size == 0 || *array_list == NULL_TREE)
+    return arg;
+
+  array_ops = (tree **) xmalloc (sizeof (tree *) * list_size);
+  for (ii = 0; ii < list_size; ii++)
+    array_ops[ii] = (tree *) xmalloc (sizeof (tree) * rank);
+  
+  array_vector = (bool **) xmalloc (sizeof (bool *) * list_size);
+  for (ii = 0; ii < list_size; ii++)
+    array_vector[ii] = (bool *) xmalloc (sizeof (bool) * rank);
+
+  array_value = (tree **) xmalloc (sizeof (tree *) * list_size);
+  array_stride = (tree **) xmalloc (sizeof (tree *) * list_size);
+  array_length = (tree **) xmalloc (sizeof (tree *) * list_size);
+  array_start = (tree **) xmalloc (sizeof (tree *) * list_size);
+
+  for (ii = 0; ii < list_size; ii++)
+    {
+      array_value[ii]  = (tree *) xmalloc (sizeof (tree) * rank);
+      array_stride[ii] = (tree *) xmalloc (sizeof (tree) * rank);
+      array_length[ii] = (tree *) xmalloc (sizeof (tree) * rank);
+      array_start[ii]  = (tree *) xmalloc (sizeof (tree) * rank);
+    }
+
+  body_label = (tree *) xmalloc(sizeof (tree) * rank);
+  body_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
+  exit_label = (tree *) xmalloc (sizeof (tree) * rank);
+  exit_label_expr = (tree *) xmalloc (sizeof (tree) * rank);
+  compare_expr = (tree *) xmalloc (sizeof (tree) * rank);
+  if_stmt_label = (tree *) xmalloc (sizeof (tree) * rank);
+  
+  expr_incr = (tree *) xmalloc (sizeof (tree) * rank);
+  ind_init = (tree *) xmalloc (sizeof (tree) * rank);
+  
+  count_down = (bool **) xmalloc (sizeof (bool *) * list_size);
+  for (ii = 0; ii < list_size; ii++)
+    count_down[ii] = (bool *) xmalloc (sizeof (bool) * rank);
+
+  array_operand = (tree *) xmalloc (sizeof (tree) * list_size);
+  
+  array_var = (tree *) xmalloc (sizeof (tree) * rank);
+  
+
+  for (ii = 0; ii < list_size; ii++)
+    {
+      jj = 0;
+      for (jj_tree = array_list[ii];
+	   jj_tree && TREE_CODE (jj_tree) == ARRAY_NOTATION_REF;
+	   jj_tree = ARRAY_NOTATION_ARRAY (jj_tree))
+	{
+	  array_ops[ii][jj] = jj_tree;
+	  jj++;
+	}
+    }
+
+  for (ii = 0; ii < list_size; ii++)
+    {
+      if (TREE_CODE (array_list[ii]) == ARRAY_NOTATION_REF)
+	{
+	  for (jj = 0; jj < rank; jj++)
+	    {
+	      if (TREE_CODE (array_ops[ii][jj]) == ARRAY_NOTATION_REF)
+		{
+		  array_value[ii][jj] =
+		    ARRAY_NOTATION_ARRAY (array_ops[ii][jj]);
+		  array_start[ii][jj] =
+		    ARRAY_NOTATION_START (array_ops[ii][jj]);
+		  array_length[ii][jj] =
+		    ARRAY_NOTATION_LENGTH (array_ops[ii][jj]);
+		  array_stride[ii][jj] =
+		    ARRAY_NOTATION_STRIDE (array_ops[ii][jj]);
+		  array_vector[ii][jj] = true;
+
+		  if (!TREE_CONSTANT (array_length[ii][jj]))
+		      count_down[ii][jj] = false;
+		  else if (tree_int_cst_lt
+			   (array_length[ii][jj],
+			    build_int_cst (TREE_TYPE (array_length[ii][jj]),
+					   0)))
+		    count_down[ii][jj] = true;
+		  else
+		    count_down[ii][jj] = false;
+		}
+	      else
+		array_vector[ii][jj] = false;
+	    }
+	}
+    }
+
+  loop = push_stmt_list ();
+
+  for (ii = 0; ii < rank; ii++)
+    {
+  
+      array_var[ii] = build_decl (UNKNOWN_LOCATION, VAR_DECL, NULL_TREE,
+				  integer_type_node);
+      ind_init[ii] =
+	build_modify_expr (UNKNOWN_LOCATION, array_var[ii],
+			   TREE_TYPE (array_var[ii]), NOP_EXPR,
+			   UNKNOWN_LOCATION,
+			   build_int_cst (TREE_TYPE (array_var[ii]), 0),
+			   TREE_TYPE (array_var[ii]));
+	
+    }
+
+  for (ii = 0; ii < rank ; ii++)
+    {
+      /* this will create the if statement label */
+      if_stmt_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
+				      void_type_node);
+      DECL_CONTEXT (if_stmt_label[ii]) = current_function_decl;
+      DECL_ARTIFICIAL (if_stmt_label[ii]) = 0;
+      DECL_IGNORED_P (if_stmt_label[ii]) = 1;
+  
+      /* this label statment will point to the loop body */
+      body_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
+				   void_type_node);
+      DECL_CONTEXT (body_label[ii]) = current_function_decl;
+      DECL_ARTIFICIAL (body_label[ii]) = 0;
+      DECL_IGNORED_P (body_label[ii]) = 1;
+      body_label_expr[ii] = build1 (LABEL_EXPR, void_type_node, body_label[ii]);
+
+      /* this will create the exit label..i.e. where the while loop will branch
+	 out of
+      */
+      exit_label[ii] = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE,
+				   void_type_node);
+      DECL_CONTEXT (exit_label[ii]) = current_function_decl;
+      DECL_ARTIFICIAL (exit_label[ii]) = 0;
+      DECL_IGNORED_P (exit_label[ii]) = 1;
+      exit_label_expr[ii] = build1 (LABEL_EXPR, void_type_node, exit_label[ii]);
+    }
+
+  for (ii = 0; ii < list_size; ii++)
+    {
+      if (array_vector[ii][0])
+	{
+	  array_operand[ii] = array_value[ii][rank - 1];
+	  gcc_assert (array_operand[ii]);
+
+	  for (jj = rank - 1; jj >= 0; jj--)
+	    {
+	      if (count_down[ii][jj])
+		{
+		  /* Array[start_index - (induction_var * stride)] */
+		  array_operand[ii] = build_array_ref
+		    (UNKNOWN_LOCATION, array_operand[ii],
+		     build2 (MINUS_EXPR, TREE_TYPE (array_var[jj]),
+			     array_start[ii][jj],
+			     build2 (MULT_EXPR, TREE_TYPE (array_var[jj]),
+				     array_var[jj], array_stride[ii][jj])));
+		}
+	      else
+		{
+		  /* Array[start_index + (induction_var * stride)] */
+		  array_operand[ii] = build_array_ref
+		    (UNKNOWN_LOCATION, array_operand[ii],
+		     build2 (PLUS_EXPR, TREE_TYPE (array_var[jj]),
+			     array_start[ii][jj],
+			     build2 (MULT_EXPR, TREE_TYPE (array_var[jj]),
+				     array_var[jj], array_stride[ii][jj])));
+		}
+	    }
+	}
+    }
+  replace_array_notations (&arg, true, array_list, array_operand,
+			   list_size);
+
+  for (ii = 0; ii < rank; ii++)
+    {
+      expr_incr[ii] =
+	build2 (MODIFY_EXPR, void_type_node, array_var[ii],
+		build2 (PLUS_EXPR, TREE_TYPE (array_var[ii]), array_var[ii],
+			build_int_cst (TREE_TYPE (array_var[ii]), 1)));
+    }
+  
+  for (jj = 0; jj < rank; jj++)
+    {
+      if (rank && expr_incr[jj])
+	{
+	  if (count_down[0][jj])
+	    compare_expr[jj] =
+	      build2 (LT_EXPR, boolean_type_node, array_var[jj],
+		      build2 (MULT_EXPR, TREE_TYPE (array_var[jj]),
+			      array_length[0][jj],
+			      build_int_cst (TREE_TYPE (array_var[jj]), -1)));
+	  else
+	    compare_expr[jj] = build2 (LT_EXPR, boolean_type_node,
+				       array_var[jj], array_length[0][jj]);
+	}
+    }
+
+  
+  for (ii = 0; ii < rank; ii++)
+    {
+      add_stmt (ind_init [ii]);
+
+      add_stmt (build1 (LABEL_EXPR, void_type_node, if_stmt_label[ii]));
+      add_stmt (build3 (COND_EXPR, void_type_node, compare_expr[ii],
+			build1 (GOTO_EXPR, void_type_node, body_label[ii]),
+			build1 (GOTO_EXPR, void_type_node, exit_label[ii])));
+      add_stmt (body_label_expr[ii]);
+    }
+
+  add_stmt (arg);
+  
+  for (ii = rank - 1; ii >= 0; ii--)
+    {
+      add_stmt (expr_incr[ii]);
+      add_stmt (build1 (GOTO_EXPR, void_type_node, if_stmt_label[ii]));
+      add_stmt (exit_label_expr[ii]);
+    }
+
+  pop_stmt_list (loop);
+
+  free (body_label);
+  free (body_label_expr);
+  free (exit_label);
+  free (exit_label_expr);
+  free (compare_expr);
+  free (if_stmt_label);
+  free (expr_incr);
+  free (ind_init);
+  free (array_operand);
+  free (array_var);
+  
+  for (ii = 0; ii < list_size; ii++)
+    {
+      free (count_down[ii]);
+      free (array_value[ii]);
+      free (array_stride[ii]);
+      free (array_length[ii]);
+      free (array_start[ii]);
+      free (array_ops[ii]);
+      free (array_vector[ii]);
+    }
+
+  free (count_down);
+  free (array_value);
+  free (array_stride);
+  free (array_length);
+  free (array_start);
+  free (array_ops);
+  free (array_vector);
+
+  arg = loop;
+  return arg;
+}
+
+/* this function will walk through a tree and find all call statements that
+ * do not return anything and fix up any array notations they might carry */
+tree
+expand_array_notation_exprs (tree t)
+{
+  if (!t || !contains_array_notation_expr (t))
+    return t;
+
+  switch (TREE_CODE (t))
+    {
+    case BIND_EXPR:
+      t = expand_array_notation_exprs (BIND_EXPR_BODY (t));
+      return t;
+    case STATEMENT_LIST:
+      tree_stmt_iterator ii_tsi;
+      for (ii_tsi = tsi_start (t); !tsi_end_p (ii_tsi); tsi_next (&ii_tsi))
+	*tsi_stmt_ptr (ii_tsi) =
+	  expand_array_notation_exprs (*tsi_stmt_ptr (ii_tsi));
+      return t;
+    case CALL_EXPR:
+      t = fix_array_notation_call_expr (t);
+      return t;
+    default:
+      return t;
+    }
+  return t;
+}
+      
+      
