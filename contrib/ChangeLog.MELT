@@ -1,4 +1,13 @@
 
+2012-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* simplemelt-gtkmm-probe.cc (SmeltMainWindow): mainsfilemapnum_ &
+	mainsfiledict_ contain raw pointers.
+	(SmeltArg::parse_string_arg): no more char-level debug.
+	(SmeltMainWindow::ShownFile::ShownFile): Add a title label, and vbox..
+	(SmeltMainWindow::ShownFile::~ShownFile): Remove this from
+	mainsfilemapnum & mainsfiledict.
+
 2012-03-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* simplemelt-gtkmm-probe.cc: Initialize GtkSourceViewMM early!

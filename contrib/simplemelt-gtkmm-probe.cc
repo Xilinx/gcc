@@ -83,8 +83,8 @@ class SmeltMainWindow : public Gtk::Window {
     ShownFile(const ShownFile&) =delete;
     ~ShownFile();
   };
-  static std::map<long,std::shared_ptr<ShownFile> > mainsfilemapnum_;
-  static std::map<std::string,std::shared_ptr<ShownFile> > mainsfiledict_;
+  static std::map<long,ShownFile*> mainsfilemapnum_;
+  static std::map<std::string,ShownFile*> mainsfiledict_;
 public:
   SmeltMainWindow() :
     Gtk::Window() {
@@ -111,8 +111,8 @@ public:
 };
 
 
-std::map<long,std::shared_ptr<SmeltMainWindow::ShownFile> > SmeltMainWindow::mainsfilemapnum_;
-std::map<std::string,std::shared_ptr<SmeltMainWindow::ShownFile> > SmeltMainWindow::mainsfiledict_;
+std::map<long,SmeltMainWindow::ShownFile*> SmeltMainWindow::mainsfilemapnum_;
+std::map<std::string,SmeltMainWindow::ShownFile*> SmeltMainWindow::mainsfiledict_;
 
 class SmeltTraceWindow : public Gtk::Window {
   Gtk::VBox _tracevbox;
@@ -735,7 +735,6 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
     pos++;
     SMELT_DEBUG("siz=" << siz << " pos=" << pos);
     while (pos < (int) siz && (c=s[pos])!=(char)0 && c!= '"') {
-      SMELT_DEBUG("pos:" << pos << " c=" << c);
       if (c=='\\' && pos+1 < (int) siz) {
         const char nc = s[pos+1];
         switch (nc) {
@@ -866,21 +865,38 @@ SmeltMainWindow::ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&fil
     auto scrowin = new Gtk::ScrolledWindow;
     scrowin->add (_sfilview);
     scrowin->set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
-    auto labstr = Glib::ustring::compose("<span size='small' color='darkblue'>#%1</span> "
-                                         "<tt>%2</tt>", num, filepath);
+    auto labstr = Glib::ustring::compose("<span color='darkblue'>#%1</span>\n"
+                                         "<tt>%2</tt>", num, Glib::path_get_basename(filepath));
     auto labw = new Gtk::Label;
+    auto labtit = new Gtk::Label;
+    {
+      char* realfilpath = realpath(filepath.c_str(),nullptr);
+      labtit->set_markup(Glib::ustring::compose("<span color='blue'>#%1</span>\n"
+                         "<span size='small'><tt>%2</tt></span>",
+                         num, realfilpath));
+      labtit->set_justify(Gtk::JUSTIFY_CENTER);
+      free(realfilpath);
+    }
+    auto vbox = new Gtk::VBox(false,2);
+    vbox->pack_start(*labtit,Gtk::PACK_SHRINK);
+    vbox->pack_start(*new Gtk::Separator(Gtk::ORIENTATION_HORIZONTAL),Gtk::PACK_SHRINK);
+    vbox->pack_start(*scrowin,Gtk::PACK_EXPAND_WIDGET);
     labw->set_markup(labstr);
-    mwin->_mainnotebook.append_page(*scrowin,*labw);
+    mwin->_mainnotebook.append_page(*vbox,*labw);
     scrowin->show_all();
     labw->show_all();
     mwin->_mainnotebook.show_all();
   }
-  mainsfilemapnum_[num] = std::shared_ptr<ShownFile>(this);
-  mainsfiledict_[filepath] = std::shared_ptr<ShownFile>(this);
+  mainsfilemapnum_[num] = this;
+  mainsfiledict_[filepath] = this;
 }
 
 SmeltMainWindow::ShownFile::~ShownFile()
 {
+  assert (mainsfilemapnum_[_sfilnum] == this);
+  assert (mainsfiledict_[_sfilname] == this);
+  mainsfilemapnum_.erase (_sfilnum);
+  mainsfiledict_.erase (_sfilname);
 }
 
 void
