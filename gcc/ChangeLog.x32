@@ -1,3 +1,11 @@
+2012-03-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (get_thread_pointer): Add tp_mode argument.
+	Generate ZERO_EXTEND in place if GET_MODE (tp) != tp_mode.
+	(legitimize_tls_address) <TLS_MODEL_INITIAL_EXEC>: Always generate
+	DImode UNSPEC_GOTNTPOFF references on TARGET_64BIT.
+	(ix86_decompose_address): Allow zero extended UNSPEC_TP references.
+
 2012-03-13  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/i386.c (ix86_decompose_address): Handle subregs of
