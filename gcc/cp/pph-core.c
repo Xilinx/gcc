@@ -1322,7 +1322,7 @@ pph_stream_close_1 (pph_stream *stream, bool flush_p)
   stream->file = NULL;
   VEC_free (pph_cache_entry, heap, stream->cache.v);
   pointer_map_destroy (stream->cache.m);
-  VEC_free (pph_symtab_entry, heap, stream->symtab.v);
+  VEC_free (pph_replay_entry, heap, stream->replay.v);
   VEC_free (pph_stream_ptr, heap, stream->includes.v);
   pointer_set_destroy (stream->includes.m);
 

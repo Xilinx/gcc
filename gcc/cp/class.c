@@ -1865,7 +1865,7 @@ finish_struct_methods (tree t)
     return;
 
   if (pph_writer_enabled_p ())
-    pph_add_type_to_symtab (t, PPH_SYMTAB_FINISH_STRUCT_METHODS);
+    pph_add_type_to_replay (t, PPH_REPLAY_FINISH_STRUCT_METHODS);
 
   len = VEC_length (tree, method_vec);
 

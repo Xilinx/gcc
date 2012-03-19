@@ -34,19 +34,19 @@ typedef struct pph_stream pph_stream;
 /* Actions associated with each symbol table entry.  These indicate
    what the reader should do when registering each entry with the
    middle-end.  */
-enum pph_symtab_action {
+enum pph_replay_action {
   /* Declare this symbol with rest_of_decl_compilation.  */
-  PPH_SYMTAB_DECLARE = 0x23,
+  PPH_REPLAY_DECLARE = 0x23,
 
   /* Expand this function with expand_or_defer_fn.  */
-  PPH_SYMTAB_EXPAND,
+  PPH_REPLAY_EXPAND,
 
   /* Expand this function with expand_or_defer_fn_1.  */
-  PPH_SYMTAB_EXPAND_1,
+  PPH_REPLAY_EXPAND_1,
 
   /* Layout the method vector for this type with
      finish_struct_methods.  */
-  PPH_SYMTAB_FINISH_STRUCT_METHODS
+  PPH_REPLAY_FINISH_STRUCT_METHODS
 };
 
 /* Record markers.  */
@@ -164,8 +164,8 @@ extern void pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v);
 extern void pph_out_merge_key_tree (pph_stream *, tree, bool);
 extern void pph_out_record_marker (pph_stream *stream,
 			enum pph_record_marker marker, enum pph_tag tag);
-void pph_add_decl_to_symtab (tree, enum pph_symtab_action, bool, bool);
-void pph_add_type_to_symtab (tree, enum pph_symtab_action);
+void pph_add_decl_to_replay (tree, enum pph_replay_action, bool, bool);
+void pph_add_type_to_replay (tree, enum pph_replay_action);
 
 /* In pph-in.c.  */
 extern unsigned int pph_in_uint (pph_stream *stream);

@@ -2832,14 +2832,14 @@ pph_in_tree (pph_stream *stream)
 
 /* Read a symbol table marker from STREAM.  */
 
-static inline enum pph_symtab_action
-pph_in_symtab_action (pph_stream *stream)
+static inline enum pph_replay_action
+pph_in_replay_action (pph_stream *stream)
 {
-  enum pph_symtab_action m = (enum pph_symtab_action) pph_in_uchar (stream);
-  gcc_assert (m == PPH_SYMTAB_DECLARE
-	      || m == PPH_SYMTAB_EXPAND
-	      || m == PPH_SYMTAB_EXPAND_1
-	      || m == PPH_SYMTAB_FINISH_STRUCT_METHODS);
+  enum pph_replay_action m = (enum pph_replay_action) pph_in_uchar (stream);
+  gcc_assert (m == PPH_REPLAY_DECLARE
+	      || m == PPH_REPLAY_EXPAND
+	      || m == PPH_REPLAY_EXPAND_1
+	      || m == PPH_REPLAY_FINISH_STRUCT_METHODS);
   return m;
 }
 
@@ -2879,7 +2879,7 @@ pph_fn_already_expanded (tree fn)
    original header files and out of PPH images.  */
 
 static void
-pph_in_symtab (pph_stream *stream)
+pph_in_replay (pph_stream *stream)
 {
   unsigned i, num;
 
@@ -2888,11 +2888,11 @@ pph_in_symtab (pph_stream *stream)
   num = pph_in_uint (stream);
   for (i = 0; i < num; i++)
     {
-      pph_symtab_entry entry;
+      pph_replay_entry entry;
       struct bitpack_d bp;
 
-      entry.action = pph_in_symtab_action (stream);
-      entry.decl = pph_in_tree (stream);
+      entry.action = pph_in_replay_action (stream);
+      entry.to_replay = pph_in_tree (stream);
       bp = pph_in_bitpack (stream);
       entry.top_level = bp_unpack_value (&bp, 1);
       entry.at_end = bp_unpack_value (&bp, 1);
@@ -2900,30 +2900,32 @@ pph_in_symtab (pph_stream *stream)
       entry.x_processing_template_decl = pph_in_int (stream);
       entry.function_depth = pph_in_int (stream);
 
-      if (entry.action == PPH_SYMTAB_DECLARE)
+      if (entry.action == PPH_REPLAY_DECLARE)
 	{
-          if (pph_decl_already_emitted (entry.decl))
+	  tree decl = entry.to_replay;
+          if (pph_decl_already_emitted (decl))
             continue;
-	  cp_rest_of_decl_compilation (entry.decl, entry.top_level,
-				       entry.at_end);
+	  cp_rest_of_decl_compilation (decl, entry.top_level, entry.at_end);
 	}
-      else if (entry.action == PPH_SYMTAB_EXPAND
-	       || entry.action == PPH_SYMTAB_EXPAND_1)
+      else if (entry.action == PPH_REPLAY_EXPAND
+	       || entry.action == PPH_REPLAY_EXPAND_1)
 	{
 	  bool prev_processing_template_decl, prev_at_eof;
 	  int prev_function_depth;
 	  bool need_cgraph_node_p;
 	  tree prev_current_function_decl;
+	  tree decl;
 
-	  pph_in_struct_function (stream, entry.decl);
+	  decl = entry.to_replay;
+	  pph_in_struct_function (stream, decl);
 	  need_cgraph_node_p = pph_in_bool (stream);
-	  if (pph_fn_already_expanded (entry.decl))
+	  if (pph_fn_already_expanded (decl))
 	    continue;
 
-	  /* ENTRY.DECL was reset to being external by the original
+	  /* DECL was reset to being external by the original
 	     expansion code, so we need to restore its value before
 	     expanding again.  */
-	  DECL_EXTERNAL (entry.decl) = false;
+	  DECL_EXTERNAL (decl) = false;
 
 	  /* Re-establish needed global state before calling the
 	     expanders.  FIXME pph, get rid of this by fixing the
@@ -2938,16 +2940,16 @@ pph_in_symtab (pph_stream *stream)
 
 	  /* Do the expansion.  */
 	  prev_current_function_decl = current_function_decl;
-	  current_function_decl = entry.decl;
-	  push_cfun (DECL_STRUCT_FUNCTION (entry.decl));
+	  current_function_decl = decl;
+	  push_cfun (DECL_STRUCT_FUNCTION (decl));
 
-	  if (entry.action == PPH_SYMTAB_EXPAND)
-	    expand_or_defer_fn (entry.decl);
+	  if (entry.action == PPH_REPLAY_EXPAND)
+	    expand_or_defer_fn (decl);
 	  else
-	    expand_or_defer_fn_1 (entry.decl);
+	    expand_or_defer_fn_1 (decl);
 
 	  if (need_cgraph_node_p)
-	    cgraph_get_create_node (entry.decl);
+	    cgraph_get_create_node (decl);
 
 	  current_function_decl = prev_current_function_decl;
 	  pop_cfun ();
@@ -2957,9 +2959,9 @@ pph_in_symtab (pph_stream *stream)
 	  at_eof = prev_at_eof;
 	  function_depth = prev_function_depth;
 	}
-      else if (entry.action == PPH_SYMTAB_FINISH_STRUCT_METHODS)
+      else if (entry.action == PPH_REPLAY_FINISH_STRUCT_METHODS)
 	{
-	  tree type = entry.decl;
+	  tree type = entry.to_replay;
 
 	  /* If TYPE has a METHOD_VEC, we need to resort it.  Name
 	     lookup in classes relies on the specific ordering of the
@@ -3219,11 +3221,13 @@ pph_read_file_1 (pph_stream *stream)
 
   pph_in_canonical_template_parms (stream);
 
-  /* Read and process the symbol table.  This must be done at the end
-     because we have symbols coming in from children PPH images which
-     must be instantiated in the same order they were instantiated by
-     the original parser.  */
-  pph_in_symtab (stream);
+  /* Read and process the symbol and type re-play table.  This
+     re-executes all the actions done to present symbols and types to
+     the middle end.  This must be done at the end because we have
+     symbols coming in from children PPH images which must be
+     instantiated in the same order they were instantiated by the
+     original parser.  */
+  pph_in_replay (stream);
 
   if (flag_pph_dump_tree)
     pph_dump_global_state (pph_logfile, "after pph read");

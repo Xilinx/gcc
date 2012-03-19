@@ -3721,7 +3721,7 @@ expand_or_defer_fn_1 (tree fn)
   /* If we are generating a PPH image, add FN to its symbol table.  */
   if (pph_writer_enabled_p ())
     {
-      pph_add_decl_to_symtab (fn, PPH_SYMTAB_EXPAND_1, false, at_eof);
+      pph_add_decl_to_replay (fn, PPH_REPLAY_EXPAND_1, false, at_eof);
       return false;
     }
 
@@ -3817,7 +3817,7 @@ expand_or_defer_fn (tree fn)
   /* If we are generating a PPH image, add FN to its symbol table.  */
   if (pph_writer_enabled_p ())
     {
-      pph_add_decl_to_symtab (fn, PPH_SYMTAB_EXPAND, false, at_eof);
+      pph_add_decl_to_replay (fn, PPH_REPLAY_EXPAND, false, at_eof);
       return;
     }
 

@@ -1903,7 +1903,7 @@ pph_out_tcc_declaration (pph_stream *stream, tree decl)
     case FUNCTION_DECL:
       /* Note that for FUNCTION_DECLs we do not output
 	 DECL_STRUCT_FUNCTION here.  This is emitted at the end of the
-	 PPH file in pph_out_symtab. This way, we will be able to
+	 PPH file in pph_out_replay. This way, we will be able to
 	 re-instantiate them in the same order when reading the image
 	 (the allocation of DECL_STRUCT_FUNCTION has the side effect
 	 of generating function sequence numbers
@@ -2426,13 +2426,13 @@ pph_out_tree (pph_stream *stream, tree expr)
 /* Emit symbol table ACTION to STREAM.  */
 
 static inline void
-pph_out_symtab_action (pph_stream *stream, enum pph_symtab_action action)
+pph_out_replay_action (pph_stream *stream, enum pph_replay_action action)
 {
-  gcc_assert ((action == PPH_SYMTAB_DECLARE
-	       || action == PPH_SYMTAB_EXPAND
-	       || action == PPH_SYMTAB_EXPAND_1
-	       || action == PPH_SYMTAB_FINISH_STRUCT_METHODS)
-              && (enum pph_symtab_action)(unsigned char) action);
+  gcc_assert ((action == PPH_REPLAY_DECLARE
+	       || action == PPH_REPLAY_EXPAND
+	       || action == PPH_REPLAY_EXPAND_1
+	       || action == PPH_REPLAY_FINISH_STRUCT_METHODS)
+              && (enum pph_replay_action)(unsigned char) action);
   pph_out_uchar (stream, action);
 }
 
@@ -2441,10 +2441,10 @@ pph_out_symtab_action (pph_stream *stream, enum pph_symtab_action action)
    image.  TOP_LEVEL and AT_END are as in rest_of_decl_compilation.  */
 
 void
-pph_add_decl_to_symtab (tree decl, enum pph_symtab_action action,
+pph_add_decl_to_replay (tree decl, enum pph_replay_action action,
 			bool top_level, bool at_end)
 {
-  pph_symtab_entry entry;
+  pph_replay_entry entry;
 
   if (decl == NULL || pph_out_stream == NULL)
     return;
@@ -2452,7 +2452,7 @@ pph_add_decl_to_symtab (tree decl, enum pph_symtab_action action,
   gcc_assert (DECL_P (decl));
 
   entry.action = action;
-  entry.decl = decl;
+  entry.to_replay = decl;
   entry.top_level = top_level;
   entry.at_end = at_end;
 
@@ -2466,16 +2466,16 @@ pph_add_decl_to_symtab (tree decl, enum pph_symtab_action action,
   gcc_assert (at_end == at_eof && (at_eof == 0 || at_eof == 1));
   entry.at_eof = at_eof;
 
-  VEC_safe_push (pph_symtab_entry, heap, pph_out_stream->symtab.v, &entry);
+  VEC_safe_push (pph_replay_entry, heap, pph_out_stream->replay.v, &entry);
 }
 
 
 /* Add TYPE to the symbol table, to be re-played according to ACTION.  */
 
 void
-pph_add_type_to_symtab (tree type, enum pph_symtab_action action)
+pph_add_type_to_replay (tree type, enum pph_replay_action action)
 {
-  pph_symtab_entry entry;
+  pph_replay_entry entry;
 
   if (pph_out_stream == NULL)
     return;
@@ -2484,8 +2484,8 @@ pph_add_type_to_symtab (tree type, enum pph_symtab_action action)
 
   memset (&entry, 0, sizeof (entry));
   entry.action = action;
-  entry.decl = type;
-  VEC_safe_push (pph_symtab_entry, heap, pph_out_stream->symtab.v, &entry);
+  entry.to_replay = type;
+  VEC_safe_push (pph_replay_entry, heap, pph_out_stream->replay.v, &entry);
 }
 
 
@@ -2498,18 +2498,18 @@ pph_add_type_to_symtab (tree type, enum pph_symtab_action action)
    original header files and out of PPH images.  */
 
 static void
-pph_out_symtab (pph_stream *stream)
+pph_out_replay (pph_stream *stream)
 {
-  pph_symtab_entry *entry;
+  pph_replay_entry *entry;
   unsigned i;
 
-  pph_out_uint (stream, VEC_length (pph_symtab_entry, stream->symtab.v));
-  FOR_EACH_VEC_ELT (pph_symtab_entry, stream->symtab.v, i, entry)
+  pph_out_uint (stream, VEC_length (pph_replay_entry, stream->replay.v));
+  FOR_EACH_VEC_ELT (pph_replay_entry, stream->replay.v, i, entry)
     {
       struct bitpack_d bp;
 
-      pph_out_symtab_action (stream, entry->action);
-      pph_out_tree (stream, entry->decl);
+      pph_out_replay_action (stream, entry->action);
+      pph_out_tree (stream, entry->to_replay);
       bp = bitpack_create (stream->encoder.w.ob->main_stream);
       bp_pack_value (&bp, entry->top_level, 1);
       bp_pack_value (&bp, entry->at_end, 1);
@@ -2517,11 +2517,12 @@ pph_out_symtab (pph_stream *stream)
       pph_out_bitpack (stream, &bp);
       pph_out_int (stream, entry->x_processing_template_decl);
       pph_out_int (stream, entry->function_depth);
-      if (entry->action == PPH_SYMTAB_EXPAND
-	  || entry->action == PPH_SYMTAB_EXPAND_1)
+      if (entry->action == PPH_REPLAY_EXPAND
+	  || entry->action == PPH_REPLAY_EXPAND_1)
 	{
-	  pph_out_struct_function (stream, DECL_STRUCT_FUNCTION (entry->decl));
-	  pph_out_bool (stream, cgraph_get_node (entry->decl) != NULL);
+	  pph_out_struct_function (stream,
+				   DECL_STRUCT_FUNCTION (entry->to_replay));
+	  pph_out_bool (stream, cgraph_get_node (entry->to_replay) != NULL);
 	}
     }
 }
@@ -2666,7 +2667,7 @@ pph_write_file (pph_stream *stream)
   /* Emit the symbol table.  The symbol table must be emitted at the
      end because all the symbols read from children PPH images are not
      known in advance when we start reading this file in the reader.  */
-  pph_out_symtab (stream);
+  pph_out_replay (stream);
 
   if (flag_pph_dump_tree)
     pph_dump_global_state (pph_logfile, "after pph write");

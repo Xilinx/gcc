@@ -129,14 +129,14 @@ typedef struct pph_cache {
 } pph_cache;
 
 
-/* Symbol table entry.  */
-typedef struct pph_symtab_entry
+/* Replay table entry.  */
+typedef struct pph_replay_entry
 {
   /* Registration action to perform by the reader.  */
-  enum pph_symtab_action action;
+  enum pph_replay_action action;
 
-  /* VAR_DECL or FUNCTION_DECL to declare.  */
-  tree decl;
+  /* Symbol or type to process.  */
+  tree to_replay;
 
   /* Values to be passed to rest_of_decl_compilation.  */
   unsigned int top_level : 1;
@@ -148,17 +148,24 @@ typedef struct pph_symtab_entry
   unsigned int at_eof : 1;
   int x_processing_template_decl;
   int function_depth;
-} pph_symtab_entry;
+} pph_replay_entry;
 
-DEF_VEC_O(pph_symtab_entry);
-DEF_VEC_ALLOC_O(pph_symtab_entry,heap);
+DEF_VEC_O(pph_replay_entry);
+DEF_VEC_ALLOC_O(pph_replay_entry,heap);
 
-/* Symbol table for a PPH stream.  */
-typedef struct pph_symtab
+/* Replay table for a PPH stream.  This table represents parsing
+   actions that need to be done to finalize the parsing of a
+   symbol declaration or a type.  These actions transfer the parsed
+   tree to the middle end for code generation and/or layout.
+
+   They need to be done in the PPH reader, since none of the
+   state produced by them are saved in the PPH image (e.g., call graph
+   nodes, method vector layout, etc).  */
+typedef struct pph_replay
 {
   /* Table of all the declarations to register in declaration order.  */
-  VEC(pph_symtab_entry,heap) *v;
-} pph_symtab;
+  VEC(pph_replay_entry,heap) *v;
+} pph_replay;
 
 /* Vector of pph_stream pointers.  */
 typedef struct pph_stream *pph_stream_ptr;
@@ -221,12 +228,12 @@ struct pph_stream {
      resolving external references.  */
   unsigned int in_memory_p : 1;
 
-  /* Symbol table.  This is collected as the compiler instantiates
+  /* Replay table.  This is collected as the compiler instantiates
      symbols and functions.  Once we finish parsing the header file,
      this array is written out to the PPH image.  This way, the reader
-     will be able to instantiate these symbols in the same order that
-     they were instantiated originally.  */
-  pph_symtab symtab;
+     will be able to replay these actions in the same order that
+     they were executed originally.  */
+  pph_replay replay;
 
   /* Transitive closure list of all the images included directly and
      indirectly by this image.  Note that this list only contains PPH
