@@ -22,13 +22,54 @@ along with GCC; see the file COPYING.  If not, write to the Free
 Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301, USA.  */
 
-/*
+
+
+/****
 This standalone program is a simple compiler probe client - it is a
 single C++ source file using gtksourceview & gtk; some of the code is
 taken or inspired by the contrib/simple-probe.c file of MELT branch
 svn revision 147544 from mid-may 2009; it is not compiled by the GCC
 building process. The compilation command is given near the end of
-file (as a local.var to emacs) */
+file (as a local.var to emacs) 
+
+This probe is a GTK graphical application exchanging with the MELT
+plugin using textual protocols. Since mid-march 2012, ie svn revision
+185407 [approximately], MELT has the ability to accept asynchronous
+messages (by handling SIGIO appropriately, delayed to safe points
+where meltgc_poll_inputs may become called by meltgc_handle_sigio &
+melt_handle_interrupt thru MELT_CHECK_INTERRUPT), which would be sent
+when something happens to be readable by MELT on a file descriptor
+like a pipe or a socket).  Notice however that these messages are
+handled only by MELT; when GCC is recieving them outside of the MELT
+plugin, nothing will happen till the MELT runtime is re-entered
+(e.g. at start of any pass, thru a PLUGIN_PASS_EXECUTION hook, or
+inside any MELT registered pass or other MELT handling of plugin
+events).
+
+Exchanges between the probe and MELT are "asynchronous" and
+textual. Each textual message is ended by two consecutive newlines
+that is \n\n in C parlance.
+
+A message from probe to MELT is a request. It is syntactically a
+sequence of MELT s-expressions which is passed to the channel handler
+inside MELT (see CLASS_INPUT_CHANNEL_HANDLER). It should be ended by
+two consecutive newlines.
+
+A message from MELT to probe is a command. It uses a syntax which is
+lexically a subset of MELT syntax (or lexical)
+conventions. Concretely, it should start by a command symbol and
+contain symbols known by this probe, strings (encoded in a C-like way,
+like MELT does) and numbers, and sub-lists à la MELT. It also should
+be ended by two consecutive newlines. Conventionally probe command
+symbol (verbs) end with _pcd and are internally converted to uppercase
+(so their case does not matter).
+
+Requests and commands are fully asynchronous, and does not correspond
+one to one.  MELT may send many commands to the probe, and this probe
+may also send several requests to MELT at any moment.
+
+****/
+
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -722,7 +763,8 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
     name.reserve(30);
     int spos = pos;
     while (pos < (int) siz && (c=s[pos])!=(char)0 && (std::isalnum(c) || c=='$' || c=='_'))
-      (name += c), (pos++);
+      (name += toupper(c)), (pos++);
+    
     SmeltSymbol* sym = SmeltSymbol::find(name);
     if (!sym)
       throw SmeltParseError("unknown symbol", name, spos);
@@ -1031,6 +1073,7 @@ SmeltTraceWindow::SmeltTraceWindow()
       tbuf->insert_with_tag(tbuf->end(), "like this\n", "command");
       tbuf->insert(tbuf->end(), "Replies to MELT are ");
       tbuf->insert_with_tag(tbuf->end(), "like that\n", "reply");
+      tbuf->insert(tbuf->end(), __FILE__ " compiled " __DATE__ "@" __TIME__ "\n");
     }
   }
   show_all();
@@ -1190,7 +1233,7 @@ SmeltAppl::process_command_from_melt(std::string& str)
 
 
 /////////////// tracemsg_cmd
-SmeltCommandSymbol smeltsymb_tracemsg_cmd("tracemsg_cmd",&SmeltAppl::tracemsg_cmd);
+SmeltCommandSymbol smeltsymb_tracemsg_cmd("tracemsg_pcd",&SmeltAppl::tracemsg_cmd);
 
 void
 SmeltAppl::tracemsg_cmd(SmeltVector&v)
@@ -1203,7 +1246,7 @@ SmeltAppl::tracemsg_cmd(SmeltVector&v)
 
 ////////////// quit_cmd
 
-SmeltCommandSymbol smeltsymb_quit_cmd("quit_cmd",&SmeltAppl::quit_cmd);
+SmeltCommandSymbol smeltsymb_quit_cmd("quit_pcd",&SmeltAppl::quit_cmd);
 
 
 static void smelt_quit(void)
@@ -1226,7 +1269,7 @@ SmeltAppl::quit_cmd(SmeltVector&v)
 
 ////////////// echo_cmd
 
-SmeltCommandSymbol smeltsymb_echo_cmd("echo_cmd",&SmeltAppl::echo_cmd);
+SmeltCommandSymbol smeltsymb_echo_cmd("echo_pcd",&SmeltAppl::echo_cmd);
 
 
 
@@ -1241,7 +1284,7 @@ SmeltAppl::echo_cmd(SmeltVector&v)
 
 //////////////// showfile_cmd
 
-SmeltCommandSymbol smeltsymb_showfile_cmd("showfile_cmd",&SmeltAppl::showfile_cmd);
+SmeltCommandSymbol smeltsymb_showfile_cmd("showfile_pcd",&SmeltAppl::showfile_cmd);
 
 void
 SmeltAppl::showfile_cmd(SmeltVector&v)

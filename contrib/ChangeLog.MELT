@@ -1,6 +1,11 @@
 
 2012-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* simplemelt-gtkmm-probe.cc: Add long comment.  Renamed *_pcd the
+	probe commands.
+
+2012-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* simplemelt-gtkmm-probe.cc (SmeltMainWindow): mainsfilemapnum_ &
 	mainsfiledict_ contain raw pointers.
 	(SmeltArg::parse_string_arg): no more char-level debug.

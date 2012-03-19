@@ -3825,10 +3825,49 @@ ASSERT_MSG) is enabled"
 (install_melt_mode translateinit_mode)
 
 
-(defun register_input_channel_handler (clos :long inchfd)
-  (debug "register_input_channel_handler clos=" clos " inchfd=" inchfd)
-  (assert_msg  "@#@unimplemented register_input_channel_handler")
-)
+(defun register_input_channel_handler (clos data :long inchfd)
+  (debug "register_input_channel_handler clos=" clos " data=" data 
+	 " inchfd=" inchfd)
+  (let ( (:long goodinchfd 0) )
+    (if (and (is_closure clos)
+	     (>=i inchfd 0))
+	(code_chunk
+	 statinchfdchk
+	 #{ struct stat $STATINCHFDCHK#_stat			;
+	 memset (& $STATINCHFDCHK#_stat, 0, sizeof(struct stat))	;
+	 if (fstat ($INCHFD, & $STATINCHFDCHK#_stat))
+	 warning(0, "MELT bad registered input channel fd#%d - %s",
+		    (int) $INCHFD, xstrerror (errno)) ;
+	 else
+	 $GOODINCHFD = 1		; 
+	 /* end $STATINCHFDCHK */
+         }#)
+      )
+    (if (not goodinchfd) (return)))
+  (let ( (insbuf (make_strbuf discr_strbuf)) 
+	 (inchdlr (instance class_input_channel_handler 
+			    :inch_sbuf insbuf
+			    :inch_clos clos
+			    :inch_data data))
+	 (inbuck (get_field :sysdata_inchannel_data initial_system_data))
+	 )
+    (if (not (is_bucketlong inbuck))
+	(let ( (newinbuck (make_bucketlong discr_bucket_longs 50))
+	       )
+	  (setq inbuck newinbuck)))
+    (let ( (updatedinbuck (bucketlong_put inbuck inchfd inchdlr))
+	   )
+      (put_fields initial_system_data :sysdata_inchannel_data updatedinbuck)
+      (code_chunk 
+       fcntlinchfdchk
+       #{ /* $FCNTLINCHFDCHK start */
+          /* end  $FCNTLINCHFDCHK */
+	  if (fcntl ($INCHFD, F_SETOWN, getpid()))
+	  melt_fatal_error("MELT failed to set ownership (F_SETOWN) fd #%d - %s",
+			   $INCHFD, xstrerror (errno));
+	  }#)
+      )))
 
+(export_values register_input_channel_handler)
 ;;;;
 ;; eof warmelt-modes.melt

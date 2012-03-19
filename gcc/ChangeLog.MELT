@@ -1,5 +1,15 @@
 
 2011-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (meltgc_poll_inputs): Add declaration.
+	(meltgc_install_polling_channel): Remove declaration.
+
+	* melt-runtime.c (meltgc_poll_inputs): With invalid fds, replace
+	their channel handler by :true in bucket.
+	(meltgc_install_polling_channel): Remove function.
+
+	* melt/warmelt-mode.melt (register_input_channel_handler): Coded.
+
+2011-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-first.melt (foreach_in_bucketlong_backward): New
 	c-iterator.

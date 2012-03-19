@@ -146,7 +146,6 @@ extern volatile sig_atomic_t melt_got_sigalrm;
 
 void melt_handle_interrupt (void);
 
-
 /* the MELT translator should generate calls to melt_check_interrupt at safe places.  */
 #define MELT_CHECK_INTERRUPT() do { if (MELT_UNLIKELY(melt_interrupted)) \
       melt_handle_interrupt(); } while(0)
@@ -430,6 +429,9 @@ typedef union melt_un* melt_ptr_t;
 typedef struct meltroutine_st *meltroutine_ptr_t;
 #define  meltroutine_ptr_t_TYPEDEFINED
 #endif
+
+/* poll the input bucket INBUCK_P with DELAYMS millisecond delay */
+int meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms);
 
 /******************* closures, routines ************************/
 
@@ -1384,10 +1386,6 @@ melt_make_raw_object(melt_ptr_t klas, int len, const char*clanam) {
   Newobj = melt_make_raw_object(Klas,Len,Clanam); } while(0)
 #endif
 
-/* install a polled channel with closure CLOS_P for file descriptor FD
-   with name CHNAM */
-void meltgc_install_polling_channel (melt_ptr_t clos_p, int fd, 
-				     const char* chnam);
 
 
 /* get (safely) the length of an object */

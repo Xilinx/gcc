@@ -13272,7 +13272,6 @@ int
 meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 {
   struct pollfd *fdtab = NULL;
-  bool gotdata = false;
   int nbfd = 0;
   unsigned buckcount = 0, ix = 0;
   int pollres = 0;
@@ -13286,6 +13285,9 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 #define seqv      meltfram__.mcfr_varptr[3]
 #define closv     meltfram__.mcfr_varptr[4]
   MELT_LOCATION_HERE("meltgc_poll_inputs");
+#if _POSIX_C_SOURCE < 200112L
+#error meltgc_poll_inputs need a Posix 2001 system with poll
+#endif /* _POSIX_C_SOURCE < 200112L */
   inbuckv = inbuck_p;
   if (melt_magic_discr ((melt_ptr_t) inbuckv) != MELTOBMAG_BUCKETLONGS)
     goto end;
@@ -13383,15 +13385,14 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 		    }
 		  } while (eated);
 		}
-	      gotdata = true;
 	    }
 	  else if (fdtab[ixfd].revents & POLLNVAL)
 	    {
-#warning incomplete meltgc_poll_inputs
+	      /* replace the bucket slot by :true, to avoid polling it next time */
+	      meltgc_longsbucket_replace (inbuckv, rfd, MELT_PREDEF (TRUE));
 	    }
 	}
     }
-
  end:
   if (fdtab) 
     free(fdtab), fdtab = NULL;
@@ -13460,26 +13461,6 @@ melt_handle_interrupt (void)
   }
 }
 
-
-void
-meltgc_install_polling_channel(melt_ptr_t clos_p, int fd, const char* chnam)
-{
-#if MELT_HAVE_DEBUG
-  char curlocbuf[150];
-#endif
-  MELT_ENTERFRAME (4, NULL);
-#define closv       meltfram__.mcfr_varptr[0]
-  closv = clos_p;
-  MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_install_polling_channel fd=%d chnam=%s", fd, 
-			    chnam?chnam:"*none*");
-#if _POSIX_C_SOURCE >= 200112L
-#else  /* non POSIX 2001 */
-  melt_fatal_error ("meltgc_install_polling_channel fd=%d  chnam=%s not available", 
-    fd, chnam?chnam:"*none*");
-#endif /* _POSIX_C_SOURCE >= 200112L */
-  MELT_EXITFRAME();
-#undef closv
-}
 
 
 /* allocate e new empty longsbucket */
