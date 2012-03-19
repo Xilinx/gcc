@@ -28,6 +28,7 @@ with Ada.Characters.Latin_1; use Ada.Characters.Latin_1;
 with Atree;    use Atree;
 with Casing;   use Casing;
 with Checks;   use Checks;
+with Debug;    use Debug;
 with Einfo;    use Einfo;
 with Errout;   use Errout;
 with Eval_Fat;
@@ -54,6 +55,7 @@ with Sem_Ch8;  use Sem_Ch8;
 with Sem_Ch10; use Sem_Ch10;
 with Sem_Dim;  use Sem_Dim;
 with Sem_Dist; use Sem_Dist;
+with Sem_Elab; use Sem_Elab;
 with Sem_Elim; use Sem_Elim;
 with Sem_Eval; use Sem_Eval;
 with Sem_Res;  use Sem_Res;
@@ -644,6 +646,13 @@ package body Sem_Attr is
                Kill_Current_Values;
             end if;
 
+            --  Treat as call for elaboration purposes and we are all
+            --  done. Suppress this treatment under debug flag.
+
+            if not Debug_Flag_Dot_UU then
+               Check_Elab_Call (N);
+            end if;
+
             return;
 
          --  Component is an operation of a protected type
@@ -1122,9 +1131,7 @@ package body Sem_Attr is
 
          --  Case of a subtype mark
 
-         if Is_Entity_Name (P)
-           and then Is_Type (Entity (P))
-         then
+         if Is_Entity_Name (P) and then Is_Type (Entity (P)) then
             return;
          end if;
 
@@ -1134,13 +1141,13 @@ package body Sem_Attr is
 
          if Is_Access_Type (P_Type) then
 
-            --  If there is an implicit dereference, then we must freeze
-            --  the designated type of the access type, since the type of
-            --  the referenced array is this type (see AI95-00106).
+            --  If there is an implicit dereference, then we must freeze the
+            --  designated type of the access type, since the type of the
+            --  referenced array is this type (see AI95-00106).
 
             --  As done elsewhere, freezing must not happen when pre-analyzing
-            --  a pre- or postcondition or a default value for an object or
-            --  for a formal parameter.
+            --  a pre- or postcondition or a default value for an object or for
+            --  a formal parameter.
 
             if not In_Spec_Expression then
                Freeze_Before (N, Designated_Type (P_Type));
@@ -1275,9 +1282,12 @@ package body Sem_Attr is
          Check_Ada_2012_Attribute;
          Check_Discrete_Type;
 
-         if not Is_Static_Subtype (P_Type) then
-            Error_Attr_P ("prefix of % attribute must be a static subtype");
-         end if;
+         --  Freeze the subtype now, so that the following test for predicates
+         --  works (we set the predicates stuff up at freeze time)
+
+         Insert_Actions (N, Freeze_Entity (P_Type, P));
+
+         --  Now test for dynamic predicate
 
          if Has_Predicates (P_Type)
            and then No (Static_Predicate (P_Type))
@@ -1285,6 +1295,14 @@ package body Sem_Attr is
             Error_Attr_P
               ("prefix of % attribute may not have dynamic predicate");
          end if;
+
+         --  Check non-static subtype
+
+         if not Is_Static_Subtype (P_Type) then
+            Error_Attr_P ("prefix of % attribute must be a static subtype");
+         end if;
+
+         --  Test case for no values
 
          if Expr_Value (Type_Low_Bound (P_Type)) >
             Expr_Value (Type_High_Bound (P_Type))
@@ -4257,11 +4275,12 @@ package body Sem_Attr is
                   P);
 
             elsif Get_Pragma_Id (Prag) = Pragma_Contract_Case
-              or else Get_Pragma_Id (Prag) = Pragma_Test_Case
+                    or else
+                  Get_Pragma_Id (Prag) = Pragma_Test_Case
             then
                declare
                   Arg_Ens : constant Node_Id :=
-                              Get_Ensures_From_Case_Pragma (Prag);
+                              Get_Ensures_From_CTC_Pragma (Prag);
                   Arg     : Node_Id;
 
                begin

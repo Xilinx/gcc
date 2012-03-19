@@ -1,3 +1,245 @@
+2012-03-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md: Remove empty predicates and/or constraints.
+	* config/i386/sync.md: Ditto.
+	* config/i386/sse.md: Ditto.
+	* config/i386/mmx.md: Ditto.
+	* config/i386/pentium.md: Ditto.
+	* config/i386/athlon.md: Ditto.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52603
+	* tree-vect-data-refs.c (vect_can_force_dr_alignment_p): Clarify
+	comment.
+
+	Revert
+	2012-03-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52571
+	* tree-vect-data-refs.c (vect_compute_data_ref_alignment): Move
+	flag_section_anchors check ...
+	(vect_can_force_dr_alignment_p): ... here.
+
+2012-03-16  Martin Jambor  <mjambor@suse.cz>
+
+	* expr.c (expand_expr_real_1): handle misaligned scalar reads from
+	memory through MEM_REFs by calling extract_bit_field.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	* fold-const.c (native_interpret_expr): Also support POINTER_TYPE
+	and REFERENCE_TYPE interpretations.
+	(can_native_interpret_type_p): New function.
+	(fold_ternary_loc): Use native encode/interpret to fold
+	BIT_FIELD_REFs of constants.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52584
+	* fold-const.c (fold_ternary_loc): Fold vector typed BIT_FIELD_REFs
+	of vector constants and constructors.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vect-stmts.c (vect_get_vec_def_for_operand): Use
+	VIEW_CONVERT_EXPR to convert constants.
+	(vect_is_simple_use): Treat all constants as vec_constant_def.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+	    Kai Tietz  <ktietz@redhat.com>
+
+	PR middle-end/48814
+	* gimplify.c (gimplify_self_mod_expr): Evaluate postfix
+	side-effects completely in the pre-queue and use a temporary
+	for the result.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	* stor-layout.c (finish_bitfield_representative): Fall back
+	to the conservative maximum size if we cannot compute the
+	size of the tail padding.
+
+2012-03-16  Tristan Gingold  <gingold@adacore.com>
+
+	* config/vms/vms.h (TARGET_OS_CPP_BUILTINS): Define
+	__CRTL_VER and __VMS_VER.
+	* config/vms/vms-protos.h: Declare vms_c_get_crtl_ver
+	and vms_c_get_vms_ver.
+	* config/vms/vms-c.c (vms_c_get_crtl_ver, vms_c_get_vms_ver): New
+	functions.
+	* config/alpha/vms.h (VMS_DEFAULT_CRTL_VER)
+	(VMS_DEFAULT_VMS_VER): Define.
+	* config/ia64/vms.h (VMS_DEFAULT_CRTL_VER)
+	(VMS_DEFAULT_VMS_VER): Define.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vect-loop.c (get_initial_def_for_induction): Use
+	build_constructor directly.
+	* tree-vect-stmts.c (vect_get_vec_def_for_operand): Use
+	build_vector_from_val.
+	* tree.c (build_vector_from_val): Avoid creating a constructor
+	first when we want a constant vector.
+
+2012-03-16  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* doc/install.texi (Specific, *-*-solaris2*): Improve wording.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	* tree.h (TREE_VECTOR_CST_ELTS): Remove.
+	(VECTOR_CST_NELTS, VECTOR_CST_ELTS, VECTOR_CST_ELT): New defines.
+	(struct tree_vector): Remove elements member, add variable size
+	elts array member.
+	(build_vector_stat): Declare.
+	(build_vector): Define in terms of build_vector_stat.
+	* tree.c (build_vector): Rename to ...
+	(build_vector_stat): ... this.  Take array of trees as parameter.
+	(build_vector_from_ctor): Adjust.
+	(integer_zerop, integer_onep, integer_all_onesp, iterative_hash_expr,
+	initializer_zerop): Adjust.
+	* cfgexpand.c (expand_debug_expr): Likewise.
+	* expr.c (categorize_ctor_elements_1, expand_expr_real_1,
+	const_vector_from_tree): Likewise.
+	* fold-const.c (const_binop, operand_equal_p, native_encode_vector,
+	native_interpret_vector, fold_unary_loc, vec_cst_ctor_to_array,
+	fold_vec_perm, fold_binary_loc, fold_ternary_loc): Likewise.
+	* tree-streamer-in.c (streamer_alloc_tree): Handle TS_VECTOR.
+	(lto_input_ts_vector_tree_pointers): Adjust.
+	* tree-streamer-out.c (streamer_write_tree_header): Handle TS_VECTOR.
+	(write_ts_vector_tree_pointers): Adjust.
+	* varasm.c (const_hash_1, compare_constant, copy_constant,
+	output_constant): Adjust.
+	* gimple-fold.c (gimple_fold_stmt_to_constant_1): Adjust.
+	* print-tree.c (print_node): Adjust.
+	* tree-pretty-print.c (dump_generic_node): Adjust.
+	* tree-vect-generic.c (uniform_vector_p, vector_element,
+	lower_vec_perm): Adjust.
+	* tree-vect-loop.c (get_initial_def_for_reduction): Adjust.
+	* tree-vect-slp.c (vect_get_constant_vectors,
+	vect_transform_slp_perm_load): Adjust.
+	* tree-vect-stmts.c (vect_gen_perm_mask): Adjust.
+	* expmed.c (make_tree): Adjust.
+	* config/i386/i386.c (ix86_expand_builtin): Adjust.
+	* config/sparc/sparc.c (sparc_handle_vis_mul8x16): Adjust interface
+	and implementation.
+	(sparc_fold_builtin): Adjust.
+
+2012-03-16  Tristan Gingold  <gingold@adacore.com>
+
+	* config.gcc (*-*-*vms*): Define use_gcc_stdint and tm_file.
+	* config/vms/vms-stdint.h: New file.
+
+2012-03-16  Tristan Gingold  <gingold@adacore.com>
+
+	* config.host (alpha64-dec-*vms*, alpha*-dec-*vms*)
+	(ia64-hp-*vms*): Replaced by ...
+	(*-*-*vms*): ... This new entry.
+
+2012-03-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52568
+	* config/i386/i386.c (expand_vec_perm_vperm2f128_vblend): New function.
+	(ix86_expand_vec_perm_const_1): Use it.
+
+	PR target/52568
+	* config/i386/sse.md (UNSPEC_VPERMDF): Remove.
+	(avx2_permv4df): Remove.
+	(avx2_permv4di): Macroize into...
+	(avx2_perm<mode>): ... this using VI8F_256 iterator.
+	(avx2_permv4di_1): Macroize into...
+	(avx2_perm<mode>_1): ... this using VI8F_256 iterator.
+
+2012-03-15  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	* combine.c (apply_distributive_law): Do not distribute SUBREG.
+
+2012-03-15  Ira Rosen  <irar@il.ibm.com>
+	    Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	* tree-vect-patterns.c (widened_name_p): Rename to ...
+	(type_conversion_p): ... this.  Add new argument to determine
+	if it's a promotion or demotion operation.  Check for
+	CONVERT_EXPR_CODE_P instead of NOP_EXPR.
+	(vect_recog_dot_prod_pattern): Call type_conversion_p instead
+	widened_name_p.
+	(vect_recog_widen_mult_pattern, vect_recog_widen_sum_pattern,
+	vect_operation_fits_smaller_type, vect_recog_widen_shift_pattern):
+	Likewise.
+	(vect_recog_mixed_size_cond_pattern): Likewise and allow
+	non-constant then and else clauses.
+
+2012-03-15  Ira Rosen  <irar@il.ibm.com>
+	    Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	* tree-vectorizer.h (vect_pattern_recog): Add new argument.
+	* tree-vect-loop.c (vect_analyze_loop_2): Update call to
+	vect_pattern_recog.
+	* tree-vect-patterns.c (widened_name_p): Pass basic block
+	info to vect_is_simple_use.
+	(vect_recog_dot_prod_pattern): Fail for basic blocks.
+	(vect_recog_widen_sum_pattern): Likewise.
+	(vect_handle_widen_op_by_const): Support basic blocks.
+	(vect_operation_fits_smaller_type,
+	vect_recog_over_widening_pattern): Likewise.
+	(vect_recog_vector_vector_shift_pattern): Support basic blocks.
+	Update call to vect_is_simple_use.
+	(vect_recog_mixed_size_cond_pattern): Support basic blocks.
+	Add printing.
+	(check_bool_pattern): Add an argument, update call to
+	vect_is_simple_use and the recursive calls.
+	(vect_recog_bool_pattern): Update relevant function calls.
+	Add printing.
+	(vect_mark_pattern_stmts): Update calls to new_stmt_vec_info.
+	(vect_pattern_recog_1): Check for reduction only in loops.
+	(vect_pattern_recog): Add new argument.  Support basic blocks.
+	* tree-vect-stmts.c (vectorizable_conversion): Pass basic block
+	info to vect_is_simple_use_1.
+	* tree-vect-slp.c (vect_get_and_check_slp_defs): Support basic
+	blocks.
+	(vect_slp_analyze_bb_1): Call vect_pattern_recog.
+
+2012-03-15  Jakub Jelinek  <jakub@redhat.com>
+	    Andrew Pinski  <apinski@cavium.com>
+
+	PR middle-end/52592
+	* builtins.c (expand_builtin_int_roundingfn_2): If expanding
+	BUILT_IN_IR{INT,OUND}* using optab fails, emit lr{int,ound}*
+	calls instead of __builtin_ir{int,ound}*.
+
+2012-03-15  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* doc/sourcebuild.texi (cleanup-modules, keep-modules): Update
+	documentation.
+
+2012-03-15  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	* config.gcc (target_type_format_char): New. Document it. Set it for
+	arm*-*-* .
+	* configure.ac (gnu_unique_option): Use target_type_format_char
+	in test.  Comment rationale.
+	* configure: Regenerate .
+
+2012-03-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/52267
+	* tree-vrp.c (masked_increment): New function.
+	(register_edge_assert_for_2): Derive ASSERT_EXPRs
+	from (X & CST1) cmp CST2 tests.
+
+2012-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52580
+	* tree-data-ref.c (subscript_dependence_tester_1): Check
+	all dimensions for non-conflicting access functions.
+
+2012-03-15  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/44783
+	* doc/invoke.texi [C++ Language Options]: Document
+	-ftemplate-backtrace-limit.
+
 2012-03-15  Tristan Gingold  <gingold@adacore.com>
 
 	* c-parser.c (c_parser_parameter_declaration): Handle #pragma
@@ -129,8 +371,7 @@
 	* configure.ac (gcc_cv_ld_hidden): Remove *-*-solaris2.8*.
 	(ld_tls_support): Remove Solaris 8 references.
 	(lwp_dir, lwp_spec): Remove support for alternate thread library.
-	* acinclude.m4 (gcc_cv_initfini_array): Remove *-*-solaris2.*
-	tests.
+	* acinclude.m4 (gcc_cv_initfini_array): Remove *-*-solaris2.* tests.
 	* configure: Regenerate.
 	* config.in: Regenerate.
 
@@ -201,8 +442,7 @@
 2012-03-14  Martin Jambor  <mjambor@suse.cz>
 
 	* expr.c (expand_assignment): Use expand_expr with EXPAND_WRITE
-	when expanding MEM_REFs, MEM_TARGET_REFs and handled_component
-	bases.
+	when expanding MEM_REFs, MEM_TARGET_REFs and handled_component bases.
 	(expand_expr_real_1): Do not handle misalignment if modifier is
 	EXPAND_WRITE.
 
@@ -217,9 +457,8 @@
 2012-03-14  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/52582
-	* gimple-fold.c (canonicalize_constructor_val): Make sure
-	we have a cgraph node for a FUNCTION_DECL that comes from
-	a constructor.
+	* gimple-fold.c (canonicalize_constructor_val): Make sure we have
+	a cgraph node for a FUNCTION_DECL that comes from a constructor.
 	(gimple_get_virt_method_for_binfo): Likewise.
 
 2012-03-14  Richard Guenther  <rguenther@suse.de>
@@ -413,9 +652,8 @@
 	* config/i386/i386.c (ix86_option_override_internal): Properly
 	set ix86_gen_leave and ix86_gen_monitor.  Check Pmode == DImode,
 	instead of TARGET_64BIT, to set ix86_gen_add3, ix86_gen_sub3,
-	ix86_gen_one_cmpl2, ix86_gen_andsp,
-	ix86_gen_allocate_stack_worker, ix86_gen_adjust_stack_and_probe
-	and ix86_gen_probe_stack_range.
+	ix86_gen_one_cmpl2, ix86_gen_andsp, ix86_gen_allocate_stack_worker,
+	ix86_gen_adjust_stack_and_probe and ix86_gen_probe_stack_range.
 
 	* config/i386/sse.md (sse3_monitor64): Renamed to ...
 	(sse3_monitor64_<mode>): This.
@@ -457,9 +695,8 @@
 	(alpha*-dec-osf*): Remove.
 	* configure: Regenerate.
 
-	* config/alpha/host-osf.c, config/alpha/osf5.h,
-	config/alpha/osf5.opt, config/alpha/va_list.h, config/alpha/x-osf:
-	Remove.
+	* config/alpha/host-osf.c, config/alpha/osf5.h, config/alpha/osf5.opt,
+	config/alpha/va_list.h, config/alpha/x-osf: Remove.
 
 	* config/alpha/alpha.h (TARGET_LD_BUGGY_LDGP): Remove.
 	* config/alpha/alpha.c (struct machine_function): Update comment.
@@ -550,10 +787,9 @@
 
 2012-03-12  Richard Guenther  <rguenther@suse.de>
 
-        * tree-sra.c (create_access_replacement): Only rename the
-        replacement if we can rewrite it into SSA form.  Properly
-        mark register typed replacements that we cannot rewrite
-        with TREE_ADDRESSABLE.
+	* tree-sra.c (create_access_replacement): Only rename the replacement
+	if we can rewrite it into SSA form.  Properly mark register typed
+	replacements that we cannot rewrite with TREE_ADDRESSABLE.
 	* tree-cfg.c (verify_expr): Fix BIT_FIELD_REF verification
 	for aggregate or BLKmode results.
 
@@ -568,8 +804,7 @@
 2012-02-12  Kirill Yukhin  <kirill.yukhin@intel.com>
 
 	* doc/invoke.texi: Document -mrtm option.
-	* common/config/i386/i386-common.c (OPTION_MASK_ISA_RTM_SET):
-	New.
+	* common/config/i386/i386-common.c (OPTION_MASK_ISA_RTM_SET): New.
 	(OPTION_MASK_ISA_RTM_UNSET): Ditto.
 	(ix86_handle_option): Handle OPT_mrtm.
 	* config.gcc (i[34567]86-*-*): Add rtmintrin.h and
@@ -580,8 +815,8 @@
 	__RTM__ if needed.
 	(ix86_target_string): Define -mrtm option.
 	(PTA_RTM): New.
-	(ix86_option_override_internal): Extend "corei7-avx" with
-	RTM option. Handle new option.
+	(ix86_option_override_internal): Extend "corei7-avx" with RTM option.
+	Handle new option.
 	(ix86_valid_target_attribute_inner_p): Add OPT_mrtm.
 	(ix86_builtins): Add IX86_BUILTIN_XBEGIN, IX86_BUILTIN_XEND,
 	IX86_BUILTIN_XTEST.
@@ -601,15 +836,14 @@
 	(xtest): Ditto.
 	(xtest_1): Ditto.
 	* config/i386/i386.opt (mrtm): New.
-	* config/i386/immintrin.h: Include rtmintrin.h and
-	xtestintrin.h.
+	* config/i386/immintrin.h: Include rtmintrin.h and xtestintrin.h.
 	* config/i386/rtmintrin.h: New header.
 	* config/i386/xtestintrin.h: Ditto.
 
 2012-03-12  Tristan Gingold  <gingold@adacore.com>
 
-	* ginclude/stddef.h: Adjust previous patch.  Use __VMS__ instead
-	of VMS.
+	* ginclude/stddef.h: Adjust previous patch.
+	Use __VMS__ instead of VMS.
 
 2012-03-12  Uros Bizjak  <ubizjak@gmail.com>
 
@@ -623,8 +857,7 @@
 	(C Dialect Options): Move -no-integrated-cpp documentation
 	from here...
 	(Preprocessor Options): ...to here.  Rewrite the description
-	so it makes more sense, and remove discussion of merging
-	front ends.
+	so it makes more sense, and remove discussion of merging front ends.
 
 2012-03-11  H.J. Lu  <hongjiu.lu@intel.com>
 

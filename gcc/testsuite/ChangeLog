@@ -1,3 +1,117 @@
+2012-03-17  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/52608
+	* gfortran.dg/pr52608.f90: New test.
+
+2012-03-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52585
+	* gfortran.dg/proc_ptr_36.f90: New.
+
+2012-03-16  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/misaligned-expand-1.c: New test.
+	* gcc.dg/misaligned-expand-3.c: Likewise.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+	Kai Tietz  <ktietz@redhat.com>
+
+	PR middle-end/48814
+	* gcc.c-torture/execute/pr48814-1.c: New test.
+	* gcc.c-torture/execute/pr48814-2.c: New test.
+	* gcc.dg/tree-ssa/assign-1.c: New test.
+	* gcc.dg/tree-ssa/assign-2.c: New test.
+	* gcc.dg/tree-ssa/assign-3.c: New test.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	* gnat.dg/specs/pack7.ads: New testcase.
+
+2012-03-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52568
+	* gcc.dg/torture/vshuf-4.inc: Add two new tests.
+	* gcc.dg/torture/vshuf-8.inc: Likewise.
+	* gcc.dg/torture/vshuf-16.inc: Likewise.
+	* gcc.dg/torture/vshuf-32.inc: Likewise.
+
+2012-03-15  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/torture/pr52582.C: New.
+
+2012-03-15  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* lib/fortran-modules.exp: New file which was forgotten in r185430.
+
+2012-03-15  Ira Rosen  <irar@il.ibm.com>
+	    Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	* gcc.dg/vect/slp-cond-3.c: New test.
+	* gcc.dg/vect/slp-cond-4.c: New test.
+
+2012-03-15  Ira Rosen  <irar@il.ibm.com>
+	    Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	* gcc.dg/vect/bb-slp-pattern-1.c: New test.
+	* gcc.dg/vect/bb-slp-pattern-2.c: New test.
+
+2012-03-15  Janne Blomqvist  <jb@gcc.gnu.org>
+
+        PR libfortran/52434
+        PR libfortran/48878
+        PR libfortran/38199
+        * gfortran.dg/edit_real_1.f90: Don't assume roundTiesToAway.
+        * gfortran.dg/round_1.f03: Likewise.
+
+2012-03-15  Jakub Jelinek  <jakub@redhat.com>
+	    Andrew Pinski  <apinski@cavium.com>
+
+	PR middle-end/52592
+	* gcc.dg/pr52592.c: New test.
+
+2012-03-15  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* gfortran.fortran-torture/compile/compile.exp: Simplify.
+	* gfortran.fortran-torture/execute/execute.exp: Likewise.
+	* lib/gcc-dg.exp (cleanup-modules): Move to ..
+	* lib/fortran-modules.exp: .. this new file. Adjust users.
+	* lib/gfortran-dg.exp (gfortran-dg-runtest,
+	gfortran-dg-debug-runtest): Call cleanup-modules.
+	* lib/fortran-torture.exp (fortran-torture-execute,
+	fortran-torture): Likewise.
+	* gfortran.dg/coarray/caf.exp: Likewise.
+	* lib/lto.exp: Likewise.
+	* gfortran.dg/class_4a.f03: Adjust cleanup-modules and keep-modules.
+	* gfortran.dg/class_4b.f03: Likewise.
+	* gfortran.dg/class_4c.f03: Likewise.
+	* gfortran.dg/class_45a.f03: Likewise.
+	* gfortran.dg/binding_label_tests_10.f03: Likewise.
+	* gfortran.dg/binding_label_tests_10_main.f03: Likewise.
+	* gfortran.dg/binding_label_tests_11.f03: Likewise.
+	* gfortran.dg/binding_label_tests_11_main.f03: Likewise.
+	* gfortran.dg/binding_label_tests_13.f03: Likewise.
+	* gfortran.dg/binding_label_tests_13_main.f03: Likewise.
+	* gfortran.dg/test_common_binding_labels_2.f03: Likewise.
+	* gfortran.dg/test_common_binding_labels_2_main.f03: Likewise.
+	* gfortran.dg/test_common_binding_labels_3.f03: Likewise.
+	* gfortran.dg/test_common_binding_labels_3_main.f03: Likewise.
+	* gfortran.dg/whole_file_28.f90: Likewise.
+	* gfortran.dg/whole_file_29.f90: Likewise.
+	* gfortran.dg/whole_file_30.f90: Likewise.
+	* gfortran.dg/whole_file_31.f90: Likewise.
+
+2012-03-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/52267
+	* gcc.dg/pr52267.c: New test.
+	* gcc.dg/tree-ssa/vrp65.c: New test.
+	* gcc.dg/tree-ssa/vrp66.c: New test.
+
+2012-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52580
+	* gfortran.dg/vect/pr52580.f: New testcase.
+
 2012-03-15  Oleg Endo  <olegendo@gcc.gnu.org>
 
 	* gcc.target/sh/fpul-usage-1.c: New.

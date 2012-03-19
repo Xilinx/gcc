@@ -1,3 +1,97 @@
+2012-03-15  Robert Dewar  <dewar@adacore.com>
+
+	* errout.ads: Add entry for translating -gnateinn to
+	/MAX_INSTANTIATIONS for VMS.
+	* hostparm.ads (Max_Instantiations): Moved to Opt.
+	* opt.ads (Maximum_Instantiations): Moved from Hostparm, and renamed.
+	* sem_ch12.adb (Maximum_Instantiations): New name of
+	Max_Instantiations (Analyze_Package_Instantiation): Change error
+	msg for too many instantiations (mention -gnateinn switch).
+	* switch-c.adb (Scan_Front_End_Switches): Implement -gnateinn switch.
+	* switch.ads: Minor comment update.
+	* usage.adb (Usage): Output line for -maxeinn switch.
+	* vms_data.ads: Add entry for MAX_INSTANTIATIONS (-gnateinn).
+
+2012-03-15  Yannick Moy  <moy@adacore.com>
+
+	* alfa.ads Update the decription of ALI sections.
+	(Alfa_File_Record): Add a component Unit_File_Name to store the
+	unit file name for subunits.
+	* get_alfa.adb, put_alfa.adb Adapt to the possible presence of
+	a unit file name.
+	* lib-xref-alfa.adb (Add_Alfa_File): For subunits, retrieve the
+	file name of the unit.
+
+2012-03-15  Yannick Moy  <moy@adacore.com>
+
+	* sem_ch6.adb (Check_Subprogram_Contract): Do
+	not issue warning on missing 'Result in postcondition if all
+	postconditions and contract-cases already get a warning for only
+	referring to pre-state.
+
+2012-03-15  Bob Duff  <duff@adacore.com>
+
+	* debug.adb: Add new debug switch -gnatd.U, which disables the
+	support added below, in case someone trips over a cycle, and needs
+	to disable this.
+	* sem_attr.adb (Analyze_Access_Attribute):
+	Treat Subp'Access as a call for elaboration purposes.
+	* sem_elab.ads, sem_elab.adb (Check_Elab_Call): Add support
+	for Subp'Access.
+
+2012-03-15  Vincent Pucci  <pucci@adacore.com>
+
+	* sem.ads, sem.adb (Preanalyze): New routine.
+	* sem_ch4.adb (Analyze_Quantified_Expression): Call to the
+	Preanalyze routine in Sem added.  Renaming of Needs_Expansion
+	into Need_Preanalysis.
+	* sem_ch6.adb (Preanalyze): Removed.
+
+2012-03-15  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch4.adb (Analyze_Quantified_Expression): Add comment.
+	* sem_prag.adb: Minor comment additions.
+	* sem_attr.adb (Check_First_Last_Valid): Make sure prefix type
+	is frozen.
+
+2012-03-15  Vincent Pucci  <pucci@adacore.com>
+
+	* sem_ch4.adb (Analyze_Quantified_Expression):
+	Preanalyze the condition when the quantified expression will be
+	further expanded.
+
+2012-03-15  Yannick Moy  <moy@adacore.com>
+
+	* sem_prag.adb, sem_util.adb, sem_util.ads, sem_attr.adb, sem_ch6.adb,
+	sem_warn.adb: Minor refactoring, renaming Case_Pragma in CTC_Pragma,
+	to refer to both Test_Case pragma and Contract_Case pragma (same
+	acronym as in Spec_CTC_List).
+
+2012-03-15  Robert Dewar  <dewar@adacore.com>
+
+	* sem_prag.adb, sem_prag.ads, sem_util.ads, sem_attr.adb, sem_ch6.adb,
+	sem_warn.adb: Minor reformatting.
+
+2012-03-15  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_util.adb (Initialized_By_Ctrl_Function): Do not loop over
+	selector names as the function call always appears at the top selected
+	component.
+
+2012-03-15  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch12.adb (Validate_Access_Subprogram_Instance): keep
+	Mode_Conformance check for older versions of the language.
+
+2012-03-15  Yannick Moy  <moy@adacore.com>
+
+	* gnat_ugn.texi Document the extension of option -gnatw.t.
+	* sem_ch3.adb (Analyze_Declaration): Check for suspicious
+	contracts only after contract cases have been semantically
+	analyzed.
+	* sem_ch6.adb (Check_Subprogram_Contract): Consider also Ensures
+	components of contract cases for detecting suspicious contracts.
+
 2012-03-15  Yannick Moy  <moy@adacore.com>
 
 	* aspects.adb, aspects.ads (Aspect_Id): New GNAT aspect

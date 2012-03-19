@@ -3390,22 +3390,33 @@ package body Sem_Ch4 is
    -----------------------------------
 
    procedure Analyze_Quantified_Expression (N : Node_Id) is
-      Loc             : constant Source_Ptr := Sloc (N);
-      Ent             : constant Entity_Id :=
-                          New_Internal_Entity
-                            (E_Loop, Current_Scope, Sloc (N), 'L');
-      Needs_Expansion : constant Boolean :=
-                          Operating_Mode /= Check_Semantics
-                            and then not Alfa_Mode;
+      Loc : constant Source_Ptr := Sloc (N);
+      Ent : constant Entity_Id :=
+             New_Internal_Entity (E_Loop, Current_Scope, Sloc (N), 'L');
+
+      Need_Preanalysis : constant Boolean :=
+                           Operating_Mode /= Check_Semantics
+                             and then not Alfa_Mode;
 
       Iterator   : Node_Id;
       Original_N : Node_Id;
 
    begin
+      --  The approach in this procedure is very non-standard and at the
+      --  very least, extensive comments are required saying why this very
+      --  non-standard approach is needed???
+
+      --  Also general comments are needed in any case saying what is going
+      --  on here, since tree rewriting of this kind should normally be done
+      --  by the expander and not by the analyzer ??? Probably Ent, Iterator,
+      --  and Original_N, and Needs_Preanalysis, all need comments above ???
+
       --  Preserve the original node used for the expansion of the quantified
       --  expression.
 
-      if Needs_Expansion then
+      --  This is a very unusual use of Copy_Separate_Tree, needs looking at???
+
+      if Need_Preanalysis then
          Original_N := Copy_Separate_Tree (N);
       end if;
 
@@ -3414,6 +3425,9 @@ package body Sem_Ch4 is
       Set_Parent (Ent, N);
 
       Check_SPARK_Restriction ("quantified expression is not allowed", N);
+
+      --  The following seems like expansion activity done at analysis
+      --  time, which seems weird ???
 
       if Present (Loop_Parameter_Specification (N)) then
          Iterator :=
@@ -3442,14 +3456,32 @@ package body Sem_Ch4 is
          Set_Parent (Iterator_Specification (Iterator), Iterator);
       end if;
 
-      Analyze (Condition (N));
+      if Need_Preanalysis then
+
+         --  The full analysis will be performed during the expansion of the
+         --  quantified expression, only a preanalysis of the condition needs
+         --  to be done.
+
+         --  This is strange for two reasons
+
+         --  First, there is almost no situation in which Preanalyze vs
+         --  Analyze should be conditioned on -gnatc mode (since error msgs
+         --  must be 100% unaffected by -gnatc). Seconed doing a Preanalyze
+         --  with no resolution almost certainly means that some messages are
+         --  either missed, or flagged differently in the two cases.
+
+         Preanalyze (Condition (N));
+      else
+         Analyze (Condition (N));
+      end if;
+
       End_Scope;
 
       Set_Etype (N, Standard_Boolean);
 
       --  Attach the original node to the iteration scheme created above
 
-      if Needs_Expansion then
+      if Need_Preanalysis then
          Set_Etype (Original_N, Standard_Boolean);
          Set_Parent (Iterator, Original_N);
       end if;
