@@ -10458,15 +10458,19 @@ ix86_expand_prologue (void)
 	{
 	  if (ix86_cmodel == CM_LARGE_PIC)
 	    {
-              rtx tmp_reg = gen_rtx_REG (DImode, R11_REG);
-	      rtx label = gen_label_rtx ();
+	      rtx label, tmp_reg;
+
+	      gcc_assert (Pmode == DImode);
+	      label = gen_label_rtx ();
 	      emit_label (label);
 	      LABEL_PRESERVE_P (label) = 1;
+	      tmp_reg = gen_rtx_REG (Pmode, R11_REG);
 	      gcc_assert (REGNO (pic_offset_table_rtx) != REGNO (tmp_reg));
-	      insn = emit_insn (gen_set_rip_rex64 (pic_offset_table_rtx, label));
+	      insn = emit_insn (gen_set_rip_rex64 (pic_offset_table_rtx,
+						   label));
 	      insn = emit_insn (gen_set_got_offset_rex64 (tmp_reg, label));
-	      insn = emit_insn (gen_adddi3 (pic_offset_table_rtx,
-					    pic_offset_table_rtx, tmp_reg));
+	      insn = emit_insn (ix86_gen_add3 (pic_offset_table_rtx,
+					       pic_offset_table_rtx, tmp_reg));
 	    }
 	  else
             insn = emit_insn (gen_set_got_rex64 (pic_offset_table_rtx));
@@ -11196,8 +11200,8 @@ ix86_expand_split_stack_prologue (void)
       else
 	{
 	  emit_move_insn (scratch_reg, offset);
-	  emit_insn (gen_adddi3 (scratch_reg, scratch_reg,
-				 stack_pointer_rtx));
+	  emit_insn (ix86_gen_add3 (scratch_reg, scratch_reg,
+				    stack_pointer_rtx));
 	}
       current = scratch_reg;
     }
@@ -11244,6 +11248,7 @@ ix86_expand_split_stack_prologue (void)
 	{
 	  HOST_WIDE_INT argval;
 
+	  gcc_assert (Pmode == DImode);
 	  /* When using the large model we need to load the address
 	     into a register, and we've run out of registers.  So we
 	     switch to a different calling convention, and we call a
@@ -11266,7 +11271,7 @@ ix86_expand_split_stack_prologue (void)
 	      LABEL_PRESERVE_P (label) = 1;
 	      emit_insn (gen_set_rip_rex64 (reg10, label));
 	      emit_insn (gen_set_got_offset_rex64 (reg11, label));
-	      emit_insn (gen_adddi3 (reg10, reg10, reg11));
+	      emit_insn (ix86_gen_add3 (reg10, reg10, reg11));
 	      x = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, split_stack_fn_large),
 				  UNSPEC_GOT);
 	      x = gen_rtx_CONST (Pmode, x);
@@ -12722,7 +12727,7 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	{
 	  base = get_thread_pointer (true);
 	  dest = gen_reg_rtx (Pmode);
-	  emit_insn (gen_subsi3 (dest, base, off));
+	  emit_insn (ix86_gen_sub3 (dest, base, off));
 	}
       break;
 
@@ -12743,7 +12748,7 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	{
 	  base = get_thread_pointer (true);
 	  dest = gen_reg_rtx (Pmode);
-	  emit_insn (gen_subsi3 (dest, base, off));
+	  emit_insn (ix86_gen_sub3 (dest, base, off));
 	}
       break;
 
@@ -20626,8 +20631,8 @@ ix86_split_long_move (rtx operands[])
 	  if (nparts == 3)
 	    {
 	      if (TARGET_128BIT_LONG_DOUBLE && mode == XFmode)
-                emit_insn (gen_addsi3 (stack_pointer_rtx,
-				       stack_pointer_rtx, GEN_INT (-4)));
+                emit_insn (ix86_gen_add3 (stack_pointer_rtx,
+					  stack_pointer_rtx, GEN_INT (-4)));
 	      emit_move_insn (part[0][2], part[1][2]);
 	    }
 	  else if (nparts == 4)
@@ -22975,14 +22980,17 @@ ix86_expand_strlen (rtx out, rtx src, rtx eoschar, rtx align)
 rtx
 construct_plt_address (rtx symbol)
 {
-  rtx tmp = gen_reg_rtx (Pmode);
-  rtx unspec = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, symbol), UNSPEC_PLTOFF);
+  rtx tmp, unspec;
 
   gcc_assert (GET_CODE (symbol) == SYMBOL_REF);
   gcc_assert (ix86_cmodel == CM_LARGE_PIC);
+  gcc_assert (Pmode == DImode);
+
+  tmp = gen_reg_rtx (Pmode);
+  unspec = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, symbol), UNSPEC_PLTOFF);
 
   emit_move_insn (tmp, gen_rtx_CONST (Pmode, unspec));
-  emit_insn (gen_adddi3 (tmp, tmp, pic_offset_table_rtx));
+  emit_insn (ix86_gen_add3 (tmp, tmp, pic_offset_table_rtx));
   return tmp;
 }
 
@@ -29653,12 +29661,10 @@ rdrand_step:
 	{
 	  if (TREE_CODE (arg3) == VECTOR_CST)
 	    {
-	      tree elt;
 	      unsigned int negative = 0;
-	      for (elt = TREE_VECTOR_CST_ELTS (arg3);
-		   elt; elt = TREE_CHAIN (elt))
+	      for (i = 0; i < VECTOR_CST_NELTS (arg3); ++i)
 		{
-		  tree cst = TREE_VALUE (elt);
+		  tree cst = VECTOR_CST_ELT (arg3, i);
 		  if (TREE_CODE (cst) == INTEGER_CST
 		      && tree_int_cst_sign_bit (cst))
 		    negative++;
@@ -36638,6 +36644,73 @@ expand_vec_perm_interleave3 (struct expand_vec_perm_d *d)
   return true;
 }
 
+/* A subroutine of ix86_expand_vec_perm_builtin_1.  Try to implement
+   a single vector permutation using a single intra-lane vector
+   permutation, vperm2f128 swapping the lanes and vblend* insn blending
+   the non-swapped and swapped vectors together.  */
+
+static bool
+expand_vec_perm_vperm2f128_vblend (struct expand_vec_perm_d *d)
+{
+  struct expand_vec_perm_d dfirst, dsecond;
+  unsigned i, j, msk, nelt = d->nelt, nelt2 = nelt / 2;
+  rtx seq;
+  bool ok;
+  rtx (*blend) (rtx, rtx, rtx, rtx) = NULL;
+
+  if (!TARGET_AVX
+      || TARGET_AVX2
+      || (d->vmode != V8SFmode && d->vmode != V4DFmode)
+      || d->op0 != d->op1)
+    return false;
+
+  dfirst = *d;
+  for (i = 0; i < nelt; i++)
+    dfirst.perm[i] = 0xff;
+  for (i = 0, msk = 0; i < nelt; i++)
+    {
+      j = (d->perm[i] & nelt2) ? i | nelt2 : i & ~nelt2;
+      if (dfirst.perm[j] != 0xff && dfirst.perm[j] != d->perm[i])
+	return false;
+      dfirst.perm[j] = d->perm[i];
+      if (j != i)
+	msk |= (1 << i);
+    }
+  for (i = 0; i < nelt; i++)
+    if (dfirst.perm[i] == 0xff)
+      dfirst.perm[i] = i;
+
+  if (!d->testing_p)
+    dfirst.target = gen_reg_rtx (dfirst.vmode);
+
+  start_sequence ();
+  ok = expand_vec_perm_1 (&dfirst);
+  seq = get_insns ();
+  end_sequence ();
+
+  if (!ok)
+    return false;
+
+  if (d->testing_p)
+    return true;
+
+  emit_insn (seq);
+
+  dsecond = *d;
+  dsecond.op0 = dfirst.target;
+  dsecond.op1 = dfirst.target;
+  dsecond.target = gen_reg_rtx (dsecond.vmode);
+  for (i = 0; i < nelt; i++)
+    dsecond.perm[i] = i ^ nelt2;
+
+  ok = expand_vec_perm_1 (&dsecond);
+  gcc_assert (ok);
+
+  blend = d->vmode == V8SFmode ? gen_avx_blendps256 : gen_avx_blendpd256;
+  emit_insn (blend (d->target, dfirst.target, dsecond.target, GEN_INT (msk)));
+  return true;
+}
+
 /* A subroutine of expand_vec_perm_even_odd_1.  Implement the double-word
    permutation with two pshufb insns and an ior.  We should have already
    failed all two instruction sequences.  */
@@ -37287,6 +37360,9 @@ ix86_expand_vec_perm_const_1 (struct expand_vec_perm_d *d)
     return true;
 
   if (expand_vec_perm_interleave3 (d))
+    return true;
+
+  if (expand_vec_perm_vperm2f128_vblend (d))
     return true;
 
   /* Try sequences of four instructions.  */
