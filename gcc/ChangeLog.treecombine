@@ -1,5 +1,11 @@
 2012-03-18  Andrew Pinski  <apinski@cavium.com>
 
+	* tree-ssa-ccp.c (ccp_fold): Do a simple
+	removal of pointer casts for CCP reasons.
+	* tree-ssa-sccvn.c (try_to_simplify): Likewise.
+
+2012-03-18  Andrew Pinski  <apinski@cavium.com>
+
 	* gimple-ssa-combine.c (simplify_view_convert):
 	Simplify VCE <inttype, inttypevar> to just NOP_EXPR <inttypevar>.
 	Simplify VCE <type, NOP_EXPR<inttype, inttype_var>> to

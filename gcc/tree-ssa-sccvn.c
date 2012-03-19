@@ -3174,6 +3174,24 @@ try_to_simplify (gimple stmt)
       && is_gimple_min_invariant (gimple_assign_rhs1 (stmt)))
     return gimple_assign_rhs1 (stmt);
 
+  /* Conversions are useless for CCP purposes if they are
+     value-preserving.  Thus the restrictions that
+     useless_type_conversion_p places for restrict qualification
+     of pointer types should not apply here.
+     Substitution later will only substitute to allowed places.  */
+  if (gimple_assign_cast_p (stmt))
+    {
+      tree lhs = gimple_assign_lhs (stmt);
+      tree rhs = gimple_assign_rhs1 (stmt);
+      tree ltype = TREE_TYPE (lhs);
+      tree rtype = TREE_TYPE (rhs);
+      if (POINTER_TYPE_P (ltype)
+	  && POINTER_TYPE_P (rtype)
+	  && TYPE_ADDR_SPACE (ltype) == TYPE_ADDR_SPACE (rtype)
+	  && TYPE_MODE (ltype) == TYPE_MODE (rtype))
+	return vn_valueize (rhs);
+    }
+
   /* First try combining based on our current lattice.
      FIXME: the rest should just be just removed as the combining
      should catch everything. */
