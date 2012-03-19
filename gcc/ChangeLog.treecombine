@@ -1,5 +1,10 @@
 2012-03-18  Andrew Pinski  <apinski@cavium.com>
 
+	* gimple-ssa-combine.c (simplify_call_stmt): New function.
+	(ssa_combine): Call simplify_call_stmt for GIMPLE_CALL statements.
+
+2012-03-18  Andrew Pinski  <apinski@cavium.com>
+
 	* gimple-ssa-combine.c (simplify_not_neg_abs_expr): Simplify
 	~(A-1) and ~(A + -1) to -A.
 

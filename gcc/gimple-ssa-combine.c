@@ -3078,12 +3078,50 @@ gimple_combine_references (location_t loc, tree ltype, tree rhs)
   return fold_const_aggregate_ref_1 (rhs, valueizerf);
 }
 
+static tree
+simplify_call_stmt (location_t loc, tree type, tree fndecl, tree *args,
+		    unsigned nargs, bool ignore)
+{
+  bool all_consts = true;
+  unsigned i;
+  fndecl = valueizerf (fndecl);
+
+  if (TREE_CODE (fndecl) != ADDR_EXPR
+      || TREE_CODE (TREE_OPERAND (fndecl, 0)) != FUNCTION_DECL
+      || !DECL_BUILT_IN (TREE_OPERAND (fndecl, 0)))
+    return NULL_TREE;
+
+  for (i = 0; i < nargs; i++)
+    {
+      args[i] = valueizerf (args[i]);
+      if (!is_gimple_min_invariant (args[i]))
+	all_consts = false;
+    }
+  /* If we have all constants, then we call fold_call_expr to simplify the call. */
+  if (all_consts)
+    {
+      tree call, retval;
+       call = build_call_array_loc (loc, type,
+				    fndecl, nargs, args);
+      retval = fold_call_expr (loc, call, ignore);
+      if (retval)
+	{
+	  /* fold_call_expr wraps the result inside a NOP_EXPR.  */
+	  STRIP_NOPS (retval);
+	  return retval;
+	}
+    }
+  return NULL_TREE;
+}
+
 /* Main entry point for the forward propagation and statement combine
    optimizer.  */
 
 tree
 ssa_combine (gimple stmt)
 {
+  location_t loc = gimple_location (stmt);
+
   switch (gimple_code (stmt))
     {
     case GIMPLE_ASSIGN:
@@ -3092,7 +3130,6 @@ ssa_combine (gimple stmt)
 	tree rhs2 = gimple_assign_rhs2 (stmt);
 	tree rhs3 = gimple_assign_rhs3 (stmt);
 	tree ltype = TREE_TYPE (gimple_assign_lhs (stmt));
-	location_t loc = gimple_location (stmt);
 	enum tree_code code = gimple_assign_rhs_code (stmt);
 	switch (get_gimple_rhs_class (code))
 	  {
@@ -3135,6 +3172,24 @@ ssa_combine (gimple stmt)
       break;
 
     case GIMPLE_CALL:
+      {
+	tree *args;
+	unsigned i;
+
+	if (gimple_call_internal_p (stmt))
+	  /* No folding yet for these functions.  */
+	  return NULL_TREE;
+
+	args = XALLOCAVEC (tree, gimple_call_num_args (stmt));
+	for (i = 0; i < gimple_call_num_args (stmt); ++i)
+	  args[i] = gimple_call_arg (stmt, i);
+
+	/* FIXME: handle ignore correctly. */
+	return simplify_call_stmt (loc, gimple_call_return_type (stmt),
+				   gimple_call_fn (stmt), args,
+				   gimple_call_num_args (stmt),
+				   /* ignore = */false);
+      }
     default:;
     }
 
