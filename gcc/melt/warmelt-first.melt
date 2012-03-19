@@ -1622,8 +1622,9 @@ make a $CURAT string.}#
   (:long key :value val)
   ;;
   :doc #{The $FOREACH_IN_BUCKETLONG c-iterator safely iterates inside
-  given bucket of longs $BUCK, retrieving each key $KEY and value
-  $VAL. The bucket should not change inside the iterator's body.}#
+  given bucket of longs $BUCK, retrieving each key $KEY in ascending
+  order and value $VAL. The bucket should not change inside the
+  iterator's body.}#
   ;; before
   #{ /*foreach_in_bucketlong $EACHBUCKLONG*/ unsigned $EACHBUCKLONG#_ix = 0, $EACHBUCKLONG#_cnt =0;
   $KEY = 0L;
@@ -1651,6 +1652,44 @@ make a $CURAT string.}#
      $KEY = 0L;
      $VAL = NULL; 
   } /* end foreach_in_bucketlong $EACHBUCKLONG#_ix */
+  }#)
+   
+     
+;; reverse iterator
+(defciterator foreach_in_bucketlong_backward
+  (:value buck)
+  reveachbucklong
+  (:long key :value val)
+  ;;
+  :doc #{The $FOREAC_IN_BUCKETLONG_BACKWARD c-iterator safely
+  reverse-iterates inside given bucket of longs $BUCK, retrieving each
+  key $KEY in descending order and value $VAL. The bucket should not
+  change inside the iterator's body.}#
+  ;; before
+  #{ /*foreach_in_bucketlong_backward $REVEACHBUCKLONG*/ int $REVEACHBUCKLONG#_ix = 0;
+  $KEY = 0L;
+  $VAL = NULL;
+  for ($REVEACHBUCKLONG#_ix = ((int) melt_longsbucket_count ((melt_ptr_t) $BUCK)) -1; 
+       $REVEACHBUCKLONG#_ix >= 0;
+       $REVEACHBUCKLONG#_ix--) {
+     $KEY = 0L;
+     $VAL = NULL;
+     { 
+       struct melt_bucketlongentry_st* $REVEACHBUCKLONG#_buent
+         = ((struct meltbucketlongs_st*)$BUCK)->buckl_entab + $REVEACHBUCKLONG#_ix;
+       if (!$REVEACHBUCKLONG#_buent->ebl_va) 
+         continue;
+       $KEY = $REVEACHBUCKLONG#_buent->ebl_at;
+       $VAL = $REVEACHBUCKLONG#_buent->ebl_va;
+       $REVEACHBUCKLONG#_buent = NULL;
+     }
+     /*foreach_in_bucketlong_backward $REVEACHBUCKLONG body:*/
+  }#
+  ;; after
+  #{ /* ending foreach_in_bucketlong_backward $REVEACHBUCKLONG*/
+     $KEY = 0L;
+     $VAL = NULL; 
+  } /* end foreach_in_bucketlong_backward $REVEACHBUCKLONG#_ix */
   }#)
    
      
@@ -4405,6 +4444,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  foreach_pair
  foreach_pair_between
  foreach_in_bucketlong
+ foreach_in_bucketlong_backward
  foreach_in_list
  foreach_in_mapobject
  foreach_in_mapstring

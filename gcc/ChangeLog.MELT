@@ -1,4 +1,9 @@
 
+2011-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-first.melt (foreach_in_bucketlong_backward): New
+	c-iterator.
+
 2011-03-15  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.c (meltgc_readseqlist): Add check for unexpected }#
