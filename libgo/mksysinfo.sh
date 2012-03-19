@@ -172,7 +172,7 @@ fi
 # The signal numbers.
 grep '^const _SIG[^_]' gen-sysinfo.go | \
   grep -v '^const _SIGEV_' | \
-  sed -e 's/^\(const \)_\(SIG[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
+  sed -e 's/^\(const \)_\(SIG[^= ]*\)\(.*\)$/\1\2 = Signal(_\2)/' >> ${OUT}
 
 # The syscall numbers.  We force the names to upper case.
 grep '^const _SYS_' gen-sysinfo.go | \
@@ -834,7 +834,15 @@ fi | sed -e 's/type _statfs64/type Statfs_t/' \
     >> ${OUT}
 
 # The timex struct.
-grep '^type _timex ' gen-sysinfo.go | \
+timex=`grep '^type _timex ' gen-sysinfo.go || true`
+if test "$timex" = ""; then
+  timex=`grep '^// type _timex ' gen-sysinfo.go || true`
+  if test "$timex" != ""; then
+    timex=`echo $timex | sed -e 's|// ||' -e 's/INVALID-bit-field/int32/g'`
+  fi
+fi
+if test "$timex" != ""; then
+  echo "$timex" | \
     sed -e 's/_timex/Timex/' \
       -e 's/modes/Modes/' \
       -e 's/offset/Offset/' \
@@ -858,6 +866,7 @@ grep '^type _timex ' gen-sysinfo.go | \
       -e 's/tai/Tai/' \
       -e 's/_timeval/Timeval/' \
     >> ${OUT}
+fi
 
 # The rlimit struct.
 grep '^type _rlimit ' gen-sysinfo.go | \
@@ -895,6 +904,11 @@ grep '^type _ustat ' gen-sysinfo.go | \
       -e 's/f_fname/Fname/' \
       -e 's/f_fpack/Fpack/' \
     >> ${OUT}
+# Force it to be defined, as on some older GNU/Linux systems the
+# header file fails when using with <linux/filter.h>.
+if ! grep 'type _ustat ' gen-sysinfo.go >/dev/null 2>&1; then
+  echo 'type Ustat_t struct { Tfree int32; Tinoe uint64; Fname [5+1]int8; Fpack [5+1]int8; }' >> ${OUT}
+fi
 
 # The utimbuf struct.
 grep '^type _utimbuf ' gen-sysinfo.go | \

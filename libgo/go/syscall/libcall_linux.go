@@ -202,13 +202,13 @@ func Getdents(fd int, buf []byte) (n int, err error) {
 	} else {
 		p = (*byte)(unsafe.Pointer(&_zero))
 	}
-	entersyscall()
+	Entersyscall()
 	r1, _, errno := Syscall(SYS_GETDENTS64, uintptr(fd), uintptr(unsafe.Pointer(p)), uintptr(len(buf)))
 	n = int(r1)
 	if n < 0 {
 		err = errno
 	}
-	exitsyscall()
+	Exitsyscall()
 	return
 }
 
@@ -335,7 +335,7 @@ func Splice(rfd int, roff *int64, wfd int, woff *int64, len int, flags int) (n i
 //sys	Tee(rfd int, wfd int, len int, flags int) (n int64, err error)
 //tee(rfd int, wfd int, len Size_t, flags uint) Ssize_t
 
-func Tgkill(tgid, tid, sig int) error {
+func Tgkill(tgid, tid, sig Signal) error {
 	r1, _, errno := Syscall(SYS_TGKILL, uintptr(tgid), uintptr(tid), uintptr(sig))
 	if r1 < 0 {
 		return errno

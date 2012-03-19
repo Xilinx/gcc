@@ -1,3 +1,22 @@
+2012-03-10  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR libstdc++/52456
+	* config/abi/post/hppa-linux-gnu/baseline_symbols.txt: Update.
+
+2012-03-09  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* config/locale/gnu/monetary_members.cc
+	(moneypunct<char,true>::_M_initialize_moneypunct): Throw caught
+	exception again.
+	(moneypunct<char,false>::_M_initialize_moneypunct): Likewise.
+	* testsuite/22_locale/locale/cons/12352.cc: Also test en_US
+	locale.
+
+2012-03-02  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/c_global/cstdio: Remove extraneous extern.
+	* include/c_std/cstdio: Same.
+
 2012-03-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* config/abi/post/solaris2.8/baseline_symbols.txt: Regenerate.
