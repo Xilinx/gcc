@@ -1,5 +1,10 @@
 2012-03-18  Andrew Pinski  <apinski@cavium.com>
 
+	* gimple-ssa-combine.c (simplify_not_neg_abs_expr): Simplify
+	~(A-1) and ~(A + -1) to -A.
+
+2012-03-18  Andrew Pinski  <apinski@cavium.com>
+
 	* tree-ssa-ccp.c (ccp_fold): Do a simple
 	removal of pointer casts for CCP reasons.
 	* tree-ssa-sccvn.c (try_to_simplify): Likewise.

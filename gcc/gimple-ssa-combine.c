@@ -1199,6 +1199,14 @@ simplify_not_neg_abs_expr (location_t loc, enum tree_code code,
       && !HONOR_SIGNED_ZEROS (TYPE_MODE (type)))
     return gimple_combine_build2 (loc, code0, type, arg2, arg1);
 
+
+  /* ~ (A - 1) or ~(A + -1) -> -A */
+  if (code == BIT_NOT_EXPR
+      && ((code0 == MINUS_EXPR && integer_onep (arg2))
+	  || (code0 == PLUS_EXPR
+	      && integer_all_onesp (arg2))))
+    return gimple_combine_negate_expr (loc, type, arg1);
+
   return NULL_TREE;
 }
 
