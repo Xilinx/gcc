@@ -1,6 +1,10 @@
 
 2012-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* simplemelt-gtkmm-probe.cc: Adding marks...
+
+2012-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* simplemelt-gtkmm-probe.cc: Add long comment.  Renamed *_pcd the
 	probe commands.
 

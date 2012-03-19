@@ -91,6 +91,77 @@ may also send several requests to MELT at any moment.
 #include <cassert>
 #include <cctype>
 
+
+/* from  /usr/share/xemacs21/xemacs-packages/etc/smilies/indifferent.xpm */
+const char *const smelt_indifferent_13x14_xpm[] = {
+  "13 14 3 1",
+  "       c None",
+  ".      c #000000",
+  "+      c #FFDD00",
+  "   .......   ",
+  "  ..+++++..  ",
+  " .+++++++++. ",
+  ".+++++++++++.",
+  ".++..+++..++.",
+  ".++..+++..++.",
+  ".+++++++++++.",
+  ".+++++++++++.",
+  ".+++++++++++.",
+  ".++.......++.",
+  ".+++++++++++.",
+  " .+++++++++. ",
+  "  ..+++++..  ",
+  "   .......   "
+};
+
+/* from /usr/lib/sourcenav/share/bitmaps/key.xpm */
+/* XPM */
+const static char *const smelt_key_7x11_xpm[] = {
+/* width height num_colors chars_per_pixel */
+  "7 11 3 1",
+/* colors */
+  " 	c None",
+  ".	c black",
+  "X	c #fefe00",
+/* pixels */
+  " ..... ",
+  ".XXXXX.",
+  ".XX.XX.",
+  ".XXXXX.",
+  " ..XX. ",
+  "  .X.  ",
+  "  .XX. ",
+  "  .X.  ",
+  "  .XX. ",
+  "  .X.  ",
+  "   .   "
+};
+
+// from /usr/share/emacs/23.3/etc/images/ezimage/key.xpm
+/* XPM */
+static const char *const smelt_key_16x16_xpm[] = {
+"16 16 4 1",
+" 	c None",
+".	c #828282",
+"+	c #000000",
+"@	c #FFF993",
+"    ........    ",
+"   ..++++++..   ",
+"   .+@@@@@@+.   ",
+"   .+@@++@@+.   ",
+"   .+@@@@@@+.   ",
+"   .+@@@@@@+.   ",
+"   .+@@@@@@+.   ",
+"    .+@@@@+.    ",
+"     .+@@+.     ",
+"     .+@@@+.    ",
+"     .+@@+.     ",
+"     .+@@+.     ",
+"     .+@@@+.    ",
+"     .+@@+.     ",
+"      .++.      ",
+"       ..       "};
+
 #define SMELT_FATAL(C) do { int er = errno;	\
   std::clog << __FILE__ << ":" << __LINE__	\
 	    << "@" << __func__ << " " << C;	\
@@ -149,6 +220,7 @@ public:
     return Gtk::Window::on_delete_event(ev);
   }
   void show_file(const std::string&path, long num);
+  void mark_location(long marknum,long filenum,int lineno, int col);
 };
 
 
@@ -629,6 +701,9 @@ class SmeltAppl
   sigc::connection _app_conncmd_from_melt;
   std::ostringstream _app_writestream_to_melt; // string buffer for requests to MELT
   std::string _app_cmdstr_from_melt;	       // the last command from MELT
+  Glib::RefPtr<Gdk::Pixbuf> _app_indifferent_pixbuf; 	
+  Glib::RefPtr<Gdk::Pixbuf> _app_key_7x11_pixbuf; 	
+  Glib::RefPtr<Gdk::Pixbuf> _app_key_16x16_pixbuf; 	
 protected:
   bool reqbuf_to_melt_cb(Glib::IOCondition);
   bool cmdbuf_from_melt_cb(Glib::IOCondition);
@@ -652,6 +727,12 @@ public:
   Glib::RefPtr<Gsv::LanguageManager> langman() const {
     return _app_langman;
   };
+  Glib::RefPtr<Gdk::Pixbuf> indifferent_pixbuf() const {
+    return _app_indifferent_pixbuf; 	}
+  Glib::RefPtr<Gdk::Pixbuf> key_7x11_pixbuf() const {
+    return _app_key_7x11_pixbuf; 	}
+  Glib::RefPtr<Gdk::Pixbuf> key_16x16_pixbuf() const {
+    return _app_key_16x16_pixbuf; 	}
   static SmeltAppl* instance() {
     return static_cast<SmeltAppl*>(Gtk::Main::instance());
   };
@@ -661,6 +742,12 @@ public:
       _app_traced(false) {
     Gsv::init(); /// initialize GtkSourceviewMM very early!
     _app_langman = Gsv::LanguageManager::get_default();
+    _app_indifferent_pixbuf 
+      = Gdk::Pixbuf::create_from_xpm_data (smelt_indifferent_13x14_xpm);
+    _app_key_16x16_pixbuf
+      = Gdk::Pixbuf::create_from_xpm_data (smelt_key_16x16_xpm);
+    _app_key_7x11_pixbuf
+      = Gdk::Pixbuf::create_from_xpm_data (smelt_key_7x11_xpm);
   };
   void set_reqchan_to_melt(const std::string &reqname) {
     const char* reqcstr = reqname.c_str();
@@ -709,6 +796,7 @@ public:
   void quit_cmd(SmeltVector&);
   void echo_cmd(SmeltVector&);
   void showfile_cmd(SmeltVector&);
+  void marklocation_cmd(SmeltVector&);
 };				// end class SmeltAppl
 
 
@@ -893,6 +981,10 @@ SmeltMainWindow::ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&fil
   auto sbuf = _sfilview.get_source_buffer();
   sbuf->set_language(lang);
   _sfilview.set_editable(false);
+#warning to improve set_mark_category_pixbuf
+  //  _sfilview.set_mark_category_pixbuf 
+  //  ("keymark",
+  //   SmeltAppl::instance()->key_16x16_pixbuf());
   {
     std::ifstream infil(filepath);
     while (!infil.eof()) {
@@ -947,6 +1039,12 @@ SmeltMainWindow::show_file(const std::string&path, long num)
   new ShownFile(this,path,num);
 }
 
+
+void
+SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
+{
+#warning incomplete SmeltMainWindow::mark_location
+}
 ////////////////////////////////////////////////////////////////
 void SmeltTraceWindow::add_title(const std::string &str)
 {
@@ -1294,6 +1392,22 @@ SmeltAppl::showfile_cmd(SmeltVector&v)
   SMELT_DEBUG("filnam=" << filnam << " num=" << num);
   _app_mainwin.show_file(filnam,num);
 }
+
+//////////////// showfile_cmd
+
+SmeltCommandSymbol smeltsymb_marklocation_cmd("marklocation_pcd",&SmeltAppl::marklocation_cmd);
+
+void
+SmeltAppl::marklocation_cmd(SmeltVector&v)
+{
+  auto marknum = v.at(1).to_long();
+  auto filnum = v.at(2).to_long();
+  auto lineno = v.at(3).to_long();
+  auto col = v.at(4).to_long();
+  SMELT_DEBUG("filnum=" << filnum << " lineno=" << lineno << " col=" << col);
+  _app_mainwin.mark_location(marknum,filnum,lineno,col);
+}
+
 
 ////////////////////////////////////////////////////////////////
 int main (int argc, char** argv)
