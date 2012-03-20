@@ -177,6 +177,45 @@ std::clog <<  __FILE__ << ":" << __LINE__		\
 << "@" << __func__ << " " << C << std::endl; } while(0)
 
 
+std::string smelt_long_to_string(long l) {
+  char buf[32];
+  snprintf(buf, sizeof(buf), "%ld", l);
+  return std::string(buf);
+}
+
+class SmeltParseErrorAt : public std::runtime_error {
+public:
+  SmeltParseErrorAt(const std::string& what, const char* file, int lineno, std::string str, int pos):
+    std::runtime_error ("SMELT parse error:" + 
+			what + " (" + file + ":" + smelt_long_to_string(lineno) 
+			+ ") @:" + str.substr(pos)) {};
+  SmeltParseErrorAt(const char*what, const char* file, int lineno, std::string str, int pos) :
+    std::runtime_error ("SMELT parse error:" + 
+			std::string(what) + " (" + file + ":" + smelt_long_to_string(lineno) 
+			+ ") @:" + str.substr(pos)) {};
+  ~SmeltParseErrorAt() throw () {};
+};
+#define smelt_parse_error(What,Str,Pos) SmeltParseErrorAt((What),__FILE__,__LINE__, \
+  (Str),(Pos))
+
+class SmeltDomainErrorAt : public std::domain_error {
+public:
+  SmeltDomainErrorAt(const std::string& what, const char*file, int lineno, std::string more)
+    : std::domain_error(std::string("SMELT domain error: ")
+			+ std::string(what) + " (" + file + ":" + smelt_long_to_string(lineno)
+			 + "):" + more) {};
+  SmeltDomainErrorAt(const char* what, const char*file, int lineno, std::string more)
+    : std::domain_error(std::string("SMELT domain error: ") 
+			+ std::string(what) + " (" + file + ":" + smelt_long_to_string(lineno)
+			 + "):" + more) {};
+  ~SmeltDomainErrorAt() throw () {};
+};
+#define smelt_domain_error(What,More) SmeltDomainErrorAt((What),__FILE__,__LINE__, \
+	  (More))
+
+
+
+
 static Glib::OptionContext smelt_options_context(" - a simple MELT Gtk probe");
 
 class SmeltMainWindow : public Gtk::Window {
@@ -197,6 +236,18 @@ class SmeltMainWindow : public Gtk::Window {
   };
   static std::map<long,ShownFile*> mainsfilemapnum_;
   static std::map<std::string,ShownFile*> mainsfiledict_;
+  static ShownFile* shown_file_by_path(const std::string& filepath) {
+    if (filepath.empty()) return nullptr;
+    auto itsfil = mainsfiledict_.find(filepath);
+    if (itsfil == mainsfiledict_.end()) return nullptr;
+    return itsfil->second;
+  }
+  static ShownFile* shown_file_by_number (long l) {
+    if (l == 0) return nullptr;
+    auto itsfil = mainsfilemapnum_.find(l);
+    if (itsfil == mainsfilemapnum_.end()) return nullptr;
+    return itsfil->second;
+  }
 public:
   SmeltMainWindow() :
     Gtk::Window() {
@@ -413,26 +464,33 @@ public:
     return emptystr;
   };
   double to_double() const {
-    if (_argkind != SmeltArg_Double) throw std::domain_error("non double arg");
+    if (_argkind != SmeltArg_Double) 
+      throw smelt_domain_error("to_double: bad argument kind",
+			       smelt_long_to_string((int)_argkind));
     return _argdouble;
   };
   long to_long() const {
-    if (_argkind != SmeltArg_Long) throw std::domain_error("non long arg");
+    if (_argkind != SmeltArg_Long) 
+      throw smelt_domain_error("to_long: bad argument kind",
+			       smelt_long_to_string((int)_argkind));
     return _arglong;
   };
   const std::string &to_string() const {
     if (_argkind != SmeltArg_String)
-      throw std::domain_error("non string arg");
+      throw smelt_domain_error("to_string: bad argument kind",
+			       smelt_long_to_string((int)_argkind));
     return *_argstring;
   };
   SmeltSymbol& to_symbol() const {
     if (_argkind != SmeltArg_Symbol)
-      throw std::domain_error("non symbol arg");
+      throw  smelt_domain_error("to_symbol: bad argument kind",
+			       smelt_long_to_string((int)_argkind));
     return *_argsymbol;
   };
   SmeltVector& to_vector() const {
     if (_argkind != SmeltArg_Vector)
-      throw std::domain_error("non vector arg");
+      throw  smelt_domain_error("to_vector: bad argument kind",
+			       smelt_long_to_string((int)_argkind));
     return *_argvector;
   };
   /// constructors
@@ -660,14 +718,6 @@ void SmeltArg::out(std::ostream& os) const
   }
 }
 
-
-class SmeltParseError : public std::runtime_error {
-public:
-  SmeltParseError(const std::string& what, std::string str, int pos):
-    std::runtime_error ("SMELT parse error:" + what + " @:" + str.substr(pos)) {};
-  ~SmeltParseError() throw () {};
-};
-
 class SmeltCommandSymbol : public SmeltSymbol {
 public:
   typedef void (SmeltAppl::*cmdfun_t)(SmeltVector&);
@@ -855,7 +905,7 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
     
     SmeltSymbol* sym = SmeltSymbol::find(name);
     if (!sym)
-      throw SmeltParseError("unknown symbol", name, spos);
+      throw smelt_parse_error("unknown symbol", name, spos);
     return SmeltArg(sym);
   } else if (c == '"') {
     // parse a C encoded string
@@ -924,17 +974,17 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
           break;
         }
         default:
-          throw SmeltParseError("bad string backslash escape", str.substr(spos,4), pos);
+          throw smelt_parse_error("bad string backslash escape", str.substr(spos,4), pos);
         }
       } else if (std::isspace(c) || std::isprint(c)) {
         str += c;
         pos++;
       } else
-        throw SmeltParseError("bad character in string", str, pos);
+        throw smelt_parse_error("bad character in string", str, pos);
     };
     SMELT_DEBUG("ending pos=" << pos << " c=" << c);
     if (c != '\"')
-      throw SmeltParseError("unterminated string", str, pos);
+      throw smelt_parse_error("unterminated string", str, pos);
     pos++;
     SMELT_DEBUG("got str:" << str);
     return SmeltArg(str);
@@ -943,7 +993,7 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
     pos++;
     while (pos < (int)siz && std::isspace(s[pos])) pos++;
     if (pos >= (int)siz)
-      throw SmeltParseError("unbalanced paren for nil", "", pos);
+      throw smelt_parse_error("unbalanced paren for nil", "", pos);
     if (s[pos] == ')') {
       pos++;
       return SmeltArg(nullptr);
@@ -951,13 +1001,13 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
       SmeltVector vect = parse_string_vector(s, pos);
       while (pos < (int) siz && std::isspace(s[pos])) pos++;
       if (pos >= (int) siz)
-        throw SmeltParseError("unbalanced paren in vector", s, spos);
+        throw smelt_parse_error("unbalanced paren in vector", s, spos);
       if (s[pos] == ')')
         pos++;
-      else throw SmeltParseError("unmatched paren in vector", s, spos);
+      else throw smelt_parse_error("unmatched paren in vector", s, spos);
       return SmeltArg(vect);
     }
-  } else throw SmeltParseError("unexpected char", s, pos);
+  } else throw smelt_parse_error("unexpected char", s, pos);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -969,9 +1019,9 @@ SmeltMainWindow::ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&fil
   if (access(filepath.c_str(), R_OK))
     SMELT_FATAL("invalid filepath " << filepath);
   if (num == 0 || mainsfilemapnum_.find(num) != mainsfilemapnum_.end())
-    throw std::runtime_error(std::string("invalid shown file number"));
+    throw smelt_domain_error("ShownFile: invalid shown file number",smelt_long_to_string(num));
   if (filepath.empty() || mainsfiledict_.find(filepath) != mainsfiledict_.end())
-    throw std::runtime_error(std::string("duplicate shown file name"));
+    throw smelt_domain_error("ShownFile: invalid shown file name",filepath);
   SMELT_DEBUG("guessing language for filepath=" << filepath);
   auto langman = SmeltAppl::instance()->langman();
   auto lang = langman->guess_language(filepath,std::string());
@@ -1044,6 +1094,10 @@ SmeltMainWindow::show_file(const std::string&path, long num)
 void
 SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
 {
+  ShownFile* sfil = shown_file_by_number(filenum);
+  if (!sfil) 
+    throw smelt_domain_error("mark_location invalid file number",
+			     smelt_long_to_string(filenum));
 #warning incomplete SmeltMainWindow::mark_location
 }
 ////////////////////////////////////////////////////////////////

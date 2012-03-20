@@ -1,6 +1,18 @@
 
 2012-03-20  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* simplemelt-gtkmm-probe.cc: (smelt_long_to_string): New function.
+	(SmeltParseErrorAt,SmeltDomainErrorAt): Better exceptions.
+	(smelt_parse_error,smelt_domain_error): New macros.
+	(SmeltMainWindow::shown_file_by_number)
+	(SmeltMainWindow::shown_file_by_path): New.
+	(SmeltArg::to_double, SmeltArg::to_long, SmeltArg::to_string)
+	(SmeltArg::to_symbol, SmeltArg::to_vector)
+	(SmeltMainWindow::ShownFile::ShownFile)
+	(SmeltMainWindow::mark_location): Improve domain error throw.
+
+2012-03-20  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* simplemelt-gtkmm-probe.cc: Comment...
 
 2012-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
