@@ -162,6 +162,12 @@ COMMON_SYSDEP void cilkos_error(const char *fmt, ...);
  */
 COMMON_SYSDEP void cilkos_warning(const char *fmt, ...);
 
+/*
+ * Convert the user's specified stack size into a "reasonable" value
+ * for the current OS.
+ */
+COMMON_SYSDEP size_t cilkos_validate_stack_size(size_t specified_stack_size);
+
 #ifdef _WIN32
 /*
  * Windows-only low-level functions for processor groups.

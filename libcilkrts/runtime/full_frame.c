@@ -2,7 +2,7 @@
  *
  *************************************************************************
  *
- * Copyright (C) 2010 
+ * Copyright (C) 2010-2011 
  * Intel Corporation
  * 
  * This file is part of the Intel Cilk Plus Library.  This library is free
@@ -64,6 +64,7 @@ full_frame *__cilkrts_make_full_frame(__cilkrts_worker *w,
         f->trylevel = (unsigned long)-1;
         f->registration = 0;
 #endif
+	f->frame_size = 0;
 //        f->exception_sp_offset = 0;
 //        f->eh_kind = EH_NONE;
         f->stack_self = 0;

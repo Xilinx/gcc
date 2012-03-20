@@ -1,6 +1,6 @@
 /*  cilk.h                  -*-C++-*-
  *
- * Copyright (C) 2010 
+ * Copyright (C) 2010-2011 
  * Intel Corporation
  * 
  * This file is part of the Intel Cilk Plus Library.  This library is free

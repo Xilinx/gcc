@@ -1,7 +1,7 @@
 // -*- C++ -*-
 
 /*
- * Copyright (C) 2009-2010 
+ * Copyright (C) 2009-2011 
  * Intel Corporation
  * 
  * This file is part of the Intel Cilk Plus Library.  This library is free

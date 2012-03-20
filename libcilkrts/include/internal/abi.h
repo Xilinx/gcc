@@ -315,6 +315,12 @@ struct __cilkrts_stack_frame
 /** Is this frame receiving an exception after sync? */
 #define CILK_FRAME_EXCEPTING 0x10
 
+/**
+ * Is the pedigree unsynched?  That is, has a synch occurred that is not
+ * yet represented in the pedigree?
+ */
+#define CILK_FRAME_SF_PEDIGREE_UNSYNCHED 0x20
+
 /** Is this the last (oldest) Cilk frame? */
 #define CILK_FRAME_LAST	     0x80
 
@@ -353,6 +359,7 @@ struct __cilkrts_stack_frame
                             CILK_FRAME_DETACHED | \
                             CILK_FRAME_EXCEPTION_PROBED | \
                             CILK_FRAME_EXCEPTING | \
+                            CILK_FRAME_SF_PEDIGREE_UNSYNCHED | \
                             CILK_FRAME_LAST | \
                             CILK_FRAME_EXITING | \
                             CILK_FRAME_SUSPENDED | \
