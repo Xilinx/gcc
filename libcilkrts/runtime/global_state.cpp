@@ -194,6 +194,7 @@ int set_param_imp(global_state_t* g, const CHAR_T* param, const CHAR_T* value)
     static const char* const s_local_stacks     = "local stacks";
     static const char* const s_shared_stacks    = "shared stacks";
     static const char* const s_nstacks          = "nstacks";
+    static const char* const s_stack_size       = "stack size";
 
     // We must have a parameter and a value
     if (0 == param)
@@ -276,9 +277,37 @@ int set_param_imp(global_state_t* g, const CHAR_T* param, const CHAR_T* value)
         // robust enough for users.
         return store_int<long>(&g->max_stacks, value, 0, INT_MAX);
     }
+    else if (strmatch(param, s_stack_size))
+    {
+        // ** UNDOCUMENTED **
+        //
+        // Sets the size (in bytes) of the stacks that Cilk creates.
+	// Maximum value that can be parsed is MAX_INT (32-bit).
+	int ret = store_int<size_t>(&g->stack_size, value, 0, INT_MAX);
+
+	// Process the value the user set (or 0 if the user didn't set
+	// anything) into something nice for the current OS.  This
+	// processing is done immediately and stored into
+	// g->stack_size so that a call to get stack size will return
+	// the value that the runtime will actually use.
+	g->stack_size = cilkos_validate_stack_size(g->stack_size);
+	return ret;	
+    }
+
 
     // If got here, then didn't match any of the strings
     return __CILKRTS_SET_PARAM_UNIMP;
+}
+
+inline
+int calc_max_user_workers(global_state_t *g)
+{
+    // If it's been set by the user, give back what we got
+    if (g->max_user_workers > 0)
+        return g->max_user_workers;
+
+    // Calculate it
+    return std::max(3, g->P * 2);
 }
 
 } // end unnamed namespace
@@ -313,12 +342,13 @@ global_state_t* cilkg_get_user_settable_values()
 
         g->under_ptool              = under_ptool;
         g->force_reduce             = 0;   // Default Off
-        g->P                        = hardware_cpu_count;
-        g->max_user_workers         = std::max(3, hardware_cpu_count * 2);
+        g->P                        = hardware_cpu_count;   // Defaults to hardware CPU count
+        g->max_user_workers         = 0;   // 0 unless set by user
         g->stack_cache_size         = 7;   // Arbitrary default
         g->global_stack_cache_size  = 3;   // Arbitrary default
         g->max_stacks               = 0;   // 0 == unlimited
         g->max_steal_failures       = 128; // TBD: depend on max_workers?
+	g->stack_size               = 0;   // 0 unless set by the user
 
         if (always_force_reduce())
             g->force_reduce = true;
@@ -344,25 +374,27 @@ global_state_t* cilkg_get_user_settable_values()
             // it looks to see whether it should suspend itself.
             store_int<unsigned>(&g->max_steal_failures, envstr, 1, INT_MAX);
 
-        // g->max_user_workers (optionally set by the user using
-        // __cilkrts_set_param("max user workers")) is is the number of
-        // simultaneous user threads that can join the Cilk runtime.  If not
-        // set by the user, it (somewhat arbitrarily) defaults to the larger
-        // of 3 and twice the number of workers.
-        if (g->max_user_workers <= 0)
-            g->max_user_workers = std::max(3, g->P * 2);
-
-        // Compute the total number of workers to allocate.  Subract one from
+        // Compute the total number of workers to allocate.  Subtract one from
         // nworkers and user workers so that the first user worker isn't
         // factored in twice.
         //
-        // nworkers must be computed now to support __cilkrts_get_total_workers
-        g->nworkers = g->P + g->max_user_workers - 1;
+        // total_workers must be computed now to support __cilkrts_get_total_workers
+        g->total_workers = g->P + calc_max_user_workers(g) - 1;
 
         cilkg_user_settable_values_initialized = true;
     }
 
     return g;
+}
+
+int cilkg_calc_total_workers()
+{
+    global_state_t* g = cilkg_get_user_settable_values();
+
+    // Compute the total number of workers to allocate.  Subtract one from
+    // nworkers and user workers so that the first user worker isn't
+    // factored in twice.
+    return g->P + calc_max_user_workers(g) - 1;
 }
 
 global_state_t* cilkg_init_global_state()
@@ -411,6 +443,7 @@ global_state_t* cilkg_init_global_state()
     __cilkrts_frame_malloc_global_init(g);
 
     g->Q = 0;
+    g->total_workers = cilkg_calc_total_workers();
     g->system_workers = g->P - 1; // system_workers is here for the debugger.
     g->work_done = 0;
     g->running = 0;
@@ -419,7 +452,7 @@ global_state_t* cilkg_init_global_state()
     g->ltqsize = 1024; /* FIXME */
 
     g->stacks = 0;
-    g->stack_size = 0;
+    g->stack_size = cilkos_validate_stack_size(g->stack_size);
     g->failure_to_allocate_stack = 0;
 
 

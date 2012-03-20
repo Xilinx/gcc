@@ -2,7 +2,7 @@
  *
  *************************************************************************
  *
- * Copyright (C) 2010 
+ * Copyright (C) 2010-2011 
  * Intel Corporation
  * 
  * This file is part of the Intel Cilk Plus Library.  This library is free
@@ -39,7 +39,7 @@
 
 #if ! defined(CILK_STUB) && defined(__INTEL_COMPILER)
 #  define __cilkscreen_metacall(annotation,expr) \
-    __notify_intrinsic(annotation,expr)
+    __notify_zc_intrinsic((char *)annotation, expr)
 #else
 #  define __cilkscreen_metacall(annotation,expr) (annotation, (void) (expr))
 #endif
@@ -54,11 +54,11 @@
 
 /* Call to temporarily disable cilkscreen instrumentation */
 #define __cilkscreen_enable_checking() \
-    __cilkscreen_metacall((void*)"cilkscreen_enable_checking", 0)
+    __cilkscreen_metacall("cilkscreen_enable_checking", 0)
 
 /* Call to re-enable temporarily-disabled cilkscreen instrumentation */
 #define __cilkscreen_disable_checking() \
-    __cilkscreen_metacall((void*)"cilkscreen_disable_checking", 0)
+    __cilkscreen_metacall("cilkscreen_disable_checking", 0)
 
 /* Inform cilkscreen that memory from begin to end can be reused without
  * causing races (e.g., for memory that comes from a memory allocator) */
@@ -93,6 +93,6 @@
 #define CS_METACALL_PUTS 0  // Write string to the Cilkscreen log
 
 #define __cilkscreen_puts(text) \
-    __cilkrts_metacall(METACALL_TOOL_CILKSCREEN, CS_METACALL_PUTS, text)
+    __cilkrts_metacall(METACALL_TOOL_CILKSCREEN, CS_METACALL_PUTS, (void *)(const char *)text)
 
 #endif /* defined(INCLUDED_CILKSCREEN_H) */

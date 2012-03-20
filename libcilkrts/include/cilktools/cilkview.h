@@ -2,7 +2,7 @@
  *
  *************************************************************************
  *
- * Copyright (C) 2010 
+ * Copyright (C) 2010-2011 
  * Intel Corporation
  * 
  * This file is part of the Intel Cilk Plus Library.  This library is free
@@ -33,38 +33,49 @@
 #include <cilk/cilk_api.h>
 
 #ifdef _WIN32
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifndef _WINBASE_
-extern unsigned long __stdcall GetTickCount();
-#endif
-
-#ifdef __cplusplus
-}
-#endif
-
-static inline unsigned long long __cilkview_getticks()
-{
-    // Fetch number of milliseconds that have elapsed since the system started
-     return GetTickCount();
-}
+#   ifndef _WINBASE_
+__CILKRTS_BEGIN_EXTERN_C
+unsigned long __stdcall GetTickCount();
+__CILKRTS_END_EXTERN_C
+#   endif
 #endif  // _WIN32
 
 #if defined __unix__ || defined __APPLE__
-#include <time.h>
-#include <sys/time.h>
+#   include <sys/time.h>
+#endif  // defined __unix__ || defined __APPLE__
 
+/// @brief Return the system clock with millisecond resolution
+///
+/// This function returns a long integer representing the number of
+/// milliseconds since an arbitrary starting point, e.g., since the system was
+/// started or since the Unix Epoch.  The result is meaningless by itself, but
+/// the difference between two sequential calls to __cilkview_getticks()
+/// represents the time interval that elapsed between them (in ms).
 static inline unsigned long long __cilkview_getticks()
 {
-    // Fetch number of milliseconds that have elapsed since the Epoch (1-Jan-1970)
+#if __INTEL_COMPILER > 1200
+    // When inlined, prevent code motion around this call
+    __notify_zc_intrinsic((void*) "test_getticks_start", 0);
+#endif
+
+#ifdef _WIN32
+    // Return milliseconds elapsed since the system started
+    return GetTickCount();
+#elif defined(__unix__) || defined(__APPLE__)
+    // Return milliseconds elapsed since the Unix Epoch
+    // (1-Jan-1970 00:00:00.000 UTC)
     struct timeval t;
     gettimeofday(&t, 0);
     return t.tv_sec * 1000ULL + t.tv_usec / 1000;
+#else
+#   error test_getticks() not implemented for this OS
+#endif
+
+#if __INTEL_COMPILER > 1200
+    // When inlined, prevent code motion around this call
+    __notify_zc_intrinsic((void*) "test_getticks_end", 0);
+#endif
 }
-#endif  // defined __unix__ || defined __APPLE__
 
 typedef struct
 {
