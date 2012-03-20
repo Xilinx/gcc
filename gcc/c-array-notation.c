@@ -2419,10 +2419,12 @@ expand_array_notation_exprs (tree t)
       t = expand_array_notation_exprs (BIND_EXPR_BODY (t));
       return t;
     case STATEMENT_LIST:
-      tree_stmt_iterator ii_tsi;
-      for (ii_tsi = tsi_start (t); !tsi_end_p (ii_tsi); tsi_next (&ii_tsi))
-	*tsi_stmt_ptr (ii_tsi) =
-	  expand_array_notation_exprs (*tsi_stmt_ptr (ii_tsi));
+      {
+	tree_stmt_iterator ii_tsi;
+	for (ii_tsi = tsi_start (t); !tsi_end_p (ii_tsi); tsi_next (&ii_tsi))
+	  *tsi_stmt_ptr (ii_tsi) =
+	    expand_array_notation_exprs (*tsi_stmt_ptr (ii_tsi));
+      }
       return t;
     case CALL_EXPR:
       t = fix_array_notation_call_expr (t);
