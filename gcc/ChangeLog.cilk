@@ -1,3 +1,9 @@
+2012-03-19  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* elem-function.c (find_processor_code): Returned default value when
+	no value is given.
+	(find_vlength_code): Likewise.
+
 2012-03-18  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-array-notation.c (expand_array_notation_exprs): New function.
