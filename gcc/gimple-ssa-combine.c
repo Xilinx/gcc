@@ -2175,6 +2175,34 @@ simplify_mult_expr (location_t loc, enum tree_code code, tree type,
 							     build_int_cst (type, 2),
 							     rhs2));
     }
+  else
+    {
+      /* Maybe fold x * 0 to 0.  The expressions aren't the same
+	 when x is NaN, since x * 0 is also NaN.  Nor are they the
+	 same in modes with signed zeros, since multiplying a
+	 negative value by 0 gives -0, not +0.  */
+      if (!HONOR_NANS (TYPE_MODE (type))
+	  && !HONOR_SIGNED_ZEROS (TYPE_MODE (type))
+	  && real_zerop (rhs2))
+	return rhs2;
+
+      /* In IEEE floating point, x*1 is not equivalent to x for snans.
+	 Likewise for complex arithmetic with signed zeros.  */
+      if (!HONOR_SNANS (TYPE_MODE (type))
+	  && (!HONOR_SIGNED_ZEROS (TYPE_MODE (type))
+	      || !COMPLEX_FLOAT_TYPE_P (type))
+	  && real_onep (rhs2))
+	return rhs1;
+
+      /* Transform x * -1.0 into -x.  */
+      if (!HONOR_SNANS (TYPE_MODE (type))
+	  && (!HONOR_SIGNED_ZEROS (TYPE_MODE (type))
+	      || !COMPLEX_FLOAT_TYPE_P (type))
+	  && real_minus_onep (rhs2))
+	return gimple_combine_negate_expr (loc, type, rhs1);
+    }
+
+
   return NULL_TREE;
 }
 
@@ -2992,7 +3020,7 @@ gimple_combine_addr_expr (tree addr_expr)
   gcc_assert (TREE_CODE (addr_expr) == ADDR_EXPR);
   if (!is_gimple_min_invariant (addr_expr))
     {
-      HOST_WIDE_INT offset;
+      HOST_WIDE_INT offset = 0;
       tree base;
       base = get_addr_base_and_unit_offset_1 (TREE_OPERAND (addr_expr, 0),
 					      &offset,
