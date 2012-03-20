@@ -136,7 +136,7 @@ static char *
 find_processor_code (elem_fn_info *elem_fn_values)
 {
   if (!elem_fn_values || !elem_fn_values->proc_type)
-    return NULL;
+    return xstrdup ("B");
 
   if (!strcmp (elem_fn_values->proc_type, "pentium_4"))
     return xstrdup ("B");
@@ -161,7 +161,7 @@ find_vlength_code (elem_fn_info *elem_fn_values)
 {
   char *vlength_code = (char *) xmalloc (sizeof (char) * 10);
   if (!elem_fn_values)
-    return NULL;
+    return sprintf (vlength_code, "4");
 
   memset (vlength_code, 10, 0);
   
@@ -170,7 +170,7 @@ find_vlength_code (elem_fn_info *elem_fn_values)
   else
     {
       if (!strcmp (elem_fn_values->proc_type, "pentium_4"))
-	sprintf(vlength_code,"4");
+	sprintf (vlength_code,"4");
       else if (!strcmp (elem_fn_values->proc_type, "pentium4_sse3"))
 	sprintf (vlength_code, "4");
       else if (!strcmp (elem_fn_values->proc_type, "core2_duo_ssse3"))
