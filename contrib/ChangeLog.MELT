@@ -1,7 +1,12 @@
 
 2012-03-20  Basile Starynkevitch  <basile@starynkevitch.net>
 
-	* simplemelt-gtkmm-probe.cc: (smelt_long_to_string): New function.
+	* simplemelt-gtkmm-probe.cc (SmeltMainWindow::mark_location): show
+	somthing, but not the gutter...
+
+2012-03-20  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* simplemelt-gtkmm-probe.cc (smelt_long_to_string): New function.
 	(SmeltParseErrorAt,SmeltDomainErrorAt): Better exceptions.
 	(smelt_parse_error,smelt_domain_error): New macros.
 	(SmeltMainWindow::shown_file_by_number)

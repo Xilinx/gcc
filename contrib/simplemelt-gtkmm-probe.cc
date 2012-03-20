@@ -30,7 +30,7 @@ single C++ source file using gtksourceview & gtk; some of the code is
 taken or inspired by the contrib/simple-probe.c file of MELT branch
 svn revision 147544 from mid-may 2009; it is not compiled by the GCC
 building process. The compilation command is given near the end of
-file (as a local.var to emacs) 
+file (as a local.var to emacs)
 
 This probe is a GTK graphical application exchanging with the MELT
 plugin using textual protocols. Since mid-march 2012, ie svn revision
@@ -117,13 +117,13 @@ const char *const smelt_indifferent_13x14_xpm[] = {
 /* from /usr/lib/sourcenav/share/bitmaps/key.xpm */
 /* XPM */
 const static char *const smelt_key_7x11_xpm[] = {
-/* width height num_colors chars_per_pixel */
+  /* width height num_colors chars_per_pixel */
   "7 11 3 1",
-/* colors */
+  /* colors */
   " 	c None",
   ".	c black",
   "X	c #fefe00",
-/* pixels */
+  /* pixels */
   " ..... ",
   ".XXXXX.",
   ".XX.XX.",
@@ -140,27 +140,28 @@ const static char *const smelt_key_7x11_xpm[] = {
 // from /usr/share/emacs/23.3/etc/images/ezimage/key.xpm
 /* XPM */
 static const char *const smelt_key_16x16_xpm[] = {
-"16 16 4 1",
-" 	c None",
-".	c #828282",
-"+	c #000000",
-"@	c #FFF993",
-"    ........    ",
-"   ..++++++..   ",
-"   .+@@@@@@+.   ",
-"   .+@@++@@+.   ",
-"   .+@@@@@@+.   ",
-"   .+@@@@@@+.   ",
-"   .+@@@@@@+.   ",
-"    .+@@@@+.    ",
-"     .+@@+.     ",
-"     .+@@@+.    ",
-"     .+@@+.     ",
-"     .+@@+.     ",
-"     .+@@@+.    ",
-"     .+@@+.     ",
-"      .++.      ",
-"       ..       "};
+  "16 16 4 1",
+  " 	c None",
+  ".	c #828282",
+  "+	c #000000",
+  "@	c #FFF993",
+  "    ........    ",
+  "   ..++++++..   ",
+  "   .+@@@@@@+.   ",
+  "   .+@@++@@+.   ",
+  "   .+@@@@@@+.   ",
+  "   .+@@@@@@+.   ",
+  "   .+@@@@@@+.   ",
+  "    .+@@@@+.    ",
+  "     .+@@+.     ",
+  "     .+@@@+.    ",
+  "     .+@@+.     ",
+  "     .+@@+.     ",
+  "     .+@@@+.    ",
+  "     .+@@+.     ",
+  "      .++.      ",
+  "       ..       "
+};
 
 #define SMELT_FATAL(C) do { int er = errno;	\
   std::clog << __FILE__ << ":" << __LINE__	\
@@ -177,7 +178,8 @@ std::clog <<  __FILE__ << ":" << __LINE__		\
 << "@" << __func__ << " " << C << std::endl; } while(0)
 
 
-std::string smelt_long_to_string(long l) {
+std::string smelt_long_to_string(long l)
+{
   char buf[32];
   snprintf(buf, sizeof(buf), "%ld", l);
   return std::string(buf);
@@ -186,13 +188,19 @@ std::string smelt_long_to_string(long l) {
 class SmeltParseErrorAt : public std::runtime_error {
 public:
   SmeltParseErrorAt(const std::string& what, const char* file, int lineno, std::string str, int pos):
-    std::runtime_error ("SMELT parse error:" + 
-			what + " (" + file + ":" + smelt_long_to_string(lineno) 
-			+ ") @:" + str.substr(pos)) {};
+    std::runtime_error ("SMELT parse error:" +
+                        what + " (" + file + ":" + smelt_long_to_string(lineno)
+                        + ") @:" + str.substr(pos)) {
+    SMELT_DEBUG("parse error " << what << " @" << file << ":" << lineno
+                << " :: " << str << " @@" << pos);
+  };
   SmeltParseErrorAt(const char*what, const char* file, int lineno, std::string str, int pos) :
-    std::runtime_error ("SMELT parse error:" + 
-			std::string(what) + " (" + file + ":" + smelt_long_to_string(lineno) 
-			+ ") @:" + str.substr(pos)) {};
+    std::runtime_error ("SMELT parse error:" +
+                        std::string(what) + " (" + file + ":" + smelt_long_to_string(lineno)
+                        + ") @:" + str.substr(pos)) {
+    SMELT_DEBUG("parse error " << what << " @" << file << ":" << lineno
+                << " :: " << str << " @@" << pos);
+  };
   ~SmeltParseErrorAt() throw () {};
 };
 #define smelt_parse_error(What,Str,Pos) SmeltParseErrorAt((What),__FILE__,__LINE__, \
@@ -202,12 +210,18 @@ class SmeltDomainErrorAt : public std::domain_error {
 public:
   SmeltDomainErrorAt(const std::string& what, const char*file, int lineno, std::string more)
     : std::domain_error(std::string("SMELT domain error: ")
-			+ std::string(what) + " (" + file + ":" + smelt_long_to_string(lineno)
-			 + "):" + more) {};
+                        + std::string(what) + " (" + file + ":" + smelt_long_to_string(lineno)
+                        + "):" + more) {
+    SMELT_DEBUG("domain error " << what << " @" << file << ":" << lineno
+                << " :: " << more);
+  };
   SmeltDomainErrorAt(const char* what, const char*file, int lineno, std::string more)
-    : std::domain_error(std::string("SMELT domain error: ") 
-			+ std::string(what) + " (" + file + ":" + smelt_long_to_string(lineno)
-			 + "):" + more) {};
+    : std::domain_error(std::string("SMELT domain error: ")
+                        + std::string(what) + " (" + file + ":" + smelt_long_to_string(lineno)
+                        + "):" + more) {
+    SMELT_DEBUG("domain error " << what << " @" << file << ":" << lineno
+                << " :: " << more);
+  };
   ~SmeltDomainErrorAt() throw () {};
 };
 #define smelt_domain_error(What,More) SmeltDomainErrorAt((What),__FILE__,__LINE__, \
@@ -218,6 +232,9 @@ public:
 
 static Glib::OptionContext smelt_options_context(" - a simple MELT Gtk probe");
 
+
+/* The SmeltMainWindow is our graphical interface; allmost all GUI
+   code is inside. */
 class SmeltMainWindow : public Gtk::Window {
   Gtk::VBox _mainvbox;
   Gtk::MenuBar _mainmenubar;
@@ -226,14 +243,31 @@ class SmeltMainWindow : public Gtk::Window {
   class ShownFile {
     friend class SmeltMainWindow;
     long _sfilnum;		// unique number in _mainsfilemapnum;
+    int _sfilnblines;		// number of lines
     std::string _sfilname;	// file path
     Gsv::View _sfilview;	// source view
   public:
+    long number () const {
+      return _sfilnum;
+    };
+    int nblines () const {
+      return _sfilnblines;
+    };
+    const std::string & name() const {
+      return _sfilname;
+    };
+    Gsv::View& view() {
+      return _sfilview;
+    };
     ShownFile(SmeltMainWindow*,const std::string&filepath,long num);
     ShownFile() =delete;
     ShownFile(const ShownFile&) =delete;
     ~ShownFile();
-  };
+    Glib::RefPtr<Gsv::Gutter> left_gutter() {
+      return _sfilview.get_gutter(Gtk::TEXT_WINDOW_LEFT);
+    }
+  };				// end internal class ShownFile
+  ////
   static std::map<long,ShownFile*> mainsfilemapnum_;
   static std::map<std::string,ShownFile*> mainsfiledict_;
   static ShownFile* shown_file_by_path(const std::string& filepath) {
@@ -248,6 +282,7 @@ class SmeltMainWindow : public Gtk::Window {
     if (itsfil == mainsfilemapnum_.end()) return nullptr;
     return itsfil->second;
   }
+  ////
 public:
   SmeltMainWindow() :
     Gtk::Window() {
@@ -464,33 +499,33 @@ public:
     return emptystr;
   };
   double to_double() const {
-    if (_argkind != SmeltArg_Double) 
+    if (_argkind != SmeltArg_Double)
       throw smelt_domain_error("to_double: bad argument kind",
-			       smelt_long_to_string((int)_argkind));
+                               smelt_long_to_string((int)_argkind));
     return _argdouble;
   };
   long to_long() const {
-    if (_argkind != SmeltArg_Long) 
+    if (_argkind != SmeltArg_Long)
       throw smelt_domain_error("to_long: bad argument kind",
-			       smelt_long_to_string((int)_argkind));
+                               smelt_long_to_string((int)_argkind));
     return _arglong;
   };
   const std::string &to_string() const {
     if (_argkind != SmeltArg_String)
       throw smelt_domain_error("to_string: bad argument kind",
-			       smelt_long_to_string((int)_argkind));
+                               smelt_long_to_string((int)_argkind));
     return *_argstring;
   };
   SmeltSymbol& to_symbol() const {
     if (_argkind != SmeltArg_Symbol)
       throw  smelt_domain_error("to_symbol: bad argument kind",
-			       smelt_long_to_string((int)_argkind));
+                                smelt_long_to_string((int)_argkind));
     return *_argsymbol;
   };
   SmeltVector& to_vector() const {
     if (_argkind != SmeltArg_Vector)
       throw  smelt_domain_error("to_vector: bad argument kind",
-			       smelt_long_to_string((int)_argkind));
+                                smelt_long_to_string((int)_argkind));
     return *_argvector;
   };
   /// constructors
@@ -751,9 +786,9 @@ class SmeltAppl
   sigc::connection _app_conncmd_from_melt;
   std::ostringstream _app_writestream_to_melt; // string buffer for requests to MELT
   std::string _app_cmdstr_from_melt;	       // the last command from MELT
-  Glib::RefPtr<Gdk::Pixbuf> _app_indifferent_pixbuf; 	
-  Glib::RefPtr<Gdk::Pixbuf> _app_key_7x11_pixbuf; 	
-  Glib::RefPtr<Gdk::Pixbuf> _app_key_16x16_pixbuf; 	
+  Glib::RefPtr<Gdk::Pixbuf> _app_indifferent_pixbuf;
+  Glib::RefPtr<Gdk::Pixbuf> _app_key_7x11_pixbuf;
+  Glib::RefPtr<Gdk::Pixbuf> _app_key_16x16_pixbuf;
 protected:
   bool reqbuf_to_melt_cb(Glib::IOCondition);
   bool cmdbuf_from_melt_cb(Glib::IOCondition);
@@ -778,11 +813,14 @@ public:
     return _app_langman;
   };
   Glib::RefPtr<Gdk::Pixbuf> indifferent_pixbuf() const {
-    return _app_indifferent_pixbuf; 	}
+    return _app_indifferent_pixbuf;
+  }
   Glib::RefPtr<Gdk::Pixbuf> key_7x11_pixbuf() const {
-    return _app_key_7x11_pixbuf; 	}
+    return _app_key_7x11_pixbuf;
+  }
   Glib::RefPtr<Gdk::Pixbuf> key_16x16_pixbuf() const {
-    return _app_key_16x16_pixbuf; 	}
+    return _app_key_16x16_pixbuf;
+  }
   static SmeltAppl* instance() {
     return static_cast<SmeltAppl*>(Gtk::Main::instance());
   };
@@ -792,7 +830,7 @@ public:
       _app_traced(false) {
     Gsv::init(); /// initialize GtkSourceviewMM very early!
     _app_langman = Gsv::LanguageManager::get_default();
-    _app_indifferent_pixbuf 
+    _app_indifferent_pixbuf
       = Gdk::Pixbuf::create_from_xpm_data (smelt_indifferent_13x14_xpm);
     _app_key_16x16_pixbuf
       = Gdk::Pixbuf::create_from_xpm_data (smelt_key_16x16_xpm);
@@ -902,7 +940,7 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
     int spos = pos;
     while (pos < (int) siz && (c=s[pos])!=(char)0 && (std::isalnum(c) || c=='$' || c=='_'))
       (name += toupper(c)), (pos++);
-    
+
     SmeltSymbol* sym = SmeltSymbol::find(name);
     if (!sym)
       throw smelt_parse_error("unknown symbol", name, spos);
@@ -1010,9 +1048,10 @@ SmeltArg SmeltArg::parse_string_arg(const std::string& s, int& pos) throw (std::
   } else throw smelt_parse_error("unexpected char", s, pos);
 }
 
+
 ////////////////////////////////////////////////////////////////
 SmeltMainWindow::ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&filepath,long num)
-  : _sfilnum(num), _sfilname(filepath), _sfilview()
+  : _sfilnum(num), _sfilnblines(0), _sfilname(filepath), _sfilview()
 {
   SMELT_DEBUG("filepath=" << filepath << " num=" << num);
   assert(mwin != nullptr);
@@ -1032,18 +1071,22 @@ SmeltMainWindow::ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&fil
   sbuf->set_language(lang);
   _sfilview.set_editable(false);
 #warning to improve set_mark_category_pixbuf
-/* look into gtksourceviewmm/gutterrenderer*.h & gtksourceviewmm/markattributes.h */
-  //  _sfilview.set_mark_category_pixbuf 
+  /* look into gtksourceviewmm/gutterrenderer*.h & gtksourceviewmm/markattributes.h */
+  //  _sfilview.set_mark_category_pixbuf
   //  ("keymark",
   //   SmeltAppl::instance()->key_16x16_pixbuf());
   {
     std::ifstream infil(filepath);
+    int nblines = 0;
     while (!infil.eof()) {
       std::string linestr;
       std::getline(infil,linestr);
       linestr += "\n";
       sbuf->insert(sbuf->end(),linestr);
+      nblines++;
     }
+    _sfilnblines = nblines;
+    SMELT_DEBUG("filepath=" << filepath << " got " << nblines << " lines");
     infil.close();
   }
   {
@@ -1094,10 +1137,38 @@ SmeltMainWindow::show_file(const std::string&path, long num)
 void
 SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
 {
-  ShownFile* sfil = shown_file_by_number(filenum);
-  if (!sfil) 
+  SMELT_DEBUG("marknum=" << marknum << " filenum=" << filenum
+              << " lineno=" << lineno << " col=" << col);
+  ShownFile* sfil = shown_file_by_number (filenum);
+  if (!sfil)
     throw smelt_domain_error("mark_location invalid file number",
-			     smelt_long_to_string(filenum));
+                             smelt_long_to_string(filenum));
+  if (lineno<=0 || lineno>sfil->nblines())
+    throw smelt_domain_error("mark_location invalid line number",
+                             smelt_long_to_string(lineno));
+  Glib::RefPtr<Gsv::Gutter> gut = sfil->left_gutter();
+  auto gutrenderer = new Gsv::GutterRendererPixbuf();
+  gutrenderer->set_pixbuf(SmeltAppl::instance()->key_16x16_pixbuf());
+  gut->insert(gutrenderer,lineno-1);
+  auto tbuf = sfil->view().get_source_buffer();
+  auto itlin = tbuf->get_iter_at_line (lineno-1);
+  auto itendlin = itlin;
+  itendlin.forward_line();
+  itendlin.backward_char();
+  int linwidth = itendlin.get_line_offset();
+  if (col<=0 || linwidth==0)
+    col = 0;
+  else if (col>=linwidth)
+    col = linwidth-1;
+  SMELT_DEBUG ("linwidth=" << linwidth << " normalized col=" << col);
+  auto itcur = itlin;
+  if (col>0) itcur.forward_chars(col);
+  Glib::RefPtr<Gtk::TextChildAnchor> chanch = tbuf->create_child_anchor(itcur);
+  auto but = new Gtk::Button();
+  but->add(*new Gtk::Image(SmeltAppl::instance()->key_7x11_pixbuf()));
+  sfil->view().add_child_at_anchor(*but,chanch);
+  but->show_all();
+  SMELT_DEBUG("added but@" << (void*)but);
 #warning incomplete SmeltMainWindow::mark_location
 }
 ////////////////////////////////////////////////////////////////
@@ -1374,7 +1445,7 @@ SmeltAppl::process_command_from_melt(std::string& str)
     SmeltCommandSymbol* csym = dynamic_cast<SmeltCommandSymbol*>(&sym);
     SMELT_DEBUG("csym@" << (void*)csym);
     if (!csym)
-      throw std::runtime_error("invalid command");
+      throw smelt_domain_error("process_command_from_melt: invalid command", sym.name());
     SMELT_DEBUG("*csym::" << csym->name());
     csym->call(this,v);
   } catch (std::exception ex) {
@@ -1386,7 +1457,7 @@ SmeltAppl::process_command_from_melt(std::string& str)
 
 
 /////////////// tracemsg_cmd
-SmeltCommandSymbol smeltsymb_tracemsg_cmd("tracemsg_pcd",&SmeltAppl::tracemsg_cmd);
+SmeltCommandSymbol smeltsymb_tracemsg_cmd("TRACEMSG_PCD",&SmeltAppl::tracemsg_cmd);
 
 void
 SmeltAppl::tracemsg_cmd(SmeltVector&v)
@@ -1399,7 +1470,7 @@ SmeltAppl::tracemsg_cmd(SmeltVector&v)
 
 ////////////// quit_cmd
 
-SmeltCommandSymbol smeltsymb_quit_cmd("quit_pcd",&SmeltAppl::quit_cmd);
+SmeltCommandSymbol smeltsymb_quit_cmd("QUIT_PCD",&SmeltAppl::quit_cmd);
 
 
 static void smelt_quit(void)
@@ -1422,7 +1493,7 @@ SmeltAppl::quit_cmd(SmeltVector&v)
 
 ////////////// echo_cmd
 
-SmeltCommandSymbol smeltsymb_echo_cmd("echo_pcd",&SmeltAppl::echo_cmd);
+SmeltCommandSymbol smeltsymb_echo_cmd("ECHO_PCD",&SmeltAppl::echo_cmd);
 
 
 
@@ -1437,7 +1508,7 @@ SmeltAppl::echo_cmd(SmeltVector&v)
 
 //////////////// showfile_cmd
 
-SmeltCommandSymbol smeltsymb_showfile_cmd("showfile_pcd",&SmeltAppl::showfile_cmd);
+SmeltCommandSymbol smeltsymb_showfile_cmd("SHOWFILE_PCD",&SmeltAppl::showfile_cmd);
 
 void
 SmeltAppl::showfile_cmd(SmeltVector&v)
@@ -1450,7 +1521,7 @@ SmeltAppl::showfile_cmd(SmeltVector&v)
 
 //////////////// showfile_cmd
 
-SmeltCommandSymbol smeltsymb_marklocation_cmd("marklocation_pcd",&SmeltAppl::marklocation_cmd);
+SmeltCommandSymbol smeltsymb_marklocation_cmd("MARKLOCATION_PCD",&SmeltAppl::marklocation_cmd);
 
 void
 SmeltAppl::marklocation_cmd(SmeltVector&v)
