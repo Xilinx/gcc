@@ -1,4 +1,8 @@
 
+2012-03-20  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* simplemelt-gtkmm-probe.cc: Comment...
+
 2012-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* simplemelt-gtkmm-probe.cc: Adding marks...

@@ -982,6 +982,7 @@ SmeltMainWindow::ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&fil
   sbuf->set_language(lang);
   _sfilview.set_editable(false);
 #warning to improve set_mark_category_pixbuf
+/* look into gtksourceviewmm/gutterrenderer*.h & gtksourceviewmm/markattributes.h */
   //  _sfilview.set_mark_category_pixbuf 
   //  ("keymark",
   //   SmeltAppl::instance()->key_16x16_pixbuf());
