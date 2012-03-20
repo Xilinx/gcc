@@ -1,3 +1,8 @@
+2012-03-20   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x0mbstate_t.h: New.
+	* g++.dg/pph/x1mbstate_t.h: New.
+
 2012-03-16   Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/README: Clarify p category.
