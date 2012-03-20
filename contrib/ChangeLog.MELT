@@ -1,6 +1,16 @@
 
 2012-03-20  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* simplemelt-gtkmm-probe.cc (SmeltAppl::SmeltAppl): Check the
+	pixbuf created from xpm, but still don't work.
+	(SmeltMainWindow::ShownFile::ShownFile): show the line numbers and
+	line marks.
+	(SmeltMainWindow::mark_location): Still don't work. I'm getting
+	gdk_pixbuf_scale_simple: assertion `dest_width > 0' failed from
+	GutterRenderer_Class::draw_vfunc_callback
+
+2012-03-20  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* simplemelt-gtkmm-probe.cc (SmeltMainWindow::mark_location): show
 	somthing, but not the gutter...
 

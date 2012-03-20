@@ -832,10 +832,13 @@ public:
     _app_langman = Gsv::LanguageManager::get_default();
     _app_indifferent_pixbuf
       = Gdk::Pixbuf::create_from_xpm_data (smelt_indifferent_13x14_xpm);
+    assert(_app_indifferent_pixbuf && _app_indifferent_pixbuf->gobj() != nullptr);
     _app_key_16x16_pixbuf
       = Gdk::Pixbuf::create_from_xpm_data (smelt_key_16x16_xpm);
+    assert(_app_key_16x16_pixbuf && _app_key_16x16_pixbuf->gobj() != nullptr);
     _app_key_7x11_pixbuf
       = Gdk::Pixbuf::create_from_xpm_data (smelt_key_7x11_xpm);
+    assert (_app_key_7x11_pixbuf && _app_key_7x11_pixbuf->gobj() != nullptr);
   };
   void set_reqchan_to_melt(const std::string &reqname) {
     const char* reqcstr = reqname.c_str();
@@ -1070,6 +1073,8 @@ SmeltMainWindow::ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&fil
   auto sbuf = _sfilview.get_source_buffer();
   sbuf->set_language(lang);
   _sfilview.set_editable(false);
+  _sfilview.set_show_line_numbers(true);
+  _sfilview.set_show_line_marks(true);
 #warning to improve set_mark_category_pixbuf
   /* look into gtksourceviewmm/gutterrenderer*.h & gtksourceviewmm/markattributes.h */
   //  _sfilview.set_mark_category_pixbuf
@@ -1168,6 +1173,7 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   but->add(*new Gtk::Image(SmeltAppl::instance()->key_7x11_pixbuf()));
   sfil->view().add_child_at_anchor(*but,chanch);
   but->show_all();
+  sfil->view().show ();
   SMELT_DEBUG("added but@" << (void*)but);
 #warning incomplete SmeltMainWindow::mark_location
 }
@@ -1440,13 +1446,11 @@ SmeltAppl::process_command_from_melt(std::string& str)
     SMELT_DEBUG("parsing str:" << str);
     SmeltVector v = SmeltArg::parse_string_vector(str, pos);
     SMELT_DEBUG("v:" << v << " final pos:" << pos);
-    SMELT_DEBUG("v[0] " << v.at(0));
     SmeltSymbol& sym = v.at(0).to_symbol();
     SmeltCommandSymbol* csym = dynamic_cast<SmeltCommandSymbol*>(&sym);
-    SMELT_DEBUG("csym@" << (void*)csym);
+    SMELT_DEBUG("csym@" << (void*)csym << (csym?" named ":"") << (csym?csym->name():""));
     if (!csym)
       throw smelt_domain_error("process_command_from_melt: invalid command", sym.name());
-    SMELT_DEBUG("*csym::" << csym->name());
     csym->call(this,v);
   } catch (std::exception ex) {
     std::clog << "Command error:" << ex.what() << std::endl;
