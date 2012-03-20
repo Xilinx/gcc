@@ -161,7 +161,10 @@ find_vlength_code (elem_fn_info *elem_fn_values)
 {
   char *vlength_code = (char *) xmalloc (sizeof (char) * 10);
   if (!elem_fn_values)
-    return sprintf (vlength_code, "4");
+    { 
+      sprintf (vlength_code, "4");
+      return vlength_code;
+    }
 
   memset (vlength_code, 10, 0);
   
