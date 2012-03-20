@@ -1,3 +1,99 @@
+2012-03-19  Yannick Moy  <moy@adacore.com>
+
+	* sem_ch6.adb: Minor code clean up.
+
+2012-03-19  Vincent Celier  <celier@adacore.com>
+
+	* make.adb (Scan_Make_Arg): Make sure all significant -m switches
+	on the command line are counted.
+
+2012-03-19  Robert Dewar  <dewar@adacore.com>
+
+	* sem_elab.adb (Generate_Elab_Warnings): Fix spec, fix attribute
+	reference case
+
+2012-03-19  Robert Dewar  <dewar@adacore.com>
+
+	* par-ch4.adb (Check_Bad_Exp): New procedure
+
+2012-03-19  Robert Dewar  <dewar@adacore.com>
+
+	* exp_attr.adb, sem_attr.adb, sem_attr.ads, snames.ads-tmpl: Add
+	initial framework for Valid_Scalars attribute.
+
+2012-03-19  Robert Dewar  <dewar@adacore.com>
+
+	* scng.adb (Scan): Recognize incorrect preprocessor directive
+
+2012-03-19  Robert Dewar  <dewar@adacore.com>
+
+	* atree.adb (Allocate_Initialize_Node): Use Num_Extension_Nodes
+	* atree.ads (Num_Extension_Nodes): New variable
+	* debug.adb: New debug flag -gnatd.N
+	* gnat1drv.adb (Adjust_Global_Switches): Adjust
+	Num_Extension_Nodes if -gnatd.N set
+
+2012-03-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* einfo.ads: Minor update to First_Rep_Item and Has_Gigi_Rep_Item
+	descriptions.
+
+2012-03-19  Robert Dewar  <dewar@adacore.com>
+
+	* opt.ads: Remove HLO_Active flag.
+	* sem.adb: Remove call of high level optimizer.
+	* sem.ads (New_Nodes_OK): Removed.
+	* sem_ch10.adb: Remove references to New_Nodes_OK.
+	* switch-c.adb: Remove handling of -gnatH switch.
+
+2012-03-19  Yannick Moy  <moy@adacore.com>
+
+	* sem_ch6.adb (Check_Subprogram_Contract): Do not emit warnings
+	on trivially True or False postconditions and Ensures components
+	of contract-cases.
+
+2012-03-19  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_ugn.texi: Fix index entry for -gnatei (now we have
+	ug_words entry).
+
+2012-03-19  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* sem_ch3.adb (Get_Discriminant_Value): Instead of looking
+	at the immediate correcponsing discriminant, traverse a
+	potential chain of discriminants produced by type derivations.
+	(Root_Corresponding_Discriminant): Traverse a chain of inherited
+	discriminants and return the topmost discriminant.
+
+2012-03-19  Bob Duff  <duff@adacore.com>
+
+	* debug.adb: Minor comment change.
+	* gnat_ugn.texi: Update documentation for elaboration regarding
+	indirect calls.
+
+2012-03-19  Gary Dismukes  <dismukes@adacore.com>
+
+	* exp_ch3.adb (Expand_N_Object_Declaration): In
+	the case of an object of a class-wide interface type, where the
+	declaration is rewritten as a renaming, call Set_Debug_Info_Needed
+	on the renaming entity so that Materialize_Entity will be
+	set. Also, change existing call (for other than interface cases)
+	to call Set_Debug_Info_Needed rather than Set_Needs_Debug_Info
+	(as specified for that flag).
+
+2012-03-19  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* sem_ch4.adb (Analyze_Allocator): Detect an allocator generated
+	by the build-in-place machinery where the designated type is
+	indefinite, but the underlying type is not. Do not emit errors
+	related to missing initialization in this case.
+
+2012-03-19  Robert Dewar  <dewar@adacore.com>
+
+	* gnat_ugn.texi: Add documentation for -gnateinnn switch.
+	* sem_elab.adb, put_alfa.adb, lib-xref-alfa.adb: Minor reformatting.
+	* sem_prag.adb: Minor comment update.
+
 2012-03-15  Robert Dewar  <dewar@adacore.com>
 
 	* errout.ads: Add entry for translating -gnateinn to

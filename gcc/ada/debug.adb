@@ -131,7 +131,7 @@ package body Debug is
    --  d.K  Alfa detection only mode for gnat2why
    --  d.L  Depend on back end for limited types in conditional expressions
    --  d.M
-   --  d.N
+   --  d.N  Add node to all entities
    --  d.O  Dump internal SCO tables
    --  d.P  Previous (non-optimized) handling of length comparisons
    --  d.Q
@@ -629,6 +629,10 @@ package body Debug is
    --       case expansion, leaving it up to the back end to handle conditional
    --       expressions correctly.
 
+   --  d.N  Enlarge entities by one node (but don't attempt to use this extra
+   --       node for storage of any flags or fields). This can be used to do
+   --       experiments on the impact of increasing entity sizes.
+
    --  d.O  Dump internal SCO tables. Before outputting the SCO information to
    --       the ALI file, the internal SCO tables (SCO_Table/SCO_Unit_Table)
    --       are dumped for debugging purposes.
@@ -646,7 +650,8 @@ package body Debug is
    --       elaboration model is conservative, especially regarding indirect
    --       calls. If you say Proc'Access, it will assume you might call
    --       Proc. This can cause elaboration cycles at bind time. This flag
-   --       reverts to the behavior of earlier compilers.
+   --       reverts to the behavior of earlier compilers, which ignored
+   --       indirect calls.
 
    --  d.W  Print out debugging information for Walk_Library_Items, including
    --       the order in which units are walked. This is primarily for use in

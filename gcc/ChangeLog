@@ -1,3 +1,107 @@
+2012-03-20  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh.md: Use braced string notation where applicable.
+
+2012-03-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (allocate_stack): Simplify.
+
+2012-03-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* builtins.c (expand_builtin_cexpi): Use copy_addr_to_reg instead of
+	copy_to_mode_reg (Pmode, ...).
+	(expand_builtin_frame_address): Ditto.
+	* expr.c (emit_block_move_via_libcall): Ditto.
+	(set_storage_via_libcall): Ditto.
+
+	* config/i386/i386.c (ix86_expand_movmem): Ditto.
+	(ix86_expand_setmem): Ditto.
+	(ix86_trampoline_init): DItto.
+	* config/i386/i386.md (cmpstrnsi): Ditto.
+
+2012-03-19  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* config/sh/sh.opt (madjust-unroll): Mark as ignored/obsolete.
+	* config/sh/sh.h (TARGET_OPT_DEFAULT): Don't use MASK_ADJUST_UNROLL.
+	* doc/invoke.texi (Option Summary): Remove -madjust-unroll.
+	(SH Options): Likewise.
+
+2012-03-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (get_thread_pointer): Add tp_mode argument.
+	Generate ZERO_EXTEND in place if GET_MODE (tp) != tp_mode.
+	(legitimize_tls_address) <TLS_MODEL_INITIAL_EXEC>: Always generate
+	DImode UNSPEC_GOTNTPOFF references on TARGET_64BIT.
+	(ix86_decompose_address): Allow zero extended UNSPEC_TP references.
+
+	Revert:
+	2012-03-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.h (TARGET_TLS_INDIRECT_SEG_REFS): New.
+	* config/i386/i386.c (ix86_decompose_address): Use
+	TARGET_TLS_INDIRECT_SEG_REFS to prevent %fs:(%reg) addresses.
+	(legitimize_tls_address): Use TARGET_TLS_INDIRECT_SEG_REFS to load
+	thread pointer to a register.
+
+	Revert:
+	2012-03-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_decompose_address): Disallow fs:(reg)
+	if Pmode != word_mode.
+	(legitimize_tls_address): Call gen_tls_initial_exec_x32 if
+	Pmode == SImode for TARGET_X32.
+
+	* config/i386/i386.md (UNSPEC_TLS_IE_X32): New.
+	(tls_initial_exec_x32): Likewise.
+
+2012-03-19  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/50751
+	* config/sh/sh.h (CONST_OK_FOR_K04, CONST_OK_FOR_K12, DISP_ADDR_P,
+	DISP_ADDR_OFFSET): New macros.
+	* config/sh/sh.c (sh_address_cost): Add SH2A special case.
+	(sh_legitimate_index_p): Allow QImode displacements for non-SH2A.
+	(sh_legitimize_address): Add QImode displacement handling.
+	(sh_cannot_change_mode_class): Disallow GENERAL_REGS for SFmode
+	vector subregs.
+	(sh_secondary_reload): Add QImode displacement handling.
+	* config/sh/predicates.md (movsrc_no_disp_mem_operand): New predicate.
+	* config/sh/constraints.md (K04, Snd, Sdd): New constraints.
+	* config/sh/sh.md (extendqisi2): Remove constraints from expander.
+	(*extendqisi2_compact): Rename to *extendqisi2_compact_reg, restrict
+	to register operands only.
+	(*extendqisi2_compact_mem_disp, *extendqisi2_compact_snd): New insns.
+	(extendqihi2): Change insn to expander.
+	(*extendqihi2_compact_reg): New insn.
+	(movqi_i, movqi): Replace with ...
+	(movqi, *movqi_reg_reg, *movqi_store_mem_disp12,
+	*movqi_load_mem_disp, *movqi_load_mem_disp): ... these.
+	Add new peepholes for QImode displacement addressing.
+
+2012-03-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/14710
+	* doc/invoke.texi: Document -Wuseless-cast.
+
+2012-03-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree.def (REALPART_EXPR, IMAGPART_EXPR, VIEW_CONVERT_EXPR): Move.
+	* tree.h (handled_component_p): Reorder cases.
+	* dwarf2out.c (loc_list_for_address_of_addr_expr_of_indirect_ref): Do
+	not initialize unsignedp.
+	(loc_list_from_tree): Likewise.
+	(fortran_common): Likewise.
+	* simplify-rtx.c (delegitimize_mem_from_attrs): Likewise.
+
+2012-03-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_expand_prologue) <CM_LARGE_PIC>: Use Pmode
+	mode consistently.  Use ix86_gen_add3.  Assert that Pmode == DImode.
+	(ix86_expand_split_stack_prologue): Use ix86_gen_add3.
+	(ix86_split_long_move): Ditto.
+	(legitimize_tls_address): Use ix86_gen_sub3.
+	(construct_plt_address): Assert that Pmode == DImode.
+
 2012-03-18  Uros Bizjak  <ubizjak@gmail.com>
 
 	* config/i386/i386.md: Remove empty predicates and/or constraints.
@@ -23,7 +127,7 @@
 
 2012-03-16  Martin Jambor  <mjambor@suse.cz>
 
-	* expr.c (expand_expr_real_1): handle misaligned scalar reads from
+	* expr.c (expand_expr_real_1): Handle misaligned scalar reads from
 	memory through MEM_REFs by calling extract_bit_field.
 
 2012-03-16  Richard Guenther  <rguenther@suse.de>

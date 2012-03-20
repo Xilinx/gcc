@@ -10458,15 +10458,19 @@ ix86_expand_prologue (void)
 	{
 	  if (ix86_cmodel == CM_LARGE_PIC)
 	    {
-              rtx tmp_reg = gen_rtx_REG (DImode, R11_REG);
-	      rtx label = gen_label_rtx ();
+	      rtx label, tmp_reg;
+
+	      gcc_assert (Pmode == DImode);
+	      label = gen_label_rtx ();
 	      emit_label (label);
 	      LABEL_PRESERVE_P (label) = 1;
+	      tmp_reg = gen_rtx_REG (Pmode, R11_REG);
 	      gcc_assert (REGNO (pic_offset_table_rtx) != REGNO (tmp_reg));
-	      insn = emit_insn (gen_set_rip_rex64 (pic_offset_table_rtx, label));
+	      insn = emit_insn (gen_set_rip_rex64 (pic_offset_table_rtx,
+						   label));
 	      insn = emit_insn (gen_set_got_offset_rex64 (tmp_reg, label));
-	      insn = emit_insn (gen_adddi3 (pic_offset_table_rtx,
-					    pic_offset_table_rtx, tmp_reg));
+	      insn = emit_insn (ix86_gen_add3 (pic_offset_table_rtx,
+					       pic_offset_table_rtx, tmp_reg));
 	    }
 	  else
             insn = emit_insn (gen_set_got_rex64 (pic_offset_table_rtx));
@@ -11196,8 +11200,8 @@ ix86_expand_split_stack_prologue (void)
       else
 	{
 	  emit_move_insn (scratch_reg, offset);
-	  emit_insn (gen_adddi3 (scratch_reg, scratch_reg,
-				 stack_pointer_rtx));
+	  emit_insn (ix86_gen_add3 (scratch_reg, scratch_reg,
+				    stack_pointer_rtx));
 	}
       current = scratch_reg;
     }
@@ -11244,6 +11248,7 @@ ix86_expand_split_stack_prologue (void)
 	{
 	  HOST_WIDE_INT argval;
 
+	  gcc_assert (Pmode == DImode);
 	  /* When using the large model we need to load the address
 	     into a register, and we've run out of registers.  So we
 	     switch to a different calling convention, and we call a
@@ -11266,7 +11271,7 @@ ix86_expand_split_stack_prologue (void)
 	      LABEL_PRESERVE_P (label) = 1;
 	      emit_insn (gen_set_rip_rex64 (reg10, label));
 	      emit_insn (gen_set_got_offset_rex64 (reg11, label));
-	      emit_insn (gen_adddi3 (reg10, reg10, reg11));
+	      emit_insn (ix86_gen_add3 (reg10, reg10, reg11));
 	      x = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, split_stack_fn_large),
 				  UNSPEC_GOT);
 	      x = gen_rtx_CONST (Pmode, x);
@@ -11508,6 +11513,10 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 		return 0;
 	      scale = 1 << scale;
 	      break;
+
+	    case ZERO_EXTEND:
+	      op = XEXP (op, 0);
+	      /* FALLTHRU */
 
 	    case UNSPEC:
 	      if (XINT (op, 1) == UNSPEC_TP
@@ -12478,15 +12487,20 @@ legitimize_pic_address (rtx orig, rtx reg)
 /* Load the thread pointer.  If TO_REG is true, force it into a register.  */
 
 static rtx
-get_thread_pointer (bool to_reg)
+get_thread_pointer (enum machine_mode tp_mode, bool to_reg)
 {
   rtx tp = gen_rtx_UNSPEC (ptr_mode, gen_rtvec (1, const0_rtx), UNSPEC_TP);
 
-  if (GET_MODE (tp) != Pmode)
-    tp = convert_to_mode (Pmode, tp, 1);
+  if (GET_MODE (tp) != tp_mode)
+    {
+      gcc_assert (GET_MODE (tp) == SImode);
+      gcc_assert (tp_mode == DImode);
+
+      tp = gen_rtx_ZERO_EXTEND (tp_mode, tp);
+    }
 
   if (to_reg)
-    tp = copy_addr_to_reg (tp);
+    tp = copy_to_mode_reg (tp_mode, tp);
 
   return tp;
 }
@@ -12538,6 +12552,7 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 {
   rtx dest, base, off;
   rtx pic = NULL_RTX, tp = NULL_RTX;
+  enum machine_mode tp_mode = Pmode;
   int type;
 
   switch (model)
@@ -12563,7 +12578,7 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	  else
 	    emit_insn (gen_tls_dynamic_gnu2_32 (dest, x, pic));
 
-	  tp = get_thread_pointer (true);
+	  tp = get_thread_pointer (Pmode, true);
 	  dest = force_reg (Pmode, gen_rtx_PLUS (Pmode, tp, dest));
 
 	  set_unique_reg_note (get_last_insn (), REG_EQUAL, x);
@@ -12613,7 +12628,7 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	  else
 	    emit_insn (gen_tls_dynamic_gnu2_32 (base, tmp, pic));
 
-	  tp = get_thread_pointer (true);
+	  tp = get_thread_pointer (Pmode, true);
 	  set_unique_reg_note (get_last_insn (), REG_EQUAL,
 			       gen_rtx_MINUS (Pmode, tmp, tp));
 	}
@@ -12669,18 +12684,10 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	      emit_insn (gen_tls_initial_exec_64_sun (dest, x));
 	      return dest;
 	    }
-	  else if (Pmode == SImode)
-	    {
-	      /* Always generate
-			movl %fs:0, %reg32
-			addl xgottpoff(%rip), %reg32
-		 to support linker IE->LE optimization and avoid
-		 fs:(%reg32) as memory operand.  */
-	      dest = gen_reg_rtx (Pmode);
-	      emit_insn (gen_tls_initial_exec_x32 (dest, x));
-	      return dest;
-	    }
 
+	  /* Generate DImode references to avoid %fs:(%reg32)
+	     problems and linker IE->LE relaxation bug.  */
+	  tp_mode = DImode;
 	  pic = NULL;
 	  type = UNSPEC_GOTNTPOFF;
 	}
@@ -12703,26 +12710,25 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 	  type = UNSPEC_INDNTPOFF;
 	}
 
-      off = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, x), type);
-      off = gen_rtx_CONST (Pmode, off);
+      off = gen_rtx_UNSPEC (tp_mode, gen_rtvec (1, x), type);
+      off = gen_rtx_CONST (tp_mode, off);
       if (pic)
-	off = gen_rtx_PLUS (Pmode, pic, off);
-      off = gen_const_mem (Pmode, off);
+	off = gen_rtx_PLUS (tp_mode, pic, off);
+      off = gen_const_mem (tp_mode, off);
       set_mem_alias_set (off, ix86_GOT_alias_set ());
 
       if (TARGET_64BIT || TARGET_ANY_GNU_TLS)
 	{
-          base = get_thread_pointer (for_mov
-				     || !(TARGET_TLS_DIRECT_SEG_REFS
-					  && TARGET_TLS_INDIRECT_SEG_REFS));
-	  off = force_reg (Pmode, off);
-	  return gen_rtx_PLUS (Pmode, base, off);
+	  base = get_thread_pointer (tp_mode,
+				     for_mov || !TARGET_TLS_DIRECT_SEG_REFS);
+	  off = force_reg (tp_mode, off);
+	  return gen_rtx_PLUS (tp_mode, base, off);
 	}
       else
 	{
-	  base = get_thread_pointer (true);
+	  base = get_thread_pointer (Pmode, true);
 	  dest = gen_reg_rtx (Pmode);
-	  emit_insn (gen_subsi3 (dest, base, off));
+	  emit_insn (ix86_gen_sub3 (dest, base, off));
 	}
       break;
 
@@ -12734,16 +12740,15 @@ legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 
       if (TARGET_64BIT || TARGET_ANY_GNU_TLS)
 	{
-	  base = get_thread_pointer (for_mov
-				     || !(TARGET_TLS_DIRECT_SEG_REFS
-					  && TARGET_TLS_INDIRECT_SEG_REFS));
+	  base = get_thread_pointer (Pmode,
+				     for_mov || !TARGET_TLS_DIRECT_SEG_REFS);
 	  return gen_rtx_PLUS (Pmode, base, off);
 	}
       else
 	{
-	  base = get_thread_pointer (true);
+	  base = get_thread_pointer (Pmode, true);
 	  dest = gen_reg_rtx (Pmode);
-	  emit_insn (gen_subsi3 (dest, base, off));
+	  emit_insn (ix86_gen_sub3 (dest, base, off));
 	}
       break;
 
@@ -13269,8 +13274,7 @@ ix86_delegitimize_tls_address (rtx orig_x)
   rtx x = orig_x, unspec;
   struct ix86_address addr;
 
-  if (!(TARGET_TLS_DIRECT_SEG_REFS
-	&& TARGET_TLS_INDIRECT_SEG_REFS))
+  if (!TARGET_TLS_DIRECT_SEG_REFS)
     return orig_x;
   if (MEM_P (x))
     x = XEXP (x, 0);
@@ -20626,8 +20630,8 @@ ix86_split_long_move (rtx operands[])
 	  if (nparts == 3)
 	    {
 	      if (TARGET_128BIT_LONG_DOUBLE && mode == XFmode)
-                emit_insn (gen_addsi3 (stack_pointer_rtx,
-				       stack_pointer_rtx, GEN_INT (-4)));
+                emit_insn (ix86_gen_add3 (stack_pointer_rtx,
+					  stack_pointer_rtx, GEN_INT (-4)));
 	      emit_move_insn (part[0][2], part[1][2]);
 	    }
 	  else if (nparts == 4)
@@ -22097,8 +22101,8 @@ ix86_expand_movmem (rtx dst, rtx src, rtx count_exp, rtx align_exp,
   gcc_assert (alg != no_stringop);
   if (!count)
     count_exp = copy_to_mode_reg (GET_MODE (count_exp), count_exp);
-  destreg = copy_to_mode_reg (Pmode, XEXP (dst, 0));
-  srcreg = copy_to_mode_reg (Pmode, XEXP (src, 0));
+  destreg = copy_addr_to_reg (XEXP (dst, 0));
+  srcreg = copy_addr_to_reg (XEXP (src, 0));
   switch (alg)
     {
     case libcall:
@@ -22486,7 +22490,7 @@ ix86_expand_setmem (rtx dst, rtx count_exp, rtx val_exp, rtx align_exp,
   gcc_assert (alg != no_stringop);
   if (!count)
     count_exp = copy_to_mode_reg (counter_mode (count_exp), count_exp);
-  destreg = copy_to_mode_reg (Pmode, XEXP (dst, 0));
+  destreg = copy_addr_to_reg (XEXP (dst, 0));
   switch (alg)
     {
     case libcall:
@@ -22975,14 +22979,17 @@ ix86_expand_strlen (rtx out, rtx src, rtx eoschar, rtx align)
 rtx
 construct_plt_address (rtx symbol)
 {
-  rtx tmp = gen_reg_rtx (Pmode);
-  rtx unspec = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, symbol), UNSPEC_PLTOFF);
+  rtx tmp, unspec;
 
   gcc_assert (GET_CODE (symbol) == SYMBOL_REF);
   gcc_assert (ix86_cmodel == CM_LARGE_PIC);
+  gcc_assert (Pmode == DImode);
+
+  tmp = gen_reg_rtx (Pmode);
+  unspec = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, symbol), UNSPEC_PLTOFF);
 
   emit_move_insn (tmp, gen_rtx_CONST (Pmode, unspec));
-  emit_insn (gen_adddi3 (tmp, tmp, pic_offset_table_rtx));
+  emit_insn (ix86_gen_add3 (tmp, tmp, pic_offset_table_rtx));
   return tmp;
 }
 
@@ -24361,7 +24368,7 @@ ix86_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
       if (ptr_mode == SImode
 	  || x86_64_zext_immediate_operand (fnaddr, VOIDmode))
 	{
-	  fnaddr = copy_to_mode_reg (Pmode, fnaddr);
+	  fnaddr = copy_addr_to_reg (fnaddr);
 
 	  mem = adjust_address (m_tramp, HImode, offset);
 	  emit_move_insn (mem, gen_int_mode (0xbb41, HImode));
