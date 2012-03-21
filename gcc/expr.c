@@ -1343,8 +1343,8 @@ emit_block_move_via_libcall (rtx dst, rtx src, rtx size, bool tailcall)
      pseudos.  We can then place those new pseudos into a VAR_DECL and
      use them later.  */
 
-  dst_addr = copy_to_mode_reg (Pmode, XEXP (dst, 0));
-  src_addr = copy_to_mode_reg (Pmode, XEXP (src, 0));
+  dst_addr = copy_addr_to_reg (XEXP (dst, 0));
+  src_addr = copy_addr_to_reg (XEXP (src, 0));
 
   dst_addr = convert_memory_address (ptr_mode, dst_addr);
   src_addr = convert_memory_address (ptr_mode, src_addr);
@@ -2719,7 +2719,7 @@ set_storage_via_libcall (rtx object, rtx size, rtx val, bool tailcall)
   /* Emit code to copy OBJECT and SIZE into new pseudos.  We can then
      place those into new pseudos into a VAR_DECL and use them later.  */
 
-  object = copy_to_mode_reg (Pmode, XEXP (object, 0));
+  object = copy_addr_to_reg (XEXP (object, 0));
 
   size_mode = TYPE_MODE (sizetype);
   size = convert_to_mode (size_mode, size, 1);
@@ -4452,7 +4452,7 @@ get_bit_range (unsigned HOST_WIDE_INT *bitstart,
 	       HOST_WIDE_INT bitpos)
 {
   unsigned HOST_WIDE_INT bitoffset;
-  tree field, repr, offset;
+  tree field, repr;
 
   gcc_assert (TREE_CODE (exp) == COMPONENT_REF);
 
@@ -4467,12 +4467,17 @@ get_bit_range (unsigned HOST_WIDE_INT *bitstart,
     }
 
   /* Compute the adjustment to bitpos from the offset of the field
-     relative to the representative.  */
-  offset = size_diffop (DECL_FIELD_OFFSET (field),
-			DECL_FIELD_OFFSET (repr));
-  bitoffset = (tree_low_cst (offset, 1) * BITS_PER_UNIT
-	       + tree_low_cst (DECL_FIELD_BIT_OFFSET (field), 1)
-	       - tree_low_cst (DECL_FIELD_BIT_OFFSET (repr), 1));
+     relative to the representative.  DECL_FIELD_OFFSET of field and
+     repr are the same by construction if they are not constants,
+     see finish_bitfield_layout.  */
+  if (host_integerp (DECL_FIELD_OFFSET (field), 1)
+      && host_integerp (DECL_FIELD_OFFSET (repr), 1))
+    bitoffset = (tree_low_cst (DECL_FIELD_OFFSET (field), 1)
+		 - tree_low_cst (DECL_FIELD_OFFSET (repr), 1)) * BITS_PER_UNIT;
+  else
+    bitoffset = 0;
+  bitoffset += (tree_low_cst (DECL_FIELD_BIT_OFFSET (field), 1)
+		- tree_low_cst (DECL_FIELD_BIT_OFFSET (repr), 1));
 
   *bitstart = bitpos - bitoffset;
   *bitend = *bitstart + tree_low_cst (DECL_SIZE (repr), 1) - 1;

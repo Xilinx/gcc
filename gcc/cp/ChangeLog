@@ -1,3 +1,28 @@
+2012-03-20  Jason Merrill  <jason@redhat.com>
+
+	* lex.c (init_reswords): Use >= for cxx_dialect test.
+	* parser.c (cp_parser_exception_specification_opt): Likewise.
+
+	* mangle.c (write_type): Handle 'auto'.
+	* init.c (build_new): Don't do auto deduction where it might
+	affect template mangling.
+
+	PR c++/52510
+	* decl.c (reshape_init_class): Handle repeated reshaping.
+	* search.c (lookup_field_1): Add sanity check.
+
+2012-03-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/14710
+	* cp-tree.h (xvalue_p, maybe_warn_about_useless_cast): Declare.
+	* tree.c (xvalue_p): Define.
+	* typeck.c (maybe_warn_about_useless_cast): Define.
+	(build_reinterpret_cast, build_const_cast,
+	build_static_cast, cp_build_c_cast): Use maybe_warn_about_useless_cast.
+	* rtti.c (build_dynamic_cast): Likewise.
+	* pt.c (tsubst_copy_and_build, case CAST_EXPR): Increment/decrement
+	c_inhibit_evaluation_warnings before/after the build_* calls.
+
 2012-03-15  Jason Merrill  <jason@redhat.com>
 
 	PR c++/52582
