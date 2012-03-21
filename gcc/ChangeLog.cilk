@@ -1,3 +1,8 @@
+2012-03-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* elem-function.c (extract_elem_fn_values): Initialized proc_type field
+	to NULL.
+
 2012-03-19  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* elem-function.c (find_processor_code): Returned default value when
