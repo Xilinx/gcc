@@ -1,3 +1,98 @@
+2012-03-20  Jason Merrill  <jason@redhat.com>
+
+	* tree-streamer-in.c (streamer_alloc_tree): Call
+	ggc_alloc_zone_cleared_tree_node instead of
+	ggc_alloc_zone_cleared_tree_node_stat.
+
+2012-03-20  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/extend.texi (Template Instantiation): Remove anachronisms.
+
+2012-03-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52607
+	* config/i386/i386.c (expand_vec_perm_vperm2f128): New function.
+	(ix86_expand_vec_perm_const_1): Call it.
+
+	* config/i386/i386.c (vselect_insn): New variable.
+	(init_vselect_insn): New function.
+	(expand_vselect, expand_vselect_insn): Add testing_p argument.
+	Call init_vselect_insn if vselect_insn is NULL.  Adjust
+	PATTERN (vselect_insn), instead of creating a new insn each time,
+	only emit a copy of it if not testing and recog has been successful.
+	(expand_vec_perm_pshufb, expand_vec_perm_1,
+	expand_vec_perm_pshuflw_pshufhw, expand_vec_perm_broadcast_1): Adjust
+	callers.
+
+	PR target/52607
+	* config/i386/i386.md ("isa" attribute): Add avx2 and noavx2.
+	("enabled" attribute): Handle avx2 and noavx2 isas.
+	* config/i386/sse.md (avx2_vec_dupv8sf_1, avx2_pbroadcast<mode>_1):
+	New insns.
+	(vec_dup<mode>): Add avx2 =x,x alternative.
+	(vec_dup<mode> splitter): Don't split if TARGET_AVX2.
+	(*avx_vperm_broadcast_<mode>): Don't split V4DFmode if TARGET_AVX2.
+	For TARGET_AVX2, V8SFmode and elt == 0 split into vbroadcastss.
+	* config/i386/i386.c (expand_vec_perm_pshufb): Emit also vpermps
+	for V8SFmode.
+	(expand_vec_perm_1): For broadcasts, use avx2_pbroadcast<mode>_1
+	if possible, handle also V8SFmode.
+
+2012-03-20  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm/predicates.md (zero_operand, reg_or_zero_operand): New predicates.
+	* arm/neon.md (neon_vceq<mode>, neon_vcge<mode>): Use
+	reg_or_zero_operand predicate.
+	(neon_vcle<mode>, neon_vclt<mode>): Use zero_operand predicate.
+
+2012-03-20  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/i386/i386.c (ix86_decompose_address) <case ZERO_EXTEND>:
+	If operand isn't UNSPEC, return 0.
+
+2012-03-20  Richard Guenther  <rguenther@suse.de>
+
+	* tree-pass.h (pass_rtl_eh): Remove.
+	* except.c (gate_handle_eh): Likewise.
+	(rest_of_handle_eh): Likewise.
+	(pass_rtl_eh): Likewise.
+	(finish_eh_generation): Export.
+	* except.h (finish_eh_generation): Declare.
+	* passes.c (init_optimization_passes): Remove pass_rtl_eh.
+	* cfgexpand.c (gimple_expand_cfg): Call finish_eh_generation
+	after expanding stack alignment.  Instead of compacting blocks
+	call cleanup_cfg.
+
+2012-03-20  Richard Guenther  <rguenther@suse.de>
+
+	* stor-layout.c (finish_bitfield_representative): Fallback
+	to conservative maximum size if the padding up to the next
+	field cannot be computed as a constant.
+	(finish_bitfield_layout): If we cannot compute the distance
+	between the start of the bitfield representative and the
+	bitfield member start a new representative.
+	* expr.c (get_bit_range): The distance between the start of
+	the bitfield representative and the bitfield member is zero
+	if the field offsets are not constants.
+
+2012-03-20  Tristan Gingold  <gingold@adacore.com>
+
+	* tree.h (enum size_type_kind): Add stk_ prefix to constants,
+	convert in lowercase.
+	(sizetype_tab, sizetype, bitsizetype, ssizetype, sbitsizetype)
+	(size_int, ssize_int, bitsize_int, sbitsize_int): Adjust.
+	* stor-layout.c (sizetype_tab): Adjust.
+	(initialize_sizetypes): Use SIZETYPE instead of SIZE_TYPE.
+	* tree-streamer.c (preload_common_nodes): Use stk_type_kind_last
+	instead of type_kind_last.
+	* tree-scalar-evolution.c (interpret_rhs_expr): Use size_int
+	instead of size_int_kind.
+	* doc/tm.texi.in (Type Layout): Document SIZETYPE.
+	* doc/tm.texi: Regenerate.
+	* defaults.h (SIZETYPE): Provide a default value.
+	* config/vms/vms.h (SIZE_TYPE): Define as "unsigned int".
+	(SIZETYPE): Define.
+
 2012-03-20  Oleg Endo  <olegendo@gcc.gnu.org>
 
 	* config/sh/sh.md: Use braced string notation where applicable.

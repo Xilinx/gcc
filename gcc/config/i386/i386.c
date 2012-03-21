@@ -11516,6 +11516,8 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 
 	    case ZERO_EXTEND:
 	      op = XEXP (op, 0);
+	      if (GET_CODE (op) != UNSPEC)
+		return 0;
 	      /* FALLTHRU */
 
 	    case UNSPEC:
@@ -35533,43 +35535,88 @@ ix86_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
     }
 }
 
+/* A cached (set (nil) (vselect (vconcat (nil) (nil)) (parallel [])))
+   insn, so that expand_vselect{,_vconcat} doesn't have to create a fresh
+   insn every time.  */
+
+static GTY(()) rtx vselect_insn;
+
+/* Initialize vselect_insn.  */
+
+static void
+init_vselect_insn (void)
+{
+  unsigned i;
+  rtx x;
+
+  x = gen_rtx_PARALLEL (VOIDmode, rtvec_alloc (MAX_VECT_LEN));
+  for (i = 0; i < MAX_VECT_LEN; ++i)
+    XVECEXP (x, 0, i) = const0_rtx;
+  x = gen_rtx_VEC_SELECT (V2DFmode, gen_rtx_VEC_CONCAT (V4DFmode, const0_rtx,
+							const0_rtx), x);
+  x = gen_rtx_SET (VOIDmode, const0_rtx, x);
+  start_sequence ();
+  vselect_insn = emit_insn (x);
+  end_sequence ();
+}
+
 /* Construct (set target (vec_select op0 (parallel perm))) and
    return true if that's a valid instruction in the active ISA.  */
 
 static bool
-expand_vselect (rtx target, rtx op0, const unsigned char *perm, unsigned nelt)
+expand_vselect (rtx target, rtx op0, const unsigned char *perm,
+		unsigned nelt, bool testing_p)
 {
-  rtx rperm[MAX_VECT_LEN], x;
-  unsigned i;
+  unsigned int i;
+  rtx x, save_vconcat;
+  int icode;
 
+  if (vselect_insn == NULL_RTX)
+    init_vselect_insn ();
+
+  x = XEXP (SET_SRC (PATTERN (vselect_insn)), 1);
+  PUT_NUM_ELEM (XVEC (x, 0), nelt);
   for (i = 0; i < nelt; ++i)
-    rperm[i] = GEN_INT (perm[i]);
+    XVECEXP (x, 0, i) = GEN_INT (perm[i]);
+  save_vconcat = XEXP (SET_SRC (PATTERN (vselect_insn)), 0);
+  XEXP (SET_SRC (PATTERN (vselect_insn)), 0) = op0;
+  PUT_MODE (SET_SRC (PATTERN (vselect_insn)), GET_MODE (target));
+  SET_DEST (PATTERN (vselect_insn)) = target;
+  icode = recog_memoized (vselect_insn);
 
-  x = gen_rtx_PARALLEL (VOIDmode, gen_rtvec_v (nelt, rperm));
-  x = gen_rtx_VEC_SELECT (GET_MODE (target), op0, x);
-  x = gen_rtx_SET (VOIDmode, target, x);
+  if (icode >= 0 && !testing_p)
+    emit_insn (copy_rtx (PATTERN (vselect_insn)));
 
-  x = emit_insn (x);
-  if (recog_memoized (x) < 0)
-    {
-      remove_insn (x);
-      return false;
-    }
-  return true;
+  SET_DEST (PATTERN (vselect_insn)) = const0_rtx;
+  XEXP (SET_SRC (PATTERN (vselect_insn)), 0) = save_vconcat;
+  INSN_CODE (vselect_insn) = -1;
+
+  return icode >= 0;
 }
 
 /* Similar, but generate a vec_concat from op0 and op1 as well.  */
 
 static bool
 expand_vselect_vconcat (rtx target, rtx op0, rtx op1,
-			const unsigned char *perm, unsigned nelt)
+			const unsigned char *perm, unsigned nelt,
+			bool testing_p)
 {
   enum machine_mode v2mode;
   rtx x;
+  bool ok;
+
+  if (vselect_insn == NULL_RTX)
+    init_vselect_insn ();
 
   v2mode = GET_MODE_2XWIDER_MODE (GET_MODE (op0));
-  x = gen_rtx_VEC_CONCAT (v2mode, op0, op1);
-  return expand_vselect (target, x, perm, nelt);
+  x = XEXP (SET_SRC (PATTERN (vselect_insn)), 0);
+  PUT_MODE (x, v2mode);
+  XEXP (x, 0) = op0;
+  XEXP (x, 1) = op1;
+  ok = expand_vselect (target, x, perm, nelt, testing_p);
+  XEXP (x, 0) = const0_rtx;
+  XEXP (x, 1) = const0_rtx;
+  return ok;
 }
 
 /* A subroutine of ix86_expand_vec_perm_builtin_1.  Try to implement D
@@ -35834,7 +35881,7 @@ valid_perm_using_mode_p (enum machine_mode vmode, struct expand_vec_perm_d *d)
 }
 
 /* A subroutine of ix86_expand_vec_perm_builtin_1.  Try to implement D
-   in terms of pshufb, vpperm, vpermq, vpermd or vperm2i128.  */
+   in terms of pshufb, vpperm, vpermq, vpermd, vpermps or vperm2i128.  */
 
 static bool
 expand_vec_perm_pshufb (struct expand_vec_perm_d *d)
@@ -35901,13 +35948,16 @@ expand_vec_perm_pshufb (struct expand_vec_perm_d *d)
 		    return true;
 		  return expand_vselect (gen_lowpart (V4DImode, d->target),
 					 gen_lowpart (V4DImode, d->op0),
-					 perm, 4);
+					 perm, 4, false);
 		}
 
 	      /* Next see if vpermd can be used.  */
 	      if (valid_perm_using_mode_p (V8SImode, d))
 		vmode = V8SImode;
 	    }
+	  /* Or if vpermps can be used.  */
+	  else if (d->vmode == V8SFmode)
+	    vmode = V8SImode;
 
 	  if (vmode == V32QImode)
 	    {
@@ -35950,6 +36000,12 @@ expand_vec_perm_pshufb (struct expand_vec_perm_d *d)
 				gen_rtvec_v (GET_MODE_NUNITS (vmode), rperm));
   vperm = force_reg (vmode, vperm);
 
+  if (vmode == V8SImode && d->vmode == V8SFmode)
+    {
+      vmode = V8SFmode;
+      vperm = gen_lowpart (vmode, vperm);
+    }
+
   target = gen_lowpart (vmode, d->target);
   op0 = gen_lowpart (vmode, d->op0);
   if (d->op0 == d->op1)
@@ -35958,6 +36014,8 @@ expand_vec_perm_pshufb (struct expand_vec_perm_d *d)
 	emit_insn (gen_ssse3_pshufbv16qi3 (target, op0, vperm));
       else if (vmode == V32QImode)
 	emit_insn (gen_avx2_pshufbv32qi3 (target, op0, vperm));
+      else if (vmode == V8SFmode)
+	emit_insn (gen_avx2_permvarv8sf (target, vperm, op0));
       else
 	emit_insn (gen_avx2_permvarv8si (target, vperm, op0));
     }
@@ -36006,20 +36064,17 @@ expand_vec_perm_1 (struct expand_vec_perm_d *d)
       else if (broadcast_perm && TARGET_AVX2)
 	{
 	  /* Use vpbroadcast{b,w,d}.  */
-	  rtx op = d->op0, (*gen) (rtx, rtx) = NULL;
+	  rtx (*gen) (rtx, rtx) = NULL;
 	  switch (d->vmode)
 	    {
 	    case V32QImode:
-	      op = gen_lowpart (V16QImode, op);
-	      gen = gen_avx2_pbroadcastv32qi;
+	      gen = gen_avx2_pbroadcastv32qi_1;
 	      break;
 	    case V16HImode:
-	      op = gen_lowpart (V8HImode, op);
-	      gen = gen_avx2_pbroadcastv16hi;
+	      gen = gen_avx2_pbroadcastv16hi_1;
 	      break;
 	    case V8SImode:
-	      op = gen_lowpart (V4SImode, op);
-	      gen = gen_avx2_pbroadcastv8si;
+	      gen = gen_avx2_pbroadcastv8si_1;
 	      break;
 	    case V16QImode:
 	      gen = gen_avx2_pbroadcastv16qi;
@@ -36027,18 +36082,21 @@ expand_vec_perm_1 (struct expand_vec_perm_d *d)
 	    case V8HImode:
 	      gen = gen_avx2_pbroadcastv8hi;
 	      break;
+	    case V8SFmode:
+	      gen = gen_avx2_vec_dupv8sf_1;
+	      break;
 	    /* For other modes prefer other shuffles this function creates.  */
 	    default: break;
 	    }
 	  if (gen != NULL)
 	    {
 	      if (!d->testing_p)
-		emit_insn (gen (d->target, op));
+		emit_insn (gen (d->target, d->op0));
 	      return true;
 	    }
 	}
 
-      if (expand_vselect (d->target, d->op0, perm2, nelt))
+      if (expand_vselect (d->target, d->op0, perm2, nelt, d->testing_p))
 	return true;
 
       /* There are plenty of patterns in sse.md that are written for
@@ -36052,7 +36110,8 @@ expand_vec_perm_1 (struct expand_vec_perm_d *d)
 	  perm2[i] = d->perm[i] & mask;
 	  perm2[i + 1] = (d->perm[i + 1] & mask) + nelt;
 	}
-      if (expand_vselect_vconcat (d->target, d->op0, d->op0, perm2, nelt))
+      if (expand_vselect_vconcat (d->target, d->op0, d->op0, perm2, nelt,
+				  d->testing_p))
 	return true;
 
       /* Recognize shufps, which means adding {0, 0, nelt, nelt}.  */
@@ -36066,13 +36125,15 @@ expand_vec_perm_1 (struct expand_vec_perm_d *d)
 	      perm2[i + 3] = (d->perm[i + 3] & mask) + nelt;
 	    }
 
-	  if (expand_vselect_vconcat (d->target, d->op0, d->op0, perm2, nelt))
+	  if (expand_vselect_vconcat (d->target, d->op0, d->op0, perm2, nelt,
+				      d->testing_p))
 	    return true;
 	}
     }
 
   /* Finally, try the fully general two operand permute.  */
-  if (expand_vselect_vconcat (d->target, d->op0, d->op1, d->perm, nelt))
+  if (expand_vselect_vconcat (d->target, d->op0, d->op1, d->perm, nelt,
+			      d->testing_p))
     return true;
 
   /* Recognize interleave style patterns with reversed operands.  */
@@ -36088,7 +36149,8 @@ expand_vec_perm_1 (struct expand_vec_perm_d *d)
 	  perm2[i] = e;
 	}
 
-      if (expand_vselect_vconcat (d->target, d->op1, d->op0, perm2, nelt))
+      if (expand_vselect_vconcat (d->target, d->op1, d->op0, perm2, nelt,
+				  d->testing_p))
 	return true;
     }
 
@@ -36101,7 +36163,7 @@ expand_vec_perm_1 (struct expand_vec_perm_d *d)
     return true;
 
   /* Try the SSSE3 pshufb or XOP vpperm or AVX2 vperm2i128,
-     vpshufb, vpermd or vpermq variable permutation.  */
+     vpshufb, vpermd, vpermps or vpermq variable permutation.  */
   if (expand_vec_perm_pshufb (d))
     return true;
 
@@ -36136,14 +36198,14 @@ expand_vec_perm_pshuflw_pshufhw (struct expand_vec_perm_d *d)
   memcpy (perm2, d->perm, 4);
   for (i = 4; i < 8; ++i)
     perm2[i] = i;
-  ok = expand_vselect (d->target, d->op0, perm2, 8);
+  ok = expand_vselect (d->target, d->op0, perm2, 8, d->testing_p);
   gcc_assert (ok);
 
   /* Emit the pshufhw.  */
   memcpy (perm2 + 4, d->perm + 4, 4);
   for (i = 0; i < 4; ++i)
     perm2[i] = i;
-  ok = expand_vselect (d->target, d->target, perm2, 8);
+  ok = expand_vselect (d->target, d->target, perm2, 8, d->testing_p);
   gcc_assert (ok);
 
   return true;
@@ -36565,6 +36627,126 @@ expand_vec_perm_vpermq_perm_1 (struct expand_vec_perm_d *d)
   gcc_assert (ok);
 
   return true;
+}
+
+/* A subroutine of ix86_expand_vec_perm_builtin_1.  Try to expand
+   a vector permutation using two instructions, vperm2f128 resp.
+   vperm2i128 followed by any single in-lane permutation.  */
+
+static bool
+expand_vec_perm_vperm2f128 (struct expand_vec_perm_d *d)
+{
+  struct expand_vec_perm_d dfirst, dsecond;
+  unsigned i, j, nelt = d->nelt, nelt2 = nelt / 2, perm;
+  bool ok;
+
+  if (!TARGET_AVX
+      || GET_MODE_SIZE (d->vmode) != 32
+      || (d->vmode != V8SFmode && d->vmode != V4DFmode && !TARGET_AVX2))
+    return false;
+
+  dsecond = *d;
+  if (d->op0 == d->op1)
+    dsecond.op1 = gen_reg_rtx (d->vmode);
+  dsecond.testing_p = true;
+
+  /* ((perm << 2)|perm) & 0x33 is the vperm2[fi]128
+     immediate.  For perm < 16 the second permutation uses
+     d->op0 as first operand, for perm >= 16 it uses d->op1
+     as first operand.  The second operand is the result of
+     vperm2[fi]128.  */
+  for (perm = 0; perm < 32; perm++)
+    {
+      /* Ignore permutations which do not move anything cross-lane.  */
+      if (perm < 16)
+	{
+	  /* The second shuffle for e.g. V4DFmode has
+	     0123 and ABCD operands.
+	     Ignore AB23, as 23 is already in the second lane
+	     of the first operand.  */
+	  if ((perm & 0xc) == (1 << 2)) continue;
+	  /* And 01CD, as 01 is in the first lane of the first
+	     operand.  */
+	  if ((perm & 3) == 0) continue;
+	  /* And 4567, as then the vperm2[fi]128 doesn't change
+	     anything on the original 4567 second operand.  */
+	  if ((perm & 0xf) == ((3 << 2) | 2)) continue;
+	}
+      else
+	{
+	  /* The second shuffle for e.g. V4DFmode has
+	     4567 and ABCD operands.
+	     Ignore AB67, as 67 is already in the second lane
+	     of the first operand.  */
+	  if ((perm & 0xc) == (3 << 2)) continue;
+	  /* And 45CD, as 45 is in the first lane of the first
+	     operand.  */
+	  if ((perm & 3) == 2) continue;
+	  /* And 0123, as then the vperm2[fi]128 doesn't change
+	     anything on the original 0123 first operand.  */
+	  if ((perm & 0xf) == (1 << 2)) continue;
+	}
+
+      for (i = 0; i < nelt; i++)
+	{
+	  j = d->perm[i] / nelt2;
+	  if (j == ((perm >> (2 * (i >= nelt2))) & 3))
+	    dsecond.perm[i] = nelt + (i & nelt2) + (d->perm[i] & (nelt2 - 1));
+	  else if (j == (unsigned) (i >= nelt2) + 2 * (perm >= 16))
+	    dsecond.perm[i] = d->perm[i] & (nelt - 1);
+	  else
+	    break;
+	}
+
+      if (i == nelt)
+	{
+	  start_sequence ();
+	  ok = expand_vec_perm_1 (&dsecond);
+	  end_sequence ();
+	}
+      else
+	ok = false;
+
+      if (ok)
+	{
+	  if (d->testing_p)
+	    return true;
+
+	  /* Found a usable second shuffle.  dfirst will be
+	     vperm2f128 on d->op0 and d->op1.  */
+	  dsecond.testing_p = false;
+	  dfirst = *d;
+	  if (d->op0 == d->op1)
+	    dfirst.target = dsecond.op1;
+	  else
+	    dfirst.target = gen_reg_rtx (d->vmode);
+	  for (i = 0; i < nelt; i++)
+	    dfirst.perm[i] = (i & (nelt2 - 1))
+			     + ((perm >> (2 * (i >= nelt2))) & 3) * nelt2;
+
+	  ok = expand_vec_perm_1 (&dfirst);
+	  gcc_assert (ok);
+
+	  /* And dsecond is some single insn shuffle, taking
+	     d->op0 and result of vperm2f128 (if perm < 16) or
+	     d->op1 and result of vperm2f128 (otherwise).  */
+	  dsecond.op1 = dfirst.target;
+	  if (perm >= 16)
+	    dsecond.op0 = dfirst.op1;
+
+	  ok = expand_vec_perm_1 (&dsecond);
+	  gcc_assert (ok);
+
+	  return true;
+	}
+
+      /* For d->op0 == d->op1 the only useful vperm2f128 permutation
+	 is 0x10.  */
+      if (d->op0 == d->op1)
+	return false;
+    }
+
+  return false;
 }
 
 /* A subroutine of ix86_expand_vec_perm_builtin_1.  Try to simplify
@@ -37177,7 +37359,8 @@ expand_vec_perm_broadcast_1 (struct expand_vec_perm_d *d)
       while (vmode != V4SImode);
 
       memset (perm2, elt, 4);
-      ok = expand_vselect (gen_lowpart (V4SImode, d->target), op0, perm2, 4);
+      ok = expand_vselect (gen_lowpart (V4SImode, d->target), op0, perm2, 4,
+			   d->testing_p);
       gcc_assert (ok);
       return true;
 
@@ -37351,6 +37534,9 @@ ix86_expand_vec_perm_const_1 (struct expand_vec_perm_d *d)
     return true;
 
   if (expand_vec_perm_vpermq_perm_1 (d))
+    return true;
+
+  if (expand_vec_perm_vperm2f128 (d))
     return true;
 
   /* Try sequences of three instructions.  */
