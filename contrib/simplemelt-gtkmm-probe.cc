@@ -233,6 +233,8 @@ public:
 static Glib::OptionContext smelt_options_context(" - a simple MELT Gtk probe");
 
 
+#define SMELT_MARKLOC_CATEGORY "smeltmarkloc"
+#define SMELT_MARKLOC_STOCKID GTK_STOCK_YES
 /* The SmeltMainWindow is our graphical interface; allmost all GUI
    code is inside. */
 class SmeltMainWindow : public Gtk::Window {
@@ -286,7 +288,8 @@ class SmeltMainWindow : public Gtk::Window {
 public:
   SmeltMainWindow() :
     Gtk::Window() {
-    set_border_width(5);
+    set_border_width(6);
+    set_default_size(480,380);
     add(_mainvbox);
     Glib::ustring labmarkstr = Glib::ustring::compose
                                ("<big><span color='darkred'>Simple Gcc Melt gtkmm-probe</span></big>\n"
@@ -1075,6 +1078,12 @@ SmeltMainWindow::ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&fil
   _sfilview.set_editable(false);
   _sfilview.set_show_line_numbers(true);
   _sfilview.set_show_line_marks(true);
+  {
+    int markprio=1;
+    auto markattrs = Gsv::MarkAttributes::create();
+    markattrs->set_stock_id(SMELT_MARKLOC_STOCKID);
+    _sfilview.set_mark_attributes(SMELT_MARKLOC_CATEGORY,markattrs,markprio);
+  }
 #warning to improve set_mark_category_pixbuf
   /* look into gtksourceviewmm/gutterrenderer*.h & gtksourceviewmm/markattributes.h */
   //  _sfilview.set_mark_category_pixbuf
@@ -1151,10 +1160,6 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   if (lineno<=0 || lineno>sfil->nblines())
     throw smelt_domain_error("mark_location invalid line number",
                              smelt_long_to_string(lineno));
-  Glib::RefPtr<Gsv::Gutter> gut = sfil->left_gutter();
-  auto gutrenderer = new Gsv::GutterRendererPixbuf();
-  gutrenderer->set_pixbuf(SmeltAppl::instance()->key_16x16_pixbuf());
-  gut->insert(gutrenderer,lineno-1);
   auto tbuf = sfil->view().get_source_buffer();
   auto itlin = tbuf->get_iter_at_line (lineno-1);
   auto itendlin = itlin;
@@ -1167,14 +1172,21 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
     col = linwidth-1;
   SMELT_DEBUG ("linwidth=" << linwidth << " normalized col=" << col);
   auto itcur = itlin;
-  if (col>0) itcur.forward_chars(col);
+  if (col>0) 
+    itcur.forward_chars(col);
   Glib::RefPtr<Gtk::TextChildAnchor> chanch = tbuf->create_child_anchor(itcur);
   auto but = new Gtk::Button();
   but->add(*new Gtk::Image(SmeltAppl::instance()->key_7x11_pixbuf()));
-  sfil->view().add_child_at_anchor(*but,chanch);
   but->show_all();
-  sfil->view().show ();
-  SMELT_DEBUG("added but@" << (void*)but);
+  sfil->view().add_child_at_anchor(*but,chanch);
+  // since we added an anchor, itcur is invalid, so we recompute it.
+  itlin = tbuf->get_iter_at_line (lineno-1);
+  itcur = itlin;
+  if (col>0) 
+    itcur.forward_chars(col);
+  auto mark = tbuf->create_source_mark(SMELT_MARKLOC_CATEGORY,itcur);
+  sfil->view().show_all ();
+  SMELT_DEBUG("added but@" << (void*)but << " mark@" << mark);
 #warning incomplete SmeltMainWindow::mark_location
 }
 ////////////////////////////////////////////////////////////////
@@ -1288,7 +1300,7 @@ SmeltTraceWindow::SmeltTraceWindow()
     _tracereplytag->property_foreground() = "saddlebrown";
     _tracereplytag->property_family() = "Monospace";
     tbuf->insert_with_tag(tbuf->end(),
-                          "Trace Window Gcc MELT gtkmm-prove\n",
+                          "Trace Window Gcc MELT simplemelt-gtkmm-probe\n",
                           "title");
     {
       time_t now = 0;

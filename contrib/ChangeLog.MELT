@@ -1,4 +1,13 @@
 
+2012-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* simplemelt-gtkmm-probe.cc: Using marks with stock ids..
+	(SMELT_MARKLOC_CATEGORY, SMELT_MARKLOC_STOCKID): New macros.
+	(SmeltMainWindow::ShownFile::ShownFile): Use
+	markattributes. Remove gutter and Gsv::GutterRendererPixbuf stuff.
+	(SmeltMainWindow::mark_location): Don't fail, but not really
+	displayed yet...
+
 2012-03-20  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* simplemelt-gtkmm-probe.cc (SmeltAppl::SmeltAppl): Check the
