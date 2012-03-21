@@ -1,3 +1,10 @@
+2012-03-21  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (nonzerobits): Handle
+	LSHIFT_EXPR, RSHIFT_EXPR, LROTATE_EXPR, and
+	RROTATE_EXPR.
+	(simplify_pointer_plus): Simplify 0 +p A.
+
 2012-03-18  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c (simplify_mult_expr):

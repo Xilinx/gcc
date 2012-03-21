@@ -318,6 +318,8 @@ nonzerobits (tree val)
   tree op0, op1, op2;
   enum tree_code code;
   tree type;
+  int prec;
+  int value = 0;
 
   if (val == NULL_TREE)
     return double_int_minus_one;
@@ -329,6 +331,7 @@ nonzerobits (tree val)
   if (!INTEGRAL_TYPE_P (type))
     return nonzero;
 
+  prec = TYPE_PRECISION (type);
   /* If we have a SSA_NAME, ask the hook first. */
   if (TREE_CODE (val) == SSA_NAME && nonzerobitsf)
     {
@@ -351,10 +354,30 @@ nonzerobits (tree val)
       case MEM_REF:
 	return nonzero;
       /* TODO handle the shifts and rotates. */
-      case LSHIFT_EXPR:
-      case RSHIFT_EXPR:
       case LROTATE_EXPR:
       case RROTATE_EXPR:
+	if (TREE_CODE (op1) != INTEGER_CST
+	    || !host_integerp (op1, 0))
+	  return nonzero;
+	lhs = nonzerobits (op0);
+	value = tree_low_cst (op1, 0);
+	if (code == RROTATE_EXPR)
+	  value = -value;
+	lhs = double_int_lrotate (lhs, value, prec);
+	return nonzerobits_report (double_int_and (lhs, nonzero), val);
+      case LSHIFT_EXPR:
+      case RSHIFT_EXPR:
+	if (TREE_CODE (op1) != INTEGER_CST
+	    || !host_integerp (op1, 0))
+	  return nonzero;
+	lhs = nonzerobits (op0);
+	lhs = double_int_ext (lhs, prec, TYPE_UNSIGNED (type));
+	value = tree_low_cst (op1, 0);
+	if (code == RSHIFT_EXPR)
+	  value = -value;
+	lhs = double_int_lshift (lhs, value, prec, !TYPE_UNSIGNED (type));
+	return nonzerobits_report (double_int_and (lhs, nonzero), val);
+      case NEGATE_EXPR:
 	return nonzero;
       case BIT_IOR_EXPR:
       case BIT_XOR_EXPR:
@@ -2723,6 +2746,10 @@ simplify_pointer_plus (location_t loc, enum tree_code code,
   /* A +p 0 -> A. */
   if (integer_zerop (op1))
     return op0;
+
+  /* 0 +p A ->(type)A */
+  if (integer_zerop (op0))
+    return gimple_combine_convert (loc, type, op1);
 
   /* Pointer plus constant can be represented as invariant address.  */
   if (host_integerp (op1, 1)
