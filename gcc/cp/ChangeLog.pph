@@ -1,3 +1,8 @@
+2012-03-21   Diego Novillo  <dnovillo@google.com>
+
+	* name-lookup.c (pph_set_namespace_decl_binding): Ignore
+	USING_DECLs.
+
 2012-03-19   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer.h (struct pph_replay_entry): Rename from

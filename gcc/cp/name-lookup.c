@@ -6271,7 +6271,11 @@ pph_set_namespace_decl_binding (tree decl, cp_binding_level *bl, int flags)
 {
   /* Set the namespace identifier binding for a single decl.  */
   tree id = DECL_NAME (decl);
-  if (id)
+  /* FIXME pph.  USING_DECLs do not seem to be used in bindings by
+     the parser. This was causing the SEGV in
+     testsuite/g++.dg/pph/x1mbstate_t.h.  It's unclear whether this is
+     the right fix.  */
+  if (id && TREE_CODE (decl) != USING_DECL)
     pph_set_identifier_binding (id, decl, bl, flags);
 }
 

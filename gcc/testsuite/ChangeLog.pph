@@ -1,3 +1,7 @@
+2012-03-21   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x1mbstate_t.h: Mark fixed.
+
 2012-03-20   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x0mbstate_t.h: New.
