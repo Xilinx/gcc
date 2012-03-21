@@ -71,6 +71,9 @@ may also send several requests to MELT at any moment.
 ****/
 
 
+// I am probably bitten by the bug I reported at
+// https://bugzilla.gnome.org/show_bug.cgi?id=672544
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -1084,11 +1087,6 @@ SmeltMainWindow::ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&fil
     markattrs->set_stock_id(SMELT_MARKLOC_STOCKID);
     _sfilview.set_mark_attributes(SMELT_MARKLOC_CATEGORY,markattrs,markprio);
   }
-#warning to improve set_mark_category_pixbuf
-  /* look into gtksourceviewmm/gutterrenderer*.h & gtksourceviewmm/markattributes.h */
-  //  _sfilview.set_mark_category_pixbuf
-  //  ("keymark",
-  //   SmeltAppl::instance()->key_16x16_pixbuf());
   {
     std::ifstream infil(filepath);
     int nblines = 0;
@@ -1171,22 +1169,26 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   else if (col>=linwidth)
     col = linwidth-1;
   SMELT_DEBUG ("linwidth=" << linwidth << " normalized col=" << col);
-  auto itcur = itlin;
-  if (col>0) 
-    itcur.forward_chars(col);
-  Glib::RefPtr<Gtk::TextChildAnchor> chanch = tbuf->create_child_anchor(itcur);
-  auto but = new Gtk::Button();
-  but->add(*new Gtk::Image(SmeltAppl::instance()->key_7x11_pixbuf()));
-  but->show_all();
-  sfil->view().add_child_at_anchor(*but,chanch);
-  // since we added an anchor, itcur is invalid, so we recompute it.
+
+
+  /* create_source_mark works only at the start of the line */
+  auto linemark = tbuf->create_source_mark(SMELT_MARKLOC_CATEGORY,itlin);
+
+  /* add the button inside the line */
   itlin = tbuf->get_iter_at_line (lineno-1);
-  itcur = itlin;
-  if (col>0) 
+  auto itcur = itlin;
+  if (col>0)
     itcur.forward_chars(col);
-  auto mark = tbuf->create_source_mark(SMELT_MARKLOC_CATEGORY,itcur);
+  SMELT_DEBUG("itcur=" << itcur);
+  auto but = new Gtk::Button("*");
+  Glib::RefPtr<Gtk::TextChildAnchor> chanch = Gtk::TextChildAnchor::create ();
+  tbuf->insert_child_anchor(itcur,chanch);
+  sfil->view().add_child_at_anchor(*but,chanch);
+  but->show();
   sfil->view().show_all ();
-  SMELT_DEBUG("added but@" << (void*)but << " mark@" << mark);
+  sfil->view().queue_draw();
+  SMELT_DEBUG("added mark but@" << (void*) but);
+
 #warning incomplete SmeltMainWindow::mark_location
 }
 ////////////////////////////////////////////////////////////////

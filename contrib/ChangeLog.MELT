@@ -1,6 +1,13 @@
 
 2012-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* simplemelt-gtkmm-probe.cc: Bitten by GTK bug.
+	(SmeltMainWindow::ShownFile::ShownFile): Clean up.
+	(SmeltMainWindow::mark_location): Add button, hurted by GTK bug
+	 https://bugzilla.gnome.org/show_bug.cgi?id=672544
+
+2012-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* simplemelt-gtkmm-probe.cc: Using marks with stock ids..
 	(SMELT_MARKLOC_CATEGORY, SMELT_MARKLOC_STOCKID): New macros.
 	(SmeltMainWindow::ShownFile::ShownFile): Use
