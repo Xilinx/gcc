@@ -423,6 +423,7 @@ extract_elem_fn_values (tree decl)
   elem_fn_values = (elem_fn_info *)xmalloc (sizeof (elem_fn_info));
   gcc_assert (elem_fn_values);
 
+  elem_fn_values->proc_type = NULL;
   elem_fn_values->mask = USE_BOTH;
   elem_fn_values->no_vlengths = 0;
   elem_fn_values->no_uvars = 0;
