@@ -1,3 +1,22 @@
+2012-03-22  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (gimple_combine_allow_full_reassiocation): New
+	variable.
+	(gimple_combine_comparisons_cst): New function.
+	(simplify_bitwise_binary): Reenable reassiocation but only when
+	gimple_combine_allow_full_reassiocation is true.
+	Add simplification of "(A&B) | D" to (A|D) & (B|D) but only
+	if either "A|D" or "B|D" simplifies down to a constant and
+	when gimple_combine_allow_full_reassiocation is true.
+	Call gimple_combine_comparisons_cst when we have a CMP1 CST1 | a CMP2 CST2 .
+	* tree-flow.h (gimple_combine_allow_full_reassiocation): New
+	variable declartion.
+	* tree-ssa-ifcombine.c (ifcombine_ifandif): Improve the debugging
+	for DEBUG_SSA_COMBINE.
+	(ifcombine_iforif): Likewise.
+	(tree_ssa_ifcombine): Set gimple_combine_allow_full_reassiocation
+	for this pass.
+
 2012-03-21  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c (nonzerobits): Handle

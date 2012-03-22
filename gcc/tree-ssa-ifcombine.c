@@ -392,21 +392,24 @@ ifcombine_ifandif (basic_block inner_cond_bb, basic_block outer_cond_bb)
 	 but we need to check LOGICAL_OP_NON_SHORT_CIRCUIT. */
       if (!valid_gimple_rhs_p (t) && !COMPARISON_CLASS_P (t))
 	{
+	  tree t1;
           /* FIXME: We should move away from using maybe_fold_and_comparisons. */
-          t = maybe_fold_and_comparisons (gimple_cond_code (inner_cond),
-					  gimple_cond_lhs (inner_cond),
-					  gimple_cond_rhs (inner_cond),
-					  gimple_cond_code (outer_cond),
-					  gimple_cond_lhs (outer_cond),
-					  gimple_cond_rhs (outer_cond));
+          t1 = maybe_fold_and_comparisons (gimple_cond_code (inner_cond),
+					   gimple_cond_lhs (inner_cond),
+					   gimple_cond_rhs (inner_cond),
+					   gimple_cond_code (outer_cond),
+					   gimple_cond_lhs (outer_cond),
+					   gimple_cond_rhs (outer_cond));
 #ifdef DEBUG_SSA_COMBINE
-	  if (t)
+	  if (t1)
 	    {
 	      debug_generic_expr (t);
+	      debug_generic_expr (t1);
 	      debug_gimple_stmt (inner_cond);
 	      debug_gimple_stmt (outer_cond);
 	    }
 #endif
+	  t = t1;
 	}
       if (!t)
 	return false;
@@ -570,21 +573,24 @@ ifcombine_iforif (basic_block inner_cond_bb, basic_block outer_cond_bb)
 	 but we need to check LOGICAL_OP_NON_SHORT_CIRCUIT. */
       if (!valid_gimple_rhs_p (t) && !COMPARISON_CLASS_P (t))
 	{
+	  tree t1;
           /* FIXME: We should move away from using maybe_fold_or_comparisons. */
-          t = maybe_fold_or_comparisons (gimple_cond_code (inner_cond),
+          t1 = maybe_fold_or_comparisons (gimple_cond_code (inner_cond),
 					  gimple_cond_lhs (inner_cond),
 					  gimple_cond_rhs (inner_cond),
 					  gimple_cond_code (outer_cond),
 					  gimple_cond_lhs (outer_cond),
 					  gimple_cond_rhs (outer_cond));
 #ifdef DEBUG_SSA_COMBINE
-	  if (t)
+	  if (t1)
 	    {
 	      debug_generic_expr (t);
+	      debug_generic_expr (t1);
 	      debug_gimple_stmt (inner_cond);
 	      debug_gimple_stmt (outer_cond);
 	    }
 #endif
+	  t = t1;
 	}
       if (!t)
 	return false;
@@ -691,6 +697,8 @@ tree_ssa_ifcombine (void)
   bool cfg_changed = false;
   int i;
 
+  gimple_combine_allow_full_reassiocation = true;
+
   bbs = blocks_in_phiopt_order ();
   calculate_dominance_info (CDI_DOMINATORS);
 
@@ -705,6 +713,8 @@ tree_ssa_ifcombine (void)
     }
 
   free (bbs);
+
+  gimple_combine_allow_full_reassiocation = false;
 
   return cfg_changed ? TODO_cleanup_cfg : 0;
 }

@@ -36,6 +36,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "gimple-fold.h"
 
+bool gimple_combine_allow_full_reassiocation = false;
+
 static inline void defcodefor_name_3 (tree name, enum tree_code *code,
 				      tree *arg1, tree *arg2, tree *arg3);
 #define defcodefor_name(n,c,a1,a2)  defcodefor_name_3(n,c,a1,a2,NULL)
@@ -1432,24 +1434,24 @@ gimple_combine_comparisons (location_t loc,
       else if (compcode == COMPCODE_ORD)
 	compcode = COMPCODE_TRUE;
     }
-   else if (flag_trapping_math)
-     {
-	/* Check that the original operation and the optimized ones will trap
-	   under the same condition.  */
-	bool ltrap = (lcompcode & COMPCODE_UNORD) == 0
-		     && (lcompcode != COMPCODE_EQ)
-		     && (lcompcode != COMPCODE_ORD);
-	bool rtrap = (rcompcode & COMPCODE_UNORD) == 0
-		     && (rcompcode != COMPCODE_EQ)
-		     && (rcompcode != COMPCODE_ORD);
-	bool trap = (compcode & COMPCODE_UNORD) == 0
-		    && (compcode != COMPCODE_EQ)
-		    && (compcode != COMPCODE_ORD);
+  else if (flag_trapping_math)
+   {
+       /* Check that the original operation and the optimized ones will trap
+          under the same condition.  */
+       bool ltrap = (lcompcode & COMPCODE_UNORD) == 0
+                    && (lcompcode != COMPCODE_EQ)
+                    && (lcompcode != COMPCODE_ORD);
+       bool rtrap = (rcompcode & COMPCODE_UNORD) == 0
+                    && (rcompcode != COMPCODE_EQ)
+                    && (rcompcode != COMPCODE_ORD);
+       bool trap = (compcode & COMPCODE_UNORD) == 0
+                   && (compcode != COMPCODE_EQ)
+                   && (compcode != COMPCODE_ORD);
 
-	/* If we changed the conditions that cause a trap, we lose.  */
-	if ((ltrap || rtrap) != trap)
-	  return NULL_TREE;
-      }
+       /* If we changed the conditions that cause a trap, we lose.  */
+       if ((ltrap || rtrap) != trap)
+         return NULL_TREE;
+     }
 
   if (compcode == COMPCODE_TRUE)
     return constant_boolean_node (true, truth_type);
@@ -1556,10 +1558,96 @@ simplify_bitwise_binary_1 (location_t loc, enum tree_code code, tree type,
   return NULL_TREE;
 }
 
+/* Try to simplify (ARG CODE1 CST1) CODE (ARG1 CODE2 CST2).  CODE is either
+   and or ior.  CST1 and CST2 are integer constants. CODE1 and CODE2 are
+   comparisons codes. */
+static tree
+gimple_combine_comparisons_cst (location_t loc, enum tree_code code, tree type,
+				enum tree_code code1, enum tree_code code2, tree arg,
+				tree cst1, tree cst2)
+{
+  int cmp;
+
+  if (code1 != EQ_EXPR && code1 != NE_EXPR
+      && code1 != LT_EXPR && code1 != GT_EXPR
+      && code1 != LE_EXPR && code1 != GE_EXPR)
+    return NULL_TREE;
+
+  if (code2 != EQ_EXPR && code2 != NE_EXPR
+      && code2 != LT_EXPR && code2 != GT_EXPR
+      && code2 != LE_EXPR && code2 != GE_EXPR)
+    return NULL_TREE;
+
+  /* Have the eq/ne as the first operand. */
+  if (code2 == EQ_EXPR || code2 == NE_EXPR)
+  {
+    tree tmp;
+    enum tree_code temp;
+    tmp = cst1;
+    cst1 = cst2;
+    cst2 = tmp;
+    temp = code1;
+    code1 = code2;
+    code2 = temp;
+  }
+
+  cmp = tree_int_cst_compare (cst1, cst2);
+
+  /* Simplify (a != CST1) | (a CODE2 CST2) to either true or return
+     (a != CST1).  */
+  /* Simplify (a == CST1) & (a CODE2 CST2) to either false or return
+     (a == CST1).  */
+  if ((code1 == NE_EXPR && code == BIT_IOR_EXPR)
+      || (code1 == EQ_EXPR && code == BIT_AND_EXPR))
+    {
+      bool val = false;
+      switch (code2)
+        {
+        case EQ_EXPR: val = (cmp == 0); break;
+        case NE_EXPR: val = (cmp != 0); break;
+	case LT_EXPR: val = (cmp < 0); break;
+	case GT_EXPR: val = (cmp > 0); break;
+	case LE_EXPR: val = (cmp <= 0); break;
+	case GE_EXPR: val = (cmp >= 0); break;
+	default:
+	  return NULL_TREE;
+	}
+      if (val && code == BIT_IOR_EXPR)
+	return build_int_cst (type, 1);
+      else if (!val && code == BIT_AND_EXPR)
+	return build_int_cst (type, 0);
+      else
+	return gimple_combine_build2 (loc, code1, type, arg, cst1);
+    }
+  /* Simplify (a == CST1) | (a CODE2 CST2) to return (a CODE2 CST2) if
+     a == CST1 is redudant with the other comparison..  */
+  /* Simplify (a != CST1) & (a CODE2 CST2) to return (a CODE2 CST2) if
+     a != CST1 is redundant with the other comparison.  */
+  if ((code1 == EQ_EXPR && code == BIT_IOR_EXPR)
+      || (code1 == NE_EXPR && code == BIT_AND_EXPR))
+    {
+      bool val = false;
+      switch (code2)
+        {
+        case EQ_EXPR: val = (cmp == 0); break;
+        case NE_EXPR: val = (cmp != 0); break;
+	case LT_EXPR: val = (cmp < 0); break;
+	case GT_EXPR: val = (cmp > 0); break;
+	case LE_EXPR: val = (cmp <= 0); break;
+	case GE_EXPR: val = (cmp >= 0); break;
+	default:
+	  return NULL_TREE;
+	}
+      if ((val && code == BIT_IOR_EXPR)
+	  || (!val && code == BIT_AND_EXPR))
+	return gimple_combine_build2 (loc, code2, type, arg, cst2);
+    }
+
+  return NULL_TREE;
+}
+
 /* Simplify bitwise binary operations.
    Return the tree of what the code was transformed into.  */
-
-
 static tree
 simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 			 tree arg1, tree arg2)
@@ -2028,15 +2116,11 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       tree inner = gimple_combine_build1 (loc, BIT_NOT_EXPR, type, arg2);
       return gimple_combine_build2 (loc, BIT_XOR_EXPR, type, def1_arg1, inner);
     }
-  
 
-
-#if 0
-  /* Disabled for now, need to limit how many expressions we go through,
-     right now it can cause performance issues for testcases like PR 38533  */
   /* (A & B) & C, try to simplify A & C if that does not simplify then try B & C
-     if either simplifies then combine it with the other argument. */
-  if (def1_code == code)
+     if either simplifies then combine it with the other argument.   */
+  if (def1_code == code
+      && gimple_combine_allow_full_reassiocation)
     {
       tree tmp;
 
@@ -2052,8 +2136,9 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
     }
 
   /* C & (A & B) , try to simplify A & C if that does not simplify then try B & C
-     if either simplifies then combine it with the other argument. */
-  if (def2_code == code)
+     if either simplifies then combine it with the other argument.  */
+  if (def2_code == code
+      && gimple_combine_allow_full_reassiocation)
     {
       tree tmp;
       /* Try (A & C) & B. */
@@ -2065,8 +2150,54 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
       if (tmp)
 	return gimple_combine_build2 (loc, code, type, tmp, def2_arg1);
     }
-#endif
 
+  /* Try to simplify (A&B) | D, if (A|D) or (B|D) simplifies down to a
+     constant.  */
+  if ((def1_code == BIT_AND_EXPR
+       || def1_code == BIT_IOR_EXPR
+       || def1_code == BIT_XOR_EXPR)
+      && gimple_combine_allow_full_reassiocation
+      && TREE_CODE (arg2) != INTEGER_CST)
+    {
+      tree lhs = gimple_combine_binary (loc, code, type, def1_arg1, arg2);
+      tree rhs = gimple_combine_binary (loc, code, type, def1_arg2, arg2);
+      if (lhs && !is_gimple_min_invariant (lhs))
+	lhs = NULL_TREE;
+      if (rhs && !is_gimple_min_invariant (rhs))
+	rhs = NULL_TREE;
+      if (lhs || rhs)
+	{
+	  if (!lhs)
+	    lhs = gimple_combine_build2 (loc, code, type, def1_arg1, arg2);
+	  if (!rhs)
+	    rhs = gimple_combine_build2 (loc, code, type, def1_arg2, arg2);
+	  return gimple_combine_build2 (loc, def1_code, type, lhs, rhs);
+	}
+    }
+
+  /* Try to simplify (A&B) | D, if (A|D) or (B|D) simplifies down to a
+     constant.  */
+  if ((def2_code == BIT_AND_EXPR
+       || def2_code == BIT_IOR_EXPR
+       || def2_code == BIT_XOR_EXPR)
+      && gimple_combine_allow_full_reassiocation
+      && TREE_CODE (arg1) != INTEGER_CST)
+    {
+      tree lhs = gimple_combine_binary (loc, code, type, def2_arg1, arg1);
+      tree rhs = gimple_combine_binary (loc, code, type, def2_arg2, arg1);
+      if (lhs && !is_gimple_min_invariant (lhs))
+	lhs = NULL_TREE;
+      if (rhs && !is_gimple_min_invariant (rhs))
+	rhs = NULL_TREE;
+      if (lhs || rhs)
+	{
+	  if (!lhs)
+	    lhs = gimple_combine_build2 (loc, code, type, def2_arg1, arg1);
+	  if (!rhs)
+	    rhs = gimple_combine_build2 (loc, code, type, def2_arg2, arg1);
+	  return gimple_combine_build2 (loc, def2_code, type, lhs, rhs);
+	}
+    }
 
   if (TREE_CODE_CLASS (def1_code) == tcc_comparison
       && TREE_CODE_CLASS (def2_code) == tcc_comparison)
@@ -2089,10 +2220,26 @@ simplify_bitwise_binary (location_t loc, enum tree_code code, tree type,
 	  if (result)
 	    return result;
 	}
+      /* If both comparisons are of the same value against constants, we might
+         be able to merge them.  */
+      if (operand_equal_p (def1_arg1, def2_arg1, 0)
+	  && TREE_CODE (def1_arg2) == INTEGER_CST
+	  && TREE_CODE (def2_arg2) == INTEGER_CST
+	  && (code == BIT_AND_EXPR
+	      || code == BIT_IOR_EXPR))
+	{
+	  tree tmp = gimple_combine_comparisons_cst (loc, code, type,
+						     def1_code, def2_code,
+						     def1_arg1, def1_arg2,
+						     def2_arg2);
+	  if (tmp)
+	    return tmp;
+	}
     }
 
   return NULL;
 }
+
 static tree
 simplify_shift_rotate (location_t loc, enum tree_code code, tree type,
 		       tree arg0, tree arg1)

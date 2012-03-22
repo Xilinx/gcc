@@ -625,6 +625,7 @@ extern bool may_propagate_copy_into_asm (tree);
 bool do_while_loop_p (struct loop *);
 
 /* In gimple-ssa-combine.c */
+extern bool gimple_combine_allow_full_reassiocation;
 typedef double_int (*nonzerobits_t)(tree var);
 typedef tree (*valueizer_t)(tree var);
 void gimple_combine_set_nonzerobits (nonzerobits_t);
