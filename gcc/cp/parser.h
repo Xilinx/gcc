@@ -360,5 +360,6 @@ extern void cp_lexer_debug_tokens (VEC(cp_token,gc) *);
 extern cp_token_cache *cp_token_cache_new (cp_token *, cp_token *);
 extern void cp_debug_parser (FILE *, cp_parser *);
 extern void cp_debug_parser_where (FILE *, cp_parser *);
+extern void cp_debug_the_parser_where (FILE *);
 
 #endif  /* GCC_CP_PARSER_H  */

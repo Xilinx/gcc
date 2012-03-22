@@ -1,3 +1,17 @@
+2012-03-22   Lawrence Crowl  <crowl@google.com>
+
+	* error.c (dump_location_qualifier):  Add qualifier using
+	TEMPLATE_PARM_NUM_SIBLINGS.  Rename to dump_tmpl_type_parm_qualifier.
+	(dump_tmpl_type_parm_qualifier): Renamed from above.
+	(dump_type): Change call of dump_location_qualifier to
+	dump_tmpl_type_parm_qualifier.
+	* pt.c (pph_out_pending_templates_list):  Add more debugging output.
+	(pph_in_pending_templates_list):  Move debugging output.
+	(pph_out_spec_entry_htab):  Add more debugging output.
+	* parser.c (cp_debug_parser_where):  Fix comment.
+	(cp_debug_the_parser_where):  New.
+	* parser.h (cp_debug_the_parser_where): New.
+
 2012-03-21   Diego Novillo  <dnovillo@google.com>
 
 	* name-lookup.c (pph_set_namespace_decl_binding): Ignore

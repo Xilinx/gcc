@@ -463,9 +463,8 @@ cp_debug_parser_tokens (FILE *file, cp_parser *parser, int window_size)
 }
 
 
-/* Concisely dump the tokens around where the PARSER's current token
-   in a concise manner.  If FILE is NULL, the output is printed on
-   stderr. */
+/* Dump the tokens around where the PARSER's current token is.
+   If FILE is NULL, the output is printed on stderr. */
 
 void
 cp_debug_parser_where (FILE *file, cp_parser *parser)
@@ -502,6 +501,7 @@ cp_debug_parser_where (FILE *file, cp_parser *parser)
   fprintf (file, "%s:%d:%d ", eloc.file, eloc.line, eloc.column);
   cp_debug_parser_tokens (file, parser, window_size);
 }
+
 
 /* Dump debugging information for the given PARSER.  If FILE is NULL,
    the output is printed on stderr.  */
@@ -27289,6 +27289,16 @@ cp_parser_transaction_cancel (cp_parser *parser)
 /* The parser.  */
 
 static GTY (()) cp_parser *the_parser;
+
+
+/* Dump the tokens around where the_parser's current token is.
+   If FILE is NULL, the output is printed on stderr. */
+
+void
+cp_debug_the_parser_where (FILE *file)
+{
+  cp_debug_parser_where (file, the_parser);
+}
 
 
 /* Special handling for the first token or line in the file.  The first

@@ -3546,6 +3546,7 @@ reduce_template_parm_level (tree index, tree type, int levels, tree args,
   return TEMPLATE_PARM_DESCENDANTS (index);
 }
 
+
 /* Process information from new template parameter PARM and append it
    to the LIST being built.  This new parameter is a non-type
    parameter iff IS_NON_TYPE is true. This new parameter is a
@@ -20728,6 +20729,9 @@ pph_out_pending_templates_list (pph_stream *stream)
   for (cur = pending_templates; cur != NULL;  cur = cur->next )
     ++count;
 
+  if (flag_pph_debug >= 2)
+    fprintf (pph_logfile, "PPH: writing %d pending templates\n", count );
+
   /* Now emit them.  */
   pph_out_uint (stream, count);
   for (cur = pending_templates; cur != NULL;  cur = cur->next )
@@ -20740,11 +20744,13 @@ static void
 pph_in_pending_templates_list (pph_stream *stream)
 { 
   unsigned count = pph_in_uint (stream);
+
+  if (flag_pph_debug >= 2)
+    fprintf (pph_logfile, "PPH: loading %d pending templates\n", count );
+
   for (; count > 0; --count)
     {
       struct pending_template *pt;
-      if (flag_pph_debug >= 2)
-        fprintf (pph_logfile, "PPH: loading %d pending templates\n", count );
       pt = ggc_alloc_pending_template ();
       pt->next = NULL;
       pt->tinst = pph_in_tinst_level (stream);
@@ -20794,8 +20800,11 @@ pph_out_spec_entry_htab (pph_stream *stream, htab_t *table,
 {
   if (*table)
     {
+      unsigned count = htab_elements (*table);
       /*FIXME pph: This write may be unstable.  */
-      pph_out_uint (stream, htab_elements (*table));
+      pph_out_uint (stream, count);
+      if (flag_pph_debug >= 2)
+        fprintf (pph_logfile, "PPH: writing %d spec_entries\n", count );
       htab_traverse_noresize (*table, func, stream);
     }
   else

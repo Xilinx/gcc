@@ -351,23 +351,29 @@ dump_alias_template_specialization (tree t, int flags)
 }
 
 
-/* Dump a location of a DECL as a qualifier, depending on FLAGS.  */
+/* Dump a discriminating qualifier for a template type parameter,
+   depending on FLAGS.  */
 
 static void
-dump_location_qualifier (tree decl, int flags)
+dump_tmpl_type_parm_qualifier (tree type, int flags)
 {
 if (flags & TFF_LOC_FOR_TEMPLATE_PARMS)
   {
+    tree decl = TYPE_NAME (type);
     expanded_location xloc = expand_location (DECL_SOURCE_LOCATION (decl));
-    char *buffer = (char*)xmalloc (strlen (xloc.file) + 46);
+    char *buffer = (char*)xmalloc (strlen (xloc.file) + 60);
+    tree tmv = TYPE_MAIN_VARIANT (type);
+    tree tpi = TEMPLATE_TYPE_PARM_INDEX (tmv);
+    unsigned int sib = TEMPLATE_PARM_NUM_SIBLINGS (tpi);
     if (xloc.column != 0)
-      sprintf (buffer, "`%s:%d:%d`", xloc.file, xloc.line, xloc.column);
+      sprintf (buffer, "`%s:%d:%d#%d`", xloc.file, xloc.line, xloc.column, sib);
     else
-      sprintf (buffer, "`%s:%d`", xloc.file, xloc.line);
+      sprintf (buffer, "`%s:%d#%d`", xloc.file, xloc.line, sib);
     pp_cxx_ws_string (cxx_pp, buffer);
     free (buffer);
   }
 }
+
 
 /* Dump a human-readable equivalent of TYPE.  FLAGS controls the
    format.  */
@@ -488,7 +494,7 @@ dump_type (tree t, int flags)
 	if (decl)
 	  {
 	    tree ident = DECL_NAME (decl);
-	    dump_location_qualifier (decl, flags);
+	    dump_tmpl_type_parm_qualifier (t, flags);
 	    if (ident)
 	      pp_cxx_tree_identifier (cxx_pp, ident);
 	    else

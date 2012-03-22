@@ -1,5 +1,5 @@
-// { dg-xfail-if "DEFAULT TEMPLATE ARG MERGING" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "Trying to merge distinct trees from the same PPH image x0tmpldfltparm.pph" "" { xfail *-*-* } 0 }
+// {    xfail-if "EXCESS FUNCTIONS" { "*-*-*" } { "-fpph-map=pph.map" } }
+// pph asm xdiff 53613
 
 #include "x0tmpldfltparm.h"
 
