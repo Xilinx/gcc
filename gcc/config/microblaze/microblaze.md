@@ -1734,7 +1734,7 @@
 ;; Setting a register from an floating point comparison. 
 ;;----------------------------------------------------------------
 (define_insn "cstoresf4"
-   [(set (match_operand:SI 0 "register_operand")
+   [(set (match_operand:SI 0 "register_operand" "=r")
         (match_operator:SI 1 "ordered_comparison_operator"
 	      [(match_operand:SF 2 "register_operand" "r")
 	       (match_operand:SF 3 "register_operand" "r")]))]
