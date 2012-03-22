@@ -1,3 +1,33 @@
+2012-03-21  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/50751
+	* gcc/target/sh/pr50751-1.c: New.
+	* gcc/target/sh/pr50751-2.c: New.
+	* gcc/target/sh/pr50751-3.c: New.
+
+2012-03-21  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/52479
+	* gcc.target/sh/sh4a-cos.c: Remove.
+	* gcc.target/sh/sh4a-sin.c: Remove.
+	* gcc.target/sh/sh4a-sincos.c: Remove.
+
+2012-03-21  Richard Earnshaw  <rearnsha@arm.com>
+
+	* gcc.target/arm/neon/vgetQ_laneu64.c: Regenerated.
+	* gcc.target/arm/neon/vgetQ_lanes64.c: Likewise.
+
+2012-03-21  Martin Jambor  <mjambor@suse.cz>
+
+	PR testsuite/52641
+	* gcc.dg/misaligned-expand-1.c (cst): Cast to int.
+	* gcc.dg/misaligned-expand-2.c (cst): Likewise.
+
+2012-03-21  Andrew Stubbs  <ams@codesourcery.com>
+
+	* gcc.target/arm/thumb-16bit-ops.c: New file.
+	* gcc.target/arm/thumb-ifcvt.c: New file.
+
 2012-03-20  Jason Merrill  <jason@redhat.com>
 
 	* lib/target-supports.exp: Add { target c++1y }.

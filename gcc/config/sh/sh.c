@@ -7239,6 +7239,13 @@ sh_expand_prologue (void)
       emit_insn (gen_shcompact_incoming_args ());
     }
 
+  /* If we are profiling, make sure no instructions are scheduled before
+     the call to mcount.  Similarly if some call instructions are swapped
+     before frame related insns, it'll confuse the unwinder because
+     currently SH has no unwind info for function epilogues.  */
+  if (crtl->profile || flag_exceptions || flag_unwind_tables)
+    emit_insn (gen_blockage ());
+
   if (flag_stack_usage_info)
     current_function_static_stack_size = stack_usage;
 }
@@ -11995,27 +12002,6 @@ sh_fsca_sf2int (void)
     }
 
   return sh_fsca_sf2int_rtx;
-}
-
-/* This function returns a constant rtx that represents pi / 2**15 in
-   DFmode.  it's used to scale DFmode angles, in radians, to a
-   fixed-point signed 16.16-bit fraction of a full circle, i.e., 2*pi
-   maps to 0x10000).  */
-
-static GTY(()) rtx sh_fsca_df2int_rtx;
-
-rtx
-sh_fsca_df2int (void)
-{
-  if (! sh_fsca_df2int_rtx)
-    {
-      REAL_VALUE_TYPE rv;
-
-      real_from_string (&rv, "10430.378350470453");
-      sh_fsca_df2int_rtx = const_double_from_real_value (rv, DFmode);
-    }
-
-  return sh_fsca_df2int_rtx;
 }
 
 /* This function returns a constant rtx that represents 2**15 / pi in

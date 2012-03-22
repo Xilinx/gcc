@@ -1,3 +1,109 @@
+2012-03-21  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* cse.c (invalidate_from_sets_and_clobbers, try_back_substitute_reg,
+	find_sets_in_insn, canonicalize_insn): Split out from ...
+	(cse_insn): ... here.
+	(invalidate_from_clobbers): Take an insn instead of the pattern.
+
+2012-03-21  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/52479
+	* config/sh/sh-protos.h (sh_fsca_df2int): Remove.
+	* config/sh/sh.c (sh_fsca_df2int_rtx, sh_fsca_df2int): Remove.
+	* config/sh/sh.md (sindf2, cosdf2): Remove.
+
+2012-03-21  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR target/52642
+	* config/sh/sh.c (sh_expand_prologue): Emit blockage at the end of
+	prologue for unwinder and profiler.	
+
+2012-03-21  Andreas Tobler  <andreast@fgznet.ch>
+
+	* configure.ac (HAVE_LD_NO_DOT_SYMBOLS): Add powerpc64-*-freebsd*.
+	Introduce emul_name to select the right linker emulation for
+	powerpc64-*-freebsd*.
+	* configure: Regenerate.
+	* config.gcc: Add bits to support powerpc64-*-freebsd*.
+	* config/rs6000/freebsd.h (POWERPC_FREEBSD): Define.
+	* config/rs6000/freebsd64.h: New file.
+	* config/rs6000/rs6000.c (rs6000_option_override_internal): Use
+	POWERPC_FREEBSD.
+	(rs6000_savres_strategy): Likewise.
+	(rs6000_savres_routine_name): Likewise.
+	(rs6000_elf_file_end): Likewise.
+	* config/rs6000/t-freebsd64: New file.
+	* config/rs6000/sysv4.h (SUBTARGET_OVERRIDE_OPTIONS): Set the
+	rs6000_current_abi for 64-bit FreeBSD to ABI_AIX.
+
+	* config/rs6000/freebsd64.h: Remove duplicated entries from last
+	commit.
+	* config/rs6000/t-freebsd64: Likewise.
+
+2012-03-21  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR rtl-optimization/52543
+	PR target/52461
+	* config/avr/avr-protos.h (avr_load_lpm): New prototype.
+	* config/avr/avr.c (avr_mode_dependent_address_p): New function.
+	(TARGET_MODE_DEPENDENT_ADDRESS_P): New define.
+	(avr_load_libgcc_p): Restrict to __flash loads.
+	(avr_out_lpm): Only handle 1-byte loads from __flash.
+	(avr_load_lpm): New function.
+	(avr_find_unused_d_reg): Remove.
+	(avr_out_lpm_no_lpmx): Remove.
+	(adjust_insn_length): Handle ADJUST_LEN_LOAD_LPM.
+	* config/avr/avr.md (unspec): Add UNSPEC_LPM.
+	(load_<mode>_libgcc): Use UNSPEC_LPM instead of MEM.
+	(load_<mode>, load_<mode>_clobber): New insns.
+	(mov<mode>): For multi-byte move from non-generic
+	16-bit address spaces: Expand to load_<mode> resp.
+	load_<mode>_clobber.
+	(load<mode>_libgcc): Remove expander.
+	(split-lpmx): Remove split.
+
+2012-03-21  Richard Earnshaw  <rearnsha@arm.com>
+
+	* neon.md (neon_vget_lanev2di): Use gen_lowpart and gen_highpart.
+	* config/arm/neon.ml (Fixed_return_reg): Renamed to fixed_vector_reg.
+	All callers changed.
+	(Fixed_core_reg): New feature.
+	(Vget_lane [sizes S64 and U64]): Add Fixed_core_reg.  Allow fmrrd in
+	disassembly.
+	* neon-testgen.ml: Handle Fixed_core_reg.
+
+2012-03-21  Andrew Stubbs  <ams@codesourcery.com>
+
+	* config/arm/arm.c (thumb2_reorg): Add complete support
+	for 16-bit instructions.
+	* config/arm/thumb2.md: Delete obsolete flag-clobbering peepholes.
+
+2012-03-21  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimizer/52636
+	* tree-vect-slp.c (vect_get_constant_vectors): Convert constants
+	to the appropriate type.
+
+2012-03-21  Richard Guenther  <rguenther@suse.de>
+
+	* Makefile.in (cfgexpand.o): Add $(REGS_H) and $(INTEGRATE_H)
+	dependencies.
+	* cfgexpand.c (gimple_expand_cfg): Fold in pass_init_function,
+	pass_jump, pass_initial_value_sets and pass_unshare_all_rtl.
+	* passes.c (init_optimization_passes): Remove pass_init_function,
+	pass_jump, pass_initial_value_sets and pass_unshare_all_rtl.
+	* tree-pass.h (pass_init_function): Remove.
+	(pass_jump): Remove.
+	(pass_initial_value_sets): Remove.
+	(pass_unshare_all_rtl): Remove.
+	* integrate.c (pass_initial_value_sets): Remove.
+	* emit-rtl.c (pass_unshare_all_rtl): Remove.
+	* tree.h (init_function_for_compilation): Remove.
+	* function.c (init_function_for_compilation): Remove.
+	(pass_init_function): Remove.
+	* cfgcleanup.c (rest_of_handle_jump): Remove.
+	(pass_jump): Remove.
+
 2012-03-20  Jason Merrill  <jason@redhat.com>
 
 	* tree-streamer-in.c (streamer_alloc_tree): Call
