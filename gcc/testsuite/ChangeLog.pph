@@ -1,3 +1,7 @@
+2012-03-23   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x1mbstate_t.h: Adjust failure pattern.
+
 2012-03-22   Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/x1tmpldfltparm.cc: Failure change from merging to excess
