@@ -4219,7 +4219,8 @@ check_tag_decl (cp_decl_specifier_seq *declspecs)
   if (declspecs->attributes && warn_attributes)
     {
       location_t loc;
-      if (!CLASSTYPE_TEMPLATE_INSTANTIATION (declared_type))
+      if (!CLASS_TYPE_P (declared_type)
+	  || !CLASSTYPE_TEMPLATE_INSTANTIATION (declared_type))
 	/* For a non-template class, use the name location.  */
 	loc = location_of (declared_type);
       else
@@ -5110,7 +5111,11 @@ reshape_init_class (tree type, reshape_iter *d, bool first_initializer_p,
 	      return error_mark_node;
 	    }
 
-	  field = lookup_field_1 (type, d->cur->index, /*want_type=*/false);
+	  if (TREE_CODE (d->cur->index) == FIELD_DECL)
+	    /* We already reshaped this.  */
+	    gcc_assert (d->cur->index == field);
+	  else
+	    field = lookup_field_1 (type, d->cur->index, /*want_type=*/false);
 
 	  if (!field || TREE_CODE (field) != FIELD_DECL)
 	    {
