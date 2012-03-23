@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -208,10 +208,6 @@ with Table;
 with Types;  use Types;
 
 package Sem is
-
-   New_Nodes_OK : Int := 1;
-   --  Temporary flag for use in checking out HLO. Set non-zero if it is
-   --  OK to generate new nodes.
 
    -----------------------------
    -- Semantic Analysis Flags --
@@ -644,6 +640,11 @@ package Sem is
    --  is False, then the status of the check can be determined simply by
    --  examining Scope_Checks (C), so this routine is not called in that case.
 
+   procedure Preanalyze (N : Node_Id);
+   --  Performs a pre-analysis of node N. During pre-analysis no expansion is
+   --  carried out for N or its children. For more info on pre-analysis read
+   --  the spec of Sem.
+
    generic
       with procedure Action (Item : Node_Id);
    procedure Walk_Library_Items;
@@ -659,5 +660,15 @@ package Sem is
    --
    --  Item is never an instantiation. Instead, the instance declaration is
    --  passed, and (if the instantiation is the main unit), the instance body.
+
+   --  Debugging:
+
+   function ss (Index : Int) return Scope_Stack_Entry;
+   pragma Export (Ada, ss);
+   --  "ss" = "scope stack"; returns the Index'th entry in the Scope_Stack
+
+   function sst return Scope_Stack_Entry;
+   pragma Export (Ada, sst);
+   --  "sst" = "scope stack top"; same as ss(Scope_Stack.Last)
 
 end Sem;

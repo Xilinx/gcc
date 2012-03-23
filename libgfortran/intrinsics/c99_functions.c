@@ -1,5 +1,5 @@
 /* Implementation of various C99 functions 
-   Copyright (C) 2004, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2009, 2010, 2012 Free Software Foundation, Inc.
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
@@ -26,33 +26,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #define C99_PROTOS_H WE_DONT_WANT_PROTOS_NOW
 #include "libgfortran.h"
-
-/* IRIX's <math.h> declares a non-C99 compliant implementation of cabs,
-   which takes two floating point arguments instead of a single complex.
-   If <complex.h> is missing this prevents building of c99_functions.c.
-   To work around this we redirect cabs{,f,l} calls to __gfc_cabs{,f,l}.  */
-
-#if defined(__sgi__) && !defined(HAVE_COMPLEX_H)
-#undef HAVE_CABS
-#undef HAVE_CABSF
-#undef HAVE_CABSL
-#define cabs __gfc_cabs
-#define cabsf __gfc_cabsf
-#define cabsl __gfc_cabsl
-#endif
-        
-/* Tru64's <math.h> declares a non-C99 compliant implementation of cabs,
-   which takes two floating point arguments instead of a single complex.
-   To work around this we redirect cabs{,f,l} calls to __gfc_cabs{,f,l}.  */
-
-#ifdef __osf__
-#undef HAVE_CABS
-#undef HAVE_CABSF
-#undef HAVE_CABSL
-#define cabs __gfc_cabs
-#define cabsf __gfc_cabsf
-#define cabsl __gfc_cabsl
-#endif
 
 /* On a C99 system "I" (with I*I = -1) should be defined in complex.h;
    if not, we define a fallback version here.  */
@@ -559,6 +532,37 @@ powf (float x, float y)
 #endif
 
 
+#ifndef HAVE_ROUND
+#define HAVE_ROUND 1
+/* Round to nearest integral value.  If the argument is halfway between two
+   integral values then round away from zero.  */
+double round (double x);
+
+double
+round (double x)
+{
+   double t;
+   if (!isfinite (x))
+     return (x);
+
+   if (x >= 0.0) 
+    {
+      t = floor (x);
+      if (t - x <= -0.5)
+	t += 1.0;
+      return (t);
+    } 
+   else 
+    {
+      t = floor (-x);
+      if (t + x <= -0.5)
+	t += 1.0;
+      return (-t);
+    }
+}
+#endif
+
+
 /* Algorithm by Steven G. Kargl.  */
 
 #if !defined(HAVE_ROUNDL)
@@ -612,36 +616,6 @@ roundl (long double x)
 }
 
 #endif
-#endif
-
-#ifndef HAVE_ROUND
-#define HAVE_ROUND 1
-/* Round to nearest integral value.  If the argument is halfway between two
-   integral values then round away from zero.  */
-double round (double x);
-
-double
-round (double x)
-{
-   double t;
-   if (!isfinite (x))
-     return (x);
-
-   if (x >= 0.0) 
-    {
-      t = floor (x);
-      if (t - x <= -0.5)
-	t += 1.0;
-      return (t);
-    } 
-   else 
-    {
-      t = floor (-x);
-      if (t + x <= -0.5)
-	t += 1.0;
-      return (-t);
-    }
-}
 #endif
 
 #ifndef HAVE_ROUNDF

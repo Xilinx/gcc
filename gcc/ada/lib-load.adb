@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -359,8 +359,24 @@ package body Lib.Load is
       Src_Ind      : Source_File_Index;
       Save_PMES    : constant Boolean := Parsing_Main_Extended_Source;
 
+      Save_Cunit_Restrictions : constant Save_Cunit_Boolean_Restrictions :=
+                                  Cunit_Boolean_Restrictions_Save;
+      --  Save current restrictions for restore at end
+
    begin
       Parsing_Main_Extended_Source := PMES;
+
+      --  Initialize restrictions to config restrictions for unit to load if
+      --  it is part of the main extended source, otherwise reset them.
+
+      --  Note: it's a bit odd but PMES is False for subunits, which is why
+      --  we have the OR here. Should be investigated some time???
+
+      if PMES or Subunit then
+         Restore_Config_Cunit_Boolean_Restrictions;
+      else
+         Reset_Cunit_Boolean_Restrictions;
+      end if;
 
       --  If renamings are allowed and we have a child unit name, then we
       --  must first load the parent to deal with finding the real name.
@@ -390,9 +406,25 @@ package body Lib.Load is
               New_Child
                 (Load_Name, Get_Unit_Name (Name (Unit (Cunit (Unump)))));
 
+            --  If the load is for a with_clause, for visibility purposes both
+            --  the renamed entity and renaming one must be available in the
+            --  current unit: the renamed one in order to retrieve the child
+            --  unit, and the original one because it may be used as a prefix
+            --  in the body of the current unit. We add an explicit with_clause
+            --  for the original parent so that the renaming declaration is
+            --  properly loaded and analyzed.
+
+            if Present (With_Node) then
+               Insert_After (With_Node,
+                 Make_With_Clause (Sloc (With_Node),
+                   Name => Copy_Separate_Tree (Prefix (Name (With_Node)))));
+            end if;
+
             --  Save the renaming entity, to establish its visibility when
             --  installing the context. The implicit with is on this entity,
-            --  not on the package it renames.
+            --  not on the package it renames. This is somewhat redundant given
+            --  the with_clause just created, but it simplifies subsequent
+            --  expansion of the current with_clause. Optimizable ???
 
             if Nkind (Error_Node) = N_With_Clause
               and then Nkind (Name (Error_Node)) = N_Selected_Component
@@ -782,6 +814,7 @@ package body Lib.Load is
 
       <<Done>>
       Parsing_Main_Extended_Source := Save_PMES;
+      Cunit_Boolean_Restrictions_Restore (Save_Cunit_Restrictions);
       return Unum;
    end Load_Unit;
 

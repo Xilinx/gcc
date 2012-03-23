@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler for Renesas / SuperH SH.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Steve Chamberlain (sac@cygnus.com).
    Improved by Jim Wilson (wilson@cygnus.com).
@@ -290,7 +290,7 @@ do { \
 #endif
 
 #ifndef TARGET_OPT_DEFAULT
-#define TARGET_OPT_DEFAULT  MASK_ADJUST_UNROLL
+#define TARGET_OPT_DEFAULT  0
 #endif
 
 #define TARGET_DEFAULT \
@@ -417,7 +417,23 @@ do { \
 #define SH_DIV_STR_FOR_SIZE "call"
 #endif
 
-#define DRIVER_SELF_SPECS "%{m2a:%{ml:%eSH2a does not support little-endian}}"
+/* SH2A does not support little-endian.  Catch such combinations
+   taking into account the default configuration.  */
+#if TARGET_ENDIAN_DEFAULT == MASK_BIG_ENDIAN
+#define IS_LITTLE_ENDIAN_OPTION "%{ml:"
+#else
+#define IS_LITTLE_ENDIAN_OPTION "%{!mb:"
+#endif
+ 
+#if TARGET_CPU_DEFAULT & MASK_HARD_SH2A
+#define UNSUPPORTED_SH2A IS_LITTLE_ENDIAN_OPTION \
+"%{m2a*|!m1:%{!m2*:%{!m3*:%{!m4*:{!m5*:%eSH2a does not support little-endian}}}}}}"
+#else
+#define UNSUPPORTED_SH2A IS_LITTLE_ENDIAN_OPTION \
+"%{m2a*:%eSH2a does not support little-endian}}"
+#endif
+
+#define DRIVER_SELF_SPECS UNSUPPORTED_SH2A
 
 #define ASSEMBLER_DIALECT assembler_dialect
 
@@ -563,9 +579,7 @@ extern enum sh_divide_strategy_e sh_div_strategy;
 #define LABEL_ALIGN_AFTER_BARRIER(LABEL_AFTER_BARRIER) \
   barrier_align (LABEL_AFTER_BARRIER)
 
-#define LOOP_ALIGN(A_LABEL) \
-  ((! optimize || TARGET_HARD_SH4 || optimize_size) \
-   ? 0 : sh_loop_align (A_LABEL))
+#define LOOP_ALIGN(A_LABEL) sh_loop_align (A_LABEL)
 
 #define LABEL_ALIGN(A_LABEL) \
 (									\
@@ -1043,6 +1057,7 @@ enum reg_class
   MAC_REGS,
   FPUL_REGS,
   SIBCALL_REGS,
+  NON_SP_REGS,
   GENERAL_REGS,
   FP0_REGS,
   FP_REGS,
@@ -1068,6 +1083,7 @@ enum reg_class
   "MAC_REGS",		\
   "FPUL_REGS",		\
   "SIBCALL_REGS",	\
+  "NON_SP_REGS",	\
   "GENERAL_REGS",	\
   "FP0_REGS",		\
   "FP_REGS",		\
@@ -1100,6 +1116,8 @@ enum reg_class
   { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00400000 },	\
 /* SIBCALL_REGS: Initialized in TARGET_CONDITIONAL_REGISTER_USAGE.  */	\
   { 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000 },	\
+/* NON_SP_REGS:  */							\
+  { 0xffff7fff, 0xffffffff, 0x00000000, 0x00000000, 0x03020000 },	\
 /* GENERAL_REGS:  */							\
   { 0xffffffff, 0xffffffff, 0x00000000, 0x00000000, 0x03020000 },	\
 /* FP0_REGS:  */							\
@@ -1192,8 +1210,23 @@ extern enum reg_class regno_reg_class[FIRST_PSEUDO_REGISTER];
   ((HOST_BITS_PER_WIDE_INT >= 64 && (VALUE) == (HOST_WIDE_INT) 0xffffffff) \
    || (HOST_BITS_PER_WIDE_INT >= 64 && (VALUE) == (HOST_WIDE_INT) -1 << 32))
 
+#define CONST_OK_FOR_K04(VALUE) (((HOST_WIDE_INT)(VALUE))>= 0 \
+				 && ((HOST_WIDE_INT)(VALUE)) <= 15)
+
 #define CONST_OK_FOR_K08(VALUE) (((HOST_WIDE_INT)(VALUE))>= 0 \
 				 && ((HOST_WIDE_INT)(VALUE)) <= 255)
+
+#define CONST_OK_FOR_K12(VALUE) (((HOST_WIDE_INT)(VALUE))>= 0 \
+				 && ((HOST_WIDE_INT)(VALUE)) <= 4095)
+
+#define ZERO_EXTRACT_ANDMASK(EXTRACT_SZ_RTX, EXTRACT_POS_RTX)\
+  (((1 << INTVAL (EXTRACT_SZ_RTX)) - 1) << INTVAL (EXTRACT_POS_RTX))
+
+#define DISP_ADDR_P(X) (MEM_P (X) && GET_CODE (XEXP (X, 0)) == PLUS \
+			 && REG_P (XEXP (XEXP (X, 0), 0)) \
+			 && CONST_INT_P (XEXP (XEXP (X, 0), 1)))
+
+#define DISP_ADDR_OFFSET(X) (INTVAL (XEXP (XEXP (X, 0), 1)))
 
 #if 0
 #define SECONDARY_INOUT_RELOAD_CLASS(CLASS,MODE,X,ELSE) \
@@ -1886,12 +1919,6 @@ struct sh_args {
 
 #define ALLOW_INDEXED_ADDRESS \
   ((!TARGET_SHMEDIA32 && !TARGET_SHCOMPACT) || TARGET_ALLOW_INDEXED_ADDRESS)
-
-#define GO_IF_LEGITIMATE_INDEX(MODE, OP, WIN)	\
-  do {						\
-    if (sh_legitimate_index_p ((MODE), (OP)))	\
-      goto WIN;					\
-  } while (0)
 
 /* A C compound statement that attempts to replace X, which is an address
    that needs reloading, with a valid memory address for an operand of
@@ -1980,7 +2007,7 @@ struct sh_args {
    that the native compiler puts too large (> 32) immediate shift counts
    into a register and shifts by the register, letting the SH decide what
    to do instead of doing that itself.  */
-/* ??? The library routines in lib1funcs.asm truncate the shift count.
+/* ??? The library routines in lib1funcs.S truncate the shift count.
    However, the SH3 has hardware shifts that do not truncate exactly as gcc
    expects - the sign bit is significant - so it appears that we need to
    leave this zero for correct SH3 code.  */
@@ -2053,7 +2080,7 @@ struct sh_args {
    register information here is not used for SFmode.  */
 
 #define REGCLASS_HAS_GENERAL_REG(CLASS) \
-  ((CLASS) == GENERAL_REGS || (CLASS) == R0_REGS \
+  ((CLASS) == GENERAL_REGS || (CLASS) == R0_REGS || (CLASS) == NON_SP_REGS \
     || (! TARGET_SHMEDIA && (CLASS) == SIBCALL_REGS))
 
 #define REGCLASS_HAS_FP_REG(CLASS) \
@@ -2065,12 +2092,8 @@ struct sh_args {
    different code that does fewer memory accesses.  */
 
 /* A C expression for the cost of a branch instruction.  A value of 1
-   is the default; other values are interpreted relative to that.
-   The SH1 does not have delay slots, hence we get a pipeline stall
-   at every branch.  The SH4 is superscalar, so the single delay slot
-   is not sufficient to keep both pipelines filled.  */
-#define BRANCH_COST(speed_p, predictable_p) \
-	(TARGET_SH5 ? 1 : ! TARGET_SH2 || TARGET_HARD_SH4 ? 2 : 1)
+   is the default; other values are interpreted relative to that.  */
+#define BRANCH_COST(speed_p, predictable_p) sh_branch_cost
 
 /* Assembler output control.  */
 
@@ -2371,7 +2394,8 @@ extern int current_function_interrupt;
 #define ACCUMULATE_OUTGOING_ARGS TARGET_ACCUMULATE_OUTGOING_ARGS
 
 #define SH_DYNAMIC_SHIFT_COST \
-  (TARGET_HARD_SH4 ? 1 : TARGET_SH3 ? (optimize_size ? 1 : 2) : 20)
+  (TARGET_HARD_SH4 ? 1	\
+   : (TARGET_SH3 || TARGET_SH2A) ? (optimize_size ? 1 : 2) : 20)
 
 
 #define NUM_MODES_FOR_MODE_SWITCHING { FP_MODE_NONE }

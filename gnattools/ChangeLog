@@ -1,3 +1,25 @@
+2012-03-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (mips-sgi-irix*): Remove.
+	* configure: Regenerate.
+
+2011-10-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* Makefile.in (LOOSE_WARN): Delete.
+	(GCC_WARN_CFLAGS): Set to -W -Wall.
+	(TOOLS_FLAGS_TO_PASS_1): Delete.
+	(TOOLS_FLAGS_TO_PASS_1re): Rename into...
+	(TOOLS_FLAGS_TO_PASS_RE): ...this.
+	(gnattools-native): Use TOOLS_FLAGS_TO_PASS_NATIVE.
+	(regnattools): Use TOOLS_FLAGS_TO_PASS_RE.
+
+2011-07-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/39150
+	* configure.ac (*86-*-solaris2*): Also accept
+	x86_64-*-solaris2.1[0-9]*.
+	* configure: Regenerate.
+
 2010-11-20  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	PR other/46202

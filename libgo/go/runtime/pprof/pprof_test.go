@@ -7,6 +7,7 @@ package pprof_test
 import (
 	"bytes"
 	"hash/crc32"
+	"os/exec"
 	"runtime"
 	. "runtime/pprof"
 	"strings"
@@ -17,12 +18,17 @@ import (
 func TestCPUProfile(t *testing.T) {
 	switch runtime.GOOS {
 	case "darwin":
-		// see Apple Bug Report #9177434 (copied into change description)
-		return
+		out, err := exec.Command("uname", "-a").CombinedOutput()
+		if err != nil {
+			t.Fatal(err)
+		}
+		vers := string(out)
+		t.Logf("uname -a: %v", vers)
+		if strings.Contains(vers, "Darwin Kernel Version 10.8.0") && strings.Contains(vers, "root:xnu-1504.15.3~1/RELEASE_X86_64") {
+			t.Logf("skipping test on known-broken kernel (64-bit Snow Leopard)")
+			return
+		}
 	case "plan9":
-		// unimplemented
-		return
-	case "windows":
 		// unimplemented
 		return
 	}
@@ -43,7 +49,7 @@ func TestCPUProfile(t *testing.T) {
 	// Convert []byte to []uintptr.
 	bytes := prof.Bytes()
 	val := *(*[]uintptr)(unsafe.Pointer(&bytes))
-	val = val[:len(bytes)/unsafe.Sizeof(uintptr(0))]
+	val = val[:len(bytes)/int(unsafe.Sizeof(uintptr(0)))]
 
 	if len(val) < 10 {
 		t.Fatalf("profile too short: %#x", val)

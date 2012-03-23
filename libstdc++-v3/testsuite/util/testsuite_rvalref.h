@@ -68,6 +68,7 @@ namespace __gnu_test
     operator=(rvalstruct&& in)
     {
       bool test __attribute__((unused)) = true;
+      VERIFY( this != &in );
       VERIFY( in.valid == true );
       val = in.val;
       in.valid = false;
@@ -254,6 +255,9 @@ namespace __gnu_test
     { throw 1; }
 
     throwing_move_constructor(const throwing_move_constructor&) = default;
+
+    throwing_move_constructor&
+    operator=(const throwing_move_constructor&) = default;
   };
 
 } // namespace __gnu_test

@@ -3,7 +3,7 @@
 #
 # Makefile for directory with subdirs to build.
 #   Copyright (C) 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-#   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+#   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
 #   Free Software Foundation
 #
 # This file is free software; you can redistribute it and/or modify
@@ -206,6 +206,7 @@ HOST_EXPORTS = \
 	WINDMC="$(WINDMC)"; export WINDMC; \
 	OBJCOPY="$(OBJCOPY)"; export OBJCOPY; \
 	OBJDUMP="$(OBJDUMP)"; export OBJDUMP; \
+	READELF="$(READELF)"; export READELF; \
 	AR_FOR_TARGET="$(AR_FOR_TARGET)"; export AR_FOR_TARGET; \
 	AS_FOR_TARGET="$(AS_FOR_TARGET)"; export AS_FOR_TARGET; \
 	GCC_FOR_TARGET="$(GCC_FOR_TARGET)"; export GCC_FOR_TARGET; \
@@ -213,6 +214,7 @@ HOST_EXPORTS = \
 	NM_FOR_TARGET="$(NM_FOR_TARGET)"; export NM_FOR_TARGET; \
 	OBJDUMP_FOR_TARGET="$(OBJDUMP_FOR_TARGET)"; export OBJDUMP_FOR_TARGET; \
 	RANLIB_FOR_TARGET="$(RANLIB_FOR_TARGET)"; export RANLIB_FOR_TARGET; \
+	READELF_FOR_TARGET="$(READELF_FOR_TARGET)"; export READELF_FOR_TARGET; \
 	TOPLEVEL_CONFIGURE_ARGUMENTS="$(TOPLEVEL_CONFIGURE_ARGUMENTS)"; export TOPLEVEL_CONFIGURE_ARGUMENTS; \
 	HOST_LIBS="$(STAGE1_LIBS)"; export HOST_LIBS; \
 	GMPLIBS="$(HOST_GMPLIBS)"; export GMPLIBS; \
@@ -237,10 +239,13 @@ POSTSTAGE1_CXX_EXPORT = \
 	CXX="$(STAGE_CC_WRAPPER) $$r/$(HOST_SUBDIR)/prev-gcc/g++$(exeext) \
 	  -B$$r/$(HOST_SUBDIR)/prev-gcc/ -B$(build_tooldir)/bin/ -nostdinc++ \
 	  -B$$r/prev-$(TARGET_SUBDIR)/libstdc++-v3/src/.libs \
+	  -B$$r/prev-$(TARGET_SUBDIR)/libstdc++-v3/libsupc++/.libs \
 	  -I$$r/prev-$(TARGET_SUBDIR)/libstdc++-v3/include/$(TARGET_SUBDIR) \
 	  -I$$r/prev-$(TARGET_SUBDIR)/libstdc++-v3/include \
 	  -I$$s/libstdc++-v3/libsupc++ \
-	  -L$$r/prev-$(TARGET_SUBDIR)/libstdc++-v3/src/.libs"; export CXX; \
+	  -L$$r/prev-$(TARGET_SUBDIR)/libstdc++-v3/src/.libs \
+	  -L$$r/prev-$(TARGET_SUBDIR)/libstdc++-v3/libsupc++/.libs"; \
+	  export CXX; \
 	CXX_FOR_BUILD="$$CXX"; export CXX_FOR_BUILD;
 @endif target-libstdc++-v3-bootstrap
 
@@ -282,6 +287,7 @@ BASE_TARGET_EXPORTS = \
 	NM="$(COMPILER_NM_FOR_TARGET)"; export NM; \
 	OBJDUMP="$(OBJDUMP_FOR_TARGET)"; export OBJDUMP; \
 	RANLIB="$(RANLIB_FOR_TARGET)"; export RANLIB; \
+	READELF="$(READELF_FOR_TARGET)"; export READELF; \
 	STRIP="$(STRIP_FOR_TARGET)"; export STRIP; \
 	WINDRES="$(WINDRES_FOR_TARGET)"; export WINDRES; \
 	WINDMC="$(WINDMC_FOR_TARGET)"; export WINDMC; \
@@ -315,6 +321,8 @@ HOST_CLOOGINC = @clooginc@
 # Where to find libelf
 HOST_LIBELFLIBS = @libelflibs@
 HOST_LIBELFINC = @libelfinc@
+
+EXTRA_CONFIGARGS_LIBJAVA = @EXTRA_CONFIGARGS_LIBJAVA@
 
 # ----------------------------------------------
 # Programs producing files for the BUILD machine
@@ -392,6 +400,7 @@ LIPO = @LIPO@
 NM = @NM@
 OBJDUMP = @OBJDUMP@
 RANLIB = @RANLIB@
+READELF = @READELF@
 STRIP = @STRIP@
 WINDRES = @WINDRES@
 WINDMC = @WINDMC@
@@ -413,6 +422,7 @@ TFLAGS =
 STAGE_CFLAGS = $(BOOT_CFLAGS)
 STAGE_TFLAGS = $(TFLAGS)
 STAGE_CONFIGURE_FLAGS=@stage2_werror_flag@
+POSTSTAGE1_CONFIGURE_FLAGS = @POSTSTAGE1_CONFIGURE_FLAGS@
 
 
 # Defaults for stage 1; some are overridden below.
@@ -423,7 +433,10 @@ STAGE1_CXXFLAGS = $(CXXFLAGS)
 STAGE1_CXXFLAGS = $(STAGE1_CFLAGS)
 @endif target-libstdc++-v3-bootstrap
 STAGE1_TFLAGS = $(STAGE_TFLAGS)
-STAGE1_CONFIGURE_FLAGS = $(STAGE_CONFIGURE_FLAGS)
+# STAGE1_CONFIGURE_FLAGS overridden below, so we can use
+# POSTSTAGE1_CONFIGURE_FLAGS here.
+STAGE1_CONFIGURE_FLAGS = \
+	$(STAGE_CONFIGURE_FLAGS) $(POSTSTAGE1_CONFIGURE_FLAGS)
 
 # Defaults for stage 2; some are overridden below.
 STAGE2_CFLAGS = $(STAGE_CFLAGS)
@@ -433,7 +446,10 @@ STAGE2_CXXFLAGS = $(CXXFLAGS)
 STAGE2_CXXFLAGS = $(STAGE2_CFLAGS)
 @endif target-libstdc++-v3-bootstrap
 STAGE2_TFLAGS = $(STAGE_TFLAGS)
-STAGE2_CONFIGURE_FLAGS = $(STAGE_CONFIGURE_FLAGS)
+# STAGE1_CONFIGURE_FLAGS overridden below, so we can use
+# POSTSTAGE1_CONFIGURE_FLAGS here.
+STAGE2_CONFIGURE_FLAGS = \
+	$(STAGE_CONFIGURE_FLAGS) $(POSTSTAGE1_CONFIGURE_FLAGS)
 
 # Defaults for stage 3; some are overridden below.
 STAGE3_CFLAGS = $(STAGE_CFLAGS)
@@ -443,7 +459,10 @@ STAGE3_CXXFLAGS = $(CXXFLAGS)
 STAGE3_CXXFLAGS = $(STAGE3_CFLAGS)
 @endif target-libstdc++-v3-bootstrap
 STAGE3_TFLAGS = $(STAGE_TFLAGS)
-STAGE3_CONFIGURE_FLAGS = $(STAGE_CONFIGURE_FLAGS)
+# STAGE1_CONFIGURE_FLAGS overridden below, so we can use
+# POSTSTAGE1_CONFIGURE_FLAGS here.
+STAGE3_CONFIGURE_FLAGS = \
+	$(STAGE_CONFIGURE_FLAGS) $(POSTSTAGE1_CONFIGURE_FLAGS)
 
 # Defaults for stage 4; some are overridden below.
 STAGE4_CFLAGS = $(STAGE_CFLAGS)
@@ -453,7 +472,10 @@ STAGE4_CXXFLAGS = $(CXXFLAGS)
 STAGE4_CXXFLAGS = $(STAGE4_CFLAGS)
 @endif target-libstdc++-v3-bootstrap
 STAGE4_TFLAGS = $(STAGE_TFLAGS)
-STAGE4_CONFIGURE_FLAGS = $(STAGE_CONFIGURE_FLAGS)
+# STAGE1_CONFIGURE_FLAGS overridden below, so we can use
+# POSTSTAGE1_CONFIGURE_FLAGS here.
+STAGE4_CONFIGURE_FLAGS = \
+	$(STAGE_CONFIGURE_FLAGS) $(POSTSTAGE1_CONFIGURE_FLAGS)
 
 # Defaults for stage profile; some are overridden below.
 STAGEprofile_CFLAGS = $(STAGE_CFLAGS)
@@ -463,7 +485,10 @@ STAGEprofile_CXXFLAGS = $(CXXFLAGS)
 STAGEprofile_CXXFLAGS = $(STAGEprofile_CFLAGS)
 @endif target-libstdc++-v3-bootstrap
 STAGEprofile_TFLAGS = $(STAGE_TFLAGS)
-STAGEprofile_CONFIGURE_FLAGS = $(STAGE_CONFIGURE_FLAGS)
+# STAGE1_CONFIGURE_FLAGS overridden below, so we can use
+# POSTSTAGE1_CONFIGURE_FLAGS here.
+STAGEprofile_CONFIGURE_FLAGS = \
+	$(STAGE_CONFIGURE_FLAGS) $(POSTSTAGE1_CONFIGURE_FLAGS)
 
 # Defaults for stage feedback; some are overridden below.
 STAGEfeedback_CFLAGS = $(STAGE_CFLAGS)
@@ -473,7 +498,10 @@ STAGEfeedback_CXXFLAGS = $(CXXFLAGS)
 STAGEfeedback_CXXFLAGS = $(STAGEfeedback_CFLAGS)
 @endif target-libstdc++-v3-bootstrap
 STAGEfeedback_TFLAGS = $(STAGE_TFLAGS)
-STAGEfeedback_CONFIGURE_FLAGS = $(STAGE_CONFIGURE_FLAGS)
+# STAGE1_CONFIGURE_FLAGS overridden below, so we can use
+# POSTSTAGE1_CONFIGURE_FLAGS here.
+STAGEfeedback_CONFIGURE_FLAGS = \
+	$(STAGE_CONFIGURE_FLAGS) $(POSTSTAGE1_CONFIGURE_FLAGS)
 
 
 # Only build the C compiler for stage1, because that is the only one that
@@ -491,6 +519,9 @@ STAGE1_LANGUAGES = @stage1_languages@
 #   the last argument when conflicting --enable arguments are passed.
 # * Likewise, we force-disable coverage flags, since the installed
 #   compiler probably has never heard of them.
+# * Don't remove this, because above we added
+#   POSTSTAGE1_CONFIGURE_FLAGS to STAGE_CONFIGURE_FLAGS, which
+#   we don't want for STAGE1_CONFIGURE_FLAGS.
 STAGE1_CONFIGURE_FLAGS = --disable-intermodule $(STAGE1_CHECKING) \
 	  --disable-coverage --enable-languages="$(STAGE1_LANGUAGES)"
 
@@ -528,6 +559,7 @@ LIPO_FOR_TARGET=@LIPO_FOR_TARGET@
 NM_FOR_TARGET=@NM_FOR_TARGET@
 OBJDUMP_FOR_TARGET=@OBJDUMP_FOR_TARGET@
 RANLIB_FOR_TARGET=@RANLIB_FOR_TARGET@
+READELF_FOR_TARGET=@READELF_FOR_TARGET@
 STRIP_FOR_TARGET=@STRIP_FOR_TARGET@
 WINDRES_FOR_TARGET=@WINDRES_FOR_TARGET@
 WINDMC_FOR_TARGET=@WINDMC_FOR_TARGET@
@@ -567,7 +599,7 @@ all:
 
 # This is the list of directories that may be needed in RPATH_ENVVAR
 # so that programs built for the target machine work.
-TARGET_LIB_PATH = $(TARGET_LIB_PATH_libstdc++-v3)$(TARGET_LIB_PATH_libmudflap)$(TARGET_LIB_PATH_libssp)$(TARGET_LIB_PATH_libgomp)$(HOST_LIB_PATH_gcc)
+TARGET_LIB_PATH = $(TARGET_LIB_PATH_libstdc++-v3)$(TARGET_LIB_PATH_libmudflap)$(TARGET_LIB_PATH_libssp)$(TARGET_LIB_PATH_libgomp)$(TARGET_LIB_PATH_libitm)$(HOST_LIB_PATH_gcc)
 
 @if target-libstdc++-v3
 TARGET_LIB_PATH_libstdc++-v3 = $$r/$(TARGET_SUBDIR)/libstdc++-v3/src/.libs:
@@ -584,6 +616,10 @@ TARGET_LIB_PATH_libssp = $$r/$(TARGET_SUBDIR)/libssp/.libs:
 @if target-libgomp
 TARGET_LIB_PATH_libgomp = $$r/$(TARGET_SUBDIR)/libgomp/.libs:
 @endif target-libgomp
+
+@if target-libitm
+TARGET_LIB_PATH_libitm = $$r/$(TARGET_SUBDIR)/libitm/.libs:
+@endif target-libitm
 
 
 
@@ -740,6 +776,7 @@ BASE_FLAGS_TO_PASS = \
 	"NM_FOR_TARGET=$(NM_FOR_TARGET)" \
 	"OBJDUMP_FOR_TARGET=$(OBJDUMP_FOR_TARGET)" \
 	"RANLIB_FOR_TARGET=$(RANLIB_FOR_TARGET)" \
+	"READELF_FOR_TARGET=$(READELF_FOR_TARGET)" \
 	"STRIP_FOR_TARGET=$(STRIP_FOR_TARGET)" \
 	"WINDRES_FOR_TARGET=$(WINDRES_FOR_TARGET)" \
 	"WINDMC_FOR_TARGET=$(WINDMC_FOR_TARGET)" \
@@ -788,6 +825,7 @@ EXTRA_HOST_FLAGS = \
 	'NM=$(NM)' \
 	'OBJDUMP=$(OBJDUMP)' \
 	'RANLIB=$(RANLIB)' \
+	'READELF=$(READELF)' \
 	'STRIP=$(STRIP)' \
 	'WINDRES=$(WINDRES)' \
 	'WINDMC=$(WINDMC)'
@@ -828,6 +866,7 @@ EXTRA_TARGET_FLAGS = \
 	'NM=$(COMPILER_NM_FOR_TARGET)' \
 	'OBJDUMP=$$(OBJDUMP_FOR_TARGET)' \
 	'RANLIB=$$(RANLIB_FOR_TARGET)' \
+	'READELF=$$(READELF_FOR_TARGET)' \
 	'WINDRES=$$(WINDRES_FOR_TARGET)' \
 	'WINDMC=$$(WINDMC_FOR_TARGET)' \
 	'XGCC_FLAGS_FOR_TARGET=$(XGCC_FLAGS_FOR_TARGET)' \
@@ -844,10 +883,7 @@ TARGET_FLAGS_TO_PASS = $(BASE_FLAGS_TO_PASS) $(EXTRA_TARGET_FLAGS)
 EXTRA_GCC_FLAGS = \
 	"GCC_FOR_TARGET=$(GCC_FOR_TARGET)" \
 	"`echo 'STMP_FIXPROTO=$(STMP_FIXPROTO)' | sed -e s'/[^=][^=]*=$$/XFOO=/'`" \
-	"`echo 'LIMITS_H_TEST=$(LIMITS_H_TEST)' | sed -e s'/[^=][^=]*=$$/XFOO=/'`" \
-	"`echo 'LIBGCC2_CFLAGS=$(LIBGCC2_CFLAGS)' | sed -e s'/[^=][^=]*=$$/XFOO=/'`" \
-	"`echo 'LIBGCC2_DEBUG_CFLAGS=$(LIBGCC2_DEBUG_CFLAGS)' | sed -e s'/[^=][^=]*=$$/XFOO=/'`" \
-	"`echo 'LIBGCC2_INCLUDES=$(LIBGCC2_INCLUDES)' | sed -e s'/[^=][^=]*=$$/XFOO=/'`"
+	"`echo 'LIMITS_H_TEST=$(LIMITS_H_TEST)' | sed -e s'/[^=][^=]*=$$/XFOO=/'`"
 
 GCC_FLAGS_TO_PASS = $(BASE_FLAGS_TO_PASS) $(EXTRA_HOST_FLAGS) $(EXTRA_GCC_FLAGS)
 
@@ -917,14 +953,14 @@ configure-target:  \
     maybe-configure-target-libtermcap \
     maybe-configure-target-winsup \
     maybe-configure-target-libgloss \
-    maybe-configure-target-libiberty \
     maybe-configure-target-libffi \
     maybe-configure-target-libjava \
     maybe-configure-target-zlib \
     maybe-configure-target-boehm-gc \
     maybe-configure-target-rda \
     maybe-configure-target-libada \
-    maybe-configure-target-libgomp
+    maybe-configure-target-libgomp \
+    maybe-configure-target-libitm
 
 # The target built for a native non-bootstrap build.
 .PHONY: all
@@ -1062,7 +1098,6 @@ all-target: maybe-all-target-libgo
 all-target: maybe-all-target-libtermcap
 all-target: maybe-all-target-winsup
 all-target: maybe-all-target-libgloss
-all-target: maybe-all-target-libiberty
 all-target: maybe-all-target-libffi
 all-target: maybe-all-target-libjava
 all-target: maybe-all-target-zlib
@@ -1072,6 +1107,7 @@ all-target: maybe-all-target-libada
 @if target-libgomp-no-bootstrap
 all-target: maybe-all-target-libgomp
 @endif target-libgomp-no-bootstrap
+all-target: maybe-all-target-libitm
 
 # Do a target for all the subdirectories.  A ``make do-X'' will do a
 # ``make X'' in all subdirectories (because, in general, there is a
@@ -1147,7 +1183,6 @@ info-target: maybe-info-target-libgo
 info-target: maybe-info-target-libtermcap
 info-target: maybe-info-target-winsup
 info-target: maybe-info-target-libgloss
-info-target: maybe-info-target-libiberty
 info-target: maybe-info-target-libffi
 info-target: maybe-info-target-libjava
 info-target: maybe-info-target-zlib
@@ -1155,6 +1190,7 @@ info-target: maybe-info-target-boehm-gc
 info-target: maybe-info-target-rda
 info-target: maybe-info-target-libada
 info-target: maybe-info-target-libgomp
+info-target: maybe-info-target-libitm
 
 .PHONY: do-dvi
 do-dvi:
@@ -1225,7 +1261,6 @@ dvi-target: maybe-dvi-target-libgo
 dvi-target: maybe-dvi-target-libtermcap
 dvi-target: maybe-dvi-target-winsup
 dvi-target: maybe-dvi-target-libgloss
-dvi-target: maybe-dvi-target-libiberty
 dvi-target: maybe-dvi-target-libffi
 dvi-target: maybe-dvi-target-libjava
 dvi-target: maybe-dvi-target-zlib
@@ -1233,6 +1268,7 @@ dvi-target: maybe-dvi-target-boehm-gc
 dvi-target: maybe-dvi-target-rda
 dvi-target: maybe-dvi-target-libada
 dvi-target: maybe-dvi-target-libgomp
+dvi-target: maybe-dvi-target-libitm
 
 .PHONY: do-pdf
 do-pdf:
@@ -1303,7 +1339,6 @@ pdf-target: maybe-pdf-target-libgo
 pdf-target: maybe-pdf-target-libtermcap
 pdf-target: maybe-pdf-target-winsup
 pdf-target: maybe-pdf-target-libgloss
-pdf-target: maybe-pdf-target-libiberty
 pdf-target: maybe-pdf-target-libffi
 pdf-target: maybe-pdf-target-libjava
 pdf-target: maybe-pdf-target-zlib
@@ -1311,6 +1346,7 @@ pdf-target: maybe-pdf-target-boehm-gc
 pdf-target: maybe-pdf-target-rda
 pdf-target: maybe-pdf-target-libada
 pdf-target: maybe-pdf-target-libgomp
+pdf-target: maybe-pdf-target-libitm
 
 .PHONY: do-html
 do-html:
@@ -1381,7 +1417,6 @@ html-target: maybe-html-target-libgo
 html-target: maybe-html-target-libtermcap
 html-target: maybe-html-target-winsup
 html-target: maybe-html-target-libgloss
-html-target: maybe-html-target-libiberty
 html-target: maybe-html-target-libffi
 html-target: maybe-html-target-libjava
 html-target: maybe-html-target-zlib
@@ -1389,6 +1424,7 @@ html-target: maybe-html-target-boehm-gc
 html-target: maybe-html-target-rda
 html-target: maybe-html-target-libada
 html-target: maybe-html-target-libgomp
+html-target: maybe-html-target-libitm
 
 .PHONY: do-TAGS
 do-TAGS:
@@ -1459,7 +1495,6 @@ TAGS-target: maybe-TAGS-target-libgo
 TAGS-target: maybe-TAGS-target-libtermcap
 TAGS-target: maybe-TAGS-target-winsup
 TAGS-target: maybe-TAGS-target-libgloss
-TAGS-target: maybe-TAGS-target-libiberty
 TAGS-target: maybe-TAGS-target-libffi
 TAGS-target: maybe-TAGS-target-libjava
 TAGS-target: maybe-TAGS-target-zlib
@@ -1467,6 +1502,7 @@ TAGS-target: maybe-TAGS-target-boehm-gc
 TAGS-target: maybe-TAGS-target-rda
 TAGS-target: maybe-TAGS-target-libada
 TAGS-target: maybe-TAGS-target-libgomp
+TAGS-target: maybe-TAGS-target-libitm
 
 .PHONY: do-install-info
 do-install-info:
@@ -1537,7 +1573,6 @@ install-info-target: maybe-install-info-target-libgo
 install-info-target: maybe-install-info-target-libtermcap
 install-info-target: maybe-install-info-target-winsup
 install-info-target: maybe-install-info-target-libgloss
-install-info-target: maybe-install-info-target-libiberty
 install-info-target: maybe-install-info-target-libffi
 install-info-target: maybe-install-info-target-libjava
 install-info-target: maybe-install-info-target-zlib
@@ -1545,6 +1580,7 @@ install-info-target: maybe-install-info-target-boehm-gc
 install-info-target: maybe-install-info-target-rda
 install-info-target: maybe-install-info-target-libada
 install-info-target: maybe-install-info-target-libgomp
+install-info-target: maybe-install-info-target-libitm
 
 .PHONY: do-install-pdf
 do-install-pdf:
@@ -1615,7 +1651,6 @@ install-pdf-target: maybe-install-pdf-target-libgo
 install-pdf-target: maybe-install-pdf-target-libtermcap
 install-pdf-target: maybe-install-pdf-target-winsup
 install-pdf-target: maybe-install-pdf-target-libgloss
-install-pdf-target: maybe-install-pdf-target-libiberty
 install-pdf-target: maybe-install-pdf-target-libffi
 install-pdf-target: maybe-install-pdf-target-libjava
 install-pdf-target: maybe-install-pdf-target-zlib
@@ -1623,6 +1658,7 @@ install-pdf-target: maybe-install-pdf-target-boehm-gc
 install-pdf-target: maybe-install-pdf-target-rda
 install-pdf-target: maybe-install-pdf-target-libada
 install-pdf-target: maybe-install-pdf-target-libgomp
+install-pdf-target: maybe-install-pdf-target-libitm
 
 .PHONY: do-install-html
 do-install-html:
@@ -1693,7 +1729,6 @@ install-html-target: maybe-install-html-target-libgo
 install-html-target: maybe-install-html-target-libtermcap
 install-html-target: maybe-install-html-target-winsup
 install-html-target: maybe-install-html-target-libgloss
-install-html-target: maybe-install-html-target-libiberty
 install-html-target: maybe-install-html-target-libffi
 install-html-target: maybe-install-html-target-libjava
 install-html-target: maybe-install-html-target-zlib
@@ -1701,6 +1736,7 @@ install-html-target: maybe-install-html-target-boehm-gc
 install-html-target: maybe-install-html-target-rda
 install-html-target: maybe-install-html-target-libada
 install-html-target: maybe-install-html-target-libgomp
+install-html-target: maybe-install-html-target-libitm
 
 .PHONY: do-installcheck
 do-installcheck:
@@ -1771,7 +1807,6 @@ installcheck-target: maybe-installcheck-target-libgo
 installcheck-target: maybe-installcheck-target-libtermcap
 installcheck-target: maybe-installcheck-target-winsup
 installcheck-target: maybe-installcheck-target-libgloss
-installcheck-target: maybe-installcheck-target-libiberty
 installcheck-target: maybe-installcheck-target-libffi
 installcheck-target: maybe-installcheck-target-libjava
 installcheck-target: maybe-installcheck-target-zlib
@@ -1779,6 +1814,7 @@ installcheck-target: maybe-installcheck-target-boehm-gc
 installcheck-target: maybe-installcheck-target-rda
 installcheck-target: maybe-installcheck-target-libada
 installcheck-target: maybe-installcheck-target-libgomp
+installcheck-target: maybe-installcheck-target-libitm
 
 .PHONY: do-mostlyclean
 do-mostlyclean:
@@ -1849,7 +1885,6 @@ mostlyclean-target: maybe-mostlyclean-target-libgo
 mostlyclean-target: maybe-mostlyclean-target-libtermcap
 mostlyclean-target: maybe-mostlyclean-target-winsup
 mostlyclean-target: maybe-mostlyclean-target-libgloss
-mostlyclean-target: maybe-mostlyclean-target-libiberty
 mostlyclean-target: maybe-mostlyclean-target-libffi
 mostlyclean-target: maybe-mostlyclean-target-libjava
 mostlyclean-target: maybe-mostlyclean-target-zlib
@@ -1857,6 +1892,7 @@ mostlyclean-target: maybe-mostlyclean-target-boehm-gc
 mostlyclean-target: maybe-mostlyclean-target-rda
 mostlyclean-target: maybe-mostlyclean-target-libada
 mostlyclean-target: maybe-mostlyclean-target-libgomp
+mostlyclean-target: maybe-mostlyclean-target-libitm
 
 .PHONY: do-clean
 do-clean:
@@ -1927,7 +1963,6 @@ clean-target: maybe-clean-target-libgo
 clean-target: maybe-clean-target-libtermcap
 clean-target: maybe-clean-target-winsup
 clean-target: maybe-clean-target-libgloss
-clean-target: maybe-clean-target-libiberty
 clean-target: maybe-clean-target-libffi
 clean-target: maybe-clean-target-libjava
 clean-target: maybe-clean-target-zlib
@@ -1935,6 +1970,7 @@ clean-target: maybe-clean-target-boehm-gc
 clean-target: maybe-clean-target-rda
 clean-target: maybe-clean-target-libada
 clean-target: maybe-clean-target-libgomp
+clean-target: maybe-clean-target-libitm
 
 .PHONY: do-distclean
 do-distclean:
@@ -2005,7 +2041,6 @@ distclean-target: maybe-distclean-target-libgo
 distclean-target: maybe-distclean-target-libtermcap
 distclean-target: maybe-distclean-target-winsup
 distclean-target: maybe-distclean-target-libgloss
-distclean-target: maybe-distclean-target-libiberty
 distclean-target: maybe-distclean-target-libffi
 distclean-target: maybe-distclean-target-libjava
 distclean-target: maybe-distclean-target-zlib
@@ -2013,6 +2048,7 @@ distclean-target: maybe-distclean-target-boehm-gc
 distclean-target: maybe-distclean-target-rda
 distclean-target: maybe-distclean-target-libada
 distclean-target: maybe-distclean-target-libgomp
+distclean-target: maybe-distclean-target-libitm
 
 .PHONY: do-maintainer-clean
 do-maintainer-clean:
@@ -2083,7 +2119,6 @@ maintainer-clean-target: maybe-maintainer-clean-target-libgo
 maintainer-clean-target: maybe-maintainer-clean-target-libtermcap
 maintainer-clean-target: maybe-maintainer-clean-target-winsup
 maintainer-clean-target: maybe-maintainer-clean-target-libgloss
-maintainer-clean-target: maybe-maintainer-clean-target-libiberty
 maintainer-clean-target: maybe-maintainer-clean-target-libffi
 maintainer-clean-target: maybe-maintainer-clean-target-libjava
 maintainer-clean-target: maybe-maintainer-clean-target-zlib
@@ -2091,6 +2126,7 @@ maintainer-clean-target: maybe-maintainer-clean-target-boehm-gc
 maintainer-clean-target: maybe-maintainer-clean-target-rda
 maintainer-clean-target: maybe-maintainer-clean-target-libada
 maintainer-clean-target: maybe-maintainer-clean-target-libgomp
+maintainer-clean-target: maybe-maintainer-clean-target-libitm
 
 
 # Here are the targets which correspond to the do-X targets.
@@ -2216,14 +2252,14 @@ check-target:  \
     maybe-check-target-libtermcap \
     maybe-check-target-winsup \
     maybe-check-target-libgloss \
-    maybe-check-target-libiberty \
     maybe-check-target-libffi \
     maybe-check-target-libjava \
     maybe-check-target-zlib \
     maybe-check-target-boehm-gc \
     maybe-check-target-rda \
     maybe-check-target-libada \
-    maybe-check-target-libgomp
+    maybe-check-target-libgomp \
+    maybe-check-target-libitm
 
 do-check:
 	@: $(MAKE); $(unstage)
@@ -2366,14 +2402,14 @@ install-target:  \
     maybe-install-target-libtermcap \
     maybe-install-target-winsup \
     maybe-install-target-libgloss \
-    maybe-install-target-libiberty \
     maybe-install-target-libffi \
     maybe-install-target-libjava \
     maybe-install-target-zlib \
     maybe-install-target-boehm-gc \
     maybe-install-target-rda \
     maybe-install-target-libada \
-    maybe-install-target-libgomp
+    maybe-install-target-libgomp \
+    maybe-install-target-libitm
 
 uninstall:
 	@echo "the uninstall target is not supported in this tree"
@@ -2463,14 +2499,14 @@ install-strip-target:  \
     maybe-install-strip-target-libtermcap \
     maybe-install-strip-target-winsup \
     maybe-install-strip-target-libgloss \
-    maybe-install-strip-target-libiberty \
     maybe-install-strip-target-libffi \
     maybe-install-strip-target-libjava \
     maybe-install-strip-target-zlib \
     maybe-install-strip-target-boehm-gc \
     maybe-install-strip-target-rda \
     maybe-install-strip-target-libada \
-    maybe-install-strip-target-libgomp
+    maybe-install-strip-target-libgomp \
+    maybe-install-strip-target-libitm
 
 
 ### other supporting targets
@@ -36413,463 +36449,6 @@ maintainer-clean-target-libgloss:
 
 
 
-.PHONY: configure-target-libiberty maybe-configure-target-libiberty
-maybe-configure-target-libiberty:
-@if gcc-bootstrap
-configure-target-libiberty: stage_current
-@endif gcc-bootstrap
-@if target-libiberty
-maybe-configure-target-libiberty: configure-target-libiberty
-configure-target-libiberty: 
-	@: $(MAKE); $(unstage)
-	@r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	echo "Checking multilib configuration for libiberty..."; \
-	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libiberty ; \
-	$(CC_FOR_TARGET) --print-multi-lib > $(TARGET_SUBDIR)/libiberty/multilib.tmp 2> /dev/null ; \
-	if test -r $(TARGET_SUBDIR)/libiberty/multilib.out; then \
-	  if cmp -s $(TARGET_SUBDIR)/libiberty/multilib.tmp $(TARGET_SUBDIR)/libiberty/multilib.out; then \
-	    rm -f $(TARGET_SUBDIR)/libiberty/multilib.tmp; \
-	  else \
-	    rm -f $(TARGET_SUBDIR)/libiberty/Makefile; \
-	    mv $(TARGET_SUBDIR)/libiberty/multilib.tmp $(TARGET_SUBDIR)/libiberty/multilib.out; \
-	  fi; \
-	else \
-	  mv $(TARGET_SUBDIR)/libiberty/multilib.tmp $(TARGET_SUBDIR)/libiberty/multilib.out; \
-	fi; \
-	test ! -f $(TARGET_SUBDIR)/libiberty/Makefile || exit 0; \
-	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libiberty ; \
-	$(NORMAL_TARGET_EXPORTS)  \
-	echo Configuring in $(TARGET_SUBDIR)/libiberty; \
-	cd "$(TARGET_SUBDIR)/libiberty" || exit 1; \
-	case $(srcdir) in \
-	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
-	  *) topdir=`echo $(TARGET_SUBDIR)/libiberty/ | \
-		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
-	esac; \
-	srcdiroption="--srcdir=$${topdir}/libiberty"; \
-	libsrcdir="$$s/libiberty"; \
-	rm -f no-such-file || : ; \
-	CONFIG_SITE=no-such-file $(SHELL) $${libsrcdir}/configure \
-	  $(TARGET_CONFIGARGS) --build=${build_alias} --host=${target_alias} \
-	  --target=${target_alias} $${srcdiroption}  \
-	  || exit 1
-@endif target-libiberty
-
-
-
-
-
-.PHONY: all-target-libiberty maybe-all-target-libiberty
-maybe-all-target-libiberty:
-@if gcc-bootstrap
-all-target-libiberty: stage_current
-@endif gcc-bootstrap
-@if target-libiberty
-TARGET-target-libiberty=all
-maybe-all-target-libiberty: all-target-libiberty
-all-target-libiberty: configure-target-libiberty
-	@: $(MAKE); $(unstage)
-	@r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS)  \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_TARGET_FLAGS)  \
-		$(TARGET-target-libiberty))
-@endif target-libiberty
-
-
-
-
-
-.PHONY: check-target-libiberty maybe-check-target-libiberty
-maybe-check-target-libiberty:
-@if target-libiberty
-maybe-check-target-libiberty: check-target-libiberty
-
-check-target-libiberty:
-	@: $(MAKE); $(unstage)
-	@r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(TARGET_FLAGS_TO_PASS)   check)
-
-@endif target-libiberty
-
-.PHONY: install-target-libiberty maybe-install-target-libiberty
-maybe-install-target-libiberty:
-@if target-libiberty
-maybe-install-target-libiberty: install-target-libiberty
-
-install-target-libiberty: installdirs
-	@: $(MAKE); $(unstage)
-	@r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(TARGET_FLAGS_TO_PASS)  install)
-
-@endif target-libiberty
-
-.PHONY: install-strip-target-libiberty maybe-install-strip-target-libiberty
-maybe-install-strip-target-libiberty:
-@if target-libiberty
-maybe-install-strip-target-libiberty: install-strip-target-libiberty
-
-install-strip-target-libiberty: installdirs
-	@: $(MAKE); $(unstage)
-	@r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(TARGET_FLAGS_TO_PASS)  install-strip)
-
-@endif target-libiberty
-
-# Other targets (info, dvi, pdf, etc.)
-
-.PHONY: maybe-info-target-libiberty info-target-libiberty
-maybe-info-target-libiberty:
-@if target-libiberty
-maybe-info-target-libiberty: info-target-libiberty
-
-info-target-libiberty: \
-    configure-target-libiberty 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libiberty/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing info in $(TARGET_SUBDIR)/libiberty" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
-	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
-	          "RANLIB=$${RANLIB}" \
-	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
-	           info) \
-	  || exit 1
-
-@endif target-libiberty
-
-.PHONY: maybe-dvi-target-libiberty dvi-target-libiberty
-maybe-dvi-target-libiberty:
-@if target-libiberty
-maybe-dvi-target-libiberty: dvi-target-libiberty
-
-dvi-target-libiberty: \
-    configure-target-libiberty 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libiberty/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing dvi in $(TARGET_SUBDIR)/libiberty" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
-	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
-	          "RANLIB=$${RANLIB}" \
-	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
-	           dvi) \
-	  || exit 1
-
-@endif target-libiberty
-
-.PHONY: maybe-pdf-target-libiberty pdf-target-libiberty
-maybe-pdf-target-libiberty:
-@if target-libiberty
-maybe-pdf-target-libiberty: pdf-target-libiberty
-
-pdf-target-libiberty: \
-    configure-target-libiberty 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libiberty/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing pdf in $(TARGET_SUBDIR)/libiberty" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
-	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
-	          "RANLIB=$${RANLIB}" \
-	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
-	           pdf) \
-	  || exit 1
-
-@endif target-libiberty
-
-.PHONY: maybe-html-target-libiberty html-target-libiberty
-maybe-html-target-libiberty:
-@if target-libiberty
-maybe-html-target-libiberty: html-target-libiberty
-
-html-target-libiberty: \
-    configure-target-libiberty 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libiberty/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing html in $(TARGET_SUBDIR)/libiberty" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
-	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
-	          "RANLIB=$${RANLIB}" \
-	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
-	           html) \
-	  || exit 1
-
-@endif target-libiberty
-
-.PHONY: maybe-TAGS-target-libiberty TAGS-target-libiberty
-maybe-TAGS-target-libiberty:
-@if target-libiberty
-maybe-TAGS-target-libiberty: TAGS-target-libiberty
-
-TAGS-target-libiberty: \
-    configure-target-libiberty 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libiberty/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing TAGS in $(TARGET_SUBDIR)/libiberty" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
-	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
-	          "RANLIB=$${RANLIB}" \
-	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
-	           TAGS) \
-	  || exit 1
-
-@endif target-libiberty
-
-.PHONY: maybe-install-info-target-libiberty install-info-target-libiberty
-maybe-install-info-target-libiberty:
-@if target-libiberty
-maybe-install-info-target-libiberty: install-info-target-libiberty
-
-install-info-target-libiberty: \
-    configure-target-libiberty \
-    info-target-libiberty 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libiberty/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing install-info in $(TARGET_SUBDIR)/libiberty" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
-	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
-	          "RANLIB=$${RANLIB}" \
-	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
-	           install-info) \
-	  || exit 1
-
-@endif target-libiberty
-
-.PHONY: maybe-install-pdf-target-libiberty install-pdf-target-libiberty
-maybe-install-pdf-target-libiberty:
-@if target-libiberty
-maybe-install-pdf-target-libiberty: install-pdf-target-libiberty
-
-install-pdf-target-libiberty: \
-    configure-target-libiberty \
-    pdf-target-libiberty 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libiberty/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing install-pdf in $(TARGET_SUBDIR)/libiberty" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
-	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
-	          "RANLIB=$${RANLIB}" \
-	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
-	           install-pdf) \
-	  || exit 1
-
-@endif target-libiberty
-
-.PHONY: maybe-install-html-target-libiberty install-html-target-libiberty
-maybe-install-html-target-libiberty:
-@if target-libiberty
-maybe-install-html-target-libiberty: install-html-target-libiberty
-
-install-html-target-libiberty: \
-    configure-target-libiberty \
-    html-target-libiberty 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libiberty/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing install-html in $(TARGET_SUBDIR)/libiberty" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
-	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
-	          "RANLIB=$${RANLIB}" \
-	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
-	           install-html) \
-	  || exit 1
-
-@endif target-libiberty
-
-.PHONY: maybe-installcheck-target-libiberty installcheck-target-libiberty
-maybe-installcheck-target-libiberty:
-@if target-libiberty
-maybe-installcheck-target-libiberty: installcheck-target-libiberty
-
-installcheck-target-libiberty: \
-    configure-target-libiberty 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libiberty/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing installcheck in $(TARGET_SUBDIR)/libiberty" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
-	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
-	          "RANLIB=$${RANLIB}" \
-	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
-	           installcheck) \
-	  || exit 1
-
-@endif target-libiberty
-
-.PHONY: maybe-mostlyclean-target-libiberty mostlyclean-target-libiberty
-maybe-mostlyclean-target-libiberty:
-@if target-libiberty
-maybe-mostlyclean-target-libiberty: mostlyclean-target-libiberty
-
-mostlyclean-target-libiberty: 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libiberty/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing mostlyclean in $(TARGET_SUBDIR)/libiberty" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
-	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
-	          "RANLIB=$${RANLIB}" \
-	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
-	           mostlyclean) \
-	  || exit 1
-
-@endif target-libiberty
-
-.PHONY: maybe-clean-target-libiberty clean-target-libiberty
-maybe-clean-target-libiberty:
-@if target-libiberty
-maybe-clean-target-libiberty: clean-target-libiberty
-
-clean-target-libiberty: 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libiberty/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing clean in $(TARGET_SUBDIR)/libiberty" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
-	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
-	          "RANLIB=$${RANLIB}" \
-	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
-	           clean) \
-	  || exit 1
-
-@endif target-libiberty
-
-.PHONY: maybe-distclean-target-libiberty distclean-target-libiberty
-maybe-distclean-target-libiberty:
-@if target-libiberty
-maybe-distclean-target-libiberty: distclean-target-libiberty
-
-distclean-target-libiberty: 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libiberty/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing distclean in $(TARGET_SUBDIR)/libiberty" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
-	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
-	          "RANLIB=$${RANLIB}" \
-	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
-	           distclean) \
-	  || exit 1
-
-@endif target-libiberty
-
-.PHONY: maybe-maintainer-clean-target-libiberty maintainer-clean-target-libiberty
-maybe-maintainer-clean-target-libiberty:
-@if target-libiberty
-maybe-maintainer-clean-target-libiberty: maintainer-clean-target-libiberty
-
-maintainer-clean-target-libiberty: 
-	@: $(MAKE); $(unstage)
-	@[ -f $(TARGET_SUBDIR)/libiberty/Makefile ] || exit 0 ; \
-	r=`${PWD_COMMAND}`; export r; \
-	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
-	$(NORMAL_TARGET_EXPORTS) \
-	echo "Doing maintainer-clean in $(TARGET_SUBDIR)/libiberty" ; \
-	for flag in $(EXTRA_TARGET_FLAGS); do \
-	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
-	done; \
-	(cd $(TARGET_SUBDIR)/libiberty && \
-	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
-	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
-	          "RANLIB=$${RANLIB}" \
-	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
-	           maintainer-clean) \
-	  || exit 1
-
-@endif target-libiberty
-
-
-
-
-
 .PHONY: configure-target-libffi maybe-configure-target-libffi
 maybe-configure-target-libffi:
 @if gcc-bootstrap
@@ -37366,7 +36945,7 @@ configure-target-libjava:
 	rm -f no-such-file || : ; \
 	CONFIG_SITE=no-such-file $(SHELL) $${libsrcdir}/configure \
 	  $(TARGET_CONFIGARGS) --build=${build_alias} --host=${target_alias} \
-	  --target=${target_alias} $${srcdiroption}  \
+	  --target=${target_alias} $${srcdiroption} $(EXTRA_CONFIGARGS_LIBJAVA) \
 	  || exit 1
 @endif target-libjava
 
@@ -40593,6 +40172,470 @@ maintainer-clean-target-libgomp:
 
 
 
+
+
+.PHONY: configure-target-libitm maybe-configure-target-libitm
+maybe-configure-target-libitm:
+@if gcc-bootstrap
+configure-target-libitm: stage_current
+@endif gcc-bootstrap
+@if target-libitm
+maybe-configure-target-libitm: configure-target-libitm
+configure-target-libitm: 
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	echo "Checking multilib configuration for libitm..."; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libitm ; \
+	$(CC_FOR_TARGET) --print-multi-lib > $(TARGET_SUBDIR)/libitm/multilib.tmp 2> /dev/null ; \
+	if test -r $(TARGET_SUBDIR)/libitm/multilib.out; then \
+	  if cmp -s $(TARGET_SUBDIR)/libitm/multilib.tmp $(TARGET_SUBDIR)/libitm/multilib.out; then \
+	    rm -f $(TARGET_SUBDIR)/libitm/multilib.tmp; \
+	  else \
+	    rm -f $(TARGET_SUBDIR)/libitm/Makefile; \
+	    mv $(TARGET_SUBDIR)/libitm/multilib.tmp $(TARGET_SUBDIR)/libitm/multilib.out; \
+	  fi; \
+	else \
+	  mv $(TARGET_SUBDIR)/libitm/multilib.tmp $(TARGET_SUBDIR)/libitm/multilib.out; \
+	fi; \
+	test ! -f $(TARGET_SUBDIR)/libitm/Makefile || exit 0; \
+	$(SHELL) $(srcdir)/mkinstalldirs $(TARGET_SUBDIR)/libitm ; \
+	$(NORMAL_TARGET_EXPORTS)  \
+	echo Configuring in $(TARGET_SUBDIR)/libitm; \
+	cd "$(TARGET_SUBDIR)/libitm" || exit 1; \
+	case $(srcdir) in \
+	  /* | [A-Za-z]:[\\/]*) topdir=$(srcdir) ;; \
+	  *) topdir=`echo $(TARGET_SUBDIR)/libitm/ | \
+		sed -e 's,\./,,g' -e 's,[^/]*/,../,g' `$(srcdir) ;; \
+	esac; \
+	srcdiroption="--srcdir=$${topdir}/libitm"; \
+	libsrcdir="$$s/libitm"; \
+	rm -f no-such-file || : ; \
+	CONFIG_SITE=no-such-file $(SHELL) $${libsrcdir}/configure \
+	  $(TARGET_CONFIGARGS) --build=${build_alias} --host=${target_alias} \
+	  --target=${target_alias} $${srcdiroption}  \
+	  || exit 1
+@endif target-libitm
+
+
+
+
+
+.PHONY: all-target-libitm maybe-all-target-libitm
+maybe-all-target-libitm:
+@if gcc-bootstrap
+all-target-libitm: stage_current
+@endif gcc-bootstrap
+@if target-libitm
+TARGET-target-libitm=all
+maybe-all-target-libitm: all-target-libitm
+all-target-libitm: configure-target-libitm
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS)  \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) $(EXTRA_TARGET_FLAGS)  \
+		$(TARGET-target-libitm))
+@endif target-libitm
+
+
+
+
+
+.PHONY: check-target-libitm maybe-check-target-libitm
+maybe-check-target-libitm:
+@if target-libitm
+maybe-check-target-libitm: check-target-libitm
+
+check-target-libitm:
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(TARGET_FLAGS_TO_PASS)   check)
+
+@endif target-libitm
+
+.PHONY: install-target-libitm maybe-install-target-libitm
+maybe-install-target-libitm:
+@if target-libitm
+maybe-install-target-libitm: install-target-libitm
+
+install-target-libitm: installdirs
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(TARGET_FLAGS_TO_PASS)  install)
+
+@endif target-libitm
+
+.PHONY: install-strip-target-libitm maybe-install-strip-target-libitm
+maybe-install-strip-target-libitm:
+@if target-libitm
+maybe-install-strip-target-libitm: install-strip-target-libitm
+
+install-strip-target-libitm: installdirs
+	@: $(MAKE); $(unstage)
+	@r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(TARGET_FLAGS_TO_PASS)  install-strip)
+
+@endif target-libitm
+
+# Other targets (info, dvi, pdf, etc.)
+
+.PHONY: maybe-info-target-libitm info-target-libitm
+maybe-info-target-libitm:
+@if target-libitm
+maybe-info-target-libitm: info-target-libitm
+
+info-target-libitm: \
+    configure-target-libitm 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libitm/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing info in $(TARGET_SUBDIR)/libitm" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           info) \
+	  || exit 1
+
+@endif target-libitm
+
+.PHONY: maybe-dvi-target-libitm dvi-target-libitm
+maybe-dvi-target-libitm:
+@if target-libitm
+maybe-dvi-target-libitm: dvi-target-libitm
+
+dvi-target-libitm: \
+    configure-target-libitm 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libitm/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing dvi in $(TARGET_SUBDIR)/libitm" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           dvi) \
+	  || exit 1
+
+@endif target-libitm
+
+.PHONY: maybe-pdf-target-libitm pdf-target-libitm
+maybe-pdf-target-libitm:
+@if target-libitm
+maybe-pdf-target-libitm: pdf-target-libitm
+
+pdf-target-libitm: \
+    configure-target-libitm 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libitm/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing pdf in $(TARGET_SUBDIR)/libitm" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           pdf) \
+	  || exit 1
+
+@endif target-libitm
+
+.PHONY: maybe-html-target-libitm html-target-libitm
+maybe-html-target-libitm:
+@if target-libitm
+maybe-html-target-libitm: html-target-libitm
+
+html-target-libitm: \
+    configure-target-libitm 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libitm/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing html in $(TARGET_SUBDIR)/libitm" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           html) \
+	  || exit 1
+
+@endif target-libitm
+
+.PHONY: maybe-TAGS-target-libitm TAGS-target-libitm
+maybe-TAGS-target-libitm:
+@if target-libitm
+maybe-TAGS-target-libitm: TAGS-target-libitm
+
+TAGS-target-libitm: \
+    configure-target-libitm 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libitm/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing TAGS in $(TARGET_SUBDIR)/libitm" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           TAGS) \
+	  || exit 1
+
+@endif target-libitm
+
+.PHONY: maybe-install-info-target-libitm install-info-target-libitm
+maybe-install-info-target-libitm:
+@if target-libitm
+maybe-install-info-target-libitm: install-info-target-libitm
+
+install-info-target-libitm: \
+    configure-target-libitm \
+    info-target-libitm 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libitm/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing install-info in $(TARGET_SUBDIR)/libitm" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           install-info) \
+	  || exit 1
+
+@endif target-libitm
+
+.PHONY: maybe-install-pdf-target-libitm install-pdf-target-libitm
+maybe-install-pdf-target-libitm:
+@if target-libitm
+maybe-install-pdf-target-libitm: install-pdf-target-libitm
+
+install-pdf-target-libitm: \
+    configure-target-libitm \
+    pdf-target-libitm 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libitm/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing install-pdf in $(TARGET_SUBDIR)/libitm" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           install-pdf) \
+	  || exit 1
+
+@endif target-libitm
+
+.PHONY: maybe-install-html-target-libitm install-html-target-libitm
+maybe-install-html-target-libitm:
+@if target-libitm
+maybe-install-html-target-libitm: install-html-target-libitm
+
+install-html-target-libitm: \
+    configure-target-libitm \
+    html-target-libitm 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libitm/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing install-html in $(TARGET_SUBDIR)/libitm" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           install-html) \
+	  || exit 1
+
+@endif target-libitm
+
+.PHONY: maybe-installcheck-target-libitm installcheck-target-libitm
+maybe-installcheck-target-libitm:
+@if target-libitm
+maybe-installcheck-target-libitm: installcheck-target-libitm
+
+installcheck-target-libitm: \
+    configure-target-libitm 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libitm/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing installcheck in $(TARGET_SUBDIR)/libitm" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           installcheck) \
+	  || exit 1
+
+@endif target-libitm
+
+.PHONY: maybe-mostlyclean-target-libitm mostlyclean-target-libitm
+maybe-mostlyclean-target-libitm:
+@if target-libitm
+maybe-mostlyclean-target-libitm: mostlyclean-target-libitm
+
+mostlyclean-target-libitm: 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libitm/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing mostlyclean in $(TARGET_SUBDIR)/libitm" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           mostlyclean) \
+	  || exit 1
+
+@endif target-libitm
+
+.PHONY: maybe-clean-target-libitm clean-target-libitm
+maybe-clean-target-libitm:
+@if target-libitm
+maybe-clean-target-libitm: clean-target-libitm
+
+clean-target-libitm: 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libitm/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing clean in $(TARGET_SUBDIR)/libitm" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           clean) \
+	  || exit 1
+
+@endif target-libitm
+
+.PHONY: maybe-distclean-target-libitm distclean-target-libitm
+maybe-distclean-target-libitm:
+@if target-libitm
+maybe-distclean-target-libitm: distclean-target-libitm
+
+distclean-target-libitm: 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libitm/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing distclean in $(TARGET_SUBDIR)/libitm" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           distclean) \
+	  || exit 1
+
+@endif target-libitm
+
+.PHONY: maybe-maintainer-clean-target-libitm maintainer-clean-target-libitm
+maybe-maintainer-clean-target-libitm:
+@if target-libitm
+maybe-maintainer-clean-target-libitm: maintainer-clean-target-libitm
+
+maintainer-clean-target-libitm: 
+	@: $(MAKE); $(unstage)
+	@[ -f $(TARGET_SUBDIR)/libitm/Makefile ] || exit 0 ; \
+	r=`${PWD_COMMAND}`; export r; \
+	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
+	$(NORMAL_TARGET_EXPORTS) \
+	echo "Doing maintainer-clean in $(TARGET_SUBDIR)/libitm" ; \
+	for flag in $(EXTRA_TARGET_FLAGS); do \
+	  eval `echo "$$flag" | sed -e "s|^\([^=]*\)=\(.*\)|\1='\2'; export \1|"`; \
+	done; \
+	(cd $(TARGET_SUBDIR)/libitm && \
+	  $(MAKE) $(BASE_FLAGS_TO_PASS) "AR=$${AR}" "AS=$${AS}" \
+	          "CC=$${CC}" "CXX=$${CXX}" "LD=$${LD}" "NM=$${NM}" \
+	          "RANLIB=$${RANLIB}" \
+	          "DLLTOOL=$${DLLTOOL}" "WINDRES=$${WINDRES}" "WINDMC=$${WINDMC}" \
+	           maintainer-clean) \
+	  || exit 1
+
+@endif target-libitm
+
+
+
+@if target-libmudflap
+.PHONY: check-target-libmudflap-c++
+check-target-libmudflap-c++:
+	$(MAKE) RUNTESTFLAGS="$(RUNTESTFLAGS) c++frags.exp" check-target-libmudflap
+
+@endif target-libmudflap
+
 # ----------
 # GCC module
 # ----------
@@ -40627,7 +40670,7 @@ check-gcc-c++:
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
 	$(HOST_EXPORTS) \
 	(cd gcc && $(MAKE) $(GCC_FLAGS_TO_PASS) check-c++);
-check-c++: check-gcc-c++ check-target-libstdc++-v3
+check-c++: check-gcc-c++ check-target-libstdc++-v3 check-target-libmudflap-c++
 
 .PHONY: check-gcc-fortran check-fortran
 check-gcc-fortran:
@@ -42665,7 +42708,6 @@ configure-target-libgo: stage_last
 configure-target-libtermcap: stage_last
 configure-target-winsup: stage_last
 configure-target-libgloss: stage_last
-configure-target-libiberty: stage_last
 configure-target-libffi: stage_last
 configure-target-libjava: stage_last
 configure-target-zlib: stage_last
@@ -42678,6 +42720,7 @@ configure-stage3-target-libgomp: maybe-all-stage3-gcc
 configure-stage4-target-libgomp: maybe-all-stage4-gcc
 configure-stageprofile-target-libgomp: maybe-all-stageprofile-gcc
 configure-stagefeedback-target-libgomp: maybe-all-stagefeedback-gcc
+configure-target-libitm: stage_last
 @endif gcc-bootstrap
 
 @if gcc-no-bootstrap
@@ -42693,7 +42736,6 @@ configure-target-libgo: maybe-all-gcc
 configure-target-libtermcap: maybe-all-gcc
 configure-target-winsup: maybe-all-gcc
 configure-target-libgloss: maybe-all-gcc
-configure-target-libiberty: maybe-all-gcc
 configure-target-libffi: maybe-all-gcc
 configure-target-libjava: maybe-all-gcc
 configure-target-zlib: maybe-all-gcc
@@ -42701,6 +42743,7 @@ configure-target-boehm-gc: maybe-all-gcc
 configure-target-rda: maybe-all-gcc
 configure-target-libada: maybe-all-gcc
 configure-target-libgomp: maybe-all-gcc
+configure-target-libitm: maybe-all-gcc
 @endif gcc-no-bootstrap
 
 
@@ -42956,6 +42999,7 @@ html-stagefeedback-gcc: maybe-all-build-libiberty
 install-gcc: maybe-install-fixincludes
 install-gcc: maybe-install-lto-plugin
 install-strip-gcc: maybe-install-strip-fixincludes
+install-strip-gcc: maybe-install-strip-lto-plugin
 configure-libcpp: configure-libiberty
 
 configure-stage1-libcpp: configure-stage1-libiberty
@@ -43400,7 +43444,6 @@ all-m4: maybe-all-build-texinfo
 configure-target-boehm-gc: maybe-all-target-libstdc++-v3
 configure-target-fastjar: maybe-configure-target-zlib
 all-target-fastjar: maybe-all-target-zlib
-all-target-fastjar: maybe-all-target-libiberty
 configure-target-libgo: maybe-configure-target-libffi
 configure-target-libgo: maybe-all-target-libstdc++-v3
 all-target-libgo: maybe-all-target-libffi
@@ -43412,9 +43455,7 @@ all-target-libjava: maybe-all-target-zlib
 all-target-libjava: maybe-all-target-boehm-gc
 all-target-libjava: maybe-all-target-libffi
 configure-target-libobjc: maybe-configure-target-boehm-gc
-all-target-libobjc: maybe-all-target-libiberty
 all-target-libobjc: maybe-all-target-boehm-gc
-all-target-libstdc++-v3: maybe-all-target-libiberty
 configure-target-libstdc++-v3: maybe-configure-target-libgomp
 
 configure-stage1-target-libstdc++-v3: maybe-configure-stage1-target-libgomp
@@ -43432,10 +43473,7 @@ all-stage4-target-libstdc++-v3: maybe-configure-stage4-target-libgomp
 all-stageprofile-target-libstdc++-v3: maybe-configure-stageprofile-target-libgomp
 all-stagefeedback-target-libstdc++-v3: maybe-configure-stagefeedback-target-libgomp
 all-target-libgloss: maybe-all-target-newlib
-all-target-winsup: maybe-all-target-libiberty
 all-target-winsup: maybe-all-target-libtermcap
-configure-target-libiberty: maybe-all-binutils
-configure-target-libiberty: maybe-all-ld
 configure-target-newlib: maybe-all-binutils
 configure-target-newlib: maybe-all-ld
 configure-target-libgfortran: maybe-all-target-libquadmath
@@ -43473,7 +43511,6 @@ configure-target-libgo: maybe-all-target-libgcc
 configure-target-libtermcap: maybe-all-target-libgcc
 configure-target-winsup: maybe-all-target-libgcc
 configure-target-libgloss: maybe-all-target-libgcc
-configure-target-libiberty: maybe-all-target-libgcc
 configure-target-libffi: maybe-all-target-libgcc
 configure-target-libjava: maybe-all-target-libgcc
 configure-target-zlib: maybe-all-target-libgcc
@@ -43481,6 +43518,7 @@ configure-target-boehm-gc: maybe-all-target-libgcc
 configure-target-rda: maybe-all-target-libgcc
 configure-target-libada: maybe-all-target-libgcc
 configure-target-libgomp: maybe-all-target-libgcc
+configure-target-libitm: maybe-all-target-libgcc
 @endif gcc-no-bootstrap
 
 
@@ -43505,7 +43543,6 @@ configure-target-libtermcap: maybe-all-target-newlib maybe-all-target-libgloss
 configure-target-winsup: maybe-all-target-newlib maybe-all-target-libgloss
 
 
-
 configure-target-libffi: maybe-all-target-newlib maybe-all-target-libgloss
 
 configure-target-libjava: maybe-all-target-newlib maybe-all-target-libgloss
@@ -43520,6 +43557,9 @@ configure-target-rda: maybe-all-target-newlib maybe-all-target-libgloss
 configure-target-libada: maybe-all-target-newlib maybe-all-target-libgloss
 
 configure-target-libgomp: maybe-all-target-newlib maybe-all-target-libgloss
+
+configure-target-libitm: maybe-all-target-newlib maybe-all-target-libgloss
+configure-target-libitm: maybe-all-target-libstdc++-v3
 
 
 CONFIGURE_GDB_TK = @CONFIGURE_GDB_TK@

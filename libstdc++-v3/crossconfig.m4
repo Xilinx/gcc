@@ -173,14 +173,6 @@ case "${host}" in
       AC_DEFINE(HAVE_ISNANL)
     fi
     ;;
-  *-netware)
-    SECTION_FLAGS='-ffunction-sections -fdata-sections'
-    AC_SUBST(SECTION_FLAGS)
-    GLIBCXX_CHECK_LINKER_FEATURES
-    AC_DEFINE(HAVE_HYPOT)
-    AC_DEFINE(HAVE_ISINF)
-    AC_DEFINE(HAVE_ISNAN)
-    ;;
   *-qnx6.1* | *-qnx6.2*)
     SECTION_FLAGS='-ffunction-sections -fdata-sections'
     AC_SUBST(SECTION_FLAGS) 
@@ -206,7 +198,7 @@ case "${host}" in
     ;;
   *-solaris*)
     case "$target" in
-      *-solaris2.8 | *-solaris2.9 | *-solaris2.10)
+      *-solaris2.9 | *-solaris2.10)
          GLIBCXX_CHECK_LINKER_FEATURES
          AC_DEFINE(HAVE_MBSTATE_T)
          AC_DEFINE(HAVE_FINITE)

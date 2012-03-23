@@ -118,13 +118,23 @@ identical_array_ref (gfc_array_ref *a1, gfc_array_ref *a2)
 /* Return true for identical variables, checking for references if
    necessary.  Calls identical_array_ref for checking array sections.  */
 
-bool
-gfc_are_identical_variables (gfc_expr *e1, gfc_expr *e2)
+static bool
+are_identical_variables (gfc_expr *e1, gfc_expr *e2)
 {
   gfc_ref *r1, *r2;
 
-  if (e1->symtree->n.sym != e2->symtree->n.sym)
-    return false;
+  if (e1->symtree->n.sym->attr.dummy && e2->symtree->n.sym->attr.dummy)
+    {
+      /* Dummy arguments: Only check for equal names.  */
+      if (e1->symtree->n.sym->name != e2->symtree->n.sym->name)
+	return false;
+    }
+  else
+    {
+      /* Check for equal symbols.  */
+      if (e1->symtree->n.sym != e2->symtree->n.sym)
+	return false;
+    }
 
   /* Volatile variables should never compare equal to themselves.  */
 
@@ -163,13 +173,23 @@ gfc_are_identical_variables (gfc_expr *e1, gfc_expr *e2)
 	  break;
 
 	case REF_SUBSTRING:
-	  if (gfc_dep_compare_expr (r1->u.ss.start, r2->u.ss.start) != 0
-	      || gfc_dep_compare_expr (r1->u.ss.end, r2->u.ss.end) != 0)
+	  if (gfc_dep_compare_expr (r1->u.ss.start, r2->u.ss.start) != 0)
 	    return false;
+
+	  /* If both are NULL, the end length compares equal, because we
+	     are looking at the same variable. This can only happen for
+	     assumed- or deferred-length character arguments.  */ 
+
+	  if (r1->u.ss.end == NULL && r2->u.ss.end == NULL)
+	    break;
+
+	  if (gfc_dep_compare_expr (r1->u.ss.end, r2->u.ss.end) != 0)
+	    return false;
+	  
 	  break;
 
 	default:
-	  gfc_internal_error ("gfc_are_identical_variables: Bad type");
+	  gfc_internal_error ("are_identical_variables: Bad type");
 	}
       r1 = r1->next;
       r2 = r2->next;
@@ -220,8 +240,14 @@ gfc_dep_compare_functions (gfc_expr *e1, gfc_expr *e2, bool impure_ok)
 	return -2;      
 }
 
-/* Compare two values.  Returns 0 if e1 == e2, -1 if e1 < e2, +1 if e1 > e2,
-   and -2 if the relationship could not be determined.  */
+/* Compare two expressions.  Return values:
+   * +1 if e1 > e2
+   * 0 if e1 == e2
+   * -1 if e1 < e2
+   * -2 if the relationship could not be determined
+   * -3 if e1 /= e2, but we cannot tell which one is larger.
+   REAL and COMPLEX constants are only compared for equality
+   or inequality; if they are unequal, -2 is returned in all cases.  */
 
 int
 gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
@@ -279,7 +305,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 
   if (e1->expr_type == EXPR_OP && e1->value.op.op == INTRINSIC_PLUS)
     {
-      /* Compare X+C vs. X.  */
+      /* Compare X+C vs. X, for INTEGER only.  */
       if (e1->value.op.op2->expr_type == EXPR_CONSTANT
 	  && e1->value.op.op2->ts.type == BT_INTEGER
 	  && gfc_dep_compare_expr (e1->value.op.op1, e2) == 0)
@@ -294,9 +320,9 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 	  r = gfc_dep_compare_expr (e1->value.op.op2, e2->value.op.op2);
 	  if (l == 0 && r == 0)
 	    return 0;
-	  if (l == 0 && r != -2)
+	  if (l == 0 && r > -2)
 	    return r;
-	  if (l != -2 && r == 0)
+	  if (l > -2 && r == 0)
 	    return l;
 	  if (l == 1 && r == 1)
 	    return 1;
@@ -307,9 +333,9 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 	  r = gfc_dep_compare_expr (e1->value.op.op2, e2->value.op.op1);
 	  if (l == 0 && r == 0)
 	    return 0;
-	  if (l == 0 && r != -2)
+	  if (l == 0 && r > -2)
 	    return r;
-	  if (l != -2 && r == 0)
+	  if (l > -2 && r == 0)
 	    return l;
 	  if (l == 1 && r == 1)
 	    return 1;
@@ -318,7 +344,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 	}
     }
 
-  /* Compare X vs. X+C.  */
+  /* Compare X vs. X+C, for INTEGER only.  */
   if (e2->expr_type == EXPR_OP && e2->value.op.op == INTRINSIC_PLUS)
     {
       if (e2->value.op.op2->expr_type == EXPR_CONSTANT
@@ -327,7 +353,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 	return -mpz_sgn (e2->value.op.op2->value.integer);
     }
 
-  /* Compare X-C vs. X.  */
+  /* Compare X-C vs. X, for INTEGER only.  */
   if (e1->expr_type == EXPR_OP && e1->value.op.op == INTRINSIC_MINUS)
     {
       if (e1->value.op.op2->expr_type == EXPR_CONSTANT
@@ -344,9 +370,9 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 	  r = gfc_dep_compare_expr (e1->value.op.op2, e2->value.op.op2);
 	  if (l == 0 && r == 0)
 	    return 0;
-	  if (l != -2 && r == 0)
+	  if (l > -2 && r == 0)
 	    return l;
-	  if (l == 0 && r != -2)
+	  if (l == 0 && r > -2)
 	    return -r;
 	  if (l == 1 && r == -1)
 	    return 1;
@@ -365,8 +391,8 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
       l = gfc_dep_compare_expr (e1->value.op.op1, e2->value.op.op1);
       r = gfc_dep_compare_expr (e1->value.op.op2, e2->value.op.op2);
 
-      if (l == -2)
-	return -2;
+      if (l <= -2)
+	return l;
 
       if (l == 0)
 	{
@@ -377,7 +403,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 	  if (e1_left->expr_type == EXPR_CONSTANT
 	      && e2_left->expr_type == EXPR_CONSTANT
 	      && e1_left->value.character.length
-	        != e2_left->value.character.length)
+		 != e2_left->value.character.length)
 	    return -2;
 	  else
 	    return r;
@@ -391,7 +417,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 	}
     }
 
-  /* Compare X vs. X-C.  */
+  /* Compare X vs. X-C, for INTEGER only.  */
   if (e2->expr_type == EXPR_OP && e2->value.op.op == INTRINSIC_MINUS)
     {
       if (e2->value.op.op2->expr_type == EXPR_CONSTANT
@@ -401,7 +427,7 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
     }
 
   if (e1->expr_type != e2->expr_type)
-    return -2;
+    return -3;
 
   switch (e1->expr_type)
     {
@@ -410,8 +436,33 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
       if (e1->ts.type == BT_CHARACTER && e2->ts.type == BT_CHARACTER)
 	return gfc_compare_string (e1, e2);
 
+      /* Compare REAL and COMPLEX constants.  Because of the
+	 traps and pitfalls associated with comparing
+	 a + 1.0 with a + 0.5, check for equality only.  */
+      if (e2->expr_type == EXPR_CONSTANT)
+	{
+	  if (e1->ts.type == BT_REAL && e2->ts.type == BT_REAL)
+	    {
+	      if (mpfr_cmp (e1->value.real, e2->value.real) == 0)
+		return 0;
+	      else
+		return -2;
+	    }
+	  else if (e1->ts.type == BT_COMPLEX && e2->ts.type == BT_COMPLEX)
+	    {
+	      if (mpc_cmp (e1->value.complex, e2->value.complex) == 0)
+		return 0;
+	      else
+		return -2;
+	    }
+	}
+
       if (e1->ts.type != BT_INTEGER || e2->ts.type != BT_INTEGER)
 	return -2;
+
+      /* For INTEGER, all cases where e2 is not constant should have
+	 been filtered out above.  */
+      gcc_assert (e2->expr_type == EXPR_CONSTANT);
 
       i = mpz_cmp (e1->value.integer, e2->value.integer);
       if (i == 0)
@@ -421,10 +472,10 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
       return 1;
 
     case EXPR_VARIABLE:
-      if (gfc_are_identical_variables (e1, e2))
+      if (are_identical_variables (e1, e2))
 	return 0;
       else
-	return -2;
+	return -3;
 
     case EXPR_OP:
       /* Intrinsic operators are the same if their operands are the same.  */
@@ -438,7 +489,12 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
       if (gfc_dep_compare_expr (e1->value.op.op1, e2->value.op.op1) == 0
 	  && gfc_dep_compare_expr (e1->value.op.op2, e2->value.op.op2) == 0)
 	return 0;
-      /* TODO Handle commutative binary operators here?  */
+      else if (e1->value.op.op == INTRINSIC_TIMES
+	       && gfc_dep_compare_expr (e1->value.op.op1, e2->value.op.op2) == 0
+	       && gfc_dep_compare_expr (e1->value.op.op2, e2->value.op.op1) == 0)
+	/* Commutativity of multiplication; addition is handled above.  */
+	return 0;
+
       return -2;
 
     case EXPR_FUNCTION:
@@ -451,11 +507,11 @@ gfc_dep_compare_expr (gfc_expr *e1, gfc_expr *e2)
 }
 
 
-/* Returns 1 if the two ranges are the same, 0 if they are not, and def
-   if the results are indeterminate.  N is the dimension to compare.  */
+/* Returns 1 if the two ranges are the same and 0 if they are not (or if the
+   results are indeterminate). 'n' is the dimension to compare.  */
 
-int
-gfc_is_same_range (gfc_array_ref *ar1, gfc_array_ref *ar2, int n, int def)
+static int
+is_same_range (gfc_array_ref *ar1, gfc_array_ref *ar2, int n)
 {
   gfc_expr *e1;
   gfc_expr *e2;
@@ -472,25 +528,19 @@ gfc_is_same_range (gfc_array_ref *ar1, gfc_array_ref *ar2, int n, int def)
   if (e1 && !e2)
     {
       i = gfc_expr_is_one (e1, -1);
-      if (i == -1)
-	return def;
-      else if (i == 0)
+      if (i == -1 || i == 0)
 	return 0;
     }
   else if (e2 && !e1)
     {
       i = gfc_expr_is_one (e2, -1);
-      if (i == -1)
-	return def;
-      else if (i == 0)
+      if (i == -1 || i == 0)
 	return 0;
     }
   else if (e1 && e2)
     {
       i = gfc_dep_compare_expr (e1, e2);
-      if (i == -2)
-	return def;
-      else if (i != 0)
+      if (i != 0)
 	return 0;
     }
   /* The strides match.  */
@@ -509,12 +559,10 @@ gfc_is_same_range (gfc_array_ref *ar1, gfc_array_ref *ar2, int n, int def)
 
       /* Check we have values for both.  */
       if (!(e1 && e2))
-	return def;
+	return 0;
 
       i = gfc_dep_compare_expr (e1, e2);
-      if (i == -2)
-	return def;
-      else if (i != 0)
+      if (i != 0)
 	return 0;
     }
 
@@ -532,12 +580,10 @@ gfc_is_same_range (gfc_array_ref *ar1, gfc_array_ref *ar2, int n, int def)
 
       /* Check we have values for both.  */
       if (!(e1 && e2))
-	return def;
+	return 0;
 
       i = gfc_dep_compare_expr (e1, e2);
-      if (i == -2)
-	return def;
-      else if (i != 0)
+      if (i != 0)
 	return 0;
     }
 
@@ -704,6 +750,17 @@ gfc_check_argument_var_dependency (gfc_expr *var, sym_intent intent,
 	    return gfc_check_fncall_dependency (var, intent, NULL,
 						expr->value.function.actual,
 						ELEM_CHECK_VARIABLE);
+
+	  if (gfc_inline_intrinsic_function_p (expr))
+	    {
+	      /* The TRANSPOSE case should have been caught in the
+		 noncopying intrinsic case above.  */
+	      gcc_assert (expr->value.function.isym->id != GFC_ISYM_TRANSPOSE);
+
+	      return gfc_check_fncall_dependency (var, intent, NULL,
+						  expr->value.function.actual,
+						  ELEM_CHECK_VARIABLE);
+	    }
 	}
       return 0;
 
@@ -1091,7 +1148,7 @@ check_section_vs_section (gfc_array_ref *l_ar, gfc_array_ref *r_ar, int n)
   int start_comparison;
 
   /* If they are the same range, return without more ado.  */
-  if (gfc_is_same_range (l_ar, r_ar, n, 0))
+  if (is_same_range (l_ar, r_ar, n))
     return GFC_DEP_EQUAL;
 
   l_start = l_ar->start[n];
@@ -1401,7 +1458,7 @@ gfc_check_element_vs_section( gfc_ref *lref, gfc_ref *rref, int n)
       if (!start || !end)
 	return GFC_DEP_OVERLAP;
       s = gfc_dep_compare_expr (start, end);
-      if (s == -2)
+      if (s <= -2)
 	return GFC_DEP_OVERLAP;
       /* Assume positive stride.  */
       if (s == -1)
@@ -1548,7 +1605,7 @@ gfc_check_element_vs_element (gfc_ref *lref, gfc_ref *rref, int n)
   if (contains_forall_index_p (r_start) || contains_forall_index_p (l_start))
     return GFC_DEP_OVERLAP;
 
-  if (i != -2)
+  if (i > -2)
     return GFC_DEP_NODEP;
   return GFC_DEP_EQUAL;
 }

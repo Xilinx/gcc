@@ -1,128 +1,90 @@
-2011-05-31  H.J. Lu  <hongjiu.lu@intel.com>
+2012-03-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
-	PR libgcj/49193
-	* configure.host (sysdeps_dir): Set to i386 for x86_64.
+	* configure.ac (THREADLIBS): Remove *-*-solaris2.8 handling.
+	* configure: Regenerate.
 
-	* sysdep/i386/locks.h (compare_and_swap): Call
-	__sync_bool_compare_and_swap.
-	(release_set): Call write_barrier ().
+2012-03-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
-	* sysdep/x86-64/locks.h: Removed.
+	* configure.ac (libgcj_cv_exidx): Remove IRIX 6 ld workaround.
+	(mips-sgi-irix6*): Remove.
+	(mips-sgi-irix*): Remove.
+	(AC_CHECK_HEADERS): Remove bstring.h.
+	* configure: Regenerate.
+	* include/config.h.in: Regenerate.
+	* configure.host (mips-sgi-irix6*): Remove.
 
-2011-04-24  Gerald Pfeifer  <gerald@pfeifer.com>
+	* include/posix-signal.h [__sgi__]: Remove.
 
-	* README: Refer to our generic bug reporting page.
+	* gnu/java/net/natPlainDatagramSocketImplPosix.cc
+	[HAVE_BSTRING_H]: Remove.
+	* gnu/java/net/natPlainDatagramSocketImplWin32.cc: Likewise.
+	* gnu/java/net/natPlainSocketImplPosix.cc: Likewise.
 
-2011-04-19  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+2012-03-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
-	* configure.ac (THREADS): Remove decosf1, irix, mach, os2.
-	* configure: Regenerate
+	* configure.ac (alpha*-dec-osf*): Remove.
+	* configure: Regenerate.
+	* configure.host (alpha*-dec-osf*): Remove.
 
-2011-04-15  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+	* gnu/java/net/natPlainDatagramSocketImplPosix.cc (setOption): Use
+	IPV6_MULTICAST_IF unconditionally.
+	* gnu/java/net/natPlainDatagramSocketImplWin32.cc (setOption):
+	Likewise.
+	* gnu/java/net/natPlainSocketImplPosix.cc
+	(gnu::java::net::PlainSocketImpl::accept): Use ::accept instead of
+	_Jv_accept.
+	* include/posix-signal.h [__alpha__ && __osf__]: Remove.
+	* include/posix.h (_POSIX_PII_SOCKET): Don't define.
+	(_Jv_accept): Remove.
+
+	* java/io/File.java (File._access): Rename to access.
+	Change callers.
+	(File._stat): Likewise.
+	* java/io/File.h: Regenerate.
+	* classpath/lib/java/io/File.class: Regenerate.
+	* java/io/natFilePosix.cc (java::io::File::_access): Rename to
+	access.
+	(java::io::File::_stat): Rename to stat.
+	* java/io/natFileWin32.cc: Likewise.
 
 	* testsuite/libjava.jni/jni.exp (gcj_jni_get_cxxflags_invocation):
-	Add $libiconv to cxxflags for alpha*-dec-osf*.
+	Remove alpha*-dec-osf* handling.
+	* testsuite/libjava.jvmti/jvmti-interp.exp
+	(gcj_jni_compile_c_to_so): Likewise.
+	* testsuite/libjava.jvmti/jvmti.exp (gcj_jvmti_compile_cxx_to_o):
+	Likewise.
 
-2011-04-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+2012-02-23  Patrick Marlier  <patrick.marlier@gmail.com>
+	    Jack Howarth  <howarth@bromo.med.uc.edu>
 
-	PR testsuite/21164
-	* testsuite/lib/libjava.exp: Load dg.exp.
-	* testsuite/libjava.jar/jar.exp (gcj_jar_interpret): Strip srcdir
-	from jarfile.
-	Use result for messages.
-	* testsuite/libjava.loader/loader.exp (gcj_loader_test_one): Pass
-	errname to libjava_invoke, fix testname.
+	PR target/49461
+	* configure.ac (SYSTEMSPEC): No longer pass -no_pie for darwin11.
+	* configure: Regenerate.
 
-2011-04-08  Kai Tietz  <ktietz@redhat.com>
+2012-02-02  Kai Tietz  <ktietz@redhat.com>
 
-	* configure.ac (libgcj_ld_export_all): Set for windows
-	native targets to export-all-symbols.
-	(LIBGCJ_LD_EXPORT_ALL): Export libgcj_ld_export_all.
-	* Makefile.am (libgcj_la_LDFLAGS): Add LIBGCJ_LD_EXPORT_ALL.
-	* sysdep/i386/backtrace.h (MAIN_FUNC): Define for windows
-	native targets to DllMain.
-	* gcj/javaprims.h (JNICALL): Define it dependent
-	for different windows targets.
-	* include/jni_md.h: Likewise.
-	* headers.txt (_Jv_JNI_ToReflectedField): Mark
-	JNICALLS for friends.
-	(_Jv_JNI_ToReflectedMethod): Likewise.
-	* java/lang/Class.h: Regenerated.
-	* java/lang/reflect/Field.h: Regenerated.
-	* java/lang/reflect/Constructor.h: Regenerated.
-	* java/lang/reflect/Method.h: Regenerated.
+	PR libjava/48512
+	* configure.ac (THREADSTARTFILESPEC): Don't add crtmet.o file for
+	w64 windows targets.
 	* configure: Regenerated.
-	* Makefile.in: Regenerated.
-	* include/Makefile.in: Regenerated.
-	* testsuite/Makefile.in: Regenerated.
-	* gcj/Makefile.in: Regenerated.
 
-2011-04-04  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+2012-02-01  Kai Tietz  <ktietz@redhat.com>
 
-	* configure.ac: Redirect $JAR -cf@ output to /dev/null.
-	* configure: Regenerate.
+	PR target/51500
+	* interpret.cc (_Jv_init_cif): Handle thiscall
+	convention for 32-bit Windows.
+	* java/lang/reflect/natMethod.cc (_Jv_CallAnyMethodA):
+	Likewise.
+	* java/lang/reflect/natVMProxy.cc (invoke_t): Add
+	thiscall-attribute for 32-bit Windows.
 
-2011-03-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
-
-	* configure.ac (THREADS): Remove solaris.
-	* configure: Regenerate.
-
-2011-03-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
-
-	PR bootstrap/48135
-	* configure.ac (libjava_cv_anon_version_script): Handle
-	--disable-symvers.
-	* configure: Regenerate.
-
-2011-02-14  Gary Benson  <gbenson@redhat.com>
-
-	* libjava/contrib/aot-compile.in: Add our module directory
-	to the start of the search path rather than the end.
-	* libjava/contrib/aot-compile-rpm.in: Likewise.
-
-2011-02-14  Gary Benson  <gbenson@redhat.com>
-
-	PR libjava/47484
-	* configure.ac (python_mod_dir, python_mod_dir_expanded):
-	Install Python modules into versioned directory.
-	* configure: Regenerate.
-
-2011-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
-
-	* configure: Regenerate.
-	* shlibpath.m4 (AC_LIBTOOL_SYS_DYNAMIC_LINKER): Remove handling
-	of freebsd1* which soon would incorrectly match FreeBSD 10.0.
-
-2011-02-04  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
-
-	PR java/21206
-	* configure.ac (LDLIBICONV): New substituted variable, with
-	instances of '-Wl,' removed from LIBICONV.
-	* configure: Regenerate.
-	* libgcj.spec.in: Use @LDLIBICONV@ not @LIBICONV@.
-	* Makefile.in: Regenerate.
-	* gcj/Makefile.in: Likewise.
-	* include/Makefile.in: Likewise.
-	* testsuite/Makefile.in: Likewise.
-
-2011-02-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
-
-	* configure.ac: Don't use libdl on mips-sgi-irix6*.
-	* configure: Regenerate.
-
-2011-01-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
-
-	* testsuite/libjava.jni/jni.exp (gcj_jni_get_cxxflags_invocation):
-	Add -shared-libgcc to cxxflags for *-*-solaris*.
-	Remove -lsocket.
-
-2011-01-03  Jakub Jelinek  <jakub@redhat.com>
+2012-01-01  Jakub Jelinek  <jakub@redhat.com>
 
 	* gnu/gcj/convert/Convert.java (version): Update copyright notice
 	dates.
 	* gnu/gcj/tools/gcj_dbtool/Main.java (main): Likewise.
 
-Copyright (C) 2011 Free Software Foundation, Inc.
+Copyright (C) 2012 Free Software Foundation, Inc.
 
 Copying and distribution of this file, with or without modification,
 are permitted in any medium without royalty provided the copyright

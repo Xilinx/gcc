@@ -174,7 +174,7 @@ init_reswords (void)
   tree id;
   int mask = 0;
 
-  if (cxx_dialect != cxx0x)
+  if (cxx_dialect < cxx0x)
     mask |= D_CXX0X;
   if (flag_no_asm)
     mask |= D_ASM | D_EXT;
@@ -456,7 +456,7 @@ unqualified_name_lookup_error (tree name)
 	}
       /* Prevent repeated error messages by creating a VAR_DECL with
 	 this NAME in the innermost block scope.  */
-      if (current_function_decl)
+      if (local_bindings_p ())
 	{
 	  tree decl;
 	  decl = build_decl (input_location,

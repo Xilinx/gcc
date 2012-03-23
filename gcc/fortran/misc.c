@@ -58,16 +58,8 @@ gfc_clear_ts (gfc_typespec *ts)
 FILE *
 gfc_open_file (const char *name)
 {
-  struct stat statbuf;
-
   if (!*name)
     return stdin;
-
-  if (stat (name, &statbuf) < 0)
-    return NULL;
-
-  if (!S_ISREG (statbuf.st_mode))
-    return NULL;
 
   return fopen (name, "r");
 }
@@ -114,6 +106,9 @@ gfc_basic_typename (bt type)
       break;
     case BT_UNKNOWN:
       p = "UNKNOWN";
+      break;
+    case BT_ASSUMED:
+      p = "TYPE(*)";
       break;
     default:
       gfc_internal_error ("gfc_basic_typename(): Undefined type");
@@ -164,6 +159,9 @@ gfc_typename (gfc_typespec *ts)
     case BT_CLASS:
       sprintf (buffer, "CLASS(%s)",
 	       ts->u.derived->components->ts.u.derived->name);
+      break;
+    case BT_ASSUMED:
+      sprintf (buffer, "TYPE(*)");
       break;
     case BT_PROCEDURE:
       strcpy (buffer, "PROCEDURE");

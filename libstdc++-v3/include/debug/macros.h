@@ -1,6 +1,6 @@
 // Debugging support implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -54,6 +54,13 @@
 #define __glibcxx_check_valid_range(_First,_Last)			\
 _GLIBCXX_DEBUG_VERIFY(__gnu_debug::__valid_range(_First, _Last),	\
 		      _M_message(__gnu_debug::__msg_valid_range)	\
+		      ._M_iterator(_First, #_First)			\
+		      ._M_iterator(_Last, #_Last))
+
+// Verify that [_First, _Last) forms a non-empty iterator range.
+#define __glibcxx_check_non_empty_range(_First,_Last)			\
+_GLIBCXX_DEBUG_VERIFY(_First != _Last,					\
+		      _M_message(__gnu_debug::__msg_non_empty_range)	\
 		      ._M_iterator(_First, #_First)			\
 		      ._M_iterator(_Last, #_Last))
 
@@ -302,6 +309,12 @@ _GLIBCXX_DEBUG_VERIFY(std::__is_heap(_First, _Last, _Pred),		\
                       ._M_iterator(_First, #_First)			\
 		      ._M_iterator(_Last, #_Last)			\
 		      ._M_string(#_Pred))
+
+// Verify that the container is not self move assigned
+#define __glibcxx_check_self_move_assign(_Other)			\
+_GLIBCXX_DEBUG_VERIFY(this != &_Other,					\
+		      _M_message(__gnu_debug::__msg_self_move_assign)   \
+                      ._M_sequence(*this, "this"))
 
 #ifdef _GLIBCXX_DEBUG_PEDANTIC
 #  define __glibcxx_check_string(_String) _GLIBCXX_DEBUG_ASSERT(_String != 0)

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -39,7 +39,7 @@ package Restrict is
    --  consistency, restrictions found in any with'ed units, parent specs
    --  etc., since we may as well check as much as we can at compile time.
    --  These variables should not be referenced directly by clients. Instead
-   --  use Check_Restrictions to record a violation of a restriction, and
+   --  use Check_Restriction to record a violation of a restriction, and
    --  Restriction_Active to test if a given restriction is active.
 
    Restrictions_Loc : array (All_Restrictions) of Source_Ptr :=
@@ -70,10 +70,6 @@ package Restrict is
    --  restriction is set in this case, but Main_Restrictions is never
    --  set if Restriction_Warnings is set, so this does not look like a
    --  restriction to the binder.
-
-   type Save_Cunit_Boolean_Restrictions is private;
-   --  Type used for saving and restoring compilation unit restrictions.
-   --  See Cunit_Boolean_Restrictions_[Save|Restore] subprograms.
 
    --  The following declarations establish a mapping between restriction
    --  identifiers, and the names of corresponding restriction library units.
@@ -166,17 +162,50 @@ package Restrict is
       --  No_Profile if a pragma Restriction set the No_Dependence entry.
    end record;
 
-   package No_Dependence is new Table.Table (
+   package No_Dependences is new Table.Table (
      Table_Component_Type => ND_Entry,
      Table_Index_Type     => Int,
      Table_Low_Bound      => 0,
      Table_Initial        => 200,
      Table_Increment      => 200,
-     Table_Name           => "Name_No_Dependence");
+     Table_Name           => "Name_No_Dependences");
+
+   -------------------------------
+   -- SPARK Restriction Control --
+   -------------------------------
+
+   --  SPARK HIDE directives allow the effect of the SPARK restriction to be
+   --  turned off for a specified region of code, and the following tables are
+   --  the data structures used to keep track of these regions.
+
+   --  The table contains pairs of source locations, the first being the start
+   --  location for hidden region, and the second being the end location.
+
+   --  Note that the start location is included in the hidden region, while
+   --  the end location is excluded from it. (It typically corresponds to the
+   --  next token during scanning.)
+
+   type SPARK_Hide_Entry is record
+      Start : Source_Ptr;
+      Stop  : Source_Ptr;
+   end record;
+
+   package SPARK_Hides is new Table.Table (
+     Table_Component_Type => SPARK_Hide_Entry,
+     Table_Index_Type     => Natural,
+     Table_Low_Bound      => 1,
+     Table_Initial        => 100,
+     Table_Increment      => 200,
+     Table_Name           => "SPARK Hides");
 
    -----------------
    -- Subprograms --
    -----------------
+
+   --  Note: several of these subprograms can generate error messages (e.g.
+   --  Check_Restriction). These routines should be called in the analyzer
+   --  rather than the expander, so that the associated error messages are
+   --  correctly generated in semantics only (-gnatc) mode.
 
    function Abort_Allowed return Boolean;
    pragma Inline (Abort_Allowed);
@@ -195,11 +224,13 @@ package Restrict is
    --  If a restriction exists post error message at the given node.
 
    procedure Check_Restriction
-     (R : Restriction_Id;
-      N : Node_Id;
-      V : Uint := Uint_Minus_1);
+     (Msg_Issued : out Boolean;
+      R          : Restriction_Id;
+      N          : Node_Id;
+      V          : Uint := Uint_Minus_1);
    --  Checks that the given restriction is not set, and if it is set, an
-   --  appropriate message is posted on the given node. Also records the
+   --  appropriate message is posted on the given node, in which case
+   --  Msg_Issued is set to True (and False otherwise). Also records the
    --  violation in the appropriate internal arrays. Note that it is mandatory
    --  to always use this routine to check if a restriction is violated. Such
    --  checks must never be done directly by the caller, since otherwise
@@ -208,16 +239,48 @@ package Restrict is
    --  indicates the exact count for the violation. If the exact count is not
    --  known, V is left at its default of -1 which indicates an unknown count.
 
+   procedure Check_Restriction
+     (R : Restriction_Id;
+      N : Node_Id;
+      V : Uint := Uint_Minus_1);
+   --  Wrapper on Check_Restriction with Msg_Issued, with the out-parameter
+   --  being ignored here.
+
    procedure Check_Restriction_No_Dependence (U : Node_Id; Err : Node_Id);
    --  Called when a dependence on a unit is created (either implicitly, or by
-   --  an explicit WITH clause). U is a node for the unit involved, and Err
-   --  is the node to which an error will be attached if necessary.
+   --  an explicit WITH clause). U is a node for the unit involved, and Err is
+   --  the node to which an error will be attached if necessary.
+
+   procedure Check_Restriction_No_Specification_Of_Aspect (N : Node_Id);
+   --  N is the node id for an N_Aspect_Specification. An error message
+   --  (warning) will be issued if a restriction (warning) was previous set
+   --  for this aspect using Set_No_Specification_Of_Aspect.
 
    procedure Check_Elaboration_Code_Allowed (N : Node_Id);
    --  Tests to see if elaboration code is allowed by the current restrictions
-   --  settings. This function is called by Gigi when it needs to define
-   --  an elaboration routine. If elaboration code is not allowed, an error
+   --  settings. This function is called by Gigi when it needs to define an
+   --  elaboration routine. If elaboration code is not allowed, an error
    --  message is posted on the node given as argument.
+
+   procedure Check_SPARK_Restriction
+     (Msg   : String;
+      N     : Node_Id;
+      Force : Boolean := False);
+   --  Node N represents a construct not allowed in formal mode. If this is a
+   --  source node, or if the restriction is forced (Force = True), and the
+   --  SPARK restriction is set, then an error is issued on N. Msg is appended
+   --  to the restriction failure message.
+
+   procedure Check_SPARK_Restriction (Msg1, Msg2 : String; N : Node_Id);
+   --  Same as Check_SPARK_Restriction except there is a continuation message
+   --  Msg2 following the initial message Msg1.
+
+   procedure Check_No_Implicit_Aliasing (Obj : Node_Id);
+   --  Obj is a node for which Is_Aliased_View is True, which is being used in
+   --  a context (e.g. 'Access) where no implicit aliasing is allowed if the
+   --  restriction No_Implicit_Aliasing is set. This procedure checks for the
+   --  case where the restriction is active and Obj does not meet the required
+   --  rules for avoiding implicit aliases, and issues a restriction message.
 
    procedure Check_Implicit_Dynamic_Code_Allowed (N : Node_Id);
    --  Tests to see if dynamic code generation (dynamically generated
@@ -245,27 +308,15 @@ package Restrict is
    --  [Wide_]Wide_Character or [Wide_]Wide_String, then the restriction
    --  violation is recorded, and an appropriate message given.
 
-   function Cunit_Boolean_Restrictions_Save
-     return Save_Cunit_Boolean_Restrictions;
-   --  This function saves the compilation unit restriction settings, and
-   --  resets them to False. This is used e.g. when compiling a with'ed
-   --  unit to avoid incorrectly propagating restrictions. Note that it
-   --  would not be wrong to also save and reset the partition restrictions,
-   --  since the binder would catch inconsistencies, but actually it is a
-   --  good thing to acquire restrictions from with'ed units if they are
-   --  required to be partition wide, because it allows the restriction
-   --  violation message to be given at compile time instead of link time.
-
-   procedure Cunit_Boolean_Restrictions_Restore
-     (R : Save_Cunit_Boolean_Restrictions);
-   --  This is the corresponding restore procedure to restore restrictions
-   --  previously saved by Cunit_Boolean_Restrictions_Save.
-
    function Get_Restriction_Id
      (N : Name_Id) return Restriction_Id;
    --  Given an identifier name, determines if it is a valid restriction
-   --  identifier, and if so returns the corresponding Restriction_Id
-   --  value, otherwise returns Not_A_Restriction_Id.
+   --  identifier, and if so returns the corresponding Restriction_Id value,
+   --  otherwise returns Not_A_Restriction_Id.
+
+   function Is_In_Hidden_Part_In_SPARK (Loc : Source_Ptr) return Boolean;
+   --  Determine if given location is covered by a hidden region range in the
+   --  SPARK hides table.
 
    function No_Exception_Handlers_Set return Boolean;
    --  Test to see if current restrictions settings specify that no exception
@@ -308,9 +359,12 @@ package Restrict is
 
    function Restricted_Profile return Boolean;
    --  Tests if set of restrictions corresponding to Profile (Restricted) is
-   --  currently in effect (set by pragma Profile, or by an appropriate set
-   --  of individual Restrictions pragmas). Returns True only if all the
-   --  required restrictions are set.
+   --  currently in effect (set by pragma Profile, or by an appropriate set of
+   --  individual Restrictions pragmas). Returns True only if all the required
+   --  restrictions are set.
+
+   procedure Set_Hidden_Part_In_SPARK (Loc1, Loc2 : Source_Ptr);
+   --  Insert a new hidden region range in the SPARK hides table
 
    procedure Set_Profile_Restrictions
      (P    : Profile_Name;
@@ -341,16 +395,90 @@ package Restrict is
      (Unit    : Node_Id;
       Warn    : Boolean;
       Profile : Profile_Name := No_Profile);
-   --  Sets given No_Dependence restriction in table if not there already.
-   --  Warn is True if from Restriction_Warnings, or for Restrictions if flag
+   --  Sets given No_Dependence restriction in table if not there already. Warn
+   --  is True if from Restriction_Warnings, or for Restrictions if the flag
    --  Treat_Restrictions_As_Warnings is set. False if from Restrictions and
    --  this flag is not set. Profile is set to a non-default value if the
    --  No_Dependence restriction comes from a Profile pragma.
+
+   procedure Set_Restriction_No_Specification_Of_Aspect
+     (N       : Node_Id;
+      Warning : Boolean);
+   --  N is the node id for an identifier from a pragma Restrictions for the
+   --  No_Specification_Of_Aspect pragma. An error message will be issued if
+   --  the identifier is not a valid aspect name. Warning is set True for the
+   --  case of a Restriction_Warnings pragma specifying this restriction and
+   --  False for a Restrictions pragma specifying this restriction.
 
    function Tasking_Allowed return Boolean;
    pragma Inline (Tasking_Allowed);
    --  Tests if tasking operations are allowed by the current restrictions
    --  settings. For tasking to be allowed Max_Tasks must be non-zero.
+
+   ----------------------------------------------
+   -- Handling of Boolean Compilation Switches --
+   ----------------------------------------------
+
+   --  The following declarations are used for proper saving and restoring of
+   --  restrictions for separate compilation units. There are two cases:
+
+   --    For partition-wide restrictions, we just let the restrictions pragmas
+   --    pile up, and we never reset them. We might as well detect what we can
+   --    at compile time. If e.g. a with'ed unit has a restriction for one of
+   --    the partition-wide restrictions, then the binder will enforce it on
+   --    all units in the partition, including the unit with the WITH. Although
+   --    it would not be wrong to leave this till bind time, we might as well
+   --    flag it earlier at compile time.
+
+   --    For non-partition-wide restrictions, we have quite a different state
+   --    of affairs. Here it would be quite wrong to carry a restriction from
+   --    a with'ed unit to another with'ed unit, or from a package spec to the
+   --    package body. This means that we have to reset these non-partition
+   --    wide restrictions at the start of each separate compilation unit. For
+   --    units in the extended main program, we need to reset them all to the
+   --    values set by the configuration pragma file(s). For units not in the
+   --    extended main program, e.g. with'ed units, we might as well reset all
+   --    of these restrictions to off (False). The actual initial values will
+   --    be taken from the config files active when those units are compiled
+   --    as main units.
+
+   type Save_Cunit_Boolean_Restrictions is private;
+   --  Type used for saving and restoring compilation unit restrictions.
+
+   function Cunit_Boolean_Restrictions_Save
+     return Save_Cunit_Boolean_Restrictions;
+   --  This function saves the compilation unit restriction settings, leaving
+   --  then unchanged. This is used e.g. at the start of processing a context
+   --  clause, so that the main unit restrictions can be restored after all
+   --  the with'ed units have been processed.
+
+   procedure Cunit_Boolean_Restrictions_Restore
+     (R : Save_Cunit_Boolean_Restrictions);
+   --  This is the corresponding restore procedure to restore restrictions
+   --  previously saved by Cunit_Boolean_Restrictions_Save. However it does
+   --  not reset No_Elaboration_Code, this stays set if it was set before
+   --  the call, and also if it is set before the call, then the Config
+   --  setting is also updated to include this restriction. This is what
+   --  implements the special handling of No_Elaboration_Code.
+
+   procedure Save_Config_Cunit_Boolean_Restrictions;
+   --  This saves the current compilation unit restrictions in an internal
+   --  variable, and leaves them unchanged. This is called immediately after
+   --  processing the configuration file pragmas, to record the restrictions
+   --  set by these configuration file pragmas.
+
+   procedure Restore_Config_Cunit_Boolean_Restrictions;
+   --  This restores the value saved by the previous call to save config values
+   --  saved by Save_Config_Cunit_Boolean_Restrictions. It is called at the
+   --  start of processing a new unit that is part of the main sources (e.g.
+   --  a package spec when the main unit is a package body).
+
+   procedure Reset_Cunit_Boolean_Restrictions;
+   --  Turns off all non-partition-wide boolean restrictions
+
+   procedure Add_To_Config_Boolean_Restrictions (R : Restriction_Id);
+   --  Add specified restriction to stored configuration boolean restrictions.
+   --  This is used for handling the special case of No_Elaboration_Code.
 
 private
    type Save_Cunit_Boolean_Restrictions is

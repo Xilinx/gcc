@@ -5,30 +5,29 @@
 // Package binary implements translation between
 // unsigned integer values and byte sequences
 // and the reading and writing of fixed-size values.
+// A fixed-size value is either a fixed-size arithmetic
+// type (int8, uint8, int16, float32, complex64, ...)
+// or an array or struct containing only fixed-size values.
 package binary
 
 import (
-	"math"
+	"errors"
 	"io"
-	"os"
+	"math"
 	"reflect"
 )
 
 // A ByteOrder specifies how to convert byte sequences into
 // 16-, 32-, or 64-bit unsigned integers.
 type ByteOrder interface {
-	Uint16(b []byte) uint16
-	Uint32(b []byte) uint32
-	Uint64(b []byte) uint64
+	Uint16([]byte) uint16
+	Uint32([]byte) uint32
+	Uint64([]byte) uint64
 	PutUint16([]byte, uint16)
 	PutUint32([]byte, uint32)
 	PutUint64([]byte, uint64)
 	String() string
 }
-
-// This is byte instead of struct{} so that it can be compared,
-// allowing, e.g., order == binary.LittleEndian.
-type unused byte
 
 // LittleEndian is the little-endian implementation of ByteOrder.
 var LittleEndian littleEndian
@@ -36,7 +35,7 @@ var LittleEndian littleEndian
 // BigEndian is the big-endian implementation of ByteOrder.
 var BigEndian bigEndian
 
-type littleEndian unused
+type littleEndian struct{}
 
 func (littleEndian) Uint16(b []byte) uint16 { return uint16(b[0]) | uint16(b[1])<<8 }
 
@@ -76,7 +75,7 @@ func (littleEndian) String() string { return "LittleEndian" }
 
 func (littleEndian) GoString() string { return "binary.LittleEndian" }
 
-type bigEndian unused
+type bigEndian struct{}
 
 func (bigEndian) Uint16(b []byte) uint16 { return uint16(b[1]) | uint16(b[0])<<8 }
 
@@ -119,12 +118,38 @@ func (bigEndian) GoString() string { return "binary.BigEndian" }
 // Read reads structured binary data from r into data.
 // Data must be a pointer to a fixed-size value or a slice
 // of fixed-size values.
-// A fixed-size value is either a fixed-size arithmetic
-// type (int8, uint8, int16, float32, complex64, ...)
-// or an array or struct containing only fixed-size values.
 // Bytes read from r are decoded using the specified byte order
 // and written to successive fields of the data.
-func Read(r io.Reader, order ByteOrder, data interface{}) os.Error {
+func Read(r io.Reader, order ByteOrder, data interface{}) error {
+	// Fast path for basic types.
+	if n := intDestSize(data); n != 0 {
+		var b [8]byte
+		bs := b[:n]
+		if _, err := io.ReadFull(r, bs); err != nil {
+			return err
+		}
+		switch v := data.(type) {
+		case *int8:
+			*v = int8(b[0])
+		case *uint8:
+			*v = b[0]
+		case *int16:
+			*v = int16(order.Uint16(bs))
+		case *uint16:
+			*v = order.Uint16(bs)
+		case *int32:
+			*v = int32(order.Uint32(bs))
+		case *uint32:
+			*v = order.Uint32(bs)
+		case *int64:
+			*v = int64(order.Uint64(bs))
+		case *uint64:
+			*v = order.Uint64(bs)
+		}
+		return nil
+	}
+
+	// Fallback to reflect-based.
 	var v reflect.Value
 	switch d := reflect.ValueOf(data); d.Kind() {
 	case reflect.Ptr:
@@ -132,11 +157,11 @@ func Read(r io.Reader, order ByteOrder, data interface{}) os.Error {
 	case reflect.Slice:
 		v = d
 	default:
-		return os.NewError("binary.Read: invalid type " + d.Type().String())
+		return errors.New("binary.Read: invalid type " + d.Type().String())
 	}
-	size := TotalSize(v)
+	size := dataSize(v)
 	if size < 0 {
-		return os.NewError("binary.Read: invalid type " + v.Type().String())
+		return errors.New("binary.Read: invalid type " + v.Type().String())
 	}
 	d := &decoder{order: order, buf: make([]byte, size)}
 	if _, err := io.ReadFull(r, d.buf); err != nil {
@@ -147,18 +172,72 @@ func Read(r io.Reader, order ByteOrder, data interface{}) os.Error {
 }
 
 // Write writes the binary representation of data into w.
-// Data must be a fixed-size value or a pointer to
-// a fixed-size value.
-// A fixed-size value is either a fixed-size arithmetic
-// type (int8, uint8, int16, float32, complex64, ...)
-// or an array or struct containing only fixed-size values.
+// Data must be a fixed-size value or a slice of fixed-size
+// values, or a pointer to such data.
 // Bytes written to w are encoded using the specified byte order
 // and read from successive fields of the data.
-func Write(w io.Writer, order ByteOrder, data interface{}) os.Error {
+func Write(w io.Writer, order ByteOrder, data interface{}) error {
+	// Fast path for basic types.
+	var b [8]byte
+	var bs []byte
+	switch v := data.(type) {
+	case *int8:
+		bs = b[:1]
+		b[0] = byte(*v)
+	case int8:
+		bs = b[:1]
+		b[0] = byte(v)
+	case *uint8:
+		bs = b[:1]
+		b[0] = *v
+	case uint8:
+		bs = b[:1]
+		b[0] = byte(v)
+	case *int16:
+		bs = b[:2]
+		order.PutUint16(bs, uint16(*v))
+	case int16:
+		bs = b[:2]
+		order.PutUint16(bs, uint16(v))
+	case *uint16:
+		bs = b[:2]
+		order.PutUint16(bs, *v)
+	case uint16:
+		bs = b[:2]
+		order.PutUint16(bs, v)
+	case *int32:
+		bs = b[:4]
+		order.PutUint32(bs, uint32(*v))
+	case int32:
+		bs = b[:4]
+		order.PutUint32(bs, uint32(v))
+	case *uint32:
+		bs = b[:4]
+		order.PutUint32(bs, *v)
+	case uint32:
+		bs = b[:4]
+		order.PutUint32(bs, v)
+	case *int64:
+		bs = b[:8]
+		order.PutUint64(bs, uint64(*v))
+	case int64:
+		bs = b[:8]
+		order.PutUint64(bs, uint64(v))
+	case *uint64:
+		bs = b[:8]
+		order.PutUint64(bs, *v)
+	case uint64:
+		bs = b[:8]
+		order.PutUint64(bs, v)
+	}
+	if bs != nil {
+		_, err := w.Write(bs)
+		return err
+	}
 	v := reflect.Indirect(reflect.ValueOf(data))
-	size := TotalSize(v)
+	size := dataSize(v)
 	if size < 0 {
-		return os.NewError("binary.Write: invalid type " + v.Type().String())
+		return errors.New("binary.Write: invalid type " + v.Type().String())
 	}
 	buf := make([]byte, size)
 	e := &encoder{order: order, buf: buf}
@@ -167,7 +246,17 @@ func Write(w io.Writer, order ByteOrder, data interface{}) os.Error {
 	return err
 }
 
-func TotalSize(v reflect.Value) int {
+// Size returns how many bytes Write would generate to encode the value v, which
+// must be a fixed-size value or a slice of fixed-size values, or a pointer to such data.
+func Size(v interface{}) int {
+	return dataSize(reflect.Indirect(reflect.ValueOf(v)))
+}
+
+// dataSize returns the number of bytes the actual data represented by v occupies in memory.
+// For compound structures, it sums the sizes of the elements. Thus, for instance, for a slice
+// it returns the length of the slice times the element size and does not count the memory
+// occupied by the header.
+func dataSize(v reflect.Value) int {
 	if v.Kind() == reflect.Slice {
 		elem := sizeof(v.Type().Elem())
 		if elem < 0 {
@@ -283,6 +372,7 @@ func (d *decoder) value(v reflect.Value) {
 		for i := 0; i < l; i++ {
 			d.value(v.Index(i))
 		}
+
 	case reflect.Struct:
 		l := v.NumField()
 		for i := 0; i < l; i++ {
@@ -338,11 +428,13 @@ func (e *encoder) value(v reflect.Value) {
 		for i := 0; i < l; i++ {
 			e.value(v.Index(i))
 		}
+
 	case reflect.Struct:
 		l := v.NumField()
 		for i := 0; i < l; i++ {
 			e.value(v.Field(i))
 		}
+
 	case reflect.Slice:
 		l := v.Len()
 		for i := 0; i < l; i++ {
@@ -393,4 +485,20 @@ func (e *encoder) value(v reflect.Value) {
 			e.uint64(math.Float64bits(imag(x)))
 		}
 	}
+}
+
+// intDestSize returns the size of the integer that ptrType points to,
+// or 0 if the type is not supported.
+func intDestSize(ptrType interface{}) int {
+	switch ptrType.(type) {
+	case *int8, *uint8:
+		return 1
+	case *int16, *uint16:
+		return 2
+	case *int32, *uint32:
+		return 4
+	case *int64, *uint64:
+		return 8
+	}
+	return 0
 }

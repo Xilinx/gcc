@@ -191,10 +191,8 @@
 
 (define_delay (eq_attr "slottable" "has_call_slot")
   [(and (eq_attr "slottable" "yes")
-	(ior (eq (symbol_ref "RTX_FRAME_RELATED_P (insn)")
-		 (const_int 0))
-	     (eq (symbol_ref "flag_exceptions")
-		 (const_int 0))))
+	(ior (not (match_test "RTX_FRAME_RELATED_P (insn)"))
+	     (not (match_test "flag_exceptions"))))
    (nil) (nil)])
 
 ;; The insn in the return insn slot must not be the
@@ -204,8 +202,7 @@
 ;; naked RETURN in middle-end.
 (define_delay (eq_attr "slottable" "has_return_slot")
   [(and (eq_attr "slottable" "yes")
-	(eq (symbol_ref "dead_or_set_regno_p (insn, CRIS_SRP_REGNUM)")
-	    (const_int 0)))
+	(not (match_test "dead_or_set_regno_p (insn, CRIS_SRP_REGNUM)")))
    (nil) (nil)])
 
 
@@ -245,6 +242,7 @@
 ;; Operand and operator predicates.
 
 (include "predicates.md")
+(include "constraints.md")
 
 ;; Test insns.
 
@@ -653,8 +651,8 @@
       && (!CONST_INT_P (operands[2])
 	  || INTVAL (operands[2]) > 127
 	  || INTVAL (operands[2]) < -128
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'N')
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'J')))
+	  || satisfies_constraint_N (operands[2])
+	  || satisfies_constraint_J (operands[2])))
     return "#";
   if (which_alternative == 4)
     return "move<m> [%3=%2%S1],%0";
@@ -680,8 +678,8 @@
       && (!CONST_INT_P (operands[2])
 	  || INTVAL (operands[2]) > 127
 	  || INTVAL (operands[2]) < -128
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'N')
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'J')))
+	  || satisfies_constraint_N (operands[2])
+	  || satisfies_constraint_J (operands[2])))
     return "#";
   if (which_alternative < 3)
     return "move.%s0 [%3=%1%S2],%0";
@@ -799,8 +797,8 @@
       && (!CONST_INT_P (operands[1])
 	  || INTVAL (operands[1]) > 127
 	  || INTVAL (operands[1]) < -128
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[1]), 'N')
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[1]), 'J')))
+	  || satisfies_constraint_N (operands[1])
+	  || satisfies_constraint_J (operands[1])))
     return "#";
   if (which_alternative == 1 || which_alternative == 5)
     return "#";
@@ -833,8 +831,8 @@
       && (!CONST_INT_P (operands[1])
 	  || INTVAL (operands[1]) > 127
 	  || INTVAL (operands[1]) < -128
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[1]), 'N')
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[1]), 'J')))
+	  || satisfies_constraint_N (operands[1])
+	  || satisfies_constraint_J (operands[1])))
     return "#";
   if (which_alternative == 1
       || which_alternative == 7
@@ -906,8 +904,8 @@
       && (!CONST_INT_P (operands[1])
 	  || INTVAL (operands[1]) > 127
 	  || INTVAL (operands[1]) < -128
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[1]), 'N')
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[1]), 'J')))
+	  || satisfies_constraint_N (operands[1])
+	  || satisfies_constraint_J (operands[1])))
     return "#";
   if (which_alternative == 4)
     return "clear<m> [%2=%1%S0]";
@@ -1249,8 +1247,8 @@
       && (!CONST_INT_P (operands[2])
 	  || INTVAL (operands[2]) > 127
 	  || INTVAL (operands[2]) < -128
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'N')
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'J')))
+	  || satisfies_constraint_N (operands[2])
+	  || satisfies_constraint_J (operands[2])))
     return "#";
   if (which_alternative == 4)
     return "mov%e4.%m4 [%3=%2%S1],%0";
@@ -1273,8 +1271,8 @@
       && (!CONST_INT_P (operands[2])
 	  || INTVAL (operands[2]) > 127
 	  || INTVAL (operands[2]) < -128
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'N')
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'J')))
+	  || satisfies_constraint_N (operands[2])
+	  || satisfies_constraint_J (operands[2])))
     return "#";
   if (which_alternative == 4)
     return "mov%e4<m> [%3=%2%S1],%0";
@@ -1610,8 +1608,8 @@
       && (!CONST_INT_P (operands[3])
 	  || INTVAL (operands[3]) > 127
 	  || INTVAL (operands[3]) < -128
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'N')
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'J')))
+	  || satisfies_constraint_N (operands[3])
+	  || satisfies_constraint_J (operands[3])))
     return "#";
   if (which_alternative == 4)
     return "%x5.%s0 [%4=%3%S2],%0";
@@ -1668,8 +1666,8 @@
       && (!CONST_INT_P (operands[3])
 	  || INTVAL (operands[3]) > 127
 	  || INTVAL (operands[3]) < -128
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'N')
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'J')))
+	  || satisfies_constraint_N (operands[3])
+	  || satisfies_constraint_J (operands[3])))
     return "#";
   if (which_alternative == 4)
     return "%x5<m> [%4=%3%S2],%0";
@@ -2100,8 +2098,8 @@
       && (!CONST_INT_P (operands[3])
 	  || INTVAL (operands[3]) > 127
 	  || INTVAL (operands[3]) < -128
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'N')
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'J')))
+	  || satisfies_constraint_N (operands[3])
+	  || satisfies_constraint_J (operands[3])))
     return "#";
   if (which_alternative == 4)
     return "%x5%E6.%m6 [%4=%3%S2],%0";
@@ -2129,8 +2127,8 @@
       && (!CONST_INT_P (operands[3])
 	  || INTVAL (operands[3]) > 127
 	  || INTVAL (operands[3]) < -128
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'N')
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'J')))
+	  || satisfies_constraint_N (operands[3])
+	  || satisfies_constraint_J (operands[3])))
     return "#";
   if (which_alternative == 4)
     return "%x5%E6<m> [%4=%3%S2],%0";
@@ -2209,8 +2207,8 @@
       && (!CONST_INT_P (operands[3])
 	  || INTVAL (operands[3]) > 127
 	  || INTVAL (operands[3]) < -128
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'N')
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'J')))
+	  || satisfies_constraint_N (operands[3])
+	  || satisfies_constraint_J (operands[3])))
     return "#";
   if (which_alternative == 4)
     return "add%e5.b [%4=%3%S2],%0";
@@ -2237,8 +2235,8 @@
       && (!CONST_INT_P (operands[3])
 	  || INTVAL (operands[3]) > 127
 	  || INTVAL (operands[3]) < -128
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'N')
-	  || CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'J')))
+	  || satisfies_constraint_N (operands[3])
+	  || satisfies_constraint_J (operands[3])))
     return "#";
   if (which_alternative == 4)
     return \"%x6%E5.%m5 [%4=%3%S2],%0\";
@@ -2578,7 +2576,7 @@
   "TARGET_HAS_MUL_INSNS"
   "%!mul<su><mm> %2,%0"
   [(set (attr "slottable")
-	(if_then_else (ne (symbol_ref "TARGET_MUL_BUG") (const_int 0))
+	(if_then_else (match_test "TARGET_MUL_BUG")
 		      (const_string "no")
 		      (const_string "yes")))
    ;; For umuls.[bwd] it's just N unusable here, but let's be safe.
@@ -2601,7 +2599,7 @@
   "TARGET_HAS_MUL_INSNS"
   "%!muls.d %2,%0"
   [(set (attr "slottable")
-	(if_then_else (ne (symbol_ref "TARGET_MUL_BUG") (const_int 0))
+	(if_then_else (match_test "TARGET_MUL_BUG")
 		      (const_string "no")
 		      (const_string "yes")))
    ;; Just N unusable here, but let's be safe.
@@ -3493,9 +3491,7 @@
 }
   [(set (attr "slottable")
  	(if_then_else
- 	 (ne (symbol_ref
-	      "(cris_return_address_on_stack_for_return ())")
- 	     (const_int 0))
+ 	 (match_test "cris_return_address_on_stack_for_return ()")
  	 (const_string "no")
 	 (const_string "has_return_slot")))])
 
@@ -4685,9 +4681,9 @@
 	(match_operator 4 "cris_mem_op" [(match_dup 0)]))]
   "GET_MODE_SIZE (GET_MODE (operands[4])) <= UNITS_PER_WORD
    && REGNO (operands[3]) != REGNO (operands[0])
-   && (BASE_P (operands[1]) || BASE_P (operands[2]))
-   && !CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'J')
-   && !CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'N')
+   && (cris_base_p (operands[1], true) || cris_base_p (operands[2], true))
+   && !satisfies_constraint_J (operands[2])
+   && !satisfies_constraint_N (operands[2])
    && (INTVAL (operands[2]) >= -128 && INTVAL (operands[2]) < 128)
    && TARGET_SIDE_EFFECT_PREFIXES"
   [(parallel
@@ -4721,9 +4717,9 @@
 	(match_operand 4 "register_operand" ""))]
   "GET_MODE_SIZE (GET_MODE (operands[4])) <= UNITS_PER_WORD
    && REGNO (operands[4]) != REGNO (operands[0])
-   && (BASE_P (operands[1]) || BASE_P (operands[2]))
-   && !CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'J')
-   && !CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'N')
+   && (cris_base_p (operands[1], true) || cris_base_p (operands[2], true))
+   && !satisfies_constraint_J (operands[2])
+   && !satisfies_constraint_N (operands[2])
    && (INTVAL (operands[2]) >= -128 && INTVAL (operands[2]) < 128)
    && TARGET_SIDE_EFFECT_PREFIXES"
   [(parallel
@@ -4760,8 +4756,8 @@
   ;; Change to GET_MODE_SIZE (GET_MODE (operands[3])) <= UNITS_PER_WORD?
   "GET_MODE (operands[3]) != DImode
    && REGNO (operands[0]) != REGNO (operands[3])
-   && !CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'J')
-   && !CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[2]), 'N')
+   && !satisfies_constraint_J (operands[2])
+   && !satisfies_constraint_N (operands[2])
    && INTVAL (operands[2]) >= -128
    && INTVAL (operands[2]) <= 127
    && TARGET_SIDE_EFFECT_PREFIXES"
@@ -4952,7 +4948,7 @@
    ;; don't do this for a mem-volatile access.
   "REGNO (operands[2]) == REGNO (operands[0])
    && INTVAL (operands[3]) <= 65535 && INTVAL (operands[3]) >= 0
-   && !CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'I')
+   && !satisfies_constraint_I (operands[3])
    && !side_effects_p (operands[1])
    && (!REG_P (operands[1])
        || REGNO (operands[1]) <= CRIS_LAST_GENERAL_REGISTER)"
@@ -4962,7 +4958,7 @@
 {
   enum machine_mode zmode = INTVAL (operands[3]) <= 255 ? QImode : HImode;
   enum machine_mode amode
-    = CRIS_CONST_OK_FOR_LETTER_P (INTVAL (operands[3]), 'O') ? SImode : zmode;
+    = satisfies_constraint_O (operands[3]) ? SImode : zmode;
   rtx op1
     = (REG_S_P (operands[1])
        ? gen_rtx_REG (zmode, REGNO (operands[1]))

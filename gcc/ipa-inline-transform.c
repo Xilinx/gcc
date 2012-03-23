@@ -120,8 +120,8 @@ can_remove_node_now_p (struct cgraph_node *node, struct cgraph_edge *e)
     return true;
   for (next = node->same_comdat_group;
        next != node; next = next->same_comdat_group)
-    if (node->callers && node->callers != e
-	&& !can_remove_node_now_p_1 (node))
+    if ((next->callers && next->callers != e)
+	|| !can_remove_node_now_p_1 (next))
       return false;
   return true;
 }
@@ -248,7 +248,9 @@ inline_call (struct cgraph_edge *e, bool update_original,
     *overall_size += new_size - old_size;
   ncalls_inlined++;
 
-  if (flag_indirect_inlining && optimize)
+  /* This must happen after inline_merge_summary that rely on jump
+     functions of callee to not be updated.  */
+  if (optimize)
     return ipa_propagate_indirect_call_infos (curr, new_edges);
   else
     return false;
@@ -322,7 +324,7 @@ save_inline_function_body (struct cgraph_node *node)
 
   /* Copy the OLD_VERSION_NODE function tree to the new version.  */
   tree_function_versioning (node->decl, first_clone->decl, NULL, true, NULL,
-			    NULL, NULL);
+			    false, NULL, NULL);
 
   /* The function will be short lived and removed after we inline all the clones,
      but make it internal so we won't confuse ourself.  */
@@ -334,8 +336,19 @@ save_inline_function_body (struct cgraph_node *node)
             first_clone->ipa_transforms_to_apply);
   first_clone->ipa_transforms_to_apply = NULL;
 
+  /* When doing recursive inlining, the clone may become unnecessary.
+     This is possible i.e. in the case when the recursive function is proved to be
+     non-throwing and the recursion happens only in the EH landing pad.
+     We can not remove the clone until we are done with saving the body.
+     Remove it now.  */
+  if (!first_clone->callers)
+    {
+      cgraph_remove_node_and_inline_clones (first_clone, NULL);
+      first_clone = NULL;
+    }
 #ifdef ENABLE_CHECKING
-  verify_cgraph_node (first_clone);
+  else
+    verify_cgraph_node (first_clone);
 #endif
   return first_clone;
 }
@@ -348,8 +361,7 @@ inline_transform (struct cgraph_node *node)
 {
   unsigned int todo = 0;
   struct cgraph_edge *e;
-  bool inline_p = false;
-
+ 
   /* FIXME: Currently the pass manager is adding inline transform more than
      once to some clones.  This needs revisiting after WPA cleanups.  */
   if (cfun->after_inlining)
@@ -361,21 +373,20 @@ inline_transform (struct cgraph_node *node)
     save_inline_function_body (node);
 
   for (e = node->callees; e; e = e->next_callee)
-    {
-      cgraph_redirect_edge_call_stmt_to_callee (e);
-      if (!e->inline_failed || warn_inline)
-        inline_p = true;
-      /* Redirecting edges might lead to a need for vops to be recomputed.  */
-      todo |= TODO_update_ssa_only_virtuals;
-    }
+    cgraph_redirect_edge_call_stmt_to_callee (e);
 
-  if (inline_p)
-    {
-      timevar_push (TV_INTEGRATION);
-      todo = optimize_inline_calls (current_function_decl);
-      timevar_pop (TV_INTEGRATION);
-    }
+  timevar_push (TV_INTEGRATION);
+  if (node->callees)
+    todo = optimize_inline_calls (current_function_decl);
+  timevar_pop (TV_INTEGRATION);
+
   cfun->always_inline_functions_inlined = true;
   cfun->after_inlining = true;
-  return todo | execute_fixup_cfg ();
+  todo |= execute_fixup_cfg ();
+
+  if (!(todo & TODO_update_ssa_any))
+    /* Redirecting edges might lead to a need for vops to be recomputed.  */
+    todo |= TODO_update_ssa_only_virtuals;
+
+  return todo;
 }

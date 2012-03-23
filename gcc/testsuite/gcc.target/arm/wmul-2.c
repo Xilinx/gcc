@@ -1,5 +1,6 @@
 /* { dg-do compile } */
-/* { dg-options "-O2 -march=armv6t2" } */
+/* { dg-require-effective-target arm_dsp } */
+/* { dg-options "-O1 -fexpensive-optimizations" } */
 
 void vec_mpy(int y[], const short x[], short scaler)
 {

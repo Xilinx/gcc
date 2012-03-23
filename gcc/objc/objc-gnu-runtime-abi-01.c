@@ -47,6 +47,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "objc-runtime-hooks.h"
 #include "objc-runtime-shared-support.h"
+#include "objc-encoding.h"
 
 /* GNU runtime private definitions.  */
 #define DEF_CONSTANT_STRING_CLASS_NAME "NXConstantString"
@@ -573,8 +574,6 @@ gnu_runtime_abi_01_get_class_reference (tree ident)
 						(IDENTIFIER_LENGTH (ident) + 1,
 						 IDENTIFIER_POINTER (ident)));
 
-  /* FIXME: Do we need this assemble_external() ? */
-  /* assemble_external (objc_get_class_decl);*/
   return build_function_call (input_location, objc_get_class_decl, params);
 }
 
@@ -838,8 +837,6 @@ gnu_runtime_abi_01_get_category_super_ref (location_t loc ATTRIBUTE_UNUSED,
 
   add_class_reference (super_name);
   super_class = (inst_meth ? objc_get_class_decl : objc_get_meta_class_decl);
-  /* FIXME: Do we need this assemble_external() ? */
-  /* assemble_external (super_class);*/
   super_name = my_build_string_pointer (IDENTIFIER_LENGTH (super_name) + 1,
 					IDENTIFIER_POINTER (super_name));
   /* super_class = get_{meta_}class("CLASS_SUPER_NAME");  */
@@ -2225,7 +2222,7 @@ static tree
 objc_build_exc_ptr (struct objc_try_context **x ATTRIBUTE_UNUSED)
 {
   tree t;
-  t = built_in_decls[BUILT_IN_EH_POINTER];
+  t = builtin_decl_explicit (BUILT_IN_EH_POINTER);
   t = build_call_expr (t, 1, integer_zero_node);
   return fold_convert (objc_object_type, t);
 }

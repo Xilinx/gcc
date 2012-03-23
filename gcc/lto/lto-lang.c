@@ -1,5 +1,5 @@
 /* Language-dependent hooks for LTO.
-   Copyright 2009, 2010 Free Software Foundation, Inc.
+   Copyright 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
    Contributed by CodeSourcery, Inc.
 
 This file is part of GCC.
@@ -36,6 +36,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "lto-streamer.h"
 
+static tree lto_type_for_size (unsigned, int);
+
 static tree handle_noreturn_attribute (tree *, tree, tree, int, bool *);
 static tree handle_leaf_attribute (tree *, tree, tree, int, bool *);
 static tree handle_const_attribute (tree *, tree, tree, int, bool *);
@@ -46,6 +48,10 @@ static tree handle_nonnull_attribute (tree *, tree, tree, int, bool *);
 static tree handle_nothrow_attribute (tree *, tree, tree, int, bool *);
 static tree handle_sentinel_attribute (tree *, tree, tree, int, bool *);
 static tree handle_type_generic_attribute (tree *, tree, tree, int, bool *);
+static tree handle_transaction_pure_attribute (tree *, tree, tree, int, bool *);
+static tree handle_returns_twice_attribute (tree *, tree, tree, int, bool *);
+static tree ignore_attribute (tree *, tree, tree, int, bool *);
+
 static tree handle_format_attribute (tree *, tree, tree, int, bool *);
 static tree handle_format_arg_attribute (tree *, tree, tree, int, bool *);
 
@@ -71,10 +77,18 @@ const struct attribute_spec lto_attribute_table[] =
 			      handle_nonnull_attribute, false },
   { "nothrow",                0, 0, true,  false, false,
 			      handle_nothrow_attribute, false },
+  { "returns_twice",          0, 0, true,  false, false,
+			      handle_returns_twice_attribute, false },
   { "sentinel",               0, 1, false, true, true,
 			      handle_sentinel_attribute, false },
   { "type generic",           0, 0, false, true, true,
 			      handle_type_generic_attribute, false },
+  { "transaction_pure",	      0, 0, false, true, true,
+			      handle_transaction_pure_attribute, false },
+  /* For internal use only.  The leading '*' both prevents its usage in
+     source code and signals that it may be overridden by machine tables.  */
+  { "*tm regparm",            0, 0, false, true, true,
+			      ignore_attribute, false },
   { NULL,                     0, 0, false, false, false, NULL, false }
 };
 
@@ -402,6 +416,47 @@ handle_type_generic_attribute (tree *node, tree ARG_UNUSED (name),
   return NULL_TREE;
 }
 
+/* Handle a "transaction_pure" attribute.  */
+
+static tree
+handle_transaction_pure_attribute (tree *node, tree ARG_UNUSED (name),
+				   tree ARG_UNUSED (args),
+				   int ARG_UNUSED (flags),
+				   bool * ARG_UNUSED (no_add_attrs))
+{
+  /* Ensure we have a function type.  */
+  gcc_assert (TREE_CODE (*node) == FUNCTION_TYPE);
+
+  return NULL_TREE;
+}
+
+/* Handle a "returns_twice" attribute.  */
+
+static tree
+handle_returns_twice_attribute (tree *node, tree ARG_UNUSED (name),
+				tree ARG_UNUSED (args),
+				int ARG_UNUSED (flags),
+				bool * ARG_UNUSED (no_add_attrs))
+{
+  gcc_assert (TREE_CODE (*node) == FUNCTION_DECL);
+
+  DECL_IS_RETURNS_TWICE (*node) = 1;
+
+  return NULL_TREE;
+}
+
+/* Ignore the given attribute.  Used when this attribute may be usefully
+   overridden by the target, but is not used generically.  */
+
+static tree
+ignore_attribute (tree * ARG_UNUSED (node), tree ARG_UNUSED (name),
+		  tree ARG_UNUSED (args), int ARG_UNUSED (flags),
+		  bool *no_add_attrs)
+{
+  *no_add_attrs = true;
+  return NULL_TREE;
+}
+
 /* Handle a "format" attribute; arguments as in
    struct attribute_spec.handler.  */
 
@@ -470,7 +525,7 @@ def_fn_type (builtin_type def, builtin_type ret, bool var, int n, ...)
 static tree
 builtin_type_for_size (int size, bool unsignedp)
 {
-  tree type = lang_hooks.types.type_for_size (size, unsignedp);
+  tree type = lto_type_for_size (size, unsignedp);
   return type ? type : error_mark_node;
 }
 
@@ -499,9 +554,7 @@ def_builtin_1 (enum built_in_function fncode, const char *name,
     add_builtin_function (libname, libtype, fncode, fnclass,
 			  NULL, fnattrs);
 
-  built_in_decls[(int) fncode] = decl;
-  if (implicit_p)
-    implicit_built_in_decls[(int) fncode] = decl;
+  set_builtin_decl (fncode, decl, implicit_p);
 }
 
 
@@ -693,8 +746,6 @@ lto_post_options (const char **pfilename ATTRIBUTE_UNUSED)
   /* Excess precision other than "fast" requires front-end
      support.  */
   flag_excess_precision_cmdline = EXCESS_PRECISION_FAST;
-
-  lto_read_all_file_options ();
 
   /* Initialize the compiler back end.  */
   return false;
@@ -1081,11 +1132,10 @@ lto_init (void)
   flag_generate_lto = flag_wpa;
 
   /* Initialize libcpp line maps for gcc_assert to work.  */
-  linemap_add (line_table, LC_RENAME, 0, NULL, 0);
-  linemap_add (line_table, LC_RENAME, 0, NULL, 0);
+  linemap_add (line_table, LC_ENTER, 0, NULL, 0);
 
   /* Create the basic integer types.  */
-  build_common_tree_nodes (flag_signed_char);
+  build_common_tree_nodes (flag_signed_char, /*short_double=*/false);
 
   /* The global tree for the main identifier is filled in by
      language-specific front-end initialization that is not run in the
@@ -1099,11 +1149,10 @@ lto_init (void)
      distinction should only be relevant to the front-end, so we
      always use the C definition here in lto1.  */
   gcc_assert (fileptr_type_node == ptr_type_node);
+  gcc_assert (TYPE_MAIN_VARIANT (fileptr_type_node) == ptr_type_node);
 
   ptrdiff_type_node = integer_type_node;
 
-  /* Create other basic types.  */
-  build_common_tree_nodes_2 (/*short_double=*/false);
   lto_build_c_type_nodes ();
   gcc_assert (va_list_type_node);
 

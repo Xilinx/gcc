@@ -40,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "langhooks.h"
 #include "objc-act.h"
+#include "objc-map.h"
 #include "input.h"
 #include "function.h"
 #include "output.h"
@@ -63,6 +64,9 @@ along with GCC; see the file COPYING3.  If not see
 
 /* For enum gimplify_status */
 #include "gimple.h"
+
+/* For encode_method_prototype().  */
+#include "objc-encoding.h"
 
 static unsigned int should_call_super_dealloc = 0;
 
@@ -105,17 +109,6 @@ static unsigned int should_call_super_dealloc = 0;
 #define OBJC_FORWARDING_MIN_OFFSET 0
 #endif
 
-/* Set up for use of obstacks.  */
-
-#include "obstack.h"
-
-/* This obstack is used to accumulate the encoding of a data type.  */
-struct obstack util_obstack;
-
-/* This points to the beginning of obstack contents, so we can free
-   the whole contents.  */
-char *util_firstobj;
-
 /*** Private Interface (procedures) ***/
 
 /* Init stuff.  */
@@ -146,7 +139,6 @@ static bool objc_derived_from_p (tree, tree);
 static void objc_gen_property_data (tree, tree);
 static void objc_synthesize_getter (tree, tree, tree);
 static void objc_synthesize_setter (tree, tree, tree);
-static char *objc_build_property_setter_name (tree);
 static tree lookup_property (tree, tree);
 static tree lookup_property_in_list (tree, tree);
 static tree lookup_property_in_protocol_list (tree, tree);
@@ -166,27 +158,25 @@ static void objc_generate_cxx_cdtors (void);
 static void objc_decl_method_attributes (tree*, tree, int);
 static tree build_keyword_selector (tree);
 
-/* Hash tables to manage the global pool of method prototypes.  */
 static void hash_init (void);
 
-hash *nst_method_hash_list = 0;
-hash *cls_method_hash_list = 0;
+/* Hash tables to manage the global pool of method prototypes.  Each
+   of these maps map a method name (selector) identifier to either a
+   single tree (for methods with a single method prototype) or a
+   TREE_VEC (for methods with multiple method prototypes).  */
+static GTY(()) objc_map_t instance_method_map = 0;
+static GTY(()) objc_map_t class_method_map = 0;
 
 /* Hash tables to manage the global pool of class names.  */
 
-hash *cls_name_hash_list = 0;
-hash *als_name_hash_list = 0;
+static GTY(()) objc_map_t class_name_map = 0;
+static GTY(()) objc_map_t alias_name_map = 0;
 
-hash *ivar_offset_hash_list = 0;
-
-static void hash_class_name_enter (hash *, tree, tree);
-static hash hash_class_name_lookup (hash *, tree);
-
-static hash hash_lookup (hash *, tree);
 static tree lookup_method (tree, tree);
 static tree lookup_method_static (tree, tree, int);
 
-static tree add_class (tree, tree);
+static void interface_hash_init (void);
+static tree add_interface (tree, tree);
 static void add_category (tree, tree);
 static inline tree lookup_category (tree, tree);
 
@@ -194,11 +184,6 @@ static inline tree lookup_category (tree, tree);
 
 static tree lookup_protocol (tree, bool, bool);
 static tree lookup_and_install_protocols (tree, bool);
-
-/* Type encoding.  */
-
-static void encode_type_qualifiers (tree);
-static void encode_type (tree, int, int);
 
 #ifdef OBJCPLUS
 static void really_start_method (tree, tree);
@@ -221,7 +206,7 @@ static void generate_struct_by_value_array (void) ATTRIBUTE_NORETURN;
 
 static void mark_referenced_methods (void);
 static bool objc_type_valid_for_messaging (tree type, bool allow_classes);
-static tree check_duplicates (hash, int, int);
+static tree check_duplicates (tree, int, int);
 
 /*** Private Interface (data) ***/
 /* Flags for lookup_method_static().  */
@@ -278,13 +263,6 @@ struct GTY(()) string_descriptor {
 static GTY((param_is (struct string_descriptor))) htab_t string_htab;
 
 FILE *gen_declaration_file;
-
-/* Tells "encode_pointer/encode_aggregate" whether we are generating
-   type descriptors for instance variables (as opposed to methods).
-   Type descriptors for instance variables contain more information
-   than methods (for static typing and embedded structures).  */
-
-int generating_instance_variables = 0;
 
 /* Hooks for stuff that differs between runtimes.  */
 objc_runtime_hooks runtime;
@@ -401,10 +379,9 @@ objc_init (void)
 
   /* Set up stuff used by FE parser and all runtimes.  */
   errbuf = XNEWVEC (char, 1024 * 10);
+  interface_hash_init ();
   hash_init ();
-  gcc_obstack_init (&util_obstack);
-  util_firstobj = (char *) obstack_finish (&util_obstack);
-
+  objc_encoding_init ();
   /* ... and then check flags and set-up for the selected runtime ... */
   if (flag_next_runtime && flag_objc_abi >= 2)
     ok = objc_next_runtime_abi_02_init (&runtime);
@@ -441,19 +418,15 @@ objc_write_global_declarations (void)
 
   if (warn_selector)
     {
-      int slot;
-      hash hsh;
+      objc_map_iterator_t i;
 
-      /* Run through the selector hash tables and print a warning for any
-         selector which has multiple methods.  */
+      objc_map_iterator_initialize (class_method_map, &i);
+      while (objc_map_iterator_move_to_next (class_method_map, &i))
+	check_duplicates (objc_map_iterator_current_value (class_method_map, i), 0, 1);
 
-      for (slot = 0; slot < SIZEHASHTABLE; slot++)
-	{
-	  for (hsh = cls_method_hash_list[slot]; hsh; hsh = hsh->next)
-	    check_duplicates (hsh, 0, 1);
-	  for (hsh = nst_method_hash_list[slot]; hsh; hsh = hsh->next)
-	    check_duplicates (hsh, 0, 0);
-	}
+      objc_map_iterator_initialize (instance_method_map, &i);
+      while (objc_map_iterator_move_to_next (instance_method_map, &i))
+	check_duplicates (objc_map_iterator_current_value (instance_method_map, i), 0, 0);
     }
 
   /* TODO: consider an early exit here if either errorcount or sorrycount
@@ -3155,9 +3128,8 @@ objc_build_string_object (tree string)
   struct string_descriptor *desc, key;
   void **loc;
 
-  /* Prep the string argument.  */
-  string = fix_string_type (string);
-  TREE_SET_CODE (string, STRING_CST);
+  /* We should be passed a STRING_CST.  */
+  gcc_checking_assert (TREE_CODE (string) == STRING_CST);
   length = TREE_STRING_LENGTH (string) - 1;
 
   /* The target may have different ideas on how to construct an ObjC string
@@ -3374,8 +3346,7 @@ objc_declare_alias (tree alias_ident, tree class_ident)
 #ifdef OBJCPLUS
       pop_lang_context ();
 #endif
-      hash_class_name_enter (als_name_hash_list, alias_ident,
-			     underlying_class);
+      objc_map_put (alias_name_map, alias_ident, underlying_class);
     }
 }
 
@@ -3415,15 +3386,13 @@ objc_declare_class (tree identifier)
 	 the TYPE_OBJC_INTERFACE.  If later an @interface is found,
 	 we'll replace the ident with the interface.  */
       TYPE_OBJC_INTERFACE (record) = identifier;
-      hash_class_name_enter (cls_name_hash_list, identifier, NULL_TREE);
+      objc_map_put (class_name_map, identifier, NULL_TREE);
     }
 }
 
 tree
 objc_is_class_name (tree ident)
 {
-  hash target;
-
   if (ident && TREE_CODE (ident) == IDENTIFIER_NODE)
     {
       tree t = identifier_global_value (ident);
@@ -3451,16 +3420,17 @@ objc_is_class_name (tree ident)
   if (lookup_interface (ident))
     return ident;
 
-  target = hash_class_name_lookup (cls_name_hash_list, ident);
-  if (target)
-    return target->key;
+  {
+    tree target;
 
-  target = hash_class_name_lookup (als_name_hash_list, ident);
-  if (target)
-    {
-      gcc_assert (target->list && target->list->value);
-      return target->list->value;
-    }
+    target = objc_map_get (class_name_map, ident);
+    if (target != OBJC_MAP_NOT_FOUND)
+      return ident;
+
+    target = objc_map_get (alias_name_map, ident);
+    if (target != OBJC_MAP_NOT_FOUND)
+      return target;
+  }
 
   return 0;
 }
@@ -3583,7 +3553,6 @@ objc_build_ivar_assignment (tree outervar, tree lhs, tree rhs)
 		tree_cons (NULL_TREE, offs,
 		    NULL_TREE)));
 
-  assemble_external (func);
   return build_function_call (input_location, func, func_params);
 }
 
@@ -3596,7 +3565,6 @@ objc_build_global_assignment (tree lhs, tree rhs)
 		      build_unary_op (input_location, ADDR_EXPR, lhs, 0)),
 		    NULL_TREE));
 
-  assemble_external (objc_assign_global_decl);
   return build_function_call (input_location,
 			      objc_assign_global_decl, func_params);
 }
@@ -3610,7 +3578,6 @@ objc_build_strong_cast_assignment (tree lhs, tree rhs)
 		      build_unary_op (input_location, ADDR_EXPR, lhs, 0)),
 		    NULL_TREE));
 
-  assemble_external (objc_assign_strong_cast_decl);
   return build_function_call (input_location,
 			      objc_assign_strong_cast_decl, func_params);
 }
@@ -3784,25 +3751,30 @@ objc_generate_write_barrier (tree lhs, enum tree_code modifycode, tree rhs)
   return result;
 }
 
-struct GTY(()) interface_tuple {
-  tree id;
-  tree class_name;
-};
+/* Implementation of the table mapping a class name (as an identifier)
+   to a class node.  The two public functions for it are
+   lookup_interface() and add_interface().  add_interface() is only
+   used in this file, so we can make it static.  */
 
-static GTY ((param_is (struct interface_tuple))) htab_t interface_htab;
+static GTY(()) objc_map_t interface_map;
 
-static hashval_t
-hash_interface (const void *p)
+static void
+interface_hash_init (void)
 {
-  const struct interface_tuple *d = (const struct interface_tuple *) p;
-  return IDENTIFIER_HASH_VALUE (d->id);
+  interface_map = objc_map_alloc_ggc (200);  
 }
 
-static int
-eq_interface (const void *p1, const void *p2)
+static tree
+add_interface (tree class_name, tree name)
 {
-  const struct interface_tuple *d = (const struct interface_tuple *) p1;
-  return d->id == p2;
+  /* Put interfaces on list in reverse order.  */
+  TREE_CHAIN (class_name) = interface_chain;
+  interface_chain = class_name;
+
+  /* Add it to the map.  */
+  objc_map_put (interface_map, name, class_name);
+
+  return interface_chain;
 }
 
 tree
@@ -3817,19 +3789,12 @@ lookup_interface (tree ident)
     return NULL_TREE;
 
   {
-    struct interface_tuple **slot;
-    tree i = NULL_TREE;
+    tree interface = objc_map_get (interface_map, ident);
 
-    if (interface_htab)
-      {
-	slot = (struct interface_tuple **)
-	  htab_find_slot_with_hash (interface_htab, ident,
-				    IDENTIFIER_HASH_VALUE (ident),
-				    NO_INSERT);
-	if (slot && *slot)
-	  i = (*slot)->class_name;
-      }
-    return i;
+    if (interface == OBJC_MAP_NOT_FOUND)
+      return NULL_TREE;
+    else
+      return interface;
   }
 }
 
@@ -4449,110 +4414,6 @@ build_private_template (tree klass)
       if (TREE_DEPRECATED (klass))
 	TREE_DEPRECATED (record) = 1;
     }
-}
-
-/* Begin code generation for protocols...  */
-
-static tree
-objc_method_parm_type (tree type)
-{
-  type = TREE_VALUE (TREE_TYPE (type));
-  if (TREE_CODE (type) == TYPE_DECL)
-    type = TREE_TYPE (type);
-  return type;
-}
-
-static int
-objc_encoded_type_size (tree type)
-{
-  int sz = int_size_in_bytes (type);
-
-  /* Make all integer and enum types at least as large
-     as an int.  */
-  if (sz > 0 && INTEGRAL_TYPE_P (type))
-    sz = MAX (sz, int_size_in_bytes (integer_type_node));
-  /* Treat arrays as pointers, since that's how they're
-     passed in.  */
-  else if (TREE_CODE (type) == ARRAY_TYPE)
-    sz = int_size_in_bytes (ptr_type_node);
-  return sz;
-}
-
-/* Encode a method prototype.
-
-   The format is described in gcc/doc/objc.texi, section 'Method
-   signatures'.
- */
-
-tree
-encode_method_prototype (tree method_decl)
-{
-  tree parms;
-  int parm_offset, i;
-  char buf[40];
-  tree result;
-
-  /* ONEWAY and BYCOPY, for remote object are the only method qualifiers.  */
-  encode_type_qualifiers (TREE_PURPOSE (TREE_TYPE (method_decl)));
-
-  /* Encode return type.  */
-  encode_type (objc_method_parm_type (method_decl),
-	       obstack_object_size (&util_obstack),
-	       OBJC_ENCODE_INLINE_DEFS);
-
-  /* Stack size.  */
-  /* The first two arguments (self and _cmd) are pointers; account for
-     their size.  */
-  i = int_size_in_bytes (ptr_type_node);
-  parm_offset = 2 * i;
-  for (parms = METHOD_SEL_ARGS (method_decl); parms;
-       parms = DECL_CHAIN (parms))
-    {
-      tree type = objc_method_parm_type (parms);
-      int sz = objc_encoded_type_size (type);
-
-      /* If a type size is not known, bail out.  */
-      if (sz < 0)
-	{
-	  error_at (DECL_SOURCE_LOCATION (method_decl),
-		    "type %qT does not have a known size",
-		    type);
-	  /* Pretend that the encoding succeeded; the compilation will
-	     fail nevertheless.  */
-	  goto finish_encoding;
-	}
-      parm_offset += sz;
-    }
-
-  sprintf (buf, "%d@0:%d", parm_offset, i);
-  obstack_grow (&util_obstack, buf, strlen (buf));
-
-  /* Argument types.  */
-  parm_offset = 2 * i;
-  for (parms = METHOD_SEL_ARGS (method_decl); parms;
-       parms = DECL_CHAIN (parms))
-    {
-      tree type = objc_method_parm_type (parms);
-
-      /* Process argument qualifiers for user supplied arguments.  */
-      encode_type_qualifiers (TREE_PURPOSE (TREE_TYPE (parms)));
-
-      /* Type.  */
-      encode_type (type, obstack_object_size (&util_obstack),
-		   OBJC_ENCODE_INLINE_DEFS);
-
-      /* Compute offset.  */
-      sprintf (buf, "%d", parm_offset);
-      parm_offset += objc_encoded_type_size (type);
-
-      obstack_grow (&util_obstack, buf, strlen (buf));
-    }
-
-  finish_encoding:
-  obstack_1grow (&util_obstack, '\0');
-  result = get_identifier (XOBFINISH (&util_obstack, char *));
-  obstack_free (&util_obstack, util_firstobj);
-  return result;
 }
 
 /* Generate either '- .cxx_construct' or '- .cxx_destruct' for the
@@ -5179,71 +5040,75 @@ build_function_type_for_method (tree return_type, tree method,
   return ftype;
 }
 
+/* The 'method' argument is a tree; this tree could either be a single
+   method, which is returned, or could be a TREE_VEC containing a list
+   of methods.  In that case, the first one is returned, and warnings
+   are issued as appropriate.  */
 static tree
-check_duplicates (hash hsh, int methods, int is_class)
+check_duplicates (tree method, int methods, int is_class)
 {
-  tree meth = NULL_TREE;
+  tree first_method;
+  size_t i;
 
-  if (hsh)
+  if (method == NULL_TREE)
+    return NULL_TREE;
+
+  if (TREE_CODE (method) != TREE_VEC)
+    return method;
+
+  /* We have two or more methods with the same name but different
+     types.  */
+  first_method = TREE_VEC_ELT (method, 0);
+  
+  /* But just how different are those types?  If
+     -Wno-strict-selector-match is specified, we shall not complain if
+     the differences are solely among types with identical size and
+     alignment.  */
+  if (!warn_strict_selector_match)
     {
-      meth = hsh->key;
-
-      if (hsh->list)
-        {
-	  /* We have two or more methods with the same name but
-	     different types.  */
-	  attr loop;
-
-	  /* But just how different are those types?  If
-	     -Wno-strict-selector-match is specified, we shall not
-	     complain if the differences are solely among types with
-	     identical size and alignment.  */
-	  if (!warn_strict_selector_match)
-	    {
-	      for (loop = hsh->list; loop; loop = loop->next)
-		if (!comp_proto_with_proto (meth, loop->value, 0))
-		  goto issue_warning;
-
-	      return meth;
-	    }
-
-	issue_warning:
-	  if (methods)
-	    {
-	      bool type = TREE_CODE (meth) == INSTANCE_METHOD_DECL;
-
-	      warning_at (input_location, 0,
-			  "multiple methods named %<%c%E%> found",
-			  (is_class ? '+' : '-'),
-			  METHOD_SEL_NAME (meth));
-	      inform (DECL_SOURCE_LOCATION (meth), "using %<%c%s%>",
-		      (type ? '-' : '+'),
-		      identifier_to_locale (gen_method_decl (meth)));
-	    }
-	  else
-	    {
-	      bool type = TREE_CODE (meth) == INSTANCE_METHOD_DECL;
-
-	      warning_at (input_location, 0,
-			  "multiple selectors named %<%c%E%> found",
-			  (is_class ? '+' : '-'),
-			  METHOD_SEL_NAME (meth));
-	      inform (DECL_SOURCE_LOCATION (meth), "found %<%c%s%>",
-		      (type ? '-' : '+'),
-		      identifier_to_locale (gen_method_decl (meth)));
-	    }
-
-	  for (loop = hsh->list; loop; loop = loop->next)
-	    {
-	      bool type = TREE_CODE (loop->value) == INSTANCE_METHOD_DECL;
-
-	      inform (DECL_SOURCE_LOCATION (loop->value), "also found %<%c%s%>",
-		      (type ? '-' : '+'),
-		      identifier_to_locale (gen_method_decl (loop->value)));
-	    }
-        }
+      for (i = 0; i < (size_t) TREE_VEC_LENGTH (method); i++)
+	if (!comp_proto_with_proto (first_method, TREE_VEC_ELT (method, i), 0))
+	  goto issue_warning;
+      
+      return first_method;
     }
-  return meth;
+    
+ issue_warning:
+  if (methods)
+    {
+      bool type = TREE_CODE (first_method) == INSTANCE_METHOD_DECL;
+      
+      warning_at (input_location, 0,
+		  "multiple methods named %<%c%E%> found",
+		  (is_class ? '+' : '-'),
+		  METHOD_SEL_NAME (first_method));
+      inform (DECL_SOURCE_LOCATION (first_method), "using %<%c%s%>",
+	      (type ? '-' : '+'),
+	      identifier_to_locale (gen_method_decl (first_method)));
+    }
+  else
+    {
+      bool type = TREE_CODE (first_method) == INSTANCE_METHOD_DECL;
+      
+      warning_at (input_location, 0,
+		  "multiple selectors named %<%c%E%> found",
+		  (is_class ? '+' : '-'),
+		  METHOD_SEL_NAME (first_method));
+      inform (DECL_SOURCE_LOCATION (first_method), "found %<%c%s%>",
+	      (type ? '-' : '+'),
+	      identifier_to_locale (gen_method_decl (first_method)));
+    }
+  
+  for (i = 0; i < (size_t) TREE_VEC_LENGTH (method); i++)
+    {
+      bool type = TREE_CODE (TREE_VEC_ELT (method, i)) == INSTANCE_METHOD_DECL;
+      
+      inform (DECL_SOURCE_LOCATION (TREE_VEC_ELT (method, i)), "also found %<%c%s%>",
+	      (type ? '-' : '+'),
+	      identifier_to_locale (gen_method_decl (TREE_VEC_ELT (method, i))));
+    }
+
+  return first_method;
 }
 
 /* If RECEIVER is a class reference, return the identifier node for
@@ -5421,17 +5286,18 @@ objc_build_message_expr (tree receiver, tree message_args)
 static tree
 lookup_method_in_hash_lists (tree sel_name, int is_class)
 {
-  hash method_prototype = NULL;
+  tree method_prototype = OBJC_MAP_NOT_FOUND;
 
   if (!is_class)
-    method_prototype = hash_lookup (nst_method_hash_list,
-				    sel_name);
-
-  if (!method_prototype)
+    method_prototype = objc_map_get (instance_method_map, sel_name);
+  
+  if (method_prototype == OBJC_MAP_NOT_FOUND)
     {
-      method_prototype = hash_lookup (cls_method_hash_list,
-				      sel_name);
+      method_prototype = objc_map_get (class_method_map, sel_name);
       is_class = 1;
+
+      if (method_prototype == OBJC_MAP_NOT_FOUND)
+	return NULL_TREE;
     }
 
   return check_duplicates (method_prototype, 1, is_class);
@@ -5841,46 +5707,25 @@ objc_build_selector_expr (location_t loc, tree selnamelist)
       /* Look the selector up in the list of all known class and
          instance methods (up to this line) to check that the selector
          exists.  */
-      hash hsh;
+      tree method;
 
       /* First try with instance methods.  */
-      hsh = hash_lookup (nst_method_hash_list, selname);
+      method = objc_map_get (instance_method_map, selname);
 
       /* If not found, try with class methods.  */
-      if (!hsh)
+      if (method == OBJC_MAP_NOT_FOUND)
 	{
-	  hsh = hash_lookup (cls_method_hash_list, selname);
-	}
+	  method = objc_map_get (class_method_map, selname);
 
-      /* If still not found, print out a warning.  */
-      if (!hsh)
-	{
-	  warning (0, "undeclared selector %qE", selname);
+	  /* If still not found, print out a warning.  */
+	  if (method == OBJC_MAP_NOT_FOUND)
+	    warning (0, "undeclared selector %qE", selname);
 	}
     }
 
   /* The runtimes do this differently, most particularly, GNU has typed
      selectors, whilst NeXT does not.  */
   return (*runtime.build_selector_reference) (loc, selname, NULL_TREE);
-}
-
-/* This is used to implement @encode().  See gcc/doc/objc.texi,
-   section '@encode'.  */
-tree
-objc_build_encode_expr (tree type)
-{
-  tree result;
-  const char *string;
-
-  encode_type (type, obstack_object_size (&util_obstack),
-	       OBJC_ENCODE_INLINE_DEFS);
-  obstack_1grow (&util_obstack, 0);    /* null terminate string */
-  string = XOBFINISH (&util_obstack, const char *);
-
-  /* Synthesize a string that represents the encoded struct/union.  */
-  result = my_build_string (strlen (string) + 1, string);
-  obstack_free (&util_obstack, util_firstobj);
-  return result;
 }
 
 static tree
@@ -5907,131 +5752,99 @@ build_ivar_reference (tree id)
   return (*runtime.build_ivar_reference) (input_location, base, id);
 }
 
-/* Compute a hash value for a given method SEL_NAME.  */
-
-static size_t
-hash_func (tree sel_name)
-{
-  const unsigned char *s
-    = (const unsigned char *)IDENTIFIER_POINTER (sel_name);
-  size_t h = 0;
-
-  while (*s)
-    h = h * 67 + *s++ - 113;
-  return h;
-}
-
 static void
 hash_init (void)
 {
-  nst_method_hash_list = ggc_alloc_cleared_vec_hash (SIZEHASHTABLE);
-  cls_method_hash_list = ggc_alloc_cleared_vec_hash (SIZEHASHTABLE);
+  instance_method_map = objc_map_alloc_ggc (1000);
+  class_method_map = objc_map_alloc_ggc (1000);
 
-  cls_name_hash_list = ggc_alloc_cleared_vec_hash (SIZEHASHTABLE);
-  als_name_hash_list = ggc_alloc_cleared_vec_hash (SIZEHASHTABLE);
-
-  ivar_offset_hash_list = ggc_alloc_cleared_vec_hash (SIZEHASHTABLE);
+  class_name_map = objc_map_alloc_ggc (200);
+  alias_name_map = objc_map_alloc_ggc (200);
 
   /* Initialize the hash table used to hold the constant string objects.  */
   string_htab = htab_create_ggc (31, string_hash,
 				   string_eq, NULL);
 }
 
-/* This routine adds sel_name to the hash list. sel_name  is a class or alias
-   name for the class. If alias name, then value is its underlying class.
-   If class, the value is NULL_TREE. */
-
+/* Use the following to add a method to class_method_map or
+   instance_method_map.  It will add the method, keyed by the
+   METHOD_SEL_NAME.  If the method already exists, but with one or
+   more different prototypes, it will store a TREE_VEC in the map,
+   with the method prototypes in the vector.  */
 static void
-hash_class_name_enter (hash *hashlist, tree sel_name, tree value)
+insert_method_into_method_map (bool class_method, tree method)
 {
-  hash obj;
-  int slot = hash_func (sel_name) % SIZEHASHTABLE;
+  tree method_name = METHOD_SEL_NAME (method);
+  tree existing_entry;
+  objc_map_t map;
 
-  obj = ggc_alloc_hashed_entry ();
-  if (value != NULL_TREE)
-    {
-      /* Save the underlying class for the 'alias' in the hash table */
-      attr obj_attr = ggc_alloc_hashed_attribute ();
-      obj_attr->value = value;
-      obj->list = obj_attr;
-    }
+  if (class_method)
+    map = class_method_map;
   else
-    obj->list = 0;
-  obj->next = hashlist[slot];
-  obj->key = sel_name;
+    map = instance_method_map;
 
-  hashlist[slot] = obj;         /* append to front */
+  /* Check if the method already exists in the map.  */
+  existing_entry = objc_map_get (map, method_name);
 
-}
-
-/*
-   Searches in the hash table looking for a match for class or alias name.
-*/
-
-static hash
-hash_class_name_lookup (hash *hashlist, tree sel_name)
-{
-  hash target;
-
-  target = hashlist[hash_func (sel_name) % SIZEHASHTABLE];
-
-  while (target)
+  /* If not, we simply add it to the map.  */
+  if (existing_entry == OBJC_MAP_NOT_FOUND)
+    objc_map_put (map, method_name, method);
+  else
     {
-      if (sel_name == target->key)
-	return target;
+      tree new_entry;
+      
+      /* If an entry already exists, it's more complicated.  We'll
+	 have to check whether the method prototype is the same or
+	 not.  */
+      if (TREE_CODE (existing_entry) != TREE_VEC)
+	{
+	  /* If the method prototypes are the same, there is nothing
+	     to do.  */
+	  if (comp_proto_with_proto (method, existing_entry, 1))
+	    return;
 
-      target = target->next;
+	  /* If not, create a vector to store both the method already
+	     in the map, and the new one that we are adding.  */
+	  new_entry = make_tree_vec (2);
+	  
+	  TREE_VEC_ELT (new_entry, 0) = existing_entry;
+	  TREE_VEC_ELT (new_entry, 1) = method;
+	}
+      else
+	{
+	  /* An entry already exists, and it's already a vector.  This
+	     means that at least 2 different method prototypes were
+	     already found, and we're considering registering yet
+	     another one.  */
+	  size_t i;
+
+	  /* Check all the existing prototypes.  If any matches the
+	     one we need to add, there is nothing to do because it's
+	     already there.  */
+	  for (i = 0; i < (size_t) TREE_VEC_LENGTH (existing_entry); i++)
+	    if (comp_proto_with_proto (method, TREE_VEC_ELT (existing_entry, i), 1))
+	      return;
+
+	  /* Else, create a new, bigger vector and add the new method
+	     at the end of it.  This is inefficient but extremely
+	     rare; in any sane program most methods have a single
+	     prototype, and very few, if any, will have more than
+	     2!  */
+	  new_entry = make_tree_vec (TREE_VEC_LENGTH (existing_entry) + 1);
+	  
+	  /* Copy the methods from the existing vector.  */
+	  for (i = 0; i < (size_t) TREE_VEC_LENGTH (existing_entry); i++)
+	    TREE_VEC_ELT (new_entry, i) = TREE_VEC_ELT (existing_entry, i);
+	  
+	  /* Add the new method at the end.  */
+	  TREE_VEC_ELT (new_entry, i) = method;
+	}
+
+      /* Store the new vector in the map.  */
+      objc_map_put (map, method_name, new_entry);
     }
-  return 0;
 }
 
-/* WARNING!!!!  hash_enter is called with a method, and will peek
-   inside to find its selector!  But hash_lookup is given a selector
-   directly, and looks for the selector that's inside the found
-   entry's key (method) for comparison.  */
-
-static void
-hash_enter (hash *hashlist, tree method)
-{
-  hash obj;
-  int slot = hash_func (METHOD_SEL_NAME (method)) % SIZEHASHTABLE;
-
-  obj = ggc_alloc_hashed_entry ();
-  obj->list = 0;
-  obj->next = hashlist[slot];
-  obj->key = method;
-
-  hashlist[slot] = obj;		/* append to front */
-}
-
-static hash
-hash_lookup (hash *hashlist, tree sel_name)
-{
-  hash target;
-
-  target = hashlist[hash_func (sel_name) % SIZEHASHTABLE];
-
-  while (target)
-    {
-      if (sel_name == METHOD_SEL_NAME (target->key))
-	return target;
-
-      target = target->next;
-    }
-  return 0;
-}
-
-static void
-hash_add_attr (hash entry, tree value)
-{
-  attr obj;
-
-  obj = ggc_alloc_hashed_attribute ();
-  obj->next = entry->list;
-  obj->value = value;
-
-  entry->list = obj;		/* append to front */
-}
 
 static tree
 lookup_method (tree mchain, tree method)
@@ -6131,31 +5944,6 @@ lookup_method_static (tree interface, tree ident, int flags)
     {
       /* If an instance method was not found, return 0.  */
       return NULL_TREE;
-    }
-}
-
-/* Add the method to the hash list if it doesn't contain an identical
-   method already. */
-
-static void
-add_method_to_hash_list (hash *hash_list, tree method)
-{
-  hash hsh;
-
-  if (!(hsh = hash_lookup (hash_list, METHOD_SEL_NAME (method))))
-    {
-      /* Install on a global chain.  */
-      hash_enter (hash_list, method);
-    }
-  else
-    {
-      /* Check types against those; if different, add to a list.  */
-      attr loop;
-      int already_there = comp_proto_with_proto (method, hsh->key, 1);
-      for (loop = hsh->list; !already_there && loop; loop = loop->next)
-	already_there |= comp_proto_with_proto (method, loop->value, 1);
-      if (!already_there)
-	hash_add_attr (hsh, method);
     }
 }
 
@@ -6281,10 +6069,10 @@ objc_add_method (tree klass, tree method, int is_class, bool is_optional)
     }
 
   if (is_class)
-    add_method_to_hash_list (cls_method_hash_list, method);
+    insert_method_into_method_map (true, method);
   else
     {
-      add_method_to_hash_list (nst_method_hash_list, method);
+      insert_method_into_method_map (false, method);
 
       /* Instance methods in root classes (and categories thereof)
 	 may act as class methods as a last resort.  We also add
@@ -6297,35 +6085,10 @@ objc_add_method (tree klass, tree method, int is_class, bool is_optional)
 
       if (TREE_CODE (klass) == PROTOCOL_INTERFACE_TYPE
 	  || !CLASS_SUPER_NAME (klass))
-	add_method_to_hash_list (cls_method_hash_list, method);
+	insert_method_into_method_map (true, method);
     }
 
   return method;
-}
-
-static tree
-add_class (tree class_name, tree name)
-{
-  struct interface_tuple **slot;
-
-  /* Put interfaces on list in reverse order.  */
-  TREE_CHAIN (class_name) = interface_chain;
-  interface_chain = class_name;
-
-  if (interface_htab == NULL)
-    interface_htab = htab_create_ggc (31, hash_interface, eq_interface, NULL);
-  slot = (struct interface_tuple **)
-    htab_find_slot_with_hash (interface_htab, name,
-			      IDENTIFIER_HASH_VALUE (name),
-			      INSERT);
-  if (!*slot)
-    {
-      *slot = ggc_alloc_cleared_interface_tuple ();
-      (*slot)->id = name;
-    }
-  (*slot)->class_name = class_name;
-
-  return interface_chain;
 }
 
 static void
@@ -7097,8 +6860,8 @@ start_class (enum tree_code code, tree class_name, tree super_name,
         {
 	  warning (0, "cannot find interface declaration for %qE",
 		   class_name);
-	  add_class (implementation_template = objc_implementation_context,
-		     class_name);
+	  add_interface (implementation_template = objc_implementation_context,
+			 class_name);
         }
 
       /* If a super class has been specified in the implementation,
@@ -7131,7 +6894,7 @@ start_class (enum tree_code code, tree class_name, tree super_name,
         warning (0, "duplicate interface declaration for class %qE", class_name);
 #endif
       else
-	add_class (klass, class_name);
+	add_interface (klass, class_name);
 
       if (protocol_list)
 	CLASS_PROTOCOL_LIST (klass)
@@ -7308,7 +7071,7 @@ continue_class (tree klass)
 }
 
 /* This routine builds name of the setter synthesized function. */
-static char *
+char *
 objc_build_property_setter_name (tree ident)
 {
   /* TODO: Use alloca to allocate buffer of appropriate size.  */
@@ -10304,758 +10067,6 @@ void
 objc_check_format_arg (tree ARG_UNUSED (format_arg),
 		       tree ARG_UNUSED (args_list))
 {
-}
-
-/* --- Encode --- */
-/* "Encode" a data type into a string, which grows in util_obstack.
-
-   The format is described in gcc/doc/objc.texi, section 'Type
-   encoding'.
-
-   Most of the encode_xxx functions have a 'type' argument, which is
-   the type to encode, and an integer 'curtype' argument, which is the
-   index in the encoding string of the beginning of the encoding of
-   the current type, and allows you to find what characters have
-   already been written for the current type (they are the ones in the
-   current encoding string starting from 'curtype').
-
-   For example, if we are encoding a method which returns 'int' and
-   takes a 'char **' argument, then when we get to the point of
-   encoding the 'char **' argument, the encoded string already
-   contains 'i12@0:4' (assuming a pointer size of 4 bytes).  So,
-   'curtype' will be set to 7 when starting to encode 'char **'.
-   During the whole of the encoding of 'char **', 'curtype' will be
-   fixed at 7, so the routine encoding the second pointer can find out
-   that it's actually encoding a pointer to a pointer by looking
-   backwards at what has already been encoded for the current type,
-   and seeing there is a "^" (meaning a pointer) in there.
-*/
-
-
-/* Encode type qualifiers encodes one of the "PQ" Objective-C
-   keywords, ie 'in', 'out', 'inout', 'bycopy', 'byref', 'oneway'.
-   'const', instead, is encoded directly as part of the type.
- */
-
-static void
-encode_type_qualifiers (tree declspecs)
-{
-  tree spec;
-
-  for (spec = declspecs; spec; spec = TREE_CHAIN (spec))
-    {
-      /* FIXME: Shouldn't we use token->keyword here ? */
-      if (ridpointers[(int) RID_IN] == TREE_VALUE (spec))
-	obstack_1grow (&util_obstack, 'n');
-      else if (ridpointers[(int) RID_INOUT] == TREE_VALUE (spec))
-	obstack_1grow (&util_obstack, 'N');
-      else if (ridpointers[(int) RID_OUT] == TREE_VALUE (spec))
-	obstack_1grow (&util_obstack, 'o');
-      else if (ridpointers[(int) RID_BYCOPY] == TREE_VALUE (spec))
-	obstack_1grow (&util_obstack, 'O');
-      else if (ridpointers[(int) RID_BYREF] == TREE_VALUE (spec))
-        obstack_1grow (&util_obstack, 'R');
-      else if (ridpointers[(int) RID_ONEWAY] == TREE_VALUE (spec))
-	obstack_1grow (&util_obstack, 'V');
-      else
-	gcc_unreachable ();
-    }
-}
-
-/* Determine if a pointee is marked read-only.  Only used by the NeXT
-   runtime to be compatible with gcc-3.3.  */
-
-static bool
-pointee_is_readonly (tree pointee)
-{
-  while (POINTER_TYPE_P (pointee))
-    pointee = TREE_TYPE (pointee);
-
-  return TYPE_READONLY (pointee);
-}
-
-/* Encode a pointer type.  */
-
-static void
-encode_pointer (tree type, int curtype, int format)
-{
-  tree pointer_to = TREE_TYPE (type);
-
-  if (flag_next_runtime)
-    {
-      /* This code is used to be compatible with gcc-3.3.  */
-      /* For historical/compatibility reasons, the read-only qualifier
-	 of the pointee gets emitted _before_ the '^'.  The read-only
-	 qualifier of the pointer itself gets ignored, _unless_ we are
-	 looking at a typedef!  Also, do not emit the 'r' for anything
-	 but the outermost type!  */
-      if (!generating_instance_variables
-	  && (obstack_object_size (&util_obstack) - curtype <= 1)
-	  && (TYPE_NAME (type) && TREE_CODE (TYPE_NAME (type)) == TYPE_DECL
-	      ? TYPE_READONLY (type)
-	      : pointee_is_readonly (pointer_to)))
-	obstack_1grow (&util_obstack, 'r');
-    }
-
-  if (TREE_CODE (pointer_to) == RECORD_TYPE)
-    {
-      if (OBJC_TYPE_NAME (pointer_to)
-	  && TREE_CODE (OBJC_TYPE_NAME (pointer_to)) == IDENTIFIER_NODE)
-	{
-	  const char *name = IDENTIFIER_POINTER (OBJC_TYPE_NAME (pointer_to));
-
-	  if (strcmp (name, TAG_OBJECT) == 0) /* '@' */
-	    {
-	      obstack_1grow (&util_obstack, '@');
-	      return;
-	    }
-	  else if (TYPE_HAS_OBJC_INFO (pointer_to)
-		   && TYPE_OBJC_INTERFACE (pointer_to))
-	    {
-              if (generating_instance_variables)
-	        {
-	          obstack_1grow (&util_obstack, '@');
-	          obstack_1grow (&util_obstack, '"');
-	          obstack_grow (&util_obstack, name, strlen (name));
-	          obstack_1grow (&util_obstack, '"');
-	          return;
-		}
-              else
-	        {
-	          obstack_1grow (&util_obstack, '@');
-	          return;
-		}
-	    }
-	  else if (strcmp (name, TAG_CLASS) == 0) /* '#' */
-	    {
-	      obstack_1grow (&util_obstack, '#');
-	      return;
-	    }
-	  else if (strcmp (name, TAG_SELECTOR) == 0) /* ':' */
-	    {
-	      obstack_1grow (&util_obstack, ':');
-	      return;
-	    }
-	}
-    }
-  else if (TREE_CODE (pointer_to) == INTEGER_TYPE
-	   && TYPE_MODE (pointer_to) == QImode)
-    {
-      tree pname = TREE_CODE (OBJC_TYPE_NAME (pointer_to)) == IDENTIFIER_NODE
-	          ? OBJC_TYPE_NAME (pointer_to)
-	          : DECL_NAME (OBJC_TYPE_NAME (pointer_to));
-
-      /* (BOOL *) are an exception and are encoded as ^c, while all
-	 other pointers to char are encoded as *.   */
-      if (strcmp (IDENTIFIER_POINTER (pname), "BOOL"))
-	{
-	  if (!flag_next_runtime)
-	    {
-	      /* The NeXT runtime adds the 'r' before getting here.  */
-
-	      /* It appears that "r*" means "const char *" rather than
-		 "char *const".  "char *const" is encoded as "*",
-		 which is identical to "char *", so the "const" is
-		 unfortunately lost.  */
-	      if (TYPE_READONLY (pointer_to))
-		obstack_1grow (&util_obstack, 'r');
-	    }
-
-	  obstack_1grow (&util_obstack, '*');
-	  return;
-	}
-    }
-
-  /* We have a normal pointer type that does not get special treatment.  */
-  obstack_1grow (&util_obstack, '^');
-  encode_type (pointer_to, curtype, format);
-}
-
-static void
-encode_array (tree type, int curtype, int format)
-{
-  tree an_int_cst = TYPE_SIZE (type);
-  tree array_of = TREE_TYPE (type);
-  char buffer[40];
-
-  if (an_int_cst == NULL)
-    {
-      /* We are trying to encode an incomplete array.  An incomplete
-	 array is forbidden as part of an instance variable; but it
-	 may occur if the instance variable is a pointer to such an
-	 array.  */
-
-      /* So the only case in which an incomplete array could occur
-	 (without being pointed to) is if we are encoding the
-	 arguments or return value of a method.  In that case, an
-	 incomplete array argument or return value (eg,
-	 -(void)display: (char[])string) is treated like a pointer
-	 because that is how the compiler does the function call.  A
-	 special, more complicated case, is when the incomplete array
-	 is the last member of a struct (eg, if we are encoding
-	 "struct { unsigned long int a;double b[];}"), which is again
-	 part of a method argument/return value.  In that case, we
-	 really need to communicate to the runtime that there is an
-	 incomplete array (not a pointer!) there.  So, we detect that
-	 special case and encode it as a zero-length array.
-
-	 Try to detect that we are part of a struct.  We do this by
-	 searching for '=' in the type encoding for the current type.
-	 NB: This hack assumes that you can't use '=' as part of a C
-	 identifier.
-      */
-      {
-	char *enc = obstack_base (&util_obstack) + curtype;
-	if (memchr (enc, '=',
-		    obstack_object_size (&util_obstack) - curtype) == NULL)
-	  {
-	    /* We are not inside a struct.  Encode the array as a
-	       pointer.  */
-	    encode_pointer (type, curtype, format);
-	    return;
-	  }
-      }
-
-      /* Else, we are in a struct, and we encode it as a zero-length
-	 array.  */
-      sprintf (buffer, "[" HOST_WIDE_INT_PRINT_DEC, (HOST_WIDE_INT)0);
-    }
-  else if (TREE_INT_CST_LOW (TYPE_SIZE (array_of)) == 0)
-   sprintf (buffer, "[" HOST_WIDE_INT_PRINT_DEC, (HOST_WIDE_INT)0);
-  else
-    sprintf (buffer, "[" HOST_WIDE_INT_PRINT_DEC,
-	     TREE_INT_CST_LOW (an_int_cst)
-	      / TREE_INT_CST_LOW (TYPE_SIZE (array_of)));
-
-  obstack_grow (&util_obstack, buffer, strlen (buffer));
-  encode_type (array_of, curtype, format);
-  obstack_1grow (&util_obstack, ']');
-  return;
-}
-
-/* Encode a vector.  The vector type is a GCC extension to C.  */
-static void
-encode_vector (tree type, int curtype, int format)
-{
-  tree vector_of = TREE_TYPE (type);
-  char buffer[40];
-
-  /* Vectors are like simple fixed-size arrays.  */
-
-  /* Output ![xx,yy,<code>] where xx is the vector_size, yy is the
-     alignment of the vector, and <code> is the base type.  Eg, int
-     __attribute__ ((vector_size (16))) gets encoded as ![16,32,i]
-     assuming that the alignment is 32 bytes.  We include size and
-     alignment in bytes so that the runtime does not have to have any
-     knowledge of the actual types.
-  */
-  sprintf (buffer, "![" HOST_WIDE_INT_PRINT_DEC ",%d",
-	   /* We want to compute the equivalent of sizeof (<vector>).
-	      Code inspired by c_sizeof_or_alignof_type.  */
-	   ((TREE_INT_CST_LOW (TYPE_SIZE_UNIT (type))
-	     / (TYPE_PRECISION (char_type_node) / BITS_PER_UNIT))),
-	   /* We want to compute the equivalent of __alignof__
-	      (<vector>).  Code inspired by
-	      c_sizeof_or_alignof_type.  */
-	   TYPE_ALIGN_UNIT (type));
-  obstack_grow (&util_obstack, buffer, strlen (buffer));
-  encode_type (vector_of, curtype, format);
-  obstack_1grow (&util_obstack, ']');
-  return;
-}
-
-static void
-encode_aggregate_fields (tree type, bool pointed_to, int curtype, int format)
-{
-  tree field = TYPE_FIELDS (type);
-
-  for (; field; field = DECL_CHAIN (field))
-    {
-#ifdef OBJCPLUS
-      /* C++ static members, and things that are not field at all,
-	 should not appear in the encoding.  */
-      if (TREE_CODE (field) != FIELD_DECL || TREE_STATIC (field))
-	continue;
-#endif
-
-      /* Recursively encode fields of embedded base classes.  */
-      if (DECL_ARTIFICIAL (field) && !DECL_NAME (field)
-	  && TREE_CODE (TREE_TYPE (field)) == RECORD_TYPE)
-	{
-	  encode_aggregate_fields (TREE_TYPE (field),
-				   pointed_to, curtype, format);
-	  continue;
-	}
-
-      if (generating_instance_variables && !pointed_to)
-	{
-	  tree fname = DECL_NAME (field);
-
-	  obstack_1grow (&util_obstack, '"');
-
-	  if (fname && TREE_CODE (fname) == IDENTIFIER_NODE)
-	    obstack_grow (&util_obstack,
-			  IDENTIFIER_POINTER (fname),
-			  strlen (IDENTIFIER_POINTER (fname)));
-
-	  obstack_1grow (&util_obstack, '"');
-        }
-
-      encode_field_decl (field, curtype, format);
-    }
-}
-
-static void
-encode_aggregate_within (tree type, int curtype, int format, int left,
-			 int right)
-{
-  tree name;
-  /* NB: aggregates that are pointed to have slightly different encoding
-     rules in that you never encode the names of instance variables.  */
-  int ob_size = obstack_object_size (&util_obstack);
-  bool inline_contents = false;
-  bool pointed_to = false;
-
-  if (flag_next_runtime)
-    {
-      if (ob_size > 0  &&  *(obstack_next_free (&util_obstack) - 1) == '^')
-	pointed_to = true;
-
-      if ((format == OBJC_ENCODE_INLINE_DEFS || generating_instance_variables)
-	  && (!pointed_to || ob_size - curtype == 1
-	      || (ob_size - curtype == 2
-		  && *(obstack_next_free (&util_obstack) - 2) == 'r')))
-	inline_contents = true;
-    }
-  else
-    {
-      /* c0 and c1 are the last two characters in the encoding of the
-	 current type; if the last two characters were '^' or '^r',
-	 then we are encoding an aggregate that is "pointed to".  The
-	 comment above applies: in that case we should avoid encoding
-	 the names of instance variables.
-      */
-      char c1 = ob_size > 1 ? *(obstack_next_free (&util_obstack) - 2) : 0;
-      char c0 = ob_size > 0 ? *(obstack_next_free (&util_obstack) - 1) : 0;
-
-      if (c0 == '^' || (c1 == '^' && c0 == 'r'))
-	pointed_to = true;
-
-      if (format == OBJC_ENCODE_INLINE_DEFS || generating_instance_variables)
-	{
-	  if (!pointed_to)
-	    inline_contents = true;
-	  else
-	    {
-	      /* Note that the check (ob_size - curtype < 2) prevents
-		 infinite recursion when encoding a structure which is
-		 a linked list (eg, struct node { struct node *next;
-		 }).  Each time we follow a pointer, we add one
-		 character to ob_size, and curtype is fixed, so after
-		 at most two pointers we stop inlining contents and
-		 break the loop.
-
-		 The other case where we don't inline is "^r", which
-		 is a pointer to a constant struct.
-	      */
-	      if ((ob_size - curtype <= 2) && !(c0 == 'r'))
-		inline_contents = true;
-	    }
-	}
-    }
-
-  /* Traverse struct aliases; it is important to get the
-     original struct and its tag name (if any).  */
-  type = TYPE_MAIN_VARIANT (type);
-  name = OBJC_TYPE_NAME (type);
-  /* Open parenth/bracket.  */
-  obstack_1grow (&util_obstack, left);
-
-  /* Encode the struct/union tag name, or '?' if a tag was
-     not provided.  Typedef aliases do not qualify.  */
-#ifdef OBJCPLUS
-  /* For compatibility with the NeXT runtime, ObjC++ encodes template
-     args as a composite struct tag name. */
-  if (name && TREE_CODE (name) == IDENTIFIER_NODE
-      /* Did this struct have a tag?  */
-      && !TYPE_WAS_ANONYMOUS (type))
-    obstack_grow (&util_obstack,
-		  decl_as_string (type, TFF_DECL_SPECIFIERS | TFF_UNQUALIFIED_NAME),
-		  strlen (decl_as_string (type, TFF_DECL_SPECIFIERS | TFF_UNQUALIFIED_NAME)));
-#else
-  if (name && TREE_CODE (name) == IDENTIFIER_NODE)
-    obstack_grow (&util_obstack,
-		  IDENTIFIER_POINTER (name),
-		  strlen (IDENTIFIER_POINTER (name)));
-#endif
-  else
-    obstack_1grow (&util_obstack, '?');
-
-  /* Encode the types (and possibly names) of the inner fields,
-     if required.  */
-  if (inline_contents)
-    {
-      obstack_1grow (&util_obstack, '=');
-      encode_aggregate_fields (type, pointed_to, curtype, format);
-    }
-  /* Close parenth/bracket.  */
-  obstack_1grow (&util_obstack, right);
-}
-
-/* Encode a bitfield NeXT-style (i.e., without a bit offset or the underlying
-   field type.  */
-
-static void
-encode_next_bitfield (int width)
-{
-  char buffer[40];
-  sprintf (buffer, "b%d", width);
-  obstack_grow (&util_obstack, buffer, strlen (buffer));
-}
-
-/* Encodes 'type', ignoring type qualifiers (which you should encode
-   beforehand if needed) with the exception of 'const', which is
-   encoded by encode_type.  See above for the explanation of
-   'curtype'.  'format' can be OBJC_ENCODE_INLINE_DEFS or
-   OBJC_ENCODE_DONT_INLINE_DEFS.
-*/
-static void
-encode_type (tree type, int curtype, int format)
-{
-  enum tree_code code = TREE_CODE (type);
-
-  /* Ignore type qualifiers other than 'const' when encoding a
-     type.  */
-
-  if (type == error_mark_node)
-    return;
-
-  if (!flag_next_runtime)
-    {
-      if (TYPE_READONLY (type))
-	obstack_1grow (&util_obstack, 'r');
-    }
-
-  switch (code)
-    {
-    case ENUMERAL_TYPE:
-      if (flag_next_runtime)
-	{
-	  /* Kludge for backwards-compatibility with gcc-3.3: enums
-	     are always encoded as 'i' no matter what type they
-	     actually are (!).  */
-	  obstack_1grow (&util_obstack, 'i');
-	  break;
-	}
-      /* Else, they are encoded exactly like the integer type that is
-	 used by the compiler to store them.  */
-    case INTEGER_TYPE:
-      {
-	char c;
-	switch (GET_MODE_BITSIZE (TYPE_MODE (type)))
-	  {
-	  case 8:  c = TYPE_UNSIGNED (type) ? 'C' : 'c'; break;
-	  case 16: c = TYPE_UNSIGNED (type) ? 'S' : 's'; break;
-	  case 32:
-	    {
-	      tree int_type = type;
-	      if (flag_next_runtime)
-		{
-		  /* Another legacy kludge for compatiblity with
-		     gcc-3.3: 32-bit longs are encoded as 'l' or 'L',
-		     but not always.  For typedefs, we need to use 'i'
-		     or 'I' instead if encoding a struct field, or a
-		     pointer!  */
-		  int_type =  ((!generating_instance_variables
-				&& (obstack_object_size (&util_obstack)
-				    == (unsigned) curtype))
-			       ? TYPE_MAIN_VARIANT (type)
-			       : type);
-		}
-	      if (int_type == long_unsigned_type_node
-		  || int_type == long_integer_type_node)
-		c = TYPE_UNSIGNED (type) ? 'L' : 'l';
-	      else
-		c = TYPE_UNSIGNED (type) ? 'I' : 'i';
-	    }
-	    break;
-	  case 64:  c = TYPE_UNSIGNED (type) ? 'Q' : 'q'; break;
-	  case 128: c = TYPE_UNSIGNED (type) ? 'T' : 't'; break;
-	  default: gcc_unreachable ();
-	  }
-	obstack_1grow (&util_obstack, c);
-	break;
-      }
-    case REAL_TYPE:
-      {
-	char c;
-	/* Floating point types.  */
-	switch (GET_MODE_BITSIZE (TYPE_MODE (type)))
-	  {
-	  case 32:  c = 'f'; break;
-	  case 64:  c = 'd'; break;
-	  case 96:
-	  case 128: c = 'D'; break;
-	  default: gcc_unreachable ();
-	  }
-	obstack_1grow (&util_obstack, c);
-	break;
-      }
-    case VOID_TYPE:
-      obstack_1grow (&util_obstack, 'v');
-      break;
-
-    case BOOLEAN_TYPE:
-      obstack_1grow (&util_obstack, 'B');
-      break;
-
-    case ARRAY_TYPE:
-      encode_array (type, curtype, format);
-      break;
-
-    case POINTER_TYPE:
-#ifdef OBJCPLUS
-    case REFERENCE_TYPE:
-#endif
-      encode_pointer (type, curtype, format);
-      break;
-
-    case RECORD_TYPE:
-      encode_aggregate_within (type, curtype, format, '{', '}');
-      break;
-
-    case UNION_TYPE:
-      encode_aggregate_within (type, curtype, format, '(', ')');
-      break;
-
-    case FUNCTION_TYPE: /* '?' means an unknown type.  */
-      obstack_1grow (&util_obstack, '?');
-      break;
-
-    case COMPLEX_TYPE:
-      /* A complex is encoded as 'j' followed by the inner type (eg,
-	 "_Complex int" is encoded as 'ji').  */
-      obstack_1grow (&util_obstack, 'j');
-      encode_type (TREE_TYPE (type), curtype, format);
-      break;
-
-    case VECTOR_TYPE:
-      encode_vector (type, curtype, format);
-      break;
-
-    default:
-      warning (0, "unknown type %s found during Objective-C encoding",
-	       gen_type_name (type));
-      obstack_1grow (&util_obstack, '?');
-      break;
-    }
-
-  if (flag_next_runtime)
-    {
-      /* Super-kludge.  Some ObjC qualifier and type combinations need
-	 to be rearranged for compatibility with gcc-3.3.  */
-      if (code == POINTER_TYPE && obstack_object_size (&util_obstack) >= 3)
-	{
-	  char *enc = obstack_base (&util_obstack) + curtype;
-
-	  /* Rewrite "in const" from "nr" to "rn".  */
-	  if (curtype >= 1 && !strncmp (enc - 1, "nr", 2))
-	    strncpy (enc - 1, "rn", 2);
-	}
-    }
-}
-
-static void
-encode_gnu_bitfield (int position, tree type, int size)
-{
-  enum tree_code code = TREE_CODE (type);
-  char buffer[40];
-  char charType = '?';
-
-  /* This code is only executed for the GNU runtime, so we can ignore
-     the NeXT runtime kludge of always encoding enums as 'i' no matter
-     what integers they actually are.  */
-  if (code == INTEGER_TYPE  ||  code == ENUMERAL_TYPE)
-    {
-      if (integer_zerop (TYPE_MIN_VALUE (type)))
-	/* Unsigned integer types.  */
-	{
-	  switch (TYPE_MODE (type))
-	    {
-	    case QImode:
-	      charType = 'C'; break;
-	    case HImode:
-	      charType = 'S'; break;
-	    case SImode:
-	      {
-		if (type == long_unsigned_type_node)
-		  charType = 'L';
-		else
-		  charType = 'I';
-		break;
-	      }
-	    case DImode:
-	      charType = 'Q'; break;
-	    default:
-	      gcc_unreachable ();
-	    }
-	}
-      else
-	/* Signed integer types.  */
-	{
-	  switch (TYPE_MODE (type))
-	    {
-	    case QImode:
-	      charType = 'c'; break;
-	    case HImode:
-	      charType = 's'; break;
-	    case SImode:
-	      {
-		if (type == long_integer_type_node)
-		  charType = 'l';
-		else
-		  charType = 'i';
-		break;
-	      }
-	    case DImode:
-	      charType = 'q'; break;
-	    default:
-	      gcc_unreachable ();
-	    }
-	}
-    }
-  else
-    {
-      /* Do not do any encoding, produce an error and keep going.  */
-      error ("trying to encode non-integer type as a bitfield");
-      return;
-    }
-
-  sprintf (buffer, "b%d%c%d", position, charType, size);
-  obstack_grow (&util_obstack, buffer, strlen (buffer));
-}
-
-void
-encode_field_decl (tree field_decl, int curtype, int format)
-{
-#ifdef OBJCPLUS
-  /* C++ static members, and things that are not fields at all,
-     should not appear in the encoding.  */
-  if (TREE_CODE (field_decl) != FIELD_DECL || TREE_STATIC (field_decl))
-    return;
-#endif
-
-  /* Generate the bitfield typing information, if needed.  Note the difference
-     between GNU and NeXT runtimes.  */
-  if (DECL_BIT_FIELD_TYPE (field_decl))
-    {
-      int size = tree_low_cst (DECL_SIZE (field_decl), 1);
-
-      if (flag_next_runtime)
-	encode_next_bitfield (size);
-      else
-	encode_gnu_bitfield (int_bit_position (field_decl),
-			     DECL_BIT_FIELD_TYPE (field_decl), size);
-    }
-  else
-    encode_type (TREE_TYPE (field_decl), curtype, format);
-}
-
-/* This routine encodes the attribute of the input PROPERTY according
-   to following formula:
-
-   Property attributes are stored as a comma-delimited C string.
-   Simple attributes such as readonly are encoded as single
-   character. The parametrized attributes, getter=name and
-   setter=name, are encoded as a single character followed by an
-   identifier.  Property types are also encoded as a parametrized
-   attribute.  The characters used to encode these attributes are
-   defined by the following enumeration:
-
-   enum PropertyAttributes {
-     kPropertyReadOnly = 'R',
-     kPropertyBycopy = 'C',
-     kPropertyByref = '&',
-     kPropertyDynamic = 'D',
-     kPropertyGetter = 'G',
-     kPropertySetter = 'S',
-     kPropertyInstanceVariable = 'V',
-     kPropertyType = 'T',
-     kPropertyWeak = 'W',
-     kPropertyStrong = 'P',
-     kPropertyNonAtomic = 'N'
-   };  */
-tree
-objc_v2_encode_prop_attr (tree property)
-{
-  const char *string;
-  tree type = TREE_TYPE (property);
-
-  obstack_1grow (&util_obstack, 'T');
-  encode_type (type, obstack_object_size (&util_obstack),
-	       OBJC_ENCODE_INLINE_DEFS);
-
-  if (PROPERTY_READONLY (property))
-    obstack_grow (&util_obstack, ",R", 2);
-
-  switch (PROPERTY_ASSIGN_SEMANTICS (property))
-    {
-    case OBJC_PROPERTY_COPY:
-      obstack_grow (&util_obstack, ",C", 2);
-      break;
-    case OBJC_PROPERTY_RETAIN:
-      obstack_grow (&util_obstack, ",&", 2);
-      break;
-    case OBJC_PROPERTY_ASSIGN:
-    default:
-      break;
-    }
-
-  if (PROPERTY_DYNAMIC (property))
-    obstack_grow (&util_obstack, ",D", 2);
-
-  if (PROPERTY_NONATOMIC (property))
-    obstack_grow (&util_obstack, ",N", 2);
-
-  /* Here we want to encode the getter name, but only if it's not the
-     standard one.  */
-  if (PROPERTY_GETTER_NAME (property) != PROPERTY_NAME (property))
-    {
-      obstack_grow (&util_obstack, ",G", 2);
-      string = IDENTIFIER_POINTER (PROPERTY_GETTER_NAME (property));
-      obstack_grow (&util_obstack, string, strlen (string));
-    }
-
-  if (!PROPERTY_READONLY (property))
-    {
-      /* Here we want to encode the setter name, but only if it's not
-	 the standard one.  */
-      tree standard_setter = get_identifier (objc_build_property_setter_name (PROPERTY_NAME (property)));
-      if (PROPERTY_SETTER_NAME (property) != standard_setter)
-	{
-	  obstack_grow (&util_obstack, ",S", 2);
-	  string = IDENTIFIER_POINTER (PROPERTY_SETTER_NAME (property));
-	  obstack_grow (&util_obstack, string, strlen (string));
-	}
-    }
-
-  /* TODO: Encode strong ('P'), weak ('W') for garbage collection.  */
-
-  if (!PROPERTY_DYNAMIC (property))
-    {
-      obstack_grow (&util_obstack, ",V", 2);
-      if (PROPERTY_IVAR_NAME (property))
-	string = IDENTIFIER_POINTER (PROPERTY_IVAR_NAME (property));
-      else
-	string = IDENTIFIER_POINTER (PROPERTY_NAME (property));
-      obstack_grow (&util_obstack, string, strlen (string));
-    }
-
-  /* NULL-terminate string.  */
-  obstack_1grow (&util_obstack, 0);
-  string = XOBFINISH (&util_obstack, char *);
-  obstack_free (&util_obstack, util_firstobj);
-  return get_identifier (string);
 }
 
 void

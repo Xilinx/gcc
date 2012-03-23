@@ -87,10 +87,13 @@ struct GTY(()) emit_status {
 };
 
 
-/* Indexed by pseudo register number, gives the rtx for that pseudo.
-   Allocated in parallel with regno_pointer_align.
-   FIXME: We could put it into emit_status struct, but gengtype is not able to deal
-   with length attribute nested in top level structures.  */
+/* Indexed by register number, gives an rtx for that register (and only
+   that register).  For pseudo registers, it is the unique rtx for
+   that pseudo.  For hard registers, it is an rtx of the mode specified
+   by reg_raw_mode.
+
+   FIXME: We could put it into emit_status struct, but gengtype is not
+   able to deal with length attribute nested in top level structures.  */
 
 extern GTY ((length ("crtl->emit.x_reg_rtx_no"))) rtx * regno_reg_rtx;
 
@@ -169,6 +172,7 @@ struct gimple_df;
 struct temp_slot;
 typedef struct temp_slot *temp_slot_p;
 struct call_site_record_d;
+struct dw_fde_struct;
 
 DEF_VEC_P(temp_slot_p);
 DEF_VEC_ALLOC_P(temp_slot_p,gc);
@@ -434,6 +438,9 @@ struct GTY(()) rtl_data {
      function where currently compiled version of it is nothrow.  */
   bool nothrow;
 
+  /* True if we performed shrink-wrapping for the current function.  */
+  bool shrink_wrapped;
+
   /* Like regs_ever_live, but 1 if a reg is set or clobbered from an
      asm.  Unlike regs_ever_live, elements of this array corresponding
      to eliminable regs (like the frame pointer) are set if an asm
@@ -541,6 +548,11 @@ struct GTY(()) function {
 
   /* Used types hash table.  */
   htab_t GTY ((param_is (union tree_node))) used_types_hash;
+
+  /* Dwarf2 Frame Description Entry, containing the Call Frame Instructions
+     used for unwinding.  Only set when either dwarf2 unwinding or dwarf2
+     debugging is enabled.  */
+  struct dw_fde_struct *fde;
 
   /* Last statement uid.  */
   int last_stmt_uid;
@@ -743,6 +755,10 @@ extern void used_types_insert (tree);
 
 extern int get_next_funcdef_no (void);
 extern int get_last_funcdef_no (void);
+
+#ifdef HAVE_simple_return
+extern bool requires_stack_frame_p (rtx, HARD_REG_SET, HARD_REG_SET);
+#endif                        
 
 /* In predict.c */
 extern bool optimize_function_for_size_p (struct function *);

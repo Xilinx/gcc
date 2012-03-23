@@ -253,6 +253,7 @@ extern rtx expand_builtin_dwarf_sp_column (void);
 extern void expand_builtin_eh_return (tree, tree);
 extern void expand_eh_return (void);
 extern rtx expand_builtin_extend_pointer (tree);
+extern void expand_dw2_landing_pad_for_region (eh_region);
 
 typedef tree (*duplicate_eh_regions_map) (tree, void *);
 extern struct pointer_map_t *duplicate_eh_regions
@@ -289,6 +290,8 @@ extern void assign_filter_values (void);
 
 extern eh_region get_eh_region_from_rtx (const_rtx);
 extern eh_landing_pad get_eh_landing_pad_from_rtx (const_rtx);
+
+extern void finish_eh_generation (void);
 
 struct GTY(()) throw_stmt_node {
   gimple stmt;

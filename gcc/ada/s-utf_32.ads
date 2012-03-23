@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2005-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 2005-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -44,6 +44,7 @@
 pragma Compiler_Unit;
 
 package System.UTF_32 is
+   pragma Pure;
 
    type UTF_32 is range 0 .. 16#7FFF_FFFF#;
    --  So far, the only defined character codes are in 0 .. 16#01_FFFF#
@@ -120,7 +121,7 @@ package System.UTF_32 is
    function Is_UTF_32_Line_Terminator (U : UTF_32) return Boolean;
    pragma Inline (Is_UTF_32_Line_Terminator);
    --  Returns true iff U is an allowed line terminator for source programs,
-   --  if U is in the category Zp (Separator, Paragraph), or Zs (Separator,
+   --  if U is in the category Zp (Separator, Paragraph), or Zl (Separator,
    --  Line), or if U is a conventional line terminator (CR, LF, VT, FF).
    --  There is no category version for this function, since the set of
    --  characters does not correspond to a set of Unicode categories.

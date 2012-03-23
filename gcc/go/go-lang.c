@@ -1,5 +1,5 @@
 /* go-lang.c -- Go frontend gcc interface.
-   Copyright (C) 2009, 2010, 2011 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -35,6 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks-def.h"
 #include "except.h"
 #include "target.h"
+#include "common/common-target.h"
 
 #include <mpfr.h>
 
@@ -85,9 +86,10 @@ struct GTY(()) language_function
 static bool
 go_langhook_init (void)
 {
-  build_common_tree_nodes (false);
+  build_common_tree_nodes (false, false);
 
-  build_common_tree_nodes_2 (0);
+  /* I don't know why this has to be done explicitly.  */
+  void_list_node = build_tree_list (NULL_TREE, void_type_node);
 
   /* We must create the gogo IR after calling build_common_tree_nodes
      (because Gogo::define_builtin_function_trees refers indirectly
@@ -97,9 +99,6 @@ go_langhook_init (void)
   go_create_gogo (INT_TYPE_SIZE, POINTER_SIZE);
 
   build_common_builtin_nodes ();
-
-  /* I don't know why this is not done by any of the above.  */
-  void_list_node = build_tree_list (NULL_TREE, void_type_node);
 
   /* The default precision for floating point numbers.  This is used
      for floating point constants with abstract type.  This may
@@ -143,7 +142,7 @@ go_langhook_init_options_struct (struct gcc_options *opts)
   opts->frontend_set_flag_errno_math = true;
 
   /* We turn on stack splitting if we can.  */
-  if (targetm.supports_split_stack (false, opts))
+  if (targetm_common.supports_split_stack (false, opts))
     opts->x_flag_split_stack = 1;
 
   /* Exceptions are used to handle recovering from panics.  */
@@ -224,6 +223,10 @@ go_langhook_handle_option (
       ret = go_enable_dump (arg) ? true : false;
       break;
 
+    case OPT_fgo_optimize_:
+      ret = go_enable_optimize (arg) ? true : false;
+      break;
+
     case OPT_fgo_prefix_:
       go_set_prefix (arg);
       break;
@@ -274,6 +277,7 @@ go_langhook_type_for_size (unsigned int bits, int unsignedp)
 static tree
 go_langhook_type_for_mode (enum machine_mode mode, int unsignedp)
 {
+  tree type;
   /* Go has no vector types.  Build them here.  FIXME: It does not
      make sense for the middle-end to ask the frontend for a type
      which the frontend does not support.  However, at least for now
@@ -288,7 +292,22 @@ go_langhook_type_for_mode (enum machine_mode mode, int unsignedp)
       return NULL_TREE;
     }
 
-  return go_type_for_mode (mode, unsignedp);
+  type = go_type_for_mode (mode, unsignedp);
+  if (type)
+    return type;
+
+#if HOST_BITS_PER_WIDE_INT >= 64
+  /* The middle-end and some backends rely on TImode being supported
+     for 64-bit HWI.  */
+  if (mode == TImode)
+    {
+      type = build_nonstandard_integer_type (GET_MODE_BITSIZE (TImode),
+					     unsignedp);
+      if (type && TYPE_MODE (type) == TImode)
+	return type;
+    }
+#endif
+  return NULL_TREE;
 }
 
 /* Record a builtin function.  We just ignore builtin functions.  */

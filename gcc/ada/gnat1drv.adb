@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -31,6 +31,7 @@ with Debug;    use Debug;
 with Elists;
 with Errout;   use Errout;
 with Exp_CG;
+with Exp_Ch6;  use Exp_Ch6;
 with Fmap;
 with Fname;    use Fname;
 with Fname.UF; use Fname.UF;
@@ -288,6 +289,12 @@ procedure Gnat1drv is
          Ttypes.Target_Strict_Alignment := True;
       end if;
 
+      --  Increase size of allocated entities if debug flag -gnatd.N is set
+
+      if Debug_Flag_Dot_NN then
+         Atree.Num_Extension_Nodes := Atree.Num_Extension_Nodes + 1;
+      end if;
+
       --  Disable static allocation of dispatch tables if -gnatd.t or if layout
       --  is enabled. The front end's layout phase currently treats types that
       --  have discriminant-dependent arrays as not being static even when a
@@ -324,11 +331,7 @@ procedure Gnat1drv is
       --  Set and check exception mechanism
 
       if Targparm.ZCX_By_Default_On_Target then
-         if Targparm.GCC_ZCX_Support_On_Target then
-            Exception_Mechanism := Back_End_Exceptions;
-         else
-            Osint.Fail ("Zero Cost Exceptions not supported on this target");
-         end if;
+         Exception_Mechanism := Back_End_Exceptions;
       end if;
 
       --  Set proper status for overflow checks. We turn on overflow checks if
@@ -347,6 +350,13 @@ procedure Gnat1drv is
       else
          Suppress_Options (Overflow_Check) := True;
       end if;
+
+      --  Set default for atomic synchronization. As this synchronization
+      --  between atomic accesses can be expensive, and not typically needed
+      --  on some targets, an optional target parameter can turn the option
+      --  off. Note Atomic Synchronization is implemented as check.
+
+      Suppress_Options (Atomic_Synchronization) := not Atomic_Sync_Default;
 
       --  Set switch indicating if we can use N_Expression_With_Actions
 
@@ -388,6 +398,114 @@ procedure Gnat1drv is
 
       else
          Back_End_Handles_Limited_Types := False;
+      end if;
+
+      --  Set switches for formal verification mode
+
+      if Debug_Flag_Dot_FF then
+
+         Alfa_Mode := True;
+
+         --  Set strict standard interpretation of compiler permissions
+
+         if Debug_Flag_Dot_DD then
+            Strict_Alfa_Mode := True;
+         end if;
+
+         --  Turn off inlining, which would confuse formal verification output
+         --  and gain nothing.
+
+         Front_End_Inlining := False;
+         Inline_Active      := False;
+
+         --  Disable front-end optimizations, to keep the tree as close to the
+         --  source code as possible, and also to avoid inconsistencies between
+         --  trees when using different optimization switches.
+
+         Optimization_Level := 0;
+
+         --  Enable some restrictions systematically to simplify the generated
+         --  code (and ease analysis). Note that restriction checks are also
+         --  disabled in Alfa mode, see Restrict.Check_Restriction, and user
+         --  specified Restrictions pragmas are ignored, see
+         --  Sem_Prag.Process_Restrictions_Or_Restriction_Warnings.
+
+         Restrict.Restrictions.Set (No_Initialize_Scalars) := True;
+
+         --  Suppress all language checks since they are handled implicitly by
+         --  the formal verification backend.
+         --  Turn off dynamic elaboration checks.
+         --  Turn off alignment checks.
+         --  Turn off validity checking.
+
+         Suppress_Options := (others => True);
+         Enable_Overflow_Checks := False;
+         Dynamic_Elaboration_Checks := False;
+         Reset_Validity_Check_Options;
+
+         --  Kill debug of generated code, since it messes up sloc values
+
+         Debug_Generated_Code := False;
+
+         --  Turn cross-referencing on in case it was disabled (e.g. by -gnatD)
+         --  as it is needed for computing effects of subprograms in the formal
+         --  verification backend.
+
+         Xref_Active := True;
+
+         --  Polling mode forced off, since it generates confusing junk
+
+         Polling_Required := False;
+
+         --  Set operating mode to Generate_Code, but full front-end expansion
+         --  is not desirable in Alfa mode, so a light expansion is performed
+         --  instead.
+
+         Operating_Mode := Generate_Code;
+
+         --  Skip call to gigi
+
+         Debug_Flag_HH := True;
+
+         --  Disable Expressions_With_Actions nodes
+
+         --  The gnat2why backend does not deal with Expressions_With_Actions
+         --  in all places (in particular assertions). It is difficult to
+         --  determine in the frontend which cases are allowed, so we disable
+         --  Expressions_With_Actions entirely. Even in the cases where
+         --  gnat2why deals with Expressions_With_Actions, it is easier to
+         --  deal with the original constructs (quantified, conditional and
+         --  case expressions) instead of the rewritten ones.
+
+         Use_Expression_With_Actions := False;
+
+         --  Enable assertions and debug pragmas, since they give valuable
+         --  extra information for formal verification.
+
+         Assertions_Enabled    := True;
+         Debug_Pragmas_Enabled := True;
+
+         --  Turn off style check options since we are not interested in any
+         --  front-end warnings when we are getting Alfa output.
+
+         Reset_Style_Check_Options;
+
+         --  Suppress compiler warnings, since what we are interested in here
+         --  is what formal verification can find out.
+
+         Warning_Mode := Suppress;
+
+         --  Suppress the generation of name tables for enumerations, which are
+         --  not needed for formal verification, and fall outside the Alfa
+         --  subset (use of pointers).
+
+         Global_Discard_Names := True;
+
+         --  Suppress the expansion of tagged types and dispatching calls,
+         --  which lead to the generation of non-Alfa code (use of pointers),
+         --  which is more complex to formally verify than the original source.
+
+         Tagged_Type_Expansion := False;
       end if;
    end Adjust_Global_Switches;
 
@@ -691,9 +809,34 @@ begin
       Original_Operating_Mode := Operating_Mode;
       Frontend;
 
-      --  Exit with errors if the main source could not be parsed
+      --  Exit with errors if the main source could not be parsed. Also, when
+      --  -gnatd.H is present, the source file is not set.
 
       if Sinput.Main_Source_File = No_Source_File then
+
+         --  Handle -gnatd.H debug mode
+
+         if Debug_Flag_Dot_HH then
+
+            --  For -gnatd.H, lock all the tables to keep the convention that
+            --  the backend needs to unlock the tables it wants to touch.
+
+            Atree.Lock;
+            Elists.Lock;
+            Fname.UF.Lock;
+            Inline.Lock;
+            Lib.Lock;
+            Nlists.Lock;
+            Sem.Lock;
+            Sinput.Lock;
+            Namet.Lock;
+            Stringt.Lock;
+
+            --  And all we need to do is to call the back end
+
+            Back_End.Call_Back_End (Back_End.Generate_Object);
+         end if;
+
          Errout.Finalize (Last_Call => True);
          Errout.Output_Messages;
          Exit_Program (E_Errors);
@@ -702,6 +845,14 @@ begin
       Main_Unit_Node := Cunit (Main_Unit);
       Main_Kind := Nkind (Unit (Main_Unit_Node));
       Check_Bad_Body;
+
+      --  In CodePeer mode we always delete old SCIL files before regenerating
+      --  new ones, in case of e.g. errors, and also to remove obsolete scilx
+      --  files generated by CodePeer itself.
+
+      if CodePeer_Mode then
+         Comperr.Delete_SCIL_Files;
+      end if;
 
       --  Exit if compilation errors detected
 
@@ -1023,6 +1174,7 @@ begin
       Errout.Finalize (Last_Call => True);
       Errout.Output_Messages;
       List_Rep_Info;
+      List_Inlining_Info;
 
       --  Only write the library if the backend did not generate any error
       --  messages. Otherwise signal errors to the driver program so that
@@ -1034,6 +1186,21 @@ begin
       end if;
 
       Write_ALI (Object => (Back_End_Mode = Generate_Object));
+
+      if not Compilation_Errors then
+
+         --  In case of ada backends, we need to make sure that the generated
+         --  object file has a timestamp greater than the ALI file. We do this
+         --  to make gnatmake happy when checking the ALI and obj timestamps,
+         --  where it expects the object file being written after the ali file.
+
+         --  Gnatmake's assumption is true for gcc platforms where the gcc
+         --  wrapper needs to call the assembler after calling gnat1, but is
+         --  not true for ada backends, where the object files are created
+         --  directly by gnat1 (so are created before the ali file).
+
+         Back_End.Gen_Or_Update_Object_File;
+      end if;
 
       --  Generate ASIS tree after writing the ALI file, since in ASIS mode,
       --  Write_ALI may in fact result in further tree decoration from the

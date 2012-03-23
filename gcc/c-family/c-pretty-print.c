@@ -205,7 +205,8 @@ pp_c_cv_qualifiers (c_pretty_printer *pp, int qualifiers, bool func_type)
     {
       if (previous)
         pp_c_whitespace (pp);
-      pp_c_ws_string (pp, flag_isoc99 ? "restrict" : "__restrict__");
+      pp_c_ws_string (pp, (flag_isoc99 && !c_dialect_cxx ()
+			   ? "restrict" : "__restrict__"));
     }
 }
 
@@ -476,7 +477,8 @@ pp_c_specifier_qualifier_list (c_pretty_printer *pp, tree t)
     case VECTOR_TYPE:
     case COMPLEX_TYPE:
       if (code == COMPLEX_TYPE)
-	pp_c_ws_string (pp, flag_isoc99 ? "_Complex" : "__complex__");
+	pp_c_ws_string (pp, (flag_isoc99 && !c_dialect_cxx ()
+			     ? "_Complex" : "__complex__"));
       else if (code == VECTOR_TYPE)
 	{
 	  pp_c_ws_string (pp, "__vector");
@@ -908,8 +910,10 @@ pp_c_integer_constant (c_pretty_printer *pp, tree i)
     ? TYPE_CANONICAL (TREE_TYPE (i))
     : TREE_TYPE (i);
 
-  if (TREE_INT_CST_HIGH (i) == 0)
+  if (host_integerp (i, 0))
     pp_wide_integer (pp, TREE_INT_CST_LOW (i));
+  else if (host_integerp (i, 1))
+    pp_unsigned_wide_integer (pp, TREE_INT_CST_LOW (i));
   else
     {
       unsigned HOST_WIDE_INT low = TREE_INT_CST_LOW (i);
@@ -1016,8 +1020,20 @@ pp_c_enumeration_constant (c_pretty_printer *pp, tree e)
 static void
 pp_c_floating_constant (c_pretty_printer *pp, tree r)
 {
+  const struct real_format *fmt
+    = REAL_MODE_FORMAT (TYPE_MODE (TREE_TYPE (r)));
+
+  REAL_VALUE_TYPE floating_cst = TREE_REAL_CST (r);
+  bool is_decimal = floating_cst.decimal;
+
+  /* See ISO C++ WG N1822.  Note: The fraction 643/2136 approximates
+     log10(2) to 7 significant digits.  */
+  int max_digits10 = 2 + (is_decimal ? fmt->p : fmt->p * 643L / 2136);
+
   real_to_decimal (pp_buffer (pp)->digit_buffer, &TREE_REAL_CST (r),
-		   sizeof (pp_buffer (pp)->digit_buffer), 0, 1);
+		   sizeof (pp_buffer (pp)->digit_buffer),
+		   max_digits10, 1);
+
   pp_string (pp, pp_buffer(pp)->digit_buffer);
   if (TREE_TYPE (r) == float_type_node)
     pp_character (pp, 'f');
@@ -1356,7 +1372,15 @@ pp_c_initializer_list (c_pretty_printer *pp, tree e)
 
     case VECTOR_TYPE:
       if (TREE_CODE (e) == VECTOR_CST)
-	pp_c_expression_list (pp, TREE_VECTOR_CST_ELTS (e));
+	{
+	  unsigned i;
+	  for (i = 0; i < VECTOR_CST_NELTS (e); ++i)
+	    {
+	      if (i > 0)
+		pp_separate_with (pp, ',');
+	      pp_expression (pp, VECTOR_CST_ELT (e, i));
+	    }
+	}
       else
 	break;
       return;
@@ -2113,6 +2137,13 @@ pp_c_expression (c_pretty_printer *pp, tree e)
     case LABEL_DECL:
     case ERROR_MARK:
       pp_primary_expression (pp, e);
+      break;
+
+    case SSA_NAME:
+      if (!DECL_ARTIFICIAL (SSA_NAME_VAR (e)))
+	pp_c_expression (pp, SSA_NAME_VAR (e));
+      else
+	pp_c_ws_string (pp, M_("<unknown>"));
       break;
 
     case POSTINCREMENT_EXPR:

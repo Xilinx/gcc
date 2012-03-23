@@ -4,6 +4,10 @@
 
 package os
 
+import (
+	"io"
+	"syscall"
+)
 
 // MkdirAll creates a directory named path,
 // along with any necessary parents, and returns nil,
@@ -12,24 +16,24 @@ package os
 // directories that MkdirAll creates.
 // If path is already a directory, MkdirAll does nothing
 // and returns nil.
-func MkdirAll(path string, perm uint32) Error {
+func MkdirAll(path string, perm FileMode) error {
 	// If path exists, stop with success or error.
 	dir, err := Stat(path)
 	if err == nil {
-		if dir.IsDirectory() {
+		if dir.IsDir() {
 			return nil
 		}
-		return &PathError{"mkdir", path, ENOTDIR}
+		return &PathError{"mkdir", path, syscall.ENOTDIR}
 	}
 
 	// Doesn't already exist; make sure parent does.
 	i := len(path)
-	for i > 0 && path[i-1] == '/' { // Skip trailing slashes.
+	for i > 0 && IsPathSeparator(path[i-1]) { // Skip trailing path separator.
 		i--
 	}
 
 	j := i
-	for j > 0 && path[j-1] != '/' { // Scan backward over element.
+	for j > 0 && !IsPathSeparator(path[j-1]) { // Scan backward over element.
 		j--
 	}
 
@@ -47,7 +51,7 @@ func MkdirAll(path string, perm uint32) Error {
 		// Handle arguments like "foo/." by
 		// double-checking that directory doesn't exist.
 		dir, err1 := Lstat(path)
-		if err1 == nil && dir.IsDirectory() {
+		if err1 == nil && dir.IsDir() {
 			return nil
 		}
 		return err
@@ -59,7 +63,7 @@ func MkdirAll(path string, perm uint32) Error {
 // It removes everything it can but returns the first error
 // it encounters.  If the path does not exist, RemoveAll
 // returns nil (no error).
-func RemoveAll(path string) Error {
+func RemoveAll(path string) error {
 	// Simple case: if Remove works, we're done.
 	err := Remove(path)
 	if err == nil {
@@ -69,12 +73,12 @@ func RemoveAll(path string) Error {
 	// Otherwise, is this a directory we need to recurse into?
 	dir, serr := Lstat(path)
 	if serr != nil {
-		if serr, ok := serr.(*PathError); ok && serr.Error == ENOENT {
+		if serr, ok := serr.(*PathError); ok && (IsNotExist(serr.Err) || serr.Err == syscall.ENOTDIR) {
 			return nil
 		}
 		return serr
 	}
-	if !dir.IsDirectory() {
+	if !dir.IsDir() {
 		// Not a directory; return the error from Remove.
 		return err
 	}
@@ -90,10 +94,13 @@ func RemoveAll(path string) Error {
 	for {
 		names, err1 := fd.Readdirnames(100)
 		for _, name := range names {
-			err1 := RemoveAll(path + "/" + name)
+			err1 := RemoveAll(path + string(PathSeparator) + name)
 			if err == nil {
 				err = err1
 			}
+		}
+		if err1 == io.EOF {
+			break
 		}
 		// If Readdirnames returned an error, use it.
 		if err == nil {

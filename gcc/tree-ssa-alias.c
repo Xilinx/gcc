@@ -1,5 +1,5 @@
 /* Alias analysis for trees.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -219,14 +219,6 @@ ptr_deref_may_alias_decl_p (tree ptr, tree decl)
   if (!pi)
     return true;
 
-  /* If the decl can be used as a restrict tag and we have a restrict
-     pointer and that pointers points-to set doesn't contain this decl
-     then they can't alias.  */
-  if (DECL_RESTRICTED_P (decl)
-      && TYPE_RESTRICT (TREE_TYPE (ptr))
-      && pi->pt.vars_contains_restrict)
-    return bitmap_bit_p (pi->pt.vars, DECL_PT_UID (decl));
-
   return pt_solution_includes (&pi->pt, decl);
 }
 
@@ -243,17 +235,6 @@ ptr_derefs_may_alias_p (tree ptr1, tree ptr2)
      data-dependence analysis can feed us those.  */
   STRIP_NOPS (ptr1);
   STRIP_NOPS (ptr2);
-
-  /* Anything we do not explicilty handle aliases.  */
-  if ((TREE_CODE (ptr1) != SSA_NAME
-       && TREE_CODE (ptr1) != ADDR_EXPR
-       && TREE_CODE (ptr1) != POINTER_PLUS_EXPR)
-      || (TREE_CODE (ptr2) != SSA_NAME
-	  && TREE_CODE (ptr2) != ADDR_EXPR
-	  && TREE_CODE (ptr2) != POINTER_PLUS_EXPR)
-      || !POINTER_TYPE_P (TREE_TYPE (ptr1))
-      || !POINTER_TYPE_P (TREE_TYPE (ptr2)))
-    return true;
 
   /* Disregard pointer offsetting.  */
   if (TREE_CODE (ptr1) == POINTER_PLUS_EXPR)
@@ -283,7 +264,7 @@ ptr_derefs_may_alias_p (tree ptr1, tree ptr2)
       if (base
 	  && (TREE_CODE (base) == MEM_REF
 	      || TREE_CODE (base) == TARGET_MEM_REF))
-	ptr1 = TREE_OPERAND (base, 0);
+	return ptr_derefs_may_alias_p (TREE_OPERAND (base, 0), ptr2);
       else if (base
 	       && DECL_P (base))
 	return ptr_deref_may_alias_decl_p (ptr2, base);
@@ -296,13 +277,20 @@ ptr_derefs_may_alias_p (tree ptr1, tree ptr2)
       if (base
 	  && (TREE_CODE (base) == MEM_REF
 	      || TREE_CODE (base) == TARGET_MEM_REF))
-	ptr2 = TREE_OPERAND (base, 0);
+	return ptr_derefs_may_alias_p (ptr1, TREE_OPERAND (base, 0));
       else if (base
 	       && DECL_P (base))
 	return ptr_deref_may_alias_decl_p (ptr1, base);
       else
 	return true;
     }
+
+  /* From here we require SSA name pointers.  Anything else aliases.  */
+  if (TREE_CODE (ptr1) != SSA_NAME
+      || TREE_CODE (ptr2) != SSA_NAME
+      || !POINTER_TYPE_P (TREE_TYPE (ptr1))
+      || !POINTER_TYPE_P (TREE_TYPE (ptr2)))
+    return true;
 
   /* We may end up with two empty points-to solutions for two same pointers.
      In this case we still want to say both pointers alias, so shortcut
@@ -316,13 +304,6 @@ ptr_derefs_may_alias_p (tree ptr1, tree ptr2)
   pi2 = SSA_NAME_PTR_INFO (ptr2);
   if (!pi1 || !pi2)
     return true;
-
-  /* If both pointers are restrict-qualified try to disambiguate
-     with restrict information.  */
-  if (TYPE_RESTRICT (TREE_TYPE (ptr1))
-      && TYPE_RESTRICT (TREE_TYPE (ptr2))
-      && !pt_solutions_same_restrict_base (&pi1->pt, &pi2->pt))
-    return false;
 
   /* ???  This does not use TBAA to prune decls from the intersection
      that not both pointers may access.  */
@@ -429,8 +410,6 @@ dump_points_to_solution (FILE *file, struct pt_solution *pt)
       dump_decl_set (file, pt->vars);
       if (pt->vars_contains_global)
 	fprintf (file, " (includes global vars)");
-      if (pt->vars_contains_restrict)
-	fprintf (file, " (includes restrict tags)");
     }
 }
 
@@ -473,6 +452,7 @@ ao_ref_init (ao_ref *r, tree ref)
   r->max_size = -1;
   r->ref_alias_set = -1;
   r->base_alias_set = -1;
+  r->volatile_p = ref ? TREE_THIS_VOLATILE (ref) : false;
 }
 
 /* Returns the base object of the memory reference *REF.  */
@@ -542,6 +522,7 @@ ao_ref_init_from_ptr_and_size (ao_ref *ref, tree ptr, tree size)
     ref->max_size = ref->size = -1;
   ref->ref_alias_set = 0;
   ref->base_alias_set = 0;
+  ref->volatile_p = false;
 }
 
 /* Return 1 if TYPE1 and TYPE2 are to be considered equivalent for the
@@ -1038,6 +1019,11 @@ refs_may_alias_p_1 (ao_ref *ref1, ao_ref *ref2, bool tbaa_p)
       || TREE_CODE (base2) == LABEL_DECL)
     return true;
 
+  /* Two volatile accesses always conflict.  */
+  if (ref1->volatile_p
+      && ref2->volatile_p)
+    return true;
+
   /* Defer to simple offset based disambiguation if we have
      references based on two decls.  Do this before defering to
      TBAA to handle must-alias cases in conformance with the
@@ -1161,6 +1147,11 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
   if (!base)
     return true;
 
+  /* A call that is not without side-effects might involve volatile
+     accesses and thus conflicts with all other volatile accesses.  */
+  if (ref->volatile_p)
+    return true;
+
   /* If the reference is based on a decl that is not aliased the call
      cannot possibly use it.  */
   if (DECL_P (base)
@@ -1178,8 +1169,20 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
       && DECL_BUILT_IN_CLASS (callee) == BUILT_IN_NORMAL)
     switch (DECL_FUNCTION_CODE (callee))
       {
-	/* All the following functions clobber memory pointed to by
-	   their first argument.  */
+	/* All the following functions read memory pointed to by
+	   their second argument.  strcat/strncat additionally
+	   reads memory pointed to by the first argument.  */
+	case BUILT_IN_STRCAT:
+	case BUILT_IN_STRNCAT:
+	  {
+	    ao_ref dref;
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 0),
+					   NULL_TREE);
+	    if (refs_may_alias_p_1 (&dref, ref, false))
+	      return true;
+	  }
+	  /* FALLTHRU */
 	case BUILT_IN_STRCPY:
 	case BUILT_IN_STRNCPY:
 	case BUILT_IN_MEMCPY:
@@ -1187,12 +1190,40 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 	case BUILT_IN_MEMPCPY:
 	case BUILT_IN_STPCPY:
 	case BUILT_IN_STPNCPY:
-	case BUILT_IN_STRCAT:
-	case BUILT_IN_STRNCAT:
+	case BUILT_IN_TM_MEMCPY:
+	case BUILT_IN_TM_MEMMOVE:
 	  {
 	    ao_ref dref;
 	    tree size = NULL_TREE;
 	    if (gimple_call_num_args (call) == 3)
+	      size = gimple_call_arg (call, 2);
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 1),
+					   size);
+	    return refs_may_alias_p_1 (&dref, ref, false);
+	  }
+	case BUILT_IN_STRCAT_CHK:
+	case BUILT_IN_STRNCAT_CHK:
+	  {
+	    ao_ref dref;
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 0),
+					   NULL_TREE);
+	    if (refs_may_alias_p_1 (&dref, ref, false))
+	      return true;
+	  }
+	  /* FALLTHRU */
+	case BUILT_IN_STRCPY_CHK:
+	case BUILT_IN_STRNCPY_CHK:
+	case BUILT_IN_MEMCPY_CHK:
+	case BUILT_IN_MEMMOVE_CHK:
+	case BUILT_IN_MEMPCPY_CHK:
+	case BUILT_IN_STPCPY_CHK:
+	case BUILT_IN_STPNCPY_CHK:
+	  {
+	    ao_ref dref;
+	    tree size = NULL_TREE;
+	    if (gimple_call_num_args (call) == 4)
 	      size = gimple_call_arg (call, 2);
 	    ao_ref_init_from_ptr_and_size (&dref,
 					   gimple_call_arg (call, 1),
@@ -1208,14 +1239,56 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 					   size);
 	    return refs_may_alias_p_1 (&dref, ref, false);
 	  }
+
+	/* The following functions read memory pointed to by their
+	   first argument.  */
+	CASE_BUILT_IN_TM_LOAD (1):
+	CASE_BUILT_IN_TM_LOAD (2):
+	CASE_BUILT_IN_TM_LOAD (4):
+	CASE_BUILT_IN_TM_LOAD (8):
+	CASE_BUILT_IN_TM_LOAD (FLOAT):
+	CASE_BUILT_IN_TM_LOAD (DOUBLE):
+	CASE_BUILT_IN_TM_LOAD (LDOUBLE):
+	CASE_BUILT_IN_TM_LOAD (M64):
+	CASE_BUILT_IN_TM_LOAD (M128):
+	CASE_BUILT_IN_TM_LOAD (M256):
+	case BUILT_IN_TM_LOG:
+	case BUILT_IN_TM_LOG_1:
+	case BUILT_IN_TM_LOG_2:
+	case BUILT_IN_TM_LOG_4:
+	case BUILT_IN_TM_LOG_8:
+	case BUILT_IN_TM_LOG_FLOAT:
+	case BUILT_IN_TM_LOG_DOUBLE:
+	case BUILT_IN_TM_LOG_LDOUBLE:
+	case BUILT_IN_TM_LOG_M64:
+	case BUILT_IN_TM_LOG_M128:
+	case BUILT_IN_TM_LOG_M256:
+	  return ptr_deref_may_alias_ref_p_1 (gimple_call_arg (call, 0), ref);
+
+	/* These read memory pointed to by the first argument.  */
+	case BUILT_IN_STRDUP:
+	case BUILT_IN_STRNDUP:
+	  {
+	    ao_ref dref;
+	    tree size = NULL_TREE;
+	    if (gimple_call_num_args (call) == 2)
+	      size = gimple_call_arg (call, 1);
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 0),
+					   size);
+	    return refs_may_alias_p_1 (&dref, ref, false);
+	  }
 	/* The following builtins do not read from memory.  */
 	case BUILT_IN_FREE:
 	case BUILT_IN_MALLOC:
 	case BUILT_IN_CALLOC:
 	case BUILT_IN_ALLOCA:
+	case BUILT_IN_ALLOCA_WITH_ALIGN:
 	case BUILT_IN_STACK_SAVE:
 	case BUILT_IN_STACK_RESTORE:
 	case BUILT_IN_MEMSET:
+	case BUILT_IN_TM_MEMSET:
+	case BUILT_IN_MEMSET_CHK:
 	case BUILT_IN_FREXP:
 	case BUILT_IN_FREXPF:
 	case BUILT_IN_FREXPL:
@@ -1234,6 +1307,8 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 	case BUILT_IN_SINCOS:
 	case BUILT_IN_SINCOSF:
 	case BUILT_IN_SINCOSL:
+	case BUILT_IN_ASSUME_ALIGNED:
+	case BUILT_IN_VA_END:
 	  return false;
 	/* __sync_* builtins and some OpenMP builtins act as threading
 	   barriers.  */
@@ -1411,6 +1486,11 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
       || CONSTANT_CLASS_P (base))
     return false;
 
+  /* A call that is not without side-effects might involve volatile
+     accesses and thus conflicts with all other volatile accesses.  */
+  if (ref->volatile_p)
+    return true;
+
   /* If the reference is based on a decl that is not aliased the call
      cannot possibly clobber it.  */
   if (DECL_P (base)
@@ -1443,10 +1523,53 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	case BUILT_IN_STRCAT:
 	case BUILT_IN_STRNCAT:
 	case BUILT_IN_MEMSET:
+	case BUILT_IN_TM_MEMSET:
+	CASE_BUILT_IN_TM_STORE (1):
+	CASE_BUILT_IN_TM_STORE (2):
+	CASE_BUILT_IN_TM_STORE (4):
+	CASE_BUILT_IN_TM_STORE (8):
+	CASE_BUILT_IN_TM_STORE (FLOAT):
+	CASE_BUILT_IN_TM_STORE (DOUBLE):
+	CASE_BUILT_IN_TM_STORE (LDOUBLE):
+	CASE_BUILT_IN_TM_STORE (M64):
+	CASE_BUILT_IN_TM_STORE (M128):
+	CASE_BUILT_IN_TM_STORE (M256):
+	case BUILT_IN_TM_MEMCPY:
+	case BUILT_IN_TM_MEMMOVE:
 	  {
 	    ao_ref dref;
 	    tree size = NULL_TREE;
-	    if (gimple_call_num_args (call) == 3)
+	    /* Don't pass in size for strncat, as the maximum size
+	       is strlen (dest) + n + 1 instead of n, resp.
+	       n + 1 at dest + strlen (dest), but strlen (dest) isn't
+	       known.  */
+	    if (gimple_call_num_args (call) == 3
+		&& DECL_FUNCTION_CODE (callee) != BUILT_IN_STRNCAT)
+	      size = gimple_call_arg (call, 2);
+	    ao_ref_init_from_ptr_and_size (&dref,
+					   gimple_call_arg (call, 0),
+					   size);
+	    return refs_may_alias_p_1 (&dref, ref, false);
+	  }
+	case BUILT_IN_STRCPY_CHK:
+	case BUILT_IN_STRNCPY_CHK:
+	case BUILT_IN_MEMCPY_CHK:
+	case BUILT_IN_MEMMOVE_CHK:
+	case BUILT_IN_MEMPCPY_CHK:
+	case BUILT_IN_STPCPY_CHK:
+	case BUILT_IN_STPNCPY_CHK:
+	case BUILT_IN_STRCAT_CHK:
+	case BUILT_IN_STRNCAT_CHK:
+	case BUILT_IN_MEMSET_CHK:
+	  {
+	    ao_ref dref;
+	    tree size = NULL_TREE;
+	    /* Don't pass in size for __strncat_chk, as the maximum size
+	       is strlen (dest) + n + 1 instead of n, resp.
+	       n + 1 at dest + strlen (dest), but strlen (dest) isn't
+	       known.  */
+	    if (gimple_call_num_args (call) == 4
+		&& DECL_FUNCTION_CODE (callee) != BUILT_IN_STRNCAT_CHK)
 	      size = gimple_call_arg (call, 2);
 	    ao_ref_init_from_ptr_and_size (&dref,
 					   gimple_call_arg (call, 0),
@@ -1466,6 +1589,8 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	   being the definition point for the pointer.  */
 	case BUILT_IN_MALLOC:
 	case BUILT_IN_CALLOC:
+	case BUILT_IN_STRDUP:
+	case BUILT_IN_STRNDUP:
 	  /* Unix98 specifies that errno is set on allocation failure.  */
 	  if (flag_errno_math
 	      && targetm.ref_may_alias_errno (ref))
@@ -1473,11 +1598,14 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	  return false;
 	case BUILT_IN_STACK_SAVE:
 	case BUILT_IN_ALLOCA:
+	case BUILT_IN_ALLOCA_WITH_ALIGN:
+	case BUILT_IN_ASSUME_ALIGNED:
 	  return false;
 	/* Freeing memory kills the pointed-to memory.  More importantly
 	   the call has to serve as a barrier for moving loads and stores
 	   across it.  */
 	case BUILT_IN_FREE:
+	case BUILT_IN_VA_END:
 	  {
 	    tree ptr = gimple_call_arg (call, 0);
 	    return ptr_deref_may_alias_ref_p_1 (ptr, ref);
@@ -1697,6 +1825,10 @@ stmt_kills_ref_p_1 (gimple stmt, ao_ref *ref)
 	  case BUILT_IN_MEMPCPY:
 	  case BUILT_IN_MEMMOVE:
 	  case BUILT_IN_MEMSET:
+	  case BUILT_IN_MEMCPY_CHK:
+	  case BUILT_IN_MEMPCPY_CHK:
+	  case BUILT_IN_MEMMOVE_CHK:
+	  case BUILT_IN_MEMSET_CHK:
 	    {
 	      tree dest = gimple_call_arg (stmt, 0);
 	      tree len = gimple_call_arg (stmt, 2);
@@ -1719,10 +1851,23 @@ stmt_kills_ref_p_1 (gimple stmt, ao_ref *ref)
 			      / BITS_PER_UNIT)))
 		    return true;
 		}
+	      break;
 	    }
+
+	  case BUILT_IN_VA_END:
+	    {
+	      tree ptr = gimple_call_arg (stmt, 0);
+	      if (TREE_CODE (ptr) == ADDR_EXPR)
+		{
+		  tree base = ao_ref_base (ref);
+		  if (TREE_OPERAND (ptr, 0) == base)
+		    return true;
+		}
+	      break;
+	    }
+
 	  default:;
 	  }
-
     }
   return false;
 }
@@ -1744,6 +1889,8 @@ static bool
 maybe_skip_until (gimple phi, tree target, ao_ref *ref,
 		  tree vuse, bitmap *visited)
 {
+  basic_block bb = gimple_bb (phi);
+
   if (!*visited)
     *visited = BITMAP_ALLOC (NULL);
 
@@ -1768,10 +1915,72 @@ maybe_skip_until (gimple phi, tree target, ao_ref *ref,
       else if (gimple_nop_p (def_stmt)
 	       || stmt_may_clobber_ref_p_1 (def_stmt, ref))
 	return false;
+      /* If we reach a new basic-block see if we already skipped it
+         in a previous walk that ended successfully.  */
+      if (gimple_bb (def_stmt) != bb)
+	{
+	  if (!bitmap_set_bit (*visited, SSA_NAME_VERSION (vuse)))
+	    return true;
+	  bb = gimple_bb (def_stmt);
+	}
       vuse = gimple_vuse (def_stmt);
     }
   return true;
 }
+
+/* For two PHI arguments ARG0 and ARG1 try to skip non-aliasing code
+   until we hit the phi argument definition that dominates the other one.
+   Return that, or NULL_TREE if there is no such definition.  */
+
+static tree
+get_continuation_for_phi_1 (gimple phi, tree arg0, tree arg1,
+			    ao_ref *ref, bitmap *visited)
+{
+  gimple def0 = SSA_NAME_DEF_STMT (arg0);
+  gimple def1 = SSA_NAME_DEF_STMT (arg1);
+  tree common_vuse;
+
+  if (arg0 == arg1)
+    return arg0;
+  else if (gimple_nop_p (def0)
+	   || (!gimple_nop_p (def1)
+	       && dominated_by_p (CDI_DOMINATORS,
+				  gimple_bb (def1), gimple_bb (def0))))
+    {
+      if (maybe_skip_until (phi, arg0, ref, arg1, visited))
+	return arg0;
+    }
+  else if (gimple_nop_p (def1)
+	   || dominated_by_p (CDI_DOMINATORS,
+			      gimple_bb (def0), gimple_bb (def1)))
+    {
+      if (maybe_skip_until (phi, arg1, ref, arg0, visited))
+	return arg1;
+    }
+  /* Special case of a diamond:
+       MEM_1 = ...
+       goto (cond) ? L1 : L2
+       L1: store1 = ...    #MEM_2 = vuse(MEM_1)
+	   goto L3
+       L2: store2 = ...    #MEM_3 = vuse(MEM_1)
+       L3: MEM_4 = PHI<MEM_2, MEM_3>
+     We were called with the PHI at L3, MEM_2 and MEM_3 don't
+     dominate each other, but still we can easily skip this PHI node
+     if we recognize that the vuse MEM operand is the same for both,
+     and that we can skip both statements (they don't clobber us).
+     This is still linear.  Don't use maybe_skip_until, that might
+     potentially be slow.  */
+  else if ((common_vuse = gimple_vuse (def0))
+	   && common_vuse == gimple_vuse (def1))
+    {
+      if (!stmt_may_clobber_ref_p_1 (def0, ref)
+	  && !stmt_may_clobber_ref_p_1 (def1, ref))
+	return common_vuse;
+    }
+
+  return NULL_TREE;
+}
+
 
 /* Starting from a PHI node for the virtual operand of the memory reference
    REF find a continuation virtual operand that allows to continue walking
@@ -1788,53 +1997,41 @@ get_continuation_for_phi (gimple phi, ao_ref *ref, bitmap *visited)
   if (nargs == 1)
     return PHI_ARG_DEF (phi, 0);
 
-  /* For two arguments try to skip non-aliasing code until we hit
-     the phi argument definition that dominates the other one.  */
-  if (nargs == 2)
+  /* For two or more arguments try to pairwise skip non-aliasing code
+     until we hit the phi argument definition that dominates the other one.  */
+  else if (nargs >= 2)
     {
-      tree arg0 = PHI_ARG_DEF (phi, 0);
-      tree arg1 = PHI_ARG_DEF (phi, 1);
-      gimple def0 = SSA_NAME_DEF_STMT (arg0);
-      gimple def1 = SSA_NAME_DEF_STMT (arg1);
-      tree common_vuse;
+      tree arg0, arg1;
+      unsigned i;
 
-      if (arg0 == arg1)
-	return arg0;
-      else if (gimple_nop_p (def0)
-	       || (!gimple_nop_p (def1)
-		   && dominated_by_p (CDI_DOMINATORS,
-				      gimple_bb (def1), gimple_bb (def0))))
+      /* Find a candidate for the virtual operand which definition
+	 dominates those of all others.  */
+      arg0 = PHI_ARG_DEF (phi, 0);
+      if (!SSA_NAME_IS_DEFAULT_DEF (arg0))
+	for (i = 1; i < nargs; ++i)
+	  {
+	    arg1 = PHI_ARG_DEF (phi, i);
+	    if (SSA_NAME_IS_DEFAULT_DEF (arg1))
+	      {
+		arg0 = arg1;
+		break;
+	      }
+	    if (dominated_by_p (CDI_DOMINATORS,
+				gimple_bb (SSA_NAME_DEF_STMT (arg0)),
+				gimple_bb (SSA_NAME_DEF_STMT (arg1))))
+	      arg0 = arg1;
+	  }
+
+      /* Then pairwise reduce against the found candidate.  */
+      for (i = 0; i < nargs; ++i)
 	{
-	  if (maybe_skip_until (phi, arg0, ref, arg1, visited))
-	    return arg0;
+	  arg1 = PHI_ARG_DEF (phi, i);
+	  arg0 = get_continuation_for_phi_1 (phi, arg0, arg1, ref, visited);
+	  if (!arg0)
+	    return NULL_TREE;
 	}
-      else if (gimple_nop_p (def1)
-	       || dominated_by_p (CDI_DOMINATORS,
-				  gimple_bb (def0), gimple_bb (def1)))
-	{
-	  if (maybe_skip_until (phi, arg1, ref, arg0, visited))
-	    return arg1;
-	}
-      /* Special case of a diamond:
-	   MEM_1 = ...
-	   goto (cond) ? L1 : L2
-	   L1: store1 = ...    #MEM_2 = vuse(MEM_1)
-	       goto L3
-	   L2: store2 = ...    #MEM_3 = vuse(MEM_1)
-	   L3: MEM_4 = PHI<MEM_2, MEM_3>
-	 We were called with the PHI at L3, MEM_2 and MEM_3 don't
-	 dominate each other, but still we can easily skip this PHI node
-	 if we recognize that the vuse MEM operand is the same for both,
-	 and that we can skip both statements (they don't clobber us).
-	 This is still linear.  Don't use maybe_skip_until, that might
-	 potentially be slow.  */
-      else if ((common_vuse = gimple_vuse (def0))
-	       && common_vuse == gimple_vuse (def1))
-	{
-	  if (!stmt_may_clobber_ref_p_1 (def0, ref)
-	      && !stmt_may_clobber_ref_p_1 (def1, ref))
-	    return common_vuse;
-	}
+
+      return arg0;
     }
 
   return NULL_TREE;

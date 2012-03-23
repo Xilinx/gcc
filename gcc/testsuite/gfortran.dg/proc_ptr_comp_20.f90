@@ -27,20 +27,20 @@ type(t2) :: o2
 procedure(logical),pointer :: pp1
 procedure(complex),pointer :: pp2
 
-pp1 => pp2        ! { dg-error "Type/kind mismatch" }
-pp2 => o2%ppc     ! { dg-error "Type/kind mismatch" }
+pp1 => pp2        ! { dg-error "Type/rank mismatch" }
+pp2 => o2%ppc     ! { dg-error "Type/rank mismatch" }
 
-o1%ppc => pp1     ! { dg-error "Type/kind mismatch" }
-o1%ppc => o2%ppc  ! { dg-error "Type/kind mismatch" }
+o1%ppc => pp1     ! { dg-error "Type/rank mismatch" }
+o1%ppc => o2%ppc  ! { dg-error "Type/rank mismatch" }
 
 contains
 
-  real function f1(a,b) ! { dg-warning "Extension: Internal procedure" }
+  real function f1(a,b)
     real,intent(in) :: a,b
     f1 = a + b
   end function
 
-  integer function f2(a,b) ! { dg-warning "Extension: Internal procedure" }
+  integer function f2(a,b)
     real,intent(in) :: a,b
     f2 = a - b
   end function

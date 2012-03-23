@@ -1,7 +1,7 @@
 /* Collect static initialization info into data structures that can be
    traversed by C++ initialization and finalization routines.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Chris Smith (csmith@convex.com).
    Heavily modified by Michael Meissner (meissner@cygnus.com),
@@ -179,7 +179,6 @@ struct head
 bool vflag;				/* true if -v or --version */ 
 static int rflag;			/* true if -r */
 static int strip_flag;			/* true if -s */
-static const char *demangle_flag;
 #ifdef COLLECT_EXPORT_LIST
 static int export_flag;                 /* true if -bE */
 static int aix64_flag;			/* true if -b64 */
@@ -323,9 +322,6 @@ static void write_c_file_glob (FILE *, const char *);
 #endif
 #ifdef SCAN_LIBRARIES
 static void scan_libraries (const char *);
-#endif
-#if LINK_ELIMINATE_DUPLICATE_LDIRECTORIES
-static int is_in_args (const char *, const char **, const char **);
 #endif
 #ifdef COLLECT_EXPORT_LIST
 #if 0
@@ -1092,6 +1088,9 @@ main (int argc, char **argv)
   const char **ld2;
   char **object_lst;
   const char **object;
+#ifdef TARGET_AIX_VERSION
+  int object_nbr = argc;
+#endif
   int first_file;
   int num_c_args;
   char **old_argv;
@@ -1112,10 +1111,12 @@ main (int argc, char **argv)
 
   num_c_args = argc + 9;
 
+#ifndef HAVE_LD_DEMANGLE
   no_demangle = !! getenv ("COLLECT_NO_DEMANGLE");
 
   /* Suppress demangling by the real linker, which may be broken.  */
-  putenv (xstrdup ("COLLECT_NO_DEMANGLE="));
+  putenv (xstrdup ("COLLECT_NO_DEMANGLE=1"));
+#endif
 
 #if defined (COLLECT2_HOST_INITIALIZATION)
   /* Perform system dependent initialization, if necessary.  */
@@ -1405,12 +1406,6 @@ main (int argc, char **argv)
   /* After the first file, put in the c++ rt0.  */
 
   first_file = 1;
-#ifdef HAVE_LD_DEMANGLE
-  if (!demangle_flag && !no_demangle)
-    demangle_flag = "--demangle";
-  if (demangle_flag)
-    *ld1++ = *ld2++ = demangle_flag;
-#endif
   while ((arg = *++argv) != (char *) 0)
     {
       *ld1++ = *ld2++ = arg;
@@ -1445,6 +1440,60 @@ main (int argc, char **argv)
 			 "configuration");
 #endif
 		}
+#ifdef TARGET_AIX_VERSION
+	      else
+		{
+		  /* File containing a list of input files to process.  */
+
+		  FILE *stream;
+                  char buf[MAXPATHLEN + 2];
+		  /* Number of additionnal object files.  */
+		  int add_nbr = 0;
+		  /* Maximum of additionnal object files before vector
+		     expansion.  */
+		  int add_max = 0;
+		  const char *list_filename = arg + 2;
+
+		  /* Accept -fFILENAME and -f FILENAME.  */
+		  if (*list_filename == '\0' && argv[1])
+		    {
+		      ++argv;
+		      list_filename = *argv;
+		      *ld1++ = *ld2++ = *argv;
+		    }
+
+		  stream = fopen (list_filename, "r");
+		  if (stream == NULL)
+		    fatal_error ("can't open %s: %m", list_filename);
+
+		  while (fgets (buf, sizeof buf, stream) != NULL)
+		    {
+		      /* Remove end of line.  */
+		      int len = strlen (buf);
+		      if (len >= 1 && buf[len - 1] =='\n')
+			buf[len - 1] = '\0';
+
+		      /* Put on object vector.
+			 Note: we only expanse vector here, so we must keep
+			 extra space for remaining arguments.  */
+		      if (add_nbr >= add_max)
+			{
+			  int pos =
+			    object - CONST_CAST2 (const char **, char **,
+						  object_lst);
+			  add_max = (add_max == 0) ? 16 : add_max * 2;
+			  object_lst = XRESIZEVEC (char *, object_lst,
+                                                   object_nbr + add_max);
+			  object = CONST_CAST2 (const char **, char **,
+						object_lst) + pos;
+			  object_nbr += add_max;
+			}
+		      *object++ = xstrdup (buf);
+		      add_nbr++;
+		    }
+		  fclose (stream);
+		}
+#endif
               break;
 
 	    case 'l':
@@ -1472,15 +1521,6 @@ main (int argc, char **argv)
 	    case 'L':
 	      add_prefix (&cmdline_lib_dirs, arg+2);
 	      break;
-#else
-#if LINK_ELIMINATE_DUPLICATE_LDIRECTORIES
-	    case 'L':
-	      if (is_in_args (arg,
-			      CONST_CAST2 (const char **, char **, ld1_argv),
-			      ld1 - 1))
-		--ld1;
-	      break;
-#endif /* LINK_ELIMINATE_DUPLICATE_LDIRECTORIES */
 #endif
 
 	    case 'o':
@@ -1514,16 +1554,16 @@ main (int argc, char **argv)
 	    case '-':
 	      if (strcmp (arg, "--no-demangle") == 0)
 		{
-		  demangle_flag = arg;
+#ifndef HAVE_LD_DEMANGLE
 		  no_demangle = 1;
 		  ld1--;
 		  ld2--;
+#endif
 		}
 	      else if (strncmp (arg, "--demangle", 10) == 0)
 		{
-		  demangle_flag = arg;
-		  no_demangle = 0;
 #ifndef HAVE_LD_DEMANGLE
+		  no_demangle = 0;
 		  if (arg[10] == '=')
 		    {
 		      enum demangling_styles style
@@ -1533,9 +1573,9 @@ main (int argc, char **argv)
 		      else
 			current_demangling_style = style;
 		    }
-#endif
 		  ld1--;
 		  ld2--;
+#endif
 		}
 	      else if (strncmp (arg, "--sysroot=", 10) == 0)
 		target_system_root = arg + 10;
@@ -2182,22 +2222,6 @@ write_list (FILE *stream, const char *prefix, struct id *list)
       list = list->next;
     }
 }
-
-#if LINK_ELIMINATE_DUPLICATE_LDIRECTORIES
-/* Given a STRING, return nonzero if it occurs in the list in range
-   [ARGS_BEGIN,ARGS_END).  */
-
-static int
-is_in_args (const char *string, const char **args_begin,
-	    const char **args_end)
-{
-  const char **args_pointer;
-  for (args_pointer = args_begin; args_pointer != args_end; ++args_pointer)
-    if (strcmp (string, *args_pointer) == 0)
-      return 1;
-  return 0;
-}
-#endif /* LINK_ELIMINATE_DUPLICATE_LDIRECTORIES */
 
 #ifdef COLLECT_EXPORT_LIST
 /* This function is really used only on AIX, but may be useful.  */

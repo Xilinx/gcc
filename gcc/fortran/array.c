@@ -70,6 +70,7 @@ match_subscript (gfc_array_ref *ar, int init, bool match_star)
 
   i = ar->dimen + ar->codimen;
 
+  gfc_gobble_whitespace ();
   ar->c_where[i] = gfc_current_locus;
   ar->start[i] = ar->end[i] = ar->stride[i] = NULL;
 
@@ -1322,6 +1323,7 @@ typedef struct
 
   mpz_t *offset;
   gfc_component *component;
+  mpz_t *repeat;
 
   gfc_try (*expand_work_function) (gfc_expr *);
 }
@@ -1556,6 +1558,7 @@ expand_constructor (gfc_constructor_base base)
 	  return FAILURE;
 	}
       current_expand.offset = &c->offset;
+      current_expand.repeat = &c->repeat;
       current_expand.component = c->n.component;
       if (current_expand.expand_work_function (e) == FAILURE)
 	return FAILURE;
@@ -2109,6 +2112,9 @@ gfc_array_dimen_size (gfc_expr *array, int dimen, mpz_t *result)
   gfc_ref *ref;
   int i;
 
+  if (array->ts.type == BT_CLASS)
+    return FAILURE;
+
   if (dimen < 0 || array == NULL || dimen > array->rank - 1)
     gfc_internal_error ("gfc_array_dimen_size(): Bad dimension");
 
@@ -2186,6 +2192,9 @@ gfc_array_size (gfc_expr *array, mpz_t *result)
   gfc_ref *ref;
   int i;
   gfc_try t;
+
+  if (array->ts.type == BT_CLASS)
+    return FAILURE;
 
   switch (array->expr_type)
     {
@@ -2279,9 +2288,7 @@ gfc_array_ref_shape (gfc_array_ref *ar, mpz_t *shape)
     }
 
 cleanup:
-  for (d--; d >= 0; d--)
-    mpz_clear (shape[d]);
-
+  gfc_clear_shape (shape, d);
   return FAILURE;
 }
 
@@ -2296,8 +2303,7 @@ gfc_find_array_ref (gfc_expr *e)
 
   for (ref = e->ref; ref; ref = ref->next)
     if (ref->type == REF_ARRAY
-	&& (ref->u.ar.type == AR_FULL || ref->u.ar.type == AR_SECTION
-	    || (ref->u.ar.type == AR_ELEMENT && ref->u.ar.dimen == 0)))
+	&& (ref->u.ar.type == AR_FULL || ref->u.ar.type == AR_SECTION))
       break;
 
   if (ref == NULL)

@@ -226,6 +226,7 @@ along with GCC; see the file COPYING3.  If not see
 #define FL_ISA_B     (1 << 15)
 #define FL_ISA_C     (1 << 16)
 #define FL_FIDOA     (1 << 17)
+#define FL_CAS	     (1 << 18)	/* Support cas insn.  */
 #define FL_MMU 	     0   /* Used by multilib machinery.  */
 #define FL_UCLINUX   0   /* Used by multilib machinery.  */
 
@@ -236,6 +237,7 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_COLDFIRE_FPU	(m68k_fpu == FPUTYPE_COLDFIRE)
 #define TARGET_68881		(m68k_fpu == FPUTYPE_68881)
 #define TARGET_FIDOA		((m68k_cpu_flags & FL_FIDOA) != 0)
+#define TARGET_CAS		((m68k_cpu_flags & FL_CAS) != 0)
 
 /* Size (in bytes) of FPU registers.  */
 #define TARGET_FP_REG_SIZE	(TARGET_COLDFIRE ? 8 : 12)
@@ -247,6 +249,7 @@ along with GCC; see the file COPYING3.  If not see
 /* Some instructions are common to more than one ISA.  */
 #define ISA_HAS_MVS_MVZ	(TARGET_ISAB || TARGET_ISAC)
 #define ISA_HAS_FF1	(TARGET_ISAAPLUS || TARGET_ISAC)
+#define ISA_HAS_TAS	(!TARGET_COLDFIRE || TARGET_ISAB || TARGET_ISAC)
 
 #define TUNE_68000	(m68k_tune == u68000)
 #define TUNE_68010	(m68k_tune == u68010)
@@ -934,12 +937,6 @@ do { if (cc_prev_status.flags & CC_IN_68881)			\
 #define PRINT_OPERAND(FILE, X, CODE) print_operand (FILE, X, CODE)
 
 #define PRINT_OPERAND_ADDRESS(FILE, ADDR) print_operand_address (FILE, ADDR)
-
-#define OUTPUT_ADDR_CONST_EXTRA(FILE, X, FAIL)		\
-do {							\
-  if (! m68k_output_addr_const_extra (FILE, (X)))	\
-    goto FAIL;						\
-} while (0);
 
 #include "config/m68k/m68k-opts.h"
 

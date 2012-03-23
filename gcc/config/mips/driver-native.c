@@ -1,5 +1,5 @@
 /* Subroutines for the gcc driver.
-   Copyright (C) 2008 Free Software Foundation, Inc.
+   Copyright (C) 2008, 2011, 2012 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -67,6 +67,8 @@ host_detect_local_cpu (int argc, const char **argv)
 	  cpu = "sb1";
 	else if (strstr (buf, "R5000") != NULL)
 	  cpu = "r5000";
+	else if (strstr (buf, "Octeon II") != NULL)
+	  cpu = "octeon2";
 	else if (strstr (buf, "Octeon") != NULL)
 	  cpu = "octeon";
 	break;

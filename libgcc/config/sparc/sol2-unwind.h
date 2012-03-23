@@ -1,5 +1,5 @@
 /* DWARF2 EH unwinding support for SPARC Solaris.
-   Copyright (C) 2009, 2010, 2011 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -29,51 +29,32 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include <sys/frame.h>
 #include <sys/stack.h>
 
-#if defined(__arch64__)
+#ifdef __arch64__
 
 #define IS_SIGHANDLER sparc64_is_sighandler
 
 static int
-sparc64_is_sighandler (unsigned int *pc, unsigned int *savpc, int *nframes)
+sparc64_is_sighandler (unsigned int *pc, void *cfa, int *nframes)
 {
-  if (/* Solaris 8 - single-threaded
+  if (/* Solaris 9 - single-threaded
 	----------------------------
-	<sigacthandler+24>:  add  %g5, %o7, %o2
-	<sigacthandler+28>:  ldx  [ %o2 + 0xfa0 ], %g5
-	<sigacthandler+32>:  sra  %i0, 0, %o0
-	<sigacthandler+36>:  sllx  %o0, 3, %g4
+	The pattern changes slightly in different versions of the
+	operating system, so we skip the comparison against pc[-6] for
+	Solaris 9.
+
+	<sigacthandler+24>:  sra  %i0, 0, %l1
+
+	Solaris 9 5/02:
+	<sigacthandler+28>:  ldx  [ %o2 + 0xf68 ], %g5
+	Solaris 9 9/05:
+	<sigacthandler+28>:  ldx  [ %o2 + 0xe50 ], %g5
+
+	<sigacthandler+32>:  sllx  %l1, 3, %g4
+	<sigacthandler+36>:  mov  %l1, %o0
 	<sigacthandler+40>:  ldx  [ %g4 + %g5 ], %l0
 	<sigacthandler+44>:  call  %l0
 	<sigacthandler+48>:  mov  %i2, %o2
-	<sigacthandler+52>:  cmp  %i3, 8	<--- PC  */
-      (   pc[-7] == 0x9401400f
-       && pc[-6] == 0xca5aafa0
-       && pc[-5] == 0x913e2000
-       && pc[-4] == 0x892a3003
-       && pc[-3] == 0xe0590005
-       && pc[-2] == 0x9fc40000
-       && pc[-1] == 0x9410001a
-       && pc[ 0] == 0x80a6e008)
-
-      || /* Solaris 9 - single-threaded
-	   ----------------------------
-	   The pattern changes slightly in different versions of the
-	   operating system, so we skip the comparison against pc[-6] for
-	   Solaris 9.
-
-	   <sigacthandler+24>:  sra  %i0, 0, %l1
-
-	   Solaris 9 5/02:
-	   <sigacthandler+28>:  ldx  [ %o2 + 0xf68 ], %g5
-	   Solaris 9 9/05:
-	   <sigacthandler+28>:  ldx  [ %o2 + 0xe50 ], %g5
-
-	   <sigacthandler+32>:  sllx  %l1, 3, %g4
-	   <sigacthandler+36>:  mov  %l1, %o0
-	   <sigacthandler+40>:  ldx  [ %g4 + %g5 ], %l0
-	   <sigacthandler+44>:  call  %l0
-	   <sigacthandler+48>:  mov  %i2, %o2
-	   <sigacthandler+52>:  cmp  %l1, 8	<--- PC  */
+	<sigacthandler+52>:  cmp  %l1, 8	<--- PC  */
       (   pc[-7] == 0xa33e2000
        /* skip pc[-6] */
        && pc[-5] == 0x892c7003
@@ -110,38 +91,54 @@ sparc64_is_sighandler (unsigned int *pc, unsigned int *savpc, int *nframes)
       && pc[ 0] == 0x81c7e008
       && pc[ 1] == 0x81e80000)
     {
-      if (/* Solaris 8 /usr/lib/sparcv9/libthread.so.1
-	    ------------------------------------------
-	    Before patch 108827-08:
-	    <sigacthandler+1760>:     st  %g4, [ %i1 + 0x1c ]
+      /* We have observed different calling frames among different
+	 versions of the operating system, so that we need to
+	 discriminate using the upper frame.  We look for the return
+	 address of the caller frame (there is an offset of 15 double
+	 words between the frame address and the place where this return
+	 address is stored) in order to do some more pattern matching.  */
+      unsigned int cuh_pattern
+	= *(unsigned int *)(*(unsigned long *)(cfa + 15*8) - 4);
 
-	    Since patch 108827-08:
-	    <sigacthandler+1816>:     st  %l0, [ %i4 + 0x10 ]  */
-	        savpc[-1] == 0xc826601c
-	     || savpc[-1] == 0xe0272010)
+      if (cuh_pattern == 0x92100019)
+	/* This matches the call_user_handler pattern for Solaris 11.
+	   This is the same setup as for Solaris 9, see below.  */
+	*nframes = 3;
+
+      else if (cuh_pattern == 0xd25fa7ef)
 	{
-	  /* We need to move up three frames:
+	  /* This matches the call_user_handler pattern for Solaris 10.
+	     There are 2 cases so we look for the return address of the
+	     caller's caller frame in order to do more pattern matching.  */
+	  unsigned long sah_address = *(unsigned long *)(cfa + 176 + 15*8);
+
+          if (sah_address && *(unsigned int *)(sah_address - 4) == 0x92100019)
+	    /* This is the same setup as for Solaris 9, see below.  */
+	    *nframes = 3;
+	  else
+	    /* The sigacthandler frame isn't present in the chain.
+	       We need to move up two frames:
 
 		<signal handler>	<-- context->cfa
 		__sighndlr
-		sigacthandler
+		call_user_handler frame
 		<kernel>
-	  */
-	  *nframes = 2;
+	    */
+	    *nframes = 2;
 	}
-      else /* Solaris 8 /usr/lib/lwp/sparcv9/libthread.so.1, Solaris 9+
-	     ----------------------------------------------------------  */
-	{
-	  /* We need to move up three frames:
+
+      else if (cuh_pattern == 0x9410001a || cuh_pattern == 0x94100013)
+	/* This matches the call_user_handler pattern for Solaris 9.
+	   We need to move up three frames:
 
 		<signal handler>	<-- context->cfa
 		__sighndlr
 		call_user_handler
 		sigacthandler
 		<kernel>
-	  */
-	  *nframes = 3;
-	}
+	*/
+	*nframes = 3;
+
       return 1;
     }
 
@@ -181,10 +178,10 @@ sparc64_frob_update_context (struct _Unwind_Context *context,
 #define IS_SIGHANDLER sparc_is_sighandler
 
 static int
-sparc_is_sighandler (unsigned int *pc, unsigned int * savpc, int *nframes)
+sparc_is_sighandler (unsigned int *pc, void *cfa, int *nframes)
 {
-  if (/* Solaris 8, 9 - single-threaded
-        -------------------------------
+  if (/* Solaris 9 - single-threaded
+        ----------------------------
 	The pattern changes slightly in different versions of the operating
 	system, so we skip the comparison against pc[-6].
 
@@ -209,41 +206,10 @@ sparc_is_sighandler (unsigned int *pc, unsigned int * savpc, int *nframes)
       && pc[-1] == 0x9410001a
       && pc[ 0] == 0x80a62008)
     {
-      /* Need to move up one frame:
+      /* We need to move up one frame:
 
 		<signal handler>	<-- context->cfa
 		sigacthandler
-		<kernel>
-      */
-      *nframes = 1;
-      return 1;
-    }
-
-  if (/* Solaris 8 - multi-threaded
-	---------------------------
-	<__libthread_segvhdlr+212>:  clr  %o2
-	<__libthread_segvhdlr+216>:  ld  [ %fp + -28 ], %l0
-	<__libthread_segvhdlr+220>:  mov  %i4, %o0
-	<__libthread_segvhdlr+224>:  mov  %i1, %o1
-	<__libthread_segvhdlr+228>:  call  %l0
-	<__libthread_segvhdlr+232>:  mov  %i2, %o2
-	<__libthread_segvhdlr+236>:  ret		<--- PC
-	<__libthread_segvhdlr+240>:  restore
-	<__libthread_segvhdlr+244>:  cmp  %o1, 0  */
-         pc[-6] == 0x94102000
-      && pc[-5] == 0xe007bfe4
-      && pc[-4] == 0x9010001c
-      && pc[-3] == 0x92100019
-      && pc[-2] == 0x9fc40000
-      && pc[-1] == 0x9410001a
-      && pc[ 0] == 0x81c7e008
-      && pc[ 1] == 0x81e80000
-      && pc[ 2] == 0x80a26000)
-    {
-      /* Need to move up one frame:
-
-		<signal handler>	<-- context->cfa
-		__libthread_segvhdlr
 		<kernel>
       */
       *nframes = 1;
@@ -267,33 +233,54 @@ sparc_is_sighandler (unsigned int *pc, unsigned int * savpc, int *nframes)
      && pc[ 0] == 0x81c7e008
      && pc[ 1] == 0x81e80000)
     {
-      if (/* Solaris 8 /usr/lib/libthread.so.1
-	    ----------------------------------
-	    <sigacthandler+1796>:     mov  %i0, %o0  */
-	  savpc[-1] == 0x90100018)
+      /* We have observed different calling frames among different
+	 versions of the operating system, so that we need to
+	 discriminate using the upper frame.  We look for the return
+	 address of the caller frame (there is an offset of 15 words
+	 between the frame address and the place where this return
+	 address is stored) in order to do some more pattern matching.  */
+      unsigned int cuh_pattern
+	= *(unsigned int *)(*(unsigned int *)(cfa + 15*4) - 4);
+
+      if (cuh_pattern == 0x92100019)
+	/* This matches the call_user_handler pattern for Solaris 11.
+	   This is the same setup as for Solaris 9, see below.  */
+	*nframes = 3;
+
+      else if (cuh_pattern == 0xd407a04c)
 	{
-	  /* We need to move up two frames:
+	  /* This matches the call_user_handler pattern for Solaris 10.
+	     There are 2 cases so we look for the return address of the
+	     caller's caller frame in order to do more pattern matching.  */
+	  unsigned int sah_address = *(unsigned int *)(cfa + 96 + 15*4);
+
+          if (sah_address && *(unsigned int *)(sah_address - 4) == 0x92100019)
+	    /* This is the same setup as for Solaris 9, see below.  */
+	    *nframes = 3;
+	  else
+	    /* The sigacthandler frame isn't present in the chain.
+	       We need to move up two frames:
 
 		<signal handler>	<-- context->cfa
 		__sighndlr
-		sigacthandler
+		call_user_handler frame
 		<kernel>
-	  */
-	  *nframes = 2;
+	    */
+	    *nframes = 2;
 	}
-      else /* Solaris 8 /usr/lib/lwp/libthread.so.1, Solaris 9+
-	     --------------------------------------------------  */
-	{
-	  /* We need to move up three frames:
+
+      else if (cuh_pattern == 0x9410001a || cuh_pattern == 0x9410001b)
+	/* This matches the call_user_handler pattern for Solaris 9.
+	   We need to move up three frames:
 
 		<signal handler>	<-- context->cfa
 		__sighndlr
 		call_user_handler
 		sigacthandler
 		<kernel>
-	  */
-	  *nframes = 3;
-	}
+	*/
+	*nframes = 3;
+
       return 1;
     }
 
@@ -331,7 +318,7 @@ MD_FALLBACK_FRAME_STATE_FOR (struct _Unwind_Context *context,
       return _URC_NO_REASON;
     }
 
-  if (IS_SIGHANDLER (pc, (unsigned int *)fp->fr_savpc, &nframes))
+  if (IS_SIGHANDLER (pc, this_cfa, &nframes))
     {
       struct handler_args {
 	struct frame frwin;

@@ -78,16 +78,12 @@ along with GCC; see the file COPYING3.  If not see
 #define SUB_LINK_ENTRY SUB_LINK_ENTRY32
 #endif
 
-/* Override the standard choice of /usr/include as the default prefix
-   to try when searching for header files.  */
-#undef STANDARD_INCLUDE_DIR
-#define STANDARD_INCLUDE_DIR "/mingw/include"
-#undef STANDARD_INCLUDE_COMPONENT
-#define STANDARD_INCLUDE_COMPONENT "MINGW"
+#undef NATIVE_SYSTEM_HEADER_COMPONENT
+#define NATIVE_SYSTEM_HEADER_COMPONENT "MINGW"
 
 #undef CPP_SPEC
 #define CPP_SPEC "%{posix:-D_POSIX_SOURCE} %{mthreads:-D_MT} " \
-		 "%{" SPEC_PTHREAD1 ":-D_REENTRANCE} " \
+		 "%{" SPEC_PTHREAD1 ":-D_REENTRANT} " \
 		 "%{" SPEC_PTHREAD2 ": } "
 
 /* For Windows applications, include more libraries, but always include
@@ -189,7 +185,10 @@ do {						         \
 
 /* mingw32 uses the  -mthreads option to enable thread support.  */
 #undef GOMP_SELF_SPECS
-#define GOMP_SELF_SPECS "%{fopenmp: -mthreads}"
+#define GOMP_SELF_SPECS "%{fopenmp|ftree-parallelize-loops=*: " \
+			"-mthreads -pthread}"
+#undef GTM_SELF_SPECS
+#define GTM_SELF_SPECS "%{fgnu-tm:-mthreads -pthread}"
 
 /* mingw32 atexit function is safe to use in shared libraries.  Use it
    to register C++ static destructors.  */
@@ -233,5 +232,4 @@ do {						         \
 #define LIBGCC_SONAME "libgcc_s" LIBGCC_EH_EXTN "-1.dll"
 
 /* We should find a way to not have to update this manually.  */
-#define LIBGCJ_SONAME "libgcj" /*LIBGCC_EH_EXTN*/ "-12.dll"
-
+#define LIBGCJ_SONAME "libgcj" /*LIBGCC_EH_EXTN*/ "-13.dll"

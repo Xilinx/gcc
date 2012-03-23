@@ -169,6 +169,9 @@ gen_exp (rtx x, enum rtx_code subroutine_type, char *used)
     case RETURN:
       printf ("ret_rtx");
       return;
+    case SIMPLE_RETURN:
+      printf ("simple_return_rtx");
+      return;
     case CLOBBER:
       if (REG_P (XEXP (x, 0)))
 	{
@@ -489,8 +492,8 @@ gen_expand (rtx expand)
 	  || (GET_CODE (next) == PARALLEL
 	      && ((GET_CODE (XVECEXP (next, 0, 0)) == SET
 		   && GET_CODE (SET_DEST (XVECEXP (next, 0, 0))) == PC)
-		  || GET_CODE (XVECEXP (next, 0, 0)) == RETURN))
-	  || GET_CODE (next) == RETURN)
+		  || ANY_RETURN_P (XVECEXP (next, 0, 0))))
+	  || ANY_RETURN_P (next))
 	printf ("  emit_jump_insn (");
       else if ((GET_CODE (next) == SET && GET_CODE (SET_SRC (next)) == CALL)
 	       || GET_CODE (next) == CALL
@@ -607,7 +610,7 @@ gen_split (rtx split)
 	  || (GET_CODE (next) == PARALLEL
 	      && GET_CODE (XVECEXP (next, 0, 0)) == SET
 	      && GET_CODE (SET_DEST (XVECEXP (next, 0, 0))) == PC)
-	  || GET_CODE (next) == RETURN)
+	  || ANY_RETURN_P (next))
 	printf ("  emit_jump_insn (");
       else if ((GET_CODE (next) == SET && GET_CODE (SET_SRC (next)) == CALL)
 	       || GET_CODE (next) == CALL
@@ -809,7 +812,8 @@ from the machine description file `md'.  */\n\n");
   printf ("#include \"tm-constrs.h\"\n");
   printf ("#include \"ggc.h\"\n");
   printf ("#include \"basic-block.h\"\n");
-  printf ("#include \"integrate.h\"\n\n");
+  printf ("#include \"integrate.h\"\n");
+  printf ("#include \"target.h\"\n\n");
   printf ("#define FAIL return (end_sequence (), _val)\n");
   printf ("#define DONE return (_val = get_insns (), end_sequence (), _val)\n\n");
 

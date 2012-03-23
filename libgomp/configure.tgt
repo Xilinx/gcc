@@ -32,7 +32,7 @@ if test $enable_linux_futex = yes; then
 	;;
 
     arm*-*-linux*)
-	config_path="linux/arm linux posix"
+	config_path="linux posix"
 	;;
 
     ia64*-*-linux*)
@@ -49,6 +49,10 @@ if test $enable_linux_futex = yes; then
 
     s390*-*-linux*)
 	config_path="linux/s390 linux posix"
+	;;
+
+    tile*-*-linux*)
+	config_path="linux/tile linux posix"
 	;;
 
     # Note that bare i386 is not included here.  We need cmpxchg.
@@ -129,10 +133,6 @@ case "${target}" in
 	XLDFLAGS="${XLDFLAGS} -lpthread"
 	;;
 
-  mips-sgi-irix6*)
-	# Need to link with -lpthread so libgomp.so is self-contained.
-	XLDFLAGS="${XLDFLAGS} -lpthread"
-	;;
   *)
 	;;
 

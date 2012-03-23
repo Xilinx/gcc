@@ -1,5 +1,5 @@
 /* Loop unrolling and peeling.
-   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2010
+   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -198,7 +198,6 @@ unroll_and_peel_loops (int flags)
       if (check)
 	{
 #ifdef ENABLE_CHECKING
-	  verify_dominators (CDI_DOMINATORS);
 	  verify_loop_structure ();
 #endif
 	}
@@ -255,7 +254,6 @@ peel_loops_completely (int flags)
 	{
 	  peel_loop_completely (loop);
 #ifdef ENABLE_CHECKING
-	  verify_dominators (CDI_DOMINATORS);
 	  verify_loop_structure ();
 #endif
 	}
@@ -2262,10 +2260,15 @@ apply_opt_in_copies (struct opt_info *opt_info,
       for (insn = BB_HEAD (bb); insn != NEXT_INSN (BB_END (bb)); insn = next)
         {
           next = NEXT_INSN (insn);
-          if (!INSN_P (insn))
+	  if (!INSN_P (insn)
+	      || (DEBUG_INSN_P (insn)
+		  && TREE_CODE (INSN_VAR_LOCATION_DECL (insn)) == LABEL_DECL))
             continue;
 
-          while (!INSN_P (orig_insn))
+	  while (!INSN_P (orig_insn)
+		 || (DEBUG_INSN_P (orig_insn)
+		     && (TREE_CODE (INSN_VAR_LOCATION_DECL (orig_insn))
+			 == LABEL_DECL)))
             orig_insn = NEXT_INSN (orig_insn);
 
           ivts_templ.insn = orig_insn;

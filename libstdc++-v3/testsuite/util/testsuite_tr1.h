@@ -68,13 +68,14 @@ namespace __gnu_test
     }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
-  template<template<typename...> class Property, typename... Types>
+  template<template<typename...> class Property,
+	   typename Type1, typename... Types>
     bool
-    test_property(typename Property<Types...>::value_type value)
+    test_property(typename Property<Type1, Types...>::value_type value)
     {
       bool ret = true;
-      ret &= Property<Types...>::value == value;
-      ret &= Property<Types...>::type::value == value;
+      ret &= Property<Type1, Types...>::value == value;
+      ret &= Property<Type1, Types...>::type::value == value;
       return ret;
     }
 #endif
@@ -198,6 +199,7 @@ namespace __gnu_test
   struct NoexceptMoveConsClass
   {
     NoexceptMoveConsClass(NoexceptMoveConsClass&&) noexcept(true);
+    NoexceptMoveConsClass& operator=(NoexceptMoveConsClass&&) = default;
   };
 
   struct ExceptMoveConsClass
@@ -219,6 +221,7 @@ namespace __gnu_test
 
   struct NoexceptMoveAssignClass
   {
+    NoexceptMoveAssignClass(NoexceptMoveAssignClass&&) = default;
     NoexceptMoveAssignClass&
     operator=(NoexceptMoveAssignClass&&) noexcept(true);
   };
@@ -696,6 +699,24 @@ namespace __gnu_test
       MO& operator=(MO&&) = default;
     };
   }
+
+  struct CopyConsOnlyType
+  {
+    CopyConsOnlyType(int) { }
+    CopyConsOnlyType(CopyConsOnlyType&&) = delete;
+    CopyConsOnlyType(const CopyConsOnlyType&) = default;
+    CopyConsOnlyType& operator=(const CopyConsOnlyType&) = delete;
+    CopyConsOnlyType& operator=(CopyConsOnlyType&&) = delete;
+  };
+
+  struct MoveConsOnlyType
+  {
+    MoveConsOnlyType(int) { }
+    MoveConsOnlyType(const MoveConsOnlyType&) = delete;
+    MoveConsOnlyType(MoveConsOnlyType&&) = default;
+    MoveConsOnlyType& operator=(const MoveConsOnlyType&) = delete;
+    MoveConsOnlyType& operator=(MoveConsOnlyType&&) = delete;
+  };
 #endif
 
 } // namespace __gnu_test

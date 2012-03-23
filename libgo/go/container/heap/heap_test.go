@@ -5,42 +5,52 @@
 package heap_test
 
 import (
-	"testing"
-	"container/vector"
 	. "container/heap"
+	"testing"
 )
 
+type myHeap []int
 
-type myHeap struct {
-	// A vector.Vector implements sort.Interface except for Less,
-	// and it implements Push and Pop as required for heap.Interface.
-	vector.Vector
+func (h *myHeap) Less(i, j int) bool {
+	return (*h)[i] < (*h)[j]
 }
 
+func (h *myHeap) Swap(i, j int) {
+	(*h)[i], (*h)[j] = (*h)[j], (*h)[i]
+}
 
-func (h *myHeap) Less(i, j int) bool { return h.At(i).(int) < h.At(j).(int) }
+func (h *myHeap) Len() int {
+	return len(*h)
+}
 
+func (h *myHeap) Pop() (v interface{}) {
+	*h, v = (*h)[:h.Len()-1], (*h)[h.Len()-1]
+	return
+}
 
-func (h *myHeap) verify(t *testing.T, i int) {
+func (h *myHeap) Push(v interface{}) {
+	*h = append(*h, v.(int))
+}
+
+func (h myHeap) verify(t *testing.T, i int) {
 	n := h.Len()
 	j1 := 2*i + 1
 	j2 := 2*i + 2
 	if j1 < n {
 		if h.Less(j1, i) {
-			t.Errorf("heap invariant invalidated [%d] = %d > [%d] = %d", i, h.At(i), j1, h.At(j1))
+			t.Errorf("heap invariant invalidated [%d] = %d > [%d] = %d", i, h[i], j1, h[j1])
 			return
 		}
 		h.verify(t, j1)
 	}
 	if j2 < n {
 		if h.Less(j2, i) {
-			t.Errorf("heap invariant invalidated [%d] = %d > [%d] = %d", i, h.At(i), j1, h.At(j2))
+			t.Errorf("heap invariant invalidated [%d] = %d > [%d] = %d", i, h[i], j1, h[j2])
 			return
 		}
 		h.verify(t, j2)
 	}
 }
-
 
 func TestInit0(t *testing.T) {
 	h := new(myHeap)
@@ -59,7 +69,6 @@ func TestInit0(t *testing.T) {
 	}
 }
 
-
 func TestInit1(t *testing.T) {
 	h := new(myHeap)
 	for i := 20; i > 0; i-- {
@@ -76,7 +85,6 @@ func TestInit1(t *testing.T) {
 		}
 	}
 }
-
 
 func Test(t *testing.T) {
 	h := new(myHeap)
@@ -105,7 +113,6 @@ func Test(t *testing.T) {
 	}
 }
 
-
 func TestRemove0(t *testing.T) {
 	h := new(myHeap)
 	for i := 0; i < 10; i++ {
@@ -123,7 +130,6 @@ func TestRemove0(t *testing.T) {
 	}
 }
 
-
 func TestRemove1(t *testing.T) {
 	h := new(myHeap)
 	for i := 0; i < 10; i++ {
@@ -139,7 +145,6 @@ func TestRemove1(t *testing.T) {
 		h.verify(t, 0)
 	}
 }
-
 
 func TestRemove2(t *testing.T) {
 	N := 10

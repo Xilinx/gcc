@@ -1303,7 +1303,12 @@ _Jv_init_cif (_Jv_Utf8Const* signature,
   if (ptr != (unsigned char*)signature->chars() + signature->len())
     throw_internal_error ("did not find end of signature");
 
-  if (ffi_prep_cif (cif, FFI_DEFAULT_ABI,
+  ffi_abi cabi = FFI_DEFAULT_ABI;
+#if defined (X86_WIN32) && !defined (__CYGWIN__)
+  if (!staticp)
+    cabi = FFI_THISCALL;
+#endif
+  if (ffi_prep_cif (cif, cabi,
 		    arg_count, rtype, arg_types) != FFI_OK)
     throw_internal_error ("ffi_prep_cif failed");
 
@@ -1474,7 +1479,7 @@ _Jv_InterpMethod::check_handler (pc_t *pc, _Jv_InterpMethod *meth,
               if (exc[i].handler_type.i != 0)
                     handler
                       = (_Jv_Linker::resolve_pool_entry (meth->defining_class,
-                                                                             ex$
+					     exc[i].handler_type.i)).clazz;
 #endif /* DIRECT_THREADED */
               if (handler == NULL || handler->isAssignableFrom (exc_class))
                 {
@@ -1626,7 +1631,7 @@ _Jv_InterpMethod::breakpoint_at (jlong index)
       return (insn->insn == breakpoint_insn->insn);
 #else
       pc_t code = reinterpret_cast<pc_t> (bytecode ());
-      return (code[index] == breakpoint_insn);
+      return (code[index] == bp_insn_opcode);
 #endif
     }
 

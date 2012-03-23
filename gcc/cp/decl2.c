@@ -43,7 +43,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "c-family/c-common.h"
 #include "c-family/c-objc.h"
-#include "tree-mudflap.h"
 #include "cgraph.h"
 #include "tree-inline.h"
 #include "c-family/c-pragma.h"
@@ -86,6 +85,7 @@ static void write_out_vars (tree);
 static void import_export_class (tree);
 static tree get_guard_bits (tree);
 static void determine_visibility_from_class (tree, tree);
+static bool determine_hidden_inline (tree);
 static bool decl_defined_p (tree);
 
 /* A list of static class variables.  This is needed, because a
@@ -494,6 +494,7 @@ check_member_template (tree tmpl)
   decl = DECL_TEMPLATE_RESULT (tmpl);
 
   if (TREE_CODE (decl) == FUNCTION_DECL
+      || DECL_ALIAS_TEMPLATE_P (tmpl)
       || (TREE_CODE (decl) == TYPE_DECL
 	  && MAYBE_CLASS_TYPE_P (TREE_TYPE (decl))))
     {
@@ -795,7 +796,7 @@ grokfield (const cp_declarator *declarator,
 {
   tree value;
   const char *asmspec = 0;
-  int flags = LOOKUP_ONLYCONVERTING;
+  int flags;
   tree name;
 
   if (init
@@ -847,9 +848,6 @@ grokfield (const cp_declarator *declarator,
       DECL_NONLOCAL (value) = 1;
       DECL_CONTEXT (value) = current_class_type;
 
-      if (processing_template_decl)
-	value = push_template_decl (value);
-
       if (attrlist)
 	{
 	  int attrflags = 0;
@@ -868,6 +866,13 @@ grokfield (const cp_declarator *declarator,
           && TYPE_NAME (TYPE_MAIN_VARIANT (TREE_TYPE (value))) != value)
 	set_underlying_type (value);
 
+      /* It's important that push_template_decl below follows
+	 set_underlying_type above so that the created template
+	 carries the properly set type of VALUE.  */
+      if (processing_template_decl)
+	value = push_template_decl (value);
+
+      record_locally_defined_typedef (value);
       return value;
     }
 
@@ -901,6 +906,8 @@ grokfield (const cp_declarator *declarator,
 		  DECL_DECLARED_INLINE_P (value) = 1;
 		}
 	    }
+	  else if (TREE_CODE (init) == DEFAULT_ARG)
+	    error ("invalid initializer for member function %qD", value);
 	  else if (TREE_CODE (TREE_TYPE (value)) == METHOD_TYPE)
 	    {
 	      if (integer_zerop (init))
@@ -918,9 +925,10 @@ grokfield (const cp_declarator *declarator,
 		     value);
 	    }
 	}
-      else if (pedantic && TREE_CODE (value) != VAR_DECL)
-	/* Already complained in grokdeclarator.  */
-	init = NULL_TREE;
+      else if (TREE_CODE (value) == FIELD_DECL)
+	/* C++11 NSDMI, keep going.  */;
+      else if (TREE_CODE (value) != VAR_DECL)
+	gcc_unreachable ();
       else if (!processing_template_decl)
 	{
 	  if (TREE_CODE (init) == CONSTRUCTOR)
@@ -954,6 +962,12 @@ grokfield (const cp_declarator *declarator,
   if (attrlist)
     cplus_decl_attributes (&value, attrlist, 0);
 
+  if (init && BRACE_ENCLOSED_INITIALIZER_P (init)
+      && CONSTRUCTOR_IS_DIRECT_INIT (init))
+    flags = LOOKUP_NORMAL;
+  else
+    flags = LOOKUP_IMPLICIT;
+
   switch (TREE_CODE (value))
     {
     case VAR_DECL:
@@ -968,7 +982,6 @@ grokfield (const cp_declarator *declarator,
 	init = error_mark_node;
       cp_finish_decl (value, init, /*init_const_expr_p=*/false,
 		      NULL_TREE, flags);
-      DECL_INITIAL (value) = init;
       DECL_IN_AGGR_P (value) = 1;
       return value;
 
@@ -1186,9 +1199,9 @@ save_template_attributes (tree *attr_p, tree *decl_p)
 
   old_attrs = *q;
 
-  /* Place the late attributes at the beginning of the attribute
+  /* Merge the late attributes at the beginning with the attribute
      list.  */
-  TREE_CHAIN (tree_last (late_attrs)) = *q;
+  late_attrs = merge_attributes (late_attrs, *q);
   *q = late_attrs;
 
   if (!DECL_P (*decl_p) && *decl_p == TYPE_MAIN_VARIANT (*decl_p))
@@ -1327,7 +1340,10 @@ build_anon_union_vars (tree type, tree object)
   /* Rather than write the code to handle the non-union case,
      just give an error.  */
   if (TREE_CODE (type) != UNION_TYPE)
-    error ("anonymous struct not inside named type");
+    {
+      error ("anonymous struct not inside named type");
+      return error_mark_node;
+    }
 
   for (field = TYPE_FIELDS (type);
        field != NULL_TREE;
@@ -1864,10 +1880,12 @@ maybe_emit_vtables (tree ctype)
 
       if (TREE_TYPE (DECL_INITIAL (vtbl)) == 0)
 	{
-	  tree expr = store_init_value (vtbl, DECL_INITIAL (vtbl), LOOKUP_NORMAL);
+	  VEC(tree,gc)* cleanups = NULL;
+	  tree expr = store_init_value (vtbl, DECL_INITIAL (vtbl), &cleanups,
+					LOOKUP_NORMAL);
 
 	  /* It had better be all done at compile-time.  */
-	  gcc_assert (!expr);
+	  gcc_assert (!expr && !cleanups);
 	}
 
       /* Write it out.  */
@@ -1939,10 +1957,12 @@ type_visibility (tree type)
 }
 
 /* Limit the visibility of DECL to VISIBILITY, if not explicitly
-   specified (or if VISIBILITY is static).  */
+   specified (or if VISIBILITY is static).  If TMPL is true, this
+   constraint is for a template argument, and takes precedence
+   over explicitly-specified visibility on the template.  */
 
-static bool
-constrain_visibility (tree decl, int visibility)
+static void
+constrain_visibility (tree decl, int visibility, bool tmpl)
 {
   if (visibility == VISIBILITY_ANON)
     {
@@ -1960,12 +1980,12 @@ constrain_visibility (tree decl, int visibility)
 	}
     }
   else if (visibility > DECL_VISIBILITY (decl)
-	   && !DECL_VISIBILITY_SPECIFIED (decl))
+	   && (tmpl || !DECL_VISIBILITY_SPECIFIED (decl)))
     {
       DECL_VISIBILITY (decl) = (enum symbol_visibility) visibility;
-      return true;
+      /* This visibility was not specified.  */
+      DECL_VISIBILITY_SPECIFIED (decl) = false;
     }
-  return false;
 }
 
 /* Constrain the visibility of DECL based on the visibility of its template
@@ -2001,7 +2021,7 @@ constrain_visibility_for_template (tree decl, tree targs)
 	    }
 	}
       if (vis)
-	constrain_visibility (decl, vis);
+	constrain_visibility (decl, vis, true);
     }
 }
 
@@ -2076,14 +2096,29 @@ determine_visibility (tree decl)
 	     containing function by default, except that
 	     -fvisibility-inlines-hidden doesn't affect them.  */
 	  tree fn = DECL_CONTEXT (decl);
-	  if (DECL_VISIBILITY_SPECIFIED (fn) || ! DECL_CLASS_SCOPE_P (fn))
+	  if (DECL_VISIBILITY_SPECIFIED (fn))
 	    {
 	      DECL_VISIBILITY (decl) = DECL_VISIBILITY (fn);
 	      DECL_VISIBILITY_SPECIFIED (decl) = 
 		DECL_VISIBILITY_SPECIFIED (fn);
 	    }
 	  else
-	    determine_visibility_from_class (decl, DECL_CONTEXT (fn));
+	    {
+	      if (DECL_CLASS_SCOPE_P (fn))
+		determine_visibility_from_class (decl, DECL_CONTEXT (fn));
+	      else if (determine_hidden_inline (fn))
+		{
+		  DECL_VISIBILITY (decl) = default_visibility;
+		  DECL_VISIBILITY_SPECIFIED (decl) =
+		    visibility_options.inpragma;
+		}
+	      else
+		{
+	          DECL_VISIBILITY (decl) = DECL_VISIBILITY (fn);
+	          DECL_VISIBILITY_SPECIFIED (decl) =
+		    DECL_VISIBILITY_SPECIFIED (fn);
+		}
+	    }
 
 	  /* Local classes in templates have CLASSTYPE_USE_TEMPLATE set,
 	     but have no TEMPLATE_INFO, so don't try to check it.  */
@@ -2099,7 +2134,7 @@ determine_visibility (tree decl)
 	  if (underlying_vis == VISIBILITY_ANON
 	      || (CLASS_TYPE_P (underlying_type)
 		  && CLASSTYPE_VISIBILITY_SPECIFIED (underlying_type)))
-	    constrain_visibility (decl, underlying_vis);
+	    constrain_visibility (decl, underlying_vis, false);
 	  else
 	    DECL_VISIBILITY (decl) = VISIBILITY_DEFAULT;
 	}
@@ -2107,7 +2142,7 @@ determine_visibility (tree decl)
 	{
 	  /* tinfo visibility is based on the type it's for.  */
 	  constrain_visibility
-	    (decl, type_visibility (TREE_TYPE (DECL_NAME (decl))));
+	    (decl, type_visibility (TREE_TYPE (DECL_NAME (decl))), false);
 
 	  /* Give the target a chance to override the visibility associated
 	     with DECL.  */
@@ -2122,10 +2157,15 @@ determine_visibility (tree decl)
 	   on their template unless they override it with an attribute.  */;
       else if (! DECL_VISIBILITY_SPECIFIED (decl))
 	{
-	  /* Set default visibility to whatever the user supplied with
-	     #pragma GCC visibility or a namespace visibility attribute.  */
-	  DECL_VISIBILITY (decl) = default_visibility;
-	  DECL_VISIBILITY_SPECIFIED (decl) = visibility_options.inpragma;
+          if (determine_hidden_inline (decl))
+	    DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
+	  else
+            {
+	      /* Set default visibility to whatever the user supplied with
+	         #pragma GCC visibility or a namespace visibility attribute.  */
+	      DECL_VISIBILITY (decl) = default_visibility;
+	      DECL_VISIBILITY_SPECIFIED (decl) = visibility_options.inpragma;
+            }
 	}
     }
 
@@ -2137,23 +2177,52 @@ determine_visibility (tree decl)
 		    ? TYPE_TEMPLATE_INFO (TREE_TYPE (decl))
 		    : DECL_TEMPLATE_INFO (decl));
       tree args = TI_ARGS (tinfo);
+      tree attribs = (TREE_CODE (decl) == TYPE_DECL
+		      ? TYPE_ATTRIBUTES (TREE_TYPE (decl))
+		      : DECL_ATTRIBUTES (decl));
       
       if (args != error_mark_node)
 	{
-	  int depth = TMPL_ARGS_DEPTH (args);
 	  tree pattern = DECL_TEMPLATE_RESULT (TI_TEMPLATE (tinfo));
 
 	  if (!DECL_VISIBILITY_SPECIFIED (decl))
 	    {
-	      DECL_VISIBILITY (decl) = DECL_VISIBILITY (pattern);
-	      DECL_VISIBILITY_SPECIFIED (decl)
-		= DECL_VISIBILITY_SPECIFIED (pattern);
+	      if (!DECL_VISIBILITY_SPECIFIED (pattern)
+		  && determine_hidden_inline (decl))
+		DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
+	      else
+		{
+	          DECL_VISIBILITY (decl) = DECL_VISIBILITY (pattern);
+	          DECL_VISIBILITY_SPECIFIED (decl)
+		    = DECL_VISIBILITY_SPECIFIED (pattern);
+		}
 	    }
 
-	  /* FIXME should TMPL_ARGS_DEPTH really return 1 for null input? */
-	  if (args && depth > template_class_depth (class_type))
-	    /* Limit visibility based on its template arguments.  */
-	    constrain_visibility_for_template (decl, args);
+	  if (args
+	      /* Template argument visibility outweighs #pragma or namespace
+		 visibility, but not an explicit attribute.  */
+	      && !lookup_attribute ("visibility", attribs))
+	    {
+	      int depth = TMPL_ARGS_DEPTH (args);
+	      int class_depth = 0;
+	      if (class_type && CLASSTYPE_TEMPLATE_INFO (class_type))
+		class_depth = TMPL_ARGS_DEPTH (CLASSTYPE_TI_ARGS (class_type));
+	      if (DECL_VISIBILITY_SPECIFIED (decl))
+		{
+		  /* A class template member with explicit visibility
+		     overrides the class visibility, so we need to apply
+		     all the levels of template args directly.  */
+		  int i;
+		  for (i = 1; i <= depth; ++i)
+		    {
+		      tree lev = TMPL_ARGS_LEVEL (args, i);
+		      constrain_visibility_for_template (decl, lev);
+		    }
+		}
+	      else if (depth > class_depth)
+		/* Limit visibility based on its template arguments.  */
+		constrain_visibility_for_template (decl, args);
+	    }
 	}
     }
 
@@ -2163,14 +2232,14 @@ determine_visibility (tree decl)
   if (decl_anon_ns_mem_p (decl))
     /* Names in an anonymous namespace get internal linkage.
        This might change once we implement export.  */
-    constrain_visibility (decl, VISIBILITY_ANON);
+    constrain_visibility (decl, VISIBILITY_ANON, false);
   else if (TREE_CODE (decl) != TYPE_DECL)
     {
       /* Propagate anonymity from type to decl.  */
       int tvis = type_visibility (TREE_TYPE (decl));
       if (tvis == VISIBILITY_ANON
 	  || ! DECL_VISIBILITY_SPECIFIED (decl))
-	constrain_visibility (decl, tvis);
+	constrain_visibility (decl, tvis, false);
     }
   else if (no_linkage_check (TREE_TYPE (decl), /*relaxed_p=*/true))
     /* DR 757: A type without linkage shall not be used as the type of a
@@ -2181,7 +2250,7 @@ determine_visibility (tree decl)
 
        Since non-extern "C" decls need to be defined in the same
        translation unit, we can make the type internal.  */
-    constrain_visibility (decl, VISIBILITY_ANON);
+    constrain_visibility (decl, VISIBILITY_ANON, false);
 
   /* If visibility changed and DECL already has DECL_RTL, ensure
      symbol flags are updated.  */
@@ -2202,15 +2271,7 @@ determine_visibility_from_class (tree decl, tree class_type)
   if (DECL_VISIBILITY_SPECIFIED (decl))
     return;
 
-  if (visibility_options.inlines_hidden
-      /* Don't do this for inline templates; specializations might not be
-	 inline, and we don't want them to inherit the hidden
-	 visibility.  We'll set it here for all inline instantiations.  */
-      && !processing_template_decl
-      && TREE_CODE (decl) == FUNCTION_DECL
-      && DECL_DECLARED_INLINE_P (decl)
-      && (! DECL_LANG_SPECIFIC (decl)
-	  || ! DECL_EXPLICIT_INSTANTIATION (decl)))
+  if (determine_hidden_inline (decl))
     DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
   else
     {
@@ -2233,6 +2294,23 @@ determine_visibility_from_class (tree decl, tree class_type)
       && !DECL_REALLY_EXTERN (decl)
       && !CLASSTYPE_VISIBILITY_SPECIFIED (class_type))
     targetm.cxx.determine_class_data_visibility (decl);
+}
+
+/* Returns true iff DECL is an inline that should get hidden visibility
+   because of -fvisibility-inlines-hidden.  */
+
+static bool
+determine_hidden_inline (tree decl)
+{
+  return (visibility_options.inlines_hidden
+	  /* Don't do this for inline templates; specializations might not be
+	     inline, and we don't want them to inherit the hidden
+	     visibility.  We'll set it here for all inline instantiations.  */
+	  && !processing_template_decl
+	  && TREE_CODE (decl) == FUNCTION_DECL
+	  && DECL_DECLARED_INLINE_P (decl)
+	  && (! DECL_LANG_SPECIFIC (decl)
+	      || ! DECL_EXPLICIT_INSTANTIATION (decl)));
 }
 
 /* Constrain the visibility of a class TYPE based on the visibility of its
@@ -3571,26 +3649,16 @@ decl_defined_p (tree decl)
 bool
 decl_constant_var_p (tree decl)
 {
-  bool ret;
-  tree type = TREE_TYPE (decl);
-  if (TREE_CODE (decl) != VAR_DECL)
+  if (!decl_maybe_constant_var_p (decl))
     return false;
-  if (DECL_DECLARED_CONSTEXPR_P (decl)
-      || (CP_TYPE_CONST_NON_VOLATILE_P (type)
-	  && INTEGRAL_OR_ENUMERATION_TYPE_P (type)))
-    {
-      /* We don't know if a template static data member is initialized with
-	 a constant expression until we instantiate its initializer.  Even
-	 in the case of a constexpr variable, we can't treat it as a
-	 constant until its initializer is complete in case it's used in
-	 its own initializer.  */
-      mark_used (decl);
-      ret = DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl);
-    }
-  else
-    ret = false;
 
-  return ret;
+  /* We don't know if a template static data member is initialized with
+     a constant expression until we instantiate its initializer.  Even
+     in the case of a constexpr variable, we can't treat it as a
+     constant until its initializer is complete in case it's used in
+     its own initializer.  */
+  mark_used (decl);
+  return DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl);
 }
 
 /* Returns true if DECL could be a symbolic constant variable, depending on
@@ -3947,10 +4015,10 @@ cp_write_global_declarations (void)
 	     #pragma interface, etc.) we decided not to emit the
 	     definition here.  */
 	  && !DECL_INITIAL (decl)
-	  /* An explicit instantiation can be used to specify
-	     that the body is in another unit. It will have
-	     already verified there was a definition.  */
-	  && !DECL_EXPLICIT_INSTANTIATION (decl))
+	  /* Don't complain if the template was defined.  */
+	  && !(DECL_TEMPLATE_INSTANTIATION (decl)
+	       && DECL_INITIAL (DECL_TEMPLATE_RESULT
+				(template_for_substitution (decl)))))
 	{
 	  warning (0, "inline function %q+D used but never defined", decl);
 	  /* Avoid a duplicate warning from check_global_declaration_1.  */
@@ -4163,20 +4231,21 @@ possibly_inlined_p (tree decl)
 
 /* Mark DECL (either a _DECL or a BASELINK) as "used" in the program.
    If DECL is a specialization or implicitly declared class member,
-   generate the actual definition.  */
+   generate the actual definition.  Return false if something goes
+   wrong, true otherwise.  */
 
-void
+bool
 mark_used (tree decl)
 {
   /* If DECL is a BASELINK for a single function, then treat it just
      like the DECL for the function.  Otherwise, if the BASELINK is
      for an overloaded function, we don't know which function was
      actually used until after overload resolution.  */
-  if (TREE_CODE (decl) == BASELINK)
+  if (BASELINK_P (decl))
     {
       decl = BASELINK_FUNCTIONS (decl);
       if (really_overloaded_fn (decl))
-	return;
+	return true;
       decl = OVL_CURRENT (decl);
     }
 
@@ -4197,13 +4266,13 @@ mark_used (tree decl)
 		 generate it properly; see maybe_add_lambda_conv_op.  */
 	      sorry ("converting lambda which uses %<...%> to "
 		     "function pointer");
-	      return;
+	      return false;
 	    }
 	}
       error ("use of deleted function %qD", decl);
       if (!maybe_explain_implicit_delete (decl))
 	error_at (DECL_SOURCE_LOCATION (decl), "declared here");
-      return;
+      return false;
     }
 
   /* We can only check DECL_ODR_USED on variables or functions with
@@ -4212,20 +4281,20 @@ mark_used (tree decl)
   if ((TREE_CODE (decl) != VAR_DECL && TREE_CODE (decl) != FUNCTION_DECL)
       || DECL_LANG_SPECIFIC (decl) == NULL
       || DECL_THUNK_P (decl))
-    return;
+    return true;
 
   /* We only want to do this processing once.  We don't need to keep trying
      to instantiate inline templates, because unit-at-a-time will make sure
      we get them compiled before functions that want to inline them.  */
   if (DECL_ODR_USED (decl))
-    return;
+    return true;
 
   /* If within finish_function, defer the rest until that function
      finishes, otherwise it might recurse.  */
   if (defer_mark_used_calls)
     {
       VEC_safe_push (tree, gc, deferred_mark_used_calls, decl);
-      return;
+      return true;
     }
 
   if (TREE_CODE (decl) == FUNCTION_DECL)
@@ -4238,9 +4307,9 @@ mark_used (tree decl)
   if ((decl_maybe_constant_var_p (decl)
        || (TREE_CODE (decl) == FUNCTION_DECL
 	   && DECL_DECLARED_CONSTEXPR_P (decl)))
-      && !DECL_INITIAL (decl)
       && DECL_LANG_SPECIFIC (decl)
-      && DECL_TEMPLATE_INSTANTIATION (decl))
+      && DECL_TEMPLATE_INFO (decl)
+      && !uses_template_parms (DECL_TI_ARGS (decl)))
     {
       /* Instantiating a function will result in garbage collection.  We
 	 must treat this situation as if we were within the body of a
@@ -4254,15 +4323,15 @@ mark_used (tree decl)
 
   /* If we don't need a value, then we don't need to synthesize DECL.  */
   if (cp_unevaluated_operand != 0)
-    return;
+    return true;
 
   if (processing_template_decl)
-    return;
+    return true;
 
   /* Check this too in case we're within fold_non_dependent_expr.  */
   if (DECL_TEMPLATE_INFO (decl)
       && uses_template_parms (DECL_TI_ARGS (decl)))
-    return;
+    return true;
 
   DECL_ODR_USED (decl) = 1;
   if (DECL_CLONED_FUNCTION_P (decl))
@@ -4297,8 +4366,19 @@ mark_used (tree decl)
   if (TREE_CODE (decl) == FUNCTION_DECL
       && DECL_NONSTATIC_MEMBER_FUNCTION_P (decl)
       && DECL_DEFAULTED_FN (decl)
+      /* A function defaulted outside the class is synthesized either by
+	 cp_finish_decl or instantiate_decl.  */
+      && !DECL_DEFAULTED_OUTSIDE_CLASS_P (decl)
       && ! DECL_INITIAL (decl))
     {
+      /* Defer virtual destructors so that thunks get the right
+	 linkage.  */
+      if (DECL_VIRTUAL_P (decl) && !at_eof)
+	{
+	  note_vague_linkage_fn (decl);
+	  return true;
+	}
+
       /* Remember the current location for a function we will end up
 	 synthesizing.  Then we can inform the user where it was
 	 required in the case of error.  */
@@ -4310,7 +4390,7 @@ mark_used (tree decl)
 	 on the stack (such as overload resolution candidates).
 
          We could just let cp_write_global_declarations handle synthesizing
-         this function, since we just added it to deferred_fns, but doing
+         this function by adding it to deferred_fns, but doing
          it at the use site produces better error messages.  */
       ++function_depth;
       synthesize_method (decl);
@@ -4331,8 +4411,14 @@ mark_used (tree decl)
        times.  Maintaining a stack of active functions is expensive,
        and the inliner knows to instantiate any functions it might
        need.  Therefore, we always try to defer instantiation.  */
-    instantiate_decl (decl, /*defer_ok=*/true,
-		      /*expl_inst_class_mem_p=*/false);
+    {
+      ++function_depth;
+      instantiate_decl (decl, /*defer_ok=*/true,
+			/*expl_inst_class_mem_p=*/false);
+      --function_depth;
+    }
+
+  return true;
 }
 
 #include "gt-cp-decl2.h"

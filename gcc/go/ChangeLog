@@ -1,3 +1,178 @@
+2012-03-09  Ian Lance Taylor  <iant@google.com>
+
+	* go-gcc.cc (Gcc_backend::assignment_statement): Convert the rhs
+	to the lhs type if necessary.
+
+2012-03-08  Ian Lance Taylor  <iant@google.com>
+
+	* go-gcc.cc (Gcc_backend::init_statement): Don't initialize a
+	zero-sized variable.
+	(go_non_zero_struct): New global variable.
+	(Gcc_backend::non_zero_size_type): New function.
+	(Gcc_backend::global_variable): Don't build an assignment for a
+	zero-sized value.
+	* go-c.h (go_non_zero_struct): Declare.
+	* config-lang.in (gtfiles): Add go-c.h.
+
+2012-02-29  Ian Lance Taylor  <iant@google.com>
+
+	* go-gcc.cc (class Gcc_tree): Add set_tree method.
+	(set_placeholder_pointer_type): When setting to a pointer to
+	error, set to error_mark_node.
+
+2012-02-23  Richard Guenther  <rguenther@suse.de>
+
+	* go-gcc.cc (Gcc_backend::placeholder_pointer_type): Use
+	build_distinct_type_copy.
+
+2012-02-17  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in (go/import.o): Add dependency on $(GO_LEX_H).
+
+2012-02-17  Ian Lance Taylor  <iant@google.com>
+
+	* gospec.c (lang_specific_driver): If linking, and no -o option
+	was used, add one.
+
+2012-02-14  Ian Lance Taylor  <iant@google.com>
+
+	PR go/48411
+	* Make-lang.in (gccgo-cross$(exeext)): New target.
+	(go.all.cross): Depend on gccgo-cross$(exeext) instead of
+	gccgo$(exeext).
+	(go.install-common): Only install GCCGO_TARGET_INSTALL_NAME if
+	gccgo-cross$(exeext) does not exist.
+
+2012-02-07  Ian Lance Taylor  <iant@google.com>
+
+	* gccgo.texi (Function Names): Document //extern instead of
+	__asm__.
+
+2012-02-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52079
+	* go-lang.c (go_langhook_type_for_mode): For TImode and 64-bit HWI
+	return build_nonstandard_integer_type result if possible.
+
+2012-01-21  Ian Lance Taylor  <iant@google.com>
+
+	* go-gcc.cc (Gcc_backend::type_size): Check for error_mark_node.
+	(Gcc_backend::type_alignment): Likewise.
+	(Gcc_backend::type_field_alignment): Likewise.
+	(Gcc_backend::type_field_offset): Likewise.
+
+2012-01-20  Ian Lance Taylor  <iant@google.com>
+
+	* go-gcc.cc (Gcc_backend::placeholder_struct_type): Permit name to
+	be empty.
+	(Gcc_backend::set_placeholder_struct_type): Likewise.
+
+2012-01-17  Ian Lance Taylor  <iant@google.com>
+
+	* gospec.c (lang_specific_driver): If we see -S without -o, add -o
+	BASE.s rather than -o BASE.o.
+
+2012-01-11  Ian Lance Taylor  <iant@google.com>
+
+	* go-lang.c (go_langhook_init): Initialize void_list_node before
+	calling go_create_gogo.
+
+2012-01-10  Ian Lance Taylor  <iant@google.com>
+
+	* go-gcc.cc (Gcc_backend::type_size): New function.
+	(Gcc_backend::type_alignment): New function.
+	(Gcc_backend::type_field_alignment): New function.
+	(Gcc_backend::type_field_offset): New function.
+	* go-backend.c (go_type_alignment): Remove.
+	* go-c.h (go_type_alignment): Don't declare.
+
+2011-12-27  Ian Lance Taylor  <iant@google.com>
+
+	* go-gcc.cc (Gcc_backend::set_placeholder_struct_type): Use
+	build_distinct_type_copy rather than build_variant_type_copy.
+	(Gcc_backend::set_placeholder_array_type): Likewise.
+	(Gcc_backend::named_type): Add special handling for builtin
+	basic types.
+
+2011-12-22  Ian Lance Taylor  <iant@google.com>
+
+	* go-gcc.cc (Gcc_backend::set_placeholder_pointer_type): Arrange
+	for the type name to have a DECL_ORIGINAL_TYPE as gcc expects.
+	(Gcc_backend::set_placeholder_struct_type): Likewise.
+	(Gcc_backend::set_placeholder_array_type): Likewise.
+	(Gcc_backend::named_type): Set DECL_ORIGINAL_TYPE.
+
+2011-12-13  Ian Lance Taylor  <iant@google.com>
+
+	* go-backend.c: #include "simple-object.h" and "intl.h".
+	(GO_EXPORT_SEGMENT_NAME): Define if not defined.
+	(GO_EXPORT_SECTION_NAME): Likewise.
+	(go_write_export_data): Use GO_EXPORT_SECTION_NAME.
+	(go_read_export_data): New function.
+	* go-c.h (go_read_export_data): Declare.
+
+2011-11-29  Sanjoy Das  <thedigitalangel@gmail.com>
+	    Ian Lance Taylor  <iant@google.com>
+
+	* go-location.h: New file.
+	* go-linemap.cc: New file.
+	* go-gcc.cc: Change all uses of source_location to Location.
+	* Make-lang.in (GO_OBJS): Add go/go-linemap.o.
+	(GO_LINEMAP_H): New variable.
+	(GO_LEX_H): Use $(GO_LINEMAP_H).
+	(GO_GOGO_H, GO_TYPES_H, GO_IMPORT_H): Likewise.
+	(go/go-linemap.o): New target.
+
+2011-11-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* Make-lang.in (gospec.o): Pass SHLIB instead of SHLIB_LINK.
+
+2011-08-24  Roberto Lublinerman  <rluble@gmail.com>
+
+	* lang.opt: Add fgo-optimize-.
+	* go-lang.c (go_langhook_handle_option): Handle OPT_fgo_optimize.
+	* go-c.h (go_enable_optimize): Declare.
+	* Make-lang.in (GO_OBJS): Add go/go-optimize.o.
+	(GO_EXPORT_H): Define.
+	(GO_IMPORT_H): Add $(GO_EXPORT_H).
+	(GO_AST_DUMP_H): Define.
+	(go/ast-dump.o, go/statements.o): Use GO_AST_DUMP_H.
+	(go/export.o, go/gogo.o, go/import.o): Use GO_EXPORT_H.
+	(go/types.o): Likewise.
+	(go/expressions.o): Use GO_AST_DUMP_H and GO_EXPORT_H.
+	(go/go-optimize.o): New target.
+
+2011-08-24  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (CFLAGS-go/go-lang.o): New.
+	(go/go-lang.o): Remove explicit compilation rule.
+
+2011-08-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* Make-lang.in (gccgo$(exeext)): Add $(EXTRA_GCC_LIBS).
+
+2011-08-02  Roberto Lublinerman  <rluble@gmail.com>
+
+	* Make-lang.in (GO_OBJS): Add go/ast-dump.o.
+	(go/ast-dump.o): New target.
+	(go/expressions.o): Depend on go/gofrontend/ast-dump.h.
+	(go/statements.o): Likewise.
+
+2011-07-06  Richard Guenther  <rguenther@suse.de>
+
+	* go-lang.c (go_langhook_init):
+	Merge calls to build_common_tree_nodes and build_common_tree_nodes_2.
+
+2011-06-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (go/go-lang.o, go/go-backend.o): Update
+	dependencies.
+	* go-backend.c: Include common/common-target.h.
+	(go_write_export_data): Use targetm_common.have_named_sections.
+	* go-lang.c: Include common/common-target.h.
+	(go_langhook_init_options_struct): Use
+	targetm_common.supports_split_stack.
+
 2011-06-13  Ian Lance Taylor  <iant@google.com>
 
 	* Make-lang.in (go/expressions.o): Depend on $(GO_RUNTIME_H).

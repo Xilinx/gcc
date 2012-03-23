@@ -6,25 +6,23 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---                     Copyright (C) 1999-2008, AdaCore                     --
+--                     Copyright (C) 1999-2012, AdaCore                     --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
--- ware  Foundation;  either version 2,  or (at your option) any later ver- --
+-- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
--- for  more details.  You should have  received  a copy of the GNU General --
--- Public License  distributed with GNAT;  see file COPYING.  If not, write --
--- to  the  Free Software Foundation,  51  Franklin  Street,  Fifth  Floor, --
--- Boston, MA 02110-1301, USA.                                              --
+-- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
 --                                                                          --
--- As a special exception,  if other files  instantiate  generics from this --
--- unit, or you link  this unit with other files  to produce an executable, --
--- this  unit  does not  by itself cause  the resulting  executable  to  be --
--- covered  by the  GNU  General  Public  License.  This exception does not --
--- however invalidate  any other reasons why  the executable file  might be --
--- covered by the  GNU Public License.                                      --
+-- As a special exception under Section 7 of GPL version 3, you are granted --
+-- additional permissions described in the GCC Runtime Library Exception,   --
+-- version 3.1, as published by the Free Software Foundation.               --
+--                                                                          --
+-- You should have received a copy of the GNU General Public License and    --
+-- a copy of the GCC Runtime Library Exception along with this program;     --
+-- see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see    --
+-- <http://www.gnu.org/licenses/>.                                          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -33,16 +31,18 @@
 
 --  Run-time symbolic traceback support
 
---  This capability is currently supported on the following targets:
+--  The full capability is currently supported on the following targets:
 
---     HP-UX hppa and ia64
---     IRIX
+--     HP-UX ia64
 --     GNU/Linux x86, x86_64, ia64
---     AIX
+--     FreeBSD x86, x86_64
 --     Solaris sparc and x86
---     Tru64
---     OpenVMS/Alpha
---     Windows NT/XP/Vista
+--     OpenVMS Alpha and ia64
+--     Windows
+
+--  Note: on targets other than those listed above, a dummy implementation of
+--  the body returns a series of LF separated strings of the form "0x..."
+--  corresponding to the addresses.
 
 --  The routines provided in this package assume that your application has
 --  been compiled with debugging information turned on, since this information
@@ -79,14 +79,17 @@
 --  libraries. However, the OS should be at least v7.3-1 and OS patch
 --  VMS731_TRACE-V0100 must be applied in order to use this package.
 
+--  On platforms where the full capability is not supported, function
+--  Symbolic_Traceback return a list of addresses expressed as "0x..."
+--  separated by line feed.
+
 with Ada.Exceptions; use Ada.Exceptions;
 
 package GNAT.Traceback.Symbolic is
    pragma Elaborate_Body;
 
    function Symbolic_Traceback (Traceback : Tracebacks_Array) return String;
-   --  Build a string containing a symbolic traceback of the given call chain
-   --
+   --  Build a string containing a symbolic traceback of the given call chain.
    --  Note: This procedure may be installed by Set_Trace_Decorator, to get a
    --  symbolic traceback on all exceptions raised (see GNAT.Exception_Traces).
 

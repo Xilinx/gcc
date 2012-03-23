@@ -1,6 +1,7 @@
 /* Definitions of target machine for GNU compiler.  MIPS version.
    Copyright (C) 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998
    1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
+   2012
    Free Software Foundation, Inc.
    Contributed by A. Lichnewsky (lich@inria.inria.fr).
    Changed by Michael Meissner	(meissner@osf.org).
@@ -157,15 +158,9 @@ struct mips_cpu_info {
    This is true for both the PIC and non-PIC VxWorks RTP modes.  */
 #define TARGET_USE_PIC_FN_ADDR_REG (TARGET_ABICALLS || TARGET_VXWORKS_RTP)
 
-/* True if .gpword or .gpdword should be used for switch tables.
-
-   Although GAS does understand .gpdword, the SGI linker mishandles
-   the relocations GAS generates (R_MIPS_GPREL32 followed by R_MIPS_64).
-   We therefore disable GP-relative switch tables for n64 on IRIX targets.  */
+/* True if .gpword or .gpdword should be used for switch tables.  */
 #define TARGET_GPWORD				\
-  (TARGET_ABICALLS				\
-   && !TARGET_ABSOLUTE_ABICALLS			\
-   && !(mips_abi == ABI_64 && TARGET_IRIX6))
+  (TARGET_ABICALLS && !TARGET_ABSOLUTE_ABICALLS)
 
 /* True if the output must have a writable .eh_frame.
    See ASM_PREFERRED_EH_DATA_FORMAT for details.  */
@@ -222,7 +217,9 @@ struct mips_cpu_info {
 #define TARGET_MIPS5500             (mips_arch == PROCESSOR_R5500)
 #define TARGET_MIPS7000             (mips_arch == PROCESSOR_R7000)
 #define TARGET_MIPS9000             (mips_arch == PROCESSOR_R9000)
-#define TARGET_OCTEON		    (mips_arch == PROCESSOR_OCTEON)
+#define TARGET_OCTEON		    (mips_arch == PROCESSOR_OCTEON	\
+				     || mips_arch == PROCESSOR_OCTEON2)
+#define TARGET_OCTEON2		    (mips_arch == PROCESSOR_OCTEON2)
 #define TARGET_SB1                  (mips_arch == PROCESSOR_SB1		\
 				     || mips_arch == PROCESSOR_SB1A)
 #define TARGET_SR71K                (mips_arch == PROCESSOR_SR71000)
@@ -250,7 +247,8 @@ struct mips_cpu_info {
 #define TUNE_MIPS6000               (mips_tune == PROCESSOR_R6000)
 #define TUNE_MIPS7000               (mips_tune == PROCESSOR_R7000)
 #define TUNE_MIPS9000               (mips_tune == PROCESSOR_R9000)
-#define TUNE_OCTEON		    (mips_tune == PROCESSOR_OCTEON)
+#define TUNE_OCTEON		    (mips_tune == PROCESSOR_OCTEON	\
+				     || mips_tune == PROCESSOR_OCTEON2)
 #define TUNE_SB1                    (mips_tune == PROCESSOR_SB1		\
 				     || mips_tune == PROCESSOR_SB1A)
 
@@ -315,9 +313,6 @@ struct mips_cpu_info {
    those loads and stores follow it.  */
 #define TARGET_SYNC_AFTER_SC (!TARGET_OCTEON)
 
-/* IRIX specific stuff.  */
-#define TARGET_IRIX6	   0
-
 /* Define preprocessor macros for the -march and -mtune options.
    PREFIX is either _MIPS_ARCH or _MIPS_TUNE, INFO is the selected
    processor.  If INFO's canonical name is "foo", define PREFIX to
@@ -329,7 +324,10 @@ struct mips_cpu_info {
 								\
       macro = concat ((PREFIX), "_", (INFO)->name, NULL);	\
       for (p = macro; *p != 0; p++)				\
-	*p = TOUPPER (*p);					\
+        if (*p == '+')                                          \
+          *p = 'P';                                             \
+        else                                                    \
+          *p = TOUPPER (*p);                                    \
 								\
       builtin_define (macro);					\
       builtin_define_with_value ((PREFIX), (INFO)->name, 1);	\
@@ -341,10 +339,7 @@ struct mips_cpu_info {
 #define TARGET_CPU_CPP_BUILTINS()					\
   do									\
     {									\
-      /* Everyone but IRIX defines this to mips.  */            	\
-      if (!TARGET_IRIX6)                                         	\
-	builtin_assert ("machine=mips");                        	\
-									\
+      builtin_assert ("machine=mips");                        		\
       builtin_assert ("cpu=mips");					\
       builtin_define ("__mips__");     					\
       builtin_define ("_mips");						\
@@ -362,22 +357,20 @@ struct mips_cpu_info {
       if (TARGET_64BIT)							\
 	builtin_define ("__mips64");					\
 									\
-      if (!TARGET_IRIX6)						\
+      /* Treat _R3000 and _R4000 like register-size			\
+	 defines, which is how they've historically			\
+	 been used.  */							\
+      if (TARGET_64BIT)							\
 	{								\
-	  /* Treat _R3000 and _R4000 like register-size			\
-	     defines, which is how they've historically			\
-	     been used.  */						\
-	  if (TARGET_64BIT)						\
-	    {								\
-	      builtin_define_std ("R4000");				\
-	      builtin_define ("_R4000");				\
-	    }								\
-	  else								\
-	    {								\
-	      builtin_define_std ("R3000");				\
-	      builtin_define ("_R3000");				\
-	    }								\
+	  builtin_define_std ("R4000");					\
+	  builtin_define ("_R4000");					\
 	}								\
+      else								\
+	{								\
+	  builtin_define_std ("R3000");					\
+	  builtin_define ("_R3000");					\
+	}								\
+									\
       if (TARGET_FLOAT64)						\
 	builtin_define ("__mips_fpr=64");				\
       else								\
@@ -541,7 +534,7 @@ struct mips_cpu_info {
 	{								\
 	  builtin_define ("_LANGUAGE_OBJECTIVE_C");			\
 	  builtin_define ("__LANGUAGE_OBJECTIVE_C");			\
-	  /* Bizarre, but needed at least for Irix.  */			\
+	  /* Bizarre, but retained for backwards compatibility.  */	\
 	  builtin_define_std ("LANGUAGE_C");				\
 	  builtin_define ("_LANGUAGE_C");				\
 	}								\
@@ -792,7 +785,9 @@ struct mips_cpu_info {
    the ABI's file format, but it can be overridden by -msym32.  Note that
    overriding the size with -msym32 changes the ABI of relocatable objects,
    although it doesn't change the ABI of a fully-linked object.  */
-#define ABI_HAS_64BIT_SYMBOLS	(FILE_HAS_64BIT_SYMBOLS && !TARGET_SYM32)
+#define ABI_HAS_64BIT_SYMBOLS	(FILE_HAS_64BIT_SYMBOLS \
+				 && Pmode == DImode	\
+				 && !TARGET_SYM32)
 
 /* ISA has instructions for managing 64-bit fp and gp regs (e.g. mips3).  */
 #define ISA_HAS_64BIT_REGS	(ISA_MIPS3				\
@@ -987,6 +982,16 @@ struct mips_cpu_info {
 
 /* ISA has lwxs instruction (load w/scaled index address.  */
 #define ISA_HAS_LWXS		(TARGET_SMARTMIPS && !TARGET_MIPS16)
+
+/* ISA has lbx, lbux, lhx, lhx, lhux, lwx, lwux, or ldx instruction. */
+#define ISA_HAS_LBX		(TARGET_OCTEON2)
+#define ISA_HAS_LBUX		(ISA_HAS_DSP || TARGET_OCTEON2)
+#define ISA_HAS_LHX		(ISA_HAS_DSP || TARGET_OCTEON2)
+#define ISA_HAS_LHUX		(TARGET_OCTEON2)
+#define ISA_HAS_LWX		(ISA_HAS_DSP || TARGET_OCTEON2)
+#define ISA_HAS_LWUX		(TARGET_OCTEON2 && TARGET_64BIT)
+#define ISA_HAS_LDX		((ISA_HAS_DSP || TARGET_OCTEON2) \
+				 && TARGET_64BIT)
 
 /* The DSP ASE is available.  */
 #define ISA_HAS_DSP		(TARGET_DSP && !TARGET_MIPS16)
@@ -1766,8 +1771,6 @@ struct mips_cpu_info {
    from there after reload.  */
 #define PIC_OFFSET_TABLE_REGNUM \
   (reload_completed ? REGNO (pic_offset_table_rtx) : GLOBAL_POINTER_REGNUM)
-
-#define PIC_FUNCTION_ADDR_REGNUM (GP_REG_FIRST + 25)
 
 /* Define the classes of registers for register constraints in the
    machine description.  Also define ranges of constants.
@@ -2534,10 +2537,6 @@ do									\
   }									\
 while (0)
 
-/* Use .loc directives for SDB line numbers.  */
-#define SDB_OUTPUT_SOURCE_LINE(STREAM, LINE)			\
-  fprintf (STREAM, "\t.loc\t%d %d\n", num_source_filenames, LINE)
-
 /* The MIPS implementation uses some labels for its own purpose.  The
    following lists what labels are created, and are all formed by the
    pattern $L[a-z].*.  The machine independent portion of GCC creates
@@ -2774,23 +2773,8 @@ while (0)
    ? MIPS_MAX_MOVE_BYTES_STRAIGHT / MOVE_MAX		\
    : MIPS_CALL_RATIO / 2)
 
-/* movmemsi is meant to generate code that is at least as good as
-   move_by_pieces.  However, movmemsi effectively uses a by-pieces
-   implementation both for moves smaller than a word and for word-aligned
-   moves of no more than MIPS_MAX_MOVE_BYTES_STRAIGHT bytes.  We should
-   allow the tree-level optimisers to do such moves by pieces, as it
-   often exposes other optimization opportunities.  We might as well
-   continue to use movmemsi at the rtl level though, as it produces
-   better code when scheduling is disabled (such as at -O).  */
-
-#define MOVE_BY_PIECES_P(SIZE, ALIGN)				\
-  (HAVE_movmemsi						\
-   ? (!currently_expanding_to_rtl				\
-      && ((ALIGN) < BITS_PER_WORD				\
-	  ? (SIZE) < UNITS_PER_WORD				\
-	  : (SIZE) <= MIPS_MAX_MOVE_BYTES_STRAIGHT))		\
-   : (move_by_pieces_ninsns (SIZE, ALIGN, MOVE_MAX_PIECES + 1)	\
-      < (unsigned int) MOVE_RATIO (false)))
+#define MOVE_BY_PIECES_P(SIZE, ALIGN) \
+  mips_move_by_pieces_p (SIZE, ALIGN)
 
 /* For CLEAR_RATIO, when optimizing for size, give a better estimate
    of the length of a memset call, but use the default otherwise.  */
@@ -2805,16 +2789,8 @@ while (0)
 #define SET_RATIO(speed) \
   ((speed) ? 15 : MIPS_CALL_RATIO - 2)
 
-/* STORE_BY_PIECES_P can be used when copying a constant string, but
-   in that case each word takes 3 insns (lui, ori, sw), or more in
-   64-bit mode, instead of 2 (lw, sw).  For now we always fail this
-   and let the move_by_pieces code copy the string from read-only
-   memory.  In the future, this could be tuned further for multi-issue
-   CPUs that can issue stores down one pipe and arithmetic instructions
-   down another; in that case, the lui/ori/sw combination would be a
-   win for long enough strings.  */
-
-#define STORE_BY_PIECES_P(SIZE, ALIGN) 0
+#define STORE_BY_PIECES_P(SIZE, ALIGN) \
+  mips_store_by_pieces_p (SIZE, ALIGN)
 
 #ifndef __mips16
 /* Since the bits of the _init and _fini function is spread across
@@ -2872,6 +2848,9 @@ extern int mips_dbx_regno[];
 extern int mips_dwarf_regno[];
 extern bool mips_split_p[];
 extern bool mips_split_hi_p[];
+extern bool mips_use_pcrel_pool_p[];
+extern const char *mips_lo_relocs[];
+extern const char *mips_hi_relocs[];
 extern enum processor mips_arch;        /* which cpu to codegen for */
 extern enum processor mips_tune;        /* which cpu to schedule for */
 extern int mips_isa;			/* architectural level */
@@ -2916,3 +2895,10 @@ extern GTY(()) struct target_globals *mips16_globals;
 
 /* For switching between MIPS16 and non-MIPS16 modes.  */
 #define SWITCHABLE_TARGET 1
+
+/* Several named MIPS patterns depend on Pmode.  These patterns have the
+   form <NAME>_si for Pmode == SImode and <NAME>_di for Pmode == DImode.
+   Add the appropriate suffix to generator function NAME and invoke it
+   with arguments ARGS.  */
+#define PMODE_INSN(NAME, ARGS) \
+  (Pmode == SImode ? NAME ## _si ARGS : NAME ## _di ARGS)

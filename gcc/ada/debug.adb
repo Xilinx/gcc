@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -80,7 +80,7 @@ package body Debug is
    --  dN   No file name information in exception messages
    --  dO   Output immediate error messages
    --  dP   Do not check for controlled objects in preelaborable packages
-   --  dQ
+   --  dQ   Do not generate runtime check for duplicated external tag
    --  dR   Bypass check for correct version of s-rpc
    --  dS   Never convert numbers to machine numbers in Sem_Eval
    --  dT   Convert to machine numbers only for constant declarations
@@ -92,16 +92,16 @@ package body Debug is
    --  dZ   Generate listing showing the contents of the dispatch tables
 
    --  d.a  Force Target_Strict_Alignment mode to True
-   --  d.b
+   --  d.b  Dump backend types
    --  d.c  Generate inline concatenation, do not call procedure
-   --  d.d
-   --  d.e
+   --  d.d  Disable atomic synchronization
+   --  d.e  Enable atomic synchronization
    --  d.f  Inhibit folding of static expressions
    --  d.g  Enable conversion of raise into goto
    --  d.h
    --  d.i  Ignore Warnings pragmas
-   --  d.j
-   --  d.k
+   --  d.j  Generate listing of frontend inlined calls
+   --  d.k  Enable new support for frontend inlining
    --  d.l  Use Ada 95 semantics for limited function returns
    --  d.m  For -gnatl, print full source only for main unit
    --  d.n  Print source file names
@@ -121,24 +121,24 @@ package body Debug is
    --  d.A  Read/write Aspect_Specifications hash table to tree
    --  d.B
    --  d.C  Generate concatenation call, do not generate inline code
-   --  d.D
-   --  d.E
-   --  d.F
-   --  d.G
-   --  d.H
+   --  d.D  Strict Alfa mode
+   --  d.E  Force Alfa mode for gnat2why
+   --  d.F  Alfa mode
+   --  d.G  Precondition only mode for gnat2why
+   --  d.H  Standard package only mode for gnat2why
    --  d.I  SCIL generation mode
    --  d.J  Disable parallel SCIL generation mode
-   --  d.K
+   --  d.K  Alfa detection only mode for gnat2why
    --  d.L  Depend on back end for limited types in conditional expressions
    --  d.M
-   --  d.N
+   --  d.N  Add node to all entities
    --  d.O  Dump internal SCO tables
-   --  d.P
+   --  d.P  Previous (non-optimized) handling of length comparisons
    --  d.Q
    --  d.R
    --  d.S  Force Optimize_Alignment (Space)
    --  d.T  Force Optimize_Alignment (Time)
-   --  d.U
+   --  d.U  Ignore indirect calls for static elaboration
    --  d.V
    --  d.W  Print out debugging information for Walk_Library_Items
    --  d.X  Use Expression_With_Actions
@@ -193,7 +193,7 @@ package body Debug is
    --  de
    --  df  Only output file names, not path names, in log
    --  dg
-   --  dh
+   --  dh  Generate listing showing loading of name table hash chains
    --  di
    --  dj
    --  dk
@@ -428,6 +428,12 @@ package body Debug is
    --       in preelaborable packages, but this restriction is a huge pain,
    --       especially in the predefined library units.
 
+   --  dQ   Eliminate check for duplicate external tags. This check was added
+   --       as per AI 0113, and causes some backward compatibility problems.
+   --       It is never legitimate to have duplicate external tags, so the
+   --       check is certainly valid, but this debug switch can be useful for
+   --       enabling previous behavior of ignoring this problem.
+
    --  dR   Bypass the check for a proper version of s-rpc being present
    --       to use the -gnatz? switch. This allows debugging of the use
    --       of stubs generation without needing to have GLADE (or some
@@ -500,9 +506,19 @@ package body Debug is
    --       would normally be false. Can be used for testing strict alignment
    --       circuitry in the compiler.
 
+   --  d.b  Dump back end types. During Create_Standard, the back end is
+   --       queried for all available types. This option shows them.
+
    --  d.c  Generate inline concatenation, instead of calling one of the
    --       System.Concat_n.Str_Concat_n routines in cases where the latter
    --       routines would normally be called.
+
+   --  d.d  Disable atomic synchronization for all atomic variable references.
+   --       Pragma Enable_Atomic_Synchronization is ignored.
+
+   --  d.e  Enable atomic synchronization for all atomic variable references.
+   --       Pragma Disable_Atomic_Synchronization is ignored, and also the
+   --       compiler switch -gnated is ignored.
 
    --  d.f  Suppress folding of static expressions. This of course results
    --       in seriously non-conforming behavior, but is useful sometimes
@@ -516,6 +532,13 @@ package body Debug is
    --  d.i  Ignore all occurrences of pragma Warnings in the sources. This can
    --       be used in particular to disable Warnings (Off) to check if any of
    --       these statements are inappropriate.
+
+   --  d.j  Generate listing of frontend inlined calls and inline calls passed
+   --       to the backend. This is useful to locate skipped calls that must be
+   --       inlined by the frontend.
+
+   --  d.k  Enable new semantics of frontend inlining.  This is useful to test
+   --       this new feature in all the platforms.
 
    --  d.l  Use Ada 95 semantics for limited function returns. This may be
    --       used to work around the incompatibility introduced by AI-318-2.
@@ -571,6 +594,25 @@ package body Debug is
    --  d.C  Generate call to System.Concat_n.Str_Concat_n routines in cases
    --       where we would normally generate inline concatenation code.
 
+   --  d.D  Strict Alfa mode. Interpret compiler permissions as strictly as
+   --       possible in Alfa mode.
+
+   --  d.E  Force Alfa mode for gnat2why. In this mode, errors are issued for
+   --       all violations of Alfa in user code, and warnings are issued for
+   --       constructs not yet implemented in gnat2why.
+
+   --  d.F  Alfa mode. Generate AST in a form suitable for formal verification,
+   --       as well as additional cross reference information in ALI files to
+   --       compute effects of subprograms.
+
+   --  d.G  Precondition only mode for gnat2why. In this mode, gnat2why will
+   --       only generate Why code that checks for the well-guardedness of
+   --       preconditions.
+
+   --  d.H  Standard package only mode for gnat2why. In this mode, gnat2why
+   --       will only generate Why code for package Standard. Any given input
+   --       file will be ignored.
+
    --  d.I  Generate SCIL mode. Generate intermediate code for the sake of
    --       of static analysis tools, and ensure additional tree consistency
    --       between different compilations of specs.
@@ -579,18 +621,37 @@ package body Debug is
    --       done in parallel to speed processing. This switch disables this
    --       behavior.
 
+   --  d.K  Alfa detection only mode for gnat2why. In this mode, gnat2why
+   --       will only generate the .alfa file, but no Why code.
+
    --  d.L  Normally the front end generates special expansion for conditional
    --       expressions of a limited type. This debug flag removes this special
    --       case expansion, leaving it up to the back end to handle conditional
    --       expressions correctly.
 
+   --  d.N  Enlarge entities by one node (but don't attempt to use this extra
+   --       node for storage of any flags or fields). This can be used to do
+   --       experiments on the impact of increasing entity sizes.
+
    --  d.O  Dump internal SCO tables. Before outputting the SCO information to
    --       the ALI file, the internal SCO tables (SCO_Table/SCO_Unit_Table)
    --       are dumped for debugging purposes.
 
+   --  d.P  Previous non-optimized handling of length comparisons. Setting this
+   --       flag inhibits the effect of Optimize_Length_Comparison in Exp_Ch4.
+   --       This is there in case we find a situation where the optimization
+   --       malfunctions, to provide a work around.
+
    --  d.S  Force Optimize_Alignment (Space) mode as the default
 
    --  d.T  Force Optimize_Alignment (Time) mode as the default
+
+   --  d.U  Ignore indirect calls for static elaboration. The static
+   --       elaboration model is conservative, especially regarding indirect
+   --       calls. If you say Proc'Access, it will assume you might call
+   --       Proc. This can cause elaboration cycles at bind time. This flag
+   --       reverts to the behavior of earlier compilers, which ignored
+   --       indirect calls.
 
    --  d.W  Print out debugging information for Walk_Library_Items, including
    --       the order in which units are walked. This is primarily for use in
@@ -697,6 +758,9 @@ package body Debug is
    --------------------------------------------
 
    --  df  Only output file names, not path names, in log
+
+   --  dh  Generate listing showing loading of name table hash chains,
+   --      same as for the compiler.
 
    --  dm  Issue a message indicating the maximum number of simultaneous
    --      compilations.

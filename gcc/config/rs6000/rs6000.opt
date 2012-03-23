@@ -79,6 +79,10 @@ enum rs6000_cmodel rs6000_current_cmodel = CMODEL_SMALL
 TargetVariable
 unsigned int rs6000_recip_control
 
+;; Mask of what builtin functions are allowed
+TargetVariable
+unsigned int rs6000_builtin_mask
+
 ;; Debug flags
 TargetVariable
 unsigned int rs6000_debug
@@ -521,4 +525,10 @@ mxilinx-fpu
 Target Var(rs6000_xilinx_fpu) Save
 Specify Xilinx FPU.
 
+mpointers-to-nested-functions
+Target Report Var(TARGET_POINTERS_TO_NESTED_FUNCTIONS) Init(1) Save
+Use/do not use r11 to hold the static link in calls to functions via pointers.
 
+msave-toc-indirect
+Target Report Var(TARGET_SAVE_TOC_INDIRECT) Save
+Control whether we save the TOC in the prologue for indirect calls or generate the save inline

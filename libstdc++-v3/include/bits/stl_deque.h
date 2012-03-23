@@ -1,7 +1,7 @@
 // Deque implementation -*- C++ -*-
 
 // Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-// 2011 Free Software Foundation, Inc.
+// 2011, 2012 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -60,7 +60,9 @@
 #include <bits/concept_check.h>
 #include <bits/stl_iterator_base_types.h>
 #include <bits/stl_iterator_base_funcs.h>
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <initializer_list>
+#endif
 
 namespace std _GLIBCXX_VISIBILITY(default)
 {
@@ -68,7 +70,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
   /**
    *  @brief This function controls the size of memory nodes.
-   *  @param  size  The size of an element.
+   *  @param  __size  The size of an element.
    *  @return   The number (not byte size) of elements per node.
    *
    *  This function started off as a compiler kludge from SGI, but
@@ -569,7 +571,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
   /**
    *  @brief Layout storage.
-   *  @param  num_elements  The count of T's for which to allocate space
+   *  @param  __num_elements  The count of T's for which to allocate space
    *                        at first.
    *  @return   Nothing.
    *
@@ -664,7 +666,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
    *  - iterator    _M_start, _M_finish
    *
    *  map_size is at least 8.  %map is an array of map_size
-   *  pointers-to-@anodes.  (The name %map has nothing to do with the
+   *  pointers-to-@a nodes.  (The name %map has nothing to do with the
    *  std::map class, and @b nodes should not be confused with
    *  std::list's usage of @a node.)
    *
@@ -780,7 +782,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  Creates a %deque with no elements.
-       *  @param  a  An allocator object.
+       *  @param  __a  An allocator object.
        */
       explicit
       deque(const allocator_type& __a)
@@ -789,7 +791,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       /**
        *  @brief  Creates a %deque with default constructed elements.
-       *  @param  n  The number of elements to initially create.
+       *  @param  __n  The number of elements to initially create.
        *
        *  This constructor fills the %deque with @a n default
        *  constructed elements.
@@ -801,11 +803,11 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  Creates a %deque with copies of an exemplar element.
-       *  @param  n  The number of elements to initially create.
-       *  @param  value  An element to copy.
-       *  @param  a  An allocator.
+       *  @param  __n  The number of elements to initially create.
+       *  @param  __value  An element to copy.
+       *  @param  __a  An allocator.
        *
-       *  This constructor fills the %deque with @a n copies of @a value.
+       *  This constructor fills the %deque with @a __n copies of @a __value.
        */
       deque(size_type __n, const value_type& __value,
 	    const allocator_type& __a = allocator_type())
@@ -814,11 +816,11 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 #else
       /**
        *  @brief  Creates a %deque with copies of an exemplar element.
-       *  @param  n  The number of elements to initially create.
-       *  @param  value  An element to copy.
-       *  @param  a  An allocator.
+       *  @param  __n  The number of elements to initially create.
+       *  @param  __value  An element to copy.
+       *  @param  __a  An allocator.
        *
-       *  This constructor fills the %deque with @a n copies of @a value.
+       *  This constructor fills the %deque with @a __n copies of @a __value.
        */
       explicit
       deque(size_type __n, const value_type& __value = value_type(),
@@ -829,10 +831,10 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  %Deque copy constructor.
-       *  @param  x  A %deque of identical element and allocator types.
+       *  @param  __x  A %deque of identical element and allocator types.
        *
        *  The newly-created %deque uses a copy of the allocation object used
-       *  by @a x.
+       *  by @a __x.
        */
       deque(const deque& __x)
       : _Base(__x._M_get_Tp_allocator(), __x.size())
@@ -843,24 +845,24 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       /**
        *  @brief  %Deque move constructor.
-       *  @param  x  A %deque of identical element and allocator types.
+       *  @param  __x  A %deque of identical element and allocator types.
        *
-       *  The newly-created %deque contains the exact contents of @a x.
-       *  The contents of @a x are a valid, but unspecified %deque.
+       *  The newly-created %deque contains the exact contents of @a __x.
+       *  The contents of @a __x are a valid, but unspecified %deque.
        */
       deque(deque&& __x)
       : _Base(std::move(__x)) { }
 
       /**
        *  @brief  Builds a %deque from an initializer list.
-       *  @param  l  An initializer_list.
-       *  @param  a  An allocator object.
+       *  @param  __l  An initializer_list.
+       *  @param  __a  An allocator object.
        *
        *  Create a %deque consisting of copies of the elements in the
-       *  initializer_list @a l.
+       *  initializer_list @a __l.
        *
        *  This will call the element type's copy constructor N times
-       *  (where N is l.size()) and do no memory reallocation.
+       *  (where N is __l.size()) and do no memory reallocation.
        */
       deque(initializer_list<value_type> __l,
 	    const allocator_type& __a = allocator_type())
@@ -873,19 +875,27 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  Builds a %deque from a range.
-       *  @param  first  An input iterator.
-       *  @param  last  An input iterator.
-       *  @param  a  An allocator object.
+       *  @param  __first  An input iterator.
+       *  @param  __last  An input iterator.
+       *  @param  __a  An allocator object.
        *
-       *  Create a %deque consisting of copies of the elements from [first,
-       *  last).
+       *  Create a %deque consisting of copies of the elements from [__first,
+       *  __last).
        *
        *  If the iterators are forward, bidirectional, or random-access, then
        *  this will call the elements' copy constructor N times (where N is
-       *  distance(first,last)) and do no memory reallocation.  But if only
+       *  distance(__first,__last)) and do no memory reallocation.  But if only
        *  input iterators are used, then this will do at most 2N calls to the
        *  copy constructor, and logN memory reallocations.
        */
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename _InputIterator,
+	       typename = std::_RequireInputIter<_InputIterator>>
+        deque(_InputIterator __first, _InputIterator __last,
+	      const allocator_type& __a = allocator_type())
+	: _Base(__a)
+        { _M_initialize_dispatch(__first, __last, __false_type()); }
+#else
       template<typename _InputIterator>
         deque(_InputIterator __first, _InputIterator __last,
 	      const allocator_type& __a = allocator_type())
@@ -895,6 +905,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	  typedef typename std::__is_integer<_InputIterator>::__type _Integral;
 	  _M_initialize_dispatch(__first, __last, _Integral());
 	}
+#endif
 
       /**
        *  The dtor only erases the elements, and note that if the elements
@@ -906,7 +917,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  %Deque assignment operator.
-       *  @param  x  A %deque of identical element and allocator types.
+       *  @param  __x  A %deque of identical element and allocator types.
        *
        *  All the elements of @a x are copied, but unlike the copy constructor,
        *  the allocator object is not copied.
@@ -917,10 +928,10 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       /**
        *  @brief  %Deque move assignment operator.
-       *  @param  x  A %deque of identical element and allocator types.
+       *  @param  __x  A %deque of identical element and allocator types.
        *
-       *  The contents of @a x are moved into this deque (without copying).
-       *  @a x is a valid, but unspecified %deque.
+       *  The contents of @a __x are moved into this deque (without copying).
+       *  @a __x is a valid, but unspecified %deque.
        */
       deque&
       operator=(deque&& __x)
@@ -934,10 +945,10 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  Assigns an initializer list to a %deque.
-       *  @param  l  An initializer_list.
+       *  @param  __l  An initializer_list.
        *
        *  This function fills a %deque with copies of the elements in the
-       *  initializer_list @a l.
+       *  initializer_list @a __l.
        *
        *  Note that the assignment completely changes the %deque and that the
        *  resulting %deque's size is the same as the number of elements
@@ -953,8 +964,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  Assigns a given value to a %deque.
-       *  @param  n  Number of elements to be assigned.
-       *  @param  val  Value to be assigned.
+       *  @param  __n  Number of elements to be assigned.
+       *  @param  __val  Value to be assigned.
        *
        *  This function fills a %deque with @a n copies of the given
        *  value.  Note that the assignment completely changes the
@@ -967,16 +978,23 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  Assigns a range to a %deque.
-       *  @param  first  An input iterator.
-       *  @param  last   An input iterator.
+       *  @param  __first  An input iterator.
+       *  @param  __last   An input iterator.
        *
        *  This function fills a %deque with copies of the elements in the
-       *  range [first,last).
+       *  range [__first,__last).
        *
        *  Note that the assignment completely changes the %deque and that the
        *  resulting %deque's size is the same as the number of elements
        *  assigned.  Old data may be lost.
        */
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename _InputIterator,
+	       typename = std::_RequireInputIter<_InputIterator>>
+        void
+        assign(_InputIterator __first, _InputIterator __last)
+        { _M_assign_dispatch(__first, __last, __false_type()); }
+#else
       template<typename _InputIterator>
         void
         assign(_InputIterator __first, _InputIterator __last)
@@ -984,14 +1002,15 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	  typedef typename std::__is_integer<_InputIterator>::__type _Integral;
 	  _M_assign_dispatch(__first, __last, _Integral());
 	}
+#endif
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       /**
        *  @brief  Assigns an initializer list to a %deque.
-       *  @param  l  An initializer_list.
+       *  @param  __l  An initializer_list.
        *
        *  This function fills a %deque with copies of the elements in the
-       *  initializer_list @a l.
+       *  initializer_list @a __l.
        *
        *  Note that the assignment completely changes the %deque and that the
        *  resulting %deque's size is the same as the number of elements
@@ -1129,7 +1148,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       /**
        *  @brief  Resizes the %deque to the specified number of elements.
-       *  @param  new_size  Number of elements the %deque should contain.
+       *  @param  __new_size  Number of elements the %deque should contain.
        *
        *  This function will %resize the %deque to the specified
        *  number of elements.  If the number is smaller than the
@@ -1149,8 +1168,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  Resizes the %deque to the specified number of elements.
-       *  @param  new_size  Number of elements the %deque should contain.
-       *  @param  x  Data with which new elements should be populated.
+       *  @param  __new_size  Number of elements the %deque should contain.
+       *  @param  __x  Data with which new elements should be populated.
        *
        *  This function will %resize the %deque to the specified
        *  number of elements.  If the number is smaller than the
@@ -1171,8 +1190,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 #else
       /**
        *  @brief  Resizes the %deque to the specified number of elements.
-       *  @param  new_size  Number of elements the %deque should contain.
-       *  @param  x  Data with which new elements should be populated.
+       *  @param  __new_size  Number of elements the %deque should contain.
+       *  @param  __x  Data with which new elements should be populated.
        *
        *  This function will %resize the %deque to the specified
        *  number of elements.  If the number is smaller than the
@@ -1210,7 +1229,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       // element access
       /**
        *  @brief Subscript access to the data contained in the %deque.
-       *  @param n The index of the element for which data should be
+       *  @param __n The index of the element for which data should be
        *  accessed.
        *  @return  Read/write reference to data.
        *
@@ -1225,7 +1244,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief Subscript access to the data contained in the %deque.
-       *  @param n The index of the element for which data should be
+       *  @param __n The index of the element for which data should be
        *  accessed.
        *  @return  Read-only (constant) reference to data.
        *
@@ -1250,10 +1269,10 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
     public:
       /**
        *  @brief  Provides access to the data contained in the %deque.
-       *  @param n The index of the element for which data should be
+       *  @param __n The index of the element for which data should be
        *  accessed.
        *  @return  Read/write reference to data.
-       *  @throw  std::out_of_range  If @a n is an invalid index.
+       *  @throw  std::out_of_range  If @a __n is an invalid index.
        *
        *  This function provides for safer data access.  The parameter
        *  is first checked that it is in the range of the deque.  The
@@ -1268,10 +1287,10 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  Provides access to the data contained in the %deque.
-       *  @param n The index of the element for which data should be
+       *  @param __n The index of the element for which data should be
        *  accessed.
        *  @return  Read-only (constant) reference to data.
-       *  @throw  std::out_of_range  If @a n is an invalid index.
+       *  @throw  std::out_of_range  If @a __n is an invalid index.
        *
        *  This function provides for safer data access.  The parameter is first
        *  checked that it is in the range of the deque.  The function throws
@@ -1327,7 +1346,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       // [23.2.1.2] modifiers
       /**
        *  @brief  Add data to the front of the %deque.
-       *  @param  x  Data to be added.
+       *  @param  __x  Data to be added.
        *
        *  This is a typical stack operation.  The function creates an
        *  element at the front of the %deque and assigns the given
@@ -1358,7 +1377,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  Add data to the end of the %deque.
-       *  @param  x  Data to be added.
+       *  @param  __x  Data to be added.
        *
        *  This is a typical stack operation.  The function creates an
        *  element at the end of the %deque and assigns the given data
@@ -1433,8 +1452,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       /**
        *  @brief  Inserts an object in %deque before specified iterator.
-       *  @param  position  An iterator into the %deque.
-       *  @param  args  Arguments.
+       *  @param  __position  An iterator into the %deque.
+       *  @param  __args  Arguments.
        *  @return  An iterator that points to the inserted data.
        *
        *  This function will insert an object of type T constructed
@@ -1447,8 +1466,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  Inserts given value into %deque before specified iterator.
-       *  @param  position  An iterator into the %deque.
-       *  @param  x  Data to be inserted.
+       *  @param  __position  An iterator into the %deque.
+       *  @param  __x  Data to be inserted.
        *  @return  An iterator that points to the inserted data.
        *
        *  This function will insert a copy of the given value before the
@@ -1460,8 +1479,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       /**
        *  @brief  Inserts given rvalue into %deque before specified iterator.
-       *  @param  position  An iterator into the %deque.
-       *  @param  x  Data to be inserted.
+       *  @param  __position  An iterator into the %deque.
+       *  @param  __x  Data to be inserted.
        *  @return  An iterator that points to the inserted data.
        *
        *  This function will insert a copy of the given rvalue before the
@@ -1473,12 +1492,12 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  Inserts an initializer list into the %deque.
-       *  @param  p  An iterator into the %deque.
-       *  @param  l  An initializer_list.
+       *  @param  __p  An iterator into the %deque.
+       *  @param  __l  An initializer_list.
        *
        *  This function will insert copies of the data in the
-       *  initializer_list @a l into the %deque before the location
-       *  specified by @a p.  This is known as <em>list insert</em>.
+       *  initializer_list @a __l into the %deque before the location
+       *  specified by @a __p.  This is known as <em>list insert</em>.
        */
       void
       insert(iterator __p, initializer_list<value_type> __l)
@@ -1487,12 +1506,12 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  Inserts a number of copies of given data into the %deque.
-       *  @param  position  An iterator into the %deque.
-       *  @param  n  Number of elements to be inserted.
-       *  @param  x  Data to be inserted.
+       *  @param  __position  An iterator into the %deque.
+       *  @param  __n  Number of elements to be inserted.
+       *  @param  __x  Data to be inserted.
        *
        *  This function will insert a specified number of copies of the given
-       *  data before the location specified by @a position.
+       *  data before the location specified by @a __position.
        */
       void
       insert(iterator __position, size_type __n, const value_type& __x)
@@ -1500,14 +1519,22 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  Inserts a range into the %deque.
-       *  @param  position  An iterator into the %deque.
-       *  @param  first  An input iterator.
-       *  @param  last   An input iterator.
+       *  @param  __position  An iterator into the %deque.
+       *  @param  __first  An input iterator.
+       *  @param  __last   An input iterator.
        *
        *  This function will insert copies of the data in the range
-       *  [first,last) into the %deque before the location specified
-       *  by @a pos.  This is known as <em>range insert</em>.
+       *  [__first,__last) into the %deque before the location specified
+       *  by @a __position.  This is known as <em>range insert</em>.
        */
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename _InputIterator,
+	       typename = std::_RequireInputIter<_InputIterator>>
+        void
+        insert(iterator __position, _InputIterator __first,
+	       _InputIterator __last)
+        { _M_insert_dispatch(__position, __first, __last, __false_type()); }
+#else
       template<typename _InputIterator>
         void
         insert(iterator __position, _InputIterator __first,
@@ -1517,10 +1544,11 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	  typedef typename std::__is_integer<_InputIterator>::__type _Integral;
 	  _M_insert_dispatch(__position, __first, __last, _Integral());
 	}
+#endif
 
       /**
        *  @brief  Remove element at given position.
-       *  @param  position  Iterator pointing to element to be erased.
+       *  @param  __position  Iterator pointing to element to be erased.
        *  @return  An iterator pointing to the next element (or end()).
        *
        *  This function will erase the element at the given position and thus
@@ -1536,14 +1564,14 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  Remove a range of elements.
-       *  @param  first  Iterator pointing to the first element to be erased.
-       *  @param  last  Iterator pointing to one past the last element to be
+       *  @param  __first  Iterator pointing to the first element to be erased.
+       *  @param  __last  Iterator pointing to one past the last element to be
        *                erased.
        *  @return  An iterator pointing to the element pointed to by @a last
        *           prior to erasing (or end()).
        *
-       *  This function will erase the elements in the range [first,last) and
-       *  shorten the %deque accordingly.
+       *  This function will erase the elements in the range
+       *  [__first,__last) and shorten the %deque accordingly.
        *
        *  The user is cautioned that
        *  this function only erases the elements, and that if the elements
@@ -1555,7 +1583,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief  Swaps data with another %deque.
-       *  @param  x  A %deque of the same element and allocator types.
+       *  @param  __x  A %deque of the same element and allocator types.
        *
        *  This exchanges the elements between two deques in constant time.
        *  (Four pointers, so it should be quite fast.)
@@ -1616,8 +1644,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       //@{
       /**
        *  @brief Fills the deque with whatever is in [first,last).
-       *  @param  first  An input iterator.
-       *  @param  last  An input iterator.
+       *  @param  __first  An input iterator.
+       *  @param  __last  An input iterator.
        *  @return   Nothing.
        *
        *  If the iterators are actually forward iterators (or better), then the
@@ -1638,7 +1666,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       /**
        *  @brief Fills the %deque with copies of value.
-       *  @param  value  Initial value.
+       *  @param  __value  Initial value.
        *  @return   Nothing.
        *  @pre _M_start and _M_finish have already been initialized,
        *  but none of the %deque's elements have yet been constructed.
@@ -1914,8 +1942,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
   /**
    *  @brief  Deque equality comparison.
-   *  @param  x  A %deque.
-   *  @param  y  A %deque of the same type as @a x.
+   *  @param  __x  A %deque.
+   *  @param  __y  A %deque of the same type as @a __x.
    *  @return  True iff the size and elements of the deques are equal.
    *
    *  This is an equivalence relation.  It is linear in the size of the
@@ -1931,9 +1959,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
   /**
    *  @brief  Deque ordering relation.
-   *  @param  x  A %deque.
-   *  @param  y  A %deque of the same type as @a x.
-   *  @return  True iff @a x is lexicographically less than @a y.
+   *  @param  __x  A %deque.
+   *  @param  __y  A %deque of the same type as @a __x.
+   *  @return  True iff @a x is lexicographically less than @a __y.
    *
    *  This is a total ordering relation.  It is linear in the size of the
    *  deques.  The elements must be comparable with @c <.

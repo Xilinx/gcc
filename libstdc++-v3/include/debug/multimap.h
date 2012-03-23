@@ -1,6 +1,6 @@
 // Debugging multimap implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2009, 2010, 2011
+// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2009, 2010, 2011, 2012
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -47,7 +47,6 @@ namespace __debug
 						  _Compare, _Allocator> >
     {
       typedef _GLIBCXX_STD_C::multimap<_Key, _Tp, _Compare, _Allocator> _Base;
-      typedef __gnu_debug::_Safe_sequence<multimap> _Safe_base;
 
       typedef typename _Base::const_iterator _Base_const_iterator;
       typedef typename _Base::iterator _Base_iterator;
@@ -89,21 +88,21 @@ namespace __debug
 	      __comp, __a) { }
 
       multimap(const multimap& __x)
-      : _Base(__x), _Safe_base() { }
+      : _Base(__x) { }
 
       multimap(const _Base& __x)
-      : _Base(__x), _Safe_base() { }
+      : _Base(__x) { }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       multimap(multimap&& __x)
       noexcept(is_nothrow_copy_constructible<_Compare>::value)
-      : _Base(std::move(__x)), _Safe_base()
+      : _Base(std::move(__x))
       { this->_M_swap(__x); }
 
       multimap(initializer_list<value_type> __l,
 	       const _Compare& __c = _Compare(),
 	       const allocator_type& __a = allocator_type())
-      : _Base(__l, __c, __a), _Safe_base() { }
+      : _Base(__l, __c, __a) { }
 #endif
 
       ~multimap() _GLIBCXX_NOEXCEPT { }
@@ -122,6 +121,7 @@ namespace __debug
       {
 	// NB: DR 1204.
 	// NB: DR 675.
+	__glibcxx_check_self_move_assign(__x);
 	clear();
 	swap(__x);
 	return *this;
@@ -255,6 +255,10 @@ namespace __debug
 	this->_M_invalidate_if(_Equal(__position.base()));
 	return iterator(_Base::erase(__position.base()), this);
       }
+
+      iterator
+      erase(iterator __position)
+      { return erase(const_iterator(__position)); }
 #else
       void
       erase(iterator __position)

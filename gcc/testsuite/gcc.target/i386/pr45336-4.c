@@ -1,13 +1,12 @@
 /* PR target/45336 */
-/* { dg-do compile } */
-/* { dg-require-effective-target lp64 } */
+/* { dg-do compile { target { ! { ia32 } } } } */
 /* { dg-options "-O2 -msse4 -mtune=generic" } */
 /* { dg-final { scan-assembler "movsbq" } } */
 /* { dg-final { scan-assembler "movswq" } } */
 /* { dg-final { scan-assembler "(cltq|movslq)" } } */
 /* { dg-final { scan-assembler "pextrb" } } */
 /* { dg-final { scan-assembler "pextrw" } } */
-/* { dg-final { scan-assembler "pextrd" } } */
+/* { dg-final { scan-assembler "pextrd" { target { ! x86_64-*-mingw* } } } } */
 
 #include <smmintrin.h>
 long long int foo8(__m128i x) { return (char) _mm_extract_epi8(x, 4); }

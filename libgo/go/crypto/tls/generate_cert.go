@@ -2,18 +2,22 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// +build ignore
+
 // Generate a self-signed X.509 certificate for a TLS server. Outputs to
 // 'cert.pem' and 'key.pem' and will overwrite existing files.
 
 package main
 
 import (
-	"crypto/rsa"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"flag"
 	"log"
+	"math/big"
 	"os"
 	"time"
 )
@@ -29,16 +33,16 @@ func main() {
 		return
 	}
 
-	now := time.Seconds()
+	now := time.Now()
 
 	template := x509.Certificate{
-		SerialNumber: []byte{0},
-		Subject: x509.Name{
+		SerialNumber: new(big.Int).SetInt64(0),
+		Subject: pkix.Name{
 			CommonName:   *hostName,
 			Organization: []string{"Acme Co"},
 		},
-		NotBefore: time.SecondsToUTC(now - 300),
-		NotAfter:  time.SecondsToUTC(now + 60*60*24*365), // valid for 1 year.
+		NotBefore: now.Add(-5 * time.Minute).UTC(),
+		NotAfter:  now.AddDate(1, 0, 0).UTC(), // valid for 1 year.
 
 		SubjectKeyId: []byte{1, 2, 3, 4},
 		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
@@ -59,7 +63,7 @@ func main() {
 	certOut.Close()
 	log.Print("written cert.pem\n")
 
-	keyOut, err := os.OpenFile("key.pem", os.O_WRONLY|os.O_CREAT|os.O_TRUNC, 0600)
+	keyOut, err := os.OpenFile("key.pem", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		log.Print("failed to open key.pem for writing:", err)
 		return

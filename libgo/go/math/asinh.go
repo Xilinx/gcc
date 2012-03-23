@@ -4,7 +4,6 @@
 
 package math
 
-
 // The original C code, the long comment, and the constants
 // below are from FreeBSD's /usr/src/lib/msun/src/s_asinh.c
 // and came with this notice.  The go code is a simplified
@@ -34,8 +33,8 @@ package math
 // Asinh(x) calculates the inverse hyperbolic sine of x.
 //
 // Special cases are:
-//	Asinh(+Inf) = +Inf
-//	Asinh(-Inf) = -Inf
+//	Asinh(±0) = ±0
+//	Asinh(±Inf) = ±Inf
 //	Asinh(NaN) = NaN
 func Asinh(x float64) float64 {
 	const (
@@ -43,10 +42,8 @@ func Asinh(x float64) float64 {
 		NearZero = 1.0 / (1 << 28)            // 2**-28
 		Large    = 1 << 28                    // 2**28
 	)
-	// TODO(rsc): Remove manual inlining of IsNaN, IsInf
-	// when compiler does it for us
 	// special cases
-	if x != x || x > MaxFloat64 || x < -MaxFloat64 { // IsNaN(x) || IsInf(x, 0)
+	if IsNaN(x) || IsInf(x, 0) {
 		return x
 	}
 	sign := false

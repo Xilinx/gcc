@@ -1439,7 +1439,7 @@ retry:
 
     case CPP_NUMBER:
       {
-	unsigned int flags = cpp_classify_number (lexer->reader, cpp_tok);
+	unsigned int flags = cpp_classify_number (lexer->reader, cpp_tok, NULL);
 
 	switch (flags & CPP_N_CATEGORY)
 	  {

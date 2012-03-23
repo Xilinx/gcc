@@ -12,12 +12,13 @@ TEST=all-gcc
 #
 # v850e1-elf is rejected by config.sub
 LIST = alpha-linux-gnu alpha-freebsd6 alpha-netbsd alpha-openbsd \
-  alpha-dec-osf5.1 alpha64-dec-vms alpha-dec-vms am33_2.0-linux \
+  alpha64-dec-vms alpha-dec-vms am33_2.0-linux \
   arm-wrs-vxworks arm-freebsd6 arm-netbsdelf arm-linux \
   arm-linux-androideabi arm-uclinux_eabi arm-ecos-elf arm-eabi \
   arm-symbianelf arm-rtems arm-elf arm-wince-pe avr-rtems avr-elf \
   bfin-elf bfin-uclinux bfin-linux-uclibc bfin-rtems bfin-openbsd \
-  cris-elf cris-linux crisv32-elf crisv32-linux fido-elf \
+  c6x-elf c6x-uclinux cr16-elf cris-elf cris-linux crisv32-elf crisv32-linux \
+  epiphany-elf epiphany-elfOPT-with-stack-offset=16 fido-elf \
   fr30-elf frv-elf frv-linux h8300-elf h8300-rtems hppa-linux-gnu \
   hppa-linux-gnuOPT-enable-sjlj-exceptions=yes hppa64-linux-gnu \
   hppa2.0-hpux10.1 hppa64-hpux11.3 \
@@ -26,7 +27,7 @@ LIST = alpha-linux-gnu alpha-freebsd6 alpha-netbsd alpha-openbsd \
   i486-freebsd4 i686-freebsd6 i686-kfreebsd-gnu \
   i686-netbsdelf9 i686-knetbsd-gnu i686-openbsd i686-openbsd3.0 \
   i686-elf i686-kopensolaris-gnu i686-symbolics-gnu i686-pc-msdosdjgpp \
-  i686-lynxos i586-netwareOPT-with-ld=SCRIPTSnwld i686-nto-qnx \
+  i686-lynxos i686-nto-qnx \
   i686-rtems i686-solaris2.10 i686-wrs-vxworks \
   i686-wrs-vxworksae \
   i686-cygwinOPT-enable-threads=yes i686-mingw32crt ia64-elf \
@@ -35,9 +36,9 @@ LIST = alpha-linux-gnu alpha-freebsd6 alpha-netbsd alpha-openbsd \
   m32r-linux m32rle-linux m68k-elf m68k-netbsdelf \
   m68k-openbsd m68k-uclinux m68k-linux m68k-rtems \
   mcore-elf mep-elf microblaze-linux microblaze-elf \
-  mips-sgi-irix6.5OPT-with-stabsOPT-enable-threads=posix mips-netbsd \
+  mips-netbsd \
   mips64el-st-linux-gnu mips64octeon-linux mipsisa64r2-linux \
-  mipsisa32r2-linux-gnu mips-openbsd mipsisa64r2-sde-elf mipsisa32-elfoabi \
+  mipsisa32r2-linux-gnu mipsisa64r2-sde-elf mipsisa32-elfoabi \
   mipsisa64-elfoabi mipsisa64r2el-elf mipsisa64sr71k-elf mipsisa64sb1-elf \
   mipsel-elf mips64-elf mips64vr-elf mips64orion-elf mips-rtems \
   mips-wrs-vxworks mipstx39-elf mmix-knuth-mmixware mn10300-elf moxie-elf \
@@ -50,14 +51,15 @@ LIST = alpha-linux-gnu alpha-freebsd6 alpha-netbsd alpha-openbsd \
   powerpc-wrs-vxworks powerpc-wrs-vxworksae powerpc-lynxos powerpcle-elf \
   powerpcle-eabisim powerpcle-eabi rs6000-ibm-aix4.3 rs6000-ibm-aix5.1.0 \
   rs6000-ibm-aix5.2.0 rs6000-ibm-aix5.3.0 rs6000-ibm-aix6.0 \
-  rx-elf s390-linux-gnu s390x-linux-gnu s390x-ibm-tpf sh-elf \
+  rl78-elf rx-elf s390-linux-gnu s390x-linux-gnu s390x-ibm-tpf sh-elf \
   shle-linux sh-netbsdelf sh-superh-elf sh5el-netbsd sh64-netbsd sh64-linux \
   sh64-elfOPT-with-newlib sh-rtems sh-wrs-vxworks sparc-elf \
   sparc-leon-elf sparc-rtems sparc-linux-gnu \
   sparc-leon3-linux-gnuOPT-enable-target=all sparc-netbsdelf \
   sparc64-sun-solaris2.10OPT-with-gnu-ldOPT-with-gnu-asOPT-enable-threads=posix \
   sparc-wrs-vxworks sparc64-elf sparc64-rtems sparc64-linux sparc64-freebsd6 \
-  sparc64-netbsd sparc64-openbsd spu-elf v850e-elf v850-elf vax-linux-gnu \
+  sparc64-netbsd sparc64-openbsd spu-elf tilegx-linux-gnu tilepro-linux-gnu \
+  v850e-elf v850-elf vax-linux-gnu \
   vax-netbsdelf vax-openbsd x86_64-apple-darwin \
   x86_64-pc-linux-gnuOPT-with-fpmath=avx \
   x86_64-elfOPT-with-fpmath=sse x86_64-freebsd6 x86_64-netbsd \
@@ -70,7 +72,7 @@ LOGFILES = $(patsubst %,log/%-make.out,$(LIST))
 all: $(LOGFILES)
 config: $(LIST)
 
-.PHONY: make-log-dir make-script-dir all config
+.PHONY: make-log-dir all config
 
 empty=
 
@@ -79,14 +81,7 @@ empty=
 make-log-dir: ../gcc/MAINTAINERS
 	mkdir log
 
-# The 'ix86-netware --with-ld=nwld' configuration needs a nwld executable to
-# configure.  See PR47104.
-make-script-dir:
-	mkdir scripts
-	echo ld $* > scripts/nwld
-	chmod u+x scripts/nwld
-
-$(LIST): make-log-dir make-script-dir
+$(LIST): make-log-dir
 	-mkdir $@
 	(cd $@ && \
 	../../gcc/configure \

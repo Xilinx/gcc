@@ -1,7 +1,7 @@
 // Core algorithmic facilities -*- C++ -*-
 
 // Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-// 2011 Free Software Foundation, Inc.
+// 2011, 2012 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -74,6 +74,7 @@ namespace std _GLIBCXX_VISIBILITY(default)
 {
 _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
   // See http://gcc.gnu.org/ml/libstdc++/2004-08/msg00167.html: in a
   // nutshell, we are partially implementing the resolution of DR 187,
   // when it's safe, i.e., the value_types are equal.
@@ -102,12 +103,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
           swap(*__a, *__b);
         }
     };
+#endif
 
   /**
    *  @brief Swaps the contents of two iterators.
    *  @ingroup mutating_algorithms
-   *  @param  a  An iterator.
-   *  @param  b  Another iterator.
+   *  @param  __a  An iterator.
+   *  @param  __b  Another iterator.
    *  @return   Nothing.
    *
    *  This function swaps the values pointed to by two iterators, not the
@@ -117,16 +119,18 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     inline void
     iter_swap(_ForwardIterator1 __a, _ForwardIterator2 __b)
     {
-      typedef typename iterator_traits<_ForwardIterator1>::value_type
-	_ValueType1;
-      typedef typename iterator_traits<_ForwardIterator2>::value_type
-	_ValueType2;
-
       // concept requirements
       __glibcxx_function_requires(_Mutable_ForwardIteratorConcept<
 				  _ForwardIterator1>)
       __glibcxx_function_requires(_Mutable_ForwardIteratorConcept<
 				  _ForwardIterator2>)
+
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+      typedef typename iterator_traits<_ForwardIterator1>::value_type
+	_ValueType1;
+      typedef typename iterator_traits<_ForwardIterator2>::value_type
+	_ValueType2;
+
       __glibcxx_function_requires(_ConvertibleConcept<_ValueType1,
 				  _ValueType2>)
       __glibcxx_function_requires(_ConvertibleConcept<_ValueType2,
@@ -140,14 +144,17 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	&& __are_same<_ValueType1&, _ReferenceType1>::__value
 	&& __are_same<_ValueType2&, _ReferenceType2>::__value>::
 	iter_swap(__a, __b);
+#else
+      swap(*__a, *__b);
+#endif
     }
 
   /**
    *  @brief Swap the elements of two sequences.
    *  @ingroup mutating_algorithms
-   *  @param  first1  A forward iterator.
-   *  @param  last1   A forward iterator.
-   *  @param  first2  A forward iterator.
+   *  @param  __first1  A forward iterator.
+   *  @param  __last1   A forward iterator.
+   *  @param  __first2  A forward iterator.
    *  @return   An iterator equal to @p first2+(last1-first1).
    *
    *  Swaps each element in the range @p [first1,last1) with the
@@ -174,8 +181,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   /**
    *  @brief This does what you think it does.
    *  @ingroup sorting_algorithms
-   *  @param  a  A thing of arbitrary type.
-   *  @param  b  Another thing of arbitrary type.
+   *  @param  __a  A thing of arbitrary type.
+   *  @param  __b  Another thing of arbitrary type.
    *  @return   The lesser of the parameters.
    *
    *  This is the simple classic generic implementation.  It will work on
@@ -197,8 +204,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   /**
    *  @brief This does what you think it does.
    *  @ingroup sorting_algorithms
-   *  @param  a  A thing of arbitrary type.
-   *  @param  b  Another thing of arbitrary type.
+   *  @param  __a  A thing of arbitrary type.
+   *  @param  __b  Another thing of arbitrary type.
    *  @return   The greater of the parameters.
    *
    *  This is the simple classic generic implementation.  It will work on
@@ -220,9 +227,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   /**
    *  @brief This does what you think it does.
    *  @ingroup sorting_algorithms
-   *  @param  a  A thing of arbitrary type.
-   *  @param  b  Another thing of arbitrary type.
-   *  @param  comp  A @link comparison_functors comparison functor@endlink.
+   *  @param  __a  A thing of arbitrary type.
+   *  @param  __b  Another thing of arbitrary type.
+   *  @param  __comp  A @link comparison_functors comparison functor@endlink.
    *  @return   The lesser of the parameters.
    *
    *  This will work on temporary expressions, since they are only evaluated
@@ -241,9 +248,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   /**
    *  @brief This does what you think it does.
    *  @ingroup sorting_algorithms
-   *  @param  a  A thing of arbitrary type.
-   *  @param  b  Another thing of arbitrary type.
-   *  @param  comp  A @link comparison_functors comparison functor@endlink.
+   *  @param  __a  A thing of arbitrary type.
+   *  @param  __b  Another thing of arbitrary type.
+   *  @param  __comp  A @link comparison_functors comparison functor@endlink.
    *  @return   The greater of the parameters.
    *
    *  This will work on temporary expressions, since they are only evaluated
@@ -425,9 +432,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   /**
    *  @brief Copies the range [first,last) into result.
    *  @ingroup mutating_algorithms
-   *  @param  first  An input iterator.
-   *  @param  last   An input iterator.
-   *  @param  result An output iterator.
+   *  @param  __first  An input iterator.
+   *  @param  __last   An input iterator.
+   *  @param  __result An output iterator.
    *  @return   result + (first - last)
    *
    *  This inline function will boil down to a call to @c memmove whenever
@@ -458,9 +465,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   /**
    *  @brief Moves the range [first,last) into result.
    *  @ingroup mutating_algorithms
-   *  @param  first  An input iterator.
-   *  @param  last   An input iterator.
-   *  @param  result An output iterator.
+   *  @param  __first  An input iterator.
+   *  @param  __last   An input iterator.
+   *  @param  __result An output iterator.
    *  @return   result + (first - last)
    *
    *  This inline function will boil down to a call to @c memmove whenever
@@ -593,9 +600,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   /**
    *  @brief Copies the range [first,last) into result.
    *  @ingroup mutating_algorithms
-   *  @param  first  A bidirectional iterator.
-   *  @param  last   A bidirectional iterator.
-   *  @param  result A bidirectional iterator.
+   *  @param  __first  A bidirectional iterator.
+   *  @param  __last   A bidirectional iterator.
+   *  @param  __result A bidirectional iterator.
    *  @return   result - (first - last)
    *
    *  The function has the same effect as copy, but starts at the end of the
@@ -629,9 +636,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   /**
    *  @brief Moves the range [first,last) into result.
    *  @ingroup mutating_algorithms
-   *  @param  first  A bidirectional iterator.
-   *  @param  last   A bidirectional iterator.
-   *  @param  result A bidirectional iterator.
+   *  @param  __first  A bidirectional iterator.
+   *  @param  __last   A bidirectional iterator.
+   *  @param  __result A bidirectional iterator.
    *  @return   result - (first - last)
    *
    *  The function has the same effect as move, but starts at the end of the
@@ -641,7 +648,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
    *  loop count will be known (and therefore a candidate for compiler
    *  optimizations such as unrolling).
    *
-   *  Result may not be in the range [first,last).  Use move instead.  Note
+   *  Result may not be in the range (first,last].  Use move instead.  Note
    *  that the start of the output range may overlap [first,last).
   */
   template<typename _BI1, typename _BI2>
@@ -701,9 +708,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   /**
    *  @brief Fills the range [first,last) with copies of value.
    *  @ingroup mutating_algorithms
-   *  @param  first  A forward iterator.
-   *  @param  last   A forward iterator.
-   *  @param  value  A reference-to-const of arbitrary type.
+   *  @param  __first  A forward iterator.
+   *  @param  __last   A forward iterator.
+   *  @param  __value  A reference-to-const of arbitrary type.
    *  @return   Nothing.
    *
    *  This function fills a range with copies of the same value.  For char
@@ -758,9 +765,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   /**
    *  @brief Fills the range [first,first+n) with copies of value.
    *  @ingroup mutating_algorithms
-   *  @param  first  An output iterator.
-   *  @param  n      The count of copies to perform.
-   *  @param  value  A reference-to-const of arbitrary type.
+   *  @param  __first  An output iterator.
+   *  @param  __n      The count of copies to perform.
+   *  @param  __value  A reference-to-const of arbitrary type.
    *  @return   The iterator at first+n.
    *
    *  This function fills a range with copies of the same value.  For char
@@ -812,7 +819,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     {
       typedef typename iterator_traits<_II1>::value_type _ValueType1;
       typedef typename iterator_traits<_II2>::value_type _ValueType2;
-      const bool __simple = (__is_integer<_ValueType1>::__value
+      const bool __simple = ((__is_integer<_ValueType1>::__value
+			      || __is_pointer<_ValueType1>::__value)
 	                     && __is_pointer<_II1>::__value
 	                     && __is_pointer<_II2>::__value
 			     && __are_same<_ValueType1, _ValueType2>::__value);
@@ -923,9 +931,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   /**
    *  @brief Finds the first position in which @a val could be inserted
    *         without changing the ordering.
-   *  @param  first   An iterator.
-   *  @param  last    Another iterator.
-   *  @param  val     The search term.
+   *  @param  __first   An iterator.
+   *  @param  __last    Another iterator.
+   *  @param  __val     The search term.
    *  @return         An iterator pointing to the first element <em>not less
    *                  than</em> @a val, or end() if every element is less than 
    *                  @a val.
@@ -996,9 +1004,9 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
   /**
    *  @brief Tests a range for element-wise equality.
    *  @ingroup non_mutating_algorithms
-   *  @param  first1  An input iterator.
-   *  @param  last1   An input iterator.
-   *  @param  first2  An input iterator.
+   *  @param  __first1  An input iterator.
+   *  @param  __last1   An input iterator.
+   *  @param  __first2  An input iterator.
    *  @return   A boolean true or false.
    *
    *  This compares the elements of two ranges using @c == and returns true or
@@ -1025,10 +1033,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
   /**
    *  @brief Tests a range for element-wise equality.
    *  @ingroup non_mutating_algorithms
-   *  @param  first1  An input iterator.
-   *  @param  last1   An input iterator.
-   *  @param  first2  An input iterator.
-   *  @param binary_pred A binary predicate @link functors
+   *  @param  __first1  An input iterator.
+   *  @param  __last1   An input iterator.
+   *  @param  __first2  An input iterator.
+   *  @param __binary_pred A binary predicate @link functors
    *                  functor@endlink.
    *  @return         A boolean true or false.
    *
@@ -1056,10 +1064,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
   /**
    *  @brief Performs @b dictionary comparison on ranges.
    *  @ingroup sorting_algorithms
-   *  @param  first1  An input iterator.
-   *  @param  last1   An input iterator.
-   *  @param  first2  An input iterator.
-   *  @param  last2   An input iterator.
+   *  @param  __first1  An input iterator.
+   *  @param  __last1   An input iterator.
+   *  @param  __first2  An input iterator.
+   *  @param  __last2   An input iterator.
    *  @return   A boolean true or false.
    *
    *  <em>Returns true if the sequence of elements defined by the range
@@ -1092,11 +1100,11 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
   /**
    *  @brief Performs @b dictionary comparison on ranges.
    *  @ingroup sorting_algorithms
-   *  @param  first1  An input iterator.
-   *  @param  last1   An input iterator.
-   *  @param  first2  An input iterator.
-   *  @param  last2   An input iterator.
-   *  @param  comp  A @link comparison_functors comparison functor@endlink.
+   *  @param  __first1  An input iterator.
+   *  @param  __last1   An input iterator.
+   *  @param  __first2  An input iterator.
+   *  @param  __last2   An input iterator.
+   *  @param  __comp  A @link comparison_functors comparison functor@endlink.
    *  @return   A boolean true or false.
    *
    *  The same as the four-parameter @c lexicographical_compare, but uses the
@@ -1132,9 +1140,9 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
   /**
    *  @brief Finds the places in ranges which don't match.
    *  @ingroup non_mutating_algorithms
-   *  @param  first1  An input iterator.
-   *  @param  last1   An input iterator.
-   *  @param  first2  An input iterator.
+   *  @param  __first1  An input iterator.
+   *  @param  __last1   An input iterator.
+   *  @param  __first2  An input iterator.
    *  @return   A pair of iterators pointing to the first mismatch.
    *
    *  This compares the elements of two ranges using @c == and returns a pair
@@ -1166,10 +1174,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
   /**
    *  @brief Finds the places in ranges which don't match.
    *  @ingroup non_mutating_algorithms
-   *  @param  first1  An input iterator.
-   *  @param  last1   An input iterator.
-   *  @param  first2  An input iterator.
-   *  @param binary_pred A binary predicate @link functors
+   *  @param  __first1  An input iterator.
+   *  @param  __last1   An input iterator.
+   *  @param  __first2  An input iterator.
+   *  @param __binary_pred A binary predicate @link functors
    *         functor@endlink.
    *  @return   A pair of iterators pointing to the first mismatch.
    *

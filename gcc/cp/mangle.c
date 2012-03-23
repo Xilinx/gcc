@@ -181,6 +181,7 @@ static void write_template_prefix (const tree);
 static void write_unqualified_name (const tree);
 static void write_conversion_operator_name (const tree);
 static void write_source_name (tree);
+static void write_literal_operator_name (tree);
 static void write_unnamed_type_name (const tree);
 static void write_closure_type_name (const tree);
 static int hwint_to_ascii (unsigned HOST_WIDE_INT, const unsigned int, char *,
@@ -614,7 +615,7 @@ find_substitution (tree node)
       /* NODE is a matched to a candidate if it's the same decl node or
 	 if it's the same type.  */
       if (decl == candidate
-	  || (TYPE_P (candidate) && type && TYPE_P (type)
+	  || (TYPE_P (candidate) && type && TYPE_P (node)
 	      && same_type_p (type, candidate))
 	  || NESTED_TEMPLATE_MATCH (node, candidate))
 	{
@@ -747,6 +748,11 @@ write_encoding (const tree decl)
 static tree
 decl_mangling_context (tree decl)
 {
+  tree tcontext = targetm.cxx.decl_mangling_context (decl);
+
+  if (tcontext != NULL_TREE)
+    return tcontext;
+
   if (TREE_CODE (decl) == TYPE_DECL
       && LAMBDA_TYPE_P (TREE_TYPE (decl)))
     {
@@ -857,7 +863,7 @@ write_name (tree decl, const int ignore_local_scope)
 static void
 write_unscoped_name (const tree decl)
 {
-  tree context = CP_DECL_CONTEXT (decl);
+  tree context = decl_mangling_context (decl);
 
   MANGLE_TRACE_TREE ("unscoped-name", decl);
 
@@ -936,14 +942,14 @@ write_nested_name (const tree decl)
 	}
       else
 	{
-	  write_prefix (CP_DECL_CONTEXT (decl));
+	  write_prefix (decl_mangling_context (decl));
 	  write_unqualified_name (decl);
 	}
     }
   else
     {
       /* No, just use <prefix>  */
-      write_prefix (CP_DECL_CONTEXT (decl));
+      write_prefix (decl_mangling_context (decl));
       write_unqualified_name (decl);
     }
   write_char ('E');
@@ -952,6 +958,7 @@ write_nested_name (const tree decl)
 /* <prefix> ::= <prefix> <unqualified-name>
 	    ::= <template-param>
 	    ::= <template-prefix> <template-args>
+	    ::= <decltype>
 	    ::= # empty
 	    ::= <substitution>  */
 
@@ -967,6 +974,12 @@ write_prefix (const tree node)
     return;
 
   MANGLE_TRACE_TREE ("prefix", node);
+
+  if (TREE_CODE (node) == DECLTYPE_TYPE)
+    {
+      write_type (node);
+      return;
+    }
 
   if (find_substitution (node))
     return;
@@ -1017,7 +1030,7 @@ write_prefix (const tree node)
 	}
       else
 	{
-	  write_prefix (CP_DECL_CONTEXT (decl));
+	  write_prefix (decl_mangling_context (decl));
 	  write_unqualified_name (decl);
 	}
     }
@@ -1047,7 +1060,7 @@ write_template_prefix (const tree node)
 {
   tree decl = DECL_P (node) ? node : TYPE_NAME (node);
   tree type = DECL_P (node) ? TREE_TYPE (node) : node;
-  tree context = CP_DECL_CONTEXT (decl);
+  tree context = decl_mangling_context (decl);
   tree template_info;
   tree templ;
   tree substitution;
@@ -1162,6 +1175,8 @@ write_unqualified_id (tree identifier)
 	  }
       write_string (mangled_name);
     }
+  else if (UDLIT_OPER_P (identifier))
+    write_literal_operator_name (identifier);
   else
     write_source_name (identifier);
 }
@@ -1215,6 +1230,8 @@ write_unqualified_name (const tree decl)
 
 	  write_string (oni[DECL_OVERLOADED_OPERATOR_P (decl)].mangled_name);
 	}
+      else if (UDLIT_OPER_P (DECL_NAME (decl)))
+	write_literal_operator_name (DECL_NAME (decl));
       else
 	found = false;
 
@@ -1274,6 +1291,19 @@ write_source_name (tree identifier)
   write_identifier (IDENTIFIER_POINTER (identifier));
 }
 
+/* Write a user-defined literal operator.
+          ::= li <source-name>    # "" <source-name>
+   IDENTIFIER is an LITERAL_IDENTIFIER_NODE.  */
+
+static void
+write_literal_operator_name (tree identifier)
+{
+  const char* suffix = UDLIT_OP_SUFFIX (identifier);
+  write_identifier (UDLIT_OP_MANGLED_PREFIX);
+  write_unsigned_number (strlen (suffix));
+  write_identifier (suffix);
+}
+
 /* Encode 0 as _, and 1+ as n-1_.  */
 
 static void
@@ -1307,7 +1337,7 @@ nested_anon_class_index (tree type)
 /* <unnamed-type-name> ::= Ut [ <nonnegative number> ] _ */
 
 static void
-write_unnamed_type_name (const tree type __attribute__ ((__unused__)))
+write_unnamed_type_name (const tree type ATTRIBUTE_UNUSED)
 {
   int discriminator;
   MANGLE_TRACE_TREE ("unnamed-type-name", type);
@@ -1790,11 +1820,6 @@ write_type (tree type)
   if (find_substitution (type))
     return;
 
-  /* According to the C++ ABI, some library classes are passed the
-     same as the scalar type of their single member and use the same
-     mangling.  */
-  if (TREE_CODE (type) == RECORD_TYPE && TYPE_TRANSPARENT_AGGR (type))
-    type = TREE_TYPE (first_field (type));
 
   if (write_CV_qualifiers_for_type (type) > 0)
     /* If TYPE was CV-qualified, we just wrote the qualifiers; now
@@ -1813,6 +1838,12 @@ write_type (tree type)
 
       /* See through any typedefs.  */
       type = TYPE_MAIN_VARIANT (type);
+
+      /* According to the C++ ABI, some library classes are passed the
+	 same as the scalar type of their single member and use the same
+	 mangling.  */
+      if (TREE_CODE (type) == RECORD_TYPE && TYPE_TRANSPARENT_AGGR (type))
+	type = TREE_TYPE (first_field (type));
 
       if (TYPE_PTRMEM_P (type))
 	write_pointer_to_member_type (type);
@@ -1902,6 +1933,13 @@ write_type (tree type)
 	      break;
 
 	    case TEMPLATE_TYPE_PARM:
+	      if (is_auto (type))
+		{
+		  write_identifier ("Da");
+		  ++is_builtin_type;
+		  break;
+		}
+	      /* else fall through.  */
 	    case TEMPLATE_PARM_INDEX:
 	      write_template_param (type);
 	      break;
@@ -1941,7 +1979,7 @@ write_type (tree type)
             case DECLTYPE_TYPE:
 	      /* These shouldn't make it into mangling.  */
 	      gcc_assert (!DECLTYPE_FOR_LAMBDA_CAPTURE (type)
-			  && !DECLTYPE_FOR_LAMBDA_RETURN (type));
+			  && !DECLTYPE_FOR_LAMBDA_PROXY (type));
 
 	      /* In ABI <5, we stripped decltype of a plain decl.  */
 	      if (!abi_version_at_least (5)
@@ -2467,7 +2505,9 @@ write_expression (tree expr)
       code = TREE_CODE (expr);
     }
 
-  if (code == BASELINK)
+  if (code == BASELINK
+      && (!type_unknown_p (expr)
+	  || !BASELINK_QUALIFIED_P (expr)))
     {
       expr = BASELINK_FUNCTIONS (expr);
       code = TREE_CODE (expr);
@@ -2495,6 +2535,11 @@ write_expression (tree expr)
   else if (TREE_CODE_CLASS (code) == tcc_constant
 	   || (abi_version_at_least (2) && code == CONST_DECL))
     write_template_arg_literal (expr);
+  else if (code == PARM_DECL && DECL_ARTIFICIAL (expr))
+    {
+      gcc_assert (!strcmp ("this", IDENTIFIER_POINTER (DECL_NAME (expr))));
+      write_string ("fpT");
+    }
   else if (code == PARM_DECL)
     {
       /* A function parameter used in a late-specified return type.  */
@@ -2545,10 +2590,20 @@ write_expression (tree expr)
       write_string ("at");
       write_type (TREE_OPERAND (expr, 0));
     }
-  else if (TREE_CODE (expr) == SCOPE_REF)
+  else if (code == SCOPE_REF
+	   || code == BASELINK)
     {
-      tree scope = TREE_OPERAND (expr, 0);
-      tree member = TREE_OPERAND (expr, 1);
+      tree scope, member;
+      if (code == SCOPE_REF)
+	{
+	  scope = TREE_OPERAND (expr, 0);
+	  member = TREE_OPERAND (expr, 1);
+	}
+      else
+	{
+	  scope = BINFO_TYPE (BASELINK_ACCESS_BINFO (expr));
+	  member = BASELINK_FUNCTIONS (expr);
+	}
 
       if (!abi_version_at_least (2) && DECL_P (member))
 	{
@@ -2608,6 +2663,102 @@ write_expression (tree expr)
       write_expression (TREE_OPERAND (expr, 0));
       write_expression (TREE_OPERAND (expr, 2));
     }
+  else if (code == NEW_EXPR || code == VEC_NEW_EXPR)
+    {
+      /* ::= [gs] nw <expression>* _ <type> E
+	 ::= [gs] nw <expression>* _ <type> <initializer>
+	 ::= [gs] na <expression>* _ <type> E
+	 ::= [gs] na <expression>* _ <type> <initializer>
+	 <initializer> ::= pi <expression>* E  */
+      tree placement = TREE_OPERAND (expr, 0);
+      tree type = TREE_OPERAND (expr, 1);
+      tree nelts = TREE_OPERAND (expr, 2);
+      tree init = TREE_OPERAND (expr, 3);
+      tree t;
+
+      gcc_assert (code == NEW_EXPR);
+      if (TREE_OPERAND (expr, 2))
+	code = VEC_NEW_EXPR;
+
+      if (NEW_EXPR_USE_GLOBAL (expr))
+	write_string ("gs");
+
+      write_string (operator_name_info[(int) code].mangled_name);
+
+      for (t = placement; t; t = TREE_CHAIN (t))
+	write_expression (TREE_VALUE (t));
+
+      write_char ('_');
+
+      if (nelts)
+	{
+	  tree domain;
+	  ++processing_template_decl;
+	  domain = compute_array_index_type (NULL_TREE, nelts,
+					     tf_warning_or_error);
+	  type = build_cplus_array_type (type, domain);
+	  --processing_template_decl;
+	}
+      write_type (type);
+
+      if (init && TREE_CODE (init) == TREE_LIST
+	  && TREE_CODE (TREE_VALUE (init)) == CONSTRUCTOR
+	  && CONSTRUCTOR_IS_DIRECT_INIT (TREE_VALUE (init)))
+	write_expression (TREE_VALUE (init));
+      else
+	{
+	  if (init)
+	    write_string ("pi");
+	  if (init && init != void_zero_node)
+	    for (t = init; t; t = TREE_CHAIN (t))
+	      write_expression (TREE_VALUE (t));
+	  write_char ('E');
+	}
+    }
+  else if (code == DELETE_EXPR || code == VEC_DELETE_EXPR)
+    {
+      gcc_assert (code == DELETE_EXPR);
+      if (DELETE_EXPR_USE_VEC (expr))
+	code = VEC_DELETE_EXPR;
+
+      if (DELETE_EXPR_USE_GLOBAL (expr))
+	write_string ("gs");
+
+      write_string (operator_name_info[(int) code].mangled_name);
+
+      write_expression (TREE_OPERAND (expr, 0));
+    }
+  else if (code == THROW_EXPR)
+    {
+      tree op = TREE_OPERAND (expr, 0);
+      if (op)
+	{
+	  write_string ("tw");
+	  write_expression (op);
+	}
+      else
+	write_string ("tr");
+    }
+  else if (code == CONSTRUCTOR)
+    {
+      VEC(constructor_elt,gc)* elts = CONSTRUCTOR_ELTS (expr);
+      unsigned i; tree val;
+
+      if (BRACE_ENCLOSED_INITIALIZER_P (expr))
+	write_string ("il");
+      else
+	{
+	  write_string ("tl");
+	  write_type (TREE_TYPE (expr));
+	}
+      FOR_EACH_CONSTRUCTOR_VALUE (elts, i, val)
+	write_expression (val);
+      write_char ('E');
+    }
+  else if (dependent_name (expr))
+    {
+      write_unqualified_id (dependent_name (expr));
+    }
   else
     {
       int i, len;
@@ -2650,9 +2801,29 @@ write_expression (tree expr)
 
       /* If it wasn't any of those, recursively expand the expression.  */
       name = operator_name_info[(int) code].mangled_name;
+
+      /* We used to mangle const_cast and static_cast like a C cast.  */
+      if (!abi_version_at_least (6)
+	  && (code == CONST_CAST_EXPR
+	      || code == STATIC_CAST_EXPR))
+	{
+	  name = operator_name_info[CAST_EXPR].mangled_name;
+	  G.need_abi_warning = 1;
+	}
+
       if (name == NULL)
 	{
-	  sorry ("mangling %C", code);
+	  switch (code)
+	    {
+	    case TRAIT_EXPR:
+	      error ("use of built-in trait %qE in function signature; "
+		     "use library traits instead", expr);
+	      break;
+
+	    default:
+	      sorry ("mangling %C", code);
+	      break;
+	    }
 	  return;
 	}
       else
@@ -2696,16 +2867,21 @@ write_expression (tree expr)
 	    }
 	  break;
 
-	  /* FIXME these should have a distinct mangling.  */
+	case DYNAMIC_CAST_EXPR:
+	case REINTERPRET_CAST_EXPR:
 	case STATIC_CAST_EXPR:
 	case CONST_CAST_EXPR:
 	  write_type (TREE_TYPE (expr));
 	  write_expression (TREE_OPERAND (expr, 0));
 	  break;
 
-	case NEW_EXPR:
-	  sorry ("mangling new-expression");
-	  break;
+	case PREINCREMENT_EXPR:
+	case PREDECREMENT_EXPR:
+	  if (abi_version_at_least (6))
+	    write_char ('_');
+	  else
+	    G.need_abi_warning = 1;
+	  /* Fall through.  */
 
 	default:
 	  /* In the middle-end, some expressions have more operands than
@@ -2745,29 +2921,53 @@ write_template_arg_literal (const tree value)
   write_char ('L');
   write_type (TREE_TYPE (value));
 
-  switch (TREE_CODE (value))
-    {
-    case CONST_DECL:
-      write_integer_cst (DECL_INITIAL (value));
-      break;
+  /* Write a null member pointer value as (type)0, regardless of its
+     real representation.  */
+  if (null_member_pointer_value_p (value))
+    write_integer_cst (integer_zero_node);
+  else
+    switch (TREE_CODE (value))
+      {
+      case CONST_DECL:
+	write_integer_cst (DECL_INITIAL (value));
+	break;
 
-    case INTEGER_CST:
-      gcc_assert (!same_type_p (TREE_TYPE (value), boolean_type_node)
-		  || integer_zerop (value) || integer_onep (value));
-      write_integer_cst (value);
-      break;
+      case INTEGER_CST:
+	gcc_assert (!same_type_p (TREE_TYPE (value), boolean_type_node)
+		    || integer_zerop (value) || integer_onep (value));
+	write_integer_cst (value);
+	break;
 
-    case REAL_CST:
-      write_real_cst (value);
-      break;
+      case REAL_CST:
+	write_real_cst (value);
+	break;
 
-    case STRING_CST:
-      sorry ("string literal in function template signature");
-      break;
+      case COMPLEX_CST:
+	if (TREE_CODE (TREE_REALPART (value)) == INTEGER_CST
+	    && TREE_CODE (TREE_IMAGPART (value)) == INTEGER_CST)
+	  {
+	    write_integer_cst (TREE_REALPART (value));
+	    write_char ('_');
+	    write_integer_cst (TREE_IMAGPART (value));
+	  }
+	else if (TREE_CODE (TREE_REALPART (value)) == REAL_CST
+		 && TREE_CODE (TREE_IMAGPART (value)) == REAL_CST)
+	  {
+	    write_real_cst (TREE_REALPART (value));
+	    write_char ('_');
+	    write_real_cst (TREE_IMAGPART (value));
+	  }
+	else
+	  gcc_unreachable ();
+	break;
 
-    default:
-      gcc_unreachable ();
-    }
+      case STRING_CST:
+	sorry ("string literal in function template signature");
+	break;
+
+      default:
+	gcc_unreachable ();
+      }
 
   write_char ('E');
 }
@@ -2812,12 +3012,28 @@ write_template_arg (tree node)
 	G.need_abi_warning = 1;
     }
 
+  if (TREE_CODE (node) == BASELINK
+      && !type_unknown_p (node))
+    {
+      if (abi_version_at_least (6))
+	node = BASELINK_FUNCTIONS (node);
+      else
+	/* We wrongly wrapped a class-scope function in X/E.  */
+	G.need_abi_warning = 1;
+    }
+
   if (ARGUMENT_PACK_P (node))
     {
       /* Expand the template argument pack. */
       tree args = ARGUMENT_PACK_ARGS (node);
       int i, length = TREE_VEC_LENGTH (args);
-      write_char ('I');
+      if (abi_version_at_least (6))
+	write_char ('J');
+      else
+	{
+	  write_char ('I');
+	  G.need_abi_warning = 1;
+	}
       for (i = 0; i < length; ++i)
         write_template_arg (TREE_VEC_ELT (args, i));
       write_char ('E');
@@ -2828,7 +3044,8 @@ write_template_arg (tree node)
     /* A template appearing as a template arg is a template template arg.  */
     write_template_template_arg (node);
   else if ((TREE_CODE_CLASS (code) == tcc_constant && code != PTRMEM_CST)
-	   || (abi_version_at_least (2) && code == CONST_DECL))
+	   || (abi_version_at_least (2) && code == CONST_DECL)
+	   || null_member_pointer_value_p (node))
     write_template_arg_literal (node);
   else if (DECL_P (node))
     {
@@ -3101,11 +3318,11 @@ mangle_decl_string (const tree decl)
   if (DECL_LANG_SPECIFIC (decl) && DECL_USE_TEMPLATE (decl))
     {
       struct tinst_level *tl = current_instantiation ();
-      if (!tl || tl->decl != decl)
+      if ((!tl || tl->decl != decl)
+	  && push_tinst_level (decl))
 	{
 	  template_p = true;
 	  saved_fn = current_function_decl;
-	  push_tinst_level (decl);
 	  current_function_decl = NULL_TREE;
 	}
     }
@@ -3133,16 +3350,41 @@ mangle_decl_string (const tree decl)
   return result;
 }
 
+/* Return an identifier for the external mangled name of DECL.  */
+
+static tree
+get_mangled_id (tree decl)
+{
+  tree id = mangle_decl_string (decl);
+  return targetm.mangle_decl_assembler_name (decl, id);
+}
+
 /* Create an identifier for the external mangled name of DECL.  */
 
 void
 mangle_decl (const tree decl)
 {
-  tree id = mangle_decl_string (decl);
-  id = targetm.mangle_decl_assembler_name (decl, id);
+  tree id;
+  bool dep;
+
+  /* Don't bother mangling uninstantiated templates.  */
+  ++processing_template_decl;
+  if (TREE_CODE (decl) == TYPE_DECL)
+    dep = dependent_type_p (TREE_TYPE (decl));
+  else
+    dep = (DECL_LANG_SPECIFIC (decl) && DECL_TEMPLATE_INFO (decl)
+	   && any_dependent_template_arguments_p (DECL_TI_ARGS (decl)));
+  --processing_template_decl;
+  if (dep)
+    return;
+
+  id = get_mangled_id (decl);
   SET_DECL_ASSEMBLER_NAME (decl, id);
 
-  if (G.need_abi_warning)
+  if (G.need_abi_warning
+      /* Don't do this for a fake symbol we aren't going to emit anyway.  */
+      && !DECL_MAYBE_IN_CHARGE_CONSTRUCTOR_P (decl)
+      && !DECL_MAYBE_IN_CHARGE_DESTRUCTOR_P (decl))
     {
 #ifdef ASM_OUTPUT_DEF
       /* If the mangling will change in the future, emit an alias with the
@@ -3153,8 +3395,8 @@ mangle_decl (const tree decl)
 
       SET_IDENTIFIER_GLOBAL_VALUE (id, decl);
       if (IDENTIFIER_GLOBAL_VALUE (id) != decl)
-	inform (DECL_SOURCE_LOCATION (decl), "-fabi-version=4 (or =0) "
-		"avoids this error with a change in vector mangling");
+	inform (DECL_SOURCE_LOCATION (decl), "-fabi-version=6 (or =0) "
+		"avoids this error with a change in mangling");
 
 #ifdef ASM_OUTPUT_DEF
       save_ver = flag_abi_version;
@@ -3451,12 +3693,17 @@ mangle_guard_variable (const tree variable)
    initialize a static reference.  This isn't part of the ABI, but we might
    as well call them something readable.  */
 
+static GTY(()) int temp_count;
+
 tree
 mangle_ref_init_variable (const tree variable)
 {
   start_mangling (variable);
   write_string ("_ZGR");
   write_name (variable, /*ignore_local_scope=*/0);
+  /* Avoid name clashes with aggregate initialization of multiple
+     references at once.  */
+  write_unsigned_number (temp_count++);
   return finish_mangling_get_identifier (/*warn=*/false);
 }
 

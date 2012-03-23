@@ -268,32 +268,9 @@ lto_varpool_replace_node (struct varpool_node *vnode,
       gcc_assert (!vnode->analyzed || prevailing_node->analyzed);
       varpool_mark_needed_node (prevailing_node);
     }
-  /* Relink aliases.  */
-  if (vnode->extra_name && !vnode->alias)
-    {
-      struct varpool_node *alias, *last;
-      for (alias = vnode->extra_name;
-	   alias; alias = alias->next)
-	{
-	  last = alias;
-	  alias->extra_name = prevailing_node;
-	}
-
-      if (prevailing_node->extra_name)
-	{
-	  last->next = prevailing_node->extra_name;
-	  prevailing_node->extra_name->prev = last;
-	}
-      prevailing_node->extra_name = vnode->extra_name;
-      vnode->extra_name = NULL;
-    }
   gcc_assert (!vnode->finalized || prevailing_node->finalized);
   gcc_assert (!vnode->analyzed || prevailing_node->analyzed);
 
-  /* When replacing by an alias, the references goes to the original
-     variable.  */
-  if (prevailing_node->alias && prevailing_node->extra_name)
-    prevailing_node = prevailing_node->extra_name;
   ipa_clone_refering (NULL, prevailing_node, &vnode->ref_list);
 
   /* Be sure we can garbage collect the initializer.  */
@@ -438,14 +415,11 @@ lto_symtab_resolve_can_prevail_p (lto_symtab_entry_t e)
   if (TREE_CODE (e->decl) == FUNCTION_DECL)
     return (e->node && e->node->analyzed);
 
-  /* A variable should have a size.  */
   else if (TREE_CODE (e->decl) == VAR_DECL)
     {
       if (!e->vnode)
 	return false;
-      if (e->vnode->finalized)
-	return true;
-      return e->vnode->alias && e->vnode->extra_name->finalized;
+      return e->vnode->finalized;
     }
 
   gcc_unreachable ();
@@ -464,15 +438,17 @@ lto_symtab_resolve_symbols (void **slot)
   for (e = (lto_symtab_entry_t) *slot; e; e = e->next)
     {
       if (TREE_CODE (e->decl) == FUNCTION_DECL)
-	e->node = cgraph_get_node_or_alias (e->decl);
+	e->node = cgraph_get_node (e->decl);
       else if (TREE_CODE (e->decl) == VAR_DECL)
 	e->vnode = varpool_get_node (e->decl);
+      if (e->resolution == LDPR_PREVAILING_DEF_IRONLY
+	  || e->resolution == LDPR_PREVAILING_DEF_IRONLY_EXP
+	  || e->resolution == LDPR_PREVAILING_DEF)
+	prevailing = e;
     }
 
-  e = (lto_symtab_entry_t) *slot;
-
   /* If the chain is already resolved there is nothing else to do.  */
-  if (e->resolution != LDPR_UNKNOWN)
+  if (prevailing)
     return;
 
   /* Find the single non-replaceable prevailing symbol and
@@ -612,6 +588,7 @@ lto_symtab_merge_decls_1 (void **slot, void *data ATTRIBUTE_UNUSED)
   for (prevailing = (lto_symtab_entry_t) *slot;
        prevailing
        && prevailing->resolution != LDPR_PREVAILING_DEF_IRONLY
+       && prevailing->resolution != LDPR_PREVAILING_DEF_IRONLY_EXP
        && prevailing->resolution != LDPR_PREVAILING_DEF;
        prevailing = prevailing->next)
     ;
@@ -621,6 +598,7 @@ lto_symtab_merge_decls_1 (void **slot, void *data ATTRIBUTE_UNUSED)
     for (e = prevailing->next; e; e = e->next)
       {
 	if (e->resolution == LDPR_PREVAILING_DEF_IRONLY
+	    || e->resolution == LDPR_PREVAILING_DEF_IRONLY_EXP
 	    || e->resolution == LDPR_PREVAILING_DEF)
 	  fatal_error ("multiple prevailing defs for %qE",
 		       DECL_NAME (prevailing->decl));
@@ -711,9 +689,9 @@ lto_symtab_merge_decls_1 (void **slot, void *data ATTRIBUTE_UNUSED)
      to handle UNKNOWN relocation well.
 
      The problem with storing guessed decision is whether to use
-     PREVAILING_DEF or PREVAILING_DEF_IRONLY.  First one would disable
-     some whole program optimizations, while ther second would imply
-     to many whole program assumptions.  */
+     PREVAILING_DEF, PREVAILING_DEF_IRONLY, PREVAILING_DEF_IRONLY_EXP.
+     First one would disable some whole program optimizations, while
+     ther second would imply to many whole program assumptions.  */
   if (prevailing->node && !flag_ltrans && !prevailing->guessed)
     prevailing->node->resolution = prevailing->resolution;
   else if (prevailing->vnode && !flag_ltrans && !prevailing->guessed)
@@ -779,6 +757,7 @@ void
 lto_symtab_merge_cgraph_nodes (void)
 {
   struct cgraph_node *node;
+  struct varpool_node *vnode;
   lto_symtab_maybe_init_hash_table ();
   htab_traverse (lto_symtab_identifiers, lto_symtab_merge_cgraph_nodes_1, NULL);
 
@@ -786,6 +765,9 @@ lto_symtab_merge_cgraph_nodes (void)
     if ((node->thunk.thunk_p || node->alias)
 	&& node->thunk.alias)
       node->thunk.alias = lto_symtab_prevailing_decl (node->thunk.alias);
+  for (vnode = varpool_nodes; vnode; vnode = vnode->next)
+    if (vnode->alias_of)
+      vnode->alias_of = lto_symtab_prevailing_decl (vnode->alias_of);
 }
 
 /* Given the decl DECL, return the prevailing decl with the same name. */

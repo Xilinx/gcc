@@ -1,5 +1,5 @@
 /* IRA hard register and memory cost calculation for allocnos or pseudos.
-   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Vladimir Makarov <vmakarov@redhat.com>.
 
@@ -232,20 +232,42 @@ setup_regno_cost_classes_by_aclass (int regno, enum reg_class aclass)
   int i;
   PTR *slot;
   HARD_REG_SET temp, temp2;
+  bool exclude_p;
 
   if ((classes_ptr = cost_classes_aclass_cache[aclass]) == NULL)
     {
       COPY_HARD_REG_SET (temp, reg_class_contents[aclass]);
       AND_COMPL_HARD_REG_SET (temp, ira_no_alloc_regs);
+      /* We exclude classes from consideration which are subsets of
+	 ACLASS only if ACLASS is a pressure class or subset of a
+	 pressure class.  It means by the definition of pressure classes
+	 that cost of moving between susbets of ACLASS is cheaper than
+	 load or store.  */
+      for (i = 0; i < ira_pressure_classes_num; i++)
+	{
+	  cl = ira_pressure_classes[i];
+	  if (cl == aclass)
+	    break;
+	  COPY_HARD_REG_SET (temp2, reg_class_contents[cl]);
+	  AND_COMPL_HARD_REG_SET (temp2, ira_no_alloc_regs);
+	  if (hard_reg_set_subset_p (temp, temp2))
+	    break;
+	}
+      exclude_p = i < ira_pressure_classes_num;
       classes.num = 0;
       for (i = 0; i < ira_important_classes_num; i++)
 	{
 	  cl = ira_important_classes[i];
-	  COPY_HARD_REG_SET (temp2, reg_class_contents[cl]);
-	  AND_COMPL_HARD_REG_SET (temp2, ira_no_alloc_regs);
-	  if (! ira_reg_pressure_class_p[cl]
-	      && hard_reg_set_subset_p (temp2, temp) && cl != aclass)
-	    continue;
+	  if (exclude_p)
+	    {
+	      /* Exclude no-pressure classes which are subsets of
+		 ACLASS.  */
+	      COPY_HARD_REG_SET (temp2, reg_class_contents[cl]);
+	      AND_COMPL_HARD_REG_SET (temp2, ira_no_alloc_regs);
+	      if (! ira_reg_pressure_class_p[cl]
+		  && hard_reg_set_subset_p (temp2, temp) && cl != aclass)
+		continue;
+	    }
 	  classes.classes[classes.num++] = cl;
 	}
       slot = htab_find_slot (cost_classes_htab, &classes, INSERT);
@@ -615,7 +637,8 @@ record_reg_classes (int n_alts, int n_ops, rtx *ops,
 		     base of an address, i.e. BASE_REG_CLASS.  */
 		  classes[i]
 		    = ira_reg_class_subunion[classes[i]]
-		      [base_reg_class (VOIDmode, ADDRESS, SCRATCH)];
+		      [base_reg_class (VOIDmode, ADDR_SPACE_GENERIC,
+				       ADDRESS, SCRATCH)];
 		  break;
 
 		case 'm':  case 'o':  case 'V':
@@ -730,7 +753,8 @@ record_reg_classes (int n_alts, int n_ops, rtx *ops,
 			 i.e. BASE_REG_CLASS.  */
 		      classes[i]
 			= ira_reg_class_subunion[classes[i]]
-			  [base_reg_class (VOIDmode, ADDRESS, SCRATCH)];
+			  [base_reg_class (VOIDmode, ADDR_SPACE_GENERIC,
+					   ADDRESS, SCRATCH)];
 		    }
 #endif
 		  break;
@@ -930,15 +954,15 @@ record_reg_classes (int n_alts, int n_ops, rtx *ops,
 	  enum machine_mode mode = GET_MODE (ops[!i]);
 	  cost_classes_t cost_classes_ptr = regno_cost_classes[regno];
 	  enum reg_class *cost_classes = cost_classes_ptr->classes;
-	  enum reg_class rclass;
+	  reg_class_t rclass;
 	  int nr;
 
 	  for (k = cost_classes_ptr->num - 1; k >= 0; k--)
 	    {
 	      rclass = cost_classes[k];
 	      if (TEST_HARD_REG_BIT (reg_class_contents[rclass], other_regno)
-		  && (reg_class_size[rclass]
-		      == (unsigned) CLASS_MAX_NREGS (rclass, mode)))
+		  && (reg_class_size[(int) rclass]
+		      == ira_reg_class_max_nregs [(int) rclass][(int) mode]))
 		{
 		  if (reg_class_size[rclass] == 1)
 		    op_costs[i]->cost[k] = -frequency;
@@ -974,14 +998,14 @@ ok_for_index_p_nonstrict (rtx reg)
    pseudo-registers should count as OK.  Arguments as for
    regno_ok_for_base_p.  */
 static inline bool
-ok_for_base_p_nonstrict (rtx reg, enum machine_mode mode,
+ok_for_base_p_nonstrict (rtx reg, enum machine_mode mode, addr_space_t as,
 			 enum rtx_code outer_code, enum rtx_code index_code)
 {
   unsigned regno = REGNO (reg);
 
   if (regno >= FIRST_PSEUDO_REGISTER)
     return true;
-  return ok_for_base_p_1 (regno, mode, outer_code, index_code);
+  return ok_for_base_p_1 (regno, mode, as, outer_code, index_code);
 }
 
 /* Record the pseudo registers we must reload into hard registers in a
@@ -990,16 +1014,16 @@ ok_for_base_p_nonstrict (rtx reg, enum machine_mode mode,
    If CONTEXT is 0, we are looking at the base part of an address,
    otherwise we are looking at the index part.
 
-   MODE is the mode of the memory reference; OUTER_CODE and INDEX_CODE
-   give the context that the rtx appears in.  These three arguments
-   are passed down to base_reg_class.
+   MODE and AS are the mode and address space of the memory reference;
+   OUTER_CODE and INDEX_CODE give the context that the rtx appears in.
+   These four arguments are passed down to base_reg_class.
 
    SCALE is twice the amount to multiply the cost by (it is twice so
    we can represent half-cost adjustments).  */
 static void
-record_address_regs (enum machine_mode mode, rtx x, int context,
-		     enum rtx_code outer_code, enum rtx_code index_code,
-		     int scale)
+record_address_regs (enum machine_mode mode, addr_space_t as, rtx x,
+		     int context, enum rtx_code outer_code,
+		     enum rtx_code index_code, int scale)
 {
   enum rtx_code code = GET_CODE (x);
   enum reg_class rclass;
@@ -1007,7 +1031,7 @@ record_address_regs (enum machine_mode mode, rtx x, int context,
   if (context == 1)
     rclass = INDEX_REG_CLASS;
   else
-    rclass = base_reg_class (mode, outer_code, index_code);
+    rclass = base_reg_class (mode, as, outer_code, index_code);
 
   switch (code)
     {
@@ -1046,67 +1070,68 @@ record_address_regs (enum machine_mode mode, rtx x, int context,
 	/* If this machine only allows one register per address, it
 	   must be in the first operand.  */
 	if (MAX_REGS_PER_ADDRESS == 1)
-	  record_address_regs (mode, arg0, 0, PLUS, code1, scale);
+	  record_address_regs (mode, as, arg0, 0, PLUS, code1, scale);
 
 	/* If index and base registers are the same on this machine,
 	   just record registers in any non-constant operands.  We
 	   assume here, as well as in the tests below, that all
 	   addresses are in canonical form.  */
-	else if (INDEX_REG_CLASS == base_reg_class (VOIDmode, PLUS, SCRATCH))
+	else if (INDEX_REG_CLASS
+		 == base_reg_class (VOIDmode, as, PLUS, SCRATCH))
 	  {
-	    record_address_regs (mode, arg0, context, PLUS, code1, scale);
+	    record_address_regs (mode, as, arg0, context, PLUS, code1, scale);
 	    if (! CONSTANT_P (arg1))
-	      record_address_regs (mode, arg1, context, PLUS, code0, scale);
+	      record_address_regs (mode, as, arg1, context, PLUS, code0, scale);
 	  }
 
 	/* If the second operand is a constant integer, it doesn't
 	   change what class the first operand must be.  */
 	else if (code1 == CONST_INT || code1 == CONST_DOUBLE)
-	  record_address_regs (mode, arg0, context, PLUS, code1, scale);
+	  record_address_regs (mode, as, arg0, context, PLUS, code1, scale);
 	/* If the second operand is a symbolic constant, the first
 	   operand must be an index register.  */
 	else if (code1 == SYMBOL_REF || code1 == CONST || code1 == LABEL_REF)
-	  record_address_regs (mode, arg0, 1, PLUS, code1, scale);
+	  record_address_regs (mode, as, arg0, 1, PLUS, code1, scale);
 	/* If both operands are registers but one is already a hard
 	   register of index or reg-base class, give the other the
 	   class that the hard register is not.  */
 	else if (code0 == REG && code1 == REG
 		 && REGNO (arg0) < FIRST_PSEUDO_REGISTER
-		 && (ok_for_base_p_nonstrict (arg0, mode, PLUS, REG)
+		 && (ok_for_base_p_nonstrict (arg0, mode, as, PLUS, REG)
 		     || ok_for_index_p_nonstrict (arg0)))
-	  record_address_regs (mode, arg1,
-			       ok_for_base_p_nonstrict (arg0, mode, PLUS, REG)
-			       ? 1 : 0,
+	  record_address_regs (mode, as, arg1,
+			       ok_for_base_p_nonstrict (arg0, mode, as,
+							PLUS, REG) ? 1 : 0,
 			       PLUS, REG, scale);
 	else if (code0 == REG && code1 == REG
 		 && REGNO (arg1) < FIRST_PSEUDO_REGISTER
-		 && (ok_for_base_p_nonstrict (arg1, mode, PLUS, REG)
+		 && (ok_for_base_p_nonstrict (arg1, mode, as, PLUS, REG)
 		     || ok_for_index_p_nonstrict (arg1)))
-	  record_address_regs (mode, arg0,
-			       ok_for_base_p_nonstrict (arg1, mode, PLUS, REG)
-			       ? 1 : 0,
+	  record_address_regs (mode, as, arg0,
+			       ok_for_base_p_nonstrict (arg1, mode, as,
+							PLUS, REG) ? 1 : 0,
 			       PLUS, REG, scale);
 	/* If one operand is known to be a pointer, it must be the
 	   base with the other operand the index.  Likewise if the
 	   other operand is a MULT.  */
 	else if ((code0 == REG && REG_POINTER (arg0)) || code1 == MULT)
 	  {
-	    record_address_regs (mode, arg0, 0, PLUS, code1, scale);
-	    record_address_regs (mode, arg1, 1, PLUS, code0, scale);
+	    record_address_regs (mode, as, arg0, 0, PLUS, code1, scale);
+	    record_address_regs (mode, as, arg1, 1, PLUS, code0, scale);
 	  }
 	else if ((code1 == REG && REG_POINTER (arg1)) || code0 == MULT)
 	  {
-	    record_address_regs (mode, arg0, 1, PLUS, code1, scale);
-	    record_address_regs (mode, arg1, 0, PLUS, code0, scale);
+	    record_address_regs (mode, as, arg0, 1, PLUS, code1, scale);
+	    record_address_regs (mode, as, arg1, 0, PLUS, code0, scale);
 	  }
 	/* Otherwise, count equal chances that each might be a base or
 	   index register.  This case should be rare.  */
 	else
 	  {
-	    record_address_regs (mode, arg0, 0, PLUS, code1, scale / 2);
-	    record_address_regs (mode, arg0, 1, PLUS, code1, scale / 2);
-	    record_address_regs (mode, arg1, 0, PLUS, code0, scale / 2);
-	    record_address_regs (mode, arg1, 1, PLUS, code0, scale / 2);
+	    record_address_regs (mode, as, arg0, 0, PLUS, code1, scale / 2);
+	    record_address_regs (mode, as, arg0, 1, PLUS, code1, scale / 2);
+	    record_address_regs (mode, as, arg1, 0, PLUS, code0, scale / 2);
+	    record_address_regs (mode, as, arg1, 1, PLUS, code0, scale / 2);
 	  }
       }
       break;
@@ -1116,10 +1141,10 @@ record_address_regs (enum machine_mode mode, rtx x, int context,
 	 up in the wrong place.  */
     case POST_MODIFY:
     case PRE_MODIFY:
-      record_address_regs (mode, XEXP (x, 0), 0, code,
+      record_address_regs (mode, as, XEXP (x, 0), 0, code,
 			   GET_CODE (XEXP (XEXP (x, 1), 1)), 2 * scale);
       if (REG_P (XEXP (XEXP (x, 1), 1)))
-	record_address_regs (mode, XEXP (XEXP (x, 1), 1), 1, code, REG,
+	record_address_regs (mode, as, XEXP (XEXP (x, 1), 1), 1, code, REG,
 			     2 * scale);
       break;
 
@@ -1130,7 +1155,7 @@ record_address_regs (enum machine_mode mode, rtx x, int context,
       /* Double the importance of an allocno that is incremented or
 	 decremented, since it would take two extra insns if it ends
 	 up in the wrong place.  */
-      record_address_regs (mode, XEXP (x, 0), 0, code, SCRATCH, 2 * scale);
+      record_address_regs (mode, as, XEXP (x, 0), 0, code, SCRATCH, 2 * scale);
       break;
 
     case REG:
@@ -1178,7 +1203,7 @@ record_address_regs (enum machine_mode mode, rtx x, int context,
 	int i;
 	for (i = GET_RTX_LENGTH (code) - 1; i >= 0; i--)
 	  if (fmt[i] == 'e')
-	    record_address_regs (mode, XEXP (x, i), context, code, SCRATCH,
+	    record_address_regs (mode, as, XEXP (x, i), context, code, SCRATCH,
 				 scale);
       }
     }
@@ -1214,13 +1239,15 @@ record_operand_costs (rtx insn, enum reg_class *pref)
 
       if (MEM_P (recog_data.operand[i]))
 	record_address_regs (GET_MODE (recog_data.operand[i]),
+			     MEM_ADDR_SPACE (recog_data.operand[i]),
 			     XEXP (recog_data.operand[i], 0),
 			     0, MEM, SCRATCH, frequency * 2);
       else if (constraints[i][0] == 'p'
 	       || EXTRA_ADDRESS_CONSTRAINT (constraints[i][0],
 					    constraints[i]))
-	record_address_regs (VOIDmode, recog_data.operand[i], 0, ADDRESS,
-			     SCRATCH, frequency * 2);
+	record_address_regs (VOIDmode, ADDR_SPACE_GENERIC,
+			     recog_data.operand[i], 0, ADDRESS, SCRATCH,
+			     frequency * 2);
     }
   
   /* Check for commutative in a separate loop so everything will have
@@ -1279,14 +1306,21 @@ scan_one_insn (rtx insn)
 
      Similarly if we're loading other constants from memory (constant
      pool, TOC references, small data areas, etc) and this is the only
-     assignment to the destination pseudo.  */
+     assignment to the destination pseudo.
+
+     Don't do this if SET_SRC (set) isn't a general operand, if it is
+     a memory requiring special instructions to load it, decreasing
+     mem_cost might result in it being loaded using the specialized
+     instruction into a register, then stored into stack and loaded
+     again from the stack.  See PR52208.  */
   if (set != 0 && REG_P (SET_DEST (set)) && MEM_P (SET_SRC (set))
       && (note = find_reg_note (insn, REG_EQUIV, NULL_RTX)) != NULL_RTX
       && ((MEM_P (XEXP (note, 0)))
 	  || (CONSTANT_P (XEXP (note, 0))
 	      && targetm.legitimate_constant_p (GET_MODE (SET_DEST (set)),
 						XEXP (note, 0))
-	      && REG_N_SETS (REGNO (SET_DEST (set))) == 1)))
+	      && REG_N_SETS (REGNO (SET_DEST (set))) == 1))
+      && general_operand (SET_SRC (set), GET_MODE (SET_SRC (set))))
     {
       enum reg_class cl = GENERAL_REGS;
       rtx reg = SET_DEST (set);
@@ -1294,8 +1328,10 @@ scan_one_insn (rtx insn)
 
       COSTS (costs, num)->mem_cost
 	-= ira_memory_move_cost[GET_MODE (reg)][cl][1] * frequency;
-      record_address_regs (GET_MODE (SET_SRC (set)), XEXP (SET_SRC (set), 0),
-			   0, MEM, SCRATCH, frequency * 2);
+      record_address_regs (GET_MODE (SET_SRC (set)),
+			   MEM_ADDR_SPACE (SET_SRC (set)),
+			   XEXP (SET_SRC (set), 0), 0, MEM, SCRATCH,
+			   frequency * 2);
       counted_mem = true;
     }
 
@@ -1362,7 +1398,7 @@ print_allocno_costs (FILE *f)
       if ((bb = ALLOCNO_LOOP_TREE_NODE (a)->bb) != NULL)
 	fprintf (f, "b%d", bb->index);
       else
-	fprintf (f, "l%d", ALLOCNO_LOOP_TREE_NODE (a)->loop->num);
+	fprintf (f, "l%d", ALLOCNO_LOOP_TREE_NODE (a)->loop_num);
       fprintf (f, ") costs:");
       for (k = 0; k < cost_classes_ptr->num; k++)
 	{
@@ -1664,7 +1700,14 @@ find_costs_and_classes (FILE *dump_file)
 	      else if (i_costs[k] == best_cost)
 		best = ira_reg_class_subunion[best][rclass];
 	      if (pass == flag_expensive_optimizations
-		  && i_costs[k] < i_mem_cost
+		  /* We still prefer registers to memory even at this
+		     stage if their costs are the same.  We will make
+		     a final decision during assigning hard registers
+		     when we have all info including more accurate
+		     costs which might be affected by assigning hard
+		     registers to other pseudos because the pseudos
+		     involved in moves can be coalesced.  */
+		  && i_costs[k] <= i_mem_cost
 		  && (reg_class_size[reg_class_subunion[alt_class][rclass]]
 		      > reg_class_size[alt_class]))
 		alt_class = reg_class_subunion[alt_class][rclass];
@@ -1753,7 +1796,7 @@ find_costs_and_classes (FILE *dump_file)
 		    fprintf (dump_file, "b%d", bb->index);
 		  else
 		    fprintf (dump_file, "l%d",
-			     ALLOCNO_LOOP_TREE_NODE (a)->loop->num);
+			     ALLOCNO_LOOP_TREE_NODE (a)->loop_num);
 		  fprintf (dump_file, ") best %s, allocno %s\n",
 			   reg_class_names[best],
 			   reg_class_names[regno_aclass[i]]);
@@ -2072,9 +2115,9 @@ ira_tune_allocno_costs (void)
 	      skip_p = false;
 	      FOR_EACH_ALLOCNO_OBJECT (a, obj, oi)
 		{
-		  if (! ira_hard_reg_not_in_set_p (regno, mode,
-						   OBJECT_CONFLICT_HARD_REGS
-						   (obj)))
+		  if (ira_hard_reg_set_intersection_p (regno, mode,
+						       OBJECT_CONFLICT_HARD_REGS
+						       (obj)))
 		    {
 		      skip_p = true;
 		      break;
@@ -2084,7 +2127,7 @@ ira_tune_allocno_costs (void)
 		continue;
 	      rclass = REGNO_REG_CLASS (regno);
 	      cost = 0;
-	      if (! ira_hard_reg_not_in_set_p (regno, mode, call_used_reg_set)
+	      if (ira_hard_reg_set_intersection_p (regno, mode, call_used_reg_set)
 		  || HARD_REGNO_CALL_PART_CLOBBERED (regno, mode))
 		cost += (ALLOCNO_CALL_FREQ (a)
 			 * (ira_memory_move_cost[mode][rclass][0]

@@ -1,5 +1,6 @@
 /* Common block and equivalence list handling
-   Copyright (C) 2000, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2000, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011, 2012
    Free Software Foundation, Inc.
    Contributed by Canqun Yang <canqun@nudt.edu.cn>
 
@@ -243,7 +244,7 @@ gfc_sym_mangled_common_id (gfc_common_head *com)
   strcpy (name, com->name);
 
   /* If we're suppose to do a bind(c).  */
-  if (com->is_bind_c == 1 && com->binding_label[0] != '\0')
+  if (com->is_bind_c == 1 && com->binding_label)
     return get_identifier (com->binding_label);
 
   if (strcmp (name, BLANK_COMMON_NAME) == 0)
@@ -390,14 +391,20 @@ build_common_decl (gfc_common_head *com, tree union_type, bool is_init)
   if (decl != NULL_TREE)
     {
       tree size = TYPE_SIZE_UNIT (union_type);
+
+      /* Named common blocks of the same name shall be of the same size
+	 in all scoping units of a program in which they appear, but
+	 blank common blocks may be of different sizes.  */
+      if (!tree_int_cst_equal (DECL_SIZE_UNIT (decl), size)
+	  && strcmp (com->name, BLANK_COMMON_NAME))
+	gfc_warning ("Named COMMON block '%s' at %L shall be of the "
+		     "same size as elsewhere (%lu vs %lu bytes)", com->name,
+		     &com->where,
+		     (unsigned long) TREE_INT_CST_LOW (size),
+		     (unsigned long) TREE_INT_CST_LOW (DECL_SIZE_UNIT (decl)));
+
       if (tree_int_cst_lt (DECL_SIZE_UNIT (decl), size))
-        {
-	  /* Named common blocks of the same name shall be of the same size
-	     in all scoping units of a program in which they appear, but
-	     blank common blocks may be of different sizes.  */
-	  if (strcmp (com->name, BLANK_COMMON_NAME))
-	    gfc_warning ("Named COMMON block '%s' at %L shall be of the "
-			 "same size", com->name, &com->where);
+	{
 	  DECL_SIZE (decl) = TYPE_SIZE (union_type);
 	  DECL_SIZE_UNIT (decl) = size;
 	  DECL_MODE (decl) = TYPE_MODE (union_type);
@@ -683,7 +690,9 @@ create_common (gfc_common_head *com, segment_info *head, bool saw_equiv)
 			     VAR_DECL, DECL_NAME (s->field),
 			     TREE_TYPE (s->field));
       TREE_STATIC (var_decl) = TREE_STATIC (decl);
-      TREE_USED (var_decl) = TREE_USED (decl);
+      /* Mark the variable as used in order to avoid warnings about
+	 unused variables.  */
+      TREE_USED (var_decl) = 1;
       if (s->sym->attr.use_assoc)
 	DECL_IGNORED_P (var_decl) = 1;
       if (s->sym->attr.target)
@@ -1061,14 +1070,12 @@ translate_common (gfc_common_head *common, gfc_symbol *var_list)
   HOST_WIDE_INT offset;
   HOST_WIDE_INT current_offset;
   unsigned HOST_WIDE_INT align;
-  unsigned HOST_WIDE_INT max_align;
   bool saw_equiv;
 
   common_segment = NULL;
   offset = 0;
   current_offset = 0;
   align = 1;
-  max_align = 1;
   saw_equiv = false;
 
   /* Add symbols to the segment.  */
@@ -1111,7 +1118,7 @@ translate_common (gfc_common_head *common, gfc_symbol *var_list)
 	  if (gfc_option.flag_align_commons)
 	    offset = align_segment (&align);
 
-	  if (offset & (max_align - 1))
+	  if (offset)
 	    {
 	      /* The required offset conflicts with previous alignment
 		 requirements.  Insert padding immediately before this
@@ -1134,8 +1141,6 @@ translate_common (gfc_common_head *common, gfc_symbol *var_list)
 	  /* Apply the offset to the new segments.  */
 	  apply_segment_offset (current_segment, offset);
 	  current_offset += offset;
-	  if (max_align < align)
-	    max_align = align;
 
 	  /* Add the new segments to the common block.  */
 	  common_segment = add_segments (common_segment, current_segment);
@@ -1155,11 +1160,11 @@ translate_common (gfc_common_head *common, gfc_symbol *var_list)
   if (common_segment->offset != 0 && gfc_option.warn_align_commons)
     {
       if (strcmp (common->name, BLANK_COMMON_NAME))
-	gfc_warning ("COMMON '%s' at %L requires %d bytes of padding at start; "
+	gfc_warning ("COMMON '%s' at %L requires %d bytes of padding; "
 		     "reorder elements or use -fno-align-commons",
 		     common->name, &common->where, (int)common_segment->offset);
       else
-	gfc_warning ("COMMON at %L requires %d bytes of padding at start; "
+	gfc_warning ("COMMON at %L requires %d bytes of padding; "
 		     "reorder elements or use -fno-align-commons",
 		     &common->where, (int)common_segment->offset);
     }

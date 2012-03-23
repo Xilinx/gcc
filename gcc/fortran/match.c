@@ -1,6 +1,6 @@
 /* Matching subroutines in all sizes, shapes and colors.
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010, 2011
+   2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -26,6 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gfortran.h"
 #include "match.h"
 #include "parse.h"
+#include "tree.h"
 
 int gfc_matching_ptr_assignment = 0;
 int gfc_matching_procptr_assignment = 0;
@@ -571,22 +572,22 @@ gfc_match_name (char *buffer)
 /* Match a valid name for C, which is almost the same as for Fortran,
    except that you can start with an underscore, etc..  It could have
    been done by modifying the gfc_match_name, but this way other
-   things C allows can be added, such as no limits on the length.
-   Right now, the length is limited to the same thing as Fortran..
+   things C allows can be done, such as no limits on the length.
    Also, by rewriting it, we use the gfc_next_char_C() to prevent the
    input characters from being automatically lower cased, since C is
    case sensitive.  The parameter, buffer, is used to return the name
-   that is matched.  Return MATCH_ERROR if the name is too long
-   (though this is a self-imposed limit), MATCH_NO if what we're
-   seeing isn't a name, and MATCH_YES if we successfully match a C
-   name.  */
+   that is matched.  Return MATCH_ERROR if the name is not a valid C
+   name, MATCH_NO if what we're seeing isn't a name, and MATCH_YES if
+   we successfully match a C name.  */
 
 match
-gfc_match_name_C (char *buffer)
+gfc_match_name_C (const char **buffer)
 {
   locus old_loc;
-  int i = 0;
+  size_t i = 0;
   gfc_char_t c;
+  char* buf;
+  size_t cursz = 16; 
 
   old_loc = gfc_current_locus;
   gfc_gobble_whitespace ();
@@ -600,7 +601,6 @@ gfc_match_name_C (char *buffer)
      symbol name, all lowercase.  */
   if (c == '"' || c == '\'')
     {
-      buffer[0] = '\0';
       gfc_current_locus = old_loc;
       return MATCH_YES;
     }
@@ -611,24 +611,19 @@ gfc_match_name_C (char *buffer)
       return MATCH_ERROR;
     }
 
+  buf = XNEWVEC (char, cursz);
   /* Continue to read valid variable name characters.  */
   do
     {
       gcc_assert (gfc_wide_fits_in_byte (c));
 
-      buffer[i++] = (unsigned char) c;
-      
-    /* C does not define a maximum length of variable names, to my
-       knowledge, but the compiler typically places a limit on them.
-       For now, i'll use the same as the fortran limit for simplicity,
-       but this may need to be changed to a dynamic buffer that can
-       be realloc'ed here if necessary, or more likely, a larger
-       upper-bound set.  */
-      if (i > gfc_option.max_identifier_length)
-        {
-          gfc_error ("Name at %C is too long");
-          return MATCH_ERROR;
-        }
+      buf[i++] = (unsigned char) c;
+
+      if (i >= cursz)
+	{
+	  cursz *= 2;
+	  buf = XRESIZEVEC (char, buf, cursz);
+	}
       
       old_loc = gfc_current_locus;
       
@@ -636,7 +631,11 @@ gfc_match_name_C (char *buffer)
       c = gfc_next_char_literal (INSTRING_WARN);
     } while (ISALNUM (c) || c == '_');
 
-  buffer[i] = '\0';
+  /* The binding label will be needed later anyway, so just insert it
+     into the symbol table.  */
+  buf[i] = '\0';
+  *buffer = IDENTIFIER_POINTER (get_identifier (buf));
+  XDELETEVEC (buf);
   gfc_current_locus = old_loc;
 
   /* See if we stopped because of whitespace.  */
@@ -1748,6 +1747,13 @@ gfc_match_critical (void)
       return MATCH_ERROR;
     }
 
+  if (gfc_find_state (COMP_DO_CONCURRENT) == SUCCESS)
+    {
+      gfc_error ("Image control statement CRITICAL at %C in DO CONCURRENT "
+		 "block");
+      return MATCH_ERROR;
+    }
+
   if (gfc_implicit_pure (NULL))
     gfc_current_ns->proc_name->attr.implicit_pure = 0;
 
@@ -1893,6 +1899,439 @@ error:
 }
 
 
+/* Match a Fortran 2003 derived-type-spec (F03:R455), which is just the name of
+   an accessible derived type.  */
+
+static match
+match_derived_type_spec (gfc_typespec *ts)
+{
+  char name[GFC_MAX_SYMBOL_LEN + 1];
+  locus old_locus; 
+  gfc_symbol *derived;
+
+  old_locus = gfc_current_locus;
+
+  if (gfc_match ("%n", name) != MATCH_YES)
+    {
+       gfc_current_locus = old_locus;
+       return MATCH_NO;
+    }
+
+  gfc_find_symbol (name, NULL, 1, &derived);
+
+  if (derived && derived->attr.flavor == FL_PROCEDURE && derived->attr.generic)
+    derived = gfc_find_dt_in_generic (derived);
+
+  if (derived && derived->attr.flavor == FL_DERIVED)
+    {
+      ts->type = BT_DERIVED;
+      ts->u.derived = derived;
+      return MATCH_YES;
+    }
+
+  gfc_current_locus = old_locus; 
+  return MATCH_NO;
+}
+
+
+/* Match a Fortran 2003 type-spec (F03:R401).  This is similar to
+   gfc_match_decl_type_spec() from decl.c, with the following exceptions:
+   It only includes the intrinsic types from the Fortran 2003 standard
+   (thus, neither BYTE nor forms like REAL*4 are allowed). Additionally,
+   the implicit_flag is not needed, so it was removed. Derived types are
+   identified by their name alone.  */
+
+static match
+match_type_spec (gfc_typespec *ts)
+{
+  match m;
+  locus old_locus;
+
+  gfc_clear_ts (ts);
+  gfc_gobble_whitespace ();
+  old_locus = gfc_current_locus;
+
+  if (match_derived_type_spec (ts) == MATCH_YES)
+    {
+      /* Enforce F03:C401.  */
+      if (ts->u.derived->attr.abstract)
+	{
+	  gfc_error ("Derived type '%s' at %L may not be ABSTRACT",
+		     ts->u.derived->name, &old_locus);
+	  return MATCH_ERROR;
+	}
+      return MATCH_YES;
+    }
+
+  if (gfc_match ("integer") == MATCH_YES)
+    {
+      ts->type = BT_INTEGER;
+      ts->kind = gfc_default_integer_kind;
+      goto kind_selector;
+    }
+
+  if (gfc_match ("real") == MATCH_YES)
+    {
+      ts->type = BT_REAL;
+      ts->kind = gfc_default_real_kind;
+      goto kind_selector;
+    }
+
+  if (gfc_match ("double precision") == MATCH_YES)
+    {
+      ts->type = BT_REAL;
+      ts->kind = gfc_default_double_kind;
+      return MATCH_YES;
+    }
+
+  if (gfc_match ("complex") == MATCH_YES)
+    {
+      ts->type = BT_COMPLEX;
+      ts->kind = gfc_default_complex_kind;
+      goto kind_selector;
+    }
+
+  if (gfc_match ("character") == MATCH_YES)
+    {
+      ts->type = BT_CHARACTER;
+
+      m = gfc_match_char_spec (ts);
+
+      if (m == MATCH_NO)
+	m = MATCH_YES;
+
+      return m;
+    }
+
+  if (gfc_match ("logical") == MATCH_YES)
+    {
+      ts->type = BT_LOGICAL;
+      ts->kind = gfc_default_logical_kind;
+      goto kind_selector;
+    }
+
+  /* If a type is not matched, simply return MATCH_NO.  */
+  gfc_current_locus = old_locus;
+  return MATCH_NO;
+
+kind_selector:
+
+  gfc_gobble_whitespace ();
+  if (gfc_peek_ascii_char () == '*')
+    {
+      gfc_error ("Invalid type-spec at %C");
+      return MATCH_ERROR;
+    }
+
+  m = gfc_match_kind_spec (ts, false);
+
+  if (m == MATCH_NO)
+    m = MATCH_YES;		/* No kind specifier found.  */
+
+  return m;
+}
+
+
+/******************** FORALL subroutines ********************/
+
+/* Free a list of FORALL iterators.  */
+
+void
+gfc_free_forall_iterator (gfc_forall_iterator *iter)
+{
+  gfc_forall_iterator *next;
+
+  while (iter)
+    {
+      next = iter->next;
+      gfc_free_expr (iter->var);
+      gfc_free_expr (iter->start);
+      gfc_free_expr (iter->end);
+      gfc_free_expr (iter->stride);
+      free (iter);
+      iter = next;
+    }
+}
+
+
+/* Match an iterator as part of a FORALL statement.  The format is:
+
+     <var> = <start>:<end>[:<stride>]
+
+   On MATCH_NO, the caller tests for the possibility that there is a
+   scalar mask expression.  */
+
+static match
+match_forall_iterator (gfc_forall_iterator **result)
+{
+  gfc_forall_iterator *iter;
+  locus where;
+  match m;
+
+  where = gfc_current_locus;
+  iter = XCNEW (gfc_forall_iterator);
+
+  m = gfc_match_expr (&iter->var);
+  if (m != MATCH_YES)
+    goto cleanup;
+
+  if (gfc_match_char ('=') != MATCH_YES
+      || iter->var->expr_type != EXPR_VARIABLE)
+    {
+      m = MATCH_NO;
+      goto cleanup;
+    }
+
+  m = gfc_match_expr (&iter->start);
+  if (m != MATCH_YES)
+    goto cleanup;
+
+  if (gfc_match_char (':') != MATCH_YES)
+    goto syntax;
+
+  m = gfc_match_expr (&iter->end);
+  if (m == MATCH_NO)
+    goto syntax;
+  if (m == MATCH_ERROR)
+    goto cleanup;
+
+  if (gfc_match_char (':') == MATCH_NO)
+    iter->stride = gfc_get_int_expr (gfc_default_integer_kind, NULL, 1);
+  else
+    {
+      m = gfc_match_expr (&iter->stride);
+      if (m == MATCH_NO)
+	goto syntax;
+      if (m == MATCH_ERROR)
+	goto cleanup;
+    }
+
+  /* Mark the iteration variable's symbol as used as a FORALL index.  */
+  iter->var->symtree->n.sym->forall_index = true;
+
+  *result = iter;
+  return MATCH_YES;
+
+syntax:
+  gfc_error ("Syntax error in FORALL iterator at %C");
+  m = MATCH_ERROR;
+
+cleanup:
+
+  gfc_current_locus = where;
+  gfc_free_forall_iterator (iter);
+  return m;
+}
+
+
+/* Match the header of a FORALL statement.  */
+
+static match
+match_forall_header (gfc_forall_iterator **phead, gfc_expr **mask)
+{
+  gfc_forall_iterator *head, *tail, *new_iter;
+  gfc_expr *msk;
+  match m;
+
+  gfc_gobble_whitespace ();
+
+  head = tail = NULL;
+  msk = NULL;
+
+  if (gfc_match_char ('(') != MATCH_YES)
+    return MATCH_NO;
+
+  m = match_forall_iterator (&new_iter);
+  if (m == MATCH_ERROR)
+    goto cleanup;
+  if (m == MATCH_NO)
+    goto syntax;
+
+  head = tail = new_iter;
+
+  for (;;)
+    {
+      if (gfc_match_char (',') != MATCH_YES)
+	break;
+
+      m = match_forall_iterator (&new_iter);
+      if (m == MATCH_ERROR)
+	goto cleanup;
+
+      if (m == MATCH_YES)
+	{
+	  tail->next = new_iter;
+	  tail = new_iter;
+	  continue;
+	}
+
+      /* Have to have a mask expression.  */
+
+      m = gfc_match_expr (&msk);
+      if (m == MATCH_NO)
+	goto syntax;
+      if (m == MATCH_ERROR)
+	goto cleanup;
+
+      break;
+    }
+
+  if (gfc_match_char (')') == MATCH_NO)
+    goto syntax;
+
+  *phead = head;
+  *mask = msk;
+  return MATCH_YES;
+
+syntax:
+  gfc_syntax_error (ST_FORALL);
+
+cleanup:
+  gfc_free_expr (msk);
+  gfc_free_forall_iterator (head);
+
+  return MATCH_ERROR;
+}
+
+/* Match the rest of a simple FORALL statement that follows an 
+   IF statement.  */
+
+static match
+match_simple_forall (void)
+{
+  gfc_forall_iterator *head;
+  gfc_expr *mask;
+  gfc_code *c;
+  match m;
+
+  mask = NULL;
+  head = NULL;
+  c = NULL;
+
+  m = match_forall_header (&head, &mask);
+
+  if (m == MATCH_NO)
+    goto syntax;
+  if (m != MATCH_YES)
+    goto cleanup;
+
+  m = gfc_match_assignment ();
+
+  if (m == MATCH_ERROR)
+    goto cleanup;
+  if (m == MATCH_NO)
+    {
+      m = gfc_match_pointer_assignment ();
+      if (m == MATCH_ERROR)
+	goto cleanup;
+      if (m == MATCH_NO)
+	goto syntax;
+    }
+
+  c = gfc_get_code ();
+  *c = new_st;
+  c->loc = gfc_current_locus;
+
+  if (gfc_match_eos () != MATCH_YES)
+    goto syntax;
+
+  gfc_clear_new_st ();
+  new_st.op = EXEC_FORALL;
+  new_st.expr1 = mask;
+  new_st.ext.forall_iterator = head;
+  new_st.block = gfc_get_code ();
+
+  new_st.block->op = EXEC_FORALL;
+  new_st.block->next = c;
+
+  return MATCH_YES;
+
+syntax:
+  gfc_syntax_error (ST_FORALL);
+
+cleanup:
+  gfc_free_forall_iterator (head);
+  gfc_free_expr (mask);
+
+  return MATCH_ERROR;
+}
+
+
+/* Match a FORALL statement.  */
+
+match
+gfc_match_forall (gfc_statement *st)
+{
+  gfc_forall_iterator *head;
+  gfc_expr *mask;
+  gfc_code *c;
+  match m0, m;
+
+  head = NULL;
+  mask = NULL;
+  c = NULL;
+
+  m0 = gfc_match_label ();
+  if (m0 == MATCH_ERROR)
+    return MATCH_ERROR;
+
+  m = gfc_match (" forall");
+  if (m != MATCH_YES)
+    return m;
+
+  m = match_forall_header (&head, &mask);
+  if (m == MATCH_ERROR)
+    goto cleanup;
+  if (m == MATCH_NO)
+    goto syntax;
+
+  if (gfc_match_eos () == MATCH_YES)
+    {
+      *st = ST_FORALL_BLOCK;
+      new_st.op = EXEC_FORALL;
+      new_st.expr1 = mask;
+      new_st.ext.forall_iterator = head;
+      return MATCH_YES;
+    }
+
+  m = gfc_match_assignment ();
+  if (m == MATCH_ERROR)
+    goto cleanup;
+  if (m == MATCH_NO)
+    {
+      m = gfc_match_pointer_assignment ();
+      if (m == MATCH_ERROR)
+	goto cleanup;
+      if (m == MATCH_NO)
+	goto syntax;
+    }
+
+  c = gfc_get_code ();
+  *c = new_st;
+  c->loc = gfc_current_locus;
+
+  gfc_clear_new_st ();
+  new_st.op = EXEC_FORALL;
+  new_st.expr1 = mask;
+  new_st.ext.forall_iterator = head;
+  new_st.block = gfc_get_code ();
+  new_st.block->op = EXEC_FORALL;
+  new_st.block->next = c;
+
+  *st = ST_FORALL;
+  return MATCH_YES;
+
+syntax:
+  gfc_syntax_error (ST_FORALL);
+
+cleanup:
+  gfc_free_forall_iterator (head);
+  gfc_free_expr (mask);
+  gfc_free_statements (c);
+  return MATCH_NO;
+}
+
+
 /* Match a DO statement.  */
 
 match
@@ -1936,6 +2375,46 @@ gfc_match_do (void)
   
   if (gfc_match_parens () == MATCH_ERROR)
     return MATCH_ERROR;
+
+  if (gfc_match (" concurrent") == MATCH_YES)
+    {
+      gfc_forall_iterator *head;
+      gfc_expr *mask;
+
+      if (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: DO CONCURRENT "
+			   "construct at %C") == FAILURE)
+	return MATCH_ERROR;
+
+
+      mask = NULL;
+      head = NULL;
+      m = match_forall_header (&head, &mask);
+
+      if (m == MATCH_NO)
+	return m;
+      if (m == MATCH_ERROR)
+	goto concurr_cleanup;
+
+      if (gfc_match_eos () != MATCH_YES)
+	goto concurr_cleanup;
+
+      if (label != NULL
+	   && gfc_reference_st_label (label, ST_LABEL_TARGET) == FAILURE)
+	goto concurr_cleanup;
+
+      new_st.label1 = label;
+      new_st.op = EXEC_DO_CONCURRENT;
+      new_st.expr1 = mask;
+      new_st.ext.forall_iterator = head;
+
+      return MATCH_YES;
+
+concurr_cleanup:
+      gfc_syntax_error (ST_DO);
+      gfc_free_expr (mask);
+      gfc_free_forall_iterator (head);
+      return MATCH_ERROR;
+    }
 
   /* See if we have a DO WHILE.  */
   if (gfc_match (" while ( %e )%t", &iter.end) == MATCH_YES)
@@ -2052,7 +2531,17 @@ match_exit_cycle (gfc_statement st, gfc_exec_op op)
 		  gfc_ascii_statement (st));
 	return MATCH_ERROR;
       }
-    else if ((sym && sym == p->sym) || (!sym && p->state == COMP_DO))
+    else if (p->state == COMP_DO_CONCURRENT
+	     && (op == EXEC_EXIT || (sym && sym != p->sym)))
+      {
+	/* F2008, C821 & C845.  */
+	gfc_error("%s statement at %C leaves DO CONCURRENT construct",
+		  gfc_ascii_statement (st));
+	return MATCH_ERROR;
+      }
+    else if ((sym && sym == p->sym)
+	     || (!sym && (p->state == COMP_DO
+			  || p->state == COMP_DO_CONCURRENT)))
       break;
 
   if (p == NULL)
@@ -2071,6 +2560,7 @@ match_exit_cycle (gfc_statement st, gfc_exec_op op)
   switch (p->state)
     {
     case COMP_DO:
+    case COMP_DO_CONCURRENT:
       break;
 
     case COMP_CRITICAL:
@@ -2202,6 +2692,11 @@ gfc_match_stopcode (gfc_statement st)
       gfc_error ("Image control statement STOP at %C in CRITICAL block");
       goto cleanup;
     }
+  if (st == ST_STOP && gfc_find_state (COMP_DO_CONCURRENT) == SUCCESS)
+    {
+      gfc_error ("Image control statement STOP at %C in DO CONCURRENT block");
+      goto cleanup;
+    }
 
   if (e != NULL)
     {
@@ -2325,7 +2820,8 @@ lock_unlock_statement (gfc_statement st)
 
   if (gfc_pure (NULL))
     {
-      gfc_error ("Image control statement SYNC at %C in PURE procedure");
+      gfc_error ("Image control statement %s at %C in PURE procedure",
+		 st == ST_LOCK ? "LOCK" : "UNLOCK");
       return MATCH_ERROR;
     }
 
@@ -2340,7 +2836,15 @@ lock_unlock_statement (gfc_statement st)
 
   if (gfc_find_state (COMP_CRITICAL) == SUCCESS)
     {
-      gfc_error ("Image control statement SYNC at %C in CRITICAL block");
+      gfc_error ("Image control statement %s at %C in CRITICAL block",
+		 st == ST_LOCK ? "LOCK" : "UNLOCK");
+      return MATCH_ERROR;
+    }
+
+  if (gfc_find_state (COMP_DO_CONCURRENT) == SUCCESS)
+    {
+      gfc_error ("Image control statement %s at %C in DO CONCURRENT block",
+		 st == ST_LOCK ? "LOCK" : "UNLOCK");
       return MATCH_ERROR;
     }
 
@@ -2529,6 +3033,12 @@ sync_statement (gfc_statement st)
   if (gfc_find_state (COMP_CRITICAL) == SUCCESS)
     {
       gfc_error ("Image control statement SYNC at %C in CRITICAL block");
+      return MATCH_ERROR;
+    }
+
+  if (gfc_find_state (COMP_DO_CONCURRENT) == SUCCESS)
+    {
+      gfc_error ("Image control statement SYNC at %C in DO CONCURRENT block");
       return MATCH_ERROR;
     }
 
@@ -2905,136 +3415,6 @@ gfc_free_alloc_list (gfc_alloc *p)
 }
 
 
-/* Match a Fortran 2003 derived-type-spec (F03:R455), which is just the name of
-   an accessible derived type.  */
-
-static match
-match_derived_type_spec (gfc_typespec *ts)
-{
-  char name[GFC_MAX_SYMBOL_LEN + 1];
-  locus old_locus; 
-  gfc_symbol *derived;
-
-  old_locus = gfc_current_locus;
-
-  if (gfc_match ("%n", name) != MATCH_YES)
-    {
-       gfc_current_locus = old_locus;
-       return MATCH_NO;
-    }
-
-  gfc_find_symbol (name, NULL, 1, &derived);
-
-  if (derived && derived->attr.flavor == FL_DERIVED)
-    {
-      ts->type = BT_DERIVED;
-      ts->u.derived = derived;
-      return MATCH_YES;
-    }
-
-  gfc_current_locus = old_locus; 
-  return MATCH_NO;
-}
-
-
-/* Match a Fortran 2003 type-spec (F03:R401).  This is similar to
-   gfc_match_decl_type_spec() from decl.c, with the following exceptions:
-   It only includes the intrinsic types from the Fortran 2003 standard
-   (thus, neither BYTE nor forms like REAL*4 are allowed). Additionally,
-   the implicit_flag is not needed, so it was removed. Derived types are
-   identified by their name alone.  */
-
-static match
-match_type_spec (gfc_typespec *ts)
-{
-  match m;
-  locus old_locus;
-
-  gfc_clear_ts (ts);
-  gfc_gobble_whitespace ();
-  old_locus = gfc_current_locus;
-
-  if (match_derived_type_spec (ts) == MATCH_YES)
-    {
-      /* Enforce F03:C401.  */
-      if (ts->u.derived->attr.abstract)
-	{
-	  gfc_error ("Derived type '%s' at %L may not be ABSTRACT",
-		     ts->u.derived->name, &old_locus);
-	  return MATCH_ERROR;
-	}
-      return MATCH_YES;
-    }
-
-  if (gfc_match ("integer") == MATCH_YES)
-    {
-      ts->type = BT_INTEGER;
-      ts->kind = gfc_default_integer_kind;
-      goto kind_selector;
-    }
-
-  if (gfc_match ("real") == MATCH_YES)
-    {
-      ts->type = BT_REAL;
-      ts->kind = gfc_default_real_kind;
-      goto kind_selector;
-    }
-
-  if (gfc_match ("double precision") == MATCH_YES)
-    {
-      ts->type = BT_REAL;
-      ts->kind = gfc_default_double_kind;
-      return MATCH_YES;
-    }
-
-  if (gfc_match ("complex") == MATCH_YES)
-    {
-      ts->type = BT_COMPLEX;
-      ts->kind = gfc_default_complex_kind;
-      goto kind_selector;
-    }
-
-  if (gfc_match ("character") == MATCH_YES)
-    {
-      ts->type = BT_CHARACTER;
-
-      m = gfc_match_char_spec (ts);
-
-      if (m == MATCH_NO)
-	m = MATCH_YES;
-
-      return m;
-    }
-
-  if (gfc_match ("logical") == MATCH_YES)
-    {
-      ts->type = BT_LOGICAL;
-      ts->kind = gfc_default_logical_kind;
-      goto kind_selector;
-    }
-
-  /* If a type is not matched, simply return MATCH_NO.  */
-  gfc_current_locus = old_locus;
-  return MATCH_NO;
-
-kind_selector:
-
-  gfc_gobble_whitespace ();
-  if (gfc_peek_ascii_char () == '*')
-    {
-      gfc_error ("Invalid type-spec at %C");
-      return MATCH_ERROR;
-    }
-
-  m = gfc_match_kind_spec (ts, false);
-
-  if (m == MATCH_NO)
-    m = MATCH_YES;		/* No kind specifier found.  */
-
-  return m;
-}
-
-
 /* Match an ALLOCATE statement.  */
 
 match
@@ -3127,6 +3507,27 @@ gfc_match_allocate (void)
 	{
 	  saw_deferred = true;
 	  deferred_locus = tail->expr->where;
+	}
+
+      if (gfc_find_state (COMP_DO_CONCURRENT) == SUCCESS
+	  || gfc_find_state (COMP_CRITICAL) == SUCCESS)
+	{
+	  gfc_ref *ref;
+	  bool coarray = tail->expr->symtree->n.sym->attr.codimension;
+	  for (ref = tail->expr->ref; ref; ref = ref->next)
+	    if (ref->type == REF_COMPONENT)
+	      coarray = ref->u.c.component->attr.codimension;
+
+	  if (coarray && gfc_find_state (COMP_DO_CONCURRENT) == SUCCESS)
+	    {
+	      gfc_error ("ALLOCATE of coarray at %C in DO CONCURRENT block");
+	      goto cleanup;
+	    }
+	  if (coarray && gfc_find_state (COMP_CRITICAL) == SUCCESS)
+	    {
+	      gfc_error ("ALLOCATE of coarray at %C in CRITICAL block");
+	      goto cleanup;
+	    }
 	}
 
       /* The ALLOCATE statement had an optional typespec.  Check the
@@ -3258,12 +3659,11 @@ alloc_opt_list:
 	      goto cleanup;
 	    }
 
-	  if (head->next)
-	    {
- 	      gfc_error ("SOURCE tag at %L requires only a single entity in "
-			 "the allocation-list", &tmp->where);
-	      goto cleanup;
-            }
+	  if (head->next
+	      && gfc_notify_std (GFC_STD_F2008, "Fortran 2008: SOURCE tag at %L"
+				 " with more than a single allocate object",
+				 &tmp->where) == FAILURE)
+	    goto cleanup;
 
 	  source = tmp;
 	  tmp = NULL;
@@ -3387,7 +3787,7 @@ gfc_match_nullify (void)
       /* F2008, C1242.  */
       if (gfc_is_coindexed (p))
 	{
-	  gfc_error ("Pointer object at %C shall not be conindexed");
+	  gfc_error ("Pointer object at %C shall not be coindexed");
 	  goto cleanup;
 	}
 
@@ -3476,6 +3876,20 @@ gfc_match_deallocate (void)
 
       if (gfc_implicit_pure (NULL) && gfc_impure_variable (sym))
 	gfc_current_ns->proc_name->attr.implicit_pure = 0;
+
+      if (gfc_is_coarray (tail->expr)
+	  && gfc_find_state (COMP_DO_CONCURRENT) == SUCCESS)
+	{
+	  gfc_error ("DEALLOCATE of coarray at %C in DO CONCURRENT block");
+	  goto cleanup;
+	}
+
+      if (gfc_is_coarray (tail->expr)
+	  && gfc_find_state (COMP_CRITICAL) == SUCCESS)
+	{
+	  gfc_error ("DEALLOCATE of coarray at %C in CRITICAL block");
+	  goto cleanup;
+	}
 
       /* FIXME: disable the checking on derived types.  */
       b1 = !(tail->expr->ref
@@ -3585,6 +3999,12 @@ gfc_match_return (void)
   if (gfc_find_state (COMP_CRITICAL) == SUCCESS)
     {
       gfc_error ("Image control statement RETURN at %C in CRITICAL block");
+      return MATCH_ERROR;
+    }
+
+  if (gfc_find_state (COMP_DO_CONCURRENT) == SUCCESS)
+    {
+      gfc_error ("Image control statement RETURN at %C in DO CONCURRENT block");
       return MATCH_ERROR;
     }
 
@@ -4729,17 +5149,41 @@ select_type_set_tmp (gfc_typespec *ts)
     sprintf (name, "__tmp_type_%s", ts->u.derived->name);
   gfc_get_sym_tree (name, gfc_current_ns, &tmp, false);
   gfc_add_type (tmp->n.sym, ts, NULL);
+
+/* Copy across the array spec to the selector, taking care as to
+   whether or not it is a class object or not.  */
+  if (select_type_stack->selector->ts.type == BT_CLASS
+      && select_type_stack->selector->attr.class_ok
+      && (CLASS_DATA (select_type_stack->selector)->attr.dimension
+	  || CLASS_DATA (select_type_stack->selector)->attr.codimension))
+    {
+      if (ts->type == BT_CLASS)
+	{
+	  CLASS_DATA (tmp->n.sym)->attr.dimension
+		= CLASS_DATA (select_type_stack->selector)->attr.dimension;
+	  CLASS_DATA (tmp->n.sym)->attr.codimension
+		= CLASS_DATA (select_type_stack->selector)->attr.codimension;
+	  CLASS_DATA (tmp->n.sym)->as = gfc_get_array_spec ();
+	  CLASS_DATA (tmp->n.sym)->as
+			= CLASS_DATA (select_type_stack->selector)->as;
+	}
+      else
+	{
+	  tmp->n.sym->attr.dimension
+		= CLASS_DATA (select_type_stack->selector)->attr.dimension;
+	  tmp->n.sym->attr.codimension
+		= CLASS_DATA (select_type_stack->selector)->attr.codimension;
+	  tmp->n.sym->as = gfc_get_array_spec ();
+	  tmp->n.sym->as = CLASS_DATA (select_type_stack->selector)->as;
+	}
+    }
+
   gfc_set_sym_referenced (tmp->n.sym);
-  if (select_type_stack->selector->ts.type == BT_CLASS &&
-      CLASS_DATA (select_type_stack->selector)->attr.allocatable)
-    gfc_add_allocatable (&tmp->n.sym->attr, NULL);
-  else
-    gfc_add_pointer (&tmp->n.sym->attr, NULL);
   gfc_add_flavor (&tmp->n.sym->attr, FL_VARIABLE, name, NULL);
+  tmp->n.sym->attr.select_type_temporary = 1;
   if (ts->type == BT_CLASS)
     gfc_build_class_symbol (&tmp->n.sym->ts, &tmp->n.sym->attr,
 			    &tmp->n.sym->as, false);
-  tmp->n.sym->attr.select_type_temporary = 1;
 
   /* Add an association for it, so the rest of the parser knows it is
      an associate-name.  The target will be set during resolution.  */
@@ -4759,6 +5203,7 @@ gfc_match_select_type (void)
   gfc_expr *expr1, *expr2 = NULL;
   match m;
   char name[GFC_MAX_SYMBOL_LEN];
+  bool class_array;
 
   m = gfc_match_label ();
   if (m == MATCH_ERROR)
@@ -4799,8 +5244,25 @@ gfc_match_select_type (void)
   if (m != MATCH_YES)
     goto cleanup;
 
+  /* This ghastly expression seems to be needed to distinguish a CLASS
+     array, which can have a reference, from other expressions that
+     have references, such as derived type components, and are not
+     allowed by the standard.
+     TODO; see is it is sufficent to exclude component and substring
+     references.  */
+  class_array = expr1->expr_type == EXPR_VARIABLE
+		  && expr1->ts.type != BT_UNKNOWN
+		  && CLASS_DATA (expr1)
+		  && (strcmp (CLASS_DATA (expr1)->name, "_data") == 0)
+		  && (CLASS_DATA (expr1)->attr.dimension
+		      || CLASS_DATA (expr1)->attr.codimension)
+		  && expr1->ref
+		  && expr1->ref->type == REF_ARRAY
+		  && expr1->ref->next == NULL;
+
   /* Check for F03:C811.  */
-  if (!expr2 && (expr1->expr_type != EXPR_VARIABLE || expr1->ref != NULL))
+  if (!expr2 && (expr1->expr_type != EXPR_VARIABLE
+		  || (!class_array && expr1->ref != NULL)))
     {
       gfc_error ("Selector in SELECT TYPE at %C is not a named variable; "
 		 "use associate-name=>");
@@ -5187,304 +5649,4 @@ syntax:
 cleanup:
   gfc_free_expr (expr);
   return MATCH_ERROR;
-}
-
-
-/******************** FORALL subroutines ********************/
-
-/* Free a list of FORALL iterators.  */
-
-void
-gfc_free_forall_iterator (gfc_forall_iterator *iter)
-{
-  gfc_forall_iterator *next;
-
-  while (iter)
-    {
-      next = iter->next;
-      gfc_free_expr (iter->var);
-      gfc_free_expr (iter->start);
-      gfc_free_expr (iter->end);
-      gfc_free_expr (iter->stride);
-      free (iter);
-      iter = next;
-    }
-}
-
-
-/* Match an iterator as part of a FORALL statement.  The format is:
-
-     <var> = <start>:<end>[:<stride>]
-
-   On MATCH_NO, the caller tests for the possibility that there is a
-   scalar mask expression.  */
-
-static match
-match_forall_iterator (gfc_forall_iterator **result)
-{
-  gfc_forall_iterator *iter;
-  locus where;
-  match m;
-
-  where = gfc_current_locus;
-  iter = XCNEW (gfc_forall_iterator);
-
-  m = gfc_match_expr (&iter->var);
-  if (m != MATCH_YES)
-    goto cleanup;
-
-  if (gfc_match_char ('=') != MATCH_YES
-      || iter->var->expr_type != EXPR_VARIABLE)
-    {
-      m = MATCH_NO;
-      goto cleanup;
-    }
-
-  m = gfc_match_expr (&iter->start);
-  if (m != MATCH_YES)
-    goto cleanup;
-
-  if (gfc_match_char (':') != MATCH_YES)
-    goto syntax;
-
-  m = gfc_match_expr (&iter->end);
-  if (m == MATCH_NO)
-    goto syntax;
-  if (m == MATCH_ERROR)
-    goto cleanup;
-
-  if (gfc_match_char (':') == MATCH_NO)
-    iter->stride = gfc_get_int_expr (gfc_default_integer_kind, NULL, 1);
-  else
-    {
-      m = gfc_match_expr (&iter->stride);
-      if (m == MATCH_NO)
-	goto syntax;
-      if (m == MATCH_ERROR)
-	goto cleanup;
-    }
-
-  /* Mark the iteration variable's symbol as used as a FORALL index.  */
-  iter->var->symtree->n.sym->forall_index = true;
-
-  *result = iter;
-  return MATCH_YES;
-
-syntax:
-  gfc_error ("Syntax error in FORALL iterator at %C");
-  m = MATCH_ERROR;
-
-cleanup:
-
-  gfc_current_locus = where;
-  gfc_free_forall_iterator (iter);
-  return m;
-}
-
-
-/* Match the header of a FORALL statement.  */
-
-static match
-match_forall_header (gfc_forall_iterator **phead, gfc_expr **mask)
-{
-  gfc_forall_iterator *head, *tail, *new_iter;
-  gfc_expr *msk;
-  match m;
-
-  gfc_gobble_whitespace ();
-
-  head = tail = NULL;
-  msk = NULL;
-
-  if (gfc_match_char ('(') != MATCH_YES)
-    return MATCH_NO;
-
-  m = match_forall_iterator (&new_iter);
-  if (m == MATCH_ERROR)
-    goto cleanup;
-  if (m == MATCH_NO)
-    goto syntax;
-
-  head = tail = new_iter;
-
-  for (;;)
-    {
-      if (gfc_match_char (',') != MATCH_YES)
-	break;
-
-      m = match_forall_iterator (&new_iter);
-      if (m == MATCH_ERROR)
-	goto cleanup;
-
-      if (m == MATCH_YES)
-	{
-	  tail->next = new_iter;
-	  tail = new_iter;
-	  continue;
-	}
-
-      /* Have to have a mask expression.  */
-
-      m = gfc_match_expr (&msk);
-      if (m == MATCH_NO)
-	goto syntax;
-      if (m == MATCH_ERROR)
-	goto cleanup;
-
-      break;
-    }
-
-  if (gfc_match_char (')') == MATCH_NO)
-    goto syntax;
-
-  *phead = head;
-  *mask = msk;
-  return MATCH_YES;
-
-syntax:
-  gfc_syntax_error (ST_FORALL);
-
-cleanup:
-  gfc_free_expr (msk);
-  gfc_free_forall_iterator (head);
-
-  return MATCH_ERROR;
-}
-
-/* Match the rest of a simple FORALL statement that follows an 
-   IF statement.  */
-
-static match
-match_simple_forall (void)
-{
-  gfc_forall_iterator *head;
-  gfc_expr *mask;
-  gfc_code *c;
-  match m;
-
-  mask = NULL;
-  head = NULL;
-  c = NULL;
-
-  m = match_forall_header (&head, &mask);
-
-  if (m == MATCH_NO)
-    goto syntax;
-  if (m != MATCH_YES)
-    goto cleanup;
-
-  m = gfc_match_assignment ();
-
-  if (m == MATCH_ERROR)
-    goto cleanup;
-  if (m == MATCH_NO)
-    {
-      m = gfc_match_pointer_assignment ();
-      if (m == MATCH_ERROR)
-	goto cleanup;
-      if (m == MATCH_NO)
-	goto syntax;
-    }
-
-  c = gfc_get_code ();
-  *c = new_st;
-  c->loc = gfc_current_locus;
-
-  if (gfc_match_eos () != MATCH_YES)
-    goto syntax;
-
-  gfc_clear_new_st ();
-  new_st.op = EXEC_FORALL;
-  new_st.expr1 = mask;
-  new_st.ext.forall_iterator = head;
-  new_st.block = gfc_get_code ();
-
-  new_st.block->op = EXEC_FORALL;
-  new_st.block->next = c;
-
-  return MATCH_YES;
-
-syntax:
-  gfc_syntax_error (ST_FORALL);
-
-cleanup:
-  gfc_free_forall_iterator (head);
-  gfc_free_expr (mask);
-
-  return MATCH_ERROR;
-}
-
-
-/* Match a FORALL statement.  */
-
-match
-gfc_match_forall (gfc_statement *st)
-{
-  gfc_forall_iterator *head;
-  gfc_expr *mask;
-  gfc_code *c;
-  match m0, m;
-
-  head = NULL;
-  mask = NULL;
-  c = NULL;
-
-  m0 = gfc_match_label ();
-  if (m0 == MATCH_ERROR)
-    return MATCH_ERROR;
-
-  m = gfc_match (" forall");
-  if (m != MATCH_YES)
-    return m;
-
-  m = match_forall_header (&head, &mask);
-  if (m == MATCH_ERROR)
-    goto cleanup;
-  if (m == MATCH_NO)
-    goto syntax;
-
-  if (gfc_match_eos () == MATCH_YES)
-    {
-      *st = ST_FORALL_BLOCK;
-      new_st.op = EXEC_FORALL;
-      new_st.expr1 = mask;
-      new_st.ext.forall_iterator = head;
-      return MATCH_YES;
-    }
-
-  m = gfc_match_assignment ();
-  if (m == MATCH_ERROR)
-    goto cleanup;
-  if (m == MATCH_NO)
-    {
-      m = gfc_match_pointer_assignment ();
-      if (m == MATCH_ERROR)
-	goto cleanup;
-      if (m == MATCH_NO)
-	goto syntax;
-    }
-
-  c = gfc_get_code ();
-  *c = new_st;
-  c->loc = gfc_current_locus;
-
-  gfc_clear_new_st ();
-  new_st.op = EXEC_FORALL;
-  new_st.expr1 = mask;
-  new_st.ext.forall_iterator = head;
-  new_st.block = gfc_get_code ();
-  new_st.block->op = EXEC_FORALL;
-  new_st.block->next = c;
-
-  *st = ST_FORALL;
-  return MATCH_YES;
-
-syntax:
-  gfc_syntax_error (ST_FORALL);
-
-cleanup:
-  gfc_free_forall_iterator (head);
-  gfc_free_expr (mask);
-  gfc_free_statements (c);
-  return MATCH_NO;
 }

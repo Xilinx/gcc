@@ -1531,7 +1531,7 @@ resolve_tag (const io_tag *tag, gfc_expr *e)
       char context[64];
 
       sprintf (context, _("%s tag"), tag->name);
-      if (gfc_check_vardef_context (e, false, context) == FAILURE)
+      if (gfc_check_vardef_context (e, false, false, context) == FAILURE)
 	return FAILURE;
     }
   
@@ -1947,10 +1947,6 @@ gfc_match_open (void)
   /* Checks on the DELIM specifier.  */
   if (open->delim)
     {
-      if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: DELIM= at %C "
-	  "not allowed in Fortran 95") == FAILURE)
-	goto cleanup;
-
       if (open->delim->expr_type == EXPR_CONSTANT)
 	{
 	  static const char *delim[] = { "APOSTROPHE", "QUOTE", "NONE", NULL };
@@ -2016,7 +2012,7 @@ gfc_match_open (void)
   /* Checks on the ROUND specifier.  */
   if (open->round)
     {
-      if (gfc_notify_std (GFC_STD_F2003, "Fortran F2003: ROUND= at %C "
+      if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: ROUND= at %C "
 	  "not allowed in Fortran 95") == FAILURE)
       goto cleanup;
 
@@ -2295,6 +2291,24 @@ gfc_resolve_close (gfc_close *close)
   if (gfc_reference_st_label (close->err, ST_LABEL_TARGET) == FAILURE)
     return FAILURE;
 
+  if (close->unit == NULL)
+    {
+      /* Find a locus from one of the arguments to close, when UNIT is
+	 not specified.  */
+      locus loc = gfc_current_locus;
+      if (close->status)
+	loc = close->status->where;
+      else if (close->iostat)
+	loc = close->iostat->where;
+      else if (close->iomsg)
+	loc = close->iomsg->where;
+      else if (close->err)
+	loc = close->err->where;
+
+      gfc_error ("CLOSE statement at %L requires a UNIT number", &loc);
+      return FAILURE;
+    }
+
   if (close->unit->expr_type == EXPR_CONSTANT
       && close->unit->ts.type == BT_INTEGER
       && mpz_sgn (close->unit->value.integer) < 0)
@@ -2548,17 +2562,31 @@ match_dt_format (gfc_dt *dt)
 
   if ((m = gfc_match_st_label (&label)) == MATCH_YES)
     {
-      if (dt->format_expr != NULL || dt->format_label != NULL)
+      char c;
+
+      /* Need to check if the format label is actually either an operand
+	 to a user-defined operator or is a kind type parameter.  That is,
+	 print 2.ip.8      ! .ip. is a user-defined operator return CHARACTER.
+	 print 1_'(I0)', i ! 1_'(I0)' is a default character string.  */
+
+      gfc_gobble_whitespace ();
+      c = gfc_peek_ascii_char ();
+      if (c == '.' || c == '_')
+	gfc_current_locus = where;
+      else
 	{
-	  gfc_free_st_label (label);
-	  goto conflict;
+	  if (dt->format_expr != NULL || dt->format_label != NULL)
+	    {
+	      gfc_free_st_label (label);
+	      goto conflict;
+	    }
+
+	  if (gfc_reference_st_label (label, ST_LABEL_FORMAT) == FAILURE)
+	    return MATCH_ERROR;
+
+	  dt->format_label = label;
+	  return MATCH_YES;
 	}
-
-      if (gfc_reference_st_label (label, ST_LABEL_FORMAT) == FAILURE)
-	return MATCH_ERROR;
-
-      dt->format_label = label;
-      return MATCH_YES;
     }
   else if (m == MATCH_ERROR)
     /* The label was zero or too large.  Emit the correct diagnosis.  */
@@ -2836,8 +2864,8 @@ gfc_resolve_dt (gfc_dt *dt, locus *loc)
       /* If we are writing, make sure the internal unit can be changed.  */
       gcc_assert (k != M_PRINT);
       if (k == M_WRITE
-	  && gfc_check_vardef_context (e, false, _("internal unit in WRITE"))
-	       == FAILURE)
+	  && gfc_check_vardef_context (e, false, false,
+				       _("internal unit in WRITE")) == FAILURE)
 	return FAILURE;
     }
 
@@ -2866,7 +2894,7 @@ gfc_resolve_dt (gfc_dt *dt, locus *loc)
 	  gfc_try t;
 
 	  e = gfc_get_variable_expr (gfc_find_sym_in_symtree (n->sym));
-	  t = gfc_check_vardef_context (e, false, NULL);
+	  t = gfc_check_vardef_context (e, false, false, NULL);
 	  gfc_free_expr (e);
 
 	  if (t == FAILURE)
@@ -4032,7 +4060,7 @@ gfc_resolve_inquire (gfc_inquire *inquire)
     { \
       char context[64]; \
       sprintf (context, _("%s tag with INQUIRE"), (tag)->name); \
-      if (gfc_check_vardef_context ((expr), false, context) == FAILURE) \
+      if (gfc_check_vardef_context ((expr), false, false, context) == FAILURE) \
 	return FAILURE; \
     }
   INQUIRE_RESOLVE_TAG (&tag_iomsg, inquire->iomsg);

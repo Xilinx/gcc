@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -143,8 +143,10 @@ package body Errout is
    --  parameter Suffix, (spec) or (body) is appended after the unit name.
 
    procedure Set_Msg_Node (Node : Node_Id);
-   --  Add the sequence of characters for the name associated with the
-   --  given node to the current message.
+   --  Add the sequence of characters for the name associated with the given
+   --  node to the current message. For N_Designator, N_Selected_Component,
+   --  N_Defining_Program_Unit_Name, and N_Expanded_Name, the Prefix is
+   --  included as well.
 
    procedure Set_Msg_Text (Text : String; Flag : Source_Ptr);
    --  Add a sequence of characters to the current message. The characters may
@@ -439,7 +441,6 @@ package body Errout is
                      Error_Msg_Internal
                        ("?in inlined body #",
                         Actual_Error_Loc, Flag_Location, Msg_Cont_Status);
-
                   else
                      Error_Msg_Internal
                        ("error in inlined body #",
@@ -453,7 +454,6 @@ package body Errout is
                      Error_Msg_Internal
                        ("?in instantiation #",
                         Actual_Error_Loc, Flag_Location, Msg_Cont_Status);
-
                   else
                      Error_Msg_Internal
                        ("instantiation error #",
@@ -617,6 +617,23 @@ package body Errout is
       Configurable_Run_Time_Violations := Configurable_Run_Time_Violations + 1;
    end Error_Msg_CRT;
 
+   ------------------
+   -- Error_Msg_PT --
+   ------------------
+
+   procedure Error_Msg_PT (Typ : Node_Id; Subp : Node_Id) is
+   begin
+      --  Error message below needs rewording (remember comma in -gnatj
+      --  mode) ???
+
+      Error_Msg_NE
+        ("first formal of & must be of mode `OUT`, `IN OUT` or " &
+         "access-to-variable", Typ, Subp);
+      Error_Msg_N
+        ("\in order to be overridden by protected procedure or entry " &
+         "(RM 9.4(11.9/2))", Typ);
+   end Error_Msg_PT;
+
    -----------------
    -- Error_Msg_F --
    -----------------
@@ -749,6 +766,13 @@ package body Errout is
          --  sure we want the warning since it definitely belongs
 
          if In_Extended_Main_Source_Unit (Sptr) then
+            null;
+
+         --  If the main unit has not been read yet. the warning must be on
+         --  a configuration file: gnat.adc or user-defined. This means we
+         --  are not parsing the main unit yet, so skip following checks.
+
+         elsif No (Cunit (Main_Unit)) then
             null;
 
          --  If the flag location is not in the main extended source unit, then
@@ -1264,30 +1288,37 @@ package body Errout is
 
       Cur := First_Error_Msg;
       while Cur /= No_Error_Msg loop
-         if not Errors.Table (Cur).Deleted
-           and then Warning_Specifically_Suppressed
-                      (Errors.Table (Cur).Sptr, Errors.Table (Cur).Text)
-         then
-            Delete_Warning (Cur);
+         declare
+            CE : Error_Msg_Object renames Errors.Table (Cur);
 
-            --  If this is a continuation, delete previous messages
+         begin
+            if not CE.Deleted
+              and then
+                (Warning_Specifically_Suppressed (CE.Sptr, CE.Text)
+                   or else
+                 Warning_Specifically_Suppressed (CE.Optr, CE.Text))
+            then
+               Delete_Warning (Cur);
 
-            F := Cur;
-            while Errors.Table (F).Msg_Cont loop
-               F := Errors.Table (F).Prev;
-               Delete_Warning (F);
-            end loop;
+               --  If this is a continuation, delete previous messages
 
-            --  Delete any following continuations
+               F := Cur;
+               while Errors.Table (F).Msg_Cont loop
+                  F := Errors.Table (F).Prev;
+                  Delete_Warning (F);
+               end loop;
 
-            F := Cur;
-            loop
-               F := Errors.Table (F).Next;
-               exit when F = No_Error_Msg;
-               exit when not Errors.Table (F).Msg_Cont;
-               Delete_Warning (F);
-            end loop;
-         end if;
+               --  Delete any following continuations
+
+               F := Cur;
+               loop
+                  F := Errors.Table (F).Next;
+                  exit when F = No_Error_Msg;
+                  exit when not Errors.Table (F).Msg_Cont;
+                  Delete_Warning (F);
+               end loop;
+            end if;
+         end;
 
          Cur := Errors.Table (Cur).Next;
       end loop;
@@ -1307,8 +1338,9 @@ package body Errout is
    ----------------
 
    function First_Node (C : Node_Id) return Node_Id is
-      L        : constant Source_Ptr        := Sloc (Original_Node (C));
-      Sfile    : constant Source_File_Index := Get_Source_File_Index (L);
+      Orig     : constant Node_Id           := Original_Node (C);
+      Loc      : constant Source_Ptr        := Sloc (Orig);
+      Sfile    : constant Source_File_Index := Get_Source_File_Index (Loc);
       Earliest : Node_Id;
       Eloc     : Source_Ptr;
 
@@ -1323,18 +1355,26 @@ package body Errout is
       ------------------
 
       function Test_Earlier (N : Node_Id) return Traverse_Result is
-         Loc : constant Source_Ptr := Sloc (Original_Node (N));
+         Norig : constant Node_Id    := Original_Node (N);
+         Loc   : constant Source_Ptr := Sloc (Norig);
 
       begin
-         --  Check for earlier. The tests for being in the same file ensures
-         --  against strange cases of foreign code somehow being present. We
-         --  don't want wild placement of messages if that happens, so it is
-         --  best to just ignore this situation.
+         --  Check for earlier
 
          if Loc < Eloc
+
+           --  Ignore nodes with no useful location information
+
+           and then Loc /= Standard_Location
+           and then Loc /= No_Location
+
+           --  Ignore nodes from a different file. This ensures against cases
+           --  of strange foreign code somehow being present. We don't want
+           --  wild placement of messages if that happens.
+
            and then Get_Source_File_Index (Loc) = Sfile
          then
-            Earliest := Original_Node (N);
+            Earliest := Norig;
             Eloc     := Loc;
          end if;
 
@@ -1344,10 +1384,15 @@ package body Errout is
    --  Start of processing for First_Node
 
    begin
-      Earliest := Original_Node (C);
-      Eloc := Sloc (Earliest);
-      Search_Tree_First (Original_Node (C));
-      return Earliest;
+      if Nkind (Orig) in N_Subexpr then
+         Earliest := Orig;
+         Eloc := Loc;
+         Search_Tree_First (Orig);
+         return Earliest;
+
+      else
+         return Orig;
+      end if;
    end First_Node;
 
    ----------------
@@ -2456,24 +2501,28 @@ package body Errout is
       Nam : Name_Id;
 
    begin
-      if Nkind (Node) = N_Designator then
-         Set_Msg_Node (Name (Node));
-         Set_Msg_Char ('.');
-         Set_Msg_Node (Identifier (Node));
-         return;
+      case Nkind (Node) is
+         when N_Designator =>
+            Set_Msg_Node (Name (Node));
+            Set_Msg_Char ('.');
+            Set_Msg_Node (Identifier (Node));
+            return;
 
-      elsif Nkind (Node) = N_Defining_Program_Unit_Name then
-         Set_Msg_Node (Name (Node));
-         Set_Msg_Char ('.');
-         Set_Msg_Node (Defining_Identifier (Node));
-         return;
+         when N_Defining_Program_Unit_Name =>
+            Set_Msg_Node (Name (Node));
+            Set_Msg_Char ('.');
+            Set_Msg_Node (Defining_Identifier (Node));
+            return;
 
-      elsif Nkind (Node) = N_Selected_Component then
-         Set_Msg_Node (Prefix (Node));
-         Set_Msg_Char ('.');
-         Set_Msg_Node (Selector_Name (Node));
-         return;
-      end if;
+         when N_Selected_Component | N_Expanded_Name =>
+            Set_Msg_Node (Prefix (Node));
+            Set_Msg_Char ('.');
+            Set_Msg_Node (Selector_Name (Node));
+            return;
+
+         when others =>
+            null;
+      end case;
 
       --  The only remaining possibilities are identifiers, defining
       --  identifiers, pragmas, and pragma argument associations.
@@ -2632,7 +2681,6 @@ package body Errout is
                if P <= Text'Last and then Text (P) = '$' then
                   P := P + 1;
                   Set_Msg_Insertion_Unit_Name (Suffix => False);
-
                else
                   Set_Msg_Insertion_Unit_Name;
                end if;
@@ -2812,10 +2860,10 @@ package body Errout is
 
       elsif Msg = "size for& too small, minimum allowed is ^" then
 
-         --  Suppress "size too small" errors in CodePeer mode, since pragma
-         --  Pack is also ignored in this configuration.
+         --  Suppress "size too small" errors in CodePeer mode and Alfa mode,
+         --  since pragma Pack is also ignored in these configurations.
 
-         if CodePeer_Mode then
+         if CodePeer_Mode or Alfa_Mode then
             return True;
 
          --  When a size is wrong for a frozen type there is no explicit size

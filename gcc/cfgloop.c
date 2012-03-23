@@ -1285,6 +1285,7 @@ cancel_loop (struct loop *loop)
   for (i = 0; i < loop->num_nodes; i++)
     bbs[i]->loop_father = outer;
 
+  free (bbs);
   delete_loop (loop);
 }
 
@@ -1316,6 +1317,9 @@ verify_loop_structure (void)
   unsigned num = number_of_loops ();
   loop_iterator li;
   struct loop_exit *exit, *mexit;
+
+  /* We need up-to-date dominators, verify them.  */
+  verify_dominators (CDI_DOMINATORS);
 
   /* Check sizes.  */
   sizes = XCNEWVEC (unsigned, num);

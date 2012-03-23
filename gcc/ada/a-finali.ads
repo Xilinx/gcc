@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- This specification is derived from the Ada Reference Manual for use with --
 -- GNAT. The copyright notice above, and the license provisions that follow --
@@ -34,14 +34,16 @@
 ------------------------------------------------------------------------------
 
 pragma Warnings (Off);
---  System.Finalization_Root does not have category Remote_Types, but we
---  allow it anyway.
 with System.Finalization_Root;
 pragma Warnings (On);
 
 package Ada.Finalization is
+   pragma Pure_12;
+   --  Ada.Finalization is declared pure in Ada 2012 (AI05-0212)
+
    pragma Preelaborate;
    pragma Remote_Types;
+   --  The above apply in versions of Ada before Ada 2012
 
    type Controlled is abstract tagged private;
    pragma Preelaborable_Initialization (Controlled);
@@ -61,9 +63,9 @@ private
 
    type Controlled is abstract new SFR.Root_Controlled with null record;
 
-   overriding function "=" (A, B : Controlled) return Boolean;
-   --  Need to be defined explicitly because we don't want to compare the
-   --  hidden pointers.
+   --  In order to simplify the implementation, the mechanism in Process_Full_
+   --  View ensures that the full view is limited even though the parent type
+   --  is not.
 
    type Limited_Controlled is
      abstract new SFR.Root_Controlled with null record;

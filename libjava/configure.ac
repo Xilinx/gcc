@@ -469,7 +469,7 @@ case "${which_gcj}" in
    cross)
       if test "x${with_newlib}" = "xyes"; then
          # FIXME (comment): Why is this needed?
-         GCC_UNWIND_INCLUDE=
+         LIBGCC_UNWIND_INCLUDE=
       fi
       GCJH='$(target_noncanonical)-gcjh'
    ;;
@@ -961,17 +961,9 @@ esac
 AC_CACHE_CHECK([for --no-merge-exidx-entries], [libgcj_cv_exidx],
   [saved_ldflags="$LDFLAGS"
    LDFLAGS="${LDFLAGS} -Wl,--no-merge-exidx-entries"
-   # The IRIX 6 ld doesn't recognize --no-merge-exidx-entries, but only
-   # warns about unknown options, which breaks the testsuite.  So enable
-   # AC_LANG_WERROR, but there's currently (autoconf 2.64) no way to turn
-   # it off again.  As a workaround, save and restore werror flag like
-   # AC_PATH_XTRA.
-   ac_xsave_[]_AC_LANG_ABBREV[]_werror_flag=$ac_[]_AC_LANG_ABBREV[]_werror_flag
-   AC_LANG_WERROR
    AC_LINK_IFELSE([int main(void){ return 0;} ],
 		      [eval "libgcj_cv_exidx=yes"],
 		      [eval "libgcj_cv_exidx=no"])
-   ac_[]_AC_LANG_ABBREV[]_werror_flag=$ac_xsave_[]_AC_LANG_ABBREV[]_werror_flag
    LDFLAGS="${saved_ldflags}"]
 )
 if test "${libgcj_cv_exidx}" = "yes"; then
@@ -1038,7 +1030,7 @@ case "$THREADS" in
  no | none | single)
     THREADS=none
     ;;
- aix | posix | posix95 | pthreads)
+ aix | posix | pthreads)
     THREADS=posix
     case "$host" in
      *-*-linux*)
@@ -1070,7 +1062,7 @@ case "$THREADS" in
      *-*-cygwin*)
 	# Don't set THREADLIBS here.  Cygwin doesn't have -lpthread.
 	;;
-     *-*-freebsd[[1234]]*)
+     *-*-freebsd[[34]].*)
 	# Before FreeBSD 5, it didn't have -lpthread (or any library which
 	# merely adds pthread_* functions) but it does have a -pthread switch
 	# which is required at link-time to select -lc_r *instead* of -lc.
@@ -1088,22 +1080,14 @@ case "$THREADS" in
 	THREADLDFLAGS=-pthread
 	THREADSPEC=-lpthread
 	;;
-     alpha*-dec-osf* | hppa*-hp-hpux*)
+     hppa*-hp-hpux*)
 	THREADCXXFLAGS=-pthread
 	# boehm-gc needs some functions from librt, so link that too.
 	THREADLIBS='-lpthread -lrt'
 	THREADSPEC='-lpthread -lrt'
 	;;
-     *-*-solaris2.8)
-	# Always use alternate thread library on Solaris 8.  Need libthread
-	# for TLS support.
-	# Need -Wl,-R to get it through libtool ...
-	THREADLIBS='-L/usr/lib/lwp$(MULTISUBDIR) -Wl,-R -Wl,/usr/lib/lwp$(MULTISUBDIR) -lpthread -lthread'
-	# ... while ld only accepts -R.
-	THREADSPEC='-L/usr/lib/lwp%{m64:/64} -R/usr/lib/lwp%{m64:/64} -lpthread -lthread'
-        ;;
      *-*-solaris2.9)
-	# As on Solaris 8, need libthread for TLS support.
+	# Need libthread for TLS support.
 	THREADLIBS='-lpthread -lthread'
 	THREADSPEC='-lpthread -lthread'
 	;;
@@ -1145,9 +1129,14 @@ case "$THREADS" in
     # FIXME: In Java we are able to detect thread death at the end of
     # Thread.run() so we should be able to clean up the exception handling
     # contexts ourselves.
-    THREADSTARTFILESPEC='crtmt%O%s'
+    case "$host" in
+    *-w64-mingw*)
+      ;;
+    *)
+      THREADSTARTFILESPEC='crtmt%O%s'
+      ;;
+    esac
     ;;
-
  none)
     THREADH=no-threads.h
     ;;
@@ -1199,8 +1188,8 @@ AC_SUBST(HASH_SYNC_SPEC)
 
 AM_CONDITIONAL(USING_GCC, test "$GCC" = yes)
 
-# We're in the tree with gcc, and need to include some of its headers.
-GCC_UNWIND_INCLUDE='-I$(multi_basedir)/./libjava/../gcc'
+# We're in the tree with libgcc, and need to include some of its headers.
+LIBGCC_UNWIND_INCLUDE='-I$(multi_basedir)/./libjava/../libgcc'
 
 if test "x${with_newlib}" = "xyes"; then
    # We are being configured with a cross compiler.  AC_REPLACE_FUNCS
@@ -1476,10 +1465,6 @@ else
    # requires -ldl.
    if test "$GC" = boehm; then
       case "${host}" in
-          mips-sgi-irix6*)
-	    # While IRIX 6 has libdl for the O32 and N32 ABIs, the N64 one is
-	    # missing.  It's unnecessary anyway since dlopen lives in libc.
-	    ;;
 	  *-*-darwin*)
 	    ;;
 	  *)
@@ -1564,7 +1549,7 @@ AM_CONDITIONAL(NATIVE, test "$NATIVE" = yes)
 AM_CONDITIONAL(ENABLE_SHARED, test "$enable_shared" = yes)
 AM_CONDITIONAL(NEEDS_DATA_START, test "$NEEDS_DATA_START" = yes && test "$NATIVE" = yes)
 AM_CONDITIONAL(INSTALL_BINARIES, test -z "${with_multisubdir}")
-AC_SUBST(GCC_UNWIND_INCLUDE)
+AC_SUBST(LIBGCC_UNWIND_INCLUDE)
 
 # Process the option "--enable-version-specific-runtime-libs"
 # Calculate toolexeclibdir
@@ -1631,7 +1616,7 @@ TL_AC_GXX_INCLUDE_DIR
 # BSD_COMP is defined; just including sys/filio.h is simpler.
 # We avoid AC_HEADER_DIRENT since we really only care about dirent.h
 # for now.  If you change this, you also must update natFile.cc.
-AC_CHECK_HEADERS([unistd.h bstring.h sys/time.h sys/types.h fcntl.h \
+AC_CHECK_HEADERS([unistd.h sys/time.h sys/types.h fcntl.h \
 		  sys/ioctl.h sys/filio.h sys/stat.h sys/select.h \
 		  sys/socket.h netinet/in.h arpa/inet.h netdb.h \
 		  pwd.h sys/config.h stdint.h langinfo.h locale.h \
@@ -1727,11 +1712,12 @@ SYSDEP_SOURCES=
 SIGNAL_HANDLER_AUX=
 
 case "${host}" in
+ *-*-solaris2*)
+    SIGNAL_HANDLER=include/posix-signal.h
+    ;;
  i?86-*-linux*)
     SIGNAL_HANDLER=include/i386-signal.h
-    ;;
- *-*-solaris2*)
-    SIGNAL_HANDLER=include/solaris-signal.h
+    SIGNAL_HANDLER_AUX=include/x86_64-signal.h
     ;;
 # ia64-*)
 #    SYSDEP_SOURCES=sysdep/ia64.c

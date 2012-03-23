@@ -129,7 +129,7 @@ case "$THREADS" in
  no | none | single)
     THREADS=none
     ;;
- posix | posix95 | pthreads)
+ posix | pthreads)
     THREADS=posix
     THREADLIBS=-lpthread
     case "$host" in
@@ -380,6 +380,7 @@ esac
 oldLIBS="$LIBS"
 LIBS="$LIBS $THREADLIBS"
 AC_CHECK_FUNCS([pthread_getattr_np])
+AC_CHECK_FUNCS([pthread_get_stackaddr_np])
 LIBS="$oldLIBS"
 
 # Configuration of machine-dependent code
@@ -400,7 +401,7 @@ case "$host" in
  alpha*-*-linux*)
     machdep="alpha_mach_dep.lo"
     ;;
- i?86-*-solaris2.[[89]] | i?86-*-solaris2.1?)
+ i?86-*-solaris2.[[89]] | i?86-*-solaris2.1? | x86_64-*-solaris2.1?)
     AC_DEFINE(SOLARIS25_PROC_VDB_BUG_FIXED,1,[PROC_VDB in Solaris 2.5 gives wrong values for dirty bits])
     ;;
  mipstx39-*-elf*)

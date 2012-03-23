@@ -1,3 +1,11 @@
+2012-03-02  Matthias Klose  <doko@ubuntu.com>
+
+	* Imported zlib 1.2.5; merged local changes.
+
+2011-11-21  Andreas Tobler  <andreast@fgznet.ch>
+
+        * configure: Regenerate.
+
 2011-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* configure: Regenerate.

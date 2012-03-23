@@ -118,6 +118,25 @@ init_recog (void)
 }
 
 
+/* Return true if labels in asm operands BODY are LABEL_REFs.  */
+
+static bool
+asm_labels_ok (rtx body)
+{
+  rtx asmop;
+  int i;
+
+  asmop = extract_asm_operands (body);
+  if (asmop == NULL_RTX)
+    return true;
+
+  for (i = 0; i < ASM_OPERANDS_LABEL_LENGTH (asmop); i++)
+    if (GET_CODE (ASM_OPERANDS_LABEL (asmop, i)) != LABEL_REF)
+      return false;
+
+  return true;
+}
+
 /* Check that X is an insn-body for an `asm' with operands
    and that the operands mentioned in it are legitimate.  */
 
@@ -128,6 +147,9 @@ check_asm_operands (rtx x)
   rtx *operands;
   const char **constraints;
   int i;
+
+  if (!asm_labels_ok (x))
+    return 0;
 
   /* Post-reload, be more strict with things.  */
   if (reload_completed)
@@ -638,6 +660,8 @@ simplify_while_replacing (rtx *loc, rtx to, rtx object,
 		  (GET_MODE_SIZE (is_mode) - GET_MODE_SIZE (wanted_mode) -
 		   offset);
 
+	      gcc_assert (GET_MODE_PRECISION (wanted_mode)
+			  == GET_MODE_BITSIZE (wanted_mode));
 	      pos %= GET_MODE_BITSIZE (wanted_mode);
 
 	      newmem = adjust_address_nv (XEXP (x, 0), wanted_mode, offset);
@@ -901,10 +925,7 @@ next_insn_tests_no_inequality (rtx insn)
    it has.
 
    The main use of this function is as a predicate in match_operand
-   expressions in the machine description.
-
-   For an explanation of this function's behavior for registers of
-   class NO_REGS, see the comment for `register_operand'.  */
+   expressions in the machine description.  */
 
 int
 general_operand (rtx op, enum machine_mode mode)
@@ -974,9 +995,8 @@ general_operand (rtx op, enum machine_mode mode)
     }
 
   if (code == REG)
-    /* A register whose class is NO_REGS is not a general operand.  */
     return (REGNO (op) >= FIRST_PSEUDO_REGISTER
-	    || REGNO_REG_CLASS (REGNO (op)) != NO_REGS);
+	    || in_hard_reg_set_p (operand_reg_set, GET_MODE (op), REGNO (op)));
 
   if (code == MEM)
     {
@@ -1009,15 +1029,7 @@ address_operand (rtx op, enum machine_mode mode)
    If MODE is VOIDmode, accept a register in any mode.
 
    The main use of this function is as a predicate in match_operand
-   expressions in the machine description.
-
-   As a special exception, registers whose class is NO_REGS are
-   not accepted by `register_operand'.  The reason for this change
-   is to allow the representation of special architecture artifacts
-   (such as a condition code register) without extending the rtl
-   definitions.  Since registers of class NO_REGS cannot be used
-   as registers in any case where register classes are examined,
-   it is most consistent to keep this function from accepting them.  */
+   expressions in the machine description.  */
 
 int
 register_operand (rtx op, enum machine_mode mode)
@@ -1056,11 +1068,10 @@ register_operand (rtx op, enum machine_mode mode)
       op = sub;
     }
 
-  /* We don't consider registers whose class is NO_REGS
-     to be a register operand.  */
   return (REG_P (op)
 	  && (REGNO (op) >= FIRST_PSEUDO_REGISTER
-	      || REGNO_REG_CLASS (REGNO (op)) != NO_REGS));
+	      || in_hard_reg_set_p (operand_reg_set,
+				    GET_MODE (op), REGNO (op))));
 }
 
 /* Return 1 for a register in Pmode; ignore the tested mode.  */
@@ -1179,11 +1190,10 @@ nonmemory_operand (rtx op, enum machine_mode mode)
       op = SUBREG_REG (op);
     }
 
-  /* We don't consider registers whose class is NO_REGS
-     to be a register operand.  */
   return (REG_P (op)
 	  && (REGNO (op) >= FIRST_PSEUDO_REGISTER
-	      || REGNO_REG_CLASS (REGNO (op)) != NO_REGS));
+	      || in_hard_reg_set_p (operand_reg_set,
+				    GET_MODE (op), REGNO (op))));
 }
 
 /* Return 1 if OP is a valid operand that stands for pushing a
@@ -2257,7 +2267,8 @@ preprocess_constraints (void)
 		case 'p':
 		  op_alt[j].is_address = 1;
 		  op_alt[j].cl = reg_class_subunion[(int) op_alt[j].cl]
-		      [(int) base_reg_class (VOIDmode, ADDRESS, SCRATCH)];
+		      [(int) base_reg_class (VOIDmode, ADDR_SPACE_GENERIC,
+					     ADDRESS, SCRATCH)];
 		  break;
 
 		case 'g':
@@ -2278,8 +2289,8 @@ preprocess_constraints (void)
 		      op_alt[j].cl
 			= (reg_class_subunion
 			   [(int) op_alt[j].cl]
-			   [(int) base_reg_class (VOIDmode, ADDRESS,
-						  SCRATCH)]);
+			   [(int) base_reg_class (VOIDmode, ADDR_SPACE_GENERIC,
+						  ADDRESS, SCRATCH)]);
 		      break;
 		    }
 
@@ -3027,6 +3038,7 @@ peep2_find_free_register (int from, int to, const char *class_str,
   static int search_ofs;
   enum reg_class cl;
   HARD_REG_SET live;
+  df_ref *def_rec;
   int i;
 
   gcc_assert (from < MAX_INSNS_PER_PEEP2 + 1);
@@ -3040,12 +3052,14 @@ peep2_find_free_register (int from, int to, const char *class_str,
 
   while (from != to)
     {
-      HARD_REG_SET this_live;
+      gcc_assert (peep2_insn_data[from].insn != NULL_RTX);
+
+      /* Don't use registers set or clobbered by the insn.  */
+      for (def_rec = DF_INSN_DEFS (peep2_insn_data[from].insn);
+	   *def_rec; def_rec++)
+	SET_HARD_REG_BIT (live, DF_REF_REGNO (*def_rec));
 
       from = peep2_buf_position (from + 1);
-      gcc_assert (peep2_insn_data[from].insn != NULL_RTX);
-      REG_SET_TO_HARD_REG_SET (this_live, peep2_insn_data[from].live_before);
-      IOR_HARD_REG_SET (live, this_live);
     }
 
   cl = (class_str[0] == 'r' ? GENERAL_REGS
@@ -3144,16 +3158,17 @@ static rtx
 peep2_attempt (basic_block bb, rtx insn, int match_len, rtx attempt)
 {
   int i;
-  rtx last, note, before_try, x;
+  rtx last, eh_note, as_note, before_try, x;
   rtx old_insn, new_insn;
   bool was_call = false;
 
-  /* If we are splittind an RTX_FRAME_RELATED_P insn, do not allow it to
+  /* If we are splitting an RTX_FRAME_RELATED_P insn, do not allow it to
      match more than one insn, or to be split into more than one insn.  */
   old_insn = peep2_insn_data[peep2_current].insn;
   if (RTX_FRAME_RELATED_P (old_insn))
     {
       bool any_note = false;
+      rtx note;
 
       if (match_len != 0)
 	return NULL;
@@ -3234,6 +3249,7 @@ peep2_attempt (basic_block bb, rtx insn, int match_len, rtx attempt)
   for (i = 0; i <= match_len; ++i)
     {
       int j;
+      rtx note;
 
       j = peep2_buf_position (peep2_current + i);
       old_insn = peep2_insn_data[j].insn;
@@ -3261,6 +3277,7 @@ peep2_attempt (basic_block bb, rtx insn, int match_len, rtx attempt)
 	  {
 	  case REG_NORETURN:
 	  case REG_SETJMP:
+	  case REG_TM:
 	    add_reg_note (new_insn, REG_NOTE_KIND (note),
 			  XEXP (note, 0));
 	    break;
@@ -3279,9 +3296,21 @@ peep2_attempt (basic_block bb, rtx insn, int match_len, rtx attempt)
       break;
     }
 
-  i = peep2_buf_position (peep2_current + match_len);
+  /* If we matched any instruction that had a REG_ARGS_SIZE, then
+     move those notes over to the new sequence.  */
+  as_note = NULL;
+  for (i = match_len; i >= 0; --i)
+    {
+      int j = peep2_buf_position (peep2_current + i);
+      old_insn = peep2_insn_data[j].insn;
 
-  note = find_reg_note (peep2_insn_data[i].insn, REG_EH_REGION, NULL_RTX);
+      as_note = find_reg_note (old_insn, REG_ARGS_SIZE, NULL);
+      if (as_note)
+	break;
+    }
+
+  i = peep2_buf_position (peep2_current + match_len);
+  eh_note = find_reg_note (peep2_insn_data[i].insn, REG_EH_REGION, NULL_RTX);
 
   /* Replace the old sequence with the new.  */
   last = emit_insn_after_setloc (attempt,
@@ -3291,7 +3320,7 @@ peep2_attempt (basic_block bb, rtx insn, int match_len, rtx attempt)
   delete_insn_chain (insn, peep2_insn_data[i].insn, false);
 
   /* Re-insert the EH_REGION notes.  */
-  if (note || (was_call && nonlocal_goto_handler_labels))
+  if (eh_note || (was_call && nonlocal_goto_handler_labels))
     {
       edge eh_edge;
       edge_iterator ei;
@@ -3300,8 +3329,8 @@ peep2_attempt (basic_block bb, rtx insn, int match_len, rtx attempt)
 	if (eh_edge->flags & (EDGE_EH | EDGE_ABNORMAL_CALL))
 	  break;
 
-      if (note)
-	copy_reg_eh_region_note_backward (note, last, before_try);
+      if (eh_note)
+	copy_reg_eh_region_note_backward (eh_note, last, before_try);
 
       if (eh_edge)
 	for (x = last; x != before_try; x = PREV_INSN (x))
@@ -3333,6 +3362,10 @@ peep2_attempt (basic_block bb, rtx insn, int match_len, rtx attempt)
 	 possible.  Zap dummy outgoing edges.  */
       peep2_do_cleanup_cfg |= purge_dead_edges (bb);
     }
+
+  /* Re-insert the ARGS_SIZE notes.  */
+  if (as_note)
+    fixup_args_size_notes (before_try, last, INTVAL (XEXP (as_note, 0)));
 
   /* If we generated a jump instruction, it won't have
      JUMP_LABEL set.  Recompute after we're done.  */

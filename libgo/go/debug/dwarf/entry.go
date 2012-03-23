@@ -10,7 +10,7 @@
 
 package dwarf
 
-import "os"
+import "errors"
 
 // a single entry's description: a sequence of attributes
 type abbrev struct {
@@ -29,7 +29,7 @@ type abbrevTable map[uint32]abbrev
 
 // ParseAbbrev returns the abbreviation table that starts at byte off
 // in the .debug_abbrev section.
-func (d *Data) parseAbbrev(off uint32) (abbrevTable, os.Error) {
+func (d *Data) parseAbbrev(off uint32) (abbrevTable, error) {
 	if m, ok := d.abbrevCache[off]; ok {
 		return m, nil
 	}
@@ -40,7 +40,7 @@ func (d *Data) parseAbbrev(off uint32) (abbrevTable, os.Error) {
 	} else {
 		data = data[off:]
 	}
-	b := makeBuf(d, "abbrev", 0, data, 0)
+	b := makeBuf(d, nil, "abbrev", 0, data)
 
 	// Error handling is simplified by the buf getters
 	// returning an endless stream of 0s after an error.
@@ -182,13 +182,37 @@ func (b *buf) entry(atab abbrevTable, ubase Offset) *Entry {
 		case formUdata:
 			val = int64(b.uint())
 
+		// exprloc
+		case formExprLoc:
+			val = b.bytes(int(b.uint()))
+
 		// flag
 		case formFlag:
 			val = b.uint8() == 1
+		case formFlagPresent:
+			val = true
+
+		// lineptr, loclistptr, macptr, rangelistptr
+		case formSecOffset:
+			if b.u == nil {
+				b.error("unknown size for DW_FORM_sec_offset")
+			} else if b.u.dwarf64 {
+				val = Offset(b.uint64())
+			} else {
+				val = Offset(b.uint32())
+			}
 
 		// reference to other entry
 		case formRefAddr:
-			val = Offset(b.addr())
+			if b.u == nil {
+				b.error("unknown version for DW_FORM_ref_addr")
+			} else if b.u.version == 2 {
+				val = Offset(b.addr())
+			} else if b.u.dwarf64 {
+				val = Offset(b.uint64())
+			} else {
+				val = Offset(b.uint32())
+			}
 		case formRef1:
 			val = Offset(b.uint8()) + ubase
 		case formRef2:
@@ -199,6 +223,8 @@ func (b *buf) entry(atab abbrevTable, ubase Offset) *Entry {
 			val = Offset(b.uint64()) + ubase
 		case formRefUdata:
 			val = Offset(b.uint()) + ubase
+		case formRefSig8:
+			val = b.uint64()
 
 		// string
 		case formString:
@@ -208,7 +234,7 @@ func (b *buf) entry(atab abbrevTable, ubase Offset) *Entry {
 			if b.err != nil {
 				return nil
 			}
-			b1 := makeBuf(b.dwarf, "str", 0, b.dwarf.str, 0)
+			b1 := makeBuf(b.dwarf, b.u, "str", 0, b.dwarf.str)
 			b1.skip(int(off))
 			val = b1.string()
 			if b1.err != nil {
@@ -232,7 +258,7 @@ func (b *buf) entry(atab abbrevTable, ubase Offset) *Entry {
 type Reader struct {
 	b            buf
 	d            *Data
-	err          os.Error
+	err          error
 	unit         int
 	lastChildren bool   // .Children of last entry returned by Next
 	lastSibling  Offset // .Val(AttrSibling) of last entry returned by Next
@@ -243,6 +269,15 @@ type Reader struct {
 func (d *Data) Reader() *Reader {
 	r := &Reader{d: d}
 	r.Seek(0)
+	return r
+}
+
+// unitReader returns a new reader starting at a specific unit.
+func (d *Data) unitReader(i int) *Reader {
+	r := &Reader{d: d}
+	r.unit = i
+	u := &d.unit[i]
+	r.b = makeBuf(d, u, "info", u.off, u.data)
 	return r
 }
 
@@ -258,7 +293,7 @@ func (r *Reader) Seek(off Offset) {
 		}
 		u := &d.unit[0]
 		r.unit = 0
-		r.b = makeBuf(r.d, "info", u.off, u.data, u.addrsize)
+		r.b = makeBuf(r.d, u, "info", u.off, u.data)
 		return
 	}
 
@@ -269,11 +304,11 @@ func (r *Reader) Seek(off Offset) {
 		u = &d.unit[i]
 		if u.off <= off && off < u.off+Offset(len(u.data)) {
 			r.unit = i
-			r.b = makeBuf(r.d, "info", off, u.data[off-u.off:], u.addrsize)
+			r.b = makeBuf(r.d, u, "info", off, u.data[off-u.off:])
 			return
 		}
 	}
-	r.err = os.NewError("offset out of range")
+	r.err = errors.New("offset out of range")
 }
 
 // maybeNextUnit advances to the next unit if this one is finished.
@@ -281,7 +316,7 @@ func (r *Reader) maybeNextUnit() {
 	for len(r.b.data) == 0 && r.unit+1 < len(r.d.unit) {
 		r.unit++
 		u := &r.d.unit[r.unit]
-		r.b = makeBuf(r.d, "info", u.off, u.data, u.addrsize)
+		r.b = makeBuf(r.d, u, "info", u.off, u.data)
 	}
 }
 
@@ -289,7 +324,7 @@ func (r *Reader) maybeNextUnit() {
 // It returns nil, nil when it reaches the end of the section.
 // It returns an error if the current offset is invalid or the data at the
 // offset cannot be decoded as a valid Entry.
-func (r *Reader) Next() (*Entry, os.Error) {
+func (r *Reader) Next() (*Entry, error) {
 	if r.err != nil {
 		return nil, r.err
 	}

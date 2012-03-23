@@ -9518,7 +9518,7 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
       ;;
 
     # Unfortunately, older versions of FreeBSD 2 do not have this feature.
-    freebsd2*)
+    freebsd2.*)
       archive_cmds='$LD -Bshareable -o $lib $libobjs $deplibs $linker_flags'
       hardcode_direct=yes
       hardcode_minus_L=yes
@@ -10434,7 +10434,7 @@ freebsd* | dragonfly*)
     objformat=`/usr/bin/objformat`
   else
     case $host_os in
-    freebsd[123]*) objformat=aout ;;
+    freebsd[23].*) objformat=aout ;;
     *) objformat=elf ;;
     esac
   fi
@@ -10452,7 +10452,7 @@ freebsd* | dragonfly*)
   esac
   shlibpath_var=LD_LIBRARY_PATH
   case $host_os in
-  freebsd2*)
+  freebsd2.*)
     shlibpath_overrides_runpath=yes
     ;;
   freebsd3.[01]* | freebsdelf3.[01]*)
@@ -12342,7 +12342,7 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
         esac
         ;;
 
-      freebsd[12]*)
+      freebsd2.*)
         # C++ shared libraries reported to be fairly broken before
 	# switch to ELF
         ld_shlibs_CXX=no
@@ -14117,7 +14117,7 @@ freebsd* | dragonfly*)
     objformat=`/usr/bin/objformat`
   else
     case $host_os in
-    freebsd[123]*) objformat=aout ;;
+    freebsd[23].*) objformat=aout ;;
     *) objformat=elf ;;
     esac
   fi
@@ -14135,7 +14135,7 @@ freebsd* | dragonfly*)
   esac
   shlibpath_var=LD_LIBRARY_PATH
   case $host_os in
-  freebsd2*)
+  freebsd2.*)
     shlibpath_overrides_runpath=yes
     ;;
   freebsd3.[01]* | freebsdelf3.[01]*)
@@ -14712,7 +14712,7 @@ case "$THREADS" in
  no | none | single)
     THREADS=none
     ;;
- posix | posix95 | pthreads)
+ posix | pthreads)
     THREADS=posix
     THREADLIBS=-lpthread
     case "$host" in
@@ -15141,6 +15141,17 @@ _ACEOF
 fi
 done
 
+for ac_func in pthread_get_stackaddr_np
+do :
+  ac_fn_c_check_func "$LINENO" "pthread_get_stackaddr_np" "ac_cv_func_pthread_get_stackaddr_np"
+if test "x$ac_cv_func_pthread_get_stackaddr_np" = x""yes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_PTHREAD_GET_STACKADDR_NP 1
+_ACEOF
+
+fi
+done
+
 LIBS="$oldLIBS"
 
 # Configuration of machine-dependent code
@@ -15163,7 +15174,7 @@ $as_echo "$as_me: WARNING: OpenBSD/Alpha without dlopen(). Shared library suppor
  alpha*-*-linux*)
     machdep="alpha_mach_dep.lo"
     ;;
- i?86-*-solaris2.[89] | i?86-*-solaris2.1?)
+ i?86-*-solaris2.[89] | i?86-*-solaris2.1? | x86_64-*-solaris2.1?)
 
 $as_echo "#define SOLARIS25_PROC_VDB_BUG_FIXED 1" >>confdefs.h
 

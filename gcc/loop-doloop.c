@@ -394,14 +394,11 @@ add_test (rtx cond, edge *e, basic_block dest)
    describes the loop, DESC describes the number of iterations of the
    loop, and DOLOOP_INSN is the low-overhead looping insn to emit at the
    end of the loop.  CONDITION is the condition separated from the
-   DOLOOP_SEQ.  COUNT is the number of iterations of the LOOP.
-   ZERO_EXTEND_P says to zero extend COUNT after the increment of it to
-   word_mode from FROM_MODE.  */
+   DOLOOP_SEQ.  COUNT is the number of iterations of the LOOP.  */
 
 static void
 doloop_modify (struct loop *loop, struct niter_desc *desc,
-	       rtx doloop_seq, rtx condition, rtx count,
-	       bool zero_extend_p, enum machine_mode from_mode)
+	       rtx doloop_seq, rtx condition, rtx count)
 {
   rtx counter_reg;
   rtx tmp, noloop = NULL_RTX;
@@ -465,7 +462,7 @@ doloop_modify (struct loop *loop, struct niter_desc *desc,
 	 Note that the maximum value loaded is iterations_max - 1.  */
       if (desc->niter_max
 	  <= ((unsigned HOST_WIDEST_INT) 1
-	      << (GET_MODE_BITSIZE (mode) - 1)))
+	      << (GET_MODE_PRECISION (mode) - 1)))
 	nonneg = 1;
       break;
 
@@ -475,11 +472,7 @@ doloop_modify (struct loop *loop, struct niter_desc *desc,
     }
 
   if (increment_count)
-    count = simplify_gen_binary (PLUS, from_mode, count, const1_rtx);
-
-  if (zero_extend_p)
-    count = simplify_gen_unary (ZERO_EXTEND, word_mode,
-				count, from_mode);
+    count = simplify_gen_binary (PLUS, mode, count, const1_rtx);
 
   /* Insert initialization of the count register into the loop header.  */
   start_sequence ();
@@ -615,7 +608,6 @@ doloop_optimize (struct loop *loop)
   struct niter_desc *desc;
   unsigned word_mode_size;
   unsigned HOST_WIDE_INT word_mode_max;
-  bool zero_extend_p = false;
 
   if (dump_file)
     fprintf (dump_file, "Doloop: Processing loop %d.\n", loop->num);
@@ -655,7 +647,7 @@ doloop_optimize (struct loop *loop)
 
   max_cost
     = COSTS_N_INSNS (PARAM_VALUE (PARAM_MAX_ITERATIONS_COMPUTATION_COST));
-  if (rtx_cost (desc->niter_expr, SET, optimize_loop_for_speed_p (loop))
+  if (set_src_cost (desc->niter_expr, optimize_loop_for_speed_p (loop))
       > max_cost)
     {
       if (dump_file)
@@ -677,7 +669,7 @@ doloop_optimize (struct loop *loop)
   doloop_seq = gen_doloop_end (doloop_reg, iterations, iterations_max,
 			       GEN_INT (level), start_label);
 
-  word_mode_size = GET_MODE_BITSIZE (word_mode);
+  word_mode_size = GET_MODE_PRECISION (word_mode);
   word_mode_max
 	  = ((unsigned HOST_WIDE_INT) 1 << (word_mode_size - 1) << 1) - 1;
   if (! doloop_seq
@@ -685,12 +677,13 @@ doloop_optimize (struct loop *loop)
       /* Before trying mode different from the one in that # of iterations is
 	 computed, we must be sure that the number of iterations fits into
 	 the new mode.  */
-      && (word_mode_size >= GET_MODE_BITSIZE (mode)
+      && (word_mode_size >= GET_MODE_PRECISION (mode)
 	  || desc->niter_max <= word_mode_max))
     {
-      if (word_mode_size > GET_MODE_BITSIZE (mode))
+      if (word_mode_size > GET_MODE_PRECISION (mode))
 	{
-	  zero_extend_p = true;
+	  count = simplify_gen_unary (ZERO_EXTEND, word_mode,
+				      count, mode);
 	  iterations = simplify_gen_unary (ZERO_EXTEND, word_mode,
 					   iterations, mode);
 	  iterations_max = simplify_gen_unary (ZERO_EXTEND, word_mode,
@@ -734,8 +727,7 @@ doloop_optimize (struct loop *loop)
       return false;
     }
 
-  doloop_modify (loop, desc, doloop_seq, condition, count,
-		 zero_extend_p, mode);
+  doloop_modify (loop, desc, doloop_seq, condition, count);
   return true;
 }
 
@@ -755,7 +747,6 @@ doloop_optimize_loops (void)
   iv_analysis_done ();
 
 #ifdef ENABLE_CHECKING
-  verify_dominators (CDI_DOMINATORS);
   verify_loop_structure ();
 #endif
 }

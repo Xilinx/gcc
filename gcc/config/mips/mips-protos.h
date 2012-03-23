@@ -1,6 +1,6 @@
 /* Prototypes of target machine for GNU compiler.  MIPS version.
    Copyright (C) 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
+   1999, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by A. Lichnewsky (lich@inria.inria.fr).
    Changed by Michael Meissner	(meissner@osf.org).
@@ -56,9 +56,6 @@ enum mips_symbol_context {
        The symbol's value will be calculated using a MIPS16 PC-relative
        calculation.
 
-   SYMBOL_FORCE_TO_MEM
-       The symbol's value must be forced to memory and loaded from there.
-
    SYMBOL_GOT_PAGE_OFST
        The symbol's value will be calculated by loading an address
        from the GOT and then applying a 16-bit offset.
@@ -94,9 +91,6 @@ enum mips_symbol_context {
        UNSPEC wrappers around SYMBOL_TLS, corresponding to the
        thread-local storage relocation operators.
 
-   SYMBOL_32_HIGH
-       For a 32-bit symbolic address X, this is the value of %hi(X).
-
    SYMBOL_64_HIGH
        For a 64-bit symbolic address X, this is the value of
        (%highest(X) << 16) + %higher(X).
@@ -116,7 +110,6 @@ enum mips_symbol_type {
   SYMBOL_ABSOLUTE,
   SYMBOL_GP_RELATIVE,
   SYMBOL_PC_RELATIVE,
-  SYMBOL_FORCE_TO_MEM,
   SYMBOL_GOT_PAGE_OFST,
   SYMBOL_GOT_DISP,
   SYMBOL_GOTOFF_PAGE,
@@ -129,7 +122,6 @@ enum mips_symbol_type {
   SYMBOL_DTPREL,
   SYMBOL_GOTTPREL,
   SYMBOL_TPREL,
-  SYMBOL_32_HIGH,
   SYMBOL_64_HIGH,
   SYMBOL_64_MID,
   SYMBOL_64_LOW,
@@ -191,6 +183,9 @@ extern int mips_split_const_insns (rtx);
 extern int mips_load_store_insns (rtx, rtx);
 extern int mips_idiv_insns (void);
 extern rtx mips_emit_move (rtx, rtx);
+#ifdef RTX_CODE
+extern void mips_emit_binary (enum rtx_code, rtx, rtx, rtx);
+#endif
 extern rtx mips_pic_base_register (rtx);
 extern rtx mips_got_load (rtx, rtx, enum mips_symbol_type);
 extern bool mips_split_symbol (rtx, rtx, enum machine_mode, rtx *);
@@ -236,6 +231,8 @@ extern void mips_split_call (rtx, rtx);
 extern bool mips_get_pic_call_symbol (rtx *, int);
 extern void mips_expand_fcc_reload (rtx, rtx, rtx);
 extern void mips_set_return_address (rtx, rtx);
+extern bool mips_move_by_pieces_p (unsigned HOST_WIDE_INT, unsigned int);
+extern bool mips_store_by_pieces_p (unsigned HOST_WIDE_INT, unsigned int);
 extern bool mips_expand_block_move (rtx, rtx, rtx);
 extern void mips_expand_synci_loop (rtx, rtx);
 
@@ -255,6 +252,7 @@ extern void mips_push_asm_switch (struct mips_asm_switch *);
 extern void mips_pop_asm_switch (struct mips_asm_switch *);
 extern void mips_output_external (FILE *, tree, const char *);
 extern void mips_output_ascii (FILE *, const char *, size_t);
+extern const char *mips_output_tls_reloc_directive (rtx *);
 extern void mips_output_aligned_decl_common (FILE *, tree, const char *,
 					     unsigned HOST_WIDE_INT,
 					     unsigned int);
@@ -301,7 +299,6 @@ extern bool mips_linked_madd_p (rtx, rtx);
 extern bool mips_store_data_bypass_p (rtx, rtx);
 extern rtx mips_prefetch_cookie (rtx, rtx);
 
-extern void irix_asm_output_align (FILE *, unsigned);
 extern const char *current_section_name (void);
 extern unsigned int current_section_flags (void);
 extern bool mips_use_ins_ext_p (rtx, HOST_WIDE_INT, HOST_WIDE_INT);
@@ -325,6 +322,11 @@ extern void mips_expand_atomic_qihi (union mips_gen_fn_ptrs,
 				     rtx, rtx, rtx, rtx);
 
 extern void mips_expand_vector_init (rtx, rtx);
+extern bool mips_expand_vec_perm_const (rtx op[4]);
+extern void mips_expand_vec_unpack (rtx op[2], bool, bool);
+extern void mips_expand_vec_reduc (rtx, rtx, rtx (*)(rtx, rtx, rtx));
+extern void mips_expand_vec_minmax (rtx, rtx, rtx,
+				    rtx (*) (rtx, rtx, rtx), bool);
 
 extern bool mips_eh_uses (unsigned int);
 extern bool mips_epilogue_uses (unsigned int);

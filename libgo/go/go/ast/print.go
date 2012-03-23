@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// This file contains printing suppport for ASTs.
+// This file contains printing support for ASTs.
 
 package ast
 
@@ -14,10 +14,8 @@ import (
 	"reflect"
 )
 
-
 // A FieldFilter may be provided to Fprint to control the output.
 type FieldFilter func(name string, value reflect.Value) bool
-
 
 // NotNilFilter returns true for field values that are not nil;
 // it returns false otherwise.
@@ -29,7 +27,6 @@ func NotNilFilter(_ string, v reflect.Value) bool {
 	return true
 }
 
-
 // Fprint prints the (sub-)tree starting at AST node x to w.
 // If fset != nil, position information is interpreted relative
 // to that file set. Otherwise positions are printed as integer
@@ -39,7 +36,7 @@ func NotNilFilter(_ string, v reflect.Value) bool {
 // struct fields for which f(fieldname, fieldvalue) is true are
 // are printed; all others are filtered from the output.
 //
-func Fprint(w io.Writer, fset *token.FileSet, x interface{}, f FieldFilter) (n int, err os.Error) {
+func Fprint(w io.Writer, fset *token.FileSet, x interface{}, f FieldFilter) (err error) {
 	// setup printer
 	p := printer{
 		output: w,
@@ -51,7 +48,6 @@ func Fprint(w io.Writer, fset *token.FileSet, x interface{}, f FieldFilter) (n i
 
 	// install error handler
 	defer func() {
-		n = p.written
 		if e := recover(); e != nil {
 			err = e.(localError).err // re-panics if it's not a localError
 		}
@@ -68,29 +64,25 @@ func Fprint(w io.Writer, fset *token.FileSet, x interface{}, f FieldFilter) (n i
 	return
 }
 
-
 // Print prints x to standard output, skipping nil fields.
 // Print(fset, x) is the same as Fprint(os.Stdout, fset, x, NotNilFilter).
-func Print(fset *token.FileSet, x interface{}) (int, os.Error) {
+func Print(fset *token.FileSet, x interface{}) error {
 	return Fprint(os.Stdout, fset, x, NotNilFilter)
 }
 
-
 type printer struct {
-	output  io.Writer
-	fset    *token.FileSet
-	filter  FieldFilter
-	ptrmap  map[interface{}]int // *T -> line number
-	written int                 // number of bytes written to output
-	indent  int                 // current indentation level
-	last    byte                // the last byte processed by Write
-	line    int                 // current line number
+	output io.Writer
+	fset   *token.FileSet
+	filter FieldFilter
+	ptrmap map[interface{}]int // *T -> line number
+	indent int                 // current indentation level
+	last   byte                // the last byte processed by Write
+	line   int                 // current line number
 }
-
 
 var indent = []byte(".  ")
 
-func (p *printer) Write(data []byte) (n int, err os.Error) {
+func (p *printer) Write(data []byte) (n int, err error) {
 	var m int
 	for i, b := range data {
 		// invariant: data[0:n] has been written
@@ -120,23 +112,18 @@ func (p *printer) Write(data []byte) (n int, err os.Error) {
 	return
 }
 
-
-// localError wraps locally caught os.Errors so we can distinguish
+// localError wraps locally caught errors so we can distinguish
 // them from genuine panics which we don't want to return as errors.
 type localError struct {
-	err os.Error
+	err error
 }
-
 
 // printf is a convenience wrapper that takes care of print errors.
 func (p *printer) printf(format string, args ...interface{}) {
-	n, err := fmt.Fprintf(p, format, args...)
-	p.written += n
-	if err != nil {
+	if _, err := fmt.Fprintf(p, format, args...); err != nil {
 		panic(localError{err})
 	}
 }
-
 
 // Implementation note: Print is written for AST nodes but could be
 // used to print arbitrary data structures; such a version should
@@ -158,7 +145,7 @@ func (p *printer) print(x reflect.Value) {
 		p.print(x.Elem())
 
 	case reflect.Map:
-		p.printf("%s (len = %d) {\n", x.Type().String(), x.Len())
+		p.printf("%s (len = %d) {\n", x.Type(), x.Len())
 		p.indent++
 		for _, key := range x.MapKeys() {
 			p.print(key)
@@ -187,7 +174,7 @@ func (p *printer) print(x reflect.Value) {
 			p.printf("%#q", s)
 			return
 		}
-		p.printf("%s (len = %d) {\n", x.Type().String(), x.Len())
+		p.printf("%s (len = %d) {\n", x.Type(), x.Len())
 		p.indent++
 		for i, n := 0, x.Len(); i < n; i++ {
 			p.printf("%d: ", i)
@@ -198,7 +185,7 @@ func (p *printer) print(x reflect.Value) {
 		p.printf("}")
 
 	case reflect.Struct:
-		p.printf("%s {\n", x.Type().String())
+		p.printf("%s {\n", x.Type())
 		p.indent++
 		t := x.Type()
 		for i, n := 0, t.NumField(); i < n; i++ {

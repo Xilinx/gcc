@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -28,6 +28,8 @@ with Err_Vars; use Err_Vars;
 with Hostparm; use Hostparm;
 with Namet;    use Namet;
 with Opt;      use Opt;
+with Restrict; use Restrict;
+with Rident;   use Rident;
 with Scans;    use Scans;
 with Sinput;   use Sinput;
 with Snames;   use Snames;
@@ -184,7 +186,7 @@ package body Scng is
               Tok_Separate | Tok_EOF | Tok_Semicolon | Tok_Arrow |
               Tok_Vertical_Bar | Tok_Dot_Dot | Tok_Project | Tok_Extends |
               Tok_External | Tok_External_As_List | Tok_Comment |
-              Tok_End_Of_Line | Tok_Special | No_Token =>
+              Tok_End_Of_Line | Tok_Special | Tok_SPARK_Hide | No_Token =>
 
             System.CRC32.Update
               (System.CRC32.CRC32 (Checksum),
@@ -249,7 +251,7 @@ package body Scng is
               Tok_Separate | Tok_EOF | Tok_Semicolon | Tok_Arrow |
               Tok_Vertical_Bar | Tok_Dot_Dot | Tok_Project | Tok_Extends |
               Tok_External | Tok_External_As_List | Tok_Comment |
-              Tok_End_Of_Line | Tok_Special | No_Token =>
+              Tok_End_Of_Line | Tok_Special | Tok_SPARK_Hide | No_Token =>
 
             System.CRC32.Update
               (System.CRC32.CRC32 (Checksum),
@@ -917,6 +919,9 @@ package body Scng is
          Err : Boolean;
          --  Error flag for Scan_Wide call
 
+         String_Start : Source_Ptr;
+         --  Point to first character of string
+
          procedure Error_Bad_String_Char;
          --  Signal bad character in string/character literal. On entry
          --  Scan_Ptr points to the improper character encountered during the
@@ -964,6 +969,8 @@ package body Scng is
          -------------------------------
 
          procedure Error_Unterminated_String is
+            S : Source_Ptr;
+
          begin
             --  An interesting little refinement. Consider the following
             --  examples:
@@ -971,6 +978,7 @@ package body Scng is
             --     A := "this is an unterminated string;
             --     A := "this is an unterminated string &
             --     P(A, "this is a parameter that didn't get terminated);
+            --     P("this is a parameter that didn't get terminated, A);
 
             --  We fiddle a little to do slightly better placement in these
             --  cases also if there is white space at the end of the line we
@@ -1010,6 +1018,8 @@ package body Scng is
                return;
             end if;
 
+            --  Backup over semicolon or right-paren/semicolon sequence
+
             if Source (Scan_Ptr - 1) = ';' then
                Scan_Ptr := Scan_Ptr - 1;
                Unstore_String_Char;
@@ -1019,6 +1029,25 @@ package body Scng is
                   Unstore_String_Char;
                end if;
             end if;
+
+            --  See if there is a comma in the string, if so, guess that
+            --  the first comma terminates the string.
+
+            S := String_Start;
+            while S < Scan_Ptr loop
+               if Source (S) = ',' then
+                  while Scan_Ptr > S loop
+                     Scan_Ptr := Scan_Ptr - 1;
+                     Unstore_String_Char;
+                  end loop;
+
+                  exit;
+               end if;
+
+               S := S + 1;
+            end loop;
+
+            --  Now we have adjusted the scan pointer, give message
 
             Error_Msg_S -- CODEFIX
               ("missing string quote");
@@ -1158,6 +1187,8 @@ package body Scng is
          --  which is either a percent, double quote, or apostrophe (single
          --  quote). The latter case is an error detected by the character
          --  literal circuit.
+
+         String_Start := Scan_Ptr;
 
          Delimiter := Source (Scan_Ptr);
          Accumulate_Checksum (Delimiter);
@@ -1761,6 +1792,47 @@ package body Scng is
                   Token := Tok_Comment;
                   return;
                end if;
+
+               --  If the SPARK restriction is set for this unit, then generate
+               --  a token Tok_SPARK_Hide for a SPARK HIDE directive.
+
+               if Restriction_Check_Required (SPARK)
+                 and then Source (Start_Of_Comment) = '#'
+               then
+                  declare
+                     Scan_SPARK_Ptr : Source_Ptr;
+
+                  begin
+                     Scan_SPARK_Ptr := Start_Of_Comment + 1;
+
+                     --  Scan out blanks
+
+                     while Source (Scan_SPARK_Ptr) = ' '
+                       or else Source (Scan_SPARK_Ptr) = HT
+                     loop
+                        Scan_SPARK_Ptr := Scan_SPARK_Ptr + 1;
+                     end loop;
+
+                     --  Recognize HIDE directive. SPARK input cannot be
+                     --  encoded as wide characters, so only deal with
+                     --  lower/upper case.
+
+                     if (Source (Scan_SPARK_Ptr) = 'h'
+                          or else Source (Scan_SPARK_Ptr) = 'H')
+                       and then (Source (Scan_SPARK_Ptr + 1) = 'i'
+                                  or else Source (Scan_SPARK_Ptr + 1) = 'I')
+                       and then (Source (Scan_SPARK_Ptr + 2) = 'd'
+                                  or else Source (Scan_SPARK_Ptr + 2) = 'D')
+                       and then (Source (Scan_SPARK_Ptr + 3) = 'e'
+                                  or else Source (Scan_SPARK_Ptr + 3) = 'E')
+                       and then (Source (Scan_SPARK_Ptr + 4) = ' '
+                                  or else Source (Scan_SPARK_Ptr + 4) = HT)
+                     then
+                        Token := Tok_SPARK_Hide;
+                        return;
+                     end if;
+                  end;
+               end if;
             end if;
          end Minus_Case;
 
@@ -2169,6 +2241,71 @@ package body Scng is
                Special_Character := Source (Scan_Ptr);
                Scan_Ptr := Scan_Ptr + 1;
                return;
+
+            --  Check for something looking like a preprocessor directive
+
+            elsif Source (Scan_Ptr) = '#'
+              and then (Source (Scan_Ptr + 1 .. Scan_Ptr + 2) = "if"
+                          or else
+                        Source (Scan_Ptr + 1 .. Scan_Ptr + 5) = "elsif"
+                          or else
+                        Source (Scan_Ptr + 1 .. Scan_Ptr + 4) = "else"
+                          or else
+                        Source (Scan_Ptr + 1 .. Scan_Ptr + 3) = "end")
+            then
+               Error_Msg_S
+                 ("preprocessor directive ignored, preprocessor not active");
+
+               --  Skip to end of line
+
+               loop
+                  if Source (Scan_Ptr) in Graphic_Character
+                       or else
+                     Source (Scan_Ptr) = HT
+                  then
+                     Scan_Ptr := Scan_Ptr + 1;
+
+                  --  Done if line terminator or EOF
+
+                  elsif Source (Scan_Ptr) in Line_Terminator
+                          or else
+                        Source (Scan_Ptr) = EOF
+                  then
+                     exit;
+
+                  --  If we have a wide character, we have to scan it out,
+                  --  because it might be a legitimate line terminator
+
+                  elsif Start_Of_Wide_Character then
+                     declare
+                        Wptr : constant Source_Ptr := Scan_Ptr;
+                        Code : Char_Code;
+                        Err  : Boolean;
+
+                     begin
+                        Scan_Wide (Source, Scan_Ptr, Code, Err);
+
+                        --  If not well formed wide character, then just skip
+                        --  past it and ignore it.
+
+                        if Err then
+                           Scan_Ptr := Wptr + 1;
+
+                        --  If UTF_32 terminator, terminate comment scan
+
+                        elsif Is_UTF_32_Line_Terminator (UTF_32 (Code)) then
+                           Scan_Ptr := Wptr;
+                           exit;
+                        end if;
+                     end;
+
+                  --  Else keep going (don't worry about bad comment chars
+                  --  in this context, we just want to find the end of line.
+
+                  else
+                     Scan_Ptr := Scan_Ptr + 1;
+                  end if;
+               end loop;
 
             --  Otherwise, this is an illegal character
 

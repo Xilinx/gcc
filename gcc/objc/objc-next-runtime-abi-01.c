@@ -54,6 +54,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "objc-runtime-hooks.h"
 #include "objc-runtime-shared-support.h"
+#include "objc-encoding.h"
 
 /* NeXT ABI 0 and 1 private definitions.  */
 #define DEF_CONSTANT_STRING_CLASS_NAME "NSConstantString"
@@ -976,7 +977,6 @@ next_runtime_abi_01_get_category_super_ref (location_t loc ATTRIBUTE_UNUSED,
   /* else do it the slow way.  */
   add_class_reference (super_name);
   super_class = (inst_meth ? objc_get_class_decl : objc_get_meta_class_decl);
-/* assemble_external (super_class);*/
   super_name = my_build_string_pointer (IDENTIFIER_LENGTH (super_name) + 1,
 					IDENTIFIER_POINTER (super_name));
   /* super_class = objc_get{Meta}Class("CLASS_SUPER_NAME"); */
@@ -2871,12 +2871,15 @@ make_err_class:
   return eh_id;
 }
 
+/* For NeXT ABI 0 and 1, the personality routines are just those of the 
+   underlying language.  */
+
 static tree
 objc_eh_personality (void)
 {
   if (!objc_eh_personality_decl)
 #ifndef OBJCPLUS
-    objc_eh_personality_decl = build_personality_function ("objc");
+    objc_eh_personality_decl = build_personality_function ("gcc");
 #else
     objc_eh_personality_decl = build_personality_function ("gxx");
 #endif
@@ -2918,7 +2921,7 @@ objc_build_exc_ptr (struct objc_try_context **cur_try_context)
   else
     {
       tree t;
-      t = built_in_decls[BUILT_IN_EH_POINTER];
+      t = builtin_decl_explicit (BUILT_IN_EH_POINTER);
       t = build_call_expr (t, 1, integer_zero_node);
       return fold_convert (objc_object_type, t);
     }

@@ -63,6 +63,51 @@ static bitmap remaining_stmts;
    predecessor a node that writes to memory.  */
 static bitmap upstream_mem_writes;
 
+/* Returns true when DEF is an SSA_NAME defined in LOOP and used after
+   the LOOP.  */
+
+static bool
+ssa_name_has_uses_outside_loop_p (tree def, loop_p loop)
+{
+  imm_use_iterator imm_iter;
+  use_operand_p use_p;
+
+  FOR_EACH_IMM_USE_FAST (use_p, imm_iter, def)
+    if (loop != loop_containing_stmt (USE_STMT (use_p)))
+      return true;
+
+  return false;
+}
+
+/* Returns true when STMT defines a scalar variable used after the
+   loop.  */
+
+static bool
+stmt_has_scalar_dependences_outside_loop (gimple stmt)
+{
+  tree name;
+
+  switch (gimple_code (stmt))
+    {
+    case GIMPLE_CALL:
+    case GIMPLE_ASSIGN:
+      name = gimple_get_lhs (stmt);
+      break;
+
+    case GIMPLE_PHI:
+      name = gimple_phi_result (stmt);
+      break;
+
+    default:
+      return false;
+    }
+
+  return (name
+	  && TREE_CODE (name) == SSA_NAME
+	  && ssa_name_has_uses_outside_loop_p (name,
+					       loop_containing_stmt (stmt)));
+}
+
 /* Update the PHI nodes of NEW_LOOP.  NEW_LOOP is a duplicate of
    ORIG_LOOP.  */
 
@@ -242,9 +287,10 @@ build_size_arg_loc (location_t loc, tree nb_iter, tree op,
 		    gimple_seq *stmt_list)
 {
   gimple_seq stmts;
-  tree x = size_binop_loc (loc, MULT_EXPR,
-  			   fold_convert_loc (loc, sizetype, nb_iter),
-			   TYPE_SIZE_UNIT (TREE_TYPE (op)));
+  tree x = fold_build2_loc (loc, MULT_EXPR, size_type_node,
+			    fold_convert_loc (loc, size_type_node, nb_iter),
+			    fold_convert_loc (loc, size_type_node,
+					      TYPE_SIZE_UNIT (TREE_TYPE (op))));
   x = force_gimple_operand (x, &stmts, true, NULL);
   gimple_seq_add_seq (stmt_list, stmts);
 
@@ -267,7 +313,7 @@ generate_memset_zero (gimple stmt, tree op0, tree nb_iter,
 
   DR_STMT (dr) = stmt;
   DR_REF (dr) = op0;
-  res = dr_analyze_innermost (dr);
+  res = dr_analyze_innermost (dr, loop_containing_stmt (stmt));
   gcc_assert (res && stride_of_unit_type_p (DR_STEP (dr), TREE_TYPE (op0)));
 
   nb_bytes = build_size_arg_loc (loc, nb_iter, op0, &stmt_list);
@@ -275,9 +321,7 @@ generate_memset_zero (gimple stmt, tree op0, tree nb_iter,
   addr_base = fold_convert_loc (loc, sizetype, addr_base);
 
   /* Test for a negative stride, iterating over every element.  */
-  if (integer_zerop (size_binop (PLUS_EXPR,
-				 TYPE_SIZE_UNIT (TREE_TYPE (op0)),
-				 fold_convert (sizetype, DR_STEP (dr)))))
+  if (tree_int_cst_sgn (DR_STEP (dr)) == -1)
     {
       addr_base = size_binop_loc (loc, MINUS_EXPR, addr_base,
 				  fold_convert_loc (loc, sizetype, nb_bytes));
@@ -285,13 +329,12 @@ generate_memset_zero (gimple stmt, tree op0, tree nb_iter,
 				  TYPE_SIZE_UNIT (TREE_TYPE (op0)));
     }
 
-  addr_base = fold_build2_loc (loc, POINTER_PLUS_EXPR,
-			       TREE_TYPE (DR_BASE_ADDRESS (dr)),
-			       DR_BASE_ADDRESS (dr), addr_base);
+  addr_base = fold_build_pointer_plus_loc (loc,
+					   DR_BASE_ADDRESS (dr), addr_base);
   mem = force_gimple_operand (addr_base, &stmts, true, NULL);
   gimple_seq_add_seq (&stmt_list, stmts);
 
-  fn = build_fold_addr_expr (implicit_built_in_decls [BUILT_IN_MEMSET]);
+  fn = build_fold_addr_expr (builtin_decl_implicit (BUILT_IN_MEMSET));
   fn_call = gimple_build_call (fn, 3, mem, integer_zero_node, nb_bytes);
   gimple_seq_add_stmt (&stmt_list, fn_call);
   gsi_insert_seq_after (&bsi, stmt_list, GSI_CONTINUE_LINKING);
@@ -332,10 +375,18 @@ generate_builtin (struct loop *loop, bitmap partition, bool copy_p)
 	{
 	  gimple stmt = gsi_stmt (bsi);
 
-	  if (gimple_code (stmt) != GIMPLE_LABEL
-	      && !is_gimple_debug (stmt)
-	      && bitmap_bit_p (partition, x++)
-	      && is_gimple_assign (stmt)
+	  if (gimple_code (stmt) == GIMPLE_LABEL
+	      || is_gimple_debug (stmt))
+	    continue;
+
+	  if (!bitmap_bit_p (partition, x++))
+	    continue;
+
+	  /* If the stmt has uses outside of the loop fail.  */
+	  if (stmt_has_scalar_dependences_outside_loop (stmt))
+	    goto end;
+
+	  if (is_gimple_assign (stmt)
 	      && !is_gimple_reg (gimple_assign_lhs (stmt)))
 	    {
 	      /* Don't generate the builtins when there are more than
@@ -826,48 +877,6 @@ fuse_partitions_with_similar_memory_accesses (struct graph *rdg,
 	  }
 }
 
-/* Returns true when DEF is an SSA_NAME defined in LOOP and used after
-   the LOOP.  */
-
-static bool
-ssa_name_has_uses_outside_loop_p (tree def, loop_p loop)
-{
-  imm_use_iterator imm_iter;
-  use_operand_p use_p;
-
-  FOR_EACH_IMM_USE_FAST (use_p, imm_iter, def)
-    if (loop != loop_containing_stmt (USE_STMT (use_p)))
-      return true;
-
-  return false;
-}
-
-/* Returns true when STMT defines a scalar variable used after the
-   loop.  */
-
-static bool
-stmt_has_scalar_dependences_outside_loop (gimple stmt)
-{
-  tree name;
-
-  switch (gimple_code (stmt))
-    {
-    case GIMPLE_ASSIGN:
-      name = gimple_assign_lhs (stmt);
-      break;
-
-    case GIMPLE_PHI:
-      name = gimple_phi_result (stmt);
-      break;
-
-    default:
-      return false;
-    }
-
-  return TREE_CODE (name) == SSA_NAME
-    && ssa_name_has_uses_outside_loop_p (name, loop_containing_stmt (stmt));
-}
-
 /* Returns true when STMT will be code generated in a partition of RDG
    different than PART and that will not be code generated as a
    builtin.  */
@@ -1134,7 +1143,8 @@ ldist_gen (struct loop *loop, struct graph *rdg,
       goto ldist_done;
 
   rewrite_into_loop_closed_ssa (NULL, TODO_update_ssa);
-  update_ssa (TODO_update_ssa_only_virtuals | TODO_update_ssa);
+  mark_sym_for_renaming (gimple_vop (cfun));
+  update_ssa (TODO_update_ssa_only_virtuals);
 
  ldist_done:
 
@@ -1283,7 +1293,9 @@ tree_loop_distribution (void)
 	    fprintf (dump_file, "Loop %d is the same.\n", num);
 	}
 
+#ifdef ENABLE_CHECKING
       verify_loop_structure ();
+#endif
 
       VEC_free (gimple, heap, work_list);
     }
@@ -1313,6 +1325,7 @@ struct gimple_opt_pass pass_loop_distribution =
   0,				/* properties_provided */
   0,				/* properties_destroyed */
   0,				/* todo_flags_start */
-  0                             /* todo_flags_finish */
+  TODO_ggc_collect
+  | TODO_verify_ssa             /* todo_flags_finish */
  }
 };

@@ -1,3 +1,153 @@
+2012-03-22  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR other/52626
+	* tests/base/pthread.h [SOLARIS_MUTEX_INIT_2_CHECK]
+	(PTHREAD_COND_INITIALIZER): Adapt for solaris_cond_init removal.
+
+2012-03-15  Tristan Gingold  <gingold@adacore.com>
+
+	* README (EXAMPLES OF FIXES): Update.
+
+2012-03-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* inclhack.def (math_exception): Remove duplicate.
+	(solaris_cond_init): Remove.
+	(solaris_sys_va_list): Remove Solaris 8 support.
+	* fixincl.x: Regenerate.
+	* tests/base/pthread.h [SOLARIS_COND_INIT_CHECK]: Remove.
+
+2012-03-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* inclhack.def (broken_cabs): Remove IRIX and SunOS 4 support.
+	(irix___restrict): Remove.
+	(irix___generic1): Remove.
+	(irix___generic2): Remove.
+	(irix_asm_apostrophe): Remove.
+	(irix_complex): Remove.
+	(irix_pthread_init): Remove.
+	(irix_socklen_t): Remove.
+	(irix_stdint_c99_mode): Remove.
+	(irix_stdint_c99_types): Remove.
+	(irix_stdint_c99_macros): Remove.
+	(irix_stdio_va_list): Remove IRIX 6.5 support.
+	(irix_wcsftime): Remove.
+	(stdio_va_list): Remove IRIX 6.5 support.
+	(svr4_profil): Remove IRIX bypass.
+	* fixincl.x: Regenerate.
+
+	* tests/base/complex.h [IRIX_COMPLEX_CHECK]: Remove.
+	* tests/base/internal/math_core.h: Remove.
+	* tests/base/internal/sgimacros.h: Remove.
+	* tests/base/internal/wchar_core.h: Remove.
+	* tests/base/math.h [BROKEN_CABS_CHECK]: Remove IRIX and SunOS 4
+	support.
+	* tests/base/pthread.h [IRIX_PTHREAD_INIT_CHECK]: Remove.
+	* tests/base/stdint-irix65.h: Remove.
+	* tests/base/stdint.h [IRIX_STDINT_C99_MODE_CHECK]: Remove.
+	* tests/base/sys/asm.h: Remove.
+	* tests/base/sys/socket.h [IRIX_SOCKLEN_T_CHECK]: Remove.
+
+2012-03-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* inclhack.def (alpha___extern_prefix): Remove.
+	(alpha___extern_prefix_standards): Remove.
+	(alpha___extern_prefix_sys_stat): Remove.
+	(alpha_bad_lval): Remove.
+	(alpha_pthread): Remove.
+	(alpha_pthread_gcc): Remove.
+	(alpha_pthread_init): Remove.
+	* fixincl.x: Regenerate.
+	* tests/base/pthread.h [ALPHA_PTHREAD_CHECK]: Remove.
+	[ALPHA_PTHREAD_GCC_CHECK]: Remove.
+	[ALPHA_PTHREAD_INIT_CHECK]: Remove.
+	* tests/base/standards.h: Remove.
+	* tests/base/sys/stat.h [ALPHA___EXTERN_PREFIX_SYS_STAT_CHECK]:
+	Remove.
+	* tests/base/testing.h [ALPHA___EXTERN_PREFIX_CHECK]: Remove.
+	[ALPHA_BAD_LVAL_CHECK]: Remove.
+
+2012-03-12  Tristan Gingold  <gingold@adacore.com>
+
+	* inclhack.def (vms_use_quoted_include,vms_add_missing_braces)
+	(vms_do_not_redeclare_hostalias, vms_decc_builtin)
+	(vms_no_64bit_getopt, vms_forward_declare_struct)
+	(vms_use_fast_setjmp): New fixes.
+	* fixincl.x: Regenerate.
+	* tests/base/rtldef/string.h: Update.
+	* tests/base/rtldef/if.h, tests/base/rtldef/resolv.h,
+	* tests/base/rtldef/setjmp.h, tests/base/rtldef/signal.h,
+	* tests/base/rtldef/stdio.h, tests/base/rtldef/wait.h: New files.
+
+2012-01-11  Bruce Korb <bkorb@gnu.org>
+	    Steven G. Kargl  <kargl@gcc.gnu.org>
+	    Andreas Tobler  <andreast@fgznet.ch>
+
+	PR bootstrap/51705
+	PR preprocessor/51776
+	* inclhack.def (cdef_cplusplus): Add a replacement for [[noreturn]].
+	* fixincl.x: Regenerate.
+	* tests/base/sys/cdefs.h: Update.
+
+	* genfixes: Remove the 'Ver.' from the version check.
+
+2011-12-20  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* configure: Regenerate.
+
+2011-12-19  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* configure: Regenerate.
+
+2011-11-16  David Edelsohn  <dje.gcc@gmail.com>
+
+	* inclhack.def (aix_once_init_[12]): New fixes.
+	* fixincl.x: Regenerate.
+	* tests/base/pthread.h: Update.
+
+2011-10-25  Mike Stump  <mikestump@comcast.net>
+
+	PR target/48851
+	* inclhack.def (void_null): New bypass.
+	* fixincl.x: Regenerate.
+
+2011-09-26  Tristan Gingold  <gingold@adacore.com>
+
+	* inclhack.def (ms_define_can_use_extern_prefix):
+	(vms_use_pragma_extern_model, vms_disable_decc_string_builtins):
+	New fixes.
+	* fixincl.x: Regenerate.
+	* tests/base/rtldef/string.h: New test.
+	* tests/base/rtldef/decc$types.h: Likewise.
+	* tests/base/testing.h: Update
+
+2011-09-22  Tristan Gingold  <gingold@adacore.com>
+
+	* mkfixinc.sh (target): Remove alpha-vms from particular targets.
+
+2011-08-23  Steve Ellcey  <sje@cup.hp.com>
+
+	PR libstdc++/50153
+	* inclhack.def (hpux11_abs): Extend to all hpux machines.
+	* fixincl.x: Regenerate.
+
+2011-08-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+	    Marc Glisse  <marc.glisse@normalesup.org>
+
+	PR libstdc++-v3/1773
+	* inclhack.def (solaris_cxx_linkage, solaris_getc_strict_stdc)
+	(solaris_longjmp_noreturn, solaris_pow_int_overload)
+	(solaris_std___filbuf): New fixes.
+	* tests/base/iso/math_iso.h, tests/base/iso/setjmp_iso.h,
+	tests/base/iso/stdio_iso.h, tests/base/iso/stdlib_iso.h: New tests.
+	* tests/base/stdio.h [SOLARIS_STD___FILBUF_CHECK]: New test.
+
+2011-07-25  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR c++/49347
+	* inclhack.def (solaris_posix_spawn_restrict): New fix.
+	* fixincl.x: Regenerate.
+	* tests/base/spawn.h: New test.
+
 2011-06-08  Douglas B Rupp  <rupp@gnat.com>
 
 	* configure.ac (AC_USE_SYSTEM_EXTENSIONS): Add.

@@ -50,16 +50,11 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "ggc.h"
 #include "target.h"
-#include "obstack.h"
 #include "tree-iterator.h"
 
-/* These are only used for encoding ivars.  */
-extern struct obstack util_obstack;
-extern char *util_firstobj;
-
 #include "objc-runtime-hooks.h"
-
 #include "objc-runtime-shared-support.h"
+#include "objc-encoding.h"
 
 /* ABI 2 Private definitions. */
 #define DEF_CONSTANT_STRING_CLASS_NAME "NSConstantString"
@@ -236,6 +231,7 @@ static tree begin_catch (struct objc_try_context **, tree, tree, tree, bool);
 static void finish_catch (struct objc_try_context **, tree);
 static tree finish_try_stmt (struct objc_try_context **);
 
+/* TODO: Use an objc-map.  */
 static GTY ((length ("SIZEHASHTABLE"))) hash *extern_names;
 
 bool
@@ -1386,8 +1382,7 @@ objc_v2_build_ivar_ref (tree datum, tree component)
 		       string_type_node, build_fold_addr_expr (datum));
 
   /* (char*)datum + offset */
-  expr = fold_build2_loc (input_location,
-			  POINTER_PLUS_EXPR, string_type_node, expr, offset);
+  expr = fold_build_pointer_plus_loc (input_location, expr, offset);
 
   /* (ftype*)((char*)datum + offset) */
   expr = build_c_cast (input_location, build_pointer_type (ftype), expr);
@@ -1514,7 +1509,6 @@ next_runtime_abi_02_get_category_super_ref (location_t loc ATTRIBUTE_UNUSED,
   /* ??? Do we need to add the class ref anway for zero-link?  */
   /* else do it the slow way.  */
   super_class = (inst_meth ? objc_get_class_decl : objc_get_meta_class_decl);
-  /* assemble_external (super_class); */
   super_name = my_build_string_pointer (IDENTIFIER_LENGTH (super_name) + 1,
 					IDENTIFIER_POINTER (super_name));
   /* super_class = objc_get{Meta}Class("CLASS_SUPER_NAME"); */
@@ -2852,15 +2846,9 @@ build_v2_ivar_list_initializer (tree class_name, tree type, tree field_decl)
 						meth_var_names));
 
       /* Set type.  */
-      encode_field_decl (field_decl,
-			 obstack_object_size (&util_obstack),
-			 OBJC_ENCODE_DONT_INLINE_DEFS);
-      /* Null terminate string.  */
-      obstack_1grow (&util_obstack, 0);
-      id = add_objc_string (get_identifier (XOBFINISH (&util_obstack, char *)),
+      id = add_objc_string (encode_field_decl (field_decl),
                             meth_var_types);
       CONSTRUCTOR_APPEND_ELT (ivar, NULL_TREE, id);
-      obstack_free (&util_obstack, util_firstobj);
 
       /* Set alignment.  */
       val = DECL_ALIGN_UNIT (field_decl);
@@ -3497,7 +3485,7 @@ objc2_build_ehtype_initializer (tree name, tree cls)
     }
   addr = build_fold_addr_expr_with_type (next_v2_ehvtable_decl, ptr_type_node);
   offs = size_int (2 * int_cst_value (TYPE_SIZE_UNIT (ptr_type_node)));
-  addr = fold_build2 (POINTER_PLUS_EXPR, ptr_type_node, addr, offs);
+  addr = fold_build_pointer_plus (addr, offs);
 
   CONSTRUCTOR_APPEND_ELT (initlist, NULL_TREE, addr);
 
@@ -3688,7 +3676,7 @@ static tree
 objc_build_exc_ptr (struct objc_try_context **x ATTRIBUTE_UNUSED)
 {
   tree t;
-  t = built_in_decls[BUILT_IN_EH_POINTER];
+  t = builtin_decl_explicit (BUILT_IN_EH_POINTER);
   t = build_call_expr (t, 1, integer_zero_node);
   return fold_convert (objc_object_type, t);
 }

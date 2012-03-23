@@ -47,6 +47,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-codes.h"
 #include "ggc.h"
 #include "opts.h"
+#include "optabs.h"
 
 enum reg_class regno_reg_class[] =
 {
@@ -135,9 +136,8 @@ static int m68k_sched_first_cycle_multipass_dfa_lookahead (void);
 static bool m68k_can_eliminate (const int, const int);
 static void m68k_conditional_register_usage (void);
 static bool m68k_legitimate_address_p (enum machine_mode, rtx, bool);
-static bool m68k_handle_option (struct gcc_options *, struct gcc_options *,
-				const struct cl_decoded_option *, location_t);
 static void m68k_option_override (void);
+static void m68k_override_options_after_change (void);
 static rtx find_addr_reg (rtx);
 static const char *singlemove_string (rtx *);
 static void m68k_output_mi_thunk (FILE *, tree, HOST_WIDE_INT,
@@ -151,7 +151,7 @@ static bool m68k_save_reg (unsigned int regno, bool interrupt_handler);
 static bool m68k_ok_for_sibcall_p (tree, tree);
 static bool m68k_tls_symbol_p (rtx);
 static rtx m68k_legitimize_address (rtx, rtx, enum machine_mode);
-static bool m68k_rtx_costs (rtx, int, int, int *, bool);
+static bool m68k_rtx_costs (rtx, int, int, int, int *, bool);
 #if M68K_HONOR_TARGET_STRICT_ALIGNMENT
 static bool m68k_return_in_memory (const_tree, const_tree);
 #endif
@@ -159,11 +159,13 @@ static void m68k_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 static void m68k_trampoline_init (rtx, tree, rtx);
 static int m68k_return_pops_args (tree, tree, int);
 static rtx m68k_delegitimize_address (rtx);
-static void m68k_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+static void m68k_function_arg_advance (cumulative_args_t, enum machine_mode,
 				       const_tree, bool);
-static rtx m68k_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+static rtx m68k_function_arg (cumulative_args_t, enum machine_mode,
 			      const_tree, bool);
 static bool m68k_cannot_force_const_mem (enum machine_mode mode, rtx x);
+static bool m68k_output_addr_const_extra (FILE *, rtx);
+static void m68k_init_sync_libfuncs (void) ATTRIBUTE_UNUSED;
 
 /* Initialize the GCC target structure.  */
 
@@ -234,11 +236,11 @@ static bool m68k_cannot_force_const_mem (enum machine_mode mode, rtx x);
 #define TARGET_SCHED_FIRST_CYCLE_MULTIPASS_DFA_LOOKAHEAD	\
   m68k_sched_first_cycle_multipass_dfa_lookahead
 
-#undef TARGET_HANDLE_OPTION
-#define TARGET_HANDLE_OPTION m68k_handle_option
-
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE m68k_option_override
+
+#undef TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE
+#define TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE m68k_override_options_after_change
 
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS m68k_rtx_costs
@@ -298,6 +300,13 @@ static bool m68k_cannot_force_const_mem (enum machine_mode mode, rtx x);
 #undef TARGET_LEGITIMATE_CONSTANT_P
 #define TARGET_LEGITIMATE_CONSTANT_P m68k_legitimate_constant_p
 
+#undef TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA
+#define TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA m68k_output_addr_const_extra
+
+/* The value stored by TAS.  */
+#undef TARGET_ATOMIC_TEST_AND_SET_TRUEVAL
+#define TARGET_ATOMIC_TEST_AND_SET_TRUEVAL 128
+
 static const struct attribute_spec m68k_attribute_table[] =
 {
   /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
@@ -320,7 +329,7 @@ struct gcc_target targetm = TARGET_INITIALIZER;
    generated 68881 code for 68020 and 68030 targets unless explicitly told
    not to.  */
 #define FL_FOR_isa_20    (FL_FOR_isa_10 | FL_ISA_68020 \
-			  | FL_BITFIELD | FL_68881)
+			  | FL_BITFIELD | FL_68881 | FL_CAS)
 #define FL_FOR_isa_40    (FL_FOR_isa_20 | FL_ISA_68040)
 #define FL_FOR_isa_cpu32 (FL_FOR_isa_10 | FL_ISA_68020)
 
@@ -430,47 +439,6 @@ const char *m68k_symbolic_jump;
 enum M68K_SYMBOLIC_CALL m68k_symbolic_call_var;
 
 
-/* Implement TARGET_HANDLE_OPTION.  */
-
-static bool
-m68k_handle_option (struct gcc_options *opts,
-		    struct gcc_options *opts_set ATTRIBUTE_UNUSED,
-		    const struct cl_decoded_option *decoded,
-		    location_t loc)
-{
-  size_t code = decoded->opt_index;
-  const char *arg = decoded->arg;
-  int value = decoded->value;
-
-  switch (code)
-    {
-    case OPT_m68020_40:
-      opts->x_m68k_tune_option = u68020_40;
-      opts->x_m68k_cpu_option = m68020;
-      return true;
-
-    case OPT_m68020_60:
-      opts->x_m68k_tune_option = u68020_60;
-      opts->x_m68k_cpu_option = m68020;
-      return true;
-
-    case OPT_mshared_library_id_:
-      if (value > MAX_LIBRARY_ID)
-	error_at (loc, "-mshared-library-id=%s is not between 0 and %d",
-		  arg, MAX_LIBRARY_ID);
-      else
-        {
-	  char *tmp;
-	  asprintf (&tmp, "%d", (value * -4) - 4);
-	  opts->x_m68k_library_id_string = tmp;
-	}
-      return true;
-
-    default:
-      return true;
-    }
-}
-
 /* Implement TARGET_OPTION_OVERRIDE.  */
 
 static void
@@ -677,6 +645,19 @@ m68k_option_override (void)
 	m68k_sched_mac = MAC_CF_MAC;
       else
 	m68k_sched_mac = MAC_NO;
+    }
+}
+
+/* Implement TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE.  */
+
+static void
+m68k_override_options_after_change (void)
+{
+  if (m68k_sched_cpu == CPU_UNKNOWN)
+    {
+      flag_schedule_insns = 0;
+      flag_schedule_insns_after_reload = 0;
+      flag_modulo_sched = 0;
     }
 }
 
@@ -1418,7 +1399,7 @@ m68k_ok_for_sibcall_p (tree decl, tree exp)
 /* On the m68k all args are always pushed.  */
 
 static rtx
-m68k_function_arg (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
+m68k_function_arg (cumulative_args_t cum ATTRIBUTE_UNUSED,
 		   enum machine_mode mode ATTRIBUTE_UNUSED,
 		   const_tree type ATTRIBUTE_UNUSED,
 		   bool named ATTRIBUTE_UNUSED)
@@ -1427,9 +1408,11 @@ m68k_function_arg (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
 }
 
 static void
-m68k_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+m68k_function_arg_advance (cumulative_args_t cum_v, enum machine_mode mode,
 			   const_tree type, bool named ATTRIBUTE_UNUSED)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
+
   *cum += (mode != BLKmode
 	   ? (GET_MODE_SIZE (mode) + 3) & ~3
 	   : (int_size_in_bytes (type) + 3) & ~3);
@@ -2792,8 +2775,8 @@ const_int_cost (HOST_WIDE_INT i)
 }
 
 static bool
-m68k_rtx_costs (rtx x, int code, int outer_code, int *total,
-		bool speed ATTRIBUTE_UNUSED)
+m68k_rtx_costs (rtx x, int code, int outer_code, int opno ATTRIBUTE_UNUSED,
+		int *total, bool speed ATTRIBUTE_UNUSED)
 {
   switch (code)
     {
@@ -4229,7 +4212,8 @@ notice_update_cc (rtx exp, rtx insn)
       && GET_MODE_CLASS (GET_MODE (XEXP (cc_status.value2, 0))) == MODE_FLOAT)
     {
       cc_status.flags = CC_IN_68881;
-      if (!FP_REG_P (XEXP (cc_status.value2, 0)))
+      if (!FP_REG_P (XEXP (cc_status.value2, 0))
+	  && FP_REG_P (XEXP (cc_status.value2, 1)))
 	cc_status.flags |= CC_REVERSED;
     }
 }
@@ -4567,9 +4551,9 @@ m68k_get_reloc_decoration (enum m68k_reloc reloc)
     }
 }
 
-/* m68k implementation of OUTPUT_ADDR_CONST_EXTRA.  */
+/* m68k implementation of TARGET_OUTPUT_ADDR_CONST_EXTRA.  */
 
-bool
+static bool
 m68k_output_addr_const_extra (FILE *file, rtx x)
 {
   if (GET_CODE (x) == UNSPEC)
@@ -6544,6 +6528,12 @@ m68k_conditional_register_usage (void)
     }
   if (flag_pic)
     fixed_regs[PIC_REG] = call_used_regs[PIC_REG] = 1;
+}
+
+static void
+m68k_init_sync_libfuncs (void)
+{
+  init_sync_libfuncs (UNITS_PER_WORD);
 }
 
 #include "gt-m68k.h"

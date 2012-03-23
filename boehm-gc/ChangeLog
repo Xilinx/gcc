@@ -1,3 +1,61 @@
+2012-02-27  Jack Howarth  <howarth@bromo.med.uc.edu>
+	    Patrick Marlier  <patrick.marlier@gmail.com>
+
+	PR boehm-gc/48299
+	* testsuite/boehm-gc.c/thread_leak_test.c: Merge upstream changes.
+
+2012-02-23  Patrick Marlier  <patrick.marlier@gmail.com>
+	    Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	PR boehm-gc/52179
+	* include/gc_config.h.in: Undefine HAVE_PTHREAD_GET_STACKADDR_NP.
+	* include/private/gcconfig.h (DARWIN): Define STACKBOTTOM with
+	pthread_get_stackaddr_np when available.
+	* configure.ac (THREADS): Check availability of pthread_get_stackaddr_np.
+	* configure: Regenerate.
+
+2012-02-10  Kai Tietz  <ktietz@redhat.com>
+
+	PR boehm-gc/48514
+	* include/gc_config_macros.h (GC_DLL): Define it for mingw-targets
+	only, if we are actual in boehm-gc's build and DLL_EXPORT
+	is defined.
+	
+2011-11-21  Andreas Tobler  <andreast@fgznet.ch>
+
+	* configure: Regenerate.
+
+2011-08-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (THREADS): Remove posix95.
+	* configure: Regenerate.
+
+2011-07-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/39150
+	* configure.ac (i?86-*-solaris2.[89]): Also accept
+	x86_64-*-solaris2.1?.
+	* configure: Regenerate.
+
+2011-06-29  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libgcj/49451
+	* include/private/gcconfig.h [IRIX5 && _MIPS_SZPTR == 64]
+	(ELF_CLASS): Define.
+	* dyn_load.c [IRIX5]: Include <elf.h>.
+	Include <obj.h> for O32, <objlist.h> for N32, N64.
+	[SUNOS5DL && USE_PROC_FOR_LIBRARIES] (obj_offset): Define.
+	[SUNOS4 && USE_PROC_FOR_LIBRARIES] (obj_offset): Define.
+	[IRIX5 && !USE_PROC_FOR_LIBRARIES] (struct link_map): Define.
+	(__rld_obj_head): Declare.
+	(l_next, l_addr, obj_offset): Define.
+	(GC_FirstDLOpenedLinkMap): New function.
+	[SUNOS4 || SUNOS5DL] (GC_register_dynamic_libraries): Also use on
+	IRIX5.
+	Use obj_offset.
+	[IRIX5 || (USE_PROC_FOR_LIBRARIES && !LINUX]
+	(GC_register_dynamic_libraries): Don't use /proc version on IRIX5.
+
 2011-04-19  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* configure.ac (THREADS): Remove decosf1, irix, mach, os2.

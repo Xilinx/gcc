@@ -1,7 +1,7 @@
 // vector<bool> specialization -*- C++ -*-
 
 // Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-// 2011 Free Software Foundation, Inc.
+// 2011, 2012 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -57,7 +57,9 @@
 #ifndef _STL_BVECTOR_H
 #define _STL_BVECTOR_H 1
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <initializer_list>
+#endif
 
 namespace std _GLIBCXX_VISIBILITY(default)
 {
@@ -105,6 +107,32 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
     flip() _GLIBCXX_NOEXCEPT
     { *_M_p ^= _M_mask; }
   };
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  inline void
+  swap(_Bit_reference __x, _Bit_reference __y) noexcept
+  {
+    bool __tmp = __x;
+    __x = __y;
+    __y = __tmp;
+  }
+
+  inline void
+  swap(_Bit_reference __x, bool& __y) noexcept
+  {
+    bool __tmp = __x;
+    __x = __y;
+    __y = __tmp;
+  }
+
+  inline void
+  swap(bool& __x, _Bit_reference __y) noexcept
+  {
+    bool __tmp = __x;
+    __x = __y;
+    __y = __tmp;
+  }
+#endif
 
   struct _Bit_iterator_base
   : public std::iterator<std::random_access_iterator_tag, bool>
@@ -555,6 +583,14 @@ template<typename _Alloc>
     }
 #endif
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+    template<typename _InputIterator,
+	     typename = std::_RequireInputIter<_InputIterator>>
+      vector(_InputIterator __first, _InputIterator __last,
+	     const allocator_type& __a = allocator_type())
+      : _Base(__a)
+      { _M_initialize_dispatch(__first, __last, __false_type()); }
+#else
     template<typename _InputIterator>
       vector(_InputIterator __first, _InputIterator __last,
 	     const allocator_type& __a = allocator_type())
@@ -563,6 +599,7 @@ template<typename _Alloc>
 	typedef typename std::__is_integer<_InputIterator>::__type _Integral;
 	_M_initialize_dispatch(__first, __last, _Integral());
       }
+#endif
 
     ~vector() _GLIBCXX_NOEXCEPT { }
 
@@ -608,6 +645,13 @@ template<typename _Alloc>
     assign(size_type __n, const bool& __x)
     { _M_fill_assign(__n, __x); }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+    template<typename _InputIterator,
+	     typename = std::_RequireInputIter<_InputIterator>>
+      void
+      assign(_InputIterator __first, _InputIterator __last)
+      { _M_assign_dispatch(__first, __last, __false_type()); }
+#else
     template<typename _InputIterator>
       void
       assign(_InputIterator __first, _InputIterator __last)
@@ -615,6 +659,7 @@ template<typename _Alloc>
 	typedef typename std::__is_integer<_InputIterator>::__type _Integral;
 	_M_assign_dispatch(__first, __last, _Integral());
       }
+#endif
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
     void
@@ -804,6 +849,14 @@ template<typename _Alloc>
       return begin() + __n;
     }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+    template<typename _InputIterator,
+	     typename = std::_RequireInputIter<_InputIterator>>
+      void
+      insert(iterator __position,
+	     _InputIterator __first, _InputIterator __last)
+      { _M_insert_dispatch(__position, __first, __last, __false_type()); }
+#else
     template<typename _InputIterator>
       void
       insert(iterator __position,
@@ -812,6 +865,7 @@ template<typename _Alloc>
 	typedef typename std::__is_integer<_InputIterator>::__type _Integral;
 	_M_insert_dispatch(__position, __first, __last, _Integral());
       }
+#endif
 
     void
     insert(iterator __position, size_type __n, const bool& __x)
@@ -838,7 +892,8 @@ template<typename _Alloc>
     iterator
     erase(iterator __first, iterator __last)
     {
-      _M_erase_at_end(std::copy(__last, end(), __first));
+      if (__first != __last)
+	_M_erase_at_end(std::copy(__last, end(), __first));
       return __first;
     }
 
@@ -1072,7 +1127,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     : public __hash_base<size_t, _GLIBCXX_STD_C::vector<bool, _Alloc>>
     {
       size_t
-      operator()(const _GLIBCXX_STD_C::vector<bool, _Alloc>& __b) const;
+      operator()(const _GLIBCXX_STD_C::vector<bool, _Alloc>&) const noexcept;
     };
 
 _GLIBCXX_END_NAMESPACE_VERSION

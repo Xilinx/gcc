@@ -548,8 +548,7 @@ optimize_reg_copy_3 (rtx insn, rtx dest, rtx src)
   /* Do not use a SUBREG to truncate from one mode to another if truncation
      is not a nop.  */
   if (GET_MODE_BITSIZE (GET_MODE (src_reg)) <= GET_MODE_BITSIZE (GET_MODE (src))
-      && !TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (GET_MODE (src)),
-				 GET_MODE_BITSIZE (GET_MODE (src_reg))))
+      && !TRULY_NOOP_TRUNCATION_MODES_P (GET_MODE (src), GET_MODE (src_reg)))
     return;
 
   set_insn = p;
@@ -860,7 +859,7 @@ fixup_match_2 (rtx insn, rtx dst, rtx src, rtx offset)
 	  if (REG_N_CALLS_CROSSED (REGNO (src)) == 0)
 	    break;
 
-	  if (call_used_regs [REGNO (dst)]
+	  if ((HARD_REGISTER_P (dst) && call_used_regs [REGNO (dst)])
 	      || find_reg_fusage (p, CLOBBER, dst))
 	    break;
 	}

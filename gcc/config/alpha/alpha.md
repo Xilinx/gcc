@@ -1,6 +1,6 @@
 ;; Machine description for DEC Alpha for GNU C compiler
 ;; Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-;; 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
+;; 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011, 2012
 ;; Free Software Foundation, Inc.
 ;; Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 ;;
@@ -81,6 +81,7 @@
   UNSPECV_SETJMPR_ER	; builtin_setjmp_receiver fragment
   UNSPECV_LL		; load-locked
   UNSPECV_SC		; store-conditional
+  UNSPECV_CMPXCHG
 ])
 
 ;; On non-BWX targets, CQImode must be handled the similarly to HImode
@@ -3965,8 +3966,6 @@
   emit_move_insn (gen_rtx_REG (DImode, 25), operands[1]);
   if (GET_CODE (operands[0]) == SYMBOL_REF)
     {
-      alpha_need_linkage (XSTR (operands[0], 0), 0);
-
       operands[2] = const0_rtx;
     }
   else
@@ -4042,8 +4041,6 @@
   emit_move_insn (gen_rtx_REG (DImode, 25), operands[2]);
   if (GET_CODE (operands[1]) == SYMBOL_REF)
     {
-      alpha_need_linkage (XSTR (operands[1], 0), 0);
-
       operands[3] = const0_rtx;
     }
   else
@@ -4244,8 +4241,8 @@
     case 0:
    	return "mov %2,$27\;jsr $26,0\;ldq $27,0($29)";
     case 1:
-	operands [2] = alpha_use_linkage (operands [0], cfun->decl, 1, 0);
-	operands [3] = alpha_use_linkage (operands [0], cfun->decl, 0, 0);
+	operands [2] = alpha_use_linkage (operands [0], true, false);
+	operands [3] = alpha_use_linkage (operands [0], false, false);
    	return "ldq $26,%3\;ldq $27,%2\;jsr $26,%0\;ldq $27,0($29)";
     default:
       gcc_unreachable ();
@@ -5472,7 +5469,7 @@
 	      (clobber (reg:DI 27))])]
   "TARGET_ABI_OPEN_VMS"
 {
-  operands[4] = alpha_need_linkage ("OTS$MOVE", 0);
+  operands[4] = gen_rtx_SYMBOL_REF (Pmode, "OTS$MOVE");
 })
 
 (define_insn "*movmemdi_1"
@@ -5491,7 +5488,7 @@
    (clobber (reg:DI 27))]
   "TARGET_ABI_OPEN_VMS"
 {
-  operands [5] = alpha_use_linkage (operands [4], cfun->decl, 0, 1);
+  operands [5] = alpha_use_linkage (operands [4], false, true);
   switch (which_alternative)
     {
     case 0:
@@ -5539,7 +5536,7 @@
   if (operands[2] != const0_rtx)
     FAIL;
 
-  operands[4] = alpha_need_linkage ("OTS$ZERO", 0);
+  operands[4] = gen_rtx_SYMBOL_REF (Pmode, "OTS$ZERO");
 })
 
 (define_insn "*clrmemdi_1"
@@ -5555,7 +5552,7 @@
    (clobber (reg:DI 27))]
   "TARGET_ABI_OPEN_VMS"
 {
-  operands [4] = alpha_use_linkage (operands [3], cfun->decl, 0, 1);
+  operands [4] = alpha_use_linkage (operands [3], false, true);
   switch (which_alternative)
     {
     case 0:
@@ -5858,27 +5855,21 @@
 
 (define_insn "*builtin_setjmp_receiver_er_sl_1"
   [(unspec_volatile [(match_operand 0 "" "")] UNSPECV_SETJMPR_ER)]
-  "TARGET_ABI_OSF && TARGET_EXPLICIT_RELOCS && TARGET_AS_CAN_SUBTRACT_LABELS"
+  "TARGET_ABI_OSF && TARGET_EXPLICIT_RELOCS"
   "lda $27,$LSJ%=-%l0($27)\n$LSJ%=:")
   
-(define_insn "*builtin_setjmp_receiver_er_1"
-  [(unspec_volatile [(match_operand 0 "" "")] UNSPECV_SETJMPR_ER)]
-  "TARGET_ABI_OSF && TARGET_EXPLICIT_RELOCS"
-  "br $27,$LSJ%=\n$LSJ%=:"
-  [(set_attr "type" "ibr")])
-
 ;; When flag_reorder_blocks_and_partition is in effect, compiler puts
 ;; exception landing pads in a cold section.  To prevent inter-section offset
 ;; calculation, a jump to original landing pad is emitted in the place of the
 ;; original landing pad.  Since landing pad is moved, RA-relative GP
 ;; calculation in the prologue of landing pad breaks.  To solve this problem,
-;; we use alternative GP load approach, as in the case of TARGET_LD_BUGGY_LDGP.
+;; we use alternative GP load approach.
 
 (define_expand "exception_receiver"
   [(unspec_volatile [(match_dup 0)] UNSPECV_EHR)]
   "TARGET_ABI_OSF"
 {
-  if (TARGET_LD_BUGGY_LDGP || flag_reorder_blocks_and_partition)
+  if (flag_reorder_blocks_and_partition)
     operands[0] = alpha_gp_save_rtx ();
   else
     operands[0] = const0_rtx;
@@ -5886,8 +5877,7 @@
 
 (define_insn "*exception_receiver_2"
   [(unspec_volatile [(match_operand:DI 0 "memory_operand" "m")] UNSPECV_EHR)]
-  "TARGET_ABI_OSF 
-   && (TARGET_LD_BUGGY_LDGP || flag_reorder_blocks_and_partition)"
+  "TARGET_ABI_OSF && flag_reorder_blocks_and_partition"
   "ldq $29,%0"
   [(set_attr "type" "ild")])
 
@@ -6825,8 +6815,8 @@
     case 0:
    	return "mov %3,$27\;jsr $26,0\;ldq $27,0($29)";
     case 1:
-	operands [3] = alpha_use_linkage (operands [1], cfun->decl, 1, 0);
-	operands [4] = alpha_use_linkage (operands [1], cfun->decl, 0, 0);
+	operands [3] = alpha_use_linkage (operands [1], true, false);
+	operands [4] = alpha_use_linkage (operands [1], false, false);
    	return "ldq $26,%4\;ldq $27,%3\;jsr $26,%1\;ldq $27,0($29)";
     default:
       gcc_unreachable ();

@@ -1,8 +1,8 @@
 /* Generic implementation of the MOVE_ALLOC intrinsic
-   Copyright (C) 2006, 2007, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2009, 2011, 2012 Free Software Foundation, Inc.
    Contributed by Paul Thomas
 
-This file is part of the GNU Fortran 95 runtime library (libgfortran).
+This file is part of the GNU Fortran runtime library (libgfortran).
 
 Libgfortran is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public
@@ -24,10 +24,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
 #include "libgfortran.h"
-
-#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
-#endif
+
 
 extern void move_alloc (gfc_array_char *, gfc_array_char *);
 export_proto(move_alloc);
@@ -37,7 +35,7 @@ move_alloc (gfc_array_char * from, gfc_array_char * to)
 {
   int i;
 
-  free (to->data);
+  free (to->base_addr);
 
   for (i = 0; i < GFC_DESCRIPTOR_RANK (from); i++)
     {
@@ -50,8 +48,8 @@ move_alloc (gfc_array_char * from, gfc_array_char * to)
 
   to->offset = from->offset;
   to->dtype = from->dtype;
-  to->data = from->data;
-  from->data = NULL;
+  to->base_addr = from->base_addr;
+  from->base_addr = NULL;
 }
 
 extern void move_alloc_c (gfc_array_char *, GFC_INTEGER_4,

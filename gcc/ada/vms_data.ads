@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1996-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1996-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -882,6 +882,12 @@ package VMS_Data is
    --   of the directory specified in the project file. If the subdirectory
    --   does not exist, it is created automatically.
 
+   S_Check_Template  : aliased constant S := "/TEMPLATE=@"                 &
+                                             "--write-rules=@";
+   --      /TEMPLATE=filename
+   --
+   --   Generate the rule template into the specified file.
+
    S_Check_Verb   : aliased constant S := "/VERBOSE "                      &
                                             "-v";
    --        /NOVERBOSE (D)
@@ -898,24 +904,25 @@ package VMS_Data is
    --   Specify the name of the output file.
 
    Check_Switches : aliased constant Switches :=
-                      (S_Check_Add    'Access,
-                       S_Check_All    'Access,
-                       S_Diagnosis    'Access,
-                       S_Check_Ext    'Access,
-                       S_Check_Files  'Access,
-                       S_Check_Follow 'Access,
-                       S_Check_Help   'Access,
-                       S_Check_Locs   'Access,
-                       S_Check_Mess   'Access,
-                       S_Check_Project'Access,
-                       S_Check_Quiet  'Access,
-                       S_Check_Time   'Access,
-                       S_Check_Log    'Access,
-                       S_Check_Short  'Access,
-                       S_Check_Include'Access,
-                       S_Check_Subdirs'Access,
-                       S_Check_Verb   'Access,
-                       S_Check_Out    'Access);
+                      (S_Check_Add     'Access,
+                       S_Check_All     'Access,
+                       S_Diagnosis     'Access,
+                       S_Check_Ext     'Access,
+                       S_Check_Files   'Access,
+                       S_Check_Follow  'Access,
+                       S_Check_Help    'Access,
+                       S_Check_Locs    'Access,
+                       S_Check_Mess    'Access,
+                       S_Check_Project 'Access,
+                       S_Check_Quiet   'Access,
+                       S_Check_Time    'Access,
+                       S_Check_Log     'Access,
+                       S_Check_Short   'Access,
+                       S_Check_Include 'Access,
+                       S_Check_Subdirs 'Access,
+                       S_Check_Template'Access,
+                       S_Check_Verb    'Access,
+                       S_Check_Out     'Access);
 
    ----------------------------
    -- Switches for GNAT CHOP --
@@ -1292,6 +1299,19 @@ package VMS_Data is
    --   mode, the compiler assumes that values may be invalid unless it can
    --   be sure that they are valid, and code is generated to allow for this
    --   possibility. The use of /ASSUME_VALID will improve the code.
+
+   S_GCC_CategW  : aliased constant S := "/CATEGORIZATION_WARNINGS "  &
+                                             "-gnateP";
+   --        /NO_CATEGORIZATION_WARNINGS (D)
+   --        /CATEGORIZATION_WARNINGS
+   --
+   --   Use to tell the compiler to disable categorization dependency errors.
+   --   Ada requires that units that WITH one another have compatible
+   --   categories, for example a Pure unit cannot WITH a Preelaborate unit.
+   --   If this switch is used, these errors become warnings (which can be
+   --   ignored, or suppressed in the usual manner). This can be useful in
+   --   some specialized circumstances such as the temporary use of special
+   --   test software.
 
    S_GCC_Checks  : aliased constant S := "/CHECKS="                        &
                                              "FULL "                       &
@@ -1906,6 +1926,15 @@ package VMS_Data is
    --   When using a project file, GNAT MAKE creates a temporary mapping file
    --   and communicates it to the compiler using this switch.
 
+   S_GCC_MaxI    : aliased constant S := "/MAX_INSTANTIATIONS=#"           &
+                                            "-gnatei#";
+
+   --        /MAX_INSTANTIATIONS=nnn
+   --
+   --   Specify the maximum number of instantiations permitted. The default
+   --   value is 8000, which is probably enough for all programs except those
+   --   containing some kind of runaway unintended instantiation loop.
+
    S_GCC_Mess    : aliased constant S := "/MESSAGES_PROJECT_FILE="         &
                                             "DEFAULT "                     &
                                                "-vP0 "                     &
@@ -1924,6 +1953,12 @@ package VMS_Data is
    --
    --      HIGH        A great number of messages are output, most of them not
    --                  being useful for the user.
+
+   S_GCC_Multi   : aliased constant S := "/MULTI_UNIT_INDEX=#"             &
+                                            "-gnateI#";
+   --        /MULTI_UNIT_INDEX=nnn
+   --
+   --   Specify the index of the unit to compile in a multi-unit source file.
 
    S_GCC_Nesting  : aliased constant S := "/MAX_NESTING=#"                 &
                                              "-gnatyL#";
@@ -2299,6 +2334,10 @@ package VMS_Data is
                                                "-gnaty-B "                 &
                                             "COMMENTS "                    &
                                                "-gnatyc "                  &
+                                            "COMMENTS1 "                   &
+                                               "-gnatyC "                  &
+                                            "COMMENTS2 "                   &
+                                               "-gnatyc "                  &
                                             "NOCOMMENTS "                  &
                                                "-gnaty-c "                 &
                                             "DOS_LINE_ENDINGS "            &
@@ -2389,7 +2428,7 @@ package VMS_Data is
    --   input source code.  The following keywords are supported:
    --
    --      ALL_BUILTIN (D)      Equivalent to the following list of options:
-   --                           3, ATTRIBUTE, BLANKS, COMMENTS, END, VTABS,
+   --                           3, ATTRIBUTE, BLANKS, COMMENTS2, END, VTABS,
    --                           HTABS, IF_THEN, KEYWORD, LAYOUT, LINE_LENGTH,
    --                           PRAGMA, REFERENCES, SPECS, TOKEN.
    --
@@ -2421,8 +2460,8 @@ package VMS_Data is
    --                           enforce a canonical format for the use of
    --                           blanks to separate source tokens.
    --
-   --      COMMENTS             Check comments.
-   --                           Comments must meet the following set of rules:
+   --      COMMENTS2            Check comments.
+   --      COMMENTS             Comments must meet the following set of rules:
    --
    --                             * The "--" that starts the column must either
    --                               start in column one, or else at least one
@@ -2467,6 +2506,11 @@ package VMS_Data is
    --                               ---------------------------
    --                               -- This is a box comment --
    --                               ---------------------------
+   --
+   --      COMMENTS1            Check comments (single space).
+   --                           Like COMMENTS2, but the -- of a comment only
+   --                           requires one or more spaces following, instead
+   --                           of two or more spaces.
    --
    --      DOS_LINE_ENDINGS     Check that no DOS line terminators are present
    --                           All lines must be terminated by a single
@@ -3362,12 +3406,6 @@ package VMS_Data is
    --
    --   Inhibit all warning messages of the GCC back-end.
 
-   S_GCC_All_Back : aliased constant S := "/ALL_BACK_END_WARNINGS "        &
-                                            "-Wall";
-   --        /ALL_BACK_END_WARNINGS
-   --
-   --   Activate all warning messages of the GCC back-end.
-
    S_GCC_Wide    : aliased constant S := "/WIDE_CHARACTER_ENCODING="       &
                                              "BRACKETS "                   &
                                                 "-gnatWb "                 &
@@ -3517,6 +3555,7 @@ package VMS_Data is
                      S_GCC_Add     'Access,
                      S_GCC_Asm     'Access,
                      S_GCC_AValid  'Access,
+                     S_GCC_CategW  'Access,
                      S_GCC_Checks  'Access,
                      S_GCC_ChecksX 'Access,
                      S_GCC_Compres 'Access,
@@ -3555,6 +3594,8 @@ package VMS_Data is
                      S_GCC_Output  'Access,
                      S_GCC_Machine 'Access,
                      S_GCC_Mapping 'Access,
+                     S_GCC_MaxI    'Access,
+                     S_GCC_Multi   'Access,
                      S_GCC_Mess    'Access,
                      S_GCC_Nesting 'Access,
                      S_GCC_Noadc   'Access,
@@ -3597,7 +3638,6 @@ package VMS_Data is
                      S_GCC_Wide    'Access,
                      S_GCC_WideX   'Access,
                      S_GCC_No_Back 'Access,
-                     S_GCC_All_Back'Access,
                      S_GCC_Xdebug  'Access,
                      S_GCC_Lxdebug 'Access,
                      S_GCC_Xref    'Access);
@@ -5382,24 +5422,22 @@ package VMS_Data is
    S_Metric_Coupling : aliased constant S := "/COUPLING_METRICS="             &
                                            "ALL "                             &
                                            "--coupling-all "                  &
-                                           "NONE "                            &
-                                           "--no-coupling-all "               &
-                                           "PACKAGE_EFFERENT "                &
-                                           "--package-efferent-coupling "     &
-                                           "NOPACKAGE_EFFERENT "              &
-                                           "--no-package-efferent-coupling "  &
-                                           "PACKAGE_AFFERENT "                &
-                                           "--package-afferent-coupling "     &
-                                           "NOPACKAGE_AFFERENT "              &
-                                           "--no-package-afferent-coupling "  &
-                                           "CATEGORY_EFFERENT "               &
-                                           "--category-efferent-coupling "    &
-                                           "NOCATEGORY_EFFERENT "             &
-                                           "--no-category-efferent-coupling " &
-                                           "CATEGORY_AFFERENT "               &
-                                           "--category-afferent-coupling "    &
-                                           "NOCATEGORY_AFFERENT "             &
-                                           "--no-category-afferent-coupling";
+                                           "TAGGED_OUT "                      &
+                                           "--tagged-coupling-out "           &
+                                           "TAGGED_IN "                       &
+                                           "--tagged-coupling-in "            &
+                                           "HIERARCHY_OUT "                   &
+                                           "--hierarchy-coupling-out "        &
+                                           "HIERARCHY_IN "                    &
+                                           "--hierarchy-coupling-in "         &
+                                           "UNIT_OUT "                        &
+                                           "--unit-coupling-out "             &
+                                           "UNIT_IN "                         &
+                                           "--unit-coupling-in "              &
+                                           "CONTROL_OUT "                     &
+                                           "--control-coupling-out "          &
+                                           "CONTROL_IN "                      &
+                                           "--control-coupling-in";
 
    --      /COUPLING_METRICS=(option, option ...)
 
@@ -5407,16 +5445,17 @@ package VMS_Data is
    --
    --   option may be one of the following:
    --
-   --     ALL                   All the coupling metrics are computed
-   --     NONE (D)              None of coupling metrics is computed
-   --     PACKAGE_EFFERENT      Compute package efferent coupling
-   --     NOPACKAGE_EFFERENT    Do not compute package efferent coupling
-   --     PACKAGE_AFFERENT      Compute package afferent coupling
-   --     NOPACKAGE_AFFERENT    Do not compute package afferent coupling
-   --     CATEGORY_EFFERENT     Compute category efferent coupling
-   --     NOCATEGORY_EFFERENT   Do not compute category efferent coupling
-   --     CATEGORY_AFFERENT     Compute category afferent coupling
-   --     NOCATEGORY_AFFERENT   Do not compute category afferent coupling
+   --     ALL            All the coupling metrics are computed
+   --     NOALL (D)      None of coupling metrics is computed
+   --     TAGGED_OUT     Compute tagged (class) far-out coupling
+   --     TAGGED_IN      Compute tagged (class) far-in coupling
+   --     HIERARCHY_OUT  Compute hieraqrchy (category) far-out coupling
+   --     HIERARCHY_IN   Compute hieraqrchy (category) far-in coupling
+   --     UNIT_OUT       Compute unit far-out coupling
+   --     UNIT_IN        Compute unit far-in coupling
+   --     CONTROL_OUT    Compute control far-out coupling
+   --     CONTROL_IN     Compute control far-in coupling
+
    --
    --   All combinations of coupling metrics options are allowed.
 
@@ -5440,6 +5479,14 @@ package VMS_Data is
    --        /NO_EXITS_AS_GOTOS
    --
    --   Do not count EXIT statements as GOTOs when computing the Essential
+   --   Complexity.
+
+   S_Metric_No_Static_Loop : aliased constant S := "/NO_STATIC_LOOP " &
+                                                   "--no-static-loop";
+   --        /STATIC_LOOP (D)
+   --        /NO_STATIC_LOOP
+   --
+   --   Do not count static FOR loop statements when computing the Cyclomatic
    --   Complexity.
 
    S_Metric_Mess    : aliased constant S := "/MESSAGES_PROJECT_FILE="      &
@@ -5540,6 +5587,7 @@ package VMS_Data is
                         S_Metric_Mess             'Access,
                         S_Metric_No_Exits_As_Gotos'Access,
                         S_Metric_No_Local         'Access,
+                        S_Metric_No_Static_Loop   'Access,
                         S_Metric_Project          'Access,
                         S_Metric_Quiet            'Access,
                         S_Metric_Suffix           'Access,
@@ -6081,6 +6129,30 @@ package VMS_Data is
    --   See 'HELP GNAT COMPILE /WIDE_CHARACTER_ENCODING' for an explanation
    --   about the different character encoding methods.
 
+   S_Pretty_Enums     : aliased constant S := "/ENUM_CASING="              &
+                                              "AS_DECLARED "               &
+                                                 "-neD "                   &
+                                              "LOWER_CASE "                &
+                                                 "-neL "                   &
+                                              "UPPER_CASE "                &
+                                                 "-neU "                   &
+                                              "MIXED_CASE "                &
+                                                 "-neM";
+   --        /ENUM_CASING=name-option
+   --
+   --   Specify the casing of enumeration literals. If not specified, the
+   --   casing of enumeration literals is defined by the NAME_CASING option.
+   --   'name-option' may be one of:
+   --
+   --      AS_DECLARED       Literals casing for defining occurrences are
+   --                        as they appear in the source file.
+   --
+   --      LOWER_CASE        Literals are in lower case.
+   --
+   --      UPPER_CASE        Literals are in upper case.
+   --
+   --      MIXED_CASE        Literals are in mixed case.
+
    S_Pretty_Files     : aliased constant S := "/FILES=@"                   &
                                                  "-files=@";
    --      /FILES=filename
@@ -6138,6 +6210,14 @@ package VMS_Data is
    --
    --   Set the maximum line length, nnn from 32 ..256. The default is 79.
 
+   S_Pretty_Maxact    : aliased constant S := "/MAX_ACT=#"                 &
+                                                 "--call_threshold=#";
+   --        /MAX_ACT=nnn
+   --
+   --  If the number of parameter associations is greater than nnn and if at
+   --  least one association uses named notation, start each association from
+   --  a new line
+
    S_Pretty_Maxind    : aliased constant S := "/MAX_INDENT=#"              &
                                                  "-T#";
    --        /MAX_INDENT=nnn
@@ -6146,6 +6226,14 @@ package VMS_Data is
    --   and variants if their number is nnn or more. The default is 10.
    --   If nnn is zero, an additional indentation level is used for any
    --   number of case alternatives and variants.
+
+   S_Pretty_Maxpar    : aliased constant S := "/MAX_PAR=#"                 &
+                                                 "--par_threshold=#";
+   --        /MAX_PAR=nnn
+   --
+   --  If the number of parameter specifications is greater than nnn (or equal
+   --  to nnn in case of a function), start each specification from a new line.
+   --  The default value is 3.
 
    S_Pretty_Mess      : aliased constant S := "/MESSAGES_PROJECT_FILE="    &
                                             "DEFAULT "                     &
@@ -6299,6 +6387,30 @@ package VMS_Data is
    --   of the directory specified in the project file. If the subdirectory
    --   does not exist, it is created automatically.
 
+   S_Pretty_Types     : aliased constant S := "/TYPE_CASING="              &
+                                              "AS_DECLARED "               &
+                                                 "-ntD "                   &
+                                              "LOWER_CASE "                &
+                                                 "-ntL "                   &
+                                              "UPPER_CASE "                &
+                                                 "-ntU "                   &
+                                              "MIXED_CASE "                &
+                                                 "-ntM";
+   --        /TYPE_CASING=name-option
+   --
+   --   Specify the casing of subtype names (including first subtypes from
+   --   type declarations). If not specified, the casing of these names is
+   --   defined by the NAME_CASING option. 'name-option' is one of:
+   --
+   --      AS_DECLARED       Names are cased as they appear in the declaration
+   --                        in the source file.
+   --
+   --      LOWER_CASE        Names are in lower case.
+   --
+   --      UPPER_CASE        Names are in upper case.
+   --
+   --      MIXED_CASE        Names are in mixed case.
+
    S_Pretty_Verbose   : aliased constant S := "/VERBOSE "                  &
                                               "-v";
    --        /NOVERBOSE (D)
@@ -6331,6 +6443,7 @@ package VMS_Data is
                         S_Pretty_Eol              'Access,
                         S_Pretty_Ext              'Access,
                         S_Pretty_Encoding         'Access,
+                        S_Pretty_Enums            'Access,
                         S_Pretty_Files            'Access,
                         S_Pretty_Follow           'Access,
                         S_Pretty_Forced           'Access,
@@ -6338,7 +6451,9 @@ package VMS_Data is
                         S_Pretty_Indent           'Access,
                         S_Pretty_Keyword          'Access,
                         S_Pretty_Maxlen           'Access,
+                        S_Pretty_Maxact           'Access,
                         S_Pretty_Maxind           'Access,
+                        S_Pretty_Maxpar           'Access,
                         S_Pretty_Mess             'Access,
                         S_Pretty_Names            'Access,
                         S_Pretty_No_Labels        'Access,
@@ -6359,6 +6474,7 @@ package VMS_Data is
                         S_Pretty_Stnm_On_Nw_Line  'Access,
                         S_Pretty_Specific         'Access,
                         S_Pretty_Standard         'Access,
+                        S_Pretty_Types            'Access,
                         S_Pretty_Verbose          'Access,
                         S_Pretty_Warnings         'Access);
 

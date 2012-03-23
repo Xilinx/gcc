@@ -266,6 +266,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 
 static tree analyze_scalar_evolution_1 (struct loop *, tree, tree);
+static tree analyze_scalar_evolution_for_address_of (struct loop *loop,
+						     tree var);
 
 /* The cached information about an SSA name VAR, claiming that below
    basic block INSTANTIATED_BELOW, the value of VAR can be expressed
@@ -572,7 +574,7 @@ set_scalar_evolution (basic_block instantiated_below, tree scalar, tree chrec)
 
   if (dump_file)
     {
-      if (dump_flags & TDF_DETAILS)
+      if (dump_flags & TDF_SCEV)
 	{
 	  fprintf (dump_file, "(set_scalar_evolution \n");
 	  fprintf (dump_file, "  instantiated_below = %d \n",
@@ -600,7 +602,7 @@ get_scalar_evolution (basic_block instantiated_below, tree scalar)
 
   if (dump_file)
     {
-      if (dump_flags & TDF_DETAILS)
+      if (dump_flags & TDF_SCEV)
 	{
 	  fprintf (dump_file, "(get_scalar_evolution \n");
 	  fprintf (dump_file, "  (scalar = ");
@@ -628,7 +630,7 @@ get_scalar_evolution (basic_block instantiated_below, tree scalar)
       break;
     }
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     {
       fprintf (dump_file, "  (scalar_evolution = ");
       print_generic_expr (dump_file, res, 0);
@@ -861,7 +863,7 @@ add_to_evolution (unsigned loop_nb, tree chrec_before, enum tree_code code,
     /* This should not happen.  */
     return chrec_dont_know;
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     {
       fprintf (dump_file, "(add_to_evolution \n");
       fprintf (dump_file, "  (loop_nb = %d)\n", loop_nb);
@@ -879,7 +881,7 @@ add_to_evolution (unsigned loop_nb, tree chrec_before, enum tree_code code,
 
   res = add_to_evolution_1 (loop_nb, chrec_before, to_add, at_stmt);
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     {
       fprintf (dump_file, "  (res = ");
       print_generic_expr (dump_file, res, 0);
@@ -905,7 +907,7 @@ get_loop_exit_condition (const struct loop *loop)
   gimple res = NULL;
   edge exit_edge = single_exit (loop);
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     fprintf (dump_file, "(get_loop_exit_condition \n  ");
 
   if (exit_edge)
@@ -917,7 +919,7 @@ get_loop_exit_condition (const struct loop *loop)
 	res = stmt;
     }
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     {
       print_gimple_stmt (dump_file, res, 0, 0);
       fprintf (dump_file, ")\n");
@@ -1461,7 +1463,7 @@ analyze_evolution_in_loop (gimple loop_phi_node,
   struct loop *loop = loop_containing_stmt (loop_phi_node);
   basic_block bb;
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     {
       fprintf (dump_file, "(analyze_evolution_in_loop \n");
       fprintf (dump_file, "  (loop_phi_node = ");
@@ -1517,7 +1519,7 @@ analyze_evolution_in_loop (gimple loop_phi_node,
       evolution_function = chrec_merge (evolution_function, ev_fn);
     }
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     {
       fprintf (dump_file, "  (evolution_function = ");
       print_generic_expr (dump_file, evolution_function, 0);
@@ -1541,7 +1543,7 @@ analyze_initial_condition (gimple loop_phi_node)
   tree init_cond = chrec_not_analyzed_yet;
   struct loop *loop = loop_containing_stmt (loop_phi_node);
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     {
       fprintf (dump_file, "(analyze_initial_condition \n");
       fprintf (dump_file, "  (loop_phi_node = \n");
@@ -1593,7 +1595,7 @@ analyze_initial_condition (gimple loop_phi_node)
 	init_cond = res;
     }
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     {
       fprintf (dump_file, "  (init_cond = ");
       print_generic_expr (dump_file, init_cond, 0);
@@ -1642,8 +1644,8 @@ interpret_loop_phi (struct loop *loop, gimple loop_phi_node)
       else if (TREE_CODE (res) == POLYNOMIAL_CHREC)
 	new_init = CHREC_LEFT (res);
       STRIP_USELESS_TYPE_CONVERSION (new_init);
-      gcc_assert (TREE_CODE (new_init) != POLYNOMIAL_CHREC);
-      if (!operand_equal_p (init_cond, new_init, 0))
+      if (TREE_CODE (new_init) == POLYNOMIAL_CHREC
+	  || !operand_equal_p (init_cond, new_init, 0))
 	return chrec_dont_know;
     }
 
@@ -1712,22 +1714,65 @@ interpret_rhs_expr (struct loop *loop, gimple at_stmt,
   switch (code)
     {
     case ADDR_EXPR:
-      /* Handle &MEM[ptr + CST] which is equivalent to POINTER_PLUS_EXPR.  */
-      if (TREE_CODE (TREE_OPERAND (rhs1, 0)) != MEM_REF)
-	{
-	  res = chrec_dont_know;
-	  break;
-	}
+      if (TREE_CODE (TREE_OPERAND (rhs1, 0)) == MEM_REF
+	  || handled_component_p (TREE_OPERAND (rhs1, 0)))
+        {
+	  enum machine_mode mode;
+	  HOST_WIDE_INT bitsize, bitpos;
+	  int unsignedp;
+	  int volatilep = 0;
+	  tree base, offset;
+	  tree chrec3;
+	  tree unitpos;
 
-      rhs2 = TREE_OPERAND (TREE_OPERAND (rhs1, 0), 1);
-      rhs1 = TREE_OPERAND (TREE_OPERAND (rhs1, 0), 0);
-      /* Fall through.  */
+	  base = get_inner_reference (TREE_OPERAND (rhs1, 0),
+				      &bitsize, &bitpos, &offset,
+				      &mode, &unsignedp, &volatilep, false);
+
+	  if (TREE_CODE (base) == MEM_REF)
+	    {
+	      rhs2 = TREE_OPERAND (base, 1);
+	      rhs1 = TREE_OPERAND (base, 0);
+
+	      chrec1 = analyze_scalar_evolution (loop, rhs1);
+	      chrec2 = analyze_scalar_evolution (loop, rhs2);
+	      chrec1 = chrec_convert (type, chrec1, at_stmt);
+	      chrec2 = chrec_convert (TREE_TYPE (rhs2), chrec2, at_stmt);
+	      res = chrec_fold_plus (type, chrec1, chrec2);
+	    }
+	  else
+	    {
+	      chrec1 = analyze_scalar_evolution_for_address_of (loop, base);
+	      chrec1 = chrec_convert (type, chrec1, at_stmt);
+	      res = chrec1;
+	    }
+
+	  if (offset != NULL_TREE)
+	    {
+	      chrec2 = analyze_scalar_evolution (loop, offset);
+	      chrec2 = chrec_convert (TREE_TYPE (offset), chrec2, at_stmt);
+	      res = chrec_fold_plus (type, res, chrec2);
+	    }
+
+	  if (bitpos != 0)
+	    {
+	      gcc_assert ((bitpos % BITS_PER_UNIT) == 0);
+
+	      unitpos = size_int (bitpos / BITS_PER_UNIT);
+	      chrec3 = analyze_scalar_evolution (loop, unitpos);
+	      chrec3 = chrec_convert (TREE_TYPE (unitpos), chrec3, at_stmt);
+	      res = chrec_fold_plus (type, res, chrec3);
+	    }
+        }
+      else
+	res = chrec_dont_know;
+      break;
 
     case POINTER_PLUS_EXPR:
       chrec1 = analyze_scalar_evolution (loop, rhs1);
       chrec2 = analyze_scalar_evolution (loop, rhs2);
       chrec1 = chrec_convert (type, chrec1, at_stmt);
-      chrec2 = chrec_convert (sizetype, chrec2, at_stmt);
+      chrec2 = chrec_convert (TREE_TYPE (rhs2), chrec2, at_stmt);
       res = chrec_fold_plus (type, chrec1, chrec2);
       break;
 
@@ -1796,7 +1841,8 @@ interpret_expr (struct loop *loop, gimple at_stmt, tree expr)
   if (automatically_generated_chrec_p (expr))
     return expr;
 
-  if (TREE_CODE (expr) == POLYNOMIAL_CHREC)
+  if (TREE_CODE (expr) == POLYNOMIAL_CHREC
+      || get_gimple_rhs_class (TREE_CODE (expr)) == GIMPLE_TERNARY_RHS)
     return chrec_dont_know;
 
   extract_ops_from_tree (expr, &code, &op0, &op1);
@@ -1942,7 +1988,7 @@ analyze_scalar_evolution (struct loop *loop, tree var)
 {
   tree res;
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     {
       fprintf (dump_file, "(analyze_scalar_evolution \n");
       fprintf (dump_file, "  (loop_nb = %d)\n", loop->num);
@@ -1954,10 +2000,18 @@ analyze_scalar_evolution (struct loop *loop, tree var)
   res = get_scalar_evolution (block_before_loop (loop), var);
   res = analyze_scalar_evolution_1 (loop, var, res);
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     fprintf (dump_file, ")\n");
 
   return res;
+}
+
+/* Analyzes and returns the scalar evolution of VAR address in LOOP.  */
+
+static tree
+analyze_scalar_evolution_for_address_of (struct loop *loop, tree var)
+{
+  return analyze_scalar_evolution (loop, build_fold_addr_expr (var));
 }
 
 /* Analyze scalar evolution of use of VERSION in USE_LOOP with respect to
@@ -2645,6 +2699,7 @@ instantiate_scev_r (basic_block instantiate_below,
 				   TREE_OPERAND (chrec, 0),
 				   fold_conversions, cache, size_expr);
 
+    case ADDR_EXPR:
     case SCEV_NOT_KNOWN:
       return chrec_dont_know;
 
@@ -2700,7 +2755,7 @@ instantiate_scev (basic_block instantiate_below, struct loop *evolution_loop,
   tree res;
   htab_t cache = htab_create (10, hash_scev_info, eq_scev_info, del_scev_info);
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     {
       fprintf (dump_file, "(instantiate_scev \n");
       fprintf (dump_file, "  (instantiate_below = %d)\n", instantiate_below->index);
@@ -2713,7 +2768,7 @@ instantiate_scev (basic_block instantiate_below, struct loop *evolution_loop,
   res = instantiate_scev_r (instantiate_below, evolution_loop, chrec, false,
 			    cache, 0);
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     {
       fprintf (dump_file, "  (res = ");
       print_generic_expr (dump_file, res, 0);
@@ -2779,7 +2834,7 @@ number_of_latch_executions (struct loop *loop)
 
   may_be_zero = NULL_TREE;
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     fprintf (dump_file, "(number_of_iterations_in_loop = \n");
 
   res = chrec_dont_know;
@@ -2804,7 +2859,7 @@ number_of_latch_executions (struct loop *loop)
   else
     res = chrec_dont_know;
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
+  if (dump_file && (dump_flags & TDF_SCEV))
     {
       fprintf (dump_file, "  (set_nb_iterations_in_loop = ");
       print_generic_expr (dump_file, res, 0);
@@ -3170,8 +3225,8 @@ simple_iv (struct loop *wrto_loop, struct loop *use_loop, tree op,
   iv->no_overflow = false;
 
   type = TREE_TYPE (op);
-  if (TREE_CODE (type) != INTEGER_TYPE
-      && TREE_CODE (type) != POINTER_TYPE)
+  if (!POINTER_TYPE_P (type)
+      && !INTEGRAL_TYPE_P (type))
     return false;
 
   ev = analyze_scalar_evolution_in_loop (wrto_loop, use_loop, op,

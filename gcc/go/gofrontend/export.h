@@ -7,11 +7,14 @@
 #ifndef GO_EXPORT_H
 #define GO_EXPORT_H
 
+#include "string-dump.h"
+
 struct sha1_ctx;
 class Gogo;
 class Import_init;
 class Bindings;
 class Type;
+class Package;
 
 // Codes used for the builtin types.  These are all negative to make
 // them easily distinct from the codes assigned by Export::write_type.
@@ -37,15 +40,18 @@ enum Builtin_code
   BUILTIN_STRING = -16,
   BUILTIN_COMPLEX64 = -17,
   BUILTIN_COMPLEX128 = -18,
+  BUILTIN_ERROR = -19,
+  BUILTIN_BYTE = -20,
+  BUILTIN_RUNE = -21,
 
-  SMALLEST_BUILTIN_CODE = -18
+  SMALLEST_BUILTIN_CODE = -21
 };
 
 // This class manages exporting Go declarations.  It handles the main
 // loop of exporting.  A pointer to this class is also passed to the
 // various specific export implementations.
 
-class Export
+class Export : public String_dump
 {
  public:
   // The Stream class is an interface used to output the exported
@@ -57,12 +63,12 @@ class Export
     Stream();
     virtual ~Stream();
 
-    // Write a string.
+    // Write a string. Implements the String_dump interface.
     void
     write_string(const std::string& s)
     { this->write_and_sum_bytes(s.data(), s.length()); }
 
-    // Write a nul terminated string.
+    // Write a nul terminated string. Implements the String_dump interface.
     void
     write_c_string(const char* s)
     { this->write_and_sum_bytes(s, strlen(s)); }
@@ -121,6 +127,7 @@ class Export
   export_globals(const std::string& package_name,
 		 const std::string& unique_prefix,
 		 int package_priority,
+		 const std::map<std::string, Package*>& imports,
 		 const std::string& import_init_fn,
 		 const std::set<Import_init>& imported_init_fns,
 		 const Bindings* bindings);
@@ -140,6 +147,10 @@ class Export
   write_bytes(const char* bytes, size_t length)
   { this->stream_->write_bytes(bytes, length); }
 
+  // Write a name to the export stream.  If NAME is empty, write "?".
+  void
+  write_name(const std::string& name);
+
   // Write out a type.  This handles references back to previous
   // definitions.
   void
@@ -148,6 +159,10 @@ class Export
  private:
   Export(const Export&);
   Export& operator=(const Export&);
+
+  // Write out the imported packages.
+  void
+  write_imports(const std::map<std::string, Package*>& imports);
 
   // Write out the imported initialization functions.
   void

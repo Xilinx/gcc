@@ -624,7 +624,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
       _Rb_tree(const _Compare& __comp,
 	       const allocator_type& __a = allocator_type())
-      : _M_impl(__comp, __a) { }
+      : _M_impl(__comp, _Node_allocator(__a)) { }
 
       _Rb_tree(const _Rb_tree& __x)
       : _M_impl(__x._M_impl._M_key_compare, __x._M_get_Node_allocator())
@@ -766,6 +766,16 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	++__result;
 	_M_erase_aux(__position);
 	return __result._M_const_cast();
+      }
+
+      // LWG 2059.
+      iterator
+      erase(iterator __position)
+      {
+	iterator __result = __position;
+	++__result;
+	_M_erase_aux(__position);
+	return __result;
       }
 #else
       void

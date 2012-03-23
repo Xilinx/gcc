@@ -6,7 +6,7 @@
  *                                                                          *
  *                           C Implementation File                          *
  *                                                                          *
- *          Copyright (C) 1992-2011, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2012, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -39,6 +39,7 @@
 #include "opts.h"
 #include "options.h"
 #include "plugin.h"
+#include "real.h"
 #include "function.h"	/* For pass_by_reference.  */
 
 #include "ada.h"
@@ -68,11 +69,19 @@ const char **save_argv;
 extern int gnat_argc;
 extern char **gnat_argv;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Declare functions we use as part of startup.  */
 extern void __gnat_initialize (void *);
 extern void __gnat_install_SEH_handler (void *);
 extern void adainit (void);
 extern void _ada_gnat1drv (void);
+
+#ifdef __cplusplus
+}
+#endif
 
 /* The parser for the language.  For us, we process the GNAT tree.  */
 
@@ -113,17 +122,6 @@ gnat_handle_option (size_t scode, const char *arg ATTRIBUTE_UNUSED, int value,
       warn_unused = value;
       warn_uninitialized = value;
       warn_maybe_uninitialized = value;
-      break;
-
-    case OPT_Wmissing_prototypes:
-    case OPT_Wstrict_prototypes:
-    case OPT_Wwrite_strings:
-    case OPT_Wlong_long:
-    case OPT_Wvariadic_macros:
-    case OPT_Wold_style_definition:
-    case OPT_Wmissing_format_attribute:
-    case OPT_Woverlength_strings:
-      /* These are used in the GCC Makefile.  */
       break;
 
     case OPT_gant:
@@ -307,7 +305,7 @@ gnat_init (void)
   /* Do little here, most of the standard declarations are set up after the
      front-end has been run.  Use the same `char' as C, this doesn't really
      matter since we'll use the explicit `unsigned char' for Character.  */
-  build_common_tree_nodes (flag_signed_char);
+  build_common_tree_nodes (flag_signed_char, false);
 
   /* In Ada, we use an unsigned 8-bit type for the default boolean type.  */
   boolean_type_node = make_unsigned_type (8);
@@ -315,11 +313,11 @@ gnat_init (void)
   SET_TYPE_RM_MAX_VALUE (boolean_type_node,
 			 build_int_cst (boolean_type_node, 1));
   SET_TYPE_RM_SIZE (boolean_type_node, bitsize_int (1));
+  boolean_true_node = TYPE_MAX_VALUE (boolean_type_node);
+  boolean_false_node = TYPE_MIN_VALUE (boolean_type_node);
 
-  build_common_tree_nodes_2 (0);
   sbitsize_one_node = sbitsize_int (1);
   sbitsize_unit_node = sbitsize_int (BITS_PER_UNIT);
-  boolean_true_node = TYPE_MAX_VALUE (boolean_type_node);
 
   ptr_void_type_node = build_pointer_type (void_type_node);
 
@@ -339,11 +337,6 @@ gnat_init (void)
 void
 gnat_init_gcc_eh (void)
 {
-#ifdef DWARF2_UNWIND_INFO
-  /* lang_dependent_init already called dwarf2out_frame_init if true.  */
-  int dwarf2out_frame_initialized = dwarf2out_do_frame ();
-#endif
-
   /* We shouldn't do anything if the No_Exceptions_Handler pragma is set,
      though. This could for instance lead to the emission of tables with
      references to symbols (such as the Ada eh personality routine) within
@@ -370,11 +363,6 @@ gnat_init_gcc_eh (void)
   flag_non_call_exceptions = 1;
 
   init_eh ();
-
-#ifdef DWARF2_UNWIND_INFO
-  if (!dwarf2out_frame_initialized && dwarf2out_do_frame ())
-    dwarf2out_frame_init ();
-#endif
 }
 
 /* Print language-specific items in declaration NODE.  */
@@ -395,8 +383,12 @@ gnat_print_decl (FILE *file, tree node, int indent)
       break;
 
     case VAR_DECL:
-      print_node (file, "renamed object", DECL_RENAMED_OBJECT (node),
-		  indent + 4);
+      if (DECL_LOOP_PARM_P (node))
+	print_node (file, "induction var", DECL_INDUCTION_VAR (node),
+		    indent + 4);
+      else
+	print_node (file, "renamed object", DECL_RENAMED_OBJECT (node),
+		    indent + 4);
       break;
 
     default:
@@ -564,9 +556,8 @@ gnat_type_max_size (const_tree gnu_type)
   /* If we don't have a constant, see what we can get from TYPE_ADA_SIZE,
      which should stay untouched.  */
   if (!host_integerp (max_unitsize, 1)
-      && (TREE_CODE (gnu_type) == RECORD_TYPE
-	  || TREE_CODE (gnu_type) == UNION_TYPE
-	  || TREE_CODE (gnu_type) == QUAL_UNION_TYPE)
+      && RECORD_OR_UNION_TYPE_P (gnu_type)
+      && !TYPE_FAT_POINTER_P (gnu_type)
       && TYPE_ADA_SIZE (gnu_type))
     {
       tree max_adasize = max_size (TYPE_ADA_SIZE (gnu_type), true);
@@ -633,9 +624,131 @@ must_pass_by_ref (tree gnu_type)
      and does not produce compatibility problems with C, since C does
      not have such objects.  */
   return (TREE_CODE (gnu_type) == UNCONSTRAINED_ARRAY_TYPE
-	  || TREE_ADDRESSABLE (gnu_type)
+	  || TYPE_IS_BY_REFERENCE_P (gnu_type)
 	  || (TYPE_SIZE (gnu_type)
 	      && TREE_CODE (TYPE_SIZE (gnu_type)) != INTEGER_CST));
+}
+
+/* This function is called by the front-end to enumerate all the supported
+   modes for the machine, as well as some predefined C types.  F is a function
+   which is called back with the parameters as listed below, first a string,
+   then six ints.  The name is any arbitrary null-terminated string and has
+   no particular significance, except for the case of predefined C types, where
+   it should be the name of the C type.  For integer types, only signed types
+   should be listed, unsigned versions are assumed.  The order of types should
+   be in order of preference, with the smallest/cheapest types first.
+
+   In particular, C predefined types should be listed before other types,
+   binary floating point types before decimal ones, and narrower/cheaper
+   type versions before more expensive ones.  In type selection the first
+   matching variant will be used.
+
+   NAME		pointer to first char of type name
+   DIGS		number of decimal digits for floating-point modes, else 0
+   COMPLEX_P	nonzero is this represents a complex mode
+   COUNT	count of number of items, nonzero for vector mode
+   FLOAT_REP	Float_Rep_Kind for FP, otherwise undefined
+   SIZE		number of bits used to store data
+   ALIGN	number of bits to which mode is aligned.  */
+
+void
+enumerate_modes (void (*f) (const char *, int, int, int, int, int, int))
+{
+  const tree c_types[]
+    = { float_type_node, double_type_node, long_double_type_node };
+  const char *const c_names[]
+    = { "float", "double", "long double" };
+  int iloop;
+
+  for (iloop = 0; iloop < NUM_MACHINE_MODES; iloop++)
+    {
+      enum machine_mode i = (enum machine_mode) iloop;
+      enum machine_mode inner_mode = i;
+      bool float_p = false;
+      bool complex_p = false;
+      bool vector_p = false;
+      bool skip_p = false;
+      int digs = 0;
+      unsigned int nameloop;
+      Float_Rep_Kind float_rep = IEEE_Binary; /* Until proven otherwise */
+
+      switch (GET_MODE_CLASS (i))
+	{
+	case MODE_INT:
+	  break;
+	case MODE_FLOAT:
+	  float_p = true;
+	  break;
+	case MODE_COMPLEX_INT:
+	  complex_p = true;
+	  inner_mode = GET_MODE_INNER (i);
+	  break;
+	case MODE_COMPLEX_FLOAT:
+	  float_p = true;
+	  complex_p = true;
+	  inner_mode = GET_MODE_INNER (i);
+	  break;
+	case MODE_VECTOR_INT:
+	  vector_p = true;
+	  inner_mode = GET_MODE_INNER (i);
+	  break;
+	case MODE_VECTOR_FLOAT:
+	  float_p = true;
+	  vector_p = true;
+	  inner_mode = GET_MODE_INNER (i);
+	  break;
+	default:
+	  skip_p = true;
+	}
+
+      if (float_p)
+	{
+	  const struct real_format *fmt = REAL_MODE_FORMAT (inner_mode);
+
+	  /* ??? Cope with the ghost XFmode of the ARM port.  */
+	  if (!fmt)
+	    continue;
+
+	  if (fmt->b == 2)
+	    digs = (fmt->p - 1) * 1233 / 4096; /* scale by log (2) */
+
+	  else if (fmt->b == 10)
+	    digs = fmt->p;
+
+	  else
+	    gcc_unreachable();
+
+	  if (fmt == &vax_f_format
+	      || fmt == &vax_d_format
+	      || fmt == &vax_g_format)
+	    float_rep = VAX_Native;
+	}
+
+      /* First register any C types for this mode that the front end
+	 may need to know about, unless the mode should be skipped.  */
+
+      if (!skip_p)
+	for (nameloop = 0; nameloop < ARRAY_SIZE (c_types); nameloop++)
+	  {
+	    tree typ = c_types[nameloop];
+	    const char *nam = c_names[nameloop];
+
+	    if (TYPE_MODE (typ) == i)
+	      {
+		f (nam, digs, complex_p,
+		   vector_p ? GET_MODE_NUNITS (i) : 0, float_rep,
+		   TYPE_PRECISION (typ), TYPE_ALIGN (typ));
+		skip_p = true;
+	      }
+	  }
+
+      /* If no predefined C types were found, register the mode itself.  */
+
+      if (!skip_p)
+	f (GET_MODE_NAME (i), digs, complex_p,
+	   vector_p ? GET_MODE_NUNITS (i) : 0, float_rep,
+	   GET_MODE_PRECISION (i), GET_MODE_ALIGNMENT (i));
+    }
 }
 
 /* Return the size of the FP mode with precision PREC.  */

@@ -15,6 +15,7 @@
 class Gogo;
 class Translate_context;
 class Traverse;
+class Statement_inserter;
 class Type;
 struct Type_context;
 class Function_type;
@@ -24,6 +25,7 @@ class Struct_field;
 class Expression_list;
 class Var_expression;
 class Temporary_reference_expression;
+class Set_and_use_temporary_expression;
 class String_expression;
 class Binary_expression;
 class Call_expression;
@@ -41,6 +43,8 @@ class Export;
 class Import;
 class Temporary_statement;
 class Label;
+class Ast_dump_context;
+class String_dump;
 
 // The base class for all expressions.
 
@@ -57,6 +61,7 @@ class Expression
     EXPRESSION_CONST_REFERENCE,
     EXPRESSION_VAR_REFERENCE,
     EXPRESSION_TEMPORARY_REFERENCE,
+    EXPRESSION_SET_AND_USE_TEMPORARY,
     EXPRESSION_SINK,
     EXPRESSION_FUNC_REFERENCE,
     EXPRESSION_UNKNOWN_REFERENCE,
@@ -95,81 +100,93 @@ class Expression
     EXPRESSION_LABEL_ADDR
   };
 
-  Expression(Expression_classification, source_location);
+  Expression(Expression_classification, Location);
 
   virtual ~Expression();
 
   // Make an error expression.  This is used when a parse error occurs
   // to prevent cascading errors.
   static Expression*
-  make_error(source_location);
+  make_error(Location);
 
   // Make an expression which is really a type.  This is used during
   // parsing.
   static Expression*
-  make_type(Type*, source_location);
+  make_type(Type*, Location);
 
   // Make a unary expression.
   static Expression*
-  make_unary(Operator, Expression*, source_location);
+  make_unary(Operator, Expression*, Location);
 
   // Make a binary expression.
   static Expression*
-  make_binary(Operator, Expression*, Expression*, source_location);
+  make_binary(Operator, Expression*, Expression*, Location);
 
   // Make a reference to a constant in an expression.
   static Expression*
-  make_const_reference(Named_object*, source_location);
+  make_const_reference(Named_object*, Location);
 
   // Make a reference to a variable in an expression.
   static Expression*
-  make_var_reference(Named_object*, source_location);
+  make_var_reference(Named_object*, Location);
 
   // Make a reference to a temporary variable.  Temporary variables
   // are always created by a single statement, which is what we use to
   // refer to them.
-  static Expression*
-  make_temporary_reference(Temporary_statement*, source_location);
+  static Temporary_reference_expression*
+  make_temporary_reference(Temporary_statement*, Location);
+
+  // Make an expressions which sets a temporary variable and then
+  // evaluates to a reference to that temporary variable.  This is
+  // used to set a temporary variable while retaining the order of
+  // evaluation.
+  static Set_and_use_temporary_expression*
+  make_set_and_use_temporary(Temporary_statement*, Expression*, Location);
 
   // Make a sink expression--a reference to the blank identifier _.
   static Expression*
-  make_sink(source_location);
+  make_sink(Location);
 
   // Make a reference to a function in an expression.
   static Expression*
-  make_func_reference(Named_object*, Expression* closure, source_location);
+  make_func_reference(Named_object*, Expression* closure, Location);
 
   // Make a reference to an unknown name.  In a correct program this
   // will always be lowered to a real const/var/func reference.
-  static Expression*
-  make_unknown_reference(Named_object*, source_location);
+  static Unknown_expression*
+  make_unknown_reference(Named_object*, Location);
 
   // Make a constant bool expression.
   static Expression*
-  make_boolean(bool val, source_location);
+  make_boolean(bool val, Location);
 
   // Make a constant string expression.
   static Expression*
-  make_string(const std::string&, source_location);
+  make_string(const std::string&, Location);
+
+  // Make a character constant expression.  TYPE should be NULL for an
+  // abstract type.
+  static Expression*
+  make_character(const mpz_t*, Type*, Location);
 
   // Make a constant integer expression.  TYPE should be NULL for an
   // abstract type.
   static Expression*
-  make_integer(const mpz_t*, Type*, source_location);
+  make_integer(const mpz_t*, Type*, Location);
 
   // Make a constant float expression.  TYPE should be NULL for an
   // abstract type.
   static Expression*
-  make_float(const mpfr_t*, Type*, source_location);
+  make_float(const mpfr_t*, Type*, Location);
 
   // Make a constant complex expression.  TYPE should be NULL for an
   // abstract type.
   static Expression*
-  make_complex(const mpfr_t* real, const mpfr_t* imag, Type*, source_location);
+  make_complex(const mpfr_t* real, const mpfr_t* imag, Type*, Location);
 
   // Make a nil expression.
   static Expression*
-  make_nil(source_location);
+  make_nil(Location);
 
   // Make an iota expression.  This is used for the predeclared
   // constant iota.
@@ -179,7 +196,7 @@ class Expression
   // Make a call expression.
   static Call_expression*
   make_call(Expression* func, Expression_list* args, bool is_varargs,
-	    source_location);
+	    Location);
 
   // Make a reference to a specific result of a call expression which
   // returns a tuple.
@@ -189,7 +206,7 @@ class Expression
   // Make an expression which is a method bound to its first
   // parameter.
   static Bound_method_expression*
-  make_bound_method(Expression* object, Expression* method, source_location);
+  make_bound_method(Expression* object, Named_object* method, Location);
 
   // Make an index or slice expression.  This is a parser expression
   // which represents LEFT[START:END].  END may be NULL, meaning an
@@ -198,84 +215,84 @@ class Expression
   // string index, or a map index.
   static Expression*
   make_index(Expression* left, Expression* start, Expression* end,
-	     source_location);
+	     Location);
 
   // Make an array index expression.  END may be NULL, in which case
   // this is an lvalue.
   static Expression*
   make_array_index(Expression* array, Expression* start, Expression* end,
-		   source_location);
+		   Location);
 
   // Make a string index expression.  END may be NULL.  This is never
   // an lvalue.
   static Expression*
   make_string_index(Expression* string, Expression* start, Expression* end,
-		    source_location);
+		    Location);
 
   // Make a map index expression.  This is an lvalue.
   static Map_index_expression*
-  make_map_index(Expression* map, Expression* val, source_location);
+  make_map_index(Expression* map, Expression* val, Location);
 
   // Make a selector.  This is a parser expression which represents
   // LEFT.NAME.  At parse time we may not know the type of the left
   // hand side.
   static Expression*
-  make_selector(Expression* left, const std::string& name, source_location);
+  make_selector(Expression* left, const std::string& name, Location);
 
   // Make a reference to a field in a struct.
   static Field_reference_expression*
-  make_field_reference(Expression*, unsigned int field_index, source_location);
+  make_field_reference(Expression*, unsigned int field_index, Location);
 
   // Make a reference to a field of an interface, with an associated
   // object.
   static Expression*
   make_interface_field_reference(Expression*, const std::string&,
-				 source_location);
+				 Location);
 
   // Make an allocation expression.
   static Expression*
-  make_allocation(Type*, source_location);
+  make_allocation(Type*, Location);
 
   // Make a type guard expression.
   static Expression*
-  make_type_guard(Expression*, Type*, source_location);
+  make_type_guard(Expression*, Type*, Location);
 
   // Make a type cast expression.
   static Expression*
-  make_cast(Type*, Expression*, source_location);
+  make_cast(Type*, Expression*, Location);
 
   // Make an unsafe type cast expression.  This is only used when
   // passing parameter to builtin functions that are part of the Go
   // runtime.
   static Expression*
-  make_unsafe_cast(Type*, Expression*, source_location);
+  make_unsafe_cast(Type*, Expression*, Location);
 
   // Make a composite literal.  The DEPTH parameter is how far down we
   // are in a list of composite literals with omitted types.
   static Expression*
   make_composite_literal(Type*, int depth, bool has_keys, Expression_list*,
-			 source_location);
+			 Location);
 
   // Make a struct composite literal.
   static Expression*
-  make_struct_composite_literal(Type*, Expression_list*, source_location);
+  make_struct_composite_literal(Type*, Expression_list*, Location);
 
   // Make a slice composite literal.
   static Expression*
-  make_slice_composite_literal(Type*, Expression_list*, source_location);
+  make_slice_composite_literal(Type*, Expression_list*, Location);
 
   // Take a composite literal and allocate it on the heap.
   static Expression*
-  make_heap_composite(Expression*, source_location);
+  make_heap_composite(Expression*, Location);
 
   // Make a receive expression.  VAL is NULL for a unary receive.
   static Receive_expression*
-  make_receive(Expression* channel, source_location);
+  make_receive(Expression* channel, Location);
 
   // Make an expression which evaluates to the address of the type
   // descriptor for TYPE.
   static Expression*
-  make_type_descriptor(Type* type, source_location);
+  make_type_descriptor(Type* type, Location);
 
   // Make an expression which evaluates to some characteristic of a
   // type.  These are only used for type descriptors, so there is no
@@ -303,12 +320,12 @@ class Expression
   // Make an expression which evaluates to the address of the map
   // descriptor for TYPE.
   static Expression*
-  make_map_descriptor(Map_type* type, source_location);
+  make_map_descriptor(Map_type* type, Location);
 
   // Make an expression which evaluates to the address of an unnamed
   // label.
   static Expression*
-  make_label_addr(Label*, source_location);
+  make_label_addr(Label*, Location);
 
   // Return the expression classification.
   Expression_classification
@@ -316,7 +333,7 @@ class Expression
   { return this->classification_; }
 
   // Return the location of the expression.
-  source_location
+  Location
   location() const
   { return this->location_; }
 
@@ -356,9 +373,9 @@ class Expression
   string_constant_value(std::string* val) const
   { return this->do_string_constant_value(val); }
 
-  // This is called by the parser if the value of this expression is
-  // being discarded.  This issues warnings about computed values
-  // being unused.
+  // This is called if the value of this expression is being
+  // discarded.  This issues warnings about computed values being
+  // unused.
   void
   discarding_value()
   { this->do_discarding_value(); }
@@ -391,6 +408,15 @@ class Expression
   {
     return this->convert<Temporary_reference_expression,
 			 EXPRESSION_TEMPORARY_REFERENCE>();
+  }
+
+  // If this is a set-and-use-temporary, return the
+  // Set_and_use_temporary_expression.  Otherwise, return NULL.
+  Set_and_use_temporary_expression*
+  set_and_use_temporary_expression()
+  {
+    return this->convert<Set_and_use_temporary_expression,
+			 EXPRESSION_SET_AND_USE_TEMPORARY>();
   }
 
   // Return whether this is a sink expression.
@@ -521,13 +547,18 @@ class Expression
   traverse_subexpressions(Traverse*);
 
   // Lower an expression.  This is called immediately after parsing.
-  // IOTA_VALUE is the value that we should give to any iota
-  // expressions.  This function must resolve expressions which could
-  // not be fully parsed into their final form.  It returns the same
-  // Expression or a new one.
+  // FUNCTION is the function we are in; it will be NULL for an
+  // expression initializing a global variable.  INSERTER may be used
+  // to insert statements before the statement or initializer
+  // containing this expression; it is normally used to create
+  // temporary variables.  IOTA_VALUE is the value that we should give
+  // to any iota expressions.  This function must resolve expressions
+  // which could not be fully parsed into their final form.  It
+  // returns the same Expression or a new one.
   Expression*
-  lower(Gogo* gogo, Named_object* function, int iota_value)
-  { return this->do_lower(gogo, function, iota_value); }
+  lower(Gogo* gogo, Named_object* function, Statement_inserter* inserter,
+	int iota_value)
+  { return this->do_lower(gogo, function, inserter, iota_value); }
 
   // Determine the real type of an expression with abstract integer,
   // floating point, or complex type.  TYPE_CONTEXT describes the
@@ -574,6 +605,18 @@ class Expression
   must_eval_in_order() const
   { return this->do_must_eval_in_order(); }
 
+  // Return whether subexpressions of this expression must be
+  // evaluated in order.  This is true of index expressions and
+  // pointer indirections.  This sets *SKIP to the number of
+  // subexpressions to skip during traversing, as index expressions
+  // only requiring moving the index, not the array.
+  bool
+  must_eval_subexpressions_in_order(int* skip) const
+  {
+    *skip = 0;
+    return this->do_must_eval_subexpressions_in_order(skip);
+  }
+
   // Return the tree for this expression.
   tree
   get_tree(Translate_context*);
@@ -582,7 +625,7 @@ class Expression
   // assignment.
   static tree
   convert_for_assignment(Translate_context*, Type* lhs_type, Type* rhs_type,
-			 tree rhs_tree, source_location location);
+			 tree rhs_tree, Location location);
 
   // Return a tree converting a value of one interface type to another
   // interface type.  If FOR_TYPE_GUARD is true this is for a type
@@ -590,14 +633,14 @@ class Expression
   static tree
   convert_interface_to_interface(Translate_context*, Type* lhs_type,
 				 Type* rhs_type, tree rhs_tree,
-				 bool for_type_guard, source_location);
+				 bool for_type_guard, Location);
 
   // Return a tree implementing the comparison LHS_TREE OP RHS_TREE.
   // TYPE is the type of both sides.
   static tree
   comparison_tree(Translate_context*, Operator op, Type* left_type,
 		  tree left_tree, Type* right_type, tree right_tree,
-		  source_location);
+		  Location);
 
   // Return a tree for the multi-precision integer VAL in TYPE.
   static tree
@@ -627,7 +670,11 @@ class Expression
   // BOUND_TYPE.  If SOFAR is not NULL, it is or'red into the result.
   // The return value may be NULL if SOFAR is NULL.
   static tree
-  check_bounds(tree val, tree bound_type, tree sofar, source_location);
+  check_bounds(tree val, tree bound_type, tree sofar, Location);
+
+  // Dump an expression to a dump constext.
+  void
+  dump_expression(Ast_dump_context*) const;
 
  protected:
   // May be implemented by child class: traverse the expressions.
@@ -636,7 +683,7 @@ class Expression
 
   // Return a lowered expression.
   virtual Expression*
-  do_lower(Gogo*, Named_object*, int)
+  do_lower(Gogo*, Named_object*, Statement_inserter*, int)
   { return this; }
 
   // Return whether this is a constant expression.
@@ -705,6 +752,13 @@ class Expression
   do_must_eval_in_order() const
   { return false; }
 
+  // Child class implements whether this expressions requires that
+  // subexpressions be evaluated in order.  The child implementation
+  // may set *SKIP if it should be non-zero.
+  virtual bool
+  do_must_eval_subexpressions_in_order(int* /* skip */) const
+  { return false; }
+
   // Child class implements conversion to tree.
   virtual tree
   do_get_tree(Translate_context*) = 0;
@@ -713,9 +767,9 @@ class Expression
   virtual void
   do_export(Export*) const;
 
-  // For children to call to warn about an unused value.
+  // For children to call to give an error for an unused value.
   void
-  warn_about_unused_value();
+  unused_value_error();
 
   // For children to call when they detect that they are in error.
   void
@@ -724,6 +778,10 @@ class Expression
   // For children to call to report an error conveniently.
   void
   report_error(const char*);
+
+  // Child class implements dumping to a dump context.
+  virtual void
+  do_dump_expression(Ast_dump_context*) const = 0;
 
  private:
   // Convert to the desired statement classification, or return NULL.
@@ -750,20 +808,20 @@ class Expression
 
   static tree
   convert_type_to_interface(Translate_context*, Type*, Type*, tree,
-			    source_location);
+			    Location);
 
   static tree
   get_interface_type_descriptor(Translate_context*, Type*, tree,
-				source_location);
+				Location);
 
   static tree
   convert_interface_to_type(Translate_context*, Type*, Type*, tree,
-			    source_location);
+			    Location);
 
   // The expression classification.
   Expression_classification classification_;
   // The location in the input file.
-  source_location location_;
+  Location location_;
 };
 
 // A list of Expressions.
@@ -865,13 +923,13 @@ class Parser_expression : public Expression
 {
  public:
   Parser_expression(Expression_classification classification,
-		    source_location location)
+		    Location location)
     : Expression(classification, location)
   { }
 
  protected:
   virtual Expression*
-  do_lower(Gogo*, Named_object*, int) = 0;
+  do_lower(Gogo*, Named_object*, Statement_inserter*, int) = 0;
 
   Type*
   do_type();
@@ -894,7 +952,7 @@ class Parser_expression : public Expression
 class Var_expression : public Expression
 {
  public:
-  Var_expression(Named_object* variable, source_location location)
+  Var_expression(Named_object* variable, Location location)
     : Expression(EXPRESSION_VAR_REFERENCE, location),
       variable_(variable)
   { }
@@ -906,7 +964,7 @@ class Var_expression : public Expression
 
  protected:
   Expression*
-  do_lower(Gogo*, Named_object*, int);
+  do_lower(Gogo*, Named_object*, Statement_inserter*, int);
 
   Type*
   do_type();
@@ -928,6 +986,9 @@ class Var_expression : public Expression
   tree
   do_get_tree(Translate_context*);
 
+  void
+  do_dump_expression(Ast_dump_context*) const;
+
  private:
   // The variable we are referencing.
   Named_object* variable_;
@@ -939,10 +1000,16 @@ class Temporary_reference_expression : public Expression
 {
  public:
   Temporary_reference_expression(Temporary_statement* statement,
-				 source_location location)
+				 Location location)
     : Expression(EXPRESSION_TEMPORARY_REFERENCE, location),
-      statement_(statement)
+      statement_(statement), is_lvalue_(false)
   { }
+
+  // Indicate that this reference appears on the left hand side of an
+  // assignment statement.
+  void
+  set_is_lvalue()
+  { this->is_lvalue_ = true; }
 
  protected:
   Type*
@@ -966,9 +1033,75 @@ class Temporary_reference_expression : public Expression
   tree
   do_get_tree(Translate_context*);
 
+  void
+  do_dump_expression(Ast_dump_context*) const;
+
  private:
   // The statement where the temporary variable is defined.
   Temporary_statement* statement_;
+  // Whether this reference appears on the left hand side of an
+  // assignment statement.
+  bool is_lvalue_;
+};
+
+// Set and use a temporary variable.
+
+class Set_and_use_temporary_expression : public Expression
+{
+ public:
+  Set_and_use_temporary_expression(Temporary_statement* statement,
+				   Expression* expr, Location location)
+    : Expression(EXPRESSION_SET_AND_USE_TEMPORARY, location),
+      statement_(statement), expr_(expr)
+  { }
+
+  // Return the temporary.
+  Temporary_statement*
+  temporary() const
+  { return this->statement_; }
+
+  // Return the expression.
+  Expression*
+  expression() const
+  { return this->expr_; }
+
+ protected:
+  int
+  do_traverse(Traverse* traverse)
+  { return Expression::traverse(&this->expr_, traverse); }
+
+  Type*
+  do_type();
+
+  void
+  do_determine_type(const Type_context*)
+  { }
+
+  Expression*
+  do_copy()
+  {
+    return make_set_and_use_temporary(this->statement_, this->expr_,
+				      this->location());
+  }
+
+  bool
+  do_is_addressable() const
+  { return true; }
+
+  void
+  do_address_taken(bool);
+
+  tree
+  do_get_tree(Translate_context*);
+
+  void
+  do_dump_expression(Ast_dump_context*) const;
+
+ private:
+  // The statement where the temporary variable is defined.
+  Temporary_statement* statement_;
+  // The expression to assign to the temporary.
+  Expression* expr_;
 };
 
 // A string expression.
@@ -976,7 +1109,7 @@ class Temporary_reference_expression : public Expression
 class String_expression : public Expression
 {
  public:
-  String_expression(const std::string& val, source_location location)
+  String_expression(const std::string& val, Location location)
     : Expression(EXPRESSION_STRING, location),
       val_(val), type_(NULL)
   { }
@@ -1013,8 +1146,15 @@ class String_expression : public Expression
   tree
   do_get_tree(Translate_context*);
 
+  // Write string literal to a string dump.
+  static void
+  export_string(String_dump* exp, const String_expression* str);
+
   void
   do_export(Export*) const;
+
+  void
+  do_dump_expression(Ast_dump_context*) const;
 
  private:
   // The string value.  This is immutable.
@@ -1029,7 +1169,7 @@ class Binary_expression : public Expression
 {
  public:
   Binary_expression(Operator op, Expression* left, Expression* right,
-		    source_location location)
+		    Location location)
     : Expression(EXPRESSION_BINARY, location),
       op_(op), left_(left), right_(right)
   { }
@@ -1055,7 +1195,7 @@ class Binary_expression : public Expression
   // if this could be done, false if not.
   static bool
   eval_integer(Operator op, Type* left_type, mpz_t left_val,
-	       Type* right_type, mpz_t right_val, source_location,
+	       Type* right_type, mpz_t right_val, Location,
 	       mpz_t val);
 
   // Apply binary opcode OP to LEFT_VAL and RIGHT_VAL, setting VAL.
@@ -1063,7 +1203,7 @@ class Binary_expression : public Expression
   static bool
   eval_float(Operator op, Type* left_type, mpfr_t left_val,
 	     Type* right_type, mpfr_t right_val, mpfr_t val,
-	     source_location);
+	     Location);
 
   // Apply binary opcode OP to LEFT_REAL/LEFT_IMAG and
   // RIGHT_REAL/RIGHT_IMAG, setting REAL/IMAG.  Return true if this
@@ -1071,7 +1211,7 @@ class Binary_expression : public Expression
   static bool
   eval_complex(Operator op, Type* left_type, mpfr_t left_real,
 	       mpfr_t left_imag, Type* right_type, mpfr_t right_real,
-	       mpfr_t right_imag, mpfr_t real, mpfr_t imag, source_location);
+	       mpfr_t right_imag, mpfr_t real, mpfr_t imag, Location);
 
   // Compare integer constants according to OP.
   static bool
@@ -1090,16 +1230,16 @@ class Binary_expression : public Expression
   do_import(Import*);
 
   // Report an error if OP can not be applied to TYPE.  Return whether
-  // it can.
+  // it can.  OTYPE is the type of the other operand.
   static bool
-  check_operator_type(Operator op, Type* type, source_location);
+  check_operator_type(Operator op, Type* type, Type* otype, Location);
 
  protected:
   int
   do_traverse(Traverse* traverse);
 
   Expression*
-  do_lower(Gogo*, Named_object*, int);
+  do_lower(Gogo*, Named_object*, Statement_inserter*, int);
 
   bool
   do_is_constant() const
@@ -1139,7 +1279,22 @@ class Binary_expression : public Expression
   void
   do_export(Export*) const;
 
+  void
+  do_dump_expression(Ast_dump_context*) const;
+
  private:
+  Expression*
+  lower_struct_comparison(Gogo*, Statement_inserter*);
+
+  Expression*
+  lower_array_comparison(Gogo*, Statement_inserter*);
+
+  Expression*
+  lower_compare_to_memcmp(Gogo*, Statement_inserter*);
+
+  Expression*
+  operand_address(Statement_inserter*, Expression*);
+
   // The binary operator to apply.
   Operator op_;
   // The left hand side operand.
@@ -1154,11 +1309,12 @@ class Call_expression : public Expression
 {
  public:
   Call_expression(Expression* fn, Expression_list* args, bool is_varargs,
-		  source_location location)
+		  Location location)
     : Expression(EXPRESSION_CALL, location),
-      fn_(fn), args_(args), type_(NULL), tree_(NULL), is_varargs_(is_varargs),
+      fn_(fn), args_(args), type_(NULL), results_(NULL), tree_(NULL),
+      is_varargs_(is_varargs), are_hidden_fields_ok_(false),
       varargs_are_lowered_(false), types_are_determined_(false),
-      is_deferred_(false)
+      is_deferred_(false), issued_error_(false)
   { }
 
   // The function to call.
@@ -1183,6 +1339,12 @@ class Call_expression : public Expression
   size_t
   result_count() const;
 
+  // Return the temporary variable which holds result I.  This is only
+  // valid after the expression has been lowered, and is only valid
+  // for calls which return multiple results.
+  Temporary_statement*
+  result(size_t i) const;
+
   // Return whether this is a call to the predeclared function
   // recover.
   bool
@@ -1197,6 +1359,17 @@ class Call_expression : public Expression
   is_varargs() const
   { return this->is_varargs_; }
 
+  // Note that varargs have already been lowered.
+  void
+  set_varargs_are_lowered()
+  { this->varargs_are_lowered_ = true; }
+
+  // Note that it is OK for this call to set hidden fields when
+  // passing arguments.
+  void
+  set_hidden_fields_are_ok()
+  { this->are_hidden_fields_ok_ = true; }
+
   // Whether this call is being deferred.
   bool
   is_deferred() const
@@ -1207,12 +1380,17 @@ class Call_expression : public Expression
   set_is_deferred()
   { this->is_deferred_ = true; }
 
+  // We have found an error with this call expression; return true if
+  // we should report it.
+  bool
+  issue_error();
+
  protected:
   int
   do_traverse(Traverse*);
 
   virtual Expression*
-  do_lower(Gogo*, Named_object*, int);
+  do_lower(Gogo*, Named_object*, Statement_inserter*, int);
 
   void
   do_discarding_value()
@@ -1255,26 +1433,29 @@ class Call_expression : public Expression
   { this->args_ = args; }
 
   // Let a builtin expression lower varargs.
-  Expression*
-  lower_varargs(Gogo*, Named_object* function, Type* varargs_type,
-		size_t param_count);
+  void
+  lower_varargs(Gogo*, Named_object* function, Statement_inserter* inserter,
+		Type* varargs_type, size_t param_count);
 
   // Let a builtin expression check whether types have been
   // determined.
   bool
   determining_types();
 
+  void
+  do_dump_expression(Ast_dump_context*) const;
+
  private:
   bool
-  check_argument_type(int, const Type*, const Type*, source_location, bool);
-
-  tree
-  bound_method_function(Translate_context*, Bound_method_expression*, tree*);
+  check_argument_type(int, const Type*, const Type*, Location, bool);
 
   tree
   interface_method_function(Translate_context*,
 			    Interface_field_reference_expression*,
 			    tree*);
+
+  tree
+  set_results(Translate_context*, tree);
 
   // The function to call.
   Expression* fn_;
@@ -1283,16 +1464,26 @@ class Call_expression : public Expression
   Expression_list* args_;
   // The type of the expression, to avoid recomputing it.
   Type* type_;
+  // The list of temporaries which will hold the results if the
+  // function returns a tuple.
+  std::vector<Temporary_statement*>* results_;
   // The tree for the call, used for a call which returns a tuple.
   tree tree_;
   // True if the last argument is a varargs argument (f(a...)).
   bool is_varargs_;
+  // True if this statement may pass hidden fields in the arguments.
+  // This is used for generated method stubs.
+  bool are_hidden_fields_ok_;
   // True if varargs have already been lowered.
   bool varargs_are_lowered_;
   // True if types have been determined.
   bool types_are_determined_;
   // True if the call is an argument to a defer statement.
   bool is_deferred_;
+  // True if we reported an error about a mismatch between call
+  // results and uses.  This is to avoid producing multiple errors
+  // when there are multiple Call_result_expressions.
+  bool issued_error_;
 };
 
 // An expression which represents a pointer to a function.
@@ -1301,7 +1492,7 @@ class Func_expression : public Expression
 {
  public:
   Func_expression(Named_object* function, Expression* closure,
-		  source_location location)
+		  Location location)
     : Expression(EXPRESSION_FUNC_REFERENCE, location),
       function_(function), closure_(closure)
   { }
@@ -1348,6 +1539,9 @@ class Func_expression : public Expression
   tree
   do_get_tree(Translate_context*);
 
+  void
+  do_dump_expression(Ast_dump_context*) const;
+
  private:
   // The function itself.
   Named_object* function_;
@@ -1362,9 +1556,10 @@ class Func_expression : public Expression
 class Unknown_expression : public Parser_expression
 {
  public:
-  Unknown_expression(Named_object* named_object, source_location location)
+  Unknown_expression(Named_object* named_object, Location location)
     : Parser_expression(EXPRESSION_UNKNOWN_REFERENCE, location),
-      named_object_(named_object), is_composite_literal_key_(false)
+      named_object_(named_object), no_error_message_(false),
+      is_composite_literal_key_(false)
   { }
 
   // The associated named object.
@@ -1375,6 +1570,13 @@ class Unknown_expression : public Parser_expression
   // The name of the identifier which was unknown.
   const std::string&
   name() const;
+
+  // Call this to indicate that we should not give an error if this
+  // name is never defined.  This is used to avoid knock-on errors
+  // during an erroneous parse.
+  void
+  set_no_error_message()
+  { this->no_error_message_ = true; }
 
   // Note that this expression is being used as the key in a composite
   // literal, so it may be OK if it is not resolved.
@@ -1390,15 +1592,21 @@ class Unknown_expression : public Parser_expression
 
  protected:
   Expression*
-  do_lower(Gogo*, Named_object*, int);
+  do_lower(Gogo*, Named_object*, Statement_inserter*, int);
 
   Expression*
   do_copy()
   { return new Unknown_expression(this->named_object_, this->location()); }
 
+  void
+  do_dump_expression(Ast_dump_context*) const;
+  
  private:
   // The unknown name.
   Named_object* named_object_;
+  // True if we should not give errors if this is undefined.  This is
+  // used if there was a parse failure.
+  bool no_error_message_;
   // True if this is the key in a composite literal.
   bool is_composite_literal_key_;
 };
@@ -1410,7 +1618,7 @@ class Index_expression : public Parser_expression
 {
  public:
   Index_expression(Expression* left, Expression* start, Expression* end,
-		   source_location location)
+		   Location location)
     : Parser_expression(EXPRESSION_INDEX, location),
       left_(left), start_(start), end_(end), is_lvalue_(false)
   { }
@@ -1420,12 +1628,18 @@ class Index_expression : public Parser_expression
   set_is_lvalue()
   { this->is_lvalue_ = true; }
 
+  // Dump an index expression, i.e. an expression of the form
+  // expr[expr] or expr[expr:expr], to a dump context.
+  static void
+  dump_index_expression(Ast_dump_context*, const Expression* expr, 
+                        const Expression* start, const Expression* end);
+
  protected:
   int
   do_traverse(Traverse*);
 
   Expression*
-  do_lower(Gogo*, Named_object*, int);
+  do_lower(Gogo*, Named_object*, Statement_inserter*, int);
 
   Expression*
   do_copy()
@@ -1436,6 +1650,16 @@ class Index_expression : public Parser_expression
 				 : this->end_->copy()),
 				this->location());
   }
+
+  bool
+  do_must_eval_subexpressions_in_order(int* skip) const
+  {
+    *skip = 1;
+    return true;
+  }
+
+  void
+  do_dump_expression(Ast_dump_context*) const;
 
  private:
   // The expression being indexed.
@@ -1456,7 +1680,7 @@ class Map_index_expression : public Expression
 {
  public:
   Map_index_expression(Expression* map, Expression* index,
-		       source_location location)
+		       Location location)
     : Expression(EXPRESSION_MAP_INDEX, location),
       map_(map), index_(index), is_lvalue_(false),
       is_in_tuple_assignment_(false)
@@ -1531,10 +1755,20 @@ class Map_index_expression : public Expression
 				      this->location());
   }
 
+  bool
+  do_must_eval_subexpressions_in_order(int* skip) const
+  {
+    *skip = 1;
+    return true;
+  }
+
   // A map index expression is an lvalue but it is not addressable.
 
   tree
   do_get_tree(Translate_context*);
+
+  void
+  do_dump_expression(Ast_dump_context*) const;
 
  private:
   // The map we are looking into.
@@ -1553,8 +1787,8 @@ class Map_index_expression : public Expression
 class Bound_method_expression : public Expression
 {
  public:
-  Bound_method_expression(Expression* expr, Expression* method,
-			  source_location location)
+  Bound_method_expression(Expression* expr, Named_object* method,
+			  Location location)
     : Expression(EXPRESSION_BOUND_METHOD, location),
       expr_(expr), expr_type_(NULL), method_(method)
   { }
@@ -1571,8 +1805,8 @@ class Bound_method_expression : public Expression
   first_argument_type() const
   { return this->expr_type_; }
 
-  // Return the reference to the method function.
-  Expression*
+  // Return the method function.
+  Named_object*
   method()
   { return this->method_; }
 
@@ -1597,13 +1831,15 @@ class Bound_method_expression : public Expression
   Expression*
   do_copy()
   {
-    return new Bound_method_expression(this->expr_->copy(),
-				       this->method_->copy(),
+    return new Bound_method_expression(this->expr_->copy(), this->method_,
 				       this->location());
   }
 
   tree
   do_get_tree(Translate_context*);
+
+  void
+  do_dump_expression(Ast_dump_context*) const;
 
  private:
   // The object used to find the method.  This is passed to the method
@@ -1613,8 +1849,8 @@ class Bound_method_expression : public Expression
   // NULL in the normal case, non-NULL when using a method from an
   // anonymous field which does not require a stub.
   Type* expr_type_;
-  // The method itself.  This is a Func_expression.
-  Expression* method_;
+  // The method itself.
+  Named_object* method_;
 };
 
 // A reference to a field in a struct.
@@ -1623,7 +1859,7 @@ class Field_reference_expression : public Expression
 {
  public:
   Field_reference_expression(Expression* expr, unsigned int field_index,
-			     source_location location)
+			     Location location)
     : Expression(EXPRESSION_FIELD_REFERENCE, location),
       expr_(expr), field_index_(field_index)
   { }
@@ -1676,6 +1912,9 @@ class Field_reference_expression : public Expression
   tree
   do_get_tree(Translate_context*);
 
+  void
+  do_dump_expression(Ast_dump_context*) const;
+
  private:
   // The expression we are looking into.  This should have a type of
   // struct.
@@ -1691,7 +1930,7 @@ class Interface_field_reference_expression : public Expression
  public:
   Interface_field_reference_expression(Expression* expr,
 				       const std::string& name,
-				       source_location location)
+				       Location location)
     : Expression(EXPRESSION_INTERFACE_FIELD_REFERENCE, location),
       expr_(expr), name_(name)
   { }
@@ -1741,6 +1980,9 @@ class Interface_field_reference_expression : public Expression
   tree
   do_get_tree(Translate_context*);
 
+  void
+  do_dump_expression(Ast_dump_context*) const;
+
  private:
   // The expression for the interface object.  This should have a type
   // of interface or pointer to interface.
@@ -1754,7 +1996,7 @@ class Interface_field_reference_expression : public Expression
 class Type_guard_expression : public Expression
 {
  public:
-  Type_guard_expression(Expression* expr, Type* type, source_location location)
+  Type_guard_expression(Expression* expr, Type* type, Location location)
     : Expression(EXPRESSION_TYPE_GUARD, location),
       expr_(expr), type_(type)
   { }
@@ -1794,6 +2036,9 @@ class Type_guard_expression : public Expression
   tree
   do_get_tree(Translate_context*);
 
+  void
+  do_dump_expression(Ast_dump_context*) const;
+
  private:
   // The expression to convert.
   Expression* expr_;
@@ -1806,20 +2051,15 @@ class Type_guard_expression : public Expression
 class Receive_expression : public Expression
 {
  public:
-  Receive_expression(Expression* channel, source_location location)
+  Receive_expression(Expression* channel, Location location)
     : Expression(EXPRESSION_RECEIVE, location),
-      channel_(channel), for_select_(false)
+      channel_(channel)
   { }
 
   // Return the channel.
   Expression*
   channel()
   { return this->channel_; }
-
-  // Note that this is for a select statement.
-  void
-  set_for_select()
-  { this->for_select_ = true; }
 
  protected:
   int
@@ -1853,11 +2093,12 @@ class Receive_expression : public Expression
   tree
   do_get_tree(Translate_context*);
 
+  void
+  do_dump_expression(Ast_dump_context*) const;
+
  private:
   // The channel from which we are receiving.
   Expression* channel_;
-  // Whether this is for a select statement.
-  bool for_select_;
 };
 
 #endif // !defined(GO_EXPRESSIONS_H)

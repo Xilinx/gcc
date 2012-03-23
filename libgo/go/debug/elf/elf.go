@@ -1289,7 +1289,6 @@ func (i R_SPARC) GoString() string { return stringName(uint32(i), rsparcStrings,
 // Magic number for the elf trampoline, chosen wisely to be an immediate value.
 const ARM_MAGIC_TRAMP_NUMBER = 0x5c000003
 
-
 // ELF32 File header.
 type Header32 struct {
 	Ident     [EI_NIDENT]byte /* File identification. */
@@ -1455,7 +1454,6 @@ func R_SYM64(info uint64) uint32    { return uint32(info >> 32) }
 func R_TYPE64(info uint64) uint32   { return uint32(info) }
 func R_INFO(sym, typ uint32) uint64 { return uint64(sym)<<32 | uint64(typ) }
 
-
 // ELF64 symbol table entries.
 type Sym64 struct {
 	Name  uint32 /* String table index of name. */
@@ -1492,11 +1490,11 @@ func stringName(i uint32, names []intName, goSyntax bool) string {
 			if goSyntax {
 				s = "elf." + s
 			}
-			return s + "+" + strconv.Uitoa64(uint64(i-n.i))
+			return s + "+" + strconv.FormatUint(uint64(i-n.i), 10)
 		}
 	}
 
-	return strconv.Uitoa64(uint64(i))
+	return strconv.FormatUint(uint64(i), 10)
 }
 
 func flagName(i uint32, names []intName, goSyntax bool) string {
@@ -1514,10 +1512,10 @@ func flagName(i uint32, names []intName, goSyntax bool) string {
 		}
 	}
 	if len(s) == 0 {
-		return "0x" + strconv.Uitob64(uint64(i), 16)
+		return "0x" + strconv.FormatUint(uint64(i), 16)
 	}
 	if i != 0 {
-		s += "+0x" + strconv.Uitob64(uint64(i), 16)
+		s += "+0x" + strconv.FormatUint(uint64(i), 16)
 	}
 	return s
 }

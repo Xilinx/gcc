@@ -38,7 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "cgraph.h"
 #include "tree-inline.h"
-#include "tree-mudflap.h"
 #include "tree-pass.h"
 #include "ggc.h"
 #include "cgraph.h"
@@ -158,7 +157,10 @@ struct gimple_opt_pass pass_all_early_optimizations =
 static unsigned int
 execute_cleanup_cfg_post_optimizing (void)
 {
-  cleanup_tree_cfg ();
+  unsigned int todo = 0;
+  if (cleanup_tree_cfg ())
+    todo |= TODO_update_ssa;
+  maybe_remove_unreachable_handlers ();
   cleanup_dead_labels ();
   group_case_labels ();
   if ((flag_compare_debug_opt || flag_compare_debug)
@@ -190,7 +192,7 @@ execute_cleanup_cfg_post_optimizing (void)
 	    }
 	}
     }
-  return 0;
+  return todo;
 }
 
 struct gimple_opt_pass pass_cleanup_cfg_post_optimizing =
@@ -255,6 +257,10 @@ execute_fixup_cfg (void)
   ENTRY_BLOCK_PTR->count = cgraph_get_node (current_function_decl)->count;
   EXIT_BLOCK_PTR->count = (EXIT_BLOCK_PTR->count * count_scale
   			   + REG_BR_PROB_BASE / 2) / REG_BR_PROB_BASE;
+
+  FOR_EACH_EDGE (e, ei, ENTRY_BLOCK_PTR->succs)
+    e->count = (e->count * count_scale
+       + REG_BR_PROB_BASE / 2) / REG_BR_PROB_BASE;
 
   FOR_EACH_BB (bb)
     {

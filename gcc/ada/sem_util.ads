@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -25,13 +25,14 @@
 
 --  Package containing utility procedures used throughout the semantics
 
-with Einfo;  use Einfo;
-with Namet;  use Namet;
-with Nmake;  use Nmake;
-with Snames; use Snames;
-with Types;  use Types;
-with Uintp;  use Uintp;
-with Urealp; use Urealp;
+with Einfo;   use Einfo;
+with Exp_Tss; use Exp_Tss;
+with Namet;   use Namet;
+with Nmake;   use Nmake;
+with Snames;  use Snames;
+with Types;   use Types;
+with Uintp;   use Uintp;
+with Urealp;  use Urealp;
 
 package Sem_Util is
 
@@ -93,6 +94,15 @@ package Sem_Util is
    --  not end with a ? (this is used when the caller wants to parameterize
    --  whether an error or warning is given.
 
+   function Available_Full_View_Of_Component (T : Entity_Id) return Boolean;
+   --  If at the point of declaration an array type has a private or limited
+   --  component, several array operations are not avaiable on the type, and
+   --  the array type is flagged accordingly. If in the immediate scope of
+   --  the array type the component becomes non-private or non-limited, these
+   --  operations become avaiable. This can happen if the scopes of both types
+   --  are open, and the scope of the array is not outside the scope of the
+   --  component.
+
    procedure Bad_Predicated_Subtype_Use
      (Msg : String;
       N   : Node_Id;
@@ -136,15 +146,39 @@ package Sem_Util is
    --  discriminants, and build actual subtype for it if so.
 
    procedure Build_Elaboration_Entity (N : Node_Id; Spec_Id : Entity_Id);
-   --  Given a compilation unit node N, allocate an elaboration boolean for
+   --  Given a compilation unit node N, allocate an elaboration counter for
    --  the compilation unit, and install it in the Elaboration_Entity field
    --  of Spec_Id, the entity for the compilation unit.
+
+      procedure Build_Explicit_Dereference
+        (Expr : Node_Id;
+         Disc : Entity_Id);
+      --  AI05-139: Names with implicit dereference. If the expression N is a
+      --  reference type and the context imposes the corresponding designated
+      --  type, convert N into N.Disc.all. Such expressions are always over-
+      --  loaded with both interpretations, and the dereference interpretation
+      --  carries the name of the reference discriminant.
 
    function Cannot_Raise_Constraint_Error (Expr : Node_Id) return Boolean;
    --  Returns True if the expression cannot possibly raise Constraint_Error.
    --  The response is conservative in the sense that a result of False does
    --  not necessarily mean that CE could be raised, but a response of True
    --  means that for sure CE cannot be raised.
+
+   procedure Check_Implicit_Dereference (Nam : Node_Id; Typ : Entity_Id);
+   --  AI05-139-2: Accessors and iterators for containers. This procedure
+   --  checks whether T is a reference type, and if so it adds an interprettion
+   --  to Expr whose type is the designated type of the reference_discriminant.
+
+   procedure Check_Later_Vs_Basic_Declarations
+     (Decls          : List_Id;
+      During_Parsing : Boolean);
+   --  If During_Parsing is True, check for misplacement of later vs basic
+   --  declarations in Ada 83. If During_Parsing is False, and the SPARK
+   --  restriction is set, do the same: although SPARK 95 removes the
+   --  distinction between initial and later declarative items, the distinction
+   --  remains in the Examiner (JB01-005). Note that the Examiner does not
+   --  count package declarations in later declarative items.
 
    procedure Check_Dynamically_Tagged_Expression
      (Expr        : Node_Id;
@@ -247,6 +281,13 @@ package Sem_Util is
    --  of inlining, and for private protected ops. Also used to create bodies
    --  for stubbed subprograms.
 
+   function Copy_Component_List
+     (R_Typ : Entity_Id;
+      Loc   : Source_Ptr) return List_Id;
+   --  Copy components from record type R_Typ that come from source. Used to
+   --  create a new compatible record type. Loc is the source location assigned
+   --  to the created nodes.
+
    function Current_Entity (N : Node_Id) return Entity_Id;
    pragma Inline (Current_Entity);
    --  Find the currently visible definition for a given identifier, that is to
@@ -266,6 +307,16 @@ package Sem_Util is
    --  then that is what is returned, otherwise the Enclosing_Subprogram of the
    --  Current_Scope is returned. The returned value is Empty if this is called
    --  from a library package which is not within any subprogram.
+
+   function Deepest_Type_Access_Level (Typ : Entity_Id) return Uint;
+   --  Same as Type_Access_Level, except that if the type is the type of an Ada
+   --  2012 stand-alone object of an anonymous access type, then return the
+   --  static accesssibility level of the object. In that case, the dynamic
+   --  accessibility level of the object may take on values in a range. The low
+   --  bound of of that range is returned by Type_Access_Level; this function
+   --  yields the high bound of that range. Also differs from Type_Access_Level
+   --  in the case of a descendant of a generic formal type (returns Int'Last
+   --  instead of 0).
 
    function Defining_Entity (N : Node_Id) return Entity_Id;
    --  Given a declaration N, returns the associated defining entity. If the
@@ -307,6 +358,16 @@ package Sem_Util is
    --  these names is supposed to be a selected component name, an expanded
    --  name, a defining program unit name or an identifier.
 
+   function Dynamic_Accessibility_Level (Expr : Node_Id) return Node_Id;
+   --  Expr should be an expression of an access type. Builds an integer
+   --  literal except in cases involving anonymous access types where
+   --  accessibility levels are tracked at runtime (access parameters and Ada
+   --  2012 stand-alone objects).
+
+   function Effective_Extra_Accessibility (Id : Entity_Id) return Entity_Id;
+   --  Same as Einfo.Extra_Accessibility except thtat object renames
+   --  are looked through.
+
    function Enclosing_CPP_Parent (Typ : Entity_Id) return Entity_Id;
    --  Returns the closest ancestor of Typ that is a CPP type.
 
@@ -328,6 +389,10 @@ package Sem_Util is
    function Enclosing_Lib_Unit_Node (N : Node_Id) return Node_Id;
    --  Returns the enclosing N_Compilation_Unit Node that is the root of a
    --  subtree containing N.
+
+   function Enclosing_Package (E : Entity_Id) return Entity_Id;
+   --  Utility function to return the Ada entity of the package enclosing
+   --  the entity E, if any. Returns Empty if no enclosing package.
 
    function Enclosing_Subprogram (E : Entity_Id) return Entity_Id;
    --  Utility function to return the Ada entity of the subprogram enclosing
@@ -353,12 +418,11 @@ package Sem_Util is
      (N      : Node_Id;
       Formal : out Entity_Id;
       Call   : out Node_Id);
-   --  Determines if the node N is an actual parameter of a procedure call. If
-   --  so, then Formal points to the entity for the formal (whose Ekind is one
-   --  of E_In_Parameter, E_Out_Parameter, E_In_Out_Parameter) and Call is set
-   --  to the node for the corresponding call. If the node N is not an actual
-   --  parameter, or is an actual parameter of a function call, then Formal and
-   --  Call are set to Empty.
+   --  Determines if the node N is an actual parameter of a function of a
+   --  procedure call. If so, then Formal points to the entity for the formal
+   --  (Ekind is E_In_Parameter, E_Out_Parameter, or E_In_Out_Parameter) and
+   --  Call is set to the node for the corresponding call. If the node N is not
+   --  an actual parameter then Formal and Call are set to Empty.
 
    function Find_Corresponding_Discriminant
      (Id   : Node_Id;
@@ -370,15 +434,15 @@ package Sem_Util is
    --  discriminant at the same position in this new type.
 
    procedure Find_Overlaid_Entity
-     (N   : Node_Id;
+     (N : Node_Id;
       Ent : out Entity_Id;
       Off : out Boolean);
-   --  The node N should be an address representation clause. Determines if the
-   --  target expression is the address of an entity with an optional offset.
-   --  If so, Ent is set to the entity and, if there is an offset, Off is set
-   --  to True, otherwise to False. If N is not an address representation
+   --  The node N should be an address representation clause. Determines if
+   --  the target expression is the address of an entity with an optional
+   --  offset. If so, set Ent to the entity and, if there is an offset, set
+   --  Off to True, otherwise to False. If N is not an address representation
    --  clause, or if it is not possible to determine that the address is of
-   --  this form, then Ent is set to Empty, and Off is set to False.
+   --  this form, then set Ent to Empty.
 
    function Find_Parameter_Type (Param : Node_Id) return Entity_Id;
    --  Return the type of formal parameter Param as determined by its
@@ -460,12 +524,23 @@ package Sem_Util is
    --  Actual_Subtype field of the corresponding entity is set, then it is
    --  returned. Otherwise the Etype of the node is returned.
 
+   function Get_Body_From_Stub (N : Node_Id) return Node_Id;
+   --  Return the body node for a stub (subprogram or package)
+
    function Get_Default_External_Name (E : Node_Or_Entity_Id) return Node_Id;
    --  This is used to construct the string literal node representing a
    --  default external name, i.e. one that is constructed from the name of an
    --  entity, or (in the case of extended DEC import/export pragmas, an
    --  identifier provided as the external name. Letters in the name are
    --  according to the setting of Opt.External_Name_Default_Casing.
+
+   function Get_Enclosing_Object (N : Node_Id) return Entity_Id;
+   --  If expression N references a part of an object, return this object.
+   --  Otherwise return Empty. Expression N should have been resolved already.
+
+   function Get_Ensures_From_CTC_Pragma (N : Node_Id) return Node_Id;
+   --  Return the Ensures component of Contract_Case or Test_Case pragma N, or
+   --  Empty otherwise.
 
    function Get_Generic_Entity (N : Node_Id) return Entity_Id;
    --  Returns the true generic entity in an instantiation. If the name in the
@@ -481,11 +556,11 @@ package Sem_Util is
      (T   : Entity_Id;
       Pos : Uint;
       Loc : Source_Ptr) return Node_Id;
-   --  This function obtains the E_Enumeration_Literal entity for the specified
-   --  value from the enumeration type or subtype T and returns an identifier
-   --  node referencing this value. The second argument is the Pos value, which
-   --  is assumed to be in range. The third argument supplies a source location
-   --  for constructed nodes returned by this function.
+   --  This function returns an identifier denoting the E_Enumeration_Literal
+   --  entity for the specified value from the enumeration type or subtype T.
+   --  The second argument is the Pos value, which is assumed to be in range.
+   --  The third argument supplies a source location for constructed nodes
+   --  returned by this function.
 
    procedure Get_Library_Unit_Name_String (Decl_Node : Node_Id);
    --  Retrieve the fully expanded name of the library unit declared by
@@ -497,6 +572,9 @@ package Sem_Util is
    --  Get_Name_Entity_Id function fetches the Entity_Id of this entity, which
    --  is the innermost visible entity with the given name. See the body of
    --  Sem_Ch8 for further details on handling of entity visibility.
+
+   function Get_Name_From_CTC_Pragma (N : Node_Id) return String_Id;
+   --  Return the Name component of Contract_Case or Test_Case pragma N
 
    function Get_Pragma_Id (N : Node_Id) return Pragma_Id;
    pragma Inline (Get_Pragma_Id);
@@ -512,6 +590,10 @@ package Sem_Util is
    --  returns the ultimately renamed entity if this is a renaming. If this is
    --  not a renamed entity, returns its argument. It is an error to call this
    --  with any other kind of entity.
+
+   function Get_Requires_From_CTC_Pragma (N : Node_Id) return Node_Id;
+   --  Return the Requires component of Contract_Case or Test_Case pragma N, or
+   --  Empty otherwise.
 
    function Get_Subprogram_Entity (Nod : Node_Id) return Entity_Id;
    --  Nod is either a procedure call statement, or a function call, or an
@@ -587,7 +669,9 @@ package Sem_Util is
 
    function Has_Overriding_Initialize (T : Entity_Id) return Boolean;
    --  Predicate to determine whether a controlled type has a user-defined
-   --  Initialize primitive, which makes the type not preelaborable.
+   --  Initialize primitive (and, in Ada 2012, whether that primitive is
+   --  non-null), which causes the type to not have preelaborable
+   --  initialization.
 
    function Has_Preelaborable_Initialization (E : Entity_Id) return Boolean;
    --  Return True iff type E has preelaborable initialization as defined in
@@ -596,6 +680,9 @@ package Sem_Util is
    function Has_Private_Component (Type_Id : Entity_Id) return Boolean;
    --  Check if a type has a (sub)component of a private type that has not
    --  yet received a full declaration.
+
+   function Has_Static_Array_Bounds (Typ : Node_Id) return Boolean;
+   --  Return whether an array type has static bounds
 
    function Has_Stream (T : Entity_Id) return Boolean;
    --  Tests if type T is derived from Ada.Streams.Root_Stream_Type, or in the
@@ -607,6 +694,12 @@ package Sem_Util is
 
    function Has_Suffix (E : Entity_Id; Suffix : Character) return Boolean;
    --  Returns true if the last character of E is Suffix. Used in Assertions.
+
+   function Add_Suffix (E : Entity_Id; Suffix : Character) return Name_Id;
+   --  Returns the name of E adding Suffix
+
+   function Remove_Suffix (E : Entity_Id; Suffix : Character) return Name_Id;
+   --  Returns the name of E without Suffix
 
    function Has_Tagged_Component (Typ : Entity_Id) return Boolean;
    --  Returns True if Typ is a composite type (array or record) which is
@@ -659,6 +752,11 @@ package Sem_Util is
    --  package specification. The package must be on the scope stack, and the
    --  corresponding private part must not.
 
+   function Incomplete_Or_Private_View (Typ : Entity_Id) return Entity_Id;
+   --  Given the entity of a type, retrieve the incomplete or private view of
+   --  the same type. Note that Typ may not have a partial view to begin with,
+   --  in that case the function returns Empty.
+
    procedure Insert_Explicit_Dereference (N : Node_Id);
    --  In a context that requires a composite or subprogram type and where a
    --  prefix is an access type, rewrite the access type node N (which is the
@@ -675,9 +773,18 @@ package Sem_Util is
    function Is_Actual_Parameter (N : Node_Id) return Boolean;
    --  Determines if N is an actual parameter in a subprogram call
 
+   function Is_Actual_Tagged_Parameter (N : Node_Id) return Boolean;
+   --  Determines if N is an actual parameter of a formal of tagged type in a
+   --  subprogram call.
+
    function Is_Aliased_View (Obj : Node_Id) return Boolean;
    --  Determine if Obj is an aliased view, i.e. the name of an object to which
-   --  'Access or 'Unchecked_Access can apply.
+   --  'Access or 'Unchecked_Access can apply. Note that this routine uses the
+   --  rules of the language, it does not take into account the restriction
+   --  No_Implicit_Aliasing, so it can return True if the restriction is active
+   --  and Obj violates the restriction. The caller is responsible for calling
+   --  Restrict.Check_No_Implicit_Aliasing if True is returned, but there is a
+   --  requirement for obeying the restriction in the call context.
 
    function Is_Ancestor_Package
      (E1 : Entity_Id;
@@ -688,9 +795,9 @@ package Sem_Util is
    --  Determines if the given node denotes an atomic object in the sense of
    --  the legality checks described in RM C.6(12).
 
-   function Is_Coextension_Root (N : Node_Id) return Boolean;
-   --  Determine whether node N is an allocator which acts as a coextension
-   --  root.
+   function Is_Bounded_String (T : Entity_Id) return Boolean;
+   --  True if T is a bounded string type. Used to make sure "=" composes
+   --  properly for bounded string types.
 
    function Is_Controlling_Limited_Procedure
      (Proc_Nam : Entity_Id) return Boolean;
@@ -722,6 +829,10 @@ package Sem_Util is
    --  First determine whether type T is an interface and then check whether
    --  it is of protected, synchronized or task kind.
 
+   function Is_Expression_Function (Subp : Entity_Id) return Boolean;
+   --  Predicate to determine whether a function entity comes from a rewritten
+   --  expression function, and should be inlined unconditionally.
+
    function Is_False (U : Uint) return Boolean;
    pragma Inline (Is_False);
    --  The argument is a Uint value which is the Boolean'Pos value of a Boolean
@@ -729,8 +840,8 @@ package Sem_Util is
    --  if it is False (i.e. zero).
 
    function Is_Fixed_Model_Number (U : Ureal; T : Entity_Id) return Boolean;
-   --  Returns True iff the number U is a model number of the fixed-
-   --  point type T, i.e. if it is an exact multiple of Small.
+   --  Returns True iff the number U is a model number of the fixed-point type
+   --  T, i.e. if it is an exact multiple of Small.
 
    function Is_Fully_Initialized_Type (Typ : Entity_Id) return Boolean;
    --  Typ is a type entity. This function returns true if this type is fully
@@ -743,7 +854,17 @@ package Sem_Util is
 
    function Is_Inherited_Operation (E : Entity_Id) return Boolean;
    --  E is a subprogram. Return True is E is an implicit operation inherited
-   --  by a derived type declarations.
+   --  by a derived type declaration.
+
+   function Is_Inherited_Operation_For_Type
+     (E   : Entity_Id;
+      Typ : Entity_Id) return Boolean;
+   --  E is a subprogram. Return True is E is an implicit operation inherited
+   --  by the derived type declaration for type Typ.
+
+   function Is_Iterator (Typ : Entity_Id) return Boolean;
+   --  AI05-0139-2: Check whether Typ is one of the predefined interfaces in
+   --  Ada.Iterator_Interfaces, or it is derived from one.
 
    function Is_LHS (N : Node_Id) return Boolean;
    --  Returns True iff N is used as Name in an assignment statement
@@ -751,6 +872,9 @@ package Sem_Util is
    function Is_Library_Level_Entity (E : Entity_Id) return Boolean;
    --  A library-level declaration is one that is accessible from Standard,
    --  i.e. a library unit or an entity declared in a library package.
+
+   function Is_Limited_Class_Wide_Type (Typ : Entity_Id) return Boolean;
+   --  Determine whether a given arbitrary type is a limited class-wide type
 
    function Is_Local_Variable_Reference (Expr : Node_Id) return Boolean;
    --  Determines whether Expr is a reference to a variable or IN OUT mode
@@ -812,11 +936,23 @@ package Sem_Util is
    function Is_Renamed_Entry (Proc_Nam : Entity_Id) return Boolean;
    --  Return True if Proc_Nam is a procedure renaming of an entry
 
+   function Is_Reversible_Iterator (Typ : Entity_Id) return Boolean;
+   --  AI05-0139-2: Check whether Typ is derived from the predefined interface
+   --  Ada.Iterator_Interfaces.Reversible_Iterator.
+
    function Is_Selector_Name (N : Node_Id) return Boolean;
    --  Given an N_Identifier node N, determines if it is a Selector_Name.
    --  As described in Sinfo, Selector_Names are special because they
    --  represent use of the N_Identifier node for a true identifier, when
    --  normally such nodes represent a direct name.
+
+   function Is_SPARK_Initialization_Expr (N : Node_Id) return Boolean;
+   --  Determines if the tree referenced by N represents an initialization
+   --  expression in SPARK, suitable for initializing an object in an object
+   --  declaration.
+
+   function Is_SPARK_Object_Reference (N : Node_Id) return Boolean;
+   --  Determines if the tree referenced by N represents an object in SPARK
 
    function Is_Statement (N : Node_Id) return Boolean;
    pragma Inline (Is_Statement);
@@ -824,6 +960,11 @@ package Sem_Util is
    --  the case of procedure call statements (unlike the direct use of
    --  the N_Statement_Other_Than_Procedure_Call subtype from Sinfo).
    --  Note that a label is *not* a statement, and will return False.
+
+   function Is_Subprogram_Stub_Without_Prior_Declaration
+     (N : Node_Id) return Boolean;
+   --  Return True if N is a subprogram stub with no prior subprogram
+   --  declaration.
 
    function Is_Synchronized_Tagged_Type (E : Entity_Id) return Boolean;
    --  Returns True if E is a synchronized tagged type (AARM 3.9.4 (6/2))
@@ -858,13 +999,18 @@ package Sem_Util is
    --  object used to represent access-to-subprogram types. This is only
    --  relevant to CIL, will always return false for other targets.
 
-   function Is_Variable (N : Node_Id) return Boolean;
+   function Is_Variable
+     (N                 : Node_Id;
+      Use_Original_Node : Boolean := True) return Boolean;
    --  Determines if the tree referenced by N represents a variable, i.e. can
    --  appear on the left side of an assignment. There is one situation (formal
    --  parameters) in which non-tagged type conversions are also considered
    --  variables, but Is_Variable returns False for such cases, since it has
    --  no knowledge of the context. Note that this is the point at which
    --  Assignment_OK is checked, and True is returned for any tree thus marked.
+   --  Use_Original_Node is used to perform the test on Original_Node (N). By
+   --  default is True since this routine is commonly invoked as part of the
+   --  semantic analysis and it must not be disturbed by the rewriten nodes.
 
    function Is_Visibly_Controlled (T : Entity_Id) return Boolean;
    --  Check whether T is derived from a visibly controlled type. This is true
@@ -878,6 +1024,11 @@ package Sem_Util is
    --  the legality checks described in RM C.6(12). Note that the test here is
    --  for something actually declared as volatile, not for an object that gets
    --  treated as volatile (see Einfo.Treat_As_Volatile).
+
+   function Itype_Has_Declaration (Id : Entity_Id) return Boolean;
+   --  Applies to Itypes. True if the Itype is attached to a declaration for
+   --  the type through its Parent field, which may or not be present in the
+   --  tree.
 
    procedure Kill_Current_Values (Last_Assignment_Only : Boolean := False);
    --  This procedure is called to clear all constant indications from all
@@ -925,6 +1076,11 @@ package Sem_Util is
    --  direction. Cases which may possibly be assignments but are not known to
    --  be may return True from May_Be_Lvalue, but False from this function.
 
+   function Last_Source_Statement (HSS : Node_Id) return Node_Id;
+   --  HSS is a handled statement sequence. This function returns the last
+   --  statement in Statements (HSS) that has Comes_From_Source set. If no
+   --  such statement exists, Empty is returned.
+
    function Make_Simple_Return_Statement
      (Sloc       : Source_Ptr;
       Expression : Node_Id := Empty) return Node_Id
@@ -932,12 +1088,19 @@ package Sem_Util is
    --  See Sinfo. We rename Make_Return_Statement to the correct Ada 2005
    --  terminology here. Clients should use Make_Simple_Return_Statement.
 
+   function Matching_Static_Array_Bounds
+     (L_Typ : Node_Id;
+      R_Typ : Node_Id) return Boolean;
+   --  L_Typ and R_Typ are two array types. Returns True when they have the
+   --  same number of dimensions, and the same static bounds for each index
+   --  position.
+
    Make_Return_Statement : constant := -2 ** 33;
    --  Attempt to prevent accidental uses of Make_Return_Statement. If this
    --  and the one in Nmake are both potentially use-visible, it will cause
    --  a compilation error. Note that type and value are irrelevant.
 
-   N_Return_Statement : constant := -2**33;
+   N_Return_Statement : constant := -2 ** 33;
    --  Attempt to prevent accidental uses of N_Return_Statement; similar to
    --  Make_Return_Statement above.
 
@@ -957,6 +1120,9 @@ package Sem_Util is
    --  it returns True. It tries hard to get the answer right, but it is hard
    --  to guarantee this in all cases. Note that it is more possible to give
    --  correct answer if the tree is fully analyzed.
+
+   function Must_Inline (Subp : Entity_Id) return Boolean;
+   --  Return true if Subp must be inlined by the frontend
 
    function Needs_One_Actual (E : Entity_Id) return Boolean;
    --  Returns True if a function has defaults for all but its first
@@ -1141,14 +1307,17 @@ package Sem_Util is
    --  previous errors (particularly in -gnatq mode).
 
    function Requires_Transient_Scope (Id : Entity_Id) return Boolean;
-   --  E is a type entity. The result is True when temporaries of this
-   --  type need to be wrapped in a transient scope to be reclaimed
-   --  properly when a secondary stack is in use. Examples of types
-   --  requiring such wrapping are controlled types and variable-sized
-   --  types including unconstrained arrays
+   --  Id is a type entity. The result is True when temporaries of this type
+   --  need to be wrapped in a transient scope to be reclaimed properly when a
+   --  secondary stack is in use. Examples of types requiring such wrapping are
+   --  controlled types and variable-sized types including unconstrained
+   --  arrays.
 
    procedure Reset_Analyzed_Flags (N : Node_Id);
    --  Reset the Analyzed flags in all nodes of the tree whose root is N
+
+   function Returns_Unconstrained_Type (Subp : Entity_Id) return Boolean;
+   --  Return true if Subp is a function that returns an unconstrained type
 
    function Safe_To_Capture_Value
      (N    : Node_Id;
@@ -1221,7 +1390,7 @@ package Sem_Util is
    procedure Set_Current_Entity (E : Entity_Id);
    pragma Inline (Set_Current_Entity);
    --  Establish the entity E as the currently visible definition of its
-   --  associated name (i.e. the Node_Id associated with its name)
+   --  associated name (i.e. the Node_Id associated with its name).
 
    procedure Set_Debug_Info_Needed (T : Entity_Id);
    --  Sets the Debug_Info_Needed flag on entity T , and also on any entities
@@ -1278,6 +1447,12 @@ package Sem_Util is
    function Scope_Is_Transient return Boolean;
    --  True if the current scope is transient
 
+   function Static_Boolean (N : Node_Id) return Uint;
+   --  This function analyzes the given expression node and then resolves it
+   --  as Standard.Boolean. If the result is static, then Uint_1 or Uint_0 is
+   --  returned corresponding to the value, otherwise an error message is
+   --  output and No_Uint is returned.
+
    function Static_Integer (N : Node_Id) return Uint;
    --  This function analyzes the given expression node and then resolves it
    --  as any integer type. If the result is static, then the value of the
@@ -1301,12 +1476,38 @@ package Sem_Util is
    function Type_Access_Level (Typ : Entity_Id) return Uint;
    --  Return the accessibility level of Typ
 
-   function Unit_Declaration_Node (Unit_Id : Entity_Id) return Node_Id;
-   --  Unit_Id is the simple name of a program unit, this function returns the
-   --  corresponding xxx_Declaration node for the entity. Also applies to the
-   --  body entities for subprograms, tasks and protected units, in which case
-   --  it returns the subprogram, task or protected body node for it. The unit
-   --  may be a child unit with any number of ancestors.
+   function Type_Without_Stream_Operation
+     (T  : Entity_Id;
+      Op : TSS_Name_Type := TSS_Null) return Entity_Id;
+   --  AI05-0161: In Ada 2012, if the restriction No_Default_Stream_Attributes
+   --  is active then we cannot generate stream subprograms for composite types
+   --  with elementary subcomponents that lack user-defined stream subprograms.
+   --  This predicate determines whether a type has such an elementary
+   --  subcomponent. If Op is TSS_Null, a type that lacks either Read or Write
+   --  prevents the construction of a composite stream operation. If Op is
+   --  specified we check only for the given stream operation.
+
+   function Unique_Defining_Entity (N : Node_Id) return Entity_Id;
+   --  Return the entity which represents declaration N, so that different
+   --  views of the same entity have the same unique defining entity:
+   --  * package spec and body;
+   --  * subprogram declaration, subprogram stub and subprogram body;
+   --  * private view and full view of a type;
+   --  * private view and full view of a deferred constant.
+   --  In other cases, return the defining entity for N.
+
+   function Unique_Entity (E : Entity_Id) return Entity_Id;
+   --  Return the unique entity for entity E, which would be returned by
+   --  Unique_Defining_Entity if applied to the enclosing declaration of E.
+
+   function Unique_Name (E : Entity_Id) return String;
+   --  Return a unique name for entity E, which could be used to identify E
+   --  across compilation units.
+
+   function Unit_Is_Visible (U : Entity_Id) return Boolean;
+   --  Determine whether a compilation unit is visible in the current context,
+   --  because there is a with_clause that makes the unit available. Used to
+   --  provide better messages on common visiblity errors on operators.
 
    function Universal_Interpretation (Opnd : Node_Id) return Entity_Id;
    --  Yields Universal_Integer or Universal_Real if this is a candidate

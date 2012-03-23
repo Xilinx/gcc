@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1995-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1995-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -174,7 +174,7 @@ package System.OS_Lib is
    --  File descriptors for standard input output files
 
    Invalid_FD : constant File_Descriptor := -1;
-   --  File descriptor returned when error in opening/creating file;
+   --  File descriptor returned when error in opening/creating file
 
    type Mode is (Binary, Text);
    for Mode'Size use Integer'Size;
@@ -343,7 +343,7 @@ package System.OS_Lib is
    --  effect of "cp -p" on Unix systems, and None corresponds to the typical
    --  effect of "cp" on Unix systems.
 
-   --  Note: Time_Stamps and Full are not supported on VMS and VxWorks
+   --  Note: Time_Stamps and Full are not supported on VMS and VxWorks 5
 
    procedure Copy_File
      (Name     : String;
@@ -371,7 +371,7 @@ package System.OS_Lib is
    --  furthermore Dest must be writable. Success will be set to True if the
    --  operation was successful and False otherwise.
    --
-   --  Note: this procedure is not supported on VMS and VxWorks. On these
+   --  Note: this procedure is not supported on VMS and VxWorks 5. On these
    --  platforms, Success is always set to False.
 
    function Read
@@ -707,7 +707,8 @@ package System.OS_Lib is
    --
    --  This function will always set Success to False under VxWorks and other
    --  similar operating systems which have no notion of the concept of
-   --  dynamically executable file.
+   --  dynamically executable file. Otherwise Success is set True if the exit
+   --  status of the spawned process is zero.
 
    function Spawn
      (Program_Name : String;
@@ -887,9 +888,10 @@ package System.OS_Lib is
    --  If the parent is using tasking, and needs to spawn subprocesses at
    --  arbitrary times, one technique is for the parent to spawn (very early)
    --  a particular spawn-manager subprocess whose job is to spawn other
-   --  processes. The spawn-manager avoids tasking. The parent sends messages
-   --  to the spawn-manager requesting it to spawn processes, using whatever
-   --  inter-process communication mechanism you like, such as sockets.
+   --  processes. The spawn-manager must avoid tasking. The parent sends
+   --  messages to the spawn-manager requesting it to spawn processes, using
+   --  whatever inter-process communication mechanism you like, such as
+   --  sockets.
 
    --  In short, mixing spawning of subprocesses with tasking is a tricky
    --  business, and should be avoided if possible, but if it is necessary,

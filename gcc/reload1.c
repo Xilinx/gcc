@@ -1,7 +1,7 @@
 /* Reload pseudo regs into hard regs for insns that require hard regs.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
    1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-   2011 Free Software Foundation, Inc.
+   2011, 2012 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -250,6 +250,10 @@ static char *reload_insn_firstobj;
    examine.  */
 struct insn_chain *reload_insn_chain;
 
+/* TRUE if we potentially left dead insns in the insn stream and want to
+   run DCE immediately after reload, FALSE otherwise.  */
+static bool need_dce;
+
 /* List of all insns needing reloads.  */
 static struct insn_chain *insns_need_reload;
 
@@ -392,7 +396,6 @@ static int reload_reg_free_for_value_p (int, int, int, enum reload_type,
 					rtx, rtx, int, int);
 static int free_for_value_p (int, enum machine_mode, int, enum reload_type,
 			     rtx, rtx, int, int);
-static int reload_reg_reaches_end_p (unsigned int, int, enum reload_type);
 static int allocate_reload_reg (struct insn_chain *, int, int);
 static int conflicts_with_override (rtx);
 static void failed_reload (rtx, int);
@@ -695,10 +698,11 @@ static int *temp_pseudo_reg_arr;
    If GLOBAL is zero, we do not have enough information to do that,
    so any pseudo reg that is spilled must go to the stack.
 
-   Return value is nonzero if reload failed
-   and we must not do any more for this function.  */
+   Return value is TRUE if reload likely left dead insns in the
+   stream and a DCE pass should be run to elimiante them.  Else the
+   return value is FALSE.  */
 
-int
+bool
 reload (rtx first, int global)
 {
   int i, n;
@@ -764,7 +768,6 @@ reload (rtx first, int global)
      be substituted eventually by altering the REG-rtx's.  */
 
   grow_reg_equivs ();
-  reg_max_ref_width = XCNEWVEC (unsigned int, max_regno);
   reg_old_renumber = XCNEWVEC (short, max_regno);
   memcpy (reg_old_renumber, reg_renumber, max_regno * sizeof (short));
   pseudo_forbidden_regs = XNEWVEC (HARD_REG_SET, max_regno);
@@ -1108,10 +1111,7 @@ reload (rtx first, int global)
 	      if (reg_equiv_memory_loc (i))
 		MEM_COPY_ATTRIBUTES (reg, reg_equiv_memory_loc (i));
 	      else
-		{
-		  MEM_IN_STRUCT_P (reg) = MEM_SCALAR_P (reg) = 0;
-		  MEM_ATTRS (reg) = 0;
-		}
+		MEM_ATTRS (reg) = 0;
 	      MEM_NOTRAP_P (reg) = 1;
 	    }
 	  else if (reg_equiv_mem (i))
@@ -1329,7 +1329,9 @@ reload (rtx first, int global)
 
   gcc_assert (bitmap_empty_p (&spilled_pseudos));
 
-  return failure;
+  reload_completed = !failure;
+
+  return need_dce;
 }
 
 /* Yet another special case.  Unfortunately, reg-stack forces people to
@@ -1416,7 +1418,8 @@ maybe_fix_stack_asms (void)
 
 		case 'p':
 		  cls = (int) reg_class_subunion[cls]
-		      [(int) base_reg_class (VOIDmode, ADDRESS, SCRATCH)];
+		      [(int) base_reg_class (VOIDmode, ADDR_SPACE_GENERIC,
+					     ADDRESS, SCRATCH)];
 		  break;
 
 		case 'g':
@@ -1427,7 +1430,8 @@ maybe_fix_stack_asms (void)
 		default:
 		  if (EXTRA_ADDRESS_CONSTRAINT (c, p))
 		    cls = (int) reg_class_subunion[cls]
-		      [(int) base_reg_class (VOIDmode, ADDRESS, SCRATCH)];
+		      [(int) base_reg_class (VOIDmode, ADDR_SPACE_GENERIC,
+					     ADDRESS, SCRATCH)];
 		  else
 		    cls = (int) reg_class_subunion[cls]
 		      [(int) REG_CLASS_FROM_CONSTRAINT (c, p)];
@@ -1639,8 +1643,7 @@ calculate_elim_costs_all_insns (void)
 		    {
 		      rtx t = eliminate_regs_1 (SET_SRC (set), VOIDmode, insn,
 						false, true);
-		      int cost = rtx_cost (t, SET,
-					   optimize_bb_for_speed_p (bb));
+		      int cost = set_src_cost (t, optimize_bb_for_speed_p (bb));
 		      int freq = REG_FREQ_FROM_BB (bb);
 
 		      reg_equiv_init_cost[regno] = cost * freq;
@@ -1681,6 +1684,10 @@ calculate_elim_costs_all_insns (void)
     }
 
   free (reg_equiv_init_cost);
+  free (offsets_known_at);
+  free (offsets_at);
+  offsets_at = NULL;
+  offsets_known_at = NULL;
 }
 
 /* Comparison function for qsort to decide which of two reloads
@@ -2123,14 +2130,19 @@ delete_dead_insn (rtx insn)
   rtx prev = prev_active_insn (insn);
   rtx prev_dest;
 
-  /* If the previous insn sets a register that dies in our insn, delete it
-     too.  */
+  /* If the previous insn sets a register that dies in our insn make
+     a note that we want to run DCE immediately after reload.
+
+     We used to delete the previous insn & recurse, but that's wrong for
+     block local equivalences.  Instead of trying to figure out the exact
+     circumstances where we can delete the potentially dead insns, just
+     let DCE do the job.  */
   if (prev && GET_CODE (PATTERN (prev)) == SET
       && (prev_dest = SET_DEST (PATTERN (prev)), REG_P (prev_dest))
       && reg_mentioned_p (prev_dest, PATTERN (insn))
       && find_regno_note (insn, REG_DEAD, REGNO (prev_dest))
       && ! side_effects_p (SET_SRC (PATTERN (prev))))
-    delete_dead_insn (prev);
+    need_dce = 1;
 
   SET_INSN_DELETED (insn);
 }
@@ -2493,7 +2505,7 @@ note_reg_elim_costly (rtx *px, void *data)
     {
       rtx t = reg_equiv_invariant (REGNO (x));
       rtx new_rtx = eliminate_regs_1 (t, Pmode, insn, true, true);
-      int cost = rtx_cost (new_rtx, SET, optimize_bb_for_speed_p (elim_bb));
+      int cost = set_src_cost (new_rtx, optimize_bb_for_speed_p (elim_bb));
       int freq = REG_FREQ_FROM_BB (elim_bb);
 
       if (cost != 0)
@@ -2828,8 +2840,7 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 	 eliminated version of the memory location because push_reload
 	 may do the replacement in certain circumstances.  */
       if (REG_P (SUBREG_REG (x))
-	  && (GET_MODE_SIZE (GET_MODE (x))
-	      <= GET_MODE_SIZE (GET_MODE (SUBREG_REG (x))))
+	  && !paradoxical_subreg_p (x)
 	  && reg_equivs
 	  && reg_equiv_memory_loc (REGNO (SUBREG_REG (x))) != 0)
 	{
@@ -3909,6 +3920,10 @@ set_initial_label_offsets (void)
     if (XEXP (x, 0))
       set_label_offsets (XEXP (x, 0), NULL_RTX, 1);
 
+  for (x = nonlocal_goto_handler_labels; x; x = XEXP (x, 1))
+    if (XEXP (x, 0))
+      set_label_offsets (XEXP (x, 0), NULL_RTX, 1);
+
   for_each_eh_label (set_initial_eh_label_offset);
 }
 
@@ -4483,12 +4498,9 @@ strip_paradoxical_subreg (rtx *op_ptr, rtx *other_ptr)
   rtx op, inner, other, tem;
 
   op = *op_ptr;
-  if (GET_CODE (op) != SUBREG)
+  if (!paradoxical_subreg_p (op))
     return false;
-
   inner = SUBREG_REG (op);
-  if (GET_MODE_SIZE (GET_MODE (op)) <= GET_MODE_SIZE (GET_MODE (inner)))
-    return false;
 
   other = *other_ptr;
   tem = gen_lowpart_common (GET_MODE (inner), other);
@@ -4540,7 +4552,7 @@ reload_as_needed (int live_known)
 #if defined (AUTO_INC_DEC)
   int i;
 #endif
-  rtx x;
+  rtx x, marker;
 
   memset (spill_reg_rtx, 0, sizeof spill_reg_rtx);
   memset (spill_reg_store, 0, sizeof spill_reg_store);
@@ -4550,6 +4562,10 @@ reload_as_needed (int live_known)
   CLEAR_HARD_REG_SET (reg_reloaded_call_part_clobbered);
 
   set_initial_elim_offsets ();
+
+  /* Generate a marker insn that we will move around.  */
+  marker = emit_note (NOTE_INSN_DELETED);
+  unlink_insn_chain (marker, marker);
 
   for (chain = reload_insn_chain; chain; chain = chain->next)
     {
@@ -4623,7 +4639,10 @@ reload_as_needed (int live_known)
 	      rtx next = NEXT_INSN (insn);
 	      rtx p;
 
+	      /* ??? PREV can get deleted by reload inheritance.
+		 Work around this by emitting a marker note.  */
 	      prev = PREV_INSN (insn);
+	      reorder_insns_nobb (marker, marker, prev);
 
 	      /* Now compute which reload regs to reload them into.  Perhaps
 		 reusing reload regs from previous insns, or else output
@@ -4641,9 +4660,21 @@ reload_as_needed (int live_known)
 		 and that we moved the structure into).  */
 	      subst_reloads (insn);
 
+	      prev = PREV_INSN (marker);
+	      unlink_insn_chain (marker, marker);
+
 	      /* Adjust the exception region notes for loads and stores.  */
 	      if (cfun->can_throw_non_call_exceptions && !CALL_P (insn))
 		fixup_eh_region_note (insn, prev, next);
+
+	      /* Adjust the location of REG_ARGS_SIZE.  */
+	      p = find_reg_note (insn, REG_ARGS_SIZE, NULL_RTX);
+	      if (p)
+		{
+		  remove_note (insn, p);
+		  fixup_args_size_notes (prev, PREV_INSN (next),
+					 INTVAL (XEXP (p, 0)));
+		}
 
 	      /* If this was an ASM, make sure that all the reload insns
 		 we have generated are valid.  If not, give an error
@@ -4844,6 +4875,13 @@ reload_as_needed (int live_known)
 	{
 	  AND_COMPL_HARD_REG_SET (reg_reloaded_valid, call_used_reg_set);
 	  AND_COMPL_HARD_REG_SET (reg_reloaded_valid, reg_reloaded_call_part_clobbered);
+
+	  /* If this is a call to a setjmp-type function, we must not
+	     reuse any reload reg contents across the call; that will
+	     just be clobbered by other uses of the register in later
+	     code, before the longjmp.  */
+	  if (find_reg_note (insn, REG_SETJMP, NULL_RTX))
+	    CLEAR_HARD_REG_SET (reg_reloaded_valid);
 	}
     }
 
@@ -5313,19 +5351,37 @@ reload_reg_free_p (unsigned int regno, int opnum, enum reload_type type)
     }
 }
 
-/* Return 1 if the value in reload reg REGNO, as used by a reload
-   needed for the part of the insn specified by OPNUM and TYPE,
-   is still available in REGNO at the end of the insn.
+/* Return 1 if the value in reload reg REGNO, as used by the reload with
+   the number RELOADNUM, is still available in REGNO at the end of the insn.
 
    We can assume that the reload reg was already tested for availability
    at the time it is needed, and we should not check this again,
    in case the reg has already been marked in use.  */
 
 static int
-reload_reg_reaches_end_p (unsigned int regno, int opnum, enum reload_type type)
+reload_reg_reaches_end_p (unsigned int regno, int reloadnum)
 {
+  int opnum = rld[reloadnum].opnum;
+  enum reload_type type = rld[reloadnum].when_needed;
   int i;
 
+  /* See if there is a reload with the same type for this operand, using
+     the same register. This case is not handled by the code below.  */
+  for (i = reloadnum + 1; i < n_reloads; i++)
+    {
+      rtx reg;
+      int nregs;
+
+      if (rld[i].opnum != opnum || rld[i].when_needed != type)
+	continue;
+      reg = rld[i].reg_rtx;
+      if (reg == NULL_RTX)
+	continue;
+      nregs = hard_regno_nregs[REGNO (reg)][GET_MODE (reg)];
+      if (regno >= REGNO (reg) && regno < REGNO (reg) + nregs)
+	return 0;
+    }
+  
   switch (type)
     {
     case RELOAD_OTHER:
@@ -5449,16 +5505,15 @@ reload_reg_reaches_end_p (unsigned int regno, int opnum, enum reload_type type)
 }
 
 /* Like reload_reg_reaches_end_p, but check that the condition holds for
-   every register in the range [REGNO, REGNO + NREGS).  */
+   every register in REG.  */
 
 static bool
-reload_regs_reach_end_p (unsigned int regno, int nregs,
-			 int opnum, enum reload_type type)
+reload_reg_rtx_reaches_end_p (rtx reg, int reloadnum)
 {
-  int i;
+  unsigned int i;
 
-  for (i = 0; i < nregs; i++)
-    if (!reload_reg_reaches_end_p (regno + i, opnum, type))
+  for (i = REGNO (reg); i < END_REGNO (reg); i++)
+    if (!reload_reg_reaches_end_p (i, reloadnum))
       return false;
   return true;
 }
@@ -6466,6 +6521,8 @@ choose_reload_regs (struct insn_chain *chain)
 
 	      if (regno >= 0
 		  && reg_last_reload_reg[regno] != 0
+		  && (GET_MODE_SIZE (GET_MODE (reg_last_reload_reg[regno]))
+		      >= GET_MODE_SIZE (mode) + byte)
 #ifdef CANNOT_CHANGE_MODE_CLASS
 		  /* Verify that the register it's in can be used in
 		     mode MODE.  */
@@ -6477,24 +6534,12 @@ choose_reload_regs (struct insn_chain *chain)
 		{
 		  enum reg_class rclass = rld[r].rclass, last_class;
 		  rtx last_reg = reg_last_reload_reg[regno];
-		  enum machine_mode need_mode;
 
 		  i = REGNO (last_reg);
 		  i += subreg_regno_offset (i, GET_MODE (last_reg), byte, mode);
 		  last_class = REGNO_REG_CLASS (i);
 
-		  if (byte == 0)
-		    need_mode = mode;
-		  else
-		    need_mode
-		      = smallest_mode_for_size
-		        (GET_MODE_BITSIZE (mode) + byte * BITS_PER_UNIT,
-			 GET_MODE_CLASS (mode) == MODE_PARTIAL_INT
-			 ? MODE_INT : GET_MODE_CLASS (mode));
-
-		  if ((GET_MODE_SIZE (GET_MODE (last_reg))
-		       >= GET_MODE_SIZE (need_mode))
-		      && reg_reloaded_contents[i] == regno
+		  if (reg_reloaded_contents[i] == regno
 		      && TEST_HARD_REG_BIT (reg_reloaded_valid, i)
 		      && HARD_REGNO_MODE_OK (i, rld[r].mode)
 		      && (TEST_HARD_REG_BIT (reg_class_contents[(int) rclass], i)
@@ -7013,7 +7058,9 @@ static rtx operand_reload_insns = 0;
 static rtx other_operand_reload_insns = 0;
 static rtx other_output_reload_insns[MAX_RECOG_OPERANDS];
 
-/* Values to be put in spill_reg_store are put here first.  */
+/* Values to be put in spill_reg_store are put here first.  Instructions
+   must only be placed here if the associated reload register reaches
+   the end of the instruction's reload sequence.  */
 static rtx new_spill_reg_store[FIRST_PSEUDO_REGISTER];
 static HARD_REG_SET reg_reloaded_died;
 
@@ -7174,9 +7221,7 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
 
       /* Prevent normal processing of this reload.  */
       special = 1;
-      /* Output a special code sequence for this case, and forget about
-	 spill reg information.  */
-      new_spill_reg_store[REGNO (reloadreg)] = NULL;
+      /* Output a special code sequence for this case.  */
       inc_for_reload (reloadreg, oldequiv, rl->out, rl->inc);
     }
 
@@ -7697,14 +7742,14 @@ emit_output_reload_insns (struct insn_chain *chain, struct reload *rl,
 		    rld[s].out_reg = rl->out_reg;
 		    set = single_set (next);
 		    if (set && SET_SRC (set) == s_reg
-			&& ! new_spill_reg_store[REGNO (s_reg)])
+			&& reload_reg_rtx_reaches_end_p (s_reg, s))
 		      {
 			SET_HARD_REG_BIT (reg_is_output_reload,
 					  REGNO (s_reg));
 			new_spill_reg_store[REGNO (s_reg)] = next;
 		      }
 		  }
-		else
+		else if (reload_reg_rtx_reaches_end_p (rl_reg_rtx, j))
 		  new_spill_reg_store[REGNO (rl_reg_rtx)] = p;
 	      }
 	  }
@@ -7964,6 +8009,15 @@ emit_reload_insns (struct insn_chain *chain)
       debug_reload_to_stream (dump_file);
     }
 
+  for (j = 0; j < n_reloads; j++)
+    if (rld[j].reg_rtx && HARD_REGISTER_P (rld[j].reg_rtx))
+      {
+	unsigned int i;
+
+	for (i = REGNO (rld[j].reg_rtx); i < END_REGNO (rld[j].reg_rtx); i++)
+	  new_spill_reg_store[i] = 0;
+      }
+
   /* Now output the instructions to copy the data into and out of the
      reload registers.  Do these in the order that the reloads were reported,
      since reloads of base and index registers precede reloads of operands
@@ -7971,14 +8025,6 @@ emit_reload_insns (struct insn_chain *chain)
 
   for (j = 0; j < n_reloads; j++)
     {
-      if (rld[j].reg_rtx && HARD_REGISTER_P (rld[j].reg_rtx))
-	{
-	  unsigned int i;
-
-	  for (i = REGNO (rld[j].reg_rtx); i < END_REGNO (rld[j].reg_rtx); i++)
-	    new_spill_reg_store[i] = 0;
-	}
-
       do_input_reload (chain, rld + j, j);
       do_output_reload (chain, rld + j, j);
     }
@@ -8080,8 +8126,7 @@ emit_reload_insns (struct insn_chain *chain)
 	  /* For a multi register reload, we need to check if all or part
 	     of the value lives to the end.  */
 	  for (k = 0; k < nr; k++)
-	    if (reload_reg_reaches_end_p (i + k, rld[r].opnum,
-					  rld[r].when_needed))
+	    if (reload_reg_reaches_end_p (i + k, r))
 	      CLEAR_HARD_REG_BIT (reg_reloaded_valid, i + k);
 
 	  /* Maybe the spill reg contains a copy of reload_out.  */
@@ -8105,16 +8150,13 @@ emit_reload_insns (struct insn_chain *chain)
 			 && GET_CODE (rld[r].out) != PRE_MODIFY))))
 	    {
 	      rtx reg;
-	      enum machine_mode mode;
-	      int regno, nregs;
 
 	      reg = reload_reg_rtx_for_output[r];
-	      mode = GET_MODE (reg);
-	      regno = REGNO (reg);
-	      nregs = hard_regno_nregs[regno][mode];
-	      if (reload_regs_reach_end_p (regno, nregs, rld[r].opnum,
-					   rld[r].when_needed))
+	      if (reload_reg_rtx_reaches_end_p (reg, r))
 		{
+		  enum machine_mode mode = GET_MODE (reg);
+		  int regno = REGNO (reg);
+		  int nregs = hard_regno_nregs[regno][mode];
 		  rtx out = (REG_P (rld[r].out)
 			     ? rld[r].out
 			     : rld[r].out_reg
@@ -8178,21 +8220,21 @@ emit_reload_insns (struct insn_chain *chain)
 		   && !reg_set_p (reload_reg_rtx_for_input[r], PATTERN (insn)))
 	    {
 	      rtx reg;
-	      enum machine_mode mode;
-	      int regno, nregs;
 
 	      reg = reload_reg_rtx_for_input[r];
-	      mode = GET_MODE (reg);
-	      regno = REGNO (reg);
-	      nregs = hard_regno_nregs[regno][mode];
-	      if (reload_regs_reach_end_p (regno, nregs, rld[r].opnum,
-					   rld[r].when_needed))
+	      if (reload_reg_rtx_reaches_end_p (reg, r))
 		{
+		  enum machine_mode mode;
+		  int regno;
+		  int nregs;
 		  int in_regno;
 		  int in_nregs;
 		  rtx in;
 		  bool piecemeal;
 
+		  mode = GET_MODE (reg);
+		  regno = REGNO (reg);
+		  nregs = hard_regno_nregs[regno][mode];
 		  if (REG_P (rld[r].in)
 		      && REGNO (rld[r].in) >= FIRST_PSEUDO_REGISTER)
 		    in = rld[r].in;
@@ -8294,10 +8336,17 @@ emit_reload_insns (struct insn_chain *chain)
 		 delete_output_reload.  */
 	      src_reg = reload_reg_rtx_for_output[r];
 
-	      /* If this is an optional reload, try to find the source reg
-		 from an input reload.  */
-	      if (! src_reg)
+	      if (src_reg)
 		{
+		  if (reload_reg_rtx_reaches_end_p (src_reg, r))
+		    store_insn = new_spill_reg_store[REGNO (src_reg)];
+		  else
+		    src_reg = NULL_RTX;
+		}
+	      else
+		{
+		  /* If this is an optional reload, try to find the
+		     source reg from an input reload.  */
 		  rtx set = single_set (insn);
 		  if (set && SET_DEST (set) == rld[r].out)
 		    {
@@ -8315,8 +8364,6 @@ emit_reload_insns (struct insn_chain *chain)
 			}
 		    }
 		}
-	      else
-		store_insn = new_spill_reg_store[REGNO (src_reg)];
 	      if (src_reg && REG_P (src_reg)
 		  && REGNO (src_reg) < FIRST_PSEUDO_REGISTER)
 		{
@@ -8532,7 +8579,7 @@ gen_reload (rtx out, rtx in, int opnum, enum reload_type type)
       if (insn)
 	{
 	  /* Add a REG_EQUIV note so that find_equiv_reg can find it.  */
-	  set_unique_reg_note (insn, REG_EQUIV, in);
+	  set_dst_reg_note (insn, REG_EQUIV, in, out);
 	  return insn;
 	}
 
@@ -8542,7 +8589,7 @@ gen_reload (rtx out, rtx in, int opnum, enum reload_type type)
       gcc_assert (!reg_overlap_mentioned_p (out, op0));
       gen_reload (out, op1, opnum, type);
       insn = emit_insn (gen_add2_insn (out, op0));
-      set_unique_reg_note (insn, REG_EQUIV, in);
+      set_dst_reg_note (insn, REG_EQUIV, in, out);
     }
 
 #ifdef SECONDARY_MEMORY_NEEDED
@@ -8561,10 +8608,10 @@ gen_reload (rtx out, rtx in, int opnum, enum reload_type type)
       rtx loc = get_secondary_mem (in, GET_MODE (out), opnum, type);
 
       if (GET_MODE (loc) != GET_MODE (out))
-	out = gen_rtx_REG (GET_MODE (loc), REGNO (out));
+	out = gen_rtx_REG (GET_MODE (loc), reg_or_subregno (out));
 
       if (GET_MODE (loc) != GET_MODE (in))
-	in = gen_rtx_REG (GET_MODE (loc), REGNO (in));
+	in = gen_rtx_REG (GET_MODE (loc), reg_or_subregno (in));
 
       gen_reload (loc, in, opnum, type);
       gen_reload (out, loc, opnum, type);

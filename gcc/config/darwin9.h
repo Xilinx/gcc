@@ -35,6 +35,18 @@ along with GCC; see the file COPYING3.  If not see
 /* Tell collect2 to run dsymutil for us as necessary.  */
 #define COLLECT_RUN_DSYMUTIL 1
 
+#undef PIE_SPEC
+#define PIE_SPEC \
+  "%{fpie|pie|fPIE: \
+     %{mdynamic-no-pic: %n'-mdynamic-no-pic' overrides '-pie', '-fpie' or '-fPIE'; \
+      :-pie}}"
+
+/* Only ask as for debug data if the debug style is stabs (since as doesn't
+   yet generate dwarf.)  */
+
+#undef  ASM_DEBUG_SPEC
+#define ASM_DEBUG_SPEC  "%{g*:%{!g0:%{gstabs:--gstabs}}}"
+
 #undef  ASM_OUTPUT_ALIGNED_COMMON
 #define ASM_OUTPUT_ALIGNED_COMMON(FILE, NAME, SIZE, ALIGN)		\
   do {									\
@@ -45,3 +57,9 @@ along with GCC; see the file COPYING3.  If not see
     fprintf ((FILE), ","HOST_WIDE_INT_PRINT_UNSIGNED",%u\n",		\
 	     _new_size, floor_log2 ((ALIGN) / BITS_PER_UNIT));		\
   } while (0)
+
+#undef DEF_MIN_OSX_VERSION
+#define DEF_MIN_OSX_VERSION "10.5"
+
+#undef STACK_CHECK_STATIC_BUILTIN
+#define STACK_CHECK_STATIC_BUILTIN 1

@@ -12,7 +12,8 @@ inline void f1( T& x ) noexcept( noexcept( declval<T&>().foo() ) ) // { dg-error
 }
 
 template< class T,
-  bool Noexcept = noexcept( declval<T&>().foo() )
+  bool Noexcept = noexcept( declval<T&>().foo() ) // { dg-error "no member|not convert" }
+
 >
 inline void f2( T& x ) noexcept( Noexcept )
 {

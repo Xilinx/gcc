@@ -106,11 +106,6 @@ along with GCC; see the file COPYING3.  If not see
 #define CC_STATUS_INIT
 #endif
 
-/* How to start an assembler comment.  */
-#ifndef ASM_COMMENT_START
-#define ASM_COMMENT_START ";#"
-#endif
-
 /* Is the given character a logical line separator for the assembler?  */
 #ifndef IS_ASM_LOGICAL_LINE_SEPARATOR
 #define IS_ASM_LOGICAL_LINE_SEPARATOR(C, STR) ((C) == ';')
@@ -1560,11 +1555,6 @@ final_start_function (rtx first ATTRIBUTE_UNUSED, FILE *file,
   if (targetm.profile_before_prologue () && crtl->profile)
     profile_function (file);
 
-#if defined (HAVE_prologue)
-  if (dwarf2out_do_frame ())
-    dwarf2out_frame_debug_init ();
-#endif
-
   /* If debugging, assign block numbers to all of the blocks in this
      function.  */
   if (write_symbols)
@@ -1727,7 +1717,7 @@ dump_basic_block_info (FILE *file, rtx insn, basic_block *start_to_bb,
 void
 final (rtx first, FILE *file, int optimize_p)
 {
-  rtx insn;
+  rtx insn, next;
   int max_uid = 0;
   int seen = 0;
 
@@ -1749,7 +1739,7 @@ final (rtx first, FILE *file, int optimize_p)
       if (optimize_p && JUMP_P (insn))
 	{
 	  rtx lab = JUMP_LABEL (insn);
-	  if (lab && LABEL_NUSES (lab) == 1)
+	  if (lab && LABEL_P (lab) && LABEL_NUSES (lab) == 1)
 	    {
 	      LABEL_REFS (lab) = insn;
 	    }
@@ -1800,6 +1790,16 @@ final (rtx first, FILE *file, int optimize_p)
     {
       free (start_to_bb);
       free (end_to_bb);
+    }
+
+  /* Remove CFI notes, to avoid compare-debug failures.  */
+  for (insn = first; insn; insn = next)
+    {
+      next = NEXT_INSN (insn);
+      if (NOTE_P (insn)
+	  && (NOTE_KIND (insn) == NOTE_INSN_CFI
+	      || NOTE_KIND (insn) == NOTE_INSN_CFI_LABEL))
+	delete_insn (insn);
     }
 }
 
@@ -1973,16 +1973,18 @@ final_scan_insn (rtx insn, FILE *file, int optimize_p ATTRIBUTE_UNUSED,
 	  break;
 
 	case NOTE_INSN_EPILOGUE_BEG:
-#if defined (HAVE_epilogue)
-	  if (dwarf2out_do_frame ())
-	    dwarf2out_cfi_begin_epilogue (insn);
-#endif
-	  (*debug_hooks->begin_epilogue) (last_linenum, last_filename);
+          if (!DECL_IGNORED_P (current_function_decl))
+            (*debug_hooks->begin_epilogue) (last_linenum, last_filename);
 	  targetm.asm_out.function_begin_epilogue (file);
 	  break;
 
-	case NOTE_INSN_CFA_RESTORE_STATE:
-	  dwarf2out_frame_debug_restore_state ();
+	case NOTE_INSN_CFI:
+	  dwarf2out_emit_cfi (NOTE_CFI (insn));
+	  break;
+
+	case NOTE_INSN_CFI_LABEL:
+	  ASM_OUTPUT_DEBUG_LABEL (asm_out_file, "LCFI",
+				  NOTE_LABEL_NUMBER (insn));
 	  break;
 
 	case NOTE_INSN_FUNCTION_BEG:
@@ -2079,6 +2081,12 @@ final_scan_insn (rtx insn, FILE *file, int optimize_p ATTRIBUTE_UNUSED,
 	  ASM_OUTPUT_DEBUG_LABEL (file, "L", CODE_LABEL_NUMBER (insn));
 	  break;
 
+	case NOTE_INSN_DELETED_DEBUG_LABEL:
+	  /* Similarly, but need to use different namespace for it.  */
+	  if (CODE_LABEL_NUMBER (insn) != -1)
+	    ASM_OUTPUT_DEBUG_LABEL (file, "LDL", CODE_LABEL_NUMBER (insn));
+	  break;
+
 	case NOTE_INSN_VAR_LOCATION:
 	case NOTE_INSN_CALL_ARG_LOCATION:
 	  if (!DECL_IGNORED_P (current_function_decl))
@@ -2092,8 +2100,6 @@ final_scan_insn (rtx insn, FILE *file, int optimize_p ATTRIBUTE_UNUSED,
       break;
 
     case BARRIER:
-      if (dwarf2out_do_frame ())
-	dwarf2out_frame_debug (insn, false);
       break;
 
     case CODE_LABEL:
@@ -2314,11 +2320,6 @@ final_scan_insn (rtx insn, FILE *file, int optimize_p ATTRIBUTE_UNUSED,
 	    location_t loc;
 	    expanded_location expanded;
 
-	    /* Make sure we flush any queued register saves in case this
-	       clobbers affected registers.  */
-	    if (dwarf2out_do_frame ())
-	      dwarf2out_frame_debug (insn, false);
-
 	    /* There's no telling what that did to the condition codes.  */
 	    CC_STATUS_INIT;
 
@@ -2363,12 +2364,6 @@ final_scan_insn (rtx insn, FILE *file, int optimize_p ATTRIBUTE_UNUSED,
 	    int i;
 
 	    final_sequence = body;
-
-	    /* Record the delay slots' frame information before the branch.
-	       This is needed for delayed calls: see execute_cfa_program().  */
-	    if (dwarf2out_do_frame ())
-	      for (i = 1; i < XVECLEN (body, 0); i++)
-		dwarf2out_frame_debug (XVECEXP (body, 0, i), false);
 
 	    /* The first insn in this SEQUENCE might be a JUMP_INSN that will
 	       force the restoration of a comparison that was previously
@@ -2504,7 +2499,7 @@ final_scan_insn (rtx insn, FILE *file, int optimize_p ATTRIBUTE_UNUSED,
 	        delete_insn (insn);
 		break;
 	      }
-	    else if (GET_CODE (SET_SRC (body)) == RETURN)
+	    else if (ANY_RETURN_P (SET_SRC (body)))
 	      /* Replace (set (pc) (return)) with (return).  */
 	      PATTERN (insn) = body = SET_SRC (body);
 
@@ -2683,9 +2678,6 @@ final_scan_insn (rtx insn, FILE *file, int optimize_p ATTRIBUTE_UNUSED,
 
 	current_output_insn = debug_insn = insn;
 
-	if (CALL_P (insn) && dwarf2out_do_frame ())
-	  dwarf2out_frame_debug (insn, false);
-
 	/* Find the proper template for this insn.  */
 	templ = get_insn_template (insn_code_number, insn);
 
@@ -2764,16 +2756,6 @@ final_scan_insn (rtx insn, FILE *file, int optimize_p ATTRIBUTE_UNUSED,
 	if (targetm.asm_out.final_postscan_insn)
 	  targetm.asm_out.final_postscan_insn (file, insn, recog_data.operand,
 					       recog_data.n_operands);
-
-	/* If necessary, report the effect that the instruction has on
-	   the unwind info.   We've already done this for delay slots
-	   and call instructions.  */
-	if (final_sequence == 0
-#if !defined (HAVE_prologue)
-	    && !ACCUMULATE_OUTGOING_ARGS
-#endif
-	    && dwarf2out_do_frame ())
-	  dwarf2out_frame_debug (insn, true);
 
 	if (!targetm.asm_out.unwind_emit_before_insn
 	    && targetm.asm_out.unwind_emit)
@@ -3634,8 +3616,7 @@ output_addr_const (FILE *file, rtx x)
       break;
 
     case CONST_FIXED:
-      fprintf (file, HOST_WIDE_INT_PRINT_HEX,
-	       (unsigned HOST_WIDE_INT) CONST_FIXED_VALUE_LOW (x));
+      fprintf (file, HOST_WIDE_INT_PRINT_DEC, CONST_FIXED_VALUE_LOW (x));
       break;
 
     case PLUS:
@@ -3719,6 +3700,97 @@ output_quoted_string (FILE *asm_file, const char *string)
 #endif
 }
 
+/* Write a HOST_WIDE_INT number in hex form 0x1234, fast. */
+
+void
+fprint_whex (FILE *f, unsigned HOST_WIDE_INT value)
+{
+  char buf[2 + CHAR_BIT * sizeof (value) / 4];
+  if (value == 0)
+    putc ('0', f);
+  else
+    {
+      char *p = buf + sizeof (buf);
+      do
+        *--p = "0123456789abcdef"[value % 16];
+      while ((value /= 16) != 0);
+      *--p = 'x';
+      *--p = '0';
+      fwrite (p, 1, buf + sizeof (buf) - p, f);
+    }
+}
+
+/* Internal function that prints an unsigned long in decimal in reverse.
+   The output string IS NOT null-terminated. */
+
+static int
+sprint_ul_rev (char *s, unsigned long value)
+{
+  int i = 0;
+  do
+    {
+      s[i] = "0123456789"[value % 10];
+      value /= 10;
+      i++;
+      /* alternate version, without modulo */
+      /* oldval = value; */
+      /* value /= 10; */
+      /* s[i] = "0123456789" [oldval - 10*value]; */
+      /* i++ */
+    }
+  while (value != 0);
+  return i;
+}
+
+/* Write an unsigned long as decimal to a file, fast. */
+
+void
+fprint_ul (FILE *f, unsigned long value)
+{
+  /* python says: len(str(2**64)) == 20 */
+  char s[20];
+  int i;
+
+  i = sprint_ul_rev (s, value);
+
+  /* It's probably too small to bother with string reversal and fputs. */
+  do
+    {
+      i--;
+      putc (s[i], f);
+    }
+  while (i != 0);
+}
+
+/* Write an unsigned long as decimal to a string, fast.
+   s must be wide enough to not overflow, at least 21 chars.
+   Returns the length of the string (without terminating '\0'). */
+
+int
+sprint_ul (char *s, unsigned long value)
+{
+  int len;
+  char tmp_c;
+  int i;
+  int j;
+
+  len = sprint_ul_rev (s, value);
+  s[len] = '\0';
+
+  /* Reverse the string. */
+  i = 0;
+  j = len - 1;
+  while (i < j)
+    {
+      tmp_c = s[i];
+      s[i] = s[j];
+      s[j] = tmp_c;
+      i++; j--;
+    }
+
+  return len;
+}
+
 /* A poor man's fprintf, with the added features of %I, %R, %L, and %U.
    %R prints the value of REGISTER_PREFIX.
    %L prints the value of LOCAL_LABEL_PREFIX.
@@ -4396,7 +4468,7 @@ rest_of_clean_state (void)
 	       && NOTE_KIND (insn) != NOTE_INSN_CALL_ARG_LOCATION
 	       && NOTE_KIND (insn) != NOTE_INSN_BLOCK_BEG
 	       && NOTE_KIND (insn) != NOTE_INSN_BLOCK_END
-	       && NOTE_KIND (insn) != NOTE_INSN_CFA_RESTORE_STATE)))
+	       && NOTE_KIND (insn) != NOTE_INSN_DELETED_DEBUG_LABEL)))
 	print_rtl_single (final_output, insn);
     }
 

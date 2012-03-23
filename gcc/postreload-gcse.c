@@ -589,8 +589,7 @@ find_mem_conflicts (rtx dest, const_rtx setter ATTRIBUTE_UNUSED,
   if (! MEM_P (dest))
     return;
 
-  if (true_dependence (dest, GET_MODE (dest), mem_op,
-		       rtx_addr_varies_p))
+  if (true_dependence (dest, GET_MODE (dest), mem_op))
     mems_conflict_p = 1;
 }
 
@@ -1131,7 +1130,8 @@ eliminate_partially_redundant_load (basic_block bb, rtx insn,
      discover additional redundancies, so mark it for later deletion.  */
   for (a_occr = get_bb_avail_insn (bb, expr->avail_occr);
        a_occr && (a_occr->insn != insn);
-       a_occr = get_bb_avail_insn (bb, a_occr->next));
+       a_occr = get_bb_avail_insn (bb, a_occr->next))
+    ;
 
   if (!a_occr)
     {

@@ -252,12 +252,6 @@ struct GTY(()) hashed_entry {
 
 #define SIZEHASHTABLE		257
 
-extern GTY ((length ("SIZEHASHTABLE"))) hash *nst_method_hash_list;
-extern GTY ((length ("SIZEHASHTABLE"))) hash *cls_method_hash_list;
-
-extern GTY ((length ("SIZEHASHTABLE"))) hash *cls_name_hash_list;
-extern GTY ((length ("SIZEHASHTABLE"))) hash *als_name_hash_list;
-
 /* An array of all the local variables in the current function that
    need to be marked as volatile.  */
 extern GTY(()) VEC(tree,gc) *local_variables_to_volatilize;
@@ -641,10 +635,6 @@ typedef enum string_section
 
 #define METHOD_DEF			0
 #define METHOD_REF			1
-
-/* (Decide if these can ever be validly changed.) */
-#define OBJC_ENCODE_INLINE_DEFS		0
-#define OBJC_ENCODE_DONT_INLINE_DEFS	1
 
 #define BUFSIZE				1024
 

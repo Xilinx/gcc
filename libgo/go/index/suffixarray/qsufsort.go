@@ -37,7 +37,7 @@ func qsufsort(data []byte) []int {
 	inv := initGroups(sa, data)
 
 	// the index starts 1-ordered
-	sufSortable := &suffixSortable{sa, inv, 1}
+	sufSortable := &suffixSortable{sa: sa, inv: inv, h: 1}
 
 	for sa[0] > -len(sa) { // until all suffixes are one big sorted group
 		// The suffixes are h-ordered, make them 2*h-ordered
@@ -72,7 +72,6 @@ func qsufsort(data []byte) []int {
 	return sa
 }
 
-
 func sortedByFirstByte(data []byte) []int {
 	// total byte counts
 	var count [256]int
@@ -92,7 +91,6 @@ func sortedByFirstByte(data []byte) []int {
 	}
 	return sa
 }
-
 
 func initGroups(sa []int, data []byte) []int {
 	// label contiguous same-letter groups with the same group number
@@ -133,20 +131,19 @@ func initGroups(sa []int, data []byte) []int {
 	return inv
 }
 
-
 type suffixSortable struct {
 	sa  []int
 	inv []int
 	h   int
+	buf []int // common scratch space
 }
 
 func (x *suffixSortable) Len() int           { return len(x.sa) }
 func (x *suffixSortable) Less(i, j int) bool { return x.inv[x.sa[i]+x.h] < x.inv[x.sa[j]+x.h] }
 func (x *suffixSortable) Swap(i, j int)      { x.sa[i], x.sa[j] = x.sa[j], x.sa[i] }
 
-
 func (x *suffixSortable) updateGroups(offset int) {
-	bounds := make([]int, 0, 4)
+	bounds := x.buf[0:0]
 	group := x.inv[x.sa[0]+x.h]
 	for i := 1; i < len(x.sa); i++ {
 		if g := x.inv[x.sa[i]+x.h]; g > group {
@@ -155,6 +152,7 @@ func (x *suffixSortable) updateGroups(offset int) {
 		}
 	}
 	bounds = append(bounds, len(x.sa))
+	x.buf = bounds
 
 	// update the group numberings after all new groups are determined
 	prev := 0

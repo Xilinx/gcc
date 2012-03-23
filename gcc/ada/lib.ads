@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -38,6 +38,9 @@ with Table;
 with Types; use Types;
 
 package Lib is
+
+   type Unit_Ref_Table is array (Pos range <>) of Unit_Number_Type;
+   --  Type to hold list of indirect references to unit number table
 
    type Compiler_State_Type is (Parsing, Analyzing);
    Compiler_State : Compiler_State_Type;
@@ -515,7 +518,7 @@ package Lib is
    --  its subunits (considered recursively). Units for which this enquiry
    --  returns True are those for which code will be generated. Nodes from
    --  instantiations are included in the extended main unit for this call.
-   --  If the main unit is itself a subunit, then the extended main unit
+   --  If the main unit is itself a subunit, then the extended main code unit
    --  includes its parent unit, and the parent unit spec if it is separate.
 
    function In_Extended_Main_Code_Unit (Loc : Source_Ptr) return Boolean;
@@ -530,7 +533,7 @@ package Lib is
    --  returns True are those for which code will be generated. This differs
    --  from In_Extended_Main_Code_Unit only in that instantiations are not
    --  included for the purposes of this call. If the main unit is itself
-   --  a subunit, then the extended main unit includes its parent unit,
+   --  a subunit, then the extended main source unit includes its parent unit,
    --  and the parent unit spec if it is separate.
 
    function In_Extended_Main_Source_Unit (Loc : Source_Ptr) return Boolean;
@@ -550,6 +553,12 @@ package Lib is
    --  otherwise. The result is undefined if S1 and S2 are not in the same
    --  extended unit. Note: this routine will not give reliable results if
    --  called after Sprint has been called with -gnatD set.
+
+   function Exact_Source_Name (Loc : Source_Ptr) return String;
+   --  Return name of entity at location Loc exactly as written in the source.
+   --  this includes copying the wide character encodings exactly as they were
+   --  used in the source, so the caller must be aware of the possibility of
+   --  such encodings.
 
    function Compilation_Switches_Last return Nat;
    --  Return the count of stored compilation switches
@@ -815,9 +824,6 @@ private
    --  This is set from Sloc (Enode) by Load only in the case where this Sloc
    --  is in the main source file. This ensures that not found messages and
    --  circular dependency messages reference the original with in this source.
-
-   type Unit_Ref_Table is array (Pos range <>) of Unit_Number_Type;
-   --  Type to hold list of indirect references to unit number table
 
    type Load_Stack_Entry is record
       Unit_Number : Unit_Number_Type;

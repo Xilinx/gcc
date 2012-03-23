@@ -1,6 +1,6 @@
 /* Register to Stack convert for GNU compiler.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -434,7 +434,8 @@ get_true_reg (rtx *pat)
 	break;
 
       case UNSPEC:
-	if (XINT (*pat, 1) == UNSPEC_TRUNC_NOOP)
+	if (XINT (*pat, 1) == UNSPEC_TRUNC_NOOP
+	    || XINT (*pat, 1) == UNSPEC_LDA)
 	  pat = & XVECEXP (*pat, 0, 0);
 	return pat;
 
@@ -1322,14 +1323,10 @@ compare_for_stack_reg (rtx insn, stack regstack, rtx pat_src)
 static int
 subst_stack_regs_in_debug_insn (rtx *loc, void *data)
 {
-  rtx *tloc = get_true_reg (loc);
   stack regstack = (stack)data;
   int hard_regno;
 
-  if (!STACK_REG_P (*tloc))
-    return 0;
-
-  if (tloc != loc)
+  if (!STACK_REG_P (*loc))
     return 0;
 
   hard_regno = get_hard_regnum (regstack, *loc);
@@ -1677,6 +1674,7 @@ subst_stack_regs_pat (rtx insn, stack regstack, rtx pat)
 	  case UNSPEC:
 	    switch (XINT (pat_src, 1))
 	      {
+	      case UNSPEC_STA:
 	      case UNSPEC_FIST:
 
 	      case UNSPEC_FIST_FLOOR:

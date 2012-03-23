@@ -45,20 +45,16 @@ func testFile(t *testing.T, fn string, order Order, litWidth int) {
 		var b [4096]byte
 		for {
 			n, err0 := raw.Read(b[:])
-			if err0 != nil && err0 != os.EOF {
+			if err0 != nil && err0 != io.EOF {
 				t.Errorf("%s (order=%d litWidth=%d): %v", fn, order, litWidth, err0)
 				return
 			}
 			_, err1 := lzww.Write(b[:n])
-			if err1 == os.EPIPE {
-				// Fail, but do not report the error, as some other (presumably reportable) error broke the pipe.
-				return
-			}
 			if err1 != nil {
 				t.Errorf("%s (order=%d litWidth=%d): %v", fn, order, litWidth, err1)
 				return
 			}
-			if err0 == os.EOF {
+			if err0 == io.EOF {
 				break
 			}
 		}
@@ -77,13 +73,13 @@ func testFile(t *testing.T, fn string, order Order, litWidth int) {
 		t.Errorf("%s (order=%d litWidth=%d): %v", fn, order, litWidth, err1)
 		return
 	}
-	if len(b0) != len(b1) {
-		t.Errorf("%s (order=%d litWidth=%d): length mismatch %d versus %d", fn, order, litWidth, len(b0), len(b1))
+	if len(b1) != len(b0) {
+		t.Errorf("%s (order=%d litWidth=%d): length mismatch %d != %d", fn, order, litWidth, len(b1), len(b0))
 		return
 	}
 	for i := 0; i < len(b0); i++ {
-		if b0[i] != b1[i] {
-			t.Errorf("%s (order=%d litWidth=%d): mismatch at %d, 0x%02x versus 0x%02x\n", fn, order, litWidth, i, b0[i], b1[i])
+		if b1[i] != b0[i] {
+			t.Errorf("%s (order=%d litWidth=%d): mismatch at %d, 0x%02x != 0x%02x\n", fn, order, litWidth, i, b1[i], b0[i])
 			return
 		}
 	}

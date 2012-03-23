@@ -1,5 +1,6 @@
 /* Definitions for SH running Linux-based GNU systems using ELF
-   Copyright (C) 1999, 2000, 2002, 2003, 2004, 2005, 2006, 2007, 2010, 2011
+   Copyright (C) 1999, 2000, 2002, 2003, 2004, 2005, 2006, 2007, 2010, 2011,
+   2012
    Free Software Foundation, Inc.
    Contributed by Kazumoto Kojima <kkojima@rr.iij4u.or.jp>
 
@@ -131,3 +132,17 @@ along with GCC; see the file COPYING3.  If not see
 #define SH_DIV_STRATEGY_DEFAULT SH_DIV_CALL2
 #undef SH_DIV_STR_FOR_SIZE
 #define SH_DIV_STR_FOR_SIZE "call2"
+
+/* Install the __sync libcalls.  */
+#undef TARGET_INIT_LIBFUNCS
+#define TARGET_INIT_LIBFUNCS  sh_init_sync_libfuncs
+
+#undef SUBTARGET_OVERRIDE_OPTIONS
+#define SUBTARGET_OVERRIDE_OPTIONS			\
+  do							\
+    {							\
+      /* Defaulting to -msoft-atomic.  */		\
+      if (global_options_set.x_TARGET_SOFT_ATOMIC == 0)	\
+	TARGET_SOFT_ATOMIC = 1;				\
+    }							\
+  while (0)

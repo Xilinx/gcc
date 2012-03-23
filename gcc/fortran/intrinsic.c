@@ -1557,8 +1557,8 @@ add_functions (void)
 
   make_generic ("dprod", GFC_ISYM_DPROD, GFC_STD_F77);
 
-  add_sym_1 ("dreal", GFC_ISYM_REAL, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dd, GFC_STD_GNU,
-	     NULL, NULL, NULL,
+  add_sym_1 ("dreal", GFC_ISYM_REAL, CLASS_ELEMENTAL, ACTUAL_NO,
+	     BT_REAL, dd, GFC_STD_GNU, NULL, gfc_simplify_dreal, NULL,
 	     a, BT_COMPLEX, dd, REQUIRED);
 
   make_generic ("dreal", GFC_ISYM_REAL, GFC_STD_GNU);
@@ -2434,9 +2434,9 @@ add_functions (void)
   make_generic ("range", GFC_ISYM_RANGE, GFC_STD_F95);
 
   add_sym_1 ("rank", GFC_ISYM_RANK, CLASS_INQUIRY, ACTUAL_NO, BT_INTEGER, di,
-	     GFC_STD_F2008_TR, gfc_check_rank, gfc_simplify_rank, NULL,
+	     GFC_STD_F2008_TS, gfc_check_rank, gfc_simplify_rank, NULL,
 	     a, BT_REAL, dr, REQUIRED);
-  make_generic ("rank", GFC_ISYM_RANK, GFC_STD_F2008_TR);
+  make_generic ("rank", GFC_ISYM_RANK, GFC_STD_F2008_TS);
 
   add_sym_2 ("real", GFC_ISYM_REAL, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F77,
 	     gfc_check_real, gfc_simplify_real, gfc_resolve_real,
@@ -2594,7 +2594,7 @@ add_functions (void)
 
   add_sym_2 ("signal", GFC_ISYM_SIGNAL, CLASS_IMPURE, ACTUAL_NO, BT_INTEGER,
 	     di, GFC_STD_GNU, gfc_check_signal, NULL, gfc_resolve_signal,
-	     num, BT_INTEGER, di, REQUIRED, han, BT_UNKNOWN, 0, REQUIRED);
+	     num, BT_INTEGER, di, REQUIRED, han, BT_VOID, 0, REQUIRED);
 
   make_generic ("signal", GFC_ISYM_SIGNAL, GFC_STD_GNU);
 
@@ -3642,7 +3642,7 @@ check_arglist (gfc_actual_arglist **ap, gfc_intrinsic_sym *sym,
 				 : NULL);
 
 	  /* No pointer arguments for intrinsics.  */
-	  if (gfc_check_vardef_context (actual->expr, false, context)
+	  if (gfc_check_vardef_context (actual->expr, false, false, context)
 		== FAILURE)
 	    return FAILURE;
 	}
@@ -3989,8 +3989,8 @@ gfc_check_intrinsic_standard (const gfc_intrinsic_sym* isym,
       symstd_msg = "new in Fortran 2008";
       break;
 
-    case GFC_STD_F2008_TR:
-      symstd_msg = "new in TR 29113";
+    case GFC_STD_F2008_TS:
+      symstd_msg = "new in TS 29113";
       break;
 
     case GFC_STD_GNU:

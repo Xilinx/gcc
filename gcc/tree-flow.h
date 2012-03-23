@@ -33,6 +33,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-ssa-alias.h"
 
 
+/* This structure is used to map a gimple statement to a label,
+   or list of labels to represent transaction restart.  */
+
+struct GTY(()) tm_restart_node {
+  gimple stmt;
+  tree label_or_list;
+};
+
 /* Gimple dataflow datastructure. All publicly available fields shall have
    gimple_ accessor defined in tree-flow-inline.h, all publicly modifiable
    fields should have gimple_set accessor.  */
@@ -80,6 +88,10 @@ struct GTY(()) gimple_df {
   unsigned int ipa_pta : 1;
 
   struct ssa_operands ssa_operands;
+
+  /* Map gimple stmt to tree label (or list of labels) for transaction
+     restart and abort.  */
+  htab_t GTY ((param_is (struct tm_restart_node))) tm_restart;
 };
 
 /* Accessors for internal use only.  Generic code should use abstraction
@@ -278,7 +290,6 @@ typedef struct immediate_use_iterator_d
 typedef struct var_ann_d *var_ann_t;
 
 static inline var_ann_t var_ann (const_tree);
-static inline var_ann_t get_var_ann (tree);
 static inline void update_stmt (gimple);
 static inline int get_lineno (const_gimple);
 
@@ -493,7 +504,6 @@ extern void find_referenced_vars_in (gimple);
 /* In tree-phinodes.c  */
 extern void reserve_phi_args_for_new_edge (basic_block);
 extern void add_phi_node_to_bb (gimple phi, basic_block bb);
-extern gimple make_phi_node (tree var, int len);
 extern gimple create_phi_node (tree, basic_block);
 extern void add_phi_arg (gimple, tree, edge, source_location);
 extern void remove_phi_args (edge);
@@ -542,7 +552,7 @@ extern void flush_pending_stmts (edge);
 extern void verify_ssa (bool);
 extern void delete_tree_ssa (void);
 extern bool ssa_undefined_value_p (tree);
-extern void warn_uninit (enum opt_code, tree, const char *, void *);
+extern void warn_uninit (enum opt_code, tree, tree, tree, const char *, void *);
 extern unsigned int warn_uninitialized_vars (bool);
 extern void execute_update_addresses_taken (void);
 
@@ -597,6 +607,7 @@ extern void dump_dominator_optimization_stats (FILE *);
 extern void debug_dominator_optimization_stats (void);
 int loop_depth_of_name (tree);
 tree degenerate_phi_result (gimple);
+bool simple_iv_increment_p (gimple);
 
 /* In tree-ssa-copy.c  */
 extern void propagate_value (use_operand_p, tree);
@@ -606,6 +617,9 @@ extern void replace_exp (use_operand_p, tree);
 extern bool may_propagate_copy (tree, tree);
 extern bool may_propagate_copy_into_stmt (gimple, tree);
 extern bool may_propagate_copy_into_asm (tree);
+
+/* In tree-ssa-loop-ch.c  */
+bool do_while_loop_p (struct loop *);
 
 /* Affine iv.  */
 
@@ -699,8 +713,6 @@ bool gimple_duplicate_loop_to_header_edge (struct loop *, edge,
 struct loop *slpeel_tree_duplicate_loop_to_edge_cfg (struct loop *, edge);
 void rename_variables_in_loop (struct loop *);
 void rename_variables_in_bb (basic_block bb);
-struct loop *tree_ssa_loop_version (struct loop *, tree,
-				    basic_block *);
 tree expand_simple_operations (tree);
 void substitute_in_loop_info (struct loop *, tree, tree);
 edge single_dom_exit (struct loop *);
@@ -717,6 +729,7 @@ bool stmt_dominates_stmt_p (gimple, gimple);
 void mark_virtual_ops_for_renaming (gimple);
 
 /* In tree-ssa-dce.c */
+void mark_virtual_operand_for_renaming (tree);
 void mark_virtual_phi_result_for_renaming (gimple);
 
 /* In tree-ssa-threadedge.c */
@@ -778,6 +791,7 @@ extern bool maybe_duplicate_eh_stmt_fn (struct function *, gimple,
 extern bool maybe_duplicate_eh_stmt (gimple, gimple);
 extern bool verify_eh_edges (gimple);
 extern bool verify_eh_dispatch_edge (gimple);
+extern void maybe_remove_unreachable_handlers (void);
 
 /* In tree-ssa-pre.c  */
 struct pre_expr_d;
@@ -808,7 +822,7 @@ bool may_be_nonaddressable_p (tree expr);
 
 /* In tree-ssa-threadupdate.c.  */
 extern bool thread_through_all_blocks (bool);
-extern void register_jump_thread (edge, edge);
+extern void register_jump_thread (edge, edge, edge);
 
 /* In gimplify.c  */
 tree force_gimple_operand_1 (tree, gimple_seq *, gimple_predicate, tree);

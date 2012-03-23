@@ -69,8 +69,7 @@ define_builtin(built_in_function bcode, const char* name, const char* libname,
 				   libname, NULL_TREE);
   if (const_p)
     TREE_READONLY(decl) = 1;
-  built_in_decls[bcode] = decl;
-  implicit_built_in_decls[bcode] = decl;
+  set_builtin_decl(bcode, decl, true);
   builtin_functions[name] = decl;
   if (libname != NULL)
     {
@@ -91,22 +90,22 @@ Gogo::define_builtin_function_trees()
      for ++ and --.  */
   tree t = go_type_for_size(BITS_PER_UNIT, 1);
   tree p = build_pointer_type(build_qualified_type(t, TYPE_QUAL_VOLATILE));
-  define_builtin(BUILT_IN_ADD_AND_FETCH_1, "__sync_fetch_and_add_1", NULL,
+  define_builtin(BUILT_IN_SYNC_ADD_AND_FETCH_1, "__sync_fetch_and_add_1", NULL,
 		 build_function_type_list(t, p, t, NULL_TREE), false);
 
   t = go_type_for_size(BITS_PER_UNIT * 2, 1);
   p = build_pointer_type(build_qualified_type(t, TYPE_QUAL_VOLATILE));
-  define_builtin (BUILT_IN_ADD_AND_FETCH_2, "__sync_fetch_and_add_2", NULL,
+  define_builtin (BUILT_IN_SYNC_ADD_AND_FETCH_2, "__sync_fetch_and_add_2", NULL,
 		  build_function_type_list(t, p, t, NULL_TREE), false);
 
   t = go_type_for_size(BITS_PER_UNIT * 4, 1);
   p = build_pointer_type(build_qualified_type(t, TYPE_QUAL_VOLATILE));
-  define_builtin(BUILT_IN_ADD_AND_FETCH_4, "__sync_fetch_and_add_4", NULL,
+  define_builtin(BUILT_IN_SYNC_ADD_AND_FETCH_4, "__sync_fetch_and_add_4", NULL,
 		 build_function_type_list(t, p, t, NULL_TREE), false);
 
   t = go_type_for_size(BITS_PER_UNIT * 8, 1);
   p = build_pointer_type(build_qualified_type(t, TYPE_QUAL_VOLATILE));
-  define_builtin(BUILT_IN_ADD_AND_FETCH_8, "__sync_fetch_and_add_8", NULL,
+  define_builtin(BUILT_IN_SYNC_ADD_AND_FETCH_8, "__sync_fetch_and_add_8", NULL,
 		 build_function_type_list(t, p, t, NULL_TREE), false);
 
   // We use __builtin_expect for magic import functions.
@@ -117,26 +116,117 @@ Gogo::define_builtin_function_trees()
 					  NULL_TREE),
 		 true);
 
-  // We use __builtin_memmove for the predeclared copy function.
-  define_builtin(BUILT_IN_MEMMOVE, "__builtin_memmove", "memmove",
-		 build_function_type_list(ptr_type_node,
-					  ptr_type_node,
+  // We use __builtin_memcmp for struct comparisons.
+  define_builtin(BUILT_IN_MEMCMP, "__builtin_memcmp", "memcmp",
+		 build_function_type_list(integer_type_node,
+					  const_ptr_type_node,
 					  const_ptr_type_node,
 					  size_type_node,
 					  NULL_TREE),
 		 false);
 
-  // We provide sqrt for the math library.
-  define_builtin(BUILT_IN_SQRT, "__builtin_sqrt", "sqrt",
+  // We provide some functions for the math library.
+  tree math_function_type = build_function_type_list(double_type_node,
+						     double_type_node,
+						     NULL_TREE);
+  tree math_function_type_long =
+    build_function_type_list(long_double_type_node, long_double_type_node,
+			     long_double_type_node, NULL_TREE);
+  tree math_function_type_two = build_function_type_list(double_type_node,
+							 double_type_node,
+							 double_type_node,
+							 NULL_TREE);
+  tree math_function_type_long_two =
+    build_function_type_list(long_double_type_node, long_double_type_node,
+			     long_double_type_node, NULL_TREE);
+  define_builtin(BUILT_IN_ACOS, "__builtin_acos", "acos",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_ACOSL, "__builtin_acosl", "acosl",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_ASIN, "__builtin_asin", "asin",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_ASINL, "__builtin_asinl", "asinl",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_ATAN, "__builtin_atan", "atan",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_ATANL, "__builtin_atanl", "atanl",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_ATAN2, "__builtin_atan2", "atan2",
+		 math_function_type_two, true);
+  define_builtin(BUILT_IN_ATAN2L, "__builtin_atan2l", "atan2l",
+		 math_function_type_long_two, true);
+  define_builtin(BUILT_IN_CEIL, "__builtin_ceil", "ceil",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_CEILL, "__builtin_ceill", "ceill",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_COS, "__builtin_cos", "cos",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_COSL, "__builtin_cosl", "cosl",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_EXP, "__builtin_exp", "exp",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_EXPL, "__builtin_expl", "expl",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_EXPM1, "__builtin_expm1", "expm1",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_EXPM1L, "__builtin_expm1l", "expm1l",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_FABS, "__builtin_fabs", "fabs",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_FABSL, "__builtin_fabsl", "fabsl",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_FLOOR, "__builtin_floor", "floor",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_FLOORL, "__builtin_floorl", "floorl",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_FMOD, "__builtin_fmod", "fmod",
+		 math_function_type_two, true);
+  define_builtin(BUILT_IN_FMODL, "__builtin_fmodl", "fmodl",
+		 math_function_type_long_two, true);
+  define_builtin(BUILT_IN_LDEXP, "__builtin_ldexp", "ldexp",
 		 build_function_type_list(double_type_node,
 					  double_type_node,
+					  integer_type_node,
 					  NULL_TREE),
 		 true);
-  define_builtin(BUILT_IN_SQRTL, "__builtin_sqrtl", "sqrtl",
+  define_builtin(BUILT_IN_LDEXPL, "__builtin_ldexpl", "ldexpl",
 		 build_function_type_list(long_double_type_node,
 					  long_double_type_node,
+					  integer_type_node,
 					  NULL_TREE),
 		 true);
+  define_builtin(BUILT_IN_LOG, "__builtin_log", "log",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_LOGL, "__builtin_logl", "logl",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_LOG1P, "__builtin_log1p", "log1p",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_LOG1PL, "__builtin_log1pl", "log1pl",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_LOG10, "__builtin_log10", "log10",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_LOG10L, "__builtin_log10l", "log10l",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_LOG2, "__builtin_log2", "log2",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_LOG2L, "__builtin_log2l", "log2l",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_SIN, "__builtin_sin", "sin",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_SINL, "__builtin_sinl", "sinl",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_SQRT, "__builtin_sqrt", "sqrt",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_SQRTL, "__builtin_sqrtl", "sqrtl",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_TAN, "__builtin_tan", "tan",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_TANL, "__builtin_tanl", "tanl",
+		 math_function_type_long, true);
+  define_builtin(BUILT_IN_TRUNC, "__builtin_trunc", "trunc",
+		 math_function_type, true);
+  define_builtin(BUILT_IN_TRUNCL, "__builtin_truncl", "truncl",
+		 math_function_type_long, true);
 
   // We use __builtin_return_address in the thunk we build for
   // functions which call recover.
@@ -337,8 +427,9 @@ Gogo::register_gc_vars(const std::vector<Named_object*>& var_gc,
   rest_of_decl_compilation(decl, 1, 0);
 
   static tree register_gc_fndecl;
-  tree call = Gogo::call_builtin(&register_gc_fndecl, BUILTINS_LOCATION,
-				 "__go_register_gc_roots",
+  tree call = Gogo::call_builtin(&register_gc_fndecl,
+                                 Linemap::predeclared_location(),
+                                 "__go_register_gc_roots",
 				 1,
 				 void_type_node,
 				 build_pointer_type(root_list_type),
@@ -647,7 +738,8 @@ Gogo::write_globals()
   this->build_interface_method_tables();
 
   Bindings* bindings = this->current_bindings();
-  size_t count = bindings->size_definitions();
+  size_t count_definitions = bindings->size_definitions();
+  size_t count = count_definitions;
 
   tree* vec = new tree[count];
 
@@ -742,13 +834,23 @@ Gogo::write_globals()
 	      else if (init == NULL_TREE)
 		;
 	      else if (TREE_CONSTANT(init))
-		this->backend()->global_variable_set_init(var,
-							  tree_to_expr(init));
-	      else if (is_sink)
+		{
+		  if (expression_requires(no->var_value()->init(), NULL, no))
+		    error_at(no->location(),
+			     "initialization expression for %qs depends "
+			     "upon itself",
+			     no->message_name().c_str());
+		  this->backend()->global_variable_set_init(var,
+							    tree_to_expr(init));
+		}
+	      else if (is_sink
+		       || int_size_in_bytes(TREE_TYPE(init)) == 0
+		       || int_size_in_bytes(TREE_TYPE(vec[i])) == 0)
 		var_init_tree = init;
 	      else
-		var_init_tree = fold_build2_loc(no->location(), MODIFY_EXPR,
-						void_type_node, vec[i], init);
+		var_init_tree = fold_build2_loc(no->location().gcc_location(),
+                                                MODIFY_EXPR, void_type_node,
+                                                vec[i], init);
 	    }
 	  else
 	    {
@@ -821,6 +923,10 @@ Gogo::write_globals()
       || this->is_main_package())
     this->write_initialization_function(init_fndecl, init_stmt_list);
 
+  // We should not have seen any new bindings created during the
+  // conversion.
+  go_assert(count_definitions == this->current_bindings()->size_definitions());
+
   // Pass everything back to the middle-end.
 
   wrapup_global_declarations(vec, count);
@@ -844,7 +950,7 @@ Named_object::get_id(Gogo* gogo)
       && !this->func_declaration_value()->asm_name().empty())
     decl_name = this->func_declaration_value()->asm_name();
   else if (this->is_type()
-	   && this->type_value()->location() == BUILTINS_LOCATION)
+	   && Linemap::is_predeclared_location(this->type_value()->location()))
     {
       // We don't need the package name for builtin types.
       decl_name = Gogo::unpack_hidden_name(this->name_);
@@ -921,8 +1027,8 @@ Named_object::get_tree(Gogo* gogo, Named_object* function)
 	      decl = error_mark_node;
 	    else if (INTEGRAL_TYPE_P(TREE_TYPE(expr_tree)))
 	      {
-		decl = build_decl(named_constant->location(), CONST_DECL,
-				  name, TREE_TYPE(expr_tree));
+		decl = build_decl(named_constant->location().gcc_location(),
+                                  CONST_DECL, name, TREE_TYPE(expr_tree));
 		DECL_INITIAL(decl) = expr_tree;
 		TREE_CONSTANT(decl) = 1;
 		TREE_READONLY(decl) = 1;
@@ -959,9 +1065,12 @@ Named_object::get_tree(Gogo* gogo, Named_object* function)
 	    // descriptor, even though we don't do anything with it.
 	    if (this->package_ == NULL)
 	      {
-		named_type->type_descriptor_pointer(gogo, BUILTINS_LOCATION);
+		named_type->
+                  type_descriptor_pointer(gogo,
+					  Linemap::predeclared_location());
 		Type* pn = Type::make_pointer_type(named_type);
-		pn->type_descriptor_pointer(gogo, BUILTINS_LOCATION);
+		pn->type_descriptor_pointer(gogo,
+					    Linemap::predeclared_location());
 	      }
 	  }
       }
@@ -990,7 +1099,8 @@ Named_object::get_tree(Gogo* gogo, Named_object* function)
 		else
 		  push_cfun(DECL_STRUCT_FUNCTION(decl));
 
-		cfun->function_end_locus = func->block()->end_location();
+		cfun->function_end_locus =
+                  func->block()->end_location().gcc_location();
 
 		current_function_decl = decl;
 
@@ -1005,6 +1115,10 @@ Named_object::get_tree(Gogo* gogo, Named_object* function)
 	      }
 	  }
       }
+      break;
+
+    case NAMED_OBJECT_ERRONEOUS:
+      decl = error_mark_node;
       break;
 
     default:
@@ -1092,8 +1206,9 @@ Variable::get_init_block(Gogo* gogo, Named_object* function, tree var_decl)
 							this->location());
 	  if (val == error_mark_node)
 	    return error_mark_node;
-	  tree set = fold_build2_loc(this->location(), MODIFY_EXPR,
-				     void_type_node, var_decl, val);
+	  tree set = fold_build2_loc(this->location().gcc_location(),
+                                     MODIFY_EXPR, void_type_node, var_decl,
+                                     val);
 	  append_to_statement_list(set, &statements);
 	}
     }
@@ -1117,7 +1232,8 @@ Function::get_or_make_decl(Gogo* gogo, Named_object* no, tree id)
 	  // want the real function type for a function declaration.
 	  go_assert(POINTER_TYPE_P(functype));
 	  functype = TREE_TYPE(functype);
-	  tree decl = build_decl(this->location(), FUNCTION_DECL, id, functype);
+	  tree decl = build_decl(this->location().gcc_location(), FUNCTION_DECL,
+                                 id, functype);
 
 	  this->fndecl_ = decl;
 
@@ -1147,8 +1263,9 @@ Function::get_or_make_decl(Gogo* gogo, Named_object* no, tree id)
 
 	  // Why do we have to do this in the frontend?
 	  tree restype = TREE_TYPE(functype);
-	  tree resdecl = build_decl(this->location(), RESULT_DECL, NULL_TREE,
-				    restype);
+	  tree resdecl =
+            build_decl(this->location().gcc_location(), RESULT_DECL, NULL_TREE,
+                       restype);
 	  DECL_ARTIFICIAL(resdecl) = 1;
 	  DECL_IGNORED_P(resdecl) = 1;
 	  DECL_CONTEXT(resdecl) = decl;
@@ -1159,8 +1276,11 @@ Function::get_or_make_decl(Gogo* gogo, Named_object* no, tree id)
 
 	  // If a function calls the predeclared recover function, we
 	  // can't inline it, because recover behaves differently in a
-	  // function passed directly to defer.
-	  if (this->calls_recover_ && !this->is_recover_thunk_)
+	  // function passed directly to defer.  If this is a recover
+	  // thunk that we built to test whether a function can be
+	  // recovered, we can't inline it, because that will mess up
+	  // our return address comparison.
+	  if (this->calls_recover_ || this->is_recover_thunk_)
 	    DECL_UNINLINABLE(decl) = 1;
 
 	  // If this is a thunk created to call a function which calls
@@ -1231,7 +1351,8 @@ Function_declaration::get_or_make_decl(Gogo* gogo, Named_object* no, tree id)
 	  // want the real function type for a function declaration.
 	  go_assert(POINTER_TYPE_P(functype));
 	  functype = TREE_TYPE(functype);
-	  decl = build_decl(this->location(), FUNCTION_DECL, id, functype);
+	  decl = build_decl(this->location().gcc_location(), FUNCTION_DECL, id,
+                            functype);
 	  TREE_PUBLIC(decl) = 1;
 	  DECL_EXTERNAL(decl) = 1;
 
@@ -1281,16 +1402,7 @@ Function::make_receiver_parm_decl(Gogo* gogo, Named_object* no, tree var_decl)
   DECL_ARG_TYPE(parm_decl) = TREE_TYPE(parm_decl);
 
   go_assert(DECL_INITIAL(var_decl) == NULL_TREE);
-  // The receiver might be passed as a null pointer.
-  tree check = fold_build2_loc(loc, NE_EXPR, boolean_type_node, parm_decl,
-			       fold_convert_loc(loc, TREE_TYPE(parm_decl),
-						null_pointer_node));
-  tree ind = build_fold_indirect_ref_loc(loc, parm_decl);
-  TREE_THIS_NOTRAP(ind) = 1;
-  Btype* btype = no->var_value()->type()->get_backend(gogo);
-  tree zero_init = expr_to_tree(gogo->backend()->zero_expression(btype));
-  tree init = fold_build3_loc(loc, COND_EXPR, TREE_TYPE(ind),
-			      check, ind, zero_init);
+  tree init = build_fold_indirect_ref_loc(loc, parm_decl);
 
   if (is_in_heap)
     {
@@ -1299,20 +1411,12 @@ Function::make_receiver_parm_decl(Gogo* gogo, Named_object* no, tree var_decl)
 					 no->location());
       space = save_expr(space);
       space = fold_convert(build_pointer_type(val_type), space);
-      tree spaceref = build_fold_indirect_ref_loc(no->location(), space);
+      tree spaceref = build_fold_indirect_ref_loc(no->location().gcc_location(),
+                                                  space);
       TREE_THIS_NOTRAP(spaceref) = 1;
-      tree check = fold_build2_loc(loc, NE_EXPR, boolean_type_node,
-				   parm_decl,
-				   fold_convert_loc(loc, TREE_TYPE(parm_decl),
-						    null_pointer_node));
-      tree parmref = build_fold_indirect_ref_loc(no->location(), parm_decl);
-      TREE_THIS_NOTRAP(parmref) = 1;
       tree set = fold_build2_loc(loc, MODIFY_EXPR, void_type_node,
-				 spaceref, parmref);
-      init = fold_build2_loc(loc, COMPOUND_EXPR, TREE_TYPE(space),
-			     build3(COND_EXPR, void_type_node,
-				    check, set, NULL_TREE),
-			     space);
+				 spaceref, init);
+      init = fold_build2_loc(loc, COMPOUND_EXPR, TREE_TYPE(space), set, space);
     }
 
   DECL_INITIAL(var_decl) = init;
@@ -1330,7 +1434,7 @@ Function::copy_parm_to_heap(Gogo* gogo, Named_object* no, tree var_decl)
   if (var_decl == error_mark_node)
     return error_mark_node;
   go_assert(TREE_CODE(var_decl) == VAR_DECL);
-  source_location loc = DECL_SOURCE_LOCATION(var_decl);
+  Location loc(DECL_SOURCE_LOCATION(var_decl));
 
   std::string name = IDENTIFIER_POINTER(DECL_NAME(var_decl));
   name += ".param";
@@ -1340,7 +1444,7 @@ Function::copy_parm_to_heap(Gogo* gogo, Named_object* no, tree var_decl)
   go_assert(POINTER_TYPE_P(type));
   type = TREE_TYPE(type);
 
-  tree parm_decl = build_decl(loc, PARM_DECL, id, type);
+  tree parm_decl = build_decl(loc.gcc_location(), PARM_DECL, id, type);
   DECL_CONTEXT(parm_decl) = current_function_decl;
   DECL_ARG_TYPE(parm_decl) = type;
 
@@ -1348,7 +1452,7 @@ Function::copy_parm_to_heap(Gogo* gogo, Named_object* no, tree var_decl)
   tree space = gogo->allocate_memory(no->var_value()->type(), size, loc);
   space = save_expr(space);
   space = fold_convert(TREE_TYPE(var_decl), space);
-  tree spaceref = build_fold_indirect_ref_loc(loc, space);
+  tree spaceref = build_fold_indirect_ref_loc(loc.gcc_location(), space);
   TREE_THIS_NOTRAP(spaceref) = 1;
   tree init = build2(COMPOUND_EXPR, TREE_TYPE(space),
 		     build2(MODIFY_EXPR, void_type_node, spaceref, parm_decl),
@@ -1431,13 +1535,13 @@ Function::build_tree(Gogo* gogo, Named_object* named_function)
 	    }
 	  else
 	    {
-	      source_location loc = (*p)->location();
+	      Location loc = (*p)->location();
 	      tree type_tree = type_to_tree(type->get_backend(gogo));
 	      tree space = gogo->allocate_memory(type,
 						 TYPE_SIZE_UNIT(type_tree),
 						 loc);
 	      tree ptr_type_tree = build_pointer_type(type_tree);
-	      init = fold_convert_loc(loc, ptr_type_tree, space);
+	      init = fold_convert_loc(loc.gcc_location(), ptr_type_tree, space);
 	    }
 
 	  if (var_decl != error_mark_node)
@@ -1502,7 +1606,8 @@ Function::build_tree(Gogo* gogo, Named_object* named_function)
       // function.
       if (defer_init != NULL_TREE && defer_init != error_mark_node)
 	{
-	  SET_EXPR_LOCATION(defer_init, this->block_->start_location());
+	  SET_EXPR_LOCATION(defer_init,
+                            this->block_->start_location().gcc_location());
 	  append_to_statement_list(defer_init, &init);
 
 	  // Clean up the defer stack when we leave the function.
@@ -1540,7 +1645,7 @@ void
 Function::build_defer_wrapper(Gogo* gogo, Named_object* named_function,
 			      tree *except, tree *fini)
 {
-  source_location end_loc = this->block_->end_location();
+  Location end_loc = this->block_->end_location();
 
   // Add an exception handler.  This is used if a panic occurs.  Its
   // purpose is to stop the stack unwinding if a deferred function
@@ -1561,9 +1666,10 @@ Function::build_defer_wrapper(Gogo* gogo, Named_object* named_function,
   if (retval == NULL_TREE)
     set = NULL_TREE;
   else
-    set = fold_build2_loc(end_loc, MODIFY_EXPR, void_type_node,
+    set = fold_build2_loc(end_loc.gcc_location(), MODIFY_EXPR, void_type_node,
 			  DECL_RESULT(this->fndecl_), retval);
-  tree ret_stmt = fold_build1_loc(end_loc, RETURN_EXPR, void_type_node, set);
+  tree ret_stmt = fold_build1_loc(end_loc.gcc_location(), RETURN_EXPR,
+                                  void_type_node, set);
   append_to_statement_list(ret_stmt, &stmt_list);
 
   go_assert(*except == NULL_TREE);
@@ -1580,9 +1686,9 @@ Function::build_defer_wrapper(Gogo* gogo, Named_object* named_function,
 
   stmt_list = NULL;
 
-  tree label = create_artificial_label(end_loc);
-  tree define_label = fold_build1_loc(end_loc, LABEL_EXPR, void_type_node,
-				      label);
+  tree label = create_artificial_label(end_loc.gcc_location());
+  tree define_label = fold_build1_loc(end_loc.gcc_location(), LABEL_EXPR,
+                                      void_type_node, label);
   append_to_statement_list(define_label, &stmt_list);
 
   call = Runtime::make_call(Runtime::UNDEFER, end_loc, 1,
@@ -1596,7 +1702,8 @@ Function::build_defer_wrapper(Gogo* gogo, Named_object* named_function,
   if (undefer == error_mark_node || defer == error_mark_node)
     return;
 
-  tree jump = fold_build1_loc(end_loc, GOTO_EXPR, void_type_node, label);
+  tree jump = fold_build1_loc(end_loc.gcc_location(), GOTO_EXPR, void_type_node,
+                              label);
   tree catch_body = build2(COMPOUND_EXPR, void_type_node, defer, jump);
   catch_body = build2(CATCH_EXPR, void_type_node, NULL, catch_body);
   tree try_catch = build2(TRY_CATCH_EXPR, void_type_node, undefer, catch_body);
@@ -1607,15 +1714,26 @@ Function::build_defer_wrapper(Gogo* gogo, Named_object* named_function,
       && !this->type_->results()->empty()
       && !this->type_->results()->front().name().empty())
     {
-      // If the result variables are named, we need to return them
-      // again, because they might have been changed by a defer
-      // function.
+      // If the result variables are named, and we are returning from
+      // this function rather than panicing through it, we need to
+      // return them again, because they might have been changed by a
+      // defer function.  The runtime routines set the defer_stack
+      // variable to true if we are returning from this function.
       retval = this->return_value(gogo, named_function, end_loc,
 				  &stmt_list);
-      set = fold_build2_loc(end_loc, MODIFY_EXPR, void_type_node,
+      set = fold_build2_loc(end_loc.gcc_location(), MODIFY_EXPR, void_type_node,
 			    DECL_RESULT(this->fndecl_), retval);
-      ret_stmt = fold_build1_loc(end_loc, RETURN_EXPR, void_type_node, set);
-      append_to_statement_list(ret_stmt, &stmt_list);
+      ret_stmt = fold_build1_loc(end_loc.gcc_location(), RETURN_EXPR,
+                                 void_type_node, set);
+
+      Expression* ref =
+	Expression::make_temporary_reference(this->defer_stack_, end_loc);
+      tree tref = ref->get_tree(&context);
+      tree s = build3_loc(end_loc.gcc_location(), COND_EXPR, void_type_node,
+                          tref, ret_stmt, NULL_TREE);
+
+      append_to_statement_list(s, &stmt_list);
+
     }
   
   go_assert(*fini == NULL_TREE);
@@ -1629,7 +1747,7 @@ Function::build_defer_wrapper(Gogo* gogo, Named_object* named_function,
 
 tree
 Function::return_value(Gogo* gogo, Named_object* named_function,
-		       source_location location, tree* stmt_list) const
+		       Location location, tree* stmt_list) const
 {
   const Typed_identifier_list* results = this->type_->results();
   if (results == NULL || results->empty())
@@ -1650,7 +1768,7 @@ Function::return_value(Gogo* gogo, Named_object* named_function,
 						      named_function);
       tree ret = var_to_tree(bvar);
       if (this->results_->front()->result_var_value()->is_in_heap())
-	ret = build_fold_indirect_ref_loc(location, ret);
+	ret = build_fold_indirect_ref_loc(location.gcc_location(), ret);
       return ret;
     }
   else
@@ -1668,8 +1786,9 @@ Function::return_value(Gogo* gogo, Named_object* named_function,
 	  Bvariable* bvar = no->get_backend_variable(gogo, named_function);
 	  tree val = var_to_tree(bvar);
 	  if (no->result_var_value()->is_in_heap())
-	    val = build_fold_indirect_ref_loc(location, val);
-	  tree set = fold_build2_loc(location, MODIFY_EXPR, void_type_node,
+	    val = build_fold_indirect_ref_loc(location.gcc_location(), val);
+	  tree set = fold_build2_loc(location.gcc_location(), MODIFY_EXPR,
+                                     void_type_node,
 				     build3(COMPONENT_REF, TREE_TYPE(field),
 					    retval, field, NULL_TREE),
 				     val);
@@ -1768,7 +1887,7 @@ go_type_for_mode(enum machine_mode mode, int unsignedp)
 // type TYPE.
 
 tree
-Gogo::allocate_memory(Type* type, tree size, source_location location)
+Gogo::allocate_memory(Type* type, tree size, Location location)
 {
   // If the package imports unsafe, then it may play games with
   // pointers that look like integers.
@@ -2034,7 +2153,8 @@ Gogo::interface_method_table_for_type(const Interface_type* interface,
     td_type = type;
   else
     td_type = Type::make_pointer_type(type);
-  tree tdp = td_type->type_descriptor_pointer(this, BUILTINS_LOCATION);
+  tree tdp = td_type->type_descriptor_pointer(this,
+                                              Linemap::predeclared_location());
   elt->value = fold_convert(const_ptr_type_node, tdp);
 
   size_t i = 1;
@@ -2111,7 +2231,7 @@ Gogo::mark_fndecl_as_builtin_library(tree fndecl)
 // Build a call to a builtin function.
 
 tree
-Gogo::call_builtin(tree* pdecl, source_location location, const char* name,
+Gogo::call_builtin(tree* pdecl, Location location, const char* name,
 		   int nargs, tree rettype, ...)
 {
   if (rettype == error_mark_node)
@@ -2157,10 +2277,10 @@ Gogo::call_builtin(tree* pdecl, source_location location, const char* name,
 
   tree fnptr = build_fold_addr_expr(*pdecl);
   if (CAN_HAVE_LOCATION_P(fnptr))
-    SET_EXPR_LOCATION(fnptr, location);
+    SET_EXPR_LOCATION(fnptr, location.gcc_location());
 
   tree ret = build_call_array(rettype, fnptr, nargs, args);
-  SET_EXPR_LOCATION(ret, location);
+  SET_EXPR_LOCATION(ret, location.gcc_location());
 
   delete[] types;
   delete[] args;
@@ -2171,7 +2291,7 @@ Gogo::call_builtin(tree* pdecl, source_location location, const char* name,
 // Build a call to the runtime error function.
 
 tree
-Gogo::runtime_error(int code, source_location location)
+Gogo::runtime_error(int code, Location location)
 {
   static tree runtime_error_fndecl;
   tree ret = Gogo::call_builtin(&runtime_error_fndecl,
@@ -2190,13 +2310,12 @@ Gogo::runtime_error(int code, source_location location)
 }
 
 // Return a tree for receiving a value of type TYPE_TREE on CHANNEL.
-// This does a blocking receive and returns the value read from the
-// channel.  If FOR_SELECT is true, this is being done because it was
-// chosen in a select statement.
+// TYPE_DESCRIPTOR_TREE is the channel's type descriptor.  This does a
+// blocking receive and returns the value read from the channel.
 
 tree
-Gogo::receive_from_channel(tree type_tree, tree channel, bool for_select,
-			   source_location location)
+Gogo::receive_from_channel(tree type_tree, tree type_descriptor_tree,
+			   tree channel, Location location)
 {
   if (type_tree == error_mark_node || channel == error_mark_node)
     return error_mark_node;
@@ -2211,12 +2330,10 @@ Gogo::receive_from_channel(tree type_tree, tree channel, bool for_select,
 				     "__go_receive_small",
 				     2,
 				     uint64_type_node,
+				     TREE_TYPE(type_descriptor_tree),
+				     type_descriptor_tree,
 				     ptr_type_node,
-				     channel,
-				     boolean_type_node,
-				     (for_select
-				      ? boolean_true_node
-				      : boolean_false_node));
+				     channel);
       if (call == error_mark_node)
 	return error_mark_node;
       // This can panic if there are too many operations on a closed
@@ -2224,9 +2341,9 @@ Gogo::receive_from_channel(tree type_tree, tree channel, bool for_select,
       TREE_NOTHROW(receive_small_fndecl) = 0;
       int bitsize = GET_MODE_BITSIZE(TYPE_MODE(type_tree));
       tree int_type_tree = go_type_for_size(bitsize, 1);
-      return fold_convert_loc(location, type_tree,
-			      fold_convert_loc(location, int_type_tree,
-					       call));
+      return fold_convert_loc(location.gcc_location(), type_tree,
+			      fold_convert_loc(location.gcc_location(),
+                                               int_type_tree, call));
     }
   else
     {
@@ -2234,7 +2351,7 @@ Gogo::receive_from_channel(tree type_tree, tree channel, bool for_select,
       DECL_IGNORED_P(tmp) = 0;
       TREE_ADDRESSABLE(tmp) = 1;
       tree make_tmp = build1(DECL_EXPR, void_type_node, tmp);
-      SET_EXPR_LOCATION(make_tmp, location);
+      SET_EXPR_LOCATION(make_tmp, location.gcc_location());
       tree tmpaddr = build_fold_addr_expr(tmp);
       tmpaddr = fold_convert(ptr_type_node, tmpaddr);
       static tree receive_big_fndecl;
@@ -2242,15 +2359,13 @@ Gogo::receive_from_channel(tree type_tree, tree channel, bool for_select,
 				     location,
 				     "__go_receive_big",
 				     3,
-				     boolean_type_node,
+				     void_type_node,
+				     TREE_TYPE(type_descriptor_tree),
+				     type_descriptor_tree,
 				     ptr_type_node,
 				     channel,
 				     ptr_type_node,
-				     tmpaddr,
-				     boolean_type_node,
-				     (for_select
-				      ? boolean_true_node
-				      : boolean_false_node));
+				     tmpaddr);
       if (call == error_mark_node)
 	return error_mark_node;
       // This can panic if there are too many operations on a closed
@@ -2290,7 +2405,7 @@ Gogo::trampoline_type_tree()
 // Make a trampoline which calls FNADDR passing CLOSURE.
 
 tree
-Gogo::make_trampoline(tree fnaddr, tree closure, source_location location)
+Gogo::make_trampoline(tree fnaddr, tree closure, Location location)
 {
   tree trampoline_type = Gogo::trampoline_type_tree();
   tree trampoline_size = TYPE_SIZE_UNIT(trampoline_type);
@@ -2308,22 +2423,21 @@ Gogo::make_trampoline(tree fnaddr, tree closure, source_location location)
 			      size_type_node,
 			      trampoline_size,
 			      ptr_type_node,
-			      fold_convert_loc(location, ptr_type_node,
-					       closure));
+			      fold_convert_loc(location.gcc_location(),
+                                               ptr_type_node, closure));
   if (x == error_mark_node)
     return error_mark_node;
 
   x = save_expr(x);
 
   // Initialize the trampoline.
-  tree ini = build_call_expr(implicit_built_in_decls[BUILT_IN_INIT_TRAMPOLINE],
-			     3, x, fnaddr, closure);
+  tree calldecl = builtin_decl_implicit(BUILT_IN_INIT_HEAP_TRAMPOLINE);
+  tree ini = build_call_expr(calldecl, 3, x, fnaddr, closure);
 
   // On some targets the trampoline address needs to be adjusted.  For
   // example, when compiling in Thumb mode on the ARM, the address
   // needs to have the low bit set.
-  x = build_call_expr(implicit_built_in_decls[BUILT_IN_ADJUST_TRAMPOLINE],
-		      1, x);
+  x = build_call_expr(builtin_decl_explicit(BUILT_IN_ADJUST_TRAMPOLINE), 1, x);
   x = fold_convert(TREE_TYPE(fnaddr), x);
 
   return build2(COMPOUND_EXPR, TREE_TYPE(x), ini, x);

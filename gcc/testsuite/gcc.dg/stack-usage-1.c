@@ -10,7 +10,11 @@
 #if defined(__i386__)
 #  define SIZE 248
 #elif defined(__x86_64__)
-#  define SIZE 356
+#  ifndef _WIN64
+#    define SIZE 356
+#  else
+#    define SIZE (256 - 24)
+#  endif
 #elif defined (__sparc__)
 #  if defined (__arch64__)
 #    define SIZE 76
@@ -52,6 +56,8 @@
 #  define SIZE 160 /* 256 -  96 bytes for register save area */
 #elif defined (__SPU__)
 #  define SIZE 224
+#elif defined (__epiphany__)
+#  define SIZE (256 - __EPIPHANY_STACK_OFFSET__)
 #else
 #  define SIZE 256
 #endif

@@ -60,6 +60,7 @@ func TestConsumeMediaParam(t *testing.T) {
 		{" ; foo=bar", "foo", "bar", ""},
 		{"; foo=bar", "foo", "bar", ""},
 		{";foo=bar", "foo", "bar", ""},
+		{";FOO=bar", "foo", "bar", ""},
 		{`;foo="bar"`, "foo", "bar", ""},
 		{`;foo="bar"; `, "foo", "bar", "; "},
 		{`;foo="bar"; foo=baz`, "foo", "bar", "; foo=baz"},
@@ -127,7 +128,7 @@ func TestParseMediaType(t *testing.T) {
 			`URL*1="cs.utk.edu/pub/moore/bulk-mailer/bulk-mailer.tar"`,
 			"message/external-body",
 			m("access-type", "URL",
-				"URL", "ftp://cs.utk.edu/pub/moore/bulk-mailer/bulk-mailer.tar")},
+				"url", "ftp://cs.utk.edu/pub/moore/bulk-mailer/bulk-mailer.tar")},
 
 		{`application/x-stuff; ` +
 			`title*0*=us-ascii'en'This%20is%20even%20more%20; ` +
@@ -218,7 +219,14 @@ func TestParseMediaType(t *testing.T) {
 			m("firstname", "Брэд", "lastname", "Фицпатрик")},
 	}
 	for _, test := range tests {
-		mt, params := ParseMediaType(test.in)
+		mt, params, err := ParseMediaType(test.in)
+		if err != nil {
+			if test.t != "" {
+				t.Errorf("for input %q, unexpected error: %v", test.in, err)
+				continue
+			}
+			continue
+		}
 		if g, e := mt, test.t; g != e {
 			t.Errorf("for input %q, expected type %q, got %q",
 				test.in, e, g)
@@ -237,11 +245,32 @@ func TestParseMediaType(t *testing.T) {
 }
 
 func TestParseMediaTypeBogus(t *testing.T) {
-	mt, params := ParseMediaType("bogus ;=========")
-	if mt != "" {
-		t.Error("expected empty type")
+	mt, params, err := ParseMediaType("bogus ;=========")
+	if err == nil {
+		t.Fatalf("expected an error parsing invalid media type; got type %q, params %#v", mt, params)
 	}
-	if params != nil {
-		t.Error("expected nil params")
+	if err.Error() != "mime: invalid media parameter" {
+		t.Errorf("expected invalid media parameter; got error %q", err)
+	}
+}
+
+type formatTest struct {
+	typ    string
+	params map[string]string
+	want   string
+}
+
+var formatTests = []formatTest{
+	{"noslash", nil, ""},
+	{"foo/BAR", nil, "foo/bar"},
+	{"foo/BAR", map[string]string{"X": "Y"}, "foo/bar; x=Y"},
+}
+
+func TestFormatMediaType(t *testing.T) {
+	for i, tt := range formatTests {
+		got := FormatMediaType(tt.typ, tt.params)
+		if got != tt.want {
+			t.Errorf("%d. FormatMediaType(%q, %v) = %q; want %q", i, tt.typ, tt.params, got, tt.want)
+		}
 	}
 }

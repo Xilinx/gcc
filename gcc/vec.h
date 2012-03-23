@@ -195,6 +195,11 @@ along with GCC; see the file COPYING3.  If not see
 #define FOR_EACH_VEC_ELT(T, V, I, P)		\
   for (I = 0; VEC_iterate (T, (V), (I), (P)); ++(I))
 
+/* Likewise, but start from FROM rather than 0.  */
+
+#define FOR_EACH_VEC_ELT_FROM(T, V, I, P, FROM)		\
+  for (I = (FROM); VEC_iterate (T, (V), (I), (P)); ++(I))
+
 /* Convenience macro for reverse iteration.  */
 
 #define FOR_EACH_VEC_ELT_REVERSE(T,V,I,P) \
@@ -544,7 +549,12 @@ typedef struct VEC(T,A)							  \
 } VEC(T,A)
 
 /* Convert to base type.  */
+#if GCC_VERSION >= 4000
+#define VEC_BASE(P) \
+  ((offsetof (__typeof (*P), base) == 0 || (P)) ? &(P)->base : 0)
+#else
 #define VEC_BASE(P)  ((P) ? &(P)->base : 0)
+#endif
 
 /* Vector of integer-like object.  */
 #define DEF_VEC_I(T)							  \

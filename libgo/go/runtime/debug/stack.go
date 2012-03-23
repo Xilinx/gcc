@@ -8,6 +8,7 @@ package debug
 
 import (
 	"bytes"
+	_ "debug/elf"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -52,7 +53,7 @@ func stack() []byte {
 			if err != nil {
 				continue
 			}
-			lines = bytes.Split(data, []byte{'\n'}, -1)
+			lines = bytes.Split(data, []byte{'\n'})
 			lastFile = file
 		}
 		line-- // in stack trace, lines are 1-indexed but our array is 0-indexed

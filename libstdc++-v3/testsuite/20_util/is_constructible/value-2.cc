@@ -236,8 +236,8 @@ static_assert(std::is_constructible<const int&,
 static_assert(std::is_constructible<const int&,
 	      ExplicitTo<int&>>::value, "Error");
 
-static_assert(std::is_constructible<B&&, ExplicitTo<D&&>>::value, "Error");
-static_assert(std::is_constructible<B&&, ExplicitTo<D&&>&>::value, "Error");
+static_assert(!std::is_constructible<B&&, ExplicitTo<D&&>>::value, "Error");
+static_assert(!std::is_constructible<B&&, ExplicitTo<D&&>&>::value, "Error");
 
 static_assert(!std::is_constructible<B&, B&&>::value, "Error");
 static_assert(!std::is_constructible<D&, B&&>::value, "Error");
@@ -817,3 +817,5 @@ static_assert(!std::is_constructible<const int&, ExplicitTo<double&&>>::value,
 	      "Error");
 static_assert(!std::is_constructible<int&&, ExplicitTo<double&&>>::value,
 	      "Error");
+
+static_assert(std::is_constructible<void(&&)(), void(&)()>::value, "Error");

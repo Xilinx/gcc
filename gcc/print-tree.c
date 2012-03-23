@@ -424,6 +424,8 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 	fputs (" built-in", file);
       if (code == FUNCTION_DECL && DECL_STATIC_CHAIN (node))
 	fputs (" static-chain", file);
+      if (TREE_CODE (node) == FUNCTION_DECL && decl_is_tm_clone (node))
+	fputs (" tm-clone", file);
 
       if (code == FIELD_DECL && DECL_PACKED (node))
 	fputs (" packed", file);
@@ -819,16 +821,13 @@ print_node (FILE *file, const char *prefix, tree node, int indent)
 
 	case VECTOR_CST:
 	  {
-	    tree vals = TREE_VECTOR_CST_ELTS (node);
 	    char buf[10];
-	    tree link;
-	    int i;
+	    unsigned i;
 
-	    i = 0;
-	    for (link = vals; link; link = TREE_CHAIN (link), ++i)
+	    for (i = 0; i < VECTOR_CST_NELTS (node); ++i)
 	      {
-		sprintf (buf, "elt%d: ", i);
-		print_node (file, buf, TREE_VALUE (link), indent + 4);
+		sprintf (buf, "elt%u: ", i);
+		print_node (file, buf, VECTOR_CST_ELT (node, i), indent + 4);
 	      }
 	  }
 	  break;

@@ -497,20 +497,22 @@ def_builtin_1 (enum built_in_function fncode, const char *name,
   if (fntype == error_mark_node)
     return;
 
+  gcc_assert ((!both_p && !fallback_p)
+	      || !strncmp (name, "__builtin_",
+			   strlen ("__builtin_")));
+
   libname = name + strlen ("__builtin_");
   decl = add_builtin_function (name, fntype, fncode, fnclass,
 			       (fallback_p ? libname : NULL),
 			       fnattrs);
+
+  set_builtin_decl (fncode, decl, implicit_p);
 
   if (both_p
       && !flag_no_builtin
       && !(nonansi_p && flag_no_nonansi_builtin))
     add_builtin_function (libname, libtype, fncode, fnclass,
 			  NULL, fnattrs);
-
-  built_in_decls[(int) fncode] = decl;
-  if (implicit_p)
-    implicit_built_in_decls[(int) fncode] = decl;
 }
 
 
@@ -987,7 +989,7 @@ gimple_init (void)
   linemap_add (line_table, LC_RENAME, 0, NULL, 0);
 
   /* Create the basic integer types.  */
-  build_common_tree_nodes (flag_signed_char);
+  build_common_tree_nodes (flag_signed_char, flag_short_double);
 
   /* Share char_type_node with whatever would be the default for the target.
      char_type_node will be used for internal types such as
@@ -1014,7 +1016,6 @@ gimple_init (void)
   ptrdiff_type_node = integer_type_node;
 
   /* Create other basic types.  */
-  build_common_tree_nodes_2 (/*short_double=*/false);
   gimple_build_c_type_nodes ();
   gcc_assert (va_list_type_node);
 

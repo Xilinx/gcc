@@ -196,12 +196,7 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	    /* Keep around virtual functions for possible devirtualization.  */
 	    || (before_inlining_p
 		&& DECL_VIRTUAL_P (node->decl)
-		&& (DECL_COMDAT (node->decl) || DECL_EXTERNAL (node->decl)))
-	    /* Also external functions with address taken are better to stay
-	       for indirect inlining.  */
-	    || (before_inlining_p
-		&& DECL_EXTERNAL (node->decl)
-		&& node->address_taken)))
+		&& (DECL_COMDAT (node->decl) || DECL_EXTERNAL (node->decl)))))
       {
         gcc_assert (!node->global.inlined_to);
 	enqueue_cgraph_node (node, &first);
@@ -542,13 +537,13 @@ cgraph_address_taken_from_non_vtable_p (struct cgraph_node *node)
 {
   int i;
   struct ipa_ref *ref;
-  for (i = 0; ipa_ref_list_reference_iterate (&node->ref_list, i, ref); i++)
+  for (i = 0; ipa_ref_list_refering_iterate (&node->ref_list, i, ref); i++)
     if (ref->use == IPA_REF_ADDR)
       {
 	struct varpool_node *node;
-	if (ref->refered_type == IPA_REF_CGRAPH)
+	if (ref->refering_type == IPA_REF_CGRAPH)
 	  return true;
-	node = ipa_ref_varpool_node (ref);
+	node = ipa_ref_refering_varpool_node (ref);
 	if (!DECL_VIRTUAL_P (node->decl))
 	  return true;
       }
@@ -612,14 +607,6 @@ cgraph_externally_visible_p (struct cgraph_node *node,
   if (DECL_BUILT_IN (node->decl))
     return true;
 
-  /* FIXME: We get wrong symbols with asm aliases in callgraph and LTO.
-     This is because very little of code knows that assembler name needs to
-     mangled.  Avoid touching declarations with user asm name set to mask
-     some of the problems.  */
-  if (DECL_ASSEMBLER_NAME_SET_P (node->decl)
-      && IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (node->decl))[0]=='*')
-    return true;
-
   /* If linker counts on us, we must preserve the function.  */
   if (cgraph_used_from_object_file_p (node))
     return true;
@@ -660,10 +647,9 @@ cgraph_externally_visible_p (struct cgraph_node *node,
 
 /* Return true when variable VNODE should be considered externally visible.  */
 
-static bool
+bool
 varpool_externally_visible_p (struct varpool_node *vnode, bool aliased)
 {
-  struct varpool_node *alias;
   if (!DECL_COMDAT (vnode->decl) && !TREE_PUBLIC (vnode->decl))
     return false;
 
@@ -676,14 +662,8 @@ varpool_externally_visible_p (struct varpool_node *vnode, bool aliased)
   if (varpool_used_from_object_file_p (vnode))
     return true;
 
-  /* FIXME: We get wrong symbols with asm aliases in callgraph and LTO.
-     This is because very little of code knows that assembler name needs to
-     mangled.  Avoid touching declarations with user asm name set to mask
-     some of the problems.  */
-  if (DECL_ASSEMBLER_NAME_SET_P (vnode->decl)
-      && IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (vnode->decl))[0]=='*')
+  if (DECL_HARD_REGISTER (vnode->decl))
     return true;
-
   if (DECL_PRESERVE_P (vnode->decl))
     return true;
   if (lookup_attribute ("externally_visible",
@@ -702,10 +682,7 @@ varpool_externally_visible_p (struct varpool_node *vnode, bool aliased)
      This is needed for i.e. references from asm statements.   */
   if (varpool_used_from_object_file_p (vnode))
     return true;
-  for (alias = vnode->extra_name; alias; alias = alias->next)
-    if (alias->resolution != LDPR_PREVAILING_DEF_IRONLY)
-      break;
-  if (!alias && vnode->resolution == LDPR_PREVAILING_DEF_IRONLY)
+  if (vnode->resolution == LDPR_PREVAILING_DEF_IRONLY)
     return false;
 
   /* As a special case, the COMDAT virutal tables can be unshared.
@@ -790,13 +767,7 @@ function_and_variable_visibility (bool whole_program)
         {
 	  if (!node->analyzed)
 	    continue;
-	  /* Weakrefs alias symbols from other compilation unit.  In the case
-	     the destination of weakref became available because of LTO, we must
-	     mark it as needed.  */
-	  if (in_lto_p
-	      && lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl))
-	      && !node->needed)
-	    cgraph_mark_needed_node (node);
+	  cgraph_mark_needed_node (node);
 	  gcc_assert (node->needed);
 	  pointer_set_insert (aliased_nodes, node);
 	  if (dump_file)
@@ -806,13 +777,7 @@ function_and_variable_visibility (bool whole_program)
       else if ((vnode = varpool_node_for_asm (p->target)) != NULL
 	       && !DECL_EXTERNAL (vnode->decl))
         {
-	  /* Weakrefs alias symbols from other compilation unit.  In the case
-	     the destination of weakref became available because of LTO, we must
-	     mark it as needed.  */
-	  if (in_lto_p
-	      && lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl))
-	      && !vnode->needed)
-	    varpool_mark_needed_node (vnode);
+	  varpool_mark_needed_node (vnode);
 	  gcc_assert (vnode->needed);
 	  pointer_set_insert (aliased_vnodes, vnode);
 	  if (dump_file)
@@ -899,31 +864,14 @@ function_and_variable_visibility (bool whole_program)
 	  decl_node = cgraph_function_node (decl_node->callees->callee, NULL);
 
 	  /* Thunks have the same visibility as function they are attached to.
-	     For some reason C++ frontend don't seem to care. I.e. in 
-	     g++.dg/torture/pr41257-2.C the thunk is not comdat while function
-	     it is attached to is.
-
-	     We also need to arrange the thunk into the same comdat group as
-	     the function it reffers to.  */
+	     Make sure the C++ front end set this up properly.  */
 	  if (DECL_ONE_ONLY (decl_node->decl))
 	    {
-	      DECL_COMDAT (node->decl) = DECL_COMDAT (decl_node->decl);
-	      DECL_COMDAT_GROUP (node->decl) = DECL_COMDAT_GROUP (decl_node->decl);
-	      if (DECL_ONE_ONLY (decl_node->decl) && !node->same_comdat_group)
-		{
-		  node->same_comdat_group = decl_node;
-		  if (!decl_node->same_comdat_group)
-		    decl_node->same_comdat_group = node;
-		  else
-		    {
-		      struct cgraph_node *n;
-		      for (n = decl_node->same_comdat_group;
-			   n->same_comdat_group != decl_node;
-			   n = n->same_comdat_group)
-			;
-		      n->same_comdat_group = node;
-		    }
-		}
+	      gcc_checking_assert (DECL_COMDAT (node->decl)
+				   == DECL_COMDAT (decl_node->decl));
+	      gcc_checking_assert (DECL_COMDAT_GROUP (node->decl)
+				   == DECL_COMDAT_GROUP (decl_node->decl));
+	      gcc_checking_assert (node->same_comdat_group);
 	    }
 	  if (DECL_EXTERNAL (decl_node->decl))
 	    DECL_EXTERNAL (node->decl) = 1;

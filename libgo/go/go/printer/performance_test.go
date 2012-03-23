@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // This file implements a simple printer performance benchmark:
-// gotest -bench=BenchmarkPrint 
+// go test -bench=BenchmarkPrint 
 
 package printer
 
@@ -17,16 +17,13 @@ import (
 	"testing"
 )
 
-
 var testfile *ast.File
 
-
 func testprint(out io.Writer, file *ast.File) {
-	if _, err := (&Config{TabIndent | UseSpaces, 8}).Fprint(out, fset, file); err != nil {
+	if err := (&Config{TabIndent | UseSpaces, 8}).Fprint(out, fset, file); err != nil {
 		log.Fatalf("print error: %s", err)
 	}
 }
-
 
 // cannot initialize in init because (printer) Fprint launches goroutines.
 func initialize() {
@@ -50,7 +47,6 @@ func initialize() {
 
 	testfile = file
 }
-
 
 func BenchmarkPrint(b *testing.B) {
 	if testfile == nil {

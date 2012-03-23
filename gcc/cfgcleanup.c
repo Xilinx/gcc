@@ -883,7 +883,7 @@ merge_memattrs (rtx x, rtx y)
 	MEM_ATTRS (x) = 0;
       else
 	{
-	  rtx mem_size;
+	  HOST_WIDE_INT mem_size;
 
 	  if (MEM_ALIAS_SET (x) != MEM_ALIAS_SET (y))
 	    {
@@ -895,24 +895,28 @@ merge_memattrs (rtx x, rtx y)
 	    {
 	      set_mem_expr (x, 0);
 	      set_mem_expr (y, 0);
-	      set_mem_offset (x, 0);
-	      set_mem_offset (y, 0);
+	      clear_mem_offset (x);
+	      clear_mem_offset (y);
 	    }
-	  else if (MEM_OFFSET (x) != MEM_OFFSET (y))
+	  else if (MEM_OFFSET_KNOWN_P (x) != MEM_OFFSET_KNOWN_P (y)
+		   || (MEM_OFFSET_KNOWN_P (x)
+		       && MEM_OFFSET (x) != MEM_OFFSET (y)))
 	    {
-	      set_mem_offset (x, 0);
-	      set_mem_offset (y, 0);
+	      clear_mem_offset (x);
+	      clear_mem_offset (y);
 	    }
 
-	  if (!MEM_SIZE (x))
-	    mem_size = NULL_RTX;
-	  else if (!MEM_SIZE (y))
-	    mem_size = NULL_RTX;
+	  if (MEM_SIZE_KNOWN_P (x) && MEM_SIZE_KNOWN_P (y))
+	    {
+	      mem_size = MAX (MEM_SIZE (x), MEM_SIZE (y));
+	      set_mem_size (x, mem_size);
+	      set_mem_size (y, mem_size);
+	    }
 	  else
-	    mem_size = GEN_INT (MAX (INTVAL (MEM_SIZE (x)),
-				     INTVAL (MEM_SIZE (y))));
-	  set_mem_size (x, mem_size);
-	  set_mem_size (y, mem_size);
+	    {
+	      clear_mem_size (x);
+	      clear_mem_size (y);
+	    }
 
 	  set_mem_align (x, MIN (MEM_ALIGN (x), MEM_ALIGN (y)));
 	  set_mem_align (y, MEM_ALIGN (x));
@@ -1073,6 +1077,25 @@ old_insns_match_p (int mode ATTRIBUTE_UNUSED, rtx i1, rtx i2)
      NOTE_INSN_BASIC_BLOCK).  They may be crossjumped. */
   if (NOTE_INSN_BASIC_BLOCK_P (i1) && NOTE_INSN_BASIC_BLOCK_P (i2))
     return dir_both;
+
+  /* ??? Do not allow cross-jumping between different stack levels.  */
+  p1 = find_reg_note (i1, REG_ARGS_SIZE, NULL);
+  p2 = find_reg_note (i2, REG_ARGS_SIZE, NULL);
+  if (p1 && p2)
+    {
+      p1 = XEXP (p1, 0);
+      p2 = XEXP (p2, 0);
+      if (!rtx_equal_p (p1, p2))
+        return dir_none;
+
+      /* ??? Worse, this adjustment had better be constant lest we
+         have differing incoming stack levels.  */
+      if (!frame_pointer_needed
+          && find_args_size_adjust (i1) == HOST_WIDE_INT_MIN)
+	return dir_none;
+    }
+  else if (p1 || p2)
+    return dir_none;
 
   p1 = PATTERN (i1);
   p2 = PATTERN (i2);
@@ -1465,6 +1488,16 @@ outgoing_edges_match (int mode, basic_block bb1, basic_block bb2)
   edge e1, e2;
   edge_iterator ei;
 
+  /* If we performed shrink-wrapping, edges to the EXIT_BLOCK_PTR can
+     only be distinguished for JUMP_INSNs.  The two paths may differ in
+     whether they went through the prologue.  Sibcalls are fine, we know
+     that we either didn't need or inserted an epilogue before them.  */
+  if (crtl->shrink_wrapped
+      && single_succ_p (bb1) && single_succ (bb1) == EXIT_BLOCK_PTR
+      && !JUMP_P (BB_END (bb1))
+      && !(CALL_P (BB_END (bb1)) && SIBLING_CALL_P (BB_END (bb1))))
+    return false;
+  
   /* If BB1 has only one successor, we may be looking at either an
      unconditional jump, or a fake edge to exit.  */
   if (single_succ_p (bb1)
@@ -2191,7 +2224,14 @@ try_head_merge_bb (basic_block bb)
 
   cond = get_condition (jump, &move_before, true, false);
   if (cond == NULL_RTX)
-    move_before = jump;
+    {
+#ifdef HAVE_cc0
+      if (reg_mentioned_p (cc0_rtx, jump))
+	move_before = prev_nonnote_nondebug_insn (jump);
+      else
+#endif
+	move_before = jump;
+    }
 
   for (ix = 0; ix < nedges; ix++)
     if (EDGE_SUCC (bb, ix)->dest == EXIT_BLOCK_PTR)
@@ -2353,7 +2393,14 @@ try_head_merge_bb (basic_block bb)
       jump = BB_END (final_dest_bb);
       cond = get_condition (jump, &move_before, true, false);
       if (cond == NULL_RTX)
-	move_before = jump;
+	{
+#ifdef HAVE_cc0
+	  if (reg_mentioned_p (cc0_rtx, jump))
+	    move_before = prev_nonnote_nondebug_insn (jump);
+	  else
+#endif
+	    move_before = jump;
+	}
     }
 
   do
@@ -2934,34 +2981,6 @@ cleanup_cfg (int mode)
   return changed;
 }
 
-static unsigned int
-rest_of_handle_jump (void)
-{
-  if (crtl->tail_call_emit)
-    fixup_tail_calls ();
-  return 0;
-}
-
-struct rtl_opt_pass pass_jump =
-{
- {
-  RTL_PASS,
-  "sibling",                            /* name */
-  NULL,                                 /* gate */
-  rest_of_handle_jump,			/* execute */
-  NULL,                                 /* sub */
-  NULL,                                 /* next */
-  0,                                    /* static_pass_number */
-  TV_JUMP,                              /* tv_id */
-  0,                                    /* properties_required */
-  0,                                    /* properties_provided */
-  0,                                    /* properties_destroyed */
-  TODO_ggc_collect,                     /* todo_flags_start */
-  TODO_verify_flow,                     /* todo_flags_finish */
- }
-};
-
-
 static unsigned int
 rest_of_handle_jump2 (void)
 {

@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
 -- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
---                                                                          --
--- You should have received a copy of the GNU General Public License along  --
--- with this program; see file COPYING3.  If not see                        --
--- <http://www.gnu.org/licenses/>.                                          --
+-- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
+-- for  more details.  You should have  received  a copy of the GNU General --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -956,7 +955,12 @@ package body Erroutc is
       if Name_Len = 2 and then Name_Buffer (1 .. 2) = "RM" then
          Set_Msg_Name_Buffer;
 
-      --  Not RM: case appropriately and add surrounding quotes
+      --  We make a similar exception for Alfa
+
+      elsif Name_Len = 4 and then Name_Buffer (1 .. 4) = "Alfa" then
+         Set_Msg_Name_Buffer;
+
+      --  Neither RM nor Alfa: case appropriately and add surrounding quotes
 
       else
          Set_Casing (Keyword_Casing (Flag_Source), All_Lower_Case);
@@ -1077,7 +1081,8 @@ package body Erroutc is
    procedure Set_Specific_Warning_Off
      (Loc    : Source_Ptr;
       Msg    : String;
-      Config : Boolean)
+      Config : Boolean;
+      Used   : Boolean := False)
    is
    begin
       Specific_Warnings.Append
@@ -1085,7 +1090,7 @@ package body Erroutc is
           Msg        => new String'(Msg),
           Stop       => Source_Last (Current_Source_File),
           Open       => True,
-          Used       => False,
+          Used       => Used,
           Config     => Config));
    end Set_Specific_Warning_Off;
 
@@ -1131,16 +1136,16 @@ package body Erroutc is
 
    procedure Set_Warnings_Mode_Off (Loc : Source_Ptr) is
    begin
-      --  Don't bother with entries from instantiation copies, since we
-      --  will already have a copy in the template, which is what matters
+      --  Don't bother with entries from instantiation copies, since we will
+      --  already have a copy in the template, which is what matters.
 
       if Instantiation (Get_Source_File_Index (Loc)) /= No_Location then
          return;
       end if;
 
-      --  If last entry in table already covers us, this is a redundant
-      --  pragma Warnings (Off) and can be ignored. This also handles the
-      --  case where all warnings are suppressed by command line switch.
+      --  If last entry in table already covers us, this is a redundant pragma
+      --  Warnings (Off) and can be ignored. This also handles the case where
+      --  all warnings are suppressed by command line switch.
 
       if Warnings.Last >= Warnings.First
         and then Warnings.Table (Warnings.Last).Start <= Loc
@@ -1148,9 +1153,9 @@ package body Erroutc is
       then
          return;
 
-      --  Otherwise establish a new entry, extending from the location of
-      --  the pragma to the end of the current source file. This ending
-      --  point will be adjusted by a subsequent pragma Warnings (On).
+      --  Otherwise establish a new entry, extending from the location of the
+      --  pragma to the end of the current source file. This ending point will
+      --  be adjusted by a subsequent pragma Warnings (On).
 
       else
          Warnings.Increment_Last;
@@ -1166,8 +1171,8 @@ package body Erroutc is
 
    procedure Set_Warnings_Mode_On (Loc : Source_Ptr) is
    begin
-      --  Don't bother with entries from instantiation copies, since we
-      --  will already have a copy in the template, which is what matters
+      --  Don't bother with entries from instantiation copies, since we will
+      --  already have a copy in the template, which is what matters.
 
       if Instantiation (Get_Source_File_Index (Loc)) /= No_Location then
          return;

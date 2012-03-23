@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -28,18 +28,19 @@ package Sem_Ch6 is
 
    type Conformance_Type is
      (Type_Conformant, Mode_Conformant, Subtype_Conformant, Fully_Conformant);
-   pragma Ordered (Conformance_Type);
+   --  pragma Ordered (Conformance_Type);
+   --  Why is above line commented out ???
    --  Conformance type used in conformance checks between specs and bodies,
    --  and for overriding. The literals match the RM definitions of the
    --  corresponding terms. This is an ordered type, since each conformance
    --  type is stronger than the ones preceding it.
 
    procedure Analyze_Abstract_Subprogram_Declaration (N : Node_Id);
+   procedure Analyze_Expression_Function             (N : Node_Id);
    procedure Analyze_Extended_Return_Statement       (N : Node_Id);
    procedure Analyze_Function_Call                   (N : Node_Id);
    procedure Analyze_Operator_Symbol                 (N : Node_Id);
    procedure Analyze_Parameter_Association           (N : Node_Id);
-   procedure Analyze_Parameterized_Expression        (N : Node_Id);
    procedure Analyze_Procedure_Call                  (N : Node_Id);
    procedure Analyze_Simple_Return_Statement         (N : Node_Id);
    procedure Analyze_Subprogram_Declaration          (N : Node_Id);
@@ -50,13 +51,33 @@ package Sem_Ch6 is
    --  and body declarations. Returns the defining entity for the
    --  specification N.
 
-   procedure Cannot_Inline (Msg : String; N : Node_Id; Subp : Entity_Id);
+   procedure Cannot_Inline
+     (Msg        : String;
+      N          : Node_Id;
+      Subp       : Entity_Id;
+      Is_Serious : Boolean := False);
    --  This procedure is called if the node N, an instance of a call to
    --  subprogram Subp, cannot be inlined. Msg is the message to be issued,
-   --  and has a ? as the last character. If Subp has a pragma Always_Inlined,
-   --  then an error message is issued (by removing the last character of Msg).
-   --  If Subp is not Always_Inlined, then a warning is issued if the flag
-   --  Ineffective_Inline_Warnings is set, and if not, the call has no effect.
+   --  and has a ? as the last character. Temporarily the behavior of this
+   --  routine depends on the value of -gnatd.k:
+   --    * If -gnatd.k is not set (ie. old inlining model) then if Subp has
+   --      a pragma Always_Inlined, then an error message is issued (by
+   --      removing the last character of Msg). If Subp is not Always_Inlined,
+   --      then a warning is issued if the flag Ineffective_Inline_Warnings
+   --      is set, and if not, the call has no effect.
+   --    * If -gnatd.k is set (ie. new inlining model) then:
+   --      - If Is_Serious is true, then an error is reported (by removing the
+   --        last character of Msg);
+   --      - otherwise:
+   --        * Compiling without optimizations if Subp has a pragma
+   --          Always_Inlined, then an error message is issued; if Subp is
+   --          not Always_Inlined, then a warning is issued if the flag
+   --          Ineffective_Inline_Warnings is set, and if not, the call
+   --          has no effect.
+   --        * Compiling with optimizations then a warning is issued if
+   --          the flag Ineffective_Inline_Warnings is set; otherwise the
+   --          call has no effect since inlining may be performed by the
+   --          backend.
 
    procedure Check_Conventions (Typ : Entity_Id);
    --  Ada 2005 (AI-430): Check that the conventions of all inherited and
@@ -113,18 +134,26 @@ package Sem_Ch6 is
    --  type-conformant subprogram that becomes hidden by the new subprogram.
    --  Is_Primitive indicates whether the subprogram is primitive.
 
+   procedure Check_Subprogram_Contract (Spec_Id : Entity_Id);
+   --  Spec_Id is the spec entity for a subprogram. This routine issues
+   --  warnings on suspicious contracts if Warn_On_Suspicious_Contract is set.
+
    procedure Check_Subtype_Conformant
      (New_Id                   : Entity_Id;
       Old_Id                   : Entity_Id;
       Err_Loc                  : Node_Id := Empty;
-      Skip_Controlling_Formals : Boolean := False);
+      Skip_Controlling_Formals : Boolean := False;
+      Get_Inst                 : Boolean := False);
    --  Check that two callable entities (subprograms, entries, literals)
    --  are subtype conformant, post error message if not (RM 6.3.1(16)),
    --  the flag being placed on the Err_Loc node if it is specified, and
    --  on the appropriate component of the New_Id construct if not.
    --  Skip_Controlling_Formals is True when checking the conformance of
    --  a subprogram that implements an interface operation. In that case,
-   --  only the non-controlling formals can (and must) be examined.
+   --  only the non-controlling formals can (and must) be examined. The
+   --  argument Get_Inst is set to True when this is a check against a
+   --  formal access-to-subprogram type, indicating that mapping of types
+   --  is needed.
 
    procedure Check_Type_Conformant
      (New_Id  : Entity_Id;
@@ -142,8 +171,10 @@ package Sem_Ch6 is
       Get_Inst : Boolean := False) return Boolean;
    --  Check that the types of two formal parameters are conforming. In most
    --  cases this is just a name comparison, but within an instance it involves
-   --  generic actual types, and in the presence of anonymous access types it
-   --  must examine the designated types.
+   --  generic actual types, and in the presence of anonymous access types
+   --  it must examine the designated types. The argument Get_Inst is set to
+   --  True when this is a check against a formal access-to-subprogram type,
+   --  indicating that mapping of types is needed.
 
    procedure Create_Extra_Formals (E : Entity_Id);
    --  For each parameter of a subprogram or entry that requires an additional
@@ -175,6 +206,9 @@ package Sem_Ch6 is
    --  Determines if two subtype definitions are fully conformant. Used
    --  for entry family conformance checks (RM 6.3.1 (24)).
 
+   procedure Install_Entity (E : Entity_Id);
+   --  Place a single entity on the visibility chain
+
    procedure Install_Formals (Id : Entity_Id);
    --  On entry to a subprogram body, make the formals visible. Note that
    --  simply placing the subprogram on the scope stack is not sufficient:
@@ -204,8 +238,8 @@ package Sem_Ch6 is
       Derived_Type : Entity_Id := Empty);
    --  Process new overloaded entity. Overloaded entities are created by
    --  enumeration type declarations, subprogram specifications, entry
-   --  declarations, and (implicitly) by type derivations. Derived_Type non-
-   --  Empty indicates that this is subprogram derived for that type.
+   --  declarations, and (implicitly) by type derivations. If Derived_Type
+   --  is non-empty then this is a subprogram derived for that type.
 
    procedure Process_Formals (T : List_Id; Related_Nod : Node_Id);
    --  Enter the formals in the scope of the subprogram or entry, and
@@ -239,7 +273,7 @@ package Sem_Ch6 is
       Old_Id                   : Entity_Id;
       Skip_Controlling_Formals : Boolean := False) return Boolean;
    --  Determine whether two callable entities (subprograms, entries, literals)
-   --  are subtype conformant (RM6.3.1(16)).  Skip_Controlling_Formals is True
+   --  are subtype conformant (RM 6.3.1(16)). Skip_Controlling_Formals is True
    --  when checking the conformance of a subprogram that implements an
    --  interface operation. In that case, only the non-controlling formals
    --  can (and must) be examined.
@@ -249,10 +283,10 @@ package Sem_Ch6 is
       Old_Id                   : Entity_Id;
       Skip_Controlling_Formals : Boolean := False) return Boolean;
    --  Determine whether two callable entities (subprograms, entries, literals)
-   --  are type conformant (RM6.3.1(14)). Skip_Controlling_Formals is True when
-   --  checking the conformance of a subprogram that implements an interface
-   --  operation. In that case, only the non-controlling formals can (and must)
-   --  be examined.
+   --  are type conformant (RM 6.3.1(14)). Skip_Controlling_Formals is True
+   --  when checking the conformance of a subprogram that implements an
+   --  interface operation. In that case, only the non-controlling formals
+   --  can (and must) be examined.
 
    procedure Valid_Operator_Definition (Designator : Entity_Id);
    --  Verify that an operator definition has the proper number of formals

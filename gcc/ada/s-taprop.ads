@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  S p e c                                 --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -87,9 +87,24 @@ package System.Task_Primitives.Operations is
    --  The effects of further calls to operations defined below on the task
    --  are undefined thereafter.
 
-   function New_ATCB (Entry_Num : ST.Task_Entry_Index) return ST.Task_Id;
-   pragma Inline (New_ATCB);
-   --  Allocate a new ATCB with the specified number of entries
+   ----------------------------------
+   -- ATCB allocation/deallocation --
+   ----------------------------------
+
+   package ATCB_Allocation is
+
+      function New_ATCB (Entry_Num : ST.Task_Entry_Index) return ST.Task_Id;
+      pragma Inline (New_ATCB);
+      --  Allocate a new ATCB with the specified number of entries
+
+      procedure Free_ATCB (T : ST.Task_Id);
+      pragma Inline (Free_ATCB);
+      --  Deallocate an ATCB previously allocated by New_ATCB
+
+   end ATCB_Allocation;
+
+   function New_ATCB (Entry_Num : ST.Task_Entry_Index) return ST.Task_Id
+     renames ATCB_Allocation.New_ATCB;
 
    procedure Initialize_TCB (Self_ID : ST.Task_Id; Succeeded : out Boolean);
    pragma Inline (Initialize_TCB);
@@ -298,10 +313,11 @@ package System.Task_Primitives.Operations is
 
    procedure Yield (Do_Yield : Boolean := True);
    pragma Inline (Yield);
-   --  Yield the processor. Add the calling task to the tail of the ready
-   --  queue for its active_priority. The Do_Yield argument is only used in
-   --  some very rare cases very a yield should have an effect on a specific
-   --  target and not on regular ones.
+   --  Yield the processor. Add the calling task to the tail of the ready queue
+   --  for its active_priority. On most platforms, Yield is a no-op if Do_Yield
+   --  is False. But on some platforms (notably VxWorks), Do_Yield is ignored.
+   --  This is only used in some very rare cases where a Yield should have an
+   --  effect on a specific target and not on regular ones.
 
    procedure Set_Priority
      (T : ST.Task_Id;
@@ -542,5 +558,14 @@ package System.Task_Primitives.Operations is
    --  Continue a specific task when the underlying thread library provides
    --  such functionality. Such functionality is needed by gdb on some targets
    --  (e.g VxWorks) Return True is the operation is successful
+
+   -------------------
+   -- Task affinity --
+   -------------------
+
+   procedure Set_Task_Affinity (T : ST.Task_Id);
+   --  Enforce at the operating system level the task affinity defined in the
+   --  Ada Task Control Block. Has no effect if the underlying operating system
+   --  does not support this capability.
 
 end System.Task_Primitives.Operations;

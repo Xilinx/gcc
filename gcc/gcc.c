@@ -1,7 +1,7 @@
 /* Compiler driver program that can handle many languages.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
    1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010, 2011
+   2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -43,6 +43,7 @@ compilation is specified by a string called a "spec".  */
 #include "diagnostic.h"
 #include "flags.h"
 #include "opts.h"
+#include "params.h"
 #include "vec.h"
 #include "filenames.h"
 
@@ -437,7 +438,6 @@ or with constant text in a single argument.
           This may be combined with '.', '!', ',', '|', and '*' as above.
 
  %(Spec) processes a specification defined in a specs file as *Spec:
- %[Spec] as above, but put __ around -D arguments
 
 The conditional text X in a %{S:X} or similar construct may contain
 other nested % constructs or spaces, or even newlines.  They are
@@ -517,7 +517,7 @@ proper position among the other output files.  */
 /* XXX: should exactly match hooks provided by libmudflap.a */
 #define MFWRAP_SPEC " %{static: %{fmudflap|fmudflapth: \
  --wrap=malloc --wrap=free --wrap=calloc --wrap=realloc\
- --wrap=mmap --wrap=munmap --wrap=alloca\
+ --wrap=mmap --wrap=mmap64 --wrap=munmap --wrap=alloca\
 } %{fmudflapth: --wrap=pthread_create\
 }} %{fmudflap|fmudflapth: --wrap=main}"
 #endif
@@ -675,6 +675,7 @@ proper position among the other output files.  */
     %{s} %{t} %{u*} %{z} %{Z} %{!nostdlib:%{!nostartfiles:%S}}\
     %{static:} %{L*} %(mfwrap) %(link_libgcc) %o\
     %{fopenmp|ftree-parallelize-loops=*:%:include(libgomp.spec)%(link_gomp)}\
+    %{fgnu-tm:%:include(libitm.spec)%(link_itm)}\
     %(mflib) " STACK_SPLIT_SPEC "\
     %{fprofile-arcs|fprofile-generate*|coverage:-lgcov}\
     %{!nostdlib:%{!nodefaultlibs:%(link_ssp) %(link_gcc_c_sequence)}}\
@@ -702,7 +703,7 @@ proper position among the other output files.  */
 # define SYSROOT_HEADERS_SUFFIX_SPEC ""
 #endif
 
-static const char *asm_debug;
+static const char *asm_debug = ASM_DEBUG_SPEC;
 static const char *cpp_spec = CPP_SPEC;
 static const char *cc1_spec = CC1_SPEC;
 static const char *cc1plus_spec = CC1PLUS_SPEC;
@@ -728,6 +729,7 @@ static const char *startfile_prefix_spec = STARTFILE_PREFIX_SPEC;
 static const char *sysroot_spec = SYSROOT_SPEC;
 static const char *sysroot_suffix_spec = SYSROOT_SUFFIX_SPEC;
 static const char *sysroot_hdrs_suffix_spec = SYSROOT_HEADERS_SUFFIX_SPEC;
+static const char *self_spec = "";
 
 /* Standard options to cpp, cc1, and as, to reduce duplication in specs.
    There should be no need to override these in target dependent files,
@@ -838,9 +840,14 @@ static const char *const multilib_defaults_raw[] = MULTILIB_DEFAULTS;
 #define GOMP_SELF_SPECS "%{fopenmp|ftree-parallelize-loops=*: -pthread}"
 #endif
 
+/* Likewise for -fgnu-tm.  */
+#ifndef GTM_SELF_SPECS
+#define GTM_SELF_SPECS "%{fgnu-tm: -pthread}"
+#endif
+
 static const char *const driver_self_specs[] = {
   "%{fdump-final-insns:-fdump-final-insns=.} %<fdump-final-insns",
-  DRIVER_SELF_SPECS, CONFIGURE_SPECS, GOMP_SELF_SPECS
+  DRIVER_SELF_SPECS, CONFIGURE_SPECS, GOMP_SELF_SPECS, GTM_SELF_SPECS
 };
 
 #ifndef OPTION_DEFAULT_SPECS
@@ -1149,8 +1156,8 @@ static const char *multilib_dir;
 static const char *multilib_os_dir;
 
 /* Structure to keep track of the specs that have been defined so far.
-   These are accessed using %(specname) or %[specname] in a compiler
-   or link spec.  */
+   These are accessed using %(specname) in a compiler or link
+   spec.  */
 
 struct spec_list
 {
@@ -1216,6 +1223,7 @@ static struct spec_list static_specs[] =
   INIT_STATIC_SPEC ("sysroot_spec",             &sysroot_spec),
   INIT_STATIC_SPEC ("sysroot_suffix_spec",	&sysroot_suffix_spec),
   INIT_STATIC_SPEC ("sysroot_hdrs_suffix_spec",	&sysroot_hdrs_suffix_spec),
+  INIT_STATIC_SPEC ("self_spec",		&self_spec),
 };
 
 #ifdef EXTRA_SPECS		/* additional specs needed */
@@ -2444,9 +2452,17 @@ add_sysrooted_prefix (struct path_prefix *pprefix, const char *prefix,
 
   if (target_system_root)
     {
+      char *sysroot_no_trailing_dir_separator = xstrdup (target_system_root);
+      size_t sysroot_len = strlen (target_system_root);
+
+      if (sysroot_len > 0
+	  && target_system_root[sysroot_len - 1] == DIR_SEPARATOR)
+	sysroot_no_trailing_dir_separator[sysroot_len - 1] = '\0';
+
       if (target_sysroot_suffix)
 	  prefix = concat (target_sysroot_suffix, prefix, NULL);
-      prefix = concat (target_system_root, prefix, NULL);
+      prefix = concat (sysroot_no_trailing_dir_separator, prefix, NULL);
+      free (sysroot_no_trailing_dir_separator);
 
       /* We have to override this because GCC's notion of sysroot
 	 moves along with GCC.  */
@@ -2943,7 +2959,7 @@ display_help (void)
   fputs (_("  -pass-exit-codes         Exit with highest error code from a phase\n"), stdout);
   fputs (_("  --help                   Display this information\n"), stdout);
   fputs (_("  --target-help            Display target specific command line options\n"), stdout);
-  fputs (_("  --help={target|optimizers|warnings|params|[^]{joined|separate|undocumented}}[,...]\n"), stdout);
+  fputs (_("  --help={common|optimizers|params|target|warnings|[^]{joined|separate|undocumented}}[,...]\n"), stdout);
   fputs (_("                           Display specific types of command line options\n"), stdout);
   if (! verbose_flag)
     fputs (_("  (Use '-v --help' to display command line options of sub-processes)\n"), stdout);
@@ -2987,6 +3003,8 @@ display_help (void)
   fputs (_("  -S                       Compile only; do not assemble or link\n"), stdout);
   fputs (_("  -c                       Compile and assemble, but do not link\n"), stdout);
   fputs (_("  -o <file>                Place the output into <file>\n"), stdout);
+  fputs (_("  -pie                     Create a position independent executable\n"), stdout);
+  fputs (_("  -shared                  Create a shared library\n"), stdout);
   fputs (_("\
   -x <language>            Specify the language of the following input files\n\
                            Permissible languages include: c c++ assembler none\n\
@@ -3134,16 +3152,6 @@ driver_wrong_lang_callback (const struct cl_decoded_option *decoded,
     save_switch (decoded->canonical_option[0],
 		 decoded->canonical_option_num_elements - 1,
 		 &decoded->canonical_option[1], false);
-}
-
-/* Note that an option (index OPT_INDEX, argument ARG, value VALUE)
-   has been successfully handled with a handler for mask MASK.  */
-
-static void
-driver_post_handling_callback (const struct cl_decoded_option *decoded ATTRIBUTE_UNUSED,
-			       unsigned int mask ATTRIBUTE_UNUSED)
-{
-  /* Nothing to do here.  */
 }
 
 static const char *spec_lang = 0;
@@ -3532,10 +3540,13 @@ set_option_handlers (struct cl_option_handlers *handlers)
 {
   handlers->unknown_option_callback = driver_unknown_option_callback;
   handlers->wrong_lang_callback = driver_wrong_lang_callback;
-  handlers->post_handling_callback = driver_post_handling_callback;
-  handlers->num_handlers = 1;
+  handlers->num_handlers = 3;
   handlers->handlers[0].handler = driver_handle_option;
   handlers->handlers[0].mask = CL_DRIVER;
+  handlers->handlers[1].handler = common_handle_option;
+  handlers->handlers[1].mask = CL_COMMON;
+  handlers->handlers[2].handler = target_handle_option;
+  handlers->handlers[2].mask = CL_TARGET;
 }
 
 /* Create the vector `switches' and its contents.
@@ -5208,11 +5219,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 
 	    /* Process a string found as the value of a spec given by name.
 	       This feature allows individual machine descriptions
-	       to add and use their own specs.
-	       %[...] modifies -D options the way %P does;
-	       %(...) uses the spec unmodified.  */
-	  case '[':
-	    warning (0, "use of obsolete %%[ operator in specs");
+	       to add and use their own specs.  */
 	  case '(':
 	    {
 	      const char *name = p;
@@ -5221,7 +5228,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 
 	      /* The string after the S/P is the name of a spec that is to be
 		 processed.  */
-	      while (*p && *p != ')' && *p != ']')
+	      while (*p && *p != ')')
 		p++;
 
 	      /* See if it's in the list.  */
@@ -5230,63 +5237,20 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 		  {
 		    name = *(sl->ptr_spec);
 #ifdef DEBUG_SPECS
-		    fnotice (stderr, "Processing spec %c%s%c, which is '%s'\n",
-			    c, sl->name, (c == '(') ? ')' : ']', name);
+		    fnotice (stderr, "Processing spec (%s), which is '%s'\n",
+			     sl->name, name);
 #endif
 		    break;
 		  }
 
 	      if (sl)
 		{
-		  if (c == '(')
-		    {
-		      value = do_spec_1 (name, 0, NULL);
-		      if (value != 0)
-			return value;
-		    }
-		  else
-		    {
-		      char *x = (char *) alloca (strlen (name) * 2 + 1);
-		      char *buf = x;
-		      const char *y = name;
-		      int flag = 0;
-
-		      /* Copy all of NAME into BUF, but put __ after
-			 every -D and at the end of each arg.  */
-		      while (1)
-			{
-			  if (! strncmp (y, "-D", 2))
-			    {
-			      *x++ = '-';
-			      *x++ = 'D';
-			      *x++ = '_';
-			      *x++ = '_';
-			      y += 2;
-			      flag = 1;
-			      continue;
-			    }
-			  else if (flag
-				   && (*y == ' ' || *y == '\t' || *y == '='
-				       || *y == '}' || *y == 0))
-			    {
-			      *x++ = '_';
-			      *x++ = '_';
-			      flag = 0;
-			    }
-			  if (*y == 0)
-			    break;
-			  else
-			    *x++ = *y++;
-			}
-		      *x = 0;
-
-		      value = do_spec_1 (buf, 0, NULL);
-		      if (value != 0)
-			return value;
-		    }
+		  value = do_spec_1 (name, 0, NULL);
+		  if (value != 0)
+		    return value;
 		}
 
-	      /* Discard the closing paren or bracket.  */
+	      /* Discard the closing paren.  */
 	      if (*p)
 		p++;
 	    }
@@ -5497,6 +5461,21 @@ switch_matches (const char *atom, const char *end_atom, int starred)
 	&& (starred || switches[i].part1[len] == '\0')
 	&& check_live_switch (i, plen))
       return true;
+
+    /* Check if a switch with separated form matching the atom.
+       We check -D and -U switches. */
+    else if (switches[i].args != 0)
+      {
+	if ((*switches[i].part1 == 'D' || *switches[i].part1 == 'U')
+	    && *switches[i].part1 == atom[0])
+	  {
+	    if (!strncmp (switches[i].args[0], &atom[1], len - 1)
+		&& (starred || (switches[i].part1[1] == '\0'
+				&& switches[i].args[0][len - 1] == '\0'))
+		&& check_live_switch (i, (starred ? 1 : -1)))
+	      return true;
+	  }
+      }
 
   return false;
 }
@@ -6140,10 +6119,6 @@ main (int argc, char **argv)
   struct cl_decoded_option *decoded_options;
   unsigned int decoded_options_count;
 
-  /* Initialize here, not in definition.  The IRIX 6 O32 cc sometimes chokes
-     on ?: in file-scope variable initializations.  */
-  asm_debug = ASM_DEBUG_SPEC;
-
   p = argv[0] + strlen (argv[0]);
   while (p != argv[0] && !IS_DIR_SEPARATOR (p[-1]))
     --p;
@@ -6157,7 +6132,11 @@ main (int argc, char **argv)
   if (argv != old_argv)
     at_file_supplied = true;
 
-  global_options = global_options_init;
+  /* Register the language-independent parameters.  */
+  global_init_params ();
+  finish_params ();
+
+  init_options_struct (&global_options, &global_options_set);
 
   decode_cmdline_options_to_array (argc, CONST_CAST2 (const char **, char **,
 						      argv),
@@ -6195,6 +6174,10 @@ main (int argc, char **argv)
      receive the signal.  A different setting is inheritable */
   signal (SIGCHLD, SIG_DFL);
 #endif
+
+  /* Parsing and gimplification sometimes need quite large stack.
+     Increase stack size limits if possible.  */
+  stack_limit_increase (64 * 1024 * 1024);
 
   /* Allocate the argument vector.  */
   alloc_args ();
@@ -6296,48 +6279,6 @@ main (int argc, char **argv)
 
   for (i = 0; i < ARRAY_SIZE (driver_self_specs); i++)
     do_self_spec (driver_self_specs[i]);
-
-  if (compare_debug)
-    {
-      enum save_temps save;
-
-      if (!compare_debug_second)
-	{
-	  n_switches_debug_check[1] = n_switches;
-	  n_switches_alloc_debug_check[1] = n_switches_alloc;
-	  switches_debug_check[1] = XDUPVEC (struct switchstr, switches,
-					     n_switches_alloc);
-
-	  do_self_spec ("%:compare-debug-self-opt()");
-	  n_switches_debug_check[0] = n_switches;
-	  n_switches_alloc_debug_check[0] = n_switches_alloc;
-	  switches_debug_check[0] = switches;
-
-	  n_switches = n_switches_debug_check[1];
-	  n_switches_alloc = n_switches_alloc_debug_check[1];
-	  switches = switches_debug_check[1];
-	}
-
-      /* Avoid crash when computing %j in this early.  */
-      save = save_temps_flag;
-      save_temps_flag = SAVE_TEMPS_NONE;
-
-      compare_debug = -compare_debug;
-      do_self_spec ("%:compare-debug-self-opt()");
-
-      save_temps_flag = save;
-
-      if (!compare_debug_second)
-	{
-	  n_switches_debug_check[1] = n_switches;
-	  n_switches_alloc_debug_check[1] = n_switches_alloc;
-	  switches_debug_check[1] = switches;
-	  compare_debug = -compare_debug;
-	  n_switches = n_switches_debug_check[0];
-	  n_switches_alloc = n_switches_debug_check[0];
-	  switches = switches_debug_check[0];
-	}
-    }
 
   /* If not cross-compiling, look for executables in the standard
      places.  */
@@ -6448,6 +6389,58 @@ main (int argc, char **argv)
       read_specs (filename ? filename : uptr->filename, FALSE);
     }
 
+  /* Process any user self specs.  */
+  {
+    struct spec_list *sl;
+    for (sl = specs; sl; sl = sl->next)
+      if (sl->name_len == sizeof "self_spec" - 1
+	  && !strcmp (sl->name, "self_spec"))
+	do_self_spec (*sl->ptr_spec);
+  }
+
+  if (compare_debug)
+    {
+      enum save_temps save;
+
+      if (!compare_debug_second)
+	{
+	  n_switches_debug_check[1] = n_switches;
+	  n_switches_alloc_debug_check[1] = n_switches_alloc;
+	  switches_debug_check[1] = XDUPVEC (struct switchstr, switches,
+					     n_switches_alloc);
+
+	  do_self_spec ("%:compare-debug-self-opt()");
+	  n_switches_debug_check[0] = n_switches;
+	  n_switches_alloc_debug_check[0] = n_switches_alloc;
+	  switches_debug_check[0] = switches;
+
+	  n_switches = n_switches_debug_check[1];
+	  n_switches_alloc = n_switches_alloc_debug_check[1];
+	  switches = switches_debug_check[1];
+	}
+
+      /* Avoid crash when computing %j in this early.  */
+      save = save_temps_flag;
+      save_temps_flag = SAVE_TEMPS_NONE;
+
+      compare_debug = -compare_debug;
+      do_self_spec ("%:compare-debug-self-opt()");
+
+      save_temps_flag = save;
+
+      if (!compare_debug_second)
+	{
+	  n_switches_debug_check[1] = n_switches;
+	  n_switches_alloc_debug_check[1] = n_switches_alloc;
+	  switches_debug_check[1] = switches;
+	  compare_debug = -compare_debug;
+	  n_switches = n_switches_debug_check[0];
+	  n_switches_alloc = n_switches_debug_check[0];
+	  switches = switches_debug_check[0];
+	}
+    }
+
+
   /* If we have a GCC_EXEC_PREFIX envvar, modify it for cpp's sake.  */
   if (gcc_exec_prefix)
     gcc_exec_prefix = concat (gcc_exec_prefix, spec_machine, dir_separator_str,
@@ -6472,7 +6465,11 @@ main (int argc, char **argv)
 
   /* Set up to remember the pathname of the lto wrapper. */
 
-  lto_wrapper_file = find_a_file (&exec_prefixes, "lto-wrapper", X_OK, false);
+  if (have_c)
+    lto_wrapper_file = NULL;
+  else
+    lto_wrapper_file = find_a_file (&exec_prefixes, "lto-wrapper",
+				    X_OK, false);
   if (lto_wrapper_file)
     {
       lto_wrapper_spec = lto_wrapper_file;
@@ -6592,7 +6589,7 @@ main (int argc, char **argv)
     {
       printf (_("%s %s%s\n"), progname, pkgversion_string,
 	      version_string);
-      printf ("Copyright %s 2011 Free Software Foundation, Inc.\n",
+      printf ("Copyright %s 2012 Free Software Foundation, Inc.\n",
 	      _("(C)"));
       fputs (_("This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"),
@@ -6846,39 +6843,46 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
   if (num_linker_inputs > 0 && !seen_error () && print_subprocess_help < 2)
     {
       int tmp = execution_count;
+
+      if (! have_c)
+	{
 #if HAVE_LTO_PLUGIN > 0
 #if HAVE_LTO_PLUGIN == 2
-      const char *fno_use_linker_plugin = "fno-use-linker-plugin";
+	  const char *fno_use_linker_plugin = "fno-use-linker-plugin";
 #else
-      const char *fuse_linker_plugin = "fuse-linker-plugin";
+	  const char *fuse_linker_plugin = "fuse-linker-plugin";
 #endif
 #endif
 
-      /* We'll use ld if we can't find collect2.  */
-      if (! strcmp (linker_name_spec, "collect2"))
-	{
-	  char *s = find_a_file (&exec_prefixes, "collect2", X_OK, false);
-	  if (s == NULL)
-	    linker_name_spec = "ld";
-	}
+	  /* We'll use ld if we can't find collect2.  */
+	  if (! strcmp (linker_name_spec, "collect2"))
+	    {
+	      char *s = find_a_file (&exec_prefixes, "collect2", X_OK, false);
+	      if (s == NULL)
+		linker_name_spec = "ld";
+	    }
 
 #if HAVE_LTO_PLUGIN > 0
 #if HAVE_LTO_PLUGIN == 2
-      if (!switch_matches (fno_use_linker_plugin,
-			   fno_use_linker_plugin + strlen (fno_use_linker_plugin), 0))
+	  if (!switch_matches (fno_use_linker_plugin,
+			       fno_use_linker_plugin
+			       + strlen (fno_use_linker_plugin), 0))
 #else
-      if (switch_matches (fuse_linker_plugin,
-			  fuse_linker_plugin + strlen (fuse_linker_plugin), 0))
+	  if (switch_matches (fuse_linker_plugin,
+			      fuse_linker_plugin
+			      + strlen (fuse_linker_plugin), 0))
 #endif
-	{
-	  linker_plugin_file_spec = find_a_file (&exec_prefixes,
-						 LTOPLUGINSONAME, R_OK,
-						 false);
-	  if (!linker_plugin_file_spec)
-	    fatal_error ("-fuse-linker-plugin, but " LTOPLUGINSONAME " not found");
+	    {
+	      linker_plugin_file_spec = find_a_file (&exec_prefixes,
+						     LTOPLUGINSONAME, R_OK,
+						     false);
+	      if (!linker_plugin_file_spec)
+		fatal_error ("-fuse-linker-plugin, but %s not found",
+			     LTOPLUGINSONAME);
+	    }
+#endif
+	  lto_gcc_spec = argv[0];
 	}
-#endif
-      lto_gcc_spec = argv[0];
 
       /* Rebuild the COMPILER_PATH and LIBRARY_PATH environment variables
 	 for collect.  */
@@ -8086,12 +8090,22 @@ print_asm_header_spec_function (int arg ATTRIBUTE_UNUSED,
   return NULL;
 }
 
-/* Compute a timestamp to initialize flag_random_seed.  */
+/* Get a random number for -frandom-seed */
 
-static unsigned
-get_local_tick (void)
+static unsigned HOST_WIDE_INT
+get_random_number (void)
 {
-  unsigned ret = 0;
+  unsigned HOST_WIDE_INT ret = 0;
+  int fd; 
+
+  fd = open ("/dev/urandom", O_RDONLY); 
+  if (fd >= 0)
+    {
+      read (fd, &ret, sizeof (HOST_WIDE_INT));
+      close (fd);
+      if (ret)
+        return ret;
+    }
 
   /* Get some more or less random data.  */
 #ifdef HAVE_GETTIMEOFDAY
@@ -8110,7 +8124,7 @@ get_local_tick (void)
   }
 #endif
 
-  return ret;
+  return ret ^ getpid();
 }
 
 /* %:compare-debug-dump-opt spec function.  Save the last argument,
@@ -8169,7 +8183,7 @@ compare_debug_dump_opt_spec_function (int arg,
 
   if (!which)
     {
-      unsigned HOST_WIDE_INT value = get_local_tick () ^ getpid ();
+      unsigned HOST_WIDE_INT value = get_random_number ();
 
       sprintf (random_seed, HOST_WIDE_INT_PRINT_HEX, value);
     }

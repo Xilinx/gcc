@@ -6,18 +6,17 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
 -- ware  Foundation;  either version 3,  or (at your option) any later ver- --
 -- sion.  GNAT is distributed in the hope that it will be useful, but WITH- --
 -- OUT ANY WARRANTY;  without even the  implied warranty of MERCHANTABILITY --
--- or FITNESS FOR A PARTICULAR PURPOSE.                                     --
---                                                                          --
--- You should have received a copy of the GNU General Public License along  --
--- with this program; see file COPYING3.  If not see                        --
--- <http://www.gnu.org/licenses/>.                                          --
+-- or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License --
+-- for  more details.  You should have  received  a copy of the GNU General --
+-- Public License  distributed with GNAT; see file COPYING3.  If not, go to --
+-- http://www.gnu.org/licenses for a complete copy of the license.          --
 --                                                                          --
 -- GNAT was originally developed  by the GNAT team at  New York University. --
 -- Extensive contributions were provided by Ada Core Technologies Inc.      --
@@ -31,12 +30,13 @@ with Elists;   use Elists;
 with Errout;   use Errout;
 with Expander; use Expander;
 with Fname;    use Fname;
-with HLO;      use HLO;
 with Lib;      use Lib;
 with Lib.Load; use Lib.Load;
 with Nlists;   use Nlists;
 with Output;   use Output;
+with Restrict; use Restrict;
 with Sem_Attr; use Sem_Attr;
+with Sem_Aux;  use Sem_Aux;
 with Sem_Ch2;  use Sem_Ch2;
 with Sem_Ch3;  use Sem_Ch3;
 with Sem_Ch4;  use Sem_Ch4;
@@ -224,6 +224,9 @@ package body Sem is
          when N_Explicit_Dereference =>
             Analyze_Explicit_Dereference (N);
 
+         when N_Expression_Function =>
+            Analyze_Expression_Function (N);
+
          when N_Expression_With_Actions =>
             Analyze_Expression_With_Actions (N);
 
@@ -372,7 +375,7 @@ package body Sem is
             Analyze_Unary_Op (N);
 
          when N_Op_Mod =>
-            Analyze_Arithmetic_Op (N);
+            Analyze_Mod (N);
 
          when N_Op_Multiply =>
             Analyze_Arithmetic_Op (N);
@@ -439,9 +442,6 @@ package body Sem is
 
          when N_Parameter_Association =>
             Analyze_Parameter_Association (N);
-
-         when N_Parameterized_Expression =>
-            Analyze_Parameterized_Expression (N);
 
          when N_Pragma =>
             Analyze_Pragma (N);
@@ -651,6 +651,7 @@ package body Sem is
            N_Component_Definition                   |
            N_Component_List                         |
            N_Constrained_Array_Definition           |
+           N_Contract                               |
            N_Decimal_Fixed_Point_Definition         |
            N_Defining_Character_Literal             |
            N_Defining_Identifier                    |
@@ -674,6 +675,7 @@ package body Sem is
            N_Formal_Modular_Type_Definition         |
            N_Formal_Ordinary_Fixed_Point_Definition |
            N_Formal_Private_Type_Definition         |
+           N_Formal_Incomplete_Type_Definition      |
            N_Formal_Signed_Integer_Type_Definition  |
            N_Function_Specification                 |
            N_Generic_Association                    |
@@ -844,11 +846,9 @@ package body Sem is
          return;
       end if;
 
-      --  First search the local entity suppress stack, we search this in
-      --  reverse order so that we get the innermost entry that applies to
-      --  this case if there are nested entries. Note that for the purpose
-      --  of this procedure we are ONLY looking for entries corresponding
-      --  to a two-argument Suppress, where the second argument matches From.
+      --  First search the global entity suppress table for a matching entry.
+      --  We also search this in reverse order so that if there are multiple
+      --  pragmas for the same entity, the last one applies.
 
       Search_Stack (Global_Suppress_Stack_Top, Found);
 
@@ -856,9 +856,11 @@ package body Sem is
          return;
       end if;
 
-      --  Now search the global entity suppress table for a matching entry.
-      --  We also search this in reverse order so that if there are multiple
-      --  pragmas for the same entity, the last one applies.
+      --  Now search the local entity suppress stack, we search this in
+      --  reverse order so that we get the innermost entry that applies to
+      --  this case if there are nested entries. Note that for the purpose
+      --  of this procedure we are ONLY looking for entries corresponding
+      --  to a two-argument Suppress, where the second argument matches From.
 
       Search_Stack (Local_Suppress_Stack_Top, Found);
    end Copy_Suppress_Status;
@@ -935,7 +937,6 @@ package body Sem is
 
       else
          Scop := Scope (E);
-
          while Present (Scop) loop
             if Scop = Outer_Generic_Scope then
                return False;
@@ -965,7 +966,7 @@ package body Sem is
       --  of the compiler (in the normal case this loop does nothing).
 
       while Suppress_Stack_Entries /= null loop
-         Next := Global_Suppress_Stack_Top.Next;
+         Next := Suppress_Stack_Entries.Next;
          Free (Suppress_Stack_Entries);
          Suppress_Stack_Entries := Next;
       end loop;
@@ -1286,6 +1287,23 @@ package body Sem is
       Scope_Stack.Release;
    end Lock;
 
+   ----------------
+   -- Preanalyze --
+   ----------------
+
+   procedure Preanalyze (N : Node_Id) is
+      Save_Full_Analysis : constant Boolean := Full_Analysis;
+
+   begin
+      Full_Analysis := False;
+      Expander_Mode_Save_And_Set (False);
+
+      Analyze (N);
+
+      Expander_Mode_Restore;
+      Full_Analysis := Save_Full_Analysis;
+   end Preanalyze;
+
    --------------------------------------
    -- Push_Global_Suppress_Stack_Entry --
    --------------------------------------
@@ -1348,7 +1366,6 @@ package body Sem is
       S_Global_Dis_Names : constant Boolean          := Global_Discard_Names;
       S_In_Spec_Expr     : constant Boolean          := In_Spec_Expression;
       S_Inside_A_Generic : constant Boolean          := Inside_A_Generic;
-      S_New_Nodes_OK     : constant Int              := New_Nodes_OK;
       S_Outer_Gen_Scope  : constant Entity_Id        := Outer_Generic_Scope;
 
       Generic_Main : constant Boolean :=
@@ -1361,9 +1378,13 @@ package body Sem is
       --  Variable used to save values of config switches while we analyze the
       --  new unit, to be restored on exit for proper recursive behavior.
 
+      Save_Cunit_Restrictions : Save_Cunit_Boolean_Restrictions;
+      --  Used to save non-partition wide restrictions before processing new
+      --  unit. All with'ed units are analyzed with config restrictions reset
+      --  and we need to restore these saved values at the end.
+
       procedure Do_Analyze;
-      --  Procedure to analyze the compilation unit. This is called more than
-      --  once when the high level optimizer is activated.
+      --  Procedure to analyze the compilation unit
 
       ----------------
       -- Do_Analyze --
@@ -1442,24 +1463,31 @@ package body Sem is
       In_Spec_Expression := False;
 
       Set_Comes_From_Source_Default (False);
+
+      --  Save current config switches and reset then appropriately
+
       Save_Opt_Config_Switches (Save_Config_Switches);
       Set_Opt_Config_Switches
         (Is_Internal_File_Name (Unit_File_Name (Current_Sem_Unit)),
          Current_Sem_Unit = Main_Unit);
 
+      --  Save current non-partition-wide restrictions
+
+      Save_Cunit_Restrictions := Cunit_Boolean_Restrictions_Save;
+
+      --  For unit in main extended unit, we reset the configuration values
+      --  for the non-partition-wide restrictions. For other units reset them.
+
+      if In_Extended_Main_Source_Unit (Comp_Unit) then
+         Restore_Config_Cunit_Boolean_Restrictions;
+      else
+         Reset_Cunit_Boolean_Restrictions;
+      end if;
+
       --  Only do analysis of unit that has not already been analyzed
 
       if not Analyzed (Comp_Unit) then
          Initialize_Version (Current_Sem_Unit);
-         if HLO_Active then
-            Expander_Mode_Save_And_Set (False);
-            New_Nodes_OK := 1;
-            Do_Analyze;
-            Reset_Analyzed_Flags (Comp_Unit);
-            Expander_Mode_Restore;
-            High_Level_Optimize (Comp_Unit);
-            New_Nodes_OK := 0;
-         end if;
 
          --  Do analysis, and then append the compilation unit onto the
          --  Comp_Unit_List, if appropriate. This is done after analysis,
@@ -1507,10 +1535,14 @@ package body Sem is
       GNAT_Mode            := S_GNAT_Mode;
       In_Spec_Expression   := S_In_Spec_Expr;
       Inside_A_Generic     := S_Inside_A_Generic;
-      New_Nodes_OK         := S_New_Nodes_OK;
       Outer_Generic_Scope  := S_Outer_Gen_Scope;
 
       Restore_Opt_Config_Switches (Save_Config_Switches);
+
+      --  Deal with restore of restrictions
+
+      Cunit_Boolean_Restrictions_Restore (Save_Cunit_Restrictions);
+
       Expander_Mode_Restore;
 
       if Debug_Unit_Walk then
@@ -1526,6 +1558,24 @@ package body Sem is
             Prefix => "<-- ");
       end if;
    end Semantics;
+
+   --------
+   -- ss --
+   --------
+
+   function ss (Index : Int) return Scope_Stack_Entry is
+   begin
+      return Scope_Stack.Table (Index);
+   end ss;
+
+   ---------
+   -- sst --
+   ---------
+
+   function sst return Scope_Stack_Entry is
+   begin
+      return ss (Scope_Stack.Last);
+   end sst;
 
    ------------------------
    -- Walk_Library_Items --
@@ -1574,7 +1624,7 @@ package body Sem is
       --  an instance spec, do the body last.
 
       procedure Do_Withed_Unit (Withed_Unit : Node_Id);
-      --  Apply Do_Unit_And_Dependents to a unit in a context clause.
+      --  Apply Do_Unit_And_Dependents to a unit in a context clause
 
       procedure Process_Bodies_In_Context (Comp : Node_Id);
       --  The main unit and its spec may depend on bodies that contain generics

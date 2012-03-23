@@ -6,7 +6,7 @@
 --                                                                          --
 --                                B o d y                                   --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -172,6 +172,11 @@ begin
    Write_Switch_Char ("ec=?");
    Write_Line ("Specify configuration pragmas file, e.g. -gnatec=/x/f.adc");
 
+   --  Line for -gnated switch
+
+   Write_Switch_Char ("ed");
+   Write_Line ("Disable synchronization of atomic variables");
+
    --  Line for -gnateD switch
 
    Write_Switch_Char ("eD?");
@@ -191,6 +196,11 @@ begin
 
    Write_Switch_Char ("eG");
    Write_Line ("Generate preprocessed source");
+
+   --  Line for -gnatei switch
+
+   Write_Switch_Char ("einn");
+   Write_Line ("Set maximumum number of instantiations to nn");
 
    --  Line for -gnateI switch
 
@@ -448,8 +458,8 @@ begin
                                                   "elaboration pragma");
    Write_Line ("        L*   turn off warnings for missing " &
                                                   "elaboration pragma");
-   Write_Line ("        .l*  turn on info messages for inherited aspects");
-   Write_Line ("        .L   turn off info messages for inherited aspects");
+   Write_Line ("        .l   turn on info messages for inherited aspects");
+   Write_Line ("        .L*   turn off info messages for inherited aspects");
    Write_Line ("        m+   turn on warnings for variable assigned " &
                                                   "but not read");
    Write_Line ("        M*   turn off warnings for variable assigned " &
@@ -457,6 +467,10 @@ begin
    Write_Line ("        .m*  turn on warnings for suspicious modulus value");
    Write_Line ("        .M   turn off warnings for suspicious modulus value");
    Write_Line ("        n*   normal warning mode (cancels -gnatws/-gnatwe)");
+   Write_Line ("        .n   turn on info messages for atomic " &
+                                                  "synchronization");
+   Write_Line ("        .N*  turn off info messages for atomic " &
+                                                  "synchronization");
    Write_Line ("        o*   turn on warnings for address clause overlay");
    Write_Line ("        O    turn off warnings for address clause overlay");
    Write_Line ("        .o   turn on warnings for out parameters assigned " &
@@ -484,6 +498,8 @@ begin
    Write_Line ("        .S*  turn off warnings for overridden size clause");
    Write_Line ("        t    turn on warnings for tracking deleted code");
    Write_Line ("        T*   turn off warnings for tracking deleted code");
+   Write_Line ("        .t+  turn on warnings for suspicious contract");
+   Write_Line ("        .T*  turn off warnings for suspicious contract");
    Write_Line ("        u+   turn on warnings for unused entity");
    Write_Line ("        U*   turn off warnings for unused entity");
    Write_Line ("        .u   turn on warnings for unordered enumeration");
@@ -501,8 +517,8 @@ begin
    Write_Line ("        X    turn off warnings for export/import");
    Write_Line ("        .x+  turn on warnings for non-local exception");
    Write_Line ("        .X*  turn off warnings for non-local exception");
-   Write_Line ("        y*+  turn on warnings for Ada 2005 incompatibility");
-   Write_Line ("        Y    turn off warnings for Ada 2005 incompatibility");
+   Write_Line ("        y*+  turn on warnings for Ada compatibility issues");
+   Write_Line ("        Y    turn off warnings for Ada compatibility issues");
    Write_Line ("        z*+  turn on warnings for suspicious " &
                                                   "unchecked conversion");
    Write_Line ("        Z    turn off warnings for suspicious " &
@@ -548,7 +564,8 @@ begin
    Write_Line ("        A    check array attribute indexes");
    Write_Line ("        b    check no blanks at end of lines");
    Write_Line ("        B    check no use of AND/OR for boolean expressions");
-   Write_Line ("        c    check comment format");
+   Write_Line ("        c    check comment format (two spaces)");
+   Write_Line ("        C    check comment format (one space)");
    Write_Line ("        d    check no DOS line terminators");
    Write_Line ("        e    check end/exit labels present");
    Write_Line ("        f    check no form feeds/vertical tabs in source");
@@ -594,7 +611,7 @@ begin
    --  Line for -gnat83 switch
 
    Write_Switch_Char ("83");
-   Write_Line ("Enforce Ada 83 restrictions");
+   Write_Line ("Ada 83 mode");
 
    --  Line for -gnat95 switch
 
@@ -603,27 +620,27 @@ begin
    if Ada_Version_Default = Ada_95 then
       Write_Line ("Ada 95 mode (default)");
    else
-      Write_Line ("Enforce Ada 95 restrictions");
+      Write_Line ("Ada 95 mode");
    end if;
 
-   --  Line for -gnat05 switch
+   --  Line for -gnat2005 switch
 
-   Write_Switch_Char ("05");
+   Write_Switch_Char ("2005");
 
    if Ada_Version_Default = Ada_2005 then
       Write_Line ("Ada 2005 mode (default)");
    else
-      Write_Line ("Enforce Ada 2005 restrictions");
+      Write_Line ("Ada 2005 mode");
    end if;
 
-   --  Line for -gnat12 switch
+   --  Line for -gnat2012 switch
 
-   Write_Switch_Char ("12");
+   Write_Switch_Char ("2012");
 
    if Ada_Version_Default = Ada_2012 then
       Write_Line ("Ada 2012 mode (default)");
    else
-      Write_Line ("Allow Ada 2012 extensions");
+      Write_Line ("Ada 2012 mode");
    end if;
 
    --  Line for -gnat-p switch

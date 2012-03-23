@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 #   Copyright 1994, 1995, 1996, 1997, 1998, 1999, 2001, 2002, 2003, 2004
-#   2005, 2006, 2009, 2011 Free Software Foundation, Inc.
+#   2005, 2006, 2009, 2011, 2012 Free Software Foundation, Inc.
 #   Originally contributed by Dave Love (d.love@dl.ac.uk).
 #
 #This file is part of GCC.
@@ -71,13 +71,6 @@ AC_ARG_ENABLE(objc-gc,
     OBJC_GCFLAGS='-DOBJC_WITH_GC=1'
     OBJC_BOEHM_GC='libobjc_gc$(libsuffix).la'
     OBJC_BOEHM_GC_INCLUDES='-I$(top_srcdir)/../boehm-gc/include -I../boehm-gc/include'
-    case "${host}" in
-      alpha*-dec-osf*)
-        # boehm-gc headers include <pthread.h>, which needs to be compiled
-	# with -pthread on Tru64 UNIX.
-        OBJC_GCFLAGS="${OBJC_GCFLAGS} -pthread"
-	;;
-    esac
     ;;
 esac],
 [OBJC_GCFLAGS=''; OBJC_BOEHM_GC=''; OBJC_BOEHM_GC_INCLUDES=''])
@@ -216,15 +209,6 @@ AC_CHECK_HEADERS(sched.h)
 # -----------
 # Miscellanea
 # -----------
-
-AC_MSG_CHECKING([for thread model used by GCC])
-target_thread_file=`$CC -v 2>&1 | sed -n 's/^Thread model: //p'`
-AC_MSG_RESULT([$target_thread_file]) 
-
-if test $target_thread_file != single; then
-  AC_DEFINE(HAVE_GTHR_DEFAULT, 1,
-        [Define if the compiler has a thread header that is non single.])
-fi 
 
 # Check if we have thread-local storage
 GCC_CHECK_TLS

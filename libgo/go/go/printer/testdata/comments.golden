@@ -22,7 +22,7 @@ const (
 	_	= iota + 10
 	_	// comments
 
-	_	= 10		// comment
+	_		= 10	// comment
 	_	T	= 20	// comment
 )
 
@@ -38,9 +38,9 @@ const (
 	_			// comment
 	_			// comment
 	_	= iota + 10
-	_	// comment
-	_	= 10
-	_	= 20		// comment
+	_		// comment
+	_		= 10
+	_		= 20	// comment
 	_	T	= 0	// comment
 )
 
@@ -106,8 +106,7 @@ type S3 struct {
 var x int	// x
 var ()
 
-
-// This comment SHOULD be associated with the next declaration.
+// This comment SHOULD be associated with f0.
 func f0() {
 	const pi = 3.14	// pi
 	var s1 struct{}	/* an empty struct */	/* foo */
@@ -116,8 +115,9 @@ func f0() {
 	var s2 struct{} = struct{}{}
 	x := pi
 }
+
 //
-// NO SPACE HERE
+// This comment should be associated with f1, with one blank line before the comment.
 //
 func f1() {
 	f0()
@@ -128,11 +128,9 @@ func f1() {
 	f0()
 }
 
-
 func _() {
 	// this comment should be properly indented
 }
-
 
 func _(x int) int {
 	if x < 0 {	// the tab printed before this comment's // must not affect the remaining lines
@@ -143,7 +141,6 @@ func _(x int) int {
 	}
 	return x
 }
-
 
 func typeswitch(x interface{}) {
 	switch v := x.(type) {
@@ -171,6 +168,91 @@ func typeswitch(x interface{}) {
 	// this comment should not be indented
 }
 
+//
+// Indentation of comments after possibly indented multi-line constructs
+// (test cases for issue 3147).
+//
+
+func _() {
+	s := 1 +
+		2
+	// should be indented like s
+}
+
+func _() {
+	s := 1 +
+		2	// comment
+	// should be indented like s
+}
+
+func _() {
+	s := 1 +
+		2	// comment
+	// should be indented like s
+	_ = 0
+}
+
+func _() {
+	s := 1 +
+		2
+	// should be indented like s
+	_ = 0
+}
+
+func _() {
+	s := 1 +
+		2
+
+	// should be indented like s
+}
+
+func _() {
+	s := 1 +
+		2	// comment
+
+	// should be indented like s
+}
+
+func _() {
+	s := 1 +
+		2	// comment
+
+	// should be indented like s
+	_ = 0
+}
+
+func _() {
+	s := 1 +
+		2
+
+	// should be indented like s
+	_ = 0
+}
+
+// Test case from issue 3147.
+func f() {
+	templateText := "a" +	// A
+		"b" +	// B
+		"c"	// C
+
+	// should be aligned with f()
+	f()
+}
+
+// Modified test case from issue 3147.
+func f() {
+	templateText := "a" +	// A
+		"b" +	// B
+		"c"	// C
+
+		// may not be aligned with f() (source is not aligned)
+	f()
+}
+
+//
+// Test cases for alignment of lines in general comments.
+//
+
 func _() {
 	/* freestanding comment
 	   aligned		line
@@ -210,7 +292,6 @@ func _() {
 		aligned		line
 		aligned line */
 }
-
 
 func _() {
 	/*
@@ -291,7 +372,6 @@ func _() {
 	/*	freestanding comment
 		aligned line */
 }
-
 
 func _() {
 	/*
@@ -409,18 +489,18 @@ func _() {
 	*/
 }
 
-
-// Some interesting interspersed comments
+// Some interesting interspersed comments.
+// See below for more common cases.
 func _( /* this */ x /* is */ /* an */ int) {
 }
 
-func _( /* no params */ )	{}
+func _( /* no params */)	{}
 
 func _() {
-	f( /* no args */ )
+	f( /* no args */)
 }
 
-func ( /* comment1 */ T /* comment2 */ ) _()	{}
+func ( /* comment1 */ T /* comment2 */) _()	{}
 
 func _() { /* one-line functions with comments are formatted as multi-line functions */
 }
@@ -431,12 +511,32 @@ func _() {
 }
 
 func _() {
-	_ = []int{0, 1 /* don't introduce a newline after this comment - was issue 1365 */ }
+	_ = []int{0, 1 /* don't introduce a newline after this comment - was issue 1365 */}
 }
 
+// Test cases from issue 1542:
+// Comments must not be placed before commas and cause invalid programs.
+func _() {
+	var a = []int{1, 2	/*jasldf*/}
+	_ = a
+}
 
-// Comments immediately adjacent to punctuation (for which the go/printer
-// may obly have estimated position information) must remain after the punctuation.
+func _() {
+	var a = []int{1, 2}/*jasldf
+	 */
+
+	_ = a
+}
+
+func _() {
+	var a = []int{1, 2}// jasldf 
+
+	_ = a
+}
+
+// Comments immediately adjacent to punctuation followed by a newline
+// remain after the punctuation (looks better and permits alignment of
+// comments).
 func _() {
 	_ = T{
 		1,	// comment after comma
@@ -466,6 +566,53 @@ func _() {
 	}
 }
 
+// If there is no newline following punctuation, commas move before the punctuation.
+// This way, commas interspersed in lists stay with the respective expression.
+func f(x /* comment */, y int, z int /* comment */, u, v, w int /* comment */) {
+	f(x /* comment */, y)
+	f(x,	/* comment */
+		y)
+	f(
+		x,	/* comment */
+	)
+}
+
+func g(
+	x int,	/* comment */
+) {
+}
+
+type _ struct {
+	a, b /* comment */, c int
+}
+
+type _ struct {
+	a, b /* comment */, c int
+}
+
+func _() {
+	for a /* comment */, b := range x {
+	}
+}
+
+// Print line directives correctly.
+
+// The following is a legal line directive.
+//line foo:1
+func _() {
+	_ = 0
+	// The following is a legal line directive. It must not be indented:
+//line foo:2
+	_ = 1
+
+	// The following is not a legal line directive (it doesn't start in column 1):
+	//line foo:2
+	_ = 2
+
+	// The following is not a legal line directive (negative line number):
+	//line foo:-3
+	_ = 3
+}
 
 // Line comments with tabs
 func _() {
@@ -478,6 +625,5 @@ func _() {
 	var vflag string	// -v [y.output]	- y.output file
 	var lflag bool		// -l			- disable line directives
 }
-
 
 /* This comment is the last entry in this file. It must be printed and should be followed by a newline */

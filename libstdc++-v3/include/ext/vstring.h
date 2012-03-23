@@ -1,6 +1,6 @@
 // Versatile string -*- C++ -*-
 
-// Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011
+// Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -32,7 +32,10 @@
 
 #pragma GCC system_header
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <initializer_list>
+#endif
+
 #include <ext/vstring_util.h>
 #include <ext/rc_string_base.h>
 #include <ext/sso_string_base.h>
@@ -141,7 +144,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
       // NB: per LWG issue 42, semantics different from IS:
       /**
-       *  @brief  Construct string with copy of value of @a str.
+       *  @brief  Construct string with copy of value of @a __str.
        *  @param  __str  Source string.
        */
       __versa_string(const __versa_string& __str)
@@ -153,7 +156,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
        *  @param  __str  Source string.
        *
        *  The newly-constructed %string contains the exact contents of
-       *  @a str.  The contents of @a str are a valid, but unspecified
+       *  @a __str.  The contents of @a __str are a valid, but unspecified
        *  string.
        */
       __versa_string(__versa_string&& __str) noexcept
@@ -235,7 +238,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
        *  @param  __end  End of range.
        *  @param  __a  Allocator to use (default is default allocator).
        */
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<class _InputIterator,
+	       typename = std::_RequireInputIter<_InputIterator>>
+#else
       template<class _InputIterator>
+#endif
         __versa_string(_InputIterator __beg, _InputIterator __end,
 		       const _Alloc& __a = _Alloc())
 	: __vstring_base(__beg, __end, __a) { }
@@ -759,7 +767,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
        *
        *  Appends characters in the range [first,last) to this string.
        */
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<class _InputIterator,
+	       typename = std::_RequireInputIter<_InputIterator>>
+#else
       template<class _InputIterator>
+#endif
         __versa_string&
         append(_InputIterator __first, _InputIterator __last)
         { return this->replace(_M_iend(), _M_iend(), __first, __last); }
@@ -883,7 +896,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
        *  Sets value of string to characters in the range
        *  [first,last).
       */
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<class _InputIterator,
+	       typename = std::_RequireInputIter<_InputIterator>>
+#else
       template<class _InputIterator>
+#endif
         __versa_string&
         assign(_InputIterator __first, _InputIterator __last)
         { return this->replace(_M_ibegin(), _M_iend(), __first, __last); }
@@ -928,7 +946,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
        *  thrown.  The value of the string doesn't change if an error
        *  is thrown.
       */
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<class _InputIterator,
+	       typename = std::_RequireInputIter<_InputIterator>>
+#else
       template<class _InputIterator>
+#endif
         void
         insert(iterator __p, _InputIterator __beg, _InputIterator __end)
         { this->replace(__p, __p, __beg, __end); }
@@ -1136,6 +1159,17 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	this->_M_set_leaked();
 	return iterator(this->_M_data() + __pos);
       }
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      /**
+       *  @brief  Remove the last character.
+       *
+       *  The string must be non-empty.
+       */
+      void
+      pop_back()
+      { this->_M_erase(size()-1, 1); }
+#endif // __GXX_EXPERIMENTAL_CXX0X__
 
       /**
        *  @brief  Replace characters with value from another string.
@@ -1353,6 +1387,20 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
        *  of result exceeds max_size(), length_error is thrown.  The
        *  value of the string doesn't change if an error is thrown.
       */
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<class _InputIterator,
+	       typename = std::_RequireInputIter<_InputIterator>>
+        __versa_string&
+        replace(iterator __i1, iterator __i2,
+		_InputIterator __k1, _InputIterator __k2)
+        {
+	  _GLIBCXX_DEBUG_PEDASSERT(_M_ibegin() <= __i1 && __i1 <= __i2
+				   && __i2 <= _M_iend());
+	  __glibcxx_requires_valid_range(__k1, __k2);
+	  return this->_M_replace_dispatch(__i1, __i2, __k1, __k2,
+					   std::__false_type());
+	}
+#else
       template<class _InputIterator>
         __versa_string&
         replace(iterator __i1, iterator __i2,
@@ -1364,6 +1412,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  typedef typename std::__is_integer<_InputIterator>::__type _Integral;
 	  return this->_M_replace_dispatch(__i1, __i2, __k1, __k2, _Integral());
 	}
+#endif
 
       // Specializations for the common case of pointer and iterator:
       // useful to avoid the overhead of temporary buffering in _M_replace.
@@ -2022,14 +2071,14 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
       /**
        *  @brief  Compare substring against a character array.
-       *  @param __pos1  Index of first character of substring.
+       *  @param __pos  Index of first character of substring.
        *  @param __n1  Number of characters in substring.
        *  @param __s  character array to compare against.
        *  @param __n2  Number of characters of s.
        *  @return  Integer < 0, 0, or > 0.
        *
        *  Form the substring of this string from the @a __n1
-       *  characters starting at @a __pos1.  Form a string from the
+       *  characters starting at @a __pos.  Form a string from the
        *  first @a __n2 characters of @a __s.  Returns an integer < 0
        *  if this substring is ordered before the string from @a __s,
        *  0 if their values are equivalent, or > 0 if this substring
@@ -2037,11 +2086,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
        *  effective length rlen of the strings to compare as the
        *  smallest of the length of the substring and @a __n2.  The
        *  function then compares the two strings by calling
-       *  traits::compare(substring.data(),s,rlen).  If the result of
+       *  traits::compare(substring.data(),__s,rlen).  If the result of
        *  the comparison is nonzero returns it, otherwise the shorter
        *  one is ordered first.
        *
-       *  NB: s must have at least n2 characters, <em>\\0</em> has no special
+       *  NB: __s must have at least n2 characters, <em>\\0</em> has no special
        *  meaning.
       */
       int
@@ -2755,7 +2804,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     : public __hash_base<size_t, __gnu_cxx::__vstring>
     {
       size_t
-      operator()(const __gnu_cxx::__vstring& __s) const
+      operator()(const __gnu_cxx::__vstring& __s) const noexcept
       { return std::_Hash_impl::hash(__s.data(), __s.length()); }
     };
 
@@ -2766,7 +2815,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     : public __hash_base<size_t, __gnu_cxx::__wvstring>
     {
       size_t
-      operator()(const __gnu_cxx::__wvstring& __s) const
+      operator()(const __gnu_cxx::__wvstring& __s) const noexcept
       { return std::_Hash_impl::hash(__s.data(),
                                      __s.length() * sizeof(wchar_t)); }
     };
@@ -2779,7 +2828,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     : public __hash_base<size_t, __gnu_cxx::__u16vstring>
     {
       size_t
-      operator()(const __gnu_cxx::__u16vstring& __s) const
+      operator()(const __gnu_cxx::__u16vstring& __s) const noexcept
       { return std::_Hash_impl::hash(__s.data(),
                                      __s.length() * sizeof(char16_t)); }
     };
@@ -2790,7 +2839,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     : public __hash_base<size_t, __gnu_cxx::__u32vstring>
     {
       size_t
-      operator()(const __gnu_cxx::__u32vstring& __s) const
+      operator()(const __gnu_cxx::__u32vstring& __s) const noexcept
       { return std::_Hash_impl::hash(__s.data(),
                                      __s.length() * sizeof(char32_t)); }
     };

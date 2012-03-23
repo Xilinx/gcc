@@ -567,10 +567,7 @@ java_init_decl_processing (void)
   global_binding_level = current_binding_level;
 
   /* Build common tree nodes, Java has an unsigned char.  */
-  build_common_tree_nodes (false);
-
-  /* Build the rest of the common tree nodes.  */
-  build_common_tree_nodes_2 (0);
+  build_common_tree_nodes (false, false);
 
   /* ???  Now we continue and override some of the built types again
      with Java specific types.  As the above generated types are
@@ -1138,7 +1135,7 @@ java_init_decl_processing (void)
 
   initialize_builtins ();
 
-  soft_fmod_node = built_in_decls[BUILT_IN_FMOD];
+  soft_fmod_node = builtin_decl_explicit (BUILT_IN_FMOD);
 
   parse_version ();
 }

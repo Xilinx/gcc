@@ -1,6 +1,7 @@
 // Debugging vector implementation -*- C++ -*-
 
-// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+// Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
+// 2012
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -47,11 +48,14 @@ namespace __debug
       public __gnu_debug::_Safe_sequence<vector<_Tp, _Allocator> >
     {
       typedef _GLIBCXX_STD_C::vector<_Tp, _Allocator> _Base;
-      typedef __gnu_debug::_Safe_sequence<vector>              _Safe_base;
 
       typedef typename _Base::iterator _Base_iterator;
       typedef typename _Base::const_iterator _Base_const_iterator;
       typedef __gnu_debug::_Equal_to<_Base_const_iterator> _Equal;
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      typedef __gnu_cxx::__alloc_traits<_Allocator>  _Alloc_traits;
+#endif
 
     public:
       typedef typename _Base::reference             reference;
@@ -92,7 +96,12 @@ namespace __debug
       : _Base(__n, __value, __a), _M_guaranteed_capacity(__n) { }
 #endif
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<class _InputIterator,
+	       typename = std::_RequireInputIter<_InputIterator>>
+#else
       template<class _InputIterator>
+#endif
         vector(_InputIterator __first, _InputIterator __last,
 	       const _Allocator& __a = _Allocator())
         : _Base(__gnu_debug::__base(__gnu_debug::__check_valid_range(__first,
@@ -102,24 +111,35 @@ namespace __debug
         { _M_update_guaranteed_capacity(); }
 
       vector(const vector& __x)
-      : _Base(__x), _Safe_base(), _M_guaranteed_capacity(__x.size()) { }
+      : _Base(__x), _M_guaranteed_capacity(__x.size()) { }
 
       /// Construction from a release-mode vector
       vector(const _Base& __x)
-      : _Base(__x), _Safe_base(), _M_guaranteed_capacity(__x.size()) { }
+      : _Base(__x), _M_guaranteed_capacity(__x.size()) { }
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       vector(vector&& __x) noexcept
-      : _Base(std::move(__x)), _Safe_base(),
+      : _Base(std::move(__x)),
 	_M_guaranteed_capacity(this->size())
       {
 	this->_M_swap(__x);
 	__x._M_guaranteed_capacity = 0;
       }
 
+      vector(const vector& __x, const allocator_type& __a)
+      : _Base(__x, __a), _M_guaranteed_capacity(__x.size()) { }
+
+      vector(vector&& __x, const allocator_type& __a)
+      : _Base(std::move(__x), __a),
+        _M_guaranteed_capacity(this->size())
+      {
+	__x._M_invalidate_all();
+	__x._M_guaranteed_capacity = 0;
+      }
+
       vector(initializer_list<value_type> __l,
 	     const allocator_type& __a = allocator_type())
-      : _Base(__l, __a), _Safe_base(),
+      : _Base(__l, __a),
 	_M_guaranteed_capacity(__l.size()) { }
 #endif
 
@@ -136,12 +156,14 @@ namespace __debug
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
       vector&
-      operator=(vector&& __x)
+      operator=(vector&& __x) noexcept(_Alloc_traits::_S_nothrow_move())
       {
-	// NB: DR 1204.
-	// NB: DR 675.
-	clear();
-	swap(__x);
+	__glibcxx_check_self_move_assign(__x);
+	_Base::operator=(std::move(__x));
+	this->_M_invalidate_all();
+	_M_update_guaranteed_capacity();
+	__x._M_invalidate_all();
+	__x._M_guaranteed_capacity = 0;
 	return *this;
       }
 
@@ -155,7 +177,12 @@ namespace __debug
       }
 #endif
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<typename _InputIterator,
+	       typename = std::_RequireInputIter<_InputIterator>>
+#else
       template<typename _InputIterator>
+#endif
         void
         assign(_InputIterator __first, _InputIterator __last)
         {
@@ -461,7 +488,12 @@ namespace __debug
 	_M_update_guaranteed_capacity();
       }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+      template<class _InputIterator,
+	       typename = std::_RequireInputIter<_InputIterator>>
+#else
       template<class _InputIterator>
+#endif
         void
         insert(iterator __position,
 	       _InputIterator __first, _InputIterator __last)
@@ -500,15 +532,23 @@ namespace __debug
 	// 151. can't currently clear() empty container
 	__glibcxx_check_erase_range(__first, __last);
 
-	difference_type __offset = __first.base() - _Base::begin();
-	_Base_iterator __res = _Base::erase(__first.base(),
-						      __last.base());
-	this->_M_invalidate_after_nth(__offset);
-	return iterator(__res, this);
+	if (__first.base() != __last.base())
+	  {
+	    difference_type __offset = __first.base() - _Base::begin();
+	    _Base_iterator __res = _Base::erase(__first.base(),
+						__last.base());
+	    this->_M_invalidate_after_nth(__offset);
+	    return iterator(__res, this);
+	  }
+	else
+	  return __first;
       }
 
       void
       swap(vector& __x)
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+			noexcept(_Alloc_traits::_S_nothrow_swap())
+#endif
       {
 	_Base::swap(__x);
 	this->_M_swap(__x);
@@ -602,7 +642,7 @@ namespace __debug
     : public __hash_base<size_t, __debug::vector<bool, _Alloc>>
     {
       size_t
-      operator()(const __debug::vector<bool, _Alloc>& __b) const
+      operator()(const __debug::vector<bool, _Alloc>& __b) const noexcept
       { return std::hash<_GLIBCXX_STD_C::vector<bool, _Alloc>>()
 	  (__b._M_base()); }
     };

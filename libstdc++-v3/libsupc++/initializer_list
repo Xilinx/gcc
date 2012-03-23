@@ -32,7 +32,9 @@
 
 #pragma GCC system_header
 
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+# include <bits/c++0x_warning.h>
+#else // C++0x
 
 #pragma GCC visibility push(default)
 
@@ -80,7 +82,7 @@ namespace std
   /**
    *  @brief  Return an iterator pointing to the first element of
    *          the initilizer_list.
-   *  @param  il  Initializer list.
+   *  @param  __ils  Initializer list.
    */
   template<class _Tp>
     constexpr const _Tp*
@@ -90,7 +92,7 @@ namespace std
   /**
    *  @brief  Return an iterator pointing to one past the last element
    *          of the initilizer_list.
-   *  @param  il  Initializer list.
+   *  @param  __ils  Initializer list.
    */
   template<class _Tp>
     constexpr const _Tp*
@@ -99,5 +101,7 @@ namespace std
 }
 
 #pragma GCC visibility pop
-#endif // C++0x
+
+#endif // __GXX_EXPERIMENTAL_CXX0X__
+
 #endif // _INITIALIZER_LIST
