@@ -1,4 +1,13 @@
 
+2011-03-23  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (melt_checked_assignmsg_at): Macro expanding to
+	statement.
+	(melt_checked_assignmsg): Temporary no-op
+
+	* melt/warmelt-base.melt (checkval_dbg): Primitive with void
+	result.
+
 2011-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (meltgc_poll_inputs): Add declaration.
 	(meltgc_install_polling_channel): Remove declaration.

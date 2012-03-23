@@ -682,9 +682,9 @@ an integer $I if $I is lower than $N.}#
   #{debugbacktrace(($MSG), (int)($MAXDEPTH))}#)
 
 
-(defprimitive checkval_dbg (val :cstring msg) :value
+(defprimitive checkval_dbg (val :cstring msg) :void
   :doc #{Low-level costly check of value $VAL with message $MSG. Mostly useful for gurus.}#
-  #{melt_checked_assignmsg (($val),($msg))}#)
+  #{melt_checked_assignmsg (($VAL),($MSG))}#)
 
 (defprimitive debugcstring (:cstring msg str) :void
   :doc #{Debug cstring $MSG $STR.}#
