@@ -3094,7 +3094,7 @@ void melt_caught_assign_at(void*ptr, const char*fil, int lin, const char*msg);
         melt_caught_assign_at(p_##Lin,Fil,Lin,Msg); p_##Lin; } while(0)
 
 #define melt_checked_assign(Assign) melt_checked_assignmsg_at((Assign),__FILE__,__LINE__,__FUNCTION__) 
-#define melt_checked_assignmsg(Assign,Msg) Assign /* melt_checked_assignmsg_at((Assign),__FILE__,__LINE__,Msg) */
+#define melt_checked_assignmsg(Assign,Msg) melt_checked_assignmsg_at((Assign),__FILE__,__LINE__,Msg)
 
 void melt_cbreak_at(const char*msg, const char*fil, int lin);
 #define melt_cbreak(Msg) melt_cbreak_at((Msg),__FILE__,__LINE__)

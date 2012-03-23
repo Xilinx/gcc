@@ -1,6 +1,10 @@
 
 2011-03-23  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (melt_checked_assignmsg): Revert.
+
+2011-03-23  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
