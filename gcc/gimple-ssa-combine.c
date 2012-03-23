@@ -355,7 +355,6 @@ nonzerobits (tree val)
 	return double_int_and (tree_to_double_int (op0), nonzero);
       case MEM_REF:
 	return nonzero;
-      /* TODO handle the shifts and rotates. */
       case LROTATE_EXPR:
       case RROTATE_EXPR:
 	if (TREE_CODE (op1) != INTEGER_CST
@@ -424,6 +423,16 @@ nonzerobits (tree val)
       default:
 	return nonzero;
     }
+}
+
+static bool
+signbit_zero (tree expr)
+{
+  tree type = TREE_TYPE (expr);
+  double_int nonzero = nonzerobits (expr);
+  int prec = TYPE_PRECISION (type);
+  nonzero = double_int_sext (nonzero, prec);
+  return !double_int_negative_p (nonzero);
 }
 
 /* Given a ssa_name in NAME see if it was defined by an assignment and
@@ -780,6 +789,26 @@ forward_propagate_into_comparison (location_t loc,
 				     build_int_cst_type (TREE_TYPE (op0), 1));
       op0 = gimple_combine_convert (loc, type, op0);
       return op0;
+    }
+
+
+  /* X CMP 0 where we know X does not have its sign bit set or we have an
+     unsigned type. */
+  if (INTEGRAL_TYPE_P (TREE_TYPE (op0)) && integer_zerop (op1)
+      && (signbit_zero (op0) || TYPE_UNSIGNED (TREE_TYPE (op0))))
+    {
+      /* X < 0 -> 0 */
+      if (code == LT_EXPR)
+	return build_int_cst (type, 0);
+      /* X >= 0 -> 1 */
+      if (code == GE_EXPR)
+	return build_int_cst (type, 1);
+      /* X <= 0 -> X == 0 */
+      if (code == LE_EXPR)
+	return gimple_combine_build2 (loc, EQ_EXPR, type, op0, op1);
+      /* X > 0 -> X != 0 */
+      if (code == GT_EXPR)
+	return gimple_combine_build2 (loc, NE_EXPR, type, op0, op1);
     }
 
   /* FIXME: this really should not be using combine_cond_expr_cond (fold_binary)
@@ -1231,6 +1260,11 @@ simplify_not_neg_abs_expr (location_t loc, enum tree_code code,
 	  || (code0 == PLUS_EXPR
 	      && integer_all_onesp (arg2))))
     return gimple_combine_negate_expr (loc, type, arg1);
+
+  /* ABS<A> ->  A if the signbit is known to be 0. */
+  if (code == ABS_EXPR && signbit_zero (rhs)
+      && INTEGRAL_TYPE_P (type))
+    return rhs;
 
   return NULL_TREE;
 }
@@ -2256,6 +2290,11 @@ simplify_shift_rotate (location_t loc, enum tree_code code, tree type,
       && integer_all_onesp (arg0))
     return arg0;
 
+  /* Optimize -1 >> x for arithmetic right shifts.  */
+  if (code == RSHIFT_EXPR && integer_all_onesp (arg0)
+      && !TYPE_UNSIGNED (type) && signbit_zero (arg1))
+    return arg0;
+
   defcodefor_name (arg0, &def1_code, &def1_arg0, &def1_arg1);
   /* Turn (a OP c1) OP c2 into a OP (c1+c2). */
   if (def1_code == code && host_integerp (arg1, false)
@@ -2290,6 +2329,30 @@ simplify_shift_rotate (location_t loc, enum tree_code code, tree type,
        tem = gimple_combine_build2 (loc, MINUS_EXPR, TREE_TYPE (arg1), tem,
 				    arg1);
        return gimple_combine_build2 (loc, RROTATE_EXPR, type, arg0, tem);
+    }
+
+  /* Transform (x >> c) << c into x & (-1<<c), or transform (x << c) >> c
+     into x & ((unsigned)-1 >> c) for unsigned types.  */
+  if (((code == LSHIFT_EXPR && def1_code == RSHIFT_EXPR)
+        || (TYPE_UNSIGNED (type)
+	    && code == RSHIFT_EXPR && def1_code == LSHIFT_EXPR))
+       && host_integerp (arg1, false)
+       && TREE_INT_CST_LOW (arg1) < TYPE_PRECISION (type)
+       && host_integerp (def1_arg1, false)
+       && TREE_INT_CST_LOW (def1_arg1) < TYPE_PRECISION (type))
+    {
+      HOST_WIDE_INT low0 = TREE_INT_CST_LOW (def1_arg1);
+      HOST_WIDE_INT low1 = TREE_INT_CST_LOW (arg1);
+      tree lshift;
+
+      /* FIXME: this should work for vector types too. */
+      if (low0 == low1 && INTEGRAL_TYPE_P (type))
+	{
+	  lshift = build_int_cst (type, -1);
+	  lshift = gimple_combine_build2 (loc, code, type, lshift, arg1);
+
+	  return gimple_combine_build2 (loc, BIT_AND_EXPR, type, def1_arg0, lshift);
+	}
     }
 
 
@@ -3088,6 +3151,7 @@ tree
 gimple_combine_binary (location_t loc, enum tree_code code,
 		       tree type, tree arg1, tree arg2)
 {
+  double_int nz;
   if (code == ASSERT_EXPR)
     return NULL_TREE;
 
@@ -3108,6 +3172,12 @@ gimple_combine_binary (location_t loc, enum tree_code code,
       if (tmp)
 	return tmp;
     }
+
+  /* Check first to see if we know if the all the bits are
+     set to 0, if so just return 0.  */
+  nz = nonzerobits (build2 (code, type, arg1, arg2));
+  if (INTEGRAL_TYPE_P (type) && double_int_zero_p (nz))
+    return build_int_cst (type, 0);
 
   if (commutative_tree_code (code)
       && tree_swap_operands_p (arg1, arg2, true))

@@ -1,3 +1,20 @@
+2012-03-23  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-ssa-combine.c (nonzerobits): Remove the TODO
+	comment about shifts and rotates, they were already implemented.
+	(signbit_zero): New function.
+	(forward_propagate_into_comparison): Try to simplify
+	X CMP 0 when we know the argument is going to be non negative.
+	(simplify_not_neg_abs_expr): Try to simplify ABS<X> when
+	we know X is not going to have its sign bit set.
+	(simplify_shift_rotate): Simplify -1 >> x for artithmetic
+	right shifts when we know x is non negative.
+	Simplify (x >> c) << c into x & (-1<<c)
+	Simplify (x << c) >> c into x & ((unsigned)-1 >> c) for unsigned types.
+	(gimple_combine_binary): Simplify the binary expression
+	by looking at the nonzero bits and if there are none, then return the
+	constant 0.
+
 2012-03-22  Andrew Pinski  <apinski@cavium.com>
 
 	* gimple-ssa-combine.c (gimple_combine_allow_full_reassiocation): New
