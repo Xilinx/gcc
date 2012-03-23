@@ -1,3 +1,10 @@
+2012-03-23   Diego Novillo  <dnovillo@google.com>
+
+	* name-lookup.c (pph_set_identifier_binding): If DECL is a USING_DECL,
+	register the TYPE_DECL it is referring to.
+	(pph_set_namespace_decl_binding): Remove previous hack that skipped
+	USING_DECLs.
+
 2012-03-22   Lawrence Crowl  <crowl@google.com>
 
 	* error.c (dump_location_qualifier):  Add qualifier using

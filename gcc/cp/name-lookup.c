@@ -6197,15 +6197,27 @@ pph_set_identifier_binding (tree id, tree decl,
 			    cp_binding_level *bl, int flags)
 {
   tree old_value;
+  cxx_binding *b;
 
   /* FIXME pph: This code plagarizes from push_overloaded_decl_1 and
      binding_for_name.  It may be incomplete.  */
-
-  cxx_binding *b = cp_binding_level_find_binding_for_name (bl, id);
+  b = cp_binding_level_find_binding_for_name (bl, id);
   if (!b)
     {
       b = cxx_binding_make_for_name (bl, id);
-      b->value = decl;
+      if (TREE_CODE (decl) == USING_DECL)
+	{
+	  /* USING_DECLs cannot be registered into the binding.  Instead, we
+	     look up the TYPE_DECL it is pointing to by calling
+	     do_nonmember_using_decl.  */
+	  tree new_value, new_type;
+	  do_nonmember_using_decl (TREE_TYPE (decl), id, b->value, b->type,
+				   &new_value, &new_type);
+	  b->value = new_value;
+	  b->type = new_type;
+	}
+      else
+	b->value = decl;
       pph_debug_binding_action ("new bind", decl);
       return;
     }
@@ -6271,11 +6283,7 @@ pph_set_namespace_decl_binding (tree decl, cp_binding_level *bl, int flags)
 {
   /* Set the namespace identifier binding for a single decl.  */
   tree id = DECL_NAME (decl);
-  /* FIXME pph.  USING_DECLs do not seem to be used in bindings by
-     the parser. This was causing the SEGV in
-     testsuite/g++.dg/pph/x1mbstate_t.h.  It's unclear whether this is
-     the right fix.  */
-  if (id && TREE_CODE (decl) != USING_DECL)
+  if (id)
     pph_set_identifier_binding (id, decl, bl, flags);
 }
 
