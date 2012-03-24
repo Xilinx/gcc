@@ -1,3 +1,175 @@
+2012-03-21  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/auto3.C: Compile with -pedantic-errors.
+	* g++.dg/cpp0x/trailing2.C: Likewise.
+	* g++.dg/warn/pr23075.C: Change dg-warning to dg-bogus.
+	* g++.dg/cpp1y/auto-fn1.C: New.
+	* g++.dg/cpp1y/auto-fn2.C: New.
+	* g++.dg/cpp1y/auto-fn3.C: New.
+	* g++.dg/cpp1y/auto-fn4.C: New.
+	* g++.dg/cpp1y/auto-fn5.C: New.
+	* g++.dg/cpp1y/auto-fn6.C: New.
+	* g++.dg/cpp1y/auto-fn7.C: New.
+	* g++.dg/cpp1y/auto-fn8.C: New.
+	* g++.dg/cpp1y/auto-fn9.C: New.
+	* g++.dg/cpp1y/auto-fn10.C: New.
+	* g++.dg/cpp1y/auto-fn11.C: New.
+
+2012-03-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52678
+	* gfortran.dg/pr52678.f: New testcase.
+
+2012-03-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52638
+	* g++.dg/torture/pr52638.C: New testcase.
+
+2012-03-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/52487
+	* g++.dg/cpp0x/lambda/lambda-ice7.C: New.
+
+2012-03-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/52671
+	* g++.dg/ext/attrib44.C: New test.
+
+2012-03-22  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/51737
+	* g++.dg/torture/pr51737.C: New testcase
+
+2012-03-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52548
+	* gcc.dg/tree-ssa/ssa-pre-29.c: New testcase.
+
+2012-03-22  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* lib/fortran-modules.exp (list-module-names-1): Remove
+	warning.
+
+2012-03-21  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/50751
+	* gcc/target/sh/pr50751-1.c: New.
+	* gcc/target/sh/pr50751-2.c: New.
+	* gcc/target/sh/pr50751-3.c: New.
+
+2012-03-21  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/52479
+	* gcc.target/sh/sh4a-cos.c: Remove.
+	* gcc.target/sh/sh4a-sin.c: Remove.
+	* gcc.target/sh/sh4a-sincos.c: Remove.
+
+2012-03-21  Richard Earnshaw  <rearnsha@arm.com>
+
+	* gcc.target/arm/neon/vgetQ_laneu64.c: Regenerated.
+	* gcc.target/arm/neon/vgetQ_lanes64.c: Likewise.
+
+2012-03-21  Martin Jambor  <mjambor@suse.cz>
+
+	PR testsuite/52641
+	* gcc.dg/misaligned-expand-1.c (cst): Cast to int.
+	* gcc.dg/misaligned-expand-2.c (cst): Likewise.
+
+2012-03-21  Andrew Stubbs  <ams@codesourcery.com>
+
+	* gcc.target/arm/thumb-16bit-ops.c: New file.
+	* gcc.target/arm/thumb-ifcvt.c: New file.
+
+2012-03-20  Jason Merrill  <jason@redhat.com>
+
+	* lib/target-supports.exp: Add { target c++1y }.
+
+	* g++.dg/cpp0x/auto32.C: New.
+
+2012-03-20  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR testsuite/52641
+	* gcc.dg/torture/pr48124-1.c: Add dg-require-effective-target
+	int32plus.
+	* gcc.dg/torture/pr48124-4.c: Ditto:
+	* gcc.dg/torture/pr52530.c: Use long instead of int if int=16.
+	
+2012-03-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/52510
+	* g++.dg/cpp0x/initlist66.C: New.
+
+2012-03-20  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.target/avr/progmem.h (pgm_read_char): Define depending on
+	__AVR_HAVE_LPMX__
+
+2012-03-20  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49868
+	* gcc.target/avr/torture/addr-space-2.h: New file.
+	* gcc.target/avr/torture/addr-space-2-g.h: New test.
+	* gcc.target/avr/torture/addr-space-2-0.h: New test.
+	* gcc.target/avr/torture/addr-space-2-1.h: New test.
+	* gcc.target/avr/torture/addr-space-2-x.h: New test.
+
+2012-03-20  Richard Guenther  <rguenther@suse.de>
+
+	* gnat.dg/pack16.adb: New testcase.
+	* gnat.dg/pack16_pkg.ads: Likewise.
+	* gnat.dg/specs/pack8.ads: Likewise.
+	* gnat.dg/specs/pack8_pkg.ads: Likewise.
+
+2012-03-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* g++.dg/warn/Wuseless-cast.C: Extend.
+
+2012-03-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/14710
+	* g++.dg/warn/Wuseless-cast.C: New.
+
+2012-03-17  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/52608
+	* gfortran.dg/pr52608.f90: New test.
+
+2012-03-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52585
+	* gfortran.dg/proc_ptr_36.f90: New.
+
+2012-03-16  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/misaligned-expand-1.c: New test.
+	* gcc.dg/misaligned-expand-3.c: Likewise.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+	Kai Tietz  <ktietz@redhat.com>
+
+	PR middle-end/48814
+	* gcc.c-torture/execute/pr48814-1.c: New test.
+	* gcc.c-torture/execute/pr48814-2.c: New test.
+	* gcc.dg/tree-ssa/assign-1.c: New test.
+	* gcc.dg/tree-ssa/assign-2.c: New test.
+	* gcc.dg/tree-ssa/assign-3.c: New test.
+
+2012-03-16  Richard Guenther  <rguenther@suse.de>
+
+	* gnat.dg/specs/pack7.ads: New testcase.
+
+2012-03-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52568
+	* gcc.dg/torture/vshuf-4.inc: Add two new tests.
+	* gcc.dg/torture/vshuf-8.inc: Likewise.
+	* gcc.dg/torture/vshuf-16.inc: Likewise.
+	* gcc.dg/torture/vshuf-32.inc: Likewise.
+
+2012-03-15  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/torture/pr52582.C: New.
+
 2012-03-15  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
 
 	* lib/fortran-modules.exp: New file which was forgotten in r185430.
@@ -238,10 +410,10 @@
 
 	PR target/49868
 	* gcc.target/avr/torture/addr-space-1.h: New file.
-	* gcc.target/avr/torture/addr-space-g.h: New test.
-	* gcc.target/avr/torture/addr-space-0.h: New test.
-	* gcc.target/avr/torture/addr-space-1.h: New test.
-	* gcc.target/avr/torture/addr-space-x.h: New test.
+	* gcc.target/avr/torture/addr-space-1-g.h: New test.
+	* gcc.target/avr/torture/addr-space-1-0.h: New test.
+	* gcc.target/avr/torture/addr-space-1-1.h: New test.
+	* gcc.target/avr/torture/addr-space-1-x.h: New test.
 
 2012-03-12  Andrew Pinski  <apinski@cavium.com>
 

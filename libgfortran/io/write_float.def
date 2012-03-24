@@ -180,13 +180,6 @@ output_float (st_parameter_dt *dtp, const fnode *f, char *buffer, size_t size,
       /* Make sure the decimal point is a '.'; depending on the
 	 locale, this might not be the case otherwise.  */
       digits[nbefore] = '.';
-      if (digits[0] == '0' && nbefore == 1)
-	{
-	  digits++;
-	  nbefore--;
-	  ndigits--;
-	}
-      //printf("nbefore: %d, digits: %s\n", nbefore, digits);
       if (p != 0)
 	{
 	  if (p > 0)
@@ -200,7 +193,6 @@ output_float (st_parameter_dt *dtp, const fnode *f, char *buffer, size_t size,
 		nafter = 0;
 	      nafter = d;
 	      nzero = nzero_real = 0;
-	      //printf("digits: %s\n", digits);
 	    }
 	  else /* p < 0  */
 	    {
@@ -231,13 +223,19 @@ output_float (st_parameter_dt *dtp, const fnode *f, char *buffer, size_t size,
 	  nafter = d;
 	}
 
+      while (digits[0] == '0' && nbefore > 0)
+	{
+	  digits++;
+	  nbefore--;
+	  ndigits--;
+	}
+
       expchar = 0;
       /* If we need to do rounding ourselves, get rid of the dot by
 	 moving the fractional part.  */
       if (dtp->u.p.current_unit->round_status != ROUND_UNSPECIFIED
 	  && dtp->u.p.current_unit->round_status != ROUND_PROCDEFINED)
 	memmove (digits + nbefore, digits + nbefore + 1, ndigits - nbefore);
-      //printf("nbefore after p handling: %d, digits: %s\n", nbefore, digits);
       break;
 
     case FMT_E:
@@ -344,7 +342,6 @@ output_float (st_parameter_dt *dtp, const fnode *f, char *buffer, size_t size,
 	/* Round compatible unless there is a tie. A tie is a 5 with
 	   all trailing zero's.  */
 	i = nafter + nbefore;
-	//printf("I = %d, digits = %s, nbefore = %d\n", i, digits, nbefore);
 	if (digits[i] == '5')
 	  {
 	    for(i++ ; i < ndigits; i++)
@@ -404,7 +401,6 @@ output_float (st_parameter_dt *dtp, const fnode *f, char *buffer, size_t size,
   else if (nbefore + nafter < ndigits)
     {
       i = ndigits = nbefore + nafter;
-      //printf("i: %d, digits: %s, nbefore: %d, nafter: %d\n", i, digits, nbefore, nafter);
       if (digits[i] >= rchar)
 	{
 	  /* Propagate the carry.  */

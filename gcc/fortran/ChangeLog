@@ -1,3 +1,35 @@
+2012-03-23  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* gfortran.h (GFC_MAX_LINE): Remove unused macro.
+
+2012-03-19  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/52559
+	* error.c (gfc_widechar_display_length): Consider tabs as
+	one character wide, as they're displayed as spaces.
+	(show_locus): Move tab handling to...
+	(print_wide_char_into_buffer): ... here.
+
+2012-03-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52585
+	* trans-intrinsic.c (gfc_conv_associated): Fix handling of
+	procpointer dummy arguments.
+
+2012-03-16  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* trans-intrinsic.c (build_round_expr): Don't use BUILT_IN_IROUND
+	for __float128.
+
+2012-03-15  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* f95-lang.c (gfc_init_builtin_functions): Initialize
+	BUILT_IN_IROUND.
+	* mathbuiltins.def: Add IROUND.
+	* trans-intrinsic.c (build_round_expr): Use BUILT_IN_IROUND if
+	type size matches.
+	(gfc_build_intrinsic_lib_fndecls): Build iround functions.
+
 2012-03-12  Richard Guenther  <rguenther@suse.de>
 
 	* f95-lang.c (builtin_type_for_size): Use gfc_type_for_size.
