@@ -1,3 +1,158 @@
+2012-03-23  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (build_accesses_from_assign): Remove FIXME comment.
+
+2012-03-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52678
+	* tree-vectorizer.h (struct _stmt_vec_info): Add
+	loop_phi_evolution_part member.
+	(STMT_VINFO_LOOP_PHI_EVOLUTION_PART): New define.
+	* tree-vect-loop.c (vect_analyze_scalar_cycles_1): Initialize
+	STMT_VINFO_LOOP_PHI_EVOLUTION_PART.
+	* tree-vect-loop-manip.c (vect_update_ivs_after_vectorizer):
+	Use the cached evolution part and the PHI nodes value from
+	the loop preheader edge instead of re-analyzing the evolution.
+
+2012-03-22  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/mips/mips-tables.opt: Update.
+	* config/mips/mips.md (processor): Add xlp.
+	* config/mips/mips-cpus.def: Add xlp.
+	* config/mips/mips.c (mips_rtx_cost_data): Add costs for XLP, copy from
+	5KF for now.
+	* config/mips/mips.h (MIPS_ISA_LEVEL_SPEC): Handle xlp.
+	* doc/invoke.texi: Mention XLP.
+
+2012-03-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/52547
+	* tree-nested.c (convert_tramp_reference_stmt): Call declare_vars
+	on any new_local_var_chain vars declared during recursing on
+	GIMPLE_OMP_PARALLEL or GIMPLE_OMP_TASK body.
+
+2012-03-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.h (ASM_OUTPUT_ALIGN): Move to config/alpha/elf.h
+	(ASM_OUTPUT_SKIP): Move to config/alpha/vms.h
+	(ASM_OUTPUT_LOCAL): Ditto.
+	(ASM_OUTPUT_COMMON): Remove.
+	* config/alpha/elf.h (ASM_OUTPUT_DEF_FROM_DECLS): Use ASM_OUTPUT_DEF.
+	* config/alpha/vms.h (ASM_OUTPUT_ALIGN): Do not undefine before define.
+
+2012-03-22  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/51737
+	* cgraph.c (cgraph_remove_node_and_inline_clones): Add FORBIDDEN_NODE
+	parameter.
+	* cgraph.h (cgraph_remove_node_and_inline_clones): Update prototype.
+	* ipa-inline-transform.c (save_inline_function_body): Remove
+	copied clone if needed.
+	* tree-inline.c (delete_unreachable_blocks_update_callgraph): Update.
+
+2012-03-22  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52666
+	* fold-const.c (fold_ternary_loc): Fix typo.
+
+2012-03-22  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/52496
+	* config/avr/avr.md (unspec): Remove UNSPEC_MEMORY_BARRIER.
+	(unspecv): Add UNSPECV_MEMORY_BARRIER.
+	(cli_sei): Use unspec_volatile instead of unspec for memory barrier.
+	(delay_cycles_1, delay_cycles_2): Ditto.
+	(delay_cycles_3, delay_cycles_4): Ditto.
+	(nopv, *nopv): Ditto.
+	(sleep, *sleep): Ditto.
+	(wdr, *wdr): Ditto.
+
+2012-03-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52548
+	* tree-ssa-pre.c (valid_in_sets): Remove handling of invalidation
+	because of clobbers.
+	(prune_clobbered_mems): New function.
+	(compute_antic_aux): Use it to prune ANTIC_OUT.
+	(compute_partial_antic_aux): Use it to prune PA_IN.
+	(compute_avail): Only insert expressions into EXP_GEN that are not
+	invalidated when translated up to the beginning of the block.
+
+2012-03-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52638
+	* tree-vect-stmts.c (vect_init_vector_1): New function, split
+	out from ...
+	(vect_init_vector): ... here.  Handle scalar vector inits.
+	(vect_get_vec_def_for_operand): Adjust.
+	(vectorizable_load): Likewise.
+
+2012-03-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config.gcc (alpha*-*-linux*): Add elfos.h to tm_file.
+	(alpha*-*-freebsd*): Ditto.
+	(alpha*-*-netbsd*): Ditto.
+	(alpha*-*-openbsd*): Ditto.
+	* config/alpha/elf.h (OBJECT_FORMAT_ELF): Remove.
+	(DWARF2_DEBUGGING_INFO): Remove.
+	(PREFERRED_DEBUGGING_TYPE): Remove.
+	(ASM_FINAL_SPEC): Remove.
+	(IDENT_ASM_OP): Remove.
+	(ASM_OUTPUT_IDENT): Remove.
+	(SKIP_ASM_OP): Remove.
+	(ASM_OUTPUT_SKIP): Remove.
+	(ALIGN_ASM_OP): Remove.
+	(ASM_OUTPUT_BEFORE_CASE_LABEL): Remove.
+	(ASM_OUTPUT_CASE_LABEL): Remove.
+	(ASM_OUTPUT_EXTERNAL_LIBCALL): Remove.
+	(COMMON_ASM_OP): Remove.
+	(ASM_OUTPUT_ALIGNED_COMMON): Remove.
+	(ASCII_DATA_ASM_OP): Remove.
+	(READONLY_DATA_SECTION_ASM_OP): Remove.
+	(INIT_SECTION_ASM_OP): Remove.
+	(FINI_SECTION_ASM_OP): Remove.
+	(ASM_SECTION_START_OP): Remove.
+	(ASM_OUTPUT_SECTION_START_FILE): Remove.
+	(TARGET_ASM_NAMED_SECTION): Remove.
+	(TARGET_ASM_SELECT_SECTION): Remove.
+	(MAKE_DECL_ONE_ONLY): Remove.
+	(TYPE_ASM_OP): Remove.
+	(SIZE_ASM_OP): Remove.
+	(ASM_WEAKEN_LABEL): Remove.
+	(TYPE_OPERAND_FMT): Remove.
+	(ASM_DECLARE_RESULT): Remove.
+	(ASM_DECLARE_OBJECT_NAME): Remove.
+	(ASM_FINISH_DECLARE_OBJECT): Remove.
+	(ELF_ASCII_ESCAPES): Remove.
+	(ELF_STRING_LIMIT): Remove.
+	(STRING_ASM_OP): Remove.
+	(ASM_OUTPUT_EXTERNAL): Remove.
+	(TARGET_ASM_FILE_START_FILE_DIRECTIVE): Redefine to false.
+	* config/alpha/alpha.h (PCC_BITFIELD_TYPE_MATTERS): Undefine
+	before define.
+	(ASM_DECLARE_FUNCTION_NAME): Ditto.
+	(ASM_DECLARE_FUNCTION_SIZE): Ditto.
+	(ASM_GENERATE_INTERNAL_LABEL): Ditto.
+	(ASM_OUTPUT_SKIP): Ditto.
+	(READONLY_DATA_SECTION_ASM_OP): Remove.
+	(USER_LABEL_PREFIX): Remove.
+	(ASM_OUTPUT_ASCII): Remove.
+	(ASM_OUTPUT_CASE_LABEL): Remove.
+	(NO_DOLLAR_IN_LABEL): Undefine.
+
+2012-03-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52459
+	* tree-ssa-pre.c (inhibit_phi_insertion): Do not inhibit
+	PHI insertion for calls.
+
+2012-03-21  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* cse.c (invalidate_from_sets_and_clobbers, try_back_substitute_reg,
+	find_sets_in_insn, canonicalize_insn): Split out from ...
+	(cse_insn): ... here.
+	(invalidate_from_clobbers): Take an insn instead of the pattern.
+
 2012-03-21  Oleg Endo  <olegendo@gcc.gnu.org>
 
 	PR target/52479
@@ -9,7 +164,7 @@
 
 	PR target/52642
 	* config/sh/sh.c (sh_expand_prologue): Emit blockage at the end of
-	prologue for unwinder and profiler.	
+	prologue for unwinder and profiler.
 
 2012-03-21  Andreas Tobler  <andreast@fgznet.ch>
 
@@ -494,8 +649,7 @@
 	(vect_pattern_recog): Add new argument.  Support basic blocks.
 	* tree-vect-stmts.c (vectorizable_conversion): Pass basic block
 	info to vect_is_simple_use_1.
-	* tree-vect-slp.c (vect_get_and_check_slp_defs): Support basic
-	blocks.
+	* tree-vect-slp.c (vect_get_and_check_slp_defs): Support basic blocks.
 	(vect_slp_analyze_bb_1): Call vect_pattern_recog.
 
 2012-03-15  Jakub Jelinek  <jakub@redhat.com>
@@ -556,8 +710,7 @@
 	* config/i386/i386.c (ix86_option_override_internal): Properly
 	check and set ix86_pmode.
 
-	* config/i386/i386.h (Pmode): Check ix86_pmode instead of
-	TARGET_64BIT.
+	* config/i386/i386.h (Pmode): Check ix86_pmode instead of TARGET_64BIT.
 
 	* config/i386/i386.opt (maddress-mode=): New.
 
