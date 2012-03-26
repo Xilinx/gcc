@@ -2155,7 +2155,9 @@ meltrout_112_warmelt_macro_MEXPAND_COMMENT (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_112_warmelt_macro_MEXPAND_COMMENT_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 25; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -2664,7 +2666,9 @@ meltrout_113_warmelt_macro_MEXPAND_CHEADER (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_113_warmelt_macro_MEXPAND_CHEADER_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 49; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -3729,7 +3733,9 @@ meltrout_114_warmelt_macro_PAIRLIST_TO_PROGN (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_114_warmelt_macro_PAIRLIST_TO_PROGN_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 27; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -4416,7 +4422,9 @@ meltrout_115_warmelt_macro_LAMBDA___33__ (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_115_warmelt_macro_LAMBDA___33___st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 3; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -4541,7 +4549,9 @@ meltrout_116_warmelt_macro_PAIRLIST_TO_RETURN (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_116_warmelt_macro_PAIRLIST_TO_RETURN_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 18; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -4992,7 +5002,9 @@ meltrout_117_warmelt_macro_LAMBDA___34__ (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_117_warmelt_macro_LAMBDA___34___st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 3; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -5115,7 +5127,9 @@ meltrout_118_warmelt_macro_MEXPAND_PROGN (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_118_warmelt_macro_MEXPAND_PROGN_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 18; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -5452,7 +5466,9 @@ meltrout_119_warmelt_macro_MEXPAND_RETURN (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_119_warmelt_macro_MEXPAND_RETURN_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 22; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -5961,7 +5977,9 @@ meltrout_120_warmelt_macro_MEXPAND_FOREVER (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_120_warmelt_macro_MEXPAND_FOREVER_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 39; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -6751,7 +6769,9 @@ meltrout_121_warmelt_macro_LAMBDA___35__ (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_121_warmelt_macro_LAMBDA___35___st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 3; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -6874,7 +6894,9 @@ meltrout_122_warmelt_macro_MEXPAND_EXIT (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_122_warmelt_macro_MEXPAND_EXIT_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 41; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -7696,7 +7718,9 @@ meltrout_123_warmelt_macro_LAMBDA___36__ (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_123_warmelt_macro_LAMBDA___36___st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 3; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -7819,7 +7843,9 @@ meltrout_124_warmelt_macro_MEXPAND_AGAIN (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_124_warmelt_macro_MEXPAND_AGAIN_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 44; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -8699,7 +8725,9 @@ meltrout_125_warmelt_macro_MEXPAND_COMPILE_WARNING (meltclosure_ptr_t
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_125_warmelt_macro_MEXPAND_COMPILE_WARNING_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 40; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -9495,7 +9523,9 @@ meltrout_126_warmelt_macro_MEXPAND_ASSERT_MSG (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_126_warmelt_macro_MEXPAND_ASSERT_MSG_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 77; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -11290,7 +11320,9 @@ meltrout_127_warmelt_macro_MEXPAND_DEBUG_MSG (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_127_warmelt_macro_MEXPAND_DEBUG_MSG_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 64; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -12662,7 +12694,9 @@ meltrout_128_warmelt_macro_MEXPAND_DEBUG (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_128_warmelt_macro_MEXPAND_DEBUG_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 91; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -14908,7 +14942,9 @@ meltrout_129_warmelt_macro_MEXPAND_EXPORT_VALUES (meltclosure_ptr_t
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_129_warmelt_macro_MEXPAND_EXPORT_VALUES_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 32; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -15693,7 +15729,9 @@ meltrout_130_warmelt_macro_LAMBDA___37__ (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_130_warmelt_macro_LAMBDA___37___st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 8; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -15975,7 +16013,9 @@ meltrout_131_warmelt_macro_MEXPAND_EXPORT_MACRO (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_131_warmelt_macro_MEXPAND_EXPORT_MACRO_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 47; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -16907,7 +16947,9 @@ meltrout_132_warmelt_macro_MEXPAND_EXPORT_PATMACRO (meltclosure_ptr_t
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_132_warmelt_macro_MEXPAND_EXPORT_PATMACRO_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 54; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -17923,7 +17965,9 @@ meltrout_133_warmelt_macro_MEXPAND_EXPORT_CLASS (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_133_warmelt_macro_MEXPAND_EXPORT_CLASS_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 32; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -18680,7 +18724,9 @@ meltrout_134_warmelt_macro_LAMBDA___38__ (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_134_warmelt_macro_LAMBDA___38___st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 4; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -18843,7 +18889,9 @@ meltrout_135_warmelt_macro_MEXPAND_EXPORT_SYNONYM (meltclosure_ptr_t
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_135_warmelt_macro_MEXPAND_EXPORT_SYNONYM_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 62; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -20099,7 +20147,10 @@ meltrout_136_warmelt_macro_MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct
+	 frame_meltrout_136_warmelt_macro_MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER_st
+	 *) meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 27; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -20751,7 +20802,10 @@ meltrout_137_warmelt_macro_MEXPAND_PARENT_MODULE_ENVIRONMENT
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct
+	 frame_meltrout_137_warmelt_macro_MEXPAND_PARENT_MODULE_ENVIRONMENT_st
+	 *) meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 29; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -21435,7 +21489,10 @@ meltrout_138_warmelt_macro_MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct
+	 frame_meltrout_138_warmelt_macro_MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER_st
+	 *) meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 27; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -22094,7 +22151,9 @@ meltrout_139_warmelt_macro_MEXPAND_FETCH_PREDEFINED (meltclosure_ptr_t
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_139_warmelt_macro_MEXPAND_FETCH_PREDEFINED_st
+	 *) meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 33; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -22929,7 +22988,9 @@ meltrout_140_warmelt_macro_MEXPAND_STORE_PREDEFINED (meltclosure_ptr_t
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_140_warmelt_macro_MEXPAND_STORE_PREDEFINED_st
+	 *) meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 39; ix++)
 	if (meltframptr_->mcfr_varptr[ix])

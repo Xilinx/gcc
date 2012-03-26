@@ -900,7 +900,9 @@ meltrout_1_warmelt_debug_DEBUG_MSG_FUN (meltclosure_ptr_t meltclosp_,
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_1_warmelt_debug_DEBUG_MSG_FUN_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 19; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -1686,7 +1688,9 @@ meltrout_2_warmelt_debug_REGISTER_TREE_DEBUG_FUN (meltclosure_ptr_t
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_2_warmelt_debug_REGISTER_TREE_DEBUG_FUN_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 6; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -1901,7 +1905,9 @@ meltrout_3_warmelt_debug_REGISTER_GIMPLE_DEBUG_FUN (meltclosure_ptr_t
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_3_warmelt_debug_REGISTER_GIMPLE_DEBUG_FUN_st *)
+	meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 6; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -2120,7 +2126,9 @@ meltrout_4_warmelt_debug_REGISTER_GIMPLESEQ_DEBUG_FUN (meltclosure_ptr_t
   if (MELT_UNLIKELY (meltxargdescr_ == MELTPAR_MARKGGC))
     {				/*mark for ggc */
       int ix = 0;
-      meltframptr_ = (void *) meltfirstargp_;
+      meltframptr_ =
+	(struct frame_meltrout_4_warmelt_debug_REGISTER_GIMPLESEQ_DEBUG_FUN_st
+	 *) meltfirstargp_;
       gt_ggc_mx_melt_un (meltframptr_->mcfr_clos);
       for (ix = 0; ix < 6; ix++)
 	if (meltframptr_->mcfr_varptr[ix])
@@ -2706,7 +2714,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dsym_1__CLASS_DEBUG_INFORMATION",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -2734,8 +2743,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[47] = (void *) &cdat->dsym_3__CLASS_ROOT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_3__CLASS_ROOT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_3__CLASS_ROOT",
 		    ((meltobject_ptr_t)
@@ -2761,7 +2772,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dobj_5__CLASS_DEBUG_INFORMATION",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_CLASS)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_CLASS))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -2802,8 +2814,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[59] = (void *) &cdat->dsym_9__DBGI_OUT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_9__DBGI_OUT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_9__DBGI_OUT",
 		    ((meltobject_ptr_t)
@@ -2827,8 +2841,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
 /*_.VALDATA___V53*/ meltfptr[52] = (void *) &cdat->dobj_11__DBGI_OUT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_11__DBGI_OUT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_FIELD))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_FIELD))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_11__DBGI_OUT",
 		    ((meltobject_ptr_t)
@@ -2854,8 +2870,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[61] = (void *) &cdat->dsym_13__DBGI_OCCMAP;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_13__DBGI_OCCMAP",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_13__DBGI_OCCMAP",
 		    ((meltobject_ptr_t)
@@ -2879,8 +2897,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
 /*_.VALDATA___V55*/ meltfptr[54] = (void *) &cdat->dobj_15__DBGI_OCCMAP;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_15__DBGI_OCCMAP",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_FIELD))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_FIELD))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_15__DBGI_OCCMAP",
 		    ((meltobject_ptr_t)
@@ -2906,8 +2926,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[63] = (void *) &cdat->dsym_17__DBGI_MAXDEPTH;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_17__DBGI_MAXDEPTH",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_17__DBGI_MAXDEPTH",
 		    ((meltobject_ptr_t)
@@ -2933,8 +2955,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
 /*_.VALDATA___V57*/ meltfptr[56] = (void *) &cdat->dobj_19__DBGI_MAXDEPTH;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_19__DBGI_MAXDEPTH",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_FIELD))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_FIELD))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_19__DBGI_MAXDEPTH",
 		    ((meltobject_ptr_t)
@@ -2962,8 +2986,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[65] = (void *) &cdat->dsym_21__DEBUG_DEPTH;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_21__DEBUG_DEPTH",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_21__DEBUG_DEPTH",
 		    ((meltobject_ptr_t)
@@ -2987,8 +3013,9 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
 /*_.VALDATA___V68*/ meltfptr[67] = (void *) &cdat->dobj_23__DEBUG_DEPTH;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_23__DEBUG_DEPTH",
-		    melt_magic_discr (((void
-					*) (MELT_PREDEF (CLASS_PRIMITIVE))))
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_PRIMITIVE)))))
 		    == MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_23__DEBUG_DEPTH",
@@ -3034,7 +3061,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dsym_28__MELT_REALLY_NEED_DEBUG",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -3063,7 +3091,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dobj_30__MELT_REALLY_NEED_DEBUG",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_PRIMITIVE)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_PRIMITIVE))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -3094,8 +3123,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[77] = (void *) &cdat->dsym_33__DEPTH;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_33__DEPTH",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_33__DEPTH",
 		    ((meltobject_ptr_t)
@@ -3119,9 +3150,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
 /*_.VALDATA___V77*/ meltfptr[76] = (void *) &cdat->dobj_35;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_35",
-		    melt_magic_discr (((void
-					*) (MELT_PREDEF
-					    (CLASS_FORMAL_BINDING)))) ==
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF
+					     (CLASS_FORMAL_BINDING))))) ==
 		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_35",
@@ -3167,7 +3199,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dsym_39__MELT_HAS_FLAG_DEBUG_SET",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -3196,7 +3229,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dobj_41__MELT_HAS_FLAG_DEBUG_SET",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_PRIMITIVE)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_PRIMITIVE))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -3246,7 +3280,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dsym_46__MELT_REALLY_NEED_DBGLIM",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -3275,7 +3310,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dobj_48__MELT_REALLY_NEED_DBGLIM",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_PRIMITIVE)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_PRIMITIVE))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -3305,9 +3341,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
 /*_.VALDATA___V95*/ meltfptr[94] = (void *) &cdat->dobj_51;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_51",
-		    melt_magic_discr (((void
-					*) (MELT_PREDEF
-					    (CLASS_FORMAL_BINDING)))) ==
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF
+					     (CLASS_FORMAL_BINDING))))) ==
 		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_51",
@@ -3327,8 +3364,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[96] = (void *) &cdat->dsym_52__LIMIT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_52__LIMIT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_52__LIMIT",
 		    ((meltobject_ptr_t)
@@ -3352,9 +3391,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
 /*_.VALDATA___V96*/ meltfptr[95] = (void *) &cdat->dobj_54;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_54",
-		    melt_magic_discr (((void
-					*) (MELT_PREDEF
-					    (CLASS_FORMAL_BINDING)))) ==
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF
+					     (CLASS_FORMAL_BINDING))))) ==
 		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_54",
@@ -3422,8 +3462,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[113] = (void *) &cdat->dsym_61__INITIAL_SYSTEM_DATA;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_61__INITIAL_SYSTEM_DATA",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dsym_61__INITIAL_SYSTEM_DATA",
@@ -3451,8 +3493,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[115] = (void *) &cdat->dsym_63__CLASS_SYSTEM_DATA;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_63__CLASS_SYSTEM_DATA",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_63__CLASS_SYSTEM_DATA",
 		    ((meltobject_ptr_t)
@@ -3480,8 +3524,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[117] = (void *) &cdat->dsym_65__DISCR_MAP_OBJECTS;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_65__DISCR_MAP_OBJECTS",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_65__DISCR_MAP_OBJECTS",
 		    ((meltobject_ptr_t)
@@ -3509,8 +3555,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[119] = (void *) &cdat->dsym_67__DISCR_INTEGER;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_67__DISCR_INTEGER",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_67__DISCR_INTEGER",
 		    ((meltobject_ptr_t)
@@ -3537,8 +3585,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[121] = (void *) &cdat->dsym_69__DISCR_STRBUF;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_69__DISCR_STRBUF",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_69__DISCR_STRBUF",
 		    ((meltobject_ptr_t)
@@ -3564,8 +3614,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[123] = (void *) &cdat->dsym_71__DBG_OUTPUT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_71__DBG_OUTPUT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_71__DBG_OUTPUT",
 		    ((meltobject_ptr_t)
@@ -3590,8 +3642,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[125] = (void *) &cdat->dsym_73__CLASS_SELECTOR;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_73__CLASS_SELECTOR",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_73__CLASS_SELECTOR",
 		    ((meltobject_ptr_t)
@@ -3618,8 +3672,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[127] = (void *) &cdat->dsym_75__RECV;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_75__RECV",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_75__RECV",
 		    ((meltobject_ptr_t)
@@ -3643,9 +3699,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
 /*_.VALDATA___V130*/ meltfptr[129] = (void *) &cdat->dobj_77;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_77",
-		    melt_magic_discr (((void
-					*) (MELT_PREDEF
-					    (CLASS_FORMAL_BINDING)))) ==
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF
+					     (CLASS_FORMAL_BINDING))))) ==
 		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_77",
@@ -3665,8 +3722,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[130] = (void *) &cdat->dsym_78__DBGINFO;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_78__DBGINFO",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_78__DBGINFO",
 		    ((meltobject_ptr_t)
@@ -3690,9 +3749,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
 /*_.VALDATA___V133*/ meltfptr[132] = (void *) &cdat->dobj_80;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_80",
-		    melt_magic_discr (((void
-					*) (MELT_PREDEF
-					    (CLASS_FORMAL_BINDING)))) ==
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF
+					     (CLASS_FORMAL_BINDING))))) ==
 		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_80",
@@ -3711,9 +3771,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
 /*_.VALDATA___V134*/ meltfptr[133] = (void *) &cdat->dobj_81;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_81",
-		    melt_magic_discr (((void
-					*) (MELT_PREDEF
-					    (CLASS_FORMAL_BINDING)))) ==
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF
+					     (CLASS_FORMAL_BINDING))))) ==
 		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_81",
@@ -3737,8 +3798,9 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
 /*_.VALDATA___V111*/ meltfptr[110] = (void *) &cdat->dobj_83__DBG_OUTPUT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_83__DBG_OUTPUT",
-		    melt_magic_discr ( /*_.CLASS_SELECTOR__V13*/ meltfptr[12])
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.CLASS_SELECTOR__V13*/
+				       meltfptr[12])) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_83__DBG_OUTPUT",
 		    ((meltobject_ptr_t)
@@ -3763,8 +3825,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[135] = (void *) &cdat->dsym_85__DBG_OUTPUTAGAIN;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_85__DBG_OUTPUTAGAIN",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_85__DBG_OUTPUTAGAIN",
 		    ((meltobject_ptr_t)
@@ -3791,9 +3855,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
 /*_.VALDATA___V138*/ meltfptr[137] = (void *) &cdat->dobj_87;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_87",
-		    melt_magic_discr (((void
-					*) (MELT_PREDEF
-					    (CLASS_FORMAL_BINDING)))) ==
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF
+					     (CLASS_FORMAL_BINDING))))) ==
 		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_87",
@@ -3812,9 +3877,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
 /*_.VALDATA___V139*/ meltfptr[138] = (void *) &cdat->dobj_88;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_88",
-		    melt_magic_discr (((void
-					*) (MELT_PREDEF
-					    (CLASS_FORMAL_BINDING)))) ==
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF
+					     (CLASS_FORMAL_BINDING))))) ==
 		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_88",
@@ -3833,9 +3899,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
 /*_.VALDATA___V140*/ meltfptr[139] = (void *) &cdat->dobj_89;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_89",
-		    melt_magic_discr (((void
-					*) (MELT_PREDEF
-					    (CLASS_FORMAL_BINDING)))) ==
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF
+					     (CLASS_FORMAL_BINDING))))) ==
 		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_89",
@@ -3861,8 +3928,9 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     (void *) &cdat->dobj_91__DBG_OUTPUTAGAIN;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_91__DBG_OUTPUTAGAIN",
-		    melt_magic_discr ( /*_.CLASS_SELECTOR__V13*/ meltfptr[12])
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.CLASS_SELECTOR__V13*/
+				       meltfptr[12])) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_91__DBG_OUTPUTAGAIN",
 		    ((meltobject_ptr_t)
@@ -3890,8 +3958,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[141] = (void *) &cdat->dsym_93__TREE_DEBUG_FUNCONT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_93__TREE_DEBUG_FUNCONT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_93__TREE_DEBUG_FUNCONT",
 		    ((meltobject_ptr_t)
@@ -3919,8 +3989,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[143] = (void *) &cdat->dsym_95__CLASS_CONTAINER;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_95__CLASS_CONTAINER",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_95__CLASS_CONTAINER",
 		    ((meltobject_ptr_t)
@@ -3948,8 +4020,9 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     (void *) &cdat->dobj_97__TREE_DEBUG_FUNCONT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_97__TREE_DEBUG_FUNCONT",
-		    melt_magic_discr ( /*_.CLASS_CONTAINER__V14*/
-				      meltfptr[13]) == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.CLASS_CONTAINER__V14*/
+				       meltfptr[13])) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dobj_97__TREE_DEBUG_FUNCONT",
 		    ((meltobject_ptr_t)
@@ -3986,8 +4059,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[148] = (void *) &cdat->dsym_100__SET_CONTENT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_100__SET_CONTENT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_100__SET_CONTENT",
 		    ((meltobject_ptr_t)
@@ -4013,8 +4088,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[150] = (void *) &cdat->dsym_102__GIMPLE_DEBUG_FUNCONT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_102__GIMPLE_DEBUG_FUNCONT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dsym_102__GIMPLE_DEBUG_FUNCONT",
@@ -4042,8 +4119,9 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     (void *) &cdat->dobj_104__GIMPLE_DEBUG_FUNCONT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_104__GIMPLE_DEBUG_FUNCONT",
-		    melt_magic_discr ( /*_.CLASS_CONTAINER__V14*/
-				      meltfptr[13]) == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.CLASS_CONTAINER__V14*/
+				       meltfptr[13])) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dobj_104__GIMPLE_DEBUG_FUNCONT",
@@ -4081,7 +4159,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dsym_107__GIMPLESEQ_DEBUG_FUNCONT",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -4111,7 +4190,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dobj_109__GIMPLESEQ_DEBUG_FUNCONT",
-       melt_magic_discr ( /*_.CLASS_CONTAINER__V14*/ meltfptr[13]) ==
+       melt_magic_discr ((melt_ptr_t)
+			 ( /*_.CLASS_CONTAINER__V14*/ meltfptr[13])) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -4149,8 +4229,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[160] = (void *) &cdat->dsym_112__EDGE_DEBUG_FUNCONT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_112__EDGE_DEBUG_FUNCONT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dsym_112__EDGE_DEBUG_FUNCONT",
@@ -4178,8 +4260,9 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     (void *) &cdat->dobj_114__EDGE_DEBUG_FUNCONT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_114__EDGE_DEBUG_FUNCONT",
-		    melt_magic_discr ( /*_.CLASS_CONTAINER__V14*/
-				      meltfptr[13]) == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.CLASS_CONTAINER__V14*/
+				       meltfptr[13])) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dobj_114__EDGE_DEBUG_FUNCONT",
@@ -4217,7 +4300,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dsym_117__BASICBLOCK_DEBUG_FUNCONT",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -4247,7 +4331,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dobj_119__BASICBLOCK_DEBUG_FUNCONT",
-       melt_magic_discr ( /*_.CLASS_CONTAINER__V14*/ meltfptr[13]) ==
+       melt_magic_discr ((melt_ptr_t)
+			 ( /*_.CLASS_CONTAINER__V14*/ meltfptr[13])) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -4285,8 +4370,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[170] = (void *) &cdat->dsym_122__LOOP_DEBUG_FUNCONT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_122__LOOP_DEBUG_FUNCONT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dsym_122__LOOP_DEBUG_FUNCONT",
@@ -4314,8 +4401,9 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     (void *) &cdat->dobj_124__LOOP_DEBUG_FUNCONT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_124__LOOP_DEBUG_FUNCONT",
-		    melt_magic_discr ( /*_.CLASS_CONTAINER__V14*/
-				      meltfptr[13]) == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.CLASS_CONTAINER__V14*/
+				       meltfptr[13])) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dobj_124__LOOP_DEBUG_FUNCONT",
@@ -4352,8 +4440,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[175] = (void *) &cdat->dsym_127__DISCR_DEBUG_CLOSURE;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_127__DISCR_DEBUG_CLOSURE",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dsym_127__DISCR_DEBUG_CLOSURE",
@@ -4381,8 +4471,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[177] = (void *) &cdat->dsym_129__CLASS_DISCRIMINANT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_129__CLASS_DISCRIMINANT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dsym_129__CLASS_DISCRIMINANT",
@@ -4410,8 +4502,9 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     (void *) &cdat->dobj_131__DISCR_DEBUG_CLOSURE;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dobj_131__DISCR_DEBUG_CLOSURE",
-		    melt_magic_discr ( /*_.CLASS_DISCRIMINANT__V16*/
-				      meltfptr[15]) == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.CLASS_DISCRIMINANT__V16*/
+				       meltfptr[15])) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dobj_131__DISCR_DEBUG_CLOSURE",
@@ -4430,8 +4523,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[181] = (void *) &cdat->dsym_132__DISCR_CLOSURE;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_132__DISCR_CLOSURE",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_132__DISCR_CLOSURE",
 		    ((meltobject_ptr_t)
@@ -4486,8 +4581,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[185] = (void *) &cdat->dsym_137__ADD2OUT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_137__ADD2OUT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_137__ADD2OUT",
 		    ((meltobject_ptr_t)
@@ -4512,8 +4609,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[187] = (void *) &cdat->dsym_139__CSTRING_PREFIXED;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_139__CSTRING_PREFIXED",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_139__CSTRING_PREFIXED",
 		    ((meltobject_ptr_t)
@@ -4541,8 +4640,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[189] = (void *) &cdat->dsym_141__CLASS_NAMED;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_141__CLASS_NAMED",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_141__CLASS_NAMED",
 		    ((meltobject_ptr_t)
@@ -4568,8 +4669,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[191] = (void *) &cdat->dsym_143__CLASS_CTYPE;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_143__CLASS_CTYPE",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_143__CLASS_CTYPE",
 		    ((meltobject_ptr_t)
@@ -4683,8 +4786,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[199] = (void *) &cdat->dsym_155__INSTALL_METHOD;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_155__INSTALL_METHOD",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_155__INSTALL_METHOD",
 		    ((meltobject_ptr_t)
@@ -4712,8 +4817,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[201] = (void *) &cdat->dsym_157__DISCR_NULL_RECEIVER;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_157__DISCR_NULL_RECEIVER",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dsym_157__DISCR_NULL_RECEIVER",
@@ -4760,8 +4867,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[205] = (void *) &cdat->dsym_161__DISCR_STRING;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_161__DISCR_STRING",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_161__DISCR_STRING",
 		    ((meltobject_ptr_t)
@@ -4845,8 +4954,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[213] = (void *) &cdat->dsym_169__DISCR_MIXED_INTEGER;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_169__DISCR_MIXED_INTEGER",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dsym_169__DISCR_MIXED_INTEGER",
@@ -4893,8 +5004,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[217] = (void *) &cdat->dsym_173__DISCR_MIXED_LOCATION;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_173__DISCR_MIXED_LOCATION",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dsym_173__DISCR_MIXED_LOCATION",
@@ -4941,8 +5054,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[221] = (void *) &cdat->dsym_177__DISCR_MIXED_BIGINT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_177__DISCR_MIXED_BIGINT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dsym_177__DISCR_MIXED_BIGINT",
@@ -4989,8 +5104,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[225] = (void *) &cdat->dsym_181__DISCR_MULTIPLE;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_181__DISCR_MULTIPLE",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_181__DISCR_MULTIPLE",
 		    ((meltobject_ptr_t)
@@ -5037,8 +5154,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[230] = (void *) &cdat->dsym_185__DISCR_ROUTINE;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_185__DISCR_ROUTINE",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_185__DISCR_ROUTINE",
 		    ((meltobject_ptr_t)
@@ -5065,8 +5184,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[232] = (void *) &cdat->dsym_187__ROUTINE_EVERY;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_187__ROUTINE_EVERY",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_187__ROUTINE_EVERY",
 		    ((meltobject_ptr_t)
@@ -5141,8 +5262,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[238] = (void *) &cdat->dsym_194__DISCR_LIST;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_194__DISCR_LIST",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_194__DISCR_LIST",
 		    ((meltobject_ptr_t)
@@ -5186,8 +5309,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[242] = (void *) &cdat->dsym_198__DISCR_PAIR;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_198__DISCR_PAIR",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_198__DISCR_PAIR",
 		    ((meltobject_ptr_t)
@@ -5231,8 +5356,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[252] = (void *) &cdat->dsym_202__MAPOBJECT_EVERY;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_202__MAPOBJECT_EVERY",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_202__MAPOBJECT_EVERY",
 		    ((meltobject_ptr_t)
@@ -5280,8 +5407,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[254] = (void *) &cdat->dsym_206__COMPARE_OBJ_RANKED;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_206__COMPARE_OBJ_RANKED",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dsym_206__COMPARE_OBJ_RANKED",
@@ -5327,8 +5456,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[256] = (void *) &cdat->dsym_211__MULTIPLE_EVERY;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_211__MULTIPLE_EVERY",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_211__MULTIPLE_EVERY",
 		    ((meltobject_ptr_t)
@@ -5385,8 +5516,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[266] = (void *) &cdat->dsym_216__DISCR_MAP_STRINGS;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_216__DISCR_MAP_STRINGS",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_216__DISCR_MAP_STRINGS",
 		    ((meltobject_ptr_t)
@@ -5414,8 +5547,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[268] = (void *) &cdat->dsym_218__MAPSTRING_EVERY;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_218__MAPSTRING_EVERY",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_218__MAPSTRING_EVERY",
 		    ((meltobject_ptr_t)
@@ -5529,8 +5664,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[274] = (void *) &cdat->dsym_230__DISCR_ANY_RECEIVER;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_230__DISCR_ANY_RECEIVER",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dsym_230__DISCR_ANY_RECEIVER",
@@ -5597,7 +5734,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dsym_236__DBGOUT_NAMEDOBJECT_METHOD",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -5664,8 +5802,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[286] = (void *) &cdat->dsym_242__CLASS_SYMBOL;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_242__CLASS_SYMBOL",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_242__CLASS_SYMBOL",
 		    ((meltobject_ptr_t)
@@ -5730,8 +5870,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[292] = (void *) &cdat->dsym_248__CLASS_CLASS;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_248__CLASS_CLASS",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_248__CLASS_CLASS",
 		    ((meltobject_ptr_t)
@@ -5776,8 +5918,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[296] = (void *) &cdat->dsym_252__CLASS_KEYWORD;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_252__CLASS_KEYWORD",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_252__CLASS_KEYWORD",
 		    ((meltobject_ptr_t)
@@ -5843,8 +5987,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[302] = (void *) &cdat->dsym_258__CLASS_CLONED_SYMBOL;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_258__CLASS_CLONED_SYMBOL",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dsym_258__CLASS_CLONED_SYMBOL",
@@ -5910,8 +6056,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[308] = (void *) &cdat->dsym_264__CLASS_ENVIRONMENT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_264__CLASS_ENVIRONMENT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_264__CLASS_ENVIRONMENT",
 		    ((meltobject_ptr_t)
@@ -5939,8 +6087,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[310] = (void *) &cdat->dsym_266__ENV_PREV;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_266__ENV_PREV",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_266__ENV_PREV",
 		    ((meltobject_ptr_t)
@@ -6022,8 +6172,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[318] = (void *) &cdat->dsym_274__CLASS_ANY_BINDING;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_274__CLASS_ANY_BINDING",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_274__CLASS_ANY_BINDING",
 		    ((meltobject_ptr_t)
@@ -6070,8 +6222,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[322] = (void *) &cdat->dsym_278__DBG_OUT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_278__DBG_OUT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_278__DBG_OUT",
 		    ((meltobject_ptr_t)
@@ -6096,8 +6250,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[324] = (void *) &cdat->dsym_280__DBG_OUTOBJECT;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_280__DBG_OUTOBJECT",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_280__DBG_OUTOBJECT",
 		    ((meltobject_ptr_t)
@@ -6124,8 +6280,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[326] = (void *) &cdat->dsym_282__DBGOUT_FIELDS;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_282__DBGOUT_FIELDS",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_282__DBGOUT_FIELDS",
 		    ((meltobject_ptr_t)
@@ -6152,8 +6310,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[328] = (void *) &cdat->dsym_284__DBGOUTAGAIN_FIELDS;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_284__DBGOUTAGAIN_FIELDS",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr objmagic dsym_284__DBGOUTAGAIN_FIELDS",
@@ -6181,8 +6341,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[330] = (void *) &cdat->dsym_286__DEBUG_MSG_FUN;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_286__DEBUG_MSG_FUN",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_286__DEBUG_MSG_FUN",
 		    ((meltobject_ptr_t)
@@ -6210,7 +6372,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dsym_288__DISPLAY_DEBUG_MESSAGE",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -6239,8 +6402,10 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
     meltfptr[334] = (void *) &cdat->dsym_290__MELT_DEBUG_FUN;
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr isobj dsym_290__MELT_DEBUG_FUN",
-		    melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL))))
-		    == MELTOBMAG_OBJECT);
+		    melt_magic_discr ((melt_ptr_t)
+				      (((void
+					 *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg ("iniobj check.discr objmagic dsym_290__MELT_DEBUG_FUN",
 		    ((meltobject_ptr_t)
@@ -6269,7 +6434,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dsym_292__REGISTER_BASICBLOCK_DEBUG_FUN",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -6299,7 +6465,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dsym_294__REGISTER_EDGE_DEBUG_FUN",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -6329,7 +6496,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dsym_296__REGISTER_GIMPLE_DEBUG_FUN",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -6359,7 +6527,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dsym_298__REGISTER_GIMPLESEQ_DEBUG_FUN",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -6389,7 +6558,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dsym_300__REGISTER_LOOP_DEBUG_FUN",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
@@ -6419,7 +6589,8 @@ initialize_module_meltdata_warmelt_debug (initial_frame_st * iniframp__,
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
       ("iniobj check.discr isobj dsym_302__REGISTER_TREE_DEBUG_FUN",
-       melt_magic_discr (((void *) (MELT_PREDEF (CLASS_SYMBOL)))) ==
+       melt_magic_discr ((melt_ptr_t)
+			 (((void *) (MELT_PREDEF (CLASS_SYMBOL))))) ==
        MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
