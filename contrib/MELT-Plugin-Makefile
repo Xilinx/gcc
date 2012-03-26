@@ -27,9 +27,16 @@
 
 ## the command to remove files
 RM ?= rm -vf
-## the compiler and flags used to build the melt.so plugin
-CC ?= gcc
-CFLAGS ?= -g -O
+
+## the compiler with which melt.so is used
+MELTGCC ?= gcc
+
+## The compiler and flags used to build the melt.so plugin and to
+## compile MELT generated code.  Notice that melt-module.mk use the
+## same Make variables.  For a melt plugin to GCC 4.7 or later, that
+## could be a C++ compiler!
+GCCMELT_CC ?= gcc
+GCCMELT_CFLAGS ?= -g -O
 
 # Some versions of `touch' (such as the version on Solaris 2.8)
 # do not correctly set the timestamp due to buggy versions of `utime'
@@ -39,9 +46,6 @@ STAMP ?= echo timestamp >
 # Custom includes to lib needed to built melt.so
 # ie: -I/path/to/gmp/include
 LIBS_INCLUDEFLAGS ?=
-
-## the compiler with which melt.so is used
-MELTGCC ?= gcc
 
 ## the gengtype for that GCC and its flag
 MELTGCC_GENGTYPE := $(shell $(MELTGCC) -print-file-name=gengtype)
@@ -207,7 +211,7 @@ gfmeltgcc_revision: GCCMELT-REVISION MELT-Plugin-Makefile
 # intermediate file for the md5sum of preprocessed expansion of melt-run.proto.h
 gfmeltgcc_run_md5: $(MELTGCC_RUNTIME_INCLUDES) MELT-Plugin-Makefile  melt-run.proto.h \
                    $(wildcard $(MELTGCC_PLUGIN_DIR)/include/*.h) melt-runtime.h  melt/generated/meltrunsup.h
-	$(CC)  -C -E -DMELT_IS_PLUGIN -Imelt/generated -I. $(MELTGCC_INCLUDEFLAGS) melt-run.proto.h \
+	$(GCCMELT_CC)  -C -E -DMELT_IS_PLUGIN -Imelt/generated -I. $(MELTGCC_INCLUDEFLAGS) melt-run.proto.h \
 	 | grep -v '^#' | md5sum | cut -c 1-32 > $@-tmp
 	mv $@-tmp $@
 
@@ -240,7 +244,7 @@ melt-runtime-params-inc.c: melt-make-string gfmeltgcc_revision
 	mv $@-tmp $@
 
 melt-make-string: melt-make-string.c
-	$(CC) $^ -o $@
+	$(GCCMELT_CC) $^ -o $@
 
 melt.so melt-runtime.args: melt-runtime.c $(MELTGCC_RUNTIME_INCLUDES) \
    melt-runtime-params-inc.c \
@@ -254,8 +258,8 @@ melt.so melt-runtime.args: melt-runtime.c $(MELTGCC_RUNTIME_INCLUDES) \
 	      > melt-runtime.args-tmp
 	@echo $(realpath $<) >> melt-runtime.args-tmp
 	@mv melt-runtime.args-tmp melt-runtime.args
-	$(CC) $(CFLAGS) -fPIC  -shared  @melt-runtime.args \
-	-o $@ $(MELTGCC_LIBES)
+	$(GCCMELT_CC) $(GCCMELT_CFLAGS) -fPIC  -shared  @melt-runtime.args \
+	      -o $@ $(MELTGCC_LIBES)
 
 clean:
 	$(RM) *.o *~ melt-predef.h gt-melt-runtime.h gfmelt* *tmp stamp-*
