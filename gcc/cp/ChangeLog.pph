@@ -1,3 +1,9 @@
+2012-03-25   Diego Novillo  <dnovillo@google.com>
+
+	* mangle.c (write_expression): Handle TRAIT_EXPR when PPH is enabled.
+	(write_template_arg_literal): Handle CONST_DECLs that do not have
+	a constant DECL_INITIAL when PPH is enabled.
+
 2012-03-23   Diego Novillo  <dnovillo@google.com>
 
 	* name-lookup.c (pph_set_identifier_binding): If DECL is a USING_DECL,

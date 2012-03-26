@@ -2754,6 +2754,30 @@ write_expression (tree expr)
     {
       write_unqualified_id (dependent_name (expr));
     }
+  else if (TREE_CODE (expr) == TRAIT_EXPR)
+    {
+      /* FIXME pph.  This is almost certainly wrong as a mangled
+	 representation.
+
+	 We use the mangler to generate unique strings to represent
+	 types and symbols that need to be merged.  The C++ mangler
+	 does not handle ALL possible combinations, so we work around
+	 it by using the pretty printer.  We are not trying to
+	 generate a valid mangled name, but any string that will allow
+	 us to do merging.  */
+      gcc_assert (pph_writer_enabled_p ());
+      if (TRAIT_EXPR_TYPE1 (expr))
+	write_type (TRAIT_EXPR_TYPE1 (expr));
+      else
+	write_string("<nil>");
+      if (TRAIT_EXPR_TYPE2 (expr))
+	write_type (TRAIT_EXPR_TYPE2 (expr));
+      else
+	write_string("<nil>");
+      write_number ((unsigned HOST_WIDE_INT) TRAIT_EXPR_KIND (expr),
+		    /*unsigned_p*/ 1,
+		    /*base*/ 16);
+    }
   else
     {
       int i, len;
@@ -2914,7 +2938,20 @@ write_template_arg_literal (const tree value)
     switch (TREE_CODE (value))
       {
       case CONST_DECL:
-	write_integer_cst (value);
+	if (CONSTANT_CLASS_P (DECL_INITIAL (value)))
+	  write_integer_cst (value);
+	else
+	  {
+	    /* FIXME pph - We use the mangler to generate unique
+	       strings to represent types and symbols that need
+	       to be merged.  The C++ mangler does not handle
+	       ALL possible combinations, so we work around it by
+	       using the pretty printer.  We are not trying to
+	       generate a valid mangled name, but any string that will
+	       allow us to do merging.  */
+	    gcc_assert (pph_writer_enabled_p ());
+	    write_string (cxx_printable_name (value, 2));
+	  }
 	break;
 
       case INTEGER_CST:
