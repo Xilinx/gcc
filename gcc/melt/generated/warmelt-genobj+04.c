@@ -26563,7 +26563,7 @@ lab_endgetargs:;
 	    argtab[2].meltbp_aptr =
 	      (melt_ptr_t *) & /*_.NAMEPRED__V21*/ meltfptr[20];
 	    /*^apply.arg */
-	    argtab[3].meltbp_cstring = ",(";
+	    argtab[3].meltbp_cstring = ", (melt_ptr_t) (";
 	    /*^apply.arg */
 	    argtab[4].meltbp_aptr =
 	      (melt_ptr_t *) & /*_.OVAL__V16*/ meltfptr[15];
@@ -26638,7 +26638,7 @@ lab_endgetargs:;
 		  argtab[2].meltbp_aptr =
 		    (melt_ptr_t *) & /*_.NPRED__V14*/ meltfptr[13];
 		  /*^apply.arg */
-		  argtab[3].meltbp_cstring = ",(";
+		  argtab[3].meltbp_cstring = ", (melt_ptr_t) (";
 		  /*^apply.arg */
 		  argtab[4].meltbp_aptr =
 		    (melt_ptr_t *) & /*_.OVAL__V16*/ meltfptr[15];

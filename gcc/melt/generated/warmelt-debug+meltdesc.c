@@ -12,7 +12,7 @@ const char melt_modulename[]="warmelt-debug";
 const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt-modules/warmelt-debug";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="d78f00a71f2af69b466ddec7cb03253f";
+const char melt_prepromd5meltrun[]="e43f403f213a8e1d278d86e9fcd5a00f";
 /* hexmd5checksum of primary C file */
 const char melt_primaryhexmd5[]="cba21989e63c1d30cd604be918356e2b";
 
