@@ -455,7 +455,7 @@ number $NUM opaque location number $LOC.}#
 ;;; READ FILE primitive
 (defprimitive read_file (filnam) :value
   :doc #{Read from file named by the $FILNAM string balue a list of MELT s-expressions.}#
-  #{(meltgc_read_file (melt_string_str((melt_ptr_t)($filnam)), (char*)0))}#)
+  #{(meltgc_read_file (melt_string_str((melt_ptr_t)($FILNAM)), (char*)0))}#)
 
 (defprimitive read_strv (strv) :value
   :doc #{Return the list of s-exprs contained in in parsed string
@@ -503,14 +503,14 @@ number $NUM opaque location number $LOC.}#
 (defprimitive warningmsg_strv (:cstring cmsg :value strv) :void
   :doc #{Show a plain warning with raw message string $CMSG and string value $STRV.}#
   #{warning (0, "MELT WARNING MSG [#%ld]::: %s - %s", melt_dbgcounter, ($cmsg),
-	  melt_string_str((melt_ptr_t)($strv)))}#
+	  melt_string_str((melt_ptr_t)($STRV)))}#
   )
 
 ;; signal a plain error with string
 (defprimitive errormsg_strv (:cstring cmsg :value strv) :void
   :doc #{Show a plain error with raw message string $CMSG and string value $STRV.}#
   #{error ("MELT ERROR MSG [#%ld]::: %s - %s", melt_dbgcounter, ($cmsg),
-	  melt_string_str((melt_ptr_t)($strv)))}#
+	  melt_string_str((melt_ptr_t)($STRV)))}#
   )
 
 ;; to signal an inform in a  source with some additional string value
@@ -531,8 +531,8 @@ number $NUM opaque location number $LOC.}#
 (defprimitive informsg_strv (:cstring cmsg :value strv) :void
   :doc #{Show a plain notice with raw message string $CMSG and string value $STRV.}#
   #{inform(UNKNOWN_LOCATION, "MELT INFORM [#%ld]: %s - %s",  
-			     melt_dbgcounter, ($cmsg), 
-			     melt_string_str ($STRV))}#
+			     melt_dbgcounter, ($CMSG), 
+			     melt_string_str ((melt_ptr_t) ($STRV)))}#
   )
 
 ;;; citerator on integers
@@ -721,8 +721,8 @@ an integer $I if $I is lower than $N.}#
 ;;; make a string
 (defprimitive make_string (dis str) :value
   :doc #{Make a new string of discriminant $DIS from string value $STR.}#
-  #{(meltgc_new_stringdup((meltobject_ptr_t)($dis), 
-			  melt_string_str((melt_ptr_t)($str))))}#)
+  #{(meltgc_new_stringdup((meltobject_ptr_t)($DIS), 
+			  melt_string_str((melt_ptr_t)($STR))))}#)
 
 (defprimitive is_stringconst (str :cstring cs) :long
   :doc #{Test that value string $STR is the raw string constant $CS.}#
@@ -765,22 +765,22 @@ an integer $I if $I is lower than $N.}#
 (defprimitive split_string_space (dis s) :value
   :doc #{Split a string value $S into a list of space separated strings of
 discriminant $DIS.}#
-#{meltgc_new_split_string (melt_string_str ($S), ' ', (melt_ptr_t) $DIS)}#)
+#{meltgc_new_split_string (melt_string_str ((melt_ptr_t) $S), ' ', (melt_ptr_t) $DIS)}#)
 
 (defprimitive split_string_comma (dis s) :value
   :doc #{Split a string value $S into a list of comma separated strings of
 discriminant $DIS.}#
-#{meltgc_new_split_string (melt_string_str ($S), ',', (melt_ptr_t) $DIS)}#)
+#{meltgc_new_split_string (melt_string_str ((melt_ptr_t) $S), ',', (melt_ptr_t) $DIS)}#)
 
 (defprimitive split_string_colon (dis s) :value
   :doc #{Split a string value $S into a list of colon separated strings of
 discriminant $DIS.}#
-#{meltgc_new_split_string (melt_string_str ($S), ':', (melt_ptr_t) $DIS)}#)
+#{meltgc_new_split_string (melt_string_str ((melt_ptr_t) $S), ':', (melt_ptr_t) $DIS)}#)
 
 (defprimitive split_string_equal (dis s) :value
   :doc #{Split a string value $S into a list of equal separated strings of
 discriminant $DIS.}#
-#{meltgc_new_split_string (melt_string_str ($S), '=', (melt_ptr_t) $DIS)}#)
+#{meltgc_new_split_string (melt_string_str ((melt_ptr_t) $S), '=', (melt_ptr_t) $DIS)}#)
 
 ;;; convert a strbuf into a string
 (defprimitive strbuf2string (dis sbuf) :value
@@ -790,15 +790,16 @@ discriminant $DIS.}#
 ;;; compute the naked basename
 (defprimitive make_string_nakedbasename (dis str) :value
   :doc #{make a string value of discriminant $DIS from the naked basename from file path $STR.}#
-  #{(meltgc_new_string_nakedbasename((meltobject_ptr_t)($dis), melt_string_str((melt_ptr_t)($str))))}#)
+  #{(meltgc_new_string_nakedbasename((meltobject_ptr_t)($DIS), 
+				     melt_string_str((melt_ptr_t)($STR))))}#)
 
 ;;; compute the naked temporary path for a basename with a suffix
 (defprimitive make_string_tempname_suffixed (dis str :cstring suff) :value
   :doc #{make a naked temporary path of discriminant $DIS for a
   basename $STR with suffix $SUFF.}#
-  #{(meltgc_new_string_tempname_suffixed((meltobject_ptr_t)($dis),
-					 melt_string_str((melt_ptr_t)($str)),
-					 ($suff)))}#)
+  #{(meltgc_new_string_tempname_suffixed((meltobject_ptr_t)($DIS),
+					 melt_string_str((melt_ptr_t)($STR)),
+					 ($SUFF)))}#)
 
 
 ;; remove a suffix from a string or else copy it
@@ -991,7 +992,8 @@ Returns a boxed integer.}#
 ;; primitive to add a string value into a strbuf
 (defprimitive add2sbuf_string (sbuf str) :void 
   :doc #{Add into stringbuffer $SBUF the string value $STR.}#
-  #{meltgc_add_strbuf((melt_ptr_t)($sbuf), melt_string_str((melt_ptr_t)($str)))}#)
+  #{meltgc_add_strbuf((melt_ptr_t)($SBUF), 
+                      melt_string_str((melt_ptr_t)($STR)))}#)
 ;; primitive to add the location info of a mixedloc into a strbuf we
 ;; copy the location file name into a buffer, to avoid crashing if a
 ;; GC is called...
@@ -1045,7 +1047,8 @@ Returns a boxed integer.}#
 ;; primitive to add a string value, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstring (sbuf str) :void 
   :doc #{Add into stringbuffer $SBUF the content of string $STR with C encoding.}#
-  #{meltgc_add_strbuf_cstr((melt_ptr_t)($sbuf), melt_string_str((melt_ptr_t)($str)))}#)
+  #{meltgc_add_strbuf_cstr((melt_ptr_t)($SBUF), 
+                           melt_string_str((melt_ptr_t)($STR)))}#)
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstrbuf (sbuf asbuf) :void 
@@ -1055,7 +1058,8 @@ Returns a boxed integer.}#
 ;; primitive to add a string value, Ccomment encoded, into a strbuf
 (defprimitive add2sbuf_ccomstring (sbuf str) :void 
   :doc #{Add into stringbuffer $SBUF the content of string $STR with C-comment encoding, i.e. avoiding */.}#
-  #{meltgc_add_strbuf_ccomment((melt_ptr_t)($sbuf), melt_string_str((melt_ptr_t)($str)))}#)
+  #{meltgc_add_strbuf_ccomment((melt_ptr_t)($SBUF), 
+                               melt_string_str((melt_ptr_t)($STR)))}#)
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_ccomstrbuf (sbuf asbuf) :void 
@@ -1074,15 +1078,16 @@ Returns a boxed integer.}#
 (defprimitive add2sbuf_cident (sbuf str) :void
   :doc #{Add into stringbuffer $SBUF the string $STR as a C identifier
   so nonalphanum replaced by _.}#
-  #{meltgc_add_strbuf_cident((melt_ptr_t)($sbuf),
-  melt_string_str((melt_ptr_t)($str)))}#)
+  #{meltgc_add_strbuf_cident((melt_ptr_t)($SBUF),
+  melt_string_str((melt_ptr_t)($STR)))}#)
 
 ;; primitive to add into a strbuf the prefix of a string as C ident (nonalphanum
 ;; replaced by _) limited by a small length 
 (defprimitive add2sbuf_cidentprefix  (sbuf str :long preflen) :void
   :doc #{Add into stringbuffer $SBUF the prefix string $STR as a C identifier
   so nonalphanum replaced by _ limited by $PREFLEN.}#
-  #{meltgc_add_strbuf_cidentprefix((melt_ptr_t)($sbuf), melt_string_str((melt_ptr_t)($str)), ($preflen))}#)
+  #{meltgc_add_strbuf_cidentprefix((melt_ptr_t)($SBUF), 
+                                   melt_string_str((melt_ptr_t)($STR)), ($PREFLEN))}#)
 
 ;; primitive to add a long in decimal into a strbuf
 (defprimitive add2sbuf_longdec (sbuf :long num) :void
@@ -1107,7 +1112,7 @@ Returns a boxed integer.}#
 ;;; primitive to output a strbuf into a file named by a stringval
 (defprimitive output_sbuf_strval (sbuf vnam) :void
   :doc #{Output into file named by string value $VNAM the content of strinbuffer $SBUF.}#
-#{ melt_output_strbuf_to_file(($sbuf), melt_string_str($vnam)) }#)
+#{ melt_output_strbuf_to_file(($sbuf), melt_string_str((melt_ptr_t) $VNAM)) }#)
 
 ;;; primitive to output a strbuf into a file named by a cstring
 (defprimitive output_sbuf_no_overwrite_strconst (sbuf :cstring nam) :void
@@ -1117,7 +1122,8 @@ Returns a boxed integer.}#
 (defprimitive output_sbuf_no_overwrite_strval (sbuf vnam) :void
   :doc #{Output into file named by string value $VNAM the content of 
 strinbuffer $SBUF, take care to not overwrite an old file named $VNAM if it was the same.}#
-#{ melt_output_strbuf_to_file_no_overwrite(($sbuf), melt_string_str($vnam)) }#)
+#{ melt_output_strbuf_to_file_no_overwrite((melt_ptr_t)($SBUF), 
+					   melt_string_str((melt_ptr_t) $VNAM)) }#)
 
 
 ;;;;;;;;;;;;;;;; variant for outbuf
@@ -1129,7 +1135,7 @@ strinbuffer $SBUF, take care to not overwrite an old file named $VNAM if it was 
 ;; primitive to add a string value into a outbuf
 (defprimitive add2out_string (out str) :void 
   :doc #{Add to output $OUT the string value $STR.}#
-  #{meltgc_add_out((melt_ptr_t)($out), melt_string_str((melt_ptr_t)($str)))}#)
+  #{meltgc_add_out((melt_ptr_t)($OUT), melt_string_str((melt_ptr_t)($STR)))}#)
 
 ;; primitive to add the location info of a mixedloc into a outbuf
 (defprimitive add2out_mixloc (out mixl) :void
@@ -1168,7 +1174,8 @@ strinbuffer $SBUF, take care to not overwrite an old file named $VNAM if it was 
 ;; primitive to add a string value, C encoded, into a outbuf
 (defprimitive add2out_cencstring (out str) :void 
   :doc #{Add to output $OUT the C-encoded string value $STR.}#
-  #{meltgc_add_out_cstr((melt_ptr_t)($out), melt_string_str((melt_ptr_t)($str)))}#)
+  #{meltgc_add_out_cstr((melt_ptr_t)($OUT), 
+			melt_string_str((melt_ptr_t)($STR)))}#)
 
 ;; primitive to add a substring value, C encoded, into a outbuf
 (defprimitive add2out_cencsubstring (out str :long off slen) :void 
@@ -1185,7 +1192,8 @@ strinbuffer $SBUF, take care to not overwrite an old file named $VNAM if it was 
 ;; primitive to add a string value, Ccomment encoded, into a outbuf
 (defprimitive add2out_ccomstring (out str) :void 
   :doc #{Add to output $OUT the C-comment encoded string value $STR.}#
-  #{meltgc_add_out_ccomment((melt_ptr_t)($out), melt_string_str((melt_ptr_t)($str)))}#)
+  #{meltgc_add_out_ccomment((melt_ptr_t)($OUT), 
+                            melt_string_str((melt_ptr_t)($STR)))}#)
 
 ;; primitive to add a strbuf, C encoded, into a outbuf
 (defprimitive add2out_ccomstrbuf (out asbuf) :void 
@@ -1203,8 +1211,8 @@ strinbuffer $SBUF, take care to not overwrite an old file named $VNAM if it was 
 (defprimitive add2out_cident (out str) :void
   :doc #{Add to $OUT the MELT string $STR encocded as a C identifier, so
 with every non-alnum character replaced with an underscore.}#
-  #{meltgc_add_out_cident((melt_ptr_t)($out), 
-			  melt_string_str((melt_ptr_t)($str)))}#)
+  #{meltgc_add_out_cident((melt_ptr_t)($OUT), 
+			  melt_string_str((melt_ptr_t)($STR)))}#)
 
 ;; primitive to add into a outbuf the prefix of a string as C ident (nonalphanum
 ;; replaced by _) limited by a small length 
@@ -1212,7 +1220,7 @@ with every non-alnum character replaced with an underscore.}#
   :doc #{Add to $OUT the prefix of a string encoded as a C identifier,
 limited by a small length $PREFLEN.}#
   #{meltgc_add_out_cidentprefix((melt_ptr_t)($out), 
-				melt_string_str((melt_ptr_t)($str)), 
+				melt_string_str((melt_ptr_t)($STR)), 
 				($preflen))}#)
 
 ;; primitive to add a long in decimal into a outbuf

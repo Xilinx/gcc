@@ -1,5 +1,11 @@
 
 2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: Casting to melt_ptr_t. More pretty
+	macrostrings.
+
+	* melt/waremelt-base.melt: Ditto.
+
+2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
 	* melt/generated/warmelt-base+melttime.h: Regenerate.

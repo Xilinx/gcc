@@ -982,11 +982,12 @@ meltcallcount /* the_callcount */
 ;; primitive to get or create a symbol from a string value
 (defprimitive get_symbolstr (strv) :value
   :doc #{Get an existing symbol of given string value $STRV or null if not found.}#
-  #{meltgc_named_symbol( melt_string_str((melt_ptr_t)($strv)), MELT_GET)}#)
+  #{meltgc_named_symbol( melt_string_str((melt_ptr_t)($STRV)), MELT_GET)}#)
 (defprimitive create_symbolstr (strv) :value
   :doc #{Retrieve an existing symbol of given string value $STRV or
 create it if not found.}# 
-  #{meltgc_named_symbol(melt_string_str((melt_ptr_t)($strv)), MELT_CREATE)}#)
+  #{meltgc_named_symbol(melt_string_str((melt_ptr_t)($STRV)), 
+			MELT_CREATE)}#)
 (defprimitive get_raw_symbol (:cstring cstr) :value
   :doc #{Get an existing symbol of given cstring $CSTR or else null.}#
 #{meltgc_named_symbol((char*) $cstr, MELT_GET)}#)
@@ -994,11 +995,11 @@ create it if not found.}#
 ;; primitive to get or create a keyword from a string value
 (defprimitive get_keywordstr (strv) :value
   :doc #{Get an existing keyword of given string value $STRV or null if not found.}#
-  #{meltgc_named_keyword( melt_string_str((melt_ptr_t)($strv)), MELT_GET)}#)
+  #{meltgc_named_keyword( melt_string_str((melt_ptr_t)($STRV)), MELT_GET)}#)
 (defprimitive create_keywordstr (strv) :value
   :doc #{Retrieve an existing keyword of given string value $STRV or
 create it if not found.}# 
-  #{meltgc_named_keyword( melt_string_str((melt_ptr_t)($strv)), MELT_CREATE)}#)
+  #{meltgc_named_keyword( melt_string_str((melt_ptr_t)($STRV)), MELT_CREATE)}#)
 
 
 ;; runtime assertion with message called by expansion of assert_msg
@@ -1036,7 +1037,7 @@ create it if not found.}#
 (defprimitive informsg_strv (:cstring cmsg :value strv) :void
   :doc #{Show a plain notice with raw message string $CMSG and string value $STRV.}#
   #{inform(UNKNOWN_LOCATION, ("MELT INFORM [#%ld]: %s - %s"), melt_dbgcounter, ($cmsg), 
-			     melt_string_str((melt_ptr_t)($strv)))}#
+			     melt_string_str((melt_ptr_t)($STRV)))}#
   )
 
 
@@ -1158,7 +1159,7 @@ an integer $I if $I is greater than $N.}#
 	:doc #{Read a string value and returns the corresponding
 	long stuff. 0 is returned if an error occurs while reading.}#
 	#{
-		atol(melt_string_str($string))
+		atol(melt_string_str((melt_ptr_t) $STRING))
 	}#)
 
 
@@ -1303,10 +1304,13 @@ an integer $I if $I is greater than $N.}#
   #{(meltgc_new_mapstrings( (meltobject_ptr_t) ($discr), ($len)))}#)
 (defprimitive mapstring_putstr (map keystr val) :void
   :doc #{Safely put into a string-map $MAP the string value $KEYSTR associated to value $VAL.}#
-  #{meltgc_put_mapstrings((struct meltmapstrings_st *) ($map), melt_string_str((melt_ptr_t)($keystr)), (melt_ptr_t)($val))}#)
+  #{meltgc_put_mapstrings((struct meltmapstrings_st *) ($MAP), 
+			  melt_string_str((melt_ptr_t)($KEYSTR)), 
+			  (melt_ptr_t)($VAL))}#)
 (defprimitive mapstring_getstr (map keystr) :value
   :doc #{Safely get in a string-map $MAP the value associated with a value string $KEYSTR or else null.}#
-  #{(melt_get_mapstrings((struct meltmapstrings_st*)($map), melt_string_str((melt_ptr_t)($keystr))))}#)
+  #{(melt_get_mapstrings((struct meltmapstrings_st*)($MAP), 
+			 melt_string_str((melt_ptr_t)($KEYSTR))))}#)
 (defprimitive mapstring_removestr (map keystr) :void
   :doc #{Safely remove from a string-map $MAP the value associated with string value $KEYSTR.}#
   #{meltgc_remove_mapstrings((struct meltmapstrings_st*) ($map), melt_string_str((melt_ptr_t)$keystr))}#)
