@@ -20396,7 +20396,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-modes.melt:1261:/ locexp");
       melt_output_strbuf_to_file (( /*_.OUTB__V13*/ meltfptr[12]),
-				  melt_string_str ( /*_.OUTARG__V3*/
+				  melt_string_str ((melt_ptr_t)
+						   /*_.OUTARG__V3*/
 						   meltfptr[2]));
     }
     ;
@@ -20875,8 +20876,8 @@ lab_endgetargs:;
 
  /*_.ARGLIST__V13*/ meltfptr[12] =
       meltgc_new_split_string (melt_string_str
-			       ( /*_.MAKE_STRINGCONST__V12*/ meltfptr[10]),
-			       ',',
+			       ((melt_ptr_t) /*_.MAKE_STRINGCONST__V12*/
+				meltfptr[10]), ',',
 			       (melt_ptr_t) ( /*!DISCR_STRING */ meltfrout->
 					     tabval[4]));;
     /*^compute */
@@ -22260,7 +22261,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-modes.melt:1319:/ locexp");
       inform (UNKNOWN_LOCATION, "MELT INFORM [#%ld]: %s - %s",
 	      melt_dbgcounter, ("reading from file"),
-	      melt_string_str ( /*_.CURARG__V2*/ meltfptr[1]));
+	      melt_string_str ((melt_ptr_t) ( /*_.CURARG__V2*/ meltfptr[1])));
     }
     ;
     MELT_LOCATION ("warmelt-modes.melt:1320:/ quasiblock");
@@ -22976,7 +22977,9 @@ lab_endgetargs:;
 		  MELT_LOCATION ("warmelt-modes.melt:1373:/ locexp");
 		  inform (UNKNOWN_LOCATION, "MELT INFORM [#%ld]: %s - %s",
 			  melt_dbgcounter, ("found binding for "),
-			  melt_string_str ( /*_.SYMNAME__V15*/ meltfptr[14]));
+			  melt_string_str ((melt_ptr_t)
+					   ( /*_.SYMNAME__V15*/
+					    meltfptr[14])));
 		}
 		;
 		MELT_LOCATION ("warmelt-modes.melt:1374:/ quasiblock");

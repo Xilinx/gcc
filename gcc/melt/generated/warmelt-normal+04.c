@@ -34649,7 +34649,11 @@ lab_endgetargs:;
 
     {
       /*^locexp */
-      meltgc_put_mapstrings ((struct meltmapstrings_st *) ( /*_.EXPCLADIC__V36*/ meltfptr[35]), melt_string_str ((melt_ptr_t) ( /*_.NAMED_NAME__V42*/ meltfptr[40])), (melt_ptr_t) ( /*_.XCLASS__V20*/ meltfptr[16]));
+      meltgc_put_mapstrings ((struct meltmapstrings_st *) ( /*_.EXPCLADIC__V36*/ meltfptr[35]),
+			     melt_string_str ((melt_ptr_t)
+					      ( /*_.NAMED_NAME__V42*/
+					       meltfptr[40])),
+			     (melt_ptr_t) ( /*_.XCLASS__V20*/ meltfptr[16]));
     }
     ;
     MELT_LOCATION ("warmelt-normal.melt:6433:/ quasiblock");

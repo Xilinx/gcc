@@ -3131,7 +3131,8 @@ lab_endgetargs:;
 	    MELT_LOCATION ("warmelt-outobj.melt:5059:/ locexp");
 	    inform (UNKNOWN_LOCATION, "MELT INFORM [#%ld]: %s - %s",
 		    melt_dbgcounter, ("reading from file"),
-		    melt_string_str ( /*_.FILES__V2*/ meltfptr[1]));
+		    melt_string_str ((melt_ptr_t)
+				     ( /*_.FILES__V2*/ meltfptr[1])));
 	  }
 	  ;
    /*_.READ_FILE__V33*/ meltfptr[23] =
@@ -3529,8 +3530,9 @@ lab_endgetargs:;
 			inform (UNKNOWN_LOCATION,
 				"MELT INFORM [#%ld]: %s - %s",
 				melt_dbgcounter, ("reading from file"),
-				melt_string_str ( /*_.CURFILE__V42*/
-						 meltfptr[34]));
+				melt_string_str ((melt_ptr_t)
+						 ( /*_.CURFILE__V42*/
+						  meltfptr[34])));
 		      }
 		      ;
 		      MELT_LOCATION ("warmelt-outobj.melt:5069:/ quasiblock");

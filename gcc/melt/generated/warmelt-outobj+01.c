@@ -14382,7 +14382,10 @@ lab_endgetargs:;
 					      MELT_LOCATION
 						("warmelt-outobj.melt:787:/ locexp");
 					      meltgc_add_strbuf ((melt_ptr_t)
-								 ( /*_.SBUF__V3*/ meltfptr[2]), melt_string_str ((melt_ptr_t) ( /*_.PTRSTR__V4*/ meltfptr[3])));
+								 ( /*_.SBUF__V3*/ meltfptr[2]),
+								 melt_string_str
+								 ((melt_ptr_t)
+								  ( /*_.PTRSTR__V4*/ meltfptr[3])));
 					    }
 					    ;
 
@@ -14398,7 +14401,10 @@ lab_endgetargs:;
 					      MELT_LOCATION
 						("warmelt-outobj.melt:789:/ locexp");
 					      meltgc_add_strbuf ((melt_ptr_t)
-								 ( /*_.SBUF__V3*/ meltfptr[2]), melt_string_str ((melt_ptr_t) ( /*_.CNAM__V14*/ meltfptr[13])));
+								 ( /*_.SBUF__V3*/ meltfptr[2]),
+								 melt_string_str
+								 ((melt_ptr_t)
+								  ( /*_.CNAM__V14*/ meltfptr[13])));
 					    }
 					    ;
 

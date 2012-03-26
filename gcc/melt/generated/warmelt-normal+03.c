@@ -26884,7 +26884,12 @@ lab_endgetargs:;
 
 	  {
 	    /*^locexp */
-	    meltgc_put_mapstrings ((struct meltmapstrings_st *) ( /*_.NCTX_SYMBMAP__V37*/ meltfptr[36]), melt_string_str ((melt_ptr_t) ( /*_.SYNAMSTR__V25*/ meltfptr[18])), (melt_ptr_t) ( /*_.SYDATA__V33*/ meltfptr[32]));
+	    meltgc_put_mapstrings ((struct meltmapstrings_st *) ( /*_.NCTX_SYMBMAP__V37*/ meltfptr[36]),
+				   melt_string_str ((melt_ptr_t)
+						    ( /*_.SYNAMSTR__V25*/
+						     meltfptr[18])),
+				   (melt_ptr_t) ( /*_.SYDATA__V33*/
+						 meltfptr[32]));
 	  }
 	  ;
 
@@ -27620,7 +27625,12 @@ lab_endgetargs:;
 
 	  {
 	    /*^locexp */
-	    meltgc_put_mapstrings ((struct meltmapstrings_st *) ( /*_.NCTX_KEYWMAP__V27*/ meltfptr[26]), melt_string_str ((melt_ptr_t) ( /*_.SYNAMSTR__V15*/ meltfptr[14])), (melt_ptr_t) ( /*_.SYDATA__V23*/ meltfptr[22]));
+	    meltgc_put_mapstrings ((struct meltmapstrings_st *) ( /*_.NCTX_KEYWMAP__V27*/ meltfptr[26]),
+				   melt_string_str ((melt_ptr_t)
+						    ( /*_.SYNAMSTR__V15*/
+						     meltfptr[14])),
+				   (melt_ptr_t) ( /*_.SYDATA__V23*/
+						 meltfptr[22]));
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:4864:/ checkinterrupt");

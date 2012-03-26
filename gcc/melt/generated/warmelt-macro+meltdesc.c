@@ -20,7 +20,7 @@ const char melt_primaryhexmd5[]="45dadb0d3cc48d5e4f5c3c3e7e4f1dbb";
 const char* const melt_secondaryhexmd5tab[]={
  /*nosecfile*/ (const char*)0,
  /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+01.c #1 */ "997c067f62a263308538df4b6b7e85d6",
- /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+02.c #2 */ "2054463fc10f9fec4ed9c89b66f200e7",
+ /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+02.c #2 */ "265f78a7b6ff0a025b2e9e35cb669766",
  /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+03.c #3 */ "f5be4dfc8e3724ddab1feedea4b5359c",
  /*sechexmd5checksum MELT-STAGE-ZERO/warmelt-macro+04.c #4 */ "1c962a0f3b7577f0ffbbc31966cb693d",
  /*nosecfile*/ (const char*)0,
@@ -31,9 +31,9 @@ const char* const melt_secondaryhexmd5tab[]={
 const int melt_lastsecfileindex=4;
 
 /* cumulated checksum of primary & secondary files */
-const char melt_cumulated_hexmd5[]="d0979e0efc8eca2e46d638851daa05f7" ;
+const char melt_cumulated_hexmd5[]="27e7b2c04f2be956461ae0ff8a10acfb" ;
 
 /* include the timestamp file */
-#define meltmod_warmelt_macro_mds__d0979e0efc8eca2e46d638851daa05f7 1
+#define meltmod_warmelt_macro_mds__27e7b2c04f2be956461ae0ff8a10acfb 1
 #include "warmelt-macro+melttime.h"
 /* end of melt descriptor file */

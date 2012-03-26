@@ -12762,7 +12762,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-modes.melt:3502:/ locexp");
       melt_output_strbuf_to_file (( /*_.OUTDECLBUF__V25*/ meltfptr[23]),
-				  melt_string_str ( /*_.OUTDECLNAME__V14*/
+				  melt_string_str ((melt_ptr_t)
+						   /*_.OUTDECLNAME__V14*/
 						   meltfptr[11]));
     }
     ;
@@ -12771,7 +12772,8 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-modes.melt:3503:/ locexp");
       inform (UNKNOWN_LOCATION, "MELT INFORM [#%ld]: %s - %s",
 	      melt_dbgcounter, ("generated runtype support declaration file"),
-	      melt_string_str ( /*_.OUTDECLNAME__V14*/ meltfptr[11]));
+	      melt_string_str ((melt_ptr_t)
+			       ( /*_.OUTDECLNAME__V14*/ meltfptr[11])));
     }
     ;
 
@@ -12797,7 +12799,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-modes.melt:3520:/ locexp");
       melt_output_strbuf_to_file (( /*_.OUTCODEBUF__V26*/ meltfptr[25]),
-				  melt_string_str ( /*_.OUTCODENAME__V18*/
+				  melt_string_str ((melt_ptr_t)
+						   /*_.OUTCODENAME__V18*/
 						   meltfptr[15]));
     }
     ;
@@ -12807,7 +12810,8 @@ lab_endgetargs:;
       inform (UNKNOWN_LOCATION, "MELT INFORM [#%ld]: %s - %s",
 	      melt_dbgcounter,
 	      ("generated runtype support implementation file"),
-	      melt_string_str ( /*_.OUTCODENAME__V18*/ meltfptr[15]));
+	      melt_string_str ((melt_ptr_t)
+			       ( /*_.OUTCODENAME__V18*/ meltfptr[15])));
     }
     ;
 
@@ -17884,7 +17888,8 @@ lab_endgetargs:;
 
      /*_.SPLIT_STRING_COMMA__V15*/ meltfptr[14] =
 		  meltgc_new_split_string (melt_string_str
-					   ( /*_.MAKE_STRINGCONST__V14*/
+					   ((melt_ptr_t)
+					    /*_.MAKE_STRINGCONST__V14*/
 					    meltfptr[10]), ',',
 					   (melt_ptr_t) ( /*!DISCR_STRING */
 							 meltfrout->
@@ -18727,7 +18732,7 @@ lab_endgetargs:;
       MELT_LOCATION ("warmelt-modes.melt:3801:/ locexp");
       inform (UNKNOWN_LOCATION, "MELT INFORM [#%ld]: %s - %s",
 	      melt_dbgcounter, ("reading from file"),
-	      melt_string_str ( /*_.CURARG__V2*/ meltfptr[1]));
+	      melt_string_str ((melt_ptr_t) ( /*_.CURARG__V2*/ meltfptr[1])));
     }
     ;
     MELT_LOCATION ("warmelt-modes.melt:3802:/ quasiblock");
