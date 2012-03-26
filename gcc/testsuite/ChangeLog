@@ -1,3 +1,44 @@
+2012-03-26  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/50052
+	* gcc.dg/ipa/ipa-sra-2.c: Also run on strict-alignment platforms.
+
+2012-03-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52701
+	* gfortran.dg/pr52701.f90: New testcase.
+
+2012-03-26  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	PR tree-optimization/52686
+	* gcc.target/arm/pr52686.c: New test.
+
+2012-03-26  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.target/avr/torture/avr-torture.exp (AVR_TORTURE_OPTIONS):
+	Add "-Os -flto" to list.
+
+2012-03-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/concat2.ad[sb]: New test.
+
+2012-03-24  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/auto3.C: Compile with -pedantic-errors.
+	* g++.dg/cpp0x/trailing2.C: Likewise.
+	* g++.dg/warn/pr23075.C: Change dg-warning to dg-bogus.
+	* g++.dg/cpp1y/auto-fn1.C: New.
+	* g++.dg/cpp1y/auto-fn2.C: New.
+	* g++.dg/cpp1y/auto-fn3.C: New.
+	* g++.dg/cpp1y/auto-fn4.C: New.
+	* g++.dg/cpp1y/auto-fn5.C: New.
+	* g++.dg/cpp1y/auto-fn6.C: New.
+	* g++.dg/cpp1y/auto-fn7.C: New.
+	* g++.dg/cpp1y/auto-fn8.C: New.
+	* g++.dg/cpp1y/auto-fn9.C: New.
+	* g++.dg/cpp1y/auto-fn10.C: New.
+	* g++.dg/cpp1y/auto-fn11.C: New.
+
 2012-03-23  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/52678
