@@ -85,10 +85,14 @@ pph_init_write (pph_stream *stream)
 void
 pph_writer_init (void)
 {
+  timevar_start (TV_PPH_SAVE);
+
   gcc_assert (pph_out_stream == NULL);
   pph_out_stream = pph_stream_open (pph_out_file, "wb");
   if (pph_out_stream == NULL)
     fatal_error ("Cannot open PPH file %s for writing: %m", pph_out_file);
+
+  timevar_stop (TV_PPH_SAVE);
 }
 
 
@@ -319,6 +323,8 @@ pph_out_line_table_and_includes (pph_stream *stream)
 {
   int ix;
 
+  timevar_start (TV_PPH_SAVE_LINE_TABLE);
+
   /* Any #include should have been fully parsed and exited at this point.  */
   gcc_assert (line_table->depth == 0);
 
@@ -423,6 +429,8 @@ pph_out_line_table_and_includes (pph_stream *stream)
   pph_out_source_location (stream, line_table->highest_line);
 
   pph_out_uint (stream, line_table->max_column_hint);
+
+  timevar_stop (TV_PPH_SAVE_LINE_TABLE);
 }
 
 
@@ -2503,6 +2511,8 @@ pph_out_replay (pph_stream *stream)
   pph_replay_entry *entry;
   unsigned i;
 
+  timevar_start (TV_PPH_SAVE_REPLAY);
+
   pph_out_uint (stream, VEC_length (pph_replay_entry, stream->replay.v));
   FOR_EACH_VEC_ELT (pph_replay_entry, stream->replay.v, i, entry)
     {
@@ -2525,6 +2535,8 @@ pph_out_replay (pph_stream *stream)
 	  pph_out_bool (stream, cgraph_get_node (entry->to_replay) != NULL);
 	}
     }
+
+  timevar_stop (TV_PPH_SAVE_REPLAY);
 }
 
 
@@ -2534,6 +2546,8 @@ static void
 pph_out_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 {
   unsigned int num_entries, active_entries, id;
+
+  timevar_start (TV_PPH_SAVE_IDENTIFIERS);
 
   num_entries = identifiers->num_entries;
   pph_out_uint (stream, identifiers->max_ident_len);
@@ -2575,6 +2589,8 @@ pph_out_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
       pph_out_string_with_length (stream, entry->after_str,
 				     entry->after_len);
     }
+
+  timevar_stop (TV_PPH_SAVE_IDENTIFIERS);
 }
 
 
@@ -2584,6 +2600,8 @@ static void
 pph_out_global_binding_keys (pph_stream *stream)
 {
   cp_binding_level *bl;
+
+  timevar_start (TV_PPH_SAVE_MERGE_KEYS);
 
   /* We only need to write out the scope_chain->bindings, everything
      else should be NULL or be some temporary disposable state.
@@ -2615,6 +2633,8 @@ pph_out_global_binding_keys (pph_stream *stream)
   /* Emit all the merge keys for objects that need to be merged when
      reading multiple PPH images.  */
   pph_out_merge_key_binding_level (stream, bl);
+
+  timevar_stop (TV_PPH_SAVE_MERGE_KEYS);
 }
 
 
@@ -2625,8 +2645,12 @@ pph_out_global_binding_bodies (pph_stream *stream)
 {
   cp_binding_level *bl = scope_chain->bindings;
 
+  timevar_start (TV_PPH_SAVE_MERGE_BODIES);
+
   /* Now emit all the bodies.  */
   pph_out_merge_body_binding_level (stream, bl);
+
+  timevar_stop (TV_PPH_SAVE_MERGE_BODIES);
 }
 
 
@@ -2656,12 +2680,13 @@ pph_write_file (pph_stream *stream)
 
   /* Emit other global state kept by the parser.  FIXME pph, these
      globals should be fields in struct cp_parser.  */
+  timevar_start (TV_PPH_SAVE_MISC);
   pph_out_tree (stream, keyed_classes);
   pph_out_tree_vec (stream, unemitted_tinfo_decls);
   pph_out_tree (stream, static_aggregates);
   pph_out_decl2_hidden_state (stream);
-
   pph_out_canonical_template_parms (stream);
+  timevar_stop (TV_PPH_SAVE_MISC);
 
   /* Emit the symbol table.  The symbol table must be emitted at the
      end because all the symbols read from children PPH images are not
@@ -2773,11 +2798,15 @@ pph_writer_finish (void)
   if (pph_out_stream == NULL)
     return;
 
+  timevar_start (TV_PPH_SAVE);
+
   if (!pph_check_main_missing_guard || pph_check_main_guarded ())
     pph_write_file (pph_out_stream);
 
   pph_stream_close (pph_out_stream);
   pph_out_stream = NULL;
+
+  timevar_stop (TV_PPH_SAVE);
 }
 
 

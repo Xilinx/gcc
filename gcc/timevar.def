@@ -60,6 +60,26 @@ DEFTIMEVAR (TV_PCH_PTR_SORT          , "PCH pointer sort")
 DEFTIMEVAR (TV_PCH_RESTORE           , "PCH main state restore")
 DEFTIMEVAR (TV_PCH_CPP_RESTORE       , "PCH preprocessor state restore")
 
+/* Time spent saving/restoring PPH state.  */
+DEFTIMEVAR (TV_PPH                     , "PPH (global)")
+DEFTIMEVAR (TV_PPH_VALIDATE_IDENTIFIERS, "PPH validate identifiers")
+
+DEFTIMEVAR (TV_PPH_SAVE                , "PPH save (main)")
+DEFTIMEVAR (TV_PPH_SAVE_LINE_TABLE     , "PPH save (line table)")
+DEFTIMEVAR (TV_PPH_SAVE_IDENTIFIERS    , "PPH save (identifiers)")
+DEFTIMEVAR (TV_PPH_SAVE_MERGE_KEYS     , "PPH save (merge keys)")
+DEFTIMEVAR (TV_PPH_SAVE_MERGE_BODIES   , "PPH save (merge bodies)")
+DEFTIMEVAR (TV_PPH_SAVE_MISC           , "PPH save (misc state)")
+DEFTIMEVAR (TV_PPH_SAVE_REPLAY         , "PPH save (replay table)")
+
+DEFTIMEVAR (TV_PPH_RESTORE             , "PPH restore (main)")
+DEFTIMEVAR (TV_PPH_RESTORE_LINE_TABLE  , "PPH restore (line table)")
+DEFTIMEVAR (TV_PPH_RESTORE_IDENTIFIERS , "PPH restore (identifiers)")
+DEFTIMEVAR (TV_PPH_RESTORE_MERGE_KEYS  , "PPH restore (merge keys)")
+DEFTIMEVAR (TV_PPH_RESTORE_MERGE_BODIES, "PPH restore (merge bodies)")
+DEFTIMEVAR (TV_PPH_RESTORE_MISC        , "PPH restore (misc state)")
+DEFTIMEVAR (TV_PPH_RESTORE_REPLAY      , "PPH restore (replay table)")
+
 DEFTIMEVAR (TV_CGRAPH                , "callgraph construction")
 DEFTIMEVAR (TV_CGRAPHOPT             , "callgraph optimization")
 DEFTIMEVAR (TV_VARPOOL               , "varpool construction")

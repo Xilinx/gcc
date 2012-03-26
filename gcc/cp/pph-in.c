@@ -353,6 +353,8 @@ pph_in_line_table_and_includes (pph_stream *stream)
   enum pph_linetable_marker next_lt_marker;
   int top_includer_ix;
 
+  timevar_start (TV_PPH_RESTORE_LINE_TABLE);
+
   used_before = LINEMAPS_ORDINARY_USED (line_table);
   first = true;
 
@@ -459,6 +461,8 @@ pph_in_line_table_and_includes (pph_stream *stream)
   old_depth = line_table->depth++;
   linemap_add (line_table, LC_LEAVE, 0, NULL, 0);
   gcc_assert (line_table->depth == old_depth);
+
+  timevar_stop (TV_PPH_RESTORE_LINE_TABLE);
 
   return MAP_START_LOCATION (LINEMAPS_ORDINARY_MAP_AT (line_table, used_before));
 }
@@ -2883,6 +2887,8 @@ pph_in_replay (pph_stream *stream)
 {
   unsigned i, num;
 
+  timevar_start (TV_PPH_RESTORE_REPLAY);
+
   /* Register all the symbols in STREAM in the same order of the
      original compilation for this header file.  */
   num = pph_in_uint (stream);
@@ -2974,6 +2980,8 @@ pph_in_replay (pph_stream *stream)
       else
 	gcc_unreachable ();
     }
+
+  timevar_stop (TV_PPH_RESTORE_REPLAY);
 }
 
 
@@ -3027,6 +3035,8 @@ pph_in_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
   unsigned int j;
   unsigned int max_ident_len, max_value_len, num_entries;
   unsigned int ident_len, before_len, after_len;
+
+  timevar_start (TV_PPH_RESTORE_IDENTIFIERS);
 
   max_ident_len = pph_in_uint (stream);
   identifiers->max_ident_len = max_ident_len;
@@ -3089,6 +3099,8 @@ pph_in_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 	  identifiers->entries[j].after_str = NULL;
 	}
     }
+
+  timevar_stop (TV_PPH_RESTORE_IDENTIFIERS);
 }
 
 
@@ -3101,6 +3113,8 @@ pph_in_global_binding_keys (pph_stream *stream)
 {
   cp_binding_level *bl, *other_bl;
   bool existed_p;
+
+  timevar_start (TV_PPH_RESTORE_MERGE_KEYS);
 
   bl = scope_chain->bindings;
   other_bl = pph_in_binding_level_start (stream, bl, &existed_p);
@@ -3116,6 +3130,8 @@ pph_in_global_binding_keys (pph_stream *stream)
      same slot IX that the writer used, the trees read now will be
      bound to scope_chain->bindings.  */
   pph_in_merge_key_binding_level (stream, &bl);
+
+  timevar_stop (TV_PPH_RESTORE_MERGE_KEYS);
 }
 
 
@@ -3128,10 +3144,14 @@ pph_in_global_binding_bodies (pph_stream *stream)
 {
   cp_binding_level *bl = scope_chain->bindings;
 
+  timevar_start (TV_PPH_RESTORE_MERGE_BODIES);
+
   /* Once all the symbols and types at every binding level have been
      merged to the corresponding binding levels in the current
      compilation, read all the bodies.  */
   pph_in_merge_body_binding_level (stream, bl);
+
+  timevar_stop (TV_PPH_RESTORE_MERGE_BODIES);
 }
 
 
@@ -3193,6 +3213,7 @@ pph_read_file_1 (pph_stream *stream)
   pph_in_identifiers (stream, &idents_used);
 
   /* FIXME pph: This validation is weak.  */
+  timevar_start (TV_PPH_VALIDATE_IDENTIFIERS);
   verified = cpp_lt_verify_1 (parse_in, &idents_used, &bad_use, &cur_def, true);
   if (!verified)
     report_validation_error (stream->name, bad_use->ident_str, cur_def,
@@ -3204,6 +3225,7 @@ pph_read_file_1 (pph_stream *stream)
      adding locations which wouldn't be there in the non-pph compile; thus
      working towards an identical line_table in pph and non-pph.  */
   cpp_lt_replay (parse_in, &idents_used, &cpp_token_replay_loc);
+  timevar_stop (TV_PPH_VALIDATE_IDENTIFIERS);
 
   /* Read the namespace scope bindings and template state from STREAM.  */
   pph_in_global_binding_keys (stream);
@@ -3213,13 +3235,14 @@ pph_read_file_1 (pph_stream *stream)
 
   /* Read and merge the other global state collected during parsing of
      the original header.  */
+  timevar_start (TV_PPH_RESTORE_MISC);
   pph_union_into_chain (&keyed_classes, pph_in_tree (stream));
   pph_union_into_tree_vec (&unemitted_tinfo_decls, pph_in_tree_vec (stream));
   file_static_aggregates = pph_in_tree (stream);
   static_aggregates = chainon (file_static_aggregates, static_aggregates);
   pph_in_decl2_hidden_state (stream);
-
   pph_in_canonical_template_parms (stream);
+  timevar_stop (TV_PPH_RESTORE_MISC);
 
   /* Read and process the symbol and type re-play table.  This
      re-executes all the actions done to present symbols and types to
@@ -3267,6 +3290,8 @@ pph_add_include (pph_stream *parent, pph_stream *include)
 pph_stream *
 pph_read_file (const char *filename, pph_stream *parent)
 {
+  timevar_start (TV_PPH_RESTORE);
+
   pph_stream *stream = pph_stream_open (filename, "rb");
   if (stream)
     {
@@ -3282,6 +3307,8 @@ pph_read_file (const char *filename, pph_stream *parent)
       if (parent)
 	pph_add_include (parent, stream);
     }
+
+  timevar_stop (TV_PPH_RESTORE);
 
   return stream;
 }

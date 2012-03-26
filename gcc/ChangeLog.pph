@@ -1,3 +1,22 @@
+2012-03-26   Diego Novillo  <dnovillo@google.com>
+
+	* timevar.def (TV_PPH): New timer.
+	(TV_PPH_VALIDATE_IDENTIFIERS): New timer.
+	(TV_PPH_SAVE): New timer.
+	(TV_PPH_SAVE_LINE_TABLE): New timer.
+	(TV_PPH_SAVE_IDENTIFIERS): New timer.
+	(TV_PPH_SAVE_MERGE_KEYS): New timer.
+	(TV_PPH_SAVE_MERGE_BODIES): New timer.
+	(TV_PPH_SAVE_MISC): New timer.
+	(TV_PPH_SAVE_REPLAY): New timer.
+	(TV_PPH_RESTORE): New timer.
+	(TV_PPH_RESTORE_LINE_TABLE): New timer.
+	(TV_PPH_RESTORE_IDENTIFIERS): New timer.
+	(TV_PPH_RESTORE_MERGE_KEYS): New timer.
+	(TV_PPH_RESTORE_MERGE_BODIES): New timer.
+	(TV_PPH_RESTORE_MISC): New timer.
+	(TV_PPH_RESTORE_REPLAY): New timer.
+
 2012-03-04   Diego Novillo  <dnovillo@google.com>
 
 	* tree.c (type_hash_traverse): Declare.

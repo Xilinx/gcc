@@ -20907,10 +20907,12 @@ pph_in_bodies_spec_entry_htab (pph_stream *stream, htab_t *table)
 void
 pph_out_merge_key_template_state (pph_stream *stream ATTRIBUTE_UNUSED)
 {
+  timevar_start (TV_PPH_SAVE_MERGE_KEYS);
   pph_out_spec_entry_htab (stream, &decl_specializations,
 			   pph_out_key_spec_entry_slot);
   pph_out_spec_entry_htab (stream, &type_specializations,
 			   pph_out_key_spec_entry_slot);
+  timevar_stop (TV_PPH_SAVE_MERGE_KEYS);
 }
 
 
@@ -20919,6 +20921,8 @@ pph_out_merge_key_template_state (pph_stream *stream ATTRIBUTE_UNUSED)
 void
 pph_out_merge_body_template_state (pph_stream *stream)
 {
+  timevar_start (TV_PPH_SAVE_MERGE_BODIES);
+
   pph_out_spec_entry_htab (stream, &decl_specializations,
 			   pph_out_body_spec_entry_slot);
   pph_out_spec_entry_htab (stream, &type_specializations,
@@ -20930,6 +20934,8 @@ pph_out_merge_body_template_state (pph_stream *stream)
       pph_dump_spec_entry_htab (pph_logfile, "type", &type_specializations);
       pph_dump_pending_templates_list (stderr);
     }
+
+  timevar_stop (TV_PPH_SAVE_MERGE_BODIES);
 }
 
 
@@ -20944,6 +20950,8 @@ static strptrmap_t *type_spec_tbl = NULL;
 void
 pph_in_merge_key_template_state (pph_stream *stream ATTRIBUTE_UNUSED)
 {
+  timevar_start (TV_PPH_RESTORE_MERGE_KEYS);
+
   if (!decl_spec_tbl)
     decl_spec_tbl = strptrmap_create ();
   if (!type_spec_tbl)
@@ -20952,6 +20960,8 @@ pph_in_merge_key_template_state (pph_stream *stream ATTRIBUTE_UNUSED)
 			       decl_spec_tbl);
   pph_in_keys_spec_entry_htab (stream, pph_in_search_key_spec,
 			       type_spec_tbl);
+
+  timevar_stop (TV_PPH_RESTORE_MERGE_KEYS);
 }
 
 
@@ -20960,6 +20970,8 @@ pph_in_merge_key_template_state (pph_stream *stream ATTRIBUTE_UNUSED)
 void
 pph_in_merge_body_template_state (pph_stream *stream)
 {
+  timevar_start (TV_PPH_RESTORE_MERGE_BODIES);
+
   pph_in_bodies_spec_entry_htab (stream, &decl_specializations);
   pph_in_bodies_spec_entry_htab (stream, &type_specializations);
   pph_in_pending_templates_list (stream);
@@ -20969,6 +20981,8 @@ pph_in_merge_body_template_state (pph_stream *stream)
       pph_dump_spec_entry_htab (pph_logfile, "decl", &decl_specializations);
       pph_dump_pending_templates_list (stderr);
     }
+
+  timevar_stop (TV_PPH_RESTORE_MERGE_BODIES);
 }
 
 

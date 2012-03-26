@@ -883,6 +883,8 @@ pph_include_handler (cpp_reader *reader,
   const char *pph_file;
   bool read_text_file_p;
 
+  timevar_start (TV_PPH);
+
   if (flag_pph_tracer >= 1)
     {
       fprintf (pph_logfile, "PPH: #%s", dname);
@@ -929,6 +931,8 @@ pph_include_handler (cpp_reader *reader,
 		    "cannot open PPH file %s for reading: %m; "
 		    "using original header %s", pph_file, name);
     }
+
+  timevar_stop (TV_PPH);
 
   return read_text_file_p;
 }
@@ -1477,6 +1481,8 @@ pph_init (void)
   cpp_callbacks *cb;
   cpp_lookaside *table;
 
+  timevar_start (TV_PPH);
+
   if (flag_pph_logfile)
     {
       pph_logfile = fopen (flag_pph_logfile, "w");
@@ -1510,6 +1516,8 @@ pph_init (void)
     pph_writer_init ();
 
   pph_reader_init ();
+
+  timevar_stop (TV_PPH);
 }
 
 
@@ -1565,6 +1573,8 @@ bool pph_check_main_guarded (void)
 void
 pph_finish (void)
 {
+  timevar_start (TV_PPH);
+
   /* If we found errors during compilation, disable PPH generation.  */
   if (errorcount || sorrycount)
     pph_disable_output ();
@@ -1578,6 +1588,8 @@ pph_finish (void)
 
   if (flag_pph_logfile)
     fclose (pph_logfile);
+
+  timevar_stop (TV_PPH);
 }
 
 #include "gt-cp-pph-core.h"

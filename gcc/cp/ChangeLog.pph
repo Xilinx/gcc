@@ -1,3 +1,36 @@
+2012-03-26   Diego Novillo  <dnovillo@google.com>
+
+	* pph-core.c (pph_include_handler): Use timer TV_PPH.
+	(pph_init): Likewise.
+	(pph_finish): Likewise.
+	* pph-in.c (pph_in_line_table_and_includes): Use timer
+	TV_PPH_RESTORE_LINE_TABLE.
+	(pph_in_replay): Use timer TV_PPH_RESTORE_REPLAY.
+	(pph_in_identifiers): Use timer TV_PPH_RESTORE_IDENTIFIERS.
+	(pph_in_global_binding_keys): Use timer
+	TV_PPH_RESTORE_MERGE_KEYS.
+	(pph_in_global_binding_bodies): Use timer
+	TV_PPH_RESTORE_MERGE_BODIES.
+	(pph_read_file_1): Use timer TV_PPH_RESTORE_MISC and timer
+	TV_PPH_VALIDATE_IDENTIFIERS.
+	(pph_read_file): Use timer TV_PPH_RESTORE.
+	* pph-out.c (pph_writer_init): Use timer TV_PPH_SAVE.
+	(pph_out_line_table_and_includes): Use timer
+	TV_PPH_SAVE_LINE_TABLE.
+	(pph_out_replay): Use timer TV_PPH_SAVE_REPLAY.
+	(pph_out_identifiers): Use timer TV_PPH_SAVE_IDENTIFIERS.
+	(pph_out_global_binding_keys): Use timer TV_PPH_SAVE_MERGE_KEYS.
+	(pph_out_global_binding_bodies): Use timer TV_PPH_SAVE_MERGE_BODIES.
+	(pph_write_file): Use timer TV_PPH_SAVE_MISC.
+	(pph_writer_finish): Use timer TV_PPH_SAVE.
+	* pt.c (pph_in_bodies_spec_entry_htab): Use timer
+	TV_PPH_RESTORE_MERGE_BODIES.
+	(pph_out_merge_key_template_state): Use timer TV_PPH_SAVE_MERGE_KEYS.
+	(pph_out_merge_body_template_state): Use timer TV_PPH_SAVE_MERGE_BODIES.
+	(pph_in_merge_key_template_state): Use timer TV_PPH_RESTORE_MERGE_KEYS.
+	(pph_in_merge_body_template_state): Use timer
+	TV_PPH_RESTORE_MERGE_BODIES.
+
 2012-03-25   Diego Novillo  <dnovillo@google.com>
 
 	* pph-out.c (pph_out_global_binding_keys): Fix check for empty
