@@ -1,6 +1,10 @@
 
 2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (meltgc_new_string_tempname_suffixed): Add cast.
+
+2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/warmelt-base+01.c: Regenerate.

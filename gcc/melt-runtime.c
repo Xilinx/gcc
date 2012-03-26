@@ -4564,7 +4564,7 @@ meltgc_new_string_tempname_suffixed (meltobject_ptr_t
   memset(suffix, 0, sizeof(suffix));
   if (suffstr) strncpy(suffix, suffstr, sizeof(suffix)-1);
   if (basestr)
-    dot = strrchr(basestr, '.');
+    dot = (char*) strrchr(basestr, '.');
   if (dot)
     *dot=0;
   tempnampath = melt_tempdir_path (basestr, suffix);
