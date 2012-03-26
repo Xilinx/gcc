@@ -1895,10 +1895,11 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
       if (f) 
 	{
 	int fno = fileno (f);
-	char* eol = 0;
+	const char* eol = NULL;
 	long fp = ftell (f);
 	(void) fwrite(str, (size_t)slen, (size_t)1, f);
-	if (fno < MELTMAXFILE && fno >= 0 && (eol = strchr(str, '\n')) && eol-str < slen)
+	if (fno < MELTMAXFILE && fno >= 0 && (eol = strchr(str, '\n'))
+	    && eol-str < slen)
 	  lasteol[fno] = fp + (eol-str);
 	}
     }
@@ -4524,7 +4525,7 @@ meltgc_new_string_nakedbasename (meltobject_ptr_t discr_p,
   else
     strcop = strcpy ((char *) xcalloc (1, slen + 1), str);
   basestr = (const char *) lbasename (strcop);
-  dot = strrchr (basestr, '.');
+  dot = (char*) strrchr (basestr, '.');
   if (dot)
     *dot = 0;
   strv =
@@ -9200,7 +9201,7 @@ meltgc_load_one_module (const char*flavoredmodule)
     }
   else
     dupflavmod = xstrdup (flavoredmodule);
-  dotptr = strchr (lbasename (dupflavmod), '.');
+  dotptr = (char*) strchr (lbasename (dupflavmod), '.');
   if (dotptr)
     {
       *dotptr = (char)0;
@@ -13367,7 +13368,9 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 		  meltgc_add_out_raw_len ((melt_ptr_t) sbufv, rbuf, rdcnt);
 		  do {
 		    const char* bufdata = melt_strbuf_str ((melt_ptr_t) sbufv);
-		    char* buf2nl = bufdata?strstr(bufdata,"\n\n"):NULL;
+		    char* buf2nl =
+		      bufdata ? ((char*)strstr(bufdata,"\n\n"))
+		      : NULL;
 		    if (bufdata && buf2nl) {
 		      union meltparam_un argtab[2];
 		      int nbread = buf2nl - bufdata + 2;
@@ -13389,7 +13392,9 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 	  else if (fdtab[ixfd].revents & POLLNVAL)
 	    {
 	      /* replace the bucket slot by :true, to avoid polling it next time */
-	      meltgc_longsbucket_replace (inbuckv, rfd, MELT_PREDEF (TRUE));
+	      meltgc_longsbucket_replace ((melt_ptr_t) inbuckv, 
+					  rfd, 
+					  (melt_ptr_t) MELT_PREDEF (TRUE));
 	    }
 	}
     }

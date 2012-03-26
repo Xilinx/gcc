@@ -1578,7 +1578,7 @@ make a $CURAT string.}#
 ;; setaux
 (defprimitive bucketlong_setaux (buck aux) :void
   :doc #{Safely set in bucket of longs $BUCK the auxiliary data to $AUX.}#
-  #{melt_longsbucket_set_aux ((melt_ptr_t) $BUCK, (melt_ptr_t) $AUX)}#)
+  #{meltgc_longsbucket_set_aux ((melt_ptr_t) $BUCK, (melt_ptr_t) $AUX)}#)
 
 
 ;; count

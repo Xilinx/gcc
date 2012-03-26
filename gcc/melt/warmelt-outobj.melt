@@ -246,9 +246,9 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
       ;; major classes are not initialized at that time.
       (add2sbuf_strconst sbuf " if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg(\"iniobj check.discr isobj ")
       (add2sbuf_string sbuf oname)
-      (add2sbuf_strconst sbuf "\", melt_magic_discr (")
+      (add2sbuf_strconst sbuf "\", melt_magic_discr ((melt_ptr_t) (")
       (output_c_code odiscr () sbuf depth)
-      (add2sbuf_strconst sbuf ") == MELTOBMAG_OBJECT);")
+      (add2sbuf_strconst sbuf ")) == MELTOBMAG_OBJECT);")
       (add2sbuf_indentnl sbuf (+i depth 1)) 
       ;; generate the check of the objnum of odiscr
       (add2sbuf_strconst sbuf " if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg(\"iniobj check.discr objmagic ")
@@ -1290,6 +1290,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	(:long nblong (get_int onblong))
 	(:long isinitial (is_a rou class_initialroutineobj))
 	(others (unsafe_get_field :obrout_others rou))
+	(rouname (get_field :named_name rou))
 	)       
     ;; output call counter for debugging
     (add2sbuf_indentnl implbuf 0)
@@ -1324,7 +1325,9 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	  (add2sbuf_indentnl implbuf 3)
 	  (add2sbuf_strconst implbuf "int ix=0;")
 	  (add2sbuf_indentnl implbuf 3)
-	  (add2sbuf_strconst implbuf "meltframptr_ = (void*)meltfirstargp_;")
+	  (if rouname
+	      (add2out implbuf "meltframptr_ = (struct frame_" rouname "_st*) meltfirstargp_;")
+	    (add2sbuf_strconst implbuf "meltframptr_ = (void*)meltfirstargp_;"))
 	  (add2sbuf_indentnl implbuf 3)
 	  (outpucod_marker rou implbuf)
 	  (add2sbuf_strconst implbuf "return NULL;")

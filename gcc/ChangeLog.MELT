@@ -1,4 +1,17 @@
 
+2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{better C++ compatibility}}
+	* melt-runtime.c (meltgc_add_out_raw_len): Declare eol as const.
+	(meltgc_new_string_nakedbasename): Add cast.
+	(meltgc_load_one_module): Ditto.
+	(meltgc_poll_inputs): Ditto.
+
+	* melt/warmelt-first.melt (bucketlong_setaux): Typo in generating
+	chunk.
+
+	* melt/warmelt-outobj.melt (outcinitfill_objinitobject)
+	(output_curframe_declstruct_init): Emit more casts.
+
 2011-03-23  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h (melt_checked_assignmsg): Revert.
