@@ -1,6 +1,11 @@
 
 2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-first.melt (initial_system_data): Cast when calling
+	meltgc_new_file.
+
+2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c: Rename READ_ERROR as MELT_READ_ERROR.
 	(readsimplename): Renamed as ...
 	(melt_readsimplename).

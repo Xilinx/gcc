@@ -4116,14 +4116,14 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 			(d discr_rawfile) 
 			)
 		   (code_chunk makestdout 
-			       #{ $f = meltgc_new_file($d, stdout) ; }#
+			       #{ $f = meltgc_new_file((melt_ptr_t) $D, stdout)  /* $MAKESTDOUT */; }#
 			       )
 		   f)
  :sysdata_stderr (let ( (f ())
 			(d discr_rawfile) 
 			)
 		   (code_chunk makestderr
-			       #{ $f = meltgc_new_file($d, stderr) ; }#
+			       #{ $f = meltgc_new_file((melt_ptr_t) $D, stderr) /* $MAKESTDERR */ ; }#
 			       )
 		   f)
  :sysdata_dumpfile (let ( (f ())
@@ -4131,7 +4131,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 			  )
 		     ;; the FILE* of dumpfile is also set in pass executions.
 		     (code_chunk makedump
-				 #{ $f = meltgc_new_file($d, dump_file)	; }#
+				 #{ $F = meltgc_new_file((melt_ptr_t) $D, dump_file) /*$MAKEDUMP */ ; }#
 				 )
 		     f)
  )
