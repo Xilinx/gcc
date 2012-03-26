@@ -12789,7 +12789,7 @@ lab_endgetargs:;
       meltgc_out_printf ( /*_.OUTCODEBUF__V26*/ meltfptr[25],
 			 "\n/*** End of code file %s generated on %s\n"
 			 " * by GCC MELT %s . ***/\n",
-			 melt_string_str ( /*_.OUTCODENAME__V18*/
+			 melt_string_str ((melt_ptr_t) /*_.OUTCODENAME__V18*/
 					  meltfptr[15]),
 			 codedatebuf, melt_gccversionstr);
       /* end  TERMCOMMENTCODECHK__1 */ ;

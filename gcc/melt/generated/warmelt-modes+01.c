@@ -23611,9 +23611,11 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-modes.melt:1415:/ locexp");
-	    printf (" * %s : %s\n",
-		    melt_string_str ( /*_.MODNAM__V21*/ meltfptr[19]),
-		    melt_string_str ( /*_.MODHELP__V22*/ meltfptr[21]));
+	    printf (" * %s : %s\n",	/* SAYMODE_CHK__1 */
+		    melt_string_str ((melt_ptr_t) /*_.MODNAM__V21*/
+				     meltfptr[19]),
+		    melt_string_str ((melt_ptr_t) /*_.MODHELP__V22*/
+				     meltfptr[21]));
 	    ;
 	  }
 	  ;

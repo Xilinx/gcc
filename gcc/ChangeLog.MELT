@@ -1,5 +1,27 @@
 
 2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{Regenerate}}
+	* melt/generated/warmelt-base+melttime.h
+	* melt/generated/warmelt-debug+melttime.h
+	* melt/generated/warmelt-first+01.c
+	* melt/generated/warmelt-first+meltdesc.c
+	* melt/generated/warmelt-first+melttime.h
+	* melt/generated/warmelt-genobj+melttime.h
+	* melt/generated/warmelt-macro+melttime.h
+	* melt/generated/warmelt-modes+01.c
+	* melt/generated/warmelt-modes+02.c
+	* melt/generated/warmelt-modes+meltdesc.c
+	* melt/generated/warmelt-modes+melttime.h
+	* melt/generated/warmelt-normal+melttime.h
+	* melt/generated/warmelt-normatch+melttime.h
+	* melt/generated/warmelt-outobj+04.c
+	* melt/generated/warmelt-outobj+05.c
+	* melt/generated/warmelt-outobj+meltdesc.c
+	* melt/generated/warmelt-outobj+melttime.h
+	* melt/generated/warmelt-outobj.c
+
+2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt: Cast to melt_ptr_t.
 	* melt/warmelt-modes.melt: Ditto.
 	* melt/warmelt-first.melt: Ditto.

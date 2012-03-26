@@ -2284,10 +2284,11 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-first.melt:2751:/ locexp");
-
+		  /* clone_symbol CLONAMSTR__1 */
 		  static char clonambuf[100];
 		  const char *s =
-		    melt_string_str ( /*_.DISCRINAM__V10*/ meltfptr[9]);
+		    melt_string_str ((melt_ptr_t) /*_.DISCRINAM__V10*/
+				     meltfptr[9]);
 		  if (s)
 		    s = strchr (s, '_');
 		  if (!s)
@@ -11097,7 +11098,8 @@ lab_endgetargs:;
 	    MELT_LOCATION ("warmelt-first.melt:3277:/ locexp");
 	    warning (0,
 		     "unrecognized MELT option %s. Use -f[plugin-arg-]melt-option=help",
-		     melt_string_str ( /*_.OPTNAME__V6*/ meltfptr[5]));
+		     melt_string_str ((melt_ptr_t) /*_.OPTNAME__V6*/
+				      meltfptr[5]));
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-first.melt:3279:/ quasiblock");
@@ -11693,15 +11695,17 @@ lab_endgetargs:;
 		 i += 2)
 	      {
 		char *n1 =
-		  (char *)
-		  melt_string_str (melt_multiple_nth
-				   ((melt_ptr_t) /*_.SORTEDNAMETUP__V16*/
-				    meltfptr[15], i));
+		  (char *) melt_string_str ((melt_ptr_t)
+					    melt_multiple_nth ((melt_ptr_t)
+							       /*_.SORTEDNAMETUP__V16*/
+							       meltfptr[15],
+							       i));
 		char *n2 =
-		  (char *)
-		  melt_string_str (melt_multiple_nth
-				   ((melt_ptr_t) /*_.SORTEDNAMETUP__V16*/
-				    meltfptr[15], i + 1));
+		  (char *) melt_string_str ((melt_ptr_t)
+					    melt_multiple_nth ((melt_ptr_t)
+							       /*_.SORTEDNAMETUP__V16*/
+							       meltfptr[15],
+							       i + 1));
 		if (n1 && n2)
 		  inform (UNKNOWN_LOCATION, "possible MELT options: %s & %s",
 			  n1, n2);
