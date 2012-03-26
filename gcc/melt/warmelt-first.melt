@@ -3437,16 +3437,19 @@ nil.}#
   given by the start formal $START_PAIR and $END_PAIR. Local formals are $CURPAIR,
   bound to the current pair, and $CURCOMP, bound to the current component within
   the pair.}#
-   #{/* start $EACHPAIRB */
+   #{/* start foreach_pair_between $EACHPAIRB */
    for ($curpair = $START_PAIR;
-	melt_magic_discr($CURPAIR) == MELTOBMAG_PAIR;
-        $curpair = melt_pair_tail($CURPAIR)) {
-	$curcomp = melt_pair_head($CURPAIR); }#
-   #{
+	melt_magic_discr((melt_ptr_t) $CURPAIR) == MELTOBMAG_PAIR;
+        $CURPAIR = melt_pair_tail((melt_ptr_t) $CURPAIR)) {
+	$CURCOMP = melt_pair_head((melt_ptr_t) $CURPAIR); }#
+   #{ /* ending  foreach_pair_between  $EACHPAIRB */
       if ($CURPAIR == $END_PAIR) {
          break;
       }
-   } /* end $EACHPAIRB */}#
+   } /* end foreach_pair_between $EACHPAIRB */
+      $CURCOMP = NULL;
+      $CURPAIR = NULL;
+   }#
 )
 
 
@@ -3458,13 +3461,17 @@ nil.}#
   :doc #{The $FOREACH_PAIR iterator scan pairs starting from $START_PAIR. Local formals are $CURPAIR,
   bound to the current pair, and $CURCOMP, bound to the current component within
   the pair.}#
-   #{/* start $EACHPAIR */
+   #{/* start foreach_pair $EACHPAIR */
    for ($CURPAIR = $START_PAIR;
 	melt_magic_discr($CURPAIR) == MELTOBMAG_PAIR;
-        $CURPAIR = melt_pair_tail($CURPAIR)) {
-	$CURCOMP = melt_pair_head($CURPAIR); }#
-   #{
-   } /* end $EACHPAIR */}#
+        $CURPAIR = melt_pair_tail((melt_ptr_t) $CURPAIR)) {
+	$CURCOMP = melt_pair_head((melt_ptr_t) $CURPAIR); 
+   }#
+   
+   #{ } /* ending  foreach_pair $EACHPAIR */
+   $CURPAIR = NULL;
+   $CURCOMP = NULL;
+   }#
 )
 
 ;;; citerator on lists
@@ -3476,12 +3483,15 @@ nil.}#
 the start formal $LIS. Local formals are $CURPAIR, bound to the
 current pair, and $CURCOMP, bound to the current component within the
 list.}#
-   #{/* start $eachlist */
-   for ($curpair = melt_list_first($lis);
-	melt_magic_discr($curpair) == MELTOBMAG_PAIR;
-        $curpair = melt_pair_tail($curpair)) {
-	$curcomp = melt_pair_head($curpair); }#
-   #{ } /* end $eachlist */}#
+   #{/* start foreach_in_list $EACHLIST */
+   for ($CURPAIR = melt_list_first( (melt_ptr_t)$LIS);
+	melt_magic_discr((melt_ptr_t) $curpair) == MELTOBMAG_PAIR;
+        $CURPAIR = melt_pair_tail((melt_ptr_t) $CURPAIR)) {
+	$CURCOMP = melt_pair_head((melt_ptr_t) $CURPAIR); }#
+   #{ } /* end foreach_in_list $EACHLIST */
+     $CURPAIR = NULL;
+     $CURCOMP = NULL;
+   }#
 )
 
 ;;; full iterator on a list

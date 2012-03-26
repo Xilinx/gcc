@@ -1,5 +1,8 @@
 
 2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: Cast to melt_ptr_t.
+
+2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate}}
 	* melt/generated/warmelt-base+melttime.h
