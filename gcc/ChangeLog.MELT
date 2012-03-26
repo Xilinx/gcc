@@ -1,6 +1,14 @@
 
 2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c: Rename READ_ERROR as MELT_READ_ERROR.
+	(readsimplename): Renamed as ...
+	(melt_readsimplename).
+	(readsimplelong): Renamed as ...
+	(melt_readsimplelong).
+
+2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (meltgc_new_string_tempname_suffixed): Add cast.
 
 2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>

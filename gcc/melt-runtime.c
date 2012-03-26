@@ -5712,7 +5712,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 
  static void melt_linemap_compute_current_location (struct reading_st *rd);
 
- #define READ_ERROR(Fmt,...)    do {                                    \
+ #define MELT_READ_ERROR(Fmt,...)    do {                                    \
    melt_linemap_compute_current_location (rd);                          \
    error_at(rd->rsrcloc, Fmt, ##__VA_ARGS__);                           \
    melt_fatal_error("MELT read failure <%s:%d>",                        \
@@ -5911,7 +5911,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
  #define EXTRANAMECHARS "_+-*/<>=!?:%~&@$|"
  /* read a simple name on the melt_bname_obstack */
  static char *
- readsimplename (struct reading_st *rd)
+ melt_readsimplename (struct reading_st *rd)
  {
    int c = 0;
    while (!rdeof () && (c = rdcurc ()) > 0 &&
@@ -5927,7 +5927,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 
  /* read an integer, like +123, which may also be +%numbername */
  static long
- readsimplelong (struct reading_st *rd)
+ melt_readsimplelong (struct reading_st *rd)
  {
    int c = 0;
    long r = 0;
@@ -5944,7 +5944,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 	  them thru strtol */
        r = strtol (&rdcurc (), &endp, 0);
        if (r == 0 && endp <= &rdcurc ())
-	 READ_ERROR ("MELT: failed to read number %.20s", &rdcurc ());
+	 MELT_READ_ERROR ("MELT: failed to read number %.20s", &rdcurc ());
        rd->rcol += endp - &rdcurc ();
        return r;
      }
@@ -5953,13 +5953,13 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        neg = (c == '-');
        rdnext ();
        rdnext ();
-       nam = readsimplename (rd);
+       nam = melt_readsimplename (rd);
        r = -1;
        /* the +%magicname notation is seldom used, we don't care to do
 	  many needless strcmp-s in that case, to be able to define the
 	  below simple macro */
        if (!nam)
-	 READ_ERROR
+	 MELT_READ_ERROR
 	   ("MELT: magic number name expected after +%% or -%% for magic %s",
 	    nam);
  #define NUMNAM(N) else if (!strcmp(nam,#N)) r = (N)
@@ -6001,12 +6001,12 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
        /** the fields' ranks of melt.h have been removed in rev126278 */
  #undef NUMNAM
        if (r < 0)
-	 READ_ERROR ("MELT: bad magic number name %s", nam);
+	 MELT_READ_ERROR ("MELT: bad magic number name %s", nam);
        obstack_free (&melt_bname_obstack, nam);
        return neg ? -r : r;
      }
    else
-     READ_ERROR ("MELT: invalid number %.20s", &rdcurc ());
+     MELT_READ_ERROR ("MELT: invalid number %.20s", &rdcurc ());
    return 0;
  }
 
@@ -6034,7 +6034,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
      }
    else if (c == '}' && rdfollowc(1) == '#')
      {
-	 READ_ERROR ("MELT: unexpected }# in s-expr sequence %.30s ... started line %d",
+	 MELT_READ_ERROR ("MELT: unexpected }# in s-expr sequence %.30s ... started line %d",
 		     &rdcurc (), startlin);
      }
    /* The lexing ##{ ... }# is to insert a macrostring inside the
@@ -6066,14 +6066,14 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 	   }
 	 }
        if (!got)
-	 READ_ERROR ("MELT: unexpected stuff in macrostring seq %.20s ... started line %d",
+	 MELT_READ_ERROR ("MELT: unexpected stuff in macrostring seq %.20s ... started line %d",
 		     &rdcurc (), startlin);
        goto readagain;
      }
    got = FALSE;
    compv = meltgc_readval (rd, &got);
    if (!compv && !got)
-     READ_ERROR ("MELT: unexpected stuff in seq %.20s ... started line %d",
+     MELT_READ_ERROR ("MELT: unexpected stuff in seq %.20s ... started line %d",
 		 &rdcurc (), startlin);
    meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
    nbcomp++;
@@ -6369,7 +6369,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
  #define contv   meltfram__.mcfr_varptr[1]
  #define locmixv meltfram__.mcfr_varptr[2]
    if (!endc || rdeof ())
-     READ_ERROR ("MELT: eof in s-expr (lin%d)", lineno);
+     MELT_READ_ERROR ("MELT: eof in s-expr (lin%d)", lineno);
    (void) melt_skipspace_getc (rd, COMMENT_SKIP);
    melt_linemap_compute_current_location (rd);
    loc = rd->rsrcloc;
@@ -6476,7 +6476,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 	       rdnext ();
 	       c = (char) strtol (&rdcurc (), &endc, 16);
 	       if (c == 0 && endc <= &rdcurc ())
-		 READ_ERROR ("MELT: illegal hex \\x escape in string %.20s",
+		 MELT_READ_ERROR ("MELT: illegal hex \\x escape in string %.20s",
 			     &rdcurc ());
 	       if (*endc == ';')
 		 endc++;
@@ -6491,7 +6491,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 		   {
 		     int cc;
 		     if (rdeof ())
-		       READ_ERROR
+		       MELT_READ_ERROR
 			 ("MELT: reached end of file in braced block string starting line %d",
 			  linbrac);
 		     cc = rdcurc ();
@@ -6505,7 +6505,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 	       }
 	       break;
 	     default:
-	       READ_ERROR
+	       MELT_READ_ERROR
 		 ("MELT: illegal escape sequence %.10s in string -- got \\%c (hex %x)",
 		  &rdcurc () - 1, c, c);
 	     }
@@ -6515,7 +6515,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    if (c == '"')
      rdnext ();
    else
-     READ_ERROR ("MELT: unterminated string %.20s", &rdcurc ());
+     MELT_READ_ERROR ("MELT: unterminated string %.20s", &rdcurc ());
    c = rdcurc ();
    if (c == '_' && !rdeof ())
      {
@@ -6587,7 +6587,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
     }
   for(;;) {
     if (rdeof()) 
-      READ_ERROR("reached end of file in macrostring sequence started line %d; a }# is probably missing.", 
+      MELT_READ_ERROR("reached end of file in macrostring sequence started line %d; a }# is probably missing.", 
 		 lineno);
     if (!rdcurc()) {
       /* reached end of line */
@@ -6713,7 +6713,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
 	}
       }
       /* any other dollar something is an error */
-      else READ_ERROR("unexpected dollar escape in macrostring %.4s started line %d",
+      else MELT_READ_ERROR("unexpected dollar escape in macrostring %.4s started line %d",
 		      &rdcurc(), lineno);
     }
     else if ( ISALNUM(rdcurc()) || ISSPACE(rdcurc()) ) { 
@@ -6765,13 +6765,13 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
    readv = NULL;
    c = rdcurc ();
    if (!c || rdeof ())
-     READ_ERROR ("MELT: eof in hashescape %.20s starting line %d", &rdcurc (), lineno);
+     MELT_READ_ERROR ("MELT: eof in hashescape %.20s starting line %d", &rdcurc (), lineno);
    if (c == '\\')
      {
        rdnext ();
        if (ISALPHA (rdcurc ()) && rdcurc () != 'x' && ISALPHA (rdfollowc (1)))
 	 {
-	   nam = readsimplename (rd);
+	   nam = melt_readsimplename (rd);
 	   c = 0;
 	   if (!strcmp (nam, "nul"))
 	     c = 0;
@@ -6797,7 +6797,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
 	   else if (!strcmp (nam, "esc"))
 	     c = 0x1b;
 	   else
-	     READ_ERROR ("MELT: invalid char escape %s starting line %d", nam, lineno);
+	     MELT_READ_ERROR ("MELT: invalid char escape %s starting line %d", nam, lineno);
 	   obstack_free (&melt_bname_obstack, nam);
 	 char_escape:
 	   readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARACTER_INTEGER), c);
@@ -6808,7 +6808,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
 	   rdnext ();
 	   c = strtol (&rdcurc (), &endc, 16);
 	   if (c == 0 && endc <= &rdcurc ())
-	     READ_ERROR ("MELT: illigal hex #\\x escape in char %.20s starting line %d",
+	     MELT_READ_ERROR ("MELT: illigal hex #\\x escape in char %.20s starting line %d",
 			 &rdcurc (), lineno);
 	   rd->rcol += endc - &rdcurc ();
 	   goto char_escape;
@@ -6820,7 +6820,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
 	   goto char_escape;
 	 }
        else
-	 READ_ERROR ("MELT: unrecognized char escape #\\%s starting line %d",
+	 MELT_READ_ERROR ("MELT: unrecognized char escape #\\%s starting line %d",
 		     &rdcurc (), lineno);
      }
    else if (c == '(')
@@ -6852,7 +6852,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
        rdnext ();
        n = strtol (&rdcurc (), &endc, 2);
        if (n == 0 && endc <= &rdcurc ())
-	 READ_ERROR ("MELT: bad binary number %s starting line %d", endc, lineno);
+	 MELT_READ_ERROR ("MELT: bad binary number %s starting line %d", endc, lineno);
        readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
      }
    else if ((c == 'o' || c == 'O') && ISDIGIT (rdfollowc (1)))
@@ -6863,7 +6863,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
        rdnext ();
        n = strtol (&rdcurc (), &endc, 8);
        if (n == 0 && endc <= &rdcurc ())
-	 READ_ERROR ("MELT: bad octal number %s starting line %d", endc, lineno);
+	 MELT_READ_ERROR ("MELT: bad octal number %s starting line %d", endc, lineno);
        readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
      }
    else if ((c == 'd' || c == 'D') && ISDIGIT (rdfollowc (1)))
@@ -6874,7 +6874,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
        rdnext ();
        n = strtol (&rdcurc (), &endc, 10);
        if (n == 0 && endc <= &rdcurc ())
-	 READ_ERROR ("MELT: bad decimal number %s starting line %d", endc, lineno);
+	 MELT_READ_ERROR ("MELT: bad decimal number %s starting line %d", endc, lineno);
        readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
      }
    else if ((c == 'x' || c == 'x') && ISDIGIT (rdfollowc (1)))
@@ -6885,14 +6885,14 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
        rdnext ();
        n = strtol (&rdcurc (), &endc, 16);
        if (n == 0 && endc <= &rdcurc ())
-	 READ_ERROR ("MELT: bad octal number %s starting line %d", endc, lineno);
+	 MELT_READ_ERROR ("MELT: bad octal number %s starting line %d", endc, lineno);
        readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER), n);
      }
    else if (c == '+' && ISALPHA (rdfollowc (1)))
      {
        bool gotcomp = FALSE;
        char *nam = 0;
-       nam = readsimplename (rd);
+       nam = melt_readsimplename (rd);
        compv = meltgc_readval (rd, &gotcomp);
        if (!strcmp (nam, "MELT"))
 	 readv = compv;
@@ -6909,7 +6909,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
        readv = meltgc_readmacrostringsequence(rd);
      }
    else
-     READ_ERROR ("MELT: invalid escape %.20s starting line %d", &rdcurc (), lineno);
+     MELT_READ_ERROR ("MELT: invalid escape %.20s starting line %d", &rdcurc (), lineno);
    MELT_EXITFRAME ();
    return (melt_ptr_t) readv;
  #undef readv
@@ -6950,7 +6950,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
 	       || rdfollowc (1) == '|')))
      {
        long num = 0;
-       num = readsimplelong (rd);
+       num = melt_readsimplelong (rd);
        readv =
 	 meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER),
 			    num);
@@ -6982,7 +6982,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
      {
        readv = NULL;
        *pgot = FALSE;
-       READ_ERROR ("MELT: unexpected closing parenthesis %.20s", &rdcurc ());
+       MELT_READ_ERROR ("MELT: unexpected closing parenthesis %.20s", &rdcurc ());
        goto end;
      }
    else if (c == '[')
@@ -7006,7 +7006,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
        rdnext ();
        compv = meltgc_readval (rd, &got);
        if (!got)
-	 READ_ERROR ("MELT: expecting value after quote %.20s", &rdcurc ());
+	 MELT_READ_ERROR ("MELT: expecting value after quote %.20s", &rdcurc ());
        seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
        altv = meltgc_named_symbol ("quote", MELT_CREATE);
        meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
@@ -7030,7 +7030,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
        rdnext ();
        compv = meltgc_readval (rd, &got);
        if (!got)
-	 READ_ERROR ("MELT: expecting value after exclamation mark ! %.20s", &rdcurc ());
+	 MELT_READ_ERROR ("MELT: expecting value after exclamation mark ! %.20s", &rdcurc ());
        seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
        altv = meltgc_named_symbol ("exclaim", MELT_CREATE);
        meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
@@ -7058,7 +7058,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
 				  LOCATION_LINE (loc), LOCATION_COLUMN(loc));
        compv = meltgc_readval (rd, &got);
        if (!got)
-	 READ_ERROR ("MELT: expecting value after backquote %.20s",
+	 MELT_READ_ERROR ("MELT: expecting value after backquote %.20s",
 		     &rdcurc ());
        seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
        altv = meltgc_named_symbol ("backquote", MELT_CREATE);
@@ -7081,7 +7081,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
 				  LOCATION_LINE (loc), LOCATION_COLUMN(loc));
        compv = meltgc_readval (rd, &got);
        if (!got)
-	 READ_ERROR ("MELT: expecting value after comma %.20s", &rdcurc ());
+	 MELT_READ_ERROR ("MELT: expecting value after comma %.20s", &rdcurc ());
        seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
        altv = meltgc_named_symbol ("comma", MELT_CREATE);
        meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
@@ -7103,7 +7103,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
 				  LOCATION_LINE (loc), LOCATION_COLUMN(loc));
        compv = meltgc_readval (rd, &got);
        if (!got)
-	 READ_ERROR ("MELT: expecting value after at %.20s", &rdcurc ());
+	 MELT_READ_ERROR ("MELT: expecting value after at %.20s", &rdcurc ());
        seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
        altv = meltgc_named_symbol ("at", MELT_CREATE);
        meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
@@ -7125,7 +7125,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
 				  LOCATION_LINE (loc), LOCATION_COLUMN(loc));
        compv = meltgc_readval (rd, &got);
        if (!got)
-	 READ_ERROR ("MELT: expecting value after question %.20s", &rdcurc ());
+	 MELT_READ_ERROR ("MELT: expecting value after question %.20s", &rdcurc ());
        seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
        altv = meltgc_named_symbol ("question", MELT_CREATE);
        meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
@@ -7137,17 +7137,17 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
    else if (c == ':')
      {
        if (!ISALPHA (rdfollowc(1)))
-	 READ_ERROR ("MELT: colon should be followed by letter for keyword, but got %c", rdfollowc(1));
-       nam = readsimplename (rd);
+	 MELT_READ_ERROR ("MELT: colon should be followed by letter for keyword, but got %c", rdfollowc(1));
+       nam = melt_readsimplename (rd);
        readv = meltgc_named_keyword (nam, MELT_CREATE);
        if (!readv)
-	 READ_ERROR ("MELT: unknown named keyword %s", nam);
+	 MELT_READ_ERROR ("MELT: unknown named keyword %s", nam);
        *pgot = TRUE;
        goto end;
      }
    else if (ISALPHA (c) || strchr (EXTRANAMECHARS, c) != NULL)
      {
-       nam = readsimplename (rd);
+       nam = melt_readsimplename (rd);
        readv = meltgc_named_symbol (nam, MELT_CREATE);
        *pgot = TRUE;
        goto end;
@@ -7508,7 +7508,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
 				 LOCATION_LINE (loc), LOCATION_COLUMN(loc));
       valv = meltgc_readval (rd, &got);
       if (!got)
-	READ_ERROR ("MELT: no value read %.20s", &rdcurc ());
+	MELT_READ_ERROR ("MELT: no value read %.20s", &rdcurc ());
       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) valv);
     };
   if (rds.rfil)
@@ -7579,7 +7579,7 @@ meltgc_read_from_rawstring (const char *rawstr, const char *locnam,
 	break;
       valv = meltgc_readval (rd, &got);
       if (!got)
-	READ_ERROR ("MELT: no value read %.20s", &rdcurc ());
+	MELT_READ_ERROR ("MELT: no value read %.20s", &rdcurc ());
       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) valv);
     };
   rd = 0;
@@ -7659,7 +7659,7 @@ meltgc_read_from_val (melt_ptr_t strv_p, melt_ptr_t locnam_p)
 	break;
       valv = meltgc_readval (rd, &got);
       if (!got)
-	READ_ERROR ("MELT: no value read %.20s", &rdcurc ());
+	MELT_READ_ERROR ("MELT: no value read %.20s", &rdcurc ());
       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) valv);
     };
   rd = 0;
