@@ -81,6 +81,9 @@
 #define FOREIGN_FORCE_REALIGN_STACK 0
 #endif
 
+/* The (internal) name of the System.Secondary_Stack.SS_Mark function.  */
+#define SS_MARK_NAME "system__secondary_stack__ss_mark"
+
 struct incomplete
 {
   struct incomplete *next;
@@ -1779,7 +1782,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
       if (debug_info_p
 	  && Is_Packed_Array_Type (gnat_entity)
 	  && present_gnu_tree (Original_Array_Type (gnat_entity)))
-	add_parallel_type (TYPE_STUB_DECL (gnu_type),
+	add_parallel_type (gnu_type,
 			   gnat_to_gnu_type
 			   (Original_Array_Type (gnat_entity)));
 
@@ -1854,7 +1857,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    {
 	      /* Make the original array type a parallel type.  */
 	      if (present_gnu_tree (Original_Array_Type (gnat_entity)))
-		add_parallel_type (TYPE_STUB_DECL (gnu_type),
+		add_parallel_type (gnu_type,
 				   gnat_to_gnu_type
 				   (Original_Array_Type (gnat_entity)));
 
@@ -2637,7 +2640,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		}
 
 	      finish_record_type (gnu_bound_rec, gnu_field_list, 0, true);
-	      add_parallel_type (TYPE_STUB_DECL (gnu_type), gnu_bound_rec);
+	      add_parallel_type (gnu_type, gnu_bound_rec);
 	    }
 
 	  /* If this is a packed array type, make the original array type a
@@ -2647,7 +2650,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    {
 	      if (Is_Packed_Array_Type (gnat_entity)
 		  && present_gnu_tree (Original_Array_Type (gnat_entity)))
-		add_parallel_type (TYPE_STUB_DECL (gnu_type),
+		add_parallel_type (gnu_type,
 				   gnat_to_gnu_type
 				   (Original_Array_Type (gnat_entity)));
 	      else
@@ -2655,7 +2658,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		  tree gnu_base_decl
 		    = gnat_to_gnu_entity (Etype (gnat_entity), NULL_TREE, 0);
 		  if (!DECL_ARTIFICIAL (gnu_base_decl))
-		    add_parallel_type (TYPE_STUB_DECL (gnu_type),
+		    add_parallel_type (gnu_type,
 				       TREE_TYPE (TREE_TYPE (gnu_base_decl)));
 		}
 	    }
@@ -3260,6 +3263,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 	      gnu_type = make_node (RECORD_TYPE);
 	      TYPE_NAME (gnu_type) = gnu_entity_name;
+	      TYPE_PACKED (gnu_type) = TYPE_PACKED (gnu_base_type);
 
 	      /* Set the size, alignment and alias set of the new type to
 		 match that of the old one, doing required substitutions.  */
@@ -3529,8 +3533,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 							 0, 0),
 				      0, true);
 
-		  add_parallel_type (TYPE_STUB_DECL (gnu_type),
-				     gnu_subtype_marker);
+		  add_parallel_type (gnu_type, gnu_subtype_marker);
 
 		  if (definition
 		      && TREE_CODE (gnu_size_unit) != INTEGER_CST
@@ -4404,6 +4407,21 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	  prepend_one_attribute_to
 	    (&attr_list, ATTR_MACHINE_ATTRIBUTE,
 	     get_identifier ("force_align_arg_pointer"), NULL_TREE,
+	     gnat_entity);
+
+	/* ??? Declare System.Secondary_Stack.SS_Mark as leaf, in order to
+	   avoid creating abnormal edges in SJLJ mode, which can break the
+	   dominance relationship if there is a dynamic stack allocation.
+	   We cannot do this in System.Secondary_Stack directly since it's
+	   a compiler unit and this would introduce bootstrap path issues.  */
+	if (IDENTIFIER_LENGTH (gnu_entity_name) == strlen (SS_MARK_NAME)
+	    && IDENTIFIER_POINTER (gnu_entity_name)[0] == SS_MARK_NAME[0]
+	    && IDENTIFIER_POINTER (gnu_entity_name)[1] == SS_MARK_NAME[1]
+	    && IDENTIFIER_POINTER (gnu_entity_name)[2] == SS_MARK_NAME[2]
+	    && gnu_entity_name == get_identifier (SS_MARK_NAME))
+	  prepend_one_attribute_to
+	    (&attr_list, ATTR_MACHINE_ATTRIBUTE,
+	     get_identifier ("leaf"), NULL_TREE,
 	     gnat_entity);
 
 	/* The lists have been built in reverse.  */
@@ -6643,7 +6661,7 @@ maybe_pad_type (tree type, tree size, unsigned int align,
 					     0, 0),
 			  0, true);
 
-      add_parallel_type (TYPE_STUB_DECL (record), marker);
+      add_parallel_type (record, marker);
 
       if (definition && size && TREE_CODE (size) != INTEGER_CST)
 	TYPE_SIZE_UNIT (marker)
