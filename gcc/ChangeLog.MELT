@@ -1,5 +1,11 @@
 
 2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt: Cast to melt_ptr_t.
+	* melt/warmelt-modes.melt: Ditto.
+	* melt/warmelt-first.melt: Ditto.
+	* melt/xtramelt-ana-base.melt: Ditto.
+
+2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/warmelt-base+01.c: Regenerate.
 	* melt/generated/warmelt-base+02.c: Regenerate.

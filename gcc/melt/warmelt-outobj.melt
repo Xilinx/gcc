@@ -4091,9 +4091,10 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 
 ;; internal primitive to generate a C name
 (defprimitive generated_c_filename (discr base dir :long num) :value
-  #{meltgc_new_string_generated_c_filename
-     ((meltobject_ptr_t) ($discr),
-      melt_string_str(($base)), melt_string_str(($dir)), ($num))}#)
+  #{meltgc_new_string_generated_c_filename /*  generated_c_filename */
+     ((meltobject_ptr_t) ($DISCR),
+      melt_string_str((melt_ptr_t) ($BASE)), melt_string_str((melt_ptr_t) ($DIR)), 
+      ($NUM))}#)
 
 
 ;;; retrieve or create the nth secondary file in a module
@@ -4176,7 +4177,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (code_chunk
      genmodnamstr
      #{ /* output_melt_descriptor $GENMODNAMSTR + */
-     meltgc_add_strbuf_cstr ($DEBUF, lbasename (melt_string_str($MODNAMSTR))) ;
+     meltgc_add_strbuf_cstr ($DEBUF, lbasename (melt_string_str((melt_ptr_t) $MODNAMSTR))) ;
      }#
      )
     (add2sbuf_strconst debuf "\";")
@@ -4185,10 +4186,10 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (code_chunk 
      genrpathch
      #{ /* output_melt_descriptor $GENRPATHCH + */
-     char* lrp = lrealpath (melt_string_str ($MODNAMSTR)) ;
+     char* lrp = lrealpath (melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
      if (!melt_flag_bootstrapping && !IS_ABSOLUTE_PATH(lrp)) {
-     meltgc_add_strbuf_cstr ($DEBUF, getpwd()) ;
-     meltgc_add_strbuf ($DEBUF, "/")	       ;
+     meltgc_add_strbuf_cstr ((melt_ptr_t) $DEBUF, getpwd()) ;
+     meltgc_add_strbuf ((melt_ptr_t) $DEBUF, "/")	       ;
      meltgc_add_strbuf_cstr ($DEBUF, lrp)      ;
      }
      else if (melt_flag_bootstrapping) {
@@ -4754,10 +4755,10 @@ if (1) return;
     ;;
     (code_chunk 
      check_errors_after_normalization
-     #{ 
+     #{ /* $CHECK_ERRORS_AFTER_NORMALIZATION */
      if (melt_error_counter>0) 
      melt_fatal_error ("MELT translation of %s halted after normalization: got %ld MELT errors", 
-		       melt_string_str($MODNAMSTR), melt_error_counter) ;
+		       melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
      }#)
     (let ( (prolist (unsafe_get_field :nctx_proclist ncx)) 
 	   (objlist (make_list discr_list))
@@ -4813,10 +4814,10 @@ if (1) return;
       ;;
       (code_chunk 
        check_errors_after_compilation
-       #{ /*$check_errors_after_compilation*/
+       #{ /*$CHECK_ERRORS_AFTER_COMPILATION*/
        if (melt_error_counter>0) 
        melt_fatal_error ("MELT translation of %s halted after MELT compilation: got %ld MELT errors",
-			 melt_string_str($modnamstr), melt_error_counter) ;
+			 melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
        }#)
       ;;
       ;;;;; compile each procedure
@@ -4942,12 +4943,12 @@ if (1) return;
 	       $ENDCLOCK = (long) clock () ;
 	       inform (UNKNOWN_LOCATION, 
 		       "MELT generated C code of module %s with %ld secondary files in %ld CPU millisec.", 
-		       melt_string_str ($MODNAMSTR), $NBSECFILES,
+		       melt_string_str ((melt_ptr_t) $MODNAMSTR), $NBSECFILES,
 		       ($ENDCLOCK - $STARTCLOCK) / (CLOCKS_PER_SEC/1000)) ;
 	     #else /* no clock */
 	       inform (UNKNOWN_LOCATION, 
 		       "MELT generated C code of module %s with %ld secondary files", 
-		       melt_string_str ($MODNAMSTR), $NBSECFILES) ;
+		       melt_string_str ((melt_ptr_t) $MODNAMSTR), $NBSECFILES) ;
 	     #endif /* HAVE_CLOCK && CLOCKS_PER_SEC */
 	     /* end translate_macroexpanded_list $ENDMODNAM */ }#)
 	    (shortbacktrace_dbg "translate_macroexpanded_list ended" 25)

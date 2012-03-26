@@ -2748,9 +2748,9 @@ Keyword is :cstring.}#
 	      (let ( (:cstring namcstr (the_null_cstring)
 			       ) )
 		(code_chunk clonamstr
-		      #{
+		      #{ /* clone_symbol $CLONAMSTR */
 		      static char clonambuf[100];
-		      const char *s = melt_string_str ($discrinam);
+		      const char *s = melt_string_str ((melt_ptr_t) $DISCRINAM);
 		      if (s) s = strchr(s, '_');
 		      if (!s) s = "_What";
 		      memset (clonambuf, 0, sizeof(clonambuf));
@@ -3275,7 +3275,7 @@ function, and $OPTDESC_HELP is the help string.}#
       (progn
 	(code_chunk badoption 
 		    #{ warning (0, "unrecognized MELT option %s. Use -f[plugin-arg-]melt-option=help", 
-				   melt_string_str ($optname)) }#)
+				   melt_string_str ((melt_ptr_t) $OPTNAME)) }#)
 	(return)
 	))))
 	       
@@ -3324,8 +3324,8 @@ function $OPTFUN.}#
 	    for (i=0;
 		 i<(int) $NBSYMB;
 		 i+=2) {
-		 char *n1 = (char*) melt_string_str(melt_multiple_nth((melt_ptr_t) $SORTEDNAMETUP, i));
-		 char *n2 = (char*) melt_string_str(melt_multiple_nth((melt_ptr_t) $SORTEDNAMETUP, i+1));
+		 char *n1 = (char*) melt_string_str((melt_ptr_t) melt_multiple_nth((melt_ptr_t) $SORTEDNAMETUP, i));
+		 char *n2 = (char*) melt_string_str((melt_ptr_t) melt_multiple_nth((melt_ptr_t) $SORTEDNAMETUP, i+1));
 		 if (n1 && n2) 
 		   inform (UNKNOWN_LOCATION, "possible MELT options: %s & %s", n1, n2);
 		 else

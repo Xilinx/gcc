@@ -1412,9 +1412,9 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	      (modhelp (unsafe_get_field :meltmode_help curmod))
 	      )
 	 (code_chunk saymode_chk
-		     #{printf (" * %s : %s\n",
-			       melt_string_str ($MODNAM),
-			       melt_string_str ($MODHELP)) ;
+		     #{printf (" * %s : %s\n", /* $SAYMODE_CHK */
+			       melt_string_str ((melt_ptr_t) $MODNAM),
+			       melt_string_str ((melt_ptr_t) $MODHELP)) ;
 		     }#)			     
 	 ))
       (code_chunk flush_chk 
@@ -3514,7 +3514,7 @@ melt_scanning (melt_ptr_t p)
        meltgc_out_printf ($OUTCODEBUF,
 			  "\n/*** End of code file %s generated on %s\n"
 			  " * by GCC MELT %s . ***/\n",
-			  melt_string_str($OUTCODENAME),
+			  melt_string_str((melt_ptr_t) $OUTCODENAME),
 			  codedatebuf, melt_gccversionstr);
        /* end  $TERMCOMMENTCODECHK */}#)
       (output_sbuf_strval outcodebuf outcodename)

@@ -1789,14 +1789,15 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 	:doc #{Create and returns a new IDENTIFIER_NODE tree whose
 	name is $NAME.}#
 	#{
-		get_identifier (melt_string_str ($NAME))
+		get_identifier (melt_string_str ((melt_ptr_t) $NAME))
 	}#)
 
 (defprimitive build_string_tree (string_value) :tree
 	:doc #{Create and returns a new STRING_CST tree whose
 	value is $STRING_VALUE.}#
 	#{
-		build_string (strlen (melt_string_str ($STRING_VALUE)), melt_string_str ($STRING_VALUE))
+		build_string (strlen (melt_string_str ((melt_ptr_t) $STRING_VALUE)),
+				     melt_string_str ((melt_ptr_t) $STRING_VALUE))
 	}#)
 
 (defprimitive build_int_tree (int_value) :tree
