@@ -4948,14 +4948,14 @@ $SBUF.}#
 	       (make_objcompute 
 		nloc
 		ctype_void
-		##{MELT_STORE_PREDEF($NAMEPRED,($OVAL))}#)))
+		##{MELT_STORE_PREDEF($NAMEPRED, (melt_ptr_t) ($OVAL))}#)))
        )
      ( (is_integerbox npred)
        (setq res 
 	     (make_objcompute
 	      nloc
 	      ctype_void
-	      ##{melt_store_predefined($NPRED,($OVAL))}#))
+	      ##{melt_store_predefined($NPRED, (melt_ptr_t) ($OVAL))}#))
        )
      (:else
       (debug "compilobj_nrep_store_predefined bad npred=" npred)

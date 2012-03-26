@@ -1,5 +1,9 @@
 
 2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: Cast value for MELT_STORE_PREDEF.
+	* melt/warmelt-genobj.melt: Likewise.
+
+2011-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

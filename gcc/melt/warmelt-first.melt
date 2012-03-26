@@ -4458,7 +4458,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 ;; uses it, but perhaps that could change!!
 
 (let ( ( truekeyword :true) )
-  (code_chunk storetruekeyword #{MELT_STORE_PREDEF(TRUE,$truekeyword)}#))
+  (code_chunk storetruekeyword #{MELT_STORE_PREDEF(TRUE, (melt_ptr_t) $TRUEKEYWORD)}#))
 
 ;;; this definition is internal to this first file. It is here only to
 ;;; allow debug_msg macros in this warmelt-first.melt file. The real
