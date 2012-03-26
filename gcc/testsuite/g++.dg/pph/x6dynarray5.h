@@ -1,12 +1,3 @@
-// { dg-xfail-if "UNIMPL TRAIT MANGLING" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "bits/stl_uninitialized.h:66:12: sorry, unimplemented: mangling trait_expr" "" { xfail *-*-* } 0 }
-// { dg-bogus "bits/stl_uninitialized.h:124:12: sorry, unimplemented: mangling trait_expr" "" { xfail *-*-* } 0 }
-// { dg-bogus "bits/stl_uninitialized.h:178:12: sorry, unimplemented: mangling trait_expr" "" { xfail *-*-* } 0 }
-// { dg-bogus "bits/allocator.h:153:12: sorry, unimplemented: mangling trait_expr" "" { xfail *-*-* } 0 }
-// { dg-bogus "bits/stl_construct.h:98:12: sorry, unimplemented: mangling trait_expr" "" { xfail *-*-* } 0 }
-// { dg-bogus "bits/stl_tempbuf.h:183:12: sorry, unimplemented: mangling trait_expr" "" { xfail *-*-* } 0 }
-// { dg-bogus "bits/cpp_type_traits.h:87:12: internal compiler error: tree check: expected integer_cst, have const_decl in tree_int_cst_sgn" "" { xfail *-*-* } 0 }
-
 #ifndef X6DYNARRAY5_H
 #define X6DYNARRAY5_H
 

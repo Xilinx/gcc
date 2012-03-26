@@ -1,3 +1,9 @@
+2012-03-26   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x6dynarray4.cc: Adjust expected patterns.
+	* g++.dg/pph/x6dynarray5.h: Likewise.
+	* g++.dg/pph/x7dynarray5.cc: Likewise.
+
 2012-03-23   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x1mbstate_t.h: Mark fixed.
