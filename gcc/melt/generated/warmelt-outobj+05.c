@@ -3320,16 +3320,19 @@ lab_endgetargs:;
 		;
 		/*citerblock FOREACH_IN_LIST */
 		{
-		  /* start cit1__EACHLIST */
+		  /* start foreach_in_list cit1__EACHLIST */
 		  for ( /*_.CURPAIR__V41*/ meltfptr[30] =
-		       melt_list_first ( /*_.FILES__V2*/ meltfptr[1]);
-		       melt_magic_discr ( /*_.CURPAIR__V41*/ meltfptr[30]) ==
-		       MELTOBMAG_PAIR;
+		       melt_list_first ((melt_ptr_t) /*_.FILES__V2*/
+					meltfptr[1]);
+		       melt_magic_discr ((melt_ptr_t) /*_.CURPAIR__V41*/
+					 meltfptr[30]) == MELTOBMAG_PAIR;
 		       /*_.CURPAIR__V41*/ meltfptr[30] =
-		       melt_pair_tail ( /*_.CURPAIR__V41*/ meltfptr[30]))
+		       melt_pair_tail ((melt_ptr_t) /*_.CURPAIR__V41*/
+				       meltfptr[30]))
 		    {
 		      /*_.CURFILE__V42*/ meltfptr[34] =
-			melt_pair_head ( /*_.CURPAIR__V41*/ meltfptr[30]);
+			melt_pair_head ((melt_ptr_t) /*_.CURPAIR__V41*/
+					meltfptr[30]);
 
 
 
@@ -3770,7 +3773,10 @@ lab_endgetargs:;
 		/*clear *//*_.IFCPP___V55*/ meltfptr[51] = 0;
 		      /*^clear */
 		/*clear *//*_.LIST_APPEND2LIST__V57*/ meltfptr[52] = 0;
-		    }		/* end cit1__EACHLIST */
+		    }		/* end foreach_in_list cit1__EACHLIST */
+     /*_.CURPAIR__V41*/ meltfptr[30] = NULL;
+     /*_.CURFILE__V42*/ meltfptr[34] = NULL;
+
 
 		  /*citerepilog */
 

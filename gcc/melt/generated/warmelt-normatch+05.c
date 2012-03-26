@@ -4820,16 +4820,19 @@ lab_endgetargs:;
 	  ;
 	  /*citerblock FOREACH_IN_LIST */
 	  {
-	    /* start cit4__EACHLIST */
+	    /* start foreach_in_list cit4__EACHLIST */
 	    for ( /*_.PAIRSTEP__V69*/ meltfptr[63] =
-		 melt_list_first ( /*_.DATASTEPS__V61*/ meltfptr[60]);
-		 melt_magic_discr ( /*_.PAIRSTEP__V69*/ meltfptr[63]) ==
-		 MELTOBMAG_PAIR;
+		 melt_list_first ((melt_ptr_t) /*_.DATASTEPS__V61*/
+				  meltfptr[60]);
+		 melt_magic_discr ((melt_ptr_t) /*_.PAIRSTEP__V69*/
+				   meltfptr[63]) == MELTOBMAG_PAIR;
 		 /*_.PAIRSTEP__V69*/ meltfptr[63] =
-		 melt_pair_tail ( /*_.PAIRSTEP__V69*/ meltfptr[63]))
+		 melt_pair_tail ((melt_ptr_t) /*_.PAIRSTEP__V69*/
+				 meltfptr[63]))
 	      {
 		/*_.CURSTEP__V70*/ meltfptr[69] =
-		  melt_pair_head ( /*_.PAIRSTEP__V69*/ meltfptr[63]);
+		  melt_pair_head ((melt_ptr_t) /*_.PAIRSTEP__V69*/
+				  meltfptr[63]);
 
 
 
@@ -4882,7 +4885,10 @@ lab_endgetargs:;
 				  (" [ arrowhead=open, color=blueviolet, style=dotted ];"));
 		}
 		;
-	      }			/* end cit4__EACHLIST */
+	      }			/* end foreach_in_list cit4__EACHLIST */
+     /*_.PAIRSTEP__V69*/ meltfptr[63] = NULL;
+     /*_.CURSTEP__V70*/ meltfptr[69] = NULL;
+
 
 	    /*citerepilog */
 
@@ -6359,16 +6365,16 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_LIST */
     {
-      /* start cit1__EACHLIST */
+      /* start foreach_in_list cit1__EACHLIST */
       for ( /*_.CURPAIR__V35*/ meltfptr[31] =
-	   melt_list_first ( /*_.MSTEPS__V22*/ meltfptr[9]);
-	   melt_magic_discr ( /*_.CURPAIR__V35*/ meltfptr[31]) ==
+	   melt_list_first ((melt_ptr_t) /*_.MSTEPS__V22*/ meltfptr[9]);
+	   melt_magic_discr ((melt_ptr_t) /*_.CURPAIR__V35*/ meltfptr[31]) ==
 	   MELTOBMAG_PAIR;
 	   /*_.CURPAIR__V35*/ meltfptr[31] =
-	   melt_pair_tail ( /*_.CURPAIR__V35*/ meltfptr[31]))
+	   melt_pair_tail ((melt_ptr_t) /*_.CURPAIR__V35*/ meltfptr[31]))
 	{
 	  /*_.CURSTEP__V36*/ meltfptr[32] =
-	    melt_pair_head ( /*_.CURPAIR__V35*/ meltfptr[31]);
+	    melt_pair_head ((melt_ptr_t) /*_.CURPAIR__V35*/ meltfptr[31]);
 
 
 	  MELT_LOCATION ("warmelt-normatch.melt:6852:/ checkinterrupt");
@@ -6385,7 +6391,10 @@ lab_endgetargs:;
 			  (union meltparam_un *) 0);
 	  }
 	  ;
-	}			/* end cit1__EACHLIST */
+	}			/* end foreach_in_list cit1__EACHLIST */
+     /*_.CURPAIR__V35*/ meltfptr[31] = NULL;
+     /*_.CURSTEP__V36*/ meltfptr[32] = NULL;
+
 
       /*citerepilog */
 

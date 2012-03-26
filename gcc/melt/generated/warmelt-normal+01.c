@@ -10466,16 +10466,16 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_LIST */
     {
-      /* start cit1__EACHLIST */
+      /* start foreach_in_list cit1__EACHLIST */
       for ( /*_.CURPAIR__V32*/ meltfptr[25] =
-	   melt_list_first ( /*_.PROCS__V5*/ meltfptr[4]);
-	   melt_magic_discr ( /*_.CURPAIR__V32*/ meltfptr[25]) ==
+	   melt_list_first ((melt_ptr_t) /*_.PROCS__V5*/ meltfptr[4]);
+	   melt_magic_discr ((melt_ptr_t) /*_.CURPAIR__V32*/ meltfptr[25]) ==
 	   MELTOBMAG_PAIR;
 	   /*_.CURPAIR__V32*/ meltfptr[25] =
-	   melt_pair_tail ( /*_.CURPAIR__V32*/ meltfptr[25]))
+	   melt_pair_tail ((melt_ptr_t) /*_.CURPAIR__V32*/ meltfptr[25]))
 	{
 	  /*_.CURPROC__V33*/ meltfptr[29] =
-	    melt_pair_head ( /*_.CURPAIR__V32*/ meltfptr[25]);
+	    melt_pair_head ((melt_ptr_t) /*_.CURPAIR__V32*/ meltfptr[25]);
 
 
 
@@ -10698,16 +10698,19 @@ lab_endgetargs:;
 	  ;
 	  /*citerblock FOREACH_IN_LIST */
 	  {
-	    /* start cit2__EACHLIST */
+	    /* start foreach_in_list cit2__EACHLIST */
 	    for ( /*_.CURPAIRCL__V43*/ meltfptr[42] =
-		 melt_list_first ( /*_.CONSTPROC__V42*/ meltfptr[41]);
-		 melt_magic_discr ( /*_.CURPAIRCL__V43*/ meltfptr[42]) ==
-		 MELTOBMAG_PAIR;
+		 melt_list_first ((melt_ptr_t) /*_.CONSTPROC__V42*/
+				  meltfptr[41]);
+		 melt_magic_discr ((melt_ptr_t) /*_.CURPAIRCL__V43*/
+				   meltfptr[42]) == MELTOBMAG_PAIR;
 		 /*_.CURPAIRCL__V43*/ meltfptr[42] =
-		 melt_pair_tail ( /*_.CURPAIRCL__V43*/ meltfptr[42]))
+		 melt_pair_tail ((melt_ptr_t) /*_.CURPAIRCL__V43*/
+				 meltfptr[42]))
 	      {
 		/*_.CURCL__V44*/ meltfptr[43] =
-		  melt_pair_head ( /*_.CURPAIRCL__V43*/ meltfptr[42]);
+		  melt_pair_head ((melt_ptr_t) /*_.CURPAIRCL__V43*/
+				  meltfptr[42]);
 
 
 		MELT_LOCATION ("warmelt-normal.melt:1175:/ checkinterrupt");
@@ -10784,7 +10787,10 @@ lab_endgetargs:;
     /*_.IF___V45*/ meltfptr[44] = NULL;;
 		  }
 		;
-	      }			/* end cit2__EACHLIST */
+	      }			/* end foreach_in_list cit2__EACHLIST */
+     /*_.CURPAIRCL__V43*/ meltfptr[42] = NULL;
+     /*_.CURCL__V44*/ meltfptr[43] = NULL;
+
 
 	    /*citerepilog */
 
@@ -10859,7 +10865,10 @@ lab_endgetargs:;
 	    /*clear *//*_.CLCONT__V40*/ meltfptr[35] = 0;
 	  /*^clear */
 	    /*clear *//*_.CONSTPROC__V42*/ meltfptr[41] = 0;
-	}			/* end cit1__EACHLIST */
+	}			/* end foreach_in_list cit1__EACHLIST */
+     /*_.CURPAIR__V32*/ meltfptr[25] = NULL;
+     /*_.CURPROC__V33*/ meltfptr[29] = NULL;
+
 
       /*citerepilog */
 

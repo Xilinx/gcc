@@ -35682,16 +35682,16 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_LIST */
     {
-      /* start cit1__EACHLIST */
+      /* start foreach_in_list cit1__EACHLIST */
       for ( /*_.CURPAIR__V31*/ meltfptr[30] =
-	   melt_list_first ( /*_.CHKCONT__V30*/ meltfptr[29]);
-	   melt_magic_discr ( /*_.CURPAIR__V31*/ meltfptr[30]) ==
+	   melt_list_first ((melt_ptr_t) /*_.CHKCONT__V30*/ meltfptr[29]);
+	   melt_magic_discr ((melt_ptr_t) /*_.CURPAIR__V31*/ meltfptr[30]) ==
 	   MELTOBMAG_PAIR;
 	   /*_.CURPAIR__V31*/ meltfptr[30] =
-	   melt_pair_tail ( /*_.CURPAIR__V31*/ meltfptr[30]))
+	   melt_pair_tail ((melt_ptr_t) /*_.CURPAIR__V31*/ meltfptr[30]))
 	{
 	  /*_.CURCOMP__V32*/ meltfptr[31] =
-	    melt_pair_head ( /*_.CURPAIR__V31*/ meltfptr[30]);
+	    melt_pair_head ((melt_ptr_t) /*_.CURPAIR__V31*/ meltfptr[30]);
 
 
 	  MELT_LOCATION ("warmelt-macro.melt:3892:/ checkinterrupt");
@@ -35802,7 +35802,10 @@ lab_endgetargs:;
 	      ;
 	    }
 	  ;
-	}			/* end cit1__EACHLIST */
+	}			/* end foreach_in_list cit1__EACHLIST */
+     /*_.CURPAIR__V31*/ meltfptr[30] = NULL;
+     /*_.CURCOMP__V32*/ meltfptr[31] = NULL;
+
 
       /*citerepilog */
 
@@ -43486,16 +43489,19 @@ lab_endgetargs:;
 		/*_.OK__V43*/ meltfptr[31] = ( /*nil */ NULL);;
 		/*citerblock FOREACH_IN_LIST */
 		{
-		  /* start cit1__EACHLIST */
+		  /* start foreach_in_list cit1__EACHLIST */
 		  for ( /*_.CURPAIR__V44*/ meltfptr[27] =
-		       melt_list_first ( /*_.CURIF__V19*/ meltfptr[18]);
-		       melt_magic_discr ( /*_.CURPAIR__V44*/ meltfptr[27]) ==
-		       MELTOBMAG_PAIR;
+		       melt_list_first ((melt_ptr_t) /*_.CURIF__V19*/
+					meltfptr[18]);
+		       melt_magic_discr ((melt_ptr_t) /*_.CURPAIR__V44*/
+					 meltfptr[27]) == MELTOBMAG_PAIR;
 		       /*_.CURPAIR__V44*/ meltfptr[27] =
-		       melt_pair_tail ( /*_.CURPAIR__V44*/ meltfptr[27]))
+		       melt_pair_tail ((melt_ptr_t) /*_.CURPAIR__V44*/
+				       meltfptr[27]))
 		    {
 		      /*_.CURSTR__V45*/ meltfptr[29] =
-			melt_pair_head ( /*_.CURPAIR__V44*/ meltfptr[27]);
+			melt_pair_head ((melt_ptr_t) /*_.CURPAIR__V44*/
+					meltfptr[27]);
 
 
 		      MELT_LOCATION
@@ -43581,7 +43587,10 @@ lab_endgetargs:;
        /*_.IF___V47*/ meltfptr[26] = NULL;;
 			}
 		      ;
-		    }		/* end cit1__EACHLIST */
+		    }		/* end foreach_in_list cit1__EACHLIST */
+     /*_.CURPAIR__V44*/ meltfptr[27] = NULL;
+     /*_.CURSTR__V45*/ meltfptr[29] = NULL;
+
 
 		  /*citerepilog */
 

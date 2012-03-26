@@ -11809,16 +11809,16 @@ lab_endgetargs:;
        ((meltobject_ptr_t) (( /*!DISCR_LIST */ meltfrout->tabval[11]))));;
     /*citerblock FOREACH_IN_LIST */
     {
-      /* start cit1__EACHLIST */
+      /* start foreach_in_list cit1__EACHLIST */
       for ( /*_.CURPAIR__V26*/ meltfptr[25] =
-	   melt_list_first ( /*_.RAWBODY__V23*/ meltfptr[22]);
-	   melt_magic_discr ( /*_.CURPAIR__V26*/ meltfptr[25]) ==
+	   melt_list_first ((melt_ptr_t) /*_.RAWBODY__V23*/ meltfptr[22]);
+	   melt_magic_discr ((melt_ptr_t) /*_.CURPAIR__V26*/ meltfptr[25]) ==
 	   MELTOBMAG_PAIR;
 	   /*_.CURPAIR__V26*/ meltfptr[25] =
-	   melt_pair_tail ( /*_.CURPAIR__V26*/ meltfptr[25]))
+	   melt_pair_tail ((melt_ptr_t) /*_.CURPAIR__V26*/ meltfptr[25]))
 	{
 	  /*_.CURBODY__V27*/ meltfptr[26] =
-	    melt_pair_head ( /*_.CURPAIR__V26*/ meltfptr[25]);
+	    melt_pair_head ((melt_ptr_t) /*_.CURPAIR__V26*/ meltfptr[25]);
 
 
 	  MELT_LOCATION ("warmelt-outobj.melt:1742:/ checkinterrupt");
@@ -11883,7 +11883,10 @@ lab_endgetargs:;
 	      ;
 	    }			/*noelse */
 	  ;
-	}			/* end cit1__EACHLIST */
+	}			/* end foreach_in_list cit1__EACHLIST */
+     /*_.CURPAIR__V26*/ meltfptr[25] = NULL;
+     /*_.CURBODY__V27*/ meltfptr[26] = NULL;
+
 
       /*citerepilog */
 
@@ -18006,15 +18009,16 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_LIST */
     {
-      /* start cit1__EACHLIST */
+      /* start foreach_in_list cit1__EACHLIST */
       for ( /*_.PAIR__V10*/ meltfptr[8] =
-	   melt_list_first ( /*_.LIS__V2*/ meltfptr[1]);
-	   melt_magic_discr ( /*_.PAIR__V10*/ meltfptr[8]) == MELTOBMAG_PAIR;
+	   melt_list_first ((melt_ptr_t) /*_.LIS__V2*/ meltfptr[1]);
+	   melt_magic_discr ((melt_ptr_t) /*_.PAIR__V10*/ meltfptr[8]) ==
+	   MELTOBMAG_PAIR;
 	   /*_.PAIR__V10*/ meltfptr[8] =
-	   melt_pair_tail ( /*_.PAIR__V10*/ meltfptr[8]))
+	   melt_pair_tail ((melt_ptr_t) /*_.PAIR__V10*/ meltfptr[8]))
 	{
 	  /*_.CUR__V11*/ meltfptr[10] =
-	    melt_pair_head ( /*_.PAIR__V10*/ meltfptr[8]);
+	    melt_pair_head ((melt_ptr_t) /*_.PAIR__V10*/ meltfptr[8]);
 
 
 	  MELT_LOCATION ("warmelt-outobj.melt:2147:/ checkinterrupt");
@@ -18599,7 +18603,10 @@ lab_endgetargs:;
 	  /*_.IFCPP___V29*/ meltfptr[19] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
-	}			/* end cit1__EACHLIST */
+	}			/* end foreach_in_list cit1__EACHLIST */
+     /*_.PAIR__V10*/ meltfptr[8] = NULL;
+     /*_.CUR__V11*/ meltfptr[10] = NULL;
+
 
       /*citerepilog */
 

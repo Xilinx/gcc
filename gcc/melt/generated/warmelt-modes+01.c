@@ -6986,16 +6986,16 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_LIST */
     {
-      /* start cit1__EACHLIST */
+      /* start foreach_in_list cit1__EACHLIST */
       for ( /*_.CURPAIR__V9*/ meltfptr[8] =
-	   melt_list_first ( /*_.SEXP_CONTENTS__V8*/ meltfptr[6]);
-	   melt_magic_discr ( /*_.CURPAIR__V9*/ meltfptr[8]) ==
+	   melt_list_first ((melt_ptr_t) /*_.SEXP_CONTENTS__V8*/ meltfptr[6]);
+	   melt_magic_discr ((melt_ptr_t) /*_.CURPAIR__V9*/ meltfptr[8]) ==
 	   MELTOBMAG_PAIR;
 	   /*_.CURPAIR__V9*/ meltfptr[8] =
-	   melt_pair_tail ( /*_.CURPAIR__V9*/ meltfptr[8]))
+	   melt_pair_tail ((melt_ptr_t) /*_.CURPAIR__V9*/ meltfptr[8]))
 	{
 	  /*_.CURELEM__V10*/ meltfptr[9] =
-	    melt_pair_head ( /*_.CURPAIR__V9*/ meltfptr[8]);
+	    melt_pair_head ((melt_ptr_t) /*_.CURPAIR__V9*/ meltfptr[8]);
 
 
 	  MELT_LOCATION ("warmelt-modes.melt:532:/ checkinterrupt");
@@ -7117,7 +7117,10 @@ lab_endgetargs:;
 	      ;
 	    }
 	  ;
-	}			/* end cit1__EACHLIST */
+	}			/* end foreach_in_list cit1__EACHLIST */
+     /*_.CURPAIR__V9*/ meltfptr[8] = NULL;
+     /*_.CURELEM__V10*/ meltfptr[9] = NULL;
+
 
       /*citerepilog */
 
@@ -7148,16 +7151,17 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_LIST */
     {
-      /* start cit2__EACHLIST */
+      /* start foreach_in_list cit2__EACHLIST */
       for ( /*_.CURPAIR__V15*/ meltfptr[11] =
-	   melt_list_first ( /*_.SEXP_CONTENTS__V14*/ meltfptr[12]);
-	   melt_magic_discr ( /*_.CURPAIR__V15*/ meltfptr[11]) ==
+	   melt_list_first ((melt_ptr_t) /*_.SEXP_CONTENTS__V14*/
+			    meltfptr[12]);
+	   melt_magic_discr ((melt_ptr_t) /*_.CURPAIR__V15*/ meltfptr[11]) ==
 	   MELTOBMAG_PAIR;
 	   /*_.CURPAIR__V15*/ meltfptr[11] =
-	   melt_pair_tail ( /*_.CURPAIR__V15*/ meltfptr[11]))
+	   melt_pair_tail ((melt_ptr_t) /*_.CURPAIR__V15*/ meltfptr[11]))
 	{
 	  /*_.CURELEM__V16*/ meltfptr[15] =
-	    melt_pair_head ( /*_.CURPAIR__V15*/ meltfptr[11]);
+	    melt_pair_head ((melt_ptr_t) /*_.CURPAIR__V15*/ meltfptr[11]);
 
 
 	  MELT_LOCATION ("warmelt-modes.melt:547:/ checkinterrupt");
@@ -7226,7 +7230,10 @@ lab_endgetargs:;
    /*_.IFELSE___V17*/ meltfptr[16] = NULL;;
 	    }
 	  ;
-	}			/* end cit2__EACHLIST */
+	}			/* end foreach_in_list cit2__EACHLIST */
+     /*_.CURPAIR__V15*/ meltfptr[11] = NULL;
+     /*_.CURELEM__V16*/ meltfptr[15] = NULL;
+
 
       /*citerepilog */
 

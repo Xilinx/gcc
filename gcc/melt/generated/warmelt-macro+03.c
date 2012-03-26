@@ -26132,16 +26132,17 @@ lab_endgetargs:;
     /*_.HOOKFUN__V20*/ meltfptr[19] = /*_.LAMBDA___V21*/ meltfptr[20];;
     /*citerblock FOREACH_PAIR */
     {
-      /* start cit1__EACHPAIR */
+      /* start foreach_pair cit1__EACHPAIR */
       for ( /*_.CURPAIRCASE__V22*/ meltfptr[21] =
 	   /*_.FIRSTPAIR__V16*/ meltfptr[15];
 	   melt_magic_discr ( /*_.CURPAIRCASE__V22*/ meltfptr[21]) ==
 	   MELTOBMAG_PAIR;
 	   /*_.CURPAIRCASE__V22*/ meltfptr[21] =
-	   melt_pair_tail ( /*_.CURPAIRCASE__V22*/ meltfptr[21]))
+	   melt_pair_tail ((melt_ptr_t) /*_.CURPAIRCASE__V22*/ meltfptr[21]))
 	{
 	  /*_.CURCASE__V23*/ meltfptr[22] =
-	    melt_pair_head ( /*_.CURPAIRCASE__V22*/ meltfptr[21]);
+	    melt_pair_head ((melt_ptr_t) /*_.CURPAIRCASE__V22*/ meltfptr[21]);
+
 
 
 
@@ -28252,8 +28253,10 @@ lab_endgetargs:;
 	  /*_.IFCPP___V102*/ meltfptr[42] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
+	}			/* ending  foreach_pair cit1__EACHPAIR */
+   /*_.CURPAIRCASE__V22*/ meltfptr[21] = NULL;
+   /*_.CURCASE__V23*/ meltfptr[22] = NULL;
 
-	}			/* end cit1__EACHPAIR */
 
       /*citerepilog */
 
