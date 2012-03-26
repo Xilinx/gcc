@@ -3153,23 +3153,25 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 (defciterator foreach_argument_in_function_tree
   (:tree tr_fun)
   eachtrfun
-  (:tree tr_arg)
+  (:tree trarg)
   #{
-      /* $eachtrfun start */
-      function_args_iterator $eachtrfun#_args_iter;
-      tree $eachtrfun#_t = NULL;
+      /* foreach_argument_in_function_tree $EACHTRFUN start */
+      tree $EACHTRFUN#_tr = NULL;
 
-      if ($tr_fun && TREE_CODE($tr_fun) == FUNCTION_TYPE)
+      $TRARG = (tree) NULL;
+      if ($TR_FUN && TREE_CODE($TR_FUN) == FUNCTION_TYPE)
       {
-          FOREACH_FUNCTION_ARGS($tr_fun, $eachtrfun#_t, $eachtrfun#_args_iter)
+          function_args_iterator $EACHTRFUN#_args_iter;
+          FOREACH_FUNCTION_ARGS($TR_FUN, $EACHTRFUN#_tr, $EACHTRFUN#_args_iter)
           {
+              $TRARG = $EACHTRFUN#_tr;
    }#
               
-   #{
-              $tr_arg = $eachtrfun#_t;
+   #{ /* ending  foreach_argument_in_function_tree $EACHTRFUN */
+              $TRARG = (tree) NULL;
           } 
       }
-      /* $eachtrfun end */
+      /* end foreach_argument_in_function_tree $EACHTRFUN */
    }#)
 
 ;;;;;;;;;;;;;;;;
