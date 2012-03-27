@@ -1422,6 +1422,11 @@ microblaze_option_override (void)
           warning (0,
                  "-mxl-reorder can be used only with -mcpu=v8.30.a or greater");
     }
+  else
+   {
+       /* Add to Default target_flags if v8.30a or greater  */
+       target_flags |= MASK_REORDER;
+   }
   if (TARGET_MULTIPLY_HIGH && TARGET_SOFT_MUL)
     error ("-mxl-multiply-high requires -mno-xl-soft-mul");
 
