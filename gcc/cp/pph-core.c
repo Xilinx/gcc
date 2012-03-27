@@ -48,7 +48,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "version.h"
 #include "cppbuiltin.h"
 #include "streamer-hooks.h"
+#include "timevar.h"
 
+/* PPH statistics.  */
+pph_stats_t pph_stats;
 
 /* Mapping between a name string and the registry index for the
    corresponding PPH image.  */
@@ -690,6 +693,8 @@ pph_cache_lookup (pph_cache *cache, void *data, unsigned *ix_p,
   unsigned ix;
   pph_cache_entry *e;
 
+  pph_stats.cache_lookups++;
+
   if (cache == NULL)
     cache = pph_preloaded_cache;
 
@@ -710,6 +715,8 @@ pph_cache_lookup (pph_cache *cache, void *data, unsigned *ix_p,
          it matches the tag we pulled from the cache.  */
       if (tag != PPH_null)
 	gcc_assert (tag == e->tag);
+
+      pph_stats.cache_hits++;
     }
 
   if (ix_p)
@@ -1517,11 +1524,85 @@ pph_init (void)
 
   pph_reader_init ();
 
+  /* Initialize statistics collection.  */
+  memset (&pph_stats, 0, sizeof (pph_stats));
+
   timevar_stop (TV_PPH);
 }
 
 
 /********************************************************** pph finalization */
+
+#define PERCENT(x,y) ((float)(x) * 100.0 / (float)(y))
+
+static const char *replay_strings[] = {
+  "PPH_REPLAY_DECLARE",
+  "PPH_REPLAY_EXPAND",
+  "PPH_REPLAY_EXPAND_1",
+  "PPH_REPLAY_FINISH_STRUCT_METHODS"
+};
+
+
+/* Dump statistics from PPH processing on F.  */
+
+static void
+pph_dump_stats (FILE *f)
+{
+  size_t i;
+
+  if (f == NULL)
+    f = stderr;
+
+  fprintf (f, "\nPPH statistics\n");
+
+  fprintf (f, "\nRecords by type\n");
+  for (i = (size_t) PPH_RECORD_START; i < (size_t) PPH_NUM_RECORD_MARKERS; i++)
+    if (pph_stats.num_records_by_marker[i])
+      fprintf (f, "%40s: %10lu (%6.2f%%)\n",
+	       marker_strings[i],
+	       pph_stats.num_records_by_marker[i],
+	       PERCENT (pph_stats.num_records_by_marker[i],
+		        pph_stats.num_records));
+  fprintf (f, "%40s: %10lu (100.00%%)\n", "TOTAL", pph_stats.num_records);
+
+  fprintf (f, "\nRecords by tag\n");
+  for (i = (size_t) PPH_null; i < (size_t) PPH_NUM_TAGS; i++)
+    if (pph_stats.num_records_by_tag[i])
+      {
+	const char *name;
+	if (i == (size_t) PPH_null)
+	  name = "PPH_null";
+	else if (i < (size_t) MAX_TREE_CODES)
+	  name = tree_code_name[i];
+	else
+	  name = tag_strings[i - (size_t) PPH_any_tree];
+	fprintf (f, "%40s: %10lu (%6.2f%%)\n",
+		 name,
+		 pph_stats.num_records_by_tag[i],
+		 PERCENT (pph_stats.num_records_by_tag[i],
+		          pph_stats.num_records));
+      }
+  fprintf (f, "%40s: %10lu (100.00%%)\n", "TOTAL", pph_stats.num_records);
+
+  fprintf (f, "\nReplay table\n");
+  for (i = (size_t) PPH_REPLAY_DECLARE; i < PPH_NUM_REPLAY_ACTIONS; i++)
+    if (pph_stats.num_replay_actions_by_action[i])
+      fprintf (f, "%40s: %10lu (%6.2f%%)\n",
+	       replay_strings[i],
+	       pph_stats.num_replay_actions_by_action[i],
+	       PERCENT (pph_stats.num_replay_actions_by_action[i],
+		        pph_stats.num_replay_actions));
+  fprintf (f, "%40s: %10lu (100.00%%)\n", "TOTAL",
+	   pph_stats.num_replay_actions);
+
+  fprintf (f, "\n");
+  fprintf (f, "Cache lookups: %10lu\n", pph_stats.cache_lookups);
+  fprintf (f, "Cache hits:    %10lu (%5.2f%%)\n", pph_stats.cache_hits,
+	   PERCENT (pph_stats.cache_hits, pph_stats.cache_lookups));
+
+  fprintf (f, "\n");
+  timevar_print (f);
+}
 
 
 /* Finalize the streamer.  */
@@ -1552,6 +1633,10 @@ pph_streamer_finish (void)
   /* Get rid of all the dead trees we may have had in caches.  */
   pph_cached_trees = NULL;
   ggc_collect ();
+
+  /* If the user requested statistics, show them.  */
+  if (flag_pph_stats)
+    pph_dump_stats (stderr);
 }
 
 

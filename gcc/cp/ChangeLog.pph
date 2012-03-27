@@ -1,3 +1,19 @@
+2012-03-27   Diego Novillo  <dnovillo@google.com>
+
+	* pph-core.c (pph_stats): Declare.
+	(pph_init): Initialize.
+	(pph_cache_lookup): Update pph_stats.cache_lookups and
+	pph_stats.cache_hits.
+	(pph_dump_stats): New.
+	(pph_streamer_finish): Call it.
+	* pph-in.c (pph_in_record_marker): Update
+	pph_stats.num_records_by_marker and
+	pph_stats.num_records_by_tag.
+	* pph.h (enum pph_record_marker): Add value
+	PPH_NUM_RECORD_MARKERS.
+	(struct pph_stats_s): Declare.
+	(pph_stats_t): Declare.
+
 2012-03-26   Diego Novillo  <dnovillo@google.com>
 
 	* pph-core.c (pph_include_handler): Use timer TV_PPH.

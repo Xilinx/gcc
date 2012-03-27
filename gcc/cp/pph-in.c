@@ -353,7 +353,7 @@ pph_in_line_table_and_includes (pph_stream *stream)
   enum pph_linetable_marker next_lt_marker;
   int top_includer_ix;
 
-  timevar_start (TV_PPH_RESTORE_LINE_TABLE);
+  timevar_start (TV_PPH_IN_LINE_TABLE);
 
   used_before = LINEMAPS_ORDINARY_USED (line_table);
   first = true;
@@ -462,7 +462,7 @@ pph_in_line_table_and_includes (pph_stream *stream)
   linemap_add (line_table, LC_LEAVE, 0, NULL, 0);
   gcc_assert (line_table->depth == old_depth);
 
-  timevar_stop (TV_PPH_RESTORE_LINE_TABLE);
+  timevar_stop (TV_PPH_IN_LINE_TABLE);
 
   return MAP_START_LOCATION (LINEMAPS_ORDINARY_MAP_AT (line_table, used_before));
 }
@@ -503,6 +503,10 @@ pph_in_record_marker (pph_stream *stream, enum pph_tag *tag_p)
 
   if (flag_pph_tracer >= 5)
     pph_trace_marker (m, *tag_p);
+
+  pph_stats.num_records_by_marker[m]++;
+  pph_stats.num_records_by_tag[*tag_p]++;
+  pph_stats.num_records++;
 
   return m;
 }
@@ -2536,8 +2540,6 @@ pph_in_merge_body_namespace_decl (pph_stream *stream)
   if (flag_pph_tracer)
     pph_trace_tree (decl, "?", pph_trace_front, pph_trace_merge_body);
 
-  gcc_assert (DECL_NAME (decl));
-
   /* If EXPR is a namespace alias, we do not need to merge
      its binding level (namespaces aliases do not have a
      binding level, they use the one from the namespace they
@@ -2887,7 +2889,7 @@ pph_in_replay (pph_stream *stream)
 {
   unsigned i, num;
 
-  timevar_start (TV_PPH_RESTORE_REPLAY);
+  timevar_start (TV_PPH_IN_REPLAY);
 
   /* Register all the symbols in STREAM in the same order of the
      original compilation for this header file.  */
@@ -2979,9 +2981,14 @@ pph_in_replay (pph_stream *stream)
 	}
       else
 	gcc_unreachable ();
+
+      pph_stats.num_replay_actions_by_action[entry.action]++;
     }
 
-  timevar_stop (TV_PPH_RESTORE_REPLAY);
+
+  pph_stats.num_replay_actions = num;
+
+  timevar_stop (TV_PPH_IN_REPLAY);
 }
 
 
@@ -3036,7 +3043,7 @@ pph_in_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
   unsigned int max_ident_len, max_value_len, num_entries;
   unsigned int ident_len, before_len, after_len;
 
-  timevar_start (TV_PPH_RESTORE_IDENTIFIERS);
+  timevar_start (TV_PPH_IN_IDENTIFIERS);
 
   max_ident_len = pph_in_uint (stream);
   identifiers->max_ident_len = max_ident_len;
@@ -3100,7 +3107,7 @@ pph_in_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 	}
     }
 
-  timevar_stop (TV_PPH_RESTORE_IDENTIFIERS);
+  timevar_stop (TV_PPH_IN_IDENTIFIERS);
 }
 
 
@@ -3114,7 +3121,7 @@ pph_in_global_binding_keys (pph_stream *stream)
   cp_binding_level *bl, *other_bl;
   bool existed_p;
 
-  timevar_start (TV_PPH_RESTORE_MERGE_KEYS);
+  timevar_start (TV_PPH_IN_MERGE_KEYS);
 
   bl = scope_chain->bindings;
   other_bl = pph_in_binding_level_start (stream, bl, &existed_p);
@@ -3131,7 +3138,7 @@ pph_in_global_binding_keys (pph_stream *stream)
      bound to scope_chain->bindings.  */
   pph_in_merge_key_binding_level (stream, &bl);
 
-  timevar_stop (TV_PPH_RESTORE_MERGE_KEYS);
+  timevar_stop (TV_PPH_IN_MERGE_KEYS);
 }
 
 
@@ -3144,14 +3151,14 @@ pph_in_global_binding_bodies (pph_stream *stream)
 {
   cp_binding_level *bl = scope_chain->bindings;
 
-  timevar_start (TV_PPH_RESTORE_MERGE_BODIES);
+  timevar_start (TV_PPH_IN_MERGE_BODIES);
 
   /* Once all the symbols and types at every binding level have been
      merged to the corresponding binding levels in the current
      compilation, read all the bodies.  */
   pph_in_merge_body_binding_level (stream, bl);
 
-  timevar_stop (TV_PPH_RESTORE_MERGE_BODIES);
+  timevar_stop (TV_PPH_IN_MERGE_BODIES);
 }
 
 
@@ -3235,14 +3242,14 @@ pph_read_file_1 (pph_stream *stream)
 
   /* Read and merge the other global state collected during parsing of
      the original header.  */
-  timevar_start (TV_PPH_RESTORE_MISC);
+  timevar_start (TV_PPH_IN_MISC);
   pph_union_into_chain (&keyed_classes, pph_in_tree (stream));
   pph_union_into_tree_vec (&unemitted_tinfo_decls, pph_in_tree_vec (stream));
   file_static_aggregates = pph_in_tree (stream);
   static_aggregates = chainon (file_static_aggregates, static_aggregates);
   pph_in_decl2_hidden_state (stream);
   pph_in_canonical_template_parms (stream);
-  timevar_stop (TV_PPH_RESTORE_MISC);
+  timevar_stop (TV_PPH_IN_MISC);
 
   /* Read and process the symbol and type re-play table.  This
      re-executes all the actions done to present symbols and types to
@@ -3290,7 +3297,7 @@ pph_add_include (pph_stream *parent, pph_stream *include)
 pph_stream *
 pph_read_file (const char *filename, pph_stream *parent)
 {
-  timevar_start (TV_PPH_RESTORE);
+  timevar_start (TV_PPH_IN);
 
   pph_stream *stream = pph_stream_open (filename, "rb");
   if (stream)
@@ -3308,7 +3315,7 @@ pph_read_file (const char *filename, pph_stream *parent)
 	pph_add_include (parent, stream);
     }
 
-  timevar_stop (TV_PPH_RESTORE);
+  timevar_stop (TV_PPH_IN);
 
   return stream;
 }

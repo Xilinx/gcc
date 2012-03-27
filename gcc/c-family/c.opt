@@ -1013,6 +1013,10 @@ fpph-include-tree
 C++ Var(flag_pph_include_tree)
 -fpph-include-tree	Print the include tree for the current TU to stderr
 
+fpph-stats
+C++ Var(flag_pph_stats)
+-fpph-stats	Print statistics on PPH data structures
+
 fpph-tracer=
 C++ Joined RejectNegative UInteger Var(flag_pph_tracer)
 -fpph-tracer	Enable tracing of PPH streaming operations

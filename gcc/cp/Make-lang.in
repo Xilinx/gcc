@@ -353,6 +353,6 @@ cp/cxx-pretty-print.o: cp/cxx-pretty-print.c $(CXX_PRETTY_PRINT_H) \
   $(CONFIG_H) $(SYSTEM_H) $(TM_H) coretypes.h $(CXX_TREE_H) tree-pretty-print.h
 cp/pph-core.o: cp/pph-core.c $(CXX_PPH_COMMON_H) $(CPPLIB_H) $(TIMEVAR_H) \
 	$(TREE_INLINE_H) tree-pretty-print.h fixed-value.h pointer-set.h \
-        toplev.h
+        toplev.h $(TIMEVAR_H)
 cp/pph-out.o: cp/pph-out.c $(CXX_PPH_COMMON_H) $(CGRAPH_H)
 cp/pph-in.o: cp/pph-in.c $(CXX_PPH_COMMON_H) pointer-set.h toplev.h

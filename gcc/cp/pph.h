@@ -36,7 +36,7 @@ typedef struct pph_stream pph_stream;
    middle-end.  */
 enum pph_replay_action {
   /* Declare this symbol with rest_of_decl_compilation.  */
-  PPH_REPLAY_DECLARE = 0x23,
+  PPH_REPLAY_DECLARE = 0x0,
 
   /* Expand this function with expand_or_defer_fn.  */
   PPH_REPLAY_EXPAND,
@@ -46,13 +46,16 @@ enum pph_replay_action {
 
   /* Layout the method vector for this type with
      finish_struct_methods.  */
-  PPH_REPLAY_FINISH_STRUCT_METHODS
+  PPH_REPLAY_FINISH_STRUCT_METHODS,
+
+  /* This marker must always be last.  */
+  PPH_NUM_REPLAY_ACTIONS
 };
 
 /* Record markers.  */
 enum pph_record_marker {
   /* This record contains the physical representation of the memory data.  */
-  PPH_RECORD_START = 0x23,
+  PPH_RECORD_START = 0,
 
   /* Like PPH_RECORD_START, but the reconstructed data should not be
      added to the pickle cache (see pph_cache_should_handle).  */
@@ -97,7 +100,10 @@ enum pph_record_marker {
   /* Preloaded reference. This marker indicates that this data is a preloaded
      node created by the front-end at the beginning of compilation, which we
      do not need to stream out as it will already exist on the way in.  */
-  PPH_RECORD_PREF
+  PPH_RECORD_PREF,
+
+  /* This marker must always be last.  */
+  PPH_NUM_RECORD_MARKERS
 };
 
 /* Record type tags.  Every record saved on a PPH image contains a data
@@ -133,6 +139,34 @@ enum pph_tag {
   /* This tag must always be last.  */
   PPH_NUM_TAGS
 };
+
+
+/* PPH statistics.  */
+
+typedef struct pph_stats_s {
+  /* Number of records per record class.  */
+  unsigned long num_records_by_marker[PPH_NUM_RECORD_MARKERS];
+
+  /* Number of records per type tag.  */
+  unsigned long num_records_by_tag[PPH_NUM_TAGS];
+
+  /* Total number of records.  */
+  unsigned long num_records;
+
+  /* Pickle cache lookups.  */
+  unsigned long cache_lookups;
+
+  /* Pickle cache hits.  */
+  unsigned long cache_hits;
+
+  /* Number of replay actions in the replay table.  */
+  unsigned long num_replay_actions_by_action[PPH_NUM_REPLAY_ACTIONS];
+
+  /* Total number of replay actions in the replay table.  */
+  unsigned long num_replay_actions;
+} pph_stats_t;
+
+extern pph_stats_t pph_stats;
 
 
 /* Global state.  FIXME pph, get rid of these.  */
