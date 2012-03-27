@@ -5,6 +5,7 @@
 
 #ifdef __cplusplus
 /* explicitly declare as extern "C" our dlsym-ed symbols */
+extern "C" const char melt_versionmeltstr[];
 extern "C" const char melt_genversionstr[];
 extern "C" const char melt_modulename[];
 extern "C" const char melt_modulerealpath[];
