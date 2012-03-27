@@ -260,7 +260,7 @@ melt.so melt-runtime.args: melt-runtime.c $(MELTGCC_RUNTIME_INCLUDES) \
            '-DMELT_REVISION=\"$(shell cat gfmeltgcc_revision)\"' \
 	 >> melt-runtime.args-tmp
 	@echo $(MELTGCC_OPTIMFLAGS) >> melt-runtime.args-tmp
-	@echo melt-runtime.c >> melt-runtime.args-tmp
+	@echo -Wall melt-runtime.c >> melt-runtime.args-tmp
 	@mv melt-runtime.args-tmp melt-runtime.args
 	$(GCCMELT_CC) $(GCCMELT_CFLAGS) -fPIC  -shared  @melt-runtime.args \
 	      -o $@ $(MELTGCC_LIBES)

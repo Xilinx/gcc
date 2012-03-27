@@ -8457,7 +8457,7 @@ const char* melt_flavors_array[] = {
    start_module_melt routine of the loaded module, but does dlopen
    it.  */
 static int 
-melt_load_module_index (const char*srcbase, const char*flavor) 
+melt_load_module_index (const char*srcbase, const char*flavor, char**errorp) 
 {
   int ix = -1;
   bool validh = FALSE;
@@ -8508,6 +8508,8 @@ melt_load_module_index (const char*srcbase, const char*flavor)
 
   debugeprintf ("melt_load_module_index start srcbase %s flavor %s", 
 		srcbase, flavor);
+  if (errorp)
+    *errorp = NULL;
   if (!srcbase) 
     return -1;
   if (!flavor) 
@@ -8702,8 +8704,15 @@ melt_load_module_index (const char*srcbase, const char*flavor)
     debugeprintf ("melt_load_module_index req. " #Sym	\
 		  " %p validh %d",			\
 		  u_##Sym.ptr_##Sym, (int) validh);	\
-    if (!u_##Sym.ptr_##Sym) validh = FALSE;		\
-    else dynr_##Sym = u_##Sym.dat_##Sym; } while(0)
+    if (!u_##Sym.ptr_##Sym) {				\
+     char* dler = dlerror ();				\
+     debugeprintf("melt_load_module_index req. " #Sym	\
+		  " not found - %s", dler);		\
+     if (dler && errorp && !*errorp)			\
+       *errorp = concat("Cannot find " #Sym, " ",	\
+			dler, NULL);			\
+     validh = FALSE;					\
+    } else dynr_##Sym = u_##Sym.dat_##Sym; } while(0)
 
   MELTDESCR_REQUIRED_LIST;
 
@@ -9072,13 +9081,17 @@ meltgc_load_flavored_module (const char*modulbase, const char*flavor)
     gcc_assert (pc != NULL);
     *pc = (char)0;
   }
-  debugeprintf ("meltgc_load_flavored_module truncated descrpath %s flavor %s before melt_load_module_index", descrpath, flavor);
-  modix = melt_load_module_index (descrpath, flavor);
-  debugeprintf ("meltgc_load_flavored_module after melt_load_module_index modix %d descrpath %s", 
-		modix, descrpath);
-  if (modix < 0)
-    melt_fatal_error ("failed to load MELT module %s flavor %s", 
-		      descrpath, flavor);
+  debugeprintf ("meltgc_load_flavored_module truncated descrpath %s flavor %s before melt_load_module_index", 
+		descrpath, flavor);
+  {
+    char *moderr = NULL;
+    modix = melt_load_module_index (descrpath, flavor, &moderr);
+    debugeprintf ("meltgc_load_flavored_module after melt_load_module_index modix %d descrpath %s", 
+		  modix, descrpath);
+    if (modix < 0)
+      melt_fatal_error ("failed to load MELT module %s flavor %s - %s", 
+			descrpath, flavor, moderr?moderr:"...");
+  }
  end:
   MELT_EXITFRAME ();
   if (descrpath)
