@@ -13058,13 +13058,13 @@ lab_endgetargs:;
       time (&nowcode);
       strftime (codedatebuf, sizeof (codedatebuf) - 1,
 		"%Y %b %d", localtime (&nowcode));
-      meltgc_out_printf ( /*_.OUTCODEBUF__V26*/ meltfptr[25],
+      meltgc_out_printf ((melt_ptr_t) /*_.OUTCODEBUF__V26*/ meltfptr[25],
 			 "\n/*** End of code file %s generated on %s\n"
 			 " * by GCC MELT %s . ***/\n",
 			 melt_string_str ((melt_ptr_t) /*_.OUTCODENAME__V18*/
 					  meltfptr[15]),
 			 codedatebuf, melt_gccversionstr);
-      /* end  TERMCOMMENTCODECHK__1 */ ;
+      /* end  TERMCOMMENTCODECHK__1 runtypesupport_docmd */ ;
     }
     ;
 
