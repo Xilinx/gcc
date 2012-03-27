@@ -4172,15 +4172,15 @@ Don't scan operands of the added $G.}#
 	  (code_chunk
 	   fillbbboxeschunk
 	   #{ /*$FILLBBBOXESCHUNK*/
-	   long $FILLBBBOXESCHUNK#_ix = 0	       ;
-	   basic_block* $FILLBBBOXESCHUNK#_bbtab = 0   ;
+	   long $FILLBBBOXESCHUNK#_ix = 0 ;
+	   basic_block* $FILLBBBOXESCHUNK#_bbtab = 0 ;
 	   $FILLBBBOXESCHUNK#_bbtab = get_loop_body ($LO) ; /* a malloc-ed array */
-	   for ($FILLBBBOXESCHUNK#_ix = 0		  ;
+	   for ($FILLBBBOXESCHUNK#_ix = 0 ;
 				      $FILLBBBOXESCHUNK#_ix < $LOOPNBNODES ;
 				      $FILLBBBOXESCHUNK#_ix++) {
-	   $OURBB = melt_multiple_nth ($TUPBODY, $FILLBBBOXESCHUNK#_ix)	;
+	   $OURBB = melt_multiple_nth ((melt_ptr_t) $TUPBODY, $FILLBBBOXESCHUNK#_ix)	;
 	   meltgc_basicblock_updatebox
-                ($OURBB, 
+                ((melt_ptr_t) $OURBB, 
 		 $FILLBBBOXESCHUNK#_bbtab[$FILLBBBOXESCHUNK#_ix]) ;
 	   }
 	   free ($FILLBBBOXESCHUNK#_bbtab), $FILLBBBOXESCHUNK#_bbtab=0 ;
