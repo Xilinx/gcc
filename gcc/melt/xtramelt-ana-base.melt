@@ -43,7 +43,7 @@
   or "after". The reference pass is given thru $REFPASSNAME and
   $REFPASSNUM. Usually $INSTALL_MELT_GCC_PASS is called from a mode
   initializer.}#
-  #{ meltgc_register_pass ($pass, $positioning, $refpassname, $refpassnum); 
+  #{ meltgc_register_pass ((melt_ptr_t) $pass, $positioning, $refpassname, $refpassnum); 
   }#)
 
 
@@ -3275,7 +3275,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   #{ melt_raw_new_ppl_unsatisfiable_constraint_system() }#)
 
 (defprimitive ppl_ppstrbuf (sbuf ppl :long indent :value varvect) :void
-  #{ meltgc_ppstrbuf_ppl_varnamvect (($sbuf), ($indent), ($ppl), ($varvect))}#)
+  #{ meltgc_ppstrbuf_ppl_varnamvect ((melt_ptr_t)($sbuf), ($indent), ($ppl), ($varvect))}#)
 
 (defprimitive ppl_coefficient_from_tree (:tree tr) :ppl_coefficient
   #{ (melt_make_ppl_coefficient_from_tree($tr)) }#)
@@ -3381,11 +3381,11 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 )
 
 (defprimitive make_ppl_polyhedron_same(discr :ppl_polyhedron poly) :value
-#{ meltgc_new_ppl_polyhedron($discr, $poly, SAME_PPL_POLHYEDRON) }#
+#{ meltgc_new_ppl_polyhedron((melt_ptr_t) $discr, $poly, SAME_PPL_POLHYEDRON) }#
 )
 
 (defprimitive make_ppl_polyhedron_cloned(discr :ppl_polyhedron poly) :value
-#{ meltgc_new_ppl_polyhedron($discr, $poly, CLONED_PPL_POLHYEDRON) }#
+#{ meltgc_new_ppl_polyhedron((melt_ptr_t) $discr, $poly, CLONED_PPL_POLHYEDRON) }#
 )
 
 (defprimitive ppl_delete_Polyhedron (:ppl_polyhedron poly) :void
@@ -3393,23 +3393,23 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 )
 
 (defprimitive ppl_Polyhedron_is_empty (:ppl_polyhedron poly) :long
- #{ $poly && ppl_Polyhedron_is_empty($poly) }#
+ #{ $poly && ppl_Polyhedron_is_empty((melt_ptr_t) $poly) }#
 )
 
 (defprimitive ppl_coefficient_content (pplv) :ppl_coefficient
-  #{ melt_ppl_coefficient_content($pplv) }#
+  #{ melt_ppl_coefficient_content((melt_ptr_t) $pplv) }#
 )
 
 (defprimitive ppl_constraint_content (pplv) :ppl_constraint
-  #{ melt_ppl_constraint_content($pplv) }#
+  #{ melt_ppl_constraint_content((melt_ptr_t) $pplv) }#
 )
 
 (defprimitive ppl_constraint_system_content (pplv) :ppl_constraint_system
-  #{ melt_ppl_constraint_system_content($pplv) }#
+  #{ melt_ppl_constraint_system_content((melt_ptr_t) $pplv) }#
 )
 
 (defprimitive ppl_polyhedron_content (pplv) :ppl_polyhedron
-  #{ melt_ppl_polyhedron_content($pplv) }#
+  #{ melt_ppl_polyhedron_content((melt_ptr_t) $pplv) }#
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
