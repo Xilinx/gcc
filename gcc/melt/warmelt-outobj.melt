@@ -4314,16 +4314,16 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
       (code_chunk 
        gentimch
        #{ /* output_melt_descriptor $GENTIMCH + */
-       time_t now = 0						   ;
-       char nowbuf[64]						   ;
-       time (&now)						   ;
-       memset (nowbuf, 0, sizeof(nowbuf))			   ;
+       time_t now = 0;
+       char nowbuf[64];
+       time (&now);
+       memset (nowbuf, 0, sizeof(nowbuf));
        strftime (nowbuf, sizeof(nowbuf)-1, "%c %Z", localtime(&now)) ;
        if (melt_flag_bootstrapping)
        meltgc_add_strbuf ((melt_ptr_t) $TIBUF, "/*MELT BOOTSTRAP*/\n") ;
        meltgc_add_strbuf ((melt_ptr_t) $TIBUF, 
 			  "const char melt_gen_timestamp[]=\"") ;
-       meltgc_add_strbuf_cstr ($TIBUF, nowbuf)			;
+       meltgc_add_strbuf_cstr ((melt_ptr_t) $TIBUF, nowbuf)			;
        meltgc_add_strbuf ((melt_ptr_t) $TIBUF, "\";\n")			;
        /*  $GENTIMCH don't use time_t, it is not a predefined C type! */
        meltgc_strbuf_printf ((melt_ptr_t) $TIBUF, 

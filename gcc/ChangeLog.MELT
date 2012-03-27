@@ -1,5 +1,8 @@
 
 2011-03-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt: More casts for C++.
+
+2011-03-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (add2sbuf_mixloc): Typo.
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
