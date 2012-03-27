@@ -3511,12 +3511,12 @@ melt_scanning (melt_ptr_t p)
        time(&nowcode);
        strftime (codedatebuf, sizeof(codedatebuf)-1,
 			      "%Y %b %d", localtime(&nowcode));
-       meltgc_out_printf ($OUTCODEBUF,
+       meltgc_out_printf ((melt_ptr_t) $OUTCODEBUF,
 			  "\n/*** End of code file %s generated on %s\n"
 			  " * by GCC MELT %s . ***/\n",
 			  melt_string_str((melt_ptr_t) $OUTCODENAME),
 			  codedatebuf, melt_gccversionstr);
-       /* end  $TERMCOMMENTCODECHK */}#)
+       /* end  $TERMCOMMENTCODECHK runtypesupport_docmd*/}#)
       (output_sbuf_strval outcodebuf outcodename)
       (informsg_strv "generated runtype support implementation file" outcodename)
       ;;
