@@ -9945,7 +9945,7 @@ lab_endgetargs:;
 	{
 
    /*_.MIXBIGINT_VAL__V12*/ meltfptr[11] =
-	    melt_val_mixbigint ( /*_.SELF__V2*/ meltfptr[1]);;
+	    melt_val_mixbigint ((melt_ptr_t) /*_.SELF__V2*/ meltfptr[1]);;
 	  /*^compute */
 
    /*_#I__L6*/ meltfnum[5] =
@@ -9984,8 +9984,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-debug.melt:787:/ locexp");
-	    meltgc_ppstrbuf_mixbigint ( /*_.SBUF__V9*/ meltfptr[8],
-				       /*_#I__L7*/ meltfnum[6], /*_.SELF__V2*/
+	    meltgc_ppstrbuf_mixbigint ((melt_ptr_t) /*_.SBUF__V9*/
+				       meltfptr[8], /*_#I__L7*/ meltfnum[6],
+				       (melt_ptr_t) /*_.SELF__V2*/
 				       meltfptr[1]);;
 	  }
 	  ;
