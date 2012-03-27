@@ -684,7 +684,7 @@ an integer $I if $I is lower than $N.}#
 
 (defprimitive checkval_dbg (val :cstring msg) :void
   :doc #{Low-level costly check of value $VAL with message $MSG. Mostly useful for gurus.}#
-  #{melt_checked_assignmsg (($VAL),($MSG))}#)
+  #{melt_checked_assignmsg ((melt_ptr_t) ($VAL),($MSG))}#)
 
 (defprimitive debugcstring (:cstring msg str) :void
   :doc #{Debug cstring $MSG $STR.}#
@@ -999,9 +999,9 @@ Returns a boxed integer.}#
 ;; GC is called...
 (defprimitive add2sbuf_mixloc (sbuf mixl) :void
   :doc #{Add into stringbuffer $SBUF the mixed loc $MIXL.}#
-  #{/*add2sbufmixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == MELTOBMAG_MIXLOC) {
+  #{/*add2sbufmixloc*/ if (melt_magic_discr((melt_ptr_t)($MIXL)) == MELTOBMAG_MIXLOC) {
     char smallcbuf[128];
-    location_t loc = melt_location_mixloc ((melt_ptr_t)$mixl);
+    location_t loc = melt_location_mixloc ((melt_ptr_t)$MIXL);
     memset (smallcbuf, 0, sizeof(smallcbuf));
     snprintf (smallcbuf, sizeof (smallcbuf)-1, 
 			"{%.120s:%d:%d}",
@@ -1109,21 +1109,21 @@ Returns a boxed integer.}#
 ;;; primitive to output a strbuf into a file named by a cstring
 (defprimitive output_sbuf_strconst (sbuf :cstring nam) :void
   :doc #{Output into file named $NAM the content of strinbuffer $SBUF.}#
-#{ melt_output_strbuf_to_file(($sbuf), ($nam)) }#)
+#{ /*output_sbuf_strconst*/ melt_output_strbuf_to_file((melt_ptr_t) ($SBUF), ($nam)) }#)
 ;;; primitive to output a strbuf into a file named by a stringval
 (defprimitive output_sbuf_strval (sbuf vnam) :void
   :doc #{Output into file named by string value $VNAM the content of strinbuffer $SBUF.}#
-#{ melt_output_strbuf_to_file(($sbuf), melt_string_str((melt_ptr_t) $VNAM)) }#)
+#{ /*output_sbuf_strval*/ melt_output_strbuf_to_file((melt_ptr_t) ($SBUF), melt_string_str((melt_ptr_t) $VNAM)) }#)
 
 ;;; primitive to output a strbuf into a file named by a cstring
 (defprimitive output_sbuf_no_overwrite_strconst (sbuf :cstring nam) :void
   :doc #{Output into file named $NAM the content of strinbuffer $SBUF, take care to not overwrite an file named $VNAM if it was the same.}#
-#{ melt_output_strbuf_to_file_no_overwrite(($sbuf), ($nam)) }#)
+#{ /*output_sbuf_no_overwrite_strconst*/ melt_output_strbuf_to_file_no_overwrite((melt_ptr_t)($SBUF), ($NAM)) }#)
 ;;; primitive to output a strbuf into a file named by a stringval
 (defprimitive output_sbuf_no_overwrite_strval (sbuf vnam) :void
   :doc #{Output into file named by string value $VNAM the content of 
 strinbuffer $SBUF, take care to not overwrite an old file named $VNAM if it was the same.}#
-#{ melt_output_strbuf_to_file_no_overwrite((melt_ptr_t)($SBUF), 
+#{ /*output_sbuf_no_overwrite_strval*/ melt_output_strbuf_to_file_no_overwrite((melt_ptr_t)($SBUF), 
 					   melt_string_str((melt_ptr_t) $VNAM)) }#)
 
 
@@ -1142,11 +1142,11 @@ strinbuffer $SBUF, take care to not overwrite an old file named $VNAM if it was 
 (defprimitive add2out_mixloc (out mixl) :void
   :doc #{Add to output $OUT the mixed location $MIXL.}#
   #{/*add2outmixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == MELTOBMAG_MIXLOC) {
-  char locbuf[128];
+  char locbuf[256];
   location_t tloc = melt_location_mixloc((melt_ptr_t)$MIXL);
   memset (locbuf, 0, sizeof(locbuf));
   snprintf (locbuf, sizeof(locbuf)-1,
-		    "{%.110s:%d}",
+		    "{%.200s:%d}",
 		    LOCATION_FILE (tloc),
 		    LOCATION_LINE (tloc));
    meltgc_add_out_raw ((melt_ptr_t) $OUT, locbuf);
@@ -1156,14 +1156,14 @@ strinbuffer $SBUF, take care to not overwrite an old file named $VNAM if it was 
 ;; primitive to add an indentation or space into a outbuf
 (defprimitive add2out_indent (out :long depth) :void
   :doc #{Add to output $OUT the indentation $DEPTH or a space.}#
-  #{meltgc_out_add_indent((melt_ptr_t)($out), ($depth), 64);}#
+  #{meltgc_out_add_indent((melt_ptr_t)($OUT), ($depth), 64);}#
 )
 
 
 ;; primitive to add an indented newline into a outbuf
 (defprimitive add2out_indentnl (out :long depth) :void
   :doc #{Add to output $OUT the indented newline of given $DEPTH.}#
-  #{meltgc_out_add_indent((melt_ptr_t)($out), ($depth), 0);}#
+  #{meltgc_out_add_indent((melt_ptr_t)($OUT), ($depth), 0);}#
 )
 
 

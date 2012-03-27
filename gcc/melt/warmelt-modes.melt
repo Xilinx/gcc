@@ -1202,10 +1202,10 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
     (add2sbuf_indentnl outb 0)
     (code_chunk 
      outdat
-     #{time_t now = 0					   ;
-     time (&now)					   ;
-     meltgc_add_out_raw ($outb, "@c **** generated ")	   ;
-     meltgc_add_out_raw ($outb, ctime (&now))		   ;
+     #{/* makedoc_genoutput $OUTDAT */ time_t now = 0;
+     time (&now);
+     meltgc_add_out_raw ((melt_ptr_t) $OUTB, "@c **** generated ") ;
+     meltgc_add_out_raw ((melt_ptr_t) $OUTB, ctime (&now)) ;
      }#
      )
     (add2sbuf_strconst outb "@node MELT Programming Reference")
@@ -1262,7 +1262,7 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
     (let ( (:long countdoc (get_int (get_field :mkdoc_boxcounter mdinfo)))
 	   )
       (if countdoc 
-	  (code_chunk informdocountchk #{/*$INFORMDOCOUNTCHK*/ 
+	  (code_chunk informdocountchk #{/*makedoc_genoutput $INFORMDOCOUNTCHK*/ 
 		      inform (UNKNOWN_LOCATION,
 			      "MELT makedoc [#%ld]: generated %ld documentation items",
 			      melt_dbgcounter, $COUNTDOC) ;
