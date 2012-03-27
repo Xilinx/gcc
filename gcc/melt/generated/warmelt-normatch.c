@@ -2186,14 +2186,27 @@ meltrout_140_warmelt_normatch_LAMBDA___34__ (meltclosure_ptr_t meltclosp_,
 					     *meltxrestab_);
 
 
+
+#ifdef __cplusplus
+extern "C"
+#endif
 void *start_module_melt (void *);
+
 
 /* define different names when debugging or not */
 #if MELT_HAVE_DEBUG
-extern const char meltmodule_warmelt_normatch__melt_have_debug_enabled[];
+extern
+#ifdef __cplusplus
+  "C"
+#endif /*__cplusplus*/
+const char meltmodule_warmelt_normatch__melt_have_debug_enabled[];
 #define melt_have_debug_string meltmodule_warmelt_normatch__melt_have_debug_enabled
 #else /*!MELT_HAVE_DEBUG */
-extern const char meltmodule_warmelt_normatch__melt_have_debug_disabled[];
+extern
+#ifdef __cplusplus
+  "C"
+#endif /*__cplusplus*/
+const char meltmodule_warmelt_normatch__melt_have_debug_disabled[];
 #define melt_have_debug_string meltmodule_warmelt_normatch__melt_have_debug_disabled
 #endif /*!MELT_HAVE_DEBUG */
 
@@ -78409,162 +78422,173 @@ forward_or_mark_module_start_frame_warmelt_normatch (struct melt_callframe_st
 }				/* end forward_or_mark_module_start_frame_warmelt_normatch */
 
 
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif /*__cplusplus*/
+
 /* exported 106 field offsets */
-const int meltfieldoff__MATCHBIND_DATA = 1;	/* in CLASS_MATCHED_BINDING */
-const int meltfieldoff__MATCHBIND_NBOCC = 2;	/* in CLASS_MATCHED_BINDING */
-const int meltfieldoff__MATNORX_BODYLIST = 7;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
-const int meltfieldoff__MATNORX_DATAMAP = 2;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
-const int meltfieldoff__MATNORX_ENDLABEL = 8;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
-const int meltfieldoff__MATNORX_FLAGMAP = 3;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
-const int meltfieldoff__MATNORX_MATCHCTXT = 9;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
-const int meltfieldoff__MATNORX_MDATAQUEUE = 5;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
-const int meltfieldoff__MATNORX_MSTEPQUEUE = 6;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
-const int meltfieldoff__MATNORX_NMATCH = 1;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
-const int meltfieldoff__MATNORX_RESLOC = 0;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
-const int meltfieldoff__MATNORX_STEPMAP = 4;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
-const int meltfieldoff__MCASE_INDEX = 3;	/* in CLASS_MATCH_CASE */
-const int meltfieldoff__MCASE_MCTXT = 1;	/* in CLASS_MATCH_CASE */
-const int meltfieldoff__MCASE_SOURCE = 2;	/* in CLASS_MATCH_CASE */
-const int meltfieldoff__MCASE_VARMAP = 4;	/* in CLASS_MATCH_CASE */
-const int meltfieldoff__MCTX_CASES = 4;	/* in CLASS_MATCHING_CONTEXT */
-const int meltfieldoff__MCTX_ENDLABEL = 9;	/* in CLASS_MATCHING_CONTEXT */
-const int meltfieldoff__MCTX_ENV = 5;	/* in CLASS_MATCHING_CONTEXT */
-const int meltfieldoff__MCTX_FLAGS = 8;	/* in CLASS_MATCHING_CONTEXT */
-const int meltfieldoff__MCTX_MDATA = 6;	/* in CLASS_MATCHING_CONTEXT */
-const int meltfieldoff__MCTX_NMATBIND = 3;	/* in CLASS_MATCHING_CONTEXT */
-const int meltfieldoff__MCTX_NMATCHED = 2;	/* in CLASS_MATCHING_CONTEXT */
-const int meltfieldoff__MCTX_NORMCTXT = 0;	/* in CLASS_MATCHING_CONTEXT */
-const int meltfieldoff__MCTX_SOURCE = 1;	/* in CLASS_MATCHING_CONTEXT */
-const int meltfieldoff__MCTX_VARHANDLERS = 7;	/* in CLASS_MATCHING_CONTEXT */
-const int meltfieldoff__MDATA_CTYPE = 2;	/* in CLASS_MATCHED_DATA */
-const int meltfieldoff__MDATA_ORIG = 3;	/* in CLASS_MATCHED_DATA */
-const int meltfieldoff__MDATA_STEPS = 4;	/* in CLASS_MATCHED_DATA */
-const int meltfieldoff__MDATA_SYMB = 1;	/* in CLASS_MATCHED_DATA */
-const int meltfieldoff__MFLAG_RANK = 3;	/* in CLASS_MATCH_FLAG */
-const int meltfieldoff__MFLAG_SETSTEP = 5;	/* in CLASS_MATCH_FLAG */
-const int meltfieldoff__MFLAG_SPAT = 2;	/* in CLASS_MATCH_FLAG */
-const int meltfieldoff__MFLAG_STRING = 4;	/* in CLASS_MATCH_FLAG */
-const int meltfieldoff__MSTEPSUCCESS_BINDS = 5;	/* in CLASS_MATCH_STEP_SUCCESS_WHEN_FLAG */
-const int meltfieldoff__MSTEPSUCCESS_BODY = 6;	/* in CLASS_MATCH_STEP_SUCCESS_WHEN_FLAG */
-const int meltfieldoff__MSTEPSUCCESS_VAROCC = 4;	/* in CLASS_MATCH_STEP_SUCCESS_WHEN_FLAG */
-const int meltfieldoff__MSTEPTESTVAR_DATA = 6;	/* in CLASS_MATCH_STEP_TEST_VARIABLE */
-const int meltfieldoff__MSTEP_CLEARDATA = 3;	/* in CLASS_MATCH_STEP_CLEAR */
-const int meltfieldoff__MSTEP_DATA = 3;	/* in CLASS_MATCH_STEP_WITH_DATA */
-const int meltfieldoff__MSTEP_ELSE = 5;	/* in CLASS_MATCH_STEP_TEST */
-const int meltfieldoff__MSTEP_FLAG = 3;	/* in CLASS_MATCH_STEP_WITH_FLAG */
-const int meltfieldoff__MSTEP_FLAGARGS = 4;	/* in CLASS_MATCH_STEP_FLAG_OPERATION */
-const int meltfieldoff__MSTEP_INDEX = 4;	/* in CLASS_MATCH_STEP_WITH_DATA */
-const int meltfieldoff__MSTEP_THEN = 2;	/* in CLASS_MATCH_STEP_THEN */
-const int meltfieldoff__MSTGROUP_ELSE = 8;	/* in CLASS_MATCH_STEP_TEST_GROUP */
-const int meltfieldoff__MSTGROUP_START = 6;	/* in CLASS_MATCH_STEP_TEST_GROUP */
-const int meltfieldoff__MSTGROUP_THEN = 7;	/* in CLASS_MATCH_STEP_TEST_GROUP */
-const int meltfieldoff__MSTINS_CLASS = 6;	/* in CLASS_MATCH_STEP_TEST_INSTANCE */
-const int meltfieldoff__MSTINS_SLOTS = 7;	/* in CLASS_MATCH_STEP_TEST_INSTANCE */
-const int meltfieldoff__MSTMA_BINDS = 7;	/* in CLASS_MATCH_STEP_TEST_MATCHER */
-const int meltfieldoff__MSTMA_INS = 8;	/* in CLASS_MATCH_STEP_TEST_MATCHER */
-const int meltfieldoff__MSTMA_MATCHER = 6;	/* in CLASS_MATCH_STEP_TEST_MATCHER */
-const int meltfieldoff__MSTMA_OUTS = 9;	/* in CLASS_MATCH_STEP_TEST_MATCHER */
-const int meltfieldoff__MSTTUP_COMPONENTS = 6;	/* in CLASS_MATCH_STEP_TEST_MULTIPLE */
-const int meltfieldoff__NAMATCH_BODY = 4;	/* in CLASS_NREP_ALTMATCH */
-const int meltfieldoff__NAMATCH_FLAGS = 5;	/* in CLASS_NREP_ALTMATCH */
-const int meltfieldoff__NAMATCH_MATCHED = 2;	/* in CLASS_NREP_ALTMATCH */
-const int meltfieldoff__NAMATCH_MDATAS = 6;	/* in CLASS_NREP_ALTMATCH */
-const int meltfieldoff__NAMATCH_RESULT = 3;	/* in CLASS_NREP_ALTMATCH */
-const int meltfieldoff__NMATCH_MATCHED = 4;	/* in CLASS_NREP_MATCH */
-const int meltfieldoff__NMATCH_STUFFMAP = 3;	/* in CLASS_NREP_MATCH */
-const int meltfieldoff__NMATCH_TESTS = 2;	/* in CLASS_NREP_MATCH */
-const int meltfieldoff__NMDAC_DATA = 1;	/* in CLASS_NREP_MATCH_DATA_ACTION */
-const int meltfieldoff__NMJMP_LABEL = 1;	/* in CLASS_NREP_MATCH_JUMP */
-const int meltfieldoff__NMLAB_STEP = 1;	/* in CLASS_NREP_MATCH_LABEL */
-const int meltfieldoff__NRMATD_CTYPE = 1;	/* in CLASS_NREP_MATCHED_DATA */
-const int meltfieldoff__NRMATD_MDATA = 2;	/* in CLASS_NREP_MATCHED_DATA */
-const int meltfieldoff__NRMATD_RANK = 3;	/* in CLASS_NREP_MATCHED_DATA */
-const int meltfieldoff__NRPFLA_FLAG = 1;	/* in CLASS_NREP_MATCH_FLAG */
-const int meltfieldoff__NRPFLA_NMATCH = 2;	/* in CLASS_NREP_MATCH_FLAG */
-const int meltfieldoff__NTDISJUNCTS = 7;	/* in CLASS_NORMTESTER_DISJUNCTION */
-const int meltfieldoff__NTDISJ_FRESHORVAR = 8;	/* in CLASS_NORMTESTER_DISJUNCTION */
-const int meltfieldoff__NTDISJ_SETORVAR = 9;	/* in CLASS_NORMTESTER_DISJUNCTION */
-const int meltfieldoff__NTESTISA_CLASS = 2;	/* in CLASS_NREP_JUMP_WHEN_IS_A */
-const int meltfieldoff__NTESTISA_JUMP = 3;	/* in CLASS_NREP_JUMP_WHEN_IS_A */
-const int meltfieldoff__NTESTISA_VALUE = 1;	/* in CLASS_NREP_JUMP_WHEN_IS_A */
-const int meltfieldoff__NTEST_COMEFROM = 6;	/* in CLASS_NORMTESTER_ANY */
-const int meltfieldoff__NTEST_ELSE = 3;	/* in CLASS_NORMTESTER_ANY */
-const int meltfieldoff__NTEST_LOCCLIST = 5;	/* in CLASS_NORMTESTER_ANY */
-const int meltfieldoff__NTEST_MATCHED = 1;	/* in CLASS_NORMTESTER_ANY */
-const int meltfieldoff__NTEST_NORMATCH = 4;	/* in CLASS_NORMTESTER_ANY */
-const int meltfieldoff__NTEST_THEN = 2;	/* in CLASS_NORMTESTER_ANY */
-const int meltfieldoff__NTINST_CLASS = 7;	/* in CLASS_NORMTESTER_INSTANCE */
-const int meltfieldoff__NTINST_FIELDLOCS = 8;	/* in CLASS_NORMTESTER_INSTANCE */
-const int meltfieldoff__NTMATCH_INARGS = 9;	/* in CLASS_NORMTESTER_MATCHER */
-const int meltfieldoff__NTMATCH_MATCHER = 7;	/* in CLASS_NORMTESTER_MATCHER */
-const int meltfieldoff__NTMATCH_MATNDATA = 8;	/* in CLASS_NORMTESTER_MATCHER */
-const int meltfieldoff__NTMATCH_OUTLOCS = 10;	/* in CLASS_NORMTESTER_MATCHER */
-const int meltfieldoff__NTORCLEAR_LOCSYM = 7;	/* in CLASS_NORMTESTER_OR_CLEAR */
-const int meltfieldoff__NTORTRANSMIT_DST = 7;	/* in CLASS_NORMTESTER_OR_TRANSMIT */
-const int meltfieldoff__NTORTRANSMIT_SRC = 8;	/* in CLASS_NORMTESTER_OR_TRANSMIT */
-const int meltfieldoff__NTSAME_IDENTICAL = 7;	/* in CLASS_NORMTESTER_SAME */
-const int meltfieldoff__NTSUCCESS_DO = 7;	/* in CLASS_NORMTESTER_SUCCESS */
-const int meltfieldoff__NTTUPLE_COMPONENTS = 7;	/* in CLASS_NORMTESTER_TUPLE */
-const int meltfieldoff__PCTN_BINDLIST = 6;	/* in CLASS_PATTERN_CONTEXT */
-const int meltfieldoff__PCTN_ENV = 2;	/* in CLASS_PATTERN_CONTEXT */
-const int meltfieldoff__PCTN_MAPATCST = 4;	/* in CLASS_PATTERN_CONTEXT */
-const int meltfieldoff__PCTN_MAPATVAR = 3;	/* in CLASS_PATTERN_CONTEXT */
-const int meltfieldoff__PCTN_MAPOR = 5;	/* in CLASS_PATTERN_CONTEXT */
-const int meltfieldoff__PCTN_NORMCTXT = 0;	/* in CLASS_PATTERN_CONTEXT */
-const int meltfieldoff__PCTN_PVARLOCMAP = 8;	/* in CLASS_PATTERN_CONTEXT */
-const int meltfieldoff__PCTN_SRC = 1;	/* in CLASS_PATTERN_CONTEXT */
-const int meltfieldoff__PCTN_STUFFMAP = 7;	/* in CLASS_PATTERN_CONTEXT */
-const int meltfieldoff__PCTN_TESTS = 9;	/* in CLASS_PATTERN_CONTEXT */
-const int meltfieldoff__PCTN_VARHANDLERS = 10;	/* in CLASS_PATTERN_CONTEXT */
+  const int meltfieldoff__MATCHBIND_DATA = 1;	/* in CLASS_MATCHED_BINDING */
+  const int meltfieldoff__MATCHBIND_NBOCC = 2;	/* in CLASS_MATCHED_BINDING */
+  const int meltfieldoff__MATNORX_BODYLIST = 7;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
+  const int meltfieldoff__MATNORX_DATAMAP = 2;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
+  const int meltfieldoff__MATNORX_ENDLABEL = 8;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
+  const int meltfieldoff__MATNORX_FLAGMAP = 3;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
+  const int meltfieldoff__MATNORX_MATCHCTXT = 9;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
+  const int meltfieldoff__MATNORX_MDATAQUEUE = 5;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
+  const int meltfieldoff__MATNORX_MSTEPQUEUE = 6;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
+  const int meltfieldoff__MATNORX_NMATCH = 1;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
+  const int meltfieldoff__MATNORX_RESLOC = 0;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
+  const int meltfieldoff__MATNORX_STEPMAP = 4;	/* in CLASS_MATCH_NORMALIZATION_CONTEXT */
+  const int meltfieldoff__MCASE_INDEX = 3;	/* in CLASS_MATCH_CASE */
+  const int meltfieldoff__MCASE_MCTXT = 1;	/* in CLASS_MATCH_CASE */
+  const int meltfieldoff__MCASE_SOURCE = 2;	/* in CLASS_MATCH_CASE */
+  const int meltfieldoff__MCASE_VARMAP = 4;	/* in CLASS_MATCH_CASE */
+  const int meltfieldoff__MCTX_CASES = 4;	/* in CLASS_MATCHING_CONTEXT */
+  const int meltfieldoff__MCTX_ENDLABEL = 9;	/* in CLASS_MATCHING_CONTEXT */
+  const int meltfieldoff__MCTX_ENV = 5;	/* in CLASS_MATCHING_CONTEXT */
+  const int meltfieldoff__MCTX_FLAGS = 8;	/* in CLASS_MATCHING_CONTEXT */
+  const int meltfieldoff__MCTX_MDATA = 6;	/* in CLASS_MATCHING_CONTEXT */
+  const int meltfieldoff__MCTX_NMATBIND = 3;	/* in CLASS_MATCHING_CONTEXT */
+  const int meltfieldoff__MCTX_NMATCHED = 2;	/* in CLASS_MATCHING_CONTEXT */
+  const int meltfieldoff__MCTX_NORMCTXT = 0;	/* in CLASS_MATCHING_CONTEXT */
+  const int meltfieldoff__MCTX_SOURCE = 1;	/* in CLASS_MATCHING_CONTEXT */
+  const int meltfieldoff__MCTX_VARHANDLERS = 7;	/* in CLASS_MATCHING_CONTEXT */
+  const int meltfieldoff__MDATA_CTYPE = 2;	/* in CLASS_MATCHED_DATA */
+  const int meltfieldoff__MDATA_ORIG = 3;	/* in CLASS_MATCHED_DATA */
+  const int meltfieldoff__MDATA_STEPS = 4;	/* in CLASS_MATCHED_DATA */
+  const int meltfieldoff__MDATA_SYMB = 1;	/* in CLASS_MATCHED_DATA */
+  const int meltfieldoff__MFLAG_RANK = 3;	/* in CLASS_MATCH_FLAG */
+  const int meltfieldoff__MFLAG_SETSTEP = 5;	/* in CLASS_MATCH_FLAG */
+  const int meltfieldoff__MFLAG_SPAT = 2;	/* in CLASS_MATCH_FLAG */
+  const int meltfieldoff__MFLAG_STRING = 4;	/* in CLASS_MATCH_FLAG */
+  const int meltfieldoff__MSTEPSUCCESS_BINDS = 5;	/* in CLASS_MATCH_STEP_SUCCESS_WHEN_FLAG */
+  const int meltfieldoff__MSTEPSUCCESS_BODY = 6;	/* in CLASS_MATCH_STEP_SUCCESS_WHEN_FLAG */
+  const int meltfieldoff__MSTEPSUCCESS_VAROCC = 4;	/* in CLASS_MATCH_STEP_SUCCESS_WHEN_FLAG */
+  const int meltfieldoff__MSTEPTESTVAR_DATA = 6;	/* in CLASS_MATCH_STEP_TEST_VARIABLE */
+  const int meltfieldoff__MSTEP_CLEARDATA = 3;	/* in CLASS_MATCH_STEP_CLEAR */
+  const int meltfieldoff__MSTEP_DATA = 3;	/* in CLASS_MATCH_STEP_WITH_DATA */
+  const int meltfieldoff__MSTEP_ELSE = 5;	/* in CLASS_MATCH_STEP_TEST */
+  const int meltfieldoff__MSTEP_FLAG = 3;	/* in CLASS_MATCH_STEP_WITH_FLAG */
+  const int meltfieldoff__MSTEP_FLAGARGS = 4;	/* in CLASS_MATCH_STEP_FLAG_OPERATION */
+  const int meltfieldoff__MSTEP_INDEX = 4;	/* in CLASS_MATCH_STEP_WITH_DATA */
+  const int meltfieldoff__MSTEP_THEN = 2;	/* in CLASS_MATCH_STEP_THEN */
+  const int meltfieldoff__MSTGROUP_ELSE = 8;	/* in CLASS_MATCH_STEP_TEST_GROUP */
+  const int meltfieldoff__MSTGROUP_START = 6;	/* in CLASS_MATCH_STEP_TEST_GROUP */
+  const int meltfieldoff__MSTGROUP_THEN = 7;	/* in CLASS_MATCH_STEP_TEST_GROUP */
+  const int meltfieldoff__MSTINS_CLASS = 6;	/* in CLASS_MATCH_STEP_TEST_INSTANCE */
+  const int meltfieldoff__MSTINS_SLOTS = 7;	/* in CLASS_MATCH_STEP_TEST_INSTANCE */
+  const int meltfieldoff__MSTMA_BINDS = 7;	/* in CLASS_MATCH_STEP_TEST_MATCHER */
+  const int meltfieldoff__MSTMA_INS = 8;	/* in CLASS_MATCH_STEP_TEST_MATCHER */
+  const int meltfieldoff__MSTMA_MATCHER = 6;	/* in CLASS_MATCH_STEP_TEST_MATCHER */
+  const int meltfieldoff__MSTMA_OUTS = 9;	/* in CLASS_MATCH_STEP_TEST_MATCHER */
+  const int meltfieldoff__MSTTUP_COMPONENTS = 6;	/* in CLASS_MATCH_STEP_TEST_MULTIPLE */
+  const int meltfieldoff__NAMATCH_BODY = 4;	/* in CLASS_NREP_ALTMATCH */
+  const int meltfieldoff__NAMATCH_FLAGS = 5;	/* in CLASS_NREP_ALTMATCH */
+  const int meltfieldoff__NAMATCH_MATCHED = 2;	/* in CLASS_NREP_ALTMATCH */
+  const int meltfieldoff__NAMATCH_MDATAS = 6;	/* in CLASS_NREP_ALTMATCH */
+  const int meltfieldoff__NAMATCH_RESULT = 3;	/* in CLASS_NREP_ALTMATCH */
+  const int meltfieldoff__NMATCH_MATCHED = 4;	/* in CLASS_NREP_MATCH */
+  const int meltfieldoff__NMATCH_STUFFMAP = 3;	/* in CLASS_NREP_MATCH */
+  const int meltfieldoff__NMATCH_TESTS = 2;	/* in CLASS_NREP_MATCH */
+  const int meltfieldoff__NMDAC_DATA = 1;	/* in CLASS_NREP_MATCH_DATA_ACTION */
+  const int meltfieldoff__NMJMP_LABEL = 1;	/* in CLASS_NREP_MATCH_JUMP */
+  const int meltfieldoff__NMLAB_STEP = 1;	/* in CLASS_NREP_MATCH_LABEL */
+  const int meltfieldoff__NRMATD_CTYPE = 1;	/* in CLASS_NREP_MATCHED_DATA */
+  const int meltfieldoff__NRMATD_MDATA = 2;	/* in CLASS_NREP_MATCHED_DATA */
+  const int meltfieldoff__NRMATD_RANK = 3;	/* in CLASS_NREP_MATCHED_DATA */
+  const int meltfieldoff__NRPFLA_FLAG = 1;	/* in CLASS_NREP_MATCH_FLAG */
+  const int meltfieldoff__NRPFLA_NMATCH = 2;	/* in CLASS_NREP_MATCH_FLAG */
+  const int meltfieldoff__NTDISJUNCTS = 7;	/* in CLASS_NORMTESTER_DISJUNCTION */
+  const int meltfieldoff__NTDISJ_FRESHORVAR = 8;	/* in CLASS_NORMTESTER_DISJUNCTION */
+  const int meltfieldoff__NTDISJ_SETORVAR = 9;	/* in CLASS_NORMTESTER_DISJUNCTION */
+  const int meltfieldoff__NTESTISA_CLASS = 2;	/* in CLASS_NREP_JUMP_WHEN_IS_A */
+  const int meltfieldoff__NTESTISA_JUMP = 3;	/* in CLASS_NREP_JUMP_WHEN_IS_A */
+  const int meltfieldoff__NTESTISA_VALUE = 1;	/* in CLASS_NREP_JUMP_WHEN_IS_A */
+  const int meltfieldoff__NTEST_COMEFROM = 6;	/* in CLASS_NORMTESTER_ANY */
+  const int meltfieldoff__NTEST_ELSE = 3;	/* in CLASS_NORMTESTER_ANY */
+  const int meltfieldoff__NTEST_LOCCLIST = 5;	/* in CLASS_NORMTESTER_ANY */
+  const int meltfieldoff__NTEST_MATCHED = 1;	/* in CLASS_NORMTESTER_ANY */
+  const int meltfieldoff__NTEST_NORMATCH = 4;	/* in CLASS_NORMTESTER_ANY */
+  const int meltfieldoff__NTEST_THEN = 2;	/* in CLASS_NORMTESTER_ANY */
+  const int meltfieldoff__NTINST_CLASS = 7;	/* in CLASS_NORMTESTER_INSTANCE */
+  const int meltfieldoff__NTINST_FIELDLOCS = 8;	/* in CLASS_NORMTESTER_INSTANCE */
+  const int meltfieldoff__NTMATCH_INARGS = 9;	/* in CLASS_NORMTESTER_MATCHER */
+  const int meltfieldoff__NTMATCH_MATCHER = 7;	/* in CLASS_NORMTESTER_MATCHER */
+  const int meltfieldoff__NTMATCH_MATNDATA = 8;	/* in CLASS_NORMTESTER_MATCHER */
+  const int meltfieldoff__NTMATCH_OUTLOCS = 10;	/* in CLASS_NORMTESTER_MATCHER */
+  const int meltfieldoff__NTORCLEAR_LOCSYM = 7;	/* in CLASS_NORMTESTER_OR_CLEAR */
+  const int meltfieldoff__NTORTRANSMIT_DST = 7;	/* in CLASS_NORMTESTER_OR_TRANSMIT */
+  const int meltfieldoff__NTORTRANSMIT_SRC = 8;	/* in CLASS_NORMTESTER_OR_TRANSMIT */
+  const int meltfieldoff__NTSAME_IDENTICAL = 7;	/* in CLASS_NORMTESTER_SAME */
+  const int meltfieldoff__NTSUCCESS_DO = 7;	/* in CLASS_NORMTESTER_SUCCESS */
+  const int meltfieldoff__NTTUPLE_COMPONENTS = 7;	/* in CLASS_NORMTESTER_TUPLE */
+  const int meltfieldoff__PCTN_BINDLIST = 6;	/* in CLASS_PATTERN_CONTEXT */
+  const int meltfieldoff__PCTN_ENV = 2;	/* in CLASS_PATTERN_CONTEXT */
+  const int meltfieldoff__PCTN_MAPATCST = 4;	/* in CLASS_PATTERN_CONTEXT */
+  const int meltfieldoff__PCTN_MAPATVAR = 3;	/* in CLASS_PATTERN_CONTEXT */
+  const int meltfieldoff__PCTN_MAPOR = 5;	/* in CLASS_PATTERN_CONTEXT */
+  const int meltfieldoff__PCTN_NORMCTXT = 0;	/* in CLASS_PATTERN_CONTEXT */
+  const int meltfieldoff__PCTN_PVARLOCMAP = 8;	/* in CLASS_PATTERN_CONTEXT */
+  const int meltfieldoff__PCTN_SRC = 1;	/* in CLASS_PATTERN_CONTEXT */
+  const int meltfieldoff__PCTN_STUFFMAP = 7;	/* in CLASS_PATTERN_CONTEXT */
+  const int meltfieldoff__PCTN_TESTS = 9;	/* in CLASS_PATTERN_CONTEXT */
+  const int meltfieldoff__PCTN_VARHANDLERS = 10;	/* in CLASS_PATTERN_CONTEXT */
 
 /* exported 47 class lengths */
-const int meltclasslen__CLASS_MATCHED_BINDING = 3;
-const int meltclasslen__CLASS_MATCHED_DATA = 5;
-const int meltclasslen__CLASS_MATCHED_NORMAL_DATA = 5;
-const int meltclasslen__CLASS_MATCHING_CONTEXT = 10;
-const int meltclasslen__CLASS_MATCH_CASE = 5;
-const int meltclasslen__CLASS_MATCH_FLAG = 6;
-const int meltclasslen__CLASS_MATCH_NORMALIZATION_CONTEXT = 10;
-const int meltclasslen__CLASS_MATCH_STEP = 2;
-const int meltclasslen__CLASS_MATCH_STEP_CLEAR = 4;
-const int meltclasslen__CLASS_MATCH_STEP_FLAG_CONJUNCTION = 5;
-const int meltclasslen__CLASS_MATCH_STEP_FLAG_DISJUNCTION = 5;
-const int meltclasslen__CLASS_MATCH_STEP_FLAG_OPERATION = 5;
-const int meltclasslen__CLASS_MATCH_STEP_FLAG_SET = 4;
-const int meltclasslen__CLASS_MATCH_STEP_SUCCESS_WHEN_FLAG = 7;
-const int meltclasslen__CLASS_MATCH_STEP_TEST = 6;
-const int meltclasslen__CLASS_MATCH_STEP_TEST_GROUP = 9;
-const int meltclasslen__CLASS_MATCH_STEP_TEST_INSTANCE = 8;
-const int meltclasslen__CLASS_MATCH_STEP_TEST_MATCHER = 10;
-const int meltclasslen__CLASS_MATCH_STEP_TEST_MULTIPLE = 7;
-const int meltclasslen__CLASS_MATCH_STEP_TEST_VARIABLE = 7;
-const int meltclasslen__CLASS_MATCH_STEP_THEN = 3;
-const int meltclasslen__CLASS_MATCH_STEP_WITH_DATA = 5;
-const int meltclasslen__CLASS_MATCH_STEP_WITH_FLAG = 4;
-const int meltclasslen__CLASS_NORMTESTER_ANY = 7;
-const int meltclasslen__CLASS_NORMTESTER_ANYTESTER = 7;
-const int meltclasslen__CLASS_NORMTESTER_DISJUNCTION = 10;
-const int meltclasslen__CLASS_NORMTESTER_INSTANCE = 9;
-const int meltclasslen__CLASS_NORMTESTER_MATCHER = 11;
-const int meltclasslen__CLASS_NORMTESTER_OR_CLEAR = 8;
-const int meltclasslen__CLASS_NORMTESTER_OR_INITIAL_CLEAR = 8;
-const int meltclasslen__CLASS_NORMTESTER_OR_TRANSMIT = 9;
-const int meltclasslen__CLASS_NORMTESTER_SAME = 8;
-const int meltclasslen__CLASS_NORMTESTER_SUCCESS = 8;
-const int meltclasslen__CLASS_NORMTESTER_TUPLE = 8;
-const int meltclasslen__CLASS_NREP_ALTMATCH = 7;
-const int meltclasslen__CLASS_NREP_JUMP_WHEN_IS_A = 4;
-const int meltclasslen__CLASS_NREP_MATCH = 5;
-const int meltclasslen__CLASS_NREP_MATCHED_DATA = 4;
-const int meltclasslen__CLASS_NREP_MATCH_DATA_ACTION = 2;
-const int meltclasslen__CLASS_NREP_MATCH_DATA_CLEAR = 2;
-const int meltclasslen__CLASS_NREP_MATCH_DATA_FINALIZER = 2;
-const int meltclasslen__CLASS_NREP_MATCH_DATA_INITIALIZER = 2;
-const int meltclasslen__CLASS_NREP_MATCH_FLAG = 3;
-const int meltclasslen__CLASS_NREP_MATCH_JUMP = 2;
-const int meltclasslen__CLASS_NREP_MATCH_LABEL = 2;
-const int meltclasslen__CLASS_NREP_MATCH_LABEL_END = 2;
-const int meltclasslen__CLASS_PATTERN_CONTEXT = 11;
+  const int meltclasslen__CLASS_MATCHED_BINDING = 3;
+  const int meltclasslen__CLASS_MATCHED_DATA = 5;
+  const int meltclasslen__CLASS_MATCHED_NORMAL_DATA = 5;
+  const int meltclasslen__CLASS_MATCHING_CONTEXT = 10;
+  const int meltclasslen__CLASS_MATCH_CASE = 5;
+  const int meltclasslen__CLASS_MATCH_FLAG = 6;
+  const int meltclasslen__CLASS_MATCH_NORMALIZATION_CONTEXT = 10;
+  const int meltclasslen__CLASS_MATCH_STEP = 2;
+  const int meltclasslen__CLASS_MATCH_STEP_CLEAR = 4;
+  const int meltclasslen__CLASS_MATCH_STEP_FLAG_CONJUNCTION = 5;
+  const int meltclasslen__CLASS_MATCH_STEP_FLAG_DISJUNCTION = 5;
+  const int meltclasslen__CLASS_MATCH_STEP_FLAG_OPERATION = 5;
+  const int meltclasslen__CLASS_MATCH_STEP_FLAG_SET = 4;
+  const int meltclasslen__CLASS_MATCH_STEP_SUCCESS_WHEN_FLAG = 7;
+  const int meltclasslen__CLASS_MATCH_STEP_TEST = 6;
+  const int meltclasslen__CLASS_MATCH_STEP_TEST_GROUP = 9;
+  const int meltclasslen__CLASS_MATCH_STEP_TEST_INSTANCE = 8;
+  const int meltclasslen__CLASS_MATCH_STEP_TEST_MATCHER = 10;
+  const int meltclasslen__CLASS_MATCH_STEP_TEST_MULTIPLE = 7;
+  const int meltclasslen__CLASS_MATCH_STEP_TEST_VARIABLE = 7;
+  const int meltclasslen__CLASS_MATCH_STEP_THEN = 3;
+  const int meltclasslen__CLASS_MATCH_STEP_WITH_DATA = 5;
+  const int meltclasslen__CLASS_MATCH_STEP_WITH_FLAG = 4;
+  const int meltclasslen__CLASS_NORMTESTER_ANY = 7;
+  const int meltclasslen__CLASS_NORMTESTER_ANYTESTER = 7;
+  const int meltclasslen__CLASS_NORMTESTER_DISJUNCTION = 10;
+  const int meltclasslen__CLASS_NORMTESTER_INSTANCE = 9;
+  const int meltclasslen__CLASS_NORMTESTER_MATCHER = 11;
+  const int meltclasslen__CLASS_NORMTESTER_OR_CLEAR = 8;
+  const int meltclasslen__CLASS_NORMTESTER_OR_INITIAL_CLEAR = 8;
+  const int meltclasslen__CLASS_NORMTESTER_OR_TRANSMIT = 9;
+  const int meltclasslen__CLASS_NORMTESTER_SAME = 8;
+  const int meltclasslen__CLASS_NORMTESTER_SUCCESS = 8;
+  const int meltclasslen__CLASS_NORMTESTER_TUPLE = 8;
+  const int meltclasslen__CLASS_NREP_ALTMATCH = 7;
+  const int meltclasslen__CLASS_NREP_JUMP_WHEN_IS_A = 4;
+  const int meltclasslen__CLASS_NREP_MATCH = 5;
+  const int meltclasslen__CLASS_NREP_MATCHED_DATA = 4;
+  const int meltclasslen__CLASS_NREP_MATCH_DATA_ACTION = 2;
+  const int meltclasslen__CLASS_NREP_MATCH_DATA_CLEAR = 2;
+  const int meltclasslen__CLASS_NREP_MATCH_DATA_FINALIZER = 2;
+  const int meltclasslen__CLASS_NREP_MATCH_DATA_INITIALIZER = 2;
+  const int meltclasslen__CLASS_NREP_MATCH_FLAG = 3;
+  const int meltclasslen__CLASS_NREP_MATCH_JUMP = 2;
+  const int meltclasslen__CLASS_NREP_MATCH_LABEL = 2;
+  const int meltclasslen__CLASS_NREP_MATCH_LABEL_END = 2;
+  const int meltclasslen__CLASS_PATTERN_CONTEXT = 11;
+
+#ifdef __cplusplus
+};				/* end extern "C" */
+#endif /*__cplusplus*/
+
 
 
 /**** end of warmelt-normatch ****/

@@ -1642,7 +1642,14 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
       (add2sbuf_indentnl declbuf 0)
       (add2sbuf_strconst declbuf "#if MELT_HAVE_DEBUG")
       (add2sbuf_indentnl declbuf 0)
-      (add2sbuf_strconst declbuf "extern const char meltmodule_")
+      (add2sbuf_strconst declbuf "extern")
+      (add2sbuf_indentnl declbuf 0)
+      (add2out declbuf ##{
+#ifdef __cplusplus
+      "C"
+#endif /*__cplusplus*/
+}#)
+      (add2sbuf_strconst declbuf "const char meltmodule_")
       (add2sbuf_cident declbuf omodnam)
       (add2sbuf_strconst declbuf "__melt_have_debug_enabled[];")
       (add2sbuf_indentnl declbuf 0)
@@ -1652,7 +1659,14 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
       (add2sbuf_indentnl declbuf 0)
       (add2sbuf_strconst declbuf "#else /*!MELT_HAVE_DEBUG*/")
       (add2sbuf_indentnl declbuf 0)
-      (add2sbuf_strconst declbuf "extern const char meltmodule_")
+      (add2sbuf_strconst declbuf "extern")
+      (add2sbuf_indentnl declbuf 0)
+      (add2out declbuf ##{
+#ifdef __cplusplus
+      "C"
+#endif /*__cplusplus*/
+}#)
+      (add2sbuf_strconst declbuf "const char meltmodule_")
       (add2sbuf_cident declbuf omodnam)
       (add2sbuf_strconst declbuf "__melt_have_debug_disabled[];")
       (add2sbuf_indentnl declbuf 0)
@@ -4043,6 +4057,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	(sortedclasses (sorted_named_dict_tuple rawdictclasses))
 	)
     (add2sbuf_indentnl implbuf 0)
+    (add2out implbuf ##{
+#ifdef __cplusplus
+extern "C" {
+#endif /*__cplusplus*/
+}#)
+    (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "/* exported ")
     (add2sbuf_longdec implbuf (mapstring_count rawdictfields))
     (add2sbuf_strconst implbuf " field offsets */")
@@ -4081,6 +4101,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
        (assert_msg "check limited implbuf" 
 		   (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
        )
+    (add2sbuf_indentnl implbuf 0)
+    (add2out implbuf ##{
+#ifdef __cplusplus
+}; /* end extern "C" */
+#endif /*__cplusplus*/
+}#)
     (add2sbuf_indentnl implbuf 0)
     ))
 

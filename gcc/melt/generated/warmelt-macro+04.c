@@ -1986,14 +1986,27 @@ meltrout_140_warmelt_macro_MEXPAND_STORE_PREDEFINED (meltclosure_ptr_t
 						     *meltxrestab_);
 
 
+
+#ifdef __cplusplus
+extern "C"
+#endif
 void *start_module_melt (void *);
+
 
 /* define different names when debugging or not */
 #if MELT_HAVE_DEBUG
-extern const char meltmodule_warmelt_macro__melt_have_debug_enabled[];
+extern
+#ifdef __cplusplus
+  "C"
+#endif /*__cplusplus*/
+const char meltmodule_warmelt_macro__melt_have_debug_enabled[];
 #define melt_have_debug_string meltmodule_warmelt_macro__melt_have_debug_enabled
 #else /*!MELT_HAVE_DEBUG */
-extern const char meltmodule_warmelt_macro__melt_have_debug_disabled[];
+extern
+#ifdef __cplusplus
+  "C"
+#endif /*__cplusplus*/
+const char meltmodule_warmelt_macro__melt_have_debug_disabled[];
 #define melt_have_debug_string meltmodule_warmelt_macro__melt_have_debug_disabled
 #endif /*!MELT_HAVE_DEBUG */
 

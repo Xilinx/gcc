@@ -813,14 +813,27 @@ meltrout_50_warmelt_debug_DISPLAY_DEBUG_MESSAGE (meltclosure_ptr_t meltclosp_,
 						 *meltxrestab_);
 
 
+
+#ifdef __cplusplus
+extern "C"
+#endif
 void *start_module_melt (void *);
+
 
 /* define different names when debugging or not */
 #if MELT_HAVE_DEBUG
-extern const char meltmodule_warmelt_debug__melt_have_debug_enabled[];
+extern
+#ifdef __cplusplus
+  "C"
+#endif /*__cplusplus*/
+const char meltmodule_warmelt_debug__melt_have_debug_enabled[];
 #define melt_have_debug_string meltmodule_warmelt_debug__melt_have_debug_enabled
 #else /*!MELT_HAVE_DEBUG */
-extern const char meltmodule_warmelt_debug__melt_have_debug_disabled[];
+extern
+#ifdef __cplusplus
+  "C"
+#endif /*__cplusplus*/
+const char meltmodule_warmelt_debug__melt_have_debug_disabled[];
 #define melt_have_debug_string meltmodule_warmelt_debug__melt_have_debug_disabled
 #endif /*!MELT_HAVE_DEBUG */
 
@@ -16406,13 +16419,24 @@ forward_or_mark_module_start_frame_warmelt_debug (struct melt_callframe_st
 }				/* end forward_or_mark_module_start_frame_warmelt_debug */
 
 
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif /*__cplusplus*/
+
 /* exported 3 field offsets */
-const int meltfieldoff__DBGI_MAXDEPTH = 2;	/* in CLASS_DEBUG_INFORMATION */
-const int meltfieldoff__DBGI_OCCMAP = 1;	/* in CLASS_DEBUG_INFORMATION */
-const int meltfieldoff__DBGI_OUT = 0;	/* in CLASS_DEBUG_INFORMATION */
+  const int meltfieldoff__DBGI_MAXDEPTH = 2;	/* in CLASS_DEBUG_INFORMATION */
+  const int meltfieldoff__DBGI_OCCMAP = 1;	/* in CLASS_DEBUG_INFORMATION */
+  const int meltfieldoff__DBGI_OUT = 0;	/* in CLASS_DEBUG_INFORMATION */
 
 /* exported 1 class lengths */
-const int meltclasslen__CLASS_DEBUG_INFORMATION = 3;
+  const int meltclasslen__CLASS_DEBUG_INFORMATION = 3;
+
+#ifdef __cplusplus
+};				/* end extern "C" */
+#endif /*__cplusplus*/
+
 
 
 /**** end of warmelt-debug ****/

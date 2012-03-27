@@ -2301,14 +2301,27 @@ meltrout_163_warmelt_normal_NORMEXP_CHEADER (meltclosure_ptr_t meltclosp_,
 					     *meltxrestab_);
 
 
+
+#ifdef __cplusplus
+extern "C"
+#endif
 void *start_module_melt (void *);
+
 
 /* define different names when debugging or not */
 #if MELT_HAVE_DEBUG
-extern const char meltmodule_warmelt_normal__melt_have_debug_enabled[];
+extern
+#ifdef __cplusplus
+  "C"
+#endif /*__cplusplus*/
+const char meltmodule_warmelt_normal__melt_have_debug_enabled[];
 #define melt_have_debug_string meltmodule_warmelt_normal__melt_have_debug_enabled
 #else /*!MELT_HAVE_DEBUG */
-extern const char meltmodule_warmelt_normal__melt_have_debug_disabled[];
+extern
+#ifdef __cplusplus
+  "C"
+#endif /*__cplusplus*/
+const char meltmodule_warmelt_normal__melt_have_debug_disabled[];
 #define melt_have_debug_string meltmodule_warmelt_normal__melt_have_debug_disabled
 #endif /*!MELT_HAVE_DEBUG */
 
@@ -109728,220 +109741,232 @@ forward_or_mark_module_start_frame_warmelt_normal (struct melt_callframe_st
 }				/* end forward_or_mark_module_start_frame_warmelt_normal */
 
 
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif /*__cplusplus*/
+
 /* exported 130 field offsets */
-const int meltfieldoff__NACCF_FLD = 2;	/* in CLASS_NREP_FIELDACC */
-const int meltfieldoff__NACCF_OBJ = 1;	/* in CLASS_NREP_FIELDACC */
-const int meltfieldoff__NACCM_IX = 2;	/* in CLASS_NREP_MULTACC */
-const int meltfieldoff__NACCM_MUL = 1;	/* in CLASS_NREP_MULTACC */
-const int meltfieldoff__NAGAIN_BIND = 1;	/* in CLASS_NREP_AGAIN */
-const int meltfieldoff__NAPP_FUN = 3;	/* in CLASS_NREP_APPLY */
-const int meltfieldoff__NBOXINT_NUM = 5;	/* in CLASS_NREP_DATABOXEDINTEGER */
-const int meltfieldoff__NCHUNK_EXPANSION = 2;	/* in CLASS_NREP_CHUNK */
-const int meltfieldoff__NCHUNK_OPER = 3;	/* in CLASS_NREP_CHUNK */
-const int meltfieldoff__NCITER_BODBINDINGS = 7;	/* in CLASS_NREP_CITERATION */
-const int meltfieldoff__NCITER_BODY = 4;	/* in CLASS_NREP_CITERATION */
-const int meltfieldoff__NCITER_CHUNKAFTER = 3;	/* in CLASS_NREP_CITERATION */
-const int meltfieldoff__NCITER_CHUNKBEFORE = 2;	/* in CLASS_NREP_CITERATION */
-const int meltfieldoff__NCITER_CITERATOR = 1;	/* in CLASS_NREP_CITERATION */
-const int meltfieldoff__NCITER_LOCBINDINGS = 6;	/* in CLASS_NREP_CITERATION */
-const int meltfieldoff__NCITER_STATOCC = 5;	/* in CLASS_NREP_CITERATION */
-const int meltfieldoff__NCLOC_PROCS = 4;	/* in CLASS_NREP_CLOSEDOCC */
-const int meltfieldoff__NCOMM_STRING = 1;	/* in CLASS_NREP_COMMENT */
-const int meltfieldoff__NCONSB_DISCR = 2;	/* in CLASS_NORMAL_CONSTRUCTOR_BINDING */
-const int meltfieldoff__NCONSB_LOC = 1;	/* in CLASS_NORMAL_CONSTRUCTOR_BINDING */
-const int meltfieldoff__NCONSB_NLETREC = 3;	/* in CLASS_NORMAL_CONSTRUCTOR_BINDING */
-const int meltfieldoff__NCONST_DATA = 3;	/* in CLASS_NREP_QUASICONSTANT */
-const int meltfieldoff__NCONST_DEFBIND = 4;	/* in CLASS_NREP_DEFINED_CONSTANT */
-const int meltfieldoff__NCONST_PROC = 2;	/* in CLASS_NREP_QUASICONSTANT */
-const int meltfieldoff__NCONST_SVAL = 1;	/* in CLASS_NREP_QUASICONSTANT */
-const int meltfieldoff__NCONSVA_CTYPES = 2;	/* in CLASS_NREP_CONSUME_VARIADIC */
-const int meltfieldoff__NCONSVA_VARIADIC = 1;	/* in CLASS_NREP_CONSUME_VARIADIC */
-const int meltfieldoff__NCUMEB_COMMENT = 2;	/* in CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER */
-const int meltfieldoff__NDATA_DISCRX = 4;	/* in CLASS_NREP_DISCRIMINATED_DATA */
-const int meltfieldoff__NDATA_LOCBIND = 3;	/* in CLASS_NREP_BOUND_DATA */
-const int meltfieldoff__NDATA_NAME = 1;	/* in CLASS_NREP_BOUND_DATA */
-const int meltfieldoff__NDATA_RANK = 2;	/* in CLASS_NREP_BOUND_DATA */
-const int meltfieldoff__NDCLO_CLOSV = 6;	/* in CLASS_NREP_DATACLOSURE */
-const int meltfieldoff__NDCLO_PROC = 5;	/* in CLASS_NREP_DATACLOSURE */
-const int meltfieldoff__NDROU_PROC = 5;	/* in CLASS_NREP_DATAROUTINE */
-const int meltfieldoff__NDSY_NAMESTR = 9;	/* in CLASS_NREP_DATASYMBOL */
-const int meltfieldoff__NEXIT_BIND = 1;	/* in CLASS_NREP_EXIT */
-const int meltfieldoff__NEXIT_VAL = 2;	/* in CLASS_NREP_EXIT */
-const int meltfieldoff__NEXPR_ARGS = 2;	/* in CLASS_NREP_TYPED_EXPRESSION_WITH_ARGUMENTS */
-const int meltfieldoff__NEXPR_CTYP = 1;	/* in CLASS_NREP_TYPED_EXPRESSION */
-const int meltfieldoff__NFLA_FIELD = 1;	/* in CLASS_NREP_FIELDASSIGN */
-const int meltfieldoff__NFLA_VAL = 2;	/* in CLASS_NREP_FIELDASSIGN */
-const int meltfieldoff__NFOREVER_BIND = 1;	/* in CLASS_NREP_FOREVER */
-const int meltfieldoff__NFOREVER_BODY = 2;	/* in CLASS_NREP_FOREVER */
-const int meltfieldoff__NFOREVER_RESULT = 3;	/* in CLASS_NREP_FOREVER */
-const int meltfieldoff__NIFA_CLASS = 5;	/* in CLASS_NREP_IFISA */
-const int meltfieldoff__NIFP_COND = 1;	/* in CLASS_NREP_CPPIF */
-const int meltfieldoff__NIFP_CTYP = 4;	/* in CLASS_NREP_CPPIF */
-const int meltfieldoff__NIFP_ELSE = 3;	/* in CLASS_NREP_CPPIF */
-const int meltfieldoff__NIFP_THEN = 2;	/* in CLASS_NREP_CPPIF */
-const int meltfieldoff__NIFS_LEFT = 4;	/* in CLASS_NREP_IFSAME */
-const int meltfieldoff__NIFS_RIGHT = 5;	/* in CLASS_NREP_IFSAME */
-const int meltfieldoff__NIFV_CTYPES = 5;	/* in CLASS_NREP_IFVARIADIC */
-const int meltfieldoff__NIFV_VARIADIC = 4;	/* in CLASS_NREP_IFVARIADIC */
-const int meltfieldoff__NIF_ELSE = 3;	/* in CLASS_NREP_IFCOMMON */
-const int meltfieldoff__NIF_TEST = 4;	/* in CLASS_NREP_IF */
-const int meltfieldoff__NIF_TESTVAL = 4;	/* in CLASS_NREP_IFTESTVALUE */
-const int meltfieldoff__NIF_THEN = 2;	/* in CLASS_NREP_IFCOMMON */
-const int meltfieldoff__NIF_TUPSIZ = 5;	/* in CLASS_NREP_IFTUPLESIZED */
-const int meltfieldoff__NIMPORT_SYDATA = 2;	/* in CLASS_NREP_IMPORTEDVAL */
-const int meltfieldoff__NIMPORT_SYMB = 1;	/* in CLASS_NREP_IMPORTEDVAL */
-const int meltfieldoff__NINIT_DEFBINDS = 3;	/* in CLASS_NREP_INITPROC */
-const int meltfieldoff__NINIT_TOPL = 2;	/* in CLASS_NREP_INITPROC */
-const int meltfieldoff__NINSTB_CLABIND = 5;	/* in CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING */
-const int meltfieldoff__NINSTB_SLOTS = 4;	/* in CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING */
-const int meltfieldoff__NINST_HASH = 7;	/* in CLASS_NREP_DATAINSTANCE */
-const int meltfieldoff__NINST_OBJNUM = 5;	/* in CLASS_NREP_DATAINSTANCE */
-const int meltfieldoff__NINST_PREDEF = 6;	/* in CLASS_NREP_DATAINSTANCE */
-const int meltfieldoff__NINST_SLOTS = 8;	/* in CLASS_NREP_DATAINSTANCE */
-const int meltfieldoff__NLAMBDAB_CONSTROUT = 5;	/* in CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING */
-const int meltfieldoff__NLAMBDAB_DATAROUT = 6;	/* in CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING */
-const int meltfieldoff__NLAMBDAB_NCLOSED = 4;	/* in CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING */
-const int meltfieldoff__NLAMBDA_CLOSEDV = 3;	/* in CLASS_NREP_LAMBDA */
-const int meltfieldoff__NLAMBDA_CONSTROUT = 2;	/* in CLASS_NREP_LAMBDA */
-const int meltfieldoff__NLAMBDA_PROC = 1;	/* in CLASS_NREP_LAMBDA */
-const int meltfieldoff__NLETREC_BODY_BINDINGS = 4;	/* in CLASS_NREP_LETREC */
-const int meltfieldoff__NLETREC_FILL_BINDINGS = 3;	/* in CLASS_NREP_LETREC */
-const int meltfieldoff__NLETREC_LOCSYMS = 5;	/* in CLASS_NREP_LETREC */
-const int meltfieldoff__NLET_BINDINGS = 1;	/* in CLASS_NREP_LET */
-const int meltfieldoff__NLET_BODY = 2;	/* in CLASS_NREP_LET */
-const int meltfieldoff__NLISTB_FIRST = 4;	/* in CLASS_NORMAL_CONSTRUCTED_LIST_BINDING */
-const int meltfieldoff__NLISTB_LAST = 5;	/* in CLASS_NORMAL_CONSTRUCTED_LIST_BINDING */
-const int meltfieldoff__NLISTB_PAIRSB = 6;	/* in CLASS_NORMAL_CONSTRUCTED_LIST_BINDING */
-const int meltfieldoff__NMINS_CLADATA = 2;	/* in CLASS_NREP_INSTANCE */
-const int meltfieldoff__NMINS_CLASS = 1;	/* in CLASS_NREP_INSTANCE */
-const int meltfieldoff__NMINS_FIELDS = 3;	/* in CLASS_NREP_INSTANCE */
-const int meltfieldoff__NMULAPP_BINDINGS = 4;	/* in CLASS_NREP_MULTIAPPLY */
-const int meltfieldoff__NMULAPP_BODY = 5;	/* in CLASS_NREP_MULTIAPPLY */
-const int meltfieldoff__NMULSEND_BINDINGS = 5;	/* in CLASS_NREP_MULTIMSEND */
-const int meltfieldoff__NMULSEND_BODY = 6;	/* in CLASS_NREP_MULTIMSEND */
-const int meltfieldoff__NOCC_BIND = 3;	/* in CLASS_NREP_SYMOCC */
-const int meltfieldoff__NOCC_CTYP = 2;	/* in CLASS_NREP_SYMOCC */
-const int meltfieldoff__NOCC_SYMB = 1;	/* in CLASS_NREP_SYMOCC */
-const int meltfieldoff__NPAIRB_HEAD = 4;	/* in CLASS_NORMAL_CONSTRUCTED_PAIR_BINDING */
-const int meltfieldoff__NPAIRB_TAIL = 5;	/* in CLASS_NORMAL_CONSTRUCTED_PAIR_BINDING */
-const int meltfieldoff__NPROC_BODY = 1;	/* in CLASS_NREP_ANYPROC */
-const int meltfieldoff__NPROGN_LAST = 2;	/* in CLASS_NREP_PROGN */
-const int meltfieldoff__NPROGN_SEQ = 1;	/* in CLASS_NREP_PROGN */
-const int meltfieldoff__NQCMEC_COMMENT = 4;	/* in CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER */
-const int meltfieldoff__NREP_LOC = 0;	/* in CLASS_NREP */
-const int meltfieldoff__NRET_MAIN = 1;	/* in CLASS_NREP_RETURN */
-const int meltfieldoff__NRET_REST = 2;	/* in CLASS_NREP_RETURN */
-const int meltfieldoff__NRPREDEF = 1;	/* in CLASS_NREP_PREDEF */
-const int meltfieldoff__NRPRO_ARGB = 3;	/* in CLASS_NREP_ROUTPROC */
-const int meltfieldoff__NRPRO_CLOSEDB = 4;	/* in CLASS_NREP_ROUTPROC */
-const int meltfieldoff__NRPRO_CONST = 5;	/* in CLASS_NREP_ROUTPROC */
-const int meltfieldoff__NRPRO_DATACLOS = 7;	/* in CLASS_NREP_ROUTPROC */
-const int meltfieldoff__NRPRO_DATAROUT = 6;	/* in CLASS_NREP_ROUTPROC */
-const int meltfieldoff__NRPRO_NAME = 2;	/* in CLASS_NREP_ROUTPROC */
-const int meltfieldoff__NRPRO_THUNKLIST = 8;	/* in CLASS_NREP_ROUTPROC */
-const int meltfieldoff__NRPRO_VARIADIC = 9;	/* in CLASS_NREP_ROUTPROC */
-const int meltfieldoff__NSEND_RECV = 4;	/* in CLASS_NREP_MSEND */
-const int meltfieldoff__NSEND_SEL = 3;	/* in CLASS_NREP_MSEND */
-const int meltfieldoff__NSTPD_PREDEF = 1;	/* in CLASS_NREP_STORE_PREDEFINED */
-const int meltfieldoff__NSTPD_VALUE = 2;	/* in CLASS_NREP_STORE_PREDEFINED */
-const int meltfieldoff__NSTQ_EXP = 2;	/* in CLASS_NREP_SETQ */
-const int meltfieldoff__NSTQ_VAR = 1;	/* in CLASS_NREP_SETQ */
-const int meltfieldoff__NSTR_STRING = 5;	/* in CLASS_NREP_DATASTRING */
-const int meltfieldoff__NTUPB_COMP = 4;	/* in CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING */
-const int meltfieldoff__NTUP_COMP = 5;	/* in CLASS_NREP_DATATUPLE */
-const int meltfieldoff__NUCMEB_EXPR = 1;	/* in CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER */
-const int meltfieldoff__NUGET_FIELD = 2;	/* in CLASS_NREP_UNSAFE_GET_FIELD */
-const int meltfieldoff__NUGET_OBJ = 1;	/* in CLASS_NREP_UNSAFE_GET_FIELD */
-const int meltfieldoff__NUNTH_INDEX = 2;	/* in CLASS_NREP_UNSAFE_NTH_COMPONENT */
-const int meltfieldoff__NUNTH_TUPLE = 1;	/* in CLASS_NREP_UNSAFE_NTH_COMPONENT */
-const int meltfieldoff__NUPUT_FIELDS = 2;	/* in CLASS_NREP_UNSAFE_PUT_FIELDS */
-const int meltfieldoff__NUPUT_OBJ = 1;	/* in CLASS_NREP_UNSAFE_PUT_FIELDS */
-const int meltfieldoff__NVARG_CTYP = 2;	/* in CLASS_NREP_VARIADIC_ARGUMENT */
-const int meltfieldoff__NVARG_OFFSET = 3;	/* in CLASS_NREP_VARIADIC_ARGUMENT */
-const int meltfieldoff__NVARG_VARIADIC = 1;	/* in CLASS_NREP_VARIADIC_ARGUMENT */
+  const int meltfieldoff__NACCF_FLD = 2;	/* in CLASS_NREP_FIELDACC */
+  const int meltfieldoff__NACCF_OBJ = 1;	/* in CLASS_NREP_FIELDACC */
+  const int meltfieldoff__NACCM_IX = 2;	/* in CLASS_NREP_MULTACC */
+  const int meltfieldoff__NACCM_MUL = 1;	/* in CLASS_NREP_MULTACC */
+  const int meltfieldoff__NAGAIN_BIND = 1;	/* in CLASS_NREP_AGAIN */
+  const int meltfieldoff__NAPP_FUN = 3;	/* in CLASS_NREP_APPLY */
+  const int meltfieldoff__NBOXINT_NUM = 5;	/* in CLASS_NREP_DATABOXEDINTEGER */
+  const int meltfieldoff__NCHUNK_EXPANSION = 2;	/* in CLASS_NREP_CHUNK */
+  const int meltfieldoff__NCHUNK_OPER = 3;	/* in CLASS_NREP_CHUNK */
+  const int meltfieldoff__NCITER_BODBINDINGS = 7;	/* in CLASS_NREP_CITERATION */
+  const int meltfieldoff__NCITER_BODY = 4;	/* in CLASS_NREP_CITERATION */
+  const int meltfieldoff__NCITER_CHUNKAFTER = 3;	/* in CLASS_NREP_CITERATION */
+  const int meltfieldoff__NCITER_CHUNKBEFORE = 2;	/* in CLASS_NREP_CITERATION */
+  const int meltfieldoff__NCITER_CITERATOR = 1;	/* in CLASS_NREP_CITERATION */
+  const int meltfieldoff__NCITER_LOCBINDINGS = 6;	/* in CLASS_NREP_CITERATION */
+  const int meltfieldoff__NCITER_STATOCC = 5;	/* in CLASS_NREP_CITERATION */
+  const int meltfieldoff__NCLOC_PROCS = 4;	/* in CLASS_NREP_CLOSEDOCC */
+  const int meltfieldoff__NCOMM_STRING = 1;	/* in CLASS_NREP_COMMENT */
+  const int meltfieldoff__NCONSB_DISCR = 2;	/* in CLASS_NORMAL_CONSTRUCTOR_BINDING */
+  const int meltfieldoff__NCONSB_LOC = 1;	/* in CLASS_NORMAL_CONSTRUCTOR_BINDING */
+  const int meltfieldoff__NCONSB_NLETREC = 3;	/* in CLASS_NORMAL_CONSTRUCTOR_BINDING */
+  const int meltfieldoff__NCONST_DATA = 3;	/* in CLASS_NREP_QUASICONSTANT */
+  const int meltfieldoff__NCONST_DEFBIND = 4;	/* in CLASS_NREP_DEFINED_CONSTANT */
+  const int meltfieldoff__NCONST_PROC = 2;	/* in CLASS_NREP_QUASICONSTANT */
+  const int meltfieldoff__NCONST_SVAL = 1;	/* in CLASS_NREP_QUASICONSTANT */
+  const int meltfieldoff__NCONSVA_CTYPES = 2;	/* in CLASS_NREP_CONSUME_VARIADIC */
+  const int meltfieldoff__NCONSVA_VARIADIC = 1;	/* in CLASS_NREP_CONSUME_VARIADIC */
+  const int meltfieldoff__NCUMEB_COMMENT = 2;	/* in CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER */
+  const int meltfieldoff__NDATA_DISCRX = 4;	/* in CLASS_NREP_DISCRIMINATED_DATA */
+  const int meltfieldoff__NDATA_LOCBIND = 3;	/* in CLASS_NREP_BOUND_DATA */
+  const int meltfieldoff__NDATA_NAME = 1;	/* in CLASS_NREP_BOUND_DATA */
+  const int meltfieldoff__NDATA_RANK = 2;	/* in CLASS_NREP_BOUND_DATA */
+  const int meltfieldoff__NDCLO_CLOSV = 6;	/* in CLASS_NREP_DATACLOSURE */
+  const int meltfieldoff__NDCLO_PROC = 5;	/* in CLASS_NREP_DATACLOSURE */
+  const int meltfieldoff__NDROU_PROC = 5;	/* in CLASS_NREP_DATAROUTINE */
+  const int meltfieldoff__NDSY_NAMESTR = 9;	/* in CLASS_NREP_DATASYMBOL */
+  const int meltfieldoff__NEXIT_BIND = 1;	/* in CLASS_NREP_EXIT */
+  const int meltfieldoff__NEXIT_VAL = 2;	/* in CLASS_NREP_EXIT */
+  const int meltfieldoff__NEXPR_ARGS = 2;	/* in CLASS_NREP_TYPED_EXPRESSION_WITH_ARGUMENTS */
+  const int meltfieldoff__NEXPR_CTYP = 1;	/* in CLASS_NREP_TYPED_EXPRESSION */
+  const int meltfieldoff__NFLA_FIELD = 1;	/* in CLASS_NREP_FIELDASSIGN */
+  const int meltfieldoff__NFLA_VAL = 2;	/* in CLASS_NREP_FIELDASSIGN */
+  const int meltfieldoff__NFOREVER_BIND = 1;	/* in CLASS_NREP_FOREVER */
+  const int meltfieldoff__NFOREVER_BODY = 2;	/* in CLASS_NREP_FOREVER */
+  const int meltfieldoff__NFOREVER_RESULT = 3;	/* in CLASS_NREP_FOREVER */
+  const int meltfieldoff__NIFA_CLASS = 5;	/* in CLASS_NREP_IFISA */
+  const int meltfieldoff__NIFP_COND = 1;	/* in CLASS_NREP_CPPIF */
+  const int meltfieldoff__NIFP_CTYP = 4;	/* in CLASS_NREP_CPPIF */
+  const int meltfieldoff__NIFP_ELSE = 3;	/* in CLASS_NREP_CPPIF */
+  const int meltfieldoff__NIFP_THEN = 2;	/* in CLASS_NREP_CPPIF */
+  const int meltfieldoff__NIFS_LEFT = 4;	/* in CLASS_NREP_IFSAME */
+  const int meltfieldoff__NIFS_RIGHT = 5;	/* in CLASS_NREP_IFSAME */
+  const int meltfieldoff__NIFV_CTYPES = 5;	/* in CLASS_NREP_IFVARIADIC */
+  const int meltfieldoff__NIFV_VARIADIC = 4;	/* in CLASS_NREP_IFVARIADIC */
+  const int meltfieldoff__NIF_ELSE = 3;	/* in CLASS_NREP_IFCOMMON */
+  const int meltfieldoff__NIF_TEST = 4;	/* in CLASS_NREP_IF */
+  const int meltfieldoff__NIF_TESTVAL = 4;	/* in CLASS_NREP_IFTESTVALUE */
+  const int meltfieldoff__NIF_THEN = 2;	/* in CLASS_NREP_IFCOMMON */
+  const int meltfieldoff__NIF_TUPSIZ = 5;	/* in CLASS_NREP_IFTUPLESIZED */
+  const int meltfieldoff__NIMPORT_SYDATA = 2;	/* in CLASS_NREP_IMPORTEDVAL */
+  const int meltfieldoff__NIMPORT_SYMB = 1;	/* in CLASS_NREP_IMPORTEDVAL */
+  const int meltfieldoff__NINIT_DEFBINDS = 3;	/* in CLASS_NREP_INITPROC */
+  const int meltfieldoff__NINIT_TOPL = 2;	/* in CLASS_NREP_INITPROC */
+  const int meltfieldoff__NINSTB_CLABIND = 5;	/* in CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING */
+  const int meltfieldoff__NINSTB_SLOTS = 4;	/* in CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING */
+  const int meltfieldoff__NINST_HASH = 7;	/* in CLASS_NREP_DATAINSTANCE */
+  const int meltfieldoff__NINST_OBJNUM = 5;	/* in CLASS_NREP_DATAINSTANCE */
+  const int meltfieldoff__NINST_PREDEF = 6;	/* in CLASS_NREP_DATAINSTANCE */
+  const int meltfieldoff__NINST_SLOTS = 8;	/* in CLASS_NREP_DATAINSTANCE */
+  const int meltfieldoff__NLAMBDAB_CONSTROUT = 5;	/* in CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING */
+  const int meltfieldoff__NLAMBDAB_DATAROUT = 6;	/* in CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING */
+  const int meltfieldoff__NLAMBDAB_NCLOSED = 4;	/* in CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING */
+  const int meltfieldoff__NLAMBDA_CLOSEDV = 3;	/* in CLASS_NREP_LAMBDA */
+  const int meltfieldoff__NLAMBDA_CONSTROUT = 2;	/* in CLASS_NREP_LAMBDA */
+  const int meltfieldoff__NLAMBDA_PROC = 1;	/* in CLASS_NREP_LAMBDA */
+  const int meltfieldoff__NLETREC_BODY_BINDINGS = 4;	/* in CLASS_NREP_LETREC */
+  const int meltfieldoff__NLETREC_FILL_BINDINGS = 3;	/* in CLASS_NREP_LETREC */
+  const int meltfieldoff__NLETREC_LOCSYMS = 5;	/* in CLASS_NREP_LETREC */
+  const int meltfieldoff__NLET_BINDINGS = 1;	/* in CLASS_NREP_LET */
+  const int meltfieldoff__NLET_BODY = 2;	/* in CLASS_NREP_LET */
+  const int meltfieldoff__NLISTB_FIRST = 4;	/* in CLASS_NORMAL_CONSTRUCTED_LIST_BINDING */
+  const int meltfieldoff__NLISTB_LAST = 5;	/* in CLASS_NORMAL_CONSTRUCTED_LIST_BINDING */
+  const int meltfieldoff__NLISTB_PAIRSB = 6;	/* in CLASS_NORMAL_CONSTRUCTED_LIST_BINDING */
+  const int meltfieldoff__NMINS_CLADATA = 2;	/* in CLASS_NREP_INSTANCE */
+  const int meltfieldoff__NMINS_CLASS = 1;	/* in CLASS_NREP_INSTANCE */
+  const int meltfieldoff__NMINS_FIELDS = 3;	/* in CLASS_NREP_INSTANCE */
+  const int meltfieldoff__NMULAPP_BINDINGS = 4;	/* in CLASS_NREP_MULTIAPPLY */
+  const int meltfieldoff__NMULAPP_BODY = 5;	/* in CLASS_NREP_MULTIAPPLY */
+  const int meltfieldoff__NMULSEND_BINDINGS = 5;	/* in CLASS_NREP_MULTIMSEND */
+  const int meltfieldoff__NMULSEND_BODY = 6;	/* in CLASS_NREP_MULTIMSEND */
+  const int meltfieldoff__NOCC_BIND = 3;	/* in CLASS_NREP_SYMOCC */
+  const int meltfieldoff__NOCC_CTYP = 2;	/* in CLASS_NREP_SYMOCC */
+  const int meltfieldoff__NOCC_SYMB = 1;	/* in CLASS_NREP_SYMOCC */
+  const int meltfieldoff__NPAIRB_HEAD = 4;	/* in CLASS_NORMAL_CONSTRUCTED_PAIR_BINDING */
+  const int meltfieldoff__NPAIRB_TAIL = 5;	/* in CLASS_NORMAL_CONSTRUCTED_PAIR_BINDING */
+  const int meltfieldoff__NPROC_BODY = 1;	/* in CLASS_NREP_ANYPROC */
+  const int meltfieldoff__NPROGN_LAST = 2;	/* in CLASS_NREP_PROGN */
+  const int meltfieldoff__NPROGN_SEQ = 1;	/* in CLASS_NREP_PROGN */
+  const int meltfieldoff__NQCMEC_COMMENT = 4;	/* in CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER */
+  const int meltfieldoff__NREP_LOC = 0;	/* in CLASS_NREP */
+  const int meltfieldoff__NRET_MAIN = 1;	/* in CLASS_NREP_RETURN */
+  const int meltfieldoff__NRET_REST = 2;	/* in CLASS_NREP_RETURN */
+  const int meltfieldoff__NRPREDEF = 1;	/* in CLASS_NREP_PREDEF */
+  const int meltfieldoff__NRPRO_ARGB = 3;	/* in CLASS_NREP_ROUTPROC */
+  const int meltfieldoff__NRPRO_CLOSEDB = 4;	/* in CLASS_NREP_ROUTPROC */
+  const int meltfieldoff__NRPRO_CONST = 5;	/* in CLASS_NREP_ROUTPROC */
+  const int meltfieldoff__NRPRO_DATACLOS = 7;	/* in CLASS_NREP_ROUTPROC */
+  const int meltfieldoff__NRPRO_DATAROUT = 6;	/* in CLASS_NREP_ROUTPROC */
+  const int meltfieldoff__NRPRO_NAME = 2;	/* in CLASS_NREP_ROUTPROC */
+  const int meltfieldoff__NRPRO_THUNKLIST = 8;	/* in CLASS_NREP_ROUTPROC */
+  const int meltfieldoff__NRPRO_VARIADIC = 9;	/* in CLASS_NREP_ROUTPROC */
+  const int meltfieldoff__NSEND_RECV = 4;	/* in CLASS_NREP_MSEND */
+  const int meltfieldoff__NSEND_SEL = 3;	/* in CLASS_NREP_MSEND */
+  const int meltfieldoff__NSTPD_PREDEF = 1;	/* in CLASS_NREP_STORE_PREDEFINED */
+  const int meltfieldoff__NSTPD_VALUE = 2;	/* in CLASS_NREP_STORE_PREDEFINED */
+  const int meltfieldoff__NSTQ_EXP = 2;	/* in CLASS_NREP_SETQ */
+  const int meltfieldoff__NSTQ_VAR = 1;	/* in CLASS_NREP_SETQ */
+  const int meltfieldoff__NSTR_STRING = 5;	/* in CLASS_NREP_DATASTRING */
+  const int meltfieldoff__NTUPB_COMP = 4;	/* in CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING */
+  const int meltfieldoff__NTUP_COMP = 5;	/* in CLASS_NREP_DATATUPLE */
+  const int meltfieldoff__NUCMEB_EXPR = 1;	/* in CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER */
+  const int meltfieldoff__NUGET_FIELD = 2;	/* in CLASS_NREP_UNSAFE_GET_FIELD */
+  const int meltfieldoff__NUGET_OBJ = 1;	/* in CLASS_NREP_UNSAFE_GET_FIELD */
+  const int meltfieldoff__NUNTH_INDEX = 2;	/* in CLASS_NREP_UNSAFE_NTH_COMPONENT */
+  const int meltfieldoff__NUNTH_TUPLE = 1;	/* in CLASS_NREP_UNSAFE_NTH_COMPONENT */
+  const int meltfieldoff__NUPUT_FIELDS = 2;	/* in CLASS_NREP_UNSAFE_PUT_FIELDS */
+  const int meltfieldoff__NUPUT_OBJ = 1;	/* in CLASS_NREP_UNSAFE_PUT_FIELDS */
+  const int meltfieldoff__NVARG_CTYP = 2;	/* in CLASS_NREP_VARIADIC_ARGUMENT */
+  const int meltfieldoff__NVARG_OFFSET = 3;	/* in CLASS_NREP_VARIADIC_ARGUMENT */
+  const int meltfieldoff__NVARG_VARIADIC = 1;	/* in CLASS_NREP_VARIADIC_ARGUMENT */
 
 /* exported 77 class lengths */
-const int meltclasslen__CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING = 6;
-const int meltclasslen__CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING = 7;
-const int meltclasslen__CLASS_NORMAL_CONSTRUCTED_LIST_BINDING = 7;
-const int meltclasslen__CLASS_NORMAL_CONSTRUCTED_PAIR_BINDING = 6;
-const int meltclasslen__CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING = 5;
-const int meltclasslen__CLASS_NORMAL_CONSTRUCTOR_BINDING = 4;
-const int meltclasslen__CLASS_NREP = 1;
-const int meltclasslen__CLASS_NREP_AGAIN = 2;
-const int meltclasslen__CLASS_NREP_ANYPROC = 2;
-const int meltclasslen__CLASS_NREP_APPLY = 4;
-const int meltclasslen__CLASS_NREP_BOUND_DATA = 4;
-const int meltclasslen__CLASS_NREP_CHECKINTERRUPT = 1;
-const int meltclasslen__CLASS_NREP_CHUNK = 4;
-const int meltclasslen__CLASS_NREP_CITERATION = 8;
-const int meltclasslen__CLASS_NREP_CLOSEDOCC = 5;
-const int meltclasslen__CLASS_NREP_COMMENT = 2;
-const int meltclasslen__CLASS_NREP_CONSTANT = 4;
-const int meltclasslen__CLASS_NREP_CONSTOCC = 5;
-const int meltclasslen__CLASS_NREP_CONSUME_VARIADIC = 3;
-const int meltclasslen__CLASS_NREP_CPPIF = 5;
-const int meltclasslen__CLASS_NREP_DATABOXEDINTEGER = 6;
-const int meltclasslen__CLASS_NREP_DATACLOSURE = 7;
-const int meltclasslen__CLASS_NREP_DATAINSTANCE = 9;
-const int meltclasslen__CLASS_NREP_DATAKEYWORD = 10;
-const int meltclasslen__CLASS_NREP_DATAROUTINE = 6;
-const int meltclasslen__CLASS_NREP_DATASTRING = 6;
-const int meltclasslen__CLASS_NREP_DATASYMBOL = 10;
-const int meltclasslen__CLASS_NREP_DATATUPLE = 6;
-const int meltclasslen__CLASS_NREP_DEFINED_CONSTANT = 5;
-const int meltclasslen__CLASS_NREP_DEFUNROUTPROC = 10;
-const int meltclasslen__CLASS_NREP_DISCRIMINATED_DATA = 5;
-const int meltclasslen__CLASS_NREP_EXIT = 3;
-const int meltclasslen__CLASS_NREP_EXPRESSION = 1;
-const int meltclasslen__CLASS_NREP_FIELDACC = 3;
-const int meltclasslen__CLASS_NREP_FIELDASSIGN = 3;
-const int meltclasslen__CLASS_NREP_FOREVER = 4;
-const int meltclasslen__CLASS_NREP_IF = 5;
-const int meltclasslen__CLASS_NREP_IFCOMMON = 4;
-const int meltclasslen__CLASS_NREP_IFISA = 6;
-const int meltclasslen__CLASS_NREP_IFSAME = 6;
-const int meltclasslen__CLASS_NREP_IFTESTVALUE = 5;
-const int meltclasslen__CLASS_NREP_IFTUPLESIZED = 6;
-const int meltclasslen__CLASS_NREP_IFVARIADIC = 6;
-const int meltclasslen__CLASS_NREP_IMPORTEDVAL = 3;
-const int meltclasslen__CLASS_NREP_INITPROC = 4;
-const int meltclasslen__CLASS_NREP_INSTANCE = 4;
-const int meltclasslen__CLASS_NREP_LAMBDA = 4;
-const int meltclasslen__CLASS_NREP_LAMBDAROUTPROC = 10;
-const int meltclasslen__CLASS_NREP_LET = 3;
-const int meltclasslen__CLASS_NREP_LETREC = 6;
-const int meltclasslen__CLASS_NREP_LOCSYMOCC = 4;
-const int meltclasslen__CLASS_NREP_MSEND = 5;
-const int meltclasslen__CLASS_NREP_MULTACC = 3;
-const int meltclasslen__CLASS_NREP_MULTIAPPLY = 6;
-const int meltclasslen__CLASS_NREP_MULTIMSEND = 7;
-const int meltclasslen__CLASS_NREP_NIL = 1;
-const int meltclasslen__CLASS_NREP_PREDEF = 2;
-const int meltclasslen__CLASS_NREP_PROGN = 3;
-const int meltclasslen__CLASS_NREP_QUASICONSTANT = 4;
-const int
-  meltclasslen__CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER =
-  5;
-const int meltclasslen__CLASS_NREP_QUASICONST_PARENT_MODULE_ENVIRONMENT = 4;
-const int meltclasslen__CLASS_NREP_QUASIDATA = 1;
-const int
-  meltclasslen__CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER = 1;
-const int meltclasslen__CLASS_NREP_QUASIDATA_PARENT_MODULE_ENVIRONMENT = 1;
-const int meltclasslen__CLASS_NREP_RETURN = 3;
-const int meltclasslen__CLASS_NREP_ROUTPROC = 10;
-const int meltclasslen__CLASS_NREP_SETQ = 3;
-const int meltclasslen__CLASS_NREP_SIMPLE = 1;
-const int meltclasslen__CLASS_NREP_STORE_PREDEFINED = 3;
-const int meltclasslen__CLASS_NREP_SYMOCC = 4;
-const int meltclasslen__CLASS_NREP_TYPED_EXPRESSION = 2;
-const int meltclasslen__CLASS_NREP_TYPED_EXPRESSION_WITH_ARGUMENTS = 3;
-const int meltclasslen__CLASS_NREP_UNSAFE_GET_FIELD = 3;
-const int meltclasslen__CLASS_NREP_UNSAFE_NTH_COMPONENT = 3;
-const int meltclasslen__CLASS_NREP_UNSAFE_PUT_FIELDS = 3;
-const int meltclasslen__CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER
-  = 3;
-const int meltclasslen__CLASS_NREP_VARIADIC_ARGUMENT = 4;
+  const int meltclasslen__CLASS_NORMAL_CONSTRUCTED_INSTANCE_BINDING = 6;
+  const int meltclasslen__CLASS_NORMAL_CONSTRUCTED_LAMBDA_BINDING = 7;
+  const int meltclasslen__CLASS_NORMAL_CONSTRUCTED_LIST_BINDING = 7;
+  const int meltclasslen__CLASS_NORMAL_CONSTRUCTED_PAIR_BINDING = 6;
+  const int meltclasslen__CLASS_NORMAL_CONSTRUCTED_TUPLE_BINDING = 5;
+  const int meltclasslen__CLASS_NORMAL_CONSTRUCTOR_BINDING = 4;
+  const int meltclasslen__CLASS_NREP = 1;
+  const int meltclasslen__CLASS_NREP_AGAIN = 2;
+  const int meltclasslen__CLASS_NREP_ANYPROC = 2;
+  const int meltclasslen__CLASS_NREP_APPLY = 4;
+  const int meltclasslen__CLASS_NREP_BOUND_DATA = 4;
+  const int meltclasslen__CLASS_NREP_CHECKINTERRUPT = 1;
+  const int meltclasslen__CLASS_NREP_CHUNK = 4;
+  const int meltclasslen__CLASS_NREP_CITERATION = 8;
+  const int meltclasslen__CLASS_NREP_CLOSEDOCC = 5;
+  const int meltclasslen__CLASS_NREP_COMMENT = 2;
+  const int meltclasslen__CLASS_NREP_CONSTANT = 4;
+  const int meltclasslen__CLASS_NREP_CONSTOCC = 5;
+  const int meltclasslen__CLASS_NREP_CONSUME_VARIADIC = 3;
+  const int meltclasslen__CLASS_NREP_CPPIF = 5;
+  const int meltclasslen__CLASS_NREP_DATABOXEDINTEGER = 6;
+  const int meltclasslen__CLASS_NREP_DATACLOSURE = 7;
+  const int meltclasslen__CLASS_NREP_DATAINSTANCE = 9;
+  const int meltclasslen__CLASS_NREP_DATAKEYWORD = 10;
+  const int meltclasslen__CLASS_NREP_DATAROUTINE = 6;
+  const int meltclasslen__CLASS_NREP_DATASTRING = 6;
+  const int meltclasslen__CLASS_NREP_DATASYMBOL = 10;
+  const int meltclasslen__CLASS_NREP_DATATUPLE = 6;
+  const int meltclasslen__CLASS_NREP_DEFINED_CONSTANT = 5;
+  const int meltclasslen__CLASS_NREP_DEFUNROUTPROC = 10;
+  const int meltclasslen__CLASS_NREP_DISCRIMINATED_DATA = 5;
+  const int meltclasslen__CLASS_NREP_EXIT = 3;
+  const int meltclasslen__CLASS_NREP_EXPRESSION = 1;
+  const int meltclasslen__CLASS_NREP_FIELDACC = 3;
+  const int meltclasslen__CLASS_NREP_FIELDASSIGN = 3;
+  const int meltclasslen__CLASS_NREP_FOREVER = 4;
+  const int meltclasslen__CLASS_NREP_IF = 5;
+  const int meltclasslen__CLASS_NREP_IFCOMMON = 4;
+  const int meltclasslen__CLASS_NREP_IFISA = 6;
+  const int meltclasslen__CLASS_NREP_IFSAME = 6;
+  const int meltclasslen__CLASS_NREP_IFTESTVALUE = 5;
+  const int meltclasslen__CLASS_NREP_IFTUPLESIZED = 6;
+  const int meltclasslen__CLASS_NREP_IFVARIADIC = 6;
+  const int meltclasslen__CLASS_NREP_IMPORTEDVAL = 3;
+  const int meltclasslen__CLASS_NREP_INITPROC = 4;
+  const int meltclasslen__CLASS_NREP_INSTANCE = 4;
+  const int meltclasslen__CLASS_NREP_LAMBDA = 4;
+  const int meltclasslen__CLASS_NREP_LAMBDAROUTPROC = 10;
+  const int meltclasslen__CLASS_NREP_LET = 3;
+  const int meltclasslen__CLASS_NREP_LETREC = 6;
+  const int meltclasslen__CLASS_NREP_LOCSYMOCC = 4;
+  const int meltclasslen__CLASS_NREP_MSEND = 5;
+  const int meltclasslen__CLASS_NREP_MULTACC = 3;
+  const int meltclasslen__CLASS_NREP_MULTIAPPLY = 6;
+  const int meltclasslen__CLASS_NREP_MULTIMSEND = 7;
+  const int meltclasslen__CLASS_NREP_NIL = 1;
+  const int meltclasslen__CLASS_NREP_PREDEF = 2;
+  const int meltclasslen__CLASS_NREP_PROGN = 3;
+  const int meltclasslen__CLASS_NREP_QUASICONSTANT = 4;
+  const int
+    meltclasslen__CLASS_NREP_QUASICONST_CURRENT_MODULE_ENVIRONMENT_CONTAINER =
+    5;
+  const int meltclasslen__CLASS_NREP_QUASICONST_PARENT_MODULE_ENVIRONMENT = 4;
+  const int meltclasslen__CLASS_NREP_QUASIDATA = 1;
+  const int
+    meltclasslen__CLASS_NREP_QUASIDATA_CURRENT_MODULE_ENVIRONMENT_CONTAINER =
+    1;
+  const int meltclasslen__CLASS_NREP_QUASIDATA_PARENT_MODULE_ENVIRONMENT = 1;
+  const int meltclasslen__CLASS_NREP_RETURN = 3;
+  const int meltclasslen__CLASS_NREP_ROUTPROC = 10;
+  const int meltclasslen__CLASS_NREP_SETQ = 3;
+  const int meltclasslen__CLASS_NREP_SIMPLE = 1;
+  const int meltclasslen__CLASS_NREP_STORE_PREDEFINED = 3;
+  const int meltclasslen__CLASS_NREP_SYMOCC = 4;
+  const int meltclasslen__CLASS_NREP_TYPED_EXPRESSION = 2;
+  const int meltclasslen__CLASS_NREP_TYPED_EXPRESSION_WITH_ARGUMENTS = 3;
+  const int meltclasslen__CLASS_NREP_UNSAFE_GET_FIELD = 3;
+  const int meltclasslen__CLASS_NREP_UNSAFE_NTH_COMPONENT = 3;
+  const int meltclasslen__CLASS_NREP_UNSAFE_PUT_FIELDS = 3;
+  const int
+    meltclasslen__CLASS_NREP_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER = 3;
+  const int meltclasslen__CLASS_NREP_VARIADIC_ARGUMENT = 4;
+
+#ifdef __cplusplus
+};				/* end extern "C" */
+#endif /*__cplusplus*/
+
 
 
 /**** end of warmelt-normal ****/
