@@ -12276,7 +12276,8 @@ lab_endgetargs:;
 			   "/*MELT BOOTSTRAP*/\n");
       meltgc_add_strbuf ((melt_ptr_t) /*_.TIBUF__V9*/ meltfptr[5],
 			 "const char melt_gen_timestamp[]=\"");
-      meltgc_add_strbuf_cstr ( /*_.TIBUF__V9*/ meltfptr[5], nowbuf);
+      meltgc_add_strbuf_cstr ((melt_ptr_t) /*_.TIBUF__V9*/ meltfptr[5],
+			      nowbuf);
       meltgc_add_strbuf ((melt_ptr_t) /*_.TIBUF__V9*/ meltfptr[5], "\";\n");
       /*  GENTIMCH__1 don't use time_t, it is not a predefined C type! */
       meltgc_strbuf_printf ((melt_ptr_t) /*_.TIBUF__V9*/ meltfptr[5],

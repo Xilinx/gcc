@@ -12,7 +12,7 @@ const char melt_modulename[]="warmelt-first";
 const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt-modules/warmelt-first";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="73dc1f3e645623a734c90c65d63f95bb";
+const char melt_prepromd5meltrun[]="dff906952281c68858c76bb5e7821d31";
 /* hexmd5checksum of primary C file */
 const char melt_primaryhexmd5[]="34b816b027432362bd96f816b49cf888";
 
