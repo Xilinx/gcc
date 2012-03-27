@@ -441,14 +441,14 @@ number $NUM opaque location number $LOC.}#
 ;; test for mixbigint
 (defprimitive is_mixbigint (mb) :long
   :doc #{Test if value $MB is a mixed bigint.}#
-  "(melt_magic_discr((melt_ptr_t)(" mb ")) == MELTOBMAG_MIXBIGINT)")
+  #{(melt_magic_discr((melt_ptr_t)($MB)) == MELTOBMAG_MIXBIGINT)}#)
 (defprimitive mixbigint_val (mb) :value
   :doc #{Retrieve the value inside a mixed bigint $MB.}#
-  #{melt_val_mixbigint($mb)}#)
+  #{melt_val_mixbigint((melt_ptr_t) $MB)}#)
 
 (defprimitive ppstrbuf_mixbigint (:value sbuf :long indent :value mb) :void
  :doc #{Pretty prints into string buffer $SBUF at indentation $INDENT the mixed bigint $MB.}#
- #{meltgc_ppstrbuf_mixbigint($sbuf,$indent,$mb);}#
+ #{meltgc_ppstrbuf_mixbigint((melt_ptr_t) $SBUF,$INDENT,(melt_ptr_t) $MB);}#
 )
 
 
