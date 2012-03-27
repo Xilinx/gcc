@@ -170,7 +170,7 @@ MELT_ZERO_GENERATED_[+mkvarsuf+]_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_[+mkvarsuf+]_C_FILES)))
 # for stage 0 files, we don't compute the checksum, we extract what was deposited [+ (. (tpl-file-line))+]
 ## avoid spaces in MELT_GENERATED_[+mkvarsuf+]_CUMULMD5 below [+ (. (tpl-file-line))+]
-MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5:=$(shell $(GAWK) -F\" '/melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/[+base+]+meltdesc.c)
+MELT_ZERO_GENERATED_[+mkvarsuf+]_CUMULMD5:=$(shell $(GAWK) -F\" '/extern/{next} /melt_cumulated_hexmd5/{print $$2}' $(melt_make_source_dir)/generated/[+base+]+meltdesc.c)
 [+ENDFOR melt_translator_file+]
 
 #@ the required work directory [+ (. (tpl-file-line))+]

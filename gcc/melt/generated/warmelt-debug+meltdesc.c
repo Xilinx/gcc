@@ -4,6 +4,16 @@
  & handled in melt-runtime.c carefully. */
 
 #ifdef __cplusplus
+/* explicitly declare as extern "C" our dlsym-ed symbols */
+extern "C" const char melt_genversionstr[];
+extern "C" const char melt_modulename[];
+extern "C" const char melt_modulerealpath[];
+extern "C" const char melt_prepromd5meltrun[];
+extern "C" const char melt_primaryhexmd5[];
+extern "C" const char* const melt_secondaryhexmd5tab[];
+extern "C" const int melt_lastsecfileindex;
+extern "C" const char melt_cumulated_hexmd5[];
+
 extern "C" {
 #endif /*__cplusplus */
 
