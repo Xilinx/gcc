@@ -102,7 +102,7 @@
 ;; get an entry in a mapgimple from a C gimple
 (defprimitive mapgimple_get (map :gimple g) :value
   :doc #{Safely get the value associated to gimple $G in map of gimples $MAP.}#
-  #{(melt_get_mapgimples(($MAP), ($G)))}#)
+  #{(melt_get_mapgimples((melt_ptr_t) ($MAP), ($G)))}#)
 ;; primitive for making a new map of gimples
 (defprimitive make_mapgimple (discr :long len) :value
   :doc #{Make a map of gimple keys of given $DISCR and $LEN.}#
@@ -110,7 +110,7 @@
 ;; primitive for putting into a map of gimples
 (defprimitive mapgimple_put (map :gimple gkey :value val) :void
   :doc #{Safely put in map of gimple $MAP the gimple key $GKEY associated to $VAL.}#
-  #{melt_put_mapgimples(($MAP), 
+  #{melt_put_mapgimples((melt_ptr_t) ($MAP), 
 			($GKEY), (melt_ptr_t) ($VAL))}#)
 ;; primitive for removing from a map of gimples
 (defprimitive mapgimple_remove (map :gimple gkey) :void
@@ -194,7 +194,7 @@
 ;; get an entry in a mapedge from a C edge
 (defprimitive mapedge_get (map :edge ed) :value
   :doc #{Get the value in edge map $MAP associted to edge $ED.}#
-  #{(melt_get_mapedges(($MAP), ($ED)))}#)
+  #{(melt_get_mapedges((melt_ptr_t) ($MAP), ($ED)))}#)
 ;; primitive for making a new map of edges
 (defprimitive make_mapedge (discr :long len) :value
   :doc #{Make a new map of edges with $DISCR and initial $LEN.}#
@@ -202,7 +202,7 @@
 ;; primitive for putting into a map of edges
 (defprimitive mapedge_put (map :edge ekey :value val) :void
   :doc #{Safely put into map $MAP the edge $EKEY associated to value $VAL.}#
-  #{melt_put_mapedges(($MAP), 
+  #{melt_put_mapedges((melt_ptr_t) ($MAP), 
 		      ($EKEY), (melt_ptr_t) ($VAL))}#)
 ;; primitive for removing from a map of edges
 (defprimitive mapedge_remove (map :edge key) :void
@@ -268,7 +268,7 @@
 ;; get an entry in a maploop from a C loop
 (defprimitive maploop_get (map :loop lo) :value
   :doc #{Safely get in $MAP value associated to loop $LO.}#
-  #{(melt_get_maploops(($map), ($lo)))}#)
+  #{(melt_get_maploops((melt_ptr_t) ($map), ($lo)))}#)
 
 ;; primitive for making a new map of loops
 (defprimitive make_maploop (discr :long len) :value
@@ -278,7 +278,7 @@
 ;; primitive for putting into a map of loops
 (defprimitive maploop_put (map :loop keylo :value val) :void
   :doc #{Safely put in $MAP loop $KEYLO associated to $VAL.}#
-  #{melt_put_maploops(($MAP), 
+  #{melt_put_maploops((melt_ptr_t) ($MAP), 
 		      ($KEYLO), (melt_ptr_t) ($VAL))}#)
 
 ;; primitive for removing from a map of loops
@@ -3074,7 +3074,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;; get an entry in a mapbasicblock from a C basicblock
 (defprimitive mapbasicblock_get (map :basic_block bb) :value
   :doc #{Safely get in a a basic block map $MAP the value associated to basic block $BB.}#
-  #{(melt_get_mapbasicblocks(($map), ($bb)))}#)
+  #{(melt_get_mapbasicblocks((melt_ptr_t) ($map), ($bb)))}#)
 ;; primitive for making a new map of basicblocks
 (defprimitive make_mapbasicblock (discr :long len) :value
   :doc #{Make a map keyed by basic blocks, of given $DISCR and allocated $LEN.}#
@@ -3084,7 +3084,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;; primitive for putting into a map of basicblocks
 (defprimitive mapbasicblock_put (map :basic_block key :value val) :void
   :doc #{Put into map $MAP the basic_block $KEY associated to $VAL.}#
-  #{melt_put_mapbasicblocks(($map), ($key), (melt_ptr_t) ($val))}#)
+  #{melt_put_mapbasicblocks((melt_ptr_t) ($map), ($key), (melt_ptr_t) ($val))}#)
 
 ;; primitive for removing from a map of basicblocks
 (defprimitive mapbasicblock_remove (map :basic_block key) :void
@@ -3099,7 +3099,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;; put
 (defprimitive mapbasicblock_auxput (map aux) :void
   :doc #{Safely put the auxiliary data of map of basic blocks $MAP to $AUX.}#
-  #{melt_auxput_mapbasicblocks((melt_ptr_t)$MAP, (melt_ptr_t)$AUX)}#)
+  #{melt_auxput_mapbasicblocks((melt_ptr_t) (melt_ptr_t)$MAP, (melt_ptr_t)$AUX)}#)
 
 ;; primitive to get the nth basicblock of a mapbasicblock
 (defprimitive mapbasicblock_nth_attr (map :long n) :basic_block
@@ -3190,7 +3190,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;; get an entry in a maptree from a C tree
 (defprimitive maptree_get (map :tree tr) :value
   :doc #{Safely get in map of trees $MAP value associated to tree $TR.}#
-  #{(melt_get_maptrees(($MAP), ($TR)))}#)
+  #{(melt_get_maptrees((melt_ptr_t) ($MAP), ($TR)))}#)
 ;; primitive for making a new map of trees
 (defprimitive make_maptree (discr :long len) :value
   :doc #{Make a map of trees with discriminant $DISCR and initial size $LEN.}#
@@ -3198,7 +3198,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;; primitive for putting into a map of trees
 (defprimitive maptree_put (map :tree trkey :value val) :void
   :doc #{Safely put in map of trees $MAP associated to tree $TRKEY the non-nil value $VAL.}#
-  #{melt_put_maptrees(($MAP),  ($TRKEY), 
+  #{melt_put_maptrees((melt_ptr_t) ($MAP),  ($TRKEY), 
 		      (melt_ptr_t) ($VAL))}#)
 ;; primitive for removing from a map of trees
 (defprimitive maptree_remove (map :tree trkey) :void
