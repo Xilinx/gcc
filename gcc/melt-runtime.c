@@ -8709,7 +8709,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
      debugeprintf("melt_load_module_index req. " #Sym	\
 		  " not found - %s", dler);		\
      if (dler && errorp && !*errorp)			\
-       *errorp = concat("Cannot find " #Sym, " ",	\
+       *errorp = concat("Cannot find " #Sym, "; ",	\
 			dler, NULL);			\
      validh = FALSE;					\
     } else dynr_##Sym = u_##Sym.dat_##Sym; } while(0)

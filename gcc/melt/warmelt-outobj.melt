@@ -4355,9 +4355,15 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
   /* This $MIDSTR+melttime.h is included from $MIDSTR+meltdesc.c only. */
 #if $MODIDNAM
   /* MELT generation timestamp for $MODNAMSTR */
+
 #ifdef __cplusplus
+/* these symbols are extern "C" since dlsym-ed */
+extern "C" const char melt_gen_timestamp[];
+extern "C" const long long melt_gen_timenum;
+extern "C" const char melt_build_timestamp[];
 extern "C" {
 #endif /*__cplusplus */
+
 }#
       )
       (add2sbuf_indentnl tibuf 0)
