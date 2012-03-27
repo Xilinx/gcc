@@ -3275,7 +3275,8 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   #{ melt_raw_new_ppl_unsatisfiable_constraint_system() }#)
 
 (defprimitive ppl_ppstrbuf (sbuf ppl :long indent :value varvect) :void
-  #{ meltgc_ppstrbuf_ppl_varnamvect ((melt_ptr_t)($sbuf), ($indent), ($ppl), ($varvect))}#)
+  #{ /* ppl_ppstrbuf: */ meltgc_ppstrbuf_ppl_varnamvect ((melt_ptr_t)($SBUF), ($INDENT), 
+				     (melt_ptr_t) ($PPL), (melt_ptr_t) ($VARVECT))}#)
 
 (defprimitive ppl_coefficient_from_tree (:tree tr) :ppl_coefficient
   #{ (melt_make_ppl_coefficient_from_tree($tr)) }#)

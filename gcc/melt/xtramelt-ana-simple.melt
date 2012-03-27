@@ -743,28 +743,28 @@
 	     lhstype
 	     ( ?(tree_integer_type ?lname ?lbigmin ?lbigmax ?lsize)
 		(code_chunk 
-		 testinside
-		 #{ 
-		   mpz_t $testinside#_lminz;
-		   mpz_t $testinside#_lmaxz;
-		   mpz_t $testinside#_rminz;
-		   mpz_t $testinside#_rmaxz;
-		   mpz_init_set_ui($testinside#_lminz, 0UL);
-		   mpz_init_set_ui($testinside#_lmaxz, 0UL);
-		   mpz_init_set_ui($testinside#_rminz, 0UL);
-		   mpz_init_set_ui($testinside#_rmaxz, 0UL);
-		   if ($lsize >= $rsize 
-		      && melt_fill_mpz_from_mixbigint($lbigmin, $testinside#_lminz)
-	              && melt_fill_mpz_from_mixbigint($lbigmax, $testinside#_lmaxz)
-		      && melt_fill_mpz_from_mixbigint($rbigmin, $testinside#_rminz)
-	              && melt_fill_mpz_from_mixbigint($rbigmax, $testinside#_rmaxz)
-		      && mpz_cmp($testinside#_lminz, $testinside#_rminz) <= 0
-		      && mpz_cmp($testinside#_lmaxz, $testinside#_rmaxz) >= 0)
-		         $widenningcast = 1;
-		   mpz_clear($testinside#_lminz);
-		   mpz_clear($testinside#_lmaxz);
-		   mpz_clear($testinside#_rminz);
-		   mpz_clear($testinside#_rmaxz);
+		 testinsidsmangim
+		 #{ /* smallana_gimple $TESTINSIDSMANGIM */
+		   mpz_t $TESTINSIDSMANGIM#_lminz;
+		   mpz_t $TESTINSIDSMANGIM#_lmaxz;
+		   mpz_t $TESTINSIDSMANGIM#_rminz;
+		   mpz_t $TESTINSIDSMANGIM#_rmaxz;
+		   mpz_init_set_ui($TESTINSIDSMANGIM#_lminz, 0UL);
+		   mpz_init_set_ui($TESTINSIDSMANGIM#_lmaxz, 0UL);
+		   mpz_init_set_ui($TESTINSIDSMANGIM#_rminz, 0UL);
+		   mpz_init_set_ui($TESTINSIDSMANGIM#_rmaxz, 0UL);
+		   if ($LSIZE >= $RSIZE 
+		      && melt_fill_mpz_from_mixbigint((melt_ptr_t) $LBIGMIN, $TESTINSIDSMANGIM#_lminz)
+	              && melt_fill_mpz_from_mixbigint((melt_ptr_t) $LBIGMAX, $TESTINSIDSMANGIM#_lmaxz)
+		      && melt_fill_mpz_from_mixbigint((melt_ptr_t) $RBIGMIN, $TESTINSIDSMANGIM#_rminz)
+	              && melt_fill_mpz_from_mixbigint((melt_ptr_t) $RBIGMAX, $TESTINSIDSMANGIM#_rmaxz)
+		      && mpz_cmp($TESTINSIDSMANGIM#_lminz, $TESTINSIDSMANGIM#_rminz) <= 0
+		      && mpz_cmp($TESTINSIDSMANGIM#_lmaxz, $TESTINSIDSMANGIM#_rmaxz) >= 0)
+		         $WIDENNINGCAST = 1;
+		   mpz_clear($TESTINSIDSMANGIM#_lminz);
+		   mpz_clear($TESTINSIDSMANGIM#_lmaxz);
+		   mpz_clear($TESTINSIDSMANGIM#_rminz);
+		   mpz_clear($TESTINSIDSMANGIM#_rmaxz);
 		 }#)
 		)
 	     ( ?_ (void))
