@@ -3486,25 +3486,25 @@ melt_scanning (melt_ptr_t p)
       ;;
       ;;; generated declaration
       (code_chunk termcommentdeclchk 
-		  #{ /* $TERMCOMMENTDECLCHK */
+		  #{ /* runtypesupport_docmd $TERMCOMMENTDECLCHK */
 		  time_t nowdecl = 0;
 		  char decldatebuf[48];
 		  memset (decldatebuf, 0, sizeof(decldatebuf));
 		  time(&nowdecl);
 		  strftime (decldatebuf, sizeof(decldatebuf)-1,
 			    "%Y %b %d", localtime(&nowdecl));
-		  meltgc_out_printf ($OUTDECLBUF,
+		  meltgc_out_printf ((melt_ptr_t) $OUTDECLBUF,
 				     "\n/*** End of declaration file %s generated on %s\n"
 				     " * by GCC MELT %s . ***/\n",
-				     melt_string_str($OUTDECLNAME),
+				     melt_string_str((melt_ptr_t) $OUTDECLNAME),
 				     decldatebuf, melt_gccversionstr);
-		  /* end  $TERMCOMMENTDECLCHK */}#)
+		  /* end  $TERMCOMMENTDECLCHK runtypesupport_docmd */}#)
       (output_sbuf_strval outdeclbuf outdeclname)
       (informsg_strv "generated runtype support declaration file" outdeclname)
       ;;; generated code
       (code_chunk 
        termcommentcodechk 
-       #{ /* $TERMCOMMENTCODECHK */
+       #{ /* runtypesupport_docmd $TERMCOMMENTCODECHK */
        time_t nowcode = 0;
        char codedatebuf[48];
        memset (codedatebuf, 0, sizeof(codedatebuf));
