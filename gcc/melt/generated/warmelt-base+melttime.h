@@ -7,13 +7,19 @@
   /* This warmelt-base+melttime.h is included from warmelt-base+meltdesc.c only. */
 #if meltmod_warmelt_base_mds__00ecfbc6219c5d5b1de3fe8801fbe2a6
   /* MELT generation timestamp for MELT-STAGE-ZERO/warmelt-base */
+
 #ifdef __cplusplus
+/* these symbols are extern "C" since dlsym-ed */
+extern "C" const char melt_gen_timestamp[];
+extern "C" const long long melt_gen_timenum;
+extern "C" const char melt_build_timestamp[];
 extern "C" {
 #endif /*__cplusplus */
 
+
 /*MELT BOOTSTRAP*/
-const char melt_gen_timestamp[]="Tue Mar 27 13:08:41 2012 CEST";
-const long long melt_gen_timenum=1332846521;
+const char melt_gen_timestamp[]="Tue Mar 27 14:32:28 2012 CEST";
+const long long melt_gen_timenum=1332851548;
 
 const char melt_build_timestamp[]= __DATE__ "@" __TIME__
 #ifdef __cplusplus

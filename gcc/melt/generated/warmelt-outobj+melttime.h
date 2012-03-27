@@ -5,15 +5,21 @@
 
 
   /* This warmelt-outobj+melttime.h is included from warmelt-outobj+meltdesc.c only. */
-#if meltmod_warmelt_outobj_mds__2a5978f740f732b616435a584ae9a7bb
+#if meltmod_warmelt_outobj_mds__e64e7eceb6968413bb01f8b036ec54a6
   /* MELT generation timestamp for MELT-STAGE-ZERO/warmelt-outobj */
+
 #ifdef __cplusplus
+/* these symbols are extern "C" since dlsym-ed */
+extern "C" const char melt_gen_timestamp[];
+extern "C" const long long melt_gen_timenum;
+extern "C" const char melt_build_timestamp[];
 extern "C" {
 #endif /*__cplusplus */
 
+
 /*MELT BOOTSTRAP*/
-const char melt_gen_timestamp[]="Tue Mar 27 13:08:48 2012 CEST";
-const long long melt_gen_timenum=1332846528;
+const char melt_gen_timestamp[]="Tue Mar 27 14:32:37 2012 CEST";
+const long long melt_gen_timenum=1332851557;
 
 const char melt_build_timestamp[]= __DATE__ "@" __TIME__
 #ifdef __cplusplus
@@ -28,7 +34,7 @@ const char melt_build_timestamp[]= __DATE__ "@" __TIME__
 }; /* end extern C */
 #endif /*__cplusplus */
 
-#else /* ! meltmod_warmelt_outobj_mds__2a5978f740f732b616435a584ae9a7bb */
+#else /* ! meltmod_warmelt_outobj_mds__e64e7eceb6968413bb01f8b036ec54a6 */
 #error invalid timestamp file for MELT-STAGE-ZERO/warmelt-outobj 
-#endif /* meltmod_warmelt_outobj_mds__2a5978f740f732b616435a584ae9a7bb */
+#endif /* meltmod_warmelt_outobj_mds__e64e7eceb6968413bb01f8b036ec54a6 */
 		

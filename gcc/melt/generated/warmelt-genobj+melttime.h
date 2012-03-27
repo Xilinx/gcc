@@ -7,13 +7,19 @@
   /* This warmelt-genobj+melttime.h is included from warmelt-genobj+meltdesc.c only. */
 #if meltmod_warmelt_genobj_mds__2fcc61bc5ff47b944f5b74785632ff75
   /* MELT generation timestamp for MELT-STAGE-ZERO/warmelt-genobj */
+
 #ifdef __cplusplus
+/* these symbols are extern "C" since dlsym-ed */
+extern "C" const char melt_gen_timestamp[];
+extern "C" const long long melt_gen_timenum;
+extern "C" const char melt_build_timestamp[];
 extern "C" {
 #endif /*__cplusplus */
 
+
 /*MELT BOOTSTRAP*/
-const char melt_gen_timestamp[]="Tue Mar 27 13:08:47 2012 CEST";
-const long long melt_gen_timenum=1332846527;
+const char melt_gen_timestamp[]="Tue Mar 27 14:32:36 2012 CEST";
+const long long melt_gen_timenum=1332851556;
 
 const char melt_build_timestamp[]= __DATE__ "@" __TIME__
 #ifdef __cplusplus
