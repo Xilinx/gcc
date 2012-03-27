@@ -164,6 +164,9 @@ typedef struct pph_stats_s {
 
   /* Total number of replay actions in the replay table.  */
   unsigned long num_replay_actions;
+
+  /* Total number of entries in a spec_entry template table.  */
+  unsigned long num_spec_entry_elems;
 } pph_stats_t;
 
 extern pph_stats_t pph_stats;

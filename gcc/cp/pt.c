@@ -20803,6 +20803,7 @@ pph_out_spec_entry_htab (pph_stream *stream, htab_t *table,
       unsigned count = htab_elements (*table);
       /*FIXME pph: This write may be unstable.  */
       pph_out_uint (stream, count);
+      pph_stats.num_spec_entry_elems += count;
       if (flag_pph_debug >= 2)
         fprintf (pph_logfile, "PPH: writing %d spec_entries\n", count );
       htab_traverse_noresize (*table, func, stream);
@@ -20885,6 +20886,9 @@ static void
 pph_in_bodies_spec_entry_htab (pph_stream *stream, htab_t *table)
 {
   unsigned count = pph_in_uint (stream);
+
+  pph_stats.num_spec_entry_elems += count;
+
   if (flag_pph_debug >= 2)
     fprintf (pph_logfile, "PPH: loading bodies %d spec_entries\n", count );
   for (; count > 0; --count)
@@ -20895,8 +20899,10 @@ pph_in_bodies_spec_entry_htab (pph_stream *stream, htab_t *table)
       se->tmpl = pph_in_tree (stream);
       se->args = pph_in_tree (stream);
       se->spec = pph_in_tree (stream);
+      timevar_start (TV_PPH_SPECIALIZATION_HASH);
       hash = hash_specialization (se);
       slot = (spec_entry **)htab_find_slot_with_hash (*table, se, hash, INSERT);
+      timevar_stop (TV_PPH_SPECIALIZATION_HASH);
       *slot = se;
     }
 }
@@ -20907,12 +20913,14 @@ pph_in_bodies_spec_entry_htab (pph_stream *stream, htab_t *table)
 void
 pph_out_merge_key_template_state (pph_stream *stream ATTRIBUTE_UNUSED)
 {
-  timevar_start (TV_PPH_OUT_MERGE_KEYS);
+  timevar_start (TV_PPH_OUT_TMPL_K);
+
   pph_out_spec_entry_htab (stream, &decl_specializations,
 			   pph_out_key_spec_entry_slot);
   pph_out_spec_entry_htab (stream, &type_specializations,
 			   pph_out_key_spec_entry_slot);
-  timevar_stop (TV_PPH_OUT_MERGE_KEYS);
+
+  timevar_stop (TV_PPH_OUT_TMPL_K);
 }
 
 
@@ -20921,7 +20929,7 @@ pph_out_merge_key_template_state (pph_stream *stream ATTRIBUTE_UNUSED)
 void
 pph_out_merge_body_template_state (pph_stream *stream)
 {
-  timevar_start (TV_PPH_OUT_MERGE_BODIES);
+  timevar_start (TV_PPH_OUT_TMPL_B);
 
   pph_out_spec_entry_htab (stream, &decl_specializations,
 			   pph_out_body_spec_entry_slot);
@@ -20935,7 +20943,7 @@ pph_out_merge_body_template_state (pph_stream *stream)
       pph_dump_pending_templates_list (stderr);
     }
 
-  timevar_stop (TV_PPH_OUT_MERGE_BODIES);
+  timevar_stop (TV_PPH_OUT_TMPL_B);
 }
 
 
@@ -20950,7 +20958,7 @@ static strptrmap_t *type_spec_tbl = NULL;
 void
 pph_in_merge_key_template_state (pph_stream *stream ATTRIBUTE_UNUSED)
 {
-  timevar_start (TV_PPH_IN_MERGE_KEYS);
+  timevar_start (TV_PPH_IN_TMPL_K);
 
   if (!decl_spec_tbl)
     decl_spec_tbl = strptrmap_create ();
@@ -20961,7 +20969,7 @@ pph_in_merge_key_template_state (pph_stream *stream ATTRIBUTE_UNUSED)
   pph_in_keys_spec_entry_htab (stream, pph_in_search_key_spec,
 			       type_spec_tbl);
 
-  timevar_stop (TV_PPH_IN_MERGE_KEYS);
+  timevar_stop (TV_PPH_IN_TMPL_K);
 }
 
 
@@ -20970,7 +20978,7 @@ pph_in_merge_key_template_state (pph_stream *stream ATTRIBUTE_UNUSED)
 void
 pph_in_merge_body_template_state (pph_stream *stream)
 {
-  timevar_start (TV_PPH_IN_MERGE_BODIES);
+  timevar_start (TV_PPH_IN_TMPL_B);
 
   pph_in_bodies_spec_entry_htab (stream, &decl_specializations);
   pph_in_bodies_spec_entry_htab (stream, &type_specializations);
@@ -20982,7 +20990,7 @@ pph_in_merge_body_template_state (pph_stream *stream)
       pph_dump_pending_templates_list (stderr);
     }
 
-  timevar_stop (TV_PPH_IN_MERGE_BODIES);
+  timevar_stop (TV_PPH_IN_TMPL_B);
 }
 
 

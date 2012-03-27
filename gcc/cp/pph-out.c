@@ -2610,7 +2610,7 @@ pph_out_global_binding_keys (pph_stream *stream)
 {
   cp_binding_level *bl;
 
-  timevar_start (TV_PPH_OUT_MERGE_KEYS);
+  timevar_start (TV_PPH_OUT_BL_K);
 
   /* We only need to write out the scope_chain->bindings, everything
      else should be NULL or be some temporary disposable state.
@@ -2643,7 +2643,7 @@ pph_out_global_binding_keys (pph_stream *stream)
      reading multiple PPH images.  */
   pph_out_merge_key_binding_level (stream, bl);
 
-  timevar_stop (TV_PPH_OUT_MERGE_KEYS);
+  timevar_stop (TV_PPH_OUT_BL_K);
 }
 
 
@@ -2654,12 +2654,12 @@ pph_out_global_binding_bodies (pph_stream *stream)
 {
   cp_binding_level *bl = scope_chain->bindings;
 
-  timevar_start (TV_PPH_OUT_MERGE_BODIES);
+  timevar_start (TV_PPH_OUT_BL_B);
 
   /* Now emit all the bodies.  */
   pph_out_merge_body_binding_level (stream, bl);
 
-  timevar_stop (TV_PPH_OUT_MERGE_BODIES);
+  timevar_stop (TV_PPH_OUT_BL_B);
 }
 
 

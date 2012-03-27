@@ -1601,6 +1601,10 @@ pph_dump_stats (FILE *f)
 	   PERCENT (pph_stats.cache_hits, pph_stats.cache_lookups));
 
   fprintf (f, "\n");
+  fprintf (f, "Number of elements in all spec_entry tables: %lu",
+	   pph_stats.num_spec_entry_elems);
+
+  fprintf (f, "\n");
   timevar_print (f);
 }
 

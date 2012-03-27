@@ -1,5 +1,13 @@
 2012-03-27   Diego Novillo  <dnovillo@google.com>
 
+	* pph-core.c (pph_dump_stats): Print pph_stats.num_spec_entry_elems.
+	* pph.h (struct pph_stats_s): Add field num_spec_entry_elems.
+	* pt.c (pph_out_spec_entry_htab): Update pph_stats.num_spec_entry_elems.
+	(pph_in_bodies_spec_entry_htab): Likewise.
+	Add timer TV_PPH_SPECIALIZATION_HASH around hashing operations.
+
+2012-03-27   Diego Novillo  <dnovillo@google.com>
+
 	* pph-core.c (pph_stats): Declare.
 	(pph_init): Initialize.
 	(pph_cache_lookup): Update pph_stats.cache_lookups and

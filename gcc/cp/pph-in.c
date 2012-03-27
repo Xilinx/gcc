@@ -3121,7 +3121,7 @@ pph_in_global_binding_keys (pph_stream *stream)
   cp_binding_level *bl, *other_bl;
   bool existed_p;
 
-  timevar_start (TV_PPH_IN_MERGE_KEYS);
+  timevar_start (TV_PPH_IN_BL_K);
 
   bl = scope_chain->bindings;
   other_bl = pph_in_binding_level_start (stream, bl, &existed_p);
@@ -3138,7 +3138,7 @@ pph_in_global_binding_keys (pph_stream *stream)
      bound to scope_chain->bindings.  */
   pph_in_merge_key_binding_level (stream, &bl);
 
-  timevar_stop (TV_PPH_IN_MERGE_KEYS);
+  timevar_stop (TV_PPH_IN_BL_K);
 }
 
 
@@ -3151,14 +3151,14 @@ pph_in_global_binding_bodies (pph_stream *stream)
 {
   cp_binding_level *bl = scope_chain->bindings;
 
-  timevar_start (TV_PPH_IN_MERGE_BODIES);
+  timevar_start (TV_PPH_IN_BL_B);
 
   /* Once all the symbols and types at every binding level have been
      merged to the corresponding binding levels in the current
      compilation, read all the bodies.  */
   pph_in_merge_body_binding_level (stream, bl);
 
-  timevar_stop (TV_PPH_IN_MERGE_BODIES);
+  timevar_stop (TV_PPH_IN_BL_B);
 }
 
 

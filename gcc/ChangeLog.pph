@@ -1,3 +1,23 @@
+2012-03-27   Diego Novillo  <dnovillo@google.com>
+
+	* timevar.def (TV_PPH_SPECIALIZATION_HASH): New timer.
+	(TV_PPH_OUT_MERGE_KEYS, TV_PPH_OUT_MERGE_BODIES, TV_PPH_IN_MERGE_KEYS,
+	TV_PPH_IN_MERGE_BODIES): Remove.
+	(TV_PPH_OUT_BL_K): New.  Update previous users of TV_PPH_OUT_MERGE_KEYS.
+	(TV_PPH_OUT_BL_B): New.  Update previous users of
+	TV_PPH_OUT_MERGE_BODIES.
+	(TV_PPH_OUT_TMPL_K): New.  Update previous users of
+	TV_PPH_OUT_MERGE_KEYS.
+	(TV_PPH_OUT_TMPL_B): New.  Update previous users of
+	TV_PPH_OUT_MERGE_BODIES.
+	(TV_PPH_IN_BL_K): New.  Update previous users of TV_PPH_OUT_MERGE_KEYS.
+	(TV_PPH_IN_BL_B): New.  Update previous users of
+	TV_PPH_OUT_MERGE_BODIES.
+	(TV_PPH_IN_TMPL_K): New.  Update previous users of
+	TV_PPH_OUT_MERGE_KEYS.
+	(TV_PPH_IN_TMPL_B): New.  Update previous users of
+	TV_PPH_OUT_MERGE_BODIES.
+
 2012-03-26   Diego Novillo  <dnovillo@google.com>
 
 	* timevar.def (TV_PPH): New timer.
