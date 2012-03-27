@@ -913,7 +913,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
    $opcode = gimple_assign_rhs_code($ga);
    }# 
   ;; operator expansion
-  #{gimple_build_assign_with_ops($OPCODE, $LHS, $RHS1, $RHS2)}#
+  #{gimple_build_assign_with_ops((enum tree_code) $OPCODE, $LHS, $RHS1, $RHS2)}#
 )
 
 ;;;;;;;;;;;;;;;;
@@ -3393,7 +3393,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 )
 
 (defprimitive ppl_Polyhedron_is_empty (:ppl_polyhedron poly) :long
- #{ $poly && ppl_Polyhedron_is_empty((melt_ptr_t) $poly) }#
+ #{ $poly && ppl_Polyhedron_is_empty($poly) }#
 )
 
 (defprimitive ppl_coefficient_content (pplv) :ppl_coefficient
