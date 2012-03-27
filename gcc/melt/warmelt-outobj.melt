@@ -1590,7 +1590,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	) 
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl declbuf 0)
-    (add2sbuf_strconst declbuf "void* start_module_melt (void*);")
+    (add2out declbuf ##{
+#ifdef __cplusplus
+    extern "C"
+#endif
+    void* start_module_melt (void*);
+}#)
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
@@ -4147,6 +4152,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (add2sbuf_indentnl debuf 0)
     (add2sbuf_strconst debuf "/* These identifiers are generated in warmelt-outobj.melt \n & handled in melt-runtime.c carefully. */") 
     (add2sbuf_indentnl debuf 0)
+    (add2out debuf ##{
+#ifdef __cplusplus
+extern "C" {
+#endif /*__cplusplus */
+}#)
+    (add2sbuf_indentnl debuf 0)
     (add2sbuf_strconst debuf "/* version of the GCC compiler & MELT runtime generating this */")
     (add2sbuf_indentnl debuf 0)
     (add2sbuf_strconst debuf "const char melt_genversionstr[]=\"")
@@ -4308,7 +4319,11 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
       (add2out tibuf ##{
   /* This $MIDSTR+melttime.h is included from $MIDSTR+meltdesc.c only. */
 #if $MODIDNAM
-  /* MELT generation timestamp for $MODNAMSTR */}#
+  /* MELT generation timestamp for $MODNAMSTR */
+#ifdef __cplusplus
+extern "C" {
+#endif /*__cplusplus */
+}#
       )
       (add2sbuf_indentnl tibuf 0)
       (code_chunk 
@@ -4337,9 +4352,19 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
 #else /* ! $MODIDNAM */
 #error invalid timestamp file for $MODNAMSTR 
 #endif /* $MODIDNAM */
+#ifdef __cplusplus
+}; /* end extern C */
+#endif /*__cplusplus */
 		}#)
       (add2sbuf_indentnl tibuf 0)
       ;;
+    (add2sbuf_indentnl debuf 0)
+    (add2out debuf ##{
+#ifdef __cplusplus
+}; /* end extern C */
+#endif /*__cplusplus */
+}#)
+      (add2sbuf_indentnl debuf 0)
       (add2sbuf_strconst debuf "/* end of melt descriptor file */")
       (add2sbuf_indentnl debuf 0)
       (let (
