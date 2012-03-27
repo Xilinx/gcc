@@ -1,5 +1,8 @@
 
 2011-03-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (each_bb_cfun): Typo.
+
+2011-03-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-make-string.c (main): Output extern "C" for C++...
 
 2011-03-27  Basile Starynkevitch  <basile@starynkevitch.net>

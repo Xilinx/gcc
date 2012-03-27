@@ -3826,7 +3826,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
    :tree cfundecl
    )	
   ;;before expansion
-  #{ /* start each_bb_cfun $EACHBBCFUN */ const $EACHBBCFUN#_line = __LINE__;
+  #{ /* start each_bb_cfun $EACHBBCFUN */ const int $EACHBBCFUN#_line = __LINE__;
    $CFUNBB = (basic_block) NULL;
    $CFUNDECL = (tree) NULL;
    if (cfun && cfun->cfg) {
