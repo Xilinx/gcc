@@ -8551,7 +8551,8 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
     if (descversionmelt == NULL
 	&& (pc = strstr(descline, "melt_versionmeltstr[]")) != NULL
 	&& (pqu1 = strchr (pc, '"')) != NULL
-	&& (pqu2 = strchr (pqu1+1, '"')) != NULL) 
+	&& (pqu2 = strchr (pqu1+1, '"')) != NULL
+	&& pqu2 > pqu1 + 10 /*actually should be more than 10*/) 
       {
 	descversionmelt = melt_c_string_in_descr (pqu1);
 	debugeprintf ("melt_load_module_index found descversionmelt %s L%d", 
