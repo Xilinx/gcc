@@ -4166,7 +4166,16 @@ extern "C" {
      #{ /* output_melt_descriptor $GENVERSCH + */
      meltgc_add_strbuf_cstr ((melt_ptr_t) $DEBUF, melt_gccversionstr) ;
      }#)
-    (add2sbuf_strconst debuf "\";")
+    (add2sbuf_strconst debuf "\"")
+    (add2sbuf_indentnl debuf 0)
+    (add2out debuf ##{
+#ifdef __cplusplus
+     " (in C++)"
+#else
+     " (in C)"
+#endif
+     ;
+    }#)
     (add2sbuf_indentnl debuf 0)
     (add2sbuf_strconst debuf "const char melt_versionmeltstr[]=\"")
     (code_chunk 
@@ -4346,15 +4355,24 @@ extern "C" {
 			     (long long) now) ;	       
        /* output_melt_descriptor $GENTIMCH - */}#)
       (add2sbuf_indentnl tibuf 0)
-      (add2sbuf_strconst tibuf "const char melt_build_timestamp[]= __DATE__ \"@\" __TIME__;")
+      (add2out tibuf ##{
+const char melt_build_timestamp[]= __DATE__ "@" __TIME__
+#ifdef __cplusplus
+      " (in C++)"
+#else
+      " (in C)"
+#endif /*__cplusplus*/
+      ;
+}#)
       (add2sbuf_indentnl tibuf 0)
       (add2out tibuf ##{
-#else /* ! $MODIDNAM */
-#error invalid timestamp file for $MODNAMSTR 
-#endif /* $MODIDNAM */
 #ifdef __cplusplus
 }; /* end extern C */
 #endif /*__cplusplus */
+
+#else /* ! $MODIDNAM */
+#error invalid timestamp file for $MODNAMSTR 
+#endif /* $MODIDNAM */
 		}#)
       (add2sbuf_indentnl tibuf 0)
       ;;
