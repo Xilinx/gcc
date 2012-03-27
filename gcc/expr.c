@@ -1343,8 +1343,8 @@ emit_block_move_via_libcall (rtx dst, rtx src, rtx size, bool tailcall)
      pseudos.  We can then place those new pseudos into a VAR_DECL and
      use them later.  */
 
-  dst_addr = copy_to_mode_reg (Pmode, XEXP (dst, 0));
-  src_addr = copy_to_mode_reg (Pmode, XEXP (src, 0));
+  dst_addr = copy_addr_to_reg (XEXP (dst, 0));
+  src_addr = copy_addr_to_reg (XEXP (src, 0));
 
   dst_addr = convert_memory_address (ptr_mode, dst_addr);
   src_addr = convert_memory_address (ptr_mode, src_addr);
@@ -1375,8 +1375,7 @@ emit_block_move_via_libcall (rtx dst, rtx src, rtx size, bool tailcall)
 }
 
 /* A subroutine of emit_block_move_via_libcall.  Create the tree node
-   for the function we use for block copies.  The first time FOR_CALL
-   is true, we call assemble_external.  */
+   for the function we use for block copies.  */
 
 static GTY(()) tree block_move_fn;
 
@@ -1419,7 +1418,6 @@ emit_block_move_libcall_fn (int for_call)
     {
       emitted_extern = true;
       make_decl_rtl (block_move_fn);
-      assemble_external (block_move_fn);
     }
 
   return block_move_fn;
@@ -2719,7 +2717,7 @@ set_storage_via_libcall (rtx object, rtx size, rtx val, bool tailcall)
   /* Emit code to copy OBJECT and SIZE into new pseudos.  We can then
      place those into new pseudos into a VAR_DECL and use them later.  */
 
-  object = copy_to_mode_reg (Pmode, XEXP (object, 0));
+  object = copy_addr_to_reg (XEXP (object, 0));
 
   size_mode = TYPE_MODE (sizetype);
   size = convert_to_mode (size_mode, size, 1);
@@ -2747,8 +2745,7 @@ set_storage_via_libcall (rtx object, rtx size, rtx val, bool tailcall)
 }
 
 /* A subroutine of set_storage_via_libcall.  Create the tree node
-   for the function we use for block clears.  The first time FOR_CALL
-   is true, we call assemble_external.  */
+   for the function we use for block clears.  */
 
 tree block_clear_fn;
 
@@ -2791,7 +2788,6 @@ clear_storage_libcall_fn (int for_call)
     {
       emitted_extern = true;
       make_decl_rtl (block_clear_fn);
-      assemble_external (block_clear_fn);
     }
 
   return block_clear_fn;
@@ -4387,8 +4383,7 @@ optimize_bitfield_assignment_op (unsigned HOST_WIDE_INT bitsize,
 	  value = expand_and (str_mode, value, const1_rtx, NULL);
 	  binop = xor_optab;
 	}
-      value = expand_shift (LSHIFT_EXPR, str_mode, value,
-			    bitpos, NULL_RTX, 1);
+      value = expand_shift (LSHIFT_EXPR, str_mode, value, bitpos, NULL_RTX, 1);
       result = expand_binop (str_mode, binop, str_rtx,
 			     value, str_rtx, 1, OPTAB_WIDEN);
       if (result != str_rtx)
@@ -4399,8 +4394,8 @@ optimize_bitfield_assignment_op (unsigned HOST_WIDE_INT bitsize,
     case BIT_XOR_EXPR:
       if (TREE_CODE (op1) != INTEGER_CST)
 	break;
-      value = expand_expr (op1, NULL_RTX, GET_MODE (str_rtx), EXPAND_NORMAL);
-      value = convert_modes (GET_MODE (str_rtx),
+      value = expand_expr (op1, NULL_RTX, str_mode, EXPAND_NORMAL);
+      value = convert_modes (str_mode,
 			     TYPE_MODE (TREE_TYPE (op1)), value,
 			     TYPE_UNSIGNED (TREE_TYPE (op1)));
 
@@ -4414,16 +4409,13 @@ optimize_bitfield_assignment_op (unsigned HOST_WIDE_INT bitsize,
 	}
 
       binop = code == BIT_IOR_EXPR ? ior_optab : xor_optab;
-      if (bitpos + bitsize != GET_MODE_BITSIZE (GET_MODE (str_rtx)))
+      if (bitpos + bitsize != str_bitsize)
 	{
-	  rtx mask = GEN_INT (((unsigned HOST_WIDE_INT) 1 << bitsize)
-			      - 1);
-	  value = expand_and (GET_MODE (str_rtx), value, mask,
-			      NULL_RTX);
+	  rtx mask = GEN_INT (((unsigned HOST_WIDE_INT) 1 << bitsize) - 1);
+	  value = expand_and (str_mode, value, mask, NULL_RTX);
 	}
-      value = expand_shift (LSHIFT_EXPR, GET_MODE (str_rtx), value,
-			    bitpos, NULL_RTX, 1);
-      result = expand_binop (GET_MODE (str_rtx), binop, str_rtx,
+      value = expand_shift (LSHIFT_EXPR, str_mode, value, bitpos, NULL_RTX, 1);
+      result = expand_binop (str_mode, binop, str_rtx,
 			     value, str_rtx, 1, OPTAB_WIDEN);
       if (result != str_rtx)
 	emit_move_insn (str_rtx, result);
@@ -4452,7 +4444,7 @@ get_bit_range (unsigned HOST_WIDE_INT *bitstart,
 	       HOST_WIDE_INT bitpos)
 {
   unsigned HOST_WIDE_INT bitoffset;
-  tree field, repr, offset;
+  tree field, repr;
 
   gcc_assert (TREE_CODE (exp) == COMPONENT_REF);
 
@@ -4466,13 +4458,37 @@ get_bit_range (unsigned HOST_WIDE_INT *bitstart,
       return;
     }
 
+  /* If we have a DECL_BIT_FIELD_REPRESENTATIVE but the enclosing record is
+     part of a larger bit field, then the representative does not serve any
+     useful purpose.  This can occur in Ada.  */
+  if (handled_component_p (TREE_OPERAND (exp, 0)))
+    {
+      enum machine_mode rmode;
+      HOST_WIDE_INT rbitsize, rbitpos;
+      tree roffset;
+      int unsignedp;
+      int volatilep = 0;
+      get_inner_reference (TREE_OPERAND (exp, 0), &rbitsize, &rbitpos,
+			   &roffset, &rmode, &unsignedp, &volatilep, false);
+      if ((rbitpos % BITS_PER_UNIT) != 0)
+	{
+	  *bitstart = *bitend = 0;
+	  return;
+	}
+    }
+
   /* Compute the adjustment to bitpos from the offset of the field
-     relative to the representative.  */
-  offset = size_diffop (DECL_FIELD_OFFSET (field),
-			DECL_FIELD_OFFSET (repr));
-  bitoffset = (tree_low_cst (offset, 1) * BITS_PER_UNIT
-	       + tree_low_cst (DECL_FIELD_BIT_OFFSET (field), 1)
-	       - tree_low_cst (DECL_FIELD_BIT_OFFSET (repr), 1));
+     relative to the representative.  DECL_FIELD_OFFSET of field and
+     repr are the same by construction if they are not constants,
+     see finish_bitfield_layout.  */
+  if (host_integerp (DECL_FIELD_OFFSET (field), 1)
+      && host_integerp (DECL_FIELD_OFFSET (repr), 1))
+    bitoffset = (tree_low_cst (DECL_FIELD_OFFSET (field), 1)
+		 - tree_low_cst (DECL_FIELD_OFFSET (repr), 1)) * BITS_PER_UNIT;
+  else
+    bitoffset = 0;
+  bitoffset += (tree_low_cst (DECL_FIELD_BIT_OFFSET (field), 1)
+		- tree_low_cst (DECL_FIELD_BIT_OFFSET (repr), 1));
 
   *bitstart = bitpos - bitoffset;
   *bitend = *bitstart + tree_low_cst (DECL_SIZE (repr), 1) - 1;
@@ -6343,8 +6359,7 @@ store_field (rtx target, HOST_WIDE_INT bitsize, HOST_WIDE_INT bitpos,
 			     GET_MODE_BITSIZE (GET_MODE (temp)) - bitsize,
 			     NULL_RTX, 1);
 
-      /* Unless MODE is VOIDmode or BLKmode, convert TEMP to
-	 MODE.  */
+      /* Unless MODE is VOIDmode or BLKmode, convert TEMP to MODE.  */
       if (mode != VOIDmode && mode != BLKmode
 	  && mode != TYPE_MODE (TREE_TYPE (exp)))
 	temp = convert_modes (mode, TYPE_MODE (TREE_TYPE (exp)), temp, 1);
@@ -7423,11 +7438,8 @@ expand_expr_addr_expr_1 (tree exp, rtx target, enum machine_mode tmode,
 	  result = XEXP (result, 0);
 
 	  /* ??? Is this needed anymore?  */
-	  if (DECL_P (exp) && !TREE_USED (exp) == 0)
-	    {
-	      assemble_external (exp);
-	      TREE_USED (exp) = 1;
-	    }
+	  if (DECL_P (exp))
+	    TREE_USED (exp) = 1;
 
 	  if (modifier != EXPAND_INITIALIZER
 	      && modifier != EXPAND_CONST_ADDRESS
@@ -9022,11 +9034,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
       /* Ensure variable marked as used even if it doesn't go through
 	 a parser.  If it hasn't be used yet, write out an external
 	 definition.  */
-      if (! TREE_USED (exp))
-	{
-	  assemble_external (exp);
-	  TREE_USED (exp) = 1;
-	}
+      TREE_USED (exp) = 1;
 
       /* Show we haven't gotten RTL for this yet.  */
       temp = 0;

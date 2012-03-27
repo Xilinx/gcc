@@ -768,21 +768,21 @@ esac
 
 case ${target} in
 alpha*-*-linux*)
-	tm_file="${tm_file} alpha/elf.h alpha/linux.h alpha/linux-elf.h glibc-stdint.h"
+	tm_file="elfos.h ${tm_file} alpha/elf.h alpha/linux.h alpha/linux-elf.h glibc-stdint.h"
 	extra_options="${extra_options} alpha/elf.opt"
 	;;
 alpha*-*-freebsd*)
-	tm_file="${tm_file} ${fbsd_tm_file} alpha/elf.h alpha/freebsd.h"
+	tm_file="elfos.h ${tm_file} ${fbsd_tm_file} alpha/elf.h alpha/freebsd.h"
 	extra_options="${extra_options} alpha/elf.opt"
 	;;
 alpha*-*-netbsd*)
-	tm_file="${tm_file} netbsd.h alpha/elf.h netbsd-elf.h alpha/netbsd.h"
+	tm_file="elfos.h ${tm_file} netbsd.h alpha/elf.h netbsd-elf.h alpha/netbsd.h"
 	extra_options="${extra_options} netbsd.opt netbsd-elf.opt \
 		       alpha/elf.opt"
 	;;
 alpha*-*-openbsd*)
 	tm_defines="${tm_defines} OBSD_HAS_DECLARE_FUNCTION_NAME OBSD_HAS_DECLARE_FUNCTION_SIZE OBSD_HAS_DECLARE_OBJECT"
-	tm_file="alpha/alpha.h alpha/elf.h openbsd.h openbsd-stdint.h alpha/openbsd.h openbsd-libpthread.h"
+	tm_file="elfos.h alpha/alpha.h alpha/elf.h openbsd.h openbsd-stdint.h alpha/openbsd.h openbsd-libpthread.h"
 	extra_options="${extra_options} openbsd.opt alpha/elf.opt"
 	# default x-alpha is only appropriate for dec-osf.
 	;;
@@ -1888,10 +1888,20 @@ powerpc64-*-darwin*)
 	tm_file="${tm_file} ${cpu_type}/darwin8.h ${cpu_type}/darwin64.h"
 	extra_headers=altivec.h
 	;;
-powerpc-*-freebsd*)
-	tm_file="${tm_file} dbxelf.h elfos.h ${fbsd_tm_file} rs6000/sysv4.h rs6000/freebsd.h"
-	tmake_file="rs6000/t-fprules rs6000/t-ppcos ${tmake_file} rs6000/t-ppccomm"
+powerpc*-*-freebsd*)
+	tm_file="${tm_file} dbxelf.h elfos.h ${fbsd_tm_file} rs6000/sysv4.h"
 	extra_options="${extra_options} rs6000/sysv4.opt"
+	tmake_file="rs6000/t-fprules rs6000/t-ppcos ${tmake_file} rs6000/t-ppccomm"
+	case ${host} in
+	     powerpc64*)
+	    	tm_file="${tm_file} rs6000/default64.h rs6000/freebsd64.h"
+		tmake_file="${tmake_file} rs6000/t-freebsd64"
+		extra_options="${extra_options} rs6000/linux64.opt"
+		;;
+	     *)
+	        tm_file="${tm_file} rs6000/freebsd.h"
+		;;
+	esac
 	;;
 powerpc-*-netbsd*)
 	tm_file="${tm_file} dbxelf.h elfos.h netbsd.h netbsd-elf.h freebsd-spec.h rs6000/sysv4.h rs6000/netbsd.h"
