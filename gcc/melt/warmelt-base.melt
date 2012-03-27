@@ -1169,7 +1169,7 @@ strinbuffer $SBUF, take care to not overwrite an old file named $VNAM if it was 
 ;; primitive to add a strbuf into a outbuf
 (defprimitive add2out_sbuf (out asbuf) :void 
   :doc #{Add to output $OUT the stringbuffer $ASBUF.}#
-  #{meltgc_add_out ((melt_ptr_t)($OUT), melt_strbuf_str ($ASBUF))}#)
+  #{meltgc_add_out ((melt_ptr_t)($OUT), melt_strbuf_str ((melt_ptr_t) $ASBUF))}#)
 
 ;; primitive to add a string value, C encoded, into a outbuf
 (defprimitive add2out_cencstring (out str) :void 

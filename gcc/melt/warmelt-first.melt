@@ -1357,26 +1357,27 @@ make a $CURAT string.}#
        $EACHSTRMAP#_ix++) {
     const char* $EACHSTRMAP#_str = NULL;
     const char* $EACHSTRMAP#_nam = NULL;
-    $curat = NULL;
-    $curva = NULL;
+    $CURAT = NULL;
+    $CURVA = NULL;
     $EACHSTRMAP#_str = 
       ((struct meltmapstrings_st*)$STRMAP)->entab[$eachstrmap#_ix].e_at;
     if (!$EACHSTRMAP#_str || $EACHSTRMAP#_str == HTAB_DELETED_ENTRY)
-      continue;
+      continue; /*foreach_in_mapstring $EACHSTRMAP inside before*/
     $CURVA = ((struct meltmapstrings_st*)$STRMAP)->entab[$EACHSTRMAP#_ix].e_va;
     if (!$CURVA) 
      continue; 
-    if (melt_is_instance_of($CURVA, MELT_PREDEF (CLASS_NAMED)) 
+    if (melt_is_instance_of((melt_ptr_t) $CURVA, (melt_ptr_t) MELT_PREDEF (CLASS_NAMED)) 
 	&& ($CURAT = melt_object_nth_field ((melt_ptr_t) $CURVA, 
 					    MELTFIELD_NAMED_NAME)) != NULL
-	&& ($eachstrmap#_nam =
+	&& ($EACHSTRMAP#_nam =
 			     melt_string_str ((melt_ptr_t) $CURAT)) != (char*)0
 	&& !strcmp ($EACHSTRMAP#_nam, $EACHSTRMAP#_str))
       $CURAT = $CURAT;
     else {
       $CURAT = NULL;
       $CURAT = 
-          meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), $EACHSTRMAP#_str);
+          meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), 
+				$EACHSTRMAP#_str);
     }
     $EACHSTRMAP#_str = (const char*)0;
     $EACHSTRMAP#_nam = (const char*)0;
@@ -1431,8 +1432,8 @@ make a $CURAT string.}#
   ()
   closurematch
   :doc #{The $CLOSURE patterns matches a closure.}#
-  #{ /* $closurematch ? */ $clo && melt_magic_discr($clo) == MELTOBMAG_CLOSURE }#
-  #{ /* $closurematch ! */ }#
+  #{ /* closure $closurematch ? */ $CLO && melt_magic_discr((melt_ptr_t)$CLO) == MELTOBMAG_CLOSURE }#
+  #{ /* closure $closurematch ! */ }#
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1457,9 +1458,10 @@ make a $CURAT string.}#
   fails if $BX is not a boxed integer (e.g. is the null value or non
   boxed-integer). See also $MAKE_INTEGERBOX $IS_INTEGERBOX.}#
   ;; test
-  #{ /* $iboxof ?*/ $bx && melt_magic_discr($bx) == MELTOBMAG_INT }#
+  #{ /* integerbox_of $IBOXOF ?*/ $BX 
+     && melt_magic_discr((melt_ptr_t) $BX) == MELTOBMAG_INT }#
   ;; fill
-  #{ /* $iboxof !*/ $ict = ((struct meltint_st*)$bx)->val; }#
+  #{ /* integerbox_of $IBOXOF !*/ $ICT = ((struct meltint_st*)$BX)->val; }#
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
