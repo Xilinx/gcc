@@ -1,3 +1,39 @@
+2012-03-27  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/52693
+	* gcc.dg/torture/pr52693.c: New test.
+
+2012-03-27  Meador Inge  <meadori@codesourcery.com>
+
+	PR c++/52672
+	* g++.dg/cpp0x/constexpr-52672.C: New testcase.
+
+2012-03-27  Mike Stump  <mikestump@comcast.net>
+
+	PR target/52665
+	* gcc.target/i386/pr28946.c: Use -fno-ident to avoid spurious
+	failures that match branch names.
+
+2012-03-27  Uros Bizjak  <ubizjak@gmail.com>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/52698
+	* gcc.target/i386/pr52698.c: New test.
+
+2012-03-27  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52720
+	* gcc.dg/torture/pr52720.c: New testcase.
+
+2012-03-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/pack17.adb: New test.
+
+2012-03-27  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	* gcc.target/arm/thumb-ifcvt.c: Only run for -mthumb.
+	* gcc.target/arm/thumb-16bit-ops.c: Likewise.
+
 2012-03-26  Martin Jambor  <mjambor@suse.cz>
 
 	PR tree-optimization/50052
