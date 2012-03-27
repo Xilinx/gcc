@@ -3440,7 +3440,7 @@ nil.}#
   bound to the current pair, and $CURCOMP, bound to the current component within
   the pair.}#
    #{/* start foreach_pair_between $EACHPAIRB */
-   for ($curpair = $START_PAIR;
+   for ($CURPAIR = $START_PAIR;
 	melt_magic_discr((melt_ptr_t) $CURPAIR) == MELTOBMAG_PAIR;
         $CURPAIR = melt_pair_tail((melt_ptr_t) $CURPAIR)) {
 	$CURCOMP = melt_pair_head((melt_ptr_t) $CURPAIR); }#
@@ -3465,7 +3465,7 @@ nil.}#
   the pair.}#
    #{/* start foreach_pair $EACHPAIR */
    for ($CURPAIR = $START_PAIR;
-	melt_magic_discr($CURPAIR) == MELTOBMAG_PAIR;
+	melt_magic_discr((melt_ptr_t) $CURPAIR) == MELTOBMAG_PAIR;
         $CURPAIR = melt_pair_tail((melt_ptr_t) $CURPAIR)) {
 	$CURCOMP = melt_pair_head((melt_ptr_t) $CURPAIR); 
    }#

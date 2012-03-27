@@ -4153,7 +4153,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (code_chunk 
      genversch
      #{ /* output_melt_descriptor $GENVERSCH + */
-     meltgc_add_strbuf_cstr ($DEBUF, melt_gccversionstr) ;
+     meltgc_add_strbuf_cstr ((melt_ptr_t) $DEBUF, melt_gccversionstr) ;
      }#)
     (add2sbuf_strconst debuf "\";")
     (add2sbuf_indentnl debuf 0)
@@ -4161,7 +4161,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (code_chunk 
      genvmeltch
      #{ /* output_melt_descriptor $GENVMELTCH + */
-     meltgc_add_strbuf_cstr ($DEBUF, melt_version_str ()) ;
+     meltgc_add_strbuf_cstr ((melt_ptr_t) $DEBUF, melt_version_str ()) ;
      }#)
     (add2sbuf_strconst debuf "\";")
     (add2sbuf_indentnl debuf 0)
@@ -4177,7 +4177,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (code_chunk
      genmodnamstr
      #{ /* output_melt_descriptor $GENMODNAMSTR + */
-     meltgc_add_strbuf_cstr ($DEBUF, lbasename (melt_string_str((melt_ptr_t) $MODNAMSTR))) ;
+     meltgc_add_strbuf_cstr ((melt_ptr_t) $DEBUF, lbasename (melt_string_str((melt_ptr_t) $MODNAMSTR))) ;
      }#
      )
     (add2sbuf_strconst debuf "\";")
@@ -4190,15 +4190,15 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
      if (!melt_flag_bootstrapping && !IS_ABSOLUTE_PATH(lrp)) {
      meltgc_add_strbuf_cstr ((melt_ptr_t) $DEBUF, getpwd()) ;
      meltgc_add_strbuf ((melt_ptr_t) $DEBUF, "/")	       ;
-     meltgc_add_strbuf_cstr ($DEBUF, lrp)      ;
+     meltgc_add_strbuf_cstr ((melt_ptr_t) $DEBUF, lrp)      ;
      }
      else if (melt_flag_bootstrapping) {
-     meltgc_add_strbuf_cstr ($DEBUF, melt_module_dir)	;
-     meltgc_add_strbuf ($DEBUF, "/")			;
-     meltgc_add_strbuf_cstr ($DEBUF, lbasename (lrp))	;
+     meltgc_add_strbuf_cstr ((melt_ptr_t) $DEBUF, melt_module_dir)	;
+     meltgc_add_strbuf ((melt_ptr_t) $DEBUF, "/")			;
+     meltgc_add_strbuf_cstr ((melt_ptr_t) $DEBUF, lbasename (lrp))	;
      }
      else      
-     meltgc_add_strbuf_cstr ($DEBUF, lrp) ;
+     meltgc_add_strbuf_cstr ((melt_ptr_t) $DEBUF, lrp) ;
      free (lrp)				  ;
      }#)
     (add2sbuf_strconst debuf "\";")
@@ -4210,7 +4210,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (code_chunk 
      genversch
      #{ /* output_melt_descriptor $GENVERSCH */
-     meltgc_add_strbuf_cstr ($DEBUF, MELT_RUN_HASHMD5) ;
+     meltgc_add_strbuf_cstr ((melt_ptr_t) $DEBUF, MELT_RUN_HASHMD5) ;
      }#)
     (add2sbuf_strconst debuf "\";")
     (add2sbuf_indentnl debuf 0)
@@ -4320,13 +4320,13 @@ const char melt_cumulated_hexmd5[]="$CUMPATHMDS" ;
        memset (nowbuf, 0, sizeof(nowbuf))			   ;
        strftime (nowbuf, sizeof(nowbuf)-1, "%c %Z", localtime(&now)) ;
        if (melt_flag_bootstrapping)
-       meltgc_add_strbuf ($TIBUF, "/*MELT BOOTSTRAP*/\n") ;
-       meltgc_add_strbuf ($TIBUF, 
+       meltgc_add_strbuf ((melt_ptr_t) $TIBUF, "/*MELT BOOTSTRAP*/\n") ;
+       meltgc_add_strbuf ((melt_ptr_t) $TIBUF, 
 			  "const char melt_gen_timestamp[]=\"") ;
        meltgc_add_strbuf_cstr ($TIBUF, nowbuf)			;
-       meltgc_add_strbuf ($TIBUF, "\";\n")			;
+       meltgc_add_strbuf ((melt_ptr_t) $TIBUF, "\";\n")			;
        /*  $GENTIMCH don't use time_t, it is not a predefined C type! */
-       meltgc_strbuf_printf ($TIBUF, 
+       meltgc_strbuf_printf ((melt_ptr_t) $TIBUF, 
 			     "const long long melt_gen_timenum=%lld;",
 			     (long long) now) ;	       
        /* output_melt_descriptor $GENTIMCH - */}#)
@@ -4705,7 +4705,7 @@ if (1) return;
 		#endif /*HAVE_CLOCK */
 		inform  (UNKNOWN_LOCATION, 
 			 "MELT generating C code of module %s", 
-			 melt_string_str ($MODNAMSTR)) ;
+			 melt_string_str ((melt_ptr_t) $MODNAMSTR)) ;
 		}#)
     (if (== inienv initial_environment)
 	(add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 0")
@@ -4755,7 +4755,7 @@ if (1) return;
     ;;
     (code_chunk 
      check_errors_after_normalization
-     #{ /* $CHECK_ERRORS_AFTER_NORMALIZATION */
+     #{ /* translate_macroexpanded_list $CHECK_ERRORS_AFTER_NORMALIZATION */
      if (melt_error_counter>0) 
      melt_fatal_error ("MELT translation of %s halted after normalization: got %ld MELT errors", 
 		       melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
@@ -4814,7 +4814,7 @@ if (1) return;
       ;;
       (code_chunk 
        check_errors_after_compilation
-       #{ /*$CHECK_ERRORS_AFTER_COMPILATION*/
+       #{ /*translate_macroexpanded_list $CHECK_ERRORS_AFTER_COMPILATION*/
        if (melt_error_counter>0) 
        melt_fatal_error ("MELT translation of %s halted after MELT compilation: got %ld MELT errors",
 			 melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter) ;
@@ -4920,7 +4920,7 @@ if (1) return;
 			  )
 		     (code_chunk 
 		      backupchk
-		      #{ /*$BACKUPCHK*/
+		      #{ /*translate_macroexpanded_list $BACKUPCHK*/
 		      const char* $BACKUPCHK#_delfilnamstr =
 		          melt_string_str ((melt_ptr_t) $DELFILNAM) ;
 		      const char* $BACKUPCHK#_bakfilnamstr = 
@@ -4991,18 +4991,18 @@ if (1) return;
 	   )
       (if (<=i lenxlist 3)
 	  (code_chunk warnshortchk
-		      #{/*$WARNSHORTCHK*/
-		      warning (0, "MELT expanded few (%d) expresssions", $LENXLIST);
+		      #{/* compile_list_sexpr $WARNSHORTCHK*/
+		      warning (0, "MELT expanded few (%d) expresssions", (int) $LENXLIST);
 		      }#))
       (translate_macroexpanded_list xlist modnamstr modctx ncx)
    ))
 	;;
       (code_chunk 
          check_errors_after_generation
-	 #{ /*$CHECK_ERRORS_AFTER_GENERATION*/
+	 #{ /* compile_list_sexpr $CHECK_ERRORS_AFTER_GENERATION*/
 	 if (melt_error_counter>0) 
 	    melt_fatal_error ("MELT translation of %s halted after generation: got %ld MELT errors",  
-			      melt_string_str($MODNAMSTR), melt_error_counter);
+			      melt_string_str((melt_ptr_t) $MODNAMSTR), melt_error_counter);
 	 }#)
   (message_dbg "ended compile_list_sexpr")
   )
@@ -5010,7 +5010,7 @@ if (1) return;
 
 (defprimitive melt_argument (:cstring nam) :cstring
   :doc #{Retrieve a MELT program argument as a string}#
-  #{melt_argument($nam)}#)
+  #{melt_argument($NAM)}#)
 
 
 
@@ -5040,7 +5040,7 @@ if (1) return;
     (code_chunk 
      setisvalidmodsrcch 
      #{ /* translate_to_c_one_or_more_melt_files $SETISVALIDMODSRCCH */
-     const char* modsrcstr = melt_string_str ($MODSRCNAME);
+     const char* modsrcstr = melt_string_str ((melt_ptr_t) $MODSRCNAME);
      const char* modsrcbase = modsrcstr ? (lbasename (modsrcstr)) : NULL;
      if (modsrcbase)
        $ISVALIDMODSRC =

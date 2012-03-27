@@ -220,10 +220,10 @@ given a string $MSG, with gdb when desperate.}#
 
 (defprimitive +ivi (a :long lb) :value
   :doc #{Add boxed integer $A to constant raw long $LB. Return null if $A is not a boxed integer.}#
-  #{/*+ivi*/ ((melt_magic_discr($A)==MELTOBMAG_INT)?
+  #{/*+ivi*/ ((melt_magic_discr((melt_ptr_t) $A)==MELTOBMAG_INT)?
 	 (meltgc_new_int
 	   ((meltobject_ptr_t) MELT_PREDEF (DISCR_CONSTANT_INTEGER),
-            (melt_unsafe_boxed_int_value($A) + ($LB))))
+            (melt_unsafe_boxed_int_value((melt_ptr_t) $A) + ($LB))))
          :(melt_ptr_t)NULL)}#)
 
 
@@ -471,7 +471,7 @@ number $NUM opaque location number $LOC.}#
 ;; signal a plain error in a  source
 (defprimitive error_plain (loc :cstring cmsg) :void
   :doc #{Show a plain error at boxed location $LOC with raw message string $CMSG.}#
-  #{melt_error_str((melt_ptr_t)($loc), ($cmsg), (melt_ptr_t)0)}#)
+  #{/* error_plain */ melt_error_str((melt_ptr_t)($loc), ($cmsg), (melt_ptr_t)0)}#)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -987,12 +987,12 @@ Returns a boxed integer.}#
 ;; primitive to add a string const into a strbuf
 (defprimitive add2sbuf_strconst (sbuf :cstring str) :void 
   :doc #{Add into stringbuffer $SBUF the constant string $STR.}#
-  #{meltgc_add_strbuf((melt_ptr_t)($sbuf), ($str))}#)
+  #{/*add2sbuf_strconst*/ meltgc_add_strbuf((melt_ptr_t)($SBUF), ($STR))}#)
 
 ;; primitive to add a string value into a strbuf
 (defprimitive add2sbuf_string (sbuf str) :void 
   :doc #{Add into stringbuffer $SBUF the string value $STR.}#
-  #{meltgc_add_strbuf((melt_ptr_t)($SBUF), 
+  #{/*add2sbuf_string*/ meltgc_add_strbuf((melt_ptr_t)($SBUF), 
                       melt_string_str((melt_ptr_t)($STR)))}#)
 ;; primitive to add the location info of a mixedloc into a strbuf we
 ;; copy the location file name into a buffer, to avoid crashing if a
@@ -1000,13 +1000,13 @@ Returns a boxed integer.}#
 (defprimitive add2sbuf_mixloc (sbuf mixl) :void
   :doc #{Add into stringbuffer $SBUF the mixed loc $MIXL.}#
   #{/*add2sbufmixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == MELTOBMAG_MIXLOC) {
-    char smallbuf[128];
+    char smallcbuf[128];
     location_t loc = melt_location_mixloc ((melt_ptr_t)$mixl);
     memset (smallbuf, 0, sizeof(smallbuf));
-    snprintf (smallbuf, sizeof (smallbuf)-1, 
+    snprintf (smallcbuf, sizeof (smallcbuf)-1, 
 			"{%.120s:%d:%d}",
 			LOCATION_FILE (loc), LOCATION_LINE (loc), LOCATION_COLUMN (loc));
-    meltgc_add_strbuf_raw((melt_ptr_t)($sbuf), smallbuf);
+    meltgc_add_strbuf_raw((melt_ptr_t)($SBUF), smallcbuf);
  } /*end add2sbufmixloc*/  }#)
 ;; primitive to add the short location info of a mixedloc into a strbuf
 (defprimitive add2sbuf_short_mixloc (sbuf mixl) :void
@@ -1042,7 +1042,8 @@ Returns a boxed integer.}#
 ;; primitive to add a strbuf into a strbuf
 (defprimitive add2sbuf_sbuf (sbuf asbuf) :void 
   :doc #{Add into stringbuffer $SBUF the content of stringbuffer $ASBUF.}#
-  #{meltgc_add_strbuf((melt_ptr_t)($sbuf), melt_strbuf_str($asbuf))}#)
+  #{/*add2sbuf_sbuf*/ meltgc_add_strbuf((melt_ptr_t)($SBUF), 
+					melt_strbuf_str((melt_ptr_t)$ASBUF))}#)
 
 ;; primitive to add a string value, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstring (sbuf str) :void 
@@ -1064,14 +1065,14 @@ Returns a boxed integer.}#
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_ccomstrbuf (sbuf asbuf) :void 
   :doc #{Add into stringbuffer $SBUF the content of stringbuffer $ASBUF with C-comment encoding, i.e. avoiding */.}#
-  #{meltgc_add_strbuf_ccomment((melt_ptr_t)($sbuf), 
-			       melt_strbuf_str((melt_ptr_t)($asbuf)))}#)
+  #{meltgc_add_strbuf_ccomment((melt_ptr_t)($SBUF), 
+			       melt_strbuf_str((melt_ptr_t)($ASBUF)))}#)
 
 ;; primitive to add a cstring const, Ccomment encoded, into a strbuf
 (defprimitive add2sbuf_ccomconst (sbuf :cstring cstr) :void 
   :doc #{Add into stringbuffer $SBUF the constant string $CSTR with
  C-comment encoding so no */.}# 
- #{meltgc_add_strbuf_ccomment(($sbuf), $cstr)}#)
+ #{/*add2sbuf_ccomconst*/ meltgc_add_strbuf_ccomment((melt_ptr_t) ($SBUF), $CSTR)}#)
 
 ;; primitive to add into a strbuf a string as C ident (nonalphanum
 ;; replaced by _)
