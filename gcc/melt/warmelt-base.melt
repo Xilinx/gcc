@@ -54,7 +54,7 @@
 ;; primitive to safely return a global predef by its index
 (defprimitive get_globpredef (:long ix) :value
   :doc #{Safely gives the predefined of index $IX or null.}#
-  #{(melt_globpredef($ix))}#)
+  #{/*get_globpredef*/ ((melt_ptr_t) melt_globpredef($ix))}#)
 
 ;; primitive to get the hashcode of an object (or 0)
 (defprimitive obj_hash (v) :long

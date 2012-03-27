@@ -34,7 +34,8 @@ MELTGCC ?= gcc
 ## The compiler and flags used to build the melt.so plugin and to
 ## compile MELT generated code.  Notice that melt-module.mk use the
 ## same Make variables.  For a melt plugin to GCC 4.7 or later, that
-## could be a C++ compiler!
+## could be a C++ compiler! eg
+##   make MELTGCC=gcc-4.7 GCCMELT_CC=g++-4.7
 GCCMELT_CC ?= gcc
 GCCMELT_CFLAGS ?= -g -O
 
@@ -210,7 +211,7 @@ gfmeltgcc_revision: GCCMELT-REVISION MELT-Plugin-Makefile
 
 # intermediate file for the md5sum of preprocessed expansion of melt-run.proto.h
 gfmeltgcc_run_md5: $(MELTGCC_RUNTIME_INCLUDES) MELT-Plugin-Makefile  melt-run.proto.h \
-                   $(wildcard $(MELTGCC_PLUGIN_DIR)/include/*.h) melt-runtime.h  melt/generated/meltrunsup.h
+                   $(wildcard $(MELTGCC_PLUGIN_DIR)/include/*.h) melt-runtime.h  melt/generated/meltrunsup.h melt-predef.h
 	$(GCCMELT_CC)  -C -E -DMELT_IS_PLUGIN -Imelt/generated -I. $(MELTGCC_INCLUDEFLAGS) melt-run.proto.h \
 	 | grep -v '^#' | md5sum | cut -c 1-32 > $@-tmp
 	mv $@-tmp $@

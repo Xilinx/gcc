@@ -1,4 +1,9 @@
 
+2012-03-27  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* MELT-Plugin-Makefile: Improve comment.
+	(gfmeltgcc_run_md5): Depends on melt-predef.h
+
 2012-03-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* MELT-Plugin-Makefile (melt-runtime.args): Make it with several
