@@ -58,13 +58,13 @@ extern enum pipeline_type microblaze_pipe;
 
 /* Default target_flags if no switches are specified  */
 #define TARGET_DEFAULT      (MASK_SOFT_MUL | MASK_SOFT_DIV | MASK_SOFT_FLOAT \
-                             | TARGET_ENDIAN_DEFAULT |MASK_REORDER)
+                             | TARGET_ENDIAN_DEFAULT )
 
 /* Do we have CLZ?  */
 #define TARGET_HAS_CLZ      (TARGET_PATTERN_COMPARE && microblaze_has_clz)
 
 /* Do we have SWAPB and SWAPH?  */
-#define TARGET_HAS_SWAP     (TARGET_PATTERN_COMPARE && microblaze_has_swap)
+#define TARGET_HAS_SWAP     (TARGET_REORDER && microblaze_has_swap)
 
 /* The default is to not support PIC.  */
 #define TARGET_SUPPORTS_PIC 0
