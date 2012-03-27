@@ -1,6 +1,6 @@
 /*** 
    File melt-make-string.c [making C constant strings from arguments]
-   Copyright (C) 2011 Free Software Foundation, Inc.
+   Copyright (C) 2011, 2012 Free Software Foundation, Inc.
    Indented with GNU indent.
 
 This file is part of GCC.
@@ -120,6 +120,9 @@ main (int argc, char **argv)
 	  fprintf (stderr, "bad name #%d: %s\n", ix, name);
 	  exit (1);
 	}
+      puts ("#ifdef __cplusplus");
+      puts (" extern \"C\"");
+      puts ("#endif /*__cplusplus*/");
       printf ("const char %s[]=\"", name);
       output_cstr (str);
       fputs ("\";\n", stdout);
