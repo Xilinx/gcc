@@ -115,7 +115,7 @@
 ;; primitive for removing from a map of gimples
 (defprimitive mapgimple_remove (map :gimple gkey) :void
   :doc #{Safely remove in map of gimple $MAP the entry for gimple key $GKEY.}#
-  #{meltgc_remove_mapgimples(($MAP), ($GKEY))}#)
+  #{melt_remove_mapgimples(($MAP), ($GKEY))}#)
 ;; get the auxiliary data from map of gimples
 (defprimitive mapgimple_aux (map) :value
   :doc #{Safely retrieve the auxiliary data of map of gimples $MAP.}#
@@ -207,7 +207,7 @@
 ;; primitive for removing from a map of edges
 (defprimitive mapedge_remove (map :edge key) :void
   :doc #{Safely remove in map $MAP the entry for edge $EKEY.}#
-  #{meltgc_remove_mapedges(($map), ($key))}#)
+  #{melt_remove_mapedges(($map), ($key))}#)
 ;; retrieve the auxiliary data in a map of edges
 (defprimitive mapedge_aux (map) :value
   :doc #{Retrieve the auxiliary data of edge map $MAP.}#
@@ -284,7 +284,7 @@
 ;; primitive for removing from a map of loops
 (defprimitive maploop_remove (map :loop keylo) :void
   :doc #{Safely remove in $MAP entry for loop $KEYLO}#
-  #{meltgc_remove_maploops(($MAP), ($KEYLO))}#)
+  #{melt_remove_maploops(($MAP), ($KEYLO))}#)
 
 ;; primitive to get the nth loop of a maploop
 (defprimitive maploop_nth_attr (map :long n) :loop
@@ -3089,7 +3089,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;; primitive for removing from a map of basicblocks
 (defprimitive mapbasicblock_remove (map :basic_block key) :void
   :doc #{Remove from map $MAP the entry for basic_block $KEY.}#
- #{meltgc_remove_mapbasicblocks(($map), ($key))}#)
+ #{melt_remove_mapbasicblocks(($map), ($key))}#)
 
 ;; primitive to get the auxiliary data of a basicblocks map
 (defprimitive mapbasicblock_aux (map) :value
@@ -3203,7 +3203,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;; primitive for removing from a map of trees
 (defprimitive maptree_remove (map :tree trkey) :void
   :doc #{Safely remove in map of trees $MAP entry for tree $TRKEY.}#
-  #{meltgc_remove_maptrees( (struct meltmaptrees_st*) ($MAP), ($TRKEY))}#)
+  #{melt_remove_maptrees( (struct meltmaptrees_st*) ($MAP), ($TRKEY))}#)
 ;; primitive to retrieve the auxiliary data of a map of trees
 (defprimitive maptree_aux (map) :value
   :doc #{Safely retrieve in map of trees $MAP the auxiliary data.}#
@@ -3916,49 +3916,16 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 
 
 
-(defprimitive gimple_seq_add_stmt (:gimple_seq gs :gimple g) :void
-  :doc #{Add to end of gimple_seq $GS the gimple $G if non-null. May allocate $GS if it was null.}#
-  #{if ($G) gimple_seq_add_stmt (&($GS), ($G));}#
-)
 
-(defprimitive gimplify_seq_add_stmt (:gimple_seq gs :gimple g) :void
-  :doc #{Add to end of gimple_seq $GS the gimple $G if non-null. May allocate $GS if it was null. 
-Don't scan operands of the added $G.}#
-  #{if ($G) gimplify_seq_add_stmt (&($GS), ($G));}#
-)
-
-(defprimitive gimple_seq_add_seq (:gimple_seq gsdst gssrc) :void
-  :doc #{Add to end of gimple_seq $GSDST the gimple sequence $GSSRC. May allocate $GSDST.}#
-  #{if ($GSSRC) gimple_seq_add_seq (&($GSDST), ($GSSRC));}#
-)
+;; gimple_seq_add_* don't exist in the GCC 4.7 plugin API
+;; gimple_seq_add_seq & gimple_seq_add_stmt are obsolete
 
 (defprimitive gimple_seq_copy (:gimple_seq gs) :gimple_seq 
   :doc #{Return a deep copy of gimple_seq $GS.}#
   #{(($GS)?gimple_seq_copy(($GS)):((gimple_seq)0))}#
 )
 
-(defprimitive gimple_seq_boxed_add_stmt (bgs :gimple g) :void
-  :doc #{Add to end of boxed gimple_seq $BGS the gimple $G. May fill $BGS if it contained a null gimple_seq.}#
-  #{/*gimple_seq_boxed_add_stmt*/
-  if (melt_magic_discr((melt_ptr_t)($BGS)) == MELTOBMAG_GIMPLESEQ 
-     && $G != (gimple)NULL) 
-     gimple_seq_add_stmt (&(((struct meltgimpleseq_st*)($BGS))->val), ($G));}#
-)
 
-(defprimitive gimplify_seq_boxed_add_stmt (bgs :gimple g) :void
-  :doc #{Add to end of boxed gimple_seq $BGS the gimple $G. May fill $BGS if it contained a null gimple_seq.
-  Don't scan operands of the added $G.}#
-  #{/*gimple_seq_boxed_add_stmt*/
-  if (melt_magic_discr((melt_ptr_t)($BGS)) == MELTOBMAG_GIMPLESEQ && $G != (gimple)0) 
-     gimplify_seq_add_stmt (&(((struct meltgimpleseq_st*)($BGS))->val), ($G));}#
-)
-
-(defprimitive gimple_seq_boxed_add_seq  (bgs :gimple_seq gs) :void
-  :doc #{Add to end of boxed gimple_seq $BGS the gimple_seq $GS. May fill $BGS if it contained a null gimple_seq.}#
-  #{/*gimple_seq_boxed_add_seq*/
-  if (melt_magic_discr((melt_ptr_t)($BGS)) == MELTOBMAG_GIMPLESEQ && $GS != (gimple_seq)0) 
-     gimple_seq_add_seq (&(((struct meltgimpleseq_st*)($BGS))->val), ($GS));}#
-)
 
 (defprimitive gimple_build_return (:tree tr) :gimple
   :doc #{Build a gimple to return $TR, if non-null.}#
@@ -4522,10 +4489,6 @@ Don't scan operands of the added $G.}#
  gimple_phi_nth_arg_def
  gimple_phi_nth_arg_edge
  gimple_return
- gimple_seq_add_seq
- gimple_seq_add_stmt
- gimple_seq_boxed_add_seq
- gimple_seq_boxed_add_stmt
  gimple_seq_copy
  gimple_seq_first_stmt
  gimple_seq_last_stmt
@@ -4535,8 +4498,6 @@ Don't scan operands of the added $G.}#
  gimple_switch_label
  gimpleseq_content 
  gimpleval
- gimplify_seq_add_stmt
- gimplify_seq_boxed_add_stmt
  has_cfun
  inform_at_gimple
  inform_at_tree
