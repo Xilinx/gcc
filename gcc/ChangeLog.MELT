@@ -1,6 +1,10 @@
 
 2011-03-27  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-debug.melt: Add casts.
+
+2011-03-27  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerate}}
 	* melt/generated/warmelt-base+01.c: Regenerate.
 	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
