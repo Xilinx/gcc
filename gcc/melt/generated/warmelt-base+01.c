@@ -3592,7 +3592,8 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-base.melt:1320:/ locexp");
       meltgc_add_out ((melt_ptr_t) ( /*_.OUT__V3*/ meltfptr[2]),
-		      melt_strbuf_str ( /*_.VSBUF__V2*/ meltfptr[1]));
+		      melt_strbuf_str ((melt_ptr_t) /*_.VSBUF__V2*/
+				       meltfptr[1]));
     }
     ;
     MELT_LOCATION ("warmelt-base.melt:1318:/ checkinterrupt");
@@ -3776,7 +3777,9 @@ lab_endgetargs:;
 	    /*clear *//*_#ICT__L1*/ meltfnum[0] = 0;
       /*^cond */
       /*cond */ if (
-		     /* IBOXOF_mtch1__1 ? *//*_.CSYM_URANK__V5*/ meltfptr[4] && melt_magic_discr ( /*_.CSYM_URANK__V5*/ meltfptr[4]) == MELTOBMAG_INT)	/*then */
+					 /* integerbox_of IBOXOF_mtch1__1 ? *//*_.CSYM_URANK__V5*/
+		     meltfptr[4]
+		     && melt_magic_discr ((melt_ptr_t) /*_.CSYM_URANK__V5*/ meltfptr[4]) == MELTOBMAG_INT)	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -3788,7 +3791,7 @@ lab_endgetargs:;
 
 	    {
 	      /*^locexp */
-	      /* IBOXOF_mtch1__1 ! *//*_#ICT__L1*/ meltfnum[0] =
+	      /* integerbox_of IBOXOF_mtch1__1 ! *//*_#ICT__L1*/ meltfnum[0] =
 		((struct meltint_st *) /*_.CSYM_URANK__V5*/ meltfptr[4])->
 		val;;
 	    }
@@ -4603,15 +4606,15 @@ lab_endgetargs:;
 			 meltfptr[1])->entab[cit1__EACHSTRMAP_ix].e_at;
 		      if (!cit1__EACHSTRMAP_str
 			  || cit1__EACHSTRMAP_str == HTAB_DELETED_ENTRY)
-			continue;
+			continue;	/*foreach_in_mapstring cit1__EACHSTRMAP inside before */
 		      /*_.CURVAL__V5*/ meltfptr[4] =
 			((struct meltmapstrings_st *) /*_.MAP__V2*/
 			 meltfptr[1])->entab[cit1__EACHSTRMAP_ix].e_va;
 		      if (! /*_.CURVAL__V5*/ meltfptr[4])
 			continue;
 		      if (melt_is_instance_of
-			  ( /*_.CURVAL__V5*/ meltfptr[4],
-			   MELT_PREDEF (CLASS_NAMED))
+			  ((melt_ptr_t) /*_.CURVAL__V5*/ meltfptr[4],
+			   (melt_ptr_t) MELT_PREDEF (CLASS_NAMED))
 			  && ( /*_.CURAT__V4*/ meltfptr[3] =
 			      melt_object_nth_field ((melt_ptr_t)
 						     /*_.CURVAL__V5*/
@@ -4842,15 +4845,15 @@ lab_endgetargs:;
 			 meltfptr[1])->entab[cit1__EACHSTRMAP_ix].e_at;
 		      if (!cit1__EACHSTRMAP_str
 			  || cit1__EACHSTRMAP_str == HTAB_DELETED_ENTRY)
-			continue;
+			continue;	/*foreach_in_mapstring cit1__EACHSTRMAP inside before */
 		      /*_.CURVAL__V5*/ meltfptr[4] =
 			((struct meltmapstrings_st *) /*_.MAP__V2*/
 			 meltfptr[1])->entab[cit1__EACHSTRMAP_ix].e_va;
 		      if (! /*_.CURVAL__V5*/ meltfptr[4])
 			continue;
 		      if (melt_is_instance_of
-			  ( /*_.CURVAL__V5*/ meltfptr[4],
-			   MELT_PREDEF (CLASS_NAMED))
+			  ((melt_ptr_t) /*_.CURVAL__V5*/ meltfptr[4],
+			   (melt_ptr_t) MELT_PREDEF (CLASS_NAMED))
 			  && ( /*_.CURAT__V4*/ meltfptr[3] =
 			      melt_object_nth_field ((melt_ptr_t)
 						     /*_.CURVAL__V5*/

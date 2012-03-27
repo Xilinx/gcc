@@ -11894,14 +11894,15 @@ lab_endgetargs:;
 	    entab[cit1__EACHSTRMAP_ix].e_at;
 	  if (!cit1__EACHSTRMAP_str
 	      || cit1__EACHSTRMAP_str == HTAB_DELETED_ENTRY)
-	    continue;
+	    continue;		/*foreach_in_mapstring cit1__EACHSTRMAP inside before */
 	  /*_.CURCTY__V34*/ meltfptr[33] =
 	    ((struct meltmapstrings_st *) /*_.DICTYPGTY__V19*/ meltfptr[16])->
 	    entab[cit1__EACHSTRMAP_ix].e_va;
 	  if (! /*_.CURCTY__V34*/ meltfptr[33])
 	    continue;
 	  if (melt_is_instance_of
-	      ( /*_.CURCTY__V34*/ meltfptr[33], MELT_PREDEF (CLASS_NAMED))
+	      ((melt_ptr_t) /*_.CURCTY__V34*/ meltfptr[33],
+	       (melt_ptr_t) MELT_PREDEF (CLASS_NAMED))
 	      && ( /*_.CURSTR__V33*/ meltfptr[32] =
 		  melt_object_nth_field ((melt_ptr_t) /*_.CURCTY__V34*/
 					 meltfptr[33],
@@ -12080,14 +12081,15 @@ lab_endgetargs:;
 	    entab[cit2__EACHSTRMAP_ix].e_at;
 	  if (!cit2__EACHSTRMAP_str
 	      || cit2__EACHSTRMAP_str == HTAB_DELETED_ENTRY)
-	    continue;
+	    continue;		/*foreach_in_mapstring cit2__EACHSTRMAP inside before */
 	  /*_.CURCTY__V40*/ meltfptr[36] =
 	    ((struct meltmapstrings_st *) /*_.DICTYP__V22*/ meltfptr[20])->
 	    entab[cit2__EACHSTRMAP_ix].e_va;
 	  if (! /*_.CURCTY__V40*/ meltfptr[36])
 	    continue;
 	  if (melt_is_instance_of
-	      ( /*_.CURCTY__V40*/ meltfptr[36], MELT_PREDEF (CLASS_NAMED))
+	      ((melt_ptr_t) /*_.CURCTY__V40*/ meltfptr[36],
+	       (melt_ptr_t) MELT_PREDEF (CLASS_NAMED))
 	      && ( /*_.CURSTR__V39*/ meltfptr[35] =
 		  melt_object_nth_field ((melt_ptr_t) /*_.CURCTY__V40*/
 					 meltfptr[36],

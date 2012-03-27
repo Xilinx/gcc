@@ -23245,14 +23245,15 @@ lab_endgetargs:;
 	    entab[cit1__EACHSTRMAP_ix].e_at;
 	  if (!cit1__EACHSTRMAP_str
 	      || cit1__EACHSTRMAP_str == HTAB_DELETED_ENTRY)
-	    continue;
+	    continue;		/*foreach_in_mapstring cit1__EACHSTRMAP inside before */
 	  /*_.CURCMD__V8*/ meltfptr[7] =
 	    ((struct meltmapstrings_st *) /*_.CMDICT__V5*/ meltfptr[4])->
 	    entab[cit1__EACHSTRMAP_ix].e_va;
 	  if (! /*_.CURCMD__V8*/ meltfptr[7])
 	    continue;
 	  if (melt_is_instance_of
-	      ( /*_.CURCMD__V8*/ meltfptr[7], MELT_PREDEF (CLASS_NAMED))
+	      ((melt_ptr_t) /*_.CURCMD__V8*/ meltfptr[7],
+	       (melt_ptr_t) MELT_PREDEF (CLASS_NAMED))
 	      && ( /*_.CURNAME__V7*/ meltfptr[6] =
 		  melt_object_nth_field ((melt_ptr_t) /*_.CURCMD__V8*/
 					 meltfptr[7],

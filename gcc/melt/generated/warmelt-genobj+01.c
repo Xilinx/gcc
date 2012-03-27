@@ -4794,7 +4794,9 @@ lab_endgetargs:;
 	    /*clear *//*_#ICT__L1*/ meltfnum[0] = 0;
       /*^cond */
       /*cond */ if (
-		     /* IBOXOF_mtch1__1 ? *//*_.CSYM_URANK__V6*/ meltfptr[5] && melt_magic_discr ( /*_.CSYM_URANK__V6*/ meltfptr[5]) == MELTOBMAG_INT)	/*then */
+					 /* integerbox_of IBOXOF_mtch1__1 ? *//*_.CSYM_URANK__V6*/
+		     meltfptr[5]
+		     && melt_magic_discr ((melt_ptr_t) /*_.CSYM_URANK__V6*/ meltfptr[5]) == MELTOBMAG_INT)	/*then */
 	{
 	  /*^cond.then */
 	  /*^block */
@@ -4806,7 +4808,7 @@ lab_endgetargs:;
 
 	    {
 	      /*^locexp */
-	      /* IBOXOF_mtch1__1 ! *//*_#ICT__L1*/ meltfnum[0] =
+	      /* integerbox_of IBOXOF_mtch1__1 ! *//*_#ICT__L1*/ meltfnum[0] =
 		((struct meltint_st *) /*_.CSYM_URANK__V6*/ meltfptr[5])->
 		val;;
 	    }

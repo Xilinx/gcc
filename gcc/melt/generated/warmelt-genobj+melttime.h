@@ -5,14 +5,14 @@
 
 
   /* This warmelt-genobj+melttime.h is included from warmelt-genobj+meltdesc.c only. */
-#if meltmod_warmelt_genobj_mds__a40661b0b237d6dac63cff5bf774e389
+#if meltmod_warmelt_genobj_mds__9b1784c433dd818ce2f31ec8c8aaea84
   /* MELT generation timestamp for MELT-STAGE-ZERO/warmelt-genobj */
 /*MELT BOOTSTRAP*/
-const char melt_gen_timestamp[]="Tue Mar 27 07:12:21 2012 MEST";
-const long long melt_gen_timenum=1332825141;
+const char melt_gen_timestamp[]="Tue Mar 27 07:38:39 2012 MEST";
+const long long melt_gen_timenum=1332826719;
 const char melt_build_timestamp[]= __DATE__ "@" __TIME__;
 
-#else /* ! meltmod_warmelt_genobj_mds__a40661b0b237d6dac63cff5bf774e389 */
+#else /* ! meltmod_warmelt_genobj_mds__9b1784c433dd818ce2f31ec8c8aaea84 */
 #error invalid timestamp file for MELT-STAGE-ZERO/warmelt-genobj 
-#endif /* meltmod_warmelt_genobj_mds__a40661b0b237d6dac63cff5bf774e389 */
+#endif /* meltmod_warmelt_genobj_mds__9b1784c433dd818ce2f31ec8c8aaea84 */
 		

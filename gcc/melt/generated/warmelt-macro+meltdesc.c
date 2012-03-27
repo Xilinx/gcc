@@ -12,7 +12,7 @@ const char melt_modulename[]="warmelt-macro";
 const char melt_modulerealpath[]="/usr/local/libexec/gcc-melt/gcc/x86_64-unknown-linux-gnu/4.8.0/melt-modules/warmelt-macro";
 
 /* hash of preprocessed melt-run.h generating this */
-const char melt_prepromd5meltrun[]="e43f403f213a8e1d278d86e9fcd5a00f";
+const char melt_prepromd5meltrun[]="fe95d2f25169091a499211e7cd5e73cc";
 /* hexmd5checksum of primary C file */
 const char melt_primaryhexmd5[]="66f3f3aa3a3ec104990052f7e8d60959";
 
