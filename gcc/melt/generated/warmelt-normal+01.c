@@ -3782,9 +3782,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-normal.melt:941:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.SLOC__V11*/ meltfptr[10]),
-			    ("delayed lazy macro expansion cannot macro expand multiply"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.SLOC__V11*/ meltfptr[10]),
+			      ("delayed lazy macro expansion cannot macro expand multiply"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -3874,10 +3875,11 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-normal.melt:949:/ locexp");
-		  melt_error_str ((melt_ptr_t)
-				  ( /*_.SLOC__V11*/ meltfptr[10]),
-				  ("undefined macro; delayed lazy macro expansion too lazy"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.SLOC__V11*/ meltfptr[10]),
+				    ("undefined macro; delayed lazy macro expansion too lazy"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		/*epilog */
@@ -24545,17 +24547,19 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-normal.melt:1692:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.SBUF__V22*/ meltfptr[21]),
-			 melt_string_str ((melt_ptr_t)
-					  ( /*_.NAMED_NAME__V23*/
-					   meltfptr[22])));
+      /*add2sbuf_string */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.SBUF__V22*/ meltfptr[21]),
+			   melt_string_str ((melt_ptr_t)
+					    ( /*_.NAMED_NAME__V23*/
+					     meltfptr[22])));
     }
     ;
 
     {
       MELT_LOCATION ("warmelt-normal.melt:1693:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.SBUF__V22*/ meltfptr[21]),
-			 ("__"));
+      /*add2sbuf_strconst */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.SBUF__V22*/ meltfptr[21]),
+			   ("__"));
     }
     ;
     MELT_LOCATION ("warmelt-normal.melt:1694:/ cond");

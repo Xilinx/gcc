@@ -5591,10 +5591,11 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-normatch.melt:2226:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.PATHSBUF__V5*/ meltfptr[4]),
-			 melt_string_str ((melt_ptr_t)
-					  ( /*_.DOTPREFIX__V3*/
-					   meltfptr[2])));
+      /*add2sbuf_string */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.PATHSBUF__V5*/ meltfptr[4]),
+			   melt_string_str ((melt_ptr_t)
+					    ( /*_.DOTPREFIX__V3*/
+					     meltfptr[2])));
     }
     ;
 
@@ -5607,8 +5608,9 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-normatch.melt:2228:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.PATHSBUF__V5*/ meltfptr[4]),
-			 (".dot"));
+      /*add2sbuf_strconst */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.PATHSBUF__V5*/ meltfptr[4]),
+			   (".dot"));
     }
     ;
 
@@ -9268,10 +9270,11 @@ lab_endgetargs:;
 
 		      {
 			MELT_LOCATION ("warmelt-normatch.melt:2433:/ locexp");
-			melt_error_str ((melt_ptr_t)
-					( /*_.SLOC__V17*/ meltfptr[13]),
-					("joker case in MATCH is not last"),
-					(melt_ptr_t) 0);
+			/* error_plain */
+			  melt_error_str ((melt_ptr_t)
+					  ( /*_.SLOC__V17*/ meltfptr[13]),
+					  ("joker case in MATCH is not last"),
+					  (melt_ptr_t) 0);
 		      }
 		      ;
 		      /*epilog */

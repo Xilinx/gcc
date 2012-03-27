@@ -4696,8 +4696,9 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-genobj.melt:5133:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V20*/ meltfptr[19]),
-			 ("mtch"));
+      /*add2sbuf_strconst */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V20*/ meltfptr[19]),
+			   ("mtch"));
     }
     ;
  /*_#I__L6*/ meltfnum[0] =
@@ -4712,8 +4713,9 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-genobj.melt:5135:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V20*/ meltfptr[19]),
-			 ("_"));
+      /*add2sbuf_strconst */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V20*/ meltfptr[19]),
+			   ("_"));
     }
     ;
     MELT_LOCATION ("warmelt-genobj.melt:5136:/ quasiblock");
@@ -4875,17 +4877,19 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-genobj.melt:5144:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V29*/ meltfptr[21]),
-			 melt_string_str ((melt_ptr_t)
-					  ( /*_.MATLABEL__V27*/
-					   meltfptr[23])));
+      /*add2sbuf_string */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V29*/ meltfptr[21]),
+			   melt_string_str ((melt_ptr_t)
+					    ( /*_.MATLABEL__V27*/
+					     meltfptr[23])));
     }
     ;
 
     {
       MELT_LOCATION ("warmelt-genobj.melt:5145:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V29*/ meltfptr[21]),
-			 ("_end"));
+      /*add2sbuf_strconst */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V29*/ meltfptr[21]),
+			   ("_end"));
     }
     ;
  /*_.STRBUF2STRING__V30*/ meltfptr[22] =
@@ -12217,9 +12221,10 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-genobj.melt:5418:/ locexp");
-      melt_error_str ((melt_ptr_t) ( /*_.NLOC__V13*/ meltfptr[9]),
-		      ("not fully implemented compilobj_nrep_matchlabel"),
-		      (melt_ptr_t) 0);
+      /* error_plain */
+	melt_error_str ((melt_ptr_t) ( /*_.NLOC__V13*/ meltfptr[9]),
+			("not fully implemented compilobj_nrep_matchlabel"),
+			(melt_ptr_t) 0);
     }
     ;
 
@@ -15998,9 +16003,10 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-genobj.melt:5542:/ locexp");
-      melt_error_str ((melt_ptr_t) ( /*_.NLOC__V14*/ meltfptr[13]),
-		      ("not fully implemented compilobj_nrep_matchjump"),
-		      (melt_ptr_t) 0);
+      /* error_plain */
+	melt_error_str ((melt_ptr_t) ( /*_.NLOC__V14*/ meltfptr[13]),
+			("not fully implemented compilobj_nrep_matchjump"),
+			(melt_ptr_t) 0);
     }
     ;
 
@@ -18468,16 +18474,19 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-genobj.melt:5632:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V16*/ meltfptr[15]),
-			 melt_string_str ((melt_ptr_t)
-					  ( /*_.PREFIX__V15*/ meltfptr[14])));
+      /*add2sbuf_string */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V16*/ meltfptr[15]),
+			   melt_string_str ((melt_ptr_t)
+					    ( /*_.PREFIX__V15*/
+					     meltfptr[14])));
     }
     ;
 
     {
       MELT_LOCATION ("warmelt-genobj.melt:5633:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V16*/ meltfptr[15]),
-			 ("_end /*endmatch*/"));
+      /*add2sbuf_strconst */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V16*/ meltfptr[15]),
+			   ("_end /*endmatch*/"));
     }
     ;
     MELT_LOCATION ("warmelt-genobj.melt:5634:/ quasiblock");
@@ -19148,9 +19157,11 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-genobj.melt:5657:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V19*/ meltfptr[18]),
-			 melt_string_str ((melt_ptr_t)
-					  ( /*_.PREFIX__V18*/ meltfptr[17])));
+      /*add2sbuf_string */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V19*/ meltfptr[18]),
+			   melt_string_str ((melt_ptr_t)
+					    ( /*_.PREFIX__V18*/
+					     meltfptr[17])));
     }
     ;
  /*_#GET_INT__L6*/ meltfnum[0] =
@@ -19165,8 +19176,9 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-genobj.melt:5659:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V19*/ meltfptr[18]),
-			 (" /*testmatch*/"));
+      /*add2sbuf_strconst */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.LABUF__V19*/ meltfptr[18]),
+			   (" /*testmatch*/"));
     }
     ;
     MELT_LOCATION ("warmelt-genobj.melt:5660:/ quasiblock");
@@ -34819,7 +34831,9 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-genobj.melt:6255:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.SBUF__V26*/ meltfptr[25]), ("_"));
+      /*add2sbuf_strconst */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.SBUF__V26*/ meltfptr[25]),
+			   ("_"));
     }
     ;
     MELT_LOCATION ("warmelt-genobj.melt:6256:/ cond");
@@ -34849,16 +34863,19 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-genobj.melt:6256:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.SBUF__V26*/ meltfptr[25]),
-			 melt_string_str ((melt_ptr_t)
-					  ( /*_.MCX_SUFFIX__V28*/
-					   meltfptr[27])));
+      /*add2sbuf_string */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.SBUF__V26*/ meltfptr[25]),
+			   melt_string_str ((melt_ptr_t)
+					    ( /*_.MCX_SUFFIX__V28*/
+					     meltfptr[27])));
     }
     ;
 
     {
       MELT_LOCATION ("warmelt-genobj.melt:6257:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.SBUF__V26*/ meltfptr[25]), ("_"));
+      /*add2sbuf_strconst */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.SBUF__V26*/ meltfptr[25]),
+			   ("_"));
     }
     ;
 
@@ -38393,10 +38410,11 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-genobj.melt:6318:/ locexp");
-		  melt_error_str ((melt_ptr_t)
-				  ( /*_.MCX_LOC__V9*/ meltfptr[6]),
-				  ("invalid object to expand for cmatcher"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.MCX_LOC__V9*/ meltfptr[6]),
+				    ("invalid object to expand for cmatcher"),
+				    (melt_ptr_t) 0);
 		}
 		;
 	       /*clear *//*_.IFELSE___V8*/ meltfptr[5] = 0;
@@ -38482,10 +38500,11 @@ lab_endgetargs:;
 
 		      {
 			MELT_LOCATION ("warmelt-genobj.melt:6323:/ locexp");
-			melt_error_str ((melt_ptr_t)
-					( /*_.MCX_LOC__V12*/ meltfptr[6]),
-					("invalid stuff to expand for cmatcher"),
-					(melt_ptr_t) 0);
+			/* error_plain */
+			  melt_error_str ((melt_ptr_t)
+					  ( /*_.MCX_LOC__V12*/ meltfptr[6]),
+					  ("invalid stuff to expand for cmatcher"),
+					  (melt_ptr_t) 0);
 		      }
 		      ;
 		      MELT_LOCATION ("warmelt-genobj.melt:6322:/ quasiblock");

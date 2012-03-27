@@ -3498,19 +3498,21 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-modes.melt:151:/ locexp");
-	    meltgc_add_strbuf ((melt_ptr_t)
-			       ( /*_.DBGNAMBUF__V41*/ meltfptr[23]),
-			       melt_string_str ((melt_ptr_t)
-						( /*_.BASNAM__V33*/
-						 meltfptr[28])));
+	    /*add2sbuf_string */
+	      meltgc_add_strbuf ((melt_ptr_t)
+				 ( /*_.DBGNAMBUF__V41*/ meltfptr[23]),
+				 melt_string_str ((melt_ptr_t)
+						  ( /*_.BASNAM__V33*/
+						   meltfptr[28])));
 	  }
 	  ;
 
 	  {
 	    MELT_LOCATION ("warmelt-modes.melt:152:/ locexp");
-	    meltgc_add_strbuf ((melt_ptr_t)
-			       ( /*_.DBGNAMBUF__V41*/ meltfptr[23]),
-			       (".debugnoline.so"));
+	    /*add2sbuf_strconst */
+	      meltgc_add_strbuf ((melt_ptr_t)
+				 ( /*_.DBGNAMBUF__V41*/ meltfptr[23]),
+				 (".debugnoline.so"));
 	  }
 	  ;
    /*_.STRBUF2STRING__V42*/ meltfptr[41] =

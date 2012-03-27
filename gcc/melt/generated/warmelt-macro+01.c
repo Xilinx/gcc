@@ -3981,9 +3981,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:998:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.SLOC__V25*/ meltfptr[24]),
-			    ("missing receiver expression in message passing"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.SLOC__V25*/ meltfptr[24]),
+			      ("missing receiver expression in message passing"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -5036,9 +5037,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:1053:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.SLOC__V23*/ meltfptr[22]),
-			    ("expecting one argument in (:field <subexpr>)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.SLOC__V23*/ meltfptr[22]),
+			      ("expecting one argument in (:field <subexpr>)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:1054:/ quasiblock");
@@ -9951,8 +9953,10 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-macro.melt:1223:/ locexp");
-      melt_error_str ((melt_ptr_t) ( /*_.SLOC__V23*/ meltfptr[22]),
-		      ("expand_keywordfun not implemented"), (melt_ptr_t) 0);
+      /* error_plain */
+	melt_error_str ((melt_ptr_t) ( /*_.SLOC__V23*/ meltfptr[22]),
+			("expand_keywordfun not implemented"),
+			(melt_ptr_t) 0);
     }
     ;
 
@@ -21312,9 +21316,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:1526:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.SLOC__V18*/ meltfptr[17]),
-			    ("pattern expression requires symbol operator"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.SLOC__V18*/ meltfptr[17]),
+			      ("pattern expression requires symbol operator"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:1527:/ quasiblock");
@@ -26977,10 +26982,11 @@ lab_endgetargs:;
 
 		      {
 			MELT_LOCATION ("warmelt-macro.melt:1694:/ locexp");
-			melt_error_str ((melt_ptr_t)
-					( /*_.SLOC__V13*/ meltfptr[12]),
-					("QUESTION should have one argument"),
-					(melt_ptr_t) 0);
+			/* error_plain */
+			  melt_error_str ((melt_ptr_t)
+					  ( /*_.SLOC__V13*/ meltfptr[12]),
+					  ("QUESTION should have one argument"),
+					  (melt_ptr_t) 0);
 		      }
 		      ;
 		      /*epilog */
@@ -28114,11 +28120,12 @@ lab_endgetargs:;
 				  {
 				    MELT_LOCATION
 				      ("warmelt-macro.melt:1736:/ locexp");
-				    melt_error_str ((melt_ptr_t)
-						    ( /*_.SLOC__V13*/
-						     meltfptr[12]),
-						    ("unexpected pattern QUESTION - neither symbol nor pattern expr"),
-						    (melt_ptr_t) 0);
+				    /* error_plain */
+				      melt_error_str ((melt_ptr_t)
+						      ( /*_.SLOC__V13*/
+						       meltfptr[12]),
+						      ("unexpected pattern QUESTION - neither symbol nor pattern expr"),
+						      (melt_ptr_t) 0);
 				  }
 				  ;
 				  MELT_LOCATION
@@ -30331,10 +30338,11 @@ lab_endgetargs:;
 
 		    {
 		      MELT_LOCATION ("warmelt-macro.melt:1856:/ locexp");
-		      melt_error_str ((melt_ptr_t)
-				      ( /*_.ARGLOC__V13*/ meltfptr[12]),
-				      (":REST should be last in variadic formals"),
-				      (melt_ptr_t) 0);
+		      /* error_plain */
+			melt_error_str ((melt_ptr_t)
+					( /*_.ARGLOC__V13*/ meltfptr[12]),
+					(":REST should be last in variadic formals"),
+					(melt_ptr_t) 0);
 		    }
 		    ;
 		    MELT_LOCATION ("warmelt-macro.melt:1857:/ quasiblock");
@@ -33517,8 +33525,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:1990:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V2*/ meltfptr[1]),
-			    ("null component for C chunk"), (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V2*/ meltfptr[1]),
+			      ("null component for C chunk"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:1991:/ quasiblock");
@@ -35294,9 +35303,10 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-macro.melt:2058:/ locexp");
-		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V3*/ meltfptr[2]),
-				  ("null component in C expansion"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t) ( /*_.LOC__V3*/ meltfptr[2]),
+				    ("null component in C expansion"),
+				    (melt_ptr_t) 0);
 		}
 		;
 	      /*clear *//*_.IFELSE___V14*/ meltfptr[10] = 0;
@@ -36339,9 +36349,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2097:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]),
-			    ("missing symbol for (DEFPRIMITIVE symb args type  [:doc documentation] expansion...)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]),
+			      ("missing symbol for (DEFPRIMITIVE symb args type  [:doc documentation] expansion...)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -36485,9 +36496,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2114:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]),
-			    ("missing type keyword for (DEFPRIMITIVE symb args type [:doc documentation] expansion...)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]),
+			      ("missing type keyword for (DEFPRIMITIVE symb args type [:doc documentation] expansion...)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -37038,9 +37050,11 @@ lab_endgetargs:;
 
 		{
 		  /*^locexp */
-		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]),
-				  ("duplicate :doc in DEFPRIMITIVE"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.LOC__V18*/ meltfptr[17]),
+				    ("duplicate :doc in DEFPRIMITIVE"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		/*epilog */
@@ -38435,9 +38449,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2223:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("missing symbol for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("missing symbol for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2225:/ quasiblock");
@@ -38522,9 +38537,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2234:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("missing statsymb for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("missing statsymb for (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2236:/ quasiblock");
@@ -38573,9 +38589,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2239:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("(DEFCITERATOR symb startformals...) cannot have variadic start formals"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("(DEFCITERATOR symb startformals...) cannot have variadic start formals"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2241:/ quasiblock");
@@ -38649,9 +38666,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2247:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("(DEFCITERATOR symb startformals state localformals...) cannot have variadic local formals"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("(DEFCITERATOR symb startformals state localformals...) cannot have variadic local formals"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2249:/ quasiblock");
@@ -38728,9 +38746,11 @@ lab_endgetargs:;
 
 		{
 		  /*^locexp */
-		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-				  ("duplicate documentation in DEFCITERATOR"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.LOC__V16*/ meltfptr[15]),
+				    ("duplicate documentation in DEFCITERATOR"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		/*epilog */
@@ -38805,9 +38825,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2263:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("missing before expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("missing before expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2264:/ quasiblock");
@@ -38917,9 +38938,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2272:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("missing after expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("missing after expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2273:/ quasiblock");
@@ -39039,9 +39061,11 @@ lab_endgetargs:;
 
 		{
 		  /*^locexp */
-		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-				  ("duplicate documentation in DEFCITERATOR"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.LOC__V16*/ meltfptr[15]),
+				    ("duplicate documentation in DEFCITERATOR"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		/*epilog */

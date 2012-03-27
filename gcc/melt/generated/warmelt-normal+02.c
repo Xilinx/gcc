@@ -3140,9 +3140,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-normal.melt:1953:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.SLOC__V13*/ meltfptr[12]),
-			    ("applied function should be a value"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.SLOC__V13*/ meltfptr[12]),
+			      ("applied function should be a value"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -3534,10 +3535,11 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-normal.melt:1967:/ locexp");
-		  melt_error_str ((melt_ptr_t)
-				  ( /*_.SLOC__V13*/ meltfptr[12]),
-				  ("first argument of function application should be a value"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.SLOC__V13*/ meltfptr[12]),
+				    ("first argument of function application should be a value"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		/*epilog */
@@ -7979,10 +7981,11 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-normal.melt:2188:/ locexp");
-		  melt_error_str ((melt_ptr_t)
-				  ( /*_.SLOC__V17*/ meltfptr[16]),
-				  ("main return is not a value"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.SLOC__V17*/ meltfptr[16]),
+				    ("main return is not a value"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		/*epilog */
@@ -14084,9 +14087,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-normal.melt:2447:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.SLOC__V17*/ meltfptr[13]),
-			    ("CPPIF incompatible then & else types"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.SLOC__V17*/ meltfptr[13]),
+			      ("CPPIF incompatible then & else types"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:2449:/ getslot");
@@ -16566,10 +16570,11 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-normal.melt:2521:/ locexp");
-		  melt_error_str ((melt_ptr_t)
-				  (( /*~SLOC */ meltfclos->tabval[3])),
-				  ("disjuncts\' type mismatch in OR | COND"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    (( /*~SLOC */ meltfclos->tabval[3])),
+				    ("disjuncts\' type mismatch in OR | COND"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		/*epilog */
@@ -17663,8 +17668,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-normal.melt:2579:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.SLOC__V17*/ meltfptr[13]),
-			    ("empty PROGN"), (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.SLOC__V17*/ meltfptr[13]),
+			      ("empty PROGN"), (melt_ptr_t) 0);
 	  }
 	  ;
 
@@ -30244,9 +30250,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-normal.melt:3134:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.SLOC__V17*/ meltfptr[13]),
-			    ("bad class in (INSTANCE <class> [:field1 <expr1> ...]) expression"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.SLOC__V17*/ meltfptr[13]),
+			      ("bad class in (INSTANCE <class> [:field1 <expr1> ...]) expression"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:3135:/ checkinterrupt");
@@ -37379,9 +37386,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-normal.melt:3395:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V17*/ meltfptr[13]),
-			    ("(VARIADIC ...) used in non-variadic function"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V17*/ meltfptr[13]),
+			      ("(VARIADIC ...) used in non-variadic function"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-normal.melt:3396:/ quasiblock");
@@ -50558,10 +50566,11 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-normal.melt:3972:/ locexp");
-		  melt_error_str ((melt_ptr_t)
-				  ( /*_.SLOC__V17*/ meltfptr[13]),
-				  ("multi-called expression neither apply nor send"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.SLOC__V17*/ meltfptr[13]),
+				    ("multi-called expression neither apply nor send"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		MELT_LOCATION ("warmelt-normal.melt:3973:/ checkinterrupt");

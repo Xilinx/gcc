@@ -4546,10 +4546,11 @@ lab_endgetargs:;
 
 		  {
 		    MELT_LOCATION ("warmelt-normal.melt:4055:/ locexp");
-		    melt_error_str ((melt_ptr_t)
-				    ( /*_.SLOC__V17*/ meltfptr[13]),
-				    ("(TUPLE ...) arguments should be values"),
-				    (melt_ptr_t) 0);
+		    /* error_plain */
+		      melt_error_str ((melt_ptr_t)
+				      ( /*_.SLOC__V17*/ meltfptr[13]),
+				      ("(TUPLE ...) arguments should be values"),
+				      (melt_ptr_t) 0);
 		  }
 		  ;
 		  MELT_LOCATION ("warmelt-normal.melt:4056:/ quasiblock");
@@ -6110,10 +6111,11 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-normal.melt:4118:/ locexp");
-		  melt_error_str ((melt_ptr_t)
-				  ( /*_.SLOC__V18*/ meltfptr[17]),
-				  ("(LIST ...) arguments should be values"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.SLOC__V18*/ meltfptr[17]),
+				    ("(LIST ...) arguments should be values"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		MELT_LOCATION ("warmelt-normal.melt:4119:/ quasiblock");

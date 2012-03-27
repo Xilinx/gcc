@@ -3146,17 +3146,19 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-normatch.melt:6805:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.PATHSBUF__V9*/ meltfptr[8]),
-			 melt_string_str ((melt_ptr_t)
-					  ( /*_.DOTPREFIX__V3*/
-					   meltfptr[2])));
+      /*add2sbuf_string */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.PATHSBUF__V9*/ meltfptr[8]),
+			   melt_string_str ((melt_ptr_t)
+					    ( /*_.DOTPREFIX__V3*/
+					     meltfptr[2])));
     }
     ;
 
     {
       MELT_LOCATION ("warmelt-normatch.melt:6806:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.PATHSBUF__V9*/ meltfptr[8]),
-			 ("+"));
+      /*add2sbuf_strconst */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.PATHSBUF__V9*/ meltfptr[8]),
+			   ("+"));
     }
     ;
 
@@ -3169,8 +3171,9 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-normatch.melt:6808:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.PATHSBUF__V9*/ meltfptr[8]),
-			 (".dot"));
+      /*add2sbuf_strconst */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.PATHSBUF__V9*/ meltfptr[8]),
+			   (".dot"));
     }
     ;
 
@@ -6986,8 +6989,9 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-normatch.melt:6876:/ locexp");
-      meltgc_add_strbuf ((melt_ptr_t) ( /*_.NAMBUF__V19*/ meltfptr[12]),
-			 ("__"));
+      /*add2sbuf_strconst */
+	meltgc_add_strbuf ((melt_ptr_t) ( /*_.NAMBUF__V19*/ meltfptr[12]),
+			   ("__"));
     }
     ;
  /*_#I__L7*/ meltfnum[0] =

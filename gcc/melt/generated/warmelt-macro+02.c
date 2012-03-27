@@ -2633,9 +2633,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2372:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("symbol expected for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("symbol expected for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2375:/ quasiblock");
@@ -2711,9 +2712,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2383:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("empty ins for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("empty ins for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2384:/ quasiblock");
@@ -2763,9 +2765,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2387:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("(DEFCMATCHER <symb> <ins> ...) cannot have variadic input formals"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("(DEFCMATCHER <symb> <ins> ...) cannot have variadic input formals"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2388:/ quasiblock");
@@ -3345,9 +3348,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2406:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("bad outs for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("bad outs for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2407:/ quasiblock");
@@ -3396,9 +3400,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2410:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("out formals for  (DEFCMATCHER <symb> <ins> <outs> ...) cannot be variadic"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("out formals for  (DEFCMATCHER <symb> <ins> <outs> ...) cannot be variadic"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2411:/ quasiblock");
@@ -3574,9 +3579,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2418:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("bad statesym for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("bad statesym for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2419:/ quasiblock");
@@ -3767,9 +3773,11 @@ lab_endgetargs:;
 
 		{
 		  /*^locexp */
-		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-				  ("duplicate documentation in DEFCMATCHER"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.LOC__V16*/ meltfptr[15]),
+				    ("duplicate documentation in DEFCMATCHER"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		/*epilog */
@@ -3987,9 +3995,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2435:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("bad test expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("bad test expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2436:/ quasiblock");
@@ -4284,9 +4293,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2449:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("bad fill expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("bad fill expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2450:/ quasiblock");
@@ -4579,9 +4589,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2462:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("bad oper expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("bad oper expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2463:/ quasiblock");
@@ -6656,9 +6667,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2558:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("symbol expected for (DEFUNMATCHER <symb> <ins> <outs> [:doc docum] <matchfun> <applyfun> [<data>])"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("symbol expected for (DEFUNMATCHER <symb> <ins> <outs> [:doc docum] <matchfun> <applyfun> [<data>])"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2561:/ quasiblock");
@@ -6734,9 +6746,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2569:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("empty ins for (DEFUNMATCHER <symb> <ins> <outs> [:doc docum] <matchfun> <applyfun> [<data>])"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("empty ins for (DEFUNMATCHER <symb> <ins> <outs> [:doc docum] <matchfun> <applyfun> [<data>])"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2570:/ quasiblock");
@@ -7218,9 +7231,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2591:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("bad outs for (DEFUNMATCHER <symb> <ins> <outs>[:doc docum]  <matchfun> <applyfun> [<data>])"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("bad outs for (DEFUNMATCHER <symb> <ins> <outs>[:doc docum]  <matchfun> <applyfun> [<data>])"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2592:/ quasiblock");
@@ -7375,9 +7389,11 @@ lab_endgetargs:;
 
 		{
 		  /*^locexp */
-		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-				  ("duplicate documentation for DEFUNMATCHER"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.LOC__V16*/ meltfptr[15]),
+				    ("duplicate documentation for DEFUNMATCHER"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		/*epilog */
@@ -7495,9 +7511,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2612:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("bad matchfun for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("bad matchfun for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> <applyfun> [<data>])"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	     /*clear *//*_.IFELSE___V88*/ meltfptr[50] = 0;
@@ -8022,9 +8039,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2635:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("extra for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> [<applyfun> [<data>]])"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("extra for (DEFUNMATCHER <symb> <ins> <outs> <matchfun> [<applyfun> [<data>]])"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -9427,8 +9445,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2700:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]),
-			    ("missing symbol for DEFUN"), (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]),
+			      ("missing symbol for DEFUN"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -9699,9 +9718,11 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-macro.melt:2713:/ locexp");
-		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]),
-				  ("missing or invalid arglist for DEFUN"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.LOC__V18*/ meltfptr[17]),
+				    ("missing or invalid arglist for DEFUN"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		MELT_LOCATION ("warmelt-macro.melt:2711:/ quasiblock");
@@ -9867,9 +9888,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2720:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]),
-			    ("missing formal arguments for DEFUN"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V18*/ meltfptr[17]),
+			      ("missing formal arguments for DEFUN"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:2718:/ quasiblock");
@@ -11342,10 +11364,11 @@ lab_endgetargs:;
 
 		      {
 			MELT_LOCATION ("warmelt-macro.melt:2827:/ locexp");
-			melt_error_str ((melt_ptr_t)
-					( /*_.LOC__V12*/ meltfptr[11]),
-					("Bad function name, expecting (DEFINE (name formals...) ..."),
-					(melt_ptr_t) 0);
+			/* error_plain */
+			  melt_error_str ((melt_ptr_t)
+					  ( /*_.LOC__V12*/ meltfptr[11]),
+					  ("Bad function name, expecting (DEFINE (name formals...) ..."),
+					  (melt_ptr_t) 0);
 		      }
 		      ;
 		      MELT_LOCATION ("warmelt-macro.melt:2829:/ quasiblock");
@@ -12193,9 +12216,11 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-macro.melt:2870:/ locexp");
-		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
-				  ("Expects <name> or (<name> <formals) after DEFINE"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.LOC__V12*/ meltfptr[11]),
+				    ("Expects <name> or (<name> <formals) after DEFINE"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		MELT_LOCATION ("warmelt-macro.melt:2871:/ quasiblock");
@@ -12684,8 +12709,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:2901:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V14*/ meltfptr[13]),
-			    ("missing symbol for DEFCLASS"), (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V14*/ meltfptr[13]),
+			      ("missing symbol for DEFCLASS"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -12772,9 +12799,10 @@ lab_endgetargs:;
 
 	      {
 		MELT_LOCATION ("warmelt-macro.melt:2907:/ locexp");
-		melt_error_str ((melt_ptr_t) ( /*_.LOC__V14*/ meltfptr[13]),
-				("expecting keyword in DEFCLASS"),
-				(melt_ptr_t) 0);
+		/* error_plain */
+		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V14*/ meltfptr[13]),
+				  ("expecting keyword in DEFCLASS"),
+				  (melt_ptr_t) 0);
 	      }
 	      ;
 	      /*epilog */
@@ -12827,10 +12855,11 @@ lab_endgetargs:;
 
 		    {
 		      /*^locexp */
-		      melt_error_str ((melt_ptr_t)
-				      ( /*_.LOC__V14*/ meltfptr[13]),
-				      ("duplicate super in DEFCLASS"),
-				      (melt_ptr_t) 0);
+		      /* error_plain */
+			melt_error_str ((melt_ptr_t)
+					( /*_.LOC__V14*/ meltfptr[13]),
+					("duplicate super in DEFCLASS"),
+					(melt_ptr_t) 0);
 		    }
 		    ;
 		    /*epilog */
@@ -12861,10 +12890,11 @@ lab_endgetargs:;
 
 		    {
 		      MELT_LOCATION ("warmelt-macro.melt:2915:/ locexp");
-		      melt_error_str ((melt_ptr_t)
-				      ( /*_.LOC__V14*/ meltfptr[13]),
-				      ("bad super in DEFCLASS"),
-				      (melt_ptr_t) 0);
+		      /* error_plain */
+			melt_error_str ((melt_ptr_t)
+					( /*_.LOC__V14*/ meltfptr[13]),
+					("bad super in DEFCLASS"),
+					(melt_ptr_t) 0);
 		    }
 		    ;
 		    /*epilog */
@@ -13590,10 +13620,11 @@ lab_endgetargs:;
 
 			  {
 			    /*^locexp */
-			    melt_error_str ((melt_ptr_t)
-					    ( /*_.LOC__V14*/ meltfptr[13]),
-					    ("duplicate fields in defclass"),
-					    (melt_ptr_t) 0);
+			    /* error_plain */
+			      melt_error_str ((melt_ptr_t)
+					      ( /*_.LOC__V14*/ meltfptr[13]),
+					      ("duplicate fields in defclass"),
+					      (melt_ptr_t) 0);
 			  }
 			  ;
 			  /*epilog */
@@ -13634,11 +13665,12 @@ lab_endgetargs:;
 				{
 				  MELT_LOCATION
 				    ("warmelt-macro.melt:2947:/ locexp");
-				  melt_error_str ((melt_ptr_t)
-						  ( /*_.LOC__V14*/
-						   meltfptr[13]),
-						  ("bad fields in defclass"),
-						  (melt_ptr_t) 0);
+				  /* error_plain */
+				    melt_error_str ((melt_ptr_t)
+						    ( /*_.LOC__V14*/
+						     meltfptr[13]),
+						    ("bad fields in defclass"),
+						    (melt_ptr_t) 0);
 				}
 				;
 				/*epilog */
@@ -13833,11 +13865,12 @@ lab_endgetargs:;
 			      {
 				MELT_LOCATION
 				  ("warmelt-macro.melt:2959:/ locexp");
-				melt_error_str ((melt_ptr_t)
-						( /*_.NAMLOC__V70*/
-						 meltfptr[45]),
-						("non name field in DEFCLASS"),
-						(melt_ptr_t) 0);
+				/* error_plain */
+				  melt_error_str ((melt_ptr_t)
+						  ( /*_.NAMLOC__V70*/
+						   meltfptr[45]),
+						  ("non name field in DEFCLASS"),
+						  (melt_ptr_t) 0);
 			      }
 			      ;
 			      /*epilog */
@@ -13986,11 +14019,12 @@ lab_endgetargs:;
 
 				{
 				  /*^locexp */
-				  melt_error_str ((melt_ptr_t)
-						  ( /*_.LOC__V14*/
-						   meltfptr[13]),
-						  ("duplicate predef in DEFCLASS"),
-						  (melt_ptr_t) 0);
+				  /* error_plain */
+				    melt_error_str ((melt_ptr_t)
+						    ( /*_.LOC__V14*/
+						     meltfptr[13]),
+						    ("duplicate predef in DEFCLASS"),
+						    (melt_ptr_t) 0);
 				}
 				;
 				/*epilog */
@@ -14085,11 +14119,12 @@ lab_endgetargs:;
 				      {
 					MELT_LOCATION
 					  ("warmelt-macro.melt:2978:/ locexp");
-					melt_error_str ((melt_ptr_t)
-							( /*_.LOC__V14*/
-							 meltfptr[13]),
-							("bad predef in DEFCLASS"),
-							(melt_ptr_t) 0);
+					/* error_plain */
+					  melt_error_str ((melt_ptr_t)
+							  ( /*_.LOC__V14*/
+							   meltfptr[13]),
+							  ("bad predef in DEFCLASS"),
+							  (melt_ptr_t) 0);
 				      }
 				      ;
 				      MELT_LOCATION
@@ -14176,11 +14211,12 @@ lab_endgetargs:;
 
 				      {
 					/*^locexp */
-					melt_error_str ((melt_ptr_t)
-							( /*_.LOC__V14*/
-							 meltfptr[13]),
-							("duplicate doc in DEFCLASS"),
-							(melt_ptr_t) 0);
+					/* error_plain */
+					  melt_error_str ((melt_ptr_t)
+							  ( /*_.LOC__V14*/
+							   meltfptr[13]),
+							  ("duplicate doc in DEFCLASS"),
+							  (melt_ptr_t) 0);
 				      }
 				      ;
 				      /*epilog */
@@ -20168,8 +20204,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:3161:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V3*/ meltfptr[2]),
-			    ("expecting :fieldname"), (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V3*/ meltfptr[2]),
+			      ("expecting :fieldname"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:3162:/ quasiblock");
@@ -23457,9 +23494,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:3270:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-			    ("missing symbol for DEFINSTANCE"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
+			      ("missing symbol for DEFINSTANCE"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -23570,9 +23608,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:3283:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-			    ("missing class name for DEFINSTANCE"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
+			      ("missing class name for DEFINSTANCE"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -23966,9 +24005,10 @@ lab_endgetargs:;
 
 	      {
 		MELT_LOCATION ("warmelt-macro.melt:3307:/ locexp");
-		melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-				("expecting keyword in DEFINSTANCE"),
-				(melt_ptr_t) 0);
+		/* error_plain */
+		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
+				  ("expecting keyword in DEFINSTANCE"),
+				  (melt_ptr_t) 0);
 	      }
 	      ;
 	      /*epilog */
@@ -24014,10 +24054,11 @@ lab_endgetargs:;
 
 		    {
 		      /*^locexp */
-		      melt_error_str ((melt_ptr_t)
-				      ( /*_.LOC__V20*/ meltfptr[19]),
-				      ("duplicate :obj_num in DEFINSTANCE"),
-				      (melt_ptr_t) 0);
+		      /* error_plain */
+			melt_error_str ((melt_ptr_t)
+					( /*_.LOC__V20*/ meltfptr[19]),
+					("duplicate :obj_num in DEFINSTANCE"),
+					(melt_ptr_t) 0);
 		    }
 		    ;
 		    /*epilog */
@@ -24145,10 +24186,11 @@ lab_endgetargs:;
 
 			  {
 			    /*^locexp */
-			    melt_error_str ((melt_ptr_t)
-					    ( /*_.LOC__V20*/ meltfptr[19]),
-					    ("duplicate :predef in DEFINSTANCE"),
-					    (melt_ptr_t) 0);
+			    /* error_plain */
+			      melt_error_str ((melt_ptr_t)
+					      ( /*_.LOC__V20*/ meltfptr[19]),
+					      ("duplicate :predef in DEFINSTANCE"),
+					      (melt_ptr_t) 0);
 			  }
 			  ;
 			  /*epilog */
@@ -24282,11 +24324,12 @@ lab_endgetargs:;
 
 				{
 				  /*^locexp */
-				  melt_error_str ((melt_ptr_t)
-						  ( /*_.LOC__V20*/
-						   meltfptr[19]),
-						  ("duplicate :doc in DEFINSTANCE"),
-						  (melt_ptr_t) 0);
+				  /* error_plain */
+				    melt_error_str ((melt_ptr_t)
+						    ( /*_.LOC__V20*/
+						     meltfptr[19]),
+						    ("duplicate :doc in DEFINSTANCE"),
+						    (melt_ptr_t) 0);
 				}
 				;
 				/*epilog */
@@ -25371,9 +25414,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:3389:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V24*/ meltfptr[23]),
-			    ("missing symbol for (DEFSELECTOR <name> <class> ...)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V24*/ meltfptr[23]),
+			      ("missing symbol for (DEFSELECTOR <name> <class> ...)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:3390:/ quasiblock");
@@ -25472,9 +25516,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:3400:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V24*/ meltfptr[23]),
-			    ("missing class name for (DEFSELECTOR <name> <class> ...)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V24*/ meltfptr[23]),
+			      ("missing class name for (DEFSELECTOR <name> <class> ...)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:3401:/ quasiblock");
@@ -26595,9 +26640,10 @@ lab_endgetargs:;
 
 	      {
 		MELT_LOCATION ("warmelt-macro.melt:3447:/ locexp");
-		melt_error_str ((melt_ptr_t) ( /*_.LOC__V24*/ meltfptr[23]),
-				("expecting keyword in DEFSELECTOR"),
-				(melt_ptr_t) 0);
+		/* error_plain */
+		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V24*/ meltfptr[23]),
+				  ("expecting keyword in DEFSELECTOR"),
+				  (melt_ptr_t) 0);
 	      }
 	      ;
 	      /*epilog */
@@ -26643,10 +26689,11 @@ lab_endgetargs:;
 
 		    {
 		      /*^locexp */
-		      melt_error_str ((melt_ptr_t)
-				      ( /*_.LOC__V24*/ meltfptr[23]),
-				      ("duplicate :obj_num in DEFSELECTOR"),
-				      (melt_ptr_t) 0);
+		      /* error_plain */
+			melt_error_str ((melt_ptr_t)
+					( /*_.LOC__V24*/ meltfptr[23]),
+					("duplicate :obj_num in DEFSELECTOR"),
+					(melt_ptr_t) 0);
 		    }
 		    ;
 		    /*epilog */
@@ -26776,10 +26823,11 @@ lab_endgetargs:;
 
 			  {
 			    /*^locexp */
-			    melt_error_str ((melt_ptr_t)
-					    ( /*_.LOC__V24*/ meltfptr[23]),
-					    ("duplicate :predef in DEFSELECTOR"),
-					    (melt_ptr_t) 0);
+			    /* error_plain */
+			      melt_error_str ((melt_ptr_t)
+					      ( /*_.LOC__V24*/ meltfptr[23]),
+					      ("duplicate :predef in DEFSELECTOR"),
+					      (melt_ptr_t) 0);
 			  }
 			  ;
 			  /*epilog */
@@ -26914,11 +26962,12 @@ lab_endgetargs:;
 
 				{
 				  /*^locexp */
-				  melt_error_str ((melt_ptr_t)
-						  ( /*_.LOC__V24*/
-						   meltfptr[23]),
-						  ("duplicate :doc in DEFSELECTOR"),
-						  (melt_ptr_t) 0);
+				  /* error_plain */
+				    melt_error_str ((melt_ptr_t)
+						    ( /*_.LOC__V24*/
+						     meltfptr[23]),
+						    ("duplicate :doc in DEFSELECTOR"),
+						    (melt_ptr_t) 0);
 				}
 				;
 				/*epilog */
@@ -26987,11 +27036,12 @@ lab_endgetargs:;
 
 				      {
 					/*^locexp */
-					melt_error_str ((melt_ptr_t)
-							( /*_.LOC__V24*/
-							 meltfptr[23]),
-							("duplicate :formals in DEFSELECTOR"),
-							(melt_ptr_t) 0);
+					/* error_plain */
+					  melt_error_str ((melt_ptr_t)
+							  ( /*_.LOC__V24*/
+							   meltfptr[23]),
+							  ("duplicate :formals in DEFSELECTOR"),
+							  (melt_ptr_t) 0);
 				      }
 				      ;
 				      /*epilog */
@@ -27056,11 +27106,12 @@ lab_endgetargs:;
 				      {
 					MELT_LOCATION
 					  ("warmelt-macro.melt:3477:/ locexp");
-					melt_error_str ((melt_ptr_t)
-							( /*_.LOC__V24*/
-							 meltfptr[23]),
-							(":formals of DEFSELECTOR should have at least one value argument for the receiver"),
-							(melt_ptr_t) 0);
+					/* error_plain */
+					  melt_error_str ((melt_ptr_t)
+							  ( /*_.LOC__V24*/
+							   meltfptr[23]),
+							  (":formals of DEFSELECTOR should have at least one value argument for the receiver"),
+							  (melt_ptr_t) 0);
 				      }
 				      ;
 		       /*clear *//*_.IFELSE___V120*/
@@ -27128,11 +27179,9 @@ lab_endgetargs:;
 					    {
 					      MELT_LOCATION
 						("warmelt-macro.melt:3479:/ locexp");
-					      melt_error_str ((melt_ptr_t)
-							      ( /*_.LOC__V24*/
-							       meltfptr[23]),
-							      ("first :formals of DEFSELECTOR should be a :value"),
-							      (melt_ptr_t) 0);
+					      /* error_plain */
+						melt_error_str ((melt_ptr_t)
+								( /*_.LOC__V24*/ meltfptr[23]), ("first :formals of DEFSELECTOR should be a :value"), (melt_ptr_t) 0);
 					    }
 					    ;
 			 /*clear *//*_.IFELSE___V122*/
@@ -28059,9 +28108,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:3529:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V14*/ meltfptr[13]),
-			    ("missing class symbol for INSTANCE"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V14*/ meltfptr[13]),
+			      ("missing class symbol for INSTANCE"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -28565,9 +28615,10 @@ lab_endgetargs:;
 
 	      {
 		MELT_LOCATION ("warmelt-macro.melt:3555:/ locexp");
-		melt_error_str ((melt_ptr_t) ( /*_.LOC__V14*/ meltfptr[13]),
-				("expecting keyword in INSTANCE"),
-				(melt_ptr_t) 0);
+		/* error_plain */
+		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V14*/ meltfptr[13]),
+				  ("expecting keyword in INSTANCE"),
+				  (melt_ptr_t) 0);
 	      }
 	      ;
 	      /*epilog */
@@ -29477,8 +29528,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:3596:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-			    ("LOAD expects one argument"), (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
+			      ("LOAD expects one argument"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -30057,9 +30109,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:3616:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-			    ("LOAD expects a string filename"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
+			      ("LOAD expects a string filename"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:3614:/ quasiblock");
@@ -32015,9 +32068,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:3686:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V17*/ meltfptr[16]),
-			    ("missing class symbol for INSTANCE pattern"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V17*/ meltfptr[16]),
+			      ("missing class symbol for INSTANCE pattern"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -32409,9 +32463,10 @@ lab_endgetargs:;
 
 	      {
 		MELT_LOCATION ("warmelt-macro.melt:3713:/ locexp");
-		melt_error_str ((melt_ptr_t) ( /*_.LOC__V17*/ meltfptr[16]),
-				("expecting keyword in INSTANCE"),
-				(melt_ptr_t) 0);
+		/* error_plain */
+		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V17*/ meltfptr[16]),
+				  ("expecting keyword in INSTANCE"),
+				  (melt_ptr_t) 0);
 	      }
 	      ;
 	      /*epilog */
@@ -33649,9 +33704,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:3781:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V17*/ meltfptr[16]),
-			    ("missing class symbol for  OBJECT pattern"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V17*/ meltfptr[16]),
+			      ("missing class symbol for  OBJECT pattern"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -34043,9 +34099,10 @@ lab_endgetargs:;
 
 	      {
 		MELT_LOCATION ("warmelt-macro.melt:3808:/ locexp");
-		melt_error_str ((melt_ptr_t) ( /*_.LOC__V17*/ meltfptr[16]),
-				("expecting keyword in OBJECT pattern"),
-				(melt_ptr_t) 0);
+		/* error_plain */
+		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V17*/ meltfptr[16]),
+				  ("expecting keyword in OBJECT pattern"),
+				  (melt_ptr_t) 0);
 	      }
 	      ;
 	      /*epilog */
@@ -35184,9 +35241,10 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-macro.melt:3849:/ locexp");
-      melt_error_str ((melt_ptr_t) ( /*_.LOC__V15*/ meltfptr[11]),
-		      ("OBJECT cannot be macro-expanded in expression context - use INSTANCE instead"),
-		      (melt_ptr_t) 0);
+      /* error_plain */
+	melt_error_str ((melt_ptr_t) ( /*_.LOC__V15*/ meltfptr[11]),
+			("OBJECT cannot be macro-expanded in expression context - use INSTANCE instead"),
+			(melt_ptr_t) 0);
     }
     ;
     MELT_LOCATION ("warmelt-macro.melt:3850:/ quasiblock");
@@ -35550,9 +35608,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:3879:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.SLOC__V12*/ meltfptr[11]),
-			    ("missing symbol in (CODE_CHUNK <state-symbol> <chunk>)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.SLOC__V12*/ meltfptr[11]),
+			      ("missing symbol in (CODE_CHUNK <state-symbol> <chunk>)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	     /*clear *//*_.IFELSE___V21*/ meltfptr[20] = 0;
@@ -35589,9 +35648,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:3883:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.SLOC__V12*/ meltfptr[11]),
-			    ("CODE_CHUNK expects one single chunk sexpr"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.SLOC__V12*/ meltfptr[11]),
+			      ("CODE_CHUNK expects one single chunk sexpr"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -35617,9 +35677,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:3885:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.SLOC__V12*/ meltfptr[11]),
-			    ("CODE_CHUNK expects a chunk sexpr"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.SLOC__V12*/ meltfptr[11]),
+			      ("CODE_CHUNK expects a chunk sexpr"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -35780,10 +35841,11 @@ lab_endgetargs:;
 
 		      {
 			MELT_LOCATION ("warmelt-macro.melt:3898:/ locexp");
-			melt_error_str ((melt_ptr_t)
-					( /*_.LOC__V29*/ meltfptr[28]),
-					("bad content in CODE_CHUNK - expecting string or symbol"),
-					(melt_ptr_t) 0);
+			/* error_plain */
+			  melt_error_str ((melt_ptr_t)
+					  ( /*_.LOC__V29*/ meltfptr[28]),
+					  ("bad content in CODE_CHUNK - expecting string or symbol"),
+					  (melt_ptr_t) 0);
 		      }
 		      ;
 		      MELT_LOCATION ("warmelt-macro.melt:3897:/ quasiblock");
@@ -36669,9 +36731,10 @@ lab_endgetargs:;
 
 	      {
 		MELT_LOCATION ("warmelt-macro.melt:3940:/ locexp");
-		melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-				("expecting heyword in UNSAFE_PUT_FIELDS"),
-				(melt_ptr_t) 0);
+		/* error_plain */
+		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
+				  ("expecting heyword in UNSAFE_PUT_FIELDS"),
+				  (melt_ptr_t) 0);
 	      }
 	      ;
 	      /*epilog */
@@ -37372,9 +37435,10 @@ lab_endgetargs:;
 
 	      {
 		MELT_LOCATION ("warmelt-macro.melt:3986:/ locexp");
-		melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-				("expecting heyword in PUT_FIELDS"),
-				(melt_ptr_t) 0);
+		/* error_plain */
+		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+				  ("expecting heyword in PUT_FIELDS"),
+				  (melt_ptr_t) 0);
 	      }
 	      ;
 	      /*epilog */
@@ -37920,9 +37984,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:4022:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
-			    ("field keyword expected in UNSAFE_GET_FIELD"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
+			      ("field keyword expected in UNSAFE_GET_FIELD"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:4023:/ checkinterrupt");
@@ -37990,9 +38055,10 @@ lab_endgetargs:;
 
 	  {
 	    /*^locexp */
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
-			    ("UNSAFE_GET_FIELD with more than two sons"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
+			      ("UNSAFE_GET_FIELD with more than two sons"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -38055,9 +38121,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:4033:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
-			    ("bad field and expression in UNSAFE_GET_FIELD"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
+			      ("bad field and expression in UNSAFE_GET_FIELD"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:4034:/ checkinterrupt");
@@ -38127,9 +38194,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:4038:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
-			    ("missing object expression for (UNSAFE_GET_FIELD :field objexpr)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
+			      ("missing object expression for (UNSAFE_GET_FIELD :field objexpr)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -38546,9 +38614,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:4063:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
-			    ("field keyword expected in GET_FIELD"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
+			      ("field keyword expected in GET_FIELD"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:4064:/ checkinterrupt");
@@ -38616,9 +38685,10 @@ lab_endgetargs:;
 
 	  {
 	    /*^locexp */
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
-			    ("UNSAFE_GET_FIELD with more than two sons"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
+			      ("UNSAFE_GET_FIELD with more than two sons"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -38681,9 +38751,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:4074:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
-			    ("bad field and expression in GET_FIELD"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
+			      ("bad field and expression in GET_FIELD"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:4075:/ checkinterrupt");
@@ -38753,9 +38824,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:4079:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
-			    ("missing object expression for (GET_FIELD :field objexpr)"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V12*/ meltfptr[11]),
+			      ("missing object expression for (GET_FIELD :field objexpr)"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -39263,9 +39335,10 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:4107:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("var symbol name expected in SETQ"),
-			    (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("var symbol name expected in SETQ"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:4108:/ checkinterrupt");
@@ -39333,8 +39406,10 @@ lab_endgetargs:;
 
 	  {
 	    /*^locexp */
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
-			    ("SETQ with more than two sons"), (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V16*/ meltfptr[15]),
+			      ("SETQ with more than two sons"),
+			      (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -39963,8 +40038,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:4139:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-			    ("missing condition in IF"), (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
+			      ("missing condition in IF"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -39998,8 +40074,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:4142:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-			    ("missing then in IF"), (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
+			      ("missing then in IF"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -40477,9 +40554,11 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-macro.melt:4156:/ locexp");
-		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-				  ("IF with more than three sons"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.LOC__V20*/ meltfptr[19]),
+				    ("IF with more than three sons"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		/*epilog */
@@ -41473,8 +41552,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:4193:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-			    ("missing condition in CPPIF"), (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
+			      ("missing condition in CPPIF"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -41508,8 +41588,9 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-macro.melt:4196:/ locexp");
-	    melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-			    ("missing then in CPPIF"), (melt_ptr_t) 0);
+	    /* error_plain */
+	      melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
+			      ("missing then in CPPIF"), (melt_ptr_t) 0);
 	  }
 	  ;
 	  /*epilog */
@@ -41699,9 +41780,11 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-macro.melt:4203:/ locexp");
-		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-				  ("invalid cpp-condition in CPPIF - string or symbol expected"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.LOC__V20*/ meltfptr[19]),
+				    ("invalid cpp-condition in CPPIF - string or symbol expected"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		MELT_LOCATION ("warmelt-macro.melt:4204:/ checkinterrupt");
@@ -42081,9 +42164,11 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-macro.melt:4218:/ locexp");
-		  melt_error_str ((melt_ptr_t) ( /*_.LOC__V20*/ meltfptr[19]),
-				  ("CPPIF with more than three sons"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.LOC__V20*/ meltfptr[19]),
+				    ("CPPIF with more than three sons"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		/*epilog */
@@ -43528,10 +43613,12 @@ lab_endgetargs:;
 			    {
 			      MELT_LOCATION
 				("warmelt-macro.melt:4282:/ locexp");
-			      melt_error_str ((melt_ptr_t)
-					      ( /*_.SLOC__V16*/ meltfptr[15]),
-					      ("GCC-IF condition not a list of strings"),
-					      (melt_ptr_t) 0);
+			      /* error_plain */
+				melt_error_str ((melt_ptr_t)
+						( /*_.SLOC__V16*/
+						 meltfptr[15]),
+						("GCC-IF condition not a list of strings"),
+						(melt_ptr_t) 0);
 			    }
 			    ;
 			    /*epilog */
@@ -43987,10 +44074,11 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-macro.melt:4297:/ locexp");
-		  melt_error_str ((melt_ptr_t)
-				  ( /*_.SLOC__V16*/ meltfptr[15]),
-				  ("GCC-IF bad condition, should be a string or a list of strings"),
-				  (melt_ptr_t) 0);
+		  /* error_plain */
+		    melt_error_str ((melt_ptr_t)
+				    ( /*_.SLOC__V16*/ meltfptr[15]),
+				    ("GCC-IF bad condition, should be a string or a list of strings"),
+				    (melt_ptr_t) 0);
 		}
 		;
 		MELT_LOCATION ("warmelt-macro.melt:4298:/ quasiblock");

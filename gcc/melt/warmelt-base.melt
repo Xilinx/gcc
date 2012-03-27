@@ -1002,7 +1002,7 @@ Returns a boxed integer.}#
   #{/*add2sbufmixloc*/ if (melt_magic_discr((melt_ptr_t)($mixl)) == MELTOBMAG_MIXLOC) {
     char smallcbuf[128];
     location_t loc = melt_location_mixloc ((melt_ptr_t)$mixl);
-    memset (smallbuf, 0, sizeof(smallbuf));
+    memset (smallcbuf, 0, sizeof(smallcbuf));
     snprintf (smallcbuf, sizeof (smallcbuf)-1, 
 			"{%.120s:%d:%d}",
 			LOCATION_FILE (loc), LOCATION_LINE (loc), LOCATION_COLUMN (loc));
