@@ -2534,4 +2534,4 @@ melt_auxput_maptrees (melt_ptr_t map_p, melt_ptr_t val_p)
 
 
 /*** End of declaration file meltrunsup.h generated on 2012 Mar 27
- * by GCC MELT 4.8.0 20120323 (experimental) [melt-branch revision 185838] MELT_0.9.4+ . ***/
+ * by GCC MELT 4.8.0 20120323 (experimental) [melt-branch revision 185838] MELT_0.9.5-rc0 . ***/

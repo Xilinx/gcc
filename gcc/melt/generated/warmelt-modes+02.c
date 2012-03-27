@@ -13012,20 +13012,20 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-modes.melt:3489:/ locexp");
-      /* TERMCOMMENTDECLCHK__1 */
+      /* runtypesupport_docmd TERMCOMMENTDECLCHK__1 */
       time_t nowdecl = 0;
       char decldatebuf[48];
       memset (decldatebuf, 0, sizeof (decldatebuf));
       time (&nowdecl);
       strftime (decldatebuf, sizeof (decldatebuf) - 1,
 		"%Y %b %d", localtime (&nowdecl));
-      meltgc_out_printf ( /*_.OUTDECLBUF__V25*/ meltfptr[23],
+      meltgc_out_printf ((melt_ptr_t) /*_.OUTDECLBUF__V25*/ meltfptr[23],
 			 "\n/*** End of declaration file %s generated on %s\n"
 			 " * by GCC MELT %s . ***/\n",
-			 melt_string_str ( /*_.OUTDECLNAME__V14*/
+			 melt_string_str ((melt_ptr_t) /*_.OUTDECLNAME__V14*/
 					  meltfptr[11]),
 			 decldatebuf, melt_gccversionstr);
-      /* end  TERMCOMMENTDECLCHK__1 */ ;
+      /* end  TERMCOMMENTDECLCHK__1 runtypesupport_docmd */ ;
     }
     ;
 
@@ -13051,7 +13051,7 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-modes.melt:3507:/ locexp");
-      /* TERMCOMMENTCODECHK__1 */
+      /* runtypesupport_docmd TERMCOMMENTCODECHK__1 */
       time_t nowcode = 0;
       char codedatebuf[48];
       memset (codedatebuf, 0, sizeof (codedatebuf));
