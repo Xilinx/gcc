@@ -51865,13 +51865,13 @@ lab_endgetargs:;
 		  ((melt_ptr_t) ( /*_.NLOC__V13*/ meltfptr[12])) ==
 		  MELTOBMAG_MIXLOC)
 	      {
-		char locbuf[128];
+		char locbuf[256];
 		location_t tloc =
 		  melt_location_mixloc ((melt_ptr_t) /*_.NLOC__V13*/
 					meltfptr[12]);
 		memset (locbuf, 0, sizeof (locbuf));
 		snprintf (locbuf, sizeof (locbuf) - 1,
-			  "{%.110s:%d}",
+			  "{%.200s:%d}",
 			  LOCATION_FILE (tloc), LOCATION_LINE (tloc));
 		meltgc_add_out_raw ((melt_ptr_t) /*_.NODOUT__V15*/
 				    meltfptr[14], locbuf);

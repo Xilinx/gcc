@@ -12459,23 +12459,27 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-outobj.melt:4357:/ locexp");
-      melt_output_strbuf_to_file_no_overwrite ((melt_ptr_t)
-					       ( /*_.DEBUF__V8*/ meltfptr[4]),
-					       melt_string_str ((melt_ptr_t)
-								/*_.MELTDESCPATH__V49*/
-								meltfptr
-								[45]));
+      /*output_sbuf_no_overwrite_strval */
+	melt_output_strbuf_to_file_no_overwrite ((melt_ptr_t)
+						 ( /*_.DEBUF__V8*/
+						  meltfptr[4]),
+						 melt_string_str ((melt_ptr_t)
+								  /*_.MELTDESCPATH__V49*/
+								  meltfptr
+								  [45]));
     }
     ;
 
     {
       MELT_LOCATION ("warmelt-outobj.melt:4358:/ locexp");
-      melt_output_strbuf_to_file_no_overwrite ((melt_ptr_t)
-					       ( /*_.TIBUF__V9*/ meltfptr[5]),
-					       melt_string_str ((melt_ptr_t)
-								/*_.MELTTIMEPATH__V54*/
-								meltfptr
-								[47]));
+      /*output_sbuf_no_overwrite_strval */
+	melt_output_strbuf_to_file_no_overwrite ((melt_ptr_t)
+						 ( /*_.TIBUF__V9*/
+						  meltfptr[5]),
+						 melt_string_str ((melt_ptr_t)
+								  /*_.MELTTIMEPATH__V54*/
+								  meltfptr
+								  [47]));
     }
     ;
 

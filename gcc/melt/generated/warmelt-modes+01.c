@@ -20210,11 +20210,12 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-modes.melt:1205:/ locexp");
-      time_t now = 0;
+      /* makedoc_genoutput OUTDAT__1 */ time_t now = 0;
       time (&now);
-      meltgc_add_out_raw ( /*_.OUTB__V13*/ meltfptr[12],
+      meltgc_add_out_raw ((melt_ptr_t) /*_.OUTB__V13*/ meltfptr[12],
 			  "@c **** generated ");
-      meltgc_add_out_raw ( /*_.OUTB__V13*/ meltfptr[12], ctime (&now));
+      meltgc_add_out_raw ((melt_ptr_t) /*_.OUTB__V13*/ meltfptr[12],
+			  ctime (&now));
       ;
     }
     ;
@@ -20550,10 +20551,12 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-modes.melt:1261:/ locexp");
-      melt_output_strbuf_to_file (( /*_.OUTB__V13*/ meltfptr[12]),
-				  melt_string_str ((melt_ptr_t)
-						   /*_.OUTARG__V3*/
-						   meltfptr[2]));
+      /*output_sbuf_strval */
+	melt_output_strbuf_to_file ((melt_ptr_t)
+				    ( /*_.OUTB__V13*/ meltfptr[12]),
+				    melt_string_str ((melt_ptr_t)
+						     /*_.OUTARG__V3*/
+						     meltfptr[2]));
     }
     ;
     MELT_LOCATION ("warmelt-modes.melt:1262:/ quasiblock");
@@ -20602,7 +20605,7 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-modes.melt:1265:/ locexp");
-	    /*INFORMDOCOUNTCHK__1 */
+	    /*makedoc_genoutput INFORMDOCOUNTCHK__1 */
 	    inform (UNKNOWN_LOCATION,
 		    "MELT makedoc [#%ld]: generated %ld documentation items",
 		    melt_dbgcounter, /*_#COUNTDOC__L5*/ meltfnum[1]);

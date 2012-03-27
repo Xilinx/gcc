@@ -13031,10 +13031,12 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-modes.melt:3502:/ locexp");
-      melt_output_strbuf_to_file (( /*_.OUTDECLBUF__V25*/ meltfptr[23]),
-				  melt_string_str ((melt_ptr_t)
-						   /*_.OUTDECLNAME__V14*/
-						   meltfptr[11]));
+      /*output_sbuf_strval */
+	melt_output_strbuf_to_file ((melt_ptr_t)
+				    ( /*_.OUTDECLBUF__V25*/ meltfptr[23]),
+				    melt_string_str ((melt_ptr_t)
+						     /*_.OUTDECLNAME__V14*/
+						     meltfptr[11]));
     }
     ;
 
@@ -13068,10 +13070,12 @@ lab_endgetargs:;
 
     {
       MELT_LOCATION ("warmelt-modes.melt:3520:/ locexp");
-      melt_output_strbuf_to_file (( /*_.OUTCODEBUF__V26*/ meltfptr[25]),
-				  melt_string_str ((melt_ptr_t)
-						   /*_.OUTCODENAME__V18*/
-						   meltfptr[15]));
+      /*output_sbuf_strval */
+	melt_output_strbuf_to_file ((melt_ptr_t)
+				    ( /*_.OUTCODEBUF__V26*/ meltfptr[25]),
+				    melt_string_str ((melt_ptr_t)
+						     /*_.OUTCODENAME__V18*/
+						     meltfptr[15]));
     }
     ;
 
