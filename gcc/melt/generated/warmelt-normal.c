@@ -4989,7 +4989,8 @@ lab_endgetargs:;
 
 
    /*_.CURPREDEF__V10*/ meltfptr[9] =
-	  (melt_globpredef ( /*_#IX__L2*/ meltfnum[1]));;
+	  /*get_globpredef */
+	  ((melt_ptr_t) melt_globpredef ( /*_#IX__L2*/ meltfnum[1]));;
 	MELT_LOCATION ("warmelt-normal.melt:836:/ checkinterrupt");
 	MELT_CHECK_INTERRUPT ();
 	;
