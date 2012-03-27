@@ -350,14 +350,14 @@
 (define_insn "bswaphi2"
   [(set (match_operand:HI 0 "register_operand" "+r")
         (bswap:HI (match_dup 0)))]
-  "TARGET_REORDER"
+  "TARGET_HAS_SWAP && TARGET_REORDER"
   "swaph %0, %0"
 )
 
 (define_insn "bswapsi2"
   [(set (match_operand:SI 0 "register_operand" "=r")
         (bswap:SI (match_operand:SI 1 "register_operand" "r")))]
-  "TARGET_REORDER"
+  "TARGET_HAS_SWAP && TARGET_REORDER"
   "swapb %0, %1"
 )
 
@@ -365,7 +365,7 @@
 (define_insn "bswap"
   [(set (match_operand:HI 0 "register_operand" "=r")
         (bswap:HI (match_operand:HI 1 "register_operand" "r")))]
-  "TARGET_REORDER"
+  "TARGET_HAS_SWAP && TARGET_REORDER"
   "swaph %0, %1"
 )
 

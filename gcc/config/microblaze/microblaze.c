@@ -146,6 +146,9 @@ int microblaze_no_unsafe_delay;
 /* Set to one if the targeted core has the CLZ insn.  */
 int microblaze_has_clz = 0;
 
+/* Set to one if the targeted core has the swapb and swaph insn.  */
+int microblaze_has_swap = 0;
+
 /* Which CPU pipeline do we use. We haven't really standardized on a CPU 
    version having only a particular type of pipeline. There can still be 
    options on the CPU to scale pipeline features up or down. :( 
@@ -1404,10 +1407,16 @@ microblaze_option_override (void)
 
   ver = MICROBLAZE_VERSION_COMPARE (microblaze_select_cpu, "v8.10.a");
   microblaze_has_clz = 1;
+  microblaze_has_swap = 1;
   if (ver < 0)
     {
         /* MicroBlaze prior to 8.10.a didn't have clz.  */
         microblaze_has_clz = 0;
+        /* MicroBlaze prior to 8.10a didn't have swapb or swaph insns. */
+        microblaze_has_swap = 0;
+        if (TARGET_REORDER)
+          warning (0,
+                 "-mxl-reorder can be used only with -mcpu=v8.10.a or greater");
     }
   if (TARGET_MULTIPLY_HIGH && TARGET_SOFT_MUL)
     error ("-mxl-multiply-high requires -mno-xl-soft-mul");
