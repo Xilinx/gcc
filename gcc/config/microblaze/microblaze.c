@@ -1407,16 +1407,20 @@ microblaze_option_override (void)
 
   ver = MICROBLAZE_VERSION_COMPARE (microblaze_select_cpu, "v8.10.a");
   microblaze_has_clz = 1;
-  microblaze_has_swap = 1;
   if (ver < 0)
     {
         /* MicroBlaze prior to 8.10.a didn't have clz.  */
         microblaze_has_clz = 0;
-        /* MicroBlaze prior to 8.10a didn't have swapb or swaph insns. */
+    }
+  ver = MICROBLAZE_VERSION_COMPARE (microblaze_select_cpu, "v8.30.a");
+  microblaze_has_swap = 1;
+  if (ver < 0)
+    {
+        /* MicroBlaze prior to 8.30a didn't have swapb or swaph insns. */
         microblaze_has_swap = 0;
         if (TARGET_REORDER)
           warning (0,
-                 "-mxl-reorder can be used only with -mcpu=v8.10.a or greater");
+                 "-mxl-reorder can be used only with -mcpu=v8.30.a or greater");
     }
   if (TARGET_MULTIPLY_HIGH && TARGET_SOFT_MUL)
     error ("-mxl-multiply-high requires -mno-xl-soft-mul");
