@@ -2166,11 +2166,22 @@ static GTY(()) tree weak_decls;
 void
 assemble_external (tree decl ATTRIBUTE_UNUSED)
 {
-  /* Because most platforms do not define ASM_OUTPUT_EXTERNAL, the
-     main body of this code is only rarely exercised.  To provide some
-     testing, on all platforms, we make sure that the ASM_OUT_FILE is
-     open.  If it's not, we should not be calling this function.  */
+  /*  Make sure that the ASM_OUT_FILE is open.
+      If it's not, we should not be calling this function.  */
   gcc_assert (asm_out_file);
+
+  /* In a perfect world, the following condition would be true.
+     Sadly, the Java and Go front ends emit assembly *from the front end*,
+     bypassing the call graph.  See PR52739.  Fix before GCC 4.8.  */
+#if 0
+  /* This function should only be called if we are expanding, or have
+     expanded, to RTL.
+     Ideally, only final.c would be calling this function, but it is
+     not clear whether that would break things somehow.  See PR 17982
+     for further discussion.  */
+  gcc_assert (cgraph_state == CGRAPH_STATE_EXPANSION
+	      || cgraph_state == CGRAPH_STATE_FINISHED);
+#endif
 
   if (!DECL_P (decl) || !DECL_EXTERNAL (decl) || !TREE_PUBLIC (decl))
     return;

@@ -1,4 +1,48 @@
-2012-03-21  Jason Merrill  <jason@redhat.com>
+2012-03-27  Uros Bizjak  <ubizjak@gmail.com>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/52698
+	* gcc.target/i386/pr52698.c: New test.
+
+2012-03-27  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52720
+	* gcc.dg/torture/pr52720.c: New testcase.
+
+2012-03-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/pack17.adb: New test.
+
+2012-03-27  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	* gcc.target/arm/thumb-ifcvt.c: Only run for -mthumb.
+	* gcc.target/arm/thumb-16bit-ops.c: Likewise.
+
+2012-03-26  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/50052
+	* gcc.dg/ipa/ipa-sra-2.c: Also run on strict-alignment platforms.
+
+2012-03-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52701
+	* gfortran.dg/pr52701.f90: New testcase.
+
+2012-03-26  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	PR tree-optimization/52686
+	* gcc.target/arm/pr52686.c: New test.
+
+2012-03-26  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.target/avr/torture/avr-torture.exp (AVR_TORTURE_OPTIONS):
+	Add "-Os -flto" to list.
+
+2012-03-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/concat2.ad[sb]: New test.
+
+2012-03-24  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/cpp0x/auto3.C: Compile with -pedantic-errors.
 	* g++.dg/cpp0x/trailing2.C: Likewise.

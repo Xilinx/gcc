@@ -1,3 +1,122 @@
+2012-03-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52698
+	* config/i386/i386-protos.h (ix86_legitimize_reload_address):
+	New prototype.
+	* config/i386/i386.h (LEGITIMIZE_RELOAD_ADDRESS): New define.
+	* config/i386/i386.c: Include reload.h.
+	(ix86_legitimize_reload_address): New function.
+
+2012-03-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* opth-gen.awk: Allocated a bit for Mask and InverseMask if it
+	hasn't been allocated.  Define a target macro for Mask and
+	InverseMask if it hasn't been defined.  Remove MaskExists handling.
+
+	* doc/options.texi: Remove MaskNeeded.
+
+2012-03-27  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	PR target/52667
+	* config/sh/sh.c (find_barrier): Add equality check of last_got
+	to avoid going above orig insn. Update comments.
+
+2012-03-27  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52720
+	* fold-const.c (try_move_mult_to_index): Handle &x.array more
+	explicitely.
+
+2012-03-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* expmed.c (store_bit_field): Assert that BITREGION_START is a multiple
+	of a unit before computing the offset in units.
+	* expr.c (get_bit_range): Return the null range if the enclosing record
+	is part of a larger bit field.
+
+2012-03-27  Tristan Gingold  <gingold@adacore.com>
+
+	* config/ia64/vms.h (CASE_VECTOR_MODE): Define.
+	* config/ia64/ia64.md: Remove mode in template.
+	Sign extend operand in expand_simple_binop.
+	* config/ia64/ia64.h (ASM_OUTPUT_ADDR_DIFF_ELT): Use
+	CASE_VECTOR_MODE instead of TARGET_ILP32.
+	(ADDR_VEC_ALIGN): Make it depends on CASE_VECTOR_MODE.
+
+2012-03-26  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* varasm.c (assemble_external): #if 0 out the new assert from the
+	previous commit, it breaks the Java and Go front ends.
+
+2012-03-26  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* toplev.c (check_global_declaration_1): Do not call assemble_external.
+	* expr.c (emit_block_move_libcall_fn): Likewise.
+	(clear_storage_libcall_fn): Likewise.
+	(expand_expr_addr_expr_1): Likewise.
+	(expand_expr_real_1): Likewise.
+	* calls.c (rtx_for_function_call): Likewise.
+
+	* varasm.c (assemble_external): Assert this function is only called
+	during or after expanding to RTL.
+
+2012-03-26  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/50052
+	* tree-sra.c (tree_non_aligned_mem_p): Removed.
+	(tree_non_aligned_mem_for_access_p): Likewise.
+	(build_accesses_from_assign): Removed strict alignment requirements
+	checks.
+	(access_precludes_ipa_sra_p): Likewise.
+
+2012-03-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52701
+	* tree-vect-loop.c (vect_analyze_scalar_cycles_1): Always
+	compute and set the evolution part of PHI nodes.
+
+2012-03-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52721
+	* tree-vect-stmts.c (vect_init_vector): Handle scalars.
+
+2012-03-26  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	PR tree-optimization/52686
+	* tree-vect-data-refs.c (vect_get_smallest_scalar_type): Handle
+	WIDEN_LSHIFT_EXPR.
+
+2012-03-26  Tristan Gingold  <gingold@adacore.com>
+
+	* config/alpha/vms.h (LINK_SPEC): Simplify.
+	(STARTFILE_SPEC): Remove -mvms-return-codes handling.
+	(NAME__MAIN, SYMBOL__MAIN): Remove.
+	(VMS_DEBUG_MAIN_POINTER): Remove.
+	* config/ia64/vms.h: Likewise.
+	* config/alpha/alpha.c (alpha_start_function): Move vms_debug_main
+	code to vms.c.  Call vms_start_function.
+	* config/ia64/ia64.c (ia64_start_function): Likewise.
+	* config/vms/vms-protos.h (vms_start_function): Declare.
+	* config/vms/vms.c (vms_start_function): New function.
+	* config/vms/vms.h (MATH_LIBRARY): Define.
+	(VMS_DEBUG_MAIN_POINTER): Define.
+
+2012-03-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/52629
+	* reload1.c (count_pseudo): Short-circuit common case.
+	(count_spilled_pseudo): Return early for pseudos without hard regs.
+	Assert that the pseudo has got a hard reg before manipulating it.
+
+2012-03-24  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/51663
+	* varpool.c (varpool_finalize_decl): Handle toplevel_reorder here.
+	(decide_is_variable_needed): Do not handle toplevel reorder here.
+	* cgraph.h (varpool_can_remove_if_no_refs): Likewise.
+	* ipa.c (cgraph_remove_unreachable_nodes): Remove unreachable vars
+	even at -O0.
+
 2012-03-24  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* expr.c (optimize_bitfield_assignment_op) <BIT_IOR_EXPR>: Use str_mode
