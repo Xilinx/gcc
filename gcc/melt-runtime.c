@@ -8538,13 +8538,18 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
       break;
     /* ignore comments and short lines */
     if (desclinlen < 4) continue;
-    if (descline[0] == '/' && descline[1] == '*') continue;
-    if (descline[0] == '/' && descline[1] == '/') continue;
+    if (descline[0] == '/' && descline[1] == '*') 
+      continue;
+    if (descline[0] == '/' && descline[1] == '/') 
+      continue;
+    /* ignore lines with extern "C" */
+    if (strstr(descline, "extern") && strstr(descline, "\"C\"")) 
+      continue;
     debugeprintf ("melt_load_module_index #%d,len%d: %s", 
 		  desclinenum, (int) desclinlen, descline);
     /* parse the melt_versionmeltstr */
     if (descversionmelt == NULL
-	&& (pc = strstr(descline, "melt_versionmeltstr[")) != NULL
+	&& (pc = strstr(descline, "melt_versionmeltstr[]")) != NULL
 	&& (pqu1 = strchr (pc, '"')) != NULL
 	&& (pqu2 = strchr (pqu1+1, '"')) != NULL) 
       {
@@ -8554,7 +8559,7 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
       }
     /* parse the melt_modulename */
     if (descmodulename == NULL
-	&& (pc = strstr(descline, "melt_modulename[")) != NULL
+	&& (pc = strstr(descline, "melt_modulename[]")) != NULL
 	&& (pqu1 = strchr (pc, '"')) != NULL
 	&& (pqu2 = strchr (pqu1+1, '"')) != NULL) 
       {
@@ -8562,11 +8567,12 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
 	debugeprintf ("melt_load_module_index found descmodulename %s L%d", 
 		      descmodulename, desclinenum);
       }
-    /* parse the melt_cumulated_hexmd5 */
+    /* parse the melt_cumulated_hexmd5 which should be not too short. */
     if (desccumulatedhexmd5 == NULL
-	&& (pc = strstr(descline, "melt_cumulated_hexmd5[")) != NULL
+	&& (pc = strstr(descline, "melt_cumulated_hexmd5[]")) != NULL
 	&& (pqu1 = strchr (pc, '"')) != NULL
-	&& (pqu2 = strchr (pqu1+1, '"')) != NULL) 
+	&& (pqu2 = strchr (pqu1+2, '"')) != NULL
+	&& pqu2 > pqu1+10 /*maybe more than 10*/) 
       {
 	desccumulatedhexmd5 = melt_c_string_in_descr (pqu1);
 	debugeprintf ("melt_load_module_index found desccumulatedhexmd5 %s L%d", 
