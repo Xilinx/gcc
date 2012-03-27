@@ -93,7 +93,8 @@ GCCMELT_SOURCEDIR=$(dir $(GCCMELT_MODULE_SOURCEBASE))
 ## these flags should only affect the quality of the generated
 ## binaries. No preprocessor flags please here!
 GCCMELT_OPTIMIZED_FLAGS ?= -O1
-GCCMELT_QUICKLYBUILT_FLAGS ?= -O0 -Wc++-compat
+#could add -Wc++-compat in GCCMELT_QUICKLYBUILT_FLAGS below
+GCCMELT_QUICKLYBUILT_FLAGS ?= -O0 
 GCCMELT_DYNAMIC_FLAGS ?= -O0
 GCCMELT_DEBUGNOLINE_FLAGS ?= -g
 
