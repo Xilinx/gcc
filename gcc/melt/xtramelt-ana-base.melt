@@ -115,7 +115,7 @@
 ;; primitive for removing from a map of gimples
 (defprimitive mapgimple_remove (map :gimple gkey) :void
   :doc #{Safely remove in map of gimple $MAP the entry for gimple key $GKEY.}#
-  #{melt_remove_mapgimples(($MAP), ($GKEY))}#)
+  #{melt_remove_mapgimples((melt_ptr_t)($MAP), ($GKEY))}#)
 ;; get the auxiliary data from map of gimples
 (defprimitive mapgimple_aux (map) :value
   :doc #{Safely retrieve the auxiliary data of map of gimples $MAP.}#
@@ -169,7 +169,7 @@
 
 (defprimitive is_edge (val) :long
   :doc #{Test that $VAL is indeed a boxed edge value.}#
-  #{(($VAL) && melt_magic_discr ($VAL) == MELTOBMAG_EDGE)}#)
+  #{(($VAL) && melt_magic_discr ((melt_ptr_t)$VAL) == MELTOBMAG_EDGE)}#)
 
 (defprimitive ==e (:edge e1 e2) :long
   :doc #{Test physical equality, that is identity, of edge stuff $E1 and $E2.}#
@@ -207,7 +207,7 @@
 ;; primitive for removing from a map of edges
 (defprimitive mapedge_remove (map :edge key) :void
   :doc #{Safely remove in map $MAP the entry for edge $EKEY.}#
-  #{melt_remove_mapedges(($map), ($key))}#)
+  #{melt_remove_mapedges((melt_ptr_t)($MAP), ($KEY))}#)
 ;; retrieve the auxiliary data in a map of edges
 (defprimitive mapedge_aux (map) :value
   :doc #{Retrieve the auxiliary data of edge map $MAP.}#
@@ -284,7 +284,7 @@
 ;; primitive for removing from a map of loops
 (defprimitive maploop_remove (map :loop keylo) :void
   :doc #{Safely remove in $MAP entry for loop $KEYLO}#
-  #{melt_remove_maploops(($MAP), ($KEYLO))}#)
+  #{melt_remove_maploops((melt_ptr_t) ($MAP), ($KEYLO))}#)
 
 ;; primitive to get the nth loop of a maploop
 (defprimitive maploop_nth_attr (map :long n) :loop
@@ -3089,7 +3089,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;; primitive for removing from a map of basicblocks
 (defprimitive mapbasicblock_remove (map :basic_block key) :void
   :doc #{Remove from map $MAP the entry for basic_block $KEY.}#
- #{melt_remove_mapbasicblocks(($map), ($key))}#)
+ #{melt_remove_mapbasicblocks((melt_ptr_t) ($MAP), ($KEY))}#)
 
 ;; primitive to get the auxiliary data of a basicblocks map
 (defprimitive mapbasicblock_aux (map) :value
@@ -3203,7 +3203,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 ;; primitive for removing from a map of trees
 (defprimitive maptree_remove (map :tree trkey) :void
   :doc #{Safely remove in map of trees $MAP entry for tree $TRKEY.}#
-  #{melt_remove_maptrees( (struct meltmaptrees_st*) ($MAP), ($TRKEY))}#)
+  #{melt_remove_maptrees((melt_ptr_t) ($MAP), ($TRKEY))}#)
 ;; primitive to retrieve the auxiliary data of a map of trees
 (defprimitive maptree_aux (map) :value
   :doc #{Safely retrieve in map of trees $MAP the auxiliary data.}#

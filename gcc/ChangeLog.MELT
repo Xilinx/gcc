@@ -1,4 +1,9 @@
 
+2011-03-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (is_edge, mapgimple_remove)
+	(maptree_remove, mapedge_remove, maploop_remove, maptree_remove):
+	Add cast for C++.
+
 2011-03-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (gimple_seq_add_seq)
 	(gimple_seq_add_stmt, gimple_seq_boxed_add_seq)
