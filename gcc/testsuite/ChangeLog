@@ -1,3 +1,34 @@
+2012-03-28  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/vect7.ad[sb]: New test.
+
+2012-03-28  Paul Thomas  <pault@gcc.gnu.org>
+	Tobias Burnus  <burnus@gcc.gnu.org>
+
+	PR fortran/52652
+	* gfortran.dg/allocate_class_1.f90 : Change error test.
+	* gfortran.dg/allocate_with_typespec_4.f90 : Change error test.
+	* gfortran.dg/allocate_alloc_opt_1.f90 : Change error test.
+	* gfortran.dg/deallocate_alloc_opt_1.f90 : Change error test.
+
+2012-03-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/52691
+	* gcc.dg/pr52691.c: New test.
+
+	PR middle-end/52750
+	* gcc.c-torture/compile/pr52750.c: New test.
+
+2012-03-28  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/52692
+	* gcc.target/avr/torture/builtins-2.c: New test.
+
+2012-03-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52736
+	* gcc.target/i386/pr52736.c: New test.
+
 2012-03-27  Martin Jambor  <mjambor@suse.cz>
 
 	PR middle-end/52693
