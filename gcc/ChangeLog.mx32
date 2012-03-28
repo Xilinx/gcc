@@ -1,5 +1,10 @@
 2012-03-28  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (isa_opts): Replace OPTION_MASK_ISA_64BIT
+	with OPTION_MASK_ABI_64.
+
+2012-03-28  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (ix86_option_override_internal): Replace
 	TARGET_X86_64 with TARGET_LP64.
 

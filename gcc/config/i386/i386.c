@@ -2657,7 +2657,7 @@ ix86_target_string (HOST_WIDE_INT isa, int flags, const char *arch,
      preceding options while match those first.  */
   static struct ix86_target_opts isa_opts[] =
   {
-    { "-m64",		OPTION_MASK_ISA_64BIT },
+    { "-m64",		OPTION_MASK_ABI_64 },
     { "-mfma4",		OPTION_MASK_ISA_FMA4 },
     { "-mfma",		OPTION_MASK_ISA_FMA },
     { "-mxop",		OPTION_MASK_ISA_XOP },
