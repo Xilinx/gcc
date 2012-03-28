@@ -3121,7 +3121,7 @@ ix86_option_override_internal (bool main_args_p)
 	 on and OPTION_MASK_ABI_64 is off.  We turn off
 	 OPTION_MASK_ABI_X32 if OPTION_MASK_ABI_64 is turned on by
 	 -m64.  */
-      if (TARGET_X86_64)
+      if (TARGET_LP64)
 	ix86_isa_flags &= ~OPTION_MASK_ABI_X32;
 #endif
     }
@@ -3134,10 +3134,10 @@ ix86_option_override_internal (bool main_args_p)
       ix86_isa_flags |= OPTION_MASK_ISA_64BIT;
       ix86_isa_flags &= ~OPTION_MASK_ABI_64;
     }
-  else if (TARGET_X86_64)
+  else if (TARGET_LP64)
     {
       /* Always turn on OPTION_MASK_ISA_64BIT and turn off
-	 OPTION_MASK_ABI_X32 for TARGET_X86_64.  */
+	 OPTION_MASK_ABI_X32 for TARGET_LP64.  */
       ix86_isa_flags |= OPTION_MASK_ISA_64BIT;
       ix86_isa_flags &= ~OPTION_MASK_ABI_X32;
     }

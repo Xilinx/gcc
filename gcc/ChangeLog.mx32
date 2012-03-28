@@ -1,5 +1,13 @@
 2012-03-28  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (ix86_option_override_internal): Replace
+	TARGET_X86_64 with TARGET_LP64.
+
+	* config/i386/i386.h (TARGET_X86_64): Removed.
+	(TARGET_LP64): Set to OPTION_ABI_64.
+
+2012-03-28  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/biarch64.h (TARGET_64BIT_DEFAULT): Replace
 	OPTION_MASK_ISA_X86_64 with OPTION_MASK_ABI_64.
 
