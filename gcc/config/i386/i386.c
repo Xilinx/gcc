@@ -2657,7 +2657,6 @@ ix86_target_string (HOST_WIDE_INT isa, int flags, const char *arch,
      preceding options while match those first.  */
   static struct ix86_target_opts isa_opts[] =
   {
-    { "-m64",		OPTION_MASK_ABI_64 },
     { "-mfma4",		OPTION_MASK_ISA_FMA4 },
     { "-mfma",		OPTION_MASK_ISA_FMA },
     { "-mxop",		OPTION_MASK_ISA_XOP },
@@ -2730,6 +2729,7 @@ ix86_target_string (HOST_WIDE_INT isa, int flags, const char *arch,
   size_t len;
   size_t line_len;
   size_t sep_len;
+  const char *abi;
 
   memset (opts, '\0', sizeof (opts));
 
@@ -2746,6 +2746,21 @@ ix86_target_string (HOST_WIDE_INT isa, int flags, const char *arch,
       opts[num][0] = "-mtune=";
       opts[num++][1] = tune;
     }
+
+  /* Add -m32/-m64/-mx32.  */
+  if ((isa & OPTION_MASK_ISA_64BIT) != 0)
+    {
+      if ((isa & OPTION_MASK_ABI_64) != 0)
+	abi = "-m64";
+      else
+	abi = "-mx32";
+      isa &= ~ (OPTION_MASK_ISA_64BIT
+		| OPTION_MASK_ABI_64
+		| OPTION_MASK_ABI_X32);
+    }
+  else
+    abi = "-m32";
+  opts[num++][0] = abi;
 
   /* Pick out the options in isa options.  */
   for (i = 0; i < ARRAY_SIZE (isa_opts); i++)
