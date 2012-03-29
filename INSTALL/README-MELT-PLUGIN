@@ -182,15 +182,22 @@ the subject line] and to <gcc-melt@googlegroups.com>
 
 ################################################################
 NEWS for 0.9.5 MELT plugin for GCC 4.6 & 4.7
-not released yet
+[[April ?? 2012]] not released yet
 
    Alternative infix syntax is abandoned (it was never implemented)
 
    Accept $(sub sepxr) in macro-string and $[seq sepxr]
 
-   Handle interrupts with asynchronous input channels
+   Handle SIGIO Unix signals with asynchronous input channels
+   (experimental feature)
 
+   Can be compiled by C++ (since GCC 4.7 often is)
 
+   All the values are translated to melt_ptr_t variables, not void*
+   ones.
+   
+
+#######################################################################
 NEWS for 0.9.4.b MELT plugin for GCC 4.6 (and 4.7 when available)
 released on March 04th, 2012
 

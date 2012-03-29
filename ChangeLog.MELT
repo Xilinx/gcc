@@ -1,5 +1,9 @@
 
 2012-03-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{MELT 0.9.5rc1 release}}
+	* INSTALL/README-MELT-PLUGIN: Mention it.
+
+2012-03-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	MELT branch merged with trunk rev 185951 using svnmerge
 
