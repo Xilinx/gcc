@@ -124,7 +124,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
      (add2sbuf_strconst implbuf ")")
      )
    ( (is_a obpr class_symbol)
-     (add2sbuf_strconst implbuf "((void*)(MELT_PREDEF(")
+     (add2sbuf_strconst implbuf "((melt_ptr_t)(MELT_PREDEF(")
      (add2sbuf_string implbuf (unsafe_get_field :named_name obpr))
      (add2sbuf_strconst implbuf ")))")
      )
@@ -231,9 +231,11 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	      (progn
 		(add2sbuf_strconst sbuf "/*uniqueobj*/ if (!")
 		(output_c_code olocvar () sbuf depth)
-		(add2sbuf_strconst sbuf ") ")))
+		(add2sbuf_strconst sbuf ") ")
+		(add2sbuf_indentnl sbuf depth)
+		))
 	  (output_c_code olocvar () sbuf (+i depth 1))
-	  (add2sbuf_strconst sbuf " = (void*)&")
+	  (add2sbuf_strconst sbuf " = (melt_ptr_t )&")
 	  (add2sbuf_string sbuf ptrstr)
 	  (add2sbuf_strconst sbuf "->")
 	  (add2sbuf_string sbuf oname)
@@ -423,7 +425,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (if olocvar
 	(progn
 	  (output_c_code olocvar () sbuf 1)
-	  (add2sbuf_strconst sbuf " = (void*)&")
+	  (add2sbuf_strconst sbuf " = (melt_ptr_t) &")
 	  (add2sbuf_string sbuf ptrstr)
 	  (add2sbuf_strconst sbuf "->")
 	  (add2sbuf_string sbuf cnam)
@@ -476,7 +478,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	(progn
 					; (add2sbuf_strconst sbuf "/*inicloslocvar*/ ")
 	  (output_c_code olocvar () sbuf depthp1)
-	  (add2sbuf_strconst sbuf " = (void*)&")
+	  (add2sbuf_strconst sbuf " = (melt_ptr_t) &")
 	  (add2sbuf_string sbuf ptrstr)
 	  (add2sbuf_strconst sbuf "->")
 	  (add2sbuf_string sbuf cnam)
@@ -543,7 +545,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	(progn
 					; (add2sbuf_strconst sbuf "/*iniroutlocvar*/ ")
 	  (output_c_code olocvar () sbuf 1)
-	  (add2sbuf_strconst sbuf " = (void*)&")
+	  (add2sbuf_strconst sbuf " = (melt_ptr_t) &")
 	  (add2sbuf_string sbuf ptrstr)
 	  (add2sbuf_strconst sbuf "->")
 	  (add2sbuf_string sbuf cnam)
@@ -647,7 +649,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (if olocvar
 	(progn
 	  (output_c_code olocvar () sbuf 1)
-	  (add2sbuf_strconst sbuf " = (void*)&")
+	  (add2sbuf_strconst sbuf " = (melt_ptr_t) &")
 	  (add2sbuf_string sbuf ptrstr)
 	  (add2sbuf_strconst sbuf "->")
 	  (add2sbuf_string sbuf cnam)
@@ -836,7 +838,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (if olocvar
 	(progn
 	  (output_c_code olocvar () sbuf depthp1)
-	  (add2sbuf_strconst sbuf " = (void*)&")
+	  (add2sbuf_strconst sbuf " = (melt_ptr_t) &")
 	  (add2sbuf_string sbuf ptrstr)
 	  (add2sbuf_strconst sbuf "->")
 	  (add2sbuf_string sbuf cnam)
@@ -891,7 +893,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (if olocvar
 	(progn
 	  (output_c_code olocvar () sbuf depthp1)
-	  (add2sbuf_strconst sbuf " = (void*)&")
+	  (add2sbuf_strconst sbuf " = (melt_ptr_t) &")
 	  (add2sbuf_string sbuf ptrstr)
 	  (add2sbuf_strconst sbuf "->")
 	  (add2sbuf_string sbuf cnam)
@@ -936,7 +938,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (if olocvar
 	(progn
 	  (output_c_code olocvar () sbuf depthp1)
-	  (add2sbuf_strconst sbuf " = (void*)&")
+	  (add2sbuf_strconst sbuf " = (melt_ptr_t) &")
 	  (add2sbuf_string sbuf ptrstr)
 	  (add2sbuf_strconst sbuf "->")
 	  (add2sbuf_string sbuf cnam)
@@ -1167,7 +1169,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	  (add2sbuf_strconst dsbuf "#define MELTFRAM_NBVARPTR ")
 	  (add2sbuf_longdec dsbuf nbval)
 	  (add2sbuf_indentnl dsbuf 0)
-	  (add2sbuf_strconst dsbuf "  void* mcfr_varptr[")
+	  (add2sbuf_strconst dsbuf " melt_ptr_t mcfr_varptr[")
 	  (add2sbuf_longdec dsbuf nbval)
 	  (add2sbuf_strconst dsbuf "];")
 	  (add2sbuf_indentnl dsbuf 0))
@@ -1827,7 +1829,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	(add2sbuf_strconst implbuf "/* popped initial frame */")
 	(add2sbuf_indentnl implbuf 0)
 	(add2sbuf_strconst implbuf "{ /* clear initial frame & return */")
-	(add2sbuf_strconst implbuf " void* retval = ")
+	(add2sbuf_strconst implbuf " melt_ptr_t retval = ")
 	(if oretval 
 	    (output_c_code oretval declbuf implbuf 1)
 	  (add2sbuf_strconst implbuf "/*noretval*/ NULL"))
@@ -2755,7 +2757,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
       (add2sbuf_strconst implbuf ")")
       (add2sbuf_indentnl implbuf (+i depth 1))
       (output_c_code oilocv declbuf implbuf (+i depth 1))
-      (add2sbuf_strconst implbuf " = (void*) sy_")
+      (add2sbuf_strconst implbuf " = (melt_ptr_t) sy_")
       (add2sbuf_cident implbuf nsy)
       (add2sbuf_strconst implbuf "; }")
       (add2sbuf_indentnl implbuf depth)
@@ -2790,7 +2792,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
       (add2sbuf_cident implbuf nkw)
       (add2sbuf_strconst implbuf ") ")
       (output_c_code oilocv declbuf implbuf (+i depth 1))
-      (add2sbuf_strconst implbuf " = (void*) kw_")
+      (add2sbuf_strconst implbuf " = (melt_ptr_t) kw_")
       (add2sbuf_cident implbuf nkw)
       (add2sbuf_strconst implbuf "; }")
       (add2sbuf_indentnl implbuf depth)
@@ -3389,7 +3391,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 		   (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
        (add2sbuf_strconst implbuf " =")))
     (add2sbuf_indentnl implbuf (+i depth 1))
-    (add2sbuf_strconst implbuf "meltgc_new_closure((meltobject_ptr_t)(")
+    (add2sbuf_strconst implbuf "(melt_ptr_t) meltgc_new_closure((meltobject_ptr_t)(")
     (output_c_code odiscr declbuf implbuf (get_int boxdepthp1))
     (add2sbuf_strconst implbuf "), (meltroutine_ptr_t)(")
     (output_c_code orout declbuf implbuf (get_int boxdepthp1))

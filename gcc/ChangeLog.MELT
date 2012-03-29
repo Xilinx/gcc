@@ -1,4 +1,13 @@
 
+2011-03-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{all the generated values are declared melt_ptr_t, not void*
+	anymore}}
+
+	* melt/warmelt-genobj.melt (compile2obj_initproc): Emit cast for
+	getprevenv.
+	* melt/warmelt-outobj.melt: Emit melt_ptr_t in all value
+	initializers.
+
 2011-03-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (is_edge, mapgimple_remove)
 	(maptree_remove, mapedge_remove, maploop_remove, maptree_remove):

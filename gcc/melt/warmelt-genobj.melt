@@ -1267,7 +1267,7 @@ $SBUF.}#
 		     (instance class_objcompute
 			       :obdi_destlist lisdest
 			       :obcpt_type ctype_value
-			       :obcpt_expr (make_stringconst discr_verbatim_string "modargp_"))
+			       :obcpt_expr (make_stringconst discr_verbatim_string "/*getprevenv*/ (melt_ptr_t) modargp_"))
 		     )
 	)
       (append_commentconst oiniprolog "compute boxloc")
