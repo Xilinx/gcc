@@ -1,3 +1,344 @@
+2012-03-29  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/50708
+	* double-int.h (rshift_double): Remove.
+	* double-int.c (lshift_double): Use absu_hwi to make count
+	positive.
+	(rshift_double): Make static, take unsigned count argument,
+	remove handling of negative count argument.
+	(double_int_rshift): Dispatch to lshift_double.
+
+2012-03-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/biarch64.h (TARGET_64BIT_DEFAULT): Add
+	OPTION_MASK_ABI_64.
+
+	* config/i386/gnu-user64.h (SPEC_64): Support TARGET_BI_ARCH == 2.
+	(SPEC_X32): Likewise.
+	(MULTILIB_DEFAULTS): Likewise.
+
+	* config/i386/i386.c (isa_opts): Remove -m64.
+	(ix86_target_string): Properly handle -m32/-m64/-mx32.
+	(ix86_option_override_internal): Properly
+	set OPTION_MASK_ISA_64BIT and OPTION_MASK_ISA_X32 as well as
+	handle -m32, -m64 and -mx32.
+
+	* config/i386/i386.h (TARGET_X32): Replace OPTION_ISA_X32
+	with OPTION_ABI_X32.  Moved after TARGET_LP64.
+	(TARGET_LP64): Changed to OPTION_ABI_64.
+
+	* config/i386/i386.opt (m64): Replace ISA_64BIT with ABI_64.
+	(mx32): Replace ISA_X32 with ABI_X32.
+
+2012-03-28  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree.c (tree_size) <VECTOR_CST>: New case.
+
+2012-03-28  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_modes_tieable_p): Handle 32bit AVX modes.
+	(ix86_expand_vector_move_misalign): Remove un-needed gen_lowpart calls.
+
+2012-03-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/52691
+	* tree-ssa-ccp.c (optimize_stdarg_builtin): Optimize
+	__builtin_va_start to __builtin_next_arg if the latter is
+	builtin_decl_explicit_p rather than when it is not.
+
+	PR middle-end/52750
+	* tree-vect-generic.c (vector_element): Perform multiplication
+	for pos in bitsizetype type instead of idx type.
+
+2012-03-28  Richard Guenther  <rguenther@suse.de>
+
+	* loop-init.c (loop_optimizer_init): If loops are preserved
+	perform incremental initialization of required loop features.
+	(loop_optimizer_finalize): If loops are to be preserved only
+	clean up optional loop features.
+	(rtl_loop_done): Forcefully free loops here.
+	* cgraph.c (cgraph_release_function_body): Forcefully free loops.
+	* cfgexpand.c (expand_gimple_cond): Properly add new basic-blocks
+	to existing loops.
+	(construct_init_block): Likewise.
+	(construct_exit_block): Likewise.
+	(gimple_expand_cfg): Clear LOOP_CLOSED_SSA loop state.  Cleanup
+	the CFG after expanding.
+	* cfgloop.c (verify_loop_structure): Calculate or verify dominators.
+	If we needed to calculate them, free them afterwards.
+	* tree-pass.h (PROP_loops): New define.
+	* tree-ssa-loop.c (pass_tree_loop_init): Provide PROP_loops.
+	* basic-block.h (CLEANUP_CFG_CHANGED): New.
+	* cfgcleanup.c (merge_blocks_move): Protect loop latches.
+	(cleanup_cfg): If we did something and have loops around, fix them up.
+	* cse.c (rest_of_handle_cse_after_global_opts): Call cleanup_cfg
+	with CLEANUP_CFG_CHANGED.
+	* cfghooks.c (merge_blocks): If we merge a loop header into
+	its predecessor, update the loop structure.
+	(duplicate_block): If we copy a loop latch, adjust loop state
+	to note we may have multiple latches.
+	(delete_basic_block): Mark loops for fixup if we remove a loop.
+	* cfganal.c (forwarder_block_p): Protect loop latches, headers
+	and preheaders.
+	* cfgrtl.c (rtl_can_merge_blocks): Protect loop latches.
+	(cfg_layout_can_merge_blocks_p): Likewise.
+	* cprop.c (bypass_block): If we create a loop with multiple
+	entries, mark it for removal.
+	* except.c (emit_to_new_bb_before): Add the new basic-block
+	to existing loops.
+	* tree-eh.c (lower_resx): Likewise.
+	* omp-low.c (finalize_task_copyfn): Do not copy PROP_loops.
+	(expand_omp_taskreg): Likewise.
+	* tree-inline.c (initialize_cfun): Likewise.
+	* tree-mudflap.c (add_bb_to_loop): Prototype.
+	(mf_build_check_statement_for): Properly add new basic-blocks
+	to existing loops.
+	* tree-ssa-threadupdate.c (thread_block): Mark loops for fixup
+	if we remove a loop.
+	(thread_through_loop_header): Likewise.
+	* trans-mem.c (tm_log_emit_save_or_restores): Properly add
+	new basic-blocks to existing loops.
+	(expand_transaction): Likewise.
+	* Makefile.in (except.o): Add $(CFGLOOP_H).
+	(expr.o): Likewise.
+	(cgraph.o): Likewise.
+	(cprop.o): Likewise.
+	(cfgexpand.o): Likewise.
+	(cfganal.o): Likewise.
+	(trans-mem.o): Likewise.
+	(tree-eh.o): Likewise.
+
+2012-03-28  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/52692
+	* config/avr/avr.c (TARGET_BUILTIN_DECL): New define.
+	(avr_builtin_decl): New static function.
+	(struct avr_builtin_description, avr_bdesc): Move up.
+	Add GTY marker. Add field fndecl. Remove redundant field id.
+	(avr_init_builtins): Initialize avr_bdesc[ID].fndecl.
+	(avr_expand_builtin): Code cleanup because .id is removed.
+
+2012-03-28  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/52737
+	* config.gcc (tm_file): Remove avr/multilib.h.
+
+	* doc/invoke.texi (AVR Options): Adjust documentation of -mtiny-stack.
+
+	* config/avr/genmultilib.awk: Remove code to generate multilib.h.
+	(BEGIN): Use -msp8 as multilib option instead of -mtiny-stack.
+	* config/avr/t-avr: Remove generation of multilib.h.
+	* config/avr/t-multilib: Regenerate.
+	* config/avr/multilib.h: Remove.
+	* config/avr/avr.opt (-msp8): New option.
+	(avr_sp8): New variable.
+	* config/avr/driver-avr.c (avr_device_to_sp8): New function.
+	* config/avr/avr.h (AVR_HAVE_SPH): New define.
+	(AVR_HAVE_8BIT_SP): Also set by avr_sp8 i.e. -msp8.
+	(avr_device_to_sp8): New prototype.
+	(EXTRA_SPEC_FUNCTIONS): Add { "device_to_sp8", avr_device_to_sp8 }
+	(DRIVER_SELF_SPECS): New define.
+	* config/avr/avr-c.c (avr_cpu_cpp_builtins): New built-in defines:
+	__AVR_SP8__, __AVR_HAVE_SPH__.
+	* config/avr/avr.c (output_movhi): Use AVR_HAVE_SPH instead of
+	AVR_HAVE_8BIT_SP to decide if SP_H is present.
+	(avr_file_start): Ditto.
+
+2012-03-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52736
+	* config/i386/sse.md (sse2_loadlpd splitter): Use offset 0
+	instead of 8 in adjust_address.
+
+2012-03-27  Aurelien Buhrig  <aurelien.buhrig.gcc@gmail.com>
+
+	PR middle-end/51893
+	* expmed.c (store_bit_field_1): Fix wordnum value for big-endian
+	targets.
+
+2012-03-27  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/50751
+	* config/sh/sh.c (sh_legitimize_address, sh_legitimize_reload_address):
+	Rearrange conditional logic.  Move displacement address calculations
+	to ...
+	(sh_find_mov_disp_adjust): ... this new function.
+
+2012-03-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/arm/arm.opt (mapcs): Remove MaskExists.
+	* config/cris/linux.opt (mno-gotplt): Likewise.
+	* config/i386/i386.opt (mhard-float): Likewise.
+	(msse4): Likewise.
+	(mno-sse4): Likewise.
+	* config/m68k/m68k.opt (mhard-float): Likewise.
+	* config/mep/mep.op (mcop32): Likewise.
+	* config/pa/pa-hpux.opt (msio): Likewise.
+	* config/pa/pa64-hpux.opt (mgnu-ld): Likewise.
+	* config/picochip/picochip.opt (mlittle): Likewise.
+	* config/sh/sh.opt (mrenesas): Likewise.
+	* config/sparc/long-double-switch.opt (mlong-double-128): Likewise.
+	* config/sparc/sparc.opt (mhard-float): Likewise.
+	* config/v850/v850.opt (mv850es): Likewise.
+	* config/vax/vax.opt (mg-float): Likewise.
+
+2012-03-27  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/52693
+	* tree-sra.c (sra_modify_assign): Do not call
+	load_assign_lhs_subreplacements when working with an unscalarizable
+	region.
+
+2012-03-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52698
+	* config/i386/i386-protos.h (ix86_legitimize_reload_address):
+	New prototype.
+	* config/i386/i386.h (LEGITIMIZE_RELOAD_ADDRESS): New define.
+	* config/i386/i386.c: Include reload.h.
+	(ix86_legitimize_reload_address): New function.
+
+2012-03-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* opth-gen.awk: Allocated a bit for Mask and InverseMask if it
+	hasn't been allocated.  Define a target macro for Mask and
+	InverseMask if it hasn't been defined.  Remove MaskExists handling.
+
+	* doc/options.texi: Remove MaskExists.
+
+2012-03-27  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	PR target/52667
+	* config/sh/sh.c (find_barrier): Add equality check of last_got
+	to avoid going above orig insn. Update comments.
+
+2012-03-27  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/52720
+	* fold-const.c (try_move_mult_to_index): Handle &x.array more
+	explicitely.
+
+2012-03-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* expmed.c (store_bit_field): Assert that BITREGION_START is a multiple
+	of a unit before computing the offset in units.
+	* expr.c (get_bit_range): Return the null range if the enclosing record
+	is part of a larger bit field.
+
+2012-03-27  Tristan Gingold  <gingold@adacore.com>
+
+	* config/ia64/vms.h (CASE_VECTOR_MODE): Define.
+	* config/ia64/ia64.md: Remove mode in template.
+	Sign extend operand in expand_simple_binop.
+	* config/ia64/ia64.h (ASM_OUTPUT_ADDR_DIFF_ELT): Use
+	CASE_VECTOR_MODE instead of TARGET_ILP32.
+	(ADDR_VEC_ALIGN): Make it depends on CASE_VECTOR_MODE.
+
+2012-03-26  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* varasm.c (assemble_external): #if 0 out the new assert from the
+	previous commit, it breaks the Java and Go front ends.
+
+2012-03-26  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* toplev.c (check_global_declaration_1): Do not call assemble_external.
+	* expr.c (emit_block_move_libcall_fn): Likewise.
+	(clear_storage_libcall_fn): Likewise.
+	(expand_expr_addr_expr_1): Likewise.
+	(expand_expr_real_1): Likewise.
+	* calls.c (rtx_for_function_call): Likewise.
+
+	* varasm.c (assemble_external): Assert this function is only called
+	during or after expanding to RTL.
+
+2012-03-26  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/50052
+	* tree-sra.c (tree_non_aligned_mem_p): Removed.
+	(tree_non_aligned_mem_for_access_p): Likewise.
+	(build_accesses_from_assign): Removed strict alignment requirements
+	checks.
+	(access_precludes_ipa_sra_p): Likewise.
+
+2012-03-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52701
+	* tree-vect-loop.c (vect_analyze_scalar_cycles_1): Always
+	compute and set the evolution part of PHI nodes.
+
+2012-03-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52721
+	* tree-vect-stmts.c (vect_init_vector): Handle scalars.
+
+2012-03-26  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	PR tree-optimization/52686
+	* tree-vect-data-refs.c (vect_get_smallest_scalar_type): Handle
+	WIDEN_LSHIFT_EXPR.
+
+2012-03-26  Tristan Gingold  <gingold@adacore.com>
+
+	* config/alpha/vms.h (LINK_SPEC): Simplify.
+	(STARTFILE_SPEC): Remove -mvms-return-codes handling.
+	(NAME__MAIN, SYMBOL__MAIN): Remove.
+	(VMS_DEBUG_MAIN_POINTER): Remove.
+	* config/ia64/vms.h: Likewise.
+	* config/alpha/alpha.c (alpha_start_function): Move vms_debug_main
+	code to vms.c.  Call vms_start_function.
+	* config/ia64/ia64.c (ia64_start_function): Likewise.
+	* config/vms/vms-protos.h (vms_start_function): Declare.
+	* config/vms/vms.c (vms_start_function): New function.
+	* config/vms/vms.h (MATH_LIBRARY): Define.
+	(VMS_DEBUG_MAIN_POINTER): Define.
+
+2012-03-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/52629
+	* reload1.c (count_pseudo): Short-circuit common case.
+	(count_spilled_pseudo): Return early for pseudos without hard regs.
+	Assert that the pseudo has got a hard reg before manipulating it.
+
+2012-03-24  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/51663
+	* varpool.c (varpool_finalize_decl): Handle toplevel_reorder here.
+	(decide_is_variable_needed): Do not handle toplevel reorder here.
+	* cgraph.h (varpool_can_remove_if_no_refs): Likewise.
+	* ipa.c (cgraph_remove_unreachable_nodes): Remove unreachable vars
+	even at -O0.
+
+2012-03-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* expr.c (optimize_bitfield_assignment_op) <BIT_IOR_EXPR>: Use str_mode
+	and str_bitsize instead of more convoluted expressions.
+
+2012-03-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/52610
+	* config/sparc/sparc.h (ASM_CPU_SPEC): Pass -Av8 if -mcpu=leon.
+
+2012-03-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/52656
+	* config/sparc/sparc.c (sparc_handle_vis_mul8x16): Fix pasto.
+
+2012-03-23  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (build_accesses_from_assign): Remove FIXME comment.
+
+2012-03-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52678
+	* tree-vectorizer.h (struct _stmt_vec_info): Add
+	loop_phi_evolution_part member.
+	(STMT_VINFO_LOOP_PHI_EVOLUTION_PART): New define.
+	* tree-vect-loop.c (vect_analyze_scalar_cycles_1): Initialize
+	STMT_VINFO_LOOP_PHI_EVOLUTION_PART.
+	* tree-vect-loop-manip.c (vect_update_ivs_after_vectorizer):
+	Use the cached evolution part and the PHI nodes value from
+	the loop preheader edge instead of re-analyzing the evolution.
+
 2012-03-22  Maxim Kuvyrkov  <maxim@codesourcery.com>
 
 	* config/mips/mips-tables.opt: Update.

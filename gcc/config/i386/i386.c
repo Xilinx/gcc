@@ -47,6 +47,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target-def.h"
 #include "common/common-target.h"
 #include "langhooks.h"
+#include "reload.h"
 #include "cgraph.h"
 #include "gimple.h"
 #include "dwarf2.h"
@@ -2656,7 +2657,6 @@ ix86_target_string (HOST_WIDE_INT isa, int flags, const char *arch,
      preceding options while match those first.  */
   static struct ix86_target_opts isa_opts[] =
   {
-    { "-m64",		OPTION_MASK_ISA_64BIT },
     { "-mfma4",		OPTION_MASK_ISA_FMA4 },
     { "-mfma",		OPTION_MASK_ISA_FMA },
     { "-mxop",		OPTION_MASK_ISA_XOP },
@@ -2729,6 +2729,7 @@ ix86_target_string (HOST_WIDE_INT isa, int flags, const char *arch,
   size_t len;
   size_t line_len;
   size_t sep_len;
+  const char *abi;
 
   memset (opts, '\0', sizeof (opts));
 
@@ -2745,6 +2746,21 @@ ix86_target_string (HOST_WIDE_INT isa, int flags, const char *arch,
       opts[num][0] = "-mtune=";
       opts[num++][1] = tune;
     }
+
+  /* Add -m32/-m64/-mx32.  */
+  if ((isa & OPTION_MASK_ISA_64BIT) != 0)
+    {
+      if ((isa & OPTION_MASK_ABI_64) != 0)
+	abi = "-m64";
+      else
+	abi = "-mx32";
+      isa &= ~ (OPTION_MASK_ISA_64BIT
+		| OPTION_MASK_ABI_64
+		| OPTION_MASK_ABI_X32);
+    }
+  else
+    abi = "-m32";
+  opts[num++][0] = abi;
 
   /* Pick out the options in isa options.  */
   for (i = 0; i < ARRAY_SIZE (isa_opts); i++)
@@ -3101,8 +3117,45 @@ ix86_option_override_internal (bool main_args_p)
   SUBSUBTARGET_OVERRIDE_OPTIONS;
 #endif
 
+  /* Turn off both OPTION_MASK_ABI_64 and OPTION_MASK_ABI_X32 if
+     TARGET_64BIT is false.  */
+  if (!TARGET_64BIT)
+    ix86_isa_flags &= ~(OPTION_MASK_ABI_64 | OPTION_MASK_ABI_X32);
+#ifdef TARGET_BI_ARCH
+  else
+    {
+#if TARGET_BI_ARCH == 1
+      /* When TARGET_BI_ARCH == 1, by default, OPTION_MASK_ABI_64
+	 is on and OPTION_MASK_ABI_X32 is off.  We turn off
+	 OPTION_MASK_ABI_64 if OPTION_MASK_ABI_X32 is turned on by
+	 -mx32.  */
+      if (TARGET_X32)
+	ix86_isa_flags &= ~OPTION_MASK_ABI_64;
+#else
+      /* When TARGET_BI_ARCH == 2, by default, OPTION_MASK_ABI_X32 is
+	 on and OPTION_MASK_ABI_64 is off.  We turn off
+	 OPTION_MASK_ABI_X32 if OPTION_MASK_ABI_64 is turned on by
+	 -m64.  */
+      if (TARGET_LP64)
+	ix86_isa_flags &= ~OPTION_MASK_ABI_X32;
+#endif
+    }
+#endif
+
   if (TARGET_X32)
-    ix86_isa_flags |= OPTION_MASK_ISA_64BIT;
+    {
+      /* Always turn on OPTION_MASK_ISA_64BIT and turn off
+	 OPTION_MASK_ABI_64 for TARGET_X32.  */
+      ix86_isa_flags |= OPTION_MASK_ISA_64BIT;
+      ix86_isa_flags &= ~OPTION_MASK_ABI_64;
+    }
+  else if (TARGET_LP64)
+    {
+      /* Always turn on OPTION_MASK_ISA_64BIT and turn off
+	 OPTION_MASK_ABI_X32 for TARGET_LP64.  */
+      ix86_isa_flags |= OPTION_MASK_ISA_64BIT;
+      ix86_isa_flags &= ~OPTION_MASK_ABI_X32;
+    }
 
   /* -fPIC is the default for x86_64.  */
   if (TARGET_MACHO && TARGET_64BIT)
@@ -12010,6 +12063,64 @@ legitimate_pic_address_disp_p (rtx disp)
   return false;
 }
 
+/* Our implementation of LEGITIMIZE_RELOAD_ADDRESS.  Returns a value to
+   replace the input X, or the original X if no replacement is called for.
+   The output parameter *WIN is 1 if the calling macro should goto WIN,
+   0 if it should not.  */
+
+bool
+ix86_legitimize_reload_address (rtx x,
+				enum machine_mode mode ATTRIBUTE_UNUSED,
+				int opnum, int type,
+				int ind_levels ATTRIBUTE_UNUSED)
+{
+  /* Reload can generate:
+
+     (plus:DI (plus:DI (unspec:DI [(const_int 0 [0])] UNSPEC_TP)
+		       (reg:DI 97))
+	      (reg:DI 2 cx))
+
+     This RTX is rejected from ix86_legitimate_address_p due to
+     non-strictness of base register 97.  Following this rejection, 
+     reload pushes all three components into separate registers,
+     creating invalid memory address RTX.
+
+     Following code reloads only the invalid part of the
+     memory address RTX.  */
+
+  if (GET_CODE (x) == PLUS
+      && REG_P (XEXP (x, 1))
+      && GET_CODE (XEXP (x, 0)) == PLUS
+      && REG_P (XEXP (XEXP (x, 0), 1)))
+    {
+      rtx base, index;
+      bool something_reloaded = false;
+
+      base = XEXP (XEXP (x, 0), 1);      
+      if (!REG_OK_FOR_BASE_STRICT_P (base))
+	{
+	  push_reload (base, NULL_RTX, &XEXP (XEXP (x, 0), 1), NULL,
+		       BASE_REG_CLASS, GET_MODE (x), VOIDmode, 0, 0,
+		       opnum, (enum reload_type) type);
+	  something_reloaded = true;
+	}
+
+      index = XEXP (x, 1);
+      if (!REG_OK_FOR_INDEX_STRICT_P (index))
+	{
+	  push_reload (index, NULL_RTX, &XEXP (x, 1), NULL,
+		       INDEX_REG_CLASS, GET_MODE (x), VOIDmode, 0, 0,
+		       opnum, (enum reload_type) type);
+	  something_reloaded = true;
+	}
+
+      gcc_assert (something_reloaded);
+      return true;
+    }
+
+  return false;
+}
+
 /* Recognizes RTL expressions that are valid memory addresses for an
    instruction.  The MODE argument is the machine mode for the MEM
    expression that wants to use this address.
@@ -15772,17 +15883,18 @@ ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
 	  switch (GET_MODE_SIZE (mode))
 	    {
 	    case 16:
-	      /*  If we're optimizing for size, movups is the smallest.  */
 	      if (TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
 		{
 		  op0 = gen_lowpart (V4SFmode, op0);
 		  op1 = gen_lowpart (V4SFmode, op1);
 		  emit_insn (gen_sse_movups (op0, op1));
-		  return;
 		}
-	      op0 = gen_lowpart (V16QImode, op0);
-	      op1 = gen_lowpart (V16QImode, op1);
-	      emit_insn (gen_sse2_movdqu (op0, op1));
+	      else
+		{
+		  op0 = gen_lowpart (V16QImode, op0);
+		  op1 = gen_lowpart (V16QImode, op1);
+		  emit_insn (gen_sse2_movdqu (op0, op1));
+		}
 	      break;
 	    case 32:
 	      op0 = gen_lowpart (V32QImode, op0);
@@ -15794,16 +15906,10 @@ ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
 	    }
 	  break;
 	case MODE_VECTOR_FLOAT:
-	  op0 = gen_lowpart (mode, op0);
-	  op1 = gen_lowpart (mode, op1);
-
 	  switch (mode)
 	    {
 	    case V4SFmode:
 	      emit_insn (gen_sse_movups (op0, op1));
-	      break;
-	    case V8SFmode:
-	      ix86_avx256_split_vector_move_misalign (op0, op1);
 	      break;
 	    case V2DFmode:
 	      if (TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
@@ -15811,10 +15917,11 @@ ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
 		  op0 = gen_lowpart (V4SFmode, op0);
 		  op1 = gen_lowpart (V4SFmode, op1);
 		  emit_insn (gen_sse_movups (op0, op1));
-		  return;
 		}
-	      emit_insn (gen_sse2_movupd (op0, op1));
+	      else
+		emit_insn (gen_sse2_movupd (op0, op1));
 	      break;
+	    case V8SFmode:
 	    case V4DFmode:
 	      ix86_avx256_split_vector_move_misalign (op0, op1);
 	      break;
@@ -15859,8 +15966,6 @@ ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
 
 	  if (TARGET_SSE_UNALIGNED_LOAD_OPTIMAL)
 	    {
-	      op0 = gen_lowpart (V2DFmode, op0);
-	      op1 = gen_lowpart (V2DFmode, op1);
 	      emit_insn (gen_sse2_movupd (op0, op1));
 	      return;
 	    }
@@ -15925,8 +16030,8 @@ ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
 	  return;
 	}
 
-      /* ??? Similar to above, only less clear because of quote
-	 typeless stores unquote.  */
+      /* ??? Similar to above, only less clear
+	 because of typeless stores.  */
       if (TARGET_SSE2 && !TARGET_SSE_TYPELESS_STORES
 	  && GET_MODE_CLASS (mode) == MODE_VECTOR_INT)
         {
@@ -15939,11 +16044,7 @@ ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
       if (TARGET_SSE2 && mode == V2DFmode)
 	{
 	  if (TARGET_SSE_UNALIGNED_STORE_OPTIMAL)
-	    {
-	      op0 = gen_lowpart (V2DFmode, op0);
-	      op1 = gen_lowpart (V2DFmode, op1);
-	      emit_insn (gen_sse2_movupd (op0, op1));
-	    }
+	    emit_insn (gen_sse2_movupd (op0, op1));
 	  else
 	    {
 	      m = adjust_address (op0, DFmode, 0);
@@ -31340,6 +31441,10 @@ ix86_modes_tieable_p (enum machine_mode mode1, enum machine_mode mode2)
 
   /* If MODE2 is only appropriate for an SSE register, then tie with
      any other mode acceptable to SSE registers.  */
+  if (GET_MODE_SIZE (mode2) == 32
+      && ix86_hard_regno_mode_ok (FIRST_SSE_REG, mode2))
+    return (GET_MODE_SIZE (mode1) == 32
+	    && ix86_hard_regno_mode_ok (FIRST_SSE_REG, mode1));
   if (GET_MODE_SIZE (mode2) == 16
       && ix86_hard_regno_mode_ok (FIRST_SSE_REG, mode2))
     return (GET_MODE_SIZE (mode1) == 16
