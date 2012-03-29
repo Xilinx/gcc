@@ -1,3 +1,8 @@
+2012-03-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* include/private/gcconfig.h: (ALIGNMENT): Check GCC 4.0 for x32.
+	(CPP_WORDSZ): Likewise.
+
 2011-12-06  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* include/private/gcconfig.h: (ALIGNMENT): Set to 4 for x32.

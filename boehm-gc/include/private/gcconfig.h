@@ -1974,12 +1974,14 @@
 
 # ifdef X86_64
 #   define MACH_TYPE "X86_64"
-#   ifdef __LP64__
-#     define ALIGNMENT 8
-#     define CPP_WORDSZ 64
-#   else
+    /* __LP64__ is defined for LP64 after GCC 3.3.  If __LP64__ isn't	*/
+    /* defined, it must be x32.					*/
+#   if defined(__GNUC__) && __GNUC__ >= 4 && !defined(__LP64__)
 #     define ALIGNMENT 4
 #     define CPP_WORDSZ 32
+#   else
+#     define ALIGNMENT 8
+#     define CPP_WORDSZ 64
 #   endif
 #   ifndef HBLKSIZE
 #     define HBLKSIZE 4096
