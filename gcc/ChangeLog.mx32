@@ -1,5 +1,10 @@
 2012-03-28  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config.gcc: Don't check if multilib is enabled for
+	--with-multilib-list.
+
+2012-03-28  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (isa_opts): Remove -m64.
 	(ix86_target_string): Properly handle -m32/-m64/-mx32.
 

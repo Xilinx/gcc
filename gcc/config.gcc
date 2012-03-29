@@ -1296,24 +1296,22 @@ x86_64-*-linux* | x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu)
 		;;
 	esac
 	tmake_file="${tmake_file} i386/t-linux64"
-	if test "x$enable_multilib" = "xyes"; then
-		x86_multilibs="${with_multilib_list}"
-		if test "$x86_multilibs" = "default"; then
-			x86_multilibs="m64,m32"
-		fi
-		x86_multilibs=`echo $x86_multilibs | sed -e 's/,/ /g'`
-		for x86_multilib in ${x86_multilibs}; do
-			case ${x86_multilib} in
-			m32 | m64 | mx32)
-				TM_MULTILIB_CONFIG="${TM_MULTILIB_CONFIG},${x86_multilib}"
-				;;
-			*)
-				echo "--with-multilib-list=${x86_with_multilib} not supported."
-				exit 1
-			esac
-		done
-		TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
+	x86_multilibs="${with_multilib_list}"
+	if test "$x86_multilibs" = "default"; then
+		x86_multilibs="m64,m32"
 	fi
+	x86_multilibs=`echo $x86_multilibs | sed -e 's/,/ /g'`
+	for x86_multilib in ${x86_multilibs}; do
+		case ${x86_multilib} in
+		m32 | m64 | mx32)
+			TM_MULTILIB_CONFIG="${TM_MULTILIB_CONFIG},${x86_multilib}"
+			;;
+		*)
+			echo "--with-multilib-list=${x86_with_multilib} not supported."
+			exit 1
+		esac
+	done
+	TM_MULTILIB_CONFIG=`echo $TM_MULTILIB_CONFIG | sed 's/^,//'`
 	;;
 i[34567]86-pc-msdosdjgpp*)
 	xm_file=i386/xm-djgpp.h
