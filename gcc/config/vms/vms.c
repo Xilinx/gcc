@@ -23,8 +23,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tree.h"
 #include "vms-protos.h"
-#include "tm.h"
 #include "ggc.h"
+#include "target.h"
+#include "output.h"
 
 /* Correlation of standard CRTL names with DECCRTL function names.  */
 
@@ -42,8 +43,9 @@ along with GCC; see the file COPYING3.  If not see
    rule.  */
 #define VMS_CRTL_BSD44	(1 << 3)
 
-/* Prepend x before the name for printf like functions.  */
-#define VMS_CRTL_PRNTF	(1 << 4)
+/* Prepend x before the name for if 128 bit long doubles are enabled.  This
+   concern mostly 'printf'-like functions.  */
+#define VMS_CRTL_LDBL	(1 << 4)
 
 /* Prepend ga_ for global data.  */
 #define VMS_CRTL_GLOBAL (1 << 5)
@@ -135,7 +137,7 @@ vms_patch_builtins (void)
       if (n->flags & VMS_CRTL_FLOAT)
         res[rlen++] = 't';
 
-      if (n->flags & VMS_CRTL_PRNTF)
+      if (n->flags & VMS_CRTL_LDBL)
         res[rlen++] = 'x';
 
       nlen = strlen (n->name);
@@ -159,9 +161,11 @@ vms_patch_builtins (void)
           alt[1 + nlen + 2] = 0;
           vms_add_crtl_xlat (alt, nlen + 3, res, rlen + nlen);
 
-          use_64 = (((n->flags & VMS_CRTL_64) && POINTER_SIZE == 64)
+          use_64 = (((n->flags & VMS_CRTL_64)
+                     && flag_vms_pointer_size == VMS_POINTER_SIZE_64)
                     || ((n->flags & VMS_CRTL_MALLOC)
-                        && TARGET_MALLOC64));
+                        && flag_vms_malloc64
+                        && flag_vms_pointer_size != VMS_POINTER_SIZE_NONE));
           if (!use_64)
             vms_add_crtl_xlat (n->name, nlen, res, rlen + nlen);
 
@@ -189,6 +193,45 @@ vms_function_section (tree decl ATTRIBUTE_UNUSED,
                       bool exit ATTRIBUTE_UNUSED)
 {
   return NULL;
+}
+
+/* Additionnal VMS specific code for start_function.  */
+
+/* Must be kept in sync with libgcc/config/vms/vms-ucrt0.c  */
+#define VMS_MAIN_FLAGS_SYMBOL "__gcc_main_flags"
+#define MAIN_FLAG_64BIT (1 << 0)
+#define MAIN_FLAG_POSIX (1 << 1)
+
+void
+vms_start_function (const char *fnname)
+{
+#if VMS_DEBUGGING_INFO
+  if (vms_debug_main
+      && debug_info_level > DINFO_LEVEL_NONE
+      && strncmp (vms_debug_main, fnname, strlen (vms_debug_main)) == 0)
+    {
+      targetm.asm_out.globalize_label (asm_out_file, VMS_DEBUG_MAIN_POINTER);
+      ASM_OUTPUT_DEF (asm_out_file, VMS_DEBUG_MAIN_POINTER, fnname);
+      dwarf2out_vms_debug_main_pointer ();
+      vms_debug_main = 0;
+    }
+#endif
+
+  /* Registers flags used for function main.  This is necessary for
+     crt0 code.  */
+  if (strcmp (fnname, "main") == 0)
+    {
+      unsigned int flags = 0;
+
+      if (flag_vms_pointer_size == VMS_POINTER_SIZE_64)
+	flags |= MAIN_FLAG_64BIT;
+      if (!flag_vms_return_codes)
+	flags |= MAIN_FLAG_POSIX;
+
+      targetm.asm_out.globalize_label (asm_out_file, VMS_MAIN_FLAGS_SYMBOL);
+      assemble_name (asm_out_file, VMS_MAIN_FLAGS_SYMBOL);
+      fprintf (asm_out_file, " = %u\n", flags);
+    }
 }
 
 #include "gt-vms.h"

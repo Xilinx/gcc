@@ -334,10 +334,6 @@ decide_is_variable_needed (struct varpool_node *node, tree decl)
       && !DECL_EXTERNAL (decl))
     return true;
 
-  /* When not reordering top level variables, we have to assume that
-     we are going to keep everything.  */
-  if (!flag_toplevel_reorder)
-    return true;
   return false;
 }
 
@@ -405,7 +401,11 @@ varpool_finalize_decl (tree decl)
   if (node->needed)
     varpool_enqueue_needed_node (node);
   node->finalized = true;
-  if (TREE_THIS_VOLATILE (decl) || DECL_PRESERVE_P (decl))
+  if (TREE_THIS_VOLATILE (decl) || DECL_PRESERVE_P (decl)
+      /* Traditionally we do not eliminate static variables when not
+	 optimizing and when not doing toplevel reoder.  */
+      || (!flag_toplevel_reorder && !DECL_COMDAT (node->decl)
+	  && !DECL_ARTIFICIAL (node->decl)))
     node->force_output = true;
 
   if (decide_is_variable_needed (node, decl))
@@ -477,6 +477,16 @@ varpool_analyze_pending_decls (void)
       if (node->alias && node->alias_of)
 	{
 	  struct varpool_node *tgt = varpool_node (node->alias_of);
+          struct varpool_node *n;
+
+	  for (n = tgt; n && n->alias;
+	       n = n->analyzed ? varpool_alias_aliased_node (n) : NULL)
+	    if (n == node)
+	      {
+		error ("variable %q+D part of alias cycle", node->decl);
+		node->alias = false;
+		continue;
+	      }
 	  if (!VEC_length (ipa_ref_t, node->ref_list.references))
 	    ipa_record_reference (NULL, node, NULL, tgt, IPA_REF_ALIAS, NULL);
 	  /* C++ FE sometimes change linkage flags after producing same body aliases.  */

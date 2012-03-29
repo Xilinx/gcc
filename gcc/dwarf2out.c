@@ -879,11 +879,6 @@ output_call_frame_info (int for_eh)
 
   if (for_eh && targetm.terminate_dw2_eh_frame_info)
     dw2_asm_output_data (4, 0, "End of Table");
-#ifdef MIPS_DEBUGGING_INFO
-  /* Work around Irix 6 assembler bug whereby labels at the end of a section
-     get a value of 0.  Putting .align 0 after the label fixes it.  */
-  ASM_OUTPUT_ALIGN (asm_out_file, 0);
-#endif
 
   /* Turn off app to make assembly quicker.  */
   if (flag_debug_asm)
@@ -7407,6 +7402,32 @@ copy_ancestor_tree (dw_die_ref unit, dw_die_ref die, htab_t decl_table)
   return copy;
 }
 
+/* Like clone_tree, but additionally enter all the children into
+   the hash table decl_table.  */
+
+static dw_die_ref
+clone_tree_hash (dw_die_ref die, htab_t decl_table)
+{
+  dw_die_ref c;
+  dw_die_ref clone = clone_die (die);
+  struct decl_table_entry *entry;
+  void **slot = htab_find_slot_with_hash (decl_table, die,
+					  htab_hash_pointer (die), INSERT);
+  /* Assert that DIE isn't in the hash table yet.  If it would be there
+     before, the ancestors would be necessarily there as well, therefore
+     clone_tree_hash wouldn't be called.  */
+  gcc_assert (*slot == HTAB_EMPTY_ENTRY);
+  entry = XCNEW (struct decl_table_entry);
+  entry->orig = die;
+  entry->copy = clone;
+  *slot = entry;
+
+  FOR_EACH_CHILD (die, c,
+		  add_child_die (clone, clone_tree_hash (c, decl_table)));
+
+  return clone;
+}
+
 /* Walk the DIE and its children, looking for references to incomplete
    or trivial types that are unmarked (i.e., that are not in the current
    type_unit).  */
@@ -7443,11 +7464,7 @@ copy_decls_walk (dw_die_ref unit, dw_die_ref die, htab_t decl_table)
           else
             {
               dw_die_ref parent = unit;
-              dw_die_ref copy = clone_tree (targ);
-
-              /* Make sure the cloned tree is marked as part of the
-                 type unit.  */
-              mark_dies (copy);
+	      dw_die_ref copy = clone_die (targ);
 
               /* Record in DECL_TABLE that TARG has been copied.
                  Need to do this now, before the recursive call,
@@ -7457,6 +7474,14 @@ copy_decls_walk (dw_die_ref unit, dw_die_ref die, htab_t decl_table)
               entry->orig = targ;
               entry->copy = copy;
               *slot = entry;
+
+	      FOR_EACH_CHILD (targ, c,
+			      add_child_die (copy,
+					     clone_tree_hash (c, decl_table)));
+
+              /* Make sure the cloned tree is marked as part of the
+                 type unit.  */
+              mark_dies (copy);
 
               /* If TARG has surrounding context, copy its ancestor tree
                  into the new type unit.  */
@@ -9899,9 +9924,6 @@ modified_type_die (tree type, int is_const_type, int is_volatile_type,
 	   useful source coordinates anyway.  */
 	name = DECL_NAME (name);
       add_name_attribute (mod_type_die, IDENTIFIER_POINTER (name));
-      add_gnat_descriptive_type_attribute (mod_type_die, type, context_die);
-      if (TYPE_ARTIFICIAL (type))
-	add_AT_flag (mod_type_die, DW_AT_artificial, 1);
     }
   /* This probably indicates a bug.  */
   else if (mod_type_die && mod_type_die->die_tag == DW_TAG_base_type)
@@ -9929,6 +9951,10 @@ modified_type_die (tree type, int is_const_type, int is_volatile_type,
 
   if (sub_die != NULL)
     add_AT_die_ref (mod_type_die, DW_AT_type, sub_die);
+
+  add_gnat_descriptive_type_attribute (mod_type_die, type, context_die);
+  if (TYPE_ARTIFICIAL (type))
+    add_AT_flag (mod_type_die, DW_AT_artificial, 1);
 
   return mod_type_die;
 }
@@ -13302,8 +13328,8 @@ cst_pool_loc_descr (tree loc)
 }
 
 /* Return dw_loc_list representing address of addr_expr LOC
-   by looking for innder INDIRECT_REF expression and turing it
-   into simple arithmetics.  */
+   by looking for inner INDIRECT_REF expression and turning
+   it into simple arithmetics.  */
 
 static dw_loc_list_ref
 loc_list_for_address_of_addr_expr_of_indirect_ref (tree loc, bool toplev)
@@ -13311,8 +13337,7 @@ loc_list_for_address_of_addr_expr_of_indirect_ref (tree loc, bool toplev)
   tree obj, offset;
   HOST_WIDE_INT bitsize, bitpos, bytepos;
   enum machine_mode mode;
-  int volatilep;
-  int unsignedp = TYPE_UNSIGNED (TREE_TYPE (loc));
+  int unsignedp, volatilep = 0;
   dw_loc_list_ref list_ret = NULL, list_ret1 = NULL;
 
   obj = get_inner_reference (TREE_OPERAND (loc, 0),
@@ -13602,8 +13627,7 @@ loc_list_from_tree (tree loc, int want_address)
 	tree obj, offset;
 	HOST_WIDE_INT bitsize, bitpos, bytepos;
 	enum machine_mode mode;
-	int volatilep;
-	int unsignedp = TYPE_UNSIGNED (TREE_TYPE (loc));
+	int unsignedp, volatilep = 0;
 
 	obj = get_inner_reference (loc, &bitsize, &bitpos, &offset, &mode,
 				   &unsignedp, &volatilep, false);
@@ -14299,16 +14323,7 @@ add_data_member_location_attribute (dw_die_ref die, tree decl)
 	  /* The DWARF2 standard says that we should assume that the structure
 	     address is already on the stack, so we can specify a structure
 	     field address by using DW_OP_plus_uconst.  */
-
-#ifdef MIPS_DEBUGGING_INFO
-	  /* ??? The SGI dwarf reader does not handle the DW_OP_plus_uconst
-	     operator correctly.  It works only if we leave the offset on the
-	     stack.  */
-	  op = DW_OP_constu;
-#else
 	  op = DW_OP_plus_uconst;
-#endif
-
 	  loc_descr = new_loc_descr (op, offset, 0);
 	}
     }
@@ -14910,7 +14925,7 @@ fortran_common (tree decl, HOST_WIDE_INT *value)
   enum machine_mode mode;
   HOST_WIDE_INT bitsize, bitpos;
   tree offset;
-  int volatilep = 0, unsignedp = 0;
+  int unsignedp, volatilep = 0;
 
   /* If the decl isn't a VAR_DECL, or if it isn't static, or if
      it does not have a value (the offset into the common area), or if it
@@ -15463,11 +15478,7 @@ add_gnat_descriptive_type_attribute (dw_die_ref die, tree type,
   dtype_die = lookup_type_die (dtype);
   if (!dtype_die)
     {
-      /* The descriptive type indirectly references TYPE if this is also the
-	 case for TYPE itself.  Do not deal with the circularity here.  */
-      TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (type)) = 1;
       gen_type_die (dtype, context_die);
-      TYPE_DECL_SUPPRESS_DEBUG (TYPE_STUB_DECL (type)) = 0;
       dtype_die = lookup_type_die (dtype);
       gcc_assert (dtype_die);
     }
@@ -16341,22 +16352,8 @@ gen_array_type_die (tree type, dw_die_ref context_die)
       return;
     }
 
-  /* ??? The SGI dwarf reader fails for array of array of enum types
-     (e.g. const enum machine_mode insn_operand_mode[2][10]) unless the inner
-     array type comes before the outer array type.  We thus call gen_type_die
-     before we new_die and must prevent nested array types collapsing for this
-     target.  */
-
-#ifdef MIPS_DEBUGGING_INFO
-  gen_type_die (TREE_TYPE (type), context_die);
-  collapse_nested_arrays = false;
-#endif
-
   array_die = new_die (DW_TAG_array_type, scope_die, type);
   add_name_attribute (array_die, type_tag (type));
-  add_gnat_descriptive_type_attribute (array_die, type, context_die);
-  if (TYPE_ARTIFICIAL (type))
-    add_AT_flag (array_die, DW_AT_artificial, 1);
   equate_type_number_to_die (type, array_die);
 
   if (TREE_CODE (type) == VECTOR_TYPE)
@@ -16380,14 +16377,6 @@ gen_array_type_die (tree type, dw_die_ref context_die)
   add_AT_unsigned (array_die, DW_AT_ordering, DW_ORD_row_major);
 #endif
 
-#ifdef MIPS_DEBUGGING_INFO
-  /* The SGI compilers handle arrays of unknown bound by setting
-     AT_declaration and not emitting any subrange DIEs.  */
-  if (TREE_CODE (type) == ARRAY_TYPE
-      && ! TYPE_DOMAIN (type))
-    add_AT_flag (array_die, DW_AT_declaration, 1);
-  else
-#endif
   if (TREE_CODE (type) == VECTOR_TYPE)
     {
       /* For VECTOR_TYPEs we use an array die with appropriate bounds.  */
@@ -16410,11 +16399,11 @@ gen_array_type_die (tree type, dw_die_ref context_die)
 	element_type = TREE_TYPE (element_type);
       }
 
-#ifndef MIPS_DEBUGGING_INFO
-  gen_type_die (element_type, context_die);
-#endif
-
   add_type_attribute (array_die, element_type, 0, 0, context_die);
+
+  add_gnat_descriptive_type_attribute (array_die, type, context_die);
+  if (TYPE_ARTIFICIAL (type))
+    add_AT_flag (array_die, DW_AT_artificial, 1);
 
   if (get_AT (array_die, DW_AT_name))
     add_pubtype (type, array_die);
@@ -16659,9 +16648,6 @@ gen_enumeration_type_die (tree type, dw_die_ref context_die)
 			  scope_die_for (type, context_die), type);
       equate_type_number_to_die (type, type_die);
       add_name_attribute (type_die, type_tag (type));
-      add_gnat_descriptive_type_attribute (type_die, type, context_die);
-      if (TYPE_ARTIFICIAL (type))
-	add_AT_flag (type_die, DW_AT_artificial, 1);
       if (dwarf_version >= 4 || !dwarf_strict)
 	{
 	  if (ENUM_IS_SCOPED (type))
@@ -16717,6 +16703,10 @@ gen_enumeration_type_die (tree type, dw_die_ref context_die)
 	    add_AT_int (enum_die, DW_AT_const_value,
 			tree_low_cst (value, tree_int_cst_sgn (value) > 0));
 	}
+
+      add_gnat_descriptive_type_attribute (type_die, type, context_die);
+      if (TYPE_ARTIFICIAL (type))
+	add_AT_flag (type_die, DW_AT_artificial, 1);
     }
   else
     add_AT_flag (type_die, DW_AT_declaration, 1);
@@ -17441,11 +17431,6 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	    }
 	}
 
-#ifdef MIPS_DEBUGGING_INFO
-      /* Add a reference to the FDE for this routine.  */
-      add_AT_fde_ref (subr_die, DW_AT_MIPS_fde, cfun->fde->fde_index);
-#endif
-
       cfa_fb_offset = CFA_FRAME_BASE_OFFSET (decl);
 
       /* We define the "frame base" as the function's CFA.  This is more
@@ -17456,7 +17441,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	 (3) We can at least reuse the code inspection and interpretation
 	 code that determines the CFA position at various points in the
 	 function.  */
-      if (dwarf_version >= 3)
+      if (dwarf_version >= 3 && targetm.debug_unwind_info () == UI_DWARF2)
 	{
 	  dw_loc_descr_ref op = new_loc_descr (DW_OP_call_frame_cfa, 0, 0);
 	  add_AT_loc (subr_die, DW_AT_frame_base, op);
@@ -18105,13 +18090,65 @@ add_high_low_attributes (tree stmt, dw_die_ref die)
   if (BLOCK_FRAGMENT_CHAIN (stmt)
       && (dwarf_version >= 3 || !dwarf_strict))
     {
-      tree chain;
+      tree chain, superblock = NULL_TREE;
+      dw_die_ref pdie;
+      dw_attr_ref attr = NULL;
 
       if (inlined_function_outer_scope_p (stmt))
 	{
 	  ASM_GENERATE_INTERNAL_LABEL (label, BLOCK_BEGIN_LABEL,
 				       BLOCK_NUMBER (stmt));
 	  add_AT_lbl_id (die, DW_AT_entry_pc, label);
+	}
+
+      /* Optimize duplicate .debug_ranges lists or even tails of
+	 lists.  If this BLOCK has same ranges as its supercontext,
+	 lookup DW_AT_ranges attribute in the supercontext (and
+	 recursively so), verify that the ranges_table contains the
+	 right values and use it instead of adding a new .debug_range.  */
+      for (chain = stmt, pdie = die;
+	   BLOCK_SAME_RANGE (chain);
+	   chain = BLOCK_SUPERCONTEXT (chain))
+	{
+	  dw_attr_ref new_attr;
+
+	  pdie = pdie->die_parent;
+	  if (pdie == NULL)
+	    break;
+	  if (BLOCK_SUPERCONTEXT (chain) == NULL_TREE)
+	    break;
+	  new_attr = get_AT (pdie, DW_AT_ranges);
+	  if (new_attr == NULL
+	      || new_attr->dw_attr_val.val_class != dw_val_class_range_list)
+	    break;
+	  attr = new_attr;
+	  superblock = BLOCK_SUPERCONTEXT (chain);
+	}
+      if (attr != NULL
+	  && (ranges_table[attr->dw_attr_val.v.val_offset
+			   / 2 / DWARF2_ADDR_SIZE].num
+	      == BLOCK_NUMBER (superblock))
+	  && BLOCK_FRAGMENT_CHAIN (superblock))
+	{
+	  unsigned long off = attr->dw_attr_val.v.val_offset
+			      / 2 / DWARF2_ADDR_SIZE;
+	  unsigned long supercnt = 0, thiscnt = 0;
+	  for (chain = BLOCK_FRAGMENT_CHAIN (superblock);
+	       chain; chain = BLOCK_FRAGMENT_CHAIN (chain))
+	    {
+	      ++supercnt;
+	      gcc_checking_assert (ranges_table[off + supercnt].num
+				   == BLOCK_NUMBER (chain));
+	    }
+	  gcc_checking_assert (ranges_table[off + supercnt + 1].num == 0);
+	  for (chain = BLOCK_FRAGMENT_CHAIN (stmt);
+	       chain; chain = BLOCK_FRAGMENT_CHAIN (chain))
+	    ++thiscnt;
+	  gcc_assert (supercnt >= thiscnt);
+	  add_AT_range_list (die, DW_AT_ranges,
+			     (off + supercnt - thiscnt)
+			     * 2 * DWARF2_ADDR_SIZE);
+	  return;
 	}
 
       add_AT_range_list (die, DW_AT_ranges, add_ranges (stmt));
@@ -18367,24 +18404,6 @@ gen_producer_string (void)
   sprintf (tail, "%s %s", language_string, version_string);
   tail += plen;
 
-  if (!dwarf_record_gcc_switches)
-    {
-#ifdef MIPS_DEBUGGING_INFO
-      /* The MIPS/SGI compilers place the 'cc' command line options in the
-	 producer string.  The SGI debugger looks for -g, -g1, -g2, or -g3;
-	 if they do not appear in the producer string, the debugger reaches
-	 the conclusion that the object file is stripped and has no debugging
-	 information.  To get the MIPS/SGI debugger to believe that there is
-	 debugging information in the object file, we add a -g to the producer
-	 string.  */
-      if (debug_info_level > DINFO_LEVEL_TERSE)
-	{
-	  memcpy (tail, " -g", 3);
-	  tail += 3;
-	}
-#endif
-    }
-
   FOR_EACH_VEC_ELT (dchar_p, switches, j, p)
     {
       len = strlen (p);
@@ -18629,12 +18648,7 @@ gen_struct_or_union_type_die (tree type, dw_die_ref context_die,
       if (old_die)
 	add_AT_specification (type_die, old_die);
       else
-	{
-	  add_name_attribute (type_die, type_tag (type));
-	  add_gnat_descriptive_type_attribute (type_die, type, context_die);
-	  if (TYPE_ARTIFICIAL (type))
-	    add_AT_flag (type_die, DW_AT_artificial, 1);
-	}
+	add_name_attribute (type_die, type_tag (type));
     }
   else
     remove_AT (type_die, DW_AT_declaration);
@@ -18666,6 +18680,10 @@ gen_struct_or_union_type_die (tree type, dw_die_ref context_die,
       push_decl_scope (type);
       gen_member_die (type, type_die);
       pop_decl_scope ();
+
+      add_gnat_descriptive_type_attribute (type_die, type, context_die);
+      if (TYPE_ARTIFICIAL (type))
+	add_AT_flag (type_die, DW_AT_artificial, 1);
 
       /* GNU extension: Record what type our vtable lives in.  */
       if (TYPE_VFIELD (type))

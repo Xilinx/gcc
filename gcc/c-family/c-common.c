@@ -1,6 +1,6 @@
 /* Subroutines shared by all languages that are variants of C.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -1849,9 +1849,8 @@ c_common_get_narrower (tree op, int *unsignedp_ptr)
       /* C++0x scoped enumerations don't implicitly convert to integral
 	 type; if we stripped an explicit conversion to a larger type we
 	 need to replace it so common_type will still work.  */
-      tree type = (lang_hooks.types.type_for_size
-		   (TYPE_PRECISION (TREE_TYPE (op)),
-		    TYPE_UNSIGNED (TREE_TYPE (op))));
+      tree type = c_common_type_for_size (TYPE_PRECISION (TREE_TYPE (op)),
+					  TYPE_UNSIGNED (TREE_TYPE (op)));
       op = fold_convert (type, op);
     }
   return op;
@@ -4941,7 +4940,7 @@ c_common_nodes_and_builtins (void)
     {
       char16_type_node = make_unsigned_type (char16_type_size);
 
-      if (cxx_dialect == cxx0x)
+      if (cxx_dialect >= cxx0x)
 	record_builtin_type (RID_CHAR16, "char16_t", char16_type_node);
     }
 
@@ -4957,7 +4956,7 @@ c_common_nodes_and_builtins (void)
     {
       char32_type_node = make_unsigned_type (char32_type_size);
 
-      if (cxx_dialect == cxx0x)
+      if (cxx_dialect >= cxx0x)
 	record_builtin_type (RID_CHAR32, "char32_t", char32_type_node);
     }
 
@@ -9259,7 +9258,7 @@ c_common_mark_addressable_vec (tree t)
 tree
 builtin_type_for_size (int size, bool unsignedp)
 {
-  tree type = lang_hooks.types.type_for_size (size, unsignedp);
+  tree type = c_common_type_for_size (size, unsignedp);
   return type ? type : error_mark_node;
 }
 
@@ -9336,10 +9335,12 @@ sync_resolve_params (location_t loc, tree orig_function, tree function,
 	  return false;
 	}
 
-      /* Only convert parameters if the size is appropriate with new format
-	 sync routines.  */
-      if (orig_format
-	  || tree_int_cst_equal (TYPE_SIZE (ptype), TYPE_SIZE (arg_type)))
+      /* Only convert parameters if arg_type is unsigned integer type with
+	 new format sync routines, i.e. don't attempt to convert pointer
+	 arguments (e.g. EXPECTED argument of __atomic_compare_exchange_n),
+	 bool arguments (e.g. WEAK argument) or signed int arguments (memmodel
+	 kinds).  */
+      if (TREE_CODE (arg_type) == INTEGER_TYPE && TYPE_UNSIGNED (arg_type))
 	{
 	  /* Ideally for the first conversion we'd use convert_for_assignment
 	     so that we get warnings for anything that doesn't match the pointer

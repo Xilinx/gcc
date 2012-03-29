@@ -1,5 +1,5 @@
-// { dg-do run { target *-*-freebsd* *-*-netbsd* *-*-linux* *-*-solaris* *-*-cygwin *-*-darwin* alpha*-*-osf* mips-sgi-irix6* powerpc-ibm-aix* } }
-// { dg-options " -std=gnu++0x -pthread" { target *-*-freebsd* *-*-netbsd* *-*-linux* alpha*-*-osf* mips-sgi-irix6* powerpc-ibm-aix* } }
+// { dg-do run { target *-*-freebsd* *-*-netbsd* *-*-linux* *-*-solaris* *-*-cygwin *-*-darwin* powerpc-ibm-aix* } }
+// { dg-options " -std=gnu++0x -pthread" { target *-*-freebsd* *-*-netbsd* *-*-linux* powerpc-ibm-aix* } }
 // { dg-options " -std=gnu++0x -pthreads" { target *-*-solaris* } }
 // { dg-options " -std=gnu++0x " { target *-*-cygwin *-*-darwin* } }
 // { dg-require-cstdint "" }
@@ -36,8 +36,9 @@ void test01()
   std::packaged_task<int&(int&)> p1(inc);
   std::future<int&> f1 = p1.get_future();
 
+  std::chrono::milliseconds delay(1);
   VERIFY( f1.valid() );
-  VERIFY( !f1.wait_for(std::chrono::milliseconds(1)) );
+  VERIFY( f1.wait_for(delay) == std::future_status::timeout );
 
   int i1 = 0;
 

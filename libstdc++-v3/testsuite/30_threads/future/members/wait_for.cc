@@ -1,5 +1,5 @@
-// { dg-do run { target *-*-freebsd* *-*-netbsd* *-*-linux* *-*-solaris* *-*-cygwin *-*-darwin* alpha*-*-osf* mips-sgi-irix6* powerpc-ibm-aix* } }
-// { dg-options " -std=gnu++0x -pthread" { target *-*-freebsd* *-*-netbsd* *-*-linux* alpha*-*-osf* mips-sgi-irix6* powerpc-ibm-aix* } }
+// { dg-do run { target *-*-freebsd* *-*-netbsd* *-*-linux* *-*-solaris* *-*-cygwin *-*-darwin* powerpc-ibm-aix* } }
+// { dg-options " -std=gnu++0x -pthread" { target *-*-freebsd* *-*-netbsd* *-*-linux* powerpc-ibm-aix* } }
 // { dg-options " -std=gnu++0x -pthreads" { target *-*-solaris* } }
 // { dg-options " -std=gnu++0x " { target *-*-cygwin *-*-darwin* } }
 // { dg-require-cstdint "" }
@@ -37,12 +37,12 @@ void test01()
 
   std::chrono::milliseconds delay(100);
 
-  VERIFY( !f1.wait_for(delay) );
+  VERIFY( f1.wait_for(delay) == std::future_status::timeout );
 
   p1.set_value(1);
 
   auto before = std::chrono::system_clock::now();
-  VERIFY( f1.wait_for(delay) );
+  VERIFY( f1.wait_for(delay) == std::future_status::ready );
   VERIFY( std::chrono::system_clock::now() < (before + delay) );
 }
 

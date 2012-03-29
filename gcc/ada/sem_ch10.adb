@@ -2936,32 +2936,11 @@ package body Sem_Ch10 is
 
       function Build_Unit_Name (Nam : Node_Id) return Node_Id is
          Ent      : Entity_Id;
-         Renaming : Entity_Id;
          Result   : Node_Id;
 
       begin
          if Nkind (Nam) = N_Identifier then
-
-            --  If the parent unit P in the name of the with_clause for P.Q is
-            --  a renaming of package R, then the entity of the parent is set
-            --  to R, but the identifier retains Chars (P) to be consistent
-            --  with the source (see details in lib-load). However the implicit
-            --  with_clause for the parent must make the entity for P visible,
-            --  because P.Q may be used as a prefix within the current unit.
-            --  The entity for P is the current_entity with that name, because
-            --  the package renaming declaration for it has just been analyzed.
-            --  Note that this case can only happen if P.Q has already appeared
-            --  in a previous with_clause in a related unit, such as the
-            --  library body of the current unit.
-
-            if Chars (Nam) /= Chars (Entity (Nam)) then
-               Renaming := Current_Entity (Nam);
-               pragma Assert (Renamed_Entity (Renaming) = Entity (Nam));
-               return New_Occurrence_Of (Renaming, Loc);
-
-            else
-               return New_Occurrence_Of (Entity (Nam), Loc);
-            end if;
+            return New_Occurrence_Of (Entity (Nam), Loc);
 
          else
             Ent := Entity (Nam);
@@ -2998,7 +2977,6 @@ package body Sem_Ch10 is
    --  Start of processing for Expand_With_Clause
 
    begin
-      New_Nodes_OK := New_Nodes_OK + 1;
       Withn :=
         Make_With_Clause (Loc,
           Name => Build_Unit_Name (Nam));
@@ -3023,8 +3001,6 @@ package body Sem_Ch10 is
       if Nkind (Nam) = N_Expanded_Name then
          Expand_With_Clause (Item, Prefix (Nam), N);
       end if;
-
-      New_Nodes_OK := New_Nodes_OK - 1;
    end Expand_With_Clause;
 
    -----------------------
@@ -3186,7 +3162,6 @@ package body Sem_Ch10 is
          return;
       end if;
 
-      New_Nodes_OK := New_Nodes_OK + 1;
       Withn := Make_With_Clause (Loc, Name => Build_Unit_Name);
 
       Set_Library_Unit          (Withn, P);
@@ -3204,8 +3179,6 @@ package body Sem_Ch10 is
       if Is_Child_Spec (P_Unit) then
          Implicit_With_On_Parent (P_Unit, N);
       end if;
-
-      New_Nodes_OK := New_Nodes_OK - 1;
    end Implicit_With_On_Parent;
 
    --------------
@@ -3755,8 +3728,6 @@ package body Sem_Ch10 is
       --  Start of processing for Expand_Limited_With_Clause
 
       begin
-         New_Nodes_OK := New_Nodes_OK + 1;
-
          if Nkind (Nam) = N_Identifier then
 
             --  Create node for name of withed unit
@@ -3814,8 +3785,6 @@ package body Sem_Ch10 is
                Install_Limited_Withed_Unit (Withn);
             end if;
          end if;
-
-         New_Nodes_OK := New_Nodes_OK - 1;
       end Expand_Limited_With_Clause;
 
       ----------------------

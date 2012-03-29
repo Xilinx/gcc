@@ -1,5 +1,5 @@
 ;; Constraint definitions for Renesas / SuperH SH.
-;; Copyright (C) 2007, 2008, 2011 Free Software Foundation, Inc.
+;; Copyright (C) 2007, 2008, 2011, 2012 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -123,6 +123,7 @@
        (match_test "ival >=  -134217728 && ival <= 134217727")
        (match_test "(ival & 255) == 0")
        (match_test "TARGET_SH2A")))
+
 (define_constraint "J16"
   "0xffffffff00000000 or 0x00000000ffffffff."
   (and (match_code "const_int")
@@ -133,13 +134,18 @@
   (and (match_code "const_int")
        (match_test "ival >= 0 && ival <= 7")))
 
+(define_constraint "K04"
+  "An unsigned 4-bit constant, as used in mov.b displacement addressing."
+  (and (match_code "const_int")
+       (match_test "ival >= 0 && ival <= 15")))
+
 (define_constraint "K08"
   "An unsigned 8-bit constant, as used in and, or, etc."
   (and (match_code "const_int")
        (match_test "ival >= 0 && ival <= 255")))
  
 (define_constraint "K12"
-  "An unsigned 8-bit constant, as used in SH2A 12-bit display."
+  "An unsigned 12-bit constant, as used in SH2A 12-bit displacement addressing."
   (and (match_code "const_int")
        (match_test "ival >= 0 && ival <= 4095")))
 
@@ -266,3 +272,11 @@
        (match_test "GET_CODE (XEXP (op, 0)) == PLUS")
        (match_test "REG_P (XEXP (XEXP (op, 0), 0))")
        (match_test "satisfies_constraint_K12 (XEXP (XEXP (op, 0), 1))")))
+
+(define_memory_constraint "Snd"
+  "A memory reference that excludes displacement addressing."
+  (match_test "! DISP_ADDR_P (op)"))
+
+(define_memory_constraint "Sdd"
+  "A memory reference that uses displacement addressing."
+  (match_test "DISP_ADDR_P (op)"))

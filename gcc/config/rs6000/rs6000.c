@@ -2596,6 +2596,7 @@ static bool
 rs6000_option_override_internal (bool global_init_p)
 {
   bool ret = true;
+  bool have_cpu = false;
   const char *default_cpu = OPTION_TARGET_CPU_DEFAULT;
   int set_masks;
   int cpu_index;
@@ -2652,43 +2653,55 @@ rs6000_option_override_internal (bool global_init_p)
   /* Don't override by the processor default if given explicitly.  */
   set_masks &= ~target_flags_explicit;
 
-  /* Identify the processor type.  */
-  if (!default_cpu)
-    {
-      if (TARGET_POWERPC64)
-	default_cpu = "powerpc64";
-      else if (TARGET_POWERPC)
-	default_cpu = "powerpc";
-    }
-
   /* Process the -mcpu=<xxx> and -mtune=<xxx> argument.  If the user changed
      the cpu in a target attribute or pragma, but did not specify a tuning
      option, use the cpu for the tuning option rather than the option specified
      with -mtune on the command line.  */
-  if (rs6000_cpu_index > 0)
-    cpu_index = rs6000_cpu_index;
-  else if (main_target_opt != NULL && main_target_opt->x_rs6000_cpu_index > 0)
-    rs6000_cpu_index = cpu_index = main_target_opt->x_rs6000_cpu_index;
-  else
-    rs6000_cpu_index = cpu_index = rs6000_cpu_name_lookup (default_cpu);
-
-  if (rs6000_tune_index > 0)
-    tune_index = rs6000_tune_index;
-  else
-    rs6000_tune_index = tune_index = cpu_index;
-
-  if (cpu_index >= 0)
+  if (rs6000_cpu_index >= 0)
     {
-      target_flags &= ~set_masks;
-      target_flags |= (processor_target_table[cpu_index].target_enable
-		       & set_masks);
+      cpu_index = rs6000_cpu_index;
+      have_cpu = true;
+    }
+  else if (main_target_opt != NULL && main_target_opt->x_rs6000_cpu_index >= 0)
+    {
+      rs6000_cpu_index = cpu_index = main_target_opt->x_rs6000_cpu_index;
+      have_cpu = true;
+    }
+  else
+    {
+      if (!default_cpu)
+	default_cpu = (TARGET_POWERPC64 ? "powerpc64" : "powerpc");
+
+      rs6000_cpu_index = cpu_index = rs6000_cpu_name_lookup (default_cpu);
     }
 
-  rs6000_cpu = ((tune_index >= 0)
-		? processor_target_table[tune_index].processor
-		: (TARGET_POWERPC64
-		   ? PROCESSOR_DEFAULT64
-		   : PROCESSOR_DEFAULT));
+  gcc_assert (cpu_index >= 0);
+
+  target_flags &= ~set_masks;
+  target_flags |= (processor_target_table[cpu_index].target_enable
+		   & set_masks);
+
+  if (rs6000_tune_index >= 0)
+    tune_index = rs6000_tune_index;
+  else if (have_cpu)
+    rs6000_tune_index = tune_index = cpu_index;
+  else
+    {
+      size_t i;
+      enum processor_type tune_proc
+	= (TARGET_POWERPC64 ? PROCESSOR_DEFAULT64 : PROCESSOR_DEFAULT);
+
+      tune_index = -1;
+      for (i = 0; i < ARRAY_SIZE (processor_target_table); i++)
+	if (processor_target_table[i].processor == tune_proc)
+	  {
+	    rs6000_tune_index = tune_index = i;
+	    break;
+	  }
+    }
+
+  gcc_assert (tune_index >= 0);
+  rs6000_cpu = processor_target_table[tune_index].processor;
 
   if (rs6000_cpu == PROCESSOR_PPCE300C2 || rs6000_cpu == PROCESSOR_PPCE300C3
       || rs6000_cpu == PROCESSOR_PPCE500MC || rs6000_cpu == PROCESSOR_PPCE500MC64)
@@ -2853,7 +2866,7 @@ rs6000_option_override_internal (bool global_init_p)
 	rs6000_long_double_type_size = RS6000_DEFAULT_LONG_DOUBLE_SIZE;
     }
 
-#ifndef POWERPC_LINUX
+#if !defined (POWERPC_LINUX) && !defined (POWERPC_FREEBSD)
   if (!global_options_set.x_rs6000_ieeequad)
     rs6000_ieeequad = 1;
 #endif
@@ -3540,8 +3553,19 @@ rs6000_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
       case vec_to_scalar:
       case scalar_to_vec:
       case cond_branch_not_taken:
-      case vec_perm:
         return 1;
+
+      case vec_perm:
+	if (TARGET_VSX)
+	  return 4;
+	else
+	  return 1;
+
+      case vec_promote_demote:
+        if (TARGET_VSX)
+          return 5;
+        else
+          return 1;
 
       case cond_branch_taken:
         return 3;
@@ -4011,11 +4035,6 @@ rs6000_file_start (void)
   rs6000_default_cpu = TARGET_CPU_DEFAULT;
 
   default_file_start ();
-
-#ifdef TARGET_BI_ARCH
-  if ((TARGET_DEFAULT ^ target_flags) & MASK_64BIT)
-    rs6000_default_cpu = 0;
-#endif
 
   if (flag_verbose_asm)
     {
@@ -4690,28 +4709,25 @@ rs6000_expand_vector_init (rtx target, rtx vals)
   /* Double word values on VSX can use xxpermdi or lxvdsx.  */
   if (VECTOR_MEM_VSX_P (mode) && (mode == V2DFmode || mode == V2DImode))
     {
+      rtx op0 = XVECEXP (vals, 0, 0);
+      rtx op1 = XVECEXP (vals, 0, 1);
       if (all_same)
 	{
-	  rtx element = XVECEXP (vals, 0, 0);
+	  if (!MEM_P (op0) && !REG_P (op0))
+	    op0 = force_reg (inner_mode, op0);
 	  if (mode == V2DFmode)
-	    emit_insn (gen_vsx_splat_v2df (target, element));
+	    emit_insn (gen_vsx_splat_v2df (target, op0));
 	  else
-	    emit_insn (gen_vsx_splat_v2di (target, element));
+	    emit_insn (gen_vsx_splat_v2di (target, op0));
 	}
       else
 	{
+	  op0 = force_reg (inner_mode, op0);
+	  op1 = force_reg (inner_mode, op1);
 	  if (mode == V2DFmode)
-	    {
-	      rtx op0 = copy_to_mode_reg (DFmode, XVECEXP (vals, 0, 0));
-	      rtx op1 = copy_to_mode_reg (DFmode, XVECEXP (vals, 0, 1));
-	      emit_insn (gen_vsx_concat_v2df (target, op0, op1));
-	    }
+	    emit_insn (gen_vsx_concat_v2df (target, op0, op1));
 	  else
-	    {
-	      rtx op0 = copy_to_mode_reg (DImode, XVECEXP (vals, 0, 0));
-	      rtx op1 = copy_to_mode_reg (DImode, XVECEXP (vals, 0, 1));
-	      emit_insn (gen_vsx_concat_v2di (target, op0, op1));
-	    }
+	    emit_insn (gen_vsx_concat_v2di (target, op0, op1));
 	}
       return;
     }
@@ -4725,7 +4741,7 @@ rs6000_expand_vector_init (rtx target, rtx vals)
       if (all_same)
 	{
 	  rtx freg = gen_reg_rtx (V4SFmode);
-	  rtx sreg = copy_to_reg (XVECEXP (vals, 0, 0));
+	  rtx sreg = force_reg (SFmode, XVECEXP (vals, 0, 0));
 
 	  emit_insn (gen_vsx_xscvdpsp_scalar (freg, sreg));
 	  emit_insn (gen_vsx_xxspltw_v4sf (target, freg, const0_rtx));
@@ -4736,13 +4752,13 @@ rs6000_expand_vector_init (rtx target, rtx vals)
 	  rtx dbl_odd  = gen_reg_rtx (V2DFmode);
 	  rtx flt_even = gen_reg_rtx (V4SFmode);
 	  rtx flt_odd  = gen_reg_rtx (V4SFmode);
+	  rtx op0 = force_reg (SFmode, XVECEXP (vals, 0, 0));
+	  rtx op1 = force_reg (SFmode, XVECEXP (vals, 0, 1));
+	  rtx op2 = force_reg (SFmode, XVECEXP (vals, 0, 2));
+	  rtx op3 = force_reg (SFmode, XVECEXP (vals, 0, 3));
 
-	  emit_insn (gen_vsx_concat_v2sf (dbl_even,
-					  copy_to_reg (XVECEXP (vals, 0, 0)),
-					  copy_to_reg (XVECEXP (vals, 0, 1))));
-	  emit_insn (gen_vsx_concat_v2sf (dbl_odd,
-					  copy_to_reg (XVECEXP (vals, 0, 2)),
-					  copy_to_reg (XVECEXP (vals, 0, 3))));
+	  emit_insn (gen_vsx_concat_v2sf (dbl_even, op0, op1));
+	  emit_insn (gen_vsx_concat_v2sf (dbl_odd, op2, op3));
 	  emit_insn (gen_vsx_xvcvdpsp (flt_even, dbl_even));
 	  emit_insn (gen_vsx_xvcvdpsp (flt_odd, dbl_odd));
 	  rs6000_expand_extract_even (target, flt_even, flt_odd);
@@ -7006,17 +7022,14 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
   if (!TARGET_IEEEQUAD && TARGET_LONG_DOUBLE_128
       && mode == TFmode && GET_CODE (operands[1]) == CONST_DOUBLE)
     {
-      /* DImode is used, not DFmode, because simplify_gen_subreg doesn't
-	 know how to get a DFmode SUBREG of a TFmode.  */
-      enum machine_mode imode = (TARGET_E500_DOUBLE ? DFmode : DImode);
-      rs6000_emit_move (simplify_gen_subreg (imode, operands[0], mode, 0),
-			simplify_gen_subreg (imode, operands[1], mode, 0),
-			imode);
-      rs6000_emit_move (simplify_gen_subreg (imode, operands[0], mode,
-					     GET_MODE_SIZE (imode)),
-			simplify_gen_subreg (imode, operands[1], mode,
-					     GET_MODE_SIZE (imode)),
-			imode);
+      rs6000_emit_move (simplify_gen_subreg (DFmode, operands[0], mode, 0),
+			simplify_gen_subreg (DFmode, operands[1], mode, 0),
+			DFmode);
+      rs6000_emit_move (simplify_gen_subreg (DFmode, operands[0], mode,
+					     GET_MODE_SIZE (DFmode)),
+			simplify_gen_subreg (DFmode, operands[1], mode,
+					     GET_MODE_SIZE (DFmode)),
+			DFmode);
       return;
     }
 
@@ -11562,25 +11575,17 @@ rs6000_init_builtins (void)
   builtin_mode_to_type[V16QImode][0] = V16QI_type_node;
   builtin_mode_to_type[V16QImode][1] = unsigned_V16QI_type_node;
 
-  tdecl = build_decl (BUILTINS_LOCATION, TYPE_DECL,
-      		      get_identifier ("__bool char"),
-		      bool_char_type_node);
+  tdecl = add_builtin_type ("__bool char", bool_char_type_node);
   TYPE_NAME (bool_char_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
-  tdecl = build_decl (BUILTINS_LOCATION, TYPE_DECL,
-      		      get_identifier ("__bool short"),
-		      bool_short_type_node);
+
+  tdecl = add_builtin_type ("__bool short", bool_short_type_node);
   TYPE_NAME (bool_short_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
-  tdecl = build_decl (BUILTINS_LOCATION, TYPE_DECL,
-      		      get_identifier ("__bool int"),
-		      bool_int_type_node);
+
+  tdecl = add_builtin_type ("__bool int", bool_int_type_node);
   TYPE_NAME (bool_int_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
-  tdecl = build_decl (BUILTINS_LOCATION, TYPE_DECL, get_identifier ("__pixel"),
-		      pixel_type_node);
+
+  tdecl = add_builtin_type ("__pixel", pixel_type_node);
   TYPE_NAME (pixel_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
 
   bool_V16QI_type_node = build_vector_type (bool_char_type_node, 16);
   bool_V8HI_type_node = build_vector_type (bool_short_type_node, 8);
@@ -11588,88 +11593,50 @@ rs6000_init_builtins (void)
   bool_V2DI_type_node = build_vector_type (bool_long_type_node, 2);
   pixel_V8HI_type_node = build_vector_type (pixel_type_node, 8);
 
-  tdecl = build_decl (BUILTINS_LOCATION, TYPE_DECL,
-      		      get_identifier ("__vector unsigned char"),
-		      unsigned_V16QI_type_node);
+  tdecl = add_builtin_type ("__vector unsigned char", unsigned_V16QI_type_node);
   TYPE_NAME (unsigned_V16QI_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
-  tdecl = build_decl (BUILTINS_LOCATION,
-      		      TYPE_DECL, get_identifier ("__vector signed char"),
-		      V16QI_type_node);
+
+  tdecl = add_builtin_type ("__vector signed char", V16QI_type_node);
   TYPE_NAME (V16QI_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
-  tdecl = build_decl (BUILTINS_LOCATION,
-      		      TYPE_DECL, get_identifier ("__vector __bool char"),
-		      bool_V16QI_type_node);
+
+  tdecl = add_builtin_type ("__vector __bool char", bool_V16QI_type_node);
   TYPE_NAME ( bool_V16QI_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
 
-  tdecl = build_decl (BUILTINS_LOCATION,
-      		      TYPE_DECL, get_identifier ("__vector unsigned short"),
-		      unsigned_V8HI_type_node);
+  tdecl = add_builtin_type ("__vector unsigned short", unsigned_V8HI_type_node);
   TYPE_NAME (unsigned_V8HI_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
-  tdecl = build_decl (BUILTINS_LOCATION,
-      		      TYPE_DECL, get_identifier ("__vector signed short"),
-		      V8HI_type_node);
+
+  tdecl = add_builtin_type ("__vector signed short", V8HI_type_node);
   TYPE_NAME (V8HI_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
-  tdecl = build_decl (BUILTINS_LOCATION, TYPE_DECL,
-      		      get_identifier ("__vector __bool short"),
-		      bool_V8HI_type_node);
+
+  tdecl = add_builtin_type ("__vector __bool short", bool_V8HI_type_node);
   TYPE_NAME (bool_V8HI_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
 
-  tdecl = build_decl (BUILTINS_LOCATION, TYPE_DECL,
-      		      get_identifier ("__vector unsigned int"),
-		      unsigned_V4SI_type_node);
+  tdecl = add_builtin_type ("__vector unsigned int", unsigned_V4SI_type_node);
   TYPE_NAME (unsigned_V4SI_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
-  tdecl = build_decl (BUILTINS_LOCATION,
-      		      TYPE_DECL, get_identifier ("__vector signed int"),
-		      V4SI_type_node);
+
+  tdecl = add_builtin_type ("__vector signed int", V4SI_type_node);
   TYPE_NAME (V4SI_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
-  tdecl = build_decl (BUILTINS_LOCATION,
-      		      TYPE_DECL, get_identifier ("__vector __bool int"),
-		      bool_V4SI_type_node);
+
+  tdecl = add_builtin_type ("__vector __bool int", bool_V4SI_type_node);
   TYPE_NAME (bool_V4SI_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
 
-  tdecl = build_decl (BUILTINS_LOCATION,
-      		      TYPE_DECL, get_identifier ("__vector float"),
-		      V4SF_type_node);
+  tdecl = add_builtin_type ("__vector float", V4SF_type_node);
   TYPE_NAME (V4SF_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
-  tdecl = build_decl (BUILTINS_LOCATION,
-      		      TYPE_DECL, get_identifier ("__vector __pixel"),
-		      pixel_V8HI_type_node);
+
+  tdecl = add_builtin_type ("__vector __pixel", pixel_V8HI_type_node);
   TYPE_NAME (pixel_V8HI_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
 
-  tdecl = build_decl (BUILTINS_LOCATION,
-		      TYPE_DECL, get_identifier ("__vector double"),
-		      V2DF_type_node);
+  tdecl = add_builtin_type ("__vector double", V2DF_type_node);
   TYPE_NAME (V2DF_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
 
-  tdecl = build_decl (BUILTINS_LOCATION,
-		      TYPE_DECL, get_identifier ("__vector long"),
-		      V2DI_type_node);
+  tdecl = add_builtin_type ("__vector long", V2DI_type_node);
   TYPE_NAME (V2DI_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
 
-  tdecl = build_decl (BUILTINS_LOCATION,
-		      TYPE_DECL, get_identifier ("__vector unsigned long"),
-		      unsigned_V2DI_type_node);
+  tdecl = add_builtin_type ("__vector unsigned long", unsigned_V2DI_type_node);
   TYPE_NAME (unsigned_V2DI_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
 
-  tdecl = build_decl (BUILTINS_LOCATION,
-		      TYPE_DECL, get_identifier ("__vector __bool long"),
-		      bool_V2DI_type_node);
+  tdecl = add_builtin_type ("__vector __bool long", bool_V2DI_type_node);
   TYPE_NAME (bool_V2DI_type_node) = tdecl;
-  (*lang_hooks.decls.pushdecl) (tdecl);
 
   /* Paired and SPE builtins are only available if you build a compiler with
      the appropriate options, so only create those builtins with the
@@ -11838,10 +11805,7 @@ spe_init_builtins (void)
                                 signed_char_type_node,
                                 NULL_TREE);
 
-  (*lang_hooks.decls.pushdecl)
-    (build_decl (BUILTINS_LOCATION, TYPE_DECL,
-		 get_identifier ("__ev64_opaque__"),
-		 opaque_V2SI_type_node));
+  add_builtin_type ("__ev64_opaque__", opaque_V2SI_type_node);
 
   /* Initialize irregular SPE builtins.  */
 
@@ -16121,6 +16085,10 @@ rs6000_emit_vector_compare_inner (enum rtx_code code, rtx op0, rtx op1)
     case EQ:
     case GT:
     case GTU:
+    case ORDERED:
+    case UNORDERED:
+    case UNEQ:
+    case LTGT:
       mask = gen_reg_rtx (mode);
       emit_insn (gen_rtx_SET (VOIDmode,
 			      mask,
@@ -17538,7 +17506,7 @@ rs6000_savres_strategy (rs6000_stack_t *info,
       && info->cr_save_p)
     strategy |= REST_INLINE_GPRS;
 
-#ifdef POWERPC_LINUX
+#if defined (POWERPC_LINUX) || defined (POWERPC_FREEBSD)
   if (TARGET_64BIT)
     {
       if (!(strategy & SAVE_INLINE_FPRS))
@@ -19078,7 +19046,7 @@ rs6000_savres_routine_name (rs6000_stack_t *info, int regno,
     }
   else if (DEFAULT_ABI == ABI_AIX)
     {
-#ifndef POWERPC_LINUX
+#if !defined (POWERPC_LINUX) && !defined (POWERPC_FREEBSD)
       /* No out-of-line save/restore routines for GPRs on AIX.  */
       gcc_assert (!TARGET_AIX || !gpr);
 #endif
@@ -19088,7 +19056,7 @@ rs6000_savres_routine_name (rs6000_stack_t *info, int regno,
 	prefix = (savep
 		  ? (lr ? "_savegpr0_" : "_savegpr1_")
 		  : (lr ? "_restgpr0_" : "_restgpr1_"));
-#ifdef POWERPC_LINUX
+#if defined (POWERPC_LINUX) || defined (POWERPC_FREEBSD)
       else if (lr)
 	prefix = (savep ? "_savefpr_" : "_restfpr_");
 #endif
@@ -24031,7 +23999,8 @@ rs6000_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
 	rtx fnmem, fn_reg, toc_reg;
 
 	if (!TARGET_POINTERS_TO_NESTED_FUNCTIONS)
-	  error ("-mno-r11 must not be used if you have trampolines");
+	  error ("You cannot take the address of a nested function if you use "
+		 "the -mno-pointers-to-nested-functions option.");
 
 	fnmem = gen_const_mem (Pmode, force_reg (Pmode, fnaddr));
 	fn_reg = gen_reg_rtx (Pmode);
@@ -25082,7 +25051,7 @@ rs6000_elf_file_end (void)
 		 aix_struct_return ? 2 : 1);
     }
 #endif
-#ifdef POWERPC_LINUX
+#if defined (POWERPC_LINUX) || defined (POWERPC_FREEBSD)
   if (TARGET_32BIT)
     file_end_indicate_exec_stack ();
 #endif

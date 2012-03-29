@@ -96,8 +96,8 @@ BEGIN {
     cfnresult = line
 
     printf("// Automatically generated wrapper for %s/%s\n", gofnname, cfnname)
-    printf("func c_%s(%s) %s%s__asm__(\"%s\")\n",
-	   cfnname, cfnparams, cfnresult, cfnresult == "" ? "" : " ", cfnname)
+    printf("//extern %s\n", cfnname)
+    printf("func c_%s(%s) %s\n", cfnname, cfnparams, cfnresult)
     printf("func %s(%s) %s%s%s%s{\n",
 	   gofnname, gofnparams, gofnresults == "" ? "" : "(", gofnresults,
 	   gofnresults == "" ? "" : ")", gofnresults == "" ? "" : " ")
@@ -190,7 +190,7 @@ BEGIN {
     }
 
     if (blocking) {
-	print "\tentersyscall()"
+	print "\tEntersyscall()"
     }
 
     printf("\t")
@@ -240,7 +240,7 @@ BEGIN {
     }
 
     if (blocking) {
-	print "\texitsyscall()"
+	print "\tExitsyscall()"
     }
 
     if (gofnresults != "") {

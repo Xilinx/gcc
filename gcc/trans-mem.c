@@ -1,5 +1,5 @@
 /* Passes for transactional memory support.
-   Copyright (C) 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+   Copyright (C) 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -34,6 +34,7 @@
 #include "langhooks.h"
 #include "tree-pretty-print.h"
 #include "gimple-pretty-print.h"
+#include "cfgloop.h"
 
 
 #define PROB_VERY_UNLIKELY	(REG_BR_PROB_BASE / 2000 - 1)
@@ -1270,6 +1271,12 @@ tm_log_emit_save_or_restores (basic_block entry_block,
   cond_bb = create_empty_bb (before_bb);
   code_bb = create_empty_bb (cond_bb);
   *end_bb = create_empty_bb (code_bb);
+  if (current_loops && before_bb->loop_father)
+    {
+      add_bb_to_loop (cond_bb, before_bb->loop_father);
+      add_bb_to_loop (code_bb, before_bb->loop_father);
+      add_bb_to_loop (*end_bb, before_bb->loop_father);
+    }
   redirect_edge_pred (fallthru_edge, *end_bb);
   fallthru_edge->flags = EDGE_FALLTHRU;
   make_edge (before_bb, cond_bb, old_flags);
@@ -1757,6 +1764,10 @@ struct tm_region
   bitmap irr_blocks;
 };
 
+typedef struct tm_region *tm_region_p;
+DEF_VEC_P (tm_region_p);
+DEF_VEC_ALLOC_P (tm_region_p, heap);
+
 /* True if there are pending edge statements to be committed for the
    current function being scanned in the tmmark pass.  */
 bool pending_edge_inserts_p;
@@ -1858,18 +1869,23 @@ tm_region_init (struct tm_region *region)
   VEC(basic_block, heap) *queue = NULL;
   bitmap visited_blocks = BITMAP_ALLOC (NULL);
   struct tm_region *old_region;
+  VEC(tm_region_p, heap) *bb_regions = NULL;
 
   all_tm_regions = region;
   bb = single_succ (ENTRY_BLOCK_PTR);
 
+  /* We could store this information in bb->aux, but we may get called
+     through get_all_tm_blocks() from another pass that may be already
+     using bb->aux.  */
+  VEC_safe_grow_cleared (tm_region_p, heap, bb_regions, last_basic_block);
+
   VEC_safe_push (basic_block, heap, queue, bb);
-  gcc_assert (!bb->aux);	/* FIXME: Remove me.  */
-  bb->aux = region;
+  VEC_replace (tm_region_p, bb_regions, bb->index, region);
   do
     {
       bb = VEC_pop (basic_block, queue);
-      region = (struct tm_region *)bb->aux;
-      bb->aux = NULL;
+      region = VEC_index (tm_region_p, bb_regions, bb->index);
+      VEC_replace (tm_region_p, bb_regions, bb->index, NULL);
 
       /* Record exit and irrevocable blocks.  */
       region = tm_region_init_1 (region, bb);
@@ -1886,20 +1902,20 @@ tm_region_init (struct tm_region *region)
 	  {
 	    bitmap_set_bit (visited_blocks, e->dest->index);
 	    VEC_safe_push (basic_block, heap, queue, e->dest);
-	    gcc_assert (!e->dest->aux); /* FIXME: Remove me.  */
 
 	    /* If the current block started a new region, make sure that only
 	       the entry block of the new region is associated with this region.
 	       Other successors are still part of the old region.  */
 	    if (old_region != region && e->dest != region->entry_block)
-	      e->dest->aux = old_region;
+	      VEC_replace (tm_region_p, bb_regions, e->dest->index, old_region);
 	    else
-	      e->dest->aux = region;
+	      VEC_replace (tm_region_p, bb_regions, e->dest->index, region);
 	  }
     }
   while (!VEC_empty (basic_block, queue));
   VEC_free (basic_block, heap, queue);
   BITMAP_FREE (visited_blocks);
+  VEC_free (tm_region_p, heap, bb_regions);
 }
 
 /* The "gate" function for all transactional memory expansion and optimization
@@ -2267,6 +2283,8 @@ expand_call_tm (struct tm_region *region,
     }
 
   node = cgraph_get_node (fn_decl);
+  /* All calls should have cgraph here. */
+  gcc_assert (node);
   if (node->local.tm_may_enter_irr)
     transaction_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
 
@@ -2420,6 +2438,42 @@ get_tm_region_blocks (basic_block entry_block,
 
   BITMAP_FREE (visited_blocks);
   return bbs;
+}
+
+/* Set the IN_TRANSACTION for all gimple statements that appear in a
+   transaction.  */
+
+void
+compute_transaction_bits (void)
+{
+  struct tm_region *region;
+  VEC (basic_block, heap) *queue;
+  unsigned int i;
+  gimple_stmt_iterator gsi;
+  basic_block bb;
+
+  /* ?? Perhaps we need to abstract gate_tm_init further, because we
+     certainly don't need it to calculate CDI_DOMINATOR info.  */
+  gate_tm_init ();
+
+  for (region = all_tm_regions; region; region = region->next)
+    {
+      queue = get_tm_region_blocks (region->entry_block,
+				    region->exit_blocks,
+				    region->irr_blocks,
+				    NULL,
+				    /*stop_at_irr_p=*/true);
+      for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
+	for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	  {
+	    gimple stmt = gsi_stmt (gsi);
+	    gimple_set_in_transaction (stmt, true);
+	  }
+      VEC_free (basic_block, heap, queue);
+    }
+
+  if (all_tm_regions)
+    bitmap_obstack_release (&tm_obstack);
 }
 
 /* Entry point to the MARK phase of TM expansion.  Here we replace
@@ -2635,6 +2689,8 @@ expand_transaction (struct tm_region *region)
       basic_block test_bb;
 
       test_bb = create_empty_bb (slice_bb);
+      if (current_loops && slice_bb->loop_father)
+	add_bb_to_loop (test_bb, slice_bb->loop_father);
       if (VEC_empty (tree, tm_log_save_addresses))
 	region->entry_block = test_bb;
       gsi = gsi_last_bb (test_bb);
@@ -2672,6 +2728,8 @@ expand_transaction (struct tm_region *region)
       basic_block empty_bb;
 
       region->entry_block = empty_bb = create_empty_bb (atomic_bb);
+      if (current_loops && atomic_bb->loop_father)
+	add_bb_to_loop (empty_bb, atomic_bb->loop_father);
 
       e = FALLTHRU_EDGE (atomic_bb);
       redirect_edge_pred (e, empty_bb);
@@ -3734,6 +3792,13 @@ ipa_tm_scan_irr_block (basic_block bb)
 	     assembly statement is not relevant to the transaction
 	     is to wrap it in a __tm_waiver block.  This is not
 	     yet implemented, so we can't check for it.  */
+	  if (is_tm_safe (current_function_decl))
+	    {
+	      tree t = build1 (NOP_EXPR, void_type_node, size_zero_node);
+	      SET_EXPR_LOCATION (t, gimple_location (stmt));
+	      TREE_BLOCK (t) = gimple_block (stmt);
+	      error ("%Kasm not allowed in %<transaction_safe%> function", t);
+	    }
 	  return true;
 
 	default:

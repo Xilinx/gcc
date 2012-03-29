@@ -1064,23 +1064,25 @@ package body Sem_Ch13 is
 
                --  Aspects corresponding to attribute definition clauses
 
-               when Aspect_Address        |
-                    Aspect_Alignment      |
-                    Aspect_Bit_Order      |
-                    Aspect_Component_Size |
-                    Aspect_External_Tag   |
-                    Aspect_Input          |
-                    Aspect_Machine_Radix  |
-                    Aspect_Object_Size    |
-                    Aspect_Output         |
-                    Aspect_Read           |
-                    Aspect_Size           |
-                    Aspect_Small          |
-                    Aspect_Storage_Pool   |
-                    Aspect_Storage_Size   |
-                    Aspect_Stream_Size    |
-                    Aspect_Value_Size     |
-                    Aspect_Write          =>
+               when Aspect_Address              |
+                    Aspect_Alignment            |
+                    Aspect_Bit_Order            |
+                    Aspect_Component_Size       |
+                    Aspect_External_Tag         |
+                    Aspect_Input                |
+                    Aspect_Machine_Radix        |
+                    Aspect_Object_Size          |
+                    Aspect_Output               |
+                    Aspect_Read                 |
+                    Aspect_Scalar_Storage_Order |
+                    Aspect_Size                 |
+                    Aspect_Small                |
+                    Aspect_Simple_Storage_Pool  |
+                    Aspect_Storage_Pool         |
+                    Aspect_Storage_Size         |
+                    Aspect_Stream_Size          |
+                    Aspect_Value_Size           |
+                    Aspect_Write                =>
 
                   --  Construct the attribute definition clause
 
@@ -1448,83 +1450,87 @@ package body Sem_Ch13 is
                   Set_Is_Delayed_Aspect (Aspect);
                   Delay_Required := True;
 
-               when Aspect_Test_Case => declare
-                  Args      : List_Id;
-                  Comp_Expr : Node_Id;
-                  Comp_Assn : Node_Id;
-                  New_Expr  : Node_Id;
+               when Aspect_Contract_Case |
+                    Aspect_Test_Case     =>
+                  declare
+                     Args      : List_Id;
+                     Comp_Expr : Node_Id;
+                     Comp_Assn : Node_Id;
+                     New_Expr  : Node_Id;
 
-               begin
-                  Args := New_List;
+                  begin
+                     Args := New_List;
 
-                  if Nkind (Parent (N)) = N_Compilation_Unit then
-                     Error_Msg_N
-                       ("incorrect placement of aspect `Test_Case`", E);
-                     goto Continue;
-                  end if;
-
-                  if Nkind (Expr) /= N_Aggregate then
-                     Error_Msg_NE
-                       ("wrong syntax for aspect `Test_Case` for &", Id, E);
-                     goto Continue;
-                  end if;
-
-                  --  Make pragma expressions refer to the original aspect
-                  --  expressions through the Original_Node link. This is used
-                  --  in semantic analysis for ASIS mode, so that the original
-                  --  expression also gets analyzed.
-
-                  Comp_Expr := First (Expressions (Expr));
-                  while Present (Comp_Expr) loop
-                     New_Expr := Relocate_Node (Comp_Expr);
-                     Set_Original_Node (New_Expr, Comp_Expr);
-                     Append
-                       (Make_Pragma_Argument_Association (Sloc (Comp_Expr),
-                          Expression => New_Expr),
-                       Args);
-                     Next (Comp_Expr);
-                  end loop;
-
-                  Comp_Assn := First (Component_Associations (Expr));
-                  while Present (Comp_Assn) loop
-                     if List_Length (Choices (Comp_Assn)) /= 1
-                       or else
-                         Nkind (First (Choices (Comp_Assn))) /= N_Identifier
-                     then
-                        Error_Msg_NE
-                          ("wrong syntax for aspect `Test_Case` for &", Id, E);
+                     if Nkind (Parent (N)) = N_Compilation_Unit then
+                        Error_Msg_Name_1 := Nam;
+                        Error_Msg_N ("incorrect placement of aspect `%`", E);
                         goto Continue;
                      end if;
 
-                     New_Expr := Relocate_Node (Expression (Comp_Assn));
-                     Set_Original_Node (New_Expr, Expression (Comp_Assn));
-                     Append (Make_Pragma_Argument_Association (
-                       Sloc       => Sloc (Comp_Assn),
-                       Chars      => Chars (First (Choices (Comp_Assn))),
-                       Expression => New_Expr),
-                       Args);
-                     Next (Comp_Assn);
-                  end loop;
+                     if Nkind (Expr) /= N_Aggregate then
+                        Error_Msg_Name_1 := Nam;
+                        Error_Msg_NE
+                          ("wrong syntax for aspect `%` for &", Id, E);
+                        goto Continue;
+                     end if;
 
-                  --  Build the test-case pragma
+                     --  Make pragma expressions refer to the original aspect
+                     --  expressions through the Original_Node link. This is
+                     --  used in semantic analysis for ASIS mode, so that the
+                     --  original expression also gets analyzed.
 
-                  Aitem :=
-                    Make_Pragma (Loc,
-                      Pragma_Identifier            =>
-                        Make_Identifier (Sloc (Id), Name_Test_Case),
-                      Pragma_Argument_Associations =>
-                        Args);
+                     Comp_Expr := First (Expressions (Expr));
+                     while Present (Comp_Expr) loop
+                        New_Expr := Relocate_Node (Comp_Expr);
+                        Set_Original_Node (New_Expr, Comp_Expr);
+                        Append
+                          (Make_Pragma_Argument_Association (Sloc (Comp_Expr),
+                           Expression => New_Expr),
+                           Args);
+                        Next (Comp_Expr);
+                     end loop;
 
-                  Set_From_Aspect_Specification (Aitem, True);
-                  Set_Corresponding_Aspect (Aitem, Aspect);
-                  Set_Is_Delayed_Aspect (Aspect);
+                     Comp_Assn := First (Component_Associations (Expr));
+                     while Present (Comp_Assn) loop
+                        if List_Length (Choices (Comp_Assn)) /= 1
+                          or else
+                            Nkind (First (Choices (Comp_Assn))) /= N_Identifier
+                        then
+                           Error_Msg_Name_1 := Nam;
+                           Error_Msg_NE
+                             ("wrong syntax for aspect `%` for &", Id, E);
+                           goto Continue;
+                        end if;
 
-                  --  Insert immediately after the entity declaration
+                        New_Expr := Relocate_Node (Expression (Comp_Assn));
+                        Set_Original_Node (New_Expr, Expression (Comp_Assn));
+                        Append (Make_Pragma_Argument_Association (
+                          Sloc       => Sloc (Comp_Assn),
+                          Chars      => Chars (First (Choices (Comp_Assn))),
+                          Expression => New_Expr),
+                          Args);
+                        Next (Comp_Assn);
+                     end loop;
 
-                  Insert_After (N, Aitem);
+                     --  Build the contract-case or test-case pragma
 
-                  goto Continue;
-               end;
+                     Aitem :=
+                       Make_Pragma (Loc,
+                                    Pragma_Identifier            =>
+                                      Make_Identifier (Sloc (Id), Nam),
+                                    Pragma_Argument_Associations =>
+                                      Args);
+
+                     Set_From_Aspect_Specification (Aitem, True);
+                     Set_Corresponding_Aspect (Aitem, Aspect);
+                     Set_Is_Delayed_Aspect (Aspect);
+
+                     --  Insert immediately after the entity declaration
+
+                     Insert_After (N, Aitem);
+
+                     goto Continue;
+                  end;
 
                when Aspect_Dimension =>
                   Analyze_Aspect_Dimension (N, Id, Expr);
@@ -2210,13 +2216,14 @@ package body Sem_Ch13 is
             --  legality, e.g. failing to provide a stream attribute for a
             --  type may make a program illegal.
 
-            when Attribute_External_Tag |
-                 Attribute_Input        |
-                 Attribute_Output       |
-                 Attribute_Read         |
-                 Attribute_Storage_Pool |
-                 Attribute_Storage_Size |
-                 Attribute_Write        =>
+            when Attribute_External_Tag        |
+                 Attribute_Input               |
+                 Attribute_Output              |
+                 Attribute_Read                |
+                 Attribute_Simple_Storage_Pool |
+                 Attribute_Storage_Pool        |
+                 Attribute_Storage_Size        |
+                 Attribute_Write               =>
                null;
 
             --  Other cases are errors ("attribute& cannot be set with
@@ -2987,6 +2994,40 @@ package body Sem_Ch13 is
             Analyze_Stream_TSS_Definition (TSS_Stream_Read);
             Set_Has_Specified_Stream_Read (Ent);
 
+         --------------------------
+         -- Scalar_Storage_Order --
+         --------------------------
+
+         --  Scalar_Storage_Order attribute definition clause
+
+         when Attribute_Scalar_Storage_Order => Scalar_Storage_Order : declare
+         begin
+            if not Is_Record_Type (U_Ent) then
+               Error_Msg_N
+                 ("Scalar_Storage_Order can only be defined for record type",
+                  Nam);
+
+            elsif Duplicate_Clause then
+               null;
+
+            else
+               Analyze_And_Resolve (Expr, RTE (RE_Bit_Order));
+
+               if Etype (Expr) = Any_Type then
+                  return;
+
+               elsif not Is_Static_Expression (Expr) then
+                  Flag_Non_Static_Expr
+                    ("Scalar_Storage_Order requires static expression!", Expr);
+
+               else
+                  if (Expr_Value (Expr) = 0) /= Bytes_Big_Endian then
+                     Set_Reverse_Storage_Order (U_Ent, True);
+                  end if;
+               end if;
+            end if;
+         end Scalar_Storage_Order;
+
          ----------
          -- Size --
          ----------
@@ -3163,7 +3204,7 @@ package body Sem_Ch13 is
 
          --  Storage_Pool attribute definition clause
 
-         when Attribute_Storage_Pool => Storage_Pool : declare
+         when Attribute_Storage_Pool | Attribute_Simple_Storage_Pool => declare
             Pool : Entity_Id;
             T    : Entity_Id;
 
@@ -3194,8 +3235,24 @@ package body Sem_Ch13 is
                return;
             end if;
 
-            Analyze_And_Resolve
-              (Expr, Class_Wide_Type (RTE (RE_Root_Storage_Pool)));
+            if Id = Attribute_Storage_Pool then
+               Analyze_And_Resolve
+                 (Expr, Class_Wide_Type (RTE (RE_Root_Storage_Pool)));
+
+            --  In the Simple_Storage_Pool case, we allow a variable of any
+            --  simple storage pool type, so we Resolve without imposing an
+            --  expected type.
+
+            else
+               Analyze_And_Resolve (Expr);
+
+               if not Present (Get_Rep_Pragma
+                                 (Etype (Expr), Name_Simple_Storage_Pool_Type))
+               then
+                  Error_Msg_N
+                    ("expression must be of a simple storage pool type", Expr);
+               end if;
+            end if;
 
             if not Denotes_Variable (Expr) then
                Error_Msg_N ("storage pool must be a variable", Expr);
@@ -3280,7 +3337,7 @@ package body Sem_Ch13 is
                Error_Msg_N ("incorrect reference to a Storage Pool", Expr);
                return;
             end if;
-         end Storage_Pool;
+         end;
 
          ------------------
          -- Storage_Size --
@@ -6105,7 +6162,13 @@ package body Sem_Ch13 is
          when Boolean_Aspects =>
             raise Program_Error;
 
-         --  Test_Case aspect applies to entries and subprograms, hence should
+         --  Contract_Case aspects apply to subprograms, hence should never be
+         --  delayed.
+
+         when Aspect_Contract_Case =>
+            raise Program_Error;
+
+         --  Test_Case aspects apply to entries and subprograms, hence should
          --  never be delayed.
 
          when Aspect_Test_Case =>
@@ -6129,7 +6192,7 @@ package body Sem_Ch13 is
          when Aspect_Address =>
             T := RTE (RE_Address);
 
-         when Aspect_Bit_Order =>
+         when Aspect_Bit_Order | Aspect_Scalar_Storage_Order =>
             T := RTE (RE_Bit_Order);
 
          when Aspect_CPU =>
@@ -6146,6 +6209,13 @@ package body Sem_Ch13 is
 
          when Aspect_Small =>
             T := Universal_Real;
+
+         --  For a simple storage pool, we have to retrieve the type of the
+         --  pool object associated with the aspect's corresponding attribute
+         --  definition clause.
+
+         when Aspect_Simple_Storage_Pool =>
+            T := Etype (Expression (Aspect_Rep_Item (ASN)));
 
          when Aspect_Storage_Pool =>
             T := Class_Wide_Type (RTE (RE_Root_Storage_Pool));

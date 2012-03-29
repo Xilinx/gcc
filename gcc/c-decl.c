@@ -1,6 +1,6 @@
 /* Process declarations and variables for C compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -145,6 +145,10 @@ static int warn_about_return_type;
    of a nested function which is never defined.  */
 
 static bool undef_nested_function;
+
+/* Mode used to build pointers (VOIDmode means ptr_mode).  */
+
+enum machine_mode c_default_pointer_mode = VOIDmode;
 
 
 /* Each c_binding structure describes one binding of an identifier to
@@ -557,6 +561,23 @@ add_stmt (tree t)
 
   return t;
 }
+
+/* Build a pointer type using the default pointer mode.  */
+
+static tree
+c_build_pointer_type (tree to_type)
+{
+  addr_space_t as = to_type == error_mark_node? ADDR_SPACE_GENERIC
+					      : TYPE_ADDR_SPACE (to_type);
+  enum machine_mode pointer_mode;
+
+  if (as != ADDR_SPACE_GENERIC || c_default_pointer_mode == VOIDmode)
+    pointer_mode = targetm.addr_space.pointer_mode (as);
+  else
+    pointer_mode = c_default_pointer_mode;
+  return build_pointer_type_for_mode (to_type, pointer_mode, false);
+}
+
 
 /* Return true if we will want to say something if a goto statement
    crosses DECL.  */
@@ -2449,6 +2470,7 @@ merge_decls (tree newdecl, tree olddecl, tree newtype, tree oldtype)
     memcpy ((char *) olddecl + sizeof (struct tree_common),
 	    (char *) newdecl + sizeof (struct tree_common),
 	    sizeof (struct tree_decl_common) - sizeof (struct tree_common));
+    DECL_USER_ALIGN (olddecl) = DECL_USER_ALIGN (newdecl);
     switch (TREE_CODE (olddecl))
       {
       case FUNCTION_DECL:
@@ -5682,7 +5704,7 @@ grokdeclarator (const struct c_declarator *declarator,
 		TYPE_NAME (type) = decl;
 	      }
 
-	    type = build_pointer_type (type);
+	    type = c_build_pointer_type (type);
 
 	    /* Process type qualifiers (such as const or volatile)
 	       that were given inside the `*'.  */
@@ -5917,7 +5939,7 @@ grokdeclarator (const struct c_declarator *declarator,
 	    type = TREE_TYPE (type);
 	    if (type_quals)
 	      type = c_build_qualified_type (type, type_quals);
-	    type = build_pointer_type (type);
+	    type = c_build_pointer_type (type);
 	    type_quals = array_ptr_quals;
 	    if (type_quals)
 	      type = c_build_qualified_type (type, type_quals);
@@ -5936,7 +5958,7 @@ grokdeclarator (const struct c_declarator *declarator,
 		       "ISO C forbids qualified function types");
 	    if (type_quals)
 	      type = c_build_qualified_type (type, type_quals);
-	    type = build_pointer_type (type);
+	    type = c_build_pointer_type (type);
 	    type_quals = TYPE_UNQUALIFIED;
 	  }
 	else if (type_quals)
@@ -7701,7 +7723,8 @@ start_function (struct c_declspecs *declspecs, struct c_declarator *declarator,
 
   /* If the declarator is not suitable for a function definition,
      cause a syntax error.  */
-  if (decl1 == 0)
+  if (decl1 == 0
+      || TREE_CODE (decl1) != FUNCTION_DECL)
     return 0;
 
   loc = DECL_SOURCE_LOCATION (decl1);

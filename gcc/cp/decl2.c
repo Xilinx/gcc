@@ -151,6 +151,9 @@ change_return_type (tree new_ret, tree fntype)
   tree raises = TYPE_RAISES_EXCEPTIONS (fntype);
   tree attrs = TYPE_ATTRIBUTES (fntype);
 
+  if (new_ret == error_mark_node)
+    return fntype;
+
   if (same_type_p (new_ret, TREE_TYPE (fntype)))
     return fntype;
 
@@ -2181,12 +2184,8 @@ determine_visibility (tree decl)
 		      ? TYPE_ATTRIBUTES (TREE_TYPE (decl))
 		      : DECL_ATTRIBUTES (decl));
       
-      if (args != error_mark_node
-	  /* Template argument visibility outweighs #pragma or namespace
-	     visibility, but not an explicit attribute.  */
-	  && !lookup_attribute ("visibility", attribs))
+      if (args != error_mark_node)
 	{
-	  int depth = TMPL_ARGS_DEPTH (args);
 	  tree pattern = DECL_TEMPLATE_RESULT (TI_TEMPLATE (tinfo));
 
 	  if (!DECL_VISIBILITY_SPECIFIED (decl))
@@ -2202,10 +2201,31 @@ determine_visibility (tree decl)
 		}
 	    }
 
-	  /* FIXME should TMPL_ARGS_DEPTH really return 1 for null input? */
-	  if (args && depth > template_class_depth (class_type))
-	    /* Limit visibility based on its template arguments.  */
-	    constrain_visibility_for_template (decl, args);
+	  if (args
+	      /* Template argument visibility outweighs #pragma or namespace
+		 visibility, but not an explicit attribute.  */
+	      && !lookup_attribute ("visibility", attribs))
+	    {
+	      int depth = TMPL_ARGS_DEPTH (args);
+	      int class_depth = 0;
+	      if (class_type && CLASSTYPE_TEMPLATE_INFO (class_type))
+		class_depth = TMPL_ARGS_DEPTH (CLASSTYPE_TI_ARGS (class_type));
+	      if (DECL_VISIBILITY_SPECIFIED (decl))
+		{
+		  /* A class template member with explicit visibility
+		     overrides the class visibility, so we need to apply
+		     all the levels of template args directly.  */
+		  int i;
+		  for (i = 1; i <= depth; ++i)
+		    {
+		      tree lev = TMPL_ARGS_LEVEL (args, i);
+		      constrain_visibility_for_template (decl, lev);
+		    }
+		}
+	      else if (depth > class_depth)
+		/* Limit visibility based on its template arguments.  */
+		constrain_visibility_for_template (decl, args);
+	    }
 	}
     }
 
@@ -4264,7 +4284,11 @@ mark_used (tree decl)
   if ((TREE_CODE (decl) != VAR_DECL && TREE_CODE (decl) != FUNCTION_DECL)
       || DECL_LANG_SPECIFIC (decl) == NULL
       || DECL_THUNK_P (decl))
-    return true;
+    {
+      if (!processing_template_decl && type_uses_auto (TREE_TYPE (decl)))
+	error ("use of %qD before deduction of %<auto%>", decl);
+      return true;
+    }
 
   /* We only want to do this processing once.  We don't need to keep trying
      to instantiate inline templates, because unit-at-a-time will make sure
@@ -4286,10 +4310,13 @@ mark_used (tree decl)
   /* Normally, we can wait until instantiation-time to synthesize DECL.
      However, if DECL is a static data member initialized with a constant
      or a constexpr function, we need it right now because a reference to
-     such a data member or a call to such function is not value-dependent.  */
+     such a data member or a call to such function is not value-dependent.
+     For a function that uses auto in the return type, we need to instantiate
+     it to find out its type.  */
   if ((decl_maybe_constant_var_p (decl)
        || (TREE_CODE (decl) == FUNCTION_DECL
-	   && DECL_DECLARED_CONSTEXPR_P (decl)))
+	   && (DECL_DECLARED_CONSTEXPR_P (decl)
+	       || type_uses_auto (TREE_TYPE (TREE_TYPE (decl))))))
       && DECL_LANG_SPECIFIC (decl)
       && DECL_TEMPLATE_INFO (decl)
       && !uses_template_parms (DECL_TI_ARGS (decl)))
@@ -4303,6 +4330,9 @@ mark_used (tree decl)
 			/*expl_inst_class_mem_p=*/false);
       --function_depth;
     }
+
+  if (type_uses_auto (TREE_TYPE (decl)))
+    error ("use of %qD before deduction of %<auto%>", decl);
 
   /* If we don't need a value, then we don't need to synthesize DECL.  */
   if (cp_unevaluated_operand != 0)

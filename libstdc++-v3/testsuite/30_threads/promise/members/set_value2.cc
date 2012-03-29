@@ -1,5 +1,5 @@
-// { dg-do run { target *-*-freebsd* *-*-netbsd* *-*-linux* *-*-solaris* *-*-cygwin *-*-darwin* alpha*-*-osf* mips-sgi-irix6* powerpc-ibm-aix* } }
-// { dg-options " -std=gnu++0x -pthread" { target *-*-freebsd* *-*-netbsd* *-*-linux* alpha*-*-osf* mips-sgi-irix6* powerpc-ibm-aix* } }
+// { dg-do run { target *-*-freebsd* *-*-netbsd* *-*-linux* *-*-solaris* *-*-cygwin *-*-darwin* powerpc-ibm-aix* } }
+// { dg-options " -std=gnu++0x -pthread" { target *-*-freebsd* *-*-netbsd* *-*-linux* powerpc-ibm-aix* } }
 // { dg-options " -std=gnu++0x -pthreads" { target *-*-solaris* } }
 // { dg-options " -std=gnu++0x " { target *-*-cygwin *-*-darwin* } }
 // { dg-require-cstdint "" }
@@ -48,7 +48,8 @@ void test01()
     test = true;
   }
 
-  VERIFY( f1.wait_for(std::chrono::milliseconds(1)) );
+  std::chrono::milliseconds delay(1);
+  VERIFY( f1.wait_for(delay) == std::future_status::ready );
   VERIFY( f1.get() == 1 );
   VERIFY( test );
 }
@@ -74,7 +75,8 @@ void test02()
     test = true;
   }
 
-  VERIFY( f1.wait_for(std::chrono::milliseconds(1)) );
+  std::chrono::milliseconds delay(1);
+  VERIFY( f1.wait_for(delay) == std::future_status::ready );
   VERIFY( f1.get() == 3 );
   VERIFY( test );
 }
