@@ -2499,7 +2499,7 @@ meltrout_162_warmelt_normal_LAMBDA___58__ (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 5
-    void *mcfr_varptr[5];
+    melt_ptr_t mcfr_varptr[5];
 #define MELTFRAM_NBVARNUM 1
     long mcfr_varnum[1];
 /*others*/
@@ -2659,7 +2659,7 @@ meltrout_163_warmelt_normal_NORMEXP_CHEADER (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 24
-    void *mcfr_varptr[24];
+    melt_ptr_t mcfr_varptr[24];
 #define MELTFRAM_NBVARNUM 7
     long mcfr_varnum[7];
 /*others*/

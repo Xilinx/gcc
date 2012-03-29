@@ -1038,7 +1038,7 @@ meltrout_5_warmelt_base_IV (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 8
-    void *mcfr_varptr[8];
+    melt_ptr_t mcfr_varptr[8];
 #define MELTFRAM_NBVARNUM 5
     long mcfr_varnum[5];
 /*others*/
@@ -1271,7 +1271,7 @@ meltrout_6_warmelt_base_COMPARE_NAMED_ALPHA (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 13
-    void *mcfr_varptr[13];
+    melt_ptr_t mcfr_varptr[13];
 #define MELTFRAM_NBVARNUM 5
     long mcfr_varnum[5];
 /*others*/
@@ -1604,7 +1604,7 @@ meltrout_7_warmelt_base_ADD2OUT (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 30
-    void *mcfr_varptr[30];
+    melt_ptr_t mcfr_varptr[30];
 #define MELTFRAM_NBVARNUM 5
     long mcfr_varnum[5];
 /*others*/
@@ -2968,7 +2968,7 @@ meltrout_8_warmelt_base_ADD2OUT4NULL (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 5
-    void *mcfr_varptr[5];
+    melt_ptr_t mcfr_varptr[5];
 #define MELTFRAM_NBVARNUM 1
     long mcfr_varnum[1];
 /*others*/
@@ -3139,7 +3139,7 @@ meltrout_9_warmelt_base_ADD2OUT4INTEGER (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 5
-    void *mcfr_varptr[5];
+    melt_ptr_t mcfr_varptr[5];
 #define MELTFRAM_NBVARNUM 2
     long mcfr_varnum[2];
 /*others*/
@@ -3318,7 +3318,7 @@ meltrout_10_warmelt_base_ADD2OUT4STRING (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 5
-    void *mcfr_varptr[5];
+    melt_ptr_t mcfr_varptr[5];
 #define MELTFRAM_NBVARNUM 1
     long mcfr_varnum[1];
 /*others*/
@@ -3492,7 +3492,7 @@ meltrout_11_warmelt_base_ADD2OUT4STRBUF (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 5
-    void *mcfr_varptr[5];
+    melt_ptr_t mcfr_varptr[5];
 #define MELTFRAM_NBVARNUM 1
     long mcfr_varnum[1];
 /*others*/
@@ -3668,7 +3668,7 @@ meltrout_12_warmelt_base_ADD2OUT4CLONEDSYMB (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 10
-    void *mcfr_varptr[10];
+    melt_ptr_t mcfr_varptr[10];
 #define MELTFRAM_NBVARNUM 3
     long mcfr_varnum[3];
 /*others*/
@@ -4063,7 +4063,7 @@ meltrout_13_warmelt_base_ADD2OUT4NAMED (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 4
-    void *mcfr_varptr[4];
+    melt_ptr_t mcfr_varptr[4];
 /*no varnum*/
 #define MELTFRAM_NBVARNUM /*none*/0
 /*others*/
@@ -4201,7 +4201,7 @@ meltrout_14_warmelt_base_ADD2OUT4ROOTOBJECT (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 5
-    void *mcfr_varptr[5];
+    melt_ptr_t mcfr_varptr[5];
 #define MELTFRAM_NBVARNUM 1
     long mcfr_varnum[1];
 /*others*/
@@ -4372,7 +4372,7 @@ meltrout_15_warmelt_base_ADD2OUT4ANY (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 5
-    void *mcfr_varptr[5];
+    melt_ptr_t mcfr_varptr[5];
 /*no varnum*/
 #define MELTFRAM_NBVARNUM /*none*/0
 /*others*/
@@ -4520,7 +4520,7 @@ meltrout_16_warmelt_base_MAPSTRING_EVERY (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 6
-    void *mcfr_varptr[6];
+    melt_ptr_t mcfr_varptr[6];
 #define MELTFRAM_NBVARNUM 2
     long mcfr_varnum[2];
 /*others*/
@@ -4759,7 +4759,7 @@ meltrout_17_warmelt_base_MAPSTRING_ITERATE_TEST (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 10
-    void *mcfr_varptr[10];
+    melt_ptr_t mcfr_varptr[10];
 #define MELTFRAM_NBVARNUM 3
     long mcfr_varnum[3];
 /*others*/
@@ -5081,7 +5081,7 @@ meltrout_18_warmelt_base_MULTIPLE_EVERY (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 5
-    void *mcfr_varptr[5];
+    melt_ptr_t mcfr_varptr[5];
 #define MELTFRAM_NBVARNUM 3
     long mcfr_varnum[3];
 /*others*/
@@ -5279,7 +5279,7 @@ meltrout_19_warmelt_base_MULTIPLE_BACKWARD_EVERY (meltclosure_ptr_t
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 5
-    void *mcfr_varptr[5];
+    melt_ptr_t mcfr_varptr[5];
 #define MELTFRAM_NBVARNUM 3
     long mcfr_varnum[3];
 /*others*/
@@ -5473,7 +5473,7 @@ meltrout_20_warmelt_base_MULTIPLE_EVERY_BOTH (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 13
-    void *mcfr_varptr[13];
+    melt_ptr_t mcfr_varptr[13];
 #define MELTFRAM_NBVARNUM 10
     long mcfr_varnum[10];
 /*others*/
@@ -5864,7 +5864,7 @@ meltrout_21_warmelt_base_RUN_ALL_PASS_EXECUTION_HOOKS (meltclosure_ptr_t
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 7
-    void *mcfr_varptr[7];
+    melt_ptr_t mcfr_varptr[7];
 #define MELTFRAM_NBVARNUM 1
     long mcfr_varnum[1];
 /*others*/
@@ -6043,7 +6043,7 @@ meltrout_22_warmelt_base_REGISTER_PASS_EXECUTION_HOOK (meltclosure_ptr_t
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 17
-    void *mcfr_varptr[17];
+    melt_ptr_t mcfr_varptr[17];
 #define MELTFRAM_NBVARNUM 4
     long mcfr_varnum[4];
 /*others*/
@@ -6134,10 +6134,10 @@ lab_endgetargs:;
 		  /*^blockmultialloc.initfill */
 		  /*inilist rlist_0__LIST_ */
        /*_.LIST___V7*/ meltfptr[6] =
-		    (void *) &meltletrec_1_ptr->rlist_0__LIST_;
+		    (melt_ptr_t) & meltletrec_1_ptr->rlist_0__LIST_;
 		  meltletrec_1_ptr->rlist_0__LIST_.discr =
-		    (meltobject_ptr_t) (((void
-					  *) (MELT_PREDEF (DISCR_LIST))));
+		    (meltobject_ptr_t) (((melt_ptr_t)
+					 (MELT_PREDEF (DISCR_LIST))));
 
 
 
@@ -6349,8 +6349,10 @@ lab_endgetargs:;
 
 	  /*^newclosure */
 		   /*newclosure *//*_.LAMBDA___V16*/ meltfptr[15] =
+	    (melt_ptr_t)
 	    meltgc_new_closure ((meltobject_ptr_t)
-				(((void *) (MELT_PREDEF (DISCR_CLOSURE)))),
+				(((melt_ptr_t)
+				  (MELT_PREDEF (DISCR_CLOSURE)))),
 				(meltroutine_ptr_t) (( /*!konst_4 */
 						      meltfrout->tabval[4])),
 				(1));
@@ -6502,7 +6504,7 @@ meltrout_23_warmelt_base_LAMBDA___1__ (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 3
-    void *mcfr_varptr[3];
+    melt_ptr_t mcfr_varptr[3];
 #define MELTFRAM_NBVARNUM 1
     long mcfr_varnum[1];
 /*others*/
@@ -6636,7 +6638,7 @@ meltrout_24_warmelt_base_UNREGISTER_PASS_EXECUTION_HOOK (meltclosure_ptr_t
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 9
-    void *mcfr_varptr[9];
+    melt_ptr_t mcfr_varptr[9];
 #define MELTFRAM_NBVARNUM 3
     long mcfr_varnum[3];
 /*others*/
@@ -6715,9 +6717,9 @@ lab_endgetargs:;
 	    /*^blockmultialloc.initfill */
 	    /*inilist rlist_0__LIST_ */
      /*_.LIST___V5*/ meltfptr[4] =
-	      (void *) &meltletrec_1_ptr->rlist_0__LIST_;
+	      (melt_ptr_t) & meltletrec_1_ptr->rlist_0__LIST_;
 	    meltletrec_1_ptr->rlist_0__LIST_.discr =
-	      (meltobject_ptr_t) (((void *) (MELT_PREDEF (DISCR_LIST))));
+	      (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_LIST))));
 
 
 
@@ -6865,9 +6867,10 @@ lab_endgetargs:;
 
 		/*^newclosure */
 		     /*newclosure *//*_.LAMBDA___V9*/ meltfptr[8] =
+		  (melt_ptr_t)
 		  meltgc_new_closure ((meltobject_ptr_t)
-				      (((void
-					 *) (MELT_PREDEF (DISCR_CLOSURE)))),
+				      (((melt_ptr_t)
+					(MELT_PREDEF (DISCR_CLOSURE)))),
 				      (meltroutine_ptr_t) (( /*!konst_4 */
 							    meltfrout->
 							    tabval[4])), (1));
@@ -6999,7 +7002,7 @@ meltrout_25_warmelt_base_LAMBDA___2__ (meltclosure_ptr_t meltclosp_,
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 3
-    void *mcfr_varptr[3];
+    melt_ptr_t mcfr_varptr[3];
 #define MELTFRAM_NBVARNUM 1
     long mcfr_varnum[1];
 /*others*/
@@ -7130,7 +7133,7 @@ meltrout_26_warmelt_base_REGISTER_PRAGMA_HANDLER (meltclosure_ptr_t
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 12
-    void *mcfr_varptr[12];
+    melt_ptr_t mcfr_varptr[12];
 #define MELTFRAM_NBVARNUM 14
     long mcfr_varnum[14];
 /*others*/
@@ -7585,7 +7588,7 @@ meltrout_27_warmelt_base_REGISTER_PRE_GENERICIZE_HOOK_FIRST (meltclosure_ptr_t
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 6
-    void *mcfr_varptr[6];
+    melt_ptr_t mcfr_varptr[6];
 #define MELTFRAM_NBVARNUM 2
     long mcfr_varnum[2];
 /*others*/
@@ -7886,7 +7889,7 @@ meltrout_28_warmelt_base_REGISTER_PRE_GENERICIZE_HOOK_LAST (meltclosure_ptr_t
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 6
-    void *mcfr_varptr[6];
+    melt_ptr_t mcfr_varptr[6];
 #define MELTFRAM_NBVARNUM 2
     long mcfr_varnum[2];
 /*others*/
@@ -8187,7 +8190,7 @@ meltrout_29_warmelt_base_PRE_GENERICIZE_HOOK_RUNNER (meltclosure_ptr_t
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 16
-    void *mcfr_varptr[16];
+    melt_ptr_t mcfr_varptr[16];
 #define MELTFRAM_NBVARNUM 1
     long mcfr_varnum[1];
 /*others*/
@@ -8514,7 +8517,7 @@ meltrout_30_warmelt_base_MELT_FINISH_TYPE_RUNNER (meltclosure_ptr_t
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 16
-    void *mcfr_varptr[16];
+    melt_ptr_t mcfr_varptr[16];
 #define MELTFRAM_NBVARNUM 1
     long mcfr_varnum[1];
 /*others*/
@@ -8844,7 +8847,7 @@ meltrout_31_warmelt_base_REGISTER_FINISH_TYPE_HOOK_FIRST (meltclosure_ptr_t
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 6
-    void *mcfr_varptr[6];
+    melt_ptr_t mcfr_varptr[6];
 #define MELTFRAM_NBVARNUM 2
     long mcfr_varnum[2];
 /*others*/
