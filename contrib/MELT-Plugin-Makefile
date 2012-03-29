@@ -29,7 +29,7 @@
 RM ?= rm -vf
 
 ## the compiler with which melt.so is used
-MELTGCC ?= gcc
+MELTGCC ?= $(or $(CC),gcc)
 
 ## gives yes if MELTGCC has been built with C++ or else the empty string
 MELTGCC_BUILD_WITH_CXX := $(shell grep -q 'define +ENABLE_BUILD_WITH_CXX +1' \
@@ -42,9 +42,9 @@ MELTGCC_BUILD_WITH_CXX := $(shell grep -q 'define +ENABLE_BUILD_WITH_CXX +1' \
 ##   make MELTGCC=gcc-4.7 GCCMELT_CC=g++-4.7
 ## hence we add a test if $(MELTGCC) was built with C++ or with C
 ifeq ($(strip $(MELTGCC_BUILD_WITH_CXX)),)
-GCCMELT_CC ?= gcc -Wc++-compat
+GCCMELT_CC ?= $(or $(CC),gcc) -Wc++-compat
 else
-GCCMELT_CC .= g++
+GCCMELT_CC ?= $(or $(CXX),g++)
 endif
 
 GCCMELT_CFLAGS ?= -g -O -Wall
