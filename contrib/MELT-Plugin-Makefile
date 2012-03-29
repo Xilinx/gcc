@@ -31,13 +31,23 @@ RM ?= rm -vf
 ## the compiler with which melt.so is used
 MELTGCC ?= gcc
 
+## gives yes if MELTGCC has been built with C++ or else the empty string
+MELTGCC_BUILD_WITH_CXX := $(shell grep -q 'define +ENABLE_BUILD_WITH_CXX +1' \
+  `$(MELTGCC) -print-file-name=plugin/include/auto-host.h` && echo yes)
+
 ## The compiler and flags used to build the melt.so plugin and to
 ## compile MELT generated code.  Notice that melt-module.mk use the
 ## same Make variables.  For a melt plugin to GCC 4.7 or later, that
 ## could be a C++ compiler! eg
 ##   make MELTGCC=gcc-4.7 GCCMELT_CC=g++-4.7
-GCCMELT_CC ?= gcc
-GCCMELT_CFLAGS ?= -g -O
+## hence we add a test if $(MELTGCC) was built with C++ or with C
+ifeq ($(strip $(MELTGCC_BUILD_WITH_CXX)),)
+GCCMELT_CC ?= gcc -Wc++-compat
+else
+GCCMELT_CC .= g++
+endif
+
+GCCMELT_CFLAGS ?= -g -O -Wall
 
 # Some versions of `touch' (such as the version on Solaris 2.8)
 # do not correctly set the timestamp due to buggy versions of `utime'

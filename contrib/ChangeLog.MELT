@@ -1,4 +1,9 @@
 
+2012-03-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* MELT-Plugin-Makefile: Add test about ENABLE_BUILD_WITH_CXX and
+	use it.
+
 2012-03-27  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* MELT-Plugin-Makefile: Improve comment.
