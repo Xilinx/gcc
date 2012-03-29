@@ -1,4 +1,7 @@
 
+2012-03-29  Romain Geissler  <romain.geissler@gmail.com>
+	* MELT-Plugin-Makefile (MELTGCC_BUILD_WITH_CXX): Better grep.
+
 2012-03-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* MELT-Plugin-Makefile (MELTCC,MELTGCC_BUILD_WITH_CXX): Use = not
