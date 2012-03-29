@@ -111,6 +111,7 @@ vect_get_smallest_scalar_type (gimple stmt, HOST_WIDE_INT *lhs_size_unit,
   if (is_gimple_assign (stmt)
       && (gimple_assign_cast_p (stmt)
           || gimple_assign_rhs_code (stmt) == WIDEN_MULT_EXPR
+          || gimple_assign_rhs_code (stmt) == WIDEN_LSHIFT_EXPR
           || gimple_assign_rhs_code (stmt) == FLOAT_EXPR))
     {
       tree rhs_type = TREE_TYPE (gimple_assign_rhs1 (stmt));
@@ -872,8 +873,10 @@ vect_compute_data_ref_alignment (struct data_reference *dr)
 
   if (!base_aligned)
     {
-      /* Do not change the alignment of global variables if
-	 flag_section_anchors is enabled.  */
+      /* Do not change the alignment of global variables here if
+	 flag_section_anchors is enabled as we already generated
+	 RTL for other functions.  Most global variables should
+	 have been aligned during the IPA increase_alignment pass.  */
       if (!vect_can_force_dr_alignment_p (base, TYPE_ALIGN (vectype))
 	  || (TREE_STATIC (base) && flag_section_anchors))
 	{
@@ -1141,11 +1144,7 @@ vector_alignment_reachable_p (struct data_reference *dr)
   if (!known_alignment_for_access_p (dr))
     {
       tree type = (TREE_TYPE (DR_REF (dr)));
-      tree ba = DR_BASE_OBJECT (dr);
-      bool is_packed = false;
-
-      if (ba)
-	is_packed = contains_packed_reference (ba);
+      bool is_packed = contains_packed_reference (DR_REF (dr));
 
       if (compare_tree_int (TYPE_SIZE (type), TYPE_ALIGN (type)) > 0)
 	is_packed = true;
@@ -2319,7 +2318,7 @@ vect_analyze_data_ref_access (struct data_reference *dr)
   stmt_vec_info stmt_info = vinfo_for_stmt (stmt);
   loop_vec_info loop_vinfo = STMT_VINFO_LOOP_VINFO (stmt_info);
   struct loop *loop = NULL;
-  HOST_WIDE_INT dr_step = TREE_INT_CST_LOW (step);
+  HOST_WIDE_INT dr_step;
 
   if (loop_vinfo)
     loop = LOOP_VINFO_LOOP (loop_vinfo);
@@ -2332,6 +2331,7 @@ vect_analyze_data_ref_access (struct data_reference *dr)
     }
 
   /* Allow invariant loads in loops.  */
+  dr_step = TREE_INT_CST_LOW (step);
   if (loop_vinfo && dr_step == 0)
     {
       GROUP_FIRST_ELEMENT (vinfo_for_stmt (stmt)) = NULL;
@@ -4549,7 +4549,12 @@ vect_can_force_dr_alignment_p (const_tree decl, unsigned int alignment)
   if (TREE_CODE (decl) != VAR_DECL)
     return false;
 
-  if (DECL_EXTERNAL (decl))
+  /* We cannot change alignment of common or external symbols as another
+     translation unit may contain a definition with lower alignment.  
+     The rules of common symbol linking mean that the definition
+     will override the common symbol.  */
+  if (DECL_EXTERNAL (decl)
+      || DECL_COMMON (decl))
     return false;
 
   if (TREE_ASM_WRITTEN (decl))
@@ -4671,12 +4676,7 @@ vect_supportable_dr_alignment (struct data_reference *dr,
 	    return dr_explicit_realign_optimized;
 	}
       if (!known_alignment_for_access_p (dr))
-	{
-	  tree ba = DR_BASE_OBJECT (dr);
-
-	  if (ba)
-	    is_packed = contains_packed_reference (ba);
-	}
+	is_packed = contains_packed_reference (DR_REF (dr));
 
       if (targetm.vectorize.
 	  support_vector_misalignment (mode, type,
@@ -4690,12 +4690,7 @@ vect_supportable_dr_alignment (struct data_reference *dr,
       tree type = (TREE_TYPE (DR_REF (dr)));
 
       if (!known_alignment_for_access_p (dr))
-	{
-	  tree ba = DR_BASE_OBJECT (dr);
-
-	  if (ba)
-	    is_packed = contains_packed_reference (ba);
-	}
+	is_packed = contains_packed_reference (DR_REF (dr));
 
      if (targetm.vectorize.
          support_vector_misalignment (mode, type,

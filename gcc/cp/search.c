@@ -384,6 +384,8 @@ lookup_field_1 (tree type, tree name, bool want_type)
 {
   tree field;
 
+  gcc_assert (TREE_CODE (name) == IDENTIFIER_NODE);
+
   if (TREE_CODE (type) == TEMPLATE_TYPE_PARM
       || TREE_CODE (type) == BOUND_TEMPLATE_TEMPLATE_PARM
       || TREE_CODE (type) == TYPENAME_TYPE)
@@ -1250,10 +1252,12 @@ lookup_member (tree xbasetype, tree name, int protect, bool want_type,
     only the first call to "f" is valid.  However, if the function is
     static, we can check.  */
   if (rval && protect 
-      && !really_overloaded_fn (rval)
-      && !(TREE_CODE (rval) == FUNCTION_DECL
-	   && DECL_NONSTATIC_MEMBER_FUNCTION_P (rval)))
-    perform_or_defer_access_check (basetype_path, rval, rval);
+      && !really_overloaded_fn (rval))
+    {
+      tree decl = is_overloaded_fn (rval) ? get_first_fn (rval) : rval;
+      if (!DECL_NONSTATIC_MEMBER_FUNCTION_P (decl))
+	perform_or_defer_access_check (basetype_path, decl, decl);
+    }
 
   if (errstr && protect)
     {
@@ -2426,6 +2430,11 @@ lookup_conversions_r (tree binfo,
 	  if (!IDENTIFIER_MARKED (name))
 	    {
 	      tree type = DECL_CONV_FN_TYPE (cur);
+	      if (type_uses_auto (type))
+		{
+		  mark_used (cur);
+		  type = DECL_CONV_FN_TYPE (cur);
+		}
 
 	      if (check_hidden_convs (binfo, virtual_depth, virtualness,
 				      type, parent_convs, other_convs))

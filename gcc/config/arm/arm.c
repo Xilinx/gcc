@@ -968,17 +968,6 @@ const struct tune_params arm_cortex_a9_tune =
   arm_default_branch_cost
 };
 
-const struct tune_params arm_cortex_a15_tune =
-{
-  arm_9e_rtx_costs,
-  NULL,
-  1,						/* Constant limit.  */
-  1,						/* Max cond insns.  */
-  ARM_PREFETCH_NOT_BENEFICIAL,			/* TODO: Calculate correct values.  */
-  false,					/* Prefer constant pool.  */
-  arm_cortex_a5_branch_cost
-};
-
 const struct tune_params arm_fa726te_tune =
 {
   arm_9e_rtx_costs,
@@ -4275,6 +4264,11 @@ use_vfp_abi (enum arm_pcs pcs_variant, bool is_double)
 	  (TARGET_VFP_DOUBLE || !is_double));
 }
 
+/* Return true if an argument whose type is TYPE, or mode is MODE, is
+   suitable for passing or returning in VFP registers for the PCS
+   variant selected.  If it is, then *BASE_MODE is updated to contain
+   a machine mode describing each element of the argument's type and
+   *COUNT to hold the number of such elements.  */
 static bool
 aapcs_vfp_is_call_or_return_candidate (enum arm_pcs pcs_variant,
 				       enum machine_mode mode, const_tree type,
@@ -4282,9 +4276,20 @@ aapcs_vfp_is_call_or_return_candidate (enum arm_pcs pcs_variant,
 {
   enum machine_mode new_mode = VOIDmode;
 
-  if (GET_MODE_CLASS (mode) == MODE_FLOAT
-      || GET_MODE_CLASS (mode) == MODE_VECTOR_INT
-      || GET_MODE_CLASS (mode) == MODE_VECTOR_FLOAT)
+  /* If we have the type information, prefer that to working things
+     out from the mode.  */
+  if (type)
+    {
+      int ag_count = aapcs_vfp_sub_candidate (type, &new_mode);
+
+      if (ag_count > 0 && ag_count <= 4)
+	*count = ag_count;
+      else
+	return false;
+    }
+  else if (GET_MODE_CLASS (mode) == MODE_FLOAT
+	   || GET_MODE_CLASS (mode) == MODE_VECTOR_INT
+	   || GET_MODE_CLASS (mode) == MODE_VECTOR_FLOAT)
     {
       *count = 1;
       new_mode = mode;
@@ -4293,15 +4298,6 @@ aapcs_vfp_is_call_or_return_candidate (enum arm_pcs pcs_variant,
     {
       *count = 2;
       new_mode = (mode == DCmode ? DFmode : SFmode);
-    }
-  else if (type && (mode == BLKmode || TREE_CODE (type) == VECTOR_TYPE))
-    {
-      int ag_count = aapcs_vfp_sub_candidate (type, &new_mode);
-
-      if (ag_count > 0 && ag_count <= 4)
-	*count = ag_count;
-      else
-	return false;
     }
   else
     return false;
@@ -10041,6 +10037,42 @@ minmax_code (rtx x)
     }
 }
 
+/* Match pair of min/max operators that can be implemented via usat/ssat.  */
+
+bool
+arm_sat_operator_match (rtx lo_bound, rtx hi_bound,
+			int *mask, bool *signed_sat)
+{
+  /* The high bound must be a power of two minus one.  */
+  int log = exact_log2 (INTVAL (hi_bound) + 1);
+  if (log == -1)
+    return false;
+
+  /* The low bound is either zero (for usat) or one less than the
+     negation of the high bound (for ssat).  */
+  if (INTVAL (lo_bound) == 0)
+    {
+      if (mask)
+        *mask = log;
+      if (signed_sat)
+        *signed_sat = false;
+
+      return true;
+    }
+
+  if (INTVAL (lo_bound) == -INTVAL (hi_bound) - 1)
+    {
+      if (mask)
+        *mask = log + 1;
+      if (signed_sat)
+        *signed_sat = true;
+
+      return true;
+    }
+
+  return false;
+}
+
 /* Return 1 if memory locations are adjacent.  */
 int
 adjacent_mem_locations (rtx a, rtx b)
@@ -13268,47 +13300,148 @@ thumb2_reorg (void)
       FOR_BB_INSNS_REVERSE (bb, insn)
 	{
 	  if (NONJUMP_INSN_P (insn)
-	      && !REGNO_REG_SET_P (&live, CC_REGNUM))
+	      && !REGNO_REG_SET_P (&live, CC_REGNUM)
+	      && GET_CODE (PATTERN (insn)) == SET)
 	    {
+	      enum {SKIP, CONV, SWAP_CONV} action = SKIP;
 	      rtx pat = PATTERN (insn);
-	      if (GET_CODE (pat) == SET
-		  && low_register_operand (XEXP (pat, 0), SImode)
-		  && thumb_16bit_operator (XEXP (pat, 1), SImode)
-		  && low_register_operand (XEXP (XEXP (pat, 1), 0), SImode)
-		  && low_register_operand (XEXP (XEXP (pat, 1), 1), SImode))
+	      rtx dst = XEXP (pat, 0);
+	      rtx src = XEXP (pat, 1);
+	      rtx op0 = NULL_RTX, op1 = NULL_RTX;
+
+	      if (!OBJECT_P (src))
+		  op0 = XEXP (src, 0);
+
+	      if (BINARY_P (src))
+		  op1 = XEXP (src, 1);
+
+	      if (low_register_operand (dst, SImode))
 		{
-		  rtx dst = XEXP (pat, 0);
-		  rtx src = XEXP (pat, 1);
-		  rtx op0 = XEXP (src, 0);
-		  rtx op1 = (GET_RTX_CLASS (GET_CODE (src)) == RTX_COMM_ARITH
-			     ? XEXP (src, 1) : NULL);
-
-		  if (rtx_equal_p (dst, op0)
-		      || GET_CODE (src) == PLUS || GET_CODE (src) == MINUS)
+		  switch (GET_CODE (src))
 		    {
-		      rtx ccreg = gen_rtx_REG (CCmode, CC_REGNUM);
-		      rtx clobber = gen_rtx_CLOBBER (VOIDmode, ccreg);
-		      rtvec vec = gen_rtvec (2, pat, clobber);
+		    case PLUS:
+		      if (low_register_operand (op0, SImode))
+			{
+			  /* ADDS <Rd>,<Rn>,<Rm>  */
+			  if (low_register_operand (op1, SImode))
+			    action = CONV;
+			  /* ADDS <Rdn>,#<imm8>  */
+			  /* SUBS <Rdn>,#<imm8>  */
+			  else if (rtx_equal_p (dst, op0)
+				   && CONST_INT_P (op1)
+				   && IN_RANGE (INTVAL (op1), -255, 255))
+			    action = CONV;
+			  /* ADDS <Rd>,<Rn>,#<imm3>  */
+			  /* SUBS <Rd>,<Rn>,#<imm3>  */
+			  else if (CONST_INT_P (op1)
+				   && IN_RANGE (INTVAL (op1), -7, 7))
+			    action = CONV;
+			}
+		      break;
 
-		      PATTERN (insn) = gen_rtx_PARALLEL (VOIDmode, vec);
-		      INSN_CODE (insn) = -1;
+		    case MINUS:
+		      /* RSBS <Rd>,<Rn>,#0  
+			 Not handled here: see NEG below.  */
+		      /* SUBS <Rd>,<Rn>,#<imm3>
+			 SUBS <Rdn>,#<imm8>
+			 Not handled here: see PLUS above.  */
+		      /* SUBS <Rd>,<Rn>,<Rm>  */
+		      if (low_register_operand (op0, SImode)
+			  && low_register_operand (op1, SImode))
+			    action = CONV;
+		      break;
+
+		    case MULT:
+		      /* MULS <Rdm>,<Rn>,<Rdm>
+			 As an exception to the rule, this is only used
+			 when optimizing for size since MULS is slow on all
+			 known implementations.  We do not even want to use
+			 MULS in cold code, if optimizing for speed, so we
+			 test the global flag here.  */
+		      if (!optimize_size)
+			break;
+		      /* else fall through.  */
+		    case AND:
+		    case IOR:
+		    case XOR:
+		      /* ANDS <Rdn>,<Rm>  */
+		      if (rtx_equal_p (dst, op0)
+			  && low_register_operand (op1, SImode))
+			action = CONV;
+		      else if (rtx_equal_p (dst, op1)
+			       && low_register_operand (op0, SImode))
+			action = SWAP_CONV;
+		      break;
+
+		    case ASHIFTRT:
+		    case ASHIFT:
+		    case LSHIFTRT:
+		      /* ASRS <Rdn>,<Rm> */
+		      /* LSRS <Rdn>,<Rm> */
+		      /* LSLS <Rdn>,<Rm> */
+		      if (rtx_equal_p (dst, op0)
+			  && low_register_operand (op1, SImode))
+			action = CONV;
+		      /* ASRS <Rd>,<Rm>,#<imm5> */
+		      /* LSRS <Rd>,<Rm>,#<imm5> */
+		      /* LSLS <Rd>,<Rm>,#<imm5> */
+		      else if (low_register_operand (op0, SImode)
+			       && CONST_INT_P (op1)
+			       && IN_RANGE (INTVAL (op1), 0, 31))
+			action = CONV;
+		      break;
+
+		    case ROTATERT:
+		      /* RORS <Rdn>,<Rm>  */
+		      if (rtx_equal_p (dst, op0)
+			  && low_register_operand (op1, SImode))
+			action = CONV;
+		      break;
+
+		    case NOT:
+		    case NEG:
+		      /* MVNS <Rd>,<Rm>  */
+		      /* NEGS <Rd>,<Rm>  (a.k.a RSBS)  */
+		      if (low_register_operand (op0, SImode))
+			action = CONV;
+		      break;
+
+		    case CONST_INT:
+		      /* MOVS <Rd>,#<imm8>  */
+		      if (CONST_INT_P (src)
+			  && IN_RANGE (INTVAL (src), 0, 255))
+			action = CONV;
+		      break;
+
+		    case REG:
+		      /* MOVS and MOV<c> with registers have different
+			 encodings, so are not relevant here.  */
+		      break;
+
+		    default:
+		      break;
 		    }
-		  /* We can also handle a commutative operation where the
-		     second operand matches the destination.  */
-		  else if (op1 && rtx_equal_p (dst, op1))
-		    {
-		      rtx ccreg = gen_rtx_REG (CCmode, CC_REGNUM);
-		      rtx clobber = gen_rtx_CLOBBER (VOIDmode, ccreg);
-		      rtvec vec;
+		}
 
+	      if (action != SKIP)
+		{
+		  rtx ccreg = gen_rtx_REG (CCmode, CC_REGNUM);
+		  rtx clobber = gen_rtx_CLOBBER (VOIDmode, ccreg);
+		  rtvec vec;
+
+		  if (action == SWAP_CONV)
+		    {
 		      src = copy_rtx (src);
 		      XEXP (src, 0) = op1;
 		      XEXP (src, 1) = op0;
 		      pat = gen_rtx_SET (VOIDmode, dst, src);
 		      vec = gen_rtvec (2, pat, clobber);
-		      PATTERN (insn) = gen_rtx_PARALLEL (VOIDmode, vec);
-		      INSN_CODE (insn) = -1;
 		    }
+		  else /* action == CONV */
+		    vec = gen_rtvec (2, pat, clobber);
+
+		  PATTERN (insn) = gen_rtx_PARALLEL (VOIDmode, vec);
+		  INSN_CODE (insn) = -1;
 		}
 	    }
 
@@ -14204,6 +14337,9 @@ output_move_double (rtx *operands, bool emit, int *count)
 		  if (emit)
 		    output_asm_insn ("sub%?\t%0, %1, %2", otherops);
 		}
+
+	      if (count)
+		*count = 2;
 
 	      if (TARGET_LDRD)
 		return "ldr%(d%)\t%0, [%1]";
@@ -19105,7 +19241,9 @@ static neon_builtin_datum neon_builtin_data[] =
   VAR3 (BINOP, vsubhn, v8hi, v4si, v2di),
   VAR8 (BINOP, vceq, v8qi, v4hi, v2si, v2sf, v16qi, v8hi, v4si, v4sf),
   VAR8 (BINOP, vcge, v8qi, v4hi, v2si, v2sf, v16qi, v8hi, v4si, v4sf),
+  VAR6 (BINOP, vcgeu, v8qi, v4hi, v2si, v16qi, v8hi, v4si),
   VAR8 (BINOP, vcgt, v8qi, v4hi, v2si, v2sf, v16qi, v8hi, v4si, v4sf),
+  VAR6 (BINOP, vcgtu, v8qi, v4hi, v2si, v16qi, v8hi, v4si),
   VAR2 (BINOP, vcage, v2sf, v4sf),
   VAR2 (BINOP, vcagt, v2sf, v4sf),
   VAR6 (BINOP, vtst, v8qi, v4hi, v2si, v16qi, v8hi, v4si),
@@ -20600,9 +20738,8 @@ neon_dereference_pointer (tree exp, enum machine_mode mem_mode,
   array_type = build_array_type (elem_type, build_index_type (upper_bound));
 
   /* Dereference EXP using that type.  */
-  exp = convert (build_pointer_type (array_type), exp);
   return fold_build2 (MEM_REF, array_type, exp,
-		      build_int_cst (TREE_TYPE (exp), 0));
+		      build_int_cst (build_pointer_type (array_type), 0));
 }
 
 /* Expand a Neon builtin.  */

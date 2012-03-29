@@ -1,6 +1,6 @@
 // <forward_list.h> -*- C++ -*-
 
-// Copyright (C) 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+// Copyright (C) 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -499,15 +499,12 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        *  [@a __first,@a __last).  This is linear in N (where N is
        *  distance(@a __first,@a __last)).
        */
-      template<typename _InputIterator>
+      template<typename _InputIterator,
+	       typename = std::_RequireInputIter<_InputIterator>>
         forward_list(_InputIterator __first, _InputIterator __last,
                      const _Alloc& __al = _Alloc())
 	: _Base(_Node_alloc_type(__al))
-        {
-          // Check whether it's an integral type.  If so, it's not an iterator.
-          typedef typename std::__is_integer<_InputIterator>::__type _Integral;
-          _M_initialize_dispatch(__first, __last, _Integral());
-        }
+        { _M_range_initialize(__first, __last); }
 
       /**
        *  @brief  The %forward_list copy constructor.
@@ -519,7 +516,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        */
       forward_list(const forward_list& __list)
       : _Base(__list._M_get_Node_allocator())
-      { _M_initialize_dispatch(__list.begin(), __list.end(), __false_type()); }
+      { _M_range_initialize(__list.begin(), __list.end()); }
 
       /**
        *  @brief  The %forward_list move constructor.
@@ -544,7 +541,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       forward_list(std::initializer_list<_Tp> __il,
                    const _Alloc& __al = _Alloc())
       : _Base(_Node_alloc_type(__al))
-      { _M_initialize_dispatch(__il.begin(), __il.end(), __false_type()); }
+      { _M_range_initialize(__il.begin(), __il.end()); }
 
       /**
        *  @brief  The forward_list dtor.
@@ -606,11 +603,12 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        *  in the range [@a __first,@a __last).
        *
        *  Note that the assignment completely changes the %forward_list and
-       *  that the resulting %forward_list's size is the same as the number
-       *  of elements assigned.  Old data may be lost.
+       *  that the number of elements of the resulting %forward_list's is the
+       *  same as the number of elements assigned.  Old data is lost.
        */
-      template<typename _InputIterator>
-        void
+      template<typename _InputIterator,
+	       typename = std::_RequireInputIter<_InputIterator>>
+	void
         assign(_InputIterator __first, _InputIterator __last)
         {
           clear();
@@ -622,10 +620,10 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        *  @param  __n  Number of elements to be assigned.
        *  @param  __val  Value to be assigned.
        *
-       *  This function fills a %forward_list with @a __n copies of the given
-       *  value.  Note that the assignment completely changes the
-       *  %forward_list and that the resulting %forward_list's size is the
-       *  same as the number of elements assigned.  Old data may be lost.
+       *  This function fills a %forward_list with @a __n copies of the
+       *  given value.  Note that the assignment completely changes the
+       *  %forward_list, and that the resulting %forward_list has __n
+       *  elements.  Old data is lost.
        */
       void
       assign(size_type __n, const _Tp& __val)
@@ -744,7 +742,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       { return this->_M_impl._M_head._M_next == 0; }
 
       /**
-       *  Returns the largest possible size of %forward_list.
+       *  Returns the largest possible number of elements of %forward_list.
        */
       size_type
       max_size() const noexcept
@@ -905,7 +903,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        *  This operation is linear in the number of elements inserted and
        *  does not invalidate iterators and references.
        */
-      template<typename _InputIterator>
+      template<typename _InputIterator,
+	       typename = std::_RequireInputIter<_InputIterator>>
         iterator
         insert_after(const_iterator __pos,
                      _InputIterator __first, _InputIterator __last);
@@ -997,9 +996,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        *
        *  This function will %resize the %forward_list to the specified
        *  number of elements.  If the number is smaller than the
-       *  %forward_list's current size the %forward_list is truncated,
-       *  otherwise the %forward_list is extended and the new elements
-       *  are default constructed.
+       *  %forward_list's current number of elements the %forward_list
+       *  is truncated, otherwise the %forward_list is extended and the
+       *  new elements are default constructed.
        */
       void
       resize(size_type __sz);
@@ -1012,9 +1011,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        *
        *  This function will %resize the %forward_list to the specified
        *  number of elements.  If the number is smaller than the
-       *  %forward_list's current size the %forward_list is truncated,
-       *  otherwise the %forward_list is extended and new elements are
-       *  populated with given data.
+       *  %forward_list's current number of elements the %forward_list
+       *  is truncated, otherwise the %forward_list is extended and new
+       *  elements are populated with given data.
        */
       void
       resize(size_type __sz, const value_type& __val);
@@ -1207,16 +1206,10 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       { this->_M_impl._M_head._M_reverse_after(); }
 
     private:
-      template<typename _Integer>
-        void
-        _M_initialize_dispatch(_Integer __n, _Integer __x, __true_type)
-        { _M_fill_initialize(static_cast<size_type>(__n), __x); }
-
       // Called by the range constructor to implement [23.1.1]/9
       template<typename _InputIterator>
         void
-        _M_initialize_dispatch(_InputIterator __first, _InputIterator __last,
-                               __false_type);
+        _M_range_initialize(_InputIterator __first, _InputIterator __last);
 
       // Called by forward_list(n,v,a), and the range constructor when it
       // turns out to be the same thing.
@@ -1240,11 +1233,11 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
    *  @brief  Forward list equality comparison.
    *  @param  __lx  A %forward_list
    *  @param  __ly  A %forward_list of the same type as @a __lx.
-   *  @return  True iff the size and elements of the forward lists are equal.
+   *  @return  True iff the elements of the forward lists are equal.
    *
-   *  This is an equivalence relation.  It is linear in the size of the
-   *  forward lists.  Deques are considered equivalent if corresponding
-   *  elements compare equal.
+   *  This is an equivalence relation.  It is linear in the number of 
+   *  elements of the forward lists.  Deques are considered equivalent
+   *  if corresponding elements compare equal.
    */
   template<typename _Tp, typename _Alloc>
     bool
@@ -1257,8 +1250,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
    *  @param  __ly  A %forward_list of the same type as @a __lx.
    *  @return  True iff @a __lx is lexicographically less than @a __ly.
    *
-   *  This is a total ordering relation.  It is linear in the size of the
-   *  forward lists.  The elements must be comparable with @c <.
+   *  This is a total ordering relation.  It is linear in the number of 
+   *  elements of the forward lists.  The elements must be comparable
+   *  with @c <.
    *
    *  See std::lexicographical_compare() for how the determination is made.
    */

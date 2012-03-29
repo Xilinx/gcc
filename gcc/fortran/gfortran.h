@@ -42,7 +42,6 @@ along with GCC; see the file COPYING3.  If not see
 /* Major control parameters.  */
 
 #define GFC_MAX_SYMBOL_LEN 63   /* Must be at least 63 for F2003.  */
-#define GFC_MAX_LINE 132	/* Characters beyond this are not seen.  */
 #define GFC_LETTERS 26		/* Number of letters in the alphabet.  */
 
 #define MAX_SUBRECORD_LENGTH 2147483639   /* 2**31-9 */
@@ -2200,6 +2199,7 @@ typedef struct
   int warn_aliasing;
   int warn_ampersand;
   int gfc_warn_conversion;
+  int warn_c_binding_type;
   int warn_conversion_extra;
   int warn_function_elimination;
   int warn_implicit_interface;
@@ -2919,6 +2919,7 @@ gfc_try gfc_calculate_transfer_sizes (gfc_expr*, gfc_expr*, gfc_expr*,
 				      size_t*, size_t*, size_t*);
 
 /* class.c */
+void gfc_fix_class_refs (gfc_expr *e);
 void gfc_add_component_ref (gfc_expr *, const char *);
 void gfc_add_class_array_ref (gfc_expr *);
 #define gfc_add_data_component(e)     gfc_add_component_ref(e,"_data")
@@ -2928,6 +2929,7 @@ void gfc_add_class_array_ref (gfc_expr *);
 #define gfc_add_def_init_component(e) gfc_add_component_ref(e,"_def_init")
 bool gfc_is_class_array_ref (gfc_expr *, bool *);
 bool gfc_is_class_scalar_expr (gfc_expr *);
+bool gfc_is_class_container_ref (gfc_expr *e);
 gfc_expr *gfc_class_null_initializer (gfc_typespec *);
 unsigned int gfc_hash_value (gfc_symbol *);
 gfc_try gfc_build_class_symbol (gfc_typespec *, symbol_attribute *,

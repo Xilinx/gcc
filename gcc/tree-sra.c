@@ -440,6 +440,20 @@ access_has_children_p (struct access *acc)
   return acc && acc->first_child;
 }
 
+/* Return true iff ACC is (partly) covered by at least one replacement.  */
+
+static bool
+access_has_replacements_p (struct access *acc)
+{
+  struct access *child;
+  if (acc->grp_to_be_replaced)
+    return true;
+  for (child = acc->first_child; child; child = child->next_sibling)
+    if (access_has_replacements_p (child))
+      return true;
+  return false;
+}
+
 /* Return a vector of pointers to accesses for the variable given in BASE or
    NULL if there is none.  */
 
@@ -1067,53 +1081,6 @@ disqualify_ops_if_throwing_stmt (gimple stmt, tree lhs, tree rhs)
   return false;
 }
 
-/* Return true if EXP is a memory reference less aligned than ALIGN.  This is
-   invoked only on strict-alignment targets.  */
-
-static bool
-tree_non_aligned_mem_p (tree exp, unsigned int align)
-{
-  unsigned int exp_align;
-
-  if (TREE_CODE (exp) == VIEW_CONVERT_EXPR)
-    exp = TREE_OPERAND (exp, 0);
-
-  if (TREE_CODE (exp) == SSA_NAME || is_gimple_min_invariant (exp))
-    return false;
-
-  /* get_object_alignment will fall back to BITS_PER_UNIT if it cannot
-     compute an explicit alignment.  Pretend that dereferenced pointers
-     are always aligned on strict-alignment targets.  */
-  if (TREE_CODE (exp) == MEM_REF || TREE_CODE (exp) == TARGET_MEM_REF)
-    exp_align = get_object_or_type_alignment (exp);
-  else
-    exp_align = get_object_alignment (exp);
-
-  if (exp_align < align)
-    return true;
-
-  return false;
-}
-
-/* Return true if EXP is a memory reference less aligned than what the access
-   ACC would require.  This is invoked only on strict-alignment targets.  */
-
-static bool
-tree_non_aligned_mem_for_access_p (tree exp, struct access *acc)
-{
-  unsigned int acc_align;
-
-  /* The alignment of the access is that of its expression.  However, it may
-     have been artificially increased, e.g. by a local alignment promotion,
-     so we cap it to the alignment of the type of the base, on the grounds
-     that valid sub-accesses cannot be more aligned than that.  */
-  acc_align = get_object_alignment (acc->expr);
-  if (acc->base && acc_align > TYPE_ALIGN (TREE_TYPE (acc->base)))
-    acc_align = TYPE_ALIGN (TREE_TYPE (acc->base));
-
-  return tree_non_aligned_mem_p (exp, acc_align);
-}
-
 /* Scan expressions occuring in STMT, create access structures for all accesses
    to candidates for scalarization and remove those candidates which occur in
    statements or expressions that prevent them from being split apart.  Return
@@ -1140,11 +1107,7 @@ build_accesses_from_assign (gimple stmt)
   lacc = build_access_from_expr_1 (lhs, stmt, true);
 
   if (lacc)
-    {
-      lacc->grp_assignment_write = 1;
-      if (STRICT_ALIGNMENT && tree_non_aligned_mem_for_access_p (rhs, lacc))
-        lacc->grp_unscalarizable_region = 1;
-    }
+    lacc->grp_assignment_write = 1;
 
   if (racc)
     {
@@ -1152,8 +1115,6 @@ build_accesses_from_assign (gimple stmt)
       if (should_scalarize_away_bitmap && !gimple_has_volatile_ops (stmt)
 	  && !is_gimple_reg_type (racc->type))
 	bitmap_set_bit (should_scalarize_away_bitmap, DECL_UID (racc->base));
-      if (STRICT_ALIGNMENT && tree_non_aligned_mem_for_access_p (lhs, racc))
-        racc->grp_unscalarizable_region = 1;
     }
 
   if (lacc && racc
@@ -1161,8 +1122,6 @@ build_accesses_from_assign (gimple stmt)
       && !lacc->grp_unscalarizable_region
       && !racc->grp_unscalarizable_region
       && AGGREGATE_TYPE_P (TREE_TYPE (lhs))
-      /* FIXME: Turn the following line into an assert after PR 40058 is
-	 fixed.  */
       && lacc->size == racc->size
       && useless_type_conversion_p (lacc->type, racc->type))
     {
@@ -1512,10 +1471,12 @@ build_ref_for_offset (location_t loc, tree base, HOST_WIDE_INT offset,
      we can extract more optimistic alignment information
      by looking at the access mode.  That would constrain the
      alignment of base + base_offset which we would need to
-     adjust according to offset.
-     ???  But it is not at all clear that prev_base is an access
-     that was in the IL that way, so be conservative for now.  */
+     adjust according to offset.  */
   align = get_pointer_alignment_1 (base, &misalign);
+  if (misalign == 0
+      && (TREE_CODE (prev_base) == MEM_REF
+	  || TREE_CODE (prev_base) == TARGET_MEM_REF))
+    align = MAX (align, TYPE_ALIGN (TREE_TYPE (prev_base)));
   misalign += (double_int_sext (tree_to_double_int (off),
 				TYPE_PRECISION (TREE_TYPE (off))).low
 	       * BITS_PER_UNIT);
@@ -1908,13 +1869,19 @@ create_access_replacement (struct access *access, bool rename)
 
   repl = create_tmp_var (access->type, "SR");
   add_referenced_var (repl);
-  if (rename)
+  if (!access->grp_partial_lhs
+      && rename)
     mark_sym_for_renaming (repl);
 
-  if (!access->grp_partial_lhs
-      && (TREE_CODE (access->type) == COMPLEX_TYPE
-	  || TREE_CODE (access->type) == VECTOR_TYPE))
-    DECL_GIMPLE_REG_P (repl) = 1;
+  if (TREE_CODE (access->type) == COMPLEX_TYPE
+      || TREE_CODE (access->type) == VECTOR_TYPE)
+    {
+      if (!access->grp_partial_lhs)
+	DECL_GIMPLE_REG_P (repl) = 1;
+    }
+  else if (access->grp_partial_lhs
+	   && is_gimple_reg_type (access->type))
+    TREE_ADDRESSABLE (repl) = 1;
 
   DECL_SOURCE_LOCATION (repl) = DECL_SOURCE_LOCATION (access->base);
   DECL_ARTIFICIAL (repl) = 1;
@@ -2158,11 +2125,21 @@ analyze_access_subtree (struct access *root, struct access *parent,
 	      && (root->grp_scalar_write || root->grp_assignment_write))))
     {
       bool new_integer_type;
-      if (TREE_CODE (root->type) == ENUMERAL_TYPE)
+      /* Always create access replacements that cover the whole access.
+         For integral types this means the precision has to match.
+	 Avoid assumptions based on the integral type kind, too.  */
+      if (INTEGRAL_TYPE_P (root->type)
+	  && (TREE_CODE (root->type) != INTEGER_TYPE
+	      || TYPE_PRECISION (root->type) != root->size)
+	  /* But leave bitfield accesses alone.  */
+	  && (root->offset % BITS_PER_UNIT) == 0)
 	{
 	  tree rt = root->type;
-	  root->type = build_nonstandard_integer_type (TYPE_PRECISION (rt),
+	  root->type = build_nonstandard_integer_type (root->size,
 						       TYPE_UNSIGNED (rt));
+	  root->expr = build_ref_for_offset (UNKNOWN_LOCATION,
+					     root->base, root->offset,
+					     root->type, NULL, false);
 	  new_integer_type = true;
 	}
       else
@@ -2992,10 +2969,9 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
       sra_stats.exprs++;
     }
   else if (racc
-	   && !access_has_children_p (racc)
-	   && !racc->grp_to_be_replaced
 	   && !racc->grp_unscalarized_data
-	   && TREE_CODE (lhs) == SSA_NAME)
+	   && TREE_CODE (lhs) == SSA_NAME
+	   && !access_has_replacements_p (racc))
     {
       rhs = get_repl_default_def_ssa_name (racc);
       modify_this_stmt = true;
@@ -3095,7 +3071,13 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
     }
   else
     {
-      if (access_has_children_p (lacc) && access_has_children_p (racc))
+      if (access_has_children_p (lacc)
+	  && access_has_children_p (racc)
+	  /* When an access represents an unscalarizable region, it usually
+	     represents accesses with variable offset and thus must not be used
+	     to generate new memory accesses.  */
+	  && !lacc->grp_unscalarizable_region
+	  && !racc->grp_unscalarizable_region)
 	{
 	  gimple_stmt_iterator orig_gsi = *gsi;
 	  enum unscalarized_data_handling refreshed;
@@ -3804,10 +3786,6 @@ access_precludes_ipa_sra_p (struct access *access)
   if (access->write
       && (is_gimple_call (access->stmt)
 	  || gimple_code (access->stmt) == GIMPLE_ASM))
-    return true;
-
-  if (STRICT_ALIGNMENT
-      && tree_non_aligned_mem_p (access->expr, TYPE_ALIGN (access->type)))
     return true;
 
   return false;

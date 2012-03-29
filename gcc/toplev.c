@@ -486,7 +486,6 @@ check_global_declaration_1 (tree decl)
 	warning (OPT_Wunused_function, "%q+F declared %<static%> but never defined", decl);
       /* This symbol is effectively an "extern" declaration now.  */
       TREE_PUBLIC (decl) = 1;
-      assemble_external (decl);
     }
 
   /* Warn about static fns or vars defined but not used.  */
@@ -591,7 +590,7 @@ compile_file (void)
 
       output_shared_constant_pool ();
       output_object_blocks ();
-  finish_tm_clone_pairs ();
+      finish_tm_clone_pairs ();
 
       /* Write out any pending weak symbol declarations.  */
       weak_finish ();
@@ -1315,12 +1314,11 @@ process_options (void)
   if (flag_graphite
       || flag_graphite_identity
       || flag_loop_block
-      || flag_loop_flatten
       || flag_loop_interchange
       || flag_loop_strip_mine
       || flag_loop_parallelize_all)
     sorry ("Graphite loop optimizations cannot be used (-fgraphite, "
-	   "-fgraphite-identity, -floop-block, -floop-flatten, "
+	   "-fgraphite-identity, -floop-block, "
 	   "-floop-interchange, -floop-strip-mine, -floop-parallelize-all, "
 	   "and -ftree-loop-linear)");
 #endif

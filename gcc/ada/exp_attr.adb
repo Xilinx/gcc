@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2012, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -678,13 +678,13 @@ package body Exp_Attr is
 
       case Id is
 
-         --  Attributes related to Ada 2012 iterators (placeholder ???)
+      --  Attributes related to Ada 2012 iterators (placeholder ???)
 
-         when Attribute_Constant_Indexing    => null;
-         when Attribute_Default_Iterator     => null;
-         when Attribute_Implicit_Dereference => null;
-         when Attribute_Iterator_Element     => null;
-         when Attribute_Variable_Indexing    => null;
+      when Attribute_Constant_Indexing    => null;
+      when Attribute_Default_Iterator     => null;
+      when Attribute_Implicit_Dereference => null;
+      when Attribute_Iterator_Element     => null;
+      when Attribute_Variable_Indexing    => null;
 
       ------------
       -- Access --
@@ -4217,6 +4217,17 @@ package body Exp_Attr is
       when Attribute_Scaling =>
          Expand_Fpt_Attribute_RI (N);
 
+      -------------------------
+      -- Simple_Storage_Pool --
+      -------------------------
+
+      when Attribute_Simple_Storage_Pool =>
+         Rewrite (N,
+           Make_Type_Conversion (Loc,
+             Subtype_Mark => New_Reference_To (Etype (N), Loc),
+             Expression   => New_Reference_To (Entity (N), Loc)));
+         Analyze_And_Resolve (N, Typ);
+
       ----------
       -- Size --
       ----------
@@ -4475,7 +4486,10 @@ package body Exp_Attr is
       -- Storage_Size --
       ------------------
 
-      when Attribute_Storage_Size => Storage_Size : begin
+      when Attribute_Storage_Size => Storage_Size : declare
+         Alloc_Op  : Entity_Id := Empty;
+
+      begin
 
          --  Access type case, always go to the root type
 
@@ -4497,19 +4511,64 @@ package body Exp_Attr is
                          (Storage_Size_Variable (Root_Type (Ptyp)), Loc)))));
 
             elsif Present (Associated_Storage_Pool (Root_Type (Ptyp))) then
-               Rewrite (N,
-                 OK_Convert_To (Typ,
-                   Make_Function_Call (Loc,
-                     Name =>
-                       New_Reference_To
-                         (Find_Prim_Op
-                           (Etype (Associated_Storage_Pool (Root_Type (Ptyp))),
-                            Attribute_Name (N)),
-                          Loc),
 
-                     Parameter_Associations => New_List (
-                       New_Reference_To
-                         (Associated_Storage_Pool (Root_Type (Ptyp)), Loc)))));
+               --  If the access type is associated with a simple storage pool
+               --  object, then attempt to locate the optional Storage_Size
+               --  function of the simple storage pool type. If not found,
+               --  then the result will default to zero.
+
+               if Present (Get_Rep_Pragma (Root_Type (Ptyp),
+                                           Name_Simple_Storage_Pool_Type))
+               then
+                  declare
+                     Pool_Type : constant Entity_Id :=
+                                   Base_Type (Etype (Entity (N)));
+
+                  begin
+                     Alloc_Op := Get_Name_Entity_Id (Name_Storage_Size);
+                     while Present (Alloc_Op) loop
+                        if Scope (Alloc_Op) = Scope (Pool_Type)
+                          and then Present (First_Formal (Alloc_Op))
+                          and then Etype (First_Formal (Alloc_Op)) = Pool_Type
+                        then
+                           exit;
+                        end if;
+
+                        Alloc_Op := Homonym (Alloc_Op);
+                     end loop;
+                  end;
+
+               --  In the normal Storage_Pool case, retrieve the primitive
+               --  function associated with the pool type.
+
+               else
+                  Alloc_Op :=
+                    Find_Prim_Op
+                      (Etype (Associated_Storage_Pool (Root_Type (Ptyp))),
+                       Attribute_Name (N));
+               end if;
+
+               --  If Storage_Size wasn't found (can only occur in the simple
+               --  storage pool case), then simply use zero for the result.
+
+               if not Present (Alloc_Op) then
+                  Rewrite (N, Make_Integer_Literal (Loc, 0));
+
+               --  Otherwise, rewrite the allocator as a call to pool type's
+               --  Storage_Size function.
+
+               else
+                  Rewrite (N,
+                    OK_Convert_To (Typ,
+                      Make_Function_Call (Loc,
+                        Name =>
+                          New_Reference_To (Alloc_Op, Loc),
+
+                        Parameter_Associations => New_List (
+                          New_Reference_To
+                            (Associated_Storage_Pool
+                               (Root_Type (Ptyp)), Loc)))));
+               end if;
 
             else
                Rewrite (N, Make_Integer_Literal (Loc, 0));
@@ -5309,6 +5368,15 @@ package body Exp_Attr is
          Validity_Checks_On := Save_Validity_Checks_On;
       end Valid;
 
+      -------------------
+      -- Valid_Scalars --
+      -------------------
+
+      when Attribute_Valid_Scalars => Valid_Scalars : declare
+      begin
+         raise Program_Error;
+      end Valid_Scalars;
+
       -----------
       -- Value --
       -----------
@@ -5613,7 +5681,8 @@ package body Exp_Attr is
            Attribute_Definite                     |
            Attribute_Null_Parameter               |
            Attribute_Passed_By_Reference          |
-           Attribute_Pool_Address                 =>
+           Attribute_Pool_Address                 |
+           Attribute_Scalar_Storage_Order         =>
          null;
 
       --  The following attributes are also handled by the back end, but return
@@ -5641,10 +5710,12 @@ package body Exp_Attr is
            Attribute_Enabled                      |
            Attribute_Epsilon                      |
            Attribute_Fast_Math                    |
+           Attribute_First_Valid                  |
            Attribute_Has_Access_Values            |
            Attribute_Has_Discriminants            |
            Attribute_Has_Tagged_Values            |
            Attribute_Large                        |
+           Attribute_Last_Valid                   |
            Attribute_Machine_Emax                 |
            Attribute_Machine_Emin                 |
            Attribute_Machine_Mantissa             |

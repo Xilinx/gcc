@@ -1700,6 +1700,7 @@ can_combine_p (rtx insn, rtx i3, rtx pred ATTRIBUTE_UNUSED,
   rtx link;
 #endif
   bool all_adjacent = true;
+  int (*is_volatile_p) (const_rtx);
 
   if (succ)
     {
@@ -1820,6 +1821,10 @@ can_combine_p (rtx insn, rtx i3, rtx pred ATTRIBUTE_UNUSED,
 
   if (set == 0)
     return 0;
+
+  /* The simplification in expand_field_assignment may call back to
+     get_last_value, so set safe guard here.  */
+  subst_low_luid = DF_INSN_LUID (insn);
 
   set = expand_field_assignment (set);
   src = SET_SRC (set), dest = SET_DEST (set);
@@ -1948,11 +1953,17 @@ can_combine_p (rtx insn, rtx i3, rtx pred ATTRIBUTE_UNUSED,
       && REG_P (dest) && REGNO (dest) < FIRST_PSEUDO_REGISTER)
     return 0;
 
-  /* If there are any volatile insns between INSN and I3, reject, because
-     they might affect machine state.  */
+  /* If INSN contains volatile references (specifically volatile MEMs),
+     we cannot combine across any other volatile references.
+     Even if INSN doesn't contain volatile references, any intervening
+     volatile insn might affect machine state.  */
 
+  is_volatile_p = volatile_refs_p (PATTERN (insn))
+    ? volatile_refs_p
+    : volatile_insn_p;
+    
   for (p = NEXT_INSN (insn); p != i3; p = NEXT_INSN (p))
-    if (INSN_P (p) && p != succ && p != succ2 && volatile_insn_p (PATTERN (p)))
+    if (INSN_P (p) && p != succ && p != succ2 && is_volatile_p (PATTERN (p)))
       return 0;
 
   /* If INSN contains an autoincrement or autodecrement, make sure that
@@ -2584,8 +2595,8 @@ try_combine (rtx i3, rtx i2, rtx i1, rtx i0, int *new_direct_jump_p,
   rtx i3dest_killed = 0;
   /* SET_DEST and SET_SRC of I2, I1 and I0.  */
   rtx i2dest = 0, i2src = 0, i1dest = 0, i1src = 0, i0dest = 0, i0src = 0;
-  /* Copy of SET_SRC of I1, if needed.  */
-  rtx i1src_copy = 0;
+  /* Copy of SET_SRC of I1 and I0, if needed.  */
+  rtx i1src_copy = 0, i0src_copy = 0, i0src_copy2 = 0;
   /* Set if I2DEST was reused as a scratch register.  */
   bool i2scratch = false;
   /* The PATTERNs of I0, I1, and I2, or a copy of them in certain cases.  */
@@ -3239,6 +3250,11 @@ try_combine (rtx i3, rtx i2, rtx i1, rtx i0, int *new_direct_jump_p,
       n_occurrences = 0;
       subst_low_luid = DF_INSN_LUID (i1);
 
+      /* If the following substitution will modify I1SRC, make a copy of it
+	 for the case where it is substituted for I1DEST in I2PAT later.  */
+      if (added_sets_2 && i1_feeds_i2_n)
+	i1src_copy = copy_rtx (i1src);
+
       /* If I0 feeds into I1 and I0DEST is in I0SRC, we need to make a unique
 	 copy of I1SRC each time we substitute it, in order to avoid creating
 	 self-referential RTL when we will be substituting I0SRC for I0DEST
@@ -3266,10 +3282,14 @@ try_combine (rtx i3, rtx i2, rtx i1, rtx i0, int *new_direct_jump_p,
 	  return 0;
 	}
 
-      /* If the following substitution will modify I1SRC, make a copy of it
-	 for the case where it is substituted for I1DEST in I2PAT later.  */
-      if (i0_feeds_i1_n && added_sets_2 && i1_feeds_i2_n)
-	i1src_copy = copy_rtx (i1src);
+      /* If the following substitution will modify I0SRC, make a copy of it
+	 for the case where it is substituted for I0DEST in I1PAT later.  */
+      if (added_sets_1 && i0_feeds_i1_n)
+	i0src_copy = copy_rtx (i0src);
+      /* And a copy for I0DEST in I2PAT substitution.  */
+      if (added_sets_2 && ((i0_feeds_i1_n && i1_feeds_i2_n)
+			   || (i0_feeds_i2_n)))
+	i0src_copy2 = copy_rtx (i0src);
 
       n_occurrences = 0;
       subst_low_luid = DF_INSN_LUID (i0);
@@ -3335,7 +3355,7 @@ try_combine (rtx i3, rtx i2, rtx i1, rtx i0, int *new_direct_jump_p,
 	{
 	  rtx t = i1pat;
 	  if (i0_feeds_i1_n)
-	    t = subst (t, i0dest, i0src, 0, 0, 0);
+	    t = subst (t, i0dest, i0src_copy ? i0src_copy : i0src, 0, 0, 0);
 
 	  XVECEXP (newpat, 0, --total_sets) = t;
 	}
@@ -3346,7 +3366,7 @@ try_combine (rtx i3, rtx i2, rtx i1, rtx i0, int *new_direct_jump_p,
 	    t = subst (t, i1dest, i1src_copy ? i1src_copy : i1src, 0, 0,
 		       i0_feeds_i1_n && i0dest_in_i0src);
 	  if ((i0_feeds_i1_n && i1_feeds_i2_n) || i0_feeds_i2_n)
-	    t = subst (t, i0dest, i0src, 0, 0, 0);
+	    t = subst (t, i0dest, i0src_copy2 ? i0src_copy2 : i0src, 0, 0, 0);
 
 	  XVECEXP (newpat, 0, --total_sets) = t;
 	}
@@ -9270,36 +9290,22 @@ apply_distributive_law (rtx x)
       /* This is also a multiply, so it distributes over everything.  */
       break;
 
-    case SUBREG:
-      /* Non-paradoxical SUBREGs distributes over all operations,
-	 provided the inner modes and byte offsets are the same, this
-	 is an extraction of a low-order part, we don't convert an fp
-	 operation to int or vice versa, this is not a vector mode,
-	 and we would not be converting a single-word operation into a
-	 multi-word operation.  The latter test is not required, but
-	 it prevents generating unneeded multi-word operations.  Some
-	 of the previous tests are redundant given the latter test,
-	 but are retained because they are required for correctness.
+    /* This used to handle SUBREG, but this turned out to be counter-
+       productive, since (subreg (op ...)) usually is not handled by
+       insn patterns, and this "optimization" therefore transformed
+       recognizable patterns into unrecognizable ones.  Therefore the
+       SUBREG case was removed from here.
 
-	 We produce the result slightly differently in this case.  */
+       It is possible that distributing SUBREG over arithmetic operations
+       leads to an intermediate result than can then be optimized further,
+       e.g. by moving the outer SUBREG to the other side of a SET as done
+       in simplify_set.  This seems to have been the original intent of
+       handling SUBREGs here.
 
-      if (GET_MODE (SUBREG_REG (lhs)) != GET_MODE (SUBREG_REG (rhs))
-	  || SUBREG_BYTE (lhs) != SUBREG_BYTE (rhs)
-	  || ! subreg_lowpart_p (lhs)
-	  || (GET_MODE_CLASS (GET_MODE (lhs))
-	      != GET_MODE_CLASS (GET_MODE (SUBREG_REG (lhs))))
-	  || paradoxical_subreg_p (lhs)
-	  || VECTOR_MODE_P (GET_MODE (lhs))
-	  || GET_MODE_SIZE (GET_MODE (SUBREG_REG (lhs))) > UNITS_PER_WORD
-	  /* Result might need to be truncated.  Don't change mode if
-	     explicit truncation is needed.  */
-	  || !TRULY_NOOP_TRUNCATION_MODES_P (GET_MODE (x),
-					     GET_MODE (SUBREG_REG (lhs))))
-	return x;
-
-      tem = simplify_gen_binary (code, GET_MODE (SUBREG_REG (lhs)),
-				 SUBREG_REG (lhs), SUBREG_REG (rhs));
-      return gen_lowpart (GET_MODE (x), tem);
+       However, with current GCC this does not appear to actually happen,
+       at least on major platforms.  If some case is found where removing
+       the SUBREG case here prevents follow-on optimizations, distributing
+       SUBREGs ought to be re-added at that place, e.g. in simplify_set.  */
 
     default:
       return x;

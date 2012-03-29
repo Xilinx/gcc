@@ -2613,8 +2613,8 @@ expand_builtin_cexpi (tree exp, rtx target)
 
       op1 = assign_temp (TREE_TYPE (arg), 0, 1, 1);
       op2 = assign_temp (TREE_TYPE (arg), 0, 1, 1);
-      op1a = copy_to_mode_reg (Pmode, XEXP (op1, 0));
-      op2a = copy_to_mode_reg (Pmode, XEXP (op2, 0));
+      op1a = copy_addr_to_reg (XEXP (op1, 0));
+      op2a = copy_addr_to_reg (XEXP (op2, 0));
       top1 = make_tree (build_pointer_type (TREE_TYPE (arg)), op1a);
       top2 = make_tree (build_pointer_type (TREE_TYPE (arg)), op2a);
 
@@ -2841,10 +2841,7 @@ expand_builtin_int_roundingfn_2 (tree exp, rtx target)
   tree fndecl = get_callee_fndecl (exp);
   tree arg;
   enum machine_mode mode;
-
-  /* There's no easy way to detect the case we need to set EDOM.  */
-  if (flag_errno_math)
-    return NULL_RTX;
+  enum built_in_function fallback_fn = BUILT_IN_NONE;
 
   if (!validate_arglist (exp, REAL_TYPE, VOID_TYPE))
      gcc_unreachable ();
@@ -2854,46 +2851,78 @@ expand_builtin_int_roundingfn_2 (tree exp, rtx target)
   switch (DECL_FUNCTION_CODE (fndecl))
     {
     CASE_FLT_FN (BUILT_IN_IRINT):
+      fallback_fn = BUILT_IN_LRINT;
+      /* FALLTHRU */
     CASE_FLT_FN (BUILT_IN_LRINT):
     CASE_FLT_FN (BUILT_IN_LLRINT):
-      builtin_optab = lrint_optab; break;
+      builtin_optab = lrint_optab;
+      break;
 
     CASE_FLT_FN (BUILT_IN_IROUND):
+      fallback_fn = BUILT_IN_LROUND;
+      /* FALLTHRU */
     CASE_FLT_FN (BUILT_IN_LROUND):
     CASE_FLT_FN (BUILT_IN_LLROUND):
-      builtin_optab = lround_optab; break;
+      builtin_optab = lround_optab;
+      break;
 
     default:
       gcc_unreachable ();
     }
 
+  /* There's no easy way to detect the case we need to set EDOM.  */
+  if (flag_errno_math && fallback_fn == BUILT_IN_NONE)
+    return NULL_RTX;
+
   /* Make a suitable register to place result in.  */
   mode = TYPE_MODE (TREE_TYPE (exp));
 
-  target = gen_reg_rtx (mode);
-
-  /* Wrap the computation of the argument in a SAVE_EXPR, as we may
-     need to expand the argument again.  This way, we will not perform
-     side-effects more the once.  */
-  CALL_EXPR_ARG (exp, 0) = arg = builtin_save_expr (arg);
-
-  op0 = expand_expr (arg, NULL, VOIDmode, EXPAND_NORMAL);
-
-  start_sequence ();
-
-  if (expand_sfix_optab (target, op0, builtin_optab))
+  /* There's no easy way to detect the case we need to set EDOM.  */
+  if (!flag_errno_math)
     {
-      /* Output the entire sequence.  */
-      insns = get_insns ();
+      target = gen_reg_rtx (mode);
+
+      /* Wrap the computation of the argument in a SAVE_EXPR, as we may
+	 need to expand the argument again.  This way, we will not perform
+	 side-effects more the once.  */
+      CALL_EXPR_ARG (exp, 0) = arg = builtin_save_expr (arg);
+
+      op0 = expand_expr (arg, NULL, VOIDmode, EXPAND_NORMAL);
+
+      start_sequence ();
+
+      if (expand_sfix_optab (target, op0, builtin_optab))
+	{
+	  /* Output the entire sequence.  */
+	  insns = get_insns ();
+	  end_sequence ();
+	  emit_insn (insns);
+	  return target;
+	}
+
+      /* If we were unable to expand via the builtin, stop the sequence
+	 (without outputting the insns) and call to the library function
+	 with the stabilized argument list.  */
       end_sequence ();
-      emit_insn (insns);
-      return target;
     }
 
-  /* If we were unable to expand via the builtin, stop the sequence
-     (without outputting the insns) and call to the library function
-     with the stabilized argument list.  */
-  end_sequence ();
+  if (fallback_fn != BUILT_IN_NONE)
+    {
+      /* Fall back to rounding to long int.  Use implicit_p 0 - for non-C99
+	 targets, (int) round (x) should never be transformed into
+	 BUILT_IN_IROUND and if __builtin_iround is called directly, emit
+	 a call to lround in the hope that the target provides at least some
+	 C99 functions.  This should result in the best user experience for
+	 not full C99 targets.  */
+      tree fallback_fndecl = mathfn_built_in_1 (TREE_TYPE (arg),
+						fallback_fn, 0);
+
+      exp = build_call_nofold_loc (EXPR_LOCATION (exp),
+				   fallback_fndecl, 1, arg);
+
+      target = expand_call (exp, NULL_RTX, target == const0_rtx);
+      return convert_to_mode (mode, target, 0);
+    }
 
   target = expand_call (exp, target, target == const0_rtx);
 
@@ -4551,7 +4580,7 @@ expand_builtin_frame_address (tree fndecl, tree exp)
 
       if (!REG_P (tem)
 	  && ! CONSTANT_P (tem))
-	tem = copy_to_mode_reg (Pmode, tem);
+	tem = copy_addr_to_reg (tem);
       return tem;
     }
 }
@@ -5639,15 +5668,15 @@ fold_builtin_atomic_always_lock_free (tree arg0, tree arg1)
   /* If the object has smaller alignment, the the lock free routines cannot
      be used.  */
   if (type_align < mode_align)
-    return integer_zero_node;
+    return boolean_false_node;
 
   /* Check if a compare_and_swap pattern exists for the mode which represents
      the required size.  The pattern is not allowed to fail, so the existence
      of the pattern indicates support is present.  */
   if (can_compare_and_swap_p (mode, true))
-    return integer_one_node;
+    return boolean_true_node;
   else
-    return integer_zero_node;
+    return boolean_false_node;
 }
 
 /* Return true if the parameters to call EXP represent an object which will
@@ -5671,7 +5700,7 @@ expand_builtin_atomic_always_lock_free (tree exp)
     }
 
   size = fold_builtin_atomic_always_lock_free (arg0, arg1);
-  if (size == integer_one_node)
+  if (size == boolean_true_node)
     return const1_rtx;
   return const0_rtx;
 }
@@ -5686,8 +5715,8 @@ fold_builtin_atomic_is_lock_free (tree arg0, tree arg1)
     return NULL_TREE;
   
   /* If it isn't always lock free, don't generate a result.  */
-  if (fold_builtin_atomic_always_lock_free (arg0, arg1) == integer_one_node)
-    return integer_one_node;
+  if (fold_builtin_atomic_always_lock_free (arg0, arg1) == boolean_true_node)
+    return boolean_true_node;
 
   return NULL_TREE;
 }
@@ -5717,7 +5746,7 @@ expand_builtin_atomic_is_lock_free (tree exp)
 
   /* If the value is known at compile time, return the RTX for it.  */
   size = fold_builtin_atomic_is_lock_free (arg0, arg1);
-  if (size == integer_one_node)
+  if (size == boolean_true_node)
     return const1_rtx;
 
   return NULL_RTX;
@@ -5776,7 +5805,6 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
      set of builtins.  */
   if (!optimize
       && !called_as_built_in (fndecl)
-      && DECL_ASSEMBLER_NAME_SET_P (fndecl)
       && fcode != BUILT_IN_ALLOCA
       && fcode != BUILT_IN_ALLOCA_WITH_ALIGN
       && fcode != BUILT_IN_FREE)

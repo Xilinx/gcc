@@ -1,5 +1,5 @@
-// { dg-do run { target *-*-freebsd* *-*-netbsd* *-*-linux* *-*-solaris* *-*-cygwin *-*-darwin* alpha*-*-osf* mips-sgi-irix6* powerpc-ibm-aix* } }
-// { dg-options " -std=gnu++0x -pthread" { target *-*-freebsd* *-*-netbsd* *-*-linux* alpha*-*-osf* mips-sgi-irix6* powerpc-ibm-aix* } }
+// { dg-do run { target *-*-freebsd* *-*-netbsd* *-*-linux* *-*-solaris* *-*-cygwin *-*-darwin* powerpc-ibm-aix* } }
+// { dg-options " -std=gnu++0x -pthread" { target *-*-freebsd* *-*-netbsd* *-*-linux* powerpc-ibm-aix* } }
 // { dg-options " -std=gnu++0x -pthreads" { target *-*-solaris* } }
 // { dg-options " -std=gnu++0x " { target *-*-cygwin *-*-darwin* } }
 // { dg-require-cstdint "" }
@@ -42,18 +42,18 @@ void test01()
   std::shared_future<int> f2(f1);
 
   auto when = make_time(10);
-  VERIFY( !f1.wait_until(make_time(10)) );
+  VERIFY( f1.wait_until(make_time(10)) == std::future_status::timeout );
   VERIFY( std::chrono::system_clock::now() >= when );
 
   when = make_time(10);
-  VERIFY( !f2.wait_until(make_time(10)) );
+  VERIFY( f2.wait_until(make_time(10)) == std::future_status::timeout );
   VERIFY( std::chrono::system_clock::now() >= when );
 
   p1.set_value(1);
 
   when = make_time(100);
-  VERIFY( f1.wait_until(when) );
-  VERIFY( f2.wait_until(when) );
+  VERIFY( f1.wait_until(when) == std::future_status::ready );
+  VERIFY( f2.wait_until(when) == std::future_status::ready );
   VERIFY( std::chrono::system_clock::now() < when );
 }
 

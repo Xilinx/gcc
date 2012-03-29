@@ -394,7 +394,7 @@ composite_type (tree t1, tree t2)
 	tree pointed_to_1 = TREE_TYPE (t1);
 	tree pointed_to_2 = TREE_TYPE (t2);
 	tree target = composite_type (pointed_to_1, pointed_to_2);
-	t1 = build_pointer_type (target);
+        t1 = build_pointer_type_for_mode (target, TYPE_MODE (t1), false);
 	t1 = build_type_attribute_variant (t1, attributes);
 	return qualify_type (t1, t2);
       }
@@ -3413,8 +3413,7 @@ pointer_diff (location_t loc, tree op0, tree op1)
      be the same as the result type (ptrdiff_t), but may need to be a wider
      type if pointers for the address space are wider than ptrdiff_t.  */
   if (TYPE_PRECISION (restype) < TYPE_PRECISION (TREE_TYPE (op0)))
-    inttype = lang_hooks.types.type_for_size
-		(TYPE_PRECISION (TREE_TYPE (op0)), 0);
+    inttype = c_common_type_for_size (TYPE_PRECISION (TREE_TYPE (op0)), 0);
   else
     inttype = restype;
 
@@ -3447,7 +3446,9 @@ pointer_diff (location_t loc, tree op0, tree op1)
   else
     con1 = op1;
 
-  if (TREE_CODE (con0) == PLUS_EXPR)
+  gcc_assert (TREE_CODE (con0) != PLUS_EXPR
+	      && TREE_CODE (con1) != PLUS_EXPR);
+  if (TREE_CODE (con0) == POINTER_PLUS_EXPR)
     {
       lit0 = TREE_OPERAND (con0, 1);
       con0 = TREE_OPERAND (con0, 0);
@@ -3455,7 +3456,7 @@ pointer_diff (location_t loc, tree op0, tree op1)
   else
     lit0 = integer_zero_node;
 
-  if (TREE_CODE (con1) == PLUS_EXPR)
+  if (TREE_CODE (con1) == POINTER_PLUS_EXPR)
     {
       lit1 = TREE_OPERAND (con1, 1);
       con1 = TREE_OPERAND (con1, 0);

@@ -398,6 +398,11 @@ class Gogo
   void
   write_specific_type_functions();
 
+  // Whether we are done writing out specific type functions.
+  bool
+  specific_type_functions_are_written() const
+  { return this->specific_type_functions_are_written_; }
+
   // Traverse the tree.  See the Traverse class.
   void
   traverse(Traverse*);
@@ -1154,8 +1159,7 @@ class Variable
 
   // Return whether the type is defined yet.
   bool
-  has_type() const
-  { return this->type_ != NULL; }
+  has_type() const;
 
   // Get the initial value.
   Expression*
@@ -1622,8 +1626,8 @@ class Type_declaration
 
   // Add a method declaration to this type.
   Named_object*
-  add_method_declaration(const std::string& name, Function_type* type,
-			 Location location);
+  add_method_declaration(const std::string& name, Package*,
+			 Function_type* type, Location location);
 
   // Return whether any methods were defined.
   bool

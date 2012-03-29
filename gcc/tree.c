@@ -724,6 +724,10 @@ tree_size (const_tree node)
       return (sizeof (struct tree_vec)
 	      + (TREE_VEC_LENGTH (node) - 1) * sizeof (tree));
 
+    case VECTOR_CST:
+      return (sizeof (struct tree_vector)
+	      + (TYPE_VECTOR_SUBPARTS (TREE_TYPE (node)) - 1) * sizeof (tree));
+
     case STRING_CST:
       return TREE_STRING_LENGTH (node) + offsetof (struct tree_string, str) + 1;
 
@@ -1315,21 +1319,28 @@ cst_and_fits_in_hwi (const_tree x)
    are in a list pointed to by VALS.  */
 
 tree
-build_vector (tree type, tree vals)
+build_vector_stat (tree type, tree *vals MEM_STAT_DECL)
 {
-  tree v = make_node (VECTOR_CST);
   int over = 0;
-  tree link;
   unsigned cnt = 0;
+  tree v;
+  int length = ((TYPE_VECTOR_SUBPARTS (type) - 1) * sizeof (tree)
+		+ sizeof (struct tree_vector));
 
-  TREE_VECTOR_CST_ELTS (v) = vals;
+  record_node_allocation_statistics (VECTOR_CST, length);
+
+  v = ggc_alloc_zone_cleared_tree_node_stat (&tree_zone, length PASS_MEM_STAT);
+
+  TREE_SET_CODE (v, VECTOR_CST);
+  TREE_CONSTANT (v) = 1;
   TREE_TYPE (v) = type;
 
   /* Iterate through elements and check for overflow.  */
-  for (link = vals; link; link = TREE_CHAIN (link))
+  for (cnt = 0; cnt < TYPE_VECTOR_SUBPARTS (type); ++cnt)
     {
-      tree value = TREE_VALUE (link);
-      cnt++;
+      tree value = vals[cnt];
+
+      VECTOR_CST_ELT (v, cnt) = value;
 
       /* Don't crash if we get an address constant.  */
       if (!CONSTANT_CLASS_P (value))
@@ -1337,8 +1348,6 @@ build_vector (tree type, tree vals)
 
       over |= TREE_OVERFLOW (value);
     }
-
-  gcc_assert (cnt == TYPE_VECTOR_SUBPARTS (type));
 
   TREE_OVERFLOW (v) = over;
   return v;
@@ -1350,16 +1359,16 @@ build_vector (tree type, tree vals)
 tree
 build_vector_from_ctor (tree type, VEC(constructor_elt,gc) *v)
 {
-  tree list = NULL_TREE;
+  tree *vec = XALLOCAVEC (tree, TYPE_VECTOR_SUBPARTS (type));
   unsigned HOST_WIDE_INT idx;
   tree value;
 
   FOR_EACH_CONSTRUCTOR_VALUE (v, idx, value)
-    list = tree_cons (NULL_TREE, value, list);
+    vec[idx] = value;
   for (; idx < TYPE_VECTOR_SUBPARTS (type); ++idx)
-    list = tree_cons (NULL_TREE,
-		      build_zero_cst (TREE_TYPE (type)), list);
-  return build_vector (type, nreverse (list));
+    vec[idx] = build_zero_cst (TREE_TYPE (type));
+
+  return build_vector (type, vec);
 }
 
 /* Build a vector of type VECTYPE where all the elements are SCs.  */
@@ -1367,7 +1376,6 @@ tree
 build_vector_from_val (tree vectype, tree sc) 
 {
   int i, nunits = TYPE_VECTOR_SUBPARTS (vectype);
-  VEC(constructor_elt, gc) *v = NULL;
 
   if (sc == error_mark_node)
     return sc;
@@ -1381,14 +1389,20 @@ build_vector_from_val (tree vectype, tree sc)
   gcc_checking_assert (types_compatible_p (TYPE_MAIN_VARIANT (TREE_TYPE (sc)),
 					   TREE_TYPE (vectype)));
 
-  v = VEC_alloc (constructor_elt, gc, nunits);
-  for (i = 0; i < nunits; ++i)
-    CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, sc);
-
   if (CONSTANT_CLASS_P (sc))
-    return build_vector_from_ctor (vectype, v);
-  else 
-    return build_constructor (vectype, v);
+    {
+      tree *v = XALLOCAVEC (tree, nunits);
+      for (i = 0; i < nunits; ++i)
+	v[i] = sc;
+      return build_vector (vectype, v);
+    }
+  else
+    {
+      VEC(constructor_elt, gc) *v = VEC_alloc (constructor_elt, gc, nunits);
+      for (i = 0; i < nunits; ++i)
+	CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, sc);
+      return build_constructor (vectype, v);
+    }
 }
 
 /* Return a new CONSTRUCTOR node whose type is TYPE and whose values
@@ -1714,12 +1728,25 @@ integer_zerop (const_tree expr)
 {
   STRIP_NOPS (expr);
 
-  return ((TREE_CODE (expr) == INTEGER_CST
-	   && TREE_INT_CST_LOW (expr) == 0
-	   && TREE_INT_CST_HIGH (expr) == 0)
-	  || (TREE_CODE (expr) == COMPLEX_CST
-	      && integer_zerop (TREE_REALPART (expr))
-	      && integer_zerop (TREE_IMAGPART (expr))));
+  switch (TREE_CODE (expr))
+    {
+    case INTEGER_CST:
+      return (TREE_INT_CST_LOW (expr) == 0
+	      && TREE_INT_CST_HIGH (expr) == 0);
+    case COMPLEX_CST:
+      return (integer_zerop (TREE_REALPART (expr))
+	      && integer_zerop (TREE_IMAGPART (expr)));
+    case VECTOR_CST:
+      {
+	unsigned i;
+	for (i = 0; i < VECTOR_CST_NELTS (expr); ++i)
+	  if (!integer_zerop (VECTOR_CST_ELT (expr, i)))
+	    return false;
+	return true;
+      }
+    default:
+      return false;
+    }
 }
 
 /* Return 1 if EXPR is the integer constant one or the corresponding
@@ -1730,12 +1757,25 @@ integer_onep (const_tree expr)
 {
   STRIP_NOPS (expr);
 
-  return ((TREE_CODE (expr) == INTEGER_CST
-	   && TREE_INT_CST_LOW (expr) == 1
-	   && TREE_INT_CST_HIGH (expr) == 0)
-	  || (TREE_CODE (expr) == COMPLEX_CST
-	      && integer_onep (TREE_REALPART (expr))
-	      && integer_zerop (TREE_IMAGPART (expr))));
+  switch (TREE_CODE (expr))
+    {
+    case INTEGER_CST:
+      return (TREE_INT_CST_LOW (expr) == 1
+	      && TREE_INT_CST_HIGH (expr) == 0);
+    case COMPLEX_CST:
+      return (integer_onep (TREE_REALPART (expr))
+	      && integer_zerop (TREE_IMAGPART (expr)));
+    case VECTOR_CST:
+      {
+	unsigned i;
+	for (i = 0; i < VECTOR_CST_NELTS (expr); ++i)
+	  if (!integer_onep (VECTOR_CST_ELT (expr, i)))
+	    return false;
+	return true;
+      }
+    default:
+      return false;
+    }
 }
 
 /* Return 1 if EXPR is an integer containing all 1's in as much precision as
@@ -1753,6 +1793,15 @@ integer_all_onesp (const_tree expr)
       && integer_all_onesp (TREE_REALPART (expr))
       && integer_zerop (TREE_IMAGPART (expr)))
     return 1;
+
+  else if (TREE_CODE (expr) == VECTOR_CST)
+    {
+      unsigned i;
+      for (i = 0; i < VECTOR_CST_NELTS (expr); ++i)
+	if (!integer_all_onesp (VECTOR_CST_ELT (expr, i)))
+	  return 0;
+      return 1;
+    }
 
   else if (TREE_CODE (expr) != INTEGER_CST)
     return 0;
@@ -4596,7 +4645,11 @@ free_lang_data_in_decl (tree decl)
   free_lang_data_in_one_sizepos (&DECL_SIZE (decl));
   free_lang_data_in_one_sizepos (&DECL_SIZE_UNIT (decl));
   if (TREE_CODE (decl) == FIELD_DECL)
-    free_lang_data_in_one_sizepos (&DECL_FIELD_OFFSET (decl));
+    {
+      free_lang_data_in_one_sizepos (&DECL_FIELD_OFFSET (decl));
+      if (TREE_CODE (DECL_CONTEXT (decl)) == QUAL_UNION_TYPE)
+	DECL_QUALIFIER (decl) = NULL_TREE;
+    }
 
  if (TREE_CODE (decl) == FUNCTION_DECL)
     {
@@ -4800,7 +4853,6 @@ find_decls_types_r (tree *tp, int *ws, void *data)
 	{
 	  fld_worklist_push (DECL_FIELD_OFFSET (t), fld);
 	  fld_worklist_push (DECL_BIT_FIELD_TYPE (t), fld);
-	  fld_worklist_push (DECL_QUALIFIER (t), fld);
 	  fld_worklist_push (DECL_FIELD_BIT_OFFSET (t), fld);
 	  fld_worklist_push (DECL_FCONTEXT (t), fld);
 	}
@@ -6906,7 +6958,12 @@ iterative_hash_expr (const_tree t, hashval_t val)
       val = iterative_hash_expr (TREE_REALPART (t), val);
       return iterative_hash_expr (TREE_IMAGPART (t), val);
     case VECTOR_CST:
-      return iterative_hash_expr (TREE_VECTOR_CST_ELTS (t), val);
+      {
+	unsigned i;
+	for (i = 0; i < VECTOR_CST_NELTS (t); ++i)
+	  val = iterative_hash_expr (VECTOR_CST_ELT (t, i), val);
+	return val;
+      }
     case SSA_NAME:
       /* We can just compare by pointer.  */
       return iterative_hash_host_wide_int (SSA_NAME_VERSION (t), val);
@@ -9851,10 +9908,13 @@ initializer_zerop (const_tree init)
 	    && ! REAL_VALUE_MINUS_ZERO (TREE_REAL_CST (TREE_IMAGPART (init))));
 
     case VECTOR_CST:
-      for (elt = TREE_VECTOR_CST_ELTS (init); elt; elt = TREE_CHAIN (elt))
-	if (!initializer_zerop (TREE_VALUE (elt)))
-	  return false;
-      return true;
+      {
+	unsigned i;
+	for (i = 0; i < VECTOR_CST_NELTS (init); ++i)
+	  if (!initializer_zerop (VECTOR_CST_ELT (init, i)))
+	    return false;
+	return true;
+      }
 
     case CONSTRUCTOR:
       {
@@ -10160,32 +10220,26 @@ widest_int_cst_value (const_tree x)
   return val;
 }
 
-/* If TYPE is an integral type, return an equivalent type which is
-    unsigned iff UNSIGNEDP is true.  If TYPE is not an integral type,
-    return TYPE itself.  */
+/* If TYPE is an integral or pointer type, return an integer type with
+   the same precision which is unsigned iff UNSIGNEDP is true, or itself
+   if TYPE is already an integer type of signedness UNSIGNEDP.  */
 
 tree
 signed_or_unsigned_type_for (int unsignedp, tree type)
 {
-  tree t = type;
-  if (POINTER_TYPE_P (type))
-    {
-      /* If the pointer points to the normal address space, use the
-	 size_type_node.  Otherwise use an appropriate size for the pointer
-	 based on the named address space it points to.  */
-      if (!TYPE_ADDR_SPACE (TREE_TYPE (t)))
-	t = size_type_node;
-      else
-	return lang_hooks.types.type_for_size (TYPE_PRECISION (t), unsignedp);
-    }
+  if (TREE_CODE (type) == INTEGER_TYPE && TYPE_UNSIGNED (type) == unsignedp)
+    return type;
 
-  if (!INTEGRAL_TYPE_P (t) || TYPE_UNSIGNED (t) == unsignedp)
-    return t;
+  if (!INTEGRAL_TYPE_P (type)
+      && !POINTER_TYPE_P (type))
+    return NULL_TREE;
 
-  return lang_hooks.types.type_for_size (TYPE_PRECISION (t), unsignedp);
+  return build_nonstandard_integer_type (TYPE_PRECISION (type), unsignedp);
 }
 
-/* Returns unsigned variant of TYPE.  */
+/* If TYPE is an integral or pointer type, return an integer type with
+   the same precision which is unsigned, or itself if TYPE is already an
+   unsigned integer type.  */
 
 tree
 unsigned_type_for (tree type)
@@ -10193,7 +10247,9 @@ unsigned_type_for (tree type)
   return signed_or_unsigned_type_for (1, type);
 }
 
-/* Returns signed variant of TYPE.  */
+/* If TYPE is an integral or pointer type, return an integer type with
+   the same precision which is signed, or itself if TYPE is already a
+   signed integer type.  */
 
 tree
 signed_type_for (tree type)
@@ -11174,6 +11230,52 @@ tree_strip_sign_nop_conversions (tree exp)
   while (tree_sign_nop_conversion (exp))
     exp = TREE_OPERAND (exp, 0);
   return exp;
+}
+
+/* Avoid any floating point extensions from EXP.  */
+tree
+strip_float_extensions (tree exp)
+{
+  tree sub, expt, subt;
+
+  /*  For floating point constant look up the narrowest type that can hold
+      it properly and handle it like (type)(narrowest_type)constant.
+      This way we can optimize for instance a=a*2.0 where "a" is float
+      but 2.0 is double constant.  */
+  if (TREE_CODE (exp) == REAL_CST && !DECIMAL_FLOAT_TYPE_P (TREE_TYPE (exp)))
+    {
+      REAL_VALUE_TYPE orig;
+      tree type = NULL;
+
+      orig = TREE_REAL_CST (exp);
+      if (TYPE_PRECISION (TREE_TYPE (exp)) > TYPE_PRECISION (float_type_node)
+	  && exact_real_truncate (TYPE_MODE (float_type_node), &orig))
+	type = float_type_node;
+      else if (TYPE_PRECISION (TREE_TYPE (exp))
+	       > TYPE_PRECISION (double_type_node)
+	       && exact_real_truncate (TYPE_MODE (double_type_node), &orig))
+	type = double_type_node;
+      if (type)
+	return build_real (type, real_value_truncate (TYPE_MODE (type), orig));
+    }
+
+  if (!CONVERT_EXPR_P (exp))
+    return exp;
+
+  sub = TREE_OPERAND (exp, 0);
+  subt = TREE_TYPE (sub);
+  expt = TREE_TYPE (exp);
+
+  if (!FLOAT_TYPE_P (subt))
+    return exp;
+
+  if (DECIMAL_FLOAT_TYPE_P (expt) != DECIMAL_FLOAT_TYPE_P (subt))
+    return exp;
+
+  if (TYPE_PRECISION (subt) > TYPE_PRECISION (expt))
+    return exp;
+
+  return strip_float_extensions (sub);
 }
 
 /* Strip out all handled components that produce invariant

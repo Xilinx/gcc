@@ -1,5 +1,5 @@
 /* If-conversion for vectorizer.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Devang Patel <dpatel@apple.com>
 
@@ -712,7 +712,7 @@ if_convertible_gimple_assign_stmt_p (gimple stmt,
 /* Return true when STMT is if-convertible.
 
    A statement is if-convertible if:
-   - it is an if-convertible GIMPLE_ASSGIN,
+   - it is an if-convertible GIMPLE_ASSIGN,
    - it is a GIMPLE_LABEL or a GIMPLE_COND.  */
 
 static bool
@@ -1262,7 +1262,7 @@ find_phi_replacement_condition (struct loop *loop,
    arguments.
 
    For example,
-     S1: A = PHI <x1(1), x2(5)
+     S1: A = PHI <x1(1), x2(5)>
    is converted into,
      S2: A = cond ? x1 : x2;
 
@@ -1712,6 +1712,9 @@ combine_blocks (struct loop *loop)
 
   free (ifc_bbs);
   ifc_bbs = NULL;
+
+  /* Post-dominators are corrupt now.  */
+  free_dominance_info (CDI_POST_DOMINATORS);
 }
 
 /* If-convert LOOP when it is legal.  For the moment this pass has no

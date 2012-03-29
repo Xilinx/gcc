@@ -1,5 +1,5 @@
 /* Vectorizer
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
    Contributed by Dorit Naishlos <dorit@il.ibm.com>
 
@@ -476,6 +476,13 @@ typedef struct _stmt_vec_info {
   tree dr_step;
   tree dr_aligned_to;
 
+  /* For loop PHI nodes, the evolution part of it.  This makes sure
+     this information is still available in vect_update_ivs_after_vectorizer
+     where we may not be able to re-analyze the PHI nodes evolution as
+     peeling for the prologue loop can make it unanalyzable.  The evolution
+     part is still correct though.  */
+  tree loop_phi_evolution_part;
+
   /* Used for various bookkeeping purposes, generally holding a pointer to
      some other stmt S that is in some way "related" to this stmt.
      Current use of this field is:
@@ -572,6 +579,7 @@ typedef struct _stmt_vec_info {
 #define STMT_VINFO_GROUP_SAME_DR_STMT(S)   (S)->same_dr_stmt
 #define STMT_VINFO_GROUP_READ_WRITE_DEPENDENCE(S)  (S)->read_write_dep
 #define STMT_VINFO_STRIDED_ACCESS(S)      ((S)->first_element != NULL && (S)->data_ref_info)
+#define STMT_VINFO_LOOP_PHI_EVOLUTION_PART(S) (S)->loop_phi_evolution_part
 
 #define GROUP_FIRST_ELEMENT(S)          (S)->first_element
 #define GROUP_NEXT_ELEMENT(S)           (S)->next_element
@@ -808,9 +816,11 @@ extern bool vect_can_advance_ivs_p (loop_vec_info);
 extern unsigned int current_vector_size;
 extern tree get_vectype_for_scalar_type (tree);
 extern tree get_same_sized_vectype (tree, tree);
-extern bool vect_is_simple_use (tree, loop_vec_info, bb_vec_info, gimple *,
+extern bool vect_is_simple_use (tree, gimple, loop_vec_info,
+			        bb_vec_info, gimple *,
                                 tree *,  enum vect_def_type *);
-extern bool vect_is_simple_use_1 (tree, loop_vec_info, bb_vec_info, gimple *,
+extern bool vect_is_simple_use_1 (tree, gimple, loop_vec_info,
+				  bb_vec_info, gimple *,
 				  tree *,  enum vect_def_type *, tree *);
 extern bool supportable_widening_operation (enum tree_code, gimple, tree, tree,
                                             tree *, tree *, enum tree_code *,
@@ -931,7 +941,7 @@ extern void vect_slp_transform_bb (basic_block);
    in the future.  */
 typedef gimple (* vect_recog_func_ptr) (VEC (gimple, heap) **, tree *, tree *);
 #define NUM_PATTERNS 10
-void vect_pattern_recog (loop_vec_info);
+void vect_pattern_recog (loop_vec_info, bb_vec_info);
 
 /* In tree-vectorizer.c.  */
 unsigned vectorize_loops (void);
