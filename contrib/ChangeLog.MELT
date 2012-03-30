@@ -1,6 +1,10 @@
 
 2012-03-30  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* MELT-Plugin-Makefile (GCCMELT_CC): Add missing else.
+
+2012-03-30  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* MELT-Plugin-Makefile (GCCMELT_CC): Set it only if unset. Add
 	info messages.
 	(clean): Use melt-clean.

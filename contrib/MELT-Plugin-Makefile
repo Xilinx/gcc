@@ -51,6 +51,7 @@ else
 GCCMELT_CC = $(or $(CXX),g++)
 $(info GCCMELT_CC= $(GCCMELT_CC) is a C++ compiler)
 endif
+else
 $(info GCCMELT_CC= $(GCCMELT_CC) is explicitly given)
 endif
 
