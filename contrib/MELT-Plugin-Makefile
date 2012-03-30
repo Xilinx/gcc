@@ -34,7 +34,7 @@ MELTGCC = $(or $(CC),gcc)
 endif
 
 ## gives yes if MELTGCC has been built with C++ or else the empty string
-MELTGCC_BUILD_WITH_CXX =$ (shell grep -q 'define[[:space:]]\+ENABLE_BUILD_WITH_CXX[[:space:]]\+1' \
+MELTGCC_BUILD_WITH_CXX = $(shell grep -q 'define[[:space:]]\+ENABLE_BUILD_WITH_CXX[[:space:]]\+1' \
   `$(MELTGCC) -print-file-name=plugin/include/auto-host.h` && echo yes)
 
 ## The compiler and flags used to build the melt.so plugin and to

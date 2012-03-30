@@ -1,4 +1,8 @@
 
+2012-03-30  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* MELT-Plugin-Makefile (MELTGCC_BUILD_WITH_CXX): Typo.
+
 2012-03-29  Romain Geissler  <romain.geissler@gmail.com>
 	* MELT-Plugin-Makefile (MELTGCC_BUILD_WITH_CXX): Better grep.
 
