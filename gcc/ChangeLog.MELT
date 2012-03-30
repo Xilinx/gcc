@@ -1,5 +1,9 @@
 
 
+2011-03-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl (melt-clean): Don't remove all melt*.c files!
+	* melt-build.mk: Regenerate.
+
 2011-03-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.5rc1
 

@@ -43,10 +43,15 @@ MELTGCC_BUILD_WITH_CXX = $(shell grep -q 'define[[:space:]]\+ENABLE_BUILD_WITH_C
 ## could be a C++ compiler! eg
 ##   make MELTGCC=gcc-4.7 GCCMELT_CC=g++-4.7
 ## hence we add a test if $(MELTGCC) was built with C++ or with C
+ifndef GCCMELT_CC
 ifeq ($(strip $(MELTGCC_BUILD_WITH_CXX)),)
-GCCMELT_CC ?= $(or $(CC),gcc) -Wc++-compat
+GCCMELT_CC = $(or $(CC),gcc) -Wc++-compat
+$(info GCCMELT_CC= $(GCCMELT_CC) is a C compiler)
 else
-GCCMELT_CC ?= $(or $(CXX),g++)
+GCCMELT_CC = $(or $(CXX),g++)
+$(info GCCMELT_CC= $(GCCMELT_CC) is a C++ compiler)
+endif
+$(info GCCMELT_CC= $(GCCMELT_CC) is explicitly given)
 endif
 
 GCCMELT_CFLAGS ?= -g -O -Wall
@@ -279,13 +284,15 @@ melt.so melt-runtime.args: melt-runtime.c $(MELTGCC_RUNTIME_INCLUDES) \
 	$(GCCMELT_CC) $(GCCMELT_CFLAGS) -fPIC  -shared  @melt-runtime.args \
 	      -o $@ $(MELTGCC_LIBES)
 
-clean:
-	$(RM) *.o *~ melt-predef.h gt-melt-runtime.h gfmelt* *tmp stamp-* *.args
 
 melt-build.mk: melt-build.def melt-build.tpl
 	$(AUTOGEN) melt-build.def
 
 include melt-build.mk
+
+## melt-clean comes from melt-build.mk
+clean: melt-clean
+	$(RM) *.o melt.so *~ melt-predef.h gt-melt-runtime.h gfmelt* *tmp stamp-* *.args
 
 bootstrap-melt: melt.so warmelt-predef.melt warmelt0 warmelt1 warmelt2 warmelt all-melt
 
