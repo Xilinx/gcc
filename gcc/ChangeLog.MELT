@@ -1,5 +1,11 @@
 
 
+2011-03-31  Romain Geissler  <romain.geissler@gmail.com>
+	* melt-module.mk (SHARED_LIBRARY_FLAGS): New.
+	Use it for all our flavors.
+
+2011-03-31  Basile Starynkevitch  <basile@starynkevitch.net>
+
 2011-03-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl (melt-clean): Don't remove all melt*.c files!
 	* melt-build.mk: Regenerate.

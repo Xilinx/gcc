@@ -241,7 +241,7 @@ typedef struct melt_module_info_st
   unsigned mmi_magic;		/* always MELT_MODULE_MAGIC */
   void *mmi_dlh;			/* dlopen handle */
   char* mmi_modpath;		/* strdup-ed file path passed to
-				   dlopen, ending with .so */
+				   dlopen, ending with MELT_DYNLOADED_SUFFIX */
   char* mmi_descrbase;		/* strdup-ed file base path of the
 				   MELT descriptive file, without its
 				   +meltdesc.c suffix */
@@ -4457,11 +4457,14 @@ meltgc_new_string_generated_c_filename  (meltobject_ptr_t discr_p,
       strcop[spos-2] = strcop[spos-1] = (char)0;
       spos -= 2;
     }
-  /* remove the .so suffix if given */
-  else if (spos>3 && !strcmp (strcop+spos-3, ".so")) 
+  /* remove the MELT_DYNLOADED_SUFFIX suffix [often .so] if given */
+  else if (spos >= (int) sizeof(MELT_DYNLOADED_SUFFIX) 
+	   && !strcmp (strcop+spos-(sizeof(MELT_DYNLOADED_SUFFIX)-1), 
+		       MELT_DYNLOADED_SUFFIX)) 
     {
-      strcop[spos-3] = strcop[spos-2] = strcop[spos-1] = (char)0;
-      spos -= 3;
+      memset (strcop + spos - (sizeof(MELT_DYNLOADED_SUFFIX)-1),
+	      0, sizeof(MELT_DYNLOADED_SUFFIX)-1);
+      spos -= sizeof(MELT_DYNLOADED_SUFFIX)-1;
     }
   /* remove the .melt suffix if given */
   else if (spos>5 && !strcmp (strcop+spos-5, ".melt"))
@@ -5011,7 +5014,7 @@ obstack_add_escaped_path (struct obstack* obs, const char* path)
 #define CFLAGS_ARG "GCCMELT_CFLAGS="
   /* the flag to change directory for make */
   /* See also file melt-module.mk which expects the module binary to
-     be without its .so or .n.so or .d.so suffix */
+     be without its MELT_DYNLOADED_SUFFIX. */
 #define MAKECHDIR_ARG "-C"
  
 /* the make target */
@@ -5324,9 +5327,9 @@ melt_run_make_for_branch (const char*ourmakecommand, const char*ourmakefile, con
    /some/path/foo+meltdesc.c and the MELT timestamp file
    /some/path/foo+melttime.h and possibly secondary files like
    /some/path/foo+01.c /some/path/foo+02.c in addition of the primary
-   file /some/path/foo.c ; the binbase should have no .so suffix.  The
-   module build is done thru the melt-module.mk file [with the 'make'
-   utility]. */
+   file /some/path/foo.c ; the binbase should have no
+   MELT_DYNLOADED_SUFFIX.  The module build is done thru the
+   melt-module.mk file [with the 'make' utility]. */
 
 void
 melt_compile_source (const char *srcbase, const char *binbase, const char*workdir, const char*flavor)
@@ -8604,7 +8607,8 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
 	     "MELT descriptive file %s for MELT version %s, but this MELT runtime is version %s",
 	     srcpath, descversionmelt, melt_version_str ());
   sobase = 
-    concat (lbasename(descmodulename), ".", desccumulatedhexmd5, ".", flavor, ".so", NULL);
+    concat (lbasename(descmodulename), ".", desccumulatedhexmd5, ".", flavor,
+	    MELT_DYNLOADED_SUFFIX, NULL);
   debugeprintf ("melt_load_module_index long sobase %s workdir %s", 
 		sobase, melt_argument ("workdir"));
   sopath =
@@ -8638,7 +8642,8 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
 	{
 	  debugeprintf ("melt_load_module_index curflavor %s curflavorix %d", curflavor, curflavorix);
 	  cursobase = 
-	    concat (lbasename(descmodulename), ".", desccumulatedhexmd5, ".", curflavor, ".so", NULL);
+	    concat (lbasename(descmodulename), ".", desccumulatedhexmd5,
+		    ".", curflavor, MELT_DYNLOADED_SUFFIX, NULL);
 	  debugeprintf ("melt_load_module_index curflavor %s long cursobase %s workdir %s", 
 			curflavor, cursobase, melt_argument ("workdir"));
 	  cursopath =
@@ -8679,7 +8684,8 @@ melt_load_module_index (const char*srcbase, const char*flavor, char**errorp)
 	worktmpdir = melt_tempdir_path (NULL, NULL);
       binbase = concat (worktmpdir, "/", lbasename (srcbase), NULL);
       sopath = 
-	concat (binbase, ".", desccumulatedhexmd5, ".", flavor, ".so", NULL);
+	concat (binbase, ".", desccumulatedhexmd5, ".", flavor, 
+		MELT_DYNLOADED_SUFFIX, NULL);
       debugeprintf ("sopath %s", sopath);
       (void) remove (sopath);
       melt_compile_source (srcbase, binbase, worktmpdir, flavor);
@@ -13306,9 +13312,6 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 #define seqv      meltfram__.mcfr_varptr[3]
 #define closv     meltfram__.mcfr_varptr[4]
   MELT_LOCATION_HERE("meltgc_poll_inputs");
-#if _POSIX_C_SOURCE < 200112L
-#error meltgc_poll_inputs need a Posix 2001 system with poll
-#endif /* _POSIX_C_SOURCE < 200112L */
   inbuckv = inbuck_p;
   if (melt_magic_discr ((melt_ptr_t) inbuckv) != MELTOBMAG_BUCKETLONGS)
     goto end;
