@@ -21619,13 +21619,14 @@ lab_endgetargs:;
       /*^checkinterrupt */
       MELT_CHECK_INTERRUPT ();
       ;
-   /*_#STRING_SUFFIXED__L7*/ meltfnum[1] =
-	(melt_string_is_ending
-	 ((melt_ptr_t) /*_.MODNAMSTR__V3*/ meltfptr[2], ".so"));;
+   /*_#STRING_DYNLOADED_SUFFIXED__L7*/ meltfnum[1] =
+	/*string_dynloaded_suffixed: */
+	(melt_string_is_ending ((melt_ptr_t) /*_.MODNAMSTR__V3*/ meltfptr[2],
+				MELT_DYNLOADED_SUFFIX));;
       /*^compute */
 
    /*_#NOT__L8*/ meltfnum[0] =
-	(!( /*_#STRING_SUFFIXED__L7*/ meltfnum[1]));;
+	(!( /*_#STRING_DYNLOADED_SUFFIXED__L7*/ meltfnum[1]));;
       MELT_LOCATION ("warmelt-outobj.melt:4766:/ cond");
       /*cond */ if ( /*_#NOT__L8*/ meltfnum[0])	/*then */
 	{
@@ -21645,7 +21646,7 @@ lab_endgetargs:;
 
 	    {
 	      /*^locexp */
-	      melt_assert_failed (("translate_macroexpanded_list modulename not ended with .so"), ("warmelt-outobj.melt") ? ("warmelt-outobj.melt") : __FILE__, (4766) ? (4766) : __LINE__, __FUNCTION__);
+	      melt_assert_failed (("translate_macroexpanded_list modulename not ended with MELT_DYNLOADED_SUFFIX."), ("warmelt-outobj.melt") ? ("warmelt-outobj.melt") : __FILE__, (4766) ? (4766) : __LINE__, __FUNCTION__);
 	      ;
 	    }
 	    ;
@@ -21661,7 +21662,7 @@ lab_endgetargs:;
       /*epilog */
 
       MELT_LOCATION ("warmelt-outobj.melt:4766:/ clear");
-	     /*clear *//*_#STRING_SUFFIXED__L7*/ meltfnum[1] = 0;
+	     /*clear *//*_#STRING_DYNLOADED_SUFFIXED__L7*/ meltfnum[1] = 0;
       /*^clear */
 	     /*clear *//*_#NOT__L8*/ meltfnum[0] = 0;
       /*^clear */
@@ -21684,6 +21685,7 @@ lab_endgetargs:;
       MELT_CHECK_INTERRUPT ();
       ;
    /*_#STRING_SUFFIXED__L9*/ meltfnum[1] =
+	/*string_suffixed: */
 	(melt_string_is_ending
 	 ((melt_ptr_t) /*_.MODNAMSTR__V3*/ meltfptr[2], ".melt"));;
       /*^compute */
@@ -21748,6 +21750,7 @@ lab_endgetargs:;
       MELT_CHECK_INTERRUPT ();
       ;
    /*_#STRING_SUFFIXED__L11*/ meltfnum[1] =
+	/*string_suffixed: */
 	(melt_string_is_ending
 	 ((melt_ptr_t) /*_.MODNAMSTR__V3*/ meltfptr[2], ".c"));;
       /*^compute */
@@ -26526,13 +26529,14 @@ lab_endgetargs:;
       /*^checkinterrupt */
       MELT_CHECK_INTERRUPT ();
       ;
-   /*_#STRING_SUFFIXED__L6*/ meltfnum[0] =
-	(melt_string_is_ending
-	 ((melt_ptr_t) /*_.MODNAMSTR__V4*/ meltfptr[3], ".so"));;
+   /*_#STRING_DYNLOADED_SUFFIXED__L6*/ meltfnum[0] =
+	/*string_dynloaded_suffixed: */
+	(melt_string_is_ending ((melt_ptr_t) /*_.MODNAMSTR__V4*/ meltfptr[3],
+				MELT_DYNLOADED_SUFFIX));;
       /*^compute */
 
    /*_#NOT__L7*/ meltfnum[1] =
-	(!( /*_#STRING_SUFFIXED__L6*/ meltfnum[0]));;
+	(!( /*_#STRING_DYNLOADED_SUFFIXED__L6*/ meltfnum[0]));;
       MELT_LOCATION ("warmelt-outobj.melt:5054:/ cond");
       /*cond */ if ( /*_#NOT__L7*/ meltfnum[1])	/*then */
 	{
@@ -26552,7 +26556,7 @@ lab_endgetargs:;
 
 	    {
 	      /*^locexp */
-	      melt_assert_failed (("compile_list_sexpr modulename not ended with .so"), ("warmelt-outobj.melt") ? ("warmelt-outobj.melt") : __FILE__, (5054) ? (5054) : __LINE__, __FUNCTION__);
+	      melt_assert_failed (("compile_list_sexpr modulename not ended with MELT_DYNLOADED_SUFFIX."), ("warmelt-outobj.melt") ? ("warmelt-outobj.melt") : __FILE__, (5054) ? (5054) : __LINE__, __FUNCTION__);
 	      ;
 	    }
 	    ;
@@ -26568,7 +26572,7 @@ lab_endgetargs:;
       /*epilog */
 
       MELT_LOCATION ("warmelt-outobj.melt:5054:/ clear");
-	     /*clear *//*_#STRING_SUFFIXED__L6*/ meltfnum[0] = 0;
+	     /*clear *//*_#STRING_DYNLOADED_SUFFIXED__L6*/ meltfnum[0] = 0;
       /*^clear */
 	     /*clear *//*_#NOT__L7*/ meltfnum[1] = 0;
       /*^clear */
@@ -26591,6 +26595,7 @@ lab_endgetargs:;
       MELT_CHECK_INTERRUPT ();
       ;
    /*_#STRING_SUFFIXED__L8*/ meltfnum[0] =
+	/*string_suffixed: */
 	(melt_string_is_ending
 	 ((melt_ptr_t) /*_.MODNAMSTR__V4*/ meltfptr[3], ".melt"));;
       /*^compute */
@@ -26655,6 +26660,7 @@ lab_endgetargs:;
       MELT_CHECK_INTERRUPT ();
       ;
    /*_#STRING_SUFFIXED__L10*/ meltfnum[0] =
+	/*string_suffixed: */
 	(melt_string_is_ending
 	 ((melt_ptr_t) /*_.MODNAMSTR__V4*/ meltfptr[3], ".c"));;
       /*^compute */

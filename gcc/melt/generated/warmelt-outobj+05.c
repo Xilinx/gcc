@@ -2546,14 +2546,16 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-outobj.melt:5114:/ checkinterrupt");
     MELT_CHECK_INTERRUPT ();
     ;
- /*_#STRING_SUFFIXED__L5*/ meltfnum[1] =
-      (melt_string_is_ending
-       ((melt_ptr_t) /*_.MODSRCNAME__V3*/ meltfptr[2], ".so"));;
+ /*_#STRING_DYNLOADED_SUFFIXED__L5*/ meltfnum[1] =
+      /*string_dynloaded_suffixed: */
+      (melt_string_is_ending ((melt_ptr_t) /*_.MODSRCNAME__V3*/ meltfptr[2],
+			      MELT_DYNLOADED_SUFFIX));;
     MELT_LOCATION ("warmelt-outobj.melt:5114:/ cond");
-    /*cond */ if ( /*_#STRING_SUFFIXED__L5*/ meltfnum[1])	/*then */
+    /*cond */ if ( /*_#STRING_DYNLOADED_SUFFIXED__L5*/ meltfnum[1])	/*then */
       {
 	/*^cond.then */
-	/*_#OR___L6*/ meltfnum[0] = /*_#STRING_SUFFIXED__L5*/ meltfnum[1];;
+	/*_#OR___L6*/ meltfnum[0] =
+	  /*_#STRING_DYNLOADED_SUFFIXED__L5*/ meltfnum[1];;
       }
     else
       {
@@ -2564,6 +2566,7 @@ lab_endgetargs:;
 	{
 
    /*_#STRING_SUFFIXED__L7*/ meltfnum[6] =
+	    /*string_suffixed: */
 	    (melt_string_is_ending
 	     ((melt_ptr_t) /*_.MODSRCNAME__V3*/ meltfptr[2], ".melt"));;
 	  MELT_LOCATION ("warmelt-outobj.melt:5114:/ cond");
@@ -2582,6 +2585,7 @@ lab_endgetargs:;
 	      {
 
      /*_#STRING_SUFFIXED__L9*/ meltfnum[8] =
+		  /*string_suffixed: */
 		  (melt_string_is_ending
 		   ((melt_ptr_t) /*_.MODSRCNAME__V3*/ meltfptr[2], ".c"));;
 		/*^compute */
@@ -2639,13 +2643,14 @@ lab_endgetargs:;
       /*^checkinterrupt */
       MELT_CHECK_INTERRUPT ();
       ;
-   /*_#STRING_SUFFIXED__L10*/ meltfnum[8] =
-	(melt_string_is_ending
-	 ((melt_ptr_t) /*_.MODSRCNAME__V3*/ meltfptr[2], ".so"));;
+   /*_#STRING_DYNLOADED_SUFFIXED__L10*/ meltfnum[8] =
+	/*string_dynloaded_suffixed: */
+	(melt_string_is_ending ((melt_ptr_t) /*_.MODSRCNAME__V3*/ meltfptr[2],
+				MELT_DYNLOADED_SUFFIX));;
       /*^compute */
 
    /*_#NOT__L11*/ meltfnum[6] =
-	(!( /*_#STRING_SUFFIXED__L10*/ meltfnum[8]));;
+	(!( /*_#STRING_DYNLOADED_SUFFIXED__L10*/ meltfnum[8]));;
       MELT_LOCATION ("warmelt-outobj.melt:5119:/ cond");
       /*cond */ if ( /*_#NOT__L11*/ meltfnum[6])	/*then */
 	{
@@ -2665,7 +2670,7 @@ lab_endgetargs:;
 
 	    {
 	      /*^locexp */
-	      melt_assert_failed (("translate_to_c_one_or_more_melt_files modsrcname not ended with .so"), ("warmelt-outobj.melt") ? ("warmelt-outobj.melt") : __FILE__, (5119) ? (5119) : __LINE__, __FUNCTION__);
+	      melt_assert_failed (("translate_to_c_one_or_more_melt_files modsrcname not ended with MELT_DYNLOADED_SUFFIX"), ("warmelt-outobj.melt") ? ("warmelt-outobj.melt") : __FILE__, (5119) ? (5119) : __LINE__, __FUNCTION__);
 	      ;
 	    }
 	    ;
@@ -2681,7 +2686,7 @@ lab_endgetargs:;
       /*epilog */
 
       MELT_LOCATION ("warmelt-outobj.melt:5119:/ clear");
-	     /*clear *//*_#STRING_SUFFIXED__L10*/ meltfnum[8] = 0;
+	     /*clear *//*_#STRING_DYNLOADED_SUFFIXED__L10*/ meltfnum[8] = 0;
       /*^clear */
 	     /*clear *//*_#NOT__L11*/ meltfnum[6] = 0;
       /*^clear */
@@ -2704,6 +2709,7 @@ lab_endgetargs:;
       MELT_CHECK_INTERRUPT ();
       ;
    /*_#STRING_SUFFIXED__L12*/ meltfnum[7] =
+	/*string_suffixed: */
 	(melt_string_is_ending
 	 ((melt_ptr_t) /*_.MODSRCNAME__V3*/ meltfptr[2], ".melt"));;
       /*^compute */
@@ -2768,6 +2774,7 @@ lab_endgetargs:;
       MELT_CHECK_INTERRUPT ();
       ;
    /*_#STRING_SUFFIXED__L14*/ meltfnum[6] =
+	/*string_suffixed: */
 	(melt_string_is_ending
 	 ((melt_ptr_t) /*_.MODSRCNAME__V3*/ meltfptr[2], ".c"));;
       /*^compute */
@@ -4264,7 +4271,7 @@ lab_endgetargs:;
     /*^clear */
 	   /*clear *//*_.IFCPP___V11*/ meltfptr[6] = 0;
     /*^clear */
-	   /*clear *//*_#STRING_SUFFIXED__L5*/ meltfnum[1] = 0;
+	   /*clear *//*_#STRING_DYNLOADED_SUFFIXED__L5*/ meltfnum[1] = 0;
     /*^clear */
 	   /*clear *//*_#OR___L6*/ meltfnum[0] = 0;
     /*^clear */
