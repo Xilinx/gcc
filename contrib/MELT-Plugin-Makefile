@@ -81,8 +81,8 @@ MELTGCC_GTYPESTATE  := $(shell $(MELTGCC) -print-file-name=gtype.state)
 ## always link it.
 MELTGCC_LIBES ?= -lppl_c
 
-### the GNU awk (cannot be a non GNU awk like nawk or mawk ...)
-GAWK?= gawk
+### Our awk (GNU awk is prefered)
+AWK?= gawk
 
 ### the GNU sed utility
 SED?= sed
@@ -138,8 +138,8 @@ ifeq ($(wildcard $(MELTGCC_GTYPESTATE)),)
 $(error missing MELT GCC gengtype state file)
 endif
 
-## the version of our GCC getting melt.so
-MELTGCC_VERSION := $(shell env LANG=C LC_ALL=C $(MELTGCC) -v < /dev/null 2>&1 | $(GAWK) "/^gcc version/{print $$3}")
+## the version of our GCC getting melt.so, e.g. 4.7.0
+MELTGCC_VERSION := $(shell env LANG=C LC_ALL=C $(MELTGCC) -v < /dev/null 2>&1 | $(AWK) '/^gcc version/{print $$3}')
 
 ## check that we have a gcc 4.6 or 4.7
 ifeq ($(filter 4.6.% 4.7.%, $(MELTGCC_VERSION)),)
@@ -212,7 +212,7 @@ gt-melt-runtime.h:  $(MELTGCC_RUNTIME_INCLUDES) $(MELTGCC_GTYPESTATE) \
 	   melt-runtime.c melt/generated/meltrunsup-inc.c
 
 melt-predef.h:  make-melt-predefh.awk melt-predef.list
-	$(GAWK) -f $^ > $@-tmp
+	$(AWK) -f $^ > $@-tmp
 	mv $@-tmp $@
 
 .INTERMEDIATE: gfmeltgcc_version_number gfmeltgcc_revision gfmeltgcc_run_md5
@@ -222,7 +222,7 @@ melt-run.h melt-run-md5.h:
 
 # intermediate file for the version number
 gfmeltgcc_version_number: 
-	 echo "$(MELTGCC_VERSION)"  | $(GAWK) '{split($$3,vertab,"."); printf "%d", strtonum(vertab[1])*1000+strtonum(vertab[2])}' > $@
+	 echo "$(MELTGCC_VERSION)"  | $(AWK) '{split($$1,vertab,"."); printf "%d", vertab[1]*1000+vertab[2]}' > $@
 
 # intermediate file for the revision string
 gfmeltgcc_revision: GCCMELT-REVISION MELT-Plugin-Makefile 
@@ -298,7 +298,7 @@ clean: melt-clean
 bootstrap-melt: melt.so warmelt-predef.melt warmelt0 warmelt1 warmelt2 warmelt all-melt
 
 warmelt-predef.melt: make-warmelt-predef.awk melt-predef.list
-	$(GAWK) -f $^ > $@-tmp
+	$(AWK) -f $^ > $@-tmp
 	mv $@-tmp $@
 
 ################### documentation

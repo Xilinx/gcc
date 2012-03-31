@@ -1,4 +1,9 @@
 
+2012-03-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	&   Romain Geissler   <romain.geissler@gmail.com>
+	* MELT-Plugin-Makefile (AWK): Use AWK, not GAWK
+	(MELTGCC_VERSION): Correct.
+
 2012-03-30  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* MELT-Plugin-Makefile (GCCMELT_CC): Add missing else.
