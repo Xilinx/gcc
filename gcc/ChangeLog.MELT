@@ -5,6 +5,11 @@
 	Use it for all our flavors.
 
 2011-03-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	with help from Romain Geissler  <romain.geissler@gmail.com>
+	* melt-runtime.h (MELT_DYNLOADED_SUFFIX): New constant macro.
+	* melt-runtime.c (meltgc_new_string_generated_c_filename)
+	(melt_load_module_index): Use it.
+	(meltgc_poll_inputs): Remove test of _POSIX_C_SOURCE.
 
 2011-03-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl (melt-clean): Don't remove all melt*.c files!
