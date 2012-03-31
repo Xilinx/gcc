@@ -4763,8 +4763,8 @@ if (1) return;
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check modctx" (is_a modctx class_module_context))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
-  (assert_msg "translate_macroexpanded_list modulename not ended with .so"
-	      (not (string_suffixed modnamstr ".so")))
+  (assert_msg "translate_macroexpanded_list modulename not ended with MELT_DYNLOADED_SUFFIX."
+	      (not (string_dynloaded_suffixed modnamstr)))
   (assert_msg "translate_macroexpanded_list modulename not ended with .melt"
 	      (not (string_suffixed modnamstr ".melt")))
   (assert_msg "translate_macroexpanded_list modulename not ended with .c"
@@ -5051,8 +5051,8 @@ if (1) return;
   (assert_msg "check lsexp" (is_list lsexp))
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check inienv" (is_a inienv class_environment))
-  (assert_msg "compile_list_sexpr modulename not ended with .so"
-	      (not (string_suffixed modnamstr ".so")))
+  (assert_msg "compile_list_sexpr modulename not ended with MELT_DYNLOADED_SUFFIX."
+	      (not (string_dynloaded_suffixed modnamstr)))
   (assert_msg "compile_list_sexpr modulename not ended with .melt"
 	      (not (string_suffixed modnamstr ".melt")))
   (assert_msg "compile_list_sexpr modulename not ended with .c"
@@ -5111,13 +5111,13 @@ if (1) return;
   (debug  "translate_to_c_one_or_more_melt_files files=" files " modsrcname=" modsrcname)
   (assert_msg "check curenv" (is_a curenv class_environment))
   (assert_msg "check modsrcname" (is_string modsrcname))
-  (if (or (string_suffixed modsrcname ".so")
+  (if (or (string_dynloaded_suffixed modsrcname)
 	  (string_suffixed modsrcname ".melt")
 	  (string_suffixed modsrcname ".c"))
       (errormsg_strv "invalid MELT source name - should not be suffixed"
 		     modsrcname))
-  (assert_msg "translate_to_c_one_or_more_melt_files modsrcname not ended with .so"
-	      (not (string_suffixed modsrcname ".so")))
+  (assert_msg "translate_to_c_one_or_more_melt_files modsrcname not ended with MELT_DYNLOADED_SUFFIX"
+	      (not (string_dynloaded_suffixed modsrcname)))
   (assert_msg "translate_to_c_one_or_more_melt_files modulename not ended with .melt"
 	      (not (string_suffixed modsrcname ".melt")))
   (assert_msg "translate_to_c_one_or_more_melt_files modulename not ended with .c"

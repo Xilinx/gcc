@@ -1,4 +1,12 @@
 
+2011-03-31  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-base.melt (add2sbuf_dynloaded_suffix)
+	(make_string_without_dynloaded_suffix, string_dynloaded_suffixed):
+	New primitives.
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list)
+	(translate_to_c_one_or_more_melt_files): Use them.
+	* melt/warmelt-modes.melt: Also use them.
 
 2011-03-31  Romain Geissler  <romain.geissler@gmail.com>
 	* melt-module.mk (SHARED_LIBRARY_FLAGS): New.

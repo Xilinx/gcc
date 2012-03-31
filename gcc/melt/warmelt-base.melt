@@ -734,7 +734,13 @@ an integer $I if $I is lower than $N.}#
 
 (defprimitive string_suffixed (sv :cstring cs) :long
   :doc #{Test that the string value $SV ends with the suffix $CS.}#
-  #{(melt_string_is_ending ((melt_ptr_t)$SV, $CS))}#)
+  #{/*string_suffixed:*/(melt_string_is_ending ((melt_ptr_t)$SV, $CS))}#)
+
+(defprimitive string_dynloaded_suffixed (sv) :long
+  :doc #{Test that the string value $SV ends with the MELT_DYNLOADED_SUFFIX.}#
+  #{/*string_dynloaded_suffixed:*/ (melt_string_is_ending ((melt_ptr_t)$SV, 
+							   MELT_DYNLOADED_SUFFIX))}#)
+
 
 (defprimitive string_prefixed (sv :cstring cs) :long
   :doc #{Test that the string value $SV starts with the suffix $CS.}#
@@ -812,6 +818,16 @@ removing the given $SUFFIX if it ends with it, or else a copy of $STR.}#
 				     ($SUFFIX))) }#
 )
 
+;; remove the MELT_DYNLOADED_SUFFIX from a string or else copy it
+(defprimitive make_string_without_dynloaded_suffix (dis str) :value
+  :doc #{Make a fresh copy with discriminant $DIS of string $STR 
+removing the MELT_DYNLOADED_SUFFIX if it ends with it, or else a copy of $STR.}#
+  #{/*make_string_without_dynloaded_suffix*/
+  (meltgc_new_string_without_suffix ((meltobject_ptr_t)($DIS),
+				     melt_string_str ((melt_ptr_t)($STR)),
+				     MELT_DYNLOADED_SUFFIX))}#
+)
+
 ;; compute a generated C source file
 (defprimitive make_string_generated_c_filename (dis basestr dirstr) :value
   :doc #{make a generated C file path of discriminant $DIS with base $BASESTR and directory $DIRSTR adding a .c suffix.}#
@@ -825,10 +841,10 @@ removing the given $SUFFIX if it ends with it, or else a copy of $STR.}#
 
 
 ;; generate a loadable module from a MELT generated C source file; the
-;;  out is the dynloaded module without any *.so suffix 
+;;  out is the dynloaded module without any MELT_DYNLOADED_SUFFIX 
 (defprimitive generate_optimized_melt_module (src outnam) :void
   :doc #{Generate and load an optimized module whose source is named after $SRC 
-and whose binary is named after $OUTNAM without any '.so' suffix.}#
+and whose binary is named after $OUTNAM without any MELT_DYNLOADED_SUFFIX.}#
   #{melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
 			 melt_string_str ((melt_ptr_t)$OUTNAM),
 			 NULL,
@@ -836,10 +852,10 @@ and whose binary is named after $OUTNAM without any '.so' suffix.}#
   }#)
 
 ;; generate a loadable module from a MELT generated C source file; the
-;;  out is the dynloaded module without any *.so suffix 
+;;  out is the dynloaded module without any MELT_DYNLOADED_SUFFIX. 
 (defprimitive generate_flavored_melt_module (src outnam flavor) :void
   :doc #{Generate and load a module of given $FLAVOR whose source is named after $SRC 
-and whose binary is named after $OUTNAM without any '.so' suffix.}#
+and whose binary is named after $OUTNAM without any MELT_DYNLOADED_SUFFIX.}#
   #{melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
 			 melt_string_str ((melt_ptr_t)$OUTNAM),
 			 NULL,
@@ -847,10 +863,10 @@ and whose binary is named after $OUTNAM without any '.so' suffix.}#
   }#)
 
 ;; generate a debug loadable module from a MELT generated C source file; the
-;;  out is the dynloaded module without any *.so suffix 
+;;  out is the dynloaded module without any MELT_DYNLOADED_SUFFIX.
 (defprimitive generate_debug_melt_module (src outnam) :void
   :doc #{Generate and load a module whose source is named after $SRC 
-and whose binary is named after $OUTNAM without any '.so' suffix.}#
+and whose binary is named after $OUTNAM without any MELT_DYNLOADED_SUFFIX.}#
   #{melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
 			 melt_string_str ((melt_ptr_t)$OUTNAM),
 			 NULL,
@@ -859,10 +875,10 @@ and whose binary is named after $OUTNAM without any '.so' suffix.}#
 )
 
 ;; quickly generate a loadable module from a MELT generated C source file; the
-;;  out is the dynloaded module without any *.so suffix 
+;;  out is the dynloaded module without any MELT_DYNLOADED_SUFFIX. 
 (defprimitive generate_quickly_melt_module (src outnam) :void
   :doc #{Generate and load a module whose source is named after $SRC 
-and whose binary is named after $OUTNAM without any '.so' suffix.}#
+and whose binary is named after $OUTNAM without any MELT_DYNLOADED_SUFFIX.}#
   #{melt_compile_source (melt_string_str ((melt_ptr_t)$SRC),
 			 melt_string_str ((melt_ptr_t)$OUTNAM),
 			 NULL,
@@ -988,6 +1004,12 @@ Returns a boxed integer.}#
 (defprimitive add2sbuf_strconst (sbuf :cstring str) :void 
   :doc #{Add into stringbuffer $SBUF the constant string $STR.}#
   #{/*add2sbuf_strconst*/ meltgc_add_strbuf((melt_ptr_t)($SBUF), ($STR))}#)
+
+;; primitive to add the MELT_DYNLOADED_SUFFIX into a strbuf
+(defprimitive add2sbuf_dynloaded_suffix (sbuf) :void
+  :doc #{Add into stringbuffer $SBUF the MELT_DYNLOADED_SUFFIX constant string.}#
+  #{/*add2sbuf_dynloaded_suffix: */ meltgc_add_strbuf((melt_ptr_t)($SBUF), 
+						      MELT_DYNLOADED_SUFFIX)}#)
 
 ;; primitive to add a string value into a strbuf
 (defprimitive add2sbuf_string (sbuf str) :void 
@@ -3858,6 +3880,7 @@ polyhedron values.}#
  add2sbuf_cencstring
  add2sbuf_cident
  add2sbuf_cidentprefix
+ add2sbuf_dynloaded_suffix
  add2sbuf_indent
  add2sbuf_indentnl
  add2sbuf_longdec
@@ -3919,6 +3942,7 @@ polyhedron values.}#
  make_string_mixloc_file
  make_string_nakedbasename
  make_string_tempname_suffixed
+ make_string_without_dynloaded_suffix
  make_string_without_suffix
  mapstring_count
  mapstring_every
@@ -4018,6 +4042,7 @@ polyhedron values.}#
  strbuf2string
  strbuf_reserve
  strbuf_usedlength
+ string_dynloaded_suffixed
  string_ends
  string_hex_md5sum_constpath 
  string_hex_md5sum_path_sequence

@@ -69,7 +69,7 @@
 	       (setq modulnam
 		     (make_string_without_suffix discr_string modulnam ".c"))
 	       (setq modulnam
-		     (make_string_without_suffix discr_string modulnam ".so"))
+		     (make_string_without_dynloaded_suffix discr_string modulnam))
 	       (debug "runfile_docmd sets modulnam=" modulnam " with outarg")
 	       outarg)
 	     ( (is_string inarg) 
@@ -149,7 +149,8 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
 	    (or outarg
 		(let ( (dbgnambuf (make_strbuf discr_strbuf)) )
 		  (add2sbuf_string dbgnambuf basnam)
-		  (add2sbuf_strconst dbgnambuf ".debugnoline.so")
+		  (add2sbuf_strconst dbgnambuf ".debugnoline")
+		  (add2sbuf_dynloaded_suffix dbgnambuf)
 		  (strbuf2string discr_string dbgnambuf))))
 	   )
       (debug "rundebug_docmd before translation to c inarg=" inarg " modsrcbase=" modsrcbase)
@@ -3606,8 +3607,8 @@ melt_scanning (melt_ptr_t p)
 (definstance translatetomodule_mode
   class_melt_mode
   :named_name '"translatetomodule"
-  :meltmode_help '"translate a .melt file to .so modules in quicklybuilt, optimized, debugnoline flavors;\n
-\t ARGUMENT= input file; OUTPUT= generated module *.so; OUTPUTC= generated *.c file."
+  :meltmode_help '"translate a .melt file to MELT_DYNLOADED_SUFFIX modules in quicklybuilt, optimized, debugnoline flavors;\n
+\t ARGUMENT= input file; OUTPUT= generated module with MELT_DYNLOADED_SUFFIX; OUTPUTC= generated *.c file."
   :meltmode_fun translatetomodule_docmd
 )
 (install_melt_mode translatetomodule_mode)
@@ -3632,9 +3633,9 @@ melt_scanning (melt_ptr_t p)
 (definstance translatedebug_mode
   class_melt_mode
   :named_name '"translatedebug"
-  :meltmode_help '"translate a .melt file to .debugnoline.so module for low-level
+  :meltmode_help '"translate a .melt file to .debugnoline module for low-level
 debug, including gdb;\n
-\t ARGUMENT= input file; OUTPUT= generated module *.so; COUTPUT= generated *.c file\n
+\t ARGUMENT= input file; OUTPUT= generated module with MELT_DYNLOADED_SUFFIX; COUTPUT= generated *.c file\n
 \t generates also *.c and no MELT line number;\n
 \t Useful for running gdb on the module. MELT debugging (DEBUG,
 ASSERT_MSG) is enabled"
@@ -3663,8 +3664,8 @@ ASSERT_MSG) is enabled"
 (definstance translatequickly_mode
   class_melt_mode
   :named_name '"translatequickly"
-  :meltmode_help '"translate quickly a .melt file to .quicklybuilt.so module with MELT debugging enabled (DEBUG, ASSERT_MSG...);\n
-\t ARGUMENT= input file; OUTPUT= generated module *.so; COUTPUT= generated *.c file\n."
+  :meltmode_help '"translate quickly a .melt file to .quicklybuilt module with MELT debugging enabled (DEBUG, ASSERT_MSG...);\n
+\t ARGUMENT= input file; OUTPUT= generated module with MELT_DYNLOADED_SUFFIX; COUTPUT= generated *.c file\n."
   :meltmode_fun translatequickly_docmd
 )
 (install_melt_mode translatequickly_mode)
@@ -3691,8 +3692,8 @@ ASSERT_MSG) is enabled"
 (definstance translateoptimized_mode
   class_melt_mode
   :named_name '"translateoptimized"
-  :meltmode_help '"translate  a .melt file to an .optimized.so module without MELT debugging\n
-\t ARGUMENT= input file; OUTPUT= generated module *.so; COUTPUT= generated *.c file\n."
+  :meltmode_help '"translate  a .melt file to an .optimized module without MELT debugging\n
+\t ARGUMENT= input file; OUTPUT= generated module with MELT_DYNLOADED_SUFFIX; COUTPUT= generated *.c file\n."
   :meltmode_fun translateoptimized_docmd
 )
 (install_melt_mode translateoptimized_mode)
@@ -3728,7 +3729,7 @@ ASSERT_MSG) is enabled"
 		     )))
 	   )
     (debug "translatefile_mode basnam" basnam)
-    (if (or (string_suffixed basnam ".so")
+    (if (or (string_dynloaded_suffixed basnam)
 	    (string_suffixed basnam ".melt")
 	    (string_suffixed basnam ".o")
 	    (string_suffixed basnam ".c"))
@@ -3784,7 +3785,7 @@ ASSERT_MSG) is enabled"
 		   )))
 	 )
     (debug "translateinit_mode basnam=" basnam)
-    (if (or (string_suffixed basnam ".so")
+    (if (or (string_dynloaded_suffixed basnam)
 	    (string_suffixed basnam ".melt")
 	    (string_suffixed basnam ".c"))
 	(progn 
