@@ -694,7 +694,7 @@ melt-tiny-tests: melt-sayhello.melt melt-modules melt-sources \
        $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) >>  meltframe.args-tmp
 	@echo -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) -o /dev/null >> meltframe.args-tmp
 	@echo -Iinclude/ >> meltframe.args-tmp
-	[ -d include-fixed ] && echo -Iinclude-fixed/ >> meltframe.args-tmp
+	@if [ -d include-fixed ] ; then echo -Iinclude-fixed/ ; else : fi >> meltframe.args-tmp
 	@echo  -O -Wno-shadow  >> meltframe.args-tmp
 	@cat melt-runtime.args >> meltframe.args-tmp
 	@$(melt_move_if_change) meltframe.args-tmp meltframe.args

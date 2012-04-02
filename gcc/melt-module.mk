@@ -84,8 +84,26 @@ ifndef LN_S
 LN_S=ln -s
 endif
 
-## The compiler used to compile MELT C code
-GCCMELT_CC ?= $(firstword $(GCC) gcc)
+## the compiler with which MELT, and the MELT modules, are used
+ifndef MELTGCC
+MELTGCC = $(or $(CC),gcc)
+endif
+
+## gives yes if MELTGCC has been built with C++ or else the empty string
+MELTGCC_BUILD_WITH_CXX = $(shell grep -q 'define[[:space:]]\+ENABLE_BUILD_WITH_CXX[[:space:]]\+1' \
+  `$(MELTGCC) -print-file-name=plugin/include/auto-host.h` && echo yes)
+
+## The compiler and flags used to compile MELT generated code.  For a
+## melt plugin to GCC 4.7 or later, that could be a C++ compiler! eg
+## make MELTGCC=gcc-4.7 GCCMELT_CC=g++-4.7 hence we add a test if
+## $(MELTGCC) was built with C++ or with C
+ifndef GCCMELT_CC
+ifeq ($(strip $(MELTGCC_BUILD_WITH_CXX)),)
+GCCMELT_CC = $(or $(CC),gcc) -Wc++-compat
+else
+GCCMELT_CC = $(or $(CXX),g++)
+endif
+endif
 
 GCCMELT_BASE=$(notdir $(basename $(GCCMELT_MODULE_SOURCEBASE)))
 GCCMELT_SOURCEDIR=$(dir $(GCCMELT_MODULE_SOURCEBASE))

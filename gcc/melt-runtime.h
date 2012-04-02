@@ -3094,15 +3094,18 @@ void melt_caught_assign_at(void*ptr, const char*fil, int lin, const char*msg);
 
 #define melt_checked_assignmsg_at(Assign,Fil,Lin,Msg) do {              \
       void* p_##Lin = (Assign);                                         \
-      if (p_##Lin && !melt_discr(p_##Lin))                              \
+	if (p_##Lin && !melt_discr((melt_ptr_t) p_##Lin))		\
         melt_assert_failed("bad checked assign (in runtime)",Fil,Lin,   \
                   __FUNCTION__);					\
       if ( (p_##Lin == melt_checkedp_ptr1 && p_##Lin)			\
            ||  (p_##Lin == melt_checkedp_ptr2 && p_##Lin))              \
         melt_caught_assign_at(p_##Lin,Fil,Lin,Msg); p_##Lin; } while(0)
 
-#define melt_checked_assign(Assign) melt_checked_assignmsg_at((Assign),__FILE__,__LINE__,__FUNCTION__) 
-#define melt_checked_assignmsg(Assign,Msg) melt_checked_assignmsg_at((Assign),__FILE__,__LINE__,Msg)
+#define melt_checked_assign_internal(Assign) melt_checked_assignmsg_at((Assign),__FILE__,__LINE__,__FUNCTION__) 
+#define melt_checked_assignmsg_internal(Assign,Msg) melt_checked_assignmsg_at((Assign),__FILE__,__LINE__,Msg)
+
+#define melt_checked_assign(Assign) melt_checked_assign_internal(Assign)
+#define melt_checked_assignmsg(Assign,Msg) melt_checked_assignmsg_internal(Assign,Msg)
 
 void melt_cbreak_at(const char*msg, const char*fil, int lin);
 #define melt_cbreak(Msg) melt_cbreak_at((Msg),__FILE__,__LINE__)
