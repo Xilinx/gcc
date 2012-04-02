@@ -24,6 +24,11 @@ tree, with the support of plugins enabled.
 ## then retrieve the MELT plugin release, and cd into it, then
   make all
   make install DESTDIR=/tmp/meltinstall
+
+## You might explicit the compiler you want to extend and to use:
+  make all CC=/usr/bin/gcc-4.7 CXX=/usr/bin/g++-4.7
+  make install CC=/usr/bin/gcc-4.7 CXX=/usr/bin/g++-4.7 DESTDIR=/tmp/meltinstall
+
 ## The first "make all" needs 15 minutes, less than 1Gb disk, 4Gb RAM, and
 ## *cannot be* a parallel "make -j all"
 

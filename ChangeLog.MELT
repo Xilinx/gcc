@@ -1,4 +1,9 @@
 
+2012-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{MELT 0.9.5rc2 release}}
+	* INSTALL/README-MELT-PLUGIN: More about make-ing it.
+
+
 2012-03-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{MELT 0.9.5rc1 release}}
 	* INSTALL/README-MELT-PLUGIN: Mention it.

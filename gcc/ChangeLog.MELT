@@ -1,6 +1,10 @@
 
 2011-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.5rc2
+
+2011-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-build.tpl (meltframe.args-tmp): Typo.
 
 	* melt-build.mk: Regenerate.
