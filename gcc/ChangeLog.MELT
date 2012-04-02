@@ -1,6 +1,12 @@
 
 2011-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-build.tpl (meltframe.args-tmp): Typo.
+
+	* melt-build.mk: Regenerate.
+
+2011-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (melt_checked_assignmsg_at): Cast argument of
 	melt_discr.
 	(melt_checked_assign_internal, melt_checked_assignmsg_internal):
