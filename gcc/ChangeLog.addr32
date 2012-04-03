@@ -1,3 +1,13 @@
+2012-04-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/52848
+	* config/i386/i386.c (legitimize_pic_address): Load UNSPEC_TP
+	into tp_mode register directly.
+
+	* config/i386/i386.md (*load_tp_x32): Removed.
+	(*load_tp_x32_zext): Likewise.
+	(*load_tp_x32_<mode>): New.
+
 2012-03-12  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (ix86_gen_tls_global_dynamic_64): New.

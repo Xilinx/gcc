@@ -12550,15 +12550,7 @@ legitimize_pic_address (rtx orig, rtx reg)
 static rtx
 get_thread_pointer (enum machine_mode tp_mode, bool to_reg)
 {
-  rtx tp = gen_rtx_UNSPEC (ptr_mode, gen_rtvec (1, const0_rtx), UNSPEC_TP);
-
-  if (GET_MODE (tp) != tp_mode)
-    {
-      gcc_assert (GET_MODE (tp) == SImode);
-      gcc_assert (tp_mode == DImode);
-
-      tp = gen_rtx_ZERO_EXTEND (tp_mode, tp);
-    }
+  rtx tp = gen_rtx_UNSPEC (tp_mode, gen_rtvec (1, const0_rtx), UNSPEC_TP);
 
   if (to_reg)
     tp = copy_to_mode_reg (tp_mode, tp);
