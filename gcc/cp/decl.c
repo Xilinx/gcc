@@ -7448,6 +7448,13 @@ grokfndecl (tree ctype,
   if (ctype != NULL_TREE)
     grokclassfn (ctype, decl, flags);
 
+  /* 12.4/3  */
+  if (cxx_dialect >= cxx0x
+      && DECL_DESTRUCTOR_P (decl)
+      && !TYPE_BEING_DEFINED (DECL_CONTEXT (decl))
+      && !processing_template_decl)
+    deduce_noexcept_on_destructor (decl);
+
   decl = check_explicit_specialization (orig_declarator, decl,
 					template_count,
 					2 * funcdef_flag +
@@ -10594,6 +10601,17 @@ check_default_argument (tree decl, tree arg)
 	       decl_type, TREE_TYPE (arg));
 
       return error_mark_node;
+    }
+
+  if (warn_zero_as_null_pointer_constant
+      && c_inhibit_evaluation_warnings == 0
+      && (POINTER_TYPE_P (decl_type) || TYPE_PTR_TO_MEMBER_P (decl_type))
+      && null_ptr_cst_p (arg)
+      && !NULLPTR_TYPE_P (TREE_TYPE (arg)))
+    {
+      warning (OPT_Wzero_as_null_pointer_constant,
+	       "zero as null pointer constant");
+      return nullptr_node;
     }
 
   /* [dcl.fct.default]
