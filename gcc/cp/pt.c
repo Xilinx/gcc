@@ -11814,6 +11814,7 @@ tsubst_baselink (tree baselink, tree object_type,
     tree optype;
     tree template_args = 0;
     bool template_id_p = false;
+    bool qualified = BASELINK_QUALIFIED_P (baselink);
 
     /* A baselink indicates a function from a base class.  Both the
        BASELINK_ACCESS_BINFO and the base class referenced may
@@ -11862,9 +11863,12 @@ tsubst_baselink (tree baselink, tree object_type,
 
     if (!object_type)
       object_type = current_class_type;
-    return adjust_result_of_qualified_name_lookup (baselink,
-						   qualifying_scope,
-						   object_type);
+
+    if (qualified)
+      baselink = adjust_result_of_qualified_name_lookup (baselink,
+							 qualifying_scope,
+							 object_type);
+    return baselink;
 }
 
 /* Like tsubst_expr for a SCOPE_REF, given by QUALIFIED_ID.  DONE is
@@ -17126,46 +17130,6 @@ more_specialized_fn (tree pat1, tree pat2, int len)
 	{
 	  arg2 = TREE_TYPE (arg2);
 	  quals2 = cp_type_quals (arg2);
-	}
-
-      if ((quals1 < 0) != (quals2 < 0))
-	{
-	  /* Only of the args is a reference, see if we should apply
-	     array/function pointer decay to it.  This is not part of
-	     DR214, but is, IMHO, consistent with the deduction rules
-	     for the function call itself, and with our earlier
-	     implementation of the underspecified partial ordering
-	     rules.  (nathan).  */
-	  if (quals1 >= 0)
-	    {
-	      switch (TREE_CODE (arg1))
-		{
-		case ARRAY_TYPE:
-		  arg1 = TREE_TYPE (arg1);
-		  /* FALLTHROUGH. */
-		case FUNCTION_TYPE:
-		  arg1 = build_pointer_type (arg1);
-		  break;
-
-		default:
-		  break;
-		}
-	    }
-	  else
-	    {
-	      switch (TREE_CODE (arg2))
-		{
-		case ARRAY_TYPE:
-		  arg2 = TREE_TYPE (arg2);
-		  /* FALLTHROUGH. */
-		case FUNCTION_TYPE:
-		  arg2 = build_pointer_type (arg2);
-		  break;
-
-		default:
-		  break;
-		}
-	    }
 	}
 
       arg1 = TYPE_MAIN_VARIANT (arg1);
