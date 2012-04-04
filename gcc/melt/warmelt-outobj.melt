@@ -4845,6 +4845,8 @@ if (1) return;
      (add2sbuf_indentnl sbuf 0)
      (add2sbuf_indentnl sbuf 0)
      ))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility function to translate a macroexpanded list
 (defun translate_macroexpanded_list (xlist modnamstr modctx ncx)
@@ -5040,6 +5042,12 @@ if (1) return;
 	  ;;;; emit the initial routine
 	  (output_c_code iniobj declbuf implbuf 0)
 	  (output_exported_offsets modctx declbuf implbuf)
+	  ;; output warnings if the buffer are half the limit
+	  (if (>i (strbuf_usedlength declbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	      (warningmsg_strv "very large declaration string buffer for module " modnamstr))
+	  (if (>i (strbuf_usedlength implbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	      (warningmsg_strv "very large implementation string buffer module for " modnamstr))
+	  ;;
 	  (code_chunk outputcfile
 		      #{ /* translate_macroexpanded_list $OUTPUTCFILE: */
 		      melt_output_cfile_decl_impl
@@ -5070,6 +5078,12 @@ if (1) return;
 			  (secdeclbuf (get_field :secfil_declbuf curfil))
 			  (secimplbuf (get_field :secfil_implbuf curfil))
 			  )
+	  ;; output warnings if the buffer are half the limit
+	  (if (>i (strbuf_usedlength secdeclbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	      (warningmsg_strv "very large declaration string buffer for secondary file " secfilpath))
+	  (if (>i (strbuf_usedlength secimplbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	      (warningmsg_strv "very large implementation string buffer for secondary file " secfilpath))
+	  ;;
 		     (code_chunk 
 		      secfilout 
 		      #{ /* translate_macroexpanded_list $SECFILOUT: */

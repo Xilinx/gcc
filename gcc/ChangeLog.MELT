@@ -1,5 +1,9 @@
 
 2011-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Give
+	warnings when outputing huge buffers, above half their limits.
+
+2011-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
