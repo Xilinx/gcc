@@ -845,14 +845,14 @@ void *start_module_melt (void *);
 extern
 #ifdef __cplusplus
   "C"
-#endif /*__cplusplus*/
+#endif	/*__cplusplus*/
 const char meltmodule_warmelt_base__melt_have_debug_enabled[];
 #define melt_have_debug_string meltmodule_warmelt_base__melt_have_debug_enabled
 #else /*!MELT_HAVE_DEBUG */
 extern
 #ifdef __cplusplus
   "C"
-#endif /*__cplusplus*/
+#endif	/*__cplusplus*/
 const char meltmodule_warmelt_base__melt_have_debug_disabled[];
 #define melt_have_debug_string meltmodule_warmelt_base__melt_have_debug_disabled
 #endif /*!MELT_HAVE_DEBUG */

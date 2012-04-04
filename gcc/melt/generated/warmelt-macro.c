@@ -1998,14 +1998,14 @@ void *start_module_melt (void *);
 extern
 #ifdef __cplusplus
   "C"
-#endif /*__cplusplus*/
+#endif	/*__cplusplus*/
 const char meltmodule_warmelt_macro__melt_have_debug_enabled[];
 #define melt_have_debug_string meltmodule_warmelt_macro__melt_have_debug_enabled
 #else /*!MELT_HAVE_DEBUG */
 extern
 #ifdef __cplusplus
   "C"
-#endif /*__cplusplus*/
+#endif	/*__cplusplus*/
 const char meltmodule_warmelt_macro__melt_have_debug_disabled[];
 #define melt_have_debug_string meltmodule_warmelt_macro__melt_have_debug_disabled
 #endif /*!MELT_HAVE_DEBUG */
@@ -4507,7 +4507,7 @@ initialize_module_meltdata_warmelt_macro (initial_frame_st * iniframp__,
   dbgprintf ("start initialize_module_meltdata_warmelt_macro iniframp__=%p",
 	     (void *) iniframp__);
   melt_assertmsg ("check module initial frame",
-		  iniframp__->mcfr_nbvar == /*minihash */ -3983);
+		  iniframp__->mcfr_nbvar == /*minihash */ -351);
 
   struct cdata_st
   {
@@ -26993,8 +26993,7 @@ start_module_melt (void *modargp_)
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
 /**initial routine prologue**/
   /* set initial frame marking */
-  ((struct melt_callframe_st *) &meltfram__)->mcfr_nbvar =
-    /*minihash */ -3983;
+  ((struct melt_callframe_st *) &meltfram__)->mcfr_nbvar = /*minihash */ -351;
   ((struct melt_callframe_st *) &meltfram__)->mcfr_forwmarkrout =
     forward_or_mark_module_start_frame_warmelt_macro;
  /**COMMENT: get previous environment **/ ;
@@ -89756,7 +89755,7 @@ forward_or_mark_module_start_frame_warmelt_macro (struct melt_callframe_st
   int ix = 0;
   initial_frame_st *meltframptr_ = (initial_frame_st *) fp;
   melt_assertmsg ("check module frame",
-		  meltframptr_->mcfr_nbvar == /*minihash */ -3983);
+		  meltframptr_->mcfr_nbvar == /*minihash */ -351);
   if (!marking && melt_is_forwarding)
     {
       dbgprintf
