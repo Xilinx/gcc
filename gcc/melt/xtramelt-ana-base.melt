@@ -69,7 +69,7 @@
 (defprimitive null_gimple () 
   :gimple 
   :doc #{The null gimple.}#
-   #{((gimple)0)}#)
+   #{((gimple)NULL)}#)
 
 (defprimitive gimple_seq_of_basic_block (:basic_block bb) :gimple_seq
   :doc #{Retrieve the gimple seq inside basic block $BB or null.}#
@@ -3058,7 +3058,7 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 )
 
 ;;;;
-(defprimitive null_gimpleseq () :gimple_seq #{((gimple_seq)0)}#)
+(defprimitive null_gimpleseq () :gimple_seq #{((gimple_seq)NULL)}#)
 ;;;;;;;;;;;;;;;;
 
 (defprimitive is_mapbasicblock (map) :long
@@ -3915,18 +3915,89 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 		      ($num), (location_t)gimple_location(($g))):NULL) }#)
 
 
+;;;;;;;;;;;;;;;;
+(defprimitive gimple_seq_add_stmt (:gimple_seq gs :gimple g) :void
+ :doc #{Add to gimple seq $GS the gimple $G. May change and allocate $GS if it was NULL.}#
+ #{/*gimple_seq_add_stmt:*/ do {if ($G) gimple_seq_add_stmt (&$GS, $G);
+}while(0)}#)
 
+(defprimitive gimple_seq_add_seq (:gimple_seq gsdst gssrc) :void
+  :doc #{Append to gimple seq $GSDST the elements of gimple seq $GSSRC. May change and allocate $GSDST if it was null.}#
+ #{/*gimple_seq_add_seq:*/ gimple_seq_add_seq(&$GSDST, $GSSRC);
+}#)
 
-;; gimple_seq_add_* don't exist in the GCC 4.7 plugin API
-;; gimple_seq_add_seq & gimple_seq_add_stmt are obsolete
 
 (defprimitive gimple_seq_copy (:gimple_seq gs) :gimple_seq 
   :doc #{Return a deep copy of gimple_seq $GS.}#
   #{(($GS)?gimple_seq_copy(($GS)):((gimple_seq)0))}#
 )
 
+(defprimitive gimple_seq_alloc () :gimple_seq
+ :doc #{Allocate e new raw gimple sequence. GCC may use cached free gimple sequences.}#
+ #{/*gimple_seq_alloc:*/ gimple_seq_alloc()}#)
 
 
+(defprimitive gimple_seq_boxed_add_stmt (bgs :gimple g) :void
+  :doc #{Add to end of boxed gimple_seq $BGS the gimple $G. May fill $BGS if it contained a null gimple_seq.}#
+  #{/*gimple_seq_boxed_add_stmt:*/ if (melt_magic_discr ((melt_ptr_t)($BGS))
+					   == MELTOBMAG_GIMPLESEQ 
+				      && $G != (gimple)NULL) 
+     gimple_seq_add_stmt (&(((struct meltgimpleseq_st*)($BGS))->val), ($G));}#
+)
+
+
+(defprimitive gimple_seq_boxed_add_seq  (bgs :gimple_seq gs) :void
+  :doc #{Add to end of boxed gimple_seq $BGS the gimple_seq $GS. May fill $BGS if it contained a null gimple_seq.}#
+  #{/*gimple_seq_boxed_add_seq:*/ if (melt_magic_discr((melt_ptr_t)($BGS))
+                                          == MELTOBMAG_GIMPLESEQ 
+                                      && $GS != (gimple_seq)NULL) 
+     gimple_seq_add_seq (&(((struct meltgimpleseq_st*)($BGS))->val), ($GS));}#
+)
+
+
+(defun gimple_seq_boxed_make_fill (discr :rest) 
+  :doc #{Variadic function to make a boxed gimple seq of given
+  $DISCR -or $DISCR_GIMPLE_SEQ if null- and fill it with the given raw
+  gimples or gimpleseqs or boxed gimple values or boxed gimpleseq
+  values. A closure variadic argument is applied to the boxed
+  gimple_seq so may change it.}#
+  (if (null discr) (setq discr discr_gimple_seq))
+  (let ( (boxgs (make_gimpleseq discr (null_gimpleseq)))
+	 )
+    ;; boxgs can be null if discr was bad
+    (if (null boxgs) 
+	(progn 
+	  (debug "gimple_seq_boxed_make_fill fail")
+	  (return ())))
+    ;; loop on variadic arguments
+    (forever 
+     argloop
+     (variadic 
+      ( () (exit argloop))
+      ( (:gimple g) 
+	(gimple_seq_boxed_add_stmt boxgs g))
+      ( (:gimple_seq gs)
+	(gimple_seq_boxed_add_seq boxgs gs))
+      ( (:value v)
+	(cond
+	 ( (is_gimpleseq v)
+	   (gimple_seq_boxed_add_seq boxgs (gimpleseq_content v)))
+	 ( (is_gimple v)
+	   (gimple_seq_boxed_add_stmt boxgs (gimple_content v)))
+	 ( (is_closure v)
+	   (v boxgs))
+	 (:else
+	  (debug "gimple_seq_boxed_make_fill ignoring v=" v)
+	  ()))
+	)
+      )
+     )
+    (debug "gimple_seq_boxed_make_fill return boxgs=" boxgs)
+    (return boxgs)
+    )
+  )
+
+;;;;;;;;;;;;;;;;
 (defprimitive gimple_build_return (:tree tr) :gimple
   :doc #{Build a gimple to return $TR, if non-null.}#
   #{($TR)?gimple_build_return(($TR)):((gimple)0)}#
@@ -4489,6 +4560,12 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_phi_nth_arg_def
  gimple_phi_nth_arg_edge
  gimple_return
+ gimple_seq_alloc
+ gimple_seq_add_stmt
+ gimple_seq_add_seq
+ gimple_seq_boxed_add_stmt
+ gimple_seq_boxed_add_seq
+ gimple_seq_boxed_make_fill
  gimple_seq_copy
  gimple_seq_first_stmt
  gimple_seq_last_stmt

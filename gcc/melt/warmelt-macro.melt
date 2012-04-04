@@ -886,7 +886,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 
 
 
-;;expand all of a pairlist as a tuple
+;;expand all of a pairlist as a list
 (defun expand_pairlist_as_list (pair env mexpander modctx)
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))  
@@ -2794,7 +2794,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 	      (setq curpair (pair_tail curpair))))
 	;;
 	(let ( 
-	      (bodytup (expand_pairlist_as_tuple curpair env mexpander))
+	      (bodytup (expand_pairlist_as_tuple curpair env mexpander modctx))
 	      (sdefine (instance class_source_define
 				 :loca_location loc
 				 :sdef_name defname
@@ -2858,7 +2858,7 @@ $LAMBDA macros. A function defined by $DEFUN has to be exported with $EXPORT_VAL
 		    (return))))
 	  ;; bind the formals and expand the body
 	  (multiple_every formaltup (lambda (fb) (put_env newenv fb)))
-	  (let ( (bodytup (expand_pairlist_as_tuple curpair newenv mexpander)) 
+	  (let ( (bodytup (expand_pairlist_as_tuple curpair newenv mexpander modctx)) 
 		 )
 	    (put_fields sdefun :sfun_body bodytup)
 	    (debug "mexpand_define function return sdefun" sdefun)
@@ -4265,7 +4265,7 @@ MELT module.  Syntax is (CPPIF <symbol> <then> [<else>]).}#)
     (cond 
      ((is_string curif)
       (if (filtergccversion curif)
-	  (let ( (exprest (expand_pairlist_as_tuple restpair env mexpander))
+	  (let ( (exprest (expand_pairlist_as_tuple restpair env mexpander modctx))
 		 )
 	    (debug "mexpand_gccif return exprest" exprest)
 	    (return exprest))
@@ -4284,7 +4284,7 @@ MELT module.  Syntax is (CPPIF <symbol> <then> [<else>]).}#)
 	     (setq ok :true))
 	 )
 	(if ok
-	  (let ( (exprest (expand_pairlist_as_tuple restpair env mexpander))
+	  (let ( (exprest (expand_pairlist_as_tuple restpair env mexpander modctx))
 		 )
 	    (debug "mexpand_gccif return exprest multicond" exprest)
 	    (return exprest))

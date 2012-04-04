@@ -1,4 +1,35 @@
 
+2011-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-build.tpl: Translate the xtramelt*melt files with both
+	quicklybuilt & optimized flavors of translator.
+
+	* melt-build.mk: Regenerate.
+
+	* melt/warmelt-macro.melt: Ensure that every call to
+	expand_pairlist_as_tuple gets its modctx.
+
+	* melt/warmelt-normal.melt (normexp_apply): Better error message
+	when applying a non-value...
+
+	* melt/warmelt-outobj.melt (buffer_limit_cont): Increase
+	it. 9Mbytes of output is not enough.
+	(outpucod_objinielem, output_predef, outcinitfill_objinitobject)
+	(outcinitpredef_objinitobject, outcinitfill_objinitmultiple)
+	(outcinitfill_objinitclosure, outcinitfill_objinitroutine)
+	(outcinitfill_objinitstring, outcinitfill_objinitboxedinteger)
+	(outcinitfill_objinitpair, outcinitfill_objinitlist)
+	(output_raw_location, output_location, output_curframe_declstruct)
+	(outpucod_procroutine, output_curframe_cdat_struct)
+	(output_curframe_cdat_fill, outpucod_initialroutine): Add debug
+	messages and backtraces for very big strbuffers.
+
+	* melt/xtramelt-ana-base.melt (gimple_seq_alloc)
+	(gimple_seq_add_stmt, gimple_seq_boxed_add_stmt)
+	(gimple_seq_boxed_add_seq, gimple_seq_boxed_make_fill)
+	(gimple_seq_boxed_make_fill): New primitives or function.
+
+
 2011-04-02  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.5rc2

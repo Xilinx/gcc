@@ -32,10 +32,11 @@
 
 
 ;; the limit for our [generated C code] implementation and declaration
-;; buffer length. The biggest file is often in melt-stage2. 5Mbytes is
+;; buffer length. The biggest file is often one of
+;; melt-stage2/warmelt*c or one of melt-sources/xtramelt*c. 9Mbytes is
 ;; not enough!
 (definstance buffer_limit_cont class_container
-  :container_value '6700000)
+  :container_value '18765000)
 
 
 (defun get_code_buffer_limit () 
@@ -93,10 +94,18 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (assert_msg "check cnam" (is_string cnam))
     (assert_msg "check olocvar"  olocvar)
     (output_c_code olocvar declbuf implbuf depth)
-    (assert_msg "check limited declbuf" 
-		(<i (strbuf_usedlength declbuf) (get_int !buffer_limit_cont)))
-    (assert_msg "check limited implbuf" 
-		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+    ;;
+    (cond ( (>i (strbuf_usedlength declbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	    (shortbacktrace_dbg "outpucod_objinielem huge declbuf" 10)
+	    (debug "outpucod_objinielem huge declbuf=" declbuf)
+	    (assert_msg "check limited declbuf" 
+		      (<i (strbuf_usedlength declbuf) (get_int !buffer_limit_cont)))))
+    ;;
+    (cond ( (>i (strbuf_usedlength implbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	    (shortbacktrace_dbg "outpucod_objinielem huge implbuf" 10)
+	    (debug "outpucod_objinielem huge implbuf=" implbuf)
+	    (assert_msg "check limited implbuf" 
+			(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))))
     )
   )
 (install_method class_objinitelem output_c_code outpucod_objinielem)
@@ -133,8 +142,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
      (assert_msg "invalid obpredef" ())
      )
    )
-  (assert_msg "check limited implbuf" 
-	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+  ;;
+    (cond ( (>i (strbuf_usedlength implbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	    (shortbacktrace_dbg "output_predef huge implbuf" 10)
+	    (debug "output_predef huge implbuf=" implbuf)
+	    (assert_msg "check limited implbuf" 
+			(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))))
   )
 
 ;;; output code for a predef
@@ -305,8 +318,10 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
       (add2sbuf_indentnl sbuf depth)
       ;; output the fill
       )
-    (assert_msg "check limited sbuf" 
-		(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
+    (cond ( (>i (strbuf_usedlength sbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	    (debug "outcinitfill_objinitobject huge sbuf=" sbuf)
+	    (assert_msg "check limited sbuf" 
+			(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))))
     )
   )
 (install_method class_objinitobject output_c_initial_fill outcinitfill_objinitobject)
@@ -336,6 +351,11 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
       (add2sbuf_string sbuf oname)
       (add2sbuf_strconst sbuf "*/")
       (add2sbuf_indentnl sbuf depth)
+      ;;
+      (cond ( (>i (strbuf_usedlength sbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	      (debug "outcinitpredef_objinitobject huge implbuf=" sbuf)
+	      (assert_msg "check limited sbuf" 
+			  (<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))))
       ;; we really initialize the predefined only if it was not initialized
       (cond
        ( (is_a oiopredef class_symbol)
@@ -385,8 +405,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	 (add2sbuf_indentnl sbuf 2)
 	 (add2sbuf_strconst sbuf "};")
 	 (add2sbuf_indentnl sbuf 1)
-	 (assert_msg "check limited sbuf" 
-		     (<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
+;;;
 	 )
        ( (null oiopredef)
 	 (return ()))
@@ -447,8 +466,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (add2sbuf_strconst sbuf ".nbval = ")
     (add2sbuf_longdec sbuf (get_int recv))
     (add2sbuf_strconst sbuf ";")
-    (assert_msg "check limited sbuf" 
-		(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
+    ;;
+    (cond ( (>i (strbuf_usedlength sbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	    (shortbacktrace_dbg "outcinitfill_objinitmultiple huge sbuf" 15)
+	    (debug "outcinitfill_objinitmultiple huge sbuf=" sbuf)
+	    (assert_msg "check limited sbuf" 
+			(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))))
     ))
 (install_method class_objinitmultiple output_c_initial_fill outcinitfill_objinitmultiple)
 
@@ -512,8 +535,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	  (add2sbuf_strconst sbuf ");")
 	  (add2sbuf_indentnl sbuf depthp1)
 	  ))
-    (assert_msg "check limited sbuf" 
-		(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
+    ;;
+    (cond ( (>i (strbuf_usedlength sbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	    (debug "outcinitfill_objinitclosure huge sbuf=" sbuf)
+	    (shortbacktrace_dbg "outcinitfill_objinitclosure huge sbuf" 15)
+	    (assert_msg "check limited sbuf" 
+			(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))))
     ))
 (install_method class_objinitclosure output_c_initial_fill outcinitfill_objinitclosure)
 
@@ -615,8 +642,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	)
       )
     )
-  (assert_msg "check limited sbuf" 
-	      (<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
+  ;;
+  (cond ( (>i (strbuf_usedlength sbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	  (debug "outcinitfill_objinitroutine huge sbuf=" sbuf)
+	  (shortbacktrace_dbg "outcinitfill_objinitroutine huge sbuf" 12)
+	  (assert_msg "check limited sbuf" 
+	      (<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))))
   )
 (install_method class_objinitroutine output_c_initial_fill outcinitfill_objinitroutine)
 
@@ -693,8 +724,13 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	(forever
 	 inistrloop
 	 (debug "outcinitfill_objinitstring ix=" ix " sbuflen=" (strbuf_usedlength sbuf))
-	 (assert_msg "check limited sbuf" 
-		     (<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
+	 ;;
+	 (cond ( (>i (strbuf_usedlength sbuf) (/iraw (get_int !buffer_limit_cont) 2))
+		 (shortbacktrace_dbg "outcinitfill_objinitstring huge sbuf" 10)
+		 (debug "outcinitfill_objinitstring huge sbuf=" sbuf)
+		 (assert_msg "check limited sbuf" 
+			     (<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))))
+	 ;;
 	 (cond
 	  ;; end reached
 	  ((>=i ix datalen) 
@@ -807,8 +843,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	 (void)
 	 )
 	(add2sbuf_indentnl sbuf 1)
-	(assert_msg "check limited sbuf" 
-		    (<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
+	;;
+	(cond ( (>i (strbuf_usedlength sbuf) (/iraw (get_int !buffer_limit_cont) 2))
+		(shortbacktrace_dbg "outcinitfill_objinitstring huge sbuf" 10)
+		(debug "outcinitfill_objinitstring huge declbuf=" sbuf)
+		(assert_msg "check limited sbuf" 
+			    (<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))))
 	))))
 (install_method class_objinitstring output_c_initial_fill outcinitfill_objinitstring)
 
@@ -861,8 +901,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (add2sbuf_longdec sbuf (get_int odata))
     (add2sbuf_strconst sbuf ";")
     (add2sbuf_indentnl sbuf depthp1)
-    (assert_msg "check limited sbuf" 
-		(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
+    ;;
+    (cond ( (>i (strbuf_usedlength sbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	    (shortbacktrace_dbg "outcinitfill_objinitboxedinteger huge sbuf" 10)
+	    (debug "outcinitfill_objinitboxedinteger huge sbuf=" sbuf)
+	    (assert_msg "check limited sbuf" 
+			(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))))
     ))
 (install_method class_objinitboxinteger output_c_initial_fill outcinitfill_objinitboxedinteger)
 
@@ -908,8 +952,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (output_c_code (unsafe_get_field :oie_discr recv) () sbuf depthp1)
     (add2sbuf_strconst sbuf ");")
     (add2sbuf_indentnl sbuf depth)
-    (assert_msg "check limited sbuf" 
-		(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
+    ;;
+    (cond ( (>i (strbuf_usedlength sbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	    (shortbacktrace_dbg "outcinitfill_objinitpair huge sbuf" 10)
+	    (debug "outcinitfill_objinitpair huge sbuf=" sbuf)
+	    (assert_msg "check limited sbuf" 
+		      (<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))))
     ))
 (install_method class_objinitpair output_c_initial_fill outcinitfill_objinitpair)
 ;;;;;;;;;;;;;;;;
@@ -953,8 +1001,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (output_c_code (unsafe_get_field :oie_discr recv) () sbuf depthp1)
     (add2sbuf_strconst sbuf ");")
     (add2sbuf_indentnl sbuf depth)
-    (assert_msg "check limited sbuf" 
-		(<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))
+    ;;
+    (cond ( (>i (strbuf_usedlength sbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	    (shortbacktrace_dbg "outcinitfill_objinitlist huge sbuf" 10)
+	    (debug "outcinitfill_objinitlist huge sbuf=" sbuf)
+	    (assert_msg "check limited sbuf" 
+		      (<i (strbuf_usedlength sbuf) (get_int !buffer_limit_cont)))))
     )
   )
 (install_method class_objinitlist output_c_initial_fill outcinitfill_objinitlist)
@@ -997,9 +1049,9 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	(add2sbuf_strconst implbuf "#ifndef MELTGCC_NOLINENUMBERING")
 	(add2sbuf_indentnl implbuf 0)
 	(cond ( (is_mixint loc) 
-		;;; we don't output #line in a single draw to make
-		;;; grep -v '#line' work better even without the
-		;;; start-of-line caret...
+;;; we don't output #line in a single draw to make
+;;; grep -v '#line' work better even without the
+;;; start-of-line caret...
 		(add2sbuf_strconst implbuf "#")
 		(add2sbuf_strconst implbuf "line ")
 		(add2sbuf_longdec implbuf (get_int loc))
@@ -1023,8 +1075,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	(add2sbuf_indentnl implbuf 0)
 	(add2sbuf_strconst implbuf "#endif /*MELTGCC_NOLINENUMBERING*/")
 	(add2sbuf_indentnl implbuf depth)
-	(assert_msg "check limited implbuf" 
-		    (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+	;;
+	(cond ( (>i (strbuf_usedlength implbuf) (/iraw (get_int !buffer_limit_cont) 2))
+		(shortbacktrace_dbg "output_raw_location huge implbuf" 12)
+		(debug "output_raw_location huge implbuf=" implbuf)
+		(assert_msg "check limited implbuf" 
+			    (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))))
 	)))
 
 ;; we really want to avoid outputint the same location twice, so we
@@ -1065,9 +1121,9 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	      (add2sbuf_strconst implbuf "#ifndef MELTGCC_NOLINENUMBERING")
 	      (add2sbuf_indentnl implbuf 0)
 	      (cond ( (is_mixint loc) 
-		;;; we don't output #line in a single draw to make
-		;;; grep -v '#line' work better even without the
-		;;; start-of-line caret...
+;;; we don't output #line in a single draw to make
+;;; grep -v '#line' work better even without the
+;;; start-of-line caret...
 		      (add2sbuf_strconst implbuf "#")
 		      (add2sbuf_strconst implbuf "line ")
 		      (add2sbuf_longdec implbuf (get_int loc))
@@ -1081,13 +1137,17 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	      (add2sbuf_indentnl implbuf 0)
 	      (add2sbuf_strconst implbuf "#endif")
 	      (add2sbuf_indentnl implbuf depth)
-	      (assert_msg "check limited implbuf" 
-			  (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+	      ;;
+	      (cond ( (>i (strbuf_usedlength implbuf) (/iraw (get_int !buffer_limit_cont) 2))
+		      (shortbacktrace_dbg "output_location huge implbuf" 12)
+		      (debug "output_location huge implbuf=" implbuf)
+		      (assert_msg "check limited implbuf" 
+				  (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))))
 	      (return)
 	      )
 	  )
       )
-    (Unsafe_put_fields  prevloc_container :container_value loc)
+    (unsafe_put_fields  prevloc_container :container_value loc)
     (unsafe_put_fields  previmplbuf_container :container_value implbuf)
     ;;
     (cond
@@ -1115,8 +1175,6 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
        )
      )
     (output_raw_location loc implbuf depth msg)
-    (assert_msg "check limited implbuf" 
-		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
     ))
 
 
@@ -1209,8 +1267,12 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	       (add2sbuf_string dsbuf oname)
 	       (add2sbuf_strconst dsbuf ";")
 	       (add2sbuf_indentnl dsbuf 0))
-	     (assert_msg "check limited dsbuf" 
-			 (<i (strbuf_usedlength dsbuf) (get_int !buffer_limit_cont)))
+
+	     (cond ( (>i (strbuf_usedlength dsbuf) (/iraw (get_int !buffer_limit_cont) 2))
+		     (shortbacktrace_dbg "output_curframe_declstruct huge dsbuf" 10)
+		     (debug "output_curframe_declstruct huge dsbuf=" dsbuf)
+		     (assert_msg "check limited dsbuf" 
+				 (<i (strbuf_usedlength dsbuf) (get_int !buffer_limit_cont)))))
 	     ))
 	  )
       (progn
@@ -1219,8 +1281,6 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
       )
     (add2sbuf_strconst dsbuf "  long _spare_; }")
     (add2sbuf_indentnl dsbuf 0)
-    (assert_msg "check limited dsbuf" 
-		(<i (strbuf_usedlength dsbuf) (get_int !buffer_limit_cont)))
     ;; end of curframe
     ))
 
@@ -1450,9 +1510,13 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
      (add2sbuf_strconst implbuf "*/")
      (add2sbuf_indentnl implbuf 1)
      (output_c_code curget declbuf implbuf 1)
-     (assert_msg "check limited implbuf" 
-		 (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
-     )
+     ;;
+     (cond ( (>i (strbuf_usedlength implbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	     (shortbacktrace_dbg "outpucod_procroutine huge implbuf" 10)
+	     (debug "outpucod_procroutine huge implbuf=" implbuf)
+	     (assert_msg "check limited implbuf" 
+			 (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))))
+     )					;end foreach ogargs
     (add2sbuf_strconst implbuf ";")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " goto lab_endgetargs;")
@@ -1471,7 +1535,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	     (output_c_code curbody declbuf implbuf 0)
 	     (add2sbuf_indentnl implbuf 0)))
        (assert_msg "check limited implbuf" 
-		    (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+		   (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
        ))
     ;; end of implementation
     (add2sbuf_strconst implbuf ";")
@@ -1511,10 +1575,18 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (add2sbuf_strconst implbuf "*/")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
-    (assert_msg "check limited implbuf" 
-		(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
-    (assert_msg "check limited declbuf" 
-		(<i (strbuf_usedlength declbuf) (get_int !buffer_limit_cont)))
+    ;;
+    (cond ( (>i (strbuf_usedlength declbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	    (shortbacktrace_dbg "outpucod_procroutine huge declbuf" 10)
+	    (debug "outpucod_procroutine huge declbuf=" declbuf)
+	    (assert_msg "check limited declbuf" 
+			(<i (strbuf_usedlength declbuf) (get_int !buffer_limit_cont)))))
+    ;;
+    (cond ( (>i (strbuf_usedlength implbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	    (shortbacktrace_dbg "outpucod_procroutine huge implbuf" 10)
+	    (debug "outpucod_procroutine huge implbuf=" implbuf)
+	    (assert_msg "check limited implbuf" 
+			(<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))))
     ))
 (install_method class_procroutineobj output_c_code outpucod_procroutine)
 
@@ -1534,9 +1606,14 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
   (add2sbuf_strconst implbuf " long spare_;")
   (add2sbuf_indentnl implbuf 0)
   (add2sbuf_strconst implbuf "}")
-  (assert_msg "check limited implbuf" 
-	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+  (cond ( (>i (strbuf_usedlength implbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	  (shortbacktrace_dbg "output_curframe_cdat_struct huge implbuf" 10)
+	  (debug "output_curframe_cdat_struct huge implbuf=" implbuf)
+	  (assert_msg "check limited implbuf" 
+		      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))))
   )
+
+
 
 ;;; output the cdata structure fill
 (defun output_curframe_cdat_fill (idatup implbuf)
@@ -1570,13 +1647,17 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
   (add2sbuf_indentnl implbuf 0)
   (add2sbuf_strconst implbuf " melt_prohibit_garbcoll = FALSE;")
   (add2sbuf_indentnl implbuf 0)
-  (assert_msg "check limited implbuf" 
-	      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+;;;
+  (cond ( (>i (strbuf_usedlength implbuf) (/iraw (get_int !buffer_limit_cont) 2))
+	  (shortbacktrace_dbg "output_curframe_cdat_fill implbuf" 10)
+	  (debug "output_curframe_cdat_fill huge implbuf=" implbuf)
+	  (assert_msg "check limited implbuf" 
+		      (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))))
   )
 
 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; output code for the initial routine
 (defun outpucod_initialroutine (pini declbuf implbuf :long depth)
   (assert_msg "check pini" (is_a pini class_initialroutineobj))
@@ -1593,11 +1674,11 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl declbuf 0)
     (add2out declbuf ##{
-#ifdef __cplusplus
-    extern "C"
-#endif
-    void* start_module_melt (void*);
-}#)
+ #ifdef __cplusplus
+ extern "C"
+ #endif
+ void* start_module_melt (void*) ;
+ }#)
     (add2sbuf_indentnl declbuf 0)
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_indentnl implbuf 0)
@@ -1647,10 +1728,10 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
       (add2sbuf_strconst declbuf "extern")
       (add2sbuf_indentnl declbuf 0)
       (add2out declbuf ##{
-#ifdef __cplusplus
-      "C"
-#endif /*__cplusplus*/
-}#)
+ #ifdef __cplusplus
+ "C"
+ #endif /*__cplusplus*/
+ }#)
       (add2sbuf_strconst declbuf "const char meltmodule_")
       (add2sbuf_cident declbuf omodnam)
       (add2sbuf_strconst declbuf "__melt_have_debug_enabled[];")
@@ -1664,10 +1745,10 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
       (add2sbuf_strconst declbuf "extern")
       (add2sbuf_indentnl declbuf 0)
       (add2out declbuf ##{
-#ifdef __cplusplus
-      "C"
-#endif /*__cplusplus*/
-}#)
+ #ifdef __cplusplus
+ "C"
+ #endif /*__cplusplus*/
+ }#)
       (add2sbuf_strconst declbuf "const char meltmodule_")
       (add2sbuf_cident declbuf omodnam)
       (add2sbuf_strconst declbuf "__melt_have_debug_disabled[];")
@@ -1783,14 +1864,18 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	 (unsafe_put_fields prevloc_container :container_value ())
 	 (unsafe_put_fields previmplbuf_container :container_value ())
 	 (let ( (curloc (get_field :obi_loc curbody))
-	       )
+		)
 	   (if curloc 
 	       (output_location curloc chunkbuf 1 "initchunk"))
 	   )
 	 (output_c_code curbody declbuf chunkbuf 1)
 	 (add2sbuf_indentnl chunkbuf 1)
-	 (assert_msg "check limited chunkbuf" 
-		     (<i (strbuf_usedlength chunkbuf) (get_int !buffer_limit_cont)))
+	 (cond ( (>i (strbuf_usedlength chunkbuf) (/iraw (get_int !buffer_limit_cont) 2))
+		 (shortbacktrace_dbg "outpucod_initialroutine huge chunkbuf" 10)
+		 (debug "outpucod_initialroutine huge chunkbuf=" chunkbuf)
+		 (assert_msg "check limited chunkbuf" 
+			     (<i (strbuf_usedlength chunkbuf) (get_int !buffer_limit_cont)))))
+	 
 	 ))
       ;; clear the previous location memoization
       (unsafe_put_fields prevloc_container :container_value ())
@@ -1877,8 +1962,13 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	 (add2sbuf_longdec implbuf chunkix)
 	 (add2sbuf_strconst implbuf "*/")
 	 (add2sbuf_indentnl implbuf 0)
-	 (assert_msg "check limited implbuf" 
-		     (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))
+	 ;;
+	 (cond ( (>i (strbuf_usedlength implbuf) (/iraw (get_int !buffer_limit_cont) 2))
+		 (shortbacktrace_dbg "outpucod_initialroutine huge implbuf" 10)
+		 (debug "outpucod_initialroutine huge implbuf=" implbuf)
+		 (assert_msg "check limited implbuf" 
+			     (<i (strbuf_usedlength implbuf) (get_int !buffer_limit_cont)))))
+
 	 )
 	)
       )

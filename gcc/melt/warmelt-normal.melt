@@ -1950,7 +1950,20 @@ source location.}#
 	    )
        (debug "normexp_apply nfunctyp" nfunctyp)
        (if (!= nfunctyp ctype_value)
-	   (error_plain sloc "applied function should be a value")))
+	   (progn 
+	     (debug "normexp_apply bad nfun=" nfun " sfun=" sfun " nfunctyp=" nfunctyp " recv=" recv)
+	     (error_strv sloc "applied function should be a value, but has bad ctype" 
+			 (get_field :named_name nfunctyp))
+	     (cond 
+	      ( (is_string sfun)
+		(error_strv sloc "bad applied string, not a function" sfun))
+	      ( (is_a sfun class_named)
+		(error_strv sloc "bad applied function, named" 
+			    (get_field :named_name sfun)))
+	      ( (is_a sfun class_located)
+		(error_plain (get_field :loca_location sfun) 
+			     "here is the wrong applied function")))
+	     )))
      (multicall
       (nargs nbindargs)
       (normalize_tuple sargs env ncx sloc)
@@ -1966,8 +1979,8 @@ source location.}#
 	      (if (!= nargfirstctype ctype_value)
 		  (error_plain sloc
 			       "first argument of function application should be a value")
-	      ))
-	))
+		))
+	  ))
       ;;
       (check_ctype_nargs nargs env sloc)
       (setq nbindargs (list_append2list nbindargs nbindfun))

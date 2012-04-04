@@ -602,8 +602,11 @@ melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt
 
 #@ [+ (. (tpl-file-line))+]
 ## melt application [+base+] generated files
+## we translate them twice, first with a quicklybuilt, then with an optimized warmelt
+## to exercise the optimized warmelt...
 melt-sources/[+base+].c: \
-   melt-sources/[+base+].melt melt-sources/warmelt-optimized.modlis \
+   melt-sources/[+base+].melt \
+   melt-sources/warmelt-optimized.modlis melt-sources/warmelt-quicklybuilt.modlis \
    melt-sources-directory.stamp \
  [+FOR includeload
 +]  melt-sources/[+includeload+] [+ENDFOR includeload+] \
@@ -611,17 +614,29 @@ melt-sources/[+base+].c: \
    $(WARMELT_LAST_STAGESTAMP) $(WARMELT_LAST_MODLIS) \
    empty-file-for-melt.c melt-run.h melt-runtime.h \
    $(melt_make_cc1_dependency)
-	@echo doing $@  [+ (. (tpl-file-line))+]
+	@echo doing $@  [+ (. (tpl-file-line))+] with quicklybuilt warmelt
+	@echo 	$(MELTCCAPPLICATION1ARGS) \
+	     $(meltarg_arg)=$<  -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) \
+	     $(meltarg_module_path)=$(realpath melt-modules) \
+	     $(meltarg_source_path)=$(realpath melt-sources) \
+             $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
+	     $(meltarg_init)=@warmelt-quicklybuilt:[+ (. (join ":" (reverse prevapplbase)))+] \
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))-quickb.args-tmp
+	@$(melt_move_if_change) $(notdir $(basename $@))-quickb.args-tmp $(notdir $(basename $@))-quickb.args
+	@echo; echo; echo; echo -n $(notdir $(basename $@))-quickb.args: ; cat $(notdir $(basename $@))-quickb.args ; echo "***** doing " $@ [+ (. (tpl-file-line))+]
+	$(melt_make_cc1) @$(notdir $(basename $@))-quickb.args
+#@ [+ (. (tpl-file-line))+]
+	@echo doing $@  [+ (. (tpl-file-line))+] with optimized warmelt
 	@echo 	$(MELTCCAPPLICATION1ARGS) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell $(MD5SUM) $< | cut -b-24) \
 	     $(meltarg_module_path)=$(realpath melt-modules) \
 	     $(meltarg_source_path)=$(realpath melt-sources) \
              $(meltarg_workdir)=melt-workdir $(meltarg_inhibitautobuild) \
 	     $(meltarg_init)=@warmelt-optimized:[+ (. (join ":" (reverse prevapplbase)))+] \
-	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@)).args-tmp
-	@$(melt_move_if_change) $(notdir $(basename $@)).args-tmp $(notdir $(basename $@)).args
-	@echo; echo; echo; echo -n $(notdir $(basename $@)).args: ; cat $(notdir $(basename $@)).args ; echo "***** doing " $@ [+ (. (tpl-file-line))+]
-	$(melt_make_cc1) @$(notdir $(basename $@)).args
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(notdir $(basename $@))-optim.args-tmp
+	@$(melt_move_if_change) $(notdir $(basename $@))-optim.args-tmp $(notdir $(basename $@))-optim.args
+	@echo; echo; echo; echo -n $(notdir $(basename $@))-optim.args: ; cat $(notdir $(basename $@))-optim.args ; echo "***** doing " $@ [+ (. (tpl-file-line))+]
+	$(melt_make_cc1) @$(notdir $(basename $@))-optim.args
 
 #@ [+ (. (tpl-file-line))+]
 ## melt application [+base+] various flavors of modules
