@@ -596,7 +596,7 @@ Objective-C and Objective-C++ Dialects}.
 -tno-android-cc -tno-android-ld}
 
 @emph{H8/300 Options}
-@gccoptlist{-mrelax  -mh  -ms  -mn  -mint32  -malign-300}
+@gccoptlist{-mrelax  -mh  -ms  -mn  -mexr -mno-exr  -mint32  -malign-300}
 
 @emph{HPPA Options}
 @gccoptlist{-march=@var{architecture-type} @gol
@@ -11131,8 +11131,7 @@ sbiw r26, const   ; X -= const
 
 @item -mtiny-stack
 @opindex mtiny-stack
-Only use the lower 8@tie{}bits of the stack pointer and assume that the high
-byte of SP is always zero.
+Only change the lower 8@tie{}bits of the stack pointer.
 @end table
 
 @subsubsection @code{EIND} and Devices with more than 128 Ki Bytes of Flash
@@ -12815,6 +12814,18 @@ must be used either with @option{-mh} or @option{-ms}.
 @item -ms2600
 @opindex ms2600
 Generate code for the H8S/2600.  This switch must be used with @option{-ms}.
+
+@item -mexr
+@opindex mexr
+Extended registers are stored on stack before execution of function
+with monitor attribute. Default option is @option{-mexr}.
+This option is valid only for H8S targets.
+
+@item -mno-exr
+@opindex mno-exr
+Extended registers are not stored on stack before execution of function 
+with monitor attribute. Default option is @option{-mno-exr}. 
+This option is valid only for H8S targets.
 
 @item -mint32
 @opindex mint32

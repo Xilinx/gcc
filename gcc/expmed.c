@@ -550,7 +550,10 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	{
 	  /* If I is 0, use the low-order word in both field and target;
 	     if I is 1, use the next to lowest word; and so on.  */
-	  unsigned int wordnum = (backwards ? nwords - i - 1 : i);
+	  unsigned int wordnum = (backwards
+				  ? GET_MODE_SIZE (fieldmode) / UNITS_PER_WORD
+				  - i - 1
+				  : i);
 	  unsigned int bit_offset = (backwards
 				     ? MAX ((int) bitsize - ((int) i + 1)
 					    * BITS_PER_WORD,
@@ -3136,8 +3139,10 @@ expand_mult (enum machine_mode mode, rtx op0, rtx op1, rtx target,
 	    {
 	      int shift = floor_log2 (CONST_DOUBLE_HIGH (op1))
 			  + HOST_BITS_PER_WIDE_INT;
-	      return expand_shift (LSHIFT_EXPR, mode, op0,
-				   shift, target, unsignedp);
+	      if (shift < 2 * HOST_BITS_PER_WIDE_INT - 1
+		  || GET_MODE_BITSIZE (mode) <= 2 * HOST_BITS_PER_WIDE_INT)
+		return expand_shift (LSHIFT_EXPR, mode, op0,
+				     shift, target, unsignedp);
 	    }
 	}
 

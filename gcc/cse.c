@@ -653,7 +653,7 @@ fixed_base_plus_p (rtx x)
 
 /* Dump the expressions in the equivalence class indicated by CLASSP.
    This function is used only for debugging.  */
-void
+DEBUG_FUNCTION void
 dump_class (struct table_elt *classp)
 {
   struct table_elt *elt;
@@ -6519,7 +6519,7 @@ cse_extended_basic_block (struct cse_basic_block_data *ebb_data)
    Return 1 if the CFG should be cleaned up because it has been modified.
    Return 0 otherwise.  */
 
-int
+static int
 cse_main (rtx f ATTRIBUTE_UNUSED, int nregs)
 {
   struct cse_basic_block_data ebb_data;
@@ -7451,7 +7451,7 @@ rest_of_handle_cse (void)
     {
       timevar_push (TV_JUMP);
       rebuild_jump_labels (get_insns ());
-      cleanup_cfg (0);
+      cleanup_cfg (CLEANUP_CFG_CHANGED);
       timevar_pop (TV_JUMP);
     }
   else if (tem == 1 || optimize > 1)
@@ -7511,7 +7511,7 @@ rest_of_handle_cse2 (void)
     {
       timevar_push (TV_JUMP);
       rebuild_jump_labels (get_insns ());
-      cleanup_cfg (0);
+      cleanup_cfg (CLEANUP_CFG_CHANGED);
       timevar_pop (TV_JUMP);
     }
   else if (tem == 1)
@@ -7572,7 +7572,7 @@ rest_of_handle_cse_after_global_opts (void)
     {
       timevar_push (TV_JUMP);
       rebuild_jump_labels (get_insns ());
-      cleanup_cfg (0);
+      cleanup_cfg (CLEANUP_CFG_CHANGED);
       timevar_pop (TV_JUMP);
     }
   else if (tem == 1)

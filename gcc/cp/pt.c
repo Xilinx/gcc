@@ -11823,6 +11823,7 @@ tsubst_baselink (tree baselink, tree object_type,
     tree optype;
     tree template_args = 0;
     bool template_id_p = false;
+    bool qualified = BASELINK_QUALIFIED_P (baselink);
 
     /* A baselink indicates a function from a base class.  Both the
        BASELINK_ACCESS_BINFO and the base class referenced may
@@ -11871,9 +11872,12 @@ tsubst_baselink (tree baselink, tree object_type,
 
     if (!object_type)
       object_type = current_class_type;
-    return adjust_result_of_qualified_name_lookup (baselink,
-						   qualifying_scope,
-						   object_type);
+
+    if (qualified)
+      baselink = adjust_result_of_qualified_name_lookup (baselink,
+							 qualifying_scope,
+							 object_type);
+    return baselink;
 }
 
 /* Like tsubst_expr for a SCOPE_REF, given by QUALIFIED_ID.  DONE is
@@ -17227,46 +17231,6 @@ more_specialized_fn (tree pat1, tree pat2, int len)
 	  quals2 = cp_type_quals (arg2);
 	}
 
-      if ((quals1 < 0) != (quals2 < 0))
-	{
-	  /* Only of the args is a reference, see if we should apply
-	     array/function pointer decay to it.  This is not part of
-	     DR214, but is, IMHO, consistent with the deduction rules
-	     for the function call itself, and with our earlier
-	     implementation of the underspecified partial ordering
-	     rules.  (nathan).  */
-	  if (quals1 >= 0)
-	    {
-	      switch (TREE_CODE (arg1))
-		{
-		case ARRAY_TYPE:
-		  arg1 = TREE_TYPE (arg1);
-		  /* FALLTHROUGH. */
-		case FUNCTION_TYPE:
-		  arg1 = build_pointer_type (arg1);
-		  break;
-
-		default:
-		  break;
-		}
-	    }
-	  else
-	    {
-	      switch (TREE_CODE (arg2))
-		{
-		case ARRAY_TYPE:
-		  arg2 = TREE_TYPE (arg2);
-		  /* FALLTHROUGH. */
-		case FUNCTION_TYPE:
-		  arg2 = build_pointer_type (arg2);
-		  break;
-
-		default:
-		  break;
-		}
-	    }
-	}
-
       arg1 = TYPE_MAIN_VARIANT (arg1);
       arg2 = TYPE_MAIN_VARIANT (arg2);
 
@@ -19060,6 +19024,7 @@ tsubst_initializer_list (tree t, tree argvec)
             }
           else
             {
+	      tree tmp;
               decl = tsubst_copy (TREE_PURPOSE (t), argvec, 
                                   tf_warning_or_error, NULL_TREE);
 
@@ -19068,10 +19033,17 @@ tsubst_initializer_list (tree t, tree argvec)
                 in_base_initializer = 1;
 
 	      init = TREE_VALUE (t);
+	      tmp = init;
 	      if (init != void_type_node)
 		init = tsubst_expr (init, argvec,
 				    tf_warning_or_error, NULL_TREE,
 				    /*integral_constant_expression_p=*/false);
+	      if (init == NULL_TREE && tmp != NULL_TREE)
+		/* If we had an initializer but it instantiated to nothing,
+		   value-initialize the object.  This will only occur when
+		   the initializer was a pack expansion where the parameter
+		   packs used in that expansion were of length zero.  */
+		init = void_type_node;
               in_base_initializer = 0;
             }
 
