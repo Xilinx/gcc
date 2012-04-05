@@ -1,3 +1,9 @@
+2012-04-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52882
+	* config/i386/i386.c (ix86_decompose_address): Allow VOIDmode
+	CONST_INT operands, zero-extended with AND.
+
 2012-04-02  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config.gcc: Use i386/biarchx32.h instead of i386/biarch64.h
