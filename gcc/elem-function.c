@@ -265,6 +265,8 @@ create_processor_attribute (elem_fn_info *elem_fn_values, tree *opposite_attr)
 		     build_string (strlen ("arch=corei7"), "arch=corei7"));
       VEC_safe_push (tree, gc, proc_vec_list,
 		     build_string (strlen ("sse4.2"), "sse4.2"));
+      VEC_safe_push (tree, gc, proc_vec_list,
+		     build_string (strlen ("avx"), "avx"));
       if (opposite_attr)
 	{
 	  VEC_safe_push (tree, gc, opp_proc_vec_list,
@@ -307,7 +309,7 @@ create_optimize_attribute (int option)
   opt_attr = build_tree_list (get_identifier ("optimize"), opt_attr);
   return opt_attr;
 }
-  
+
 /* this function will find the appropriate mangling suffix for the vector
  * function */
 static char *
@@ -362,6 +364,7 @@ create_elem_fn_nodes (struct cgraph_node *node)
   
   old_decl = node->decl;
   new_decl = copy_node (old_decl);
+  TREE_TYPE (new_decl) = copy_node (TREE_TYPE (old_decl));
   elem_fn_values = extract_elem_fn_values (old_decl);
 
   if (elem_fn_values)
@@ -381,8 +384,8 @@ create_elem_fn_nodes (struct cgraph_node *node)
   new_node->local.externally_visible = node->local.externally_visible;
   new_node->lowered = true;
 
-  tree_function_versioning (old_decl, new_decl, NULL, false, NULL, false, NULL,
-			    NULL);
+  tree_elem_fn_versioning (old_decl, new_decl, NULL, false, NULL, false, NULL,
+			   NULL, elem_fn_values->vectorlength[0]);
   cgraph_call_function_insertion_hooks (new_node);
   DECL_STRUCT_FUNCTION (new_decl)->elem_fn_already_cloned = true;
   DECL_STRUCT_FUNCTION (new_decl)->curr_properties = cfun->curr_properties;

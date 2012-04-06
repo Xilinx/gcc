@@ -1,3 +1,17 @@
+2012-04-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* config/i386/i386.c (type_natural_mode): Added a flag_enable_cilk
+	check.
+	(ix86_function_arg_boundary): Likewise.
+	* expr.c (expand_expr_real_1): Likewise.
+	* elem-function.c (create_processor_attribute): Added avx to target
+	string.
+	(create_elem_fn_nodes): called copy_node to new_decl's type.  Replaced
+	tree_function_versioning call with tree_elem_fn_versioning.
+	* tree-inline.c (elem_fn_add_local_variables): New function.
+	(elem_fn_copy_arguments_for_versioning): Likewise.
+	(tree_elem_fn_versioning): Likewise.
+
 2012-03-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* elem-function.c (extract_elem_fn_values): Initialized proc_type field

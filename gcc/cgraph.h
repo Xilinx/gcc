@@ -584,6 +584,8 @@ struct cgraph_node *cgraph_function_versioning (struct cgraph_node *,
 						basic_block, const char *);
 void tree_function_versioning (tree, tree, VEC (ipa_replace_map_p,gc)*,
 			       bool, bitmap, bool, bitmap, basic_block);
+void tree_elem_fn_versioning (tree, tree, VEC (ipa_replace_map_p,gc)*,
+			      bool, bitmap, bool, bitmap, basic_block, int);
 void record_references_in_initializer (tree, bool);
 bool cgraph_process_new_functions (void);
 void cgraph_process_same_body_aliases (void);

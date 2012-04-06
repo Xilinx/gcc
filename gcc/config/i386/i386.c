@@ -5816,9 +5816,12 @@ type_natural_mode (const_tree type, const CUMULATIVE_ARGS *cum)
 			&& !warnedavx
 			&& cum->warn_avx)
 		      {
-			warnedavx = true;
-			warning (0, "AVX vector argument without AVX "
-				 "enabled changes the ABI");
+			if (!flag_enable_cilk)
+			  {
+			    warnedavx = true;
+			    warning (0, "AVX vector argument without AVX "
+				     "enabled changes the ABI");
+			  }
 		      }
 		    return TYPE_MODE (type);
 		  }
@@ -7203,11 +7206,14 @@ ix86_function_arg_boundary (enum machine_mode mode, const_tree type)
 	  && align != ix86_compat_function_arg_boundary (mode, type,
 							 saved_align))
 	{
-	  warned = true;
-	  inform (input_location,
-		  "The ABI for passing parameters with %d-byte"
-		  " alignment has changed in GCC 4.6",
-		  align / BITS_PER_UNIT);
+	  if (!flag_enable_cilk)
+	    {
+	      warned = true;
+	      inform (input_location,
+		      "The ABI for passing parameters with %d-byte"
+		      " alignment has changed in GCC 4.6",
+		      align / BITS_PER_UNIT);
+	    }
 	}
     }
 
