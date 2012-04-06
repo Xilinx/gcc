@@ -124,7 +124,7 @@ endif
 ## binaries. No preprocessor flags please here!
 GCCMELT_OPTIMIZED_FLAGS ?= -O1
 #could add -Wc++-compat in GCCMELT_QUICKLYBUILT_FLAGS below
-GCCMELT_QUICKLYBUILT_FLAGS ?= -O0 
+GCCMELT_QUICKLYBUILT_FLAGS ?= -O0 -Wall
 GCCMELT_DYNAMIC_FLAGS ?= -O0
 GCCMELT_DEBUGNOLINE_FLAGS ?= -g
 

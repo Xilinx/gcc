@@ -1,5 +1,8 @@
 
 2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.mk (GCCMELT_QUICKLYBUILT_FLAGS): Add -Wall.
+
+2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
 	* melt/generated/warmelt-base+melttime.h: Regenerate.
