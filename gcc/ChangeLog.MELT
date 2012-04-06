@@ -1,5 +1,10 @@
 
 2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (mapobject_auxput): Typo.
+	* melt/warmelt-outobj.melt (syntestgen_cmatcher): Emit code for
+	out variables to avoid warnings in C code.
+
+2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

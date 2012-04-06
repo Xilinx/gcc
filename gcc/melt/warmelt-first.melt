@@ -1258,7 +1258,7 @@ an integer $I if $I is greater than $N.}#
 ;; primitive putting the auxiliary data for a map of objects
 (defprimitive mapobject_auxput (map val) :void
   :doc #{Safely access the auxiliary data of object-map $MAP.}#
-  #{melt_auxput_mapobjects ((melt_ptr_t) ($MAP), (melt_ptr_t) ($MAP))}#)
+  #{melt_auxput_mapobjects ((melt_ptr_t) ($MAP), (melt_ptr_t) ($VAL))}#)
 
 ;;; iterator inside a map of object
 (defciterator foreach_in_mapobject
