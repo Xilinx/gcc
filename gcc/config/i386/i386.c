@@ -1964,6 +1964,10 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   /* X86_TUNE_PARTIAL_FLAG_REG_STALL */
   m_CORE2I7 | m_GENERIC,
 
+  /* X86_TUNE_LCP_STALL: Avoid an expensive length-changing prefix stall
+   * on 16-bit immediate moves into memory on Core2 and Corei7.  */
+  m_CORE2I7 | m_GENERIC,
+
   /* X86_TUNE_USE_HIMODE_FIOP */
   m_386 | m_486 | m_K6_GEODE,
 
@@ -11510,7 +11514,7 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 	    addr = SUBREG_REG (addr);
 	  else if (GET_MODE (addr) == DImode)
 	    addr = gen_rtx_SUBREG (SImode, addr, 0);
-	  else
+	  else if (GET_MODE (addr) != VOIDmode)
 	    return 0;
 	}
     }
