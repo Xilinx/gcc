@@ -1,3 +1,169 @@
+2012-04-08  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh.md: Use braced string notation where applicable.
+	(*prefetch_i4, prefetch_m2a): Merge into ...
+	(*prefetch): ... this new insn.
+
+2012-04-07  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh.h (high_life_started): Remove
+	* config/sh/predicates.md (general_movdst_operand): Use
+	'reload_in_progress' instead of 'high_life_started'.
+	* config/sh/sh.md (divsi_inv_call, *divsi_inv_call_combine,
+	divsi_inv_fp): Likewise.
+
+2012-04-07  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh-protos.h (prepare_move_operands): Return void
+	instead of int.
+	* config/sh/sh.c (prepare_move_operands): Likewise.
+	* config/sh/sh.md: Remove return value checks of prepare_move_operands.
+
+2012-04-07  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh-protos.h (fp_int_operand, symbol_ref_operand,
+	general_movsrc_operand, general_movdst_operand, arith_reg_operand,
+	fp_arith_reg_operand, arith_operand, arith_reg_or_0_operand,
+	logical_operand, fpscr_operand, fpul_operand, expand_fp_branch,
+	commutative_float_operator, noncommutative_float_operator,
+	sh_handle_pragma): Remove.
+
+2012-04-06  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi:  Clean up Texinfo markup throughout the file.
+	Use @option markup on command-line options.  Use @samp markup on
+	literal keywords to options.  Use @code markup on code fragments.
+	Use other markup in preference to quotation marks in the text.
+	Add markup to some passages without any.
+
+2012-04-06  Mike Stump  <mikestump@comcast.net>
+
+	* gimple-fold.c (gimple_fold_stmt_to_constant_1): Avoid warning.
+
+2012-04-06  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh.c (hi_const): Remove.
+	(find_barrier, sh_reorg): Use satisfies_constraint_I16 instead
+	of hi_const.
+
+2012-04-06  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh-protos.h (sh_expand_t_scc): Change return type from int
+	to bool.
+	* config/sh/sh.c (sh_expand_t_scc): Likewise.
+	* config/sh/sh.md (cstoresi4, cstoredi4): Remove GET_CODE checks before
+	calling sh_expand_t_scc.
+
+2012-04-06  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh-protos.h (fp_zero_operand, fp_one_operand,
+	nonpic_symbol_mentioned_p, expand_block_move, expand_ashiftrt,
+	sh_dynamicalize_shift_p, gen_shl_and, gen_shl_sext, system_reg_operand,
+	reg_unused_after, sh_can_redirect_branch, sh_need_epilogue, fldi_ok,
+	sh_hard_regno_rename_ok, sh_cfun_interrupt_handler_p,
+	sh_cfun_resbank_handler_p, sh_attr_renesas_p, sh_cfun_attr_renesas_p,
+	check_use_sfunc_addr, sh_contains_memref_p, sh_loads_bankedreg_p,
+	sh2a_is_function_vector_call): Use bool as return type.
+	(sh_pass_in_reg_p): Remove.
+	* config/sh/sh.c (broken_move, mova_p, noncall_uses_reg, high_pressure,
+	flow_dependent_p, sh2a_function_vector_p, expand_block_move,
+	expand_ashiftrt, sh_dynamicalize_shift_p, gen_shl_and, gen_shl_sext,
+	sh_need_epilogue, sh2a_is_function_vector_call, sh_attr_renesas_p,
+	sh_cfun_attr_renesas_p, sh_cfun_interrupt_handler_p,
+	sh_cfun_resbank_handler_p, system_reg_operand, fp_zero_operand,
+	fp_one_operand, fldi_ok, reg_unused_after, sh_can_redirect_branch,
+	sh_hard_regno_rename_ok, check_use_sfunc_addr, sh_contains_memref_p, 
+	sh_loads_bankedreg_p): Use bool as return type.
+	(nonpic_symbol_mentioned_p): Use bool as return type.  Remove
+	'register' modifier.
+
+2012-04-06  Matt Turner  <mattst88@gmail.com>
+
+	* doc/install.texi: Correct typo "-mno-lsc" -> "-mno-llsc".
+
+2012-04-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/ia64/ia64.c (ia64_load_pair_ok): Return 0 if the second member
+	of the destination isn't also a FP_REGS register.
+
+2012-04-05  Teresa Johnson  <tejohnson@google.com>
+	    H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.h (ix86_tune_indices): Add
+	X86_TUNE_LCP_STALL.
+	* config/i386/i386.md (move immediate to memory peephole2):
+	Add cases for HImode move when LCP stall avoidance is needed.
+	* config/i386/i386.c (initial_ix86_tune_features): Initialize
+	X86_TUNE_LCP_STALL entry.
+
+2012-04-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52882
+	* config/i386/i386.c (ix86_decompose_address): Allow VOIDmode
+	CONST_INT operands, zero-extended with AND.
+
+2012-04-05  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/50751
+	* config/sh/sh.c (sh_find_mov_disp_adjust): Take machine_mode as the
+	first argument instead of mode size.  Move displacement calculations
+	to ...
+	(mov_insn_size, max_mov_insn_displacement, mov_insn_alignment_mask):
+	... these new functions.
+	(disp_adjust): Remove max_mov_disp field.
+	(sh_legitimate_index_p): Use max_mov_insn_displacement and
+	mov_insn_alignment_mask.
+	(sh_address_cost): Use max_mov_insn_displacement.
+
+2012-04-05  Andrew Stubbs  <ams@codesourcery.com>
+
+	* config/arm/arm.md (arch): Add neon_onlya8 and neon_nota8.
+	(arch_enabled): Handle new arch types.
+	(one_cmpldi2): Add NEON support.
+
+2012-04-05  Richard Guenther  <rguenther@suse.de>
+
+	* gimple.c (walk_gimple_op): Compute val_only for the LHS
+	of an assigment in the canonical way, avoiding is_gimple_mem_rhs.
+	(is_gimple_mem_rhs, is_gimple_reg_rhs, is_gimple_stmt): Move ...
+	* gimplify.c (is_gimple_mem_rhs, is_gimple_reg_rhs, is_gimple_stmt):
+	... here and make static.
+	* gimple.h (is_gimple_mem_rhs, is_gimple_reg_rhs, is_gimple_stmt):
+	Remove.
+
+2012-04-05  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-dse.c (dse_optimize_stmt): Remember the stmt
+	basic-block before removing it.
+
+2012-04-05  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssanames.c (release_dead_ssa_names): Compact the SSA
+	version namespace as we release the freelist.
+
+2012-04-05  Richard Guenther  <rguenther@suse.de>
+
+	* tree-nrv.c (tree_nrv): Release VDEFs.
+	* tree-sra.c (sra_modify_constructor_assign): Likewise.
+	(sra_modify_assign): Likewise.
+	* tree-vect-stmts.c (vect_remove_stores): Likewise.
+	* tree-vect-loop.c (vect_transform_loop): Likewise.
+	* tree-ssa-dom.c (optimize_stmt): Likewise.
+	* tree-vect-slp.c (vect_schedule_slp): Likewise.
+	* tree-ssa-math-opts.c (execute_cse_sincos): Likewise.
+
+2012-04-05  Richard Guenther  <rguenther@suse.de>
+
+	* gimple-iterator.c (gsi_remove): Return whether EH edges need to be
+	cleanup.
+	* gimple.h (gsi_remove): Adjust.
+	* tree-ssa-operands.c (unlink_stmt_vdef): Optimize.
+	* tree-ssa-dom.c (optimize_stmt): Use gsi_remove result.
+	* tree-ssa-dse.c (dse_optimize_stmt): Likewise.
+	* tree-ssa-forwprop.c (remove_prop_source_from_use): Likewise.
+	* tree-ssa-math-opts.c (execute_optimize_widening_mul): Likewise.
+	* tree-ssa-pre.c (eliminate): Likewise.
+
 2012-04-04  Mike Stump  <mikestump@comcast.net>
 
 	* doc/rtl.texi (const_double): Document as sign-extending.

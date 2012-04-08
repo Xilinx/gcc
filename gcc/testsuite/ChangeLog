@@ -1,3 +1,55 @@
+2012-04-08  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* gcc.target/sh/sh2a-prefetch.c: Rename to ...
+	* gcc.target/sh/prefetch.c: ... this.  Enable test case for m4*.
+
+2012-04-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/40973
+	PR fortran/52751
+	* gfortran.dg/public_private_module_2.f90: New.
+
+2012-04-08  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* g++.dg/warn/Wstrict-aliasing-float-ref-int-obj.C: Add labels to
+	directives.
+
+2012-04-07  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/52893
+	* gfortran.dg/function_optimize_11.f90:  New test.
+
+2012-04-06  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/52668
+	* gfortran.dg/use_only_6.f90: New test.
+
+2012-04-06  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/52668
+	* gfortran.dg/use_only_6.f90: New test.
+2012-04-06  Mike Stump  <mikestump@comcast.net>
+
+	PR testsuite/50722
+	* gcc.dg/pr49994-3.c: Use -w to squelch non-portable warnings.
+
+2012-04-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/52596
+	* g++.dg/template/qualified-id5.C: New.
+
+2012-04-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52882
+	* gcc.target/i386/pr52882.c: New test.
+
+2012-04-05  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+	    Dominique D'Humieures  <dominiq@lps.ens.fr>
+
+	PR testsuite/52614
+	* gcc.dg/vect/vect.exp: Use -fno-common on all targets.
+	* gcc.dg/vect/costmodel/ppc/ppc-costmodel-vect.exp: Likewise.
+
 2012-04-04  Jason Merrill  <jason@redhat.com>
 
 	PR c++/52845
@@ -248,9 +300,9 @@
 2012-03-21  Oleg Endo  <olegendo@gcc.gnu.org>
 
 	PR target/50751
-	* gcc/target/sh/pr50751-1.c: New.
-	* gcc/target/sh/pr50751-2.c: New.
-	* gcc/target/sh/pr50751-3.c: New.
+	* gcc.target/sh/pr50751-1.c: New.
+	* gcc.target/sh/pr50751-2.c: New.
+	* gcc.target/sh/pr50751-3.c: New.
 
 2012-03-21  Oleg Endo  <olegendo@gcc.gnu.org>
 
