@@ -1,3 +1,8 @@
+2012-04-06  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-parser.c (c_parser_elem_fn_expr_list): Fixed a bug and consumed
+	one token.
+	
 2012-04-05  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* config/i386/i386.c (type_natural_mode): Added a flag_enable_cilk

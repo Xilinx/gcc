@@ -12203,6 +12203,7 @@ c_parser_elem_fn_expr_list (c_parser *parser)
 	       && simple_cst_equal (token->value,
 				    get_identifier ("mask")) == 1)
 	{
+	  c_parser_consume_token (parser);
 	  gcc_assert (mask_list == NULL_TREE);
 	  mask_list = get_identifier ("mask");
 	  if (c_parser_next_token_is (parser, CPP_COMMA))
