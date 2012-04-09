@@ -1,3 +1,8 @@
+2012-04-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52883
+	* gcc.target/i386/pr52883.c: New testcase.
+
 2012-04-05  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/52882

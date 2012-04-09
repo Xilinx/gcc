@@ -1,3 +1,11 @@
+2012-04-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52883
+	* config/i386/predicates.md (x86_64_zext_general_operand): Prevent
+	VOIDmode immediate operands.
+	* config/i386/constraints.md (Wz): New constraint.
+	* config/i386/i386.md (*zero_extendsidi2_rex64): Use Wz instead of Z.
+
 2012-04-05  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/52882
