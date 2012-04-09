@@ -827,7 +827,7 @@ gcov_merge_gcda_file (struct gcov_info *gi_ptr)
 #ifndef __GCOV_KERNEL__
   const struct gcov_fn_info *gfi_ptr;
   int error = 0;
-  gcov_unsigned_t tag, length;
+  gcov_unsigned_t tag, length, version, stamp;
 
   eof_pos = 0;
   summary_pos = 0;
@@ -841,12 +841,12 @@ gcov_merge_gcda_file (struct gcov_info *gi_ptr)
           gcov_error ("profiling:%s:Not a gcov data file\n", gi_filename);
           goto read_fatal;
         }
-     length = gcov_read_unsigned ();
-     if (!gcov_version (gi_ptr, length, gi_filename))
+     version = gcov_read_unsigned ();
+     if (!gcov_version (gi_ptr, version, gi_filename))
        goto read_fatal;
 
-     length = gcov_read_unsigned ();
-     if (length != gi_ptr->stamp)
+     stamp = gcov_read_unsigned ();
+     if (stamp != gi_ptr->stamp)
        /* Read from a different compilation. Overwrite the file.  */
        goto rewrite;
 
@@ -921,7 +921,7 @@ gcov_merge_gcda_file (struct gcov_info *gi_ptr)
            if ((error = gcov_is_error ()))
              goto read_error;
        }
-     if (tag)
+     if (tag && tag != GCOV_TAG_MODULE_INFO)
        {
          read_mismatch:;
 	 fprintf (stderr, "profiling:%s:Merge mismatch for %s\n",
