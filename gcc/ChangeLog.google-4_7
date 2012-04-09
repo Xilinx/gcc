@@ -1,3 +1,10 @@
+2012-04-09  Xinliang David Li  <davidxl@google.com>
+
+	Fix b/6300341: LIPO profile-gen ICEs 
+
+	* coverage.c (converage_dc_end_function): Properly initialize
+	the fn_decl and ctr_data field of the coverage_data.
+
 2012-03-07  Sriraman Tallam  <tmsriram@google.com>
 
 	Backport from google/main rev 185083

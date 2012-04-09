@@ -1081,13 +1081,18 @@ coverage_dc_end_function (void)
 	 is a new function (function versioning, etc). Create a new entry.  */
       if (!item)
 	{
+          int cnt;
+
 	  item = ggc_alloc_coverage_data ();
 	  *functions_tail = item;
 	  functions_tail = &item->next;
 	  item->next = 0;
 	  item->ident = FUNC_DECL_FUNC_ID (cfun);
+	  item->fn_decl = current_function_decl;
 	  item->lineno_checksum = coverage_compute_lineno_checksum ();
 	  item->cfg_checksum = coverage_compute_cfg_checksum ();
+          for (cnt = 0; cnt < GCOV_COUNTERS; cnt++)
+            item->ctr_vars[cnt] = NULL_TREE;
 	}
 
       var = fn_v_ctrs[idx];
