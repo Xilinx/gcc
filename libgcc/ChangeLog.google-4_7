@@ -1,3 +1,9 @@
+2012-04-09  Xinliang David Li  <davidxl@google.com>
+
+	Fix b/6300866: corrupted LIPO profile data generated for eon, vpr
+	* libgcc/libgcov.c (gcov_merge_gcda_file):  Fix a bug in gcda merge error
+	handling.
+
 2012-03-07  Sriraman Tallam  <tmsriram@google.com>
 
 	Backport from google/main rev 185083
@@ -8,9 +14,4 @@
 	        * libgcc/config/i386/libgcc-glibc.ver: Version symbols __cpu_model
 	        and __cpu_features.
 
-2012-04-09  Xinliang David Li  <davidxl@google.com>
-
-	Fix b/6300866: corrupted LIPO profile data generated for eon, vpr
-	* libgcc/libgcov.c (gcov_merge_gcda_file):  Fix a bug in gcda merge error
-	handling.
 
