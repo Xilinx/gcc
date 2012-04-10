@@ -1791,10 +1791,121 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   (:gimple gr)
   ()
   gimpnop
+  :doc #{$GIMPLE_NOP match a nop gimple}#
   ;; test
-  #{ /* $gimpnop ?*/ ($gr && gimple_code($gr) == GIMPLE_NOP) }#
+  #{ /* gimple_nop $gimpnop ?*/ ($gr && gimple_code($gr) == GIMPLE_NOP) }#
   ;; no fill
-  #{ /* $gimpnop ! */ }#)
+  #{ /* gimple_nop $gimpnop ! */ }#
+  ;; operator
+  #{ /*gimple_nop:*/ gimple_build_nop() }#
+  )
+
+;;; match a gimple exception catcher
+(defcmatcher gimple_catch
+  (:gimple gi)
+  (:tree textype
+   :gimple_seq gshandler)
+  gimpcatch
+  :doc #{$GIMPLE_CATCH match a typed exception handler with $TEXTYPE
+  being the type[s] of exceptions, and $GSHANDLER being the handler
+  body gimpleseq.}#
+  ;; test
+  #{ /*gimple_catch $GIMPCATCH ? */ ($GI && gimple_code($GI) == GIMPLE_CATCH) }#
+  ;; fill
+  #{ /*gimple_catch $GIMPCATCH ! */
+  $TEXTYPE = gimple_catch_types ($GI);
+  $GSHANDLER = gimple_catch_handler ($GI);
+  }#
+  ;; operator
+  #{ /*gimple_catch:*/ gimple_build_catch($TEXTYPE,$GSHANDLER) }#
+)
+
+
+;; match a gimple exception filter
+(defcmatcher gimple_eh_filter
+  (:gimple gi)
+  (:tree textype
+   :gimple_seq gsfail)
+   gimpehfilt
+   :doc #{$GIMPLE_EH_FILTER match or build a gimple exception
+   specification. $TEXTYPE is the list of exception types and $GDFAIL
+   is the sequence to execute on failure.}#
+   ;; test
+   #{ /*gimple_eh_filter $GIMPEHFILT ?*/ ($GI && gimple_code($GI) == GIMPLE_EH_FILTER) }#
+   ;; fill
+   #{ /*gimple_eh_filter $GIMPEHFILT !*/ 
+   $TEXTYPE = gimple_eh_filter_types ($GI);
+   $GSFAIL = gimple_eh_filter_failure ($GI);
+   }#
+   ;; operate
+   #{ /*gimple_eh_filter:*/ gimple_build_eh_filter($TEXTYPE,$GSFAIL) }#
+)
+
+;; match a gimple_eh_must_not_throw
+(defcmatcher gimple_eh_must_not_throw
+  (:gimple gi)
+  (:tree tfndecl)
+  gimpnthr
+  :doc #{$GIMPLE_EH_MUST_NOT_THROW match or build an exception
+  barrier, with a non-returning function decl invoked when exception
+  propagates to this point.}#
+  ;; test
+  #{ /* gimple_eh_must_not_throw $GIMPNTHR ? */ ($GI && gimple_code($GI) == GIMPLE_EH_MUST_NOT_THROW) }#
+  ;; fill
+  #{ /* gimple_eh_must_not_throw $GIMPNTHR ! */ $TFNDECL = gimple_eh_must_not_throw_fndecl($GI);
+  }#
+  ;; operate
+  #{ /* gimple_eh_must_not_throw: */ gimple_build_eh_must_not_throw ($TFNDECL) }#
+)
+
+;; match a gimple exception else 
+(defcmatcher gimple_eh_else
+  (:gimple gi)
+  (:gimple_seq gsnormbody gsexcbody)
+  gimpehels
+  :doc #{$GIMPLE_EH_ELSE match or build an exception else, sole
+  content of GIMPLE_TRY_FINALLY node. $GDNORMBODY is the normal exit
+  body, and $GSEXCBODY is the exceptional exit body.}#
+  ;; test
+  #{ /* gimple_eh_else $GIMPEHELS ? */ ($GI && gimple_code($GI) == GIMPLE_EH_ELSE) }#
+  ;; fill
+  #{ /* gimple_eh_else $GIMPEHELS ! */
+  $GSNORMBODY = gimple_eh_else_n_body($GI);
+  $GSEXCBODY = gimple_eh_else_e_body($GI);
+  }#
+  ;; operate
+  #{ /*gimple_eh_else: */ gimple_build_eh_else ($GSNORMBODY, $GSEXCBODY) }#
+)
+
+;;;;;;;;;;;;;;;;
+(defcmatcher gimple_eh_dispatch
+ (:gimple gi)
+ (:long regnum)
+ gimpehdis
+ :doc #{$GIMPLE_EH_DISPATCH match or build an exception dispatch. $REGNUM is the region number.}#
+ ;; test
+ #{ /* gimple_eh_dispatch $GIMPEHDIS ? */ ($GI && gimple_code($GI) == GIMPLE_EH_DISPATCH) }#
+ ;; fill
+ #{ /* gimple_eh_dispatch  $GIMPEHDIS ! */ $REGNUM = gimple_eh_dispatch_region ($GI);
+ }#
+ ;; operate
+ #{ /* gimple_eh_dispatch: */ gimple_build_eh_dispatch($REGNUM) }#
+)
+
+;; match a gimple exception resume
+(defcmatcher gimple_resx
+  (:gimple gi)
+  (:long regnum)
+  gimpresx
+  :doc #{$GIMPLE_RESX match or build a gimple exception resume. $REGNUM is the exception region number.}#
+  ;; test
+  #{ /* gimple_resx $GIMPRESX ? */ ($GI && gimple_code($GI) == GIMPLE_RESX) }#
+  ;; fill
+  #{ /* gimple_resx $GIMPRESX ! */ $REGNUM = gimple_resx_region($GI);
+  }#
+  ;; operate
+  #{ /* gimple_resx: */ gimple_build_resx((int) $REGNUM) }#
+)
 
 ;;; match a gimple bind
 (defcmatcher gimple_bind
@@ -1803,14 +1914,18 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   :gimple_seq gbody
 	 )
   gimpbind
+  :doc #{$GIMPLE_BIND match or build a local bind gimple with $TVARS locals and $TBLOCK block symbol and $GBODY body gimple_seq. }#
   ;; test
-  #{ /* $gimpbind ? */ ($gr && gimple_code($gr) == GIMPLE_BIND) }#
+  #{ /* gimple_bind $GIMPBIND ? */ ($GR && gimple_code($GR) == GIMPLE_BIND) }#
   ;; fill
-  #{ /* $gimpbind ! */
-   $tvars = gimple_bind_vars($gr);
-   $tblock = gimple_bind_block($gr);
-   $gbody = gimple_bind_body($gr);
-  }# )
+  #{ /* gimple_bind $GIMPBIND ! */
+   $TVARS = gimple_bind_vars($GR);
+   $TBLOCK = gimple_bind_block($GR);
+   $GBODY = gimple_bind_body($GR);
+  }# 
+  ;; operator
+  #{ /*gimple_bind:*/ gimple_build_bind($TVARS,$GBODY,$TBLOCK)}#
+ )
 
 ;;; match a gimple asm
 (defcmatcher gimple_asm
@@ -1818,10 +1933,11 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   (:cstring asmstr
    :long ninputs noutputs nclobbers)
   gimpasm
+  :doc #{$GIMPLE_ASM match a gimple ASM statement of string $ASMSTR with $NINPUTS $NOUTPUTS $NCLUBBERS}#
   ;; test
-  #{ /* $gimpasm ? */ ($gr &&  gimple_code($gr) == GIMPLE_ASM) }#
+  #{ /*  gimple_asm $gimpasm ? */ ($gr &&  gimple_code($gr) == GIMPLE_ASM) }#
   ;; fill
-  #{ /* $gimpasm ! */
+  #{ /*  gimple_asm $gimpasm ! */
   $asmstr = gimple_asm_string ($gr);
   $ninputs = gimple_asm_ninputs ($gr);
   $noutputs = gimple_asm_noutputs ($gr);
@@ -1835,10 +1951,11 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   (:tree tindex 
    :long numlabels)
   gimpswitch
+  :doc #{$GIMPLE_SWITCH match a gimple SWITCH statement indexed by $TINDEX and with $NUMLABELS labels.}#
   ;; test
-  #{ /* $gimpswitch ? */ ($gr &&  gimple_code($gr) == GIMPLE_SWITCH) }#
+  #{ /* gimple_switch $gimpswitch ? */ ($gr &&  gimple_code($gr) == GIMPLE_SWITCH) }#
   ;; fill
-  #{ /* $gimpswitch ! */
+  #{ /* gimple_switch $gimpswitch ! */
   $tindex = gimple_switch_index ($gr);
   $numlabels = gimple_switch_num_labels ($gr);
   }#
@@ -1891,15 +2008,16 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 
 (defcmatcher gimple_phi
   (:gimple gr)
-  (:tree lres				;left hand result
+  (:tree lhs				;left hand result
    :long numargs)
   gimphi
+  :doc #{$GIMPLE_PHI match a PHI node with $LHS being the result and $NUMARGS being the number of arguments}#
   ;; test
-  #{ /* $gimphi ? */ ($gr && gimple_code ($gr) == GIMPLE_PHI) }#
+  #{ /*  gimple_phi $GIMPHI ? */ ($GR && gimple_code ($GR) == GIMPLE_PHI) }#
   ;; fill
-  #{ /* $gimphi ! */
-  $lres = gimple_phi_result ($gr);
-  $numargs = gimple_phi_num_args ($gr);
+  #{ /*  gimple_phi $GIMPHI ! */
+  $LHS = gimple_phi_result ($gr);
+  $NUMARGS = gimple_phi_num_args ($gr);
   }# )
 
 ;;; safely retrieve the N-th argdeftree of a gimple phinode
@@ -4760,6 +4878,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_call_7
  gimple_call_7_more
  gimple_call_nth_arg
+ gimple_catch
  gimple_cond
  gimple_cond_equal  
  gimple_cond_false
@@ -4783,6 +4902,10 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_copy
  gimple_debug
  gimple_debug_bind
+ gimple_eh_dispatch
+ gimple_eh_else
+ gimple_eh_filter
+ gimple_eh_must_not_throw
  gimple_error_mark
  gimple_error_mark_or_nil
  gimple_goto
@@ -4792,6 +4915,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_phi
  gimple_phi_nth_arg_def
  gimple_phi_nth_arg_edge
+ gimple_resx
  gimple_return
  gimple_seq_alloc
  gimple_seq_add_stmt

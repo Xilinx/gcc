@@ -1,5 +1,10 @@
 
 2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (gimple_catch, gimple_eh_dispatch)
+	(gimple_eh_else, gimple_eh_filter, gimple_eh_must_not_throw)
+	(gimple_resx): New.
+
+2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt: Add or improve documentation of
 	many cmatchers.
 	(gimple_transaction): New cmatcher.
