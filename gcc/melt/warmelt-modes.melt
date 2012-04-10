@@ -3834,13 +3834,13 @@ ASSERT_MSG) is enabled"
 	     (>=i inchfd 0))
 	(code_chunk
 	 statinchfdchk
-	 #{ struct stat $STATINCHFDCHK#_stat			;
-	 memset (& $STATINCHFDCHK#_stat, 0, sizeof(struct stat))	;
+	 #{ /*$STATINCHFDCHK */ struct stat $STATINCHFDCHK#_stat;
+	 memset (& $STATINCHFDCHK#_stat, 0, sizeof(struct stat));
 	 if (fstat ($INCHFD, & $STATINCHFDCHK#_stat))
 	 warning(0, "MELT bad registered input channel fd#%d - %s",
-		    (int) $INCHFD, xstrerror (errno)) ;
+		    (int) $INCHFD, xstrerror (errno));
 	 else
-	 $GOODINCHFD = 1		; 
+	 $GOODINCHFD = 1; 
 	 /* end $STATINCHFDCHK */
          }#)
       )
@@ -3862,10 +3862,10 @@ ASSERT_MSG) is enabled"
       (code_chunk 
        fcntlinchfdchk
        #{ /* $FCNTLINCHFDCHK start */
-          /* end  $FCNTLINCHFDCHK */
 	  if (fcntl ($INCHFD, F_SETOWN, getpid()))
 	  melt_fatal_error("MELT failed to set ownership (F_SETOWN) fd #%d - %s",
-			   $INCHFD, xstrerror (errno));
+			   (int) $INCHFD, xstrerror (errno));
+          /* end  $FCNTLINCHFDCHK */
 	  }#)
       )))
 

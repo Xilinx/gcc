@@ -1,5 +1,16 @@
 
 2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (variadic_skip): Fictive use of $DELTA
+	outside of variadic functions.
+
+	* melt/warmelt-outobj.melt (outpucod_initialroutine): The emitted
+	forward_or_mark_module & initialmeltchunk routines are prefixed
+	meltmod.
+
+	* melt/warmelt-modes.melt (register_input_channel_handler): Add
+	casts in printf.
+
+2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (gimple_catch, gimple_eh_dispatch)
 	(gimple_eh_else, gimple_eh_filter, gimple_eh_must_not_throw)
 	(gimple_resx): New.

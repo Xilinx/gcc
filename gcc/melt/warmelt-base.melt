@@ -3778,6 +3778,7 @@ polyhedron values.}#
      melt_variadic_index = melt_variadic_length;
 #else
   /* no variadic_skip outside of variadic functions */
+  (void) ($DELTA);
 #endif /*melt_variadic_index*/
 }#)
 
