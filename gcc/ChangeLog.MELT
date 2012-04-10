@@ -1,5 +1,14 @@
 
 2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_plugin_gcc_version)
+	(melt_gccplugin_version): New declarations.
+
+	* melt-runtime.c (melt_plugin_gcc_version)
+	(melt_gccplugin_version): New variable definitions.
+
+	* melt-run.proto.h: Remove include of "plugin-version.h"
+
+2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (gimple_cond, gimple_cond_ltgt)
 	(gimple_cond_ordered, gimple_cond_uneq, gimple_cond_unge)
 	(gimple_cond_ungt, gimple_cond_unle, gimple_cond_unlt)

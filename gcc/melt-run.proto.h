@@ -27,11 +27,6 @@ along with GCC; see the file COPYING3.   If not see
 /* all file including this are somehow plugins, perhaps MELT specific ones */
 #include "gcc-plugin.h"
 
-/* the file "plugin-version.h" defines GCCPLUGIN_VERSION, but sadly
-   also provide useless static constants like revision, datestamp,
-   gcc_version, etc... and thru "configargs.h" static constants like
-   configure_default_options etc.... */
-#include "plugin-version.h"
 
 
 /* usual GCC middle-end includes, copied from melt-runtime.c */

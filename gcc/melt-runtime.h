@@ -99,6 +99,11 @@ extern char* melt_gccversionstr;
 /* The version number of GCC, at MELT build time. So 4006 is for 4.6,
    4007 is for 4.7.  Same as MELT_GCC_VERSION constant macro.  */
 extern const int melt_gcc_version;
+/* Points to the gcc_version from plugin-version.h */
+extern struct plugin_gcc_version* melt_plugin_gcc_version;
+
+/* The GCCPLUGIN_VERSION at MELT build time, e.g. 4008 for GCC 4.8  */
+extern const int melt_gccplugin_version;
 
 /* the version string of MELT */
 #define MELT_VERSION_STRING "0.9.5-rc2"

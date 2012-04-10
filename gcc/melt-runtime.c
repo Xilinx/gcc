@@ -107,6 +107,19 @@ const int melt_gcc_version = MELT_GCC_VERSION;
 /* Diagnostic related files need to be included after c-pretty-print.h!  */
 #include "diagnostic.h"
 
+/* the file "plugin-version.h" defines GCCPLUGIN_VERSION, but sadly
+   also provide useless static constants like revision, datestamp,
+   gcc_version, etc... and thru "configargs.h" static constants like
+   configure_default_options etc.... */
+#include "plugin-version.h"
+struct plugin_gcc_version* melt_plugin_gcc_version;
+
+#if defined (GCCPLUGIN_VERSION)
+const int melt_gccplugin_version = GCCPLUGIN_VERSION;
+#else
+const int melt_gccplugin_version = 0;
+#endif
+
 /* since 4.7, we have a GCCPLUGIN_VERSION in plugin-version.h. */
 #if defined(GCCPLUGIN_VERSION) && (GCCPLUGIN_VERSION != MELT_GCC_VERSION)
 #error MELT Gcc version and GCC plugin version does not match
@@ -9823,6 +9836,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   struct stat mystat;
   if (inited)
     return;
+  melt_plugin_gcc_version =  &gcc_version; /* from plugin-version.h */
   debugeprintf ("melt_really_initialize pluginame '%s' versionstr '%s'", pluginame, versionstr);
   debugeprintf ("melt_really_initialize update_path(\"plugins\", \"GCC\")=%s",
                 update_path ("plugins","GCC"));
