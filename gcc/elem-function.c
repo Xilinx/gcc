@@ -562,6 +562,7 @@ create_elem_vec_fn (void)
   for (ii_node = cgraph_nodes; ii_node != NULL; ii_node = ii_node->next)
     {
       if (is_elem_fn (ii_node)
+	  && DECL_STRUCT_FUNCTION (ii_node->decl) 
 	  && !DECL_STRUCT_FUNCTION (ii_node->decl)->elem_fn_already_cloned)
 	{
        	  copied_node = create_elem_fn_nodes (ii_node);
