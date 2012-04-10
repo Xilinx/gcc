@@ -916,6 +916,31 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   #{gimple_build_assign_with_ops((enum tree_code) $OPCODE, $LHS, $RHS1, $RHS2)}#
 )
 
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;
+;;; match any kind of gimple cond
+(defcmatcher gimple_cond
+  (:gimple gc)
+  (:tree lhs rhs :long condcode)
+  gimpcond
+  :doc #{$GIMPLE_COND match a GIMPLE condition between $LHS and $RHS with the $CONDCODE long.}#
+  ;; test
+  #{/*gimple_cond $GIMPCOND ?*/ ($GC && (long)gimple_code($GC) == GIMPLE_COND) }#
+  ;; fill
+  #{/*gimple_cond $GIMPCOND !*/  $LHS = gimple_cond_lhs($GC);
+   $RHS = gimple_cond_rhs($GC);
+   $CONDCODE = gimple_cond_code($GC);
+   }#
+  ;; operator expansion
+  #{/*gimple_cond:*/ ($CONDCODE>0 && $CONDCODE<(long)MAX_TREE_CODES
+		      && TREE_CODE_CLASS($CONDCODE)== tcc_comparison) ? gimple_build_cond((enum tree_code)$CONDCODE, $LHS, $RHS, 
+				       /*nolabels*/ NULL_TREE, NULL_TREE): (gimple) NULL}#)
+  
+	 
 ;;;;;;;;;;;;;;;;
 ;;; match a gimple cond less or equal
 (defcmatcher gimple_cond_lessequal
@@ -926,15 +951,15 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   gimpcondle
   :doc #{$GIMPLE_COND_LESSEQUAL match or build a <= condition between $LHS and $RHS.}#
   ;; test expansion
-  #{($gc && gimple_code($gc)==GIMPLE_COND 
+  #{/*gimple_cond_lessequal $GIMPCONDLE ? */ ($gc && gimple_code($gc)==GIMPLE_COND 
      && gimple_cond_code($gc)==LE_EXPR)}#
   ;; fill expansion
-  #{
+  #{/*gimple_cond_lessequal $GIMPCONDLE ! */ 
    $lhs = gimple_cond_lhs($gc);
    $rhs = gimple_cond_rhs($gc);
   }# 
   ;; operator expansion
-  #{gimple_build_cond(LE_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  #{/*gimple_cond_lessequal:*/ gimple_build_cond(LE_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
   )
 
 ;;; match a gimple cond less 
@@ -946,15 +971,15 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   gimpcondle
   :doc #{$GIMPLE_COND_LESSEQUAL match or build a < condition between $LHS and $RHS.}#
   ; test expansion
-  #{($gc && gimple_code($gc)==GIMPLE_COND
+  #{/*gimple_cond_less $GIMPCONDLE ?*/ ($gc && gimple_code($gc)==GIMPLE_COND
      && gimple_cond_code($gc)==LT_EXPR)}#
   ;; fill expansion
-  #{
+  #{/*gimple_cond_less $GIMPCONDLE ! */
    $lhs = gimple_cond_lhs($gc);
    $rhs = gimple_cond_rhs($gc);
   }# 
   ;; operator expansion
-  #{gimple_build_cond(LT_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  #{/*gimple_cond_less:*/ gimple_build_cond(LT_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
 )
 
 ;;;;;;;;;;;;;;;;
@@ -964,15 +989,15 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   (:tree lhs 
    :tree rhs
    )
-  gimpcondle
-  :doc #{$GIMPLE_COND_LESSEQUAL match or build a != condition between $LHS and $RHS.}#
+  gimpcondne
+  :doc #{$GIMPLE_COND_NOTEQUAL match or build a != condition between $LHS and $RHS.}#
   ;; test expansion
-  #{($gc && gimple_code($gc)==GIMPLE_COND 
-     && gimple_cond_code($gc)==NE_EXPR)}#
+  #{/*gimple_cond_notequal $GIMPCONDNE ?*/ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==NE_EXPR)}#
   ;; fill expansion
-  #{
-   $lhs = gimple_cond_lhs($gc);
-   $rhs = gimple_cond_rhs($gc);
+  #{/*gimple_cond_notequal $GIMPCONDNE !*/
+   $LHS = gimple_cond_lhs($GC);
+   $RHS = gimple_cond_rhs($GC);
   }#
   ;; operator expansion
   #{gimple_build_cond(NE_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
@@ -983,21 +1008,20 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   (:gimple gc)
   (:tree lhs
    :tree rhs)
-  gce
+  gimpcondeq
   :doc #{$GIMPLE_COND_EQUAL match or build a == condition between $LHS and $RHS.}#
   ;; test expansion
-  #{
-       ($gc &&
-	gimple_code ($gc) == GIMPLE_COND &&
-	gimple_cond_code ($gc) == EQ_EXPR)
+  #{/*gimple_cond_equal $GIMPCONDEQ ?*/  ($GC &&
+	gimple_code ($GC) == GIMPLE_COND &&
+	gimple_cond_code ($GC) == EQ_EXPR)
   }#
   ;; fill expansion
-  #{
+  #{/*gimple_cond_equal $GIMPCONDEQ !*/ 
        $lhs = gimple_cond_lhs ($gc);
        $rhs = gimple_cond_rhs ($gc);
   }#
   ;; operator expansion
-  #{gimple_build_cond(EQ_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  #{/*gimple_cond_equal:*/ gimple_build_cond(EQ_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
 )
 
 ;;; match a gimple cond greater
@@ -1006,18 +1030,18 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   (:tree lhs 
    :tree rhs
    )
-  gimpcondle
+  gimpcondgt
   :doc #{$GIMPLE_COND_GREATER match or build a > condition between $LHS and $RHS.}#
   ;; test expansion
-  #{($gc && gimple_code($gc)==GIMPLE_COND 
-      && gimple_cond_code($gc)==GT_EXPR)}#
+  #{/*gimple_cond_greater $GIMPCONDGT ?*/ ($GC && gimple_code($GC)==GIMPLE_COND 
+      && gimple_cond_code($GC)==GT_EXPR)}#
   ;; fill expansion
-  #{
-   $lhs = gimple_cond_lhs($gc);
-   $rhs = gimple_cond_rhs($gc);
+  #{/*gimple_cond_greater $GIMPCONDGT !*/ 
+   $LHS = gimple_cond_lhs($GC);
+   $RHS = gimple_cond_rhs($GC);
   }# 
   ;; operator expansion
-  #{gimple_build_cond(GT_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  #{/*gimple_cond_greater:*/ gimple_build_cond(GT_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
 )
 
 ;;; match a gimple_cond greater or equal
@@ -1025,22 +1049,193 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   (:gimple gc)
   (:tree lhs
    :tree rhs)
-  gcgoe
-  :doc #{$GIMPLE_COND_GREATER match or build a >= condition between $LHS and $RHS.}#
+  gimpcondge
+  :doc #{$GIMPLE_COND_GREATER_OR_EQUAL match or build a >= condition between $LHS and $RHS.}#
   ;; test
-  #{
-       ($gc && 
-        gimple_code ($gc) == GIMPLE_COND && 
-        gimple_cond_code ($gc) == GE_EXPR)
+  #{ /*gimple_cond_greater_or_equal $GIMPCONDGE ? */ ($GC && 
+        gimple_code ($GC) == GIMPLE_COND && 
+        gimple_cond_code ($GC) == GE_EXPR)
   }#
   ;; fill
-  #{
-       $lhs = gimple_cond_lhs ($gc);
-       $rhs = gimple_cond_rhs ($gc);
+  #{ /*gimple_cond_greater_or_equal $GIMPCONDGE ! */
+       $lhs = gimple_cond_lhs ($GC);
+       $rhs = gimple_cond_rhs ($GC);
   }#
   ;; operator expansion
-  #{gimple_build_cond(GE_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  #{/*gimple_cond_greater_or_equal:*/ gimple_build_cond(GE_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
 )
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond unordered
+(defcmatcher gimple_cond_unordered
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondunord
+  :doc #{$GIMPLE_COND_UNORDERED match or build a unordered floating point condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_unordered $GIMPCONDUNORD ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==UNORDERED_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_unordered $GIMPCONDUNORD ! */ 
+   $lhs = gimple_cond_lhs($GC);
+   $rhs = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_unordered:*/ gimple_build_cond(UNORDERED_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond ordered
+(defcmatcher gimple_cond_ordered
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondord
+  :doc #{$GIMPLE_COND_ORDERED match or build a unordered floating point condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_unordered $GIMPCONDORD ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==ORDERED_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_unordered $GIMPCONDORD ! */ 
+   $lhs = gimple_cond_lhs($GC);
+   $rhs = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_ordered:*/ gimple_build_cond(ORDERED_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond unlt
+(defcmatcher gimple_cond_unlt
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondunlt
+  :doc #{$GIMPLE_COND_UNLT match or build a unordered or less than floating point condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_unlt $GIMPCONDUNLT ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==UNLT_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_unlt $GIMPCONDUNLT ! */ 
+   $lhs = gimple_cond_lhs($GC);
+   $rhs = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_unlt:*/ gimple_build_cond(UNLT_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond unle
+(defcmatcher gimple_cond_unle
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondunle
+  :doc #{$GIMPLE_COND_UNLE match or build a unordered or less or equal floating point condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_unle $GIMPCONDUNLE ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==UNLE_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_unle $GIMPCONDUNLE ! */ 
+   $lhs = gimple_cond_lhs($GC);
+   $rhs = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_unle:*/ gimple_build_cond(UNLE_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond ungt
+(defcmatcher gimple_cond_ungt
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondungt
+  :doc #{$GIMPLE_COND_UNGT match or build a unordered or greater than floating point condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_ungt $GIMPCONDUNGT ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==UNGT_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_ungt $GIMPCONDUNGT ! */ 
+   $lhs = gimple_cond_lhs($GC);
+   $rhs = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_ungt:*/ gimple_build_cond(UNGT_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond unge
+(defcmatcher gimple_cond_unge
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondunge
+  :doc #{$GIMPLE_COND_UNGE match or build a unordered or greater or equal floating point condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_unge $GIMPCONDUNGE ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==UNGE_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_unge $GIMPCONDUNGE ! */ 
+   $LHS = gimple_cond_lhs($GC);
+   $RHS = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_unge:*/ gimple_build_cond(UNGE_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond uneq
+(defcmatcher gimple_cond_uneq
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpconduneq
+  :doc #{$GIMPLE_COND_UNEQ match or build a unordered or unequal floating point condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_uneq $GIMPCONDUNEQ ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==UNEQ_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_uneq $GIMPCONDUNEQ ! */ 
+   $LHS = gimple_cond_lhs($GC);
+   $RHS = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_uneq:*/ gimple_build_cond(UNEQ_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond ltgt
+(defcmatcher gimple_cond_ltgt
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondltgt
+  :doc #{$GIMPLE_COND_LTGT match or build a less than or greater than floating point condition reverse of $GIMPLE_COND_UNEQ between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_ltgt $GIMPCONDLTGT ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC) == LTGT_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_ltgt $GIMPCONDLTGT ! */ 
+   $LHS = gimple_cond_lhs($GC);
+   $RHS = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_ltgt:*/ gimple_build_cond(LTGT_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+
 
 ;; match a gimple cond true
 (defcmatcher gimple_cond_true
@@ -1048,10 +1243,10 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   ()
   gimpcondtr
   ;;test
-  #{/*$gimpcondtr ? */ ($gc && gimple_code($gc)==GIMPLE_COND 
+  #{/* gimple_cond_true $GIMPCONDTR ? */ ($GC && gimple_code($GC) == GIMPLE_COND 
      && gimple_cond_true_p($gc))}#
   ;;fill
-  #{ /*$gimpcondtr !*/
+  #{ /* gimple_cond_true $GIMPCONDTR !*/
   }# )
 
 
@@ -1517,10 +1712,18 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   ()
   gimperrnil
   ;; test
-  #{ /*$gimperrnil ? */ (!$gr ||  gimple_code($gr) == GIMPLE_ERROR_MARK) }#
+  #{ /*gimple_error_mark_or_nil $GIMPERRNIL ? */ (!$GR 
+						  ||  gimple_code($GR) == GIMPLE_ERROR_MARK) }#
   ;; no fill
 )
 
+;;; match a gimple error mark
+(defcmatcher gimple_error_mark
+  (:gimple gr)
+  ()
+  gimperr
+  #{ /*gimple_error_mark $GIMPERR ? */ ($GR && gimple_code($GR) == GIMPLE_ERROR_MARK) }#
+)
 
 ;; match any gimple_debug 
 (defcmatcher gimple_debug
@@ -3706,8 +3909,6 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
         $EACHCGRAFUNCFG#_nd != NULL; 
         $EACHCGRAFUNCFG#_nd = $EACHCGRAFUNCFG#_nd->next) {
       tree  $EACHCGRAFUNCFG#_dcl = NULL;
-      basic_block $EACHCGRAFUNCFG#_entrybb = NULL;
-      basic_block $EACHCGRAFUNCFG#_exitbb = NULL;
       basic_block $EACHCGRAFUNCFG#_curbb = NULL;
       struct function *$EACHCGRAFUNCFG#_fun = NULL;
       int $EACHCGRAFUNCFG#_n_bb = 0;
@@ -4537,20 +4738,30 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_call_7
  gimple_call_7_more
  gimple_call_nth_arg
+ gimple_cond
  gimple_cond_equal  
  gimple_cond_false
  gimple_cond_greater
  gimple_cond_greater_or_equal
  gimple_cond_less
  gimple_cond_lessequal
+ gimple_cond_ltgt
  gimple_cond_notequal
+ gimple_cond_ordered
  gimple_cond_true   
+ gimple_cond_uneq
+ gimple_cond_unge
+ gimple_cond_ungt
+ gimple_cond_unle
+ gimple_cond_unlt
+ gimple_cond_unordered
  gimple_cond_with_edges
  gimple_cond_with_true_false_labels
  gimple_content
  gimple_copy
  gimple_debug
  gimple_debug_bind
+ gimple_error_mark
  gimple_error_mark_or_nil
  gimple_goto
  gimple_iterator
