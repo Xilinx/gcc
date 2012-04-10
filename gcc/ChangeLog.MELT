@@ -1,5 +1,9 @@
 
 2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (mexpand_gccif): Accept a list of
+	strings as version.
+
+2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bumping to 0.9.5rc3
 
 2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
