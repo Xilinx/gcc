@@ -2083,6 +2083,22 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
 	   && $N >= 0 && $N < gimple_phi_num_args ($G)) 
        ? gimple_phi_arg_edge($G, $N) : (edge) NULL) }#)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defcmatcher gimple_predict 
+  (:gimple gr)
+  (:long predictor outcome)
+  gimpredi
+  :doc #{$GIMPLE_PREDICT match a GIMPLE_PREDICT statement, filling $PREDICTOR and $OUTCOME.}#
+  ;; test
+  #{ /* gimple_predict $GIMPREDI ? */ ($GR && gimple_code($GR) == GIMPLE_PREDICT) }#
+  ;; fill
+  #{ /* gimple_predict $GIMPREDI ! */
+   $PREDICTOR = (long) gimple_predict_predictor ($GR);
+   $OUTCOME = (long) gimple_predict_outcome ($GR);
+  }#)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; issue a notice or a warning at a gimple location
 (defprimitive inform_at_gimple (:gimple g :cstring msg) :void
@@ -4967,6 +4983,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_phi
  gimple_phi_nth_arg_def
  gimple_phi_nth_arg_edge
+ gimple_predict
  gimple_resx
  gimple_return
  gimple_seq_alloc
