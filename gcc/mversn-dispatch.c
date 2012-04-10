@@ -1377,6 +1377,8 @@ cleanup_aux_field (void)
 static unsigned int
 builtin_dispatch_ipa_clone (void)
 {
+  bool clone_done = false;
+
   cleanup_aux_field ();
 
   /* Allocate hashtab mapping name to decl. */
@@ -1405,12 +1407,15 @@ builtin_dispatch_ipa_clone (void)
       return 0;
     }
 
-  if (decide_cloning_phase ())
+  if ((clone_done = decide_cloning_phase ()))
     perform_cloning_phase ();
 
   cleanup_aux_field ();
 
-  return 0;
+  if (!clone_done)
+    return 0;
+  else
+    return TODO_update_ssa;
 }
 
 static bool
@@ -1434,8 +1439,7 @@ struct simple_ipa_opt_pass pass_ipa_multiversion_dispatch =
   PROP_cfg,				/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func |			/* todo_flags_finish */
-  TODO_update_ssa
+  0                    			/* todo_flags_finish */
  }
 };
 
@@ -1733,19 +1737,21 @@ do_convert_builtin_dispatch (void)
 
   if (!builtin_stmt_list)
     return 0;
- 
+
   for (ix = 0; VEC_iterate (gimple, builtin_stmt_list, ix, builtin_stmt);
        ++ix)
     convert_builtin_dispatch (builtin_stmt);
 
-  /* cgraph edges need to be updated before computing inline parameters. */
+  /* cgraph edges need to be updated before computing inline parameters.  */
   rebuild_cgraph_edges ();
   compute_inline_parameters (cgraph_get_create_node (current_function_decl),
 			     false);
- 
-  VEC_free (gimple, heap, builtin_stmt_list); 
-  
-  return 0;
+
+  VEC_free (gimple, heap, builtin_stmt_list);
+
+  return (TODO_cleanup_cfg | TODO_dump_cgraph |
+          TODO_update_ssa | TODO_verify_ssa |
+          TODO_rebuild_cgraph_edges);
 }
 
 static bool
@@ -1769,8 +1775,6 @@ struct gimple_opt_pass pass_tree_convert_builtin_dispatch =
   PROP_cfg,				/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func |			/* todo_flags_finish */
-  TODO_cleanup_cfg | TODO_dump_cgraph |
-  TODO_update_ssa | TODO_verify_ssa
+  0,            			/* todo_flags_finish */
  }
 };

@@ -1,3 +1,9 @@
+2012-04-10  Xinliang David Li  <davidxl@google.com>
+
+	* mversn-dispatch.c (builtin_dispatch_ipa_clone): returns
+	TODO flags when there are changes.
+	(do_convert_builtin_dispatch): Ditto.
+
 2012-04-09  Xinliang David Li  <davidxl@google.com>
 
 	Fix b/6300341: LIPO profile-gen ICEs 
