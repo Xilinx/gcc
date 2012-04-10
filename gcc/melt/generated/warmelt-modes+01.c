@@ -874,34 +874,50 @@ const char meltmodule_warmelt_modes__melt_have_debug_disabled[];
 
 
 struct frame_start_module_melt_st;
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_0 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_1 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_2 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_3 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_4 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_5 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_6 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_7 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-static void forward_or_mark_module_start_frame_warmelt_modes (struct
-							      melt_callframe_st
-							      *fp,
-							      int marking);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_0 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_1 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_2 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_3 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_4 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_5 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_6 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_7 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_modes__forward_or_mark_module_start_frame (struct
+							    melt_callframe_st
+							    *fp, int marking);
 
 
 /**** warmelt-modes+01.c implementations ****/

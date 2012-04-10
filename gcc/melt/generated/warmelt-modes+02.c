@@ -874,34 +874,50 @@ const char meltmodule_warmelt_modes__melt_have_debug_disabled[];
 
 
 struct frame_start_module_melt_st;
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_0 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_1 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_2 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_3 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_4 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_5 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_6 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_7 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-static void forward_or_mark_module_start_frame_warmelt_modes (struct
-							      melt_callframe_st
-							      *fp,
-							      int marking);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_0 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_1 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_2 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_3 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_4 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_5 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_6 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_7 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_modes__forward_or_mark_module_start_frame (struct
+							    melt_callframe_st
+							    *fp, int marking);
 
 
 /**** warmelt-modes+02.c implementations ****/
@@ -19610,7 +19626,7 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-modes.melt:3837:/ locexp");
-	    struct stat STATINCHFDCHK__1_stat;
+	    /*STATINCHFDCHK__1 */ struct stat STATINCHFDCHK__1_stat;
 	    memset (&STATINCHFDCHK__1_stat, 0, sizeof (struct stat));
 	    if (fstat ( /*_#INCHFD__L1*/ meltfnum[0], &STATINCHFDCHK__1_stat))
 	      warning (0, "MELT bad registered input channel fd#%d - %s",
@@ -19847,11 +19863,11 @@ lab_endgetargs:;
     {
       MELT_LOCATION ("warmelt-modes.melt:3864:/ locexp");
       /* FCNTLINCHFDCHK__1 start */
-      /* end  FCNTLINCHFDCHK__1 */
       if (fcntl ( /*_#INCHFD__L1*/ meltfnum[0], F_SETOWN, getpid ()))
 	melt_fatal_error
 	  ("MELT failed to set ownership (F_SETOWN) fd #%d - %s",
-			   /*_#INCHFD__L1*/ meltfnum[0], xstrerror (errno));
+	   (int) /*_#INCHFD__L1*/ meltfnum[0], xstrerror (errno));
+      /* end  FCNTLINCHFDCHK__1 */
       ;
     }
     ;

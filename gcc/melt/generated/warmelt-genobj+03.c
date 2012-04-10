@@ -2873,124 +2873,153 @@ const char meltmodule_warmelt_genobj__melt_have_debug_disabled[];
 
 
 struct frame_start_module_melt_st;
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_0 (struct
-							       frame_start_module_melt_st
-							       *, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_1 (struct
-							       frame_start_module_melt_st
-							       *, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_2 (struct
-							       frame_start_module_melt_st
-							       *, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_3 (struct
-							       frame_start_module_melt_st
-							       *, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_4 (struct
-							       frame_start_module_melt_st
-							       *, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_5 (struct
-							       frame_start_module_melt_st
-							       *, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_6 (struct
-							       frame_start_module_melt_st
-							       *, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_7 (struct
-							       frame_start_module_melt_st
-							       *, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_8 (struct
-							       frame_start_module_melt_st
-							       *, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_9 (struct
-							       frame_start_module_melt_st
-							       *, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_10 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_11 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_12 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_13 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_14 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_15 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_16 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_17 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_18 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_19 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_20 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_21 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_22 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_23 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_24 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_25 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_26 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_27 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_28 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_29 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_30 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_31 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_32 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_33 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_34 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_35 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_36 (struct
-								frame_start_module_melt_st
-								*, char *);
-void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_37 (struct
-								frame_start_module_melt_st
-								*, char *);
-static void forward_or_mark_module_start_frame_warmelt_genobj (struct
-							       melt_callframe_st
-							       *fp,
-							       int marking);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_0 (struct frame_start_module_melt_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_1 (struct frame_start_module_melt_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_2 (struct frame_start_module_melt_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_3 (struct frame_start_module_melt_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_4 (struct frame_start_module_melt_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_5 (struct frame_start_module_melt_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_6 (struct frame_start_module_melt_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_7 (struct frame_start_module_melt_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_8 (struct frame_start_module_melt_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_9 (struct frame_start_module_melt_st
+					     *, char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_10 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_11 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_12 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_13 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_14 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_15 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_16 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_17 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_18 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_19 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_20 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_21 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_22 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_23 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_24 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_25 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_26 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_27 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_28 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_29 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_30 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_31 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_32 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_33 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_34 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_35 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_36 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__initialmeltchunk_37 (struct
+					      frame_start_module_melt_st *,
+					      char *);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_genobj__forward_or_mark_module_start_frame (struct
+							     melt_callframe_st
+							     *fp,
+							     int marking);
 
 
 /**** warmelt-genobj+03.c implementations ****/

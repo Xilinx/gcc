@@ -874,34 +874,50 @@ const char meltmodule_warmelt_modes__melt_have_debug_disabled[];
 
 
 struct frame_start_module_melt_st;
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_0 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_1 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_2 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_3 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_4 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_5 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_6 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-void MELT_MODULE_VISIBILITY warmelt_modes_initialmeltchunk_7 (struct
-							      frame_start_module_melt_st
-							      *, char *);
-static void forward_or_mark_module_start_frame_warmelt_modes (struct
-							      melt_callframe_st
-							      *fp,
-							      int marking);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_0 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_1 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_2 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_3 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_4 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_5 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_6 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_7 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
+void MELT_MODULE_VISIBILITY
+meltmod__warmelt_modes__forward_or_mark_module_start_frame (struct
+							    melt_callframe_st
+							    *fp, int marking);
 
 
 /**** warmelt-modes implementations ****/
@@ -9873,7 +9889,7 @@ start_module_melt (void *modargp_)
   /* set initial frame marking */
   ((struct melt_callframe_st *) &meltfram__)->mcfr_nbvar = /*minihash */ -422;
   ((struct melt_callframe_st *) &meltfram__)->mcfr_forwmarkrout =
-    forward_or_mark_module_start_frame_warmelt_modes;
+    meltmod__warmelt_modes__forward_or_mark_module_start_frame;
  /**COMMENT: get previous environment **/ ;
 
   /*^compute */
@@ -12209,14 +12225,14 @@ start_module_melt (void *modargp_)
   initialize_module_meltdata_warmelt_modes (&meltfram__, predefinited);
  /**initial routine body**/
 
-  warmelt_modes_initialmeltchunk_0 (&meltfram__, predefinited);
-  warmelt_modes_initialmeltchunk_1 (&meltfram__, predefinited);
-  warmelt_modes_initialmeltchunk_2 (&meltfram__, predefinited);
-  warmelt_modes_initialmeltchunk_3 (&meltfram__, predefinited);
-  warmelt_modes_initialmeltchunk_4 (&meltfram__, predefinited);
-  warmelt_modes_initialmeltchunk_5 (&meltfram__, predefinited);
-  warmelt_modes_initialmeltchunk_6 (&meltfram__, predefinited);
-  warmelt_modes_initialmeltchunk_7 (&meltfram__, predefinited);;
+  meltmod__warmelt_modes__initialmeltchunk_0 (&meltfram__, predefinited);
+  meltmod__warmelt_modes__initialmeltchunk_1 (&meltfram__, predefinited);
+  meltmod__warmelt_modes__initialmeltchunk_2 (&meltfram__, predefinited);
+  meltmod__warmelt_modes__initialmeltchunk_3 (&meltfram__, predefinited);
+  meltmod__warmelt_modes__initialmeltchunk_4 (&meltfram__, predefinited);
+  meltmod__warmelt_modes__initialmeltchunk_5 (&meltfram__, predefinited);
+  meltmod__warmelt_modes__initialmeltchunk_6 (&meltfram__, predefinited);
+  meltmod__warmelt_modes__initialmeltchunk_7 (&meltfram__, predefinited);;
   goto labend_rout;
 labend_rout:;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -12233,9 +12249,10 @@ labend_rout:;
 
 }				/* end start_module_melt */
 
-void MELT_MODULE_VISIBILITY
-warmelt_modes_initialmeltchunk_0 (struct frame_start_module_melt_st
-				  *meltmeltframptr__, char predefinited[])
+void
+meltmod__warmelt_modes__initialmeltchunk_0 (struct frame_start_module_melt_st
+					    *meltmeltframptr__,
+					    char predefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
@@ -13781,11 +13798,12 @@ warmelt_modes_initialmeltchunk_0 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_modes_initialmeltchunk_0 */
+}				/*end of meltmod__warmelt_modes__initialmeltchunk_0 */
 
-void MELT_MODULE_VISIBILITY
-warmelt_modes_initialmeltchunk_1 (struct frame_start_module_melt_st
-				  *meltmeltframptr__, char predefinited[])
+void
+meltmod__warmelt_modes__initialmeltchunk_1 (struct frame_start_module_melt_st
+					    *meltmeltframptr__,
+					    char predefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
@@ -15247,11 +15265,12 @@ warmelt_modes_initialmeltchunk_1 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_modes_initialmeltchunk_1 */
+}				/*end of meltmod__warmelt_modes__initialmeltchunk_1 */
 
-void MELT_MODULE_VISIBILITY
-warmelt_modes_initialmeltchunk_2 (struct frame_start_module_melt_st
-				  *meltmeltframptr__, char predefinited[])
+void
+meltmod__warmelt_modes__initialmeltchunk_2 (struct frame_start_module_melt_st
+					    *meltmeltframptr__,
+					    char predefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
@@ -16644,11 +16663,12 @@ warmelt_modes_initialmeltchunk_2 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_modes_initialmeltchunk_2 */
+}				/*end of meltmod__warmelt_modes__initialmeltchunk_2 */
 
-void MELT_MODULE_VISIBILITY
-warmelt_modes_initialmeltchunk_3 (struct frame_start_module_melt_st
-				  *meltmeltframptr__, char predefinited[])
+void
+meltmod__warmelt_modes__initialmeltchunk_3 (struct frame_start_module_melt_st
+					    *meltmeltframptr__,
+					    char predefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
@@ -18114,11 +18134,12 @@ warmelt_modes_initialmeltchunk_3 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_modes_initialmeltchunk_3 */
+}				/*end of meltmod__warmelt_modes__initialmeltchunk_3 */
 
-void MELT_MODULE_VISIBILITY
-warmelt_modes_initialmeltchunk_4 (struct frame_start_module_melt_st
-				  *meltmeltframptr__, char predefinited[])
+void
+meltmod__warmelt_modes__initialmeltchunk_4 (struct frame_start_module_melt_st
+					    *meltmeltframptr__,
+					    char predefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
@@ -19580,11 +19601,12 @@ warmelt_modes_initialmeltchunk_4 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_modes_initialmeltchunk_4 */
+}				/*end of meltmod__warmelt_modes__initialmeltchunk_4 */
 
-void MELT_MODULE_VISIBILITY
-warmelt_modes_initialmeltchunk_5 (struct frame_start_module_melt_st
-				  *meltmeltframptr__, char predefinited[])
+void
+meltmod__warmelt_modes__initialmeltchunk_5 (struct frame_start_module_melt_st
+					    *meltmeltframptr__,
+					    char predefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
@@ -21062,11 +21084,12 @@ warmelt_modes_initialmeltchunk_5 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_modes_initialmeltchunk_5 */
+}				/*end of meltmod__warmelt_modes__initialmeltchunk_5 */
 
-void MELT_MODULE_VISIBILITY
-warmelt_modes_initialmeltchunk_6 (struct frame_start_module_melt_st
-				  *meltmeltframptr__, char predefinited[])
+void
+meltmod__warmelt_modes__initialmeltchunk_6 (struct frame_start_module_melt_st
+					    *meltmeltframptr__,
+					    char predefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
@@ -23069,11 +23092,12 @@ warmelt_modes_initialmeltchunk_6 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_modes_initialmeltchunk_6 */
+}				/*end of meltmod__warmelt_modes__initialmeltchunk_6 */
 
-void MELT_MODULE_VISIBILITY
-warmelt_modes_initialmeltchunk_7 (struct frame_start_module_melt_st
-				  *meltmeltframptr__, char predefinited[])
+void
+meltmod__warmelt_modes__initialmeltchunk_7 (struct frame_start_module_melt_st
+					    *meltmeltframptr__,
+					    char predefinited[])
 {
 #define meltfram__ (*meltmeltframptr__)
 #undef meltcallcount
@@ -23407,11 +23431,12 @@ warmelt_modes_initialmeltchunk_7 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_modes_initialmeltchunk_7 */
+}				/*end of meltmod__warmelt_modes__initialmeltchunk_7 */
 
-static void
-forward_or_mark_module_start_frame_warmelt_modes (struct melt_callframe_st
-						  *fp, int marking)
+void
+meltmod__warmelt_modes__forward_or_mark_module_start_frame (struct
+							    melt_callframe_st
+							    *fp, int marking)
 {
   int ix = 0;
   initial_frame_st *meltframptr_ = (initial_frame_st *) fp;
@@ -23433,7 +23458,7 @@ forward_or_mark_module_start_frame_warmelt_modes (struct melt_callframe_st
     if (meltframptr_->mcfr_varptr[ix])
       gt_ggc_mx_melt_un (meltframptr_->mcfr_varptr[ix]);
 
-}				/* end forward_or_mark_module_start_frame_warmelt_modes */
+}				/* end meltmod__warmelt_modes__forward_or_mark_module_start_frame */
 
 
 
