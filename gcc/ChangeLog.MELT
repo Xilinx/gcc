@@ -1,5 +1,9 @@
 
 2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (gimple_transaction)
+	(gimple_eh_else): Define and export only for GCC 4.7.
+
+2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt (mexpand_gccif): Accept a list of
 	strings as version.
 

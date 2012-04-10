@@ -1767,25 +1767,64 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   }# )
 
 
-;;; match a transaction
-(defcmatcher gimple_transaction
-  (:gimple gr)
-  (:gimple_seq gsbody
-   :tree tlab)
-  gimptrans
-  :doc #{$GIMPLE_TRANSACTION match or build a transaction block gimple. 
-    $GSBODY is the gimple_seq of the body, $TLAB is the label tree.}#
-  ;; test
-  #{/*gimple_transaction $GIMPTRANS ?*/ ($GR && gimple_code($GR) == GIMPLE_TRANSACTION) }#
-  ;; fill
-  #{/*gimple_transaction $GIMPTRANS !*/
-  $GSBODY = gimple_transaction_body ($GR);
-  $TLAB = gimple_transaction_label ($GR);
-  }#
-  ;; operator expansion
-  #{/*gimple_transaction:*/ gimple_build_transaction($GSBODY,$TLAB)}#
-)
+(gccif 
+ ("4.7." "4.8.")
+;;; match a transaction - only in GCC 4.7 or 4.8
+ (defcmatcher gimple_transaction
+   (:gimple gr)
+   (:gimple_seq gsbody
+		:tree tlab)
+   gimptrans
+   :doc #{$GIMPLE_TRANSACTION match or build a transaction block gimple. 
+   $GSBODY is the gimple_seq of the body, $TLAB is the label tree.}#
+   ;; test
+   #{/*gimple_transaction $GIMPTRANS ?*/ ($GR && gimple_code($GR) == GIMPLE_TRANSACTION) }#
+   ;; fill
+   #{/*gimple_transaction $GIMPTRANS !*/
+   $GSBODY = gimple_transaction_body ($GR) ;
+   $TLAB = gimple_transaction_label ($GR)  ;
+   }#
+   ;; operator expansion
+   #{/*gimple_transaction:*/ gimple_build_transaction($GSBODY,$TLAB)}#
+   )
+
+ ;; match a gimple exception else - only in GCC 4.7 or 4.8
+ (defcmatcher gimple_eh_else
+   (:gimple gi)
+   (:gimple_seq gsnormbody gsexcbody)
+   gimpehels
+   :doc #{$GIMPLE_EH_ELSE match or build an exception else, sole
+   content of GIMPLE_TRY_FINALLY node. $GDNORMBODY is the normal exit
+   body, and $GSEXCBODY is the exceptional exit body.}#
+   ;; test
+   #{ /* gimple_eh_else $GIMPEHELS ? */ ($GI && gimple_code($GI) == GIMPLE_EH_ELSE) }#
+   ;; fill
+   #{ /* gimple_eh_else $GIMPEHELS ! */
+   $GSNORMBODY = gimple_eh_else_n_body($GI) ;
+   $GSEXCBODY = gimple_eh_else_e_body($GI)  ;
+   }#
+   ;; operate
+   #{ /*gimple_eh_else: */ gimple_build_eh_else ($GSNORMBODY, $GSEXCBODY) }#
+   )
+
+ (export_values gimple_transaction gimple_eh_else)
+ )					;end gccif "4.7"  or 4.8
    
+;;;;;;;;;;;;;;;;
+(defcmatcher gimple_eh_dispatch
+ (:gimple gi)
+ (:long regnum)
+ gimpehdis
+ :doc #{$GIMPLE_EH_DISPATCH match or build an exception dispatch. $REGNUM is the region number.}#
+ ;; test
+ #{ /* gimple_eh_dispatch $GIMPEHDIS ? */ ($GI && gimple_code($GI) == GIMPLE_EH_DISPATCH) }#
+ ;; fill
+ #{ /* gimple_eh_dispatch  $GIMPEHDIS ! */ $REGNUM = gimple_eh_dispatch_region ($GI);
+ }#
+ ;; operate
+ #{ /* gimple_eh_dispatch: */ gimple_build_eh_dispatch($REGNUM) }#
+)
+
 ;;; match a nop
 (defcmatcher gimple_nop
   (:gimple gr)
@@ -1858,39 +1897,6 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   #{ /* gimple_eh_must_not_throw: */ gimple_build_eh_must_not_throw ($TFNDECL) }#
 )
 
-;; match a gimple exception else 
-(defcmatcher gimple_eh_else
-  (:gimple gi)
-  (:gimple_seq gsnormbody gsexcbody)
-  gimpehels
-  :doc #{$GIMPLE_EH_ELSE match or build an exception else, sole
-  content of GIMPLE_TRY_FINALLY node. $GDNORMBODY is the normal exit
-  body, and $GSEXCBODY is the exceptional exit body.}#
-  ;; test
-  #{ /* gimple_eh_else $GIMPEHELS ? */ ($GI && gimple_code($GI) == GIMPLE_EH_ELSE) }#
-  ;; fill
-  #{ /* gimple_eh_else $GIMPEHELS ! */
-  $GSNORMBODY = gimple_eh_else_n_body($GI);
-  $GSEXCBODY = gimple_eh_else_e_body($GI);
-  }#
-  ;; operate
-  #{ /*gimple_eh_else: */ gimple_build_eh_else ($GSNORMBODY, $GSEXCBODY) }#
-)
-
-;;;;;;;;;;;;;;;;
-(defcmatcher gimple_eh_dispatch
- (:gimple gi)
- (:long regnum)
- gimpehdis
- :doc #{$GIMPLE_EH_DISPATCH match or build an exception dispatch. $REGNUM is the region number.}#
- ;; test
- #{ /* gimple_eh_dispatch $GIMPEHDIS ? */ ($GI && gimple_code($GI) == GIMPLE_EH_DISPATCH) }#
- ;; fill
- #{ /* gimple_eh_dispatch  $GIMPEHDIS ! */ $REGNUM = gimple_eh_dispatch_region ($GI);
- }#
- ;; operate
- #{ /* gimple_eh_dispatch: */ gimple_build_eh_dispatch($REGNUM) }#
-)
 
 ;; match a gimple exception resume
 (defcmatcher gimple_resx
@@ -4971,7 +4977,6 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_debug
  gimple_debug_bind
  gimple_eh_dispatch
- gimple_eh_else
  gimple_eh_filter
  gimple_eh_must_not_throw
  gimple_error_mark
@@ -4999,7 +5004,6 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_switch
  gimple_switch_index
  gimple_switch_label
- gimple_transaction
  gimple_try
  gimple_try_catch
  gimple_try_finally
