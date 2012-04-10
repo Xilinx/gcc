@@ -1,3 +1,86 @@
+2012-04-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR other/52777
+	* config/pa/pa.opt: Remove SIO and GNU_LD.
+
+2012-04-09  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/52722
+	PR lto/51765
+	PR lto/52634	
+	* lto-cgraph.c (compute_ltrans_boundary): When alias is in the boundary,
+	add its target too.
+	* lto.c (add_references_to_partition): Add also aliased nodes.
+	(add_cgraph_node_to_partition,
+	add_varpool_node_to_partition): Work on nodes, not functions/variables;
+	when adding alias, add also the aliased object.
+
+2012-04-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52883
+	* config/i386/predicates.md (x86_64_zext_general_operand): Prevent
+	VOIDmode immediate operands.
+	* config/i386/constraints.md (Wz): New constraint.
+	* config/i386/i386.md (*zero_extendsidi2_rex64): Use Wz instead of Z.
+
+2012-04-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/52717
+	* config/sparc/sparc.c (sparc_file_end): Set TREE_PUBLIC explicitly on
+	the DECL generated for the special GOT helper.
+
+2012-04-09  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/constraints.md: Update list of constraints in
+	comment block.
+	(Sr0): Remove unused memory constraint.
+
+2012-04-08  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* tree-pretty-print.h: Update comment.
+
+2012-04-08  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh.md: Use braced string notation where applicable.
+	(*prefetch_i4, prefetch_m2a): Merge into ...
+	(*prefetch): ... this new insn.
+
+2012-04-07  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh.h (high_life_started): Remove
+	* config/sh/predicates.md (general_movdst_operand): Use
+	'reload_in_progress' instead of 'high_life_started'.
+	* config/sh/sh.md (divsi_inv_call, *divsi_inv_call_combine,
+	divsi_inv_fp): Likewise.
+
+2012-04-07  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh-protos.h (prepare_move_operands): Return void
+	instead of int.
+	* config/sh/sh.c (prepare_move_operands): Likewise.
+	* config/sh/sh.md: Remove return value checks of prepare_move_operands.
+
+2012-04-07  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	* config/sh/sh-protos.h (fp_int_operand, symbol_ref_operand,
+	general_movsrc_operand, general_movdst_operand, arith_reg_operand,
+	fp_arith_reg_operand, arith_operand, arith_reg_or_0_operand,
+	logical_operand, fpscr_operand, fpul_operand, expand_fp_branch,
+	commutative_float_operator, noncommutative_float_operator,
+	sh_handle_pragma): Remove.
+
+2012-04-06  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* doc/invoke.texi:  Clean up Texinfo markup throughout the file.
+	Use @option markup on command-line options.  Use @samp markup on
+	literal keywords to options.  Use @code markup on code fragments.
+	Use other markup in preference to quotation marks in the text.
+	Add markup to some passages without any.
+
+2012-04-06  Mike Stump  <mikestump@comcast.net>
+
+	* gimple-fold.c (gimple_fold_stmt_to_constant_1): Avoid warning.
+
 2012-04-06  Oleg Endo  <olegendo@gcc.gnu.org>
 
 	* config/sh/sh.c (hi_const): Remove.
@@ -30,7 +113,7 @@
 	sh_cfun_attr_renesas_p, sh_cfun_interrupt_handler_p,
 	sh_cfun_resbank_handler_p, system_reg_operand, fp_zero_operand,
 	fp_one_operand, fldi_ok, reg_unused_after, sh_can_redirect_branch,
-	sh_hard_regno_rename_ok, check_use_sfunc_addr, sh_contains_memref_p, 
+	sh_hard_regno_rename_ok, check_use_sfunc_addr, sh_contains_memref_p,
 	sh_loads_bankedreg_p): Use bool as return type.
 	(nonpic_symbol_mentioned_p): Use bool as return type.  Remove
 	'register' modifier.

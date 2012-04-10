@@ -909,8 +909,10 @@
 		       (match_operand:DI 1 "arith_operand" "r"))
 	       (const_int 0)))]
   "TARGET_SH1"
-  "* return output_branchy_insn (EQ, \"tst\\t%S1,%S0\;bf\\t%l9\;tst\\t%R1,%R0\",
-				 insn, operands);"
+{
+  return output_branchy_insn (EQ, "tst\t%S1,%S0;bf\t%l9;tst\t%R1,%R0",
+			      insn, operands);
+}
   [(set_attr "length" "6")
    (set_attr "type" "arith3b")])
 
@@ -1991,7 +1993,7 @@
    (use (match_operand:SI 3 "register_operand" "r"))]
   "TARGET_SHMEDIA"
   "#"
-  "&& (high_life_started || reload_completed)"
+  "&& (reload_in_progress || reload_completed)"
   [(set (match_dup 0) (match_dup 3))]
   ""
   [(set_attr "highpart" "must_split")])
@@ -2021,7 +2023,7 @@
 	 UNSPEC_DIV_INV_M3))]
   "TARGET_SHMEDIA"
   "#"
-  "&& (high_life_started || reload_completed)"
+  "&& (reload_in_progress || reload_completed)"
   [(pc)]
 {
   const char *name = sh_divsi3_libfunc;
@@ -2643,7 +2645,7 @@ label:
    (clobber (match_operand:DF 8 "register_operand" "=r"))]
   "TARGET_SHMEDIA_FPU"
   "#"
-  "&& (high_life_started || reload_completed)"
+  "&& (reload_in_progress || reload_completed)"
   [(set (match_dup 0) (match_dup 3))]
   ""
   [(set_attr "highpart" "must_split")])
@@ -3156,7 +3158,6 @@ label:
 	(and:SI (match_operand:SI 1 "logical_reg_operand" "")
 		(match_operand:SI 2 "logical_operand" "")))]
   ""
-  "
 {
   if (TARGET_SH1
       && CONST_INT_P (operands[2]) && INTVAL (operands[2]) == 255)
@@ -3165,7 +3166,7 @@ label:
 				       gen_lowpart (QImode, operands[1])));
       DONE;
     }
-}")
+})
 
 (define_insn_and_split "anddi3"
   [(set (match_operand:DI 0 "arith_reg_dest" "=r,r,r")
@@ -3179,14 +3180,13 @@ label:
   "reload_completed
    && ! logical_operand (operands[2], DImode)"
   [(const_int 0)]
-  "
 {
   if ((unsigned)INTVAL (operands[2]) == (unsigned) 0xffffffff)
     emit_insn (gen_mshflo_l_di (operands[0], operands[1], CONST0_RTX (DImode)));
   else
     emit_insn (gen_mshfhi_l_di (operands[0], CONST0_RTX (DImode), operands[1]));
   DONE;
-}"
+}
   [(set_attr "type" "arith_media")])
 
 (define_insn "andcsi3"
@@ -5337,8 +5337,7 @@ label:
 	(match_operand:SI 1 "general_movsrc_operand" ""))]
   ""
 {
-  if (prepare_move_operands (operands, SImode))
-    DONE;
+  prepare_move_operands (operands, SImode);
 })
 
 (define_expand "ic_invalidate_line"
@@ -5447,8 +5446,7 @@ label:
 	(match_operand:QI 1 "general_operand" ""))]
   ""
 {
-  if (prepare_move_operands (operands, QImode))
-    DONE;
+  prepare_move_operands (operands, QImode);
 })
 
 ;; If movqi_reg_reg is specified as an alternative of movqi, movqi will be
@@ -5614,8 +5612,7 @@ label:
 	(match_operand:HI 1 "general_movsrc_operand"  ""))]
   ""
 {
-  if (prepare_move_operands (operands, HImode))
-    DONE;
+  prepare_move_operands (operands, HImode);
 })
 
 (define_expand "reload_inhi"
@@ -5641,7 +5638,9 @@ label:
   "TARGET_SH1
    && (arith_reg_operand (operands[0], DImode)
        || arith_reg_operand (operands[1], DImode))"
-  "* return output_movedouble (insn, operands, DImode);"
+{
+  return output_movedouble (insn, operands, DImode);
+}
   [(set_attr "length" "4")
    (set_attr "type" "pcload,move,load,store,move,pcload,move,move")])
 
@@ -5982,8 +5981,7 @@ label:
 	(match_operand:DI 1 "general_movsrc_operand" ""))]
   ""
 {
-  if (prepare_move_operands (operands, DImode))
-    DONE;
+  prepare_move_operands (operands, DImode);
 })
 
 (define_insn "movdf_media"
@@ -6571,8 +6569,7 @@ label:
 	(match_operand:DF 1 "general_movsrc_operand" ""))]
   ""
 {
-  if (prepare_move_operands (operands, DFmode))
-    DONE;
+  prepare_move_operands (operands, DFmode);
   if (TARGET_SHMEDIA)
     {
       if (TARGET_SHMEDIA_FPU)
@@ -6618,8 +6615,7 @@ label:
 	(match_operand:V2SF 1 "nonimmediate_operand" ""))]
   "TARGET_SHMEDIA_FPU"
 {
-  if (prepare_move_operands (operands, V2SFmode))
-    DONE;
+  prepare_move_operands (operands, V2SFmode);
 })
 
 (define_expand "addv2sf3"
@@ -6700,8 +6696,7 @@ label:
 	(match_operand:V4SF 1 "general_operand" ""))]
   "TARGET_SHMEDIA_FPU"
 {
-  if (prepare_move_operands (operands, V4SFmode))
-    DONE;
+  prepare_move_operands (operands, V4SFmode);
 })
 
 (define_insn_and_split "*movv16sf_i"
@@ -6748,8 +6743,7 @@ label:
 	(match_operand:V16SF 1 "nonimmediate_operand" "f,m,f"))]
   "TARGET_SHMEDIA_FPU"
 {
-  if (prepare_move_operands (operands, V16SFmode))
-    DONE;
+  prepare_move_operands (operands, V16SFmode);
 })
 
 (define_insn "movsf_media"
@@ -6921,8 +6915,7 @@ label:
         (match_operand:SF 1 "general_movsrc_operand" ""))]
   ""
 {
-  if (prepare_move_operands (operands, SFmode))
-    DONE;
+  prepare_move_operands (operands, SFmode);
   if (TARGET_SHMEDIA)
     {
       if (TARGET_SHMEDIA_FPU)
@@ -11774,8 +11767,7 @@ label:
 	(match_operand:V8QI 1 "general_movsrc_operand" ""))]
   "TARGET_SHMEDIA"
 {
-  if (prepare_move_operands (operands, V8QImode))
-    DONE;
+  prepare_move_operands (operands, V8QImode);
 })
 
 (define_insn "movv8qi_i"
@@ -11867,8 +11859,7 @@ label:
 	(match_operand:V2HI 1 "general_movsrc_operand" ""))]
   "TARGET_SHMEDIA"
 {
-  if (prepare_move_operands (operands, V2HImode))
-    DONE;
+  prepare_move_operands (operands, V2HImode);
 })
 
 (define_insn "movv2hi_i"
@@ -11895,8 +11886,7 @@ label:
 	(match_operand:V4HI 1 "general_movsrc_operand" ""))]
   "TARGET_SHMEDIA"
 {
-  if (prepare_move_operands (operands, V4HImode))
-    DONE;
+  prepare_move_operands (operands, V4HImode);
 })
 
 (define_insn "movv4hi_i"
@@ -11920,8 +11910,7 @@ label:
 	(match_operand:V2SI 1 "general_movsrc_operand" ""))]
   "TARGET_SHMEDIA"
 {
-  if (prepare_move_operands (operands, V2SImode))
-  DONE;
+  prepare_move_operands (operands, V2SImode);
 })
 
 (define_insn "movv2si_i"
@@ -13572,14 +13561,6 @@ label:
 }
   [(set_attr "type" "other")])
 
-(define_insn "*prefetch_i4"
-  [(prefetch (match_operand:SI 0 "register_operand" "r")
-             (match_operand:SI 1 "const_int_operand" "n")
-             (match_operand:SI 2 "const_int_operand" "n"))]
-  "(TARGET_HARD_SH4 || TARGET_SHCOMPACT) && !TARGET_VXWORKS_RTP"
-  "pref	@%0";
-  [(set_attr "type" "other")])
-
 ;; In user mode, the "pref" instruction will raise a RADDERR exception
 ;; for accesses to [0x80000000,0xffffffff].  This makes it an unsuitable
 ;; implementation of __builtin_prefetch for VxWorks RTPs.
@@ -13598,12 +13579,12 @@ label:
     operands[0] = force_reg (Pmode, operands[0]);
 })
 
-(define_insn "prefetch_m2a"
+(define_insn "*prefetch"
   [(prefetch (match_operand:SI 0 "register_operand" "r")
 	     (match_operand:SI 1 "const_int_operand" "n")
 	     (match_operand:SI 2 "const_int_operand" "n"))]
-  "TARGET_SH2A"
-  "pref\\t@%0"
+  "(TARGET_SH2A || TARGET_HARD_SH4 || TARGET_SHCOMPACT) && !TARGET_VXWORKS_RTP"
+  "pref	@%0"
   [(set_attr "type" "other")])
 
 (define_insn "alloco_i"
