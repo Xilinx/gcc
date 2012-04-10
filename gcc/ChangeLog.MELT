@@ -1,5 +1,8 @@
 
 2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Bumping to 0.9.5rc3
+
+2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (gimple_predict): New.
 
 2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
