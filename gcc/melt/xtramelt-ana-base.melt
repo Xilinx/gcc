@@ -523,13 +523,14 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   (:tree lhs				;left hand side
    :tree rhs				;first right operand
   )					;outs
-  gimpasg
+  gimpasscopy
+  :doc #{$GIMPLE_ASSIGN_COPY match a copy assignment into $LHS or $RHS.}#
   ;;test expansion
-  #{($ga && gimple_assign_copy_p ($ga))}#
+  #{/*gimple_assign_copy $GIMPASSCOPY ? */ ($GA && gimple_assign_copy_p ($GA))}#
   ;;fill expansion
-  #{
-   $lhs = gimple_assign_lhs($ga);
-   $rhs = gimple_assign_rhs1($ga);
+  #{/*gimple_assign_copy $GIMPASSCOPY ! */ 
+   $lhs = gimple_assign_lhs($GA);
+   $rhs = gimple_assign_rhs1($GA);
   }#
 )
 
@@ -539,13 +540,14 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   (:tree lhs				;left hand side
    :tree rhs				;first right operand
   )					;outs
-  gimpasg
+  gimpasssacopy
+  :doc #{$GIMPLE_ASSIGN_SSA_NAME_COPY match a copy assignment with both $LHS and $RHS being SSA.}#
   ;;test expansion
-   #{($ga && gimple_assign_ssa_name_copy_p ($ga))}#
+   #{/*gimple_assign_ssa_name_copy $GIMPASSSACOPY ? */ ($GA && gimple_assign_ssa_name_copy_p ($GA))}#
   ;;fill expansion
-   #{
-   $lhs = gimple_assign_lhs($ga);
-   $rhs = gimple_assign_rhs1($ga);
+   #{/*gimple_assign_ssa_name_copy $GIMPASSSACOPY ! */ 
+   $LHS = gimple_assign_lhs($GA);
+   $RHS = gimple_assign_rhs1($GA);
    }#
 )
 
@@ -558,9 +560,9 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   gimpasg
   :doc #{$GIMPLE_ASSIGN_UNARY_NOP match or build an unary nop assign into $LHS of $RHS.}# 
   ;;test expansion
-  #{($ga && gimple_assign_unary_nop_p ($ga))}#
+  #{/*gimple_assign_unary_nop $GIMPASG ?*/ ($ga && gimple_assign_unary_nop_p ($ga))}#
   ;;fill expansion
-  #{
+  #{/*gimple_assign_unary_nop $GIMPASG !*/ 
    $lhs = gimple_assign_lhs($ga);
    $rhs = gimple_assign_rhs1($ga);
   }#
@@ -574,21 +576,20 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   (:tree lhs
    :tree rhs)
   gaum
+  :doc #{$GIMPLE_ASSIGN_UNARY_MINUS match or build an unary negate assign into $LHS of $RHS.}# 
   ;; test
-  #{
-       ($ga && gimple_expr_code ($ga) == NEGATE_EXPR)
+  #{ /* gimple_assign_unary_minus $GAUM ? */ ($GA && gimple_expr_code ($GA) == NEGATE_EXPR)
   }#
   ;; fill
-  #{
-       $lhs = gimple_assign_lhs ($ga);
-       $rhs = gimple_assign_rhs1 ($ga);
+  #{ /* gimple_assign_unary_minus $GAUM ! */
+       $LHS = gimple_assign_lhs ($GA);
+       $RHS = gimple_assign_rhs1 ($GA);
   }#
   ;; operator expansion
-  #{gimple_build_assign_with_ops(NEGATE_EXPR, $LHS, $RHS, NULL_TREE)}#
+  #{/*gimple_assign_unary_minus:*/ gimple_build_assign_with_ops(NEGATE_EXPR, $LHS, $RHS, NULL_TREE)}#
   )
 
 ;;;; match a gimple assign with addition ie X = Y + Z
-
 (defcmatcher gimple_assign_plus
   (:gimple ga)				;match
   (:tree lhs				;left hand side
@@ -598,15 +599,15 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   gasplus
   :doc #{$GIMPLE_ASSIGN_PLUS match or build addition into $LHS of $RHS1 and $RHS2.}#
   ;; test
-  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == PLUS_EXPR)}#
+  #{/*gimple_assign_plus $GASPLUS ?*/ ($GA && is_gimple_assign($GA) && gimple_expr_code($GA) == PLUS_EXPR)}#
   ;; fill
-  #{
+  #{/*gimple_assign_plus $GASPLUS !*/ 
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
    }# 
   ;; operator expansion
-  #{gimple_build_assign_with_ops(PLUS_EXPR, $LHS, $RHS1, $RHS2)}#
+  #{/*gimple_assign_plus:*/ gimple_build_assign_with_ops(PLUS_EXPR, $LHS, $RHS1, $RHS2)}#
 )
 
 ;;;; match a gimple assign with substraction ie X = Y - Z
@@ -619,15 +620,15 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   gasminus
   :doc #{$GIMPLE_ASSIGN_MINUS match or build substraction into $LHS of $RHS1 and $RHS2.}#
   ;; test
-  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == MINUS_EXPR)}#
+  #{/*gimple_assign_minus $GASMINUS ?*/ ($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == MINUS_EXPR)}#
   ;; fill
-  #{
+  #{/*gimple_assign_minus $GASMINUS !*/ 
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
    }# 
   ;; operator expansion
-  #{gimple_build_assign_with_ops(MINUS_EXPR, $LHS, $RHS1, $RHS2)}#
+  #{/*gimple_assign_minus:*/ gimple_build_assign_with_ops(MINUS_EXPR, $LHS, $RHS1, $RHS2)}#
 )
 
 
@@ -640,16 +641,16 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   gaspplus
   :doc #{$GIMPLE_ASSIGN_POINTERMINUS match or build pointer addition into $LHS of $RHS1 and $RHS2.}#
   ;; test
-  #{ $ga && is_gimple_assign($ga) 
+  #{/*gimple_assign_pointerplus $GASPPLUS ?*/  $ga && is_gimple_assign($ga) 
      && gimple_expr_code($ga) == POINTER_PLUS_EXPR }#
   ;; fill
-  #{
+  #{/*gimple_assign_pointerplus $GASPPLUS !*/  
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
   }# 
   ;; operator expansion
-  #{gimple_build_assign_with_ops(POINTER_PLUS_EXPR, $LHS, $RHS1, $RHS2)}#
+  #{/*gimple_assign_pointerplus:*/ gimple_build_assign_with_ops(POINTER_PLUS_EXPR, $LHS, $RHS1, $RHS2)}#
 )
 
 
@@ -664,15 +665,15 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   gasmult
   :doc #{$GIMPLE_ASSIGN_MULT match or build multiplication into $LHS of $RHS1 and $RHS2.}#
   ;; test
-  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == MULT_EXPR)}#
+  #{/*gimple_assign_mult $GASMULT ?*/ ($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == MULT_EXPR)}#
   ;; fill
-  #{
+  #{/*gimple_assign_mult $GASMULT !*/ 
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
    }# 
   ;; operator expansion
-  #{gimple_build_assign_with_ops(MULT_EXPR, $LHS, $RHS1, $RHS2)}#
+  #{/*gimple_assign_mult:*/ gimple_build_assign_with_ops(MULT_EXPR, $LHS, $RHS1, $RHS2)}#
 )
 
 
@@ -685,17 +686,17 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
    :tree rhs2
    )
   gastdiv
-  :doc #{$GIMPLE_ASSIGN_TRUNC_DIC match or build truncated division into $LHS of $RHS1 and $RHS2.}#
+  :doc #{$GIMPLE_ASSIGN_TRUNC_DIV match or build truncated division into $LHS of $RHS1 and $RHS2.}#
   ;; test
-  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == TRUNC_DIV_EXPR)}#
+  #{/*gimple_assign_trunc_div $GASTDIV ?*/ ($GA && is_gimple_assign($GA) && gimple_expr_code($GA) == TRUNC_DIV_EXPR)}#
   ;; fill
-  #{
-   $lhs = gimple_assign_lhs($ga);
-   $rhs1 = gimple_assign_rhs1($ga);
-   $rhs2 = gimple_assign_rhs2($ga);
+  #{/*gimple_assign_trunc_div $GASTDIV ?*/ 
+   $LHS = gimple_assign_lhs($GA);
+   $RHS1 = gimple_assign_rhs1($GA);
+   $RHS2 = gimple_assign_rhs2($GA);
    }# 
   ;; operator expansion
-  #{gimple_build_assign_with_ops(TRUNC_DIV_EXPR, $LHS, $RHS1, $RHS2)}#
+  #{/*gimple_assign_trunc_div:*/ gimple_build_assign_with_ops(TRUNC_DIV_EXPR, $LHS, $RHS1, $RHS2)}#
 )
 
 ;;;; match a gimple assign with ceil division ie X = Y /ceil Z
@@ -706,17 +707,17 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
    :tree rhs2
    )
   gascdiv
-  :doc #{$GIMPLE_ASSIGN_TRUNC_DIC match or build ceiling division into $LHS of $RHS1 and $RHS2.}#
+  :doc #{$GIMPLE_ASSIGN_CEIL_DIV match or build ceiling division into $LHS of $RHS1 and $RHS2.}#
   ;; test
-  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == CEIL_DIV_EXPR)}#
+  #{/*gimple_assign_ceil_div $GASCDIV ?*/ ($GA && is_gimple_assign($GA) && gimple_expr_code($GA) == CEIL_DIV_EXPR)}#
   ;; fill
-  #{
+  #{/*gimple_assign_ceil_div $GASCDIV !*/ 
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
    }# 
   ;; operator expansion
-  #{gimple_build_assign_with_ops(CEIL_DIV_EXPR, $LHS, $RHS1, $RHS2)}#
+  #{/*gimple_assign_ceil_div:*/ gimple_build_assign_with_ops(CEIL_DIV_EXPR, $LHS, $RHS1, $RHS2)}#
 )
 
 ;;;; match a gimple assign with floor division ie X = Y /floor Z
@@ -727,17 +728,17 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
    :tree rhs2
    )
   gasfdiv
-  :doc #{$GIMPLE_ASSIGN_TRUNC_DIV match or build floor division into $LHS of $RHS1 and $RHS2.}#
+  :doc #{$GIMPLE_ASSIGN_FLOOR_DIV match or build floor division into $LHS of $RHS1 and $RHS2.}#
   ;; test
-  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == FLOOR_DIV_EXPR)}#
+  #{/*gimple_assign_floor_div $GASFDIV ?*/ ($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == FLOOR_DIV_EXPR)}#
   ;; fill
-  #{
+  #{/*gimple_assign_floor_div $GASFDIV !*/
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
    }# 
   ;; operator expansion
-  #{gimple_build_assign_with_ops(FLOOR_DIV_EXPR, $LHS, $RHS1, $RHS2)}#
+  #{/*gimple_assign_floor_div: */ gimple_build_assign_with_ops(FLOOR_DIV_EXPR, $LHS, $RHS1, $RHS2)}#
 )
 
 
@@ -751,15 +752,15 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   gasrdiv
   :doc #{$GIMPLE_ASSIGN_ROUND_DIV match or build rounding division into $LHS of $RHS1 and $RHS2.}#
   ;; test
-  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == ROUND_DIV_EXPR)}#
+  #{/*gimple_assign_round_div $GASRDIV ?*/ ($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == ROUND_DIV_EXPR)}#
   ;; fill
-  #{
+  #{/*gimple_assign_round_div $GASRDIV !*/ 
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
    }# 
   ;; operator expansion
-  #{gimple_build_assign_with_ops(ROUND_DIV_EXPR, $LHS, $RHS1, $RHS2)}#
+  #{/*gimple_assign_round_div:*/ gimple_build_assign_with_ops(ROUND_DIV_EXPR, $LHS, $RHS1, $RHS2)}#
 )
 
 ;;;; match a gimple assign with real division ie X = Y /real Z
@@ -772,9 +773,9 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   gasrediv
   :doc #{$GIMPLE_ASSIGN_RDIV match or build reaol division into $LHS of $RHS1 and $RHS2.}#
   ;; test
-  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == RDIV_EXPR)}#
+  #{/*gimple_assign_rdiv $GASREDIV ?*/ ($GA && is_gimple_assign($GA) && gimple_expr_code($GA) == RDIV_EXPR)}#
   ;; fill
-  #{
+  #{/*gimple_assign_rdiv $GASREDIV !*/
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
@@ -816,15 +817,15 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   gastmod
   :doc #{$GIMPLE_ASSIGN_TRUNC_MOD match or build truncated modulus into $LHS of $RHS1 and $RHS2.}#
   ;; test
-  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == TRUNC_MOD_EXPR)}#
+  #{/*gimple_assign_trunc_mod $GASTMOD ?*/ ($GA && is_gimple_assign($GA) && gimple_expr_code($GA) == TRUNC_MOD_EXPR)}#
   ;; fill
-  #{
+  #{/*gimple_assign_trunc_mod $GASTMOD !*/ 
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
    }# 
   ;; operator expansion
-  #{gimple_build_assign_with_ops(TRUNC_MOD_EXPR, $LHS, $RHS1, $RHS2)}#
+  #{/*gimple_assign_trunc_mod:*/ gimple_build_assign_with_ops(TRUNC_MOD_EXPR, $LHS, $RHS1, $RHS2)}#
 )
 
 ;;;; match a gimple assign with ceil remainder ie X = Y %ceil Z
@@ -835,11 +836,12 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
    :tree rhs2
    )
   gascmod
-  :doc #{$GIMPLE_ASSIGN_TRUNC_MOD match or build ceil modulus into $LHS of $RHS1 and $RHS2.}#
+  :doc #{$GIMPLE_ASSIGN_CEIL_MOD match or build ceil modulus into $LHS of $RHS1 and $RHS2.}#
   ;; test
-  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == CEIL_MOD_EXPR)}#
+  #{/*gimple_assign_ceil_mod $GASCMOD ?*/ ($GA && is_gimple_assign($GA) 
+    && gimple_expr_code($GA) == CEIL_MOD_EXPR)}#
   ;; fill
-  #{
+  #{/*gimple_assign_ceil_mod $GASCMOD !*/ 
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
@@ -855,18 +857,19 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
    :tree rhs1
    :tree rhs2
    )
-  gasmult
+  gasflomod
   :doc #{$GIMPLE_ASSIGN_FLOOR_MOD match or build floor modulus into $LHS of $RHS1 and $RHS2.}#
   ;; test
-  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == FLOOR_MOD_EXPR)}#
+  #{/*gimple_assign_floor_mod $GASFLOMOD ?*/ ($ga && is_gimple_assign($ga)
+     && gimple_expr_code($ga) == FLOOR_MOD_EXPR)}#
   ;; fill
-  #{
+  #{/*gimple_assign_floor_mod $GASFLOMOD !*/
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
    }# 
   ;; operator expansion
-  #{gimple_build_assign_with_ops(FLOOR_MOD_EXPR, $LHS, $RHS1, $RHS2)}#
+  #{/*gimple_assign_floor_mod:*/ gimple_build_assign_with_ops(FLOOR_MOD_EXPR, $LHS, $RHS1, $RHS2)}#
 )
 
 
@@ -877,18 +880,18 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
    :tree rhs1
    :tree rhs2
    )
-  gasmult
+  gasrmod
   :doc #{$GIMPLE_ASSIGN_ROUND_MOD match or build rounded modulus into $LHS of $RHS1 and $RHS2.}#
   ;; test
-  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == ROUND_MOD_EXPR)}#
+  #{/*gimple_assign_round_mod $GASRMOD ?*/ ($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == ROUND_MOD_EXPR)}#
   ;; fill
-  #{
+  #{/*gimple_assign_round_mod $GASRMOD !*/ 
    $lhs = gimple_assign_lhs($ga);
    $rhs1 = gimple_assign_rhs1($ga);
    $rhs2 = gimple_assign_rhs2($ga);
    }# 
   ;; operator expansion
-  #{gimple_build_assign_with_ops(ROUND_MOD_EXPR, $LHS, $RHS1, $RHS2)}#
+  #{/*gimple_assign_round_mod:*/ gimple_build_assign_with_ops(ROUND_MOD_EXPR, $LHS, $RHS1, $RHS2)}#
 )
 
 
@@ -1706,6 +1709,8 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   }# )
 
 
+;;;;;;;;;;;;;;;;
+
 ;;; match a gimple error mark or a nil; probably not very useful!
 (defcmatcher gimple_error_mark_or_nil
   (:gimple gr)
@@ -1762,8 +1767,25 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   }# )
 
 
-
-
+;;; match a transaction
+(defcmatcher gimple_transaction
+  (:gimple gr)
+  (:gimple_seq gsbody
+   :tree tlab)
+  gimptrans
+  :doc #{$GIMPLE_TRANSACTION match or build a transaction block gimple. 
+    $GSBODY is the gimple_seq of the body, $TLAB is the label tree.}#
+  ;; test
+  #{/*gimple_transaction $GIMPTRANS ?*/ ($GR && gimple_code($GR) == GIMPLE_TRANSACTION) }#
+  ;; fill
+  #{/*gimple_transaction $GIMPTRANS !*/
+  $GSBODY = gimple_transaction_body ($GR);
+  $TLAB = gimple_transaction_label ($GR);
+  }#
+  ;; operator expansion
+  #{/*gimple_transaction:*/ gimple_build_transaction($GSBODY,$TLAB)}#
+)
+   
 ;;; match a nop
 (defcmatcher gimple_nop
   (:gimple gr)
@@ -4784,6 +4806,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_switch
  gimple_switch_index
  gimple_switch_label
+ gimple_transaction
  gimpleseq_content 
  gimpleval
  has_cfun

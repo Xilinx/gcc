@@ -1,5 +1,10 @@
 
 2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt: Add or improve documentation of
+	many cmatchers.
+	(gimple_transaction): New cmatcher.
+
+2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_plugin_gcc_version)
 	(melt_gccplugin_version): New declarations.
 
