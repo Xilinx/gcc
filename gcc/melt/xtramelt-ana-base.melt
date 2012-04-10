@@ -1907,6 +1907,58 @@ See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPL
   #{ /* gimple_resx: */ gimple_build_resx((int) $REGNUM) }#
 )
 
+
+;;;;;;;;;;;;;;;;
+(defcmatcher gimple_try
+  (:gimple gi)
+  (:gimple_seq gseval gscleanup
+   :long kind)
+  gimptry
+  :doc #{$GIMPLE_TRY match a GIMPLE_TRY statement. $GSEVAL is the gimple seq to evaluate, GSCLEANUP is the cleanup.}#
+  ;; test
+  #{ /* gimple_try $GIMPTRY ? */ ($GI && gimple_code($GI) == GIMPLE_TRY) }#
+  ;; fill
+  #{ /* gimple_try $GIMPTRY ! */ 
+   $GSEVAL = gimple_try_eval ($GI);
+   $GSCLEANUP = gimple_try_cleanup ($GI);
+   $KIND = (long) gimple_try_kind ($GI);
+  }#
+)
+
+
+;;;;;;;;;;;;;;;;
+(defcmatcher gimple_try_catch
+  (:gimple gi)
+  (:gimple_seq gseval gscleanup)
+  gimptry
+  :doc #{$GIMPLE_TRY_CATCH match or build a GIMPLE_TRY_CATCH statement. $GSEVAL is the gimple seq to evaluate, GSCLEANUP is the cleanup.}#
+  ;; test
+  #{ /* gimple_try_catch $GIMPTRY ? */ ($GI && gimple_code($GI) == GIMPLE_TRY && gimple_try_kind($GI) == GIMPLE_TRY_CATCH) }#
+  ;; fill
+  #{ /* gimple_try_catch $GIMPTRY ! */ 
+   $GSEVAL = gimple_try_eval ($GI);
+   $GSCLEANUP = gimple_try_cleanup ($GI);
+  }#
+  ;; operate
+  #{ /* gimple_try_catch: */ gimple_build_try ($GSEVAL, $GSCLEANUP, GIMPLE_TRY_CATCH) }#
+)
+
+(defcmatcher gimple_try_finally
+  (:gimple gi)
+  (:gimple_seq gseval gscleanup)
+  gimptry
+  :doc #{$GIMPLE_TRY_FINALLY match or build a GIMPLE_TRY_FINALLY statement. $GSEVAL is the gimple seq to evaluate, GSCLEANUP is the cleanup.}#
+  ;; test
+  #{ /* gimple_try_finally $GIMPTRY ? */ ($GI && gimple_code($GI) == GIMPLE_TRY && gimple_try_kind($GI) == GIMPLE_TRY_FINALLY) }#
+  ;; fill
+  #{ /* gimple_try_finally $GIMPTRY ! */ 
+   $GSEVAL = gimple_try_eval ($GI);
+   $GSCLEANUP = gimple_try_cleanup ($GI);
+  }#
+  ;; operate
+  #{ /* gimple_try_finally: */ gimple_build_try ($GSEVAL, $GSCLEANUP, GIMPLE_TRY_FINALLY) }#
+)
+
 ;;; match a gimple bind
 (defcmatcher gimple_bind
   (:gimple gr)
@@ -4931,6 +4983,9 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_switch_index
  gimple_switch_label
  gimple_transaction
+ gimple_try
+ gimple_try_catch
+ gimple_try_finally
  gimpleseq_content 
  gimpleval
  has_cfun
