@@ -63,10 +63,7 @@ extern enum pipeline_type microblaze_pipe;
 #define TARGET_HAS_CLZ      (TARGET_PATTERN_COMPARE && microblaze_has_clz)
 
 /* The default is to not support PIC.  */
-#define TARGET_SUPPORTS_PIC 0
-
-/* The default is to not support PIC.  */
-#define TARGET_SUPPORTS_PIC 0
+#define TARGET_SUPPORTS_PIC 1
 
 /* What is the default setting for -mcpu= . We set it to v4.00.a even though 
    we are actually ahead. This is safest version that has generate code 
