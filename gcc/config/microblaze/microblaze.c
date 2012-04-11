@@ -1465,7 +1465,7 @@ legitimate_const_operand_p (rtx x)
               return 0;
 
             if ( (GET_CODE (p0) == SYMBOL_REF || GET_CODE (p0) == LABEL_REF) &&
-                 (flag_pic == 2 ||
+		(
                   microblaze_tls_symbol_p (p0) ||
                   !SMALL_INT (p1)) )
               return 0;
