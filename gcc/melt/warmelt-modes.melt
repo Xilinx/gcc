@@ -3600,7 +3600,8 @@ melt_scanning (melt_ptr_t p)
     (debug "translatetomodule_docmd inarg=" inarg " outarg=" outarg
 	   " coutarg=" coutarg " curenv=" curenv)
     (translate_to_flavored_module inarg outarg coutarg
-				  (tuple '"quicklybuilt" '"optimized" '"debugnoline")) 
+				  (tuple '"quicklybuilt" '"optimized" '"debugnoline")
+				  curenv) 
     (return :true)			;succeed the mode
     ))
 

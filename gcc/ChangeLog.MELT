@@ -1,4 +1,9 @@
 
+2011-04-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-modes.melt (translatetomodule_docmd): Pass the
+	curenv to translate_to_flavored_module. Fix bug reported in
+	0.9.5rc3 by Alexandre Lissy.
+
 2011-04-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
