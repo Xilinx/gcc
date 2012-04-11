@@ -106,7 +106,7 @@ extern struct plugin_gcc_version* melt_plugin_gcc_version;
 extern const int melt_gccplugin_version;
 
 /* the version string of MELT */
-#define MELT_VERSION_STRING "0.9.5-rc3"
+#define MELT_VERSION_STRING "0.9.5-rc4"
 
 /* return a read only version string */
 extern const char* melt_version_str(void);

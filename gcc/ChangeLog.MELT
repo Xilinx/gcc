@@ -1,5 +1,8 @@
 
 2011-04-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.5-rc4
+
+2011-04-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-modes.melt (translatetomodule_docmd): Pass the
 	curenv to translate_to_flavored_module. Fix bug reported in
 	0.9.5rc3 by Alexandre Lissy.
