@@ -1,5 +1,29 @@
 
 2011-04-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* gcc/melt/generated/meltrunsup-inc.c: Regenerate.
+	* gcc/melt/generated/meltrunsup.h: Regenerate.
+	* gcc/melt/generated/warmelt-base+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-base+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-debug+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-debug+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-first+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-first+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-genobj+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-genobj+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-macro+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-macro+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-modes+02.c: Regenerate.
+	* gcc/melt/generated/warmelt-modes+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-modes+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-modes.c: Regenerate.
+	* gcc/melt/generated/warmelt-normal+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-normal+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-normatch+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-normatch+melttime.h: Regenerate.
+	* gcc/melt/generated/warmelt-outobj+meltdesc.c: Regenerate.
+	* gcc/melt/generated/warmelt-outobj+melttime.h: Regenerate.
+
+2011-04-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.5-rc4
 
 2011-04-11  Basile Starynkevitch  <basile@starynkevitch.net>
