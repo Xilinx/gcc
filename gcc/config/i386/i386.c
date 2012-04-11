@@ -39083,82 +39083,6 @@ ix86_autovectorize_vector_sizes (void)
   return (TARGET_AVX && !TARGET_PREFER_AVX128) ? 32 | 16 : 0;
 }
 
-/* If LOOP contains a possible LCP stalling instruction on corei7,
-   calculate new number of times to unroll instead of NUNROLL so that
-   the unrolled loop will still likely fit into the loop stream detector. */
-static unsigned
-ix86_loop_unroll_adjust (unsigned nunroll, struct loop *loop)
-{
-  basic_block *body, bb;
-  unsigned i;
-  rtx insn;
-  bool found = false;
-  unsigned newunroll;
-
-  if (ix86_tune != PROCESSOR_COREI7_64 &&
-      ix86_tune != PROCESSOR_COREI7_32)
-    return nunroll;
-
-  /* Look for instructions that store a constant into HImode (16-bit)
-     memory. These require a length-changing prefix and on corei7 are
-     prone to LCP stalls. These stalls can be avoided if the loop
-     is streamed from the loop stream detector. */
-  body = get_loop_body (loop);
-  for (i = 0; i < loop->num_nodes; i++)
-    {
-      bb = body[i];
-
-      FOR_BB_INSNS (bb, insn)
-        {
-          rtx set_expr, dest;
-          set_expr = single_set (insn);
-          if (!set_expr)
-            continue;
-
-          dest = SET_DEST (set_expr);
-
-          /* Don't reduce unroll factor in loops with floating point
-             computation, which tend to benefit more heavily from 
-             larger unroll factors and are less likely to bottleneck
-             at the decoder. */
-          if (FLOAT_MODE_P (GET_MODE (dest)))
-          {
-            free (body);
-            return nunroll;
-          }
-
-          if (!found
-              && GET_MODE (dest) == HImode
-              && CONST_INT_P (SET_SRC (set_expr))
-              && MEM_P (dest))
-            {
-              found = true;
-              /* Keep walking loop body to look for FP computations above. */
-            }
-        }
-    }
-  free (body);
-
-  if (!found)
-    return nunroll;
-
-  if (dump_file)
-    {
-      fprintf (dump_file, 
-               ";; Loop contains HImode store of const (possible LCP stalls),\n");
-      fprintf (dump_file, 
-               "   reduce unroll factor to fit into Loop Stream Detector\n");
-    }
-
-  /* On corei7 the loop stream detector can hold 28 uops, so
-     don't allow unrolling to exceed that many instructions. */
-  newunroll = 28 / loop->av_ninsns;
-  if (newunroll < nunroll)
-    return newunroll;
-
-  return nunroll;
-}
-
 /* Initialize the GCC target structure.  */
 #undef TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY ix86_return_in_memory
@@ -39485,9 +39409,6 @@ ix86_loop_unroll_adjust (unsigned nunroll, struct loop *loop)
 #undef TARGET_INIT_LIBFUNCS
 #define TARGET_INIT_LIBFUNCS darwin_rename_builtins
 #endif
-
-#undef TARGET_LOOP_UNROLL_ADJUST
-#define TARGET_LOOP_UNROLL_ADJUST ix86_loop_unroll_adjust
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
