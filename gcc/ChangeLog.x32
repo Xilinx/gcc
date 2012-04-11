@@ -1,5 +1,15 @@
 2012-04-11  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR rtl-optimization/52876
+	* emit-rtl.c (set_reg_attrs_from_value): Handle arbitrary value.
+	Don't call mark_reg_pointer for incompatible pointer sign
+	extension.
+
+	* reginfo.c (reg_scan_mark_refs): Call set_reg_attrs_from_value 
+	directly.
+
+2012-04-11  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (ix86_option_override_internal): Check
 	SUBTARGET_OVERRIDE_OPTIONS and SUBSUBTARGET_OVERRIDE_OPTIONS
 	after TARGET_64BIT is updated.
