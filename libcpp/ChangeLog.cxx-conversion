@@ -1,0 +1,4 @@
+2012-04-11   Diego Novillo  <dnovillo@google.com>
+
+	* configure.ac (ENABLE_BUILD_WITH_CXX): Default to 'yes'.
+	* configure: Regenerate.

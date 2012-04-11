@@ -1191,7 +1191,7 @@ AC_ARG_ENABLE(build-with-cxx,
 [AS_HELP_STRING([--enable-build-with-cxx],
 		[build with C++ compiler instead of C compiler])],
 ENABLE_BUILD_WITH_CXX=$enableval,
-ENABLE_BUILD_WITH_CXX=no)
+ENABLE_BUILD_WITH_CXX=yes)
 
 # Build stage1 with C and build stages 2 and 3 with C++.
 AC_ARG_ENABLE(build-poststage1-with-cxx,

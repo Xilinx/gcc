@@ -22,7 +22,7 @@ AC_SYS_LARGEFILE
 AC_ARG_ENABLE(build-with-cxx,
 [  --enable-build-with-cxx build with C++ compiler instead of C compiler],
 ENABLE_BUILD_WITH_CXX=$enableval,
-ENABLE_BUILD_WITH_CXX=no)
+ENABLE_BUILD_WITH_CXX=yes)
 AC_SUBST(ENABLE_BUILD_WITH_CXX)
 
 MISSING=`cd $ac_aux_dir && ${PWDCMD-pwd}`/missing
