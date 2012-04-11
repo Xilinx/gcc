@@ -2050,7 +2050,7 @@ compute_frame_size (HOST_WIDE_INT size)
   total_size = var_size + args_size;
 
   /* REVISIT: Analysze this call more */
-  if (TARGET_HAVE_TLS || flag_pic == 2)
+  if (flag_pic == 2)
     /* force setting GOT.  */
     df_set_regs_ever_live (MB_ABI_PIC_ADDR_REGNUM, true);
 
@@ -2884,11 +2884,10 @@ microblaze_expand_prologue (void)
 	}
     }
 
-#if 0
+#if 1
   /* REVISIT: For TLS we may need GOT even when pic is not enabled */
   if (flag_pic == 2 && df_regs_ever_live_p (MB_ABI_PIC_ADDR_REGNUM))
 #endif
-  if ( df_regs_ever_live_p (MB_ABI_PIC_ADDR_REGNUM))
     {
       SET_REGNO (pic_offset_table_rtx, MB_ABI_PIC_ADDR_REGNUM);
       emit_insn (gen_set_got (pic_offset_table_rtx));	/* setting GOT.  */
