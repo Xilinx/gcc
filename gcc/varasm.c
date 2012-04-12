@@ -5764,6 +5764,14 @@ finish_aliases_1 (void)
 	  if (! (p->emitted_diags & ALIAS_DIAG_TO_UNDEF)
 	      && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
 	    {
+              /* This is a klugde. In LIPO mode, there might be multiple
+                 target nodes. However if they are artificlal, they will not
+                 be merged. When one of them is eliminated, the target entry
+                 in the assembler hash will be removed. In this case, the
+                 target can not be found even when it actually exist.  */
+              if (L_IPO_COMP_MODE && DECL_ARTIFICIAL (p->decl))
+                continue;
+
 	      error ("%q+D aliased to undefined symbol %qE",
 		     p->decl, p->target);
 	      p->emitted_diags |= ALIAS_DIAG_TO_UNDEF;

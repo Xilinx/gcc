@@ -1,3 +1,12 @@
+2012-04-12  Xinliang David Li  <davidxl@google.com>
+
+	* cgraphbuild.c (rebuild_cgraph_edges): Add ipa reference from
+	an alias node to its body node (post LIPO linking one) to avoid
+	the body being eliminated.
+	* varasm.c (finish_aliases_1): Do not emit error for an alias
+	which is artificial in LIPO mode -- it exists but can not be
+	found.
+
 2012-04-11  Teresa Johnson  <tejohnson@google.com>
 
 	Revert r182254 since it is subsumed by r186332.

@@ -600,11 +600,28 @@ rebuild_cgraph_edges (void)
 		  struct cgraph_node *callee;
 		  /* In LIPO mode, before tree_profiling, the call graph edge
 		     needs to be built with the original target node to make
-		     sure consistent early inline decisions between profile generate
-		     and profile use. After tree-profiling, the target needs to be
-		     set to the resolved node so that ipa-inline sees the definitions.  */
+		     sure consistent early inline decisions between profile
+                     generate and profile use. After tree-profiling, the target
+                     needs to be set to the resolved node so that ipa-inline
+                     sees the definitions.  */
 		  if (L_IPO_COMP_MODE && cgraph_pre_profiling_inlining_done)
-		    callee = cgraph_lipo_get_resolved_node (decl);
+                    {
+                      callee = cgraph_lipo_get_resolved_node (decl);
+                      /* Need to add a reference to the resolved node in LIPO
+                         mode to avoid the real node from eliminated  */
+                      if (callee->alias && callee->analyzed)
+                        {
+                          struct cgraph_node *body, *real_body;
+
+                          body = cgraph_alias_aliased_node (callee);
+                          real_body = cgraph_lipo_get_resolved_node (body->decl);
+                          /* TODO: this make create duplicate entries in the
+                             reference list.  */
+                          if (real_body != body)
+                            ipa_record_reference (callee, NULL, real_body, NULL,
+                                                  IPA_REF_ALIAS, NULL);
+                        }
+                    }
                   else
 		    callee = cgraph_get_create_node (decl);
                   cgraph_create_edge (node, callee, stmt,
