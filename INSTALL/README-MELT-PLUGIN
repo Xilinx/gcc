@@ -187,11 +187,17 @@ the subject line] and to <gcc-melt@googlegroups.com>
 
 ################################################################
 NEWS for 0.9.5 MELT plugin for GCC 4.6 & 4.7
-[[April ?? 2012]] not released yet
+[[April 12th 2012]] 
+
+   Language improvements
+   =====================
 
    Alternative infix syntax is abandoned (it was never implemented)
 
    Accept $(sub sepxr) in macro-string and $[seq sepxr]
+
+   Runtime improvements
+   ====================
 
    Handle SIGIO Unix signals with asynchronous input channels
    (experimental feature)
@@ -200,6 +206,12 @@ NEWS for 0.9.5 MELT plugin for GCC 4.6 & 4.7
 
    All the values are translated to melt_ptr_t variables, not void*
    ones.
+
+   Library improvment
+   ==================
+
+   Much more matchers, and much more generated documentation, to interface to
+   GCC internal stuff in xtramelt-ana-base.melt
    
 
 #######################################################################

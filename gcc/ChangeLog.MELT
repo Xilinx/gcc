@@ -1,5 +1,8 @@
 
-2012-04-12 Basile Starynkevitch  <basile@starynkevitch.net>
+2012-04-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.5 for release.
+
+2012-04-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt: Added a lot of :doc strings.
 	(gimple_switch): Also extracting TDEFLAB.
 	(foreach_case_of_gimple_switch): New local CASEIX.
