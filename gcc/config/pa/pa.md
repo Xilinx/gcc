@@ -6348,7 +6348,7 @@
   ""
   "*
 {
-  int x = INTVAL (operands[1]);
+  unsigned HOST_WIDE_INT x = UINTVAL (operands[1]);
   operands[2] = GEN_INT (4 + exact_log2 ((x >> 4) + 1));
   operands[1] = GEN_INT ((x & 0xf) - 0x10);
   return \"{zvdepi %1,%2,%0|depwi,z %1,%%sar,%2,%0}\";
@@ -6366,7 +6366,7 @@
   "exact_log2 (INTVAL (operands[1]) + 1) > 0"
   "*
 {
-  int x = INTVAL (operands[1]);
+  HOST_WIDE_INT x = INTVAL (operands[1]);
   operands[2] = GEN_INT (exact_log2 (x + 1));
   return \"{vdepi -1,%2,%0|depwi -1,%%sar,%2,%0}\";
 }"
@@ -6383,7 +6383,7 @@
   "INTVAL (operands[1]) == -2"
   "*
 {
-  int x = INTVAL (operands[1]);
+  HOST_WIDE_INT x = INTVAL (operands[1]);
   operands[2] = GEN_INT (exact_log2 ((~x) + 1));
   return \"{vdepi 0,%2,%0|depwi 0,%%sar,%2,%0}\";
 }"
@@ -6447,7 +6447,7 @@
   "TARGET_64BIT"
   "*
 {
-  int x = INTVAL (operands[1]);
+  unsigned HOST_WIDE_INT x = UINTVAL (operands[1]);
   operands[2] = GEN_INT (4 + exact_log2 ((x >> 4) + 1));
   operands[1] = GEN_INT ((x & 0x1f) - 0x20);
   return \"depdi,z %1,%%sar,%2,%0\";
@@ -6465,7 +6465,7 @@
   "TARGET_64BIT && exact_log2 (INTVAL (operands[1]) + 1) > 0"
   "*
 {
-  int x = INTVAL (operands[1]);
+  HOST_WIDE_INT x = INTVAL (operands[1]);
   operands[2] = GEN_INT (exact_log2 (x + 1));
   return \"depdi -1,%%sar,%2,%0\";
 }"
@@ -6482,7 +6482,7 @@
   "TARGET_64BIT && INTVAL (operands[1]) == -2"
   "*
 {
-  int x = INTVAL (operands[1]);
+  HOST_WIDE_INT x = INTVAL (operands[1]);
   operands[2] = GEN_INT (exact_log2 ((~x) + 1));
   return \"depdi 0,%%sar,%2,%0\";
 }"
@@ -6671,6 +6671,20 @@
 
 ;; Unconditional and other jump instructions.
 
+;; Trivial return used when no epilogue is needed.
+(define_insn "return"
+  [(return)
+   (use (reg:SI 2))]
+  "pa_can_use_return_insn ()"
+  "*
+{
+  if (TARGET_PA_20)
+    return \"bve%* (%%r2)\";
+  return \"bv%* %%r0(%%r2)\";
+}"
+  [(set_attr "type" "branch")
+   (set_attr "length" "4")])
+
 ;; This is used for most returns.
 (define_insn "return_internal"
   [(return)
@@ -6719,11 +6733,8 @@
   rtx x;
 
   /* Try to use the trivial return first.  Else use the full epilogue.  */
-  if (reload_completed
-      && !frame_pointer_needed
-      && !df_regs_ever_live_p (2)
-      && (compute_frame_size (get_frame_size (), 0) ? 0 : 1))
-    x = gen_return_internal ();
+  if (pa_can_use_return_insn ())
+    x = gen_return ();
   else
     {
       hppa_expand_epilogue ();
