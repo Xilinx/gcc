@@ -1,3 +1,36 @@
+2012-04-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backported from mainline
+	2012-04-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386-c.c (ix86_target_macros): Define _ILP32
+	and __ILP32__ for x32.
+
+2012-04-13  Tom de Vries  <tom@codesourcery.com>
+
+	Backport from mainline r186418.
+
+	2012-04-13  Tom de Vries  <tom@codesourcery.com>
+
+	* tree-ssa-tail-merge.c (gsi_advance_bw_nondebug_nonlocal): Add
+	parameters vuse and vuse_escaped.
+	(find_duplicate): Init vuse1, vuse2 and vuse_escaped.  Pass to
+	gsi_advance_bw_nondebug_nonlocal.  Return if vuse_escaped and
+	vuse1 != vuse2.
+
+2012-04-13  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/52969
+	* tree-if-conv.c (predicate_mem_writes): Properly gimplify
+	the condition for the COND_EXPR and handle predicate negation
+	by swapping the COND_EXPR arms.
+
+2012-04-13  Richard Guenther  <rguenther@suse.de>
+
+	PR c/52862
+	* convert.c (convert_to_pointer): Remove special-casing of
+	zero.
+
 2012-04-12  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	Backport from mainline

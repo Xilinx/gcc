@@ -1,3 +1,71 @@
+2012-04-13  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/debug/safe_iterator.h (_BeforeBeginHelper<>::
+	_S_Is_Beginnest): Add.
+	* include/debug/forward_list (_BeforeBeginHelper<>::
+	_S_Is_Beginnest): Likewise.
+	(_Safe_iterator<>::_M_is_beginnest): Add.
+	* include/debug/safe_iterator.tcc (_Safe_iterator<>::_M_valid_range):
+	Use the latter.
+	* testsuite/23_containers/forward_list/debug/splice_after.cc:
+	Add test.
+
+2012-04-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/forward_list.h (splice_after(const_iterator,
+	forward_list&), splice_after(const_iterator, forward_list&,
+	consst_iterator), splice_after(const_iterator, forward_list&,
+	const_iterator, const_iterator), merge(forward_list&),
+	merge(forward_list&, _Comp)): Add per C++11 as published (and
+	LWG 1310).
+	* include/debug/forward_list: Adjust.
+
+	* include/bits/forward_list.h (splice_after(const_iterator,
+	forward_list&&, const_iterator)): Only declare.
+	(_M_transfer_after): Remove.
+	(_M_splice_after(const_iterator, forward_list&&)): Change signature.
+	(splice_after(const_iterator, forward_list&&, const_iterator,
+	const_iterator)): Use the latter.
+	* include/bits/forward_list.tcc (splice_after(const_iterator,
+	forward_list&&, const_iterator)): Define here.
+	(_M_splice_after): Define, use throughout.
+
+	* include/bits/forward_list.h (insert_after(const_iterator,
+	std::initializer_list<_Tp>)): Forward to insert_after(const_iterator,
+	_InputIterator, _InputIterator).
+	* include/bits/forward_list.tcc: Remove definition.
+
+	* testsuite/23_containers/forward_list/modifiers/6.cc: New.
+	* testsuite/23_containers/forward_list/operations/1.cc: Adjust.
+
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	assign_neg.cc: Adjust dg-error line number.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2012-04-12   Jeffrey Yasskin  <jyasskin@google.com>
+
+	PR libstdc++/52822
+	* include/bits/stl_algo.h (__find_if_not): Expose in C++98 mode.
+	(__find_if_not_n): Like __find_if_not, but works on and updates a
+	counted range instead of a bounded range.
+	(stable_partition): Guarantee !__pred(*__first) in call to
+	__stable_partition_adaptive() or __inplace_stable_partition().
+	(__stable_partition_adaptive): Use new precondition to avoid
+	moving/copying objects onto themselves.  Guarantee new
+	precondition to recursive calls.
+	(__inplace_stable_partition): Use new precondition to simplify
+	base case, remove __last parameter.  Guarantee new precondition to
+	recursive calls.
+	* testsuite/25_algorithms/stable_partition/moveable.cc (test02):
+	Test a sequence that starts with a value matching the predicate.
+	* testsuite/25_algorithms/stable_partition/pr52822.cc: Test
+	vectors, which have a destructive self-move-assignment.
+
 2012-04-12  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/52942

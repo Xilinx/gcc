@@ -1,8 +1,6 @@
-// { dg-do compile }
 // { dg-options "-std=gnu++0x" }
-// { dg-error "no matching" "" { target *-*-* } 1221 }
 
-// Copyright (C) 2009, 2010, 2011, 2012 Free Software Foundation
+// Copyright (C) 2012 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -11,7 +9,7 @@
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// but WITHOUT ANY WARRANTY; without Pred the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
@@ -19,16 +17,27 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-#include <forward_list>
+// 25.2.12 [lib.alg.partitions] Partitions.
 
-struct A
-{
-  explicit A(int) { }
-};
+#include <algorithm>
+#include <vector>
+#include <testsuite_hooks.h>
 
-void f()
+bool true_vector_pred(const std::vector<int>&) { return true; }
+
+void
+test01()
 {
-  typedef std::forward_list<A> test_type;
-  test_type l;
-  l.assign(10, 1);
+  std::vector<std::vector<int> > v(1);
+  v[0].push_back(7);
+  VERIFY( v[0].size() == 1 );
+  std::stable_partition(v.begin(), v.end(), &true_vector_pred);
+  VERIFY( v[0].size() == 1 );
+}
+
+int
+main()
+{
+  test01();
+  return 0;
 }
