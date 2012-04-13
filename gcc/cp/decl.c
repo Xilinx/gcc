@@ -4224,7 +4224,7 @@ check_tag_decl (cp_decl_specifier_seq *declspecs)
         error ("%<constexpr%> cannot be used for type declarations");
     }
 
-  if (declspecs->attributes && warn_attributes)
+  if (declspecs->attributes && warn_attributes && declared_type)
     {
       location_t loc;
       if (!CLASS_TYPE_P (declared_type)
@@ -4431,7 +4431,8 @@ start_decl (const cp_declarator *declarator,
     }
 
   /* If #pragma weak was used, mark the decl weak now.  */
-  maybe_apply_pragma_weak (decl);
+  if (!processing_template_decl)
+    maybe_apply_pragma_weak (decl);
 
   if (TREE_CODE (decl) == FUNCTION_DECL
       && DECL_DECLARED_INLINE_P (decl)
@@ -7447,6 +7448,13 @@ grokfndecl (tree ctype,
   if (ctype != NULL_TREE)
     grokclassfn (ctype, decl, flags);
 
+  /* 12.4/3  */
+  if (cxx_dialect >= cxx0x
+      && DECL_DESTRUCTOR_P (decl)
+      && !TYPE_BEING_DEFINED (DECL_CONTEXT (decl))
+      && !processing_template_decl)
+    deduce_noexcept_on_destructor (decl);
+
   decl = check_explicit_specialization (orig_declarator, decl,
 					template_count,
 					2 * funcdef_flag +
@@ -8934,6 +8942,17 @@ grokdeclarator (const cp_declarator *declarator,
   if (sfk == sfk_conversion && type_quals != TYPE_UNQUALIFIED)
     error ("qualifiers are not allowed on declaration of %<operator %T%>",
 	   ctor_return_type);
+
+  /* If we're using the injected-class-name to form a compound type or a
+     declaration, replace it with the underlying class so we don't get
+     redundant typedefs in the debug output.  But if we are returning the
+     type unchanged, leave it alone so that it's available to
+     maybe_get_template_decl_from_type_decl.  */
+  if (CLASS_TYPE_P (type)
+      && DECL_SELF_REFERENCE_P (TYPE_NAME (type))
+      && type == TREE_TYPE (TYPE_NAME (type))
+      && (declarator || type_quals))
+    type = DECL_ORIGINAL_TYPE (TYPE_NAME (type));
 
   type_quals |= cp_type_quals (type);
   type = cp_build_qualified_type_real
@@ -10593,6 +10612,17 @@ check_default_argument (tree decl, tree arg)
 	       decl_type, TREE_TYPE (arg));
 
       return error_mark_node;
+    }
+
+  if (warn_zero_as_null_pointer_constant
+      && c_inhibit_evaluation_warnings == 0
+      && (POINTER_TYPE_P (decl_type) || TYPE_PTR_TO_MEMBER_P (decl_type))
+      && null_ptr_cst_p (arg)
+      && !NULLPTR_TYPE_P (TREE_TYPE (arg)))
+    {
+      warning (OPT_Wzero_as_null_pointer_constant,
+	       "zero as null pointer constant");
+      return nullptr_node;
     }
 
   /* [dcl.fct.default]
@@ -13499,6 +13529,7 @@ finish_function (int flags)
 		  "deduced to %<void%>");
 	}
       apply_deduced_return_type (fndecl, void_type_node);
+      fntype = TREE_TYPE (fndecl);
     }
 
   /* Save constexpr function body before it gets munged by

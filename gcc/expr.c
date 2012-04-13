@@ -4431,19 +4431,22 @@ optimize_bitfield_assignment_op (unsigned HOST_WIDE_INT bitsize,
 /* In the C++ memory model, consecutive bit fields in a structure are
    considered one memory location.
 
-   Given a COMPONENT_REF EXP at bit position BITPOS, this function
+   Given a COMPONENT_REF EXP at position (BITPOS, OFFSET), this function
    returns the bit range of consecutive bits in which this COMPONENT_REF
-   belongs in.  The values are returned in *BITSTART and *BITEND.
-   If the access does not need to be restricted 0 is returned in
+   belongs.  The values are returned in *BITSTART and *BITEND.  *BITPOS
+   and *OFFSET may be adjusted in the process.
+
+   If the access does not need to be restricted, 0 is returned in both
    *BITSTART and *BITEND.  */
 
 static void
 get_bit_range (unsigned HOST_WIDE_INT *bitstart,
 	       unsigned HOST_WIDE_INT *bitend,
 	       tree exp,
-	       HOST_WIDE_INT bitpos)
+	       HOST_WIDE_INT *bitpos,
+	       tree *offset)
 {
-  unsigned HOST_WIDE_INT bitoffset;
+  HOST_WIDE_INT bitoffset;
   tree field, repr;
 
   gcc_assert (TREE_CODE (exp) == COMPONENT_REF);
@@ -4490,7 +4493,25 @@ get_bit_range (unsigned HOST_WIDE_INT *bitstart,
   bitoffset += (tree_low_cst (DECL_FIELD_BIT_OFFSET (field), 1)
 		- tree_low_cst (DECL_FIELD_BIT_OFFSET (repr), 1));
 
-  *bitstart = bitpos - bitoffset;
+  /* If the adjustment is larger than bitpos, we would have a negative bit
+     position for the lower bound and this may wreak havoc later.  This can
+     occur only if we have a non-null offset, so adjust offset and bitpos
+     to make the lower bound non-negative.  */
+  if (bitoffset > *bitpos)
+    {
+      HOST_WIDE_INT adjust = bitoffset - *bitpos;
+
+      gcc_assert ((adjust % BITS_PER_UNIT) == 0);
+      gcc_assert (*offset != NULL_TREE);
+
+      *bitpos += adjust;
+      *offset
+	= size_binop (MINUS_EXPR, *offset, size_int (adjust / BITS_PER_UNIT));
+      *bitstart = 0;
+    }
+  else
+    *bitstart = *bitpos - bitoffset;
+
   *bitend = *bitstart + tree_low_cst (DECL_SIZE (repr), 1) - 1;
 }
 
@@ -4595,7 +4616,7 @@ expand_assignment (tree to, tree from, bool nontemporal)
 
       if (TREE_CODE (to) == COMPONENT_REF
 	  && DECL_BIT_FIELD_TYPE (TREE_OPERAND (to, 1)))
-	get_bit_range (&bitregion_start, &bitregion_end, to, bitpos);
+	get_bit_range (&bitregion_start, &bitregion_end, to, &bitpos, &offset);
 
       /* If we are going to use store_bit_field and extract_bit_field,
 	 make sure to_rtx will be safe for multiple use.  */
@@ -7936,6 +7957,11 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
 	treeop1 = fold_convert_loc (loc, type,
 				    fold_convert_loc (loc, ssizetype,
 						      treeop1));
+      /* If sizetype precision is larger than pointer precision, truncate the
+	 offset to have matching modes.  */
+      else if (TYPE_PRECISION (sizetype) > TYPE_PRECISION (type))
+	treeop1 = fold_convert_loc (loc, type, treeop1);
+
     case PLUS_EXPR:
       /* If we are adding a constant, a VAR_DECL that is sp, fp, or ap, and
 	 something else, make sure we add the register to the constant and
@@ -8989,8 +9015,13 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	  && stmt_is_replaceable_p (SSA_NAME_DEF_STMT (exp)))
 	g = SSA_NAME_DEF_STMT (exp);
       if (g)
-	return expand_expr_real (gimple_assign_rhs_to_tree (g), target, tmode,
-				 modifier, NULL);
+	{
+	  rtx r = expand_expr_real (gimple_assign_rhs_to_tree (g), target,
+				    tmode, modifier, NULL);
+	  if (REG_P (r) && !REG_EXPR (r))
+	    set_reg_attrs_for_decl_rtl (SSA_NAME_VAR (exp), r);
+	  return r;
+	}
 
       ssa_name = exp;
       decl_rtl = get_rtx_for_ssa_name (ssa_name);
@@ -9572,6 +9603,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	tree tem = get_inner_reference (exp, &bitsize, &bitpos, &offset,
 					&mode1, &unsignedp, &volatilep, true);
 	rtx orig_op0, memloc;
+	bool mem_attrs_from_type = false;
 
 	/* If we got back the original object, something is wrong.  Perhaps
 	   we are evaluating an expression too early.  In any event, don't
@@ -9677,6 +9709,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	    memloc = assign_temp (nt, 1, 1, 1);
 	    emit_move_insn (memloc, op0);
 	    op0 = memloc;
+	    mem_attrs_from_type = true;
 	  }
 
 	if (offset)
@@ -9849,7 +9882,6 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		emit_move_insn (new_rtx, op0);
 		op0 = copy_rtx (new_rtx);
 		PUT_MODE (op0, BLKmode);
-		set_mem_attributes (op0, exp, 1);
 	      }
 
 	    return op0;
@@ -9870,7 +9902,14 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	if (op0 == orig_op0)
 	  op0 = copy_rtx (op0);
 
-	set_mem_attributes (op0, exp, 0);
+	/* If op0 is a temporary because of forcing to memory, pass only the
+	   type to set_mem_attributes so that the original expression is never
+	   marked as ADDRESSABLE through MEM_EXPR of the temporary.  */
+	if (mem_attrs_from_type)
+	  set_mem_attributes (op0, type, 0);
+	else
+	  set_mem_attributes (op0, exp, 0);
+
 	if (REG_P (XEXP (op0, 0)))
 	  mark_reg_pointer (XEXP (op0, 0), MEM_ALIGN (op0));
 

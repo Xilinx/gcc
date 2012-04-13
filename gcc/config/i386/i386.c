@@ -1964,6 +1964,10 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   /* X86_TUNE_PARTIAL_FLAG_REG_STALL */
   m_CORE2I7 | m_GENERIC,
 
+  /* X86_TUNE_LCP_STALL: Avoid an expensive length-changing prefix stall
+   * on 16-bit immediate moves into memory on Core2 and Corei7.  */
+  m_CORE2I7 | m_GENERIC,
+
   /* X86_TUNE_USE_HIMODE_FIOP */
   m_386 | m_486 | m_K6_GEODE,
 
@@ -3109,17 +3113,9 @@ ix86_option_override_internal (bool main_args_p)
       sw = "attribute";
     }
 
-#ifdef SUBTARGET_OVERRIDE_OPTIONS
-  SUBTARGET_OVERRIDE_OPTIONS;
-#endif
-
-#ifdef SUBSUBTARGET_OVERRIDE_OPTIONS
-  SUBSUBTARGET_OVERRIDE_OPTIONS;
-#endif
-
   /* Turn off both OPTION_MASK_ABI_64 and OPTION_MASK_ABI_X32 if
-     TARGET_64BIT is false.  */
-  if (!TARGET_64BIT)
+     TARGET_64BIT_DEFAULT is true and TARGET_64BIT is false.  */
+  if (TARGET_64BIT_DEFAULT && !TARGET_64BIT)
     ix86_isa_flags &= ~(OPTION_MASK_ABI_64 | OPTION_MASK_ABI_X32);
 #ifdef TARGET_BI_ARCH
   else
@@ -3156,6 +3152,14 @@ ix86_option_override_internal (bool main_args_p)
       ix86_isa_flags |= OPTION_MASK_ISA_64BIT;
       ix86_isa_flags &= ~OPTION_MASK_ABI_X32;
     }
+
+#ifdef SUBTARGET_OVERRIDE_OPTIONS
+  SUBTARGET_OVERRIDE_OPTIONS;
+#endif
+
+#ifdef SUBSUBTARGET_OVERRIDE_OPTIONS
+  SUBSUBTARGET_OVERRIDE_OPTIONS;
+#endif
 
   /* -fPIC is the default for x86_64.  */
   if (TARGET_MACHO && TARGET_64BIT)
@@ -11510,7 +11514,7 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 	    addr = SUBREG_REG (addr);
 	  else if (GET_MODE (addr) == DImode)
 	    addr = gen_rtx_SUBREG (SImode, addr, 0);
-	  else
+	  else if (GET_MODE (addr) != VOIDmode)
 	    return 0;
 	}
     }
@@ -19933,7 +19937,7 @@ ix86_expand_vec_perm (rtx operands[])
 	  vt = force_reg (maskmode, vt);
 	  mask = gen_lowpart (maskmode, mask);
 	  if (maskmode == V8SImode)
-	    emit_insn (gen_avx2_permvarv8si (t1, vt, mask));
+	    emit_insn (gen_avx2_permvarv8si (t1, mask, vt));
 	  else
 	    emit_insn (gen_avx2_pshufbv32qi3 (t1, mask, vt));
 
@@ -19967,13 +19971,13 @@ ix86_expand_vec_perm (rtx operands[])
 	     the high bits of the shuffle elements.  No need for us to
 	     perform an AND ourselves.  */
 	  if (one_operand_shuffle)
-	    emit_insn (gen_avx2_permvarv8si (target, mask, op0));
+	    emit_insn (gen_avx2_permvarv8si (target, op0, mask));
 	  else
 	    {
 	      t1 = gen_reg_rtx (V8SImode);
 	      t2 = gen_reg_rtx (V8SImode);
-	      emit_insn (gen_avx2_permvarv8si (t1, mask, op0));
-	      emit_insn (gen_avx2_permvarv8si (t2, mask, op1));
+	      emit_insn (gen_avx2_permvarv8si (t1, op0, mask));
+	      emit_insn (gen_avx2_permvarv8si (t2, op0, mask));
 	      goto merge_two;
 	    }
 	  return;
@@ -19981,13 +19985,13 @@ ix86_expand_vec_perm (rtx operands[])
 	case V8SFmode:
 	  mask = gen_lowpart (V8SFmode, mask);
 	  if (one_operand_shuffle)
-	    emit_insn (gen_avx2_permvarv8sf (target, mask, op0));
+	    emit_insn (gen_avx2_permvarv8sf (target, op0, mask));
 	  else
 	    {
 	      t1 = gen_reg_rtx (V8SFmode);
 	      t2 = gen_reg_rtx (V8SFmode);
-	      emit_insn (gen_avx2_permvarv8sf (t1, mask, op0));
-	      emit_insn (gen_avx2_permvarv8sf (t2, mask, op1));
+	      emit_insn (gen_avx2_permvarv8sf (t1, op0, mask));
+	      emit_insn (gen_avx2_permvarv8sf (t2, op1, mask));
 	      goto merge_two;
 	    }
 	  return;
@@ -20000,7 +20004,7 @@ ix86_expand_vec_perm (rtx operands[])
 	  t2 = gen_reg_rtx (V8SImode);
 	  emit_insn (gen_avx_vec_concatv8si (t1, op0, op1));
 	  emit_insn (gen_avx_vec_concatv8si (t2, mask, mask));
-	  emit_insn (gen_avx2_permvarv8si (t1, t2, t1));
+	  emit_insn (gen_avx2_permvarv8si (t1, t1, t2));
 	  emit_insn (gen_avx_vextractf128v8si (target, t1, const0_rtx));
 	  return;
 
@@ -20010,7 +20014,7 @@ ix86_expand_vec_perm (rtx operands[])
 	  mask = gen_lowpart (V4SFmode, mask);
 	  emit_insn (gen_avx_vec_concatv8sf (t1, op0, op1));
 	  emit_insn (gen_avx_vec_concatv8sf (t2, mask, mask));
-	  emit_insn (gen_avx2_permvarv8sf (t1, t2, t1));
+	  emit_insn (gen_avx2_permvarv8sf (t1, t1, t2));
 	  emit_insn (gen_avx_vextractf128v8sf (target, t1, const0_rtx));
 	  return;
 
@@ -26944,8 +26948,8 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_pbroadcastv4si, "__builtin_ia32_pbroadcastd128", IX86_BUILTIN_PBROADCASTD128, UNKNOWN, (int) V4SI_FTYPE_V4SI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_pbroadcastv2di, "__builtin_ia32_pbroadcastq128", IX86_BUILTIN_PBROADCASTQ128, UNKNOWN, (int) V2DI_FTYPE_V2DI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_permvarv8si, "__builtin_ia32_permvarsi256", IX86_BUILTIN_VPERMVARSI256, UNKNOWN, (int) V8SI_FTYPE_V8SI_V8SI },
+  { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_permvarv8sf, "__builtin_ia32_permvarsf256", IX86_BUILTIN_VPERMVARSF256, UNKNOWN, (int) V8SF_FTYPE_V8SF_V8SI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_permv4df, "__builtin_ia32_permdf256", IX86_BUILTIN_VPERMDF256, UNKNOWN, (int) V4DF_FTYPE_V4DF_INT },
-  { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_permvarv8sf, "__builtin_ia32_permvarsf256", IX86_BUILTIN_VPERMVARSF256, UNKNOWN, (int) V8SF_FTYPE_V8SF_V8SF },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_permv4di, "__builtin_ia32_permdi256", IX86_BUILTIN_VPERMDI256, UNKNOWN, (int) V4DI_FTYPE_V4DI_INT },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_permv2ti, "__builtin_ia32_permti256", IX86_BUILTIN_VPERMTI256, UNKNOWN, (int) V4DI_FTYPE_V4DI_V4DI_INT },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_extracti128, "__builtin_ia32_extract128i256", IX86_BUILTIN_VEXTRACT128I256, UNKNOWN, (int) V2DI_FTYPE_V4DI_INT },
@@ -32938,6 +32942,7 @@ struct expand_vec_perm_d
   unsigned char perm[MAX_VECT_LEN];
   enum machine_mode vmode;
   unsigned char nelt;
+  bool one_operand_p;
   bool testing_p;
 };
 
@@ -33038,6 +33043,7 @@ ix86_expand_vector_init_duplicate (bool mmx_ok, enum machine_mode mode,
 	  dperm.vmode = mode;
 	  dperm.nelt = GET_MODE_NUNITS (mode);
 	  dperm.op0 = dperm.op1 = gen_reg_rtx (mode);
+	  dperm.one_operand_p = true;
 
 	  /* Extend to SImode using a paradoxical SUBREG.  */
 	  tmp1 = gen_reg_rtx (SImode);
@@ -35735,7 +35741,7 @@ expand_vec_perm_blend (struct expand_vec_perm_d *d)
   rtx target, op0, op1, x;
   rtx rperm[32], vperm;
 
-  if (d->op0 == d->op1)
+  if (d->one_operand_p)
     return false;
   if (TARGET_AVX2 && GET_MODE_SIZE (vmode) == 32)
     ;
@@ -35922,7 +35928,7 @@ expand_vec_perm_vpermil (struct expand_vec_perm_d *d)
   rtx rperm[8], vperm;
   unsigned i;
 
-  if (!TARGET_AVX || d->vmode != V8SFmode || d->op0 != d->op1)
+  if (!TARGET_AVX || d->vmode != V8SFmode || !d->one_operand_p)
     return false;
 
   /* We can only permute within the 128-bit lane.  */
@@ -35998,7 +36004,7 @@ expand_vec_perm_pshufb (struct expand_vec_perm_d *d)
 
   nelt = d->nelt;
 
-  if (d->op0 != d->op1)
+  if (!d->one_operand_p)
     {
       if (!TARGET_XOP || GET_MODE_SIZE (d->vmode) != 16)
 	{
@@ -36086,7 +36092,7 @@ expand_vec_perm_pshufb (struct expand_vec_perm_d *d)
   else
     {
       eltsz = GET_MODE_SIZE (GET_MODE_INNER (d->vmode));
-      if (d->op0 != d->op1)
+      if (!d->one_operand_p)
 	mask = 2 * nelt - 1;
       else if (vmode == V16QImode)
 	mask = nelt - 1;
@@ -36113,16 +36119,16 @@ expand_vec_perm_pshufb (struct expand_vec_perm_d *d)
 
   target = gen_lowpart (vmode, d->target);
   op0 = gen_lowpart (vmode, d->op0);
-  if (d->op0 == d->op1)
+  if (d->one_operand_p)
     {
       if (vmode == V16QImode)
 	emit_insn (gen_ssse3_pshufbv16qi3 (target, op0, vperm));
       else if (vmode == V32QImode)
 	emit_insn (gen_avx2_pshufbv32qi3 (target, op0, vperm));
       else if (vmode == V8SFmode)
-	emit_insn (gen_avx2_permvarv8sf (target, vperm, op0));
+	emit_insn (gen_avx2_permvarv8sf (target, op0, vperm));
       else
-	emit_insn (gen_avx2_permvarv8si (target, vperm, op0));
+	emit_insn (gen_avx2_permvarv8si (target, op0, vperm));
     }
   else
     {
@@ -36145,7 +36151,7 @@ expand_vec_perm_1 (struct expand_vec_perm_d *d)
   /* Check plain VEC_SELECT first, because AVX has instructions that could
      match both SEL and SEL+CONCAT, but the plain SEL will allow a memory
      input where SEL+CONCAT may not.  */
-  if (d->op0 == d->op1)
+  if (d->one_operand_p)
     {
       int mask = nelt - 1;
       bool identity_perm = true;
@@ -36242,7 +36248,7 @@ expand_vec_perm_1 (struct expand_vec_perm_d *d)
     return true;
 
   /* Recognize interleave style patterns with reversed operands.  */
-  if (d->op0 != d->op1)
+  if (!d->one_operand_p)
     {
       for (i = 0; i < nelt; ++i)
 	{
@@ -36285,7 +36291,7 @@ expand_vec_perm_pshuflw_pshufhw (struct expand_vec_perm_d *d)
   unsigned i;
   bool ok;
 
-  if (d->vmode != V8HImode || d->op0 != d->op1)
+  if (d->vmode != V8HImode || !d->one_operand_p)
     return false;
 
   /* The two permutations only operate in 64-bit lanes.  */
@@ -36357,6 +36363,7 @@ expand_vec_perm_palignr (struct expand_vec_perm_d *d)
 				  gen_lowpart (TImode, d->op0), shift));
 
   d->op0 = d->op1 = d->target;
+  d->one_operand_p = true;
 
   in_order = true;
   for (i = 0; i < nelt; ++i)
@@ -36396,14 +36403,14 @@ expand_vec_perm_interleave2 (struct expand_vec_perm_d *d)
 
   if (GET_MODE_SIZE (d->vmode) == 16)
     {
-      if (d->op0 == d->op1)
+      if (d->one_operand_p)
 	return false;
     }
   else if (GET_MODE_SIZE (d->vmode) == 32)
     {
       if (!TARGET_AVX)
 	return false;
-      /* For 32-byte modes allow even d->op0 == d->op1.
+      /* For 32-byte modes allow even d->one_operand_p.
 	 The lack of cross-lane shuffling in some instructions
 	 might prevent a single insn shuffle.  */
       dfinal = *d;
@@ -36528,11 +36535,11 @@ expand_vec_perm_interleave2 (struct expand_vec_perm_d *d)
 
       if (nzcnt == 1)
 	{
-	  gcc_assert (d->op0 == d->op1);
+	  gcc_assert (d->one_operand_p);
 	  nonzero_halves[1] = nonzero_halves[0];
 	  same_halves = true;
 	}
-      else if (d->op0 == d->op1)
+      else if (d->one_operand_p)
 	{
 	  gcc_assert (nonzero_halves[0] == 0);
 	  gcc_assert (nonzero_halves[1] == 1);
@@ -36571,7 +36578,7 @@ expand_vec_perm_interleave2 (struct expand_vec_perm_d *d)
 		}
 	    }
 	}
-      else if (d->op0 == d->op1)
+      else if (d->one_operand_p)
 	return false;
       else if (TARGET_AVX2
 	       && (contents & (q[0] | q[2] | q[4] | q[6])) == contents)
@@ -36628,6 +36635,7 @@ expand_vec_perm_interleave2 (struct expand_vec_perm_d *d)
     }
   dfinal.op0 = gen_reg_rtx (dfinal.vmode);
   dfinal.op1 = dfinal.op0;
+  dfinal.one_operand_p = true;
   dremap.target = dfinal.op0;
 
   /* Test if the final remap can be done with a single insn.  For V4SFmode or
@@ -36671,7 +36679,7 @@ expand_vec_perm_vpermq_perm_1 (struct expand_vec_perm_d *d)
 
   if (!(TARGET_AVX2
 	&& (d->vmode == V32QImode || d->vmode == V16HImode)
-	&& d->op0 == d->op1))
+	&& d->one_operand_p))
     return false;
 
   contents[0] = 0;
@@ -36699,6 +36707,7 @@ expand_vec_perm_vpermq_perm_1 (struct expand_vec_perm_d *d)
   dremap.target = gen_reg_rtx (V4DImode);
   dremap.op0 = gen_lowpart (V4DImode, d->op0);
   dremap.op1 = dremap.op0;
+  dremap.one_operand_p = true;
   for (i = 0; i < 2; ++i)
     {
       unsigned int cnt = 0;
@@ -36712,6 +36721,7 @@ expand_vec_perm_vpermq_perm_1 (struct expand_vec_perm_d *d)
   dfinal = *d;
   dfinal.op0 = gen_lowpart (dfinal.vmode, dremap.target);
   dfinal.op1 = dfinal.op0;
+  dfinal.one_operand_p = true;
   for (i = 0, j = 0; i < nelt; ++i)
     {
       if (i == nelt2)
@@ -36751,8 +36761,7 @@ expand_vec_perm_vperm2f128 (struct expand_vec_perm_d *d)
     return false;
 
   dsecond = *d;
-  if (d->op0 == d->op1)
-    dsecond.op1 = gen_reg_rtx (d->vmode);
+  dsecond.one_operand_p = false;
   dsecond.testing_p = true;
 
   /* ((perm << 2)|perm) & 0x33 is the vperm2[fi]128
@@ -36821,10 +36830,7 @@ expand_vec_perm_vperm2f128 (struct expand_vec_perm_d *d)
 	     vperm2f128 on d->op0 and d->op1.  */
 	  dsecond.testing_p = false;
 	  dfirst = *d;
-	  if (d->op0 == d->op1)
-	    dfirst.target = dsecond.op1;
-	  else
-	    dfirst.target = gen_reg_rtx (d->vmode);
+	  dfirst.target = gen_reg_rtx (d->vmode);
 	  for (i = 0; i < nelt; i++)
 	    dfirst.perm[i] = (i & (nelt2 - 1))
 			     + ((perm >> (2 * (i >= nelt2))) & 3) * nelt2;
@@ -36845,9 +36851,8 @@ expand_vec_perm_vperm2f128 (struct expand_vec_perm_d *d)
 	  return true;
 	}
 
-      /* For d->op0 == d->op1 the only useful vperm2f128 permutation
-	 is 0x10.  */
-      if (d->op0 == d->op1)
+      /* For one operand, the only useful vperm2f128 permutation is 0x10.  */
+      if (d->one_operand_p)
 	return false;
     }
 
@@ -36864,7 +36869,7 @@ expand_vec_perm_interleave3 (struct expand_vec_perm_d *d)
   unsigned i, nelt;
   rtx (*gen) (rtx, rtx, rtx);
 
-  if (d->op0 == d->op1)
+  if (d->one_operand_p)
     return false;
   if (TARGET_AVX2 && GET_MODE_SIZE (d->vmode) == 32)
     ;
@@ -36947,7 +36952,7 @@ expand_vec_perm_vperm2f128_vblend (struct expand_vec_perm_d *d)
   if (!TARGET_AVX
       || TARGET_AVX2
       || (d->vmode != V8SFmode && d->vmode != V4DFmode)
-      || d->op0 != d->op1)
+      || !d->one_operand_p)
     return false;
 
   dfirst = *d;
@@ -36985,6 +36990,7 @@ expand_vec_perm_vperm2f128_vblend (struct expand_vec_perm_d *d)
   dsecond = *d;
   dsecond.op0 = dfirst.target;
   dsecond.op1 = dfirst.target;
+  dsecond.one_operand_p = true;
   dsecond.target = gen_reg_rtx (dsecond.vmode);
   for (i = 0; i < nelt; i++)
     dsecond.perm[i] = i ^ nelt2;
@@ -37009,7 +37015,7 @@ expand_vec_perm_pshufb2 (struct expand_vec_perm_d *d)
 
   if (!TARGET_SSSE3 || GET_MODE_SIZE (d->vmode) != 16)
     return false;
-  gcc_assert (d->op0 != d->op1);
+  gcc_assert (!d->one_operand_p);
 
   nelt = d->nelt;
   eltsz = GET_MODE_SIZE (GET_MODE_INNER (d->vmode));
@@ -37064,7 +37070,7 @@ expand_vec_perm_vpshufb2_vpermq (struct expand_vec_perm_d *d)
   unsigned int i, nelt, eltsz;
 
   if (!TARGET_AVX2
-      || d->op0 != d->op1
+      || !d->one_operand_p
       || (d->vmode != V32QImode && d->vmode != V16HImode))
     return false;
 
@@ -37132,7 +37138,7 @@ expand_vec_perm_vpshufb2_vpermq_even_odd (struct expand_vec_perm_d *d)
   unsigned int i, nelt, eltsz;
 
   if (!TARGET_AVX2
-      || d->op0 == d->op1
+      || d->one_operand_p
       || (d->vmode != V32QImode && d->vmode != V16HImode))
     return false;
 
@@ -37491,7 +37497,7 @@ expand_vec_perm_broadcast (struct expand_vec_perm_d *d)
 {
   unsigned i, elt, nelt = d->nelt;
 
-  if (d->op0 != d->op1)
+  if (!d->one_operand_p)
     return false;
 
   elt = d->perm[0];
@@ -37514,7 +37520,7 @@ expand_vec_perm_vpshufb4_vpermq2 (struct expand_vec_perm_d *d)
   bool used[4];
 
   if (!TARGET_AVX2
-      || d->op0 == d->op1
+      || d->one_operand_p
       || (d->vmode != V32QImode && d->vmode != V16HImode))
     return false;
 
@@ -37715,6 +37721,7 @@ ix86_expand_vec_perm_const (rtx operands[4])
       perm[i] = ei;
     }
 
+  d.one_operand_p = true;
   switch (which)
     {
     default:
@@ -37722,51 +37729,39 @@ ix86_expand_vec_perm_const (rtx operands[4])
 
     case 3:
       if (!rtx_equal_p (d.op0, d.op1))
-	break;
-
+        {
+	  d.one_operand_p = false;
+	  break;
+        }
       /* The elements of PERM do not suggest that only the first operand
 	 is used, but both operands are identical.  Allow easier matching
 	 of the permutation by folding the permutation into the single
 	 input vector.  */
-      for (i = 0; i < nelt; ++i)
-	if (d.perm[i] >= nelt)
-	  d.perm[i] -= nelt;
       /* FALLTHRU */
-
-    case 1:
-      d.op1 = d.op0;
-      break;
 
     case 2:
       for (i = 0; i < nelt; ++i)
-        d.perm[i] -= nelt;
+        d.perm[i] &= nelt - 1;
       d.op0 = d.op1;
+      break;
+
+    case 1:
+      d.op1 = d.op0;
       break;
     }
 
   if (ix86_expand_vec_perm_const_1 (&d))
     return true;
 
-  /* If the mask says both arguments are needed, but they are the same,
-     the above tried to expand with d.op0 == d.op1.  If that didn't work,
-     retry with d.op0 != d.op1 as that is what testing has been done with.  */
-  if (which == 3 && d.op0 == d.op1)
+  /* If the selector says both arguments are needed, but the operands are the
+     same, the above tried to expand with one_operand_p and flattened selector.
+     If that didn't work, retry without one_operand_p; we succeeded with that
+     during testing.  */
+  if (which == 3 && d.one_operand_p)
     {
-      rtx seq;
-      bool ok;
-
+      d.one_operand_p = false;
       memcpy (d.perm, perm, sizeof (perm));
-      d.op1 = gen_reg_rtx (d.vmode);
-      start_sequence ();
-      ok = ix86_expand_vec_perm_const_1 (&d);
-      seq = get_insns ();
-      end_sequence ();
-      if (ok)
-	{
-	  emit_move_insn (d.op1, d.op0);
-	  emit_insn (seq);
-	  return true;
-	}
+      return ix86_expand_vec_perm_const_1 (&d);
     }
 
   return false;
@@ -37780,7 +37775,7 @@ ix86_vectorize_vec_perm_const_ok (enum machine_mode vmode,
 {
   struct expand_vec_perm_d d;
   unsigned int i, nelt, which;
-  bool ret, one_vec;
+  bool ret;
 
   d.vmode = vmode;
   d.nelt = nelt = GET_MODE_NUNITS (d.vmode);
@@ -37817,17 +37812,17 @@ ix86_vectorize_vec_perm_const_ok (enum machine_mode vmode,
       d.perm[i] -= nelt;
 
   /* Check whether the mask can be applied to the vector type.  */
-  one_vec = (which != 3);
+  d.one_operand_p = (which != 3);
 
   /* Implementable with shufps or pshufd.  */
-  if (one_vec && (d.vmode == V4SFmode || d.vmode == V4SImode))
+  if (d.one_operand_p && (d.vmode == V4SFmode || d.vmode == V4SImode))
     return true;
 
   /* Otherwise we have to go through the motions and see if we can
      figure out how to generate the requested permutation.  */
   d.target = gen_raw_REG (d.vmode, LAST_VIRTUAL_REGISTER + 1);
   d.op1 = d.op0 = gen_raw_REG (d.vmode, LAST_VIRTUAL_REGISTER + 2);
-  if (!one_vec)
+  if (!d.one_operand_p)
     d.op1 = gen_raw_REG (d.vmode, LAST_VIRTUAL_REGISTER + 3);
 
   start_sequence ();
@@ -37848,6 +37843,7 @@ ix86_expand_vec_extract_even_odd (rtx targ, rtx op0, rtx op1, unsigned odd)
   d.op1 = op1;
   d.vmode = GET_MODE (targ);
   d.nelt = nelt = GET_MODE_NUNITS (d.vmode);
+  d.one_operand_p = false;
   d.testing_p = false;
 
   for (i = 0; i < nelt; ++i)

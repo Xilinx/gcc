@@ -27,7 +27,23 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "basic-block.h"
 #include "function.h"
-#include "ipa-ref.h"	/* FIXME: inappropriate dependency of cgraph on IPA.  */
+#include "ipa-ref.h"
+
+/* Symbol table consists of functions and variables.
+   TODO: add labels, constant pool and aliases.  */
+enum symtab_type
+{
+  SYMTAB_FUNCTION,
+  SYMTAB_VARIABLE
+};
+
+/* Base of all entries in the symbol table.
+   The symtab_node is inherited by cgraph and varpol nodes.  */
+struct GTY(()) symtab_node
+{
+  /* Type of the symbol.  */
+  enum symtab_type type;
+};
 
 enum availability
 {
@@ -150,6 +166,7 @@ struct GTY(()) cgraph_clone_info
    Each function decl has assigned cgraph_node listing callees and callers.  */
 
 struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
+  struct symtab_node symbol;
   tree decl;
   struct cgraph_edge *callees;
   struct cgraph_edge *callers;
@@ -387,6 +404,7 @@ DEF_VEC_ALLOC_P(cgraph_edge_p,heap);
    Each static variable decl has assigned varpool_node.  */
 
 struct GTY((chain_next ("%h.next"), chain_prev ("%h.prev"))) varpool_node {
+  struct symtab_node symbol;
   tree decl;
   /* For aliases points to declaration DECL is alias of.  */
   tree alias_of;
@@ -613,13 +631,11 @@ struct cgraph_2edge_hook_list *cgraph_add_edge_duplication_hook (cgraph_2edge_ho
 void cgraph_remove_edge_duplication_hook (struct cgraph_2edge_hook_list *);
 struct cgraph_2node_hook_list *cgraph_add_node_duplication_hook (cgraph_2node_hook, void *);
 void cgraph_remove_node_duplication_hook (struct cgraph_2node_hook_list *);
-void cgraph_materialize_all_clones (void);
 gimple cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *);
 bool cgraph_propagate_frequency (struct cgraph_node *node);
 /* In cgraphbuild.c  */
 unsigned int rebuild_cgraph_edges (void);
 void cgraph_rebuild_references (void);
-void reset_inline_failed (struct cgraph_node *);
 int compute_call_stmt_bb_frequency (tree, basic_block bb);
 
 /* In ipa.c  */
@@ -689,6 +705,23 @@ void varpool_add_new_variable (tree);
 /* Walk all reachable static variables.  */
 #define FOR_EACH_STATIC_VARIABLE(node) \
    for ((node) = varpool_nodes_queue; (node); (node) = (node)->next_needed)
+
+/* Return callgraph node for given symbol and check it is a function. */
+static inline struct cgraph_node *
+cgraph (struct symtab_node *node)
+{
+  gcc_checking_assert (node->type == SYMTAB_FUNCTION);
+  return (struct cgraph_node *)node;
+}
+
+/* Return varpool node for given symbol and check it is a variable.  */
+static inline struct varpool_node *
+varpool (struct symtab_node *node)
+{
+  gcc_checking_assert (node->type == SYMTAB_FUNCTION);
+  return (struct varpool_node *)node;
+}
+
 
 /* Return first reachable static variable with initializer.  */
 static inline struct varpool_node *

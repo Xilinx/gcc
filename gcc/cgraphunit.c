@@ -111,6 +111,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
+#include "output.h"
 #include "rtl.h"
 #include "tree-flow.h"
 #include "tree-inline.h"
@@ -141,11 +142,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "ipa-inline.h"
 #include "ipa-utils.h"
 #include "lto-streamer.h"
+#include "except.h"
+#include "regset.h"     /* FIXME: For reg_obstack.  */
 
 static void cgraph_expand_all_functions (void);
 static void cgraph_mark_functions_to_output (void);
 static void cgraph_expand_function (struct cgraph_node *);
 static void cgraph_output_pending_asms (void);
+static void tree_rest_of_compilation (struct cgraph_node *);
 
 FILE *cgraph_dump_file;
 
@@ -313,20 +317,6 @@ cgraph_reset_node (struct cgraph_node *node)
   cgraph_node_remove_callees (node);
 }
 
-static void
-cgraph_lower_function (struct cgraph_node *node)
-{
-  if (node->lowered)
-    return;
-
-  if (node->nested)
-    lower_nested_functions (node->decl);
-  gcc_assert (!node->nested);
-
-  tree_lowering_passes (node->decl);
-  node->lowered = true;
-}
-
 /* DECL has been parsed.  Take it, queue it, compile it at the whim of the
    logic in effect.  If NESTED is true, then our caller cannot stand to have
    the garbage collector run at the moment.  We would need to either create
@@ -375,6 +365,92 @@ cgraph_finalize_function (tree decl, bool nested)
 
   if (!nested)
     ggc_collect ();
+}
+
+/* Add the function FNDECL to the call graph.
+   Unlike cgraph_finalize_function, this function is intended to be used
+   by middle end and allows insertion of new function at arbitrary point
+   of compilation.  The function can be either in high, low or SSA form
+   GIMPLE.
+
+   The function is assumed to be reachable and have address taken (so no
+   API breaking optimizations are performed on it).
+
+   Main work done by this function is to enqueue the function for later
+   processing to avoid need the passes to be re-entrant.  */
+
+void
+cgraph_add_new_function (tree fndecl, bool lowered)
+{
+  struct cgraph_node *node;
+  switch (cgraph_state)
+    {
+      case CGRAPH_STATE_CONSTRUCTION:
+	/* Just enqueue function to be processed at nearest occurrence.  */
+	node = cgraph_create_node (fndecl);
+	node->next_needed = cgraph_new_nodes;
+	if (lowered)
+	  node->lowered = true;
+	cgraph_new_nodes = node;
+        break;
+
+      case CGRAPH_STATE_IPA:
+      case CGRAPH_STATE_IPA_SSA:
+      case CGRAPH_STATE_EXPANSION:
+	/* Bring the function into finalized state and enqueue for later
+	   analyzing and compilation.  */
+	node = cgraph_get_create_node (fndecl);
+	node->local.local = false;
+	node->local.finalized = true;
+	node->reachable = node->needed = true;
+	if (!lowered && cgraph_state == CGRAPH_STATE_EXPANSION)
+	  {
+	    push_cfun (DECL_STRUCT_FUNCTION (fndecl));
+	    current_function_decl = fndecl;
+	    gimple_register_cfg_hooks ();
+	    bitmap_obstack_initialize (NULL);
+	    execute_pass_list (all_lowering_passes);
+	    execute_pass_list (pass_early_local_passes.pass.sub);
+	    bitmap_obstack_release (NULL);
+	    pop_cfun ();
+	    current_function_decl = NULL;
+
+	    lowered = true;
+	  }
+	if (lowered)
+	  node->lowered = true;
+	node->next_needed = cgraph_new_nodes;
+	cgraph_new_nodes = node;
+        break;
+
+      case CGRAPH_STATE_FINISHED:
+	/* At the very end of compilation we have to do all the work up
+	   to expansion.  */
+	node = cgraph_create_node (fndecl);
+	if (lowered)
+	  node->lowered = true;
+	cgraph_analyze_function (node);
+	push_cfun (DECL_STRUCT_FUNCTION (fndecl));
+	current_function_decl = fndecl;
+	gimple_register_cfg_hooks ();
+	bitmap_obstack_initialize (NULL);
+	if (!gimple_in_ssa_p (DECL_STRUCT_FUNCTION (fndecl)))
+	  execute_pass_list (pass_early_local_passes.pass.sub);
+	bitmap_obstack_release (NULL);
+	tree_rest_of_compilation (node);
+	pop_cfun ();
+	current_function_decl = NULL;
+	break;
+
+      default:
+	gcc_unreachable ();
+    }
+
+  /* Set a personality if required and we already passed EH lowering.  */
+  if (lowered
+      && (function_needs_eh_personality (DECL_STRUCT_FUNCTION (fndecl))
+	  == eh_personality_lang))
+    DECL_FUNCTION_PERSONALITY (fndecl) = lang_hooks.eh_personality ();
 }
 
 /* C99 extern inline keywords allow changing of declaration after function
@@ -915,7 +991,23 @@ cgraph_analyze_function (struct cgraph_node *node)
 	gimplify_function_tree (decl);
       dump_function (TDI_generic, decl);
 
-      cgraph_lower_function (node);
+      /* Lower the function.  */
+      if (!node->lowered)
+	{
+	  if (node->nested)
+	    lower_nested_functions (node->decl);
+	  gcc_assert (!node->nested);
+
+	  gimple_register_cfg_hooks ();
+	  bitmap_obstack_initialize (NULL);
+	  execute_pass_list (all_lowering_passes);
+	  free_dominance_info (CDI_POST_DOMINATORS);
+	  free_dominance_info (CDI_DOMINATORS);
+	  compact_blocks ();
+	  bitmap_obstack_release (NULL);
+	  node->lowered = true;
+	}
+
       pop_cfun ();
     }
   node->analyzed = true;
@@ -1291,59 +1383,6 @@ handle_alias_pairs (void)
 	  i++;
 	}
     }
-}
-
-
-/* Analyze the whole compilation unit once it is parsed completely.  */
-
-void
-cgraph_finalize_compilation_unit (void)
-{
-  timevar_push (TV_CGRAPH);
-
-  /* If LTO is enabled, initialize the streamer hooks needed by GIMPLE.  */
-  if (flag_lto)
-    lto_streamer_hooks_init ();
-
-  /* If we're here there's no current function anymore.  Some frontends
-     are lazy in clearing these.  */
-  current_function_decl = NULL;
-  set_cfun (NULL);
-
-  /* Do not skip analyzing the functions if there were errors, we
-     miss diagnostics for following functions otherwise.  */
-
-  /* Emit size functions we didn't inline.  */
-  finalize_size_functions ();
-
-  /* Mark alias targets necessary and emit diagnostics.  */
-  finish_aliases_1 ();
-  handle_alias_pairs ();
-
-  if (!quiet_flag)
-    {
-      fprintf (stderr, "\nAnalyzing compilation unit\n");
-      fflush (stderr);
-    }
-
-  if (flag_dump_passes)
-    dump_passes ();
-
-  /* Gimplify and lower all functions, compute reachability and
-     remove unreachable nodes.  */
-  cgraph_analyze_functions ();
-
-  /* Mark alias targets necessary and emit diagnostics.  */
-  finish_aliases_1 ();
-  handle_alias_pairs ();
-
-  /* Gimplify and lower thunks.  */
-  cgraph_analyze_functions ();
-
-  /* Finally drive the pass manager.  */
-  cgraph_optimize ();
-
-  timevar_pop (TV_CGRAPH);
 }
 
 
@@ -1819,6 +1858,94 @@ assemble_thunks_and_aliases (struct cgraph_node *node)
       }
 }
 
+/* Perform IPA transforms and all further optimizations and compilation
+   for FNDECL.  */
+
+static void
+tree_rest_of_compilation (struct cgraph_node *node)
+{
+  tree fndecl = node->decl;
+  location_t saved_loc;
+
+  timevar_push (TV_REST_OF_COMPILATION);
+
+  gcc_assert (cgraph_global_info_ready);
+
+  /* Initialize the default bitmap obstack.  */
+  bitmap_obstack_initialize (NULL);
+
+  /* Initialize the RTL code for the function.  */
+  current_function_decl = fndecl;
+  saved_loc = input_location;
+  input_location = DECL_SOURCE_LOCATION (fndecl);
+  init_function_start (fndecl);
+
+  gimple_register_cfg_hooks ();
+
+  bitmap_obstack_initialize (&reg_obstack); /* FIXME, only at RTL generation*/
+
+  execute_all_ipa_transforms ();
+
+  /* Perform all tree transforms and optimizations.  */
+
+  /* Signal the start of passes.  */
+  invoke_plugin_callbacks (PLUGIN_ALL_PASSES_START, NULL);
+
+  execute_pass_list (all_passes);
+
+  /* Signal the end of passes.  */
+  invoke_plugin_callbacks (PLUGIN_ALL_PASSES_END, NULL);
+
+  bitmap_obstack_release (&reg_obstack);
+
+  /* Release the default bitmap obstack.  */
+  bitmap_obstack_release (NULL);
+
+  set_cfun (NULL);
+
+  /* If requested, warn about function definitions where the function will
+     return a value (usually of some struct or union type) which itself will
+     take up a lot of stack space.  */
+  if (warn_larger_than && !DECL_EXTERNAL (fndecl) && TREE_TYPE (fndecl))
+    {
+      tree ret_type = TREE_TYPE (TREE_TYPE (fndecl));
+
+      if (ret_type && TYPE_SIZE_UNIT (ret_type)
+	  && TREE_CODE (TYPE_SIZE_UNIT (ret_type)) == INTEGER_CST
+	  && 0 < compare_tree_int (TYPE_SIZE_UNIT (ret_type),
+				   larger_than_size))
+	{
+	  unsigned int size_as_int
+	    = TREE_INT_CST_LOW (TYPE_SIZE_UNIT (ret_type));
+
+	  if (compare_tree_int (TYPE_SIZE_UNIT (ret_type), size_as_int) == 0)
+	    warning (OPT_Wlarger_than_, "size of return value of %q+D is %u bytes",
+                     fndecl, size_as_int);
+	  else
+	    warning (OPT_Wlarger_than_, "size of return value of %q+D is larger than %wd bytes",
+                     fndecl, larger_than_size);
+	}
+    }
+
+  gimple_set_body (fndecl, NULL);
+  if (DECL_STRUCT_FUNCTION (fndecl) == 0
+      && !cgraph_get_node (fndecl)->origin)
+    {
+      /* Stop pointing to the local nodes about to be freed.
+	 But DECL_INITIAL must remain nonzero so we know this
+	 was an actual function definition.
+	 For a nested function, this is done in c_pop_function_context.
+	 If rest_of_compilation set this to 0, leave it 0.  */
+      if (DECL_INITIAL (fndecl) != 0)
+	DECL_INITIAL (fndecl) = error_mark_node;
+    }
+
+  input_location = saved_loc;
+
+  ggc_collect ();
+  timevar_pop (TV_REST_OF_COMPILATION);
+}
+
 /* Expand function specified by NODE.  */
 
 static void
@@ -1834,7 +1961,7 @@ cgraph_expand_function (struct cgraph_node *node)
   gcc_assert (node->lowered);
 
   /* Generate RTL for the body of DECL.  */
-  tree_rest_of_compilation (decl);
+  tree_rest_of_compilation (node);
 
   /* Make sure that BE didn't give up on compiling.  */
   gcc_assert (TREE_ASM_WRITTEN (decl));
@@ -1852,8 +1979,6 @@ cgraph_expand_function (struct cgraph_node *node)
   /* Eliminate all call edges.  This is important so the GIMPLE_CALL no longer
      points to the dead function body.  */
   cgraph_node_remove_callees (node);
-
-  cgraph_function_flags_ready = true;
 }
 
 /* Return true when CALLER_DECL should be inlined into CALLEE_DECL.  */
@@ -2134,124 +2259,6 @@ output_weakrefs (void)
 }
 
 
-/* Perform simple optimizations based on callgraph.  */
-
-void
-cgraph_optimize (void)
-{
-  if (seen_error ())
-    return;
-
-#ifdef ENABLE_CHECKING
-  verify_cgraph ();
-#endif
-
-  /* Frontend may output common variables after the unit has been finalized.
-     It is safe to deal with them here as they are always zero initialized.  */
-  varpool_analyze_pending_decls ();
-
-  timevar_push (TV_CGRAPHOPT);
-  if (pre_ipa_mem_report)
-    {
-      fprintf (stderr, "Memory consumption before IPA\n");
-      dump_memory_report (false);
-    }
-  if (!quiet_flag)
-    fprintf (stderr, "Performing interprocedural optimizations\n");
-  cgraph_state = CGRAPH_STATE_IPA;
-
-  /* Don't run the IPA passes if there was any error or sorry messages.  */
-  if (!seen_error ())
-    ipa_passes ();
-
-  /* Do nothing else if any IPA pass found errors or if we are just streaming LTO.  */
-  if (seen_error ()
-      || (!in_lto_p && flag_lto && !flag_fat_lto_objects))
-    {
-      timevar_pop (TV_CGRAPHOPT);
-      return;
-    }
-
-  /* This pass remove bodies of extern inline functions we never inlined.
-     Do this later so other IPA passes see what is really going on.  */
-  cgraph_remove_unreachable_nodes (false, dump_file);
-  cgraph_global_info_ready = true;
-  if (cgraph_dump_file)
-    {
-      fprintf (cgraph_dump_file, "Optimized ");
-      dump_cgraph (cgraph_dump_file);
-      dump_varpool (cgraph_dump_file);
-    }
-  if (post_ipa_mem_report)
-    {
-      fprintf (stderr, "Memory consumption after IPA\n");
-      dump_memory_report (false);
-    }
-  timevar_pop (TV_CGRAPHOPT);
-
-  /* Output everything.  */
-  (*debug_hooks->assembly_start) ();
-  if (!quiet_flag)
-    fprintf (stderr, "Assembling functions:\n");
-#ifdef ENABLE_CHECKING
-  verify_cgraph ();
-#endif
-
-  cgraph_materialize_all_clones ();
-  bitmap_obstack_initialize (NULL);
-  execute_ipa_pass_list (all_late_ipa_passes);
-  cgraph_remove_unreachable_nodes (true, dump_file);
-#ifdef ENABLE_CHECKING
-  verify_cgraph ();
-#endif
-  bitmap_obstack_release (NULL);
-  cgraph_mark_functions_to_output ();
-  output_weakrefs ();
-
-  cgraph_state = CGRAPH_STATE_EXPANSION;
-  if (!flag_toplevel_reorder)
-    cgraph_output_in_order ();
-  else
-    {
-      cgraph_output_pending_asms ();
-
-      cgraph_expand_all_functions ();
-      varpool_remove_unreferenced_decls ();
-
-      varpool_assemble_pending_decls ();
-    }
-
-  cgraph_process_new_functions ();
-  cgraph_state = CGRAPH_STATE_FINISHED;
-
-  if (cgraph_dump_file)
-    {
-      fprintf (cgraph_dump_file, "\nFinal ");
-      dump_cgraph (cgraph_dump_file);
-      dump_varpool (cgraph_dump_file);
-    }
-#ifdef ENABLE_CHECKING
-  verify_cgraph ();
-  /* Double check that all inline clones are gone and that all
-     function bodies have been released from memory.  */
-  if (!seen_error ())
-    {
-      struct cgraph_node *node;
-      bool error_found = false;
-
-      for (node = cgraph_nodes; node; node = node->next)
-	if (node->analyzed
-	    && (node->global.inlined_to
-		|| gimple_has_body_p (node->decl)))
-	  {
-	    error_found = true;
-	    dump_cgraph_node (stderr, node);
-	  }
-      if (error_found)
-	internal_error ("nodes with unreleased memory found");
-    }
-#endif
-}
 
 void
 init_cgraph (void)
@@ -2549,7 +2556,7 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
    bring all functions to memory prior compilation, but current WHOPR
    implementation does that and it is is bit easier to keep everything right in
    this order.  */
-void
+static void
 cgraph_materialize_all_clones (void)
 {
   struct cgraph_node *node;
@@ -2627,5 +2634,179 @@ cgraph_materialize_all_clones (void)
 #endif
   cgraph_remove_unreachable_nodes (false, cgraph_dump_file);
 }
+
+
+/* Perform simple optimizations based on callgraph.  */
+
+void
+cgraph_optimize (void)
+{
+  if (seen_error ())
+    return;
+
+#ifdef ENABLE_CHECKING
+  verify_cgraph ();
+#endif
+
+  /* Frontend may output common variables after the unit has been finalized.
+     It is safe to deal with them here as they are always zero initialized.  */
+  varpool_analyze_pending_decls ();
+
+  timevar_push (TV_CGRAPHOPT);
+  if (pre_ipa_mem_report)
+    {
+      fprintf (stderr, "Memory consumption before IPA\n");
+      dump_memory_report (false);
+    }
+  if (!quiet_flag)
+    fprintf (stderr, "Performing interprocedural optimizations\n");
+  cgraph_state = CGRAPH_STATE_IPA;
+
+  /* Don't run the IPA passes if there was any error or sorry messages.  */
+  if (!seen_error ())
+    ipa_passes ();
+
+  /* Do nothing else if any IPA pass found errors or if we are just streaming LTO.  */
+  if (seen_error ()
+      || (!in_lto_p && flag_lto && !flag_fat_lto_objects))
+    {
+      timevar_pop (TV_CGRAPHOPT);
+      return;
+    }
+
+  /* This pass remove bodies of extern inline functions we never inlined.
+     Do this later so other IPA passes see what is really going on.  */
+  cgraph_remove_unreachable_nodes (false, dump_file);
+  cgraph_global_info_ready = true;
+  if (cgraph_dump_file)
+    {
+      fprintf (cgraph_dump_file, "Optimized ");
+      dump_cgraph (cgraph_dump_file);
+      dump_varpool (cgraph_dump_file);
+    }
+  if (post_ipa_mem_report)
+    {
+      fprintf (stderr, "Memory consumption after IPA\n");
+      dump_memory_report (false);
+    }
+  timevar_pop (TV_CGRAPHOPT);
+
+  /* Output everything.  */
+  (*debug_hooks->assembly_start) ();
+  if (!quiet_flag)
+    fprintf (stderr, "Assembling functions:\n");
+#ifdef ENABLE_CHECKING
+  verify_cgraph ();
+#endif
+
+  cgraph_materialize_all_clones ();
+  bitmap_obstack_initialize (NULL);
+  execute_ipa_pass_list (all_late_ipa_passes);
+  cgraph_remove_unreachable_nodes (true, dump_file);
+#ifdef ENABLE_CHECKING
+  verify_cgraph ();
+#endif
+  bitmap_obstack_release (NULL);
+  cgraph_mark_functions_to_output ();
+  output_weakrefs ();
+
+  cgraph_state = CGRAPH_STATE_EXPANSION;
+  if (!flag_toplevel_reorder)
+    cgraph_output_in_order ();
+  else
+    {
+      cgraph_output_pending_asms ();
+
+      cgraph_expand_all_functions ();
+      varpool_remove_unreferenced_decls ();
+
+      varpool_assemble_pending_decls ();
+    }
+
+  cgraph_process_new_functions ();
+  cgraph_state = CGRAPH_STATE_FINISHED;
+
+  if (cgraph_dump_file)
+    {
+      fprintf (cgraph_dump_file, "\nFinal ");
+      dump_cgraph (cgraph_dump_file);
+      dump_varpool (cgraph_dump_file);
+    }
+#ifdef ENABLE_CHECKING
+  verify_cgraph ();
+  /* Double check that all inline clones are gone and that all
+     function bodies have been released from memory.  */
+  if (!seen_error ())
+    {
+      struct cgraph_node *node;
+      bool error_found = false;
+
+      for (node = cgraph_nodes; node; node = node->next)
+	if (node->analyzed
+	    && (node->global.inlined_to
+		|| gimple_has_body_p (node->decl)))
+	  {
+	    error_found = true;
+	    dump_cgraph_node (stderr, node);
+	  }
+      if (error_found)
+	internal_error ("nodes with unreleased memory found");
+    }
+#endif
+}
+
+
+/* Analyze the whole compilation unit once it is parsed completely.  */
+
+void
+cgraph_finalize_compilation_unit (void)
+{
+  timevar_push (TV_CGRAPH);
+
+  /* If LTO is enabled, initialize the streamer hooks needed by GIMPLE.  */
+  if (flag_lto)
+    lto_streamer_hooks_init ();
+
+  /* If we're here there's no current function anymore.  Some frontends
+     are lazy in clearing these.  */
+  current_function_decl = NULL;
+  set_cfun (NULL);
+
+  /* Do not skip analyzing the functions if there were errors, we
+     miss diagnostics for following functions otherwise.  */
+
+  /* Emit size functions we didn't inline.  */
+  finalize_size_functions ();
+
+  /* Mark alias targets necessary and emit diagnostics.  */
+  finish_aliases_1 ();
+  handle_alias_pairs ();
+
+  if (!quiet_flag)
+    {
+      fprintf (stderr, "\nAnalyzing compilation unit\n");
+      fflush (stderr);
+    }
+
+  if (flag_dump_passes)
+    dump_passes ();
+
+  /* Gimplify and lower all functions, compute reachability and
+     remove unreachable nodes.  */
+  cgraph_analyze_functions ();
+
+  /* Mark alias targets necessary and emit diagnostics.  */
+  finish_aliases_1 ();
+  handle_alias_pairs ();
+
+  /* Gimplify and lower thunks.  */
+  cgraph_analyze_functions ();
+
+  /* Finally drive the pass manager.  */
+  cgraph_optimize ();
+
+  timevar_pop (TV_CGRAPH);
+}
+
 
 #include "gt-cgraphunit.h"

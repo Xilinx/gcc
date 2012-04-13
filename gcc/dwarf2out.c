@@ -17765,7 +17765,7 @@ common_block_die_table_eq (const void *x, const void *y)
 static void
 gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
 {
-  HOST_WIDE_INT off;
+  HOST_WIDE_INT off = 0;
   tree com_decl;
   tree decl_or_origin = decl ? decl : origin;
   tree ultimate_origin;
@@ -18369,6 +18369,7 @@ gen_producer_string (void)
       case OPT__output_pch_:
       case OPT_fdiagnostics_show_location_:
       case OPT_fdiagnostics_show_option:
+      case OPT_fdiagnostics_show_caret:
       case OPT_fverbose_asm:
       case OPT____:
       case OPT__sysroot_:

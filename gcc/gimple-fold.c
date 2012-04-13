@@ -2427,7 +2427,7 @@ gimple_fold_stmt_to_constant_1 (gimple stmt, tree (*valueize) (tree))
 	      else if (TREE_CODE (rhs) == ADDR_EXPR
 		       && !is_gimple_min_invariant (rhs))
 		{
-		  HOST_WIDE_INT offset;
+		  HOST_WIDE_INT offset = 0;
 		  tree base;
 		  base = get_addr_base_and_unit_offset_1 (TREE_OPERAND (rhs, 0),
 							  &offset,
@@ -3087,7 +3087,7 @@ gimple_get_virt_method_for_binfo (HOST_WIDE_INT token, tree known_binfo)
   offset += token * size;
   fn = fold_ctor_reference (TREE_TYPE (TREE_TYPE (v)), DECL_INITIAL (v),
 			    offset, size);
-  if (!fn)
+  if (!fn || integer_zerop (fn))
     return NULL_TREE;
   gcc_assert (TREE_CODE (fn) == ADDR_EXPR
 	      || TREE_CODE (fn) == FDESC_EXPR);
