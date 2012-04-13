@@ -3695,11 +3695,22 @@ rs6000_builtin_vectorization_cost (enum vect_cost_for_stmt type_of_cost,
       case vec_to_scalar:
       case scalar_to_vec:
       case cond_branch_not_taken:
-      case vec_perm:
         return 1;
 
       case cond_branch_taken:
         return 3;
+
+      case vec_perm:
+	if (TARGET_VSX)
+	  return 4;
+	else
+	  return 1;
+
+      case vec_promote_demote:
+	if (TARGET_VSX)
+	  return 5;
+	else
+	  return 1;
 
       case unaligned_load:
         if (TARGET_VSX && TARGET_ALLOW_MOVMISALIGN)
@@ -17229,6 +17240,10 @@ rs6000_emit_vector_compare_inner (enum rtx_code code, rtx op0, rtx op1)
     case EQ:
     case GT:
     case GTU:
+    case ORDERED:
+    case UNORDERED:
+    case UNEQ:
+    case LTGT:
       mask = gen_reg_rtx (mode);
       emit_insn (gen_rtx_SET (VOIDmode,
 			      mask,

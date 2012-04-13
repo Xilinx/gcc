@@ -1,3 +1,232 @@
+2012-04-12  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/49448
+	* config.gcc (arm*-*-linux*): Use an unambiguous pattern for
+	detecting big-endian triplets.
+
+2012-04-10  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR middle-end/52894
+	* varasm.c (process_pending_assemble_externals): Set
+	pending_assemble_externals_processed true.
+	(assemble_external): Call assemble_external_real if the pending
+	assemble externals have been processed.
+
+2012-04-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/52717
+	* config/sparc/sparc.c (sparc_file_end): Set TREE_PUBLIC explicitly on
+	the DECL generated for the special GOT helper.
+
+2012-04-06  Matt Turner  <mattst88@gmail.com>
+
+	* doc/install.texi: Correct typo "-mno-lsc" -> "-mno-llsc".
+
+2012-03-29  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (avx_h<plusminus_insn>v4df3): Fix results
+	crossing 128bit lane boundary.
+
+2012-03-29  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backported from mainline
+	2012-03-27  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52698
+	* config/i386/i386-protos.h (ix86_legitimize_reload_address):
+	New prototype.
+	* config/i386/i386.h (LEGITIMIZE_RELOAD_ADDRESS): New define.
+	* config/i386/i386.c: Include reload.h.
+	(ix86_legitimize_reload_address): New function.
+
+2012-03-28  Joey Ye  <joey.ye@arm.com>
+
+	Backported from mainline
+	2011-12-20  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR middle-end/51200
+	* expr.c (store_field): Avoid a direct store if the mode is larger
+	than the size of the bit field.
+	* stor-layout.c (layout_decl): If flag_strict_volatile_bitfields,
+	treat non-volatile bit fields like volatile ones.
+	* toplev.c (process_options): Disallow combination of
+	-fstrict-volatile-bitfields and ABI versions less than 2.
+	* config/arm/arm.c (arm_option_override): Don't enable
+	flag_strict_volatile_bitfields if the ABI version is less than 2.
+	* config/h8300/h8300.c (h8300_option_override): Likewise.
+	* config/rx/rx.c (rx_option_override): Likewise.
+	* config/m32c/m32c.c (m32c_option_override): Likewise.
+	* config/sh/sh.c (sh_option_override): Likewise.
+
+	2011-12-22  Joey Ye  <joey.ye@arm.com>
+
+	* toplev.c (process_options): Fix typo.
+
+2012-03-28  Martin Jambor  <mjambor@suse.cz>
+
+	Backported from mainline
+	2012-03-27  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/52693
+	* tree-sra.c (sra_modify_assign): Do not call
+	load_assign_lhs_subreplacements when working with an unscalarizable
+	region.
+
+2012-03-28  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/52741
+
+	Revert r181936 from 2011-12-02 for:
+	* config/avr/libgcc.S (__prologue_saves__, __epilogue_restores__)
+	* config/avr/avr.md (movhi_sp_r_irq_off, movhi_sp_r_irq_on)
+	* config/avr/avr.c (output_movhi, avr_file_start)
+
+2012-03-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52736
+	* config/i386/sse.md (sse2_loadlpd splitter): Use offset 0
+	instead of 8 in adjust_address.
+
+2012-03-24  Jan Hubicka  <jh@suse.cz>
+
+	Backport from mainline
+	PR regression/52696
+	* predict.c (predict_paths_for_bb): Fix typo.
+
+2012-03-24  Jan Hubicka  <jh@suse.cz>
+
+	Backport from mainline
+	PR middle-end/51737
+	* cgraph.c (cgraph_remove_node_and_inline_clones): Add FORBIDDEN_NODE
+	parameter.
+	* cgraph.h (cgraph_remove_node_and_inline_clones): Update prototype.
+	* ipa-inline-transform.c (save_inline_function_body): Remove copied
+	clone if needed.
+	* tree-inline.c (delete_unreachable_blocks_update_callgraph): Update.
+
+2012-03-24  Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR middle-end/52640
+	* varasm.c: Include pointer-set.h.
+	(pending_assemble_externals_set): New pointer set.
+	(process_pending_assemble_externals): Destroy the pointer set.
+	(assemble_external): See if decl is in pending_assemble_externals_set,
+	and add it to pending_assemble_externals if necessary.
+	(init_varasm_once): Allocate pending_assemble_externals_set.
+
+2012-03-16  Jan Hubicka  <jh@suse.cz>
+
+	Backport from mainline
+	PR middle-end/48600
+	* predict.c (predict_paths_for_bb): Prevent looping.
+	(predict_paths_leading_to_edge, predict_paths_leading_to): Update.
+
+2012-03-16  Michael Hope  <michael.hope@linaro.org>
+
+	Backport from mainline
+	2011-05-05  Michael Hope  <michael.hope@linaro.org>
+
+	PR pch/45979
+	* config/host-linux.c (TRY_EMPTY_VM_SPACE): Define for
+	__ARM_EABI__ hosts.
+
+2012-03-15  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	Backport from mainline
+	2012-03-10  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	PR rtl-optimization/52528
+	* combine.c (can_combine_p): Add setting of subst_low_luid
+	before call to expand_field_assignment().
+
+2012-03-12  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	Backport from mainline
+	2011-09-03  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR Bug middle-end/50232
+	* config/pa/pa.md (return): Define "return" insn pattern.
+	(epilogue): Use it when no epilogue is needed.
+	* config/pa/pa.c (pa_can_use_return_insn): New function.
+	* config/pa/pa-protos.h (pa_can_use_return_insn): Declare.
+
+	Backport for mainline
+	2012-01-28  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/51871
+	* config/pa/pa.c (pa_return_addr_rtx): Add support for PA2.0 export
+	stubs.
+
+2012-03-06  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	Backport from mainline
+	PR target/50310
+	* config/rs6000/vector.md (vector_uneq<mode>): Add support for
+	UNEQ, LTGT, ORDERED, and UNORDERED IEEE vector comparisons.
+	(vector_ltgt<mode>): Likewise.
+	(vector_ordered<mode>): Likewise.
+	(vector_unordered<mode>): Likewise.
+	* config/rs6000/rs6000.c (rs6000_emit_vector_compare_inner): Likewise.
+
+2012-03-04  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	Backport from mainline
+	2012-03-01  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/52408
+	* config/pa/pa.md (zvdep_imm32): Change type of variable x from int to
+	unsigned HOST_WIDE_INT.
+	(zvdep_imm64): Likewise.
+	(vdepi_ior): Change type of variable x from int to HOST_WIDE_INT.
+	(vdepi_and): Likewise.
+	Likewise for unamed 64-bit patterns.
+	* config/pa/predicates.md (lhs_lshift_cint_operand): Update comment.
+
+2012-03-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/52425
+	Backport from mainline
+	2011-05-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.c (sparc_delegitimize_address): Handle
+	UNSPEC_MOVE_PIC pattern.
+
+2012-03-02  Peter Bergner  <bergner@vnet.ibm.com>
+
+	Backport from mainline
+	2012-03-02  Peter Bergner  <bergner@vnet.ibm.com>
+
+	* config/rs6000/vsx.md (vsx_set_<mode>): Reorder operands.
+
+2012-03-02  Bill Schmidt <wschmidt@linux.vnet.ibm.com>
+	    Ira Rosen <irar@il.ibm.com>
+
+	PR tree-optimization/50031
+	PR tree-optimization/50969
+	* targhooks.c (default_builtin_vectorization_cost): Handle
+	vec_promote_demote.
+	* target.h (enum vect_cost_for_stmt): Add vec_promote_demote.
+	* tree-vect-loop.c (vect_get_single_scalar_iteraion_cost): Handle
+	all types of reduction and pattern statements.
+	(vect_estimate_min_profitable_iters): Likewise.
+	* tree-vect-stmts.c (vect_model_promotion_demotion_cost): New function.
+	(vect_model_store_cost): Use vec_perm rather than vector_stmt for
+	statement cost.
+	(vect_model_load_cost): Likewise.
+	(vect_get_load_cost): Likewise; add dump logic for explicit realigns.
+	(vectorizable_type_demotion): Call vect_model_promotion_demotion_cost.
+	(vectorizable_type_promotion): Likewise.
+	* config/spu/spu.c (spu_builtin_vectorization_cost): Handle
+	vec_promote_demote.
+	* config/i386/i386.c (ix86_builtin_vectorization_cost): Likewise.
+	* config/rs6000/rs6000.c (rs6000_builtin_vectorization_cost): Update
+	vec_perm for VSX and handle vec_promote_demote.
+
+2012-03-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* BASE-VER: Set to 4.6.4.
+	* DEV-PHASE: Set to prerelease.
+
 2012-03-01  Release Manager
 
 	* GCC 4.6.3 released.

@@ -1,3 +1,70 @@
+2012-04-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/52796
+	* g++.dg/cpp0x/variadic-value1.C: New.
+
+2012-03-28  Joey Ye  <joey.ye@arm.com>
+
+	Backported from mainline
+	2011-12-20  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR middle-end/51200
+	* gcc.target/arm/volatile-bitfields-4.c: New test.
+	* c-c++-common/abi-bf.c: New test.
+
+	2011-12-26  Joey Ye  <joey.ye@arm.com>
+
+	PR middle-end/51200
+	* gcc.dg/volatile-bitfields-2.c: New test.
+
+2012-03-28  Martin Jambor  <mjambor@suse.cz>
+
+	Backported from mainline
+	2012-03-27  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/52693
+	* gcc.dg/torture/pr52693.c: New test.
+
+2012-03-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/52736
+	* gcc.target/i386/pr52736.c: New test.
+
+2012-03-24  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/51737
+	* g++.dg/torture/pr51737.C: New testcase
+
+2012-03-24  Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR middle-end/52640
+	* gcc.c-torture/compile/limits-externdecl.c: New test.
+
+2012-03-16  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/48600
+	* g++.dg/torture/pr48600.C: New testcase.
+
+2012-03-10  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52469
+	* gfortran.dg/proc_ptr_34.f90: New.
+
+2012-03-06  Tobias Burnus  <burnus@net-b.de>
+
+	Backport from mainline
+	2012-03-02  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52452
+	* gfortran.dg/intrinsic_8.f90: New.
+
+2012-03-02  Peter Bergner  <bergner@vnet.ibm.com>
+
+	Backport from mainline
+	2012-03-02  Peter Bergner  <bergner@vnet.ibm.com>
+
+	* gcc.target/powerpc/pr52457.c: New test.
+
 2012-03-01  Release Manager
 
 	* GCC 4.6.3 released.
