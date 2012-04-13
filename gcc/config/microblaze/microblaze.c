@@ -1747,6 +1747,8 @@ microblaze_option_override (void)
 
   if (flag_pic)
     {
+      /* Make sure it's 2, we only support one kind of PIC.  */
+      flag_pic = 2;
       if (!TARGET_SUPPORTS_PIC)
         {
           error ("-fPIC/-fpic not supported for this target");
