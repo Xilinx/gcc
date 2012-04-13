@@ -188,22 +188,6 @@ grep '^const _SYS_' gen-sysinfo.go | \
     echo "const $sup = _$sys" >> ${OUT}
   done
 
-# Handle system call numbers like "(0x40000000 | (234))"
-if grep '^// unknowndefine SYS_[a-z]' gen-sysinfo.go >/dev/null 2>&1; then
-  rm -f unknown-syscalls.c
-  echo "#include \"sysinfo.c\"" > unknown-syscalls.c
-  grep '^// unknowndefine SYS_[a-z]' gen-sysinfo.go | \
-    grep __NR_ | \
-    awk '{ print $3 }' | \
-    while read sys; do
-      sup=`echo $sys | tr abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ`
-      echo "const $sup = $sys"
-    done >> unknown-syscalls.c
-    ${CC} -E unknown-syscalls.c | \
-      grep "^const SYS_.*=" | \
-      grep -v __NR_ >> ${OUT}
-fi
-
 # Stat constants.
 grep '^const _S_' gen-sysinfo.go | \
   sed -e 's/^\(const \)_\(S_[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
