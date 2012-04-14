@@ -91,7 +91,7 @@ spread_'rtype_code` ('rtype` *ret, const 'rtype` *source,
 	    {
 	      count[dim] = 0;
 	      extent[dim] = GFC_DESCRIPTOR_EXTENT(source,dim);
-	      sstride[dim] = GFC_DESCRIPTOR_STRIDE(source,dim);
+	      sstride[dim] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(source,dim);
 	      rstride[dim] = rs;
 
 	      ext = extent[dim];
@@ -126,7 +126,7 @@ spread_'rtype_code` ('rtype` *ret, const 'rtype` *source,
 	      ret_extent = GFC_DESCRIPTOR_EXTENT(ret,n);
 	      if (n == along - 1)
 		{
-		  rdelta = GFC_DESCRIPTOR_STRIDE(ret,n);
+		  rdelta = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,n);
 
 		  if (ret_extent != ncopies)
 		    runtime_error("Incorrect extent in return value of SPREAD"
@@ -147,8 +147,8 @@ spread_'rtype_code` ('rtype` *ret, const 'rtype` *source,
 		    
 		  if (extent[dim] <= 0)
 		    zero_sized = 1;
-		  sstride[dim] = GFC_DESCRIPTOR_STRIDE(source,dim);
-		  rstride[dim] = GFC_DESCRIPTOR_STRIDE(ret,n);
+		  sstride[dim] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(source,dim);
+		  rstride[dim] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,n);
 		  dim++;
 		}
 	    }
@@ -159,7 +159,7 @@ spread_'rtype_code` ('rtype` *ret, const 'rtype` *source,
 	    {
 	      if (n == along - 1)
 		{
-		  rdelta = GFC_DESCRIPTOR_STRIDE(ret,n);
+		  rdelta = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,n);
 		}
 	      else
 		{
@@ -167,8 +167,8 @@ spread_'rtype_code` ('rtype` *ret, const 'rtype` *source,
 		  extent[dim] = GFC_DESCRIPTOR_EXTENT(source,dim);
 		  if (extent[dim] <= 0)
 		    zero_sized = 1;
-		  sstride[dim] = GFC_DESCRIPTOR_STRIDE(source,dim);
-		  rstride[dim] = GFC_DESCRIPTOR_STRIDE(ret,n);
+		  sstride[dim] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(source,dim);
+		  rstride[dim] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,n);
 		  dim++;
 		}
 	    }
@@ -252,12 +252,12 @@ spread_scalar_'rtype_code` ('rtype` *ret, const 'rtype_name` *source,
   else
     {
       if (ncopies - 1 > (GFC_DESCRIPTOR_EXTENT(ret,0) - 1)
-			   / GFC_DESCRIPTOR_STRIDE(ret,0))
+			   / GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,0))
 	runtime_error ("dim too large in spread()");
     }
 
   dest = ret->base_addr;
-  stride = GFC_DESCRIPTOR_STRIDE(ret,0);
+  stride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,0);
 
   for (n = 0; n < ncopies; n++)
     {

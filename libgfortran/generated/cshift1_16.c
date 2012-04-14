@@ -141,7 +141,7 @@ cshift1 (gfc_array_char * const restrict ret,
           rstride[n] = GFC_DESCRIPTOR_SM(ret,dim);
           sstride[n] = GFC_DESCRIPTOR_SM(array,dim);
 
-          hstride[n] = GFC_DESCRIPTOR_STRIDE(h,n);
+          hstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(h,n);
           n++;
         }
     }

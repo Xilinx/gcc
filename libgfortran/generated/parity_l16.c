@@ -61,11 +61,11 @@ parity_l16 (gfc_array_l16 * const restrict retarray,
   len = GFC_DESCRIPTOR_EXTENT(array,dim);
   if (len < 0)
     len = 0;
-  delta = GFC_DESCRIPTOR_STRIDE(array,dim);
+  delta = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(array,dim);
 
   for (n = 0; n < dim; n++)
     {
-      sstride[n] = GFC_DESCRIPTOR_STRIDE(array,n);
+      sstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(array,n);
       extent[n] = GFC_DESCRIPTOR_EXTENT(array,n);
 
       if (extent[n] < 0)
@@ -73,7 +73,7 @@ parity_l16 (gfc_array_l16 * const restrict retarray,
     }
   for (n = dim; n < rank; n++)
     {
-      sstride[n] = GFC_DESCRIPTOR_STRIDE(array, n + 1);
+      sstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(array, n + 1);
       extent[n] = GFC_DESCRIPTOR_EXTENT(array, n + 1);
 
       if (extent[n] < 0)
@@ -126,7 +126,7 @@ parity_l16 (gfc_array_l16 * const restrict retarray,
   for (n = 0; n < rank; n++)
     {
       count[n] = 0;
-      dstride[n] = GFC_DESCRIPTOR_STRIDE(retarray,n);
+      dstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(retarray,n);
       if (extent[n] <= 0)
 	return;
     }

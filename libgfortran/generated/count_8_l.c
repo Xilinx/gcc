@@ -139,7 +139,7 @@ count_8_l (gfc_array_i8 * const restrict retarray,
   for (n = 0; n < rank; n++)
     {
       count[n] = 0;
-      dstride[n] = GFC_DESCRIPTOR_STRIDE(retarray,n);
+      dstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(retarray,n);
       if (extent[n] <= 0)
 	return;
     }

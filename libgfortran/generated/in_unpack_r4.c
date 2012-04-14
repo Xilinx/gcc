@@ -52,7 +52,7 @@ internal_unpack_r4 (gfc_array_r4 * d, const GFC_REAL_4 * src)
   for (n = 0; n < dim; n++)
     {
       count[n] = 0;
-      stride[n] = GFC_DESCRIPTOR_STRIDE(d,n);
+      stride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(d,n);
       extent[n] = GFC_DESCRIPTOR_EXTENT(d,n);
       if (extent[n] <= 0)
 	return;

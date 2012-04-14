@@ -52,7 +52,7 @@ internal_unpack_c16 (gfc_array_c16 * d, const GFC_COMPLEX_16 * src)
   for (n = 0; n < dim; n++)
     {
       count[n] = 0;
-      stride[n] = GFC_DESCRIPTOR_STRIDE(d,n);
+      stride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(d,n);
       extent[n] = GFC_DESCRIPTOR_EXTENT(d,n);
       if (extent[n] <= 0)
 	return;

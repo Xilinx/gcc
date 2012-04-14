@@ -364,6 +364,11 @@ typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_LOGICAL_16) gfc_array_l16;
 #define GFC_DESCRIPTOR_TYPE(desc) (((desc)->dtype & GFC_DTYPE_TYPE_MASK) \
                                    >> GFC_DTYPE_TYPE_SHIFT)
 #define GFC_DESCRIPTOR_SIZE(desc) ((desc)->dtype >> GFC_DTYPE_SIZE_SHIFT)
+
+/*  This is for getting the size of a type when the type of the
+    descriptor is known at compile-time.  Do not use for string types.  */
+
+#define GFC_DESCRIPTOR_SIZE_TYPEKNOWN(desc) (sizeof((desc)->base_addr[0]))
 #define GFC_DESCRIPTOR_DATA(desc) ((desc)->base_addr)
 #define GFC_DESCRIPTOR_DTYPE(desc) ((desc)->dtype)
 
@@ -390,6 +395,13 @@ typedef GFC_ARRAY_DESCRIPTOR (GFC_MAX_DIMENSIONS, GFC_LOGICAL_16) gfc_array_l16;
 #define GFC_DESCRIPTOR_SM(desc,i) ((desc)->dim[i].sm)
 #define GFC_DESCRIPTOR_STRIDE(desc,i) \
   (GFC_DESCRIPTOR_SM(desc,i) / GFC_DESCRIPTOR_SIZE(desc))
+
+/* This is for getting the stride when the type of the descriptor is known at
+   compile-time, to avoid expensive divisions.  Do not use for string
+   types.  */
+
+#define GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(desc,i) \
+  (GFC_DESCRIPTOR_SM(desc,i) / GFC_DESCRIPTOR_SIZE_TYPEKNOWN(desc))
 
 /* Macros to get both the size and the type with a single masking operation  */
 

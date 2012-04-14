@@ -60,11 +60,11 @@ iall_i4 (gfc_array_i4 * const restrict retarray,
   len = GFC_DESCRIPTOR_EXTENT(array,dim);
   if (len < 0)
     len = 0;
-  delta = GFC_DESCRIPTOR_STRIDE(array,dim);
+  delta = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(array,dim);
 
   for (n = 0; n < dim; n++)
     {
-      sstride[n] = GFC_DESCRIPTOR_STRIDE(array,n);
+      sstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(array,n);
       extent[n] = GFC_DESCRIPTOR_EXTENT(array,n);
 
       if (extent[n] < 0)
@@ -72,7 +72,7 @@ iall_i4 (gfc_array_i4 * const restrict retarray,
     }
   for (n = dim; n < rank; n++)
     {
-      sstride[n] = GFC_DESCRIPTOR_STRIDE(array, n + 1);
+      sstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(array, n + 1);
       extent[n] = GFC_DESCRIPTOR_EXTENT(array, n + 1);
 
       if (extent[n] < 0)
@@ -125,7 +125,7 @@ iall_i4 (gfc_array_i4 * const restrict retarray,
   for (n = 0; n < rank; n++)
     {
       count[n] = 0;
-      dstride[n] = GFC_DESCRIPTOR_STRIDE(retarray,n);
+      dstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(retarray,n);
       if (extent[n] <= 0)
 	return;
     }
@@ -234,12 +234,12 @@ miall_i4 (gfc_array_i4 * const restrict retarray,
   else
     runtime_error ("Funny sized logical array");
 
-  delta = GFC_DESCRIPTOR_STRIDE(array,dim);
+  delta = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(array,dim);
   mdelta = GFC_DESCRIPTOR_SM(mask,dim);
 
   for (n = 0; n < dim; n++)
     {
-      sstride[n] = GFC_DESCRIPTOR_STRIDE(array,n);
+      sstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(array,n);
       mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
       extent[n] = GFC_DESCRIPTOR_EXTENT(array,n);
 
@@ -249,7 +249,7 @@ miall_i4 (gfc_array_i4 * const restrict retarray,
     }
   for (n = dim; n < rank; n++)
     {
-      sstride[n] = GFC_DESCRIPTOR_STRIDE(array,n + 1);
+      sstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(array,n + 1);
       mstride[n] = GFC_DESCRIPTOR_SM(mask, n + 1);
       extent[n] = GFC_DESCRIPTOR_EXTENT(array, n + 1);
 
@@ -305,7 +305,7 @@ miall_i4 (gfc_array_i4 * const restrict retarray,
   for (n = 0; n < rank; n++)
     {
       count[n] = 0;
-      dstride[n] = GFC_DESCRIPTOR_STRIDE(retarray,n);
+      dstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(retarray,n);
       if (extent[n] <= 0)
 	return;
     }
@@ -473,7 +473,7 @@ siall_i4 (gfc_array_i4 * const restrict retarray,
   for (n = 0; n < rank; n++)
     {
       count[n] = 0;
-      dstride[n] = GFC_DESCRIPTOR_STRIDE(retarray,n);
+      dstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(retarray,n);
     }
 
   dest = retarray->base_addr;

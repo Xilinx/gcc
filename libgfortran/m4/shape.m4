@@ -53,7 +53,7 @@ shape_'rtype_kind` ('rtype` * const restrict ret,
       ret->base_addr = internal_malloc_size (sizeof ('rtype_name`) * rank);
     }
 
-  stride = GFC_DESCRIPTOR_STRIDE(ret,0);
+  stride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,0);
 
   if (GFC_DESCRIPTOR_EXTENT(ret,0) < 1)
     return;

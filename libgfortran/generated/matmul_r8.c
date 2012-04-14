@@ -176,19 +176,19 @@ matmul_r8 (gfc_array_r8 * const restrict retarray,
       /* One-dimensional result may be addressed in the code below
 	 either as a row or a column matrix. We want both cases to
 	 work. */
-      rxstride = rystride = GFC_DESCRIPTOR_STRIDE(retarray,0);
+      rxstride = rystride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(retarray,0);
     }
   else
     {
-      rxstride = GFC_DESCRIPTOR_STRIDE(retarray,0);
-      rystride = GFC_DESCRIPTOR_STRIDE(retarray,1);
+      rxstride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(retarray,0);
+      rystride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(retarray,1);
     }
 
 
   if (GFC_DESCRIPTOR_RANK (a) == 1)
     {
       /* Treat it as a a row matrix A[1,count]. */
-      axstride = GFC_DESCRIPTOR_STRIDE(a,0);
+      axstride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(a,0);
       aystride = 1;
 
       xcount = 1;
@@ -196,8 +196,8 @@ matmul_r8 (gfc_array_r8 * const restrict retarray,
     }
   else
     {
-      axstride = GFC_DESCRIPTOR_STRIDE(a,0);
-      aystride = GFC_DESCRIPTOR_STRIDE(a,1);
+      axstride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(a,0);
+      aystride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(a,1);
 
       count = GFC_DESCRIPTOR_EXTENT(a,1);
       xcount = GFC_DESCRIPTOR_EXTENT(a,0);
@@ -212,7 +212,7 @@ matmul_r8 (gfc_array_r8 * const restrict retarray,
   if (GFC_DESCRIPTOR_RANK (b) == 1)
     {
       /* Treat it as a column matrix B[count,1] */
-      bxstride = GFC_DESCRIPTOR_STRIDE(b,0);
+      bxstride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(b,0);
 
       /* bystride should never be used for 1-dimensional b.
 	 in case it is we want it to cause a segfault, rather than
@@ -222,8 +222,8 @@ matmul_r8 (gfc_array_r8 * const restrict retarray,
     }
   else
     {
-      bxstride = GFC_DESCRIPTOR_STRIDE(b,0);
-      bystride = GFC_DESCRIPTOR_STRIDE(b,1);
+      bxstride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(b,0);
+      bystride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(b,1);
       ycount = GFC_DESCRIPTOR_EXTENT(b,1);
     }
 

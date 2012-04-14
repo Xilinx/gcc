@@ -127,7 +127,7 @@ name`'rtype_qual`_'atype_code (rtype * const restrict retarray,
   for (n = 0; n < rank; n++)
     {
       count[n] = 0;
-      dstride[n] = GFC_DESCRIPTOR_STRIDE(retarray,n);
+      dstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(retarray,n);
       if (extent[n] <= 0)
 	return;
     }

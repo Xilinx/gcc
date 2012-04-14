@@ -70,10 +70,10 @@ cshift0_'rtype_code` ('rtype` *ret, const 'rtype` *array, ptrdiff_t shift,
     {
       if (dim == which)
         {
-          roffset = GFC_DESCRIPTOR_STRIDE(ret,dim);
+          roffset = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,dim);
           if (roffset == 0)
             roffset = 1;
-          soffset = GFC_DESCRIPTOR_STRIDE(array,dim);
+          soffset = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(array,dim);
           if (soffset == 0)
             soffset = 1;
           len = GFC_DESCRIPTOR_EXTENT(array,dim);
@@ -82,8 +82,8 @@ cshift0_'rtype_code` ('rtype` *ret, const 'rtype` *array, ptrdiff_t shift,
         {
           count[n] = 0;
           extent[n] = GFC_DESCRIPTOR_EXTENT(array,dim);
-          rstride[n] = GFC_DESCRIPTOR_STRIDE(ret,dim);
-          sstride[n] = GFC_DESCRIPTOR_STRIDE(array,dim);
+          rstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,dim);
+          sstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(array,dim);
           n++;
         }
     }

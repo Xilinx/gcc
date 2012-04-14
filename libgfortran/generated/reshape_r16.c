@@ -87,7 +87,7 @@ reshape_r16 (gfc_array_r16 * const restrict ret,
 
   for (n = 0; n < rdim; n++)
     {
-      shape_data[n] = shape->base_addr[n * GFC_DESCRIPTOR_STRIDE(shape,0)];
+      shape_data[n] = shape->base_addr[n * GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(shape,0)];
       if (shape_data[n] <= 0)
       {
         shape_data[n] = 0;
@@ -130,7 +130,7 @@ reshape_r16 (gfc_array_r16 * const restrict ret,
       for (n = 0; n < pdim; n++)
         {
           pcount[n] = 0;
-          pstride[n] = GFC_DESCRIPTOR_STRIDE(pad,n);
+          pstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(pad,n);
           pextent[n] = GFC_DESCRIPTOR_EXTENT(pad,n);
           if (pextent[n] <= 0)
 	    {
@@ -193,7 +193,7 @@ reshape_r16 (gfc_array_r16 * const restrict ret,
 
 	  for (n = 0; n < rdim; n++)
 	    {
-	      v = order->base_addr[n * GFC_DESCRIPTOR_STRIDE(order,0)] - 1;
+	      v = order->base_addr[n * GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(order,0)] - 1;
 
 	      if (v < 0 || v >= rdim)
 		runtime_error("Value %ld out of range in ORDER argument"
@@ -212,12 +212,12 @@ reshape_r16 (gfc_array_r16 * const restrict ret,
   for (n = 0; n < rdim; n++)
     {
       if (order)
-        dim = order->base_addr[n * GFC_DESCRIPTOR_STRIDE(order,0)] - 1;
+        dim = order->base_addr[n * GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(order,0)] - 1;
       else
         dim = n;
 
       rcount[n] = 0;
-      rstride[n] = GFC_DESCRIPTOR_STRIDE(ret,dim);
+      rstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,dim);
       rextent[n] = GFC_DESCRIPTOR_EXTENT(ret,dim);
       if (rextent[n] < 0)
         rextent[n] = 0;
@@ -239,7 +239,7 @@ reshape_r16 (gfc_array_r16 * const restrict ret,
   for (n = 0; n < sdim; n++)
     {
       scount[n] = 0;
-      sstride[n] = GFC_DESCRIPTOR_STRIDE(source,n);
+      sstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(source,n);
       sextent[n] = GFC_DESCRIPTOR_EXTENT(source,n);
       if (sextent[n] <= 0)
 	{

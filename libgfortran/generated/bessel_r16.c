@@ -53,7 +53,7 @@ bessel_jn_r16 (gfc_array_r16 * const restrict ret, int n1, int n2, GFC_REAL_16 x
 
   GFC_REAL_16 last1, last2, x2rev;
 
-  stride = GFC_DESCRIPTOR_STRIDE(ret,0);
+  stride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,0);
 
   if (ret->base_addr == NULL)
     {
@@ -72,7 +72,7 @@ bessel_jn_r16 (gfc_array_r16 * const restrict ret, int n1, int n2, GFC_REAL_16 x
 		  "(%ld vs. %ld)", (long int) n2-n1,
 		  (long int) GFC_DESCRIPTOR_EXTENT(ret,0));
 
-  stride = GFC_DESCRIPTOR_STRIDE(ret,0);
+  stride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,0);
 
   if (unlikely (x == 0))
     {
@@ -120,7 +120,7 @@ bessel_yn_r16 (gfc_array_r16 * const restrict ret, int n1, int n2,
 
   GFC_REAL_16 last1, last2, x2rev;
 
-  stride = GFC_DESCRIPTOR_STRIDE(ret,0);
+  stride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,0);
 
   if (ret->base_addr == NULL)
     {
@@ -139,7 +139,7 @@ bessel_yn_r16 (gfc_array_r16 * const restrict ret, int n1, int n2,
 		  "(%ld vs. %ld)", (long int) n2-n1,
 		  (long int) GFC_DESCRIPTOR_EXTENT(ret,0));
 
-  stride = GFC_DESCRIPTOR_STRIDE(ret,0);
+  stride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,0);
 
   if (unlikely (x == 0))
     {

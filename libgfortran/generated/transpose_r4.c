@@ -86,13 +86,13 @@ transpose_r4 (gfc_array_r4 * const restrict ret,
 
     }
 
-  sxstride = GFC_DESCRIPTOR_STRIDE(source,0);
-  systride = GFC_DESCRIPTOR_STRIDE(source,1);
+  sxstride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(source,0);
+  systride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(source,1);
   xcount = GFC_DESCRIPTOR_EXTENT(source,0);
   ycount = GFC_DESCRIPTOR_EXTENT(source,1);
 
-  rxstride = GFC_DESCRIPTOR_STRIDE(ret,0);
-  rystride = GFC_DESCRIPTOR_STRIDE(ret,1);
+  rxstride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,0);
+  rystride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,1);
 
   rptr = ret->base_addr;
   sptr = source->base_addr;

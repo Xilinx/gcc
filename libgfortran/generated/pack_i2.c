@@ -126,7 +126,7 @@ pack_i2 (gfc_array_i2 *ret, const gfc_array_i2 *array,
       extent[n] = GFC_DESCRIPTOR_EXTENT(array,n);
       if (extent[n] <= 0)
        zero_sized = 1;
-      sstride[n] = GFC_DESCRIPTOR_STRIDE(array,n);
+      sstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(array,n);
       mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
     }
   if (sstride[0] == 0)
@@ -187,7 +187,7 @@ pack_i2 (gfc_array_i2 *ret, const gfc_array_i2 *array,
 	}
     }
 
-  rstride0 = GFC_DESCRIPTOR_STRIDE(ret,0);
+  rstride0 = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,0);
   if (rstride0 == 0)
     rstride0 = 1;
   sstride0 = sstride[0];
@@ -240,7 +240,7 @@ pack_i2 (gfc_array_i2 *ret, const gfc_array_i2 *array,
       nelem = ((rptr - ret->base_addr) / rstride0);
       if (n > nelem)
         {
-          sstride0 = GFC_DESCRIPTOR_STRIDE(vector,0);
+          sstride0 = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(vector,0);
           if (sstride0 == 0)
             sstride0 = 1;
 

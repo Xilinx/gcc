@@ -50,7 +50,7 @@ bessel_jn_r'rtype_kind` ('rtype` * const restrict ret, int n1, int n2, 'rtype_na
 
   'rtype_name` last1, last2, x2rev;
 
-  stride = GFC_DESCRIPTOR_STRIDE(ret,0);
+  stride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,0);
 
   if (ret->base_addr == NULL)
     {
@@ -69,7 +69,7 @@ bessel_jn_r'rtype_kind` ('rtype` * const restrict ret, int n1, int n2, 'rtype_na
 		  "(%ld vs. %ld)", (long int) n2-n1,
 		  (long int) GFC_DESCRIPTOR_EXTENT(ret,0));
 
-  stride = GFC_DESCRIPTOR_STRIDE(ret,0);
+  stride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,0);
 
   if (unlikely (x == 0))
     {
@@ -117,7 +117,7 @@ bessel_yn_r'rtype_kind` ('rtype` * const restrict ret, int n1, int n2,
 
   'rtype_name` last1, last2, x2rev;
 
-  stride = GFC_DESCRIPTOR_STRIDE(ret,0);
+  stride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,0);
 
   if (ret->base_addr == NULL)
     {
@@ -136,7 +136,7 @@ bessel_yn_r'rtype_kind` ('rtype` * const restrict ret, int n1, int n2,
 		  "(%ld vs. %ld)", (long int) n2-n1,
 		  (long int) GFC_DESCRIPTOR_EXTENT(ret,0));
 
-  stride = GFC_DESCRIPTOR_STRIDE(ret,0);
+  stride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,0);
 
   if (unlikely (x == 0))
     {

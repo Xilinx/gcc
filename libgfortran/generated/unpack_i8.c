@@ -95,7 +95,7 @@ unpack0_i8 (gfc_array_i8 *ret, const gfc_array_i8 *vector,
 			    rs * sizeof (GFC_INTEGER_8));
 	  extent[n] = GFC_DESCRIPTOR_EXTENT(ret,n);
 	  empty = empty || extent[n] <= 0;
-	  rstride[n] = GFC_DESCRIPTOR_STRIDE(ret,n);
+	  rstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,n);
 	  mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
 	  rs *= extent[n];
 	}
@@ -110,7 +110,7 @@ unpack0_i8 (gfc_array_i8 *ret, const gfc_array_i8 *vector,
 	  count[n] = 0;
 	  extent[n] = GFC_DESCRIPTOR_EXTENT(ret,n);
 	  empty = empty || extent[n] <= 0;
-	  rstride[n] = GFC_DESCRIPTOR_STRIDE(ret,n);
+	  rstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,n);
 	  mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
 	}
       if (rstride[0] == 0)
@@ -123,7 +123,7 @@ unpack0_i8 (gfc_array_i8 *ret, const gfc_array_i8 *vector,
   if (mstride[0] == 0)
     mstride[0] = 1;
 
-  vstride0 = GFC_DESCRIPTOR_STRIDE(vector,0);
+  vstride0 = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(vector,0);
   if (vstride0 == 0)
     vstride0 = 1;
   rstride0 = rstride[0];
@@ -240,8 +240,8 @@ unpack1_i8 (gfc_array_i8 *ret, const gfc_array_i8 *vector,
 			    rs * sizeof (GFC_INTEGER_8));
 	  extent[n] = GFC_DESCRIPTOR_EXTENT(ret,n);
 	  empty = empty || extent[n] <= 0;
-	  rstride[n] = GFC_DESCRIPTOR_STRIDE(ret,n);
-	  fstride[n] = GFC_DESCRIPTOR_STRIDE(field,n);
+	  rstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,n);
+	  fstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(field,n);
 	  mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
 	  rs *= extent[n];
 	}
@@ -256,8 +256,8 @@ unpack1_i8 (gfc_array_i8 *ret, const gfc_array_i8 *vector,
 	  count[n] = 0;
 	  extent[n] = GFC_DESCRIPTOR_EXTENT(ret,n);
 	  empty = empty || extent[n] <= 0;
-	  rstride[n] = GFC_DESCRIPTOR_STRIDE(ret,n);
-	  fstride[n] = GFC_DESCRIPTOR_STRIDE(field,n);
+	  rstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(ret,n);
+	  fstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(field,n);
 	  mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
 	}
       if (rstride[0] == 0)
@@ -272,7 +272,7 @@ unpack1_i8 (gfc_array_i8 *ret, const gfc_array_i8 *vector,
   if (mstride[0] == 0)
     mstride[0] = 1;
 
-  vstride0 = GFC_DESCRIPTOR_STRIDE(vector,0);
+  vstride0 = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(vector,0);
   if (vstride0 == 0)
     vstride0 = 1;
   rstride0 = rstride[0];

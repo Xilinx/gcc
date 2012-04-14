@@ -57,7 +57,7 @@ internal_pack_c16 (gfc_array_c16 * source)
   for (n = 0; n < dim; n++)
     {
       count[n] = 0;
-      stride[n] = GFC_DESCRIPTOR_STRIDE(source,n);
+      stride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(source,n);
       extent[n] = GFC_DESCRIPTOR_EXTENT(source,n);
       if (extent[n] <= 0)
         {

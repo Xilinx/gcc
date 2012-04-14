@@ -67,11 +67,11 @@ maxloc0_4_r4 (gfc_array_i4 * const restrict retarray,
 				"MAXLOC");
     }
 
-  dstride = GFC_DESCRIPTOR_STRIDE(retarray,0);
+  dstride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(retarray,0);
   dest = retarray->base_addr;
   for (n = 0; n < rank; n++)
     {
-      sstride[n] = GFC_DESCRIPTOR_STRIDE(array,n);
+      sstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(array,n);
       extent[n] = GFC_DESCRIPTOR_EXTENT(array,n);
       count[n] = 0;
       if (extent[n] <= 0)
@@ -226,11 +226,11 @@ mmaxloc0_4_r4 (gfc_array_i4 * const restrict retarray,
   else
     runtime_error ("Funny sized logical array");
 
-  dstride = GFC_DESCRIPTOR_STRIDE(retarray,0);
+  dstride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(retarray,0);
   dest = retarray->base_addr;
   for (n = 0; n < rank; n++)
     {
-      sstride[n] = GFC_DESCRIPTOR_STRIDE(array,n);
+      sstride[n] = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(array,n);
       mstride[n] = GFC_DESCRIPTOR_SM(mask,n);
       extent[n] = GFC_DESCRIPTOR_EXTENT(array,n);
       count[n] = 0;
@@ -375,7 +375,7 @@ smaxloc0_4_r4 (gfc_array_i4 * const restrict retarray,
 			       "MAXLOC");
     }
 
-  dstride = GFC_DESCRIPTOR_STRIDE(retarray,0);
+  dstride = GFC_DESCRIPTOR_STRIDE_TYPEKNOWN(retarray,0);
   dest = retarray->base_addr;
   for (n = 0; n<rank; n++)
     dest[n * dstride] = 0 ;
