@@ -1,3 +1,14 @@
+2012-04-13  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cgraph.c (cgraph_add_new_function): Remove.
+	* elem-function.c (is_elem_fn): Replaced all node->decl with
+	node->symbol.decl.
+	(create_elem_vec_fn): Likewise.
+	(create_elem_fn_nodes): Replaced all calls for decl and externally
+	visible from cgraph_node with cgraph_node->symbol.  Also removed
+	TODO_dump_func.
+	* cilk-low.c: Removed TODO_dump_func.
+
 2012-04-10  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* elem-function.c (create_elem_vec_fn): Checked if function struct of

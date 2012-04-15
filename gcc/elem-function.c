@@ -115,7 +115,7 @@ is_elem_fn (struct cgraph_node *node)
   if (!node)
     return false;
 
-  fndecl = node->decl;
+  fndecl = node->symbol.decl;
   for (ii_tree = DECL_ATTRIBUTES (fndecl); ii_tree;
        ii_tree = TREE_CHAIN (ii_tree))
     {
@@ -362,7 +362,7 @@ create_elem_fn_nodes (struct cgraph_node *node)
   elem_fn_info *elem_fn_values = NULL;
   char *suffix = NULL;
   
-  old_decl = node->decl;
+  old_decl = node->symbol.decl;
   new_decl = copy_node (old_decl);
   TREE_TYPE (new_decl) = copy_node (TREE_TYPE (old_decl));
   elem_fn_values = extract_elem_fn_values (old_decl);
@@ -381,7 +381,7 @@ create_elem_fn_nodes (struct cgraph_node *node)
   TREE_SYMBOL_REFERENCED (DECL_NAME (new_decl_name)) = 1;
   
   new_node = cgraph_copy_node_for_versioning (node, new_decl, NULL, NULL);
-  new_node->local.externally_visible = node->local.externally_visible;
+  new_node->symbol.externally_visible = node->symbol.externally_visible;
   new_node->lowered = true;
 
   tree_elem_fn_versioning (old_decl, new_decl, NULL, false, NULL, false, NULL,
@@ -391,19 +391,19 @@ create_elem_fn_nodes (struct cgraph_node *node)
   DECL_STRUCT_FUNCTION (new_decl)->curr_properties = cfun->curr_properties;
   DECL_ATTRIBUTES (cfun->decl) =
     remove_attribute ("vector", DECL_ATTRIBUTES (cfun->decl));
-  DECL_ATTRIBUTES (new_node->decl) =
-    remove_attribute ("vector", DECL_ATTRIBUTES (new_node->decl));
+  DECL_ATTRIBUTES (new_node->symbol.decl) =
+    remove_attribute ("vector", DECL_ATTRIBUTES (new_node->symbol.decl));
 
   proc_attr = create_processor_attribute (elem_fn_values, &opp_proc_attr);
   
   if (proc_attr)
-    decl_attributes (&new_node->decl, proc_attr, 0);
+    decl_attributes (&new_node->symbol.decl, proc_attr, 0);
   if (opp_proc_attr)
     decl_attributes (&cfun->decl, opp_proc_attr, 0);
 
   opt_attr = create_optimize_attribute (3); /* this will turn vectorizer on */
   if (opt_attr)
-    decl_attributes (&new_node->decl, opt_attr, 0);
+    decl_attributes (&new_node->symbol.decl, opt_attr, 0);
   
   return new_node;
 }
@@ -561,19 +561,20 @@ create_elem_vec_fn (void)
   
   for (ii_node = cgraph_nodes; ii_node != NULL; ii_node = ii_node->next)
     {
+      tree node_decl = ii_node->symbol.decl;
       if (is_elem_fn (ii_node)
-	  && DECL_STRUCT_FUNCTION (ii_node->decl) 
-	  && !DECL_STRUCT_FUNCTION (ii_node->decl)->elem_fn_already_cloned)
+	  && DECL_STRUCT_FUNCTION (node_decl) 
+	  && !DECL_STRUCT_FUNCTION (node_decl)->elem_fn_already_cloned)
 	{
        	  copied_node = create_elem_fn_nodes (ii_node);
-	  if (DECL_RTL (ii_node->decl))
+	  if (DECL_RTL (ii_node->symbol.decl))
 	    {
-	      SET_DECL_RTL (copied_node->decl,
-			    copy_rtx (DECL_RTL (ii_node->decl)));
-	      XEXP (DECL_RTL (copied_node->decl), 0) =
+	      SET_DECL_RTL (copied_node->symbol.decl,
+			    copy_rtx (DECL_RTL (ii_node->symbol.decl)));
+	      XEXP (DECL_RTL (copied_node->symbol.decl), 0) =
 		gen_rtx_SYMBOL_REF
-		(GET_MODE (XEXP (DECL_RTL (ii_node->decl), 0)),
-		 IDENTIFIER_POINTER (DECL_NAME (copied_node->decl)));
+		(GET_MODE (XEXP (DECL_RTL (ii_node->symbol.decl), 0)),
+		 IDENTIFIER_POINTER (DECL_NAME (copied_node->symbol.decl)));
 	    }
 	  
 	}
@@ -597,6 +598,6 @@ struct gimple_opt_pass pass_elem_fn =
       0,				/* properties_provided */
       0,				/* properties_destroyed */
       0,				/* todo_flags_start */
-      TODO_dump_func|TODO_verify_flow,	/* todo_flags_finish */
+      TODO_verify_flow,			/* todo_flags_finish */
     }
   };
