@@ -1,4 +1,9 @@
 
+2012-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.5+
+	(melt_assert_failed,melt_check_failed): Declare even without
+	ENABLE_ASSERT_CHECKING
+
 2012-04-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.5 for release.
 
