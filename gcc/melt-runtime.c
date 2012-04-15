@@ -9983,8 +9983,11 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 	     melt_run_preprocessed_md5);
     fprintf (setfil, "MELTGCCBUILTIN_GENERATED='%s'\n",
 	     nowbuf);
-    fprintf (setfil, "MELTGCCBUILTIN_GCC_EXEC_PREFIX='%s'\n",
-	     gcc_exec_prefix);
+    if (gcc_exec_prefix)
+      fprintf (setfil, "MELTGCCBUILTIN_GCC_EXEC_PREFIX='%s'\n",
+	       gcc_exec_prefix);
+    else
+      fprintf (setfil, "# MELTGCCBUILTIN_GCC_EXEC_PREFIX is not set\n");
 #if ENABLE_BUILD_WITH_CXX
 #ifdef __cplusplus
     fprintf (setfil, "MELTGCCBUILTIN_BUILD_WITH_CXX=1\n");
@@ -9992,7 +9995,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     fprintf (setfil, "MELTGCCBUILTIN_BUILD_WITH_CXX=O\n");
 #endif /*__cplusplus*/
 #else /* !ENABLE_BUILD_WITH_CXX*/
-    fprintf (setfil, "## MELT without build with C++\n");
+    fprintf (setfil, "# MELTGCCBUILTIN_BUILD_WITH_CXX is not set\n");
 #endif /*ENABLE_BUILD_WITH_CXX*/
     
 

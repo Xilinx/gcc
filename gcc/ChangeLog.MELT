@@ -1,5 +1,9 @@
 
 2012-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_really_initialize): Don't print null
+	strings for print-settings
+
+2012-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_really_initialize):
 	For "print-settings" argument print MELTGCCBUILTIN_BUILD_WITH_CXX.
 
