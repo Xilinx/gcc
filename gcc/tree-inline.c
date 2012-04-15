@@ -1724,7 +1724,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 		         doing so would introduce roundoff errors and make
 			 verifier unhappy.  */
 		      edge->frequency
-		        = compute_call_stmt_bb_frequency (id->dst_node->decl,
+		        = compute_call_stmt_bb_frequency (id->dst_node->symbol.decl,
 							  copy_basic_block);
 		      if (dump_file
 		      	  && profile_status_for_function (cfun) != PROFILE_ABSENT
@@ -1778,20 +1778,21 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 		     other cases we hit a bug (incorrect node sharing is the
 		     most common reason for missing edges).  */
 		  gcc_assert (dest->needed || !dest->analyzed
-			      || dest->address_taken
+			      || dest->symbol.address_taken
 		  	      || !id->src_node->analyzed
 			      || !id->dst_node->analyzed);
 		  if (id->transform_call_graph_edges == CB_CGE_MOVE_CLONES)
 		    cgraph_create_edge_including_clones
 		      (id->dst_node, dest, orig_stmt, stmt, bb->count,
-		       compute_call_stmt_bb_frequency (id->dst_node->decl,
+		       compute_call_stmt_bb_frequency (id->dst_node->symbol.decl,
 		       				       copy_basic_block),
 		       CIF_ORIGINALLY_INDIRECT_CALL);
 		  else
 		    cgraph_create_edge (id->dst_node, dest, stmt,
 					bb->count,
 					compute_call_stmt_bb_frequency
-					  (id->dst_node->decl, copy_basic_block))->inline_failed
+					  (id->dst_node->symbol.decl,
+					   copy_basic_block))->inline_failed
 		      = CIF_ORIGINALLY_INDIRECT_CALL;
 		  if (dump_file)
 		    {
@@ -3854,7 +3855,7 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
      If we cannot, then there is no hope of inlining the function.  */
   if (cg_edge->indirect_unknown_callee)
     goto egress;
-  fn = cg_edge->callee->decl;
+  fn = cg_edge->callee->symbol.decl;
   gcc_checking_assert (fn);
 
   /* If FN is a declaration of a function in a nested scope that was
@@ -3905,10 +3906,10 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
 	}
       goto egress;
     }
-  fn = cg_edge->callee->decl;
+  fn = cg_edge->callee->symbol.decl;
 
 #ifdef ENABLE_CHECKING
-  if (cg_edge->callee->decl != id->dst_node->decl)
+  if (cg_edge->callee->symbol.decl != id->dst_node->symbol.decl)
     verify_cgraph_node (cg_edge->callee);
 #endif
 
@@ -3916,9 +3917,9 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
   id->eh_lp_nr = lookup_stmt_eh_lp (stmt);
 
   /* Update the callers EH personality.  */
-  if (DECL_FUNCTION_PERSONALITY (cg_edge->callee->decl))
-    DECL_FUNCTION_PERSONALITY (cg_edge->caller->decl)
-      = DECL_FUNCTION_PERSONALITY (cg_edge->callee->decl);
+  if (DECL_FUNCTION_PERSONALITY (cg_edge->callee->symbol.decl))
+    DECL_FUNCTION_PERSONALITY (cg_edge->caller->symbol.decl)
+      = DECL_FUNCTION_PERSONALITY (cg_edge->callee->symbol.decl);
 
   /* Split the block holding the GIMPLE_CALL.  */
   e = split_block (bb, stmt);
@@ -4130,7 +4131,7 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
      inlined.  If we don't do this now, we can lose the information about the
      variables in the function when the blocks get blown away as soon as we
      remove the cgraph node.  */
-  (*debug_hooks->outlining_inline_function) (cg_edge->callee->decl);
+  (*debug_hooks->outlining_inline_function) (cg_edge->callee->symbol.decl);
 
   /* Update callgraph if needed.  */
   cgraph_remove_node (cg_edge->callee);
