@@ -9985,6 +9985,17 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 	     nowbuf);
     fprintf (setfil, "MELTGCCBUILTIN_GCC_EXEC_PREFIX='%s'\n",
 	     gcc_exec_prefix);
+#if ENABLE_BUILD_WITH_CXX
+#ifdef __cplusplus
+    fprintf (setfil, "MELTGCCBUILTIN_BUILD_WITH_CXX=1\n");
+#else
+    fprintf (setfil, "MELTGCCBUILTIN_BUILD_WITH_CXX=O\n");
+#endif /*__cplusplus*/
+#else /* !ENABLE_BUILD_WITH_CXX*/
+    fprintf (setfil, "## MELT without build with C++\n");
+#endif /*ENABLE_BUILD_WITH_CXX*/
+    
+
     fflush (setfil);
     if (setfil == stdout)
       inform (UNKNOWN_LOCATION,

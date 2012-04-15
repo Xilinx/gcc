@@ -1,5 +1,9 @@
 
 2012-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_really_initialize):
+	For "print-settings" argument print MELTGCCBUILTIN_BUILD_WITH_CXX.
+
+2012-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bumped to 0.9.5+
 	(melt_assert_failed,melt_check_failed): Declare even without
 	ENABLE_ASSERT_CHECKING
