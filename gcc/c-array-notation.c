@@ -87,7 +87,7 @@ find_rank (tree array, bool ignore_builtin_fn, int *rank)
 	{
 	  tree func_name = CALL_EXPR_FN (array);
 	  if (TREE_CODE (func_name) == ADDR_EXPR)
-	    if (ignore_builtin_fn)
+	    if (!ignore_builtin_fn)
 	      if (is_builtin_array_notation_fn (func_name, &dummy_type))
 		/* If it is a builtin function, then we know it returns a
 		 * scalar
@@ -1482,7 +1482,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	 || TREE_CODE (func_parm) == NOP_EXPR)
     func_parm = TREE_OPERAND (func_parm, 0);
   
-  find_rank (an_builtin_fn, false, &rank);
+  find_rank (an_builtin_fn, true, &rank);
   if (rank == 0)
     return an_builtin_fn;
   else if (rank > 1 

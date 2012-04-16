@@ -1,3 +1,10 @@
+2012-04-14  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cgraphunit.c (cgraph_add_new_function): Replaced cgraph_create_node
+	with cgraph_get_create_node.
+	* c-array-notation.c (find_rank): Changed a check for true to false.
+	(fix_builtin_array_notation_fn): Changed a false parm to true.
+
 2012-04-13  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cgraph.c (cgraph_add_new_function): Remove.

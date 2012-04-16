@@ -404,7 +404,9 @@ cgraph_add_new_function (tree fndecl, bool lowered)
     {
       case CGRAPH_STATE_CONSTRUCTION:
 	/* Just enqueue function to be processed at nearest occurrence.  */
-	node = cgraph_create_node (fndecl);
+	/* bviyer: We need to use cgraph_get_create_node instead of 
+	   cgraph_create_node for Cilkplus */
+	node = cgraph_get_create_node (fndecl);
 	node->next_needed = cgraph_new_nodes;
 	if (lowered)
 	  node->lowered = true;
