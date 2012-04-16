@@ -1,3 +1,8 @@
+2012-04-15  Xinliang David Li  <davidxl@google.com>
+
+	* varasm.c (alias_target_node_exist_p): New function.
+	(finish_alias_1): Use the new function in LIPO mode.
+
 2012-04-12  Xinliang David Li  <davidxl@google.com>
 
 	* cgraphbuild.c (rebuild_cgraph_edges): Add ipa reference from
