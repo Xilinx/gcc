@@ -1,3 +1,13 @@
+2012-04-17  Teresa Johnson  <tejohnson@google.com>
+
+	Backport from google/main rev r186550
+
+	2012-04-17   Teresa Johnson  <tejohnson@google.com>
+
+	Google ref b/5910724.
+	* libgcc/libgcov.c (gcov_cur_module_id): Guard definition under
+	#ifndef __GCOV_KERNEL__.
+
 2012-04-09  Xinliang David Li  <davidxl@google.com>
 
 	Fix b/6300866: corrupted LIPO profile data generated for eon, vpr

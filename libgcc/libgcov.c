@@ -153,10 +153,10 @@ static gcov_unsigned_t gcov_crc32;
 
 /* Size of the longest file name. */
 static size_t gcov_max_filename = 0;
-#endif /* __GCOV_KERNEL__ */
 
 /* Unique identifier assigned to each module (object file).  */
 static gcov_unsigned_t gcov_cur_module_id = 0;
+#endif /* __GCOV_KERNEL__ */
 
 /* Pointer to the direct-call counters (per call-site counters).
    Initialized by the caller.  */
