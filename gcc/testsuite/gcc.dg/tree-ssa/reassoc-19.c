@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-Os -fdump-tree-reassoc2" } */
+/* { dg-options "-Os -fivopts -fdump-tree-reassoc2" } */
 
 /* Slightly changed testcase from PR middle-end/40815.  */
 void bar(char*, char*, int);
