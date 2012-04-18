@@ -2990,6 +2990,7 @@ display_help (void)
   fputs (_("  -Xassembler <arg>        Pass <arg> on to the assembler\n"), stdout);
   fputs (_("  -Xpreprocessor <arg>     Pass <arg> on to the preprocessor\n"), stdout);
   fputs (_("  -Xlinker <arg>           Pass <arg> on to the linker\n"), stdout);
+  fputs (_("  -Xclang-only=<arg>       Ignore <arg>\n"), stdout);
   fputs (_("  -save-temps              Do not delete intermediate files\n"), stdout);
   fputs (_("  -save-temps=<arg>        Do not delete intermediate files\n"), stdout);
   fputs (_("\
@@ -3358,6 +3359,11 @@ driver_handle_option (struct gcc_options *opts,
 	add_infile (arg + prev, "*");
       }
       do_save = false;
+      break;
+
+    case OPT_Xclang_only:
+      /* Ignore the argument.  Used by some drivers to selectively pass
+         arguments to clang.  */
       break;
 
     case OPT_Xlinker:

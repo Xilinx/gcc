@@ -1,3 +1,10 @@
+2012-04-18   Ollie Wild  <aaw@google.com>
+
+	* common.opt (Xclang-only): New option.
+	* doc/invoke.texi (Xclang-only): Document new option.
+	* gcc.c (display_help): Print new option.
+	(driver_handle_option): Support new option (ignoring args).
+
 2012-03-02   Sharad Singhai  <singhai@google.com>
 
 	Mainline merge rev 184776 until start of gcc 4.8 branch.

@@ -9939,6 +9939,11 @@ systems using the GNU linker.  On some targets, such as bare-board
 targets without an operating system, the @option{-T} option may be required
 when linking to avoid references to undefined symbols.
 
+@item -Xclang-only @var{option}
+@opindex Xclang-only
+Ignore @var{option}.  This is used by some custom drivers to pass options
+to Clang but not GCC.
+
 @item -Xlinker @var{option}
 @opindex Xlinker
 Pass @var{option} as an option to the linker.  You can use this to
