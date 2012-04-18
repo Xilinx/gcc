@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-O2 -fdump-tree-ivopts-details" } */
+/* { dg-options "-O2 -fivopts -fdump-tree-ivopts-details" } */
 
 void f2 (void);
 
