@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-Os -fdump-tree-optimized" } */
+/* { dg-options "-Os -fivopts -fdump-tree-optimized" } */
 
 /* Slightly changed testcase from PR middle-end/40815.  */
 void bar(char*, char*, int);
