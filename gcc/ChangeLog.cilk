@@ -1,3 +1,9 @@
+2012-04-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* elem-function.c (is_elem_fn): Changed the parameter type from a
+	cgraph_node to tree of type function decl.
+	(create_elem_vec_fn): Likewise.
+
 2012-04-14  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cgraphunit.c (cgraph_add_new_function): Replaced cgraph_create_node

@@ -109,13 +109,10 @@ rename_elem_fn (tree decl, const char *suffix)
 /* this function will check to see if the node is part of an function that
  * needs to be converted to its vector equivalent. */
 static bool
-is_elem_fn (struct cgraph_node *node)
+is_elem_fn (tree fndecl)
 {
-  tree fndecl, ii_tree;
-  if (!node)
-    return false;
+  tree ii_tree;
 
-  fndecl = node->symbol.decl;
   for (ii_tree = DECL_ATTRIBUTES (fndecl); ii_tree;
        ii_tree = TREE_CHAIN (ii_tree))
     {
@@ -562,7 +559,7 @@ create_elem_vec_fn (void)
   for (ii_node = cgraph_nodes; ii_node != NULL; ii_node = ii_node->next)
     {
       tree node_decl = ii_node->symbol.decl;
-      if (is_elem_fn (ii_node)
+      if (is_elem_fn (node_decl)
 	  && DECL_STRUCT_FUNCTION (node_decl) 
 	  && !DECL_STRUCT_FUNCTION (node_decl)->elem_fn_already_cloned)
 	{
