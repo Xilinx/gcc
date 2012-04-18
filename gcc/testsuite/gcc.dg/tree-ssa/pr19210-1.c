@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-O2 -Wunsafe-loop-optimizations" } */
+/* { dg-options "-O2 -fivopts -Wunsafe-loop-optimizations" } */
 extern void g(void);
 
 void
