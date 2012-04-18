@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-O2 -fdump-tree-ivopts" } */
+/* { dg-options "-O2 -fivopts -fdump-tree-ivopts" } */
 
 void vnum_test8(int *data) 
 { 

@@ -1,7 +1,7 @@
 /* A test for strength reduction and induction variable elimination.  */
 
 /* { dg-do compile } */
-/* { dg-options "-O1 -fdump-tree-optimized" } */
+/* { dg-options "-O1 -fivopts -fdump-tree-optimized" } */
 /* { dg-require-effective-target size32plus } */
 
 /* Size of this structure should be sufficiently weird so that no memory
