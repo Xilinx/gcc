@@ -2103,7 +2103,7 @@
   (set_attr "length"	"4")])
 
 (define_insn "call_internal1"
-  [(call (mem (match_operand:SI 0 "call_insn_operand" "ri"))
+  [(call (mem (match_operand:SI 0 "call_insn_simple_operand" "ri"))
 	 (match_operand:SI 1 "" "i"))
   (clobber (reg:SI R_SR))]
   ""
@@ -2119,6 +2119,7 @@
     else if (GET_CODE (target) == REG)
         return "brald\tr15,%0\;%#";	
     else {
+        debug_rtx(target);
         fprintf (stderr,"Unsupported call insn\n");
         return NULL;
     }
