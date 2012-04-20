@@ -1,4 +1,9 @@
-2012-04-15  Xinliang David Li  <davidxl@google.com>
+2012-04-20  Xinliang David Li  <davidxl@google.com>
+
+	Backport r186622 from trunk
+	* tree-ssa-copy.c (propagate_tree_value_into_stmt): Use
+	update_call_from_tree when propagating into a call.
+
 
 	* varasm.c (alias_target_node_exist_p): New function.
 	(finish_alias_1): Use the new function in LIPO mode.
