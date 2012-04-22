@@ -3361,11 +3361,6 @@ driver_handle_option (struct gcc_options *opts,
       do_save = false;
       break;
 
-    case OPT_Xclang_only:
-      /* Ignore the argument.  Used by some drivers to selectively pass
-         arguments to clang.  */
-      break;
-
     case OPT_Xlinker:
       add_infile (arg, "*");
       do_save = false;

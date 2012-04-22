@@ -1,3 +1,8 @@
+2012-04-21   Ollie Wild  <aaw@google.com>
+
+	* common.opt (Xclang-only): Prepend missing '=' and mark as ignored.
+	* gcc.c (driver_handle_option): Remove OPT_Xclang_only case.
+
 2012-04-18   Ollie Wild  <aaw@google.com>
 
 	* common.opt (Xclang-only): New option.

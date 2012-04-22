@@ -758,8 +758,8 @@ Warn when a vector operation is compiled outside the SIMD
 Xassembler
 Driver Separate
 
-Xclang-only
-Driver Joined
+Xclang-only=
+Driver Joined Ignore
 
 Xlinker
 Driver Separate
