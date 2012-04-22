@@ -1,3 +1,7 @@
+2012-04-22   Paul Pluzhnikov  <ppluzhnikov@google.com>
+
+	* libgomp/configure.tgt: Don't force initial-exec.
+
 2012-02-17   Doug Kwan  <dougkwan@google.com>
 
 	* gcc/config.gcc (powerpc*-*-linux): Pull in GRTEv2 spec changes if
