@@ -387,12 +387,6 @@ the effect you need.  Overriding this macro may be avoidable by overriding
 @code{LINK_GCC_C_SEQUENCE_SPEC} instead.
 @end defmac
 
-@defmac LINK_ELIMINATE_DUPLICATE_LDIRECTORIES
-A nonzero value causes @command{collect2} to remove duplicate @option{-L@var{directory}} search
-directories from linking commands.  Do not give it a nonzero value if
-removing duplicate search directories changes the linker's semantics.
-@end defmac
-
 @hook TARGET_ALWAYS_STRIP_DOTDOT
 
 @defmac MULTILIB_DEFAULTS
@@ -1634,6 +1628,18 @@ crash on startup.
 
 If you don't define this macro, the default is @code{"long unsigned
 int"}.
+@end defmac
+
+@defmac SIZETYPE
+GCC defines internal types (@code{sizetype}, @code{ssizetype},
+@code{bitsizetype} and @code{sbitsizetype}) for expressions
+dealing with size.  This macro is a C expression for a string describing
+the name of the data type from which the precision of @code{sizetype}
+is extracted.
+
+The string has the same restrictions as @code{SIZE_TYPE} string.
+
+If you don't define this macro, the default is @code{SIZE_TYPE}.
 @end defmac
 
 @defmac PTRDIFF_TYPE
@@ -10637,8 +10643,6 @@ how to build this object file.
 Define this macro if macros should be expanded in the
 arguments of @samp{#pragma pack}.
 @end defmac
-
-@hook TARGET_HANDLE_PRAGMA_EXTERN_PREFIX
 
 @defmac TARGET_DEFAULT_PACK_STRUCT
 If your target requires a structure packing default other than 0 (meaning

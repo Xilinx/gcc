@@ -4280,11 +4280,6 @@ package body Sem_Ch6 is
       --  analysis of the non-inlined body will handle these pragmas properly).
       --  A new internal name is associated with Body_To_Inline.
 
-      procedure Preanalyze (N : Node_Id);
-      --  Performs a pre-analysis of node N. During pre-analysis no expansion
-      --  is carried out for N or its children. For more info on pre-analysis
-      --  read the spec of Sem.
-
       procedure Split_Unconstrained_Function
         (N       : Node_Id;
          Spec_Id : Entity_Id);
@@ -5058,23 +5053,6 @@ package body Sem_Ch6 is
             Make_Defining_Identifier (Sloc (N), New_Internal_Name ('P')));
          Set_Corresponding_Spec (Body_To_Inline, Empty);
       end Generate_Body_To_Inline;
-
-      ----------------
-      -- Preanalyze --
-      ----------------
-
-      procedure Preanalyze (N : Node_Id) is
-         Save_Full_Analysis : constant Boolean := Full_Analysis;
-
-      begin
-         Full_Analysis := False;
-         Expander_Mode_Save_And_Set (False);
-
-         Analyze (N);
-
-         Expander_Mode_Restore;
-         Full_Analysis := Save_Full_Analysis;
-      end Preanalyze;
 
       ----------------------------------
       -- Split_Unconstrained_Function --
@@ -6949,16 +6927,29 @@ package body Sem_Ch6 is
 --                      Inherited_Subprograms (Spec_Id);
 --        --  List of subprograms inherited by this subprogram
 
+      --  We ignore postconditions "True" or "False" and contract-cases which
+      --  have similar Ensures components, which we call "trivial", when
+      --  issuing warnings, since these postconditions and contract-cases
+      --  purposedly ignore the post-state.
+
       Last_Postcondition : Node_Id := Empty;
-      --  Last postcondition on the subprogram, or else Empty if either no
-      --  postcondition or only inherited postconditions.
+      --  Last non-trivial postcondition on the subprogram, or else Empty if
+      --  either no non-trivial postcondition or only inherited postconditions.
+
+      Last_Contract_Case : Node_Id := Empty;
+      --  Last non-trivial contract-case on the subprogram, or else Empty
 
       Attribute_Result_Mentioned : Boolean := False;
-      --  Whether attribute 'Result is mentioned in a postcondition
+      --  Whether attribute 'Result is mentioned in a non-trivial postcondition
+      --  or contract-case.
+
+      No_Warning_On_Some_Postcondition : Boolean := False;
+      --  Whether there exists a non-trivial postcondition or contract-case
+      --  without a corresponding warning.
 
       Post_State_Mentioned : Boolean := False;
-      --  Whether some expression mentioned in a postcondition can have a
-      --  different value in the post-state than in the pre-state.
+      --  Whether some expression mentioned in a postcondition or contract-case
+      --  can have a different value in the post-state than in the pre-state.
 
       function Check_Attr_Result (N : Node_Id) return Traverse_Result;
       --  Check if N is a reference to the attribute 'Result, and if so set
@@ -6971,9 +6962,20 @@ package body Sem_Ch6 is
       --  reference to attribute 'Old, in order to ignore its prefix, which
       --  is precisely evaluated in the pre-state. Otherwise return OK.
 
+      function Is_Trivial_Post_Or_Ensures (N : Node_Id) return Boolean;
+      --  Return True if node N is trivially "True" or "False", and it comes
+      --  from source. In particular, nodes that are statically known "True" or
+      --  "False" by the compiler but not written as such in source code are
+      --  not considered as trivial.
+
+      procedure Process_Contract_Cases (Spec : Node_Id);
+      --  This processes the Spec_CTC_List from Spec, processing any contract
+      --  case from the list. The caller has checked that Spec_CTC_List is
+      --  non-Empty.
+
       procedure Process_Post_Conditions (Spec : Node_Id; Class : Boolean);
       --  This processes the Spec_PPC_List from Spec, processing any
-      --  postconditions from the list. If Class is True, then only
+      --  postcondition from the list. If Class is True, then only
       --  postconditions marked with Class_Present are considered. The
       --  caller has checked that Spec_PPC_List is non-Empty.
 
@@ -7056,6 +7058,76 @@ package body Sem_Ch6 is
          end if;
       end Check_Post_State;
 
+      --------------------------------
+      -- Is_Trivial_Post_Or_Ensures --
+      --------------------------------
+
+      function Is_Trivial_Post_Or_Ensures (N : Node_Id) return Boolean is
+      begin
+         return Is_Entity_Name (N)
+           and then (Entity (N) = Standard_True
+                       or else
+                     Entity (N) = Standard_False)
+           and then Comes_From_Source (N);
+      end Is_Trivial_Post_Or_Ensures;
+
+      ----------------------------
+      -- Process_Contract_Cases --
+      ----------------------------
+
+      procedure Process_Contract_Cases (Spec : Node_Id) is
+         Prag : Node_Id;
+         Arg  : Node_Id;
+
+         Ignored : Traverse_Final_Result;
+         pragma Unreferenced (Ignored);
+
+      begin
+         Prag := Spec_CTC_List (Contract (Spec));
+         loop
+            --  Retrieve the Ensures component of the contract-case, if any
+
+            Arg := Get_Ensures_From_CTC_Pragma (Prag);
+
+            --  Ignore trivial contract-case when Ensures component is "True"
+            --  or "False".
+
+            if Pragma_Name (Prag) = Name_Contract_Case
+              and then not Is_Trivial_Post_Or_Ensures (Expression (Arg))
+            then
+               --  Since contract-cases are listed in reverse order, the first
+               --  contract-case in the list is the last in the source.
+
+               if No (Last_Contract_Case) then
+                  Last_Contract_Case := Prag;
+               end if;
+
+               --  For functions, look for presence of 'Result in Ensures
+
+               if Ekind_In (Spec_Id, E_Function, E_Generic_Function) then
+                  Ignored := Find_Attribute_Result (Arg);
+               end if;
+
+               --  For each individual contract-case, look for presence
+               --  of an expression that could be evaluated differently
+               --  in post-state.
+
+               Post_State_Mentioned := False;
+               Ignored := Find_Post_State (Arg);
+
+               if Post_State_Mentioned then
+                  No_Warning_On_Some_Postcondition := True;
+               else
+                  Error_Msg_N
+                    ("?`Ensures` component refers only to pre-state", Prag);
+               end if;
+            end if;
+
+            Prag := Next_Pragma (Prag);
+            exit when No (Prag);
+         end loop;
+      end Process_Contract_Cases;
+
       -----------------------------
       -- Process_Post_Conditions --
       -----------------------------
@@ -7071,39 +7143,41 @@ package body Sem_Ch6 is
 
       begin
          Prag := Spec_PPC_List (Contract (Spec));
-
          loop
             Arg := First (Pragma_Argument_Associations (Prag));
 
-            --  Since pre- and post-conditions are listed in reverse order, the
-            --  first postcondition in the list is the last in the source.
+            --  Ignore trivial postcondition of "True" or "False"
 
             if Pragma_Name (Prag) = Name_Postcondition
-              and then not Class
-              and then No (Last_Postcondition)
+              and then not Is_Trivial_Post_Or_Ensures (Expression (Arg))
             then
-               Last_Postcondition := Prag;
-            end if;
+               --  Since pre- and post-conditions are listed in reverse order,
+               --  the first postcondition in the list is last in the source.
 
-            --  For functions, look for presence of 'Result in postcondition
+               if not Class and then No (Last_Postcondition) then
+                  Last_Postcondition := Prag;
+               end if;
 
-            if Ekind_In (Spec_Id, E_Function, E_Generic_Function) then
-               Ignored := Find_Attribute_Result (Arg);
-            end if;
+               --  For functions, look for presence of 'Result in postcondition
 
-            --  For each individual non-inherited postcondition, look for
-            --  presence of an expression that could be evaluated differently
-            --  in post-state.
+               if Ekind_In (Spec_Id, E_Function, E_Generic_Function) then
+                  Ignored := Find_Attribute_Result (Arg);
+               end if;
 
-            if Pragma_Name (Prag) = Name_Postcondition
-              and then not Class
-            then
-               Post_State_Mentioned := False;
-               Ignored := Find_Post_State (Arg);
+               --  For each individual non-inherited postcondition, look
+               --  for presence of an expression that could be evaluated
+               --  differently in post-state.
 
-               if not Post_State_Mentioned then
-                  Error_Msg_N ("?postcondition refers only to pre-state",
-                               Prag);
+               if not Class then
+                  Post_State_Mentioned := False;
+                  Ignored := Find_Post_State (Arg);
+
+                  if Post_State_Mentioned then
+                     No_Warning_On_Some_Postcondition := True;
+                  else
+                     Error_Msg_N
+                       ("?postcondition refers only to pre-state", Prag);
+                  end if;
                end if;
             end if;
 
@@ -7118,6 +7192,8 @@ package body Sem_Ch6 is
       if not Warn_On_Suspicious_Contract then
          return;
       end if;
+
+      --  Process spec postconditions
 
       if Present (Spec_PPC_List (Contract (Spec_Id))) then
          Process_Post_Conditions (Spec_Id, Class => False);
@@ -7135,15 +7211,37 @@ package body Sem_Ch6 is
 --           end if;
 --        end loop;
 
+      --  Process contract cases
+
+      if Present (Spec_CTC_List (Contract (Spec_Id))) then
+         Process_Contract_Cases (Spec_Id);
+      end if;
+
       --  Issue warning for functions whose postcondition does not mention
-      --  'Result after all postconditions have been processed.
+      --  'Result after all postconditions have been processed, and provided
+      --  all postconditions do not already get a warning that they only refer
+      --  to pre-state.
 
       if Ekind_In (Spec_Id, E_Function, E_Generic_Function)
-        and then Present (Last_Postcondition)
+        and then (Present (Last_Postcondition)
+                   or else Present (Last_Contract_Case))
         and then not Attribute_Result_Mentioned
+        and then No_Warning_On_Some_Postcondition
       then
-         Error_Msg_N ("?function postcondition does not mention result",
-                      Last_Postcondition);
+         if Present (Last_Postcondition) then
+            if Present (Last_Contract_Case) then
+               Error_Msg_N ("?neither function postcondition nor " &
+                              "contract cases do mention result",
+                            Last_Postcondition);
+
+            else
+               Error_Msg_N ("?function postcondition does not mention result",
+                            Last_Postcondition);
+            end if;
+         else
+            Error_Msg_N ("?contract cases do not mention result",
+                         Last_Contract_Case);
+         end if;
       end if;
    end Check_Subprogram_Contract;
 
@@ -7251,14 +7349,16 @@ package body Sem_Ch6 is
      (New_Id                   : Entity_Id;
       Old_Id                   : Entity_Id;
       Err_Loc                  : Node_Id := Empty;
-      Skip_Controlling_Formals : Boolean := False)
+      Skip_Controlling_Formals : Boolean := False;
+      Get_Inst                 : Boolean := False)
    is
       Result : Boolean;
       pragma Warnings (Off, Result);
    begin
       Check_Conformance
         (New_Id, Old_Id, Subtype_Conformant, True, Result, Err_Loc,
-         Skip_Controlling_Formals => Skip_Controlling_Formals);
+         Skip_Controlling_Formals => Skip_Controlling_Formals,
+         Get_Inst                 => Get_Inst);
    end Check_Subtype_Conformant;
 
    ---------------------------
@@ -8602,7 +8702,9 @@ package body Sem_Ch6 is
                                 Discrete_Subtype_Definition (L2));
                   end;
 
-               else   --  quantified expression with an iterator
+               elsif Present (Iterator_Specification (E1))
+                 and then Present (Iterator_Specification (E2))
+               then
                   declare
                      I1 : constant Node_Id := Iterator_Specification (E1);
                      I2 : constant Node_Id := Iterator_Specification (E2);
@@ -8619,6 +8721,12 @@ package body Sem_Ch6 is
                        and then FCE (Subtype_Indication (I1),
                                       Subtype_Indication (I2));
                   end;
+
+               --  The quantified expressions used different specifications to
+               --  walk their respective ranges.
+
+               else
+                  return False;
                end if;
 
             when N_Range =>
@@ -10930,6 +11038,11 @@ package body Sem_Ch6 is
       Plist : List_Id := No_List;
       --  List of generated postconditions
 
+      function Grab_CC return Node_Id;
+      --  Prag contains an analyzed contract case pragma. This function copies
+      --  relevant components of the pragma, creates the corresponding Check
+      --  pragma and returns the Check pragma as the result.
+
       function Grab_PPC (Pspec : Entity_Id := Empty) return Node_Id;
       --  Prag contains an analyzed precondition or postcondition pragma. This
       --  function copies the pragma, changes it to the corresponding Check
@@ -10951,6 +11064,92 @@ package body Sem_Ch6 is
       --  contains the declaration of the private type). A True value means
       --  that an invariant check is required (for an IN OUT parameter, or
       --  the returned value of a function.
+
+      function Last_Implicit_Declaration return Node_Id;
+      --  Return the last internally-generated declaration of N
+
+      -------------
+      -- Grab_CC --
+      -------------
+
+      function Grab_CC return Node_Id is
+         Loc  : constant Source_Ptr := Sloc (Prag);
+         CP   : Node_Id;
+         Req  : Node_Id;
+         Ens  : Node_Id;
+         Post : Node_Id;
+
+         --  As with postcondition, the string is "failed xx from yy" where
+         --  xx is in all lower case. The reason for this different wording
+         --  compared to other Check cases is that the failure is not at the
+         --  point of occurrence of the pragma, unlike the other Check cases.
+
+         Msg  : constant String :=
+                  "failed contract case from " & Build_Location_String (Loc);
+
+      begin
+         --  Copy the Requires and Ensures expressions
+
+         Req  := New_Copy_Tree
+                   (Expression (Get_Requires_From_CTC_Pragma (Prag)),
+                    New_Scope => Current_Scope);
+
+         Ens  := New_Copy_Tree
+                   (Expression (Get_Ensures_From_CTC_Pragma (Prag)),
+                    New_Scope => Current_Scope);
+
+         --  Build the postcondition (not Requires'Old or else Ensures)
+
+         Post :=
+           Make_Or_Else (Loc,
+             Left_Opnd  =>
+               Make_Op_Not (Loc,
+                 Make_Attribute_Reference (Loc,
+                   Prefix         => Req,
+                   Attribute_Name => Name_Old)),
+             Right_Opnd => Ens);
+
+         --  For a contract case pragma within a generic, generate a
+         --  postcondition pragma for later expansion. This is also used
+         --  when an error was detected, thus setting Expander_Active to False.
+
+         if not Expander_Active then
+            CP :=
+              Make_Pragma (Loc,
+                Chars => Name_Postcondition,
+                Pragma_Argument_Associations => New_List (
+                  Make_Pragma_Argument_Association (Loc,
+                    Chars      => Name_Check,
+                    Expression => Post),
+
+                  Make_Pragma_Argument_Association (Loc,
+                    Chars      => Name_Message,
+                    Expression => Make_String_Literal (Loc, Msg))));
+
+         --  Otherwise, create the Check pragma
+
+         else
+            CP :=
+              Make_Pragma (Loc,
+                Chars                        => Name_Check,
+                Pragma_Argument_Associations => New_List (
+                  Make_Pragma_Argument_Association (Loc,
+                    Chars      => Name_Name,
+                    Expression => Make_Identifier (Loc, Name_Postcondition)),
+
+                  Make_Pragma_Argument_Association (Loc,
+                    Chars      => Name_Check,
+                    Expression => Post),
+
+                  Make_Pragma_Argument_Association (Loc,
+                    Chars      => Name_Message,
+                    Expression => Make_String_Literal (Loc, Msg))));
+         end if;
+
+         --  Return the Postcondition or Check pragma
+
+         return CP;
+      end Grab_CC;
 
       --------------
       -- Grab_PPC --
@@ -11003,7 +11202,8 @@ package body Sem_Ch6 is
          Set_Comes_From_Source (CP, False);
 
          --  For a postcondition pragma within a generic, preserve the pragma
-         --  for later expansion.
+         --  for later expansion. This is also used when an error was detected,
+         --  thus setting Expander_Active to False.
 
          if Nam = Name_Postcondition
            and then not Expander_Active
@@ -11117,6 +11317,50 @@ package body Sem_Ch6 is
             return TL = List_Containing (DD);
          end if;
       end Is_Public_Subprogram_For;
+
+      -------------------------------
+      -- Last_Implicit_Declaration --
+      -------------------------------
+
+      function Last_Implicit_Declaration return Node_Id is
+         Loc   : constant Source_Ptr := Sloc (N);
+         Decls : List_Id := Declarations (N);
+         Decl  : Node_Id;
+         Succ  : Node_Id;
+
+      begin
+         if No (Decls) then
+            Decls := New_List (Make_Null_Statement (Loc));
+            Set_Declarations (N, Decls);
+
+         elsif Is_Empty_List (Declarations (N)) then
+            Append_To (Decls, Make_Null_Statement (Loc));
+         end if;
+
+         --  Implicit and source declarations may be interspersed. Search for
+         --  the last implicit declaration which is either succeeded by a
+         --  source construct or is the last node in the declarative list.
+
+         Decl := First (Declarations (N));
+         while Present (Decl) loop
+            Succ := Next (Decl);
+
+            --  The current declaration is the last one, do not return Empty
+
+            if No (Succ) then
+               exit;
+
+            --  The successor is a source construct
+
+            elsif Comes_From_Source (Succ) then
+               exit;
+            end if;
+
+            Next (Decl);
+         end loop;
+
+         return Decl;
+      end Last_Implicit_Declaration;
 
    --  Start of processing for Process_PPCs
 
@@ -11326,6 +11570,11 @@ package body Sem_Ch6 is
 
       if Present (Spec_Id) then
          Spec_Postconditions : declare
+            procedure Process_Contract_Cases (Spec : Node_Id);
+            --  This processes the Spec_CTC_List from Spec, processing any
+            --  contract-case from the list. The caller has checked that
+            --  Spec_CTC_List is non-Empty.
+
             procedure Process_Post_Conditions
               (Spec  : Node_Id;
                Class : Boolean);
@@ -11333,6 +11582,33 @@ package body Sem_Ch6 is
             --  postconditions from the list. If Class is True, then only
             --  postconditions marked with Class_Present are considered.
             --  The caller has checked that Spec_PPC_List is non-Empty.
+
+            ----------------------------
+            -- Process_Contract_Cases --
+            ----------------------------
+
+            procedure Process_Contract_Cases (Spec : Node_Id) is
+            begin
+               --  Loop through Contract_Case pragmas from spec
+
+               Prag := Spec_CTC_List (Contract (Spec));
+               loop
+                  if Pragma_Name (Prag) = Name_Contract_Case then
+                     if Plist = No_List then
+                        Plist := Empty_List;
+                     end if;
+
+                     if not Expander_Active then
+                        Prepend (Grab_CC, Declarations (N));
+                     else
+                        Append (Grab_CC, Plist);
+                     end if;
+                  end if;
+
+                  Prag := Next_Pragma (Prag);
+                  exit when No (Prag);
+               end loop;
+            end Process_Contract_Cases;
 
             -----------------------------
             -- Process_Post_Conditions --
@@ -11378,6 +11654,14 @@ package body Sem_Ch6 is
          --  Start of processing for Spec_Postconditions
 
          begin
+            --  Process postconditions expressed as contract-cases
+
+            if Present (Spec_CTC_List (Contract (Spec_Id))) then
+               Process_Contract_Cases (Spec_Id);
+            end if;
+
+            --  Process spec postconditions
+
             if Present (Spec_PPC_List (Contract (Spec_Id))) then
                Process_Post_Conditions (Spec_Id, Class => False);
             end if;
@@ -11483,7 +11767,7 @@ package body Sem_Ch6 is
             --  The entity for the _Postconditions procedure
 
          begin
-            Prepend_To (Declarations (N),
+            Insert_After (Last_Implicit_Declaration,
               Make_Subprogram_Body (Loc,
                 Specification =>
                   Make_Procedure_Specification (Loc,

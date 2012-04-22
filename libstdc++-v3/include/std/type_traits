@@ -1,6 +1,7 @@
 // C++11 type_traits -*- C++ -*-
 
-// Copyright (C) 2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -1146,28 +1147,43 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     : public __is_nt_move_assignable_impl<_Tp>
     { };
 
-  /// has_trivial_default_constructor
+  /// is_trivially_constructible (still unimplemented)
+  
+  /// is_trivially_default_constructible (still unimplemented)
+
+  /// is_trivially_copy_constructible (still unimplemented)
+
+  /// is_trivially_move_constructible (still unimplemented)
+
+  /// is_trivially_assignable (still unimplemented)
+
+  /// is_trivially_copy_assignable (still unimplemented)
+
+  /// is_trivially_move_assignable (still unimplemented)
+
+  /// is_trivially_destructible
+  template<typename _Tp>
+    struct is_trivially_destructible
+    : public __and_<is_destructible<_Tp>, integral_constant<bool,
+			      __has_trivial_destructor(_Tp)>>::type
+    { };
+
+  /// has_trivial_default_constructor (temporary legacy)
   template<typename _Tp>
     struct has_trivial_default_constructor
     : public integral_constant<bool, __has_trivial_constructor(_Tp)>
     { };
 
-  /// has_trivial_copy_constructor
+  /// has_trivial_copy_constructor (temporary legacy)
   template<typename _Tp>
     struct has_trivial_copy_constructor
     : public integral_constant<bool, __has_trivial_copy(_Tp)>
     { };
 
-  /// has_trivial_copy_assign
+  /// has_trivial_copy_assign (temporary legacy)
   template<typename _Tp>
     struct has_trivial_copy_assign
     : public integral_constant<bool, __has_trivial_assign(_Tp)>
-    { };
-
-  /// has_trivial_destructor
-  template<typename _Tp>
-    struct has_trivial_destructor
-    : public integral_constant<bool, __has_trivial_destructor(_Tp)>
     { };
 
   /// has_virtual_destructor
@@ -1263,12 +1279,6 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     struct is_convertible
     : public integral_constant<bool,
 			       __is_convertible_helper<_From, _To>::value>
-    { };
-
-  /// is_explicitly_convertible
-  template<typename _From, typename _To>
-    struct is_explicitly_convertible
-    : public is_constructible<_To, _From>
     { };
 
 
@@ -1794,6 +1804,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       template<typename _Tp>
 	static _Tp _S_get(const _Class&);
       template<typename _Tp>
+	static _Tp _S_get(const volatile _Class&);
+      template<typename _Tp>
 	static decltype(*std::declval<_Tp>()) _S_get(...);
         
     public:
@@ -1813,6 +1825,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
       template<typename _Tp>
 	static _Tp _S_get(const _Class&);
+      template<typename _Tp>
+	static _Tp _S_get(const volatile _Class&);
       template<typename _Tp>
 	static decltype(*std::declval<_Tp>()) _S_get(...);
         
@@ -1836,22 +1850,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   template<typename _MemPtr, typename _Arg>
     struct _Result_of_impl<true, false, _MemPtr, _Arg>
-    : _Result_of_memobj<typename remove_reference<_MemPtr>::type, _Arg>
-    {
-      typedef typename _Result_of_memobj<
-	typename remove_reference<_MemPtr>::type, _Arg>::__type
-	__type;
-    };
+    : _Result_of_memobj<typename decay<_MemPtr>::type, _Arg>
+    { };
 
   template<typename _MemPtr, typename _Arg, typename... _ArgTypes>
     struct _Result_of_impl<false, true, _MemPtr, _Arg, _ArgTypes...>
-    : _Result_of_memfun<typename remove_reference<_MemPtr>::type, _Arg,
-                        _ArgTypes...>
-    {
-      typedef typename _Result_of_memfun<
-	typename remove_reference<_MemPtr>::type, _Arg, _ArgTypes...>::__type
-	__type;
-    };
+    : _Result_of_memfun<typename decay<_MemPtr>::type, _Arg, _ArgTypes...>
+    { };
 
   template<typename _Functor, typename... _ArgTypes>
     struct result_of<_Functor(_ArgTypes...)>

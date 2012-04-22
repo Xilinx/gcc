@@ -1649,6 +1649,103 @@ warn_logical_operator (location_t location, enum tree_code code, tree type,
 }
 
 
+/* Warn if EXP contains any computations whose results are not used.
+   Return true if a warning is printed; false otherwise.  LOCUS is the
+   (potential) location of the expression.  */
+
+bool
+warn_if_unused_value (const_tree exp, location_t locus)
+{
+ restart:
+  if (TREE_USED (exp) || TREE_NO_WARNING (exp))
+    return false;
+
+  /* Don't warn about void constructs.  This includes casting to void,
+     void function calls, and statement expressions with a final cast
+     to void.  */
+  if (VOID_TYPE_P (TREE_TYPE (exp)))
+    return false;
+
+  if (EXPR_HAS_LOCATION (exp))
+    locus = EXPR_LOCATION (exp);
+
+  switch (TREE_CODE (exp))
+    {
+    case PREINCREMENT_EXPR:
+    case POSTINCREMENT_EXPR:
+    case PREDECREMENT_EXPR:
+    case POSTDECREMENT_EXPR:
+    case MODIFY_EXPR:
+    case INIT_EXPR:
+    case TARGET_EXPR:
+    case CALL_EXPR:
+    case TRY_CATCH_EXPR:
+    case WITH_CLEANUP_EXPR:
+    case EXIT_EXPR:
+    case VA_ARG_EXPR:
+      return false;
+
+    case BIND_EXPR:
+      /* For a binding, warn if no side effect within it.  */
+      exp = BIND_EXPR_BODY (exp);
+      goto restart;
+
+    case SAVE_EXPR:
+    case NON_LVALUE_EXPR:
+    case NOP_EXPR:
+      exp = TREE_OPERAND (exp, 0);
+      goto restart;
+
+    case TRUTH_ORIF_EXPR:
+    case TRUTH_ANDIF_EXPR:
+      /* In && or ||, warn if 2nd operand has no side effect.  */
+      exp = TREE_OPERAND (exp, 1);
+      goto restart;
+
+    case COMPOUND_EXPR:
+      if (warn_if_unused_value (TREE_OPERAND (exp, 0), locus))
+	return true;
+      /* Let people do `(foo (), 0)' without a warning.  */
+      if (TREE_CONSTANT (TREE_OPERAND (exp, 1)))
+	return false;
+      exp = TREE_OPERAND (exp, 1);
+      goto restart;
+
+    case COND_EXPR:
+      /* If this is an expression with side effects, don't warn; this
+	 case commonly appears in macro expansions.  */
+      if (TREE_SIDE_EFFECTS (exp))
+	return false;
+      goto warn;
+
+    case INDIRECT_REF:
+      /* Don't warn about automatic dereferencing of references, since
+	 the user cannot control it.  */
+      if (TREE_CODE (TREE_TYPE (TREE_OPERAND (exp, 0))) == REFERENCE_TYPE)
+	{
+	  exp = TREE_OPERAND (exp, 0);
+	  goto restart;
+	}
+      /* Fall through.  */
+
+    default:
+      /* Referencing a volatile value is a side effect, so don't warn.  */
+      if ((DECL_P (exp) || REFERENCE_CLASS_P (exp))
+	  && TREE_THIS_VOLATILE (exp))
+	return false;
+
+      /* If this is an expression which has no operands, there is no value
+	 to be unused.  There are no such language-independent codes,
+	 but front ends may define such.  */
+      if (EXPRESSION_CLASS_P (exp) && TREE_OPERAND_LENGTH (exp) == 0)
+	return false;
+
+    warn:
+      return warning_at (locus, OPT_Wunused_value, "value computed is not used");
+    }
+}
+
+
 /* Print a warning about casts that might indicate violation
    of strict aliasing rules if -Wstrict-aliasing is used and
    strict aliasing mode is in effect. OTYPE is the original
@@ -1849,9 +1946,8 @@ c_common_get_narrower (tree op, int *unsignedp_ptr)
       /* C++0x scoped enumerations don't implicitly convert to integral
 	 type; if we stripped an explicit conversion to a larger type we
 	 need to replace it so common_type will still work.  */
-      tree type = (lang_hooks.types.type_for_size
-		   (TYPE_PRECISION (TREE_TYPE (op)),
-		    TYPE_UNSIGNED (TREE_TYPE (op))));
+      tree type = c_common_type_for_size (TYPE_PRECISION (TREE_TYPE (op)),
+					  TYPE_UNSIGNED (TREE_TYPE (op)));
       op = fold_convert (type, op);
     }
   return op;
@@ -4941,7 +5037,7 @@ c_common_nodes_and_builtins (void)
     {
       char16_type_node = make_unsigned_type (char16_type_size);
 
-      if (cxx_dialect == cxx0x)
+      if (cxx_dialect >= cxx0x)
 	record_builtin_type (RID_CHAR16, "char16_t", char16_type_node);
     }
 
@@ -4957,7 +5053,7 @@ c_common_nodes_and_builtins (void)
     {
       char32_type_node = make_unsigned_type (char32_type_size);
 
-      if (cxx_dialect == cxx0x)
+      if (cxx_dialect >= cxx0x)
 	record_builtin_type (RID_CHAR32, "char32_t", char32_type_node);
     }
 
@@ -4992,7 +5088,7 @@ c_common_nodes_and_builtins (void)
     uint8_type_node =
       TREE_TYPE (identifier_global_value (c_get_ident (UINT8_TYPE)));
   if (UINT16_TYPE)
-    uint16_type_node =
+    c_uint16_type_node =
       TREE_TYPE (identifier_global_value (c_get_ident (UINT16_TYPE)));
   if (UINT32_TYPE)
     c_uint32_type_node =
@@ -9259,7 +9355,7 @@ c_common_mark_addressable_vec (tree t)
 tree
 builtin_type_for_size (int size, bool unsignedp)
 {
-  tree type = lang_hooks.types.type_for_size (size, unsignedp);
+  tree type = c_common_type_for_size (size, unsignedp);
   return type ? type : error_mark_node;
 }
 

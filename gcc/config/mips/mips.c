@@ -494,9 +494,6 @@ int num_source_filenames;
    written anything yet.  */
 const char *current_function_file = "";
 
-/* A label counter used by PUT_SDB_BLOCK_START and PUT_SDB_BLOCK_END.  */
-int sdb_label_count;
-
 /* Arrays that map GCC register numbers to debugger register numbers.  */
 int mips_dbx_regno[FIRST_PSEUDO_REGISTER];
 int mips_dwarf_regno[FIRST_PSEUDO_REGISTER];
@@ -1087,6 +1084,20 @@ static const struct mips_rtx_cost_data
     COSTS_N_INSNS (8),            /* int_mult_di */
     COSTS_N_INSNS (72),           /* int_div_si */
     COSTS_N_INSNS (72),           /* int_div_di */
+		     1,           /* branch_cost */
+		     4            /* memory_latency */
+  },
+  { /* XLP */
+    /* These costs are the same as 5KF above.  */
+    COSTS_N_INSNS (4),            /* fp_add */
+    COSTS_N_INSNS (4),            /* fp_mult_sf */
+    COSTS_N_INSNS (5),            /* fp_mult_df */
+    COSTS_N_INSNS (17),           /* fp_div_sf */
+    COSTS_N_INSNS (32),           /* fp_div_df */
+    COSTS_N_INSNS (4),            /* int_mult_si */
+    COSTS_N_INSNS (11),           /* int_mult_di */
+    COSTS_N_INSNS (36),           /* int_div_si */
+    COSTS_N_INSNS (68),           /* int_div_di */
 		     1,           /* branch_cost */
 		     4            /* memory_latency */
   }
@@ -5491,9 +5502,6 @@ mips_build_builtin_va_list (void)
       layout_type (record);
       return record;
     }
-  else if (TARGET_IRIX6)
-    /* On IRIX 6, this type is 'char *'.  */
-    return build_pointer_type (char_type_node);
   else
     /* Otherwise, we use 'void *'.  */
     return ptr_type_node;
@@ -8114,13 +8122,6 @@ mips_debugger_offset (rtx addr, HOST_WIDE_INT offset)
 	offset += cfun->machine->frame.hard_frame_pointer_offset;
     }
 
-  /* sdbout_parms does not want this to crash for unrecognized cases.  */
-#if 0
-  else if (reg != arg_pointer_rtx)
-    fatal_insn ("mips_debugger_offset called with non stack/frame/arg pointer",
-		addr);
-#endif
-
   return offset;
 }
 
@@ -8461,50 +8462,47 @@ mips_file_start (void)
   default_file_start ();
 
   /* Generate a special section to describe the ABI switches used to
-     produce the resultant binary.  This is unnecessary on IRIX and
-     causes unwanted warnings from the native linker.  */
-  if (!TARGET_IRIX6)
-    {
-      /* Record the ABI itself.  Modern versions of binutils encode
-	 this information in the ELF header flags, but GDB needs the
-	 information in order to correctly debug binaries produced by
-	 older binutils.  See the function mips_gdbarch_init in
-	 gdb/mips-tdep.c.  */
-      fprintf (asm_out_file, "\t.section .mdebug.%s\n\t.previous\n",
-	       mips_mdebug_abi_name ());
+     produce the resultant binary.  */
 
-      /* There is no ELF header flag to distinguish long32 forms of the
-	 EABI from long64 forms.  Emit a special section to help tools
-	 such as GDB.  Do the same for o64, which is sometimes used with
-	 -mlong64.  */
-      if (mips_abi == ABI_EABI || mips_abi == ABI_O64)
-	fprintf (asm_out_file, "\t.section .gcc_compiled_long%d\n"
-		 "\t.previous\n", TARGET_LONG64 ? 64 : 32);
+  /* Record the ABI itself.  Modern versions of binutils encode
+     this information in the ELF header flags, but GDB needs the
+     information in order to correctly debug binaries produced by
+     older binutils.  See the function mips_gdbarch_init in
+     gdb/mips-tdep.c.  */
+  fprintf (asm_out_file, "\t.section .mdebug.%s\n\t.previous\n",
+	   mips_mdebug_abi_name ());
+
+  /* There is no ELF header flag to distinguish long32 forms of the
+     EABI from long64 forms.  Emit a special section to help tools
+     such as GDB.  Do the same for o64, which is sometimes used with
+     -mlong64.  */
+  if (mips_abi == ABI_EABI || mips_abi == ABI_O64)
+    fprintf (asm_out_file, "\t.section .gcc_compiled_long%d\n"
+	     "\t.previous\n", TARGET_LONG64 ? 64 : 32);
 
 #ifdef HAVE_AS_GNU_ATTRIBUTE
-      {
-	int attr;
+  {
+    int attr;
 
-	/* No floating-point operations, -mno-float.  */
-	if (TARGET_NO_FLOAT)
-	  attr = 0;
-	/* Soft-float code, -msoft-float.  */
-	else if (!TARGET_HARD_FLOAT_ABI)
-	  attr = 3;
-	/* Single-float code, -msingle-float.  */
-	else if (!TARGET_DOUBLE_FLOAT)
-	  attr = 2;
-	/* 64-bit FP registers on a 32-bit target, -mips32r2 -mfp64.  */
-	else if (!TARGET_64BIT && TARGET_FLOAT64)
-	  attr = 4;
-	/* Regular FP code, FP regs same size as GP regs, -mdouble-float.  */
-	else
-	  attr = 1;
+    /* No floating-point operations, -mno-float.  */
+    if (TARGET_NO_FLOAT)
+      attr = 0;
+    /* Soft-float code, -msoft-float.  */
+    else if (!TARGET_HARD_FLOAT_ABI)
+      attr = 3;
+    /* Single-float code, -msingle-float.  */
+    else if (!TARGET_DOUBLE_FLOAT)
+      attr = 2;
+    /* 64-bit FP registers on a 32-bit target, -mips32r2 -mfp64.  */
+    else if (!TARGET_64BIT && TARGET_FLOAT64)
+      attr = 4;
+    /* Regular FP code, FP regs same size as GP regs, -mdouble-float.  */
+    else
+      attr = 1;
 
-	fprintf (asm_out_file, "\t.gnu_attribute 4, %d\n", attr);
-      }
+    fprintf (asm_out_file, "\t.gnu_attribute 4, %d\n", attr);
+  }
 #endif
-    }
 
   /* If TARGET_ABICALLS, tell GAS to generate -KPIC code.  */
   if (TARGET_ABICALLS)
@@ -10128,11 +10126,6 @@ static void
 mips_output_function_prologue (FILE *file, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 {
   const char *fnname;
-
-#ifdef SDB_DEBUGGING_INFO
-  if (debug_info_level != DINFO_LEVEL_TERSE && write_symbols == SDB_DEBUG)
-    SDB_OUTPUT_SOURCE_LINE (file, DECL_SOURCE_LINE (current_function_decl));
-#endif
 
   /* In MIPS16 mode, we may need to generate a non-MIPS16 stub to handle
      floating-point arguments.  */
@@ -15996,10 +15989,6 @@ mips_option_override (void)
 		     "-mabicalls");
 	}
     }
-
-#ifdef MIPS_TFMODE_FORMAT
-  REAL_MODE_FORMAT (TFmode) = &MIPS_TFMODE_FORMAT;
-#endif
 
   /* Make sure that the user didn't turn off paired single support when
      MIPS-3D support is requested.  */

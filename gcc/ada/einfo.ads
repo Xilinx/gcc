@@ -1277,11 +1277,13 @@ package Einfo is
 --       reflect the specified information. However, there are some items that
 --       are only reflected in the chain. These include:
 --
---          Alignment attribute definition clause
 --          Machine_Attribute pragma
 --          Link_Alias pragma
 --          Linker_Section pragma
+--          Linker_Constructor pragma
+--          Linker_Destructor pragma
 --          Weak_External pragma
+--          Thread_Local_Storage pragma
 --
 --       If any of these items are present, then the flag Has_Gigi_Rep_Item is
 --       set, indicating that Gigi should search the chain.
@@ -1530,6 +1532,7 @@ package Einfo is
 --          Linker_Constructor pragma
 --          Linker_Destructor pragma
 --          Weak_External pragma
+--          Thread_Local_Storage pragma
 --
 --       If this flag is set, then Gigi should scan the rep item chain to
 --       process any of these items that appear. At least one such item will
@@ -3682,13 +3685,14 @@ package Einfo is
 
 --    Static_Predicate (List25)
 --       Present in discrete types/subtypes with predicates (Has_Predicates
---       set True). Points to a list of expression and N_Range nodes that
---       represent the predicate in canonical form. The canonical form has
---       entries sorted in ascending order, with all duplicates eliminated,
---       and adjacent ranges coalesced, so that there is always a gap in the
---       values between successive entries. The entries in this list are
---       fully analyzed and typed with the base type of the subtype. Note
---       that all entries are static and have values within the subtype range.
+--       set True). Set if the type/subtype has a static predicate. Points to
+--       a list of expression and N_Range nodes that represent the predicate
+--       in canonical form. The canonical form has entries sorted in ascending
+--       order, with duplicates eliminated, and adjacent ranges coalesced, so
+--       that there is always a gap in the values between successive entries.
+--       The entries in this list are fully analyzed and typed with the base
+--       type of the subtype. Note that all entries are static and have values
+--       within the subtype range.
 
 --    Storage_Size_Variable (Node15) [implementation base type only]
 --       Present in access types and task type entities. This flag is set

@@ -234,7 +234,8 @@ type features =
        cases.  The function supplied must return the integer to be written
        into the testcase for the argument number (0-based) supplied to it.  *)
   | Const_valuator of (int -> int)
-  | Fixed_return_reg
+  | Fixed_vector_reg
+  | Fixed_core_reg
 
 exception MixedMode of elts * elts
 
@@ -780,14 +781,19 @@ let ops =
 
     (* Comparison, greater-than or equal.  *)
     Vcge, [], All (3, Dreg), "vcge", cmp_sign_matters, F32 :: s_8_32;
-    Vcge, [Builtin_name "vcgeu"], All (3, Dreg), "vcge", cmp_sign_matters, u_8_32;
+    Vcge, [Instruction_name ["vcge"]; Builtin_name "vcgeu"],
+      All (3, Dreg), "vcge", cmp_sign_matters,
+      u_8_32;
     Vcge, [], All (3, Qreg), "vcgeQ", cmp_sign_matters, F32 :: s_8_32;
-    Vcge, [Builtin_name "vcgeu"], All (3, Qreg), "vcgeQ", cmp_sign_matters, u_8_32;
+    Vcge, [Instruction_name ["vcge"]; Builtin_name "vcgeu"],
+      All (3, Qreg), "vcgeQ", cmp_sign_matters,
+      u_8_32;
 
     (* Comparison, less-than or equal.  *)
     Vcle, [Flipped "vcge"], All (3, Dreg), "vcle", cmp_sign_matters,
       F32 :: s_8_32;
-    Vcle, [Flipped "vcgeu"], All (3, Dreg), "vcle", cmp_sign_matters,
+    Vcle, [Instruction_name ["vcge"]; Flipped "vcgeu"],
+      All (3, Dreg), "vcle", cmp_sign_matters,
       u_8_32;
     Vcle, [Instruction_name ["vcge"]; Flipped "vcgeQ"],
       All (3, Qreg), "vcleQ", cmp_sign_matters,
@@ -798,14 +804,19 @@ let ops =
 
     (* Comparison, greater-than.  *)
     Vcgt, [], All (3, Dreg), "vcgt", cmp_sign_matters, F32 :: s_8_32;
-    Vcgt, [Builtin_name "vcgtu"], All (3, Dreg), "vcgt", cmp_sign_matters, u_8_32;
+    Vcgt, [Instruction_name ["vcgt"]; Builtin_name "vcgtu"],
+      All (3, Dreg), "vcgt", cmp_sign_matters,
+      u_8_32;
     Vcgt, [], All (3, Qreg), "vcgtQ", cmp_sign_matters, F32 :: s_8_32;
-    Vcgt, [Builtin_name "vcgtu"], All (3, Qreg), "vcgtQ", cmp_sign_matters, u_8_32;
+    Vcgt, [Instruction_name ["vcgt"]; Builtin_name "vcgtu"],
+      All (3, Qreg), "vcgtQ", cmp_sign_matters,
+      u_8_32;
 
     (* Comparison, less-than.  *)
     Vclt, [Flipped "vcgt"], All (3, Dreg), "vclt", cmp_sign_matters,
       F32 :: s_8_32;
-    Vclt, [Flipped "vcgtu"], All (3, Dreg), "vclt", cmp_sign_matters,
+    Vclt, [Instruction_name ["vcgt"]; Flipped "vcgtu"],
+      All (3, Dreg), "vclt", cmp_sign_matters,
       u_8_32;
     Vclt, [Instruction_name ["vcgt"]; Flipped "vcgtQ"],
       All (3, Qreg), "vcltQ", cmp_sign_matters,
@@ -999,7 +1010,8 @@ let ops =
     Vget_lane,
       [InfoWord;
        Disassembles_as [Use_operands [| Corereg; Corereg; Dreg |]];
-       Instruction_name ["vmov"]; Const_valuator (fun _ -> 0)],
+       Instruction_name ["vmov"; "fmrrd"]; Const_valuator (fun _ -> 0);
+       Fixed_core_reg],
       Use_operands [| Corereg; Qreg; Immed |],
       "vgetQ_lane", notype_2, [S64; U64];
 
@@ -1115,7 +1127,7 @@ let ops =
       notype_1, pf_su_8_64;
     Vget_low, [Instruction_name ["vmov"];
                Disassembles_as [Use_operands [| Dreg; Dreg |]];
-	       Fixed_return_reg],
+	       Fixed_vector_reg],
       Use_operands [| Dreg; Qreg |], "vget_low",
       notype_1, pf_su_8_32;
      Vget_low, [No_op],

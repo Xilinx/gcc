@@ -1779,7 +1779,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
       if (debug_info_p
 	  && Is_Packed_Array_Type (gnat_entity)
 	  && present_gnu_tree (Original_Array_Type (gnat_entity)))
-	add_parallel_type (TYPE_STUB_DECL (gnu_type),
+	add_parallel_type (gnu_type,
 			   gnat_to_gnu_type
 			   (Original_Array_Type (gnat_entity)));
 
@@ -1854,7 +1854,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    {
 	      /* Make the original array type a parallel type.  */
 	      if (present_gnu_tree (Original_Array_Type (gnat_entity)))
-		add_parallel_type (TYPE_STUB_DECL (gnu_type),
+		add_parallel_type (gnu_type,
 				   gnat_to_gnu_type
 				   (Original_Array_Type (gnat_entity)));
 
@@ -2280,13 +2280,14 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 			  gnu_fat_type, NULL, !Comes_From_Source (gnat_entity),
 			  debug_info_p, gnat_entity);
 
-	/* Create the type to be used as what a thin pointer designates:
-	   a record type for the object and its template with the fields
-	   shifted to have the template at a negative offset.  */
+	/* Create the type to be designated by thin pointers: a record type for
+	   the array and its template.  We used to shift the fields to have the
+	   template at a negative offset, but this was somewhat of a kludge; we
+	   now shift thin pointer values explicitly but only those which have a
+	   TYPE_UNCONSTRAINED_ARRAY attached to the designated RECORD_TYPE.  */
 	tem = build_unc_object_type (gnu_template_type, tem,
 				     create_concat_name (gnat_name, "XUT"),
 				     debug_info_p);
-	shift_unc_components_for_thin_pointers (tem);
 
 	SET_TYPE_UNCONSTRAINED_ARRAY (tem, gnu_type);
 	TYPE_OBJECT_RECORD_TYPE (gnu_type) = tem;
@@ -2636,7 +2637,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		}
 
 	      finish_record_type (gnu_bound_rec, gnu_field_list, 0, true);
-	      add_parallel_type (TYPE_STUB_DECL (gnu_type), gnu_bound_rec);
+	      add_parallel_type (gnu_type, gnu_bound_rec);
 	    }
 
 	  /* If this is a packed array type, make the original array type a
@@ -2646,7 +2647,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 	    {
 	      if (Is_Packed_Array_Type (gnat_entity)
 		  && present_gnu_tree (Original_Array_Type (gnat_entity)))
-		add_parallel_type (TYPE_STUB_DECL (gnu_type),
+		add_parallel_type (gnu_type,
 				   gnat_to_gnu_type
 				   (Original_Array_Type (gnat_entity)));
 	      else
@@ -2654,7 +2655,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 		  tree gnu_base_decl
 		    = gnat_to_gnu_entity (Etype (gnat_entity), NULL_TREE, 0);
 		  if (!DECL_ARTIFICIAL (gnu_base_decl))
-		    add_parallel_type (TYPE_STUB_DECL (gnu_type),
+		    add_parallel_type (gnu_type,
 				       TREE_TYPE (TREE_TYPE (gnu_base_decl)));
 		}
 	    }
@@ -3259,6 +3260,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 
 	      gnu_type = make_node (RECORD_TYPE);
 	      TYPE_NAME (gnu_type) = gnu_entity_name;
+	      TYPE_PACKED (gnu_type) = TYPE_PACKED (gnu_base_type);
 
 	      /* Set the size, alignment and alias set of the new type to
 		 match that of the old one, doing required substitutions.  */
@@ -3528,8 +3530,7 @@ gnat_to_gnu_entity (Entity_Id gnat_entity, tree gnu_expr, int definition)
 							 0, 0),
 				      0, true);
 
-		  add_parallel_type (TYPE_STUB_DECL (gnu_type),
-				     gnu_subtype_marker);
+		  add_parallel_type (gnu_type, gnu_subtype_marker);
 
 		  if (definition
 		      && TREE_CODE (gnu_size_unit) != INTEGER_CST
@@ -5488,7 +5489,7 @@ gnat_to_gnu_param (Entity_Id gnat_param, Mechanism_Type mech,
 
   /* VMS descriptors are themselves passed by reference.  */
   if (mech == By_Short_Descriptor ||
-      (mech == By_Descriptor && TARGET_ABI_OPEN_VMS && !TARGET_MALLOC64))
+      (mech == By_Descriptor && TARGET_ABI_OPEN_VMS && !flag_vms_malloc64))
     gnu_param_type
       = build_pointer_type (build_vms_descriptor32 (gnu_param_type,
 						    Mechanism (gnat_param),
@@ -6642,7 +6643,7 @@ maybe_pad_type (tree type, tree size, unsigned int align,
 					     0, 0),
 			  0, true);
 
-      add_parallel_type (TYPE_STUB_DECL (record), marker);
+      add_parallel_type (record, marker);
 
       if (definition && size && TREE_CODE (size) != INTEGER_CST)
 	TYPE_SIZE_UNIT (marker)

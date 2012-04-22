@@ -855,6 +855,29 @@ finish_record_type (tree record_type, tree field_list, int rep_level,
     rest_of_record_type_compilation (record_type);
 }
 
+/* Append PARALLEL_TYPE on the chain of parallel types of TYPE.  */
+
+void
+add_parallel_type (tree type, tree parallel_type)
+{
+  tree decl = TYPE_STUB_DECL (type);
+
+  while (DECL_PARALLEL_TYPE (decl))
+    decl = TYPE_STUB_DECL (DECL_PARALLEL_TYPE (decl));
+
+  SET_DECL_PARALLEL_TYPE (decl, parallel_type);
+}
+
+/* Return true if TYPE has a parallel type.  */
+
+static bool
+has_parallel_type (tree type)
+{
+  tree decl = TYPE_STUB_DECL (type);
+
+  return DECL_PARALLEL_TYPE (decl) != NULL_TREE;
+}
+
 /* Wrap up compilation of RECORD_TYPE, i.e. output all the debug information
    associated with it.  It need not be invoked directly in most cases since
    finish_record_type takes care of doing so, but this can be necessary if
@@ -863,12 +886,19 @@ finish_record_type (tree record_type, tree field_list, int rep_level,
 void
 rest_of_record_type_compilation (tree record_type)
 {
-  tree field_list = TYPE_FIELDS (record_type);
-  tree field;
-  enum tree_code code = TREE_CODE (record_type);
   bool var_size = false;
+  tree field;
 
-  for (field = field_list; field; field = DECL_CHAIN (field))
+  /* If this is a padded type, the bulk of the debug info has already been
+     generated for the field's type.  */
+  if (TYPE_IS_PADDING_P (record_type))
+    return;
+
+  /* If the type already has a parallel type (XVS type), then we're done.  */
+  if (has_parallel_type (record_type))
+    return;
+
+  for (field = TYPE_FIELDS (record_type); field; field = DECL_CHAIN (field))
     {
       /* We need to make an XVE/XVU record if any field has variable size,
 	 whether or not the record does.  For example, if we have a union,
@@ -879,7 +909,7 @@ rest_of_record_type_compilation (tree record_type)
       if (TREE_CODE (DECL_SIZE (field)) != INTEGER_CST
 	  /* If a field has a non-constant qualifier, the record will have
 	     variable size too.  */
-	  || (code == QUAL_UNION_TYPE
+	  || (TREE_CODE (record_type) == QUAL_UNION_TYPE
 	      && TREE_CODE (DECL_QUALIFIER (field)) != INTEGER_CST))
 	{
 	  var_size = true;
@@ -887,12 +917,9 @@ rest_of_record_type_compilation (tree record_type)
 	}
     }
 
-  /* If this record is of variable size, rename it so that the
-     debugger knows it is and make a new, parallel, record
-     that tells the debugger how the record is laid out.  See
-     exp_dbug.ads.  But don't do this for records that are padding
-     since they confuse GDB.  */
-  if (var_size && !TYPE_IS_PADDING_P (record_type))
+  /* If this record type is of variable size, make a parallel record type that
+     will tell the debugger how the former is laid out (see exp_dbug.ads).  */
+  if (var_size)
     {
       tree new_record_type
 	= make_node (TREE_CODE (record_type) == QUAL_UNION_TYPE
@@ -1052,24 +1079,10 @@ rest_of_record_type_compilation (tree record_type)
 	  prev_old_field = old_field;
 	}
 
-      TYPE_FIELDS (new_record_type)
-	= nreverse (TYPE_FIELDS (new_record_type));
+      TYPE_FIELDS (new_record_type) = nreverse (TYPE_FIELDS (new_record_type));
 
-      add_parallel_type (TYPE_STUB_DECL (record_type), new_record_type);
+      add_parallel_type (record_type, new_record_type);
     }
-}
-
-/* Append PARALLEL_TYPE on the chain of parallel types for decl.  */
-
-void
-add_parallel_type (tree decl, tree parallel_type)
-{
-  tree d = decl;
-
-  while (DECL_PARALLEL_TYPE (d))
-    d = TYPE_STUB_DECL (DECL_PARALLEL_TYPE (d));
-
-  SET_DECL_PARALLEL_TYPE (d, parallel_type);
 }
 
 /* Utility function of above to merge LAST_SIZE, the previous size of a record
@@ -3411,27 +3424,6 @@ build_unc_object_type_from_ptr (tree thin_fat_ptr_type, tree object_type,
   return
     build_unc_object_type (template_type, object_type, name, debug_info_p);
 }
-
-/* Shift the component offsets within an unconstrained object TYPE to make it
-   suitable for use as a designated type for thin pointers.  */
-
-void
-shift_unc_components_for_thin_pointers (tree type)
-{
-  /* Thin pointer values designate the ARRAY data of an unconstrained object,
-     allocated past the BOUNDS template.  The designated type is adjusted to
-     have ARRAY at position zero and the template at a negative offset, so
-     that COMPONENT_REFs on (*thin_ptr) designate the proper location.  */
-
-  tree bounds_field = TYPE_FIELDS (type);
-  tree array_field  = DECL_CHAIN (TYPE_FIELDS (type));
-
-  DECL_FIELD_OFFSET (bounds_field)
-    = size_binop (MINUS_EXPR, size_zero_node, byte_position (array_field));
-
-  DECL_FIELD_OFFSET (array_field) = size_zero_node;
-  DECL_FIELD_BIT_OFFSET (array_field) = bitsize_zero_node;
-}
 
 /* Update anything previously pointing to OLD_TYPE to point to NEW_TYPE.
    In the normal case this is just two adjustments, but we have more to
@@ -3616,7 +3608,18 @@ convert_to_fat_pointer (tree type, tree expr)
       if (TREE_CODE (expr) == ADDR_EXPR)
 	expr = TREE_OPERAND (expr, 0);
       else
-	expr = build1 (INDIRECT_REF, TREE_TYPE (etype), expr);
+	{
+	  /* If we have a TYPE_UNCONSTRAINED_ARRAY attached to the RECORD_TYPE,
+	     the thin pointer value has been shifted so we first need to shift
+	     it back to get the template address.  */
+	  if (TYPE_UNCONSTRAINED_ARRAY (TREE_TYPE (etype)))
+	    expr
+	      = build_binary_op (POINTER_PLUS_EXPR, etype, expr,
+				 fold_build1 (NEGATE_EXPR, sizetype,
+					      byte_position
+					      (DECL_CHAIN (field))));
+	  expr = build1 (INDIRECT_REF, TREE_TYPE (etype), expr);
+	}
 
       template_tree = build_component_ref (expr, NULL_TREE, field, false);
       expr = build_unary_op (ADDR_EXPR, NULL_TREE,
@@ -4103,12 +4106,19 @@ convert (tree type, tree expr)
     case POINTER_TYPE:
     case REFERENCE_TYPE:
       /* If converting between two thin pointers, adjust if needed to account
-	 for any differing offsets, since one of them might be negative.  */
+	 for differing offsets from the base pointer, depending on whether
+	 there is a TYPE_UNCONSTRAINED_ARRAY attached to the record type.  */
       if (TYPE_IS_THIN_POINTER_P (etype) && TYPE_IS_THIN_POINTER_P (type))
 	{
-	  tree byte_diff
-	    = size_diffop (byte_position (TYPE_FIELDS (TREE_TYPE (etype))),
-			   byte_position (TYPE_FIELDS (TREE_TYPE (type))));
+	  tree etype_pos
+	    = TYPE_UNCONSTRAINED_ARRAY (TREE_TYPE (etype)) != NULL_TREE
+	      ? byte_position (DECL_CHAIN (TYPE_FIELDS (TREE_TYPE (etype))))
+	      : size_zero_node;
+	  tree type_pos
+	    = TYPE_UNCONSTRAINED_ARRAY (TREE_TYPE (type)) != NULL_TREE
+	      ? byte_position (DECL_CHAIN (TYPE_FIELDS (TREE_TYPE (type))))
+	      : size_zero_node;
+	  tree byte_diff = size_diffop (type_pos, etype_pos);
 
 	  expr = build1 (NOP_EXPR, type, expr);
 	  if (integer_zerop (byte_diff))
@@ -4849,7 +4859,7 @@ gnat_write_global_declarations (void)
       TREE_STATIC (dummy_global) = 1;
       TREE_ASM_WRITTEN (dummy_global) = 1;
       node = varpool_node (dummy_global);
-      node->force_output = 1;
+      node->symbol.force_output = 1;
       varpool_mark_needed_node (node);
 
       while (!VEC_empty (tree, types_used_by_cur_var_decl))

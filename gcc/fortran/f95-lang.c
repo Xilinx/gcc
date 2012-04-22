@@ -605,7 +605,7 @@ build_builtin_fntypes (tree *fntype, tree type)
 static tree
 builtin_type_for_size (int size, bool unsignedp)
 {
-  tree type = lang_hooks.types.type_for_size (size, unsignedp);
+  tree type = gfc_type_for_size (size, unsignedp);
   return type ? type : error_mark_node;
 }
 
@@ -773,7 +773,11 @@ gfc_init_builtin_functions (void)
   gfc_define_builtin ("__builtin_fmodf", mfunc_float[1], 
 		      BUILT_IN_FMODF, "fmodf", ATTR_CONST_NOTHROW_LEAF_LIST);
 
-  /* lround{f,,l} and llround{f,,l} */
+  /* iround{f,,l}, lround{f,,l} and llround{f,,l} */
+  ftype = build_function_type_list (integer_type_node,
+                                    float_type_node, NULL_TREE); 
+  gfc_define_builtin("__builtin_iroundf", ftype, BUILT_IN_IROUNDF,
+		     "iroundf", ATTR_CONST_NOTHROW_LEAF_LIST);
   ftype = build_function_type_list (long_integer_type_node,
                                     float_type_node, NULL_TREE); 
   gfc_define_builtin ("__builtin_lroundf", ftype, BUILT_IN_LROUNDF,
@@ -783,6 +787,10 @@ gfc_init_builtin_functions (void)
   gfc_define_builtin ("__builtin_llroundf", ftype, BUILT_IN_LLROUNDF,
 		      "llroundf", ATTR_CONST_NOTHROW_LEAF_LIST);
 
+  ftype = build_function_type_list (integer_type_node,
+                                    double_type_node, NULL_TREE); 
+  gfc_define_builtin("__builtin_iround", ftype, BUILT_IN_IROUND,
+		     "iround", ATTR_CONST_NOTHROW_LEAF_LIST);
   ftype = build_function_type_list (long_integer_type_node,
                                     double_type_node, NULL_TREE); 
   gfc_define_builtin ("__builtin_lround", ftype, BUILT_IN_LROUND,
@@ -792,6 +800,10 @@ gfc_init_builtin_functions (void)
   gfc_define_builtin ("__builtin_llround", ftype, BUILT_IN_LLROUND,
 		      "llround", ATTR_CONST_NOTHROW_LEAF_LIST);
 
+  ftype = build_function_type_list (integer_type_node,
+                                    long_double_type_node, NULL_TREE); 
+  gfc_define_builtin("__builtin_iroundl", ftype, BUILT_IN_IROUNDL,
+		     "iroundl", ATTR_CONST_NOTHROW_LEAF_LIST);
   ftype = build_function_type_list (long_integer_type_node,
                                     long_double_type_node, NULL_TREE); 
   gfc_define_builtin ("__builtin_lroundl", ftype, BUILT_IN_LROUNDL,

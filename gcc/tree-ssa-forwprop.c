@@ -1,5 +1,5 @@
 /* Forward propagation of expressions for single use variables.
-   Copyright (C) 2004, 2005, 2007, 2008, 2009, 2010, 2011
+   Copyright (C) 2004, 2005, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -325,9 +325,9 @@ remove_prop_source_from_use (tree name)
     bb = gimple_bb (stmt);
     gsi = gsi_for_stmt (stmt);
     unlink_stmt_vdef (stmt);
-    gsi_remove (&gsi, true);
+    if (gsi_remove (&gsi, true))
+      cfg_changed |= gimple_purge_dead_eh_edges (bb);
     release_defs (stmt);
-    cfg_changed |= gimple_purge_dead_eh_edges (bb);
 
     name = is_gimple_assign (stmt) ? gimple_assign_rhs1 (stmt) : NULL_TREE;
   } while (name && TREE_CODE (name) == SSA_NAME);
@@ -632,6 +632,58 @@ forward_propagate_into_cond (gimple_stmt_iterator *gsi_p)
   return 0;
 }
 
+/* Propagate from the ssa name definition statements of COND_EXPR
+   values in the rhs of statement STMT into the conditional arms
+   if that simplifies it.
+   Returns true if the stmt was changed.  */
+
+static bool
+combine_cond_exprs (gimple_stmt_iterator *gsi_p)
+{
+  gimple stmt = gsi_stmt (*gsi_p);
+  tree cond, val1, val2;
+  bool changed = false;
+
+  cond = gimple_assign_rhs1 (stmt);
+  val1 = gimple_assign_rhs2 (stmt);
+  if (TREE_CODE (val1) == SSA_NAME)
+    {
+      gimple def_stmt = SSA_NAME_DEF_STMT (val1);
+      if (is_gimple_assign (def_stmt)
+	  && gimple_assign_rhs_code (def_stmt) == gimple_assign_rhs_code (stmt)
+	  && operand_equal_p (gimple_assign_rhs1 (def_stmt), cond, 0))
+	{
+	  val1 = unshare_expr (gimple_assign_rhs2 (def_stmt));
+	  gimple_assign_set_rhs2 (stmt, val1);
+	  changed = true;
+	}
+    }
+  val2 = gimple_assign_rhs3 (stmt);
+  if (TREE_CODE (val2) == SSA_NAME)
+    {
+      gimple def_stmt = SSA_NAME_DEF_STMT (val2);
+      if (is_gimple_assign (def_stmt)
+	  && gimple_assign_rhs_code (def_stmt) == gimple_assign_rhs_code (stmt)
+	  && operand_equal_p (gimple_assign_rhs1 (def_stmt), cond, 0))
+	{
+	  val2 = unshare_expr (gimple_assign_rhs3 (def_stmt));
+	  gimple_assign_set_rhs3 (stmt, val2);
+	  changed = true;
+	}
+    }
+  if (operand_equal_p (val1, val2, 0))
+    {
+      gimple_assign_set_rhs_from_tree (gsi_p, val1);
+      stmt = gsi_stmt (*gsi_p);
+      changed = true;
+    }
+
+  if (changed)
+    update_stmt (stmt);
+
+  return changed;
+}
+
 /* We've just substituted an ADDR_EXPR into stmt.  Update all the
    relevant data structures to match.  */
 
@@ -905,6 +957,7 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
          that of the pointed-to type of the address we can put the
 	 dereferenced address on the LHS preserving the original alias-type.  */
       else if (gimple_assign_lhs (use_stmt) == lhs
+	       && integer_zerop (TREE_OPERAND (lhs, 1))
 	       && useless_type_conversion_p
 	            (TREE_TYPE (TREE_OPERAND (def_rhs, 0)),
 		     TREE_TYPE (gimple_assign_rhs1 (use_stmt))))
@@ -917,9 +970,8 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
 	  if (TREE_CODE (*def_rhs_basep) == MEM_REF)
 	    {
 	      new_base = TREE_OPERAND (*def_rhs_basep, 0);
-	      new_offset
-		= int_const_binop (PLUS_EXPR, TREE_OPERAND (lhs, 1),
-				   TREE_OPERAND (*def_rhs_basep, 1));
+	      new_offset = fold_convert (TREE_TYPE (TREE_OPERAND (lhs, 1)),
+					 TREE_OPERAND (*def_rhs_basep, 1));
 	    }
 	  else
 	    {
@@ -989,6 +1041,7 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
          that of the pointed-to type of the address we can put the
 	 dereferenced address on the RHS preserving the original alias-type.  */
       else if (gimple_assign_rhs1 (use_stmt) == rhs
+	       && integer_zerop (TREE_OPERAND (rhs, 1))
 	       && useless_type_conversion_p
 		    (TREE_TYPE (gimple_assign_lhs (use_stmt)),
 		     TREE_TYPE (TREE_OPERAND (def_rhs, 0))))
@@ -1001,9 +1054,8 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
 	  if (TREE_CODE (*def_rhs_basep) == MEM_REF)
 	    {
 	      new_base = TREE_OPERAND (*def_rhs_basep, 0);
-	      new_offset
-		= int_const_binop (PLUS_EXPR, TREE_OPERAND (rhs, 1),
-				   TREE_OPERAND (*def_rhs_basep, 1));
+	      new_offset = fold_convert (TREE_TYPE (TREE_OPERAND (rhs, 1)),
+					 TREE_OPERAND (*def_rhs_basep, 1));
 	    }
 	  else
 	    {
@@ -2274,7 +2326,7 @@ combine_conversions (gimple_stmt_iterator *gsi)
 	  && inter_prec >= inside_prec
 	  && (inter_float || inter_vec
 	      || inter_unsignedp == inside_unsignedp)
-	  && ! (final_prec != GET_MODE_BITSIZE (TYPE_MODE (type))
+	  && ! (final_prec != GET_MODE_PRECISION (TYPE_MODE (type))
 		&& TYPE_MODE (type) == TYPE_MODE (inter_type))
 	  && ! final_ptr
 	  && (! final_vec || inter_prec == inside_prec))
@@ -2285,10 +2337,13 @@ combine_conversions (gimple_stmt_iterator *gsi)
 	}
 
       /* If we have a sign-extension of a zero-extended value, we can
-	 replace that by a single zero-extension.  */
+	 replace that by a single zero-extension.  Likewise if the
+	 final conversion does not change precision we can drop the
+	 intermediate conversion.  */
       if (inside_int && inter_int && final_int
-	  && inside_prec < inter_prec && inter_prec < final_prec
-	  && inside_unsignedp && !inter_unsignedp)
+	  && ((inside_prec < inter_prec && inter_prec < final_prec
+	       && inside_unsignedp && !inter_unsignedp)
+	      || final_prec == inter_prec))
 	{
 	  gimple_assign_set_rhs1 (stmt, defop0);
 	  update_stmt (stmt);
@@ -2316,7 +2371,7 @@ combine_conversions (gimple_stmt_iterator *gsi)
 	      == (final_unsignedp && final_prec > inter_prec))
 	  && ! (inside_ptr && inter_prec != final_prec)
 	  && ! (final_ptr && inside_prec != inter_prec)
-	  && ! (final_prec != GET_MODE_BITSIZE (TYPE_MODE (type))
+	  && ! (final_prec != GET_MODE_PRECISION (TYPE_MODE (type))
 		&& TYPE_MODE (type) == TYPE_MODE (inter_type)))
 	{
 	  gimple_assign_set_rhs1 (stmt, defop0);
@@ -2477,11 +2532,16 @@ ssa_forward_propagate_and_combine (void)
 		     || code == NEGATE_EXPR)
 		    && TREE_CODE (rhs1) == SSA_NAME)
 		  changed = simplify_not_neg_expr (&gsi);
-		else if (code == COND_EXPR)
+		else if (code == COND_EXPR
+			 || code == VEC_COND_EXPR)
 		  {
 		    /* In this case the entire COND_EXPR is in rhs1. */
-		    changed |= forward_propagate_into_cond (&gsi);
-		    stmt = gsi_stmt (gsi);
+		    if (forward_propagate_into_cond (&gsi)
+			|| combine_cond_exprs (&gsi))
+		      {
+			changed = true;
+			stmt = gsi_stmt (gsi);
+		      }
 		  }
 		else if (TREE_CODE_CLASS (code) == tcc_comparison)
 		  {

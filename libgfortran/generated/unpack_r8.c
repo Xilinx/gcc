@@ -100,7 +100,7 @@ unpack0_r8 (gfc_array_r8 *ret, const gfc_array_r8 *vector,
 	  rs *= extent[n];
 	}
       ret->offset = 0;
-      ret->base_addr = internal_malloc_size (rs * sizeof (GFC_REAL_8));
+      ret->base_addr = xmalloc (rs * sizeof (GFC_REAL_8));
     }
   else
     {
@@ -246,7 +246,7 @@ unpack1_r8 (gfc_array_r8 *ret, const gfc_array_r8 *vector,
 	  rs *= extent[n];
 	}
       ret->offset = 0;
-      ret->base_addr = internal_malloc_size (rs * sizeof (GFC_REAL_8));
+      ret->base_addr = xmalloc (rs * sizeof (GFC_REAL_8));
     }
   else
     {
