@@ -1,5 +1,15 @@
 
 2012-04-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_new_int, meltgc_new_mixint)
+	(meltgc_new_mixloc): Give default discr if passed null.
+
+	* melt/warmelt-first.melt (class_primitive): Better doc.
+
+	* melt/warmelt-macro.melt (class_source_defprimitive): Add
+	sprim_exploc field.
+	(mexpand_defprimitive): Fill it.
+	
+2012-04-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (READ_WARNING): Macro renamed as
 	(MELT_READ_WARNING): New macro ...
 	(enum melt_macrostring_en): New.

@@ -122,7 +122,7 @@ automagically created by the $DEFCLASS macro.}#
   :doc #{The $CLASS_PRIMITIVE is the class of descriptors of
 primitives. The $PRIM_FORMALS field is the sequence of formal
 arguments, the $PRIM_TYPE field is the type of the primitive, and its
-expansion is described by $PRIM_EXPANSION. Instances of
+expansion is described by the $PRIM_EXPANSION tuple. Instances of
 $CLASS_PRIMITIVE are automagically created by the $DEFPRIMITIVE
 macro.}#
   :predef CLASS_PRIMITIVE)

@@ -295,19 +295,23 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}#
 (defclass class_source_defprimitive
   :doc #{The internal $CLASS_SOURCE_DEFPRIMITIVE is the abstract
 syntax of $DEFPRIMITIVE.  $SPRIM_TYPE is the result ctype,
-$SPRIM_EXPANSION is the tuple of its expansion.}#
+$SPRIM_EXPANSION is the tuple of its expansion and $SPRIM_EXPLOC is
+the location of the expansion.}#
   :super class_source_definition_formal
   :fields (sprim_type			;result type of primitive
 	   sprim_expansion		;primitive expansion
+	   sprim_exploc			;precise location of expansion
 	   ))
 
 
 ;;; define a citerator
 (defclass class_source_defciterator
   :doc #{The internal $CLASS_SOURCE_DEFCITERATOR is the abstact syntax
-of $DEFCITERATOR.  $SCITERDEF_CITERATOR is the c-iterator.}#
+of $DEFCITERATOR.  $SCITERDEF_CITERATOR is the c-iterator, $SCITERDEF_BEFORELOC is the location of the before chunk, and $SCRITERDEF_AFTERLOC is the location of the after chunk}#
   :super class_source_definition_formal		;the sformal_args is the start arguments
   :fields (sciterdef_citerator		;the citerator
+	   sciterdef_beforeloc		;location of before
+	   sciterdef_afterloc		;location of after
 	   ))
 
 ;;; define a cmatcher
@@ -2144,6 +2148,8 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
 		(setq curpair (pair_tail curpair))
 		))
 	  (let (
+		(curhead (pair_head curpair))
+		(exploc (or (get_field :loca_location curhead) loc))
 		(etuple (parse_pairlist_c_code_expansion loc curpair))
 		(substmap (make_mapobject discr_map_objects
 					  (+i 5 (*i 2 (multiple_length btup)))))
@@ -2154,7 +2160,8 @@ the object-map for pattern variables. $PCTX_MODCTX is the module context.}#
 			   :sdef_doc docv
 			   :sformal_args btup
 			   :sprim_type cty
-			   :sprim_expansion etuple))
+			   :sprim_expansion etuple
+			   :sprim_exploc exploc))
 		(primit
 		 (instance class_primitive
 			   :named_name (unsafe_get_field :named_name symb)
@@ -2217,6 +2224,8 @@ $CLASS_PRIMITIVE_BINDING and the $CODE_CHUNK macro.}# )
 	 (docv ())
 	 (expbef ())		     ;the tuple expansion before tuple
 	 (expaft ())		     ;the tuple expansion after tuple
+	 (befloc ())		     ;location of before chunk
+	 (aftloc ())		     ;location of after chunk
 	 )
     (if (is_not_a symb class_symbol)
 	(progn
@@ -2262,6 +2271,7 @@ $CLASS_PRIMITIVE_BINDING and the $CODE_CHUNK macro.}# )
 	  (progn
 	    (error_plain loc "missing before expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"_)
 	    (return)))
+      (setq befloc (get_field :loca_location sexpbef))
       (setq expbef (parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexpbef))))
       )
     (setq curpair (pair_tail curpair))
@@ -2271,6 +2281,7 @@ $CLASS_PRIMITIVE_BINDING and the $CODE_CHUNK macro.}# )
 	  (progn
 	    (error_plain loc "missing after expansion for  (DEFCITERATOR symb startformals statesymb locformals expbefore expafter)"_)
 	    (return)))
+      (setq aftloc (get_field :loca_location sexpaft))
       (setq expaft  (parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexpaft))))
       )
     ;; parse the documentation, if any
@@ -2300,7 +2311,10 @@ $CLASS_PRIMITIVE_BINDING and the $CODE_CHUNK macro.}# )
 			    :sdef_name symb
 			    :sdef_doc docv
 			    :sformal_args bstartup
-			    :sciterdef_citerator citer))
+			    :sciterdef_citerator citer
+			    :sciterdef_beforeloc befloc
+			    :sciterdef_afterloc aftloc
+			    ))
 	   (substmap (make_mapobject 
 		      discr_map_objects
 		      (+i 7 (+i (*i 2 (multiple_length bstartup))

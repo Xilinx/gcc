@@ -1428,6 +1428,8 @@ meltgc_new_int (meltobject_ptr_t discr_p, long num)
 #define object_discrv ((meltobject_ptr_t)(discrv))
 #define int_newintv ((struct meltint_st*)(newintv))
   discrv = (void *) discr_p;
+  if (!discrv)
+    discrv = (melt_ptr_t) MELT_PREDEF (DISCR_INTEGER);
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
     goto end;
   if (object_discrv->meltobj_magic != MELTOBMAG_INT)
@@ -1457,6 +1459,8 @@ meltgc_new_mixint (meltobject_ptr_t discr_p,
 #define mix_newmix ((struct meltmixint_st*)(newmix))
   newmix = NULL;
   discrv = (void *) discr_p;
+  if (!discrv)
+    discrv = (melt_ptr_t) MELT_PREDEF (DISCR_MIXED_INTEGER);
   valv = val_p;
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
     goto end;
@@ -1477,6 +1481,7 @@ end:
 }
 
 
+
 melt_ptr_t
 meltgc_new_mixloc (meltobject_ptr_t discr_p,
 		      melt_ptr_t val_p, long num, location_t loc)
@@ -1490,6 +1495,8 @@ meltgc_new_mixloc (meltobject_ptr_t discr_p,
   newmix = NULL;
   discrv = (void *) discr_p;
   valv = val_p;
+  if (!discrv) 
+    discrv = (melt_ptr_t) MELT_PREDEF (DISCR_MIXED_LOCATION);
   if (melt_magic_discr ((melt_ptr_t) (discrv)) != MELTOBMAG_OBJECT)
     goto end;
   if (object_discrv->meltobj_magic != MELTOBMAG_MIXLOC)
