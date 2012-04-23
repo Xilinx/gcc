@@ -1055,6 +1055,10 @@ fdwarf2-cfi-asm
 Common Report Var(flag_dwarf2_cfi_asm) Init(HAVE_GAS_CFI_DIRECTIVE)
 Enable CFI tables via GAS assembler directives.
 
+fdwarf-comdat-fn-debug
+Common Report Var(flag_dwarf_comdat_fn_debug) Init(-1)
+Put DWARF debug info for COMDAT functions in the same COMDAT group.
+
 fearly-inlining
 Common Report Var(flag_early_inlining) Init(1) Optimization
 Perform early inlining

@@ -5083,6 +5083,13 @@ information describing them as in @file{@var{new}} instead.
 Emit DWARF 2 unwind info as compiler generated @code{.eh_frame} section
 instead of using GAS @code{.cfi_*} directives.
 
+@item -fdwarf-comdat-fn-debug
+@opindex fdwarf-comdat-fn-debug
+@opindex fno-dwarf-comdat-fn-debug
+Put the debug info for COMDAT functions (such as template
+instantiations) in the same COMDAT group.  Defaults to on when
+generating DWARF 4, off otherwise.
+
 @cindex @command{prof}
 @item -p
 @opindex p

@@ -95,6 +95,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-flow.h"
 #include "cfglayout.h"
 #include "opts.h"
+#include "pointer-set.h"
 
 static void dwarf2out_source_line (unsigned int, const char *, int, bool);
 static rtx last_var_location_insn;
@@ -1007,6 +1008,8 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
   fde->dw_fde_current_label = dup_label;
   fde->in_std_section = (fnsec == text_section
 			 || (cold_text_section && fnsec == cold_text_section));
+  fde->comdat = (flag_dwarf_comdat_fn_debug
+		 && DECL_ONE_ONLY (current_function_decl));
 
   /* We only want to output line number information for the genuine dwarf2
      prologue case, not the eh frame case.  */
@@ -2967,8 +2970,10 @@ static void compute_section_prefix (dw_die_ref);
 static int is_type_die (dw_die_ref);
 static int is_comdat_die (dw_die_ref);
 static int is_symbol_die (dw_die_ref);
+static int is_abstract_die (dw_die_ref);
 static void assign_symbol_names (dw_die_ref);
 static void break_out_includes (dw_die_ref);
+static void break_out_comdat_functions (dw_die_ref);
 static int is_declaration_die (dw_die_ref);
 static int should_move_die_to_comdat (dw_die_ref);
 static dw_die_ref clone_as_declaration (dw_die_ref);
@@ -3649,6 +3654,23 @@ add_AT_string (dw_die_ref die, enum dwarf_attribute attr_kind, const char *str)
   struct indirect_string_node *node;
 
   node = find_AT_string (str);
+
+  attr.dw_attr = attr_kind;
+  attr.dw_attr_val.val_class = dw_val_class_str;
+  attr.dw_attr_val.v.val_str = node;
+  add_dwarf_attr (die, &attr);
+}
+
+/* Likewise, but don't increment the reference count.  */
+
+static inline void
+add_AT_string_noref (dw_die_ref die, enum dwarf_attribute attr_kind, const char *str)
+{
+  dw_attr_node attr;
+  struct indirect_string_node *node;
+
+  node = find_AT_string (str);
+  node->refcount--;
 
   attr.dw_attr = attr_kind;
   attr.dw_attr_val.val_class = dw_val_class_str;
@@ -5885,8 +5907,10 @@ compute_section_prefix (dw_die_ref unit_die)
       p += 2;
     }
 
-  comdat_symbol_id = unit_die->die_id.die_symbol = xstrdup (name);
+  comdat_symbol_id = xstrdup (name);
   comdat_symbol_number = 0;
+
+  add_AT_string (unit_die, DW_AT_GNU_comdat, comdat_symbol_id);
 }
 
 /* Returns nonzero if DIE represents a type, in the sense of TYPE_P.  */
@@ -5960,6 +5984,12 @@ is_symbol_die (dw_die_ref c)
 {
   return (is_type_die (c)
 	  || is_declaration_die (c)
+	  || is_abstract_die (c)
+	  /* DW_TAG_GNU_call_site can refer to subprograms.  */
+	  || c->die_tag == DW_TAG_subprogram
+	  /* DW_TAG_imported_unit can refer to *_unit.  */
+	  || c->die_tag == DW_TAG_compile_unit
+	  || c->die_tag == DW_TAG_partial_unit
 	  || c->die_tag == DW_TAG_namespace
 	  || c->die_tag == DW_TAG_module);
 }
@@ -5998,6 +6028,8 @@ assign_symbol_names (dw_die_ref die)
 
   if (is_symbol_die (die) && !die->comdat_type_p)
     {
+      if (die->die_id.die_symbol)
+	return;
       if (comdat_symbol_id)
 	{
 	  char *p = XALLOCAVEC (char, strlen (comdat_symbol_id) + 64);
@@ -6026,8 +6058,9 @@ htab_cu_hash (const void *of)
 {
   const struct cu_hash_table_entry *const entry =
     (const struct cu_hash_table_entry *) of;
+  const char *comdat_key = get_AT_string (entry->cu, DW_AT_GNU_comdat);
 
-  return htab_hash_string (entry->cu->die_id.die_symbol);
+  return htab_hash_string (comdat_key);
 }
 
 static int
@@ -6035,9 +6068,12 @@ htab_cu_eq (const void *of1, const void *of2)
 {
   const struct cu_hash_table_entry *const entry1 =
     (const struct cu_hash_table_entry *) of1;
-  const struct die_struct *const entry2 = (const struct die_struct *) of2;
+  const_dw_die_ref entry2 = (const_dw_die_ref) of2;
+  const char *comdat_key1 = get_AT_string (entry1->cu, DW_AT_GNU_comdat);
+  const char *comdat_key2 = get_AT_string (CONST_CAST_DIE (entry2),
+					   DW_AT_GNU_comdat);
 
-  return !strcmp (entry1->cu->die_id.die_symbol, entry2->die_id.die_symbol);
+  return !strcmp (comdat_key1, comdat_key2);
 }
 
 static void
@@ -6061,11 +6097,12 @@ check_duplicate_cu (dw_die_ref cu, htab_t htable, unsigned int *sym_num)
 {
   struct cu_hash_table_entry dummy;
   struct cu_hash_table_entry **slot, *entry, *last = &dummy;
+  const char *comdat_key = get_AT_string (cu, DW_AT_GNU_comdat);
 
   dummy.max_comdat_num = 0;
 
   slot = (struct cu_hash_table_entry **)
-    htab_find_slot_with_hash (htable, cu, htab_hash_string (cu->die_id.die_symbol),
+    htab_find_slot_with_hash (htable, cu, htab_hash_string (comdat_key),
 	INSERT);
   entry = *slot;
 
@@ -6095,9 +6132,10 @@ static void
 record_comdat_symbol_number (dw_die_ref cu, htab_t htable, unsigned int sym_num)
 {
   struct cu_hash_table_entry **slot, *entry;
+  const char *comdat_key = get_AT_string (cu, DW_AT_GNU_comdat);
 
   slot = (struct cu_hash_table_entry **)
-    htab_find_slot_with_hash (htable, cu, htab_hash_string (cu->die_id.die_symbol),
+    htab_find_slot_with_hash (htable, cu, htab_hash_string (comdat_key),
 	NO_INSERT);
   entry = *slot;
 
@@ -6165,9 +6203,161 @@ break_out_includes (dw_die_ref die)
 	  pnode = &node->next;
 	  record_comdat_symbol_number (node->die, cu_hash_table,
 		comdat_symbol_number);
+	  if (node->die->die_child)
+	    {
+	      dw_die_ref imp = new_die (DW_TAG_imported_unit, die, NULL_TREE);
+	      add_AT_die_ref (imp, DW_AT_import, node->die);
+	    }
 	}
     }
   htab_delete (cu_hash_table);
+}
+
+static void
+copy_needed_base_types_loc (dw_die_ref unit, dw_loc_descr_ref loc,
+			    struct pointer_map_t *map)
+{
+  for (; loc; loc = loc->dw_loc_next)
+    {
+      dw_die_ref *op, copy;
+      void **slot;
+      switch (loc->dw_loc_opc)
+	{
+	case DW_OP_GNU_convert:
+	case DW_OP_GNU_reinterpret:
+	  if (loc->dw_loc_oprnd1.val_class == dw_val_class_unsigned_const)
+	    continue;
+	  /* else fall through */
+	case DW_OP_GNU_const_type:
+	  op = &loc->dw_loc_oprnd1.v.val_die_ref.die;
+	  break;
+	case DW_OP_GNU_regval_type:
+	case DW_OP_GNU_deref_type:
+	  op = &loc->dw_loc_oprnd2.v.val_die_ref.die;
+	  break;
+
+	  /* DW_OP_GNU_entry_value has a location expression for its
+	     operand, so recurse.  */
+	case DW_OP_GNU_entry_value:
+	  copy_needed_base_types_loc (unit, loc->dw_loc_oprnd1.v.val_loc, map);
+	  continue;
+
+	default:
+	  continue;
+	}
+
+      gcc_assert ((*op)->die_tag == DW_TAG_base_type);
+
+      slot = pointer_map_contains (map, *op);
+      if (slot)
+	copy = (dw_die_ref) *slot;
+      else
+	{
+	  copy = new_die (DW_TAG_base_type, unit, NULL_TREE);
+	  add_AT_unsigned (copy, DW_AT_byte_size,
+			   get_AT_unsigned (*op, DW_AT_byte_size));
+	  add_AT_unsigned (copy, DW_AT_encoding,
+			   get_AT_unsigned (*op, DW_AT_encoding));
+	  slot = pointer_map_insert (map, *op);
+	  *slot = copy;
+	}
+      *op = copy;
+    }
+}
+
+static void
+copy_needed_base_types (dw_die_ref unit, dw_die_ref die,
+			struct pointer_map_t *map)
+{
+  dw_die_ref c;
+  dw_attr_ref a;
+  unsigned ix;
+  FOR_EACH_VEC_ELT (dw_attr_node, die->die_attr, ix, a)
+    {
+      switch (AT_class (a))
+	{
+	case dw_val_class_loc:
+	  copy_needed_base_types_loc (unit, AT_loc (a), map);
+	  break;
+
+	case dw_val_class_loc_list:
+	  {
+	    dw_loc_list_ref p = AT_loc_list (a);
+	    for (; p; p = p->dw_loc_next)
+	      copy_needed_base_types_loc (unit, p->expr, map);
+	    break;
+	  }
+
+	default:
+	  break;
+	}
+    }
+
+  FOR_EACH_CHILD (die, c, copy_needed_base_types (unit, c, map));
+}
+
+/* Traverse the DIE (which is always comp_unit_die), and set up additional
+   compilation units for each of the comdat functions we see.  */
+
+static void
+break_out_comdat_functions (dw_die_ref die)
+{
+  dw_die_ref c;
+  dw_die_ref unit = NULL;
+  limbo_die_node *node;
+  dw_die_ref prev;
+  bool found = false;
+
+  prev = die->die_child;
+  if (prev == NULL)
+    return;
+
+  do
+    {
+      const char *key;
+      c = prev->die_sib;
+      if (c->die_tag == DW_TAG_subprogram
+	  && (key = get_AT_string (c, DW_AT_GNU_comdat)))
+	{
+	  /* Move the subprogram DIE to a secondary CU with the appropriate
+	     COMDAT key and import the main CU.  */
+	  dw_die_ref unit, imp;
+	  struct pointer_map_t *map;
+
+	  found = true;
+
+	  remove_child_with_prev (c, prev);
+	  remove_AT (c, DW_AT_GNU_comdat);
+
+	  unit = gen_compile_unit_die (NULL);
+	  add_AT_string (unit, DW_AT_GNU_comdat, key);
+
+	  imp = new_die (DW_TAG_imported_unit, unit, NULL_TREE);
+	  add_AT_die_ref (imp, DW_AT_import, comp_unit_die ());
+
+	  add_child_die (unit, c);
+
+	  map = pointer_map_create ();
+	  copy_needed_base_types (unit, c, map);
+	  pointer_map_destroy (map);
+	}
+      else
+	prev = c;
+    }
+  while (c != die->die_child);
+
+  if (!found)
+    return;
+
+  gcc_assert (die == comp_unit_die ());
+  assign_symbol_names (die);
+  for (node = limbo_die_list;
+       node;
+       node = node->next)
+    {
+      unit = node->die;
+      c = unit->die_child->die_sib;
+    }
 }
 
 /* Return non-zero if this DIE is a declaration.  */
@@ -6182,6 +6372,37 @@ is_declaration_die (dw_die_ref die)
     if (a->dw_attr == DW_AT_declaration)
       return 1;
 
+  return 0;
+}
+
+/* Return non-zero if this DIE is part of an abstract inline.  That is, if
+   it's an inline function or a variable, label or parameter of an inline
+   function.  */
+
+static int
+is_abstract_die (dw_die_ref die)
+{
+  switch (die->die_tag)
+    {
+    case DW_TAG_subprogram:
+    case DW_TAG_variable:
+    case DW_TAG_label:
+    case DW_TAG_formal_parameter:
+      break;
+
+    default:
+      return 0;
+    }
+
+  for (; die->die_tag != DW_TAG_subprogram; die = die->die_parent)
+    {
+      if (die->die_tag == DW_TAG_compile_unit
+	  || die->die_tag == DW_TAG_namespace)
+	return 0;
+    }
+
+  if (get_AT (die, DW_AT_inline))
+    return 1;
   return 0;
 }
 
@@ -7717,6 +7938,9 @@ output_die (dw_die_ref die)
     {
       const char *name = dwarf_attr_name (a->dw_attr);
 
+      /* This should never be emitted.  */
+      gcc_assert (a->dw_attr != DW_AT_GNU_comdat);
+
       switch (AT_class (a))
 	{
 	case dw_val_class_addr:
@@ -7984,13 +8208,34 @@ output_compilation_unit_header (void)
 static void
 output_comp_unit (dw_die_ref die, int output_if_empty)
 {
-  const char *secname, *oldsym;
-  char *tmp;
+  const char *oldsym;
   htab_t extern_map;
 
   /* Unless we are outputting main CU, we may throw away empty ones.  */
   if (!output_if_empty && die->die_child == NULL)
     return;
+
+  oldsym = get_AT_string (die, DW_AT_GNU_comdat);
+  if (oldsym)
+    {
+#ifdef OBJECT_FORMAT_ELF
+      targetm.asm_out.named_section (DEBUG_INFO_SECTION,
+				     SECTION_DEBUG | SECTION_LINKONCE,
+				     get_identifier (oldsym));
+#else
+      char *tmp = XALLOCAVEC (char, strlen (oldsym) + 24);
+      sprintf (tmp, ".gnu.linkonce.wi.%s", oldsym);
+      switch_to_section (get_section (tmp, SECTION_DEBUG, NULL));
+#endif
+      /* Remove the attribute so it doesn't get emitted.  */
+      remove_AT (die, DW_AT_GNU_comdat);
+    }
+  else
+    {
+      switch_to_section (debug_info_section);
+      ASM_OUTPUT_LABEL (asm_out_file, debug_info_section_label);
+      info_section_emitted = true;
+    }
 
   /* Even if there are no children of this DIE, we must output the information
      about the compilation unit.  Otherwise, on an empty translation unit, we
@@ -8009,23 +8254,6 @@ output_comp_unit (dw_die_ref die, int output_if_empty)
   next_die_offset = DWARF_COMPILE_UNIT_HEADER_SIZE;
   calc_die_sizes (die);
 
-  oldsym = die->die_id.die_symbol;
-  if (oldsym)
-    {
-      tmp = XALLOCAVEC (char, strlen (oldsym) + 24);
-
-      sprintf (tmp, ".gnu.linkonce.wi.%s", oldsym);
-      secname = tmp;
-      die->die_id.die_symbol = NULL;
-      switch_to_section (get_section (secname, SECTION_DEBUG, NULL));
-    }
-  else
-    {
-      switch_to_section (debug_info_section);
-      ASM_OUTPUT_LABEL (asm_out_file, debug_info_section_label);
-      info_section_emitted = true;
-    }
-
   /* Output debugging information.  */
   output_compilation_unit_header ();
   output_die (die);
@@ -8035,7 +8263,8 @@ output_comp_unit (dw_die_ref die, int output_if_empty)
   if (oldsym)
     {
       unmark_dies (die);
-      die->die_id.die_symbol = oldsym;
+      /* Put back the attribute.  */
+      add_AT_string_noref (die, DW_AT_GNU_comdat, oldsym);
     }
 }
 
@@ -16582,8 +16811,15 @@ gen_call_site_die (tree decl, dw_die_ref subr_die,
     add_AT_flag (die, DW_AT_GNU_tail_call, 1);
   if (ca_loc->symbol_ref)
     {
-      dw_die_ref tdie = lookup_decl_die (SYMBOL_REF_DECL (ca_loc->symbol_ref));
-      if (tdie)
+      dw_die_ref tdie;
+      tree decl = SYMBOL_REF_DECL (ca_loc->symbol_ref);
+      if (DECL_ONE_ONLY (decl))
+	{
+	  /* For comdat functions, refer to the code symbol.  */
+	  dw_loc_list_ref loc = loc_list_from_tree (decl, 2);
+	  add_AT_location_description (die, DW_AT_GNU_call_site_target, loc);
+	}
+      else if ((tdie = lookup_decl_die (decl)))
 	add_AT_die_ref (die, DW_AT_abstract_origin, tdie);
       else
 	add_AT_addr (die, DW_AT_abstract_origin, ca_loc->symbol_ref);
@@ -16765,13 +17001,13 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
   else if (!DECL_EXTERNAL (decl))
     {
       HOST_WIDE_INT cfa_fb_offset;
+      dw_fde_ref fde = cfun->fde;
 
       if (!old_die || !get_AT (old_die, DW_AT_inline))
 	equate_decl_number_to_die (decl, subr_die);
 
       if (!flag_reorder_blocks_and_partition)
 	{
-	  dw_fde_ref fde = cfun->fde;
 	  if (fde->dw_fde_begin)
 	    {
 	      /* We have already generated the labels.  */
@@ -16819,8 +17055,6 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
       else
 	{
 	  /* Generate pubnames entries for the split function code ranges.  */
-	  dw_fde_ref fde = cfun->fde;
-
 	  if (fde->dw_fde_second_begin)
 	    {
 	      if (dwarf_version >= 3 || !dwarf_strict)
@@ -16920,6 +17154,16 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	    add_AT_loc_list (subr_die, DW_AT_frame_base, list);
 	  else
 	    add_AT_loc (subr_die, DW_AT_frame_base, list->expr);
+	}
+
+      if (fde->comdat)
+	{
+	  if (context_die == comp_unit_die ())
+	    add_AT_string (subr_die, DW_AT_GNU_comdat,
+			   IDENTIFIER_POINTER (DECL_COMDAT_GROUP (decl)));
+	  else
+	    /* FIXME what to do about nested comdat functions?  */
+	    fde->comdat = false;
 	}
 
       /* Compute a displacement from the "steady-state frame pointer" to
@@ -20605,6 +20849,9 @@ dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
   /* Make sure the line number table for .text always exists.  */
   text_section_line_info = new_line_info_table ();
   text_section_line_info->end_label = text_end_label;
+
+  if (flag_dwarf_comdat_fn_debug == -1)
+    flag_dwarf_comdat_fn_debug = (dwarf_version >= 4);
 }
 
 /* Called before compile () starts outputtting functions, variables
@@ -22078,6 +22325,9 @@ dwarf2out_finish (const char *filename)
   if (flag_eliminate_dwarf2_dups)
     break_out_includes (comp_unit_die ());
 
+  if (flag_dwarf_comdat_fn_debug)
+    break_out_comdat_functions (comp_unit_die ());
+
   /* Traverse the DIE's and add add sibling attributes to those DIE's
      that have children.  */
   add_sibling_attributes (comp_unit_die ());
@@ -22095,72 +22345,124 @@ dwarf2out_finish (const char *filename)
       targetm.asm_out.internal_label (asm_out_file, COLD_END_LABEL, 0);
     }
 
-  /* We can only use the low/high_pc attributes if all of the code was
-     in .text.  */
-  if (!have_multiple_function_sections 
-      || (dwarf_version < 3 && dwarf_strict))
-    {
-      /* Don't add if the CU has no associated code.  */
-      if (text_section_used)
-	{
-	  add_AT_lbl_id (comp_unit_die (), DW_AT_low_pc, text_section_label);
-	  add_AT_lbl_id (comp_unit_die (), DW_AT_high_pc, text_end_label);
-	}
-    }
-  else
-    {
-      unsigned fde_idx;
-      dw_fde_ref fde;
-      bool range_list_added = false;
+  /* Add range information to the main CU.  We can only use the low/high_pc
+     attributes if all of the code was in .text.  */
+  {
+    unsigned fde_idx;
+    dw_fde_ref fde;
+    bool found = false;
 
-      if (text_section_used)
-	add_ranges_by_labels (comp_unit_die (), text_section_label,
-			      text_end_label, &range_list_added);
-      if (cold_text_section_used)
-	add_ranges_by_labels (comp_unit_die (), cold_text_section_label,
-			      cold_end_label, &range_list_added);
-
-      FOR_EACH_VEC_ELT (dw_fde_ref, fde_vec, fde_idx, fde)
+    /* Are there any extra function sections that belong to the main CU? */
+    FOR_EACH_VEC_ELT (dw_fde_ref, fde_vec, fde_idx, fde)
+      if (!fde->comdat && !DECL_IGNORED_P (fde->decl)
+	  && (!fde->in_std_section
+	      || (fde->dw_fde_second_begin && !fde->second_in_std_section)))
 	{
-	  if (DECL_IGNORED_P (fde->decl))
-	    continue;
-	  if (!fde->in_std_section)
-	    add_ranges_by_labels (comp_unit_die (), fde->dw_fde_begin,
-				  fde->dw_fde_end, &range_list_added);
-	  if (fde->dw_fde_second_begin && !fde->second_in_std_section)
-	    add_ranges_by_labels (comp_unit_die (), fde->dw_fde_second_begin,
-				  fde->dw_fde_second_end, &range_list_added);
+	  found = true;
+	  break;
 	}
 
-      if (range_list_added)
-	{
-	  /* We need to give .debug_loc and .debug_ranges an appropriate
-	     "base address".  Use zero so that these addresses become
-	     absolute.  Historically, we've emitted the unexpected
-	     DW_AT_entry_pc instead of DW_AT_low_pc for this purpose.
-	     Emit both to give time for other tools to adapt.  */
-	  add_AT_addr (comp_unit_die (), DW_AT_low_pc, const0_rtx);
-	  if (! dwarf_strict && dwarf_version < 4)
-	    add_AT_addr (comp_unit_die (), DW_AT_entry_pc, const0_rtx);
+    if (!(found || cold_text_section_used)
+	|| (dwarf_version < 3 && dwarf_strict))
+      {
+	/* Don't add if the CU has no associated code.  */
+	if (text_section_used)
+	  {
+	    add_AT_lbl_id (comp_unit_die (), DW_AT_low_pc, text_section_label);
+	    add_AT_lbl_id (comp_unit_die (), DW_AT_high_pc, text_end_label);
+	  }
+      }
+    else
+      {
+	bool range_list_added = false;
 
-	  add_ranges (NULL);
+	if (text_section_used)
+	  add_ranges_by_labels (comp_unit_die (), text_section_label,
+				text_end_label, &range_list_added);
+	if (cold_text_section_used)
+	  add_ranges_by_labels (comp_unit_die (), cold_text_section_label,
+				cold_end_label, &range_list_added);
+
+	FOR_EACH_VEC_ELT (dw_fde_ref, fde_vec, fde_idx, fde)
+	  {
+	    if (fde->comdat || DECL_IGNORED_P (fde->decl))
+	      continue;
+	    if (!fde->in_std_section)
+	      add_ranges_by_labels (comp_unit_die (), fde->dw_fde_begin,
+				    fde->dw_fde_end, &range_list_added);
+	    if (fde->dw_fde_second_begin && !fde->second_in_std_section)
+	      add_ranges_by_labels (comp_unit_die (), fde->dw_fde_second_begin,
+				    fde->dw_fde_second_end, &range_list_added);
+	  }
+
+	if (range_list_added)
+	  {
+	    /* We need to give .debug_loc and .debug_ranges an appropriate
+	       "base address".  Use zero so that these addresses become
+	       absolute.  Historically, we've emitted the unexpected
+	       DW_AT_entry_pc instead of DW_AT_low_pc for this purpose.
+	       Emit both to give time for other tools to adapt.  */
+	    add_AT_addr (comp_unit_die (), DW_AT_low_pc, const0_rtx);
+	    if (! dwarf_strict && dwarf_version < 4)
+	      add_AT_addr (comp_unit_die (), DW_AT_entry_pc, const0_rtx);
+
+	    add_ranges (NULL);
+	  }
+      }
+  }
+
+  /* Also add ranges to the CUs for comdat functions.  */
+  for (node = limbo_die_list; node; node = node->next)
+    {
+      dw_die_ref c = node->die->die_child;
+      dw_attr_ref a;
+
+      if (c == NULL)
+	continue;
+      c = c->die_sib;
+      if (c->die_tag != DW_TAG_subprogram)
+	continue;
+
+      if ((a = get_AT (c, DW_AT_ranges)))
+	add_AT_range_list (node->die, DW_AT_ranges,
+			   a->dw_attr_val.v.val_offset);
+      else
+	{
+	  add_AT_lbl_id (node->die, DW_AT_low_pc, get_AT_low_pc (c));
+	  add_AT_lbl_id (node->die, DW_AT_high_pc, get_AT_hi_pc (c));
 	}
     }
 
   if (debug_info_level >= DINFO_LEVEL_NORMAL)
-    add_AT_lineptr (comp_unit_die (), DW_AT_stmt_list,
-		    debug_line_section_label);
+    {
+      add_AT_lineptr (comp_unit_die (), DW_AT_stmt_list,
+		      debug_line_section_label);
+      /* ??? comdat line info for comdat functions?  */
+      for (node = limbo_die_list; node; node = node->next)
+	add_AT_lineptr (node->die, DW_AT_stmt_list,
+			debug_line_section_label);
+    }
 
   if (have_macinfo)
-    add_AT_macptr (comp_unit_die (),
-		   dwarf_strict ? DW_AT_macro_info : DW_AT_GNU_macros,
-		   macinfo_section_label);
+    {
+      add_AT_macptr (comp_unit_die (),
+		     dwarf_strict ? DW_AT_macro_info : DW_AT_GNU_macros,
+		     macinfo_section_label);
+      for (node = limbo_die_list; node; node = node->next)
+	add_AT_macptr (node->die,
+		       dwarf_strict ? DW_AT_macro_info : DW_AT_GNU_macros,
+		       macinfo_section_label);
+    }
 
   if (have_location_lists)
-    optimize_location_lists (comp_unit_die ());
+    {
+      optimize_location_lists (comp_unit_die ());
+      for (node = limbo_die_list; node; node = node->next)
+	optimize_location_lists (node->die);
+    }
 
-  /* Output all of the compilation units.  We put the main one last so that
-     the offsets are available to output_pubnames.  */
+  /* Output all of the COMDAT compilation units.  We put the main one last
+     so that the offsets are available to output_pubnames.  */
   for (node = limbo_die_list; node; node = node->next)
     output_comp_unit (node->die, 0);
 
@@ -22206,6 +22508,14 @@ dwarf2out_finish (const char *filename)
 				   DEBUG_LOC_SECTION_LABEL, 0);
       ASM_OUTPUT_LABEL (asm_out_file, loc_section_label);
       output_location_lists (comp_unit_die ());
+      for (node = limbo_die_list; node; node = node->next)
+	{
+	  const char *sym = get_AT_string (node->die, DW_AT_GNU_comdat);
+	  targetm.asm_out.named_section (DEBUG_LOC_SECTION,
+					 SECTION_DEBUG | SECTION_LINKONCE,
+					 get_identifier (sym));
+	  output_location_lists (node->die);
+	}
     }
 
   /* Output public names table if necessary.  */

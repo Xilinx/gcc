@@ -25,6 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 
 typedef struct die_struct *dw_die_ref;
 typedef const struct die_struct *const_dw_die_ref;
+#define CONST_CAST_DIE(X) CONST_CAST(struct die_struct *, (X))
 
 typedef struct dw_val_struct *dw_val_ref;
 typedef struct dw_cfi_struct *dw_cfi_ref;
@@ -109,6 +110,8 @@ typedef struct GTY(()) dw_fde_struct {
   /* True iff dw_fde_second_begin label is in text_section or
      cold_text_section.  */
   unsigned second_in_std_section : 1;
+  /* True iff the function is part of a comdat group.  */
+  unsigned comdat : 1;
 }
 dw_fde_node;
 
