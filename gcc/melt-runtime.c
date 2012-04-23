@@ -3,10 +3,10 @@
 
      Copyright (C) 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
      Contributed by Basile Starynkevitch <basile@starynkevitch.net>
-     and Pierre Vittet  <piervit@pvittet.com>
-     and Romain Geissler  <romain.geissler@gmail.com>
-     and Jeremie Salvucci  <jeremie.salvucci@free.fr>
-     and Alexandre Lissy  <alissy@mandriva.com>
+     	 and Pierre Vittet  <piervit@pvittet.com>
+     	 and Romain Geissler  <romain.geissler@gmail.com>
+     	 and Jeremie Salvucci  <jeremie.salvucci@free.fr>
+     	 and Alexandre Lissy  <alissy@mandriva.com>
 
      Indented with GNU indent.
 
@@ -5728,16 +5728,17 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 
  static void melt_linemap_compute_current_location (struct reading_st *rd);
 
- #define MELT_READ_ERROR(Fmt,...)    do {                                    \
+ #define MELT_READ_ERROR(Fmt,...)    do {                               \
    melt_linemap_compute_current_location (rd);                          \
    error_at(rd->rsrcloc, Fmt, ##__VA_ARGS__);                           \
-   melt_fatal_error("MELT read failure <%s:%d>",                        \
-               lbasename(__FILE__), __LINE__);                          \
+   melt_fatal_error ("MELT read failure <%s:%d>",                       \
+                     lbasename(__FILE__), __LINE__);                    \
  } while(0)
 
- #define READ_WARNING(Fmt,...)	do {					\
-   melt_linemap_compute_current_location (rd);				\
-   warning_at (rd->rsrcloc, 0, "MELT read warning: " Fmt, ##__VA_ARGS__); \
+ #define MELT_READ_WARNING(Fmt,...)  do {			\
+   melt_linemap_compute_current_location (rd);			\
+   warning_at (rd->rsrcloc, 0, "MELT read warning: " Fmt,	\
+                ##__VA_ARGS__);					\
  } while(0)
 
  /* meltgc_readval returns the read value and sets *PGOT to true if something
@@ -6106,9 +6107,14 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 
 
 
+enum melt_macrostring_en { 
+  MELT_MACSTR_PLAIN=0,
+  MELT_MACSTR_MACRO
+};
+
  static melt_ptr_t
  meltgc_makesexpr (struct reading_st *rd, int lineno, melt_ptr_t contents_p,
-	    location_t loc, bool ismacrostring)
+	    location_t loc, enum melt_macrostring_en ismacrostring)
  {
    MELT_ENTERFRAME (4, NULL);
  #define sexprv  meltfram__.mcfr_varptr[0]
@@ -6123,7 +6129,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
    else
      locmixv = meltgc_new_mixloc ((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_LOCATION),
 				     *rd->rpfilnam, (long) lineno, loc);
-   if (ismacrostring && (MELT_PREDEF (CLASS_SEXPR_MACROSTRING)))
+   if (ismacrostring == MELT_MACSTR_MACRO  && (MELT_PREDEF (CLASS_SEXPR_MACROSTRING)))
      sexpclassv = MELT_PREDEF (CLASS_SEXPR_MACROSTRING);
    else
      sexpclassv = MELT_PREDEF (CLASS_SEXPR);
@@ -6394,7 +6400,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 			      lbasename(LOCATION_FILE(loc)),  
 			      LOCATION_LINE (loc), LOCATION_COLUMN(loc));
    contv = meltgc_readseqlist (rd, endc);
-   sexprv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) contv, loc, 0);
+   sexprv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) contv, loc, MELT_MACSTR_PLAIN);
    MELT_EXITFRAME ();
    return (melt_ptr_t) sexprv;
  #undef sexprv
@@ -6564,6 +6570,13 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
     symbol. If it is immediately followed by an hash # the # is
     skipped
 
+    A $ followed by a left parenthesis ( is read as an embedded
+    S-expression, it should end with a balanced right parenthesis )
+
+    A $ followed by a left square bracket [ is read as a embedded
+    sequence of S-epxressions, it should end with a balanced right
+    square bracket ]
+
  **/
 static melt_ptr_t
 meltgc_readmacrostringsequence (struct reading_st *rd) 
@@ -6655,7 +6668,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
 	  memcpy(tinybuf, &rdfollowc(1), lnam-1);
 	  tinybuf[lnam] = (char)0;
 	  if (quoted) 
-	    READ_WARNING ("quoted macro string with $%s symbol", tinybuf);
+	    MELT_READ_WARNING ("quoted macro string with $%s symbol", tinybuf);
 	  symbv = meltgc_named_symbol(tinybuf, MELT_CREATE);
 	}
 	else {
@@ -6664,7 +6677,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
 	  nambuf[lnam] = (char)0;
 	  symbv = meltgc_named_symbol(nambuf, MELT_CREATE);
 	  if (quoted) 
-	    READ_WARNING ("quoted macro string with $%s symbol", nambuf);
+	    MELT_READ_WARNING ("quoted macro string with $%s symbol", nambuf);
 	  free(nambuf);
 	}
 	rd->rcol += lnam;
@@ -6753,7 +6766,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
       rdnext();
     }
   }
-  readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 1);
+  readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, MELT_MACSTR_MACRO);
   MELT_EXITFRAME ();
   return (melt_ptr_t) readv;
 #undef readv
@@ -6943,23 +6956,23 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
    char *nam = 0;
    int lineno = rd->rlineno;
    location_t loc = 0;
- #if MELT_HAVE_DEBUG
+#if MELT_HAVE_DEBUG
    char curlocbuf[120];
- #endif
+#endif
    MELT_ENTERFRAME (4, NULL);
- #define readv   meltfram__.mcfr_varptr[0]
- #define compv   meltfram__.mcfr_varptr[1]
- #define seqv    meltfram__.mcfr_varptr[2]
- #define altv    meltfram__.mcfr_varptr[3]
+#define readv   meltfram__.mcfr_varptr[0]
+#define compv   meltfram__.mcfr_varptr[1]
+#define seqv    meltfram__.mcfr_varptr[2]
+#define altv    meltfram__.mcfr_varptr[3]
    loc = rd->rsrcloc;
    MELT_LOCATION_HERE_PRINTF (curlocbuf,
-     "readvalstart @ %s:%d:%d",
-     lbasename(LOCATION_FILE(loc)),  
-     LOCATION_LINE (loc), LOCATION_COLUMN(loc));
+			      "readvalstart @ %s:%d:%d",
+			      lbasename(LOCATION_FILE(loc)),  
+			      LOCATION_LINE (loc), LOCATION_COLUMN(loc));
    readv = NULL;
    c = melt_skipspace_getc (rd, COMMENT_SKIP);
    /*   debugeprintf ("start meltgc_readval line %d col %d char %c", rd->rlineno, rd->rcol,
-      ISPRINT (c) ? c : ' '); */
+	ISPRINT (c) ? c : ' '); */
    if (ISDIGIT (c)
        || ((c == '-' || c == '+')
 	   && (ISDIGIT (rdfollowc (1)) || rdfollowc (1) == '%'
@@ -6969,7 +6982,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
        num = melt_readsimplelong (rd);
        readv =
 	 meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_INTEGER),
-			    num);
+			 num);
        *pgot = TRUE;
        goto end;
      }				/* end if ISDIGIT or '-' or '+' */
@@ -7033,7 +7046,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
 				  "readval quote @ %s:%d:%d",
 				  lbasename(LOCATION_FILE(loc)),  
 				  LOCATION_LINE (loc), LOCATION_COLUMN(loc));
-       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
+       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, MELT_MACSTR_PLAIN);
        *pgot = TRUE;
        goto end;
      }
@@ -7057,7 +7070,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
 				  "readval exclaim @ %s:%d:%d",
 				  lbasename(LOCATION_FILE(loc)),  
 				  LOCATION_LINE (loc), LOCATION_COLUMN(loc));
-       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
+       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, MELT_MACSTR_PLAIN);
        *pgot = TRUE;
        goto end;
      }
@@ -7075,12 +7088,12 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
        compv = meltgc_readval (rd, &got);
        if (!got)
 	 MELT_READ_ERROR ("MELT: expecting value after backquote %.20s",
-		     &rdcurc ());
+			  &rdcurc ());
        seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
        altv = meltgc_named_symbol ("backquote", MELT_CREATE);
        meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
        meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
+       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, MELT_MACSTR_PLAIN);
        *pgot = TRUE;
        goto end;
      }
@@ -7102,7 +7115,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
        altv = meltgc_named_symbol ("comma", MELT_CREATE);
        meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
        meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
+       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, MELT_MACSTR_PLAIN);
        *pgot = TRUE;
        goto end;
      }
@@ -7124,7 +7137,7 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
        altv = meltgc_named_symbol ("at", MELT_CREATE);
        meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
        meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
+       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, MELT_MACSTR_PLAIN);
        *pgot = TRUE;
        goto end;
      }
@@ -7146,14 +7159,15 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
        altv = meltgc_named_symbol ("question", MELT_CREATE);
        meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
        meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
+       readv = meltgc_makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, MELT_MACSTR_PLAIN);
        *pgot = TRUE;
        goto end;
      }
    else if (c == ':')
      {
        if (!ISALPHA (rdfollowc(1)))
-	 MELT_READ_ERROR ("MELT: colon should be followed by letter for keyword, but got %c", rdfollowc(1));
+	 MELT_READ_ERROR ("MELT: colon should be followed by letter for keyword, but got %c", 
+			  rdfollowc(1));
        nam = melt_readsimplename (rd);
        readv = meltgc_named_keyword (nam, MELT_CREATE);
        if (!readv)
@@ -7182,10 +7196,10 @@ meltgc_readmacrostringsequence (struct reading_st *rd)
        obstack_free (&melt_bname_obstack, nam);
      };
    return (melt_ptr_t) readv;
- #undef readv
- #undef compv
- #undef seqv
- #undef altv
+#undef readv
+#undef compv
+#undef seqv
+#undef altv
  }
 
 

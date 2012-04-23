@@ -1,5 +1,13 @@
 
 2012-04-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (READ_WARNING): Macro renamed as
+	(MELT_READ_WARNING): New macro ...
+	(enum melt_macrostring_en): New.
+	(meltgc_makesexpr): Use it.
+	(melt_compile_source, meltgc_readmacrostringsequence)
+	(meltgc_readval): Ditto.
+
+2012-04-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 
 	* melt/generated/meltrunsup-inc.c: Regenerate.
