@@ -1,3 +1,8 @@
+2012-04-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* final.c (rest_of_handle_final): Moved outputing ZCA data after
+	assembling end function.
+
 2012-04-16  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* elem-function.c (is_elem_fn): Changed the parameter type from a

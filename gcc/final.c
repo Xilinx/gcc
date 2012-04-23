@@ -4327,10 +4327,14 @@ rest_of_handle_final (void)
      Otherwise it's not strictly necessary, but it doesn't hurt either.  */
   output_function_exception_table (fnname);
 
+  assemble_end_function (current_function_decl, fnname);
+
+  /* We output the ZCA information after the end function so that the function
+     specific information such as .size are all together with the function.
+     The metadata is a separate section so it wont interfere with things inside
+     the function. */
   if (flag_enable_cilk)
     cilk_output_metadata ();
-
-  assemble_end_function (current_function_decl, fnname);
 
   user_defined_section_attribute = false;
 
