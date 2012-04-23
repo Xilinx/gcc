@@ -8,7 +8,14 @@
 	* melt/warmelt-macro.melt (class_source_defprimitive): Add
 	sprim_exploc field.
 	(mexpand_defprimitive): Fill it.
-	
+	(class_source_defciterator): Add sciterdef_beforeloc &
+	sciterdef_afterloc fields.
+	(mexpand_defciterator): Fill them.
+
+	* melt/warmelt-outobj.melt (syntestgen_primitive): Emit precise
+	location of chunk.
+	(syntestgen_citerator): Likewise.
+
 2012-04-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (READ_WARNING): Macro renamed as
 	(MELT_READ_WARNING): New macro ...
