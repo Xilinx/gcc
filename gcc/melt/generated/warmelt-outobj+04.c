@@ -6560,12 +6560,12 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_MULTIPLE */
     {
-      /* start cit1__EACHTUP: */
-      long cit1__EACHTUP_ln =
+      /* start meltcit1__EACHTUP: */
+      long meltcit1__EACHTUP_ln =
 	melt_multiple_length ((melt_ptr_t) /*_.CONT__V7*/ meltfptr[5]);
       for ( /*_#IX__L5*/ meltfnum[3] = 0;
 	   ( /*_#IX__L5*/ meltfnum[3] >= 0)
-	   && ( /*_#IX__L5*/ meltfnum[3] < cit1__EACHTUP_ln);
+	   && ( /*_#IX__L5*/ meltfnum[3] < meltcit1__EACHTUP_ln);
 	/*_#IX__L5*/ meltfnum[3]++)
 	{
 	  /*_.COMP__V11*/ meltfptr[9] =
@@ -6706,7 +6706,7 @@ lab_endgetargs:;
 	  ;
 	  if ( /*_#IX__L5*/ meltfnum[3] < 0)
 	    break;
-	}			/* end cit1__EACHTUP */
+	}			/* end meltcit1__EACHTUP */
 
       /*citerepilog */
 
@@ -7169,12 +7169,12 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_MULTIPLE */
     {
-      /* start cit1__EACHTUP: */
-      long cit1__EACHTUP_ln =
+      /* start meltcit1__EACHTUP: */
+      long meltcit1__EACHTUP_ln =
 	melt_multiple_length ((melt_ptr_t) /*_.CONT__V7*/ meltfptr[5]);
       for ( /*_#IX__L6*/ meltfnum[5] = 0;
 	   ( /*_#IX__L6*/ meltfnum[5] >= 0)
-	   && ( /*_#IX__L6*/ meltfnum[5] < cit1__EACHTUP_ln);
+	   && ( /*_#IX__L6*/ meltfnum[5] < meltcit1__EACHTUP_ln);
 	/*_#IX__L6*/ meltfnum[5]++)
 	{
 	  /*_.COMP__V18*/ meltfptr[14] =
@@ -7315,7 +7315,7 @@ lab_endgetargs:;
 	  ;
 	  if ( /*_#IX__L6*/ meltfnum[5] < 0)
 	    break;
-	}			/* end cit1__EACHTUP */
+	}			/* end meltcit1__EACHTUP */
 
       /*citerepilog */
 
@@ -8811,30 +8811,30 @@ lab_endgetargs:;
        ((meltobject_ptr_t) (( /*!DISCR_LIST */ meltfrout->tabval[0]))));;
     /*citerblock FOREACH_IN_MAPSTRING */
     {
-      /*foreach_in_mapstring cit1__EACHSTRMAP : */ int cit1__EACHSTRMAP_ix =
-	0, cit1__EACHSTRMAP_siz = 0;
-      for (cit1__EACHSTRMAP_ix = 0;
-	   /* we retrieve in cit1__EACHSTRMAP_siz the size at each iteration since it could change. */
-	   cit1__EACHSTRMAP_ix >= 0
-	   && (cit1__EACHSTRMAP_siz =
+      /*foreach_in_mapstring meltcit1__EACHSTRMAP : */ int
+	meltcit1__EACHSTRMAP_ix = 0, meltcit1__EACHSTRMAP_siz = 0;
+      for (meltcit1__EACHSTRMAP_ix = 0;
+	   /* we retrieve in meltcit1__EACHSTRMAP_siz the size at each iteration since it could change. */
+	   meltcit1__EACHSTRMAP_ix >= 0
+	   && (meltcit1__EACHSTRMAP_siz =
 	       melt_size_mapstrings ((struct meltmapstrings_st *)
 				     /*_.DIC__V2*/ meltfptr[1])) > 0
-	   && cit1__EACHSTRMAP_ix < cit1__EACHSTRMAP_siz;
-	   cit1__EACHSTRMAP_ix++)
+	   && meltcit1__EACHSTRMAP_ix < meltcit1__EACHSTRMAP_siz;
+	   meltcit1__EACHSTRMAP_ix++)
 	{
-	  const char *cit1__EACHSTRMAP_str = NULL;
-	  const char *cit1__EACHSTRMAP_nam = NULL;
+	  const char *meltcit1__EACHSTRMAP_str = NULL;
+	  const char *meltcit1__EACHSTRMAP_nam = NULL;
     /*_.NAM__V5*/ meltfptr[4] = NULL;
     /*_.ENT__V6*/ meltfptr[5] = NULL;
-	  cit1__EACHSTRMAP_str =
+	  meltcit1__EACHSTRMAP_str =
 	    ((struct meltmapstrings_st *) /*_.DIC__V2*/ meltfptr[1])->
-	    entab[cit1__EACHSTRMAP_ix].e_at;
-	  if (!cit1__EACHSTRMAP_str
-	      || cit1__EACHSTRMAP_str == HTAB_DELETED_ENTRY)
-	    continue;		/*foreach_in_mapstring cit1__EACHSTRMAP inside before */
+	    entab[meltcit1__EACHSTRMAP_ix].e_at;
+	  if (!meltcit1__EACHSTRMAP_str
+	      || meltcit1__EACHSTRMAP_str == HTAB_DELETED_ENTRY)
+	    continue;		/*foreach_in_mapstring meltcit1__EACHSTRMAP inside before */
 	  /*_.ENT__V6*/ meltfptr[5] =
 	    ((struct meltmapstrings_st *) /*_.DIC__V2*/ meltfptr[1])->
-	    entab[cit1__EACHSTRMAP_ix].e_va;
+	    entab[meltcit1__EACHSTRMAP_ix].e_va;
 	  if (! /*_.ENT__V6*/ meltfptr[5])
 	    continue;
 	  if (melt_is_instance_of
@@ -8844,10 +8844,10 @@ lab_endgetargs:;
 		  melt_object_nth_field ((melt_ptr_t) /*_.ENT__V6*/
 					 meltfptr[5],
 					 MELTFIELD_NAMED_NAME)) != NULL
-	      && (cit1__EACHSTRMAP_nam =
+	      && (meltcit1__EACHSTRMAP_nam =
 		  melt_string_str ((melt_ptr_t) /*_.NAM__V5*/ meltfptr[4])) !=
 	      (char *) 0
-	      && !strcmp (cit1__EACHSTRMAP_nam, cit1__EACHSTRMAP_str))
+	      && !strcmp (meltcit1__EACHSTRMAP_nam, meltcit1__EACHSTRMAP_str))
 	    /*_.NAM__V5*/ meltfptr[4] = /*_.NAM__V5*/ meltfptr[4];
 	  else
 	    {
@@ -8855,10 +8855,10 @@ lab_endgetargs:;
       /*_.NAM__V5*/ meltfptr[4] =
 		meltgc_new_stringdup ((meltobject_ptr_t)
 				      MELT_PREDEF (DISCR_STRING),
-				      cit1__EACHSTRMAP_str);
+				      meltcit1__EACHSTRMAP_str);
 	    }
-	  cit1__EACHSTRMAP_str = (const char *) 0;
-	  cit1__EACHSTRMAP_nam = (const char *) 0;
+	  meltcit1__EACHSTRMAP_str = (const char *) 0;
+	  meltcit1__EACHSTRMAP_nam = (const char *) 0;
 
 
 
@@ -8932,7 +8932,7 @@ lab_endgetargs:;
 				(melt_ptr_t) ( /*_.ENT__V6*/ meltfptr[5]));
 	  }
 	  ;
-	  /* end foreach_in_mapstring cit1__EACHSTRMAP */
+	  /* end foreach_in_mapstring meltcit1__EACHSTRMAP */
     /*_.NAM__V5*/ meltfptr[4] = NULL;
     /*_.ENT__V6*/ meltfptr[5] = NULL;
 	}
@@ -9350,13 +9350,13 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_MULTIPLE */
     {
-      /* start cit1__EACHTUP: */
-      long cit1__EACHTUP_ln =
+      /* start meltcit1__EACHTUP: */
+      long meltcit1__EACHTUP_ln =
 	melt_multiple_length ((melt_ptr_t) /*_.SORTEDFIELDS__V8*/
 			      meltfptr[7]);
       for ( /*_#IX__L3*/ meltfnum[2] = 0;
 	   ( /*_#IX__L3*/ meltfnum[2] >= 0)
-	   && ( /*_#IX__L3*/ meltfnum[2] < cit1__EACHTUP_ln);
+	   && ( /*_#IX__L3*/ meltfnum[2] < meltcit1__EACHTUP_ln);
 	/*_#IX__L3*/ meltfnum[2]++)
 	{
 	  /*_.FLD__V12*/ meltfptr[11] =
@@ -9673,7 +9673,7 @@ lab_endgetargs:;
 	  ;
 	  if ( /*_#IX__L3*/ meltfnum[2] < 0)
 	    break;
-	}			/* end cit1__EACHTUP */
+	}			/* end meltcit1__EACHTUP */
 
       /*citerepilog */
 
@@ -9738,13 +9738,13 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_MULTIPLE */
     {
-      /* start cit2__EACHTUP: */
-      long cit2__EACHTUP_ln =
+      /* start meltcit2__EACHTUP: */
+      long meltcit2__EACHTUP_ln =
 	melt_multiple_length ((melt_ptr_t) /*_.SORTEDCLASSES__V10*/
 			      meltfptr[9]);
       for ( /*_#IX__L10*/ meltfnum[6] = 0;
 	   ( /*_#IX__L10*/ meltfnum[6] >= 0)
-	   && ( /*_#IX__L10*/ meltfnum[6] < cit2__EACHTUP_ln);
+	   && ( /*_#IX__L10*/ meltfnum[6] < meltcit2__EACHTUP_ln);
 	/*_#IX__L10*/ meltfnum[6]++)
 	{
 	  /*_.CLA__V21*/ meltfptr[18] =
@@ -9993,7 +9993,7 @@ lab_endgetargs:;
 	  ;
 	  if ( /*_#IX__L10*/ meltfnum[6] < 0)
 	    break;
-	}			/* end cit2__EACHTUP */
+	}			/* end meltcit2__EACHTUP */
 
       /*citerepilog */
 
@@ -11636,12 +11636,12 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_MULTIPLE */
     {
-      /* start cit1__EACHTUP: */
-      long cit1__EACHTUP_ln =
+      /* start meltcit1__EACHTUP: */
+      long meltcit1__EACHTUP_ln =
 	melt_multiple_length ((melt_ptr_t) /*_.SECFILES__V3*/ meltfptr[2]);
       for ( /*_#FILIX__L9*/ meltfnum[4] = 0;
 	   ( /*_#FILIX__L9*/ meltfnum[4] >= 0)
-	   && ( /*_#FILIX__L9*/ meltfnum[4] < cit1__EACHTUP_ln);
+	   && ( /*_#FILIX__L9*/ meltfnum[4] < meltcit1__EACHTUP_ln);
 	/*_#FILIX__L9*/ meltfnum[4]++)
 	{
 	  /*_.CURFIL__V24*/ meltfptr[12] =
@@ -11999,7 +11999,7 @@ lab_endgetargs:;
 	  ;
 	  if ( /*_#FILIX__L9*/ meltfnum[4] < 0)
 	    break;
-	}			/* end cit1__EACHTUP */
+	}			/* end meltcit1__EACHTUP */
 
       /*citerepilog */
 
@@ -13754,12 +13754,12 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_MULTIPLE */
     {
-      /* start cit1__EACHTUP: */
-      long cit1__EACHTUP_ln =
+      /* start meltcit1__EACHTUP: */
+      long meltcit1__EACHTUP_ln =
 	melt_multiple_length ((melt_ptr_t) /*_.FORMALS__V4*/ meltfptr[3]);
       for ( /*_#IX__L6*/ meltfnum[0] = 0;
 	   ( /*_#IX__L6*/ meltfnum[0] >= 0)
-	   && ( /*_#IX__L6*/ meltfnum[0] < cit1__EACHTUP_ln);
+	   && ( /*_#IX__L6*/ meltfnum[0] < meltcit1__EACHTUP_ln);
 	/*_#IX__L6*/ meltfnum[0]++)
 	{
 	  /*_.CURFORMAL__V15*/ meltfptr[13] =
@@ -14303,7 +14303,7 @@ lab_endgetargs:;
 	    /*clear *//*_.ADD2OUT__V35*/ meltfptr[27] = 0;
 	  if ( /*_#IX__L6*/ meltfnum[0] < 0)
 	    break;
-	}			/* end cit1__EACHTUP */
+	}			/* end meltcit1__EACHTUP */
 
       /*citerepilog */
 
@@ -14577,12 +14577,12 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_MULTIPLE */
     {
-      /* start cit1__EACHTUP: */
-      long cit1__EACHTUP_ln =
+      /* start meltcit1__EACHTUP: */
+      long meltcit1__EACHTUP_ln =
 	melt_multiple_length ((melt_ptr_t) /*_.TUP__V4*/ meltfptr[3]);
       for ( /*_#PIX__L3*/ meltfnum[1] = 0;
 	   ( /*_#PIX__L3*/ meltfnum[1] >= 0)
-	   && ( /*_#PIX__L3*/ meltfnum[1] < cit1__EACHTUP_ln);
+	   && ( /*_#PIX__L3*/ meltfnum[1] < meltcit1__EACHTUP_ln);
 	/*_#PIX__L3*/ meltfnum[1]++)
 	{
 	  /*_.CUREXPAN__V10*/ meltfptr[6] =
@@ -15132,7 +15132,7 @@ lab_endgetargs:;
 	  ;
 	  if ( /*_#PIX__L3*/ meltfnum[1] < 0)
 	    break;
-	}			/* end cit1__EACHTUP */
+	}			/* end meltcit1__EACHTUP */
 
       /*citerepilog */
 
@@ -17268,7 +17268,7 @@ lab_endgetargs:;
       union meltparam_un argtab[3];
       memset (&argtab, 0, sizeof (argtab));
       /*^apply.arg */
-      argtab[0].meltbp_cstring = "citstate_";
+      argtab[0].meltbp_cstring = "meltcitstate_";
       /*^apply.arg */
       argtab[1].meltbp_long = /*_#IX__L1*/ meltfnum[0];
       /*^apply.arg */
@@ -17949,13 +17949,13 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_MULTIPLE */
     {
-      /* start cit1__EACHTUP: */
-      long cit1__EACHTUP_ln =
+      /* start meltcit1__EACHTUP: */
+      long meltcit1__EACHTUP_ln =
 	melt_multiple_length ((melt_ptr_t) /*_.CITBODFORMALS__V22*/
 			      meltfptr[21]);
       for ( /*_#BODFORMIX__L17*/ meltfnum[11] = 0;
 	   ( /*_#BODFORMIX__L17*/ meltfnum[11] >= 0)
-	   && ( /*_#BODFORMIX__L17*/ meltfnum[11] < cit1__EACHTUP_ln);
+	   && ( /*_#BODFORMIX__L17*/ meltfnum[11] < meltcit1__EACHTUP_ln);
 	/*_#BODFORMIX__L17*/ meltfnum[11]++)
 	{
 	  /*_.CURBODFORMBIND__V54*/ meltfptr[50] =
@@ -18330,7 +18330,7 @@ lab_endgetargs:;
 	    /*clear *//*_.ADD2OUT__V67*/ meltfptr[62] = 0;
 	  if ( /*_#BODFORMIX__L17*/ meltfnum[11] < 0)
 	    break;
-	}			/* end cit1__EACHTUP */
+	}			/* end meltcit1__EACHTUP */
 
       /*citerepilog */
 
@@ -19766,12 +19766,12 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_MULTIPLE */
     {
-      /* start cit1__EACHTUP: */
-      long cit1__EACHTUP_ln =
+      /* start meltcit1__EACHTUP: */
+      long meltcit1__EACHTUP_ln =
 	melt_multiple_length ((melt_ptr_t) /*_.CMATOUT__V22*/ meltfptr[21]);
       for ( /*_#OUTIX__L13*/ meltfnum[12] = 0;
 	   ( /*_#OUTIX__L13*/ meltfnum[12] >= 0)
-	   && ( /*_#OUTIX__L13*/ meltfnum[12] < cit1__EACHTUP_ln);
+	   && ( /*_#OUTIX__L13*/ meltfnum[12] < meltcit1__EACHTUP_ln);
 	/*_#OUTIX__L13*/ meltfnum[12]++)
 	{
 	  /*_.CURMATOUTBIND__V51*/ meltfptr[50] =
@@ -20152,7 +20152,7 @@ lab_endgetargs:;
 	    /*clear *//*_.ADD2OUT__V64*/ meltfptr[59] = 0;
 	  if ( /*_#OUTIX__L13*/ meltfnum[12] < 0)
 	    break;
-	}			/* end cit1__EACHTUP */
+	}			/* end meltcit1__EACHTUP */
 
       /*citerepilog */
 
@@ -21375,12 +21375,12 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_MULTIPLE */
     {
-      /* start cit1__EACHTUP: */
-      long cit1__EACHTUP_ln =
+      /* start meltcit1__EACHTUP: */
+      long meltcit1__EACHTUP_ln =
 	melt_multiple_length ((melt_ptr_t) /*_.GENDEVTUP__V2*/ meltfptr[1]);
       for ( /*_#GIX__L10*/ meltfnum[1] = 0;
 	   ( /*_#GIX__L10*/ meltfnum[1] >= 0)
-	   && ( /*_#GIX__L10*/ meltfnum[1] < cit1__EACHTUP_ln);
+	   && ( /*_#GIX__L10*/ meltfnum[1] < meltcit1__EACHTUP_ln);
 	/*_#GIX__L10*/ meltfnum[1]++)
 	{
 	  /*_.CURGENDEV__V30*/ meltfptr[29] =
@@ -21934,7 +21934,7 @@ lab_endgetargs:;
 	  ;
 	  if ( /*_#GIX__L10*/ meltfnum[1] < 0)
 	    break;
-	}			/* end cit1__EACHTUP */
+	}			/* end meltcit1__EACHTUP */
 
       /*citerepilog */
 
@@ -23578,13 +23578,13 @@ lab_endgetargs:;
 	  ;
 	  /*citerblock FOREACH_IN_MULTIPLE */
 	  {
-	    /* start cit1__EACHTUP: */
-	    long cit1__EACHTUP_ln =
+	    /* start meltcit1__EACHTUP: */
+	    long meltcit1__EACHTUP_ln =
 	      melt_multiple_length ((melt_ptr_t) /*_.CHEADTUP__V51*/
 				    meltfptr[50]);
 	    for ( /*_#HIX__L28*/ meltfnum[24] = 0;
 		 ( /*_#HIX__L28*/ meltfnum[24] >= 0)
-		 && ( /*_#HIX__L28*/ meltfnum[24] < cit1__EACHTUP_ln);
+		 && ( /*_#HIX__L28*/ meltfnum[24] < meltcit1__EACHTUP_ln);
 	/*_#HIX__L28*/ meltfnum[24]++)
 	      {
 		/*_.CURCHEAD__V57*/ meltfptr[53] =
@@ -23968,7 +23968,7 @@ lab_endgetargs:;
 	      /*clear *//*_.ADD2OUT__V69*/ meltfptr[67] = 0;
 		if ( /*_#HIX__L28*/ meltfnum[24] < 0)
 		  break;
-	      }			/* end cit1__EACHTUP */
+	      }			/* end meltcit1__EACHTUP */
 
 	    /*citerepilog */
 
@@ -24402,7 +24402,7 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_LIST */
     {
-      /* start foreach_in_list cit2__EACHLIST */
+      /* start foreach_in_list meltcit2__EACHLIST */
       for ( /*_.PAIREL__V85*/ meltfptr[84] =
 	   melt_list_first ((melt_ptr_t) /*_.OBJLIST__V48*/ meltfptr[47]);
 	   melt_magic_discr ((melt_ptr_t) /*_.PAIREL__V85*/ meltfptr[84]) ==
@@ -24737,7 +24737,7 @@ lab_endgetargs:;
 	    /*clear *//*_.OUTIMPLBUF__V95*/ meltfptr[93] = 0;
 	  /*^clear */
 	    /*clear *//*_.OUTPUT_C_CODE__V97*/ meltfptr[95] = 0;
-	}			/* end foreach_in_list cit2__EACHLIST */
+	}			/* end foreach_in_list meltcit2__EACHLIST */
      /*_.PAIREL__V85*/ meltfptr[84] = NULL;
      /*_.OBEL__V86*/ meltfptr[85] = NULL;
 
@@ -25464,13 +25464,13 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_MULTIPLE */
     {
-      /* start cit3__EACHTUP: */
-      long cit3__EACHTUP_ln =
+      /* start meltcit3__EACHTUP: */
+      long meltcit3__EACHTUP_ln =
 	melt_multiple_length ((melt_ptr_t) /*_.SECFILES__V114*/
 			      meltfptr[113]);
       for ( /*_#FILIX__L58*/ meltfnum[56] = 0;
 	   ( /*_#FILIX__L58*/ meltfnum[56] >= 0)
-	   && ( /*_#FILIX__L58*/ meltfnum[56] < cit3__EACHTUP_ln);
+	   && ( /*_#FILIX__L58*/ meltfnum[56] < meltcit3__EACHTUP_ln);
 	/*_#FILIX__L58*/ meltfnum[56]++)
 	{
 	  /*_.CURFIL__V119*/ meltfptr[115] =
@@ -25914,7 +25914,7 @@ lab_endgetargs:;
 	  ;
 	  if ( /*_#FILIX__L58*/ meltfnum[56] < 0)
 	    break;
-	}			/* end cit3__EACHTUP */
+	}			/* end meltcit3__EACHTUP */
 
       /*citerepilog */
 
@@ -25951,14 +25951,15 @@ lab_endgetargs:;
       (( /*_#HISECFILERK__L55*/ meltfnum[54]) + (25));;
     /*citerblock FOREACH_LONG_UPTO */
     {
-      /*start cit4__EACHLONG */
-      long cit4__EACHLONG_min = /*_#I__L71*/ meltfnum[60];
-      long cit4__EACHLONG_max = /*_#I__L72*/ meltfnum[63];
-      long cit4__EACHLONG_cur = 0;
-      for (cit4__EACHLONG_cur = cit4__EACHLONG_min;
-	   cit4__EACHLONG_cur <= cit4__EACHLONG_max; cit4__EACHLONG_cur++)
+      /*start meltcit4__EACHLONG */
+      long meltcit4__EACHLONG_min = /*_#I__L71*/ meltfnum[60];
+      long meltcit4__EACHLONG_max = /*_#I__L72*/ meltfnum[63];
+      long meltcit4__EACHLONG_cur = 0;
+      for (meltcit4__EACHLONG_cur = meltcit4__EACHLONG_min;
+	   meltcit4__EACHLONG_cur <= meltcit4__EACHLONG_max;
+	   meltcit4__EACHLONG_cur++)
 	{
-	    /*_#DELFILIX__L73*/ meltfnum[64] = cit4__EACHLONG_cur;
+	    /*_#DELFILIX__L73*/ meltfnum[64] = meltcit4__EACHLONG_cur;
 
 
 

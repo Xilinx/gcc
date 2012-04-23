@@ -12080,24 +12080,24 @@ lab_endgetargs:;
 
 		/*citerblock FOREACH_IN_MAPOBJECT */
 		{
-		  /* foreach_in_mapobject cit1__EACHOBMAP : */ int
-		    cit1__EACHOBMAP_ix = 0, cit1__EACHOBMAP_siz = 0;
-		  for (cit1__EACHOBMAP_ix = 0;
-		       /* we retrieve in cit1__EACHOBMAP_siz the size at each iteration since it could change. */
-		       cit1__EACHOBMAP_ix >= 0
-		       && (cit1__EACHOBMAP_siz =
+		  /* foreach_in_mapobject meltcit1__EACHOBMAP : */ int
+		    meltcit1__EACHOBMAP_ix = 0, meltcit1__EACHOBMAP_siz = 0;
+		  for (meltcit1__EACHOBMAP_ix = 0;
+		       /* we retrieve in meltcit1__EACHOBMAP_siz the size at each iteration since it could change. */
+		       meltcit1__EACHOBMAP_ix >= 0
+		       && (meltcit1__EACHOBMAP_siz =
 			   melt_size_mapobjects ((meltmapobjects_ptr_t)
 						 /*_.MAP__V2*/ meltfptr[1])) >
 		       0
-		       && cit1__EACHOBMAP_ix < cit1__EACHOBMAP_siz;
-		       cit1__EACHOBMAP_ix++)
+		       && meltcit1__EACHOBMAP_ix < meltcit1__EACHOBMAP_siz;
+		       meltcit1__EACHOBMAP_ix++)
 		    {
     /*_.CURAT__V4*/ meltfptr[3] = NULL;
     /*_.CURVAL__V5*/ meltfptr[4] = NULL;
 		      /*_.CURAT__V4*/ meltfptr[3] =
 			(melt_ptr_t) (((meltmapobjects_ptr_t) /*_.MAP__V2*/
 				       meltfptr[1])->
-				      entab[cit1__EACHOBMAP_ix].e_at);
+				      entab[meltcit1__EACHOBMAP_ix].e_at);
 		      if ( /*_.CURAT__V4*/ meltfptr[3] == HTAB_DELETED_ENTRY)
 			{				     /*_.CURAT__V4*/
 			  meltfptr[3] = NULL;
@@ -12107,7 +12107,7 @@ lab_endgetargs:;
 			continue;
 		      /*_.CURVAL__V5*/ meltfptr[4] =
 			((meltmapobjects_ptr_t) /*_.MAP__V2*/ meltfptr[1])->
-			entab[cit1__EACHOBMAP_ix].e_va;
+			entab[meltcit1__EACHOBMAP_ix].e_va;
 		      if (! /*_.CURVAL__V5*/ meltfptr[4])
 			continue;
 
@@ -12134,7 +12134,7 @@ lab_endgetargs:;
 				      (union meltparam_un *) 0);
 		      }
 		      ;
-		      /* foreach_in_mapobject end cit1__EACHOBMAP */
+		      /* foreach_in_mapobject end meltcit1__EACHOBMAP */
     /*_.CURAT__V4*/ meltfptr[3] = NULL;
     /*_.CURVAL__V5*/ meltfptr[4] = NULL;
 		    }

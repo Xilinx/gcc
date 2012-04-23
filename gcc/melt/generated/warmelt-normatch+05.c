@@ -3989,21 +3989,22 @@ lab_endgetargs:;
 	( /*_#MAPOBJECT_COUNT__L14*/ meltfnum[13])));;
     /*citerblock FOREACH_IN_MAPOBJECT */
     {
-      /* foreach_in_mapobject cit1__EACHOBMAP : */ int cit1__EACHOBMAP_ix =
-	0, cit1__EACHOBMAP_siz = 0;
-      for (cit1__EACHOBMAP_ix = 0;
-	   /* we retrieve in cit1__EACHOBMAP_siz the size at each iteration since it could change. */
-	   cit1__EACHOBMAP_ix >= 0
-	   && (cit1__EACHOBMAP_siz =
+      /* foreach_in_mapobject meltcit1__EACHOBMAP : */ int
+	meltcit1__EACHOBMAP_ix = 0, meltcit1__EACHOBMAP_siz = 0;
+      for (meltcit1__EACHOBMAP_ix = 0;
+	   /* we retrieve in meltcit1__EACHOBMAP_siz the size at each iteration since it could change. */
+	   meltcit1__EACHOBMAP_ix >= 0
+	   && (meltcit1__EACHOBMAP_siz =
 	       melt_size_mapobjects ((meltmapobjects_ptr_t) /*_.MAPDATA__V4*/
 				     meltfptr[3])) > 0
-	   && cit1__EACHOBMAP_ix < cit1__EACHOBMAP_siz; cit1__EACHOBMAP_ix++)
+	   && meltcit1__EACHOBMAP_ix < meltcit1__EACHOBMAP_siz;
+	   meltcit1__EACHOBMAP_ix++)
 	{
     /*_.CURDATA__V37*/ meltfptr[20] = NULL;
     /*_.DATANAME__V38*/ meltfptr[21] = NULL;
 	  /*_.CURDATA__V37*/ meltfptr[20] =
 	    (melt_ptr_t) (((meltmapobjects_ptr_t) /*_.MAPDATA__V4*/
-			   meltfptr[3])->entab[cit1__EACHOBMAP_ix].e_at);
+			   meltfptr[3])->entab[meltcit1__EACHOBMAP_ix].e_at);
 	  if ( /*_.CURDATA__V37*/ meltfptr[20] == HTAB_DELETED_ENTRY)
 	    {							 /*_.CURDATA__V37*/
 	      meltfptr[20] = NULL;
@@ -4013,7 +4014,7 @@ lab_endgetargs:;
 	    continue;
 	  /*_.DATANAME__V38*/ meltfptr[21] =
 	    ((meltmapobjects_ptr_t) /*_.MAPDATA__V4*/ meltfptr[3])->
-	    entab[cit1__EACHOBMAP_ix].e_va;
+	    entab[meltcit1__EACHOBMAP_ix].e_va;
 	  if (! /*_.DATANAME__V38*/ meltfptr[21])
 	    continue;
 
@@ -4034,7 +4035,7 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normatch.melt:6921:/ compute");
 	  /*_#DATACOUNT__L11*/ meltfnum[2] = /*_#SETQ___L16*/ meltfnum[15] =
 	    /*_#I__L15*/ meltfnum[14];;
-	  /* foreach_in_mapobject end cit1__EACHOBMAP */
+	  /* foreach_in_mapobject end meltcit1__EACHOBMAP */
     /*_.CURDATA__V37*/ meltfptr[20] = NULL;
     /*_.DATANAME__V38*/ meltfptr[21] = NULL;
 	}
@@ -4054,21 +4055,22 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_MAPOBJECT */
     {
-      /* foreach_in_mapobject cit2__EACHOBMAP : */ int cit2__EACHOBMAP_ix =
-	0, cit2__EACHOBMAP_siz = 0;
-      for (cit2__EACHOBMAP_ix = 0;
-	   /* we retrieve in cit2__EACHOBMAP_siz the size at each iteration since it could change. */
-	   cit2__EACHOBMAP_ix >= 0
-	   && (cit2__EACHOBMAP_siz =
+      /* foreach_in_mapobject meltcit2__EACHOBMAP : */ int
+	meltcit2__EACHOBMAP_ix = 0, meltcit2__EACHOBMAP_siz = 0;
+      for (meltcit2__EACHOBMAP_ix = 0;
+	   /* we retrieve in meltcit2__EACHOBMAP_siz the size at each iteration since it could change. */
+	   meltcit2__EACHOBMAP_ix >= 0
+	   && (meltcit2__EACHOBMAP_siz =
 	       melt_size_mapobjects ((meltmapobjects_ptr_t) /*_.MAPSTEP__V5*/
 				     meltfptr[4])) > 0
-	   && cit2__EACHOBMAP_ix < cit2__EACHOBMAP_siz; cit2__EACHOBMAP_ix++)
+	   && meltcit2__EACHOBMAP_ix < meltcit2__EACHOBMAP_siz;
+	   meltcit2__EACHOBMAP_ix++)
 	{
     /*_.CURSTEP__V39*/ meltfptr[22] = NULL;
     /*_.STEPNAME__V40*/ meltfptr[23] = NULL;
 	  /*_.CURSTEP__V39*/ meltfptr[22] =
 	    (melt_ptr_t) (((meltmapobjects_ptr_t) /*_.MAPSTEP__V5*/
-			   meltfptr[4])->entab[cit2__EACHOBMAP_ix].e_at);
+			   meltfptr[4])->entab[meltcit2__EACHOBMAP_ix].e_at);
 	  if ( /*_.CURSTEP__V39*/ meltfptr[22] == HTAB_DELETED_ENTRY)
 	    {							 /*_.CURSTEP__V39*/
 	      meltfptr[22] = NULL;
@@ -4078,7 +4080,7 @@ lab_endgetargs:;
 	    continue;
 	  /*_.STEPNAME__V40*/ meltfptr[23] =
 	    ((meltmapobjects_ptr_t) /*_.MAPSTEP__V5*/ meltfptr[4])->
-	    entab[cit2__EACHOBMAP_ix].e_va;
+	    entab[meltcit2__EACHOBMAP_ix].e_va;
 	  if (! /*_.STEPNAME__V40*/ meltfptr[23])
 	    continue;
 
@@ -4099,7 +4101,7 @@ lab_endgetargs:;
 	  MELT_LOCATION ("warmelt-normatch.melt:6927:/ compute");
 	  /*_#STEPCOUNT__L12*/ meltfnum[4] = /*_#SETQ___L18*/ meltfnum[17] =
 	    /*_#I__L17*/ meltfnum[16];;
-	  /* foreach_in_mapobject end cit2__EACHOBMAP */
+	  /* foreach_in_mapobject end meltcit2__EACHOBMAP */
     /*_.CURSTEP__V39*/ meltfptr[22] = NULL;
     /*_.STEPNAME__V40*/ meltfptr[23] = NULL;
 	}
@@ -4298,13 +4300,13 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_MULTIPLE */
     {
-      /* start cit3__EACHTUP: */
-      long cit3__EACHTUP_ln =
+      /* start meltcit3__EACHTUP: */
+      long meltcit3__EACHTUP_ln =
 	melt_multiple_length ((melt_ptr_t) /*_.SORTUPDATA__V43*/
 			      meltfptr[30]);
       for ( /*_#DIX__L21*/ meltfnum[19] = 0;
 	   ( /*_#DIX__L21*/ meltfnum[19] >= 0)
-	   && ( /*_#DIX__L21*/ meltfnum[19] < cit3__EACHTUP_ln);
+	   && ( /*_#DIX__L21*/ meltfnum[19] < meltcit3__EACHTUP_ln);
 	/*_#DIX__L21*/ meltfnum[19]++)
 	{
 	  /*_.CURDATA__V51*/ meltfptr[47] =
@@ -4869,7 +4871,7 @@ lab_endgetargs:;
 	  ;
 	  /*citerblock FOREACH_IN_LIST */
 	  {
-	    /* start foreach_in_list cit4__EACHLIST */
+	    /* start foreach_in_list meltcit4__EACHLIST */
 	    for ( /*_.PAIRSTEP__V69*/ meltfptr[63] =
 		 melt_list_first ((melt_ptr_t) /*_.DATASTEPS__V61*/
 				  meltfptr[60]);
@@ -4934,7 +4936,7 @@ lab_endgetargs:;
 				  (" [ arrowhead=open, color=blueviolet, style=dotted ];"));
 		}
 		;
-	      }			/* end foreach_in_list cit4__EACHLIST */
+	      }			/* end foreach_in_list meltcit4__EACHLIST */
      /*_.PAIRSTEP__V69*/ meltfptr[63] = NULL;
      /*_.CURSTEP__V70*/ meltfptr[69] = NULL;
 
@@ -4974,7 +4976,7 @@ lab_endgetargs:;
 	    /*clear *//*_.NAMED_NAME__V68*/ meltfptr[65] = 0;
 	  if ( /*_#DIX__L21*/ meltfnum[19] < 0)
 	    break;
-	}			/* end cit3__EACHTUP */
+	}			/* end meltcit3__EACHTUP */
 
       /*citerepilog */
 
@@ -5102,13 +5104,13 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_MULTIPLE */
     {
-      /* start cit5__EACHTUP: */
-      long cit5__EACHTUP_ln =
+      /* start meltcit5__EACHTUP: */
+      long meltcit5__EACHTUP_ln =
 	melt_multiple_length ((melt_ptr_t) /*_.SORTUPSTEP__V46*/
 			      meltfptr[45]);
       for ( /*_#DIX__L31*/ meltfnum[22] = 0;
 	   ( /*_#DIX__L31*/ meltfnum[22] >= 0)
-	   && ( /*_#DIX__L31*/ meltfnum[22] < cit5__EACHTUP_ln);
+	   && ( /*_#DIX__L31*/ meltfnum[22] < meltcit5__EACHTUP_ln);
 	/*_#DIX__L31*/ meltfnum[22]++)
 	{
 	  /*_.CURSTEP__V76*/ meltfptr[61] =
@@ -5529,7 +5531,7 @@ lab_endgetargs:;
 	    /*clear *//*_.MATCHGRAPHIC_ALTSTEP__V86*/ meltfptr[60] = 0;
 	  if ( /*_#DIX__L31*/ meltfnum[22] < 0)
 	    break;
-	}			/* end cit5__EACHTUP */
+	}			/* end meltcit5__EACHTUP */
 
       /*citerepilog */
 
@@ -6414,7 +6416,7 @@ lab_endgetargs:;
     ;
     /*citerblock FOREACH_IN_LIST */
     {
-      /* start foreach_in_list cit1__EACHLIST */
+      /* start foreach_in_list meltcit1__EACHLIST */
       for ( /*_.CURPAIR__V35*/ meltfptr[31] =
 	   melt_list_first ((melt_ptr_t) /*_.MSTEPS__V22*/ meltfptr[9]);
 	   melt_magic_discr ((melt_ptr_t) /*_.CURPAIR__V35*/ meltfptr[31]) ==
@@ -6440,7 +6442,7 @@ lab_endgetargs:;
 			  (union meltparam_un *) 0);
 	  }
 	  ;
-	}			/* end foreach_in_list cit1__EACHLIST */
+	}			/* end foreach_in_list meltcit1__EACHLIST */
      /*_.CURPAIR__V35*/ meltfptr[31] = NULL;
      /*_.CURSTEP__V36*/ meltfptr[32] = NULL;
 

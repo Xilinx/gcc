@@ -3358,7 +3358,7 @@ lab_endgetargs:;
 		;
 		/*citerblock FOREACH_IN_LIST */
 		{
-		  /* start foreach_in_list cit1__EACHLIST */
+		  /* start foreach_in_list meltcit1__EACHLIST */
 		  for ( /*_.CURPAIR__V35*/ meltfptr[33] =
 		       melt_list_first ((melt_ptr_t) /*_.SCONT__V31*/
 					meltfptr[30]);
@@ -3394,7 +3394,7 @@ lab_endgetargs:;
 				      (union meltparam_un *) 0);
 		      }
 		      ;
-		    }		/* end foreach_in_list cit1__EACHLIST */
+		    }		/* end foreach_in_list meltcit1__EACHLIST */
      /*_.CURPAIR__V35*/ meltfptr[33] = NULL;
      /*_.CURARG__V36*/ meltfptr[35] = NULL;
 

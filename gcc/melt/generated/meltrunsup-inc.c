@@ -957,7 +957,7 @@ melt_forwarded_copy (melt_ptr_t p)
 	dst->buflenix = src->buflenix;
 	if (blen > 0)
 	  {
-#if BUILDING_GCC_VERSION > 4005
+#if BUILDING_GCC_VERSION > 4005 || GCCPLUGIN_VERSION > 4005 || MELT_GCC_VERSION > 4005
 	    dst->bufzn =
 	      CONST_CAST (char *, ggc_alloc_string (src->bufzn, blen + 1));
 #else /*GCC 4.5 */
@@ -3181,5 +3181,5 @@ end:
 #undef compv
 
 
-/*** End of code file meltrunsup-inc.c generated on 2012 Apr 11
- * by GCC MELT 4.8.0 20120410 (experimental) [melt-branch revision 186302] MELT_0.9.5-rc4 . ***/
+/*** End of code file meltrunsup-inc.c generated on 2012 Apr 23
+ * by GCC MELT 4.8.0 20120423 (experimental) [melt-branch revision 186692] MELT_0.9.5+ . ***/

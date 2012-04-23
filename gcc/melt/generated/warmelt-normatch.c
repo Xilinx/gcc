@@ -4113,7 +4113,7 @@ lab_endgetargs:;
 	   /*clear *//*_#I__L12*/ meltfnum[0] = 0;
     /*citerblock FOREACH_IN_LIST */
     {
-      /* start foreach_in_list cit1__EACHLIST */
+      /* start foreach_in_list meltcit1__EACHLIST */
       for ( /*_.CURPAIR__V34*/ meltfptr[19] =
 	   melt_list_first ((melt_ptr_t) /*_.VARHDLERLIST__V17*/
 			    meltfptr[16]);
@@ -4178,7 +4178,7 @@ lab_endgetargs:;
    /*_.IF___V36*/ meltfptr[35] = NULL;;
 	    }
 	  ;
-	}			/* end foreach_in_list cit1__EACHLIST */
+	}			/* end foreach_in_list meltcit1__EACHLIST */
      /*_.CURPAIR__V34*/ meltfptr[19] = NULL;
      /*_.CURHDLER__V35*/ meltfptr[20] = NULL;
 

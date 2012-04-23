@@ -10438,12 +10438,12 @@ lab_endgetargs:;
 
 	  /*citerblock FOREACH_IN_MULTIPLE */
 	  {
-	    /* start cit1__EACHTUP: */
-	    long cit1__EACHTUP_ln =
+	    /* start meltcit1__EACHTUP: */
+	    long meltcit1__EACHTUP_ln =
 	      melt_multiple_length ((melt_ptr_t) /*_.SELF__V2*/ meltfptr[1]);
 	    for ( /*_#IX__L8*/ meltfnum[6] = 0;
 		 ( /*_#IX__L8*/ meltfnum[6] >= 0)
-		 && ( /*_#IX__L8*/ meltfnum[6] < cit1__EACHTUP_ln);
+		 && ( /*_#IX__L8*/ meltfnum[6] < meltcit1__EACHTUP_ln);
 	/*_#IX__L8*/ meltfnum[6]++)
 	      {
 		/*_.CURCOMP__V9*/ meltfptr[7] =
@@ -10580,7 +10580,7 @@ lab_endgetargs:;
 	      /*clear *//*_#I__L13*/ meltfnum[12] = 0;
 		if ( /*_#IX__L8*/ meltfnum[6] < 0)
 		  break;
-	      }			/* end cit1__EACHTUP */
+	      }			/* end meltcit1__EACHTUP */
 
 	    /*citerepilog */
 
