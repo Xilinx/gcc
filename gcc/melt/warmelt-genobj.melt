@@ -2689,7 +2689,7 @@ $SBUF.}#
 	   (statstr 
 	    (let ( (sbu (make_strbuf discr_strbuf)) )
 	      (put_int boxcntciter cnt)
-	      (add2sbuf_strconst sbu "cit")
+	      (add2sbuf_strconst sbu "meltcit")
 	      (add2sbuf_longdec sbu cnt)
 	      (add2sbuf_strconst sbu "__")
 	      (add2sbuf_cident sbu (unsafe_get_field :named_name nstatsy))

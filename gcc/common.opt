@@ -307,7 +307,7 @@ Common Driver Joined Alias(o) MissingArgError(missing filename after %qs)
 Driver Alias(pass-exit-codes)
 
 -pedantic
-Common Alias(pedantic)
+Common Alias(Wpedantic)
 
 -pedantic-errors
 Common Alias(pedantic-errors)
@@ -582,6 +582,10 @@ Wpadded
 Common Var(warn_padded) Warning
 Warn when padding is required to align structure members
 
+Wpedantic
+Common Var(pedantic) Warning
+Issue warnings needed for strict compliance to the standard
+
 Wshadow
 Common Var(warn_shadow) Warning
 Warn when one local variable shadows another
@@ -788,6 +792,8 @@ Driver Undocumented
 ;    argument.
 ;    First selectable in G++ 4.7.
 ;
+; 7: The version of the ABI that treats nullptr_t as a builtin type.
+;    First selectable in G++ 4.8.
 ; Additional positive integers will be assigned as new versions of
 ; the ABI become the default version of the ABI.
 fabi-version=
@@ -1129,6 +1135,10 @@ Enum(diagnostic_prefixing_rule) String(once) Value(DIAGNOSTICS_SHOW_PREFIX_ONCE)
 
 EnumValue
 Enum(diagnostic_prefixing_rule) String(every-line) Value(DIAGNOSTICS_SHOW_PREFIX_EVERY_LINE)
+
+fdiagnostics-show-caret
+Common Var(flag_diagnostics_show_caret) Init(1)
+Show the source line with a caret indicating the column
 
 fdiagnostics-show-option
 Common Var(flag_diagnostics_show_option) Init(1)
@@ -2417,8 +2427,7 @@ pass-exit-codes
 Driver Var(pass_exit_codes)
 
 pedantic
-Common Var(pedantic)
-Issue warnings needed for strict compliance to the standard
+Common Alias(Wpedantic)
 
 pedantic-errors
 Common Var(flag_pedantic_errors)

@@ -2562,6 +2562,14 @@ operand_equal_p (const_tree arg0, const_tree arg1, unsigned int flags)
 	case IMAGPART_EXPR:
 	  return OP_SAME (0);
 
+	case TARGET_MEM_REF:
+	  /* Require equal extra operands and then fall thru to MEM_REF
+	     handling of the two common operands.  */
+	  if (!OP_SAME_WITH_NULL (2)
+	      || !OP_SAME_WITH_NULL (3)
+	      || !OP_SAME_WITH_NULL (4))
+	    return 0;
+	  /* Fallthru.  */
 	case MEM_REF:
 	  /* Require equal access sizes, and similar pointer types.
 	     We can have incomplete types for array references of
@@ -7820,7 +7828,7 @@ fold_unary_loc (location_t loc, enum tree_code code, tree type, tree op0)
 	      && inter_prec >= inside_prec
 	      && (inter_float || inter_vec
 		  || inter_unsignedp == inside_unsignedp)
-	      && ! (final_prec != GET_MODE_BITSIZE (TYPE_MODE (type))
+	      && ! (final_prec != GET_MODE_PRECISION (TYPE_MODE (type))
 		    && TYPE_MODE (type) == TYPE_MODE (inter_type))
 	      && ! final_ptr
 	      && (! final_vec || inter_prec == inside_prec))
@@ -7857,7 +7865,7 @@ fold_unary_loc (location_t loc, enum tree_code code, tree type, tree op0)
 		  == (final_unsignedp && final_prec > inter_prec))
 	      && ! (inside_ptr && inter_prec != final_prec)
 	      && ! (final_ptr && inside_prec != inter_prec)
-	      && ! (final_prec != GET_MODE_BITSIZE (TYPE_MODE (type))
+	      && ! (final_prec != GET_MODE_PRECISION (TYPE_MODE (type))
 		    && TYPE_MODE (type) == TYPE_MODE (inter_type)))
 	    return fold_build1_loc (loc, code, type, TREE_OPERAND (op0, 0));
 	}
@@ -9683,6 +9691,48 @@ fold_addr_of_array_ref_difference (location_t loc, tree type,
 					       diff, esz));
     }
   return NULL_TREE;
+}
+
+/* If the real or vector real constant CST of type TYPE has an exact
+   inverse, return it, else return NULL.  */
+
+static tree
+exact_inverse (tree type, tree cst)
+{
+  REAL_VALUE_TYPE r;
+  tree unit_type, *elts;
+  enum machine_mode mode;
+  unsigned vec_nelts, i;
+
+  switch (TREE_CODE (cst))
+    {
+    case REAL_CST:
+      r = TREE_REAL_CST (cst);
+
+      if (exact_real_inverse (TYPE_MODE (type), &r))
+	return build_real (type, r);
+
+      return NULL_TREE;
+
+    case VECTOR_CST:
+      vec_nelts = VECTOR_CST_NELTS (cst);
+      elts = XALLOCAVEC (tree, vec_nelts);
+      unit_type = TREE_TYPE (type);
+      mode = TYPE_MODE (unit_type);
+
+      for (i = 0; i < vec_nelts; i++)
+	{
+	  r = TREE_REAL_CST (VECTOR_CST_ELT (cst, i));
+	  if (!exact_real_inverse (mode, &r))
+	    return NULL_TREE;
+	  elts[i] = build_real (unit_type, r);
+	}
+
+      return build_vector (type, elts);
+
+    default:
+      return NULL_TREE;
+    }
 }
 
 /* Fold a binary expression of code CODE and type TYPE with operands
@@ -11726,23 +11776,24 @@ fold_binary_loc (location_t loc,
 	 so only do this if -freciprocal-math.  We can actually
 	 always safely do it if ARG1 is a power of two, but it's hard to
 	 tell if it is or not in a portable manner.  */
-      if (TREE_CODE (arg1) == REAL_CST)
+      if (optimize
+	  && (TREE_CODE (arg1) == REAL_CST
+	      || (TREE_CODE (arg1) == COMPLEX_CST
+		  && COMPLEX_FLOAT_TYPE_P (TREE_TYPE (arg1)))
+	      || (TREE_CODE (arg1) == VECTOR_CST
+		  && VECTOR_FLOAT_TYPE_P (TREE_TYPE (arg1)))))
 	{
 	  if (flag_reciprocal_math
-	      && 0 != (tem = const_binop (code, build_real (type, dconst1),
-					  arg1)))
+	      && 0 != (tem = const_binop (code, build_one_cst (type), arg1)))
 	    return fold_build2_loc (loc, MULT_EXPR, type, arg0, tem);
-	  /* Find the reciprocal if optimizing and the result is exact.  */
-	  if (optimize)
+	  /* Find the reciprocal if optimizing and the result is exact.
+	     TODO: Complex reciprocal not implemented.  */
+	  if (TREE_CODE (arg1) != COMPLEX_CST)
 	    {
-	      REAL_VALUE_TYPE r;
-	      r = TREE_REAL_CST (arg1);
-	      if (exact_real_inverse (TYPE_MODE(TREE_TYPE(arg0)), &r))
-		{
-		  tem = build_real (type, r);
-		  return fold_build2_loc (loc, MULT_EXPR, type,
-				      fold_convert_loc (loc, type, arg0), tem);
-		}
+	      tree inverse = exact_inverse (TREE_TYPE (arg0), arg1);
+
+	      if (inverse)
+		return fold_build2_loc (loc, MULT_EXPR, type, arg0, inverse);
 	    }
 	}
       /* Convert A/B/C to A/(B*C).  */
@@ -14340,7 +14391,8 @@ fold_checksum_tree (const_tree expr, struct md5_ctx *ctx, htab_t ht)
 	  fold_checksum_tree (TREE_IMAGPART (expr), ctx, ht);
 	  break;
 	case VECTOR_CST:
-	  fold_checksum_tree (TREE_VECTOR_CST_ELTS (expr), ctx, ht);
+	  for (i = 0; i < (int) VECTOR_CST_NELTS (expr); ++i)
+	    fold_checksum_tree (VECTOR_CST_ELT (expr, i), ctx, ht);
 	  break;
 	default:
 	  break;

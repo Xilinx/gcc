@@ -3747,6 +3747,7 @@ enum tree_index
   TI_UINTDI_TYPE,
   TI_UINTTI_TYPE,
 
+  TI_UINT16_TYPE,
   TI_UINT32_TYPE,
   TI_UINT64_TYPE,
 
@@ -3902,6 +3903,7 @@ extern GTY(()) tree global_trees[TI_MAX];
 #define unsigned_intDI_type_node	global_trees[TI_UINTDI_TYPE]
 #define unsigned_intTI_type_node	global_trees[TI_UINTTI_TYPE]
 
+#define uint16_type_node		global_trees[TI_UINT16_TYPE]
 #define uint32_type_node		global_trees[TI_UINT32_TYPE]
 #define uint64_type_node		global_trees[TI_UINT64_TYPE]
 
@@ -4339,6 +4341,8 @@ build_int_cstu (tree type, unsigned HOST_WIDE_INT cst)
 extern tree build_int_cst (tree, HOST_WIDE_INT);
 extern tree build_int_cst_type (tree, HOST_WIDE_INT);
 extern tree build_int_cst_wide (tree, unsigned HOST_WIDE_INT, HOST_WIDE_INT);
+extern tree make_vector_stat (unsigned MEM_STAT_DECL);
+#define make_vector(n) make_vector_stat (n MEM_STAT_INFO)
 extern tree build_vector_stat (tree, tree * MEM_STAT_DECL);
 #define build_vector(t,v) build_vector_stat (t, v MEM_STAT_INFO)
 extern tree build_vector_from_ctor (tree, VEC(constructor_elt,gc) *);
@@ -5063,6 +5067,8 @@ extern bool contains_packed_reference (const_tree exp);
 
 extern tree array_ref_element_size (tree);
 
+bool array_at_struct_end_p (tree);
+
 /* Return a tree representing the lower bound of the array mentioned in
    EXP, an ARRAY_REF or an ARRAY_RANGE_REF.  */
 
@@ -5211,7 +5217,6 @@ extern tree unshare_expr (tree);
 /* In stmt.c */
 
 extern void expand_expr_stmt (tree);
-extern int warn_if_unused_value (const_tree, location_t);
 extern void expand_label (tree);
 extern void expand_goto (tree);
 

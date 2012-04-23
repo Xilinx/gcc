@@ -3147,7 +3147,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
      dst->buflenix = src->buflenix;
      if (blen > 0)
         {
-#if BUILDING_GCC_VERSION > 4005
+#if BUILDING_GCC_VERSION > 4005 || GCCPLUGIN_VERSION > 4005 || MELT_GCC_VERSION > 4005
           dst->bufzn = CONST_CAST (char *, ggc_alloc_string (src->bufzn, blen+1));
 #else /*GCC 4.5*/ 
           dst->bufzn = (char *) ggc_alloc_cleared (1 + blen);

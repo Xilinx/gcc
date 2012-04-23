@@ -576,19 +576,19 @@ melt-modules/[+base+].quicklybuilt.so: melt-sources/[+base+].c \
 
 #@ [+ (. (tpl-file-line))+]
 
-[+FOR variant IN quicklybuilt optimized debugnoline+]
+[+FOR flavor IN quicklybuilt optimized debugnoline+]
 #@ [+ (. (tpl-file-line))+]
-#### melt-sources warmelt-[+variant+] is the sequence of translator files:
-melt-sources/warmelt-[+variant+].modlis: [+FOR melt_translator_file " \\\n"+]melt-modules/[+base+].optimized.so [+ENDFOR melt_translator_file+]
-	@echo building [+variant+] module list $@ [+ (. (tpl-file-line))+]
-	date  +"# MELT warmelt-[+variant+] list $@ generated %F" > $@-tmp
-	echo "#  [+variant+] translator files" >> $@-tmp
-[+FOR melt_translator_file+]	echo [+base+].[+variant+] >> $@-tmp
+#### melt-sources warmelt-[+flavor+] is the sequence of translator files:
+melt-sources/warmelt-[+flavor+].modlis: [+FOR melt_translator_file " \\\n"+]melt-modules/[+base+].optimized.so [+ENDFOR melt_translator_file+]
+	@echo building [+flavor+] module list $@ [+ (. (tpl-file-line))+]
+	date  +"# MELT warmelt-[+flavor+] list $@ generated %F" > $@-tmp
+	echo "#  [+flavor+] translator files" >> $@-tmp
+[+FOR melt_translator_file+]	echo [+base+].[+flavor+] >> $@-tmp
 [+ENDFOR melt_translator_file+]
 	echo "# end $@" >> $@-tmp
 	$(melt_move_if_change) $@-tmp $@
 
-[+ENDFOR variant+]
+[+ENDFOR flavor+]
 
 #### melt-sources application files
 [+ (define prevapplbase (list)) +]
@@ -606,7 +606,7 @@ melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt
 ## to exercise the optimized warmelt...
 melt-sources/[+base+].c: \
    melt-sources/[+base+].melt \
-   melt-sources/warmelt-optimized.modlis melt-sources/warmelt-quicklybuilt.modlis \
+   melt-sources/warmelt-quicklybuilt.modlis melt-sources/warmelt-optimized.modlis \
    melt-sources-directory.stamp \
  [+FOR includeload
 +]  melt-sources/[+includeload+] [+ENDFOR includeload+] \
@@ -641,7 +641,7 @@ melt-sources/[+base+].c: \
 #@ [+ (. (tpl-file-line))+]
 ## melt application [+base+] various flavors of modules
 
-[+FOR applflavor IN "optimized" "quicklybuilt" "debugnoline" +]
+[+FOR applflavor IN "quicklybuilt"  "optimized"  "debugnoline" +]
 ## melt application [+base+] flavor [+applflavor+]  [+ (. (tpl-file-line))+]
 melt-modules/[+base+].[+applflavor+].so: melt-sources-directory.stamp \
      melt-sources/[+base+].c melt-modules-directory.stamp  melt-workdir-directory.stamp \
@@ -655,6 +655,7 @@ melt-modules/[+base+].[+applflavor+].so: melt-sources-directory.stamp \
 	      GCCMELT_MODULE_SOURCEBASE=melt-sources/[+base+] \
               GCCMELT_MODULE_BINARYBASE=melt-modules/[+base+] 
 
+#@ [+ (. (tpl-file-line))+] [+base+].[+applflavor+]
 [+ENDFOR applflavor+]
 #@ [+ (. (tpl-file-line))+]
 [+ (define prevapplbase (cons (get "base") prevapplbase)) +]

@@ -1,9 +1,7 @@
-// { dg-options "-std=gnu++0x" }
 // { dg-do compile }
+// { dg-options "-std=gnu++11" }
 
-// 2009-12-30  Paolo Carlini  <paolo.carlini@oracle.com>
-
-// Copyright (C) 2009 Free Software Foundation, Inc.
+// Copyright (C) 2012 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -12,7 +10,7 @@
 // any later version.
 
 // This library is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// but WITHOUT ANY WARRANTY; without Pred the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
@@ -20,12 +18,20 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-// NB: This file is for testing type_traits with NO OTHER INCLUDES.
+#include <unordered_set>
+#include <functional>
 
-#include <type_traits>
+struct TFoo {};
 
-namespace std
+struct TFoo_hash
 {
-  typedef short test_type;
-  template struct is_explicitly_convertible<test_type, test_type>;
+  std::size_t operator()(const TFoo &) const { return 0; }
+};
+
+void f1(std::unordered_set<TFoo, TFoo_hash> &) {}
+
+void f2()
+{
+  std::unordered_set<TFoo, TFoo_hash> set1;
+  std::bind(f1, std::ref(set1));
 }

@@ -6778,6 +6778,43 @@ array_ref_low_bound (tree exp)
   return build_int_cst (TREE_TYPE (TREE_OPERAND (exp, 1)), 0);
 }
 
+/* Returns true if REF is an array reference to an array at the end of
+   a structure.  If this is the case, the array may be allocated larger
+   than its upper bound implies.  */
+
+bool
+array_at_struct_end_p (tree ref)
+{
+  if (TREE_CODE (ref) != ARRAY_REF
+      && TREE_CODE (ref) != ARRAY_RANGE_REF)
+    return false;
+
+  while (handled_component_p (ref))
+    {
+      /* If the reference chain contains a component reference to a
+         non-union type and there follows another field the reference
+	 is not at the end of a structure.  */
+      if (TREE_CODE (ref) == COMPONENT_REF
+	  && TREE_CODE (TREE_TYPE (TREE_OPERAND (ref, 0))) == RECORD_TYPE)
+	{
+	  tree nextf = DECL_CHAIN (TREE_OPERAND (ref, 1));
+	  while (nextf && TREE_CODE (nextf) != FIELD_DECL)
+	    nextf = DECL_CHAIN (nextf);
+	  if (nextf)
+	    return false;
+	}
+
+      ref = TREE_OPERAND (ref, 0);
+    }
+
+  /* If the reference is based on a declared entity, the size of the array
+     is constrained by its given domain.  */
+  if (DECL_P (ref))
+    return false;
+
+  return true;
+}
+
 /* Return a tree representing the upper bound of the array mentioned in
    EXP, an ARRAY_REF or an ARRAY_RANGE_REF.  */
 
@@ -9015,8 +9052,13 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	  && stmt_is_replaceable_p (SSA_NAME_DEF_STMT (exp)))
 	g = SSA_NAME_DEF_STMT (exp);
       if (g)
-	return expand_expr_real (gimple_assign_rhs_to_tree (g), target, tmode,
-				 modifier, NULL);
+	{
+	  rtx r = expand_expr_real (gimple_assign_rhs_to_tree (g), target,
+				    tmode, modifier, NULL);
+	  if (REG_P (r) && !REG_EXPR (r))
+	    set_reg_attrs_for_decl_rtl (SSA_NAME_VAR (exp), r);
+	  return r;
+	}
 
       ssa_name = exp;
       decl_rtl = get_rtx_for_ssa_name (ssa_name);
@@ -9598,6 +9640,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	tree tem = get_inner_reference (exp, &bitsize, &bitpos, &offset,
 					&mode1, &unsignedp, &volatilep, true);
 	rtx orig_op0, memloc;
+	bool mem_attrs_from_type = false;
 
 	/* If we got back the original object, something is wrong.  Perhaps
 	   we are evaluating an expression too early.  In any event, don't
@@ -9703,6 +9746,7 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	    memloc = assign_temp (nt, 1, 1, 1);
 	    emit_move_insn (memloc, op0);
 	    op0 = memloc;
+	    mem_attrs_from_type = true;
 	  }
 
 	if (offset)
@@ -9875,7 +9919,6 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 		emit_move_insn (new_rtx, op0);
 		op0 = copy_rtx (new_rtx);
 		PUT_MODE (op0, BLKmode);
-		set_mem_attributes (op0, exp, 1);
 	      }
 
 	    return op0;
@@ -9896,7 +9939,14 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 	if (op0 == orig_op0)
 	  op0 = copy_rtx (op0);
 
-	set_mem_attributes (op0, exp, 0);
+	/* If op0 is a temporary because of forcing to memory, pass only the
+	   type to set_mem_attributes so that the original expression is never
+	   marked as ADDRESSABLE through MEM_EXPR of the temporary.  */
+	if (mem_attrs_from_type)
+	  set_mem_attributes (op0, type, 0);
+	else
+	  set_mem_attributes (op0, exp, 0);
+
 	if (REG_P (XEXP (op0, 0)))
 	  mark_reg_pointer (XEXP (op0, 0), MEM_ALIGN (op0));
 

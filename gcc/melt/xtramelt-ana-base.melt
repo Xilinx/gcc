@@ -4202,24 +4202,39 @@ arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4 & $ARG5 & $ARG6 and number of ar
   ()					; startformals
   eachcgrfun 				;state symbol
   (:tree funtree :gimple_seq funbody)	;local formals
+  :doc #{$EACH_CGRAPH_FUN_BODY iterates on every cgraph_node which is
+  a function declared as $FUNTREE with a body $FUNBODY.}#
   ;; before expansion
-  #{ /* $EACHCGRFUN + */
-   struct cgraph_node *$eachcgrfun#_nd = NULL; 
-   for ($eachcgrfun#_nd = cgraph_nodes; 
-	$eachcgrfun#_nd != NULL; 
-	$eachcgrfun#_nd = $eachcgrfun#_nd->next) {
-     tree $eachcgrfun#_dcl = NULL;
-     gimple_seq  $eachcgrfun#_bdy = NULL;
-     $eachcgrfun#_dcl =  $eachcgrfun#_nd->decl;
-     if (!$eachcgrfun#_dcl) continue;
-     if (TREE_CODE($eachcgrfun#_dcl) != FUNCTION_DECL) continue;
-     $eachcgrfun#_bdy = gimple_body($eachcgrfun#_dcl);
-     if (!$eachcgrfun#_bdy) continue;
-     $funtree = $eachcgrfun#_dcl;
-     $funbody = $eachcgrfun#_bdy;
+  #{ /*  each_cgraph_fun_body $EACHCGRFUN + */
+   struct cgraph_node *$EACHCGRFUN#_nd = NULL; 
+   /* each_cgraph_fun_body $EACHCGRFUN; GCC 4.8 has FOR_EACH_DEFINED_FUNCTION */
+#ifdef FOR_EACH_DEFINED_FUNCTION
+   FOR_EACH_DEFINED_FUNCTION($EACHCGRFUN#_nd)
+#else /* for GCC 4.6 & 4.7 without FOR_EACH_DEFINED_FUNCTION */
+   for ($EACHCGRFUN#_nd = cgraph_nodes; 
+	$EACHCGRFUN#_nd != NULL; 
+	$EACHCGRFUN#_nd = $EACHCGRFUN#_nd->next) 
+#endif /* FOR_EACH_DEFINED_FUNCTION $EACHCGRFUN */
+     {  /* each_cgraph_fun_body $EACHCGRFUN inside for */
+       tree $EACHCGRFUN#_dcl = NULL;
+       gimple_seq  $EACHCGRFUN#_bdy = NULL;
+   /* in each_cgraph_fun_body $EACHCGRFUN; 
+      notice that GCCPLUGIN_VERSION exists from GCC 4.7, but not in GCC 4.6 */
+#if (defined(GCCPLUGIN_VERSION) && (GCCPLUGIN_VERSION >= 4008)) \
+    || (defined (MELT_GCC_VERSION) && (MELT_GCC_VERSION >= 4008))
+       $EACHCGRFUN#_dcl =  $EACHCGRFUN#_nd->symbol.decl;
+#else /* GCC 4.7 or older */
+       $EACHCGRFUN#_dcl =  $EACHCGRFUN#_nd->decl;
+#endif /* older than GCC 4.8 */
+       if (!$EACHCGRFUN#_dcl) continue;
+       if (TREE_CODE($EACHCGRFUN#_dcl) != FUNCTION_DECL) continue;
+       $EACHCGRFUN#_bdy = gimple_body($EACHCGRFUN#_dcl);
+       if (!$EACHCGRFUN#_bdy) continue;
+       $FUNTREE = $EACHCGRFUN#_dcl;
+       $FUNBODY = $EACHCGRFUN#_bdy;
   }#
    ;;after expansion
-   #{ } /* $EACHCGRFUN - */ }#  )
+   #{ } /*  each_cgraph_fun_body $EACHCGRFUN - */ }#  )
 
 
 ;;; iterate on every cgraph_node which is a function with a CFG and an
@@ -4229,16 +4244,29 @@ arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4 & $ARG5 & $ARG6 and number of ar
   eachcgrafunentrblo				;state symbol
   (:tree funtree :basic_block funentrybb funexitbb)	;local formals
   ;;before expansion
-  #{ /* $EACHCGRAFUNENTRBLO + */
+  #{ /* each_cgraph_fun_entryblock $EACHCGRAFUNENTRBLO + */
    struct cgraph_node *$EACHCGRAFUNENTRBLO#_nd = NULL; 
+   /* each_cgraph_fun_entryblock $EACHCGRAFUNENTRBLO; GCC 4.8 has FOR_EACH_DEFINED_FUNCTION */
+#ifdef FOR_EACH_DEFINED_FUNCTION
+   FOR_EACH_DEFINED_FUNCTION($EACHCGRAFUNENTRBLO#_nd)
+#else /* for GCC 4.6 & 4.7 without FOR_EACH_DEFINED_FUNCTION */
    for ($EACHCGRAFUNENTRBLO#_nd = cgraph_nodes; 
-   $EACHCGRAFUNENTRBLO#_nd != NULL; 
-   $EACHCGRAFUNENTRBLO#_nd = $EACHCGRAFUNENTRBLO#_nd->next) {
+        $EACHCGRAFUNENTRBLO#_nd != NULL; 
+        $EACHCGRAFUNENTRBLO#_nd = $EACHCGRAFUNENTRBLO#_nd->next) 
+#endif /* FOR_EACH_DEFINED_FUNCTION $EACHCGRAFUNENTRBLO */
+   {
    tree  $EACHCGRAFUNENTRBLO#_dcl = NULL;
    basic_block  $EACHCGRAFUNENTRBLO#_entrybb = NULL;
    basic_block  $EACHCGRAFUNENTRBLO#_exitbb = NULL;
    struct function *$EACHCGRAFUNENTRBLO#_fun = NULL;
+   /* in each_cgraph_fun_entryblock $EACHCGRAFUNENTRBLO; 
+      notice that GCCPLUGIN_VERSION exists from GCC 4.7, but not in GCC 4.6 */
+#if (defined(GCCPLUGIN_VERSION) && (GCCPLUGIN_VERSION >= 4008)) \
+    || (defined (MELT_GCC_VERSION) && (MELT_GCC_VERSION >= 4008))
+   $EACHCGRAFUNENTRBLO#_dcl = $EACHCGRAFUNENTRBLO#_nd->symbol.decl;
+#else /* GCC 4.7 or older */
    $EACHCGRAFUNENTRBLO#_dcl = $EACHCGRAFUNENTRBLO#_nd->decl;
+#endif /* older than GCC 4.8 */
    if (! $EACHCGRAFUNENTRBLO#_dcl) continue;
    if (TREE_CODE($EACHCGRAFUNENTRBLO#_dcl) != FUNCTION_DECL) continue;
    $EACHCGRAFUNENTRBLO#_fun = DECL_STRUCT_FUNCTION($EACHCGRAFUNENTRBLO#_dcl);
@@ -4257,7 +4285,7 @@ arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4 & $ARG5 & $ARG6 and number of ar
    $funexitbb = $EACHCGRAFUNENTRBLO#_exitbb;
   }#
   ;;after expansion
-  #{ } /* $EACHCGRAFUNENTRBLO - */ }# )
+  #{ } /* each_cgraph_fun_entryblock $EACHCGRAFUNENTRBLO - */ }# )
 
 
 ;; iterator on every cgraph_node which is a function with a CFG, and
@@ -4267,18 +4295,36 @@ arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4 & $ARG5 & $ARG6 and number of ar
   ()	      ;start formals
   eachcgrafuncfg
   (:tree funtree :basic_block funentrybb funexitbb :value bbtup tmpv)
+  :doc #{$EACH_CGRAPH_FUN_CALL_FLOW_GRAPH iterates on every callgraph
+  function with a body and a control flow graph, giving the
+  declaration $FUNTREE, the entry and exit basic blocks $FUNENTRYBB
+  and $FUNEXITBB, the tuple of boxed basic blocks $BBTUP, and needs an
+  internal temporary value $TMPV}#
   ;; before expansion
-  #{ /* $EACHCGRAFUNCFG + */
+  #{ /* each_cgraph_fun_call_flow_graph $EACHCGRAFUNCFG + */
    struct cgraph_node *$EACHCGRAFUNCFG#_nd = NULL; 
+   /*  each_cgraph_fun_call_flow_graph loop  $EACHCGRAFUNCFG; GCC 4.8 has  FOR_EACH_DEFINED_FUNCTION */
+#ifdef FOR_EACH_DEFINED_FUNCTION
+   FOR_EACH_DEFINED_FUNCTION($EACHCGRAFUNCFG#_nd)
+#else /* for GCC 4.6 & 4.7 without FOR_EACH_DEFINED_FUNCTION */
    for ($EACHCGRAFUNCFG#_nd = cgraph_nodes; 
         $EACHCGRAFUNCFG#_nd != NULL; 
-        $EACHCGRAFUNCFG#_nd = $EACHCGRAFUNCFG#_nd->next) {
+        $EACHCGRAFUNCFG#_nd = $EACHCGRAFUNCFG#_nd->next) 
+#endif /* FOR_EACH_DEFINED_FUNCTION  each_cgraph_fun_call_flow_graph $EACHCGRAFUNCFG */
+    {
       tree  $EACHCGRAFUNCFG#_dcl = NULL;
       basic_block $EACHCGRAFUNCFG#_curbb = NULL;
       struct function *$EACHCGRAFUNCFG#_fun = NULL;
       int $EACHCGRAFUNCFG#_n_bb = 0;
       int $EACHCGRAFUNCFG#_ix = 0;
+      /* inside  each_cgraph_fun_call_flow_graph loop  $EACHCGRAFUNCFG;
+         notice that GCCPLUGIN_VERSION exists from GCC 4.7, but not in GCC 4.6 */
+#if (defined(GCCPLUGIN_VERSION) && (GCCPLUGIN_VERSION >= 4008)) \
+    || (defined (MELT_GCC_VERSION) && (MELT_GCC_VERSION >= 4008))
+      $EACHCGRAFUNCFG#_dcl = $EACHCGRAFUNCFG#_nd->symbol.decl;
+#else /* GCC 4.7 or older */
       $EACHCGRAFUNCFG#_dcl = $EACHCGRAFUNCFG#_nd->decl;
+#endif /* older than GCC 4.8 */
       if (! $EACHCGRAFUNCFG#_dcl) 
         continue;
       if (TREE_CODE($EACHCGRAFUNCFG#_dcl) != FUNCTION_DECL) 
@@ -4288,11 +4334,11 @@ arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4 & $ARG5 & $ARG6 and number of ar
         continue;
       debugeprintf("$EACHCGRAFUNCFG#_fun %p", $EACHCGRAFUNCFG#_fun);
       $TMPV = NULL;
-      /* this assert fails when in a pass without control flow graph */
+      /*  each_cgraph_fun_call_flow_graph this assert fails when in a pass without control flow graph */
       melt_assertmsg ("no cfg in each_cgraph_fun_call_flow_graph $EACHCGRAFUNCFG",
 		   $EACHCGRAFUNCFG#_fun->cfg != NULL);
       $EACHCGRAFUNCFG#_n_bb = n_basic_blocks_for_function ($EACHCGRAFUNCFG#_fun);
-      /* $EACHCGRAFUNCFG create the tuple of basic blocks */
+      /*  each_cgraph_fun_call_flow_graph $EACHCGRAFUNCFG create the tuple of basic blocks */
       $BBTUP = meltgc_new_multiple
         ((meltobject_ptr_t) MELT_PREDEF (DISCR_MULTIPLE),
 	 $EACHCGRAFUNCFG#_n_bb);
@@ -4310,11 +4356,11 @@ arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4 & $ARG5 & $ARG6 and number of ar
 	   meltgc_multiple_put_nth ((melt_ptr_t)$BBTUP,
 				    $EACHCGRAFUNCFG#_ix,
 				    $TMPV);
-      } /* $EACHCGRAFUNCFG done bb tuple */
+      } /* each_cgraph_fun_call_flow_graph $EACHCGRAFUNCFG done bb tuple */
       $TMPV = NULL;
   }#
   ;; after expansion
-  #{ /* $EACHCGRAFUNCFG - */
+  #{ /*  each_cgraph_fun_call_flow_graph $EACHCGRAFUNCFG - */
      $TMPV = NULL;
    }
   }#
@@ -4322,16 +4368,21 @@ arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4 & $ARG5 & $ARG6 and number of ar
 
 ;;;;;;;;;;;;;;;;
 ;;;; iterate on every cgraph_node which is a declaration
+(gccif 
+ ("4.6."  "4.7.")
 (defciterator each_cgraph_decl
   ()
   eachcgrdcl
   (:tree decl)
+  :doc #{$EACH_CGRAPH_DECL iterates on every cgraph_node which is a declaration $DECL; only for GCC 4.6 or 4.7}#
   ;;before expansion
 #{ /*  each_cgraph_decl $EACHCGRDCL */
    struct cgraph_node *$EACHCGRDCL#_nd = NULL; 
+   /* each_cgraph_decl $EACHCGRDCL loop */
    for ($EACHCGRDCL#_nd = cgraph_nodes; 
-   $EACHCGRDCL#_nd != NULL; 
-   $EACHCGRDCL#_nd = $EACHCGRDCL#_nd->next) {
+        $EACHCGRDCL#_nd != NULL; 
+        $EACHCGRDCL#_nd = $EACHCGRDCL#_nd->next) 
+   {
      tree  $EACHCGRDCL#_dcl = NULL;
      $EACHCGRDCL#_dcl = $EACHCGRDCL#_nd->decl;
      $DECL = (tree) NULL;
@@ -4342,6 +4393,8 @@ arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4 & $ARG5 & $ARG6 and number of ar
 #{ /* end  each_cgraph_decl $EACHCGRDCL */ $DECL = (tree)NULL; 
  } }#
 )
+(export_values each_cgraph_decl)
+)					;end gccif 4.6 & 4.7
 
 
 ;; iterator to get the current cfun decl
@@ -4349,6 +4402,7 @@ arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4 & $ARG5 & $ARG6 and number of ar
   ()
   withcfundecl
   (:tree cfundecl)
+  :doc #{iterator done one giving the current $CFUNDECL, if cfun exists}#
   #{ /*starting with_cfun_decl $WITHCFUNDECL*/
    $CFUNDECL = (tree) NULL;
    if (cfun) {
@@ -4391,7 +4445,9 @@ arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4 & $ARG5 & $ARG6 and number of ar
   (					;local formals
    :basic_block cfunbb 
    :tree cfundecl
-   )	
+   )
+  :doc #{$EACH_BB_CFUN iterates on every basic block $CFUNBB of the 
+current function and gives its declaration in $CFUNDECL}#
   ;;before expansion
   #{ /* start each_bb_cfun $EACHBBCFUN */ const int $EACHBBCFUN#_line = __LINE__;
    $CFUNBB = (basic_block) NULL;
@@ -5028,7 +5084,6 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  each_bb_cfun
  each_local_decl_cfun
  each_bb_current_fun
- each_cgraph_decl
  each_cgraph_fun_body
  each_cgraph_fun_call_flow_graph
  each_cgraph_fun_entryblock 

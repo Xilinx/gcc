@@ -12287,13 +12287,17 @@ melt_val2passflag(melt_ptr_t val_p)
     WHENFLAG(PROP_cfglayout);
     WHENFLAG(PROP_trees);
     /* likewise for TODO flags */
-    WHENFLAG(TODO_dump_func);
+#ifdef TODO_dump_func
+    WHENFLAG(TODO_dump_func);	/* not defined in GCC 4.8 */
+#endif /*TODO_dump_func*/
     WHENFLAG(TODO_ggc_collect);
     WHENFLAG(TODO_verify_ssa);
     WHENFLAG(TODO_verify_flow);
     WHENFLAG(TODO_verify_stmts);
     WHENFLAG(TODO_cleanup_cfg);
-    WHENFLAG(TODO_dump_cgraph);
+#ifdef TODO_dump_cgraph
+    WHENFLAG(TODO_dump_cgraph);	/* not defined in GCC 4.8 */
+#endif /*TODO_dump_cgraph*/
     WHENFLAG(TODO_remove_functions);
     WHENFLAG(TODO_rebuild_frequencies);
     WHENFLAG(TODO_verify_rtl_sharing);

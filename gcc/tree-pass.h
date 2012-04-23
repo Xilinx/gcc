@@ -245,13 +245,12 @@ struct dump_file_info
   (PROP_gimple_any | PROP_gimple_lcf | PROP_gimple_leh | PROP_gimple_lomp)
 
 /* To-do flags.  */
-#define TODO_dump_func			(1 << 0)
 #define TODO_ggc_collect		(1 << 1)
 #define TODO_verify_ssa			(1 << 2)
 #define TODO_verify_flow		(1 << 3)
 #define TODO_verify_stmts		(1 << 4)
 #define TODO_cleanup_cfg        	(1 << 5)
-#define TODO_dump_cgraph		(1 << 7)
+#define TODO_dump_symtab		(1 << 7)
 #define TODO_remove_functions		(1 << 8)
 #define TODO_rebuild_frequencies	(1 << 9)
 #define TODO_verify_rtl_sharing         (1 << 10)
@@ -348,8 +347,6 @@ struct register_pass_info
                                        Do it for every instance if it is 0.  */
   enum pass_positioning_ops pos_op; /* how to insert the new pass.  */
 };
-
-extern void tree_lowering_passes (tree decl);
 
 extern struct gimple_opt_pass pass_mudflap_1;
 extern struct gimple_opt_pass pass_mudflap_2;

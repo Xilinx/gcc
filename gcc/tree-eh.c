@@ -2533,7 +2533,7 @@ tree_could_trap_p (tree expr)
 	  if (!DECL_EXTERNAL (expr))
 	    return false;
 	  node = cgraph_function_node (cgraph_get_node (expr), NULL);
-	  if (node && node->in_other_partition)
+	  if (node && node->symbol.in_other_partition)
 	    return false;
 	  return true;
 	}
@@ -2549,7 +2549,7 @@ tree_could_trap_p (tree expr)
 	  if (!DECL_EXTERNAL (expr))
 	    return false;
 	  node = varpool_variable_node (varpool_get_node (expr), NULL);
-	  if (node && node->in_other_partition)
+	  if (node && node->symbol.in_other_partition)
 	    return false;
 	  return true;
 	}
@@ -3916,6 +3916,21 @@ cleanup_empty_eh_merge_phis (basic_block new_bb, basic_block old_bb,
   for (ei = ei_start (old_bb->preds); (e = ei_safe_edge (ei)); )
     if (e->flags & EDGE_EH)
       {
+	/* ???  CFG manipluation routines do not try to update loop
+	   form on edge redirection.  Do so manually here for now.  */
+	/* If we redirect a loop entry or latch edge that will either create
+	   a multiple entry loop or rotate the loop.  If the loops merge
+	   we may have created a loop with multiple latches.
+	   All of this isn't easily fixed thus cancel the affected loop
+	   and mark the other loop as possibly having multiple latches.  */
+	if (current_loops
+	    && e->dest == e->dest->loop_father->header)
+	  {
+	    e->dest->loop_father->header = NULL;
+	    e->dest->loop_father->latch = NULL;
+	    new_bb->loop_father->latch = NULL;
+	    loops_state_set (LOOPS_NEED_FIXUP|LOOPS_MAY_HAVE_MULTIPLE_LATCHES);
+	  }
 	redirect_eh_edge_1 (e, new_bb, change_region);
 	redirect_edge_succ (e, new_bb);
 	flush_pending_stmts (e);

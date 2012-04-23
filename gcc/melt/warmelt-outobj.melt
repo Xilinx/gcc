@@ -4693,7 +4693,7 @@ $MODCTX is the module context, and $IX is the index.}#
 	 (replmap (make_mapobject discr_map_objects (*i 2 (+i 3 (multiple_length citstaformals)))))
 	 (repstatnam (let ( (nbuf (make_strbuf discr_strbuf)) 
 			    )
-		       (add2out nbuf "citstate_" ix "_")
+		       (add2out nbuf "meltcitstate_" ix "_")
 		       (add2sbuf_cident nbuf (get_field :named_name citstate))
 		       (strbuf2string discr_verbatim_string nbuf)))
 	 )

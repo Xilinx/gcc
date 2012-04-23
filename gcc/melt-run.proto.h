@@ -56,6 +56,12 @@ along with GCC; see the file COPYING3.   If not see
 #include "ggc.h"
 #include "cgraph.h"
 
+#ifndef MELT_GCC_VERSION
+/* Actually, the generated melt-run.h contains a number like 4007 for
+   GCC 4.7 etc.  This is the version of the GCC using this MELT. */
+#define MELT_GCC_VERSION YY
+#endif
+
 /* Headers from c-family/ should be included directly with GCC4.6, but
    not with GCC 4.7 or when compiling with a C++ compiler. */
 #if defined(GCCPLUGIN_VERSION) || MELT_GCC_VERSION>4006 || defined(__cplusplus)

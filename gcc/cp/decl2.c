@@ -1,7 +1,7 @@
 /* Process declarations and variables for C++ compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
    1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010,
-   2011 Free Software Foundation, Inc.
+   2011, 2012 Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
 This file is part of GCC.
@@ -1456,12 +1456,7 @@ finish_anon_union (tree anon_union_decl)
     }
 
   pushdecl (anon_union_decl);
-  if (building_stmt_list_p ()
-      && at_function_scope_p ())
-    add_decl_expr (anon_union_decl);
-  else if (!processing_template_decl)
-    rest_of_decl_compilation (anon_union_decl,
-			      toplevel_bindings_p (), at_eof);
+  cp_finish_decl (anon_union_decl, NULL_TREE, false, NULL_TREE, 0);
 }
 
 /* Auxiliary functions to make type signatures for
@@ -1682,6 +1677,7 @@ maybe_make_one_only (tree decl)
 	  DECL_COMDAT (decl) = 1;
 	  /* Mark it needed so we don't forget to emit it.  */
 	  mark_decl_referenced (decl);
+	  TREE_USED (decl) = 1;
 	}
     }
 }
@@ -1787,10 +1783,7 @@ var_finalized_p (tree var)
 void
 mark_needed (tree decl)
 {
-  /* It's possible that we no longer need to set
-     TREE_SYMBOL_REFERENCED here directly, but doing so is
-     harmless.  */
-  TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl)) = 1;
+  TREE_USED (decl) = 1;
   mark_decl_referenced (decl);
 }
 
@@ -1816,9 +1809,7 @@ decl_needed_p (tree decl)
     return true;
   /* If this entity was used, let the back end see it; it will decide
      whether or not to emit it into the object file.  */
-  if (TREE_USED (decl)
-      || (DECL_ASSEMBLER_NAME_SET_P (decl)
-	  && TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl))))
+  if (TREE_USED (decl))
       return true;
   /* Functions marked "dllexport" must be emitted so that they are
      visible to other DLLs.  */
@@ -1899,11 +1890,11 @@ maybe_emit_vtables (tree ctype)
 	 actually marking the variable as written.  */
       if (flag_syntax_only)
 	TREE_ASM_WRITTEN (vtbl) = 1;
-      else if (DECL_COMDAT (vtbl))
+      else if (DECL_ONE_ONLY (vtbl))
 	{
 	  current = varpool_node (vtbl);
 	  if (last)
-	    last->same_comdat_group = current;
+	    last->symbol.same_comdat_group = (symtab_node) current;
 	  last = current;
 	  if (!first)
 	    first = current;
@@ -1911,7 +1902,7 @@ maybe_emit_vtables (tree ctype)
     }
 
   if (first != last)
-    last->same_comdat_group = first;
+    last->symbol.same_comdat_group = (symtab_node)first;
 
   /* Since we're writing out the vtable here, also write the debug
      info.  */
@@ -3441,44 +3432,6 @@ generate_ctor_and_dtor_functions_for_priority (splay_tree_node n, void * data)
   return 0;
 }
 
-/* Called via LANGHOOK_CALLGRAPH_ANALYZE_EXPR.  It is supposed to mark
-   decls referenced from front-end specific constructs; it will be called
-   only for language-specific tree nodes.
-
-   Here we must deal with member pointers.  */
-
-tree
-cxx_callgraph_analyze_expr (tree *tp, int *walk_subtrees ATTRIBUTE_UNUSED)
-{
-  tree t = *tp;
-
-  switch (TREE_CODE (t))
-    {
-    case PTRMEM_CST:
-      if (TYPE_PTRMEMFUNC_P (TREE_TYPE (t)))
-	cgraph_mark_address_taken_node (
-			      cgraph_get_create_node (PTRMEM_CST_MEMBER (t)));
-      break;
-    case BASELINK:
-      if (TREE_CODE (BASELINK_FUNCTIONS (t)) == FUNCTION_DECL)
-	cgraph_mark_address_taken_node (
-			      cgraph_get_create_node (BASELINK_FUNCTIONS (t)));
-      break;
-    case VAR_DECL:
-      if (DECL_CONTEXT (t)
-	  && flag_use_repository
-	  && TREE_CODE (DECL_CONTEXT (t)) == FUNCTION_DECL)
-	/* If we need a static variable in a function, then we
-	   need the containing function.  */
-	mark_decl_referenced (DECL_CONTEXT (t));
-      break;
-    default:
-      break;
-    }
-
-  return NULL;
-}
-
 /* Java requires that we be able to reference a local address for a
    method, and not be confused by PLT entries.  If hidden aliases are
    supported, collect and return all the functions for which we should
@@ -3494,9 +3447,9 @@ collect_candidates_for_java_method_aliases (void)
   return candidates;
 #endif
 
-  for (node = cgraph_nodes; node ; node = node->next)
+  FOR_EACH_FUNCTION (node)
     {
-      tree fndecl = node->decl;
+      tree fndecl = node->symbol.decl;
 
       if (DECL_CONTEXT (fndecl)
 	  && TYPE_P (DECL_CONTEXT (fndecl))
@@ -3528,9 +3481,9 @@ build_java_method_aliases (struct pointer_set_t *candidates)
   return;
 #endif
 
-  for (node = cgraph_nodes; node ; node = node->next)
+  FOR_EACH_FUNCTION (node)
     {
-      tree fndecl = node->decl;
+      tree fndecl = node->symbol.decl;
 
       if (TREE_ASM_WRITTEN (fndecl)
 	  && pointer_set_contains (candidates, fndecl))
@@ -3711,7 +3664,7 @@ collect_all_refs (const char *source_file)
 static bool
 clear_decl_external (struct cgraph_node *node, void *data ATTRIBUTE_UNUSED)
 {
-  DECL_EXTERNAL (node->decl) = 0;
+  DECL_EXTERNAL (node->symbol.decl) = 0;
   return false;
 }
 
@@ -3950,10 +3903,10 @@ cp_write_global_declarations (void)
 	      /* If we mark !DECL_EXTERNAL one of the symbols in some comdat
 		 group, we need to mark all symbols in the same comdat group
 		 that way.  */
-	      if (node->same_comdat_group)
-		for (next = node->same_comdat_group;
+	      if (node->symbol.same_comdat_group)
+		for (next = cgraph (node->symbol.same_comdat_group);
 		     next != node;
-		     next = next->same_comdat_group)
+		     next = cgraph (next->symbol.same_comdat_group))
 	          cgraph_for_node_and_aliases (next, clear_decl_external,
 					       NULL, true);
 	    }
@@ -4180,7 +4133,8 @@ build_offset_ref_call_from_tree (tree fn, VEC(tree,gc) **args)
     {
       tree object_addr = cp_build_addr_expr (object, tf_warning_or_error);
       fn = TREE_OPERAND (fn, 1);
-      fn = get_member_function_from_ptrfunc (&object_addr, fn);
+      fn = get_member_function_from_ptrfunc (&object_addr, fn,
+					     tf_warning_or_error);
       VEC_safe_insert (tree, gc, *args, 0, object_addr);
     }
 

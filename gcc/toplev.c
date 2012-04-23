@@ -425,7 +425,7 @@ wrapup_global_declaration_2 (tree decl)
 	       && (TREE_USED (decl)
 		   || TREE_USED (DECL_ASSEMBLER_NAME (decl))))
 	/* needed */;
-      else if (node && node->needed)
+      else if (node && node->analyzed)
 	/* needed */;
       else if (DECL_COMDAT (decl))
 	needed = false;
@@ -593,6 +593,7 @@ compile_file (void)
      basically finished.  */
   if (in_lto_p || !flag_lto || flag_fat_lto_objects)
     {
+      varpool_remove_unreferenced_decls ();
       varpool_assemble_pending_decls ();
       finish_aliases_2 ();
 
@@ -1186,6 +1187,8 @@ general_init (const char *argv0)
   /* Set a default printer.  Language specific initializations will
      override it later.  */
   pp_format_decoder (global_dc->printer) = &default_tree_printer;
+  global_dc->show_caret
+    = global_options_init.x_flag_diagnostics_show_caret;
   global_dc->show_option_requested
     = global_options_init.x_flag_diagnostics_show_option;
   global_dc->show_column

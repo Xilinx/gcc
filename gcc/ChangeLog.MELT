@@ -1,4 +1,35 @@
 
+2012-04-23  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{improvements for merging with GCC 4.8 trunk svn rev 186692}}
+	* melt-run.proto.h (MELT_GCC_VERSION): Define, if unknown, in the
+	generated melt-run.h
+
+	* melt-runtime.c (melt_val2passflag): TODO_dump_func &
+	TODO_dump_cgraph don't exist in GCC 4.8.
+
+	* melt-build.tpl: Say flavor, not variant!  Build first the
+	quicklybuilt application modules, to catch error in macro C
+	strings...
+
+	* melt-build.mk: Regenerate.
+
+	* melt/warmelt-base.melt (valdesc_strbuf): Check for MELT_GCC_VERSION also.
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_citeration): Use
+	meltcit prefix in generated citerator names..
+
+	* melt/warmelt-outobj.melt (syntestgen_citerator): Use
+	meltcitstate prefix.
+
+	* melt/xtramelt-ana-base.melt (each_cgraph_fun_body)
+	(each_cgraph_fun_entryblock, each_cgraph_fun_call_flow_graph)
+	(each_bb_cfun, with_cfun_decl): Adapt to GCC 4.8, add
+	documentation.
+	(each_cgraph_decl): Only for GCC 4.6 & 4.7
+
+
+
 2012-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_really_initialize): Don't print null
 	strings for print-settings

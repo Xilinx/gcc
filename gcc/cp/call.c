@@ -263,7 +263,7 @@ check_dtor_name (tree basetype, tree name)
    pointer-to-member function.  */
 
 tree
-build_addr_func (tree function)
+build_addr_func (tree function, tsubst_flags_t complain)
 {
   tree type = TREE_TYPE (function);
 
@@ -275,12 +275,13 @@ build_addr_func (tree function)
 	{
 	  tree object = build_address (TREE_OPERAND (function, 0));
 	  return get_member_function_from_ptrfunc (&object,
-						   TREE_OPERAND (function, 1));
+						   TREE_OPERAND (function, 1),
+						   complain);
 	}
       function = build_address (function);
     }
   else
-    function = decay_conversion (function);
+    function = decay_conversion (function, complain);
 
   return function;
 }
@@ -341,7 +342,7 @@ build_call_a (tree function, int n, tree *argarray)
   tree fntype;
   int i;
 
-  function = build_addr_func (function);
+  function = build_addr_func (function, tf_warning_or_error);
 
   gcc_assert (TYPE_PTR_P (TREE_TYPE (function)));
   fntype = TREE_TYPE (TREE_TYPE (function));
@@ -4149,6 +4150,28 @@ build_op_call (tree obj, VEC(tree,gc) **args, tsubst_flags_t complain)
   return ret;
 }
 
+/* Called by op_error to prepare format strings suitable for the error
+   function.  It concatenates a prefix (controlled by MATCH), ERRMSG,
+   and a suffix (controlled by NTYPES).  */
+
+static const char *
+op_error_string (const char *errmsg, int ntypes, bool match)
+{
+  const char *msg;
+
+  const char *msgp = concat (match ? G_("ambiguous overload for ")
+			           : G_("no match for "), errmsg, NULL);
+
+  if (ntypes == 3)
+    msg = concat (msgp, G_(" (operand types are %qT, %qT, and %qT)"), NULL);
+  else if (ntypes == 2)
+    msg = concat (msgp, G_(" (operand types are %qT and %qT)"), NULL);
+  else
+    msg = concat (msgp, G_(" (operand type is %qT)"), NULL);
+
+  return msg;
+}
+
 static void
 op_error (enum tree_code code, enum tree_code code2,
 	  tree arg1, tree arg2, tree arg3, bool match)
@@ -4163,58 +4186,63 @@ op_error (enum tree_code code, enum tree_code code2,
   switch (code)
     {
     case COND_EXPR:
-      if (match)
-        error ("ambiguous overload for ternary %<operator?:%> "
-               "in %<%E ? %E : %E%>", arg1, arg2, arg3);
+      if (flag_diagnostics_show_caret)
+	error (op_error_string (G_("ternary %<operator?:%>"), 3, match),
+	       TREE_TYPE (arg1), TREE_TYPE (arg2), TREE_TYPE (arg3));
       else
-        error ("no match for ternary %<operator?:%> "
-               "in %<%E ? %E : %E%>", arg1, arg2, arg3);
+	error (op_error_string (G_("ternary %<operator?:%> "
+				   "in %<%E ? %E : %E%>"), 3, match),
+	       arg1, arg2, arg3,
+	       TREE_TYPE (arg1), TREE_TYPE (arg2), TREE_TYPE (arg3));
       break;
 
     case POSTINCREMENT_EXPR:
     case POSTDECREMENT_EXPR:
-      if (match)
-        error ("ambiguous overload for %<operator%s%> in %<%E%s%>",
-               opname, arg1, opname);
+      if (flag_diagnostics_show_caret)
+	error (op_error_string (G_("%<operator%s%>"), 1, match),
+	       opname, TREE_TYPE (arg1));
       else
-        error ("no match for %<operator%s%> in %<%E%s%>", 
-               opname, arg1, opname);
+	error (op_error_string (G_("%<operator%s%> in %<%E%s%>"), 1, match),
+	       opname, arg1, opname, TREE_TYPE (arg1));
       break;
 
     case ARRAY_REF:
-      if (match)
-        error ("ambiguous overload for %<operator[]%> in %<%E[%E]%>", 
-               arg1, arg2);
+      if (flag_diagnostics_show_caret)
+	error (op_error_string (G_("%<operator[]%>"), 2, match),
+	       TREE_TYPE (arg1), TREE_TYPE (arg2));
       else
-        error ("no match for %<operator[]%> in %<%E[%E]%>", 
-               arg1, arg2);
+	error (op_error_string (G_("%<operator[]%> in %<%E[%E]%>"), 2, match),
+	       arg1, arg2, TREE_TYPE (arg1), TREE_TYPE (arg2));
       break;
 
     case REALPART_EXPR:
     case IMAGPART_EXPR:
-      if (match)
-        error ("ambiguous overload for %qs in %<%s %E%>", 
-               opname, opname, arg1);
+      if (flag_diagnostics_show_caret)
+	error (op_error_string (G_("%qs"), 1, match),
+	       opname, TREE_TYPE (arg1));
       else
-        error ("no match for %qs in %<%s %E%>",
-               opname, opname, arg1);
+	error (op_error_string (G_("%qs in %<%s %E%>"), 1, match),
+	       opname, opname, arg1, TREE_TYPE (arg1));
       break;
 
     default:
       if (arg2)
-        if (match)
-          error ("ambiguous overload for %<operator%s%> in %<%E %s %E%>",
-                  opname, arg1, opname, arg2);
-        else
-          error ("no match for %<operator%s%> in %<%E %s %E%>",
-                 opname, arg1, opname, arg2);
+	if (flag_diagnostics_show_caret)
+	  error (op_error_string (G_("%<operator%s%>"), 2, match),
+		 opname, TREE_TYPE (arg1), TREE_TYPE (arg2));
+	else
+	  error (op_error_string (G_("%<operator%s%> in %<%E %s %E%>"),
+				  2, match),
+		 opname, arg1, opname, arg2,
+		 TREE_TYPE (arg1), TREE_TYPE (arg2));
       else
-        if (match)
-          error ("ambiguous overload for %<operator%s%> in %<%s%E%>",
-                 opname, opname, arg1);
-        else
-          error ("no match for %<operator%s%> in %<%s%E%>",
-                 opname, opname, arg1);
+	if (flag_diagnostics_show_caret)
+	  error (op_error_string (G_("%<operator%s%>"), 1, match),
+		 opname, TREE_TYPE (arg1));
+	else
+	  error (op_error_string (G_("%<operator%s%> in %<%s%E%>"),
+				  1, match),
+		 opname, opname, arg1, TREE_TYPE (arg1));
       break;
     }
 }
@@ -4307,7 +4335,7 @@ build_conditional_expr_1 (tree arg1, tree arg2, tree arg3,
   if (!arg2)
     {
       if (complain & tf_error)
-	pedwarn (input_location, OPT_pedantic, 
+	pedwarn (input_location, OPT_Wpedantic, 
 		 "ISO C++ forbids omitting the middle term of a ?: expression");
 
       /* Make sure that lvalues remain lvalues.  See g++.oliva/ext1.C.  */
@@ -4346,9 +4374,9 @@ build_conditional_expr_1 (tree arg1, tree arg2, tree arg3,
 	 since it can't have any effect and since decay_conversion
 	 does not handle that case gracefully.  */
       if (!VOID_TYPE_P (arg2_type))
-	arg2 = decay_conversion (arg2);
+	arg2 = decay_conversion (arg2, complain);
       if (!VOID_TYPE_P (arg3_type))
-	arg3 = decay_conversion (arg3);
+	arg3 = decay_conversion (arg3, complain);
       arg2_type = TREE_TYPE (arg2);
       arg3_type = TREE_TYPE (arg3);
 
@@ -5236,7 +5264,7 @@ build_new_op_1 (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
     case MEMBER_REF:
       return build_m_component_ref (cp_build_indirect_ref (arg1, RO_NULL, 
                                                            complain), 
-                                    arg2);
+                                    arg2, complain);
 
       /* The caller will deal with these.  */
     case ADDR_EXPR:
@@ -5780,7 +5808,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	/* Build up the initializer_list object.  */
 	totype = complete_type (totype);
 	field = next_initializable_field (TYPE_FIELDS (totype));
-	CONSTRUCTOR_APPEND_ELT (vec, field, decay_conversion (array));
+	CONSTRUCTOR_APPEND_ELT (vec, field, decay_conversion (array, complain));
 	field = next_initializable_field (DECL_CHAIN (field));
 	CONSTRUCTOR_APPEND_ELT (vec, field, size_int (len));
 	new_ctor = build_constructor (totype, vec);
@@ -5817,7 +5845,10 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
   switch (convs->kind)
     {
     case ck_rvalue:
-      expr = decay_conversion (expr);
+      expr = decay_conversion (expr, complain);
+      if (expr == error_mark_node)
+	return error_mark_node;
+
       if (! MAYBE_CLASS_TYPE_P (totype))
 	return expr;
       /* Else fall through.  */
@@ -5943,7 +5974,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
       }
 
     case ck_lvalue:
-      return decay_conversion (expr);
+      return decay_conversion (expr, complain);
 
     case ck_qual:
       /* Warn about deprecated conversion if appropriate.  */
@@ -5987,7 +6018,7 @@ convert_arg_to_ellipsis (tree arg)
 
      The lvalue-to-rvalue, array-to-pointer, and function-to-pointer
      standard conversions are performed.  */
-  arg = decay_conversion (arg);
+  arg = decay_conversion (arg, tf_warning_or_error);
   arg_type = TREE_TYPE (arg);
   /* [expr.call]
 
@@ -6314,7 +6345,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
      errors will be deferred until the template is instantiated.  */
   if (processing_template_decl)
     {
-      tree expr;
+      tree expr, addr;
       tree return_type;
       const tree *argarray;
       unsigned int nargs;
@@ -6336,9 +6367,12 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	    alcarray[ix + 1] = arg;
 	  argarray = alcarray;
 	}
-      expr = build_call_array_loc (input_location,
-				   return_type, build_addr_func (fn), nargs,
-				   argarray);
+
+      addr = build_addr_func (fn, complain);
+      if (addr == error_mark_node)
+	return error_mark_node;
+      expr = build_call_array_loc (input_location, return_type,
+				   addr, nargs, argarray);
       if (TREE_THIS_VOLATILE (fn) && cfun)
 	current_function_returns_abnormally = 1;
       return convert_from_reference (expr);
@@ -6755,7 +6789,11 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
       TREE_TYPE (fn) = t;
     }
   else
-    fn = build_addr_func (fn);
+    {
+      fn = build_addr_func (fn, complain);
+      if (fn == error_mark_node)
+	return error_mark_node;
+    }
 
   return build_cxx_call (fn, nargs, argarray);
 }
@@ -6976,7 +7014,9 @@ build_special_member_call (tree instance, tree name, VEC(tree,gc) **args,
 	 or destructor, then we fetch the VTT directly.
 	 Otherwise, we look it up using the VTT we were given.  */
       vtt = DECL_CHAIN (CLASSTYPE_VTABLES (current_class_type));
-      vtt = decay_conversion (vtt);
+      vtt = decay_conversion (vtt, complain);
+      if (vtt == error_mark_node)
+	return error_mark_node;
       vtt = build3 (COND_EXPR, TREE_TYPE (vtt),
 		    build2 (EQ_EXPR, boolean_type_node,
 			    current_in_charge_parm, integer_zero_node),
@@ -8010,6 +8050,12 @@ joust (struct z_candidate *cand1, struct z_candidate *cand2, bool warn)
     {
       int static_1 = DECL_STATIC_FUNCTION_P (cand1->fn);
       int static_2 = DECL_STATIC_FUNCTION_P (cand2->fn);
+
+      if (DECL_CONSTRUCTOR_P (cand1->fn)
+	  && is_list_ctor (cand1->fn) != is_list_ctor (cand2->fn))
+	/* We're comparing a near-match list constructor and a near-match
+	   non-list constructor.  Just treat them as unordered.  */
+	return 0;
 
       gcc_assert (static_1 != static_2);
 

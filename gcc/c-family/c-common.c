@@ -1649,6 +1649,103 @@ warn_logical_operator (location_t location, enum tree_code code, tree type,
 }
 
 
+/* Warn if EXP contains any computations whose results are not used.
+   Return true if a warning is printed; false otherwise.  LOCUS is the
+   (potential) location of the expression.  */
+
+bool
+warn_if_unused_value (const_tree exp, location_t locus)
+{
+ restart:
+  if (TREE_USED (exp) || TREE_NO_WARNING (exp))
+    return false;
+
+  /* Don't warn about void constructs.  This includes casting to void,
+     void function calls, and statement expressions with a final cast
+     to void.  */
+  if (VOID_TYPE_P (TREE_TYPE (exp)))
+    return false;
+
+  if (EXPR_HAS_LOCATION (exp))
+    locus = EXPR_LOCATION (exp);
+
+  switch (TREE_CODE (exp))
+    {
+    case PREINCREMENT_EXPR:
+    case POSTINCREMENT_EXPR:
+    case PREDECREMENT_EXPR:
+    case POSTDECREMENT_EXPR:
+    case MODIFY_EXPR:
+    case INIT_EXPR:
+    case TARGET_EXPR:
+    case CALL_EXPR:
+    case TRY_CATCH_EXPR:
+    case WITH_CLEANUP_EXPR:
+    case EXIT_EXPR:
+    case VA_ARG_EXPR:
+      return false;
+
+    case BIND_EXPR:
+      /* For a binding, warn if no side effect within it.  */
+      exp = BIND_EXPR_BODY (exp);
+      goto restart;
+
+    case SAVE_EXPR:
+    case NON_LVALUE_EXPR:
+    case NOP_EXPR:
+      exp = TREE_OPERAND (exp, 0);
+      goto restart;
+
+    case TRUTH_ORIF_EXPR:
+    case TRUTH_ANDIF_EXPR:
+      /* In && or ||, warn if 2nd operand has no side effect.  */
+      exp = TREE_OPERAND (exp, 1);
+      goto restart;
+
+    case COMPOUND_EXPR:
+      if (warn_if_unused_value (TREE_OPERAND (exp, 0), locus))
+	return true;
+      /* Let people do `(foo (), 0)' without a warning.  */
+      if (TREE_CONSTANT (TREE_OPERAND (exp, 1)))
+	return false;
+      exp = TREE_OPERAND (exp, 1);
+      goto restart;
+
+    case COND_EXPR:
+      /* If this is an expression with side effects, don't warn; this
+	 case commonly appears in macro expansions.  */
+      if (TREE_SIDE_EFFECTS (exp))
+	return false;
+      goto warn;
+
+    case INDIRECT_REF:
+      /* Don't warn about automatic dereferencing of references, since
+	 the user cannot control it.  */
+      if (TREE_CODE (TREE_TYPE (TREE_OPERAND (exp, 0))) == REFERENCE_TYPE)
+	{
+	  exp = TREE_OPERAND (exp, 0);
+	  goto restart;
+	}
+      /* Fall through.  */
+
+    default:
+      /* Referencing a volatile value is a side effect, so don't warn.  */
+      if ((DECL_P (exp) || REFERENCE_CLASS_P (exp))
+	  && TREE_THIS_VOLATILE (exp))
+	return false;
+
+      /* If this is an expression which has no operands, there is no value
+	 to be unused.  There are no such language-independent codes,
+	 but front ends may define such.  */
+      if (EXPRESSION_CLASS_P (exp) && TREE_OPERAND_LENGTH (exp) == 0)
+	return false;
+
+    warn:
+      return warning_at (locus, OPT_Wunused_value, "value computed is not used");
+    }
+}
+
+
 /* Print a warning about casts that might indicate violation
    of strict aliasing rules if -Wstrict-aliasing is used and
    strict aliasing mode is in effect. OTYPE is the original
@@ -3761,19 +3858,19 @@ pointer_int_sum (location_t loc, enum tree_code resultcode,
 
   if (TREE_CODE (TREE_TYPE (result_type)) == VOID_TYPE)
     {
-      pedwarn (loc, pedantic ? OPT_pedantic : OPT_Wpointer_arith,
+      pedwarn (loc, pedantic ? OPT_Wpedantic : OPT_Wpointer_arith,
 	       "pointer of type %<void *%> used in arithmetic");
       size_exp = integer_one_node;
     }
   else if (TREE_CODE (TREE_TYPE (result_type)) == FUNCTION_TYPE)
     {
-      pedwarn (loc, pedantic ? OPT_pedantic : OPT_Wpointer_arith,
+      pedwarn (loc, pedantic ? OPT_Wpedantic : OPT_Wpointer_arith,
 	       "pointer to a function used in arithmetic");
       size_exp = integer_one_node;
     }
   else if (TREE_CODE (TREE_TYPE (result_type)) == METHOD_TYPE)
     {
-      pedwarn (loc, pedantic ? OPT_pedantic : OPT_Wpointer_arith,
+      pedwarn (loc, pedantic ? OPT_Wpedantic : OPT_Wpointer_arith,
 	       "pointer to member function used in arithmetic");
       size_exp = integer_one_node;
     }
@@ -4352,7 +4449,7 @@ c_sizeof_or_alignof_type (location_t loc,
       if (is_sizeof)
 	{
 	  if (complain && (pedantic || warn_pointer_arith))
-	    pedwarn (loc, pedantic ? OPT_pedantic : OPT_Wpointer_arith,
+	    pedwarn (loc, pedantic ? OPT_Wpedantic : OPT_Wpointer_arith,
 		     "invalid application of %<sizeof%> to a function type");
           else if (!complain)
             return error_mark_node;
@@ -4363,10 +4460,10 @@ c_sizeof_or_alignof_type (location_t loc,
 	  if (complain)
 	    {
 	      if (c_dialect_cxx ())
-		pedwarn (loc, OPT_pedantic, "ISO C++ does not permit "
+		pedwarn (loc, OPT_Wpedantic, "ISO C++ does not permit "
 			 "%<alignof%> applied to a function type");
 	      else
-		pedwarn (loc, OPT_pedantic, "ISO C does not permit "
+		pedwarn (loc, OPT_Wpedantic, "ISO C does not permit "
 			 "%<_Alignof%> applied to a function type");
 	    }
 	  value = size_int (FUNCTION_BOUNDARY / BITS_PER_UNIT);
@@ -4376,7 +4473,7 @@ c_sizeof_or_alignof_type (location_t loc,
     {
       if (type_code == VOID_TYPE
 	  && complain && (pedantic || warn_pointer_arith))
-	pedwarn (loc, pedantic ? OPT_pedantic : OPT_Wpointer_arith,
+	pedwarn (loc, pedantic ? OPT_Wpedantic : OPT_Wpointer_arith,
 		 "invalid application of %qs to a void type", op_name);
       else if (!complain)
         return error_mark_node;
@@ -4991,7 +5088,7 @@ c_common_nodes_and_builtins (void)
     uint8_type_node =
       TREE_TYPE (identifier_global_value (c_get_ident (UINT8_TYPE)));
   if (UINT16_TYPE)
-    uint16_type_node =
+    c_uint16_type_node =
       TREE_TYPE (identifier_global_value (c_get_ident (UINT16_TYPE)));
   if (UINT32_TYPE)
     c_uint32_type_node =
@@ -5344,7 +5441,7 @@ c_add_case_label (location_t loc, splay_tree cases, tree cond, tree orig_type,
 
   /* Case ranges are a GNU extension.  */
   if (high_value)
-    pedwarn (loc, OPT_pedantic,
+    pedwarn (loc, OPT_Wpedantic,
 	     "range expressions in switch statements are non-standard");
 
   type = TREE_TYPE (cond);
@@ -5658,7 +5755,7 @@ finish_label_address_expr (tree label, location_t loc)
 {
   tree result;
 
-  pedwarn (input_location, OPT_pedantic, "taking the address of a label is non-standard");
+  pedwarn (input_location, OPT_Wpedantic, "taking the address of a label is non-standard");
 
   if (label == error_mark_node)
     return error_mark_node;

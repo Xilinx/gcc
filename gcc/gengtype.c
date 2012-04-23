@@ -2296,6 +2296,8 @@ struct walk_type_data
   const char *reorder_fn;
   bool needs_cast_p;
   bool fn_wants_lvalue;
+  bool in_record_p;
+  int loopcounter;
 };
 
 /* Print a mangled name representing T to OF.  */
@@ -2597,7 +2599,7 @@ walk_type (type_p t, struct walk_type_data *d)
 	  }
 	else
 	  {
-	    int loopcounter = d->counter++;
+	    int loopcounter = d->loopcounter;
 	    const char *oldval = d->val;
 	    const char *oldprevval3 = d->prev_val[3];
 	    char *newval;
@@ -2607,7 +2609,10 @@ walk_type (type_p t, struct walk_type_data *d)
 	    oprintf (d->of, "%*ssize_t i%d;\n", d->indent, "", loopcounter);
 	    oprintf (d->of, "%*sfor (i%d = 0; i%d != (size_t)(", d->indent,
 		     "", loopcounter, loopcounter);
-	    output_escaped_param (d, length, "length");
+	    if (!d->in_record_p)
+	      output_escaped_param (d, length, "length");
+	    else
+	      oprintf (d->of, "l%d", loopcounter);
 	    oprintf (d->of, "); i%d++) {\n", loopcounter);
 	    d->indent += 2;
 	    d->val = newval = xasprintf ("%s[i%d]", oldval, loopcounter);
@@ -2629,7 +2634,7 @@ walk_type (type_p t, struct walk_type_data *d)
 
     case TYPE_ARRAY:
       {
-	int loopcounter = d->counter++;
+	int loopcounter;
 	const char *oldval = d->val;
 	char *newval;
 
@@ -2637,6 +2642,11 @@ walk_type (type_p t, struct walk_type_data *d)
 	   any code.  */
 	if (t->u.a.p->kind == TYPE_SCALAR)
 	  break;
+
+	if (length)
+	  loopcounter = d->loopcounter;
+	else
+	  loopcounter = d->counter++;
 
 	/* When walking an array, compute the length and store it in a
 	   local variable before walking the array elements, instead of
@@ -2648,13 +2658,16 @@ walk_type (type_p t, struct walk_type_data *d)
 	oprintf (d->of, "%*s{\n", d->indent, "");
 	d->indent += 2;
 	oprintf (d->of, "%*ssize_t i%d;\n", d->indent, "", loopcounter);
-	oprintf (d->of, "%*ssize_t l%d = (size_t)(",
-		 d->indent, "", loopcounter);
-	if (length)
-	  output_escaped_param (d, length, "length");
-	else
-	  oprintf (d->of, "%s", t->u.a.len);
-	oprintf (d->of, ");\n");
+	if (!d->in_record_p || !length)
+	  {
+	    oprintf (d->of, "%*ssize_t l%d = (size_t)(",
+		     d->indent, "", loopcounter);
+	    if (length)
+	      output_escaped_param (d, length, "length");
+	    else
+	      oprintf (d->of, "%s", t->u.a.len);
+	    oprintf (d->of, ");\n");
+	  }
 
 	oprintf (d->of, "%*sfor (i%d = 0; i%d != l%d; i%d++) {\n",
 		 d->indent, "",
@@ -2683,6 +2696,9 @@ walk_type (type_p t, struct walk_type_data *d)
 	const int union_p = t->kind == TYPE_UNION;
 	int seen_default_p = 0;
 	options_p o;
+	int lengths_seen = 0;
+	int endcounter;
+	bool any_length_seen = false;
 
 	if (!t->u.s.line.file)
 	  error_at_line (d->line, "incomplete structure `%s'", t->u.s.tag);
@@ -2718,6 +2734,45 @@ walk_type (type_p t, struct walk_type_data *d)
 	    d->indent += 2;
 	    oprintf (d->of, "%*s{\n", d->indent, "");
 	  }
+
+	for (f = t->u.s.fields; f; f = f->next)
+	  {
+	    options_p oo;
+	    int skip_p = 0;
+	    const char *fieldlength = NULL;
+
+	    d->reorder_fn = NULL;
+	    for (oo = f->opt; oo; oo = oo->next)
+	      if (strcmp (oo->name, "skip") == 0)
+		skip_p = 1;
+	      else if (strcmp (oo->name, "length") == 0
+		       && oo->kind == OPTION_STRING)
+		fieldlength = oo->info.string;
+
+	    if (skip_p)
+	      continue;
+	    if (fieldlength)
+	      {
+	        lengths_seen++;
+		d->counter++;
+		if (!union_p)
+		  {
+		    if (!any_length_seen)
+		      {
+			oprintf (d->of, "%*s{\n", d->indent, "");
+			d->indent += 2;
+		      }
+		    any_length_seen = true;
+
+		    oprintf (d->of, "%*ssize_t l%d = (size_t)(",
+			     d->indent, "", d->counter - 1);
+		    output_escaped_param (d, fieldlength, "length");
+		    oprintf (d->of, ");\n");
+		  }
+	      }
+	  }
+	endcounter = d->counter;
+
 	for (f = t->u.s.fields; f; f = f->next)
 	  {
 	    options_p oo;
@@ -2726,6 +2781,7 @@ walk_type (type_p t, struct walk_type_data *d)
 	    int skip_p = 0;
 	    int default_p = 0;
 	    int use_param_p = 0;
+	    const char *fieldlength = NULL;
 	    char *newval;
 
 	    d->reorder_fn = NULL;
@@ -2746,6 +2802,9 @@ walk_type (type_p t, struct walk_type_data *d)
 	      else if (strncmp (oo->name, "use_param", 9) == 0
 		       && (oo->name[9] == '\0' || ISDIGIT (oo->name[9])))
 		use_param_p = 1;
+	      else if (strcmp (oo->name, "length") == 0
+		       && oo->kind == OPTION_STRING)
+		fieldlength = oo->info.string;
 
 	    if (skip_p)
 	      continue;
@@ -2779,15 +2838,23 @@ walk_type (type_p t, struct walk_type_data *d)
 			     "field `%s' is missing `tag' or `default' option",
 			     f->name);
 
+	    if (fieldlength)
+	      {
+		d->loopcounter = endcounter - lengths_seen--;
+	      }
+
 	    d->line = &f->line;
 	    d->val = newval = xasprintf ("%s%s%s", oldval, dot, f->name);
 	    d->opt = f->opt;
 	    d->used_length = false;
+	    d->in_record_p = !union_p;
 
 	    if (union_p && use_param_p && d->param == NULL)
 	      oprintf (d->of, "%*sgcc_unreachable ();\n", d->indent, "");
 	    else
 	      walk_type (f->type, d);
+
+	    d->in_record_p = false;
 
 	    free (newval);
 
@@ -2812,6 +2879,11 @@ walk_type (type_p t, struct walk_type_data *d)
 	  {
 	    oprintf (d->of, "%*s}\n", d->indent, "");
 	    d->indent -= 2;
+	  }
+	if (any_length_seen)
+	  {
+	    d->indent -= 2;
+	    oprintf (d->of, "%*s}\n", d->indent, "");
 	  }
       }
       break;
@@ -4981,6 +5053,7 @@ main (int argc, char **argv)
       POS_HERE (do_scalar_typedef ("double_int", &pos));
       POS_HERE (do_scalar_typedef ("uint64_t", &pos));
       POS_HERE (do_scalar_typedef ("uint8", &pos));
+      POS_HERE (do_scalar_typedef ("uintptr_t", &pos));
       POS_HERE (do_scalar_typedef ("jword", &pos));
       POS_HERE (do_scalar_typedef ("JCF_u2", &pos));
       POS_HERE (do_scalar_typedef ("void", &pos));
