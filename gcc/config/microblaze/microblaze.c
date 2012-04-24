@@ -2936,7 +2936,7 @@ microblaze_expand_prologue (void)
 
 #if 1
   /* REVISIT: For TLS we may need GOT even when pic is not enabled */
-  if (flag_pic == 2 && df_regs_ever_live_p (MB_ABI_PIC_ADDR_REGNUM))
+  if ((flag_pic == 2 || TLS_NEEDS_GOT ) && df_regs_ever_live_p (MB_ABI_PIC_ADDR_REGNUM))
 #endif
     {
       SET_REGNO (pic_offset_table_rtx, MB_ABI_PIC_ADDR_REGNUM);
