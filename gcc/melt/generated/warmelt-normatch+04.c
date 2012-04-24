@@ -15651,7 +15651,7 @@ lab_endgetargs:;
       ;
       /*^putpairtail */
       /*putpairtail */
-      melt_assertmsg ("putpairtail /2c4dc226 checkpair",
+      melt_assertmsg ("putpairtail /8b7f7dc checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NSETFLAG__V25*/ meltfptr[24]))
 		      == MELTOBMAG_PAIR);
@@ -16562,7 +16562,7 @@ lab_endgetargs:;
       ;
       /*^putpairtail */
       /*putpairtail */
-      melt_assertmsg ("putpairtail /15806c8d checkpair",
+      melt_assertmsg ("putpairtail /1d8429f5 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.NSETFLAG__V26*/ meltfptr[25]))
 		      == MELTOBMAG_PAIR);
@@ -49434,7 +49434,7 @@ lab_endgetargs:;
 
 	  {
 	    MELT_LOCATION ("warmelt-normatch.melt:6358:/ locexp");
-	    /*void */ 0;
+	    /*void */ (void) 0;
 	  }
 	  ;
 	     /*clear *//*_.IFELSE___V23*/ meltfptr[19] = 0;
@@ -58141,7 +58141,7 @@ lab_endgetargs:;
 
 		      {
 			MELT_LOCATION ("warmelt-normatch.melt:6652:/ locexp");
-			/*void */ 0;
+			/*void */ (void) 0;
 		      }
 		      ;
 		/*clear *//*_.IFELSE___V141*/ meltfptr[139] = 0;
@@ -58178,7 +58178,7 @@ lab_endgetargs:;
 			    {
 			      MELT_LOCATION
 				("warmelt-normatch.melt:6654:/ locexp");
-			      /*void */ 0;
+			      /*void */ (void) 0;
 			    }
 			    ;
 		  /*clear *//*_.IFELSE___V142*/ meltfptr[141] = 0;

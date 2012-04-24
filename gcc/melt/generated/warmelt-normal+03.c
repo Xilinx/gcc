@@ -17137,7 +17137,7 @@ lab_endgetargs:;
 
 		{
 		  MELT_LOCATION ("warmelt-normal.melt:4487:/ locexp");
-		  /*void */ 0;
+		  /*void */ (void) 0;
 		}
 		;
 

@@ -43,7 +43,7 @@
 ;; primitive to return a void
 (defprimitive void () :void 
   :doc #{Return a void value. See $IGNORE and $CTYPE_VOID.}#
-#{/*void*/0}#)
+#{/*void*/(void)0}#)
 
 ;; negation of is_object
 (defprimitive is_not_object (obj) :long
@@ -3796,7 +3796,7 @@ polyhedron values.}#
   ? (long) (meltxargdescr_[melt_variadic_index + $DELTA] & MELT_ARGDESCR_MAX)
   : 0)
 #else
-  0 /* no variadic_type_code outside of variadic functions */
+  (0 && $DELTA /* no variadic_type_code outside of variadic functions */)
 #endif /*melt_variadic_index*/
 }#)
 

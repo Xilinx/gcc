@@ -8785,7 +8785,7 @@ lab_endgetargs:;
 
 		  {
 		    MELT_LOCATION ("warmelt-modes.melt:3119:/ locexp");
-		    /*void */ 0;
+		    /*void */ (void) 0;
 		  }
 		  ;
 		  MELT_LOCATION ("warmelt-modes.melt:3097:/ quasiblock");
@@ -9036,7 +9036,7 @@ lab_endgetargs:;
 
 		  {
 		    MELT_LOCATION ("warmelt-modes.melt:3151:/ locexp");
-		    /*void */ 0;
+		    /*void */ (void) 0;
 		  }
 		  ;
 		  MELT_LOCATION ("warmelt-modes.melt:3129:/ quasiblock");

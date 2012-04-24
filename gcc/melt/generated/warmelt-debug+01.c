@@ -2379,7 +2379,7 @@ lab_endgetargs:;
 
 				  {
 				    /*^locexp */
-				    /*void */ 0;
+				    /*void */ (void) 0;
 				  }
 				  ;
 
@@ -3206,7 +3206,7 @@ lab_endgetargs:;
 						  {
 						    MELT_LOCATION
 						      ("warmelt-debug.melt:368:/ locexp");
-						    /*void */ 0;
+						    /*void */ (void) 0;
 						  }
 						  ;
 						  MELT_LOCATION

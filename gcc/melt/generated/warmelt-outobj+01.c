@@ -16278,7 +16278,7 @@ lab_endgetargs:;
 				{
 				  MELT_LOCATION
 				    ("warmelt-outobj.melt:791:/ locexp");
-				  /*void */ 0;
+				  /*void */ (void) 0;
 				}
 				;
 				MELT_LOCATION
@@ -16538,7 +16538,7 @@ lab_endgetargs:;
 				      {
 					MELT_LOCATION
 					  ("warmelt-outobj.melt:818:/ locexp");
-					/*void */ 0;
+					/*void */ (void) 0;
 				      }
 				      ;
 				      MELT_LOCATION
@@ -16722,7 +16722,7 @@ lab_endgetargs:;
 					    {
 					      MELT_LOCATION
 						("warmelt-outobj.melt:840:/ locexp");
-					      /*void */ 0;
+					      /*void */ (void) 0;
 					    }
 					    ;
 					    MELT_LOCATION
@@ -16804,7 +16804,7 @@ lab_endgetargs:;
 
 	      {
 		MELT_LOCATION ("warmelt-outobj.melt:843:/ locexp");
-		/*void */ 0;
+		/*void */ (void) 0;
 	      }
 	      ;
 	      MELT_LOCATION ("warmelt-outobj.melt:724:/ checkinterrupt");
