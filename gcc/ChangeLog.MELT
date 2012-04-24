@@ -1,4 +1,9 @@
 
+2012-04-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (class_source_defcmatcher): Add
+	scmatdef_testloc, scmatdef_fillloc, scmatdef_operloc fields.
+	(mexpand_defcmatcher): Fill them.
+
 2012-04-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_new_int, meltgc_new_mixint)
 	(meltgc_new_mixloc): Give default discr if passed null.

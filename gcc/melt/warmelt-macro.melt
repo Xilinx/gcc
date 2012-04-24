@@ -317,13 +317,20 @@ of $DEFCITERATOR.  $SCITERDEF_CITERATOR is the c-iterator, $SCITERDEF_BEFORELOC 
 ;;; define a cmatcher
 (defclass class_source_defcmatcher
   :doc #{The internal $CLASS_SOURCE_DEFCMATCHER is the abstract syntax
-of $DEFCMATCHER. $SCMATDEF_CMATCHER is the c-matcher.}#
+of $DEFCMATCHER. $SCMATDEF_CMATCHER is the
+c-matcher. $SCMATDEF_TESTLOC is the location of the test expansion,
+$SCMATDEF_FILLLOC is the location of the fill expansion, and
+$SCMATDEF_OPERLOC is the location of the optional operator
+expansion.}#
   :super class_source_definition_formal
   :fields (;;loca_location is the location
 	   ;;sdef_name is the new cmatcher name
 	   ;;sformal_args is for the matched formal & input arguments
 	   ;;;;the first formal is for the matched stuff. The rest is for input
 	   scmatdef_cmatcher		;the cmatcher
+	   scmatdef_testloc		;location of test expansion
+	   scmatdef_fillloc 		;location of fill expansion
+	   scmatdef_operloc		;location of operator expansion
 	   ))
 
 ;;; define a funmatcher
@@ -2356,6 +2363,8 @@ is ($DEFCITERATOR @var{name} @var{start-formals} @var{state-symbol}
 the module, the c-iterator should be exported using
 $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; the defcmatcher expander
 ;;(DEFCMATCHER  symb match&in-formals out-formals state-sym [:doc documentation]
@@ -2377,7 +2386,10 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 	 (exptest ())			;test expansion tuple
 	 (expfill ())			;fill expansion tuple
 	 (expoper ())			;operand expansion tuple
-	 (docv ())
+	 (docv ())			;documentation
+	 (loctest ())			;location of test
+	 (locfill ()) 			;location of fill
+	 (locoper ())			;location of oper
 	 )
     ;; check the symb
     (debug "mexpand_defcmatcher symb" symb)
@@ -2420,9 +2432,9 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 	  (error_plain loc "bad outs for (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
 	  (return)))
     (if (is_a outformals discr_variadic_formal_sequence)
-	  (progn
-	    (error_plain loc "out formals for  (DEFCMATCHER <symb> <ins> <outs> ...) cannot be variadic")
-	    (return)))
+	(progn
+	  (error_plain loc "out formals for  (DEFCMATCHER <symb> <ins> <outs> ...) cannot be variadic")
+	  (return)))
     ;; parse the state symbol
     (setq curpair (pair_tail curpair))
     (setq statesym (pair_head curpair))
@@ -2447,13 +2459,14 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 	  (progn
 	    (debug "mexpand_defcmatcher bad sexptest" sexptest)
 	    (error_plain loc "bad test expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
-	    (return))
-	(if sexptest
-	    (setq exptest 
-		  (parse_pairlist_c_code_expansion 
-		   loc
-		   (list_first (unsafe_get_field :sexp_contents sexptest)))))
-	))
+	    (return)))
+      (setq loctest (or (get_field :loca_location sexptest) loc))
+      (if sexptest
+	  (setq exptest 
+		(parse_pairlist_c_code_expansion 
+		 loc
+		 (list_first (unsafe_get_field :sexp_contents sexptest)))))
+      )
     (debug "mexpand_defcmatcher exptest" exptest)
     ;; parse the fill expansion
     (setq curpair (pair_tail curpair))
@@ -2461,12 +2474,13 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
       (if (and sexpfill (is_not_a sexpfill class_sexpr))
 	  (progn
 	    (error_plain loc "bad fill expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
-	    (return))
-	(if sexpfill
-	    (setq expfill
-		  (parse_pairlist_c_code_expansion 
-		   loc (list_first (unsafe_get_field :sexp_contents sexpfill)))))
-	))
+	    (return)))
+      (setq locfill (or (get_field :loca_location sexpfill) loc))
+      (if sexpfill
+	  (setq expfill
+		(parse_pairlist_c_code_expansion 
+		 loc (list_first (unsafe_get_field :sexp_contents sexpfill)))))
+      )
     (debug "mexpand_defcmatcher expfill" expfill)
     ;; parse the operate expansion
     (setq curpair (pair_tail curpair))
@@ -2474,11 +2488,12 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
       (if (and sexpoper (is_not_a sexpoper class_sexpr))
 	  (progn
 	    (error_plain loc "bad oper expansion in (DEFCMATCHER <symb> <ins> <outs> <statesym> <test> <fill> <oper>)"_)
-	    (return))
-	(setq expoper
-	      (if sexpoper
-		  (parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexpoper)))))
-	))
+	    (return)))
+      (setq locoper (or (get_field :loca_location sexpoper) loc))
+      (setq expoper
+	    (if sexpoper
+		(parse_pairlist_c_code_expansion loc (list_first (unsafe_get_field :sexp_contents sexpoper)))))
+      )
     (debug "mexpand_defcmatcher expfill" expoper)
     ;; check nothing more
     (setq curpair (pair_tail curpair))
@@ -2502,7 +2517,10 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 				 :sdef_name symb
 				 :sdef_doc docv
 				 :sformal_args sformals
-				 :scmatdef_cmatcher cmatch)) 
+				 :scmatdef_cmatcher cmatch
+				 :scmatdef_testloc loctest
+				 :scmatdef_fillloc locfill
+				 :scmatdef_operloc locoper)) 
 	  (cmbind (instance class_cmatcher_binding
 			    :binder symb
 			    :cmbind_matcher cmatch))
