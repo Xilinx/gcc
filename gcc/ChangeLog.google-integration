@@ -1,3 +1,12 @@
+2012-04-23   Ollie Wild  <aaw@google.com>
+
+	* c-family/c-common.c: Add CPP_W_LITERAL_SUFFIX mapping.
+	* c-family/c-opts.c (c_common_handle_option): Handle
+	OPT_Wliteral_suffix.
+	* c-family/c.opt: Add Wliteral-suffix.
+	* doc/invoke.texi (Wliteral-suffix): Document new option.
+	* testsuite/g++.dg/cpp0x/Wliteral-suffix.c: New test.
+
 2012-04-21   Ollie Wild  <aaw@google.com>
 
 	* common.opt (Xclang-only): Prepend missing '=' and mark as ignored.
