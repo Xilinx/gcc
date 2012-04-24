@@ -141,9 +141,9 @@ endif
 ## the version of our GCC getting melt.so, e.g. 4.7.0
 MELTGCC_VERSION := $(shell env LANG=C LC_ALL=C $(MELTGCC) -v < /dev/null 2>&1 | $(AWK) '/^gcc version/{print $$3}')
 
-## check that we have a gcc 4.6 or 4.7
-ifeq ($(filter 4.6.% 4.7.%, $(MELTGCC_VERSION)),)
-$(error bad version of MELT GCC $(MELTGCC_VERSION). Needs GCC 4.6 or 4.7)
+## check that we have a gcc 4.6 or 4.7 or 4.8
+ifeq ($(filter 4.6.% 4.7.% 4.8.%, $(MELTGCC_VERSION)),)
+$(error bad version of MELT GCC $(MELTGCC_VERSION). Needs GCC 4.6 or 4.7 or 4.8)
 endif
 
 ## our included files from melt-runtime.c
@@ -236,9 +236,10 @@ gfmeltgcc_run_md5: $(MELTGCC_RUNTIME_INCLUDES) MELT-Plugin-Makefile  melt-run.pr
 	 | grep -v '^#' | md5sum | cut -c 1-32 > $@-tmp
 	mv $@-tmp $@
 
-melt-run.h: melt-run.proto.h gfmeltgcc_run_md5
+melt-run.h: melt-run.proto.h gfmeltgcc_run_md5 gfmeltgcc_version_number
 	rm -f $@-tmp
-	$(SED) -e 's,#define *MELT_RUN_HASHMD5 *XX,#define MELT_RUN_HASHMD5 \"$(shell cat gfmeltgcc_run_md5)\",' <  $< > $@-tmp
+	$(SED) -e 's,#define *MELT_RUN_HASHMD5 *XX,#define MELT_RUN_HASHMD5 \"$(shell cat gfmeltgcc_run_md5)\",' \
+               -e 's,#define *MELT_GCC_VERSION *YY,#define MELT_GCC_VERSION $(shell cat gfmeltgcc_version_number)' <  $< > $@-tmp
 	mv $@-tmp $@
 
 melt-run-md5.h:  gfmeltgcc_run_md5
