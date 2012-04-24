@@ -1,5 +1,9 @@
 
 2012-04-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (syntestgen_cmatcher): Emit
+	locations...
+
+2012-04-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt (class_source_defcmatcher): Add
 	scmatdef_testloc, scmatdef_fillloc, scmatdef_operloc fields.
 	(mexpand_defcmatcher): Fill them.
