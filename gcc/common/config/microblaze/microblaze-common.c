@@ -27,6 +27,8 @@
 /* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
 static const struct default_options microblaze_option_optimization_table[] =
   {
+    /* Turn off ivopts by default. It messes up cse. */
+    { OPT_LEVELS_ALL, OPT_fivopts, NULL, 0 },
     { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
     { OPT_LEVELS_NONE, 0, NULL, 0 }
   };
