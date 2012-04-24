@@ -1,0 +1,1365 @@
+;; -*- Lisp -*-
+;; file xtramelt-ana-tree.melt
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(comment "***
+    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+                and Jeremie Salvucci  <jeremie.salvucci@free.fr>
+                and Pierre Vittet  <piervit@pvittet.com>
+                and Romain Geissler  <romain.geissler@gmail.com>
+
+    This file xtramelt-ana-tree.{melt,c} is part of GCC.
+
+    GCC is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3, or (at your option)
+    any later version.
+
+    GCC is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with GCC; see the file COPYING3.  If not see
+    <http://www.gnu.org/licenses/>.
+***")
+
+;; the copyright notice above apply both to xtramelt-ana-tree.melt and 
+;; to the generated file  xtramelt-ana-tree*.c
+
+;; Most code here was in xtramelt-ana-base.melt before svn rev 186705
+;; ie MELT version 0.9.5 and earlier (before april 24th, 2012).
+
+
+(defprimitive walk_use_def_chain_depth_first (:value clos val :tree trvar) :void
+  :doc #{Walk in a depth first order the use-def chaine of SSA
+variable $TRVAR; apply the $CLOS closure to the $VAL value and to the
+current :tree and :gimple. Stop walking if the closure gives null.}#
+  #{ /* walk_use_def_chain_depth_first */  meltgc_walk_use_def_chain (((melt_ptr_t)($CLOS)),
+     ((melt_ptr_t)($VAL)), $TRVAR, /*depth first*/TRUE); }#
+)
+
+(defprimitive walk_use_def_chain_breadth_first (:value clos val :tree trvar) :void
+  :doc #{Walk in a breadth first order the use-def chaine of SSA
+variable $TRVAR; apply the $CLOS closure to the $VAL value and to the
+current :tree and :gimple. Stop walking if the closure gives null.}#
+  #{ /* walk_use_def_chain_breadth_first */ meltgc_walk_use_def_chain (((melt_ptr_t)($CLOS)), 
+    ((melt_ptr_t)($VAL)), $TRVAR, /*depth first*/FALSE); }#
+)
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defprimitive is_tree (v) :long
+  :doc #{$IS_TREE test if value $V is a boxed tree}#
+  #{(melt_magic_discr((melt_ptr_t)($v)) == MELTOBMAG_TREE)}# )
+
+(defprimitive isnull_tree (:tree tr) :long
+  :doc #{$ISNULL_TREE test if raw tree $TR is null}#
+  #{$tr == NULL_TREE}#
+)
+
+(defprimitive make_tree (discr :tree tr) :value
+  :doc #{$MAKE_TREE build a boxed tree of given $DISCR and tree $TR}#
+  #{(meltgc_new_tree((meltobject_ptr_t)($DISCR),($TR)))}# )
+
+(defprimitive tree_content (v) :tree
+  :doc #{$TREE_CONTENT safely retrieve the tree inside boxed value $V}#
+  #{(melt_tree_content((melt_ptr_t)($V)))}# )
+
+(defprimitive ==t (:tree t1 t2) :long
+  :doc #{==T safely compare tree $T1 and $T2 for identity}#
+  #{(($t1) == ($t2))}# )
+
+(defprimitive null_tree () :tree 
+  :doc #{$NULL_TREE gives the null tree}#
+#{(NULL_TREE)}#)
+
+(defprimitive inform_at_tree (:tree tr :cstring msg) :void
+  ;; if DECL_P(tr) use DECL_SOURCE_LOCATION(tr)
+  ;; if EXPR_P(tr) use EXPR_LOCATION(tr)
+  ;; otherwise no location
+  :doc #{$INFORM_AT_TREE give a notice at location of tree $TR with message $MSG}#
+  #{ inform((($tr && DECL_P($tr))? DECL_SOURCE_LOCATION($tr)
+	    : ($tr && EXPR_P($tr)) ? EXPR_LOCATION($tr) : UNKNOWN_LOCATION), 
+  $msg );
+  }# )
+
+(defprimitive warning_at_tree (:tree tr :cstring msg) :void
+  ;; if DECL_P(tr) use DECL_SOURCE_LOCATION(tr)
+  ;; if EXPR_P(tr) use EXPR_LOCATION(tr)
+  ;; otherwise no location
+  :doc #{$WARNING_AT_TREE give a warning at location of tree $TR with message $MSG}#
+  #{ warning_at( (($tr && DECL_P($tr))? DECL_SOURCE_LOCATION($tr)
+		 : ($tr && EXPR_P($tr)) ? EXPR_LOCATION($tr) : UNKNOWN_LOCATION), 
+		 0,
+		 $msg);
+  }# )
+
+(defprimitive warning_at_tree_decl_with_number
+  (:tree trdecl :cstring msg :long num) :void
+  :doc #{$WARNING_AT_TREE_DECL_WITH_NUMBER give a warning with declaration of tree $TRDECL message $MSG number $NUM}#
+  #{ warning (0, "MELT warning %s at %q+D - #%ld", $MSG, ($TRDECL), ($NUM));
+  }# )
+
+(defprimitive tree_type (:tree tr) :tree
+  :doc #{$TREE_TYPE gives the type of tree $TR}#
+  #{(($TR) ? TREE_TYPE($TR) : (tree) NULL)}#)
+
+(defprimitive tree_uid (:tree tr) :long
+  :doc #{$TREE_UID gives the uid of tree $TR}#
+  #{(($TR) ? (long) DECL_UID($TR) : 0L)}#)
+
+(defprimitive tree_chain_prepend (:tree purpose value chain) :tree
+	:doc #{Create a new TREE_LIST node with $PURPOSE and $VALUE trees
+	and chain it at the begining of $CHAIN. Returns the newly created
+	chain.}#
+	#{ /* tree_chain_prepend */
+		tree_cons ($PURPOSE, $VALUE, $CHAIN)
+	}#)
+
+(defprimitive tree_chain_append (:tree purpose value chain) :tree
+	:doc #{Create a new TREE_LIST node with $PURPOSE and $VALUE trees
+	and chain it at the end of $CHAIN. Returns the newly created
+	chain (different from $CHAIN if $CHAIN is NULL_TREE).}#
+	#{ /* tree_chain_append */
+		chainon ($CHAIN, tree_cons ($PURPOSE, $VALUE, NULL_TREE))
+	}#)
+
+(defprimitive tree_chain_join (:tree chain1 chain2) :tree
+	:doc #{Append $CHAIN2 to $CHAIN1 and returns the newly created
+	chain (different from $CHAIN1 if $CHAIN1 is NULL_TREE).}#
+	#{ /* tree_chain_join */
+		chainon ($CHAIN1, $CHAIN2)
+	}#)
+
+(defprimitive build_identifier_tree (name) :tree
+	:doc #{Create and returns a new IDENTIFIER_NODE tree whose
+	name is $NAME.}#
+	#{ /* build_identifier_tree */
+		get_identifier (melt_string_str ((melt_ptr_t) $NAME))
+	}#)
+
+(defprimitive build_string_tree (string_value) :tree
+	:doc #{Create and returns a new STRING_CST tree whose
+	value is $STRING_VALUE.}#
+	#{ /* build_string_tree */
+		build_string (strlen (melt_string_str ((melt_ptr_t) $STRING_VALUE)),
+				     melt_string_str ((melt_ptr_t) $STRING_VALUE))
+	}#)
+
+
+(defprimitive build_int_tree (int_value) :tree
+	:doc #{Create and returns a new INTEGER_CST tree whose
+	value is $INT_VALUE and type is the default language
+	integer type.}#
+	#{
+		build_int_cst (integer_type_node, (int)melt_get_int ($INT_VALUE))
+	}#
+)
+
+
+;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;; pattern (tree_function_decl_named <funame> <initialtree>) match a tree for a function
+;; declaration
+(defcmatcher tree_function_decl_named 
+  (:tree tr) 				;matched
+  ;; output 
+  (:cstring funame
+   :tree trresult
+   )
+  treefunam				;state symbol
+  :doc #{$TREE_FUNCTION_DECL_NAMED match a function declaration extracting its name $FUNAME and result tree decl $TRRESULT}#
+  ;; test expansion
+  #{ /*  tree_function_decl_named $TREEFUNAM ? */ (($TR) && TREE_CODE($TR) == FUNCTION_DECL) }#
+  ;; fill expansion
+  #{/*  tree_function_decl_named $TREEFUNAM ! */ 
+   $FUNAME = NULL; 
+   $TRRESULT = NULL; 
+   if (DECL_NAME($tr))
+     $FUNAME = IDENTIFIER_POINTER(DECL_NAME($TR)); 
+   $TRRESULT = DECL_RESULT($TR); 
+  }#
+)
+
+;; match a function decl of a given name
+(defcmatcher tree_function_decl_of_name 
+  (:tree tr :cstring fname) 				;matched
+  ;; output 
+  (:tree tfunname
+   :tree ttrresult
+   )
+  treefunofnam				;state symbol
+  :doc #{$TREE_FUNCTION_DECL_OF_NAME match a function declaration tree $TR for function named $FNAME extracting the tree name $TFUNAME and result tree $TTRRESULT}#
+  ;; test expansion
+  #{ /* tree_function_decl_of_name $TREEFUNOFNAM ?*/ (($TR) && TREE_CODE($TR) == FUNCTION_DECL && DECL_NAME($TR) 
+     && !strcmp($fname, IDENTIFIER_POINTER(DECL_NAME($TR)))) }#
+  ;; fill expansion
+  #{ /* tree_function_decl_of_name  $TREEFUNOFNAM ! */
+   $TFUNNAME = DECL_NAME($TR);
+   $TTRRESULT = DECL_RESULT($TR); 
+  }#
+)
+
+
+(defcmatcher tree_function_decl 
+  (:tree tr) 				;matched
+  ;; output 
+  (:tree tfuname
+   :tree tresult
+   )
+  treefun				;state symbol
+  :doc #{$TREE_FUNCTION_DECL match a function declaration tree, extracting the tree name $TFUNAME and the tree result $TRESULT.}#
+  ;; test expansion
+  #{ /* tree_function_decl $TREEFUN ?*/ (($TR) && TREE_CODE($TR) == FUNCTION_DECL) }#
+  ;; fill expansion
+  #{ /* tree_function_decl  $TREEFUN ! */
+   $TFUNAME = DECL_NAME($TR);
+   $TRESULT = DECL_RESULT($TR); 
+  }#
+)
+
+;; pattern (tree_function_type <return type>) match a tree function type.
+(defcmatcher tree_function_type
+  (:tree tr)
+  (:tree trtyp)
+  tfunt
+  :doc #{$TREE_FUNCTION_TYPE match a function type tree $TR extracting the result type tree $TRTYP}#
+  ;; test expansion
+  #{ /* tree_function_type $tfunt ? */ (($TR) && TREE_CODE($TR) == FUNCTION_TYPE) }#
+  ;; fill expansion
+  #{ /* tree_function_type $tfunt ! */
+      $TRTYP = TREE_TYPE($TR);
+  }#)
+
+;; pattern (tree_method_type <return type>) match a tree method type.
+(defcmatcher tree_method_type
+  (:tree tr)
+  (:tree trtyp)
+  tmethoty
+  :doc #{$TREE_FUNCTION_TYPE match a method type tree $TR extracting the result type tree $TRTYP}#
+  ;; test expansion
+  #{ /*  tree_method_type $TMETHOTY ? */ (($tr) && TREE_CODE($tr) == METHOD_TYPE) }#
+  ;; fill expansion
+  #{ /*  tree_method_type $TMETHOTY ! */
+      $TRTYP = TREE_TYPE($tr);
+  }#)
+
+;;;;;;;;;;;;;;;;
+(defcmatcher tree_of_type 
+  (:tree tr)
+  (:tree trtyp)
+  treeoftype
+  :doc #{$TREE_FUNCTION_TYPE match any non-null tree $TR extracting the type tree $TRTYP}#
+  ;; test expansion
+  #{ /* tree_of_type $treeoftype ?*/ ($TR) != NULL }#
+  ;; fill expansion
+  #{ /* tree_of_type $treeoftype !*/ $TRTYP = TREE_TYPE($tr); }#
+)
+
+
+;;;;;;;;;;;;;;;;
+;; pattern for variables (tree_var_decl <type> <name> <uid>)
+(defcmatcher tree_var_decl_named 
+  (:tree tr)
+  (:tree type :cstring varname :long uid)
+  treevardnam				;statesym
+  :doc #{$TREE_VAR_DECL_NAMED match a variable declartion tree $TR extracting its type tree $TYPE, its $VARNAME and its $UID}#
+  ;; test expansion
+  #{/* tree_var_decl_named $TREEVARDNAM ?*/ (($TR) && TREE_CODE($TR) == VAR_DECL) }#
+  ;; fill expansion
+  #{/* tree_var_decl_named $TREEVARDNAM !*/
+   $VARNAME =NULL;
+   $TYPE = TREE_TYPE($TR);
+   $UID = DECL_UID($TR);
+   if (DECL_NAME($TR))
+     $VARNAME = IDENTIFIER_POINTER(DECL_NAME($TR));
+   }# )
+
+;; pattern for variables (tree_var_decl <type> <name> <uid>)
+(defcmatcher tree_var_decl 
+  (:tree tr)
+  (:tree ttype tname :long uid)
+  treevard				;statesym
+  :doc #{$TREE_VAR_DECL match a variable declaration tree $TR extracting its type tree $TTYPE, its name tree $TNAME and its $UID}#
+  ;; test expansion
+  #{/* tree_var_decl $TREEVARD ?*/ (($TR) && TREE_CODE($TR) == VAR_DECL) }#
+  ;; fill expansion
+  #{/* tree_var_decl $TREEVARD !*/
+   $TTYPE = TREE_TYPE($TR);
+   $UID = DECL_UID($TR);
+   $TNAME = DECL_NAME($TR);
+   }# )
+
+;;;;;;;;
+;; pattern for a var_decl of given name
+	   
+(defcmatcher tree_var_decl_of_name 
+  (:tree tr :cstring varname)
+  (:tree ttype)
+  treevarn				;statesym
+  :doc #{$TREE_VAR_DECL match a variable declaration tree $TR of name $VARNAME extracting its type tree $TTYPE}#
+  ;; test expansion
+  #{ /* tree_var_decl_of_name $TREEVARN ?*/ (($TR) && TREE_CODE($TR) == VAR_DECL && DECL_NAME($TR) 
+      && !strcmp($varname, IDENTIFIER_POINTER(DECL_NAME($TR)))) }#
+  ;; fill expansion
+  #{ /* tree_var_decl_of_name $TREEVARN !*/ 
+   $TTYPE = TREE_TYPE($TR);
+  }# )
+
+;;;;;;;;;;;;;;;;
+;; pattern for constants (tree_const_decl <type> <name> <uid>)
+(defcmatcher tree_const_decl 
+  (:tree tr)
+  (:tree ttype :cstring constname :long uid)
+  treeconstd				;statesym
+  :doc #{$TREE_CONST_DECL match a const declaration tree $TR extracting its type tree $TTYPE, its name $CONSTNAME, its $UID}#
+  ;; test expansion
+  #{/* tree_const_decl $TREECONSTD ?*/ (($TR) && TREE_CODE($TR) == CONST_DECL) }#
+  ;; fill expansion
+  #{/* tree_const_decl $TREECONSTD !*/
+   $CONSTNAME =NULL;
+   $TTYPE = TREE_TYPE($TR);
+   $UID = DECL_UID($TR);
+   if (DECL_NAME($TR))
+     $CONSTNAME = IDENTIFIER_POINTER(DECL_NAME($TR));
+   }# )
+
+;;;;;;;;
+;; pattern for a const_decl of given name
+	   
+(defcmatcher tree_const_decl_of_name 
+  (:tree tr :cstring constname)
+  (:tree ttype)
+  treeconstn				;statesym
+  :doc #{$TREE_CONST_DECL_OF_NAME match a const declaration tree $TR of name $CONSTNAME extracting its type tree $TTYPE}#
+  ;; test expansion
+  #{ /* tree_const_decl_of_name $TREECONSTN ?*/ (($TR) && TREE_CODE($TR) == CONST_DECL && DECL_NAME($TR) 
+      && !strcmp($constname, IDENTIFIER_POINTER(DECL_NAME($TR)))) }#
+  ;; fill expansion
+  #{ /* tree_const_decl_of_name $TREECONSTN !*/
+   $TTYPE = TREE_TYPE($TR); }# )
+
+;; pattern for constant declaration  (tree_const_decl_named <type> <name> <uid>)
+(defcmatcher tree_const_decl_named 
+  (:tree tr)
+  (:tree ttype :cstring constname :long uid)
+  treeconstnam				;statesym
+  :doc #{$TREE_CONST_DECL_NAMED match a const declaration tree $TR extracting its type $TTYPE, its name $CONSTNAME its $UID}#
+  ;; test expansion
+  #{/* tree_const_decl_named $TREECONSTNAM ?*/ (($TR) && TREE_CODE($TR) == CONST_DECL) }#
+  ;; fill expansion
+  #{/* tree_const_decl_named $TREECONSTNAM !*/
+   $CONSTNAME = NULL;
+   $TTYPE = TREE_TYPE($TR);
+   $UID = DECL_UID($TR);
+   if (DECL_NAME($TR))
+     $CONSTNAME = IDENTIFIER_POINTER(DECL_NAME($TR));
+   }# )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; pattern for parameters (tree_parm_decl <type> <name> <uid>)
+(defcmatcher tree_parm_decl_named 
+  (:tree tr)
+  (:tree type :cstring parmname :long uid)
+  treeparmdcnam				;statesym
+  :doc #{$TREE_PARM_DECL_NAMED match a parm declaration tree $TR extracting its type $TTYPE, its name $PARMNAME its $UID}#
+  ;; test expansion
+  #{/* tree_parm_decl_named $TREEPARMDCNAM ?*/ (($TR) && TREE_CODE($TR) == PARM_DECL) }#
+  ;; fill expansion
+  #{/* tree_parm_decl_named $TREEPARMDCNAM !*/
+   $PARMNAME =NULL;
+   $TYPE = DECL_ARG_TYPE($TR);
+   $UID = DECL_UID($TR);
+   if (DECL_NAME($TR))
+     $PARMNAME = IDENTIFIER_POINTER(DECL_NAME($TR));
+   }# )
+
+;; pattern for a parm_decl of given name
+(defcmatcher tree_parm_decl_of_name 
+  (:tree tr :cstring parmname)
+  (:tree type)
+  treeparmofnam				;statesym
+  :doc #{$TREE_PARM_DECL_OF_NAME match a parm declaration tree $TR named $PARMNAME extracting its $TYPE}#
+  ;; test expansion
+  #{ /* tree_parm_decl_of_name $TREEPARMOFNAM ?*/ (($TR) && TREE_CODE($TR) == PARM_DECL && DECL_NAME($TR) 
+      && !strcmp($PARMNAME, IDENTIFIER_POINTER(DECL_NAME($TR)))) }#
+  ;; fill expansion
+  #{ /* tree_parm_decl_of_name $TREEPARMOFNAM !*/ 
+   $TYPE = DECL_ARG_TYPE($TR); }# )
+
+
+;; pattern for a parm_decl
+(defcmatcher tree_parm_decl
+  (:tree tr)
+  (:tree trargtype trdeclnam)
+  treeparmde				;statesym
+  :doc #{$TREE_PARM_DECL_OF_NAME match a parm declaration tree $TR extracting its $TRARGTYPE and decl name tree $TRDECLNAME}#
+  ;; test expansion
+  #{ /* tree_parm_decl $TREEPARMDE ?*/ (($TR) && TREE_CODE($TR) == PARM_DECL) }#
+  ;; fill expansion
+  #{ /* tree_parm_decl $TREEPARMDE !*/ 
+   $TRARGTYPE = DECL_ARG_TYPE($TR);
+   $TRDECLNAM = DECL_NAME($TR); }# )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; pattern for results (tree_result_decl <type> <name> <uid>)
+(defcmatcher tree_result_decl_named
+  (:tree tr)
+  (:tree type :cstring name :long uid)
+  treeparmd				;statesym
+  :doc #{$TREE_RESULT_DECL_NAMED match a result declaration tree $TR extracting its $TYPE, $NAME, $UID}#
+  ;; test expansion
+  #{/* tree_result_decl_named $TREEPARMD ?*/ (($TR) && TREE_CODE($TR) == RESULT_DECL) }#
+  ;; fill expansion
+  #{/* tree_result_decl_named $TREEPARMD !*/
+   $NAME =NULL;
+   $TYPE = TREE_TYPE($TR);
+   $UID = DECL_UID($TR);
+   if (DECL_NAME($TR))
+     $NAME = IDENTIFIER_POINTER(DECL_NAME($TR));
+   }# )
+
+
+(defcmatcher tree_result_decl
+  (:tree tr)
+  (:tree tnam ttyp)
+  treeresd				;statesym
+  :doc #{$TREE_RESULT_DECL match a result declaration $TR extracting its tree $TNAM and $TTYP}#
+  ;; test expansion
+  #{ /* tree_result_decl $TREERESD ?*/ (($TR) && TREE_CODE($TR) == RESULT_DECL) }#
+  ;; fill expansion
+  #{ /* tree_result_decl $TREERESD !*/ 
+   $TNAM = DECL_NAME($TR);
+   $TTYP = TREE_TYPE($TR); 
+  }# )
+
+;; pattern for a parm_decl of given name
+(defcmatcher tree_result_decl_of_name 
+  (:tree tr :cstring name)
+  (:tree ttyp)
+  treeparmn				;statesym
+  :doc #{$TREE_RESULT_DECL_OF_NAME match a result declaration $TR named $NAME extracting its $TTYP}#
+  ;; test expansion
+  #{ /* tree_result_decl_of_name $TREEPARMN ?*/ (($TR) && TREE_CODE($TR) == RESULT_DECL && DECL_NAME($TR) 
+      && !strcmp($NAME, IDENTIFIER_POINTER(DECL_NAME($TR)))) }#
+  ;; fill expansion
+  #{ /* tree_result_decl_of_name $TREEPARMN !*/ 
+   $TTYP = TREE_TYPE($TR); }# )
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; pattern for defined types (tree_type_decl <type> <name> <uid>)
+(defcmatcher tree_type_decl 
+  (:tree tr)
+  (:tree type :cstring name :long uid)
+  treeparmd				;statesym
+  :doc #{$TREE_TYPE_DECL match a tree type decl $TR extracting its $TYPE, $NAME, $UID}#
+  ;; test expansion
+  #{/* tree_type_decl $TREEPARMD ?*/ (($TR) && TREE_CODE($TR) == TYPE_DECL) }#
+  ;; fill expansion
+  #{/* tree_type_decl $TREEPARMD !*/
+   $NAME =NULL;
+   $TYPE = TREE_TYPE($TR);
+   $UID = DECL_UID($TR);
+   if (DECL_NAME($TR))
+     $NAME = IDENTIFIER_POINTER(DECL_NAME($TR));
+   }# )
+
+;; pattern for a typr_decl of given name
+(defcmatcher tree_type_decl_named 
+  (:tree tr :cstring name)
+  (:tree type)
+  treetypn				;statesym
+  :doc #{$TREE_TYPE_DECL match a tree type decl $TR for a type named $NAME extracting its $TYPE}#
+  ;; test expansion
+  #{ /* tree_type_decl_named $TREETYPN ?*/ (($TR) && TREE_CODE($TR) == TYPE_DECL && DECL_NAME($TR) 
+      && !strcmp($NAME, IDENTIFIER_POINTER(DECL_NAME($TR)))) }#
+  ;; fill expansion
+  #{ /* tree_type_decl_named $TREETYPN !*/ 
+   $TYPE = TREE_TYPE($TR);
+  }# )
+
+
+
+;;;;;;;;;;;;;;;;
+;; pattern tree_array_ref matches an array reference with array and index
+(defcmatcher tree_array_ref
+  (:tree tr)				;input
+  (:tree trarr trindex)
+  treearrayref			 ;statesym
+  :doc #{$TREE_ARRAY_REF match a tree array reference extracting array $TRARR and index $TRINDEX}#
+  ;; test
+  #{ /* tree_array_ref $TREEARRAYREF ?*/ (($TR) && TREE_CODE($TR) == ARRAY_REF) }#
+  ;; fill
+  #{ /* tree_array_ref $TREEARRAYREF !*/ 
+    $TRARR = TREE_OPERAND ($TR, 0);
+    $TRINDEX = TREE_OPERAND ($TR, 1);
+  }#)
+
+;; pattern tree_array_ref_full
+(defcmatcher  tree_array_ref_full
+  (:tree tr)				;input
+  (:tree trarr trindex trmin trsize)
+  treearrayreffull			 ;statesym
+  :doc #{$TREE_ARRAY_REF_FULL match a tree array reference extracting array $TRARR and index $TRINDEX minimum $TRMIN and size $TRSIZE}#
+  ;; test
+  #{ /* tree_array_ref_full $TREEARRAYREFFULL ?*/ (($TR) && TREE_CODE($TR) == ARRAY_REF) }#
+  ;; fill
+  #{ /* tree_array_ref_full $TREEARRAYREFFULL !*/ 
+    int $TREEARRAYREFFULL#_len = TREE_OPERAND_LENGTH($TR);
+    $TRARR = TREE_OPERAND ($TR, 0);
+    $TRINDEX = TREE_OPERAND ($TR, 1);
+    $TRMIN = ($TREEARRAYREFFULL#_len >= 3) ? TREE_OPERAND ($TR, 2) : (NULL_TREE);
+    $TRSIZE = ($TREEARRAYREFFULL#_len >= 4) ? TREE_OPERAND ($TR, 3) : (NULL_TREE);
+  }#)
+
+;;;;;;;;;;;;;;;;
+;; pattern tree_component_ref matches an component reference with component and index
+(defcmatcher tree_component_ref
+  (:tree tr)				;input
+  ;; traggr is the aggregate (ie a struct or union)
+  (:tree traggr trfield)		;output
+  treecomponentref			 ;statesym
+  :doc #{$TREE_COMPONENT_REF match a component reference tree $TR extracting aggregate $TRAGGR and field $TRFIELD}#
+  ;; test
+  #{ /* tree_component_ref $TREECOMPONENTREF ?*/ (($TR) && TREE_CODE($TR) == COMPONENT_REF) }#
+  ;; fill
+  #{ /* tree_component_ref $TREECOMPONENTREF !*/ 
+    $TRAGGR = TREE_OPERAND ($TR, 0);
+    $TRFIELD = TREE_OPERAND ($TR, 1);
+  }#)
+
+(defcmatcher tree_component_ref_full
+  (:tree tr)				;input
+  ;; traggr is the aggregate (ie a struct or union)
+  (:tree traggr trfield troff)
+  treecomponentreffull			 ;statesym
+  :doc #{$TREE_COMPONENT_REF_FULL match a component reference tree $TR extracting aggregate $TRAGGR and field $TRFIELD and offset $TROFF}#
+  ;; test
+  #{ /* tree_component_ref_full $TREECOMPONENTREFFULL ?*/ (($TR) && TREE_CODE($TR) == COMPONENT_REF) }#
+  ;; fill
+  #{ /* tree_component_ref_full $TREECOMPONENTREFFULL !*/ 
+    int $TREECOMPONENTREFFULL#_len = TREE_OPERAND_LENGTH($TR);
+    $TRAGGR = TREE_OPERAND ($TR, 0);
+    $TRFIELD = TREE_OPERAND ($TR, 1);
+    $TROFF = ($TREECOMPONENTREFFULL#_len > 2) ? TREE_OPERAND ($TR, 2) : NULL_TREE;
+  }#)
+
+(defcmatcher tree_component_ref_typed
+  (:tree tr)
+  (:tree type
+   :tree traggr
+   :tree trfield)
+  treecr
+  :doc #{$TREE_COMPONENT_REF_TYPED match a component reference tree $TR extracting the $TYPE, aggregate $TRAGGR, field $TRFIELD }#
+
+  #{ /*  tree_component_ref_typed $TREECR ? */
+       (($tr) && TREE_CODE ($tr) == COMPONENT_REF)
+  }#
+
+  #{/*  tree_component_ref_typed $TREECR ! */
+       $TYPE = TREE_TYPE ($tr);
+       $TRAGGR = TREE_OPERAND ($tr, 0);
+       $TRFIELD = TREE_OPERAND ($tr, 1);
+  }#)
+
+;; pattern tree_mem_ref matches a memory reference with pointer and offset
+(defcmatcher tree_mem_ref
+  (:tree tr)				;input
+  (:tree trptr troff)
+  treememref			 ;statesym
+  :doc #{$TREE_MEM_REF match a memory reference tree extracing pointer $TRPTR and offset $TROFF}#
+  ;; test
+  #{ /* tree_mem_ref $TREEMEMREF ?*/ (($TR) && TREE_CODE($TR) == MEM_REF) }#
+  ;; fill
+  #{ /* tree_mem_ref $TREEMEMREF !*/ 
+    $TRPTR = TREE_OPERAND ($TR, 0);
+    $TROFF = TREE_OPERAND ($TR, 1);
+  }#)
+
+;;;;;;;;;;;;;;;;
+;; pattern tree_block matches a block
+(defcmatcher tree_block 
+  (:tree tr)
+  (					;output
+   :tree trvars  trsubblocks 	 
+   )
+  treeblock				;statesym
+  :doc #{$TREE_BLOCK match a tree block extracting tree variables $TRVARS and subblocks $TRSUBBLOCKS}#
+  ;; test expander
+   #{/*tree_block $TREEBLOCK ?*/ (($TR) && TREE_CODE($TR) == BLOCK)}#
+  ;; fill expander
+   #{ /*tree_block $TREEBLOCK !*/
+   $TRVARS = BLOCK_VARS($TR);
+   $TRSUBBLOCKS = BLOCK_SUBBLOCKS($TR);
+   }# )
+
+;;;;;;;;;;;;;;;;
+;; pattern tree_offset_type is for pointers relative to object
+(defcmatcher tree_offset_type
+ (:tree tr)
+ (:tree trtype trbasetype)
+ treeoffsettype				;statesym
+  :doc #{$TREE_OFFSET_TYPE match offset type tree $TR extracting type $TRTYPE and basetype $TRBASETYPE}#
+ ;; expander
+ #{/*tree_offset_type $TREEOFFSETTYPE ?*/ (($TR) && TREE_CODE($TR) == OFFSET_TYPE) }#
+ ;; filler
+ #{/*tree_offset_type $TREEOFFSETTYPE !*/ $TRTYPE = TREE_TYPE($TR);
+   $TRBASETYPE = TYPE_OFFSET_BASETYPE ($TR);
+ }#)
+
+
+;;;;;;;;
+;;; pattern tree_identifier matches any identifier node
+(defcmatcher tree_identifier
+  (:tree tr)
+  (:cstring name)
+  treeident			;statesym
+  :doc #{$TREE_IDENTIFIER match an identifier tree $TR extracting its $NAME}#
+  #{ /*tree_identifier  $TREEIDENT ?*/ $TR 
+         && TREE_CODE ($TR) == IDENTIFIER_NODE }#
+  #{ /*tree_identifier $TREEIDENT !*/ $NAME = (const char*) IDENTIFIER_POINTER ($TR); 
+}#
+)
+
+;;; pattern tree_list matches any tree list node
+(defcmatcher tree_list
+  (:tree tr)
+  (:tree trvalue trpurpose trchain)
+  treelist
+  :doc #{$TREE_LIST match a tree list node extracting $TRVALUE $TRPURPOSE $TRCHAIN}#
+  #{ /* tree_list $TREELIST ?*/ $TR && TREE_CODE ($TR) == TREE_LIST }#
+  #{ /* tree_list $TREELIST !*/ 
+    $TRVALUE = TREE_VALUE ($TR);
+    $TRPURPOSE = TREE_PURPOSE ($TR);
+    $TRCHAIN = TREE_CHAIN ($TR);
+  }#
+)
+
+;;; pattern tree_vec matches any tree vector node
+(defcmatcher tree_vec
+  (:tree tr)
+  (:long len :tree trchain)
+  treevec
+  :doc #{$TREE_VEC match a tree vector node extracting $LEN and $TRCHAIN}#
+  #{ /* tree_vec $TREEVEC ?*/ $TR && TREE_CODE ($TR) == TREE_VEC }#
+  #{ /* tree_vec $TREEVEC !*/ 
+  $LEN = TREE_VEC_LENGTH ($TR);
+  $TRCHAIN = TREE_CHAIN ($TR);
+  }#
+)
+
+;;;;;;;;;;;;;;;;
+;;; pattern tree_decl matches any declaration
+(defcmatcher tree_decl 
+  (:tree tr)
+  (					;output
+   :tree trname
+   :cstring name
+   :long uid
+   )
+  treedecl				;statesym
+  :doc #{$TREE_DECL match any declaration extracting $TRANME $NAME $UID}#
+  ;; test expander
+  #{/* tree_decl $TREEDECL ? */ (($tr) && DECL_P($tr))}#
+  ;; fill expander
+  #{/* tree_decl $TREEDECL ! */ 
+   tree  $treedecl#_name = DECL_NAME($tr);
+   $TRNAME = $treedecl#_name;
+   $NAME = ($treedecl#_name) ? IDENTIFIER_POINTER($treedecl#_name) : NULL;
+   $UID = DECL_UID($tr);
+   }# )
+
+
+;; pattern tree_void_type
+(defcmatcher tree_void_type
+  (:tree tr)
+  (:tree type)
+  treevt
+  :doc #{$TREE_VOID_TYPE match a void type $TR extracting its type $TYPE}#
+
+  #{ /* tree_void_type $TREEVT ? */
+       (($tr) && TREE_CODE ($tr) == VOID_TYPE)
+  }#
+
+  #{/* tree_void_type $TREEVT ! */
+       $type = TYPE_NAME ($tr);
+  }#)
+
+;;;;;;;;;;;;;;;;
+;;; pattern tree_integer_type
+(defcmatcher tree_integer_type 
+  (:tree tr)
+  (					;output
+   :tree type
+   :value minbig maxbig 
+   :tree size
+   )
+  treeinty				;statesym
+  :doc #{$TREE_INTEGER_TYPE match an integer type tree $TR extracting its $TYPE and big minimal $MINBIG and maximal $MAXBIG values and tree size $SIZE}#
+  ;; test expander
+   #{ /* tree_integer_type $treeinty ?*/ (($tr) && TREE_CODE($tr) == INTEGER_TYPE) }#
+  ;; fill expander
+   #{ /* tree_integer_type $treeinty !*/
+      mpz_t $treeinty#_minz;
+      mpz_t $treeinty#_maxz;
+
+      $type = TYPE_NAME($tr);
+      $size = TYPE_SIZE($tr);
+
+      mpz_init ($treeinty#_minz);
+      mpz_init ($treeinty#_maxz);
+      get_type_static_bounds($tr, $treeinty#_minz, $treeinty#_maxz);
+      $minbig = meltgc_new_mixbigint_mpz((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_BIGINT), 
+					 NULL, 
+					 $treeinty#_minz);
+      $maxbig =  meltgc_new_mixbigint_mpz((meltobject_ptr_t) MELT_PREDEF (DISCR_MIXED_BIGINT), 
+					 NULL, 
+					 $treeinty#_maxz);
+      mpz_clear ($treeinty#_minz);
+      mpz_clear ($treeinty#_maxz);
+    }#)
+
+;;;;;;;;;;;;;;;;
+(defcmatcher tree_enumeral_type
+  (:tree tr)
+  (:tree ttype
+   :tree tmin tmax
+   :tree tsize
+   :tree tvalues)
+  treeenumtype
+  :doc #{$TREE_ENUMERAL_TYPE match a tree $TR enumeral extracting $TTYPE $TMIN $TMAX $TSIZE $TVALUES}#
+  ;; test
+  #{/* tree_enumeral_type $TREEENUMTYPE ?*/ (($TR) && TREE_CODE($TR) == ENUMERAL_TYPE) }#
+  ;; fill
+  #{/* tree_enumeral_type $TREEENUMTYPE !*/
+      $TTYPE = TYPE_NAME($TR);
+      $TSIZE = TYPE_SIZE($TR);
+      $TMIN = TYPE_MIN_VALUE ($TR);
+      $TMAX = TYPE_MAX_VALUE ($TR);
+      $TVALUES = TYPE_VALUES ($TR); }#
+)
+
+;;;;;;;;;;;;;;;;;
+(defcmatcher tree_boolean_type
+  (:tree tr)
+  (:tree ttype
+   :tree tmin tmax
+   :tree tsize
+  )
+  treebooltype
+  :doc #{$TREE_BOOLEAN_TYPE match a boolean type tree $TR extracting $TTYPE $TMIN $TMAX $TSIZE}#
+  ;; test
+  #{/* tree_boolean_type $TREEBOOLTYPE ?*/ (($TR) && TREE_CODE($TR) == BOOLEAN_TYPE) }#
+  ;; fill
+  #{/* tree_boolean_type $TREEBOOLTYPE !*/
+      $TTYPE = TYPE_NAME($TR);
+      $TSIZE = TYPE_SIZE($TR);
+      $TMIN = TYPE_MIN_VALUE ($TR);
+      $TMAX = TYPE_MAX_VALUE ($TR);}#
+)
+
+
+;;;;;;;;;;;;;;;;
+;;; pattern tree_integer_type_bounded, the bounds are trees
+(defcmatcher tree_integer_type_bounded
+  (:tree tr)
+  (					;output
+   :tree ttype
+   :tree tmin tmax
+   :tree tsize
+   )
+  treeintybnd				;statesym
+  :doc #{$TREE_INTEGER_TYPE_BOUNDED match an integer type tree $TR  extracting $TTYPE $TMIN $TMAX $TSIZE}#
+  ;; test expander
+   #{ /* tree_integer_type_bounded $TREEINTYBND ?*/ (($TR) && TREE_CODE($TR) == INTEGER_TYPE) }#
+  ;; fill expander
+   #{ /* tree_integer_type_bounded $TREEINTYBND !*/
+      $TTYPE = TYPE_NAME($TR);
+      $TSIZE = TYPE_SIZE($TR);
+      $TMIN = TYPE_MIN_VALUE ($TR);
+      $TMAX = TYPE_MAX_VALUE ($TR);
+    }#)
+
+
+;;;; pattern for fixed point type
+
+(defcmatcher tree_fixed_point_type
+  (:tree tr)
+  (					;output
+   :tree ttype
+   :tree tmin tmax
+   :tree tsize
+   )
+  treefixpt				;statesym
+  :doc #{$TREE_FIXED_POINT_TYPE match an fixed point type tree $TR  extracting $TTYPE $TMIN $TMAX $TSIZE}#
+  ;; test expander
+   #{ /* tree_fixed_point_type $TREEFIXPT ?*/ (($TR) && TREE_CODE($TR) == FIXED_POINT_TYPE) }#
+  ;; fill expander
+   #{ /* tree_fixed_point_type $TREEFIXPT !*/
+      $TTYPE = TYPE_NAME($TR);
+      $TSIZE = TYPE_SIZE($TR);
+      $TMIN = TYPE_MIN_VALUE ($TR);
+      $TMAX = TYPE_MAX_VALUE ($TR);
+    }#)
+
+;;;; pattern for the type of nullptr
+(defcmatcher tree_nullptr_type 
+  (:tree tr)
+  ()
+  treenullptr
+  :doc #{$TREE_NULLPTR_TYPE match an nullptr type tree $TR }#
+  #{ /* tree_nullptr_type $TREENULLPTR ?*/ (($TR) && TREE_CODE($TR) == NULLPTR_TYPE) }#
+  #{ /* tree_nullptr_type $TREENULLPTR !*/ }#
+)
+
+
+;; Pattern tree_type_declaration. 
+(defcmatcher tree_type_declaration
+  (:tree tr)
+  (:tree name)
+  titd
+  :doc #{$TREE_TYPE_DECLARATION match a type decl tree $TR extracting the declared name tree $NAME}#
+  #{ /* tree_type_declaration $TITD ? */
+      (($TR) && TREE_CODE($TR) == TYPE_DECL)
+  }#
+
+  #{ /* tree_type_declaration $TITD ! */
+      $NAME = DECL_NAME($TR);
+  }#)
+
+;;; pattern tree_real_type. It matches any real type.
+;;; asked by Marie Krumpe.
+(defcmatcher tree_real_type 
+  (:tree tr)
+  (					;output
+   :tree name
+   :tree size
+  )
+  tranyfloaty
+  :doc #{$TREE_REAL_TYPE match any real type tree $TR extracting its $NAME & $SIZE trees }#
+
+  #{ /*  tree_real_type $tranyfloaty ? */ 
+      (($tr) && TREE_CODE($tr) == REAL_TYPE)
+  }#
+
+  #{ /*  tree_real_type $tranyfloaty ! */
+      $NAME = TYPE_NAME($tr);
+      $SIZE = TYPE_SIZE($tr);
+  }#
+)
+
+;;; pattern tree_complex_type. It matches any complex type.
+(defcmatcher tree_complex_type 
+  (:tree tr)
+  (					;output
+   :tree name
+   :tree size
+  )
+  tranycplxy
+  :doc #{$TREE_COMPLEX_TYPE match any complex type tree $TR extracting its $NAME & $SIZE trees }#
+
+  #{ /* tree_complex_type $TRANYCPLXY ? */ 
+      (($tr) && TREE_CODE($tr) == COMPLEX_TYPE)
+  }#
+
+  #{ /* tree_complex_type $TRANYCPLXY ! */
+      $NAME = TYPE_NAME($tr);
+      $SIZE = TYPE_SIZE($tr);
+  }#
+)
+
+;;; pattern tree_integer_cst
+(defcmatcher tree_integer_cst
+  (:tree tr)
+  (					;output
+   :long n )
+  treeintk
+  :doc #{ $TREE_INTEGER_CST match a constant integer tree $TR extracting the constant $N. Might behave strangely if the constant don't fit in a long.}#
+  ;; test expander
+  #{ /*tree_integer_cst $TREEINTK ?*/ (($TR) && TREE_CODE($TR) == INTEGER_CST 
+		      && host_integerp($TR, 0)) }#
+  ;; fill expander
+  #{ /*tree_integer_cst $TREEINTK !*/ $N  = tree_low_cst(($TR), 0);
+  }#  )
+
+
+;;; pattern tree_real_cst
+(defcmatcher tree_real_cst
+  (:tree tr)
+  (:value v)
+  treerealc
+  :doc #{ $TREE_REAL_CST match a constant real tree $TR extracting the constant into a value $V}#
+  ;; test expander 
+  #{ /* tree_real_cst $treerealc ?*/ (($tr) && TREE_CODE($tr) == REAL_CST) }#
+  ;; fill expander
+  #{ /* tree_real_cst treerealc! */
+  $v = meltgc_new_real ((meltobject_ptr_t) MELT_PREDEF (DISCR_REAL), 
+                       TREE_REAL_CST(($tr))); }#
+)
+
+(defcmatcher tree_string_cst
+  (:tree tr)
+  (:value v)
+  treestringc
+  :doc #{ $TREE_STRING_CST match a constant string tree $TR extracting its string into value $V}#
+  ;; test expander
+  #{   /* tree_string_cst $treestringc ? */
+       (($tr) && TREE_CODE ($tr) == STRING_CST)
+  }#
+  ;; fill expander
+  #{   /* tree_string_cst $treestringc ! */
+       $v = meltgc_new_string_raw_len ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING),
+				       TREE_STRING_POINTER ($tr),
+				       TREE_STRING_LENGTH ($tr));
+  }#)
+       
+;;; pattern for pointer types (or reference type)
+(defcmatcher tree_pointer_type_p
+  (:tree tr)
+  (:tree typetr)
+  treeisptrt
+  :doc #{$TREE_POINTER_TYPE_P match a pointer type tree $TR and extract the pointed type $TYPETR}#
+  ;; test
+  #{ /*tree_pointer_type_p $treeisptrt ?*/ (($tr) && POINTER_TYPE_P(($tr))) }#
+  ;; fill
+  #{ /*tree_pointer_type_p $treeisptrt !*/ $typetr = TREE_TYPE($tr); }#
+)
+
+(defcmatcher tree_pointer_type
+  (:tree tr)
+  (:tree typetr)
+  treeptrty
+  :doc #{$TREE_POINTER_TYPE_P match or build a POINTER_TYPE tree $TR and extract the pointed type $TYPETR}#
+  ;; test
+  #{ /*  tree_pointer_type $TREEPTRTY ?*/ (($TR) && TREE_CODE($TR) == POINTER_TYPE) }#
+  ;; fill
+  #{ /* tree_pointer_type $TREEPTRTY !*/ $TYPETR = TREE_TYPE($TR); }#
+  ;; operator
+  #{ /* tree_pointer_type: */ build_pointer_type(($TYPETR)) }#
+)
+
+(defcmatcher tree_reference_type
+  (:tree tr)
+  (:tree typetr)
+  treerefty
+  :doc #{$TREE_REFERENCE_TYPE match a REFERENCE_TYPE tree $TR extracting the $TYPETR}#
+  ;; test
+  #{ /* tree_reference_type $TREEREFTY ?*/ (($TR) && TREE_CODE($TR) == REFERENCE_TYPE) }#
+  ;; fill
+  #{ /* tree_reference_type $TREEREFTY !*/ $TYPETR = TREE_TYPE($TR); }#
+)
+
+
+;;; pattern for indirect references
+(defcmatcher tree_indirect_reference
+  (:tree tr)
+  (:tree type
+   :tree reference)
+  treeir
+  :doc #{$TREE_INDIRECT_REFERENCE match an indirect ref tree $TR extracting the $TYPE and $REFERENCE subtrees}#
+  #{ /* tree_indirect_reference $TREEIR ? */
+       (($tr) && INDIRECT_REF_P ($tr))
+  }#
+
+  #{ /* tree_indirect_reference $TREEIR ! */
+       $type = TREE_TYPE ($tr);
+       $reference = TREE_OPERAND ($tr, 0);
+  }#)
+
+(defcmatcher tree_addr_expr
+  (:tree tr)
+  (:tree type
+   :tree expr)
+  treeae
+  :doc #{$TREE_ADDR_EXPR match an ADDR_EXPR tree $TR extracting the $TYPE and $EXPR subtrees}#
+
+  #{ /*  tree_addr_expr $TREEAE ?*/
+       (($tr) && TREE_CODE ($tr) == ADDR_EXPR)
+  }#
+
+  #{ /*  tree_addr_expr $TREEAE !*/
+       $TYPE = TREE_TYPE ($tr);
+       $EXPR = TREE_OPERAND ($tr, 0);
+  }#)
+
+
+;;;;;;;;
+(defcmatcher tree_record_type
+  (:tree tr)
+  (:tree name)
+  treerectyp
+
+  :doc #{$TREE_RECORD_TYPE match a record type tree $TR extracting its $NAME }#
+  #{ /*  tree_record_type $TREERECTYP ? */
+       (($TR) && TREE_CODE ($TR) == RECORD_TYPE)
+  }#
+  #{ /*  tree_record_type $TREERECTYP ! */
+       $NAME = TYPE_NAME ($TR);
+  }#)
+
+(defcmatcher tree_record_type_with_fields
+  (:tree tr)
+  (:tree tname tfields)
+  trectyfld
+  :doc #{$TREE_RECORD_TYPE_WITH_FIELDS match a record type tree $TR extracting its $TNAME & $TFIELDS}#
+  #{  /*  tree_record_type_with_fields $TRECTYFLD ? */
+       (($TR) && TREE_CODE ($TR) == RECORD_TYPE)
+  }#
+  #{ /*  tree_record_type_with_fields $TRECTYFLD ! */
+       $TNAME = TYPE_NAME ($TR);
+       $TFIELDS = TYPE_FIELDS ($TR);
+  }#)
+
+
+;; qualified union
+(defcmatcher tree_qual_union_type
+  (:tree tr)
+  (:tree type)
+  treequunityp
+  :doc #{$TREE_QUAL_UNION_TYPE match a qualified union type tree $TR extracting its $TYPE}#
+
+  #{ /* tree_qual_union_type $TREEQUUNITYP ? */
+       (($TR) && TREE_CODE ($TR) == QUAL_UNION_TYPE)
+  }#
+  #{ /* tree_qual_union_type  $TREEQUUNITYP ! */
+       $TYPE = TYPE_NAME ($TR);
+  }#)
+
+(defcmatcher tree_qual_union_type_with_fields
+  (:tree tr)
+  (:tree type tfields)
+  tquunityfld
+  :doc #{$TREE_QUAL_UNION_TYPE_WITH_FIELDS match a qualified union type tree $TR extracting its $TYPE & $TFIELDS}#
+
+  #{  /* tree_qual_union_type_with_fields $TQUUNITYFLD ? */
+       (($TR) && TREE_CODE ($TR) == QUAL_UNION_TYPE)
+  }#
+  #{ /* tree_qual_union_type_with_fields $TQUUNITYFLD ! */
+       $TYPE = TYPE_NAME ($TR);
+       $TFIELDS = TYPE_FIELDS ($TR);
+  }#)
+
+
+(defcmatcher tree_array_type
+  (:tree tr)
+  (:tree telemtype tdomaintype)
+  treearrtyp
+  :doc #{$TREE_ARRAY_TYPE match an array type tree $TR extracting the elements tpe $TELEMTYPE and the domain type $TDOMAINTYPE}#
+  #{ /* tree_array_type $TREEARRTYP ? */
+  (($TR) && TREE_CODE ($TR) == ARRAY_TYPE)
+  }#
+  #{ /* tree_array_type $TREEARRTYP ! */
+  $TELEMTYPE = TREE_TYPE ($TR);
+  $TDOMAINTYPE = TYPE_DOMAIN ($TR);
+  }#)
+
+
+(defcmatcher tree_field_decl
+  (:tree tr)
+  (:tree name type)
+  treefield
+  :doc #{$TREE_FIELD_DECL match a field declaration tree $TR extracting $NAME & $TYPE}#
+  #{ /*  tree_field_decl $TREEFIELD ? */
+       (($TR) && TREE_CODE ($TR) == FIELD_DECL)
+  }#
+  #{ /*  tree_field_decl $TREEFIELD ! */
+       $NAME = DECL_NAME ($TR);
+       $TYPE = TREE_TYPE ($TR);
+  }#)
+
+;;;; matcher for pattern ssa_name
+(defcmatcher tree_ssa_name 
+  (:tree tr)
+  (:tree tvar tvalu :long vers :gimple defstmt)
+  treessa
+  :doc #{$TREE_SSA_NAME match an SSA name tree $TR extracting the $TVAR $TVALUE $VERS and $DEFSTMT}#
+  ;; test expander
+  #{ /*  tree_ssa_name $TREESSA ? */ (($tr) && TREE_CODE($tr) == SSA_NAME) }#
+  ;; fill expander
+  #{ /*  tree_ssa_name $TREESSA ! */
+   $tvar = SSA_NAME_VAR($tr);
+   $tvalu = SSA_NAME_VALUE($tr);
+   $vers = SSA_NAME_VERSION($tr);
+   $defstmt = SSA_NAME_DEF_STMT($tr);
+  }# )
+
+;;;; simpler matcher for pattern ssa_name
+(defcmatcher tree_simple_ssa_name 
+  (:tree tr)
+  (:tree tvar :long vers)
+  treesssa
+  :doc #{$TREE_SIMPLE_SSA_NAME match an SSA name tree $TR extracting the $TVAR and $VERS}#
+  ;; test expander
+  #{ /* tree_simple_ssa_name  $TREESSSA ? */ (($TR) && TREE_CODE($TR) == SSA_NAME) }#
+  ;; fill expander
+  #{ /* tree_simple_ssa_name  $TREESSSA ! */
+   $tvar = SSA_NAME_VAR($tr);
+   $vers = SSA_NAME_VERSION($tr);
+  }# )
+
+
+
+;; Iterator on function argument 
+(defciterator foreach_argument_in_function_tree
+  (:tree tr_fun)
+  eachtrfun
+  (:tree trarg)
+  #{
+      /* foreach_argument_in_function_tree $EACHTRFUN start */
+      tree $EACHTRFUN#_tr = NULL;
+
+      $TRARG = (tree) NULL;
+      if ($TR_FUN && TREE_CODE($TR_FUN) == FUNCTION_TYPE)
+      {
+          function_args_iterator $EACHTRFUN#_args_iter;
+          FOREACH_FUNCTION_ARGS($TR_FUN, $EACHTRFUN#_tr, $EACHTRFUN#_args_iter)
+          {
+              $TRARG = $EACHTRFUN#_tr;
+   }#
+              
+   #{ /* ending  foreach_argument_in_function_tree $EACHTRFUN */
+              $TRARG = (tree) NULL;
+          } 
+      }
+      /* end foreach_argument_in_function_tree $EACHTRFUN */
+   }#)
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;; map keyed by raw trees
+(defprimitive is_maptree (map) :long
+  :doc #{Test if $MAP is a map of trees.}#
+  #{ (melt_magic_discr((melt_ptr_t)($map)) == MELTOBMAG_MAPTREES) }#)
+(defprimitive maptree_size (map) :long
+  :doc #{Safely retrieve allocated size of map of trees $MAP.}#
+ #{ (melt_size_maptrees((struct meltmaptrees_st*)($map))) }#)
+;; primitive to get the attribute count of a maptree
+(defprimitive maptree_count (map) :long
+  :doc #{Safely retrieve used count of map of trees $MAP.}#
+  #{ (melt_count_maptrees((struct meltmaptrees_st*)($map))) }# )
+;; get an entry in a maptree from a C tree
+(defprimitive maptree_get (map :tree tr) :value
+  :doc #{Safely get in map of trees $MAP value associated to tree $TR.}#
+  #{(melt_get_maptrees((melt_ptr_t) ($MAP), ($TR)))}#)
+;; primitive for making a new map of trees
+(defprimitive make_maptree (discr :long len) :value
+  :doc #{Make a map of trees with discriminant $DISCR and initial size $LEN.}#
+ #{(meltgc_new_maptrees((meltobject_ptr_t) ($DISCR), ($LEN)))}#)
+;; primitive for putting into a map of trees
+(defprimitive maptree_put (map :tree trkey :value val) :void
+  :doc #{Safely put in map of trees $MAP associated to tree $TRKEY the non-nil value $VAL.}#
+  #{melt_put_maptrees((melt_ptr_t) ($MAP),  ($TRKEY), 
+		      (melt_ptr_t) ($VAL))}#)
+;; primitive for removing from a map of trees
+(defprimitive maptree_remove (map :tree trkey) :void
+  :doc #{Safely remove in map of trees $MAP entry for tree $TRKEY.}#
+  #{melt_remove_maptrees((melt_ptr_t) ($MAP), ($TRKEY))}#)
+;; primitive to retrieve the auxiliary data of a map of trees
+(defprimitive maptree_aux (map) :value
+  :doc #{Safely retrieve in map of trees $MAP the auxiliary data.}#
+  #{melt_auxdata_maptrees ((melt_ptr_t)$MAP)}#)
+;; primitive to put the auxiliary data of a map of trees
+(defprimitive maptree_auxput (map aux) :void
+  :doc #{Safely put in map of trees $MAP the auxiliary data to $AUX.}#
+  #{melt_auxput_maptrees ((melt_ptr_t)$MAP, (melt_ptr_t)$AUX)}#)
+
+;; primitive to get the nth tree of a maptree
+(defprimitive maptree_nth_attr (map :long n) :tree
+  #{(melt_nthattr_maptrees((struct meltmaptrees_st*)($map), (int)($n)))}#)
+;; primitive to get the nth value of a mapobject
+(defprimitive maptree_nth_val (map :long n) :value
+  #{(melt_nthval_maptrees((struct meltmaptrees_st*)($map), (int)($n)))}# )
+;; iterator inside maptree
+(defciterator foreach_maptree 
+  (trmap)				; startformals
+  eachmaptr 				;state symbol
+  (:tree tratt :value trval)	;local formals
+  ;; before expansion
+  #{
+   /*$EACHMAPTR*/ int $EACHMAPTR#_rk=0;
+   for ($EACHMAPTR#_rk=0;
+        $EACHMAPTR#_rk<melt_size_maptrees((struct meltmaptrees_st*)($TRMAP));
+	$EACHMAPTR#_rk++) {
+   tree $EACHMAPTR#_tr = ((struct meltmaptrees_st*)($TRMAP))->entab[$EACHMAPTR#_rk].e_at;
+   $TRATT = (tree) NULL;
+   $TRVAL = (melt_ptr_t) NULL;
+   if (!$EACHMAPTR#_tr 
+       || (void*) $EACHMAPTR#_tr == (void*) HTAB_DELETED_ENTRY) 
+     continue;
+   $TRATT = $EACHMAPTR#_tr;
+   $TRVAL = ((struct meltmaptrees_st*)($TRMAP))->entab[$EACHMAPTR#_rk].e_va;
+   }#
+  ;;after expansion
+   #{
+   } /*end $EACHMAPTR*/
+   $TRATT = (tree) NULL;
+   $TRVAL = (melt_ptr_t) NULL;
+   }#
+  )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; TREE DEBUG OUTPUT 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; boxed tree debug
+(defun dbgout_boxtree_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (let ( (dis (discrim self)) 
+	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
+    (add2out_strconst out " ?/")
+    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
+    (add2out_strconst out "/{")
+    (output_tree_briefly out (tree_content self))
+    (add2out_strconst out "}/")
+    (add2out_indentnl out depth)
+    )
+  )
+(install_method discr_tree dbg_output dbgout_boxtree_method)
+
+
+;;;; treemap debug
+(defun dbgout_maptree_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (assert_msg "check self" (is_maptree self))
+  (let ( (dis (discrim self)) 
+	 (:long mapcount (maptree_count self))
+	 (aux (maptree_aux self))
+	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
+    (add2out_strconst out " !treemap.")
+    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
+    (add2out_strconst out "/")
+    (add2out_longdec out mapcount)
+    (add2out_strconst out "!{ ")
+    (if (and (<=i depth 1)
+	     aux)
+	(progn
+	  (add2out out " aux:")
+	  (dbg_out aux dbgi (+i depth 3))
+	  ))
+    (foreach_maptree
+     (self)
+     (:tree tratt :value trval)
+     (add2out_indentnl out (+i depth 1))
+     (add2out_strconst out "*")
+     (output_tree_briefly out tratt)
+     (add2out_strconst out " == ")
+     (dbg_out trval dbgi (+i depth 2))
+     )
+    (add2out_strconst out " }!")
+    (add2out_indentnl out depth)
+    ))
+(install_method discr_map_trees dbg_output dbgout_maptree_method)
+
+;;;;;;;;;;;;;;;;
+;;; primitive to push the cfun asociated with a function declaration
+;;; this is required otherwise dump of gimple crashes
+(defprimitive push_cfun_decl (:tree fundecl) :void
+#{ push_cfun(DECL_STRUCT_FUNCTION($fundecl)) }#) 
+(defprimitive pop_cfun () :void
+"pop_cfun()")
+
+
+(export_values
+ ;;in alphanumerical order
+ ==t
+ build_identifier_tree
+ build_int_tree
+ build_string_tree
+ foreach_argument_in_function_tree
+ foreach_maptree
+ inform_at_tree
+ is_maptree
+ is_tree
+ isnull_tree
+ make_maptree
+ make_tree  
+ maptree_aux
+ maptree_auxput
+ maptree_count
+ maptree_get
+ maptree_nth_attr
+ maptree_nth_val
+ maptree_put
+ maptree_remove
+ maptree_size
+ null_tree
+ pop_cfun
+ push_cfun_decl
+ tree_addr_expr
+ tree_array_ref
+ tree_array_ref_full
+ tree_array_type
+ tree_block
+ tree_boolean_type
+ tree_chain_append
+ tree_chain_join
+ tree_chain_prepend
+ tree_complex_type
+ tree_component_ref
+ tree_component_ref_full
+ tree_component_ref_typed
+ tree_const_decl
+ tree_const_decl_named
+ tree_const_decl_of_name
+ tree_content 
+ tree_decl
+ tree_enumeral_type
+ tree_field_decl
+ tree_fixed_point_type
+ tree_function_decl 
+ tree_function_decl_named
+ tree_function_decl_of_name
+ tree_function_type
+ tree_identifier
+ tree_indirect_reference
+ tree_integer_cst
+ tree_integer_type
+ tree_integer_type_bounded
+ tree_list
+ tree_mem_ref
+ tree_nullptr_type
+ tree_of_type
+ tree_offset_type
+ tree_parm_decl
+ tree_parm_decl_named
+ tree_parm_decl_of_name
+ tree_pointer_type
+ tree_pointer_type_p
+ tree_real_cst
+ tree_real_type
+ tree_record_type
+ tree_record_type_with_fields
+ tree_reference_type
+ tree_result_decl
+ tree_result_decl_named
+ tree_result_decl_of_name
+ tree_simple_ssa_name 
+ tree_ssa_name 
+ tree_string_cst
+ tree_type
+ tree_type_decl
+ tree_type_decl_named
+ tree_type_declaration
+ tree_uid
+ tree_var_decl
+ tree_var_decl_named
+ tree_var_decl_of_name
+ tree_vec
+ tree_void_type
+ walk_use_def_chain_depth_first 
+ walk_use_def_chain_breadth_first 
+ warning_at_tree
+ warning_at_tree_decl_with_number
+)
+
+
+;; eof xtramelt-ana-tree.melt

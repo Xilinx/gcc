@@ -6281,7 +6281,7 @@ source location.}#
      (ncurenvbox curenvbinds)
      (normal_exp scurenvbox env ncx psloc)
      (debug "normal_exported_value ncurenvbox=" ncurenvbox " curenvbinds=" curenvbinds)
-     ;;; if we are not at topevel it has no sense to call the cont_fresh_env!
+     ;;; if we are not at toplevel it has no sense to call the cont_fresh_env!
      (list_append2list bindslist curenvbinds)
      (let (
 	   (argtup  (tuple symdata nexp ncurenvbox))
@@ -6329,9 +6329,9 @@ source location.}#
 			   :nrep_loc sloc))
 	)
     (debug "normexp_export_values nvaluexporter" nvaluexporter)
-    (multiple_every
-     sxnames
-     (lambda (xnam :long ix)
+    (foreach_in_multiple
+     (sxnames)
+     (xnam :long ix)
        (assert_msg "check xnam" (is_a xnam class_symbol))
        (debug "normexp_export_values xnam" xnam)
        (multicall
@@ -6343,7 +6343,7 @@ source location.}#
 	(let ( (nexpv (normal_exported_value xnam nsym nvaluexporter env ncx sloc bindslist))
 	       )
 	  (debug "normexp_export_values normal_exported_value gave nexpv" nexpv)
-	  ))))
+	  )))
     (debug "normexp_export_values final nilnrep=" nilnrep " bindslist=" bindslist)
     (return nilnrep bindslist)
     ))

@@ -1,0 +1,2344 @@
+;; -*- Lisp -*-
+;; file xtramelt-ana-gimple.melt
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(comment "***
+    Copyright 2008, 2009, 2010, 2011, 2012 Free Software Foundation, Inc.
+    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+                and Jeremie Salvucci  <jeremie.salvucci@free.fr>
+                and Pierre Vittet  <piervit@pvittet.com>
+                and Romain Geissler  <romain.geissler@gmail.com>
+
+    This file xtramelt-ana-gimple.{melt,c} is part of GCC.
+
+    GCC is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3, or (at your option)
+    any later version.
+
+    GCC is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with GCC; see the file COPYING3.  If not see
+    <http://www.gnu.org/licenses/>.
+***")
+
+;; the copyright notice above apply both to xtramelt-ana-gimple.melt and 
+;; to the generated file  xtramelt-ana-gimple*.c
+
+;; Most code here was in xtramelt-ana-base.melt before svn rev 186705
+;; ie MELT version 0.9.5 and earlier (before april 24th, 2012).
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; gimple related primitives
+
+(defprimitive is_gimple (v) :long
+   :doc #{Test if value $V is a boxed gimple.}#
+   #{(melt_magic_discr((melt_ptr_t)($v)) == MELTOBMAG_GIMPLE)}# )
+
+(defprimitive make_gimple (discr :gimple g) :value
+  :doc #{Make a boxed gimple of given $DISCR and gimple $G.}#
+  #{(meltgc_new_gimple((meltobject_ptr_t)($discr),($g)))}# )
+
+(defprimitive gimple_content (v) :gimple
+  :doc #{Retrieve the gimple stuff inside boxed gimple $V or else NULL}#
+  #{(melt_gimple_content((melt_ptr_t)($v)))}# )
+
+(defprimitive ==g (:gimple g1 g2) :long
+  :doc #{Equality of gimples $G1 & $G2}#
+  #{(($g1) == ($g2))}#)
+
+(defprimitive null_gimple () 
+  :gimple 
+  :doc #{The null gimple.}#
+   #{((gimple)NULL)}#)
+
+(defprimitive gimple_seq_of_basic_block (:basic_block bb) :gimple_seq
+  :doc #{Retrieve the gimple seq inside basic block $BB or null.}#
+  #{(($bb)?bb_seq(($bb)):NULL)}#)
+
+(defprimitive gimple_seq_first_stmt (:gimple_seq gs) :gimple
+  :doc #{Retrieve the first gimple inside basic block $BB or null.}#
+  #{(($GS)?gimple_seq_first_stmt(($GS)):NULL)}#)
+
+(defprimitive gimple_seq_last_stmt (:gimple_seq gs) :gimple
+  :doc #{Retrieve the last gimple inside basic block $BB or null.}#
+  #{(($GS)?gimple_seq_last_stmt(($GS)):NULL)}#)
+
+;;; copy an unboxed gimple_copy
+(defprimitive gimple_copy (:gimple g) :gimple
+  :doc #{Copy gimple stuff $G.}#
+  #{ (($g)?gimple_copy($g):NULL) }#)
+
+;;;;;;;;;;;;;;;; map associating GCC gimple-s to non-null MELT values
+(defprimitive is_mapgimple (map) :long
+  :doc #{Test if $MAP is a map of gimples.}#
+  #{ (melt_magic_discr((melt_ptr_t)($map)) == MELTOBMAG_MAPGIMPLES) }#)
+(defprimitive mapgimple_size (map) :long
+  :doc #{Give the allocated size of a map of gimples $MAP.}#
+ #{ (melt_size_mapgimples((struct meltmapgimples_st*)($map))) }#)
+;; primitive to get the attribute count of a mapgimple
+(defprimitive mapgimple_count (map) :long
+  :doc #{Give the used count of a map of gimples $MAP.}#
+  #{ (melt_count_mapgimples((struct meltmapgimples_st*)($map))) }# )
+;; get an entry in a mapgimple from a C gimple
+(defprimitive mapgimple_get (map :gimple g) :value
+  :doc #{Safely get the value associated to gimple $G in map of gimples $MAP.}#
+  #{(melt_get_mapgimples((melt_ptr_t) ($MAP), ($G)))}#)
+;; primitive for making a new map of gimples
+(defprimitive make_mapgimple (discr :long len) :value
+  :doc #{Make a map of gimple keys of given $DISCR and $LEN.}#
+ #{(meltgc_new_mapgimples((meltobject_ptr_t) ($discr), ($len)))}#)
+;; primitive for putting into a map of gimples
+(defprimitive mapgimple_put (map :gimple gkey :value val) :void
+  :doc #{Safely put in map of gimple $MAP the gimple key $GKEY associated to $VAL.}#
+  #{melt_put_mapgimples((melt_ptr_t) ($MAP), 
+			($GKEY), (melt_ptr_t) ($VAL))}#)
+
+;; primitive for removing from a map of gimples
+(defprimitive mapgimple_remove (map :gimple gkey) :void
+  :doc #{Safely remove in map of gimple $MAP the entry for gimple key $GKEY.}#
+  #{melt_remove_mapgimples((melt_ptr_t)($MAP), ($GKEY))}#)
+
+;; get the auxiliary data from map of gimples
+(defprimitive mapgimple_aux (map) :value
+  :doc #{Safely retrieve the auxiliary data of map of gimples $MAP.}#
+  #{melt_auxdata_mapgimples((melt_ptr_t)$MAP)}#)
+
+;; put the auxiliary data in map of gimples
+(defprimitive mapgimple_auxput (map aux) :void
+  :doc #{Safely put the auxiliary data of map of gimples $MAP as $AUX.}#
+  #{melt_auxput_mapgimples((melt_ptr_t)$MAP,(melt_ptr_t)$AUX)}#)
+
+;; primitive to get the nth gimple of a mapgimple
+(defprimitive mapgimple_nth_attr (map :long n) :gimple
+  #{(melt_nthattr_mapgimples((struct meltmapgimples_st*)($map), (int)($n)))}#)
+
+;; primitive to get the nth value of a mapobject
+(defprimitive mapgimple_nth_val (map :long n) :value
+  #{(melt_nthval_mapgimples((struct meltmapgimples_st*)($map), (int)($n)))}# )
+;; iterator inside mapgimple
+(defciterator foreach_mapgimple 
+  (gimap)				; startformals
+  eachgimap 				;state symbol
+  (:gimple att :value val)	;local formals
+  :doc #{Iterate inside the $GIMAP value -a map from gimples to values- for each gimple $ATT and value $VAL.}#
+  ;; before expansion
+  #{
+   /* foreach_mapgimple $EACHGIMAP*/ int $EACHGIMAP#_rk=0;
+   for ($EACHGIMAP#_rk=0;
+        $EACHGIMAP#_rk < melt_size_mapgimples((struct meltmapgimples_st*)($GIMAP));
+	$EACHGIMAP#_rk++) {
+   $ATT = (gimple) NULL;
+   $VAL = NULL;
+   gimple $EACHGIMAP#_gi = ((struct meltmapgimples_st*)($GIMAP))->entab[$EACHGIMAP#_rk].e_at;
+   if (!$EACHGIMAP#_gi 
+       || (void*) $EACHGIMAP#_gi ==  (void*) HTAB_DELETED_ENTRY) continue;
+   $ATT = $EACHGIMAP#_gi;
+   $VAL = ((struct meltmapgimples_st*)($GIMAP))->entab[$EACHGIMAP#_rk].e_va;
+   }#
+  ;;after expansion
+   #{
+   } /*end  foreach_mapgimple $EACHGIMAP*/
+   $ATT = (gimple) NULL;
+   $VAL = NULL;
+   }#
+  )
+
+
+;; match a gimple value & extract the gimple of it
+(defcmatcher gimpleval
+  (gv)					;match & no ins
+  (:gimple g) 				;outs
+  gimpsta				;statesymb
+  :doc #{Match a gimple boxed value $GV and extract its gimple stuff $G.
+ As operator, build a boxed gimple from $G.}#
+  ;; test expansion
+  #{ (melt_magic_discr((melt_ptr_t)($gv)) == MELTOBMAG_GIMPLE) }#
+  ;; fill expansion
+  #{ $g = melt_gimple_content(((melt_ptr_t)($gv)));
+  }#
+  ;; operator expansion
+  #{ (meltgc_new_gimple((meltobject_ptr_t)NULL, ($g))) }#
+)
+
+
+;; match a gimple assign to something
+(defcmatcher gimple_assign_to 
+  (:gimple ga)				;match
+  ;; outputs
+  (:tree lhs				;left hand side
+	 )
+  gimpassto
+  :doc #{Match gimple $GA as some kind of assignment to $LHS.}#
+  ;; test expansion
+  #{/* gimple_assign_to $GIMPASSTO ?*/ ($GA && is_gimple_assign($GA)) }#
+  ;; fill expansion
+  #{/* gimple_assign_to $GIMPASSTO !*/ $LHS = gimple_assign_lhs ($GA);
+  }#
+  ;; no operator expansion
+)
+
+  
+
+;; match or build a gimple single assign
+(defcmatcher gimple_assign_single
+  (:gimple ga)				;match
+  ;; outputs
+  (:tree lhs				;left hand side
+   :tree rhs				;first right operand
+  )
+  gimpassi
+  :doc #{Match gimple $GA as a single assign into tree $LHS of tree $RHS, or build such an assign.}#
+  ;; test expansion
+  #{/* gimple_assign_single $gimpassi test*/ ($ga && gimple_assign_single_p ($ga))}#
+  ;;fill expansion
+  #{/* gimple_assign_single $gimpassi fill*/
+   $lhs = gimple_assign_lhs($ga);
+   $rhs = gimple_assign_rhs1($ga);
+   }#
+  ;; operator expansion
+  #{/* gimple_assign_single:*/ ($LHS != NULL_TREE && $RHS != NULL_TREE)?gimple_build_assign(($LHS),($RHS)):((gimple)0)}#
+)
+
+
+;; match a gimple cast assign
+(defcmatcher gimple_assign_cast
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs				;first right operand
+  )					;outs
+  gimpascs
+  :doc #{Match gimple $GA as a casting assign into tree $LHS of tree $RHS. 
+See also $GIMPLE_BUILD_ASSIGN_CONVERT, $GIMPLE_BUILD_ASSIGN_VIEW_CONVERT, $GIMPLE_BUILD_ASSIGN_FLOAT.}#
+  ;;test expansion
+  #{/* gimple_assign_cast $GIMPASCS test*/($ga && gimple_assign_cast_p ($ga))}#
+  ;;fill expansion
+  #{/* gimple_assign_cast $GIMPASCS fill*/
+   $lhs = gimple_assign_lhs($ga);
+   $rhs = gimple_assign_rhs1($ga);
+  }#
+)
+
+(defprimitive gimple_build_assign_convert (:tree tlhs trhs) :gimple
+  :doc #{Build a gimple to assign and convert to $TLHS the tree $TRHS, if both are non-null.}#
+  #{ /*gimple_build_assign_convert*/ ($TLHS != (tree)0 
+     && $TRHS != (tree)0)?gimple_build_assign_with_ops(CONVERT_EXPR,($TLHS),($TRHS), NULL):((gimple)0)}#
+)
+
+(defprimitive gimple_build_assign_view_convert (:tree tlhs trhs) :gimple
+  :doc #{Build a gimple to assign and view convert to $TLHS the tree $TRHS, if both are non-null.}#
+  #{/*gimple_build_assign_view_convert*/ ($TLHS != (tree)0 
+    && $TRHS != (tree)0)?gimple_build_assign_with_ops(VIEW_CONVERT_EXPR,
+            ($TLHS),($TRHS), NULL):((gimple)0)}#
+)
+
+(defprimitive gimple_build_assign_fix_trunc (:tree tlhs trhs) :gimple
+  :doc #{Build a gimple to assign and fixed truncation to $TLHS the tree $TRHS, if both are non-null.}#
+  #{/*gimple_build_assign_fix_trunc*/ ($TLHS != (tree)0
+     && $TRHS != (tree)0)?gimple_build_assign_with_ops(FIX_TRUNC_EXPR,
+      ($TLHS),($TRHS), NULL):((gimple)0)}#
+)
+
+
+(defprimitive gimple_build_assign_float (:tree tlhs trhs) :gimple
+  :doc #{Build a gimple to assign the conversion to float $TLHS the tree $TRHS, if both are non-null.}#
+  #{/*gimple_build_assign_float:*/ ($TLHS != (tree)0 
+    && $TRHS != (tree)0)?gimple_build_assign_with_ops(FLOAT_EXPR,
+    ($TLHS),($TRHS), NULL):((gimple)0)}#
+)
+
+;; match a gimple copy assign
+(defcmatcher gimple_assign_copy
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs				;first right operand
+  )					;outs
+  gimpasscopy
+  :doc #{$GIMPLE_ASSIGN_COPY match a copy assignment into $LHS or $RHS.}#
+  ;;test expansion
+  #{/*gimple_assign_copy $GIMPASSCOPY ? */ ($GA && gimple_assign_copy_p ($GA))}#
+  ;;fill expansion
+  #{/*gimple_assign_copy $GIMPASSCOPY ! */ 
+   $lhs = gimple_assign_lhs($GA);
+   $rhs = gimple_assign_rhs1($GA);
+  }#
+)
+
+;; match a gimple copy assign with ssa name
+(defcmatcher gimple_assign_ssa_name_copy
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs				;first right operand
+  )					;outs
+  gimpasssacopy
+  :doc #{$GIMPLE_ASSIGN_SSA_NAME_COPY match a copy assignment with both $LHS and $RHS being SSA.}#
+  ;;test expansion
+   #{/*gimple_assign_ssa_name_copy $GIMPASSSACOPY ? */ ($GA 
+      && gimple_assign_ssa_name_copy_p ($GA))}#
+  ;;fill expansion
+   #{/*gimple_assign_ssa_name_copy $GIMPASSSACOPY ! */ 
+   $LHS = gimple_assign_lhs($GA);
+   $RHS = gimple_assign_rhs1($GA);
+   }#
+)
+
+;; match a gimple unary nop assign
+(defcmatcher gimple_assign_unary_nop
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs				;first right operand
+  )					;outs
+  gimpasg
+  :doc #{$GIMPLE_ASSIGN_UNARY_NOP match or build an unary nop assign into $LHS of $RHS.}# 
+  ;;test expansion
+  #{/*gimple_assign_unary_nop $GIMPASG ?*/ ($GA
+     && gimple_assign_unary_nop_p ($GA))}#
+  ;;fill expansion
+  #{/*gimple_assign_unary_nop $GIMPASG !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs = gimple_assign_rhs1($ga);
+  }#
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(NOP_EXPR, $LHS, $RHS, NULL_TREE)}#
+)
+
+;;; match a gimple assign with unary minus X = -Y
+(defcmatcher gimple_assign_unary_minus
+  (:gimple ga)
+  (:tree lhs
+   :tree rhs)
+  gaum
+  :doc #{$GIMPLE_ASSIGN_UNARY_MINUS match or build an unary negate assign into $LHS of $RHS.}# 
+  ;; test
+  #{ /* gimple_assign_unary_minus $GAUM ? */ ($GA 
+     && gimple_expr_code ($GA) == NEGATE_EXPR)
+  }#
+  ;; fill
+  #{ /* gimple_assign_unary_minus $GAUM ! */
+       $LHS = gimple_assign_lhs ($GA);
+       $RHS = gimple_assign_rhs1 ($GA);
+  }#
+  ;; operator expansion
+  #{/*gimple_assign_unary_minus:*/ gimple_build_assign_with_ops(NEGATE_EXPR,
+     $LHS, $RHS, NULL_TREE)}#
+  )
+
+;;;; match a gimple assign with addition ie X = Y + Z
+(defcmatcher gimple_assign_plus
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasplus
+  :doc #{$GIMPLE_ASSIGN_PLUS match or build addition into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_plus $GASPLUS ?*/ ($GA
+     && is_gimple_assign($GA) && gimple_expr_code($GA) == PLUS_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_plus $GASPLUS !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_plus:*/ gimple_build_assign_with_ops(PLUS_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+
+;;;; match a gimple assign with substraction ie X = Y - Z
+(defcmatcher gimple_assign_minus
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasminus
+  :doc #{$GIMPLE_ASSIGN_MINUS match or build substraction into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_minus $GASMINUS ?*/ ($ga && is_gimple_assign($ga) 
+     && gimple_expr_code($ga) == MINUS_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_minus $GASMINUS !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_minus:*/ gimple_build_assign_with_ops(MINUS_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+
+(defcmatcher gimple_assign_pointerplus
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gaspplus
+  :doc #{$GIMPLE_ASSIGN_POINTERMINUS match or build pointer addition into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_pointerplus $GASPPLUS ?*/  $ga && is_gimple_assign($ga) 
+     && gimple_expr_code($ga) == POINTER_PLUS_EXPR }#
+  ;; fill
+  #{/*gimple_assign_pointerplus $GASPPLUS !*/  
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+  }# 
+  ;; operator expansion
+  #{/*gimple_assign_pointerplus:*/ gimple_build_assign_with_ops(POINTER_PLUS_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+
+;;;; match a gimple assign with multiplication ie X = Y * Z
+
+(defcmatcher gimple_assign_mult
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasmult
+  :doc #{$GIMPLE_ASSIGN_MULT match or build multiplication into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_mult $GASMULT ?*/ ($ga && is_gimple_assign($ga) 
+     && gimple_expr_code($ga) == MULT_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_mult $GASMULT !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_mult:*/ gimple_build_assign_with_ops(MULT_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+
+
+;;;; match a gimple assign with trunc division ie X = Y /trunc Z
+(defcmatcher gimple_assign_trunc_div
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gastdiv
+  :doc #{$GIMPLE_ASSIGN_TRUNC_DIV match or build truncated division into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_trunc_div $GASTDIV ?*/ ($GA && is_gimple_assign($GA) && gimple_expr_code($GA) == TRUNC_DIV_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_trunc_div $GASTDIV ?*/ 
+   $LHS = gimple_assign_lhs($GA);
+   $RHS1 = gimple_assign_rhs1($GA);
+   $RHS2 = gimple_assign_rhs2($GA);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_trunc_div:*/ gimple_build_assign_with_ops(TRUNC_DIV_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+;;;; match a gimple assign with ceil division ie X = Y /ceil Z
+(defcmatcher gimple_assign_ceil_div
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gascdiv
+  :doc #{$GIMPLE_ASSIGN_CEIL_DIV match or build ceiling division into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_ceil_div $GASCDIV ?*/ ($GA && is_gimple_assign($GA) 
+    && gimple_expr_code($GA) == CEIL_DIV_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_ceil_div $GASCDIV !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_ceil_div:*/ gimple_build_assign_with_ops(CEIL_DIV_EXPR, 
+    $LHS, $RHS1, $RHS2)}#
+)
+
+;;;; match a gimple assign with floor division ie X = Y /floor Z
+(defcmatcher gimple_assign_floor_div
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasfdiv
+  :doc #{$GIMPLE_ASSIGN_FLOOR_DIV match or build floor division into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_floor_div $GASFDIV ?*/ ($ga && is_gimple_assign($ga)
+     && gimple_expr_code($ga) == FLOOR_DIV_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_floor_div $GASFDIV !*/
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_floor_div: */ gimple_build_assign_with_ops(FLOOR_DIV_EXPR,
+    $LHS, $RHS1, $RHS2)}#
+)
+
+
+;;;; match a gimple assign with round division ie X = Y /round Z
+(defcmatcher gimple_assign_round_div
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasrdiv
+  :doc #{$GIMPLE_ASSIGN_ROUND_DIV match or build rounding division into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_round_div $GASRDIV ?*/ ($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == ROUND_DIV_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_round_div $GASRDIV !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_round_div:*/ gimple_build_assign_with_ops(ROUND_DIV_EXPR,
+   $LHS, $RHS1, $RHS2)}#
+)
+
+;;;; match a gimple assign with real division ie X = Y /real Z
+(defcmatcher gimple_assign_rdiv
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasrediv
+  :doc #{$GIMPLE_ASSIGN_RDIV match or build reaol division into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_rdiv $GASREDIV ?*/ ($GA && is_gimple_assign($GA) 
+    && gimple_expr_code($GA) == RDIV_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_rdiv $GASREDIV !*/
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(RDIV_EXPR, $LHS, $RHS1, $RHS2)}#
+)
+
+;;;; match a gimple assign with exact division ie X = Y /exact Z
+(defcmatcher gimple_assign_exact_div
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasxdiv
+  :doc #{$GIMPLE_ASSIGN_EXACT_DIV match or build exact division into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_expr_code($ga) == EXACT_DIV_EXPR)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(EXACT_DIV_EXPR, $LHS, $RHS1, $RHS2)}#
+)
+
+
+;;;;;;;;;;;;;;;;
+;;;; match a gimple assign with trunc remainder ie X = Y %trunc Z
+(defcmatcher gimple_assign_trunc_mod
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gastmod
+  :doc #{$GIMPLE_ASSIGN_TRUNC_MOD match or build truncated modulus into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_trunc_mod $GASTMOD ?*/ ($GA && is_gimple_assign($GA) 
+    && gimple_expr_code($GA) == TRUNC_MOD_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_trunc_mod $GASTMOD !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_trunc_mod:*/ gimple_build_assign_with_ops(TRUNC_MOD_EXPR,
+    $LHS, $RHS1, $RHS2)}#
+)
+
+;;;; match a gimple assign with ceil remainder ie X = Y %ceil Z
+(defcmatcher gimple_assign_ceil_mod
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gascmod
+  :doc #{$GIMPLE_ASSIGN_CEIL_MOD match or build ceil modulus into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_ceil_mod $GASCMOD ?*/ ($GA && is_gimple_assign($GA) 
+    && gimple_expr_code($GA) == CEIL_MOD_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_ceil_mod $GASCMOD !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops(CEIL_MOD_EXPR, $LHS, $RHS1, $RHS2)}#
+)
+
+;;;; match a gimple assign with floor remainder ie X = Y %floor Z
+(defcmatcher gimple_assign_floor_mod
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasflomod
+  :doc #{$GIMPLE_ASSIGN_FLOOR_MOD match or build floor modulus into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_floor_mod $GASFLOMOD ?*/ ($ga && is_gimple_assign($ga)
+     && gimple_expr_code($ga) == FLOOR_MOD_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_floor_mod $GASFLOMOD !*/
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_floor_mod:*/ gimple_build_assign_with_ops(FLOOR_MOD_EXPR, 
+  $LHS, $RHS1, $RHS2)}#
+)
+
+
+;;;; match a gimple assign with round remainder ie X = Y %round Z
+(defcmatcher gimple_assign_round_mod
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   )
+  gasrmod
+  :doc #{$GIMPLE_ASSIGN_ROUND_MOD match or build rounded modulus into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{/*gimple_assign_round_mod $GASRMOD ?*/ ($ga && is_gimple_assign($ga) 
+   && gimple_expr_code($ga) == ROUND_MOD_EXPR)}#
+  ;; fill
+  #{/*gimple_assign_round_mod $GASRMOD !*/ 
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   }# 
+  ;; operator expansion
+  #{/*gimple_assign_round_mod:*/ gimple_build_assign_with_ops(ROUND_MOD_EXPR, 
+   $LHS, $RHS1, $RHS2)}#
+)
+
+
+
+;;; match a gimple assign binary op
+(defcmatcher gimple_assign_binaryop
+  (:gimple ga)				;match
+  (:tree lhs				;left hand side
+   :tree rhs1
+   :tree rhs2
+   :long opcode
+   )
+  gasbinop
+  :doc #{$GIMPLE_ASSIGN_BINARYOP match or build a binary operator of $OPCODE into $LHS of $RHS1 and $RHS2.}#
+  ;; test
+  #{($ga && is_gimple_assign($ga) && gimple_num_ops($ga) >= 3)}#
+  ;; fill
+  #{
+   $lhs = gimple_assign_lhs($ga);
+   $rhs1 = gimple_assign_rhs1($ga);
+   $rhs2 = gimple_assign_rhs2($ga);
+   $opcode = gimple_assign_rhs_code($ga);
+   }# 
+  ;; operator expansion
+  #{gimple_build_assign_with_ops((enum tree_code) $OPCODE, $LHS, $RHS1, $RHS2)}#
+)
+
+
+;;;;;;;;;;;;;;;;
+;;; match any kind of gimple cond
+(defcmatcher gimple_cond
+  (:gimple gc)
+  (:tree lhs rhs :long condcode)
+  gimpcond
+  :doc #{$GIMPLE_COND match a GIMPLE condition between $LHS and $RHS with the $CONDCODE long.}#
+  ;; test
+  #{/*gimple_cond $GIMPCOND ?*/ ($GC && (long)gimple_code($GC) == GIMPLE_COND) }#
+  ;; fill
+  #{/*gimple_cond $GIMPCOND !*/  $LHS = gimple_cond_lhs($GC);
+   $RHS = gimple_cond_rhs($GC);
+   $CONDCODE = gimple_cond_code($GC);
+   }#
+  ;; operator expansion
+  #{/*gimple_cond:*/ ($CONDCODE>0 && $CONDCODE<(long)MAX_TREE_CODES
+		      && TREE_CODE_CLASS($CONDCODE)== tcc_comparison) ? gimple_build_cond((enum tree_code)$CONDCODE, $LHS, $RHS, 
+				       /*nolabels*/ NULL_TREE, NULL_TREE): (gimple) NULL}#)
+  
+	 
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond less or equal
+(defcmatcher gimple_cond_lessequal
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondle
+  :doc #{$GIMPLE_COND_LESSEQUAL match or build a <= condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_lessequal $GIMPCONDLE ? */ ($gc && gimple_code($gc)==GIMPLE_COND 
+     && gimple_cond_code($gc)==LE_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_lessequal $GIMPCONDLE ! */ 
+   $lhs = gimple_cond_lhs($gc);
+   $rhs = gimple_cond_rhs($gc);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_lessequal:*/ gimple_build_cond(LE_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+;;; match a gimple cond less 
+(defcmatcher gimple_cond_less
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondle
+  :doc #{$GIMPLE_COND_LESS match or build a < condition between $LHS and $RHS.}#
+  ; test expansion
+  #{/*gimple_cond_less $GIMPCONDLE ?*/ ($gc && gimple_code($gc)==GIMPLE_COND
+     && gimple_cond_code($gc)==LT_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_less $GIMPCONDLE ! */
+   $lhs = gimple_cond_lhs($gc);
+   $rhs = gimple_cond_rhs($gc);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_less:*/ gimple_build_cond(LT_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+)
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond not equal
+(defcmatcher gimple_cond_notequal
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondne
+  :doc #{$GIMPLE_COND_NOTEQUAL match or build a != condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_notequal $GIMPCONDNE ?*/ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==NE_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_notequal $GIMPCONDNE !*/
+   $LHS = gimple_cond_lhs($GC);
+   $RHS = gimple_cond_rhs($GC);
+  }#
+  ;; operator expansion
+  #{/*gimple_cond_notequal:*/ gimple_build_cond(NE_EXPR, $LHS, 
+  $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+)
+
+;;; match a gimple_cond equal
+(defcmatcher gimple_cond_equal
+  (:gimple gc)
+  (:tree lhs
+   :tree rhs)
+  gimpcondeq
+  :doc #{$GIMPLE_COND_EQUAL match or build a == condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_equal $GIMPCONDEQ ?*/  ($GC &&
+	gimple_code ($GC) == GIMPLE_COND &&
+	gimple_cond_code ($GC) == EQ_EXPR)
+  }#
+  ;; fill expansion
+  #{/*gimple_cond_equal $GIMPCONDEQ !*/ 
+       $lhs = gimple_cond_lhs ($gc);
+       $rhs = gimple_cond_rhs ($gc);
+  }#
+  ;; operator expansion
+  #{/*gimple_cond_equal:*/ gimple_build_cond(EQ_EXPR, $LHS, $RHS, 
+    /*nolabels*/ NULL_TREE, NULL_TREE)}#
+)
+
+;;; match a gimple cond greater
+(defcmatcher gimple_cond_greater
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondgt
+  :doc #{$GIMPLE_COND_GREATER match or build a > condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_greater $GIMPCONDGT ?*/ ($GC && gimple_code($GC)==GIMPLE_COND 
+      && gimple_cond_code($GC)==GT_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_greater $GIMPCONDGT !*/ 
+   $LHS = gimple_cond_lhs($GC);
+   $RHS = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_greater:*/ gimple_build_cond(GT_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+)
+
+;;; match a gimple_cond greater or equal
+(defcmatcher gimple_cond_greater_or_equal
+  (:gimple gc)
+  (:tree lhs
+   :tree rhs)
+  gimpcondge
+  :doc #{$GIMPLE_COND_GREATER_OR_EQUAL match or build a >= condition between $LHS and $RHS.}#
+  ;; test
+  #{ /*gimple_cond_greater_or_equal $GIMPCONDGE ? */ ($GC && 
+        gimple_code ($GC) == GIMPLE_COND && 
+        gimple_cond_code ($GC) == GE_EXPR)
+  }#
+  ;; fill
+  #{ /*gimple_cond_greater_or_equal $GIMPCONDGE ! */
+       $lhs = gimple_cond_lhs ($GC);
+       $rhs = gimple_cond_rhs ($GC);
+  }#
+  ;; operator expansion
+  #{/*gimple_cond_greater_or_equal:*/ gimple_build_cond(GE_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+)
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond unordered
+(defcmatcher gimple_cond_unordered
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondunord
+  :doc #{$GIMPLE_COND_UNORDERED match or build a unordered floating point condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_unordered $GIMPCONDUNORD ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==UNORDERED_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_unordered $GIMPCONDUNORD ! */ 
+   $lhs = gimple_cond_lhs($GC);
+   $rhs = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_unordered:*/ gimple_build_cond(UNORDERED_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond ordered
+(defcmatcher gimple_cond_ordered
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondord
+  :doc #{$GIMPLE_COND_ORDERED match or build a unordered floating point condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_unordered $GIMPCONDORD ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==ORDERED_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_unordered $GIMPCONDORD ! */ 
+   $lhs = gimple_cond_lhs($GC);
+   $rhs = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_ordered:*/ gimple_build_cond(ORDERED_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond unlt
+(defcmatcher gimple_cond_unlt
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondunlt
+  :doc #{$GIMPLE_COND_UNLT match or build a unordered or less than floating point condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_unlt $GIMPCONDUNLT ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==UNLT_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_unlt $GIMPCONDUNLT ! */ 
+   $lhs = gimple_cond_lhs($GC);
+   $rhs = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_unlt:*/ gimple_build_cond(UNLT_EXPR, $LHS, $RHS, 
+   /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond unle
+(defcmatcher gimple_cond_unle
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondunle
+  :doc #{$GIMPLE_COND_UNLE match or build a unordered or less or equal floating point condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_unle $GIMPCONDUNLE ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==UNLE_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_unle $GIMPCONDUNLE ! */ 
+   $lhs = gimple_cond_lhs($GC);
+   $rhs = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_unle:*/ gimple_build_cond(UNLE_EXPR, $LHS, $RHS, 
+    /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond ungt
+(defcmatcher gimple_cond_ungt
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondungt
+  :doc #{$GIMPLE_COND_UNGT match or build a unordered or greater than floating point condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_ungt $GIMPCONDUNGT ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==UNGT_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_ungt $GIMPCONDUNGT ! */ 
+   $lhs = gimple_cond_lhs($GC);
+   $rhs = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_ungt:*/ gimple_build_cond(UNGT_EXPR, $LHS, $RHS, 
+    /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond unge
+(defcmatcher gimple_cond_unge
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondunge
+  :doc #{$GIMPLE_COND_UNGE match or build a unordered or greater or equal floating point condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_unge $GIMPCONDUNGE ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==UNGE_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_unge $GIMPCONDUNGE ! */ 
+   $LHS = gimple_cond_lhs($GC);
+   $RHS = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_unge:*/ gimple_build_cond(UNGE_EXPR, $LHS, $RHS, 
+    /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond uneq
+(defcmatcher gimple_cond_uneq
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpconduneq
+  :doc #{$GIMPLE_COND_UNEQ match or build a unordered or unequal floating point
+  condition between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_uneq $GIMPCONDUNEQ ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC)==UNEQ_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_uneq $GIMPCONDUNEQ ! */ 
+   $LHS = gimple_cond_lhs($GC);
+   $RHS = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_uneq:*/ gimple_build_cond(UNEQ_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple cond ltgt
+(defcmatcher gimple_cond_ltgt
+  (:gimple gc)
+  (:tree lhs 
+   :tree rhs
+   )
+  gimpcondltgt
+  :doc #{$GIMPLE_COND_LTGT match or build a less than or greater than floating point 
+  condition reverse of $GIMPLE_COND_UNEQ between $LHS and $RHS.}#
+  ;; test expansion
+  #{/*gimple_cond_ltgt $GIMPCONDLTGT ? */ ($GC && gimple_code($GC)==GIMPLE_COND 
+     && gimple_cond_code($GC) == LTGT_EXPR)}#
+  ;; fill expansion
+  #{/*gimple_cond_ltgt $GIMPCONDLTGT ! */ 
+   $LHS = gimple_cond_lhs($GC);
+   $RHS = gimple_cond_rhs($GC);
+  }# 
+  ;; operator expansion
+  #{/*gimple_cond_ltgt:*/ gimple_build_cond(LTGT_EXPR, $LHS, $RHS, /*nolabels*/ NULL_TREE, NULL_TREE)}#
+  )
+
+
+
+;; match a gimple cond true
+(defcmatcher gimple_cond_true
+  (:gimple gc)
+  ()
+  gimpcondtr
+  :doc #{$GIMPLE_COND_TRUE match a gimple conditional $GC with an always true condition.}#
+  ;;test
+  #{/* gimple_cond_true $GIMPCONDTR ? */ ($GC && gimple_code($GC) == GIMPLE_COND 
+     && gimple_cond_true_p($gc))}#
+  ;;fill
+  #{ /* gimple_cond_true $GIMPCONDTR !*/
+  }# )
+
+
+;; match a gimple cond false
+(defcmatcher gimple_cond_false
+  (:gimple gc)
+  ()
+  gimpcondfa
+  :doc #{$GIMPLE_COND_TRUE match a gimple conditional $GC with an always false condition.}#
+  ;;test
+  #{/*fimple_cond_false $gimpcondfa ?*/ ($gc && gimple_code($gc)==GIMPLE_COND
+	 && gimple_cond_false_p($gc))}# )
+
+
+;; rarely used pattern to extract the true & false labels. These are
+;; often null!
+(defcmatcher gimple_cond_with_true_false_labels
+  (:gimple gc)
+  (:tree truelab falselab)
+  gimpcondtrlab
+  :doc #{$GIMPLE_COND_WITH_TRUE_FALSE_LABELS match a gimple conditional $GC and
+  extracts its true label $TRUELAB and false label $FALSELAB.}#
+  ;; test
+  #{/* gimple_cond_with_true_false_labels $gimpcondtrlab ?*/ ($gc && gimple_code($gc)==GIMPLE_COND)}#
+  ;;fill
+  #{/* gimple_cond_with_true_false_labels $gimpcondtrlab !*/
+   $truelab = gimple_cond_true_label($gc);
+   $falselab = gimple_cond_false_label($gc);
+   }#
+)
+
+;; pattern to extract the true & false edges of a gimple_cond.
+(defcmatcher gimple_cond_with_edges
+  (:gimple gc)
+  (:edge truedge falsedge)
+  gimpcondtredges
+  :doc #{$GIMPLE_COND_WITH_EDGES match a gimple conditional $GC and extracts 
+  its true edge $TRUEDGE and false edge $FALSEDGE }#
+  ;; test
+  #{/*$gimpcondtredges ?*/  ($gc && gimple_code($gc)==GIMPLE_COND)}#
+  ;;fill
+  #{ /*$gimpcondtredges !*/
+  extract_cond_bb_edges ((gimple_bb ($gc)), &($truedge), &($falsedge));
+  }#)
+
+;;; iterate on each argument of a call function
+(defciterator foreach_argument_of_gimple_call
+  (:gimple gcall)
+  eaocf
+  (:tree argument)
+  :doc #{ $FOREACH_ARGUMENT_OF_GIMPLE_CALL iterates on each $ARGUMENT of gimple call $GCALL.}#
+  #{
+       /* foreach_argument_of_gimple_call before $EAOCF */
+       int $EAOCF#_i = 0;
+       $ARGUMENT = (tree)NULL;
+
+       if ($GCALL &&  gimple_code($GCALL) == GIMPLE_CALL)
+       {
+           int $EAOCF#_n = gimple_call_num_args ($gcall);
+
+           for ($EAOCF#_i = 0; 
+		$EAOCF#_i < $EAOCF#_n; 
+                $EAOCF#_i++)
+           {
+               $ARGUMENT = gimple_call_arg ($gcall, $EAOCF#_i);
+  }#
+
+  #{
+        /* foreach_argument_of_gimple_call after $EAOCF */
+              $ARGUMENT = (tree)NULL;
+           }
+        }
+  }#)
+
+
+;;; match a gimple call to a direct function of any matched arity
+(defcmatcher gimple_call
+  (:gimple gc)
+  (:tree lhs
+	 fndecl
+   :long nbargs
+   )
+  gimpcall
+  :doc #{$GIMPLE_CALL match a gimple $GC if it is a call extracting result
+  $LHS to function decl $FNDECL with $NBARGS.}#
+  ;; test 
+  #{/* gimple_call $gimpcall ?*/($gc && gimple_code($gc)==GIMPLE_CALL)}#
+  ;; fill
+  #{ /* gimple_call $gimpcall !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $nbargs = gimple_call_num_args($gc);
+  }# )
+
+;; match a gimple call to a direct function of arity 1 exactly
+(defcmatcher gimple_call_1
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0)
+  gimp1call
+  :doc #{$GIMPLE_CALL_1 match a gimple $GC call of arity 1, extracting result $LHD function decl $FNDECL and $ARG0.}#
+  ;; test
+  #{/* gimple_call_1 $gimp1call ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)==1)}#
+  ;; fill
+  #{ /* gimple_call_1 $gimp1call !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   }#)
+
+;; match a gimple call to a direct function of arity 1 or more
+(defcmatcher gimple_call_1_more
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+   :long nbargs)
+  gimp1calm
+  :doc #{$GIMPLE_CALL_1_MORE match a gimple $GC call of arity 1 or more, extracting result $LHD function decl $FNDECL and $ARG0 and number of arguments $NBARGS.}#
+  ;; test
+  #{/* gimple_call_1_more $gimp1calm ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)>=1)}#
+  ;; fill
+  #{ /* gimple_call_1_more $gimp1calm !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $nbargs = gimple_call_num_args($gc);
+   }#)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; match a gimple call to a direct function of arity 2 exactly
+(defcmatcher gimple_call_2
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1)
+  gimp2call
+  :doc #{$GIMPLE_CALL_2 match a gimple $GC call of arity 2, extracting result $LHD function decl $FNDECL and arguments $ARG0 & $ARG1.}#
+  ;; test
+  #{/* gimple_call_2 $gimp2call ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)==2)}#
+  ;; fill
+  #{ /* gimple_call_2 $gimp2call !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   }#)
+
+;; match a gimple call to a direct function of arity 2 or more
+(defcmatcher gimple_call_2_more
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+   :long nbargs)
+  gimp2calm
+  :doc #{$GIMPLE_CALL_2_MORE match a gimple $GC call of arity 2 or more, extracting result $LHD function decl $FNDECL and arguments $ARG0 & $ARG1 and number of arguments $NBARGS.}#
+  ;; test
+  #{/* gimple_call_2_more $gimp2calm ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)>=2)}#
+  ;; fill
+  #{ /* gimple_call_2_more $gimp2calm !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $nbargs = gimple_call_num_args($gc);
+   }#)
+  
+
+;; match a gimple call to a direct function of arity 3 exactly
+(defcmatcher gimple_call_3
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2)
+  gimp3call
+  :doc #{$GIMPLE_CALL_3 match a gimple $GC call of arity 3, extracting result $LHD function decl $FNDECL and arguments $ARG0 & $ARG1 & $ARG2.}#
+  ;; test
+  #{/* gimple_call_3 $gimp3call ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)==3)}#
+  ;; fill
+  #{ /* gimple_call_3 $gimp3call !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   }#)
+
+;; match a gimple call to a direct function of arity 3 or more
+(defcmatcher gimple_call_3_more
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+   :long nbargs
+	 )
+  gimp3calm
+  :doc #{$GIMPLE_CALL_3_MORE match a gimple $GC call of arity 3 or more, extracting result $LHD function decl $FNDECL and arguments $ARG0 & $ARG1 & $ARG2 & number of args $NBARGS.}#
+  ;; test
+  #{/* gimple_call_3_more $gimp3calm ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)>=3)}#
+  ;; fill
+  #{ /* gimple_call_3_more $gimp3calm !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $nbargs = gimple_call_num_args($gc);
+   }#)
+  
+
+;; match a gimple call to a direct function of arity 4 exactly
+(defcmatcher gimple_call_4
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3)
+  gimp4call
+  :doc #{$GIMPLE_CALL_4 match a gimple $GC call of arity 4, extracting result $LHD function decl $FNDECL and arguments $ARG0 & $ARG1 & $ARG2 & $ARG3.}#
+  ;; test
+  #{/* gimple_call_4 $gimp4call ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)==4)}#
+  ;; fill
+  #{ /* gimple_call_4 $gimp4call !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   }#)
+
+;; match a gimple call to a direct function of arity 4 or more
+(defcmatcher gimple_call_4_more
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3
+   :long nbargs
+	 )
+  gimp4calm
+  :doc #{$GIMPLE_CALL_4_MORE match a gimple $GC call of arity 4 or more, 
+extracting result $LHD function decl $FNDECL and 
+arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 and number of arguments $NBARGS.}#
+  ;; test
+  #{/* gimple_call_4_more $gimp4calm ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL
+   && gimple_call_num_args($gc)>=4)}#
+  ;; fill
+  #{ /* gimple_call_4_more $gimp4calm !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   $nbargs = gimple_call_num_args($gc);
+   }#)
+  
+;;;;
+;; match a gimple call to a direct function of arity 5 exactly
+(defcmatcher gimple_call_5
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3
+	 arg4)
+  gimp5call
+  :doc #{$GIMPLE_CALL_5 match a gimple $GC call of arity 5, extracting 
+result $LHD function decl $FNDECL and arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4.}#
+  ;; test
+  #{/* gimple_call_5 $gimp5call ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)==5)}#
+  ;; fill
+  #{ /* gimple_call_5 $gimp5call !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   $arg4 = gimple_call_arg(($gc), 4);
+   }#)
+
+;; match a gimple call to a direct function of arity 5 or more
+(defcmatcher gimple_call_5_more
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3
+	 arg4
+   :long nbargs
+	 )
+  gimp5calm
+  :doc #{$GIMPLE_CALL_5_MORE match a gimple $GC call of arity 5 or more, 
+extracting result $LHD function decl $FNDECL and 
+arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4 and number of arguments $NBARGS.}#
+  ;; test
+  #{/* gimple_call_5_more $gimp5calm ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)>=5)}#
+  ;; fill
+  #{ /* gimple_call_5_more $gimp5calm !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   $arg4 = gimple_call_arg(($gc), 4);
+   $nbargs = gimple_call_num_args($gc);
+   }#)
+  
+
+;;;;
+;; match a gimple call to a direct function of arity 6 exactly
+(defcmatcher gimple_call_6
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3
+	 arg4
+	 arg5)
+  gimp6call
+  :doc #{$GIMPLE_CALL_6 match a gimple $GC call of arity 6, extracting 
+result $LHD function decl $FNDECL and arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4 & $ARG5.}#
+  ;; test
+  #{/* gimple_call_6 $gimp6call ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)==6)}#
+  ;; fill
+  #{ /* gimple_call_6 $gimp6call !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   $arg4 = gimple_call_arg(($gc), 4);
+   $arg5 = gimple_call_arg(($gc), 5);
+   }#)
+
+;; match a gimple call to a direct function of arity 6 or more
+(defcmatcher gimple_call_6_more
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3
+	 arg4
+	 arg5
+   :long nbargs
+	 )
+  gimp6calm
+  :doc #{$GIMPLE_CALL_6_MORE match a gimple $GC call of arity 6 or more, 
+extracting result $LHD function decl $FNDECL and 
+arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4 & $ARG5 and number of arguments $NBARGS.}#
+  ;; test
+  #{/* gimple_call_6_more $gimp6calm ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)>=6)}#
+  ;; fill
+  #{ /* gimple_call_6_more $gimp6calm !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   $arg4 = gimple_call_arg(($gc), 4);
+   $arg5 = gimple_call_arg(($gc), 5);
+   $nbargs = gimple_call_num_args($gc);
+   }#)
+  
+
+;;;;
+;; match a gimple call to a direct function of arity 7 exactly
+(defcmatcher gimple_call_7
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3
+	 arg4
+	 arg5
+	 arg6)
+  gimp7call
+  :doc #{$GIMPLE_CALL_7 match a gimple $GC call of arity 7, extracting 
+result $LHD function decl $FNDECL and arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4 & $ARG5 & $ARG6.}#
+  ;; test
+  #{/* gimple_call_7 $gimp7call ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)==7)}#
+  ;; fill
+  #{ /* gimple_call_7 $gimp7call !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   $arg4 = gimple_call_arg(($gc), 4);
+   $arg5 = gimple_call_arg(($gc), 5);
+   $arg6 = gimple_call_arg(($gc), 6);
+   }#)
+
+;; match a gimple call to a direct function of arity 7 or more
+(defcmatcher gimple_call_7_more
+  (:gimple gc)
+  (:tree lhs 
+	 fndecl
+	 arg0
+	 arg1
+	 arg2
+	 arg3
+	 arg4
+	 arg5
+	 arg6
+   :long nbargs
+	 )
+  gimp7calm
+  :doc #{$GIMPLE_CALL_7_MORE match a gimple $GC call of arity 7 or more, 
+extracting result $LHD function decl $FNDECL and 
+arguments $ARG0 & $ARG1 & $ARG2 & $ARG3 & $ARG4 & $ARG5 & $ARG6 and number of arguments $NBARGS.}#
+  ;; test
+  #{/* gimple_call_7_more $gimp7calm ?*/ ($gc && gimple_code($gc)==GIMPLE_CALL && gimple_call_num_args($gc)>=7)}#
+  ;; fill
+  #{ /* gimple_call_7_more $gimp7calm !*/
+   $lhs  = gimple_call_lhs($gc);
+   $fndecl = gimple_call_fndecl($gc);
+   $arg0 = gimple_call_arg(($gc), 0);
+   $arg1 = gimple_call_arg(($gc), 1);
+   $arg2 = gimple_call_arg(($gc), 2);
+   $arg3 = gimple_call_arg(($gc), 3);
+   $arg4 = gimple_call_arg(($gc), 4);
+   $arg5 = gimple_call_arg(($gc), 5);
+   $arg6 = gimple_call_arg(($gc), 6);
+   $nbargs = gimple_call_num_args($gc);
+   }#)
+  
+
+;;;; fetch the nth argument inside a call
+(defprimitive gimple_call_nth_arg (:gimple gc :long n) :tree
+  :doc #{Safely retrieve in gimple call $GC its $N-th argument.}#
+  #{(($gc && gimple_code($gc) == GIMPLE_CALL && ($n)>=0 
+      && ($n) < gimple_call_num_args($gc)) 
+     ? gimple_call_arg(($gc), ($n)) : NULL_TREE)}# )
+
+
+
+;;;;;;;;;;;;;;;;
+;;;;  match a gimple return
+(defcmatcher gimple_return
+  (:gimple gr)
+  (:tree retval
+   )
+  gimpret
+  :doc #{$GIMPLE_RETURN match or build a gimple return extracting the returned treee $RETVAL.}#
+  ;; test 
+  #{/* gimple_return $GIMPRET ? */ ($gr && gimple_code($gr)==GIMPLE_RETURN)}#
+  ;; fill
+  #{/* gimple_return $GIMPRET ! */ 
+   $retval = gimple_return_retval($gr);
+  }# 
+  ;; operate
+  #{/* gimple_return: */ gimple_build_return($RETVAL) }#
+)
+ 
+
+
+;;;;;;;;;;;;;;;;
+;;;; match a goto [to a label or var for indirect goto]
+(defcmatcher gimple_goto
+  (:gimple gr)
+  (:tree tlabeld)
+  gimpgoto
+  :doc #{$GIMPLE_GOTO match or build a gimple goto to label destination tree $tLABELD}#
+  ;; test
+  #{ /*  gimple_goto $gimpgoto ? */ ($gr && gimple_code($gr) == GIMPLE_GOTO) }#
+  ;; fill
+  #{ /*  gimple_goto $gimpgoto ! */ 
+  $tlabeld = gimple_goto_dest($gr);
+  }# 
+  ;; operate
+  #{ /*  gimple_goto: */ gimple_build_goto($TLABELD) }#
+)
+
+
+;;;;;;;;;;;;;;;;
+
+;;; match a gimple error mark or a nil; probably not very useful!
+(defcmatcher gimple_error_mark_or_nil
+  (:gimple gr)
+  ()
+  gimperrnil
+  :doc #{$GIMPLE_ERROR_MARK_OR_NIL match a nil Gimple or an error mark.}#
+  ;; test
+  #{ /*gimple_error_mark_or_nil $GIMPERRNIL ? */ (!$GR 
+						  ||  gimple_code($GR) == GIMPLE_ERROR_MARK) }#
+  ;; no fill
+)
+
+;;; match a gimple error mark
+(defcmatcher gimple_error_mark
+  (:gimple gr)
+  ()
+  gimperr
+  :doc #{$GIMPLE_ERROR_MARK match a Gimple error mark.}#
+  #{ /*gimple_error_mark $GIMPERR ? */ ($GR && gimple_code($GR) == GIMPLE_ERROR_MARK) }#
+)
+
+;; match any gimple_debug 
+(defcmatcher gimple_debug
+  (:gimple gr)
+  ()
+  gimpdbg
+  :doc #{$GIMPLE_DEBUG match a Gimple debug.}#
+  ;; test
+  #{ /* gimple_debug $GIMPDBG ? */ (($gr) && is_gimple_debug(($gr))) }#
+  ;; no fill
+)
+
+
+;; match a gimple_debug_bind
+(defcmatcher gimple_debug_bind
+  (:gimple gr)
+  (:tree tvar tval)
+  gimpdbgbind
+  :doc #{$GIMPLE_DEBUG_BIND match a Gimple debug bind extracting tree var $TVAR and value $TVALUE.}#
+  ;; test
+  #{ /* gimple_debug_bind $gimpdbgbind ? */ (($gr) && gimple_debug_bind_p (($gr))) }#
+  ;; fill
+  #{ /*  gimple_debug_bind  $gimpdbgbind ! */ 
+  $tvar = gimple_debug_bind_get_var ($gr);
+  $tval = gimple_debug_bind_get_value ($gr);
+  }#
+  ;; FIXME: should have an operator
+)
+
+;;; match a label
+(defcmatcher gimple_label
+  (:gimple gr)
+  (:tree tlabel)
+  gimplab
+  :doc #{$GIMPLE_LABEL match or build a gimple label extracting the label tree $TLABEL}#
+  ;; test
+  #{ /* gimple_label $gimplab ? */ ($gr && gimple_code($gr) == GIMPLE_LABEL) }#
+  ;; fill
+  #{ /* gimple_label $gimplab ! */ 
+  $tlabel = gimple_label_label($gr);
+  }# 
+  ;; operate
+  #{ /* gimple_label: */ gimple_build_label ($TLABEL) }#
+)
+
+
+(gccif 
+ ("4.7." "4.8.")
+;;; match a transaction - only in GCC 4.7 or 4.8
+ (defcmatcher gimple_transaction
+   (:gimple gr)
+   (:gimple_seq gsbody
+		:tree tlab)
+   gimptrans
+   :doc #{$GIMPLE_TRANSACTION match or build a transaction block gimple. 
+   $GSBODY is the gimple_seq of the body, $TLAB is the label tree.}#
+   ;; test
+   #{/*gimple_transaction $GIMPTRANS ?*/ ($GR && gimple_code($GR) == GIMPLE_TRANSACTION) }#
+   ;; fill
+   #{/*gimple_transaction $GIMPTRANS !*/
+   $GSBODY = gimple_transaction_body ($GR) ;
+   $TLAB = gimple_transaction_label ($GR)  ;
+   }#
+   ;; operator expansion
+   #{/*gimple_transaction:*/ gimple_build_transaction($GSBODY,$TLAB)}#
+   )
+
+ ;; match a gimple exception else - only in GCC 4.7 or 4.8
+ (defcmatcher gimple_eh_else
+   (:gimple gi)
+   (:gimple_seq gsnormbody gsexcbody)
+   gimpehels
+   :doc #{$GIMPLE_EH_ELSE match or build an exception else, sole
+   content of GIMPLE_TRY_FINALLY node. $GDNORMBODY is the normal exit
+   body, and $GSEXCBODY is the exceptional exit body.}#
+   ;; test
+   #{ /* gimple_eh_else $GIMPEHELS ? */ ($GI && gimple_code($GI) == GIMPLE_EH_ELSE) }#
+   ;; fill
+   #{ /* gimple_eh_else $GIMPEHELS ! */
+   $GSNORMBODY = gimple_eh_else_n_body($GI) ;
+   $GSEXCBODY = gimple_eh_else_e_body($GI)  ;
+   }#
+   ;; operate
+   #{ /*gimple_eh_else: */ gimple_build_eh_else ($GSNORMBODY, $GSEXCBODY) }#
+   )
+
+ (export_values gimple_transaction gimple_eh_else)
+ )					;end gccif "4.7"  or 4.8
+   
+;;;;;;;;;;;;;;;;
+(defcmatcher gimple_eh_dispatch
+ (:gimple gi)
+ (:long regnum)
+ gimpehdis
+ :doc #{$GIMPLE_EH_DISPATCH match or build an exception dispatch. $REGNUM is the region number.}#
+ ;; test
+ #{ /* gimple_eh_dispatch $GIMPEHDIS ? */ ($GI && gimple_code($GI) == GIMPLE_EH_DISPATCH) }#
+ ;; fill
+ #{ /* gimple_eh_dispatch  $GIMPEHDIS ! */ $REGNUM = gimple_eh_dispatch_region ($GI);
+ }#
+ ;; operate
+ #{ /* gimple_eh_dispatch: */ gimple_build_eh_dispatch($REGNUM) }#
+)
+
+;;; match a nop
+(defcmatcher gimple_nop
+  (:gimple gr)
+  ()
+  gimpnop
+  :doc #{$GIMPLE_NOP match or build a nop gimple}#
+  ;; test
+  #{ /* gimple_nop $gimpnop ?*/ ($gr && gimple_code($gr) == GIMPLE_NOP) }#
+  ;; no fill
+  #{ /* gimple_nop $gimpnop ! */ }#
+  ;; operator
+  #{ /*gimple_nop:*/ gimple_build_nop() }#
+  )
+
+;;; match a gimple exception catcher
+(defcmatcher gimple_catch
+  (:gimple gi)
+  (:tree textype
+   :gimple_seq gshandler)
+  gimpcatch
+  :doc #{$GIMPLE_CATCH match or build a typed exception handler with $TEXTYPE
+  being the type[s] of exceptions, and $GSHANDLER being the handler
+  body gimpleseq.}#
+  ;; test
+  #{ /*gimple_catch $GIMPCATCH ? */ ($GI && gimple_code($GI) == GIMPLE_CATCH) }#
+  ;; fill
+  #{ /*gimple_catch $GIMPCATCH ! */
+  $TEXTYPE = gimple_catch_types ($GI);
+  $GSHANDLER = gimple_catch_handler ($GI);
+  }#
+  ;; operator
+  #{ /*gimple_catch:*/ gimple_build_catch($TEXTYPE,$GSHANDLER) }#
+)
+
+
+;; match a gimple exception filter
+(defcmatcher gimple_eh_filter
+  (:gimple gi)
+  (:tree textype
+   :gimple_seq gsfail)
+   gimpehfilt
+   :doc #{$GIMPLE_EH_FILTER match or build a gimple exception
+   specification. $TEXTYPE is the list of exception types and $GDFAIL
+   is the sequence to execute on failure.}#
+   ;; test
+   #{ /*gimple_eh_filter $GIMPEHFILT ?*/ ($GI && gimple_code($GI) == GIMPLE_EH_FILTER) }#
+   ;; fill
+   #{ /*gimple_eh_filter $GIMPEHFILT !*/ 
+   $TEXTYPE = gimple_eh_filter_types ($GI);
+   $GSFAIL = gimple_eh_filter_failure ($GI);
+   }#
+   ;; operate
+   #{ /*gimple_eh_filter:*/ gimple_build_eh_filter($TEXTYPE,$GSFAIL) }#
+)
+
+;; match a gimple_eh_must_not_throw
+(defcmatcher gimple_eh_must_not_throw
+  (:gimple gi)
+  (:tree tfndecl)
+  gimpnthr
+  :doc #{$GIMPLE_EH_MUST_NOT_THROW match or build an exception
+  barrier, with a non-returning function decl invoked when exception
+  propagates to this point.}#
+  ;; test
+  #{ /* gimple_eh_must_not_throw $GIMPNTHR ? */ ($GI && gimple_code($GI) == GIMPLE_EH_MUST_NOT_THROW) }#
+  ;; fill
+  #{ /* gimple_eh_must_not_throw $GIMPNTHR ! */ $TFNDECL = gimple_eh_must_not_throw_fndecl($GI);
+  }#
+  ;; operate
+  #{ /* gimple_eh_must_not_throw: */ gimple_build_eh_must_not_throw ($TFNDECL) }#
+)
+
+
+;; match a gimple exception resume
+(defcmatcher gimple_resx
+  (:gimple gi)
+  (:long regnum)
+  gimpresx
+  :doc #{$GIMPLE_RESX match or build a gimple exception resume. $REGNUM is the exception region number.}#
+  ;; test
+  #{ /* gimple_resx $GIMPRESX ? */ ($GI && gimple_code($GI) == GIMPLE_RESX) }#
+  ;; fill
+  #{ /* gimple_resx $GIMPRESX ! */ $REGNUM = gimple_resx_region($GI);
+  }#
+  ;; operate
+  #{ /* gimple_resx: */ gimple_build_resx((int) $REGNUM) }#
+)
+
+
+;;;;;;;;;;;;;;;;
+(defcmatcher gimple_try
+  (:gimple gi)
+  (:gimple_seq gseval gscleanup
+   :long kind)
+  gimptry
+  :doc #{$GIMPLE_TRY match a GIMPLE_TRY statement. $GSEVAL is the gimple seq to evaluate, GSCLEANUP is the cleanup.}#
+  ;; test
+  #{ /* gimple_try $GIMPTRY ? */ ($GI && gimple_code($GI) == GIMPLE_TRY) }#
+  ;; fill
+  #{ /* gimple_try $GIMPTRY ! */ 
+   $GSEVAL = gimple_try_eval ($GI);
+   $GSCLEANUP = gimple_try_cleanup ($GI);
+   $KIND = (long) gimple_try_kind ($GI);
+  }#
+)
+
+
+;;;;;;;;;;;;;;;;
+(defcmatcher gimple_try_catch
+  (:gimple gi)
+  (:gimple_seq gseval gscleanup)
+  gimptry
+  :doc #{$GIMPLE_TRY_CATCH match or build a GIMPLE_TRY_CATCH statement. $GSEVAL is the gimple seq to evaluate, GSCLEANUP is the cleanup.}#
+  ;; test
+  #{ /* gimple_try_catch $GIMPTRY ? */ ($GI && gimple_code($GI) == GIMPLE_TRY && gimple_try_kind($GI) == GIMPLE_TRY_CATCH) }#
+  ;; fill
+  #{ /* gimple_try_catch $GIMPTRY ! */ 
+   $GSEVAL = gimple_try_eval ($GI);
+   $GSCLEANUP = gimple_try_cleanup ($GI);
+  }#
+  ;; operate
+  #{ /* gimple_try_catch: */ gimple_build_try ($GSEVAL, $GSCLEANUP, GIMPLE_TRY_CATCH) }#
+)
+
+(defcmatcher gimple_try_finally
+  (:gimple gi)
+  (:gimple_seq gseval gscleanup)
+  gimptry
+  :doc #{$GIMPLE_TRY_FINALLY match or build a GIMPLE_TRY_FINALLY statement. $GSEVAL is the gimple seq to evaluate, GSCLEANUP is the cleanup.}#
+  ;; test
+  #{ /* gimple_try_finally $GIMPTRY ? */ ($GI && gimple_code($GI) == GIMPLE_TRY && gimple_try_kind($GI) == GIMPLE_TRY_FINALLY) }#
+  ;; fill
+  #{ /* gimple_try_finally $GIMPTRY ! */ 
+   $GSEVAL = gimple_try_eval ($GI);
+   $GSCLEANUP = gimple_try_cleanup ($GI);
+  }#
+  ;; operate
+  #{ /* gimple_try_finally: */ gimple_build_try ($GSEVAL, $GSCLEANUP, GIMPLE_TRY_FINALLY) }#
+)
+
+;;; match a gimple bind
+(defcmatcher gimple_bind
+  (:gimple gr)
+  (:tree tvars tblock
+  :gimple_seq gbody
+	 )
+  gimpbind
+  :doc #{$GIMPLE_BIND match or build a local bind gimple with $TVARS locals and $TBLOCK block symbol and $GBODY body gimple_seq. }#
+  ;; test
+  #{ /* gimple_bind $GIMPBIND ? */ ($GR && gimple_code($GR) == GIMPLE_BIND) }#
+  ;; fill
+  #{ /* gimple_bind $GIMPBIND ! */
+   $TVARS = gimple_bind_vars($GR);
+   $TBLOCK = gimple_bind_block($GR);
+   $GBODY = gimple_bind_body($GR);
+  }# 
+  ;; operator
+  #{ /*gimple_bind:*/ gimple_build_bind($TVARS,$GBODY,$TBLOCK)}#
+ )
+
+;;; match a gimple asm
+(defcmatcher gimple_asm
+  (:gimple gr)
+  (:cstring asmstr
+   :long ninputs noutputs nclobbers)
+  gimpasm
+  :doc #{$GIMPLE_ASM match a gimple ASM statement of string $ASMSTR with $NINPUTS $NOUTPUTS $NCLUBBERS}#
+  ;; test
+  #{ /*  gimple_asm $gimpasm ? */ ($gr &&  gimple_code($gr) == GIMPLE_ASM) }#
+  ;; fill
+  #{ /*  gimple_asm $gimpasm ! */
+  $asmstr = gimple_asm_string ($gr);
+  $ninputs = gimple_asm_ninputs ($gr);
+  $noutputs = gimple_asm_noutputs ($gr);
+  $nclobbers = gimple_asm_nclobbers ($gr);
+  }# )
+
+;;;;;;;;;;;;;;;;
+;;; match a gimple switch
+(defcmatcher gimple_switch
+  (:gimple gr)
+  (:tree tindex 
+         tdeflab
+   :long numlabels)
+  gimpswitch
+  :doc #{$GIMPLE_SWITCH match or build a gimple SWITCH statement indexed by $TINDEX and with $NUMLABELS labels, with default label tree $TDEFLAB}#
+  ;; test
+  #{ /* gimple_switch $gimpswitch ? */ ($gr &&  gimple_code($gr) == GIMPLE_SWITCH) }#
+  ;; fill
+  #{ /* gimple_switch $gimpswitch ! */
+  $tindex = gimple_switch_index ($gr);
+  $numlabels = gimple_switch_num_labels ($gr);
+  $tdeflab = gimple_switch_default_label ($gr);
+  }#
+  ;; operate
+  #{ /* gimple_switch: */ gimple_build_switch_nlabels($NUMLABELS, $TINDEX, $TDEFLAB) }#
+)
+
+;;; return the index of a switch
+(defprimitive gimple_switch_index (:gimple gs) :tree
+  :doc #{Retrieve the index of gimple switch $GS.}#
+  #{ (($GS) && gimple_code($GS) == GIMPLE_SWITCH) ? 
+  gimple_switch_index($GS) : (tree) NULL }#)
+
+;;; return a tree label
+(defprimitive gimple_switch_label (:gimple gs :long n) :tree
+  :doc #{Safely retrieve the $N-th label in gimple switch $GS.}#
+  #{ (($gs) && gimple_code($gs) == GIMPLE_SWITCH
+      &&  $n>= 0&&  $n<  gimple_switch_num_labels($gs)) ?
+  gimple_switch_label($gs, $n) : NULL }#)
+
+
+
+;;; iterator on switch cases
+(defciterator foreach_case_of_gimple_switch
+  (:gimple gs)
+  ecos
+  (:tree tcase :long caseix)
+  :doc #{$FOREACH_CASE_OF_GIMPLE_SWITCH iterate on each tree case $TCASE and index $CASEIX of gimple switch $GS}#
+  #{
+      /* foreach_case_of_gimple_switch before $ECOS */
+      int $ECOS#_i = 0;
+      $TCASE = (tree) NULL;
+      $CASEIX = 0L;
+      if ($GS &&  gimple_code($GS) == GIMPLE_SWITCH)
+      {
+          int $ECOS#_n = gimple_switch_num_labels($GS);
+
+          for ($ECOS#_i = 0; 
+	       $ECOS#_i < $ECOS#_n; 
+               $ECOS#_i++)
+          {
+              $TCASE = gimple_switch_label ($GS, $ECOS#_i);
+              $CASEIX = $ECOS#_i;
+  }#
+
+  #{
+      /*  foreach_case_of_gimple_switch after $ECOS */
+              $TCASE = (tree) NULL;
+              $CASEIX = 0;
+          }
+      }
+  }#
+)
+
+;;;;;;;;;;;;;;;;
+;;; match a phi node
+
+(defcmatcher gimple_phi
+  (:gimple gr)
+  (:tree lhs				;left hand result
+   :long numargs)
+  gimphi
+  :doc #{$GIMPLE_PHI match a PHI node with $LHS being the result and $NUMARGS being the number of arguments}#
+  ;; test
+  #{ /*  gimple_phi $GIMPHI ? */ ($GR && gimple_code ($GR) == GIMPLE_PHI) }#
+  ;; fill
+  #{ /*  gimple_phi $GIMPHI ! */
+  $LHS = gimple_phi_result ($gr);
+  $NUMARGS = gimple_phi_num_args ($gr);
+  }# )
+
+;;; safely retrieve the N-th argdeftree of a gimple phinode
+(defprimitive gimple_phi_nth_arg_def (:gimple g :long n) :tree
+  :doc #{$GIMPLE_PHI_NTH_ARG_DEF safely retrieve from gimple $G 
+the $N-th argdef of a gimple phinode.}#
+  #{ ( ($g && gimple_code($G) == GIMPLE_PHI && $N >= 0 
+	   && $N < gimple_phi_num_args ($G)) 
+       ? gimple_phi_arg_def($G, $N) : NULL) }#)
+
+;;; safely retrieve the N-th argedge of a gimple phinode
+(defprimitive gimple_phi_nth_arg_edge (:gimple g :long n) :edge
+  :doc #{$GIMPLE_PHI_NTH_ARG_EDGE safely retrieve from gimple $G 
+the $N-th edge of a gimple phinode.}#
+  #{ ( ($g && gimple_code($G) == GIMPLE_PHI 
+	   && $N >= 0 && $N < gimple_phi_num_args ($G)) 
+       ? gimple_phi_arg_edge($G, $N) : (edge) NULL) }#)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defcmatcher gimple_predict 
+  (:gimple gr)
+  (:long predictor outcome)
+  gimpredi
+  :doc #{$GIMPLE_PREDICT match a GIMPLE_PREDICT statement, filling $PREDICTOR and $OUTCOME.}#
+  ;; test
+  #{ /* gimple_predict $GIMPREDI ? */ ($GR && gimple_code($GR) == GIMPLE_PREDICT) }#
+  ;; fill
+  #{ /* gimple_predict $GIMPREDI ! */
+   $PREDICTOR = (long) gimple_predict_predictor ($GR);
+   $OUTCOME = (long) gimple_predict_outcome ($GR);
+  }#)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; issue a notice or a warning at a gimple location
+(defprimitive inform_at_gimple (:gimple g :cstring msg) :void
+  :doc #{$INFORM_AT_GIMPLE issue a notice at location of gimple $G with string $MSG.}#
+  #{ inform (($g ? gimple_location($g) : UNKNOWN_LOCATION), $msg); }#
+)
+
+(defprimitive warning_at_gimple (:gimple g :cstring msg) :void
+  :doc #{$WARNING_AT_GIMPLE issue a warning at location of gimple $G with string $MSG.}#
+   #{ warning_at(($g ? gimple_location($g) : UNKNOWN_LOCATION), 0, $msg); }#
+)
+
+(defprimitive warning_at_gimple_strbuf (:gimple g :value msg) :void
+  :doc #{$WARNING_AT_GIMPLE_STRBUF issue a warning at location of gimple $G with strbuf $MSG.}#
+   #{ melt_warning_at_strbuf(($g ? gimple_location($g) : UNKNOWN_LOCATION)
+    , $msg); }#
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defprimitive is_gimpleseq (v) :long
+  :doc #{$IS_GIMPLESEQ test if value $V is a boxed gimpleseq}#
+  #{(melt_magic_discr((melt_ptr_t)($v)) == MELTOBMAG_GIMPLESEQ)}# )
+
+(defprimitive make_gimpleseq (discr :gimple_seq gs) :value
+  :doc #{$MAKE_GIMPLESEQ build a boxed gimpleseq of given $DISCR and gimpleseq $GS}#
+  #{(meltgc_new_gimpleseq((meltobject_ptr_t)($DISCR),($GS)))}# )
+
+(defprimitive gimpleseq_content (v) :gimple_seq
+  :doc #{$GIMPLESEQ_CONTENT safely retrieve the gimpleseq inside boxed value $V}#
+  #{/*gimpleseq_content*/ (melt_gimpleseq_content((melt_ptr_t)($v)))}# )
+
+;;;;
+(defprimitive null_gimpleseq () :gimple_seq #{((gimple_seq)NULL)}#)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; GIMPLE DEBUG OUTPUT 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; boxed gimple debug
+(defun dbgout_boxgimple_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (let ( (dis (discrim self)) 
+	 (out (unsafe_get_field :dbgi_out dbgi)) ) 
+    (add2out_strconst out " ?/")
+    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
+    (add2out_strconst out "/{")
+    (ppstrbuf_gimple out depth (gimple_content self))
+    (add2out_strconst out "}/ ")
+    )
+  )
+(install_method discr_gimple dbg_output dbgout_boxgimple_method)
+
+;;;; boxed gimple seq debug
+(defun dbgout_boxgimpleseq_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (let ( (dis (discrim self)) 
+	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
+    (add2out_strconst out " ?/")
+    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
+    (add2out_strconst out "/{")
+    (add2out_indentnl out (+i 1 depth))
+    (ppstrbuf_gimple_seq out (+i 1 depth) (gimpleseq_content self))
+    (add2out_indentnl out (+i 1 depth))
+    (add2out_strconst out "}/")
+    (add2out_indentnl out depth)
+    )
+  )
+(install_method discr_gimple_seq dbg_output dbgout_boxgimpleseq_method)
+
+(defprimitive make_gimple_mixloc (:gimple g :long num :value val dis) :value
+:doc #{Make a mixed location for the location of gimple $G with value $VAL 
+and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
+#{ (($g && gimple_location($g))?
+    meltgc_new_mixloc((meltobject_ptr_t)($dis), (melt_ptr_t)($val), 
+		      ($num), (location_t)gimple_location(($g))):NULL) }#)
+
+
+;;;;;;;;;;;;;;;;
+(defprimitive gimple_seq_add_stmt (:gimple_seq gs :gimple g) :void
+ :doc #{Add to gimple seq $GS the gimple $G. May change and allocate $GS if it was NULL.}#
+ #{/*gimple_seq_add_stmt:*/ do {if ($G) gimple_seq_add_stmt (&$GS, $G);
+}while(0)}#)
+
+(defprimitive gimple_seq_add_seq (:gimple_seq gsdst gssrc) :void
+  :doc #{Append to gimple seq $GSDST the elements of gimple seq $GSSRC. May change and allocate $GSDST if it was null.}#
+ #{/*gimple_seq_add_seq:*/ gimple_seq_add_seq(&$GSDST, $GSSRC);
+}#)
+
+
+(defprimitive gimple_seq_copy (:gimple_seq gs) :gimple_seq 
+  :doc #{Return a deep copy of gimple_seq $GS.}#
+  #{(($GS)?gimple_seq_copy(($GS)):((gimple_seq)0))}#
+)
+
+(defprimitive gimple_seq_alloc () :gimple_seq
+ :doc #{Allocate e new raw gimple sequence. GCC may use cached free gimple sequences.}#
+ #{/*gimple_seq_alloc:*/ gimple_seq_alloc()}#)
+
+
+(defprimitive gimple_seq_boxed_add_stmt (bgs :gimple g) :void
+  :doc #{Add to end of boxed gimple_seq $BGS the gimple $G. May fill $BGS if it contained a null gimple_seq.}#
+  #{/*gimple_seq_boxed_add_stmt:*/ if (melt_magic_discr ((melt_ptr_t)($BGS))
+					   == MELTOBMAG_GIMPLESEQ 
+				      && $G != (gimple)NULL) 
+     gimple_seq_add_stmt (&(((struct meltgimpleseq_st*)($BGS))->val), ($G));}#
+)
+
+
+(defprimitive gimple_seq_boxed_add_seq  (bgs :gimple_seq gs) :void
+  :doc #{Add to end of boxed gimple_seq $BGS the gimple_seq $GS. May fill $BGS if it contained a null gimple_seq.}#
+  #{/*gimple_seq_boxed_add_seq:*/ if (melt_magic_discr((melt_ptr_t)($BGS))
+                                          == MELTOBMAG_GIMPLESEQ 
+                                      && $GS != (gimple_seq)NULL) 
+     gimple_seq_add_seq (&(((struct meltgimpleseq_st*)($BGS))->val), ($GS));}#
+)
+
+
+(defun gimple_seq_boxed_make_fill (discr :rest) 
+  :doc #{Variadic function to make a boxed gimple seq of given
+  $DISCR -or $DISCR_GIMPLE_SEQ if null- and fill it with the given raw
+  gimples or gimpleseqs or boxed gimple values or boxed gimpleseq
+  values. A closure variadic argument is applied to the boxed
+  gimple_seq so may change it.}#
+  (if (null discr) (setq discr discr_gimple_seq))
+  (let ( (boxgs (make_gimpleseq discr (null_gimpleseq)))
+	 )
+    ;; boxgs can be null if discr was bad
+    (if (null boxgs) 
+	(progn 
+	  (debug "gimple_seq_boxed_make_fill fail")
+	  (return ())))
+    ;; loop on variadic arguments
+    (forever 
+     argloop
+     (variadic 
+      ( () (exit argloop))
+      ( (:gimple g) 
+	(gimple_seq_boxed_add_stmt boxgs g))
+      ( (:gimple_seq gs)
+	(gimple_seq_boxed_add_seq boxgs gs))
+      ( (:value v)
+	(cond
+	 ( (is_gimpleseq v)
+	   (gimple_seq_boxed_add_seq boxgs (gimpleseq_content v)))
+	 ( (is_gimple v)
+	   (gimple_seq_boxed_add_stmt boxgs (gimple_content v)))
+	 ( (is_closure v)
+	   (v boxgs))
+	 (:else
+	  (debug "gimple_seq_boxed_make_fill ignoring v=" v)
+	  ()))
+	)
+      )
+     )
+    (debug "gimple_seq_boxed_make_fill return boxgs=" boxgs)
+    (return boxgs)
+    )
+  )
+
+;;;;;;;;;;;;;;;;
+(defprimitive gimple_build_return (:tree tr) :gimple
+  :doc #{Build a gimple to return $TR, if non-null.}#
+  #{($TR)?gimple_build_return(($TR)):((gimple)0)}#
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;; gimpleseq iteration
+;;;; iterate on a gimpleseq
+(defciterator each_in_gimpleseq
+  (:gimple_seq gseq)			;start formals
+  eachgimplseq
+  (:gimple g)				;local formals
+  ;;; before expansion
+  #{ /* each_in_gimpleseq $EACHGIMPLSEQ + */
+   gimple_stmt_iterator gsi_$eachgimplseq;
+   if ($gseq) 
+     for (gsi_$eachgimplseq = gsi_start ($gseq);
+	  !gsi_end_p (gsi_$eachgimplseq);
+	  gsi_next (&gsi_$eachgimplseq)) {
+    $g  = gsi_stmt (gsi_$eachgimplseq);
+   }#
+  ;;; after expansion
+  #{ } /* each_in_gimpleseq $EACHGIMPLSEQ - */ }# )
+
+
+;;;; reverseiterate on a gimpleseq
+(defciterator reveach_in_gimpleseq
+  (:gimple_seq gseq)			;start formals
+  eachgimplseq
+  (:gimple g)				;local formals
+  ;;; before expansion
+  #{ /* reveach_in_gimpleseq $EACHGIMPLSEQ + */
+   gimple_stmt_iterator gsi_$eachgimplseq;
+   if ($gseq) 
+     for (gsi_$eachgimplseq = gsi_last ($gseq); 
+          !gsi_end_p (gsi_$eachgimplseq);
+	  gsi_prev (&gsi_$eachgimplseq)) {
+    $g = gsi_stmt (gsi_$eachgimplseq);
+  }#
+  ;;; after expansion
+  #{ }  /* reveach_in_gimpleseq $EACHGIMPLSEQ - */ }# )
+
+;; apply a function to each boxed gimple in a gimple seq
+(defun do_each_gimpleseq (f :gimple_seq gseq)
+  (each_in_gimpleseq 
+   (gseq) (:gimple g)
+   (let ( (gplval (make_gimple discr_gimple g)) )
+     (f gplval)))
+)
+
+
+;; apply a function to each boxed gimple in a gimple seq
+(defun do_reveach_gimpleseq (f :gimple_seq gseq)
+  (reveach_in_gimpleseq 
+   (gseq) (:gimple g)
+   (let ( (gplval (make_gimple discr_gimple g)) )
+     (f gplval)))
+)
+
+
+;;; gimple iterator
+(defun gimple_iterator (f data :gimple g)
+  (each_bb_cfun
+   ()
+   (:basic_block body :tree header)
+   (let ((:gimple_seq instructions (gimple_seq_of_basic_block body)))
+     (each_in_gimpleseq
+      (instructions)
+      (:gimple instruction)
+      (f data instruction))))
+)
+
+(defprimitive cfun_gimple_body () :gimple_seq 
+  #{ (cfun?(cfun->gimple_body):NULL) }#)
+
+
+;;;;;;;;;;;;;;;;
+;; debug function for gimple
+(defun debugfun_gimple (dbgi :gimple g)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (let ( (out (get_field :dbgi_out dbgi))
+	 )
+    (if g
+	(code_chunk 
+	 outgimplechk
+	 #{/*$OUTGIMPLECHK*/ meltgc_ppout_gimple ((melt_ptr_t)$OUT, 0, $G);}#
+	 )
+      (add2out_strconst out "*nullgimple*")
+      )))
+(register_gimple_debug_fun debugfun_gimple)
+
+
+
+
+;;;;;;;;;;;;;;;;
+;; debug function for gimpleseq
+(defun debugfun_gimpleseq (dbgi :gimple_seq gs)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (let ( (out (get_field :dbgi_out dbgi))
+	 )
+    (if gs
+	(code_chunk
+	 outgimpleseqchk
+	 #{ /*$OUTGIMPLESEQCHK*/ meltgc_ppout_gimple_seq ((melt_ptr_t)$OUT, 0, $GS);}#
+	 )
+      (add2out_strconst out "*nullgimpleseq*")
+      )))
+(register_gimpleseq_debug_fun debugfun_gimpleseq)
+
+
+(export_values
+ ;; alphanumerical order
+ ==g  
+ cfun_gimple_body 
+ do_each_gimpleseq 
+ do_reveach_gimpleseq 
+ each_in_gimpleseq
+ foreach_argument_of_gimple_call
+ foreach_case_of_gimple_switch
+ foreach_mapgimple 
+ gimple_asm
+ gimple_assign_binaryop
+ gimple_assign_cast
+ gimple_assign_ceil_div 
+ gimple_assign_ceil_mod
+ gimple_assign_copy
+ gimple_assign_exact_div
+ gimple_assign_floor_div
+ gimple_assign_floor_mod
+ gimple_assign_minus
+ gimple_assign_mult
+ gimple_assign_plus
+ gimple_assign_pointerplus
+ gimple_assign_rdiv
+ gimple_assign_round_div
+ gimple_assign_round_mod 
+ gimple_assign_single
+ gimple_assign_ssa_name_copy 
+ gimple_assign_to 
+ gimple_assign_trunc_div
+ gimple_assign_trunc_mod
+ gimple_assign_unary_minus
+ gimple_assign_unary_nop
+ gimple_bind
+ gimple_build_assign_convert 
+ gimple_build_assign_fix_trunc 
+ gimple_build_assign_float 
+ gimple_build_assign_view_convert
+ gimple_build_return 
+ gimple_call
+ gimple_call_1 
+ gimple_call_1_more
+ gimple_call_2
+ gimple_call_2_more
+ gimple_call_3
+ gimple_call_3_more
+ gimple_call_4
+ gimple_call_4_more
+ gimple_call_5
+ gimple_call_5_more
+ gimple_call_6
+ gimple_call_6_more
+ gimple_call_7
+ gimple_call_7_more
+ gimple_call_nth_arg 
+ gimple_catch
+ gimple_cond
+ gimple_cond_equal
+ gimple_cond_false
+ gimple_cond_greater
+ gimple_cond_greater_or_equal
+ gimple_cond_less
+ gimple_cond_lessequal
+ gimple_cond_ltgt 
+ gimple_cond_notequal
+ gimple_cond_ordered
+ gimple_cond_true 
+ gimple_cond_uneq
+ gimple_cond_unge
+ gimple_cond_ungt
+ gimple_cond_unle
+ gimple_cond_unlt
+ gimple_cond_unordered 
+ gimple_cond_with_edges
+ gimple_cond_with_true_false_labels
+ gimple_content 
+ gimple_copy 
+ gimple_debug
+ gimple_debug_bind
+ gimple_eh_dispatch
+ gimple_eh_filter
+ gimple_eh_must_not_throw
+ gimple_error_mark
+ gimple_goto
+ gimple_iterator 
+ gimple_label
+ gimple_nop
+ gimple_phi
+ gimple_phi_nth_arg_def  
+ gimple_phi_nth_arg_edge
+ gimple_predict 
+ gimple_resx
+ gimple_return
+ gimple_seq_add_seq
+ gimple_seq_add_stmt 
+ gimple_seq_alloc
+ gimple_seq_boxed_add_seq 
+ gimple_seq_boxed_add_stmt 
+ gimple_seq_boxed_make_fill 
+ gimple_seq_copy 
+ gimple_seq_first_stmt 
+ gimple_seq_last_stmt 
+ gimple_seq_of_basic_block 
+ gimple_switch
+ gimple_switch_index
+ gimple_switch_label 
+ gimple_try 
+ gimple_try_catch
+ gimple_try_finally
+ gimpleseq_content 
+ gimpleval
+ inform_at_gimple
+ is_gimple
+ is_gimpleseq
+ is_mapgimple 
+ make_gimple
+ make_gimple_mixloc 
+ make_gimpleseq 
+ make_mapgimple 
+ mapgimple_aux 
+ mapgimple_auxput 
+ mapgimple_count 
+ mapgimple_get 
+ mapgimple_nth_attr 
+ mapgimple_nth_val 
+ mapgimple_put 
+ mapgimple_remove 
+ mapgimple_size
+ null_gimple 
+ null_gimpleseq
+ reveach_in_gimpleseq
+ warning_at_gimple
+ warning_at_gimple_strbuf
+ )
+
+;; eof xtramelt-ana-gimple.melt

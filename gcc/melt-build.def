@@ -86,6 +86,16 @@ melt_application_file = {
 };
 
 melt_application_file = {
+  base = "xtramelt-ana-tree";
+  mkvarsuf = ANA_TREE;
+};
+
+melt_application_file = {
+  base = "xtramelt-ana-gimple";
+  mkvarsuf = ANA_GIMPLE;
+};
+
+melt_application_file = {
   base = "xtramelt-ana-simple";
   mkvarsuf = ANA_SIMPLE;
 };

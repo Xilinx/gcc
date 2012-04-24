@@ -1,5 +1,20 @@
 
 2012-04-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.def: Add xtramelt-ana-tree.melt & xtramelt-ana-gimple.melt
+	* melt-build.mk: Regenerate.
+
+	* melt/warmelt-normal.melt (normexp_export_values): Replace
+	multiple_every with foreach_in_multiple.
+
+	* melt/xtramelt-ana-base.melt: Split into several files, that is
+	xtramelt-ana-base.melt & xtramelt-ana-tree.melt &
+	xtramelt-ana-gimple.melt.
+
+	* melt/xtramalt-ana-tree.melt: New file.
+
+	* melt/xtramelt-ana-gimple.melt: New file.
+
+2012-04-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (void, variadic_type_code): Less warnings
 	in macrostrings.
 
