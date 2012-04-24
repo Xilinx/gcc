@@ -72,7 +72,7 @@ may also send several requests to MELT at any moment.
 
 
 // I am probably bitten by the bug I reported at
-// https://bugzilla.gnome.org/show_bug.cgi?id=672544
+// https://bugzilla.gnome.org/show_bug.cgi?id=672544 corrected in GTK 3.4
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -165,6 +165,11 @@ static const char *const smelt_key_16x16_xpm[] = {
   "      .++.      ",
   "       ..       "
 };
+
+#if GTK_VERSION_LT(3,4)
+// we depend upon https://bugzilla.gnome.org/show_bug.cgi?id=672544  bug fixed
+#error GTK version should be at least 3.4
+#endif
 
 #define SMELT_FATAL(C) do { int er = errno;	\
   std::clog << __FILE__ << ":" << __LINE__	\

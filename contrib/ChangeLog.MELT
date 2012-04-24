@@ -1,6 +1,10 @@
 
 2012-04-24  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* simplemelt-gtkmm-probe.cc: Ensure that GTK is at least 3.4
+
+2012-04-24  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* MELT-Plugin-Makefile (melt-run.h): Set the MELT_GCC_VERSION
 
 2012-03-31  Basile Starynkevitch  <basile@starynkevitch.net>
