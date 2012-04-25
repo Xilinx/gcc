@@ -539,7 +539,7 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
   if (sym->attr.cray_pointee)
     return;
 
-  if(sym->attr.is_bind_c == 1)
+  if(sym->attr.is_bind_c == 1 && sym->binding_label)
     {
       /* We need to put variables that are bind(c) into the common
 	 segment of the object file, because this is what C would do.
@@ -565,7 +565,8 @@ gfc_finish_var_decl (tree decl, gfc_symbol * sym)
       /* TODO: Don't set sym->module for result or dummy variables.  */
       gcc_assert (current_function_decl == NULL_TREE || sym->result == sym);
       /* This is the declaration of a module variable.  */
-      TREE_PUBLIC (decl) = 1;
+      if (sym->attr.access != ACCESS_PRIVATE)
+	TREE_PUBLIC (decl) = 1;
       TREE_STATIC (decl) = 1;
     }
 
@@ -1842,7 +1843,9 @@ build_function_decl (gfc_symbol * sym, bool global)
   DECL_EXTERNAL (fndecl) = 0;
 
   if (!current_function_decl
-      && !sym->attr.entry_master && !sym->attr.is_main_program)
+      && !sym->attr.entry_master && !sym->attr.is_main_program
+      && (sym->attr.access != ACCESS_PRIVATE || sym->binding_label
+	  || sym->attr.public_used))
     TREE_PUBLIC (fndecl) = 1;
 
   attributes = add_attributes_to_decl (attr, NULL_TREE);
@@ -2256,7 +2259,7 @@ trans_function_start (gfc_symbol * sym)
   init_function_start (fndecl);
 
   /* function.c requires a push at the start of the function.  */
-  pushlevel (0);
+  pushlevel ();
 }
 
 /* Create thunks for alternate entry points.  */
@@ -2398,7 +2401,7 @@ build_entry_thunks (gfc_namespace * ns, bool global)
       /* Finish off this function and send it for code generation.  */
       DECL_SAVED_TREE (thunk_fndecl) = gfc_finish_block (&body);
       tmp = getdecls ();
-      poplevel (1, 0, 1);
+      poplevel (1, 1);
       BLOCK_SUPERCONTEXT (DECL_INITIAL (thunk_fndecl)) = thunk_fndecl;
       DECL_SAVED_TREE (thunk_fndecl)
 	= build3_v (BIND_EXPR, tmp, DECL_SAVED_TREE (thunk_fndecl),
@@ -4400,7 +4403,7 @@ generate_coarray_init (gfc_namespace * ns __attribute((unused)))
   make_decl_rtl (fndecl);
   init_function_start (fndecl);
 
-  pushlevel (0);
+  pushlevel ();
   gfc_init_block (&caf_init_block);
 
   gfc_traverse_ns (ns, generate_coarray_sym_init);
@@ -4408,7 +4411,7 @@ generate_coarray_init (gfc_namespace * ns __attribute((unused)))
   DECL_SAVED_TREE (fndecl) = gfc_finish_block (&caf_init_block);
   decl = getdecls ();
 
-  poplevel (1, 0, 1);
+  poplevel (1, 1);
   BLOCK_SUPERCONTEXT (DECL_INITIAL (fndecl)) = fndecl;
 
   DECL_SAVED_TREE (fndecl)
@@ -4746,7 +4749,8 @@ gfc_trans_entry_master_switch (gfc_entry_list * el)
   tmp = gfc_finish_block (&block);
   /* The first argument selects the entry point.  */
   val = DECL_ARGUMENTS (current_function_decl);
-  tmp = build3_v (SWITCH_EXPR, val, tmp, NULL_TREE);
+  tmp = fold_build3_loc (input_location, SWITCH_EXPR, NULL_TREE,
+			 val, tmp, NULL_TREE);
   return tmp;
 }
 
@@ -4971,7 +4975,7 @@ create_main_function (tree fndecl)
   rest_of_decl_compilation (ftn_main, 1, 0);
   make_decl_rtl (ftn_main);
   init_function_start (ftn_main);
-  pushlevel (0);
+  pushlevel ();
 
   gfc_init_block (&body);
 
@@ -5139,7 +5143,7 @@ create_main_function (tree fndecl)
   decl = getdecls ();
 
   /* Finish off this function and send it for code generation.  */
-  poplevel (1, 0, 1);
+  poplevel (1, 1);
   BLOCK_SUPERCONTEXT (DECL_INITIAL (ftn_main)) = ftn_main;
 
   DECL_SAVED_TREE (ftn_main)
@@ -5428,7 +5432,7 @@ gfc_generate_function_code (gfc_namespace * ns)
   decl = getdecls ();
 
   /* Finish off this function and send it for code generation.  */
-  poplevel (1, 0, 1);
+  poplevel (1, 1);
   BLOCK_SUPERCONTEXT (DECL_INITIAL (fndecl)) = fndecl;
 
   DECL_SAVED_TREE (fndecl)
@@ -5522,7 +5526,7 @@ gfc_generate_constructors (void)
 
   init_function_start (fndecl);
 
-  pushlevel (0);
+  pushlevel ();
 
   for (; gfc_static_ctors; gfc_static_ctors = TREE_CHAIN (gfc_static_ctors))
     {
@@ -5532,7 +5536,7 @@ gfc_generate_constructors (void)
     }
 
   decl = getdecls ();
-  poplevel (1, 0, 1);
+  poplevel (1, 1);
 
   BLOCK_SUPERCONTEXT (DECL_INITIAL (fndecl)) = fndecl;
   DECL_SAVED_TREE (fndecl)

@@ -16,6 +16,7 @@ import (
 	. "net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -648,7 +649,7 @@ func TestTransportPersistConnLeak(t *testing.T) {
 	tr := &Transport{}
 	c := &Client{Transport: tr}
 
-	n0 := runtime.Goroutines()
+	n0 := runtime.NumGoroutine()
 
 	const numReq = 25
 	didReqCh := make(chan bool)
@@ -669,7 +670,7 @@ func TestTransportPersistConnLeak(t *testing.T) {
 		<-gotReqCh
 	}
 
-	nhigh := runtime.Goroutines()
+	nhigh := runtime.NumGoroutine()
 
 	// Tell all handlers to unblock and reply.
 	for i := 0; i < numReq; i++ {
@@ -685,7 +686,7 @@ func TestTransportPersistConnLeak(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	runtime.GC()
 	runtime.GC() // even more.
-	nfinal := runtime.Goroutines()
+	nfinal := runtime.NumGoroutine()
 
 	growth := nfinal - n0
 
@@ -695,6 +696,32 @@ func TestTransportPersistConnLeak(t *testing.T) {
 	if int(growth) > 5 {
 		t.Error("too many new goroutines")
 	}
+}
+
+// This used to crash; http://golang.org/issue/3266
+func TestTransportIdleConnCrash(t *testing.T) {
+	tr := &Transport{}
+	c := &Client{Transport: tr}
+
+	unblockCh := make(chan bool, 1)
+	ts := httptest.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
+		<-unblockCh
+		tr.CloseIdleConnections()
+	}))
+	defer ts.Close()
+
+	didreq := make(chan bool)
+	go func() {
+		res, err := c.Get(ts.URL)
+		if err != nil {
+			t.Error(err)
+		} else {
+			res.Body.Close() // returns idle conn
+		}
+		didreq <- true
+	}()
+	unblockCh <- true
+	<-didreq
 }
 
 type fooProto struct{}
@@ -724,6 +751,36 @@ func TestTransportAltProto(t *testing.T) {
 	body := string(bodyb)
 	if e := "You wanted foo://bar.com/path"; body != e {
 		t.Errorf("got response %q, want %q", body, e)
+	}
+}
+
+var proxyFromEnvTests = []struct {
+	env     string
+	wanturl string
+	wanterr error
+}{
+	{"127.0.0.1:8080", "http://127.0.0.1:8080", nil},
+	{"http://127.0.0.1:8080", "http://127.0.0.1:8080", nil},
+	{"https://127.0.0.1:8080", "https://127.0.0.1:8080", nil},
+	{"", "<nil>", nil},
+}
+
+func TestProxyFromEnvironment(t *testing.T) {
+	os.Setenv("HTTP_PROXY", "")
+	os.Setenv("http_proxy", "")
+	os.Setenv("NO_PROXY", "")
+	os.Setenv("no_proxy", "")
+	for i, tt := range proxyFromEnvTests {
+		os.Setenv("HTTP_PROXY", tt.env)
+		req, _ := NewRequest("GET", "http://example.com", nil)
+		url, err := ProxyFromEnvironment(req)
+		if g, e := fmt.Sprintf("%v", err), fmt.Sprintf("%v", tt.wanterr); g != e {
+			t.Errorf("%d. got error = %q, want %q", i, g, e)
+			continue
+		}
+		if got := fmt.Sprintf("%s", url); got != tt.wanturl {
+			t.Errorf("%d. got URL = %q, want %q", i, url, tt.wanturl)
+		}
 	}
 }
 

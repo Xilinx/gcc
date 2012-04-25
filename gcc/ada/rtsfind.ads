@@ -160,6 +160,9 @@ package Rtsfind is
 
       --  Children of Ada.Strings
 
+      Ada_Strings_Superbounded,
+      Ada_Strings_Wide_Superbounded,
+      Ada_Strings_Wide_Wide_Superbounded,
       Ada_Strings_Unbounded,
 
       --  Children of Ada.Text_IO (for Text_IO_Kludge)
@@ -208,6 +211,7 @@ package Rtsfind is
       System_Arith_64,
       System_AST_Handling,
       System_Assertions,
+      System_Atomic_Primitives,
       System_Aux_DEC,
       System_Bit_Ops,
       System_Boolean_Array_Operations,
@@ -438,7 +442,7 @@ package Rtsfind is
    --  Range of values for children of Ada.Streams
 
    subtype Ada_Strings_Child is Ada_Child
-     range Ada_Strings_Unbounded .. Ada_Strings_Unbounded;
+     range Ada_Strings_Superbounded .. Ada_Strings_Unbounded;
    --  Range of values for children of Ada.Strings
 
    subtype Ada_Text_IO_Child is Ada_Child
@@ -588,6 +592,12 @@ package Rtsfind is
 
      RE_Stream_Access,                   -- Ada.Streams.Stream_IO
 
+     RO_SU_Super_String,                 -- Ada.Strings.Superbounded
+
+     RO_WI_Super_String,                 -- Ada.Strings.Wide_Superbounded
+
+     RO_WW_Super_String,                 -- Ada.Strings.Wide_Wide_Superbounded
+
      RE_Unbounded_String,                -- Ada.Strings.Unbounded
 
      RE_Access_Level,                    -- Ada.Tags
@@ -720,6 +730,19 @@ package Rtsfind is
 
      RE_Assert_Failure,                  -- System.Assertions
      RE_Raise_Assert_Failure,            -- System.Assertions
+
+     RE_Atomic_Compare_Exchange_8,       -- System.Atomic_Primitives
+     RE_Atomic_Compare_Exchange_16,      -- System.Atomic_Primitives
+     RE_Atomic_Compare_Exchange_32,      -- System.Atomic_Primitives
+     RE_Atomic_Compare_Exchange_64,      -- System.Atomic_Primitives
+     RE_Atomic_Load_8,                   -- System.Atomic_Primitives
+     RE_Atomic_Load_16,                  -- System.Atomic_Primitives
+     RE_Atomic_Load_32,                  -- System.Atomic_Primitives
+     RE_Atomic_Load_64,                  -- System.Atomic_Primitives
+     RE_Uint8,                           -- System.Atomic_Primitives
+     RE_Uint16,                          -- System.Atomic_Primitives
+     RE_Uint32,                          -- System.Atomic_Primitives
+     RE_Uint64,                          -- System.Atomic_Primitives
 
      RE_AST_Handler,                     -- System.Aux_DEC
      RE_Import_Value,                    -- System.Aux_DEC
@@ -1790,6 +1813,12 @@ package Rtsfind is
 
      RE_Stream_Access                    => Ada_Streams_Stream_IO,
 
+     RO_SU_Super_String                  => Ada_Strings_Superbounded,
+
+     RO_WI_Super_String                  => Ada_Strings_Wide_Superbounded,
+
+     RO_WW_Super_String                  => Ada_Strings_Wide_Wide_Superbounded,
+
      RE_Unbounded_String                 => Ada_Strings_Unbounded,
 
      RE_Access_Level                     => Ada_Tags,
@@ -1922,6 +1951,19 @@ package Rtsfind is
 
      RE_Assert_Failure                   => System_Assertions,
      RE_Raise_Assert_Failure             => System_Assertions,
+
+     RE_Atomic_Compare_Exchange_8        => System_Atomic_Primitives,
+     RE_Atomic_Compare_Exchange_16       => System_Atomic_Primitives,
+     RE_Atomic_Compare_Exchange_32       => System_Atomic_Primitives,
+     RE_Atomic_Compare_Exchange_64       => System_Atomic_Primitives,
+     RE_Atomic_Load_8                    => System_Atomic_Primitives,
+     RE_Atomic_Load_16                   => System_Atomic_Primitives,
+     RE_Atomic_Load_32                   => System_Atomic_Primitives,
+     RE_Atomic_Load_64                   => System_Atomic_Primitives,
+     RE_Uint8                            => System_Atomic_Primitives,
+     RE_Uint16                           => System_Atomic_Primitives,
+     RE_Uint32                           => System_Atomic_Primitives,
+     RE_Uint64                           => System_Atomic_Primitives,
 
      RE_AST_Handler                      => System_Aux_DEC,
      RE_Import_Value                     => System_Aux_DEC,

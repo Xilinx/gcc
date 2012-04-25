@@ -1,3 +1,7 @@
+2012-04-25   Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 186776.
+
 2012-03-27   Diego Novillo  <dnovillo@google.com>
 
 	* timevar.def (TV_PPH_SPECIALIZATION_HASH): New timer.

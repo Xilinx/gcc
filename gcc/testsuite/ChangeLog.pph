@@ -1,3 +1,7 @@
+2012-04-25   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x6dynarray4.cc: Adjust XFAIL patterns.
+
 2012-03-26   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x6dynarray4.cc: Adjust expected patterns.

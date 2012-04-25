@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"text/template"
@@ -223,14 +224,14 @@ func TestEscape(t *testing.T) {
 			`<button onclick='alert(&quot;\x3cHello\x3e&quot;)'>`,
 		},
 		{
-			"badMarshaller",
+			"badMarshaler",
 			`<button onclick='alert(1/{{.B}}in numbers)'>`,
 			`<button onclick='alert(1/ /* json: error calling MarshalJSON for type *template.badMarshaler: invalid character &#39;f&#39; looking for beginning of object key string */null in numbers)'>`,
 		},
 		{
-			"jsMarshaller",
+			"jsMarshaler",
 			`<button onclick='alert({{.M}})'>`,
-			`<button onclick='alert({&#34;&lt;foo&gt;&#34;:&#34;O&#39;Reilly&#34;})'>`,
+			`<button onclick='alert({&#34;\u003cfoo\u003e&#34;:&#34;O&#39;Reilly&#34;})'>`,
 		},
 		{
 			"jsStrNotUnderEscaped",
@@ -430,6 +431,11 @@ func TestEscape(t *testing.T) {
 			"HTML doctype not normalized",
 			"<!DOCTYPE html>Hello, World!",
 			"<!DOCTYPE html>Hello, World!",
+		},
+		{
+			"HTML doctype not case-insensitive",
+			"<!doCtYPE htMl>Hello, World!",
+			"<!doCtYPE htMl>Hello, World!",
 		},
 		{
 			"No doctype injection",
@@ -1629,6 +1635,14 @@ func TestIndirectPrint(t *testing.T) {
 		t.Errorf("Unexpected error: %s", err)
 	} else if buf.String() != "hello" {
 		t.Errorf(`Expected "hello"; got %q`, buf.String())
+	}
+}
+
+// This is a test for issue 3272.
+func TestEmptyTemplate(t *testing.T) {
+	page := Must(New("page").ParseFiles(os.DevNull))
+	if err := page.ExecuteTemplate(os.Stdout, "page", "nothing"); err == nil {
+		t.Fatal("expected error")
 	}
 }
 

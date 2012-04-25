@@ -54,6 +54,10 @@ func memmove(adst, asrc unsafe.Pointer, n uintptr) {
 // its String method returns "<invalid Value>", and all other methods panic.
 // Most functions and methods never return an invalid value.
 // If one does, its documentation states the conditions explicitly.
+//
+// A Value can be used concurrently by multiple goroutines provided that
+// the underlying Go value can be used concurrently for the equivalent
+// direct operations.
 type Value struct {
 	// typ holds the type of the value represented by a Value.
 	typ *commonType
@@ -792,13 +796,15 @@ func (v Value) CanInterface() bool {
 	return v.flag&(flagMethod|flagRO) == 0
 }
 
-// Interface returns v's value as an interface{}.
+// Interface returns v's current value as an interface{}.
+// It is equivalent to:
+//	var i interface{} = (v's underlying value)
 // If v is a method obtained by invoking Value.Method
 // (as opposed to Type.Method), Interface cannot return an
 // interface value, so it panics.
 // It also panics if the Value was obtained by accessing
 // unexported struct fields.
-func (v Value) Interface() interface{} {
+func (v Value) Interface() (i interface{}) {
 	return valueInterface(v, true)
 }
 
@@ -834,6 +840,16 @@ func valueInterface(v Value, safe bool) interface{} {
 	var eface emptyInterface
 	eface.typ = v.typ.runtimeType()
 	eface.word = v.iword()
+
+	if v.flag&flagIndir != 0 && v.typ.size > ptrSize {
+		// eface.word is a pointer to the actual data,
+		// which might be changed.  We need to return
+		// a pointer to unchanging data, so make a copy.
+		ptr := unsafe_New(v.typ)
+		memmove(ptr, unsafe.Pointer(eface.word), v.typ.size)
+		eface.word = iword(ptr)
+	}
+
 	return *(*interface{})(unsafe.Pointer(&eface))
 }
 
@@ -1607,6 +1623,15 @@ func unsafe_NewArray(Type, int) unsafe.Pointer
 func MakeSlice(typ Type, len, cap int) Value {
 	if typ.Kind() != Slice {
 		panic("reflect.MakeSlice of non-slice type")
+	}
+	if len < 0 {
+		panic("reflect.MakeSlice: negative len")
+	}
+	if cap < 0 {
+		panic("reflect.MakeSlice: negative cap")
+	}
+	if len > cap {
+		panic("reflect.MakeSlice: len > cap")
 	}
 
 	// Declare slice so that gc can see the base pointer in it.

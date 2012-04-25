@@ -1,3 +1,39 @@
+2012-04-23  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* compare_tests: Append '/' to make 'find' traverse
+	symlinked directories.
+
+2012-04-16  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* testsuite-management/validate_failures.py (GetBuildData): Use
+	target_alias.
+
+2012-04-06  Doug Evans  <dje@google.com>
+
+	* dg-extract-results.sh: Handle KFAILs.
+
+2012-03-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config-list.mk (LIST): Remove mips-sgi-irix6.5.
+
+2012-03-13  Joseph Myers  <joseph@codesourcery.com>
+
+	* gennews (files): Add files for GCC 4.7.
+
+2012-03-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config-list.mk (LIST): Remove mips-openbsd.
+
+2012-03-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config-list.mk (LIST): Remove alpha-dec-osf5.1.
+
+2012-03-02   Diego Novillo  <dnovillo@google.com>
+
+	* testsuite-management/validate_failures.py (class TestResult): Fix
+	match pattern for the summary line.  If there is a parsing failure,
+	show the line we failed to parse.
+
 2012-02-27  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	PR libstdc++/52188

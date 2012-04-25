@@ -495,7 +495,6 @@ Gogo::write_initialization_function(tree fndecl, tree init_stmt_list)
   gimplify_function_tree(fndecl);
 
   cgraph_add_new_function(fndecl, false);
-  cgraph_mark_needed_node(cgraph_get_node(fndecl));
 
   current_function_decl = NULL_TREE;
   pop_cfun();
@@ -843,7 +842,9 @@ Gogo::write_globals()
 		  this->backend()->global_variable_set_init(var,
 							    tree_to_expr(init));
 		}
-	      else if (is_sink)
+	      else if (is_sink
+		       || int_size_in_bytes(TREE_TYPE(init)) == 0
+		       || int_size_in_bytes(TREE_TYPE(vec[i])) == 0)
 		var_init_tree = init;
 	      else
 		var_init_tree = fold_build2_loc(no->location().gcc_location(),

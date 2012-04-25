@@ -398,6 +398,11 @@ class Gogo
   void
   write_specific_type_functions();
 
+  // Whether we are done writing out specific type functions.
+  bool
+  specific_type_functions_are_written() const
+  { return this->specific_type_functions_are_written_; }
+
   // Traverse the tree.  See the Traverse class.
   void
   traverse(Traverse*);
@@ -2785,6 +2790,9 @@ static const int RUNTIME_ERROR_MAKE_MAP_OUT_OF_BOUNDS = 8;
 
 // Channel capacity out of bounds in make: negative or overflow.
 static const int RUNTIME_ERROR_MAKE_CHAN_OUT_OF_BOUNDS = 9;
+
+// Division by zero.
+static const int RUNTIME_ERROR_DIVISION_BY_ZERO = 10;
 
 // This is used by some of the langhooks.
 extern Gogo* go_get_gogo();

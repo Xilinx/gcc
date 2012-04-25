@@ -1,3 +1,12 @@
+2012-04-25   Diego Novillo  <dnovillo@google.com>
+
+	* pph-core.c (pph_trace_maker): Fix unsigned comparison
+	warning.
+	(pph_cache_preload): Replace TYPE_KIND_LAST with
+	stk_type_kind_last.
+	(pph_read_file): Fix warning about mixing declarations
+	and code.
+
 2012-03-27   Diego Novillo  <dnovillo@google.com>
 
 	* pph-core.c (pph_dump_stats): Print pph_stats.num_spec_entry_elems.

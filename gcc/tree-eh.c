@@ -38,6 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "gimple.h"
 #include "target.h"
+#include "cfgloop.h"
 
 /* In some instances a tree and a gimple need to be stored in a same table,
    i.e. in hash tables. This is a structure to do this. */
@@ -2532,7 +2533,7 @@ tree_could_trap_p (tree expr)
 	  if (!DECL_EXTERNAL (expr))
 	    return false;
 	  node = cgraph_function_node (cgraph_get_node (expr), NULL);
-	  if (node && node->in_other_partition)
+	  if (node && node->symbol.in_other_partition)
 	    return false;
 	  return true;
 	}
@@ -2548,7 +2549,7 @@ tree_could_trap_p (tree expr)
 	  if (!DECL_EXTERNAL (expr))
 	    return false;
 	  node = varpool_variable_node (varpool_get_node (expr), NULL);
-	  if (node && node->in_other_partition)
+	  if (node && node->symbol.in_other_partition)
 	    return false;
 	  return true;
 	}
@@ -3041,6 +3042,8 @@ lower_resx (basic_block bb, gimple stmt, struct pointer_map_t *mnt_map)
 	      gimple_stmt_iterator gsi2;
 
 	      new_bb = create_empty_bb (bb);
+	      if (current_loops)
+		add_bb_to_loop (new_bb, bb->loop_father);
 	      lab = gimple_block_label (new_bb);
 	      gsi2 = gsi_start_bb (new_bb);
 
@@ -3265,12 +3268,12 @@ sink_clobbers (basic_block bb)
       vdef = gimple_vdef (stmt);
       if (vdef && TREE_CODE (vdef) == SSA_NAME)
 	{
+	  release_ssa_name (vdef);
 	  vdef = SSA_NAME_VAR (vdef);
 	  mark_sym_for_renaming (vdef);
 	  gimple_set_vdef (stmt, vdef);
 	  gimple_set_vuse (stmt, vdef);
 	}
-      release_defs (stmt);
       gsi_insert_before (&dgsi, stmt, GSI_SAME_STMT);
     }
 
@@ -3913,6 +3916,21 @@ cleanup_empty_eh_merge_phis (basic_block new_bb, basic_block old_bb,
   for (ei = ei_start (old_bb->preds); (e = ei_safe_edge (ei)); )
     if (e->flags & EDGE_EH)
       {
+	/* ???  CFG manipluation routines do not try to update loop
+	   form on edge redirection.  Do so manually here for now.  */
+	/* If we redirect a loop entry or latch edge that will either create
+	   a multiple entry loop or rotate the loop.  If the loops merge
+	   we may have created a loop with multiple latches.
+	   All of this isn't easily fixed thus cancel the affected loop
+	   and mark the other loop as possibly having multiple latches.  */
+	if (current_loops
+	    && e->dest == e->dest->loop_father->header)
+	  {
+	    e->dest->loop_father->header = NULL;
+	    e->dest->loop_father->latch = NULL;
+	    new_bb->loop_father->latch = NULL;
+	    loops_state_set (LOOPS_NEED_FIXUP|LOOPS_MAY_HAVE_MULTIPLE_LATCHES);
+	  }
 	redirect_eh_edge_1 (e, new_bb, change_region);
 	redirect_edge_succ (e, new_bb);
 	flush_pending_stmts (e);
@@ -3952,7 +3970,7 @@ cleanup_empty_eh_move_lp (basic_block bb, edge e_out,
 
   /* Delete the RESX that was matched within the empty handler block.  */
   gsi = gsi_last_bb (bb);
-  mark_virtual_ops_for_renaming (gsi_stmt (gsi));
+  unlink_stmt_vdef (gsi_stmt (gsi));
   gsi_remove (&gsi, true);
 
   /* Clean up E_OUT for the fallthru.  */

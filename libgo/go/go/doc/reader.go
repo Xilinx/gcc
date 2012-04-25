@@ -432,6 +432,17 @@ func (r *reader) readFile(src *ast.File) {
 				r.readValue(d)
 			case token.TYPE:
 				// types are handled individually
+				if len(d.Specs) == 1 && !d.Lparen.IsValid() {
+					// common case: single declaration w/o parentheses
+					// (if a single declaration is parenthesized,
+					// create a new fake declaration below, so that
+					// go/doc type declarations always appear w/o
+					// parentheses)
+					if s, ok := d.Specs[0].(*ast.TypeSpec); ok {
+						r.readType(d, s)
+					}
+					break
+				}
 				for _, spec := range d.Specs {
 					if s, ok := spec.(*ast.TypeSpec); ok {
 						// use an individual (possibly fake) declaration
@@ -439,8 +450,15 @@ func (r *reader) readFile(src *ast.File) {
 						// gets to (re-)use the declaration documentation
 						// if there's none associated with the spec itself
 						fake := &ast.GenDecl{
-							d.Doc, d.Pos(), token.TYPE, token.NoPos,
-							[]ast.Spec{s}, token.NoPos,
+							Doc: d.Doc,
+							// don't use the existing TokPos because it
+							// will lead to the wrong selection range for
+							// the fake declaration if there are more
+							// than one type in the group (this affects
+							// src/cmd/godoc/godoc.go's posLink_urlFunc)
+							TokPos: s.Pos(),
+							Tok:    token.TYPE,
+							Specs:  []ast.Spec{s},
 						}
 						r.readType(fake, s)
 					}
@@ -460,7 +478,7 @@ func (r *reader) readFile(src *ast.File) {
 				// non-empty BUG comment; collect comment without BUG prefix
 				list := append([]*ast.Comment(nil), c.List...) // make a copy
 				list[0].Text = text[m[1]:]
-				r.bugs = append(r.bugs, (&ast.CommentGroup{list}).Text())
+				r.bugs = append(r.bugs, (&ast.CommentGroup{List: list}).Text())
 			}
 		}
 	}
@@ -530,7 +548,7 @@ func customizeRecv(f *Func, recvTypeName string, embeddedIsPtr bool, level int) 
 	_, origRecvIsPtr := newField.Type.(*ast.StarExpr)
 	var typ ast.Expr = ast.NewIdent(recvTypeName)
 	if !embeddedIsPtr && origRecvIsPtr {
-		typ = &ast.StarExpr{token.NoPos, typ}
+		typ = &ast.StarExpr{X: typ}
 	}
 	newField.Type = typ
 

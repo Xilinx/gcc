@@ -628,7 +628,7 @@ Gogo::start_function(const std::string& name, Function_type* type,
       Variable* this_param = new Variable(receiver->type(), NULL, false,
 					  true, true, location);
       std::string rname = receiver->name();
-      if (rname.empty())
+      if (rname.empty() || Gogo::is_sink_name(rname))
 	{
 	  // We need to give receivers a name since they wind up in
 	  // DECL_ARGUMENTS.  FIXME.
@@ -638,8 +638,7 @@ Gogo::start_function(const std::string& name, Function_type* type,
 	  ++count;
 	  rname = buf;
 	}
-      if (!Gogo::is_sink_name(rname))
-	block->bindings()->add_variable(rname, NULL, this_param);
+      block->bindings()->add_variable(rname, NULL, this_param);
     }
 
   const Typed_identifier_list* parameters = type->parameters();
@@ -1654,8 +1653,12 @@ Finalize_methods::type(Type* t)
       }
 
     case Type::TYPE_STRUCT:
+      // Traverse the field types first in case there is an embedded
+      // field with methods that the struct should inherit.
+      if (t->struct_type()->traverse_field_types(this) == TRAVERSE_EXIT)
+          return TRAVERSE_EXIT;
       t->struct_type()->finalize_methods(this->gogo_);
-      break;
+      return TRAVERSE_SKIP_COMPONENTS;
 
     default:
       break;
@@ -2213,12 +2216,18 @@ Order_eval::statement(Block* block, size_t* pindex, Statement* s)
       Expression::traverse(&init, &find_eval_ordering);
     }
 
-  if (find_eval_ordering.size() <= 1)
-    {
-      // If there is only one expression with a side-effect, we can
-      // leave it in place.
-      return TRAVERSE_CONTINUE;
-    }
+  size_t c = find_eval_ordering.size();
+  if (c == 0)
+    return TRAVERSE_CONTINUE;
+
+  // If there is only one expression with a side-effect, we can
+  // usually leave it in place.  However, for an assignment statement,
+  // we need to evaluate an expression on the right hand side before
+  // we evaluate any index expression on the left hand side, so for
+  // that case we always move the expression.  Otherwise we mishandle
+  // m[0] = len(m) where m is a map.
+  if (c == 1 && s->classification() != Statement::STATEMENT_ASSIGNMENT)
+    return TRAVERSE_CONTINUE;
 
   bool is_thunk = s->thunk_statement() != NULL;
   for (Find_eval_ordering::const_iterator p = find_eval_ordering.begin();

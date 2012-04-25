@@ -38,16 +38,25 @@
 //         }
 //     }
 //
-// The package also runs and verifies example code. Example functions
-// include an introductory comment that is compared with the standard output
-// of the function when the tests are run, as in this example of an example:
+// The package also runs and verifies example code. Example functions may
+// include a concluding comment that begins with "Output:" and is compared with
+// the standard output of the function when the tests are run, as in these
+// examples of an example:
 //
-//     // hello
 //     func ExampleHello() {
 //             fmt.Println("hello")
+//             // Output: hello
 //     }
 //
-// Example functions without comments are compiled but not executed.
+//     func ExampleSalutations() {
+//             fmt.Println("hello, and")
+//             fmt.Println("goodbye")
+//             // Output:
+//             // hello, and
+//             // goodbye
+//     }
+//
+// Example functions without output comments are compiled but not executed.
 //
 // The naming convention to declare examples for a function F, a type T and
 // method M on type T are:
@@ -70,6 +79,7 @@
 package testing
 
 import (
+	_ "debug/elf"
 	"flag"
 	"fmt"
 	"os"
@@ -90,13 +100,15 @@ var (
 
 	// Report as tests are run; default is silent for success.
 	chatty         = flag.Bool("test.v", false, "verbose: print additional output")
-	match          = flag.String("test.run", "", "regular expression to select tests to run")
+	match          = flag.String("test.run", "", "regular expression to select tests and examples to run")
 	memProfile     = flag.String("test.memprofile", "", "write a memory profile to the named file after execution")
 	memProfileRate = flag.Int("test.memprofilerate", 0, "if >=0, sets runtime.MemProfileRate")
 	cpuProfile     = flag.String("test.cpuprofile", "", "write a cpu profile to the named file during execution")
 	timeout        = flag.Duration("test.timeout", 0, "if positive, sets an aggregate time limit for all tests")
 	cpuListStr     = flag.String("test.cpu", "", "comma-separated list of number of CPUs to use for each test")
 	parallel       = flag.Int("test.parallel", runtime.GOMAXPROCS(0), "maximum test parallelism")
+
+	haveExamples bool // are there examples?
 
 	cpuList []int
 )
@@ -270,8 +282,9 @@ func Main(matchString func(pat, str string) (bool, error), tests []InternalTest,
 
 	before()
 	startAlarm()
+	haveExamples = len(examples) > 0
 	testOk := RunTests(matchString, tests)
-	exampleOk := RunExamples(examples)
+	exampleOk := RunExamples(matchString, examples)
 	if !testOk || !exampleOk {
 		fmt.Println("FAIL")
 		os.Exit(1)
@@ -294,7 +307,7 @@ func (t *T) report() {
 
 func RunTests(matchString func(pat, str string) (bool, error), tests []InternalTest) (ok bool) {
 	ok = true
-	if len(tests) == 0 {
+	if len(tests) == 0 && !haveExamples {
 		fmt.Fprintln(os.Stderr, "testing: warning: no tests to run")
 		return
 	}

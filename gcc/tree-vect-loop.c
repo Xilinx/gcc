@@ -565,11 +565,15 @@ vect_analyze_scalar_cycles_1 (loop_vec_info loop_vinfo, struct loop *loop)
       /* Analyze the evolution function.  */
       access_fn = analyze_scalar_evolution (loop, def);
       if (access_fn)
-	STRIP_NOPS (access_fn);
-      if (access_fn && vect_print_dump_info (REPORT_DETAILS))
 	{
-	  fprintf (vect_dump, "Access function of PHI: ");
-	  print_generic_expr (vect_dump, access_fn, TDF_SLIM);
+	  STRIP_NOPS (access_fn);
+	  if (vect_print_dump_info (REPORT_DETAILS))
+	    {
+	      fprintf (vect_dump, "Access function of PHI: ");
+	      print_generic_expr (vect_dump, access_fn, TDF_SLIM);
+	    }
+	  STMT_VINFO_LOOP_PHI_EVOLUTION_PART (stmt_vinfo)
+	    = evolution_part_in_loop_num (access_fn, loop->num);
 	}
 
       if (!access_fn
@@ -578,6 +582,8 @@ vect_analyze_scalar_cycles_1 (loop_vec_info loop_vinfo, struct loop *loop)
 	  VEC_safe_push (gimple, heap, worklist, phi);
 	  continue;
 	}
+
+      gcc_assert (STMT_VINFO_LOOP_PHI_EVOLUTION_PART (stmt_vinfo) != NULL_TREE);
 
       if (vect_print_dump_info (REPORT_DETAILS))
 	fprintf (vect_dump, "Detected induction.");
@@ -841,7 +847,7 @@ new_loop_vec_info (struct loop *loop)
   LOOP_VINFO_MAY_ALIAS_DDRS (res) =
     VEC_alloc (ddr_p, heap,
                PARAM_VALUE (PARAM_VECT_MAX_VERSION_FOR_ALIAS_CHECKS));
-  LOOP_VINFO_STRIDED_STORES (res) = VEC_alloc (gimple, heap, 10);
+  LOOP_VINFO_GROUPED_STORES (res) = VEC_alloc (gimple, heap, 10);
   LOOP_VINFO_REDUCTIONS (res) = VEC_alloc (gimple, heap, 10);
   LOOP_VINFO_REDUCTION_CHAINS (res) = VEC_alloc (gimple, heap, 10);
   LOOP_VINFO_SLP_INSTANCES (res) = VEC_alloc (slp_instance, heap, 10);
@@ -917,7 +923,7 @@ destroy_loop_vec_info (loop_vec_info loop_vinfo, bool clean_stmts)
     vect_free_slp_instance (instance);
 
   VEC_free (slp_instance, heap, LOOP_VINFO_SLP_INSTANCES (loop_vinfo));
-  VEC_free (gimple, heap, LOOP_VINFO_STRIDED_STORES (loop_vinfo));
+  VEC_free (gimple, heap, LOOP_VINFO_GROUPED_STORES (loop_vinfo));
   VEC_free (gimple, heap, LOOP_VINFO_REDUCTIONS (loop_vinfo));
   VEC_free (gimple, heap, LOOP_VINFO_REDUCTION_CHAINS (loop_vinfo));
 
@@ -1229,6 +1235,7 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
   int min_scalar_loop_bound;
   unsigned int th;
   bool only_slp_in_loop = true, ok;
+  HOST_WIDE_INT max_niter;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "=== vect_analyze_loop_operations ===");
@@ -1401,8 +1408,10 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo, bool slp)
         "vectorization_factor = %d, niters = " HOST_WIDE_INT_PRINT_DEC,
         vectorization_factor, LOOP_VINFO_INT_NITERS (loop_vinfo));
 
-  if (LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo)
-      && (LOOP_VINFO_INT_NITERS (loop_vinfo) < vectorization_factor))
+  if ((LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo)
+       && (LOOP_VINFO_INT_NITERS (loop_vinfo) < vectorization_factor))
+      || ((max_niter = max_stmt_executions_int (loop)) != -1
+	  && (unsigned HOST_WIDE_INT) max_niter < vectorization_factor))
     {
       if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
         fprintf (vect_dump, "not vectorized: iteration count too small.");
@@ -1514,7 +1523,7 @@ vect_analyze_loop_2 (loop_vec_info loop_vinfo)
 
   vect_analyze_scalar_cycles (loop_vinfo);
 
-  vect_pattern_recog (loop_vinfo);
+  vect_pattern_recog (loop_vinfo, NULL);
 
   /* Data-flow analysis to detect stmts that do not need to be vectorized.  */
 
@@ -3041,6 +3050,8 @@ get_initial_def_for_induction (gimple iv_phi)
     }
   else
     {
+      VEC(constructor_elt,gc) *v;
+
       /* iv_loop is the loop to be vectorized. Create:
 	 vec_init = [X, X+S, X+2*S, X+3*S] (S = step_expr, X = init_expr)  */
       new_var = vect_get_new_vect_var (scalar_type, vect_scalar_var, "var_");
@@ -3053,8 +3064,8 @@ get_initial_def_for_induction (gimple iv_phi)
 	  gcc_assert (!new_bb);
 	}
 
-      t = NULL_TREE;
-      t = tree_cons (NULL_TREE, new_name, t);
+      v = VEC_alloc (constructor_elt, gc, nunits);
+      CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, new_name);
       for (i = 1; i < nunits; i++)
 	{
 	  /* Create: new_name_i = new_name + step_expr  */
@@ -3073,10 +3084,10 @@ get_initial_def_for_induction (gimple iv_phi)
 	      fprintf (vect_dump, "created new init_stmt: ");
 	      print_gimple_stmt (vect_dump, init_stmt, 0, TDF_SLIM);
 	    }
-	  t = tree_cons (NULL_TREE, new_name, t);
+	  CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, new_name);
 	}
       /* Create a vector from [new_name_0, new_name_1, ..., new_name_nunits-1]  */
-      vec = build_constructor_from_list (vectype, nreverse (t));
+      vec = build_constructor (vectype, v);
       vec_init = vect_init_vector (iv_phi, vec, vectype, NULL);
     }
 
@@ -3305,7 +3316,7 @@ get_initial_def_for_reduction (gimple stmt, tree init_val,
   enum tree_code code = gimple_assign_rhs_code (stmt);
   tree def_for_init;
   tree init_def;
-  tree t = NULL_TREE;
+  tree *elts;
   int i;
   bool nested_in_vect_loop = false;
   tree init_value;
@@ -3386,23 +3397,31 @@ get_initial_def_for_reduction (gimple stmt, tree init_val,
           def_for_init = build_int_cst (scalar_type, int_init_val);
 
         /* Create a vector of '0' or '1' except the first element.  */
+	elts = XALLOCAVEC (tree, nunits);
         for (i = nunits - 2; i >= 0; --i)
-          t = tree_cons (NULL_TREE, def_for_init, t);
+	  elts[i + 1] = def_for_init;
 
         /* Option1: the first element is '0' or '1' as well.  */
         if (adjustment_def)
           {
-            t = tree_cons (NULL_TREE, def_for_init, t);
-            init_def = build_vector (vectype, t);
+	    elts[0] = def_for_init;
+            init_def = build_vector (vectype, elts);
             break;
           }
 
         /* Option2: the first element is INIT_VAL.  */
-        t = tree_cons (NULL_TREE, init_value, t);
+	elts[0] = init_val;
         if (TREE_CONSTANT (init_val))
-          init_def = build_vector (vectype, t);
+          init_def = build_vector (vectype, elts);
         else
-          init_def = build_constructor_from_list (vectype, t);
+	  {
+	    VEC(constructor_elt,gc) *v;
+	    v = VEC_alloc (constructor_elt, gc, nunits);
+	    CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, init_val);
+	    for (i = 1; i < nunits; ++i)
+	      CONSTRUCTOR_APPEND_ELT (v, NULL_TREE, elts[i]);
+	    init_def = build_constructor (vectype, v);
+	  }
 
         break;
 
@@ -5205,7 +5224,7 @@ vect_transform_loop (loop_vec_info loop_vinfo)
   int i;
   tree ratio = NULL;
   int vectorization_factor = LOOP_VINFO_VECT_FACTOR (loop_vinfo);
-  bool strided_store;
+  bool grouped_store;
   bool slp_scheduled = false;
   unsigned int nunits;
   tree cond_expr = NULL_TREE;
@@ -5444,11 +5463,11 @@ vect_transform_loop (loop_vec_info loop_vinfo)
 	  if (vect_print_dump_info (REPORT_DETAILS))
 	    fprintf (vect_dump, "transform statement.");
 
-	  strided_store = false;
-	  is_store = vect_transform_stmt (stmt, &si, &strided_store, NULL, NULL);
+	  grouped_store = false;
+	  is_store = vect_transform_stmt (stmt, &si, &grouped_store, NULL, NULL);
           if (is_store)
             {
-	      if (STMT_VINFO_STRIDED_ACCESS (stmt_info))
+	      if (STMT_VINFO_GROUPED_ACCESS (stmt_info))
 		{
 		  /* Interleaving. If IS_STORE is TRUE, the vectorization of the
 		     interleaving chain was completed - free all the stores in
@@ -5460,8 +5479,11 @@ vect_transform_loop (loop_vec_info loop_vinfo)
 	      else
 		{
 		  /* Free the attached stmt_vec_info and remove the stmt.  */
-		  free_stmt_vec_info (gsi_stmt (si));
+		  gimple store = gsi_stmt (si);
+		  free_stmt_vec_info (store);
+		  unlink_stmt_vdef (store);
 		  gsi_remove (&si, true);
+		  release_defs (store);
 		  continue;
 		}
 	    }

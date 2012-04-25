@@ -252,7 +252,9 @@ func (s *pollServer) Run() {
 		} else {
 			netfd := s.LookupFD(fd, mode)
 			if netfd == nil {
-				print("pollServer: unexpected wakeup for fd=", fd, " mode=", string(mode), "\n")
+				// This can happen because the WaitFD runs without
+				// holding s's lock, so there might be a pending wakeup
+				// for an fd that has been evicted.  No harm done.
 				continue
 			}
 			s.WakeFD(netfd, mode, nil)
@@ -506,7 +508,7 @@ func (fd *netFD) Write(p []byte) (int, error) {
 	}
 	defer fd.decref()
 	if fd.sysfile == nil {
-		return 0, os.EINVAL
+		return 0, syscall.EINVAL
 	}
 
 	var err error
@@ -621,6 +623,10 @@ func (fd *netFD) accept(toAddr func(syscall.Sockaddr) Addr) (netfd *netFD, err e
 						continue
 					}
 				}
+			} else if err == syscall.ECONNABORTED {
+				// This means that a socket on the listen queue was closed
+				// before we Accept()ed it; it's a silly error, so try again.
+				continue
 			}
 			return nil, &OpError{"accept", fd.net, fd.laddr, err}
 		}

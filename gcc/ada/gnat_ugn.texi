@@ -94,10 +94,12 @@ Texts.  A copy of the license is included in the section entitled
 
 @ifset unw
 @set PLATFORM
+@set TITLESUFFIX
 @end ifset
 
 @ifset vms
 @set PLATFORM OpenVMS
+@set TITLESUFFIX for OpenVMS
 @end ifset
 
 @c @ovar(ARG)
@@ -115,7 +117,7 @@ Texts.  A copy of the license is included in the section entitled
 @c of the @ovar macro have been expanded inline.
 
 
-@settitle @value{EDITION} User's Guide @value{PLATFORM}
+@settitle @value{EDITION} User's Guide @value{TITLESUFFIX}
 @dircategory GNU Ada tools
 @direntry
 * @value{EDITION} User's Guide: (gnat_ugn). @value{PLATFORM}
@@ -484,6 +486,7 @@ Creating Unit Tests Using gnattest
 * Tagged Types Substitutability Testing::
 * Testing with Contracts::
 * Additional Tests::
+* Support for other platforms/run-times::
 * Current Limitations::
 
 Other Utility Programs
@@ -584,7 +587,6 @@ Platform-Specific Information for the Run-Time Libraries
 * Solaris-Specific Considerations::
 * Linux-Specific Considerations::
 * AIX-Specific Considerations::
-* Irix-Specific Considerations::
 * RTX-Specific Considerations::
 * HP-UX-Specific Considerations::
 
@@ -602,7 +604,7 @@ Elaboration Order Handling in GNAT
 * Elaboration Issues for Library Tasks::
 * Mixing Elaboration Models::
 * What to Do If the Default Elaboration Behavior Fails::
-* Elaboration for Access-to-Subprogram Values::
+* Elaboration for Dispatching Calls::
 * Summary of Procedures for Elaboration Control::
 * Other Elaboration Order Considerations::
 
@@ -3078,7 +3080,7 @@ $ gnatlink ada_unit file1.o file2.o --LINK=./my_script
 Where CC is the name of the non-GNU C++ compiler.
 
 If the @code{zero cost} exception mechanism is used, and the platform
-supports automatic registration of exception tables (e.g.@: Solaris or IRIX),
+supports automatic registration of exception tables (e.g.@: Solaris),
 paths to more objects are required:
 
 @smallexample
@@ -3091,8 +3093,8 @@ $ gnatlink ada_unit file1.o file2.o --LINK=./my_script
 @end smallexample
 
 If the @code{zero cost} exception mechanism is used, and the platform
-doesn't support automatic registration of exception tables (e.g.@: HP-UX,
-Tru64 or AIX), the simple approach described above will not work and
+doesn't support automatic registration of exception tables (e.g.@: HP-UX
+or AIX), the simple approach described above will not work and
 a pre-linking phase using GNAT will be necessary.
 
 @end enumerate
@@ -4073,7 +4075,11 @@ activated. Note that these pragmas can also be controlled using the
 configuration pragmas @code{Assertion_Policy} and @code{Debug_Policy}.
 It also activates pragmas @code{Check}, @code{Precondition}, and
 @code{Postcondition}. Note that these pragmas can also be controlled
-using the configuration pragma @code{Check_Policy}.
+using the configuration pragma @code{Check_Policy}. In Ada 2012, it
+also activates all assertions defined in the RM as aspects: preconditions,
+postconditions, type invariants and (sub)type predicates. In all Ada modes,
+corresponding pragmas for type invariants and (sub)type predicates are
+also activated.
 
 @item -gnatA
 @cindex @option{-gnatA} (@command{gcc})
@@ -4152,7 +4158,13 @@ Display full source path name in brief error messages.
 @cindex @option{-gnateG} (@command{gcc})
 Save result of preprocessing in a text file.
 
-@item ^-gnateI^/MULTI_UNIT_INDEX=^@var{nnn}
+@item -gnatei@var{nnn}
+@cindex @option{-gnatei} (@command{gcc})
+Set maximum number of instantiations during compilation of a single unit to
+@var{nnn}. This may be useful in increasing the default maximum of 8000 for
+the rare case when a single unit legitimately exceeds this limit.
+
+@item -gnateI@var{nnn}
 @cindex @option{-gnateI} (@command{gcc})
 Indicates that the source is a multi-unit source and that the index of the
 unit to compile is @var{nnn}. @var{nnn} needs to be a positive number and need
@@ -5439,8 +5451,8 @@ when such pragmas should be used.
 @emph{List inherited aspects.}
 @cindex @option{-gnatw.l} (@command{gcc})
 This switch causes the compiler to list inherited invariants,
-preconditions, and postconditions from Invariant'Class, Pre'Class, and
-Post'Class aspects. Also list inherited subtype predicates.
+preconditions, and postconditions from Type_Invariant'Class, Invariant'Class,
+Pre'Class, and Post'Class aspects. Also list inherited subtype predicates.
 These messages are not automatically turned on by the use of @option{-gnatwa}.
 
 @item -gnatw.L
@@ -5693,9 +5705,11 @@ This switch suppresses warnings for tracking of deleted conditional code.
 @emph{Activate warnings on suspicious contracts.}
 @cindex @option{-gnatw.t} (@command{gcc})
 This switch activates warnings on suspicious postconditions (whether a
-pragma @code{Postcondition} or a @code{Post} aspect in Ada 2012). A
-function postcondition is suspicious when it does not mention the result
-of the function. A procedure postcondition is suspicious when it only
+pragma @code{Postcondition} or a @code{Post} aspect in Ada 2012)
+and suspicious contract cases (pragma @code{Contract_Case}). A
+function postcondition or contract case is suspicious when no postcondition
+or contract case for this function mentions the result of the function.
+A procedure postcondition or contract case is suspicious when it only
 refers to the pre-state of the procedure, because in that case it should
 rather be expressed as a precondition. The default is that such warnings
 are not generated. This warning can also be turned on using @option{-gnatwa}.
@@ -5949,6 +5963,7 @@ When no switch @option{^-gnatw^/WARNINGS^} is used, this is equivalent to:
 
 @table @option
 @c !sort!
+@item -gnatw.a
 @item -gnatwB
 @item -gnatw.b
 @item -gnatwC
@@ -13040,12 +13055,8 @@ semantically legal.
 If this condition is not met, @command{gnatpp} will terminate with an
 error message; no output file will be generated.
 
-If the source files presented to @command{gnatpp} contain
-preprocessing directives, then the output file will
-correspond to the generated source after all
-preprocessing is carried out. There is no way
-using @command{gnatpp} to obtain pretty printed files that
-include the preprocessing directives.
+@command{gnatpp} cannot process sources that contain
+preprocessing directives.
 
 If the compilation unit
 contained in the input source depends semantically upon units located
@@ -17980,6 +17991,7 @@ default location.
 * Tagged Types Substitutability Testing::
 * Testing with Contracts::
 * Additional Tests::
+* Support for other platforms/run-times::
 * Current Limitations::
 @end menu
 
@@ -18464,6 +18476,25 @@ gnattest -Psimple.gpr --additional-tests=additional/harness/harness.gpr \
   --harness-dir=mixing
 gnatmake -Pmixing/test_driver.gpr
 mixing/test_runner
+@end smallexample
+
+@node Support for other platforms/run-times
+@section Support for other platforms/run-times
+
+@noindent
+@command{gnattest} can be used to generate the test harness for platforms
+and run-time libraries others than the default native target with the
+default full run-time. For example, when using a limited run-time library
+such as Zero FootPrint (ZFP), a simplified harness is generated.
+
+Two variables are used to tell the underlying AUnit framework how to generate
+the test harness: @code{PLATFORM}, which identifies the target, and
+@code{RUNTIME}, used to determine the run-time library for which the harness
+is generated. For example, the following options are used to generate the
+AUnit test harness for a PowerPC ELF target using the ZFP run-time library:
+
+@smallexample
+gnattest -Psimple.gpr -XPLATFORM=powerpc-elf -XRUNTIME=zfp
 @end smallexample
 
 @node Current Limitations
@@ -22149,7 +22180,6 @@ information about several specific platforms.
 * Solaris-Specific Considerations::
 * Linux-Specific Considerations::
 * AIX-Specific Considerations::
-* Irix-Specific Considerations::
 * RTX-Specific Considerations::
 * HP-UX-Specific Considerations::
 @end menu
@@ -22161,11 +22191,6 @@ information about several specific platforms.
 @item @b{alpha-openvms}
 @item @code{@ @ }@i{rts-native (default)}
 @item @code{@ @ @ @ }Tasking    @tab native VMS threads
-@item @code{@ @ @ @ }Exceptions @tab ZCX
-@*
-@item @b{alpha-tru64}
-@item @code{@ @ }@i{rts-native (default)}
-@item @code{@ @ @ @ }Tasking    @tab native TRU64 threads
 @item @code{@ @ @ @ }Exceptions @tab ZCX
 @*
 @item @code{@ @ }@i{rts-sjlj}
@@ -22190,11 +22215,6 @@ information about several specific platforms.
 @item @b{ia64-sgi_linux}
 @item @code{@ @ }@i{rts-native (default)}
 @item @code{@ @ @ @ }Tasking    @tab pthread library
-@item @code{@ @ @ @ }Exceptions @tab ZCX
-@*
-@item @b{mips-irix}
-@item @code{@ @ }@i{rts-native (default)}
-@item @code{@ @ @ @ }Tasking    @tab native IRIX threads
 @item @code{@ @ @ @ }Exceptions @tab ZCX
 @*
 @item @b{pa-hpux}
@@ -22484,24 +22504,6 @@ to @code{GNAT.Sockets.Get_Host_By_Name} or
 occurs in the environment task, or use @code{pragma Storage_Size} to
 specify a sufficiently large size for the stack of the task that contains
 this call.
-
-@node Irix-Specific Considerations
-@section Irix-Specific Considerations
-@cindex Irix libraries
-
-@noindent
-The GCC support libraries coming with the Irix compiler have moved to
-their canonical place with respect to the general Irix ABI related
-conventions. Running applications built with the default shared GNAT
-run-time now requires the LD_LIBRARY_PATH environment variable to
-include this location. A possible way to achieve this is to issue the
-following command line on a bash prompt:
-
-@smallexample
-@group
-$  LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`dirname \`gcc --print-file-name=libgcc_s.so\``
-@end group
-@end smallexample
 
 @node RTX-Specific Considerations
 @section RTX-Specific Considerations
@@ -23300,7 +23302,7 @@ elaboration code in your own application).
 * Elaboration Issues for Library Tasks::
 * Mixing Elaboration Models::
 * What to Do If the Default Elaboration Behavior Fails::
-* Elaboration for Access-to-Subprogram Values::
+* Elaboration for Dispatching Calls::
 * Summary of Procedures for Elaboration Control::
 * Other Elaboration Order Considerations::
 @end menu
@@ -24957,39 +24959,22 @@ elaboration switch if your code is correct, and we assume that the
 C-tests are indeed correct (it is less efficient, but efficiency is
 not a factor in running the ACVC tests.)
 
-@node Elaboration for Access-to-Subprogram Values
-@section Elaboration for Access-to-Subprogram Values
-@cindex Access-to-subprogram
+@node Elaboration for Dispatching Calls
+@section Elaboration for Dispatching Calls
+@cindex Dispatching calls
 
 @noindent
-Access-to-subprogram types (introduced in Ada 95) complicate
-the handling of elaboration. The trouble is that it becomes
-impossible to tell at compile time which procedure
-is being called. This means that it is not possible for the binder
-to analyze the elaboration requirements in this case.
-
-If at the point at which the access value is created
-(i.e., the evaluation of @code{P'Access} for a subprogram @code{P}),
-the body of the subprogram is
-known to have been elaborated, then the access value is safe, and its use
-does not require a check. This may be achieved by appropriate arrangement
-of the order of declarations if the subprogram is in the current unit,
-or, if the subprogram is in another unit, by using pragma
-@code{Pure}, @code{Preelaborate}, or @code{Elaborate_Body}
-on the referenced unit.
-
-If the referenced body is not known to have been elaborated at the point
-the access value is created, then any use of the access value must do a
-dynamic check, and this dynamic check will fail and raise a
-@code{Program_Error} exception if the body has not been elaborated yet.
-GNAT will generate the necessary checks, and in addition, if the
-@option{-gnatwl}
-switch is set, will generate warnings that such checks are required.
-
-The use of dynamic dispatching for tagged types similarly generates
-a requirement for dynamic checks, and premature calls to any primitive
+In rare cases, the static elaboration model fails to prevent
+dispatching calls to not-yet-elaborated subprograms. In such cases, we
+fall back to run-time checks; premature calls to any primitive
 operation of a tagged type before the body of the operation has been
-elaborated, will result in the raising of @code{Program_Error}.
+elaborated will raise @code{Program_Error}.
+
+Access-to-subprogram types, however, are handled conservatively, and
+do not require run-time checks. This was not true in earlier versions
+of the compiler; you can use the @option{-gnatd.U} debug switch to
+revert to the old behavior if the new conservative behavior causes
+elaboration cycles.
 
 @node Summary of Procedures for Elaboration Control
 @section Summary of Procedures for Elaboration Control
@@ -26107,8 +26092,8 @@ procedure Increment is
       Result : Unsigned_32;
    begin
       Asm ("incl %0",
-           Inputs  => Unsigned_32'Asm_Input ("a", Value),
-           Outputs => Unsigned_32'Asm_Output ("=a", Result));
+           Outputs => Unsigned_32'Asm_Output ("=a", Result),
+           Inputs  => Unsigned_32'Asm_Input ("a", Value));
       return Result;
    end Incr;
 
@@ -26134,10 +26119,8 @@ The @code{"="} constraint, indicating an output value, is not present.
 You can have multiple input variables, in the same way that you can have more
 than one output variable.
 
-The parameter count (%0, %1) etc, now starts at the first input
-statement, and continues with the output statements.
-When both parameters use the same variable, the
-compiler will treat them as the same %n operand, which is the case here.
+The parameter count (%0, %1) etc, still starts at the first output statement,
+and continues with the input statements.
 
 Just as the @code{Outputs} parameter causes the register to be stored into the
 target variable after execution of the assembler statements, so does the
@@ -26191,8 +26174,8 @@ procedure Increment_2 is
       Result : Unsigned_32;
    begin
       Asm ("incl %0",
-           Inputs  => Unsigned_32'Asm_Input ("a", Value),
-           Outputs => Unsigned_32'Asm_Output ("=a", Result));
+           Outputs => Unsigned_32'Asm_Output ("=a", Result),
+           Inputs  => Unsigned_32'Asm_Input ("a", Value));
       return Result;
    end Incr;
    pragma Inline (Increment);
@@ -26274,8 +26257,8 @@ assembly code; for example:
 @group
 Asm ("movl %0, %%ebx" & LF & HT &
      "movl %%ebx, %1",
-     Inputs  => Unsigned_32'Asm_Input  ("g", Var_In),
-     Outputs => Unsigned_32'Asm_Output ("=g", Var_Out));
+     Outputs => Unsigned_32'Asm_Output ("=g", Var_Out),
+     Inputs  => Unsigned_32'Asm_Input  ("g", Var_In));
 @end group
 @end smallexample
 @noindent
@@ -26289,8 +26272,8 @@ to identify the registers that will be used by your assembly code:
 @group
 Asm ("movl %0, %%ebx" & LF & HT &
      "movl %%ebx, %1",
-     Inputs  => Unsigned_32'Asm_Input  ("g", Var_In),
      Outputs => Unsigned_32'Asm_Output ("=g", Var_Out),
+     Inputs  => Unsigned_32'Asm_Input  ("g", Var_In),
      Clobber => "ebx");
 @end group
 @end smallexample
@@ -26324,8 +26307,8 @@ the @code{Volatile} parameter to @code{True}; for example:
 @group
 Asm ("movl %0, %%ebx" & LF & HT &
      "movl %%ebx, %1",
-     Inputs   => Unsigned_32'Asm_Input  ("g", Var_In),
      Outputs  => Unsigned_32'Asm_Output ("=g", Var_Out),
+     Inputs   => Unsigned_32'Asm_Input  ("g", Var_In),
      Clobber  => "ebx",
      Volatile => True);
 @end group

@@ -6,6 +6,7 @@ package http_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -131,7 +132,7 @@ func TestFileServerCleans(t *testing.T) {
 	ch := make(chan string, 1)
 	fs := FileServer(&testFileSystem{func(name string) (File, error) {
 		ch <- name
-		return nil, os.ENOENT
+		return nil, errors.New("file does not exist")
 	}})
 	tests := []struct {
 		reqPath, openArg string
@@ -151,12 +152,19 @@ func TestFileServerCleans(t *testing.T) {
 	}
 }
 
+func mustRemoveAll(dir string) {
+	err := os.RemoveAll(dir)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func TestFileServerImplicitLeadingSlash(t *testing.T) {
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
 		t.Fatalf("TempDir: %v", err)
 	}
-	defer os.RemoveAll(tempDir)
+	defer mustRemoveAll(tempDir)
 	if err := ioutil.WriteFile(filepath.Join(tempDir, "foo.txt"), []byte("Hello world"), 0644); err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
@@ -171,6 +179,7 @@ func TestFileServerImplicitLeadingSlash(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ReadAll %s: %v", suffix, err)
 		}
+		res.Body.Close()
 		return string(b)
 	}
 	if s := get("/bar/"); !strings.Contains(s, ">foo.txt<") {
@@ -387,7 +396,7 @@ func TestLinuxSendfile(t *testing.T) {
 	defer ln.Close()
 
 	var buf bytes.Buffer
-	child := exec.Command("strace", "-f", os.Args[0], "-test.run=TestLinuxSendfileChild")
+	child := exec.Command("strace", "-f", "-e!sigaltstack", os.Args[0], "-test.run=TestLinuxSendfileChild")
 	child.ExtraFiles = append(child.ExtraFiles, lnf)
 	child.Env = append([]string{"GO_WANT_HELPER_PROCESS=1"}, os.Environ()...)
 	child.Stdout = &buf
@@ -398,11 +407,15 @@ func TestLinuxSendfile(t *testing.T) {
 		return
 	}
 
-	_, err = Get(fmt.Sprintf("http://%s/", ln.Addr()))
+	res, err := Get(fmt.Sprintf("http://%s/", ln.Addr()))
 	if err != nil {
-		t.Errorf("http client error: %v", err)
-		return
+		t.Fatalf("http client error: %v", err)
 	}
+	_, err = io.Copy(ioutil.Discard, res.Body)
+	if err != nil {
+		t.Fatalf("client body read error: %v", err)
+	}
+	res.Body.Close()
 
 	// Force child to exit cleanly.
 	Get(fmt.Sprintf("http://%s/quit", ln.Addr()))

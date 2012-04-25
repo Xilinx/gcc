@@ -12,9 +12,6 @@ import (
 func TestTicker(t *testing.T) {
 	const Count = 10
 	Delta := 100 * Millisecond
-	if testing.Short() {
-		Delta = 10 * Millisecond
-	}
 	ticker := NewTicker(Delta)
 	t0 := Now()
 	for i := 0; i < Count; i++ {
@@ -25,7 +22,7 @@ func TestTicker(t *testing.T) {
 	dt := t1.Sub(t0)
 	target := Delta * Count
 	slop := target * 2 / 10
-	if dt < target-slop || dt > target+slop {
+	if dt < target-slop || (!testing.Short() && dt > target+slop) {
 		t.Fatalf("%d %s ticks took %s, expected [%s,%s]", Count, Delta, dt, target-slop, target+slop)
 	}
 	// Now test that the ticker stopped

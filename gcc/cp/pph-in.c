@@ -3297,9 +3297,11 @@ pph_add_include (pph_stream *parent, pph_stream *include)
 pph_stream *
 pph_read_file (const char *filename, pph_stream *parent)
 {
+  pph_stream *stream;
+
   timevar_start (TV_PPH_IN);
 
-  pph_stream *stream = pph_stream_open (filename, "rb");
+  stream = pph_stream_open (filename, "rb");
   if (stream)
     {
       /* FIXME pph.  We do this to mimic what the non-pph compiler

@@ -13,7 +13,8 @@ import "errors"
 //
 // Programs using times should typically store and pass them as values,
 // not pointers.  That is, time variables and struct fields should be of
-// type time.Time, not *time.Time.
+// type time.Time, not *time.Time.  A Time value can be used by
+// multiple goroutines simultaneously.
 //
 // Time instants can be compared using the Before, After, and Equal methods.
 // The Sub method subtracts two instants, producing a Duration.
@@ -152,7 +153,7 @@ func (d Weekday) String() string { return days[d] }
 // rely heavily on division and modulus by positive constants.  For
 // calendrical calculations we want these divisions to round down, even
 // for negative values, so that the remainder is always positive, but
-// Go's division (like most hardware divison instructions) rounds to
+// Go's division (like most hardware division instructions) rounds to
 // zero.  We can still do those computations and then adjust the result
 // for a negative numerator, but it's annoying to write the adjustment
 // over and over.  Instead, we can change to a different epoch so long
@@ -384,6 +385,15 @@ type Duration int64
 
 // Common durations.  There is no definition for units of Day or larger
 // to avoid confusion across daylight savings time zone transitions.
+//
+// To count the number of units in a Duration, divide:
+//	second := time.Second
+//	fmt.Print(int64(second/time.Millisecond)) // prints 1000
+//
+// To convert an integer number of units to a Duration, multiply:
+//	seconds := 10
+//	fmt.Print(time.Duration(seconds)*time.Second) // prints 10s
+//
 const (
 	Nanosecond  Duration = 1
 	Microsecond          = 1000 * Nanosecond
@@ -746,21 +756,17 @@ func (t Time) Zone() (name string, offset int) {
 	return
 }
 
-// Unix returns the Unix time, the number of seconds elapsed
+// Unix returns t as a Unix time, the number of seconds elapsed
 // since January 1, 1970 UTC.
 func (t Time) Unix() int64 {
 	return t.sec + internalToUnix
 }
 
-// UnixNano returns the Unix time, the number of nanoseconds elapsed
+// UnixNano returns t as a Unix time, the number of nanoseconds elapsed
 // since January 1, 1970 UTC.
 func (t Time) UnixNano() int64 {
 	return (t.sec+internalToUnix)*1e9 + int64(t.nsec)
 }
-
-type gobError string
-
-func (g gobError) Error() string { return string(g) }
 
 const timeGobVersion byte = 1
 

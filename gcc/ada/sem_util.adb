@@ -742,9 +742,23 @@ package body Sem_Util is
       Loc  : constant Source_Ptr := Sloc (N);
       Disc : Entity_Id;
 
+      Bas : Entity_Id;
+      --  The base type that is to be constrained by the defaults
+
    begin
       if not Has_Discriminants (T) or else Is_Constrained (T) then
          return T;
+      end if;
+
+      Bas := Base_Type (T);
+
+      --  If T is non-private but its base type is private, this is the
+      --  completion of a subtype declaration whose parent type is private
+      --  (see Complete_Private_Subtype in Sem_Ch3). The proper discriminants
+      --  are to be found in the full view of the base.
+
+      if Is_Private_Type (Bas) and then Present (Full_View (Bas)) then
+         Bas := Full_View (Bas);
       end if;
 
       Disc := First_Discriminant (T);
@@ -768,10 +782,10 @@ package body Sem_Util is
          Decl :=
            Make_Subtype_Declaration (Loc,
              Defining_Identifier => Act,
-             Subtype_Indication =>
+             Subtype_Indication  =>
                Make_Subtype_Indication (Loc,
-                 Subtype_Mark => New_Occurrence_Of (T, Loc),
-                 Constraint =>
+                 Subtype_Mark => New_Occurrence_Of (Bas, Loc),
+                 Constraint   =>
                    Make_Index_Or_Discriminant_Constraint (Loc,
                      Constraints => Constraints)));
 
@@ -798,8 +812,8 @@ package body Sem_Util is
       --  of the prefix.
 
       function Build_Discriminal_Record_Constraint return List_Id;
-      --  Similar to previous one, for discriminated components constrained
-      --  by the discriminant of the enclosing object.
+      --  Similar to previous one, for discriminated components constrained by
+      --  the discriminant of the enclosing object.
 
       ----------------------------------------
       -- Build_Discriminal_Array_Constraint --
@@ -955,12 +969,7 @@ package body Sem_Util is
       --  and thus will not have the unit name automatically prepended.
 
       Set_Package_Name (Spec_Id);
-
-      --  Append _E
-
-      Name_Buffer (Name_Len + 1) := '_';
-      Name_Buffer (Name_Len + 2) := 'E';
-      Name_Len := Name_Len + 2;
+      Add_Str_To_Name_Buffer ("_E");
 
       --  Create elaboration counter
 
@@ -986,9 +995,9 @@ package body Sem_Util is
       Set_Current_Value    (Elab_Ent, Empty);
       Set_Last_Assignment  (Elab_Ent, Empty);
 
-      --  We do not want any further qualification of the name (if we did
-      --  not do this, we would pick up the name of the generic package
-      --  in the case of a library level generic instantiation).
+      --  We do not want any further qualification of the name (if we did not
+      --  do this, we would pick up the name of the generic package in the case
+      --  of a library level generic instantiation).
 
       Set_Has_Qualified_Name       (Elab_Ent);
       Set_Has_Fully_Qualified_Name (Elab_Ent);
@@ -1073,8 +1082,7 @@ package body Sem_Util is
                then
                   return False;
                else
-                  return
-                    Cannot_Raise_Constraint_Error (Expression (Expr));
+                  return Cannot_Raise_Constraint_Error (Expression (Expr));
                end if;
 
             when N_Unchecked_Type_Conversion =>
@@ -1084,8 +1092,7 @@ package body Sem_Util is
                if Do_Overflow_Check (Expr) then
                   return False;
                else
-                  return
-                    Cannot_Raise_Constraint_Error (Right_Opnd (Expr));
+                  return Cannot_Raise_Constraint_Error (Right_Opnd (Expr));
                end if;
 
             when N_Op_Divide |
@@ -1142,8 +1149,7 @@ package body Sem_Util is
    -- Check_Implicit_Dereference --
    --------------------------------
 
-   procedure Check_Implicit_Dereference (Nam : Node_Id;  Typ : Entity_Id)
-   is
+   procedure Check_Implicit_Dereference (Nam : Node_Id;  Typ : Entity_Id) is
       Disc  : Entity_Id;
       Desig : Entity_Id;
 
@@ -4490,11 +4496,11 @@ package body Sem_Util is
       end if;
    end Get_Enum_Lit_From_Pos;
 
-   ---------------------------------------
-   -- Get_Ensures_From_Test_Case_Pragma --
-   ---------------------------------------
+   ---------------------------------
+   -- Get_Ensures_From_CTC_Pragma --
+   ---------------------------------
 
-   function Get_Ensures_From_Test_Case_Pragma (N : Node_Id) return Node_Id is
+   function Get_Ensures_From_CTC_Pragma (N : Node_Id) return Node_Id is
       Args : constant List_Id := Pragma_Argument_Associations (N);
       Res  : Node_Id;
 
@@ -4514,7 +4520,7 @@ package body Sem_Util is
       end if;
 
       return Res;
-   end Get_Ensures_From_Test_Case_Pragma;
+   end Get_Ensures_From_CTC_Pragma;
 
    ------------------------
    -- Get_Generic_Entity --
@@ -4602,16 +4608,16 @@ package body Sem_Util is
       return Entity_Id (Get_Name_Table_Info (Id));
    end Get_Name_Entity_Id;
 
-   ------------------------------------
-   -- Get_Name_From_Test_Case_Pragma --
-   ------------------------------------
+   ------------------------------
+   -- Get_Name_From_CTC_Pragma --
+   ------------------------------
 
-   function Get_Name_From_Test_Case_Pragma (N : Node_Id) return String_Id is
+   function Get_Name_From_CTC_Pragma (N : Node_Id) return String_Id is
       Arg : constant Node_Id :=
               Get_Pragma_Arg (First (Pragma_Argument_Associations (N)));
    begin
       return Strval (Expr_Value_S (Arg));
-   end Get_Name_From_Test_Case_Pragma;
+   end Get_Name_From_CTC_Pragma;
 
    -------------------
    -- Get_Pragma_Id --
@@ -4656,11 +4662,11 @@ package body Sem_Util is
       return R;
    end Get_Renamed_Entity;
 
-   ----------------------------------------
-   -- Get_Requires_From_Test_Case_Pragma --
-   ----------------------------------------
+   ----------------------------------
+   -- Get_Requires_From_CTC_Pragma --
+   ----------------------------------
 
-   function Get_Requires_From_Test_Case_Pragma (N : Node_Id) return Node_Id is
+   function Get_Requires_From_CTC_Pragma (N : Node_Id) return Node_Id is
       Args : constant List_Id := Pragma_Argument_Associations (N);
       Res  : Node_Id;
 
@@ -4677,7 +4683,7 @@ package body Sem_Util is
       end if;
 
       return Res;
-   end Get_Requires_From_Test_Case_Pragma;
+   end Get_Requires_From_CTC_Pragma;
 
    -------------------------
    -- Get_Subprogram_Body --
@@ -6746,6 +6752,25 @@ package body Sem_Util is
       end if;
    end Is_Atomic_Object;
 
+   -----------------------
+   -- Is_Bounded_String --
+   -----------------------
+
+   function Is_Bounded_String (T : Entity_Id) return Boolean is
+      Under : constant Entity_Id := Underlying_Type (Root_Type (T));
+
+   begin
+      --  Check whether T is ultimately derived from Ada.Strings.Superbounded.
+      --  Super_String, or one of the [Wide_]Wide_ versions. This will
+      --  be True for all the Bounded_String types in instances of the
+      --  Generic_Bounded_Length generics, and for types derived from those.
+
+      return Present (Under)
+        and then (Is_RTE (Root_Type (Under), RO_SU_Super_String) or else
+                  Is_RTE (Root_Type (Under), RO_WI_Super_String) or else
+                  Is_RTE (Root_Type (Under), RO_WW_Super_String));
+   end Is_Bounded_String;
+
    -----------------------------
    -- Is_Concurrent_Interface --
    -----------------------------
@@ -7212,6 +7237,14 @@ package body Sem_Util is
              Present (Discriminant_Default_Value (First_Discriminant (Typ)))
            and then Is_Fully_Initialized_Variant (Typ)
          then
+            return True;
+         end if;
+
+         --  We consider bounded string types to be fully initialized, because
+         --  otherwise we get false alarms when the Data component is not
+         --  default-initialized.
+
+         if Is_Bounded_String (Typ) then
             return True;
          end if;
 
@@ -8647,7 +8680,6 @@ package body Sem_Util is
             --  only affects the generation of internal expanded code, since
             --  calls to instantiations of Unchecked_Conversion are never
             --  considered variables (since they are function calls).
-            --  This is also true for expression actions.
 
             when N_Unchecked_Type_Conversion =>
                return Is_Variable (Expression (Orig_Node));
@@ -9388,6 +9420,24 @@ package body Sem_Util is
 
       Mark_Allocators (Root_Nod);
    end Mark_Coextensions;
+
+   -----------------
+   -- Must_Inline --
+   -----------------
+
+   function Must_Inline (Subp : Entity_Id) return Boolean is
+   begin
+      return
+        (Optimization_Level = 0
+
+          --  AAMP and VM targets have no support for inlining in the backend.
+          --  Hence we do as much inlining as possible in the front end.
+
+          or else AAMP_On_Target
+          or else VM_Target /= No_VM)
+        and then Has_Pragma_Inline (Subp)
+        and then (Has_Pragma_Inline_Always (Subp) or else Front_End_Inlining);
+   end Must_Inline;
 
    ----------------------
    -- Needs_One_Actual --
@@ -10454,6 +10504,34 @@ package body Sem_Util is
    begin
       Actual_Id := Next_Actual (Actual_Id);
    end Next_Actual;
+
+   ---------------------
+   -- No_Scalar_Parts --
+   ---------------------
+
+   function No_Scalar_Parts (T : Entity_Id) return Boolean is
+      C : Entity_Id;
+
+   begin
+      if Is_Scalar_Type (T) then
+         return False;
+
+      elsif Is_Array_Type (T) then
+         return No_Scalar_Parts (Component_Type (T));
+
+      elsif Is_Record_Type (T) or else Has_Discriminants (T) then
+         C := First_Component_Or_Discriminant (T);
+         while Present (C) loop
+            if not No_Scalar_Parts (Etype (C)) then
+               return False;
+            else
+               Next_Component_Or_Discriminant (C);
+            end if;
+         end loop;
+      end if;
+
+      return True;
+   end No_Scalar_Parts;
 
    -----------------------
    -- Normalize_Actuals --
@@ -11766,6 +11844,18 @@ package body Sem_Util is
    begin
       Reset_Analyzed (N);
    end Reset_Analyzed_Flags;
+
+   --------------------------------
+   -- Returns_Unconstrained_Type --
+   --------------------------------
+
+   function Returns_Unconstrained_Type (Subp : Entity_Id) return Boolean is
+   begin
+      return Ekind (Subp) = E_Function
+        and then not Is_Scalar_Type (Etype (Subp))
+        and then not Is_Access_Type (Etype (Subp))
+        and then not Is_Constrained (Etype (Subp));
+   end Returns_Unconstrained_Type;
 
    ---------------------------
    -- Safe_To_Capture_Value --

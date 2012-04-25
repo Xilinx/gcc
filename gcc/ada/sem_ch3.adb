@@ -2196,19 +2196,26 @@ package body Sem_Ch3 is
                Spec := Specification (Original_Node (Decl));
                Sent := Defining_Unit_Name (Spec);
 
+               --  Analyze preconditions and postconditions
+
                Prag := Spec_PPC_List (Contract (Sent));
                while Present (Prag) loop
                   Analyze_PPC_In_Decl_Part (Prag, Sent);
                   Prag := Next_Pragma (Prag);
                end loop;
 
-               Check_Subprogram_Contract (Sent);
+               --  Analyze contract-cases and test-cases
 
-               Prag := Spec_TC_List (Contract (Sent));
+               Prag := Spec_CTC_List (Contract (Sent));
                while Present (Prag) loop
-                  Analyze_TC_In_Decl_Part (Prag, Sent);
+                  Analyze_CTC_In_Decl_Part (Prag, Sent);
                   Prag := Next_Pragma (Prag);
                end loop;
+
+               --  At this point, entities have been attached to identifiers.
+               --  This is required to be able to detect suspicious contracts.
+
+               Check_Subprogram_Contract (Sent);
             end if;
 
             Next (Decl);
@@ -3162,6 +3169,24 @@ package body Sem_Ch3 is
 
          Set_Etype (Id, T);
          Resolve (E, T);
+
+         --  No further action needed if E is a call to an inlined function
+         --  which returns an unconstrained type and it has been expanded into
+         --  a procedure call. In that case N has been replaced by an object
+         --  declaration without initializing expression and it has been
+         --  analyzed (see Expand_Inlined_Call).
+
+         if Debug_Flag_Dot_K
+           and then Expander_Active
+           and then Nkind (E) = N_Function_Call
+           and then Nkind (Name (E)) in N_Has_Entity
+           and then Is_Inlined (Entity (Name (E)))
+           and then not Is_Constrained (Etype (E))
+           and then Analyzed (N)
+           and then No (Expression (N))
+         then
+            return;
+         end if;
 
          --  If E is null and has been replaced by an N_Raise_Constraint_Error
          --  node (which was marked already-analyzed), we need to set the type
@@ -15576,12 +15601,35 @@ package body Sem_Ch3 is
       Typ_For_Constraint : Entity_Id;
       Constraint         : Elist_Id) return Node_Id
    is
+      function Root_Corresponding_Discriminant
+        (Discr : Entity_Id) return Entity_Id;
+      --  Given a discriminant, traverse the chain of inherited discriminants
+      --  and return the topmost discriminant.
+
       function Search_Derivation_Levels
         (Ti                    : Entity_Id;
          Discrim_Values        : Elist_Id;
          Stored_Discrim_Values : Boolean) return Node_Or_Entity_Id;
       --  This is the routine that performs the recursive search of levels
       --  as described above.
+
+      -------------------------------------
+      -- Root_Corresponding_Discriminant --
+      -------------------------------------
+
+      function Root_Corresponding_Discriminant
+        (Discr : Entity_Id) return Entity_Id
+      is
+         D : Entity_Id;
+
+      begin
+         D := Discr;
+         while Present (Corresponding_Discriminant (D)) loop
+            D := Corresponding_Discriminant (D);
+         end loop;
+
+         return D;
+      end Root_Corresponding_Discriminant;
 
       ------------------------------
       -- Search_Derivation_Levels --
@@ -15757,7 +15805,7 @@ package body Sem_Ch3 is
 
       --  ??? hack to disappear when this routine is gone
 
-      if  Nkind (Result) = N_Defining_Identifier then
+      if Nkind (Result) = N_Defining_Identifier then
          declare
             D : Entity_Id;
             E : Elmt_Id;
@@ -15766,7 +15814,7 @@ package body Sem_Ch3 is
             D := First_Discriminant (Typ_For_Constraint);
             E := First_Elmt (Constraint);
             while Present (D) loop
-               if Corresponding_Discriminant (D) = Discriminant then
+               if Root_Corresponding_Discriminant (D) = Discriminant then
                   return Node (E);
                end if;
 

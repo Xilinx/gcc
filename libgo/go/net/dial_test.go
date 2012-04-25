@@ -5,6 +5,9 @@
 package net
 
 import (
+	"flag"
+	"fmt"
+	"regexp"
 	"runtime"
 	"testing"
 	"time"
@@ -30,7 +33,7 @@ func TestDialTimeout(t *testing.T) {
 	numConns := listenerBacklog + 10
 
 	// TODO(bradfitz): It's hard to test this in a portable
-	// way. This is unforunate, but works for now.
+	// way. This is unfortunate, but works for now.
 	switch runtime.GOOS {
 	case "linux":
 		// The kernel will start accepting TCP connections before userspace
@@ -42,13 +45,25 @@ func TestDialTimeout(t *testing.T) {
 				errc <- err
 			}()
 		}
-	case "darwin":
+	case "darwin", "windows":
 		// At least OS X 10.7 seems to accept any number of
 		// connections, ignoring listen's backlog, so resort
 		// to connecting to a hopefully-dead 127/8 address.
 		// Same for windows.
+		//
+		// Use an IANA reserved port (49151) instead of 80, because
+		// on our 386 builder, this Dial succeeds, connecting
+		// to an IIS web server somewhere.  The data center
+		// or VM or firewall must be stealing the TCP connection.
+		// 
+		// IANA Service Name and Transport Protocol Port Number Registry
+		// <http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xml>
 		go func() {
-			_, err := DialTimeout("tcp", "127.0.71.111:80", 200*time.Millisecond)
+			c, err := DialTimeout("tcp", "127.0.71.111:49151", 200*time.Millisecond)
+			if err == nil {
+				err = fmt.Errorf("unexpected: connected to %s!", c.RemoteAddr())
+				c.Close()
+			}
 			errc <- err
 		}()
 	default:
@@ -125,6 +140,85 @@ func TestSelfConnect(t *testing.T) {
 		if err == nil {
 			c.Close()
 			t.Errorf("#%d: Dial %q succeeded", i, addr)
+		}
+	}
+}
+
+var runErrorTest = flag.Bool("run_error_test", false, "let TestDialError check for dns errors")
+
+type DialErrorTest struct {
+	Net     string
+	Raddr   string
+	Pattern string
+}
+
+var dialErrorTests = []DialErrorTest{
+	{
+		"datakit", "mh/astro/r70",
+		"dial datakit mh/astro/r70: unknown network datakit",
+	},
+	{
+		"tcp", "127.0.0.1:☺",
+		"dial tcp 127.0.0.1:☺: unknown port tcp/☺",
+	},
+	{
+		"tcp", "no-such-name.google.com.:80",
+		"dial tcp no-such-name.google.com.:80: lookup no-such-name.google.com.( on .*)?: no (.*)",
+	},
+	{
+		"tcp", "no-such-name.no-such-top-level-domain.:80",
+		"dial tcp no-such-name.no-such-top-level-domain.:80: lookup no-such-name.no-such-top-level-domain.( on .*)?: no (.*)",
+	},
+	{
+		"tcp", "no-such-name:80",
+		`dial tcp no-such-name:80: lookup no-such-name\.(.*\.)?( on .*)?: no (.*)`,
+	},
+	{
+		"tcp", "mh/astro/r70:http",
+		"dial tcp mh/astro/r70:http: lookup mh/astro/r70: invalid domain name",
+	},
+	{
+		"unix", "/etc/file-not-found",
+		"dial unix /etc/file-not-found: no such file or directory",
+	},
+	{
+		"unix", "/etc/",
+		"dial unix /etc/: (permission denied|socket operation on non-socket|connection refused)",
+	},
+	{
+		"unixpacket", "/etc/file-not-found",
+		"dial unixpacket /etc/file-not-found: no such file or directory",
+	},
+	{
+		"unixpacket", "/etc/",
+		"dial unixpacket /etc/: (permission denied|socket operation on non-socket|connection refused)",
+	},
+}
+
+var duplicateErrorPattern = `dial (.*) dial (.*)`
+
+func TestDialError(t *testing.T) {
+	if !*runErrorTest {
+		t.Logf("test disabled; use -run_error_test to enable")
+		return
+	}
+	for i, tt := range dialErrorTests {
+		c, err := Dial(tt.Net, tt.Raddr)
+		if c != nil {
+			c.Close()
+		}
+		if err == nil {
+			t.Errorf("#%d: nil error, want match for %#q", i, tt.Pattern)
+			continue
+		}
+		s := err.Error()
+		match, _ := regexp.MatchString(tt.Pattern, s)
+		if !match {
+			t.Errorf("#%d: %q, want match for %#q", i, s, tt.Pattern)
+		}
+		match, _ = regexp.MatchString(duplicateErrorPattern, s)
+		if match {
+			t.Errorf("#%d: %q, duplicate error return from Dial", i, s)
 		}
 	}
 }

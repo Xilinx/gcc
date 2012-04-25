@@ -6,21 +6,20 @@
 // drivers as used by package sql.
 //
 // Most code should use package sql.
-//
-// Drivers only need to be aware of a subset of Go's types.  The sql package
-// will convert all types into one of the following:
+package driver
+
+import "errors"
+
+// A driver Value is a value that drivers must be able to handle.
+// A Value is either nil or an instance of one of these types:
 //
 //   int64
 //   float64
 //   bool
-//   nil
 //   []byte
 //   string   [*] everywhere except from Rows.Next.
 //   time.Time
-//
-package driver
-
-import "errors"
+type Value interface{}
 
 // Driver is the interface that must be implemented by a database
 // driver.
@@ -44,17 +43,26 @@ type Driver interface {
 // documented.
 var ErrSkip = errors.New("driver: skip fast-path; continue as if unimplemented")
 
+// ErrBadConn should be returned by a driver to signal to the sql
+// package that a driver.Conn is in a bad state (such as the server
+// having earlier closed the connection) and the sql package should
+// retry on a new connection.
+//
+// To prevent duplicate operations, ErrBadConn should NOT be returned
+// if there's a possibility that the database server might have
+// performed the operation. Even if the server sends back an error,
+// you shouldn't return ErrBadConn.
+var ErrBadConn = errors.New("driver: bad connection")
+
 // Execer is an optional interface that may be implemented by a Conn.
 //
 // If a Conn does not implement Execer, the db package's DB.Exec will
 // first prepare a query, execute the statement, and then close the
 // statement.
 //
-// All arguments are of a subset type as defined in the package docs.
-//
 // Exec may return ErrSkip.
 type Execer interface {
-	Exec(query string, args []interface{}) (Result, error)
+	Exec(query string, args []Value) (Result, error)
 }
 
 // Conn is a connection to a database. It is not used concurrently
@@ -127,18 +135,17 @@ type Stmt interface {
 	NumInput() int
 
 	// Exec executes a query that doesn't return rows, such
-	// as an INSERT or UPDATE.  The args are all of a subset
-	// type as defined above.
-	Exec(args []interface{}) (Result, error)
+	// as an INSERT or UPDATE.
+	Exec(args []Value) (Result, error)
 
 	// Exec executes a query that may return rows, such as a
-	// SELECT.  The args of all of a subset type as defined above.
-	Query(args []interface{}) (Rows, error)
+	// SELECT.
+	Query(args []Value) (Rows, error)
 }
 
 // ColumnConverter may be optionally implemented by Stmt if the
 // the statement is aware of its own columns' types and can
-// convert from any type to a driver subset type.
+// convert from any type to a driver Value.
 type ColumnConverter interface {
 	// ColumnConverter returns a ValueConverter for the provided
 	// column index.  If the type of a specific column isn't known
@@ -162,12 +169,12 @@ type Rows interface {
 	// the provided slice. The provided slice will be the same
 	// size as the Columns() are wide.
 	//
-	// The dest slice may be populated with only with values
-	// of subset types defined above, but excluding string.
+	// The dest slice may be populated only with
+	// a driver Value type, but excluding string.
 	// All string values must be converted to []byte.
 	//
 	// Next should return io.EOF when there are no more rows.
-	Next(dest []interface{}) error
+	Next(dest []Value) error
 }
 
 // Tx is a transaction.
@@ -190,18 +197,19 @@ func (v RowsAffected) RowsAffected() (int64, error) {
 	return int64(v), nil
 }
 
-// DDLSuccess is a pre-defined Result for drivers to return when a DDL
-// command succeeds.
-var DDLSuccess ddlSuccess
+// ResultNoRows is a pre-defined Result for drivers to return when a DDL
+// command (such as a CREATE TABLE) succeeds. It returns an error for both
+// LastInsertId and RowsAffected.
+var ResultNoRows noRows
 
-type ddlSuccess struct{}
+type noRows struct{}
 
-var _ Result = ddlSuccess{}
+var _ Result = noRows{}
 
-func (ddlSuccess) LastInsertId() (int64, error) {
+func (noRows) LastInsertId() (int64, error) {
 	return 0, errors.New("no LastInsertId available after DDL statement")
 }
 
-func (ddlSuccess) RowsAffected() (int64, error) {
+func (noRows) RowsAffected() (int64, error) {
 	return 0, errors.New("no RowsAffected available after DDL statement")
 }

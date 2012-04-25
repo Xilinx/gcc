@@ -413,7 +413,7 @@ wrapup_global_declaration_2 (tree decl)
 	       && (TREE_USED (decl)
 		   || TREE_USED (DECL_ASSEMBLER_NAME (decl))))
 	/* needed */;
-      else if (node && node->needed)
+      else if (node && node->analyzed)
 	/* needed */;
       else if (DECL_COMDAT (decl))
 	needed = false;
@@ -486,7 +486,6 @@ check_global_declaration_1 (tree decl)
 	warning (OPT_Wunused_function, "%q+F declared %<static%> but never defined", decl);
       /* This symbol is effectively an "extern" declaration now.  */
       TREE_PUBLIC (decl) = 1;
-      assemble_external (decl);
     }
 
   /* Warn about static fns or vars defined but not used.  */
@@ -582,6 +581,7 @@ compile_file (void)
      basically finished.  */
   if (in_lto_p || !flag_lto || flag_fat_lto_objects)
     {
+      varpool_remove_unreferenced_decls ();
       varpool_assemble_pending_decls ();
       finish_aliases_2 ();
 
@@ -591,7 +591,7 @@ compile_file (void)
 
       output_shared_constant_pool ();
       output_object_blocks ();
-  finish_tm_clone_pairs ();
+      finish_tm_clone_pairs ();
 
       /* Write out any pending weak symbol declarations.  */
       weak_finish ();
@@ -1170,6 +1170,8 @@ general_init (const char *argv0)
   /* Set a default printer.  Language specific initializations will
      override it later.  */
   pp_format_decoder (global_dc->printer) = &default_tree_printer;
+  global_dc->show_caret
+    = global_options_init.x_flag_diagnostics_show_caret;
   global_dc->show_option_requested
     = global_options_init.x_flag_diagnostics_show_option;
   global_dc->show_column
@@ -1315,12 +1317,11 @@ process_options (void)
   if (flag_graphite
       || flag_graphite_identity
       || flag_loop_block
-      || flag_loop_flatten
       || flag_loop_interchange
       || flag_loop_strip_mine
       || flag_loop_parallelize_all)
     sorry ("Graphite loop optimizations cannot be used (-fgraphite, "
-	   "-fgraphite-identity, -floop-block, -floop-flatten, "
+	   "-fgraphite-identity, -floop-block, "
 	   "-floop-interchange, -floop-strip-mine, -floop-parallelize-all, "
 	   "and -ftree-loop-linear)");
 #endif

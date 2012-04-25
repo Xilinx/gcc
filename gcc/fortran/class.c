@@ -361,6 +361,39 @@ gfc_is_class_scalar_expr (gfc_expr *e)
 }
 
 
+/* Tells whether the expression E is a reference to a (scalar) class container.
+   Scalar because array class containers usually have an array reference after
+   them, and gfc_fix_class_refs will add the missing "_data" component reference
+   in that case.  */
+
+bool
+gfc_is_class_container_ref (gfc_expr *e)
+{
+  gfc_ref *ref;
+  bool result;
+
+  if (e->expr_type != EXPR_VARIABLE)
+    return e->ts.type == BT_CLASS;
+
+  if (e->symtree->n.sym->ts.type == BT_CLASS)
+    result = true;
+  else
+    result = false;
+
+  for (ref = e->ref; ref; ref = ref->next)
+    {
+      if (ref->type != REF_COMPONENT)
+	result = false;
+      else if (ref->u.c.component->ts.type == BT_CLASS)
+	result = true; 
+      else
+	result = false;
+    }
+
+  return result;
+}
+
+
 /* Build a NULL initializer for CLASS pointers,
    initializing the _data component to NULL and
    the _vptr component to the declared type.  */
@@ -508,8 +541,7 @@ gfc_build_class_symbol (gfc_typespec *ts, symbol_attribute *attr,
       fclass->refs++;
       fclass->ts.type = BT_UNKNOWN;
       fclass->attr.abstract = ts->u.derived->attr.abstract;
-      if (ts->u.derived->f2k_derived)
-	fclass->f2k_derived = gfc_get_namespace (NULL, 0);
+      fclass->f2k_derived = gfc_get_namespace (NULL, 0);
       if (gfc_add_flavor (&fclass->attr, FL_DERIVED,
 	  NULL, &gfc_current_locus) == FAILURE)
 	return FAILURE;
@@ -546,8 +578,6 @@ gfc_build_class_symbol (gfc_typespec *ts, symbol_attribute *attr,
       c->attr.access = ACCESS_PRIVATE;
       c->attr.pointer = 1;
     }
-  else if (!fclass->f2k_derived)
-    fclass->f2k_derived = gfc_get_namespace (NULL, 0);
 
   /* Since the extension field is 8 bit wide, we can only have
      up to 255 extension levels.  */

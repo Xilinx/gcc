@@ -504,7 +504,7 @@ runtime1.c: $(srcdir)/runtime/runtime1.goc goc2c
 	mv -f $@.tmp $@
 
 sema.c: $(srcdir)/runtime/sema.goc goc2c
-	./goc2c --gcc --go-prefix libgo_runtime $< > $@.tmp
+	./goc2c --gcc --go-prefix libgo_sync $< > $@.tmp
 	mv -f $@.tmp $@
 
 sigqueue.c: $(srcdir)/runtime/sigqueue.goc goc2c
@@ -658,10 +658,17 @@ go_net_sock_file = go/net/sock_linux.go
 go_net_sockopt_file = go/net/sockopt_linux.go
 go_net_sockoptip_file = go/net/sockoptip_linux.go
 else
+if LIBGO_IS_FREEBSD
 go_net_cgo_file = go/net/cgo_bsd.go
 go_net_sock_file = go/net/sock_bsd.go
 go_net_sockopt_file = go/net/sockopt_bsd.go
-go_net_sockoptip_file = go/net/sockoptip_bsd.go
+go_net_sockoptip_file = go/net/sockoptip_bsd.go go/net/sockoptip_freebsd.go
+else
+go_net_cgo_file = go/net/cgo_bsd.go
+go_net_sock_file = go/net/sock_bsd.go
+go_net_sockopt_file = go/net/sockopt_bsd.go
+go_net_sockoptip_file = go/net/sockoptip_bsd.go go/net/sockoptip_netbsd.go
+endif
 endif
 endif
 endif
@@ -704,6 +711,7 @@ go_net_files = \
 	go/net/ipsock.go \
 	go/net/ipsock_posix.go \
 	go/net/lookup_unix.go \
+	go/net/mac.go \
 	go/net/net.go \
 	go/net/parse.go \
 	go/net/pipe.go \
@@ -805,6 +813,7 @@ go_net_rpc_files = \
 	go/net/rpc/server.go
 
 go_runtime_files = \
+	go/runtime/compiler.go \
 	go/runtime/debug.go \
 	go/runtime/error.go \
 	go/runtime/extern.go \
@@ -835,6 +844,7 @@ go_strconv_files = \
 	go/strconv/decimal.go \
 	go/strconv/extfloat.go \
 	go/strconv/ftoa.go \
+	go/strconv/isprint.go \
 	go/strconv/itoa.go \
 	go/strconv/quote.go
 
@@ -847,6 +857,7 @@ go_sync_files = \
 	go/sync/cond.go \
 	go/sync/mutex.go \
 	go/sync/once.go \
+	go/sync/runtime.go \
 	go/sync/rwmutex.go \
 	go/sync/waitgroup.go
 
@@ -878,6 +889,7 @@ go_time_files = \
 	go/time/tick.go \
 	go/time/time.go \
 	go/time/zoneinfo.go \
+	go/time/zoneinfo_read.go \
 	go/time/zoneinfo_unix.go
 
 go_unicode_files = \
@@ -990,12 +1002,13 @@ go_crypto_tls_files = \
 	go/crypto/tls/handshake_server.go \
 	go/crypto/tls/key_agreement.go \
 	go/crypto/tls/prf.go \
-	go/crypto/tls/root_unix.go \
 	go/crypto/tls/tls.go
 go_crypto_x509_files = \
 	go/crypto/x509/cert_pool.go \
 	go/crypto/x509/pkcs1.go \
 	go/crypto/x509/pkcs8.go \
+	go/crypto/x509/root.go \
+	go/crypto/x509/root_unix.go \
 	go/crypto/x509/verify.go \
 	go/crypto/x509/x509.go
 
@@ -1014,12 +1027,14 @@ go_debug_dwarf_files = \
 	go/debug/dwarf/buf.go \
 	go/debug/dwarf/const.go \
 	go/debug/dwarf/entry.go \
+	go/debug/dwarf/line.go \
 	go/debug/dwarf/open.go \
 	go/debug/dwarf/type.go \
 	go/debug/dwarf/unit.go
 go_debug_elf_files = \
 	go/debug/elf/elf.go \
-	go/debug/elf/file.go
+	go/debug/elf/file.go \
+	go/debug/elf/runtime.go
 go_debug_gosym_files = \
 	go/debug/gosym/pclntab.go \
 	go/debug/gosym/symtab.go
@@ -1091,6 +1106,7 @@ go_exp_norm_files = \
 	go/exp/norm/composition.go \
 	go/exp/norm/forminfo.go \
 	go/exp/norm/input.go \
+	go/exp/norm/iter.go \
 	go/exp/norm/normalize.go \
 	go/exp/norm/readwriter.go \
 	go/exp/norm/tables.go \
@@ -1123,8 +1139,7 @@ go_go_ast_files = \
 	go/go/ast/walk.go
 go_go_build_files = \
 	go/go/build/build.go \
-	go/go/build/dir.go \
-	go/go/build/path.go \
+	go/go/build/doc.go \
 	syslist.go
 go_go_doc_files = \
 	go/go/doc/comment.go \
@@ -1132,7 +1147,8 @@ go_go_doc_files = \
 	go/go/doc/example.go \
 	go/go/doc/exports.go \
 	go/go/doc/filter.go \
-	go/go/doc/reader.go
+	go/go/doc/reader.go \
+	go/go/doc/synopsis.go
 go_go_parser_files = \
 	go/go/parser/interface.go \
 	go/go/parser/parser.go
@@ -1159,7 +1175,6 @@ go_hash_fnv_files = \
 
 go_html_template_files = \
 	go/html/template/attr.go \
-	go/html/template/clone.go \
 	go/html/template/content.go \
 	go/html/template/context.go \
 	go/html/template/css.go \
@@ -1308,7 +1323,8 @@ go_os_user_files = \
 go_path_filepath_files = \
 	go/path/filepath/match.go \
 	go/path/filepath/path.go \
-	go/path/filepath/path_unix.go
+	go/path/filepath/path_unix.go \
+	go/path/filepath/symlink.go
 
 go_regexp_syntax_files = \
 	go/regexp/syntax/compile.go \
@@ -1792,9 +1808,9 @@ CHECK = \
 	prefix=`if test "$(@D)" = "regexp"; then echo regexp-test; else dirname $(@D); fi`; \
 	test "$${prefix}" != "." || prefix="$(@D)"; \
 	if test "$(use_dejagnu)" = "yes"; then \
-	  $(SHELL) $(srcdir)/testsuite/gotest --dejagnu=yes --basedir=$(srcdir) --srcdir=$(srcdir)/go/$(@D) --prefix="libgo_$${prefix}" --pkgfiles="$(go_$(subst /,_,$(@D))_files)" --testname="$(@D)" $(GOTESTFLAGS); \
+	  $(SHELL) $(srcdir)/testsuite/gotest --dejagnu=yes --basedir=$(srcdir) --srcdir=$(srcdir)/go/$(@D) --prefix="libgo_$${prefix}" --pkgfiles="$(go_$(subst /,_,$(@D))_files)" --testname="$(@D)" --goarch="$(GOARCH)" $(GOTESTFLAGS); \
 	else \
-	  if $(SHELL) $(srcdir)/testsuite/gotest --basedir=$(srcdir) --srcdir=$(srcdir)/go/$(@D) --prefix="libgo_$${prefix}" --pkgfiles="$(go_$(subst /,_,$(@D))_files)" $(GOTESTFLAGS) >>$@-testlog 2>&1; then \
+	  if $(SHELL) $(srcdir)/testsuite/gotest --basedir=$(srcdir) --srcdir=$(srcdir)/go/$(@D) --prefix="libgo_$${prefix}" --pkgfiles="$(go_$(subst /,_,$(@D))_files)" --goarch="$(GOARCH)" $(GOTESTFLAGS) >>$@-testlog 2>&1; then \
 	    echo "PASS: $(@D)" >> $@-testlog; \
 	    echo "PASS: $(@D)"; \
 	    echo "PASS: $(@D)" > $@-testsum; \
@@ -2838,6 +2854,7 @@ log/syslog.lo.dep: $(go_log_syslog_files)
 log/syslog.lo: $(go_log_syslog_files)
 	$(BUILDPACKAGE)
 log/syslog/syslog_c.lo: $(go_syslog_c_files) log/syslog.lo
+	@$(MKDIR_P) log/syslog
 	$(LTCOMPILE) -c -o $@ $(srcdir)/go/log/syslog/syslog_c.c
 log/syslog/check: $(CHECK_DEPS)
 	@$(MKDIR_P) log/syslog

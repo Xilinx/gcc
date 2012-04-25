@@ -25,6 +25,7 @@
 
 with Aspects;  use Aspects;
 with Atree;    use Atree;
+with Debug;    use Debug;
 with Einfo;    use Einfo;
 with Elists;   use Elists;
 with Errout;   use Errout;
@@ -33,7 +34,6 @@ with Exp_Disp; use Exp_Disp;
 with Fname;    use Fname;
 with Fname.UF; use Fname.UF;
 with Freeze;   use Freeze;
-with Hostparm;
 with Itypes;   use Itypes;
 with Lib;      use Lib;
 with Lib.Load; use Lib.Load;
@@ -3294,6 +3294,11 @@ package body Sem_Ch12 is
       --  but it is simpler than detecting the need for the body at the point
       --  of inlining, when the context of the instance is not available.
 
+      function Must_Inline_Subp return Boolean;
+      --  If inlining is active and the generic contains inlined subprograms,
+      --  return True if some of the inlined subprograms must be inlined by
+      --  the frontend.
+
       -----------------------
       -- Delay_Descriptors --
       -----------------------
@@ -3332,6 +3337,34 @@ package body Sem_Ch12 is
 
          return False;
       end Might_Inline_Subp;
+
+      ----------------------
+      -- Must_Inline_Subp --
+      ----------------------
+
+      function Must_Inline_Subp return Boolean is
+         E : Entity_Id;
+
+      begin
+         if not Inline_Processing_Required then
+            return False;
+
+         else
+            E := First_Entity (Gen_Unit);
+            while Present (E) loop
+               if Is_Subprogram (E)
+                 and then Is_Inlined (E)
+                 and then Must_Inline (E)
+               then
+                  return True;
+               end if;
+
+               Next_Entity (E);
+            end loop;
+         end if;
+
+         return False;
+      end Must_Inline_Subp;
 
       --  Local declarations
 
@@ -3613,7 +3646,16 @@ package body Sem_Ch12 is
               and then Might_Inline_Subp
               and then not Is_Actual_Pack
             then
-               if Front_End_Inlining
+               if not Debug_Flag_Dot_K
+                 and then Front_End_Inlining
+                 and then (Is_In_Main_Unit (N)
+                            or else In_Main_Context (Current_Scope))
+                 and then Nkind (Parent (N)) /= N_Compilation_Unit
+               then
+                  Inline_Now := True;
+
+               elsif Debug_Flag_Dot_K
+                 and then Must_Inline_Subp
                  and then (Is_In_Main_Unit (N)
                             or else In_Main_Context (Current_Scope))
                  and then Nkind (Parent (N)) /= N_Compilation_Unit
@@ -3662,7 +3704,6 @@ package body Sem_Ch12 is
                            or else Might_Inline_Subp)
                 and then not Is_Actual_Pack
                 and then not Inline_Now
-                and then not Alfa_Mode
                 and then (Operating_Mode = Generate_Code
                            or else (Operating_Mode = Check_Semantics
                                      and then ASIS_Mode));
@@ -3741,8 +3782,10 @@ package body Sem_Ch12 is
             --  Here is a defence against a ludicrous number of instantiations
             --  caused by a circular set of instantiation attempts.
 
-            if Pending_Instantiations.Last > Hostparm.Max_Instantiations then
-               Error_Msg_N ("too many instantiations", N);
+            if Pending_Instantiations.Last > Maximum_Instantiations then
+               Error_Msg_Uint_1 := UI_From_Int (Maximum_Instantiations);
+               Error_Msg_N ("too many instantiations, exceeds max of^", N);
+               Error_Msg_N ("\limit can be changed using -gnateinn switch", N);
                raise Unrecoverable_Error;
             end if;
 
@@ -4361,9 +4404,6 @@ package body Sem_Ch12 is
       Parent_Installed : Boolean := False;
       Renaming_List    : List_Id;
 
-      Save_Style_Check : constant Boolean := Style_Check;
-      --  Save style check mode for restore on exit
-
       procedure Analyze_Instance_And_Renamings;
       --  The instance must be analyzed in a context that includes the mappings
       --  of generic parameters into actuals. We create a package declaration
@@ -4544,11 +4584,13 @@ package body Sem_Ch12 is
 
       Instantiation_Node := N;
 
-      --  Turn off style checking in instances. If the check is enabled on the
-      --  generic unit, a warning in an instance would just be noise. If not
-      --  enabled on the generic, then a warning in an instance is just wrong.
+      --  For package instantiations we turn off style checks, because they
+      --  will have been emitted in the generic. For subprogram instantiations
+      --  we want to apply at least the check on overriding indicators so we
+      --  do not modify the style check status.
 
-      Style_Check := False;
+      --  The renaming declarations for the actuals do not come from source and
+      --  will not generate spurious warnings.
 
       Preanalyze_Actuals (N);
 
@@ -4816,8 +4858,6 @@ package body Sem_Ch12 is
          Generic_Renamings_HTable.Reset;
       end if;
 
-      Style_Check := Save_Style_Check;
-
    <<Leave>>
       if Has_Aspects (N) then
          Analyze_Aspect_Specifications (N, Act_Decl_Id);
@@ -4832,8 +4872,6 @@ package body Sem_Ch12 is
          if Env_Installed then
             Restore_Env;
          end if;
-
-         Style_Check := Save_Style_Check;
    end Analyze_Subprogram_Instantiation;
 
    -------------------------
@@ -7159,12 +7197,22 @@ package body Sem_Ch12 is
       end if;
 
       --  At this point either both nodes came from source or we approximated
-      --  their source locations through neighbouring source statements. There
-      --  is no need to look at the top level locations of P1 and P2 because
-      --  both nodes are in the same list and whether the enclosing context is
-      --  instantiated is irrelevant.
+      --  their source locations through neighbouring source statements.
 
-      return Sloc (P1) < Sloc (P2);
+      --  When two nodes come from the same instance, they have identical top
+      --  level locations. To determine proper relation within the tree, check
+      --  their locations within the template.
+
+      if Top_Level_Location (Sloc (P1)) = Top_Level_Location (Sloc (P2)) then
+         return Sloc (P1) < Sloc (P2);
+
+      --  The two nodes either come from unrelated instances or do not come
+      --  from instantiated code at all.
+
+      else
+         return Top_Level_Location (Sloc (P1))
+              < Top_Level_Location (Sloc (P2));
+      end if;
    end Earlier;
 
    ----------------------
@@ -7713,6 +7761,9 @@ package body Sem_Ch12 is
       Item            : Node_Id;
       New_I           : Node_Id;
 
+      Clause : Node_Id;
+      OK     : Boolean;
+
    begin
       if Nkind (Parent (Gen_Decl)) = N_Compilation_Unit then
 
@@ -7734,17 +7785,30 @@ package body Sem_Ch12 is
          while Present (Item) loop
             if Nkind (Item) = N_With_Clause then
 
-               --  Take care to prevent direct cyclic with's, which can happen
-               --  if the generic body with's the current unit. Such a case
-               --  would result in binder errors (or run-time errors if the
-               --  -gnatE switch is in effect), but we want to prevent it here,
-               --  because Sem.Walk_Library_Items doesn't like cycles. Note
-               --  that we don't bother to detect indirect cycles.
+               --  Take care to prevent direct cyclic with's.
 
                if Library_Unit (Item) /= Current_Unit then
-                  New_I := New_Copy (Item);
-                  Set_Implicit_With (New_I, True);
-                  Append (New_I, Current_Context);
+                  --  Do not add a unit if it is already in the context
+
+                  Clause := First (Current_Context);
+                  OK := True;
+                  while Present (Clause) loop
+                     if Nkind (Clause) = N_With_Clause and then
+                       Chars (Name (Clause)) = Chars (Name (Item))
+                     then
+                        OK := False;
+                        exit;
+                     end if;
+
+                     Next (Clause);
+                  end loop;
+
+                  if OK then
+                     New_I := New_Copy (Item);
+                     Set_Implicit_With (New_I, True);
+                     Set_Implicit_With_From_Instantiation (New_I, True);
+                     Append (New_I, Current_Context);
+                  end if;
                end if;
             end if;
 
@@ -10380,11 +10444,29 @@ package body Sem_Ch12 is
             Abandon_Instantiation (Actual);
          end if;
 
-         Check_Mode_Conformant
-           (Designated_Type (Act_T),
-            Designated_Type (A_Gen_T),
-            Actual,
-            Get_Inst => True);
+         --  According to AI05-288, actuals for access_to_subprograms must be
+         --  subtype conformant with the generic formal. Previous to AI05-288
+         --  only mode conformance was required.
+
+         --  This is a binding interpretation that applies to previous versions
+         --  of the language, but for now we retain the milder check in order
+         --  to preserve ACATS tests.
+         --  These will be protested eventually ???
+
+         if Ada_Version < Ada_2012 then
+            Check_Mode_Conformant
+              (Designated_Type (Act_T),
+               Designated_Type (A_Gen_T),
+               Actual,
+               Get_Inst => True);
+
+         else
+            Check_Subtype_Conformant
+              (Designated_Type (Act_T),
+               Designated_Type (A_Gen_T),
+               Actual,
+               Get_Inst => True);
+         end if;
 
          if Ekind (Base_Type (Act_T)) = E_Access_Protected_Subprogram_Type then
             if Ekind (A_Gen_T) = E_Access_Subprogram_Type then

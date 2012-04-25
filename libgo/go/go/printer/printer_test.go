@@ -154,15 +154,12 @@ var data = []entry{
 }
 
 func TestFiles(t *testing.T) {
-	for i, e := range data {
+	for _, e := range data {
 		source := filepath.Join(dataDir, e.source)
 		golden := filepath.Join(dataDir, e.golden)
 		check(t, source, golden, e.mode)
 		// TODO(gri) check that golden is idempotent
 		//check(t, golden, golden, e.mode)
-		if testing.Short() && i >= 3 {
-			break
-		}
 	}
 }
 
@@ -283,10 +280,10 @@ func fibo(n int) {
 		t.Error("expected offset 1") // error in test
 	}
 
-	testComment(t, f, len(src), &ast.Comment{pos, "//-style comment"})
-	testComment(t, f, len(src), &ast.Comment{pos, "/*-style comment */"})
-	testComment(t, f, len(src), &ast.Comment{pos, "/*-style \n comment */"})
-	testComment(t, f, len(src), &ast.Comment{pos, "/*-style comment \n\n\n */"})
+	testComment(t, f, len(src), &ast.Comment{Slash: pos, Text: "//-style comment"})
+	testComment(t, f, len(src), &ast.Comment{Slash: pos, Text: "/*-style comment */"})
+	testComment(t, f, len(src), &ast.Comment{Slash: pos, Text: "/*-style \n comment */"})
+	testComment(t, f, len(src), &ast.Comment{Slash: pos, Text: "/*-style comment \n\n\n */"})
 }
 
 type visitor chan *ast.Ident

@@ -943,12 +943,11 @@ slpeel_add_loop_guard (basic_block guard_bb, tree cond,
   enter_e->flags |= EDGE_FALSE_VALUE;
   gsi = gsi_last_bb (guard_bb);
 
-  cond = force_gimple_operand (cond, &gimplify_stmt_list, true, NULL_TREE);
+  cond = force_gimple_operand_1 (cond, &gimplify_stmt_list, is_gimple_condexpr,
+				 NULL_TREE);
   if (gimplify_stmt_list)
     gimple_seq_add_seq (&cond_expr_stmt_list, gimplify_stmt_list);
-  cond_stmt = gimple_build_cond (NE_EXPR,
-				 cond, build_int_cst (TREE_TYPE (cond), 0),
-				 NULL_TREE, NULL_TREE);
+  cond_stmt = gimple_build_cond_from_tree (cond, NULL_TREE, NULL_TREE);
   if (cond_expr_stmt_list)
     gsi_insert_seq_after (&gsi, cond_expr_stmt_list, GSI_NEW_STMT);
 
@@ -1048,7 +1047,7 @@ set_prologue_iterations (basic_block bb_before_first_loop,
   gimple newphi;
   edge e_true, e_false, e_fallthru;
   gimple cond_stmt;
-  gimple_seq gimplify_stmt_list = NULL, stmts = NULL;
+  gimple_seq stmts = NULL;
   tree cost_pre_condition = NULL_TREE;
   tree scalar_loop_iters =
     unshare_expr (LOOP_VINFO_NITERS_UNCHANGED (loop_vec_info_for_loop (loop)));
@@ -1070,21 +1069,15 @@ set_prologue_iterations (basic_block bb_before_first_loop,
 
   e_fallthru = EDGE_SUCC (then_bb, 0);
 
+  gsi = gsi_last_bb (cond_bb);
   cost_pre_condition =
     fold_build2 (LE_EXPR, boolean_type_node, scalar_loop_iters,
 	         build_int_cst (TREE_TYPE (scalar_loop_iters), th));
   cost_pre_condition =
-    force_gimple_operand (cost_pre_condition, &gimplify_stmt_list,
-			  true, NULL_TREE);
-  cond_stmt = gimple_build_cond (NE_EXPR, cost_pre_condition,
-				 build_int_cst (TREE_TYPE (cost_pre_condition),
-						0), NULL_TREE, NULL_TREE);
-
-  gsi = gsi_last_bb (cond_bb);
-  if (gimplify_stmt_list)
-    gsi_insert_seq_after (&gsi, gimplify_stmt_list, GSI_NEW_STMT);
-
-  gsi = gsi_last_bb (cond_bb);
+    force_gimple_operand_gsi_1 (&gsi, cost_pre_condition, is_gimple_condexpr,
+				NULL_TREE, false, GSI_CONTINUE_LINKING);
+  cond_stmt = gimple_build_cond_from_tree (cost_pre_condition,
+					   NULL_TREE, NULL_TREE);
   gsi_insert_after (&gsi, cond_stmt, GSI_NEW_STMT);
 
   var = create_tmp_var (TREE_TYPE (scalar_loop_iters),
@@ -1797,13 +1790,12 @@ vect_update_ivs_after_vectorizer (loop_vec_info loop_vinfo, tree niters,
        !gsi_end_p (gsi) && !gsi_end_p (gsi1);
        gsi_next (&gsi), gsi_next (&gsi1))
     {
-      tree access_fn = NULL;
-      tree evolution_part;
       tree init_expr;
       tree step_expr, off;
       tree type;
       tree var, ni, ni_name;
       gimple_stmt_iterator last_gsi;
+      stmt_vec_info stmt_info;
 
       phi = gsi_stmt (gsi);
       phi1 = gsi_stmt (gsi1);
@@ -1822,45 +1814,34 @@ vect_update_ivs_after_vectorizer (loop_vec_info loop_vinfo, tree niters,
 	}
 
       /* Skip reduction phis.  */
-      if (STMT_VINFO_DEF_TYPE (vinfo_for_stmt (phi)) == vect_reduction_def)
+      stmt_info = vinfo_for_stmt (phi);
+      if (STMT_VINFO_DEF_TYPE (stmt_info) == vect_reduction_def)
         {
           if (vect_print_dump_info (REPORT_DETAILS))
             fprintf (vect_dump, "reduc phi. skip.");
           continue;
         }
 
-      access_fn = analyze_scalar_evolution (loop, PHI_RESULT (phi));
-      gcc_assert (access_fn);
-      /* We can end up with an access_fn like
-           (short int) {(short unsigned int) i_49, +, 1}_1
-	 for further analysis we need to strip the outer cast but we
-	 need to preserve the original type.  */
-      type = TREE_TYPE (access_fn);
-      STRIP_NOPS (access_fn);
-      evolution_part =
-	 unshare_expr (evolution_part_in_loop_num (access_fn, loop->num));
-      gcc_assert (evolution_part != NULL_TREE);
+      type = TREE_TYPE (gimple_phi_result (phi));
+      step_expr = STMT_VINFO_LOOP_PHI_EVOLUTION_PART (stmt_info);
+      step_expr = unshare_expr (step_expr);
 
       /* FORNOW: We do not support IVs whose evolution function is a polynomial
          of degree >= 2 or exponential.  */
-      gcc_assert (!tree_is_chrec (evolution_part));
+      gcc_assert (!tree_is_chrec (step_expr));
 
-      step_expr = evolution_part;
-      init_expr = unshare_expr (initial_condition_in_loop_num (access_fn,
-							       loop->num));
-      init_expr = fold_convert (type, init_expr);
+      init_expr = PHI_ARG_DEF_FROM_EDGE (phi, loop_preheader_edge (loop));
 
       off = fold_build2 (MULT_EXPR, TREE_TYPE (step_expr),
 			 fold_convert (TREE_TYPE (step_expr), niters),
 			 step_expr);
-      if (POINTER_TYPE_P (TREE_TYPE (init_expr)))
+      if (POINTER_TYPE_P (type))
 	ni = fold_build_pointer_plus (init_expr, off);
       else
-	ni = fold_build2 (PLUS_EXPR, TREE_TYPE (init_expr),
-			  init_expr,
-			  fold_convert (TREE_TYPE (init_expr), off));
+	ni = fold_build2 (PLUS_EXPR, type,
+			  init_expr, fold_convert (type, off));
 
-      var = create_tmp_var (TREE_TYPE (init_expr), "tmp");
+      var = create_tmp_var (type, "tmp");
       add_referenced_var (var);
 
       last_gsi = gsi_last_bb (exit_bb);
@@ -1985,6 +1966,16 @@ vect_do_peeling_for_loop_bound (loop_vec_info loop_vinfo, tree *ratio,
      by ratio_mult_vf_name steps.  */
   vect_update_ivs_after_vectorizer (loop_vinfo, ratio_mult_vf_name, update_e);
 
+  if (!LOOP_REQUIRES_VERSIONING_FOR_ALIGNMENT (loop_vinfo)
+      && !LOOP_REQUIRES_VERSIONING_FOR_ALIAS (loop_vinfo))
+    {
+      int max_iter = MAX (LOOP_VINFO_VECT_FACTOR (loop_vinfo) - 1, (int) th);
+      record_niter_bound (new_loop, shwi_to_double_int (max_iter), false, true);
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	fprintf (dump_file, "Setting upper bound of nb iterations for epilogue "
+		 "loop to %d\n", max_iter);
+    }
+
   /* After peeling we have to reset scalar evolution analyzer.  */
   scev_reset ();
 
@@ -2058,9 +2049,7 @@ vect_gen_niters_for_prolog_loop (loop_vec_info loop_vinfo, tree loop_niters)
 	  ? size_int (-TYPE_VECTOR_SUBPARTS (vectype) + 1) : NULL_TREE;
       tree start_addr = vect_create_addr_base_for_vector_ref (dr_stmt,
 						&new_stmts, offset, loop);
-      tree ptr_type = TREE_TYPE (start_addr);
-      tree size = TYPE_SIZE (ptr_type);
-      tree type = lang_hooks.types.type_for_size (tree_low_cst (size, 1), 1);
+      tree type = unsigned_type_for (TREE_TYPE (start_addr));
       tree vectype_size_minus_1 = build_int_cst (type, vectype_align - 1);
       tree elem_size_log =
         build_int_cst (type, exact_log2 (vectype_align/nelements));
@@ -2181,6 +2170,7 @@ vect_do_peeling_for_alignment (loop_vec_info loop_vinfo)
   struct loop *new_loop;
   unsigned int th = 0;
   int min_profitable_iters;
+  int max_iter;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "=== vect_do_peeling_for_alignment ===");
@@ -2206,6 +2196,11 @@ vect_do_peeling_for_alignment (loop_vec_info loop_vinfo)
 #ifdef ENABLE_CHECKING
   slpeel_verify_cfg_after_peeling (new_loop, loop);
 #endif
+  max_iter = MAX (LOOP_VINFO_VECT_FACTOR (loop_vinfo) - 1, (int) th);
+  record_niter_bound (new_loop, shwi_to_double_int (max_iter), false, true);
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    fprintf (dump_file, "Setting upper bound of nb iterations for prologue "
+	     "loop to %d\n", max_iter);
 
   /* Update number of times loop executes.  */
   n_iters = LOOP_VINFO_NITERS (loop_vinfo);
@@ -2278,7 +2273,6 @@ vect_create_cond_for_align_checks (loop_vec_info loop_vinfo,
   int mask = LOOP_VINFO_PTR_MASK (loop_vinfo);
   tree mask_cst;
   unsigned int i;
-  tree psize;
   tree int_ptrsize_type;
   char tmp_name[20];
   tree or_tmp_name = NULL_TREE;
@@ -2291,11 +2285,7 @@ vect_create_cond_for_align_checks (loop_vec_info loop_vinfo,
      all zeros followed by all ones.  */
   gcc_assert ((mask != 0) && ((mask & (mask+1)) == 0));
 
-  /* CHECKME: what is the best integer or unsigned type to use to hold a
-     cast from a pointer value?  */
-  psize = TYPE_SIZE (ptr_type_node);
-  int_ptrsize_type
-    = lang_hooks.types.type_for_size (tree_low_cst (psize, 1), 0);
+  int_ptrsize_type = signed_type_for (ptr_type_node);
 
   /* Create expression (mask & (dr_1 || ... || dr_n)) where dr_i is the address
      of the first vector of the i'th data reference. */
@@ -2584,25 +2574,21 @@ vect_loop_versioning (loop_vec_info loop_vinfo, bool do_versioning,
   th = conservative_cost_threshold (loop_vinfo,
 				    min_profitable_iters);
 
-  *cond_expr =
-    fold_build2 (GT_EXPR, boolean_type_node, scalar_loop_iters,
- 	         build_int_cst (TREE_TYPE (scalar_loop_iters), th));
-
-  *cond_expr = force_gimple_operand (*cond_expr, cond_expr_stmt_list,
-				     false, NULL_TREE);
+  *cond_expr = fold_build2 (GT_EXPR, boolean_type_node, scalar_loop_iters,
+			    build_int_cst (TREE_TYPE (scalar_loop_iters), th));
+  *cond_expr = force_gimple_operand_1 (*cond_expr, cond_expr_stmt_list,
+				       is_gimple_condexpr, NULL_TREE);
 
   if (LOOP_REQUIRES_VERSIONING_FOR_ALIGNMENT (loop_vinfo))
-      vect_create_cond_for_align_checks (loop_vinfo, cond_expr,
-					 cond_expr_stmt_list);
+    vect_create_cond_for_align_checks (loop_vinfo, cond_expr,
+				       cond_expr_stmt_list);
 
   if (LOOP_REQUIRES_VERSIONING_FOR_ALIAS (loop_vinfo))
     vect_create_cond_for_alias_checks (loop_vinfo, cond_expr,
 				       cond_expr_stmt_list);
 
-  *cond_expr =
-    fold_build2 (NE_EXPR, boolean_type_node, *cond_expr, integer_zero_node);
-  *cond_expr =
-    force_gimple_operand (*cond_expr, &gimplify_stmt_list, true, NULL_TREE);
+  *cond_expr = force_gimple_operand_1 (*cond_expr, &gimplify_stmt_list,
+				       is_gimple_condexpr, NULL_TREE);
   gimple_seq_add_seq (cond_expr_stmt_list, gimplify_stmt_list);
 
   /* If we only needed the extra conditions and a new loop copy

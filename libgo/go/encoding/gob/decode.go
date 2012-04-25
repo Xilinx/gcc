@@ -392,12 +392,12 @@ func decUint8Slice(i *decInstr, state *decoderState, p unsafe.Pointer) {
 		}
 		p = *(*unsafe.Pointer)(p)
 	}
-	n := int(state.decodeUint())
-	if n < 0 {
-		errorf("negative length decoding []byte")
+	n := state.decodeUint()
+	if n > uint64(state.b.Len()) {
+		errorf("length of []byte exceeds input size (%d bytes)", n)
 	}
 	slice := (*[]uint8)(p)
-	if cap(*slice) < n {
+	if uint64(cap(*slice)) < n {
 		*slice = make([]uint8, n)
 	} else {
 		*slice = (*slice)[0:n]
@@ -417,7 +417,11 @@ func decString(i *decInstr, state *decoderState, p unsafe.Pointer) {
 		}
 		p = *(*unsafe.Pointer)(p)
 	}
-	b := make([]byte, state.decodeUint())
+	n := state.decodeUint()
+	if n > uint64(state.b.Len()) {
+		errorf("string length exceeds input size (%d bytes)", n)
+	}
+	b := make([]byte, n)
 	state.b.Read(b)
 	// It would be a shame to do the obvious thing here,
 	//	*(*string)(p) = string(b)
@@ -464,7 +468,7 @@ func allocate(rtyp reflect.Type, p uintptr, indir int) uintptr {
 // decodeSingle decodes a top-level value that is not a struct and stores it through p.
 // Such values are preceded by a zero, making them have the memory layout of a
 // struct field (although with an illegal field number).
-func (dec *Decoder) decodeSingle(engine *decEngine, ut *userTypeInfo, basep uintptr) (err error) {
+func (dec *Decoder) decodeSingle(engine *decEngine, ut *userTypeInfo, basep uintptr) {
 	state := dec.newDecoderState(&dec.buf)
 	state.fieldnum = singletonField
 	delta := int(state.decodeUint())
@@ -473,7 +477,7 @@ func (dec *Decoder) decodeSingle(engine *decEngine, ut *userTypeInfo, basep uint
 	}
 	instr := &engine.instr[singletonField]
 	if instr.indir != ut.indir {
-		return errors.New("gob: internal error: inconsistent indirection")
+		errorf("internal error: inconsistent indirection instr %d ut %d", instr.indir, ut.indir)
 	}
 	ptr := unsafe.Pointer(basep) // offset will be zero
 	if instr.indir > 1 {
@@ -481,10 +485,9 @@ func (dec *Decoder) decodeSingle(engine *decEngine, ut *userTypeInfo, basep uint
 	}
 	instr.op(instr, state, ptr)
 	dec.freeDecoderState(state)
-	return nil
 }
 
-// decodeSingle decodes a top-level struct and stores it through p.
+// decodeStruct decodes a top-level struct and stores it through p.
 // Indir is for the value, not the type.  At the time of the call it may
 // differ from ut.indir, which was computed when the engine was built.
 // This state cannot arise for decodeSingle, which is called directly
@@ -648,7 +651,11 @@ func (dec *Decoder) ignoreMap(state *decoderState, keyOp, elemOp decOp) {
 // decodeSlice decodes a slice and stores the slice header through p.
 // Slices are encoded as an unsigned length followed by the elements.
 func (dec *Decoder) decodeSlice(atyp reflect.Type, state *decoderState, p uintptr, elemOp decOp, elemWid uintptr, indir, elemIndir int, ovfl error) {
-	n := int(uintptr(state.decodeUint()))
+	nr := state.decodeUint()
+	if nr > uint64(state.b.Len()) {
+		errorf("length of slice exceeds input size (%d elements)", nr)
+	}
+	n := int(nr)
 	if indir > 0 {
 		up := unsafe.Pointer(p)
 		if *(*unsafe.Pointer)(up) == nil {
@@ -700,8 +707,14 @@ func (dec *Decoder) decodeInterface(ityp reflect.Type, state *decoderState, p ui
 	if name == "" {
 		// Copy the representation of the nil interface value to the target.
 		// This is horribly unsafe and special.
+		if indir > 0 {
+			p = allocate(ityp, p, 1) // All but the last level has been allocated by dec.Indirect
+		}
 		*(*[2]uintptr)(unsafe.Pointer(p)) = ivalue.InterfaceData()
 		return
+	}
+	if len(name) > 1024 {
+		errorf("name too long (%d bytes): %.20q...", len(name), name)
 	}
 	// The concrete type must be registered.
 	typ, ok := nameToConcreteType[name]
@@ -839,11 +852,10 @@ func (dec *Decoder) decOpFor(wireId typeId, rt reflect.Type, name string, inProg
 			}
 
 		case reflect.Map:
-			name = "element of " + name
 			keyId := dec.wireType[wireId].MapT.Key
 			elemId := dec.wireType[wireId].MapT.Elem
-			keyOp, keyIndir := dec.decOpFor(keyId, t.Key(), name, inProgress)
-			elemOp, elemIndir := dec.decOpFor(elemId, t.Elem(), name, inProgress)
+			keyOp, keyIndir := dec.decOpFor(keyId, t.Key(), "key of "+name, inProgress)
+			elemOp, elemIndir := dec.decOpFor(elemId, t.Elem(), "element of "+name, inProgress)
 			ovfl := overflow(name)
 			op = func(i *decInstr, state *decoderState, p unsafe.Pointer) {
 				up := unsafe.Pointer(p)
@@ -1151,7 +1163,7 @@ func (dec *Decoder) compileDec(remoteId typeId, ut *userTypeInfo) (engine *decEn
 
 // getDecEnginePtr returns the engine for the specified type.
 func (dec *Decoder) getDecEnginePtr(remoteId typeId, ut *userTypeInfo) (enginePtr **decEngine, err error) {
-	rt := ut.base
+	rt := ut.user
 	decoderMap, ok := dec.decoderCache[rt]
 	if !ok {
 		decoderMap = make(map[typeId]**decEngine)

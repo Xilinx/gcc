@@ -360,7 +360,7 @@ void
 pph_trace_marker (enum pph_record_marker marker, enum pph_tag tag)
 {
   fprintf (pph_logfile, "PPH: marker ");
-  if (PPH_RECORD_START <= marker && marker <= PPH_RECORD_PREF)
+  if (marker <= PPH_RECORD_PREF)
     fprintf (pph_logfile, "%s", marker_strings[marker - PPH_RECORD_START]);
   else
     fprintf (pph_logfile, "unknown");
@@ -561,7 +561,7 @@ pph_cache_preload (pph_cache *cache)
   for (i = itk_char; i < itk_none; i++)
     pph_cache_add_full_tree (cache, integer_types[i]);
 
-  for (i = 0; i < TYPE_KIND_LAST; i++)
+  for (i = 0; i < stk_type_kind_last; i++)
     pph_cache_add_full_tree (cache, sizetype_tab[i]);
 
   /* global_trees[] can have NULL entries in it.  Skip them.  */

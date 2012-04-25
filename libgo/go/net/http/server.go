@@ -12,7 +12,6 @@ package http
 import (
 	"bufio"
 	"bytes"
-	"crypto/rand"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -602,7 +601,7 @@ func (c *conn) serve() {
 				// while they're still writing their
 				// request.  Undefined behavior.
 				msg = "413 Request Entity Too Large"
-			} else if err == io.ErrUnexpectedEOF {
+			} else if err == io.EOF {
 				break // Don't reply
 			} else if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
 				break // Don't reply
@@ -985,6 +984,7 @@ type Server struct {
 	ReadTimeout    time.Duration // maximum duration before timing out read of the request
 	WriteTimeout   time.Duration // maximum duration before timing out write of the response
 	MaxHeaderBytes int           // maximum size of request headers, DefaultMaxHeaderBytes if 0
+	TLSConfig      *tls.Config   // optional TLS config, used by ListenAndServeTLS
 }
 
 // ListenAndServe listens on the TCP network address srv.Addr and then
@@ -1121,9 +1121,12 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string) error {
 	if addr == "" {
 		addr = ":https"
 	}
-	config := &tls.Config{
-		Rand:       rand.Reader,
-		NextProtos: []string{"http/1.1"},
+	config := &tls.Config{}
+	if srv.TLSConfig != nil {
+		*config = *srv.TLSConfig
+	}
+	if config.NextProtos == nil {
+		config.NextProtos = []string{"http/1.1"}
 	}
 
 	var err error

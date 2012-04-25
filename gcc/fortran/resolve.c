@@ -63,6 +63,8 @@ static code_stack *cs_base = NULL;
 static int forall_flag;
 static int do_concurrent_flag;
 
+static bool assumed_type_expr_allowed = false;
+
 /* Nonzero if we're inside a OpenMP WORKSHARE or PARALLEL WORKSHARE block.  */
 
 static int omp_workshare_flag;
@@ -1597,6 +1599,8 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype,
   gfc_expr *e;
   int save_need_full_assumed_size;
 
+  assumed_type_expr_allowed = true;
+
   for (; arg; arg = arg->next)
     {
       e = arg->expr;
@@ -1829,6 +1833,7 @@ resolve_actual_arglist (gfc_actual_arglist *arg, procedure_type ptype,
           return FAILURE;
         }
     }
+  assumed_type_expr_allowed = false;
 
   return SUCCESS;
 }
@@ -5056,6 +5061,24 @@ resolve_variable (gfc_expr *e)
   if (e->symtree == NULL)
     return FAILURE;
   sym = e->symtree->n.sym;
+
+  /* TS 29113, 407b.  */
+  if (e->ts.type == BT_ASSUMED && !assumed_type_expr_allowed)
+    {
+      gfc_error ("Invalid expression with assumed-type variable %s at %L",
+		 sym->name, &e->where);
+      return FAILURE;
+    }
+
+  /* TS 29113, 407b.  */
+  if (e->ts.type == BT_ASSUMED && e->ref
+      && !(e->ref->type == REF_ARRAY && e->ref->u.ar.type == AR_FULL
+           && e->ref->next == NULL))
+    {
+      gfc_error ("Assumed-type variable %s with designator at %L",
+                 sym->name, &e->ref->u.ar.where);
+      return FAILURE;
+    }
 
   /* If this is an associate-name, it may be parsed with an array reference
      in error even though the target is scalar.  Fail directly in this case.  */
@@ -11281,6 +11304,7 @@ resolve_typebound_procedure (gfc_symtree* stree)
   gcc_assert (stree->n.tb->u.specific);
   proc = stree->n.tb->u.specific->n.sym;
   where = stree->n.tb->where;
+  proc->attr.public_used = 1;
 
   /* Default access should already be resolved from the parser.  */
   gcc_assert (stree->n.tb->access != ACCESS_UNKNOWN);
@@ -12223,7 +12247,10 @@ resolve_symbol (gfc_symbol *sym)
   symbol_attribute class_attr;
   gfc_array_spec *as;
 
-  if (sym->attr.flavor == FL_UNKNOWN)
+  if (sym->attr.flavor == FL_UNKNOWN
+      || (sym->attr.flavor == FL_PROCEDURE && !sym->attr.intrinsic
+	  && !sym->attr.generic && !sym->attr.external
+	  && sym->attr.if_source == IFSRC_UNKNOWN))
     {
 
     /* If we find that a flavorless symbol is an interface in one of the
@@ -12247,9 +12274,10 @@ resolve_symbol (gfc_symbol *sym)
 
       /* Otherwise give it a flavor according to such attributes as
 	 it has.  */
-      if (sym->attr.external == 0 && sym->attr.intrinsic == 0)
+      if (sym->attr.flavor == FL_UNKNOWN && sym->attr.external == 0
+	  && sym->attr.intrinsic == 0)
 	sym->attr.flavor = FL_VARIABLE;
-      else
+      else if (sym->attr.flavor == FL_UNKNOWN)
 	{
 	  sym->attr.flavor = FL_PROCEDURE;
 	  if (sym->attr.dimension)
@@ -12431,6 +12459,31 @@ resolve_symbol (gfc_symbol *sym)
 		     "which has not been defined", sym->name,
 		     &sym->declared_at, sym->ts.u.derived->name);
 	  sym->ts.type = BT_UNKNOWN;
+	  return;
+	}
+    }
+
+  if (sym->ts.type == BT_ASSUMED)
+    { 
+      /* TS 29113, C407a.  */
+      if (!sym->attr.dummy)
+	{
+	  gfc_error ("Assumed type of variable %s at %L is only permitted "
+		     "for dummy variables", sym->name, &sym->declared_at);
+	  return;
+	}
+      if (sym->attr.allocatable || sym->attr.codimension
+	  || sym->attr.pointer || sym->attr.value)
+    	{
+	  gfc_error ("Assumed-type variable %s at %L may not have the "
+		     "ALLOCATABLE, CODIMENSION, POINTER or VALUE attribute",
+		     sym->name, &sym->declared_at);
+	  return;
+	}
+      if (sym->attr.dimension && sym->as->type == AS_EXPLICIT)
+	{
+	  gfc_error ("Assumed-type variable %s at %L shall not be an "
+		     "explicit-shape array", sym->name, &sym->declared_at);
 	  return;
 	}
     }

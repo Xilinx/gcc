@@ -1081,53 +1081,6 @@ disqualify_ops_if_throwing_stmt (gimple stmt, tree lhs, tree rhs)
   return false;
 }
 
-/* Return true if EXP is a memory reference less aligned than ALIGN.  This is
-   invoked only on strict-alignment targets.  */
-
-static bool
-tree_non_aligned_mem_p (tree exp, unsigned int align)
-{
-  unsigned int exp_align;
-
-  if (TREE_CODE (exp) == VIEW_CONVERT_EXPR)
-    exp = TREE_OPERAND (exp, 0);
-
-  if (TREE_CODE (exp) == SSA_NAME || is_gimple_min_invariant (exp))
-    return false;
-
-  /* get_object_alignment will fall back to BITS_PER_UNIT if it cannot
-     compute an explicit alignment.  Pretend that dereferenced pointers
-     are always aligned on strict-alignment targets.  */
-  if (TREE_CODE (exp) == MEM_REF || TREE_CODE (exp) == TARGET_MEM_REF)
-    exp_align = get_object_or_type_alignment (exp);
-  else
-    exp_align = get_object_alignment (exp);
-
-  if (exp_align < align)
-    return true;
-
-  return false;
-}
-
-/* Return true if EXP is a memory reference less aligned than what the access
-   ACC would require.  This is invoked only on strict-alignment targets.  */
-
-static bool
-tree_non_aligned_mem_for_access_p (tree exp, struct access *acc)
-{
-  unsigned int acc_align;
-
-  /* The alignment of the access is that of its expression.  However, it may
-     have been artificially increased, e.g. by a local alignment promotion,
-     so we cap it to the alignment of the type of the base, on the grounds
-     that valid sub-accesses cannot be more aligned than that.  */
-  acc_align = get_object_alignment (acc->expr);
-  if (acc->base && acc_align > TYPE_ALIGN (TREE_TYPE (acc->base)))
-    acc_align = TYPE_ALIGN (TREE_TYPE (acc->base));
-
-  return tree_non_aligned_mem_p (exp, acc_align);
-}
-
 /* Scan expressions occuring in STMT, create access structures for all accesses
    to candidates for scalarization and remove those candidates which occur in
    statements or expressions that prevent them from being split apart.  Return
@@ -1154,11 +1107,7 @@ build_accesses_from_assign (gimple stmt)
   lacc = build_access_from_expr_1 (lhs, stmt, true);
 
   if (lacc)
-    {
-      lacc->grp_assignment_write = 1;
-      if (STRICT_ALIGNMENT && tree_non_aligned_mem_for_access_p (rhs, lacc))
-        lacc->grp_unscalarizable_region = 1;
-    }
+    lacc->grp_assignment_write = 1;
 
   if (racc)
     {
@@ -1166,8 +1115,6 @@ build_accesses_from_assign (gimple stmt)
       if (should_scalarize_away_bitmap && !gimple_has_volatile_ops (stmt)
 	  && !is_gimple_reg_type (racc->type))
 	bitmap_set_bit (should_scalarize_away_bitmap, DECL_UID (racc->base));
-      if (STRICT_ALIGNMENT && tree_non_aligned_mem_for_access_p (lhs, racc))
-        racc->grp_unscalarizable_region = 1;
     }
 
   if (lacc && racc
@@ -1175,8 +1122,6 @@ build_accesses_from_assign (gimple stmt)
       && !lacc->grp_unscalarizable_region
       && !racc->grp_unscalarizable_region
       && AGGREGATE_TYPE_P (TREE_TYPE (lhs))
-      /* FIXME: Turn the following line into an assert after PR 40058 is
-	 fixed.  */
       && lacc->size == racc->size
       && useless_type_conversion_p (lacc->type, racc->type))
     {
@@ -1544,70 +1489,32 @@ build_ref_for_offset (location_t loc, tree base, HOST_WIDE_INT offset,
   return fold_build2_loc (loc, MEM_REF, exp_type, base, off);
 }
 
-DEF_VEC_ALLOC_P_STACK (tree);
-#define VEC_tree_stack_alloc(alloc) VEC_stack_alloc (tree, alloc)
-
 /* Construct a memory reference to a part of an aggregate BASE at the given
-   OFFSET and of the type of MODEL.  In case this is a chain of references
-   to component, the function will replicate the chain of COMPONENT_REFs of
-   the expression of MODEL to access it.  GSI and INSERT_AFTER have the same
-   meaning as in build_ref_for_offset.  */
+   OFFSET and of the same type as MODEL.  In case this is a reference to a
+   bit-field, the function will replicate the last component_ref of model's
+   expr to access it.  GSI and INSERT_AFTER have the same meaning as in
+   build_ref_for_offset.  */
 
 static tree
 build_ref_for_model (location_t loc, tree base, HOST_WIDE_INT offset,
 		     struct access *model, gimple_stmt_iterator *gsi,
 		     bool insert_after)
 {
-  tree type = model->type, t;
-  VEC(tree,stack) *cr_stack = NULL;
-
-  if (TREE_CODE (model->expr) == COMPONENT_REF)
+  if (TREE_CODE (model->expr) == COMPONENT_REF
+      && DECL_BIT_FIELD (TREE_OPERAND (model->expr, 1)))
     {
-      tree expr = model->expr;
+      /* This access represents a bit-field.  */
+      tree t, exp_type, fld = TREE_OPERAND (model->expr, 1);
 
-      /* Create a stack of the COMPONENT_REFs so later we can walk them in
-	 order from inner to outer.  */
-      cr_stack = VEC_alloc (tree, stack, 6);
-
-      do {
-	tree field = TREE_OPERAND (expr, 1);
-	tree cr_offset = component_ref_field_offset (expr);
-	HOST_WIDE_INT bit_pos
-	  = tree_low_cst (cr_offset, 1) * BITS_PER_UNIT
-	      + TREE_INT_CST_LOW (DECL_FIELD_BIT_OFFSET (field));
-
-	/* We can be called with a model different from the one associated
-	   with BASE so we need to avoid going up the chain too far.  */
-	if (offset - bit_pos < 0)
-	  break;
-
-	offset -= bit_pos;
-	VEC_safe_push (tree, stack, cr_stack, expr);
-
-	expr = TREE_OPERAND (expr, 0);
-	type = TREE_TYPE (expr);
-      } while (TREE_CODE (expr) == COMPONENT_REF);
+      offset -= int_bit_position (fld);
+      exp_type = TREE_TYPE (TREE_OPERAND (model->expr, 0));
+      t = build_ref_for_offset (loc, base, offset, exp_type, gsi, insert_after);
+      return fold_build3_loc (loc, COMPONENT_REF, TREE_TYPE (fld), t, fld,
+			      NULL_TREE);
     }
-
-  t = build_ref_for_offset (loc, base, offset, type, gsi, insert_after);
-
-  if (TREE_CODE (model->expr) == COMPONENT_REF)
-    {
-      unsigned i;
-      tree expr;
-
-      /* Now replicate the chain of COMPONENT_REFs from inner to outer.  */
-      FOR_EACH_VEC_ELT_REVERSE (tree, cr_stack, i, expr)
-	{
-	  tree field = TREE_OPERAND (expr, 1);
-	  t = fold_build3_loc (loc, COMPONENT_REF, TREE_TYPE (field), t, field,
-			       TREE_OPERAND (expr, 2));
-	}
-
-      VEC_free (tree, stack, cr_stack);
-    }
-
-  return t;
+  else
+    return build_ref_for_offset (loc, base, offset, model->type,
+				 gsi, insert_after);
 }
 
 /* Construct a memory reference consisting of component_refs and array_refs to
@@ -1924,13 +1831,19 @@ create_access_replacement (struct access *access, bool rename)
 
   repl = create_tmp_var (access->type, "SR");
   add_referenced_var (repl);
-  if (rename)
+  if (!access->grp_partial_lhs
+      && rename)
     mark_sym_for_renaming (repl);
 
-  if (!access->grp_partial_lhs
-      && (TREE_CODE (access->type) == COMPLEX_TYPE
-	  || TREE_CODE (access->type) == VECTOR_TYPE))
-    DECL_GIMPLE_REG_P (repl) = 1;
+  if (TREE_CODE (access->type) == COMPLEX_TYPE
+      || TREE_CODE (access->type) == VECTOR_TYPE)
+    {
+      if (!access->grp_partial_lhs)
+	DECL_GIMPLE_REG_P (repl) = 1;
+    }
+  else if (access->grp_partial_lhs
+	   && is_gimple_reg_type (access->type))
+    TREE_ADDRESSABLE (repl) = 1;
 
   DECL_SOURCE_LOCATION (repl) = DECL_SOURCE_LOCATION (access->base);
   DECL_ARTIFICIAL (repl) = 1;
@@ -2870,6 +2783,7 @@ sra_modify_constructor_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 	{
 	  unlink_stmt_vdef (*stmt);
 	  gsi_remove (gsi, true);
+	  release_defs (*stmt);
 	  return SRA_AM_REMOVED;
 	}
       else
@@ -2893,6 +2807,7 @@ sra_modify_constructor_assign (gimple *stmt, gimple_stmt_iterator *gsi)
       init_subtree_with_zero (acc, gsi, false, loc);
       unlink_stmt_vdef (*stmt);
       gsi_remove (gsi, true);
+      release_defs (*stmt);
       return SRA_AM_REMOVED;
     }
   else
@@ -3120,7 +3035,13 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
     }
   else
     {
-      if (access_has_children_p (lacc) && access_has_children_p (racc))
+      if (access_has_children_p (lacc)
+	  && access_has_children_p (racc)
+	  /* When an access represents an unscalarizable region, it usually
+	     represents accesses with variable offset and thus must not be used
+	     to generate new memory accesses.  */
+	  && !lacc->grp_unscalarizable_region
+	  && !racc->grp_unscalarizable_region)
 	{
 	  gimple_stmt_iterator orig_gsi = *gsi;
 	  enum unscalarized_data_handling refreshed;
@@ -3137,6 +3058,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 	      gsi_next (gsi);
 	      unlink_stmt_vdef (*stmt);
 	      gsi_remove (&orig_gsi, true);
+	      release_defs (*stmt);
 	      sra_stats.deleted++;
 	      return SRA_AM_REMOVED;
 	    }
@@ -3157,6 +3079,7 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 	      gcc_assert (*stmt == gsi_stmt (*gsi));
 	      unlink_stmt_vdef (*stmt);
 	      gsi_remove (gsi, true);
+	      release_defs (*stmt);
 	      sra_stats.deleted++;
 	      return SRA_AM_REMOVED;
 	    }
@@ -3829,10 +3752,6 @@ access_precludes_ipa_sra_p (struct access *access)
   if (access->write
       && (is_gimple_call (access->stmt)
 	  || gimple_code (access->stmt) == GIMPLE_ASM))
-    return true;
-
-  if (STRICT_ALIGNMENT
-      && tree_non_aligned_mem_p (access->expr, TYPE_ALIGN (access->type)))
     return true;
 
   return false;
@@ -4687,8 +4606,8 @@ convert_callers_for_node (struct cgraph_node *node,
 
   for (cs = node->callers; cs; cs = cs->next_caller)
     {
-      current_function_decl = cs->caller->decl;
-      push_cfun (DECL_STRUCT_FUNCTION (cs->caller->decl));
+      current_function_decl = cs->caller->symbol.decl;
+      push_cfun (DECL_STRUCT_FUNCTION (cs->caller->symbol.decl));
 
       if (dump_file)
 	fprintf (dump_file, "Adjusting call (%i -> %i) %s -> %s\n",
@@ -4703,7 +4622,7 @@ convert_callers_for_node (struct cgraph_node *node,
 
   for (cs = node->callers; cs; cs = cs->next_caller)
     if (bitmap_set_bit (recomputed_callers, cs->caller->uid)
-	&& gimple_in_ssa_p (DECL_STRUCT_FUNCTION (cs->caller->decl)))
+	&& gimple_in_ssa_p (DECL_STRUCT_FUNCTION (cs->caller->symbol.decl)))
       compute_inline_parameters (cs->caller, true);
   BITMAP_FREE (recomputed_callers);
 
@@ -4742,7 +4661,7 @@ convert_callers (struct cgraph_node *node, tree old_decl,
 	    {
 	      if (dump_file)
 		fprintf (dump_file, "Adjusting recursive call");
-	      gimple_call_set_fndecl (stmt, node->decl);
+	      gimple_call_set_fndecl (stmt, node->symbol.decl);
 	      ipa_modify_call_arguments (NULL, stmt, adjustments);
 	    }
 	}
@@ -4768,13 +4687,13 @@ modify_function (struct cgraph_node *node, ipa_parm_adjustment_vec adjustments)
 
   new_node = cgraph_function_versioning (node, redirect_callers, NULL, NULL,
 					 false, NULL, NULL, "isra");
-  current_function_decl = new_node->decl;
-  push_cfun (DECL_STRUCT_FUNCTION (new_node->decl));
+  current_function_decl = new_node->symbol.decl;
+  push_cfun (DECL_STRUCT_FUNCTION (new_node->symbol.decl));
 
   ipa_modify_formal_parameters (current_function_decl, adjustments, "ISRA");
   cfg_changed = ipa_sra_modify_function_body (adjustments);
   sra_ipa_reset_debug_stmts (adjustments);
-  convert_callers (new_node, node->decl, adjustments);
+  convert_callers (new_node, node->symbol.decl, adjustments);
   cgraph_make_node_local (new_node);
   return cfg_changed;
 }
@@ -4800,7 +4719,7 @@ ipa_sra_preliminary_function_checks (struct cgraph_node *node)
       return false;
     }
 
-  if (!tree_versionable_function_p (node->decl))
+  if (!tree_versionable_function_p (node->symbol.decl))
     {
       if (dump_file)
 	fprintf (dump_file, "Function is not versionable.\n");
@@ -4814,7 +4733,7 @@ ipa_sra_preliminary_function_checks (struct cgraph_node *node)
       return false;
     }
 
-  if ((DECL_COMDAT (node->decl) || DECL_EXTERNAL (node->decl))
+  if ((DECL_COMDAT (node->symbol.decl) || DECL_EXTERNAL (node->symbol.decl))
       && inline_summary(node)->size >= MAX_INLINE_INSNS_AUTO)
     {
       if (dump_file)
@@ -4837,7 +4756,7 @@ ipa_sra_preliminary_function_checks (struct cgraph_node *node)
       return false;
     }
 
-  if (TYPE_ATTRIBUTES (TREE_TYPE (node->decl)))
+  if (TYPE_ATTRIBUTES (TREE_TYPE (node->symbol.decl)))
     return false;
 
   return true;
@@ -4946,6 +4865,6 @@ struct gimple_opt_pass pass_early_ipa_sra =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_cgraph              	/* todo_flags_finish */
+  TODO_dump_symtab              	/* todo_flags_finish */
  }
 };

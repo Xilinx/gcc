@@ -1,6 +1,6 @@
 /* Register Transfer Language (RTL) definitions for GCC
    Copyright (C) 1987, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -1644,6 +1644,7 @@ extern int ceil_log2 (unsigned HOST_WIDE_INT);
 /* In explow.c */
 extern HOST_WIDE_INT trunc_int_for_mode	(HOST_WIDE_INT, enum machine_mode);
 extern rtx plus_constant (rtx, HOST_WIDE_INT);
+extern rtx plus_constant_mode (enum machine_mode, rtx, HOST_WIDE_INT);
 
 /* In rtl.c */
 extern rtx rtx_alloc_stat (RTX_CODE MEM_STAT_DECL);
@@ -1908,6 +1909,7 @@ extern HOST_WIDE_INT get_integer_term (const_rtx);
 extern rtx get_related_value (const_rtx);
 extern bool offset_within_block_p (const_rtx, HOST_WIDE_INT);
 extern void split_const (rtx, rtx *, rtx *);
+extern bool unsigned_reg_p (rtx);
 extern int reg_mentioned_p (const_rtx, const_rtx);
 extern int count_occurrences (const_rtx, const_rtx, int);
 extern int reg_referenced_p (const_rtx, const_rtx);
@@ -2089,6 +2091,11 @@ extern GTY(()) rtx const_tiny_rtx[4][(int) MAX_MACHINE_MODE];
 #define CONST2_RTX(MODE) (const_tiny_rtx[2][(int) (MODE)])
 #define CONSTM1_RTX(MODE) (const_tiny_rtx[3][(int) (MODE)])
 
+extern GTY(()) rtx pc_rtx;
+extern GTY(()) rtx cc0_rtx;
+extern GTY(()) rtx ret_rtx;
+extern GTY(()) rtx simple_return_rtx;
+
 /* If HARD_FRAME_POINTER_REGNUM is defined, then a special dummy reg
    is used to represent the frame pointer.  This is because the
    hard frame pointer and the automatic variables are separated by an amount
@@ -2112,10 +2119,6 @@ extern GTY(()) rtx const_tiny_rtx[4][(int) MAX_MACHINE_MODE];
 /* Index labels for global_rtl.  */
 enum global_rtl_index
 {
-  GR_PC,
-  GR_CC0,
-  GR_RETURN,
-  GR_SIMPLE_RETURN,
   GR_STACK_POINTER,
   GR_FRAME_POINTER,
 /* For register elimination to work properly these hard_frame_pointer_rtx,
@@ -2207,12 +2210,6 @@ extern struct target_rtl *this_target_rtl;
   (this_target_rtl->x_top_of_stack)
 #define mode_mem_attrs \
   (this_target_rtl->x_mode_mem_attrs)
-
-/* Standard pieces of rtx, to be substituted directly into things.  */
-#define pc_rtx                  (global_rtl[GR_PC])
-#define ret_rtx                 (global_rtl[GR_RETURN])
-#define simple_return_rtx       (global_rtl[GR_SIMPLE_RETURN])
-#define cc0_rtx                 (global_rtl[GR_CC0])
 
 /* All references to certain hard regs, except those created
    by allocating pseudo regs into them (when that's possible),
@@ -2378,7 +2375,6 @@ extern int rtx_to_tree_code (enum rtx_code);
 
 /* In cse.c */
 extern int delete_trivially_dead_insns (rtx, int);
-extern int cse_main (rtx, int);
 extern int exp_equiv_p (const_rtx, const_rtx, int, bool);
 extern unsigned hash_rtx (const_rtx x, enum machine_mode, int *, int *, bool);
 
@@ -2447,12 +2443,12 @@ extern void add_insn_before (rtx, rtx, struct basic_block_def *);
 extern void add_insn_after (rtx, rtx, struct basic_block_def *);
 extern void remove_insn (rtx);
 extern rtx emit (rtx);
-extern rtx delete_insn (rtx);
+extern void delete_insn (rtx);
 extern rtx entry_of_function (void);
 extern void emit_insn_at_entry (rtx);
 extern void delete_insn_chain (rtx, rtx, bool);
 extern rtx unlink_insn_chain (rtx, rtx);
-extern rtx delete_insn_and_edges (rtx);
+extern void delete_insn_and_edges (rtx);
 extern rtx gen_lowpart_SUBREG (enum machine_mode, rtx);
 extern rtx gen_const_mem (enum machine_mode, rtx);
 extern rtx gen_frame_mem (enum machine_mode, rtx);
@@ -2601,7 +2597,7 @@ extern void init_alias_analysis (void);
 extern void end_alias_analysis (void);
 extern void vt_equate_reg_base_value (const_rtx, const_rtx);
 extern bool memory_modified_in_insn_p (const_rtx, const_rtx);
-extern rtx find_base_term (rtx);
+extern bool may_be_sp_based_p (rtx);
 extern rtx gen_hard_reg_clobber (enum machine_mode, unsigned int);
 extern rtx get_reg_known_value (unsigned int);
 extern bool get_reg_known_equiv_p (unsigned int);

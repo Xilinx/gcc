@@ -42,7 +42,6 @@ along with GCC; see the file COPYING3.  If not see
 /* Major control parameters.  */
 
 #define GFC_MAX_SYMBOL_LEN 63   /* Must be at least 63 for F2003.  */
-#define GFC_MAX_LINE 132	/* Characters beyond this are not seen.  */
 #define GFC_LETTERS 26		/* Number of letters in the alphabet.  */
 
 #define MAX_SUBRECORD_LENGTH 2147483639   /* 2**31-9 */
@@ -726,6 +725,10 @@ typedef struct
   /* Function/subroutine attributes */
   unsigned sequence:1, elemental:1, pure:1, recursive:1;
   unsigned unmaskable:1, masked:1, contained:1, mod_proc:1, abstract:1;
+
+  /* Set if a (public) symbol [e.g. generic name] exposes this symbol,
+     which is relevant for private module procedures.  */
+  unsigned public_used:1;
 
   /* This is set if a contained procedure could be declared pure.  This is
      used for certain optimizations that require the result or arguments
@@ -2200,6 +2203,7 @@ typedef struct
   int warn_aliasing;
   int warn_ampersand;
   int gfc_warn_conversion;
+  int warn_c_binding_type;
   int warn_conversion_extra;
   int warn_function_elimination;
   int warn_implicit_interface;
@@ -2929,6 +2933,7 @@ void gfc_add_class_array_ref (gfc_expr *);
 #define gfc_add_def_init_component(e) gfc_add_component_ref(e,"_def_init")
 bool gfc_is_class_array_ref (gfc_expr *, bool *);
 bool gfc_is_class_scalar_expr (gfc_expr *);
+bool gfc_is_class_container_ref (gfc_expr *e);
 gfc_expr *gfc_class_null_initializer (gfc_typespec *);
 unsigned int gfc_hash_value (gfc_symbol *);
 gfc_try gfc_build_class_symbol (gfc_typespec *, symbol_attribute *,
