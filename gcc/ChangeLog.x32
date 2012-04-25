@@ -1,3 +1,9 @@
+2012-04-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR debug/52857
+	* dwarf2out.c (dbx_reg_number): Assert return value !=
+	INVALID_REGNUM.
+
 2012-04-11  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/host-linux.c (TRY_EMPTY_VM_SPACE): Defined to
