@@ -20851,7 +20851,7 @@ dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
   text_section_line_info->end_label = text_end_label;
 
   if (flag_dwarf_comdat_fn_debug == -1)
-    flag_dwarf_comdat_fn_debug = (dwarf_version >= 4);
+    flag_dwarf_comdat_fn_debug = true /*(dwarf_version >= 4)*/;
 }
 
 /* Called before compile () starts outputtting functions, variables
