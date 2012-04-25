@@ -1,3 +1,9 @@
+2012-04-24   Diego Novillo  <dnovillo@google.com>
+
+	* src/c++11/Makefile.am (AM_CXXFLAGS): Re-format to bring
+	closer to upstream version.
+	* src/c++11/Makefile.in: Re-generate.
+
 2012-03-13  Easwaran Raman <eraman@google.com>
 
 	Backport r185349 from google/main

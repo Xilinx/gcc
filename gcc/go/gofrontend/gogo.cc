@@ -628,7 +628,7 @@ Gogo::start_function(const std::string& name, Function_type* type,
       Variable* this_param = new Variable(receiver->type(), NULL, false,
 					  true, true, location);
       std::string rname = receiver->name();
-      if (rname.empty())
+      if (rname.empty() || Gogo::is_sink_name(rname))
 	{
 	  // We need to give receivers a name since they wind up in
 	  // DECL_ARGUMENTS.  FIXME.
@@ -638,8 +638,7 @@ Gogo::start_function(const std::string& name, Function_type* type,
 	  ++count;
 	  rname = buf;
 	}
-      if (!Gogo::is_sink_name(rname))
-	block->bindings()->add_variable(rname, NULL, this_param);
+      block->bindings()->add_variable(rname, NULL, this_param);
     }
 
   const Typed_identifier_list* parameters = type->parameters();
@@ -1654,8 +1653,12 @@ Finalize_methods::type(Type* t)
       }
 
     case Type::TYPE_STRUCT:
+      // Traverse the field types first in case there is an embedded
+      // field with methods that the struct should inherit.
+      if (t->struct_type()->traverse_field_types(this) == TRAVERSE_EXIT)
+          return TRAVERSE_EXIT;
       t->struct_type()->finalize_methods(this->gogo_);
-      break;
+      return TRAVERSE_SKIP_COMPONENTS;
 
     default:
       break;

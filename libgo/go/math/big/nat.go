@@ -826,7 +826,7 @@ func (x nat) string(charset string) string {
 // iterative approach. This threshold is represented by leafSize. Benchmarking of leafSize in the 
 // range 2..64 shows that values of 8 and 16 work well, with a 4x speedup at medium lengths and 
 // ~30x for 20000 digits. Use nat_test.go's BenchmarkLeafSize tests to optimize leafSize for 
-// specfic hardware.
+// specific hardware.
 //
 func (q nat) convertWords(s []byte, charset string, b Word, ndigits int, bb Word, table []divisor) {
 	// split larger blocks recursively
@@ -897,7 +897,7 @@ func (q nat) convertWords(s []byte, charset string, b Word, ndigits int, bb Word
 }
 
 // Split blocks greater than leafSize Words (or set to 0 to disable recursive conversion)
-// Benchmark and configure leafSize using: gotest -test.bench="Leaf"
+// Benchmark and configure leafSize using: go test -bench="Leaf"
 //   8 and 16 effective on 3.0 GHz Xeon "Clovertown" CPU (128 byte cache lines)
 //   8 and 16 effective on 2.66 GHz Core 2 Duo "Penryn" CPU
 var leafSize int = 8 // number of Word-size binary values treat as a monolithic block

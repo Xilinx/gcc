@@ -1595,7 +1595,7 @@ ISO C90 as modified in amendment 1.
 @itemx iso9899:1999
 @itemx iso9899:199x
 ISO C99.  Note that this standard is not yet fully supported; see
-@w{@uref{http://gcc.gnu.org/c99status.html}} for more information.  The
+@w{@uref{http://gcc.gnu.org/gcc-4.7/c99status.html}} for more information.  The
 names @samp{c9x} and @samp{iso9899:199x} are deprecated.
 
 @item c11
@@ -11508,8 +11508,7 @@ sbiw r26, const   ; X -= const
 
 @item -mtiny-stack
 @opindex mtiny-stack
-Only use the lower 8@tie{}bits of the stack pointer and assume that the high
-byte of SP is always zero.
+Only change the lower 8@tie{}bits of the stack pointer.
 @end table
 
 @subsubsection @code{EIND} and Devices with more than 128 Ki Bytes of Flash

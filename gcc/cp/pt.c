@@ -1894,6 +1894,7 @@ determine_specialization (tree template_id,
 	{
 	  tree decl_arg_types;
 	  tree fn_arg_types;
+	  tree insttype;
 
 	  /* In case of explicit specialization, we need to check if
 	     the number of template headers appearing in the specialization
@@ -1961,7 +1962,8 @@ determine_specialization (tree template_id,
 	       template <> void f<int>();
 	     The specialization f<int> is invalid but is not caught
 	     by get_bindings below.  */
-	  if (list_length (fn_arg_types) != list_length (decl_arg_types))
+	  if (cxx_dialect < cxx11
+	      && list_length (fn_arg_types) != list_length (decl_arg_types))
 	    continue;
 
 	  /* Function templates cannot be specializations; there are
@@ -1983,6 +1985,18 @@ determine_specialization (tree template_id,
 	    /* We cannot deduce template arguments that when used to
 	       specialize TMPL will produce DECL.  */
 	    continue;
+
+	  if (cxx_dialect >= cxx11)
+	    {
+	      /* Make sure that the deduced arguments actually work.  */
+	      insttype = tsubst (TREE_TYPE (fn), targs, tf_none, NULL_TREE);
+	      if (insttype == error_mark_node)
+		continue;
+	      fn_arg_types
+		= skip_artificial_parms_for (fn, TYPE_ARG_TYPES (insttype));
+	      if (!compparms (fn_arg_types, decl_arg_types))
+		continue;
+	    }
 
 	  /* Save this template, and the arguments deduced.  */
 	  templates = tree_cons (targs, fn, templates);
@@ -6481,6 +6495,7 @@ convert_template_argument (tree parm,
   is_tmpl_type = 
     ((TREE_CODE (arg) == TEMPLATE_DECL
       && TREE_CODE (DECL_TEMPLATE_RESULT (arg)) == TYPE_DECL)
+     || (requires_tmpl_type && TREE_CODE (arg) == TYPE_ARGUMENT_PACK)
      || TREE_CODE (arg) == TEMPLATE_TEMPLATE_PARM
      || TREE_CODE (arg) == UNBOUND_CLASS_TEMPLATE);
 
@@ -6552,7 +6567,9 @@ convert_template_argument (tree parm,
     {
       if (requires_tmpl_type)
 	{
-	  if (TREE_CODE (TREE_TYPE (arg)) == UNBOUND_CLASS_TEMPLATE)
+	  if (template_parameter_pack_p (parm) && ARGUMENT_PACK_P (orig_arg))
+	    val = orig_arg;
+	  else if (TREE_CODE (TREE_TYPE (arg)) == UNBOUND_CLASS_TEMPLATE)
 	    /* The number of argument required is not known yet.
 	       Just accept it for now.  */
 	    val = TREE_TYPE (arg);
@@ -6778,6 +6795,20 @@ coerce_template_parameter_pack (tree parms,
   return argument_pack;
 }
 
+/* Returns true if the template argument vector ARGS contains
+   any pack expansions, false otherwise.  */
+
+static bool
+any_pack_expanson_args_p (tree args)
+{
+  int i;
+  if (args)
+    for (i = 0; i < TREE_VEC_LENGTH (args); ++i)
+      if (PACK_EXPANSION_P (TREE_VEC_ELT (args, i)))
+	return true;
+  return false;
+}
+
 /* Convert all template arguments to their appropriate types, and
    return a vector containing the innermost resulting template
    arguments.  If any error occurs, return error_mark_node. Error and
@@ -6843,6 +6874,7 @@ coerce_template_parms (tree parms,
   if ((nargs > nparms && !variadic_p)
       || (nargs < nparms - variadic_p
 	  && require_all_args
+	  && !any_pack_expanson_args_p (inner_args)
 	  && (!use_default_args
 	      || (TREE_VEC_ELT (parms, nargs) != error_mark_node
                   && !TREE_PURPOSE (TREE_VEC_ELT (parms, nargs))))))
@@ -6920,7 +6952,7 @@ coerce_template_parms (tree parms,
             {
               /* We don't know how many args we have yet, just
                  use the unconverted ones for now.  */
-              new_inner_args = args;
+              new_inner_args = inner_args;
               break;
             }
         }
@@ -9659,7 +9691,7 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
         }
 
       /* Substitute into the PATTERN with the altered arguments.  */
-      if (TREE_CODE (t) == EXPR_PACK_EXPANSION)
+      if (!TYPE_P (pattern))
         TREE_VEC_ELT (result, i) = 
           tsubst_expr (pattern, args, complain, in_decl,
                        /*integral_constant_expression_p=*/false);
@@ -11969,6 +12001,7 @@ tsubst_baselink (tree baselink, tree object_type,
     tree optype;
     tree template_args = 0;
     bool template_id_p = false;
+    bool qualified = BASELINK_QUALIFIED_P (baselink);
 
     /* A baselink indicates a function from a base class.  Both the
        BASELINK_ACCESS_BINFO and the base class referenced may
@@ -12017,9 +12050,12 @@ tsubst_baselink (tree baselink, tree object_type,
 
     if (!object_type)
       object_type = current_class_type;
-    return adjust_result_of_qualified_name_lookup (baselink,
-						   qualifying_scope,
-						   object_type);
+
+    if (qualified)
+      baselink = adjust_result_of_qualified_name_lookup (baselink,
+							 qualifying_scope,
+							 object_type);
+    return baselink;
 }
 
 /* Like tsubst_expr for a SCOPE_REF, given by QUALIFIED_ID.  DONE is
@@ -19109,6 +19145,7 @@ tsubst_initializer_list (tree t, tree argvec)
             }
           else
             {
+	      tree tmp;
               decl = tsubst_copy (TREE_PURPOSE (t), argvec, 
                                   tf_warning_or_error, NULL_TREE);
 
@@ -19117,10 +19154,17 @@ tsubst_initializer_list (tree t, tree argvec)
                 in_base_initializer = 1;
 
 	      init = TREE_VALUE (t);
+	      tmp = init;
 	      if (init != void_type_node)
 		init = tsubst_expr (init, argvec,
 				    tf_warning_or_error, NULL_TREE,
 				    /*integral_constant_expression_p=*/false);
+	      if (init == NULL_TREE && tmp != NULL_TREE)
+		/* If we had an initializer but it instantiated to nothing,
+		   value-initialize the object.  This will only occur when
+		   the initializer was a pack expansion where the parameter
+		   packs used in that expansion were of length zero.  */
+		init = void_type_node;
               in_base_initializer = 0;
             }
 

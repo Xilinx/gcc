@@ -35,7 +35,7 @@ func Register(name string, driver driver.Driver) {
 type RawBytes []byte
 
 // NullString represents a string that may be null.
-// NullString implements the ScannerInto interface so
+// NullString implements the Scanner interface so
 // it can be used as a scan destination:
 //
 //  var s NullString
@@ -52,8 +52,8 @@ type NullString struct {
 	Valid  bool // Valid is true if String is not NULL
 }
 
-// ScanInto implements the ScannerInto interface.
-func (ns *NullString) ScanInto(value interface{}) error {
+// Scan implements the Scanner interface.
+func (ns *NullString) Scan(value interface{}) error {
 	if value == nil {
 		ns.String, ns.Valid = "", false
 		return nil
@@ -62,8 +62,8 @@ func (ns *NullString) ScanInto(value interface{}) error {
 	return convertAssign(&ns.String, value)
 }
 
-// SubsetValue implements the driver SubsetValuer interface.
-func (ns NullString) SubsetValue() (interface{}, error) {
+// Value implements the driver Valuer interface.
+func (ns NullString) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
@@ -71,15 +71,15 @@ func (ns NullString) SubsetValue() (interface{}, error) {
 }
 
 // NullInt64 represents an int64 that may be null.
-// NullInt64 implements the ScannerInto interface so
+// NullInt64 implements the Scanner interface so
 // it can be used as a scan destination, similar to NullString.
 type NullInt64 struct {
 	Int64 int64
 	Valid bool // Valid is true if Int64 is not NULL
 }
 
-// ScanInto implements the ScannerInto interface.
-func (n *NullInt64) ScanInto(value interface{}) error {
+// Scan implements the Scanner interface.
+func (n *NullInt64) Scan(value interface{}) error {
 	if value == nil {
 		n.Int64, n.Valid = 0, false
 		return nil
@@ -88,8 +88,8 @@ func (n *NullInt64) ScanInto(value interface{}) error {
 	return convertAssign(&n.Int64, value)
 }
 
-// SubsetValue implements the driver SubsetValuer interface.
-func (n NullInt64) SubsetValue() (interface{}, error) {
+// Value implements the driver Valuer interface.
+func (n NullInt64) Value() (driver.Value, error) {
 	if !n.Valid {
 		return nil, nil
 	}
@@ -97,15 +97,15 @@ func (n NullInt64) SubsetValue() (interface{}, error) {
 }
 
 // NullFloat64 represents a float64 that may be null.
-// NullFloat64 implements the ScannerInto interface so
+// NullFloat64 implements the Scanner interface so
 // it can be used as a scan destination, similar to NullString.
 type NullFloat64 struct {
 	Float64 float64
 	Valid   bool // Valid is true if Float64 is not NULL
 }
 
-// ScanInto implements the ScannerInto interface.
-func (n *NullFloat64) ScanInto(value interface{}) error {
+// Scan implements the Scanner interface.
+func (n *NullFloat64) Scan(value interface{}) error {
 	if value == nil {
 		n.Float64, n.Valid = 0, false
 		return nil
@@ -114,8 +114,8 @@ func (n *NullFloat64) ScanInto(value interface{}) error {
 	return convertAssign(&n.Float64, value)
 }
 
-// SubsetValue implements the driver SubsetValuer interface.
-func (n NullFloat64) SubsetValue() (interface{}, error) {
+// Value implements the driver Valuer interface.
+func (n NullFloat64) Value() (driver.Value, error) {
 	if !n.Valid {
 		return nil, nil
 	}
@@ -123,15 +123,15 @@ func (n NullFloat64) SubsetValue() (interface{}, error) {
 }
 
 // NullBool represents a bool that may be null.
-// NullBool implements the ScannerInto interface so
+// NullBool implements the Scanner interface so
 // it can be used as a scan destination, similar to NullString.
 type NullBool struct {
 	Bool  bool
 	Valid bool // Valid is true if Bool is not NULL
 }
 
-// ScanInto implements the ScannerInto interface.
-func (n *NullBool) ScanInto(value interface{}) error {
+// Scan implements the Scanner interface.
+func (n *NullBool) Scan(value interface{}) error {
 	if value == nil {
 		n.Bool, n.Valid = false, false
 		return nil
@@ -140,30 +140,32 @@ func (n *NullBool) ScanInto(value interface{}) error {
 	return convertAssign(&n.Bool, value)
 }
 
-// SubsetValue implements the driver SubsetValuer interface.
-func (n NullBool) SubsetValue() (interface{}, error) {
+// Value implements the driver Valuer interface.
+func (n NullBool) Value() (driver.Value, error) {
 	if !n.Valid {
 		return nil, nil
 	}
 	return n.Bool, nil
 }
 
-// ScannerInto is an interface used by Scan.
-type ScannerInto interface {
-	// ScanInto assigns a value from a database driver.
+// Scanner is an interface used by Scan.
+type Scanner interface {
+	// Scan assigns a value from a database driver.
 	//
-	// The value will be of one of the following restricted
+	// The src value will be of one of the following restricted
 	// set of types:
 	//
 	//    int64
 	//    float64
 	//    bool
 	//    []byte
+	//    string
+	//    time.Time
 	//    nil - for NULL values
 	//
 	// An error should be returned if the value can not be stored
 	// without loss of information.
-	ScanInto(value interface{}) error
+	Scan(src interface{}) error
 }
 
 // ErrNoRows is returned by Scan when QueryRow doesn't return a
@@ -173,6 +175,16 @@ var ErrNoRows = errors.New("sql: no rows in result set")
 
 // DB is a database handle. It's safe for concurrent use by multiple
 // goroutines.
+//
+// If the underlying database driver has the concept of a connection
+// and per-connection session state, the sql package manages creating
+// and freeing connections automatically, including maintaining a free
+// pool of idle connections. If observing session state is required,
+// either do not share a *DB between multiple concurrent goroutines or
+// create and observe all state only within a transaction. Once
+// DB.Open is called, the returned Tx is bound to a single isolated
+// connection. Once Tx.Commit or Tx.Rollback is called, that
+// connection is returned to DB's idle connection pool.
 type DB struct {
 	driver driver.Driver
 	dsn    string
@@ -239,34 +251,56 @@ func (db *DB) conn() (driver.Conn, error) {
 func (db *DB) connIfFree(wanted driver.Conn) (conn driver.Conn, ok bool) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
-	for n, conn := range db.freeConn {
-		if conn == wanted {
-			db.freeConn[n] = db.freeConn[len(db.freeConn)-1]
-			db.freeConn = db.freeConn[:len(db.freeConn)-1]
-			return wanted, true
+	for i, conn := range db.freeConn {
+		if conn != wanted {
+			continue
 		}
+		db.freeConn[i] = db.freeConn[len(db.freeConn)-1]
+		db.freeConn = db.freeConn[:len(db.freeConn)-1]
+		return wanted, true
 	}
 	return nil, false
 }
 
-func (db *DB) putConn(c driver.Conn) {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-	if n := len(db.freeConn); !db.closed && n < db.maxIdleConns() {
-		db.freeConn = append(db.freeConn, c)
+// putConnHook is a hook for testing.
+var putConnHook func(*DB, driver.Conn)
+
+// putConn adds a connection to the db's free pool.
+// err is optionally the last error that occured on this connection.
+func (db *DB) putConn(c driver.Conn, err error) {
+	if err == driver.ErrBadConn {
+		// Don't reuse bad connections.
 		return
 	}
-	db.closeConn(c) // TODO(bradfitz): release lock before calling this?
-}
-
-func (db *DB) closeConn(c driver.Conn) {
-	// TODO: check to see if we need this Conn for any prepared statements
-	// that are active.
+	db.mu.Lock()
+	if putConnHook != nil {
+		putConnHook(db, c)
+	}
+	if n := len(db.freeConn); !db.closed && n < db.maxIdleConns() {
+		db.freeConn = append(db.freeConn, c)
+		db.mu.Unlock()
+		return
+	}
+	// TODO: check to see if we need this Conn for any prepared
+	// statements which are still active?
+	db.mu.Unlock()
 	c.Close()
 }
 
 // Prepare creates a prepared statement for later execution.
 func (db *DB) Prepare(query string) (*Stmt, error) {
+	var stmt *Stmt
+	var err error
+	for i := 0; i < 10; i++ {
+		stmt, err = db.prepare(query)
+		if err != driver.ErrBadConn {
+			break
+		}
+	}
+	return stmt, err
+}
+
+func (db *DB) prepare(query string) (stmt *Stmt, err error) {
 	// TODO: check if db.driver supports an optional
 	// driver.Preparer interface and call that instead, if so,
 	// otherwise we make a prepared statement that's bound
@@ -277,12 +311,12 @@ func (db *DB) Prepare(query string) (*Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer db.putConn(ci)
+	defer db.putConn(ci, err)
 	si, err := ci.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
-	stmt := &Stmt{
+	stmt = &Stmt{
 		db:    db,
 		query: query,
 		css:   []connStmt{{ci, si}},
@@ -293,15 +327,22 @@ func (db *DB) Prepare(query string) (*Stmt, error) {
 // Exec executes a query without returning any rows.
 func (db *DB) Exec(query string, args ...interface{}) (Result, error) {
 	sargs, err := subsetTypeArgs(args)
-	if err != nil {
-		return nil, err
+	var res Result
+	for i := 0; i < 10; i++ {
+		res, err = db.exec(query, sargs)
+		if err != driver.ErrBadConn {
+			break
+		}
 	}
+	return res, err
+}
 
+func (db *DB) exec(query string, sargs []driver.Value) (res Result, err error) {
 	ci, err := db.conn()
 	if err != nil {
 		return nil, err
 	}
-	defer db.putConn(ci)
+	defer db.putConn(ci, err)
 
 	if execer, ok := ci.(driver.Execer); ok {
 		resi, err := execer.Exec(query, sargs)
@@ -352,13 +393,25 @@ func (db *DB) QueryRow(query string, args ...interface{}) *Row {
 // Begin starts a transaction. The isolation level is dependent on
 // the driver.
 func (db *DB) Begin() (*Tx, error) {
+	var tx *Tx
+	var err error
+	for i := 0; i < 10; i++ {
+		tx, err = db.begin()
+		if err != driver.ErrBadConn {
+			break
+		}
+	}
+	return tx, err
+}
+
+func (db *DB) begin() (tx *Tx, err error) {
 	ci, err := db.conn()
 	if err != nil {
 		return nil, err
 	}
 	txi, err := ci.Begin()
 	if err != nil {
-		db.putConn(ci)
+		db.putConn(ci, err)
 		return nil, fmt.Errorf("sql: failed to Begin transaction: %v", err)
 	}
 	return &Tx{
@@ -368,7 +421,7 @@ func (db *DB) Begin() (*Tx, error) {
 	}, nil
 }
 
-// DriverDatabase returns the database's underlying driver.
+// Driver returns the database's underlying driver.
 func (db *DB) Driver() driver.Driver {
 	return db.driver
 }
@@ -378,7 +431,7 @@ func (db *DB) Driver() driver.Driver {
 // A transaction must end with a call to Commit or Rollback.
 //
 // After a call to Commit or Rollback, all operations on the
-// transaction fail with ErrTransactionFinished.
+// transaction fail with ErrTxDone.
 type Tx struct {
 	db *DB
 
@@ -393,25 +446,25 @@ type Tx struct {
 
 	// done transitions from false to true exactly once, on Commit
 	// or Rollback. once done, all operations fail with
-	// ErrTransactionFinished.
+	// ErrTxDone.
 	done bool
 }
 
-var ErrTransactionFinished = errors.New("sql: Transaction has already been committed or rolled back")
+var ErrTxDone = errors.New("sql: Transaction has already been committed or rolled back")
 
 func (tx *Tx) close() {
 	if tx.done {
 		panic("double close") // internal error
 	}
 	tx.done = true
-	tx.db.putConn(tx.ci)
+	tx.db.putConn(tx.ci, nil)
 	tx.ci = nil
 	tx.txi = nil
 }
 
 func (tx *Tx) grabConn() (driver.Conn, error) {
 	if tx.done {
-		return nil, ErrTransactionFinished
+		return nil, ErrTxDone
 	}
 	tx.cimu.Lock()
 	return tx.ci, nil
@@ -424,7 +477,7 @@ func (tx *Tx) releaseConn() {
 // Commit commits the transaction.
 func (tx *Tx) Commit() error {
 	if tx.done {
-		return ErrTransactionFinished
+		return ErrTxDone
 	}
 	defer tx.close()
 	return tx.txi.Commit()
@@ -433,7 +486,7 @@ func (tx *Tx) Commit() error {
 // Rollback aborts the transaction.
 func (tx *Tx) Rollback() error {
 	if tx.done {
-		return ErrTransactionFinished
+		return ErrTxDone
 	}
 	defer tx.close()
 	return tx.txi.Rollback()
@@ -521,12 +574,19 @@ func (tx *Tx) Exec(query string, args ...interface{}) (Result, error) {
 	}
 	defer tx.releaseConn()
 
+	sargs, err := subsetTypeArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
 	if execer, ok := ci.(driver.Execer); ok {
-		resi, err := execer.Exec(query, args)
-		if err != nil {
+		resi, err := execer.Exec(query, sargs)
+		if err == nil {
+			return result{resi}, nil
+		}
+		if err != driver.ErrSkip {
 			return nil, err
 		}
-		return result{resi}, nil
 	}
 
 	sti, err := ci.Prepare(query)
@@ -534,11 +594,6 @@ func (tx *Tx) Exec(query string, args ...interface{}) (Result, error) {
 		return nil, err
 	}
 	defer sti.Close()
-
-	sargs, err := subsetTypeArgs(args)
-	if err != nil {
-		return nil, err
-	}
 
 	resi, err := sti.Exec(sargs)
 	if err != nil {
@@ -550,16 +605,18 @@ func (tx *Tx) Exec(query string, args ...interface{}) (Result, error) {
 // Query executes a query that returns rows, typically a SELECT.
 func (tx *Tx) Query(query string, args ...interface{}) (*Rows, error) {
 	if tx.done {
-		return nil, ErrTransactionFinished
+		return nil, ErrTxDone
 	}
 	stmt, err := tx.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
 	rows, err := stmt.Query(args...)
-	if err == nil {
-		rows.closeStmt = stmt
+	if err != nil {
+		stmt.Close()
+		return nil, err
 	}
+	rows.closeStmt = stmt
 	return rows, err
 }
 
@@ -605,7 +662,7 @@ func (s *Stmt) Exec(args ...interface{}) (Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer releaseConn()
+	defer releaseConn(nil)
 
 	// -1 means the driver doesn't know how to count the number of
 	// placeholders, so we won't sanity check input here and instead let the
@@ -614,19 +671,21 @@ func (s *Stmt) Exec(args ...interface{}) (Result, error) {
 		return nil, fmt.Errorf("sql: expected %d arguments, got %d", want, len(args))
 	}
 
+	sargs := make([]driver.Value, len(args))
+
 	// Convert args to subset types.
 	if cc, ok := si.(driver.ColumnConverter); ok {
 		for n, arg := range args {
 			// First, see if the value itself knows how to convert
 			// itself to a driver type.  For example, a NullString
 			// struct changing into a string or nil.
-			if svi, ok := arg.(driver.SubsetValuer); ok {
-				sv, err := svi.SubsetValue()
+			if svi, ok := arg.(driver.Valuer); ok {
+				sv, err := svi.Value()
 				if err != nil {
-					return nil, fmt.Errorf("sql: argument index %d from SubsetValue: %v", n, err)
+					return nil, fmt.Errorf("sql: argument index %d from Value: %v", n, err)
 				}
-				if !driver.IsParameterSubsetType(sv) {
-					return nil, fmt.Errorf("sql: argument index %d: non-subset type %T returned from SubsetValue", n, sv)
+				if !driver.IsValue(sv) {
+					return nil, fmt.Errorf("sql: argument index %d: non-subset type %T returned from Value", n, sv)
 				}
 				arg = sv
 			}
@@ -638,25 +697,25 @@ func (s *Stmt) Exec(args ...interface{}) (Result, error) {
 			// truncated), or that a nil can't go into a NOT NULL
 			// column before going across the network to get the
 			// same error.
-			args[n], err = cc.ColumnConverter(n).ConvertValue(arg)
+			sargs[n], err = cc.ColumnConverter(n).ConvertValue(arg)
 			if err != nil {
 				return nil, fmt.Errorf("sql: converting Exec argument #%d's type: %v", n, err)
 			}
-			if !driver.IsParameterSubsetType(args[n]) {
+			if !driver.IsValue(sargs[n]) {
 				return nil, fmt.Errorf("sql: driver ColumnConverter error converted %T to unsupported type %T",
-					arg, args[n])
+					arg, sargs[n])
 			}
 		}
 	} else {
 		for n, arg := range args {
-			args[n], err = driver.DefaultParameterConverter.ConvertValue(arg)
+			sargs[n], err = driver.DefaultParameterConverter.ConvertValue(arg)
 			if err != nil {
 				return nil, fmt.Errorf("sql: converting Exec argument #%d's type: %v", n, err)
 			}
 		}
 	}
 
-	resi, err := si.Exec(args)
+	resi, err := si.Exec(sargs)
 	if err != nil {
 		return nil, err
 	}
@@ -666,7 +725,7 @@ func (s *Stmt) Exec(args ...interface{}) (Result, error) {
 // connStmt returns a free driver connection on which to execute the
 // statement, a function to call to release the connection, and a
 // statement bound to that connection.
-func (s *Stmt) connStmt() (ci driver.Conn, releaseConn func(), si driver.Stmt, err error) {
+func (s *Stmt) connStmt() (ci driver.Conn, releaseConn func(error), si driver.Stmt, err error) {
 	if err = s.stickyErr; err != nil {
 		return
 	}
@@ -685,7 +744,7 @@ func (s *Stmt) connStmt() (ci driver.Conn, releaseConn func(), si driver.Stmt, e
 		if err != nil {
 			return
 		}
-		releaseConn = func() { s.tx.releaseConn() }
+		releaseConn = func(error) { s.tx.releaseConn() }
 		return ci, releaseConn, s.txsi, nil
 	}
 
@@ -694,7 +753,7 @@ func (s *Stmt) connStmt() (ci driver.Conn, releaseConn func(), si driver.Stmt, e
 	for _, v := range s.css {
 		// TODO(bradfitz): lazily clean up entries in this
 		// list with dead conns while enumerating
-		if _, match = s.db.connIfFree(cs.ci); match {
+		if _, match = s.db.connIfFree(v.ci); match {
 			cs = v
 			break
 		}
@@ -704,22 +763,28 @@ func (s *Stmt) connStmt() (ci driver.Conn, releaseConn func(), si driver.Stmt, e
 	// Make a new conn if all are busy.
 	// TODO(bradfitz): or wait for one? make configurable later?
 	if !match {
-		ci, err := s.db.conn()
-		if err != nil {
-			return nil, nil, nil, err
+		for i := 0; ; i++ {
+			ci, err := s.db.conn()
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			si, err := ci.Prepare(s.query)
+			if err == driver.ErrBadConn && i < 10 {
+				continue
+			}
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			s.mu.Lock()
+			cs = connStmt{ci, si}
+			s.css = append(s.css, cs)
+			s.mu.Unlock()
+			break
 		}
-		si, err := ci.Prepare(s.query)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-		s.mu.Lock()
-		cs = connStmt{ci, si}
-		s.css = append(s.css, cs)
-		s.mu.Unlock()
 	}
 
 	conn := cs.ci
-	releaseConn = func() { s.db.putConn(conn) }
+	releaseConn = func(err error) { s.db.putConn(conn, err) }
 	return conn, releaseConn, cs.si, nil
 }
 
@@ -743,7 +808,7 @@ func (s *Stmt) Query(args ...interface{}) (*Rows, error) {
 	}
 	rowsi, err := si.Query(sargs)
 	if err != nil {
-		s.db.putConn(ci)
+		releaseConn(err)
 		return nil, err
 	}
 	// Note: ownership of ci passes to the *Rows, to be freed
@@ -767,7 +832,7 @@ func (s *Stmt) Query(args ...interface{}) (*Rows, error) {
 // Example usage:
 //
 //  var name string
-//  err := nameByUseridStmt.QueryRow(id).Scan(&s)
+//  err := nameByUseridStmt.QueryRow(id).Scan(&name)
 func (s *Stmt) QueryRow(args ...interface{}) *Row {
 	rows, err := s.Query(args...)
 	if err != nil {
@@ -794,7 +859,7 @@ func (s *Stmt) Close() error {
 		for _, v := range s.css {
 			if ci, match := s.db.connIfFree(v.ci); match {
 				v.si.Close()
-				s.db.putConn(ci)
+				s.db.putConn(ci, nil)
 			} else {
 				// TODO(bradfitz): care that we can't close
 				// this statement because the statement's
@@ -821,11 +886,11 @@ func (s *Stmt) Close() error {
 type Rows struct {
 	db          *DB
 	ci          driver.Conn // owned; must call putconn when closed to release
-	releaseConn func()
+	releaseConn func(error)
 	rowsi       driver.Rows
 
 	closed    bool
-	lastcols  []interface{}
+	lastcols  []driver.Value
 	lasterr   error
 	closeStmt *Stmt // if non-nil, statement to Close on close
 }
@@ -842,7 +907,7 @@ func (rs *Rows) Next() bool {
 		return false
 	}
 	if rs.lastcols == nil {
-		rs.lastcols = make([]interface{}, len(rs.rowsi.Columns()))
+		rs.lastcols = make([]driver.Value, len(rs.rowsi.Columns()))
 	}
 	rs.lasterr = rs.rowsi.Next(rs.lastcols)
 	if rs.lasterr == io.EOF {
@@ -933,7 +998,7 @@ func (rs *Rows) Close() error {
 	}
 	rs.closed = true
 	err := rs.rowsi.Close()
-	rs.releaseConn()
+	rs.releaseConn(err)
 	if rs.closeStmt != nil {
 		rs.closeStmt.Close()
 	}
@@ -957,7 +1022,7 @@ func (r *Row) Scan(dest ...interface{}) error {
 	}
 
 	// TODO(bradfitz): for now we need to defensively clone all
-	// []byte that the driver returned (not permitting 
+	// []byte that the driver returned (not permitting
 	// *RawBytes in Rows.Scan), since we're about to close
 	// the Rows in our defer, when we return from this function.
 	// the contract with the driver.Next(...) interface is that it

@@ -77,7 +77,7 @@ func TestWriter(t *testing.T) {
 	}
 
 	// read it back
-	r, err := NewReader(sliceReaderAt(buf.Bytes()), int64(buf.Len()))
+	r, err := NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func testReadFile(t *testing.T, f *File, wt *WriteTest) {
 	if f.Name != wt.Name {
 		t.Fatalf("File name: got %q, want %q", f.Name, wt.Name)
 	}
-	testFileMode(t, f, wt.Mode)
+	testFileMode(t, wt.Name, f, wt.Mode)
 	rc, err := f.Open()
 	if err != nil {
 		t.Fatal("opening:", err)

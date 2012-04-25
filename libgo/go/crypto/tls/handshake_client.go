@@ -102,7 +102,7 @@ func (c *Conn) clientHandshake() error {
 
 	if !c.config.InsecureSkipVerify {
 		opts := x509.VerifyOptions{
-			Roots:         c.config.rootCAs(),
+			Roots:         c.config.RootCAs,
 			CurrentTime:   c.config.time(),
 			DNSName:       c.config.ServerName,
 			Intermediates: x509.NewCertPool(),
@@ -166,8 +166,11 @@ func (c *Conn) clientHandshake() error {
 	}
 
 	var certToSend *Certificate
+	var certRequested bool
 	certReq, ok := msg.(*certificateRequestMsg)
 	if ok {
+		certRequested = true
+
 		// RFC 4346 on the certificateAuthorities field:
 		// A list of the distinguished names of acceptable certificate
 		// authorities. These distinguished names may specify a desired
@@ -238,9 +241,14 @@ func (c *Conn) clientHandshake() error {
 	}
 	finishedHash.Write(shd.marshal())
 
-	if certToSend != nil {
+	// If the server requested a certificate then we have to send a
+	// Certificate message, even if it's empty because we don't have a
+	// certificate to send.
+	if certRequested {
 		certMsg = new(certificateMsg)
-		certMsg.certificates = certToSend.Certificate
+		if certToSend != nil {
+			certMsg.certificates = certToSend.Certificate
+		}
 		finishedHash.Write(certMsg.marshal())
 		c.writeRecord(recordTypeHandshake, certMsg.marshal())
 	}
@@ -273,7 +281,7 @@ func (c *Conn) clientHandshake() error {
 	masterSecret, clientMAC, serverMAC, clientKey, serverKey, clientIV, serverIV :=
 		keysFromPreMasterSecret(c.vers, preMasterSecret, hello.random, serverHello.random, suite.macLen, suite.keyLen, suite.ivLen)
 
-	clientCipher := suite.cipher(clientKey, clientIV, false /* not for reading */ )
+	clientCipher := suite.cipher(clientKey, clientIV, false /* not for reading */)
 	clientHash := suite.mac(c.vers, clientMAC)
 	c.out.prepareCipherSpec(c.vers, clientCipher, clientHash)
 	c.writeRecord(recordTypeChangeCipherSpec, []byte{1})
@@ -294,7 +302,7 @@ func (c *Conn) clientHandshake() error {
 	finishedHash.Write(finished.marshal())
 	c.writeRecord(recordTypeHandshake, finished.marshal())
 
-	serverCipher := suite.cipher(serverKey, serverIV, true /* for reading */ )
+	serverCipher := suite.cipher(serverKey, serverIV, true /* for reading */)
 	serverHash := suite.mac(c.vers, serverMAC)
 	c.in.prepareCipherSpec(c.vers, serverCipher, serverHash)
 	c.readRecord(recordTypeChangeCipherSpec)

@@ -74,7 +74,7 @@ void
 runtime_panicstring(const char *s)
 {
 	Eface err;
-	
+
 	if(runtime_m()->gcing) {
 		runtime_printf("panic: %s\n", s);
 		runtime_throw("panic during gc");
@@ -101,7 +101,7 @@ runtime_goargs(void)
 {
 	String *s;
 	int32 i;
-	
+
 	// for windows implementation see "os" package
 	if(Windows)
 		return;
@@ -119,7 +119,7 @@ runtime_goenvs_unix(void)
 {
 	String *s;
 	int32 i, n;
-	
+
 	for(n=0; argv[argc+1+n] != 0; n++)
 		;
 
@@ -184,6 +184,19 @@ runtime_fastrand1(void)
 	return x;
 }
 
+static struct root_list runtime_roots =
+{ NULL,
+  { { &syscall_Envs, sizeof syscall_Envs },
+    { &os_Args, sizeof os_Args },
+    { NULL, 0 } },
+};
+
+void
+runtime_check(void)
+{
+	__go_register_gc_roots(&runtime_roots);
+}
+
 int64
 runtime_cputicks(void)
 {
@@ -195,23 +208,4 @@ runtime_cputicks(void)
   // FIXME: implement for other processors.
   return 0;
 #endif
-}
-
-struct funcline_go_return
-{
-  String retfile;
-  int32 retline;
-};
-
-struct funcline_go_return
-runtime_funcline_go(void *f, uintptr targetpc)
-  __asm__("libgo_runtime.runtime.funcline_go");
-
-struct funcline_go_return
-runtime_funcline_go(void *f __attribute__((unused)),
-		    uintptr targetpc __attribute__((unused)))
-{
-  struct funcline_go_return ret;
-  runtime_memclr(&ret, sizeof ret);
-  return ret;
 }

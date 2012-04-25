@@ -11,23 +11,30 @@ import (
 	"syscall"
 )
 
-func setDefaultSockopts(s syscall.Handle, f, t int) error {
+func setDefaultSockopts(s syscall.Handle, f, t int, ipv6only bool) error {
 	switch f {
 	case syscall.AF_INET6:
-		// Allow both IP versions even if the OS default is otherwise.
-		// Note that some operating systems never admit this option.
-		syscall.SetsockoptInt(s, syscall.IPPROTO_IPV6, syscall.IPV6_V6ONLY, 0)
+		if ipv6only {
+			syscall.SetsockoptInt(s, syscall.IPPROTO_IPV6, syscall.IPV6_V6ONLY, 1)
+		} else {
+			// Allow both IP versions even if the OS default
+			// is otherwise.  Note that some operating systems
+			// never admit this option.
+			syscall.SetsockoptInt(s, syscall.IPPROTO_IPV6, syscall.IPV6_V6ONLY, 0)
+		}
 	}
+	// Allow broadcast.
+	syscall.SetsockoptInt(s, syscall.SOL_SOCKET, syscall.SO_BROADCAST, 1)
+	return nil
+}
 
+func setDefaultListenerSockopts(s syscall.Handle) error {
 	// Windows will reuse recently-used addresses by default.
 	// SO_REUSEADDR should not be used here, as it allows
 	// a socket to forcibly bind to a port in use by another socket.
 	// This could lead to a non-deterministic behavior, where
 	// connection requests over the port cannot be guaranteed
 	// to be handled by the correct socket.
-
-	// Allow broadcast.
-	syscall.SetsockoptInt(s, syscall.SOL_SOCKET, syscall.SO_BROADCAST, 1)
 	return nil
 }
 

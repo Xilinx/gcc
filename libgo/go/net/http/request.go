@@ -186,7 +186,7 @@ func (r *Request) Cookies() []*Cookie {
 	return readCookies(r.Header, "")
 }
 
-var ErrNoCookie = errors.New("http: named cookied not present")
+var ErrNoCookie = errors.New("http: named cookie not present")
 
 // Cookie returns the named cookie provided in the request or
 // ErrNoCookie if not found.
@@ -455,11 +455,13 @@ func ReadRequest(b *bufio.Reader) (req *Request, err error) {
 	// First line: GET /index.html HTTP/1.0
 	var s string
 	if s, err = tp.ReadLine(); err != nil {
+		return nil, err
+	}
+	defer func() {
 		if err == io.EOF {
 			err = io.ErrUnexpectedEOF
 		}
-		return nil, err
-	}
+	}()
 
 	var f []string
 	if f = strings.SplitN(s, " ", 3); len(f) < 3 {
@@ -486,7 +488,7 @@ func ReadRequest(b *bufio.Reader) (req *Request, err error) {
 		rawurl = "http://" + rawurl
 	}
 
-	if req.URL, err = url.ParseRequest(rawurl); err != nil {
+	if req.URL, err = url.ParseRequestURI(rawurl); err != nil {
 		return nil, err
 	}
 

@@ -27,10 +27,11 @@ const (
 	fileHeaderSignature      = 0x04034b50
 	directoryHeaderSignature = 0x02014b50
 	directoryEndSignature    = 0x06054b50
-	fileHeaderLen            = 30 // + filename + extra
-	directoryHeaderLen       = 46 // + filename + extra + comment
-	directoryEndLen          = 22 // + comment
-	dataDescriptorLen        = 12
+	dataDescriptorSignature  = 0x08074b50 // de-facto standard; required by OS X Finder
+	fileHeaderLen            = 30         // + filename + extra
+	directoryHeaderLen       = 46         // + filename + extra + comment
+	directoryEndLen          = 22         // + comment
+	dataDescriptorLen        = 16         // four uint32: descriptor signature, crc32, compressed size, size
 
 	// Constants for the first byte in CreatorVersion
 	creatorFAT    = 0
@@ -98,16 +99,6 @@ type directoryEnd struct {
 	directoryOffset    uint32 // relative to file
 	commentLen         uint16
 	comment            string
-}
-
-func recoverError(errp *error) {
-	if e := recover(); e != nil {
-		if err, ok := e.(error); ok {
-			*errp = err
-			return
-		}
-		panic(e)
-	}
 }
 
 // msDosTimeToTime converts an MS-DOS date and time into a time.Time.

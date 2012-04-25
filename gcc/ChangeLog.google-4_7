@@ -1,3 +1,7 @@
+2012-04-25   Diego Novillo  <dnovillo@google.com>
+
+	Merge from gcc-4_7-branch rev 186721.
+
 2012-04-20  Xinliang David Li  <davidxl@google.com>
 
 	Backport r186622 from trunk
