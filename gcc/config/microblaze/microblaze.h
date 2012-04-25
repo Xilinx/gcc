@@ -503,7 +503,7 @@ typedef struct microblaze_args
 
 #define FUNCTION_PROFILER(FILE, LABELNO) { \
   {                                        \
-    fprintf (FILE, "\tbrki\tr16,_mcount\n");           \
+    fprintf (FILE, "\tbralid\tr15,_mcount\nnop\n");         \
   }                                                    \
  }
 
