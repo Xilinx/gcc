@@ -1,5 +1,15 @@
 
 2012-04-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_probe_stop, melt_probe_start): New
+	declarations.
+
+	* melt-runtime.c (melt_probe_pid, melt_probe_reqfrom_fd)
+	(melt_probe_cmdto_fd, melt_wait_for_probe): New static variables &
+	function.
+	(melt_probe_stop, melt_probe_start): New function.
+	(melt_install_signal_handlers): Handle SIGPIPE like SIGIO.
+
+2012-04-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_raw_sigio_signal, melt_raw_sigalrm_signal)
 	(meltgc_poll_inputs): More comments about signal handling.
 	(melt_install_signal_handlers): Handle SIGVTALRM.

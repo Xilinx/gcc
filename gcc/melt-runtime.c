@@ -5342,6 +5342,185 @@ melt_run_make_for_branch (const char*ourmakecommand, const char*ourmakefile, con
 #endif /*MELT_IS_PLUGIN*/
 
 
+
+static pid_t melt_probe_pid;	/* process id of the probe */
+static int melt_probe_reqfrom_fd = -1;	/* file descriptor for requests from probe to GCC  */
+static int melt_probe_cmdto_fd = -1;	/* file descriptor for commands to probe from GCC. */
+
+/* return 0 if the wait was sucessful. */
+static int 
+melt_wait_for_probe (void)
+{
+  pid_t wpid = 0;
+  int probstatus = 0;
+  if (!melt_probe_pid) 
+    return 1;
+  wpid = waitpid(melt_probe_pid, &probstatus, WNOHANG);
+  debugeprintf ("melt_wait_for_probe pid %d wpid %d probstatus %d",
+		(int)melt_probe_pid, (int) wpid, probstatus);
+  if (wpid == melt_probe_pid) {
+    inform(UNKNOWN_LOCATION, "MELT probe (pid %d) ended", (int) melt_probe_pid);
+    if (WIFEXITED(probstatus)) {
+      if (WEXITSTATUS(probstatus))
+	warning(0, "MELT probe exited with exit code %d", WEXITSTATUS(probstatus));
+    }
+    else if (WIFSIGNALED(probstatus)) {
+      warning (0, "MELT probe terminated with signal %d = %s", 
+	       WTERMSIG(probstatus), strsignal(WTERMSIG(probstatus)));
+    }
+    melt_probe_pid = 0;
+    close (melt_probe_reqfrom_fd);
+    melt_probe_reqfrom_fd = -1;
+    close (melt_probe_cmdto_fd);
+    melt_probe_cmdto_fd = -1;
+    return 0;
+  }
+  return 1;
+}
+
+void 
+melt_probe_stop (void)
+{
+  pid_t pid = melt_probe_pid;
+  int trynum = 0;
+  if (!pid)
+    return;
+  debugeprintf("melt_stop_probe with melt_probe_pid %d", (int) melt_probe_pid);
+  if (!melt_wait_for_probe()) {
+    debugeprintf("melt_stop_probe waited ok pid %d", (int) pid);
+    return;
+  }
+  usleep (5000);
+#define MELT_PROBE_QUIT_COMMAND " QUIT_PCD\n\n"
+  if (melt_probe_cmdto_fd > 0) {
+    debugeprintf("melt_stop_probe sending quit command: %s", MELT_PROBE_QUIT_COMMAND);
+    write (melt_probe_cmdto_fd, MELT_PROBE_QUIT_COMMAND, strlen(MELT_PROBE_QUIT_COMMAND));
+    usleep (60000);
+  }
+  for (trynum = 1; trynum < 3; trynum++) {
+    if (!melt_wait_for_probe()) {
+      debugeprintf("melt_stop_probe waited ok after quit command pid %d", (int) pid);
+      return;
+    }
+    usleep (10000 + trynum * 20000);
+  }
+  /* try 8 times to send a SIGTERM */
+  for (trynum = 1; trynum<=8; trynum++) {
+    if (kill (SIGTERM, pid))
+      warning (0, "MELT failed to kill with SIGTERM pid %d try #%d - %s", 
+	       (int) pid, trynum, xstrerror (errno));
+    debugeprintf("melt_stop_probe sent SIGTERM %d to pid %d try #%d", SIGTERM, (int) pid, trynum);
+    usleep (20000 + trynum * 5000);
+    if (!melt_wait_for_probe()) {
+      debugeprintf("melt_stop_probe waited ok after SIGTERM try #%d pid %d", trynum, (int) pid);
+      return;
+    }
+  }
+  /* try 3 times to send a SIGQUIT */
+  for (trynum = 1; trynum<=3; trynum++) {
+    if (kill (SIGQUIT, pid))
+      warning (0, "MELT failed to kill with SIGQUIT pid %d try #%d - %s", 
+	       (int) pid, trynum, xstrerror(errno));
+    debugeprintf("melt_stop_probe sent SIGQUIT %d to pid %d try #%d", SIGQUIT, (int) pid, trynum);
+    usleep (20000 + trynum * 5000);
+    if (!melt_wait_for_probe()) {
+      debugeprintf("melt_stop_probe waited ok after SIGQUIT try #%d pid %d", trynum, (int) pid);
+      return;
+    }
+  }
+  /* try 3 times a SIGKILL */
+  for (trynum = 1; trynum <= 3; trynum++) 
+    {
+    if (kill (SIGKILL, pid))
+      warning (0, "MELT failed to kill with SIGKILL pid %d try #%d - %s", 
+	       (int) pid, trynum, xstrerror(errno));
+      debugeprintf("melt_stop_probe sent SIGKILL %d to pid %d try #%d", SIGKILL, (int) pid, trynum);
+      usleep (40000 + trynum * 5000);
+      if (!melt_wait_for_probe()) {
+	debugeprintf("melt_stop_probe waited ok after SIGKILL try #%d pid %d", trynum, (int) pid);
+	return;
+      }
+    }
+  fatal_error ("MELT failed to stop probe process %d", (int) pid);
+}
+
+
+
+void
+melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
+{
+#define MELTPROBE_SHELL "/bin/sh"
+#define MELTPROBE_COMMAND_ARG "-C"
+#define MELTPROBE_REQUEST_ARG "-R"
+  enum {MELTPIPE_READ=0, MELTPIPE_WRITE=1}; /* for readability. */
+  int pipetoprobe[2] = {-1, -1};
+  int pipefromprobe[2] = {-1, -1};
+  pid_t pid = -1;
+  if (melt_probe_pid)
+    melt_fatal_error("melt_start_probe probe already started pid %d", (int) melt_probe_pid);
+  debugeprintf("melt_start_probe probecmd: %s", probecmd);
+  if (pipe (pipetoprobe))
+    melt_fatal_error ("melt_start_probe cannot create pipetoprobe; %m for command %s", probecmd);
+  debugeprintf ("melt_start_probe pipetoprobe r=%d w=%d", 
+	       pipetoprobe[MELTPIPE_READ], pipetoprobe[MELTPIPE_WRITE]);
+  if (pipe (pipefromprobe))
+    melt_fatal_error ("melt_start_probe cannot create pipefromprobe; %m for command %s", probecmd);
+  debugeprintf("melt_start_probe pipefromprobe r=%d w=%d", 
+	       pipefromprobe[MELTPIPE_READ], pipefromprobe[MELTPIPE_WRITE]);
+  fflush (NULL);
+  pid = fork();
+  if (pid < 0) 
+    melt_fatal_error ("melt_start_probe failed to fork; %m for command %s", probecmd);
+  else if (pid == 0) 
+    { /* child process for probe */
+      int cfd;
+      char *probefullcmd;
+      int cmdfd = pipefromprobe[MELTPIPE_WRITE]; /* probe command channel, from MELT to probe */
+      int reqfd = pipetoprobe[MELTPIPE_READ];   /* probe request channel, from probe to MELT */
+      char cmdstrfd[16];
+      char reqstrfd[16];
+      snprintf (cmdstrfd, sizeof(cmdstrfd), "%d", cmdfd);
+      snprintf (reqstrfd, sizeof(reqstrfd), "%d", reqfd);
+      /* we are in the child process, so close the other side of the pipes */
+      close (pipefromprobe[MELTPIPE_READ]);
+      close (pipetoprobe[MELTPIPE_WRITE]);
+      for (cfd=3; cfd<128; cfd++) {
+	if (cfd == cmdfd || cfd == reqfd) 
+	  continue;
+	(void) close(cfd);
+      };
+      probefullcmd = concat (probecmd, 
+			     " ", MELTPROBE_COMMAND_ARG, " ", cmdstrfd, 
+			     " ", MELTPROBE_REQUEST_ARG, " ", reqstrfd, 
+			     NULL);
+      execlp(MELTPROBE_SHELL, "-c", probefullcmd, NULL);
+      _exit(127);
+      return;
+    }
+  else
+    { /* parent GCC/cc1 process */
+      /* close our side of the pipes, since in the parent */
+      close (pipetoprobe[MELTPIPE_READ]);
+      close (pipefromprobe[MELTPIPE_WRITE]);
+      debugeprintf("melt_start_probe pid %d toprobefd %d fromprobefd %d", 
+		   (int) pid, pipetoprobe[MELTPIPE_WRITE], pipefromprobe[MELTPIPE_READ]);
+      melt_probe_pid = pid;
+      if (toprobefdptr)
+	*toprobefdptr = pipetoprobe[MELTPIPE_WRITE];
+      melt_probe_cmdto_fd = pipetoprobe[MELTPIPE_WRITE];
+      if (fromprobefdptr)
+	*fromprobefdptr = pipefromprobe[MELTPIPE_READ];
+      melt_probe_reqfrom_fd  = pipefromprobe[MELTPIPE_READ];
+      usleep (25000);		/* sleep a tiny bit, to let the probe start... */
+      inform (UNKNOWN_LOCATION, 
+	      "MELT started probe %s; pid %d; commands to probe fd#%d & requests from probe fd #%d", 
+	      probecmd, (int) melt_probe_pid, melt_probe_cmdto_fd, melt_probe_reqfrom_fd);
+      atexit (melt_probe_stop);
+    }
+}
+
+
+
 /* the srcbase is a generated primary .c file without its .c suffix,
    such as /some/path/foo which also means the MELT descriptor file
    /some/path/foo+meltdesc.c and the MELT timestamp file
@@ -9839,8 +10018,9 @@ melt_install_signal_handlers (void)
   signal (SIGALRM, melt_raw_sigalrm_signal);
   signal (SIGVTALRM, melt_raw_sigalrm_signal);
   signal (SIGIO, melt_raw_sigio_signal);
-  debugeprintf ("melt_install_signal_handlers installed signal handlers for SIGIO %d, SIGALRM %d, SIGVTALRM %d", 
-		SIGIO, SIGALRM, SIGVTALRM);
+  signal (SIGPIPE, melt_raw_sigio_signal);
+  debugeprintf ("melt_install_signal_handlers install handlers for SIGIO %d, SIGPIPE %d, SIGALRM %d, SIGVTALRM %d", 
+		SIGIO, SIGPIPE, SIGALRM, SIGVTALRM);
 }
 
 

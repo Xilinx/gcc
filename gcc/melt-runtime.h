@@ -2998,6 +2998,14 @@ melt_putstrbuf (FILE * f, melt_ptr_t sb)
 }
 
 
+/* Stop the MELT probe process */
+void melt_probe_stop (void);
+
+
+/* Start the MELT probe process. Gives the file descriptors thru
+   toprobefdptr & fromprobefdptr if not null.  */
+void melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr);
+
 /* output the option, declaration and implementation buffers of a
    generated file with a secondary rank*/
 void 
