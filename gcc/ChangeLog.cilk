@@ -1,3 +1,19 @@
+2012-04-24  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* elem-function.c (find_elem_fn_param_type_1): New function.
+	(find_elem_fn_param_type): Likewise.
+	(find_elem_fn_name): Likewise.
+	(is_elem_fn): Make it unstatic.
+	* tree-data-ref.c (find_data_references_in_stmt): Added support for
+	functions that can be made to elemental functions.
+	* tree-vect-stmts.c (vect_get_vec_def_for_operand): Added a check for
+	the parameters to see whether it is uniform, linear or neither.
+	(vectorizable_function): Handled code to substitute regular function
+	with the equivalent elemental function.
+	(vectorizable_call): Set the function type for substituted elemental
+	function.
+	* tree.h (enum elem_fn_parm_type): New enum.
+
 2012-04-20  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* final.c (rest_of_handle_final): Moved outputing ZCA data after

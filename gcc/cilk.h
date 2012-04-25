@@ -269,5 +269,7 @@ extern void cilk_remove_annotated_functions (rtx first);
 extern bool cilk_annotated_function_p (char *); 	    
 extern void debug_zca_data (void);
 extern zca_data *get_zca_entry (int);
-extern void insert_in_zca_table (zca_data);				    
+extern void insert_in_zca_table (zca_data);
+extern bool is_elem_fn (tree);				 
+extern tree find_elem_fn_name (tree, tree, tree);
 #endif /* GCC_CILK_H */

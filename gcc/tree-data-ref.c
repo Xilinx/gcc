@@ -86,6 +86,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "tree-affine.h"
 #include "params.h"
+#include "cilk.h"
 
 static struct datadep_stats
 {
@@ -4383,8 +4384,18 @@ find_data_references_in_stmt (struct loop *nest, gimple stmt,
 
   if (get_references_in_stmt (stmt, &references))
     {
-      VEC_free (data_ref_loc, heap, references);
-      return false;
+      /* If we have an elemental function, then dont worry about its refernce
+       * it is probably available somewhere */
+      if (flag_enable_cilk
+	  && gimple_code (stmt) == GIMPLE_CALL
+	  && gimple_call_fndecl (stmt)
+	  && is_elem_fn (gimple_call_fndecl (stmt)))
+	;
+      else
+	{
+	  VEC_free (data_ref_loc, heap, references);
+	  return false;
+	}
     }
 
   FOR_EACH_VEC_ELT (data_ref_loc, references, i, ref)

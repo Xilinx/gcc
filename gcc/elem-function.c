@@ -83,6 +83,58 @@ static elem_fn_info *extract_elem_fn_values (tree);
 static tree create_optimize_attribute (int);
 static tree create_processor_attribute (elem_fn_info *, tree *);
 
+/* this is an helper function for find_elem_fn_param_type */
+static enum elem_fn_parm_type
+find_elem_fn_parm_type_1 (tree fndecl, int parm_no)
+{
+  int ii = 0;
+  elem_fn_info *elem_fn_values;
+
+  elem_fn_values = extract_elem_fn_values (fndecl);
+  if (!elem_fn_values)
+    return TYPE_NONE;
+
+  for (ii = 0; ii < elem_fn_values->no_lvars; ii++)
+    if (elem_fn_values->linear_location[ii] == parm_no)
+      return TYPE_LINEAR;
+    
+  for (ii = 0; ii < elem_fn_values->no_uvars; ii++)
+    if (elem_fn_values->uniform_location[ii] == parm_no)
+      return TYPE_UNIFORM;
+    
+  return TYPE_NONE;
+}
+  
+  
+/* this function will return the type of a parameter in elemental function.
+   The choices are UNIFORM or LINEAR. */
+enum elem_fn_parm_type
+find_elem_fn_parm_type (gimple stmt, tree op)
+{
+  tree fndecl, parm = NULL_TREE;
+  int ii, nargs;
+  enum elem_fn_parm_type return_type = TYPE_NONE;
+  
+  if (gimple_code (stmt) != GIMPLE_CALL)
+    return TYPE_NONE;
+
+  fndecl = gimple_call_fndecl (stmt);
+  gcc_assert (fndecl);
+
+  nargs = gimple_call_num_args (stmt);
+
+  for (ii = 0; ii < nargs; ii++)
+    {
+      parm = gimple_call_arg (stmt, ii);
+      if (op == parm)
+	{
+	  return_type = find_elem_fn_parm_type_1 (fndecl, 1);
+	  return return_type;
+	}
+    }
+  return return_type;
+}
+  
 /* this function will concatinate the suffix to the existing function decl */
 static tree
 rename_elem_fn (tree decl, const char *suffix)
@@ -108,7 +160,7 @@ rename_elem_fn (tree decl, const char *suffix)
 
 /* this function will check to see if the node is part of an function that
  * needs to be converted to its vector equivalent. */
-static bool
+bool
 is_elem_fn (tree fndecl)
 {
   tree ii_tree;
@@ -347,6 +399,55 @@ find_suffix (elem_fn_info *elem_fn_values, bool masked)
 	}
     } 
   return suffix;
+}
+
+tree
+find_elem_fn_name (tree old_fndecl,
+		   tree vectype_out ATTRIBUTE_UNUSED,
+		   tree vectype_in ATTRIBUTE_UNUSED)
+{
+  elem_fn_info *elem_fn_values = NULL;
+  tree new_fndecl = NULL_TREE, arg_type = NULL_TREE;
+  char *suffix = NULL;
+  
+  elem_fn_values = extract_elem_fn_values (old_fndecl);
+ 
+  if (elem_fn_values)
+    {
+      if (elem_fn_values->no_vlengths > 0)
+	{
+	  if (elem_fn_values->vectorlength[0] ==
+	      (int)TYPE_VECTOR_SUBPARTS (vectype_out))
+	    suffix = find_suffix (elem_fn_values, false);
+	  else
+	    return NULL_TREE;
+	}
+      else
+	return NULL_TREE;
+    }
+  else
+    return NULL_TREE;
+
+  new_fndecl = copy_node (rename_elem_fn (old_fndecl, suffix));
+  TREE_TYPE (new_fndecl) = copy_node (TREE_TYPE (old_fndecl));
+
+  TYPE_ARG_TYPES (TREE_TYPE (new_fndecl)) =
+    copy_list (TYPE_ARG_TYPES (TREE_TYPE (new_fndecl)));
+  
+  for (arg_type = TYPE_ARG_TYPES (TREE_TYPE (new_fndecl));
+       arg_type && arg_type != void_type_node;
+       arg_type = TREE_CHAIN (arg_type))
+    TREE_VALUE (arg_type) = vectype_out;
+  
+  if (TREE_TYPE (TREE_TYPE (new_fndecl)) != void_type_node)
+    {
+      TREE_TYPE (TREE_TYPE (new_fndecl)) =
+	copy_node (TREE_TYPE (TREE_TYPE (new_fndecl)));
+      TREE_TYPE (TREE_TYPE (new_fndecl)) = vectype_out;
+      DECL_MODE (new_fndecl) = TYPE_MODE (vectype_out);
+    }
+  
+  return new_fndecl;
 }
 
 /* this function wil create the elemental vector function node */

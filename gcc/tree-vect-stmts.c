@@ -40,7 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "tree-vectorizer.h"
 #include "langhooks.h"
-
+#include "cilk.h"
 
 /* Return a variable of type ELEM_TYPE[NELEMS].  */
 
@@ -1260,6 +1260,8 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
   bool is_simple_use;
   tree vector_type;
 
+  extern enum elem_fn_parm_type find_elem_fn_parm_type (gimple, tree);
+
   if (vect_print_dump_info (REPORT_DETAILS))
     {
       fprintf (vect_dump, "vect_get_vec_def_for_operand: ");
@@ -1283,13 +1285,26 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
         }
     }
 
+  if (flag_enable_cilk
+      && gimple_code (stmt) == GIMPLE_CALL
+      && is_elem_fn (gimple_call_fndecl (stmt)))
+    {
+      enum elem_fn_parm_type parm_type = find_elem_fn_parm_type (stmt, op);
+      if (parm_type == TYPE_UNIFORM)
+	dt = vect_constant_def;
+      else if (parm_type == TYPE_LINEAR)
+	{
+	  ;
+	}
+    }
+      
   switch (dt)
     {
     /* Case 1: operand is a constant.  */
     case vect_constant_def:
       {
 	vector_type = get_vectype_for_scalar_type (TREE_TYPE (op));
-	gcc_assert (vector_type);
+	gcc_assert (vector_type);  
 	nunits = TYPE_VECTOR_SUBPARTS (vector_type);
 
 	if (scalar_def)
@@ -1566,6 +1581,20 @@ vectorizable_function (gimple call, tree vectype_out, tree vectype_in)
 {
   tree fndecl = gimple_call_fndecl (call);
 
+  if (flag_enable_cilk && is_elem_fn (fndecl))
+    {
+      if (DECL_ELEM_FN_ALREADY_CLONED (fndecl))
+	return fndecl;
+      else
+	{
+	  tree new_fndecl = find_elem_fn_name (copy_node (fndecl),
+					       vectype_out, vectype_in);
+	  if (new_fndecl)
+	    DECL_ELEM_FN_ALREADY_CLONED (new_fndecl) = 1;
+	  /* gimple_call_set_fntype (call, TREE_TYPE (new_fndecl)); */
+	  return new_fndecl;
+	}
+    }
   /* We only handle functions that do not read or clobber memory -- i.e.
      const or novops ones.  */
   if (!(gimple_call_flags (call) & (ECF_CONST | ECF_NOVOPS)))
@@ -1718,8 +1747,6 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
       return false;
     }
 
-  gcc_assert (!gimple_vuse (stmt));
-
   if (slp_node || PURE_SLP_STMT (stmt_info))
     ncopies = 1;
   else if (modifier == NARROW)
@@ -1824,7 +1851,8 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	  new_stmt = gimple_build_call_vec (fndecl, vargs);
 	  new_temp = make_ssa_name (vec_dest, new_stmt);
 	  gimple_call_set_lhs (new_stmt, new_temp);
-
+	  if (flag_enable_cilk && is_elem_fn (fndecl))
+	    gimple_call_set_fntype (new_stmt, TREE_TYPE (fndecl));
 	  vect_finish_stmt_generation (stmt, new_stmt, gsi);
 	  mark_symbols_for_renaming (new_stmt);
 

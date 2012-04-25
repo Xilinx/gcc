@@ -3671,6 +3671,9 @@ extern VEC(tree, gc) **decl_debug_args_insert (tree);
 #define DECL_FUNCTION_SPECIFIC_OPTIMIZATION(NODE) \
    (FUNCTION_DECL_CHECK (NODE)->function_decl.function_specific_optimization)
 
+#define DECL_ELEM_FN_ALREADY_CLONED(NODE) \
+  (FUNCTION_DECL_CHECK (NODE)->function_decl.elem_fn_already_cloned)
+		     
 /* FUNCTION_DECL inherits from DECL_NON_COMMON because of the use of the
    arguments/result/saved_tree fields by front ends.   It was either inherit
    FUNCTION_DECL from non_common, or inherit non_common from FUNCTION_DECL,
@@ -3718,6 +3721,7 @@ struct GTY(()) tree_function_decl {
   unsigned cilk_has_spawn : 1;
   signed int kills_registers : DECL_KILLS_REGISTERS_BITS;
   unsigned tm_clone_flag : 1;
+  unsigned elem_fn_already_cloned : 1;
 
   /* 1 bit left */
 };
@@ -3801,6 +3805,12 @@ enum function_linkage
   linkage_cilk
 };
 
+enum elem_fn_parm_type
+{
+  TYPE_NONE = 0,
+  TYPE_UNIFORM = 1,
+  TYPE_LINEAR = 2
+};
 
 #define TREE_OPTIMIZATION(NODE) \
   (&OPTIMIZATION_NODE_CHECK (NODE)->optimization.opts)
