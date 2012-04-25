@@ -23,8 +23,8 @@ s v;
 
   e.g, it should not haven any child DIE -- the bug here was that this
   DIE had children DIEs. So we check that the last line is immediately
-  followed by a line containing the pattern "(DIE (", instead of a
+  followed by a line containing "DIE", instead of a
   line containing a DW_AT_sibling attribute.
  */
 
-// { dg-final { scan-assembler-times "\[^\n\r\]*\\(DIE \[^\n\r\]* DW_TAG_typedef\\)\[\n\r\]{1,2}\[^\n\r\].*\"t\\\\0\"\[^\n\r\]*DW_AT_name\[\n\r\]{1,2}\[^\n\r\]*\[\n\r\]{1,2}\[^\n\r\]*\[\n\r\]{1,2}\[^\n\r\]*DW_AT_type\[\n\r\]{1,2}\[^\n\r\]*\\(DIE" 1 } }
+// { dg-final { scan-assembler-times "\[^\n\r\]*\\(DIE \[^\n\r\]* DW_TAG_typedef\\)\[\n\r\]{1,2}\[^\n\r\].*\"t\\\\0\"\[^\n\r\]*DW_AT_name\[\n\r\]{1,2}\[^\n\r\]*\[\n\r\]{1,2}\[^\n\r\]*\[\n\r\]{1,2}\[^\n\r\]*DW_AT_type\[\n\r\]{1,2}\[^\n\r\]*\\DIE" 1 } }
