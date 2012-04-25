@@ -1,5 +1,11 @@
 
 2012-04-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_raw_sigio_signal, melt_raw_sigalrm_signal)
+	(meltgc_poll_inputs): More comments about signal handling.
+	(melt_install_signal_handlers): Handle SIGVTALRM.
+	(meltgc_handle_sigalrm): Implement it.
+
+2012-04-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 
 	* melt/generated/meltrunsup-inc.c: Regenerate.

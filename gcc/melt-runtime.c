@@ -9803,7 +9803,12 @@ meltgc_load_modules_and_do_mode (void)
 }
 
 
-/* the low level SIGIO signal handler installed thru sigaction, when IO is possible on input channels */
+/* The low level SIGIO signal handler installed thru sigaction, when
+   IO is possible on input channels.  Actual signal handling is done
+   at safe places thru MELT_CHECK_INTERRUPT & melt_handle_interrupt &
+   meltgc_handle_sigio (because signal handlers can call very few
+   async-signal-safe functions, see signal(7) man page on
+   e.g. Linux). */
 static void
 melt_raw_sigio_signal(int sig)
 {
@@ -9813,13 +9818,17 @@ melt_raw_sigio_signal(int sig)
 }
 
 
-/* the low level SIGALRM signal handler installed thru sigaction, when
-   an alarm ringed. */
+/* The low level SIGALRM/SIGVTALRM signal handler installed thru
+   sigaction, when an alarm ringed.  Actual signal handling is done
+   at safe places thru MELT_CHECK_INTERRUPT & melt_handle_interrupt &
+   meltgc_handle_sigalrm (because signal handlers can call very few
+   async-signal-safe functions, see signal(7) man page on
+   e.g. Linux).  */
 static void
 melt_raw_sigalrm_signal(int sig)
 {
-  gcc_assert (sig == SIGALRM);
-  melt_got_sigio = 1;
+  gcc_assert (sig == SIGALRM || sig == SIGVTALRM);
+  melt_got_sigalrm = 1;
   melt_interrupted = 1;
 }
 
@@ -9828,8 +9837,10 @@ static void
 melt_install_signal_handlers (void)
 {
   signal (SIGALRM, melt_raw_sigalrm_signal);
+  signal (SIGVTALRM, melt_raw_sigalrm_signal);
   signal (SIGIO, melt_raw_sigio_signal);
-  debugeprintf ("melt_install_signal_handlers insalled signal handlers for SIGIO %d and SIGALRM %d", SIGIO, SIGALRM);
+  debugeprintf ("melt_install_signal_handlers installed signal handlers for SIGIO %d, SIGALRM %d, SIGVTALRM %d", 
+		SIGIO, SIGALRM, SIGVTALRM);
 }
 
 
@@ -13485,10 +13496,10 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 #undef closv
 }
 
-/* Could be called from many places, when SIGIO signal received, thru
-   melt_handle_interrupt via MELT_CHECK_INTERRUPT macro.  See field
-   sysdata_inchannel_data of class_system_data in
-   melt/warmelt-first.melt. */
+/* Real handling of SIGIO signals.  Could be called from many places,
+   when SIGIO signal received, thru melt_handle_interrupt via
+   MELT_CHECK_INTERRUPT macro.  See field sysdata_inchannel_data of
+   class_system_data in melt/warmelt-first.melt. */
 #define MELT_POLL_DELAY_MILLISEC 10
 static void
 meltgc_handle_sigio (void)
@@ -13514,22 +13525,32 @@ meltgc_handle_sigio (void)
 }
 
 
-/* Could be called from many places thru melt_handle_interrupt via
-   MELT_CHECK_INTERRUPT macro.  Not yet implemented. */
+/* Real handling of SIGALRM & SIGVTALRM signals.  Could be called from
+   many places thru melt_handle_interrupt via MELT_CHECK_INTERRUPT
+   macro.  */
 static void
 meltgc_handle_sigalrm (void)
 {
   MELT_ENTERFRAME (1, NULL);
+#define closv  meltfram__.mcfr_varptr[0]
   MELT_LOCATION_HERE("meltgc_handle_sigalrm");
-  melt_fatal_error ("meltgc_handle_sigalrm unimplemented pid %d", (int) getpid());
+  closv = melt_get_inisysdata (MELTFIELD_SYSDATA_ALARM_HOOK);
+  if (melt_magic_discr ((melt_ptr_t) closv) == MELTOBMAG_CLOSURE) 
+    {
+      (void) melt_apply ((meltclosure_ptr_t) closv, (melt_ptr_t) NULL,
+			 "", NULL, "", NULL);
+    }
   MELT_EXITFRAME ();
+#undef closv
 }
 
 /* This meltgc_handle_interrupt routine is called thru the
    MELT_CHECK_INTERRUPT macro, which is generated in many places in C
    code generated from MELT.  The MELT_CHECK_INTERRUPT macro is
    testing the volatile melt_interrupted flag before calling this.
-   Signal handlers should set that flag (with perhaps others). */
+   Raw signal handlers (e.g. melt_raw_sigio_signal or
+   melt_raw_sigalrm_signal) should set that flag (with perhaps
+   others). */
 void 
 melt_handle_interrupt (void)
 {
