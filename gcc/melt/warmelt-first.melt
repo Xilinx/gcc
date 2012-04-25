@@ -392,7 +392,11 @@ don't instanciate this class!}#
 	   sysdata_early_gimple_passes_start_hook ;closure for PLUGIN_EARLY_GIMPLE_PASSES_START
 	   sysdata_early_gimple_passes_end_hook ;closure for PLUGIN_EARLY_GIMPLE_PASSES_END
 	   ;;
+	   ;; these are called by the runtime system thru
+	   ;; MELT_CHECK_INTERRUPT macro and meltgc_handle_sigio &
+	   ;; meltgc_poll_inputs and meltgc_handle_sigalrm
 	   sysdata_inchannel_data	;data for handling of "asynchronous" interrupting input channel
+	   sysdata_alarm_hook		;closure for handling SIGALRM 
 	   ;;
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
@@ -743,7 +747,8 @@ data. See the $INSTALL_MELT_MODE function. }# )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; handling of interruptible  input channels
-;; the sysdata_inchannel_data is a bucket of such instances
+;; the sysdata_inchannel_data is a bucket of such instances.  See
+;; runtime function meltgc_handle_sigio and macro MELT_CHECK_INTERRUPT
 (defclass class_input_channel_handler 
   :doc #{Internal class for input channel handling. Its magic number
   is the file descriptor.}#

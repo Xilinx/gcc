@@ -1,0 +1,46 @@
+;; -*- Lisp -*-
+;; file xtramelt-probe.melt
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(comment "***
+    Copyright 2012 Free Software Foundation, Inc.
+    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+
+    This file is part of GCC.
+
+    GCC is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3, or (at your option)
+    any later version.
+
+    GCC is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with GCC; see the file COPYING3.  If not see
+    <http://www.gnu.org/licenses/>.
+
+   This file interacts with the simple GTK probe (a graphical user
+   interface program to show compiled source files and information
+   attached to locations in them). See file
+   simplemelt-gtkmm-probe.cc (in contrib/ directory of the MELT
+   branch). 
+
+ ***")
+
+
+(defun probe_docmd  (cmd moduldata)
+  (debug "probe_docmd cmd=" cmd " moduldata=" moduldata)
+  (assert_msg "$@$unimplemented probe_docmd" ())
+)
+
+(definstance probe_mode
+  class_melt_mode
+  :named_name '"probe"
+  :meltmode_help '"enable the simple interactive probe"
+  :meltmode_fun probe_docmd
+)
+(install_melt_mode probe_mode)
+
+;; eof xtramelt-probe.melt

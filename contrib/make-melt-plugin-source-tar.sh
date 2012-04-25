@@ -130,9 +130,10 @@ for cf in  $gccmelt_source_tree/contrib/*melt*.sh $gccmelt_source_tree/contrib/p
     chmod a+x $gccmelt_tarbase/$(basename $cf)
 done
 
-for cf in   $gccmelt_source_tree/contrib/gt*melt*.h ; do
+for cf in   $gccmelt_source_tree/contrib/simplemelt-gtkmm-probe.cc ; do
     copymelt contrib/$(basename $cf) 
 done
+
 copymelt INSTALL/README-MELT-PLUGIN
 copymelt libmeltopengpu/meltopengpu-runtime.c
 

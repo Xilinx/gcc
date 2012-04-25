@@ -1,6 +1,18 @@
 
+2012-04-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.def: Add xtramelt-probe.melt
+	* melt-build.mk: Regenerate.
+
+	* melt-runtime.c: Add comments about signal handling.
+
+	* melt/warmelt-first.melt (class_initial_system_data): Add
+	comments and sysdata_alarm_hook field.
+
+	* melt/xtramelt-probe.melt: New file.
+
 2012-04-24  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt-build.def: Add xtramelt-ana-tree.melt & xtramelt-ana-gimple.melt
+	* melt-build.def: Add xtramelt-ana-tree.melt &
+	xtramelt-ana-gimple.melt
 	* melt-build.mk: Regenerate.
 
 	* melt/warmelt-normal.melt (normexp_export_values): Replace
@@ -10,7 +22,7 @@
 	xtramelt-ana-base.melt & xtramelt-ana-tree.melt &
 	xtramelt-ana-gimple.melt.
 
-	* melt/xtramalt-ana-tree.melt: New file.
+	* melt/xtramelt-ana-tree.melt: New file.
 
 	* melt/xtramelt-ana-gimple.melt: New file.
 

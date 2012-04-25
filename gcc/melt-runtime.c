@@ -13486,7 +13486,9 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 }
 
 /* Could be called from many places, when SIGIO signal received, thru
-   melt_handle_interrupt via MELT_CHECK_INTERRUPT macro.  */
+   melt_handle_interrupt via MELT_CHECK_INTERRUPT macro.  See field
+   sysdata_inchannel_data of class_system_data in
+   melt/warmelt-first.melt. */
 #define MELT_POLL_DELAY_MILLISEC 10
 static void
 meltgc_handle_sigio (void)

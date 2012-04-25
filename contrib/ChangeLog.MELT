@@ -1,4 +1,9 @@
 
+2012-04-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* make-melt-source-tar.sh: Remove file, since rename to...
+	* make-melt-plugin-source-tar.sh: New file. Also copy
+	simplemelt-gtkmm-probe.cc
+
 2012-04-24  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* simplemelt-gtkmm-probe.cc: Ensure that GTK is at least 3.4

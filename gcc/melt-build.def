@@ -1,7 +1,7 @@
 #! /usr/bin/autogen
 AutoGen definitions melt-build.tpl;
 
-// melt-build.in is generated from melt-build.tpl using melt-build.def
+// melt-build.mk is generated from melt-build.tpl using melt-build.def
 // and the autogen utility by 'autogen melt-build.def'.
 // This file is written by Basile Starynkevitch
 //
@@ -93,6 +93,11 @@ melt_application_file = {
 melt_application_file = {
   base = "xtramelt-ana-gimple";
   mkvarsuf = ANA_GIMPLE;
+};
+
+melt_application_file = {
+  base = "xtramelt-probe";
+  mkvarsuf = PROBE;
 };
 
 melt_application_file = {
