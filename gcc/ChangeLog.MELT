@@ -1,5 +1,19 @@
 
 2012-04-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* common.opt (-fmelt-probe=): New, using melt_probe_string
+	variable.
+
+	* melt-runtime.h (melt_probe_start): Improve comment.
+
+	* melt-runtime.c (melt_argument): Handle "probe".
+	(melt_probe_start): Guess the probecmd if none given.
+	(melt_really_initialize): When print-settings, output the
+	MELTGCCBUILTIN_PROBE.
+
+	* Makefile.in (melt_default_probe): New.
+	(melt-runtime-params-inc.c): Use it.
+
+2012-04-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_wait_for_probe): Add waitopt formal.
 	(melt_probe_stop): Use it. The last wait is blocking, but should
 	never happen...

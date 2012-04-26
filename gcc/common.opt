@@ -970,6 +970,11 @@ fmelt-extra=
 Common Report Var(melt_extra_string) RejectNegative Joined
 Extra colon separated module[s] to be loaded after the initial ones.
 
+; probe command
+fmelt-probe=
+Common Report Var(melt_probe_string) RejectNegative Joined
+The probe command, overridding GCCMELT_PROBE environment or built-in default.
+
 ; print settings to some file, or to stdout
 fmelt-print-settings=
 Common Report Var(melt_print_settings_string) RejectNegative Joined

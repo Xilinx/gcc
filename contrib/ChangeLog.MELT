@@ -1,4 +1,15 @@
 
+2012-04-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc: More commands for status.
+	(SmeltMainWindow): Add _mainstatusbar field.
+	(SmeltMainWindow::push_status, SmeltMainWindow::pop_status)
+	(SmeltMainWindow::remove_status)
+	(SmeltMainWindow::remove_all_status): New.
+	(SmeltAppl::clearstatus_cmd, SmeltAppl::pushstatus_cmd)
+	(SmeltAppl::popstatus_cmd, SmeltAppl::setstatus_cmd): New.
+
+	* MELT-Plugin-Makefile (melt_default_probe): New.
+
 2012-04-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* make-melt-source-tar.sh: Remove file, since rename to...
 	* make-melt-plugin-source-tar.sh: New file. Also copy

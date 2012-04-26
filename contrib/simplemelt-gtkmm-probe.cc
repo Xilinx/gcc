@@ -71,8 +71,9 @@ may also send several requests to MELT at any moment.
 ****/
 
 
-// I am probably bitten by the bug I reported at
+// I have been bitten by the bug I reported at
 // https://bugzilla.gnome.org/show_bug.cgi?id=672544 corrected in GTK 3.4
+// so you need GTK 3.4 to run that.
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -250,6 +251,7 @@ class SmeltMainWindow : public Gtk::Window {
   Gtk::MenuBar _mainmenubar;
   Gtk::Label _mainlabel;
   Gtk::Notebook _mainnotebook;
+  Gtk::Statusbar _mainstatusbar;
   class ShownFile {
     friend class SmeltMainWindow;
     long _sfilnum;		// unique number in _mainsfilemapnum;
@@ -308,6 +310,7 @@ public:
     _mainvbox.pack_start(_mainmenubar,Gtk::PACK_SHRINK);
     _mainvbox.pack_start(_mainlabel,Gtk::PACK_SHRINK);
     _mainvbox.pack_start(_mainnotebook,Gtk::PACK_EXPAND_WIDGET);
+    _mainvbox.pack_start(_mainstatusbar,Gtk::PACK_SHRINK);
     show_all();
   }
   virtual ~SmeltMainWindow() {
@@ -318,6 +321,10 @@ public:
   }
   void show_file(const std::string&path, long num);
   void mark_location(long marknum,long filenum,int lineno, int col);
+  guint push_status(const std::string&msg);
+  void pop_status(void);
+  void remove_status(guint msgid);
+  void remove_all_status(void);
 };
 
 
@@ -899,6 +906,10 @@ public:
   void echo_cmd(SmeltVector&);
   void showfile_cmd(SmeltVector&);
   void marklocation_cmd(SmeltVector&);
+  void clearstatus_cmd(SmeltVector&);
+  void pushstatus_cmd(SmeltVector&);
+  void popstatus_cmd(SmeltVector&);
+  void setstatus_cmd(SmeltVector&);
 };				// end class SmeltAppl
 
 
@@ -1193,9 +1204,30 @@ SmeltMainWindow::mark_location(long marknum,long filenum,int lineno, int col)
   sfil->view().show_all ();
   sfil->view().queue_draw();
   SMELT_DEBUG("added mark but@" << (void*) but);
-
 #warning incomplete SmeltMainWindow::mark_location
 }
+
+////////////////////////////////////////////////////////////////
+guint SmeltMainWindow::push_status(const std::string&msg)
+{
+  return _mainstatusbar.push(msg);
+}
+
+void  SmeltMainWindow::pop_status(void)
+{
+  _mainstatusbar.pop();
+}
+
+void SmeltMainWindow::remove_status(guint msgid)
+{
+  _mainstatusbar.remove_message(msgid);
+}
+
+void SmeltMainWindow::remove_all_status(void)
+{
+  _mainstatusbar.remove_all_messages();
+}
+
 ////////////////////////////////////////////////////////////////
 void SmeltTraceWindow::add_title(const std::string &str)
 {
@@ -1479,6 +1511,22 @@ SmeltAppl::process_command_from_melt(std::string& str)
 }
 
 
+////////////////////////////////////////////////////////////////
+int main (int argc, char** argv)
+{
+  SmeltOptionGroup optgroup;
+  smelt_options_context.set_main_group(optgroup);
+  SmeltAppl app(argc, argv);
+  optgroup.setup_appl(app);
+  SMELT_DEBUG("running pid " << (int)getpid());
+  app.run();
+  return 0;
+}
+
+
+/*****************************************************************/
+/*****************************************************************/
+/*****************************************************************/
 /////////////// tracemsg_cmd
 SmeltCommandSymbol smeltsymb_tracemsg_cmd("TRACEMSG_PCD",&SmeltAppl::tracemsg_cmd);
 
@@ -1514,11 +1562,9 @@ SmeltAppl::quit_cmd(SmeltVector&v)
 
 
 
-////////////// echo_cmd
+////////////// echo_pcd command for echoing
 
 SmeltCommandSymbol smeltsymb_echo_cmd("ECHO_PCD",&SmeltAppl::echo_cmd);
-
-
 
 void
 SmeltAppl::echo_cmd(SmeltVector&v)
@@ -1529,7 +1575,7 @@ SmeltAppl::echo_cmd(SmeltVector&v)
 
 
 
-//////////////// showfile_cmd
+//////////////// showfile_pcd <filename> <number> command to show a file
 
 SmeltCommandSymbol smeltsymb_showfile_cmd("SHOWFILE_PCD",&SmeltAppl::showfile_cmd);
 
@@ -1542,7 +1588,7 @@ SmeltAppl::showfile_cmd(SmeltVector&v)
   _app_mainwin.show_file(filnam,num);
 }
 
-//////////////// showfile_cmd
+//////////////// marklocation_pcd <marknum> <filenum> <lineno> <col> to mark a location
 
 SmeltCommandSymbol smeltsymb_marklocation_cmd("MARKLOCATION_PCD",&SmeltAppl::marklocation_cmd);
 
@@ -1559,17 +1605,60 @@ SmeltAppl::marklocation_cmd(SmeltVector&v)
 
 
 ////////////////////////////////////////////////////////////////
-int main (int argc, char** argv)
+//////////////// clearstatus_pcd to clear the status stack
+
+SmeltCommandSymbol smeltsymb_clearstatus_cmd("CLEARSTATUS_PCD",&SmeltAppl::clearstatus_cmd);
+
+void
+SmeltAppl::clearstatus_cmd(SmeltVector&)
 {
-  SmeltOptionGroup optgroup;
-  smelt_options_context.set_main_group(optgroup);
-  SmeltAppl app(argc, argv);
-  optgroup.setup_appl(app);
-  SMELT_DEBUG("running pid " << (int)getpid());
-  app.run();
-  return 0;
+  SMELT_DEBUG("CLEARSTATUS");
+  _app_mainwin.remove_all_status ();
 }
 
+
+//////////////// pushstatus_pcd to push a message on the status stack
+
+SmeltCommandSymbol smeltsymb_pushstatus_cmd("PUSHSTATUS_PCD",&SmeltAppl::pushstatus_cmd);
+
+void
+SmeltAppl::pushstatus_cmd(SmeltVector&v)
+{
+  auto str = v.at(1).to_string();
+  SMELT_DEBUG("PUSHSTATUS " << str);
+  _app_mainwin.push_status (str);
+}
+
+
+//////////////// popstatus_pcd to push a message on the status stack
+
+SmeltCommandSymbol smeltsymb_popstatus_cmd("POPSTATUS_PCD",&SmeltAppl::popstatus_cmd);
+
+void
+SmeltAppl::popstatus_cmd(SmeltVector&)
+{
+  SMELT_DEBUG("POPSTATUS");
+  _app_mainwin.pop_status ();
+}
+
+
+//////////////// setstatus_pcd to set a message, that is pop then push, on status stack
+
+SmeltCommandSymbol smeltsymb_setstatus_cmd("SETSTATUS_PCD",&SmeltAppl::setstatus_cmd);
+
+void
+SmeltAppl::setstatus_cmd(SmeltVector&v)
+{
+  auto str = v.at(1).to_string();
+  SMELT_DEBUG("SETSTATUS " << str);
+  _app_mainwin.pop_status ();	// pop is valid on empty status
+  _app_mainwin.push_status (str);
+}
+
+
+
+////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
 /**** for emacs
   ++ Local Variables: ++
   ++ compile-command: "g++ -std=gnu++0x -Wall -O -g $(pkg-config --cflags --libs gtksourceviewmm-3.0  gtkmm-3.0  gtk+-3.0) -o $HOME/bin/simplemelt-gtkmm-probe simplemelt-gtkmm-probe.cc" ++

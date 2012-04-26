@@ -2744,6 +2744,8 @@ common/common-targhooks.o : common/common-targhooks.c $(CONFIG_H) $(SYSTEM_H) \
 
 #### added for MELT http://gcc-melt.org
 
+melt_default_probe=melt-probe
+
 ## FIXME: melt_installed_cflags may vary from stage1 to stage2 so
 ## melt-runtime.o fails in the compare step.
 
@@ -2756,6 +2758,7 @@ melt-runtime-params-inc.c: build/melt-make-string$(build_exeext) Makefile
 	     melt_module_makefile '$(melt_installed_module_makefile)' \
 	     melt_module_cflags '$(melt_installed_cflags)' \
 	     melt_revision '$(shell echo -n $(REVISION_c) | sed "s/ *$$//" | tr -s [:space:] _)' \
+             melt_default_probe '$(melt_default_probe)' \
 	     melt_default_modlis '$(melt_default_modules_list)' > $@-tmp
 	mv $@-tmp $@
 
@@ -5353,6 +5356,7 @@ melt_extra_cflags= -g
 export melt_extra_cflags
 melt_installed_cflags= -I $(plugin_includedir) -DIN_GCC -O $(GMPINC) $(PPLINC) $(CLOOGINC)
 melt_default_modules_list=melt-default-modules
+
 
 ## this is the installation directory of melt sources (*.melt files
 ## in MELT dialect and the corresponding *.c files)

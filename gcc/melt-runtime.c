@@ -549,6 +549,8 @@ melt_argument (const char* argname)
     return melt_coutput_string;
   else if (!strcmp (argname, "option"))
     return melt_option_string;
+  else if (!strcmp (argname, "probe"))
+    return melt_probe_string;
   else if (!strcmp (argname, "secondarg"))
     return melt_secondargument_string;
   else if (!strcmp (argname, "tempdir"))
@@ -5465,20 +5467,38 @@ melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
   int pipefromprobe[2] = {-1, -1};
   pid_t pid = -1;
   if (melt_probe_pid)
-    melt_fatal_error("melt_start_probe probe already started pid %d", (int) melt_probe_pid);
-  debugeprintf("melt_start_probe probecmd: %s", probecmd);
+    melt_fatal_error("melt_probe_start probe already started pid %d", (int) melt_probe_pid);
+  debugeprintf("melt_probe_start probecmd: %s", probecmd);
+  /* if no probecmd given, try to guess one... */
+  if (!probecmd || !probecmd[0]) 
+    {				/* guess from program or plugin argument */
+      probecmd = melt_argument ("probe");
+      debugeprintf("melt_probe_start command from argument: %s", probecmd);
+    }
+  if (!probecmd || !probecmd[0])
+    {				/* guess from environment variable */
+      probecmd = getenv ("GCCMELT_PROBE");
+      debugeprintf("melt_probe_start command from GCCMELT_PROBE: %s", probecmd);
+    }
+  if (!probecmd || !probecmd[0])
+    {
+      probecmd = melt_default_probe;
+      debugeprintf("melt_probe_start command from melt_default_probe: %s", probecmd);
+    }
+  if (!probecmd || !probecmd[0])
+    melt_fatal_error ("melt_probe_start without command %s", probecmd);
   if (pipe (pipetoprobe))
-    melt_fatal_error ("melt_start_probe cannot create pipetoprobe; %m for command %s", probecmd);
-  debugeprintf ("melt_start_probe pipetoprobe r=%d w=%d", 
-	       pipetoprobe[MELTPIPE_READ], pipetoprobe[MELTPIPE_WRITE]);
+    melt_fatal_error ("melt_probe_start cannot create pipetoprobe; %m for command %s", probecmd);
+  debugeprintf ("melt_probe_start pipetoprobe r=%d w=%d", 
+		pipetoprobe[MELTPIPE_READ], pipetoprobe[MELTPIPE_WRITE]);
   if (pipe (pipefromprobe))
-    melt_fatal_error ("melt_start_probe cannot create pipefromprobe; %m for command %s", probecmd);
-  debugeprintf("melt_start_probe pipefromprobe r=%d w=%d", 
+    melt_fatal_error ("melt_probe_start cannot create pipefromprobe; %m for command %s", probecmd);
+  debugeprintf("melt_probe_start pipefromprobe r=%d w=%d", 
 	       pipefromprobe[MELTPIPE_READ], pipefromprobe[MELTPIPE_WRITE]);
   fflush (NULL);
   pid = fork();
   if (pid < 0) 
-    melt_fatal_error ("melt_start_probe failed to fork; %m for command %s", probecmd);
+    melt_fatal_error ("melt_probe_start failed to fork; %m for command %s", probecmd);
   else if (pid == 0) 
     { /* child process for probe */
       int cfd;
@@ -5510,8 +5530,8 @@ melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
       /* close our side of the pipes, since in the parent */
       close (pipetoprobe[MELTPIPE_READ]);
       close (pipefromprobe[MELTPIPE_WRITE]);
-      debugeprintf("melt_start_probe pid %d toprobefd %d fromprobefd %d", 
-		   (int) pid, pipetoprobe[MELTPIPE_WRITE], pipefromprobe[MELTPIPE_READ]);
+      debugeprintf ("melt_probe_start pid %d toprobefd %d fromprobefd %d", 
+		    (int) pid, pipetoprobe[MELTPIPE_WRITE], pipefromprobe[MELTPIPE_READ]);
       melt_probe_pid = pid;
       if (toprobefdptr)
 	*toprobefdptr = pipetoprobe[MELTPIPE_WRITE];
@@ -5575,7 +5595,7 @@ melt_compile_source (const char *srcbase, const char *binbase, const char*workdi
 			      srcbase?(srcbase[0]?srcbase:"*empty*"):"*null*", 
 			      binbase?(binbase[0]?binbase:"*empty*"):"*null*", 
 			      flavor?(flavor[0]?flavor:"*empty*"):"*null*");
-   if (getenv("IFS"))
+   if (getenv ("IFS"))
      /* Having an IFS is a huge security risk for shells. */
      melt_fatal_error
        ("MELT cannot compile source base %s of flavor %s with an $IFS (probable security risk)",
@@ -9522,7 +9542,7 @@ meltgc_load_module_list (int depth, const char *modlistbase)
       if (getenv ("GCCMELT_SOURCE_PATH"))
 	inform (UNKNOWN_LOCATION,
 		"GCCMELT_SOURCE_PATH from environment %s", 
-		getenv("GCCMELT_SOURCE_PATH"));
+		getenv ("GCCMELT_SOURCE_PATH"));
       if (!melt_flag_bootstrapping)
 	inform (UNKNOWN_LOCATION,
 		"builtin MELT source directory %s", melt_source_dir);
@@ -10203,6 +10223,8 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 	     melt_run_preprocessed_md5);
     fprintf (setfil, "MELTGCCBUILTIN_GENERATED='%s'\n",
 	     nowbuf);
+    fprintf (setfil, "MELTGCCBUILTIN_PROBE='%s'\n",
+	     melt_default_probe);
     if (gcc_exec_prefix)
       fprintf (setfil, "MELTGCCBUILTIN_GCC_EXEC_PREFIX='%s'\n",
 	       gcc_exec_prefix);

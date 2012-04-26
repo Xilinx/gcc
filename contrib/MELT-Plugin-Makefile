@@ -181,6 +181,7 @@ melt_extra_cflags=
 export melt_extra_cflags
 melt_installed_cflags= $(MELTGCC_INCLUDEFLAGS) -DIN_GCC -DMELT_IS_PLUGIN -O
 melt_default_modules_list=melt-default-modules
+melt_default_probe=melt-probe
 
 ## this is the installation directory of melt sources (*.melt files
 ## in MELT dialect and the corresponding *.c files)

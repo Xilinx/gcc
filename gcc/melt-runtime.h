@@ -120,6 +120,7 @@ extern const char melt_module_make_command[];
 extern const char melt_module_makefile[];
 extern const char melt_module_cflags[];
 extern const char melt_default_modlis[];
+extern const char melt_default_probe[];
 
 /* Set to 1 iff MELT is a plugin, otherwise 0 */
 extern const int melt_is_plugin;
@@ -3002,8 +3003,11 @@ melt_putstrbuf (FILE * f, melt_ptr_t sb)
 void melt_probe_stop (void);
 
 
-/* Start the MELT probe process. Gives the file descriptors thru
-   toprobefdptr & fromprobefdptr if not null.  */
+/* Start the MELT probe process.  Gives the file descriptors thru
+   toprobefdptr & fromprobefdptr if not null.  If probecmd is null or
+   empty, we use the -f[plugin-arg-]melt-probe program argument, or
+   else the GCCMELT_PROBE environment variable, or else the builtin
+   default melt_default_probe. */
 void melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr);
 
 /* output the option, declaration and implementation buffers of a
