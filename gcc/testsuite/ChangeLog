@@ -1,3 +1,128 @@
+2012-04-25  Sriraman Tallam  <tmsriram@google.com>
+
+	* testsuite/gcc.target/i386/builtin_target.c: Check avx2.
+
+2012-04-26  Alan Modra  <amodra@gmail.com>
+
+	* gcc.target/powerpc/savres.c: New test.
+	* gcc.target/powerpc/powerpc.exp: Run it.
+
+2012-04-26  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR target/53120
+	* gcc.dg/torture/pr53120.c: New test.
+
+2012-04-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/52979
+	* gcc.c-torture/compile/pr52979-1.c: New test.
+	* gcc.c-torture/execute/pr52979-1.c: New test.
+	* gcc.c-torture/execute/pr52979-2.c: New test.
+
+2012-04-25  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.target/i386/l_fma_float_5.c: Adjust.
+	* gcc.target/i386/l_fma_double_4.c: Likewise.
+	* gcc.target/i386/l_fma_float_2.c: Likewise.
+	* gcc.target/i386/l_fma_float_6.c: Likewise.
+	* gcc.target/i386/l_fma_double_1.c: Likewise.
+	* gcc.target/i386/l_fma_double_5.c: Likewise.
+	* gcc.target/i386/l_fma_float_3.c: Likewise.
+	* gcc.target/i386/l_fma_double_2.c: Likewise.
+	* gcc.target/i386/l_fma_double_6.c: Likewise.
+	* gcc.target/i386/l_fma_float_4.c: Likewise.
+	* gcc.target/i386/l_fma_double_3.c: Likewise.
+	* gcc.target/i386/l_fma_float_1.c: Likewise.
+
+2012-04-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53058
+	* gcc.c-torture/compile/pr53058.c: New test.
+
+2012-04-25  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/53088
+	* gcc.target/i386/pr39082-1.c: Update warning location.
+
+2012-04-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/52880
+	* gcc.dg/pr52880.c: New test.
+
+2012-04-25  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* gcc.dg/m-un-2.c: Update.
+	* gcc.dg/20011021-1.c: Update.
+
+2012-04-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52196
+	* gfortran.dg/realloc_on_assign_14.f90: New.
+
+2012-04-24  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR testsuite/52641
+	PR tree-optimizations/52891
+	* gcc.c-torture/compile/pr52891-2.c: Fix test for 16-bit int.
+
+2012-04-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/52363
+	* g++.dg/cpp0x/sfinae35.C: New.
+	* g++.dg/cpp0x/sfinae36.C: Likewise.
+
+2012-04-24  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR target/47197
+	* gcc.target/powerpc/pr47197.c: New test.
+
+2012-04-24  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53085
+	* g++.dg/torture/pr53085.C: New testcase.
+
+2012-04-24  Andrew Pinski  <apinski@cavium.com>
+
+	PR tree-opt/33512
+	* gcc.dg/tree-ssa/andor-3.c: New testcase.
+	* gcc.dg/tree-ssa/andor-4.c: New testcase.
+	* gcc.dg/tree-ssa/andor-5.c: New testcase.
+
+2012-04-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/53084
+	* gcc.c-torture/execute/pr53084.c: New test.
+
+2012-04-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* g++.dg/cpp0x/noexcept15.C: Adjust for Rev 186726 library changes.
+
+2012-04-23  Andrew Pinski  <apinski@cavium.com>
+
+	* gcc.dg/tree-ssa/forwprop-17.c: New testcase.
+
+2012-04-23  Bill Schmidt  <wschmidt@linux.ibm.com>
+
+	PR regression/53076
+	* gcc.dg/torture/builtin-explog-1.c: Skip if -O0.
+	* gcc.dg/torture/builtin-power-1.c: Likewise.
+
+2012-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53070
+	* gcc.dg/torture/pr53070.c: New testcase.
+
+2012-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR c/53060
+	* gcc.dg/pr53060.c: New testcase.
+
+2012-04-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimizations/52891
+	* gcc.c-torture/compile/pr52891-1.c: New test.
+	* gcc.c-torture/compile/pr52891-2.c: New test.
+
 2012-04-22  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/53051
@@ -51,15 +176,15 @@
 2012-04-18  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
 
 	PR tree-optimization/52976
-	gfortran.dg/reassoc_11.f: New test.
+	* gfortran.dg/reassoc_11.f: New test.
 
 2012-04-18  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
 
 	PR tree-optimization/52976
-	gfortran.dg/reassoc_7.f: New test.
-	gfortran.dg/reassoc_8.f: Likewise.
-	gfortran.dg/reassoc_9.f: Likewise.
-	gfortran.dg/reassoc_10.f: Likewise.
+	* gfortran.dg/reassoc_7.f: New test.
+	* gfortran.dg/reassoc_8.f: Likewise.
+	* gfortran.dg/reassoc_9.f: Likewise.
+	* gfortran.dg/reassoc_10.f: Likewise.
 
 2012-04-18  Paolo Carlini  <paolo.carlini@oracle.com>
 

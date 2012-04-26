@@ -4715,7 +4715,8 @@ else
 	i?86-*-msdosdjgpp* | \
 	i?86-*-mingw32* | \
 	x86_64-*-mingw32* | \
-	*-*-beos* )
+	*-*-beos* | \
+        *-*-*vms*)
 		TARGET=twoprocess
 		;;
 
@@ -5188,147 +5189,7 @@ fi
 
 
 # Checks for library functions.
-
-ac_fn_c_check_header_mongrel "$LINENO" "sys/mman.h" "ac_cv_header_sys_mman_h" "$ac_includes_default"
-if test "x$ac_cv_header_sys_mman_h" = x""yes; then :
-  gcc_header_sys_mman_h=yes
-else
-  gcc_header_sys_mman_h=no
-fi
-
-
-ac_fn_c_check_func "$LINENO" "mmap" "ac_cv_func_mmap"
-if test "x$ac_cv_func_mmap" = x""yes; then :
-  gcc_func_mmap=yes
-else
-  gcc_func_mmap=no
-fi
-
-if test "$gcc_header_sys_mman_h" != yes \
- || test "$gcc_func_mmap" != yes; then
-   gcc_cv_func_mmap_file=no
-   gcc_cv_func_mmap_dev_zero=no
-   gcc_cv_func_mmap_anon=no
-else
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether read-only mmap of a plain file works" >&5
-$as_echo_n "checking whether read-only mmap of a plain file works... " >&6; }
-if test "${gcc_cv_func_mmap_file+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  # Add a system to this blacklist if
-   # mmap(0, stat_size, PROT_READ, MAP_PRIVATE, fd, 0) doesn't return a
-   # memory area containing the same data that you'd get if you applied
-   # read() to the same fd.  The only system known to have a problem here
-   # is VMS, where text files have record structure.
-   case "$host_os" in
-     vms* | ultrix*)
-        gcc_cv_func_mmap_file=no ;;
-     *)
-        gcc_cv_func_mmap_file=yes;;
-   esac
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_func_mmap_file" >&5
-$as_echo "$gcc_cv_func_mmap_file" >&6; }
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether mmap from /dev/zero works" >&5
-$as_echo_n "checking whether mmap from /dev/zero works... " >&6; }
-if test "${gcc_cv_func_mmap_dev_zero+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  # Add a system to this blacklist if it has mmap() but /dev/zero
-   # does not exist, or if mmapping /dev/zero does not give anonymous
-   # zeroed pages with both the following properties:
-   # 1. If you map N consecutive pages in with one call, and then
-   #    unmap any subset of those pages, the pages that were not
-   #    explicitly unmapped remain accessible.
-   # 2. If you map two adjacent blocks of memory and then unmap them
-   #    both at once, they must both go away.
-   # Systems known to be in this category are Windows (all variants),
-   # VMS, and Darwin.
-   case "$host_os" in
-     vms* | cygwin* | pe | mingw* | darwin* | ultrix* | hpux10* | hpux11.00)
-        gcc_cv_func_mmap_dev_zero=no ;;
-     *)
-        gcc_cv_func_mmap_dev_zero=yes;;
-   esac
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_func_mmap_dev_zero" >&5
-$as_echo "$gcc_cv_func_mmap_dev_zero" >&6; }
-
-   # Unlike /dev/zero, the MAP_ANON(YMOUS) defines can be probed for.
-   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for MAP_ANON(YMOUS)" >&5
-$as_echo_n "checking for MAP_ANON(YMOUS)... " >&6; }
-if test "${gcc_cv_decl_map_anon+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <unistd.h>
-
-#ifndef MAP_ANONYMOUS
-#define MAP_ANONYMOUS MAP_ANON
-#endif
-
-int
-main ()
-{
-int n = MAP_ANONYMOUS;
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  gcc_cv_decl_map_anon=yes
-else
-  gcc_cv_decl_map_anon=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_decl_map_anon" >&5
-$as_echo "$gcc_cv_decl_map_anon" >&6; }
-
-   if test $gcc_cv_decl_map_anon = no; then
-     gcc_cv_func_mmap_anon=no
-   else
-     { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether mmap with MAP_ANON(YMOUS) works" >&5
-$as_echo_n "checking whether mmap with MAP_ANON(YMOUS) works... " >&6; }
-if test "${gcc_cv_func_mmap_anon+set}" = set; then :
-  $as_echo_n "(cached) " >&6
-else
-  # Add a system to this blacklist if it has mmap() and MAP_ANON or
-   # MAP_ANONYMOUS, but using mmap(..., MAP_PRIVATE|MAP_ANONYMOUS, -1, 0)
-   # doesn't give anonymous zeroed pages with the same properties listed
-   # above for use of /dev/zero.
-   # Systems known to be in this category are Windows, VMS, and SCO Unix.
-   case "$host_os" in
-     vms* | cygwin* | pe | mingw* | sco* | udk* )
-        gcc_cv_func_mmap_anon=no ;;
-     *)
-        gcc_cv_func_mmap_anon=yes;;
-   esac
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_func_mmap_anon" >&5
-$as_echo "$gcc_cv_func_mmap_anon" >&6; }
-   fi
-fi
-
-if test $gcc_cv_func_mmap_file = yes; then
-
-$as_echo "#define HAVE_MMAP_FILE 1" >>confdefs.h
-
-fi
-if test $gcc_cv_func_mmap_dev_zero = yes; then
-
-$as_echo "#define HAVE_MMAP_DEV_ZERO 1" >>confdefs.h
-
-fi
-if test $gcc_cv_func_mmap_anon = yes; then
-
-$as_echo "#define HAVE_MMAP_ANON 1" >>confdefs.h
-
-fi
-
+gcc_AC_FUNC_MMAP_BLACKLIST
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to enable maintainer-specific portions of Makefiles" >&5
 $as_echo_n "checking whether to enable maintainer-specific portions of Makefiles... " >&6; }

@@ -1,3 +1,267 @@
+2012-04-26  Tristan Gingold  <gingold@adacore.com>
+
+	* gcc-interface/Make-lang.in: Update dependencies.
+	Remove s-traceb and tracebak objects from gnat1 and gnatbind (not used).
+	Remove s-tasdeb and s-vaflop rules (not used).
+
+2012-04-26  Olivier Hainque  <hainque@adacore.com>
+
+	* gcc-interface/targtyps.c (WIDEST_HARDWARE_FP_SIZE): Default to
+	DOUBLE_TYPE_SIZE instead of LONG_DOUBLE_TYPE_SIZE.
+
+2012-04-26  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* a-calend.adb (Day_Of_Week): Keep the internal
+	usage of UTC_Time_Offset consistent with Time_Of and Split.
+
+2012-04-26  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* sem_ch5.adb (Analyze_Loop_Parameter_Specification): Do not freeze
+	the loop variable while preanalyzing a quantified expression.
+
+2012-04-26  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* a-calend.adb (Split, Time_Of): Rename parameter Is_Ada_05
+	to Use_TZ to better illustrate its function. Update all
+	references to the parameter.
+	(To_Ada_Time): Update the call to Formatting_Operations.Time_Of.
+	* a-calend.ads (Split, Time_Of): Rename parameter Is_Ada_05
+	to Use_TZ to better illustrate its function. Update the related
+	comment on usage.
+	* a-calend-vms.adb (Split, Time_Of): Rename parameter
+	Is_Ada_05 to Use_TZ to better illustrate its function. Update
+	all references to the parameter.
+	(To_Ada_Time): Update the call to Formatting_Operations.Time_Of.
+	* a-calend-vms.ads (Split, Time_Of): Rename parameter Is_Ada_05
+	to Use_TZ to better illustrate its function. Update the related
+	comment on usage.
+	* a-calfor.adb (Split, Time_Of): Update the call to
+	Formatting_Operations.Time_Of.
+	* sysdep.c (__gnat_localtime_tzoff): Dereference pointer
+	"is_historic" and rewrite the check as a comparison. Add a
+	comment on flag values.
+
+2012-04-26  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch2.adb, sem_ch8.adb: Minor reformatting.
+
+2012-04-26  Vasiliy Fofanov  <fofanov@adacore.com>
+
+	* a-stzunb-shared.adb, gnat_ugn.texi, a-strunb-shared.adb,
+	a-strunb-shared.ads, uintp.adb, a-stwiun-shared.adb,
+	a-stwiun-shared.ads, a-cbhama.ads, vms_data.ads, a-cobove.adb,
+	a-convec.adb, sem_ch13.adb, a-cbhase.ads: Fix common misuses of the
+	word "then" where "than" should be used in English.
+
+2012-04-26  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch5.adb (Check_Unreachable_Code): Skip past pragmas.
+
+2012-04-26  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* s-finroo.ads: Remove with clause for
+	Ada.Streams. Type Root_Controlled is now abstract tagged null
+	record. Remove internal package Stream_Attributes. Root_Controlled
+	doesn't need stream attribute redeclaration and avoids the
+	dependency on streams.
+
+2012-04-26  Tristan Gingold  <gingold@adacore.com>
+
+	* adaint.c (to_host_path_spec): Removed (unused).
+	Minor reformatting.
+
+2012-04-26  Steve Baird  <baird@adacore.com>
+
+	* gnat_rm.texi Improve description of Valid_Scalars attribute.
+
+2012-04-26  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Can_Override_Operator): If the formal is a
+	generic type the operator cannot be overriding.
+
+2012-04-26  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch8.adb (Spec_Reloaded_For_Body): Check whether the type
+	is declared in a package specification, and current unit is the
+	corresponding package body. The use clauses themselves may be
+	within a nested package.
+
+2012-04-26  Bob Duff  <duff@adacore.com>
+
+	* exp_ch2.adb (Param_Entity): Take into account the case where
+	the type of the entry parameter has a representation clause.
+
+2012-04-26  Ed Schonberg  <schonberg@adacore.com>
+
+	* gnat_ugn.texi: Tweak dimensionality doc.
+
+2012-04-26  Robert Dewar  <dewar@adacore.com>
+
+	* sem_eval.adb: Minor reformatting.
+
+2012-04-26  Robert Dewar  <dewar@adacore.com>
+
+	* einfo.adb, einfo.ads, sem_res.adb, sem_ch4.adb,
+	sem_eval.adb: Minor reformatting.
+
+2012-04-26  Thomas Quinot  <quinot@adacore.com>
+
+	* freeze.adb: Minor change in error wording.
+
+2012-04-26  Ed Schonberg  <schonberg@adacore.com>
+
+	* gnat_ugn.texi: Documentation on dimensional analysis.
+
+2012-04-26  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* einfo.adb, einfo.ads: Remove synthesized attribute
+	Proper_First_Index along with its associations in various nodes.
+	(Proper_First_Index): Removed.
+	* sem_ch4.adb (Analyze_Slice): Alphabetize constants. Add new
+	local variable Index_Type. The index type of a string literal
+	subtype is that of the stored low bound.
+	* sem_eval (Get_Static_Length): Remove the use of Proper_First_Index.
+	* sem_res.adb (Resolve_Slice): Alphabetize constants. Add
+	new local variable Index_Type. The index type of a
+	string literal subtype is that of the stored low bound.
+	(Set_String_Literal_Subtype): Code reformatting.
+
+2012-04-26  Robert Dewar  <dewar@adacore.com>
+
+	* exp_aggr.adb: Minor reformatting.
+
+2012-04-26  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_ch7.adb (Expand_Cleanup_Actions): Update the call to
+	Requires_Cleanup_Actions.
+	* exp_util.adb (Requires_Cleanup_Actions (List_Id; Boolean;
+	Boolean)): Rename formal parameter For_Package to Lib_Level to
+	better reflect its purpose. Update the related comment and all
+	occurrences of For_Package in the body.
+	(Requires_Cleanup_Actions
+	(Node_Id; Boolean)): Add new formal parameter Lib_Level. Add
+	local constant At_Lib_Level to keep monitor whether the path
+	taken from the top-most context to the current construct involves
+	package constructs. Update all calls to Requires_Cleanup_Actions.
+	* exp_util.ads (Requires_Cleanup_Actions): Add new formal
+	parameter Lib_Level and associated comment.
+
+2012-04-26  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch6.adb (Process_Formals): If the type of the formal is
+	a non null access type, mark the generated subtype as having a
+	delayed freeze only if the designated type is not frozen yet.
+
+2012-04-26  Vincent Celier  <celier@adacore.com>
+
+	* prj-attr.adb: New package Clean with attributes
+	Object_Artifact_Extensions and Source_Artifact_Extensions.
+	* prj-nmsc.adb (Process_Clean): Process new package Clean
+	* prj.ads (Language_Config): New components
+	Clean_Object_Artifacts and Clean_Source_Artifacts.
+	* snames.ads-tmpl: New standard names Clean,
+	Object_Artifact_Extensions and Source_Artifact_Extensions.
+
+2012-04-26  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* einfo.adb (Proper_First_Index): Moved from Sem_Util.
+	* einfo.ads: Add new synthesized attribute Proper_First_Index
+	along with usage in nodes.
+	(Proper_First_Index): Moved from Sem_Util.
+	* sem_util.ads, sem_util.adb (Proper_First_Index): Moved to Einfo.
+
+2012-04-26  Gary Dismukes  <dismukes@adacore.com>
+
+	* layout.adb (Layout_Component_List): Test for the case of a
+	single variant and the size of its component list was computed
+	as an integer literal, and use that size (which is in bits)
+	as is rather than converting to storage units.
+
+2012-04-26  Robert Dewar  <dewar@adacore.com>
+
+	* exp_aggr.adb: Minor reformatting.
+
+2012-04-26  Robert Dewar  <dewar@adacore.com>
+
+	* sem_util.adb: Minor reformatting.
+
+2012-04-26  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_aggr.adb, exp_pakd.adb (Setup_Inline_Packed_Array_Reference,
+	Packed_Array_Aggregate_Handled.Get_Component_Val):
+	Reverse bit numbering within PAT when Reverse_Storage_Order
+	applies to the enclosing record.
+
+2012-04-26  Thomas Quinot  <quinot@adacore.com>
+
+	* freeze.adb (Freeze_Record_Type): Improve error message for
+	Scalar_Storage_Order inconsistent with Bit_Order.
+
+2012-04-25  Gary Dismukes  <dismukes@adacore.com>
+
+	* exp_ch9.adb: Add comments on the usage of the
+	lock-free data structures.
+
+2012-04-25  Vincent Pucci  <pucci@adacore.com>
+
+	* exp_intr.adb (Expand_Shift): Convert the left
+	operand and the operator when the type of the call differs from
+	the type of the operator.
+
+2012-04-25  Geert Bosch  <bosch@adacore.com>
+
+	* stand.ads: Minor comment fix.
+
+2012-04-25  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* sem_ch4.adb (Analyze_Slice): Handle the case where the prefix
+	is a string literal. Retrieve the first index from the base type
+	when slicing a string literal.
+	* sem_ch12.adb (Check_Private_View): Move the initialization
+	of the type inside the loop to reflect the changing index.
+	* sem_eval.adb (Eval_Relational_Op): Retrieve the first index
+	from the base type when dealing with a string literal.
+	* sem_res.adb (Resolve_Slice): Retrieve the first index from
+	the base type when slicing a string literal.
+	* sem_util.adb (Is_Internally_Generated_Renaming): New routine.
+	(Is_Object_Reference): String literals may act
+	as object references only when they are renamed internally.
+	(Proper_First_Index): New routine.
+	* sem_util.ads (Proper_First_Index): New routine.
+
+2012-04-25  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch3.adb, csinfo.adb, lib-writ.adb, sem_ch12.adb,
+	lib-xref.adb: Minor reformatting.
+
+2012-04-25  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_ch9.adb: Rename Lock_Free_Sub_Type
+	to Lock_Free_Subprogram. Remove type Subprogram_Id.
+	Rename LF_Sub_Table to Lock_Free_Subprogram_Table.
+	(Allow_Lock_Free_Implementation): Renamed to
+	Allows_Lock_Free_Implementation.  Update the comment on
+	lock-free restrictions. Code clean up and restructuring.
+	(Build_Lock_Free_Protected_Subprogram_Body): Update the
+	profile and related comments. Code clean up and restructuring.
+	(Build_Lock_Free_Unprotected_Subprogram_Body): Update the
+	profile and related comments. Code clean up and restructuring.
+	(Comp_Of): Removed.
+
+2012-04-25  Vincent Celier  <celier@adacore.com>
+
+	* sem_ch12.adb (Inherit_Context): Compare library units, not
+	names of units, when checking if a unit is already in the context.
+
+2012-04-25  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_ch3.adb: Reverse_Storage_Order must be propagated to
+	untagged derived record types.
+
+2012-04-25  Ed Schonberg  <schonberg@adacore.com>
+
+	* lib-xref.adb: Adjust position of end label.
+
 2012-04-22  Jan Hubicka  <jh@suse.cz>
 
 	* gcc-interface/utils.c (gnat_write_global_declarations): Do not mark
