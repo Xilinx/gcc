@@ -1,3 +1,7 @@
+2012-04-26   Diego Novillo  <dnovillo@google.com>
+
+	* testsuite-management/x86_64-grtev3-linux-gnu.xfail: New.
+
 2011-12-12   Diego Novillo  <dnovillo@google.com>
 
 	* testsuite-management/x86_64-unknown-linux-gnu.xfail: Update.

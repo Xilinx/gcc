@@ -1,0 +1,162 @@
+FAIL: g++.dg/abi/mangle17.C -std=gnu++98  (test for warnings, line 10)
+FAIL: g++.dg/abi/mangle17.C -std=gnu++11 (internal compiler error)
+FAIL: g++.dg/abi/mangle17.C -std=gnu++11  (test for warnings, line 10)
+FAIL: g++.dg/abi/mangle17.C -std=gnu++11 (test for excess errors)
+FAIL: g++.dg/abi/mangle17.C -std=gnu++11  (test for warnings, line 11)
+FAIL: g++.dg/abi/mangle17.C -std=gnu++98 (test for excess errors)
+FAIL: g++.dg/abi/mangle17.C -std=gnu++98 (internal compiler error)
+FAIL: g++.dg/abi/mangle17.C -std=gnu++98  (test for warnings, line 11)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 32)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 62)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 42)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 13)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 33)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 8)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 14)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 30)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 7)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 49)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for warnings, line 26)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for excess errors)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 16)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 48)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for warnings, line 25)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 17)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 27)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 69)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 29)
+FAIL: g++.dg/cpp0x/forw_enum6.C (test for errors, line 68)
+FAIL: g++.dg/cpp0x/forw_enum6.C (internal compiler error)
+FAIL: g++.dg/ext/is_empty2.C -std=c++98  (test for errors, line 6)
+FAIL: g++.dg/ext/is_empty2.C -std=c++98 (internal compiler error)
+FAIL: g++.dg/ext/is_empty2.C -std=c++98 (test for excess errors)
+FAIL: g++.dg/ext/is_empty2.C -std=c++11 (internal compiler error)
+FAIL: g++.dg/ext/is_empty2.C -std=c++11 (test for excess errors)
+FAIL: g++.dg/ext/is_empty2.C -std=c++11  (test for errors, line 6)
+FAIL: g++.dg/pph/x1tmpldfltparm.cc (assembly equality, sums 53613=>19763)
+FAIL: g++.dg/pph/x4resolve1.cc (assembly equality, sums 53261=>01817)
+FAIL: g++.dg/pph/x4resolve2.cc (assembly equality, sums 33894=>18733)
+FAIL: g++.dg/pph/x4tmplclass1.cc (assembly equality, sums 46519=>02807)
+FAIL: g++.dg/pph/x4tmplclass2.cc (assembly equality, sums 52506=>09382)
+FAIL: g++.dg/pph/x4tmplfuncinln.cc (assembly equality, sums 14419=>31851)
+FAIL: g++.dg/pph/x4tmplfuncninl.cc (assembly equality, sums 51578=>04500)
+FAIL: g++.dg/pph/z4nontrivinit.cc (assembly equality, sums 46966=>12076)
+FAIL: g++.dg/pph/z4tmplclass1.cc (assembly equality, sums 15070=>35117)
+FAIL: g++.dg/pph/z4tmplclass2.cc (assembly equality, sums 62353=>21680)
+FAIL: g++.dg/pph/z4tmplfuncinln.cc (assembly equality, sums 14419=>31851)
+FAIL: g++.dg/pph/z4tmplfuncninl.cc (assembly equality, sums 14419=>31851)
+FAIL: g++.dg/rtti/repo1.C -std=gnu++11 (test for excess errors)
+FAIL: g++.dg/rtti/repo1.C -std=gnu++98 (test for excess errors)
+FAIL: gcc.c-torture/execute/vshuf-v16qi.c execution,  -Os
+FAIL: gcc.c-torture/execute/vshuf-v2di.c execution,  -Os
+FAIL: gcc.c-torture/execute/vshuf-v8hi.c execution,  -Os
+XPASS: gcc.dg/Wstrict-overflow-18.c (test for bogus messages, line 20)
+XPASS: gcc.dg/guality/example.c -O2  execution test
+XPASS: gcc.dg/guality/example.c -O0  execution test
+XPASS: gcc.dg/guality/example.c -O1  execution test
+XPASS: gcc.dg/guality/example.c -Os  execution test
+XPASS: gcc.dg/guality/example.c -O2 -flto -fno-use-linker-plugin -flto-partition=none  execution test
+XPASS: gcc.dg/guality/guality.c -O3 -fomit-frame-pointer  execution test
+XPASS: gcc.dg/guality/guality.c -O0  execution test
+XPASS: gcc.dg/guality/guality.c -O3 -g  execution test
+XPASS: gcc.dg/guality/guality.c -O1  execution test
+XPASS: gcc.dg/guality/guality.c -Os  execution test
+XPASS: gcc.dg/guality/guality.c -O2  execution test
+XPASS: gcc.dg/guality/guality.c -O2 -flto -fno-use-linker-plugin -flto-partition=none  execution test
+XPASS: gcc.dg/guality/guality.c -O2 -flto -fuse-linker-plugin -fno-fat-lto-objects  execution test
+XPASS: gcc.dg/guality/inline-params.c -O2  execution test
+XPASS: gcc.dg/guality/inline-params.c -O2 -flto -fno-use-linker-plugin -flto-partition=none  execution test
+XPASS: gcc.dg/guality/inline-params.c -O3 -fomit-frame-pointer  execution test
+XPASS: gcc.dg/guality/inline-params.c -O2 -flto -fuse-linker-plugin -fno-fat-lto-objects  execution test
+XPASS: gcc.dg/guality/inline-params.c -O3 -g  execution test
+XPASS: gcc.dg/guality/inline-params.c -Os  execution test
+XPASS: gcc.dg/guality/pr41353-1.c -O2 -flto -fuse-linker-plugin -fno-fat-lto-objects  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O3 -g  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O2 -flto -fno-use-linker-plugin -flto-partition=none  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O1  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O3 -fomit-frame-pointer  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O2  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -Os  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O0  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41447-1.c -O1  execution test
+XPASS: gcc.dg/guality/pr41447-1.c -Os  execution test
+XPASS: gcc.dg/guality/pr41447-1.c -O2  execution test
+XPASS: gcc.dg/guality/pr41447-1.c -O0  execution test
+XPASS: gcc.dg/guality/pr41447-1.c -O2 -flto -fuse-linker-plugin -fno-fat-lto-objects  execution test
+XPASS: gcc.dg/guality/pr41447-1.c -O3 -fomit-frame-pointer  execution test
+XPASS: gcc.dg/guality/pr41447-1.c -O2 -flto -fno-use-linker-plugin -flto-partition=none  execution test
+XPASS: gcc.dg/guality/pr41447-1.c -O3 -g  execution test
+XPASS: gcc.dg/guality/pr41616-1.c -O3 -fomit-frame-pointer  execution test
+XPASS: gcc.dg/guality/pr41616-1.c -O0  execution test
+XPASS: gcc.dg/guality/pr41616-1.c -O3 -g  execution test
+XPASS: gcc.dg/guality/pr41616-1.c -O1  execution test
+XPASS: gcc.dg/guality/pr41616-1.c -Os  execution test
+XPASS: gcc.dg/guality/pr41616-1.c -O2  execution test
+XPASS: gcc.dg/guality/pr41616-1.c -O2 -flto -fno-use-linker-plugin -flto-partition=none  execution test
+FAIL: gcc.dg/guality/vla-1.c -O3 -g  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O1  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O3 -fomit-frame-pointer  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -Os  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O2 -flto -fuse-linker-plugin -fno-fat-lto-objects  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O2 -flto -fno-use-linker-plugin -flto-partition=none  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O2 -flto -fuse-linker-plugin -fno-fat-lto-objects  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O2 -flto -fno-use-linker-plugin -flto-partition=none  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O3 -fomit-frame-pointer  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O0  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O2  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O1  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O3 -g  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O2  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O0  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -Os  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-2.c -O3 -g  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O0  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2 -flto -fuse-linker-plugin -fno-fat-lto-objects  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2 -flto -fno-use-linker-plugin -flto-partition=none  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O0  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O3 -fomit-frame-pointer  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2 -flto -fno-use-linker-plugin -flto-partition=none  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -Os  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O1  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O3 -g  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O1  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -Os  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O3 -fomit-frame-pointer  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2 -flto -fuse-linker-plugin -fno-fat-lto-objects  line 16 sizeof (a) == 5 * sizeof (int)
+XPASS: gcc.dg/inline_3.c (test for excess errors)
+XPASS: gcc.dg/inline_4.c (test for excess errors)
+FAIL: gcc.dg/pr52283.c (test for excess errors)
+FAIL: gcc.dg/torture/pr51106-2.c -O3 -g  (internal compiler error)
+FAIL: gcc.dg/torture/pr51106-2.c -O1  (test for excess errors)
+FAIL: gcc.dg/torture/pr51106-2.c -Os  (test for excess errors)
+FAIL: gcc.dg/torture/pr51106-2.c -O3 -g  (test for excess errors)
+FAIL: gcc.dg/torture/pr51106-2.c -O0  (internal compiler error)
+FAIL: gcc.dg/torture/pr51106-2.c -O1  (internal compiler error)
+FAIL: gcc.dg/torture/pr51106-2.c -O2  (internal compiler error)
+FAIL: gcc.dg/torture/pr51106-2.c -O3 -fomit-frame-pointer  (test for excess errors)
+FAIL: gcc.dg/torture/pr51106-2.c -Os  (internal compiler error)
+FAIL: gcc.dg/torture/pr51106-2.c -O3 -fomit-frame-pointer  (internal compiler error)
+FAIL: gcc.dg/torture/pr51106-2.c -O2 -flto -fno-use-linker-plugin -flto-partition=none  (internal compiler error)
+FAIL: gcc.dg/torture/pr51106-2.c -O2 -flto -fno-use-linker-plugin -flto-partition=none  (test for excess errors)
+FAIL: gcc.dg/torture/pr51106-2.c -O0  (test for excess errors)
+FAIL: gcc.dg/torture/pr51106-2.c -O2  (test for excess errors)
+XPASS: gcc.dg/unroll_2.c (test for excess errors)
+XPASS: gcc.dg/unroll_3.c (test for excess errors)
+XPASS: gcc.dg/unroll_4.c (test for excess errors)
+FAIL: gcc.target/i386/pr39082-1.c (test for warnings, line 33)
+FAIL: gfortran.dg/coarray/atomic_1.f90 -fcoarray=lib  -O2  -lcaf_single execution test
+FAIL: gfortran.dg/coarray/registering_1.f90 -fcoarray=lib  -O2  -lcaf_single execution test
+UNRESOLVED: gfortran.dg/lto/pr45586 f_lto_pr45586_0.o-f_lto_pr45586_0.o execute -O0 -flto -flto-partition=none -fuse-linker-plugin
+UNRESOLVED: gfortran.dg/lto/pr45586 f_lto_pr45586_0.o-f_lto_pr45586_0.o execute -O0 -flto -fuse-linker-plugin -fno-fat-lto-objects
+FAIL: gfortran.dg/lto/pr45586 f_lto_pr45586_0.o-f_lto_pr45586_0.o link, -O0 -flto -flto-partition=1to1 -fno-use-linker-plugin  (internal compiler error)
+UNRESOLVED: gfortran.dg/lto/pr45586 f_lto_pr45586_0.o-f_lto_pr45586_0.o execute -O0 -flto -flto-partition=1to1 -fno-use-linker-plugin
+FAIL: gfortran.dg/lto/pr45586 f_lto_pr45586_0.o-f_lto_pr45586_0.o link, -O0 -flto -flto-partition=none -fuse-linker-plugin (internal compiler error)
+FAIL: gfortran.dg/lto/pr45586 f_lto_pr45586_0.o-f_lto_pr45586_0.o link, -O0 -flto -fuse-linker-plugin -fno-fat-lto-objects  (internal compiler error)
+FAIL: gfortran.dg/lto/pr45586-2 f_lto_pr45586-2_0.o-f_lto_pr45586-2_0.o link, -O0 -flto -flto-partition=none -fuse-linker-plugin (internal compiler error)
+UNRESOLVED: gfortran.dg/lto/pr45586-2 f_lto_pr45586-2_0.o-f_lto_pr45586-2_0.o execute -O0 -flto -flto-partition=none -fuse-linker-plugin
+FAIL: gfortran.dg/lto/pr45586-2 f_lto_pr45586-2_0.o-f_lto_pr45586-2_0.o link, -O0 -flto -flto-partition=1to1 -fno-use-linker-plugin  (internal compiler error)
+UNRESOLVED: gfortran.dg/lto/pr45586-2 f_lto_pr45586-2_0.o-f_lto_pr45586-2_0.o execute -O0 -flto -fuse-linker-plugin -fno-fat-lto-objects
+FAIL: gfortran.dg/lto/pr45586-2 f_lto_pr45586-2_0.o-f_lto_pr45586-2_0.o link, -O0 -flto -fuse-linker-plugin -fno-fat-lto-objects  (internal compiler error)
+UNRESOLVED: gfortran.dg/lto/pr45586-2 f_lto_pr45586-2_0.o-f_lto_pr45586-2_0.o execute -O0 -flto -flto-partition=1to1 -fno-use-linker-plugin
