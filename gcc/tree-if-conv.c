@@ -968,7 +968,7 @@ predicate_bbs (loop_p loop)
 
 	    case GIMPLE_COND:
 	      {
-		tree c2, tem;
+		tree c2;
 		edge true_edge, false_edge;
 		location_t loc = gimple_location (stmt);
 		tree c = fold_build2_loc (loc, gimple_cond_code (stmt),
@@ -986,10 +986,8 @@ predicate_bbs (loop_p loop)
 					   unshare_expr (c));
 
 		/* If C is false, then FALSE_EDGE is taken.  */
-		c2 = invert_truthvalue_loc (loc, unshare_expr (c));
-		tem = canonicalize_cond_expr_cond (c2);
-		if (tem)
-		  c2 = tem;
+		c2 = build1_loc (loc, TRUTH_NOT_EXPR,
+				 boolean_type_node, unshare_expr (c));
 		add_to_dst_predicate_list (loop, false_edge,
 					   unshare_expr (cond), c2);
 
@@ -1543,10 +1541,18 @@ predicate_mem_writes (loop_p loop)
       gimple_stmt_iterator gsi;
       basic_block bb = ifc_bbs[i];
       tree cond = bb_predicate (bb);
+      bool swap;
       gimple stmt;
 
       if (is_true_predicate (cond))
 	continue;
+
+      swap = false;
+      if (TREE_CODE (cond) == TRUTH_NOT_EXPR)
+	{
+	  swap = true;
+	  cond = TREE_OPERAND (cond, 0);
+	}
 
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	if ((stmt = gsi_stmt (gsi))
@@ -1559,6 +1565,15 @@ predicate_mem_writes (loop_p loop)
 
 	    lhs = ifc_temp_var (type, unshare_expr (lhs), &gsi);
 	    rhs = ifc_temp_var (type, unshare_expr (rhs), &gsi);
+	    if (swap)
+	      {
+		tree tem = lhs;
+		lhs = rhs;
+		rhs = tem;
+	      }
+	    cond = force_gimple_operand_gsi_1 (&gsi, unshare_expr (cond),
+					       is_gimple_condexpr, NULL_TREE,
+					       true, GSI_SAME_STMT);
 	    rhs = build3 (COND_EXPR, type, unshare_expr (cond), rhs, lhs);
 	    gimple_assign_set_rhs1 (stmt, ifc_temp_var (type, rhs, &gsi));
 	    update_stmt (stmt);
@@ -1636,8 +1651,8 @@ combine_blocks (struct loop *loop)
       free_bb_predicate (bb);
       if (bb_with_exit_edge_p (loop, bb))
 	{
+	  gcc_assert (exit_bb == NULL);
 	  exit_bb = bb;
-	  break;
 	}
     }
   gcc_assert (exit_bb != loop->latch);
@@ -1778,6 +1793,14 @@ main_tree_if_conversion (void)
     todo |= TODO_update_ssa_only_virtuals;
 
   free_dominance_info (CDI_POST_DOMINATORS);
+
+#ifdef ENABLE_CHECKING
+  {
+    basic_block bb;
+    FOR_EACH_BB (bb)
+      gcc_assert (!bb->aux);
+  }
+#endif
 
   return todo;
 }

@@ -1,3 +1,83 @@
+2012-04-25  Gary Dismukes  <dismukes@adacore.com>
+
+	* exp_ch9.adb: Add comments on the usage of the
+	lock-free data structures.
+
+2012-04-25  Vincent Pucci  <pucci@adacore.com>
+
+	* exp_intr.adb (Expand_Shift): Convert the left
+	operand and the operator when the type of the call differs from
+	the type of the operator.
+
+2012-04-25  Geert Bosch  <bosch@adacore.com>
+
+	* stand.ads: Minor comment fix.
+
+2012-04-25  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* sem_ch4.adb (Analyze_Slice): Handle the case where the prefix
+	is a string literal. Retrieve the first index from the base type
+	when slicing a string literal.
+	* sem_ch12.adb (Check_Private_View): Move the initialization
+	of the type inside the loop to reflect the changing index.
+	* sem_eval.adb (Eval_Relational_Op): Retrieve the first index
+	from the base type when dealing with a string literal.
+	* sem_res.adb (Resolve_Slice): Retrieve the first index from
+	the base type when slicing a string literal.
+	* sem_util.adb (Is_Internally_Generated_Renaming): New routine.
+	(Is_Object_Reference): String literals may act
+	as object references only when they are renamed internally.
+	(Proper_First_Index): New routine.
+	* sem_util.ads (Proper_First_Index): New routine.
+
+2012-04-25  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch3.adb, csinfo.adb, lib-writ.adb, sem_ch12.adb,
+	lib-xref.adb: Minor reformatting.
+
+2012-04-25  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_ch9.adb: Rename Lock_Free_Sub_Type
+	to Lock_Free_Subprogram. Remove type Subprogram_Id.
+	Rename LF_Sub_Table to Lock_Free_Subprogram_Table.
+	(Allow_Lock_Free_Implementation): Renamed to
+	Allows_Lock_Free_Implementation.  Update the comment on
+	lock-free restrictions. Code clean up and restructuring.
+	(Build_Lock_Free_Protected_Subprogram_Body): Update the
+	profile and related comments. Code clean up and restructuring.
+	(Build_Lock_Free_Unprotected_Subprogram_Body): Update the
+	profile and related comments. Code clean up and restructuring.
+	(Comp_Of): Removed.
+
+2012-04-25  Vincent Celier  <celier@adacore.com>
+
+	* sem_ch12.adb (Inherit_Context): Compare library units, not
+	names of units, when checking if a unit is already in the context.
+
+2012-04-25  Thomas Quinot  <quinot@adacore.com>
+
+	* sem_ch3.adb: Reverse_Storage_Order must be propagated to
+	untagged derived record types.
+
+2012-04-25  Ed Schonberg  <schonberg@adacore.com>
+
+	* lib-xref.adb: Adjust position of end label.
+
+2012-04-22  Jan Hubicka  <jh@suse.cz>
+
+	* gcc-interface/utils.c (gnat_write_global_declarations): Do not mark
+	needed node.
+
+2012-04-20  Jan Hubicka  <jh@suse.cz>
+
+	* gcc-interface/utils.c (gnat_write_global_declarations): Update for new
+	force_output placement.
+
+2012-04-14  Jan Hubicka  <jh@suse.cz>
+
+	* gcc-interface/trans.c (finalize_nrv): Update field referenced for new
+	cgraph/varpool layout.
+
 2012-04-09  Mike Stump  <mikestump@comcast.net>
 
 	* a-assert.ads: Remove execute permission.

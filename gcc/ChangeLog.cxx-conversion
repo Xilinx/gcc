@@ -1,3 +1,7 @@
+2012-04-26   Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 186847.
+
 2012-04-11   Diego Novillo  <dnovillo@google.com>
 
 	* configure.ac (ENABLE_BUILD_WITH_CXX): Default to 'yes'.
