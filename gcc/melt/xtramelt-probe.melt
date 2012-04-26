@@ -30,6 +30,99 @@
  ***")
 
 
+(defselector send_object_to_probe class_selector
+  :doc #{The selector $SEND_OBJECT_TO_PROBE is used for sending
+ arbitrary object receivers $RECV to the MELT probe. $SBUF is the
+ internal buffer. $VALSENDER is the closure to send values, and $DEPTH is the current depth}#
+  :formals (recv sbuf valsender :long depth)
+)
+
+(defun send_command_to_probe (symcmd :rest)
+  :doc #{Utility to send a command to the MELT probe}#
+  (debug "send_command_to_probe symcmd=" symcmd)
+  (assert_msg "check symcmd" (is_a symcmd class_symbol))
+  (let ( (outsbuf (make_strbuf discr_strbuf))
+	 )
+    (letrec 
+	(
+	 (a+num 
+	  (lambda (out :long n) (add2out out n)))
+	 (a+str 
+	  (lambda (out :cstring s) (add2out_cenconst out s)))
+	 (a+val 
+	  (lambda (out val :long depth)
+	    (let ( (:long sucdepth (+i depth 1))
+		   )
+	      (cond 
+	       ;;
+	       ((null val) 
+		(add2out out " () "))
+	       ;;
+	       ((is_integerbox val) 
+		(add2out out (get_int val)))
+	       ;;
+	       ((is_string val)
+		(add2out_cencstring out val))
+	       ;;
+	       ((is_multiple val)
+		(add2out out "(")
+		(foreach_in_multiple 
+		 (val)
+		 (comp :long ix)
+		 (if (>i ix 0) (add2out out " "))
+		 (a+val out val sucdepth))
+		(add2out out ")")
+		)
+	       ;;
+	       ((is_list val)
+		(add2out out "(")
+		(let ( (:long cnt 0)
+		       )
+		  (foreach_in_list
+		   (val)
+		   (curpair curcomp)
+		   (if cnt (add2out out " "))
+		   (setq cnt (+i cnt 1))
+		   (a+val out curcomp sucdepth)
+		   )
+		  (add2out out ")")
+		  )
+		)
+	       ;;
+	       ((is_closure val)
+		(val out))
+	       ((is_a val class_named)
+		(add2out out (get_field :named_name val))
+		)
+	       ((is_object val)
+		(send_object_to_probe val out a+val sucdepth))
+	       )
+	      )
+	    )
+	  )
+	 )				;end letrec bindings
+      (a+val outsbuf symcmd)
+      (forever 
+       argloop
+       (add2out outsbuf " ")
+       (variadic 
+	( ()
+	  (exit argloop))
+	( (:long l)
+	  (a+num outsbuf l))
+	( (:cstring s)
+	  (a+str outsbuf s))
+	( (:value v)
+	  (a+val outsbuf v 0))
+	( :else
+	  (assert_msg "invalid variadic in send_command_to_probe" ()))))
+      (add2out outsbuf "\n\n")		;to terminate the command
+      (code_chunk sendcmd  #{ /* $SENDCMD send command to probe */ 
+                  melt_send_command_strbuf_to_probe ($OUTSBUF)}#)
+      )    
+    )
+  )
+
 (defun probe_docmd  (cmd moduldata)
   (debug "probe_docmd cmd=" cmd " moduldata=" moduldata)
   (assert_msg "$@$unimplemented probe_docmd" ())

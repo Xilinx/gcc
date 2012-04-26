@@ -684,7 +684,7 @@ an integer $I if $I is lower than $N.}#
 
 (defprimitive checkval_dbg (val :cstring msg) :void
   :doc #{Low-level costly check of value $VAL with message $MSG. Mostly useful for gurus.}#
-  #{melt_checked_assignmsg ((melt_ptr_t) ($VAL),($MSG))}#)
+  #{{if ($VAL) melt_checked_assignmsg ((melt_ptr_t) ($VAL),($MSG));}}#)
 
 (defprimitive debugcstring (:cstring msg str) :void
   :doc #{Debug cstring $MSG $STR.}#
@@ -1067,16 +1067,18 @@ Returns a boxed integer.}#
   #{/*add2sbuf_sbuf*/ meltgc_add_strbuf((melt_ptr_t)($SBUF), 
 					melt_strbuf_str((melt_ptr_t)$ASBUF))}#)
 
+
 ;; primitive to add a string value, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstring (sbuf str) :void 
   :doc #{Add into stringbuffer $SBUF the content of string $STR with C encoding.}#
-  #{meltgc_add_strbuf_cstr((melt_ptr_t)($SBUF), 
-                           melt_string_str((melt_ptr_t)($STR)))}#)
+  #{meltgc_add_strbuf_cstr ((melt_ptr_t)($SBUF), 
+                            melt_string_str ((melt_ptr_t)($STR)))}#)
 
 ;; primitive to add a strbuf, C encoded, into a strbuf
 (defprimitive add2sbuf_cencstrbuf (sbuf asbuf) :void 
   :doc #{Add into stringbuffer $SBUF the content of stringbuffer $ASBUF with C encoding.}#
-  #{meltgc_add_strbuf_cstr((melt_ptr_t)($sbuf), melt_strbuf_str((melt_ptr_t)($asbuf)))}#)
+  #{meltgc_add_strbuf_cstr ((melt_ptr_t)($SBUF), melt_strbuf_str((melt_ptr_t)($ASBUF)))}#)
+
 
 ;; primitive to add a string value, Ccomment encoded, into a strbuf
 (defprimitive add2sbuf_ccomstring (sbuf str) :void 
@@ -1207,6 +1209,10 @@ strinbuffer $SBUF, take care to not overwrite an old file named $VNAM if it was 
 			       melt_string_str((melt_ptr_t)($STR)),
 			       ($OFF), ($SLEN))}#)
 
+;; primitive to add a C encoded constant string to a strbuf
+(defprimitive add2out_cenconst (sbuf :cstring cstr) :void
+  :doc #{Add into stringbuffer $SBUF the C-encoded constant string $CSTR}#
+  #{meltgc_add_strbuf_cstr ((melt_ptr_t)($SBUF), $CSTR)}#)
 ;; primitive to add a strbuf, C encoded, into a outbuf
 (defprimitive add2out_cencstrbuf (out asbuf) :void 
   :doc #{Add to output $OUT the C-encoded stringbuffer $ASBUF.}#
@@ -3862,6 +3868,7 @@ polyhedron values.}#
  add2out_ccomstring 
  add2out_cencstrbuf
  add2out_cencstring
+ add2out_cenconst 
  add2out_cencsubstring
  add2out_cident
  add2out_cidentprefix

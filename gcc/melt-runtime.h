@@ -3010,6 +3010,9 @@ void melt_probe_stop (void);
    default melt_default_probe. */
 void melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr);
 
+/* Send a stringbuffer command to probe */
+void melt_send_command_strbuf_to_probe (melt_ptr_t buf);
+
 /* output the option, declaration and implementation buffers of a
    generated file with a secondary rank*/
 void 

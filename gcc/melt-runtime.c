@@ -5547,6 +5547,44 @@ melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
     }
 }
 
+void
+melt_send_command_strbuf_to_probe (melt_ptr_t buf)
+{
+  long buflen = 0;
+  long bufpos = 0;
+  char *bufstr = NULL;
+  if (melt_magic_discr (buf) != MELTOBMAG_STRBUF)
+    return;
+  if (!melt_probe_pid || melt_probe_cmdto_fd < 0)
+    return;
+  buflen = melt_output_length (buf);
+  bufstr = melt_strbuf_str (buf);
+  if (buflen<3 || !bufstr)
+    return;
+  gcc_assert (bufstr[buflen-2] == '\n');
+  gcc_assert (bufstr[buflen-1] == '\n');
+  bufpos = 0;
+  for (;;) 
+    {
+      long wlen, wcnt;
+      wlen = buflen - bufpos;
+      if (wlen <= 0) 
+	break;
+      errno = 0;
+      wcnt = write (melt_probe_cmdto_fd, bufstr+bufpos, wlen);
+      if (wcnt < 0 && errno == EINTR) 
+	continue;
+      if (wcnt < 0) 
+	{
+	  warning (0,
+		   "MELT failed to send command %s to probe - %s", 
+		   bufstr, xstrerror (errno));
+	  break;
+	}
+      bufpos += wcnt;
+    }    
+}
+
 
 
 /* the srcbase is a generated primary .c file without its .c suffix,
