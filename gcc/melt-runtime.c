@@ -5349,15 +5349,16 @@ static int melt_probe_cmdto_fd = -1;	/* file descriptor for commands to probe fr
 
 /* return 0 if the wait was sucessful. */
 static int 
-melt_wait_for_probe (void)
+melt_wait_for_probe (int waitopt)
 {
   pid_t wpid = 0;
   int probstatus = 0;
   if (!melt_probe_pid) 
     return 1;
-  wpid = waitpid(melt_probe_pid, &probstatus, WNOHANG);
-  debugeprintf ("melt_wait_for_probe pid %d wpid %d probstatus %d",
-		(int)melt_probe_pid, (int) wpid, probstatus);
+  errno = 0;
+  wpid = waitpid (melt_probe_pid, &probstatus, waitopt);
+  debugeprintf ("melt_wait_for_probe pid %d wpid %d probstatus %d - %s",
+		(int)melt_probe_pid, (int) wpid, probstatus, xstrerror(errno));
   if (wpid == melt_probe_pid) {
     inform(UNKNOWN_LOCATION, "MELT probe (pid %d) ended", (int) melt_probe_pid);
     if (WIFEXITED(probstatus)) {
@@ -5386,7 +5387,7 @@ melt_probe_stop (void)
   if (!pid)
     return;
   debugeprintf("melt_stop_probe with melt_probe_pid %d", (int) melt_probe_pid);
-  if (!melt_wait_for_probe()) {
+  if (!melt_wait_for_probe(WNOHANG)) {
     debugeprintf("melt_stop_probe waited ok pid %d", (int) pid);
     return;
   }
@@ -5398,7 +5399,7 @@ melt_probe_stop (void)
     usleep (60000);
   }
   for (trynum = 1; trynum < 3; trynum++) {
-    if (!melt_wait_for_probe()) {
+    if (!melt_wait_for_probe(WNOHANG)) {
       debugeprintf("melt_stop_probe waited ok after quit command pid %d", (int) pid);
       return;
     }
@@ -5411,7 +5412,7 @@ melt_probe_stop (void)
 	       (int) pid, trynum, xstrerror (errno));
     debugeprintf("melt_stop_probe sent SIGTERM %d to pid %d try #%d", SIGTERM, (int) pid, trynum);
     usleep (20000 + trynum * 5000);
-    if (!melt_wait_for_probe()) {
+    if (!melt_wait_for_probe(WNOHANG)) {
       debugeprintf("melt_stop_probe waited ok after SIGTERM try #%d pid %d", trynum, (int) pid);
       return;
     }
@@ -5423,7 +5424,7 @@ melt_probe_stop (void)
 	       (int) pid, trynum, xstrerror(errno));
     debugeprintf("melt_stop_probe sent SIGQUIT %d to pid %d try #%d", SIGQUIT, (int) pid, trynum);
     usleep (20000 + trynum * 5000);
-    if (!melt_wait_for_probe()) {
+    if (!melt_wait_for_probe(WNOHANG)) {
       debugeprintf("melt_stop_probe waited ok after SIGQUIT try #%d pid %d", trynum, (int) pid);
       return;
     }
@@ -5436,11 +5437,18 @@ melt_probe_stop (void)
 	       (int) pid, trynum, xstrerror(errno));
       debugeprintf("melt_stop_probe sent SIGKILL %d to pid %d try #%d", SIGKILL, (int) pid, trynum);
       usleep (40000 + trynum * 5000);
-      if (!melt_wait_for_probe()) {
+      if (!melt_wait_for_probe(WNOHANG)) {
 	debugeprintf("melt_stop_probe waited ok after SIGKILL try #%d pid %d", trynum, (int) pid);
 	return;
       }
     }
+  debugeprintf("melt_stop_probe wait indefinitely for pid %d", (int) pid);
+  /* I would be surprized if the below *blocking* wait is ever reached
+     in practice!  */
+  if (!melt_wait_for_probe(0)) {
+    debugeprintf("melt_stop_probe waited ok pid %d", (int) pid);
+    return;
+  }
   fatal_error ("MELT failed to stop probe process %d", (int) pid);
 }
 

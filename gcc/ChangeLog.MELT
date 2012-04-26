@@ -1,4 +1,9 @@
 
+2012-04-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_wait_for_probe): Add waitopt formal.
+	(melt_probe_stop): Use it. The last wait is blocking, but should
+	never happen...
+
 2012-04-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_probe_stop, melt_probe_start): New
 	declarations.
