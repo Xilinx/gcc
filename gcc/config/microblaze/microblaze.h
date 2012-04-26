@@ -805,7 +805,7 @@ extern int save_volatiles;
 #define COMMON_ASM_OP			"\t.comm\t"
 #define LCOMMON_ASM_OP			"\t.lcomm\t"
 
-#define MAX_OFILE_ALIGNMENT		(32768*8)
+#define MAX_OFILE_ALIGNMENT		((1 << 28) * 8)
 
 #define TYPE_OPERAND_FMT        	"@%s"
 
