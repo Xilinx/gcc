@@ -123,10 +123,116 @@
     )
   )
 
+
+(defclass class_probed_file
+  :doc #{$CLASS_PROBED_FILE describes a source file known to the
+  probe. $PROBEDFILE_RANK is its unique rank inside $CLASS_PROBE_DATA,
+  $PROBEDFILE_PATH is the given -perhaps relative- path,
+  $PROBEDFILE_REALPATH is the real absolute file path, and
+  $PROBEDFILE_DATA is available to clients.}#
+  :super class_proped
+  :fields (
+	   probedfile_rank		;the rank
+	   probedfile_path		;the first given path
+	   probedfile_realpath		;the real path
+	   probedfile_data		;supplementary client data
+	   )
+)
+  
+(defclass class_probe_data 
+  :doc #{Singleton $CLASS_PROBE_DATA for probe related
+  data. $PROBEDATA_FILESVEC is a tuple of $CLASS_PROBED_FILE-s, and
+  $PROBEDATA_FILEDICT is a dictionnary mapping given and real paths to
+  them.}#
+  :super class_proped
+  :fields 
+  (
+   ;; bijective association of file real paths and indexes
+   probedata_filesvec 			;;the vector of real probed files
+   probedata_filedict			;;the dictionnary of real probed files
+))
+
+
+
+(defun probe_get_file_of_name (probedata name)
+  :doc #{Given a source file $NAME, gives its corresponding
+  $CLASS_PROBED_FILE, perhaps creating it and displaying it in the
+  probe}#
+  (debug "probe_get_file_of_name probedata=" probedata " name=" name)
+  (assert_msg "check probedata" (is_a probedata class_probe_data))
+  (assert_msg "check name" (is_string name))
+  (let (
+	(realpath (make_string_real_access_path_value discr_string name))
+	(filesvec (get_field :probedata_filesvec probedata))
+	(filedict (get_field :probedata_filedict probedata))
+	(:long veclen (multiple_length filesvec))
+	(:long pos 0)
+	)
+    (debug "probe_get_file_of_name realpath=" realpath)
+    (assert_msg "check realpath" realpath)
+    ;;
+    (let ( (probfil (mapstring_getstr filedict realpath))
+	   )
+      (when probfil
+	(debug "probe_get_file_of_name return found probfil=" probfil)
+	(assert_msg "check probfil" (is_a probfil class_probed_file))
+	(return probfil)
+	)
+      ;; grow filesvec if needed, i.e. if filesvec's last slot is filled
+      (if (multiple_nth filesvec -1)
+	  (let ( (:long newlen (+i 10 (/i (*i veclen 3) 2)))
+		 (newvec (make_multiple discr_multiple newlen))
+		 )
+	    (foreach_in_multiple
+	     (filesvec)
+	     (curfil :long fix)
+	     (multiple_put_nth newvec fix curfil))
+	    (setq filesvec newvec)
+	    (put_fields probedata :probedata_filesvec newvec)))
+      ;; find a position in pos, fill and return it
+      (foreach_in_multiple
+       (filesvec)
+       (curfil :long filix)
+       (if filix			;skip slot 0
+	   (unless curfil
+	     (let ( 
+		   (newfil
+		    (instance class_probed_file
+			      :probedfile_rank (make_integerbox discr_constant_integer
+								filix)
+			      :probedfile_path name
+			      :probedfile_realpath realpath
+			      :probedfile_data ()
+			      ))
+		   )
+	       (multiple_put_nth filesvec filix newfil)
+	       (mapstring_putstr filedict name newfil)
+	       (mapstring_putstr filedict realpath newfil)
+	       (put_int newfil filix)
+	       (debug "probe_get_file_of_name made newfil=" newfil)
+	       (send_command_to_probe 'showfile_pcd name filix)
+	       ))
+	 )))))
+
+
+
 (defun probe_docmd  (cmd moduldata)
   (debug "probe_docmd cmd=" cmd " moduldata=" moduldata)
+  (let (
+        (mainfilename (make_string_real_access_path discr_string (main_input_filename)))
+        (filesvec  (make_multiple discr_multiple 10))
+        (filedict (make_mapstring discr_map_strings 17))
+        (probedata (instance class_probe_data
+                             :probedata_filesvec filesvec
+                             :probedata_filedict filedict))
+        )
+    (debug "probe_docmd probedata=" probedata " maininput=" (main_input_filename))
+    (let ( (mainprfil (probe_get_file_of_name probedata mainfilename))
+          )
+    (debug "probe_docmd mainprfil=" mainprfil)
   (assert_msg "$@$unimplemented probe_docmd" ())
-)
+)))
+
 
 (definstance probe_mode
   class_melt_mode
@@ -136,4 +242,11 @@
 )
 (install_melt_mode probe_mode)
 
+(export_class class_probed_file class_probe_data)
+
+(export_values 
+ probe_get_file_of_name
+ send_command_to_probe
+ send_object_to_probe 
+)
 ;; eof xtramelt-probe.melt

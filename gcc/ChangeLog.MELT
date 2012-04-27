@@ -1,6 +1,17 @@
 
 2012-04-27  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt-runtime.h (meltgc_new_real_accessible_path_string): New declaration.
+	* melt/warmelt-macro.melt (when,unless): Add macro for syntactic
+	sugar.
+	(mexpand_when, mexpand_unless): New sugaring macro expanders.
+
+	* melt/xtramelt-probe.melt (class_probed_file, class_probe_data):
+	New classes.
+	(probe_get_file_of_name, send_command_to_probe)
+	(send_object_to_probe): New functions or selector.
+
+2012-04-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (meltgc_new_real_accessible_path_string): New
+	declaration.
 
 	* melt-runtime.c (meltgc_new_real_accessible_path_string): New
 	function.

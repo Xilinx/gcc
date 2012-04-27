@@ -4123,6 +4123,25 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
  $UNSAFE_GET_FIELD.}#)
 
 
+;; internal routine to make a progn from a pairlist at a location
+(defun pairlist_to_progn (pair loc env mexpander modctx)
+  (assert_msg "check env" (is_a env class_environment))
+  (debug "pairlist_to_progn pair" pair)
+  (assert_msg "check_pair" (is_pair pair))
+  (assert_msg "check modctx" (is_object modctx))
+  (let ( (bodytup (pairlist_to_multiple 
+		   pair 
+		   discr_multiple
+		   (lambda (e) (mexpander e env mexpander modctx)))) 
+	 (sprogn
+	  (instance class_source_progn
+		    :loca_location loc
+		    :sprogn_body bodytup
+		    )) )
+    (debug "pairlist_to_progn sprogn" sprogn)
+    (return sprogn)
+    ))
+
 ;;;; the setq expander
 (defun mexpand_setq (sexpr env mexpander modctx)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -4205,8 +4224,82 @@ without any checks. Using $PUT_FIELDS is prefered.}#)
 (install_initial_macro 'if mexpand_if)
 (export_macro 
  if mexpand_if
- :doc #{The $IF syntax is for simple conditional expressions. Syntax
+ :doc #{The $IF syntax is for simple conditional expressions. See also $WHEN and $UNLESS and $COND. Syntax
  is (IF <test-expression> <then-expression> [<else-expression>]).}#)
+
+
+;;;;;;;;;;;;;;;;
+;;;; WHEN macro = syntactic sugar (WHEN <test> <body...>) === (IF <test> (PROGN <body...>))
+(defun mexpand_when (sexpr env mexpander modctx)
+  (debug "mexpand_when sexpr" sexpr)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(curif (pair_head curpair)) 
+	)
+    (if (not (is_pair curpair))
+	(error_plain loc "missing condition in WHEN"_))
+    (setq curpair (pair_tail curpair))
+    (if (not (is_pair curpair))
+	(error_plain loc "missing body in WHEN"_))
+    (let ( (xcond (mexpander curif env mexpander modctx))
+	   (xprogn (pairlist_to_progn curpair loc env mexpander modctx))
+	   (xwhen (instance class_source_if
+			    :loca_location loc
+			    :sif_test xcond
+			    :sif_then xprogn))
+	   )
+      (debug "mexpand_when return xwhen=" xwhen)
+      (return xwhen)
+      )))
+
+(install_initial_macro 'when mexpand_when)
+(export_macro  when mexpand_when
+ :doc #{The $WHEN syntax sugar is for conditional expressions with body. Syntax
+ is (WHEN <test> <body>...) syntactic sugar for (IF <test> (PROGN <body>...)).}#)
+
+
+;;;;;;;;;;;;;;;;
+;;;; unless macro = syntactic sugar (UNLESS <test> <body...>) === (IF <test> () (PROGN <body...>))
+(defun mexpand_unless (sexpr env mexpander modctx)
+  (debug "mexpand_unless sexpr" sexpr)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (if (null mexpander) (setq mexpander macroexpand_1))
+  (assert_msg "check modctx" (is_object modctx))
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(curif (pair_head curpair)) 
+	)
+    (if (not (is_pair curpair))
+	(error_plain loc "missing condition in UNLESS"_))
+    (setq curpair (pair_tail curpair))
+    (if (not (is_pair curpair))
+	(error_plain loc "missing body in UNLESS"_))
+    (let ( (xcond (mexpander curif env mexpander modctx))
+	   (xprogn (pairlist_to_progn curpair loc env mexpander modctx))
+	   (xunless (instance class_source_ifelse
+			    :loca_location loc
+			    :sif_test xcond
+			    :sif_then ()
+			    :sif_else xprogn))
+	   )
+      (debug "mexpand_unless return xunless=" xunless)
+      (return xunless)
+      )))
+
+(install_initial_macro 'unless mexpand_unless)
+(export_macro  unless mexpand_unless
+ :doc #{The $UNLESS syntax sugar is for negated conditional expressions with body. Syntax
+ is (UNLESS <test> <body>...) syntactic sugar for (IF <test> () (PROGN <body>...)).}#)
+
 
 ;;;;; the cppif expander
 (defun mexpand_cppif (sexpr env mexpander modctx)
@@ -5680,24 +5773,6 @@ remain.}#)
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;; for PROGN
-;; internal routine to make a progn from a pairlist at a location
-(defun pairlist_to_progn (pair loc env mexpander modctx)
-  (assert_msg "check env" (is_a env class_environment))
-  (debug "pairlist_to_progn pair" pair)
-  (assert_msg "check_pair" (is_pair pair))
-  (assert_msg "check modctx" (is_object modctx))
-  (let ( (bodytup (pairlist_to_multiple 
-		   pair 
-		   discr_multiple
-		   (lambda (e) (mexpander e env mexpander modctx)))) 
-	 (sprogn
-	  (instance class_source_progn
-		    :loca_location loc
-		    :sprogn_body bodytup
-		    )) )
-    (debug "pairlist_to_progn sprogn" sprogn)
-    (return sprogn)
-    ))
 
 ;; internal routine to make a return from a pairlist at a location
 (defun pairlist_to_return (pair loc env mexpander modctx)
