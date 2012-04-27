@@ -751,7 +751,12 @@ data. See the $INSTALL_MELT_MODE function. }# )
 ;; runtime function meltgc_handle_sigio and macro MELT_CHECK_INTERRUPT
 (defclass class_input_channel_handler 
   :doc #{Internal class for input channel handling. Its magic number
-  is the file descriptor.}#
+  is the file descriptor. $INCH_SBUF is the @b{read-only}
+  string-buffer for the input, $INCH_CLOS is a closure, and $INCH_DATA
+  is some client data. See also $REGISTER_INPUT_CHANNEL_HANDLER. Use
+  carefully, and don't mutate it. All fields should be considered
+  read-only from application code, which is only permitted to use
+  $INCH_DATA and mutate it.}#
   :predef CLASS_INPUT_CHANNEL_HANDLER
   :super class_proped
   :fields (inch_sbuf			;the string buffer for input

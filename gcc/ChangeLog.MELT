@@ -1,5 +1,18 @@
 
 2012-04-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (class_input_channel_handler): Add
+	documentation.
+
+	* melt/warmelt-modes.melt (register_input_channel_handler): Add
+	documentation. Set the magic number to the fd.
+
+	* melt/xtramelt-probe.melt (class_probe_data): Add
+	probedata_reqhdict & probedata_aux fields.
+	(probe_get_data): New function.
+	(probe_request_processor): New internal function.
+	(probe_docmd): Start the probe and register its input handler.
+
+2012-04-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt (when,unless): Add macro for syntactic
 	sugar.
 	(mexpand_when, mexpand_unless): New sugaring macro expanders.

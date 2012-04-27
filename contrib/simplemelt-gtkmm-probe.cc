@@ -313,9 +313,12 @@ public:
     _mainvbox.pack_start(_mainstatusbar,Gtk::PACK_SHRINK);
     show_all();
   }
+  void send_quit_req(void);
   virtual ~SmeltMainWindow() {
+    send_quit_req();
   }
   virtual bool on_delete_event(GdkEventAny*ev) {
+    send_quit_req();
     // return false to accept the delete event, true to reject it..
     return Gtk::Window::on_delete_event(ev);
   }
@@ -811,6 +814,7 @@ protected:
   bool reqbuf_to_melt_cb(Glib::IOCondition);
   bool cmdbuf_from_melt_cb(Glib::IOCondition);
   void process_command_from_melt (std::string& str);
+public:
   std::ostringstream& outreq() {
     return _app_writestream_to_melt;
   };
@@ -826,7 +830,6 @@ protected:
       }
     }
   }
-public:
   Glib::RefPtr<Gsv::LanguageManager> langman() const {
     return _app_langman;
   };
@@ -1228,6 +1231,10 @@ void SmeltMainWindow::remove_all_status(void)
   _mainstatusbar.remove_all_messages();
 }
 
+void SmeltMainWindow::send_quit_req(void)
+{
+  SmeltAppl::instance()->sendreq(SmeltAppl::instance()->outreq() << "QUIT_prq");
+}
 ////////////////////////////////////////////////////////////////
 void SmeltTraceWindow::add_title(const std::string &str)
 {

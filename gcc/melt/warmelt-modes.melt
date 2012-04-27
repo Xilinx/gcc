@@ -3828,6 +3828,16 @@ ASSERT_MSG) is enabled"
 
 
 (defun register_input_channel_handler (clos data :long inchfd)
+  :doc #{$REGISTER_INPUT_CHANNEL_HANDLER registers an asynchronous
+  input channel handler, such as for the graphical user interface
+  probe. $CLOS is the registered closure, $DATA is some client data,
+  $INCHFD is the input Unix file descriptor. When an entire
+  message (double-newline ended sequence of MELT values in MELT
+  syntax) is recieved from the $INCHFD, the $CLOS is applied to the
+  input channel handler -containing the data as its $INCH_DATA field-,
+  a read-only instance of $CLASS_INPUT_CHANNEL_HANDLER, and to the
+  read list. When end-of-file is obtained on $INCHFD, the closure is
+  similarily applied with a null value instead of the read list.}#
   (debug "register_input_channel_handler clos=" clos " data=" data 
 	 " inchfd=" inchfd)
   (let ( (:long goodinchfd 0) )
@@ -3835,7 +3845,7 @@ ASSERT_MSG) is enabled"
 	     (>=i inchfd 0))
 	(code_chunk
 	 statinchfdchk
-	 #{ /*$STATINCHFDCHK */ struct stat $STATINCHFDCHK#_stat;
+	 #{ /*register_input_channel_handler $STATINCHFDCHK */ struct stat $STATINCHFDCHK#_stat;
 	 memset (& $STATINCHFDCHK#_stat, 0, sizeof(struct stat));
 	 if (fstat ($INCHFD, & $STATINCHFDCHK#_stat))
 	 warning(0, "MELT bad registered input channel fd#%d - %s",
@@ -3853,6 +3863,7 @@ ASSERT_MSG) is enabled"
 			    :inch_data data))
 	 (inbuck (get_field :sysdata_inchannel_data initial_system_data))
 	 )
+    (put_int inchdlr inchfd)
     (if (not (is_bucketlong inbuck))
 	(let ( (newinbuck (make_bucketlong discr_bucket_longs 50))
 	       )
