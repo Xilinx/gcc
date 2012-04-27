@@ -4688,6 +4688,38 @@ meltgc_new_split_string (const char*str, int sep, melt_ptr_t discr_p)
 }
 
 
+/* Return a string of a given discriminant (default DISCR_STRING), for
+   the real path of a filepath which is an accessible file [perhaps a
+   directory, etc...], or else NULL */
+melt_ptr_t
+meltgc_new_real_accessible_path_string (meltobject_ptr_t discr_p, const char *str)
+{
+  char *rpstr = NULL;
+  MELT_ENTERFRAME (2, NULL);
+#define discrv     meltfram__.mcfr_varptr[0]
+#define strv       meltfram__.mcfr_varptr[1]
+  discrv = (melt_ptr_t) discr_p;
+  if (!discrv) 
+    discrv = MELT_PREDEF (DISCR_STRING);
+  if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
+    goto end;
+  if (((meltobject_ptr_t) discrv)->meltobj_magic != MELTOBMAG_STRING)
+    goto end;
+  if (!str || !str[0] || access (str, F_OK)) 
+    goto end;
+  rpstr = lrealpath (str);
+  if (!rpstr || !rpstr[0]) 
+    goto end;
+  strv = meltgc_new_string_raw_len (discrv, rpstr, strlen (rpstr));
+ end:
+  free (rpstr);
+  MELT_EXITFRAME ();
+  return strv;
+#undef discrv
+#undef strv
+}
+
+
 
 #if MELT_HAVE_DEBUG
 static long applcount_melt;

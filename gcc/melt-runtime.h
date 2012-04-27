@@ -1459,6 +1459,13 @@ meltgc_new_string_without_suffix (meltobject_ptr_t discr_p,
 				  const char* str,
 				  const char* suffix);
 
+/* Return a string of a given discriminant (default DISCR_STRING), for
+   the real path of a filepath which is an accessible file [perhaps a
+   directory, etc...], or else NULL */
+melt_ptr_t
+meltgc_new_real_accessible_path_string (meltobject_ptr_t discr_p,
+					const char *str);
+
 /* Compute the hexadecimal encoded md5sum string of a file, or NULL on
    failure.  */
 melt_ptr_t 

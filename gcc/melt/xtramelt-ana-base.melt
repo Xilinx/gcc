@@ -34,10 +34,15 @@
 
 ;; a class containing the analysis state
 (defclass class_analysis_state
+  :doc #{A class containing some analysis state, to be subclassed.}#
   :super class_proped
   :fields (
 ))
 
+(defprimitive main_input_filename () :cstring
+  :doc #{The main input file name given to GCC thru $MAIN_INPUT_FILENAME}#
+  #{ main_input_filename }#)
+  
 (defprimitive install_melt_gcc_pass 
   (:value pass :cstring positioning refpassname :long refpassnum) 
   :void
@@ -1783,6 +1788,7 @@ current function and gives its declaration in $CFUNDECL}#
  loop_index_number
  loop_inner
  loop_latch
+ main_input_filename
  make_basicblock
  make_edge
  make_loop

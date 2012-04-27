@@ -836,6 +836,24 @@ removing the MELT_DYNLOADED_SUFFIX if it ends with it, or else a copy of $STR.}#
 					    melt_string_str ((melt_ptr_t)($DIRSTR)),
 					    0))}#)
 
+
+;; real path string, if accessible
+(defprimitive make_string_real_access_path (dis :cstring filepath) :value
+  :doc #{Make a string value of discriminant $DIS for the canonical real file
+  path of $FILEPATH if it is accessible, or else NULL.}# 
+ #{/*make_string_real_access_path*/ (meltgc_new_real_accessible_path_string 
+				     ((meltobject_ptr_t) $DIS, 
+				      $FILEPATH))}#)
+
+;; likewise, for a string value filepathv
+(defprimitive make_string_real_access_path_value (dis filev) :value
+  :doc #{Make a string value of discriminant $DIS for the canonical real file
+  path of string value $FILEV if it is accessible, or else NULL.}#
+  #{/*make_string_real_access_path_value*/ (meltgc_new_real_accessible_path_string 
+					    ((meltobject_ptr_t) $DIS,
+					     melt_string_str ($FILEV)))}#)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; obsolete compilation primitives
 
@@ -3949,6 +3967,8 @@ polyhedron values.}#
  make_string_generated_c_filename
  make_string_mixloc_file
  make_string_nakedbasename
+ make_string_real_access_path
+ make_string_real_access_path_value 
  make_string_tempname_suffixed
  make_string_without_dynloaded_suffix
  make_string_without_suffix

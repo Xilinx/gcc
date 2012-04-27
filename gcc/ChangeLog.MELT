@@ -1,4 +1,15 @@
 
+2012-04-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (meltgc_new_real_accessible_path_string): New declaration.
+
+	* melt-runtime.c (meltgc_new_real_accessible_path_string): New
+	function.
+
+	* melt/warmelt-base.melt (make_string_real_access_path)
+	(make_string_real_access_path_value): New primitives.
+
+	* melt/xtramelt-ana-base.melt (main_input_filename): New primitive.
+
 2012-04-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_send_command_strbuf_to_probe): New
 	declaration.
