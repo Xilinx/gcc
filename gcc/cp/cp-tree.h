@@ -4897,7 +4897,7 @@ extern bool check_dtor_name			(tree, tree);
 
 extern tree build_conditional_expr		(tree, tree, tree, 
                                                  tsubst_flags_t);
-extern tree build_addr_func			(tree);
+extern tree build_addr_func			(tree, tsubst_flags_t);
 extern tree build_call_a			(tree, enum call_context,
 						 int, tree*);
 extern tree build_call_n			(tree, enum call_context,
@@ -4907,12 +4907,14 @@ extern bool null_ptr_cst_p			(tree);
 extern bool null_member_pointer_value_p		(tree);
 extern bool sufficient_parms_p			(const_tree);
 extern tree type_decays_to			(tree);
-extern tree build_user_type_conversion		(tree, tree, int);
+extern tree build_user_type_conversion		(tree, tree, int,
+						 tsubst_flags_t);
 extern tree build_new_function_call		(tree, VEC(tree,gc) **, bool, 
 						 enum call_context,
 						 tsubst_flags_t);
 extern tree build_operator_new_call		(tree, VEC(tree,gc) **, tree *,
-						 tree *, tree *);
+						 tree *, tree *,
+						 tsubst_flags_t);
 extern tree build_new_method_call		(tree, tree, VEC(tree,gc) **,
 						 tree, int, tree *,
 						 enum call_context,
@@ -4928,18 +4930,21 @@ extern tree build_op_call			(tree, VEC(tree,gc) **,
 						 enum call_context,
 						 tsubst_flags_t);
 extern tree build_op_delete_call		(enum tree_code, tree, tree, bool, tree, tree);
-extern bool can_convert				(tree, tree);
-extern bool can_convert_arg			(tree, tree, tree, int);
-extern bool can_convert_arg_bad			(tree, tree, tree, int);
+extern bool can_convert				(tree, tree, tsubst_flags_t);
+extern bool can_convert_arg			(tree, tree, tree, int,
+						 tsubst_flags_t);
+extern bool can_convert_arg_bad			(tree, tree, tree, int,
+						 tsubst_flags_t);
 extern bool enforce_access			(tree, tree, tree);
 extern void push_defarg_context			(tree);
 extern void pop_defarg_context			(void);
-extern tree convert_default_arg			(tree, tree, tree, int);
-extern tree convert_arg_to_ellipsis		(tree);
+extern tree convert_default_arg			(tree, tree, tree, int,
+						 tsubst_flags_t);
+extern tree convert_arg_to_ellipsis		(tree, tsubst_flags_t);
 extern tree build_x_va_arg			(tree, tree);
 extern tree cxx_type_promotes_to		(tree);
 extern tree type_passed_as			(tree);
-extern tree convert_for_arg_passing		(tree, tree);
+extern tree convert_for_arg_passing		(tree, tree, tsubst_flags_t);
 extern bool is_properly_derived_from		(tree, tree);
 extern tree initialize_reference		(tree, tree, int,
 						 tsubst_flags_t);
@@ -5187,7 +5192,6 @@ extern tree cp_build_parm_decl			(tree, tree);
 extern tree get_guard				(tree);
 extern tree get_guard_cond			(tree);
 extern tree set_guard				(tree);
-extern tree cxx_callgraph_analyze_expr		(tree *, int *);
 extern void mark_needed				(tree);
 extern bool decl_needed_p			(tree);
 extern void note_vague_linkage_fn		(tree);
@@ -5840,7 +5844,7 @@ extern tree cxx_sizeof_or_alignof_type		(tree, enum tree_code, bool);
 extern tree cxx_sizeof_nowarn                   (tree);
 extern tree is_bitfield_expr_with_lowered_type  (const_tree);
 extern tree unlowered_expr_type                 (const_tree);
-extern tree decay_conversion			(tree);
+extern tree decay_conversion			(tree, tsubst_flags_t);
 extern tree build_class_member_access_expr      (tree, tree, tree, bool,
 						 tsubst_flags_t);
 extern tree finish_class_member_access_expr     (tree, tree, bool, 
@@ -5852,7 +5856,7 @@ extern tree cp_build_indirect_ref		(tree, ref_operator,
 extern tree build_array_ref			(location_t, tree, tree);
 extern tree cp_build_array_ref			(location_t, tree, tree,
 						 tsubst_flags_t);
-extern tree get_member_function_from_ptrfunc	(tree *, tree);
+extern tree get_member_function_from_ptrfunc	(tree *, tree, tsubst_flags_t);
 extern tree cp_build_function_call              (tree, tree, enum call_context,
 						 tsubst_flags_t);
 extern tree cp_build_function_call_nary         (tree, enum call_context,
@@ -5926,7 +5930,7 @@ extern tree build_nop				(tree, tree);
 extern tree non_reference			(tree);
 extern tree lookup_anon_field			(tree, tree);
 extern bool invalid_nonstatic_memfn_p		(const_tree, tsubst_flags_t);
-extern tree convert_member_func_to_ptr		(tree, tree);
+extern tree convert_member_func_to_ptr		(tree, tree, tsubst_flags_t);
 extern tree convert_ptrmem			(tree, tree, bool, bool,
 						 tsubst_flags_t);
 extern int lvalue_or_else			(tree, enum lvalue_use,
@@ -5956,7 +5960,7 @@ extern tree digest_init				(tree, tree, tsubst_flags_t);
 extern tree digest_init_flags			(tree, tree, int);
 extern tree build_scoped_ref			(tree, tree, tree *);
 extern tree build_x_arrow			(tree, tsubst_flags_t);
-extern tree build_m_component_ref		(tree, tree);
+extern tree build_m_component_ref		(tree, tree, tsubst_flags_t);
 extern tree build_functional_cast		(tree, tree, tsubst_flags_t);
 extern tree add_exception_specifier		(tree, tree, int);
 extern tree merge_exception_specifiers		(tree, tree, tree);

@@ -963,10 +963,10 @@ reset_edge_caches (struct cgraph_node *node)
   for (edge = where->callers; edge; edge = edge->next_caller)
     if (edge->inline_failed)
       reset_edge_growth_cache (edge);
-  for (i = 0; ipa_ref_list_refering_iterate (&where->symbol.ref_list,
+  for (i = 0; ipa_ref_list_referring_iterate (&where->symbol.ref_list,
 					      i, ref); i++)
     if (ref->use == IPA_REF_ALIAS)
-      reset_edge_caches (ipa_ref_refering_node (ref));
+      reset_edge_caches (ipa_ref_referring_node (ref));
 
   if (!e)
     return;
@@ -1015,11 +1015,11 @@ update_caller_keys (fibheap_t heap, struct cgraph_node *node,
   if (!bitmap_set_bit (updated_nodes, node->uid))
     return;
 
-  for (i = 0; ipa_ref_list_refering_iterate (&node->symbol.ref_list,
+  for (i = 0; ipa_ref_list_referring_iterate (&node->symbol.ref_list,
 					      i, ref); i++)
     if (ref->use == IPA_REF_ALIAS)
       {
-	struct cgraph_node *alias = ipa_ref_refering_node (ref);
+	struct cgraph_node *alias = ipa_ref_referring_node (ref);
         update_caller_keys (heap, alias, updated_nodes, check_inlinablity_for);
       }
 
@@ -1273,10 +1273,10 @@ recursive_inlining (struct cgraph_edge *edge,
   /* Remove master clone we used for inlining.  We rely that clones inlined
      into master clone gets queued just before master clone so we don't
      need recursion.  */
-  for (node = cgraph_nodes; node != master_clone;
+  for (node = cgraph_first_function (); node != master_clone;
        node = next)
     {
-      next = node->next;
+      next = cgraph_next_function (node);
       if (node->global.inlined_to == master_clone)
 	cgraph_remove_node (node);
     }
@@ -1691,7 +1691,7 @@ ipa_inline (void)
 
   nnodes = ipa_reverse_postorder (order);
 
-  for (node = cgraph_nodes; node; node = node->next)
+  FOR_EACH_FUNCTION (node)
     node->symbol.aux = 0;
 
   if (dump_file)
@@ -1748,7 +1748,7 @@ ipa_inline (void)
 	 to be hot.  */
       for (cold = 0; cold <= 1; cold ++)
 	{
-	  for (node = cgraph_nodes; node; node = node->next)
+	  FOR_EACH_DEFINED_FUNCTION (node)
 	    {
 	      if (want_inline_function_called_once_p (node)
 		  && (cold
@@ -2031,7 +2031,7 @@ struct ipa_opt_pass_d pass_ipa_inline =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   TODO_remove_functions,		/* todo_flags_finish */
-  TODO_dump_cgraph 
+  TODO_dump_symtab 
   | TODO_remove_functions | TODO_ggc_collect	/* todo_flags_finish */
  },
  inline_generate_summary,		/* generate_summary */

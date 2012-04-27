@@ -1,7 +1,7 @@
 /* Output variables, constants and external declarations, for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
    1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010, 2011  Free Software Foundation, Inc.
+   2010, 2011, 2012  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -317,11 +317,16 @@ get_section (const char *name, unsigned int flags, tree decl)
 	  if (decl == 0)
 	    decl = sect->named.decl;
 	  gcc_assert (decl);
-	  error ("%+D causes a section type conflict with %D", 
-			decl, sect->named.decl);
-	  if (decl != sect->named.decl)
-            inform (DECL_SOURCE_LOCATION (sect->named.decl), 
-		    "%qD was declared here", sect->named.decl);
+	  if (sect->named.decl == NULL)
+	    error ("%+D causes a section type conflict", decl);
+	  else
+	    {
+	      error ("%+D causes a section type conflict with %D",
+		     decl, sect->named.decl);
+	      if (decl != sect->named.decl)
+		inform (DECL_SOURCE_LOCATION (sect->named.decl),
+			"%qD was declared here", sect->named.decl);
+	    }
 	  /* Make sure we don't error about one section multiple times.  */
 	  sect->common.flags |= SECTION_OVERRIDE;
 	}
@@ -2252,15 +2257,14 @@ mark_decl_referenced (tree decl)
       struct cgraph_node *node = cgraph_get_create_node (decl);
       if (!DECL_EXTERNAL (decl)
 	  && !node->local.finalized)
-	cgraph_mark_needed_node (node);
+	cgraph_mark_force_output_node (node);
     }
   else if (TREE_CODE (decl) == VAR_DECL)
     {
       struct varpool_node *node = varpool_node (decl);
-      varpool_mark_needed_node (node);
       /* C++ frontend use mark_decl_references to force COMDAT variables
          to be output that might appear dead otherwise.  */
-      node->force_output = true;
+      node->symbol.force_output = true;
     }
   /* else do nothing - we can get various sorts of CST nodes here,
      which do not need to be marked.  */
@@ -3933,6 +3937,13 @@ compute_reloc_for_constant (tree exp)
 	   tem = TREE_OPERAND (tem, 0))
 	;
 
+      if (TREE_CODE (tem) == MEM_REF
+	  && TREE_CODE (TREE_OPERAND (tem, 0)) == ADDR_EXPR)
+	{
+	  reloc = compute_reloc_for_constant (TREE_OPERAND (tem, 0));
+	  break;
+	}
+
       if (TREE_PUBLIC (tem))
 	reloc |= 2;
       else
@@ -4001,6 +4012,9 @@ output_addressed_constants (tree exp)
 
       if (CONSTANT_CLASS_P (tem) || TREE_CODE (tem) == CONSTRUCTOR)
 	output_constant_def (tem, 0);
+
+      if (TREE_CODE (tem) == MEM_REF)
+	output_addressed_constants (TREE_OPERAND (tem, 0));
       break;
 
     case PLUS_EXPR:
@@ -5274,12 +5288,19 @@ weak_finish_1 (tree decl)
 #endif
 }
 
+/* Fiven an assembly name, find the decl it is associated with.  */
+static tree
+find_decl (tree target)
+{
+  symtab_node node = symtab_node_for_asm (target);
+  if (node)
+    return node->symbol.decl;
+  return NULL_TREE;
+}
+
 /* This TREE_LIST contains weakref targets.  */
 
 static GTY(()) tree weakref_targets;
-
-/* Forward declaration.  */
-static tree find_decl_and_mark_needed (tree decl, tree target);
 
 /* Emit any pending weak declarations.  */
 
@@ -5306,7 +5327,7 @@ weak_finish (void)
 # if defined ASM_WEAKEN_LABEL && ! defined ASM_WEAKEN_DECL
 	  ASM_WEAKEN_LABEL (asm_out_file, IDENTIFIER_POINTER (target));
 # else
-	  tree decl = find_decl_and_mark_needed (alias_decl, target);
+	  tree decl = find_decl (target);
 
 	  if (! decl)
 	    {
@@ -5408,43 +5429,6 @@ globalize_decl (tree decl)
 }
 
 VEC(alias_pair,gc) *alias_pairs;
-
-/* Given an assembly name, find the decl it is associated with.  At the
-   same time, mark it needed for cgraph.  */
-
-static tree
-find_decl_and_mark_needed (tree decl, tree target)
-{
-  struct cgraph_node *fnode = NULL;
-  struct varpool_node *vnode = NULL;
-
-  if (TREE_CODE (decl) == FUNCTION_DECL)
-    {
-      fnode = cgraph_node_for_asm (target);
-      if (fnode == NULL)
-	vnode = varpool_node_for_asm (target);
-    }
-  else
-    {
-      vnode = varpool_node_for_asm (target);
-      if (vnode == NULL)
-	fnode = cgraph_node_for_asm (target);
-    }
-
-  if (fnode)
-    {
-      cgraph_mark_needed_node (fnode);
-      return fnode->symbol.decl;
-    }
-  else if (vnode)
-    {
-      varpool_mark_needed_node (vnode);
-      vnode->force_output = 1;
-      return vnode->symbol.decl;
-    }
-  else
-    return NULL_TREE;
-}
 
 /* Output the assembler code for a define (equate) using ASM_OUTPUT_DEF
    or ASM_OUTPUT_DEF_FROM_DECLS.  The function defines the symbol whose
@@ -5751,7 +5735,7 @@ finish_aliases_1 (void)
     {
       tree target_decl;
 
-      target_decl = find_decl_and_mark_needed (p->decl, p->target);
+      target_decl = find_decl (p->target);
       if (target_decl == NULL)
 	{
 	  if (symbol_alias_set_contains (defined, p->target))
@@ -5857,7 +5841,7 @@ assemble_alias (tree decl, tree target)
   /* If the target has already been emitted, we don't have to queue the
      alias.  This saves a tad of memory.  */
   if (cgraph_global_info_ready)
-    target_decl = find_decl_and_mark_needed (decl, target);
+    target_decl = find_decl (target);
   else
     target_decl= NULL;
   if (target_decl && TREE_ASM_WRITTEN (target_decl))
@@ -5963,12 +5947,12 @@ dump_tm_clone_pairs (VEC(tm_alias_pair,heap) *tm_alias_pairs)
 	 TM_GETTMCLONE.  If neither of these are true, we didn't generate
 	 a clone, and we didn't call it indirectly... no sense keeping it
 	 in the clone table.  */
-      if (!dst_n || !dst_n->needed)
+      if (!dst_n || !dst_n->analyzed)
 	continue;
 
       /* This covers the case where we have optimized the original
 	 function away, and only access the transactional clone.  */
-      if (!src_n || !src_n->needed)
+      if (!src_n || !src_n->analyzed)
 	continue;
 
       if (!switched)

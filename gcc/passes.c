@@ -703,16 +703,12 @@ dump_passes (void)
 
   create_pass_tab();
 
-  n = cgraph_nodes;
-  while (n)
-    {
-      if (DECL_STRUCT_FUNCTION (n->symbol.decl))
-        {
-          node = n;
-          break;
-        }
-      n = n->next;
-    }
+  FOR_EACH_DEFINED_FUNCTION (n)
+    if (DECL_STRUCT_FUNCTION (n->symbol.decl))
+      {
+	node = n;
+	break;
+      }
 
   if (!node)
     return;
@@ -1663,8 +1659,8 @@ do_per_function (void (*callback) (void *data), void *data)
   else
     {
       struct cgraph_node *node;
-      for (node = cgraph_nodes; node; node = node->next)
-	if (node->analyzed && gimple_has_body_p (node->symbol.decl)
+      FOR_EACH_DEFINED_FUNCTION (node)
+	if (gimple_has_body_p (node->symbol.decl)
 	    && (!node->clone_of || node->symbol.decl != node->clone_of->symbol.decl))
 	  {
 	    push_cfun (DECL_STRUCT_FUNCTION (node->symbol.decl));
@@ -1867,10 +1863,10 @@ execute_todo (unsigned int flags)
       cgraph_remove_unreachable_nodes (true, dump_file);
     }
 
-  if ((flags & TODO_dump_cgraph) && dump_file && !current_function_decl)
+  if ((flags & TODO_dump_symtab) && dump_file && !current_function_decl)
     {
       gcc_assert (!cfun);
-      dump_cgraph (dump_file);
+      dump_symtab (dump_file);
       /* Flush the file.  If verification fails, we won't be able to
 	 close the file before aborting.  */
       fflush (dump_file);
@@ -2347,8 +2343,8 @@ ipa_write_summaries (void)
     }
   vset = varpool_node_set_new ();
 
-  for (vnode = varpool_nodes; vnode; vnode = vnode->next)
-    if (vnode->needed && (!vnode->alias || vnode->alias_of))
+  FOR_EACH_DEFINED_VARIABLE (vnode)
+    if ((!vnode->alias || vnode->alias_of))
       varpool_node_set_add (vset, vnode);
 
   ipa_write_summaries_1 (set, vset);

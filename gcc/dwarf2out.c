@@ -10165,7 +10165,9 @@ dbx_reg_number (const_rtx rtl)
     }
 #endif
 
-  return DBX_REGISTER_NUMBER (regno);
+  regno = DBX_REGISTER_NUMBER (regno);
+  gcc_assert (regno != INVALID_REGNUM);
+  return regno;
 }
 
 /* Optionally add a DW_OP_piece term to a location description expression.
@@ -14570,7 +14572,7 @@ reference_to_unused (tree * tp, int * walk_subtrees,
   else if (TREE_CODE (*tp) == VAR_DECL)
     {
       struct varpool_node *node = varpool_get_node (*tp);
-      if (!node || !node->needed)
+      if (!node || !node->analyzed)
 	return *tp;
     }
   else if (TREE_CODE (*tp) == FUNCTION_DECL
@@ -17058,7 +17060,7 @@ premark_types_used_by_global_vars_helper (void **slot,
       /* Ask cgraph if the global variable really is to be emitted.
          If yes, then we'll keep the DIE of ENTRY->TYPE.  */
       struct varpool_node *node = varpool_get_node (entry->var_decl);
-      if (node && node->needed)
+      if (node && node->analyzed)
 	{
 	  die->die_perennial_p = 1;
 	  /* Keep the parent DIEs as well.  */

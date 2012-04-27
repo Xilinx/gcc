@@ -1777,7 +1777,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 		     producing dead clone (for further cloning).  In all
 		     other cases we hit a bug (incorrect node sharing is the
 		     most common reason for missing edges).  */
-		  gcc_assert (dest->needed || !dest->analyzed
+		  gcc_assert (!dest->analyzed
 			      || dest->symbol.address_taken
 		  	      || !id->src_node->analyzed
 			      || !id->dst_node->analyzed);
@@ -3871,8 +3871,9 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
     fn = DECL_ABSTRACT_ORIGIN (fn);
 
   /* Don't try to inline functions that are not well-suited to inlining.  */
-  if (!cgraph_inline_p (cg_edge, &reason))
+  if (cg_edge->inline_failed)
     {
+      reason = cg_edge->inline_failed;
       /* If this call was originally indirect, we do not want to emit any
 	 inlining related warnings or sorry messages because there are no
 	 guarantees regarding those.  */

@@ -1844,7 +1844,8 @@ build_function_decl (gfc_symbol * sym, bool global)
 
   if (!current_function_decl
       && !sym->attr.entry_master && !sym->attr.is_main_program
-      && (sym->attr.access != ACCESS_PRIVATE || sym->binding_label))
+      && (sym->attr.access != ACCESS_PRIVATE || sym->binding_label
+	  || sym->attr.public_used))
     TREE_PUBLIC (fndecl) = 1;
 
   attributes = add_attributes_to_decl (attr, NULL_TREE);
@@ -4748,7 +4749,8 @@ gfc_trans_entry_master_switch (gfc_entry_list * el)
   tmp = gfc_finish_block (&block);
   /* The first argument selects the entry point.  */
   val = DECL_ARGUMENTS (current_function_decl);
-  tmp = build3_v (SWITCH_EXPR, val, tmp, NULL_TREE);
+  tmp = fold_build3_loc (input_location, SWITCH_EXPR, NULL_TREE,
+			 val, tmp, NULL_TREE);
   return tmp;
 }
 

@@ -4076,7 +4076,7 @@ cp_parser_primary_expression (cp_parser *parser,
 	    && cp_lexer_next_token_is (parser->lexer, CPP_OPEN_BRACE))
 	  {
 	    /* Statement-expressions are not allowed by the standard.  */
-	    pedwarn (token->location, OPT_pedantic, 
+	    pedwarn (token->location, OPT_Wpedantic, 
 		     "ISO C++ forbids braced-groups within expressions");
 
 	    /* And they're not allowed outside of a function-body; you
@@ -5662,7 +5662,7 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 	      {
 		/* Warn the user that a compound literal is not
 		   allowed in standard C++.  */
-		pedwarn (input_location, OPT_pedantic, "ISO C++ forbids compound-literals");
+		pedwarn (input_location, OPT_Wpedantic, "ISO C++ forbids compound-literals");
 		/* For simplicity, we disallow compound literals in
 		   constant-expressions.  We could
 		   allow compound literals of integer type, whose
@@ -6555,7 +6555,7 @@ cp_parser_unary_expression (cp_parser *parser, bool address_p, bool cast_p,
 		   expressions. So pedwarn if alignof is used with a non-
 		   type expression. However, __alignof__ is ok.  */
 		if (!strcmp (IDENTIFIER_POINTER (token->u.value), "alignof"))
-		  pedwarn (token->location, OPT_pedantic,
+		  pedwarn (token->location, OPT_Wpedantic,
 			   "ISO C++ does not allow %<alignof%> "
 			   "with a non-type");
 
@@ -7602,7 +7602,7 @@ cp_parser_question_colon_clause (cp_parser* parser, tree logical_or_expr)
   if (cp_parser_allow_gnu_extensions_p (parser)
       && token->type == CPP_COLON)
     {
-      pedwarn (token->location, OPT_pedantic, 
+      pedwarn (token->location, OPT_Wpedantic, 
                "ISO C++ does not allow ?: with omitted middle operand");
       /* Implicit true clause.  */
       expr = NULL_TREE;
@@ -8406,7 +8406,7 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
 	{
 	  /* An explicit expression exists.  */
 	  cp_lexer_consume_token (parser->lexer);
-          pedwarn (input_location, OPT_pedantic,
+          pedwarn (input_location, OPT_Wpedantic,
                    "ISO C++ does not allow initializers "
                    "in lambda expression capture lists");
 	  capture_init_expr = cp_parser_assignment_expression (parser,
@@ -8536,7 +8536,7 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
 	 parameter-declaration-clause of a lambda-declarator.  */
       for (t = param_list; t; t = TREE_CHAIN (t))
 	if (TREE_PURPOSE (t))
-	  pedwarn (DECL_SOURCE_LOCATION (TREE_VALUE (t)), OPT_pedantic,
+	  pedwarn (DECL_SOURCE_LOCATION (TREE_VALUE (t)), OPT_Wpedantic,
 		   "default argument specified for lambda parameter");
 
       cp_parser_require (parser, CPP_CLOSE_PAREN, RT_CLOSE_PAREN);
@@ -9110,7 +9110,7 @@ cp_parser_compound_statement (cp_parser *parser, tree in_statement_expr,
     return error_mark_node;
   if (DECL_DECLARED_CONSTEXPR_P (current_function_decl)
       && !function_body)
-    pedwarn (input_location, OPT_pedantic,
+    pedwarn (input_location, OPT_Wpedantic,
 	     "compound-statement in constexpr function");
   /* Begin the compound-statement.  */
   compound_stmt = begin_compound_stmt (in_try ? BCS_TRY_BLOCK : 0);
@@ -10129,7 +10129,7 @@ cp_parser_jump_statement (cp_parser* parser)
       if (cp_lexer_next_token_is (parser->lexer, CPP_MULT))
 	{
 	  /* Issue a warning about this use of a GNU extension.  */
-	  pedwarn (token->location, OPT_pedantic, "ISO C++ forbids computed gotos");
+	  pedwarn (token->location, OPT_Wpedantic, "ISO C++ forbids computed gotos");
 	  /* Consume the '*' token.  */
 	  cp_lexer_consume_token (parser->lexer);
 	  /* Parse the dependent expression.  */
@@ -10287,7 +10287,7 @@ cp_parser_declaration_seq_opt (cp_parser* parser)
 	     invalid.  Allow it unless we're being pedantic.  */
 	  cp_lexer_consume_token (parser->lexer);
 	  if (!in_system_header)
-	    pedwarn (input_location, OPT_pedantic, "extra %<;%>");
+	    pedwarn (input_location, OPT_Wpedantic, "extra %<;%>");
 	  continue;
 	}
 
@@ -14597,7 +14597,7 @@ cp_parser_enum_specifier (cp_parser* parser)
 	    {
 	      /* Are template enums allowed in ISO? */
 	      if (template_parm_scope_p ())
-		pedwarn (type_start_token->location, OPT_pedantic,
+		pedwarn (type_start_token->location, OPT_Wpedantic,
 			 "%qD is an enumeration template", name);
 	      /* ignore a typename reference, for it will be solved by name
 	         in start_enum.  */
@@ -14850,7 +14850,7 @@ cp_parser_enumerator_list (cp_parser* parser, tree type)
       if (cp_lexer_next_token_is (parser->lexer, CPP_CLOSE_BRACE))
 	{
 	  if (cxx_dialect < cxx0x && !in_system_header)
-	    pedwarn (input_location, OPT_pedantic,
+	    pedwarn (input_location, OPT_Wpedantic,
                      "comma at end of enumerator list");
 	  break;
 	}
@@ -18242,7 +18242,7 @@ cp_parser_initializer_list (cp_parser* parser, bool* non_constant_p)
 	  && cp_lexer_peek_nth_token (parser->lexer, 2)->type == CPP_COLON)
 	{
 	  /* Warn the user that they are using an extension.  */
-	  pedwarn (input_location, OPT_pedantic, 
+	  pedwarn (input_location, OPT_Wpedantic, 
 		   "ISO C++ does not allow designated initializers");
 	  /* Consume the identifier.  */
 	  designator = cp_lexer_consume_token (parser->lexer)->u.value;
@@ -18256,7 +18256,7 @@ cp_parser_initializer_list (cp_parser* parser, bool* non_constant_p)
 	       && cp_lexer_peek_nth_token (parser->lexer, 3)->type == CPP_EQ)
 	{
 	  /* Warn the user that they are using an extension.  */
-	  pedwarn (input_location, OPT_pedantic,
+	  pedwarn (input_location, OPT_Wpedantic,
 		   "ISO C++ does not allow C99 designated initializers");
 	  /* Consume the `.'.  */
 	  cp_lexer_consume_token (parser->lexer);
@@ -19474,7 +19474,7 @@ cp_parser_member_declaration (cp_parser* parser)
 	{
 	  cp_token *token = cp_lexer_peek_token (parser->lexer);
 	  if (!in_system_header_at (token->location))
-	    pedwarn (token->location, OPT_pedantic, "extra %<;%>");
+	    pedwarn (token->location, OPT_Wpedantic, "extra %<;%>");
 	}
       else
 	{
@@ -19492,7 +19492,7 @@ cp_parser_member_declaration (cp_parser* parser)
 	      /* If the `friend' keyword was present, the friend must
 		 be introduced with a class-key.  */
 	       if (!declares_class_or_enum && cxx_dialect < cxx0x)
-		 pedwarn (decl_spec_token_start->location, OPT_pedantic,
+		 pedwarn (decl_spec_token_start->location, OPT_Wpedantic,
 			  "in C++03 a class-key must be used "
 			  "when declaring a friend");
 	       /* In this case:
@@ -19719,7 +19719,7 @@ cp_parser_member_declaration (cp_parser* parser)
 		     possible that this fact is an oversight in the
 		     standard, since a pure function may be defined
 		     outside of the class-specifier.  */
-		  if (initializer)
+		  if (initializer && initializer_token_start)
 		    error_at (initializer_token_start->location,
 			      "pure-specifier on function-definition");
 		  decl = cp_parser_save_member_function_body (parser,

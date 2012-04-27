@@ -1,3 +1,311 @@
+2012-04-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/52979
+	* gcc.c-torture/compile/pr52979-1.c: New test.
+	* gcc.c-torture/execute/pr52979-1.c: New test.
+	* gcc.c-torture/execute/pr52979-2.c: New test.
+
+2012-04-25  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.target/i386/l_fma_float_5.c: Adjust.
+	* gcc.target/i386/l_fma_double_4.c: Likewise.
+	* gcc.target/i386/l_fma_float_2.c: Likewise.
+	* gcc.target/i386/l_fma_float_6.c: Likewise.
+	* gcc.target/i386/l_fma_double_1.c: Likewise.
+	* gcc.target/i386/l_fma_double_5.c: Likewise.
+	* gcc.target/i386/l_fma_float_3.c: Likewise.
+	* gcc.target/i386/l_fma_double_2.c: Likewise.
+	* gcc.target/i386/l_fma_double_6.c: Likewise.
+	* gcc.target/i386/l_fma_float_4.c: Likewise.
+	* gcc.target/i386/l_fma_double_3.c: Likewise.
+	* gcc.target/i386/l_fma_float_1.c: Likewise.
+
+2012-04-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53058
+	* gcc.c-torture/compile/pr53058.c: New test.
+
+2012-04-25  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/53088
+	* gcc.target/i386/pr39082-1.c: Update warning location.
+
+2012-04-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/52880
+	* gcc.dg/pr52880.c: New test.
+
+2012-04-25  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* gcc.dg/m-un-2.c: Update.
+	* gcc.dg/20011021-1.c: Update.
+
+2012-04-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52196
+	* gfortran.dg/realloc_on_assign_14.f90: New.
+
+2012-04-24  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR testsuite/52641
+	PR tree-optimizations/52891
+	* gcc.c-torture/compile/pr52891-2.c: Fix test for 16-bit int.
+
+2012-04-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/52363
+	* g++.dg/cpp0x/sfinae35.C: New.
+	* g++.dg/cpp0x/sfinae36.C: Likewise.
+
+2012-04-24  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR target/47197
+	* gcc.target/powerpc/pr47197.c: New test.
+
+2012-04-24  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53085
+	* g++.dg/torture/pr53085.C: New testcase.
+
+2012-04-24  Andrew Pinski  <apinski@cavium.com>
+
+	PR tree-opt/33512
+	* gcc.dg/tree-ssa/andor-3.c: New testcase.
+	* gcc.dg/tree-ssa/andor-4.c: New testcase.
+	* gcc.dg/tree-ssa/andor-5.c: New testcase.
+
+2012-04-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/53084
+	* gcc.c-torture/execute/pr53084.c: New test.
+
+2012-04-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* g++.dg/cpp0x/noexcept15.C: Adjust for Rev 186726 library changes.
+
+2012-04-23  Andrew Pinski  <apinski@cavium.com>
+
+	* gcc.dg/tree-ssa/forwprop-17.c: New testcase.
+
+2012-04-23  Bill Schmidt  <wschmidt@linux.ibm.com>
+
+	PR regression/53076
+	* gcc.dg/torture/builtin-explog-1.c: Skip if -O0.
+	* gcc.dg/torture/builtin-power-1.c: Likewise.
+
+2012-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53070
+	* gcc.dg/torture/pr53070.c: New testcase.
+
+2012-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR c/53060
+	* gcc.dg/pr53060.c: New testcase.
+
+2012-04-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimizations/52891
+	* gcc.c-torture/compile/pr52891-1.c: New test.
+	* gcc.c-torture/compile/pr52891-2.c: New test.
+
+2012-04-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53051
+	* gfortran.dg/read_float_4.f90: New.
+
+2012-04-21  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 35441
+	* c-c++-common/pr35441.C: New.
+
+2012-04-20  Ian Lance Taylor  <iant@google.com>
+
+	* go.test/go-test.exp (go-set-goarch): Recognize powerpc*-*-*.
+	(go-gc-tests): Skip nilptr.go on powerpc*-*-*.
+
+2012-04-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/x86_64/abi/avx/test_passing_unions.c: Avoid undefined
+	array access.
+	* gcc.target/x86_64/abi/avx/test_passing_structs.c: Likewise.
+
+2012-04-20  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR rtl-optimization/44214
+	* gcc.dg/pr44214-1.c: New test.
+	* gcc.dg/pr44214-2.c: Likewise.
+	* gcc.dg/pr44214-3.c: Likewise.
+
+2012-04-20  Richard Guenther  <rguenther@suse.de>
+
+	* g++.dg/torture/20120420-1.C: New testcase.
+
+2012-04-19  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* gcc.target/i386/pr45830.c: Update scan-tree-dump.
+
+2012-04-19  Christian Bruel  <christian.bruel@st.com>
+
+	* gcc.dg/pr52283.c: New test.
+
+2012-04-19  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* gcc.dg/pr37985.c: New test.
+
+2012-04-19  Richard Guenther  <rguenther@suse.de>
+
+	PR rtl-optimization/44688
+	* gcc.dg/var-expand1.c: Increase array size to make unrolling
+	possibly profitable.
+
+2012-04-18  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR tree-optimization/52976
+	* gfortran.dg/reassoc_11.f: New test.
+
+2012-04-18  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR tree-optimization/52976
+	* gfortran.dg/reassoc_7.f: New test.
+	* gfortran.dg/reassoc_8.f: Likewise.
+	* gfortran.dg/reassoc_9.f: Likewise.
+	* gfortran.dg/reassoc_10.f: Likewise.
+
+2012-04-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/52422
+	* g++.dg/cpp0x/sfinae33.C: New.
+	* g++.dg/cpp0x/sfinae34.C: Likewise.
+
+2012-04-18  Joey Ye  <joey.ye@arm.com>
+
+	* gcc.target/arm/thumb1-imm.c: Skip it in non-thumb1 target.
+
+2012-04-18  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.target/x86_64/abi/test_passing_unions.c: Avoid undefined
+	array access.
+	* gcc.target/x86_64/abi/test_passing_structs.c: Likewise.
+	* gcc.target/i386/avx256-unaligned-load-4.c: Fix array sizes.
+
+2012-04-17  Tom de Vries  <tom@codesourcery.com>
+
+	* g++.dg/pr51264-4.C: New test.
+
+2012-04-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/52599
+	* g++.dg/cpp0x/constexpr-ctor10.C: New.
+
+2012-04-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53003
+	* g++.dg/parse/crash59.C: New.
+
+2012-04-17  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/18437
+	* gfortran.dg/vect/rnflow-trs2a2.f90: New test.
+
+2012-04-17  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/53011
+	* g++.dg/torture/pr53011.C: New testcase.
+
+2012-04-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/38543
+	* g++.dg/cpp0x/variadic131.C: New.
+
+	PR c++/52008
+	* g++.dg/cpp0x/variadic130.C: New.
+
+	PR c++/50830
+	* g++.dg/cpp0x/variadic129.C: New.
+
+	PR c++/50303
+	* g++.dg/cpp0x/variadic128.C: New.
+
+2012-04-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52864
+	* gfortran.dg/pointer_intent_6.f90: New.
+
+2012-04-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52916
+	* gfortran.dg/public_private_module_3.f90: Use dg-additional-sources
+	to include public_private_module_4.f90.
+	* gfortran.dg/public_private_module_4.f90: Skip this test on all
+	targets.
+
+2012-04-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/49152
+	* g++.dg/diagnostic/operator1.C: New.
+	* g++.dg/ext/label5.C: Adjust.
+	* g++.dg/ext/va-arg1.C: Likewise.
+	* g++.dg/other/error20.C: Likewise.
+	* g++.dg/other/error20.C: Likewise.
+	* g++.dg/other/error16.C: Likewise.
+	* g++.dg/other/error10.C: Likewise.
+	* g++.dg/parse/error30.C: Likewise.
+	* g++.dg/cpp0x/lambda/lambda-err1.C: Likewise.
+
+2012-04-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/51148
+	* g++.dg/cpp0x/variadic127.C: New.
+
+2012-04-16  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lib/plugin-support.exp (plugin-test-execute): Properly determine
+	testcase name.
+	Use fail, pass instead of unresolved.
+	Don't log $optstr.
+
+	PR testsuite/52948
+	* g++.dg/plugin/dumb_plugin.c (pass_dumb_plugin_example): Remove
+	TODO_dump_func.
+	* g++.dg/plugin/selfassign.c (pass_warn_self_assign): Likewise.
+	* gcc.dg/plugin/one_time_plugin.c (one_pass): Likewise.
+	* gcc.dg/plugin/selfassign.c (pass_warn_self_assign): Likewise.
+
+2012-04-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/52968
+	* gfortran.dg/typebound_call_23.f03: New test case.
+
+2012-04-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47220
+	* g++.dg/cpp0x/variadic126.C: New.
+
+	PR c++/52380
+	* g++.dg/cpp0x/variadic125.C: New.
+
+	PR c++/52292
+	* g++.dg/cpp0x/variadic124.C: New.
+
+	PR c++/52706
+	* g++.dg/cpp0x/nullptr27.C: New.
+
+	PR c++/52818
+	* g++.dg/warn/format8.C: New.
+
+2012-04-15  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/51082
+	* gfortran.dg/proc_ptr_comp_34.f90: New test case.
+
+2012-04-14  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52916
+	PR fortran/40973
+	* gfortran.dg/public_private_module_3.f90: New.
+	* gfortran.dg/public_private_module_4.f90: New.
+
 2012-04-14  Tom de Vries  <tom@codesourcery.com>
 
 	* gcc.dg/superblock.c: New test.
@@ -2300,7 +2608,7 @@
 	* gcc.dg/lto/trans-mem-3_1.c: Provide correct argument types for
 	TM builtins.
 
-2012-01-25    Georg-Johann Lay  <avr@gjlay.de>
+2012-01-25  Georg-Johann Lay  <avr@gjlay.de>
 
 	* gcc.target/avr/torture/int24-mul.c: Rename __pgm to __flash.
 

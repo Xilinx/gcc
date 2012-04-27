@@ -490,6 +490,7 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
   char *cc = NULL;
   char *dd = NULL;
   tree loop_end_comp = NULL_TREE;
+  tree slab, cond_expr, mod_expr;
   
   push_function_context ();
 
@@ -647,16 +648,29 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
 
   cilk_outline (outer, fndecl, &loop_body, cfd->decl_map, CILK_BLOCK_FOR);
   
-  loop_body =
-    build5 (FOR_STMT, void_type_node, loop_var,
-	    build2 (LT_EXPR, boolean_type_node, loop_var, cfd->max_parm),
-	    build2 (MODIFY_EXPR, void_type_node, loop_var,
-		    build2 (PLUS_EXPR, count_type, loop_var,
-			    build_int_cst (count_type, 1))),
-	    loop_body, NULL_TREE);
+  c_for_loop = push_stmt_list ();
+  slab = build_decl (UNKNOWN_LOCATION, LABEL_DECL, NULL_TREE, void_type_node);
+  top_label = build1 (LABEL_EXPR, void_type_node, slab);
+  DECL_ARTIFICIAL (slab) = 0;
+  DECL_IGNORED_P (slab) = 1;
+  DECL_CONTEXT (slab) = fndecl;
 
- 
+  mod_expr = build2 (MODIFY_EXPR, void_type_node, loop_var,
+		     build2 (PLUS_EXPR, count_type, loop_var,
+			     build_int_cst (count_type, 1)));
+  cond_expr = build3 (COND_EXPR, void_type_node,
+		      build2 (LT_EXPR, boolean_type_node, loop_var,
+			      cfd->max_parm),
+		      build1 (GOTO_EXPR, void_type_node, slab);
+		      build_empty_stmt (UNKNOWN_LOCATION));
+
+  add_stmt (top_label);
   add_stmt (loop_body);
+  add_stmt (mod_expr);
+  add_stmt (cond_expr);
+
+  pop_stmt_list (c_for_loop);
+  add_stmt (c_for_loop);
 
   DECL_INITIAL (fndecl) = make_node (BLOCK);
   TREE_USED (DECL_INITIAL (fndecl)) = 1;
@@ -1099,7 +1113,7 @@ check_incr(tree var, tree arith_type, tree incr)
 		        TYPE_MAIN_VARIANT (TREE_TYPE (var)))) &&
 	  (!can_convert_arg (TREE_TYPE (var),
 			    TYPE_MAIN_VARIANT (TREE_TYPE (exp_incr)),
-			    TREE_TYPE (exp_incr), 0)))
+			    TREE_TYPE (exp_incr), 0, tf_warning_or_error)))
 	{
 	  error("loop increment expression is not convertable to type "
 		"loop var");
@@ -1343,7 +1357,8 @@ validate_for_record(tree c_for_stmt, tree var)
     }
 
   if (TYPE_MAIN_VARIANT (TREE_TYPE (exp_plus)) != var_type
-      && !can_convert_arg (var_type, TREE_TYPE (exp_plus), exp_plus, 0))
+      && !can_convert_arg (var_type, TREE_TYPE (exp_plus), exp_plus, 0,
+			   tf_warning_or_error))
     {
       error("result of operation%c(%T,%T) not convertable to type of loop var.",
 	    (direction >= 0) ? '+' : '-', var_type, d_type);
@@ -1366,7 +1381,7 @@ validate_for_record(tree c_for_stmt, tree var)
     }
 
   if (!can_convert_arg (boolean_type_node, TREE_TYPE (exp_cond), exp_cond,
-		       LOOKUP_NORMAL))
+		       LOOKUP_NORMAL, tf_warning_or_error))
     {
       return false;
     }
@@ -2487,12 +2502,12 @@ cp_extract_for_fields (struct cilk_for_desc *cfd, tree for_stmt)
 
   if (TREE_OPERAND (cond, 0) == var)
     {
-      limit = decay_conversion (TREE_OPERAND (cond, 1));
+      limit = decay_conversion (TREE_OPERAND (cond, 1), tf_warning_or_error);
 
     }
   else if (TREE_OPERAND (cond, 1) == var)
     {
-      limit = decay_conversion (TREE_OPERAND (cond, 0));
+      limit = decay_conversion (TREE_OPERAND (cond, 0), tf_warning_or_error);
       cond_direction = -cond_direction;
     }
   else

@@ -4267,9 +4267,9 @@ tm_mangle (tree old_asm_id)
 }
 
 static inline void
-ipa_tm_mark_needed_node (struct cgraph_node *node)
+ipa_tm_mark_force_output_node (struct cgraph_node *node)
 {
-  cgraph_mark_needed_node (node);
+  cgraph_mark_force_output_node (node);
   /* ??? function_and_variable_visibility will reset
      the needed bit, without actually checking.  */
   node->analyzed = 1;
@@ -4328,8 +4328,8 @@ ipa_tm_create_version_alias (struct cgraph_node *node, void *data)
 
   record_tm_clone_pair (old_decl, new_decl);
 
-  if (info->old_node->needed)
-    ipa_tm_mark_needed_node (new_node);
+  if (info->old_node->symbol.force_output)
+    ipa_tm_mark_force_output_node (new_node);
   return false;
 }
 
@@ -4381,8 +4381,8 @@ ipa_tm_create_version (struct cgraph_node *old_node)
   record_tm_clone_pair (old_decl, new_decl);
 
   cgraph_call_function_insertion_hooks (new_node);
-  if (old_node->needed)
-    ipa_tm_mark_needed_node (new_node);
+  if (old_node->symbol.force_output)
+    ipa_tm_mark_force_output_node (new_node);
 
   /* Do the same thing, but for any aliases of the original node.  */
   {
@@ -4769,7 +4769,7 @@ ipa_tm_execute (void)
   bitmap_obstack_initialize (&tm_obstack);
 
   /* For all local functions marked tm_callable, queue them.  */
-  for (node = cgraph_nodes; node; node = node->next)
+  FOR_EACH_DEFINED_FUNCTION (node)
     if (is_tm_callable (node->symbol.decl)
 	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
       {
@@ -4778,8 +4778,8 @@ ipa_tm_execute (void)
       }
 
   /* For all local reachable functions...  */
-  for (node = cgraph_nodes; node; node = node->next)
-    if (node->reachable && node->lowered
+  FOR_EACH_DEFINED_FUNCTION (node)
+    if (node->lowered
 	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
       {
 	/* ... marked tm_pure, record that fact for the runtime by
@@ -4931,9 +4931,9 @@ ipa_tm_execute (void)
 	}
 
       /* Propagate back to referring aliases as well.  */
-      for (j = 0; ipa_ref_list_refering_iterate (&node->symbol.ref_list, j, ref); j++)
+      for (j = 0; ipa_ref_list_referring_iterate (&node->symbol.ref_list, j, ref); j++)
 	{
-	  caller = ref->refering.cgraph_node;
+	  caller = cgraph (ref->referring);
 	  if (ref->use == IPA_REF_ALIAS
 	      && !caller->local.tm_may_enter_irr)
 	    {
@@ -4946,8 +4946,8 @@ ipa_tm_execute (void)
 
   /* Now validate all tm_safe functions, and all atomic regions in
      other functions.  */
-  for (node = cgraph_nodes; node; node = node->next)
-    if (node->reachable && node->lowered
+  FOR_EACH_DEFINED_FUNCTION (node)
+    if (node->lowered
 	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
       {
 	d = get_cg_data (&node, true);
@@ -4994,8 +4994,8 @@ ipa_tm_execute (void)
 	    ipa_tm_transform_clone (node);
 	}
     }
-  for (node = cgraph_nodes; node; node = node->next)
-    if (node->reachable && node->lowered
+  FOR_EACH_DEFINED_FUNCTION (node)
+    if (node->lowered
 	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
       {
 	d = get_cg_data (&node, true);
@@ -5008,7 +5008,7 @@ ipa_tm_execute (void)
   VEC_free (cgraph_node_p, heap, irr_worklist);
   bitmap_obstack_release (&tm_obstack);
 
-  for (node = cgraph_nodes; node; node = node->next)
+  FOR_EACH_FUNCTION (node)
     node->symbol.aux = NULL;
 
 #ifdef ENABLE_CHECKING

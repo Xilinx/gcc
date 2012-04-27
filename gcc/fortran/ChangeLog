@@ -1,3 +1,52 @@
+2012-04-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52196
+	* lang.opt (Wrealloc-lhs, Wrealloc-lhs-all): New flags.
+	* gfortran.h (gfc_option_t): Add them.
+	* options.c (gfc_init_options, gfc_post_options,
+	gfc_handle_option): Handle them.
+	* invoke.texi: Document them.
+	* trans-expr.c (realloc_lhs_warning): New function.
+	(gfc_trans_arrayfunc_assign,
+	alloc_scalar_allocatable_for_assignment,
+	gfc_trans_assignment_1): Use it.
+
+2012-04-18  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* trans-decl.c (gfc_trans_entry_master_switch): Build SWITCH_EXPR
+	with NULL_TREE type instead of void_type_node.
+	* trans-io.c (io_result): Likewise.
+	* trans-stmt.c (gfc_trans_integer_select,
+	gfc_trans_character_select): Likewise.
+
+2012-04-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52864
+	* expr.c (gfc_check_vardef_context): Fix assignment check for
+	pointer components.
+
+2012-04-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/52968
+	* class.c (gfc_build_class_symbol): Make sure the 'f2k_derived'
+	namespace is present.
+
+2012-04-15  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/51082
+	* trans-expr.c (gfc_conv_expr_reference): Check if the expression is a
+	simple function call (or a more involved PPC reference).
+
+2012-04-15  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52916
+	PR fortran/40973
+	* gfortran.h (symbol_attribute): Add public_used.
+	* interface.c (check_sym_interfaces, check_uop_interfaces,
+	gfc_check_interfaces): Set it.
+	* resolve.c (resolve_typebound_procedure): Ditto.
+	* trans-decl.c (build_function_decl): Use it.
+
 2012-04-11  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/52729

@@ -657,7 +657,7 @@ create_elem_vec_fn (void)
 {
   struct cgraph_node *ii_node, *copied_node;
   
-  for (ii_node = cgraph_nodes; ii_node != NULL; ii_node = ii_node->next)
+  FOR_EACH_DEFINED_FUNCTION (ii_node)
     {
       tree node_decl = ii_node->symbol.decl;
       if (is_elem_fn (node_decl)
