@@ -201,7 +201,6 @@ genericize_cp_loop (tree *stmt_p, location_t start_locus, tree cond, tree body,
 
   blab = begin_bc_block (bc_break, start_locus);
   clab = begin_bc_block (bc_continue, start_locus);
-  reset_seq = NULL;
 
   if (incr && EXPR_P (incr))
     SET_EXPR_LOCATION (incr, start_locus);
@@ -313,7 +312,6 @@ genericize_for_stmt (tree *stmt_p, int *walk_subtrees, void *data)
 		      ps_index);
   append_to_statement_list (loop, &expr);
   *stmt_p = expr;
->>>>>>> .merge-right.r186839
 }
 
 /* Genericize a WHILE_STMT node *STMT_P.  */

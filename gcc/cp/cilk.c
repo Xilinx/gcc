@@ -490,7 +490,7 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
   char *cc = NULL;
   char *dd = NULL;
   tree loop_end_comp = NULL_TREE;
-  tree slab, cond_expr, mod_expr;
+  tree c_for_loop, top_label, slab, cond_expr, mod_expr;
   
   push_function_context ();
 
@@ -661,7 +661,7 @@ cp_build_cilk_for_body (struct cilk_for_desc *cfd)
   cond_expr = build3 (COND_EXPR, void_type_node,
 		      build2 (LT_EXPR, boolean_type_node, loop_var,
 			      cfd->max_parm),
-		      build1 (GOTO_EXPR, void_type_node, slab);
+		      build1 (GOTO_EXPR, void_type_node, slab),
 		      build_empty_stmt (UNKNOWN_LOCATION));
 
   add_stmt (top_label);
