@@ -1,3 +1,80 @@
+2012-04-30  Andreas Tobler  <andreast@fgznet.ch>
+
+	Backport from mainline
+	2012-03-21  Andreas Tobler  <andreast@fgznet.ch>
+
+	* testsuite/23_containers/vector/bool/modifiers/insert/31370.cc:
+	Skip this test on powerpc64-*-freebsd*.
+
+2012-04-25  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/scoped_allocator (scoped_allocator::__outermost): Do
+	not pass non-POD to varargs function.
+	* testsuite/20_util/scoped_allocator/1.cc: Fix test.
+
+2012-04-23  Chris Jefferson  <chris@bubblescope.net>
+
+	PR testsuite/53046
+	* testsuite/25_algorithms/stable_partition/mem_check.cc: Fix size
+	of array A.
+	* testsuite/25_algorithms/stable_sort/mem_check.cc: Likewise.
+
+2012-04-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/53067
+	* include/bits/hashtable_policy.h: Change inheritances to public.
+	* testsuite/23_containers/unordered_map/requirements/53067.cc: New.
+	* testsuite/23_containers/unordered_set/requirements/53067.cc: Likewise.
+
+2012-04-22  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/53027
+	* include/bits/ptr_traits.h (pointer_traits::rebind): Make public.
+	* testsuite/20_util/pointer_traits/requirements/typedefs.cc: Check
+	rebind works.
+
+2012-04-21  Alan Modra  <amodra@gmail.com>
+
+	PR libstdc++/52839
+	* acinclude.m4 (_GLIBCXX_ATOMIC_BUILTINS): Do not depend on
+	glibcxx_cv_atomic_long_long.
+	* configure: Regenerate.
+
+2012-04-16  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	PR bootstrap/52840
+	* src/Makefile.am (build-debug): Do not adjust vpath dir, remove
+	Makefile.tmp
+	* src/Makefile.in: Adjust as per above.
+
+2012-04-16  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/52689
+	* libsupc++/Makefile.am (LTCXXCOMPILE, CXXLINK): Tweak.
+	* libsupc++/Makefile.in: Regenerated.
+	* src/Makefile.am (LTCXXCOMPILE, CXXLINK): Tweak.
+	(libstdc___la_SOURCES): Add in compatiblity files, with content
+	that varies with -DPIC.
+	* src/Makefile.in: Regenerated.
+	* src/c++11/Makefile.am (LTCXXCOMPILE, CXXLINK): Tweak.
+	* src/c++11/Makefile.in: Regenerated.
+	* src/c++11/compatibility-atomic-c++0x.cc: Guard with PIC.
+	* src/c++11/compatibility-c++0x.cc: Same.
+	* src/c++11/future.cc: Consolidate compatibility bits into..
+	* src/c++11/mutex.cc: Consolidate compatibility bits into..
+	* src/c++11/compatibility-thread-cxx0x.cc: ...here. New.
+	* src/c++98/Makefile.am (LTCXXCOMPILE, CXXLINK): Tweak.
+	* src/c++98/Makefile.in: Regenerated.
+	* src/c++98/compatibility-list-2.cc: Guard with PIC.
+	* src/c++98/compatibility.cc: Tweak comments.
+
+2012-04-16  Benjamin Kosnik  <bkoz@redhat.com>
+
+	    * include/ext/pb_ds/detail/pat_trie_/
+	    constructors_destructor_fn_imps.hpp: Increment after recursion.
+	    * include/ext/pb_ds/detail/pat_trie_/pat_trie_base.hpp: Convert
+	    node_type markup from brief.
+
 2012-04-14  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/52699

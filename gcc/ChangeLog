@@ -1,3 +1,192 @@
+2012-05-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-04-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/53136
+	* ipa-prop.c (ipa_print_node_jump_functions): Wrap multiple
+	calls to cgraph_node_name in xstrdup.
+	(ipa_make_edge_direct_to_target): Ditto.
+	* tree-sra.c (convert_callers_for_node): Ditto.
+	* lto-symtab.c (lto_cgraph_replace_node): Ditto.
+	* ipa-cp.c (perhaps_add_new_callers): Ditto.
+	* cgraphunit.c (cgraph_redirect_edge_call_stmt_to_callee): Ditto.
+	(cgraph_materialize_all_clones): Ditto.
+	* ipa-inline.c (report_inline_failed_reason): Ditto.
+	(want_early_inline_function_p): Ditto.
+	(edge_badness): Ditto.
+	(update_edge_key): Ditto.
+	(flatten_function): Ditto.
+	(ipa_inline): Ditto.
+	(inline_always_inline_functions): Ditto.
+	(early_inline_small_functions): Ditto.
+
+2012-04-30  Andreas Tobler  <andreast@fgznet.ch>
+
+	Backport from mainline
+	2012-03-21  Andreas Tobler  <andreast@fgznet.ch>
+
+	* configure.ac (HAVE_LD_NO_DOT_SYMBOLS): Add powerpc64-*-freebsd*.
+	Introduce emul_name to select the right linker emulation for
+	powerpc64-*-freebsd*.
+	* configure: Regenerate.
+	* config.gcc: Add bits to support powerpc64-*-freebsd*.
+	* config/rs6000/freebsd.h (POWERPC_FREEBSD): Define.
+	* config/rs6000/freebsd64.h: New file.
+	* config/rs6000/rs6000.c (rs6000_option_override_internal): Use
+	POWERPC_FREEBSD.
+	(rs6000_savres_strategy): Likewise.
+	(rs6000_savres_routine_name): Likewise.
+	(rs6000_elf_file_end): Likewise.
+	* config/rs6000/t-freebsd64: New file.
+	* config/rs6000/sysv4.h (SUBTARGET_OVERRIDE_OPTIONS): Set the
+	rs6000_current_abi for 64-bit FreeBSD to ABI_AIX.
+
+2012-04-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-04-27  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR target/53138
+	* config/i386/i386.md (x86_mov<mode>cc_0_m1_neg): Add clobber.
+
+2012-04-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/i386/i386.c (ix86_handle_struct_attribute): Use the proper
+	predicate to discriminate types.
+
+2012-04-27  Richard Guenther  <rguenther@suse.de>
+
+	PR c/51527
+	* convert.c (convert_to_integer): Avoid infinite recursion for
+	target-defined built-in types.
+
+2012-04-26  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR target/53120
+	* config/cris/cris.md ("*andhi_lowpart_v32")
+	("*andqi_lowpart_v32"): Change first input-only operand from
+	a (match_operand ...) to (match_dup 0).  Drop alternatives with
+	const_int-matching constraints for redundancy.
+	("*andhi_lowpart_non_v32", "*andqi_lowpart_non_v32"): Ditto.  Drop
+	three-operand alternative.
+
+2012-04-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-04-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*add<mode>_2): Add r/r/0 alternative.
+	(*addsi_2_zext): Ditto.
+	(*add<mode>_3): Ditto.
+	(*addsi_3_zext): Ditto.
+	(*add<mode>_5): Ditto.
+
+2012-04-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/52880
+	* c-typeck.c (set_nonincremental_init,
+	set_nonincremental_init_from_string): Pass true instead of false
+	as IMPLICIT to add_pending_init.
+
+2012-04-24  Georg-Johann Lay  <avr@gjlay.de>
+
+	Backport from 2012-04-24 mainline r186768.
+
+	PR target/53065
+	* config/avr/avr.h (HARD_REGNO_CALL_PART_CLOBBERED): New hook define.
+
+2012-04-24  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53085
+	* tree-ssa-pre.c (eliminate): Do not eliminate volatile redundant
+	stores.
+
+2012-04-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/53084
+	* varasm.c (compute_reloc_for_constant): Handle ADDR_EXPR
+	of MEM_REF.
+	(output_addressed_constants): Likewise.
+
+	PR middle-end/52999
+	* varasm.c (get_section): Don't ICE for section conflicts with
+	built-in section kinds.
+
+2012-04-23  David Edelsohn  <dje.gcc@gmail.com>
+
+	* config/rs6000/sync.md (fetchop_name): Change ior attribute to "or".
+
+2012-04-23  Georg-Johann Lay  <avr@gjlay.de>
+
+	* doc/extend.texi (AVR Named Address Spaces): Fix typos.
+
+2012-04-23  Richard Guenther  <rguenther@suse.de>
+
+	PR c/53060
+	* c-typeck.c (build_binary_op): Fix typo.
+
+2012-04-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimizations/52891
+	* tree-vect-patterns.c (adjust_bool_pattern): Use
+	build_nonstandard_type even if rhs1 has unsigned INTEGER_TYPE,
+	but with non-standard precision.
+
+2012-04-22  Ian Lance Taylor  <iant@google.com>
+
+	* godump.c (go_output_typedef): Dump size of structs.
+
+2012-04-20  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	Backport from mainline:
+
+	* config/arm/arm.c (arm_print_operand): Fix invalid alignment
+	hints for 'A' operand types.
+
+2012-04-19  Georg-Johann Lay  <avr@gjlay.de>
+
+	Backport from 2012-04-19 mainline r186588.
+
+	PR target/53033
+	* config/avr/avr.c (avr_out_load_psi): Fix assembler template for
+	the case *(X+const).
+
+2012-04-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/sync.md (fetchop_name): Change ior attribute to "or".
+
+2012-04-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/53020
+	* config/i386/sync.md (atomic_<code><mode>): Rename to
+	atomic_<logic><mode>.
+
+2012-04-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-04-12  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52932
+	* config/i386/avx2intrin.h (_mm256_permutevar8x32_ps): Change second
+	argument type to __m256i.  Update call to __builtin_ia32_permvarsf256.
+	* config/i386/sse.md (avx2_permvarv8sf): Change operand 1 to V8SI.
+	(avx2_permvarv8sf, avx2_permvarv8si): Switch operands 1 and 2.
+	* config/i386/i386.c (bdesc_args) <__builtin_ia32_permvarsf256>:
+	Update builtin type to V8SF_FTYPE_V8SF_V8SI.
+	(ix86_expand_vec_perm): Update calls to gen_avx2_permvarv8si and
+	gen_avx2_permvarv8sf.
+
+2012-04-16  Martin Jambor  <mjambor@suse.cz>
+
+	Backported from mainline
+
+	2012-04-13  Martin Jambor  <mjambor@suse.cz>
+	PR middle-end/52939
+
+	* gimple-fold.c (gimple_get_virt_method_for_binfo): Bail out if
+	fold_ctor_reference returns a zero constant.
+
 2012-04-13  H.J. Lu  <hongjiu.lu@intel.com>
 
 	Backported from mainline

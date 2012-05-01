@@ -19910,7 +19910,7 @@ ix86_expand_vec_perm (rtx operands[])
 	  vt = force_reg (maskmode, vt);
 	  mask = gen_lowpart (maskmode, mask);
 	  if (maskmode == V8SImode)
-	    emit_insn (gen_avx2_permvarv8si (t1, vt, mask));
+	    emit_insn (gen_avx2_permvarv8si (t1, mask, vt));
 	  else
 	    emit_insn (gen_avx2_pshufbv32qi3 (t1, mask, vt));
 
@@ -19944,13 +19944,13 @@ ix86_expand_vec_perm (rtx operands[])
 	     the high bits of the shuffle elements.  No need for us to
 	     perform an AND ourselves.  */
 	  if (one_operand_shuffle)
-	    emit_insn (gen_avx2_permvarv8si (target, mask, op0));
+	    emit_insn (gen_avx2_permvarv8si (target, op0, mask));
 	  else
 	    {
 	      t1 = gen_reg_rtx (V8SImode);
 	      t2 = gen_reg_rtx (V8SImode);
-	      emit_insn (gen_avx2_permvarv8si (t1, mask, op0));
-	      emit_insn (gen_avx2_permvarv8si (t2, mask, op1));
+	      emit_insn (gen_avx2_permvarv8si (t1, op0, mask));
+	      emit_insn (gen_avx2_permvarv8si (t2, op0, mask));
 	      goto merge_two;
 	    }
 	  return;
@@ -19958,13 +19958,13 @@ ix86_expand_vec_perm (rtx operands[])
 	case V8SFmode:
 	  mask = gen_lowpart (V8SFmode, mask);
 	  if (one_operand_shuffle)
-	    emit_insn (gen_avx2_permvarv8sf (target, mask, op0));
+	    emit_insn (gen_avx2_permvarv8sf (target, op0, mask));
 	  else
 	    {
 	      t1 = gen_reg_rtx (V8SFmode);
 	      t2 = gen_reg_rtx (V8SFmode);
-	      emit_insn (gen_avx2_permvarv8sf (t1, mask, op0));
-	      emit_insn (gen_avx2_permvarv8sf (t2, mask, op1));
+	      emit_insn (gen_avx2_permvarv8sf (t1, op0, mask));
+	      emit_insn (gen_avx2_permvarv8sf (t2, op1, mask));
 	      goto merge_two;
 	    }
 	  return;
@@ -19977,7 +19977,7 @@ ix86_expand_vec_perm (rtx operands[])
 	  t2 = gen_reg_rtx (V8SImode);
 	  emit_insn (gen_avx_vec_concatv8si (t1, op0, op1));
 	  emit_insn (gen_avx_vec_concatv8si (t2, mask, mask));
-	  emit_insn (gen_avx2_permvarv8si (t1, t2, t1));
+	  emit_insn (gen_avx2_permvarv8si (t1, t1, t2));
 	  emit_insn (gen_avx_vextractf128v8si (target, t1, const0_rtx));
 	  return;
 
@@ -19987,7 +19987,7 @@ ix86_expand_vec_perm (rtx operands[])
 	  mask = gen_lowpart (V4SFmode, mask);
 	  emit_insn (gen_avx_vec_concatv8sf (t1, op0, op1));
 	  emit_insn (gen_avx_vec_concatv8sf (t2, mask, mask));
-	  emit_insn (gen_avx2_permvarv8sf (t1, t2, t1));
+	  emit_insn (gen_avx2_permvarv8sf (t1, t1, t2));
 	  emit_insn (gen_avx_vextractf128v8sf (target, t1, const0_rtx));
 	  return;
 
@@ -26908,7 +26908,7 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_pbroadcastv2di, "__builtin_ia32_pbroadcastq128", IX86_BUILTIN_PBROADCASTQ128, UNKNOWN, (int) V2DI_FTYPE_V2DI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_permvarv8si, "__builtin_ia32_permvarsi256", IX86_BUILTIN_VPERMVARSI256, UNKNOWN, (int) V8SI_FTYPE_V8SI_V8SI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_permv4df, "__builtin_ia32_permdf256", IX86_BUILTIN_VPERMDF256, UNKNOWN, (int) V4DF_FTYPE_V4DF_INT },
-  { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_permvarv8sf, "__builtin_ia32_permvarsf256", IX86_BUILTIN_VPERMVARSF256, UNKNOWN, (int) V8SF_FTYPE_V8SF_V8SF },
+  { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_permvarv8sf, "__builtin_ia32_permvarsf256", IX86_BUILTIN_VPERMVARSF256, UNKNOWN, (int) V8SF_FTYPE_V8SF_V8SI },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_permv4di, "__builtin_ia32_permdi256", IX86_BUILTIN_VPERMDI256, UNKNOWN, (int) V4DI_FTYPE_V4DI_INT },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_permv2ti, "__builtin_ia32_permti256", IX86_BUILTIN_VPERMTI256, UNKNOWN, (int) V4DI_FTYPE_V4DI_V4DI_INT },
   { OPTION_MASK_ISA_AVX2, CODE_FOR_avx2_extracti128, "__builtin_ia32_extract128i256", IX86_BUILTIN_VEXTRACT128I256, UNKNOWN, (int) V2DI_FTYPE_V4DI_INT },
@@ -32043,8 +32043,7 @@ ix86_handle_struct_attribute (tree *node, tree name,
   else
     type = node;
 
-  if (!(type && (TREE_CODE (*type) == RECORD_TYPE
-		 || TREE_CODE (*type) == UNION_TYPE)))
+  if (!(type && RECORD_OR_UNION_TYPE_P (*type)))
     {
       warning (OPT_Wattributes, "%qE attribute ignored",
 	       name);

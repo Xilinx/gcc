@@ -1860,6 +1860,7 @@ determine_specialization (tree template_id,
 	{
 	  tree decl_arg_types;
 	  tree fn_arg_types;
+	  tree insttype;
 
 	  /* In case of explicit specialization, we need to check if
 	     the number of template headers appearing in the specialization
@@ -1927,7 +1928,8 @@ determine_specialization (tree template_id,
 	       template <> void f<int>();
 	     The specialization f<int> is invalid but is not caught
 	     by get_bindings below.  */
-	  if (list_length (fn_arg_types) != list_length (decl_arg_types))
+	  if (cxx_dialect < cxx11
+	      && list_length (fn_arg_types) != list_length (decl_arg_types))
 	    continue;
 
 	  /* Function templates cannot be specializations; there are
@@ -1949,6 +1951,18 @@ determine_specialization (tree template_id,
 	    /* We cannot deduce template arguments that when used to
 	       specialize TMPL will produce DECL.  */
 	    continue;
+
+	  if (cxx_dialect >= cxx11)
+	    {
+	      /* Make sure that the deduced arguments actually work.  */
+	      insttype = tsubst (TREE_TYPE (fn), targs, tf_none, NULL_TREE);
+	      if (insttype == error_mark_node)
+		continue;
+	      fn_arg_types
+		= skip_artificial_parms_for (fn, TYPE_ARG_TYPES (insttype));
+	      if (!compparms (fn_arg_types, decl_arg_types))
+		continue;
+	    }
 
 	  /* Save this template, and the arguments deduced.  */
 	  templates = tree_cons (targs, fn, templates);
@@ -6437,6 +6451,7 @@ convert_template_argument (tree parm,
   is_tmpl_type = 
     ((TREE_CODE (arg) == TEMPLATE_DECL
       && TREE_CODE (DECL_TEMPLATE_RESULT (arg)) == TYPE_DECL)
+     || (requires_tmpl_type && TREE_CODE (arg) == TYPE_ARGUMENT_PACK)
      || TREE_CODE (arg) == TEMPLATE_TEMPLATE_PARM
      || TREE_CODE (arg) == UNBOUND_CLASS_TEMPLATE);
 
@@ -6508,7 +6523,9 @@ convert_template_argument (tree parm,
     {
       if (requires_tmpl_type)
 	{
-	  if (TREE_CODE (TREE_TYPE (arg)) == UNBOUND_CLASS_TEMPLATE)
+	  if (template_parameter_pack_p (parm) && ARGUMENT_PACK_P (orig_arg))
+	    val = orig_arg;
+	  else if (TREE_CODE (TREE_TYPE (arg)) == UNBOUND_CLASS_TEMPLATE)
 	    /* The number of argument required is not known yet.
 	       Just accept it for now.  */
 	    val = TREE_TYPE (arg);
@@ -6891,7 +6908,7 @@ coerce_template_parms (tree parms,
             {
               /* We don't know how many args we have yet, just
                  use the unconverted ones for now.  */
-              new_inner_args = args;
+              new_inner_args = inner_args;
               break;
             }
         }
@@ -9563,7 +9580,7 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
         }
 
       /* Substitute into the PATTERN with the altered arguments.  */
-      if (TREE_CODE (t) == EXPR_PACK_EXPANSION)
+      if (!TYPE_P (pattern))
         TREE_VEC_ELT (result, i) = 
           tsubst_expr (pattern, args, complain, in_decl,
                        /*integral_constant_expression_p=*/false);

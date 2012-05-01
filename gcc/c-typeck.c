@@ -7598,7 +7598,7 @@ set_nonincremental_init (struct obstack * braced_init_obstack)
 
   FOR_EACH_CONSTRUCTOR_ELT (constructor_elements, ix, index, value)
     {
-      add_pending_init (index, value, NULL_TREE, false,
+      add_pending_init (index, value, NULL_TREE, true,
 			braced_init_obstack);
     }
   constructor_elements = 0;
@@ -7691,7 +7691,7 @@ set_nonincremental_init_from_string (tree str,
 	}
 
       value = build_int_cst_wide (type, val[1], val[0]);
-      add_pending_init (purpose, value, NULL_TREE, false,
+      add_pending_init (purpose, value, NULL_TREE, true,
                         braced_init_obstack);
     }
 
@@ -9734,7 +9734,7 @@ build_binary_op (location_t location, enum tree_code code,
 	      sc = convert (TREE_TYPE (type0), sc);
 	      op1 = build_vector_from_val (type0, sc);
 	      if (!maybe_const)
-		op0 = c_wrap_maybe_const (op1, true);
+		op1 = c_wrap_maybe_const (op1, true);
 	      orig_type1 = type1 = TREE_TYPE (op1);
 	      code1 = TREE_CODE (type1);
 	      converted = 1;
