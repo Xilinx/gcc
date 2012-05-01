@@ -444,8 +444,7 @@ get_tinfo_decl (tree type)
 	CLASSTYPE_TYPEINFO_VAR (TYPE_MAIN_VARIANT (type)) = d;
 
       /* Add decl to the global array of tinfo decls.  */
-      if (!L_IPO_IS_AUXILIARY_MODULE)
-        VEC_safe_push (tree, gc, unemitted_tinfo_decls, d);
+      VEC_safe_push (tree, gc, unemitted_tinfo_decls, d);
     }
 
   return d;

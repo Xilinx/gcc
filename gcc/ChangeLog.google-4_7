@@ -1,3 +1,12 @@
+2012-05-01   Rong Xu  <xur@google.com>
+
+	Backport r187028 from google-main.
+
+	2012-05-01   Rong Xu  <xur@google.com>
+
+		* gcc/cp/rtti.c (get_tinfo_decl): generate tinfo for aux 
+		modules in LIPO.
+
 2012-04-25   Diego Novillo  <dnovillo@google.com>
 
 	Add better commit message for recent merge.
