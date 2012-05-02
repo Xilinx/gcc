@@ -4710,11 +4710,11 @@ meltgc_new_real_accessible_path_string (meltobject_ptr_t discr_p, const char *st
   rpstr = lrealpath (str);
   if (!rpstr || !rpstr[0]) 
     goto end;
-  strv = meltgc_new_string_raw_len (discrv, rpstr, strlen (rpstr));
+  strv = meltgc_new_string_raw_len ((meltobject_ptr_t)discrv, rpstr, strlen (rpstr));
  end:
   free (rpstr);
   MELT_EXITFRAME ();
-  return strv;
+  return (melt_ptr_t) strv;
 #undef discrv
 #undef strv
 }
@@ -5481,6 +5481,11 @@ melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
   enum {MELTPIPE_READ=0, MELTPIPE_WRITE=1}; /* for readability. */
   int pipetoprobe[2] = {-1, -1};
   int pipefromprobe[2] = {-1, -1};
+  char *probefullcmd = NULL;
+  int cmdfd = -1; /* probe command channel, from MELT to probe */
+  int reqfd = -1;   /* probe request channel, from probe to MELT */
+  char cmdstrfd[16];
+  char reqstrfd[16];
   pid_t pid = -1;
   if (melt_probe_pid)
     melt_fatal_error("melt_probe_start probe already started pid %d", (int) melt_probe_pid);
@@ -5511,6 +5516,15 @@ melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
     melt_fatal_error ("melt_probe_start cannot create pipefromprobe; %m for command %s", probecmd);
   debugeprintf("melt_probe_start pipefromprobe r=%d w=%d", 
 	       pipefromprobe[MELTPIPE_READ], pipefromprobe[MELTPIPE_WRITE]);
+  cmdfd = pipefromprobe[MELTPIPE_WRITE]; /* probe command channel, from MELT to probe */
+  reqfd = pipetoprobe[MELTPIPE_READ];   /* probe request channel, from probe to MELT */
+  snprintf (cmdstrfd, sizeof(cmdstrfd), "%d", cmdfd);
+  snprintf (reqstrfd, sizeof(reqstrfd), "%d", reqfd);
+  probefullcmd = concat (probecmd, 
+			 " ", MELTPROBE_COMMAND_ARG, " ", cmdstrfd, 
+			 " ", MELTPROBE_REQUEST_ARG, " ", reqstrfd, 
+			 NULL);
+  debugeprintf("melt_probe_start cmdfd %d reqfd %d probefullcmd %s", cmdfd, reqfd, probefullcmd);
   fflush (NULL);
   pid = fork();
   if (pid < 0) 
@@ -5518,13 +5532,6 @@ melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
   else if (pid == 0) 
     { /* child process for probe */
       int cfd;
-      char *probefullcmd;
-      int cmdfd = pipefromprobe[MELTPIPE_WRITE]; /* probe command channel, from MELT to probe */
-      int reqfd = pipetoprobe[MELTPIPE_READ];   /* probe request channel, from probe to MELT */
-      char cmdstrfd[16];
-      char reqstrfd[16];
-      snprintf (cmdstrfd, sizeof(cmdstrfd), "%d", cmdfd);
-      snprintf (reqstrfd, sizeof(reqstrfd), "%d", reqfd);
       /* we are in the child process, so close the other side of the pipes */
       close (pipefromprobe[MELTPIPE_READ]);
       close (pipetoprobe[MELTPIPE_WRITE]);
@@ -5533,11 +5540,7 @@ melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
 	  continue;
 	(void) close(cfd);
       };
-      probefullcmd = concat (probecmd, 
-			     " ", MELTPROBE_COMMAND_ARG, " ", cmdstrfd, 
-			     " ", MELTPROBE_REQUEST_ARG, " ", reqstrfd, 
-			     NULL);
-      execlp(MELTPROBE_SHELL, "-c", probefullcmd, NULL);
+      execlp(MELTPROBE_SHELL, MELTPROBE_SHELL, "-c", probefullcmd, NULL);
       _exit(127);
       return;
     }
@@ -5549,9 +5552,9 @@ melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
       debugeprintf ("melt_probe_start pid %d toprobefd %d fromprobefd %d", 
 		    (int) pid, pipetoprobe[MELTPIPE_WRITE], pipefromprobe[MELTPIPE_READ]);
       melt_probe_pid = pid;
+      melt_probe_cmdto_fd = pipetoprobe[MELTPIPE_WRITE];
       if (toprobefdptr)
 	*toprobefdptr = pipetoprobe[MELTPIPE_WRITE];
-      melt_probe_cmdto_fd = pipetoprobe[MELTPIPE_WRITE];
       if (fromprobefdptr)
 	*fromprobefdptr = pipefromprobe[MELTPIPE_READ];
       melt_probe_reqfrom_fd  = pipefromprobe[MELTPIPE_READ];
@@ -5560,6 +5563,7 @@ melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
 	      "MELT started probe %s; pid %d; commands to probe fd#%d & requests from probe fd #%d", 
 	      probecmd, (int) melt_probe_pid, melt_probe_cmdto_fd, melt_probe_reqfrom_fd);
       atexit (melt_probe_stop);
+      free (probefullcmd), probefullcmd = NULL;
     }
 }
 
@@ -5574,7 +5578,7 @@ melt_send_command_strbuf_to_probe (melt_ptr_t buf)
   if (!melt_probe_pid || melt_probe_cmdto_fd < 0)
     return;
   buflen = melt_output_length (buf);
-  bufstr = melt_strbuf_str (buf);
+  bufstr = CONST_CAST (char*, melt_strbuf_str (buf));
   if (buflen<3 || !bufstr)
     return;
   gcc_assert (bufstr[buflen-2] == '\n');

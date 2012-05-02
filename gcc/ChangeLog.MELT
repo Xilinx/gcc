@@ -1,5 +1,11 @@
 
 2012-05-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_new_real_accessible_path_string): Add
+	cast.
+	(melt_probe_start): Move debug messages.
+	(melt_send_command_strbuf_to_probe): Add CONST_CAST.
+
+2012-05-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

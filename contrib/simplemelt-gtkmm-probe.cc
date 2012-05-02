@@ -399,7 +399,7 @@ public:
     {
       Glib::OptionEntry entry_trace_melt;
       entry_trace_melt.set_long_name("trace");
-      entry_trace_melt.set_short_name('t');
+      entry_trace_melt.set_short_name('T');
       entry_trace_melt.set_description("Show trace window");
       add_entry(entry_trace_melt, _trace_melt);
     }
@@ -1521,12 +1521,21 @@ SmeltAppl::process_command_from_melt(std::string& str)
 ////////////////////////////////////////////////////////////////
 int main (int argc, char** argv)
 {
-  SmeltOptionGroup optgroup;
-  smelt_options_context.set_main_group(optgroup);
-  SmeltAppl app(argc, argv);
-  optgroup.setup_appl(app);
-  SMELT_DEBUG("running pid " << (int)getpid());
-  app.run();
+  auto progname = (argc>0)?(argv[0]):"Simple Melt Probe";
+  try {
+    SmeltOptionGroup optgroup;
+    smelt_options_context.set_main_group(optgroup);
+    SmeltAppl app(argc, argv);
+    optgroup.setup_appl(app);
+    SMELT_DEBUG("running pid " << (int)getpid());
+    app.run();
+  } catch (std::exception ex) {
+    std::clog << progname << " got exception: " << ex.what() << std::endl;
+    exit(1);
+  } catch (Glib::Error opterr) {
+    std::clog << progname << " got Glib error: " << opterr.what() << std::endl;
+    exit(1);
+  }
   return 0;
 }
 
