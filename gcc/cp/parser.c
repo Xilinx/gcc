@@ -4168,6 +4168,7 @@ cp_parser_primary_expression (cp_parser *parser,
 	  {
 	    tree expression;
 	    tree type;
+	    source_location type_location;
 
 	    /* The `__builtin_va_arg' construct is used to handle
 	       `va_arg'.  Consume the `__builtin_va_arg' token.  */
@@ -4179,6 +4180,7 @@ cp_parser_primary_expression (cp_parser *parser,
 							  /*cast_p=*/false, NULL);
 	    /* Look for the `,'.  */
 	    cp_parser_require (parser, CPP_COMMA, RT_COMMA);
+	    type_location = cp_lexer_peek_token (parser->lexer)->location;
 	    /* Parse the type-id.  */
 	    type = cp_parser_type_id (parser);
 	    /* Look for the closing `)'.  */
@@ -4188,7 +4190,7 @@ cp_parser_primary_expression (cp_parser *parser,
 	    if (cp_parser_non_integral_constant_expression (parser,
 							    NIC_VA_ARG))
 	      return error_mark_node;
-	    return build_x_va_arg (expression, type);
+	    return build_x_va_arg (type_location, expression, type);
 	  }
 
 	case RID_OFFSETOF:
@@ -15375,7 +15377,7 @@ cp_parser_asm_definition (cp_parser* parser)
 	    }
 	}
       else
-	cgraph_add_asm_node (string);
+	add_asm_node (string);
     }
 }
 
@@ -21967,6 +21969,9 @@ cp_parser_sizeof_operand (cp_parser* parser, enum rid keyword)
 				 /*attrlist=*/NULL);
 	}
     }
+  else if (pack_expansion_p)
+    permerror (cp_lexer_peek_token (parser->lexer)->location,
+	       "%<sizeof...%> argument must be surrounded by parentheses");
 
   /* If the type-id production did not work out, then we must be
      looking at the unary-expression production.  */

@@ -231,6 +231,15 @@ init_gnat_to_gnu (void)
   associate_gnat_to_gnu = ggc_alloc_cleared_vec_tree (max_gnat_nodes);
 }
 
+/* Destroy the association of GNAT nodes to GCC trees.  */
+
+void
+destroy_gnat_to_gnu (void)
+{
+  ggc_free (associate_gnat_to_gnu);
+  associate_gnat_to_gnu = NULL;
+}
+
 /* GNAT_ENTITY is a GNAT tree node for an entity.  Associate GNU_DECL, a GCC
    tree node, with GNAT_ENTITY.  If GNU_DECL is not a ..._DECL node, abort.
    If NO_CHECK is true, the latter check is suppressed.
@@ -278,6 +287,15 @@ void
 init_dummy_type (void)
 {
   dummy_node_table = ggc_alloc_cleared_vec_tree (max_gnat_nodes);
+}
+
+/* Destroy the association of GNAT nodes to GCC trees as dummies.  */
+
+void
+destroy_dummy_type (void)
+{
+  ggc_free (dummy_node_table);
+  dummy_node_table = NULL;
 }
 
 /* Make a dummy type corresponding to GNAT_TYPE.  */
@@ -703,6 +721,19 @@ finish_record_type (tree record_type, tree field_list, int rep_level,
 	 case where there is a rep clause but all fields have errors and
 	 no longer have a position.  */
       TYPE_SIZE (record_type) = 0;
+
+      /* Ensure we use the traditional GCC layout for bitfields when we need
+	 to pack the record type or have a representation clause.  The other
+	 possible layout (Microsoft C compiler), if available, would prevent
+	 efficient packing in almost all cases.  */
+#ifdef TARGET_MS_BITFIELD_LAYOUT
+      if (TARGET_MS_BITFIELD_LAYOUT && TYPE_PACKED (record_type))
+	decl_attributes (&record_type,
+			 tree_cons (get_identifier ("gcc_struct"),
+				    NULL_TREE, NULL_TREE),
+			 ATTR_FLAG_TYPE_IN_PLACE);
+#endif
+
       layout_type (record_type);
     }
 
@@ -2005,7 +2036,6 @@ rest_of_subprog_body_compilation (tree subprog_decl)
   /* Dump functions before gimplification.  */
   dump_function (TDI_original, subprog_decl);
 
-  /* ??? This special handling of nested functions is probably obsolete.  */
   if (!decl_function_context (subprog_decl))
     cgraph_finalize_function (subprog_decl, false);
   else
@@ -4876,9 +4906,8 @@ gnat_write_global_declarations (void)
     if (TREE_CODE (iter) == TYPE_DECL)
       debug_hooks->global_decl (iter);
 
-  /* Proceed to optimize and emit assembly.
-     FIXME: shouldn't be the front end's responsibility to call this.  */
-  cgraph_finalize_compilation_unit ();
+  /* Proceed to optimize and emit assembly. */
+  finalize_compilation_unit ();
 
   /* After cgraph has had a chance to emit everything that's going to
      be emitted, output debug information for the rest of globals.  */

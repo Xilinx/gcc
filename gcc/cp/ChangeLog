@@ -1,3 +1,46 @@
+2012-04-30  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/51033
+	* typeck.c (cp_build_array_ref): Handle VECTOR_TYPE.
+	* decl2.c (grok_array_decl): Likewise.
+
+	PR c++/51314
+	* parser.c (cp_parser_sizeof_operand): Require parentheses for
+	sizeof...
+
+2012-04-30  Dodji Seketeli  <dodji@redhat.com>
+
+	Fix location for static class members
+	* decl.c (grokdeclarator): Use the location carried by the
+	declarator for the DECL of the static class member.
+
+	Fix va_arg type location
+	* cp-tree.h (build_x_va_arg): Take an additional location
+	parameter.
+	* call.c (build_x_va_arg): Take a loc parameter for the location
+	of the type of the va_arg expression.
+	* parser.c (cp_parser_primary_expression): Pass the type of the
+	type in the va_arg expression to build_x_va_arg.
+	* pt.c (tsubst_copy): Adjust calls to build_x_va_arg.
+
+	Make conversion warnings work on NULL with -ftrack-macro-expansion
+	* call.c (conversion_null_warnings): Use the new
+	expansion_point_location_if_in_system_header.
+	* cvt.c (build_expr_type_conversion): Likewise.
+	* typeck.c (cp_build_binary_op): Likewise.
+
+2012-04-30  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* typeck.c (convert_for_assignment):  Replace
+	Wmissing-format-attribute with Wsuggest-attribute=format.
+	* call.c (convert_for_arg_passing): Likewise.
+
+2012-04-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53096
+	* class.c (check_bases_and_members): Implement core/1333, do not
+	disallow defaulted in the class body non-const ref special members.
+
 2012-04-24  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/52363

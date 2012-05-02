@@ -1,3 +1,554 @@
+2012-05-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/53160
+	* ree.c (combine_reaching_defs): Handle the case where cand->insn
+	has been modified by ree pass already.
+
+2012-05-01  Ian Lance Taylor  <iant@google.com>
+
+	PR c/37303
+	* c-decl.c (build_compound_literal): Make the decl readonly if it
+	an array of a readonly type.
+	* gimplify.c (gimplify_compound_literal_expr): Add fallback
+	parameter.  Change all callers.  If the decl is not addressable
+	and is not an l-value, make it readonly.
+
+2012-05-01  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* ira.c (allocated_reg_info_size): New static variable.
+	(expand_reg_info): Manage it. Call
+	setup_preferred_alternate_classes_for_new_pseudos.
+	(ira): Don't do it here.  Remove local allocated_reg_info_size,
+	set the global before calling find_moveable_pseudos.
+	(find_moveable_pseudos): Call expand_reg_info rather than
+	resize_reg_info.
+
+2012-05-01  Richard Henderson  <rth@redhat.com>
+
+	* common.opt (fsync-libcalls): New.
+	* doc/invoke.texi: Document it.
+	* optabs.c (init_sync_libfuncs): Honor it.
+
+2012-05-01  Kenneth Zadeck  <zadeck@naturalbridge.com>
+	    Richard Sandiford  <r.sandiford@uk.ibm.com>
+
+	* Makefile.in (lower-subreg.o, target-globals.o): Depend on
+	lower-subreg.h.
+	* lower-subreg.h: New file.
+	* target-globals.h (this_target_lower_subreg): Declare.
+	(target_globals): Add lower_subreg;
+	(restore_target_globals): Restore this_target_lower_subreg.
+	* target-globals.c: Include it.
+	(default_target_globals): Add default_target_lower_subreg.
+	(save_target_globals): Initialize target_lower_subreg.
+	* rtl.h (init_lower_subreg): Added declaration.
+	* toplev.c (backend_init_target): Call initializer for lower-subreg
+	pass.
+	* lower-subreg.c (LOG_COSTS, FORCE_LOWERING): New macros.
+	(default_target_lower_subreg): New variable.
+	(this_target_lower_subreg): Likewise.
+	(twice_word_mode, choices): New macros.
+	(shift_cost, compute_splitting_shift, compute_costs)
+	(init_lower_subreg): New functions.
+	(resolve_simple_move): Add speed_p argument.  Check choices.
+	(find_pseudo_copy): Don't check the mode size here.
+	(resolve_simple_move): Assert the mode size.
+	(find_decomposable_shift_zext): Add speed_p argument and return
+	a bool.  Check choices.
+	(resolve_shift_zext): Add comment.
+	(dump_shift_choices, dump_choices): New functions.
+	(decompose_multiword_subregs): Dump list of profitable
+	transformations.  Add code to skip non profitable transformations.
+	Update calls to simple_move and find_decomposable_shift_zext.
+
+2012-05-01  Ian Bolton  <ian.bolton@arm.com>
+            Sameera Deshpande  <sameera.deshpande@arm.com>
+            Greta Yorsh  <greta.yorsh@arm.com>
+
+	* config/arm/arm-protos.h (thumb_unexpanded_epilogue): Rename to...
+        (thumb1_unexpanded_epilogue): ...this.
+	* config/arm/arm.c (thumb_unexpanded_epilogue): Rename to...
+        (thumb1_unexpanded_epilogue): ...this.
+	* config/arm/arm.md (thumb_unexpanded_epilogue): Rename to...
+        (thumb1_unexpanded_epilogue): ...this.
+
+2012-05-01  Richard Earnshaw  <rearnsha@arm.com>
+
+	* arm/linux-eabi.h (GLIBC_DYNAMIC_LINKER_DEFAULT): Avoid ifdef
+	comparing enumeration values.  Update comments.
+
+2012-05-01  Alan Modra  <amodra@gmail.com>
+
+	PR target/53038
+	* config/rs6000/rs6000.c (load_lr_save, restore_saved_lr,
+	load_cr_save, add_crlr_cfa_restore): New functions.
+	(rs6000_restore_saved_cr): Rename to..
+	(restore_saved_cr): ..this.  Add cfa_restore notes for cr.
+	(rs6000_emit_epilogue): Use new functions.  Adjust condition
+	for emitting lr and cr cfa_restore.  Emit cfa_restores for fp
+	regs when using out-of-line restore only when shrink wrapping.
+
+2012-04-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/53136
+	* ipa-prop.c (ipa_print_node_jump_functions): Wrap multiple
+	calls to cgraph_node_name in xstrdup.
+	(ipa_make_edge_direct_to_target): Ditto.
+	* cgraph.c (dump_cgraph_node): Ditto.
+	* tree-sra.c (convert_callers_for_node): Ditto.
+	* lto-symtab.c (lto_cgraph_replace_node): Ditto.
+	* ipa-cp.c (perhaps_add_new_callers): Ditto.
+	* cgraphunit.c (cgraph_redirect_edge_call_stmt_to_callee): Ditto.
+	(cgraph_materialize_all_clones): Ditto.
+	* ipa-inline.c (report_inline_failed_reason): Ditto.
+	(want_early_inline_function_p): Ditto.
+	(edge_badness): Ditto.
+	(update_edge_key): Ditto.
+	(flatten_function): Ditto.
+	(ipa_inline): Ditto.
+	(inlinw_always_inline_functions): Ditto.
+	(early_inline_small_functions): Ditto.
+
+2012-04-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/53141
+	* config/i386/i386.md (*umul<mode><dwi>3_1): Switch places of
+	constraints 0 and 1.
+
+012-04-30  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.c (ld_plugin_symbol_resolution_names): Move to symtab.c
+	(cgraph_asm_nodes, cgraph_asm_last_node): Move to cgraphunit.c
+	(cgraph_add_to_same_comdat_group): Remove.
+	(cgraph_add_asm_node): Move to cgraphunit.c.
+	(cgraph_make_decl_local): Move to symtab.c
+	(cgraph_make_node_local_1): Update.
+	(cgraph_can_remove_if_no_direct_calls_and): Update.
+	(used_from_object_file_p): Update.
+	(resolution_used_from_other_file_p): Move to symtab.c
+	(cgraph_used_from_object_file_p): move to symtab.c
+	(verify_cgraph_node): Verify same comdat groups.
+	* cgraph.h (cgraph_asm_node): Rename to ...
+	(asm_node): ... this one.
+	(cgraph_asm_nodes): Rename to ...
+	(asm_nodes): ... this one.
+	(symtab_add_to_same_comdat_group): New function.
+	(symtab_dissolve_same_comdat_group_list): New function.
+	(symtab_used_from_object_file_p): Declare.
+	(symtab_make_decl_local): Declare.
+	(cgraph_add_to_same_comdat_group): Remove.
+	(cgraph_add_asm_node): Remove.
+	(cgraph_used_from_object_file_p, varpool_used_from_object_file_p):
+	Remove.
+	(cgraph_finalize_compilation_unit): Rename to ...
+	(finalize_compilation_unit): ... this one.
+	(cgraph_optimize): Rename to ....
+	(compile): ... this one.
+	(add_asm_node): Declare.
+	(fixup_same_cpp_alias_visibility): Declare.
+	(cgraph_make_decl_local): Remove.
+	(varpool_assemble_pending_decls): Rename to ...
+	(varpool_output_variables): ... this one.
+	(varpool_remove_unreferenced_decls): Remove.
+	* ipa-inline-transform.c (clone_inlined_nodes): Dissolve comdat groups.
+	(preserve_function_body_p): Make static.
+	* toplev.c (compile_file): Update comments; update.
+	* cgraphunit.c: Update comments.
+	(cgraph_expand_all_functions): Rename to ...
+	(expand_all_functions): ... this one; update.
+	(cgraph_mark_functions_to_output): Rename to ...
+	(mark_functions_to_output): ... this one; cleanup.
+	(cgraph_output_pending_asms): Remove prototype.
+	(asm_nodes, asm_last_node): New static vars.
+	(cgraph_process_new_functions): Update.
+	(cgraph_reset_node): Cleanup; add comment.
+	(cgraph_add_new_function): Update.
+	(cgraph_output_pending_asms): Rename to ...
+	(output_asm_statements): ... this one.
+	(add_asm_node): New function.
+	(fixup_same_cpp_alias_visibility): New function based on code
+	in cgraph_analyze_function.
+	(cgraph_analyze_function): Use it.
+	(cgraph_order_sort): Update.
+	(cgraph_output_in_order): Update.
+	(cgraph_function_versioning): Update.
+	(cgraph_optimize): Rename to ...
+	(compile): ... this one; initialize streamer hooks here.
+	(cgraph_finalize_compilation_unit): Rename to ...
+	(finalize_compilation_unit): ... this one; do not initialize streamer
+	hook here.
+	* lto-streamer-out.c (lto_output_toplevel_asms): Update.
+	* dwarf2out.c: Update ocmment.
+	* optimize.c (maybe_clone_body): Use symtab_add_to_same_comdat_group.
+	* method.c (use_thunk): Likewise.
+	* semantics.c (maybe_add_lambda_conv_op): Likewise.
+	* decl2.c (maybe_emit_vtables): Likewise.
+	(cp_write_global_declarations): Use finalize_compilation_unit.
+	* parser.c (cp_parser_asm_definition): Use add_asm_node.
+	* lto-streamer-in.c (lto_input_toplevel_asms): Use add_asm_node
+	* c-decl.c (c_write_global_declarations): Use
+	finalize_compilation_unit.
+	* langhooks.c (write_global_declarations): Update.
+	* ipa.c (cgraph_externally_visible_p): Update.
+	(dissolve_same_comdat_group_list): Remove.
+	(function_and_variable_visibility): Update.
+	* symtab.c: Inlcude lto-streamer.h and rtl.h
+	(ld_plugin_symbol_resolution_names): New.
+	(symtab_add_to_same_comdat_group): New.
+	(symtab_dissolve_same_comdat_group_list): New.
+	(resolution_used_from_other_file_p): Move here from cgraph.c
+	(symtab_used_from_object_file_p): New.
+	(symtab_make_decl_local): New.
+	* passes.c (register_pass): Update comments.
+	* c-parser.c (c_parser_asm_definition): Update.
+	* varpool.c (varpool_analyze_node): Use
+	fixup_same_cpp_alias_visibility.
+	(varpool_remove_unreferenced_decls): Make static.
+	(varpool_assemble_pending_decls): Rename to ...
+	(varpool_output_variables): ... this one; call
+	varpool_remove_unreferenced_decls.
+	(varpool_used_from_object_file_p): Remove.
+
+2012-04-30  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/51033
+	* c-typeck.c (build_array_ref): Call
+	convert_vector_to_pointer_for_subscript.
+	* doc/extend.texi (Vector Extensions): Subscripting not just for C.
+
+2012-04-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (and<mode>3): Change runtime operand mode checks
+	to compile-time "mode == <MODE>mode" checks.
+	(and splitter): Ditto.
+
+2012-04-30  Richard Henderson  <rth@redhat.com>
+
+	* config/arm/arm.md (UNSPEC_LL): New.
+	* config/arm/sync.md (atomic_loaddi, atomic_loaddi_1): New.
+	(arm_load_exclusivedi): Use %H0.
+
+2012-04-30  Jason Merrill  <jason@redhat.com>
+
+	* dwarf2out.c (comdat_symbol_id): Add const.
+	(union die_symbol_or_type_node): Add const to die_symbol.
+	(output_die_symbol, output_die, output_comp_unit): Adjust.
+
+2012-04-30  Andrew Stubbs  <ams@codesourcery.com>
+
+	* config/arm/arm.md (negdi2): Use gen_negdi2_neon.
+	* config/arm/neon.md (negdi2_neon): New insn.
+	Also add splitters for core and NEON registers.
+
+2012-04-30  Andrew Stubbs  <ams@codesourcery.com>
+
+	* config/arm/arm.c (neon_valid_immediate): Allow const_int.
+	(arm_print_operand): Add 'x' format.
+	* config/arm/constraints.md (Dn): Allow const_int.
+	* config/arm/neon.md (neon_mov<mode>): Use VDX to allow DImode.
+	Use 'x' format to print constants.
+	* config/arm/predicates.md (imm_for_neon_mov_operand): Allow const_int.
+	* config/arm/vfp.md (movdi_vfp): Disable for const_int when neon
+	is enabled.
+	(movdi_vfp_cortexa8): Likewise.
+
+2012-04-30  Ian Bolton	<ian.bolton@arm.com>
+	    Sameera Deshpande  <sameera.deshpande@arm.com>
+	    Greta Yorsh	 <greta.yorsh@arm.com>
+
+	* config/arm/arm-protos.h (ldm_stm_operation_p): New declaration.
+	* config/arm/arm.c (ldm_stm_operation_p): New function.
+	* config/arm/predicates.md (load_multiple_operation): Update predicate.
+	(store_multiple_operation): Likewise.
+
+	* config/arm/arm-protos.h (ldm_stm_operation_p): New parameters.
+	* config/arm/arm.c (ldm_stm_operation_p): New parameters.
+	* config/arm/predicates.md (load_multiple_operation): Add arguments.
+	(store_multiple_operation): Likewise.
+
+2012-04-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (and<mode>3): Expand masking operations with
+	0xff, 0xffff or 0xffffffff immediates to corresponding zero_extend RTX.
+	(and splitter): Split to DImode zero_extend RTX for DImode operand[0].
+
+2012-04-30  Dodji Seketeli  <dodji@redhat.com>
+
+	Add -Wvarargs option
+	* builtins.c (fold_builtin_next_arg):  Use OPT_Wvarargs as an
+	argument for the various warning_at calls.
+	* docs/invoke.texi: Update the documentation.
+
+2012-04-30  Dodji Seketeli  <dodji@redhat.com>
+
+	Switch -ftrack-macro-expansion=2 on by default.
+	* docs/cppopts.texi: Adjust for enabling -ftrack-macro-expansion=2
+	by default.
+
+	Fix va_start related location
+	* builtins.c (fold_builtin_next_arg): Unwinds to the first
+	location in real source code.
+
+	Make conversion warnings work on NULL with -ftrack-macro-expansion
+	* input.h (expansion_point_location_if_in_system_header): Declare
+	new function.
+	* input.c (expansion_point_location_if_in_system_header): Define it.
+
+	Fix -Wuninitialized for -ftrack-macro-expansion
+	* tree-ssa.c (warn_uninit): Use the spelling location of the variable
+	declaration.  Use linemap_location_before_p for source locations.
+
+	Strip "<built-in>" loc from displayed expansion context
+	* input.c (expand_location_1): When expanding to spelling location
+	in a context of a macro expansion, skip reserved system header
+	locations.  Update comments.  * tree-diagnostic.c
+	(maybe_unwind_expanded_macro_loc): Likewise.
+
+	Make expand_location resolve to locus in main source file
+	* input.c (expand_location_1): New.  Takes a parameter to choose
+	whether to resolve the location to spelling or expansion point.
+	Was factorized from ...
+	(expand_location): ... here.
+	(expand_location_to_spelling_point): New.  Implemented in terms of
+	expand_location_1.
+	* diagnostic.c (diagnostic_build_prefix): Use the new
+	expand_location_to_spelling_point instead of expand_location.
+
+	Fix PCH crash on GTYed pointer-to-scalar field of a struct
+	* gengtype.c (write_types_process_field): Force second argument of
+	the call to the PCH object hierarchy walker to be 'x'.
+
+2012-04-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/i386/i386.c (ix86_handle_struct_attribute): Use the proper
+	predicate to discriminate types.
+
+2012-04-30  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* doc/invoke.texi (Wmissing-format-attribute): Document as an
+	alias of Wsuggest-attribute=format.
+	* c-typeck.c (convert_for_assignment): Replace
+	Wmissing-format-attribute with Wsuggest-attribute=format.
+	(digest_init): Likewise.
+
+2012-04-29  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* opts.c (finish_options): Do not handle -Wmissing-noreturn here.
+	* common.opt (Wmissing-noreturn): Alias of
+	-Wsuggest-attribute=noreturn.
+
+2012-04-29  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR target/53156
+	* config/cris/cris.md (andqu): New peephole2.
+	(andu): Tweak head comment.
+
+2012-04-28  Joern Rennecke  <joern.rennecke@embecosm.com>
+	    Steven Bosscher  <steven@gcc.gnu.org>
+	    Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	PR tree-optimization/38785
+	* common.opt (ftree-partial-pre): New option.
+	* doc/invoke.texi: Document it.
+	* opts.c (default_options_table): Initialize flag_tree_partial_pre.
+	* tree-ssa-pre.c (do_partial_partial_insertion): Insert only if it will
+	benefit speed path.
+	(execute_pre): Use flag_tree_partial_pre.
+
+2012-04-27  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/52999
+	* config/pa/pa.c (pa_legitimate_constant_p): Don't put function labels
+	in constant pool.
+
+2012-04-27   Ollie Wild  <aaw@google.com>
+
+	* doc/invoke.texi (Wliteral-suffix): Document new option.
+
+2012-04-27  Tom Tromey  <tromey@redhat.com>
+
+	* dwarf2out.c (dwarf_stack_op_name): Use get_DW_OP_name.
+	(dwarf_tag_name): Use get_DW_TAG_name.
+	(dwarf_attr_name): Use get_DW_AT_name.
+	(dwarf_form_name): Use get_DW_FORM_name.
+	* dwarf2cfi.c (dwarf_cfi_name): Use get_DW_CFA_name.
+
+2012-04-27  Paolo Bonzini  <bonzini@gnu.org>
+
+	* tree-ssa-phiopt.c (conditional_replacement): Replace PHIs whose
+	arguments are -1 and 0, by negating the result of the conditional.
+
+2012-04-27  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR target/53138
+	* config/i386/i386.md (x86_mov<mode>cc_0_m1_neg): Add clobber.
+
+2012-04-27  Richard Guenther  <rguenther@suse.de>
+
+	* tree-flow.h (is_hidden_global_store): Remove.
+	* tree-ssa-sink.c (is_hidden_global_store): Likewise.
+	* tree-ssa-alias.h (ref_may_alias_global_p): Declare.
+	(stmt_may_clobber_global_p): Likewise.
+	* tree-ssa-alias.c (ref_may_alias_global_p): New function.
+	(stmt_may_clobber_global_p): Likewise.
+	* tree-ssa-dce.c (mark_stmt_if_obviously_necessary): Call
+	stmt_may_clobber_global_p.
+	* tree-ssa-dse.c (dse_possible_dead_store_p): Likewise.
+
+2012-04-27  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* cfg.c (disconnect_src): Do df_mark_solutions_dirty in the right
+	place.
+
+	* tree-switch-conversion.c (struct switch_conv_info): Add range_max,
+	reorganize some fields and update comments.  Rename bit_test_uniq
+	and bit_test_count to uniq resp. count.  Remove bit_test_bb.
+	(collect_switch_conv_info): New function, collects info about a
+	GIMPLE_SWITCH into a struct switch_conv_info.
+	(check_range): Simplify to use pre-recorded info.  Fix think-o in
+	range-branch ratio check.
+	(check_process_case): Remove function.
+	(check_all_empty_except_final): New function, verifies that all
+	non-final basic blocks are empty.
+	(process_switch): Simplify to use pre-recorded info.  Call
+	collect_switch_conv_info to do that.  Assert that degenerate switch
+	statements have been cleaned up.
+
+2012-04-27  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR middle-end/27139
+	* tree-ssa-forwprop.c (combine_conversions): Handle INT->FP->INT.
+
+2012-04-25  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/53130
+	* c-typeck.c (pop_init_level): Use %qD instead of %qT.
+
+2012-04-27  Tom de Vries  <tom@codesourcery.com>
+
+	PR tree-optimization/51879
+	* tree-ssa-sccvn.h (struct vn_reference_s): Add result_vdef field.
+	* tree-ssa-sccvn.c (mark_use_processed): New function, factored out
+	of ...
+	(defs_to_varying): ... here.  Don't set use_processed.
+	(visit_reference_op_call): Handle gimple_vdef.
+	Handle case that lhs is NULL_TREE.
+	(visit_use): Use mark_use_processed.  Handle calls with side-effect
+	using visit_reference_op_call.
+
+2012-04-26  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* sched-deps.c (fixup_sched_groups): Rename to...
+	(chain_to_prev_insn): ...this.
+	(chain_to_prev_insn_p): New function.
+	(deps_analyze_insn): Use it instead of SCHED_GROUP_P.
+
+2012-04-26  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* sched-int.h (_haifa_insn_data): Move priority_status.
+	Add model_index.
+	(INSN_MODEL_INDEX): New macro.
+	* haifa-sched.c (insn_delay): New function.
+	(sched_regno_pressure_class): Update commentary.
+	(mark_regno_birth_or_death): Pass the liveness bitmap and
+	pressure array as arguments, instead of using curr_reg_live and
+	curr_reg_pressure.  Only update the pressure if the bit in the
+	liveness set has changed.
+	(initiate_reg_pressure_info): Always trust the live-in set for
+	SCHED_PRESSURE_MODEL.
+	(initiate_bb_reg_pressure_info): Update call to
+	mark_regno_birth_or_death.
+	(dep_list_size): Take the list as argument.
+	(calculate_reg_deaths): New function, extracted from...
+	(setup_insn_reg_pressure_info): ...here.
+	(MODEL_BAR): New macro.
+	(model_pressure_data, model_insn_info, model_pressure_limit)
+	(model_pressure_group): New structures.
+	(model_schedule, model_worklist, model_insns, model_num_insns)
+	(model_curr_point, model_before_pressure, model_next_priority):
+	New variables.
+	(MODEL_PRESSURE_DATA, MODEL_MAX_PRESSURE, MODEL_REF_PRESSURE)
+	(MODEL_INSN_INFO, MODEL_INSN): New macros.
+	(model_index, model_update_limit_points_in_group): New functions.
+	(model_update_limit_points, model_last_use_except): Likewise.
+	(model_start_update_pressure, model_update_pressure): Likewise.
+	(model_recompute, model_spill_cost, model_excess_group_cost): Likewise.
+	(model_excess_cost, model_dump_pressure_points): Likewise.
+	(model_set_excess_costs): Likewise.
+	(rank_for_schedule): Extend SCHED_PRIORITY_WEIGHTED ordering to
+	SCHED_PRIORITY_MODEL.  Use insn_delay.  Use the order in the model
+	schedule as an alternative tie-breaker.  Update the call to
+	dep_list_size.
+	(ready_sort): Call model_set_excess_costs.
+	(update_register_pressure): Update call to mark_regno_birth_or_death.
+	Rely on that function to check liveness rather than doing it here.
+	(model_classify_pressure, model_order_p, model_add_to_worklist_at)
+	(model_remove_from_worklist, model_add_to_worklist, model_promote_insn)
+	(model_add_to_schedule, model_analyze_insns, model_init_pressure_group)
+	(model_record_pressure, model_record_pressures): New functions.
+	(model_record_final_pressures, model_add_successors_to_worklist)
+	(model_promote_predecessors, model_choose_insn): Likewise.
+	(model_reset_queue_indices, model_dump_pressure_summary): Likewise.
+	(model_start_schedule, model_finalize_pressure_group): Likewise.
+	(model_end_schedule): Likewise.
+	(schedule_insn): Say when we're scheduling the next instruction
+	in the model schedule.
+	(schedule_insn): Handle SCHED_PRESSURE_MODEL.
+	(queue_to_ready): Do not add instructions that are
+	MAX_SCHED_READY_INSNS beyond the current point of the model schedule.
+	Always allow the next instruction in the model schedule to be added.
+	(debug_ready_list): Print the INSN_REG_PRESSURE_EXCESS_COST_CHANGE
+	and delay for SCHED_PRESSURE_MODEL too.
+	(prune_ready_list): Extend SCHED_PRIORITY_WEIGHTED handling to
+	SCHED_PRIORITY_MODEL, but also take the DFA into account.
+	(schedule_block): Call model_start_schedule and model_end_schedule.
+	Extend SCHED_PRIORITY_WEIGHTED stall handling to SCHED_PRIORITY_MODEL.
+	(sched_init): Extend INSN_REG_PRESSURE_EXCESS_COST_CHANGE handling
+	to SCHED_PRESSURE_MODEL, but don't allocate saved_reg_live or
+	region_ref_regs.
+	(sched_finish): Update accordingly.
+	(fix_tick_ready): Extend INSN_REG_PRESSURE_EXCESS_COST_CHANGE handling
+	to SCHED_PRESSURE_MODEL.
+	(add_jump_dependencies): Update call to dep_list_size.
+	(haifa_finish_h_i_d): Fix leak of max_reg_pressure.
+	(haifa_init_insn): Extend INSN_REG_PRESSURE_EXCESS_COST_CHANGE handling
+	to SCHED_PRESSURE_MODEL.
+	* sched-deps.c (init_insn_reg_pressure_info): Likewise, but don't
+	allocate INSN_MAX_REG_PRESSURE for SCHED_PRESSURE_MODEL.
+	(sched_analyze_insn): Extend INSN_REG_PRESSURE_EXCESS_COST_CHANGE
+	handling to SCHED_PRESSURE_MODEL.
+
+2012-04-26  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* common.opt (fsched-pressure-algorithm=): New option.
+	* flag-types.h (sched_pressure_algorithm): New enum.
+	* sched-int.h (sched_pressure_p): Replace with...
+	(sched_pressure): ...this new variable.
+	* haifa-sched.c (sched_pressure_p): Replace with...
+	(sched_pressure): ...this new variable.
+	(sched_regno_pressure_class, rank_for_schedule, ready_sort)
+	(update_reg_and_insn_max_reg_pressure, schedule_insn)
+	(debug_ready_list, prune_ready_list, schedule_block, sched_init)
+	(sched_finish, fix_tick_ready, haifa_init_insn): Update accordingly.
+	* sched-deps.c (init_insn_reg_pressure_info): Likewise.
+	(sched_analyze_insn): Likewise.
+	* sched-rgn.c (schedule_region): Likewise.
+	* config/m68k/m68k.c (m68k_sched_variable_issue): Likewise.
+
+2012-04-26  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* PR middle-end/52997
+	* ira.c (find_moveable_pseudos): Call resize_reg_info.
+
+	PR middle-end/52940
+	* machmode.h (CLASS_HAS_WIDER_MODES_P): True for MODE_PARTIAL_INT.
+	* expr.c (convert_move): Honor unsignedp when extending partial int
+	modes.
+	* genmodes.c (complete_mode): Don't clear component field of partial
+	int modes.
+	(emit_mode_inner): Don't emit it however.
+	(calc_wider_mode): Partial int modes widen to their component.
+
 2012-04-26  David S. Miller  <davem@davemloft.net>
 
 	* config/sparc/niagara4.md: New file.
@@ -10,8 +561,7 @@
 	* config/sparc/sparc.md (attr type): Delete 'fgm_cmp'.
 	(fpack16_vis, fpackfix_vis, fpack32_vis): Set type to fgm_pack.
 	(fmul8x16_vis, fmul8x16au_vis, fmul8x16al_vis, fmul8sux16_vis,
-	fmul8ulx16_vis, fmuld8sux16_vis, fmuld8ulx16_vis): Set type to
-	fgm_mul.
+	fmul8ulx16_vis, fmuld8sux16_vis, fmuld8ulx16_vis): Set type to fgm_mul.
 	(alignaddrsi_vis, alignaddrdi_vis, alignaddrlsi_vis,
 	alignaddrldi_vis): Set type to gsr.
 	(pdist_vis, pdistn<mode>_vis): Set type to fgm_pdsit.
@@ -69,8 +619,7 @@
 2012-04-25  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR debug/52857
-	* dwarf2out.c (dbx_reg_number): Assert return value !=
-	INVALID_REGNUM.
+	* dwarf2out.c (dbx_reg_number): Assert return value != INVALID_REGNUM.
 
 2012-04-25  Jakub Jelinek  <jakub@redhat.com>
 
@@ -125,8 +674,9 @@
 
 2012-04-25  Jan Hubicka  <jh@suse.cz>
 
-	PR middle-end/53089 
-	* cgraphunit.c (referred_to_p): Move ahead in file to avoid forward declaration.
+	PR middle-end/53089
+	* cgraphunit.c (referred_to_p): Move ahead in file to avoid
+	forward declaration.
 	(cgraph_finalize_function): Finalize them here.
 	* symtab.c (dump_symtab): Dump ctors and dtors.
 
@@ -138,8 +688,7 @@
 	Also check that unit bytes long store at bitpos / unit * unit
 	doesn't affect bits beyond bitregion_end.
 	* expmed.c (store_bit_field_1): Avoid trying insv if OP_MODE MEM
-	would not fit into bitregion_start ... bitregion_end + 1 bit
-	region.
+	would not fit into bitregion_start ... bitregion_end + 1 bit region.
 	(store_split_bit_field): Decrease unit close to end of bitregion_end
 	if access is restricted in order to avoid mutual recursion.
 
@@ -148,9 +697,8 @@
 	prototypes.
 	* double-int.c (double_int_max_value, double_int_min_value): New
 	functions.
-	* tree-vrp.c (register_edge_assert_for_2): Compare mask
-	for LE_EXPR or GT_EXPR with double_int_max_value
-	instead of double_int_mask.
+	* tree-vrp.c (register_edge_assert_for_2): Compare mask for LE_EXPR
+	or GT_EXPR with double_int_max_value instead of double_int_mask.
 
 2012-04-25  Richard Guenther  <rguenther@suse.de>
 
@@ -158,8 +706,7 @@
 	* tree-vect-loop.c (vect_transform_loop): Adjust.
 	* tree-vect-loop-manip.c (vect_do_peeling_for_loop_bound): Record
 	the maximum number of iterations for the epilogue loop.
-	(vect_loop_versioning): Remove case re-using the peeled
-	epilogue loop.
+	(vect_loop_versioning): Remove case re-using the peeled epilogue loop.
 
 2012-04-25  Jakub Jelinek  <jakub@redhat.com>
 

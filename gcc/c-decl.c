@@ -4622,7 +4622,9 @@ build_compound_literal (location_t loc, tree type, tree init, bool non_const)
   TREE_USED (decl) = 1;
   DECL_READ_P (decl) = 1;
   TREE_TYPE (decl) = type;
-  TREE_READONLY (decl) = TYPE_READONLY (type);
+  TREE_READONLY (decl) = (TYPE_READONLY (type)
+			  || (TREE_CODE (type) == ARRAY_TYPE
+			      && TYPE_READONLY (TREE_TYPE (type))));
   store_init_value (loc, decl, init, NULL_TREE);
 
   if (TREE_CODE (type) == ARRAY_TYPE && !COMPLETE_TYPE_P (type))
@@ -10040,7 +10042,7 @@ c_write_global_declarations (void)
 
   /* We're done parsing; proceed to optimize and emit assembly.
      FIXME: shouldn't be the front end's responsibility to call this.  */
-  cgraph_finalize_compilation_unit ();
+  finalize_compilation_unit ();
 
   timevar_stop (TV_PHASE_CGRAPH);
   timevar_start (TV_PHASE_DBGINFO);

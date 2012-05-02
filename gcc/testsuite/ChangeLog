@@ -1,3 +1,178 @@
+2012-05-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/53160
+	* gcc.c-torture/execute/pr53160.c: New test.
+
+2012-05-01  Ian Lance Taylor  <iant@google.com>
+
+	PR c/37303
+	* gcc.dg/pr37303.c: New test.
+
+2012-05-01  Richard Henderson  <rth@redhat.com>
+
+	* lib/target-supports.exp
+	(check_effective_target_sync_long_long_runtime): True for
+	check_effective_target_powerpc64.
+
+2012-04-30  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR c++/51033
+	* gcc.dg/vector-1.c: Move to ...
+	* c-c++-common/vector-1.c: ... here.
+	* gcc.dg/vector-2.c: Move to ...
+	* c-c++-common/vector-2.c: ... here.
+	* gcc.dg/vector-3.c: Move to ...
+	* c-c++-common/vector-3.c: ... here. Adapt to C++.
+	* gcc.dg/vector-4.c: Move to ...
+	* c-c++-common/vector-4.c: ... here.
+	* gcc.dg/vector-init-1.c: Move to ...
+	* c-c++-common/vector-init-1.c: ... here.
+	* gcc.dg/vector-init-2.c: Move to ...
+	* c-c++-common/vector-init-2.c: ... here.
+	* gcc.dg/vector-subscript-1.c: Move to ... Adapt to C++.
+	* c-c++-common/vector-subscript-1.c: ... here.
+	* gcc.dg/vector-subscript-2.c: Move to ...
+	* c-c++-common/vector-subscript-2.c: ... here.
+	* gcc.dg/vector-subscript-3.c: Move to ...
+	* c-c++-common/vector-subscript-3.c: ... here.
+
+	PR c++/51314
+	* g++.dg/cpp0x/vt-51314.C: New test.
+	* g++.dg/cpp0x/variadic76.C: Fix.
+
+2012-04-30  Greta Yorsh  <Greta.Yorsh@arm.com>
+
+	* gcc.dg/pr52283.c: Add missing dg-warning and dg-options.
+
+2012-04-30  Dodji Seketeli  <dodji@redhat.com>
+
+	Add -Wvarargs option
+	* c-c++-common/Wvarargs.c: New test case.
+	* c-c++-common/Wvarargs-2.c: Likewise.
+
+2012-04-30  Dodji Seketeli  <dodji@redhat.com>
+
+	Adjust relevant test cases wrt -ftrack-macro-expansion=[0|2]
+	* objc.dg/foreach-7.m: Force the test case to run without
+	-ftrack-macro-expansion.
+	* c-c++-common/tm/attrib-1.c: Likewise.
+	* c-c++-common/warn-ommitted-condop.c: Likewise.
+	* gcc.dg/assign-warn-1.c: Likewise.
+	* gcc.dg/assign-warn-2.c: Likewise.
+	* gcc.dg/attr-alloc_size.c: Likewise.
+	* gcc.dg/builtin-stringop-chk-1.c: Likewise.
+	* gcc.dg/builtin-stringop-chk-2.c: Likewise.
+	* gcc.dg/builtin-strncat-chk-1.c: Likewise.
+	* gcc.dg/c90-const-expr-9.c: Likewise.
+	* gcc.dg/c99-const-expr-9.c: Likewise.
+	* gcc.dg/cpp/direct2.c: Likewise.  Adjust.
+	* gcc.dg/cpp/direct2s.c: Likewise.
+	* gcc/testsuite/gcc.dg/cpp/pr28709.c: Likewise.
+	* gcc.dg/cpp/pragma-diagnostic-1.c: Likewise.
+	* gcc.dg/dfp/composite-type.c: Likewise.
+	* gcc.dg/uninit-6-O0.c: Adjust the test case and force it to run
+	with -ftrack-macro-expansion
+	* g++.dg/cpp0x/constexpr-ex3.C: Likewise.
+	* g++.dg/cpp0x/constexpr-overflow.C: Likewise.
+	* g++.dg/ext/cleanup-1.C: Likewise.
+	* g++.dg/ext/gnu-inline-global-reject.C: Likewise.
+	* g++.dg/template/sfinae10.C: Likewise.
+	* g++.dg/tm/wrap-2.C: Likewise.
+	* g++.dg/warn/Wconversion-real-integer.C: Likewise.
+	* g++.dg/warn/Wsign-conversion.C: Likewise.
+	* g++.dg/warn/multiple-overflow-warn-1.C: Likewise.
+	* g++.old-deja/g++.mike/p10769b.C: Likewise.
+	* g++.dg/warn/Wdouble-promotion.C: Adjust the test case and force
+	it to run with -ftrack-macro-expansion.
+	* libstdc++-v3/scripts/testsuite_flags.in: By default, run the
+	test cases without -ftrack-macro-expansion.
+
+	Fix location for static class members
+	* g++.dg/template/sfinae6_neg.C: Adjust.
+
+	Make conversion warnings work on NULL with -ftrack-macro-expansion
+	* g++.dg/warn/Wconversion-null-2.C: Add testing for __null,
+	alongside the previous testing for NULL.
+
+	Fix -Wuninitialized for -ftrack-macro-expansion
+	* gcc.dg/cpp/pragma-diagnostic-2.c: Fix this.
+
+	Strip "<built-in>" loc from displayed expansion context
+	* g++.dg/warn/Wconversion-real-integer2.C: New test.
+	* g++.dg/warn/Wconversion-real-integer-3.C: Likewise.
+	* g++.dg/warn/conversion-real-integer-3.h: New header used by the
+	new test above.
+
+	Fix expansion point loc for macro-like tokens
+	* gcc.dg/debug/dwarf2/pr41445-5.c: Adjust.
+    	* gcc.dg/debug/dwarf2/pr41445-6.c: Likewise.
+
+	Fix token pasting with -ftrack-macro-expansion
+	* gcc.dg/cpp/paste17.c: New test case for
+    	-ftrack-macro-expansion=2 mode only.
+	* gcc.dg/cpp/macro-exp-tracking-5.c: Likewise.
+
+2012-04-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/warn6.ad[sb]: New test.
+
+2012-04-29  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 53149
+        * gcc.dg/20011021-1.c: Adjust testcase.
+
+2012-04-29  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/53148
+	* gfortran.dg/function_optimize_12.f90:  New test.
+
+2012-04-29  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR target/53156
+	* gcc.target/cris/peep2-andu2.c: Tweak expected assembly
+	code to match current output and cover new peephole2 pattern.
+
+2012-04-27   Ollie Wild  <aaw@google.com>
+
+	* g++.dg/cpp0x/Wliteral-suffix.c: New test.
+
+2012-04-27  Paolo Bonzini  <bonzini@gnu.org>
+
+	* gcc.c-torture/execute/20120427-2.c: New testcase.
+	* gcc.dg/tree-ssa/phi-opt-10.c: New testcase.
+	* gcc.dg/tree-ssa/ssa-pre-28.c: Bypass new optimization.
+	* gcc.dg/tree-ssa/ssa-ifcombine-7.c: Look into ifcombine dump.
+
+2012-04-27  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR target/53138
+	* gcc.c-torture/execute/20120427-1.c: New testcase.
+
+2012-04-27  Marc Glisse  <marc.glisse@inria.fr>
+
+	PR middle-end/27139
+	* gcc.dg/tree-ssa/forwprop-18.c: New test.
+
+2012-04-27  Tom de Vries  <tom@codesourcery.com>
+
+	PR tree-optimization/51879
+	* gcc.dg/pr51879.c: New test.
+	* gcc.dg/pr51879-2.c: Same.
+	* gcc.dg/pr51879-3.c: Same.
+	* gcc.dg/pr51879-4.c: Same.
+	* gcc.dg/pr51879-6.c: Same.
+
+2012-04-26  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53096
+	* g++.dg/cpp0x/defaulted35.C: New.
+	* g++.dg/cpp0x/defaulted15.C: Adjust.
+
+2012-04-26  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.dg/bf-ms-layout.c: Adjust offsets to fit ms-bitfield
+	structure layout.
+
 2012-04-25  Sriraman Tallam  <tmsriram@google.com>
 
 	* testsuite/gcc.target/i386/builtin_target.c: Check avx2.

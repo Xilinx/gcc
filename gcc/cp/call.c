@@ -5598,12 +5598,15 @@ conversion_null_warnings (tree totype, tree expr, tree fn, int argnum)
   if (expr == null_node && TREE_CODE (totype) != BOOLEAN_TYPE
       && ARITHMETIC_TYPE_P (totype))
     {
+      source_location loc =
+	expansion_point_location_if_in_system_header (input_location);
+
       if (fn)
-	warning_at (input_location, OPT_Wconversion_null,
+	warning_at (loc, OPT_Wconversion_null,
 		    "passing NULL to non-pointer argument %P of %qD",
 		    argnum, fn);
       else
-	warning_at (input_location, OPT_Wconversion_null,
+	warning_at (loc, OPT_Wconversion_null,
 		    "converting to non-pointer type %qT from NULL", totype);
     }
 
@@ -6130,7 +6133,7 @@ convert_arg_to_ellipsis (tree arg, tsubst_flags_t complain)
 /* va_arg (EXPR, TYPE) is a builtin. Make sure it is not abused.  */
 
 tree
-build_x_va_arg (tree expr, tree type)
+build_x_va_arg (source_location loc, tree expr, tree type)
 {
   if (processing_template_decl)
     return build_min (VA_ARG_EXPR, type, expr);
@@ -6156,7 +6159,7 @@ build_x_va_arg (tree expr, tree type)
       return expr;
     }
 
-  return build_va_arg (input_location, expr, type);
+  return build_va_arg (loc, expr, type);
 }
 
 /* TYPE has been given to va_arg.  Apply the default conversions which
@@ -6321,7 +6324,7 @@ convert_for_arg_passing (tree type, tree val, tsubst_flags_t complain)
 				   TYPE_SIZE (integer_type_node)))
     val = perform_integral_promotions (val);
   if ((complain & tf_warning)
-      && warn_missing_format_attribute)
+      && warn_suggest_attribute_format)
     {
       tree rhstype = TREE_TYPE (val);
       const enum tree_code coder = TREE_CODE (rhstype);
@@ -6329,7 +6332,7 @@ convert_for_arg_passing (tree type, tree val, tsubst_flags_t complain)
       if ((codel == POINTER_TYPE || codel == REFERENCE_TYPE)
 	  && coder == codel
 	  && check_missing_format_attribute (type, rhstype))
-	warning (OPT_Wmissing_format_attribute,
+	warning (OPT_Wsuggest_attribute_format,
 		 "argument of function call might be a candidate for a format attribute");
     }
   return val;

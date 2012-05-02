@@ -117,6 +117,7 @@
 			; that.
   UNSPEC_UNALIGNED_STORE ; Same for str/strh.
   UNSPEC_PIC_UNIFIED    ; Create a common pic addressing form.
+  UNSPEC_LL		; Represent an unpaired load-register-exclusive.
 ])
 
 ;; UNSPEC_VOLATILE Usage:
@@ -4101,7 +4102,13 @@
 	 (neg:DI (match_operand:DI 1 "s_register_operand" "")))
     (clobber (reg:CC CC_REGNUM))])]
   "TARGET_EITHER"
-  ""
+  {
+    if (TARGET_NEON)
+      {
+        emit_insn (gen_negdi2_neon (operands[0], operands[1]));
+	DONE;
+      }
+  }
 )
 
 ;; The constraints here are to prevent a *partial* overlap (where %Q0 == %R1).
@@ -10705,7 +10712,7 @@
   if (TARGET_32BIT)
     return arm_output_epilogue (NULL);
   else /* TARGET_THUMB1 */
-    return thumb_unexpanded_epilogue ();
+    return thumb1_unexpanded_epilogue ();
   "
   ; Length is absolute worst case
   [(set_attr "length" "44")
