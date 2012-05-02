@@ -143,7 +143,9 @@
   :doc #{Singleton $CLASS_PROBE_DATA for probe related
   data. $PROBEDATA_FILESVEC is a tuple of $CLASS_PROBED_FILE-s, and
   $PROBEDATA_FILEDICT is a dictionnary mapping given and real paths to
-  them. $PROBEDATA_AUX is an auxiliary data.}#
+  them. $PROBEDATA_AUX is an auxiliary data. $PROBEDATA_CMDTOPROBEFD
+  and $PROBEDATA_REQFROMPROBEFD gives the boxed integers for command &
+  request file descriptors to & from the probe.}#
   :super class_proped
   :fields 
   (
@@ -152,6 +154,10 @@
    probedata_filedict			;;the dictionnary of real probed files
    ;; dictionnary of request handlers
    probedata_reqhdict			;;dictionnary of request handlers
+   ;; boxed file descriptor for commands to probe
+   probedata_cmdtoprobefd
+   ;; boxed file descriptor for requests from probe
+   probedata_reqfromprobefd
    ;; auxiliary data
    probedata_aux
 ))
@@ -237,6 +243,9 @@
     (unless inlist
       (debug "probe_request_processor end of input probereqfd=" probereqfd)
       (set_content probe_data_container ())
+      (put_fields probedata 
+	       :probedata_cmdtoprobefd ()
+	       :probedata_reqfromprobefd ())
       (code_chunk probestop_chk #{ /* probe_request_processor $PROBESTOP_CHK */ 
 		  melt_probe_stop ()	;
 		  }#)
@@ -251,6 +260,15 @@
       )
     ))
 
+(defun probe_at_exit (res que)
+  (debug "probe_at_exit res=" res " que=" que)
+  (forever probendloop
+	   (let ( (probedata (probe_get_data))
+		  )
+	     (debug "probe_at_exit loop probedata=" probedata)
+	     (unless probedata (exit probendloop))
+	     (poll_all_inputs 500)
+	     )))
 
 (defun probe_docmd (cmd moduldata)
   (debug "probe_docmd cmd=" cmd " moduldata=" moduldata)
@@ -269,27 +287,31 @@
 		int $PROBESTART_CHK#_toprobefd = -1, $PROBESTART_CHK#_fromprobefd = -1 ;
 		melt_probe_start (NULL, &$PROBESTART_CHK#_toprobefd, &$PROBESTART_CHK#_fromprobefd) ;
 		if ($PROBESTART_CHK#_toprobefd > 0) 
-		$TOPROBENUMFD = (long) $PROBESTART_CHK#_toprobefd ;
+		  $TOPROBENUMFD = (long) $PROBESTART_CHK#_toprobefd ;
 		if ($PROBESTART_CHK#_fromprobefd > 0)
-		$FROMPROBENUMFD = (long) $PROBESTART_CHK#_fromprobefd ;
+		  $FROMPROBENUMFD = (long) $PROBESTART_CHK#_fromprobefd ;
 		}#)
     (when (<i fromprobenumfd 0)
       (debug "probe_docmd failed to start probe fromprobenumfd=" fromprobenumfd
 	     " toprobenumfd=" toprobenumfd)
       (return))
+    (put_fields probedata
+	       :probedata_cmdtoprobefd (make_integerbox discr_constant_integer toprobenumfd)
+	       :probedata_reqfromprobefd (make_integerbox discr_constant_integer fromprobenumfd))
     (register_input_channel_handler probe_request_processor probedata fromprobenumfd)
     (debug "probe_docmd registered probe_request_processor=" probe_request_processor 
 	   " with probedata=" probedata " fromprobenumfd=" fromprobenumfd)
     (let ( (mainprfil (probe_get_file_of_name probedata mainfilename))
 	   )
       (debug "probe_docmd mainprfil=" mainprfil)
+      (at_exit_last probe_at_exit)
       )))
 
 
 (definstance probe_mode
   class_melt_mode
   :named_name '"probe"
-  :meltmode_help '"enable the simple interactive probe"
+  :meltmode_help '"enable the simple interactive probe; see also the @code{-f[plugin-arg-]melt-probe} argument"
   :meltmode_fun probe_docmd
 )
 (install_melt_mode probe_mode)

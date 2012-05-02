@@ -1,4 +1,16 @@
 
+2012-05-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_get_inisysdata): Move out...
+	* melt-runtime.h (melt_get_inisysdata): Move to here
+
+	* melt/warmelt-base.melt (poll_all_inputs): New primitive.
+
+	* melt/xtramelt-probe.melt (class_probe_data): Add
+	probedata_cmdtoprobefd & probedata_reqfromprobefd fields.
+	(probe_request_processor): Clear them on EOF.
+	(probe_at_exit): New internal function.
+	(probe_docmd): Fill them, and register at exit..
+
 2012-04-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt (class_input_channel_handler): Add
 	documentation.

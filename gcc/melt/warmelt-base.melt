@@ -3840,6 +3840,11 @@ polyhedron values.}#
 }#)
 
 
+(defprimitive poll_all_inputs (:long delayms) :long
+  :doc #{Poll all inputs and run appropriate handlers with a delay of $DELAYMS milliseconds}#
+  #{ /*poll_all_inputs*/ meltgc_poll_inputs (melt_get_inisysdata (MELTFIELD_SYSDATA_INCHANNEL_DATA), 
+                                             (int) $DELAYMS) }#)
+
 (defprimitive increment (:long left incr) :void
   :doc #{Increment $LEFT (when variable) with $INCR.}#
   #{ /*increment*/ $LEFT += $INCR; 
@@ -4027,6 +4032,7 @@ polyhedron values.}#
  outstr_err
  outstrbuf_dbg
  outstrbuf_err
+ poll_all_inputs
  pair_listlength
  pair_set_head 
  ppstrbuf_mixbigint

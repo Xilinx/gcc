@@ -4908,22 +4908,6 @@ end:
 }
 
 
-static inline melt_ptr_t
-melt_get_inisysdata(int off)
-{
-  meltobject_ptr_t inisys = (meltobject_ptr_t) MELT_PREDEF(INITIAL_SYSTEM_DATA);
-  if (melt_magic_discr ((melt_ptr_t) inisys) == MELTOBMAG_OBJECT) 
-    {
-      int leninisys = inisys->obj_len;
-      gcc_assert(melt_is_instance_of
-		 ((melt_ptr_t) inisys,
-		  (melt_ptr_t) MELT_PREDEF (CLASS_SYSTEM_DATA)));
-      if (off>=0 && off<leninisys)
-	return inisys->obj_vartab[off];
-    }
-  return NULL;  
-}
-
 
 /* Clear a slot inside the INITIAL_SYSTEM_DATA. */
 static inline void
