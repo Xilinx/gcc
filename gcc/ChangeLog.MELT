@@ -1,5 +1,9 @@
 
 2012-05-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_send_command_strbuf_to_probe): Add debug
+	print.
+
+2012-05-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_new_real_accessible_path_string): Add
 	cast.
 	(melt_probe_start): Move debug messages.

@@ -5579,6 +5579,8 @@ melt_send_command_strbuf_to_probe (melt_ptr_t buf)
     return;
   buflen = melt_output_length (buf);
   bufstr = CONST_CAST (char*, melt_strbuf_str (buf));
+  debugeprintf ("melt_send_command_strbuf_to_probe buflen %ld, bufstr:\n\t%s", 
+		buflen, bufstr);
   if (buflen<3 || !bufstr)
     return;
   gcc_assert (bufstr[buflen-2] == '\n');
@@ -5602,7 +5604,9 @@ melt_send_command_strbuf_to_probe (melt_ptr_t buf)
 	  break;
 	}
       bufpos += wcnt;
-    }    
+    }
+  debugeprintf ("melt_send_command_strbuf_to_probe final bufpos %ld, buflen %ld", 
+		bufpos, buflen);    
 }
 
 
