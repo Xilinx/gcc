@@ -203,6 +203,10 @@ struct GTY(()) indirect_string_node {
 
 static GTY ((param_is (struct indirect_string_node))) htab_t debug_str_hash;
 
+/* A set of local types referenced from outside their function.  */
+
+static GTY ((param_is (struct die_struct))) htab_t local_type_template_args;
+
 static GTY(()) int dw2_string_counter;
 
 /* True if the compilation unit places functions in more than one section.  */
@@ -5940,6 +5944,7 @@ is_type_die (dw_die_ref die)
     case DW_TAG_packed_type:
     case DW_TAG_volatile_type:
     case DW_TAG_typedef:
+    case DW_TAG_unspecified_type:
       return 1;
     default:
       return 0;
@@ -6266,7 +6271,7 @@ copy_needed_base_types_loc (dw_die_ref unit, dw_loc_descr_ref loc,
 }
 
 static void
-copy_needed_base_types (dw_die_ref unit, dw_die_ref die,
+copy_needed_base_types_1 (dw_die_ref unit, dw_die_ref die,
 			struct pointer_map_t *map)
 {
   dw_die_ref c;
@@ -6293,7 +6298,177 @@ copy_needed_base_types (dw_die_ref unit, dw_die_ref die,
 	}
     }
 
-  FOR_EACH_CHILD (die, c, copy_needed_base_types (unit, c, map));
+  FOR_EACH_CHILD (die, c, copy_needed_base_types_1 (unit, c, map));
+}
+
+static void
+copy_needed_base_types (dw_die_ref unit, dw_die_ref die)
+{
+  struct pointer_map_t *map = pointer_map_create ();
+  copy_needed_base_types_1 (unit, die, map);
+  pointer_map_destroy (map);
+}
+
+static void
+split_out_local_types (dw_die_ref old, dw_die_ref decl, bool decl_is_new)
+{
+  dw_die_ref c, nc;
+  dw_die_ref prev = old->die_child;
+
+  if (prev) do {
+    force_loop:
+      c = prev->die_sib;
+
+      switch (c->die_tag)
+	{
+	case DW_TAG_formal_parameter:
+	case DW_TAG_template_type_param:
+	case DW_TAG_template_value_param:
+	case DW_TAG_GNU_template_template_param:
+	  /* If we're making a new declaration, we need to copy these
+	     over.  */
+	  if (decl_is_new)
+	    {
+	      nc = new_die (c->die_tag, decl, NULL_TREE);
+	      if (c->die_tag == DW_TAG_GNU_template_template_param)
+		add_AT_string (nc, DW_AT_GNU_template_name,
+			       get_AT_string (c, DW_AT_GNU_template_name));
+	      else
+		add_AT_die_ref (nc, DW_AT_type, get_AT_ref (c, DW_AT_type));
+	      if (get_AT_flag (c, DW_AT_artificial))
+		add_AT_flag (nc, DW_AT_artificial, 1);
+	    }
+	  break;
+
+	case DW_TAG_enumeration_type:
+	case DW_TAG_class_type:
+	case DW_TAG_structure_type:
+	  /* Types that are used from outside the function need to move
+	     into the declaration, but we should keep a stub locally for
+	     name lookup.  */
+	  if (htab_find (local_type_template_args, c))
+	    {
+	      nc = ggc_alloc_cleared_die_node ();
+	      nc->die_tag = c->die_tag;
+	      add_AT_die_ref (nc, DW_AT_specification, c);
+	      replace_child (c, nc, prev);
+	      add_child_die (decl, c);
+	      c = nc;
+	    }
+	  break;
+
+	case DW_TAG_lexical_block:
+	  /* Recurse into lexical blocks, then leave them in place.  */
+	  split_out_local_types (c, decl, decl_is_new);
+	  break;
+
+	default:
+	  /* Unnamed types that are used from outside the function can
+	     just move.  */
+	  if (is_type_die (c) && htab_find (local_type_template_args, c))
+	    {
+	      remove_child_with_prev (c, prev);
+	      add_child_die (decl, c);
+	      if (old->die_child == NULL)
+		/* We removed the last child from old.  */
+		return;
+	      else
+		/* We don't want to advance prev.  */
+		goto force_loop;
+	    }
+	  /* Everything else should stay in the COMDAT die.  */
+	  break;
+	}
+
+      prev = c;
+    }
+  while (c != old->die_child);
+}
+
+static dw_die_ref
+split_out_function_skeleton (dw_die_ref old)
+{
+  dw_die_ref decl;
+  dw_die_ref new_ = NULL;
+
+  /* Is there already a declaration DIE we can use?  */
+  decl = get_AT_ref (old, DW_AT_specification);
+  if (!decl)
+    {
+      /* Nope, need to make one and move attributes over.  */
+      dw_attr_ref a;
+      unsigned ix;
+
+      decl = new_ = ggc_alloc_cleared_die_node ();
+      new_->die_tag = DW_TAG_subprogram;
+
+      add_AT_flag (new_, DW_AT_declaration, 1);
+      add_AT_die_ref (old, DW_AT_specification, new_);
+
+      FOR_EACH_VEC_ELT (dw_attr_node, old->die_attr, ix, a)
+	switch (a->dw_attr)
+	  {
+	  case DW_AT_object_pointer:
+	  case DW_AT_virtuality:
+	  case DW_AT_accessibility:
+	  case DW_AT_explicit:
+	    /* Member function; we should have already had a declaration.  */
+	    gcc_unreachable ();
+	    break;
+
+	  case DW_AT_name:
+	  case DW_AT_type:
+	  case DW_AT_artificial:
+	  case DW_AT_decl_file:
+	  case DW_AT_decl_line:
+	  case DW_AT_external:
+	  case DW_AT_pure:
+	  case DW_AT_calling_convention:
+	  case DW_AT_prototyped:
+	  case DW_AT_elemental:
+	  case DW_AT_recursive:
+	    /* Move these to the declaration.  */
+	    add_dwarf_attr (new_, a);
+	    VEC_ordered_remove (dw_attr_node, old->die_attr, ix);
+	    --ix;
+	    break;
+
+	  default:
+	    /* Leave anything else in the definition.  */
+	    break;
+	  }
+    }
+
+  split_out_local_types (old, decl, decl == new_);
+
+  return new_;
+}
+
+static int
+gather_local_type_fns_r (void **slot, void *data)
+{
+  dw_die_ref die = *(const dw_die_ref *)slot;
+  struct pointer_set_t *local_type_fns = (struct pointer_set_t *)data;
+
+  for (die = die->die_parent; die; die = die->die_parent)
+    if (die->die_tag == DW_TAG_subprogram)
+      break;
+  if (die && get_AT (die, DW_AT_GNU_comdat))
+    pointer_set_insert (local_type_fns, die);
+  return 1;
+}
+
+static struct pointer_set_t *
+gather_local_type_fns (void)
+{
+  struct pointer_set_t *local_type_fns;
+  if (local_type_template_args == NULL)
+    return NULL;
+
+  local_type_fns = pointer_set_create ();
+  htab_traverse (local_type_template_args, gather_local_type_fns_r,
+		 local_type_fns);
+  return local_type_fns;
 }
 
 /* Traverse the DIE (which is always comp_unit_die), and set up additional
@@ -6307,6 +6482,7 @@ break_out_comdat_functions (dw_die_ref die)
   limbo_die_node *node;
   dw_die_ref prev;
   bool found = false;
+  struct pointer_set_t *local_type_fns = gather_local_type_fns ();
 
   prev = die->die_child;
   if (prev == NULL)
@@ -6321,25 +6497,32 @@ break_out_comdat_functions (dw_die_ref die)
 	{
 	  /* Move the subprogram DIE to a secondary CU with the appropriate
 	     COMDAT key and import the main CU.  */
-	  dw_die_ref unit, imp;
-	  struct pointer_map_t *map;
+	  dw_die_ref unit, nc;
 
 	  found = true;
 
-	  remove_child_with_prev (c, prev);
 	  remove_AT (c, DW_AT_GNU_comdat);
 
 	  unit = gen_compile_unit_die (NULL);
 	  add_AT_string (unit, DW_AT_GNU_comdat, key);
 
-	  imp = new_die (DW_TAG_imported_unit, unit, NULL_TREE);
-	  add_AT_die_ref (imp, DW_AT_import, comp_unit_die ());
+	  if (!get_AT (c, DW_AT_abstract_origin)
+	      && !get_AT (c, DW_AT_specification))
+	    {
+	      dw_die_ref imp = new_die (DW_TAG_imported_unit, unit,
+					NULL_TREE);
+	      add_AT_die_ref (imp, DW_AT_import, comp_unit_die ());
+	    }
 
+	  copy_needed_base_types (unit, c);
+
+	  if (local_type_fns
+	      && pointer_set_contains (local_type_fns, c)
+	      && (nc = split_out_function_skeleton (c)))
+	    replace_child (c, nc, prev);
+	  else
+	    remove_child_with_prev (c, prev);
 	  add_child_die (unit, c);
-
-	  map = pointer_map_create ();
-	  copy_needed_base_types (unit, c, map);
-	  pointer_map_destroy (map);
 	}
       else
 	prev = c;
@@ -6358,6 +6541,9 @@ break_out_comdat_functions (dw_die_ref die)
       unit = node->die;
       c = unit->die_child->die_sib;
     }
+
+  if (local_type_fns)
+    pointer_set_destroy (local_type_fns);
 }
 
 /* Return non-zero if this DIE is a declaration.  */
@@ -7131,8 +7317,17 @@ optimize_external_refs_1 (dw_die_ref die, htab_t map)
   unsigned ix;
   struct external_ref *ref_p;
 
+  /* Recognize the various local stubs we may already have.  */
   if (is_type_die (die)
-      && (c = get_AT_ref (die, DW_AT_signature)))
+      /* .debug_types skeleton.  */
+      && ((c = get_AT_ref (die, DW_AT_signature))
+	  /* split_out_local_types stub.  */
+	  || (c = get_AT_ref (die, DW_AT_specification))
+	  /* build_local_stub stub.  */
+	  || (die->die_tag == DW_TAG_typedef
+	      && !get_AT (die, DW_AT_name)
+	      && (c = get_AT_ref (die, DW_AT_type))))
+      && c->die_mark == 0)
     {
       /* This is a local skeleton; use it for local references.  */
       ref_p = lookup_external_ref (map, c);
@@ -7781,6 +7976,9 @@ output_abbrev_section (void)
       for (ix = 0; VEC_iterate (dw_attr_node, abbrev->die_attr, ix, a_attr);
 	   ix++)
 	{
+	  /* This should never be emitted.  */
+	  if (a_attr->dw_attr == DW_AT_GNU_comdat)
+	    continue;
 	  dw2_asm_output_data_uleb128 (a_attr->dw_attr, "(%s)",
 				       dwarf_attr_name (a_attr->dw_attr));
 	  output_value_format (a_attr);
@@ -9683,6 +9881,55 @@ gen_generic_params_dies (tree t)
     }
 }
 
+static void check_for_local_type_template_argument (dw_die_ref);
+
+static void
+add_local_type (dw_die_ref type_die)
+{
+  void **slot;
+  dw_die_ref nc;
+
+  if (local_type_template_args == NULL)
+    local_type_template_args = htab_create_ggc (10, htab_hash_pointer,
+						htab_eq_pointer, NULL);
+  slot = htab_find_slot (local_type_template_args, type_die, INSERT);
+  *slot = type_die;
+
+  /* Check function parameter types.  */
+  if (type_die->die_tag == DW_TAG_subroutine_type)
+    FOR_EACH_CHILD (type_die, nc,
+		    (check_for_local_type_template_argument
+		     (get_AT_ref (nc, DW_AT_type))));
+
+  /* If this is a modified type, also check the types it refers to.  */
+  if ((nc = get_AT_ref (type_die, DW_AT_type)))
+    check_for_local_type_template_argument (nc);
+}
+
+/* ARG is a template parameter DIE.  In C++11 it's possible to use a local
+   type as a template argument; if that's happened here, and the local type
+   comes from a COMDAT function, remember that so that we can handle the
+   function specially in break_out_comdat_functions.  */
+
+static void
+check_for_local_type_template_argument (dw_die_ref type_die)
+{
+  dw_die_ref scope = NULL;
+
+  if (!type_die)
+    return;
+
+  for (scope = type_die->die_parent; scope; scope = scope->die_parent)
+    {
+      if (scope->die_tag == DW_TAG_subprogram)
+	break;
+      else if (is_unit_die (scope))
+	return;
+    }
+
+  add_local_type (type_die);
+}
+
 /* Create and return a DIE for PARM which should be
    the representation of a generic type parameter.
    For instance, in the C++ front end, PARM would be a template parameter.
@@ -9751,6 +9998,7 @@ generic_parameter_die (tree parm, tree arg,
 	  add_type_attribute (tmpl_die, tmpl_type, 0,
 			      TREE_THIS_VOLATILE (tmpl_type),
 			      parent_die);
+	  check_for_local_type_template_argument (lookup_type_die (tmpl_type));
 	}
       else
 	{
@@ -15737,6 +15985,11 @@ uses_local_type_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
     {
       tree name = TYPE_NAME (*tp);
       if (name && DECL_P (name) && decl_function_context (name))
+	return *tp;
+      /* VLA types are always local.  */
+      if (TREE_CODE (*tp) == INTEGER_TYPE
+	  && (!TREE_CONSTANT (TYPE_MIN_VALUE (*tp))
+	      || !TREE_CONSTANT (TYPE_MAX_VALUE (*tp))))
 	return *tp;
     }
   return NULL_TREE;
@@ -22420,6 +22673,8 @@ dwarf2out_finish (const char *filename)
       if (c == NULL)
 	continue;
       c = c->die_sib;
+      if (c->die_tag == DW_TAG_imported_unit)
+	c = c->die_sib;
       if (c->die_tag != DW_TAG_subprogram)
 	continue;
 
