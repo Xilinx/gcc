@@ -305,6 +305,7 @@
 	   )
       (debug "probe_docmd mainprfil=" mainprfil)
       (at_exit_last probe_at_exit)
+      (return :true)
       )))
 
 

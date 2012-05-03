@@ -5487,6 +5487,7 @@ melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
   char cmdstrfd[16];
   char reqstrfd[16];
   pid_t pid = -1;
+#warning melt_probe_start might have wrong file descriptors!
   if (melt_probe_pid)
     melt_fatal_error("melt_probe_start probe already started pid %d", (int) melt_probe_pid);
   debugeprintf("melt_probe_start probecmd: %s", probecmd);
@@ -5516,11 +5517,13 @@ melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
     melt_fatal_error ("melt_probe_start cannot create pipefromprobe; %m for command %s", probecmd);
   debugeprintf("melt_probe_start pipefromprobe r=%d w=%d", 
 	       pipefromprobe[MELTPIPE_READ], pipefromprobe[MELTPIPE_WRITE]);
-  cmdfd = pipefromprobe[MELTPIPE_WRITE]; /* probe command channel, from MELT to probe */
-  reqfd = pipetoprobe[MELTPIPE_READ];   /* probe request channel, from probe to MELT */
+  cmdfd = pipefromprobe[MELTPIPE_READ]; /* probe command channel, from MELT to probe */
+  reqfd = pipetoprobe[MELTPIPE_WRITE];   /* probe request channel, from probe to MELT */
   snprintf (cmdstrfd, sizeof(cmdstrfd), "%d", cmdfd);
   snprintf (reqstrfd, sizeof(reqstrfd), "%d", reqfd);
-  probefullcmd = concat (probecmd, 
+  /* We add "exec" in front of the probe command, so that the shell
+     vanishes and is replaced by the probe... */
+  probefullcmd = concat ("exec ", probecmd, 
 			 " ", MELTPROBE_COMMAND_ARG, " ", cmdstrfd, 
 			 " ", MELTPROBE_REQUEST_ARG, " ", reqstrfd, 
 			 NULL);
@@ -5599,8 +5602,8 @@ melt_send_command_strbuf_to_probe (melt_ptr_t buf)
       if (wcnt < 0) 
 	{
 	  warning (0,
-		   "MELT failed to send command %s to probe - %s", 
-		   bufstr, xstrerror (errno));
+		   "MELT failed to send command %s to probe on fd#%d - %s", 
+		   bufstr, melt_probe_cmdto_fd, xstrerror (errno));
 	  break;
 	}
       bufpos += wcnt;

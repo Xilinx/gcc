@@ -803,6 +803,8 @@ class SmeltAppl
   bool _app_traced;
   Glib::RefPtr<Glib::IOChannel> _app_reqchan_to_melt; // channel for request to MELT
   Glib::RefPtr<Glib::IOChannel> _app_cmdchan_from_melt; // channel for commands from MELT
+  std::string _app_reqname_to_melt;			// human-readable name for request channel to MELT
+  std::string _app_cmdname_from_melt;			// human-readable name for command channel from MELT
   sigc::connection _app_connreq_to_melt;
   sigc::connection _app_conncmd_from_melt;
   std::ostringstream _app_writestream_to_melt; // string buffer for requests to MELT
@@ -818,6 +820,8 @@ public:
   std::ostringstream& outreq() {
     return _app_writestream_to_melt;
   };
+  const std::string& reqname_to_melt() const { return _app_reqname_to_melt; };
+  const std::string& cmdname_from_melt() const { return _app_cmdname_from_melt;};
   void sendreq (std::ostream& os) {
     os << std::endl << std::endl;
     if (os == _app_writestream_to_melt) {
@@ -877,6 +881,7 @@ public:
     } else
       SMELT_FATAL("cannot open request to MELT channel " << reqname);
     // don't connect now
+    _app_reqname_to_melt = reqname;
   }
   void set_cmdchan_from_melt(const std::string &cmdname) {
     const char* cmdcstr = cmdname.c_str();
@@ -896,6 +901,7 @@ public:
     _app_conncmd_from_melt =
       Glib::signal_io().connect(sigc::mem_fun(*this, &SmeltAppl::cmdbuf_from_melt_cb),
                                 _app_cmdchan_from_melt, Glib::IO_IN);
+    _app_cmdname_from_melt = cmdname;
   }
   ~SmeltAppl() {};
   void run (void) {
@@ -1351,16 +1357,20 @@ SmeltTraceWindow::SmeltTraceWindow()
     {
       time_t now = 0;
       time (&now);
-      char nowbuf[80];
-      strftime (nowbuf, sizeof(nowbuf), "%c\n", localtime(&now));
+      char buf[80];
+      strftime (buf, sizeof(buf), "%c\n", localtime(&now));
       tbuf->insert_with_tag(tbuf->end(),
                             Glib::ustring::compose
-                            ("start at %1\n", nowbuf),
+                            ("start at %1\n", buf),
                             "date");
       tbuf->insert(tbuf->end(), "Commands from MELT are ");
-      tbuf->insert_with_tag(tbuf->end(), "like this\n", "command");
-      tbuf->insert(tbuf->end(), "Replies to MELT are ");
-      tbuf->insert_with_tag(tbuf->end(), "like that\n", "reply");
+      tbuf->insert_with_tag(tbuf->end(), "like this", "command");
+      tbuf->insert(tbuf->end(), Glib::ustring::compose (" on %1\n", 
+							SmeltAppl::instance()->cmdname_from_melt()));
+      tbuf->insert(tbuf->end(), "Requests to MELT are ");
+      tbuf->insert_with_tag(tbuf->end(), "like that", "reply");
+      tbuf->insert(tbuf->end(), Glib::ustring::compose (" on %1\n", 
+							SmeltAppl::instance()->reqname_to_melt()));
       tbuf->insert(tbuf->end(), __FILE__ " compiled " __DATE__ "@" __TIME__ "\n");
     }
   }

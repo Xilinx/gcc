@@ -1,4 +1,10 @@
 
+2012-05-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_probe_start): Add exec to command. The file
+	descriptors are still probably wrong.
+
+	* melt/xtramelt-probe.melt (probe_docmd): Return true.
+
 2012-05-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_send_command_strbuf_to_probe): Add debug
 	print.

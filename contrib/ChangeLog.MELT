@@ -1,4 +1,9 @@
 
+2012-05-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc (SmeltAppl::reqname_to_melt)
+	(SmeltAppl::cmdname_from_melt): New.
+	(SmeltTraceWindow::SmeltTraceWindow): Show them.
+
 2012-05-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc (SmeltOptionGroup): Tracing option is '-T'.
 	(main): Catch glib errors.
