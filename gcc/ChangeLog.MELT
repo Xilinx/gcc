@@ -1,4 +1,8 @@
 
+2012-05-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c: include <wordexp.h>
+	(melt_probe_start): Rewritten to use wordexp & wordfree.
+
 2012-05-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_probe_start): Add exec to command. The file
 	descriptors are still probably wrong.

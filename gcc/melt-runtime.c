@@ -64,6 +64,8 @@ const int melt_gcc_version = MELT_GCC_VERSION;
 #include <ppl_c.h>
 /* meltgc_sort_multiple needs setjmp */
 #include <setjmp.h>
+/* melt_start_probe needs wordexp */
+#include <wordexp.h>
 
 #include "tree.h"
 #include "gimple.h"
@@ -5475,100 +5477,153 @@ melt_probe_stop (void)
 void
 melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
 {
-#define MELTPROBE_SHELL "/bin/sh"
-#define MELTPROBE_COMMAND_ARG "-C"
-#define MELTPROBE_REQUEST_ARG "-R"
-  enum {MELTPIPE_READ=0, MELTPIPE_WRITE=1}; /* for readability. */
-  int pipetoprobe[2] = {-1, -1};
-  int pipefromprobe[2] = {-1, -1};
-  char *probefullcmd = NULL;
-  int cmdfd = -1; /* probe command channel, from MELT to probe */
-  int reqfd = -1;   /* probe request channel, from probe to MELT */
-  char cmdstrfd[16];
-  char reqstrfd[16];
-  pid_t pid = -1;
-#warning melt_probe_start might have wrong file descriptors!
+  /* requests are from probe to MELT, commands are from MELT to probe */
+#define MELTPROBE_COMMAND_ARG "--command-from-MELT"
+#define MELTPROBE_REQUEST_ARG "--request-to-MELT"
+  enum {MELTPIPE_READ=0, MELTPIPE_WRITE=1}; /* for readability of pipe(2) pairs */
+  /* commands written by MELT and received by the probe. */
+  int cmdwrittenbymeltfd = -1, cmdreceivedbyprobefd = -1;
+  /* requests sent by the probe and read by MELT. */
+  int reqsentbyprobefd = -1, reqreadbymeltfd = -1;
+  /* strings passed as arguments of probe program. */
+  char **probeargv = NULL;	/* calloced array; most strings are inside wexp. */
+  int probeargc = 0;
+  char cmdprobestrfd[16];
+  char reqprobestrfd[16];
+  wordexp_t wexp;
   if (melt_probe_pid)
     melt_fatal_error("melt_probe_start probe already started pid %d", (int) melt_probe_pid);
-  debugeprintf("melt_probe_start probecmd: %s", probecmd);
-  /* if no probecmd given, try to guess one... */
-  if (!probecmd || !probecmd[0]) 
-    {				/* guess from program or plugin argument */
-      probecmd = melt_argument ("probe");
-      debugeprintf("melt_probe_start command from argument: %s", probecmd);
+  /**
+   * Find the command string for the probe.  
+   **/
+  {
+    debugeprintf("melt_probe_start probecmd: %s", probecmd);
+    /* if no probecmd given, try to guess one... */
+    if (!probecmd || !probecmd[0]) 
+      {				/* guess from program or plugin argument */
+	probecmd = melt_argument ("probe");
+	debugeprintf("melt_probe_start command from argument: %s", probecmd);
+      }
+    if (!probecmd || !probecmd[0])
+      {				/* guess from environment variable */
+	probecmd = getenv ("GCCMELT_PROBE");
+	debugeprintf("melt_probe_start command from GCCMELT_PROBE: %s", probecmd);
+      }
+    if (!probecmd || !probecmd[0])
+      {
+	probecmd = melt_default_probe;
+	debugeprintf("melt_probe_start command from melt_default_probe: %s", probecmd);
+      }
+    if (!probecmd || !probecmd[0])
+      melt_fatal_error ("melt_probe_start without command %s", probecmd);
+  }
+  /**
+   * Create the command and request pipes.  Fill the probe arguments.
+   **/
+  {
+    int pipecmd[2] = { -1, -1 };
+    int pipereq[2] = { -1, -1 };
+    if (pipe(pipecmd) < 0 || pipe(pipereq) < 0)
+      melt_fatal_error("melt_probe_start failed to create request and command pipes - %s",
+		       xstrerror (errno));
+    cmdwrittenbymeltfd = pipecmd[MELTPIPE_WRITE];
+    cmdreceivedbyprobefd = pipecmd[MELTPIPE_READ];
+    snprintf (cmdprobestrfd, sizeof (cmdprobestrfd), "%d", cmdreceivedbyprobefd);
+    debugeprintf("melt_probe_start cmdwrittenbymeltfd=%d cmdreceivedbyprobefd=%d cmdprobestrfd=%s",
+		 cmdwrittenbymeltfd, cmdreceivedbyprobefd, cmdprobestrfd);
+    reqreadbymeltfd = pipereq[MELTPIPE_READ];
+    reqsentbyprobefd = pipereq[MELTPIPE_WRITE];
+    snprintf (reqprobestrfd, sizeof (reqprobestrfd), "%d", reqsentbyprobefd);
+    debugeprintf("melt_probe_start reqreadbymeltfd=%d reqsentbyprobefd=%d reqprobestrfd=%s",
+		 reqreadbymeltfd, reqsentbyprobefd, reqprobestrfd);
+  }
+  /**
+   * Expand the probecmd using wordexp.  Allocate and fill probeargv, probeargc.
+   **/
+  {
+    int werr = 0;
+    int wix = 0;
+    memset (&wexp, 0, sizeof(wexp));
+    if (getenv("IFS") != NULL) 
+      melt_fatal_error("melt_probe_start cannot start with IFS=%s because of security risks", getenv("IFS"));
+    werr = wordexp (probecmd, &wexp, WRDE_SHOWERR|WRDE_UNDEF);
+    if (werr)
+      melt_fatal_error ("melt_probe_start failed to expand probe command %s - %d [%s]", 
+			probecmd, werr,
+			(werr == WRDE_BADCHAR)?"bad char":
+			(werr == WRDE_BADVAL)?"bad value":
+			(werr == WRDE_CMDSUB)?"command subst":
+			(werr == WRDE_NOSPACE)?"no memory space":
+			(werr == WRDE_SYNTAX)?"syntax error":
+			"??");
+    debugeprintf("melt_probe_start wexp.we_wordc=%d", (int) wexp.we_wordc);
+    probeargc = wexp.we_wordc + 4;
+    probeargv = (char**) xcalloc (probeargc+1, sizeof(char*));
+    for (wix = 0; wix < (int) wexp.we_wordc; wix++) {
+      probeargv[wix] = wexp.we_wordv[wix];
+      debugeprintf("melt_probe_start probeargv[%d]=%s", wix, probeargv[wix]);
     }
-  if (!probecmd || !probecmd[0])
-    {				/* guess from environment variable */
-      probecmd = getenv ("GCCMELT_PROBE");
-      debugeprintf("melt_probe_start command from GCCMELT_PROBE: %s", probecmd);
-    }
-  if (!probecmd || !probecmd[0])
-    {
-      probecmd = melt_default_probe;
-      debugeprintf("melt_probe_start command from melt_default_probe: %s", probecmd);
-    }
-  if (!probecmd || !probecmd[0])
-    melt_fatal_error ("melt_probe_start without command %s", probecmd);
-  if (pipe (pipetoprobe))
-    melt_fatal_error ("melt_probe_start cannot create pipetoprobe; %m for command %s", probecmd);
-  debugeprintf ("melt_probe_start pipetoprobe r=%d w=%d", 
-		pipetoprobe[MELTPIPE_READ], pipetoprobe[MELTPIPE_WRITE]);
-  if (pipe (pipefromprobe))
-    melt_fatal_error ("melt_probe_start cannot create pipefromprobe; %m for command %s", probecmd);
-  debugeprintf("melt_probe_start pipefromprobe r=%d w=%d", 
-	       pipefromprobe[MELTPIPE_READ], pipefromprobe[MELTPIPE_WRITE]);
-  cmdfd = pipefromprobe[MELTPIPE_READ]; /* probe command channel, from MELT to probe */
-  reqfd = pipetoprobe[MELTPIPE_WRITE];   /* probe request channel, from probe to MELT */
-  snprintf (cmdstrfd, sizeof(cmdstrfd), "%d", cmdfd);
-  snprintf (reqstrfd, sizeof(reqstrfd), "%d", reqfd);
-  /* We add "exec" in front of the probe command, so that the shell
-     vanishes and is replaced by the probe... */
-  probefullcmd = concat ("exec ", probecmd, 
-			 " ", MELTPROBE_COMMAND_ARG, " ", cmdstrfd, 
-			 " ", MELTPROBE_REQUEST_ARG, " ", reqstrfd, 
-			 NULL);
-  debugeprintf("melt_probe_start cmdfd %d reqfd %d probefullcmd %s", cmdfd, reqfd, probefullcmd);
-  fflush (NULL);
-  pid = fork();
-  if (pid < 0) 
-    melt_fatal_error ("melt_probe_start failed to fork; %m for command %s", probecmd);
-  else if (pid == 0) 
-    { /* child process for probe */
-      int cfd;
-      /* we are in the child process, so close the other side of the pipes */
-      close (pipefromprobe[MELTPIPE_READ]);
-      close (pipetoprobe[MELTPIPE_WRITE]);
-      for (cfd=3; cfd<128; cfd++) {
-	if (cfd == cmdfd || cfd == reqfd) 
-	  continue;
-	(void) close(cfd);
+    probeargv[wix] = CONST_CAST(char*, MELTPROBE_COMMAND_ARG), probeargv[wix+1] = cmdprobestrfd;
+    debugeprintf("melt_probe_start command probeargv[%d,%d]= %s %s", wix, wix+1, probeargv[wix],  probeargv[wix+1]);
+    wix += 2;
+    probeargv[wix] = CONST_CAST(char*, MELTPROBE_REQUEST_ARG), probeargv[wix+1] = reqprobestrfd;
+    debugeprintf("melt_probe_start request probeargv[%d,%d]= %s %s", wix, wix+1, probeargv[wix],  probeargv[wix+1]);
+    wix += 2;
+  }
+  /**
+   * fork the probe and close the irrelevant pipes sides.
+   **/
+  {
+    pid_t pid = -1;
+    fflush (NULL);
+    pid = fork();
+    if (pid < 0) 
+      melt_fatal_error ("melt_probe_start failed to fork; %m for command %s", probecmd);
+    else if (pid == 0)
+      { /* Child process, exec the probe after closing some useless fds */
+	int cfd;
+	for (cfd = 3; cfd < 64; cfd++)
+	  {
+	    if (cfd == cmdreceivedbyprobefd || cfd == reqsentbyprobefd) 
+	      continue;
+	    (void) close (cfd);
+	  }
+	if (execvp (probeargv[0], probeargv))
+	  {
+	    static char errmsg[100];
+	    snprintf (errmsg, sizeof(errmsg), "execvp %s", probeargv[0]);
+	    perror(errmsg);
+	    _exit(127);
+	  };
+      }
+    else 
+      { /* Parent process. */
+	close (cmdreceivedbyprobefd);
+	close (reqsentbyprobefd);
+	usleep (30000);		/* give the probe a chance to start... */
       };
-      execlp(MELTPROBE_SHELL, MELTPROBE_SHELL, "-c", probefullcmd, NULL);
-      _exit(127);
-      return;
-    }
-  else
-    { /* parent GCC/cc1 process */
-      /* close our side of the pipes, since in the parent */
-      close (pipetoprobe[MELTPIPE_READ]);
-      close (pipefromprobe[MELTPIPE_WRITE]);
-      debugeprintf ("melt_probe_start pid %d toprobefd %d fromprobefd %d", 
-		    (int) pid, pipetoprobe[MELTPIPE_WRITE], pipefromprobe[MELTPIPE_READ]);
-      melt_probe_pid = pid;
-      melt_probe_cmdto_fd = pipetoprobe[MELTPIPE_WRITE];
-      if (toprobefdptr)
-	*toprobefdptr = pipetoprobe[MELTPIPE_WRITE];
-      if (fromprobefdptr)
-	*fromprobefdptr = pipefromprobe[MELTPIPE_READ];
-      melt_probe_reqfrom_fd  = pipefromprobe[MELTPIPE_READ];
-      usleep (25000);		/* sleep a tiny bit, to let the probe start... */
-      inform (UNKNOWN_LOCATION, 
-	      "MELT started probe %s; pid %d; commands to probe fd#%d & requests from probe fd #%d", 
-	      probecmd, (int) melt_probe_pid, melt_probe_cmdto_fd, melt_probe_reqfrom_fd);
-      atexit (melt_probe_stop);
-      free (probefullcmd), probefullcmd = NULL;
-    }
+    melt_probe_pid = pid;
+    melt_probe_cmdto_fd = cmdwrittenbymeltfd;
+    melt_probe_reqfrom_fd = reqreadbymeltfd;
+  }
+  /**
+   * Set at exit handler and release resources.
+   **/
+  {
+    atexit (melt_probe_stop);
+    free (probeargv), probeargv = NULL;
+    probeargc = 0;
+    wordfree (&wexp);
+  }
+  debugeprintf("melt_start_probe ended melt_probe_pid=%d melt_probe_cmdto_fd=%d melt_probe_reqfrom_fd=%d",
+	       melt_probe_pid, melt_probe_cmdto_fd, melt_probe_reqfrom_fd);
+  if (toprobefdptr) 
+    *toprobefdptr = melt_probe_cmdto_fd;
+  if (fromprobefdptr)
+    *fromprobefdptr = melt_probe_reqfrom_fd;
 }
+
+
 
 void
 melt_send_command_strbuf_to_probe (melt_ptr_t buf)
