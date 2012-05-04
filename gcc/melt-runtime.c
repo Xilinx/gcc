@@ -5412,7 +5412,7 @@ melt_probe_stop (void)
     return;
   }
   usleep (5000);
-#define MELT_PROBE_QUIT_COMMAND " QUIT_PCD\n\n"
+#define MELT_PROBE_QUIT_COMMAND "\nQUIT_PCD 50\n\n"
   if (melt_probe_cmdto_fd > 0) {
     debugeprintf("melt_stop_probe sending quit command: %s", MELT_PROBE_QUIT_COMMAND);
     write (melt_probe_cmdto_fd, MELT_PROBE_QUIT_COMMAND, strlen(MELT_PROBE_QUIT_COMMAND));

@@ -9,7 +9,7 @@ This file is part of GCC.
 
 GCC is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free
-Software Foundation; either version 2, or (at your option) any later
+Software Foundation; either version 3, or (at your option) any later
 version.
 
 GCC is distributed in the hope that it will be useful, but WITHOUT ANY
@@ -18,9 +18,8 @@ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 for more details.
 
 You should have received a copy of the GNU General Public License
-along with GCC; see the file COPYING.  If not, write to the Free
-Software Foundation, 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301, USA.  */
+along with GCC; see the file COPYING3.  If not see
+<http://www.gnu.org/licenses/>. */
 
 
 
@@ -183,8 +182,8 @@ static const char *const smelt_key_16x16_xpm[] = {
 bool smelt_debugging;
 
 #define SMELT_DEBUG(C) do { if (smelt_debugging)	\
-std::clog <<  __FILE__ << ":" << __LINE__		\
-<< "@" << __func__ << " " << C << std::endl; } while(0)
+  std::clog <<  __FILE__ << ":" << __LINE__		\
+	    << "@" << __func__ << " " << C << std::endl; } while(0)
 
 
 std::string smelt_long_to_string(long l)
@@ -241,6 +240,7 @@ public:
 
 static Glib::OptionContext smelt_options_context(" - a simple MELT Gtk probe");
 
+static void smelt_quit(void);
 
 #define SMELT_MARKLOC_CATEGORY "smeltmarkloc"
 #define SMELT_MARKLOC_STOCKID GTK_STOCK_YES
@@ -248,10 +248,10 @@ static Glib::OptionContext smelt_options_context(" - a simple MELT Gtk probe");
    code is inside. */
 class SmeltMainWindow : public Gtk::Window {
   Gtk::VBox _mainvbox;
-  Gtk::MenuBar _mainmenubar;
   Gtk::Label _mainlabel;
   Gtk::Notebook _mainnotebook;
   Gtk::Statusbar _mainstatusbar;
+  Glib::RefPtr<Gtk::ActionGroup> _mainactgroup;
   class ShownFile {
     friend class SmeltMainWindow;
     long _sfilnum;		// unique number in _mainsfilemapnum;
@@ -302,13 +302,36 @@ public:
     set_default_size(480,380);
     add(_mainvbox);
     Glib::ustring labmarkstr = Glib::ustring::compose
-                               ("<big><span color='darkred'>Simple Gcc Melt gtkmm-probe</span></big>\n"
-                                "<small>pid %1 on <tt>%2</tt></small>",
-                                (int)(getpid()), g_get_host_name());
+      ("<big><span color='darkred'>Simple Gcc Melt gtkmm-probe</span></big>\n"
+       "<small>pid %1 on <tt>%2</tt></small>",
+       (int)(getpid()), g_get_host_name());
     _mainlabel.set_markup(labmarkstr);
     _mainlabel.set_justify(Gtk::JUSTIFY_CENTER);
-    _mainvbox.pack_start(_mainmenubar,Gtk::PACK_SHRINK);
     _mainvbox.pack_start(_mainlabel,Gtk::PACK_SHRINK);
+    {
+      _mainactgroup = Gtk::ActionGroup::create ();
+      _mainactgroup->add(Gtk::Action::create("MainMenuFile", "_File"));
+      _mainactgroup->add(Gtk::Action::create("MainShowVersion", "Version"),
+			 sigc::mem_fun(*this,&SmeltMainWindow::on_version_show));
+      auto uimgr = Gtk::UIManager::create();
+      uimgr->insert_action_group(_mainactgroup);
+      Glib::ustring ui_info= R"*(
+                           <ui>
+                           <menubar name='MainMenuBar'>
+                           <menu action='MainMenuFile'>
+                           <menuitem action='MainShowVersion'/>
+                           </menu>
+                           </menubar>
+                           </ui>
+                           )*";
+      try {
+	uimgr->add_ui_from_string(ui_info);
+	auto menubar = uimgr->get_widget("/MainMenuBar");
+	_mainvbox.pack_start(*menubar,Gtk::PACK_SHRINK);
+      } catch (const Glib::Error& ex) {
+	SMELT_FATAL("failed to build mainwin UI " << ex.what());
+      }
+    }
     _mainvbox.pack_start(_mainnotebook,Gtk::PACK_EXPAND_WIDGET);
     _mainvbox.pack_start(_mainstatusbar,Gtk::PACK_SHRINK);
     show_all();
@@ -322,6 +345,7 @@ public:
     // return false to accept the delete event, true to reject it..
     return Gtk::Window::on_delete_event(ev);
   }
+  void on_version_show(void);
   void show_file(const std::string&path, long num);
   void mark_location(long marknum,long filenum,int lineno, int col);
   guint push_status(const std::string&msg);
@@ -1129,7 +1153,7 @@ SmeltMainWindow::ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&fil
   {
     auto scrowin = new Gtk::ScrolledWindow;
     scrowin->add (_sfilview);
-    scrowin->set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
+    scrowin->set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
     auto labstr = Glib::ustring::compose("<span color='darkblue'>#%1</span>\n"
                                          "<tt>%2</tt>", num, Glib::path_get_basename(filepath));
     auto labw = new Gtk::Label;
@@ -1167,6 +1191,7 @@ SmeltMainWindow::ShownFile::~ShownFile()
 void
 SmeltMainWindow::show_file(const std::string&path, long num)
 {
+  SMELT_DEBUG("show_file path:" << path << " num:" << num);
   new ShownFile(this,path,num);
 }
 
@@ -1240,7 +1265,31 @@ void SmeltMainWindow::remove_all_status(void)
 void SmeltMainWindow::send_quit_req(void)
 {
   SmeltAppl::instance()->sendreq(SmeltAppl::instance()->outreq() << "QUIT_prq");
+  Glib::signal_timeout().connect_once(sigc::ptr_fun(&smelt_quit),250);
 }
+
+void SmeltMainWindow::on_version_show(void)
+{
+  SMELT_DEBUG("on_version_show start");
+  Gtk::AboutDialog dial;
+  dial.set_program_name (basename(__FILE__));
+  dial.set_version(std::string("$Id$") 
+		   + " built @" __DATE__);
+  dial.set_copyright("Free Sofware Foundation");
+  dial.set_comments("a simple Gtk probe communicating with MELT extension to GCC");
+  dial.set_license("Gnu Public License version 3");
+  dial.set_license_type(Gtk::LICENSE_GPL_3_0);
+  dial.set_website("http://gcc-melt.org/");
+  { 
+    std::vector<Glib::ustring> authorsvec;
+    authorsvec.push_back ("Basile Starynkevitch");
+    dial.set_authors (authorsvec);
+  }
+  SmeltAppl::instance()->sendreq(SmeltAppl::instance()->outreq() << "VERSION_prq");
+  int res = dial.run();
+  SMELT_DEBUG("got res=" << res);
+}
+
 ////////////////////////////////////////////////////////////////
 void SmeltTraceWindow::add_title(const std::string &str)
 {
@@ -1298,19 +1347,19 @@ SmeltTraceWindow::SmeltTraceWindow()
   /// create the action group
   {
     _traceactgroup = Gtk::ActionGroup::create();
-    _traceactgroup->add(Gtk::Action::create("MenuFile", "_File"));
-    _traceactgroup->add(Gtk::Action::create("MenuTrace", "Trace"),
+    _traceactgroup->add(Gtk::Action::create("TraceMenuFile", "_File"));
+    _traceactgroup->add(Gtk::Action::create("TraceMenuTrace", "Trace"),
                         sigc::mem_fun(*SmeltAppl::instance(), &SmeltAppl::on_trace_toggled));
-    _traceactgroup->add(Gtk::Action::create("MenuClear", "Clear"),
+    _traceactgroup->add(Gtk::Action::create("TraceMenuClear", "Clear"),
                         sigc::mem_fun(*this,&SmeltTraceWindow::on_trace_clear));
     auto uimgr = Gtk::UIManager::create();
     uimgr->insert_action_group(_traceactgroup);
     Glib::ustring ui_info= R"*(
                            <ui>
-                           <menubar name='MenuBar'>
-                           <menu action='MenuFile'>
-                           <menuitem name='MenuTrace' action='MenuTrace'/>
-                           <menuitem action='MenuClear'/>
+                           <menubar name='TraceMenuBar'>
+                           <menu action='TraceMenuFile'>
+                           <menuitem action='TraceMenuTrace'/>
+                           <menuitem action='TraceMenuClear'/>
                            </menu>
                            </menubar>
                            </ui>
@@ -1322,7 +1371,7 @@ SmeltTraceWindow::SmeltTraceWindow()
     }
     _tracevbox.pack_start(_tracelabel,Gtk::PACK_SHRINK);
     {
-      auto menubarp = uimgr->get_widget("/MenuBar");
+      auto menubarp = uimgr->get_widget("/TraceMenuBar");
       if (menubarp)
         _tracevbox.pack_start(*menubarp,Gtk::PACK_SHRINK);
     }
@@ -1520,10 +1569,21 @@ SmeltAppl::process_command_from_melt(std::string& str)
     if (!csym)
       throw smelt_domain_error("process_command_from_melt: invalid command", sym.name());
     csym->call(this,v);
-  } catch (std::exception ex) {
+  } 
+  catch (SmeltDomainErrorAt derr) {
+    std::clog << "Smelt domain error:" << derr.what() << std::endl;
+    if (_app_traced)
+      _app_tracewin->add_title(std::string("Domain error: ") + derr.what());
+  }
+  catch (SmeltParseErrorAt perr) {
+    std::clog << "Smelt parse error:" << perr.what() << std::endl;
+    if (_app_traced)
+      _app_tracewin->add_title(std::string("Parse error: ") + perr.what());
+  }
+  catch (std::exception ex) {
     std::clog << "Command error:" << ex.what() << std::endl;
     if (_app_traced)
-      _app_tracewin->add_title(std::string("Command error:") + ex.what());
+      _app_tracewin->add_title(std::string("Command error: ") + ex.what());
   }
 }
 
@@ -1572,6 +1632,7 @@ SmeltCommandSymbol smeltsymb_quit_cmd("QUIT_PCD",&SmeltAppl::quit_cmd);
 
 static void smelt_quit(void)
 {
+  SMELT_DEBUG("delayed quit");
   Gtk::Main::quit();
 }
 
@@ -1579,7 +1640,7 @@ void
 SmeltAppl::quit_cmd(SmeltVector&v)
 {
   long delay = (v.size()>0)?v.at(1).as_long():0L;
-  SMELT_DEBUG("delay:" << delay);
+  SMELT_DEBUG("QUIT command delay:" << delay);
   if (delay <= 0)
     Gtk::Main::quit();
   else  /* delayed quit; the delay is in milliseconds */

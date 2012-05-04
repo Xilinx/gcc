@@ -41,6 +41,7 @@
   :doc #{Utility to send a command to the MELT probe}#
   (debug "send_command_to_probe symcmd=" symcmd)
   (assert_msg "check symcmd" (is_a symcmd class_symbol))
+  (shortbacktrace_dbg "send_command_to_probe" 12)
   (let ( (outsbuf (make_strbuf discr_strbuf))
 	 )
     (letrec 
@@ -48,7 +49,11 @@
 	 (a+num 
 	  (lambda (out :long n) (add2out out n)))
 	 (a+str 
-	  (lambda (out :cstring s) (add2out_cenconst out s)))
+	  (lambda (out :cstring s) 
+	    (add2out out " \"")
+	    (add2out_cenconst out s)
+	    (add2out out "\" ")
+	    ))
 	 (a+val 
 	  (lambda (out val :long depth)
 	    (let ( (:long sucdepth (+i depth 1))
@@ -62,7 +67,10 @@
 		(add2out out (get_int val)))
 	       ;;
 	       ((is_string val)
-		(add2out_cencstring out val))
+		(add2out out " \"")
+		(add2out_cencstring out val)
+		(add2out out "\" ")
+		)
 	       ;;
 	       ((is_multiple val)
 		(add2out out "(")
@@ -117,6 +125,7 @@
 	( :else
 	  (assert_msg "invalid variadic in send_command_to_probe" ()))))
       (add2out outsbuf "\n\n")		;to terminate the command
+      (debug "send_command_to_probe outsbuf=" outsbuf)
       (code_chunk sendcmd  #{ /* $SENDCMD send command to probe */ 
                   melt_send_command_strbuf_to_probe ($OUTSBUF)}#)
       )    
@@ -169,6 +178,25 @@
   :doc #{function to retrieve the probe data, or null.}#
   !probe_data_container)
 
+
+(defun probe_register_request_verb (symb clos)
+  :doc #{Register into probe for verb named by $SYMB the closure $CLOS to handle request.}#
+  (debug "probe_register_request_verb symb=" symb " clos=" clos)
+  (let ( (probdata (probe_get_data))
+	 )
+    (if (is_a probdata class_probe_data)
+	(let ( (reqhdict (get_field :probedata_reqhdict probdata))
+	       )
+	  (if (is_a symb class_named)
+	      (if (is_closure clos)
+		  (let ( (symbnam (get_field :named_name symb))
+			 )
+		    (mapstring_putstr reqhdict symbnam clos)
+		    (debug "probe_register_request_verb updated reqhdict=" reqhdict)
+		    )))))))
+
+
+
 (defun probe_get_file_of_name (probedata name)
   :doc #{Given a source file $NAME, gives its corresponding
   $CLASS_PROBED_FILE, perhaps creating it and displaying it in the
@@ -183,7 +211,7 @@
 	(:long veclen (multiple_length filesvec))
 	(:long pos 0)
 	)
-    (debug "probe_get_file_of_name realpath=" realpath)
+    (debug "probe_get_file_of_name realpath=" realpath " filedict=" filedict)
     (assert_msg "check realpath" realpath)
     ;;
     (let ( (probfil (mapstring_getstr filedict realpath))
@@ -226,6 +254,7 @@
 	       (put_int newfil filix)
 	       (debug "probe_get_file_of_name made newfil=" newfil)
 	       (send_command_to_probe 'showfile_pcd name filix)
+	       (return newfil)
 	       ))
 	 )))))
 
@@ -233,6 +262,7 @@
 ;; the internal request processor
 (defun probe_request_processor (inch inlist)
   (debug "probe_request_processor start inch=" inch " inlist=" inlist)
+  (shortbacktrace_dbg "probe_request_processor" 9)
   (assert_msg "check inch" (is_a inch class_input_channel_handler))
   (let ( (probedata (get_field :inch_data inch))
 	 (:long probereqfd (get_int inch))
@@ -244,8 +274,8 @@
       (debug "probe_request_processor end of input probereqfd=" probereqfd)
       (set_content probe_data_container ())
       (put_fields probedata 
-	       :probedata_cmdtoprobefd ()
-	       :probedata_reqfromprobefd ())
+		  :probedata_cmdtoprobefd ()
+		  :probedata_reqfromprobefd ())
       (code_chunk probestop_chk #{ /* probe_request_processor $PROBESTOP_CHK */ 
 		  melt_probe_stop ()	;
 		  }#)
@@ -257,18 +287,46 @@
     (when (== reqverb 'quit_prq)
       (set_content probe_data_container ())
       (debug "probe_request_processor quitting probe")
+      (return)
       )
-    ))
+    (let ( (reqdict (get_field :probedata_reqhdict probedata))
+	   (verbname (get_field :named_name reqverb))
+	   (reqclos (mapstring_getstr reqdict verbname))
+	   )
+      (when (is_closure reqclos)
+	(debug "probe_request_processor running closure for reqverb=" reqverb " intup=" intup)
+	(reqclos intup)
+	(debug "probe_request_processor done reqverb=" reqverb)
+	(return))
+      (warningmsg_strv "unknown probe request verb" verbname)
+      )))
+
+
 
 (defun probe_at_exit (res que)
   (debug "probe_at_exit res=" res " que=" que)
-  (forever probendloop
-	   (let ( (probedata (probe_get_data))
-		  )
-	     (debug "probe_at_exit loop probedata=" probedata)
-	     (unless probedata (exit probendloop))
-	     (poll_all_inputs 500)
-	     )))
+  (shortbacktrace_dbg "probe_at_exit" 10)
+  (let ( (:long loopcnt 0) 
+	 )
+    (forever probendloop
+	     (increment loopcnt 1)
+	     (let ( (probedata (probe_get_data))
+		    )
+	       (debug "probe_at_exit loop probedata=" probedata
+		      " loopcnt=" loopcnt)
+	       (unless probedata (exit probendloop))
+	       (poll_all_inputs 5000)
+	       ))
+    (debug "probe_at_exit ended loopcnt=" loopcnt)
+    ))
+
+(defun show_version_probe (tup)
+  (debug "show_version_probe tup=" tup)
+  (let ( (sbuf (make_strbuf discr_strbuf))
+	 )
+    (add2out sbuf "MELT version=" (melt_version_str))
+    (send_command_to_probe 'STATUS_pcd (strbuf2string discr_string sbuf))))
+
 
 (defun probe_docmd (cmd moduldata)
   (debug "probe_docmd cmd=" cmd " moduldata=" moduldata)
@@ -298,7 +356,9 @@
     (put_fields probedata
 	       :probedata_cmdtoprobefd (make_integerbox discr_constant_integer toprobenumfd)
 	       :probedata_reqfromprobefd (make_integerbox discr_constant_integer fromprobenumfd))
+    (set_content probe_data_container probedata)
     (register_input_channel_handler probe_request_processor probedata fromprobenumfd)
+    (probe_register_request_verb 'VERSION_prq  show_version_probe)
     (debug "probe_docmd registered probe_request_processor=" probe_request_processor 
 	   " with probedata=" probedata " fromprobenumfd=" fromprobenumfd)
     (let ( (mainprfil (probe_get_file_of_name probedata mainfilename))
@@ -322,6 +382,7 @@
 (export_values 
  probe_get_data
  probe_get_file_of_name
+ probe_register_request_verb
  send_command_to_probe
  send_object_to_probe 
 )

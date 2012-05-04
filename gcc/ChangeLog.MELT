@@ -1,5 +1,11 @@
 
 2012-05-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (MELT_PROBE_QUIT_COMMAND): Add newline and delay.
+
+	* melt/xtramelt-probe.melt (probe_register_request_verb)
+	(show_version_probe): New
+	(probe_docmd): Register VERSION_pcd
+2012-05-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c: include <wordexp.h>
 	(melt_probe_start): Rewritten to use wordexp & wordfree.
 

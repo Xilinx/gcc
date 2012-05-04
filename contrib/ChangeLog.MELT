@@ -1,4 +1,16 @@
 
+2012-05-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{add svn:keywords Id property}}
+	* simplemelt-gtkmm-probe.cc: license changed to GPLv3+
+	(smelt_quit): New function.
+	(SmeltMainWindow): New member _mainactgroup.
+	(SmeltMainWindow::SmeltMainWindow): Fill it.
+	Make the version entry in file menu.
+	(SmeltMainWindow::on_version_show): New member function.
+	(SmeltTraceWindow::SmeltTraceWindow): Rename action group and menu
+	items..
+
+	(SmeltAppl::process_command_from_melt): Catch better exceptions.
 2012-05-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc (SmeltAppl::reqname_to_melt)
 	(SmeltAppl::cmdname_from_melt): New.
