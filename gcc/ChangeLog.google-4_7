@@ -1,3 +1,12 @@
+2012-05-03  Dehao Chen  <dehao@google.com>
+
+	Backport r185949 from google-main.
+
+	2012-03-29  Dehao Chen  <dehao@google.com>
+
+		* predict.c (predict_iv_comparison): Add the comparison of
+		induction variable against its initial value.
+
 2012-05-01   Rong Xu  <xur@google.com>
 
 	Backport r187028 from google-main.

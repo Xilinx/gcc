@@ -1087,6 +1087,10 @@ is_comparison_with_loop_invariant_p (gimple stmt, struct loop *loop,
     bound = get_base_value (bound);
   if (!bound)
     return false;
+  if (TREE_CODE (base) != INTEGER_CST)
+    base = get_base_value (base);
+  if (!base)
+    return false;
 
   *loop_invariant = bound;
   *compare_code = code;
@@ -1202,8 +1206,7 @@ predict_iv_comparison (struct loop *loop, basic_block bb,
       return;
     }
 
-  if (!expr_coherent_p (loop_bound_var, compare_var)
-      || loop_iv_base_var != compare_base)
+  if (!expr_coherent_p (loop_iv_base_var, compare_base))
     return;
 
   /* If loop bound, base and compare bound are all constents, we can
@@ -1247,34 +1250,52 @@ predict_iv_comparison (struct loop *loop, basic_block bb,
       return;
     }
 
-  if ((loop_bound_code == LT_EXPR || loop_bound_code == LE_EXPR)
-      && (compare_code == LT_EXPR || compare_code == LE_EXPR))
-    predict_edge_def (then_edge, PRED_LOOP_IV_COMPARE, TAKEN);
-  else if ((loop_bound_code == GT_EXPR || loop_bound_code == GE_EXPR)
-	   && (compare_code == GT_EXPR || compare_code == GE_EXPR))
-    predict_edge_def (then_edge, PRED_LOOP_IV_COMPARE, TAKEN);
-  else if (loop_bound_code == NE_EXPR)
+  if (expr_coherent_p (loop_bound_var, compare_var))
     {
-      /* If the loop backedge condition is "(i != bound)", we do
-	 the comparison based on the step of IV:
-	   * step < 0 : backedge condition is like (i > bound)
-	   * step > 0 : backedge condition is like (i < bound)  */
-      gcc_assert (loop_bound_step != 0);
+      if ((loop_bound_code == LT_EXPR || loop_bound_code == LE_EXPR)
+	  && (compare_code == LT_EXPR || compare_code == LE_EXPR))
+	predict_edge_def (then_edge, PRED_LOOP_IV_COMPARE, TAKEN);
+      else if ((loop_bound_code == GT_EXPR || loop_bound_code == GE_EXPR)
+	       && (compare_code == GT_EXPR || compare_code == GE_EXPR))
+	predict_edge_def (then_edge, PRED_LOOP_IV_COMPARE, TAKEN);
+      else if (loop_bound_code == NE_EXPR)
+	{
+	  /* If the loop backedge condition is "(i != bound)", we do
+	     the comparison based on the step of IV:
+	     * step < 0 : backedge condition is like (i > bound)
+	     * step > 0 : backedge condition is like (i < bound)  */
+	  gcc_assert (loop_bound_step != 0);
+	  if (loop_bound_step > 0
+	      && (compare_code == LT_EXPR
+		  || compare_code == LE_EXPR))
+	    predict_edge_def (then_edge, PRED_LOOP_IV_COMPARE, TAKEN);
+	  else if (loop_bound_step < 0
+		   && (compare_code == GT_EXPR
+		       || compare_code == GE_EXPR))
+	    predict_edge_def (then_edge, PRED_LOOP_IV_COMPARE, TAKEN);
+	  else
+	    predict_edge_def (then_edge, PRED_LOOP_IV_COMPARE, NOT_TAKEN);
+	}
+      else
+	/* The branch is predicted not-taken if loop_bound_code is
+	   opposite with compare_code.  */
+	predict_edge_def (then_edge, PRED_LOOP_IV_COMPARE, NOT_TAKEN);
+    }
+  else if (expr_coherent_p (loop_iv_base_var, compare_var))
+    {
+      /* For cases like:
+	   for (i = s; i < h; i++)
+	     if (i > s + 2) ....
+	 The branch should be predicted taken.  */
       if (loop_bound_step > 0
-	  && (compare_code == LT_EXPR
-	      || compare_code == LE_EXPR))
+	  && (compare_code == GT_EXPR || compare_code == GE_EXPR))
 	predict_edge_def (then_edge, PRED_LOOP_IV_COMPARE, TAKEN);
       else if (loop_bound_step < 0
-	       && (compare_code == GT_EXPR
-		   || compare_code == GE_EXPR))
+	       && (compare_code == LT_EXPR || compare_code == LE_EXPR))
 	predict_edge_def (then_edge, PRED_LOOP_IV_COMPARE, TAKEN);
       else
 	predict_edge_def (then_edge, PRED_LOOP_IV_COMPARE, NOT_TAKEN);
     }
-  else
-    /* The branch is predicted not-taken if loop_bound_code is
-       opposite with compare_code.  */
-    predict_edge_def (then_edge, PRED_LOOP_IV_COMPARE, NOT_TAKEN);
 }
  
 /* Predict edge probabilities by exploiting loop structure.  */

@@ -3,25 +3,23 @@
 
 extern int global;
 
-int bar(int);
+int bar (int);
 
 void foo (int base, int bound)
 {
   int i, ret = 0;
-  for (i = base; i < bound; i++)
+  for (i = base; i <= bound; i++)
     {
-      if (i > bound * bound)
+      if (i < base)
 	global += bar (i);
-      if (i > bound + 10)
+      if (i < base + 1)
 	global += bar (i);
-      if (i <= bound + 10)
+      if (i <= base + 3)
 	global += bar (i);
-      if (i > base + 10)
-	global += bar (i);
-      if (i < base - 10)
+      if (i - 1 < base)
 	global += bar (i);
     }
 }
 
-/* { dg-final { scan-tree-dump-not "loop iv compare heuristics" "profile_estimate"} } */
+/* { dg-final { scan-tree-dump-times "loop iv compare heuristics: 0.0%" 4 "profile_estimate"} } */
 /* { dg-final { cleanup-tree-dump "profile_estimate" } } */
