@@ -1,4 +1,8 @@
 
+2012-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_new_longsbucket): Correct allocated &
+	cleared size.
+
 2012-05-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (MELT_PROBE_QUIT_COMMAND): Add newline and delay.
 

@@ -13923,9 +13923,10 @@ meltgc_new_longsbucket (meltobject_ptr_t discr_p,
   if (bucklen == 0)
     melt_fatal_error("meltgc_new_longsbucket: too big bucket length %u", 
 		     len);
+  gcc_assert (lenix>0);
   buckv = 
     meltgc_allocate (sizeof (struct meltbucketlongs_st), 
-		     sizeof (struct melt_bucketlongentry_st)*len);
+		     sizeof (struct melt_bucketlongentry_st)*bucklen);
   ((struct meltbucketlongs_st*)(buckv))->discr = (meltobject_ptr_t) discrv;
   ((struct meltbucketlongs_st*)(buckv))->buckl_aux = NULL;
   ((struct meltbucketlongs_st*)(buckv))->buckl_lenix = lenix;
@@ -13933,7 +13934,7 @@ meltgc_new_longsbucket (meltobject_ptr_t discr_p,
   ((struct meltbucketlongs_st*)(buckv))->buckl_ucount = 0;
   memset (((struct meltbucketlongs_st*)(buckv))->buckl_entab,
 	  0, 
-	  len*sizeof(struct melt_bucketlongentry_st));
+	  bucklen*sizeof(struct melt_bucketlongentry_st));
  end:
   MELT_EXITFRAME ();
   return (melt_ptr_t) buckv;
