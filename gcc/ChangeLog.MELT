@@ -1,5 +1,11 @@
 
 2012-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base (valdesc_bucketlongs): Add asserts
+	* melt-runtime.c (melt_check_call_frames_at)
+	(meltnbcheckcallframes, meltthresholdcheckcallframes): Only #if
+	ENABLE_GC_CHECKING.
+
+2012-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_new_longsbucket): Correct allocated &
 	cleared size.
 

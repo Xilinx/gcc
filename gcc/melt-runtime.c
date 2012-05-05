@@ -810,9 +810,12 @@ check_pointer_at (const char msg[], long count, melt_ptr_t * pptr,
 		      lineno);
 }
 
-static long nbcheckcallframes;
-static long thresholdcheckcallframes;
 
+
+#if ENABLE_GC_CHECKING
+
+static long meltnbcheckcallframes;
+static long meltthresholdcheckcallframes;
 
 void
 melt_check_call_frames_at (int noyoungflag, const char *msg,
@@ -822,15 +825,15 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
      corrupted we can't show it! */
   struct melt_callframe_st *cfram = NULL;
   int nbfram = 0, nbvar = 0;
-  nbcheckcallframes++;
+  meltnbcheckcallframes++;
   if (!msg)
     msg = "/";
-  if (thresholdcheckcallframes > 0
-      && nbcheckcallframes > thresholdcheckcallframes)
+  if (meltthresholdcheckcallframes > 0
+      && meltnbcheckcallframes > meltthresholdcheckcallframes)
     {
       debugeprintf
 	("start check_call_frames#%ld {%s} from %s:%d",
-	 nbcheckcallframes, msg, lbasename (filenam), lineno);
+	 meltnbcheckcallframes, msg, lbasename (filenam), lineno);
     }
   for (cfram = melt_topframe; cfram != NULL; cfram = cfram->mcfr_prev)
     {
@@ -841,17 +844,17 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
 	  if (noyoungflag && melt_is_young (cfram->mcfr_closp))
 	    fatal_error
 	      ("bad frame <%s#%ld> unexpected young closure %p in frame %p at %s:%d",
-	       msg, nbcheckcallframes,
+	       msg, meltnbcheckcallframes,
 	       (void *) cfram->mcfr_closp, (void *) cfram, lbasename (filenam),
 	       lineno);
 
-	  check_pointer_at (msg, nbcheckcallframes,
+	  check_pointer_at (msg, meltnbcheckcallframes,
 			    (melt_ptr_t *) (void *) &cfram->mcfr_closp, filenam,
 			    lineno);
 	  if (cfram->mcfr_closp->discr->meltobj_magic != MELTOBMAG_CLOSURE)
 	    fatal_error
 	      ("bad frame <%s#%ld> invalid closure %p in frame %p at %s:%d",
-	       msg, nbcheckcallframes,
+	       msg, meltnbcheckcallframes,
 	       (void *) cfram->mcfr_closp, (void *) cfram, lbasename (filenam),
 	       lineno);
 	}
@@ -862,19 +865,22 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
 	      && melt_is_young (cfram->mcfr_varptr[varix]))
 	    fatal_error
 	      ("bad frame <%s#%ld> unexpected young pointer %p in frame %p at %s:%d",
-	       msg, nbcheckcallframes, (void *) cfram->mcfr_varptr[varix],
+	       msg, meltnbcheckcallframes, (void *) cfram->mcfr_varptr[varix],
 	       (void *) cfram, lbasename (filenam), lineno);
 
-	  check_pointer_at (msg, nbcheckcallframes, &cfram->mcfr_varptr[varix],
+	  check_pointer_at (msg, meltnbcheckcallframes, &cfram->mcfr_varptr[varix],
 			    filenam, lineno);
 	}
     }
-  if (thresholdcheckcallframes > 0
-      && nbcheckcallframes > thresholdcheckcallframes)
+  if (meltthresholdcheckcallframes > 0
+      && meltnbcheckcallframes > meltthresholdcheckcallframes)
     debugeprintf ("end check_call_frames#%ld {%s} %d frames/%d vars %s:%d",
-		  nbcheckcallframes, msg, nbfram, nbvar, lbasename (filenam),
+		  meltnbcheckcallframes, msg, nbfram, nbvar, lbasename (filenam),
 		  lineno);
 }
+#endif /*ENABLE_GC_CHECKING*/
+
+
 
 void
 melt_caught_assign_at (void *ptr, const char *fil, int lin,

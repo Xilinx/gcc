@@ -3047,6 +3047,8 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
    unsigned len = melt_primtab[lnix];
    unsigned ucnt = 0;
    unsigned ix = 0;
+   gcc_assert (lnix > 0);
+   gcc_assert (len > 0);
    dst = /* Don't need a cleared allocation! */
      ggc_alloc_meltbucketlongs_st (len*sizeof (struct melt_bucketlongentry_st) 
 				   + offsetof(struct meltbucketlongs_st, buckl_entab));
@@ -3068,6 +3070,8 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
    unsigned cnt = src->buckl_ucount;
    unsigned dstlen = 0;
    unsigned ix = 0;
+   gcc_assert (lnix > 0);
+   gcc_assert (len > 0);
    gcc_assert (cnt <= len);
    dst = (struct meltbucketlongs_st*)
       meltgc_new_longsbucket ((meltobject_ptr_t)newdiscrv, cnt + cnt/8 + 2);
@@ -3088,6 +3092,8 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
    unsigned len = melt_primtab[lnix];
    unsigned ucnt = src->buckl_ucount;
    unsigned ix = 0;
+   gcc_assert (lnix > 0);
+   gcc_assert (len > 0);
    MELT_FORWARDED (src->buckl_aux);
    gcc_assert (ucnt <= len);
    for (ix = 0; ix < ucnt; ix++)
