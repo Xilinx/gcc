@@ -344,6 +344,8 @@ melt_forwarded_copy (melt_ptr_t p)
 	unsigned len = melt_primtab[lnix];
 	unsigned ucnt = 0;
 	unsigned ix = 0;
+	gcc_assert (lnix > 0);
+	gcc_assert (len > 0);
 	dst =			/* Don't need a cleared allocation! */
 	  ggc_alloc_meltbucketlongs_st (len *
 					sizeof (struct
@@ -1435,6 +1437,8 @@ melt_scanning (melt_ptr_t p)
 	unsigned len = melt_primtab[lnix];
 	unsigned ucnt = src->buckl_ucount;
 	unsigned ix = 0;
+	gcc_assert (lnix > 0);
+	gcc_assert (len > 0);
 	MELT_FORWARDED (src->buckl_aux);
 	gcc_assert (ucnt <= len);
 	for (ix = 0; ix < ucnt; ix++)
@@ -2786,6 +2790,8 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	unsigned cnt = src->buckl_ucount;
 	unsigned dstlen = 0;
 	unsigned ix = 0;
+	gcc_assert (lnix > 0);
+	gcc_assert (len > 0);
 	gcc_assert (cnt <= len);
 	dst = (struct meltbucketlongs_st *)
 	  meltgc_new_longsbucket ((meltobject_ptr_t) newdiscrv,
@@ -3181,5 +3187,5 @@ end:
 #undef compv
 
 
-/*** End of code file meltrunsup-inc.c generated on 2012 May 02
- * by GCC MELT 4.8.0 20120502 (experimental) [melt-branch revision 187036] MELT_0.9.5+ . ***/
+/*** End of code file meltrunsup-inc.c generated on 2012 May 05
+ * by GCC MELT 4.8.0 20120502 (experimental) [melt-branch revision 187195] MELT_0.9.5+ . ***/
