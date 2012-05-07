@@ -1,5 +1,11 @@
 
 2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_basename): New function.
+	(debugeprint*): Use it in macros.
+
+	* melt-runtime.c: Use it everywhere.
+
+2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c: indented with astyle -gnu -s2 command.
 
 2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>

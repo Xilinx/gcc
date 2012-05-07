@@ -158,6 +158,12 @@ extern volatile sig_atomic_t melt_interrupted;
 extern volatile sig_atomic_t melt_got_sigio;
 extern volatile sig_atomic_t melt_got_sigalrm;
 
+static const char* 
+melt_basename(const char* path)
+{
+  return (path && path[0])?(lbasename (path)):path;
+}
+
 void melt_handle_interrupt (void);
 
 /* the MELT translator should generate calls to melt_check_interrupt at safe places.  */
@@ -198,25 +204,25 @@ extern int melt_flag_bootstrapping;
 /* Sometimes we need to pass an explicit line number.  */
 #define debugeprintfline(Lin,Fmt,...) \
    debugeprintf_raw("!@%s:%d:\n@! " Fmt "\n", \
-                    lbasename(__FILE__), Lin, ##__VA_ARGS__)
+                    melt_basename(__FILE__), Lin, ##__VA_ARGS__)
 /* The usual debugging macro.  */
 #define debugeprintf(Fmt,...) debugeprintfline(__LINE__,Fmt,##__VA_ARGS__)
 
 #define debugeprintflinenonl(Lin,Fmt,...)                       \
   debugeprintf_raw("!@%s:%d:\n@! " Fmt,                         \
-                   lbasename(__FILE__), Lin, ##__VA_ARGS__)
+                   melt_basename(__FILE__), Lin, ##__VA_ARGS__)
 #define debugeprintfnonl(Fmt,...) \
   debugeprintflinenonl(__LINE__, Fmt, ##__VA_ARGS__)
 
 #define debugeprintvalue(Msg,Val) do{if (melt_flag_debug){	\
       void* __val = (Val);					\
       fprintf(stderr,"!@%s:%d:\n@! %s @%p= ",			\
-              lbasename(__FILE__), __LINE__, (Msg), __val);	\
+              melt_basename(__FILE__), __LINE__, (Msg), __val);	\
       melt_dbgeprint(__val); }} while(0)
 #define debugebacktrace(Msg,Depth)  do{if (melt_flag_debug){	\
       void* __val = (Val);					\
       fprintf(stderr,"!@%s:%d: %s **backtrace** ",		\
-              lbasename(__FILE__), __LINE__, (Msg));		\
+              melt_basename(__FILE__), __LINE__, (Msg));		\
       melt_dbgbacktrace((Depth)); }} while(0)
 
 #else /* !MELT_HAVE_DEBUG*/
@@ -228,11 +234,11 @@ extern int melt_flag_bootstrapping;
 
 #define debugeprintflinenonl(Lin,Fmt,...)                       \
   debugeprintf_raw("!@%s:%d:\n@! " Fmt,                         \
-                   lbasename(__FILE__), Lin, ##__VA_ARGS__)
+                   melt_basename(__FILE__), Lin, ##__VA_ARGS__)
 
 #define debugeprintfline(Lin,Fmt,...) \
    debugeprintf_raw("!@%s:%d:\n@! " Fmt "\n", \
-                    lbasename(__FILE__), Lin, ##__VA_ARGS__)
+                    melt_basename(__FILE__), Lin, ##__VA_ARGS__)
 
 #define debugeprintfnonl(Fmt,...) \
   debugeprintflinenonl(__LINE__, Fmt, ##__VA_ARGS__)
@@ -240,12 +246,12 @@ extern int melt_flag_bootstrapping;
 #define debugeprintvalue(Msg,Val) do{if (0){	\
       void* __val = (Val);					\
       fprintf(stderr,"!@%s:%d:\n@! %s @%p= ",			\
-              lbasename(__FILE__), __LINE__, (Msg), __val);	\
+              melt_basename(__FILE__), __LINE__, (Msg), __val);	\
       melt_dbgeprint(__val); }} while(0)
 #define debugebacktrace(Msg,Depth)  do{if (0){	\
       void* __val = (Val);					\
       fprintf(stderr,"!@%s:%d: %s **backtrace** ",		\
-              lbasename(__FILE__), __LINE__, (Msg));		\
+              melt_basename(__FILE__), __LINE__, (Msg));		\
       melt_dbgbacktrace((Depth)); }} while(0)
 #endif /*MELT_HAVE_DEBUG*/
 
@@ -423,7 +429,7 @@ melt_release_ppbuf (void)
 extern int melt_debug_garbcoll;
 #define melt_debuggc_eprintf(Fmt,...) do {if (melt_debug_garbcoll > 0) \
       fprintf (stderr, "%s:%d:@$*" Fmt "\n",			       \
-	       lbasename(__FILE__), __LINE__, ##__VA_ARGS__);} while(0)
+	       melt_basename(__FILE__), __LINE__, ##__VA_ARGS__);} while(0)
 #else
 #define melt_debuggc_eprintf(Fmt,...) do{}while(0)
 #endif
@@ -2844,9 +2850,9 @@ extern melt_ptr_t melt_jmpval;
   memset (SBUF, 0, sizeof(SBUF));				\
   snprintf (SBUF, sizeof(SBUF)-1,				\
 	    "%s:%d:: " FMT,					\
-	    lbasename (FIL), (int)LIN, __VA_ARGS__);		\
-  meltfram__.mcfr_flocs = SBUF;			\
-} while(0)
+	    melt_basename (FIL), (int)LIN, __VA_ARGS__);	\
+  meltfram__.mcfr_flocs = SBUF;	} while(0)
+
 /* We need several indirections of macro to have the ##LIN trick above
    working!  */
 #define MELT_LOCATION_HERE_PRINTF_AT_MACRO(SBUF,FIL,LIN,FMT,...)	\
