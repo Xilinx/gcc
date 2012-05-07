@@ -7488,6 +7488,7 @@ end:
 #undef vecshv
 #undef locnamv
 #undef seqv
+#undef valv
 }
 
 
@@ -7501,9 +7502,10 @@ meltgc_read_from_rawstring (const char *rawstr, const char *locnam,
   struct reading_st rds;
   char *rbuf = 0;
   struct reading_st *rd = 0;
-  MELT_ENTERFRAME (2, NULL);
+  MELT_ENTERFRAME (3, NULL);
 #define seqv      meltfram__.mcfr_varptr[0]
 #define locnamv   meltfram__.mcfr_varptr[1]
+#define valv      meltfram__.mcfr_varptr[2]
   memset (&rds, 0, sizeof (rds));
   if (!rawstr)
     goto end;
@@ -7544,6 +7546,7 @@ end:
 #undef vecshv
 #undef seqv
 #undef locnamv
+#undef valv
 }
 
 
