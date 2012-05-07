@@ -1,3 +1,143 @@
+2012-05-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53239
+	* tree-vrp.c (get_value_range): Set VR of
+	SSA_NAME_IS_DEFAULT_DEF of DECL_BY_REFERENCE RESULT_DECL
+	to nonnull.
+
+2012-05-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53195
+	* tree-inline.c (setup_one_parameter): Properly add referenced
+	vars from the parameters new known value.
+
+2012-05-06  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	Backport from mainline:
+	2012-04-27  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/52999
+	* config/pa/pa.c (pa_legitimate_constant_p): Don't put function labels
+	in constant pool.
+
+2012-05-04  Ian Lance Taylor  <iant@google.com>
+
+	* tree-vect-patterns.c (vect_single_imm_use): Correct return
+	values from false to NULL.
+
+2012-05-04  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-05-04  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/53228
+	* config/i386/i386.h (X86_ARCH_CMOV): Rename from X86_ARCH_CMOVE.
+	(TARGET_CMOV): Rename from TARGET_CMOVE.
+	(TARGET_CMOVE): New define.
+	* config/i386/i386.c (ix86_option_override_internal): Use TARGET_CMOV.
+	Do not set TARGET_CMOVE here.
+
+2012-05-04  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	Backport from mainline:
+
+	2012-05-04  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	PR tree-optimization/52633
+	* tree-vect-patterns.c (vect_vect_recog_func_ptrs): Swap order of
+	vect_recog_widen_shift_pattern and vect_recog_over_widening_pattern.
+	(vect_recog_over_widening_pattern): Remove handling of code that was
+	already detected as over-widening pattern.  Remove special handling
+	of "unsigned" cases.  Instead, support general case of conversion
+	of the shift result to another type.
+
+	2012-05-04  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	* tree-vect-patterns.c (vect_single_imm_use): New function.
+	(vect_recog_widen_mult_pattern): Use it instead of open-coding loop.
+	(vect_recog_over_widening_pattern): Likewise.
+	(vect_recog_widen_shift_pattern): Likewise.
+
+	2012-04-10  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	PR tree-optimization/52870
+	* tree-vect-patterns.c (vect_recog_widen_mult_pattern): Verify that
+	presumed pattern statement is within the same loop or basic block.
+
+2012-05-04  Richard Guenther  <rguenther@suse.de>
+
+	* common.opt (flto-report): Do not mark as Optimization.
+
+2012-05-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/48496
+	* recog.c (constrain_operands): If extra constraints are present, also
+	accept pseudo-registers with equivalent memory locations during reload.
+
+2012-05-03  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	Backport from the mainline
+	2012-05-03  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/53199
+	* config/rs6000/rs6000.md (bswapdi splitters): If
+	-mavoid-indexed-addresses (or -mcpu=power6 which sets it by
+	default) is used, generate an alternate sequence that does not
+	depend on using indexed addressing.
+
+2012-05-03  David S. Miller  <davem@davemloft.net>
+
+	PR target/52684
+	* config/sparc/sparc.c (emit_soft_tfmode_libcall): If we pass a
+	MEM directly into a libcall, mark it's MEM_EXPR as addressable.
+	(sparc_emit_float_lib_cmp): Likewise.
+
+2012-05-04  Martin Jambor  <mjambor@suse.cz>
+
+	Backport from mainline
+	2012-05-02  Martin Jambor  <mjambor@suse.cz>
+
+	PR lto/52605
+	* dwarf2out.c (dwarf2out_decl): Only lookup die representing context
+	of a variable when the contect is a function.
+
+2012-05-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR plugins/53126
+	* gcc-ar.c (main): If GCC_EXEC_PREFIX is set in env,
+	append program name to it and pass that as first argument
+	to make_relative_prefix.  Always pass standard_libexec_prefix
+	as last argument to make_relative_prefix.  If
+	make_relative_prefix returns NULL, fall back to
+	standard_libexec_prefix.
+
+	PR debug/53174
+	* tree-predcom.c (remove_stmt): Call reset_debug_uses on stmts being
+	removed.
+
+	PR target/53187
+	* config/arm/arm.c (arm_select_cc_mode): If x has MODE_CC class
+	mode, return that mode.
+
+2012-05-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53144
+	* tree-ssa-sccvn.c (vn_reference_lookup_or_insert_constant_for_pieces):
+	Rename to ...
+	(vn_reference_lookup_or_insert_for_pieces): ... this.  Properly deal
+	with SSA name values.
+	(vn_reference_lookup_3): Adjust callers.
+
+2012-05-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53163
+	* tree-ssa-phiopt.c (cond_if_else_store_replacement): Don't ignore
+	return value from compute_all_dependences.
+
+	PR rtl-optimization/53160
+	* ree.c (combine_reaching_defs): Handle the case where cand->insn
+	has been modified by ree pass already.
+
 2012-05-01  Uros Bizjak  <ubizjak@gmail.com>
 
 	Backport from mainline

@@ -1,3 +1,106 @@
+2012-05-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53239
+	* g++.dg/opt/vrp3.C: New test.
+	* g++.dg/opt/vrp3-aux.cc: New file.
+	* g++.dg/opt/vrp3.h: New file.
+
+2012-05-07  Tobias Burnus  <burnus@net-b.de>
+
+	Backport from mainline:
+	2012-05-07  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53255
+	* gfortran.dg/typebound_operator_15.f90: New.
+
+2012-05-05  Tobias Burnus  <burnus@net-b.de>
+
+	Backport from mainline:
+	2012-05-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53111
+	* gfortran.dg/constructor_7.f90: New.
+	* gfortran.dg/constructor_8.f90: New.
+
+2012-05-04  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	Backport from mainline:
+
+	2012-05-04  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	PR tree-optimization/52633
+	* gcc.dg/vect/vect-over-widen-1.c: Two patterns should now be
+	recognized as widening shifts instead of over-widening.
+	* gcc.dg/vect/vect-over-widen-1-big-array.c: Likewise.
+	* gcc.dg/vect/vect-over-widen-4.c: Likewise.
+	* gcc.dg/vect/vect-over-widen-4-big-array.c: Likewise.
+	* gcc.target/arm/pr52633.c: New test.
+
+	2012-04-10  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	PR tree-optimization/52870
+	* gcc.dg/vect/pr52870.c: New test.
+
+2012-05-04  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/lto/pr53214_0.c: New testcase.
+
+2012-05-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.target/ia64/pr48496.c: New test.
+	* gcc.target/ia64/pr52657.c: Likewise.
+
+2012-05-03  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	Backport from mainline
+	2012-05-03  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/53199
+	* gcc.target/powwerpc/pr53199.c: New file.
+
+2012-05-03  Martin Jambor  <mjambor@suse.cz>
+
+	Backport from mainline
+	2012-05-02  Martin Jambor  <mjambor@suse.cz>
+
+	PR lto/52605
+	* g++.dg/lto/pr52605_0.C: New test.
+
+2012-05-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53186
+	* g++.dg/other/final2.C: New.
+
+2012-05-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/53174
+	* gcc.dg/pr53174.c: New test.
+
+	PR target/53187
+	* gcc.target/arm/pr53187.c: New test.
+	* gcc.c-torture/compile/pr53187.c: New test.
+
+2012-05-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53144
+	* gcc.dg/torture/pr53144.c: New testcase.
+
+2012-05-02  Tobias Burnus  <burnus@net-b.de>
+
+	Backport from mainline
+	2012-04-16  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/52864
+	* gfortran.dg/pointer_intent_6.f90: New.
+
+2012-05-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53163
+	* gcc.c-torture/compile/pr53163.c: New test.
+
+	PR rtl-optimization/53160
+	* gcc.c-torture/execute/pr53160.c: New test.
+
 2012-04-30  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR fortran/53148
