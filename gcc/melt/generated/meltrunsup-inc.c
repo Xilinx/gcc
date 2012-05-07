@@ -353,6 +353,7 @@ melt_forwarded_copy (melt_ptr_t p)
 					offsetof (struct meltbucketlongs_st,
 						  buckl_entab));
 	dst->discr = src->discr;
+	dst->buckl_lenix = src->buckl_lenix;
 	dst->buckl_aux = src->buckl_aux;
 	dst->buckl_xnum = src->buckl_xnum;
 	ucnt = dst->buckl_ucount = src->buckl_ucount;
@@ -2799,6 +2800,7 @@ meltgc_clone_with_discriminant (melt_ptr_t srcval_p, melt_ptr_t newdiscr_p)
 	dstlen = melt_primtab[dst->buckl_lenix];
 	dst->buckl_aux = src->buckl_aux;
 	dst->buckl_xnum = src->buckl_xnum;
+	dst->buckl_lenix = src->buckl_lenix;
 	for (ix = 0; ix < cnt; ix++)
 	  dst->buckl_entab[ix] = src->buckl_entab[ix];
 	for (ix = cnt; ix < dstlen; ix++)
@@ -3187,5 +3189,5 @@ end:
 #undef compv
 
 
-/*** End of code file meltrunsup-inc.c generated on 2012 May 05
- * by GCC MELT 4.8.0 20120502 (experimental) [melt-branch revision 187195] MELT_0.9.5+ . ***/
+/*** End of code file meltrunsup-inc.c generated on 2012 May 07
+ * by GCC MELT 4.8.0 20120502 (experimental) [melt-branch revision 187223] MELT_0.9.5+ . ***/
