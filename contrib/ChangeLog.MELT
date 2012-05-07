@@ -1,5 +1,9 @@
 
 2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc (SmeltAppl::reqbuf_to_melt_cb): Add
+	flushing of request channel.
+
+2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc: Replies to MELT are traced and sent
 	ASAP.
 

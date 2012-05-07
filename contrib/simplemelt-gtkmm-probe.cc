@@ -1491,11 +1491,12 @@ SmeltAppl::reqbuf_to_melt_cb(Glib::IOCondition outcond)
     wsta = _app_reqchan_to_melt->write(wdata+woff, wsiz, wcnt);
     SMELT_DEBUG("after write wsta#" << (int) wsta << " wcnt=" << wcnt);
     switch (wsta) {
-    case Glib::IO_STATUS_NORMAL:
     case Glib::IO_STATUS_AGAIN:
+    case Glib::IO_STATUS_NORMAL:
       if (wcnt > 0) {
         woff += wcnt;
         wsiz -= wcnt;
+	_app_reqchan_to_melt->flush();
         continue;
       }
       break;
