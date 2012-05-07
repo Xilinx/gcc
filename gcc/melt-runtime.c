@@ -5862,8 +5862,12 @@ readline: {
     char *mlin = 0;		/* partial mallocated line buffer when
 				    not fitting into linbuf */
     char *eol = 0;
-    if (!rd->rfil)		/* reading from a buffer */
-      return EOF;
+    if (!rd->rfil)		/* reading from a buffer: */
+      {
+	if (c)
+	  rdnext ();		/* Skip terminating newline. */
+	return EOF;
+      }
     if (rd->rcurlin)
       free ((void *) rd->rcurlin);
     rd->rcurlin = NULL;

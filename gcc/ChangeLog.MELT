@@ -1,5 +1,9 @@
 
 2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_skipspace_getc): Skip terminating newline
+	in buffers.
+
+2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_basename): New function.
 	(debugeprint*): Use it in macros.
 
