@@ -1,5 +1,9 @@
 
 2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl (melt-clean): Only remove meltgen*texi files.
+	* melt-build.mk: Regenerate.
+
+2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-probe.melt (probe_register_request_verb)
 	(probe_register_request_verb): More debug.
 

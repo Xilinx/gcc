@@ -874,7 +874,7 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 melt-clean:
 	rm -rf *melt*.args melt-workdir melt-stage0-* melt-sayhello* \
                $(wildcard *melt-*.stamp) \
-	       melt-run.h *melt*.o *melt*.so melt*~ melt*.texi melt-default* \
+	       melt-run.h *melt*.o *melt*.so melt*~ meltgen*.texi melt-default* \
 [+FOR melt_stage+]           [+melt_stage+]  \
 [+ENDFOR melt_stage+]               melt-sources melt-modules
 
