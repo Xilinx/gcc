@@ -1,5 +1,9 @@
 
 2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-probe.melt (probe_register_request_verb)
+	(probe_register_request_verb): More debug.
+
+2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_read_from_rawstring): Keep valv in its
 	frame slot.
 
