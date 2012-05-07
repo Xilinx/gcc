@@ -1,5 +1,8 @@
 
 2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c: indented with astyle -gnu -s2 command.
+
+2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_probe_start): Test that the probe did not
 	terminate at once...
 
