@@ -5413,7 +5413,7 @@ melt_probe_stop (void)
   if (!pid)
     return;
   debugeprintf("melt_stop_probe with melt_probe_pid %d", (int) melt_probe_pid);
-  if (!melt_wait_for_probe(WNOHANG)) {
+  if (!melt_wait_for_probe (WNOHANG)) {
     debugeprintf("melt_stop_probe waited ok pid %d", (int) pid);
     return;
   }
@@ -5621,6 +5621,12 @@ melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
     probeargc = 0;
     wordfree (&wexp);
   }
+  /* check that the probe process is still running... */
+  usleep (10000);
+  errno = 0;
+  if (!melt_wait_for_probe (WNOHANG)) 
+    melt_fatal_error ("MELT probe exited as soon as started %s", probecmd);
+  /* all seems ok... */
   debugeprintf("melt_start_probe ended melt_probe_pid=%d melt_probe_cmdto_fd=%d melt_probe_reqfrom_fd=%d",
 	       melt_probe_pid, melt_probe_cmdto_fd, melt_probe_reqfrom_fd);
   if (toprobefdptr) 
@@ -5651,6 +5657,7 @@ melt_send_command_strbuf_to_probe (melt_ptr_t buf)
   gcc_assert (bufstr[buflen-1] == '\n');
   bufpos = 0;
   /* Test that the probe process is still existing. */
+  errno = 0;
   if (kill (melt_probe_pid, 0))
     melt_fatal_error ("MELT probe pid %d process not existing anymore [%s]",
 		      (int) melt_probe_pid, xstrerror(errno));

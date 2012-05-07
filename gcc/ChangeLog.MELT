@@ -1,5 +1,9 @@
 
 2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_probe_start): Test that the probe did not
+	terminate at once...
+
+2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_send_command_strbuf_to_probe): Test
 	existence of probe process before sending...
 
