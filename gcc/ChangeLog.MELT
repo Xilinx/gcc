@@ -1,4 +1,7 @@
 
+2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (valdesc_bucketlongs): Better copying &
+	cloning routines.
 
 2012-05-05  Basile Starynkevitch  <basile@starynkevitch.net>
 

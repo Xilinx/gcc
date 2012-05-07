@@ -3053,6 +3053,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
      ggc_alloc_meltbucketlongs_st (len*sizeof (struct melt_bucketlongentry_st) 
 				   + offsetof(struct meltbucketlongs_st, buckl_entab));
    dst->discr = src->discr;
+   dst->buckl_lenix = src->buckl_lenix;
    dst->buckl_aux = src->buckl_aux;
    dst->buckl_xnum = src->buckl_xnum;
    ucnt = dst->buckl_ucount = src->buckl_ucount;
@@ -3078,6 +3079,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
    dstlen = melt_primtab[dst->buckl_lenix];
    dst->buckl_aux = src->buckl_aux;
    dst->buckl_xnum = src->buckl_xnum;
+   dst->buckl_lenix = src->buckl_lenix;
    for (ix = 0; ix < cnt; ix++)
      dst->buckl_entab[ix] = src->buckl_entab[ix];
    for (ix = cnt; ix < dstlen; ix++) {
