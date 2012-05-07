@@ -311,6 +311,8 @@ public:
     {
       _mainactgroup = Gtk::ActionGroup::create ();
       _mainactgroup->add(Gtk::Action::create("MainMenuFile", "_File"));
+      _mainactgroup->add(Gtk::Action::create("MainQuit", "Quit"),
+			 sigc::ptr_fun(&smelt_quit));
       _mainactgroup->add(Gtk::Action::create("MainShowVersion", "Version"),
 			 sigc::mem_fun(*this,&SmeltMainWindow::on_version_show));
       auto uimgr = Gtk::UIManager::create();
@@ -320,6 +322,7 @@ public:
                            <menubar name='MainMenuBar'>
                            <menu action='MainMenuFile'>
                            <menuitem action='MainShowVersion'/>
+                           <menuitem action='MainQuit'/>
                            </menu>
                            </menubar>
                            </ui>

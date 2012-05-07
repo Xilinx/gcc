@@ -1,5 +1,9 @@
 
 2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc (SmeltMainWindow::SmeltMainWindow):
+	Add quit menu entry.
+
+2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc (SmeltAppl::reqbuf_to_melt_cb): Add
 	flushing of request channel.
 
