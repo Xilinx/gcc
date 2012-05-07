@@ -337,6 +337,7 @@
         (filesvec  (make_multiple discr_multiple 10))
         (filedict (make_mapstring discr_map_strings 17))
         (probedata (instance class_probe_data
+			     :probedata_reqhdict (make_mapstring discr_map_strings 53)
                              :probedata_filesvec filesvec
                              :probedata_filedict filedict))
 	(:long toprobenumfd -1)
