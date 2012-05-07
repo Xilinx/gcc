@@ -5650,6 +5650,10 @@ melt_send_command_strbuf_to_probe (melt_ptr_t buf)
   gcc_assert (bufstr[buflen-2] == '\n');
   gcc_assert (bufstr[buflen-1] == '\n');
   bufpos = 0;
+  /* Test that the probe process is still existing. */
+  if (kill (melt_probe_pid, 0))
+    melt_fatal_error ("MELT probe pid %d process not existing anymore [%s]",
+		      (int) melt_probe_pid, xstrerror(errno));
   for (;;) 
     {
       long wlen, wcnt;

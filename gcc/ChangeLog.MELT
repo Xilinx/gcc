@@ -1,6 +1,11 @@
 
 2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_send_command_strbuf_to_probe): Test
+	existence of probe process before sending...
 
+2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
 	* melt/generated/warmelt-base+meltdesc.c: Regenerate.
