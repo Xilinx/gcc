@@ -850,6 +850,10 @@ public:
     os << std::endl << std::endl;
     if (os == _app_writestream_to_melt) {
       os << std::flush;
+      SMELT_DEBUG("sendreq " << _app_writestream_to_melt.str());
+      if (_app_traced && _app_tracewin) 
+	_app_tracewin->add_reply_to_melt (_app_writestream_to_melt.str());
+      (void) reqbuf_to_melt_cb(Glib::IO_OUT);
       if (!_app_connreq_to_melt) {
         SMELT_DEBUG("connecting requests");
         _app_connreq_to_melt
@@ -1441,6 +1445,15 @@ void SmeltTraceWindow::add_command_from_melt(const std::string& str)
     tbuf->insert(tbuf->end(), "\n");
 }
 
+void SmeltTraceWindow::add_reply_to_melt(const std::string& str)
+{
+  auto tbuf =  _tracetextview.get_buffer();
+  add_date();
+  tbuf->insert_with_tag(tbuf->end(), str, "reply");
+  if (str.empty() || str[str.size()-1] != '\n')
+    tbuf->insert(tbuf->end(), "\n");
+}
+
 void SmeltOptionGroup::setup_appl(SmeltAppl& app)
 {
   if (!_file_to_melt.empty())
@@ -1473,7 +1486,10 @@ SmeltAppl::reqbuf_to_melt_cb(Glib::IOCondition outcond)
   do {
     if (wsiz <= 0)
       break;
+    wcnt = 0;
+    SMELT_DEBUG("before write woff=" << woff << " wsiz=" << wsiz);
     wsta = _app_reqchan_to_melt->write(wdata+woff, wsiz, wcnt);
+    SMELT_DEBUG("after write wsta#" << (int) wsta << " wcnt=" << wcnt);
     switch (wsta) {
     case Glib::IO_STATUS_NORMAL:
     case Glib::IO_STATUS_AGAIN:

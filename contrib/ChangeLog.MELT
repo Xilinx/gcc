@@ -1,4 +1,8 @@
 
+2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc: Replies to MELT are traced and sent
+	ASAP.
+
 2012-05-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{add svn:keywords Id property}}
 	* simplemelt-gtkmm-probe.cc: license changed to GPLv3+
