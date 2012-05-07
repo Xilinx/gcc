@@ -2340,26 +2340,7 @@ build_array_ref (location_t loc, tree array, tree index)
 
   gcc_assert (TREE_CODE (TREE_TYPE (index)) == INTEGER_TYPE);
 
-  /* For vector[index], convert the vector to a
-     pointer of the underlying type.  */
-  if (TREE_CODE (TREE_TYPE (array)) == VECTOR_TYPE)
-    {
-      tree type = TREE_TYPE (array);
-      tree type1;
-
-      if (TREE_CODE (index) == INTEGER_CST)
-        if (!host_integerp (index, 1)
-            || ((unsigned HOST_WIDE_INT) tree_low_cst (index, 1)
-               >= TYPE_VECTOR_SUBPARTS (TREE_TYPE (array))))
-          warning_at (loc, OPT_Warray_bounds, "index value is out of bound");
-
-      c_common_mark_addressable_vec (array);
-      type = build_qualified_type (TREE_TYPE (type), TYPE_QUALS (type));
-      type = build_pointer_type (type);
-      type1 = build_pointer_type (TREE_TYPE (array));
-      array = build1 (ADDR_EXPR, type1, array);
-      array = convert (type, array);
-    }
+  convert_vector_to_pointer_for_subscript (loc, &array, index);
 
   if (TREE_CODE (TREE_TYPE (array)) == ARRAY_TYPE)
     {
@@ -5594,29 +5575,29 @@ convert_for_assignment (location_t location, tree type, tree rhs,
 
       /* Check if the right-hand side has a format attribute but the
 	 left-hand side doesn't.  */
-      if (warn_missing_format_attribute
+      if (warn_suggest_attribute_format
 	  && check_missing_format_attribute (type, rhstype))
 	{
 	  switch (errtype)
 	  {
 	  case ic_argpass:
-	    warning_at (location, OPT_Wmissing_format_attribute,
+	    warning_at (location, OPT_Wsuggest_attribute_format,
 			"argument %d of %qE might be "
 			"a candidate for a format attribute",
 			parmnum, rname);
 	    break;
 	  case ic_assign:
-	    warning_at (location, OPT_Wmissing_format_attribute,
+	    warning_at (location, OPT_Wsuggest_attribute_format,
 			"assignment left-hand side might be "
 			"a candidate for a format attribute");
 	    break;
 	  case ic_init:
-	    warning_at (location, OPT_Wmissing_format_attribute,
+	    warning_at (location, OPT_Wsuggest_attribute_format,
 			"initialization left-hand side might be "
 			"a candidate for a format attribute");
 	    break;
 	  case ic_return:
-	    warning_at (location, OPT_Wmissing_format_attribute,
+	    warning_at (location, OPT_Wsuggest_attribute_format,
 			"return type might be "
 			"a candidate for a format attribute");
 	    break;
@@ -6335,7 +6316,7 @@ digest_init (location_t init_loc, tree type, tree init, tree origtype,
 	pedwarn_init (init_loc, 0,
 		      "initializer element is not a constant expression");
 
-      /* Added to enable additional -Wmissing-format-attribute warnings.  */
+      /* Added to enable additional -Wsuggest-attribute=format warnings.  */
       if (TREE_CODE (TREE_TYPE (inside_init)) == POINTER_TYPE)
 	inside_init = convert_for_assignment (init_loc, type, inside_init,
 	    				      origtype,
@@ -7065,7 +7046,7 @@ pop_init_level (int implicit, struct obstack * braced_init_obstack)
 			    constructor_unfilled_fields,
 			    constructor_type))
 	      inform (DECL_SOURCE_LOCATION (constructor_unfilled_fields),
-		      "%qT declared here", constructor_unfilled_fields);
+		      "%qD declared here", constructor_unfilled_fields);
 	  }
     }
 

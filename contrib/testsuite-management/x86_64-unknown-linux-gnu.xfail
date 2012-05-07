@@ -1,11 +1,5 @@
 FAIL: g++.dg/other/anon5.C -std=gnu++98 (test for excess errors)
 FAIL: g++.dg/other/anon5.C -std=gnu++11 (test for excess errors)
-FAIL: gcc.dg/20011021-1.c (test for excess errors)
-FAIL: gcc.dg/20011021-1.c (test for warnings, line 44)
-FAIL: gcc.dg/20011021-1.c (test for warnings, line 41)
-FAIL: gcc.dg/20011021-1.c near init (test for warnings, line 30)
-FAIL: gcc.dg/20011021-1.c near init (test for warnings, line 27)
-FAIL: gcc.dg/20011021-1.c (test for warnings, line 34)
 XPASS: gcc.dg/Wstrict-overflow-18.c (test for bogus messages, line 20)
 FAIL: gcc.dg/cproj-fails-with-broken-glibc.c execution test
 XPASS: gcc.dg/guality/example.c -O2  execution test
@@ -46,13 +40,6 @@ XPASS: gcc.dg/guality/pr41616-1.c -O3 -g  execution test
 XPASS: gcc.dg/guality/pr41616-1.c -O2 -flto  execution test
 XPASS: gcc.dg/inline_3.c (test for excess errors)
 XPASS: gcc.dg/inline_4.c (test for excess errors)
-FAIL: gcc.dg/m-un-2.c (test for excess errors)
-FAIL: gcc.dg/m-un-2.c warning regression 2 (test for warnings, line 12)
-FAIL: gcc.dg/missing-field-init-2.c (test for warnings, line 8)
-FAIL: gcc.dg/missing-field-init-2.c (test for warnings, line 14)
-FAIL: gcc.dg/missing-field-init-2.c (test for warnings, line 7)
-FAIL: gcc.dg/missing-field-init-2.c (test for excess errors)
-FAIL: gcc.dg/pr52283.c (test for excess errors)
 FAIL: gcc.dg/torture/pr51106-2.c -O2 -flto  (test for excess errors)
 FAIL: gcc.dg/torture/pr51106-2.c -O3 -g  (internal compiler error)
 FAIL: gcc.dg/torture/pr51106-2.c -O1  (test for excess errors)

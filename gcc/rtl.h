@@ -1643,8 +1643,7 @@ extern int ceil_log2 (unsigned HOST_WIDE_INT);
 
 /* In explow.c */
 extern HOST_WIDE_INT trunc_int_for_mode	(HOST_WIDE_INT, enum machine_mode);
-extern rtx plus_constant (rtx, HOST_WIDE_INT);
-extern rtx plus_constant_mode (enum machine_mode, rtx, HOST_WIDE_INT);
+extern rtx plus_constant (enum machine_mode, rtx, HOST_WIDE_INT);
 
 /* In rtl.c */
 extern rtx rtx_alloc_stat (RTX_CODE MEM_STAT_DECL);
@@ -2525,6 +2524,9 @@ extern void dump_flow_info (FILE *, int);
 extern void init_expmed (void);
 extern void expand_inc (rtx, rtx);
 extern void expand_dec (rtx, rtx);
+
+/* In lower-subreg.c */
+extern void init_lower_subreg (void);
 
 /* In gcse.c */
 extern bool can_copy_p (enum machine_mode);

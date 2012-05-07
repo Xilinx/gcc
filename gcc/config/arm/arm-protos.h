@@ -62,6 +62,8 @@ extern bool arm_legitimize_reload_address (rtx *, enum machine_mode, int, int,
 extern rtx thumb_legitimize_reload_address (rtx *, enum machine_mode, int, int,
 					    int);
 extern int thumb1_legitimate_address_p (enum machine_mode, rtx, int);
+extern bool ldm_stm_operation_p (rtx, bool, enum machine_mode mode,
+                                 bool, bool);
 extern int arm_const_double_rtx (rtx);
 extern int neg_const_double_rtx_ok_for_fpa (rtx);
 extern int vfp3_const_double_rtx (rtx);
@@ -176,7 +178,7 @@ extern int arm_float_words_big_endian (void);
 
 /* Thumb functions.  */
 extern void arm_init_expanders (void);
-extern const char *thumb_unexpanded_epilogue (void);
+extern const char *thumb1_unexpanded_epilogue (void);
 extern void thumb1_expand_prologue (void);
 extern void thumb1_expand_epilogue (void);
 extern const char *thumb1_output_interwork (void);
