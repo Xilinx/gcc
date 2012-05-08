@@ -1,3 +1,8 @@
+2012-05-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk.c (expand_builtin_cilk_detach): Added mode type for
+	plus_constant.
+
 2012-05-07  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* c-parser.c (c_parser_declaration_or_fndef): Saved function arguments

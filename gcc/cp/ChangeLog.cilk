@@ -1,3 +1,13 @@
+2012-05-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cilk.c (compute_loop_var): Added location info to build_new_op.
+	(callable): Likewise.
+	(compute_loop_count): Likewise.
+	* cp-array-notation.c (build_x_array_notation_expr): Added location
+	information to grok_array_decl, build_x_unary_op, build_x_binary_op.
+	(fix_builtin_array_notation_fn): Likewise.
+	(fix_unary_array_notation_exprs): Likewise.
+	(has_call_expr_with_array_notation): Moved declaration after if stmt.
 2012-04-06  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* parser.c (cp_parser_attribute_list): Added code to catch vector

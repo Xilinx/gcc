@@ -702,7 +702,7 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 		      {
 			/* Array[start_index + (induction_var * stride)] */
 			lhs_array_operand[ii] = grok_array_decl
-			  (lhs_array_operand[ii],
+			  (UNKNOWN_LOCATION, lhs_array_operand[ii],
 			   build2 (MINUS_EXPR, TREE_TYPE (lhs_var[jj]),
 				   lhs_start[ii][jj],
 				   build2 (MULT_EXPR, TREE_TYPE (lhs_var[jj]),
@@ -712,7 +712,7 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 		    else
 		      {
 			lhs_array_operand[ii] = grok_array_decl
-			  (lhs_array_operand[ii],
+			  (UNKNOWN_LOCATION, lhs_array_operand[ii],
 			   build2 (PLUS_EXPR, TREE_TYPE (lhs_var[jj]),
 				   lhs_start[ii][jj],
 				   build2 (MULT_EXPR, TREE_TYPE (lhs_var[jj]),
@@ -741,7 +741,7 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 		    {
 		      /* Array[start_index - (induction_var * stride)] */
 		      rhs_array_operand[ii] = grok_array_decl
-			(rhs_array_operand[ii],
+			(UNKNOWN_LOCATION, rhs_array_operand[ii],
 			 build2 (MINUS_EXPR, TREE_TYPE (rhs_var[jj]),
 				 rhs_start[ii][jj],
 				 build2 (MULT_EXPR, TREE_TYPE (rhs_var[jj]),
@@ -752,7 +752,7 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 		    {
 		      /* Array[start_index  + (induction_var * stride)] */
 		      rhs_array_operand[ii] = grok_array_decl
-			(rhs_array_operand[ii],
+			(UNKNOWN_LOCATION, rhs_array_operand[ii],
 			 build2 (PLUS_EXPR, TREE_TYPE (rhs_var[jj]),
 				 rhs_start[ii][jj],
 				 build2 (MULT_EXPR, TREE_TYPE (rhs_var[jj]),
@@ -821,19 +821,23 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 
   for (ii = 0; ii < rhs_rank; ii++)
     if (rhs_count_down[0][ii])
-      rhs_expr_incr[ii] = build_x_unary_op (POSTDECREMENT_EXPR, rhs_var[ii],
-					    tf_warning_or_error);
+      rhs_expr_incr[ii] = build_x_unary_op
+	(UNKNOWN_LOCATION, POSTDECREMENT_EXPR, rhs_var[ii],
+	 tf_warning_or_error);
     else
-      rhs_expr_incr[ii] = build_x_unary_op (POSTINCREMENT_EXPR, rhs_var[ii],
-					    tf_warning_or_error);
+      rhs_expr_incr[ii] = build_x_unary_op
+	(UNKNOWN_LOCATION, POSTINCREMENT_EXPR, rhs_var[ii],
+	 tf_warning_or_error);
   
   for (ii = 0; ii < lhs_rank; ii++)
     if (lhs_count_down[0][ii])
-      lhs_expr_incr[ii] = build_x_unary_op (POSTDECREMENT_EXPR, lhs_var[ii],
-					    tf_warning_or_error);
+      lhs_expr_incr[ii] = build_x_unary_op
+	(UNKNOWN_LOCATION, POSTDECREMENT_EXPR, lhs_var[ii],
+	 tf_warning_or_error);
   else
-    lhs_expr_incr[ii] = build_x_unary_op (POSTINCREMENT_EXPR, lhs_var[ii],
-					  tf_warning_or_error);
+    lhs_expr_incr[ii] = build_x_unary_op
+      (UNKNOWN_LOCATION, POSTINCREMENT_EXPR, lhs_var[ii],
+       tf_warning_or_error);
 	
   if (!array_expr_lhs)
     array_expr_lhs = lhs;
@@ -849,12 +853,14 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	    {
 	      if (lhs_count_down[0][jj])
 		lhs_compare[jj] = build_x_binary_op
-		  (GT_EXPR, lhs_var[jj], TREE_CODE (lhs_var[jj]),
+		  (UNKNOWN_LOCATION, GT_EXPR, lhs_var[jj],
+		   TREE_CODE (lhs_var[jj]),
 		   lhs_length[0][jj], TREE_CODE (lhs_length[0][jj]), NULL,
 		   tf_warning_or_error);
 	      else
 		lhs_compare[jj] = build_x_binary_op
-		  (LT_EXPR, lhs_var[jj], TREE_CODE (lhs_var[jj]),
+		  (UNKNOWN_LOCATION, LT_EXPR, lhs_var[jj],
+		   TREE_CODE (lhs_var[jj]),
 		   lhs_length[0][jj], TREE_CODE (lhs_length[0][jj]), NULL,
 		   tf_warning_or_error);
 	    }
@@ -872,18 +878,19 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	    {
 	  if (rhs_count_down[0][jj])
 	    rhs_compare[jj] = build_x_binary_op
-	      (GT_EXPR, rhs_var[jj], TREE_CODE (rhs_var[jj]),
+	      (UNKNOWN_LOCATION, GT_EXPR, rhs_var[jj], TREE_CODE (rhs_var[jj]),
 	       rhs_length[0][jj], TREE_CODE (rhs_length[0][jj]), NULL,
 	       tf_warning_or_error);
 	  else
 	    rhs_compare[jj] = build_x_binary_op
-	      (LT_EXPR, rhs_var[jj], TREE_CODE (rhs_var[jj]),
+	      (UNKNOWN_LOCATION, LT_EXPR, rhs_var[jj], TREE_CODE (rhs_var[jj]),
 	       rhs_length[0][jj], TREE_CODE (rhs_length[0][jj]), NULL,
 	       tf_warning_or_error);
 	    }
 	  if (lhs_rank)
 	    cond_expr[jj] = build_x_binary_op
-	      (TRUTH_ANDIF_EXPR, lhs_compare[jj], TREE_CODE (lhs_compare[jj]),
+	      (UNKNOWN_LOCATION, TRUTH_ANDIF_EXPR, lhs_compare[jj],
+	       TREE_CODE (lhs_compare[jj]),
 	       rhs_compare[jj], TREE_CODE (rhs_compare[jj]), NULL,
 	       tf_warning_or_error);
 	  else
@@ -893,12 +900,13 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	{
 	  if (lhs_count_down[0][jj])
 	    cond_expr[jj] = build_x_binary_op
-	      (GT_EXPR, lhs_var[jj], TREE_CODE (lhs_var[jj]),
+	      (UNKNOWN_LOCATION, GT_EXPR, lhs_var[jj], TREE_CODE (lhs_var[jj]),
 	       lhs_length[0][jj], TREE_CODE (lhs_length[0][jj]), NULL,
 	       tf_warning_or_error);
 	    else
 	      cond_expr[jj] = build_x_binary_op
-		(LT_EXPR, lhs_var[jj], TREE_CODE (lhs_var[jj]),
+		(UNKNOWN_LOCATION, LT_EXPR, lhs_var[jj],
+		 TREE_CODE (lhs_var[jj]),
 		 lhs_length[0][jj], TREE_CODE (lhs_length[0][jj]), NULL,
 		 tf_warning_or_error);
 	}
@@ -1204,7 +1212,7 @@ fix_conditional_array_notations_1 (tree stmt)
 		{
 		  /* Array[start_index - (induction_var * stride)] */
 		  array_operand[ii] = grok_array_decl
-		    (array_operand[ii],
+		    (UNKNOWN_LOCATION, array_operand[ii],
 		     build2 (MINUS_EXPR, TREE_TYPE (array_var[jj]),
 			     array_start[ii][jj],
 			     build2 (MULT_EXPR, TREE_TYPE (array_var[jj]),
@@ -1214,7 +1222,7 @@ fix_conditional_array_notations_1 (tree stmt)
 		{
 		  /* Array[start_index + (induction_var * stride)] */
 		  array_operand[ii] = grok_array_decl
-		    (array_operand[ii],
+		    (UNKNOWN_LOCATION, array_operand[ii],
 		     build2 (PLUS_EXPR, TREE_TYPE (array_var[jj]),
 			     array_start[ii][jj],
 			     build2 (MULT_EXPR, TREE_TYPE (array_var[jj]),
@@ -1227,11 +1235,11 @@ fix_conditional_array_notations_1 (tree stmt)
 
   for (ii = 0; ii < rank; ii++)
     if (count_down[0][ii])
-      expr_incr[ii] = build_x_unary_op (POSTDECREMENT_EXPR, array_var[ii],
-					tf_warning_or_error);
+      expr_incr[ii] = build_x_unary_op (UNKNOWN_LOCATION, POSTDECREMENT_EXPR,
+					array_var[ii], tf_warning_or_error);
     else
-      expr_incr[ii] = build_x_unary_op (POSTINCREMENT_EXPR, array_var[ii],
-					tf_warning_or_error);
+      expr_incr[ii] = build_x_unary_op (UNKNOWN_LOCATION, POSTINCREMENT_EXPR,
+					array_var[ii], tf_warning_or_error);
   
   for (jj = 0; jj < rank; jj++)
     {
@@ -1239,12 +1247,14 @@ fix_conditional_array_notations_1 (tree stmt)
 	{
 	  if (count_down[0][jj])
 	    compare_expr[jj] = build_x_binary_op
-	      (GT_EXPR, array_var[jj], TREE_CODE (array_var[jj]),
+	      (UNKNOWN_LOCATION, GT_EXPR, array_var[jj],
+	       TREE_CODE (array_var[jj]),
 	       array_length[0][jj], TREE_CODE (array_length[0][jj]), NULL,
 	       tf_warning_or_error);
 	  else
 	    compare_expr[jj] = build_x_binary_op
-	      (LT_EXPR, array_var[jj], TREE_CODE (array_var[jj]),
+	      (UNKNOWN_LOCATION, LT_EXPR, array_var[jj],
+	       TREE_CODE (array_var[jj]),
 	       array_length[0][jj], TREE_CODE (array_length[0][jj]), NULL,
 	       tf_warning_or_error);
 	}
@@ -1778,7 +1788,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 		{
 		  /* Array[start_index - (induction_var * stride)] */
 		  array_operand[ii] = grok_array_decl
-		    (array_operand[ii],
+		    (UNKNOWN_LOCATION, array_operand[ii],
 		     build2 (MINUS_EXPR, TREE_TYPE (array_var[jj]),
 			     array_start[ii][jj],
 			     build2 (MULT_EXPR, TREE_TYPE (array_var[jj]),
@@ -1788,7 +1798,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 		{
 		  /* Array[start_index + (induction_var * stride)] */
 		  array_operand[ii] = grok_array_decl
-		    (array_operand[ii],
+		    (UNKNOWN_LOCATION, array_operand[ii],
 		     build2 (PLUS_EXPR, TREE_TYPE (array_var[jj]),
 			     array_start[ii][jj],
 			     build2 (MULT_EXPR, TREE_TYPE (array_var[jj]),
@@ -1806,11 +1816,11 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   
   for (ii = 0; ii < rank; ii++)
     if (count_down[0][ii])
-      expr_incr[ii] = build_x_unary_op (POSTDECREMENT_EXPR, array_var[ii],
-					tf_warning_or_error);
+      expr_incr[ii] = build_x_unary_op (UNKNOWN_LOCATION, POSTDECREMENT_EXPR,
+					array_var[ii], tf_warning_or_error);
     else
-      expr_incr[ii] = build_x_unary_op (POSTINCREMENT_EXPR, array_var[ii],
-					tf_warning_or_error);
+      expr_incr[ii] = build_x_unary_op (UNKNOWN_LOCATION, POSTINCREMENT_EXPR,
+					array_var[ii], tf_warning_or_error);
   
   for (jj = 0; jj < rank; jj++)
     {
@@ -1818,12 +1828,14 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	{
 	  if (count_down[0][jj])
 	    compare_expr[jj] = build_x_binary_op
-	      (GT_EXPR, array_var[jj], TREE_CODE (array_var[jj]),
+	      (UNKNOWN_LOCATION, GT_EXPR, array_var[jj],
+	       TREE_CODE (array_var[jj]),
 	       array_length[0][jj], TREE_CODE (array_length[0][jj]), NULL,
 	       tf_warning_or_error);
 	  else
 	    compare_expr[jj] = build_x_binary_op
-	      (LT_EXPR, array_var[jj], TREE_CODE (array_var[jj]),
+	      (UNKNOWN_LOCATION, LT_EXPR, array_var[jj],
+	       TREE_CODE (array_var[jj]),
 	       array_length[0][jj], TREE_CODE (array_length[0][jj]), NULL,
 	       tf_warning_or_error);
 	} 
@@ -1878,7 +1890,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       else
 	comp_node = integer_zero_node;
       new_cond_expr = build_x_binary_op
-	(NE_EXPR, func_parm, TREE_CODE (func_parm), comp_node,
+	(UNKNOWN_LOCATION, NE_EXPR, func_parm, TREE_CODE (func_parm), comp_node,
 	 TREE_CODE (comp_node), NULL, tf_warning_or_error);
       new_expr = build_x_conditional_expr (new_cond_expr, new_yes_expr,
 					   new_no_expr, 1);
@@ -1899,7 +1911,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       else
 	comp_node = integer_zero_node;
       new_cond_expr = build_x_binary_op
-	(EQ_EXPR, func_parm, TREE_CODE (func_parm), comp_node,
+	(UNKNOWN_LOCATION, EQ_EXPR, func_parm, TREE_CODE (func_parm), comp_node,
 	 TREE_CODE (comp_node), NULL, tf_warning_or_error);
       new_expr = build_x_conditional_expr (new_cond_expr, new_yes_expr,
 					   new_no_expr, 1);
@@ -1921,7 +1933,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       else
 	comp_node = integer_zero_node;
       new_cond_expr = build_x_binary_op
-	(EQ_EXPR, func_parm, TREE_CODE (func_parm), comp_node,
+	(UNKNOWN_LOCATION, EQ_EXPR, func_parm, TREE_CODE (func_parm), comp_node,
 	 TREE_CODE (comp_node), NULL, tf_warning_or_error);
       new_expr = build_x_conditional_expr (new_cond_expr, new_yes_expr,
 					   new_no_expr, tf_warning_or_error);
@@ -1942,7 +1954,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       else
 	comp_node = integer_zero_node;
       new_cond_expr = build_x_binary_op
-	(NE_EXPR, func_parm, TREE_CODE (func_parm), comp_node,
+	(UNKNOWN_LOCATION, NE_EXPR, func_parm, TREE_CODE (func_parm), comp_node,
 	 TREE_CODE (comp_node), NULL, tf_warning_or_error); 
       new_expr = build_x_conditional_expr (new_cond_expr, new_yes_expr,
 					   new_no_expr, 1);      
@@ -1953,7 +1965,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_var_init = build_x_modify_expr (*new_var, NOP_EXPR, func_parm, 1);
       new_no_expr  = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
       new_yes_expr = build_x_modify_expr (*new_var, NOP_EXPR, func_parm, 1);
-      new_cond_expr = build_x_binary_op (LT_EXPR, *new_var,
+      new_cond_expr = build_x_binary_op (UNKNOWN_LOCATION, LT_EXPR, *new_var,
 					 TREE_CODE (*new_var), func_parm,
 					 TREE_CODE (func_parm), NULL,
 					 tf_warning_or_error);
@@ -1965,7 +1977,7 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_var_init = build_x_modify_expr (*new_var, NOP_EXPR, func_parm, 1);
       new_no_expr  = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
       new_yes_expr = build_x_modify_expr (*new_var, NOP_EXPR, func_parm, 1);
-      new_cond_expr = build_x_binary_op (GT_EXPR, *new_var,
+      new_cond_expr = build_x_binary_op (UNKNOWN_LOCATION, GT_EXPR, *new_var,
 					 TREE_CODE (*new_var), func_parm,
 					 TREE_CODE (func_parm), NULL, 1);
       new_expr = build_x_conditional_expr (new_cond_expr, new_yes_expr,
@@ -1999,7 +2011,8 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       append_to_statement_list (new_no_expr, &new_no_list);
 
       new_cond_expr = build_x_binary_op
-	(LT_EXPR, array_ind_value, TREE_CODE (array_ind_value),
+	(UNKNOWN_LOCATION, LT_EXPR, array_ind_value,
+	 TREE_CODE (array_ind_value),
 	 func_parm, TREE_CODE (func_parm), NULL, tf_warning_or_error);
       new_expr = build_x_conditional_expr (new_cond_expr, new_yes_list,
 					   new_no_list, tf_warning_or_error);
@@ -2028,7 +2041,8 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       append_to_statement_list (new_no_ind, &new_no_list);
       append_to_statement_list (new_no_expr, &new_no_list);
       new_cond_expr = build_x_binary_op
-	(GT_EXPR, array_ind_value, TREE_CODE (array_ind_value),
+	(UNKNOWN_LOCATION, GT_EXPR, array_ind_value,
+	 TREE_CODE (array_ind_value),
 	 func_parm, TREE_CODE (func_parm), NULL, tf_warning_or_error);
       new_expr = build_x_conditional_expr (new_cond_expr,
 					   new_yes_list, new_no_list, 1);
@@ -2316,7 +2330,7 @@ fix_unary_array_notation_exprs (tree orig_stmt)
 		{
 		  /* Array[start_index - (induction_var * stride)] */
 		  array_operand[ii] = grok_array_decl
-		    (array_operand[ii],
+		    (UNKNOWN_LOCATION, array_operand[ii],
 		     build2 (MINUS_EXPR, TREE_TYPE (array_var[jj]),
 			     array_start[ii][jj],
 			     build2 (MULT_EXPR, TREE_TYPE (array_var[jj]),
@@ -2326,7 +2340,7 @@ fix_unary_array_notation_exprs (tree orig_stmt)
 		{
 		  /* Array[start_index + (induction_var * stride)] */
 		  array_operand[ii] = grok_array_decl
-		    (array_operand[ii],
+		    (UNKNOWN_LOCATION, array_operand[ii],
 		     build2 (PLUS_EXPR, TREE_TYPE (array_var[jj]),
 			     array_start[ii][jj],
 			     build2 (MULT_EXPR, TREE_TYPE (array_var[jj]),
@@ -2339,11 +2353,11 @@ fix_unary_array_notation_exprs (tree orig_stmt)
 
   for (ii = 0; ii < rank; ii++)
     if (count_down[0][jj])
-    expr_incr[ii] = build_x_unary_op (POSTDECREMENT_EXPR, array_var[ii],
-				      tf_warning_or_error);
+      expr_incr[ii] = build_x_unary_op (UNKNOWN_LOCATION, POSTDECREMENT_EXPR,
+					array_var[ii], tf_warning_or_error);
     else
-      expr_incr[ii] = build_x_unary_op (POSTINCREMENT_EXPR, array_var[ii],
-					tf_warning_or_error);
+      expr_incr[ii] = build_x_unary_op (UNKNOWN_LOCATION, POSTINCREMENT_EXPR,
+					array_var[ii], tf_warning_or_error);
   
  
   for (jj = 0; jj < rank; jj++)
@@ -2352,12 +2366,14 @@ fix_unary_array_notation_exprs (tree orig_stmt)
 	{
 	  if (count_down[0][jj])
 	    compare_expr[jj] = build_x_binary_op
-	      (GT_EXPR, array_var[jj], TREE_CODE (array_var[jj]),
+	      (UNKNOWN_LOCATION, GT_EXPR, array_var[jj],
+	       TREE_CODE (array_var[jj]),
 	       array_length[0][jj], TREE_CODE (array_length[0][jj]), NULL,
 	       tf_warning_or_error);
 	  else
 	    compare_expr[jj] = build_x_binary_op
-	      (LT_EXPR, array_var[jj], TREE_CODE (array_var[jj]),
+	      (UNKNOWN_LOCATION, LT_EXPR, array_var[jj],
+	       TREE_CODE (array_var[jj]),
 	       array_length[0][jj], TREE_CODE (array_length[0][jj]), NULL,
 	       tf_warning_or_error);
 	}
@@ -2539,12 +2555,11 @@ contains_array_notation_expr (tree expr)
 static bool
 has_call_expr_with_array_notation (tree node)
 {
-  
+  int ii = 0;
+  an_reduce_type dummy_type = REDUCE_UNKNOWN;
+      
   if (!contains_array_notation_expr (node))
     return false;
-
-    int ii = 0;
-  an_reduce_type dummy_type = REDUCE_UNKNOWN;
   
   if (!node)
     return false;

@@ -494,7 +494,7 @@ expand_builtin_cilk_detach (tree exp)
    TMP <- TMP + 1
    WORKER.TAIL <- TMP */
 
-  tmem0 = gen_rtx_MEM (Pmode, plus_constant (wreg, worker_tail_offset));
+  tmem0 = gen_rtx_MEM (Pmode, plus_constant (Pmode, wreg, worker_tail_offset));
   set_mem_attributes (tmem0, tail, 0);
   MEM_NOTRAP_P (tmem0) = 1;
   gcc_assert (MEM_VOLATILE_P (tmem0));
@@ -503,7 +503,7 @@ expand_builtin_cilk_detach (tree exp)
   set_mem_attributes (tmem1, TREE_TYPE (TREE_TYPE (tail)), 0);
   MEM_NOTRAP_P (tmem1) = 1;
   emit_move_insn (tmem1, preg);
-  emit_move_insn (treg, plus_constant (treg, GET_MODE_SIZE (Pmode)));
+  emit_move_insn (treg, plus_constant (Pmode, treg, GET_MODE_SIZE (Pmode)));
 
   /* There is a release barrier (st8.rel, membar #StoreStore,
      sfence, lwsync, etc.) between the two stores.  On x86

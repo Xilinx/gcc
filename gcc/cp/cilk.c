@@ -749,7 +749,8 @@ compute_loop_var (struct cilk_for_desc *cfd, tree loop_var, tree lower_bound)
       if (count_type != cfd->difference_type)
 	loop_var = convert (cfd->difference_type, scaled);
       low = lower_bound ? lower_bound : cfd->var;
-      exp = build_new_op (add_op, 0, low, loop_var, NULL_TREE, 0, 0);
+      exp = build_new_op (UNKNOWN_LOCATION, add_op, 0, low, loop_var, 
+			  NULL_TREE, 0, 0);
       gcc_assert (exp != error_mark_node);
  
       exp = build_modify_expr (UNKNOWN_LOCATION, cfd->var2,
@@ -929,7 +930,8 @@ callable(enum tree_code code, tree op0, tree op1, const char *what, bool cry)
       flags |= LOOKUP_COMPLAIN;
     }
 
-  exp = build_new_op (code, flags, op0, op1, NULL_TREE, NULL, 0); 
+  exp = build_new_op (UNKNOWN_LOCATION, code, flags, op0, op1, NULL_TREE, 
+		      NULL, 0); 
   
   if ((exp != NULL_TREE) && (exp != error_mark_node))
     {
@@ -2302,7 +2304,8 @@ compute_loop_count (struct cilk_for_desc *cfd)
 	      low = TARGET_EXPR_INITIAL (low);
 	    }
  
-	  count_up = build_new_op (MINUS_EXPR, 0, high, low, NULL_TREE, 0, 0);
+	  count_up = build_new_op (UNKNOWN_LOCATION, MINUS_EXPR, 0, high, low, 
+				   NULL_TREE, 0, 0);
 	  
 	  /* We should have already failed if the operator is not callable. */
 	  gcc_assert (count_up != error_mark_node);
@@ -2319,7 +2322,8 @@ compute_loop_count (struct cilk_for_desc *cfd)
 	      low = TARGET_EXPR_INITIAL (low);
 	    }
   
-	  count_down = build_new_op (MINUS_EXPR, 0, low, high, NULL_TREE, 0, 0);
+	  count_down = build_new_op (UNKNOWN_LOCATION, MINUS_EXPR, 0, low, 
+				     high, NULL_TREE, 0, 0);
 	  gcc_assert (count_down != error_mark_node);
 	}
     }
