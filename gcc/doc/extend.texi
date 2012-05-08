@@ -6823,7 +6823,7 @@ a = 2 * b;    /* a = @{2,2,2,2@} * b; */
 a = l + a;    /* Error, cannot convert long to int. */
 @end smallexample
 
-In C vectors can be subscripted as if the vector were an array with
+Vectors can be subscripted as if the vector were an array with
 the same number of elements and base type.  Out of bound accesses
 invoke undefined behavior at runtime.  Warnings for out of bound
 accesses for vector subscription can be enabled with
@@ -7093,7 +7093,8 @@ to the same names in the C++11 standard.  Refer there or to the
 atomic synchronization} for more detailed definitions.  These memory
 models integrate both barriers to code motion as well as synchronization
 requirements with other threads. These are listed in approximately
-ascending order of strength.
+ascending order of strength. It is also possible to use target specific
+flags for memory model flags, like Hardware Lock Elision.
 
 @table  @code
 @item __ATOMIC_RELAXED
@@ -9541,6 +9542,8 @@ SSE4.1 instructions.
 SSE4.2 instructions.
 @item avx
 AVX instructions.
+@item avx2
+AVX2 instructions.
 @end table
 
 Here is an example:

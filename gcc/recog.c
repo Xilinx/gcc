@@ -1969,7 +1969,7 @@ offsettable_address_addr_space_p (int strictp, enum machine_mode mode, rtx y,
       int good;
 
       y1 = *y2;
-      *y2 = plus_constant (*y2, mode_sz - 1);
+      *y2 = plus_constant (GET_MODE (y), *y2, mode_sz - 1);
       /* Use QImode because an odd displacement may be automatically invalid
 	 for any wider mode.  But it should be valid for a single byte.  */
       good = (*addressp) (QImode, y, as);
@@ -1991,9 +1991,10 @@ offsettable_address_addr_space_p (int strictp, enum machine_mode mode, rtx y,
       && mode != BLKmode
       && mode_sz <= GET_MODE_ALIGNMENT (mode) / BITS_PER_UNIT)
     z = gen_rtx_LO_SUM (GET_MODE (y), XEXP (y, 0),
-			plus_constant (XEXP (y, 1), mode_sz - 1));
+			plus_constant (GET_MODE (y), XEXP (y, 1),
+				       mode_sz - 1));
   else
-    z = plus_constant (y, mode_sz - 1);
+    z = plus_constant (GET_MODE (y), y, mode_sz - 1);
 
   /* Use QImode because an odd displacement may be automatically invalid
      for any wider mode.  But it should be valid for a single byte.  */
@@ -2679,6 +2680,16 @@ constrain_operands (int strict)
 		  else if (EXTRA_ADDRESS_CONSTRAINT (c, p)
 			   /* Every address operand can be reloaded to fit.  */
 			   && strict < 0)
+		    win = 1;
+		  /* Cater to architectures like IA-64 that define extra memory
+		     constraints without using define_memory_constraint.  */
+		  else if (reload_in_progress
+			   && REG_P (op)
+			   && REGNO (op) >= FIRST_PSEUDO_REGISTER
+			   && reg_renumber[REGNO (op)] < 0
+			   && reg_equiv_mem (REGNO (op)) != 0
+			   && EXTRA_CONSTRAINT_STR
+			      (reg_equiv_mem (REGNO (op)), c, p))
 		    win = 1;
 #endif
 		  break;

@@ -224,6 +224,14 @@ grep '^const _SYS_' gen-sysinfo.go | \
     echo "const $sup = _$sys" >> ${OUT}
   done
 
+# The GNU/Linux support wants to use SYS_GETDENTS64 if available.
+if ! grep '^const SYS_GETDENTS ' ${OUT} >/dev/null 2>&1; then
+  echo "const SYS_GETDENTS = 0" >> ${OUT}
+fi
+if ! grep '^const SYS_GETDENTS64 ' ${OUT} >/dev/null 2>&1; then
+  echo "const SYS_GETDENTS64 = 0" >> ${OUT}
+fi
+
 # Stat constants.
 grep '^const _S_' gen-sysinfo.go | \
   sed -e 's/^\(const \)_\(S_[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
@@ -264,7 +272,7 @@ grep '^const _SHUT_' gen-sysinfo.go |
   sed -e 's/^\(const \)_\(SHUT[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
 
 # The net package requires some const definitions.
-for m in IP_PKTINFO IPV6_V6ONLY IPPROTO_IPV6 IPV6_JOIN_GROUP IPV6_LEAVE_GROUP IPV6_TCLASS; do
+for m in IP_PKTINFO IPV6_V6ONLY IPPROTO_IPV6 IPV6_JOIN_GROUP IPV6_LEAVE_GROUP IPV6_TCLASS SO_REUSEPORT; do
   if ! grep "^const $m " ${OUT} >/dev/null 2>&1; then
     echo "const $m = 0" >> ${OUT}
   fi

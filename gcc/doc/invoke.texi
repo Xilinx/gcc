@@ -198,8 +198,8 @@ in the following sections.
 -fno-default-inline  -fvisibility-inlines-hidden @gol
 -fvisibility-ms-compat @gol
 -Wabi  -Wconversion-null  -Wctor-dtor-privacy @gol
--Wdelete-non-virtual-dtor -Wnarrowing -Wnoexcept @gol
--Wnon-virtual-dtor  -Wreorder @gol
+-Wdelete-non-virtual-dtor -Wliteral-suffix -Wnarrowing @gol
+-Wnoexcept -Wnon-virtual-dtor  -Wreorder @gol
 -Weffc++  -Wstrict-null-sentinel @gol
 -Wno-non-template-friend  -Wold-style-cast @gol
 -Woverloaded-virtual  -Wno-pmf-conversions @gol
@@ -255,7 +255,7 @@ Objective-C and Objective-C++ Dialects}.
 -Winvalid-pch -Wlarger-than=@var{len}  -Wunsafe-loop-optimizations @gol
 -Wlogical-op -Wlong-long @gol
 -Wmain -Wmaybe-uninitialized -Wmissing-braces  -Wmissing-field-initializers @gol
--Wmissing-format-attribute  -Wmissing-include-dirs @gol
+-Wmissing-include-dirs @gol
 -Wno-mudflap @gol
 -Wno-multichar  -Wnonnull  -Wno-overflow @gol
 -Woverlength-strings  -Wpacked  -Wpacked-bitfield-compat  -Wpadded @gol
@@ -266,7 +266,8 @@ Objective-C and Objective-C++ Dialects}.
 -Wsign-compare  -Wsign-conversion  -Wstack-protector @gol
 -Wstack-usage=@var{len} -Wstrict-aliasing -Wstrict-aliasing=n @gol
 -Wstrict-overflow -Wstrict-overflow=@var{n} @gol
--Wsuggest-attribute=@r{[}pure@r{|}const@r{|}noreturn@r{]} @gol
+-Wsuggest-attribute=@r{[}pure@r{|}const@r{|}noreturn@r{|}format@r{]} @gol
+-Wmissing-format-attribute @gol
 -Wswitch  -Wswitch-default  -Wswitch-enum -Wsync-nand @gol
 -Wsystem-headers  -Wtrampolines  -Wtrigraphs  -Wtype-limits  -Wundef @gol
 -Wuninitialized  -Wunknown-pragmas  -Wno-pragmas @gol
@@ -410,7 +411,8 @@ Objective-C and Objective-C++ Dialects}.
 -ftree-loop-if-convert-stores -ftree-loop-im @gol
 -ftree-phiprop -ftree-loop-distribution -ftree-loop-distribute-patterns @gol
 -ftree-loop-ivcanon -ftree-loop-linear -ftree-loop-optimize @gol
--ftree-parallelize-loops=@var{n} -ftree-pre -ftree-pta -ftree-reassoc @gol
+-ftree-parallelize-loops=@var{n} -ftree-pre -ftree-partial-pre -ftree-pta @gol
+-ftree-reassoc @gol
 -ftree-sink -ftree-sra -ftree-switch-conversion -ftree-tail-merge @gol
 -ftree-ter -ftree-vect-loop-version -ftree-vectorize -ftree-vrp @gol
 -funit-at-a-time -funroll-all-loops -funroll-loops @gol
@@ -988,7 +990,7 @@ See S/390 and zSeries Options.
 -fno-stack-limit -fsplit-stack @gol
 -fleading-underscore  -ftls-model=@var{model} @gol
 -ftrapv  -fwrapv  -fbounds-check @gol
--fvisibility -fstrict-volatile-bitfields}
+-fvisibility -fstrict-volatile-bitfields -fsync-libcalls}
 @end table
 
 @menu
@@ -2425,6 +2427,30 @@ an instance of a derived class through a pointer to a base class if the
 base class does not have a virtual destructor.  This warning is enabled
 by @option{-Wall}.
 
+@item -Wliteral-suffix @r{(C++ and Objective-C++ only)}
+@opindex Wliteral-suffix
+@opindex Wno-literal-suffix
+Warn when a string or character literal is followed by a ud-suffix which does
+not begin with an underscore.  As a conforming extension, GCC treats such
+suffixes as separate preprocessing tokens in order to maintain backwards
+compatibility with code that uses formatting macros from @code{<inttypes.h>}.
+For example:
+
+@smallexample
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+#include <stdio.h>
+
+int main() @{
+  int64_t i64 = 123;
+  printf("My int64: %"PRId64"\n", i64);
+@}
+@end smallexample
+
+In this case, @code{PRId64} is treated as a separate preprocessing token.
+
+This warning is enabled by default.
+
 @item -Wnarrowing @r{(C++ and Objective-C++ only)}
 @opindex Wnarrowing
 @opindex Wno-narrowing
@@ -3596,6 +3622,7 @@ To suppress this warning use the @samp{unused} attribute
 @item -Wunused-local-typedefs @r{(C, Objective-C, C++ and Objective-C++ only)}
 @opindex Wunused-local-typedefs
 Warn when a typedef locally defined in a function is not used.
+This warning is enabled by @option{-Wall}.
 
 @item -Wunused-parameter
 @opindex Wunused-parameter
@@ -3835,7 +3862,7 @@ comparisons, so this warning level gives a very large number of
 false positives.
 @end table
 
-@item -Wsuggest-attribute=@r{[}pure@r{|}const@r{|}noreturn@r{]}
+@item -Wsuggest-attribute=@r{[}pure@r{|}const@r{|}noreturn@r{|}format@r{]}
 @opindex Wsuggest-attribute=
 @opindex Wno-suggest-attribute=
 Warn for cases where adding an attribute may be beneficial. The
@@ -3860,6 +3887,33 @@ returns normally if it doesn't contain an infinite loop nor returns abnormally
 by throwing, calling @code{abort()} or trapping.  This analysis requires option
 @option{-fipa-pure-const}, which is enabled by default at @option{-O} and
 higher.  Higher optimization levels improve the accuracy of the analysis.
+
+@item -Wsuggest-attribute=format
+@itemx -Wmissing-format-attribute
+@opindex Wsuggest-attribute=format
+@opindex Wmissing-format-attribute
+@opindex Wno-suggest-attribute=format
+@opindex Wno-missing-format-attribute
+@opindex Wformat
+@opindex Wno-format
+
+Warn about function pointers that might be candidates for @code{format}
+attributes.  Note these are only possible candidates, not absolute ones.
+GCC guesses that function pointers with @code{format} attributes that
+are used in assignment, initialization, parameter passing or return
+statements should have a corresponding @code{format} attribute in the
+resulting type.  I.e.@: the left-hand side of the assignment or
+initialization, the type of the parameter variable, or the return type
+of the containing function respectively should also have a @code{format}
+attribute to avoid the warning.
+
+GCC also warns about function definitions that might be
+candidates for @code{format} attributes.  Again, these are only
+possible candidates.  GCC guesses that @code{format} attributes
+might be appropriate for any function that calls a function like
+@code{vprintf} or @code{vscanf}, but this might not always be the
+case, and some functions for which @code{format} attributes are
+appropriate may not be detected.
 @end table
 
 @item -Warray-bounds
@@ -4399,29 +4453,6 @@ struct s x = @{ .f = 3, .g = 4 @};
 This warning is included in @option{-Wextra}.  To get other @option{-Wextra}
 warnings without this one, use @option{-Wextra -Wno-missing-field-initializers}.
 
-@item -Wmissing-format-attribute
-@opindex Wmissing-format-attribute
-@opindex Wno-missing-format-attribute
-@opindex Wformat
-@opindex Wno-format
-Warn about function pointers that might be candidates for @code{format}
-attributes.  Note these are only possible candidates, not absolute ones.
-GCC guesses that function pointers with @code{format} attributes that
-are used in assignment, initialization, parameter passing or return
-statements should have a corresponding @code{format} attribute in the
-resulting type.  I.e.@: the left-hand side of the assignment or
-initialization, the type of the parameter variable, or the return type
-of the containing function respectively should also have a @code{format}
-attribute to avoid the warning.
-
-GCC also warns about function definitions that might be
-candidates for @code{format} attributes.  Again, these are only
-possible candidates.  GCC guesses that @code{format} attributes
-might be appropriate for any function that calls a function like
-@code{vprintf} or @code{vscanf}, but this might not always be the
-case, and some functions for which @code{format} attributes are
-appropriate may not be detected.
-
 @item -Wno-multichar
 @opindex Wno-multichar
 @opindex Wmultichar
@@ -4632,6 +4663,13 @@ modes.  To inhibit the warning messages, use @option{-Wno-long-long}.
 Warn if variadic macros are used in pedantic ISO C90 mode, or the GNU
 alternate syntax when in pedantic ISO C99 mode.  This is default.
 To inhibit the warning messages, use @option{-Wno-variadic-macros}.
+
+@item -Wvarargs
+@opindex Wvarargs
+@opindex Wno-varargs
+Warn upon questionable usage of the macros used to handle variable
+arguments like @samp{va_start}.  This is default.  To inhibit the
+warning messages, use @option{-Wno-varargs}.
 
 @item -Wvector-operation-performance
 @opindex Wvector-operation-performance
@@ -6270,8 +6308,8 @@ invoking @option{-O2} on programs that use computed gotos.
 Optimize yet more.  @option{-O3} turns on all optimizations specified
 by @option{-O2} and also turns on the @option{-finline-functions},
 @option{-funswitch-loops}, @option{-fpredictive-commoning},
-@option{-fgcse-after-reload}, @option{-ftree-vectorize} and
-@option{-fipa-cp-clone} options.
+@option{-fgcse-after-reload}, @option{-ftree-vectorize},
+@option{-ftree-partial-pre} and @option{-fipa-cp-clone} options.
 
 @item -O0
 @opindex O0
@@ -7065,6 +7103,11 @@ at @option{-O} and higher.
 @opindex ftree-pre
 Perform partial redundancy elimination (PRE) on trees.  This flag is
 enabled by default at @option{-O2} and @option{-O3}.
+
+@item -ftree-partial-pre
+@opindex ftree-partial-pre
+Make partial redundancy elimination (PRE) more aggressive.  This flag is
+enabled by default at @option{-O3}.
 
 @item -ftree-forwprop
 @opindex ftree-forwprop
@@ -10996,88 +11039,7 @@ The default for this option is@tie{}@code{avr2}.
 
 GCC supports the following AVR devices and ISAs:
 
-@table @code
-
-@item avr1
-This ISA is implemented by the minimal AVR core and supported
-for assembler only.
-@*@var{mcu}@tie{}= @code{at90s1200},
-@code{attiny10}, @code{attiny11}, @code{attiny12}, @code{attiny15},
-@code{attiny28}.
-
-@item avr2
-``Classic'' devices with up to 8@tie{}KiB of program memory.
-@*@var{mcu}@tie{}= @code{at90s2313}, @code{attiny26}, @code{at90c8534},
-@dots{}
-
-@item avr25
-``Classic'' devices with up to 8@tie{}KiB of program memory and with
-the @code{MOVW} instruction.
-@*@var{mcu}@tie{}= @code{attiny2313}, @code{attiny261}, @code{attiny24},
-@dots{}
-
-@item avr3
-``Classic'' devices with 16@tie{}KiB up to 64@tie{}KiB of program memory.
-@*@var{mcu}@tie{}= @code{at43usb355}, @code{at76c711}.
-
-@item avr31
-``Classic'' devices with 128@tie{}KiB of program memory.
-@*@var{mcu}@tie{}= @code{atmega103}, @code{at43usb320}.
-
-@item avr35
-``Classic'' devices with 16@tie{}KiB up to 64@tie{}KiB of program
-memory and with the @code{MOVW} instruction.
-@*@var{mcu}@tie{}= @code{at90usb162}, @code{atmega8u2},
-@code{attiny167}, @dots{}
-
-@item avr4
-``Enhanced'' devices with up to 8@tie{}KiB of program memory.
-@*@var{mcu}@tie{}= @code{atmega8}, @code{atmega88}, @code{at90pwm81},
-@dots{}
-
-@item avr5
-``Enhanced'' devices with 16@tie{}KiB up to 64@tie{}KiB of program memory.
-@*@var{mcu}@tie{}= @code{atmega16}, @code{atmega6490}, @code{at90can64},
-@dots{}
-
-@item avr51
-``Enhanced'' devices with 128@tie{}KiB of program memory.
-@*@var{mcu}@tie{}= @code{atmega128}, @code{at90can128}, @code{at90usb1287},
-@dots{}
-
-@item avr6
-``Enhanced'' devices with 3-byte PC, i.e.@: with at least 256@tie{}KiB
-of program memory.
-@*@var{mcu}@tie{}= @code{atmega2560}, @code{atmega2561}.
-
-@item avrxmega2
-``XMEGA'' devices with more than 8@tie{}KiB and up to 64@tie{}KiB
-of program memory.
-@*@var{mcu}@tie{}= @code{atxmega16a4}, @code{atxmega16d4},
-@dots{}
-
-@item avrxmega4
-``XMEGA'' devices with more than 64@tie{}KiB and up to 128@tie{}KiB
-of program memory.
-@*@var{mcu}@tie{}= @code{atxmega64a3}, @code{atxmega64d3}.
-
-@item avrxmega5
-``XMEGA'' devices with more than 64@tie{}KiB and up to 128@tie{}KiB
-of program memory and more than 64@tie{}KiB of RAM.
-@*@var{mcu}@tie{}= @code{atxmega64a1}, @code{atxmega64a1u}.
-
-@item avrxmega6
-``XMEGA'' devices with more than 128@tie{}KiB of program memory.
-@*@var{mcu}@tie{}= @code{atxmega128a3}, @code{atxmega192d3},
-@dots{}
-
-@item avrxmega7
-``XMEGA'' devices with more than 128@tie{}KiB of program memory and
-more than 64@tie{}KiB of RAM.
-@*@var{mcu}@tie{}= @code{atxmega128a1}, @code{atxmega128a1u}.
-
-@end table
-
+@include avr-mmcu.texi
 
 @item -maccumulate-args
 @opindex maccumulate-args
@@ -19781,6 +19743,16 @@ that it is unaware of.
 
 The default value of this option is determined by the application binary
 interface for the target processor.
+
+@item -fsync-libcalls
+@opindex fsync-libcalls
+This option controls whether any out-of-line instance of the @code{__sync}
+family of functions may be used to implement the C++11 @code{__atomic}
+family of functions.
+
+The default value of this option is enabled, thus the only useful form
+of the option is @option{-fno-sync-libcalls}.  This option is used in
+the implementation of the @file{libatomic} runtime library.
 
 @end table
 
