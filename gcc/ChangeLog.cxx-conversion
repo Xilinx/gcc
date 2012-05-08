@@ -1,5 +1,10 @@
 2012-05-08   Diego Novillo  <dnovillo@google.com>
 
+	* configure.ac (CXX_FOR_BUILD): Define and substitute.
+	* configure: Regenerate.
+
+2012-05-08   Diego Novillo  <dnovillo@google.com>
+
 	* Makefile.in (CXX_FOR_BUILD): Define.
 	(BUILD_CXX_FLAGS): Define
 	(COMPILER_FOR_BUILD): Set to CXX_FOR_BUILD if building with C++.
