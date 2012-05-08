@@ -861,6 +861,8 @@ extern bool vect_supportable_shift (enum tree_code, tree);
 extern void vect_get_vec_defs (tree, tree, gimple, VEC (tree, heap) **,
 			       VEC (tree, heap) **, slp_tree, int);
 extern tree vect_gen_perm_mask (tree, unsigned char *);
+extern tree elem_fn_linear_init_vector (gimple, tree, tree, tree, 
+					gimple_stmt_iterator *);
 
 /* In tree-vect-data-refs.c.  */
 extern bool vect_can_force_dr_alignment_p (const_tree, unsigned int);

@@ -85,7 +85,7 @@ static tree create_processor_attribute (elem_fn_info *, tree *);
 
 /* this is an helper function for find_elem_fn_param_type */
 static enum elem_fn_parm_type
-find_elem_fn_parm_type_1 (tree fndecl, int parm_no)
+find_elem_fn_parm_type_1 (tree fndecl, int parm_no, tree *step_size)
 {
   int ii = 0;
   elem_fn_info *elem_fn_values;
@@ -96,7 +96,12 @@ find_elem_fn_parm_type_1 (tree fndecl, int parm_no)
 
   for (ii = 0; ii < elem_fn_values->no_lvars; ii++)
     if (elem_fn_values->linear_location[ii] == parm_no)
-      return TYPE_LINEAR;
+      {
+	if (step_size != NULL)
+	  *step_size = build_int_cst (integer_type_node,
+				      elem_fn_values->linear_steps[ii]);
+	return TYPE_LINEAR;
+      }
     
   for (ii = 0; ii < elem_fn_values->no_uvars; ii++)
     if (elem_fn_values->uniform_location[ii] == parm_no)
@@ -109,7 +114,7 @@ find_elem_fn_parm_type_1 (tree fndecl, int parm_no)
 /* this function will return the type of a parameter in elemental function.
    The choices are UNIFORM or LINEAR. */
 enum elem_fn_parm_type
-find_elem_fn_parm_type (gimple stmt, tree op)
+find_elem_fn_parm_type (gimple stmt, tree op, tree *step_size)
 {
   tree fndecl, parm = NULL_TREE;
   int ii, nargs;
@@ -128,7 +133,7 @@ find_elem_fn_parm_type (gimple stmt, tree op)
       parm = gimple_call_arg (stmt, ii);
       if (op == parm)
 	{
-	  return_type = find_elem_fn_parm_type_1 (fndecl, 1);
+	  return_type = find_elem_fn_parm_type_1 (fndecl, ii, step_size);
 	  return return_type;
 	}
     }

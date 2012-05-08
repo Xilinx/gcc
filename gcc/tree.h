@@ -4530,7 +4530,7 @@ extern tree build_call_valist (tree, tree, int, va_list);
    build_call_array_loc (UNKNOWN_LOCATION, T1, T2, N, T3)
 extern tree build_call_array_loc (location_t, tree, tree, int, const tree *);
 extern tree build_call_vec (tree, tree, VEC(tree,gc) *);
-
+extern tree build_elem_fn_linear_vector_from_val (tree, tree, tree);
 /* Construct various nodes representing data types.  */
 
 extern tree make_signed_type (int);

@@ -42,6 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "cilk.h"
 
+extern enum elem_fn_parm_type find_elem_fn_parm_type (gimple, tree, tree *);
 /* Return a variable of type ELEM_TYPE[NELEMS].  */
 
 static tree
@@ -1259,8 +1260,8 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
   enum vect_def_type dt;
   bool is_simple_use;
   tree vector_type;
-
-  extern enum elem_fn_parm_type find_elem_fn_parm_type (gimple, tree);
+  enum elem_fn_parm_type parm_type;
+  tree step_size = NULL_TREE;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     {
@@ -1289,14 +1290,12 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
       && gimple_code (stmt) == GIMPLE_CALL
       && is_elem_fn (gimple_call_fndecl (stmt)))
     {
-      enum elem_fn_parm_type parm_type = find_elem_fn_parm_type (stmt, op);
-      if (parm_type == TYPE_UNIFORM)
+      parm_type = find_elem_fn_parm_type (stmt, op, &step_size);
+      if (parm_type == TYPE_UNIFORM || parm_type == TYPE_LINEAR)
 	dt = vect_constant_def;
-      else if (parm_type == TYPE_LINEAR)
-	{
-	  ;
-	}
     }
+  else
+    parm_type = TYPE_NONE;
       
   switch (dt)
     {
@@ -1313,8 +1312,13 @@ vect_get_vec_def_for_operand (tree op, gimple stmt, tree *scalar_def)
         /* Create 'vect_cst_ = {cst,cst,...,cst}'  */
         if (vect_print_dump_info (REPORT_DETAILS))
           fprintf (vect_dump, "Create vector_cst. nunits = %d", nunits);
-
-        return vect_init_vector (stmt, op, vector_type, NULL);
+	if (!flag_enable_cilk 
+	    || (parm_type == TYPE_NONE || parm_type == TYPE_UNIFORM))
+	  return vect_init_vector (stmt, op, vector_type, NULL);
+	else if (flag_enable_cilk && parm_type == TYPE_LINEAR)
+	  return elem_fn_linear_init_vector (stmt, op, vector_type,
+					     step_size, NULL);
+					     
       }
 
     /* Case 2: operand is defined outside the loop - loop invariant.  */
@@ -1640,6 +1644,7 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
   enum { NARROW, NONE, WIDEN } modifier;
   size_t i, nargs;
   tree lhs;
+  tree step_size = NULL_TREE;
 
   if (!STMT_VINFO_RELEVANT_P (stmt_info) && !bb_vinfo)
     return false;
@@ -1841,6 +1846,16 @@ vectorizable_call (gimple stmt, gimple_stmt_iterator *gsi, gimple *vec_stmt,
 	      else
 		{
 		  vec_oprnd0 = gimple_call_arg (new_stmt, i);
+		  if (flag_enable_cilk
+		      && gimple_code (new_stmt) == GIMPLE_CALL
+		      && is_elem_fn (gimple_call_fndecl (new_stmt)))
+		    {
+		      enum elem_fn_parm_type parm_type =
+			find_elem_fn_parm_type (stmt, op, &step_size);
+		      if (parm_type == TYPE_UNIFORM
+			  || parm_type == TYPE_LINEAR)
+			dt[i] = vect_constant_def;
+		    }
 		  vec_oprnd0
                     = vect_get_vec_def_for_stmt_copy (dt[i], vec_oprnd0);
 		}
@@ -6548,4 +6563,56 @@ supportable_narrowing_operation (enum tree_code code,
 
   VEC_free (tree, heap, *interm_types);
   return false;
+}
+
+/* Function vect_init_vector.
+
+   Insert a new stmt (INIT_STMT) that initializes a new variable of type
+   TYPE with the value VAL.  If TYPE is a vector type and VAL does not have
+   vector type a vector with all elements equal to VAL is created first.
+   Place the initialization at BSI if it is not NULL.  Otherwise, place the
+   initialization at the loop preheader.
+   Return the DEF of INIT_STMT.
+   It will be used in the vectorization of STMT.  */
+
+tree
+elem_fn_linear_init_vector (gimple stmt, tree val, tree type, tree step_size,
+			    gimple_stmt_iterator *gsi)
+{
+  tree new_var;
+  gimple init_stmt;
+  tree vec_oprnd;
+  tree new_temp;
+
+  if (TREE_CODE (type) == VECTOR_TYPE
+      && TREE_CODE (TREE_TYPE (val)) != VECTOR_TYPE)
+    {
+      if (!types_compatible_p (TREE_TYPE (type), TREE_TYPE (val)))
+	{
+	  if (CONSTANT_CLASS_P (val))
+	    val = fold_unary (VIEW_CONVERT_EXPR, TREE_TYPE (type), val);
+	  else
+	    {
+	      new_var = create_tmp_reg (TREE_TYPE (type), NULL);
+	      add_referenced_var (new_var);
+	      init_stmt = gimple_build_assign_with_ops (NOP_EXPR,
+							new_var, val,
+							NULL_TREE);
+	      new_temp = make_ssa_name (new_var, init_stmt);
+	      gimple_assign_set_lhs (init_stmt, new_temp);
+	      vect_init_vector_1 (stmt, init_stmt, gsi);
+	      val = new_temp;
+	    }
+	}
+      val = build_elem_fn_linear_vector_from_val (type, val, step_size);
+    }
+
+  new_var = vect_get_new_vect_var (type, vect_simple_var, "cst_");
+  add_referenced_var (new_var);
+  init_stmt = gimple_build_assign  (new_var, val);
+  new_temp = make_ssa_name (new_var, init_stmt);
+  gimple_assign_set_lhs (init_stmt, new_temp);
+  vect_init_vector_1 (stmt, init_stmt, gsi);
+  vec_oprnd = gimple_assign_lhs (init_stmt);
+  return vec_oprnd;
 }

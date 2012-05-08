@@ -1640,7 +1640,7 @@ c_parser_declaration_or_fndef (c_parser *parser, bool fndef_ok,
   specs->attrs = NULL_TREE;
   while (true)
     {
-      struct c_declarator *declarator;
+      struct c_declarator *declarator = NULL;
       bool dummy = false;
       timevar_id_t tv;
       tree fnbody;
@@ -1705,6 +1705,11 @@ c_parser_declaration_or_fndef (c_parser *parser, bool fndef_ok,
 	      tree d = start_decl (declarator, specs, false,
 				   chainon (postfix_attrs,
 					    all_prefix_attrs));
+	      if (d && TREE_CODE (d) == FUNCTION_DECL
+		  && declarator->kind == cdk_function
+		  && lookup_attribute ("vector", all_prefix_attrs)
+		  && declarator && declarator->u.arg_info)
+		DECL_ARGUMENTS (d) = declarator->u.arg_info->parms;
 	      if (d)
 		finish_decl (d, UNKNOWN_LOCATION, NULL_TREE,
 			     NULL_TREE, asm_name);

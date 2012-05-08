@@ -1,3 +1,17 @@
+2012-05-07  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* c-parser.c (c_parser_declaration_or_fndef): Saved function arguments
+	for an elemental function.
+	* elem-function.c (find_elem_fn_parm_type_1): Added step-size parameter.
+	(find_elem_fn_parm_type): Likewise.
+	* tree-vect-stmts.c (vect_get_vec_def_for_operand): Added step-size
+	support for linear clause.  Also called elem_fn_linear_init_vector for
+	linear clause.
+	(vectorizable_call): When linear clause is set, set the vector type to
+	constant_def.
+	(elem_fn_linear_init_vector): New function.
+	* tree.c (build_elem_fn_linear_vector_from_val): Likewise.
+
 2012-04-24  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* elem-function.c (find_elem_fn_param_type_1): New function.
