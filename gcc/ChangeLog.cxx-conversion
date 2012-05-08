@@ -1,3 +1,12 @@
+2012-05-08   Diego Novillo  <dnovillo@google.com>
+
+	* Makefile.in (CXX_FOR_BUILD): Define.
+	(BUILD_CXX_FLAGS): Define
+	(COMPILER_FOR_BUILD): Set to CXX_FOR_BUILD if building with C++.
+	(LINKER_FOR_BUILD): Likewise.
+	(BUILD_COMPILERFLAGS): Set to BUILD_CXXFLAGS if building with C++.
+	(BUILD_LINKERFLAGS): Likewise.
+
 2012-05-07   Diego Novillo  <dnovillo@google.com>
 
 	Merge from trunk rev 187223.
