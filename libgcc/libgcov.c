@@ -78,6 +78,14 @@ void __gcov_init (struct gcov_info *p __attribute__ ((unused))) {}
 void __gcov_flush (void) {}
 #endif
 
+#ifdef L_gcov_reset
+void __gcov_reset (void) {}
+#endif
+
+#ifdef L_gcov_dump
+void __gcov_dump (void) {}
+#endif
+
 #ifdef L_gcov_merge_add
 void __gcov_merge_add (gcov_type *counters  __attribute__ ((unused)),
 		       unsigned n_counters __attribute__ ((unused))) {}
@@ -103,6 +111,10 @@ void __gcov_merge_delta (gcov_type *counters  __attribute__ ((unused)),
 #include <sys/stat.h>
 #endif
 #endif /* __GCOV_KERNEL__ */
+
+extern void gcov_clear (void) ATTRIBUTE_HIDDEN;
+extern void gcov_exit (void) ATTRIBUTE_HIDDEN;
+extern int gcov_dump_complete ATTRIBUTE_HIDDEN;
 
 #ifdef L_gcov
 #include "gcov-io.c"
@@ -204,6 +216,9 @@ static char *gi_filename, *gi_filename_up;
 static int gcov_open_by_filename (char * gi_filename);
 static int gcov_exit_init (void);
 static void gcov_dump_one_gcov (struct gcov_info *gi_ptr);
+
+/* Flag when the profile has already been dumped via __gcov_dump().  */
+int gcov_dump_complete = 0;
 
 /* Make sure path component of the given FILENAME exists, create
    missing directories. FILENAME must be writable.
@@ -585,11 +600,16 @@ gcov_dump_module_info (void)
    in two separate programs, and we must keep the two program
    summaries separate.  */
 
-static void
+void
 gcov_exit (void)
 {
   struct gcov_info *gi_ptr;
   int dump_module_info;
+
+  /* Prevent the counters from being dumped a second time on exit when the
+     application already wrote out the profile using __gcov_dump().  */
+  if (gcov_dump_complete)
+    return;
 
   /* Stop and write the PMU profile data into the global file.  */
   pmu_profile_stop ();
@@ -603,6 +623,34 @@ gcov_exit (void)
     gcov_dump_module_info ();
 
   free (gi_filename);
+}
+
+/* Reset all counters to zero.  */
+
+void
+gcov_clear (void)
+{
+  const struct gcov_info *gi_ptr;
+  for (gi_ptr = __gcov_list; gi_ptr; gi_ptr = gi_ptr->next)
+    {
+      unsigned t_ix, f_ix;
+      const struct gcov_ctr_info *ci_ptr;
+      const struct gcov_fn_info *gfi_ptr;
+
+      for (f_ix = 0; (unsigned)f_ix != gi_ptr->n_functions; f_ix++)
+        {
+          gfi_ptr = gi_ptr->functions[f_ix];
+          ci_ptr = gfi_ptr->ctrs;
+
+          for (t_ix = 0; t_ix < GCOV_COUNTERS; t_ix++)
+            {
+              if (!gcov_counter_active (gi_ptr, t_ix))
+                continue;
+              memset (ci_ptr->values, 0, sizeof (gcov_type) * ci_ptr->num);
+              ci_ptr++;
+            }
+        }
+    }
 }
 
 /* Add a new object file onto the bb chain.  Invoked automatically
@@ -675,30 +723,9 @@ __gcov_init (struct gcov_info *info)
 void
 __gcov_flush (void)
 {
-  const struct gcov_info *gi_ptr;
-
   __gcov_stop_pmu_profiler ();
   gcov_exit ();
-  for (gi_ptr = __gcov_list; gi_ptr; gi_ptr = gi_ptr->next)
-    {
-      unsigned t_ix, f_ix;
-      const struct gcov_ctr_info *ci_ptr;
-      const struct gcov_fn_info *gfi_ptr;
-
-      for (f_ix = 0; (unsigned)f_ix != gi_ptr->n_functions; f_ix++)
-        {
-          gfi_ptr = gi_ptr->functions[f_ix];
-          ci_ptr = gfi_ptr->ctrs;
-
-          for (t_ix = 0; t_ix < GCOV_COUNTERS; t_ix++)
-            {
-              if (!gcov_counter_active (gi_ptr, t_ix))
-                continue;
-              memset (ci_ptr->values, 0, sizeof (gcov_type) * ci_ptr->num);
-              ci_ptr++;
-            }
-        }
-    }
+  gcov_clear ();
   __gcov_start_pmu_profiler ();
 }
 
@@ -1154,6 +1181,37 @@ gcov_dump_one_gcov (struct gcov_info *gi_ptr)
 }
 
 #endif /* L_gcov */
+
+#ifdef L_gcov_reset
+
+/* Function that can be called from application to reset counters to zero,
+   in order to collect profile in region of interest.  */
+
+void
+__gcov_reset (void)
+{
+  gcov_clear ();
+  /* Re-enable dumping to support collecting profile in multiple regions
+     of interest.  */
+  gcov_dump_complete = 0;
+}
+
+#endif /* L_gcov_reset */
+
+#ifdef L_gcov_dump
+
+/* Function that can be called from application to write profile collected
+   so far, in order to collect profile in region of interest.  */
+
+void
+__gcov_dump (void)
+{
+  gcov_exit ();
+  /* Prevent profile from being dumped a second time on application exit.  */
+  gcov_dump_complete = 1;
+}
+
+#endif /* L_gcov_dump */
 
 #ifdef L_gcov_merge_add
 /* The profile merging function that just adds the counters.  It is given

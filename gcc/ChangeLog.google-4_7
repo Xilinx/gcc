@@ -1,3 +1,11 @@
+2012-05-09  Teresa Johnson  <tejohnson@google.com>
+
+	Backport from trunk r187297:
+	2012-05-08   Teresa Johnson  <tejohnson@google.com>
+
+	* gcov-io.h (__gcov_reset, __gcov_dump): Declare.
+	* doc/gcov.texi: Add note on using __gcov_reset and __gcov_dump.
+
 2012-05-08  Xinliang David Li  <davidxl@google.com>
 
 	Fix issue 6457844
