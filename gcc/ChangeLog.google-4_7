@@ -1,3 +1,12 @@
+2012-05-08  Xinliang David Li  <davidxl@google.com>
+
+	Fix issue 6461583
+
+	* profile.c (instrument_values): Skip static ctor/dtors
+	for ic counter allocation to match instrumentation.
+	* tree-profile.c (gimple_gen_ic_profiler): Remove
+	unnecessary guard in FDO mode.
+
 2012-05-03  Dehao Chen  <dehao@google.com>
 
 	Backport r185949 from google-main.

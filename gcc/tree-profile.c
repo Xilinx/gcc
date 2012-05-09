@@ -596,11 +596,6 @@ gimple_gen_ic_profiler (histogram_value value, unsigned tag, unsigned base)
   gimple stmt;
   gimple_stmt_iterator gsi;
   tree ref_ptr;
-
-  /* TODO add option -- only disble for topn icall profiling.  */
-  if (DECL_STATIC_CONSTRUCTOR (current_function_decl) 
-      || DECL_STATIC_CONSTRUCTOR (current_function_decl))
-    return;
  
   stmt = value->hvalue.stmt;
   gsi = gsi_for_stmt (stmt);

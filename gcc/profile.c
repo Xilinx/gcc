@@ -190,6 +190,14 @@ instrument_values (histogram_values values)
 	default:
 	  gcc_unreachable ();
 	}
+      /* See condition in gimple_gen_ic_func_topn_profiler  */
+      if (t == GCOV_COUNTER_ICALL_TOPNV
+          && (DECL_STATIC_CONSTRUCTOR (current_function_decl)
+              || DECL_STATIC_CONSTRUCTOR (current_function_decl)
+              || DECL_NO_INSTRUMENT_FUNCTION_ENTRY_EXIT (
+                  current_function_decl)))
+         continue;
+
       if (!coverage_counter_alloc (t, hist->n_counters))
 	continue;
 
