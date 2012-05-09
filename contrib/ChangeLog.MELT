@@ -1,4 +1,11 @@
 
+2012-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{MELT plugin uses MELT version specific paths}}
+	* MELT-Plugin-Makefile (LN_S, MELT_RUNTIME_H)
+	(melt_version_string, melt_header_dir): New variables.
+	(melt_source_dir, melt_module_dir): Use them.
+	(install-melt-includes, install-melt-so): Ditto.
+
 2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* simplemelt-gtkmm-probe.cc (SmeltMainWindow::SmeltMainWindow):
 	Add quit menu entry.

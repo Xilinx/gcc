@@ -28,6 +28,9 @@
 ## the command to remove files
 RM ?= rm -vf
 
+## for symbolic links
+LN_S ?= ln -s
+
 ## the compiler with which melt.so is used
 ifndef MELTGCC
 MELTGCC = $(or $(CC),gcc)
@@ -66,7 +69,7 @@ STAMP ?= echo timestamp >
 
 # Custom includes to lib needed to built melt.so
 # ie: -I/path/to/gmp/include
-LIBS_INCLUDEFLAGS ?=
+MELTLIBS_INCLUDEFLAGS ?=
 
 ## the gengtype for that GCC and its flag
 MELTGCC_GENGTYPE := $(shell $(MELTGCC) -print-file-name=gengtype)
@@ -129,6 +132,11 @@ MELTGCC_DOC_PDF_DIR ?=  /usr/share/doc/pdf/gcc/
 
 ## the main source of the runtime
 MELT_RUNTIME_C= melt-runtime.c
+MELT_RUNTIME_H= melt-runtime.h
+
+## get the MELT version string from melt-runtime.h, removing the
+## doublequotes
+melt_version_string:=$(shell $(AWK) -F\" '/^.define +MELT_VERSION_STRING/{print $$2}' $(MELT_RUNTIME_H))
 
 ifeq ($(wildcard $(MELTGCC_PLUGIN_DIR)/include/gimple*),)
 $(error incorrect MELT GCC plugin directory $(MELTGCC_PLUGIN_DIR))
@@ -153,7 +161,7 @@ MELTGCC_RUNTIME_INCLUDES= melt-runtime.h melt/generated/meltrunsup.h
 MELTGCC_OPTIMFLAGS= -O2
 
 ## our include flags for melt.so and for MELT generated C code
-MELTGCC_INCLUDEFLAGS= -I $(MELTGCC_PLUGIN_DIR)/include -I $(MELTGCC_PLUGIN_DIR)/include/c-family $(LIBS_INCLUDEFLAGS)
+MELTGCC_INCLUDEFLAGS= -I $(melt_header_dir) -I $(MELTGCC_PLUGIN_DIR)/include -I $(MELTGCC_PLUGIN_DIR)/include/c-family $(MELTLIBS_INCLUDEFLAGS)
 
 ## the make command started by make.so
 MELTGCC_MAKE= $(MAKE)
@@ -167,7 +175,7 @@ melt_make_cc1_dependency= melt-runtime.h melt-run.h melt/generated/meltrunsup.h 
 melt_make_gencdeps= $(melt_make_cc1)
 melt_make_module_makefile= melt-module.mk
 
-# the directory containg *.metl files when making. Should be an absolute path
+# the directory containg *.melt files when making. Should be an absolute path
 melt_make_source_dir=$(realpath melt)
 melt_make_module_dir=
 melt_move_if_change= $(SHELL) move-if-change
@@ -185,13 +193,17 @@ melt_default_probe=melt-probe
 
 ## this is the installation directory of melt sources (*.melt files
 ## in MELT dialect and the corresponding *.c files)
-melt_source_dir=$(MELTGCC_PLUGIN_DIR)/melt-sources
+melt_source_dir=$(MELTGCC_PLUGIN_DIR)/melt-sources/$(melt_version_string)
+
+
+## this is the installation directory of MELT header files
+melt_header_dir=$(MELTGCC_PLUGIN_DIR)/melt-headers-$(melt_version_string)
 
 ## this is the installation directory of melt dynamic modules (*.so) and module list
-melt_module_dir=$(MELTGCC_PLUGIN_DIR)/melt-modules
+melt_module_dir=$(MELTGCC_PLUGIN_DIR)/melt-modules/$(melt_version_string)
 
 ## this is the installed path of the MELT module makefile
-melt_installed_module_makefile=$(MELTGCC_PLUGIN_DIR)/melt-module.mk
+melt_installed_module_makefile=$(MELTGCC_PLUGIN_DIR)/melt-module-$(melt_version_string).mk
 
 ## should be 1 
 melt_is_plugin=1
@@ -258,6 +270,7 @@ MELTGCC_VERSION_NUMBER = $(shell cat gfmeltgcc_version_number)
 melt-runtime-params-inc.c: melt-make-string gfmeltgcc_revision
 	./melt-make-string \
 	     melt_source_dir '$(melt_source_dir)' \
+	     melt_header_dir '$(melt_header_dir)' \
 	     melt_module_dir '$(melt_module_dir)' \
 	     melt_module_make_command '$(MAKE)' \
 	     melt_module_makefile '$(melt_installed_module_makefile)' \
@@ -337,14 +350,15 @@ install: all melt.so warmelt  \
     install-melt-mk install-melt-default-modules-list install-melt-so
 
 install-melt-includes: melt-runtime.h melt-predef.h melt-run.h melt-run-md5.h melt/generated/meltrunsup.h
-	@echo installing MELT include directory $(MELTGCC_PLUGIN_DIR)/include/
-	$(mkinstalldirs) $(DESTDIR)$(MELTGCC_PLUGIN_DIR)/include/
+	@echo installing MELT include directory $(melt_header_dir)
+	$(mkinstalldirs) $(DESTDIR)$(melt_header_dir)
 	for f in $^; do \
-	   $(INSTALL_DATA) $$f $(DESTDIR)$(MELTGCC_PLUGIN_DIR)/include/ ; \
+	   $(INSTALL_DATA) $$f $(DESTDIR)$(melt_header_dir) ; \
 	done
 
 install-melt-so: melt.so
-	$(INSTALL_PROGRAM) $< $(DESTDIR)$(MELTGCC_PLUGIN_DIR)/melt.so
+	$(INSTALL_PROGRAM) $< $(DESTDIR)$(MELTGCC_PLUGIN_DIR)/melt-$(melt_version_string).so
+	cd $(DESTDIR)$(MELTGCC_PLUGIN_DIR) ; $(LN_S) -f melt-$(melt_version_string).so melt.so
 
 
 
@@ -393,3 +407,5 @@ install-melt-doc: doc doc-info doc-pdf doc-html
 	@echo installing MELT doc pdf directory $(MELTGCC_DOC_PDF_DIR)
 	$(mkinstalldirs) $(DESTDIR)$(MELTGCC_DOC_PDF_DIR)
 	$(INSTALL_DATA) *.pdf $(DESTDIR)$(MELTGCC_DOC_PDF_DIR)
+
+## eof MELT-Plugin-Makefile
