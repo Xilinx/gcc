@@ -2753,6 +2753,7 @@ melt_default_probe=melt-probe
 melt-runtime-params-inc.c: build/melt-make-string$(build_exeext) Makefile
 	./build/melt-make-string$(build_exeext) \
 	     melt_source_dir '$(melt_source_dir)' \
+	     melt_header_dir '$(melt_header_dir)' \
 	     melt_module_dir '$(melt_module_dir)' \
 	     melt_module_make_command '$(MAKE)' \
 	     melt_module_makefile '$(melt_installed_module_makefile)' \
@@ -4665,8 +4666,8 @@ install-gengtype: installdirs gengtype$(exeext) gtype.state
 install-plugin: installdirs lang.install-plugin s-header-vars install-gengtype
 # We keep the directory structure for files in config or c-family and .def
 # files. All other files are flattened to a single directory.
-	$(mkinstalldirs) $(DESTDIR)$(plugin_includedir)
-	headers=`echo $(PLUGIN_HEADERS) $(MELT_PLUGIN_HEADERS) | tr ' ' '\012' | sort -u`; \
+	$(mkinstalldirs) $(DESTDIR)$(plugin_includedir) $(DESTDIR)$(melt_header_dir)
+	headers=`echo $(PLUGIN_HEADERS) | tr ' ' '\012' | sort -u`; \
 	srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`; \
 	for file in $$headers; do \
 	  if [ -f $$file ] ; then \
@@ -4685,6 +4686,18 @@ install-plugin: installdirs lang.install-plugin s-header-vars install-gengtype
 	  dir=`dirname $$dest`; \
 	  $(mkinstalldirs) $(DESTDIR)$$dir; \
 	  $(INSTALL_DATA) $$path $(DESTDIR)$$dest; \
+	done
+	$(mkinstalldirs) $(DESTDIR)$(melt_plugin_headers)
+	meltheaders=`echo $(MELT_PLUGIN_HEADERS) | tr ' ' '\012' | sort -u`; \
+	for mhfile in $$meltheaders; do \
+	  if [ -f $$mhfile ] ; then \
+	    mhpath=$$mhfile; \
+	  elif [ -f $(srcdir)/$$mhfile ]; then \
+	    path=$(srcdir)/$$mhfile; \
+	  else continue; \
+	  fi; \
+	  mhbase=`basename $$mhfile` ; \
+	  $(INSTALL_DATA) $$mhpath $(DESTDIR)$(melt_plugin_headers)/$$mhbase; \
 	done
 	$(INSTALL_DATA) b-header-vars $(DESTDIR)$(plugin_includedir)/b-header-vars
 
@@ -5341,6 +5354,10 @@ po/gcc.pot: force
 
 ################################# extra for MELT
 
+## get the MELT version string from melt-runtime.h, removing the
+## doublequotes
+melt_version_string:=$(shell $(AWK) -F\" '/^.define +MELT_VERSION_STRING/{print $$2}' $(srcdir)/melt-runtime.h)
+
 melt_make_cc1=./cc1$(exeext)
 melt_make_cc1_dependency=$(melt_make_cc1) $(MELT_H) melt-runtime.c
 melt_make_gencdeps= ./cc1$(exeext)
@@ -5356,19 +5373,23 @@ export melt_cflags
 ## extra cflags are for compiling applicative MELT files, e.g. xtramelt*.c
 melt_extra_cflags= -g
 export melt_extra_cflags
-melt_installed_cflags= -I $(plugin_includedir) -DIN_GCC -O $(GMPINC) $(PPLINC) $(CLOOGINC)
+melt_installed_cflags= -I $(melt_header_dir) -I $(plugin_includedir) -DIN_GCC -O $(GMPINC) $(PPLINC) $(CLOOGINC)
 melt_default_modules_list=melt-default-modules
 
 
 ## this is the installation directory of melt sources (*.melt files
 ## in MELT dialect and the corresponding *.c files)
-melt_source_dir=$(libexecsubdir)/melt-sources
+melt_source_dir=$(libexecsubdir)/melt-sources/$(melt_version_string)
+
+
+## this is the installation directory of MELT header files
+melt_header_dir=$(plugin_includedir)/melt-headers-$(melt_version_string)
 
 ## this is the installation directory of melt dynamic modules (*.so) and module list
-melt_module_dir=$(libexecsubdir)/melt-modules
+melt_module_dir=$(libexecsubdir)/melt-modules/$(melt_version_string)
 
 ## this is the installed path of the MELT module makefile
-melt_installed_module_makefile=$(libexecsubdir)/melt-module.mk
+melt_installed_module_makefile=$(libexecsubdir)/melt-module-$(melt_version_string).mk
 
 ## leave melt_is_plugin as empty 
 melt_is_plugin =

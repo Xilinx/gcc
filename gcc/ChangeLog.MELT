@@ -1,4 +1,14 @@
 
+2012-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.6-pre
+
+	* Makefile.in (melt-runtime-params-inc.c): Add melt_header_dir.
+	(melt_header_dir): New variable.
+	(install-plugin): Install the MELT headers separately.
+	(melt_version_string): New variable.
+	(melt_source_dir, melt_header_dir, melt_module_dir)
+	(melt_installed_module_makefile): Use it.
+
 2012-05-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-probe.melt (probe_docmd): Initialize the
 	probedata_reqhdict slot.

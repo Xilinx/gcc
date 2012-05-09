@@ -105,8 +105,9 @@ extern struct plugin_gcc_version* melt_plugin_gcc_version;
 /* The GCCPLUGIN_VERSION at MELT build time, e.g. 4008 for GCC 4.8  */
 extern const int melt_gccplugin_version;
 
-/* the version string of MELT */
-#define MELT_VERSION_STRING "0.9.5+"
+/* The version string of MELT; this is parsed by make, so spaces are
+   important!  */
+#define MELT_VERSION_STRING "0.9.6-pre"
 
 /* return a read only version string */
 extern const char* melt_version_str(void);
