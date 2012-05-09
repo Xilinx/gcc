@@ -3903,36 +3903,59 @@ ASSERT_MSG) is enabled"
 	  }#)
       )))
 
+;; alarm processing need a sorted bucket of timeouts -> alarm-handlers
+(definstance alarm_bucket_container
+  class_container)
 
-(defun register_alarm_timer (clos :long periodms)
+(defun handle_alarm_signal ()
+  (let ( (alarmbuck !alarm_bucket_container)
+	 (gotalarm_cont (instance class_container))
+	 )
+    (assert_msg "check alarmbuck" (is_bucketlong alarmbuck))
+    ;; erase the alarm hook
+    (put_fields initial_system_data 
+		:sysdata_alarm_hook
+		(lambda () (set_content gotalarm_cont :true)))
+    (assert_msg "@$@unimplemented handle_alarm_signal")
+))
+
+(defun register_alarm_timer (clos :long periodms :value data)
   :doc #{$REGISTER_ALARM_TIMER is the low level function to register
 the closure $CLOS to be called periodically with a period of $PERIODMS
--at least 50- milliseconds; the closure should return non-nil for the
-alarm to be repeated. $REGISTER_ALARM_TIMER returns a timer object,
-usable for $UNREGISTER_ALARM_TIMER.}#
+-at least 50- milliseconds and some client $DATA. The closure should
+return non-nil for the alarm to be repeated. $REGISTER_ALARM_TIMER
+returns a timer object, usable for $UNREGISTER_ALARM_TIMER.}#
   (debug "register_alarm_timer clos=" clos " periodms=" periodms)
   (if (is_closure clos)
       (if (>=i periodms 50)
 	  (let ( (periodbox (make_integerbox discr_constant_integer periodms))
+		 (alhd (instance class_alarm_handler
+				 :alarmh_period periodbox
+				 :alarmh_clos clos
+				 :alarmh_data data))
 		 )
-
+	    (assert_msg "@$@unimplemented register_alarm_timer")
 ))))
+
 
 (defun unregister_alarm_timer (tim)
   :doc #{Unregister a timer obtained by $REGISTER_ALARM_TIMER.}#
   (debug "unregister_alarm_timer tim=" tim)
+  (assert_msg "@$@unimplemented unregister_alarm_timer")
 )
 
 (defun register_child_process_handler (clos :long pid)
   :doc #{$REGISTER_CHILD_PROCESS_HANDLER is the low level function to
 register a handler for termination of process $PID}# 
   (debug "register_child_process_handler clos=" clos " pid=" pid)
+  (assert_msg "@$@unimplemented register_child_process_handler")
 )
 
 
 (defun unregister_child_process_handler (chd)
   :doc #{Unregister a child process handler obtained by $REGISTER_CHILD_PROCESS_HANDLER}#
   (debug "unregister_child_process_handler chd=" chd)
+  (assert_msg "@$@unimplemented unregister_child_process_handler")
 )
 
 (export_values 

@@ -173,6 +173,8 @@ void melt_handle_interrupt (void);
       melt_handle_interrupt(); } while(0)
 
 
+/* Gives the relative real time in milliseconds since MELT started. */
+long melt_relative_time_millisec (void);
 
 #ifndef MELT_HAVE_DEBUG
 #define MELT_HAVE_DEBUG 0

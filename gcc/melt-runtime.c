@@ -164,6 +164,9 @@ volatile sig_atomic_t melt_got_sigio;
 volatile sig_atomic_t melt_got_sigalrm;
 volatile sig_atomic_t melt_got_sigchld;
 
+
+static struct timeval melt_start_time;
+
 #define MELT_DESC_FILESUFFIX "+meltdesc.c"
 #define MELT_TIME_FILESUFFIX "+melttime.h"
 #define MELT_DEFAULT_FLAVOR "optimized"
@@ -9666,9 +9669,9 @@ melt_raw_sigalrm_signal(int sig)
 }
 
 
-/* The low level SIGALRM/SIGVTALRM signal handler installed thru
-   sigaction, when an alarm ringed.  Actual signal handling is done
-   at safe places thru MELT_CHECK_INTERRUPT & melt_handle_interrupt &
+/* The low level SIGCHLD signal handler installed thru sigaction, when
+   a child process exits.  Actual signal handling is done at safe
+   places thru MELT_CHECK_INTERRUPT & melt_handle_interrupt &
    meltgc_handle_sigalrm (because signal handlers can call very few
    async-signal-safe functions, see signal(7) man page on
    e.g. Linux).  */
@@ -9693,6 +9696,16 @@ melt_install_signal_handlers (void)
                 SIGIO, SIGPIPE, SIGALRM, SIGVTALRM, SIGCHLD);
 }
 
+long
+melt_relative_time_millisec (void)
+{
+  struct timeval tv = {0,0};
+  errno = 0;
+  if (gettimeofday (&tv, NULL))
+    melt_fatal_error ("MELT cannot call gettimeofday - %s", xstrerror(errno));
+  return (long)(tv.tv_sec - melt_start_time.tv_sec)*1000L
+    + (long)(tv.tv_usec - melt_start_time.tv_usec)/1000L;
+}
 
 /****
  * Initialize melt.  Called from toplevel.c before pass management.
@@ -9724,6 +9737,10 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
                 update_path ("plugins","GCC"));
   gcc_assert (pluginame && pluginame[0]);
   gcc_assert (versionstr && versionstr[0]);
+  errno = 0;
+  if (gettimeofday (&melt_start_time, NULL))
+    melt_fatal_error ("MELT cannot call gettimeofday for melt_start_time (%s)", xstrerror(errno));
+  debugeprintf ("melt_really_initialize melt_start_time=%ld", (long) melt_start_time.tv_sec);
 
 #ifdef MELT_IS_PLUGIN
   /* when MELT is a plugin, we need to process the debug
@@ -13226,6 +13243,10 @@ meltgc_handle_sigalrm (void)
   MELT_LOCATION_HERE("meltgc_handle_sigalrm");
   hdlcounter++;
   debugeprintf ("meltgc_handle_sigalrm #%ld", hdlcounter);
+  if (hdlcounter<=0) 
+    /* only when we got 2^64 signals ! */
+    melt_fatal_error ("meltgc_handle_sigalarm got too many alarms %ld",
+		      hdlcounter);
   closv = melt_get_inisysdata (MELTFIELD_SYSDATA_ALARM_HOOK);
   if (melt_magic_discr ((melt_ptr_t) closv) == MELTOBMAG_CLOSURE) {
     (void) melt_apply ((meltclosure_ptr_t) closv, (melt_ptr_t) NULL,

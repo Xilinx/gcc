@@ -1,5 +1,10 @@
 
 2012-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_relative_time_millisec): New declaration.
+	* melt-runtime.c (melt_relative_time_millisec): New function.
+	* melt/warmelt-modes.melt: Improve stubs.
+
+2012-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt (mexpand_defun): Signal error for empty
 	body.
 	* melt/warmelt-modes.melt (register_alarm_timer)
