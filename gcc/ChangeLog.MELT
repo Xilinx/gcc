@@ -1,5 +1,11 @@
 
 2012-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_argdescr_length): Handle MELTPAR_MARKGGC ie
+	(void*)-1L as null.
+	* melt/warmelt-modes.melt (makedoc_genmacro): Add debug.
+	(makedoc_genmacro, makedoc_genciterator): Sort correctly.
+
+2012-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9.6-pre
 
 	* Makefile.in (melt-runtime-params-inc.c): Add melt_header_dir.

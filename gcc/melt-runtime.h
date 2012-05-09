@@ -571,7 +571,7 @@ extern long melt_application_depth (void);
 static inline int 
 melt_argdescr_length (const melt_argdescr_cell_t* argdesc)
 {
-  if (!argdesc) 
+  if (!argdesc || (void*)argdesc == (void*)MELTPAR_MARKGGC)
     return 0;
 #if MELT_ARGDESCR_MAX == CHAR_MAX
   return strlen ((const char*)argdesc);

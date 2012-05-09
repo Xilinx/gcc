@@ -692,10 +692,18 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
   (add2sbuf_indentnl outb 0)
   (let ( (maclist (get_field :mkdoc_macros mdinfo))
 	 (unsortedmactuple (list_to_multiple maclist discr_multiple))
-	 (sortedmactuple (multiple_sort unsortedmactuple
-					compare_named_alpha
-					discr_multiple))
+	 (sortedmactuple
+	  (multiple_sort unsortedmactuple
+			 (lambda (ms1 ms2)
+			   (compare_named_alpha
+			    (get_field :sexpmac_mname ms1)
+			    (get_field :sexpmac_mname ms2))
+			   )
+			 discr_multiple))
 	 )
+    (debug "makedoc_genmacro maclist=" maclist 
+	   "\n * unsortedmactuple=" unsortedmactuple 
+	   "\n * sortedmactuple=" sortedmactuple "\n")
     (add2sbuf_strconst outb "There are ")
     (add2sbuf_longdec outb (multiple_length sortedmactuple))
     (add2sbuf_strconst outb " documented macros.")
@@ -1078,7 +1086,14 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
   (add2sbuf_indentnl outb 0)
   (let ( (rawciterlist (get_field :mkdoc_citerators mdinfo))
 	 (rawcitertup (list_to_multiple rawciterlist discr_multiple))
-	 (sortedcitertup (multiple_sort rawcitertup compare_named_alpha discr_multiple))
+	 (sortedcitertup 
+	  (multiple_sort 
+	   rawcitertup 
+	   (lambda (is1 is2)
+	     (compare_named_alpha 
+	      (get_field :sdef_name is1)
+	      (get_field :sdef_name is2)))
+	   discr_multiple))
 	 )
     (debug "makedoc_genciterator rawciterlist=" rawciterlist
 	   " sortedcitertup=" sortedcitertup)
@@ -1133,7 +1148,14 @@ has basic debug support thru DEBUG, ASSERT_MSG..."
   (add2sbuf_indentnl outb 0)
   (let ( (rawcmatchlist (get_field :mkdoc_cmatchers mdinfo))
 	 (rawcmatchtup (list_to_multiple rawcmatchlist discr_multiple))
-	 (sortedcmatchtup (multiple_sort rawcmatchtup compare_named_alpha discr_multiple))
+	 (sortedcmatchtup
+	  (multiple_sort 
+	   rawcmatchtup 
+	   (lambda (sm1 sm2)
+	     (compare_named_alpha 
+	      (get_field :sdef_name sm1)
+	      (get_field :sdef_name sm2)))
+	   discr_multiple))
 	 )
     (add2sbuf_strconst outb "There are ")
     (add2sbuf_longdec outb (multiple_length sortedcmatchtup))
