@@ -2772,6 +2772,8 @@ function. Syntax is (DEFUNMATCHER <symbol> <in-formals> <out-formals>
 			))
 	     )
 	(put_fields fbind :fubind_defun sdefun)
+	(unless (multiple_length bodytup)
+	  (error_plain loc "missing or empty body for DEFUN"))
 	(return sdefun)
 	))))
 (install_initial_macro 'defun mexpand_defun)

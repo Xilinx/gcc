@@ -1,5 +1,15 @@
 
 2012-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (mexpand_defun): Signal error for empty
+	body.
+	* melt/warmelt-modes.melt (register_alarm_timer)
+	(register_child_process_handler, register_input_channel_handler)
+	(unregister_alarm_timer, unregister_child_process_handler): New stubs.
+
+	* melt/xtramelt-probe.melt (show_version_probe): Send a
+	SETSTATUS_pcd command.
+
+2012-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 
 	* melt/generated/meltrunsup.h: Regenerate.

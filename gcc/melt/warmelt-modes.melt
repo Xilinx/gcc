@@ -3903,6 +3903,44 @@ ASSERT_MSG) is enabled"
 	  }#)
       )))
 
-(export_values register_input_channel_handler)
+
+(defun register_alarm_timer (clos :long periodms)
+  :doc #{$REGISTER_ALARM_TIMER is the low level function to register
+the closure $CLOS to be called periodically with a period of $PERIODMS
+-at least 50- milliseconds; the closure should return non-nil for the
+alarm to be repeated. $REGISTER_ALARM_TIMER returns a timer object,
+usable for $UNREGISTER_ALARM_TIMER.}#
+  (debug "register_alarm_timer clos=" clos " periodms=" periodms)
+  (if (is_closure clos)
+      (if (>=i periodms 50)
+	  (let ( (periodbox (make_integerbox discr_constant_integer periodms))
+		 )
+
+))))
+
+(defun unregister_alarm_timer (tim)
+  :doc #{Unregister a timer obtained by $REGISTER_ALARM_TIMER.}#
+  (debug "unregister_alarm_timer tim=" tim)
+)
+
+(defun register_child_process_handler (clos :long pid)
+  :doc #{$REGISTER_CHILD_PROCESS_HANDLER is the low level function to
+register a handler for termination of process $PID}# 
+  (debug "register_child_process_handler clos=" clos " pid=" pid)
+)
+
+
+(defun unregister_child_process_handler (chd)
+  :doc #{Unregister a child process handler obtained by $REGISTER_CHILD_PROCESS_HANDLER}#
+  (debug "unregister_child_process_handler chd=" chd)
+)
+
+(export_values 
+ register_alarm_timer
+ register_child_process_handler
+ register_input_channel_handler 
+ unregister_alarm_timer 
+ unregister_child_process_handler
+)
 ;;;;
 ;; eof warmelt-modes.melt

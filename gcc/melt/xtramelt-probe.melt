@@ -327,7 +327,7 @@
   (let ( (sbuf (make_strbuf discr_strbuf))
 	 )
     (add2out sbuf "MELT version=" (melt_version_str))
-    (send_command_to_probe 'STATUS_pcd (strbuf2string discr_string sbuf))))
+    (send_command_to_probe 'SETSTATUS_pcd (strbuf2string discr_string sbuf))))
 
 
 (defun probe_docmd (cmd moduldata)
