@@ -27,6 +27,8 @@
 ## values at a time!
 
 ## predefined-name                              [ @qualifier ]
+  CLASS_ALARM_HANDLER
+  CLASS_CHILD_PROCESS_HANDLER
   CLASS_CITERATOR
   CLASS_CLASS
   CLASS_CMATCHER

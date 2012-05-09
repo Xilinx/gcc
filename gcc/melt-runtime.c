@@ -162,6 +162,7 @@ void melt_break_alptr_2_at (const char*msg, const char* fil, int line);
 volatile sig_atomic_t melt_interrupted;
 volatile sig_atomic_t melt_got_sigio;
 volatile sig_atomic_t melt_got_sigalrm;
+volatile sig_atomic_t melt_got_sigchld;
 
 #define MELT_DESC_FILESUFFIX "+meltdesc.c"
 #define MELT_TIME_FILESUFFIX "+melttime.h"
@@ -5224,9 +5225,10 @@ melt_probe_stop (void)
 
 
 
-void
+long
 melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
 {
+  long respid = 0;
   /* requests are from probe to MELT, commands are from MELT to probe */
 #define MELTPROBE_COMMAND_ARG "--command-from-MELT"
 #define MELTPROBE_REQUEST_ARG "--request-to-MELT"
@@ -5349,6 +5351,7 @@ melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
       usleep (30000);		/* give the probe a chance to start... */
     };
     melt_probe_pid = pid;
+    respid = (long) pid;
     melt_probe_cmdto_fd = cmdwrittenbymeltfd;
     melt_probe_reqfrom_fd = reqreadbymeltfd;
   }
@@ -5373,6 +5376,7 @@ melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr)
     *toprobefdptr = melt_probe_cmdto_fd;
   if (fromprobefdptr)
     *fromprobefdptr = melt_probe_reqfrom_fd;
+  return respid;
 }
 
 
@@ -9662,6 +9666,21 @@ melt_raw_sigalrm_signal(int sig)
 }
 
 
+/* The low level SIGALRM/SIGVTALRM signal handler installed thru
+   sigaction, when an alarm ringed.  Actual signal handling is done
+   at safe places thru MELT_CHECK_INTERRUPT & melt_handle_interrupt &
+   meltgc_handle_sigalrm (because signal handlers can call very few
+   async-signal-safe functions, see signal(7) man page on
+   e.g. Linux).  */
+static void
+melt_raw_sigchld_signal(int sig)
+{
+  gcc_assert (sig == SIGCHLD);
+  melt_got_sigchld = 1;
+  melt_interrupted = 1;
+}
+
+
 static void
 melt_install_signal_handlers (void)
 {
@@ -9669,8 +9688,9 @@ melt_install_signal_handlers (void)
   signal (SIGVTALRM, melt_raw_sigalrm_signal);
   signal (SIGIO, melt_raw_sigio_signal);
   signal (SIGPIPE, melt_raw_sigio_signal);
-  debugeprintf ("melt_install_signal_handlers install handlers for SIGIO %d, SIGPIPE %d, SIGALRM %d, SIGVTALRM %d",
-                SIGIO, SIGPIPE, SIGALRM, SIGVTALRM);
+  signal (SIGCHLD, melt_raw_sigchld_signal);
+  debugeprintf ("melt_install_signal_handlers install handlers for SIGIO %d, SIGPIPE %d, SIGALRM %d, SIGVTALRM %d SIGCHLD %d",
+                SIGIO, SIGPIPE, SIGALRM, SIGVTALRM, SIGCHLD);
 }
 
 
@@ -13200,14 +13220,40 @@ end:
 static void
 meltgc_handle_sigalrm (void)
 {
+  static long hdlcounter;
   MELT_ENTERFRAME (1, NULL);
 #define closv  meltfram__.mcfr_varptr[0]
   MELT_LOCATION_HERE("meltgc_handle_sigalrm");
+  hdlcounter++;
+  debugeprintf ("meltgc_handle_sigalrm #%ld", hdlcounter);
   closv = melt_get_inisysdata (MELTFIELD_SYSDATA_ALARM_HOOK);
   if (melt_magic_discr ((melt_ptr_t) closv) == MELTOBMAG_CLOSURE) {
     (void) melt_apply ((meltclosure_ptr_t) closv, (melt_ptr_t) NULL,
                        "", NULL, "", NULL);
   }
+  MELT_EXITFRAME ();
+#undef closv
+}
+
+/* Real handling of SIGCHLD signal.  Could be called from
+   many places thru melt_handle_interrupt via MELT_CHECK_INTERRUPT
+   macro.  */
+static void
+meltgc_handle_sigchld (void)
+{
+  static long hdlcounter;
+  MELT_ENTERFRAME (1, NULL);
+#define closv  meltfram__.mcfr_varptr[0]
+  MELT_LOCATION_HERE("meltgc_handle_sigchld");
+  hdlcounter++;
+  debugeprintf ("meltgc_handle_sigchld #%ld", hdlcounter);
+#if 0
+  closv = melt_get_inisysdata (MELTFIELD_SYSDATA_ALARM_HOOK);
+  if (melt_magic_discr ((melt_ptr_t) closv) == MELTOBMAG_CLOSURE) {
+    (void) melt_apply ((meltclosure_ptr_t) closv, (melt_ptr_t) NULL,
+                       "", NULL, "", NULL);
+  }
+#endif
   MELT_EXITFRAME ();
 #undef closv
 }
@@ -13230,6 +13276,10 @@ melt_handle_interrupt (void)
   if (melt_got_sigalrm) {
     melt_got_sigalrm = 0;
     meltgc_handle_sigalrm ();
+  }
+  if (melt_got_sigchld) {
+    melt_got_sigchld = 0;
+    meltgc_handle_sigchld ();
   }
 }
 

@@ -1,4 +1,4 @@
-;; -*- Lisp -*-
+; -*- Lisp -*-
 ;; file warmelt-first.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
@@ -397,6 +397,7 @@ don't instanciate this class!}#
 	   ;; meltgc_poll_inputs and meltgc_handle_sigalrm
 	   sysdata_inchannel_data	;data for handling of "asynchronous" interrupting input channel
 	   sysdata_alarm_hook		;closure for handling SIGALRM 
+	   sysdata_child_hook		;closure for handling SIGCHILD
 	   ;;
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
@@ -764,6 +765,30 @@ data. See the $INSTALL_MELT_MODE function. }# )
 	   inch_data			;client data
 	   ))
 	   
+(defclass class_alarm_handler
+  :doc #{Internal class for alarm handling. $ALARMH_PERIOD is the
+  boxed period in milliseconds, $ALARMH_CLOS is the closure to be
+  called, $ALARMH_DATA is the client data. See $REGISTER_ALARM_TIMER and }#
+  :predef CLASS_ALARM_HANDLER
+  :super class_proped
+  :fields (
+	   alarmh_period
+	   alarmh_clos
+	   alarmh_data
+	   ))
+
+(defclass class_child_process_handler
+  :doc #{Internal class for child process handling. $CHILPROH_PID is
+  the boxed pid, $CHILPROH_CLOS is the boxed closure, $CHILPROH_DATA
+  is the client data.}#
+  :predef CLASS_CHILD_PROCESS_HANDLER
+  :super class_proped
+  :fields (
+	   chilproh_pid
+	   chilproh_clos
+	   chilproh_data
+))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================  source program elements
 
@@ -4174,9 +4199,11 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 
 ;;;;;; export the above classes
 (export_class ;;in alphabetical order, one per line, for convenience
+ class_alarm_handler
  class_any_binding
  class_any_matcher
  class_c_generation_context
+ class_child_process_handler
  class_citerator
  class_citerator_binding
  class_class

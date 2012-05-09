@@ -158,6 +158,7 @@ extern long melt_error_counter;
 extern volatile sig_atomic_t melt_interrupted;
 extern volatile sig_atomic_t melt_got_sigio;
 extern volatile sig_atomic_t melt_got_sigalrm;
+extern volatile sig_atomic_t melt_got_sigchld;
 
 static const char* 
 melt_basename(const char* path)
@@ -571,7 +572,7 @@ extern long melt_application_depth (void);
 static inline int 
 melt_argdescr_length (const melt_argdescr_cell_t* argdesc)
 {
-  if (!argdesc || (void*)argdesc == (void*)MELTPAR_MARKGGC)
+  if (!argdesc || (const void*)argdesc == (const void*)MELTPAR_MARKGGC)
     return 0;
 #if MELT_ARGDESCR_MAX == CHAR_MAX
   return strlen ((const char*)argdesc);
@@ -3017,12 +3018,12 @@ melt_putstrbuf (FILE * f, melt_ptr_t sb)
 void melt_probe_stop (void);
 
 
-/* Start the MELT probe process.  Gives the file descriptors thru
+/* Start the MELT probe process, and returns its pid.  Gives the file descriptors thru
    toprobefdptr & fromprobefdptr if not null.  If probecmd is null or
    empty, we use the -f[plugin-arg-]melt-probe program argument, or
    else the GCCMELT_PROBE environment variable, or else the builtin
    default melt_default_probe. */
-void melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr);
+long melt_probe_start (const char* probecmd, int*toprobefdptr, int *fromprobefdptr);
 
 /* Send a stringbuffer command to probe */
 void melt_send_command_strbuf_to_probe (melt_ptr_t buf);

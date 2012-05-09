@@ -1,5 +1,23 @@
 
 2012-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_got_sigchld): New volatile variable.
+	(melt_argdescr_length): Better cast.
+	(melt_probe_start): Return the pid.
+	* melt-runtime.c (melt_got_sigchld): New volatile variable.
+	(melt_probe_start): Return the pid.
+	(melt_raw_sigchld_signal): New.
+	(melt_install_signal_handlers): Use it.
+	(meltgc_handle_sigalrm): Count them.
+	(meltgc_handle_sigchld): New stub.
+	(meltgc_handle_interrupt): Deal with SIGCHLD.
+
+	* melt-predef.list (CLASS_ALARM_HANDLER)
+	(CLASS_CHILD_PROCESS_HANDLER): New.
+
+	* melt/warmelt-first.melt (class_alarm_handler)
+	(class_child_process_handler): New.
+
+2012-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
