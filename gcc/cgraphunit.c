@@ -2667,15 +2667,7 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
 #endif
 
   if (e->indirect_unknown_callee
-      || decl == e->callee->decl
-      || (L_IPO_COMP_MODE && decl
-          /* DECL is dead function eliminated. */
-          && !(!DECL_STRUCT_FUNCTION (decl)
-	       && TREE_STATIC (decl))
-          /* Always fix up when decl is cloned.  */
-          && !e->callee->is_versioned_clone
-	  && (cgraph_lipo_get_resolved_node (decl)
-	      == cgraph_lipo_get_resolved_node (e->callee->decl))))
+      || decl == e->callee->decl)
     return e->call_stmt;
 
 #ifdef ENABLE_CHECKING

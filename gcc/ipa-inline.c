@@ -1441,6 +1441,9 @@ inline_small_functions (void)
 	for (edge = node->callers; edge; edge = edge->next_caller)
 	  if (max_count < edge->count)
 	    max_count = edge->count;
+        for (edge = node->indirect_calls; edge; edge = edge->next_callee)
+          if (max_count < edge->count)
+            max_count = edge->count;
       }
 
   overall_size = initial_size;
@@ -1486,6 +1489,9 @@ inline_small_functions (void)
       edge->aux = NULL;
       if (!edge->inline_failed)
 	continue;
+
+      if (L_IPO_COMP_MODE && !edge->call_stmt)
+        continue;
 
       /* Be sure that caches are maintained consistent.  
          We can not make this ENABLE_CHECKING only because it cause differnt

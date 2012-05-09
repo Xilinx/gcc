@@ -1,5 +1,19 @@
 2012-05-08  Xinliang David Li  <davidxl@google.com>
 
+	Fix issue 6457844
+
+	* ipa-inline-transform.c (inline_call): When
+	fixing up cgraph edge callees which are aliases,
+	find the real resolved alias target in LIPO mode.
+	* cgraphunit.c (cgraph_redirect_edge_call_stmt_to_callee):
+	Remove unnecssary check in LIPO mode.
+	* ipa-inline.c (inline_small_functions): Compute
+	max_count properly by considering indirect edges.
+
+
+
+2012-05-08  Xinliang David Li  <davidxl@google.com>
+
 	Fix issue 6461583
 
 	* profile.c (instrument_values): Skip static ctor/dtors
