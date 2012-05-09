@@ -1,3 +1,9 @@
+2012-05-09   Simon Baldwin  <simonb@google.com>
+
+	* libstdc++-v3/acinclude.m4: Bracket _GLIBCXX_USE_FLOAT128
+	definition with	ifndef __clang__.
+	* libstdc++-v3/config.h.in: Rebuild.
+
 2012-04-22   Paul Pluzhnikov  <ppluzhnikov@google.com>
 
 	* libgomp/configure.tgt: Don't force initial-exec.

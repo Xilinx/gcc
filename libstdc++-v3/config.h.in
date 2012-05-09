@@ -799,8 +799,11 @@
    this host. */
 #undef _GLIBCXX_USE_DECIMAL_FLOAT
 
-/* Define if __float128 is supported on this host. */
+/* Define if __float128 is supported on this host.
+   Hide all uses of __float128 from Clang.  Google ref b/6422845  */
+#ifndef __clang__
 #undef _GLIBCXX_USE_FLOAT128
+#endif
 
 /* Defined if gettimeofday is available. */
 #undef _GLIBCXX_USE_GETTIMEOFDAY

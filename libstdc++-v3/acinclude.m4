@@ -2529,10 +2529,16 @@ int main()
 }
 EOF
 
+    AH_VERBATIM([_GLIBCXX_USE_FLOAT128,],
+                [/* Define if __float128 is supported on this host.
+   Hide all uses of __float128 from Clang.  Google ref b/6422845  */
+#ifndef __clang__
+#undef _GLIBCXX_USE_FLOAT128
+#endif])
+
     AC_MSG_CHECKING([for __float128])
     if AC_TRY_EVAL(ac_compile); then
-      AC_DEFINE(_GLIBCXX_USE_FLOAT128, 1,
-      [Define if __float128 is supported on this host.])
+      AC_DEFINE(_GLIBCXX_USE_FLOAT128, 1)
       enable_float128=yes
     else
       enable_float128=no
