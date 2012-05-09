@@ -176,6 +176,9 @@ void melt_handle_interrupt (void);
 /* Gives the relative real time in milliseconds since MELT started. */
 long melt_relative_time_millisec (void);
 
+/* Set the real timer alarm in milliseconds, or remove alarm if negative */
+void melt_set_real_timer_millisec (long millisec);
+
 #ifndef MELT_HAVE_DEBUG
 #define MELT_HAVE_DEBUG 0
 #endif /*MELT_HAVE_DEBUG*/
@@ -2020,6 +2023,43 @@ melt_longsbucket_get (melt_ptr_t bucketp, long key)
   for (md = lo; md <= hi; md++)
     if (buck->buckl_entab[md].ebl_at == key)
       return buck->buckl_entab[md].ebl_va;
+  return NULL;
+}
+
+/* retrieve the n-th long key in a bucketlong or else 0 */
+static inline long 
+melt_longsbucket_nth_key (melt_ptr_t bucketp, int rk)
+{
+  struct meltbucketlongs_st*buck = NULL;
+  unsigned ucnt=0;
+  if (melt_magic_discr (bucketp) != MELTOBMAG_BUCKETLONGS)
+    return 0L;
+  buck = (struct meltbucketlongs_st*)bucketp;
+  ucnt = buck->buckl_ucount;
+  if (ucnt == 0) 
+    return 0L;
+  if (rk<0) 
+    rk += (int) ucnt;
+  if (rk >= 0 && rk < (int) ucnt)
+    return buck->buckl_entab[rk].ebl_at;
+  return 0L;
+}
+
+static inline melt_ptr_t 
+melt_longsbucket_nth_val (melt_ptr_t bucketp, int rk)
+{
+  struct meltbucketlongs_st*buck = NULL;
+  unsigned  ucnt=0;
+  if (melt_magic_discr (bucketp) != MELTOBMAG_BUCKETLONGS)
+    return NULL;
+  buck = (struct meltbucketlongs_st*)bucketp;
+  ucnt = buck->buckl_ucount;
+  if (ucnt == 0) 
+    return NULL;
+  if (rk<0) 
+    rk += (int) ucnt;
+  if (rk >= 0 && rk < (int) ucnt)
+    return buck->buckl_entab[rk].ebl_va;
   return NULL;
 }
 

@@ -3910,14 +3910,47 @@ ASSERT_MSG) is enabled"
 (defun handle_alarm_signal ()
   (let ( (alarmbuck !alarm_bucket_container)
 	 (gotalarm_cont (instance class_container))
+	 (:long cureltim (relative_time_millisec))
 	 )
-    (assert_msg "check alarmbuck" (is_bucketlong alarmbuck))
-    ;; erase the alarm hook
+    (debug "handle_alarm_signal start alarmbuck=" alarmbuck " cureltim=" cureltim)
+    (unless alarmbuck (return))
+    ;; erase the alarm hook to avoid spurious recursive calls
     (put_fields initial_system_data 
 		:sysdata_alarm_hook
 		(lambda () (set_content gotalarm_cont :true)))
-    (assert_msg "@$@unimplemented handle_alarm_signal")
-))
+    (forever handleloop
+	     (assert_msg "check alarmbuck" (is_bucketlong alarmbuck))
+	     (unless (bucketlong_size alarmbuck) (exit handleloop))
+	     (let ( (:long nextim (bucketlong_nth_key alarmbuck 0))
+		    (nextalhd (bucketlong_nth_val alarmbuck 0))
+		    )
+	       (debug "handle_alarm_signal nextim=" nextim " nextalhd=" nextalhd)
+	       (unless nextim (exit handleloop))
+	       (unless (>i nextim cureltim) (exit handleloop))
+	       (assert_msg "check mextalhd" (is_a nextalhd class_alarm_handler))
+	       (setq alarmbuck (bucketlong_remove alarmbuck nextim))
+	       (let ( (clos (get_field :alarmh_clos nextalhd))
+		      )
+		 (if (is_closure clos)
+		     (let ( (res (clos nextalhd))
+			    )
+		       (if res
+			   (let ( (:long newperiod (get_int (get_field :alarmh_period nextalhd)))
+				  )
+			     (if (>i newperiod 10)
+				 (setq alarmbuck 
+				       (bucketlong_put alarmbuck 
+						       (+i newperiod cureltim) nextalhd))))))))
+	       (set_content alarm_bucket_container alarmbuck)
+	       ))			;end handleloop
+    (let ( (:long nowtim (relative_time_millisec))
+	   (:long nextalarm (bucketlong_nth_key alarmbuck 0))
+	   )
+      (if (>i nextalarm nowtim)
+	  (set_real_timer_millisec (-i nextalarm nowtim)))
+      (put_fields initial_system_data 
+		  :sysdata_alarm_hook handle_alarm_signal)
+      )))
 
 (defun register_alarm_timer (clos :long periodms :value data)
   :doc #{$REGISTER_ALARM_TIMER is the low level function to register
@@ -3929,12 +3962,20 @@ returns a timer object, usable for $UNREGISTER_ALARM_TIMER.}#
   (if (is_closure clos)
       (if (>=i periodms 50)
 	  (let ( (periodbox (make_integerbox discr_constant_integer periodms))
+		 (oldbuck (or !alarm_bucket_container (make_bucketlong discr_bucket_longs 31)))
 		 (alhd (instance class_alarm_handler
 				 :alarmh_period periodbox
 				 :alarmh_clos clos
 				 :alarmh_data data))
+		 (:long cureltim (relative_time_millisec))
+		 (:long nextim (+i cureltim periodms))
+		 (newbuck (bucketlong_put oldbuck nextim alhd))
+		 (:long firstkey (bucketlong_nth_key newbuck 0))
+		 (:long firstdelay (if firstkey (-i firstkey cureltim)))
 		 )
-	    (assert_msg "@$@unimplemented register_alarm_timer")
+	    (set_content alarm_bucket_container newbuck)
+	    (put_fields initial_system_data :sysdata_alarm_hook handle_alarm_signal)
+	    (set_real_timer_millisec firstdelay)
 ))))
 
 

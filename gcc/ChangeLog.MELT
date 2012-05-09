@@ -1,5 +1,21 @@
 
 2012-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_set_real_timer_millisec): New declaration.
+	(melt_longsbucket_nth_key, melt_longsbucket_nth_val): New
+	functions.
+
+	* melt-runtime.c (melt_set_real_timer_millisec): New function.
+
+	* melt/warmelt-first.melt (bucketlong_nth_key)
+	(bucketlong_nth_val): New primitives.
+
+	* melt/warmelt-base.melt (relative_time_millisec)
+	(set_real_timer_millisec): New primitives.
+
+	* melt/warmelt-modes.melt (handle_alarm_signal)
+	(register_alarm_handler): New functions.
+
+2012-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_relative_time_millisec): New declaration.
 	* melt-runtime.c (melt_relative_time_millisec): New function.
 	* melt/warmelt-modes.melt: Improve stubs.

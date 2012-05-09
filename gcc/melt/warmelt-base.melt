@@ -129,6 +129,14 @@ given a string $MSG, with gdb when desperate.}#
   :doc #{Get the current cpu clock(3) in microseconds.}#
   #{((long)clock())}#)
 
+(defprimitive relative_time_millisec () :long
+  :doc #{Get the real time, relative to MELT start, in milliseconds.}#
+  #{melt_relative_time_millisec()}#)
+
+(defprimitive set_real_timer_millisec (:long millisec) :void
+  :doc #{Set the real time alarm in millisecond (or clear alarm if $MILLISEC is non-positive)}#
+  #{melt_set_real_timer_millisec($MILLISEC)}#)
+
 ;; compare of longs [some primitives remain in warmelt-first.melt
 ;; because they are needed there]
 
@@ -4046,6 +4054,7 @@ polyhedron values.}#
  ppstrbuf_mixbigint
  read_file
  read_strv
+ relative_time_millisec
  register_all_ipa_passes_end_hook_first
  register_all_ipa_passes_end_hook_last
  register_all_ipa_passes_start_hook_first
@@ -4068,6 +4077,7 @@ polyhedron values.}#
  register_pre_genericize_hook_last
  retrieve_value_descriptor_list
  set_content
+ set_real_timer_millisec
  some_integer_different_from
  some_integer_equal_to
  some_integer_greater_or_equal_to

@@ -9707,6 +9707,27 @@ melt_relative_time_millisec (void)
     + (long)(tv.tv_usec - melt_start_time.tv_usec)/1000L;
 }
 
+void
+melt_set_real_timer_millisec (long millisec)
+{
+#define MELT_MINIMAL_TIMER_MILLISEC 50
+  struct itimerval itv;
+  itv.it_interval.tv_sec = 0;
+  itv.it_interval.tv_usec = 0;
+  itv.it_value.tv_sec = 0;
+  itv.it_value.tv_usec = 0;
+  if (millisec > 0)
+    {
+      if (millisec < MELT_MINIMAL_TIMER_MILLISEC) 
+	millisec = MELT_MINIMAL_TIMER_MILLISEC;
+      itv.it_value.tv_sec = millisec / 1000;
+      itv.it_value.tv_usec = (millisec % 1000) * 1000;
+    };
+  if (setitimer (ITIMER_REAL, &itv, NULL))
+    melt_fatal_error ("MELT cannot set real timer to %ld millisec - %s",
+		      millisec, xstrerror(errno));
+}
+
 /****
  * Initialize melt.  Called from toplevel.c before pass management.
  * Should become the MELT plugin initializer.

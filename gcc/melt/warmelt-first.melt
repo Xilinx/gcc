@@ -1633,6 +1633,16 @@ make a $CURAT string.}#
   #{melt_longsbucket_size ((melt_ptr_t) $BUCK)}#)
 
 
+;; nth key
+(defprimitive bucketlong_nth_key (buck :long N) :long
+  :doc #{Safely retrieve from  bucket of longs $BUCK the $N-th key or else 0}#
+  #{melt_longsbucket_nth_key ((melt_ptr_t) $BUCK, (int)$N)}#)
+
+;; nth value
+(defprimitive bucketlong_nth_val (buck :long N) :value
+  :doc #{Safely retrieve from  bucket of longs $BUCK the $N-th value or else 0}#
+  #{melt_longsbucket_nth_val ((melt_ptr_t) $BUCK,(int)$N)}#)
+
 ;; replace
 (defprimitive bucketlong_replace (buck :long key :value val) :value
   :doc #{Safely replace in bucket of longs $BUCK a given $KEY associated to $VAL. 
@@ -4285,7 +4295,9 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  bucketlong_aux
  bucketlong_count
  bucketlong_get
- bucketlong_put 
+ bucketlong_put
+ bucketlong_nth_key
+ bucketlong_nth_val
  bucketlong_remove
  bucketlong_replace
  bucketlong_setaux
