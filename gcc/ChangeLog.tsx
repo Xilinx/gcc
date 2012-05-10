@@ -1,6 +1,14 @@
 2012-08-30  H.J. Lu  <hongjiu.lu@intel.com>
 
 	Backport from mainline
+	2012-05-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/53291
+	* config/i386/i386.md (xtest): Use NE condition in ix86_expand_setcc.
+
+2012-08-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Backport from mainline
 	2012-05-03  Jakub Jelinek  <jakub@redhat.com>
 
 	PR target/53194
