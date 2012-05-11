@@ -1,0 +1,5 @@
+2012-05-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	Merge upstream changes
+	* include/private/gcconfig.h: (ALIGNMENT): Set to 4 for x32.
+	(CPP_WORDSZ): Set to 32 for x32.
