@@ -160,6 +160,8 @@ extern volatile sig_atomic_t melt_got_sigio;
 extern volatile sig_atomic_t melt_got_sigalrm;
 extern volatile sig_atomic_t melt_got_sigchld;
 
+extern long melt_blocklevel_interrupts;
+
 static const char* 
 melt_basename(const char* path)
 {
@@ -169,7 +171,7 @@ melt_basename(const char* path)
 void melt_handle_interrupt (void);
 
 /* the MELT translator should generate calls to melt_check_interrupt at safe places.  */
-#define MELT_CHECK_INTERRUPT() do { if (MELT_UNLIKELY(melt_interrupted)) \
+#define MELT_CHECK_INTERRUPT() do { if (MELT_UNLIKELY(melt_interrupted && melt_blocklevel_interrupts <= 0)) \
       melt_handle_interrupt(); } while(0)
 
 

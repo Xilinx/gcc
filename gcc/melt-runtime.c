@@ -159,6 +159,8 @@ void melt_break_alptr_2_at (const char*msg, const char* fil, int line);
 
 #include "melt-runtime.h"
 
+long melt_blocklevel_interrupts;
+
 volatile sig_atomic_t melt_interrupted;
 volatile sig_atomic_t melt_got_sigio;
 volatile sig_atomic_t melt_got_sigalrm;

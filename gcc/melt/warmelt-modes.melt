@@ -3914,12 +3914,12 @@ ASSERT_MSG) is enabled"
 	 )
     (debug "handle_alarm_signal start alarmbuck=" alarmbuck " cureltim=" cureltim)
     (unless alarmbuck (return))
-    ;; erase the alarm hook to avoid spurious recursive calls
-    (put_fields initial_system_data 
-		:sysdata_alarm_hook
-		(lambda () (set_content gotalarm_cont :true)))
     (forever handleloop
 	     (assert_msg "check alarmbuck" (is_bucketlong alarmbuck))
+	     ;; erase the alarm hook to avoid spurious recursive calls
+	     (put_fields initial_system_data 
+			 :sysdata_alarm_hook
+			 (lambda () (set_content gotalarm_cont :true)))
 	     (unless (bucketlong_size alarmbuck) (exit handleloop))
 	     (let ( (:long nextim (bucketlong_nth_key alarmbuck 0))
 		    (nextalhd (bucketlong_nth_val alarmbuck 0))
@@ -3941,49 +3941,84 @@ ASSERT_MSG) is enabled"
 				 (setq alarmbuck 
 				       (bucketlong_put alarmbuck 
 						       (+i newperiod cureltim) nextalhd))))))))
-	       (set_content alarm_bucket_container alarmbuck)
+	       (when !gotalarm_cont
+		 (set_content gotalarm_cont ())
+		 (again handleloop))
 	       ))			;end handleloop
+    (set_content alarm_bucket_container alarmbuck)
     (let ( (:long nowtim (relative_time_millisec))
 	   (:long nextalarm (bucketlong_nth_key alarmbuck 0))
 	   )
-      (if (>i nextalarm nowtim)
-	  (set_real_timer_millisec (-i nextalarm nowtim)))
       (put_fields initial_system_data 
 		  :sysdata_alarm_hook handle_alarm_signal)
-      )))
+      (cond ( (>i nextalarm nowtim)
+	      ;; set alarm to next time
+	      (set_real_timer_millisec (-i nextalarm nowtim)))
+	    ( (>i nextalarm 0)
+	      ;; missed time, set a quick alarm
+	      (set_real_timer_millisec 30))
+	    ( :else
+	      ;; no more alarm, disable SIGALRM
+	      (set_real_timer_millisec 0)
+	      (put_fields initial_system_data 
+			  :sysdata_alarm_hook ()))
+	    ))))
 
 (defun register_alarm_timer (clos :long periodms :value data)
   :doc #{$REGISTER_ALARM_TIMER is the low level function to register
-the closure $CLOS to be called periodically with a period of $PERIODMS
--at least 50- milliseconds and some client $DATA. The closure should
-return non-nil for the alarm to be repeated. $REGISTER_ALARM_TIMER
-returns a timer object, usable for $UNREGISTER_ALARM_TIMER.}#
+  the closure $CLOS to be called periodically with a period of $PERIODMS
+  -at least 50- milliseconds and some client $DATA. The closure should
+  return non-nil for the alarm to be repeated. $REGISTER_ALARM_TIMER
+  returns a timer object, usable for $UNREGISTER_ALARM_TIMER.}#
   (debug "register_alarm_timer clos=" clos " periodms=" periodms)
   (if (is_closure clos)
       (if (>=i periodms 50)
-	  (let ( (periodbox (make_integerbox discr_constant_integer periodms))
-		 (oldbuck (or !alarm_bucket_container (make_bucketlong discr_bucket_longs 31)))
-		 (alhd (instance class_alarm_handler
-				 :alarmh_period periodbox
-				 :alarmh_clos clos
-				 :alarmh_data data))
-		 (:long cureltim (relative_time_millisec))
-		 (:long nextim (+i cureltim periodms))
-		 (newbuck (bucketlong_put oldbuck nextim alhd))
-		 (:long firstkey (bucketlong_nth_key newbuck 0))
-		 (:long firstdelay (if firstkey (-i firstkey cureltim)))
+	  (let ( (res ())
 		 )
-	    (set_content alarm_bucket_container newbuck)
-	    (put_fields initial_system_data :sysdata_alarm_hook handle_alarm_signal)
-	    (set_real_timer_millisec firstdelay)
-))))
+	    (block_interrupts 
+	     () ()
+	     (let ( (periodbox (make_integerbox discr_constant_integer periodms))
+		    (oldbuck (or !alarm_bucket_container (make_bucketlong discr_bucket_longs 31)))
+		    (alhd (instance class_alarm_handler
+				    :alarmh_period periodbox
+				    :alarmh_clos clos
+				    :alarmh_data data))
+		    (:long cureltim (relative_time_millisec))
+		    (:long nextim (+i cureltim periodms))
+		    (newbuck (bucketlong_put oldbuck nextim alhd))
+		    (:long firstkey (bucketlong_nth_key newbuck 0))
+		    (:long firstdelay (if firstkey (-i firstkey cureltim)))
+		    )
+	       (set_content alarm_bucket_container newbuck)
+	       (put_fields initial_system_data :sysdata_alarm_hook handle_alarm_signal)
+	       (set_real_timer_millisec firstdelay)
+	       (setq res alhd)))
+	    (return res)
+	    ))))
 
 
 (defun unregister_alarm_timer (tim)
   :doc #{Unregister a timer obtained by $REGISTER_ALARM_TIMER.}#
   (debug "unregister_alarm_timer tim=" tim)
-  (assert_msg "@$@unimplemented unregister_alarm_timer")
-)
+  (unless tim (return))
+  (unless (is_not_a tim class_alarm_handler)
+    (assert_msg "check tim" (is_a tim class_alarm_handler))
+    (return))
+  (block_interrupts
+   () ()
+   (let ( (oldbuck !alarm_bucket_container)
+	  (:long oldbucklen (bucketlong_size oldbuck))
+	  (newbuck (make_bucketlong discr_bucket_longs oldbucklen))
+	  )
+     (unless oldbucklen 
+       ;; no more alarms
+       (set_content alarm_bucket_container ())
+       (set_real_timer_millisec 0)
+       (put_fields initial_system_data 
+		   :sysdata_alarm_hook ()))
+     (return))
+   (assert_msg "@$@unimplemented unregister_alarm_timer")
+   ))
 
 (defun register_child_process_handler (clos :long pid)
   :doc #{$REGISTER_CHILD_PROCESS_HANDLER is the low level function to

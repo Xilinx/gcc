@@ -1,5 +1,18 @@
 
 2012-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_blocklevel_interrupts): New declaration.
+	(MELT_CHECK_INTERRUPT): Use it.
+
+	* melt-runtime.c (melt_blocklevel_interrupts): New variable.
+
+	* melt/warmelt-base.melt (block_interrupts): New c-interator.
+
+	* melt/warmelt-outobj.melt (outpucod_procroutine): Save and
+	restore the melt_blocklevel_interrupts at prologue & epilogue.
+
+	* melt/warmelt-modes.melt
+
+2012-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{for merge with trunk svn 187397, since gimple_seq are
 	disappearing in GCC 4.8}}
 

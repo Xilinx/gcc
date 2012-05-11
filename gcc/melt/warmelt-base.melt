@@ -3865,6 +3865,23 @@ polyhedron values.}#
   :doc #{Increment $LEFT (when variable) with $INCR.}#
   #{ /*increment*/ $LEFT += $INCR; 
   }#)
+
+(defciterator block_interrupts
+  ()
+  blkinter
+  ()
+  :doc #{The $BLOCK_INTERRUPTS C-iterator provides a sequence inside
+which interrupts are blocked. It could be dynamically nested.}# 
+  #{ /* block_interrupts $BLKINTER start */
+     long $BLKINTER#_lev = melt_blocklevel_interrupts;
+     melt_blocklevel_interrupts = $BLKINTER#_lev + 1;
+  }#
+  #{ /* block_interrupts $BLKINTER end */
+     melt_blocklevel_interrupts = $BLKINTER#_lev;
+     MELT_CHECK_INTERRUPT();
+  }#
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  ;; keep the alphanumerical order
@@ -3941,6 +3958,7 @@ polyhedron values.}#
  add2sbuf_texi_mixloc
  add_to_out
  andi
+ block_interrupts
  c_clock
  c_time
  cbreak_msg

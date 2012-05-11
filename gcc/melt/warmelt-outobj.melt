@@ -1492,6 +1492,10 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	  (add2sbuf_string implbuf ovariadicindex)
 	  (add2sbuf_indentnl implbuf 0)
 	  ))
+ 
+    (add2sbuf_indentnl implbuf 2)
+    (add2out implbuf "long current_blocklevel_interrupts_" onam "_melt =  melt_blocklevel_interrupts;")
+    (add2sbuf_indentnl implbuf 1)
     (output_curframe_declstruct_init output_curframe_declstruct prou implbuf)
     (add2sbuf_strconst implbuf "melt_trace_start(\"")
     (add2sbuf_string implbuf ofunam)
@@ -1547,7 +1551,10 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (add2sbuf_strconst implbuf "melt_trace_end(\"")
     (add2sbuf_string implbuf ofunam)
     (add2sbuf_strconst implbuf "\", meltcallcount);")
-    (add2sbuf_strconst implbuf "  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;")
+    (add2sbuf_indentnl implbuf 1)
+    (add2out implbuf " melt_blocklevel_interrupts = current_blocklevel_interrupts_" onam "_melt;")
+    (add2sbuf_indentnl implbuf 1)
+    (add2sbuf_strconst implbuf " melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " return (melt_ptr_t)(")
     (if oretval 
