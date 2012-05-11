@@ -888,6 +888,103 @@ meltrout_59_warmelt_modes_REGISTER_INPUT_CHANNEL_HANDLER (meltclosure_ptr_t
 
 
 
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_60_warmelt_modes_HANDLE_ALARM_SIGNAL (meltclosure_ptr_t meltclosp_,
+					       melt_ptr_t meltfirstargp_,
+					       const melt_argdescr_cell_t
+					       meltxargdescr_[],
+					       union meltparam_un
+					       *meltxargtab_,
+					       const melt_argdescr_cell_t
+					       meltxresdescr_[],
+					       union meltparam_un
+					       *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_61_warmelt_modes_LAMBDA___17__ (meltclosure_ptr_t meltclosp_,
+					 melt_ptr_t meltfirstargp_,
+					 const melt_argdescr_cell_t
+					 meltxargdescr_[],
+					 union meltparam_un *meltxargtab_,
+					 const melt_argdescr_cell_t
+					 meltxresdescr_[],
+					 union meltparam_un *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_62_warmelt_modes_REGISTER_ALARM_TIMER (meltclosure_ptr_t meltclosp_,
+						melt_ptr_t meltfirstargp_,
+						const melt_argdescr_cell_t
+						meltxargdescr_[],
+						union meltparam_un
+						*meltxargtab_,
+						const melt_argdescr_cell_t
+						meltxresdescr_[],
+						union meltparam_un
+						*meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_63_warmelt_modes_UNREGISTER_ALARM_TIMER (meltclosure_ptr_t
+						  meltclosp_,
+						  melt_ptr_t meltfirstargp_,
+						  const melt_argdescr_cell_t
+						  meltxargdescr_[],
+						  union meltparam_un
+						  *meltxargtab_,
+						  const melt_argdescr_cell_t
+						  meltxresdescr_[],
+						  union meltparam_un
+						  *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_64_warmelt_modes_REGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
+							  meltclosp_,
+							  melt_ptr_t
+							  meltfirstargp_,
+							  const
+							  melt_argdescr_cell_t
+							  meltxargdescr_[],
+							  union meltparam_un
+							  *meltxargtab_,
+							  const
+							  melt_argdescr_cell_t
+							  meltxresdescr_[],
+							  union meltparam_un
+							  *meltxrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_65_warmelt_modes_UNREGISTER_CHILD_PROCESS_HANDLER (meltclosure_ptr_t
+							    meltclosp_,
+							    melt_ptr_t
+							    meltfirstargp_,
+							    const
+							    melt_argdescr_cell_t
+							    meltxargdescr_[],
+							    union meltparam_un
+							    *meltxargtab_,
+							    const
+							    melt_argdescr_cell_t
+							    meltxresdescr_[],
+							    union meltparam_un
+							    *meltxrestab_);
+
+
+
 #ifdef __cplusplus
 extern "C"
 #endif
@@ -953,6 +1050,11 @@ void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_7 (struct
 									*,
 									char
 									*);
+void MELT_MODULE_VISIBILITY meltmod__warmelt_modes__initialmeltchunk_8 (struct
+									frame_start_module_melt_st
+									*,
+									char
+									*);
 void MELT_MODULE_VISIBILITY
 meltmod__warmelt_modes__forward_or_mark_module_start_frame (struct
 							    melt_callframe_st
@@ -974,6 +1076,10 @@ meltrout_5_warmelt_modes_MAKEDOC_SCANINPUT (meltclosure_ptr_t meltclosp_,
 					    meltxresdescr_[],
 					    union meltparam_un *meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_5_warmelt_modes_MAKEDOC_SCANINPUT_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -1303,6 +1409,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_SCANINPUT", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_5_warmelt_modes_MAKEDOC_SCANINPUT_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -1325,6 +1433,10 @@ meltrout_6_warmelt_modes_LAMBDA___1__ (meltclosure_ptr_t meltclosp_,
 				       meltxresdescr_[],
 				       union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_6_warmelt_modes_LAMBDA___1___melt =
+    melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -1642,6 +1754,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_6_warmelt_modes_LAMBDA___1___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -1664,6 +1778,10 @@ meltrout_7_warmelt_modes_LAMBDA___2__ (meltclosure_ptr_t meltclosp_,
 				       meltxresdescr_[],
 				       union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_7_warmelt_modes_LAMBDA___2___melt =
+    melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -1912,6 +2030,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_7_warmelt_modes_LAMBDA___2___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -1934,6 +2054,10 @@ meltrout_8_warmelt_modes_LAMBDA___3__ (meltclosure_ptr_t meltclosp_,
 				       meltxresdescr_[],
 				       union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_8_warmelt_modes_LAMBDA___3___melt =
+    melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -2237,6 +2361,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_8_warmelt_modes_LAMBDA___3___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -2259,6 +2385,10 @@ meltrout_9_warmelt_modes_LAMBDA___4__ (meltclosure_ptr_t meltclosp_,
 				       meltxresdescr_[],
 				       union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_9_warmelt_modes_LAMBDA___4___melt =
+    melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -5890,6 +6020,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_9_warmelt_modes_LAMBDA___4___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -5914,6 +6046,10 @@ meltrout_10_warmelt_modes_MAKEDOC_OUTDEFLOC (meltclosure_ptr_t meltclosp_,
 					     union meltparam_un *
 					     meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_10_warmelt_modes_MAKEDOC_OUTDEFLOC_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -6236,6 +6372,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_OUTDEFLOC", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_10_warmelt_modes_MAKEDOC_OUTDEFLOC_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -6260,6 +6398,10 @@ meltrout_11_warmelt_modes_MAKEDOC_OUTFORMALS (meltclosure_ptr_t meltclosp_,
 					      union meltparam_un *
 					      meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_11_warmelt_modes_MAKEDOC_OUTFORMALS_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -6851,6 +6993,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_OUTFORMALS", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_11_warmelt_modes_MAKEDOC_OUTFORMALS_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -6873,6 +7017,10 @@ meltrout_12_warmelt_modes_MAKEDOC_OUTDOC (meltclosure_ptr_t meltclosp_,
 					  meltxresdescr_[],
 					  union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_12_warmelt_modes_MAKEDOC_OUTDOC_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -7359,6 +7507,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_OUTDOC", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_12_warmelt_modes_MAKEDOC_OUTDOC_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -7383,6 +7533,10 @@ meltrout_13_warmelt_modes_MAKEDOC_OUTCLASSDEF (meltclosure_ptr_t meltclosp_,
 					       union meltparam_un *
 					       meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_13_warmelt_modes_MAKEDOC_OUTCLASSDEF_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -9519,6 +9673,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_OUTCLASSDEF", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_13_warmelt_modes_MAKEDOC_OUTCLASSDEF_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -9541,6 +9697,10 @@ meltrout_14_warmelt_modes_MAKEDOC_GENMACRO (meltclosure_ptr_t meltclosp_,
 					    meltxresdescr_[],
 					    union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_14_warmelt_modes_MAKEDOC_GENMACRO_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -10597,6 +10757,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_GENMACRO", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_14_warmelt_modes_MAKEDOC_GENMACRO_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -10619,6 +10781,10 @@ meltrout_15_warmelt_modes_LAMBDA___5__ (meltclosure_ptr_t meltclosp_,
 					meltxresdescr_[],
 					union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_15_warmelt_modes_LAMBDA___5___melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -10778,6 +10944,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_15_warmelt_modes_LAMBDA___5___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -10802,6 +10970,10 @@ meltrout_16_warmelt_modes_MAKEDOC_GENPATMACRO (meltclosure_ptr_t meltclosp_,
 					       union meltparam_un *
 					       meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_16_warmelt_modes_MAKEDOC_GENPATMACRO_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -11953,6 +12125,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_GENPATMACRO", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_16_warmelt_modes_MAKEDOC_GENPATMACRO_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -11975,6 +12149,10 @@ meltrout_17_warmelt_modes_LAMBDA___6__ (meltclosure_ptr_t meltclosp_,
 					meltxresdescr_[],
 					union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_17_warmelt_modes_LAMBDA___6___melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -12135,6 +12313,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_17_warmelt_modes_LAMBDA___6___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -12157,6 +12337,10 @@ meltrout_18_warmelt_modes_MAKEDOC_GENCLASS (meltclosure_ptr_t meltclosp_,
 					    meltxresdescr_[],
 					    union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_18_warmelt_modes_MAKEDOC_GENCLASS_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -13140,6 +13324,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_GENCLASS", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_18_warmelt_modes_MAKEDOC_GENCLASS_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -13162,6 +13348,10 @@ meltrout_19_warmelt_modes_LAMBDA___7__ (meltclosure_ptr_t meltclosp_,
 					meltxresdescr_[],
 					union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_19_warmelt_modes_LAMBDA___7___melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -13358,6 +13548,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_19_warmelt_modes_LAMBDA___7___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -13380,6 +13572,10 @@ meltrout_20_warmelt_modes_LAMBDA___8__ (meltclosure_ptr_t meltclosp_,
 					meltxresdescr_[],
 					union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_20_warmelt_modes_LAMBDA___8___melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -13900,6 +14096,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_20_warmelt_modes_LAMBDA___8___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -13922,6 +14120,10 @@ meltrout_21_warmelt_modes_LAMBDA___9__ (meltclosure_ptr_t meltclosp_,
 					meltxresdescr_[],
 					union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_21_warmelt_modes_LAMBDA___9___melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -14330,6 +14532,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_21_warmelt_modes_LAMBDA___9___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -14352,6 +14556,10 @@ meltrout_22_warmelt_modes_LAMBDA___10__ (meltclosure_ptr_t meltclosp_,
 					 meltxresdescr_[],
 					 union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_22_warmelt_modes_LAMBDA___10___melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -14643,6 +14851,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_22_warmelt_modes_LAMBDA___10___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -14668,6 +14878,10 @@ meltrout_23_warmelt_modes_MAKEDOC_OUTPRIMITIVEDEF (meltclosure_ptr_t
 						   union meltparam_un *
 						   meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_23_warmelt_modes_MAKEDOC_OUTPRIMITIVEDEF_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -15365,6 +15579,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_OUTPRIMITIVEDEF", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_23_warmelt_modes_MAKEDOC_OUTPRIMITIVEDEF_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -15389,6 +15605,10 @@ meltrout_24_warmelt_modes_MAKEDOC_GENPRIMITIVE (meltclosure_ptr_t meltclosp_,
 						union meltparam_un *
 						meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_24_warmelt_modes_MAKEDOC_GENPRIMITIVE_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -16089,6 +16309,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_GENPRIMITIVE", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_24_warmelt_modes_MAKEDOC_GENPRIMITIVE_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -16111,6 +16333,10 @@ meltrout_25_warmelt_modes_LAMBDA___11__ (meltclosure_ptr_t meltclosp_,
 					 meltxresdescr_[],
 					 union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_25_warmelt_modes_LAMBDA___11___melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -16271,6 +16497,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_25_warmelt_modes_LAMBDA___11___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -16296,6 +16524,10 @@ meltrout_26_warmelt_modes_MAKEDOC_OUTFUNCTIONDEF (meltclosure_ptr_t
 						  union meltparam_un *
 						  meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_26_warmelt_modes_MAKEDOC_OUTFUNCTIONDEF_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -16880,6 +17112,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_OUTFUNCTIONDEF", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_26_warmelt_modes_MAKEDOC_OUTFUNCTIONDEF_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -16904,6 +17138,10 @@ meltrout_27_warmelt_modes_MAKEDOC_GENFUNCTION (meltclosure_ptr_t meltclosp_,
 					       union meltparam_un *
 					       meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_27_warmelt_modes_MAKEDOC_GENFUNCTION_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -17629,6 +17867,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_GENFUNCTION", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_27_warmelt_modes_MAKEDOC_GENFUNCTION_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -17651,6 +17891,10 @@ meltrout_28_warmelt_modes_LAMBDA___12__ (meltclosure_ptr_t meltclosp_,
 					 meltxresdescr_[],
 					 union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_28_warmelt_modes_LAMBDA___12___melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -17810,6 +18054,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_28_warmelt_modes_LAMBDA___12___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -17834,6 +18080,10 @@ meltrout_29_warmelt_modes_MAKEDOC_GENCITERATOR (meltclosure_ptr_t meltclosp_,
 						union meltparam_un *
 						meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_29_warmelt_modes_MAKEDOC_GENCITERATOR_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -19017,6 +19267,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_GENCITERATOR", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_29_warmelt_modes_MAKEDOC_GENCITERATOR_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -19039,6 +19291,10 @@ meltrout_30_warmelt_modes_LAMBDA___13__ (meltclosure_ptr_t meltclosp_,
 					 meltxresdescr_[],
 					 union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_30_warmelt_modes_LAMBDA___13___melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -19198,6 +19454,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_30_warmelt_modes_LAMBDA___13___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -19222,6 +19480,10 @@ meltrout_31_warmelt_modes_MAKEDOC_GENCMATCHER (meltclosure_ptr_t meltclosp_,
 					       union meltparam_un *
 					       meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_31_warmelt_modes_MAKEDOC_GENCMATCHER_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -20460,6 +20722,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_GENCMATCHER", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_31_warmelt_modes_MAKEDOC_GENCMATCHER_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -20482,6 +20746,10 @@ meltrout_32_warmelt_modes_LAMBDA___14__ (meltclosure_ptr_t meltclosp_,
 					 meltxresdescr_[],
 					 union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_32_warmelt_modes_LAMBDA___14___melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -20641,6 +20909,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_32_warmelt_modes_LAMBDA___14___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -20665,6 +20935,10 @@ meltrout_33_warmelt_modes_MAKEDOC_GENOUTPUT (meltclosure_ptr_t meltclosp_,
 					     union meltparam_un *
 					     meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_33_warmelt_modes_MAKEDOC_GENOUTPUT_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -21546,6 +21820,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_GENOUTPUT", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_33_warmelt_modes_MAKEDOC_GENOUTPUT_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -21568,6 +21844,10 @@ meltrout_34_warmelt_modes_MAKEDOC_DOCMD (meltclosure_ptr_t meltclosp_,
 					 meltxresdescr_[],
 					 union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_34_warmelt_modes_MAKEDOC_DOCMD_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -23126,6 +23406,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("MAKEDOC_DOCMD", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_34_warmelt_modes_MAKEDOC_DOCMD_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -23148,6 +23430,10 @@ meltrout_35_warmelt_modes_LAMBDA___15__ (meltclosure_ptr_t meltclosp_,
 					 meltxresdescr_[],
 					 union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_35_warmelt_modes_LAMBDA___15___melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -23445,6 +23731,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("LAMBDA_", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_35_warmelt_modes_LAMBDA___15___melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -23467,6 +23755,10 @@ meltrout_36_warmelt_modes_SHOWVAR_DOCMD (meltclosure_ptr_t meltclosp_,
 					 meltxresdescr_[],
 					 union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_36_warmelt_modes_SHOWVAR_DOCMD_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -24036,6 +24328,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("SHOWVAR_DOCMD", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_36_warmelt_modes_SHOWVAR_DOCMD_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -24058,6 +24352,9 @@ meltrout_37_warmelt_modes_HELP_DOCMD (meltclosure_ptr_t meltclosp_,
 				      meltxresdescr_[],
 				      union meltparam_un * meltxrestab_)
 {
+  long current_blocklevel_interrupts_meltrout_37_warmelt_modes_HELP_DOCMD_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -24661,6 +24958,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("HELP_DOCMD", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_37_warmelt_modes_HELP_DOCMD_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -24683,6 +24982,9 @@ meltrout_38_warmelt_modes_NOP_DOCMD (meltclosure_ptr_t meltclosp_,
 				     meltxresdescr_[],
 				     union meltparam_un * meltxrestab_)
 {
+  long current_blocklevel_interrupts_meltrout_38_warmelt_modes_NOP_DOCMD_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -24897,6 +25199,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("NOP_DOCMD", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_38_warmelt_modes_NOP_DOCMD_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -24917,6 +25221,10 @@ meltrout_39_warmelt_modes_GENERATE_RUNTYPESUPPORT_ENUM_OBJMAGIC
    const melt_argdescr_cell_t meltxresdescr_[],
    union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_39_warmelt_modes_GENERATE_RUNTYPESUPPORT_ENUM_OBJMAGIC_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -26458,6 +26766,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("GENERATE_RUNTYPESUPPORT_ENUM_OBJMAGIC", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_39_warmelt_modes_GENERATE_RUNTYPESUPPORT_ENUM_OBJMAGIC_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -26486,6 +26796,10 @@ meltrout_40_warmelt_modes_GENERATE_RUNTYPESUPPORT_GTY (meltclosure_ptr_t
 						       union meltparam_un *
 						       meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_40_warmelt_modes_GENERATE_RUNTYPESUPPORT_GTY_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -30238,6 +30552,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("GENERATE_RUNTYPESUPPORT_GTY", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_40_warmelt_modes_GENERATE_RUNTYPESUPPORT_GTY_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -30258,6 +30574,10 @@ meltrout_41_warmelt_modes_GENERATE_RUNTYPESUPPORT_FORWCOPY_FUN
    const melt_argdescr_cell_t meltxresdescr_[],
    union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_41_warmelt_modes_GENERATE_RUNTYPESUPPORT_FORWCOPY_FUN_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -33334,6 +33654,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("GENERATE_RUNTYPESUPPORT_FORWCOPY_FUN", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_41_warmelt_modes_GENERATE_RUNTYPESUPPORT_FORWCOPY_FUN_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -33354,6 +33676,10 @@ meltrout_42_warmelt_modes_GENERATE_RUNTYPESUPPORT_CLONING_FUN
    const melt_argdescr_cell_t meltxresdescr_[],
    union meltparam_un * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_42_warmelt_modes_GENERATE_RUNTYPESUPPORT_CLONING_FUN_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -35319,6 +35645,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("GENERATE_RUNTYPESUPPORT_CLONING_FUN", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_42_warmelt_modes_GENERATE_RUNTYPESUPPORT_CLONING_FUN_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -35347,6 +35675,10 @@ meltrout_43_warmelt_modes_GENERATE_RUNTYPESUPPORT_SCANNING (meltclosure_ptr_t
 							    union meltparam_un
 							    * meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_43_warmelt_modes_GENERATE_RUNTYPESUPPORT_SCANNING_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -37415,6 +37747,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("GENERATE_RUNTYPESUPPORT_SCANNING", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_43_warmelt_modes_GENERATE_RUNTYPESUPPORT_SCANNING_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
@@ -37443,6 +37777,10 @@ meltrout_44_warmelt_modes_GENERATE_RUNTYPESUPPORT_PARAM (meltclosure_ptr_t
 							 union meltparam_un *
 							 meltxrestab_)
 {
+  long
+    current_blocklevel_interrupts_meltrout_44_warmelt_modes_GENERATE_RUNTYPESUPPORT_PARAM_melt
+    = melt_blocklevel_interrupts;
+
 #if MELT_HAVE_DEBUG
   static long call_counter__;
   long thiscallcounter__ ATTRIBUTE_UNUSED = ++call_counter__;
@@ -39279,6 +39617,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("GENERATE_RUNTYPESUPPORT_PARAM", meltcallcount);
+  melt_blocklevel_interrupts =
+    current_blocklevel_interrupts_meltrout_44_warmelt_modes_GENERATE_RUNTYPESUPPORT_PARAM_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*noretval */ NULL);
 #undef meltcallcount
