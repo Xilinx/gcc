@@ -1,4 +1,8 @@
 
+2012-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.mk (MELT_AUTOHOST_H): New.
+	(MELTGCC_BUILD_WITH_CXX): Use it.
+
 2012-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_set_real_timer_millisec): New declaration.
 	(melt_longsbucket_nth_key, melt_longsbucket_nth_val): New

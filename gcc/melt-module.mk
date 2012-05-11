@@ -89,13 +89,18 @@ ifndef MELTGCC
 MELTGCC = $(or $(CC),gcc)
 endif
 
+### the auto-host.h for the MELTGCC compiler
+ifndef MELT_AUTOHOST_H
+MELT_AUTOHOST_H = $(or $(wildcard auto-host.h),$(shell $(MELTGCC) -print-file-name=plugin/include/auto-host.h))
+endif
+
 ## gives yes if MELTGCC has been built with C++ or else the empty
 ## string.  Notice that the auto-host.h file can either be from
 ## plugin, or from the current directory when building the MELT
 ## branch.
 ifndef MELTGCC_BUILD_WITH_CXX
-MELTGCC_BUILD_WITH_CXX = $(shell grep -q -s 'define[[:space:]]\+ENABLE_BUILD_WITH_CXX[[:space:]]\+1' \
-  `$(MELTGCC) -print-file-name=plugin/include/auto-host.h` auto-host.h && echo yes)
+MELTGCC_BUILD_WITH_CXX = $(shell grep -q -s 'define[[:space:]]\+ENABLE_BUILD_WITH_CXX[[:space:]]\+1' $(MELT_AUTOHOST_H)\
+   && echo yes)
 endif
 
 ## The compiler and flags used to compile MELT generated code.  For a
