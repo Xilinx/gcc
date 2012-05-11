@@ -1,5 +1,18 @@
 
 2012-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{for merge with trunk svn 187397, since gimple_seq are
+	disappearing in GCC 4.8}}
+
+	* melt-runtime.h (melt_gt_ggc_mx_gimple_seq_d): New declaration
+	(gt_ggc_mx_gimple_seq_d): Macro defined when GCC 4.8 only.
+
+	* melt-runtime.c (melt_gt_ggc_mx_gimple_seq_d): New function,
+	defined for GCC 4.8 only.
+
+	* melt/warmelt-debug.melt (melt_debug_fun): Add cast in our
+	warning diagnostic to avoid a warning.
+
+2012-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-module.mk (MELT_AUTOHOST_H): New.
 	(MELTGCC_BUILD_WITH_CXX): Use it.
 

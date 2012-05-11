@@ -269,7 +269,7 @@ See $MELT_NEED_DBGLIM.}#
   :disc_super discr_closure
   :named_name '"DISCR_DEBUG_CLOSURE")
 
-;;; the debug_fun is usually called thru the debug macro.
+;;; the melt_debug_fun is usually called thru the debug macro.
 (defun melt_debug_fun (nothing :long count :cstring filename :long lineno :rest)
   (if (melt_has_flag_debug_set) 
       (let ( (:long dbgcounter 0)
@@ -421,12 +421,11 @@ See $MELT_NEED_DBGLIM.}#
 	     (let ( (vctyp (variadic_ctype 0))
 		    (vctypname (get_field :named_name vctyp))
 		    )
-	       (code_chunk warnbadctype
-			   #{/* $WARNBADCTYPE */ 
+	       (code_chunk warnbadctype #{/* $WARNBADCTYPE */ 
 			   warning (0,
 				    "MELT invalid ctype %s in (DEBUG ...) file %s line %d",
 				    melt_string_str ((melt_ptr_t) $VCTYPNAME),
-				    $FILENAME, $LINENO) ;
+				    $FILENAME, (int) $LINENO) ;
 			   }#)
 	       (add2out out "??:" (get_field :ctype_keyword vctyp) "?? ")
 	       )))

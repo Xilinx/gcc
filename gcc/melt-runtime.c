@@ -13670,4 +13670,16 @@ void melt_clear_flag_debug (void)
   melt_flag_debug = 0;
 }
 
+/* With GCC 4.8, the gimple_seq are disappearing because they are the
+same as gimple (with file "coretypes.h" having the definition `typedef
+gimple gimple_seq;`), but our generated runtime support might still
+want their old marking routine.  */
+
+#if MELT_GCC_VERSION >= 4008
+void melt_gt_ggc_mx_gimple_seq_d(void*p)
+{
+  gt_ggc_mx_gimple_statement_d (p);
+}
+#endif /* GCC 4.8 */
+
 /* eof $Id$ */

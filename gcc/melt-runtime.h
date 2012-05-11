@@ -290,8 +290,8 @@ melt_need_debug_limit (int depth, int lim) {
 }
 
 /* unspecified flexible dimension in structure */
-#if defined(__STDC__) &&  __STDC__VERSION >= 199901L
-#define MELT_FLEXIBLE_DIM		/*flexible */
+#if (defined(__STDC__) &&  __STDC__VERSION >= 199901L) || __cplusplus
+#define MELT_FLEXIBLE_DIM /*C99 or better or C++ flexible*/
 #define MELT_HAVE_FLEXIBLE_DIM 1
 #elsif __GNUC__>=4
 #define MELT_FLEXIBLE_DIM /*gcc flexible*/
@@ -3263,6 +3263,17 @@ extern const char melt_run_preprocessed_md5[]; /* defined in generated file melt
 /* compatibility with old stuff */
 #define flag_melt_bootstrapping melt_flag_bootstrapping
 #define flag_melt_debug melt_flag_debug
+
+
+/* With GCC 4.8, the gimple_seq are disappearing because they are the
+same as gimple (with file "coretypes.h" having the definition `typedef
+gimple gimple_seq;`), but our generated runtime support might still
+want their old marking routine.  */
+
+#if MELT_GCC_VERSION >= 4008
+extern void melt_gt_ggc_mx_gimple_seq_d(void*);
+#define gt_ggc_mx_gimple_seq_d melt_gt_ggc_mx_gimple_seq_d
+#endif /* GCC 4.8 */
 
 #endif /*MELT_INCLUDED_ */
 

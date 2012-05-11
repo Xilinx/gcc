@@ -186,6 +186,7 @@ rest_of_decl_compilation (tree decl,
       if ((at_end
 	   || !DECL_DEFER_OUTPUT (decl)
 	   || DECL_INITIAL (decl))
+	  && (TREE_CODE (decl) != VAR_DECL || !DECL_HAS_VALUE_EXPR_P (decl))
 	  && !DECL_EXTERNAL (decl))
 	{
 	  /* When reading LTO unit, we also read varpool, so do not
@@ -1864,7 +1865,7 @@ execute_todo (unsigned int flags)
   if (flags & TODO_remove_functions)
     {
       gcc_assert (!cfun);
-      cgraph_remove_unreachable_nodes (true, dump_file);
+      symtab_remove_unreachable_nodes (true, dump_file);
     }
 
   if ((flags & TODO_dump_symtab) && dump_file && !current_function_decl)
@@ -2149,7 +2150,7 @@ execute_one_pass (struct opt_pass *pass)
       bool applied = false;
       do_per_function (apply_ipa_transforms, (void *)&applied);
       if (applied)
-        cgraph_remove_unreachable_nodes (true, dump_file);
+        symtab_remove_unreachable_nodes (true, dump_file);
       /* Restore current_pass.  */
       current_pass = pass;
     }

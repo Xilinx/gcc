@@ -144,6 +144,7 @@ AC_PROG_INSTALL
 AM_PROG_LIBTOOL
 AC_SUBST(enable_shared)
 AC_SUBST(enable_static)
+AM_MAINTAINER_MODE
 
 # For libtool versioning info, format is CURRENT:REVISION:AGE
 libtool_VERSION=1:0:0
@@ -205,7 +206,7 @@ case " $config_path " in
        [pthread_t t; pthread_create(&t,NULL,g,NULL);])],
       [],
       [AC_MSG_ERROR([Pthreads are required to build libatomic])])])
-  CFLAGS="$save_CFLAGS $XCFLAGS"
+  CFLAGS="$save_CFLAGS $XPCFLAGS"
   ;;
 esac
 

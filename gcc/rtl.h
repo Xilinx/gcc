@@ -1643,8 +1643,7 @@ extern int ceil_log2 (unsigned HOST_WIDE_INT);
 
 /* In explow.c */
 extern HOST_WIDE_INT trunc_int_for_mode	(HOST_WIDE_INT, enum machine_mode);
-extern rtx plus_constant (rtx, HOST_WIDE_INT);
-extern rtx plus_constant_mode (enum machine_mode, rtx, HOST_WIDE_INT);
+extern rtx plus_constant (enum machine_mode, rtx, HOST_WIDE_INT);
 
 /* In rtl.c */
 extern rtx rtx_alloc_stat (RTX_CODE MEM_STAT_DECL);
@@ -1900,6 +1899,7 @@ typedef struct replace_label_data
   bool update_label_nuses;
 } replace_label_data;
 
+extern enum machine_mode get_address_mode (rtx mem);
 extern int rtx_addr_can_trap_p (const_rtx);
 extern bool nonzero_address_p (const_rtx);
 extern int rtx_unstable_p (const_rtx);

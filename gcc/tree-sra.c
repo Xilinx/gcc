@@ -1472,11 +1472,13 @@ build_ref_for_offset (location_t loc, tree base, HOST_WIDE_INT offset,
      by looking at the access mode.  That would constrain the
      alignment of base + base_offset which we would need to
      adjust according to offset.  */
-  align = get_pointer_alignment_1 (base, &misalign);
-  if (misalign == 0
-      && (TREE_CODE (prev_base) == MEM_REF
-	  || TREE_CODE (prev_base) == TARGET_MEM_REF))
-    align = MAX (align, TYPE_ALIGN (TREE_TYPE (prev_base)));
+  if (!get_pointer_alignment_1 (base, &align, &misalign))
+    {
+      gcc_assert (misalign == 0);
+      if (TREE_CODE (prev_base) == MEM_REF
+	  || TREE_CODE (prev_base) == TARGET_MEM_REF)
+	align = TYPE_ALIGN (TREE_TYPE (prev_base));
+    }
   misalign += (double_int_sext (tree_to_double_int (off),
 				TYPE_PRECISION (TREE_TYPE (off))).low
 	       * BITS_PER_UNIT);
@@ -3192,6 +3194,7 @@ initialize_parameter_reductions (void)
   gimple_seq seq = NULL;
   tree parm;
 
+  gsi = gsi_start (seq);
   for (parm = DECL_ARGUMENTS (current_function_decl);
        parm;
        parm = DECL_CHAIN (parm))
@@ -3205,12 +3208,6 @@ initialize_parameter_reductions (void)
       if (!access_vec)
 	continue;
 
-      if (!seq)
-	{
-	  seq = gimple_seq_alloc ();
-	  gsi = gsi_start (seq);
-	}
-
       for (access = VEC_index (access_p, access_vec, 0);
 	   access;
 	   access = access->next_grp)
@@ -3218,6 +3215,7 @@ initialize_parameter_reductions (void)
 				 EXPR_LOCATION (parm));
     }
 
+  seq = gsi_seq (gsi);
   if (seq)
     gsi_insert_seq_on_edge_immediate (single_succ_edge (ENTRY_BLOCK_PTR), seq);
 }

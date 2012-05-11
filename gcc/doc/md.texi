@@ -5614,6 +5614,13 @@ the stack farthest from the current stack pointer that you need to validate.
 Normally, on platforms where this pattern is needed, you would obtain the
 stack limit from a global or thread-specific variable or register.
 
+@cindex @code{probe_stack_address} instruction pattern
+@item @samp{probe_stack_address}
+If stack checking (@pxref{Stack Checking}) can be done on your system by
+probing the stack but without the need to actually access it, define this
+pattern and signal an error if the stack has overflowed.  The single operand
+is the memory address in the stack that needs to be probed.
+
 @cindex @code{probe_stack} instruction pattern
 @item @samp{probe_stack}
 If stack checking (@pxref{Stack Checking}) can be done on your system by
@@ -7707,12 +7714,7 @@ scheduled.
 
 @var{name} is a string specifying one of a fixed set of flags to test.
 Test the flags @code{forward} and @code{backward} to determine the
-direction of a conditional branch.  Test the flags @code{very_likely},
-@code{likely}, @code{very_unlikely}, and @code{unlikely} to determine
-if a conditional branch is expected to be taken.
-
-If the @code{very_likely} flag is true, then the @code{likely} flag is also
-true.  Likewise for the @code{very_unlikely} and @code{unlikely} flags.
+direction of a conditional branch.
 
 This example describes a conditional branch delay slot which
 can be nullified for forward branches that are taken (annul-true) or
@@ -7728,11 +7730,6 @@ for backward branches which are not taken (annul-false).
 @end smallexample
 
 The @code{forward} and @code{backward} flags are false if the current
-@code{insn} being scheduled is not a conditional branch.
-
-The @code{very_likely} and @code{likely} flags are true if the
-@code{insn} being scheduled is not a conditional branch.
-The @code{very_unlikely} and @code{unlikely} flags are false if the
 @code{insn} being scheduled is not a conditional branch.
 
 @code{attr_flag} is only used during delay slot scheduling and has no

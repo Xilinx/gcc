@@ -1,4 +1,8 @@
 
+2012-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	MELT branch merged with trunk rev 187397 using svnmerge
+	gimple_seq are disappearing!
+
 2012-05-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	MELT branch merged with trunk rev 187035 using svnmerge
 

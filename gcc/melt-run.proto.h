@@ -56,6 +56,9 @@ along with GCC; see the file COPYING3.   If not see
 #include "ggc.h"
 #include "cgraph.h"
 
+/* Notice that gtype-desc.h is included thru ggc.h so all the
+   gt_ggc_mx_* marking routines are visible.  */
+
 #ifndef MELT_GCC_VERSION
 /* Actually, the generated melt-run.h contains a number like 4007 for
    GCC 4.7 etc.  This is the version of the GCC using this MELT. */

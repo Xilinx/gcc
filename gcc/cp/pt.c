@@ -8950,10 +8950,15 @@ instantiate_class_template_1 (tree type)
 	      /* Build new TYPE_FIELDS.  */
               if (TREE_CODE (t) == STATIC_ASSERT)
                 {
-                  tree condition = 
-                    tsubst_expr (STATIC_ASSERT_CONDITION (t), args, 
-                                 tf_warning_or_error, NULL_TREE,
-                                 /*integral_constant_expression_p=*/true);
+                  tree condition;
+ 
+		  ++c_inhibit_evaluation_warnings;
+		  condition =
+		    tsubst_expr (STATIC_ASSERT_CONDITION (t), args, 
+				 tf_warning_or_error, NULL_TREE,
+				 /*integral_constant_expression_p=*/true);
+		  --c_inhibit_evaluation_warnings;
+
                   finish_static_assert (condition,
                                         STATIC_ASSERT_MESSAGE (t), 
                                         STATIC_ASSERT_SOURCE_LOCATION (t),
@@ -12061,7 +12066,7 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
     case PARM_DECL:
       r = retrieve_local_specialization (t);
 
-      if (r == NULL)
+      if (r == NULL_TREE)
 	{
 	  tree c;
 
@@ -12079,6 +12084,8 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	     not the following PARM_DECLs that are chained to T.  */
 	  c = copy_node (t);
 	  r = tsubst_decl (c, args, complain);
+	  if (r == NULL_TREE)
+	    return error_mark_node;
 	  /* Give it the template pattern as its context; its true context
 	     hasn't been instantiated yet and this is good enough for
 	     mangling.  */
@@ -13110,11 +13117,16 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 
     case STATIC_ASSERT:
       {
-        tree condition = 
+	tree condition;
+
+	++c_inhibit_evaluation_warnings;
+        condition = 
           tsubst_expr (STATIC_ASSERT_CONDITION (t), 
                        args,
                        complain, in_decl,
                        /*integral_constant_expression_p=*/true);
+	--c_inhibit_evaluation_warnings;
+
         finish_static_assert (condition,
                               STATIC_ASSERT_MESSAGE (t),
                               STATIC_ASSERT_SOURCE_LOCATION (t),
@@ -13456,7 +13468,7 @@ tsubst_copy_and_build (tree t,
 	      r = convert_from_reference (r);
 	  }
 	else
-	  r = build_x_indirect_ref (r, RO_UNARY_STAR, complain);
+	  r = build_x_indirect_ref (input_location, r, RO_UNARY_STAR, complain);
 	return r;
       }
 
@@ -13533,7 +13545,7 @@ tsubst_copy_and_build (tree t,
     case POSTINCREMENT_EXPR:
       op1 = tsubst_non_call_postfix_expression (TREE_OPERAND (t, 0),
 						args, complain, in_decl);
-      return build_x_unary_op (TREE_CODE (t), op1, complain);
+      return build_x_unary_op (input_location, TREE_CODE (t), op1, complain);
 
     case PREDECREMENT_EXPR:
     case PREINCREMENT_EXPR:
@@ -13544,8 +13556,8 @@ tsubst_copy_and_build (tree t,
     case UNARY_PLUS_EXPR:  /* Unary + */
     case REALPART_EXPR:
     case IMAGPART_EXPR:
-      return build_x_unary_op (TREE_CODE (t), RECUR (TREE_OPERAND (t, 0)),
-                               complain);
+      return build_x_unary_op (input_location, TREE_CODE (t),
+			       RECUR (TREE_OPERAND (t, 0)), complain);
 
     case FIX_TRUNC_EXPR:
       return cp_build_unary_op (FIX_TRUNC_EXPR, RECUR (TREE_OPERAND (t, 0)),
@@ -13562,7 +13574,7 @@ tsubst_copy_and_build (tree t,
       else
 	op1 = tsubst_non_call_postfix_expression (op1, args, complain,
 						  in_decl);
-      return build_x_unary_op (ADDR_EXPR, op1, complain);
+      return build_x_unary_op (input_location, ADDR_EXPR, op1, complain);
 
     case PLUS_EXPR:
     case MINUS_EXPR:
@@ -13597,7 +13609,7 @@ tsubst_copy_and_build (tree t,
     case DOTSTAR_EXPR:
       {
 	tree r = build_x_binary_op
-	  (TREE_CODE (t),
+	  (input_location, TREE_CODE (t),
 	   RECUR (TREE_OPERAND (t, 0)),
 	   (TREE_NO_WARNING (TREE_OPERAND (t, 0))
 	    ? ERROR_MARK
@@ -13701,7 +13713,7 @@ tsubst_copy_and_build (tree t,
       /* Remember that there was a reference to this entity.  */
       if (DECL_P (op1))
 	mark_used (op1);
-      return build_x_arrow (op1, complain);
+      return build_x_arrow (input_location, op1, complain);
 
     case NEW_EXPR:
       {

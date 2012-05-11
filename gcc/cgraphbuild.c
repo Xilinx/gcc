@@ -348,7 +348,7 @@ build_cgraph_edges (void)
 				      IPA_REF_ADDR, stmt);
 	    }
 	}
-      for (gsi = gsi_start (phi_nodes (bb)); !gsi_end_p (gsi); gsi_next (&gsi))
+      for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	walk_stmt_load_store_addr_ops (gsi_stmt (gsi), node,
 				       mark_load, mark_store, mark_address);
    }
@@ -356,7 +356,8 @@ build_cgraph_edges (void)
   /* Look for initializers of constant variables and private statics.  */
   FOR_EACH_LOCAL_DECL (cfun, ix, decl)
     if (TREE_CODE (decl) == VAR_DECL
-	&& (TREE_STATIC (decl) && !DECL_EXTERNAL (decl)))
+	&& (TREE_STATIC (decl) && !DECL_EXTERNAL (decl))
+	&& !DECL_HAS_VALUE_EXPR_P (decl))
       varpool_finalize_decl (decl);
   record_eh_tables (node, cfun);
 
@@ -440,7 +441,7 @@ rebuild_cgraph_edges (void)
 					 mark_store, mark_address);
 
 	}
-      for (gsi = gsi_start (phi_nodes (bb)); !gsi_end_p (gsi); gsi_next (&gsi))
+      for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	walk_stmt_load_store_addr_ops (gsi_stmt (gsi), node,
 				       mark_load, mark_store, mark_address);
     }
@@ -474,7 +475,7 @@ cgraph_rebuild_references (void)
 					 mark_store, mark_address);
 
 	}
-      for (gsi = gsi_start (phi_nodes (bb)); !gsi_end_p (gsi); gsi_next (&gsi))
+      for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	walk_stmt_load_store_addr_ops (gsi_stmt (gsi), node,
 				       mark_load, mark_store, mark_address);
     }

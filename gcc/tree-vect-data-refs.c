@@ -1507,6 +1507,17 @@ vect_enhance_data_refs_alignment (loop_vec_info loop_vinfo)
           && GROUP_FIRST_ELEMENT (stmt_info) != stmt)
         continue;
 
+      /* FORNOW: Any strided load prevents peeling.  The induction
+         variable analysis will fail when the prologue loop is generated,
+	 and so we can't generate the new base for the pointer.  */
+      if (STMT_VINFO_STRIDE_LOAD_P (stmt_info))
+	{
+	  if (vect_print_dump_info (REPORT_DETAILS))
+	    fprintf (vect_dump, "strided load prevents peeling");
+	  do_peeling = false;
+	  break;
+	}
+
       /* For invariant accesses there is nothing to enhance.  */
       if (integer_zerop (DR_STEP (dr)))
 	continue;
@@ -3397,10 +3408,7 @@ vect_create_addr_base_for_vector_ref (gimple stmt,
     {
       duplicate_ssa_name_ptr_info (vec_stmt, DR_PTR_INFO (dr));
       if (offset)
-	{
-	  SSA_NAME_PTR_INFO (vec_stmt)->align = 1;
-	  SSA_NAME_PTR_INFO (vec_stmt)->misalign = 0;
-	}
+	mark_ptr_info_alignment_unknown (SSA_NAME_PTR_INFO (vec_stmt));
     }
 
   if (vect_print_dump_info (REPORT_DETAILS))
@@ -3799,8 +3807,7 @@ bump_vector_ptr (tree dataref_ptr, gimple ptr_incr, gimple_stmt_iterator *gsi,
   if (DR_PTR_INFO (dr))
     {
       duplicate_ssa_name_ptr_info (new_dataref_ptr, DR_PTR_INFO (dr));
-      SSA_NAME_PTR_INFO (new_dataref_ptr)->align = 1;
-      SSA_NAME_PTR_INFO (new_dataref_ptr)->misalign = 0;
+      mark_ptr_info_alignment_unknown (SSA_NAME_PTR_INFO (new_dataref_ptr));
     }
 
   if (!ptr_incr)

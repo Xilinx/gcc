@@ -1612,31 +1612,50 @@ warn_logical_operator (location_t location, enum tree_code code, tree type,
 	   || INTEGRAL_TYPE_P (TREE_TYPE (op_right))))
     return;
 
-  lhs = make_range (op_left, &in0_p, &low0, &high0, &strict_overflow_p);
-  rhs = make_range (op_right, &in1_p, &low1, &high1, &strict_overflow_p);
 
-  if (lhs && TREE_CODE (lhs) == C_MAYBE_CONST_EXPR)
+  /* We first test whether either side separately is trivially true
+     (with OR) or trivially false (with AND).  If so, do not warn.
+     This is a common idiom for testing ranges of data types in
+     portable code.  */
+  lhs = make_range (op_left, &in0_p, &low0, &high0, &strict_overflow_p);
+  if (!lhs)
+    return;
+  if (TREE_CODE (lhs) == C_MAYBE_CONST_EXPR)
     lhs = C_MAYBE_CONST_EXPR_EXPR (lhs);
 
-  if (rhs && TREE_CODE (rhs) == C_MAYBE_CONST_EXPR)
+  /* If this is an OR operation, invert both sides; now, the result
+     should be always false to get a warning.  */
+  if (or_op)
+    in0_p = !in0_p;
+
+  tem = build_range_check (UNKNOWN_LOCATION, type, lhs, in0_p, low0, high0);
+  if (tem && integer_zerop (tem))
+    return;
+
+  rhs = make_range (op_right, &in1_p, &low1, &high1, &strict_overflow_p);
+  if (!rhs)
+    return;
+  if (TREE_CODE (rhs) == C_MAYBE_CONST_EXPR)
     rhs = C_MAYBE_CONST_EXPR_EXPR (rhs);
 
-  /* If this is an OR operation, invert both sides; we will invert
-     again at the end.  */
+  /* If this is an OR operation, invert both sides; now, the result
+     should be always false to get a warning.  */
   if (or_op)
-    in0_p = !in0_p, in1_p = !in1_p;
+    in1_p = !in1_p;
 
-  /* If both expressions are the same, if we can merge the ranges, and we
-     can build the range test, return it or it inverted.  */
-  if (lhs && rhs && operand_equal_p (lhs, rhs, 0)
+  tem = build_range_check (UNKNOWN_LOCATION, type, rhs, in1_p, low1, high1);
+  if (tem && integer_zerop (tem))
+    return;
+
+  /* If both expressions have the same operand, if we can merge the
+     ranges, and if the range test is always false, then warn.  */
+  if (operand_equal_p (lhs, rhs, 0)
       && merge_ranges (&in_p, &low, &high, in0_p, low0, high0,
 		       in1_p, low1, high1)
       && 0 != (tem = build_range_check (UNKNOWN_LOCATION,
-					type, lhs, in_p, low, high)))
+					type, lhs, in_p, low, high))
+      && integer_zerop (tem))
     {
-      if (TREE_CODE (tem) != INTEGER_CST)
-	return;
-
       if (or_op)
         warning_at (location, OPT_Wlogical_op,
                     "logical %<or%> "
@@ -2310,6 +2329,8 @@ conversion_warning (tree type, tree expr)
 void
 warnings_for_convert_and_check (tree type, tree expr, tree result)
 {
+  location_t loc = EXPR_LOC_OR_HERE (expr);
+
   if (TREE_CODE (expr) == INTEGER_CST
       && (TREE_CODE (type) == INTEGER_TYPE
           || TREE_CODE (type) == ENUMERAL_TYPE)
@@ -2325,8 +2346,8 @@ warnings_for_convert_and_check (tree type, tree expr, tree result)
           /* This detects cases like converting -129 or 256 to
              unsigned char.  */
           if (!int_fits_type_p (expr, c_common_signed_type (type)))
-            warning (OPT_Woverflow,
-                     "large integer implicitly truncated to unsigned type");
+            warning_at (loc, OPT_Woverflow,
+			"large integer implicitly truncated to unsigned type");
           else
             conversion_warning (type, expr);
         }
@@ -2338,16 +2359,16 @@ warnings_for_convert_and_check (tree type, tree expr, tree result)
 	       && (TREE_CODE (TREE_TYPE (expr)) != INTEGER_TYPE
 		   || TYPE_PRECISION (TREE_TYPE (expr))
 		   != TYPE_PRECISION (type)))
-	warning (OPT_Woverflow,
-		 "overflow in implicit constant conversion");
+	warning_at (loc, OPT_Woverflow,
+		    "overflow in implicit constant conversion");
 
       else
 	conversion_warning (type, expr);
     }
   else if ((TREE_CODE (result) == INTEGER_CST
 	    || TREE_CODE (result) == FIXED_CST) && TREE_OVERFLOW (result))
-    warning (OPT_Woverflow,
-             "overflow in implicit constant conversion");
+    warning_at (loc, OPT_Woverflow,
+		"overflow in implicit constant conversion");
   else
     conversion_warning (type, expr);
 }
@@ -3481,6 +3502,15 @@ binary_op_error (location_t location, enum tree_code code,
 	    type0, type1);
 }
 
+/* Given an expression as a tree, return its original type.  Do this
+   by stripping any conversion that preserves the sign and precision.  */
+static tree
+expr_original_type (tree expr)
+{
+  STRIP_SIGN_NOPS (expr);
+  return TREE_TYPE (expr);
+}
+
 /* Subroutine of build_binary_op, used for comparison operations.
    See if the operands have both been converted from subword integer types
    and, if so, perhaps change them both back to their original type.
@@ -3506,6 +3536,7 @@ shorten_compare (tree *op0_ptr, tree *op1_ptr, tree *restype_ptr,
   int real1, real2;
   tree primop0, primop1;
   enum tree_code code = *rescode_ptr;
+  location_t loc = EXPR_LOC_OR_HERE (op0);
 
   /* Throw away any conversions to wider types
      already present in the operands.  */
@@ -3726,9 +3757,11 @@ shorten_compare (tree *op0_ptr, tree *op1_ptr, tree *restype_ptr,
       if (TREE_CODE (primop0) != INTEGER_CST)
 	{
 	  if (val == truthvalue_false_node)
-	    warning (OPT_Wtype_limits, "comparison is always false due to limited range of data type");
+	    warning_at (loc, OPT_Wtype_limits,
+			"comparison is always false due to limited range of data type");
 	  if (val == truthvalue_true_node)
-	    warning (OPT_Wtype_limits, "comparison is always true due to limited range of data type");
+	    warning_at (loc, OPT_Wtype_limits,
+			"comparison is always true due to limited range of data type");
 	}
 
       if (val != 0)
@@ -3795,29 +3828,31 @@ shorten_compare (tree *op0_ptr, tree *op1_ptr, tree *restype_ptr,
 	  && TYPE_UNSIGNED (*restype_ptr))
 	{
 	  tree value = 0;
+	  /* All unsigned values are >= 0, so we warn.  However,
+	     if OP0 is a constant that is >= 0, the signedness of
+	     the comparison isn't an issue, so suppress the
+	     warning.  */
+	  bool warn = 
+	    warn_type_limits && !in_system_header
+	    && !(TREE_CODE (primop0) == INTEGER_CST
+		 && !TREE_OVERFLOW (convert (c_common_signed_type (type),
+					     primop0)))
+	    /* Do not warn for enumeration types.  */
+	    && (TREE_CODE (expr_original_type (primop0)) != ENUMERAL_TYPE);
+	  
 	  switch (code)
 	    {
 	    case GE_EXPR:
-	      /* All unsigned values are >= 0, so we warn.  However,
-		 if OP0 is a constant that is >= 0, the signedness of
-		 the comparison isn't an issue, so suppress the
-		 warning.  */
-	      if (warn_type_limits && !in_system_header
-		  && !(TREE_CODE (primop0) == INTEGER_CST
-		       && !TREE_OVERFLOW (convert (c_common_signed_type (type),
-						   primop0))))
-		warning (OPT_Wtype_limits,
-			 "comparison of unsigned expression >= 0 is always true");
+	      if (warn)
+		warning_at (loc, OPT_Wtype_limits,
+			    "comparison of unsigned expression >= 0 is always true");
 	      value = truthvalue_true_node;
 	      break;
 
 	    case LT_EXPR:
-	      if (warn_type_limits && !in_system_header
-		  && !(TREE_CODE (primop0) == INTEGER_CST
-		       && !TREE_OVERFLOW (convert (c_common_signed_type (type),
-						   primop0))))
-		warning (OPT_Wtype_limits,
-			 "comparison of unsigned expression < 0 is always false");
+	      if (warn)
+		warning_at (loc, OPT_Wtype_limits,
+			    "comparison of unsigned expression < 0 is always false");
 	      value = truthvalue_false_node;
 	      break;
 
@@ -4506,12 +4541,10 @@ c_sizeof_or_alignof_type (location_t loc,
 	value = size_int (TYPE_ALIGN_UNIT (type));
     }
 
-  /* VALUE will have an integer type with TYPE_IS_SIZETYPE set.
-     TYPE_IS_SIZETYPE means that certain things (like overflow) will
-     never happen.  However, this node should really have type
-     `size_t', which is just a typedef for an ordinary integer type.  */
+  /* VALUE will have the middle-end integer type sizetype.
+     However, we should really return a value of type `size_t',
+     which is just a typedef for an ordinary integer type.  */
   value = fold_convert_loc (loc, size_type_node, value);
-  gcc_assert (!TYPE_IS_SIZETYPE (TREE_TYPE (value)));
 
   return value;
 }

@@ -622,6 +622,9 @@ LIBAT_BUILD_VERSIONED_SHLIB_TRUE
 OPT_LDFLAGS
 SECTION_LDFLAGS
 libtool_VERSION
+MAINT
+MAINTAINER_MODE_FALSE
+MAINTAINER_MODE_TRUE
 enable_static
 enable_shared
 CPP
@@ -652,6 +655,7 @@ CCAS
 am__fastdepCC_FALSE
 am__fastdepCC_TRUE
 CCDEPMODE
+am__nodep
 AMDEPBACKSLASH
 AMDEP_FALSE
 AMDEP_TRUE
@@ -756,6 +760,7 @@ with_pic
 enable_fast_install
 with_gnu_ld
 enable_libtool_lock
+enable_maintainer_mode
 enable_symvers
 '
       ac_precious_vars='build_alias
@@ -1398,6 +1403,8 @@ Optional Features:
   --enable-fast-install[=PKGS]
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
+  --enable-maintainer-mode  enable make rules and dependencies not useful
+			  (and sometimes confusing) to the casual installer
   --enable-symvers=STYLE  enables symbol versioning of the shared library
                           [default=yes]
 
@@ -3037,11 +3044,11 @@ MAKEINFO=${MAKEINFO-"${am_missing_run}makeinfo"}
 
 # We need awk for the "check" target.  The system "awk" is bad on
 # some platforms.
-# Always define AMTAR for backward compatibility.
+# Always define AMTAR for backward compatibility.  Yes, it's still used
+# in the wild :-(  We should find a proper way to deprecate it ...
+AMTAR='$${TAR-tar}'
 
-AMTAR=${AMTAR-"${am_missing_run}tar"}
-
-am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
+am__tar='$${TAR-tar} chof - "$$tardir"' am__untar='$${TAR-tar} xf -'
 
 
 
@@ -3939,6 +3946,7 @@ fi
 if test "x$enable_dependency_tracking" != xno; then
   am_depcomp="$ac_aux_dir/depcomp"
   AMDEPBACKSLASH='\'
+  am__nodep='_no'
 fi
  if test "x$enable_dependency_tracking" != xno; then
   AMDEP_TRUE=
@@ -3963,6 +3971,7 @@ else
   # instance it was reported that on HP-UX the gcc test will end up
   # making a dummy file named `D' -- because `-MD' means `put the output
   # in D'.
+  rm -rf conftest.dir
   mkdir conftest.dir
   # Copy depcomp to subdir because otherwise we won't find it if we're
   # using a relative directory.
@@ -4022,7 +4031,7 @@ else
 	break
       fi
       ;;
-    msvisualcpp | msvcmsys)
+    msvc7 | msvc7msys | msvisualcpp | msvcmsys)
       # This compiler won't grok `-c -o', but also, the minuso test has
       # not run yet.  These depmodes are late enough in the game, and
       # so weak that their functioning should not be impacted.
@@ -4097,6 +4106,7 @@ else
   # instance it was reported that on HP-UX the gcc test will end up
   # making a dummy file named `D' -- because `-MD' means `put the output
   # in D'.
+  rm -rf conftest.dir
   mkdir conftest.dir
   # Copy depcomp to subdir because otherwise we won't find it if we're
   # using a relative directory.
@@ -4154,7 +4164,7 @@ else
 	break
       fi
       ;;
-    msvisualcpp | msvcmsys)
+    msvc7 | msvc7msys | msvisualcpp | msvcmsys)
       # This compiler won't grok `-c -o', but also, the minuso test has
       # not run yet.  These depmodes are late enough in the game, and
       # so weak that their functioning should not be impacted.
@@ -10998,7 +11008,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11001 "configure"
+#line 11011 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -11104,7 +11114,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11107 "configure"
+#line 11117 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -11341,6 +11351,29 @@ CC="$lt_save_CC"
 # Only expand once:
 
 
+
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to enable maintainer-specific portions of Makefiles" >&5
+$as_echo_n "checking whether to enable maintainer-specific portions of Makefiles... " >&6; }
+    # Check whether --enable-maintainer-mode was given.
+if test "${enable_maintainer_mode+set}" = set; then :
+  enableval=$enable_maintainer_mode; USE_MAINTAINER_MODE=$enableval
+else
+  USE_MAINTAINER_MODE=no
+fi
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $USE_MAINTAINER_MODE" >&5
+$as_echo "$USE_MAINTAINER_MODE" >&6; }
+   if test $USE_MAINTAINER_MODE = yes; then
+  MAINTAINER_MODE_TRUE=
+  MAINTAINER_MODE_FALSE='#'
+else
+  MAINTAINER_MODE_TRUE='#'
+  MAINTAINER_MODE_FALSE=
+fi
+
+  MAINT=$MAINTAINER_MODE_TRUE
 
 
 
@@ -12118,7 +12151,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -12129,6 +12162,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_ldst_1=yes
         fi
+      else
+        eval libat_cv_have_at_ldst_1=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -12183,7 +12218,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -12194,6 +12229,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_ldst_2=yes
         fi
+      else
+        eval libat_cv_have_at_ldst_2=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -12248,7 +12285,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -12259,6 +12296,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_ldst_4=yes
         fi
+      else
+        eval libat_cv_have_at_ldst_4=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -12313,7 +12352,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -12324,6 +12363,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_ldst_8=yes
         fi
+      else
+        eval libat_cv_have_at_ldst_8=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -12378,7 +12419,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -12389,6 +12430,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_ldst_16=yes
         fi
+      else
+        eval libat_cv_have_at_ldst_16=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -12442,7 +12485,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -12453,6 +12496,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_tas_1=yes
         fi
+      else
+        eval libat_cv_have_at_tas_1=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -12505,7 +12550,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -12516,6 +12561,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_tas_2=yes
         fi
+      else
+        eval libat_cv_have_at_tas_2=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -12568,7 +12615,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -12579,6 +12626,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_tas_4=yes
         fi
+      else
+        eval libat_cv_have_at_tas_4=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -12631,7 +12680,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -12642,6 +12691,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_tas_8=yes
         fi
+      else
+        eval libat_cv_have_at_tas_8=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -12694,7 +12745,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -12705,6 +12756,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_tas_16=yes
         fi
+      else
+        eval libat_cv_have_at_tas_16=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -12758,7 +12811,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -12769,6 +12822,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_exch_1=yes
         fi
+      else
+        eval libat_cv_have_at_exch_1=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -12821,7 +12876,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -12832,6 +12887,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_exch_2=yes
         fi
+      else
+        eval libat_cv_have_at_exch_2=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -12884,7 +12941,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -12895,6 +12952,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_exch_4=yes
         fi
+      else
+        eval libat_cv_have_at_exch_4=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -12947,7 +13006,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -12958,6 +13017,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_exch_8=yes
         fi
+      else
+        eval libat_cv_have_at_exch_8=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -13010,7 +13071,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13021,6 +13082,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_exch_16=yes
         fi
+      else
+        eval libat_cv_have_at_exch_16=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -13075,7 +13138,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13086,6 +13149,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_cas_1=yes
         fi
+      else
+        eval libat_cv_have_at_cas_1=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -13139,7 +13204,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13150,6 +13215,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_cas_2=yes
         fi
+      else
+        eval libat_cv_have_at_cas_2=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -13203,7 +13270,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13214,6 +13281,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_cas_4=yes
         fi
+      else
+        eval libat_cv_have_at_cas_4=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -13267,7 +13336,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13278,6 +13347,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_cas_8=yes
         fi
+      else
+        eval libat_cv_have_at_cas_8=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -13331,7 +13402,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13342,6 +13413,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_cas_16=yes
         fi
+      else
+        eval libat_cv_have_at_cas_16=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -13397,7 +13470,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13408,6 +13481,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_fadd_1=yes
         fi
+      else
+        eval libat_cv_have_at_fadd_1=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -13462,7 +13537,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13473,6 +13548,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_fadd_2=yes
         fi
+      else
+        eval libat_cv_have_at_fadd_2=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -13527,7 +13604,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13538,6 +13615,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_fadd_4=yes
         fi
+      else
+        eval libat_cv_have_at_fadd_4=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -13592,7 +13671,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13603,6 +13682,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_fadd_8=yes
         fi
+      else
+        eval libat_cv_have_at_fadd_8=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -13657,7 +13738,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13668,6 +13749,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_fadd_16=yes
         fi
+      else
+        eval libat_cv_have_at_fadd_16=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -13727,7 +13810,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13738,6 +13821,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_fop_1=yes
         fi
+      else
+        eval libat_cv_have_at_fop_1=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -13796,7 +13881,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13807,6 +13892,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_fop_2=yes
         fi
+      else
+        eval libat_cv_have_at_fop_2=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -13865,7 +13952,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13876,6 +13963,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_fop_4=yes
         fi
+      else
+        eval libat_cv_have_at_fop_4=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -13934,7 +14023,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -13945,6 +14034,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_fop_8=yes
         fi
+      else
+        eval libat_cv_have_at_fop_8=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -14003,7 +14094,7 @@ _ACEOF
     else
       old_CFLAGS="$CFLAGS"
       # Compile unoptimized.
-      CFLAGS='-O0 -S'
+      CFLAGS="$CFLAGS -O0 -S"
       if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -14014,6 +14105,8 @@ _ACEOF
         else
 	  eval libat_cv_have_at_fop_16=yes
         fi
+      else
+        eval libat_cv_have_at_fop_16=no
       fi
       CFLAGS="$old_CFLAGS"
     fi
@@ -14328,7 +14421,7 @@ rm -f core conftest.err conftest.$ac_objext \
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-  CFLAGS="$save_CFLAGS $XCFLAGS"
+  CFLAGS="$save_CFLAGS $XPCFLAGS"
   ;;
 esac
 
@@ -15146,6 +15239,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCCAS_TRUE}" && test -z "${am__fastdepCCAS_FALSE}"; then
   as_fn_error "conditional \"am__fastdepCCAS\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${MAINTAINER_MODE_TRUE}" && test -z "${MAINTAINER_MODE_FALSE}"; then
+  as_fn_error "conditional \"MAINTAINER_MODE\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 

@@ -785,8 +785,8 @@ start_record_layout (tree t)
   return rli;
 }
 
-/* These four routines perform computations that convert between
-   the offset/bitpos forms and byte and bit offsets.  */
+/* Return the combined bit position for the byte offset OFFSET and the
+   bit position BITPOS.  */
 
 tree
 bit_from_pos (tree offset, tree bitpos)
@@ -797,25 +797,52 @@ bit_from_pos (tree offset, tree bitpos)
 				 bitsize_unit_node));
 }
 
+/* Return the combined truncated byte position for the byte offset OFFSET and
+   the bit position BITPOS.
+
+   These functions operate on byte and bit positions as present in FIELD_DECLs
+   and assume that these expressions result in no (intermediate) overflow.
+   This assumption is necessary to fold the expressions as much as possible,
+   so as to avoid creating artificially variable-sized types in languages
+   supporting variable-sized types like Ada.  */
+
 tree
 byte_from_pos (tree offset, tree bitpos)
 {
-  return size_binop (PLUS_EXPR, offset,
-		     fold_convert (sizetype,
-				   size_binop (TRUNC_DIV_EXPR, bitpos,
-					       bitsize_unit_node)));
+  tree bytepos;
+  if (TREE_CODE (bitpos) == MULT_EXPR
+      && tree_int_cst_equal (TREE_OPERAND (bitpos, 1), bitsize_unit_node))
+    bytepos = TREE_OPERAND (bitpos, 0);
+  else
+    bytepos = size_binop (TRUNC_DIV_EXPR, bitpos, bitsize_unit_node);
+  return size_binop (PLUS_EXPR, offset, fold_convert (sizetype, bytepos));
 }
+
+/* Split the bit position POS into a byte offset *POFFSET and a bit
+   position *PBITPOS with the byte offset aligned to OFF_ALIGN bits.  */
 
 void
 pos_from_bit (tree *poffset, tree *pbitpos, unsigned int off_align,
 	      tree pos)
 {
-  *poffset = size_binop (MULT_EXPR,
-			 fold_convert (sizetype,
-				       size_binop (FLOOR_DIV_EXPR, pos,
-						   bitsize_int (off_align))),
-			 size_int (off_align / BITS_PER_UNIT));
-  *pbitpos = size_binop (FLOOR_MOD_EXPR, pos, bitsize_int (off_align));
+  tree toff_align = bitsize_int (off_align);
+  if (TREE_CODE (pos) == MULT_EXPR
+      && tree_int_cst_equal (TREE_OPERAND (pos, 1), toff_align))
+    {
+      *poffset = size_binop (MULT_EXPR,
+			     fold_convert (sizetype, TREE_OPERAND (pos, 0)),
+			     size_int (off_align / BITS_PER_UNIT));
+      *pbitpos = bitsize_zero_node;
+    }
+  else
+    {
+      *poffset = size_binop (MULT_EXPR,
+			     fold_convert (sizetype,
+					   size_binop (FLOOR_DIV_EXPR, pos,
+						       toff_align)),
+			     size_int (off_align / BITS_PER_UNIT));
+      *pbitpos = size_binop (FLOOR_MOD_EXPR, pos, toff_align);
+    }
 }
 
 /* Given a pointer to bit and byte offsets and an offset alignment,
@@ -828,17 +855,10 @@ normalize_offset (tree *poffset, tree *pbitpos, unsigned int off_align)
      downwards.  */
   if (compare_tree_int (*pbitpos, off_align) >= 0)
     {
-      tree extra_aligns = size_binop (FLOOR_DIV_EXPR, *pbitpos,
-				      bitsize_int (off_align));
-
-      *poffset
-	= size_binop (PLUS_EXPR, *poffset,
-		      size_binop (MULT_EXPR,
-				  fold_convert (sizetype, extra_aligns),
-				  size_int (off_align / BITS_PER_UNIT)));
-
-      *pbitpos
-	= size_binop (FLOOR_MOD_EXPR, *pbitpos, bitsize_int (off_align));
+      tree offset, bitpos;
+      pos_from_bit (&offset, &bitpos, off_align, *pbitpos);
+      *poffset = size_binop (PLUS_EXPR, *poffset, offset);
+      *pbitpos = bitpos;
     }
 }
 
@@ -2182,11 +2202,37 @@ layout_type (tree type)
 	       that (possible) negative values are handled appropriately
 	       when determining overflow.  */
 	    else
-	      length
-		= fold_convert (sizetype,
-				size_binop (PLUS_EXPR,
-					    build_int_cst (TREE_TYPE (lb), 1),
-					    size_binop (MINUS_EXPR, ub, lb)));
+	      {
+		/* ???  When it is obvious that the range is signed
+		   represent it using ssizetype.  */
+		if (TREE_CODE (lb) == INTEGER_CST
+		    && TREE_CODE (ub) == INTEGER_CST
+		    && TYPE_UNSIGNED (TREE_TYPE (lb))
+		    && tree_int_cst_lt (ub, lb))
+		  {
+		    lb = double_int_to_tree
+			   (ssizetype,
+			    double_int_sext (tree_to_double_int (lb),
+					     TYPE_PRECISION (TREE_TYPE (lb))));
+		    ub = double_int_to_tree
+			   (ssizetype,
+			    double_int_sext (tree_to_double_int (ub),
+					     TYPE_PRECISION (TREE_TYPE (ub))));
+		  }
+		length
+		  = fold_convert (sizetype,
+				  size_binop (PLUS_EXPR,
+					      build_int_cst (TREE_TYPE (lb), 1),
+					      size_binop (MINUS_EXPR, ub, lb)));
+	      }
+
+	    /* If we arrived at a length of zero ignore any overflow
+	       that occured as part of the calculation.  There exists
+	       an association of the plus one where that overflow would
+	       not happen.  */
+	    if (integer_zerop (length)
+		&& TREE_OVERFLOW (length))
+	      length = size_zero_node;
 
 	    TYPE_SIZE (type) = size_binop (MULT_EXPR, element_size,
 					   fold_convert (bitsizetype,
@@ -2439,12 +2485,10 @@ initialize_sizetypes (void)
   TYPE_NAME (sizetype) = get_identifier ("sizetype");
   TYPE_PRECISION (sizetype) = precision;
   TYPE_UNSIGNED (sizetype) = 1;
-  TYPE_IS_SIZETYPE (sizetype) = 1;
   bitsizetype = make_node (INTEGER_TYPE);
   TYPE_NAME (bitsizetype) = get_identifier ("bitsizetype");
   TYPE_PRECISION (bitsizetype) = bprecision;
   TYPE_UNSIGNED (bitsizetype) = 1;
-  TYPE_IS_SIZETYPE (bitsizetype) = 1;
 
   /* Now layout both types manually.  */
   SET_TYPE_MODE (sizetype, smallest_mode_for_size (precision, MODE_INT));
@@ -2453,11 +2497,6 @@ initialize_sizetypes (void)
   TYPE_SIZE_UNIT (sizetype) = size_int (GET_MODE_SIZE (TYPE_MODE (sizetype)));
   set_min_and_max_values_for_integral_type (sizetype, precision,
 					    /*is_unsigned=*/true);
-  /* sizetype is unsigned but we need to fix TYPE_MAX_VALUE so that it is
-     sign-extended in a way consistent with force_fit_type.  */
-  TYPE_MAX_VALUE (sizetype)
-    = double_int_to_tree (sizetype,
-			  tree_to_double_int (TYPE_MAX_VALUE (sizetype)));
 
   SET_TYPE_MODE (bitsizetype, smallest_mode_for_size (bprecision, MODE_INT));
   TYPE_ALIGN (bitsizetype) = GET_MODE_ALIGNMENT (TYPE_MODE (bitsizetype));
@@ -2466,19 +2505,12 @@ initialize_sizetypes (void)
     = size_int (GET_MODE_SIZE (TYPE_MODE (bitsizetype)));
   set_min_and_max_values_for_integral_type (bitsizetype, bprecision,
 					    /*is_unsigned=*/true);
-  /* bitsizetype is unsigned but we need to fix TYPE_MAX_VALUE so that it is
-     sign-extended in a way consistent with force_fit_type.  */
-  TYPE_MAX_VALUE (bitsizetype)
-    = double_int_to_tree (bitsizetype,
-			  tree_to_double_int (TYPE_MAX_VALUE (bitsizetype)));
 
   /* Create the signed variants of *sizetype.  */
   ssizetype = make_signed_type (TYPE_PRECISION (sizetype));
   TYPE_NAME (ssizetype) = get_identifier ("ssizetype");
-  TYPE_IS_SIZETYPE (ssizetype) = 1;
   sbitsizetype = make_signed_type (TYPE_PRECISION (bitsizetype));
   TYPE_NAME (sbitsizetype) = get_identifier ("sbitsizetype");
-  TYPE_IS_SIZETYPE (sbitsizetype) = 1;
 }
 
 /* TYPE is an integral type, i.e., an INTEGRAL_TYPE, ENUMERAL_TYPE

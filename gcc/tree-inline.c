@@ -1996,7 +1996,7 @@ copy_phis_for_bb (basic_block bb, copy_body_data *id)
   edge new_edge;
   bool inserted = false;
 
-  for (si = gsi_start (phi_nodes (bb)); !gsi_end_p (si); gsi_next (&si))
+  for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
     {
       tree res, new_res;
       gimple new_phi;
@@ -2607,6 +2607,17 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 
   /* Make gimplifier happy about this variable.  */
   DECL_SEEN_IN_BIND_EXPR_P (var) = 1;
+
+  /* We are eventually using the value - make sure all variables
+     referenced therein are properly recorded.  */
+  if (value
+      && gimple_in_ssa_p (cfun)
+      && TREE_CODE (value) == ADDR_EXPR)
+    {
+      tree base = get_base_address (TREE_OPERAND (value, 0));
+      if (base && TREE_CODE (base) == VAR_DECL)
+	add_referenced_var (base);
+    }
 
   /* If the parameter is never assigned to, has no SSA_NAMEs created,
      we would not need to create a new variable here at all, if it

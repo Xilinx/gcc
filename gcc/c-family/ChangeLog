@@ -1,3 +1,35 @@
+2012-05-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53158
+	* c-common.c (warnings_for_convert_and_check): Use warning_at.
+
+2012-05-10  Richard Guenther  <rguenther@suse.de>
+
+	* c-common.c (c_sizeof_or_alignof_type): Remove assert and
+	adjust commentary about TYPE_IS_SIZETYPE types.
+
+2012-05-09  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/53261
+	* c-common.c (warn_logical_operator): Check that argument of
+	integer_zerop is not NULL.
+
+2012-05-05  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/43772
+	* c-common.c (warn_logical_operator): Do not warn if either side
+	is already true or false.
+
+2012-05-04  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c/51712
+	* c-common.c (expr_original_type): New.
+	(shorten_compare): Do not warn for enumeration types.
+
+2012-05-03  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* c.opt (fpermissive): Add Var(flag_permissive).
+
 2012-04-30  Marc Glisse  <marc.glisse@inria.fr>
 
 	PR c++/51033

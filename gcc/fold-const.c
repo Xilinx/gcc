@@ -191,9 +191,6 @@ div_if_zero_remainder (enum tree_code code, const_tree arg1, const_tree arg2)
      does the correct thing for POINTER_PLUS_EXPR where we want
      a signed division.  */
   uns = TYPE_UNSIGNED (TREE_TYPE (arg2));
-  if (TREE_CODE (TREE_TYPE (arg2)) == INTEGER_TYPE
-      && TYPE_IS_SIZETYPE (TREE_TYPE (arg2)))
-    uns = false;
 
   quo = double_int_divmod (tree_to_double_int (arg1),
 			   tree_to_double_int (arg2),
@@ -935,15 +932,14 @@ int_binop_types_match_p (enum tree_code code, const_tree type1, const_tree type2
    to produce a new constant.  Return NULL_TREE if we don't know how
    to evaluate CODE at compile-time.  */
 
-tree
-int_const_binop (enum tree_code code, const_tree arg1, const_tree arg2)
+static tree
+int_const_binop_1 (enum tree_code code, const_tree arg1, const_tree arg2,
+		   int overflowable)
 {
   double_int op1, op2, res, tmp;
   tree t;
   tree type = TREE_TYPE (arg1);
   bool uns = TYPE_UNSIGNED (type);
-  bool is_sizetype
-    = (TREE_CODE (type) == INTEGER_TYPE && TYPE_IS_SIZETYPE (type));
   bool overflow = false;
 
   op1 = tree_to_double_int (arg1);
@@ -1078,11 +1074,17 @@ int_const_binop (enum tree_code code, const_tree arg1, const_tree arg2)
       return NULL_TREE;
     }
 
-  t = force_fit_type_double (TREE_TYPE (arg1), res, 1,
-			     ((!uns || is_sizetype) && overflow)
+  t = force_fit_type_double (TREE_TYPE (arg1), res, overflowable,
+			     (!uns && overflow)
 			     | TREE_OVERFLOW (arg1) | TREE_OVERFLOW (arg2));
 
   return t;
+}
+
+tree
+int_const_binop (enum tree_code code, const_tree arg1, const_tree arg2)
+{
+  return int_const_binop_1 (code, arg1, arg2, 1);
 }
 
 /* Combine two constants ARG1 and ARG2 under operation CODE to produce a new
@@ -1423,8 +1425,10 @@ size_binop_loc (location_t loc, enum tree_code code, tree arg0, tree arg1)
 	    return arg1;
 	}
 
-      /* Handle general case of two integer constants.  */
-      return int_const_binop (code, arg0, arg1);
+      /* Handle general case of two integer constants.  For sizetype
+         constant calculations we always want to know about overflow,
+	 even in the unsigned case.  */
+      return int_const_binop_1 (code, arg0, arg1, -1);
     }
 
   return fold_build2_loc (loc, code, type, arg0, arg1);
@@ -5633,8 +5637,6 @@ extract_muldiv_1 (tree t, tree c, enum tree_code code, tree wide_type,
 	  /* ... and has wrapping overflow, and its type is smaller
 	     than ctype, then we cannot pass through as widening.  */
 	  && ((TYPE_OVERFLOW_WRAPS (TREE_TYPE (op0))
-	       && ! (TREE_CODE (TREE_TYPE (op0)) == INTEGER_TYPE
-		     && TYPE_IS_SIZETYPE (TREE_TYPE (op0)))
 	       && (TYPE_PRECISION (ctype)
 	           > TYPE_PRECISION (TREE_TYPE (op0))))
 	      /* ... or this is a truncation (t is narrower than op0),
@@ -5812,7 +5814,6 @@ extract_muldiv_1 (tree t, tree c, enum tree_code code, tree wide_type,
 	 the operation since it will change the result if the original
 	 computation overflowed.  */
       if (TYPE_UNSIGNED (ctype)
-	  && ! (TREE_CODE (ctype) == INTEGER_TYPE && TYPE_IS_SIZETYPE (ctype))
 	  && ctype != type)
 	break;
 
@@ -5838,14 +5839,8 @@ extract_muldiv_1 (tree t, tree c, enum tree_code code, tree wide_type,
 	 (C * 8) % 4 since we know that's zero.  */
       if ((code == TRUNC_MOD_EXPR || code == CEIL_MOD_EXPR
 	   || code == FLOOR_MOD_EXPR || code == ROUND_MOD_EXPR)
-	  /* If the multiplication can overflow we cannot optimize this.
-	     ???  Until we can properly mark individual operations as
-	     not overflowing we need to treat sizetype special here as
-	     stor-layout relies on this opimization to make
-	     DECL_FIELD_BIT_OFFSET always a constant.  */
-	  && (TYPE_OVERFLOW_UNDEFINED (TREE_TYPE (t))
-	      || (TREE_CODE (TREE_TYPE (t)) == INTEGER_TYPE
-		  && TYPE_IS_SIZETYPE (TREE_TYPE (t))))
+	  /* If the multiplication can overflow we cannot optimize this.  */
+	  && TYPE_OVERFLOW_UNDEFINED (TREE_TYPE (t))
 	  && TREE_CODE (TREE_OPERAND (t, 1)) == INTEGER_CST
 	  && integer_zerop (const_binop (TRUNC_MOD_EXPR, op1, c)))
 	{
@@ -5887,16 +5882,11 @@ extract_muldiv_1 (tree t, tree c, enum tree_code code, tree wide_type,
 		     (tree_to_double_int (c),
 		      TYPE_PRECISION (ctype), TYPE_UNSIGNED (ctype)),
 		   false, &overflow_p);
-	  overflow_p = (((!TYPE_UNSIGNED (ctype)
-			  || (TREE_CODE (ctype) == INTEGER_TYPE
-			      && TYPE_IS_SIZETYPE (ctype)))
-			 && overflow_p)
+	  overflow_p = ((!TYPE_UNSIGNED (ctype) && overflow_p)
 			| TREE_OVERFLOW (c) | TREE_OVERFLOW (op1));
 	  if (!double_int_fits_to_tree_p (ctype, mul)
 	      && ((TYPE_UNSIGNED (ctype) && tcode != MULT_EXPR)
-		  || !TYPE_UNSIGNED (ctype)
-		  || (TREE_CODE (ctype) == INTEGER_TYPE
-		      && TYPE_IS_SIZETYPE (ctype))))
+		  || !TYPE_UNSIGNED (ctype)))
 	    overflow_p = 1;
 	  if (!overflow_p)
 	    return fold_build2 (tcode, ctype, fold_convert (ctype, op0),
@@ -5908,11 +5898,9 @@ extract_muldiv_1 (tree t, tree c, enum tree_code code, tree wide_type,
 	 multiple of the other, in which case we replace this with either an
 	 operation or CODE or TCODE.
 
-	 If we have an unsigned type that is not a sizetype, we cannot do
-	 this since it will change the result if the original computation
-	 overflowed.  */
-      if ((TYPE_OVERFLOW_UNDEFINED (ctype)
-	   || (TREE_CODE (ctype) == INTEGER_TYPE && TYPE_IS_SIZETYPE (ctype)))
+	 If we have an unsigned type, we cannot do this since it will change
+	 the result if the original computation overflowed.  */
+      if (TYPE_OVERFLOW_UNDEFINED (ctype)
 	  && ((code == MULT_EXPR && tcode == EXACT_DIV_EXPR)
 	      || (tcode == MULT_EXPR
 		  && code != TRUNC_MOD_EXPR && code != CEIL_MOD_EXPR
@@ -9532,7 +9520,7 @@ get_pointer_modulus_and_residue (tree expr, unsigned HOST_WIDE_INT *residue,
   if (code == ADDR_EXPR)
     {
       unsigned int bitalign;
-      bitalign = get_object_alignment_1 (TREE_OPERAND (expr, 0), residue);
+      get_object_alignment_1 (TREE_OPERAND (expr, 0), &bitalign, residue);
       *residue /= BITS_PER_UNIT;
       return bitalign / BITS_PER_UNIT;
     }
@@ -9971,7 +9959,8 @@ fold_binary_loc (location_t loc,
       if (TREE_CODE (arg0) == ADDR_EXPR)
 	{
 	  tem = try_move_mult_to_index (loc, arg0,
-					fold_convert_loc (loc, sizetype, arg1));
+					fold_convert_loc (loc,
+							  ssizetype, arg1));
 	  if (tem)
 	    return fold_convert_loc (loc, type, tem);
 	}
@@ -11442,6 +11431,30 @@ fold_binary_loc (location_t loc,
 	      && multiple_of_p (type, arg0,
 				double_int_to_tree (TREE_TYPE (arg1), ncst1)))
 	    return fold_convert_loc (loc, type, arg0);
+	}
+
+      /* Fold (X * CST1) & CST2 to zero if we can, or drop known zero
+         bits from CST2.  */
+      if (TREE_CODE (arg1) == INTEGER_CST
+	  && TREE_CODE (arg0) == MULT_EXPR
+	  && TREE_CODE (TREE_OPERAND (arg0, 1)) == INTEGER_CST)
+	{
+	  int arg1tz
+	    = double_int_ctz (tree_to_double_int (TREE_OPERAND (arg0, 1)));
+	  if (arg1tz > 0)
+	    {
+	      double_int arg1mask, masked;
+	      arg1mask = double_int_not (double_int_mask (arg1tz));
+	      arg1mask = double_int_ext (arg1mask, TYPE_PRECISION (type),
+					 TYPE_UNSIGNED (type));
+	      masked = double_int_and (arg1mask, tree_to_double_int (arg1));
+	      if (double_int_zero_p (masked))
+		return omit_two_operands_loc (loc, type, build_zero_cst (type),
+					      arg0, arg1);
+	      else if (!double_int_equal_p (masked, tree_to_double_int (arg1)))
+		return fold_build2_loc (loc, code, type, op0,
+					double_int_to_tree (type, masked));
+	    }
 	}
 
       /* For constants M and N, if M == (1LL << cst) - 1 && (N & M) == M,

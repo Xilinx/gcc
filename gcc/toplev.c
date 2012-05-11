@@ -151,10 +151,6 @@ HOST_WIDE_INT random_seed;
 
 /* -f flags.  */
 
-/* Nonzero means make permerror produce warnings instead of errors.  */
-
-int flag_permissive = 0;
-
 /* When non-NULL, indicates that whenever space is allocated on the
    stack, the resulting stack pointer must not pass this
    address---that is, for stacks that grow downward, the stack pointer
@@ -380,7 +376,8 @@ wrapup_global_declaration_1 (tree decl)
 bool
 wrapup_global_declaration_2 (tree decl)
 {
-  if (TREE_ASM_WRITTEN (decl) || DECL_EXTERNAL (decl))
+  if (TREE_ASM_WRITTEN (decl) || DECL_EXTERNAL (decl)
+      || (TREE_CODE (decl) == VAR_DECL && DECL_HAS_VALUE_EXPR_P (decl)))
     return false;
 
   /* Don't write out static consts, unless we still need them.
@@ -592,7 +589,6 @@ compile_file (void)
      basically finished.  */
   if (in_lto_p || !flag_lto || flag_fat_lto_objects)
     {
-      varpool_output_variables ();
       finish_aliases_2 ();
 
       /* Likewise for mudflap static object registrations.  */

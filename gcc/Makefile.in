@@ -1147,8 +1147,10 @@ C_OBJS = c-lang.o c-family/stub-objc.o $(C_AND_OBJC_OBJS)
 OBJS = \
 	insn-attrtab.o \
 	insn-automata.o \
+	insn-dfatab.o \
 	insn-emit.o \
 	insn-extract.o \
+	insn-latencytab.o \
 	insn-modes.o \
 	insn-opinit.o \
 	insn-output.o \
@@ -1182,6 +1184,7 @@ OBJS = \
 	cgraph.o \
 	cgraphbuild.o \
 	cgraphunit.o \
+	cgraphclones.o \
 	combine.o \
 	combine-stack-adj.o \
 	compare-elim.o \
@@ -1474,7 +1477,7 @@ ALL_HOST_BACKEND_OBJS = $(GCC_OBJS) $(OBJS) $(OBJS-libcommon) \
 # compilation or not.
 ALL_HOST_OBJS = $(ALL_HOST_FRONTEND_OBJS) $(ALL_HOST_BACKEND_OBJS)
 
-BACKEND = main.o @TREEBROWSER@ libbackend.a libcommon-target.a libcommon.a \
+BACKEND = libbackend.a main.o @TREEBROWSER@ libcommon-target.a libcommon.a \
 	$(CPPLIB) $(LIBDECNUMBER)
 
 
@@ -1487,8 +1490,8 @@ MELT_RUNTIME_C= $(srcdir)/melt-runtime.c
 
 MOSTLYCLEANFILES = insn-flags.h insn-config.h insn-codes.h \
  insn-output.c insn-recog.c insn-emit.c insn-extract.c insn-peep.c \
- insn-attr.h insn-attr-common.h insn-attrtab.c insn-opinit.c \
- insn-preds.c insn-constants.h \
+ insn-attr.h insn-attr-common.h insn-attrtab.c insn-dfatab.c \
+ insn-latencytab.c insn-opinit.c insn-preds.c insn-constants.h \
  tm-preds.h tm-constrs.h checksum-options \
  tree-check.h min-insn-modes.c insn-modes.c insn-modes.h \
  genrtl.h gt-*.h gtype-*.h gtype-desc.c gtyp*-input.list \
@@ -1841,10 +1844,11 @@ s-mlib: $(srcdir)/genmultilib Makefile
 	    "$(MULTILIB_EXTRA_OPTS)" \
 	    "$(MULTILIB_EXCLUSIONS)" \
 	    "$(MULTILIB_OSDIRNAMES)" \
+	    "$(MULTILIB_REQUIRED)" \
 	    "@enable_multilib@" \
 	    > tmp-mlib.h; \
 	else \
-	  $(SHELL) $(srcdir)/genmultilib '' '' '' '' '' '' '' no \
+	  $(SHELL) $(srcdir)/genmultilib '' '' '' '' '' '' '' '' no\
 	    > tmp-mlib.h; \
 	fi
 	$(SHELL) $(srcdir)/../move-if-change tmp-mlib.h multilib.h
@@ -3023,6 +3027,14 @@ cgraphunit.o : cgraphunit.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    gt-cgraphunit.h tree-iterator.h $(COVERAGE_H) $(TREE_DUMP_H) \
    tree-pretty-print.h gimple-pretty-print.h ipa-inline.h $(IPA_UTILS_H) \
    $(LTO_STREAMER_H) output.h $(REGSET_H) $(EXCEPT_H)
+cgraphclones.o : cgraphclones.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+   $(TREE_H) langhooks.h $(TREE_INLINE_H) toplev.h $(DIAGNOSTIC_CORE_H) $(FLAGS_H) $(GGC_H) \
+   $(TARGET_H) $(CGRAPH_H) intl.h pointer-set.h $(FUNCTION_H) $(GIMPLE_H) \
+   $(TREE_FLOW_H) $(TREE_PASS_H) debug.h $(DIAGNOSTIC_H) \
+   $(FIBHEAP_H) output.h $(PARAMS_H) $(RTL_H) $(TIMEVAR_H) $(IPA_PROP_H) \
+   gt-cgraphunit.h tree-iterator.h $(COVERAGE_H) $(TREE_DUMP_H) \
+   tree-pretty-print.h gimple-pretty-print.h ipa-inline.h $(IPA_UTILS_H) \
+   $(LTO_STREAMER_H) output.h $(REGSET_H) $(EXCEPT_H)
 cgraphbuild.o : cgraphbuild.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(TREE_H) langhooks.h $(CGRAPH_H) intl.h pointer-set.h $(GIMPLE_H) \
    $(TREE_FLOW_H) $(TREE_PASS_H) $(IPA_UTILS_H) $(EXCEPT_H) \
@@ -3556,7 +3568,8 @@ $(common_out_object_file): $(common_out_file) $(CONFIG_H) $(SYSTEM_H) \
 
 .PRECIOUS: insn-config.h insn-flags.h insn-codes.h insn-constants.h \
   insn-emit.c insn-recog.c insn-extract.c insn-output.c insn-peep.c \
-  insn-attr.h insn-attr-common.h insn-attrtab.c insn-preds.c
+  insn-attr.h insn-attr-common.h insn-attrtab.c insn-dfatab.c \
+  insn-latencytab.c insn-preds.c
 
 # Dependencies for the md file.  The first time through, we just assume
 # the md file itself and the generated dependency file (in order to get
@@ -3575,7 +3588,11 @@ insn-attrtab.o : insn-attrtab.c $(CONFIG_H) $(SYSTEM_H) coretypes.h	\
   insn-config.h $(DIAGNOSTIC_CORE_H) $(RECOG_H) $(TM_P_H) $(FLAGS_H)
 insn-automata.o : insn-automata.c $(CONFIG_H) $(SYSTEM_H) coretypes.h	\
   $(TM_H) $(RTL_H) $(REGS_H) output.h $(INSN_ATTR_H)			\
-  insn-config.h toplev.h $(DIAGNOSTIC_CORE_H) $(RECOG_H) $(TM_P_H) $(FLAGS_H) $(EMIT_RTL_H)
+  insn-config.h toplev.h $(DIAGNOSTIC_CORE_H) $(RECOG_H)		\
+  $(TM_P_H) $(FLAGS_H) $(EMIT_RTL_H)
+insn-dfatab.o : insn-dfatab.c $(CONFIG_H) $(SYSTEM_H) coretypes.h	\
+  $(TM_H) $(RTL_H) $(REGS_H) output.h $(INSN_ATTR_H)			\
+  insn-config.h $(DIAGNOSTIC_CORE_H) $(RECOG_H) $(TM_P_H) $(FLAGS_H)
 insn-emit.o : insn-emit.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H)	\
   $(RTL_H) $(TM_P_H) $(FUNCTION_H) $(EXPR_H) $(OPTABS_H) 		\
   dfp.h $(FLAGS_H) output.h insn-config.h hard-reg-set.h $(RECOG_H)	\
@@ -3584,6 +3601,9 @@ insn-emit.o : insn-emit.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H)	\
 insn-enums.o : insn-enums.c $(CONFIG_H) $(SYSTEM_H) insn-constants.h
 insn-extract.o : insn-extract.c $(CONFIG_H) $(SYSTEM_H) coretypes.h	\
   $(TM_H) $(RTL_H) $(DIAGNOSTIC_CORE_H) insn-config.h $(RECOG_H)
+insn-latencytab.o : insn-latencytab.c $(CONFIG_H) $(SYSTEM_H) 		\
+  coretypes.h $(TM_H) $(RTL_H) $(REGS_H) output.h $(INSN_ATTR_H)	\
+  insn-config.h $(DIAGNOSTIC_CORE_H) $(RECOG_H) $(TM_P_H) $(FLAGS_H)
 insn-modes.o : insn-modes.c $(CONFIG_H) $(SYSTEM_H) coretypes.h	$(TM_H) \
   $(MACHMODE_H)
 insn-opinit.o : insn-opinit.c $(CONFIG_H) $(SYSTEM_H) coretypes.h	\
@@ -3616,7 +3636,7 @@ insn-recog.o : insn-recog.c $(CONFIG_H) $(SYSTEM_H) coretypes.h		\
 simple_rtl_generated_h	= insn-attr.h insn-attr-common.h insn-codes.h \
 			  insn-config.h insn-flags.h
 
-simple_rtl_generated_c	= insn-attrtab.c insn-automata.c insn-emit.c \
+simple_rtl_generated_c	= insn-automata.c insn-emit.c \
 			  insn-extract.c insn-opinit.c insn-output.c \
 			  insn-peep.c insn-recog.c
 
@@ -3652,6 +3672,17 @@ s-check : build/gencheck$(build_exeext)
 	$(RUN_GEN) build/gencheck$(build_exeext) > tmp-check.h
 	$(SHELL) $(srcdir)/../move-if-change tmp-check.h tree-check.h
 	$(STAMP) s-check
+
+# genattrtab produces three files: tmp-{attrtab.c,dfatab.c,latencytab.c}
+insn-attrtab.c insn-dfatab.c insn-latencytab.c: s-attrtab ; @true
+s-attrtab : $(MD_DEPS) build/genattrtab$(build_exeext) \
+  insn-conditions.md
+	$(RUN_GEN) build/genattrtab$(build_exeext) $(md_file) insn-conditions.md \
+		-Atmp-attrtab.c -Dtmp-dfatab.c -Ltmp-latencytab.c
+	$(SHELL) $(srcdir)/../move-if-change tmp-attrtab.c    insn-attrtab.c
+	$(SHELL) $(srcdir)/../move-if-change tmp-dfatab.c     insn-dfatab.c
+	$(SHELL) $(srcdir)/../move-if-change tmp-latencytab.c insn-latencytab.c
+	$(STAMP) s-attrtab
 
 # gencondmd doesn't use the standard naming convention.
 build/gencondmd.c: s-conditions; @true
@@ -3821,6 +3852,7 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/tree-parloops.c \
   $(srcdir)/omp-low.c \
   $(srcdir)/targhooks.c $(out_file) $(srcdir)/passes.c $(srcdir)/cgraphunit.c \
+  $(srcdir)/cgraphclones.c \
   $(srcdir)/tree-ssa-propagate.c \
   $(srcdir)/tree-phinodes.c \
   $(srcdir)/lto-symtab.c \
@@ -4313,7 +4345,7 @@ TEXI_GCC_FILES = gcc.texi gcc-common.texi gcc-vers.texi frontends.texi	\
 	 standards.texi invoke.texi extend.texi md.texi objc.texi	\
 	 gcov.texi trouble.texi bugreport.texi service.texi		\
 	 contribute.texi compat.texi funding.texi gnu.texi gpl_v3.texi	\
-	 fdl.texi contrib.texi cppenv.texi cppopts.texi			\
+	 fdl.texi contrib.texi cppenv.texi cppopts.texi avr-mmcu.texi	\
 	 implement-c.texi implement-cxx.texi arm-neon-intrinsics.texi
 
 # we explicitly use $(srcdir)/doc/tm.texi here to avoid confusion with

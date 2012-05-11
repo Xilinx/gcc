@@ -2251,17 +2251,6 @@ extern enum machine_mode vector_type_mode (const_tree);
 #define TYPE_NO_FORCE_BLK(NODE) \
   (TYPE_CHECK (NODE)->type_common.no_force_blk_flag)
 
-/* In an INTEGER_TYPE, it means the type represents a size.  We use
-   this both for validity checking and to permit optimizations that
-   are unsafe for other types.  Note that the C `size_t' type should
-   *not* have this flag set.  The `size_t' type is simply a typedef
-   for an ordinary integer type that happens to be the type of an
-   expression returned by `sizeof'; `size_t' has no special
-   properties.  Expressions whose type have TYPE_IS_SIZETYPE set are
-   always actual sizes.  */
-#define TYPE_IS_SIZETYPE(NODE) \
-  (INTEGER_TYPE_CHECK (NODE)->type_common.no_force_blk_flag)
-
 /* Nonzero in a type considered volatile as a whole.  */
 #define TYPE_VOLATILE(NODE) (TYPE_CHECK (NODE)->base.volatile_flag)
 
@@ -4451,6 +4440,7 @@ extern bool tree_expr_nonnegative_warnv_p (tree, bool *);
 extern bool may_negate_without_overflow_p (const_tree);
 extern tree strip_array_types (tree);
 extern tree excess_precision_type (tree);
+extern bool valid_constant_size_p (const_tree);
 
 /* Construct various nodes representing fract or accum data types.  */
 
@@ -5464,10 +5454,12 @@ extern tree build_string_literal (int, const char *);
 extern bool validate_arglist (const_tree, ...);
 extern rtx builtin_memset_read_str (void *, HOST_WIDE_INT, enum machine_mode);
 extern bool is_builtin_fn (tree);
-extern unsigned int get_object_alignment_1 (tree, unsigned HOST_WIDE_INT *);
+extern bool get_object_alignment_1 (tree, unsigned int *,
+				    unsigned HOST_WIDE_INT *);
 extern unsigned int get_object_alignment (tree);
 extern unsigned int get_object_or_type_alignment (tree);
-extern unsigned int get_pointer_alignment_1 (tree, unsigned HOST_WIDE_INT *);
+extern bool get_pointer_alignment_1 (tree, unsigned int *,
+				     unsigned HOST_WIDE_INT *);
 extern unsigned int get_pointer_alignment (tree);
 extern tree fold_call_stmt (gimple, bool);
 extern tree gimple_fold_builtin_snprintf_chk (gimple, tree, enum built_in_function);

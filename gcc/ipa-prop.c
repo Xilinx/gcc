@@ -1626,7 +1626,7 @@ ipa_analyze_params_uses (struct cgraph_node *node,
 					 visit_ref_for_mod_analysis,
 					 visit_ref_for_mod_analysis);
 	}
-      for (gsi = gsi_start (phi_nodes (bb)); !gsi_end_p (gsi); gsi_next (&gsi))
+      for (gsi = gsi_start_phis (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	walk_stmt_load_store_addr_ops (gsi_stmt (gsi), info,
 				       visit_ref_for_mod_analysis,
 				       visit_ref_for_mod_analysis,
@@ -2513,7 +2513,8 @@ ipa_modify_call_arguments (struct cgraph_edge *cs, gimple stmt,
 	      tree type = adj->type;
 	      unsigned int align;
 	      unsigned HOST_WIDE_INT misalign;
-	      align = get_pointer_alignment_1 (base, &misalign);
+
+	      get_pointer_alignment_1 (base, &align, &misalign);
 	      misalign += (double_int_sext (tree_to_double_int (off),
 					    TYPE_PRECISION (TREE_TYPE (off))).low
 			   * BITS_PER_UNIT);
