@@ -3866,18 +3866,21 @@ polyhedron values.}#
   #{ /*increment*/ $LEFT += $INCR; 
   }#)
 
-(defciterator block_interrupts
+
+
+;;;;
+(defciterator block_signals
   ()
-  blkinter
+  blksignal
   ()
-  :doc #{The $BLOCK_INTERRUPTS C-iterator provides a sequence inside
+  :doc #{The $BLOCK_SIGNALS C-iterator provides a sequence inside
 which interrupts are blocked. It could be dynamically nested.}# 
-  #{ /* block_interrupts $BLKINTER start */
-     long $BLKINTER#_lev = melt_blocklevel_interrupts;
-     melt_blocklevel_interrupts = $BLKINTER#_lev + 1;
+  #{ /* block_signals $BLKSIGNAL start */
+     long $BLKSIGNAL#_lev = melt_blocklevel_interrupts;
+     melt_blocklevel_interrupts = $BLKSIGNAL#_lev + 1;
   }#
-  #{ /* block_interrupts $BLKINTER end */
-     melt_blocklevel_interrupts = $BLKINTER#_lev;
+  #{ /* block_signals $BLKSIGNAL end */
+     melt_blocklevel_interrupts = $BLKSIGNAL#_lev;
      MELT_CHECK_INTERRUPT();
   }#
 )
@@ -3958,7 +3961,7 @@ which interrupts are blocked. It could be dynamically nested.}#
  add2sbuf_texi_mixloc
  add_to_out
  andi
- block_interrupts
+ block_signals
  c_clock
  c_time
  cbreak_msg

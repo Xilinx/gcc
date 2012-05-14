@@ -5126,7 +5126,7 @@ static int melt_probe_reqfrom_fd = -1;	/* file descriptor for requests from prob
 static int melt_probe_cmdto_fd = -1;	/* file descriptor for commands to probe from GCC. */
 
 /* return 0 if the wait was sucessful. */
-static int
+int 
 melt_wait_for_probe (int waitopt)
 {
   pid_t wpid = 0;

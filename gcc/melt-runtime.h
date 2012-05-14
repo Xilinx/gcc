@@ -3057,6 +3057,9 @@ melt_putstrbuf (FILE * f, melt_ptr_t sb)
     }
 }
 
+/* wait for the probe. waitopt is often WNOHANG; see waitpid(2);
+   return 0 if the wait was successful. */
+int melt_wait_for_probe (int waitopt);
 
 /* Stop the MELT probe process */
 void melt_probe_stop (void);

@@ -1,4 +1,15 @@
 
+2012-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_wait_for_probe): Declare.
+	* melt-runtime.c (melt_wait_for_probe): No more static.
+	* melt/warmelt-base.melt (block_interrupts): Remove, since renamed
+	as ...
+	(block_signals): Add.
+	* melt/warmelt-modes.melt (unregister_alarm_timer): Done.
+	(childproc_bucket_container): New.
+	(child_process_sigchld_handler): New.
+	(register_child_process_handler): Implement.
+
 2012-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.

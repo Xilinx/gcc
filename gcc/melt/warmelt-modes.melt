@@ -3920,7 +3920,7 @@ ASSERT_MSG) is enabled"
 	     (put_fields initial_system_data 
 			 :sysdata_alarm_hook
 			 (lambda () (set_content gotalarm_cont :true)))
-	     (unless (bucketlong_size alarmbuck) (exit handleloop))
+	     (unless (bucketlong_count alarmbuck) (exit handleloop))
 	     (let ( (:long nextim (bucketlong_nth_key alarmbuck 0))
 		    (nextalhd (bucketlong_nth_val alarmbuck 0))
 		    )
@@ -3975,7 +3975,7 @@ ASSERT_MSG) is enabled"
       (if (>=i periodms 50)
 	  (let ( (res ())
 		 )
-	    (block_interrupts 
+	    (block_signals 
 	     () ()
 	     (let ( (periodbox (make_integerbox discr_constant_integer periodms))
 		    (oldbuck (or !alarm_bucket_container (make_bucketlong discr_bucket_longs 31)))
@@ -4004,10 +4004,10 @@ ASSERT_MSG) is enabled"
   (unless (is_not_a tim class_alarm_handler)
     (assert_msg "check tim" (is_a tim class_alarm_handler))
     (return))
-  (block_interrupts
+  (block_signals
    () ()
    (let ( (oldbuck !alarm_bucket_container)
-	  (:long oldbucklen (bucketlong_size oldbuck))
+	  (:long oldbucklen (bucketlong_count oldbuck))
 	  (newbuck (make_bucketlong discr_bucket_longs oldbucklen))
 	  )
      (unless oldbucklen 
@@ -4015,17 +4015,170 @@ ASSERT_MSG) is enabled"
        (set_content alarm_bucket_container ())
        (set_real_timer_millisec 0)
        (put_fields initial_system_data 
-		   :sysdata_alarm_hook ()))
-     (return))
-   (assert_msg "@$@unimplemented unregister_alarm_timer")
+		   :sysdata_alarm_hook ())
+       (return))
+     (foreach_in_bucketlong
+      (oldbuck)
+      (:long oldkey :value oldala)
+      (assert_msg "check oldala" (is_a oldala class_alarm_handler))
+      (unless (== oldala tim)
+	(setq newbuck (bucketlong_put newbuck oldkey oldala))
+	))
+     (set_content alarm_bucket_container newbuck)
+     )
    ))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun register_child_process_handler (clos :long pid)
+(definstance childproc_bucket_container class_container)
+
+
+(defun child_process_sigchld_handler ()
+  (debug "child_process_sigchld_handler childproc_bucket_container=" childproc_bucket_container)
+  (let ( (lischph (make_list discr_list))
+	 (liswstat (make_list discr_list))
+	 (buck !childproc_bucket_container)
+	 )
+    (unless (is_bucketlong buck) (return))
+    (block_signals 
+     () ()
+     (let ( (:long waitfail 0)
+	    (:long pidstat 0)
+	    )
+       (code_chunk 
+	waitprobchk
+	#{ /* child_process_sigchld_handler $WAITPROBCHK */
+	$WAITFAIL = melt_wait_for_probe (WNOHANG) ;
+	}#)
+       (unless waitfail
+	 (debug "child_process_sigchld_handler waited for probe")
+	 (return))
+       (foreach_in_bucketlong
+	(buck)
+	(:long keypid :value chph)
+	(assert_msg "check chph" (is_a chph class_child_process_handler))
+	(assert_msg "check pid" 
+		    (==i keypid (get_int (get_field  :chilproh_pid chph))))
+	(code_chunk 
+	 waitpidchk
+	 #{ /* child_process_sigchld_handler $WAITPIDCHK */
+         pid_t wpid = 0					     ;
+	 int pstatus = 0				     ;
+	 $WAITFAIL = 0L					     ;
+	 $PIDSTAT = 0L					     ;
+	 wpid = waitpid ((pid_t) $KEYPID, &pstatus, WNOHANG) ;
+	 $WAITFAIL = (wpid != (pid_t) $KEYPID)		     ;
+	 if (!$WAITFAIL)
+	 $PIDSTAT = pstatus		;
+         /* child_process_sigchld_handler end $WAITPIDCHK */
+	 }#)
+	(unless waitfail
+	  (list_append lischph chph)
+	  (list_append liswstat (make_integerbox discr_constant_integer pidstat)))
+	)
+       )
+     )
+    (let ( (tupchph (list_to_multiple lischph discr_multiple))
+	   (tupwstat (list_to_multiple liswstat discr_multiple))
+	   )
+      (foreach_in_multiple
+       (tupchph)
+       (curchph :long ix)
+       (let ( (:long curwstat (get_int (multiple_nth tupwstat ix)))
+	      (:long curpid (get_int (get_field :chilproh_pid curchph)))
+	      (curclos (get_field :chilproh_clos curchph))
+	      (:long exited 0)
+	      (:long exitstat 0)
+	      (:long signaled 0)
+	      (:long termsig 0)
+	      (:value termsigname ())
+	      )
+	 (debug "child_process_sigchld_handler curchph=" curchph
+		" curwstat=" curwstat " ix=" ix)
+	 (block_signals
+	  () ()
+	  (let ( (cbuck  !childproc_bucket_container)
+		 )
+	    (setq cbuck (bucketlong_remove cbuck curpid))
+	    (set_content childproc_bucket_container cbuck)
+	    ))
+	 (code_chunk 
+	  lookwstatchk
+	  #{ /* child_process_sigchld_handler $LOOKWSTATCHK */
+	  int wstat = (int) $CURWSTAT ;
+	  if (WIFEXITED(wstat)) {
+	    $EXITED = 1 ;
+	    $EXITSTAT = WEXITSTATUS (wstat) ;
+	  } 
+	  else if (WIFSIGNALED(wstat)) {
+	    $SIGNALED = 1 ;
+	    $TERMSIG = WTERMSIG (wstat) ;
+	    $TERMSIGNAME =
+	       meltgc_new_string
+	       ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
+	        strsignal($TERMSIG)) ;
+          }
+	  }#)
+	 (cond
+	  (exited 
+	   (cond 
+	    ( (==i exitstat 0)
+	      ;; successful exit
+	      (debug "child_process_sigchld_handler successful curchph=" 
+		     curchph)
+	      (curclos curchph ())
+	      )
+	    ( :else
+	      ;; failed exit
+	      (debug "child_process_sigchld_handler failed curchph=" 
+		     curchph " exitstat=" exitstat)
+	      (curclos curchph 
+		       (make_integerbox discr_constant_integer exitstat))
+	      )
+	    ))
+	  (signaled
+	   (debug "child_process_sigchld_handler signaled curchph="
+		  curchph " termsigname=" termsigname)
+	   (curclos curchph termsigname))
+	  ))))))
+
+(defun register_child_process_handler (clos :long pid :value data)
   :doc #{$REGISTER_CHILD_PROCESS_HANDLER is the low level function to
-register a handler for termination of process $PID}# 
-  (debug "register_child_process_handler clos=" clos " pid=" pid)
-  (assert_msg "@$@unimplemented register_child_process_handler")
-)
+  register a handler of closure $CLOS for termination of process $PID
+  with extra $DATA. The $CLOS would be applied to the returned child}#
+  (debug "register_child_process_handler clos=" clos " pid=" pid " data=" data)
+  (if (is_closure clos)
+      (if (>i pid 0)
+	  (let ( (:long pidisbad 0)
+		 )
+	    (code_chunk 
+	     trykillchk
+	     #{/* register_child_process_handler $TRYKILLCHK */
+	     if (kill ((pid_t) $PID, 0))
+	     $PIDISBAD = -1L		;
+	     }#)
+	    (debug "register_child_process_handler pidisbad=" pidisbad)
+	    (if pidisbad (return))
+	    (let ( (chph (instance 
+			  class_child_process_handler
+			  :chilproh_pid (make_integerbox discr_constant_integer pid)
+			  :chilproh_clos clos
+			  :chilproh_data data))
+		   )
+	      (debug "register_child_process_handler chph=" chph)
+	      (block_signals 
+	       () ()
+	       (let ( (buck (or !childproc_bucket_container
+				   (make_bucketlong discr_bucket_longs 13)))
+		     )
+		 (assert_msg "check buck" (is_bucketlong buck))
+		 (setq buck (bucketlong_put buck pid chph))
+		 (set_content childproc_bucket_container buck)
+		 )
+	       (put_fields initial_system_data
+			   :sysdata_child_hook child_process_sigchld_handler)
+	       )
+	      (return chph)
+	    )))))
 
 
 (defun unregister_child_process_handler (chd)
