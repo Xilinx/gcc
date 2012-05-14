@@ -13207,8 +13207,14 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 		    MELT_LOCATION_HERE_PRINTF (curlocbuf,
 					       "meltgc_poll_inputs handle fd#%d", rfd);
 		    argtab[0].meltbp_aptr = (melt_ptr_t *) & seqv;
+		    debugeprintf ("meltgc_poll_inputs nbread=%d closv=%p seqv=%p before apply", 
+				  nbread, (void*) closv, (void*) seqv);
 		    melt_apply((meltclosure_ptr_t) closv, (melt_ptr_t) curhandv,
 			       MELTBPARSTR_PTR, argtab, NULL, NULL);
+		    debugeprintf ("meltgc_poll_inputs after apply sbuf %p usedlen %d str:%s",
+				  (void*) sbufv,
+				  melt_strbuf_usedlength (sbufv), 
+				  melt_strbuf_str (sbufv));
 		    eated = true;
 		  }
 		debugeprintf ("meltgc_poll_inputs eated is %s", eated?"true":"false");
