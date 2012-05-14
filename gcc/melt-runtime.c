@@ -13151,7 +13151,8 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
       for (ixfd = 0; ixfd < nbfd; ixfd++) {
 	int rfd = fdtab[ixfd].fd;
 	curhandv = melt_longsbucket_get ((melt_ptr_t) inbuckv, (long) rfd);
-	debugeprintf ("meltgc_poll_inputs ixfd=%d rfd=%d curhandv=%p", ixfd, rfd, (void*) curhandv);
+	debugeprintf ("meltgc_poll_inputs ixfd=%d rfd=%d curhandv=%p fdtab[%d].revents=%#x", 
+		      ixfd, rfd, (void*) curhandv, ixfd, fdtab[ixfd].revents);
 	/* curhandv is very often a valid input_channel_handler. It
 	   may not be if some previous channel handling invalidated
 	   it, which is very weird.  We close the file descriptor and
@@ -13194,6 +13195,7 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 		char* buf2nl =
 		  bufdata ? ((char*)strstr(bufdata,"\n\n"))
 		  : NULL;
+		eated = false;
 		debugeprintf ("meltgc_poll_inputs bufdata=%s buf2nl=%p", bufdata, (void*) buf2nl);
 		if (bufdata && buf2nl) 
 		  {
