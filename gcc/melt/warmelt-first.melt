@@ -2237,6 +2237,47 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
     ds
     ))
 
+;;; citerator on pairs
+(defciterator foreach_pair
+  (start_pair) ;start formals 
+  eachpair ;state
+  (curpair curcomp) ;local formals
+  :doc #{The $FOREACH_PAIR iterator scan pairs starting from $START_PAIR. Local formals are $CURPAIR,
+  bound to the current pair, and $CURCOMP, bound to the current component within
+  the pair.}#
+   #{/* start foreach_pair $EACHPAIR */
+   for ($CURPAIR = $START_PAIR;
+	melt_magic_discr((melt_ptr_t) $CURPAIR) == MELTOBMAG_PAIR;
+        $CURPAIR = melt_pair_tail((melt_ptr_t) $CURPAIR)) {
+	$CURCOMP = melt_pair_head((melt_ptr_t) $CURPAIR); 
+   }#
+   
+   #{ } /* ending  foreach_pair $EACHPAIR */
+   $CURPAIR = NULL;
+   $CURCOMP = NULL;
+   }#
+)
+
+;;; citerator on lists
+(defciterator foreach_in_list 
+  (lis)					;start formals 
+  eachlist				;state
+  (curpair curcomp)			;local formals
+  :doc #{The $FOREACH_IN_LIST iterator goes within a list, given by
+the start formal $LIS. Local formals are $CURPAIR, bound to the
+current pair, and $CURCOMP, bound to the current component within the
+list.}#
+   #{/* start foreach_in_list $EACHLIST */
+   for ($CURPAIR = melt_list_first( (melt_ptr_t)$LIS);
+	melt_magic_discr((melt_ptr_t) $curpair) == MELTOBMAG_PAIR;
+        $CURPAIR = melt_pair_tail((melt_ptr_t) $CURPAIR)) {
+	$CURCOMP = melt_pair_head((melt_ptr_t) $CURPAIR); }#
+   #{ } /* end foreach_in_list $EACHLIST */
+     $CURPAIR = NULL;
+     $CURCOMP = NULL;
+   }#
+)
+
 
 ;;; every ctype should be predefined. normexp_defprimitive requires this
 ;;; while predef are somehow costly, we don't have that much many ctype-s
@@ -3046,34 +3087,46 @@ Keyword is :cstring.}#
 
 ;;;;;; the queue for full exit
 (defun init_exitfinalizer ()
+  ;; we can't use (debug ...) in this file!
+  (code_chunk initstartchk #{debugeprintf("init_exitfinalizer $INITSTARTCHK start clock %ld", (long) clock()) ;
+	      }#)
   (let ( (firstlist (unsafe_get_field :delqu_first final_delayed_queue))
 	 (lastlist (unsafe_get_field :delqu_last final_delayed_queue))
 	 (revlastlist (make_list discr_list))
 	 (rescont (instance class_container))
 	 )
 ;;; call the first routines in natural order
-    (list_every 
-     firstlist
-     (lambda (firstproc)
-       (let ( (prevres (unsafe_get_field :container_value rescont)) 
-	      (nextres (firstproc prevres final_delayed_queue))
-	      )
-	 (unsafe_put_fields rescont :container_value nextres)
-	 )))
+    (foreach_in_list
+     (firstlist)
+     (curpair firstproc)
+     (code_chunk firstroutchk #{debugeprintf("init_exitfinalizer $FIRSTROUTCHK firstproc=%p", (void*) $FIRSTPROC) ;
+		 }#)
+     (let ( (prevres (unsafe_get_field :container_value rescont)) 
+	    (nextres (firstproc prevres final_delayed_queue))
+	    )
+       (unsafe_put_fields rescont :container_value nextres)
+       ))
 ;;; reverse the last list
-    (list_every 
-     lastlist 
-     (lambda (lastproc)
-       (if (is_closure lastproc) (list_prepend revlastlist lastproc))))
+    (foreach_in_list
+     (lastlist)
+     (curpair lastproc)
+     (code_chunk lastrevchk #{debugeprintf("init_exitfinalizer $LASTREVCHK lastproc=%p", (void*) $LASTPROC) ;
+		 }#)
+     (if (is_closure lastproc) (list_prepend revlastlist lastproc)))
 ;;; call the last routines in reverse order
-    (list_every
-     revlastlist
-     (lambda (lastproc)
-       (let ( (prevres (unsafe_get_field :container_value rescont)) 
-	      (nextres (lastproc prevres final_delayed_queue))
-	      )
-	 (unsafe_put_fields rescont :container_value nextres)
-	 )))
+    (foreach_in_list
+     (revlastlist)
+     (curpair lastproc)
+     (code_chunk lastrevprocchk #{debugeprintf("init_exitfinalizer $LASTREVPROCCHK lastproc=%p", (void*) $LASTPROC) ;
+		 }#)
+     (let ( (prevres (unsafe_get_field :container_value rescont)) 
+	    (nextres (lastproc prevres final_delayed_queue))
+	    )
+       (unsafe_put_fields rescont :container_value nextres)
+       ))
+    ;;
+    (code_chunk initendchk #{debugeprintf("init_exitfinalizer $INITENDCHK start clock %ld", (long) clock()) ;
+		}#)
     ))
 
 
@@ -3499,47 +3552,6 @@ nil.}#
    }#
 )
 
-
-;;; citerator on pairs
-(defciterator foreach_pair
-  (start_pair) ;start formals 
-  eachpair ;state
-  (curpair curcomp) ;local formals
-  :doc #{The $FOREACH_PAIR iterator scan pairs starting from $START_PAIR. Local formals are $CURPAIR,
-  bound to the current pair, and $CURCOMP, bound to the current component within
-  the pair.}#
-   #{/* start foreach_pair $EACHPAIR */
-   for ($CURPAIR = $START_PAIR;
-	melt_magic_discr((melt_ptr_t) $CURPAIR) == MELTOBMAG_PAIR;
-        $CURPAIR = melt_pair_tail((melt_ptr_t) $CURPAIR)) {
-	$CURCOMP = melt_pair_head((melt_ptr_t) $CURPAIR); 
-   }#
-   
-   #{ } /* ending  foreach_pair $EACHPAIR */
-   $CURPAIR = NULL;
-   $CURCOMP = NULL;
-   }#
-)
-
-;;; citerator on lists
-(defciterator foreach_in_list 
-  (lis)					;start formals 
-  eachlist				;state
-  (curpair curcomp)			;local formals
-  :doc #{The $FOREACH_IN_LIST iterator goes within a list, given by
-the start formal $LIS. Local formals are $CURPAIR, bound to the
-current pair, and $CURCOMP, bound to the current component within the
-list.}#
-   #{/* start foreach_in_list $EACHLIST */
-   for ($CURPAIR = melt_list_first( (melt_ptr_t)$LIS);
-	melt_magic_discr((melt_ptr_t) $curpair) == MELTOBMAG_PAIR;
-        $CURPAIR = melt_pair_tail((melt_ptr_t) $CURPAIR)) {
-	$CURCOMP = melt_pair_head((melt_ptr_t) $CURPAIR); }#
-   #{ } /* end foreach_in_list $EACHLIST */
-     $CURPAIR = NULL;
-     $CURCOMP = NULL;
-   }#
-)
 
 ;;; full iterator on a list
 (defun list_every (lis f)

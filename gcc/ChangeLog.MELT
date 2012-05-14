@@ -1,5 +1,10 @@
 
 2012-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (foreach_pair, foreach_in_list): Move up.
+	(init_exitfinalizer): Add code chunks for debugeprintf.
+	Use foreach_in_list instead of list_every.
+
+2012-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl: Always include the warmelt*.c for md5sum.
 	* melt-build.mk: Regenerate.
 
