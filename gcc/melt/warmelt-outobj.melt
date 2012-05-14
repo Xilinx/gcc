@@ -1494,7 +1494,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
 	  ))
  
     (add2sbuf_indentnl implbuf 2)
-    (add2out implbuf "long current_blocklevel_interrupts_" onam "_melt =  melt_blocklevel_interrupts;")
+    (add2out implbuf "long current_blocklevel_signals_" onam "_melt =  melt_blocklevel_signals;")
     (add2sbuf_indentnl implbuf 1)
     (output_curframe_declstruct_init output_curframe_declstruct prou implbuf)
     (add2sbuf_strconst implbuf "melt_trace_start(\"")
@@ -1552,7 +1552,7 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
     (add2sbuf_string implbuf ofunam)
     (add2sbuf_strconst implbuf "\", meltcallcount);")
     (add2sbuf_indentnl implbuf 1)
-    (add2out implbuf " melt_blocklevel_interrupts = current_blocklevel_interrupts_" onam "_melt;")
+    (add2out implbuf " melt_blocklevel_signals = current_blocklevel_signals_" onam "_melt;")
     (add2sbuf_indentnl implbuf 1)
     (add2sbuf_strconst implbuf " melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;")
     (add2sbuf_indentnl implbuf 0)
@@ -2289,15 +2289,15 @@ between 2Mb and 64Mb.  See also $GET_CODE_BUFFER_LIMIT.}#
   
 
 ;;;;;;;;;;;;;;;;
-(defun outpucod_objcheckinterrupt (obchi declbuf implbuf :long depth)
-  (assert_msg "check ochi" (is_a obchi class_objcheckinterrupt))
+(defun outpucod_objchecksignal (obchi declbuf implbuf :long depth)
+  (assert_msg "check ochi" (is_a obchi class_objchecksignal))
   (let ( (oloc (unsafe_get_field :obi_loc obchi))
 	 )
-    (if oloc (output_location oloc implbuf depth "checkinterrupt"))
-    (add2out implbuf " MELT_CHECK_INTERRUPT();")
+    (if oloc (output_location oloc implbuf depth "checksignal"))
+    (add2out implbuf " MELT_CHECK_SIGNAL();")
     (add2sbuf_indentnl implbuf depth)
 ))
-(install_method class_objcheckinterrupt output_c_code outpucod_objcheckinterrupt)
+(install_method class_objchecksignal output_c_code outpucod_objchecksignal)
 
 ;; output code for objanyblock
 (defun outpucod_objanyblock (oblo declbuf implbuf :long depth)

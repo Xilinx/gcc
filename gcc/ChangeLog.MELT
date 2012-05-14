@@ -1,5 +1,41 @@
 
 2012-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Use "signal" not "interrupt" in names}}
+	* melt-runtime.h (melt_interrupted): Rename as
+	(melt_signaled).
+	(melt_blocklevel_interrupts): Rename as
+	(melt_blocklevel_signals).
+	(MELT_CHECK_INTERRUPT): Rename as
+	(MELT_CHECK_SIGNAL).
+	(melt_interrupted, melt_blocklevel_interrupts)
+	(MELT_CHECK_INTERRUPT): Temporary macros for old compatibility.
+
+	* melt-runtime.c:
+	Use MELT_CHECK_SIGNAL everywhere instead of MELT_CHECK_INTERRUPT.
+	(melt_interrupted): Rename as ...
+	(melt_signaled): New.
+	(melt_handle_interrupt): Rename as ...
+	(melt_handle_signal): New.
+
+	* melt/warmelt-first.melt: Mention MELT_CHECK_SIGNAL in comments
+
+	* melt/warmelt-base.melt (block_signals): Use MELT_CHECK_SIGNAL.
+
+	* melt/warmelt-normal.melt (class_nrep_checkinterrupt): Rename as
+	(class_nrep_checksignal): New.
+
+	* melt/warmelt-normatch.melt (normexp_match, normexp_altmatch):
+	Use class_nrep_checksignal.
+
+	* melt/warmelt-genobj.melt (compilobj_nrep_checkinterrupt): Rename as
+	(compilobj_nrep_checksignal): New, and use class_objchecksignal.
+
+	* melt/warmelt-outobj.melt (outpucod_procroutine): Emit
+	current_blocklevel_signals_*_melt and melt_blocklevel_signals.
+	(outpucod_objcheckinterrupt): Rename as ...
+	(outpucod_objchecksignal): ... emit MELT_CHECK_SIGNAL
+
+2012-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_wait_for_probe): Declare.
 	* melt-runtime.c (melt_wait_for_probe): No more static.
 	* melt/warmelt-base.melt (block_interrupts): Remove, since renamed

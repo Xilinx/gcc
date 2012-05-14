@@ -155,12 +155,12 @@ extern long melt_dbgcounter;
 extern long melt_debugskipcount;
 extern long melt_error_counter;
 
-extern volatile sig_atomic_t melt_interrupted;
+extern volatile sig_atomic_t melt_signaled;
 extern volatile sig_atomic_t melt_got_sigio;
 extern volatile sig_atomic_t melt_got_sigalrm;
 extern volatile sig_atomic_t melt_got_sigchld;
 
-extern long melt_blocklevel_interrupts;
+extern long melt_blocklevel_signals;
 
 static const char* 
 melt_basename(const char* path)
@@ -168,11 +168,16 @@ melt_basename(const char* path)
   return (path && path[0])?(lbasename (path)):path;
 }
 
-void melt_handle_interrupt (void);
+void melt_handle_signal (void);
 
-/* the MELT translator should generate calls to melt_check_interrupt at safe places.  */
-#define MELT_CHECK_INTERRUPT() do { if (MELT_UNLIKELY(melt_interrupted && melt_blocklevel_interrupts <= 0)) \
-      melt_handle_interrupt(); } while(0)
+/* the MELT translator should generate calls to melt_check_signal at safe places.  */
+#define MELT_CHECK_SIGNAL() do { if (MELT_UNLIKELY(melt_signaled && melt_blocklevel_signals <= 0)) \
+      melt_handle_signal(); } while(0)
+
+/* for compatibility with old */
+#define melt_interrupted melt_signaled
+#define melt_blocklevel_interrupts melt_blocklevel_signals
+#define MELT_CHECK_INTERRUPT() MELT_CHECK_SIGNAL()
 
 
 /* Gives the relative real time in milliseconds since MELT started. */

@@ -2294,7 +2294,7 @@ scanning variables.}#
 	 (wholectype ())		;the ctype of the whole match
 	 (oldtester ())			;the previous tester
 	 (cintsymb (clone_symbol 'match_inter_))
-	 (nchint (instance class_nrep_checkinterrupt
+	 (nchint (instance class_nrep_checksignal
 			   :nrep_loc sloc))
 	 (cintbind (instance class_normal_let_binding
 			     :binder cintsymb
@@ -6537,7 +6537,7 @@ normalized expression.}#
 	 (:long nbcases (multiple_length scases))
 	 (firststep ())
 	 (cintsymb (clone_symbol 'altmatch_inter_))
-	 (nchint (instance class_nrep_checkinterrupt
+	 (nchint (instance class_nrep_checksignal
 			   :nrep_loc sloc))
 	 (cintbind (instance class_normal_let_binding
 			     :binder cintsymb

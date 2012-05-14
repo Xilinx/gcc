@@ -393,9 +393,9 @@ don't instanciate this class!}#
 	   sysdata_early_gimple_passes_end_hook ;closure for PLUGIN_EARLY_GIMPLE_PASSES_END
 	   ;;
 	   ;; these are called by the runtime system thru
-	   ;; MELT_CHECK_INTERRUPT macro and meltgc_handle_sigio &
+	   ;; MELT_CHECK_SIGNAL macro and meltgc_handle_sigio &
 	   ;; meltgc_poll_inputs and meltgc_handle_sigalrm
-	   sysdata_inchannel_data	;data for handling of "asynchronous" interrupting input channel
+	   sysdata_inchannel_data	;data for handling of "asynchronous" signals SIGIO input channel
 	   sysdata_alarm_hook		;closure for handling SIGALRM 
 	   sysdata_child_hook		;closure for handling SIGCHILD
 	   ;;
@@ -747,9 +747,9 @@ data. See the $INSTALL_MELT_MODE function. }# )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; handling of interruptible  input channels
+;;; handling of SIGIO-signalable  input channels
 ;; the sysdata_inchannel_data is a bucket of such instances.  See
-;; runtime function meltgc_handle_sigio and macro MELT_CHECK_INTERRUPT
+;; runtime function meltgc_handle_sigio and macro MELT_CHECK_SIGNAL
 (defclass class_input_channel_handler 
   :doc #{Internal class for input channel handling. Its magic number
   is the file descriptor. $INCH_SBUF is the @b{read-only}

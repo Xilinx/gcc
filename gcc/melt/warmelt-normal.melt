@@ -272,8 +272,8 @@ part, $NIFP_ELSE the else part, $NIFP_CTYP the ctype.}#
 	   nprogn_last
 	   ))
 
-(defclass class_nrep_checkinterrupt
-  :doc #{The $CLASS_NREP_CHECKINTERRUPT is an internal expression to check interrupts, 
+(defclass class_nrep_checksignal
+  :doc #{The $CLASS_NREP_CHECKSIGNAL is an internal expression to check interrupts, 
   corresponding to emission of the melt_check_interrupt() C macro. 
   It is emitted at safe places.}#
   :super class_nrep_expression
@@ -715,7 +715,7 @@ routine procedures.}#
  class_nrep_apply
  class_nrep_chunk
  class_nrep_citeration
- class_nrep_checkinterrupt
+ class_nrep_checksignal
  class_nrep_closedocc
  class_nrep_comment 
  class_nrep_constant
@@ -1082,7 +1082,7 @@ routine procedures.}#
 	 ))
      ( :else				;more than one sub-expression
        (let (
-	     (ncheckint (instance class_nrep_checkinterrupt
+	     (ncheckint (instance class_nrep_checksignal
 				  :nrep_loc loc))
 	     (growntup (make_multiple discr_multiple (+i nbnexp 1)))
 	     )
@@ -1986,7 +1986,7 @@ source location.}#
       (setq nbindargs (list_append2list nbindargs nbindfun))
       ;; add a void binding to check interrupts
       (let ( (cintsym (clone_symbol sfusymb))
-	     (nchint (instance class_nrep_checkinterrupt
+	     (nchint (instance class_nrep_checksignal
 			       :nrep_loc sloc))
 	     (cintbind (instance class_normal_let_binding
 				 :letbind_loc sloc
@@ -2059,7 +2059,7 @@ source location.}#
       ;; add a void binding to check interrupts
       (let ( 
 	     (cintsym (clone_symbol selnam))
-	     (nint (instance class_nrep_checkinterrupt
+	     (nint (instance class_nrep_checksignal
 			     :nrep_loc sloc))
 	     (cintbind (instance class_normal_let_binding
 				 :letbind_loc sloc
@@ -2203,7 +2203,7 @@ source location.}#
 	     (setq nbindrets (make_list discr_list)))
 	 ;; add a void binding to check interrupts
 	 (let ( (rintsymb (clone_symbol '_retint_))
-		(nchint (instance class_nrep_checkinterrupt
+		(nchint (instance class_nrep_checksignal
 				  :nrep_loc sloc))
 		(rintbind (instance class_normal_let_binding
 				    :binder rintsymb
@@ -2244,7 +2244,7 @@ source location.}#
 	 (ctypif ctype_void)
 	 (sthen (unsafe_get_field :sif_then recv))
 	 (cintsymb (clone_symbol '_if_inter_))
-	 (nchint (instance class_nrep_checkinterrupt
+	 (nchint (instance class_nrep_checksignal
 			   :nrep_loc sloc))
 	 (cintbind (instance class_normal_let_binding
 			     :binder cintsymb
@@ -2327,7 +2327,7 @@ source location.}#
      (assert_msg "check nbindif test" (is_list_or_null nbindif))
      ;; prepend interrupt check void binding
      (let ( (cintsymb (clone_symbol '_ifelse_inter_))
-	    (nchint (instance class_nrep_checkinterrupt
+	    (nchint (instance class_nrep_checksignal
 			      :nrep_loc sloc))
 	    (cintbind (instance class_normal_let_binding
 				:binder cintsymb
@@ -2885,7 +2885,7 @@ source location.}#
 	 (nfields (make_multiple discr_multiple nbfields))
 	 (csym (clone_symbol 'unsafput_)) 
 	 (cintsymb (clone_symbol 'unsafput_inter_))
-	 (nchint (instance class_nrep_checkinterrupt
+	 (nchint (instance class_nrep_checksignal
 			      :nrep_loc sloc))
 	 (cintbind (instance class_normal_let_binding
 			     :binder cintsymb
@@ -2961,7 +2961,7 @@ source location.}#
 	 (nfields (make_multiple discr_multiple nbfields))
 	 (csym (clone_symbol 'putfld_))
 	 (cintsymb (clone_symbol 'putfld_inter_))
-	 (nchint (instance class_nrep_checkinterrupt
+	 (nchint (instance class_nrep_checksignal
 			      :nrep_loc sloc))
 	 (cintbind (instance class_normal_let_binding
 			     :binder cintsymb
@@ -3132,7 +3132,7 @@ source location.}#
 	 (cladata (if (is_a sclasym class_symbol) 
 		      (normal_exp sclasym env ncx sloc)))
 	 (cintsymb (clone_symbol 'instance_inter_))
-	 (nchint (instance class_nrep_checkinterrupt
+	 (nchint (instance class_nrep_checksignal
 			   :nrep_loc sloc))
 	 (cintbind (instance class_normal_let_binding
 			     :binder cintsymb
@@ -3263,7 +3263,7 @@ source location.}#
        (debug "normexp_forever again slbind=" slbind " nbody=" nbody " nbodbindings=" nbodbindings)
        ;; prepend an interrupt check binding
        (let ( (cintsymb (clone_symbol 'forever_inter_))
-	      (nchint (instance class_nrep_checkinterrupt
+	      (nchint (instance class_nrep_checksignal
 				:nrep_loc sloc))
 	      (cintbind (instance class_normal_let_binding
 				  :binder cintsymb
@@ -5373,7 +5373,7 @@ source location.}#
 	  (debug "normexp_citeration nbody=" nbody " nbodbindings=" nbodbindings)
 	  (let ( (citstate (unsafe_get_field :citer_state soper))
 		 (citstsym (clone_symbol citstate))
-		 (nchint (instance class_nrep_checkinterrupt
+		 (nchint (instance class_nrep_checksignal
 				   :nrep_loc sloc))
 		 (citstbind (instance class_normal_let_binding
 				      :letbind_loc sloc
@@ -6995,6 +6995,7 @@ source location.}#
 
 
 (export_synonym class_nrep_data class_nrep_bound_data)
+(export_synonym class_nrep_checkinterrupt class_nrep_checksignal)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; eof warmelt-normal.melt
 

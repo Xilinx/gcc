@@ -184,7 +184,7 @@
   :fields (obci_comment
 	   ))
 
-(defclass class_objcheckinterrupt
+(defclass class_objchecksignal
   :super class_objinstr
   :fields (
 	   ))
@@ -560,7 +560,7 @@
  class_objagain
  class_objapply
  class_objanyblock
- class_objcheckinterrupt
+ class_objchecksignal
  class_objplainblock
  class_objciterblock
  class_objclear
@@ -631,6 +631,7 @@
  )					;end export_class
 
 (export_synonym class_objblock class_objplainblock)
+(export_synonym class_objcheckinterrupt class_objchecksignal)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; variadic function to make an objlocatedexpv out of a macrostring
@@ -2997,19 +2998,19 @@ $SBUF.}#
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun compilobj_nrep_checkinterrupt (nchint gcx)
-  (debug "compilobj_nrep_checkinterrupt nchint=" nchint)
-  (assert_msg "check nchint" (is_a nchint class_nrep_checkinterrupt))
+(defun compilobj_nrep_checksignal (nchint gcx)
+  (debug "compilobj_nrep_checksignal nchint=" nchint)
+  (assert_msg "check nchint" (is_a nchint class_nrep_checksignal))
   (let (
 	(nloc (unsafe_get_field :nrep_loc nchint))
-	(ochint (instance class_objcheckinterrupt
+	(ochint (instance class_objchecksignal
 			  :obi_loc nloc))
 	)
-    (debug "compilobj_nrep_checkinterrupt ochint=" ochint)
+    (debug "compilobj_nrep_checksignal ochint=" ochint)
     (return ochint)
     ))
 
-(install_method class_nrep_checkinterrupt compile_obj compilobj_nrep_checkinterrupt)
+(install_method class_nrep_checksignal compile_obj compilobj_nrep_checksignal)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; compile an unsafe nth component

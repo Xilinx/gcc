@@ -159,9 +159,9 @@ void melt_break_alptr_2_at (const char*msg, const char* fil, int line);
 
 #include "melt-runtime.h"
 
-long melt_blocklevel_interrupts;
+long melt_blocklevel_signals;
 
-volatile sig_atomic_t melt_interrupted;
+volatile sig_atomic_t melt_signaled;
 volatile sig_atomic_t melt_got_sigio;
 volatile sig_atomic_t melt_got_sigalrm;
 volatile sig_atomic_t melt_got_sigchld;
@@ -7727,7 +7727,7 @@ handle_melt_pragma (cpp_reader *ARG_UNUSED(dummy), void *data)
     fatal_error ("Cannot use pragma symbol at this level \
                    (maybe you use -flto which is incompatible).");
   MELT_LOCATION_HERE ("handle_melt_pragma");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   token = pragma_lex (&x);
   if (token != CPP_NAME) {
     error ("malformed #pragma melt, ignored");
@@ -7803,7 +7803,7 @@ melt_pragma_callback (void *gcc_data ATTRIBUTE_UNUSED,
     goto end;
   nb_pragma = (long) (((meltmultiple_ptr_t) mulpragmav)->nbval);
   MELT_LOCATION_HERE ("melt_pragma_callback");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   for (i_handler = 0; i_handler < (long) nb_pragma; i_handler++) {
     cgccpragmav = (( struct meltmultiple_st *) mulpragmav)->tabval[i_handler];
     if (!melt_is_instance_of ((melt_ptr_t) cgccpragmav ,
@@ -7843,7 +7843,7 @@ should contain a multiple!");
     goto end;
   }
   MELT_LOCATION_HERE ("melt_handle_melt_pragma");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   /* We use the i_handler to find the good handler (index handler).  */
   cgccpragmav = melt_multiple_nth ((melt_ptr_t) mulpragmav, i_handler);
   if (cgccpragmav == NULL) {
@@ -7899,7 +7899,7 @@ handle_melt_pragma (cpp_reader *ARG_UNUSED(dummy))
     fatal_error("Cannot use pragma symbol at this level (maybe you use -flto \
 which is incompatible).");
   MELT_LOCATION_HERE ("handle_melt_pragma");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   token = pragma_lex (&x);
   if (token != CPP_NAME) {
     error ("malformed #pragma melt, ignored");
@@ -7967,7 +7967,7 @@ should contain a multiple!");
     goto end;
   }
   MELT_LOCATION_HERE ("melt_handle_melt_pragma");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   cgccpragmav = melt_multiple_nth ((melt_ptr_t) mulpragmav, 0);
   pragclov = melt_object_nth_field((melt_ptr_t) cgccpragmav,
                                    MELTFIELD_GCCPRAGMA_HANDLER);
@@ -8017,7 +8017,7 @@ melt_pre_genericize_callback (void *ptr_fndecl,
   pregenv = melt_get_inisysdata (MELTFIELD_SYSDATA_PRE_GENERICIZE);
   pregenmagic = melt_magic_discr ((melt_ptr_t) pregenv);
   MELT_LOCATION_HERE ("melt_pre_genericize_callback");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   if (pregenmagic == MELTOBMAG_CLOSURE) {
     MELT_LOCATION_HERE
     ("melt_pre_genericize before applying pre_genericize closure");
@@ -8039,7 +8039,7 @@ melt_startunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
   MELT_ENTERFRAME (1, NULL);
 #define staclosv meltfram__.mcfr_varptr[0]
   MELT_LOCATION_HERE ("melt_startunit_callback");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   staclosv = melt_get_inisysdata (MELTFIELD_SYSDATA_UNIT_STARTER);
   if (melt_magic_discr ((melt_ptr_t) staclosv) == MELTOBMAG_CLOSURE) {
     (void) melt_apply ((meltclosure_ptr_t) staclosv,
@@ -8059,7 +8059,7 @@ melt_finishunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
 #define finclosv meltfram__.mcfr_varptr[0]
   finclosv = melt_get_inisysdata (MELTFIELD_SYSDATA_UNIT_FINISHER);
   MELT_LOCATION_HERE ("melt_finishunit_callback");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   if (melt_magic_discr ((melt_ptr_t) finclosv) == MELTOBMAG_CLOSURE) {
     MELT_LOCATION_HERE
     ("melt_finishunit_callback before applying finish unit closure");
@@ -8084,7 +8084,7 @@ meltgc_passexec_callback (void *gcc_data,
 #define passnamev meltfram__.mcfr_varptr[1]
   passxhv = melt_get_inisysdata (MELTFIELD_SYSDATA_PASSEXEC_HOOK);
   MELT_LOCATION_HERE ("meltgc_passexec_callback");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   debugeprintf ("meltgc_passexec_callback pass %p passxhv %p",
                 (void*) pass, passxhv);
   gcc_assert (pass != NULL);
@@ -9643,7 +9643,7 @@ end:
 
 /* The low level SIGIO signal handler installed thru sigaction, when
    IO is possible on input channels.  Actual signal handling is done
-   at safe places thru MELT_CHECK_INTERRUPT & melt_handle_interrupt &
+   at safe places thru MELT_CHECK_SIGNAL & melt_handle_signal &
    meltgc_handle_sigio (because signal handlers can call very few
    async-signal-safe functions, see signal(7) man page on
    e.g. Linux). */
@@ -9652,13 +9652,13 @@ melt_raw_sigio_signal(int sig)
 {
   gcc_assert (sig == SIGIO);
   melt_got_sigio = 1;
-  melt_interrupted = 1;
+  melt_signaled = 1;
 }
 
 
 /* The low level SIGALRM/SIGVTALRM signal handler installed thru
    sigaction, when an alarm ringed.  Actual signal handling is done
-   at safe places thru MELT_CHECK_INTERRUPT & melt_handle_interrupt &
+   at safe places thru MELT_CHECK_SIGNAL & melt_handle_signal &
    meltgc_handle_sigalrm (because signal handlers can call very few
    async-signal-safe functions, see signal(7) man page on
    e.g. Linux).  */
@@ -9667,13 +9667,13 @@ melt_raw_sigalrm_signal(int sig)
 {
   gcc_assert (sig == SIGALRM || sig == SIGVTALRM);
   melt_got_sigalrm = 1;
-  melt_interrupted = 1;
+  melt_signaled = 1;
 }
 
 
 /* The low level SIGCHLD signal handler installed thru sigaction, when
    a child process exits.  Actual signal handling is done at safe
-   places thru MELT_CHECK_INTERRUPT & melt_handle_interrupt &
+   places thru MELT_CHECK_SIGNAL & melt_handle_signal &
    meltgc_handle_sigalrm (because signal handlers can call very few
    async-signal-safe functions, see signal(7) man page on
    e.g. Linux).  */
@@ -9682,7 +9682,7 @@ melt_raw_sigchld_signal(int sig)
 {
   gcc_assert (sig == SIGCHLD);
   melt_got_sigchld = 1;
-  melt_interrupted = 1;
+  melt_signaled = 1;
 }
 
 
@@ -10058,7 +10058,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
                      meltgc_early_gimple_passes_end_callback,
                      NULL);
   /* TYhe meltgc_passexec_callback is always registered, perhaps just to
-     check for interrupts. */
+     check for signals. */
   register_callback (melt_plugin_name, PLUGIN_PASS_EXECUTION,
                      meltgc_passexec_callback,
                      NULL);
@@ -12027,7 +12027,7 @@ meltgc_run_meltpass_after_hook (void)
   MELT_ENTERFRAME (2, NULL);
 #define pahookv      meltfram__.mcfr_varptr[0]
   MELT_LOCATION_HERE ("meltgc_run_meltpass_after_hook");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   pahookv =  melt_get_inisysdata (MELTFIELD_SYSDATA_MELTPASS_AFTER_HOOK);
   if (pahookv == NULL)
     goto end;
@@ -12163,7 +12163,7 @@ meltgc_gimple_gate(void)
   if (!modstr || !modstr)
     goto end;
   MELT_LOCATION_HERE ("meltgc_gimple_gate");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   gcc_assert(current_pass != NULL);
   gcc_assert(current_pass->name != NULL);
   gcc_assert(current_pass->type == GIMPLE_PASS);
@@ -12185,7 +12185,7 @@ meltgc_gimple_gate(void)
   }
   debugeprintf ("meltgc_gimple_gate pass %s before apply", current_pass->name);
   MELT_LOCATION_HERE_PRINTF (curlocbuf, "meltgc_gimple_gate pass %s before apply", current_pass->name);
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   resv =
     melt_apply ((struct meltclosure_st *) closv,
                 (melt_ptr_t) passv, "",
@@ -12232,7 +12232,7 @@ meltgc_gimple_execute (void)
   if (!modstr || !modstr[0])
     goto end;
   MELT_LOCATION_HERE("meltgc_gimple_execute");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   dumpv = melt_get_inisysdata (MELTFIELD_SYSDATA_DUMPFILE);
   gcc_assert (current_pass != NULL);
   gcc_assert (current_pass->name != NULL);
@@ -12271,7 +12271,7 @@ meltgc_gimple_execute (void)
     /* apply with one extra long result */
     MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_gimple_execute pass %s before apply",
                               current_pass->name);
-    MELT_CHECK_INTERRUPT ();
+    MELT_CHECK_SIGNAL ();
     restab[0].meltbp_longptr = &todol;
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
@@ -12288,7 +12288,7 @@ meltgc_gimple_execute (void)
     };
     MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_gimple_execute pass %s after apply",
                               current_pass->name);
-    MELT_CHECK_INTERRUPT ();
+    MELT_CHECK_SIGNAL ();
     if (resvalv)
       res = (unsigned int) todol;
     meltgc_run_meltpass_after_hook ();
@@ -12328,7 +12328,7 @@ meltgc_rtl_gate(void)
   if (!modstr || !modstr[0])
     goto end;
   MELT_LOCATION_HERE ("meltgc_rtl_gate");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   gcc_assert(current_pass != NULL);
   gcc_assert(current_pass->name != NULL);
   gcc_assert(current_pass->type == RTL_PASS);
@@ -12351,14 +12351,14 @@ meltgc_rtl_gate(void)
     ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
   }
   MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_rtl_gate pass %s before apply", current_pass->name);
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   resv =
     melt_apply ((struct meltclosure_st *) closv,
                 (melt_ptr_t) passv, "",
                 (union meltparam_un *) 0, "",
                 (union meltparam_un *) 0);
   MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_rtl_gate pass %s after apply", current_pass->name);
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
     FILE *df = melt_get_file ((melt_ptr_t) dumpv);
     if (df)
@@ -12394,7 +12394,7 @@ meltgc_rtl_execute(void)
   if (!modstr || !modstr[0])
     goto end;
   MELT_LOCATION_HERE ("meltgc_rtl_execute");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   gcc_assert (current_pass != NULL);
   gcc_assert (current_pass->name != NULL);
   gcc_assert (current_pass->type == RTL_PASS);
@@ -12430,7 +12430,7 @@ meltgc_rtl_execute(void)
     /* apply with one extra long result */
     MELT_LOCATION_HERE_PRINTF (curlocbuf, "meltgc_rtl_execute pass %s before apply",
                                current_pass->name);
-    MELT_CHECK_INTERRUPT ();
+    MELT_CHECK_SIGNAL ();
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
                   (melt_ptr_t) passv, "",
@@ -12438,7 +12438,7 @@ meltgc_rtl_execute(void)
                   restab);
     MELT_LOCATION_HERE_PRINTF (curlocbuf, "meltgc_rtl_execute pass %s after apply",
                                current_pass->name);
-    MELT_CHECK_INTERRUPT ();
+    MELT_CHECK_SIGNAL ();
     debugeprintf ("rtl_execute passname %s after apply dbgcounter %ld",
                   current_pass->name, passdbgcounter);
     if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
@@ -12485,7 +12485,7 @@ meltgc_simple_ipa_gate(void)
   if (!modstr || !modstr[0])
     goto end;
   MELT_LOCATION_HERE ("meltgc_simple_ipa_gate");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   gcc_assert(current_pass != NULL);
   gcc_assert(current_pass->name != NULL);
   gcc_assert(current_pass->type == SIMPLE_IPA_PASS);
@@ -12510,7 +12510,7 @@ meltgc_simple_ipa_gate(void)
   debugeprintf ("meltgc_simple_ipa_gate pass %s before apply", current_pass->name);
   MELT_LOCATION_HERE_PRINTF (curlocbuf,
                              "meltgc_simple_ipa_gate pass %s before apply", current_pass->name);
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   resv =
     melt_apply ((struct meltclosure_st *) closv,
                 (melt_ptr_t) passv, "",
@@ -12520,7 +12520,7 @@ meltgc_simple_ipa_gate(void)
   ok = (resv != NULL);
   MELT_LOCATION_HERE_PRINTF (curlocbuf,
                              "meltgc_simple_ipa_gate pass %s after apply", current_pass->name);
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) {
     FILE *df = melt_get_file ((melt_ptr_t) dumpv);
     if (df)
@@ -12561,7 +12561,7 @@ meltgc_simple_ipa_execute(void)
   if (!modstr || !modstr[0])
     goto end;
   MELT_LOCATION_HERE ("meltgc_simple_ipa_execute");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   gcc_assert (current_pass != NULL);
   gcc_assert (current_pass->name != NULL);
   gcc_assert (current_pass->type == SIMPLE_IPA_PASS);
@@ -12597,7 +12597,7 @@ meltgc_simple_ipa_execute(void)
     debugeprintf ("meltgc_simple_ipa_execute pass %s before apply", current_pass->name);
     MELT_LOCATION_HERE_PRINTF (curlocbuf,
                                "meltgc_simple_ipa_execute pass %s before apply", current_pass->name);
-    MELT_CHECK_INTERRUPT ();
+    MELT_CHECK_SIGNAL ();
     /* apply with one extra long result */
     resvalv =
       melt_apply ((struct meltclosure_st *) closv,
@@ -12612,7 +12612,7 @@ meltgc_simple_ipa_execute(void)
     };
     MELT_LOCATION_HERE_PRINTF (curlocbuf,
                                "meltgc_simple_ipa_execute pass %s after apply", current_pass->name);
-    MELT_CHECK_INTERRUPT ();
+    MELT_CHECK_SIGNAL ();
     debugeprintf ("simple_ipa_execute passname %s after apply dbgcounter %ld",
                   current_pass->name, passdbgcounter);
     if (resvalv)
@@ -12715,7 +12715,7 @@ meltgc_register_pass (melt_ptr_t pass_p,
     gimpass->pass.name = xstrdup(melt_string_str((melt_ptr_t) namev));
     MELT_LOCATION_HERE_PRINTF (curlocbuf,
                                "meltgc_register_pass Gimple pass name %s", gimpass->pass.name);
-    MELT_CHECK_INTERRUPT ();
+    MELT_CHECK_SIGNAL ();
     gimpass->pass.gate = meltgc_gimple_gate;
     gimpass->pass.execute = meltgc_gimple_execute;
     gimpass->pass.tv_id = TV_PLUGIN_RUN;
@@ -12746,7 +12746,7 @@ meltgc_register_pass (melt_ptr_t pass_p,
     rtlpass->pass.name = xstrdup(melt_string_str((melt_ptr_t) namev));
     MELT_LOCATION_HERE_PRINTF (curlocbuf,
                                "meltgc_register_pass RTL pass name %s", rtlpass->pass.name);
-    MELT_CHECK_INTERRUPT ();
+    MELT_CHECK_SIGNAL ();
     rtlpass->pass.gate = meltgc_rtl_gate;
     rtlpass->pass.execute = meltgc_rtl_execute;
     rtlpass->pass.tv_id = TV_PLUGIN_RUN;
@@ -12777,7 +12777,7 @@ meltgc_register_pass (melt_ptr_t pass_p,
     sipapass->pass.name = xstrdup(melt_string_str((melt_ptr_t) namev));
     MELT_LOCATION_HERE_PRINTF (curlocbuf,
                                "meltgc_register_pass simple IPA pass name %s", sipapass->pass.name);
-    MELT_CHECK_INTERRUPT ();
+    MELT_CHECK_SIGNAL ();
     sipapass->pass.gate = meltgc_simple_ipa_gate;
     sipapass->pass.execute = meltgc_simple_ipa_execute;
     sipapass->pass.tv_id = TV_PLUGIN_RUN;
@@ -12805,7 +12805,7 @@ meltgc_register_pass (melt_ptr_t pass_p,
     tipapass->pass.name = xstrdup(melt_string_str((melt_ptr_t) namev));
     MELT_LOCATION_HERE_PRINTF (curlocbuf,
                                "meltgc_register_pass transform IPA pass name %s", tipapass->pass.name);
-    MELT_CHECK_INTERRUPT ();
+    MELT_CHECK_SIGNAL ();
     /* FIXME! */
     /* #warning incomplete transform IPA passes */
     melt_fatal_error ("MELT transform IPA not implemented for passv %p",
@@ -12853,7 +12853,7 @@ meltgc_finishtype_callback (void *gcc_data,
     boxtreev = NULL;
   MELT_LOCATION_HERE
   ("meltgc_finishtype_callback before applying :sysdata_finishtype closure");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   (void) melt_apply ((meltclosure_ptr_t) ftyhookv, (melt_ptr_t) boxtreev,
                      "", NULL, "", NULL);
   MELT_EXITFRAME();
@@ -12872,7 +12872,7 @@ meltgc_notify_finish_type_hook (void)
   MELT_ENTERFRAME (1, NULL);
 #define ftyhookv      meltfram__.mcfr_varptr[0]
   MELT_LOCATION_HERE ("meltgc_notify_finish_type_hook");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   ftyhookv =  melt_get_inisysdata (MELTFIELD_SYSDATA_FINISHTYPE_HOOK);
   if (ftyhookv == NULL) {
     unregister_callback (melt_plugin_name, PLUGIN_FINISH_TYPE);
@@ -12907,7 +12907,7 @@ meltgc_finishdecl_callback (void *gcc_data,
 #define fdclhookv      meltfram__.mcfr_varptr[0]
 #define boxtreev      meltfram__.mcfr_varptr[1]
   MELT_LOCATION_HERE ("meltgc_finishdecl_callback");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   fdclhookv =  melt_get_inisysdata (MELTFIELD_SYSDATA_FINISHDECL_HOOK);
   if (melt_magic_discr ((melt_ptr_t)fdclhookv) != MELTOBMAG_CLOSURE)
     /* this really should ever happen */
@@ -12938,7 +12938,7 @@ meltgc_notify_finish_decl_hook (void)
   MELT_ENTERFRAME (1, NULL);
 #define ftyhookv      meltfram__.mcfr_varptr[0]
   MELT_LOCATION_HERE ("meltgc_notify_finish_decl_hook");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
 #if MELT_GCC_VERSION >= 4007 /* GCC 4.7 */
   ftyhookv =  melt_get_inisysdata (MELTFIELD_SYSDATA_FINISHDECL_HOOK);
   if (ftyhookv == NULL) {
@@ -12986,7 +12986,7 @@ meltgc_usedef_internalfun(tree tr, gimple gi, void*data)
     memset (&argtab, 0, sizeof(argtab));
     argtab[0].meltbp_tree = tr;
     argtab[1].meltbp_gimple = gi;
-    MELT_CHECK_INTERRUPT ();
+    MELT_CHECK_SIGNAL ();
     resv = melt_apply ((meltclosure_ptr_t) closv,
                        (melt_ptr_t) valv,
                        MELTBPARSTR_TREE MELTBPARSTR_GIMPLE,
@@ -13009,7 +13009,7 @@ void meltgc_walk_use_def_chain (melt_ptr_t clos_p, melt_ptr_t val_p, tree trvar,
 #define closv meltfram__.mcfr_varptr[0]
 #define valv  meltfram__.mcfr_varptr[1]
   MELT_LOCATION_HERE ("meltgc_walk_use_def_chain");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   closv = clos_p;
   valv = val_p;
   if (!trvar || TREE_CODE (trvar) != SSA_NAME)
@@ -13044,7 +13044,7 @@ melt_handle_melt_attribute (tree decl, tree name, const char *attrstr,
   if (!attrstr || !attrstr[0])
     goto end;
   MELT_LOCATION_HERE ("melt_handle_melt_attribute");
-  MELT_CHECK_INTERRUPT ();
+  MELT_CHECK_SIGNAL ();
   seqv = meltgc_read_from_rawstring (attrstr, "*melt-attr*", loch);
   atclov = melt_get_inisysdata (MELTFIELD_SYSDATA_MELTATTR_DEFINER);
   if (melt_magic_discr ((melt_ptr_t) atclov) == MELTOBMAG_CLOSURE) {
@@ -13060,12 +13060,12 @@ melt_handle_melt_attribute (tree decl, tree name, const char *attrstr,
     argtab[0].meltbp_aptr = (melt_ptr_t *) & namev;
     argtab[1].meltbp_aptr = (melt_ptr_t *) & seqv;
     MELT_LOCATION_HERE_PRINTF (curlocbuf, "melt_handle_melt_attribute %s before apply", attrstr);
-    MELT_CHECK_INTERRUPT ();
+    MELT_CHECK_SIGNAL ();
     (void) melt_apply ((meltclosure_ptr_t) atclov,
                        (melt_ptr_t) declv,
                        MELTBPARSTR_PTR MELTBPARSTR_PTR, argtab, "", NULL);
     MELT_LOCATION_HERE_PRINTF (curlocbuf, "melt_handle_melt_attribute %s after apply", attrstr);
-    MELT_CHECK_INTERRUPT ();
+    MELT_CHECK_SIGNAL ();
   }
 end:
   MELT_EXITFRAME ();
@@ -13226,8 +13226,8 @@ end:
 }
 
 /* Real handling of SIGIO signals.  Could be called from many places,
-   when SIGIO signal received, thru melt_handle_interrupt via
-   MELT_CHECK_INTERRUPT macro.  See field sysdata_inchannel_data of
+   when SIGIO signal received, thru melt_handle_signal via
+   MELT_CHECK_SIGNAL macro.  See field sysdata_inchannel_data of
    class_system_data in melt/warmelt-first.melt. */
 #define MELT_POLL_DELAY_MILLISEC 10
 static void
@@ -13255,7 +13255,7 @@ end:
 
 
 /* Real handling of SIGALRM & SIGVTALRM signals.  Could be called from
-   many places thru melt_handle_interrupt via MELT_CHECK_INTERRUPT
+   many places thru melt_handle_signal via MELT_CHECK_SIGNAL
    macro.  */
 static void
 meltgc_handle_sigalrm (void)
@@ -13280,7 +13280,7 @@ meltgc_handle_sigalrm (void)
 }
 
 /* Real handling of SIGCHLD signal.  Could be called from
-   many places thru melt_handle_interrupt via MELT_CHECK_INTERRUPT
+   many places thru melt_handle_signal via MELT_CHECK_SIGNAL
    macro.  */
 static void
 meltgc_handle_sigchld (void)
@@ -13302,17 +13302,17 @@ meltgc_handle_sigchld (void)
 #undef closv
 }
 
-/* This meltgc_handle_interrupt routine is called thru the
-   MELT_CHECK_INTERRUPT macro, which is generated in many places in C
-   code generated from MELT.  The MELT_CHECK_INTERRUPT macro is
-   testing the volatile melt_interrupted flag before calling this.
+/* This meltgc_handle_signal routine is called thru the
+   MELT_CHECK_SIGNAL macro, which is generated in many places in C
+   code generated from MELT.  The MELT_CHECK_SIGNAL macro is
+   testing the volatile melt_signaled flag before calling this.
    Raw signal handlers (e.g. melt_raw_sigio_signal or
    melt_raw_sigalrm_signal) should set that flag (with perhaps
    others). */
 void
-melt_handle_interrupt (void)
+melt_handle_signal (void)
 {
-  melt_interrupted = 0;
+  melt_signaled = 0;
   if (melt_got_sigio) {
     melt_got_sigio = 0;
     meltgc_handle_sigio ();
