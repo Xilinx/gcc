@@ -13145,76 +13145,86 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
   /* even when nbfd is null, we do call poll to sleep delayms */
   pollres = poll (fdtab, nbfd, delayms);
   debugeprintf ("meltgc_poll_inputs pollres %d after poll nbfd=%d delayms=%d", pollres, nbfd, delayms);
-  if (pollres > 0) {
-    int ixfd = 0;
-    for (ixfd = 0; ixfd < nbfd; ixfd++) {
-      int rfd = fdtab[ixfd].fd;
-      curhandv = melt_longsbucket_get ((melt_ptr_t) inbuckv, (long) rfd);
-      /* curhandv is very often a valid input_channel_handler. It
-         may not be if some previous channel handling invalidated
-         it, which is very weird.  We close the file descriptor and
-         issue a warning in that unlikely case. */
-      if (!curhandv) {
-        warning (0, "MELT polling, closing fd#%d without handler", rfd);
-        (void) close (rfd);
-        continue;
-      }
-      if (!melt_is_instance_of ((melt_ptr_t) curhandv,
-                                (melt_ptr_t) MELT_PREDEF (CLASS_INPUT_CHANNEL_HANDLER))) {
-        melt_fatal_error ("MELT polling, fd#%d with invalid handler", rfd);
-      }
-      if (fdtab[ixfd].revents & POLLIN) {
-        static char rbuf [MELT_BUFSIZE];
-        int rdcnt = 0;
-        memset (rbuf, 0, sizeof (rbuf));
-        rdcnt = read (rfd, rbuf, sizeof(rbuf));
-        if (rdcnt == 0) {
-          /* reached end of file. */
-          union meltparam_un argtab[2];
-          memset (argtab, 0, sizeof(argtab));
-          closv =  melt_field_object ((melt_ptr_t) curhandv, MELTFIELD_INCH_CLOS);
-          seqv = NULL;
-          argtab[0].meltbp_aptr = (melt_ptr_t *) & seqv;
-          /* notify the end of file by applying the closure to the handle and NULL */
-          melt_apply((meltclosure_ptr_t) closv, (melt_ptr_t) curhandv,
-                     MELTBPARSTR_PTR, argtab, NULL, NULL);
-          close (rfd);
-        } else if (rdcnt > 0) {
-          bool eated = false;
-          /* did read some bytes */
-          sbufv = melt_field_object ((melt_ptr_t) curhandv, MELTFIELD_INCH_SBUF);
-          meltgc_add_out_raw_len ((melt_ptr_t) sbufv, rbuf, rdcnt);
-          do {
-            const char* bufdata = melt_strbuf_str ((melt_ptr_t) sbufv);
-            char* buf2nl =
-              bufdata ? ((char*)strstr(bufdata,"\n\n"))
-              : NULL;
-            if (bufdata && buf2nl) {
-              union meltparam_un argtab[2];
-              int nbread = buf2nl - bufdata + 2;
-              ((char*) buf2nl)[1] = '\0';
-              memset (argtab, 0, sizeof(argtab));
-              seqv = meltgc_read_from_rawstring (bufdata, NULL, UNKNOWN_LOCATION);
-              melt_strbuf_consume ((melt_ptr_t) sbufv, nbread);
-              closv =  melt_field_object ((melt_ptr_t) curhandv, MELTFIELD_INCH_CLOS);
-              MELT_LOCATION_HERE_PRINTF (curlocbuf,
-                                         "meltgc_poll_inputs handle fd#%d", rfd);
-              argtab[0].meltbp_aptr = (melt_ptr_t *) & seqv;
-              melt_apply((meltclosure_ptr_t) closv, (melt_ptr_t) curhandv,
-                         MELTBPARSTR_PTR, argtab, NULL, NULL);
-              eated = true;
-            }
-          } while (eated);
-        }
-      } else if (fdtab[ixfd].revents & POLLNVAL) {
-        /* replace the bucket slot by :true, to avoid polling it next time */
-        meltgc_longsbucket_replace ((melt_ptr_t) inbuckv,
-                                    rfd,
-                                    (melt_ptr_t) MELT_PREDEF (TRUE));
+  if (pollres > 0) 
+    {
+      int ixfd = 0;
+      for (ixfd = 0; ixfd < nbfd; ixfd++) {
+	int rfd = fdtab[ixfd].fd;
+	curhandv = melt_longsbucket_get ((melt_ptr_t) inbuckv, (long) rfd);
+	debugeprintf ("meltgc_poll_inputs ixfd=%d rfd=%d curhandv=%p", ixfd, rfd, (void*) curhandv);
+	/* curhandv is very often a valid input_channel_handler. It
+	   may not be if some previous channel handling invalidated
+	   it, which is very weird.  We close the file descriptor and
+	   issue a warning in that unlikely case. */
+	if (!curhandv) {
+	  warning (0, "MELT polling, closing fd#%d without handler", rfd);
+	  (void) close (rfd);
+	  continue;
+	}
+	if (!melt_is_instance_of ((melt_ptr_t) curhandv,
+				  (melt_ptr_t) MELT_PREDEF (CLASS_INPUT_CHANNEL_HANDLER))) 
+	  melt_fatal_error ("MELT polling, fd#%d with invalid handler", rfd);
+	if (fdtab[ixfd].revents & POLLIN) 
+	  {
+	    static char rbuf [MELT_BUFSIZE];
+	    int rdcnt = 0;
+	    memset (rbuf, 0, sizeof (rbuf));
+	    debugeprintf ("meltgc_poll_inputs ixfd=%d readable rfd=%d", ixfd, rfd);
+	    rdcnt = read (rfd, rbuf, sizeof(rbuf));
+	    if (rdcnt == 0) {
+	      /* reached end of file. */
+	      union meltparam_un argtab[2];
+	      memset (argtab, 0, sizeof(argtab));
+	      debugeprintf ("meltgc_poll_inputs eof rdcnt=%d", rdcnt);
+	      closv =  melt_field_object ((melt_ptr_t) curhandv, MELTFIELD_INCH_CLOS);
+	      seqv = NULL;
+	      argtab[0].meltbp_aptr = (melt_ptr_t *) & seqv;
+	      /* notify the end of file by applying the closure to the handle and NULL */
+	      melt_apply((meltclosure_ptr_t) closv, (melt_ptr_t) curhandv,
+			 MELTBPARSTR_PTR, argtab, NULL, NULL);
+	      close (rfd);
+	    } else if (rdcnt > 0) {
+	      bool eated = false;
+	      /* did read some bytes */
+	      sbufv = melt_field_object ((melt_ptr_t) curhandv, MELTFIELD_INCH_SBUF);
+	      meltgc_add_out_raw_len ((melt_ptr_t) sbufv, rbuf, rdcnt);
+	      debugeprintf ("meltgc_poll_inputs rdcnt=%d rbuf=%s", rdcnt, rbuf);
+	      do {
+		const char* bufdata = melt_strbuf_str ((melt_ptr_t) sbufv);
+		char* buf2nl =
+		  bufdata ? ((char*)strstr(bufdata,"\n\n"))
+		  : NULL;
+		debugeprintf ("meltgc_poll_inputs bufdata=%s buf2nl=%p", bufdata, (void*) buf2nl);
+		if (bufdata && buf2nl) 
+		  {
+		    union meltparam_un argtab[2];
+		    int nbread = buf2nl - bufdata + 2;
+		    ((char*) buf2nl)[1] = '\0';
+		    memset (argtab, 0, sizeof(argtab));
+		    seqv = meltgc_read_from_rawstring (bufdata, NULL, UNKNOWN_LOCATION);
+		    melt_strbuf_consume ((melt_ptr_t) sbufv, nbread);
+		    closv =  melt_field_object ((melt_ptr_t) curhandv, MELTFIELD_INCH_CLOS);
+		    MELT_LOCATION_HERE_PRINTF (curlocbuf,
+					       "meltgc_poll_inputs handle fd#%d", rfd);
+		    argtab[0].meltbp_aptr = (melt_ptr_t *) & seqv;
+		    melt_apply((meltclosure_ptr_t) closv, (melt_ptr_t) curhandv,
+			       MELTBPARSTR_PTR, argtab, NULL, NULL);
+		    eated = true;
+		  }
+		debugeprintf ("meltgc_poll_inputs eated is %s", eated?"true":"false");
+	      } while (eated);
+	    }
+	  } 
+	else if (fdtab[ixfd].revents & POLLNVAL) {
+	  debugeprintf ("meltgc_poll_inputs ixfd=%d rfd=%d invalid", ixfd, rfd);
+	  /* replace the bucket slot by :true, to avoid polling it next time */
+	  meltgc_longsbucket_replace ((melt_ptr_t) inbuckv,
+				      rfd,
+				      (melt_ptr_t) MELT_PREDEF (TRUE));
+	}
       }
     }
-  }
-end:
+ end:
   debugeprintf ("meltgc_poll_inputs ended pollres=%d", pollres);
   if (fdtab)
     free(fdtab), fdtab = NULL;
