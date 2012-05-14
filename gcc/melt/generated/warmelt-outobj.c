@@ -867,20 +867,17 @@ meltrout_51_warmelt_outobj_OUTPUT_CODE_INSTRUCTIONS_LIST (meltclosure_ptr_t
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_52_warmelt_outobj_OUTPUCOD_OBJCHECKINTERRUPT (meltclosure_ptr_t
-						       meltclosp_,
-						       melt_ptr_t
-						       meltfirstargp_,
-						       const
-						       melt_argdescr_cell_t
-						       meltxargdescr_[],
-						       union meltparam_un
-						       *meltxargtab_,
-						       const
-						       melt_argdescr_cell_t
-						       meltxresdescr_[],
-						       union meltparam_un
-						       *meltxrestab_);
+meltrout_52_warmelt_outobj_OUTPUCOD_OBJCHECKSIGNAL (meltclosure_ptr_t
+						    meltclosp_,
+						    melt_ptr_t meltfirstargp_,
+						    const melt_argdescr_cell_t
+						    meltxargdescr_[],
+						    union meltparam_un
+						    *meltxargtab_,
+						    const melt_argdescr_cell_t
+						    meltxresdescr_[],
+						    union meltparam_un
+						    *meltxrestab_);
 
 
 
@@ -2235,8 +2232,8 @@ meltrout_1_warmelt_outobj_GET_CODE_BUFFER_LIMIT (meltclosure_ptr_t meltclosp_,
 						 *meltxrestab_)
 {
   long
-    current_blocklevel_interrupts_meltrout_1_warmelt_outobj_GET_CODE_BUFFER_LIMIT_melt
-    = melt_blocklevel_interrupts;
+    current_blocklevel_signals_meltrout_1_warmelt_outobj_GET_CODE_BUFFER_LIMIT_melt
+    = melt_blocklevel_signals;
 
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -2338,8 +2335,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("GET_CODE_BUFFER_LIMIT", meltcallcount);
-  melt_blocklevel_interrupts =
-    current_blocklevel_interrupts_meltrout_1_warmelt_outobj_GET_CODE_BUFFER_LIMIT_melt;
+  melt_blocklevel_signals =
+    current_blocklevel_signals_meltrout_1_warmelt_outobj_GET_CODE_BUFFER_LIMIT_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -2365,8 +2362,8 @@ meltrout_2_warmelt_outobj_PUT_CODE_BUFFER_LIMIT (meltclosure_ptr_t meltclosp_,
 						 meltxrestab_)
 {
   long
-    current_blocklevel_interrupts_meltrout_2_warmelt_outobj_PUT_CODE_BUFFER_LIMIT_melt
-    = melt_blocklevel_interrupts;
+    current_blocklevel_signals_meltrout_2_warmelt_outobj_PUT_CODE_BUFFER_LIMIT_melt
+    = melt_blocklevel_signals;
 
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -2451,8 +2448,8 @@ lab_endgetargs:;
 	;
       }
       ;
-      /*^checkinterrupt */
-      MELT_CHECK_INTERRUPT ();
+      /*^checksignal */
+      MELT_CHECK_SIGNAL ();
       ;
    /*_#MELT_NEED_DBG__L2*/ meltfnum[1] =
 	/*MELT_NEED_DBG */
@@ -2477,8 +2474,8 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-outobj.melt:52:/ checkinterrupt");
-	    MELT_CHECK_INTERRUPT ();
+	    MELT_LOCATION ("warmelt-outobj.melt:52:/ checksignal");
+	    MELT_CHECK_SIGNAL ();
 	    ;
 	    /*^apply */
 	    /*apply */
@@ -2543,11 +2540,11 @@ lab_endgetargs:;
     /*_.IFCPP___V4*/ meltfptr[3] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-outobj.melt:53:/ checkinterrupt");
-    MELT_CHECK_INTERRUPT ();
+    MELT_LOCATION ("warmelt-outobj.melt:53:/ checksignal");
+    MELT_CHECK_SIGNAL ();
     ;
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
  /*_#I__L4*/ meltfnum[2] =
       (( /*_#L__L1*/ meltfnum[0]) >= (2097152));;
@@ -2603,8 +2600,8 @@ lab_endgetargs:;
 	    ;
 	  }
 	  ;
-	  MELT_LOCATION ("warmelt-outobj.melt:63:/ checkinterrupt");
-	  MELT_CHECK_INTERRUPT ();
+	  MELT_LOCATION ("warmelt-outobj.melt:63:/ checksignal");
+	  MELT_CHECK_SIGNAL ();
 	  ;
 	  /*^apply */
 	  /*apply */
@@ -2673,8 +2670,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("PUT_CODE_BUFFER_LIMIT", meltcallcount);
-  melt_blocklevel_interrupts =
-    current_blocklevel_interrupts_meltrout_2_warmelt_outobj_PUT_CODE_BUFFER_LIMIT_melt;
+  melt_blocklevel_signals =
+    current_blocklevel_signals_meltrout_2_warmelt_outobj_PUT_CODE_BUFFER_LIMIT_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -2701,8 +2698,8 @@ meltrout_3_warmelt_outobj_CODE_BUFFER_LIMIT_OPTSET (meltclosure_ptr_t
 						    meltxrestab_)
 {
   long
-    current_blocklevel_interrupts_meltrout_3_warmelt_outobj_CODE_BUFFER_LIMIT_OPTSET_melt
-    = melt_blocklevel_interrupts;
+    current_blocklevel_signals_meltrout_3_warmelt_outobj_CODE_BUFFER_LIMIT_OPTSET_melt
+    = melt_blocklevel_signals;
 
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -2784,8 +2781,8 @@ lab_endgetargs:;
       ;
     }
     ;
-    MELT_LOCATION ("warmelt-outobj.melt:74:/ checkinterrupt");
-    MELT_CHECK_INTERRUPT ();
+    MELT_LOCATION ("warmelt-outobj.melt:74:/ checksignal");
+    MELT_CHECK_SIGNAL ();
     ;
  /*_#I__L2*/ meltfnum[1] =
       (( /*_#LIM__L1*/ meltfnum[0]) > (0));;
@@ -2806,8 +2803,8 @@ lab_endgetargs:;
 	     ((meltobject_ptr_t)
 	      (( /*!DISCR_CONSTANT_INTEGER */ meltfrout->tabval[1])),
 	      ( /*_#I__L3*/ meltfnum[2])));;
-	  MELT_LOCATION ("warmelt-outobj.melt:75:/ checkinterrupt");
-	  MELT_CHECK_INTERRUPT ();
+	  MELT_LOCATION ("warmelt-outobj.melt:75:/ checksignal");
+	  MELT_CHECK_SIGNAL ();
 	  ;
 	  /*^apply */
 	  /*apply */
@@ -2868,8 +2865,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("CODE_BUFFER_LIMIT_OPTSET", meltcallcount);
-  melt_blocklevel_interrupts =
-    current_blocklevel_interrupts_meltrout_3_warmelt_outobj_CODE_BUFFER_LIMIT_OPTSET_melt;
+  melt_blocklevel_signals =
+    current_blocklevel_signals_meltrout_3_warmelt_outobj_CODE_BUFFER_LIMIT_OPTSET_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -2893,8 +2890,8 @@ meltrout_4_warmelt_outobj_OUTDECLINIT_ROOT (meltclosure_ptr_t meltclosp_,
 					    union meltparam_un * meltxrestab_)
 {
   long
-    current_blocklevel_interrupts_meltrout_4_warmelt_outobj_OUTDECLINIT_ROOT_melt
-    = melt_blocklevel_interrupts;
+    current_blocklevel_signals_meltrout_4_warmelt_outobj_OUTDECLINIT_ROOT_melt
+    = melt_blocklevel_signals;
 
 #if MELT_HAVE_DEBUG
   static long call_counter__;
@@ -2984,8 +2981,8 @@ lab_endgetargs:;
 	;
       }
       ;
-      /*^checkinterrupt */
-      MELT_CHECK_INTERRUPT ();
+      /*^checksignal */
+      MELT_CHECK_SIGNAL ();
       ;
    /*_#MELT_NEED_DBG__L1*/ meltfnum[0] =
 	/*MELT_NEED_DBG */
@@ -3010,8 +3007,8 @@ lab_endgetargs:;
 	      0L
 #endif /* meltcallcount the_meltcallcount */
 	      ;;
-	    MELT_LOCATION ("warmelt-outobj.melt:84:/ checkinterrupt");
-	    MELT_CHECK_INTERRUPT ();
+	    MELT_LOCATION ("warmelt-outobj.melt:84:/ checksignal");
+	    MELT_CHECK_SIGNAL ();
 	    ;
 	    /*^apply */
 	    /*apply */
@@ -3084,8 +3081,8 @@ lab_endgetargs:;
     /*anyblock */
     {
 
-      /*^checkinterrupt */
-      MELT_CHECK_INTERRUPT ();
+      /*^checksignal */
+      MELT_CHECK_SIGNAL ();
       ;
       /*^cond */
       /*cond */ if (( /*nil */ NULL))	/*then */
@@ -3133,8 +3130,8 @@ lab_endgetargs:;
     /*_.IFCPP___V8*/ meltfptr[4] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
     ;
-    MELT_LOCATION ("warmelt-outobj.melt:83:/ checkinterrupt");
-    MELT_CHECK_INTERRUPT ();
+    MELT_LOCATION ("warmelt-outobj.melt:83:/ checksignal");
+    MELT_CHECK_SIGNAL ();
     ;
     /*^quasiblock */
 
@@ -3155,8 +3152,8 @@ lab_endgetargs:;
   goto labend_rout;
 labend_rout:
   melt_trace_end ("OUTDECLINIT_ROOT", meltcallcount);
-  melt_blocklevel_interrupts =
-    current_blocklevel_interrupts_meltrout_4_warmelt_outobj_OUTDECLINIT_ROOT_melt;
+  melt_blocklevel_signals =
+    current_blocklevel_signals_meltrout_4_warmelt_outobj_OUTDECLINIT_ROOT_melt;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
   return (melt_ptr_t) ( /*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
@@ -3244,7 +3241,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   dbgprintf ("start initialize_module_meltdata_warmelt_outobj iniframp__=%p",
 	     (void *) iniframp__);
   melt_assertmsg ("check module initial frame",
-		  iniframp__->mcfr_nbvar == /*minihash */ -795);
+		  iniframp__->mcfr_nbvar == /*minihash */ -2259);
 
   struct cdata_st
   {
@@ -3482,10 +3479,10 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
     struct MELT_CLOSURE_STRUCT (0) dclo_231__OUTPUT_CODE_INSTRUCTIONS_LIST;
     struct MELT_OBJECT_STRUCT (3) dsym_232__CLASS_OBJPLAINBLOCK;
     struct MELT_STRING_STRUCT (19) dstr_233__CLASS_OBJPLAINBL;
-    struct MELT_ROUTINE_STRUCT (3) drout_234__OUTPUCOD_OBJCHECKINTERRUPT;
-    struct MELT_CLOSURE_STRUCT (0) dclo_235__OUTPUCOD_OBJCHECKINTERRUPT;
-    struct MELT_OBJECT_STRUCT (3) dsym_236__CLASS_OBJCHECKINTERRUPT;
-    struct MELT_STRING_STRUCT (23) dstr_237__CLASS_OBJCHECKIN;
+    struct MELT_ROUTINE_STRUCT (3) drout_234__OUTPUCOD_OBJCHECKSIGNAL;
+    struct MELT_CLOSURE_STRUCT (0) dclo_235__OUTPUCOD_OBJCHECKSIGNAL;
+    struct MELT_OBJECT_STRUCT (3) dsym_236__CLASS_OBJCHECKSIGNAL;
+    struct MELT_STRING_STRUCT (20) dstr_237__CLASS_OBJCHECKSI;
     struct MELT_ROUTINE_STRUCT (6) drout_238__OUTPUCOD_OBJANYBLOCK;
     struct MELT_CLOSURE_STRUCT (0) dclo_239__OUTPUCOD_OBJANYBLOCK;
     struct MELT_OBJECT_STRUCT (3) dsym_240__CLASS_OBJANYBLOCK;
@@ -3976,7 +3973,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_5__BUFFER_LIMIT_CONT.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_CONTAINER__V7*/ meltfptr[6]);
-  cdat->dobj_5__BUFFER_LIMIT_CONT.obj_hash = 152884712;
+  cdat->dobj_5__BUFFER_LIMIT_CONT.obj_hash = 981593830;
   cdat->dobj_5__BUFFER_LIMIT_CONT.obj_len = 1;
 
   /*iniboxint dint_6__ */
@@ -5673,7 +5670,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_140__PREVLOC_CONTAINER.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_CONTAINER__V7*/ meltfptr[6]);
-  cdat->dobj_140__PREVLOC_CONTAINER.obj_hash = 23223201;
+  cdat->dobj_140__PREVLOC_CONTAINER.obj_hash = 570332556;
   cdat->dobj_140__PREVLOC_CONTAINER.obj_len = 1;
 
 
@@ -5725,7 +5722,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_143__PREVIMPLBUF_CONTAINER.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_CONTAINER__V7*/ meltfptr[6]);
-  cdat->dobj_143__PREVIMPLBUF_CONTAINER.obj_hash = 535485282;
+  cdat->dobj_143__PREVIMPLBUF_CONTAINER.obj_hash = 28805415;
   cdat->dobj_143__PREVIMPLBUF_CONTAINER.obj_len = 1;
 
   /*inirout drout_144__LINE_AND_FILE_OF_LOCATION */
@@ -6885,55 +6882,55 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
 				"CLASS_OBJPLAINBLOCK",
 				sizeof (cdat->dstr_233__CLASS_OBJPLAINBL.
 					val) - 1);
-  /*inirout drout_234__OUTPUCOD_OBJCHECKINTERRUPT */
+  /*inirout drout_234__OUTPUCOD_OBJCHECKSIGNAL */
  /*_.VALROUT___V383*/ meltfptr[382] =
-    (melt_ptr_t) & cdat->drout_234__OUTPUCOD_OBJCHECKINTERRUPT;
-  cdat->drout_234__OUTPUCOD_OBJCHECKINTERRUPT.discr =
+    (melt_ptr_t) & cdat->drout_234__OUTPUCOD_OBJCHECKSIGNAL;
+  cdat->drout_234__OUTPUCOD_OBJCHECKSIGNAL.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_ROUTINE))));
-  strncpy (cdat->drout_234__OUTPUCOD_OBJCHECKINTERRUPT.routdescr,
-	   "OUTPUCOD_OBJCHECKINTERRUPT @warmelt-outobj.melt:2292",
+  strncpy (cdat->drout_234__OUTPUCOD_OBJCHECKSIGNAL.routdescr,
+	   "OUTPUCOD_OBJCHECKSIGNAL @warmelt-outobj.melt:2292",
 	   MELT_ROUTDESCR_LEN - 1);
-  cdat->drout_234__OUTPUCOD_OBJCHECKINTERRUPT.nbval = 3;
-  MELT_ROUTINE_SET_ROUTCODE (&cdat->drout_234__OUTPUCOD_OBJCHECKINTERRUPT,
-			     meltrout_52_warmelt_outobj_OUTPUCOD_OBJCHECKINTERRUPT);
+  cdat->drout_234__OUTPUCOD_OBJCHECKSIGNAL.nbval = 3;
+  MELT_ROUTINE_SET_ROUTCODE (&cdat->drout_234__OUTPUCOD_OBJCHECKSIGNAL,
+			     meltrout_52_warmelt_outobj_OUTPUCOD_OBJCHECKSIGNAL);
 
-  /*iniclos dclo_235__OUTPUCOD_OBJCHECKINTERRUPT */
+  /*iniclos dclo_235__OUTPUCOD_OBJCHECKSIGNAL */
  /*_.VALCLO___V384*/ meltfptr[383] =
-    (melt_ptr_t) & cdat->dclo_235__OUTPUCOD_OBJCHECKINTERRUPT;
-  cdat->dclo_235__OUTPUCOD_OBJCHECKINTERRUPT.discr =
+    (melt_ptr_t) & cdat->dclo_235__OUTPUCOD_OBJCHECKSIGNAL;
+  cdat->dclo_235__OUTPUCOD_OBJCHECKSIGNAL.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_CLOSURE))));
-  cdat->dclo_235__OUTPUCOD_OBJCHECKINTERRUPT.nbval = 0;
+  cdat->dclo_235__OUTPUCOD_OBJCHECKSIGNAL.nbval = 0;
 
 
-/*iniobj dsym_236__CLASS_OBJCHECKINTERRUPT*/
+/*iniobj dsym_236__CLASS_OBJCHECKSIGNAL*/
   /*uniqueobj*/ if (! /*_.VALDATA___V385*/ meltfptr[384])
 /*_.VALDATA___V385*/ meltfptr[384] =
-      (melt_ptr_t) & cdat->dsym_236__CLASS_OBJCHECKINTERRUPT;
+      (melt_ptr_t) & cdat->dsym_236__CLASS_OBJCHECKSIGNAL;
+  if (MELT_LIKELY (!melt_prohibit_garbcoll))
+    melt_assertmsg ("iniobj check.discr isobj dsym_236__CLASS_OBJCHECKSIGNAL",
+		    melt_magic_discr ((melt_ptr_t)
+				      (((melt_ptr_t)
+					(MELT_PREDEF (CLASS_SYMBOL))))) ==
+		    MELTOBMAG_OBJECT);
   if (MELT_LIKELY (!melt_prohibit_garbcoll))
     melt_assertmsg
-      ("iniobj check.discr isobj dsym_236__CLASS_OBJCHECKINTERRUPT",
-       melt_magic_discr ((melt_ptr_t)
-			 (((melt_ptr_t) (MELT_PREDEF (CLASS_SYMBOL))))) ==
-       MELTOBMAG_OBJECT);
-  if (MELT_LIKELY (!melt_prohibit_garbcoll))
-    melt_assertmsg
-      ("iniobj check.discr objmagic dsym_236__CLASS_OBJCHECKINTERRUPT",
+      ("iniobj check.discr objmagic dsym_236__CLASS_OBJCHECKSIGNAL",
        ((meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_SYMBOL)))))->
        meltobj_magic == MELTOBMAG_OBJECT);
-  cdat->dsym_236__CLASS_OBJCHECKINTERRUPT.meltobj_class =
+  cdat->dsym_236__CLASS_OBJCHECKSIGNAL.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_SYMBOL))));
-  cdat->dsym_236__CLASS_OBJCHECKINTERRUPT.obj_hash = 387948052;
-  cdat->dsym_236__CLASS_OBJCHECKINTERRUPT.obj_len = 3;
+  cdat->dsym_236__CLASS_OBJCHECKSIGNAL.obj_hash = 215068855;
+  cdat->dsym_236__CLASS_OBJCHECKSIGNAL.obj_len = 3;
 
 
-/*inistring dstr_237__CLASS_OBJCHECKIN*/
+/*inistring dstr_237__CLASS_OBJCHECKSI*/
  /*_.VALSTR___V386*/ meltfptr[385] =
-    (melt_ptr_t) & cdat->dstr_237__CLASS_OBJCHECKIN;
-  cdat->dstr_237__CLASS_OBJCHECKIN.discr =
+    (melt_ptr_t) & cdat->dstr_237__CLASS_OBJCHECKSI;
+  cdat->dstr_237__CLASS_OBJCHECKSI.discr =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (DISCR_STRING))));
-  /*small inistring */ strncpy (cdat->dstr_237__CLASS_OBJCHECKIN.val,
-				"CLASS_OBJCHECKINTERRUPT",
-				sizeof (cdat->dstr_237__CLASS_OBJCHECKIN.
+  /*small inistring */ strncpy (cdat->dstr_237__CLASS_OBJCHECKSI.val,
+				"CLASS_OBJCHECKSIGNAL",
+				sizeof (cdat->dstr_237__CLASS_OBJCHECKSI.
 					val) - 1);
   /*inirout drout_238__OUTPUCOD_OBJANYBLOCK */
  /*_.VALROUT___V387*/ meltfptr[386] =
@@ -8727,7 +8724,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_379__OBJPUTPAIRHEAD_COUNTER.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_CONTAINER__V7*/ meltfptr[6]);
-  cdat->dobj_379__OBJPUTPAIRHEAD_COUNTER.obj_hash = 897696843;
+  cdat->dobj_379__OBJPUTPAIRHEAD_COUNTER.obj_hash = 470792150;
   cdat->dobj_379__OBJPUTPAIRHEAD_COUNTER.obj_len = 1;
 
   /*iniboxint dint_380__ */
@@ -9775,7 +9772,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   cdat->dobj_462__CLASS_SECONDARY_C_FILE.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_CLASS))));
   cdat->dobj_462__CLASS_SECONDARY_C_FILE.obj_num = MELTOBMAG_OBJECT;
-  cdat->dobj_462__CLASS_SECONDARY_C_FILE.obj_hash = 1014380929;
+  cdat->dobj_462__CLASS_SECONDARY_C_FILE.obj_hash = 203180063;
   cdat->dobj_462__CLASS_SECONDARY_C_FILE.obj_len = 8;
 
 
@@ -9850,7 +9847,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   cdat->dobj_468__SECFIL_MODNAM.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_468__SECFIL_MODNAM.obj_num = 0;
-  cdat->dobj_468__SECFIL_MODNAM.obj_hash = 203180063;
+  cdat->dobj_468__SECFIL_MODNAM.obj_hash = 997793844;
   cdat->dobj_468__SECFIL_MODNAM.obj_len = 4;
 
 
@@ -9912,7 +9909,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   cdat->dobj_472__SECFIL_PATH.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_472__SECFIL_PATH.obj_num = 1;
-  cdat->dobj_472__SECFIL_PATH.obj_hash = 997793844;
+  cdat->dobj_472__SECFIL_PATH.obj_hash = 107573017;
   cdat->dobj_472__SECFIL_PATH.obj_len = 4;
 
 
@@ -9974,7 +9971,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   cdat->dobj_476__SECFIL_DECLBUF.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_476__SECFIL_DECLBUF.obj_num = 2;
-  cdat->dobj_476__SECFIL_DECLBUF.obj_hash = 107573017;
+  cdat->dobj_476__SECFIL_DECLBUF.obj_hash = 662628053;
   cdat->dobj_476__SECFIL_DECLBUF.obj_len = 4;
 
 
@@ -10037,7 +10034,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   cdat->dobj_480__SECFIL_IMPLBUF.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FIELD))));
   cdat->dobj_480__SECFIL_IMPLBUF.obj_num = 3;
-  cdat->dobj_480__SECFIL_IMPLBUF.obj_hash = 662628053;
+  cdat->dobj_480__SECFIL_IMPLBUF.obj_hash = 207263697;
   cdat->dobj_480__SECFIL_IMPLBUF.obj_len = 4;
 
 
@@ -10099,7 +10096,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_484__GENERATED_C_FILENAME.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_PRIMITIVE))));
-  cdat->dobj_484__GENERATED_C_FILENAME.obj_hash = 942378626;
+  cdat->dobj_484__GENERATED_C_FILENAME.obj_hash = 874498114;
   cdat->dobj_484__GENERATED_C_FILENAME.obj_len = 5;
 
   /*inimult dtup_485__GENERATED_C_FILENAME */
@@ -10160,7 +10157,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   cdat->dobj_489.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_489.obj_num = 0;
-  cdat->dobj_489.obj_hash = 58573278;
+  cdat->dobj_489.obj_hash = 882929125;
   cdat->dobj_489.obj_len = 2;
 
 
@@ -10209,7 +10206,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   cdat->dobj_492.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_492.obj_num = 1;
-  cdat->dobj_492.obj_hash = 687897605;
+  cdat->dobj_492.obj_hash = 417771738;
   cdat->dobj_492.obj_len = 2;
 
 
@@ -10258,7 +10255,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   cdat->dobj_495.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_495.obj_num = 2;
-  cdat->dobj_495.obj_hash = 533181913;
+  cdat->dobj_495.obj_hash = 467794209;
   cdat->dobj_495.obj_len = 2;
 
 
@@ -10307,7 +10304,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   cdat->dobj_498.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_498.obj_num = 3;
-  cdat->dobj_498.obj_hash = 337635822;
+  cdat->dobj_498.obj_hash = 1070095845;
   cdat->dobj_498.obj_len = 2;
 
 
@@ -10508,7 +10505,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   cdat->dobj_515.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_515.obj_num = 0;
-  cdat->dobj_515.obj_hash = 354702212;
+  cdat->dobj_515.obj_hash = 1030047796;
   cdat->dobj_515.obj_len = 2;
 
 
@@ -10558,7 +10555,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   cdat->dobj_518.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_518.obj_num = 1;
-  cdat->dobj_518.obj_hash = 338148525;
+  cdat->dobj_518.obj_hash = 845037158;
   cdat->dobj_518.obj_len = 2;
 
 
@@ -10607,7 +10604,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   cdat->dobj_521.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_521.obj_num = 2;
-  cdat->dobj_521.obj_hash = 794149274;
+  cdat->dobj_521.obj_hash = 356693573;
   cdat->dobj_521.obj_len = 2;
 
 
@@ -10657,7 +10654,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   cdat->dobj_524.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_524.obj_num = 3;
-  cdat->dobj_524.obj_hash = 908118869;
+  cdat->dobj_524.obj_hash = 162012301;
   cdat->dobj_524.obj_len = 2;
 
 
@@ -10706,7 +10703,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   cdat->dobj_527.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_527.obj_num = 4;
-  cdat->dobj_527.obj_hash = 486206768;
+  cdat->dobj_527.obj_hash = 6789718;
   cdat->dobj_527.obj_len = 2;
 
   /*inimult dtup_528__SYNTAX_TEST_GENERATOR */
@@ -10733,7 +10730,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
        meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_529__SYNTAX_TEST_GENERATOR.meltobj_class =
     (meltobject_ptr_t) ( /*_.CLASS_SELECTOR__V121*/ meltfptr[120]);
-  cdat->dobj_529__SYNTAX_TEST_GENERATOR.obj_hash = 778946380;
+  cdat->dobj_529__SYNTAX_TEST_GENERATOR.obj_hash = 784819264;
   cdat->dobj_529__SYNTAX_TEST_GENERATOR.obj_len = 4;
 
 
@@ -11854,7 +11851,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
 		    meltobj_magic == MELTOBMAG_OBJECT);
   cdat->dobj_610__MELT_ARGUMENT.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_PRIMITIVE))));
-  cdat->dobj_610__MELT_ARGUMENT.obj_hash = 119945801;
+  cdat->dobj_610__MELT_ARGUMENT.obj_hash = 488059219;
   cdat->dobj_610__MELT_ARGUMENT.obj_len = 5;
 
   /*inimult dtup_611__MELT_ARGUMENT */
@@ -11915,7 +11912,7 @@ initialize_module_meltdata_warmelt_outobj (initial_frame_st * iniframp__,
   cdat->dobj_615.meltobj_class =
     (meltobject_ptr_t) (((melt_ptr_t) (MELT_PREDEF (CLASS_FORMAL_BINDING))));
   cdat->dobj_615.obj_num = 0;
-  cdat->dobj_615.obj_hash = 605158532;
+  cdat->dobj_615.obj_hash = 693333574;
   cdat->dobj_615.obj_len = 2;
 
 
@@ -12217,7 +12214,8 @@ start_module_melt (void *modargp_)
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
 /**initial routine prologue**/
   /* set initial frame marking */
-  ((struct melt_callframe_st *) &meltfram__)->mcfr_nbvar = /*minihash */ -795;
+  ((struct melt_callframe_st *) &meltfram__)->mcfr_nbvar =
+    /*minihash */ -2259;
   ((struct melt_callframe_st *) &meltfram__)->mcfr_forwmarkrout =
     meltmod__warmelt_outobj__forward_or_mark_module_start_frame;
  /**COMMENT: get previous environment **/ ;
@@ -12953,14 +12951,13 @@ start_module_melt (void *modargp_)
 
   /*^getnamedsymbol */
 
-  /*getnamedsym:CLASS_OBJCHECKINTERRUPT */
+  /*getnamedsym:CLASS_OBJCHECKSIGNAL */
   {
-    melt_ptr_t sy_CLASS_OBJCHECKINTERRUPT =
-      meltgc_named_symbol ("CLASS_OBJCHECKINTERRUPT", MELT_GET);
-    if (sy_CLASS_OBJCHECKINTERRUPT
-	&& NULL == /*_.VALDATA___V385*/ meltfptr[384])
+    melt_ptr_t sy_CLASS_OBJCHECKSIGNAL =
+      meltgc_named_symbol ("CLASS_OBJCHECKSIGNAL", MELT_GET);
+    if (sy_CLASS_OBJCHECKSIGNAL && NULL == /*_.VALDATA___V385*/ meltfptr[384])
   /*_.VALDATA___V385*/ meltfptr[384] =
-	(melt_ptr_t) sy_CLASS_OBJCHECKINTERRUPT;
+	(melt_ptr_t) sy_CLASS_OBJCHECKSIGNAL;
   }
 
   /*^getnamedsymbol */
@@ -15438,11 +15435,11 @@ start_module_melt (void *modargp_)
     argtab[0].meltbp_aptr = (melt_ptr_t *) & /*_.PREVENV___V4*/ meltfptr[3];
     /*^apply.arg */
 
-    argtab[1].meltbp_cstring = "CLASS_OBJCHECKINTERRUPT";
+    argtab[1].meltbp_cstring = "CLASS_OBJCHECKSIGNAL";
     /*^apply.arg */
 
     argtab[2].meltbp_cstring = "warmelt-outobj";
-    /*_.CLASS_OBJCHECKINTERRUPT__V67*/ meltfptr[66] =
+    /*_.CLASS_OBJCHECKSIGNAL__V67*/ meltfptr[66] =
       melt_apply ((meltclosure_ptr_t) ( /*_.VALIMPORT___V6*/ meltfptr[5]),
 		  (melt_ptr_t) ( /*_.VALDATA___V385*/ meltfptr[384]),
 		  (MELTBPARSTR_PTR MELTBPARSTR_CSTRING MELTBPARSTR_CSTRING
@@ -22581,10 +22578,10 @@ meltmod__warmelt_outobj__initialmeltchunk_3 (struct frame_start_module_melt_st
 		  MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
-      ("putroutconst constnull.drout_234__OUTPUCOD_OBJCHECKINTERRUPT#0",
-       NULL != ( /*_.CLASS_OBJCHECKINTERRUPT__V67*/ meltfptr[66]));
+      ("putroutconst constnull.drout_234__OUTPUCOD_OBJCHECKSIGNAL#0",
+       NULL != ( /*_.CLASS_OBJCHECKSIGNAL__V67*/ meltfptr[66]));
   ((meltroutine_ptr_t) /*_.VALROUT___V383*/ meltfptr[382])->tabval[0] =
-    (melt_ptr_t) ( /*_.CLASS_OBJCHECKINTERRUPT__V67*/ meltfptr[66]);
+    (melt_ptr_t) ( /*_.CLASS_OBJCHECKSIGNAL__V67*/ meltfptr[66]);
 
   MELT_LOCATION ("warmelt-outobj.melt:2292:/ initchunk");
   /*^putroutconstnotnull */
@@ -22607,7 +22604,7 @@ meltmod__warmelt_outobj__initialmeltchunk_3 (struct frame_start_module_melt_st
 		  MELTOBMAG_ROUTINE);
   if (MELT_HAS_INITIAL_ENVIRONMENT)
     melt_checkmsg
-      ("putroutconst constnull.drout_234__OUTPUCOD_OBJCHECKINTERRUPT#2",
+      ("putroutconst constnull.drout_234__OUTPUCOD_OBJCHECKSIGNAL#2",
        NULL != ( /*_.ADD2OUT__V50*/ meltfptr[49]));
   ((meltroutine_ptr_t) /*_.VALROUT___V383*/ meltfptr[382])->tabval[2] =
     (melt_ptr_t) ( /*_.ADD2OUT__V50*/ meltfptr[49]);
@@ -34442,8 +34439,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
 	    meltfptr[784] = slot;
 	  };
 	  ;
-	  /*^checkinterrupt */
-	  MELT_CHECK_INTERRUPT ();
+	  /*^checksignal */
+	  MELT_CHECK_SIGNAL ();
 	  ;
 	  /*^apply */
 	  /*apply */
@@ -34487,8 +34484,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -34520,8 +34517,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -34553,8 +34550,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -34586,8 +34583,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -34619,8 +34616,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -34652,8 +34649,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -34685,8 +34682,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -34718,8 +34715,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -34752,8 +34749,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -34786,8 +34783,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -34820,8 +34817,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -34854,8 +34851,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -34888,8 +34885,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -34922,8 +34919,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -34956,8 +34953,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -34990,8 +34987,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35024,8 +35021,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35058,8 +35055,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35092,8 +35089,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35126,8 +35123,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35160,8 +35157,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35193,8 +35190,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35226,8 +35223,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35259,8 +35256,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35292,8 +35289,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35326,8 +35323,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35360,8 +35357,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35393,8 +35390,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35427,8 +35424,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35461,8 +35458,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35494,8 +35491,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35528,8 +35525,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35561,8 +35558,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35594,8 +35591,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35627,8 +35624,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35644,7 +35641,7 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
       /*_.INSTALL_METHOD__V821*/ meltfptr[785] =
 	melt_apply ((meltclosure_ptr_t)
 		    ( /*_.INSTALL_METHOD__V12*/ meltfptr[11]),
-		    (melt_ptr_t) ( /*_.CLASS_OBJCHECKINTERRUPT__V67*/
+		    (melt_ptr_t) ( /*_.CLASS_OBJCHECKSIGNAL__V67*/
 				  meltfptr[66]),
 		    (MELTBPARSTR_PTR MELTBPARSTR_PTR ""), argtab, "",
 		    (union meltparam_un *) 0);
@@ -35661,8 +35658,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35694,8 +35691,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35728,8 +35725,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35762,8 +35759,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35796,8 +35793,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35830,8 +35827,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35864,8 +35861,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35898,8 +35895,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35931,8 +35928,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35964,8 +35961,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -35997,8 +35994,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36030,8 +36027,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36063,8 +36060,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36096,8 +36093,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36130,8 +36127,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36164,8 +36161,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36198,8 +36195,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36232,8 +36229,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36265,8 +36262,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36298,8 +36295,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36332,8 +36329,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36366,8 +36363,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36399,8 +36396,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36433,8 +36430,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36467,8 +36464,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36500,8 +36497,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36533,8 +36530,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36567,8 +36564,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36601,8 +36598,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36635,8 +36632,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36669,8 +36666,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36703,8 +36700,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36737,8 +36734,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36771,8 +36768,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36805,8 +36802,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36839,8 +36836,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36873,8 +36870,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36907,8 +36904,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36940,8 +36937,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -36974,8 +36971,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -37008,8 +37005,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -37041,8 +37038,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -37074,8 +37071,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -37108,8 +37105,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -37142,8 +37139,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -37175,8 +37172,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -37208,8 +37205,8 @@ meltmod__warmelt_outobj__initialmeltchunk_12 (struct
   /*anyblock */
   {
 
-    /*^checkinterrupt */
-    MELT_CHECK_INTERRUPT ();
+    /*^checksignal */
+    MELT_CHECK_SIGNAL ();
     ;
     /*^apply */
     /*apply */
@@ -37829,7 +37826,7 @@ meltmod__warmelt_outobj__initialmeltchunk_13 (struct
   (void)
     meltgc_intern_symbol ((melt_ptr_t) ( /*_.VALDATA___V381*/ meltfptr[380]));
 
-  /*internsym:CLASS_OBJCHECKINTERRUPT */
+  /*internsym:CLASS_OBJCHECKSIGNAL */
   (void)
     meltgc_intern_symbol ((melt_ptr_t) ( /*_.VALDATA___V385*/ meltfptr[384]));
 
@@ -38289,7 +38286,7 @@ meltmod__warmelt_outobj__forward_or_mark_module_start_frame (struct
   int ix = 0;
   initial_frame_st *meltframptr_ = (initial_frame_st *) fp;
   melt_assertmsg ("check module frame",
-		  meltframptr_->mcfr_nbvar == /*minihash */ -795);
+		  meltframptr_->mcfr_nbvar == /*minihash */ -2259);
   if (!marking && melt_is_forwarding)
     {
       dbgprintf
