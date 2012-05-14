@@ -13141,10 +13141,10 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
     nbfd++;
   };
   debugeprintf ("meltgc_poll_inputs polling nbfd %d delayms %d", nbfd, delayms);
-  if (nbfd > 0) {
-    pollres = poll (fdtab, nbfd, delayms);
-    debugeprintf ("meltgc_poll_inputs pollres %d", pollres);
-  }
+  gcc_assert (nbfd >= 0);
+  /* even when nbfd is null, we do call poll to sleep delayms */
+  pollres = poll (fdtab, nbfd, delayms);
+  debugeprintf ("meltgc_poll_inputs pollres %d after poll nbfd=%d delayms=%d", pollres, nbfd, delayms);
   if (pollres > 0) {
     int ixfd = 0;
     for (ixfd = 0; ixfd < nbfd; ixfd++) {
@@ -13215,6 +13215,7 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
     }
   }
 end:
+  debugeprintf ("meltgc_poll_inputs ended pollres=%d", pollres);
   if (fdtab)
     free(fdtab), fdtab = NULL;
   MELT_EXITFRAME ();

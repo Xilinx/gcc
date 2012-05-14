@@ -1,5 +1,11 @@
 
 2012-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_poll_inputs): Always calls poll, even when
+	nbfd is 0. More debugprintf.
+
+	* melt/xtramelt-probe.melt (probe_at_exit): More debug.
+
+2012-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt (foreach_pair, foreach_in_list): Move up.
 	(init_exitfinalizer): Add code chunks for debugeprintf.
 	Use foreach_in_list instead of list_every.

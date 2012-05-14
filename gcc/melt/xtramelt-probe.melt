@@ -310,15 +310,19 @@
   (shortbacktrace_dbg "probe_at_exit" 10)
   (let ( (:long loopcnt 0) 
 	 )
-    (forever probendloop
-	     (increment loopcnt 1)
-	     (let ( (probedata (probe_get_data))
-		    )
-	       (debug "probe_at_exit loop probedata=" probedata
-		      " loopcnt=" loopcnt)
-	       (unless probedata (exit probendloop))
-	       (poll_all_inputs 5000)
-	       ))
+    (forever 
+     probendloop
+     (increment loopcnt 1)
+     (debug "probe_at_exit loopcnt=" loopcnt)
+     (let ( (probedata (probe_get_data))
+	    )
+       (debug "probe_at_exit loop probedata=" probedata
+	      " loopcnt=" loopcnt)
+       (unless probedata (exit probendloop))
+       (debug "probe_at_exit loopcnt=" loopcnt " before poll_all_inputs")
+       (poll_all_inputs 5000)
+       (debug "probe_at_exit loopcnt=" loopcnt " after poll_all_inputs")
+       ))
     (debug "probe_at_exit ended loopcnt=" loopcnt)
     ))
 
