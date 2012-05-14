@@ -1,3 +1,7 @@
+2012-05-14   Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 187449.
+
 2012-05-08   Diego Novillo  <dnovillo@google.com>
 
 	* configure.ac (CXX_FOR_BUILD): Define and substitute.

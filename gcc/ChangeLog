@@ -1,3 +1,683 @@
+2012-05-13  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* config/pa/pa.md: Use define_c_enum for "unspec" and "unspecv".
+
+2012-05-13  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* common.opt (Wtype-limits): Use EnabledBy.
+
+2012-05-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*pushtf): Enable for TARGET_SSE.
+	(pushtf splitter): Ditto.
+	(movtf): Ditto.
+	(*movtf_internal): Ditto. Use V4SFmode for !TARGET_SSE2.
+	(<code>tf2): Enable for TARGET_SSE.
+	(*absnegtf2_sse): Ditto.
+	(copysign<mode>3): Enable TFmode for TARGET_SSE.
+	(copysign<mode>3_const): Ditto.
+	(copysign<mode>3_var): Ditto.
+	* config/i386/sse.md (<code>tf3): Enable for TARGET_SSE.
+	(*andnottf3): Ditto.  Use V4SFmode for !TARGET_SSE2.
+	(*<code>tf3): Ditto.
+	* config/i386/i386.c (struct builtin_description bdesc_args)
+	<IX86_BUILTIN_FABSQ>: Enable for TARGET_SSE.
+	<IX86_BUILTIN_COPYSIGNQ>: Ditto.
+	(ix86_expand_builtin) <IX86_BUILTIN_FABSQ, IX86_BUILTIN_COPYSIGNQ>:
+	Emit a normal call if SSE isn't available.
+
+2012-05-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (<sse>_andnot<mode>3): Handle
+	TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL.
+	(<code><mode>3): Ditto.
+	(*andnot<mode>3): Ditto.
+	(*andnottf3): Ditto.
+	(*<code><mode>3): Ditto.
+	(<code>tf3): Ditto.
+
+2012-05-13  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* optc-gen.awk: Error instead of warning for conflicting help.
+
+2012-05-12  Jason Merrill  <jason@redhat.com>
+
+	PR debug/53235
+	* dwarf2out.c (build_local_stub): Prefer DW_AT_signature for
+	comdat types.
+
+2012-05-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* function.c (requires_stack_frame_p): If the function can throw
+	non-call exceptions, return true if the insn can throw internally.
+
+2012-05-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* doc/generic.texi: Rename TYPE_PTRMEM_P to TYPE_PTRDATAMEM_P.
+
+2012-05-12  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.c (alpha_emit_conditional_branch): Handle
+	ORDERED and UNORDERED conditions.
+
+2012-05-11  Richard Guenther  <rguenther@suse.de>
+
+	* tree-flow.h (referenced_var_check_and_insert): Remove.
+	(find_new_referenced_vars): Likewise.
+	* tree-dfa.c (referenced_var_check_and_insert): Make static.
+	(find_new_referenced_vars_1, find_new_referenced_vars): Remove.
+	* tree-inline.c (copy_bb): Use find_referenced_vars_in
+	instead of find_new_referenced_vars.
+	* gimple-fold.c (gimplify_and_update_call_from_tree): Likewise.
+
+2012-05-11  Richard Guenther  <rguenther@suse.de>
+
+	* tree-pass.h (pass_rest_of_compilation,
+	pass_all_optimizations, pass_postreload, pass_all_early_optimizations):
+	Remove.
+	* passes.c (pass_all_optimizations, pass_postreload,
+	pass_all_early_optimizations): Make static.
+	(pass_rest_of_compilation): Likewise.  Make it an RTL_PASS.
+	* tree-phinodes.c (init_phinodes, fini_phinodes): Remove.
+	* tree-ssa.c (init_tree_ssa): Do not call init_phinodes.
+	(delete_tree_ssa): Do not call fini_phinodes.
+	* tree-flow.h (init_phinodes, fini_phinodes): Remove.
+
+2012-05-11  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 53063
+	* doc/options.texi (EnabledBy): Document
+	* opts.c: Include opts.h and options.h before tm.h.
+	(finish_options): Do not handle some sub-options here...
+	(common_handle_option): ... instead call common_handle_option_auto here.
+	* optc-gen.awk: Handle EnabledBy.
+	* opth-gen.awk: Declare common_handle_option_auto.
+	* common.opt (Wuninitialized): Use EnabledBy. Delete Init.
+	(Wmaybe-uninitialized): Likewise.
+        (Wunused-but-set-variable): Likewise.
+        (Wunused-function): Likewise.
+        (Wunused-label): Likewise.
+        (Wunused-value): Likewise.
+        (Wunused-variable): Likewise.
+        * opt-read.awk: Create opt_numbers array.
+
+2012-05-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53295
+	* tree-data-ref.h (stride_of_unit_type_p): Handle non-constant
+	strides.
+	* tree-data-ref.c (dr_analyze_innermost): Allow non-constant
+	strides when analyzing data-references in a loop context.
+	* tree-vect-data-refs.c (vect_mark_for_runtime_alias_test): Reject
+	non-constant strides for now.
+	(vect_enhance_data_refs_alignment): Ignore data references
+	that are strided loads.
+	(vect_analyze_data_ref_access): Handle non-constant strides.
+	(vect_check_strided_load): Verify the data-reference is a load.
+	(vect_analyze_data_refs): Restructure to make strided load
+	support not dependent on gather support.
+	* tree-vect-stmts.c (vectorizable_load): Avoid useless work
+	when doing strided or gather loads.
+	* tree-vect-loop-manip.c (vect_vfa_segment_size): Use
+	integer_zerop to compare stride with zero.
+
+2012-05-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/driver-i386.c (host_detect_local_cpu): Support RTM.
+
+2012-05-11  Jan Hubicka  <jh@suse.cz>
+
+	PR bootstrap/53300
+	* varpool.c (varpool_assemble_decl): Also output constat pool entries
+	that output_constant_pool missed.
+
+2012-05-11  Mingjie Xing  <mingjie.xing@gmail.com>
+
+	* config/mips/t-vxworks: Change MUTLILIB_EXTRA_OPTS to
+	MULTILIB_EXTRA_OPTS.
+
+2012-05-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/53291
+	* config/i386/i386.md (xtest): Use NE condition in ix86_expand_setcc.
+
+2012-05-11  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*movti_internal_rex64): Avoid MOVAPS size
+	optimization for TARGET_AVX.
+	(*movti_internal_sse): Ditto.
+	(*movdi_internal_rex64): Handle TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL.
+	(*movdi_internal): Ditto.
+	(*movsi_internal): Ditto.
+	(*movtf_internal): Avoid MOVAPS size optimization for TARGET_AVX.
+	(*movdf_internal_rex64): Ditto.
+	(*movfd_internal): Ditto.
+	(*movsf_internal): Ditto.
+	* config/i386/sse.md (mov<mode>): Handle TARGET_SSE_LOAD0_BY_PXOR.
+
+2012-05-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* dwarf2out.c (add_byte_size_attribute) <RECORD_TYPE>: Handle variable
+	reference as size attribute.
+
+2012-05-10  Eric Botcazou  <ebotcazou@adacore.com>
+	    Tristan Gingold  <gingold@adacore.com>
+
+	* doc/md.texi (Standard Names): Document probe_stack_address.
+	* explow.c (emit_stack_probe): Handle probe_stack_address.
+	* config/ia64/ia64.md (UNSPECV_PROBE_STACK_ADDRESS): New constant.
+	(UNSPECV_PROBE_STACK_RANGE): Likewise.
+	(probe_stack_address): New insn.
+	(probe_stack_range): Likewise.
+	* config/ia64/ia64.c: Include common/common-target.h.
+	(ia64_compute_frame_size): Mark r2 and r3 as used if static stack
+	checking is enabled.
+	(ia64_emit_probe_stack_range): New function.
+	(output_probe_stack_range): Likewise.
+	(ia64_expand_prologue): Invoke ia64_emit_probe_stack_range if static
+	builtin stack checking is enabled.
+	(rtx_needs_barrier) <UNSPEC_VOLATILE>: Handle UNSPECV_PROBE_STACK_RANGE
+	and UNSPECV_PROBE_STACK_ADDRESS.
+	(unknown_for_bundling_p): New predicate.
+	(group_barrier_needed): Use important_for_bundling_p.
+	(ia64_dfa_new_cycle): Use unknown_for_bundling_p.
+	(issue_nops_and_insn): Likewise.
+	(bundling): Likewise.
+	(final_emit_insn_group_barriers): Likewise.
+	* config/ia64/ia64-protos.h (output_probe_stack_range): Declare.
+	* config/ia64/hpux.h (STACK_CHECK_STATIC_BUILTIN): Define.
+	(STACK_CHECK_PROTECT): Likewise.
+	* config/ia64/linux.h (STACK_CHECK_STATIC_BUILTIN): Likewise.
+
+2012-05-10  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline.c (update_all_callee_keys): Remove.
+	(inline_small_functions): Simplify priority updating.
+
+2012-05-10  Jan Hubicka  <jh@suse.cz>
+
+	* ipa.c (symtab_remove_unreachable_nodes): Fix marking of clones.
+
+2012-05-10  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.h (cgraph_remove_unreachable_nodes): Rename to ...
+	(symtab_remove_unreachable_nodes): ... this one.
+	* ipa-cp.c (ipcp_driver): Do not remove unreachable nodes.
+	* cgraphunit.c (ipa_passes): Update.
+	* cgraphclones.c (cgraph_materialize_all_clones): Update.
+	* cgraph.c (cgraph_release_function_body): Only turn initial
+	into error mark when initial was previously set.
+	* ipa-inline.c (ipa_inline): Update.
+	* ipa.c: Include ipa-inline.h
+	(enqueue_cgraph_node, enqueue_varpool_node): Remove.
+	(enqueue_node): New function.
+	(process_references): Update.
+	(symtab_remove_unreachable_nodes): Cleanup.
+	* passes.c (execute_todo, execute_one_pass): Update.
+
+2012-05-10  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/53125
+	* ira.c (ira): Call find_moveable_pseudos and
+	move_unallocated_pseudos if only ira_conflicts_p is true.
+
+2012-05-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*movoi_internal_avx): Handle
+	TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL and TARGET_SSE_TYPELESS_STORES.
+	(*movti_internal_rex64): Handle TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL.
+	(*movti_internal_sse): Ditto.
+	(*movtf_internal): Ditto.
+	* config/i386/sse.md (ssePSmode): New mode attribute.
+	(*move<mode>_internal): Use ssePSmode.
+	(*<sse>_movu<ssemodesuffix><avxsizesuffix>): Ditto.
+	(*<sse2>_movdqu<avxsizesuffix>): Ditto.
+	* config/i386/i386.c (standard_sse_constant_opcode): Do not handle
+	TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL here.
+
+2012-05-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gimplify.c (gimplify_decl_expr): For a TYPE_DECL, also gimplify the
+	DECL_ORIGINAL_TYPE if it is present.
+
+2012-05-10  Nick Clifton  <nickc@redhat.com>
+
+	PR target/53120
+	* config/m32c/bitops.md (bset_qi): Change operand 2 from having
+	a "0" constraint to being a (match_dup 0).
+
+2012-05-10  Richard Guenther  <rguenther@suse.de>
+
+	* stor-layout.c (byte_from_pos): Amend comment.
+
+2012-05-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* doc/extend.texi (X86 Built-in Functions, __builtin_cpu_init):
+	Document requirement to call in constructors.
+
+	* config/i386/i386.c: Update comments for i386-cpuinfo.c name change.
+
+2012-05-10  Richard Guenther  <rguenther@suse.de>
+
+	* tree.h (TYPE_IS_SIZETYPE): Remove.
+	* fold-const.c (int_const_binop_1): Remove TYPE_IS_SIZETYPE use.
+	(extract_muldiv_1): Likewise.
+	* gimple.c (gtc_visit): Likewise.
+	(gimple_types_compatible_p): Likewise.
+	(iterative_hash_canonical_type): Likewise.
+	(gimple_canonical_types_compatible_p): Likewise.
+	* gimplify.c (gimplify_one_sizepos): Likewise.
+	* print-tree.c (print_node): Likewise.
+	* stor-layout.c (initialize_sizetypes): Do not set TYPE_IS_SIZETYPE.
+
+2012-05-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52908
+	* config/i386/sse.md (vec_widen_smult_hi_v4si): Expand using
+	xop_pmacsdqh insn pattern instead of xop_mulv2div2di3_high.
+	(vec_widen_smult_lo_v4si): Expand using xop_pmacsdql insn pattern
+	instead of xop_mulv2div2di3_low.
+	(xop_p<macs>dql): Fix vec_select selector.
+	(xop_p<macs>dqh): Ditto.
+	(xop_mulv2div2di3_low): Remove insn_and_split pattern.
+	(xop_mulv2div2di3_high): Ditto.
+
+2012-05-09  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR c++/53289
+	* diagnostic.h (diagnostic_context): Add last_location.
+	* diagnostic.c (diagnostic_initialize): Initialize it.
+	(diagnostic_show_locus): Use it.
+
+2012-05-09  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+       * doc/extend.texi (Function Attributes): Point xref to section
+	about Pragmas.
+
+2012-05-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (*movdf_internal_rex64): Remove
+	TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL handling from asm output code.
+	Calculate "mode" attribute according to
+	TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL flag.
+	(*movdf_internal): Ditto.
+
+2012-05-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/44141
+	* config/i386/i386.c (ix86_expand_vector_move_misalign): Do not handle
+	128 bit vectors specially for TARGET_AVX.  Emit sse2_movupd and
+	sse_movupd RTXes for TARGET_AVX, TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL
+	or when optimizing for size.
+	* config/i386/sse.md (*mov<mode>_internal): Remove
+	TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL handling from asm output code.
+	Calculate "mode" attribute according to optimize_function_for_size_p
+	and TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL flag.
+	(*<sse>_movu<ssemodesuffix><avxsizesuffix>): Choose asm template
+	depending on the mode of the instruction.  Calculate "mode" attribute
+	according to optimize_function_for_size_p, TARGET_SSE_TYPELESS_STORES
+	and TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL flags.
+	(*<sse2>_movdqu<avxsizesuffix>): Ditto.
+
+2012-05-09  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/53256
+	* config/avr/elf.h (ASM_DECLARE_FUNCTION_NAME): Remove.
+	* config/avr/avr-protos.h (avr_asm_declare_function_name): Remove.
+	* config/avr/avr.h (struct machine_function): Add attributes_checked_p.
+	* config/avr/avr.c (avr_asm_declare_function_name): Remove.
+	(expand_prologue): Move initialization of cfun->machine->is_naked,
+	is_interrupt, is_signal, is_OS_task, is_OS_main from here to...
+	(avr_set_current_function): ...this new static function.
+	(TARGET_SET_CURRENT_FUNCTION): New define.
+	(avr_function_ok_for_sibcall): Use cfun->machine->is_* instead of
+	checking attributes of current_function_decl.
+	(avr_regs_to_save): Ditto.
+	(signal_function_p): Rename to avr_signal_function_p.
+	(interrupt_function_p): Rename to avr_interrupt_function_p.
+
+	* doc/extend.texi (Function Attributes): Better explanation of
+	'interrupt' and 'signal' for AVR. Move 'ifunc' down to establish
+	alphabetical order.
+
+2012-05-09  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/53185
+	* tree-vect-data-refs.c (vect_enhance_data_refs_alignment): Disable
+	peeling when we see strided loads.
+
+2012-05-09  Matthias Klose  <doko@ubuntu.com>
+
+	* gcc-ar.c (main): Don't check for execute bits for the plugin.
+
+2012-05-09  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	* tree-ssa-loop-ivopts.c (add_autoinc_candidates, get_address_cost):
+	Replace use of HAVE_{POST/PRE}_{INCREMENT/DECREMENT} with
+	USE_{LOAD/STORE}_{PRE/POST}_{INCREMENT/DECREMENT} appropriately.
+	* config/arm/arm.h (ARM_AUTOINC_VALID_FOR_MODE_P): New.
+	(USE_LOAD_POST_INCREMENT): Define.
+	(USE_LOAD_PRE_INCREMENT): Define.
+	(USE_LOAD_POST_DECREMENT): Define.
+	(USE_LOAD_PRE_DECREMENT): Define.
+	(USE_STORE_PRE_DECREMENT): Define.
+	(USE_STORE_PRE_INCREMENT): Define.
+	(USE_STORE_POST_DECREMENT): Define.
+	(USE_STORE_POST_INCREMENT): Define.
+	(arm_auto_incmodes): Add enumeration.
+	* config/arm/arm-protos.h (arm_autoinc_modes_ok_p): Declare.
+	* config/arm/arm.c (arm_autoinc_modes_ok_p): Define.
+
+2012-05-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53226
+	* tree-ssa-forwprop.c (ssa_forward_propagate_and_combine): Remove
+	prev and prev_initialized vars, gimple_set_plf (stmt, GF_PLF_1, false)
+	before processing it and gimple_set_plf (stmt, GF_PLF_1, true) if it
+	doesn't need to be revisited, look for earliest stmt with
+	!gimple_plf (stmt, GF_PLF_1) if something changed.
+
+2012-05-09  Terry Guo  <terry.guo@arm.com>
+
+	* genmultilib: Update copyright dates.
+	* doc/fragments.texi: Ditto.
+
+2012-05-09  Terry Guo  <terry.guo@arm.com>
+
+	* Makefile.in (s-mlib): Add new argument MULTILIB_REQUIRED.
+	* genmultilib (MULTILIB_REQUIRED): New.
+	* doc/fragments.texi: Document the MULTILIB_REQUIRED.
+
+2012-05-09  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vectorizer.h (vect_loop_versioning): Adjust prototype.
+	(vect_do_peeling_for_loop_bound): Likewise.
+	(vect_do_peeling_for_alignment): Likewise.
+	* tree-vect-loop-manip.c (conservative_cost_threshold): Remove.
+	(vect_do_peeling_for_loop_bound): Get check_profitability and
+	threshold as parameters.
+	(vect_do_peeling_for_alignment): Likewise.
+	(vect_loop_versioning): Likewise.
+	* tree-vect-loop.c (vect_transform_loop): Compute check_profitability
+	and threshold here.  Control where to put the check here.
+
+2012-05-09  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR middle-end/53249
+	* dwarf2out.h (get_address_mode): Move declaration to...
+	* rtl.h: ...here.
+	* dwarf2out.c (get_address_mode): Move definition to...
+	* rtlanal.c: ...here.
+	* var-tracking.c (get_address_mode): Delete.
+	* combine.c (find_split_point): Use get_address_mode instead of
+	targetm.addr_space.address_mode.
+	* cselib.c (cselib_record_sets): Likewise.
+	* dse.c (canon_address, record_store): Likewise.
+	* emit-rtl.c (adjust_address_1, offset_address): Likewise.
+	* expr.c (move_by_pieces, emit_block_move_via_loop, store_by_pieces)
+	(store_by_pieces_1, expand_assignment, store_expr, store_constructor)
+	(expand_expr_real_1): Likewise.
+	* ifcvt.c (noce_try_cmove_arith): Likewise.
+	* optabs.c (maybe_legitimize_operand_same_code): Likewise.
+	* reload.c (find_reloads): Likewise.
+	* sched-deps.c (sched_analyze_1, sched_analyze_2): Likewise.
+	* sel-sched-dump.c (debug_mem_addr_value): Likewise.
+
+2012-05-09  Maciej W. Rozycki  <macro@codesourcery.com>
+
+	* config/mips/mips.c (mips16_gp_pseudo_reg): Remove line
+	information from the instruction produced.
+
+2012-05-09  Richard Guenther  <rguenther@suse.de>
+
+	* stor-layout.c (bit_from_pos): Document.
+	(byte_from_pos): Likewise.  Optimize.
+	(pos_from_bit): Likewise.
+	(normalize_offset): Use pos_from_bit instead of replicating it.
+
+2012-05-09  Alan Modra  <amodra@gmail.com>
+
+	PR target/53271
+	* config/rs6000/rs6000.c (gen_frame_set): New function.
+	(gen_frame_load, gen_frame_store): New functions.
+	(rs6000_savres_rtx): Use the above.
+	(rs6000_emit_epilogue, rs6000_emit_prologue): Here too.
+	Correct mode used for CR2 in save/restore_world patterns.
+	Don't emit instructions for eh_return frame unwind reg info.
+
+2012-05-08  Jan Hubicka  <jh@suse.cz>
+
+	* cgraphbuild.c (build_cgraph_edges): Do not finalize vars
+	with VALUE_EXPR.
+	* cgraph.h (varpool_can_remove_if_no_refs): Vars with VALUE_EXPR
+	are removable.
+	* toplev.c (wrapup_global_declaration_2): Vars with VALUE_EXPR
+	need to wrapup.
+	(compile_file): Do not output variables.
+	* cgraphbuild.c (varpool_finalize_decl): When var is finalized late,
+	output it.
+	* langhooks.c: Include timevar.h
+	(write_global_declarations): Finalize compilation unit after wrapup;
+	set timevars correctly.
+	* passes.c (rest_of_decl_compilation): Decls with VALUE_EXPR needs
+	not to be added to varpool.
+	* varpool.c (varpool_assemble_decl): Sanity check that we are called
+	only on cases where it makes sense; skip constant pool and value expr
+	vars.
+
+2012-05-08  David S. Miller  <davem@davemloft.net>
+
+	* config/sparc/linux.h (LINK_SPEC): Don't pass "-Y" option.
+	* config/sparc/linux64.h (LINK_ARCH32_SPEC): Likewise.
+	* config/sparc/linux64.h (LINK_ARCH64_SPEC): Likewise.
+
+2012-05-08  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR rtl-optimization/53278
+	* lower-subreg.c (decompose_multiword_subregs): Remove left-over
+	speed_p code from earlier patch.
+
+2012-05-08  Oleg Endo  <olegendo@gcc.gnu.org>
+
+	PR target/51244
+	* config/sh/sh.md (*branch_true, *branch_false): New insns.
+
+2012-05-08  Teresa Johnson  <tejohnson@google.com>
+
+	* gcov-io.h (__gcov_reset, __gcov_dump): Declare.
+	* doc/gcov.texi: Add note on using __gcov_reset and __gcov_dump.
+
+2012-05-08  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.c (cgraph_call_edge_duplication_hooks): Export.
+	(cgraph_create_node_1): Rename to ...
+	(cgraph_create_empty_node): ... this one; export.
+	(cgraph_create_node): Update.
+	(cgraph_set_call_stmt_including_clones): Move to cgraphclones.c
+	(cgraph_create_edge_including_clones): Likewise.
+	(cgraph_find_replacement_node): Likewise.
+	(cgraph_clone_edge): Likewise.
+	(cgraph_clone_node): Likewise.
+	(clone_function_name): Likewise.
+	(cgraph_create_virtual_clone): Likewise.
+	(cgraph_remove_node_and_inline_clones): Likewise.
+	(cgraph_redirect_edge_call_stmt_to_callee): Move here from cgraphunit.c
+	* cgraph.h: Reorder declarations so they match file of origin.
+	(cgraph_create_empty_node): Declare.
+	* cgraphunit.c (update_call_expr): Move to cgraphclones.c
+	(cgraph_copy_node_for_versioning): Likewise.
+	(cgraph_function_versioning): Likewise.
+	(cgraph_materialize_clone): Likewise.
+	(cgraph_redirect_edge_call_stmt_to_callee): Likewise.
+	(cgraph_materialize_all_clones): Likewise.
+	* cgraphclones.c: New file.
+	* Makefile.in: Update for cgraphclones.
+
+2012-05-08  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/53176
+	* config/i386/i386.c (ix86_set_reg_reg_cost): New function.
+	(ix86_rtx_costs): Handle SET.
+
+2012-05-08  Michael Matz  <matz@suse.de>
+
+	* basic-block.h (struct rtl_bb_info): Remove visited member and
+	move head_ member to ...
+	(struct basic_block_def.basic_block_il_dependent): ... the new
+	member x, replacing but containing old member rtl.
+	(enum bb_flags): New BB_VISITED flag.
+	(BB_HEADER, BB_FOOTER): New macros.
+
+	* jump.c (mark_all_labels): Adjust.
+	* cfgcleanup.c (try_optimize_cfg): Adjust.
+	* cfglayout.c (record_effective_endpoints): Adjust.
+	(relink_block_chain): Ditto (and don't fiddle with visited).
+	(fixup_reorder_chain): Adjust.
+	(fixup_fallthru_exit_predecessor): Ditto.
+	(cfg_layout_duplicate_bb): Ditto.
+	* combine.c (update_cfg_for_uncondjump): Adjust.
+	* bb-reorder.c (struct bbro_basic_block_data_def): Add visited member.
+	(bb_visited_trace): New accessor.
+	(mark_bb_visited): Move in front.
+	(rotate_loop): Use bb_visited_trace.
+	(find_traces_1_round): Ditto.
+	(emit_barrier_after): Ditto.
+	(copy_bb): Ditto, and initialize visited on resize.
+	(reorder_basic_blocks): Initize visited member.
+	(duplicate_computed_gotos): Clear bb flags at start, use
+	BB_VISITED flags.
+
+	* cfgrtl.c (try_redirect_by_replacing_jump): Adjust.
+	(rtl_verify_flow_info_1): Ditto.
+	(cfg_layout_split_block): Ditto.
+	(cfg_layout_delete_block): Ditto.
+	(cfg_layout_merge_blocks): Ditto.
+	(init_rtl_bb_info): Adjust and initialize il.x.head_ member.
+
+2012-05-08  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR target/53272
+	* config/cris/cris.c (cris_normal_notice_update_cc): For TARGET_V32,
+	when a constant source operand matches an "I" constraint, the "no
+	CC0 change" applies to a register-destination only, not a
+	strict_low_part-destination.
+
+2012-05-08  Richard Guenther  <rguenther@suse.de>
+
+	* fold-const.c (fold_binary_loc): Fold (X * CST1) & CST2
+	to zero or to (X * CST1) & CST2' when CST1 has trailing zeros.
+
+2012-05-08  Georg-Johann Lay  <avr@gjlay.de>
+
+	* Makefile.in (TEXI_GCC_FILES): Add avr-mmcu.texi.
+
+	* doc/avr-mmcu.texi: New auto-generated file.
+	* doc/invoke.texi (AVR Options): Include avr-mmcu.texi in order
+	to document all valid -mmcu= arguments.
+
+	* config/avr/avr.h (arch_info_s): New struct definition.
+	* config/avr/avr-devices.c (avr_texinfo): New variable.
+	* config/avr/gen-avr-mmcu-texi.c: New file.
+	* config/avr/t-avr: New rules and dependencies to build	avr-mmcu.texi.
+
+2012-05-08  Dehao Chen  <dehao@google.com>
+
+	* predict.c (find_qualified_ssa_name): New.
+	(find_ssa_name_in_expr): New.
+	(find_ssa_name_in_assign_stmt): New.
+	(is_comparison_with_loop_invariant_p): New.
+	(is_bound_expr_similar): New.
+	(predict_iv_comparison): New.
+	(predict_loops): Add heuristic for loop-nested branches that compare an
+	induction variable to a loop bound variable.
+	* predict.def (PRED_LOOP_IV_COMPARE): New macro.
+
+2012-05-08  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (has_dispatch): Use TARGET_BDVER1 and
+	TARGET_BDVER2 defines where appropriate.
+
+2012-05-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* configure.ac (PLUGIN_LD): Rename into...
+	(PLUGIN_LD_SUFFIX): ...this and strip the target_alias triplet.
+	* config.in: Regenerate.
+	* configure: Likewise.
+	* collect2.c (main): Set plugin_ld_suffix to PLUGIN_LD_SUFFIX.
+
+2012-05-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-dfa.c (get_ref_base_and_extent) <ARRAY_REF>: Do the offset
+	computation using the precision of the index type.
+	* gimple-fold.c (fold_const_aggregate_ref_1) <ARRAY_REF>: Likewise.
+	(fold_array_ctor_reference): Do index computations in the index type.
+
+2012-05-07  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.c (avr_prologue_setup_frame): Fix mode passed
+	down to plus_constant.
+	(expand_epilogue): Ditto.
+
+2012-05-07  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* postreload.c (reload_cse_regs): Make static.
+	* reload.h (reload_cse_regs): Remove prototype.
+
+2012-05-07  Richard Henderson  <rth@redhat.com>
+
+	* config/alpha/alpha.md (clear_cache): New pattern.
+
+2012-05-07  Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR middle-end/53245
+	* gimplify.c (preprocess_case_label_vec_for_gimple): If low or high
+	is folded to a type boundary value, verify that the resulting case
+	label is still a care range.
+
+2012-05-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (ctz<mode>2): Emit rep;bsf
+	only for TARGET_GENERIC, when not optimizing for size.
+	(*ffs<mode>_1): Ditto.
+
+2012-05-07  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* tree-cfg.c (verify_gimple_switch): Tighten checks.
+
+2012-05-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53239
+	* tree-vrp.c (get_value_range): Set VR of SSA_NAME_IS_DEFAULT_DEF
+	of DECL_BY_REFERENCE RESULT_DECL to nonnull.
+
+2012-05-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53195
+	* tree-inline.c (setup_one_parameter): Properly add referenced
+	vars from the parameters new known value.
+
+2012-05-07  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* config/m68k/m68k.c (m68k_sched_branch_type): Remove.
+	(sched_branch_type): Remove.
+	(m68k_sched_md_init_global): Don't allocate it.
+	(m68k_sched_md_finish_global): Don't free it.
+	* config/m68k/m68k.h (m68k_sched_branch_type): Remove prototype.
+	* config/m68k/m68k.md: Set the type of insns using
+	m68k_sched_branch_type to bcc directly.
+
+2012-05-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/sol2.c (solaris_override_options): New function.
+	* config/sol2-protos.h (solaris_override_options): Declare.
+	* config/sol2.h (SUBTARGET_OVERRIDE_OPTIONS): Define.
+
+2012-05-07  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-loop-prefetch.c (determine_loop_nest_reuse): Return
+	whether we failed to compute data dependences.
+	(loop_prefetch_arrays): Fail if we failed.
+
 2012-05-07  Uros Bizjak  <ubizjak@gmail.com>
 	    Paolo Bonzini  <bonzini@gnu.org>
 
@@ -342,7 +1022,7 @@
 
 	Enable -Wunused-local-typedefs when -Wall or -Wunused is on
 	* opts.c (finish_options): Activate -Wunused-local-typedefs if
-    	-Wunused is activated.
+	-Wunused is activated.
 	* doc/invoke.texi: Update blurb of -Wunused-local-typedefs.
 
 2012-05-04  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
@@ -1397,7 +2077,7 @@
 	* config/pa/pa.c (pa_legitimate_constant_p): Don't put function labels
 	in constant pool.
 
-2012-04-27   Ollie Wild  <aaw@google.com>
+2012-04-27  Ollie Wild  <aaw@google.com>
 
 	* doc/invoke.texi (Wliteral-suffix): Document new option.
 

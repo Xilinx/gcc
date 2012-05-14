@@ -1629,7 +1629,7 @@ warn_logical_operator (location_t location, enum tree_code code, tree type,
     in0_p = !in0_p;
 
   tem = build_range_check (UNKNOWN_LOCATION, type, lhs, in0_p, low0, high0);
-  if (integer_zerop (tem))
+  if (tem && integer_zerop (tem))
     return;
 
   rhs = make_range (op_right, &in1_p, &low1, &high1, &strict_overflow_p);
@@ -1644,7 +1644,7 @@ warn_logical_operator (location_t location, enum tree_code code, tree type,
     in1_p = !in1_p;
 
   tem = build_range_check (UNKNOWN_LOCATION, type, rhs, in1_p, low1, high1);
-  if (integer_zerop (tem))
+  if (tem && integer_zerop (tem))
     return;
 
   /* If both expressions have the same operand, if we can merge the
@@ -2329,6 +2329,8 @@ conversion_warning (tree type, tree expr)
 void
 warnings_for_convert_and_check (tree type, tree expr, tree result)
 {
+  location_t loc = EXPR_LOC_OR_HERE (expr);
+
   if (TREE_CODE (expr) == INTEGER_CST
       && (TREE_CODE (type) == INTEGER_TYPE
           || TREE_CODE (type) == ENUMERAL_TYPE)
@@ -2344,8 +2346,8 @@ warnings_for_convert_and_check (tree type, tree expr, tree result)
           /* This detects cases like converting -129 or 256 to
              unsigned char.  */
           if (!int_fits_type_p (expr, c_common_signed_type (type)))
-            warning (OPT_Woverflow,
-                     "large integer implicitly truncated to unsigned type");
+            warning_at (loc, OPT_Woverflow,
+			"large integer implicitly truncated to unsigned type");
           else
             conversion_warning (type, expr);
         }
@@ -2357,16 +2359,16 @@ warnings_for_convert_and_check (tree type, tree expr, tree result)
 	       && (TREE_CODE (TREE_TYPE (expr)) != INTEGER_TYPE
 		   || TYPE_PRECISION (TREE_TYPE (expr))
 		   != TYPE_PRECISION (type)))
-	warning (OPT_Woverflow,
-		 "overflow in implicit constant conversion");
+	warning_at (loc, OPT_Woverflow,
+		    "overflow in implicit constant conversion");
 
       else
 	conversion_warning (type, expr);
     }
   else if ((TREE_CODE (result) == INTEGER_CST
 	    || TREE_CODE (result) == FIXED_CST) && TREE_OVERFLOW (result))
-    warning (OPT_Woverflow,
-             "overflow in implicit constant conversion");
+    warning_at (loc, OPT_Woverflow,
+		"overflow in implicit constant conversion");
   else
     conversion_warning (type, expr);
 }
@@ -4539,12 +4541,10 @@ c_sizeof_or_alignof_type (location_t loc,
 	value = size_int (TYPE_ALIGN_UNIT (type));
     }
 
-  /* VALUE will have an integer type with TYPE_IS_SIZETYPE set.
-     TYPE_IS_SIZETYPE means that certain things (like overflow) will
-     never happen.  However, this node should really have type
-     `size_t', which is just a typedef for an ordinary integer type.  */
+  /* VALUE will have the middle-end integer type sizetype.
+     However, we should really return a value of type `size_t',
+     which is just a typedef for an ordinary integer type.  */
   value = fold_convert_loc (loc, size_type_node, value);
-  gcc_assert (!TYPE_IS_SIZETYPE (TREE_TYPE (value)));
 
   return value;
 }

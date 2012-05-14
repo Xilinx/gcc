@@ -1,3 +1,154 @@
+2012-05-13  Alessandro Fanfarillo  <fanfarillo.gcc@gmail.com>
+
+	PR fortran/45170
+	* gfortran.dg/deferred_type_param_3.f90: New.
+	* gfortran.dg/deferred_type_proc_pointer_1.f90: New.
+	* gfortran.dg/deferred_type_proc_pointer_2.f90: New.
+
+2012-05-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/null_pointer_deref3.adb: New test.
+
+2012-05-12  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/49110
+	PR fortran/52843
+	* gfortran.dg/deferred_type_param_5.f90: New.
+
+2012-05-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* g++.dg/parse/error47.C: New.
+
+2012-05-11  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/52537
+	* gfortran.dg/string_compare_4.f90:  Change option
+	to -fdump-tree-original.  Add test case for kind=4.
+
+2012-05-11  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/52537
+	* gfortran.dg/string_compare_4.f90:  New test.
+
+2012-05-11  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/debug/dwarf2/nested-3.C: Allow for ! comments.
+
+2012-05-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53305
+	* g++.dg/cpp0x/variadic132.C: New.
+
+2012-05-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53158
+	* g++.dg/cpp0x/lambda/lambda-err2.C: New.
+	* g++.dg/parse/error26.C: Tweak dg-error column number.
+
+2012-05-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53301
+	* g++.dg/warn/Wzero-as-null-pointer-constant-6.C: New.
+
+2012-05-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/lto11.ad[sb]: New test.
+
+2012-05-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/52908
+	* gcc.target/i386/xop-imul32widen-vector.c: Update scan-assembler
+	directive to Scan for vpmuldq, not vpmacsdql.
+
+2012-05-09  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/53185
+	* gcc.dg/vect/pr53185.c: New test.
+
+2012-05-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/53249
+	* gcc.target/i386/pr53249.c: New.
+
+2012-05-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/18437
+	* gfortran.dg/vect/rnflow-trs2a2.f90: Move ...
+	* gfortran.dg/vect/fast-math-rnflow-trs2a2.f90: ... here.
+
+2012-05-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53226
+	* gcc.c-torture/compile/pr53226.c: New test.
+
+2012-05-09  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.target/i386/hle-add-acq-1.c: Allow for ; after lock.
+	* gcc.target/i386/hle-add-rel-1.c: Likewise.
+	* gcc.target/i386/hle-and-acq-1.c: Likewise.
+	* gcc.target/i386/hle-and-rel-1.c: Likewise.
+	* gcc.target/i386/hle-cmpxchg-acq-1.c: Likewise.
+	* gcc.target/i386/hle-cmpxchg-rel-1.c: Likewise.
+	* gcc.target/i386/hle-or-acq-1.c: Likewise.
+	* gcc.target/i386/hle-or-rel-1.c: Likewise.
+	* gcc.target/i386/hle-sub-acq-1.c: Likewise.
+	* gcc.target/i386/hle-sub-rel-1.c: Likewise.
+	* gcc.target/i386/hle-xadd-acq-1.c: Likewise.
+	* gcc.target/i386/hle-xadd-rel-1.c: Likewise.
+	* gcc.target/i386/hle-xor-acq-1.c: Likewise.
+	* gcc.target/i386/hle-xor-rel-1.c: Likewise.
+
+2012-05-09  Dehao Chen  <dehao@google.com>
+
+	* gcc.dg/predict-1.c: Remove the replicated text in this test.
+	* gcc.dg/predict-2.c: Likewise.
+	* gcc.dg/predict-3.c: Likewise.
+	* gcc.dg/predict-4.c: Likewise.
+	* gcc.dg/predict-5.c: Likewise.
+	* gcc.dg/predict-6.c: Likewise.
+
+2012-05-08  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR target/53272
+	* gcc.dg/torture/pr53272-1.c, gcc.dg/torture/pr53272-2.c: New test.
+
+2012-05-08  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/fold-bitand-4.c: New testcase.
+
+2012-05-08  Dehao Chen  <dehao@google.com>
+
+	* gcc.dg/predict-1.c: Check if LOOP_IV_COMPARE static predict
+	heuristic is working properly.
+	* gcc.dg/predict-2.c: Likewise.
+	* gcc/dg/predict-3.c: Likewise.
+	* gcc/dg/predict-4.c: Likewise.
+	* gcc/dg/predict-5.c: Likewise.
+	* gcc/dg/predict-6.c: Likewise.
+
+2012-05-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53239
+	* g++.dg/opt/vrp3.C: New test.
+	* g++.dg/opt/vrp3-aux.cc: New file.
+	* g++.dg/opt/vrp3.h: New file.
+
+2012-05-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/debug/dwarf2/nested-3.C: Allow for / comments and missing
+	.uleb128 support in assembler output.
+
+2012-05-07  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/42987
+	* g++.dg/lto/pr42987_0.C: New testcase.
+	* g++.dg/lto/pr42987_1.C: Likewise.
+
+2012-05-07  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/53255
+	* gfortran.dg/typebound_operator_15.f90: New.
+
 2012-05-06  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/41587

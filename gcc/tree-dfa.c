@@ -462,9 +462,7 @@ find_vars_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
   return NULL_TREE;
 }
 
-/* Find referenced variables in STMT.  In contrast with
-   find_new_referenced_vars, this function will not mark newly found
-   variables for renaming.  */
+/* Find referenced variables in STMT.  */
 
 void
 find_referenced_vars_in (gimple stmt)
@@ -505,7 +503,7 @@ referenced_var_lookup (struct function *fn, unsigned int uid)
 /* Check if TO is in the referenced_vars hash table and insert it if not.
    Return true if it required insertion.  */
 
-bool
+static bool
 referenced_var_check_and_insert (tree to)
 {
   tree h, *loc;
@@ -667,38 +665,6 @@ mark_symbols_for_renaming (gimple stmt)
 }
 
 
-/* Find all variables within the gimplified statement that were not
-   previously visible to the function and add them to the referenced
-   variables list.  */
-
-static tree
-find_new_referenced_vars_1 (tree *tp, int *walk_subtrees,
-			    void *data ATTRIBUTE_UNUSED)
-{
-  tree t = *tp;
-
-  if (TREE_CODE (t) == VAR_DECL && !var_ann (t))
-    {
-      add_referenced_var (t);
-      mark_sym_for_renaming (t);
-    }
-
-  if (IS_TYPE_OR_DECL_P (t))
-    *walk_subtrees = 0;
-
-  return NULL;
-}
-
-
-/* Find any new referenced variables in STMT.  */
-
-void
-find_new_referenced_vars (gimple stmt)
-{
-  walk_gimple_op (stmt, find_new_referenced_vars_1, NULL);
-}
-
-
 /* If EXP is a handled component reference for a structure, return the
    base variable.  The access range is delimited by bit positions *POFFSET and
    *POFFSET + *PMAX_SIZE.  The access size is *PSIZE bits.  If either
@@ -814,21 +780,24 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
 	  {
 	    tree index = TREE_OPERAND (exp, 1);
 	    tree low_bound, unit_size;
+	    double_int doffset;
 
 	    /* If the resulting bit-offset is constant, track it.  */
 	    if (TREE_CODE (index) == INTEGER_CST
-		&& host_integerp (index, 0)
 		&& (low_bound = array_ref_low_bound (exp),
-		    host_integerp (low_bound, 0))
+ 		    TREE_CODE (low_bound) == INTEGER_CST)
 		&& (unit_size = array_ref_element_size (exp),
-		    host_integerp (unit_size, 1)))
+		    host_integerp (unit_size, 1))
+		&& (doffset = double_int_sext
+			      (double_int_sub (TREE_INT_CST (index),
+					       TREE_INT_CST (low_bound)),
+			       TYPE_PRECISION (TREE_TYPE (index))),
+		    double_int_fits_in_shwi_p (doffset)))
 	      {
-		HOST_WIDE_INT hindex = TREE_INT_CST_LOW (index);
-
-		hindex -= TREE_INT_CST_LOW (low_bound);
-		hindex *= TREE_INT_CST_LOW (unit_size);
-		hindex *= BITS_PER_UNIT;
-		bit_offset += hindex;
+		HOST_WIDE_INT hoffset = double_int_to_shwi (doffset);
+		hoffset *= TREE_INT_CST_LOW (unit_size);
+		hoffset *= BITS_PER_UNIT;
+		bit_offset += hoffset;
 
 		/* An array ref with a constant index up in the structure
 		   hierarchy will constrain the size of any variable array ref

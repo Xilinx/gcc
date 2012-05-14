@@ -5671,12 +5671,11 @@ resolve_typebound_static (gfc_expr* e, gfc_symtree** target,
   e->value.compcall.actual = NULL;
 
   /* If we find a deferred typebound procedure, check for derived types
-     that an over-riding typebound procedure has not been missed.  */
-  if (e->value.compcall.tbp->deferred
-	&& e->value.compcall.name
-	&& !e->value.compcall.tbp->non_overridable
-	&& e->value.compcall.base_object
-	&& e->value.compcall.base_object->ts.type == BT_DERIVED)
+     that an overriding typebound procedure has not been missed.  */
+  if (e->value.compcall.name
+      && !e->value.compcall.tbp->non_overridable
+      && e->value.compcall.base_object
+      && e->value.compcall.base_object->ts.type == BT_DERIVED)
     {
       gfc_symtree *st;
       gfc_symbol *derived;
@@ -10727,7 +10726,7 @@ resolve_fl_procedure (gfc_symbol *sym, int mp_flag)
      actual length; (ii) To declare a named constant; or (iii) External
      function - but length must be declared in calling scoping unit.  */
   if (sym->attr.function
-      && sym->ts.type == BT_CHARACTER
+      && sym->ts.type == BT_CHARACTER && !sym->ts.deferred
       && sym->ts.u.cl && sym->ts.u.cl->length == NULL)
     {
       if ((sym->as && sym->as->rank) || (sym->attr.pointer)
@@ -11666,7 +11665,7 @@ resolve_fl_derived0 (gfc_symbol *sym)
   for ( ; c != NULL; c = c->next)
     {
       /* See PRs 51550, 47545, 48654, 49050, 51075 - and 45170.  */
-      if (c->ts.type == BT_CHARACTER && c->ts.deferred)
+      if (c->ts.type == BT_CHARACTER && c->ts.deferred && !c->attr.function)
 	{
 	  gfc_error ("Deferred-length character component '%s' at %L is not "
 		     "yet supported", c->name, &c->loc);

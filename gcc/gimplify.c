@@ -1441,6 +1441,13 @@ gimplify_decl_expr (tree *stmt_p, gimple_seq *seq_p)
       && !TYPE_SIZES_GIMPLIFIED (TREE_TYPE (decl)))
     gimplify_type_sizes (TREE_TYPE (decl), seq_p);
 
+  /* ??? DECL_ORIGINAL_TYPE is streamed for LTO so it needs to be gimplified
+     in case its size expressions contain problematic nodes like CALL_EXPR.  */
+  if (TREE_CODE (decl) == TYPE_DECL
+      && DECL_ORIGINAL_TYPE (decl)
+      && !TYPE_SIZES_GIMPLIFIED (DECL_ORIGINAL_TYPE (decl)))
+    gimplify_type_sizes (DECL_ORIGINAL_TYPE (decl), seq_p);
+
   if (TREE_CODE (decl) == VAR_DECL && !DECL_EXTERNAL (decl))
     {
       tree init = DECL_INITIAL (decl);
@@ -1658,6 +1665,10 @@ preprocess_case_label_vec_for_gimple (VEC(tree,heap) *labels,
 		      && tree_int_cst_compare (high, max_value) > 0)
 		    high = max_value;
 		  high = fold_convert (index_type, high);
+
+		  /* We may have folded a case range to a one-value case.  */
+		  if (tree_int_cst_equal (low, high))
+		    high = NULL_TREE;
 		}
 	    }
 
@@ -8094,7 +8105,7 @@ gimplify_type_sizes (tree type, gimple_seq *list_p)
 void
 gimplify_one_sizepos (tree *expr_p, gimple_seq *stmt_p)
 {
-  tree type, expr = *expr_p;
+  tree expr = *expr_p;
 
   /* We don't do anything if the value isn't there, is constant, or contains
      A PLACEHOLDER_EXPR.  We also don't want to do anything if it's already
@@ -8106,30 +8117,10 @@ gimplify_one_sizepos (tree *expr_p, gimple_seq *stmt_p)
       || CONTAINS_PLACEHOLDER_P (expr))
     return;
 
-  type = TREE_TYPE (expr);
   *expr_p = unshare_expr (expr);
 
   gimplify_expr (expr_p, stmt_p, NULL, is_gimple_val, fb_rvalue);
   expr = *expr_p;
-
-  /* Verify that we've an exact type match with the original expression.
-     In particular, we do not wish to drop a "sizetype" in favour of a
-     type of similar dimensions.  We don't want to pollute the generic
-     type-stripping code with this knowledge because it doesn't matter
-     for the bulk of GENERIC/GIMPLE.  It only matters that TYPE_SIZE_UNIT
-     and friends retain their "sizetype-ness".  */
-  if (TREE_TYPE (expr) != type
-      && TREE_CODE (type) == INTEGER_TYPE
-      && TYPE_IS_SIZETYPE (type))
-    {
-      tree tmp;
-      gimple stmt;
-
-      *expr_p = create_tmp_var (type, NULL);
-      tmp = build1 (NOP_EXPR, type, expr);
-      stmt = gimplify_assign (*expr_p, tmp, stmt_p);
-      gimple_set_location (stmt, EXPR_LOC_OR_HERE (expr));
-    }
 }
 
 /* Gimplify the body of statements of FNDECL and return a GIMPLE_BIND node

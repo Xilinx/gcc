@@ -133,6 +133,14 @@ struct mcu_type_s {
   const char *const library_name; 
 };
 
+struct arch_info_s {
+  /* Architecture ID.  */
+  enum avr_arch arch;
+
+  /* textinfo source to describe the archtiecture.  */
+  const char *texinfo;
+};
+
 /* Preprocessor macros to define depending on MCU type.  */
 extern const char *avr_extra_arch_macro;
 extern const struct base_arch_s *avr_current_arch;
@@ -699,6 +707,10 @@ struct GTY(()) machine_function
 
   /* 'true' if a callee might be tail called */
   int sibcall_fails;
+
+  /* 'true' if the above is_foo predicates are sanity-checked to avoid
+     multiple diagnose for the same function.  */
+  int attributes_checked_p;
 };
 
 /* AVR does not round pushes, but the existance of this macro is

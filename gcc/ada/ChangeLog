@@ -1,3 +1,22 @@
+2012-05-13  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* gcc-interface/lang.opt (I): Comment out help text with no effect.
+	(nostdinc): Comment out help text with no effect.
+
+2012-05-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/Makefile.in (TOOLS_LIBS): Add ../../ggc-none.o.
+
+2012-05-11  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	PR 53063
+	* gcc-interface/misc.c (gnat_parse_file): Move before ...
+	(gnat_handle_option): ... this. Use handle_generated_option.
+
+2012-05-10  Richard Guenther  <rguenther@suse.de>
+
+	* gcc-interface/cuintp.c (UI_From_gnu): Remove TYPE_IS_SIZETYPE use.
+
 2012-05-06  Tristan Gingold  <gingold@adacore.com>
 
 	* gcc-interface/trans.c (gigi): Decorate reraise_zcx_decl.
