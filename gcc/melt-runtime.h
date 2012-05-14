@@ -174,11 +174,6 @@ void melt_handle_signal (void);
 #define MELT_CHECK_SIGNAL() do { if (MELT_UNLIKELY(melt_signaled && melt_blocklevel_signals <= 0)) \
       melt_handle_signal(); } while(0)
 
-/* for compatibility with old */
-#define melt_interrupted melt_signaled
-#define melt_blocklevel_interrupts melt_blocklevel_signals
-#define MELT_CHECK_INTERRUPT() MELT_CHECK_SIGNAL()
-
 
 /* Gives the relative real time in milliseconds since MELT started. */
 long melt_relative_time_millisec (void);
