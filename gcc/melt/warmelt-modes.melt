@@ -4181,6 +4181,10 @@ ASSERT_MSG) is enabled"
 	    )))))
 
 
+;; install that handler, at least to handle probe ending.
+(put_fields initial_system_data
+	    :sysdata_child_hook child_process_sigchld_handler)
+
 (defun unregister_child_process_handler (chd)
   :doc #{Unregister a child process handler obtained by $REGISTER_CHILD_PROCESS_HANDLER}#
   (debug "unregister_child_process_handler chd=" chd)

@@ -1,6 +1,12 @@
 
 2012-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-modes.melt: Always register
+	child_process_sigchld_handler because it also handles probe
+	ending.
+
+2012-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (melt_interrupted, melt_blocklevel_interrupts)
 	(MELT_CHECK_INTERRUPT): Remove compatibility macros.
 
