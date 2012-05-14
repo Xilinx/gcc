@@ -2097,6 +2097,8 @@ cgraph_clone_edge (struct cgraph_edge *e, struct cgraph_node *n,
       if (call_stmt && (decl = gimple_call_fndecl (call_stmt)))
 	{
 	  struct cgraph_node *callee = cgraph_get_node (decl);
+          if (L_IPO_COMP_MODE && cgraph_pre_profiling_inlining_done)
+            callee = cgraph_lipo_get_resolved_node (decl);
 	  gcc_checking_assert (callee);
 	  new_edge = cgraph_create_edge (n, callee, call_stmt, count, freq);
 	}

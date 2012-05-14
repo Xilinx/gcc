@@ -373,6 +373,28 @@ cgraph_remove_zero_count_fake_edges (void)
     }
 }
 
+static void
+record_reference_to_real_target_from_alias (struct cgraph_node *alias)
+{
+  if (!L_IPO_COMP_MODE || !cgraph_pre_profiling_inlining_done)
+    return;
+
+  /* Need to add a reference to the resolved node in LIPO
+     mode to avoid the real node from eliminated  */
+  if (alias->alias && alias->analyzed)
+  {
+    struct cgraph_node *target, *real_target;
+
+    target = cgraph_alias_aliased_node (alias);
+    real_target = cgraph_lipo_get_resolved_node (target->decl);
+    /* TODO: this make create duplicate entries in the
+       reference list.  */
+    if (real_target != target)
+      ipa_record_reference (alias, NULL, real_target, NULL,
+                            IPA_REF_ALIAS, NULL);
+  }
+}
+
 /* Mark address taken in STMT.  */
 
 static bool
@@ -382,10 +404,14 @@ mark_address (gimple stmt, tree addr, void *data)
   if (TREE_CODE (addr) == FUNCTION_DECL)
     {
       struct cgraph_node *node = cgraph_get_create_node (addr);
+      if (L_IPO_COMP_MODE && cgraph_pre_profiling_inlining_done)
+        node = cgraph_lipo_get_resolved_node (addr);
+
       cgraph_mark_address_taken_node (node);
       ipa_record_reference ((struct cgraph_node *)data, NULL,
 			    node, NULL,
 			    IPA_REF_ADDR, stmt);
+      record_reference_to_real_target_from_alias (node);
     }
   else if (addr && TREE_CODE (addr) == VAR_DECL
 	   && (TREE_STATIC (addr) || DECL_EXTERNAL (addr)))
@@ -607,20 +633,7 @@ rebuild_cgraph_edges (void)
 		  if (L_IPO_COMP_MODE && cgraph_pre_profiling_inlining_done)
                     {
                       callee = cgraph_lipo_get_resolved_node (decl);
-                      /* Need to add a reference to the resolved node in LIPO
-                         mode to avoid the real node from eliminated  */
-                      if (callee->alias && callee->analyzed)
-                        {
-                          struct cgraph_node *body, *real_body;
-
-                          body = cgraph_alias_aliased_node (callee);
-                          real_body = cgraph_lipo_get_resolved_node (body->decl);
-                          /* TODO: this make create duplicate entries in the
-                             reference list.  */
-                          if (real_body != body)
-                            ipa_record_reference (callee, NULL, real_body, NULL,
-                                                  IPA_REF_ALIAS, NULL);
-                        }
+                      record_reference_to_real_target_from_alias (callee);
                     }
                   else
 		    callee = cgraph_get_create_node (decl);

@@ -1380,7 +1380,7 @@ cgraph_lipo_get_resolved_node_1 (tree decl, bool do_assert)
   struct cgraph_sym **slot;
 
   /* Handle alias decl. */
-  slot = cgraph_sym (cgraph_get_create_node (decl)->decl);
+  slot = cgraph_sym (decl);
 
   if (!slot || !*slot)
     {
@@ -1393,7 +1393,7 @@ cgraph_lipo_get_resolved_node_1 (tree decl, bool do_assert)
              extern etc), they may be removed from the link table
              before direct calls to them are exposed (via indirect
              call promtion by const folding etc). When this happens,
-             the node will be to be relinked. A probably better fix
+             the node will need to be relinked. A probably better fix
              is to modify the callgraph so that they are not eliminated
              in the first place -- this will allow inlining to happen.  */
 
@@ -2157,6 +2157,37 @@ varpool_link_node (struct varpool_node *node)
     *slot = node;
 }
 
+/* Fixup references of VNODE.  */
+
+static void
+fixup_reference_list (struct varpool_node *node)
+{
+  int i;
+  struct ipa_ref *ref;
+  struct ipa_ref_list *list = &node->ref_list;
+  VEC(cgraph_node_ptr, heap) *new_refered = NULL;
+  struct cgraph_node *c;
+  enum ipa_ref_use use_type = IPA_REF_LOAD;
+
+  for (i = 0; ipa_ref_list_reference_iterate (list, i, ref); i++)
+    {
+      if (ref->refered_type == IPA_REF_CGRAPH)
+	{
+	  struct cgraph_node *cnode = ipa_ref_node (ref);
+          struct cgraph_node *r_cnode = cgraph_lipo_get_resolved_node (cnode->decl);
+          if (r_cnode != cnode)
+            {
+              VEC_safe_push (cgraph_node_ptr, heap, new_refered, r_cnode);
+              use_type = ref->use;
+            }
+        }
+    }
+  for (i = 0; VEC_iterate (cgraph_node_ptr, new_refered, i, c); ++i)
+    {
+      ipa_record_reference (NULL, node, c, NULL, use_type, NULL);
+    }
+}
+
 /* Perform cross module linking for var_decls.  */
 
 void
@@ -2175,8 +2206,11 @@ varpool_do_link (void)
 
   /* Merge the externally visible attribute.  */
   for (node = varpool_nodes; node; node = node->next)
-    if (node->externally_visible)
-      (real_varpool_node (node->decl))->externally_visible = true;
+    {
+      if (node->externally_visible)
+        (real_varpool_node (node->decl))->externally_visible = true;
+      fixup_reference_list (node);
+    }
 }
 
 /* Get the list of assembler name ids with reference bit set.  */

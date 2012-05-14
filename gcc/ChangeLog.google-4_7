@@ -1,3 +1,18 @@
+2012-05-14  Xinliang David Li  <davidxl@google.com>
+
+	* cgraphbuild.c (record_reference_to_real_target_from_alias):
+	New function.
+	(mark_address): Record reference to the resolved target node
+	in LIPO mode. Also record reference to alias's real target.
+	(rebuild_cgraph_edges): As above.
+	* cgraph.c (cgraph_clone_edge): Create cgraph edge for
+	indirect call inlining edge properly.
+	* l-ipo.c (cgraph_lipo_get_resolved_node_1): Do not force
+	creating cgraph node.
+	(fixup_reference_list): New function.
+	(varpool_do_link): Fix up initializer's references to functions
+	after linking.
+
 2012-05-09  Teresa Johnson  <tejohnson@google.com>
 
 	Backport from trunk r187297:
