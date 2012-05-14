@@ -1962,6 +1962,8 @@ setup_reg_renumber (void)
 						  call_used_reg_set))
 	    {
 	      ira_assert (!optimize || flag_caller_saves
+			  || (ALLOCNO_CALLS_CROSSED_NUM (a)
+			      == ALLOCNO_CHEAP_CALLS_CROSSED_NUM (a))
 			  || regno >= ira_reg_equiv_len
 			  || ira_reg_equiv_const[regno]
 			  || ira_reg_equiv_invariant_p[regno]);
@@ -4125,7 +4127,12 @@ ira (FILE *f)
     }
 
   allocated_reg_info_size = max_reg_num ();
-  find_moveable_pseudos ();
+
+  /* It is not worth to do such improvement when we use a simple
+     allocation because of -O0 usage or because the function is too
+     big.  */
+  if (ira_conflicts_p)
+    find_moveable_pseudos ();
 
   max_regno_before_ira = max_reg_num ();
   ira_setup_eliminable_regset ();
@@ -4234,7 +4241,10 @@ ira (FILE *f)
 	      max_regno * sizeof (struct ira_spilled_reg_stack_slot));
     }
   allocate_initial_values (reg_equivs);
-  move_unallocated_pseudos ();
+
+  /* See comment for find_moveable_pseudos call.  */
+  if (ira_conflicts_p)
+    move_unallocated_pseudos ();
 }
 
 static void

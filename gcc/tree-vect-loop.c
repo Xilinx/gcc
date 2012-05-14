@@ -2064,7 +2064,7 @@ vect_is_slp_reduction (loop_vec_info loop_info, gimple phi, gimple first_stmt)
 	      swap_tree_operands (next_stmt,
 	 		          gimple_assign_rhs1_ptr (next_stmt),
                                   gimple_assign_rhs2_ptr (next_stmt));
-	      mark_symbols_for_renaming (next_stmt);
+	      update_stmt (next_stmt);
 	    }
 	  else
 	    return false;
@@ -5362,25 +5362,48 @@ vect_transform_loop (loop_vec_info loop_vinfo)
   bool grouped_store;
   bool slp_scheduled = false;
   unsigned int nunits;
-  tree cond_expr = NULL_TREE;
-  gimple_seq cond_expr_stmt_list = NULL;
   gimple stmt, pattern_stmt;
   gimple_seq pattern_def_seq = NULL;
   gimple_stmt_iterator pattern_def_si = gsi_none ();
   bool transform_pattern_stmt = false;
+  bool check_profitability;
+  int th;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "=== vec_transform_loop ===");
+
+  /* Use the more conservative vectorization threshold.  If the number
+     of iterations is constant assume the cost check has been performed
+     by our caller.  If the threshold makes all loops profitable that
+     run at least the vectorization factor number of times checking
+     is pointless, too.  */
+  th = ((PARAM_VALUE (PARAM_MIN_VECT_LOOP_BOUND)
+	 * LOOP_VINFO_VECT_FACTOR (loop_vinfo)) - 1);
+  th = MAX (th, LOOP_VINFO_COST_MODEL_MIN_ITERS (loop_vinfo));
+  if (th >= LOOP_VINFO_VECT_FACTOR (loop_vinfo) - 1
+      && !LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo))
+    {
+      if (vect_print_dump_info (REPORT_COST))
+	fprintf (vect_dump,
+		 "Profitability threshold is %d loop iterations.", th);
+      check_profitability = true;
+    }
 
   /* Peel the loop if there are data refs with unknown alignment.
      Only one data ref with unknown store is allowed.  */
 
   if (LOOP_PEELING_FOR_ALIGNMENT (loop_vinfo))
-    vect_do_peeling_for_alignment (loop_vinfo);
+    {
+      vect_do_peeling_for_alignment (loop_vinfo, th, check_profitability);
+      check_profitability = false;
+    }
 
   if (LOOP_REQUIRES_VERSIONING_FOR_ALIGNMENT (loop_vinfo)
       || LOOP_REQUIRES_VERSIONING_FOR_ALIAS (loop_vinfo))
-    vect_loop_versioning (loop_vinfo);
+    {
+      vect_loop_versioning (loop_vinfo, th, check_profitability);
+      check_profitability = false;
+    }
 
   /* If the loop has a symbolic number of iterations 'n' (i.e. it's not a
      compile time constant), or it is a constant that doesn't divide by the
@@ -5395,7 +5418,7 @@ vect_transform_loop (loop_vec_info loop_vinfo)
 	   && LOOP_VINFO_INT_NITERS (loop_vinfo) % vectorization_factor != 0)
        || LOOP_VINFO_PEELING_FOR_GAPS (loop_vinfo))
     vect_do_peeling_for_loop_bound (loop_vinfo, &ratio,
-				    cond_expr, cond_expr_stmt_list);
+				    th, check_profitability);
   else
     ratio = build_int_cst (TREE_TYPE (LOOP_VINFO_NITERS (loop_vinfo)),
 		LOOP_VINFO_INT_NITERS (loop_vinfo) / vectorization_factor);

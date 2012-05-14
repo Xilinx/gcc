@@ -8439,20 +8439,16 @@ standard_sse_constant_opcode (rtx insn, rtx x)
       switch (get_attr_mode (insn))
 	{
 	case MODE_TI:
-	  if (!TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
-	    return "%vpxor\t%0, %d0";
+	  return "%vpxor\t%0, %d0";
 	case MODE_V2DF:
-	  if (!TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
-	    return "%vxorpd\t%0, %d0";
+	  return "%vxorpd\t%0, %d0";
 	case MODE_V4SF:
 	  return "%vxorps\t%0, %d0";
 
 	case MODE_OI:
-	  if (!TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
-	    return "vpxor\t%x0, %x0, %x0";
+	  return "vpxor\t%x0, %x0, %x0";
 	case MODE_V4DF:
-	  if (!TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
-	    return "vxorpd\t%x0, %x0, %x0";
+	  return "vxorpd\t%x0, %x0, %x0";
 	case MODE_V8SF:
 	  return "vxorps\t%x0, %x0, %x0";
 
@@ -15919,60 +15915,19 @@ ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
   op0 = operands[0];
   op1 = operands[1];
 
-  if (TARGET_AVX)
+  if (TARGET_AVX
+      && GET_MODE_SIZE (mode) == 32)
     {
       switch (GET_MODE_CLASS (mode))
 	{
 	case MODE_VECTOR_INT:
 	case MODE_INT:
-	  switch (GET_MODE_SIZE (mode))
-	    {
-	    case 16:
-	      if (TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
-		{
-		  op0 = gen_lowpart (V4SFmode, op0);
-		  op1 = gen_lowpart (V4SFmode, op1);
-		  emit_insn (gen_sse_movups (op0, op1));
-		}
-	      else
-		{
-		  op0 = gen_lowpart (V16QImode, op0);
-		  op1 = gen_lowpart (V16QImode, op1);
-		  emit_insn (gen_sse2_movdqu (op0, op1));
-		}
-	      break;
-	    case 32:
-	      op0 = gen_lowpart (V32QImode, op0);
-	      op1 = gen_lowpart (V32QImode, op1);
-	      ix86_avx256_split_vector_move_misalign (op0, op1);
-	      break;
-	    default:
-	      gcc_unreachable ();
-	    }
-	  break;
+	  op0 = gen_lowpart (V32QImode, op0);
+	  op1 = gen_lowpart (V32QImode, op1);
+	  /* FALLTHRU */
+
 	case MODE_VECTOR_FLOAT:
-	  switch (mode)
-	    {
-	    case V4SFmode:
-	      emit_insn (gen_sse_movups (op0, op1));
-	      break;
-	    case V2DFmode:
-	      if (TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
-		{
-		  op0 = gen_lowpart (V4SFmode, op0);
-		  op1 = gen_lowpart (V4SFmode, op1);
-		  emit_insn (gen_sse_movups (op0, op1));
-		}
-	      else
-		emit_insn (gen_sse2_movupd (op0, op1));
-	      break;
-	    case V8SFmode:
-	    case V4DFmode:
-	      ix86_avx256_split_vector_move_misalign (op0, op1);
-	      break;
-	    default:
-	      gcc_unreachable ();
-	    }
+	  ix86_avx256_split_vector_move_misalign (op0, op1);
 	  break;
 
 	default:
@@ -15984,16 +15939,6 @@ ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
 
   if (MEM_P (op1))
     {
-      /* If we're optimizing for size, movups is the smallest.  */
-      if (optimize_insn_for_size_p ()
-	  || TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
-	{
-	  op0 = gen_lowpart (V4SFmode, op0);
-	  op1 = gen_lowpart (V4SFmode, op1);
-	  emit_insn (gen_sse_movups (op0, op1));
-	  return;
-	}
-
       /* ??? If we have typed data, then it would appear that using
 	 movdqu is the only way to get unaligned data loaded with
 	 integer type.  */
@@ -16001,16 +15946,19 @@ ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
 	{
 	  op0 = gen_lowpart (V16QImode, op0);
 	  op1 = gen_lowpart (V16QImode, op1);
+	  /* We will eventually emit movups based on insn attributes.  */
 	  emit_insn (gen_sse2_movdqu (op0, op1));
-	  return;
 	}
-
-      if (TARGET_SSE2 && mode == V2DFmode)
+      else if (TARGET_SSE2 && mode == V2DFmode)
         {
           rtx zero;
 
-	  if (TARGET_SSE_UNALIGNED_LOAD_OPTIMAL)
+	  if (TARGET_AVX
+	      || TARGET_SSE_UNALIGNED_LOAD_OPTIMAL
+	      || TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL
+	      || optimize_function_for_size_p (cfun))
 	    {
+	      /* We will eventually emit movups based on insn attributes.  */
 	      emit_insn (gen_sse2_movupd (op0, op1));
 	      return;
 	    }
@@ -16042,7 +15990,10 @@ ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
 	}
       else
         {
-	  if (TARGET_SSE_UNALIGNED_LOAD_OPTIMAL)
+	  if (TARGET_AVX
+	      || TARGET_SSE_UNALIGNED_LOAD_OPTIMAL
+	      || TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL
+	      || optimize_function_for_size_p (cfun))
 	    {
 	      op0 = gen_lowpart (V4SFmode, op0);
 	      op1 = gen_lowpart (V4SFmode, op1);
@@ -16057,6 +16008,7 @@ ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
 
 	  if (mode != V4SFmode)
 	    op0 = gen_lowpart (V4SFmode, op0);
+
 	  m = adjust_address (op1, V2SFmode, 0);
 	  emit_insn (gen_sse_loadlps (op0, op0, m));
 	  m = adjust_address (op1, V2SFmode, 8);
@@ -16065,30 +16017,20 @@ ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
     }
   else if (MEM_P (op0))
     {
-      /* If we're optimizing for size, movups is the smallest.  */
-      if (optimize_insn_for_size_p ()
-	  || TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
-	{
-	  op0 = gen_lowpart (V4SFmode, op0);
-	  op1 = gen_lowpart (V4SFmode, op1);
-	  emit_insn (gen_sse_movups (op0, op1));
-	  return;
-	}
-
-      /* ??? Similar to above, only less clear
-	 because of typeless stores.  */
-      if (TARGET_SSE2 && !TARGET_SSE_TYPELESS_STORES
-	  && GET_MODE_CLASS (mode) == MODE_VECTOR_INT)
+      if (TARGET_SSE2 && GET_MODE_CLASS (mode) == MODE_VECTOR_INT)
         {
 	  op0 = gen_lowpart (V16QImode, op0);
 	  op1 = gen_lowpart (V16QImode, op1);
+	  /* We will eventually emit movups based on insn attributes.  */
 	  emit_insn (gen_sse2_movdqu (op0, op1));
-	  return;
 	}
-
-      if (TARGET_SSE2 && mode == V2DFmode)
+      else if (TARGET_SSE2 && mode == V2DFmode)
 	{
-	  if (TARGET_SSE_UNALIGNED_STORE_OPTIMAL)
+	  if (TARGET_AVX
+	      || TARGET_SSE_UNALIGNED_STORE_OPTIMAL
+	      || TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL
+	      || optimize_function_for_size_p (cfun))
+	    /* We will eventually emit movups based on insn attributes.  */
 	    emit_insn (gen_sse2_movupd (op0, op1));
 	  else
 	    {
@@ -16103,7 +16045,10 @@ ix86_expand_vector_move_misalign (enum machine_mode mode, rtx operands[])
 	  if (mode != V4SFmode)
 	    op1 = gen_lowpart (V4SFmode, op1);
 
-	  if (TARGET_SSE_UNALIGNED_STORE_OPTIMAL)
+	  if (TARGET_AVX
+	      || TARGET_SSE_UNALIGNED_STORE_OPTIMAL
+	      || TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL
+	      || optimize_function_for_size_p (cfun))
 	    {
 	      op0 = gen_lowpart (V4SFmode, op0);
 	      emit_insn (gen_sse_movups (op0, op1));
@@ -26394,6 +26339,9 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_vmrsqrtv4sf2, "__builtin_ia32_rsqrtss", IX86_BUILTIN_RSQRTSS, UNKNOWN, (int) V4SF_FTYPE_V4SF_VEC_MERGE },
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse_vmrcpv4sf2, "__builtin_ia32_rcpss", IX86_BUILTIN_RCPSS, UNKNOWN, (int) V4SF_FTYPE_V4SF_VEC_MERGE },
 
+  { OPTION_MASK_ISA_SSE, CODE_FOR_abstf2, 0, IX86_BUILTIN_FABSQ, UNKNOWN, (int) FLOAT128_FTYPE_FLOAT128 },
+  { OPTION_MASK_ISA_SSE, CODE_FOR_copysigntf3, 0, IX86_BUILTIN_COPYSIGNQ, UNKNOWN, (int) FLOAT128_FTYPE_FLOAT128_FLOAT128 },
+
   /* SSE MMX or 3Dnow!A */
   { OPTION_MASK_ISA_SSE | OPTION_MASK_ISA_3DNOW_A, CODE_FOR_mmx_uavgv8qi3, "__builtin_ia32_pavgb", IX86_BUILTIN_PAVGB, UNKNOWN, (int) V8QI_FTYPE_V8QI_V8QI },
   { OPTION_MASK_ISA_SSE | OPTION_MASK_ISA_3DNOW_A, CODE_FOR_mmx_uavgv4hi3, "__builtin_ia32_pavgw", IX86_BUILTIN_PAVGW, UNKNOWN, (int) V4HI_FTYPE_V4HI_V4HI },
@@ -26576,9 +26524,6 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_pshufhw, "__builtin_ia32_pshufhw", IX86_BUILTIN_PSHUFHW, UNKNOWN, (int) V8HI_FTYPE_V8HI_INT },
 
   { OPTION_MASK_ISA_SSE2, CODE_FOR_sse2_vmsqrtv2df2, "__builtin_ia32_sqrtsd", IX86_BUILTIN_SQRTSD, UNKNOWN, (int) V2DF_FTYPE_V2DF_VEC_MERGE },
-
-  { OPTION_MASK_ISA_SSE2, CODE_FOR_abstf2, 0, IX86_BUILTIN_FABSQ, UNKNOWN, (int) FLOAT128_FTYPE_FLOAT128 },
-  { OPTION_MASK_ISA_SSE2, CODE_FOR_copysigntf3, 0, IX86_BUILTIN_COPYSIGNQ, UNKNOWN, (int) FLOAT128_FTYPE_FLOAT128_FLOAT128 },
 
   { OPTION_MASK_ISA_SSE, CODE_FOR_sse2_movq128, "__builtin_ia32_movq128", IX86_BUILTIN_MOVQ128, UNKNOWN, (int) V2DI_FTYPE_V2DI },
 
@@ -27728,7 +27673,7 @@ ix86_init_mmx_sse_builtins (void)
 }
 
 /* This builds the processor_model struct type defined in
-   libgcc/config/i386/i386-cpuinfo.c  */
+   libgcc/config/i386/cpuinfo.c  */
 
 static tree
 build_processor_model_struct (void)
@@ -27788,7 +27733,7 @@ make_var_decl (tree type, const char *name)
 }
 
 /* FNDECL is a __builtin_cpu_is or a __builtin_cpu_supports call that is folded
-   into an integer defined in libgcc/config/i386/i386-cpuinfo.c */
+   into an integer defined in libgcc/config/i386/cpuinfo.c */
 
 static tree
 fold_builtin_cpu (tree fndecl, tree *args)
@@ -27798,8 +27743,7 @@ fold_builtin_cpu (tree fndecl, tree *args)
 				DECL_FUNCTION_CODE (fndecl);
   tree param_string_cst = NULL;
 
-  /* This is the order of bit-fields in __processor_features in
-     i386-cpuinfo.c */
+  /* This is the order of bit-fields in __processor_features in cpuinfo.c */
   enum processor_features
   {
     F_CMOV = 0,
@@ -27817,7 +27761,7 @@ fold_builtin_cpu (tree fndecl, tree *args)
   };
 
   /* These are the values for vendor types and cpu types  and subtypes
-     in i386-cpuinfo.c.  Cpu types and subtypes should be subtracted by
+     in cpuinfo.c.  Cpu types and subtypes should be subtracted by
      the corresponding start value.  */
   enum processor_model
   {
@@ -28149,7 +28093,7 @@ ix86_init_builtins (void)
   def_builtin_const (0, "__builtin_huge_valq",
 		     FLOAT128_FTYPE_VOID, IX86_BUILTIN_HUGE_VALQ);
 
-  /* We will expand them to normal call if SSE2 isn't available since
+  /* We will expand them to normal call if SSE isn't available since
      they are used by libgcc. */
   t = ix86_get_builtin_func_type (FLOAT128_FTYPE_FLOAT128);
   t = add_builtin_function ("__builtin_fabsq", t, IX86_BUILTIN_FABSQ,
@@ -30283,8 +30227,8 @@ rdrand_step:
 	{
 	case IX86_BUILTIN_FABSQ:
 	case IX86_BUILTIN_COPYSIGNQ:
-	  if (!TARGET_SSE2)
-	    /* Emit a normal call if SSE2 isn't available.  */
+	  if (!TARGET_SSE)
+	    /* Emit a normal call if SSE isn't available.  */
 	    return expand_call (exp, target, ignore);
 	default:
 	  return ix86_expand_args_builtin (d, exp, target);
@@ -31873,6 +31817,52 @@ ix86_modes_tieable_p (enum machine_mode mode1, enum machine_mode mode2)
   return false;
 }
 
+/* Return the cost of moving between two registers of mode MODE.  */
+
+static int
+ix86_set_reg_reg_cost (enum machine_mode mode)
+{
+  unsigned int units = UNITS_PER_WORD;
+
+  switch (GET_MODE_CLASS (mode))
+    {
+    default:
+      break;
+
+    case MODE_CC:
+      units = GET_MODE_SIZE (CCmode);
+      break;
+
+    case MODE_FLOAT:
+      if ((TARGET_SSE2 && mode == TFmode)
+	  || (TARGET_80387 && mode == XFmode)
+	  || ((TARGET_80387 || TARGET_SSE2) && mode == DFmode)
+	  || ((TARGET_80387 || TARGET_SSE) && mode == SFmode))
+	units = GET_MODE_SIZE (mode);
+      break;
+
+    case MODE_COMPLEX_FLOAT:
+      if ((TARGET_SSE2 && mode == TCmode)
+	  || (TARGET_80387 && mode == XCmode)
+	  || ((TARGET_80387 || TARGET_SSE2) && mode == DCmode)
+	  || ((TARGET_80387 || TARGET_SSE) && mode == SCmode))
+	units = GET_MODE_SIZE (mode);
+      break;
+
+    case MODE_VECTOR_INT:
+    case MODE_VECTOR_FLOAT:
+      if ((TARGET_AVX && VALID_AVX256_REG_MODE (mode))
+	  || (TARGET_SSE2 && VALID_SSE2_REG_MODE (mode))
+	  || (TARGET_SSE && VALID_SSE_REG_MODE (mode))
+	  || (TARGET_MMX && VALID_MMX_REG_MODE (mode)))
+	units = GET_MODE_SIZE (mode);
+    }
+
+  /* Return the cost of moving between two registers of mode MODE,
+     assuming that the move will be in pieces of at most UNITS bytes.  */
+  return COSTS_N_INSNS ((GET_MODE_SIZE (mode) + units - 1) / units);
+}
+
 /* Compute a (partial) cost for rtx X.  Return true if the complete
    cost has been computed, and false if subexpressions should be
    scanned.  In either case, *TOTAL contains the cost result.  */
@@ -31887,6 +31877,15 @@ ix86_rtx_costs (rtx x, int code, int outer_code_i, int opno, int *total,
 
   switch (code)
     {
+    case SET:
+      if (register_operand (SET_DEST (x), VOIDmode)
+	  && reg_or_0_operand (SET_SRC (x), VOIDmode))
+	{
+	  *total = ix86_set_reg_reg_cost (GET_MODE (SET_DEST (x)));
+	  return true;
+	}
+      return false;
+
     case CONST_INT:
     case CONST:
     case LABEL_REF:
@@ -33356,6 +33355,7 @@ struct expand_vec_perm_d
   bool testing_p;
 };
 
+static bool canonicalize_perm (struct expand_vec_perm_d *d);
 static bool expand_vec_perm_1 (struct expand_vec_perm_d *d);
 static bool expand_vec_perm_broadcast_1 (struct expand_vec_perm_d *d);
 
@@ -37413,6 +37413,57 @@ expand_vec_perm_vperm2f128_vblend (struct expand_vec_perm_d *d)
   return true;
 }
 
+/* A subroutine of ix86_expand_vec_perm_builtin_1.  Implement a V4DF
+   permutation using two vperm2f128, followed by a vshufpd insn blending
+   the two vectors together.  */
+
+static bool
+expand_vec_perm_2vperm2f128_vshuf (struct expand_vec_perm_d *d)
+{
+  struct expand_vec_perm_d dfirst, dsecond, dthird;
+  bool ok;
+
+  if (!TARGET_AVX || (d->vmode != V4DFmode))
+    return false;
+
+  if (d->testing_p)
+    return true;
+
+  dfirst = *d;
+  dsecond = *d;
+  dthird = *d;
+
+  dfirst.perm[0] = (d->perm[0] & ~1);
+  dfirst.perm[1] = (d->perm[0] & ~1) + 1;
+  dfirst.perm[2] = (d->perm[2] & ~1);
+  dfirst.perm[3] = (d->perm[2] & ~1) + 1;
+  dsecond.perm[0] = (d->perm[1] & ~1);
+  dsecond.perm[1] = (d->perm[1] & ~1) + 1;
+  dsecond.perm[2] = (d->perm[3] & ~1);
+  dsecond.perm[3] = (d->perm[3] & ~1) + 1;
+  dthird.perm[0] = (d->perm[0] % 2);
+  dthird.perm[1] = (d->perm[1] % 2) + 4;
+  dthird.perm[2] = (d->perm[2] % 2) + 2;
+  dthird.perm[3] = (d->perm[3] % 2) + 6;
+
+  dfirst.target = gen_reg_rtx (dfirst.vmode);
+  dsecond.target = gen_reg_rtx (dsecond.vmode);
+  dthird.op0 = dfirst.target;
+  dthird.op1 = dsecond.target;
+  dthird.one_operand_p = false;
+
+  canonicalize_perm (&dfirst);
+  canonicalize_perm (&dsecond);
+
+  ok = expand_vec_perm_1 (&dfirst)
+       && expand_vec_perm_1 (&dsecond)
+       && expand_vec_perm_1 (&dthird);
+
+  gcc_assert (ok);
+
+  return true;
+}
+
 /* A subroutine of expand_vec_perm_even_odd_1.  Implement the double-word
    permutation with two pshufb insns and an ior.  We should have already
    failed all two instruction sequences.  */
@@ -38062,6 +38113,9 @@ ix86_expand_vec_perm_const_1 (struct expand_vec_perm_d *d)
 
   /* Try sequences of three instructions.  */
 
+  if (expand_vec_perm_2vperm2f128_vshuf (d))
+    return true;
+
   if (expand_vec_perm_pshufb2 (d))
     return true;
 
@@ -38099,12 +38153,56 @@ ix86_expand_vec_perm_const_1 (struct expand_vec_perm_d *d)
   return false;
 }
 
+/* If a permutation only uses one operand, make it clear. Returns true
+   if the permutation references both operands.  */
+
+static bool
+canonicalize_perm (struct expand_vec_perm_d *d)
+{
+  int i, which, nelt = d->nelt;
+
+  for (i = which = 0; i < nelt; ++i)
+      which |= (d->perm[i] < nelt ? 1 : 2);
+
+  d->one_operand_p = true;
+  switch (which)
+    {
+    default:
+      gcc_unreachable();
+
+    case 3:
+      if (!rtx_equal_p (d->op0, d->op1))
+        {
+	  d->one_operand_p = false;
+	  break;
+        }
+      /* The elements of PERM do not suggest that only the first operand
+	 is used, but both operands are identical.  Allow easier matching
+	 of the permutation by folding the permutation into the single
+	 input vector.  */
+      /* FALLTHRU */
+
+    case 2:
+      for (i = 0; i < nelt; ++i)
+        d->perm[i] &= nelt - 1;
+      d->op0 = d->op1;
+      break;
+
+    case 1:
+      d->op1 = d->op0;
+      break;
+    }
+
+  return (which == 3);
+}
+
 bool
 ix86_expand_vec_perm_const (rtx operands[4])
 {
   struct expand_vec_perm_d d;
   unsigned char perm[MAX_VECT_LEN];
-  int i, nelt, which;
+  int i, nelt;
+  bool two_args;
   rtx sel;
 
   d.target = operands[0];
@@ -38121,44 +38219,15 @@ ix86_expand_vec_perm_const (rtx operands[4])
   gcc_assert (XVECLEN (sel, 0) == nelt);
   gcc_checking_assert (sizeof (d.perm) == sizeof (perm));
 
-  for (i = which = 0; i < nelt; ++i)
+  for (i = 0; i < nelt; ++i)
     {
       rtx e = XVECEXP (sel, 0, i);
       int ei = INTVAL (e) & (2 * nelt - 1);
-
-      which |= (ei < nelt ? 1 : 2);
       d.perm[i] = ei;
       perm[i] = ei;
     }
 
-  d.one_operand_p = true;
-  switch (which)
-    {
-    default:
-      gcc_unreachable();
-
-    case 3:
-      if (!rtx_equal_p (d.op0, d.op1))
-        {
-	  d.one_operand_p = false;
-	  break;
-        }
-      /* The elements of PERM do not suggest that only the first operand
-	 is used, but both operands are identical.  Allow easier matching
-	 of the permutation by folding the permutation into the single
-	 input vector.  */
-      /* FALLTHRU */
-
-    case 2:
-      for (i = 0; i < nelt; ++i)
-        d.perm[i] &= nelt - 1;
-      d.op0 = d.op1;
-      break;
-
-    case 1:
-      d.op1 = d.op0;
-      break;
-    }
+  two_args = canonicalize_perm (&d);
 
   if (ix86_expand_vec_perm_const_1 (&d))
     return true;
@@ -38167,7 +38236,7 @@ ix86_expand_vec_perm_const (rtx operands[4])
      same, the above tried to expand with one_operand_p and flattened selector.
      If that didn't work, retry without one_operand_p; we succeeded with that
      during testing.  */
-  if (which == 3 && d.one_operand_p)
+  if (two_args && d.one_operand_p)
     {
       d.one_operand_p = false;
       memcpy (d.perm, perm, sizeof (perm));

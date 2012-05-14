@@ -1273,6 +1273,7 @@ If the high bit of the address is set, data is read from
 RAM using the lower two bytes as RAM address.
 If the high bit of the address is clear, data is read from flash
 with @code{RAMPZ} set according to the high byte of the address.
+@xref{AVR Built-in Functions,,@code{__builtin_avr_flash_segment}}.
 
 Objects in this address space will be located in @code{.progmem.data}.
 @end table
@@ -1302,6 +1303,7 @@ int main (void)
 @}
 @end example
 
+@noindent
 For each named address space supported by avr-gcc there is an equally
 named but uppercase built-in macro defined. 
 The purpose is to facilitate testing if respective address space
@@ -1327,7 +1329,8 @@ int read_var (void)
 #endif /* __FLASH */
 @end example
 
-Notice that attribute @ref{AVR Variable Attributes,@code{progmem}}
+@noindent
+Notice that attribute @ref{AVR Variable Attributes,,@code{progmem}}
 locates data in flash but
 accesses to these data will read from generic address space, i.e.@:
 from RAM,
@@ -1335,6 +1338,7 @@ so that you need special accessors like @code{pgm_read_byte}
 from @w{@uref{http://nongnu.org/avr-libc/user-manual,AVR-LibC}}
 together with attribute @code{progmem}.
 
+@noindent
 @b{Limitations and caveats}
 
 @itemize
@@ -1361,17 +1365,14 @@ must not optimize away known values or insert them
 as immediates into operands of instructions.
 
 @item
-Code like the following is not yet supported because of missing
-support in avr-binutils,
-see @w{@uref{http://sourceware.org/PR13503,PR13503}}.
+The following code initializes a variable @code{pfoo}
+located in static storage with a 24-bit address:
 @example
 extern const __memx char foo;
 const __memx void *pfoo = &foo;
 @end example
-The code will throw an assembler warning and the high byte of
-@code{pfoo} will be initialized with@tie{}@code{0}, i.e.@: the
-initialization will be as if @code{foo} was located in the first
-64@tie{}KiB chunk of flash.
+Such code requires at least binutils 2.23, see
+@w{@uref{http://sourceware.org/PR13503,PR13503}}.
 
 @end itemize
 
@@ -2714,6 +2715,51 @@ then be sure to write this declaration in both files.
 
 This attribute is ignored for R8C target.
 
+@item ifunc ("@var{resolver}")
+@cindex @code{ifunc} attribute
+The @code{ifunc} attribute is used to mark a function as an indirect
+function using the STT_GNU_IFUNC symbol type extension to the ELF
+standard.  This allows the resolution of the symbol value to be
+determined dynamically at load time, and an optimized version of the
+routine can be selected for the particular processor or other system
+characteristics determined then.  To use this attribute, first define
+the implementation functions available, and a resolver function that
+returns a pointer to the selected implementation function.  The
+implementation functions' declarations must match the API of the
+function being implemented, the resolver's declaration is be a
+function returning pointer to void function returning void:
+
+@smallexample
+void *my_memcpy (void *dst, const void *src, size_t len)
+@{
+  @dots{}
+@}
+
+static void (*resolve_memcpy (void)) (void)
+@{
+  return my_memcpy; // we'll just always select this routine
+@}
+@end smallexample
+
+The exported header file declaring the function the user calls would
+contain:
+
+@smallexample
+extern void *memcpy (void *, const void *, size_t);
+@end smallexample
+
+allowing the user to call this as a regular function, unaware of the
+implementation.  Finally, the indirect function needs to be defined in
+the same translation unit as the resolver function:
+
+@smallexample
+void *memcpy (void *, const void *, size_t)
+     __attribute__ ((ifunc ("resolve_memcpy")));
+@end smallexample
+
+Indirect functions cannot be weak, and require a recent binutils (at
+least version 2.20.1), and GNU C library (at least version 2.11.1).
+
 @item interrupt
 @cindex interrupt handler functions
 Use this attribute on the ARM, AVR, CR16, Epiphany, M32C, M32R/D, m68k, MeP, MIPS,
@@ -2726,7 +2772,13 @@ code to initialize the interrupt vector table.
 Note, interrupt handlers for the Blackfin, H8/300, H8/300H, H8S, MicroBlaze,
 and SH processors can be specified via the @code{interrupt_handler} attribute.
 
-Note, on the AVR, interrupts will be enabled inside the function.
+Note, on the AVR, the hardware globally disables interrupts when an
+interrupt is executed.  The first instruction of an interrupt handler
+declared with this attribute will be a @code{SEI} instruction to
+re-enable interrupts.  See also the @code{signal} function attribute
+that does not insert a @code{SEI} instuction.  If both @code{signal} and
+@code{interrupt} are specified for the same function, @code{signal}
+will be silently ignored.
 
 Note, for the ARM, you can specify the kind of interrupt to be handled by
 adding an optional parameter to the interrupt attribute like this:
@@ -2821,51 +2873,6 @@ void __attribute__ ((interrupt, use_shadow_register_set,
 On RL78, use @code{brk_interrupt} instead of @code{interrupt} for
 handlers intended to be used with the @code{BRK} opcode (i.e.  those
 that must end with @code{RETB} instead of @code{RETI}).
-
-@item ifunc ("@var{resolver}")
-@cindex @code{ifunc} attribute
-The @code{ifunc} attribute is used to mark a function as an indirect
-function using the STT_GNU_IFUNC symbol type extension to the ELF
-standard.  This allows the resolution of the symbol value to be
-determined dynamically at load time, and an optimized version of the
-routine can be selected for the particular processor or other system
-characteristics determined then.  To use this attribute, first define
-the implementation functions available, and a resolver function that
-returns a pointer to the selected implementation function.  The
-implementation functions' declarations must match the API of the
-function being implemented, the resolver's declaration is be a
-function returning pointer to void function returning void:
-
-@smallexample
-void *my_memcpy (void *dst, const void *src, size_t len)
-@{
-  @dots{}
-@}
-
-static void (*resolve_memcpy (void)) (void)
-@{
-  return my_memcpy; // we'll just always select this routine
-@}
-@end smallexample
-
-The exported header file declaring the function the user calls would
-contain:
-
-@smallexample
-extern void *memcpy (void *, const void *, size_t);
-@end smallexample
-
-allowing the user to call this as a regular function, unaware of the
-implementation.  Finally, the indirect function needs to be defined in
-the same translation unit as the resolver function:
-
-@smallexample
-void *memcpy (void *, const void *, size_t)
-     __attribute__ ((ifunc ("resolve_memcpy")));
-@end smallexample
-
-Indirect functions cannot be weak, and require a recent binutils (at
-least version 2.20.1), and GNU C library (at least version 2.11.1).
 
 @item interrupt_handler
 @cindex interrupt handler functions on the Blackfin, m68k, H8/300 and SH processors
@@ -3471,11 +3478,23 @@ See long_call/short_call.
 See longcall/shortcall.
 
 @item signal
-@cindex signal handler functions on the AVR processors
+@cindex interrupt handler functions on the AVR processors
 Use this attribute on the AVR to indicate that the specified
-function is a signal handler.  The compiler will generate function
-entry and exit sequences suitable for use in a signal handler when this
-attribute is present.  Interrupts will be disabled inside the function.
+function is an interrupt handler.  The compiler will generate function
+entry and exit sequences suitable for use in an interrupt handler when this
+attribute is present.
+
+See also the @code{interrupt} function attribute. 
+
+The AVR hardware globally disables interrupts when an interrupt is executed.
+Interrupt handler functions defined with the @code{signal} attribute
+do not re-enable interrupts.  It is save to enable interrupts in a
+@code{signal} handler.  This ``save'' only applies to the code
+generated by the compiler and not to the IRQ-layout of the
+application which is responsibility of the application.
+
+If both @code{signal} and @code{interrupt} are specified for the same
+function, @code{signal} will be silently ignored.
 
 @item sp_switch
 Use this attribute on the SH to indicate an @code{interrupt_handler}
@@ -4102,8 +4121,7 @@ namespace is now in use for GCC-specific pragmas.  However, it has been
 found convenient to use @code{__attribute__} to achieve a natural
 attachment of attributes to their corresponding declarations, whereas
 @code{#pragma GCC} is of use for constructs that do not naturally form
-part of the grammar.  @xref{Other Directives,,Miscellaneous
-Preprocessing Directives, cpp, The GNU C Preprocessor}.
+part of the grammar.  @xref{Pragmas,,Pragmas Accepted by GCC}.
 
 @node Attribute Syntax
 @section Attribute Syntax
@@ -9432,8 +9450,9 @@ executed before any constructors are called.  The CPU detection code is
 automatically executed in a very high priority constructor.
 
 For example, this function has to be used in @code{ifunc} resolvers which
-check for CPU type using the builtins, @code{__builtin_cpu_is}
-and @code{__builtin_cpu_supports}.
+check for CPU type using the builtins @code{__builtin_cpu_is}
+and @code{__builtin_cpu_supports}, or in constructors on targets which
+don't support constructor priority.
 @smallexample
 
 static void (*resolve_memcpy (void)) (void)

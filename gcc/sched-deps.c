@@ -2445,8 +2445,7 @@ sched_analyze_1 (struct deps_desc *deps, rtx x, rtx insn)
 
       if (sched_deps_info->use_cselib)
 	{
-	  enum machine_mode address_mode
-	    = targetm.addr_space.address_mode (MEM_ADDR_SPACE (dest));
+	  enum machine_mode address_mode = get_address_mode (dest);
 
 	  t = shallow_copy_rtx (dest);
 	  cselib_lookup_from_insn (XEXP (t, 0), address_mode, 1,
@@ -2607,8 +2606,7 @@ sched_analyze_2 (struct deps_desc *deps, rtx x, rtx insn)
 
 	if (sched_deps_info->use_cselib)
 	  {
-	    enum machine_mode address_mode
-	      = targetm.addr_space.address_mode (MEM_ADDR_SPACE (t));
+	    enum machine_mode address_mode = get_address_mode (t);
 
 	    t = shallow_copy_rtx (t);
 	    cselib_lookup_from_insn (XEXP (t, 0), address_mode, 1,
@@ -2872,7 +2870,7 @@ sched_analyze_insn (struct deps_desc *deps, rtx x, rtx insn)
 	{
 	  if (GET_CODE (XEXP (link, 0)) == CLOBBER)
 	    sched_analyze_1 (deps, XEXP (link, 0), insn);
-	  else
+	  else if (GET_CODE (XEXP (link, 0)) != SET)
 	    sched_analyze_2 (deps, XEXP (link, 0), insn);
 	}
       /* Don't schedule anything after a tail call, tail call needs
