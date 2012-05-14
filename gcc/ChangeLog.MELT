@@ -1,5 +1,9 @@
 
 2012-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl: Always include the warmelt*.c for md5sum.
+	* melt-build.mk: Regenerate.
+
+2012-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-modes.melt: Always register
 	child_process_sigchld_handler because it also handles probe

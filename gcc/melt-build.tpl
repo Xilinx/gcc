@@ -417,7 +417,7 @@ ENDFOR melt_translator_file+]
 [+FOR melt_translator_file "\\\n"+] [+melt_stage+]-[+base+]-module.stamp [+melt_stage+]/[+base+].c [+ENDFOR melt_translator_file+]
 	echo "#$@ generated" > $@-tmp
 	$(MD5SUM) melt-run.h >> $@-tmp
-[+FOR melt_translator_file "\n"+]	$(MD5SUM) $(wildcard [+melt_stage+]/[+base+].c [+melt_stage+]/[+base+]+[0-9]*.c) < /dev/null >> $@-tmp[+ENDFOR melt_translator_file+]
+[+FOR melt_translator_file "\n"+]	$(MD5SUM) [+melt_stage+]/[+base+].c $(wildcard [+melt_stage+]/[+base+]+[0-9]*.c) < /dev/null >> $@-tmp[+ENDFOR melt_translator_file+]
 	echo "# end $@" >> $@-tmp
 	$(melt_move_if_change) $@-tmp $@
 
