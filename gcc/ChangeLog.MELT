@@ -1,5 +1,9 @@
 
 2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_poll_inputs): Retrieve the closure
+	correctly. Seems to work.
+
+2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_poll_inputs): On end of input, replace
 	the handler with :TRUE.
 

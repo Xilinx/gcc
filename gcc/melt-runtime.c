@@ -13240,6 +13240,7 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 	  unsigned buflen = 0;
 	  union meltparam_un argtab[2];
 	  sbufv = melt_field_object ((melt_ptr_t) curhandv, MELTFIELD_INCH_SBUF);
+	  closv =  melt_field_object ((melt_ptr_t) curhandv, MELTFIELD_INCH_CLOS);
 	  bufdata = melt_strbuf_str ((melt_ptr_t) sbufv);
 	  buflen = melt_strbuf_usedlength ((melt_ptr_t) sbufv);
 	  memset (argtab, 0, sizeof(argtab));
