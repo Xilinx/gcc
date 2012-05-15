@@ -394,6 +394,11 @@ enum reg_class {
 
 #define REGNO_OK_FOR_INDEX_P(NUM) 0
 
+#define HARD_REGNO_CALL_PART_CLOBBERED(REGNO, MODE)                    \
+  (((REGNO) < 18 && (REGNO) + GET_MODE_SIZE (MODE) > 18)               \
+   || ((REGNO) < REG_Y && (REGNO) + GET_MODE_SIZE (MODE) > REG_Y)      \
+   || ((REGNO) < REG_Z && (REGNO) + GET_MODE_SIZE (MODE) > REG_Z))
+
 #define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P hook_bool_mode_true
 
 #define STACK_PUSH_CODE POST_DEC
@@ -694,6 +699,10 @@ struct GTY(()) machine_function
 
   /* 'true' if a callee might be tail called */
   int sibcall_fails;
+
+  /* 'true' if the above is_foo predicates are sanity-checked to avoid
+     multiple diagnose for the same function.  */
+  int attributes_checked_p;
 };
 
 /* AVR does not round pushes, but the existance of this macro is

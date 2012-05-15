@@ -1,3 +1,300 @@
+2012-05-09  Georg-Johann Lay  <avr@gjlay.de>
+
+	Backport from 2012-05-12 mainline r187342.
+
+	PR target/53256
+	* config/avr/elf.h (ASM_DECLARE_FUNCTION_NAME): Remove.
+	* config/avr/avr-protos.h (avr_asm_declare_function_name): Remove.
+	* config/avr/avr.h (struct machine_function): Add attributes_checked_p.
+	* config/avr/avr.c (avr_asm_declare_function_name): Remove.
+	(expand_prologue): Move initialization of cfun->machine->is_naked,
+	is_interrupt, is_signal, is_OS_task, is_OS_main from here to...
+	(avr_set_current_function): ...this new static function.
+	(TARGET_SET_CURRENT_FUNCTION): New define.
+	(avr_function_ok_for_sibcall): Use cfun->machine->is_* instead of
+	checking attributes of current_function_decl.
+	(avr_regs_to_save): Ditto.
+	(signal_function_p): Rename to avr_signal_function_p.
+	(interrupt_function_p): Rename to avr_interrupt_function_p.
+
+	* doc/extend.texi (Function Attributes): Better explanation of
+	'interrupt' and 'signal' for AVR. Move 'ifunc' down to establish
+	alphabetical order.
+
+2012-05-09  Matthias Klose  <doko@ubuntu.com>
+
+	* gcc-ar.c (main): Don't check for execute bits for the plugin.
+
+2012-05-08  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR target/53272
+	* config/cris/cris.c (cris_normal_notice_update_cc): For TARGET_V32,
+	when a constant source operand matches an "I" constraint, the "no
+	CC0 change" applies to a register-destination only, not a
+	strict_low_part-destination.
+
+2012-05-07  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	Backport from mainline:
+	2012-04-19  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	* config/arm/sync.md (sync_optab): Change ior attribute to "or".
+
+2012-05-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53239
+	* tree-vrp.c (get_value_range): Set VR of
+	SSA_NAME_IS_DEFAULT_DEF of DECL_BY_REFERENCE RESULT_DECL
+	to nonnull.
+
+2012-05-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53195
+	* tree-inline.c (setup_one_parameter): Properly add referenced
+	vars from the parameters new known value.
+
+2012-05-06  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	Backport from mainline:
+	2012-04-27  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/52999
+	* config/pa/pa.c (pa_legitimate_constant_p): Don't put function labels
+	in constant pool.
+
+2012-05-04  Ian Lance Taylor  <iant@google.com>
+
+	* tree-vect-patterns.c (vect_single_imm_use): Correct return
+	values from false to NULL.
+
+2012-05-04  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-05-04  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/53228
+	* config/i386/i386.h (X86_ARCH_CMOV): Rename from X86_ARCH_CMOVE.
+	(TARGET_CMOV): Rename from TARGET_CMOVE.
+	(TARGET_CMOVE): New define.
+	* config/i386/i386.c (ix86_option_override_internal): Use TARGET_CMOV.
+	Do not set TARGET_CMOVE here.
+
+2012-05-04  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	Backport from mainline:
+
+	2012-05-04  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	PR tree-optimization/52633
+	* tree-vect-patterns.c (vect_vect_recog_func_ptrs): Swap order of
+	vect_recog_widen_shift_pattern and vect_recog_over_widening_pattern.
+	(vect_recog_over_widening_pattern): Remove handling of code that was
+	already detected as over-widening pattern.  Remove special handling
+	of "unsigned" cases.  Instead, support general case of conversion
+	of the shift result to another type.
+
+	2012-05-04  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	* tree-vect-patterns.c (vect_single_imm_use): New function.
+	(vect_recog_widen_mult_pattern): Use it instead of open-coding loop.
+	(vect_recog_over_widening_pattern): Likewise.
+	(vect_recog_widen_shift_pattern): Likewise.
+
+	2012-04-10  Ulrich Weigand  <ulrich.weigand@linaro.org>
+
+	PR tree-optimization/52870
+	* tree-vect-patterns.c (vect_recog_widen_mult_pattern): Verify that
+	presumed pattern statement is within the same loop or basic block.
+
+2012-05-04  Richard Guenther  <rguenther@suse.de>
+
+	* common.opt (flto-report): Do not mark as Optimization.
+
+2012-05-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/48496
+	* recog.c (constrain_operands): If extra constraints are present, also
+	accept pseudo-registers with equivalent memory locations during reload.
+
+2012-05-03  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	Backport from the mainline
+	2012-05-03  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/53199
+	* config/rs6000/rs6000.md (bswapdi splitters): If
+	-mavoid-indexed-addresses (or -mcpu=power6 which sets it by
+	default) is used, generate an alternate sequence that does not
+	depend on using indexed addressing.
+
+2012-05-03  David S. Miller  <davem@davemloft.net>
+
+	PR target/52684
+	* config/sparc/sparc.c (emit_soft_tfmode_libcall): If we pass a
+	MEM directly into a libcall, mark it's MEM_EXPR as addressable.
+	(sparc_emit_float_lib_cmp): Likewise.
+
+2012-05-04  Martin Jambor  <mjambor@suse.cz>
+
+	Backport from mainline
+	2012-05-02  Martin Jambor  <mjambor@suse.cz>
+
+	PR lto/52605
+	* dwarf2out.c (dwarf2out_decl): Only lookup die representing context
+	of a variable when the contect is a function.
+
+2012-05-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR plugins/53126
+	* gcc-ar.c (main): If GCC_EXEC_PREFIX is set in env,
+	append program name to it and pass that as first argument
+	to make_relative_prefix.  Always pass standard_libexec_prefix
+	as last argument to make_relative_prefix.  If
+	make_relative_prefix returns NULL, fall back to
+	standard_libexec_prefix.
+
+	PR debug/53174
+	* tree-predcom.c (remove_stmt): Call reset_debug_uses on stmts being
+	removed.
+
+	PR target/53187
+	* config/arm/arm.c (arm_select_cc_mode): If x has MODE_CC class
+	mode, return that mode.
+
+2012-05-03  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53144
+	* tree-ssa-sccvn.c (vn_reference_lookup_or_insert_constant_for_pieces):
+	Rename to ...
+	(vn_reference_lookup_or_insert_for_pieces): ... this.  Properly deal
+	with SSA name values.
+	(vn_reference_lookup_3): Adjust callers.
+
+2012-05-02  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53163
+	* tree-ssa-phiopt.c (cond_if_else_store_replacement): Don't ignore
+	return value from compute_all_dependences.
+
+	PR rtl-optimization/53160
+	* ree.c (combine_reaching_defs): Handle the case where cand->insn
+	has been modified by ree pass already.
+
+2012-05-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-04-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR middle-end/53136
+	* ipa-prop.c (ipa_print_node_jump_functions): Wrap multiple
+	calls to cgraph_node_name in xstrdup.
+	(ipa_make_edge_direct_to_target): Ditto.
+	* tree-sra.c (convert_callers_for_node): Ditto.
+	* lto-symtab.c (lto_cgraph_replace_node): Ditto.
+	* ipa-cp.c (perhaps_add_new_callers): Ditto.
+	* cgraphunit.c (cgraph_redirect_edge_call_stmt_to_callee): Ditto.
+	(cgraph_materialize_all_clones): Ditto.
+	* ipa-inline.c (report_inline_failed_reason): Ditto.
+	(want_early_inline_function_p): Ditto.
+	(edge_badness): Ditto.
+	(update_edge_key): Ditto.
+	(flatten_function): Ditto.
+	(ipa_inline): Ditto.
+	(inline_always_inline_functions): Ditto.
+	(early_inline_small_functions): Ditto.
+
+2012-04-30  Andreas Tobler  <andreast@fgznet.ch>
+
+	Backport from mainline
+	2012-03-21  Andreas Tobler  <andreast@fgznet.ch>
+
+	* configure.ac (HAVE_LD_NO_DOT_SYMBOLS): Add powerpc64-*-freebsd*.
+	Introduce emul_name to select the right linker emulation for
+	powerpc64-*-freebsd*.
+	* configure: Regenerate.
+	* config.gcc: Add bits to support powerpc64-*-freebsd*.
+	* config/rs6000/freebsd.h (POWERPC_FREEBSD): Define.
+	* config/rs6000/freebsd64.h: New file.
+	* config/rs6000/rs6000.c (rs6000_option_override_internal): Use
+	POWERPC_FREEBSD.
+	(rs6000_savres_strategy): Likewise.
+	(rs6000_savres_routine_name): Likewise.
+	(rs6000_elf_file_end): Likewise.
+	* config/rs6000/t-freebsd64: New file.
+	* config/rs6000/sysv4.h (SUBTARGET_OVERRIDE_OPTIONS): Set the
+	rs6000_current_abi for 64-bit FreeBSD to ABI_AIX.
+
+2012-04-30  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-04-27  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR target/53138
+	* config/i386/i386.md (x86_mov<mode>cc_0_m1_neg): Add clobber.
+
+2012-04-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/i386/i386.c (ix86_handle_struct_attribute): Use the proper
+	predicate to discriminate types.
+
+2012-04-27  Richard Guenther  <rguenther@suse.de>
+
+	PR c/51527
+	* convert.c (convert_to_integer): Avoid infinite recursion for
+	target-defined built-in types.
+
+2012-04-26  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR target/53120
+	* config/cris/cris.md ("*andhi_lowpart_v32")
+	("*andqi_lowpart_v32"): Change first input-only operand from
+	a (match_operand ...) to (match_dup 0).  Drop alternatives with
+	const_int-matching constraints for redundancy.
+	("*andhi_lowpart_non_v32", "*andqi_lowpart_non_v32"): Ditto.  Drop
+	three-operand alternative.
+
+2012-04-26  Uros Bizjak  <ubizjak@gmail.com>
+
+	Backport from mainline
+	2012-04-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*add<mode>_2): Add r/r/0 alternative.
+	(*addsi_2_zext): Ditto.
+	(*add<mode>_3): Ditto.
+	(*addsi_3_zext): Ditto.
+	(*add<mode>_5): Ditto.
+
+2012-04-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/52880
+	* c-typeck.c (set_nonincremental_init,
+	set_nonincremental_init_from_string): Pass true instead of false
+	as IMPLICIT to add_pending_init.
+
+2012-04-24  Georg-Johann Lay  <avr@gjlay.de>
+
+	Backport from 2012-04-24 mainline r186768.
+
+	PR target/53065
+	* config/avr/avr.h (HARD_REGNO_CALL_PART_CLOBBERED): New hook define.
+
+2012-04-24  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53085
+	* tree-ssa-pre.c (eliminate): Do not eliminate volatile redundant
+	stores.
+
+2012-04-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/53084
+	* varasm.c (compute_reloc_for_constant): Handle ADDR_EXPR
+	of MEM_REF.
+	(output_addressed_constants): Likewise.
+
+	PR middle-end/52999
+	* varasm.c (get_section): Don't ICE for section conflicts with
+	built-in section kinds.
+
 2012-04-23  David Edelsohn  <dje.gcc@gmail.com>
 
 	* config/rs6000/sync.md (fetchop_name): Change ior attribute to "or".

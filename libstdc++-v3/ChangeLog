@@ -1,3 +1,32 @@
+2012-05-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/53193
+	* testsuite/23_containers/unordered_set/instantiation_neg.cc: Adjust
+	dg-error line number.
+
+2012-05-01  François Dumont  <fdumont@gcc.gnu.org>
+
+	PR libstdc++/53115
+	* include/bits/hashtable.h
+	(_Hashtable<>::_M_rehash_aux(size_type, false_type)): Fix buckets
+	after insertion of several equivalent elements.
+	* testsuite/23_containers/unordered_multiset/insert/53115.cc: New.
+	* testsuite/23_containers/unordered_multimap/insert/53115.cc: New.
+
+2012-04-30  Andreas Tobler  <andreast@fgznet.ch>
+
+	Backport from mainline
+	2012-03-21  Andreas Tobler  <andreast@fgznet.ch>
+
+	* testsuite/23_containers/vector/bool/modifiers/insert/31370.cc:
+	Skip this test on powerpc64-*-freebsd*.
+
+2012-04-25  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/scoped_allocator (scoped_allocator::__outermost): Do
+	not pass non-POD to varargs function.
+	* testsuite/20_util/scoped_allocator/1.cc: Fix test.
+
 2012-04-23  Chris Jefferson  <chris@bubblescope.net>
 
 	PR testsuite/53046

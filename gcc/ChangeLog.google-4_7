@@ -1,3 +1,7 @@
+2012-05-15   Diego Novillo  <dnovillo@google.com>
+
+	Merge from gcc-4_7-branch rev 187362.
+
 2012-05-14  Xinliang David Li  <davidxl@google.com>
 
 	* cgraphbuild.c (record_reference_to_real_target_from_alias):
