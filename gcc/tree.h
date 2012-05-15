@@ -727,195 +727,80 @@ enum tree_node_structure_enum {
    is accessed incorrectly. The macros die with a fatal error.  */
 #if defined ENABLE_TREE_CHECKING && (GCC_VERSION >= 2007)
 
-#define TREE_CHECK(T, CODE) __extension__				\
-({  __typeof (T) const __t = (T);					\
-    if (TREE_CODE (__t) != (CODE))					\
-      tree_check_failed (__t, __FILE__, __LINE__, __FUNCTION__, 	\
-			 (CODE), 0);					\
-    __t; })
+#define TREE_CHECK(T, CODE) \
+(tree_check ((T), __FILE__, __LINE__, __FUNCTION__, (CODE)))
 
-#define TREE_NOT_CHECK(T, CODE) __extension__				\
-({  __typeof (T) const __t = (T);					\
-    if (TREE_CODE (__t) == (CODE))					\
-      tree_not_check_failed (__t, __FILE__, __LINE__, __FUNCTION__,	\
-			     (CODE), 0);				\
-    __t; })
+#define TREE_NOT_CHECK(T, CODE) \
+(tree_not_check ((T), __FILE__, __LINE__, __FUNCTION__, (CODE)))
 
-#define TREE_CHECK2(T, CODE1, CODE2) __extension__			\
-({  __typeof (T) const __t = (T);					\
-    if (TREE_CODE (__t) != (CODE1)					\
-	&& TREE_CODE (__t) != (CODE2))					\
-      tree_check_failed (__t, __FILE__, __LINE__, __FUNCTION__,		\
- 			 (CODE1), (CODE2), 0);				\
-    __t; })
+#define TREE_CHECK2(T, CODE1, CODE2) \
+(tree_check2 ((T), __FILE__, __LINE__, __FUNCTION__, (CODE1), (CODE2)))
 
-#define TREE_NOT_CHECK2(T, CODE1, CODE2) __extension__			\
-({  __typeof (T) const __t = (T);					\
-    if (TREE_CODE (__t) == (CODE1)					\
-	|| TREE_CODE (__t) == (CODE2))					\
-      tree_not_check_failed (__t, __FILE__, __LINE__, __FUNCTION__,	\
-			     (CODE1), (CODE2), 0);			\
-    __t; })
+#define TREE_NOT_CHECK2(T, CODE1, CODE2) \
+(tree_not_check2 ((T), __FILE__, __LINE__, __FUNCTION__, (CODE1), (CODE2)))
 
-#define TREE_CHECK3(T, CODE1, CODE2, CODE3) __extension__		\
-({  __typeof (T) const __t = (T);					\
-    if (TREE_CODE (__t) != (CODE1)					\
-	&& TREE_CODE (__t) != (CODE2)					\
-	&& TREE_CODE (__t) != (CODE3))					\
-      tree_check_failed (__t, __FILE__, __LINE__, __FUNCTION__,		\
-			     (CODE1), (CODE2), (CODE3), 0);		\
-    __t; })
+#define TREE_CHECK3(T, CODE1, CODE2, CODE3) \
+(tree_check3 ((T), __FILE__, __LINE__, __FUNCTION__, (CODE1), (CODE2), (CODE3)))
 
-#define TREE_NOT_CHECK3(T, CODE1, CODE2, CODE3) __extension__		\
-({  __typeof (T) const __t = (T);					\
-    if (TREE_CODE (__t) == (CODE1)					\
-	|| TREE_CODE (__t) == (CODE2)					\
-	|| TREE_CODE (__t) == (CODE3))					\
-      tree_not_check_failed (__t, __FILE__, __LINE__, __FUNCTION__,	\
-			     (CODE1), (CODE2), (CODE3), 0);		\
-    __t; })
+#define TREE_NOT_CHECK3(T, CODE1, CODE2, CODE3) \
+(tree_not_check3 ((T), __FILE__, __LINE__, __FUNCTION__, \
+                               (CODE1), (CODE2), (CODE3)))
 
-#define TREE_CHECK4(T, CODE1, CODE2, CODE3, CODE4) __extension__	\
-({  __typeof (T) const __t = (T);					\
-    if (TREE_CODE (__t) != (CODE1)					\
-	&& TREE_CODE (__t) != (CODE2)					\
-	&& TREE_CODE (__t) != (CODE3)					\
-	&& TREE_CODE (__t) != (CODE4))					\
-      tree_check_failed (__t, __FILE__, __LINE__, __FUNCTION__,		\
-			     (CODE1), (CODE2), (CODE3), (CODE4), 0);	\
-    __t; })
+#define TREE_CHECK4(T, CODE1, CODE2, CODE3, CODE4) \
+(tree_check4 ((T), __FILE__, __LINE__, __FUNCTION__, \
+                           (CODE1), (CODE2), (CODE3), (CODE4)))
 
-#define TREE_NOT_CHECK4(T, CODE1, CODE2, CODE3, CODE4) __extension__	\
-({  __typeof (T) const __t = (T);					\
-    if (TREE_CODE (__t) == (CODE1)					\
-	|| TREE_CODE (__t) == (CODE2)					\
-	|| TREE_CODE (__t) == (CODE3)					\
-	|| TREE_CODE (__t) == (CODE4))					\
-      tree_not_check_failed (__t, __FILE__, __LINE__, __FUNCTION__,	\
-			     (CODE1), (CODE2), (CODE3), (CODE4), 0);	\
-    __t; })
+#define TREE_NOT_CHECK4(T, CODE1, CODE2, CODE3, CODE4) \
+(tree_not_check4 ((T), __FILE__, __LINE__, __FUNCTION__, \
+                               (CODE1), (CODE2), (CODE3), (CODE4)))
 
-#define TREE_CHECK5(T, CODE1, CODE2, CODE3, CODE4, CODE5) __extension__	\
-({  __typeof (T) const __t = (T);					\
-    if (TREE_CODE (__t) != (CODE1)					\
-	&& TREE_CODE (__t) != (CODE2)					\
-	&& TREE_CODE (__t) != (CODE3)					\
-	&& TREE_CODE (__t) != (CODE4)					\
-	&& TREE_CODE (__t) != (CODE5))					\
-      tree_check_failed (__t, __FILE__, __LINE__, __FUNCTION__,		\
-			     (CODE1), (CODE2), (CODE3), (CODE4), (CODE5), 0);\
-    __t; })
+#define TREE_CHECK5(T, CODE1, CODE2, CODE3, CODE4, CODE5) \
+(tree_check5 ((T), __FILE__, __LINE__, __FUNCTION__, \
+                           (CODE1), (CODE2), (CODE3), (CODE4), (CODE5)))
 
-#define TREE_NOT_CHECK5(T, CODE1, CODE2, CODE3, CODE4, CODE5) __extension__ \
-({  __typeof (T) const __t = (T);					\
-    if (TREE_CODE (__t) == (CODE1)					\
-	|| TREE_CODE (__t) == (CODE2)					\
-	|| TREE_CODE (__t) == (CODE3)					\
-	|| TREE_CODE (__t) == (CODE4)					\
-	|| TREE_CODE (__t) == (CODE5))					\
-      tree_not_check_failed (__t, __FILE__, __LINE__, __FUNCTION__,	\
-			     (CODE1), (CODE2), (CODE3), (CODE4), (CODE5), 0);\
-    __t; })
+#define TREE_NOT_CHECK5(T, CODE1, CODE2, CODE3, CODE4, CODE5) \
+(tree_not_check5 ((T), __FILE__, __LINE__, __FUNCTION__, \
+                               (CODE1), (CODE2), (CODE3), (CODE4), (CODE5)))
 
-#define CONTAINS_STRUCT_CHECK(T, STRUCT) __extension__			\
-({  __typeof (T) const __t = (T);					\
-  if (tree_contains_struct[TREE_CODE(__t)][(STRUCT)] != 1)		\
-      tree_contains_struct_check_failed (__t, (STRUCT), __FILE__, __LINE__,	\
-			       __FUNCTION__);				\
-    __t; })
+#define CONTAINS_STRUCT_CHECK(T, STRUCT) \
+(contains_struct_check ((T), (STRUCT), __FILE__, __LINE__, __FUNCTION__))
 
-#define TREE_CLASS_CHECK(T, CLASS) __extension__			\
-({  __typeof (T) const __t = (T);					\
-    if (TREE_CODE_CLASS (TREE_CODE(__t)) != (CLASS))			\
-      tree_class_check_failed (__t, (CLASS), __FILE__, __LINE__,	\
-			       __FUNCTION__);				\
-    __t; })
+#define TREE_CLASS_CHECK(T, CLASS) \
+(tree_class_check ((T), (CLASS), __FILE__, __LINE__, __FUNCTION__))
 
-#define TREE_RANGE_CHECK(T, CODE1, CODE2) __extension__			\
-({  __typeof (T) const __t = (T);					\
-    if (TREE_CODE (__t) < (CODE1) || TREE_CODE (__t) > (CODE2))		\
-      tree_range_check_failed (__t, __FILE__, __LINE__, __FUNCTION__,	\
-			       (CODE1), (CODE2));			\
-    __t; })
+#define TREE_RANGE_CHECK(T, CODE1, CODE2) \
+(tree_range_check ((T), (CODE1), (CODE2), __FILE__, __LINE__, __FUNCTION__))
 
-#define OMP_CLAUSE_SUBCODE_CHECK(T, CODE) __extension__			\
-({  __typeof (T) const __t = (T);					\
-    if (TREE_CODE (__t) != OMP_CLAUSE)					\
-      tree_check_failed (__t, __FILE__, __LINE__, __FUNCTION__,  	\
-			 OMP_CLAUSE, 0);				\
-    if (__t->omp_clause.code != (CODE))					\
-      omp_clause_check_failed (__t, __FILE__, __LINE__, __FUNCTION__, 	\
-			       (CODE));					\
-    __t; })
+#define OMP_CLAUSE_SUBCODE_CHECK(T, CODE) \
+(omp_clause_subcode_check ((T), (CODE), __FILE__, __LINE__, __FUNCTION__))
 
-#define OMP_CLAUSE_RANGE_CHECK(T, CODE1, CODE2) __extension__		\
-({  __typeof (T) const __t = (T);					\
-    if (TREE_CODE (__t) != OMP_CLAUSE)					\
-      tree_check_failed (__t, __FILE__, __LINE__, __FUNCTION__,  	\
-			 OMP_CLAUSE, 0);				\
-    if ((int) __t->omp_clause.code < (int) (CODE1)			\
-        || (int) __t->omp_clause.code > (int) (CODE2))			\
-      omp_clause_range_check_failed (__t, __FILE__, __LINE__,		\
-				     __FUNCTION__, (CODE1), (CODE2));	\
-    __t; })
+#define OMP_CLAUSE_RANGE_CHECK(T, CODE1, CODE2) \
+(omp_clause_range_check ((T), (CODE1), (CODE2), \
+                                      __FILE__, __LINE__, __FUNCTION__))
 
 /* These checks have to be special cased.  */
-#define EXPR_CHECK(T) __extension__					\
-({  __typeof (T) const __t = (T);					\
-    char const __c = TREE_CODE_CLASS (TREE_CODE (__t));			\
-    if (!IS_EXPR_CODE_CLASS (__c))					\
-      tree_class_check_failed (__t, tcc_expression, __FILE__, __LINE__,	\
-			       __FUNCTION__);				\
-    __t; })
+#define EXPR_CHECK(T) \
+(expr_check ((T), __FILE__, __LINE__, __FUNCTION__))
 
 /* These checks have to be special cased.  */
-#define NON_TYPE_CHECK(T) __extension__					\
-({  __typeof (T) const __t = (T);					\
-    if (TYPE_P (__t))							\
-      tree_not_class_check_failed (__t, tcc_type, __FILE__, __LINE__,	\
-				   __FUNCTION__);			\
-    __t; })
+#define NON_TYPE_CHECK(T) \
+(non_type_check ((T), __FILE__, __LINE__, __FUNCTION__))
 
-#define TREE_VEC_ELT_CHECK(T, I) __extension__				\
-(*({__typeof (T) const __t = (T);					\
-    const int __i = (I);						\
-    if (TREE_CODE (__t) != TREE_VEC)					\
-      tree_check_failed (__t, __FILE__, __LINE__, __FUNCTION__,		\
-  			 TREE_VEC, 0);					\
-    if (__i < 0 || __i >= __t->vec.length)				\
-      tree_vec_elt_check_failed (__i, __t->vec.length,			\
-				 __FILE__, __LINE__, __FUNCTION__);	\
-    &__t->vec.a[__i]; }))
+#define TREE_VEC_ELT_CHECK(T, I) \
+(*(CONST_CAST2 (tree *, typeof (T)*, \
+     tree_vec_elt_check ((T), (I), __FILE__, __LINE__, __FUNCTION__))))
 
-#define OMP_CLAUSE_ELT_CHECK(T, I) __extension__			\
-(*({__typeof (T) const __t = (T);					\
-    const int __i = (I);						\
-    if (TREE_CODE (__t) != OMP_CLAUSE)					\
-      tree_check_failed (__t, __FILE__, __LINE__, __FUNCTION__,  	\
-			 OMP_CLAUSE, 0);				\
-    if (__i < 0 || __i >= omp_clause_num_ops [__t->omp_clause.code])	\
-      omp_clause_operand_check_failed (__i, __t, __FILE__, __LINE__,	\
-	                               __FUNCTION__);			\
-    &__t->omp_clause.ops[__i]; }))
+#define OMP_CLAUSE_ELT_CHECK(T, I) \
+(*(omp_clause_elt_check ((T), (I), __FILE__, __LINE__, __FUNCTION__)))
 
 /* Special checks for TREE_OPERANDs.  */
-#define TREE_OPERAND_CHECK(T, I) __extension__				\
-(*({__typeof (T) const __t = EXPR_CHECK (T);				\
-    const int __i = (I);						\
-    if (__i < 0 || __i >= TREE_OPERAND_LENGTH (__t))			\
-      tree_operand_check_failed (__i, __t,				\
-				 __FILE__, __LINE__, __FUNCTION__);	\
-    &__t->exp.operands[__i]; }))
+#define TREE_OPERAND_CHECK(T, I) \
+(*(CONST_CAST2 (tree*, typeof (T)*, \
+     tree_operand_check ((T), (I), __FILE__, __LINE__, __FUNCTION__))))
 
-#define TREE_OPERAND_CHECK_CODE(T, CODE, I) __extension__		\
-(*({__typeof (T) const __t = (T);					\
-    const int __i = (I);						\
-    if (TREE_CODE (__t) != CODE)					\
-      tree_check_failed (__t, __FILE__, __LINE__, __FUNCTION__, (CODE), 0);\
-    if (__i < 0 || __i >= TREE_OPERAND_LENGTH (__t))			\
-      tree_operand_check_failed (__i, __t,				\
-				 __FILE__, __LINE__, __FUNCTION__);	\
-    &__t->exp.operands[__i]; }))
+#define TREE_OPERAND_CHECK_CODE(T, CODE, I) \
+(*(tree_operand_check_code ((T), (CODE), (I), \
+                                         __FILE__, __LINE__, __FUNCTION__)))
 
 /* Nodes are chained together for many purposes.
    Types are chained together to record them for being output to the debugger
@@ -926,17 +811,15 @@ enum tree_node_structure_enum {
    Often lists of things are represented by TREE_LIST nodes that
    are chained together.  */
 
-#define TREE_CHAIN(NODE) __extension__ \
-(*({__typeof (NODE) const __t = CONTAINS_STRUCT_CHECK (NODE, TS_COMMON);\
-    &__t->common.chain; }))
+#define TREE_CHAIN(NODE) \
+(CONTAINS_STRUCT_CHECK (NODE, TS_COMMON)->common.chain)
 
 /* In all nodes that are expressions, this is the data type of the expression.
    In POINTER_TYPE nodes, this is the type that the pointer points to.
    In ARRAY_TYPE nodes, this is the type of the elements.
    In VECTOR_TYPE nodes, this is the type of the elements.  */
-#define TREE_TYPE(NODE) __extension__ \
-(*({__typeof (NODE) const __t = CONTAINS_STRUCT_CHECK (NODE, TS_TYPED); \
-    &__t->typed.type; }))
+#define TREE_TYPE(NODE) \
+(CONTAINS_STRUCT_CHECK (NODE, TS_TYPED)->typed.type)
 
 extern void tree_contains_struct_check_failed (const_tree,
 					       const enum tree_node_structure_enum,
@@ -3718,6 +3601,273 @@ union GTY ((ptr_alias (union lang_tree_node),
   struct tree_optimization_option GTY ((tag ("TS_OPTIMIZATION"))) optimization;
   struct tree_target_option GTY ((tag ("TS_TARGET_OPTION"))) target_option;
 };
+
+
+#if defined ENABLE_TREE_CHECKING && (GCC_VERSION >= 2007)
+
+template <typename Tree>
+inline Tree
+tree_check (Tree __t, const char *__f, int __l, const char *__g, tree_code __c)
+{
+  if (TREE_CODE (__t) != __c)
+    tree_check_failed (__t, __f, __l, __g, __c, 0);
+  return __t;
+}
+
+template <typename Tree>
+inline Tree
+tree_not_check (Tree __t, const char *__f, int __l, const char *__g,
+                enum tree_code __c)
+{
+  if (TREE_CODE (__t) == __c)
+    tree_not_check_failed (__t, __f, __l, __g, __c, 0);
+  return __t;
+}
+
+template <typename Tree>
+inline Tree
+tree_check2 (Tree __t, const char *__f, int __l, const char *__g,
+             enum tree_code __c1, enum tree_code __c2)
+{
+  if (TREE_CODE (__t) != __c1
+      && TREE_CODE (__t) != __c2)
+    tree_check_failed (__t, __f, __l, __g, __c1, __c2, 0);
+  return __t;
+}
+
+template <typename Tree>
+inline Tree
+tree_not_check2 (Tree __t, const char *__f, int __l, const char *__g,
+                 enum tree_code __c1, enum tree_code __c2)
+{
+  if (TREE_CODE (__t) == __c1
+      || TREE_CODE (__t) == __c2)
+    tree_not_check_failed (__t, __f, __l, __g, __c1, __c2, 0);
+  return __t;
+}
+
+template <typename Tree>
+inline Tree
+tree_check3 (Tree __t, const char *__f, int __l, const char *__g,
+             enum tree_code __c1, enum tree_code __c2, enum tree_code __c3)
+{
+  if (TREE_CODE (__t) != __c1
+      && TREE_CODE (__t) != __c2
+      && TREE_CODE (__t) != __c3)
+    tree_check_failed (__t, __f, __l, __g, __c1, __c2, __c3, 0);
+  return __t;
+}
+
+template <typename Tree>
+inline Tree
+tree_not_check3 (Tree __t, const char *__f, int __l, const char *__g,
+                 enum tree_code __c1, enum tree_code __c2, enum tree_code __c3)
+{
+  if (TREE_CODE (__t) == __c1
+      || TREE_CODE (__t) == __c2
+      || TREE_CODE (__t) == __c3)
+    tree_not_check_failed (__t, __f, __l, __g, __c1, __c2, __c3, 0);
+  return __t;
+}
+
+template <typename Tree>
+inline Tree
+tree_check4 (Tree __t, const char *__f, int __l, const char *__g,
+             enum tree_code __c1, enum tree_code __c2, enum tree_code __c3,
+             enum tree_code __c4)
+{
+  if (TREE_CODE (__t) != __c1
+      && TREE_CODE (__t) != __c2
+      && TREE_CODE (__t) != __c3
+      && TREE_CODE (__t) != __c4)
+    tree_check_failed (__t, __f, __l, __g, __c1, __c2, __c3, __c4, 0);
+  return __t;
+}
+
+template <typename Tree>
+inline Tree
+tree_not_check4 (Tree __t, const char *__f, int __l, const char *__g,
+                 enum tree_code __c1, enum tree_code __c2, enum tree_code __c3,
+                 enum tree_code __c4)
+{
+  if (TREE_CODE (__t) == __c1
+      || TREE_CODE (__t) == __c2
+      || TREE_CODE (__t) == __c3
+      || TREE_CODE (__t) == __c4)
+    tree_not_check_failed (__t, __f, __l, __g, __c1, __c2, __c3, __c4, 0);
+  return __t;
+}
+
+template <typename Tree>
+inline Tree
+tree_check5 (Tree __t, const char *__f, int __l, const char *__g,
+             enum tree_code __c1, enum tree_code __c2, enum tree_code __c3,
+             enum tree_code __c4, enum tree_code __c5)
+{
+  if (TREE_CODE (__t) != __c1
+      && TREE_CODE (__t) != __c2
+      && TREE_CODE (__t) != __c3
+      && TREE_CODE (__t) != __c4
+      && TREE_CODE (__t) != __c5)
+    tree_check_failed (__t, __f, __l, __g, __c1, __c2, __c3, __c4, __c5, 0);
+  return __t;
+}
+
+template <typename Tree>
+inline Tree
+tree_not_check5 (Tree __t, const char *__f, int __l, const char *__g,
+                 enum tree_code __c1, enum tree_code __c2, enum tree_code __c3,
+                 enum tree_code __c4, enum tree_code __c5)
+{
+  if (TREE_CODE (__t) == __c1
+      || TREE_CODE (__t) == __c2
+      || TREE_CODE (__t) == __c3
+      || TREE_CODE (__t) == __c4
+      || TREE_CODE (__t) == __c5)
+    tree_not_check_failed (__t, __f, __l, __g, __c1, __c2, __c3, __c4, __c5, 0);
+  return __t;
+}
+
+template <typename Tree>
+inline Tree
+contains_struct_check (Tree __t, const enum tree_node_structure_enum __s,
+                       const char *__f, int __l, const char *__g)
+{
+  if (tree_contains_struct[TREE_CODE(__t)][__s] != 1)
+      tree_contains_struct_check_failed (__t, __s, __f, __l, __g);
+  return __t;
+}
+
+template <typename Tree>
+inline Tree
+tree_class_check (Tree __t, const enum tree_code_class __class,
+                  const char *__f, int __l, const char *__g)
+{
+  if (TREE_CODE_CLASS (TREE_CODE(__t)) != __class)
+    tree_class_check_failed (__t, __class, __f, __l, __g);
+  return __t;
+}
+
+template <typename Tree>
+inline Tree
+tree_range_check (Tree __t,
+                  enum tree_code __code1, enum tree_code __code2,
+                  const char *__f, int __l, const char *__g)
+{
+  if (TREE_CODE (__t) < __code1 || TREE_CODE (__t) > __code2)
+    tree_range_check_failed (__t, __f, __l, __g, __code1, __code2);
+  return __t;
+}
+
+template <typename Tree>
+inline Tree
+omp_clause_subcode_check (Tree __t, enum omp_clause_code __code,
+                          const char *__f, int __l, const char *__g)
+{
+  if (TREE_CODE (__t) != OMP_CLAUSE)
+    tree_check_failed (__t, __f, __l, __g, OMP_CLAUSE, 0);
+  if (__t->omp_clause.code != __code)
+    omp_clause_check_failed (__t, __f, __l, __g, __code);
+  return __t;
+}
+
+template <typename Tree>
+inline Tree
+omp_clause_range_check (Tree __t,
+                        enum omp_clause_code __code1,
+                        enum omp_clause_code __code2,
+                        const char *__f, int __l, const char *__g)
+{
+  if (TREE_CODE (__t) != OMP_CLAUSE)
+    tree_check_failed (__t, __f, __l, __g, OMP_CLAUSE, 0);
+  if ((int) __t->omp_clause.code < (int) __code1
+      || (int) __t->omp_clause.code > (int) __code2)
+    omp_clause_range_check_failed (__t, __f, __l, __g, __code1, __code2);
+  return __t;
+}
+
+/* These checks have to be special cased.  */
+template <typename Tree>
+inline Tree
+expr_check (Tree __t, const char *__f, int __l, const char *__g)
+{
+  char const __c = TREE_CODE_CLASS (TREE_CODE (__t));
+  if (!IS_EXPR_CODE_CLASS (__c))
+    tree_class_check_failed (__t, tcc_expression, __f, __l, __g);
+  return __t;
+}
+
+/* These checks have to be special cased.  */
+template <typename Tree>
+inline Tree
+non_type_check (Tree __t, const char *__f, int __l, const char *__g)
+{
+  if (TYPE_P (__t))
+    tree_not_class_check_failed (__t, tcc_type, __f, __l, __g);
+  return __t;
+}
+
+template <typename Tree>
+inline tree *
+tree_vec_elt_check (Tree __t, int __i,
+                    const char *__f, int __l, const char *__g)
+{
+  if (TREE_CODE (__t) != TREE_VEC)
+    tree_check_failed (__t, __f, __l, __g, TREE_VEC, 0);
+  if (__i < 0 || __i >= __t->vec.length)
+    tree_vec_elt_check_failed (__i, __t->vec.length, __f, __l, __g);
+  return &CONST_CAST_TREE (__t)->vec.a[__i];
+}
+
+template <typename Tree>
+inline Tree *
+omp_clause_elt_check (Tree __t, int __i,
+                      const char *__f, int __l, const char *__g)
+{
+  if (TREE_CODE (__t) != OMP_CLAUSE)
+    tree_check_failed (__t, __f, __l, __g, OMP_CLAUSE, 0);
+  if (__i < 0 || __i >= omp_clause_num_ops [__t->omp_clause.code])
+    omp_clause_operand_check_failed (__i, __t, __f, __l, __g);
+  return &__t->omp_clause.ops[__i];
+}
+
+/* Compute the number of operands in an expression node NODE.  For
+   tcc_vl_exp nodes like CALL_EXPRs, this is stored in the node itself,
+   otherwise it is looked up from the node's code.  */
+static inline int
+tree_operand_length (const_tree node)
+{
+  if (VL_EXP_CLASS_P (node))
+    return VL_EXP_OPERAND_LENGTH (node);
+  else
+    return TREE_CODE_LENGTH (TREE_CODE (node));
+}
+
+/* Special checks for TREE_OPERANDs.  */
+template <typename Tree>
+inline tree *
+tree_operand_check (Tree __t, int __i,
+                    const char *__f, int __l, const char *__g)
+{
+  const_tree __u = EXPR_CHECK (__t);
+  if (__i < 0 || __i >= TREE_OPERAND_LENGTH (__u))
+    tree_operand_check_failed (__i, __u, __f, __l, __g);
+  return &CONST_CAST_TREE (__u)->exp.operands[__i];
+}
+
+template <typename Tree>
+inline Tree *
+tree_operand_check_code (Tree __t, enum tree_code __code, int __i,
+                         const char *__f, int __l, const char *__g)
+{
+  if (TREE_CODE (__t) != __code)
+    tree_check_failed (__t, __f, __l, __g, __code, 0);
+  if (__i < 0 || __i >= TREE_OPERAND_LENGTH (__t))
+    tree_operand_check_failed (__i, __t, __f, __l, __g);
+  return &__t->exp.operands[__i];
+}
+
+#endif
 
 /* Standard named or nameless data types of the C compiler.  */
 
@@ -5894,18 +6044,6 @@ is_tm_safe_or_pure (const_tree x)
 /* In tree-inline.c.  */
 
 void init_inline_once (void);
-
-/* Compute the number of operands in an expression node NODE.  For
-   tcc_vl_exp nodes like CALL_EXPRs, this is stored in the node itself,
-   otherwise it is looked up from the node's code.  */
-static inline int
-tree_operand_length (const_tree node)
-{
-  if (VL_EXP_CLASS_P (node))
-    return VL_EXP_OPERAND_LENGTH (node);
-  else
-    return TREE_CODE_LENGTH (TREE_CODE (node));
-}
 
 /* Abstract iterators for CALL_EXPRs.  These static inline definitions
    have to go towards the end of tree.h so that union tree_node is fully

@@ -1,3 +1,61 @@
+2012-05-15  Lawrence Crowl  <crowl@google.com>
+
+	* tree.h (tree_check): New.
+	(TREE_CHECK): Use inline function above instead of __extension__.
+	(tree_not_check): New.
+	(TREE_NOT_CHECK): Use inline function above instead of __extension__.
+	(tree_check2): New.
+	(TREE_CHECK2): Use inline function above instead of __extension__.
+	(tree_not_check2): New.
+	(TREE_NOT_CHECK2): Use inline function above instead of __extension__.
+	(tree_check3): New.
+	(TREE_CHECK3): Use inline function above instead of __extension__.
+	(tree_not_check3): New.
+	(TREE_NOT_CHECK3): Use inline function above instead of __extension__.
+	(tree_check4): New.
+	(TREE_CHECK4): Use inline function above instead of __extension__.
+	(tree_not_check4): New.
+	(TREE_NOT_CHECK4): Use inline function above instead of __extension__.
+	(tree_check5): New.
+	(TREE_CHECK5): Use inline function above instead of __extension__.
+	(tree_not_check5): New.
+	(TREE_NOT_CHECK5): Use inline function above instead of __extension__.
+	(contains_struct_check): New.
+	(CONTAINS_STRUCT_CHECK): Use inline function above instead of
+	__extension__.
+	(tree_class_check): New.
+	(TREE_CLASS_CHECK): Use inline function above instead of __extension__.
+	(tree_range_check): New.
+	(TREE_RANGE_CHECK): Use inline function above instead of __extension__.
+	(omp_clause_subcode_check): New.
+	(OMP_CLAUSE_SUBCODE_CHECK): Use inline function above instead of
+	__extension__.
+	(omp_clause_range_check): New.
+	(OMP_CLAUSE_RANGE_CHECK): Use inline function above instead of
+	__extension__.
+	(expr_check): New.
+	(EXPR_CHECK): Use inline function above instead of __extension__.
+	(non_type_check): New.
+	(NON_TYPE_CHECK): Use inline function above instead of __extension__.
+	(tree_vec_elt_check): New.
+	(TREE_VEC_ELT_CHECK): Use inline function above instead of
+	__extension__.
+	(omp_clause_elt_check): New.
+	(OMP_CLAUSE_ELT_CHECK): Use inline function above instead of
+	__extension__.
+	(tree_operand_check): New.
+	(TREE_OPERAND_CHECK): Use inline function above instead of
+	__extension__.
+	(tree_operand_check_code): New.
+	(TREE_OPERAND_CHECK_CODE): Use inline function above instead of
+	__extension__.
+	(TREE_CHAIN): Simplify implementation.
+	(TREE_TYPE): Simplify implementation.
+	(tree_operand_length): Move for compilation dependences.
+	* gdbinit.in: (macro define __FILE__): New.
+	(macro define __LINE__): New.
+	(skip "tree.h"): New.
+
 2012-05-14   Diego Novillo  <dnovillo@google.com>
 
 	Merge from trunk rev 187449.
