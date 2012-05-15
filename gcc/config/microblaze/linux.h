@@ -40,3 +40,12 @@
   %{mbig-endian:-EB} \
   %{mlittle-endian:-EL}"
 
+/* For the microblaze-*-linux* subtarget.  */
+#undef TARGET_OS_CPP_BUILTINS
+#define TARGET_OS_CPP_BUILTINS()                \
+  do                                            \
+    {                                           \
+      LINUX_TARGET_OS_CPP_BUILTINS();           \
+    }                                           \
+  while (0)
+
