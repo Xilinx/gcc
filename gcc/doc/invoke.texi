@@ -8335,12 +8335,12 @@ the profile feedback data files. See @option{-fprofile-dir}.
 @opindex -fprofile-generate-sampling
 
 Enable sampling for instrumented binaries.  Instead of recording every event,
-record only every N-th event, where N (the sampling rate) can be set either
+record only every N-th event, where N (the sampling period) can be set either
 at compile time using
-@option{--param profile-generate-sampling-rate=@var{value}}, or
-at execution start time through environment variable @samp{GCOV_SAMPLING_RATE}.
+@option{--param profile-generate-sampling-period=@var{value}}, or at
+execution start time through environment variable @samp{GCOV_SAMPLING_PERIOD}.
 
-At this time sampling applies only to branch counters.  A sampling rate of 100
+At this time sampling applies only to branch counters.  A sampling period of 100
 decreases instrumentated binary slowdown from up to 20x for heavily threaded
 applications down to around 2x.  @option{-fprofile-correction} is always
 needed with sampling.

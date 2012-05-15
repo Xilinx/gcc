@@ -141,16 +141,24 @@ extern char * __gcov_pmu_profile_filename;
 extern char * __gcov_pmu_profile_options;
 extern gcov_unsigned_t __gcov_pmu_top_n_address;
 
-/* Sampling rate.  */
-extern gcov_unsigned_t __gcov_sampling_rate;
-static int gcov_sampling_rate_initialized = 0;
-void __gcov_set_sampling_rate (unsigned int rate);
+/* Sampling period.  */
+extern gcov_unsigned_t __gcov_sampling_period;
+extern gcov_unsigned_t __gcov_has_sampling;
+static int gcov_sampling_period_initialized = 0;
+void __gcov_set_sampling_period (unsigned int period);
+unsigned int __gcov_sampling_enabled ();
 
-/* Set sampling rate to RATE.  */
+/* Set sampling period to PERIOD.  */
 
-void __gcov_set_sampling_rate (unsigned int rate)
+void __gcov_set_sampling_period (unsigned int period)
 {
-  __gcov_sampling_rate = rate;
+  gcc_assert (__gcov_has_sampling);
+  __gcov_sampling_period = period;
+}
+
+unsigned int __gcov_sampling_enabled ()
+{
+  return __gcov_has_sampling;
 }
 
 /* Per thread sample counter.  */
@@ -659,16 +667,16 @@ gcov_clear (void)
 void
 __gcov_init (struct gcov_info *info)
 {
-  if (!gcov_sampling_rate_initialized)
+  if (!gcov_sampling_period_initialized)
     {
-      const char* env_value_str = getenv ("GCOV_SAMPLING_RATE");
+      const char* env_value_str = getenv ("GCOV_SAMPLING_PERIOD");
       if (env_value_str)
         {
           int env_value_int = atoi(env_value_str);
           if (env_value_int >= 1)
-            __gcov_sampling_rate = env_value_int;
+            __gcov_sampling_period = env_value_int;
         }
-      gcov_sampling_rate_initialized = 1;
+      gcov_sampling_period_initialized = 1;
     }
 
   if (!info->version || !info->n_functions)

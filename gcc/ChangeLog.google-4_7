@@ -1,3 +1,20 @@
+2012-05-15   Teresa Johnson  <tejohnson@google.com>
+
+	Backport from google/main r187536:
+	2012-05-15   Teresa Johnson  <tejohnson@google.com>
+
+	* doc/invoke.texi (profile-generate-sampling-period): Rename
+	from profile-generate-sampling-rate.
+	* tree-profile.c (gcov_sampling_period_decl): Rename from
+	gcov_sampling_rate_decl.
+	(gcov_has_sampling_decl): New variable.
+	(insert_if_then, add_sampling_wrapper): Rename variables from "*rate*"
+	to "*period*".
+	(gimple_init_instrumentation_sampling): Ditto, and add handling
+	for gcov_has_sampling_decl.
+	* params.def (profile-generate-sampling-period): Rename
+	from profile-generate-sampling-rate.
+
 2012-05-15   Diego Novillo  <dnovillo@google.com>
 
 	Merge from gcc-4_7-branch rev 187362.

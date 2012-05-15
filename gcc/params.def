@@ -919,8 +919,8 @@ DEFPARAM (PARAM_MAX_LIPO_MEMORY,
 	  "don't import aux files if memory consumption exceeds this value",
 	  2400000, 0, 0)
 
-DEFPARAM (PARAM_PROFILE_GENERATE_SAMPLING_RATE,
-         "profile-generate-sampling-rate",
+DEFPARAM (PARAM_PROFILE_GENERATE_SAMPLING_PERIOD,
+         "profile-generate-sampling-period",
          "sampling rate with -fprofile-generate-sampling",
          100, 0, 2000000000)
 

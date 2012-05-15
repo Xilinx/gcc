@@ -1,3 +1,17 @@
+2012-05-15   Teresa Johnson  <tejohnson@google.com>
+
+	Backport from google/main r187536:
+	2012-05-15   Teresa Johnson  <tejohnson@google.com>
+
+	* libgcov.c (__gcov_sampling_period): Rename variable from "*rate*"
+	to "*period*".
+	(gcov_sampling_period_initialized): Ditto.
+	(__gcov_set_sampling_period): Rename from __gcov_set_sampling_rate.
+	Check __gcov_has_sampling.
+	(__gcov_has_sampling): New variable.
+	(__gcov_sampling_enabled): New function.
+	(__gcov_init): Rename variables from "*rate*" to "*period*".
+
 2012-05-09  Teresa Johnson  <tejohnson@google.com>
 
 	Backport from trunk r187297:
