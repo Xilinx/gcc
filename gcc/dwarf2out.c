@@ -6349,8 +6349,8 @@ split_out_local_types (dw_die_ref old, dw_die_ref decl, bool decl_is_new)
 	  if (htab_find (local_type_template_args, c))
 	    {
 	      nc = ggc_alloc_cleared_die_node ();
-	      nc->die_tag = c->die_tag;
-	      add_AT_die_ref (nc, DW_AT_specification, c);
+	      nc->die_tag = DW_TAG_typedef;
+	      add_AT_die_ref (nc, DW_AT_type, c);
 	      replace_child (c, nc, prev);
 	      add_child_die (decl, c);
 	      c = nc;
@@ -7321,8 +7321,6 @@ optimize_external_refs_1 (dw_die_ref die, htab_t map)
   if (is_type_die (die)
       /* .debug_types skeleton.  */
       && ((c = get_AT_ref (die, DW_AT_signature))
-	  /* split_out_local_types stub.  */
-	  || (c = get_AT_ref (die, DW_AT_specification))
 	  /* build_local_stub stub.  */
 	  || (die->die_tag == DW_TAG_typedef
 	      && !get_AT (die, DW_AT_name)
