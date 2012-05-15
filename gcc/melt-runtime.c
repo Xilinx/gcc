@@ -13277,6 +13277,10 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 	  melt_apply ((meltclosure_ptr_t) closv, (melt_ptr_t) curhandv,
 		      MELTBPARSTR_PTR, argtab, NULL, NULL);
 	  debugeprintf ("meltgc_poll_inputs after end of input apply closv %p", closv);
+	  /* replace the handler with :TRUE */
+	  meltgc_longsbucket_replace ((melt_ptr_t) inbuckv, (long) rfd, 
+				      (melt_ptr_t) MELT_PREDEF (TRUE));
+	  debugeprintf ("meltgc_poll_inputs after end of input replaced rfd#%d", rfd);
 	}
       }
     }

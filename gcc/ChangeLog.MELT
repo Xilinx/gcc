@@ -1,5 +1,9 @@
 
 2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_poll_inputs): On end of input, replace
+	the handler with :TRUE.
+
+2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_poll_inputs): handling end of input for
 	POLLHUP etc...
 
