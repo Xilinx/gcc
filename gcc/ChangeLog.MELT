@@ -1,4 +1,8 @@
 
+2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_poll_inputs): handling end of input for
+	POLLHUP etc...
+
 2012-05-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_poll_inputs): Even more debugprintf.
 

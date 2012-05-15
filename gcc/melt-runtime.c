@@ -13172,20 +13172,11 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 	    memset (rbuf, 0, sizeof (rbuf));
 	    debugeprintf ("meltgc_poll_inputs ixfd=%d readable rfd=%d", ixfd, rfd);
 	    rdcnt = read (rfd, rbuf, sizeof(rbuf));
-	    if (rdcnt == 0) {
-	      /* reached end of file. */
-	      union meltparam_un argtab[2];
-	      memset (argtab, 0, sizeof(argtab));
-	      debugeprintf ("meltgc_poll_inputs eof rdcnt=%d", rdcnt);
-	      closv =  melt_field_object ((melt_ptr_t) curhandv, MELTFIELD_INCH_CLOS);
-	      seqv = NULL;
-	      argtab[0].meltbp_aptr = (melt_ptr_t *) & seqv;
-	      /* notify the end of file by applying the closure to the handle and NULL */
-	      melt_apply((meltclosure_ptr_t) closv, (melt_ptr_t) curhandv,
-			 MELTBPARSTR_PTR, argtab, NULL, NULL);
-	      close (rfd);
-	    } else if (rdcnt > 0) {
-	      bool eated = false;
+	    debugeprintf ("meltgc_poll_inputs rfd=%d rdcnt=%d", rfd, rdcnt);
+	    if (rdcnt == 0) 
+	      goto end_of_input;
+	    else if (rdcnt > 0) {
+	      bool eaten = false;
 	      /* did read some bytes */
 	      sbufv = melt_field_object ((melt_ptr_t) curhandv, MELTFIELD_INCH_SBUF);
 	      meltgc_add_out_raw_len ((melt_ptr_t) sbufv, rbuf, rdcnt);
@@ -13195,7 +13186,7 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 		char* buf2nl =
 		  bufdata ? ((char*)strstr(bufdata,"\n\n"))
 		  : NULL;
-		eated = false;
+		eaten = false;
 		debugeprintf ("meltgc_poll_inputs bufdata=%s buf2nl=%p", bufdata, (void*) buf2nl);
 		if (bufdata && buf2nl) 
 		  {
@@ -13215,20 +13206,77 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 			       MELTBPARSTR_PTR, argtab, NULL, NULL);
 		    debugeprintf ("meltgc_poll_inputs after apply sbuf %p usedlen %d str:%s",
 				  (void*) sbufv,
-				  melt_strbuf_usedlength (sbufv), 
-				  melt_strbuf_str (sbufv));
-		    eated = true;
+				  melt_strbuf_usedlength ((melt_ptr_t) sbufv), 
+				  melt_strbuf_str ((melt_ptr_t) sbufv));
+		    eaten = true;
 		  }
-		debugeprintf ("meltgc_poll_inputs eated is %s", eated?"true":"false");
-	      } while (eated);
+		debugeprintf ("meltgc_poll_inputs eaten is %s", eaten?"true":"false");
+	      } while (eaten);
 	    }
 	  } 
-	else if (fdtab[ixfd].revents & POLLNVAL) {
-	  debugeprintf ("meltgc_poll_inputs ixfd=%d rfd=%d invalid", ixfd, rfd);
-	  /* replace the bucket slot by :true, to avoid polling it next time */
-	  meltgc_longsbucket_replace ((melt_ptr_t) inbuckv,
-				      rfd,
-				      (melt_ptr_t) MELT_PREDEF (TRUE));
+	else if ((fdtab[ixfd].revents & POLLHUP)
+#ifdef POLLRDHUP
+	         || (fdtab[ixfd].revents & POLLRDHUP)
+#endif
+		 )
+	  {
+	    debugeprintf ("meltgc_poll_inputs ixfd=%d rfd=%d hangup", ixfd, rfd);
+	    goto end_of_input;
+	  } 
+	else if (fdtab[ixfd].revents & POLLERR)
+	  {
+	    debugeprintf ("meltgc_poll_inputs ixfd=%d rfd=%d error", ixfd, rfd);
+	    goto end_of_input;
+	  }
+	else if (fdtab[ixfd].revents & POLLNVAL) 
+	  {
+	    debugeprintf ("meltgc_poll_inputs ixfd=%d rfd=%d invalid", ixfd, rfd);
+	    goto end_of_input;
+	  }
+	continue;
+      end_of_input:
+	{
+	  const char* bufdata = NULL;
+	  unsigned buflen = 0;
+	  union meltparam_un argtab[2];
+	  sbufv = melt_field_object ((melt_ptr_t) curhandv, MELTFIELD_INCH_SBUF);
+	  bufdata = melt_strbuf_str ((melt_ptr_t) sbufv);
+	  buflen = melt_strbuf_usedlength ((melt_ptr_t) sbufv);
+	  memset (argtab, 0, sizeof(argtab));
+	  debugeprintf ("meltgc_poll_inputs rfd=%d end of input buflen=%d bufdata:%s", 
+			rfd, buflen, bufdata);
+	  if (buflen > 0) {
+	    /* we have at most one request in the buffer; it might be
+	       incomplete if the probe crashed suddenly while sending
+	       it...; it could be empty or missing... */
+	    memset (argtab, 0, sizeof(argtab));
+	    seqv = meltgc_read_from_rawstring (bufdata, NULL, UNKNOWN_LOCATION);
+	    bufdata = NULL; /* a GC could have occurred and moved it */
+	    melt_strbuf_consume ((melt_ptr_t) sbufv, buflen);
+	    closv =  melt_field_object ((melt_ptr_t) curhandv, MELTFIELD_INCH_CLOS);
+	    MELT_LOCATION_HERE_PRINTF (curlocbuf,
+				       "meltgc_poll_inputs handle fd#%d end of input buflen=%d", 
+				       rfd, buflen);
+	    argtab[0].meltbp_aptr = (melt_ptr_t *) & seqv;
+	    debugeprintf ("meltgc_poll_inputsclosv=%p seqv=%p before apply", 
+			  (void*) closv, (void*) seqv);
+	    melt_apply ((meltclosure_ptr_t) closv, (melt_ptr_t) curhandv,
+			MELTBPARSTR_PTR, argtab, NULL, NULL);
+	    debugeprintf ("meltgc_poll_inputs after end of input apply last sbuf %p",
+			  (void*) sbufv);
+	  };
+	  /* notify the end of input with a null argument to the closure */
+	  seqv = NULL;
+	  memset (argtab, 0, sizeof(argtab));
+	  MELT_LOCATION_HERE_PRINTF (curlocbuf,
+				     "meltgc_poll_inputs handle fd#%d notifying end of input", 
+				     rfd);
+	  argtab[0].meltbp_aptr = (melt_ptr_t *) & seqv;
+	  debugeprintf ("meltgc_poll_inputs closv=%p before apply for end of input", 
+			(void*) closv, (void*) seqv);
+	  melt_apply ((meltclosure_ptr_t) closv, (melt_ptr_t) curhandv,
+		      MELTBPARSTR_PTR, argtab, NULL, NULL);
+	  debugeprintf ("meltgc_poll_inputs after end of input apply closv %p", closv);
 	}
       }
     }
@@ -13243,6 +13291,9 @@ meltgc_poll_inputs (melt_ptr_t inbuck_p, int delayms)
 #undef sbufv
 #undef closv
 }
+
+
+
 
 /* Real handling of SIGIO signals.  Could be called from many places,
    when SIGIO signal received, thru melt_handle_signal via
