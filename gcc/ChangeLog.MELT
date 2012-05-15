@@ -1,5 +1,9 @@
 
 2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-probe.melt (probe_start): New function.
+	(probe_docmd): Call it.
+
+2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_poll_inputs): Retrieve the closure
 	correctly. Seems to work.
 

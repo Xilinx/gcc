@@ -1,4 +1,8 @@
 
+2012-05-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* simplemelt-gtkmm-probe.cc: Usint GtkMM 3.4 application...
+	But still buggy.
+
 2012-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{MELT plugin uses MELT version specific paths}}
 	* MELT-Plugin-Makefile (LN_S, MELT_RUNTIME_H)

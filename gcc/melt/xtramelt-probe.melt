@@ -334,8 +334,9 @@
     (send_command_to_probe 'SETSTATUS_pcd (strbuf2string discr_string sbuf))))
 
 
-(defun probe_docmd (cmd moduldata)
-  (debug "probe_docmd cmd=" cmd " moduldata=" moduldata)
+(defun start_probe ()
+  :doc #{Internal function to start the probe. Return the probe data}#
+  (debug "start_probe")
   (let (
         (mainfilename (make_string_real_access_path discr_string (main_input_filename)))
         (filesvec  (make_multiple discr_multiple 10))
@@ -347,33 +348,40 @@
 	(:long toprobenumfd -1)
 	(:long fromprobenumfd -1)
         )
-    (debug "probe_docmd probedata=" probedata " maininput=" (main_input_filename))
+    (debug "start_probe probedata=" probedata " maininput=" (main_input_filename))
     (code_chunk probestart_chk #{ /* probe_docmd $PROBESTART_CHK */
 		int $PROBESTART_CHK#_toprobefd = -1, $PROBESTART_CHK#_fromprobefd = -1 ;
 		melt_probe_start (NULL, &$PROBESTART_CHK#_toprobefd, &$PROBESTART_CHK#_fromprobefd) ;
 		if ($PROBESTART_CHK#_toprobefd > 0) 
-		  $TOPROBENUMFD = (long) $PROBESTART_CHK#_toprobefd ;
+		$TOPROBENUMFD = (long) $PROBESTART_CHK#_toprobefd ;
 		if ($PROBESTART_CHK#_fromprobefd > 0)
-		  $FROMPROBENUMFD = (long) $PROBESTART_CHK#_fromprobefd ;
+		$FROMPROBENUMFD = (long) $PROBESTART_CHK#_fromprobefd ;
 		}#)
     (when (<i fromprobenumfd 0)
-      (debug "probe_docmd failed to start probe fromprobenumfd=" fromprobenumfd
+      (debug "start_probe failed to start probe fromprobenumfd=" fromprobenumfd
 	     " toprobenumfd=" toprobenumfd)
       (return))
     (put_fields probedata
-	       :probedata_cmdtoprobefd (make_integerbox discr_constant_integer toprobenumfd)
-	       :probedata_reqfromprobefd (make_integerbox discr_constant_integer fromprobenumfd))
+		:probedata_cmdtoprobefd (make_integerbox discr_constant_integer toprobenumfd)
+		:probedata_reqfromprobefd (make_integerbox discr_constant_integer fromprobenumfd))
     (set_content probe_data_container probedata)
     (register_input_channel_handler probe_request_processor probedata fromprobenumfd)
     (probe_register_request_verb 'VERSION_prq  show_version_probe)
-    (debug "probe_docmd registered probe_request_processor=" probe_request_processor 
+    (debug "start_probe registered probe_request_processor=" probe_request_processor 
 	   " with probedata=" probedata " fromprobenumfd=" fromprobenumfd)
     (let ( (mainprfil (probe_get_file_of_name probedata mainfilename))
 	   )
-      (debug "probe_docmd mainprfil=" mainprfil)
+      (debug "start_probe mainprfil=" mainprfil)
       (at_exit_last probe_at_exit)
-      (return :true)
+      (return probedata)
       )))
+
+
+(defun probe_docmd (cmd moduldata)
+  (debug "probe_docmd cmd=" cmd " moduldata=" moduldata)
+  (start_probe)
+  (return :true)
+  )
 
 
 (definstance probe_mode
