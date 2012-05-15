@@ -1962,6 +1962,8 @@ setup_reg_renumber (void)
 						  call_used_reg_set))
 	    {
 	      ira_assert (!optimize || flag_caller_saves
+			  || (ALLOCNO_CALLS_CROSSED_NUM (a)
+			      == ALLOCNO_CHEAP_CALLS_CROSSED_NUM (a))
 			  || regno >= ira_reg_equiv_len
 			  || ira_reg_equiv_const[regno]
 			  || ira_reg_equiv_invariant_p[regno]);
@@ -3768,6 +3770,7 @@ find_moveable_pseudos (void)
 	    if (DF_REG_DEF_COUNT (regno) != 1
 		|| !DF_REF_INSN_INFO (def)
 		|| HARD_REGISTER_NUM_P (regno)
+		|| DF_REG_EQ_USE_COUNT (regno) > 0
 		|| (!INTEGRAL_MODE_P (mode) && !FLOAT_MODE_P (mode)))
 	      continue;
 	    def_insn = DF_REF_INSN (def);

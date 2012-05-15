@@ -163,7 +163,7 @@ static void op_error (location_t, enum tree_code, enum tree_code, tree,
 		      tree, tree, bool);
 static struct z_candidate *build_user_type_conversion_1 (tree, tree, int,
 							 tsubst_flags_t);
-static void print_z_candidate (const char *, struct z_candidate *);
+static void print_z_candidate (location_t, const char *, struct z_candidate *);
 static void print_z_candidates (location_t, struct z_candidate *);
 static tree build_this (tree);
 static struct z_candidate *splice_viable (struct z_candidate *, bool, bool *);
@@ -578,7 +578,7 @@ null_member_pointer_value_p (tree t)
   else if (TYPE_PTRMEMFUNC_P (type))
     return (TREE_CODE (t) == CONSTRUCTOR
 	    && integer_zerop (CONSTRUCTOR_ELT (t, 0)->value));
-  else if (TYPE_PTRMEM_P (type))
+  else if (TYPE_PTRDATAMEM_P (type))
     return integer_all_onesp (t);
   else
     return false;
@@ -1162,7 +1162,7 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
      A null pointer constant can be converted to a pointer type; ... A
      null pointer constant of integral type can be converted to an
      rvalue of type std::nullptr_t. */
-  if ((tcode == POINTER_TYPE || TYPE_PTR_TO_MEMBER_P (to)
+  if ((tcode == POINTER_TYPE || TYPE_PTRMEM_P (to)
        || NULLPTR_TYPE_P (to))
       && expr && null_ptr_cst_p (expr))
     conv = build_conv (ck_std, to, conv);
@@ -1182,7 +1182,7 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
       conv->bad_p = true;
     }
   else if ((tcode == POINTER_TYPE && fcode == POINTER_TYPE)
-	   || (TYPE_PTRMEM_P (to) && TYPE_PTRMEM_P (from)))
+	   || (TYPE_PTRDATAMEM_P (to) && TYPE_PTRDATAMEM_P (from)))
     {
       tree to_pointee;
       tree from_pointee;
@@ -1192,7 +1192,7 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
 							TREE_TYPE (to)))
 	;
       else if (VOID_TYPE_P (TREE_TYPE (to))
-	       && !TYPE_PTRMEM_P (from)
+	       && !TYPE_PTRDATAMEM_P (from)
 	       && TREE_CODE (TREE_TYPE (from)) != FUNCTION_TYPE)
 	{
 	  tree nfrom = TREE_TYPE (from);
@@ -1201,7 +1201,7 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
 			              cp_type_quals (nfrom)));
 	  conv = build_conv (ck_ptr, from, conv);
 	}
-      else if (TYPE_PTRMEM_P (from))
+      else if (TYPE_PTRDATAMEM_P (from))
 	{
 	  tree fbase = TYPE_PTRMEM_CLASS_TYPE (from);
 	  tree tbase = TYPE_PTRMEM_CLASS_TYPE (to);
@@ -1307,12 +1307,12 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
       if (ARITHMETIC_TYPE_P (from)
 	  || UNSCOPED_ENUM_P (from)
 	  || fcode == POINTER_TYPE
-	  || TYPE_PTR_TO_MEMBER_P (from)
+	  || TYPE_PTRMEM_P (from)
 	  || NULLPTR_TYPE_P (from))
 	{
 	  conv = build_conv (ck_std, to, conv);
 	  if (fcode == POINTER_TYPE
-	      || TYPE_PTRMEM_P (from)
+	      || TYPE_PTRDATAMEM_P (from)
 	      || (TYPE_PTRMEMFUNC_P (from)
 		  && conv->rank < cr_pbool)
 	      || NULLPTR_TYPE_P (from))
@@ -2334,7 +2334,7 @@ add_builtin_candidate (struct z_candidate **candidates, enum tree_code code,
 
     case MEMBER_REF:
       if (TREE_CODE (type1) == POINTER_TYPE
-	  && TYPE_PTR_TO_MEMBER_P (type2))
+	  && TYPE_PTRMEM_P (type2))
 	{
 	  tree c1 = TREE_TYPE (type1);
 	  tree c2 = TYPE_PTRMEM_CLASS_TYPE (type2);
@@ -2406,14 +2406,14 @@ add_builtin_candidate (struct z_candidate **candidates, enum tree_code code,
     case EQ_EXPR:
     case NE_EXPR:
       if ((TYPE_PTRMEMFUNC_P (type1) && TYPE_PTRMEMFUNC_P (type2))
-	  || (TYPE_PTRMEM_P (type1) && TYPE_PTRMEM_P (type2)))
+	  || (TYPE_PTRDATAMEM_P (type1) && TYPE_PTRDATAMEM_P (type2)))
 	break;
-      if (TYPE_PTR_TO_MEMBER_P (type1) && null_ptr_cst_p (args[1]))
+      if (TYPE_PTRMEM_P (type1) && null_ptr_cst_p (args[1]))
 	{
 	  type2 = type1;
 	  break;
 	}
-      if (TYPE_PTR_TO_MEMBER_P (type2) && null_ptr_cst_p (args[0]))
+      if (TYPE_PTRMEM_P (type2) && null_ptr_cst_p (args[0]))
 	{
 	  type1 = type2;
 	  break;
@@ -2552,7 +2552,7 @@ add_builtin_candidate (struct z_candidate **candidates, enum tree_code code,
 	    break;
 	  if ((TYPE_PTRMEMFUNC_P (type1) && TYPE_PTRMEMFUNC_P (type2))
 	      || (TYPE_PTR_P (type1) && TYPE_PTR_P (type2))
-	      || (TYPE_PTRMEM_P (type1) && TYPE_PTRMEM_P (type2))
+	      || (TYPE_PTRDATAMEM_P (type1) && TYPE_PTRDATAMEM_P (type2))
 	      || ((TYPE_PTRMEMFUNC_P (type1)
 		   || TREE_CODE (type1) == POINTER_TYPE)
 		  && null_ptr_cst_p (args[1])))
@@ -2589,8 +2589,7 @@ add_builtin_candidate (struct z_candidate **candidates, enum tree_code code,
 	break;
 
       /* Otherwise, the types should be pointers.  */
-      if (!(TYPE_PTR_P (type1) || TYPE_PTR_TO_MEMBER_P (type1))
-	  || !(TYPE_PTR_P (type2) || TYPE_PTR_TO_MEMBER_P (type2)))
+      if (!TYPE_PTR_OR_PTRMEM_P (type1) || !TYPE_PTR_OR_PTRMEM_P (type2))
 	return;
 
       /* We don't check that the two types are the same; the logic
@@ -2615,12 +2614,12 @@ add_builtin_candidate (struct z_candidate **candidates, enum tree_code code,
       && TREE_CODE (type1) == TREE_CODE (type2)
       && (TREE_CODE (type1) == REFERENCE_TYPE
 	  || (TYPE_PTR_P (type1) && TYPE_PTR_P (type2))
-	  || (TYPE_PTRMEM_P (type1) && TYPE_PTRMEM_P (type2))
+	  || (TYPE_PTRDATAMEM_P (type1) && TYPE_PTRDATAMEM_P (type2))
 	  || TYPE_PTRMEMFUNC_P (type1)
 	  || MAYBE_CLASS_TYPE_P (type1)
 	  || TREE_CODE (type1) == ENUMERAL_TYPE))
     {
-      if (TYPE_PTR_P (type1) || TYPE_PTR_TO_MEMBER_P (type1))
+      if (TYPE_PTR_OR_PTRMEM_P (type1))
 	{
 	  tree cptype = composite_pointer_type (type1, type2,
 						error_mark_node,
@@ -3159,36 +3158,38 @@ print_arity_information (location_t loc, unsigned int have, unsigned int want)
    life simpler in print_z_candidates and for the translators.  */
 
 static void
-print_z_candidate (const char *msgstr, struct z_candidate *candidate)
+print_z_candidate (location_t loc, const char *msgstr,
+		   struct z_candidate *candidate)
 {
   const char *msg = (msgstr == NULL
 		     ? ""
 		     : ACONCAT ((msgstr, " ", NULL)));
-  location_t loc = location_of (candidate->fn);
+  location_t cloc = location_of (candidate->fn);
 
   if (TREE_CODE (candidate->fn) == IDENTIFIER_NODE)
     {
+      cloc = loc;
       if (candidate->num_convs == 3)
-	inform (input_location, "%s%D(%T, %T, %T) <built-in>", msg, candidate->fn,
+	inform (cloc, "%s%D(%T, %T, %T) <built-in>", msg, candidate->fn,
 		candidate->convs[0]->type,
 		candidate->convs[1]->type,
 		candidate->convs[2]->type);
       else if (candidate->num_convs == 2)
-	inform (input_location, "%s%D(%T, %T) <built-in>", msg, candidate->fn,
+	inform (cloc, "%s%D(%T, %T) <built-in>", msg, candidate->fn,
 		candidate->convs[0]->type,
 		candidate->convs[1]->type);
       else
-	inform (input_location, "%s%D(%T) <built-in>", msg, candidate->fn,
+	inform (cloc, "%s%D(%T) <built-in>", msg, candidate->fn,
 		candidate->convs[0]->type);
     }
   else if (TYPE_P (candidate->fn))
-    inform (loc, "%s%T <conversion>", msg, candidate->fn);
+    inform (cloc, "%s%T <conversion>", msg, candidate->fn);
   else if (candidate->viable == -1)
-    inform (loc, "%s%#D <near match>", msg, candidate->fn);
+    inform (cloc, "%s%#D <near match>", msg, candidate->fn);
   else if (DECL_DELETED_FN (STRIP_TEMPLATE (candidate->fn)))
-    inform (loc, "%s%#D <deleted>", msg, candidate->fn);
+    inform (cloc, "%s%#D <deleted>", msg, candidate->fn);
   else
-    inform (loc, "%s%#D", msg, candidate->fn);
+    inform (cloc, "%s%#D", msg, candidate->fn);
   /* Give the user some information about why this candidate failed.  */
   if (candidate->reason != NULL)
     {
@@ -3197,23 +3198,23 @@ print_z_candidate (const char *msgstr, struct z_candidate *candidate)
       switch (r->code)
 	{
 	case rr_arity:
-	  print_arity_information (loc, r->u.arity.actual,
+	  print_arity_information (cloc, r->u.arity.actual,
 				   r->u.arity.expected);
 	  break;
 	case rr_arg_conversion:
-	  print_conversion_rejection (loc, &r->u.conversion);
+	  print_conversion_rejection (cloc, &r->u.conversion);
 	  break;
 	case rr_bad_arg_conversion:
-	  print_conversion_rejection (loc, &r->u.bad_conversion);
+	  print_conversion_rejection (cloc, &r->u.bad_conversion);
 	  break;
 	case rr_explicit_conversion:
-	  inform (loc, "  return type %qT of explicit conversion function "
+	  inform (cloc, "  return type %qT of explicit conversion function "
 		  "cannot be converted to %qT with a qualification "
 		  "conversion", r->u.conversion.from_type,
 		  r->u.conversion.to_type);
 	  break;
 	case rr_template_conversion:
-	  inform (loc, "  conversion from return type %qT of template "
+	  inform (cloc, "  conversion from return type %qT of template "
 		  "conversion function specialization to %qT is not an "
 		  "exact match", r->u.conversion.from_type,
 		  r->u.conversion.to_type);
@@ -3224,12 +3225,12 @@ print_z_candidate (const char *msgstr, struct z_candidate *candidate)
 	     them here.  */
 	  if (r->u.template_unification.tmpl == NULL_TREE)
 	    {
-	      inform (loc, "  substitution of deduced template arguments "
+	      inform (cloc, "  substitution of deduced template arguments "
 		      "resulted in errors seen above");
 	      break;
 	    }
 	  /* Re-run template unification with diagnostics.  */
-	  inform (loc, "  template argument deduction/substitution failed:");
+	  inform (cloc, "  template argument deduction/substitution failed:");
 	  fn_type_unification (r->u.template_unification.tmpl,
 			       r->u.template_unification.explicit_targs,
 			       r->u.template_unification.targs,
@@ -3247,7 +3248,7 @@ print_z_candidate (const char *msgstr, struct z_candidate *candidate)
 				tf_warning_or_error);
 	  break;
 	case rr_invalid_copy:
-	  inform (loc,
+	  inform (cloc,
 		  "  a constructor taking a single argument of its own "
 		  "class type is invalid");
 	  break;
@@ -3312,7 +3313,7 @@ print_z_candidates (location_t loc, struct z_candidate *candidates)
 
   inform_n (loc, n_candidates, "candidate is:", "candidates are:");
   for (; candidates; candidates = candidates->next)
-    print_z_candidate (NULL, candidates);
+    print_z_candidate (loc, NULL, candidates);
 }
 
 /* USER_SEQ is a user-defined conversion sequence, beginning with a
@@ -4731,11 +4732,11 @@ build_conditional_expr_1 (tree arg1, tree arg2, tree arg3,
        cv-qualification of either the second or the third operand.
        The result is of the common type.  */
   else if ((null_ptr_cst_p (arg2)
-	    && (TYPE_PTR_P (arg3_type) || TYPE_PTR_TO_MEMBER_P (arg3_type)))
+	    && TYPE_PTR_OR_PTRMEM_P (arg3_type))
 	   || (null_ptr_cst_p (arg3)
-	       && (TYPE_PTR_P (arg2_type) || TYPE_PTR_TO_MEMBER_P (arg2_type)))
+	       && TYPE_PTR_OR_PTRMEM_P (arg2_type))
 	   || (TYPE_PTR_P (arg2_type) && TYPE_PTR_P (arg3_type))
-	   || (TYPE_PTRMEM_P (arg2_type) && TYPE_PTRMEM_P (arg3_type))
+	   || (TYPE_PTRDATAMEM_P (arg2_type) && TYPE_PTRDATAMEM_P (arg3_type))
 	   || (TYPE_PTRMEMFUNC_P (arg2_type) && TYPE_PTRMEMFUNC_P (arg3_type)))
     {
       result_type = composite_pointer_type (arg2_type, arg3_type, arg2,
@@ -5678,7 +5679,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	    {
 	      permerror (loc, "invalid user-defined conversion "
 			 "from %qT to %qT", TREE_TYPE (expr), totype);
-	      print_z_candidate ("candidate is:", t->cand);
+	      print_z_candidate (loc, "candidate is:", t->cand);
 	      expr = convert_like_real (t, expr, fn, argnum, 1,
 					/*issue_conversion_warnings=*/false,
 					/*c_cast_p=*/false,
@@ -7855,8 +7856,8 @@ compare_ics (conversion *ics1, conversion *ics2)
      for pointers A*, except opposite: if B is derived from A then
      A::* converts to B::*, not vice versa.  For that reason, we
      switch the from_ and to_ variables here.  */
-  else if ((TYPE_PTRMEM_P (from_type1) && TYPE_PTRMEM_P (from_type2)
-	    && TYPE_PTRMEM_P (to_type1) && TYPE_PTRMEM_P (to_type2))
+  else if ((TYPE_PTRDATAMEM_P (from_type1) && TYPE_PTRDATAMEM_P (from_type2)
+	    && TYPE_PTRDATAMEM_P (to_type1) && TYPE_PTRDATAMEM_P (to_type2))
 	   || (TYPE_PTRMEMFUNC_P (from_type1)
 	       && TYPE_PTRMEMFUNC_P (from_type2)
 	       && TYPE_PTRMEMFUNC_P (to_type1)
@@ -8405,8 +8406,8 @@ tweak:
 	      "ISO C++ says that these are ambiguous, even "
 	      "though the worst conversion for the first is better than "
 	      "the worst conversion for the second:");
-	      print_z_candidate (_("candidate 1:"), w);
-	      print_z_candidate (_("candidate 2:"), l);
+	      print_z_candidate (input_location, _("candidate 1:"), w);
+	      print_z_candidate (input_location, _("candidate 2:"), l);
 	    }
 	  else
 	    add_warning (w, l);

@@ -3039,10 +3039,32 @@ package body Sem_Util is
         and then Is_Entity_Name (Renamed_Object (Id))
       then
          return Effective_Extra_Accessibility (Entity (Renamed_Object (Id)));
+      else
+         return Extra_Accessibility (Id);
       end if;
-
-      return Extra_Accessibility (Id);
    end Effective_Extra_Accessibility;
+
+   ------------------------------
+   -- Enclosing_Comp_Unit_Node --
+   ------------------------------
+
+   function Enclosing_Comp_Unit_Node (N : Node_Id) return Node_Id is
+      Current_Node : Node_Id;
+
+   begin
+      Current_Node := N;
+      while Present (Current_Node)
+        and then Nkind (Current_Node) /= N_Compilation_Unit
+      loop
+         Current_Node := Parent (Current_Node);
+      end loop;
+
+      if Nkind (Current_Node) /= N_Compilation_Unit then
+         return Empty;
+      else
+         return Current_Node;
+      end if;
+   end Enclosing_Comp_Unit_Node;
 
    --------------------------
    -- Enclosing_CPP_Parent --
@@ -3147,14 +3169,15 @@ package body Sem_Util is
    -- Enclosing_Lib_Unit_Entity --
    -------------------------------
 
-   function Enclosing_Lib_Unit_Entity return Entity_Id is
-      Unit_Entity : Entity_Id;
+   function Enclosing_Lib_Unit_Entity
+      (E : Entity_Id := Current_Scope) return Entity_Id
+   is
+      Unit_Entity : Entity_Id := E;
 
    begin
       --  Look for enclosing library unit entity by following scope links.
       --  Equivalent to, but faster than indexing through the scope stack.
 
-      Unit_Entity := Current_Scope;
       while (Present (Scope (Unit_Entity))
         and then Scope (Unit_Entity) /= Standard_Standard)
         and not Is_Child_Unit (Unit_Entity)
@@ -3164,28 +3187,6 @@ package body Sem_Util is
 
       return Unit_Entity;
    end Enclosing_Lib_Unit_Entity;
-
-   -----------------------------
-   -- Enclosing_Lib_Unit_Node --
-   -----------------------------
-
-   function Enclosing_Lib_Unit_Node (N : Node_Id) return Node_Id is
-      Current_Node : Node_Id;
-
-   begin
-      Current_Node := N;
-      while Present (Current_Node)
-        and then Nkind (Current_Node) /= N_Compilation_Unit
-      loop
-         Current_Node := Parent (Current_Node);
-      end loop;
-
-      if Nkind (Current_Node) /= N_Compilation_Unit then
-         return Empty;
-      end if;
-
-      return Current_Node;
-   end Enclosing_Lib_Unit_Node;
 
    -----------------------
    -- Enclosing_Package --
@@ -6266,6 +6267,37 @@ package body Sem_Util is
 
       return False;
    end In_Parameter_Specification;
+
+   -------------------------------------
+   -- In_Reverse_Storage_Order_Record --
+   -------------------------------------
+
+   function In_Reverse_Storage_Order_Record (N : Node_Id) return Boolean is
+      Pref : Node_Id;
+   begin
+      Pref := N;
+
+      --  Climb up indexed components
+
+      loop
+         case Nkind (Pref) is
+            when N_Selected_Component =>
+               Pref := Prefix (Pref);
+               exit;
+
+            when N_Indexed_Component =>
+               Pref := Prefix (Pref);
+
+            when others =>
+               Pref := Empty;
+               exit;
+         end case;
+      end loop;
+
+      return Present (Pref)
+               and then Is_Record_Type (Etype (Pref))
+               and then Reverse_Storage_Order (Etype (Pref));
+   end In_Reverse_Storage_Order_Record;
 
    --------------------------------------
    -- In_Subprogram_Or_Concurrent_Unit --
