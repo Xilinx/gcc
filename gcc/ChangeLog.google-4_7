@@ -1,5 +1,11 @@
 2012-05-16  Xinliang David Li  <davidxl@google.com>
 
+	* cgraph.c (cgraph_set_call_stmt): Resolve target
+	to the real target in LIPO mode.
+	(cgraph_create_virtual_clone): Ditto.
+
+2012-05-16  Xinliang David Li  <davidxl@google.com>
+
 	* c-family/c-opts.c (is_parsing_done_p): New function.
 	* cp/semantics.c (cp_clear_constexpr_hashtable): Ditto.
 	* cp/decl2.c (cp_clear_defered_fns): Clear constexpr hash.

@@ -861,6 +861,8 @@ cgraph_set_call_stmt (struct cgraph_edge *e, gimple new_stmt)
       /* Constant propagation (and possibly also inlining?) can turn an
 	 indirect call into a direct one.  */
       struct cgraph_node *new_callee = cgraph_get_node (decl);
+      if (L_IPO_COMP_MODE && cgraph_pre_profiling_inlining_done)
+        new_callee = cgraph_lipo_get_resolved_node (decl);
 
       gcc_checking_assert (new_callee);
       cgraph_make_edge_direct (e, new_callee);
@@ -2328,6 +2330,8 @@ cgraph_create_virtual_clone (struct cgraph_node *old_node,
       if (TREE_CODE (var) == FUNCTION_DECL)
 	{
 	  struct cgraph_node *ref_node = cgraph_get_node (var);
+          if (L_IPO_COMP_MODE && cgraph_pre_profiling_inlining_done)
+            ref_node = cgraph_lipo_get_resolved_node (var);
 	  gcc_checking_assert (ref_node);
 	  ipa_record_reference (new_node, NULL, ref_node, NULL, IPA_REF_ADDR,
 				NULL);
