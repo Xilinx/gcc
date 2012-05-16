@@ -22436,6 +22436,7 @@ dwarf2out_finish (const char *filename)
   comdat_type_node *ctnode;
   htab_t comdat_type_table;
   unsigned int i;
+  bool any_non_cu_ranges;
 
   /* PCH might result in DW_AT_producer string being restored from the
      header compilation, fix it up if needed.  */
@@ -22603,17 +22604,31 @@ dwarf2out_finish (const char *filename)
     dw_fde_ref fde;
     bool found = false;
 
-    /* Are there any extra function sections that belong to the main CU? */
-    FOR_EACH_VEC_ELT (dw_fde_ref, fde_vec, fde_idx, fde)
-      if (!fde->comdat && !DECL_IGNORED_P (fde->decl)
-	  && (!fde->in_std_section
-	      || (fde->dw_fde_second_begin && !fde->second_in_std_section)))
-	{
-	  found = true;
-	  break;
-	}
+    /* First remember if we've already put anything in .debug_ranges.  */
+    any_non_cu_ranges = (ranges_table_in_use > 0);
 
-    if (!(found || cold_text_section_used)
+    /* If so, and if we expect to use absolute addresses there because of
+       have_multiple_function_sections, we need to use DW_AT_ranges in the
+       CU as well so that those entries have a base address of 0.  We also
+       need DW_AT_ranges if we've split hot/cold code into separate
+       sections.  */
+    if ((any_non_cu_ranges && have_multiple_function_sections)
+	|| cold_text_section_used)
+      found = true;
+
+    /* If we don't need AT_ranges for either of those reasons, are there
+       any extra function sections that belong to the main CU? */
+    FOR_EACH_VEC_ELT (dw_fde_ref, fde_vec, fde_idx, fde)
+      {
+	if (found)
+	  break;
+	else if (!fde->comdat && !DECL_IGNORED_P (fde->decl)
+		 && (!fde->in_std_section
+		     || (fde->dw_fde_second_begin && !fde->second_in_std_section)))
+	  found = true;
+      }
+
+    if (!found
 	|| (dwarf_version < 3 && dwarf_strict))
       {
 	/* Don't add if the CU has no associated code.  */
@@ -22666,7 +22681,6 @@ dwarf2out_finish (const char *filename)
   for (node = limbo_die_list; node; node = node->next)
     {
       dw_die_ref c = node->die->die_child;
-      dw_attr_ref a;
 
       if (c == NULL)
 	continue;
@@ -22676,9 +22690,26 @@ dwarf2out_finish (const char *filename)
       if (c->die_tag != DW_TAG_subprogram)
 	continue;
 
-      if ((a = get_AT (c, DW_AT_ranges)))
-	add_AT_range_list (node->die, DW_AT_ranges,
-			   a->dw_attr_val.v.val_offset);
+      /* We need to use DW_AT_ranges on the CU if any descendant DIE does
+	 so that we can set up a base address; for now, rather than search
+	 descendants let's just use it if we used DW_AT_ranges anywhere in
+	 this translation unit.
+
+         FIXME better would be to use low/hi_pc if the function does and
+         make any ranges in descendant dies relative to the low_pc.  */
+      if (any_non_cu_ranges)
+	{
+	  dw_attr_ref a;
+	  bool added = false;
+	  if ((a = get_AT (c, DW_AT_ranges)))
+	    add_AT_range_list (node->die, DW_AT_ranges,
+			       a->dw_attr_val.v.val_offset);
+	  else
+	    add_ranges_by_labels (node->die, get_AT_low_pc (c),
+				  get_AT_hi_pc (c), &added);
+	  add_AT_addr (node->die, DW_AT_low_pc, const0_rtx);
+	  add_ranges (NULL);
+	}
       else
 	{
 	  add_AT_lbl_id (node->die, DW_AT_low_pc, get_AT_low_pc (c));
@@ -22745,6 +22776,7 @@ dwarf2out_finish (const char *filename)
   output_comp_unit (comp_unit_die (), have_macinfo);
 
   /* Output the abbreviation table.  */
+  /* FIXME comdat */
   if (abbrev_die_table_in_use != 1)
     {
       switch_to_section (debug_abbrev_section);
@@ -22772,6 +22804,7 @@ dwarf2out_finish (const char *filename)
     }
 
   /* Output public names table if necessary.  */
+  /* FIXME comdat */
   if (!VEC_empty (pubname_entry, pubname_table))
     {
       gcc_assert (info_section_emitted);
@@ -22813,6 +22846,7 @@ dwarf2out_finish (const char *filename)
      to put in it.  This because the consumer has no way to tell the
      difference between an empty table that we omitted and failure to
      generate a table that would have contained data.  */
+  /* FIXME comdat */
   if (info_section_emitted)
     {
       unsigned long aranges_length = size_of_aranges ();
@@ -22822,6 +22856,7 @@ dwarf2out_finish (const char *filename)
     }
 
   /* Output ranges section if necessary.  */
+  /* FIXME comdat */
   if (ranges_table_in_use)
     {
       switch_to_section (debug_ranges_section);
