@@ -1,3 +1,13 @@
+2012-05-16  Xinliang David Li  <davidxl@google.com>
+
+	* c-family/c-opts.c (is_parsing_done_p): New function.
+	* cp/semantics.c (cp_clear_constexpr_hashtable): Ditto.
+	* cp/decl2.c (cp_clear_defered_fns): Clear constexpr hash.
+	* cp/mangle.c (mangle_decl): Save decl for binding clearing.
+	* cp/cp-tree.h: New prototype declaration.
+	* l-ipo.c: New prototype declaration.
+
+
 2012-05-15   Teresa Johnson  <tejohnson@google.com>
 
 	Backport from google/main r187536:

@@ -3702,6 +3702,8 @@ cp_clear_deferred_fns (void)
   VEC_free (tree, gc, deferred_fns);
   keyed_classes = NULL;
   VEC_free (tree, gc, no_linkage_decls);
+  no_linkage_decls = NULL;
+  cp_clear_constexpr_hashtable ();
 }
 
 /* Collect declarations from all namespaces relevant to SOURCE_FILE.  */

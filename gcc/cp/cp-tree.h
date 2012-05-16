@@ -5118,6 +5118,7 @@ extern void finish_anon_union			(tree);
 extern void cp_write_global_declarations	(void);
 extern void cp_process_pending_declarations     (location_t);
 extern void cp_clear_deferred_fns               (void);
+extern void cp_clear_constexpr_hashtable        (void);
 extern void cp_clear_conv_type_map              (void);
 extern tree coerce_new_type			(tree);
 extern tree coerce_delete_type			(tree);

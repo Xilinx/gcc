@@ -111,6 +111,8 @@ static size_t deferred_count;
 /* Number of deferred options scanned for -include.  */
 static size_t include_cursor;
 
+static bool parsing_done_p = false;
+
 static void handle_OPT_d (const char *);
 static void set_std_cxx98 (int);
 static void set_std_cxx11 (int);
@@ -1181,6 +1183,15 @@ c_common_parse_file (void)
       if (!this_input_filename)
 	break;
     }
+    parsing_done_p = true;
+}
+
+/* Returns true if parsing is done  */
+
+bool
+is_parsing_done_p (void)
+{
+  return parsing_done_p;
 }
 
 /* Common finish hook for the C, ObjC and C++ front ends.  */

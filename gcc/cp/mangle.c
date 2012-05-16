@@ -3383,10 +3383,15 @@ mangle_decl (const tree decl)
       tree id2, alias;
 #endif
 
-      SET_IDENTIFIER_GLOBAL_VALUE (id, decl);
-      if (IDENTIFIER_GLOBAL_VALUE (id) != decl)
-	inform (DECL_SOURCE_LOCATION (decl), "-fabi-version=6 (or =0) "
-		"avoids this error with a change in mangling");
+      if (!L_IPO_COMP_MODE || !is_parsing_done_p ())
+        SET_IDENTIFIER_GLOBAL_VALUE (id, decl);
+      if (L_IPO_COMP_MODE && !is_parsing_done_p ())
+        add_decl_to_current_module_scope (decl,
+                                          NAMESPACE_LEVEL (global_namespace));
+      if (!L_IPO_COMP_MODE || !is_parsing_done_p ())
+        if (IDENTIFIER_GLOBAL_VALUE (id) != decl)
+          inform (DECL_SOURCE_LOCATION (decl), "-fabi-version=6 (or =0) "
+                  "avoids this error with a change in mangling");
 
 #ifdef ASM_OUTPUT_DEF
       save_ver = flag_abi_version;

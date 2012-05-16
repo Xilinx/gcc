@@ -6113,6 +6113,15 @@ cx_check_missing_mem_inits (tree fun, tree body, bool complain)
   return bad;
 }
 
+/* Clear constexpr hash table  */
+
+void
+cp_clear_constexpr_hashtable (void)
+{
+  /* htab_delete (constexpr_fundef_table); */
+  constexpr_fundef_table = NULL;
+}
+
 /* We are processing the definition of the constexpr function FUN.
    Check that its BODY fulfills the propriate requirements and
    enter it in the constexpr function definition table.
