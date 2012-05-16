@@ -1,0 +1,4 @@
+2012-05-15   Ollie Wild  <aaw@google.com>
+
+	* decl.c (check_static_variable_definition): Only generate a constexpr
+	warning when -pedantic is enabled.

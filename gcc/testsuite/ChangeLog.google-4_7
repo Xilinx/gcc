@@ -1,3 +1,11 @@
+2012-05-15   Ollie Wild  <aaw@google.com>
+
+	* g++.dg/cpp0x/constexpr-static8.C: Replace -fpermissive with -pedantic.
+	* g++.dg/cpp0x/constexpr-static8_nonpedantic.C: New test.
+	* g++.old-deja/g++.ext/memconst.C: Compile with -pedantic
+	-pedantic-errors to work around test failures with -std=gnu++11.
+
+
 2012-05-03  Dehao Chen  <dehao@google.com>
 
 	Backport r185949 from google-main.
