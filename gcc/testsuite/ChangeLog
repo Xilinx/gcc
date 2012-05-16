@@ -1,3 +1,69 @@
+2012-05-16  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR tree-optimization/53217
+	* gfortran.dg/pr53217.f90: New test.
+
+2012-05-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53364
+	* g++.dg/torture/pr53364.C: New testcase.
+
+2012-05-16  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR testsuite/52641
+	* gcc.dg/pr52549.c: Fix test for long != void*
+	* gcc.c-torture/execute/pr52979-1.x: New file.
+	* gcc.c-torture/execute/pr52979-2.x: New file.
+
+2012-05-16  Dodji Seketeli  <dodji@redhat.com>
+
+	PR preprocessor/7263
+	* gcc.dg/binary-constants-2.c: Run without tracking locations
+	accross macro expansion.
+	* gcc.dg/binary-constants-3.c: Likewise.
+	* gcc.dg/cpp/sysmac2.c: Likewise.
+	* testsuite/gcc.dg/nofixed-point-2.c: Adjust for more precise
+	location.
+	* gcc.dg/cpp/syshdr3.c: New test.
+	* gcc.dg/cpp/syshdr3.h: New header for the new test above.
+	* gcc.dg/system-binary-constants-1.c: New test.
+	* gcc.dg/system-binary-constants-1.h: New header for the new test
+	above.
+	* g++.dg/cpp/syshdr3.C: New test.
+	* g++.dg/cpp/syshdr3.h: New header the new test above.
+	* g++.dg/system-binary-constants-1.C: New test.
+	* g++.dg/system-binary-constants-1.h: New header the new test
+	above.
+
+2012-05-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* g++.old-deja/g++.pt/crash10.C: Adjust post PR11586.
+
+2012-05-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/53358
+	* gcc.dg/pr53358.c: New test.
+
+2012-05-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/11856
+	* g++.dg/warn/Wtype-limits.C: Don't warn in templates.
+	* g++.dg/warn/Wtype-limits-Wextra.C: Likewise.
+
+2012-05-15  Olivier Hainque  <hainque@adacore.com>
+
+	* g++.dg/eh/sighandle.C: New testcase.
+
+2012-05-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53355
+	* gcc.dg/tree-ssa/vrp67.c: New testcase.
+
+2012-05-15  Bernhard Reutner-Fischer  <aldot@gcc.gnu.org>
+
+	* gfortran.dg/*.f90: Remove now redundant manual
+	cleanup-modules directive.
+
 2012-05-14  Uros Bizjak  <ubizjak@gmail.com>
 
 	* gcc.target/i386/avx256-unaligned-load-[1234].c: Update scan strings.

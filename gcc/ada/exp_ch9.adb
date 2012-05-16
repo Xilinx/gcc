@@ -6595,15 +6595,14 @@ package body Exp_Ch9 is
    --  see Expand_N_Entry_Call_Statement.
 
    procedure Expand_N_Asynchronous_Select (N : Node_Id) is
-      Loc    : constant Source_Ptr := Sloc (N);
-      Abrt   : constant Node_Id    := Abortable_Part (N);
-      Astats : constant List_Id    := Statements (Abrt);
-      Trig   : constant Node_Id    := Triggering_Alternative (N);
-      Tstats : constant List_Id    := Statements (Trig);
+      Loc  : constant Source_Ptr := Sloc (N);
+      Abrt : constant Node_Id    := Abortable_Part (N);
+      Trig : constant Node_Id    := Triggering_Alternative (N);
 
       Abort_Block_Ent   : Entity_Id;
       Abortable_Block   : Node_Id;
       Actuals           : List_Id;
+      Astats            : List_Id;
       Blk_Ent           : Entity_Id;
       Blk_Typ           : Entity_Id;
       Call              : Node_Id;
@@ -6635,6 +6634,7 @@ package body Exp_Ch9 is
       Stmt              : Node_Id;
       Stmts             : List_Id;
       TaskE_Stmts       : List_Id;
+      Tstats            : List_Id;
 
       B   : Entity_Id;  --  Call status flag
       Bnn : Entity_Id;  --  Communication block
@@ -6647,6 +6647,12 @@ package body Exp_Ch9 is
    begin
       Process_Statements_For_Controlled_Objects (Trig);
       Process_Statements_For_Controlled_Objects (Abrt);
+
+      --  Retrieve Astats and Tstats now because the finalization machinery may
+      --  wrap them in blocks.
+
+      Astats := Statements (Abrt);
+      Tstats := Statements (Trig);
 
       Blk_Ent := Make_Temporary (Loc, 'A');
       Ecall   := Triggering_Statement (Trig);
@@ -11881,15 +11887,6 @@ package body Exp_Ch9 is
    procedure Expand_N_Timed_Entry_Call (N : Node_Id) is
       Loc : constant Source_Ptr := Sloc (N);
 
-      E_Call  : Node_Id :=
-                  Entry_Call_Statement (Entry_Call_Alternative (N));
-      E_Stats : constant List_Id :=
-                  Statements (Entry_Call_Alternative (N));
-      D_Stat  : Node_Id :=
-                  Delay_Statement (Delay_Alternative (N));
-      D_Stats : constant List_Id :=
-                  Statements (Delay_Alternative (N));
-
       Actuals        : List_Id;
       Blk_Typ        : Entity_Id;
       Call           : Node_Id;
@@ -11898,9 +11895,13 @@ package body Exp_Ch9 is
       Concval        : Node_Id;
       D_Conv         : Node_Id;
       D_Disc         : Node_Id;
+      D_Stat         : Node_Id;
+      D_Stats        : List_Id;
       D_Type         : Entity_Id;
       Decls          : List_Id;
       Dummy          : Node_Id;
+      E_Call         : Node_Id;
+      E_Stats        : List_Id;
       Ename          : Node_Id;
       Formals        : List_Id;
       Index          : Node_Id;
@@ -11930,8 +11931,17 @@ package body Exp_Ch9 is
          return;
       end if;
 
+      E_Call := Entry_Call_Statement (Entry_Call_Alternative (N));
+      D_Stat := Delay_Statement (Delay_Alternative (N));
+
       Process_Statements_For_Controlled_Objects (Entry_Call_Alternative (N));
       Process_Statements_For_Controlled_Objects (Delay_Alternative (N));
+
+      --  Retrieve E_Stats and D_Stats now because the finalization machinery
+      --  may wrap them in blocks.
+
+      E_Stats := Statements (Entry_Call_Alternative (N));
+      D_Stats := Statements (Delay_Alternative (N));
 
       --  The arguments in the call may require dynamic allocation, and the
       --  call statement may have been transformed into a block. The block
