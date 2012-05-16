@@ -38,6 +38,46 @@ XPASS: gcc.dg/guality/pr41616-1.c -Os  execution test
 XPASS: gcc.dg/guality/pr41616-1.c -O2  execution test
 XPASS: gcc.dg/guality/pr41616-1.c -O3 -g  execution test
 XPASS: gcc.dg/guality/pr41616-1.c -O2 -flto  execution test
+XPASS: gcc.dg/guality/pr41353-1.c -O3 -g  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O0  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O1  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O3 -fomit-frame-pointer  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O2  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O2 -flto -flto-partition=none  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -Os  line 28 j == 28 + 37
+XPASS: gcc.dg/guality/pr41353-1.c -O2 -flto  line 28 j == 28 + 37
+FAIL: gcc.dg/guality/vla-1.c -O2 -flto  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O2 -flto  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O0  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O2 -flto -flto-partition=none  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O3 -fomit-frame-pointer  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O0  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O3 -fomit-frame-pointer  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O1  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O1  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -Os  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O3 -g  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O2  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O2  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-1.c -O3 -g  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -Os  line 24 sizeof (a) == 17 * sizeof (short)
+FAIL: gcc.dg/guality/vla-1.c -O2 -flto -flto-partition=none  line 17 sizeof (a) == 6
+FAIL: gcc.dg/guality/vla-2.c -O3 -fomit-frame-pointer  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O1  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2 -flto  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2 -flto -flto-partition=none  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O3 -g  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2 -flto  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -Os  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2 -flto -flto-partition=none  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O0  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O1  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -Os  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O3 -fomit-frame-pointer  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O0  line 16 sizeof (a) == 5 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O2  line 25 sizeof (a) == 6 * sizeof (int)
+FAIL: gcc.dg/guality/vla-2.c -O3 -g  line 25 sizeof (a) == 6 * sizeof (int)
 XPASS: gcc.dg/inline_3.c (test for excess errors)
 XPASS: gcc.dg/inline_4.c (test for excess errors)
 FAIL: gcc.dg/torture/pr51106-2.c -O2 -flto  (test for excess errors)
@@ -75,3 +115,8 @@ FAIL: libmudflap.c++/pass55-frag.cxx (-O2) execution test
 FAIL: libmudflap.c++/pass55-frag.cxx ( -O) execution test
 FAIL: libmudflap.c++/pass55-frag.cxx execution test
 FAIL: libmudflap.c++/pass55-frag.cxx (-O3) execution test
+FAIL: gnat.dg/array11.adb (test for warnings, line 12)
+FAIL: gnat.dg/object_overflow.adb (test for warnings, line 8)
+FAIL: gnat.dg/renaming5.adb scan-tree-dump-times optimized "goto" 2
+FAIL: gnat.dg/return3.adb scan-assembler loc 1 6
+FAIL: go.test/test/stack.go execution,  -O2 -g
