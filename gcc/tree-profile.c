@@ -226,6 +226,7 @@ add_sampling_wrapper (gimple stmt_start, gimple stmt_end)
 
   /* Create all the new statements needed.  */
   stmt_inc_counter1 = gimple_build_assign (tmp1, gcov_sample_counter_decl);
+  add_referenced_var (gcov_sample_counter_decl);
   one = build_int_cst (get_gcov_unsigned_t (), 1);
   stmt_inc_counter2 = gimple_build_assign_with_ops (
       PLUS_EXPR, tmp2, tmp1, one);
@@ -234,6 +235,7 @@ add_sampling_wrapper (gimple stmt_start, gimple stmt_end)
   stmt_reset_counter = gimple_build_assign (gcov_sample_counter_decl, zero);
   tmp3 = make_ssa_name (tmp_var, NULL);
   stmt_assign_period = gimple_build_assign (tmp3, gcov_sampling_period_decl);
+  add_referenced_var (gcov_sampling_period_decl);
   stmt_if = gimple_build_cond (GE_EXPR, tmp2, tmp3, NULL_TREE, NULL_TREE);
 
   /* Insert them for now in the original basic block.  */
@@ -353,7 +355,6 @@ gimple_init_instrumentation_sampling (void)
       if (targetm.have_tls && !is_kernel_build)
         DECL_TLS_MODEL (gcov_sample_counter_decl) =
             decl_default_tls_model (gcov_sample_counter_decl);
-      varpool_finalize_decl (gcov_sample_counter_decl);
     }
 }
 

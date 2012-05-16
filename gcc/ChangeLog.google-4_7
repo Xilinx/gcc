@@ -1,5 +1,12 @@
 2012-05-16  Xinliang David Li  <davidxl@google.com>
 
+	* tree-profile.c (add_sampling_wrapper): Call
+	add_referenced_var for sampling related variables.
+	(gimple_init_instrumentation_sampling): Do not
+	call varpool_finalize for external decls.
+
+2012-05-16  Xinliang David Li  <davidxl@google.com>
+
 	* cgraph.c (cgraph_set_call_stmt): Resolve target
 	to the real target in LIPO mode.
 	(cgraph_create_virtual_clone): Ditto.
