@@ -207,6 +207,13 @@ static GTY ((param_is (struct indirect_string_node))) htab_t debug_str_hash;
 
 static GTY ((param_is (struct die_struct))) htab_t local_type_template_args;
 
+struct GTY(()) die_tree_map {
+  dw_die_ref die;
+  tree tree_;
+};
+
+static GTY ((param_is (struct die_tree_map))) htab_t comdat_key_map;
+
 static GTY(()) int dw2_string_counter;
 
 /* True if the compilation unit places functions in more than one section.  */
@@ -3665,23 +3672,6 @@ add_AT_string (dw_die_ref die, enum dwarf_attribute attr_kind, const char *str)
   add_dwarf_attr (die, &attr);
 }
 
-/* Likewise, but don't increment the reference count.  */
-
-static inline void
-add_AT_string_noref (dw_die_ref die, enum dwarf_attribute attr_kind, const char *str)
-{
-  dw_attr_node attr;
-  struct indirect_string_node *node;
-
-  node = find_AT_string (str);
-  node->refcount--;
-
-  attr.dw_attr = attr_kind;
-  attr.dw_attr_val.val_class = dw_val_class_str;
-  attr.dw_attr_val.v.val_str = node;
-  add_dwarf_attr (die, &attr);
-}
-
 static inline const char *
 AT_string (dw_attr_ref a)
 {
@@ -5880,6 +5870,65 @@ same_die_p_wrap (dw_die_ref die1, dw_die_ref die2)
   return ret;
 }
 
+/* htab_t callback for a struct die_tree_map: The DIE pointer is the key.  */
+
+static hashval_t
+die_tree_map_hash (const void *x)
+{
+  return htab_hash_pointer (((const struct die_tree_map *)x)->die);
+}
+
+static int
+die_tree_map_eq (const void *x1, const void *x2)
+{
+  const_dw_die_ref d1 = ((const struct die_tree_map *)x1)->die;
+  const_dw_die_ref d2 = ((const struct die_tree_map *)x2)->die;
+  return d1 == d2;
+}
+
+/* Record that the COMDAT key for DIE is KEY.  */
+
+static void
+record_comdat_key (dw_die_ref die, tree key)
+{
+  struct die_tree_map m, *mp;
+  void **slot;
+
+  m.die = die;
+  m.tree_ = key;
+
+  if (comdat_key_map == NULL)
+    comdat_key_map = htab_create_ggc (10, die_tree_map_hash,
+				      die_tree_map_eq, ggc_free);
+
+  slot = htab_find_slot (comdat_key_map, &m, INSERT);
+  if (*slot == HTAB_EMPTY_ENTRY || *slot == HTAB_DELETED_ENTRY)
+    {
+      mp = ggc_alloc_die_tree_map ();
+      *mp = m;
+      *slot = mp;
+    }
+}
+
+/* Look up a COMDAT key for DIE.  */
+
+static tree
+lookup_comdat_key (dw_die_ref die)
+{
+  struct die_tree_map m, *mp;
+
+  if (comdat_key_map == NULL)
+    return NULL_TREE;
+
+  m.die = die;
+  mp = (struct die_tree_map *)htab_find (comdat_key_map, &m);
+
+  if (mp)
+    return mp->tree_;
+  else
+    return NULL_TREE;
+}
+
 /* The prefix to attach to symbols on DIEs in the current comdat debug
    info section.  */
 static const char *comdat_symbol_id;
@@ -5923,7 +5972,7 @@ compute_section_prefix (dw_die_ref unit_die)
   comdat_symbol_id = xstrdup (name);
   comdat_symbol_number = 0;
 
-  add_AT_string (unit_die, DW_AT_GNU_comdat, comdat_symbol_id);
+  record_comdat_key (unit_die, get_identifier (comdat_symbol_id));
 }
 
 /* Returns nonzero if DIE represents a type, in the sense of TYPE_P.  */
@@ -6070,24 +6119,22 @@ struct cu_hash_table_entry
 static hashval_t
 htab_cu_hash (const void *of)
 {
-  const struct cu_hash_table_entry *const entry =
-    (const struct cu_hash_table_entry *) of;
-  const char *comdat_key = get_AT_string (entry->cu, DW_AT_GNU_comdat);
+  dw_die_ref cu = ((const struct cu_hash_table_entry *) of)->cu;
+  tree comdat_key = lookup_comdat_key (cu);
 
-  return htab_hash_string (comdat_key);
+  return IDENTIFIER_HASH_VALUE (comdat_key);
 }
 
 static int
 htab_cu_eq (const void *of1, const void *of2)
 {
-  const struct cu_hash_table_entry *const entry1 =
-    (const struct cu_hash_table_entry *) of1;
-  const_dw_die_ref entry2 = (const_dw_die_ref) of2;
-  const char *comdat_key1 = get_AT_string (entry1->cu, DW_AT_GNU_comdat);
-  const char *comdat_key2 = get_AT_string (CONST_CAST_DIE (entry2),
-					   DW_AT_GNU_comdat);
+  dw_die_ref cu1 = ((const struct cu_hash_table_entry *) of1)->cu;
+  dw_die_ref cu2 = CONST_CAST_DIE ((const_dw_die_ref) of2);
 
-  return !strcmp (comdat_key1, comdat_key2);
+  if (cu1 == cu2)
+    return 1;
+  else
+    return (lookup_comdat_key (cu1) == lookup_comdat_key (cu2));
 }
 
 static void
@@ -6111,12 +6158,12 @@ check_duplicate_cu (dw_die_ref cu, htab_t htable, unsigned int *sym_num)
 {
   struct cu_hash_table_entry dummy;
   struct cu_hash_table_entry **slot, *entry, *last = &dummy;
-  const char *comdat_key = get_AT_string (cu, DW_AT_GNU_comdat);
+  tree comdat_key = lookup_comdat_key (cu);
 
   dummy.max_comdat_num = 0;
 
   slot = (struct cu_hash_table_entry **)
-    htab_find_slot_with_hash (htable, cu, htab_hash_string (comdat_key),
+    htab_find_slot_with_hash (htable, cu, IDENTIFIER_HASH_VALUE (comdat_key),
 	INSERT);
   entry = *slot;
 
@@ -6146,10 +6193,10 @@ static void
 record_comdat_symbol_number (dw_die_ref cu, htab_t htable, unsigned int sym_num)
 {
   struct cu_hash_table_entry **slot, *entry;
-  const char *comdat_key = get_AT_string (cu, DW_AT_GNU_comdat);
+  tree comdat_key = lookup_comdat_key (cu);
 
   slot = (struct cu_hash_table_entry **)
-    htab_find_slot_with_hash (htable, cu, htab_hash_string (comdat_key),
+    htab_find_slot_with_hash (htable, cu, IDENTIFIER_HASH_VALUE (comdat_key),
 	NO_INSERT);
   entry = *slot;
 
@@ -6462,7 +6509,7 @@ gather_local_type_fns_r (void **slot, void *data)
   for (die = die->die_parent; die; die = die->die_parent)
     if (die->die_tag == DW_TAG_subprogram)
       break;
-  if (die && get_AT (die, DW_AT_GNU_comdat))
+  if (die && lookup_comdat_key (die))
     pointer_set_insert (local_type_fns, die);
   return 1;
 }
@@ -6499,10 +6546,10 @@ break_out_comdat_functions (dw_die_ref die)
 
   do
     {
-      const char *key;
+      tree key;
       c = prev->die_sib;
       if (c->die_tag == DW_TAG_subprogram
-	  && (key = get_AT_string (c, DW_AT_GNU_comdat)))
+	  && (key = lookup_comdat_key (c)))
 	{
 	  /* Move the subprogram DIE to a secondary CU with the appropriate
 	     COMDAT key and import the main CU.  */
@@ -6510,10 +6557,8 @@ break_out_comdat_functions (dw_die_ref die)
 
 	  found = true;
 
-	  remove_AT (c, DW_AT_GNU_comdat);
-
 	  unit = gen_compile_unit_die (NULL);
-	  add_AT_string (unit, DW_AT_GNU_comdat, key);
+	  record_comdat_key (unit, key);
 
 	  if (!get_AT (c, DW_AT_abstract_origin)
 	      && !get_AT (c, DW_AT_specification))
@@ -7769,8 +7814,7 @@ size_of_pubnames (VEC (pubname_entry, gc) * names)
     {
       /* Skip COMDAT functions, as they have their own CUs.  */
       if (p->die->die_tag == DW_TAG_subprogram
-	  && p->die->die_parent->die_tag == DW_TAG_compile_unit
-	  && get_AT (p->die->die_parent, DW_AT_GNU_comdat))
+	  && lookup_comdat_key (p->die))
 	continue;
       if (names != pubtype_table
 	  || p->die->die_offset != 0
@@ -8011,9 +8055,6 @@ output_abbrev_section (void)
       for (ix = 0; VEC_iterate (dw_attr_node, abbrev->die_attr, ix, a_attr);
 	   ix++)
 	{
-	  /* This should never be emitted.  */
-	  if (a_attr->dw_attr == DW_AT_GNU_comdat)
-	    continue;
 	  dw2_asm_output_data_uleb128 (a_attr->dw_attr, "(%s)",
 				       dwarf_attr_name (a_attr->dw_attr));
 	  output_value_format (a_attr);
@@ -8170,9 +8211,6 @@ output_die (dw_die_ref die)
   FOR_EACH_VEC_ELT (dw_attr_node, die->die_attr, ix, a)
     {
       const char *name = dwarf_attr_name (a->dw_attr);
-
-      /* This should never be emitted.  */
-      gcc_assert (a->dw_attr != DW_AT_GNU_comdat);
 
       switch (AT_class (a))
 	{
@@ -8441,28 +8479,26 @@ output_compilation_unit_header (void)
 static void
 output_comp_unit (dw_die_ref die, int output_if_empty)
 {
-  const char *oldsym;
+  tree oldsym;
   htab_t extern_map;
 
   /* Unless we are outputting main CU, we may throw away empty ones.  */
   if (!output_if_empty && die->die_child == NULL)
     return;
 
-  oldsym = get_AT_string (die, DW_AT_GNU_comdat);
+  oldsym = lookup_comdat_key (die);
   if (oldsym)
     {
 #ifdef OBJECT_FORMAT_ELF
       targetm.asm_out.named_section (DEBUG_INFO_SECTION,
 				     SECTION_DEBUG | SECTION_LINKONCE,
-				     get_identifier (oldsym));
+				     oldsym);
 #else
-      char *tmp = XALLOCAVEC (char, strlen (oldsym) + 24);
-      sprintf (tmp, ".gnu.linkonce.wi.%s", oldsym);
+      char *tmp = XALLOCAVEC (char, IDENTIFIER_LENGTH (oldsym) + 24);
+      sprintf (tmp, ".gnu.linkonce.wi.%s", IDENTIFIER_POINTER (oldsym));
       switch_to_section (get_section (tmp, SECTION_DEBUG, NULL));
 #endif
-      ASM_OUTPUT_DEBUG_LABEL (asm_out_file, oldsym, 0);
-      /* Remove the attribute so it doesn't get emitted.  */
-      remove_AT (die, DW_AT_GNU_comdat);
+      ASM_OUTPUT_DEBUG_LABEL (asm_out_file, IDENTIFIER_POINTER (oldsym), 0);
     }
   else
     {
@@ -8497,8 +8533,6 @@ output_comp_unit (dw_die_ref die, int output_if_empty)
   if (oldsym)
     {
       unmark_dies (die);
-      /* Put back the attribute.  */
-      add_AT_string_noref (die, DW_AT_GNU_comdat, oldsym);
     }
 }
 
@@ -8676,7 +8710,7 @@ output_pubnames (VEC (pubname_entry, gc) * names)
     {
       /* Skip COMDAT functions, as they have their own CUs.  */
       if (pub->die->die_tag == DW_TAG_subprogram
-	  && get_AT (pub->die, DW_AT_GNU_comdat))
+	  && lookup_comdat_key (pub->die))
 	continue;
 
       if (names != pubtype_table
@@ -8697,7 +8731,7 @@ output_pubnames (VEC (pubname_entry, gc) * names)
     {
       dw_die_ref cu = node->die;
       dw_die_ref die;
-      const char *key = get_AT_string (cu, DW_AT_GNU_comdat);
+      tree key = lookup_comdat_key (cu);
       char *label;
       const char *name;
       unsigned long size;
@@ -8714,12 +8748,12 @@ output_pubnames (VEC (pubname_entry, gc) * names)
       size = (DWARF_PUBNAMES_HEADER_SIZE + strlen (name) + DWARF_OFFSET_SIZE
 	      + 1 + DWARF_OFFSET_SIZE);
 
-      label = XALLOCAVEC (char, strlen (key) + 10);
-      ASM_GENERATE_INTERNAL_LABEL (label, key, 0);
+      label = XALLOCAVEC (char, IDENTIFIER_LENGTH (key) + 10);
+      ASM_GENERATE_INTERNAL_LABEL (label, IDENTIFIER_POINTER (key), 0);
 
       targetm.asm_out.named_section (DEBUG_PUBNAMES_SECTION,
 				     SECTION_DEBUG | SECTION_LINKONCE,
-				     get_identifier (key));
+				     key);
 
       output_pubnames_header (size, label, cu_size (cu));
       dw2_asm_output_data (DWARF_OFFSET_SIZE, die->die_offset,
@@ -8845,7 +8879,7 @@ output_aranges (void)
       dw_die_ref cu = node->die;
       dw_attr_ref a;
       unsigned num_ranges;
-      const char *key;
+      tree key;
       char *label;
 
       if ((a = get_AT (cu, DW_AT_ranges)))
@@ -8855,13 +8889,13 @@ output_aranges (void)
       else
 	continue;
 
-      key = get_AT_string (cu, DW_AT_GNU_comdat);
-      label = XALLOCAVEC (char, strlen (key) + 10);
-      ASM_GENERATE_INTERNAL_LABEL (label, key, 0);
+      key = lookup_comdat_key (cu);
+      label = XALLOCAVEC (char, IDENTIFIER_LENGTH (key) + 10);
+      ASM_GENERATE_INTERNAL_LABEL (label, IDENTIFIER_POINTER (key), 0);
 
       targetm.asm_out.named_section (DEBUG_ARANGES_SECTION,
 				     SECTION_DEBUG | SECTION_LINKONCE,
-				     get_identifier (key));
+				     key);
 
       aranges_length = (DWARF_ARANGES_HEADER_SIZE
 			+ 2 * num_ranges * DWARF2_ADDR_SIZE
@@ -17583,8 +17617,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
       if (fde->comdat)
 	{
 	  if (context_die == comp_unit_die ())
-	    add_AT_string (subr_die, DW_AT_GNU_comdat,
-			   IDENTIFIER_POINTER (DECL_COMDAT_GROUP (decl)));
+	    record_comdat_key (subr_die, DECL_COMDAT_GROUP (decl));
 	  else
 	    /* FIXME what to do about nested comdat functions?  */
 	    fde->comdat = false;
@@ -22968,10 +23001,10 @@ dwarf2out_finish (const char *filename)
       output_location_lists (comp_unit_die ());
       for (node = limbo_die_list; node; node = node->next)
 	{
-	  const char *sym = get_AT_string (node->die, DW_AT_GNU_comdat);
+	  tree sym = lookup_comdat_key (node->die);
 	  targetm.asm_out.named_section (DEBUG_LOC_SECTION,
 					 SECTION_DEBUG | SECTION_LINKONCE,
-					 get_identifier (sym));
+					 sym);
 	  output_location_lists (node->die);
 	}
     }
