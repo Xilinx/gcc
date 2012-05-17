@@ -3025,7 +3025,7 @@ static void add_pubname (tree, dw_die_ref);
 static void add_pubname_string (const char *, dw_die_ref);
 static void add_pubtype (tree, dw_die_ref);
 static void output_pubnames (VEC (pubname_entry,gc) *);
-static void output_aranges (unsigned long);
+static void output_aranges (void);
 static unsigned int add_ranges_num (int);
 static unsigned int add_ranges (const_tree);
 static void add_ranges_by_labels (dw_die_ref, const char *, const char *,
@@ -3968,6 +3968,15 @@ add_AT_offset (dw_die_ref die, enum dwarf_attribute attr_kind,
   attr.dw_attr_val.val_class = dw_val_class_offset;
   attr.dw_attr_val.v.val_offset = offset;
   add_dwarf_attr (die, &attr);
+}
+
+/* Get the offset from an attribute.  */
+
+static inline unsigned HOST_WIDE_INT
+AT_offset (dw_attr_ref a)
+{
+  gcc_assert (a && AT_class (a) == dw_val_class_offset);
+  return a->dw_attr_val.v.val_offset;
 }
 
 /* Add an range_list attribute value to a DIE.  */
@@ -7768,6 +7777,8 @@ size_of_aranges (void)
 
       FOR_EACH_VEC_ELT (dw_fde_ref, fde_vec, fde_idx, fde)
 	{
+	  if (fde->comdat || DECL_IGNORED_P (fde->decl))
+	    continue;
 	  if (!fde->in_std_section)
 	    size += 2 * DWARF2_ADDR_SIZE;
 	  if (fde->dw_fde_second_begin && !fde->second_in_std_section)
@@ -8423,6 +8434,7 @@ output_comp_unit (dw_die_ref die, int output_if_empty)
       sprintf (tmp, ".gnu.linkonce.wi.%s", oldsym);
       switch_to_section (get_section (tmp, SECTION_DEBUG, NULL));
 #endif
+      ASM_OUTPUT_DEBUG_LABEL (asm_out_file, oldsym, 0);
       /* Remove the attribute so it doesn't get emitted.  */
       remove_AT (die, DW_AT_GNU_comdat);
     }
@@ -8608,6 +8620,11 @@ output_pubnames (VEC (pubname_entry, gc) * names)
   unsigned long pubnames_length = size_of_pubnames (names);
   pubname_ref pub;
 
+  if (names == pubname_table)
+    switch_to_section (debug_pubnames_section);
+  else
+    switch_to_section (debug_pubtypes_section);
+
   if (DWARF_INITIAL_LENGTH_SIZE - DWARF_OFFSET_SIZE == 4)
     dw2_asm_output_data (4, 0xffffffff,
       "Initial length escape value indicating 64-bit DWARF extension");
@@ -8650,19 +8667,17 @@ output_pubnames (VEC (pubname_entry, gc) * names)
    text section generated for this compilation unit.  */
 
 static void
-output_aranges (unsigned long aranges_length)
+output_aranges_header (unsigned long length, const char *label)
 {
   unsigned i;
-
   if (DWARF_INITIAL_LENGTH_SIZE - DWARF_OFFSET_SIZE == 4)
     dw2_asm_output_data (4, 0xffffffff,
       "Initial length escape value indicating 64-bit DWARF extension");
-  dw2_asm_output_data (DWARF_OFFSET_SIZE, aranges_length,
+  dw2_asm_output_data (DWARF_OFFSET_SIZE, length,
 		       "Length of Address Ranges Info");
   /* Version number for aranges is still 2, even in DWARF3.  */
   dw2_asm_output_data (2, 2, "DWARF Version");
-  dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_info_section_label,
-			 debug_info_section,
+  dw2_asm_output_offset (DWARF_OFFSET_SIZE, label, debug_info_section,
 			 "Offset of Compilation Unit Info");
   dw2_asm_output_data (1, DWARF2_ADDR_SIZE, "Size of Address");
   dw2_asm_output_data (1, 0, "Size of Segment Descriptor");
@@ -8677,6 +8692,38 @@ output_aranges (unsigned long aranges_length)
       for (i = 2; i < (unsigned) DWARF_ARANGES_PAD_SIZE; i += 2)
 	dw2_asm_output_data (2, 0, NULL);
     }
+}
+
+static inline unsigned
+get_range_idx (dw_attr_ref a)
+{
+  unsigned HOST_WIDE_INT offset = AT_offset (a);
+  gcc_assert (a->dw_attr == DW_AT_ranges);
+  return offset / 2 / DWARF2_ADDR_SIZE;
+}
+
+static unsigned
+count_ranges (dw_attr_ref a)
+{
+  unsigned idx, count;
+
+  count = 0;
+  for (idx = get_range_idx (a); ranges_table[idx].num != 0; ++idx)
+    ++count;
+
+  return count;
+}
+
+static void
+output_aranges (void)
+{
+  unsigned fde_idx;
+  dw_fde_ref fde;
+  unsigned long aranges_length = size_of_aranges ();
+  limbo_die_node *node;
+
+  switch_to_section (debug_aranges_section);
+  output_aranges_header (aranges_length, debug_info_section_label);
 
   /* It is necessary not to output these entries if the sections were
      not used; if the sections were not used, the length will be 0 and
@@ -8699,12 +8746,9 @@ output_aranges (unsigned long aranges_length)
 
   if (have_multiple_function_sections)
     {
-      unsigned fde_idx;
-      dw_fde_ref fde;
-
       FOR_EACH_VEC_ELT (dw_fde_ref, fde_vec, fde_idx, fde)
 	{
-	  if (DECL_IGNORED_P (fde->decl))
+	  if (fde->comdat || DECL_IGNORED_P (fde->decl))
 	    continue;
 	  if (!fde->in_std_section)
 	    {
@@ -8726,6 +8770,67 @@ output_aranges (unsigned long aranges_length)
   /* Output the terminator words.  */
   dw2_asm_output_data (DWARF2_ADDR_SIZE, 0, NULL);
   dw2_asm_output_data (DWARF2_ADDR_SIZE, 0, NULL);
+
+  /* Now output the aranges for COMDAT function CUs.  */
+  for (node = limbo_die_list; node; node = node->next)
+    {
+      dw_die_ref cu = node->die;
+      dw_attr_ref a;
+      unsigned num_ranges;
+      const char *key;
+      char *label;
+
+      if ((a = get_AT (cu, DW_AT_ranges)))
+	num_ranges = count_ranges (a);
+      else if ((a = get_AT (cu, DW_AT_low_pc)))
+	num_ranges = 1;
+      else
+	continue;
+
+      key = get_AT_string (cu, DW_AT_GNU_comdat);
+      label = XALLOCAVEC (char, strlen (key) + 10);
+      ASM_GENERATE_INTERNAL_LABEL (label, key, 0);
+
+      targetm.asm_out.named_section (DEBUG_ARANGES_SECTION,
+				     SECTION_DEBUG | SECTION_LINKONCE,
+				     get_identifier (key));
+
+      aranges_length = (DWARF_ARANGES_HEADER_SIZE
+			+ 2 * num_ranges * DWARF2_ADDR_SIZE
+			+ 2 * DWARF2_ADDR_SIZE);
+      output_aranges_header (aranges_length, label);
+      if (a->dw_attr == DW_AT_low_pc)
+	{
+	  const char *start = AT_lbl (a);
+	  const char *end = get_AT_hi_pc (cu);
+	  dw2_asm_output_addr (DWARF2_ADDR_SIZE, start, "Address");
+	  dw2_asm_output_delta (DWARF2_ADDR_SIZE, end, start, "Length");
+	}
+      else
+	{
+	  unsigned idx;
+	  for (idx = get_range_idx (a); ; ++idx)
+	    {
+	      int num = ranges_table[idx].num;
+	      if (num == 0)
+		break;
+	      else if (num < 0)
+		{
+		  int lab_idx = - num - 1;
+		  const char *start = ranges_by_label[lab_idx].begin;
+		  const char *end = ranges_by_label[lab_idx].end;
+		  dw2_asm_output_addr (DWARF2_ADDR_SIZE, start, "Address");
+		  dw2_asm_output_delta (DWARF2_ADDR_SIZE, end, start, "Length");
+		}
+	      else
+		/* We shouldn't need to handle block ranges here.  */
+		gcc_unreachable ();
+	    }
+	}
+      /* Output the terminator words.  */
+      dw2_asm_output_data (DWARF2_ADDR_SIZE, 0, NULL);
+      dw2_asm_output_data (DWARF2_ADDR_SIZE, 0, NULL);
+    }
 }
 
 /* Add a new entry to .debug_ranges.  Return the offset at which it
@@ -22804,11 +22909,9 @@ dwarf2out_finish (const char *filename)
     }
 
   /* Output public names table if necessary.  */
-  /* FIXME comdat */
   if (!VEC_empty (pubname_entry, pubname_table))
     {
       gcc_assert (info_section_emitted);
-      switch_to_section (debug_pubnames_section);
       output_pubnames (pubname_table);
     }
 
@@ -22836,7 +22939,6 @@ dwarf2out_finish (const char *filename)
       if (!empty)
 	{
 	  gcc_assert (info_section_emitted);
-	  switch_to_section (debug_pubtypes_section);
 	  output_pubnames (pubtype_table);
 	}
     }
@@ -22846,14 +22948,8 @@ dwarf2out_finish (const char *filename)
      to put in it.  This because the consumer has no way to tell the
      difference between an empty table that we omitted and failure to
      generate a table that would have contained data.  */
-  /* FIXME comdat */
   if (info_section_emitted)
-    {
-      unsigned long aranges_length = size_of_aranges ();
-
-      switch_to_section (debug_aranges_section);
-      output_aranges (aranges_length);
-    }
+    output_aranges ();
 
   /* Output ranges section if necessary.  */
   /* FIXME comdat */
