@@ -7655,6 +7655,25 @@ calc_die_sizes (dw_die_ref die)
     next_die_offset += 1;
 }
 
+/* Return the size of the unit starting at DIE, assuming calc_die_sizes has
+   already been run.  */
+
+static unsigned long
+cu_size (dw_die_ref die)
+{
+  unsigned terminators = 0;
+  /* die_child points to the last child of a DIE, so we can find the last
+     die by chasing down die_child.  */
+  while (die->die_child)
+    {
+      ++terminators;
+      die = die->die_child;
+    }
+  /* Then add the size of the last die and the null bytes to terminate
+     sibling lists.  */
+  return die->die_offset + size_of_die (die) + terminators;
+}
+
 /* Size just the base type children at the start of the CU.
    This is needed because build_abbrev needs to size locs
    and sizing of type based stack ops needs to know die_offset
@@ -7747,10 +7766,17 @@ size_of_pubnames (VEC (pubname_entry, gc) * names)
 
   size = DWARF_PUBNAMES_HEADER_SIZE;
   FOR_EACH_VEC_ELT (pubname_entry, names, i, p)
-    if (names != pubtype_table
-	|| p->die->die_offset != 0
-	|| !flag_eliminate_unused_debug_types)
-      size += strlen (p->name) + DWARF_OFFSET_SIZE + 1;
+    {
+      /* Skip COMDAT functions, as they have their own CUs.  */
+      if (p->die->die_tag == DW_TAG_subprogram
+	  && p->die->die_parent->die_tag == DW_TAG_compile_unit
+	  && get_AT (p->die->die_parent, DW_AT_GNU_comdat))
+	continue;
+      if (names != pubtype_table
+	  || p->die->die_offset != 0
+	  || !flag_eliminate_unused_debug_types)
+	size += strlen (p->name) + DWARF_OFFSET_SIZE + 1;
+    }
 
   size += DWARF_OFFSET_SIZE;
   return size;
@@ -8614,39 +8640,44 @@ add_pubtype (tree decl, dw_die_ref die)
    visible names; or the public types table used to find type definitions.  */
 
 static void
+output_pubnames_header (unsigned long length, const char *label,
+			unsigned long cu_length)
+{
+  if (DWARF_INITIAL_LENGTH_SIZE - DWARF_OFFSET_SIZE == 4)
+    dw2_asm_output_data (4, 0xffffffff,
+      "Initial length escape value indicating 64-bit DWARF extension");
+  dw2_asm_output_data (DWARF_OFFSET_SIZE, length,
+		       "Length of Public Names Info");
+  /* Version number for pubnames/pubtypes is still 2, even in DWARF3.  */
+  dw2_asm_output_data (2, 2, "DWARF Version");
+  dw2_asm_output_offset (DWARF_OFFSET_SIZE, label, debug_info_section,
+			 "Offset of Compilation Unit Info");
+  dw2_asm_output_data (DWARF_OFFSET_SIZE, cu_length,
+		       "Compilation Unit Length");
+}
+
+static void
 output_pubnames (VEC (pubname_entry, gc) * names)
 {
   unsigned i;
   unsigned long pubnames_length = size_of_pubnames (names);
   pubname_ref pub;
+  limbo_die_node *node;
 
   if (names == pubname_table)
     switch_to_section (debug_pubnames_section);
   else
     switch_to_section (debug_pubtypes_section);
 
-  if (DWARF_INITIAL_LENGTH_SIZE - DWARF_OFFSET_SIZE == 4)
-    dw2_asm_output_data (4, 0xffffffff,
-      "Initial length escape value indicating 64-bit DWARF extension");
-  if (names == pubname_table)
-    dw2_asm_output_data (DWARF_OFFSET_SIZE, pubnames_length,
-			 "Length of Public Names Info");
-  else
-    dw2_asm_output_data (DWARF_OFFSET_SIZE, pubnames_length,
-			 "Length of Public Type Names Info");
-  /* Version number for pubnames/pubtypes is still 2, even in DWARF3.  */
-  dw2_asm_output_data (2, 2, "DWARF Version");
-  dw2_asm_output_offset (DWARF_OFFSET_SIZE, debug_info_section_label,
-			 debug_info_section,
-			 "Offset of Compilation Unit Info");
-  dw2_asm_output_data (DWARF_OFFSET_SIZE, next_die_offset,
-		       "Compilation Unit Length");
+  output_pubnames_header (pubnames_length, debug_info_section_label,
+			  next_die_offset);
 
   FOR_EACH_VEC_ELT (pubname_entry, names, i, pub)
     {
-      /* We shouldn't see pubnames for DIEs outside of the main CU.  */
-      if (names == pubname_table)
-	gcc_assert (pub->die->die_mark);
+      /* Skip COMDAT functions, as they have their own CUs.  */
+      if (pub->die->die_tag == DW_TAG_subprogram
+	  && get_AT (pub->die, DW_AT_GNU_comdat))
+	continue;
 
       if (names != pubtype_table
 	  || pub->die->die_offset != 0
@@ -8660,6 +8691,43 @@ output_pubnames (VEC (pubname_entry, gc) * names)
     }
 
   dw2_asm_output_data (DWARF_OFFSET_SIZE, 0, NULL);
+
+  /* Now output the pubnames for COMDAT function CUs.  */
+  for (node = limbo_die_list; node; node = node->next)
+    {
+      dw_die_ref cu = node->die;
+      dw_die_ref die;
+      const char *key = get_AT_string (cu, DW_AT_GNU_comdat);
+      char *label;
+      const char *name;
+      unsigned long size;
+
+      if (!key)
+	continue;
+
+      die = cu->die_child->die_sib;
+      if (die->die_tag == DW_TAG_imported_unit)
+	die = die->die_sib;
+      gcc_assert (die->die_tag == DW_TAG_subprogram);
+      name = get_AT_string (die, DW_AT_name);
+
+      size = (DWARF_PUBNAMES_HEADER_SIZE + strlen (name) + DWARF_OFFSET_SIZE
+	      + 1 + DWARF_OFFSET_SIZE);
+
+      label = XALLOCAVEC (char, strlen (key) + 10);
+      ASM_GENERATE_INTERNAL_LABEL (label, key, 0);
+
+      targetm.asm_out.named_section (DEBUG_PUBNAMES_SECTION,
+				     SECTION_DEBUG | SECTION_LINKONCE,
+				     get_identifier (key));
+
+      output_pubnames_header (size, label, cu_size (cu));
+      dw2_asm_output_data (DWARF_OFFSET_SIZE, die->die_offset,
+			   "DIE offset");
+
+      dw2_asm_output_nstring (name, -1, "external name");
+      dw2_asm_output_data (DWARF_OFFSET_SIZE, 0, NULL);
+    }
 }
 
 /* Output the information that goes into the .debug_aranges table.
