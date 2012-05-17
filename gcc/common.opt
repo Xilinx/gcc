@@ -952,10 +952,6 @@ fcaller-saves
 Common Report Var(flag_caller_saves) Optimization
 Save registers around function calls
 
-fcallgraph-profiles-sections
-Common Report Var(flag_callgraph_profiles_sections) Init(0)
-Generate .note.callgraph.text sections listing callees and edge counts.
-
 fcheck-data-deps
 Common Report Var(flag_check_data_deps)
 Compare the results of several data dependence analyzers.
@@ -1784,6 +1780,16 @@ Reorder basic blocks and partition into hot and cold sections
 freorder-functions
 Common Report Var(flag_reorder_functions) Optimization
 Reorder functions to improve code placement
+
+freorder-functions=
+Common Joined RejectNegative Enum(function_reorder) Var(flag_reorder_functions) Init(0) Optimization
+-freorder-functions=[callgraph]	Select the scheme for function reordering. This invokes a linker plugin.  Generate .gnu.callgraph.text sections listing callees and edge counts.
+
+Enum
+Name(function_reorder) Type(int) UnknownError(unrecognized function reorder value %qs)
+ 
+EnumValue
+Enum(function_reorder) String(callgraph) Value(2)
 
 frerun-cse-after-loop
 Common Report Var(flag_rerun_cse_after_loop) Optimization

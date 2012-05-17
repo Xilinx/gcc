@@ -1,0 +1,9 @@
+2012-05-16  Sriraman Tallam  <tmsriram@google.com>
+
+	Port from google/gcc-4_6 
+	r177289, r177308, r179104, r179289, r179303, r179404, r182447
+	
+	* Makefile.in: Regenerate.
+	* Makefile.def: Build function reordering plugin.
+	* configure.ac: Build function reordering plugin.
+	* configure: Regenerate.

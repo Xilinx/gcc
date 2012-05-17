@@ -361,7 +361,7 @@ Objective-C and Objective-C++ Dialects}.
 -falign-labels[=@var{n}] -falign-loops[=@var{n}] -fasan -fassociative-math @gol
 -fauto-inc-dec -fbranch-probabilities -fbranch-target-load-optimize @gol
 -fbranch-target-load-optimize2 -fbtr-bb-exclusive -fcaller-saves @gol
--fcallgraph-profiles-sections -fcheck-data-deps -fclone-hot-version-paths @gol
+-fcheck-data-deps -fclone-hot-version-paths @gol
 -fcombine-stack-adjustments -fconserve-stack @gol
 -fcompare-elim -fcprop-registers -fcrossjumping @gol
 -fcse-follow-jumps -fcse-skip-blocks -fcx-fortran-rules @gol
@@ -7834,6 +7834,10 @@ Also profile feedback must be available in to make this option effective.  See
 
 Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
 
+@item -freorder-functions=@var{alg}
+@opindex freorder-functions
+This invokes a linker plugin that globally reorders functions in the final binary according to the algorithm specified. Currently, only one type of reordering is supported, @code{callgraph}.  This algorithm places functions that are connected by hot callgraph edges closer.  This option also enables @option{-ffunction-sections}.  Also, profile feedback must be available to makes this option effective.  This option emits callgraph edge profile information in special sections named .gnu.callgraph.text. The params variable "gnu-cgraph-section-edge-threshold" can be used to only list edges above a certain threshold.
+
 @item -fstrict-aliasing
 @opindex fstrict-aliasing
 Allow the compiler to assume the strictest aliasing rules applicable to
@@ -8437,15 +8441,6 @@ Limit loop unrolling of non-const non-FP loops in a LIPO compilation under estim
 of a large code footprint. Enabled by default under @option{-fripa}. Code size
 estimation and thresholds are controlled by the @option{codesize-hotness-threshold}
 and @option{unrollpeel-codesize-threshold} parameters.
-
-@item -fcallgraph-profiles-sections
-@opindex fcallgraph-profiles-sections
-Emit call graph edge profile counts in .note.callgraph.text sections. This is
-used in conjunction with @option{-fprofile-use}. A new .note.callgraph.text
-section is created for each function. This section lists every callee and the
-number of times it is called. The params variable
-"note-cgraph-section-edge-threshold" can be used to only list edges above a
-certain threshold.
 
 @item -frecord-gcc-switches-in-elf
 @opindex frecord-gcc-switches-in-elf

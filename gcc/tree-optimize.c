@@ -48,11 +48,17 @@ along with GCC; see the file COPYING3.  If not see
 #include "regset.h"	/* FIXME: For reg_obstack.  */
 #include "params.h"
 
+/* Decides if the cgraph callee edges are being cleaned up for the
+   last time.  */
+bool cgraph_callee_edges_final_cleanup = false;
+
 /* Gate: execute, or not, all of the non-trivial optimizations.  */
 
 static bool
 gate_all_optimizations (void)
 {
+  /* The cgraph callee edges can be cleaned up for the last time.  */
+  cgraph_callee_edges_final_cleanup = true;
   return (optimize >= 1
 	  /* Don't bother doing anything if the program has errors.
 	     We have to pass down the queue if we already went into SSA */

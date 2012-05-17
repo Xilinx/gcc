@@ -1,3 +1,36 @@
+2012-05-16  Sriraman Tallam  <tmsriram@google.com>
+
+	Port from google/gcc-4_6 
+	r177289, r177308, r179104, r179289, r179303, r179404, r182447
+	
+	* doc/invoke.texi: Document -freorder-functions=*
+	* cgraphbuild.c (remove_cgraph_callee_edges): Preserve
+	callgraph till pass_final.
+	* configure: Regenerate.
+	* final.c (dump_cgraph_profiles): New function.
+	(rest_of_handle_final): Call dumping of cgraph profiles in
+	.gnu.text.callgraph sections.
+	* gcc.c (LINK_COMMAND_SPEC): Process -freorder-functions=
+	(set_func_reorder_linker_plugin_spec): New function.
+	(main): Call function reorder plugin.
+	* testsuite/lib/target-supports-dg.exp
+	(dg-require-section-exclude): New proc.
+	(dg-require-linker-function-reordering-plugin): New proc.
+	* testsuite/lib/target-supports.exp
+	(check_section_exclude_available): New proc.
+	(check_linker_function_reordering_plugin_supported): New proc.
+	* testsuite/g++.dg/tree-prof/callgraph-profiles.C: New test.
+	* config.in: undef FRPLUGINSONAME
+	* opts.c
+	* configure.ac (FRPLUGINSONAME): Define 
+	* common.opt (fcallgraph-profiles-sections): Remove.
+	(freorder-functions=): New option.
+	* tree-optimize.c (gate_all_optimizations): Mark last cleanup of
+	callgraph.
+	* config.host: Set function reordering plugin.
+	* params.def (PARAM_NOTE_CGRAPH_SECTION_EDGE_THRESHOLD): Remove.
+	(PARAM_GNU_CGRAPH_SECTION_EDGE_THRESHOLD): Add.
+
 2012-05-16  Xinliang David Li  <davidxl@google.com>
 
 	* tree-profile.c (add_sampling_wrapper): Call

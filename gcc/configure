@@ -11937,6 +11937,12 @@ esac
 
 
 cat >>confdefs.h <<_ACEOF
+#define FRPLUGINSONAME "${host_function_reordering_plugin_soname}"
+_ACEOF
+
+
+
+cat >>confdefs.h <<_ACEOF
 #define LTOPLUGINSONAME "${host_lto_plugin_soname}"
 _ACEOF
 
@@ -18029,7 +18035,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 18032 "configure"
+#line 18038 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -18135,7 +18141,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 18138 "configure"
+#line 18144 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H

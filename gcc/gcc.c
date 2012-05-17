@@ -669,6 +669,9 @@ proper position among the other output files.  */
 %{!fsyntax-only:%{!c:%{!M:%{!MM:%{!E:%{!S:\
     %(linker) " \
     LINK_PLUGIN_SPEC \
+    "%{freorder-functions=*: \
+    -plugin %(func_reorder_linker_plugin_file) \
+    -plugin-opt=%(func_reorder_linker_plugin_opt)}" \
     "%{flto|flto=*:%<fcompare-debug*} \
     %{flto} %{flto=*} %l " LINK_PIE_SPEC \
    "%{fuse-ld=gold:%{fuse-ld=bfd:%e-fuse-ld=gold and -fuse-ld=bfd may not be used together}} \
@@ -724,6 +727,8 @@ static const char *endfile_spec = ENDFILE_SPEC;
 static const char *startfile_spec = STARTFILE_SPEC;
 static const char *linker_name_spec = LINKER_NAME;
 static const char *linker_plugin_file_spec = "";
+static const char *func_reorder_linker_plugin_file_spec = "";
+static const char *func_reorder_linker_plugin_opt = "";
 static const char *lto_wrapper_spec = "";
 static const char *lto_gcc_spec = "";
 static const char *link_command_spec = LINK_COMMAND_SPEC;
@@ -1219,6 +1224,10 @@ static struct spec_list static_specs[] =
   INIT_STATIC_SPEC ("multilib_options",		&multilib_options),
   INIT_STATIC_SPEC ("linker",			&linker_name_spec),
   INIT_STATIC_SPEC ("linker_plugin_file",	&linker_plugin_file_spec),
+  INIT_STATIC_SPEC ("func_reorder_linker_plugin_file",
+                    &func_reorder_linker_plugin_file_spec),
+  INIT_STATIC_SPEC ("func_reorder_linker_plugin_opt",
+                    &func_reorder_linker_plugin_opt),
   INIT_STATIC_SPEC ("lto_wrapper",		&lto_wrapper_spec),
   INIT_STATIC_SPEC ("lto_gcc",			&lto_gcc_spec),
   INIT_STATIC_SPEC ("link_libgcc",		&link_libgcc_spec),
@@ -6113,6 +6122,51 @@ compare_files (char *cmpfile[])
   return ret;
 }
 
+/* Set func_reorder_linker_plugin_file_spec and func_reorder_linker_plugin_opt
+   here.  This is the linker plugin to do global function reordering and is
+   enabled with -freorder-functions=*. */
+
+static void
+set_func_reorder_linker_plugin_spec (void)
+{
+  int i;
+  const char *plugin_opt_none = "group=none";
+  const char *plugin_opt_callgraph = "group=callgraph";
+  
+  /* Find the linker plugin that does function ordering.  */
+  func_reorder_linker_plugin_file_spec = find_a_file (&exec_prefixes,
+					    FRPLUGINSONAME, R_OK, false);
+
+  if (!func_reorder_linker_plugin_file_spec)
+      fatal_error ("-freorder-functions=*, but "
+		   FRPLUGINSONAME " file not found");
+
+  func_reorder_linker_plugin_opt = plugin_opt_none;
+
+  /* Set linker plugin options here.  Option ordering is also checked here.
+     -fno-reorder-functions or -freorder-functions should disable any
+     previous -freorder-functions=*. */
+  for (i = 0; (int) i < n_switches; i++)
+    {
+      /* Check for match with "-freorder-functions=callgraph".  */
+      if (func_reorder_linker_plugin_opt != plugin_opt_callgraph
+	  && !strcmp (switches[i].part1, "freorder-functions=callgraph"))
+	{
+	  func_reorder_linker_plugin_opt = plugin_opt_callgraph;
+	  continue;
+	}
+      /* Set option to none if it matches -fno-reorder-functions
+	 or -freorder-functions  */
+      if (func_reorder_linker_plugin_opt != plugin_opt_none
+	  && (!strcmp (switches[i].part1, "fno-reorder-functions")
+	      || !strcmp (switches[i].part1, "freorder-functions")))
+	{
+	  func_reorder_linker_plugin_opt = plugin_opt_none;
+	  continue;
+	}
+    }
+}
+
 extern int main (int, char **);
 
 int
@@ -6871,6 +6925,8 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 #endif
 #endif
 
+          const char *freorder_functions_ = "freorder-functions=";
+
 	  /* We'll use ld if we can't find collect2.  */
 	  if (! strcmp (linker_name_spec, "collect2"))
 	    {
@@ -6899,6 +6955,12 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	    }
 #endif
 	  lto_gcc_spec = argv[0];
+
+	  /* The function reordering linker plugin will be loaded if the option
+	     -freorder-functions= is present in the command-line.  */ 
+	  if (switch_matches (freorder_functions_,
+		freorder_functions_ + strlen (freorder_functions_), 1))
+	    set_func_reorder_linker_plugin_spec ();
 	}
 
       /* Rebuild the COMPILER_PATH and LIBRARY_PATH environment variables

@@ -861,6 +861,10 @@ finish_options (struct gcc_options *opts, struct gcc_options *opts_set,
   /* This replaces set_Wextra.  */
   if (opts->x_warn_uninitialized == -1)
     opts->x_warn_uninitialized = opts->x_extra_warnings;
+
+  /* Turn on -ffunction-sections when -freorder-functions=* is used.  */
+  if (opts->x_flag_reorder_functions > 1)
+    opts->x_flag_function_sections = 1;
 }
 
 #define LEFT_COLUMN	27

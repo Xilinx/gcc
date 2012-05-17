@@ -373,6 +373,30 @@ proc check_ifunc_available { } {
     }]
 }
 
+# Returns true if tool chain supports "e" section attribute.
+
+proc check_section_exclude_available { } {
+    return [check_runtime_nocache section_exclude_available {
+		asm(".section \".gnu.callgraph.text.main\", \"e\"");
+		int main()
+		{
+		  return 0;
+		}
+  }]
+}
+
+# If this target uses a linker that supports plugins and can load
+# the function reordering linker plugin.
+
+proc check_linker_function_reordering_plugin_supported {} {
+    return [check_runtime_nocache function_reordering_plugin_supported {
+		int main()
+		{
+		  return 0;
+		}    
+  } "-freorder-functions=callgraph"]
+}
+
 # Returns true if --gc-sections is supported on the target.
 
 proc check_gc_sections_available { } {
