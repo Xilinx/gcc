@@ -1,3 +1,36 @@
+2012-05-17  David S. Miller  <davem@davemloft.net>
+
+	* gfortran.dg/bessel_7.f90: Bump allowed precision to avoid
+	failure on sparc-*-linux-gnu.
+
+2012-05-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/39681
+	* g++.dg/parse/error49.C: New.
+	* g++.dg/cpp0x/error8.C: Likewise.
+	* g++.dg/ext/utf-cxx98.C: Adjust dg-error directive.
+	* g++.dg/ext/utf-dflt2.C: Likewise.
+	* g++.dg/ext/utf-gnuxx98.C: Likewise.
+	* g++.dg/ext/utf-dflt.C: Likewise.
+	* c-c++-common/raw-string-3.c: Likewise.
+	* c-c++-common/raw-string-4.c: Likewise.
+
+2012-05-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53371
+	* g++.dg/cpp0x/catch1.C: New.
+
+2012-05-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44516
+	* g++.dg/parse/error48.C: New.
+	* g++.dg/template/crash89.C: Adjust dg-error line numbers.
+	* g++.old-deja/g++.robertl/eb109.C: Add column info to dg-error string.
+
+2012-05-16  Patrick Marlier  <patrick.marlier@gmail.com>
+
+	* gcc.dg/tm/indirect-2.c: New test.
+
 2012-05-16  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
 
 	PR tree-optimization/53217

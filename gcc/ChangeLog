@@ -1,3 +1,82 @@
+2012-05-17  Steven Bosscher  <steven@gcc.gnu.org>
+
+	PR rtl-optimization/53125
+	* regstat.c (regstat_bb_compute_ri): Take new local_live_last_luid
+	argument.  Simplify calculation of REG_LIVE_LENGTH for regnos that
+	die in the basic block.  Correctly top off REG_FREQ and
+	REG_FREQ_CALLS_CROSSED.
+	Remove do_not_gen.
+	(regstat_compute_ri): Allocate and free local_live_last_luid.
+	Remove do_not_gen.
+	(regstat_bb_compute_calls_crossed): Correctly top off
+	REG_FREQ_CALLS_CROSSED.
+
+2012-05-17  Jan Hubicka  <jh@suse.cz>
+
+	* lto-symtab.c (lto_symtab_resolve_symbols): Preffer decl with constructor
+	over decl without.
+	* cgraph.c (cgraph_remove_node): Clear also body of unanalyzed nodes.
+	* cgraph.h (varpool_can_remove_if_no_refs): Handle external correctly.
+	* cgraphunit.c (process_function_and_variable_attributes): Finalize 
+	extrnal decls.
+	(mark_functions_to_output): Also accept bodies for functions with clones.
+	(output_in_order): Skip external vars.
+	* lto-cgraph.c (lto_output_node): External functions are never in other
+	partition.
+	(lto_output_varpool_node): Likewise.
+	* lto-streamer-out.c (lto_write_tree): Always use error_mark_nodes for
+	forgotten initializers.
+	* ipa.c (process_references): Handle external vars.
+	(symtab_remove_unreachable_nodes): Update to handle external vars.
+	(varpool_externally_visible_p): External vars are externally visible.
+	* gimple-fold.c (can_refer_decl_in_current_unit_p): Update.
+	* varpool.c (varpool_remove_node): Remove constructor.
+	(decide_is_variable_needed): Handle externals.
+	(varpool_remove_unreferenced_decls): Likewise.
+
+2012-05-17  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* opts.c (common_handle_option): -pedantic-errors enables -Wpedantic.
+	(enable_warning_as_error): Do not special case Wuninitialized.
+	* optc-gen.awk: Add sanity checks.
+
+2012-05-17  Jan Hubicka   <jh@suse.cz>
+
+	* ipa-reference.c (is_proper_for_analysis): Do not check flags
+	that might change as result of global optimization.
+	(analyze_function): Do not check analyzed and externally_visible
+	flags; be happy about address dereferences.
+	(propagate): Prune all_module_statics so it really contains just
+	statics; prune all the local summaries.
+	(ipa_reference_write_optimization_summary): Simplify.
+
+2012-05-17  Kwok Cheung Yeung  <kcy@codesourcery.com>
+
+	* config/m68k/m68k-devices.def: Add 51ag, 51je, 51jf, 51jg, 51mm,
+	51qm.
+	* config/m68k/m68k-tables.opt: Regenerated.
+	* doc/invoke.texi (M680x0 Options): Document.
+
+2012-05-16  Dave Boutcher  <daveboutcher@gmail.com>
+	    Patrick Marlier  <patrick.marlier@gmail.com>
+
+	* trans-mem.c (ipa_tm_transform_clone): Transform functions with
+	indirect calls.
+
+2012-05-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* configure: Regenerated.
+
+2012-05-16  Andrew Pinski  <apinski@cavium.com>
+
+	* gimple-fold.c (get_maxval_strlen): Move COND_EXPR handling under
+	GIMPLE_ASSIGN.
+
+2012-05-16  David S. Miller  <davem@davemloft.net>
+
+	* jump.c (delete_related_insns): If we remove a CALL, make sure
+	we delete it's NOTE_INSN_CALL_ARG_LOCATION note too.
+
 2012-05-16  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
 
 	PR tree-optimization/53217

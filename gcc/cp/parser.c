@@ -6613,7 +6613,7 @@ cp_parser_new_expression (cp_parser* parser)
   VEC(tree,gc) *placement;
   tree type;
   VEC(tree,gc) *initializer;
-  tree nelts;
+  tree nelts = NULL_TREE;
   tree ret;
 
   /* Look for the optional `::' operator.  */
@@ -6666,7 +6666,6 @@ cp_parser_new_expression (cp_parser* parser)
 		  "try removing the parentheses around the type-id");
 	  cp_parser_direct_new_declarator (parser);
 	}
-      nelts = NULL_TREE;
     }
   /* Otherwise, there must be a new-type-id.  */
   else
@@ -6736,7 +6735,6 @@ cp_parser_new_type_id (cp_parser* parser, tree *nelts)
   cp_declarator *declarator;
   cp_declarator *outer_declarator;
   const char *saved_message;
-  tree type;
 
   /* The type-specifier sequence must not contain type definitions.
      (It cannot contain declarations of new types either, but if they
@@ -6751,6 +6749,10 @@ cp_parser_new_type_id (cp_parser* parser, tree *nelts)
 				&type_specifier_seq);
   /* Restore the old message.  */
   parser->type_definition_forbidden_message = saved_message;
+
+  if (type_specifier_seq.type == error_mark_node)
+    return error_mark_node;
+
   /* Parse the new-declarator.  */
   new_declarator = cp_parser_new_declarator_opt (parser);
 
@@ -6787,8 +6789,7 @@ cp_parser_new_type_id (cp_parser* parser, tree *nelts)
 	new_declarator = NULL;
     }
 
-  type = groktypename (&type_specifier_seq, new_declarator, false);
-  return type;
+  return groktypename (&type_specifier_seq, new_declarator, false);
 }
 
 /* Parse an (optional) new-declarator.
@@ -7394,6 +7395,7 @@ cp_parser_question_colon_clause (cp_parser* parser, tree logical_or_expr)
   tree expr;
   tree assignment_expr;
   struct cp_token *token;
+  location_t loc = cp_lexer_peek_token (parser->lexer)->location;
 
   /* Consume the `?' token.  */
   cp_lexer_consume_token (parser->lexer);
@@ -7428,7 +7430,7 @@ cp_parser_question_colon_clause (cp_parser* parser, tree logical_or_expr)
   c_inhibit_evaluation_warnings -= logical_or_expr == truthvalue_true_node;
 
   /* Build the conditional-expression.  */
-  return build_x_conditional_expr (logical_or_expr,
+  return build_x_conditional_expr (loc, logical_or_expr,
 				   expr,
 				   assignment_expr,
                                    tf_warning_or_error);
@@ -7468,11 +7470,11 @@ cp_parser_assignment_expression (cp_parser* parser, bool cast_p,
 	return cp_parser_question_colon_clause (parser, expr);
       else
 	{
-	  enum tree_code assignment_operator;
+	  location_t loc = cp_lexer_peek_token (parser->lexer)->location;
 
 	  /* If it's an assignment-operator, we're using the second
 	     production.  */
-	  assignment_operator
+	  enum tree_code assignment_operator
 	    = cp_parser_assignment_operator_opt (parser);
 	  if (assignment_operator != ERROR_MARK)
 	    {
@@ -7490,7 +7492,7 @@ cp_parser_assignment_expression (cp_parser* parser, bool cast_p,
 							      NIC_ASSIGNMENT))
 		return error_mark_node;
 	      /* Build the assignment expression.  */
-	      expr = build_x_modify_expr (expr,
+	      expr = build_x_modify_expr (loc, expr,
 					  assignment_operator,
 					  rhs,
 					  tf_warning_or_error);
@@ -7599,6 +7601,7 @@ static tree
 cp_parser_expression (cp_parser* parser, bool cast_p, cp_id_kind * pidk)
 {
   tree expression = NULL_TREE;
+  location_t loc = UNKNOWN_LOCATION;
 
   while (true)
     {
@@ -7612,7 +7615,7 @@ cp_parser_expression (cp_parser* parser, bool cast_p, cp_id_kind * pidk)
       if (!expression)
 	expression = assignment_expression;
       else
-	expression = build_x_compound_expr (expression,
+	expression = build_x_compound_expr (loc, expression,
 					    assignment_expression,
                                             tf_warning_or_error);
       /* If the next token is not a comma, then we are done with the
@@ -7620,6 +7623,7 @@ cp_parser_expression (cp_parser* parser, bool cast_p, cp_id_kind * pidk)
       if (cp_lexer_next_token_is_not (parser->lexer, CPP_COMMA))
 	break;
       /* Consume the `,'.  */
+      loc = cp_lexer_peek_token (parser->lexer)->location;
       cp_lexer_consume_token (parser->lexer);
       /* A comma operator cannot appear in a constant-expression.  */
       if (cp_parser_non_integral_constant_expression (parser, NIC_COMMA))
@@ -12457,7 +12461,9 @@ cp_parser_template_id (cp_parser *parser,
 
   /* Build a representation of the specialization.  */
   if (TREE_CODE (templ) == IDENTIFIER_NODE)
-    template_id = build_min_nt (TEMPLATE_ID_EXPR, templ, arguments);
+    template_id = build_min_nt_loc (next_token->location,
+				    TEMPLATE_ID_EXPR,
+				    templ, arguments);
   else if (DECL_TYPE_TEMPLATE_P (templ)
 	   || DECL_TEMPLATE_TEMPLATE_PARM_P (templ))
     {
@@ -15730,6 +15736,8 @@ cp_parser_init_declarator (cp_parser* parser,
 					       &is_non_constant_init);
 	  if (!member_p && processing_template_decl)
 	    finish_lambda_scope ();
+	  if (initializer == error_mark_node)
+	    cp_parser_skip_to_end_of_statement (parser);
 	}
     }
 
@@ -21744,6 +21752,9 @@ cp_parser_late_parse_one_default_arg (cp_parser *parser, tree decl,
 
   finish_lambda_scope ();
 
+  if (parsed_arg == error_mark_node)
+    cp_parser_skip_to_end_of_statement (parser);
+
   if (!processing_template_decl)
     {
       /* In a non-template class, check conversions now.  In a template,
@@ -26401,7 +26412,8 @@ cp_parser_omp_for_loop (cp_parser *parser, tree clauses, tree *par_clauses)
 		  cp_parser_parse_definitely (parser);
 		  cp_parser_require (parser, CPP_EQ, RT_EQ);
 		  rhs = cp_parser_assignment_expression (parser, false, NULL);
-		  finish_expr_stmt (build_x_modify_expr (decl, NOP_EXPR,
+		  finish_expr_stmt (build_x_modify_expr (EXPR_LOCATION (rhs),
+							 decl, NOP_EXPR,
 							 rhs,
 							 tf_warning_or_error));
 		  add_private_clause = true;
