@@ -1,3 +1,14 @@
+2012-05-15  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR c++/53209
+	* pt.c (tsubst_decl): Bail out if argvec is error_mark_node.
+
+2012-05-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/53301
+	* decl.c (check_default_argument): Fix typo (POINTER_TYPE_P
+	instead of TYPE_PTR_P) in zero-as-null-pointer-constant warning.
+
 2012-05-03  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/53186

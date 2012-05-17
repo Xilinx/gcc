@@ -50,6 +50,8 @@ uintptr runtime_stacks_sys;
 
 static void schedule(G*);
 
+static void gtraceback(G*);
+
 typedef struct Sched Sched;
 
 M	runtime_m0;
@@ -345,6 +347,9 @@ runtime_mcall(void (*pfn)(G*))
 		// the values for this thread.
 		mp = runtime_m();
 		gp = runtime_g();
+
+		if(gp->dotraceback != nil)
+			gtraceback(gp);
 	}
 	if (gp == nil || !gp->fromgogo) {
 #ifdef USING_SPLIT_STACK
@@ -523,17 +528,71 @@ runtime_goroutineheader(G *g)
 }
 
 void
-runtime_tracebackothers(G *me)
+runtime_goroutinetrailer(G *g)
 {
-	G *g;
+	if(g != nil && g->gopc != 0 && g->goid != 1) {
+		struct __go_string fn;
+		struct __go_string file;
+		int line;
+
+		if(__go_file_line(g->gopc - 1, &fn, &file, &line)) {
+			runtime_printf("created by %s\n", fn.__data);
+			runtime_printf("\t%s:%d\n", file.__data, line);
+		}
+	}
+}
+
+void
+runtime_tracebackothers(G * volatile me)
+{
+	G * volatile g;
 
 	for(g = runtime_allg; g != nil; g = g->alllink) {
 		if(g == me || g->status == Gdead)
 			continue;
 		runtime_printf("\n");
 		runtime_goroutineheader(g);
-		// runtime_traceback(g->sched.pc, g->sched.sp, 0, g);
+
+		// Our only mechanism for doing a stack trace is
+		// _Unwind_Backtrace.  And that only works for the
+		// current thread, not for other random goroutines.
+		// So we need to switch context to the goroutine, get
+		// the backtrace, and then switch back.
+
+		// This means that if g is running or in a syscall, we
+		// can't reliably print a stack trace.  FIXME.
+		if(g->status == Gsyscall || g->status == Grunning) {
+			runtime_printf("no stack trace available\n");
+			runtime_goroutinetrailer(g);
+			continue;
+		}
+
+		g->dotraceback = me;
+
+#ifdef USING_SPLIT_STACK
+		__splitstack_getcontext(&me->stack_context[0]);
+#endif
+		getcontext(&me->context);
+
+		if(g->dotraceback) {
+			runtime_gogo(g);
+		}
 	}
+}
+
+// Do a stack trace of gp, and then restore the context to
+// gp->dotraceback.
+
+static void
+gtraceback(G* gp)
+{
+	G* ret;
+
+	runtime_traceback(nil);
+	runtime_goroutinetrailer(gp);
+	ret = gp->dotraceback;
+	gp->dotraceback = nil;
+	runtime_gogo(ret);
 }
 
 // Mark this g as m's idle goroutine.
@@ -1171,7 +1230,7 @@ runtime_entersyscall(void)
 
 	// Leave SP around for gc and traceback.
 #ifdef USING_SPLIT_STACK
-	g->gcstack = __splitstack_find(NULL, NULL, &g->gcstack_size,
+	g->gcstack = __splitstack_find(nil, nil, &g->gcstack_size,
 				       &g->gcnext_segment, &g->gcnext_sp,
 				       &g->gcinitial_sp);
 #else
@@ -1227,9 +1286,11 @@ runtime_exitsyscall(void)
 	// find that we still have mcpu <= mcpumax, then we can
 	// start executing Go code immediately, without having to
 	// schedlock/schedunlock.
+	// Also do fast return if any locks are held, so that
+	// panic code can use syscalls to open a file.
 	gp = g;
 	v = runtime_xadd(&runtime_sched.atomic, (1<<mcpuShift));
-	if(m->profilehz == runtime_sched.profilehz && atomic_mcpu(v) <= atomic_mcpumax(v)) {
+	if((m->profilehz == runtime_sched.profilehz && atomic_mcpu(v) <= atomic_mcpumax(v)) || m->locks > 0) {
 		// There's a cpu for us, so we can run.
 		gp->status = Grunning;
 		// Garbage collector isn't running (since we are),
@@ -1300,7 +1361,7 @@ runtime_malg(int32 stacksize, byte** ret_stack, size_t* ret_stacksize)
 /* For runtime package testing.  */
 
 void runtime_testing_entersyscall(void)
-  __asm__("libgo_runtime.runtime.entersyscall");
+  __asm__("runtime.entersyscall");
 
 void
 runtime_testing_entersyscall()
@@ -1309,7 +1370,7 @@ runtime_testing_entersyscall()
 }
 
 void runtime_testing_exitsyscall(void)
-  __asm__("libgo_runtime.runtime.exitsyscall");
+  __asm__("runtime.exitsyscall");
 
 void
 runtime_testing_exitsyscall()
@@ -1322,7 +1383,7 @@ __go_go(void (*fn)(void*), void* arg)
 {
 	byte *sp;
 	size_t spsize;
-	G * volatile newg;	// volatile to avoid longjmp warning
+	G *newg;
 
 	schedlock();
 
@@ -1363,19 +1424,26 @@ __go_go(void (*fn)(void*), void* arg)
 	if(sp == nil)
 		runtime_throw("nil g->stack0");
 
-	getcontext(&newg->context);
-	newg->context.uc_stack.ss_sp = sp;
+	{
+		// Avoid warnings about variables clobbered by
+		// longjmp.
+		byte * volatile vsp = sp;
+		size_t volatile vspsize = spsize;
+		G * volatile vnewg = newg;
+
+		getcontext(&vnewg->context);
+		vnewg->context.uc_stack.ss_sp = vsp;
 #ifdef MAKECONTEXT_STACK_TOP
-	newg->context.uc_stack.ss_sp += spsize;
+		vnewg->context.uc_stack.ss_sp += vspsize;
 #endif
-	newg->context.uc_stack.ss_size = spsize;
-	makecontext(&newg->context, kickoff, 0);
+		vnewg->context.uc_stack.ss_size = vspsize;
+		makecontext(&vnewg->context, kickoff, 0);
 
-	newprocreadylocked(newg);
-	schedunlock();
+		newprocreadylocked(vnewg);
+		schedunlock();
 
-	return newg;
-//printf(" goid=%d\n", newg->goid);
+		return vnewg;
+	}
 }
 
 // Put on gfree list.  Sched must be locked.
@@ -1416,7 +1484,7 @@ rundefer(void)
 	}
 }
 
-void runtime_Goexit (void) asm ("libgo_runtime.runtime.Goexit");
+void runtime_Goexit (void) asm ("runtime.Goexit");
 
 void
 runtime_Goexit(void)
@@ -1425,7 +1493,7 @@ runtime_Goexit(void)
 	runtime_goexit();
 }
 
-void runtime_Gosched (void) asm ("libgo_runtime.runtime.Gosched");
+void runtime_Gosched (void) asm ("runtime.Gosched");
 
 void
 runtime_Gosched(void)
@@ -1504,7 +1572,7 @@ runtime_lockedOSThread(void)
 // for testing of callbacks
 
 _Bool runtime_golockedOSThread(void)
-  asm("libgo_runtime.runtime.golockedOSThread");
+  asm("runtime.golockedOSThread");
 
 _Bool
 runtime_golockedOSThread(void)
@@ -1520,7 +1588,7 @@ runtime_mid()
 }
 
 int32 runtime_NumGoroutine (void)
-  __asm__ ("libgo_runtime.runtime.NumGoroutine");
+  __asm__ ("runtime.NumGoroutine");
 
 int32
 runtime_NumGoroutine()
@@ -1554,7 +1622,7 @@ runtime_sigprof(uint8 *pc __attribute__ ((unused)),
 		uint8 *lr __attribute__ ((unused)),
 		G *gp __attribute__ ((unused)))
 {
-	// int32 n;
+	int32 n;
 
 	if(prof.fn == nil || prof.hz == 0)
 		return;
@@ -1564,9 +1632,9 @@ runtime_sigprof(uint8 *pc __attribute__ ((unused)),
 		runtime_unlock(&prof);
 		return;
 	}
-	// n = runtime_gentraceback(pc, sp, lr, gp, 0, prof.pcbuf, nelem(prof.pcbuf));
-	// if(n > 0)
-	// 	prof.fn(prof.pcbuf, n);
+	n = runtime_callers(0, prof.pcbuf, nelem(prof.pcbuf));
+	if(n > 0)
+		prof.fn(prof.pcbuf, n);
 	runtime_unlock(&prof);
 }
 
