@@ -3960,15 +3960,6 @@ add_AT_offset (dw_die_ref die, enum dwarf_attribute attr_kind,
   add_dwarf_attr (die, &attr);
 }
 
-/* Get the offset from an attribute.  */
-
-static inline unsigned HOST_WIDE_INT
-AT_offset (dw_attr_ref a)
-{
-  gcc_assert (a && AT_class (a) == dw_val_class_offset);
-  return a->dw_attr_val.v.val_offset;
-}
-
 /* Add an range_list attribute value to a DIE.  */
 
 static void
@@ -8799,9 +8790,8 @@ output_aranges_header (unsigned long length, const char *label)
 static inline unsigned
 get_range_idx (dw_attr_ref a)
 {
-  unsigned HOST_WIDE_INT offset = AT_offset (a);
-  gcc_assert (a->dw_attr == DW_AT_ranges);
-  return offset / 2 / DWARF2_ADDR_SIZE;
+  gcc_assert (AT_class (a) == dw_val_class_range_list);
+  return a->dw_attr_val.v.val_offset / 2 / DWARF2_ADDR_SIZE;
 }
 
 static unsigned
