@@ -6657,8 +6657,13 @@ default_unique_section (tree decl, int reloc)
       gcc_unreachable ();
     }
 
-  name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
-  name = targetm.strip_name_encoding (name);
+  if (DECL_COMDAT_GROUP (decl))
+    name = IDENTIFIER_POINTER (DECL_COMDAT_GROUP (decl));
+  else
+    {
+      name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
+      name = targetm.strip_name_encoding (name);
+    }
 
   /* If we're using one_only, then there needs to be a .gnu.linkonce
      prefix to the section name.  */

@@ -14016,6 +14016,10 @@ cxx_comdat_group (tree decl)
 {
   tree name;
 
+  /* Don't mess with a group name we've already set.  */
+  if (DECL_COMDAT_GROUP (decl))
+    return DECL_COMDAT_GROUP (decl);
+
   /* Virtual tables, construction virtual tables, and virtual table
      tables all go in a single COMDAT group, named after the primary
      virtual table.  */

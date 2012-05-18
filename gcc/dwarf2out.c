@@ -6349,10 +6349,10 @@ copy_needed_base_types_1 (dw_die_ref unit, dw_die_ref die,
 }
 
 static void
-copy_needed_base_types (dw_die_ref unit, dw_die_ref die)
+copy_needed_base_types (dw_die_ref unit)
 {
   struct pointer_map_t *map = pointer_map_create ();
-  copy_needed_base_types_1 (unit, die, map);
+  copy_needed_base_types_1 (unit, unit, map);
   pointer_map_destroy (map);
 }
 
@@ -6524,12 +6524,11 @@ gather_local_type_fns (void)
 static void
 break_out_comdat_functions (dw_die_ref die)
 {
-  dw_die_ref c;
-  dw_die_ref unit = NULL;
+  dw_die_ref c, prev;
   limbo_die_node *node;
-  dw_die_ref prev;
   bool found = false;
   struct pointer_set_t *local_type_fns = gather_local_type_fns ();
+  struct pointer_map_t *comdat_units = pointer_map_create ();
 
   prev = die->die_child;
   if (prev == NULL)
@@ -6544,22 +6543,28 @@ break_out_comdat_functions (dw_die_ref die)
 	{
 	  /* Move the subprogram DIE to a secondary CU with the appropriate
 	     COMDAT key and import the main CU.  */
+	  void **p;
 	  dw_die_ref unit, nc;
 
 	  found = true;
 
-	  unit = gen_compile_unit_die (NULL);
-	  record_comdat_key (unit, key);
-
-	  if (!get_AT (c, DW_AT_abstract_origin)
-	      && !get_AT (c, DW_AT_specification))
+	  p = pointer_map_contains (comdat_units, key);
+	  if (p)
+	    unit = (dw_die_ref) *p;
+	  else
 	    {
-	      dw_die_ref imp = new_die (DW_TAG_imported_unit, unit,
-					NULL_TREE);
-	      add_AT_die_ref (imp, DW_AT_import, comp_unit_die ());
-	    }
+	      p = pointer_map_insert (comdat_units, key);
+	      *p = unit = gen_compile_unit_die (NULL);
+	      record_comdat_key (unit, key);
 
-	  copy_needed_base_types (unit, c);
+	      if (!get_AT (c, DW_AT_abstract_origin)
+		  && !get_AT (c, DW_AT_specification))
+		{
+		  dw_die_ref imp = new_die (DW_TAG_imported_unit, unit,
+					    NULL_TREE);
+		  add_AT_die_ref (imp, DW_AT_import, comp_unit_die ());
+		}
+	    }
 
 	  if (local_type_fns
 	      && pointer_set_contains (local_type_fns, c)
@@ -6582,11 +6587,9 @@ break_out_comdat_functions (dw_die_ref die)
   for (node = limbo_die_list;
        node;
        node = node->next)
-    {
-      unit = node->die;
-      c = unit->die_child->die_sib;
-    }
+    copy_needed_base_types (node->die);
 
+  pointer_map_destroy (comdat_units);
   if (local_type_fns)
     pointer_set_destroy (local_type_fns);
 }
@@ -22877,6 +22880,8 @@ dwarf2out_finish (const char *filename)
   for (node = limbo_die_list; node; node = node->next)
     {
       dw_die_ref c = node->die->die_child;
+      bool added = false;
+      dw_attr_ref a;
 
       if (c == NULL)
 	continue;
@@ -22886,6 +22891,48 @@ dwarf2out_finish (const char *filename)
       if (c->die_tag != DW_TAG_subprogram)
 	continue;
 
+      if (c->die_sib && c->die_sib->die_tag == DW_TAG_subprogram)
+	{
+	  /* There are multiple functions in this CU, so we need to add
+	     ranges for all of them.  */
+	  dw_die_ref next = c;
+	  do
+	    {
+	      c = next;
+	      next = c->die_sib;
+	      if (c->die_tag == DW_TAG_subprogram)
+		{
+		  if ((a = get_AT (c, DW_AT_ranges)))
+		    {
+		      /* Copy the ranges from this function.  */
+		      unsigned idx; int num;
+		      for (idx = get_range_idx (a);
+			   (num = ranges_table[idx].num) != 0;
+			   ++idx)
+			{
+			  if (num < 0)
+			    {
+			      int idx2 = - num - 1;
+			      const char *start = ranges_by_label[idx2].begin;
+			      const char *end = ranges_by_label[idx2].end;
+			      add_ranges_by_labels (node->die, start, end,
+						    &added);
+			    }
+			  else
+			    /* We shouldn't need to handle block ranges here.  */
+			    gcc_unreachable ();
+			}
+		    }
+		  else
+		    add_ranges_by_labels (node->die, get_AT_low_pc (c),
+					  get_AT_hi_pc (c), &added);
+		}
+	    }
+	  while (c != node->die->die_child);
+	  /* Set the base address.  */
+	  add_AT_addr (node->die, DW_AT_low_pc, const0_rtx);
+	  add_ranges (NULL);
+	}
       /* We need to use DW_AT_ranges on the CU if any descendant DIE does
 	 so that we can set up a base address; for now, rather than search
 	 descendants let's just use it if we used DW_AT_ranges anywhere in
@@ -22893,10 +22940,8 @@ dwarf2out_finish (const char *filename)
 
          FIXME better would be to use low/hi_pc if the function does and
          make any ranges in descendant dies relative to the low_pc.  */
-      if (any_non_cu_ranges)
+      else if (any_non_cu_ranges)
 	{
-	  dw_attr_ref a;
-	  bool added = false;
 	  if ((a = get_AT (c, DW_AT_ranges)))
 	    add_AT_range_list (node->die, DW_AT_ranges,
 			       a->dw_attr_val.v.val_offset);
