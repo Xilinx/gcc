@@ -1,3 +1,30 @@
+2012-05-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/lto12.ads: New test.
+	* gnat.dg/specs/lto12_pkg.ads: New helper.
+
+2012-05-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53346
+	* gcc.dg/tree-ssa/ldist-18.c: New testcase.
+	* gcc.target/i386/incoming-10.c: Adjust.
+	* gcc.target/i386/incoming-11.c: Likewise.
+	* gcc.target/i386/pr46295.c: Likewise.
+
+2012-05-18  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/pr53352.c: Return zero.
+
+2012-05-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53390
+	* gcc.dg/torture/pr53390.c: New testcase.
+
+2012-05-18  Meador Inge  <meadori@codesourcery.com>
+
+	PR rtl-optimization/53352
+	* gcc.dg/pr53352.c: New test.
+
 2012-05-17  David S. Miller  <davem@davemloft.net>
 
 	* gfortran.dg/bessel_7.f90: Bump allowed precision to avoid

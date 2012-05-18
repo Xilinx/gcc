@@ -1,3 +1,74 @@
+2012-05-18  Olivier Hainque  <hainque@adacore.com>
+
+	* Makefile.in (FLAGS_TO_PASS): Pass $(libexecsubdir) instead of
+	$(libsubdir) as libexecsubdir.
+
+2012-05-18  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	* config/rs6000/rs6000.c (print_operand): Revise code that unsafely
+	relied on signed overflow behavior.
+
+2012-05-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53346
+	* tree-loop-distribution.c (ldist_gen): Make sure to apply
+	builtin transform even when only a single partition with
+	all reads/writes exists.
+
+2012-05-18  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53390
+	* tree-vect-data-refs.c (vect_compute_data_ref_alignment): Ignore
+	strided loads.
+
+2012-05-18  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	* tree-ssa-reassoc.c (bip_map): Remove decl.
+	(completely_remove_stmt): Remove function.
+	(remove_def_if_absorbed_call): Remove function.
+	(remove_visited_stmt_chain): Remove __builtin_powi handling.
+	(possibly_move_powi): Remove function.
+	(rewrite_expr_tree): Remove calls to possibly_move_powi.
+	(rewrite_expr_tree_parallel): Likewise.
+	(attempt_builtin_powi): Build multiplies explicitly rather than
+	relying on the ops vector and rank system.
+	(transform_stmt_to_copy): New function.
+	(transform_stmt_to_multiply): Likewise.
+	(reassociate_bb): Handle leftover operations after __builtin_powi
+	optimization; build a final multiply if necessary.
+
+2012-05-18  Jan Hubicka  <jh@suse.cz>
+
+	* cgraphunit.c (varpool_finalize_decl): Allow external decls.
+	(mark_functions_to_output): Fix sanity check.
+	* ipa.c (function_and_variable_visibility): Remove TREE_STATIC
+	check.
+
+2012-05-18  Richard Guenther  <rguenther@suse.de>
+
+	* tree-flow.h (mark_symbols_for_renaming): Remove.
+	* tree-dfa.c (mark_symbols_for_renaming): Likewise.
+	* tree-inline.c (copy_edges_for_bb): Do not mark symbols for
+	renaming.
+	(copy_debug_stmt): Likewise.
+	(expand_call_inline): Likewise.
+	(declare_return_variable): Mark the return variable for renaming
+	if necessary.
+
+2012-05-18  Andrew Stubbs  <ams@codesourcery.com>
+
+	* config/arm/arm-protos.h (arm_emit_coreregs_64bit_shift): New
+	prototype.
+	* config/arm/arm.c (arm_emit_coreregs_64bit_shift): New function.
+	* config/arm/arm.md (ashldi3): Use arm_emit_coreregs_64bit_shift.
+	(ashrdi3,lshrdi3): Likewise.
+	(arm_cond_branch): Remove '*' to enable gen_arm_cond_branch.
+
+2012-05-18  Meador Inge  <meadori@codesourcery.com>
+
+	PR rtl-optimization/53352
+	* cse.c (equiv_constant): Ignore paradoxical subregs.
+
 2012-05-17  Steven Bosscher  <steven@gcc.gnu.org>
 
 	PR rtl-optimization/53125
