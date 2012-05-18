@@ -181,38 +181,6 @@ report_unroll_peel(struct loop *loop, location_t locus)
             "" : iter_str);
 }
 
-/* Determine whether LOOP contains floating-point computation. */
-static bool
-loop_has_FP_comp(struct loop *loop)
-{
-  rtx set, dest;
-  basic_block *body, bb;
-  unsigned i;
-  rtx insn;
-
-  body = get_loop_body (loop);
-  for (i = 0; i < loop->num_nodes; i++)
-    {
-      bb = body[i];
-
-      FOR_BB_INSNS (bb, insn)
-      {
-        set = single_set (insn);
-        if (!set)
-          continue;
-
-        dest = SET_DEST (set);
-        if (FLOAT_MODE_P (GET_MODE (dest)))
-        {
-          free (body);
-          return true;
-        }
-      }
-    }
-  free (body);
-  return false;
-}
-
 /* This returns a bit vector */
 typedef enum {
   NO_LIMIT = 0,
@@ -231,6 +199,7 @@ limit_code_size(struct loop *loop)
   unsigned size_threshold;
   limit_type result = NO_LIMIT;
   int result_int = 0;
+  struct niter_desc *desc = get_simple_loop_desc (loop);
 
   if (!flag_dyn_ipa)
     return NO_LIMIT;
@@ -239,7 +208,7 @@ limit_code_size(struct loop *loop)
 
   /* Ignore FP loops, which are more likely to benefit heavily from
      unrolling. */
-  if (loop_has_FP_comp(loop))
+  if (desc->has_fp)
     return NO_LIMIT;
 
   size_threshold = PARAM_VALUE (PARAM_UNROLLPEEL_CODESIZE_THRESHOLD);
@@ -254,6 +223,99 @@ limit_code_size(struct loop *loop)
 
   result = (limit_type)result_int;
   return result;
+}
+
+/* Compute the maximum number of times LOOP can be unrolled without exceeding
+   a branch budget, which can increase branch mispredictions. The number of
+   branches is computed by weighting each branch with its expected execution
+   probability through the loop based on profile data. If no profile feedback
+   data exists, simply return the current NUNROLL factor.  */
+
+static unsigned
+max_unroll_with_branches(struct loop *loop, unsigned nunroll)
+{
+  struct loop *outer;
+  struct niter_desc *outer_desc = 0;
+  int outer_niters = 1;
+  int frequent_iteration_threshold;
+  unsigned branch_budget;
+  struct niter_desc *desc = get_simple_loop_desc (loop);
+
+  /* Ignore loops with FP computation as these tend to benefit much more
+     consistently from unrolling.  */
+  if (desc->has_fp)
+    return nunroll;
+
+  frequent_iteration_threshold = PARAM_VALUE (PARAM_MIN_ITER_UNROLL_WITH_BRANCHES);
+  if (expected_loop_iterations (loop) >= (unsigned) frequent_iteration_threshold)
+    return nunroll;
+
+  /* If there was no profile feedback data, av_num_branches will be 0
+     and we won't limit unrolling. If the av_num_branches is at most 1,
+     also don't limit unrolling as the back-edge branch will not be duplicated.  */
+  if (desc->av_num_branches <= 1)
+    return nunroll;
+
+  /* Walk up the loop tree until we find a hot outer loop in which the current
+     loop is nested. At that point we will compute the number of times the
+     current loop can be unrolled based on the number of branches in the hot
+     outer loop.  */
+  outer = loop_outer (loop);
+  /* The loop structure contains a fake outermost loop, so this should always
+     be non-NULL for our current loop.  */
+  gcc_assert (outer);
+
+  /* Walk up the loop tree until we either find a hot outer loop or hit the
+     fake outermost loop at the root.  */
+  while (true)
+    {
+      outer_desc = get_simple_loop_desc (outer);
+
+      /* Stop if we hit the fake outermost loop at the root of the tree,
+         which includes the whole procedure.  */
+      if (!loop_outer (outer))
+        break;
+
+      if (outer_desc->const_iter)
+        outer_niters *= outer_desc->niter;
+      else if (outer->header->count)
+        outer_niters *= expected_loop_iterations (outer);
+
+      /* If the outer loop has enough iterations to be considered hot, then
+         we can stop our upwards loop tree traversal and examine the current
+         outer loop.  */
+      if (outer_niters >= frequent_iteration_threshold)
+        break;
+
+      outer = loop_outer (outer);
+    }
+
+  gcc_assert(outer);
+
+  /* Assume that any call will cause the branch budget to be exceeded,
+     and that we can't unroll the current loop without increasing
+     mispredicts.  */
+  if (outer_desc->has_call)
+    return 0;
+
+  /* Otherwise, compute the maximum number of times current loop can be
+     unrolled without exceeding our branch budget. First we subtract
+     off the outer loop's average branch count from the budget. Note
+     that this includes the branches in the current loop. This yields
+     the number of branches left in the budget for the unrolled copies.
+     We divide this by the number of branches in the current loop that
+     must be duplicated when we unroll, which is the total average
+     number of branches minus the back-edge branch. This yields the
+     number of new loop body copies that can be created by unrolling
+     without exceeding the budget, to which we add 1 to get the unroll
+     factor. Note that the "outermost loop" may be the whole procedure
+     if we did not find a hot enough enclosing loop.  */
+  branch_budget = PARAM_VALUE (PARAM_UNROLL_OUTER_LOOP_BRANCH_BUDGET);
+  if (outer_desc->av_num_branches > branch_budget)
+    return 0;
+  /* We already returned early if desc->av_num_branches <= 1.  */
+  return (branch_budget - outer_desc->av_num_branches)
+      / (desc->av_num_branches - 1) + 1;
 }
 
 /* Unroll and/or peel (depending on FLAGS) LOOPS.  */
@@ -693,6 +755,7 @@ static void
 decide_unroll_constant_iterations (struct loop *loop, int flags)
 {
   unsigned nunroll, nunroll_by_av, best_copies, best_unroll = 0, n_copies, i;
+  unsigned nunroll_branches;
   struct niter_desc *desc;
 
   if (!(flags & UAP_UNROLL))
@@ -734,6 +797,21 @@ decide_unroll_constant_iterations (struct loop *loop, int flags)
 	fprintf (dump_file,
 		 ";; Unable to prove that the loop iterates constant times\n");
       return;
+    }
+
+  /* Be careful when unrolling loops with branches inside -- it can increase
+     the number of mispredicts.  */
+  if (desc->num_branches > 1)
+    {
+      nunroll_branches = max_unroll_with_branches (loop, nunroll);
+      if (nunroll > nunroll_branches)
+        nunroll = nunroll_branches;
+      if (nunroll <= 1)
+        {
+          if (dump_file)
+	    fprintf (dump_file, ";; Not unrolling, contains branches\n");
+          return;
+        }
     }
 
   /* Check whether the loop rolls enough to consider.  */
@@ -973,7 +1051,7 @@ unroll_loop_constant_iterations (struct loop *loop)
 static void
 decide_unroll_runtime_iterations (struct loop *loop, int flags)
 {
-  unsigned nunroll, nunroll_by_av, i;
+  unsigned nunroll, nunroll_by_av, nunroll_branches, i;
   struct niter_desc *desc;
 
   if (!(flags & UAP_UNROLL))
@@ -1025,6 +1103,21 @@ decide_unroll_runtime_iterations (struct loop *loop, int flags)
       if (dump_file)
 	fprintf (dump_file, ";; Loop iterates constant times\n");
       return;
+    }
+
+  /* Be careful when unrolling loops with branches inside -- it can increase
+     the number of mispredicts.  */
+  if (desc->num_branches > 1)
+    {
+      nunroll_branches = max_unroll_with_branches (loop, nunroll);
+      if (nunroll > nunroll_branches)
+        nunroll = nunroll_branches;
+      if (nunroll <= 1)
+        {
+          if (dump_file)
+            fprintf (dump_file, ";; Not unrolling, contains branches\n");
+          return;
+        }
     }
 
   /* If we have profile feedback, check whether the loop rolls.  */
@@ -1402,7 +1495,7 @@ decide_peel_simple (struct loop *loop, int flags)
 
   /* Do not simply peel loops with branches inside -- it increases number
      of mispredicts.  */
-  if (num_loop_branches (loop) > 1)
+  if (desc->num_branches > 1)
     {
       if (dump_file)
 	fprintf (dump_file, ";; Not peeling, contains branches\n");
@@ -1563,7 +1656,7 @@ decide_unroll_stupid (struct loop *loop, int flags)
 
   /* Do not unroll loops with branches inside -- it increases number
      of mispredicts.  */
-  if (num_loop_branches (loop) > 1)
+  if (desc->num_branches > 1)
     {
       if (dump_file)
 	fprintf (dump_file, ";; Not unrolling, contains branches\n");

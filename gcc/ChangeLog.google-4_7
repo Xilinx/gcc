@@ -1,3 +1,28 @@
+2012-05-18   Teresa Johnson  <tejohnson@google.com>
+
+	Backport from google/main r187660:
+	2012-05-18   Teresa Johnson  <tejohnson@google.com>
+
+	* doc/invoke.texi: Update the documentation with new params.
+	* loop-unroll.c (loop_has_FP_comp): Remove function.
+	(max_unroll_with_branches): New function.
+	(decide_unroll_constant_iterations, decide_unroll_runtime_iterations):
+        Add heuristic to avoid increasing branch mispredicts when unrolling.
+	(limit_code_size, decide_peel_simple, decide_unroll_stupid): Retrieve
+        number of branches from niter_desc instead of via function that walks
+        loop.
+	* loop-iv.c (get_simple_loop_desc): Invoke new analyze_loop_insns
+        function, and add guards to enable this function to work for the
+        outermost loop.
+	* cfgloop.c (insn_has_fp_set, analyze_loop_insns): New functions.
+        (num_loop_branches): Remove.
+	* cfgloop.h (struct niter_desc): Added new fields to cache additional
+        loop analysis information.
+        (num_loop_branches): Remove.
+	(analyze_loop_insns): Declare.
+	* params.def (PARAM_MIN_ITER_UNROLL_WITH_BRANCHES): New param.
+        (PARAM_UNROLL_OUTER_LOOP_BRANCH_BUDGET): Ditto.
+
 2012-05-16  Sriraman Tallam  <tmsriram@google.com>
 
 	Port from google/gcc-4_6 

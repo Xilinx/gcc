@@ -250,7 +250,6 @@ extern basic_block *get_loop_body_in_custom_order (const struct loop *,
 
 extern VEC (edge, heap) *get_loop_exit_edges (const struct loop *);
 edge single_exit (const struct loop *);
-extern unsigned num_loop_branches (const struct loop *);
 
 extern edge loop_preheader_edge (const struct loop *);
 extern edge loop_latch_edge (const struct loop *);
@@ -355,7 +354,8 @@ struct rtx_iv
 };
 
 /* The description of an exit from the loop and of the number of iterations
-   till we take the exit.  */
+   till we take the exit. Also includes other information used primarily
+   by the loop unroller.  */
 
 struct niter_desc
 {
@@ -396,6 +396,18 @@ struct niter_desc
 
   /* The number of iterations of the loop.  */
   rtx niter_expr;
+
+  /* The number of branches in the loop.  */
+  unsigned num_branches;
+
+  /* The number of executed branches per iteration.  */
+  unsigned av_num_branches;
+
+  /* Whether the loop contains a call instruction.  */
+  bool has_call;
+
+  /* Whether the loop contains fp instructions.  */
+  bool has_fp;
 };
 
 extern void iv_analysis_loop_init (struct loop *);
@@ -409,6 +421,7 @@ extern void iv_analysis_done (void);
 
 extern struct niter_desc *get_simple_loop_desc (struct loop *loop);
 extern void free_simple_loop_desc (struct loop *loop);
+void analyze_loop_insns (const struct loop *, struct niter_desc *desc);
 
 static inline struct niter_desc *
 simple_loop_desc (struct loop *loop)
