@@ -3831,18 +3831,6 @@ omp_clause_elt_check (Tree __t, int __i,
   return &__t->omp_clause.ops[__i];
 }
 
-/* Compute the number of operands in an expression node NODE.  For
-   tcc_vl_exp nodes like CALL_EXPRs, this is stored in the node itself,
-   otherwise it is looked up from the node's code.  */
-static inline int
-tree_operand_length (const_tree node)
-{
-  if (VL_EXP_CLASS_P (node))
-    return VL_EXP_OPERAND_LENGTH (node);
-  else
-    return TREE_CODE_LENGTH (TREE_CODE (node));
-}
-
 /* Special checks for TREE_OPERANDs.  */
 template <typename Tree>
 inline tree *
@@ -6044,6 +6032,18 @@ is_tm_safe_or_pure (const_tree x)
 /* In tree-inline.c.  */
 
 void init_inline_once (void);
+
+/* Compute the number of operands in an expression node NODE.  For
+   tcc_vl_exp nodes like CALL_EXPRs, this is stored in the node itself,
+   otherwise it is looked up from the node's code.  */
+static inline int
+tree_operand_length (const_tree node)
+{
+  if (VL_EXP_CLASS_P (node))
+    return VL_EXP_OPERAND_LENGTH (node);
+  else
+    return TREE_CODE_LENGTH (TREE_CODE (node));
+}
 
 /* Abstract iterators for CALL_EXPRs.  These static inline definitions
    have to go towards the end of tree.h so that union tree_node is fully
