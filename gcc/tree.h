@@ -1567,7 +1567,7 @@ struct GTY(()) tree_constructor {
    decls and constants can be shared among multiple locations, so
    return nothing.  */
 #define EXPR_LOCATION(NODE) \
-  (EXPR_P ((NODE)) ? (NODE)->exp.locus : UNKNOWN_LOCATION)
+  (CAN_HAVE_LOCATION_P ((NODE)) ? (NODE)->exp.locus : UNKNOWN_LOCATION)
 #define SET_EXPR_LOCATION(NODE, LOCUS) EXPR_CHECK ((NODE))->exp.locus = (LOCUS)
 #define EXPR_HAS_LOCATION(NODE) (EXPR_LOCATION (NODE) != UNKNOWN_LOCATION)
 #define EXPR_LOC_OR_HERE(NODE) (EXPR_HAS_LOCATION (NODE) ? (NODE)->exp.locus : input_location)
@@ -3602,9 +3602,7 @@ union GTY ((ptr_alias (union lang_tree_node),
   struct tree_target_option GTY ((tag ("TS_TARGET_OPTION"))) target_option;
 };
 
-
 #if defined ENABLE_TREE_CHECKING && (GCC_VERSION >= 2007)
-
 template <typename Tree>
 inline Tree
 tree_check (Tree __t, const char *__f, int __l, const char *__g, tree_code __c)
@@ -3748,6 +3746,18 @@ tree_class_check (Tree __t, const enum tree_code_class __class,
   return __t;
 }
 
+/* Compute the number of operands in an expression node NODE.  For
+   tcc_vl_exp nodes like CALL_EXPRs, this is stored in the node itself,
+   otherwise it is looked up from the node's code.  */
+static inline int
+tree_operand_length (const_tree node)
+{
+  if (VL_EXP_CLASS_P (node))
+    return VL_EXP_OPERAND_LENGTH (node);
+  else
+    return TREE_CODE_LENGTH (TREE_CODE (node));
+}
+
 template <typename Tree>
 inline Tree
 tree_range_check (Tree __t,
@@ -3855,7 +3865,22 @@ tree_operand_check_code (Tree __t, enum tree_code __code, int __i,
   return &__t->exp.operands[__i];
 }
 
+#else
+
+/* Compute the number of operands in an expression node NODE.  For
+   tcc_vl_exp nodes like CALL_EXPRs, this is stored in the node itself,
+   otherwise it is looked up from the node's code.  */
+static inline int
+tree_operand_length (const_tree node)
+{
+  if (VL_EXP_CLASS_P (node))
+    return VL_EXP_OPERAND_LENGTH (node);
+  else
+    return TREE_CODE_LENGTH (TREE_CODE (node));
+}
+
 #endif
+
 
 /* Standard named or nameless data types of the C compiler.  */
 
@@ -6032,18 +6057,6 @@ is_tm_safe_or_pure (const_tree x)
 /* In tree-inline.c.  */
 
 void init_inline_once (void);
-
-/* Compute the number of operands in an expression node NODE.  For
-   tcc_vl_exp nodes like CALL_EXPRs, this is stored in the node itself,
-   otherwise it is looked up from the node's code.  */
-static inline int
-tree_operand_length (const_tree node)
-{
-  if (VL_EXP_CLASS_P (node))
-    return VL_EXP_OPERAND_LENGTH (node);
-  else
-    return TREE_CODE_LENGTH (TREE_CODE (node));
-}
 
 /* Abstract iterators for CALL_EXPRs.  These static inline definitions
    have to go towards the end of tree.h so that union tree_node is fully
