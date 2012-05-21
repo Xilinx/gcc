@@ -2592,7 +2592,10 @@ rs6000_option_override_internal (bool global_init_p)
 {
   bool ret = true;
   bool have_cpu = false;
-  const char *default_cpu = OPTION_TARGET_CPU_DEFAULT;
+
+  /* The default cpu requested at configure time, if any.  */
+  const char *implicit_cpu = OPTION_TARGET_CPU_DEFAULT;
+
   int set_masks;
   int cpu_index;
   int tune_index;
@@ -2610,11 +2613,6 @@ rs6000_option_override_internal (bool global_init_p)
       && TARGET_64BIT)
     warning (0, "-malign-power is not supported for 64-bit Darwin;"
 	     " it is incompatible with the installed C and C++ libraries");
-
-  if (global_options_set.x_rs6000_spe_abi
-      && rs6000_spe_abi
-      && !TARGET_SPE_ABI)
-    error ("not configured for SPE ABI");
 
   /* Numerous experiment shows that IRA based loop pressure
      calculation works better for RTL loop invariant motion on targets
@@ -2651,7 +2649,8 @@ rs6000_option_override_internal (bool global_init_p)
   /* Process the -mcpu=<xxx> and -mtune=<xxx> argument.  If the user changed
      the cpu in a target attribute or pragma, but did not specify a tuning
      option, use the cpu for the tuning option rather than the option specified
-     with -mtune on the command line.  */
+     with -mtune on the command line.  Process a '--with-cpu' configuration
+     request as an implicit --cpu.  */
   if (rs6000_cpu_index >= 0)
     {
       cpu_index = rs6000_cpu_index;
@@ -2664,10 +2663,12 @@ rs6000_option_override_internal (bool global_init_p)
     }
   else
     {
-      if (!default_cpu)
-	default_cpu = (TARGET_POWERPC64 ? "powerpc64" : "powerpc");
+      const char *default_cpu =
+        (implicit_cpu ? implicit_cpu
+         : (TARGET_POWERPC64 ? "powerpc64" : "powerpc"));
 
       rs6000_cpu_index = cpu_index = rs6000_cpu_name_lookup (default_cpu);
+      have_cpu = implicit_cpu != 0;
     }
 
   gcc_assert (cpu_index >= 0);
@@ -2697,6 +2698,42 @@ rs6000_option_override_internal (bool global_init_p)
 
   gcc_assert (tune_index >= 0);
   rs6000_cpu = processor_target_table[tune_index].processor;
+
+  /* Pick defaults for SPE related control flags.  Do this early to make sure
+     that the TARGET_ macros are representative ASAP.  */
+  {
+    int spe_capable_cpu =
+      (rs6000_cpu == PROCESSOR_PPC8540
+       || rs6000_cpu == PROCESSOR_PPC8548);
+
+    if (!global_options_set.x_rs6000_spe_abi)
+      rs6000_spe_abi = spe_capable_cpu;
+
+    if (!global_options_set.x_rs6000_spe)
+      rs6000_spe = spe_capable_cpu;
+
+    if (!global_options_set.x_rs6000_float_gprs)
+      rs6000_float_gprs =
+        (rs6000_cpu == PROCESSOR_PPC8540 ? 1
+         : rs6000_cpu == PROCESSOR_PPC8548 ? 2
+         : 0);
+  }
+
+  if (global_options_set.x_rs6000_spe_abi
+      && rs6000_spe_abi
+      && !TARGET_SPE_ABI)
+    error ("not configured for SPE ABI");
+
+  if (global_options_set.x_rs6000_spe
+      && rs6000_spe
+      && !TARGET_SPE)
+    error ("not configured for SPE instruction set");
+
+  if (main_target_opt != NULL
+      && ((main_target_opt->x_rs6000_spe_abi != rs6000_spe_abi)
+          || (main_target_opt->x_rs6000_spe != rs6000_spe)
+          || (main_target_opt->x_rs6000_float_gprs != rs6000_float_gprs)))
+    error ("target attribute or pragma changes SPE ABI");
 
   if (rs6000_cpu == PROCESSOR_PPCE300C2 || rs6000_cpu == PROCESSOR_PPCE300C3
       || rs6000_cpu == PROCESSOR_PPCE500MC || rs6000_cpu == PROCESSOR_PPCE500MC64)
@@ -2933,35 +2970,44 @@ rs6000_option_override_internal (bool global_init_p)
   SUB3TARGET_OVERRIDE_OPTIONS;
 #endif
 
-  if (TARGET_E500 || rs6000_cpu == PROCESSOR_PPCE500MC
-      || rs6000_cpu == PROCESSOR_PPCE500MC64)
+  /* For the E500 family of cores, reset the single/double FP flags to let us
+     check that they remain constant across attributes or pragmas.  Also,
+     clear a possible request for string instructions, not supported and which
+     we might have silently queried above for -Os. 
+
+     For other families, clear ISEL in case it was set implicitly.
+  */
+
+  switch (rs6000_cpu)
     {
-      /* The e500 and e500mc do not have string instructions, and we set
-	 MASK_STRING above when optimizing for size.  */
-      if ((target_flags & MASK_STRING) != 0)
-	target_flags = target_flags & ~MASK_STRING;
-    }
-  else if (global_options_set.x_rs6000_cpu_index)
-    {
-      /* For the powerpc-eabispe configuration, we set all these by
-	 default, so let's unset them if we manually set another
-	 CPU that is not the E500.  */
-      if (main_target_opt != NULL
-	  && ((main_target_opt->x_rs6000_spe_abi != rs6000_spe_abi)
-	      || (main_target_opt->x_rs6000_spe != rs6000_spe)
-	      || (main_target_opt->x_rs6000_float_gprs != rs6000_float_gprs)))
-	error ("target attribute or pragma changes SPE ABI");
-      else
-	{
-	  if (!global_options_set.x_rs6000_spe_abi)
-	    rs6000_spe_abi = 0;
-	  if (!global_options_set.x_rs6000_spe)
-	    rs6000_spe = 0;
-	  if (!global_options_set.x_rs6000_float_gprs)
-	    rs6000_float_gprs = 0;
-	}
-      if (!(target_flags_explicit & MASK_ISEL))
+    case PROCESSOR_PPC8540:
+    case PROCESSOR_PPC8548:
+    case PROCESSOR_PPCE500MC:
+    case PROCESSOR_PPCE500MC64:
+
+      rs6000_single_float = TARGET_E500_SINGLE || TARGET_E500_DOUBLE;
+      rs6000_double_float = TARGET_E500_DOUBLE;
+
+      target_flags &= ~MASK_STRING;
+
+      break;
+
+    default:
+
+      if (have_cpu && !(target_flags_explicit & MASK_ISEL))
 	target_flags &= ~MASK_ISEL;
+
+      break;
+    }
+
+  if (main_target_opt)
+    {
+      if (main_target_opt->x_rs6000_single_float != rs6000_single_float)
+	error ("target attribute or pragma changes single precision floating "
+	       "point");
+      if (main_target_opt->x_rs6000_double_float != rs6000_double_float)
+	error ("target attribute or pragma changes double precision floating "
+	       "point");
     }
 
   /* Detect invalid option combinations with E500.  */
@@ -3188,6 +3234,7 @@ rs6000_option_override_internal (bool global_init_p)
 	break;
 
       case PROCESSOR_PPC8540:
+      case PROCESSOR_PPC8548:
 	rs6000_cost = &ppc8540_cost;
 	break;
 
@@ -3259,26 +3306,6 @@ rs6000_option_override_internal (bool global_init_p)
   if (TARGET_HARD_FLOAT && TARGET_FPRS 
       && rs6000_single_float == 0 && rs6000_double_float == 0)
     rs6000_single_float = rs6000_double_float = 1;
-
-  /* Reset single and double FP flags if target is E500. */
-  if (TARGET_E500) 
-  {
-    rs6000_single_float = rs6000_double_float = 0;
-    if (TARGET_E500_SINGLE)
-      rs6000_single_float = 1; 
-    if (TARGET_E500_DOUBLE)
-      rs6000_single_float = rs6000_double_float = 1;
-  }
-
-  if (main_target_opt)
-    {
-      if (main_target_opt->x_rs6000_single_float != rs6000_single_float)
-	error ("target attribute or pragma changes single precision floating "
-	       "point");
-      if (main_target_opt->x_rs6000_double_float != rs6000_double_float)
-	error ("target attribute or pragma changes double precision floating "
-	       "point");
-    }
 
   /* If not explicitly specified via option, decide whether to generate indexed
      load/store instructions.  */
@@ -5280,15 +5307,37 @@ constant_pool_expr_p (rtx op)
 	  && ASM_OUTPUT_SPECIAL_POOL_ENTRY_P (get_pool_constant (base), Pmode));
 }
 
-static rtx tocrel_base, tocrel_offset;
+static const_rtx tocrel_base, tocrel_offset;
+
+/* Return true if OP is a toc pointer relative address (the output
+   of create_TOC_reference).  If STRICT, do not match high part or
+   non-split -mcmodel=large/medium toc pointer relative addresses.  */
 
 bool
-toc_relative_expr_p (rtx op)
+toc_relative_expr_p (const_rtx op, bool strict)
 {
-  if (GET_CODE (op) != CONST)
+  if (!TARGET_TOC)
     return false;
 
-  split_const (op, &tocrel_base, &tocrel_offset);
+  if (TARGET_CMODEL != CMODEL_SMALL)
+    {
+      /* Only match the low part.  */
+      if (GET_CODE (op) == LO_SUM
+	  && REG_P (XEXP (op, 0))
+	  && INT_REG_OK_FOR_BASE_P (XEXP (op, 0), strict))
+	op = XEXP (op, 1);
+      else if (strict)
+	return false;
+    }
+
+  tocrel_base = op;
+  tocrel_offset = const0_rtx;
+  if (GET_CODE (op) == PLUS && CONST_INT_P (XEXP (op, 1)))
+    {
+      tocrel_base = XEXP (op, 0);
+      tocrel_offset = XEXP (op, 1);
+    }
+
   return (GET_CODE (tocrel_base) == UNSPEC
 	  && XINT (tocrel_base, 1) == UNSPEC_TOCREL);
 }
@@ -5300,14 +5349,7 @@ bool
 legitimate_constant_pool_address_p (const_rtx x, enum machine_mode mode,
 				    bool strict)
 {
-  return (TARGET_TOC
-	  && (GET_CODE (x) == PLUS || GET_CODE (x) == LO_SUM)
-	  && GET_CODE (XEXP (x, 0)) == REG
-	  && (REGNO (XEXP (x, 0)) == TOC_REGISTER
-	      || ((TARGET_MINIMAL_TOC
-		   || TARGET_CMODEL != CMODEL_SMALL)
-		  && INT_REG_OK_FOR_BASE_P (XEXP (x, 0), strict)))
-	  && toc_relative_expr_p (XEXP (x, 1))
+  return (toc_relative_expr_p (x, strict)
 	  && (TARGET_CMODEL != CMODEL_MEDIUM
 	      || constant_pool_expr_p (XVECEXP (tocrel_base, 0, 0))
 	      || mode == QImode
@@ -5687,10 +5729,7 @@ rs6000_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 	   && GET_CODE (x) == SYMBOL_REF
 	   && constant_pool_expr_p (x)
 	   && ASM_OUTPUT_SPECIAL_POOL_ENTRY_P (get_pool_constant (x), Pmode))
-    {
-      rtx reg = TARGET_CMODEL != CMODEL_SMALL ? gen_reg_rtx (Pmode) : NULL_RTX;
-      return create_TOC_reference (x, reg);
-    }
+    return create_TOC_reference (x, NULL_RTX);
   else
     return x;
 }
@@ -5773,49 +5812,55 @@ rs6000_output_dwarf_dtprel (FILE *file, int size, rtx x)
 static rtx
 rs6000_delegitimize_address (rtx orig_x)
 {
-  rtx x, y;
+  rtx x, y, offset;
 
   orig_x = delegitimize_mem_from_attrs (orig_x);
   x = orig_x;
   if (MEM_P (x))
     x = XEXP (x, 0);
 
-  if (GET_CODE (x) == (TARGET_CMODEL != CMODEL_SMALL ? LO_SUM : PLUS)
-      && GET_CODE (XEXP (x, 1)) == CONST)
-    {
-      rtx offset = NULL_RTX;
+  y = x;
+  if (TARGET_CMODEL != CMODEL_SMALL
+      && GET_CODE (y) == LO_SUM)
+    y = XEXP (y, 1);
 
-      y = XEXP (XEXP (x, 1), 0);
-      if (GET_CODE (y) == PLUS
-	  && GET_MODE (y) == Pmode
-	  && CONST_INT_P (XEXP (y, 1)))
+  offset = NULL_RTX;
+  if (GET_CODE (y) == PLUS
+      && GET_MODE (y) == Pmode
+      && CONST_INT_P (XEXP (y, 1)))
+    {
+      offset = XEXP (y, 1);
+      y = XEXP (y, 0);
+    }
+
+  if (GET_CODE (y) == UNSPEC
+      && XINT (y, 1) == UNSPEC_TOCREL)
+    {
+#ifdef ENABLE_CHECKING
+      if (REG_P (XVECEXP (y, 0, 1))
+	  && REGNO (XVECEXP (y, 0, 1)) == TOC_REGISTER)
 	{
-	  offset = XEXP (y, 1);
-	  y = XEXP (y, 0);
+	  /* All good.  */
 	}
-      if (GET_CODE (y) == UNSPEC
-          && XINT (y, 1) == UNSPEC_TOCREL
-	  && ((GET_CODE (XEXP (x, 0)) == REG
-	       && (REGNO (XEXP (x, 0)) == TOC_REGISTER
-		   || TARGET_MINIMAL_TOC
-		   || TARGET_CMODEL != CMODEL_SMALL))
-	      || (TARGET_CMODEL != CMODEL_SMALL
-		  && GET_CODE (XEXP (x, 0)) == CONST
-		  && GET_CODE (XEXP (XEXP (x, 0), 0)) == PLUS
-		  && GET_CODE (XEXP (XEXP (XEXP (x, 0), 0), 0)) == REG
-		  && REGNO (XEXP (XEXP (XEXP (x, 0), 0), 0)) == TOC_REGISTER
-		  && GET_CODE (XEXP (XEXP (XEXP (x, 0), 0), 1)) == HIGH
-		  && rtx_equal_p (XEXP (x, 1),
-				  XEXP (XEXP (XEXP (XEXP (x, 0), 0), 1), 0)))))
+      else if (GET_CODE (XVECEXP (y, 0, 1)) == DEBUG_EXPR)
 	{
-	  y = XVECEXP (y, 0, 0);
-	  if (offset != NULL_RTX)
-	    y = gen_rtx_PLUS (Pmode, y, offset);
-	  if (!MEM_P (orig_x))
-	    return y;
-	  else
-	    return replace_equiv_address_nv (orig_x, y);
+	  /* Weirdness alert.  df_note_compute can replace r2 with a
+	     debug_expr when this unspec is in a debug_insn.
+	     Seen in gcc.dg/pr51957-1.c  */
 	}
+      else
+	{
+	  debug_rtx (orig_x);
+	  abort ();
+	}
+#endif
+      y = XVECEXP (y, 0, 0);
+      if (offset != NULL_RTX)
+	y = gen_rtx_PLUS (Pmode, y, offset);
+      if (!MEM_P (orig_x))
+	return y;
+      else
+	return replace_equiv_address_nv (orig_x, y);
     }
 
   if (TARGET_MACHO
@@ -6077,9 +6122,8 @@ rs6000_tls_referenced_p (rtx x)
 static bool
 rs6000_cannot_force_const_mem (enum machine_mode mode ATTRIBUTE_UNUSED, rtx x)
 {
-  if (GET_CODE (x) == CONST
-      && GET_CODE (XEXP (x, 0)) == PLUS
-      && GET_CODE (XEXP (XEXP (x, 0), 1)) == HIGH)
+  if (GET_CODE (x) == HIGH
+      && GET_CODE (XEXP (x, 0)) == UNSPEC)
     return true;
 
   return rs6000_tls_referenced_p (x);
@@ -6092,6 +6136,21 @@ static int
 rs6000_tls_symbol_ref_1 (rtx *x, void *data ATTRIBUTE_UNUSED)
 {
   return RS6000_SYMBOL_REF_TLS_P (*x);
+}
+
+/* Return true iff the given SYMBOL_REF refers to a constant pool entry
+   that we have put in the TOC, or for cmodel=medium, if the SYMBOL_REF
+   can be addressed relative to the toc pointer.  */
+
+static bool
+use_toc_relative_ref (rtx sym)
+{
+  return ((constant_pool_expr_p (sym)
+	   && ASM_OUTPUT_SPECIAL_POOL_ENTRY_P (get_pool_constant (sym),
+					       get_pool_mode (sym)))
+	  || (TARGET_CMODEL == CMODEL_MEDIUM
+	      && !CONSTANT_POOL_ADDRESS_P (sym)
+	      && SYMBOL_REF_LOCAL_P (sym)));
 }
 
 /* Our implementation of LEGITIMIZE_RELOAD_ADDRESS.  Returns a value to
@@ -6131,7 +6190,7 @@ rs6000_legitimize_reload_address (rtx x, enum machine_mode mode,
     {
       push_reload (XEXP (x, 0), NULL_RTX, &XEXP (x, 0), NULL,
 		   BASE_REG_CLASS, GET_MODE (x), VOIDmode, 0, 0,
-		   opnum, (enum reload_type)type);
+		   opnum, (enum reload_type) type);
       *win = 1;
       return x;
     }
@@ -6142,7 +6201,7 @@ rs6000_legitimize_reload_address (rtx x, enum machine_mode mode,
     {
       push_reload (XEXP (x, 0), NULL_RTX, &XEXP (x, 0), NULL,
 		   BASE_REG_CLASS, Pmode, VOIDmode, 0, 0,
-		   opnum, (enum reload_type)type);
+		   opnum, (enum reload_type) type);
       *win = 1;
       return x;
     }
@@ -6160,24 +6219,18 @@ rs6000_legitimize_reload_address (rtx x, enum machine_mode mode,
 	 floating point constant.  */
       push_reload (XEXP (x, 0), NULL_RTX, &XEXP (x, 0), NULL,
 		   BASE_REG_CLASS, Pmode, VOIDmode, 0, 0,
-		   opnum, (enum reload_type)type);
+		   opnum, (enum reload_type) type);
       *win = 1;
       return x;
     }
 #endif
 
   if (TARGET_CMODEL != CMODEL_SMALL
-      && GET_CODE (x) == LO_SUM
-      && GET_CODE (XEXP (x, 0)) == PLUS
-      && GET_CODE (XEXP (XEXP (x, 0), 0)) == REG
-      && REGNO (XEXP (XEXP (x, 0), 0)) == TOC_REGISTER
-      && GET_CODE (XEXP (XEXP (x, 0), 1)) == CONST
-      && GET_CODE (XEXP (XEXP (XEXP (x, 0), 1), 0)) == HIGH
-      && GET_CODE (XEXP (x, 1)) == CONST
-      && GET_CODE (XEXP (XEXP (x, 1), 0)) == UNSPEC
-      && XINT (XEXP (XEXP (x, 1), 0), 1) == UNSPEC_TOCREL
-      && rtx_equal_p (XEXP (XEXP (XEXP (XEXP (x, 0), 1), 0), 0), XEXP (x, 1)))
+      && reg_offset_p
+      && small_toc_ref (x, VOIDmode))
     {
+      rtx hi = gen_rtx_HIGH (Pmode, copy_rtx (x));
+      x = gen_rtx_LO_SUM (Pmode, hi, x);
       push_reload (XEXP (x, 0), NULL_RTX, &XEXP (x, 0), NULL,
 		   BASE_REG_CLASS, Pmode, VOIDmode, 0, 0,
 		   opnum, (enum reload_type) type);
@@ -6240,7 +6293,7 @@ rs6000_legitimize_reload_address (rtx x, enum machine_mode mode,
 
       push_reload (XEXP (x, 0), NULL_RTX, &XEXP (x, 0), NULL,
 		   BASE_REG_CLASS, GET_MODE (x), VOIDmode, 0, 0,
-		   opnum, (enum reload_type)type);
+		   opnum, (enum reload_type) type);
       *win = 1;
       return x;
     }
@@ -6281,7 +6334,7 @@ rs6000_legitimize_reload_address (rtx x, enum machine_mode mode,
 
       push_reload (XEXP (x, 0), NULL_RTX, &XEXP (x, 0), NULL,
 		   BASE_REG_CLASS, Pmode, VOIDmode, 0, 0,
-		   opnum, (enum reload_type)type);
+		   opnum, (enum reload_type) type);
       *win = 1;
       return x;
     }
@@ -6308,8 +6361,7 @@ rs6000_legitimize_reload_address (rtx x, enum machine_mode mode,
   if (TARGET_TOC
       && reg_offset_p
       && GET_CODE (x) == SYMBOL_REF
-      && constant_pool_expr_p (x)
-      && ASM_OUTPUT_SPECIAL_POOL_ENTRY_P (get_pool_constant (x), mode))
+      && use_toc_relative_ref (x))
     {
       x = create_TOC_reference (x, NULL_RTX);
       if (TARGET_CMODEL != CMODEL_SMALL)
@@ -6544,9 +6596,13 @@ rs6000_debug_mode_dependent_address (const_rtx addr)
 rtx
 rs6000_find_base_term (rtx op)
 {
-  rtx base, offset;
+  rtx base;
 
-  split_const (op, &base, &offset);
+  base = op;
+  if (GET_CODE (base) == CONST)
+    base = XEXP (base, 0);
+  if (GET_CODE (base) == PLUS)
+    base = XEXP (base, 0);
   if (GET_CODE (base) == UNSPEC)
     switch (XINT (base, 1))
       {
@@ -7198,33 +7254,13 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
       /* If this is a SYMBOL_REF that refers to a constant pool entry,
 	 and we have put it in the TOC, we just need to make a TOC-relative
 	 reference to it.  */
-      if ((TARGET_TOC
-	   && GET_CODE (operands[1]) == SYMBOL_REF
-	   && constant_pool_expr_p (operands[1])
-	   && ASM_OUTPUT_SPECIAL_POOL_ENTRY_P (get_pool_constant (operands[1]),
-					       get_pool_mode (operands[1])))
-	  || (TARGET_CMODEL == CMODEL_MEDIUM
-	      && GET_CODE (operands[1]) == SYMBOL_REF
-	      && !CONSTANT_POOL_ADDRESS_P (operands[1])
-	      && SYMBOL_REF_LOCAL_P (operands[1])))
-	{
-	  rtx reg = NULL_RTX;
-	  if (TARGET_CMODEL != CMODEL_SMALL)
-	    {
-	      if (can_create_pseudo_p ())
-		reg = gen_reg_rtx (Pmode);
-	      else
-		reg = operands[0];
-	    }
-	  operands[1] = create_TOC_reference (operands[1], reg);
-	}
+      if (TARGET_TOC
+	  && GET_CODE (operands[1]) == SYMBOL_REF
+	  && use_toc_relative_ref (operands[1]))
+	operands[1] = create_TOC_reference (operands[1], operands[0]);
       else if (mode == Pmode
 	       && CONSTANT_P (operands[1])
 	       && GET_CODE (operands[1]) != HIGH
-	       && !(TARGET_CMODEL != CMODEL_SMALL
-		    && GET_CODE (operands[1]) == CONST
-		    && GET_CODE (XEXP (operands[1], 0)) == PLUS
-		    && GET_CODE (XEXP (XEXP (operands[1], 0), 1)) == HIGH)
 	       && ((GET_CODE (operands[1]) != CONST_INT
 		    && ! easy_fp_constant (operands[1], mode))
 		   || (GET_CODE (operands[1]) == CONST_INT
@@ -7232,9 +7268,7 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
 			   > (TARGET_CMODEL != CMODEL_SMALL ? 3 : 2)))
 		   || (GET_CODE (operands[0]) == REG
 		       && FP_REGNO_P (REGNO (operands[0]))))
-	       && ! legitimate_constant_pool_address_p (operands[1], mode,
-							false)
-	       && ! toc_relative_expr_p (operands[1])
+	       && !toc_relative_expr_p (operands[1], false)
 	       && (TARGET_CMODEL == CMODEL_SMALL
 		   || can_create_pseudo_p ()
 		   || (REG_P (operands[0])
@@ -7284,16 +7318,8 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
 			get_pool_constant (XEXP (operands[1], 0)),
 			get_pool_mode (XEXP (operands[1], 0))))
 	    {
-	      rtx tocref;
-	      rtx reg = NULL_RTX;
-	      if (TARGET_CMODEL != CMODEL_SMALL)
-		{
-		  if (can_create_pseudo_p ())
-		    reg = gen_reg_rtx (Pmode);
-		  else
-		    reg = operands[0];
-		}
-	      tocref = create_TOC_reference (XEXP (operands[1], 0), reg);
+	      rtx tocref = create_TOC_reference (XEXP (operands[1], 0),
+						 operands[0]);
 	      operands[1] = gen_const_mem (mode, tocref);
 	      set_mem_alias_set (operands[1], get_TOC_alias_set ());
 	    }
@@ -14652,7 +14678,6 @@ void
 print_operand (FILE *file, rtx x, int code)
 {
   int i;
-  HOST_WIDE_INT val;
   unsigned HOST_WIDE_INT uval;
 
   switch (code)
@@ -14704,7 +14729,7 @@ print_operand (FILE *file, rtx x, int code)
 
     case 'D':
       /* Like 'J' but get to the GT bit only.  */
-      gcc_assert (GET_CODE (x) == REG);
+      gcc_assert (REG_P (x));
 
       /* Bit 1 is GT bit.  */
       i = 4 * (REGNO (x) - CR0_REGNO) + 1;
@@ -14824,9 +14849,9 @@ print_operand (FILE *file, rtx x, int code)
     case 'L':
       /* Write second word of DImode or DFmode reference.  Works on register
 	 or non-indexed memory only.  */
-      if (GET_CODE (x) == REG)
+      if (REG_P (x))
 	fputs (reg_names[REGNO (x) + 1], file);
-      else if (GET_CODE (x) == MEM)
+      else if (MEM_P (x))
 	{
 	  /* Handle possible auto-increment.  Since it is pre-increment and
 	     we have already done it, we can just use an offset of word.  */
@@ -14995,7 +15020,7 @@ print_operand (FILE *file, rtx x, int code)
 
     case 't':
       /* Like 'J' but get to the OVERFLOW/UNORDERED bit.  */
-      gcc_assert (GET_CODE (x) == REG && GET_MODE (x) == CCmode);
+      gcc_assert (REG_P (x) && GET_MODE (x) == CCmode);
 
       /* Bit 3 is OV bit.  */
       i = 4 * (REGNO (x) - CR0_REGNO) + 3;
@@ -15035,7 +15060,7 @@ print_operand (FILE *file, rtx x, int code)
 
     case 'U':
       /* Print `u' if this has an auto-increment or auto-decrement.  */
-      if (GET_CODE (x) == MEM
+      if (MEM_P (x)
 	  && (GET_CODE (XEXP (x, 0)) == PRE_INC
 	      || GET_CODE (XEXP (x, 0)) == PRE_DEC
 	      || GET_CODE (XEXP (x, 0)) == PRE_MODIFY))
@@ -15093,34 +15118,17 @@ print_operand (FILE *file, rtx x, int code)
 
     case 'W':
       /* MB value for a PowerPC64 rldic operand.  */
-      val = (GET_CODE (x) == CONST_INT
-	     ? INTVAL (x) : CONST_DOUBLE_HIGH (x));
-
-      if (val < 0)
-	i = -1;
-      else
-	for (i = 0; i < HOST_BITS_PER_WIDE_INT; i++)
-	  if ((val <<= 1) < 0)
-	    break;
+      i = clz_hwi (GET_CODE (x) == CONST_INT
+		   ? INTVAL (x) : CONST_DOUBLE_HIGH (x));
 
 #if HOST_BITS_PER_WIDE_INT == 32
-      if (GET_CODE (x) == CONST_INT && i >= 0)
+      if (GET_CODE (x) == CONST_INT && i > 0)
 	i += 32;  /* zero-extend high-part was all 0's */
       else if (GET_CODE (x) == CONST_DOUBLE && i == 32)
-	{
-	  val = CONST_DOUBLE_LOW (x);
-
-	  gcc_assert (val);
-	  if (val < 0)
-	    --i;
-	  else
-	    for ( ; i < 64; i++)
-	      if ((val <<= 1) < 0)
-		break;
-	}
+	i = clz_hwi (CONST_DOUBLE_LOW (x)) + 32;
 #endif
 
-      fprintf (file, "%d", i + 1);
+      fprintf (file, "%d", i);
       return;
 
     case 'x':
@@ -15144,7 +15152,7 @@ print_operand (FILE *file, rtx x, int code)
       return;
 
     case 'X':
-      if (GET_CODE (x) == MEM
+      if (MEM_P (x)
 	  && (legitimate_indexed_address_p (XEXP (x, 0), 0)
 	      || (GET_CODE (XEXP (x, 0)) == PRE_MODIFY
 		  && legitimate_indexed_address_p (XEXP (XEXP (x, 0), 1), 0))))
@@ -15153,9 +15161,9 @@ print_operand (FILE *file, rtx x, int code)
 
     case 'Y':
       /* Like 'L', for third word of TImode  */
-      if (GET_CODE (x) == REG)
+      if (REG_P (x))
 	fputs (reg_names[REGNO (x) + 2], file);
-      else if (GET_CODE (x) == MEM)
+      else if (MEM_P (x))
 	{
 	  if (GET_CODE (XEXP (x, 0)) == PRE_INC
 	      || GET_CODE (XEXP (x, 0)) == PRE_DEC)
@@ -15203,9 +15211,9 @@ print_operand (FILE *file, rtx x, int code)
 
     case 'Z':
       /* Like 'L', for last word of TImode.  */
-      if (GET_CODE (x) == REG)
+      if (REG_P (x))
 	fputs (reg_names[REGNO (x) + 3], file);
-      else if (GET_CODE (x) == MEM)
+      else if (MEM_P (x))
 	{
 	  if (GET_CODE (XEXP (x, 0)) == PRE_INC
 	      || GET_CODE (XEXP (x, 0)) == PRE_DEC)
@@ -15225,7 +15233,7 @@ print_operand (FILE *file, rtx x, int code)
       {
 	rtx tmp;
 
-	gcc_assert (GET_CODE (x) == MEM);
+	gcc_assert (MEM_P (x));
 
 	tmp = XEXP (x, 0);
 
@@ -15236,7 +15244,7 @@ print_operand (FILE *file, rtx x, int code)
 		|| GET_MODE (x) == TImode))
 	  {
 	    /* Handle [reg].  */
-	    if (GET_CODE (tmp) == REG)
+	    if (REG_P (tmp))
 	      {
 		fprintf (file, "0(%s)", reg_names[REGNO (tmp)]);
 		break;
@@ -15247,7 +15255,7 @@ print_operand (FILE *file, rtx x, int code)
 	      {
 		int x;
 
-		gcc_assert (GET_CODE (XEXP (tmp, 0)) == REG);
+		gcc_assert (REG_P (XEXP (tmp, 0)));
 
 		x = INTVAL (XEXP (tmp, 1));
 		fprintf (file, "%d(%s)", x, reg_names[REGNO (XEXP (tmp, 0))]);
@@ -15264,7 +15272,7 @@ print_operand (FILE *file, rtx x, int code)
 	else if (VECTOR_MEM_VSX_P (GET_MODE (x))
 		 && GET_CODE (tmp) == PRE_MODIFY)
 	  tmp = XEXP (tmp, 1);
-	if (GET_CODE (tmp) == REG)
+	if (REG_P (tmp))
 	  fprintf (file, "0,%s", reg_names[REGNO (tmp)]);
 	else
 	  {
@@ -15287,9 +15295,9 @@ print_operand (FILE *file, rtx x, int code)
       }
 
     case 0:
-      if (GET_CODE (x) == REG)
+      if (REG_P (x))
 	fprintf (file, "%s", reg_names[REGNO (x)]);
-      else if (GET_CODE (x) == MEM)
+      else if (MEM_P (x))
 	{
 	  /* We need to handle PRE_INC and PRE_DEC here, since we need to
 	     know the width from the mode.  */
@@ -15306,14 +15314,14 @@ print_operand (FILE *file, rtx x, int code)
 	}
       else
 	{
-	  if (toc_relative_expr_p (x))
+	  if (toc_relative_expr_p (x, false))
 	    /* This hack along with a corresponding hack in
 	       rs6000_output_addr_const_extra arranges to output addends
 	       where the assembler expects to find them.  eg.
-	       (const (plus (unspec [symbol_ref ("x") tocrel]) 4))
+	       (plus (unspec [(symbol_ref ("x")) (reg 2)] tocrel) 4)
 	       without this hack would be output as "x@toc+4".  We
 	       want "x+4@toc".  */
-	    output_addr_const (file, tocrel_base);
+	    output_addr_const (file, CONST_CAST_RTX (tocrel_base));
 	  else
 	    output_addr_const (file, x);
 	}
@@ -15333,7 +15341,7 @@ print_operand (FILE *file, rtx x, int code)
 void
 print_operand_address (FILE *file, rtx x)
 {
-  if (GET_CODE (x) == REG)
+  if (REG_P (x))
     fprintf (file, "0(%s)", reg_names[ REGNO (x) ]);
   else if (GET_CODE (x) == SYMBOL_REF || GET_CODE (x) == CONST
 	   || GET_CODE (x) == LABEL_REF)
@@ -15345,9 +15353,9 @@ print_operand_address (FILE *file, rtx x)
       else
 	gcc_assert (!TARGET_TOC);
     }
-  else if (GET_CODE (x) == PLUS && GET_CODE (XEXP (x, 1)) == REG)
+  else if (GET_CODE (x) == PLUS && REG_P (XEXP (x, 0))
+	   && REG_P (XEXP (x, 1)))
     {
-      gcc_assert (REG_P (XEXP (x, 0)));
       if (REGNO (XEXP (x, 0)) == 0)
 	fprintf (file, "%s,%s", reg_names[ REGNO (XEXP (x, 1)) ],
 		 reg_names[ REGNO (XEXP (x, 0)) ]);
@@ -15355,11 +15363,12 @@ print_operand_address (FILE *file, rtx x)
 	fprintf (file, "%s,%s", reg_names[ REGNO (XEXP (x, 0)) ],
 		 reg_names[ REGNO (XEXP (x, 1)) ]);
     }
-  else if (GET_CODE (x) == PLUS && GET_CODE (XEXP (x, 1)) == CONST_INT)
+  else if (GET_CODE (x) == PLUS && REG_P (XEXP (x, 0))
+	   && GET_CODE (XEXP (x, 1)) == CONST_INT)
     fprintf (file, HOST_WIDE_INT_PRINT_DEC "(%s)",
 	     INTVAL (XEXP (x, 1)), reg_names[ REGNO (XEXP (x, 0)) ]);
 #if TARGET_MACHO
-  else if (GET_CODE (x) == LO_SUM && GET_CODE (XEXP (x, 0)) == REG
+  else if (GET_CODE (x) == LO_SUM && REG_P (XEXP (x, 0))
 	   && CONSTANT_P (XEXP (x, 1)))
     {
       fprintf (file, "lo16(");
@@ -15367,29 +15376,29 @@ print_operand_address (FILE *file, rtx x)
       fprintf (file, ")(%s)", reg_names[ REGNO (XEXP (x, 0)) ]);
     }
 #endif
-  else if (legitimate_constant_pool_address_p (x, QImode, true))
-    {
-      /* This hack along with a corresponding hack in
-	 rs6000_output_addr_const_extra arranges to output addends
-	 where the assembler expects to find them.  eg.
-	 (lo_sum (reg 9)
-	 .       (const (plus (unspec [symbol_ref ("x") tocrel]) 8)))
-	 without this hack would be output as "x@toc+8@l(9)".  We
-	 want "x+8@toc@l(9)".  */
-      output_addr_const (file, tocrel_base);
-      if (GET_CODE (x) == LO_SUM)
-	fprintf (file, "@l(%s)", reg_names[ REGNO (XEXP (x, 0)) ]);
-      else
-	fprintf (file, "(%s)", reg_names[REGNO (XEXP (x, 0))]);
-    }
 #if TARGET_ELF
-  else if (GET_CODE (x) == LO_SUM && GET_CODE (XEXP (x, 0)) == REG
+  else if (GET_CODE (x) == LO_SUM && REG_P (XEXP (x, 0))
 	   && CONSTANT_P (XEXP (x, 1)))
     {
       output_addr_const (file, XEXP (x, 1));
       fprintf (file, "@l(%s)", reg_names[ REGNO (XEXP (x, 0)) ]);
     }
 #endif
+  else if (toc_relative_expr_p (x, false))
+    {
+      /* This hack along with a corresponding hack in
+	 rs6000_output_addr_const_extra arranges to output addends
+	 where the assembler expects to find them.  eg.
+	 (lo_sum (reg 9)
+	 .       (plus (unspec [(symbol_ref ("x")) (reg 2)] tocrel) 8))
+	 without this hack would be output as "x@toc+8@l(9)".  We
+	 want "x+8@toc@l(9)".  */
+      output_addr_const (file, CONST_CAST_RTX (tocrel_base));
+      if (GET_CODE (x) == LO_SUM)
+	fprintf (file, "@l(%s)", reg_names[REGNO (XEXP (x, 0))]);
+      else
+	fprintf (file, "(%s)", reg_names[REGNO (XVECEXP (tocrel_base, 0, 1))]);
+    }
   else
     gcc_unreachable ();
 }
@@ -15403,13 +15412,15 @@ rs6000_output_addr_const_extra (FILE *file, rtx x)
     switch (XINT (x, 1))
       {
       case UNSPEC_TOCREL:
-	gcc_assert (GET_CODE (XVECEXP (x, 0, 0)) == SYMBOL_REF);
+	gcc_checking_assert (GET_CODE (XVECEXP (x, 0, 0)) == SYMBOL_REF
+			     && REG_P (XVECEXP (x, 0, 1))
+			     && REGNO (XVECEXP (x, 0, 1)) == TOC_REGISTER);
 	output_addr_const (file, XVECEXP (x, 0, 0));
 	if (x == tocrel_base && tocrel_offset != const0_rtx)
 	  {
 	    if (INTVAL (tocrel_offset) >= 0)
 	      fprintf (file, "+");
-	    output_addr_const (file, tocrel_offset);
+	    output_addr_const (file, CONST_CAST_RTX (tocrel_offset));
 	  }
 	if (!TARGET_AIX || (TARGET_ELF && TARGET_MINIMAL_TOC))
 	  {
@@ -18492,7 +18503,7 @@ uses_TOC (void)
 rtx
 create_TOC_reference (rtx symbol, rtx largetoc_reg)
 {
-  rtx tocrel, tocreg;
+  rtx tocrel, tocreg, hi;
 
   if (TARGET_DEBUG_ADDR)
     {
@@ -18510,24 +18521,18 @@ create_TOC_reference (rtx symbol, rtx largetoc_reg)
   if (!can_create_pseudo_p ())
     df_set_regs_ever_live (TOC_REGISTER, true);
 
-  tocrel = gen_rtx_CONST (Pmode,
-			  gen_rtx_UNSPEC (Pmode, gen_rtvec (1, symbol),
-					  UNSPEC_TOCREL));
   tocreg = gen_rtx_REG (Pmode, TOC_REGISTER);
-  if (TARGET_CMODEL != CMODEL_SMALL)
+  tocrel = gen_rtx_UNSPEC (Pmode, gen_rtvec (2, symbol, tocreg), UNSPEC_TOCREL);
+  if (TARGET_CMODEL == CMODEL_SMALL || can_create_pseudo_p ())
+    return tocrel;
+
+  hi = gen_rtx_HIGH (Pmode, copy_rtx (tocrel));
+  if (largetoc_reg != NULL)
     {
-      rtx hi = gen_rtx_CONST (Pmode,
-			      gen_rtx_PLUS (Pmode, tocreg, 
-					    gen_rtx_HIGH (Pmode, tocrel)));
-      if (largetoc_reg != NULL)
-	{
-	  emit_move_insn (largetoc_reg, hi);
-	  hi = largetoc_reg;
-	}
-      return gen_rtx_LO_SUM (Pmode, hi, copy_rtx (tocrel));
+      emit_move_insn (largetoc_reg, hi);
+      hi = largetoc_reg;
     }
-  else
-    return gen_rtx_PLUS (Pmode, tocreg, tocrel);
+  return gen_rtx_LO_SUM (Pmode, hi, tocrel);
 }
 
 /* Issue assembly directives that create a reference to the given DWARF
@@ -23126,6 +23131,7 @@ rs6000_issue_rate (void)
   case CPU_PPC750:
   case CPU_PPC7400:
   case CPU_PPC8540:
+  case CPU_PPC8548:
   case CPU_CELL:
   case CPU_PPCE300C2:
   case CPU_PPCE300C3:
@@ -23156,11 +23162,18 @@ rs6000_issue_rate (void)
 static int
 rs6000_use_sched_lookahead (void)
 {
-  if (rs6000_cpu_attr == CPU_PPC8540)
-    return 4;
-  if (rs6000_cpu_attr == CPU_CELL)
-    return (reload_completed ? 8 : 0);
-  return 0;
+  switch (rs6000_cpu_attr)
+    {
+    case CPU_PPC8540:
+    case CPU_PPC8548:
+      return 4;
+
+    case CPU_CELL:
+      return (reload_completed ? 8 : 0);
+
+    default:
+      return 0;
+    }
 }
 
 /* We are choosing insn from the ready queue.  Return nonzero if INSN can be chosen.  */

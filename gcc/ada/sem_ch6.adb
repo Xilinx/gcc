@@ -6072,7 +6072,6 @@ package body Sem_Ch6 is
 
    begin
       while Present (Old_Discr) and then Present (New_Discr) loop
-
          New_Discr_Id := Defining_Identifier (New_Discr);
 
          --  The subtype mark of the discriminant on the full type has not
@@ -8934,7 +8933,7 @@ package body Sem_Ch6 is
         or else not Is_Dispatching_Operation (Prim)
         or else Scope (Prim) /= Scope (Tagged_Type)
         or else No (Typ)
-        or else Base_Type (Typ) /= Tagged_Type
+        or else Base_Type (Typ) /= Base_Type (Tagged_Type)
         or else not Primitive_Names_Match (Iface_Prim, Prim)
       then
          return False;

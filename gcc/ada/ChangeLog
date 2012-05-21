@@ -1,3 +1,176 @@
+2012-05-20  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/utils.c (gnat_write_global_declarations): Put a name
+	on the dummy global variable.
+
+2012-05-19  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (Has_Thiscall_Convention): New macro.
+	(gnat_to_gnu_entity) <E_Subprogram_Type>: Test it to set the thiscall
+	calling convention
+	(get_minimal_subprog_decl): Likewise.
+	(gnat_first_param_is_class): New predicate.
+
+	* gcc-interface/misc.c (gnat_handle_option): Fix formatting.
+	* gcc-interface/Makefile.in: Likewise.
+
+2012-05-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_entity) <object>: For an object at
+	global level with unconstrained nominal subtype and a non-fixed size,
+	make a variable for the size.
+
+2012-05-15  Andris Pavenis  <andris.pavenis@iki.fi>
+
+	PR ada/52494
+	* s-taprop-dummy.adb (Specific): New package.
+
+2012-05-15  Olivier Hainque  <hainque@adacore.com>
+
+	* gcc-interface/Make-lang.in (COMMON_FLAGS_TO_PASS): Use WARN_CFLAGS
+	instead of trying to mimic it.
+
+2012-05-15  Robert Dewar  <dewar@adacore.com>
+
+	* sem_ch5.adb, sem_util.adb, s-stposu.adb, exp_ch4.adb: Minor
+	reformatting.
+
+2012-05-15  Geert Bosch  <bosch@adacore.com>
+
+	* uintp.adb (UI_Rem): Remove optimizations, as they are complex and are
+	not needed.
+	(Sum_Digits): Remove, no longer used.
+	(Sum_Double_Digits): Likewise.
+
+2012-05-15  Yannick Moy  <moy@adacore.com>
+
+	* aspects.ads: Minor typo.
+
+2012-05-15  Thomas Quinot  <quinot@adacore.com>
+
+	* gnat_rm.texi (Scalar_Storage_Order): Fix RM reference.
+	* sem_ch13.adb: Minor comment fix: incorrect RM reference.
+
+2012-05-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* sem_prag.adb (Process_Atomic_Shared_Volatile): Propagate
+	atomicity from an object to its underlying type only if it
+	is composite.
+
+2012-05-15  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch5.adb (Analyze_Iterator_Specification): Set kind of
+	loop variable after pre-analysis of iterator name, to prevent
+	premature usage of loop variable.
+
+2012-05-15  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_util.adb (Is_Variable): In Ada 2012, an explicit
+	dereference that is a rewriting of an expression whose type has
+	a declared Implicit_Derenference aspect is a variable.
+
+2012-05-15  Hristian Kirtchev  <kirtchev@adacore.com>
+
+	* exp_ch4.adb (Insert_Dereference_Action): Reimplemented. The
+	routine performs address and size adjustments for dereferences
+	of heap-allocated controlled objects. This manipulation is needed
+	in order to restore the original state of the memory at the time
+	it was allocated by the finalization machinery.
+	* rtsfind.ads: Add RE_Adjust_Controlled_Dereference to tables
+	RE_Id and RE_Unit_Table.
+	* sinfo.adb (Has_Dereference_Action): New routine.
+	(Set_Has_Dereference_Action): New routine.
+	* sinfo.ads: Add new semantic flag Has_Dereference_Action along
+	its association in nodes.
+	(Has_Dereference_Action): New routine and pragma Inline.
+	(Set_Has_Dereference_Action): New routine and pragma Inline.
+	* s-stposu.ads, s-stposu.adb (Adjust_Controlled_Dereference): New
+	routine.
+
+2012-05-15  Thomas Quinot  <quinot@adacore.com>
+
+	* uintp.adb (Image_Uint): Use UI_Div_Rem to get quotient and
+	remainder of U / Base in a single operation.
+
+2012-05-15  Robert Dewar  <dewar@adacore.com>
+
+	* exp_ch5.adb, inline.adb, sem_ch10.adb, prj.ads, sem_util.adb,
+	a-ngelfu.ads, exp_ch4.adb, exp_ch6.adb, aspects.ads, sem_ch6.adb,
+	vms_data.ads, exp_ch3.adb, prj-env.adb: Minor reformatting.
+
+2012-05-15  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_ch4.adb (Has_Inferable_Discriminants): For a qualified
+	expression, use correct node for test on the subtype denoted by
+	the subtype mark.
+
+2012-05-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* inline.adb (Scope_In_Main_Unit): Rename into...
+	(In_Main_Unit_Or_Subunit): ...this.  Also return
+	true if the subprogram is within a subunit of the
+	main unit.
+	(Add_Inlined_Body): Adjust for above renaming.
+	(Add_Inlined_Subprogram): Likewise.  Pass the subprogram directly.
+	(Analyze_Inlined_Bodies): Really set aside inlined subprograms
+	not handled by Add_Inlined_Body.
+
+2012-05-15  Ed Schonberg  <schonberg@adacore.com>
+
+	* sem_ch10.adb (Expand_With_Clause): In the context of a generic
+	package declaration, a private with-clause on a child unit implies
+	that the implicit with clauses on its parents are private as well.
+
+2012-05-15  Javier Miranda  <miranda@adacore.com>
+
+	* sem_ch6.adb (Is_Interface_Conformant): Add missing call to
+	Base_Type to handle subtypes.
+	* exp_ch6.adb (Expand_Call): For calls located in thunks handle
+	unchecked conversions of access types found in actuals.
+	* exp_disp.adb (Expand_Interface_Thunk): Add missing unchecked
+	conversion to actuals whose type is an access type. Done to
+	avoid reporting spurious errors.
+
+2012-05-15  Vincent Celier  <celier@adacore.com>
+
+	* prj-env.adb (Create_Mapping): Ignore sources that are
+	suppressed (Create_Mapping_File.Process): Ditto
+	* prj-nmsc.adb (Add_Source): Update to take into
+	account suppressed files that may hide inherited sources.
+	(Mark_Excluded_Sources): Mark excluded sources of the current
+	project as suppressed.
+	* prj.ads (Source_Data): New Boolean component Suppressed,
+	defaulted to False
+
+2012-05-15  Thomas Quinot  <quinot@adacore.com>
+
+	* exp_intr.adb: Minor reformatting.
+
+2012-05-15  Thomas Quinot  <quinot@adacore.com>
+
+	* gnat_rm.texi: Document attribute Scalar_Storage_Order.
+
+2012-05-15  Javier Miranda  <miranda@adacore.com>
+
+	* exp_ch3.adb (Build_Offset_To_Top): Modify the
+	expansion of the offset_to_top functions to ensure that their
+	profile is conformant with the profile specified in Ada.Tags. No
+	change in functionality.
+
+2012-05-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* inline.adb (Subp_Info): Remove Count and Next_Nopred
+	components, add Processed component and move around Next component.
+	(Add_Call): Reverse meaning of Successors table to the natural one.
+	(Add_Inlined_Body): Do not inline a package if it is in the main unit.
+	(Add_Inlined_Subprogram): Do not add the subprogram to the list if the
+	package is in the main unit. Do not recurse on the successors.
+	(Add_Subp): Adjust to new contents of Subp_Info.
+	(Analyze_Inlined_Bodies): Do not attempt
+	to compute a topological order on the list of inlined subprograms,
+	but compute the transitive closure from the main unit instead.
+	(Get_Code_Unit_Entity): Always return the spec for a package.
+
 2012-05-15  Yannick Moy  <moy@adacore.com>
 
 	* aspects.ads: Minor addition of comments to provide info on

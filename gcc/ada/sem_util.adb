@@ -3172,12 +3172,13 @@ package body Sem_Util is
    function Enclosing_Lib_Unit_Entity
       (E : Entity_Id := Current_Scope) return Entity_Id
    is
-      Unit_Entity : Entity_Id := E;
+      Unit_Entity : Entity_Id;
 
    begin
       --  Look for enclosing library unit entity by following scope links.
       --  Equivalent to, but faster than indexing through the scope stack.
 
+      Unit_Entity := E;
       while (Present (Scope (Unit_Entity))
         and then Scope (Unit_Entity) /= Standard_Standard)
         and not Is_Child_Unit (Unit_Entity)
@@ -8672,6 +8673,16 @@ package body Sem_Util is
              and then not Is_Access_Constant (Etype (Prefix (N))))
            or else
              Is_Variable_Prefix (Original_Node (Prefix (N)));
+
+      --  in Ada 2012, the dereference may have been added for a type with
+      --  a declared implicit dereference aspect.
+
+      elsif Nkind (N) = N_Explicit_Dereference
+        and then Present (Etype (Orig_Node))
+        and then  Ada_Version >= Ada_2012
+        and then Has_Implicit_Dereference (Etype (Orig_Node))
+      then
+         return True;
 
       --  A function call is never a variable
 
