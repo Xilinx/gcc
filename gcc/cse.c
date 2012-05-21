@@ -3786,8 +3786,12 @@ equiv_constant (rtx x)
 	    }
 	}
 
-      /* Otherwise see if we already have a constant for the inner REG.  */
+      /* Otherwise see if we already have a constant for the inner REG,
+	 and if that is enough to calculate an equivalent constant for
+	 the subreg.  Note that the upper bits of paradoxical subregs
+	 are undefined, so they cannot be said to equal anything.  */
       if (REG_P (SUBREG_REG (x))
+	  && GET_MODE_SIZE (mode) <= GET_MODE_SIZE (imode)
 	  && (new_rtx = equiv_constant (SUBREG_REG (x))) != 0)
         return simplify_subreg (mode, new_rtx, imode, SUBREG_BYTE (x));
 
@@ -4312,7 +4316,8 @@ canonicalize_insn (rtx insn, struct set **psets, int n_sets)
   if (CALL_P (insn))
     {
       for (tem = CALL_INSN_FUNCTION_USAGE (insn); tem; tem = XEXP (tem, 1))
-	XEXP (tem, 0) = canon_reg (XEXP (tem, 0), insn);
+	if (GET_CODE (XEXP (tem, 0)) != SET)
+	  XEXP (tem, 0) = canon_reg (XEXP (tem, 0), insn);
     }
 
   if (GET_CODE (x) == SET && GET_CODE (SET_SRC (x)) == CALL)

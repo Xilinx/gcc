@@ -4033,9 +4033,13 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	    else
 	      align = TYPE_ALIGN (type);
 
+	    /* Do a block move either if the size is so small as to make
+	       each individual move a sub-unit move on average, or if it
+	       is so large as to make individual moves inefficient.  */
 	    if (size > 0
 		&& num_nonzero_elements > 1
-		&& !can_move_by_pieces (size, align))
+		&& (size < num_nonzero_elements
+		    || !can_move_by_pieces (size, align)))
 	      {
 		if (notify_temp_creation)
 		  return GS_ERROR;
@@ -7947,19 +7951,7 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	 TMP.  First, make sure that the expression has a type so that
 	 it can be assigned into a temporary.  */
       gcc_assert (!VOID_TYPE_P (TREE_TYPE (*expr_p)));
-
-      if (!gimple_seq_empty_p (internal_post) || (fallback & fb_lvalue))
-	/* The postqueue might change the value of the expression between
-	   the initialization and use of the temporary, so we can't use a
-	   formal temp.  FIXME do we care?  */
-	{
-	  *expr_p = get_initialized_tmp_var (*expr_p, pre_p, post_p);
-	  if (TREE_CODE (TREE_TYPE (*expr_p)) == COMPLEX_TYPE
-	      || TREE_CODE (TREE_TYPE (*expr_p)) == VECTOR_TYPE)
-	    DECL_GIMPLE_REG_P (*expr_p) = 1;
-	}
-      else
-	*expr_p = get_formal_tmp_var (*expr_p, pre_p);
+      *expr_p = get_formal_tmp_var (*expr_p, pre_p);
     }
   else
     {
@@ -8543,7 +8535,13 @@ gimple_regimplify_operands (gimple stmt, gimple_stmt_iterator *gsi_p)
 	  gimple_stmt_iterator i;
 
 	  for (i = gsi_start (pre); !gsi_end_p (i); gsi_next (&i))
-	    mark_symbols_for_renaming (gsi_stmt (i));
+	    {
+	      tree lhs = gimple_get_lhs (gsi_stmt (i));
+	      if (lhs
+		  && TREE_CODE (lhs) != SSA_NAME
+		  && is_gimple_reg (lhs))
+		mark_sym_for_renaming (lhs);
+	    }
 	}
       gsi_insert_seq_before (gsi_p, pre, GSI_SAME_STMT);
     }
@@ -8597,6 +8595,21 @@ force_gimple_operand_1 (tree expr, gimple_seq *stmts,
     for (t = gimplify_ctxp->temps; t ; t = DECL_CHAIN (t))
       add_referenced_var (t);
 
+  if (!gimple_seq_empty_p (*stmts)
+      && gimplify_ctxp->into_ssa)
+    {
+      gimple_stmt_iterator i;
+
+      for (i = gsi_start (*stmts); !gsi_end_p (i); gsi_next (&i))
+	{
+	  tree lhs = gimple_get_lhs (gsi_stmt (i));
+	  if (lhs
+	      && TREE_CODE (lhs) != SSA_NAME
+	      && is_gimple_reg (lhs))
+	    mark_sym_for_renaming (lhs);
+	}
+    }
+
   pop_gimplify_context (NULL);
 
   return expr;
@@ -8633,14 +8646,6 @@ force_gimple_operand_gsi_1 (gimple_stmt_iterator *gsi, tree expr,
 
   if (!gimple_seq_empty_p (stmts))
     {
-      if (gimple_in_ssa_p (cfun))
-	{
-	  gimple_stmt_iterator i;
-
-	  for (i = gsi_start (stmts); !gsi_end_p (i); gsi_next (&i))
-	    mark_symbols_for_renaming (gsi_stmt (i));
-	}
-
       if (before)
 	gsi_insert_seq_before (gsi, stmts, m);
       else

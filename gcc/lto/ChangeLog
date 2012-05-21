@@ -1,8 +1,25 @@
+2012-05-18  Jan Hubicka  <jh@suse.cz>
+
+	* lto.c (lto_materialize_constructors_and_inits): Remove.
+	(read_cgraph_and_symbols): Remove handling of alias pairs.
+
+2012-05-17  Jan Hubicka  <jh@suse.cz>
+
+	* lto-partition.c (add_references_to_partition): Handle external vars.
+	(partition_varpool_node_p): Likewise.
+	(lto_promote_cross_file_statics): Do not promote externals.
+
+2012-05-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* lto-lang.c (handle_fnspec_attribute): New static function.
+	(lto_attribute_table): Add "fn spec".
+	(DEF_ATTR_STRING): Define and undefine along with the other macros.
+
 2012-05-04  Jan Hubicka  <jh@suse.cz>
 
 	* lto.c (do_whole_program_analysis): Set timevars correctly.
 	(lto_main): Likewise.
-	
+
 2012-05-04  Richard Guenther  <rguenther@suse.de>
 
 	* lang.opt (fwpa): Do not mark as Optimization.

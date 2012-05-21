@@ -824,6 +824,11 @@ vect_compute_data_ref_alignment (struct data_reference *dr)
   /* Initialize misalignment to unknown.  */
   SET_DR_MISALIGNMENT (dr, -1);
 
+  /* Strided loads perform only component accesses, misalignment information
+     is irrelevant for them.  */
+  if (STMT_VINFO_STRIDE_LOAD_P (stmt_info))
+    return true;
+
   misalign = DR_INIT (dr);
   aligned_to = DR_ALIGNED_TO (dr);
   base_addr = DR_BASE_ADDRESS (dr);
@@ -1077,6 +1082,11 @@ vect_verify_datarefs_alignment (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo)
            && GROUP_FIRST_ELEMENT (stmt_info) != stmt)
           || !STMT_VINFO_VECTORIZABLE (stmt_info))
         continue;
+
+      /* Strided loads perform only component accesses, alignment is
+	 irrelevant for them.  */
+      if (STMT_VINFO_STRIDE_LOAD_P (stmt_info))
+	continue;
 
       supportable_dr_alignment = vect_supportable_dr_alignment (dr, false);
       if (!supportable_dr_alignment)
@@ -4268,7 +4278,6 @@ vect_setup_realignment (gimple stmt, gimple_stmt_iterator *gsi,
       new_stmt = gimple_build_assign (vec_dest, data_ref);
       new_temp = make_ssa_name (vec_dest, new_stmt);
       gimple_assign_set_lhs (new_stmt, new_temp);
-      mark_symbols_for_renaming (new_stmt);
       if (pe)
         {
           new_bb = gsi_insert_on_edge_immediate (pe, new_stmt);
@@ -4526,7 +4535,6 @@ vect_permute_load_chain (VEC(tree,heap) *dr_chain,
 	  data_ref = make_ssa_name (perm_dest, perm_stmt);
 	  gimple_assign_set_lhs (perm_stmt, data_ref);
 	  vect_finish_stmt_generation (stmt, perm_stmt, gsi);
-	  mark_symbols_for_renaming (perm_stmt);
 
 	  VEC_replace (tree, *result_chain, j/2, data_ref);
 
@@ -4542,7 +4550,6 @@ vect_permute_load_chain (VEC(tree,heap) *dr_chain,
 	  data_ref = make_ssa_name (perm_dest, perm_stmt);
 	  gimple_assign_set_lhs (perm_stmt, data_ref);
 	  vect_finish_stmt_generation (stmt, perm_stmt, gsi);
-	  mark_symbols_for_renaming (perm_stmt);
 
 	  VEC_replace (tree, *result_chain, j/2+length/2, data_ref);
 	}

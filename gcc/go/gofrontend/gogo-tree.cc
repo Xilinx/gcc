@@ -401,7 +401,7 @@ Gogo::register_gc_vars(const std::vector<Named_object*>& var_gc,
 
   // Build a constructor for the struct.
 
-  VEC(constructor_elt,gc*) root_list_init = VEC_alloc(constructor_elt, gc, 2);
+  VEC(constructor_elt,gc)* root_list_init = VEC_alloc(constructor_elt, gc, 2);
 
   elt = VEC_quick_push(constructor_elt, root_list_init, NULL);
   field = TYPE_FIELDS(root_list_type);
@@ -1003,7 +1003,7 @@ Named_object::get_id(Gogo* gogo)
     {
       const Named_object* in_function = this->type_value()->in_function();
       if (in_function != NULL)
-	decl_name += '$' + in_function->name();
+	decl_name += '$' + Gogo::unpack_hidden_name(in_function->name());
     }
   return get_identifier_from_string(decl_name);
 }
