@@ -131,13 +131,13 @@ maybe_hot_frequency_p (int freq)
   return true;
 }
 
-/* Return TRUE if frequency FREQ is considered to be hot.  */
+/* Return TRUE if frequency COUNT is considered to be hot.  */
 
-static inline bool
+bool
 maybe_hot_count_p (gcov_type count)
 {
-  if (profile_status != PROFILE_READ)
-    return true;
+  if (!profile_info)
+    return false;
   /* Code executed at most once is not hot.  */
   if (profile_info->runs >= count)
     return false;

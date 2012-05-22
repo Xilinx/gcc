@@ -2493,6 +2493,7 @@ cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
    new_version->rtl = old_version->rtl;
    new_version->reachable = true;
    new_version->count = old_version->count;
+   new_version->max_bb_count = old_version->max_bb_count;
    new_version->is_versioned_clone = true;
 
    for (e = old_version->callees; e; e=e->next_callee)

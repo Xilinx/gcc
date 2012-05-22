@@ -750,6 +750,7 @@ extern struct edge_list *pre_edge_rev_lcm (int, sbitmap *,
 extern void compute_available (sbitmap *, sbitmap *, sbitmap *, sbitmap *);
 
 /* In predict.c */
+extern bool maybe_hot_count_p (gcov_type);
 extern bool maybe_hot_bb_p (const_basic_block);
 extern bool maybe_hot_edge_p (edge);
 extern bool probably_never_executed_bb_p (const_basic_block);

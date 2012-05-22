@@ -608,9 +608,12 @@ rebuild_cgraph_edges (void)
   ipa_remove_all_references (&node->ref_list);
 
   node->count = ENTRY_BLOCK_PTR->count;
+  node->max_bb_count = 0;
 
   FOR_EACH_BB (bb)
     {
+      if (bb->count > node->max_bb_count)
+	node->max_bb_count = bb->count;
       for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
 	{
 	  gimple stmt = gsi_stmt (gsi);

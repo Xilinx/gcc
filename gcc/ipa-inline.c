@@ -467,6 +467,20 @@ want_early_inline_function_p (struct cgraph_edge *e)
   return want_inline;
 }
 
+/* Returns true if an edge or its caller are hot enough to
+   be considered for inlining.  */
+
+static bool
+edge_hot_enough_p (struct cgraph_edge *edge)
+{
+  if (cgraph_maybe_hot_edge_p (edge))
+    return true;
+  if (PARAM_VALUE (PARAM_INLINE_HOT_CALLER)
+      && maybe_hot_count_p (edge->caller->max_bb_count))
+    return true;
+  return false;
+}
+
 /* Return true if we are interested in inlining small function.
    When REPORT is true, report reason to dump file.  */
 
@@ -545,7 +559,7 @@ want_inline_small_function_p (struct cgraph_edge *e, bool report)
 	  want_inline = false;
 	}
       /* If call is cold, do not inline when function body would grow. */
-      else if (!cgraph_maybe_hot_edge_p (e))
+      else if (!edge_hot_enough_p (e))
 	{
           e->inline_failed = CIF_UNLIKELY_CALL;
 	  want_inline = false;

@@ -360,6 +360,8 @@ inline_call (struct cgraph_edge *e, bool update_original,
   old_size = inline_summary (to)->size;
   inline_merge_summary (e);
   new_size = inline_summary (to)->size;
+  if (to->max_bb_count < e->callee->max_bb_count)
+    to->max_bb_count = e->callee->max_bb_count;
   if (overall_size)
     *overall_size += new_size - old_size;
   ncalls_inlined++;

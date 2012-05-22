@@ -1,3 +1,22 @@
+2012-05-21   Easwaran Raman  <eraman@google.com>
+
+	* gcc/basic-block.h (maybe_hot_count_p): New declaration.
+	* gcc/cgraph.c (dump_cgraph_node): Dump max_bb_count.
+	(cgraph_clone_node): Update max_bb_count.
+	* gcc/cgraph.h (cgraph_node): Add new field max_bb_count.
+	* gcc/cgraphbuild.c (rebuild_cgraph_edges): Compute max_bb_count.
+	* gcc/cgraphunit.c (cgraph_copy_node_for_versioning): Copy max_bb_count.
+	* gcc/ipa-inline-transform.c (inline_call): Update max_bb_count of
+	the function to which this callsite is eventually inlined to.
+	* gcc/ipa-inline.c (edge_hot_enough_p): New function.
+	(want_inline_small_function_p): Call edge_hot_enough_p instead
+	of cgraph_maybe_hot_edge_p.
+	* gcc/params.def (PARAM_INLINE_FUNCTION_OVERHEAD_SIZE): New param.
+	* gcc/predict.c (maybe_hot_count_p): Make it non static.
+	* gcc/testsuite/gcc.dg/tree-prof/inliner-1.c: Add option
+	--param inline-hot-caller=0.
+	* gcc/testsuite/gcc.dg/tree-prof/lipo/inliner-1_0.c: Likewise.
+
 2012-05-18   Teresa Johnson  <tejohnson@google.com>
 
 	Backport from google/main r187660:
