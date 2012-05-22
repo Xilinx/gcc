@@ -3013,7 +3013,6 @@ static void output_location_lists (dw_die_ref);
 static int constant_size (unsigned HOST_WIDE_INT);
 static unsigned long size_of_die (dw_die_ref);
 static void calc_die_sizes (dw_die_ref);
-static void calc_base_type_die_sizes (void);
 static void mark_dies (dw_die_ref);
 static void unmark_dies (dw_die_ref);
 static void unmark_all_dies (dw_die_ref);
@@ -3365,11 +3364,10 @@ get_base_type_offset (dw_die_ref ref)
 {
   if (ref->die_offset)
     return ref->die_offset;
-  if (comp_unit_die ()->die_abbrev)
-    {
-      calc_base_type_die_sizes ();
-      gcc_assert (ref->die_offset);
-    }
+  /* If we're calculating DIE offsets, this needs to be set.  It's OK if
+     it's unset during optimize_location_lists.  */
+  if (next_die_offset)
+    gcc_assert (ref->die_offset);
   return ref->die_offset;
 }
 
@@ -6305,7 +6303,12 @@ copy_needed_base_types_loc (dw_die_ref unit, dw_loc_descr_ref loc,
 	copy = (dw_die_ref) *slot;
       else
 	{
-	  copy = new_die (DW_TAG_base_type, unit, NULL_TREE);
+	  /* Insert the base type at the beginning of unit's child list
+	     so that get_base_type_offset works.  */
+	  copy = ggc_alloc_cleared_die_node ();
+	  copy->die_tag = DW_TAG_base_type;
+	  copy->die_sib = unit->die_child->die_sib;
+	  unit->die_child->die_sib = copy;
 	  add_AT_unsigned (copy, DW_AT_byte_size,
 			   get_AT_unsigned (*op, DW_AT_byte_size));
 	  add_AT_unsigned (copy, DW_AT_encoding,
@@ -7711,36 +7714,6 @@ cu_size (dw_die_ref die)
   /* Then add the size of the last die and the null bytes to terminate
      sibling lists.  */
   return die->die_offset + size_of_die (die) + terminators;
-}
-
-/* Size just the base type children at the start of the CU.
-   This is needed because build_abbrev needs to size locs
-   and sizing of type based stack ops needs to know die_offset
-   values for the base types.  */
-
-static void
-calc_base_type_die_sizes (void)
-{
-  unsigned long die_offset = DWARF_COMPILE_UNIT_HEADER_SIZE;
-  unsigned int i;
-  dw_die_ref base_type;
-#if ENABLE_ASSERT_CHECKING
-  dw_die_ref prev = comp_unit_die ()->die_child;
-#endif
-
-  die_offset += size_of_die (comp_unit_die ());
-  for (i = 0; VEC_iterate (dw_die_ref, base_types, i, base_type); i++)
-    {
-#if ENABLE_ASSERT_CHECKING
-      gcc_assert (base_type->die_offset == 0
-		  && prev->die_sib == base_type
-		  && base_type->die_child == NULL
-		  && base_type->die_abbrev);
-      prev = base_type;
-#endif
-      base_type->die_offset = die_offset;
-      die_offset += size_of_die (base_type);
-    }
 }
 
 /* Set the marks for a die and its children.  We do this so
