@@ -17613,7 +17613,8 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	    record_comdat_key (subr_die, DECL_COMDAT_GROUP (decl));
 	  else
 	    /* FIXME what to do about nested comdat functions?  */
-	    fde->comdat = false;
+	    /* fde->comdat = false;*/
+	    gcc_unreachable ();
 	}
 
       /* Compute a displacement from the "steady-state frame pointer" to
