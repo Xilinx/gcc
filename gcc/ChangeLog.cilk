@@ -38,6 +38,7 @@
 	(cg_hacks): Likewise.
 	(elem_fn_create_fn): Likewise.
 	* passes.c (init_optimization_passes): Removed elem_fn_pass.
+
 2012-05-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (expand_builtin_cilk_detach): Added mode type for
