@@ -1,3 +1,15 @@
+2012-05-22  Balaji V. Iyer  <balaji.v.iyer@intel.com>
+
+	* cp-array-notation.c (fix_conditional_array_notations_1): Changed
+	build_min_nt to build_min_nt_loc with location info.
+	(fix_builtin_array_notation_fn): Added location info for
+	build_x_conditional_expr.  Also replaced all '1' with
+	tf_warning_or_error.
+	* parser.c (cp_parser_cilk_init_declarator): Change decl_specifier
+	location field.  Also changed decl_spec spec array check.
+	(cp_parser_array_notation): Changed build_min_nt to build_min_nt_loc
+	and added location info.
+
 2012-05-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (compute_loop_var): Added location info to build_new_op.

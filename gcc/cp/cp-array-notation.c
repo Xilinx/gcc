@@ -1165,7 +1165,8 @@ fix_conditional_array_notations_1 (tree stmt)
 	}
       else
 	{
-	  array_var[ii] = build_min_nt (VAR_DECL, NULL_TREE, NULL_TREE);
+	  array_var[ii] = build_min_nt_loc (UNKNOWN_LOCATION, VAR_DECL, 
+					    NULL_TREE, NULL_TREE);
 	  ind_init[ii] = build_x_modify_expr (UNKNOWN_LOCATION, array_var[ii], 
 					      NOP_EXPR,
 					      integer_zero_node, 1);
@@ -1901,8 +1902,9 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_cond_expr = build_x_binary_op
 	(UNKNOWN_LOCATION, NE_EXPR, func_parm, TREE_CODE (func_parm), comp_node,
 	 TREE_CODE (comp_node), NULL, tf_warning_or_error);
-      new_expr = build_x_conditional_expr (new_cond_expr, new_yes_expr,
-					   new_no_expr, 1);
+      new_expr = build_x_conditional_expr (UNKNOWN_LOCATION, new_cond_expr, 
+					   new_yes_expr, new_no_expr, 
+					   tf_warning_or_error);
     }
   else if (an_type == REDUCE_ALL_NONZEROS)
     {
@@ -1924,8 +1926,9 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_cond_expr = build_x_binary_op
 	(UNKNOWN_LOCATION, EQ_EXPR, func_parm, TREE_CODE (func_parm), comp_node,
 	 TREE_CODE (comp_node), NULL, tf_warning_or_error);
-      new_expr = build_x_conditional_expr (new_cond_expr, new_yes_expr,
-					   new_no_expr, 1);
+      new_expr = build_x_conditional_expr (UNKNOWN_LOCATION, new_cond_expr, 
+					   new_yes_expr, new_no_expr, 
+					   tf_warning_or_error);
     }
   else if (an_type == REDUCE_ANY_ZEROS)
     {
@@ -1949,8 +1952,9 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_cond_expr = build_x_binary_op
 	(UNKNOWN_LOCATION, EQ_EXPR, func_parm, TREE_CODE (func_parm), comp_node,
 	 TREE_CODE (comp_node), NULL, tf_warning_or_error);
-      new_expr = build_x_conditional_expr (new_cond_expr, new_yes_expr,
-					   new_no_expr, tf_warning_or_error);
+      new_expr = build_x_conditional_expr (UNKNOWN_LOCATION, new_cond_expr, 
+					   new_yes_expr, new_no_expr, 
+					   tf_warning_or_error);
     }
   else if (an_type == REDUCE_ANY_NONZEROS)
     {
@@ -1973,8 +1977,9 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_cond_expr = build_x_binary_op
 	(UNKNOWN_LOCATION, NE_EXPR, func_parm, TREE_CODE (func_parm), comp_node,
 	 TREE_CODE (comp_node), NULL, tf_warning_or_error); 
-      new_expr = build_x_conditional_expr (new_cond_expr, new_yes_expr,
-					   new_no_expr, 1);      
+      new_expr = build_x_conditional_expr (UNKNOWN_LOCATION, new_cond_expr, 
+					   new_yes_expr, new_no_expr,
+					   tf_warning_or_error);      
     }
   else if (an_type == REDUCE_MAX)
     {
@@ -1989,8 +1994,9 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 					 TREE_CODE (*new_var), func_parm,
 					 TREE_CODE (func_parm), NULL,
 					 tf_warning_or_error);
-      new_expr = build_x_conditional_expr (new_cond_expr, new_yes_expr,
-					   new_no_expr, 1);
+      new_expr = build_x_conditional_expr (UNKNOWN_LOCATION, new_cond_expr, 
+					   new_yes_expr, new_no_expr,
+					   tf_warning_or_error);
     }
   else if (an_type == REDUCE_MIN)
     {
@@ -2003,8 +2009,9 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
       new_cond_expr = build_x_binary_op (UNKNOWN_LOCATION, GT_EXPR, *new_var,
 					 TREE_CODE (*new_var), func_parm,
 					 TREE_CODE (func_parm), NULL, 1);
-      new_expr = build_x_conditional_expr (new_cond_expr, new_yes_expr,
-					   new_no_expr, 1);
+      new_expr = build_x_conditional_expr (UNKNOWN_LOCATION, new_cond_expr, 
+					   new_yes_expr, new_no_expr,
+					   tf_warning_or_error);
     }
   else if (an_type == REDUCE_MAX_INDEX)
     {
@@ -2041,8 +2048,9 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	(UNKNOWN_LOCATION, LT_EXPR, array_ind_value,
 	 TREE_CODE (array_ind_value),
 	 func_parm, TREE_CODE (func_parm), NULL, tf_warning_or_error);
-      new_expr = build_x_conditional_expr (new_cond_expr, new_yes_list,
-					   new_no_list, tf_warning_or_error);
+      new_expr = build_x_conditional_expr (UNKNOWN_LOCATION, new_cond_expr, 
+					   new_yes_list, new_no_list, 
+					   tf_warning_or_error);
     }
   else if (an_type == REDUCE_MIN_INDEX)
     {
@@ -2074,8 +2082,9 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	(UNKNOWN_LOCATION, GT_EXPR, array_ind_value,
 	 TREE_CODE (array_ind_value),
 	 func_parm, TREE_CODE (func_parm), NULL, tf_warning_or_error);
-      new_expr = build_x_conditional_expr (new_cond_expr,
-					   new_yes_list, new_no_list, 1);
+      new_expr = build_x_conditional_expr (UNKNOWN_LOCATION, new_cond_expr,
+					   new_yes_list, new_no_list, 
+					   tf_warning_or_error);
     }
   else if (an_type == REDUCE_CUSTOM)
     {

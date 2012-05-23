@@ -16106,9 +16106,9 @@ cp_parser_cilk_init_declarator (cp_parser* parser,
     return error_mark_node;
 
   if (declares_class_or_enum & 2)
-    cp_parser_check_for_definition_in_return_type (declarator,
-						   decl_specifiers->type,
-						   decl_specifiers->type_location);
+    cp_parser_check_for_definition_in_return_type 
+      (declarator, decl_specifiers->type, 
+       decl_specifiers->locations[ds_type_spec]);
 
   /* Figure out what scope the entity declared by the DECLARATOR is
      located in.  `grokdeclarator' sometimes changes the scope, so
@@ -29157,7 +29157,7 @@ cp_parser_cilk_for_init_statement (cp_parser *parser, tree *init)
       return error_mark_node;
     }
 
-  if (specs.specs[ds_const] != 0)
+  if (decl_spec_seq_has_spec_p (&specs, ds_const))
     {
       error ("control variable of Cilk cannot be a constant.\n");
       return error_mark_node;
@@ -29288,8 +29288,9 @@ cp_parser_array_notation (cp_parser *parser, tree init_index, tree array_value)
     {
       if (array_type)
 	type = TREE_TYPE (array_type);
-      value_tree = build_min_nt (ARRAY_NOTATION_REF, array_value, start_index,
-				 length_index, stride, type, NULL_TREE);
+      value_tree = build_min_nt_loc (UNKNOWN_LOCATION, ARRAY_NOTATION_REF, 
+				     array_value, start_index, length_index, 
+				     stride, type, NULL_TREE);
     }
   else
     {
