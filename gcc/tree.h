@@ -770,6 +770,9 @@ struct GTY(()) tree_common {
        TYPE_SATURATING in
            all types
 
+       VAR_DECL_IS_VIRTUAL_OPERAND in
+	   VAR_DECL
+
    nowarning_flag:
 
        TREE_NO_WARNING in
@@ -1765,7 +1768,7 @@ struct GTY(()) tree_constructor {
    decls and constants can be shared among multiple locations, so
    return nothing.  */
 #define EXPR_LOCATION(NODE) \
-  (EXPR_P ((NODE)) ? (NODE)->exp.locus : UNKNOWN_LOCATION)
+  (CAN_HAVE_LOCATION_P ((NODE)) ? (NODE)->exp.locus : UNKNOWN_LOCATION)
 #define SET_EXPR_LOCATION(NODE, LOCUS) EXPR_CHECK ((NODE))->exp.locus = (LOCUS)
 #define EXPR_HAS_LOCATION(NODE) (EXPR_LOCATION (NODE) != UNKNOWN_LOCATION)
 #define EXPR_LOC_OR_HERE(NODE) (EXPR_HAS_LOCATION (NODE) ? (NODE)->exp.locus : input_location)
@@ -3435,6 +3438,9 @@ extern void decl_fini_priority_insert (tree, priority_type);
 /* The largest priority value reserved for use by system runtime
    libraries.  */
 #define MAX_RESERVED_INIT_PRIORITY 100
+
+#define VAR_DECL_IS_VIRTUAL_OPERAND(NODE) \
+  (VAR_DECL_CHECK (NODE)->base.saturating_flag)
 
 #define DECL_VAR_ANN_PTR(NODE) \
   (TREE_CODE (NODE) == VAR_DECL ? &(NODE)->var_decl.ann \
@@ -5690,7 +5696,6 @@ extern void stack_protect_prologue (void);
 extern void stack_protect_epilogue (void);
 extern void init_dummy_function_start (void);
 extern void expand_dummy_function_end (void);
-extern unsigned int init_function_for_compilation (void);
 extern void allocate_struct_function (tree, bool);
 extern void push_struct_function (tree fndecl);
 extern void init_function_start (tree);

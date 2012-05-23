@@ -11655,7 +11655,7 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	      error ("creating array of %qT", type);
 	    return error_mark_node;
 	  }
-	if (CLASS_TYPE_P (type) && CLASSTYPE_PURE_VIRTUALS (type))
+	if (ABSTRACT_CLASS_TYPE_P (type))
 	  {
 	    if (complain & tf_error)
 	      error ("creating array of %qT, which is an abstract class type",
@@ -11941,6 +11941,7 @@ tsubst_qualified_id (tree qualified_id, tree args,
   tree name;
   bool is_template;
   tree template_args;
+  location_t loc = UNKNOWN_LOCATION;
 
   gcc_assert (TREE_CODE (qualified_id) == SCOPE_REF);
 
@@ -11949,6 +11950,7 @@ tsubst_qualified_id (tree qualified_id, tree args,
   if (TREE_CODE (name) == TEMPLATE_ID_EXPR)
     {
       is_template = true;
+      loc = EXPR_LOCATION (name);
       template_args = TREE_OPERAND (name, 1);
       if (template_args)
 	template_args = tsubst_template_args (template_args, args,
@@ -11977,7 +11979,7 @@ tsubst_qualified_id (tree qualified_id, tree args,
   if (dependent_scope_p (scope))
     {
       if (is_template)
-	expr = build_min_nt (TEMPLATE_ID_EXPR, expr, template_args);
+	expr = build_min_nt_loc (loc, TEMPLATE_ID_EXPR, expr, template_args);
       return build_qualified_name (NULL_TREE, scope, expr,
 				   QUALIFIED_NAME_IS_TEMPLATE (qualified_id));
     }
@@ -12683,7 +12685,8 @@ tsubst_omp_for_iterator (tree t, int i, tree declv, tree initv,
       cond = RECUR (TREE_VEC_ELT (OMP_FOR_COND (t), i));
       incr = TREE_VEC_ELT (OMP_FOR_INCR (t), i);
       if (TREE_CODE (incr) == MODIFY_EXPR)
-	incr = build_x_modify_expr (RECUR (TREE_OPERAND (incr, 0)), NOP_EXPR,
+	incr = build_x_modify_expr (EXPR_LOCATION (incr),
+				    RECUR (TREE_OPERAND (incr, 0)), NOP_EXPR,
 				    RECUR (TREE_OPERAND (incr, 1)),
 				    complain);
       else
@@ -13692,7 +13695,11 @@ tsubst_copy_and_build (tree t,
     case MEMBER_REF:
     case DOTSTAR_EXPR:
       {
-	tree r = build_x_binary_op
+	tree r;
+
+	++c_inhibit_evaluation_warnings;
+
+	r = build_x_binary_op
 	  (input_location, TREE_CODE (t),
 	   RECUR (TREE_OPERAND (t, 0)),
 	   (TREE_NO_WARNING (TREE_OPERAND (t, 0))
@@ -13706,6 +13713,9 @@ tsubst_copy_and_build (tree t,
 	   complain);
 	if (EXPR_P (r) && TREE_NO_WARNING (t))
 	  TREE_NO_WARNING (r) = TREE_NO_WARNING (t);
+
+	--c_inhibit_evaluation_warnings;
+
 	return r;
       }
 
@@ -13715,7 +13725,8 @@ tsubst_copy_and_build (tree t,
     case ARRAY_REF:
       op1 = tsubst_non_call_postfix_expression (TREE_OPERAND (t, 0),
 						args, complain, in_decl);
-      return build_x_array_ref (op1, RECUR (TREE_OPERAND (t, 1)), complain);
+      return build_x_array_ref (EXPR_LOCATION (t), op1,
+				RECUR (TREE_OPERAND (t, 1)), complain);
 
     case ARRAY_NOTATION_REF:
       op1 = tsubst_non_call_postfix_expression (ARRAY_NOTATION_ARRAY (t),
@@ -13783,7 +13794,8 @@ tsubst_copy_and_build (tree t,
     case MODOP_EXPR:
       {
 	tree r = build_x_modify_expr
-	  (RECUR (TREE_OPERAND (t, 0)),
+	  (EXPR_LOCATION (t),
+	   RECUR (TREE_OPERAND (t, 0)),
 	   TREE_CODE (TREE_OPERAND (t, 1)),
 	   RECUR (TREE_OPERAND (t, 2)),
 	   complain);
@@ -13867,7 +13879,8 @@ tsubst_copy_and_build (tree t,
 	complain);
 
     case COMPOUND_EXPR:
-      return build_x_compound_expr (RECUR (TREE_OPERAND (t, 0)),
+      return build_x_compound_expr (EXPR_LOCATION (t),
+				    RECUR (TREE_OPERAND (t, 0)),
 				    RECUR (TREE_OPERAND (t, 1)),
                                     complain);
 
@@ -14112,7 +14125,8 @@ tsubst_copy_and_build (tree t,
 	    exp2 = RECUR (TREE_OPERAND (t, 2));
 	  }
 
-	return build_x_conditional_expr (cond, exp1, exp2, complain);
+	return build_x_conditional_expr (EXPR_LOCATION (t),
+					 cond, exp1, exp2, complain);
       }
 
     case PSEUDO_DTOR_EXPR:

@@ -1943,11 +1943,7 @@ copy_edges_for_bb (basic_block bb, gcov_type count_scale, basic_block ret_bb)
 
       copy_stmt = gsi_stmt (si);
       if (!is_gimple_debug (copy_stmt))
-	{
-	  update_stmt (copy_stmt);
-	  if (gimple_in_ssa_p (cfun))
-	    mark_symbols_for_renaming (copy_stmt);
-	}
+	update_stmt (copy_stmt);
 
       /* Do this before the possible split_block.  */
       gsi_next (&si);
@@ -2149,7 +2145,7 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count)
     {
       init_tree_ssa (cfun);
       cfun->gimple_df->in_ssa_p = true;
-      init_ssa_operands ();
+      init_ssa_operands (cfun);
     }
   pop_cfun ();
 }
@@ -2419,8 +2415,6 @@ copy_debug_stmt (gimple stmt, copy_body_data *id)
   processing_debug_stmt = 0;
 
   update_stmt (stmt);
-  if (gimple_in_ssa_p (cfun))
-    mark_symbols_for_renaming (stmt);
 }
 
 /* Process deferred debug stmts.  In order to give values better odds
@@ -2564,7 +2558,6 @@ insert_init_stmt (copy_body_data *id, basic_block bb, gimple init_stmt)
 	}
       gsi_insert_after (&si, init_stmt, GSI_NEW_STMT);
       gimple_regimplify_operands (init_stmt, &si);
-      mark_symbols_for_renaming (init_stmt);
 
       if (!is_gimple_debug (init_stmt) && MAY_HAVE_DEBUG_STMTS)
 	{
@@ -2729,14 +2722,23 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 
       STRIP_USELESS_TYPE_CONVERSION (rhs);
 
-      /* We want to use MODIFY_EXPR, not INIT_EXPR here so that we
-	 keep our trees in gimple form.  */
-      if (def && gimple_in_ssa_p (cfun) && is_gimple_reg (p))
+      /* If we are in SSA form properly remap the default definition
+         or assign to a dummy SSA name if the parameter is unused and
+	 we are not optimizing.  */
+      if (gimple_in_ssa_p (cfun) && is_gimple_reg (p))
 	{
-	  def = remap_ssa_name (def, id);
-          init_stmt = gimple_build_assign (def, rhs);
-	  SSA_NAME_IS_DEFAULT_DEF (def) = 0;
-	  set_default_def (var, NULL);
+	  if (def)
+	    {
+	      def = remap_ssa_name (def, id);
+	      init_stmt = gimple_build_assign (def, rhs);
+	      SSA_NAME_IS_DEFAULT_DEF (def) = 0;
+	      set_default_def (var, NULL);
+	    }
+	  else if (!optimize)
+	    {
+	      def = make_ssa_name (var, NULL);
+	      init_stmt = gimple_build_assign (def, rhs);
+	    }
 	}
       else
         init_stmt = gimple_build_assign (var, rhs);
@@ -2981,6 +2983,11 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest,
       TREE_ADDRESSABLE (var) = 1;
       var = build_fold_addr_expr (var);
     }
+  else if (gimple_in_ssa_p (cfun)
+	   && is_gimple_reg (var))
+    /* ???  Re-org id->retval and its special handling so that we can
+       record an SSA name directly and not need to invoke the SSA renamer.  */
+    mark_sym_for_renaming (var);
 
  done:
   /* Register the VAR_DECL as the equivalent for the RESULT_DECL; that
@@ -2996,10 +3003,15 @@ declare_return_variable (copy_body_data *id, tree return_slot, tree modify_dest,
       if (gimple_in_ssa_p (id->src_cfun))
 	add_referenced_var (temp);
       insert_decl_map (id, result, temp);
-      /* When RESULT_DECL is in SSA form, we need to use it's default_def
-	 SSA_NAME.  */
-      if (gimple_in_ssa_p (id->src_cfun) && gimple_default_def (id->src_cfun, result))
-        temp = remap_ssa_name (gimple_default_def (id->src_cfun, result), id);
+      /* When RESULT_DECL is in SSA form, we need to remap and initialize
+	 it's default_def SSA_NAME.  */
+      if (gimple_in_ssa_p (id->src_cfun)
+	  && is_gimple_reg (result))
+	{
+	  temp = make_ssa_name (temp, NULL);
+	  insert_decl_map (id, gimple_default_def (id->src_cfun, result),
+			   temp);
+	}
       insert_init_stmt (id, entry_bb, gimple_build_assign (temp, var));
     }
   else
@@ -4089,8 +4101,6 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
       gimple old_stmt = stmt;
       stmt = gimple_build_assign (gimple_call_lhs (stmt), use_retvar);
       gsi_replace (&stmt_gsi, stmt, false);
-      if (gimple_in_ssa_p (cfun))
-	mark_symbols_for_renaming (stmt);
       maybe_clean_or_replace_eh_stmt (old_stmt, stmt);
     }
   else

@@ -62,7 +62,6 @@ struct dfa_stats_d
 
 /* Local functions.  */
 static void collect_dfa_stats (struct dfa_stats_d *);
-static tree find_vars_r (tree *, int *, void *);
 
 
 /*---------------------------------------------------------------------------
@@ -441,17 +440,19 @@ collect_dfa_stats (struct dfa_stats_d *dfa_stats_p ATTRIBUTE_UNUSED)
    the function.  */
 
 static tree
-find_vars_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
+find_vars_r (tree *tp, int *walk_subtrees, void *data)
 {
+  struct function *fn = (struct function *) data;
+
   /* If we are reading the lto info back in, we need to rescan the
      referenced vars.  */
   if (TREE_CODE (*tp) == SSA_NAME)
-    add_referenced_var (SSA_NAME_VAR (*tp));
+    add_referenced_var_1 (SSA_NAME_VAR (*tp), fn);
 
   /* If T is a regular variable that the optimizers are interested
      in, add it to the list of variables.  */
   else if (SSA_VAR_P (*tp))
-    add_referenced_var (*tp);
+    add_referenced_var_1 (*tp, fn);
 
   /* Type, _DECL and constant nodes have no interesting children.
      Ignore them.  */
@@ -471,16 +472,16 @@ find_referenced_vars_in (gimple stmt)
   if (gimple_code (stmt) != GIMPLE_PHI)
     {
       for (i = 0; i < gimple_num_ops (stmt); i++)
-	walk_tree (gimple_op_ptr (stmt, i), find_vars_r, NULL, NULL);
+	walk_tree (gimple_op_ptr (stmt, i), find_vars_r, cfun, NULL);
     }
   else
     {
-      walk_tree (gimple_phi_result_ptr (stmt), find_vars_r, NULL, NULL);
+      walk_tree (gimple_phi_result_ptr (stmt), find_vars_r, cfun, NULL);
 
       for (i = 0; i < gimple_phi_num_args (stmt); i++)
 	{
 	  tree arg = gimple_phi_arg_def (stmt, i);
-	  walk_tree (&arg, find_vars_r, NULL, NULL);
+	  walk_tree (&arg, find_vars_r, cfun, NULL);
 	}
     }
 }
@@ -503,24 +504,23 @@ referenced_var_lookup (struct function *fn, unsigned int uid)
    Return true if it required insertion.  */
 
 static bool
-referenced_var_check_and_insert (tree to)
+referenced_var_check_and_insert (tree to, struct function *fn)
 {
-  tree h, *loc;
+  tree *loc;
   struct tree_decl_minimal in;
   unsigned int uid = DECL_UID (to);
 
   in.uid = uid;
-  h = (tree) htab_find_with_hash (gimple_referenced_vars (cfun), &in, uid);
-  if (h)
+  loc = (tree *) htab_find_slot_with_hash (gimple_referenced_vars (fn),
+					   &in, uid, INSERT);
+  if (*loc)
     {
       /* DECL_UID has already been entered in the table.  Verify that it is
 	 the same entry as TO.  See PR 27793.  */
-      gcc_assert (h == to);
+      gcc_assert (*loc == to);
       return false;
     }
 
-  loc = (tree *) htab_find_slot_with_hash (gimple_referenced_vars (cfun),
-					   &in, uid, INSERT);
   *loc = to;
   return true;
 }
@@ -575,26 +575,18 @@ set_default_def (tree var, tree def)
 /* Add VAR to the list of referenced variables if it isn't already there.  */
 
 bool
-add_referenced_var (tree var)
+add_referenced_var_1 (tree var, struct function *fn)
 {
-  gcc_assert (DECL_P (var));
+  gcc_checking_assert (TREE_CODE (var) == VAR_DECL
+		       || TREE_CODE (var) == PARM_DECL
+		       || TREE_CODE (var) == RESULT_DECL);
+
   if (!*DECL_VAR_ANN_PTR (var))
     create_var_ann (var);
 
   /* Insert VAR into the referenced_vars hash table if it isn't present.  */
-  if (referenced_var_check_and_insert (var))
-    {
-      /* Scan DECL_INITIAL for pointer variables as they may contain
-	 address arithmetic referencing the address of other
-	 variables.  As we are only interested in directly referenced
-	 globals or referenced locals restrict this to initializers
-	 than can refer to local variables.  */
-      if (DECL_INITIAL (var)
-          && DECL_CONTEXT (var) == current_function_decl)
-      	walk_tree (&DECL_INITIAL (var), find_vars_r, NULL, 0);
-
-      return true;
-    }
+  if (referenced_var_check_and_insert (var, fn))
+    return true;
 
   return false;
 }
@@ -621,46 +613,6 @@ remove_referenced_var (tree var)
   loc = htab_find_slot_with_hash (gimple_referenced_vars (cfun), &in, uid,
 				  NO_INSERT);
   htab_clear_slot (gimple_referenced_vars (cfun), loc);
-}
-
-
-/* Return the virtual variable associated to the non-scalar variable VAR.  */
-
-tree
-get_virtual_var (tree var)
-{
-  STRIP_NOPS (var);
-
-  if (TREE_CODE (var) == SSA_NAME)
-    var = SSA_NAME_VAR (var);
-
-  while (TREE_CODE (var) == REALPART_EXPR || TREE_CODE (var) == IMAGPART_EXPR
-	 || handled_component_p (var))
-    var = TREE_OPERAND (var, 0);
-
-  /* Treating GIMPLE registers as virtual variables makes no sense.
-     Also complain if we couldn't extract a _DECL out of the original
-     expression.  */
-  gcc_assert (SSA_VAR_P (var));
-  gcc_assert (!is_gimple_reg (var));
-
-  return var;
-}
-
-/* Mark all the naked symbols in STMT for SSA renaming.  */
-
-void
-mark_symbols_for_renaming (gimple stmt)
-{
-  tree op;
-  ssa_op_iter iter;
-
-  update_stmt (stmt);
-
-  /* Mark all the operands for renaming.  */
-  FOR_EACH_SSA_TREE_OPERAND (op, stmt, iter, SSA_OP_ALL_OPERANDS)
-    if (DECL_P (op))
-      mark_sym_for_renaming (op);
 }
 
 

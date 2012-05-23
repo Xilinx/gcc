@@ -142,9 +142,6 @@ C ObjC C++ ObjC++ Joined Separate
 -pedantic
 C ObjC C++ ObjC++ Alias(pedantic)
 
--pedantic-errors
-C ObjC C++ ObjC++ Alias(pedantic-errors)
-
 -preprocess
 C ObjC C++ ObjC++ Undocumented Alias(E)
 
@@ -690,7 +687,7 @@ C ObjC Var(warn_unsuffixed_float_constants) Warning
 Warn about unsuffixed float constants
 
 Wunused-local-typedefs
-C ObjC C++ ObjC++ Var(warn_unused_local_typedefs) Warning
+C ObjC C++ ObjC++ Var(warn_unused_local_typedefs) Warning EnabledBy(Wunused)
 Warn when typedefs locally defined in a function are not used
 
 Wunused-macros
@@ -1241,10 +1238,6 @@ C ObjC C++ ObjC++ Joined Separate
 
 pedantic
 C ObjC C++ ObjC++ Alias(Wpedantic)
-; Documented in common.opt
-
-pedantic-errors
-C ObjC C++ ObjC++
 ; Documented in common.opt
 
 print-objc-runtime-info

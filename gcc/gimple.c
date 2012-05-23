@@ -2398,17 +2398,6 @@ gimple_copy (gimple stmt)
 }
 
 
-/* Set the MODIFIED flag to MODIFIEDP, iff the gimple statement G has
-   a MODIFIED field.  */
-
-void
-gimple_set_modified (gimple s, bool modifiedp)
-{
-  if (gimple_has_ops (s))
-    s->gsbase.modified = (unsigned) modifiedp;
-}
-
-
 /* Return true if statement S has side-effects.  We consider a
    statement to have side effects if:
 
@@ -2805,7 +2794,17 @@ bool
 is_gimple_reg (tree t)
 {
   if (TREE_CODE (t) == SSA_NAME)
-    t = SSA_NAME_VAR (t);
+    {
+      t = SSA_NAME_VAR (t);
+      if (TREE_CODE (t) == VAR_DECL
+	  && VAR_DECL_IS_VIRTUAL_OPERAND (t))
+	return false;
+      return true;
+    }
+
+  if (TREE_CODE (t) == VAR_DECL
+      && VAR_DECL_IS_VIRTUAL_OPERAND (t))
+    return false;
 
   if (!is_gimple_variable (t))
     return false;

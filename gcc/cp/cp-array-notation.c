@@ -640,7 +640,7 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
       if (lhs_vector[0][ii])
 	{
 	  lhs_ind_init[ii] = build_x_modify_expr
-	    (lhs_var[ii], NOP_EXPR,
+	    (UNKNOWN_LOCATION, lhs_var[ii], NOP_EXPR,
 	     build_zero_cst (TREE_TYPE (lhs_var[ii])), tf_warning_or_error);
 	}
     }
@@ -651,8 +651,8 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
        * integer */
       rhs_var[ii] = create_tmp_var (integer_type_node, NULL);
       rhs_ind_init[ii] = build_x_modify_expr
-	(rhs_var[ii], NOP_EXPR, build_zero_cst (TREE_TYPE (rhs_var[ii])),
-	 tf_warning_or_error);
+	(UNKNOWN_LOCATION, rhs_var[ii], NOP_EXPR, 
+	 build_zero_cst (TREE_TYPE (rhs_var[ii])), tf_warning_or_error);
     }
   
 
@@ -842,8 +842,8 @@ build_x_array_notation_expr (tree lhs, enum tree_code modifycode, tree rhs,
   if (!array_expr_lhs)
     array_expr_lhs = lhs;
   
-  array_expr = build_x_modify_expr (array_expr_lhs, modifycode, array_expr_rhs,
-				    complain);
+  array_expr = build_x_modify_expr (UNKNOWN_LOCATION, array_expr_lhs, 
+				    modifycode, array_expr_rhs, complain);
 
   for (jj = 0; jj < max (lhs_rank, rhs_rank); jj++)
     {
@@ -1160,12 +1160,14 @@ fix_conditional_array_notations_1 (tree stmt)
 	  array_var[ii] =  create_tmp_var (TREE_TYPE (array_start[0][ii]),
 					   NULL);
 	  ind_init[ii] = build_x_modify_expr
-	    (array_var[ii], NOP_EXPR, build_zero_cst (integer_type_node), 1);
+	    (UNKNOWN_LOCATION, array_var[ii], NOP_EXPR, 
+	     build_zero_cst (integer_type_node), 1);
 	}
       else
 	{
 	  array_var[ii] = build_min_nt (VAR_DECL, NULL_TREE, NULL_TREE);
-	  ind_init[ii] = build_x_modify_expr (array_var[ii], NOP_EXPR,
+	  ind_init[ii] = build_x_modify_expr (UNKNOWN_LOCATION, array_var[ii], 
+					      NOP_EXPR,
 					      integer_zero_node, 1);
 	}
     }
@@ -1741,8 +1743,8 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
     {
       array_var[ii] =  create_tmp_var (TREE_TYPE (array_start[0][ii]), NULL);
       ind_init[ii] = build_x_modify_expr
-	(array_var[ii], NOP_EXPR, build_zero_cst (TREE_TYPE (array_var[ii])),
-	 tf_warning_or_error);
+	(UNKNOWN_LOCATION, array_var[ii], NOP_EXPR, 
+	 build_zero_cst (TREE_TYPE (array_var[ii])), tf_warning_or_error);
     }
 
   for (ii = 0; ii < rank ; ii++)
@@ -1857,34 +1859,41 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   if (an_type == REDUCE_ADD)
     {
       if (ARITHMETIC_TYPE_P (new_var_type))
-	new_var_init = build_x_modify_expr (*new_var, NOP_EXPR,
+	new_var_init = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, 
+					    NOP_EXPR,
 					    build_zero_cst (new_var_type), 1);
       else
-	new_var_init = build_x_modify_expr (*new_var, NOP_EXPR,
+	new_var_init = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, 
+					    NOP_EXPR,
 					    integer_zero_node, 1);
-      new_expr = build_x_modify_expr (*new_var, PLUS_EXPR, func_parm, 1);
+      new_expr = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, PLUS_EXPR, 
+				      func_parm, 1);
     }
   else if (an_type == REDUCE_MUL)
     {
       if (ARITHMETIC_TYPE_P (new_var_type))
-	new_var_init = build_x_modify_expr (*new_var, NOP_EXPR,
+	new_var_init = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, 
+					    NOP_EXPR,
 					    build_one_cst (new_var_type), 1);
       else
-	new_var_init = build_x_modify_expr (*new_var, NOP_EXPR,
+	new_var_init = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, 
+					    NOP_EXPR,
 					    integer_one_node, 1);
-      new_expr = build_x_modify_expr (*new_var, MULT_EXPR, func_parm, 1);
+      new_expr = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, MULT_EXPR, 
+				      func_parm, 1);
     }
   else if (an_type == REDUCE_ALL_ZEROS)
     {
-      new_var_init = build_x_modify_expr (*new_var, NOP_EXPR,
+      new_var_init = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
 					  build_one_cst (new_var_type), 1);
       /* Initially you assume everything is zero, now if we find a case where
        * it is NOT true, then we set the result to false. Otherwise
        * we just keep the previous value
        */
-      new_yes_expr = build_x_modify_expr (*new_var, NOP_EXPR,
+      new_yes_expr = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
 					  build_zero_cst (new_var_type), 1);
-      new_no_expr = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
+      new_no_expr = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
+					 *new_var, 1);
       if (ARITHMETIC_TYPE_P (TREE_TYPE (func_parm)))
 	comp_node = build_zero_cst (TREE_TYPE (func_parm));
       else
@@ -1898,14 +1907,16 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   else if (an_type == REDUCE_ALL_NONZEROS)
     {
       new_var_init = build_x_modify_expr
-	(*new_var, NOP_EXPR, build_one_cst (new_var_type), 1);
+	(UNKNOWN_LOCATION, *new_var, NOP_EXPR, build_one_cst (new_var_type), 1);
       /* Initially you assume everything is non-zero, now if we find a case
        * where it is NOT true, then we set the result to false. Otherwise
        * we just keep the previous value
        */
       new_yes_expr = build_x_modify_expr
-	(*new_var, NOP_EXPR, build_zero_cst (TREE_TYPE (*new_var)), 1);
-      new_no_expr = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
+	(UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
+	 build_zero_cst (TREE_TYPE (*new_var)), 1);
+      new_no_expr = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
+					 *new_var, 1);
       if (ARITHMETIC_TYPE_P (TREE_TYPE (func_parm)))
 	comp_node = build_zero_cst (TREE_TYPE (func_parm));
       else
@@ -1919,14 +1930,17 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   else if (an_type == REDUCE_ANY_ZEROS)
     {
       new_var_init = build_x_modify_expr
-	(*new_var, NOP_EXPR, build_zero_cst (new_var_type), 1);
+	(UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
+	 build_zero_cst (new_var_type), 1);
       /* Initially we assume there are NO zeros in the list. When we find
        * a non-zero, we keep the previous value. If we find a zero, we
        * set the value to true
        */
       new_no_expr = build_x_modify_expr
-	(*new_var, NOP_EXPR, build_one_cst (TREE_TYPE (*new_var)), 1);
-      new_yes_expr = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
+	(UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
+	 build_one_cst (TREE_TYPE (*new_var)), 1);
+      new_yes_expr = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
+					  *new_var, 1);
 
       if (ARITHMETIC_TYPE_P (TREE_TYPE (func_parm)))
 	comp_node = build_zero_cst (TREE_TYPE (func_parm));
@@ -1941,14 +1955,17 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   else if (an_type == REDUCE_ANY_NONZEROS)
     {
       new_var_init = build_x_modify_expr
-	(*new_var, NOP_EXPR, build_zero_cst (new_var_type), 1);
+	(UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
+	 build_zero_cst (new_var_type), 1);
       /* Initially we assume there are NO non-zeros in the list. When we find
        * a zero, we keep the previous value. If we find a zero, we
        * set the value to true
        */
       new_no_expr = build_x_modify_expr
-	(*new_var, NOP_EXPR, build_one_cst (TREE_TYPE (*new_var)), 1);
-      new_yes_expr = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
+	(UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
+	 build_one_cst (TREE_TYPE (*new_var)), 1);
+      new_yes_expr = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
+					  *new_var, 1);
       if (ARITHMETIC_TYPE_P (TREE_TYPE (func_parm)))
 	comp_node = build_zero_cst (TREE_TYPE (func_parm));
       else
@@ -1962,9 +1979,12 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
   else if (an_type == REDUCE_MAX)
     {
       /* set initial value as the first element in the list */
-      new_var_init = build_x_modify_expr (*new_var, NOP_EXPR, func_parm, 1);
-      new_no_expr  = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
-      new_yes_expr = build_x_modify_expr (*new_var, NOP_EXPR, func_parm, 1);
+      new_var_init = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
+					  func_parm, 1);
+      new_no_expr  = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
+					  *new_var, 1);
+      new_yes_expr = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
+					  func_parm, 1);
       new_cond_expr = build_x_binary_op (UNKNOWN_LOCATION, LT_EXPR, *new_var,
 					 TREE_CODE (*new_var), func_parm,
 					 TREE_CODE (func_parm), NULL,
@@ -1974,9 +1994,12 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
     }
   else if (an_type == REDUCE_MIN)
     {
-      new_var_init = build_x_modify_expr (*new_var, NOP_EXPR, func_parm, 1);
-      new_no_expr  = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
-      new_yes_expr = build_x_modify_expr (*new_var, NOP_EXPR, func_parm, 1);
+      new_var_init = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
+					  func_parm, 1);
+      new_no_expr  = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
+					  *new_var, 1);
+      new_yes_expr = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
+					  func_parm, 1);
       new_cond_expr = build_x_binary_op (UNKNOWN_LOCATION, GT_EXPR, *new_var,
 					 TREE_CODE (*new_var), func_parm,
 					 TREE_CODE (func_parm), NULL, 1);
@@ -1985,22 +2008,26 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
     }
   else if (an_type == REDUCE_MAX_INDEX)
     {
-      new_var_init = build_x_modify_expr (*new_var, NOP_EXPR, array_var[0],
+      new_var_init = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
+					  array_var[0], tf_warning_or_error);
+      new_exp_init = build_x_modify_expr (UNKNOWN_LOCATION, array_ind_value, 
+					  NOP_EXPR, func_parm, 
 					  tf_warning_or_error);
-      new_exp_init = build_x_modify_expr (array_ind_value, NOP_EXPR, func_parm,
-					  tf_warning_or_error);
-      new_no_ind   = build_x_modify_expr (*new_var, NOP_EXPR, *new_var,
-					  tf_warning_or_error);
-      new_no_expr  = build_x_modify_expr (array_ind_value, NOP_EXPR,
+      new_no_ind   = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
+					  *new_var, tf_warning_or_error);
+      new_no_expr  = build_x_modify_expr (UNKNOWN_LOCATION, array_ind_value, 
+					  NOP_EXPR,
 					  array_ind_value, tf_warning_or_error);
       if (list_size > 1) /* this means there is more than 1 */
-	new_yes_ind  = build_x_modify_expr (*new_var, NOP_EXPR, array_var[0],
+	new_yes_ind  = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, 
+					    NOP_EXPR, array_var[0],
 					    tf_warning_or_error);
       else
 	new_yes_ind  = build_x_modify_expr
-	  (*new_var, NOP_EXPR, TREE_OPERAND (array_operand[0], 1),
-	   tf_warning_or_error);
-      new_yes_expr = build_x_modify_expr (array_ind_value, NOP_EXPR, func_parm,
+	  (UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
+	   TREE_OPERAND (array_operand[0], 1), tf_warning_or_error);
+      new_yes_expr = build_x_modify_expr (UNKNOWN_LOCATION, array_ind_value, 
+					  NOP_EXPR, func_parm,
 					  tf_warning_or_error);
       new_yes_list = alloc_stmt_list ();
       append_to_statement_list (new_yes_ind, &new_yes_list);
@@ -2019,20 +2046,23 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
     }
   else if (an_type == REDUCE_MIN_INDEX)
     {
-      new_var_init = build_x_modify_expr (*new_var, NOP_EXPR, array_var[0], 1);
-      new_exp_init = build_x_modify_expr (array_ind_value, NOP_EXPR, func_parm,
-					  1);
-      new_no_ind   = build_x_modify_expr (*new_var, NOP_EXPR, *new_var, 1);
-      new_no_expr  = build_x_modify_expr (array_ind_value, NOP_EXPR,
-					  array_ind_value, 1);
+      new_var_init = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
+					  array_var[0], 1);
+      new_exp_init = build_x_modify_expr (UNKNOWN_LOCATION, array_ind_value, 
+					  NOP_EXPR, func_parm, 1);
+      new_no_ind   = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
+					  *new_var, 1);
+      new_no_expr  = build_x_modify_expr (UNKNOWN_LOCATION, array_ind_value, 
+					  NOP_EXPR, array_ind_value, 1);
       if (list_size > 1) /* this means there is more than 1 */
-	new_yes_ind  = build_x_modify_expr (*new_var, NOP_EXPR, array_var[0],
-					    1);
+	new_yes_ind  = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, 
+					    NOP_EXPR, array_var[0], 1);
       else
 	new_yes_ind  = build_x_modify_expr
-	  (*new_var, NOP_EXPR, TREE_OPERAND (array_operand[0], 1), 1);
-      new_yes_expr = build_x_modify_expr (array_ind_value, NOP_EXPR, func_parm,
-					  1);
+	  (UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
+	   TREE_OPERAND (array_operand[0], 1), 1);
+      new_yes_expr = build_x_modify_expr (UNKNOWN_LOCATION, array_ind_value, 
+					  NOP_EXPR, func_parm, 1);
       new_yes_list = alloc_stmt_list ();
       append_to_statement_list (new_yes_ind, &new_yes_list);
       append_to_statement_list (new_yes_expr, &new_yes_list);
@@ -2059,10 +2089,11 @@ fix_builtin_array_notation_fn (tree an_builtin_fn, tree *new_var)
 	  error ("Invalid Identity Value!");
 	  exit (ICE_EXIT_CODE);
 	}
-      new_var_init = build_x_modify_expr (*new_var, NOP_EXPR, identity_value,
-					  1);
+      new_var_init = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR,
+					  identity_value, 1);
       new_call_expr = build_call_expr (call_fn, 2, *new_var, func_parm);
-      new_expr = build_x_modify_expr (*new_var, NOP_EXPR, new_call_expr, 1);
+      new_expr = build_x_modify_expr (UNKNOWN_LOCATION, *new_var, NOP_EXPR, 
+				      new_call_expr, 1);
     }
     else
       gcc_unreachable ();
@@ -2283,8 +2314,8 @@ fix_unary_array_notation_exprs (tree orig_stmt)
     {
       array_var[ii] =  create_tmp_var (integer_type_node, NULL);
       ind_init[ii] = build_x_modify_expr
-	(array_var[ii], NOP_EXPR, build_zero_cst (TREE_TYPE (array_var[ii])),
-	 tf_warning_or_error);	
+	(UNKNOWN_LOCATION, array_var[ii], NOP_EXPR, 
+	 build_zero_cst (TREE_TYPE (array_var[ii])), tf_warning_or_error);	
     }
 
   for (ii = 0; ii < rank ; ii++)
@@ -2530,7 +2561,8 @@ build_x_reduce_expr (tree lhs, enum tree_code modifycode, tree rhs,
 {
   if (!type)
     {
-      return build_x_modify_expr (lhs, modifycode, rhs, complain);
+      return build_x_modify_expr (UNKNOWN_LOCATION, lhs, modifycode, rhs, 
+				  complain);
     }
   return NULL_TREE;
 }
