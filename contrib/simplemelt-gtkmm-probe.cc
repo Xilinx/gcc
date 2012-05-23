@@ -822,12 +822,11 @@ public:
 
 
 class SmeltAppl
-  // when gtkmm3.4 is available, should inherit from Gtk::Application
     : public Gtk::Application {
   static SmeltAppl* _application;
   Glib::RefPtr<Gsv::LanguageManager> _app_langman;
-  SmeltMainWindow* _app_mainwin;	// main window
-  std::unique_ptr<SmeltTraceWindow> _app_tracewin;
+  Glib::RefPtr<SmeltMainWindow> _app_mainwinp;	// main window
+  Glib::RefPtr<SmeltTraceWindow> _app_tracewin;
   bool _app_traced;
   Glib::RefPtr<Glib::IOChannel> _app_reqchan_to_melt; // channel for request to MELT
   Glib::RefPtr<Glib::IOChannel> _app_cmdchan_from_melt; // channel for commands from MELT
@@ -885,25 +884,19 @@ public:
   static SmeltAppl* instance() {
     return _application;
   };
-  SmeltAppl(int &argc, char**&argv)
-    : Gtk::Application(argc, argv, "melt-probe.gcc-melt.org"),
-      _app_mainwin(nullptr),
+  SmeltAppl()
+    : Gtk::Application
+      ("org.gcc-melt.simple-probe",
+       Gio::ApplicationFlags(Gio::APPLICATION_HANDLES_COMMAND_LINE 
+			     | Gio::APPLICATION_NON_UNIQUE)),
       _app_traced(false) {
     Gsv::init(); /// initialize GtkSourceviewMM very early!
     _application = this;
-    smelt_options_context.parse (argc, argv);
-    _app_mainwin = new SmeltMainWindow;
-    _app_langman = Gsv::LanguageManager::get_default();
-    _app_indifferent_pixbuf
-      = Gdk::Pixbuf::create_from_xpm_data (smelt_indifferent_13x14_xpm);
-    assert(_app_indifferent_pixbuf && _app_indifferent_pixbuf->gobj() != nullptr);
-    _app_key_16x16_pixbuf
-      = Gdk::Pixbuf::create_from_xpm_data (smelt_key_16x16_xpm);
-    assert(_app_key_16x16_pixbuf && _app_key_16x16_pixbuf->gobj() != nullptr);
-    _app_key_7x11_pixbuf
-      = Gdk::Pixbuf::create_from_xpm_data (smelt_key_7x11_xpm);
-    assert (_app_key_7x11_pixbuf && _app_key_7x11_pixbuf->gobj() != nullptr);
   };
+  static Glib::RefPtr<SmeltAppl> create() {
+    g_assert (_application == nullptr);
+    return Glib::RefPtr<SmeltAppl> (new SmeltAppl());
+  }
   void set_reqchan_to_melt(const std::string &reqname) {
     const char* reqcstr = reqname.c_str();
     char* endstr = nullptr;
@@ -943,11 +936,6 @@ public:
     _app_cmdname_from_melt = cmdname;
   }
   ~SmeltAppl() {
-    delete _app_mainwin;
-  };
-  void run (void) {
-    g_assert (_app_mainwin != nullptr);
-    Gtk::Main::run(*_app_mainwin);
   };
   void set_trace(bool =true);
   void on_trace_toggled(void);
@@ -1559,7 +1547,7 @@ SmeltAppl::set_trace(bool traced)
   SMELT_DEBUG(" traced=" << traced);
   if (traced) {
     if (!_app_tracewin)
-      _app_tracewin.reset (new SmeltTraceWindow());
+      _app_tracewin = Glib::RefPtr<SmeltTraceWindow>(new SmeltTraceWindow());
     else
       _app_tracewin->add_title("Tracing resumed");
     _app_tracewin->show_all();
@@ -1620,12 +1608,12 @@ SmeltAppl::process_command_from_melt(std::string& str)
 ////////////////////////////////////////////////////////////////
 int main (int argc, char** argv)
 {
-#warning not working well yet...
+#warning not working well yet..., should handle program argument
   auto progname = (argc>0)?(argv[0]):"Simple Melt Probe";
   try {
     SmeltOptionGroup optgroup;
     smelt_options_context.set_main_group(optgroup);
-    SmeltAppl app(argc, argv);
+    SmeltAppl app;
     optgroup.setup_appl(app);
     SMELT_DEBUG("running pid " << (int)getpid());
     app.run();
@@ -1702,7 +1690,7 @@ SmeltAppl::showfile_cmd(SmeltVector&v)
   auto filnam = v.at(1).to_string();
   auto num = v.at(2).to_long();
   SMELT_DEBUG("filnam=" << filnam << " num=" << num);
-  _app_mainwin->show_file(filnam,num);
+  _app_mainwinp->show_file(filnam,num);
 }
 
 //////////////// marklocation_pcd <marknum> <filenum> <lineno> <col> to mark a location
@@ -1717,7 +1705,7 @@ SmeltAppl::marklocation_cmd(SmeltVector&v)
   auto lineno = v.at(3).to_long();
   auto col = v.at(4).to_long();
   SMELT_DEBUG("filnum=" << filnum << " lineno=" << lineno << " col=" << col);
-  _app_mainwin->mark_location(marknum,filnum,lineno,col);
+  _app_mainwinp->mark_location(marknum,filnum,lineno,col);
 }
 
 
@@ -1730,7 +1718,7 @@ void
 SmeltAppl::clearstatus_cmd(SmeltVector&)
 {
   SMELT_DEBUG("CLEARSTATUS");
-  _app_mainwin->remove_all_status ();
+  _app_mainwinp->remove_all_status ();
 }
 
 
@@ -1743,7 +1731,7 @@ SmeltAppl::pushstatus_cmd(SmeltVector&v)
 {
   auto str = v.at(1).to_string();
   SMELT_DEBUG("PUSHSTATUS " << str);
-  _app_mainwin->push_status (str);
+  _app_mainwinp->push_status (str);
 }
 
 
@@ -1755,7 +1743,7 @@ void
 SmeltAppl::popstatus_cmd(SmeltVector&)
 {
   SMELT_DEBUG("POPSTATUS");
-  _app_mainwin->pop_status ();
+  _app_mainwinp->pop_status ();
 }
 
 
@@ -1768,8 +1756,8 @@ SmeltAppl::setstatus_cmd(SmeltVector&v)
 {
   auto str = v.at(1).to_string();
   SMELT_DEBUG("SETSTATUS " << str);
-  _app_mainwin->pop_status ();	// pop is valid on empty status
-  _app_mainwin->push_status (str);
+  _app_mainwinp->pop_status ();	// pop is valid on empty status
+  _app_mainwinp->push_status (str);
 }
 
 
