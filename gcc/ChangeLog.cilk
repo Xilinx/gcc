@@ -12,8 +12,6 @@
 	(tree_elem_fn_versioning): Removed several information pertaining to
 	maintaining a CFG.  Also added a masked bool parameter to be passed into
 	several local functions.  Called initialize_elem_fn_cfun function.
-	* tree-ssa.c (verify_use): Added a check if current function is
-	an elemental function.
 	* gimplify.c (gimplify_function_tree): Called function to create
 	elemental function when the function is marked appropriately.
 	* elem-function-common.c (find_processor_code): Moved function from
