@@ -1,6 +1,246 @@
+2012-05-22  Steven Drake <sbd@NetBSD.org>
+
+	* gcc.c (do_spec_1): Add %M spec token to output multilib_os_dir.
+
+2012-05-22  David Edelsohn  <dje.gcc@gmail.com>
+
+	* config/rs6000/rs6000.c (rs6000_aix_asm_output_dwarf_table_ref):
+	Use strip_name_encoding target hook.
+
+2012-05-22  Richard Guenther  <rguenther@suse.de>
+
+	* tree.h (VAR_DECL_IS_VIRTUAL_OPERAND): New.
+	(init_function_for_compilation): Remove.
+	* tree-dfa.c (find_vars_r): Take struct function argument.
+	(find_referenced_vars_in): Adjust.
+	* tree-ssa-operands.c (clobber_stats): Remove.
+	(create_vop_var): Take struct function argument.  Mark
+	virtual operand with VAR_DECL_IS_VIRTUAL_OPERAND.
+	(init_ssa_operands): Take struct function argument.
+	(fini_ssa_operands): Do not dump dead stats.
+	* tree-ssa-operands.h (init_ssa_operands): Take struct function
+	argument.
+	* cgraphunit.c (init_lowered_empty_function): Adjust.
+	* lto-streamer-in.c (input_cfg): Likewise.
+	* tree-inline.c (initialize_cfun): Likewise.
+	* tree-into-ssa.c (rewrite_into_ssa): Likewise.
+	* omp-low.c (expand_omp_taskreg): Likewise.  Avoid switching
+	cfun.
+	* gimple.c (is_gimple_reg): Optimize the SSA_NAME case,
+	virtual operands are not registers.
+
+2012-05-22  Richard Guenther  <rguenther@suse.de>
+
+	* tree-cfg.c (verify_gimple_assign_unary): Fix typo in previous
+	commit.
+
+2012-05-22  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/53437
+	* tree-inline.c (setup_one_parameter): Create a dummy init
+	statement for unused parameters when not optimizing.
+
+2012-05-22  Richard Guenther  <rguenther@suse.de>
+
+	* tree-flow.h (add_referenced_var_1): Declare.
+	(add_referenced_var): Define.
+	* tree-dfa.c (referenced_var_check_and_insert): Avoid one hash
+	lookup.
+	(add_referenced_var): Rename to ...
+	(add_referenced_var_1): ... this.  Take struct function argument.
+
+2012-05-22  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	PR target/53334
+	* config/arm/arm-protos.h (arm_validize_comparison): Declare.
+	* config/arm/arm.c (arm_validize_comparison): Define.
+	* config/arm/arm.md ("cbranchsi4"): Cleanup expansion and use
+	arm_validize_comparison.
+	("cbranchdi4"): Likewise.
+	("cstoredi4"): Likewise.
+	("movsicc"): Likewise.
+	("movsfcc"): Likewise.
+	("movdfcc"): Likewise.
+
+2012-05-22  Dimitrios Apostolou  <jimis@gmx.net>
+
+	* df-scan.c (df_scan_alloc): Round up allocation pools size, reduce
+	the mw_reg_pool size.
+
+2012-05-22  Paolo Bonzini  <bonzini@gnu.org>
+
+	PR tree-optimization/53336
+	* tree-cfg.c (verify_gimple_assign_unary): Allow conversion from
+	non-integer integral types to offset type and vice versa.
+
+2012-05-22  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/aix.h (FP_SAVE_INLINE, GP_SAVE_INLINE): Delete.
+	* config/rs6000/darwin.h (FP_SAVE_INLINE, GP_SAVE_INLINE): Delete.
+	* config/rs6000/sysv4.h (FP_SAVE_INLINE, GP_SAVE_INLINE,
+	V_SAVE_INLINE): Delete.
+	* config/rs6000/rs6000.c (V_SAVE_INLINE): Delete.
+	(rs6000_savres_strategy): Reimplement GP/FP/V_SAVE_INLINE logic.
+	For ELF targets, use out-of-line restores for -Os and any number
+	of regs if the restore exits, and out-of-line gp save for two or
+	more regs.  Use save_reg_p to test for holes in reg restore set.
+	Replace "#if" with "if".
+
+2012-05-22  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/rs6000.c (save_reg_p): New function.
+	(first_reg_to_save, first_fp_reg_to_save): Use it here.
+	(first_altivec_reg_to_save, restore_saved_cr): Likewise.
+	(emit_frame_save): Use gen_frame_store.
+	(gen_frame_mem_offset): Correct SPE condition requiring reg+reg.
+	(rs6000_emit_prologue): Use save_reg_p.  Use gen_frame_store for
+	vrsave and toc.
+	(rs6000_emit_epilogue): Use save_reg_p.  Use gen_frame_load for
+	vrsave, toc, gp and fp restores.
+
+2012-05-22  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/rs6000.c: Delete unnecessary forward declarations.
+	Move those with ATTRIBUTE_UNUSED to immediately before definitions.
+	Move function pointer variables after forward declarations.
+	(rs6000_builtin_support_vector_misalignment): Make static.
+	(rs6000_legitimate_address_p, rs6000_gimplify_va_arg): Likewise.
+	(rs6000_function_value, rs6000_can_eliminate): Likewise.
+
+2012-05-21  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR rtl-optimization/53373
+	* caller-save.c (save_call_clobbered_regs): Look into a possible
+	PARALLEL manually rather than using single_set on a call insn.
+
+2012-05-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53436
+	* omp-low.c (omp_build_component_ref): New function.
+	(build_receiver_ref, build_sender_ref, create_task_copyfn): Use it.
+
+2012-05-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (put_condition_code): Change "reverse" and "fp"
+	arguments to bool.
+	(ix86_print_operand) <case 'O'>: Look at mode size of the operand.
+	Do not print '.' here.  Output operand lossage error for unhandled
+	sizes.  Move.
+	<case '*'>: Move.
+	<case '&'>: Ditto.
+	<case 'Y'>: Ditto.
+	<case 'z'>: Hardcode "code" argument into error strings.
+	<case 'Z'>: Ditto.
+	<case 'D'>: Merge AVX and non-AVX codes.
+	<case 'C', case 'c', case 'F', case 'f'>: Merge.  Fix error string.
+	Update call to put_condition_code.
+
+2012-05-21  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* config/m68k/m68k.md (*clzsi2_cf): Renamed from clzsi2.  Call
+	CC_STATUS_INIT.
+	(clzsi2): New expander.
+	(*clzsi2_68k): New insn.
+	* config/m68k/m68k.h: Update comment about CLZ_DEFINED_VALUE_AT_ZERO.
+
+2012-05-21  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gimple.h (gimple_set_in_transaction): Remove.
+	(gimple_in_transaction): Look in BB instead.
+	(gimple_statement_base): Remove in_transaction field.
+	* basic-block.h (enum bb_flags): Add BB_IN_TRANSACTION.
+	* trans-mem.c (compute_transaction_bits): Place transaction bit
+	information into basic blocks.
+
+2012-05-21  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* expr.c (get_def_for_expr_class): Define only if
+	HAVE_conditional_move.
+	(convert_tree_comp_to_rtx): Likewise.
+
+2012-05-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/53399
+	* config/i386/i386.md (ffs<mode>2): Generate CCCmode compare
+	for TARGET_BMI.
+	(ffssi2_no_cmove): Ditto.
+	(*ffs<mode>_1): Remove insn pattern.
+	(*tzcnt<mode>_1): New insn pattern.
+	(*bsf<mode>1): Ditto.
+
+2012-05-21  Richard Guenther  <rguenther@suse.de>
+
+	* tree-dfa.c (add_referenced_var): Do not walk DECL_INITIAL for
+	more referenced vars.
+	* tree-ssa-live.c (mark_all_vars_used_1): Only set the used
+	flag on variables that have a var-annotation.
+
+2012-05-21  Joseph Myers  <joseph@codesourcery.com>
+
+	PR c/53418
+	* c-typeck.c (build_conditional_expr): Remove C_MAYBE_CONST_EXPR
+	from folded operands before wrapping another around the
+	conditional expression.
+
+2012-05-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/53366
+	* tree-vect-slp.c (vect_supported_load_permutation_p): Don't shortcut
+	tests if complex_numbers == 2, but there are non-complex number loads
+	too.
+
+	PR tree-optimization/53409
+	* tree-vect-loop.c (vect_analyze_loop_operations): Don't check
+	vinfo_for_stmt (op_def_stmt) if op_def_stmt isn't inside loop.
+
+	PR tree-optimization/53410
+	* fold-const.c (fold_binary_loc): Use build_zero_cst (type)
+	instead of build_int_cst (type, 0) where vector types might be
+	involved. Instead of build_int_cst (type, 1) convert the original
+	integer_onep argument to the desired type.
+
+2012-05-21  Michael Matz  <matz@suse.de>
+
+	* genattrtab.c (attr_rtx_cost): Move earlier, start with cost being 1.
+	(simplify_test_exp): Handle one more case of distributive law,
+	decrease cost threshold.
+	(tests_attr_p, get_attr_order): New functions.
+	(optimize_attrs): Use topological order, inline only cheap values.
+	(write_attr_set): Reset our_known_true after some time.
+
+2012-05-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/53425
+	* config/i386/i386.c (type_natural_mode): Warn passing SSE
+	vector argument without SSE enabled changes the ABI.
+
+2012-05-21  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/53408
+	* tree-vect-loop.c (vectorizable_induction): Properly check
+	the restriction that we cannot handle induction results from
+	the inner loop outside of the outer loop.
+
+2012-05-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/53416
+	* config/i386/i386.md (UNSPEC_RDRAND): Renamed to ...
+	(UNSPECV_RDRAND): This.
+	(rdrand<mode>_1): Updated.
+
+2012-05-21  Richard Guenther  <rguenther@suse.de>
+
+	* tree-loop-distribution.c (can_generate_builtin): Reject
+	volatile stmts.
+
+2012-05-21  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* Makefile.in (options.c): Add options.h to included header
+	files, before tm.h.
+
 2012-05-21  Razya Ladelsky  <razya@il.ibm.com>
 
-	* tree-parloops.c : Add myself to contributors, update 
+	* tree-parloops.c : Add myself to contributors, update
 	TODO list, add link to wiki.
 
 2012-05-21  Alan Modra  <amodra@gmail.com>
@@ -56,8 +296,9 @@
 	call_val_symref_64bit, call_val_reg_pic, call_val_reg_64bit): Likewise.
 
 2012-05-20  Razya Ladelsky  <razya@il.ibm.com>
-	
-	* tree-parloops.c (gen_parallel_loop): Change many_iterations_cond for outer loops.
+
+	* tree-parloops.c (gen_parallel_loop): Change many_iterations_cond
+	for outer loops.
 
 2012-05-18  Jan Hubicka  <jh@suse.cz>
 
@@ -75,7 +316,8 @@
 
 2012-05-18  Jan Hubicka  <jh@suse.cz>
 
-	* cgraphunit.c (handle_alias_pairs): Cleanup; handle all types of aliases.
+	* cgraphunit.c (handle_alias_pairs): Cleanup; handle all types of
+	aliases.
 
 2012-05-18  Jan Hubicka  <jh@suse.cz>
 
@@ -135,15 +377,13 @@
 
 	* cgraphunit.c (varpool_finalize_decl): Allow external decls.
 	(mark_functions_to_output): Fix sanity check.
-	* ipa.c (function_and_variable_visibility): Remove TREE_STATIC
-	check.
+	* ipa.c (function_and_variable_visibility): Remove TREE_STATIC check.
 
 2012-05-18  Richard Guenther  <rguenther@suse.de>
 
 	* tree-flow.h (mark_symbols_for_renaming): Remove.
 	* tree-dfa.c (mark_symbols_for_renaming): Likewise.
-	* tree-inline.c (copy_edges_for_bb): Do not mark symbols for
-	renaming.
+	* tree-inline.c (copy_edges_for_bb): Do not mark symbols for renaming.
 	(copy_debug_stmt): Likewise.
 	(expand_call_inline): Likewise.
 	(declare_return_variable): Mark the return variable for renaming
@@ -178,13 +418,14 @@
 
 2012-05-17  Jan Hubicka  <jh@suse.cz>
 
-	* lto-symtab.c (lto_symtab_resolve_symbols): Preffer decl with constructor
-	over decl without.
+	* lto-symtab.c (lto_symtab_resolve_symbols): Preffer decl with
+	constructor over decl without.
 	* cgraph.c (cgraph_remove_node): Clear also body of unanalyzed nodes.
 	* cgraph.h (varpool_can_remove_if_no_refs): Handle external correctly.
-	* cgraphunit.c (process_function_and_variable_attributes): Finalize 
+	* cgraphunit.c (process_function_and_variable_attributes): Finalize
 	extrnal decls.
-	(mark_functions_to_output): Also accept bodies for functions with clones.
+	(mark_functions_to_output): Also accept bodies for functions with
+	clones.
 	(output_in_order): Skip external vars.
 	* lto-cgraph.c (lto_output_node): External functions are never in other
 	partition.
@@ -217,8 +458,7 @@
 
 2012-05-17  Kwok Cheung Yeung  <kcy@codesourcery.com>
 
-	* config/m68k/m68k-devices.def: Add 51ag, 51je, 51jf, 51jg, 51mm,
-	51qm.
+	* config/m68k/m68k-devices.def: Add 51ag, 51je, 51jf, 51jg, 51mm, 51qm.
 	* config/m68k/m68k-tables.opt: Regenerated.
 	* doc/invoke.texi (M680x0 Options): Document.
 
@@ -398,7 +638,7 @@
 
 2012-05-15  Tristan Gingold  <gingold@adacore.com>
 
-      * tree-ssa-strlen.c (get_string_length): Convert lhs if needed.
+	* tree-ssa-strlen.c (get_string_length): Convert lhs if needed.
 
 2012-05-15  Richard Guenther  <rguenther@suse.de>
 
@@ -426,8 +666,7 @@
 
 2012-05-15  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
-	* doc/md.texi (fma): Define to only be applicable for single
-	rounding.
+	* doc/md.texi (fma): Define to only be applicable for single rounding.
 
 2012-05-14  Uros Bizjak  <ubizjak@gmail.com>
 
@@ -482,7 +721,7 @@
 	* config/avr/avr.c (avr_const_address_lo16): Remove.
 	(avr_assemble_integer):  Print ".byte lo8(x)",
 	".byte hi8(x)", ".byte hh8(x)" instead of emit an assembler
-	.warning if 3-byte address is assembled. 
+	.warning if 3-byte address is assembled.
 	* doc/extend.texi (AVR Named Address Spaces): Document that
 	binutils 2.23 is needed to assemble 3-byte addresses.
 

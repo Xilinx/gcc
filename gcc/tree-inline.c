@@ -2123,7 +2123,7 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count)
     {
       init_tree_ssa (cfun);
       cfun->gimple_df->in_ssa_p = true;
-      init_ssa_operands ();
+      init_ssa_operands (cfun);
     }
   pop_cfun ();
 }
@@ -2701,7 +2701,8 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
       STRIP_USELESS_TYPE_CONVERSION (rhs);
 
       /* If we are in SSA form properly remap the default definition
-         or omit the initialization if the parameter is unused.  */
+         or assign to a dummy SSA name if the parameter is unused and
+	 we are not optimizing.  */
       if (gimple_in_ssa_p (cfun) && is_gimple_reg (p))
 	{
 	  if (def)
@@ -2710,6 +2711,11 @@ setup_one_parameter (copy_body_data *id, tree p, tree value, tree fn,
 	      init_stmt = gimple_build_assign (def, rhs);
 	      SSA_NAME_IS_DEFAULT_DEF (def) = 0;
 	      set_default_def (var, NULL);
+	    }
+	  else if (!optimize)
+	    {
+	      def = make_ssa_name (var, NULL);
+	      init_stmt = gimple_build_assign (def, rhs);
 	    }
 	}
       else
