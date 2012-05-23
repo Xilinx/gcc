@@ -195,6 +195,8 @@ extern GTY(()) tree cilk_trees[(int) CILK_TI_MAX];
 #define notify_zc_intrinsic_fndecl      cilk_trees[NOTIFY_ZC_INTRINSIC]
 #define notify_intrinsic_fndecl         cilk_trees[NOTIFY_INTRINSIC]
 
+/* this is the max number of data we have have in elem-function arrays */
+#define MAX_VARS 50
 
 typedef struct zca_data_t
 {
@@ -205,6 +207,40 @@ typedef struct zca_data_t
   struct zca_data_t *ptr_next;
 } zca_data;
 
+/* These are different mask options. I put 12345 so that we can defferenciate
+ * the value during debugging */
+enum mask_options {
+  USE_MASK = 12345,
+  USE_NOMASK,
+  USE_BOTH
+};
+
+/* this data structure will hold all the data from the vector attribute */
+typedef struct
+{
+  char *proc_type;
+  enum mask_options mask;
+  int vectorlength[MAX_VARS];
+  int no_vlengths;
+  char *uniform_vars[MAX_VARS];
+  int no_uvars;
+  int uniform_location[MAX_VARS]; /* their location in parm list */
+  char *linear_vars[MAX_VARS];
+  int linear_steps[MAX_VARS];
+  int linear_location[MAX_VARS]; /* their location in parm list */
+  int no_lvars;
+  int private_location[MAX_VARS]; /* parm not in uniform or linear list */
+  int no_pvars;
+  char *func_prefix;
+  int total_no_args;
+} elem_fn_info;
+
+/* this data structure will hold all the arguments in the function */
+typedef struct {
+  tree induction_var;
+  tree arguments;
+  tree return_var;
+} fn_vect_elements;
 
 /* Offset of fields in the Cilk frame descriptor.
    Index is same as for cilk_trees.  If the index
@@ -270,6 +306,14 @@ extern bool cilk_annotated_function_p (char *);
 extern void debug_zca_data (void);
 extern zca_data *get_zca_entry (int);
 extern void insert_in_zca_table (zca_data);
-extern bool is_elem_fn (tree);				 
+extern bool is_elem_fn (tree);
 extern tree find_elem_fn_name (tree, tree, tree);
+extern void elem_fn_create_fn (tree);
+extern char *find_processor_code (elem_fn_info *);
+extern char *find_vlength_code (elem_fn_info *);
+extern tree rename_elem_fn (tree, const char *);
+extern char *find_suffix (elem_fn_info *, bool);
+extern enum elem_fn_parm_type find_elem_fn_parm_type (gimple, tree, tree *);
+extern tree find_elem_fn_name (tree, tree, tree);
+elem_fn_info *extract_elem_fn_values (tree);
 #endif /* GCC_CILK_H */

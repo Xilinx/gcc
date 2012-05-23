@@ -3806,7 +3806,7 @@ add_local_variables (struct function *callee, struct function *caller,
 static inline void
 elem_fn_add_local_variables (struct function *callee, struct function *caller,
 			     copy_body_data *id, bool check_var_ann,
-			     int vlength)
+			     int vlength ATTRIBUTE_UNUSED)
 {
   tree var;
   unsigned ix;
@@ -3836,9 +3836,6 @@ elem_fn_add_local_variables (struct function *callee, struct function *caller,
 	    SET_DECL_DEBUG_EXPR (new_var, tem);
 	  }
 	TREE_TYPE (new_var) = copy_node (TREE_TYPE (new_var));
-	TREE_TYPE (new_var) =
-	  build_vector_type (copy_node (TREE_TYPE (new_var)), vlength);
-	DECL_GIMPLE_REG_P (new_var) = 1;
  	add_local_decl (caller, new_var);
       }
 }
@@ -4994,27 +4991,35 @@ copy_arguments_for_versioning (tree orig_parm, copy_body_data * id,
 static tree
 elem_fn_copy_arguments_for_versioning (tree orig_parm, copy_body_data * id,
 				       bitmap args_to_skip, tree *vars,
-				       int vlength)
+				       int vlength, bool masked)
 {
   tree arg, *parg;
   tree new_parm = NULL;
   int i = 0;
-
+  tree masked_parm = NULL_TREE;
   parg = &new_parm;
 
+  if (masked)
+    {
+      masked_parm = build_decl (UNKNOWN_LOCATION, PARM_DECL,
+				get_identifier ("__elem_fn_mask"),
+				build_vector_type (integer_type_node, vlength));
+      DECL_ARG_TYPE (masked_parm) = build_vector_type (integer_type_node,
+						       vlength);
+      DECL_ARTIFICIAL (masked_parm) = 1;
+      lang_hooks.dup_lang_specific_decl (masked_parm);
+    }
   for (arg = orig_parm; arg; arg = DECL_CHAIN (arg), i++)
     if (!args_to_skip || !bitmap_bit_p (args_to_skip, i))
       {
         tree new_tree = remap_decl (arg, id);
 	if (TREE_CODE (new_tree) != PARM_DECL)
 	  new_tree = id->copy_decl (arg, id);
-	/* bviyer; I am using a dummy value of 4 to make sure this works */
 	TREE_TYPE (new_tree) = copy_node (TREE_TYPE (new_tree));
-	TREE_TYPE (new_tree) =
-	  build_vector_type (TREE_TYPE (new_tree), vlength);
-	DECL_ARG_TYPE (new_tree) =
-	  build_vector_type (DECL_ARG_TYPE (new_tree), vlength);
-	DECL_GIMPLE_REG_P (new_tree) = 1;
+	TREE_TYPE (new_tree) = build_vector_type (TREE_TYPE (new_tree),
+						  vlength);
+	DECL_ARG_TYPE (new_tree) = build_vector_type (DECL_ARG_TYPE (new_tree),
+						      vlength);
         lang_hooks.dup_lang_specific_decl (new_tree);
         *parg = new_tree;
 	parg = &DECL_CHAIN (new_tree);
@@ -5031,6 +5036,14 @@ elem_fn_copy_arguments_for_versioning (tree orig_parm, copy_body_data * id,
         DECL_CHAIN (var) = *vars;
         *vars = var;
       }
+  if (masked && masked_parm)
+    {
+      for (arg = new_parm; DECL_CHAIN (arg); arg = DECL_CHAIN(arg))
+	;
+      
+      DECL_CONTEXT (masked_parm) = DECL_CONTEXT (arg);
+      DECL_CHAIN (arg) = masked_parm;
+    }
   return new_parm;
 }
 
@@ -5444,20 +5457,60 @@ tree_function_versioning (tree old_decl, tree new_decl,
   return;
 }
 
+static void
+initialize_elem_fn_cfun (tree new_fndecl, tree callee_fndecl)
+{
+  struct function *src_cfun = DECL_STRUCT_FUNCTION (callee_fndecl);
+
+  /* Get clean struct function.  */
+  push_struct_function (new_fndecl);
+
+  /* We will rebuild these, so just sanity check that they are empty.  */
+  gcc_assert (VALUE_HISTOGRAMS (cfun) == NULL);
+  gcc_assert (cfun->local_decls == NULL);
+  gcc_assert (cfun->cfg == NULL);
+  gcc_assert (cfun->decl == new_fndecl);
+
+  /* Copy items we preserve during cloning.  */
+  cfun->static_chain_decl = src_cfun->static_chain_decl;
+  cfun->nonlocal_goto_save_area = src_cfun->nonlocal_goto_save_area;
+  cfun->function_end_locus = src_cfun->function_end_locus;
+  cfun->curr_properties = src_cfun->curr_properties & ~PROP_loops;
+  cfun->last_verified = src_cfun->last_verified;
+  cfun->va_list_gpr_size = src_cfun->va_list_gpr_size;
+  cfun->va_list_fpr_size = src_cfun->va_list_fpr_size;
+  cfun->has_nonlocal_label = src_cfun->has_nonlocal_label;
+  cfun->stdarg = src_cfun->stdarg;
+  cfun->after_inlining = src_cfun->after_inlining;
+  cfun->can_throw_non_call_exceptions
+    = src_cfun->can_throw_non_call_exceptions;
+  cfun->returns_struct = src_cfun->returns_struct;
+  cfun->returns_pcc_struct = src_cfun->returns_pcc_struct;
+  cfun->after_tree_profile = src_cfun->after_tree_profile;
+  
+  if (src_cfun->eh)
+    init_eh_for_function ();
+
+  if (src_cfun->gimple_df)
+    {
+      init_tree_ssa (cfun);
+      cfun->gimple_df->in_ssa_p = true;
+      init_ssa_operands (cfun);
+    }
+  pop_cfun ();
+}
+
 void
 tree_elem_fn_versioning (tree old_decl, tree new_decl,
 			 VEC(ipa_replace_map_p,gc)* tree_map,
 			 bool update_clones, bitmap args_to_skip,
-			 bool skip_return, bitmap blocks_to_copy,
-			 basic_block new_entry, int vlength)
+			 bool skip_return, bitmap blocks_to_copy ATTRIBUTE_UNUSED,
+			 basic_block new_entry ATTRIBUTE_UNUSED, int vlength, bool masked)
 {
-  struct cgraph_node *old_version_node;
-  struct cgraph_node *new_version_node;
   copy_body_data id;
   tree p;
   unsigned i;
   struct ipa_replace_map *replace_info;
-  basic_block old_entry_block, bb;
   VEC (gimple, heap) *init_stmts = VEC_alloc (gimple, heap, 10);
 
   tree old_current_function_decl = current_function_decl;
@@ -5466,20 +5519,6 @@ tree_elem_fn_versioning (tree old_decl, tree new_decl,
   gcc_assert (TREE_CODE (old_decl) == FUNCTION_DECL
 	      && TREE_CODE (new_decl) == FUNCTION_DECL);
   DECL_POSSIBLY_INLINED (old_decl) = 1;
-
-  old_version_node = cgraph_get_node (old_decl);
-  gcc_checking_assert (old_version_node);
-  new_version_node = cgraph_get_node (new_decl);
-  gcc_checking_assert (new_version_node);
-
-  if (TREE_TYPE (TREE_TYPE (old_decl)) != void_type_node)
-    {
-      TREE_TYPE (TREE_TYPE (new_decl)) =
-	copy_node (TREE_TYPE (TREE_TYPE (old_decl)));
-      TREE_TYPE (TREE_TYPE (new_decl)) =
-	build_vector_type (TREE_TYPE (TREE_TYPE (new_decl)), vlength);
-    }
-  
   
   /* Copy over debug args.  */
   if (DECL_HAS_DEBUG_ARGS_P (old_decl))
@@ -5502,9 +5541,6 @@ tree_elem_fn_versioning (tree old_decl, tree new_decl,
   (*debug_hooks->outlining_inline_function) (old_decl);
 
   DECL_ARTIFICIAL (new_decl) = 1;
-  DECL_ABSTRACT_ORIGIN (new_decl) = DECL_ORIGIN (old_decl);
-  DECL_FUNCTION_PERSONALITY (new_decl) = DECL_FUNCTION_PERSONALITY (old_decl);
-
   /* Prepare the data structures for the tree copy.  */
   memset (&id, 0, sizeof (id));
 
@@ -5515,23 +5551,9 @@ tree_elem_fn_versioning (tree old_decl, tree new_decl,
   id.debug_map = NULL;
   id.src_fn = old_decl;
   id.dst_fn = new_decl;
-  id.src_node = old_version_node;
-  id.dst_node = new_version_node;
+  id.src_node = NULL;
+  id.dst_node = NULL;
   id.src_cfun = DECL_STRUCT_FUNCTION (old_decl);
-  if (id.src_node->ipa_transforms_to_apply)
-    {
-      VEC(ipa_opt_pass,heap) * old_transforms_to_apply =
-	id.dst_node->ipa_transforms_to_apply;
-      unsigned int i;
-
-      id.dst_node->ipa_transforms_to_apply =
-	VEC_copy (ipa_opt_pass, heap, id.src_node->ipa_transforms_to_apply);
-      for (i = 0; i < VEC_length (ipa_opt_pass, old_transforms_to_apply); i++)
-        VEC_safe_push (ipa_opt_pass, heap, id.dst_node->ipa_transforms_to_apply,
-		       VEC_index (ipa_opt_pass,
-		       		  old_transforms_to_apply,
-				  i));
-    }
 
   id.copy_decl = copy_decl_no_change;
   id.transform_call_graph_edges
@@ -5541,12 +5563,8 @@ tree_elem_fn_versioning (tree old_decl, tree new_decl,
   id.transform_lang_insert_block = NULL;
 
   current_function_decl = new_decl;
-  old_entry_block = ENTRY_BLOCK_PTR_FOR_FUNCTION
-    (DECL_STRUCT_FUNCTION (old_decl));
-  initialize_cfun (new_decl, old_decl,
-		   old_entry_block->count);
-  DECL_STRUCT_FUNCTION (new_decl)->gimple_df->ipa_pta
-    = id.src_cfun->gimple_df->ipa_pta;
+  
+  initialize_elem_fn_cfun (new_decl, old_decl);
   push_cfun (DECL_STRUCT_FUNCTION (new_decl));
 
   /* Copy the function's static chain.  */
@@ -5602,7 +5620,8 @@ tree_elem_fn_versioning (tree old_decl, tree new_decl,
   if (DECL_ARGUMENTS (old_decl) != NULL_TREE)
     DECL_ARGUMENTS (new_decl) =
       elem_fn_copy_arguments_for_versioning (DECL_ARGUMENTS (old_decl), &id,
-					     args_to_skip, &vars, vlength);
+					     args_to_skip, &vars,
+					     vlength, masked);
 
   DECL_INITIAL (new_decl) = remap_blocks (DECL_INITIAL (id.src_fn), &id);
   BLOCK_SUPERCONTEXT (DECL_INITIAL (new_decl)) = new_decl;
@@ -5629,7 +5648,6 @@ tree_elem_fn_versioning (tree old_decl, tree new_decl,
     {
       tree old_name;
       DECL_RESULT (new_decl) = remap_decl (DECL_RESULT (old_decl), &id);
-      /* bviyer; we are just using 4 for vectorlength just to see if it works */
       if (TREE_TYPE (DECL_RESULT (new_decl)) != void_type_node)
 	{
 	  TREE_TYPE (DECL_RESULT (new_decl)) =
@@ -5637,6 +5655,14 @@ tree_elem_fn_versioning (tree old_decl, tree new_decl,
 			       vlength);
 	  DECL_MODE (DECL_RESULT (new_decl)) =
 	    TYPE_MODE (TREE_TYPE (DECL_RESULT (new_decl)));
+	}
+      if (TREE_TYPE (TREE_TYPE (old_decl)) != void_type_node)
+	{
+	  TREE_TYPE (new_decl) = copy_node (TREE_TYPE (old_decl));
+	  TREE_TYPE (TREE_TYPE (new_decl)) =
+	    copy_node (TREE_TYPE (TREE_TYPE (old_decl)));
+	  TREE_TYPE (TREE_TYPE (new_decl)) =
+	    build_vector_type (TREE_TYPE (TREE_TYPE (new_decl)), vlength);
 	}
       lang_hooks.dup_lang_specific_decl (DECL_RESULT (new_decl));
       if (gimple_in_ssa_p (id.src_cfun)
@@ -5650,22 +5676,11 @@ tree_elem_fn_versioning (tree old_decl, tree new_decl,
 	  set_default_def (DECL_RESULT (new_decl), new_name);
 	}
     }
-
-  /* Copy the Function's body.  */
-  copy_body (&id, old_entry_block->count, REG_BR_PROB_BASE,
-	     ENTRY_BLOCK_PTR, EXIT_BLOCK_PTR, blocks_to_copy, new_entry);
-
+  walk_tree (&DECL_SAVED_TREE (new_decl), copy_tree_body_r, &id, NULL);
   /* Renumber the lexical scoping (non-code) blocks consecutively.  */
   number_blocks (new_decl);
 
-  /* We want to create the BB unconditionally, so that the addition of
-     debug stmts doesn't affect BB count, which may in the end cause
-     codegen differences.  */
-  bb = split_edge (single_succ_edge (ENTRY_BLOCK_PTR));
-  while (VEC_length (gimple, init_stmts))
-    insert_init_stmt (&id, bb, VEC_pop (gimple, init_stmts));
-  update_clone_info (&id);
-
+  
   /* Remap the nonlocal_goto_save_area, if any.  */
   if (cfun->nonlocal_goto_save_area)
     {
@@ -5675,48 +5690,11 @@ tree_elem_fn_versioning (tree old_decl, tree new_decl,
       wi.info = &id;
       walk_tree (&cfun->nonlocal_goto_save_area, remap_gimple_op_r, &wi, NULL);
     }
-
+  
   /* Clean up.  */
   pointer_map_destroy (id.decl_map);
   if (id.debug_map)
     pointer_map_destroy (id.debug_map);
-  free_dominance_info (CDI_DOMINATORS);
-  free_dominance_info (CDI_POST_DOMINATORS);
-
-  fold_marked_statements (0, id.statements_to_fold);
-  pointer_set_destroy (id.statements_to_fold);
-  fold_cond_expr_cond ();
-  delete_unreachable_blocks_update_callgraph (&id);
-  if (id.dst_node->analyzed)
-    cgraph_rebuild_references ();
-  update_ssa (TODO_update_ssa);
-
-  /* After partial cloning we need to rescale frequencies, so they are
-     within proper range in the cloned function.  */
-  if (new_entry)
-    {
-      struct cgraph_edge *e;
-      rebuild_frequencies ();
-
-      new_version_node->count = ENTRY_BLOCK_PTR->count;
-      for (e = new_version_node->callees; e; e = e->next_callee)
-	{
-	  basic_block bb = gimple_bb (e->call_stmt);
-	  e->frequency = compute_call_stmt_bb_frequency (current_function_decl,
-							 bb);
-	  e->count = bb->count;
-	}
-      for (e = new_version_node->indirect_calls; e; e = e->next_callee)
-	{
-	  basic_block bb = gimple_bb (e->call_stmt);
-	  e->frequency = compute_call_stmt_bb_frequency (current_function_decl,
-							 bb);
-	  e->count = bb->count;
-	}
-    }
-
-  free_dominance_info (CDI_DOMINATORS);
-  free_dominance_info (CDI_POST_DOMINATORS);
 
   gcc_assert (!id.debug_stmts);
   VEC_free (gimple, heap, init_stmts);

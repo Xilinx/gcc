@@ -226,15 +226,23 @@ static GTY (()) tree vtable_entry_type;
 static bool
 cgraph_decide_is_function_needed (struct cgraph_node *node, tree decl)
 {
+  bool is_cloned_elem_func = false;
   /* If the user told us it is used, then it must be so.  */
   if (node->symbol.force_output)
     return true;
 
+  /* When an elemental function is cloned, we set the elem_fn_already_cloned,
+     will be set to true, for all other functions, it is initalized to zero.
+     So, if it is an elemental function, we output it without questioning */
+  if (DECL_STRUCT_FUNCTION (decl))
+    is_cloned_elem_func = DECL_STRUCT_FUNCTION (decl)->elem_fn_already_cloned;
+  
   /* Double check that no one output the function into assembly file
      early.  */
   gcc_checking_assert (!DECL_ASSEMBLER_NAME_SET_P (decl)
 	               || (node->thunk.thunk_p || node->same_body_alias)
-	               ||  !TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl)));
+	               ||  !TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (decl))
+		       || is_cloned_elem_func);
 
 
   /* Keep constructors, destructors and virtual functions.  */

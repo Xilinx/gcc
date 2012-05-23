@@ -630,7 +630,8 @@ struct cgraph_node *cgraph_function_versioning (struct cgraph_node *,
 void tree_function_versioning (tree, tree, VEC (ipa_replace_map_p,gc)*,
 			       bool, bitmap, bool, bitmap, basic_block);
 void tree_elem_fn_versioning (tree, tree, VEC (ipa_replace_map_p,gc)*,
-			      bool, bitmap, bool, bitmap, basic_block, int);
+			      bool, bitmap, bool, bitmap, basic_block, int,
+			      bool);
 bool cgraph_process_new_functions (void);
 void cgraph_process_same_body_aliases (void);
 void fixup_same_cpp_alias_visibility (symtab_node node, symtab_node target, tree alias);

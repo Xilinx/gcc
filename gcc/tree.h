@@ -6234,6 +6234,9 @@ extern HOST_WIDE_INT find_linear_step_size (int pragma_simd_index, tree var);
 tree build_call_list (tree return_type, tree fn, tree arglist);
 tree build_function_linkage_variant (tree ttype,
 				     enum function_linkage linkage);
+bool is_elem_fn (tree);
+enum elem_fn_parm_type find_elem_fn_parm_type (gimple, tree, tree*);
+void elem_fn_create_fn (tree) __attribute__((weak));
 
 /* Functional interface to the builtin functions.  */
 

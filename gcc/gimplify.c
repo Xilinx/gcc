@@ -8360,6 +8360,13 @@ gimplify_function_tree (tree fndecl)
 
   oldfn = current_function_decl;
   current_function_decl = fndecl;
+
+  /* here we check to see if we have a function with the attribute vector
+   * with it. If so, then we must clone it to masked/unmasked when apropriate.
+   */
+  if (flag_enable_cilk && is_elem_fn (fndecl))
+    elem_fn_create_fn (fndecl);
+  
   if (DECL_STRUCT_FUNCTION (fndecl))
     push_cfun (DECL_STRUCT_FUNCTION (fndecl));
   else

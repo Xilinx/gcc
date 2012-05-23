@@ -1,3 +1,43 @@
+2012-05-23  Balaji V Iyer  <balaji.v.iyer@intel.com>
+
+	* cgraphunit.c (cgraph_decide_is_function_needed): Added a check for
+	a cloned elemental function in the checking assert.
+	* tree-inline.c (elem_fn_add_local_variables): Make vlength as an
+	unused attribute.  Also stopped moving local variables to vector values.
+	(elem_fn_copy_arguments_for_versioning): Added a bool called masked as
+	a new parameter.  Also, added a masked parameter to the cloned function
+	if this bool is set to true.  Also, stopped setting arguments to
+	GIMPLE_REG.
+	(initialize_elem_fn_cfun): New function.
+	(tree_elem_fn_versioning): Removed several information pertaining to
+	maintaining a CFG.  Also added a masked bool parameter to be passed into
+	several local functions.  Called initialize_elem_fn_cfun function.
+	* tree-ssa.c (verify_use): Added a check if current function is
+	an elemental function.
+	* gimplify.c (gimplify_function_tree): Called function to create
+	elemental function when the function is marked appropriately.
+	* elem-function-common.c (find_processor_code): Moved function from
+	elem-function.c.
+	(find_vlength_code): Likewise.
+	(rename_elem_fn): Likewise.
+	(find_suffix): Likewise.
+	(find_elem_fn_parm_type_1): Likewise.
+	(find_elem_fn_parm_type): Likewise.
+	(find_elem_fn_name): Likewise.
+	(extract_elem_fn_values): Likewise.
+	(is_elem_fn): Likewise.
+	* elem-function.c (create_optimize_attribute): Changed sprintf to an
+	if-statement.
+	(find_suffix): Changed a string copy to string concatination.
+	(replace_return_with_new_var): New function.
+	(elem_fn_build_array): Likewise.
+	(replace_array_ref_for_vec): Likewise.
+	(fix_elem_fn_return_value): Likewise.
+	(add_elem_fn_loop): Likewise.
+	(add_elem_fn_mask): Likewise.
+	(cg_hacks): Likewise.
+	(elem_fn_create_fn): Likewise.
+	* passes.c (init_optimization_passes): Removed elem_fn_pass.
 2012-05-08  Balaji V. Iyer  <balaji.v.iyer@intel.com>
 
 	* cilk.c (expand_builtin_cilk_detach): Added mode type for
