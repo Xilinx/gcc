@@ -298,6 +298,7 @@ class SmeltMainWindow : public Gtk::ApplicationWindow {
 public:
   SmeltMainWindow() :
     Gtk::ApplicationWindow() {
+    SMELT_DEBUG ("constructing main window " << (void*)this);
     set_border_width(6);
     set_default_size(480,380);
     add(_mainvbox);
@@ -396,7 +397,7 @@ public:
 };
 
 
-class SmeltAppl;
+class SmeltApplication;
 class SmeltOptionGroup : public Glib::OptionGroup {
   std::string _file_to_melt;
   std::string _file_from_melt;
@@ -441,7 +442,7 @@ public:
     }
 #endif
   };
-  void setup_appl(SmeltAppl&);
+  void setup_appl(SmeltApplication&);
 };				// end class SmeltOptionGroup
 
 
@@ -803,8 +804,8 @@ void SmeltArg::out(std::ostream& os) const
 
 class SmeltCommandSymbol : public SmeltSymbol {
 public:
-  typedef void (SmeltAppl::*cmdfun_t)(SmeltVector&);
-  friend class SmeltAppl;
+  typedef void (SmeltApplication::*cmdfun_t)(SmeltVector&);
+  friend class SmeltApplication;
 private:
   cmdfun_t _cmdfun;
 public:
@@ -817,13 +818,13 @@ public:
   cmdfun_t fun() {
     return _cmdfun;
   };
-  void call(SmeltAppl*, SmeltVector&);
+  void call(SmeltApplication*, SmeltVector&);
 };				// end class SmeltCommandSymbol
 
 
-class SmeltAppl
+class SmeltApplication
     : public Gtk::Application {
-  static SmeltAppl* _application;
+  static SmeltApplication* _application;
   Glib::RefPtr<Gsv::LanguageManager> _app_langman;
   Glib::RefPtr<SmeltMainWindow> _app_mainwinp;	// main window
   Glib::RefPtr<SmeltTraceWindow> _app_tracewin;
@@ -864,7 +865,7 @@ public:
       if (!_app_connreq_to_melt) {
         SMELT_DEBUG("connecting requests");
         _app_connreq_to_melt
-          = Glib::signal_io().connect(sigc::mem_fun(*this, &SmeltAppl::reqbuf_to_melt_cb),
+          = Glib::signal_io().connect(sigc::mem_fun(*this, &SmeltApplication::reqbuf_to_melt_cb),
                                       _app_reqchan_to_melt, Glib::IO_OUT);
       }
     }
@@ -881,10 +882,10 @@ public:
   Glib::RefPtr<Gdk::Pixbuf> key_16x16_pixbuf() const {
     return _app_key_16x16_pixbuf;
   }
-  static SmeltAppl* instance() {
+  static SmeltApplication* instance() {
     return _application;
   };
-  SmeltAppl()
+  SmeltApplication()
     : Gtk::Application
       ("org.gcc-melt.simple-probe",
        Gio::ApplicationFlags(Gio::APPLICATION_HANDLES_COMMAND_LINE 
@@ -893,9 +894,9 @@ public:
     Gsv::init(); /// initialize GtkSourceviewMM very early!
     _application = this;
   };
-  static Glib::RefPtr<SmeltAppl> create() {
+  static Glib::RefPtr<SmeltApplication> create() {
     g_assert (_application == nullptr);
-    return Glib::RefPtr<SmeltAppl> (new SmeltAppl());
+    return Glib::RefPtr<SmeltApplication> (new SmeltApplication());
   }
   void set_reqchan_to_melt(const std::string &reqname) {
     const char* reqcstr = reqname.c_str();
@@ -931,12 +932,56 @@ public:
     } else
       SMELT_FATAL("cannot open command from MELT channel " << cmdname);
     _app_conncmd_from_melt =
-      Glib::signal_io().connect(sigc::mem_fun(*this, &SmeltAppl::cmdbuf_from_melt_cb),
+      Glib::signal_io().connect(sigc::mem_fun(*this, &SmeltApplication::cmdbuf_from_melt_cb),
                                 _app_cmdchan_from_melt, Glib::IO_IN);
     _app_cmdname_from_melt = cmdname;
   }
-  ~SmeltAppl() {
+  ~SmeltApplication() {
   };
+  virtual int
+  on_command_line(const Glib::RefPtr<Gio::ApplicationCommandLine>& cmdline)
+  {
+    int argc = 0;
+    char** argv = cmdline->get_arguments(argc);
+    Glib::OptionContext optcontext;
+    SmeltOptionGroup optgroup;
+    optcontext.set_main_group(optgroup);
+    try {
+      optcontext.parse(argc,argv);
+    } catch (const Glib::Error& ex)
+      {
+	std::clog 
+	  << argv[0] 
+	  << " got exception when parsing command line:" << ex.what() << std::endl;
+	std::cerr << optcontext.get_help() << std::endl;
+	return EXIT_FAILURE;
+      }
+    SMELT_DEBUG ("command_line activating");
+    activate ();
+    SMELT_DEBUG ("command_line done");
+    return EXIT_SUCCESS;
+  }
+  virtual void
+  on_startup (void)
+  {
+    std::clog << __FILE__ << ":" << __LINE__ << " start on_startup " << std::endl;
+    Gtk::Application::on_startup();
+  }
+
+  virtual void
+  on_activate(void) 
+  {
+    std::clog << __FILE__ << ":" << __LINE__ << " start on_activate " << std::endl;
+    SMELT_DEBUG ("activated");
+    if (!_app_mainwinp)
+      {
+	SmeltMainWindow* mainwin = new SmeltMainWindow();
+	SMELT_DEBUG("mainwin=" << (void*)mainwin);
+	add_window(*mainwin);
+	_app_mainwinp = Glib::RefPtr<SmeltMainWindow>(mainwin);
+      }
+    Gtk::Application::on_activate();
+  }
   void set_trace(bool =true);
   void on_trace_toggled(void);
   /// command handlers
@@ -949,9 +994,9 @@ public:
   void pushstatus_cmd(SmeltVector&);
   void popstatus_cmd(SmeltVector&);
   void setstatus_cmd(SmeltVector&);
-};				// end class SmeltAppl
+};				// end class SmeltApplication
 
-SmeltAppl*  SmeltAppl::_application;
+SmeltApplication*  SmeltApplication::_application;
 
 SmeltVector
 SmeltArg::parse_string_vector(const std::string& s, int& pos) throw (std::exception)
@@ -1127,7 +1172,7 @@ SmeltMainWindow::ShownFile::ShownFile(SmeltMainWindow*mwin,const std::string&fil
   if (filepath.empty() || mainsfiledict_.find(filepath) != mainsfiledict_.end())
     throw smelt_domain_error("ShownFile: invalid shown file name",filepath);
   SMELT_DEBUG("guessing language for filepath=" << filepath);
-  auto langman = SmeltAppl::instance()->langman();
+  auto langman = SmeltApplication::instance()->langman();
   auto lang = langman->guess_language(filepath,std::string());
   assert (lang);
   SMELT_DEBUG("guessed lang id=" << (lang->get_id().c_str()) <<
@@ -1271,7 +1316,7 @@ void SmeltMainWindow::remove_all_status(void)
 
 void SmeltMainWindow::send_quit_req(void)
 {
-  SmeltAppl::instance()->sendreq(SmeltAppl::instance()->outreq() << "QUIT_prq");
+  SmeltApplication::instance()->sendreq(SmeltApplication::instance()->outreq() << "QUIT_prq");
   Glib::signal_timeout().connect_once(sigc::ptr_fun(&smelt_quit),250);
 }
 
@@ -1292,7 +1337,7 @@ void SmeltMainWindow::on_version_show(void)
     authorsvec.push_back ("Basile Starynkevitch");
     dial.set_authors (authorsvec);
   }
-  SmeltAppl::instance()->sendreq(SmeltAppl::instance()->outreq() << "VERSION_prq");
+  SmeltApplication::instance()->sendreq(SmeltApplication::instance()->outreq() << "VERSION_prq");
   int res = dial.run();
   SMELT_DEBUG("got res=" << res);
 }
@@ -1356,7 +1401,7 @@ SmeltTraceWindow::SmeltTraceWindow()
     _traceactgroup = Gtk::ActionGroup::create();
     _traceactgroup->add(Gtk::Action::create("TraceMenuFile", "_File"));
     _traceactgroup->add(Gtk::Action::create("TraceMenuTrace", "Trace"),
-                        sigc::mem_fun(*SmeltAppl::instance(), &SmeltAppl::on_trace_toggled));
+                        sigc::mem_fun(*SmeltApplication::instance(), &SmeltApplication::on_trace_toggled));
     _traceactgroup->add(Gtk::Action::create("TraceMenuClear", "Clear"),
                         sigc::mem_fun(*this,&SmeltTraceWindow::on_trace_clear));
     auto uimgr = Gtk::UIManager::create();
@@ -1422,18 +1467,18 @@ SmeltTraceWindow::SmeltTraceWindow()
       tbuf->insert(tbuf->end(), "Commands from MELT are ");
       tbuf->insert_with_tag(tbuf->end(), "like this", "command");
       tbuf->insert(tbuf->end(), Glib::ustring::compose (" on %1\n",
-                   SmeltAppl::instance()->cmdname_from_melt()));
+                   SmeltApplication::instance()->cmdname_from_melt()));
       tbuf->insert(tbuf->end(), "Requests to MELT are ");
       tbuf->insert_with_tag(tbuf->end(), "like that", "reply");
       tbuf->insert(tbuf->end(), Glib::ustring::compose (" on %1\n",
-                   SmeltAppl::instance()->reqname_to_melt()));
+                   SmeltApplication::instance()->reqname_to_melt()));
       tbuf->insert(tbuf->end(), __FILE__ " compiled " __DATE__ "@" __TIME__ "\n");
     }
   }
   show_all();
 }
 
-void SmeltCommandSymbol::call(SmeltAppl* app, SmeltVector&v)
+void SmeltCommandSymbol::call(SmeltApplication* app, SmeltVector&v)
 {
   ((*app).*(_cmdfun))(v);
 }
@@ -1457,7 +1502,7 @@ void SmeltTraceWindow::add_reply_to_melt(const std::string& str)
     tbuf->insert(tbuf->end(), "\n");
 }
 
-void SmeltOptionGroup::setup_appl(SmeltAppl& app)
+void SmeltOptionGroup::setup_appl(SmeltApplication& app)
 {
   if (!_file_to_melt.empty())
     app.set_reqchan_to_melt(_file_to_melt);
@@ -1469,7 +1514,7 @@ void SmeltOptionGroup::setup_appl(SmeltAppl& app)
 
 /* low level callback to write requests to MELT */
 bool
-SmeltAppl::reqbuf_to_melt_cb(Glib::IOCondition outcond)
+SmeltApplication::reqbuf_to_melt_cb(Glib::IOCondition outcond)
 {
   SMELT_DEBUG("start outcond=" << outcond);
   if ((outcond & Glib::IO_OUT) == 0)
@@ -1520,7 +1565,7 @@ SmeltAppl::reqbuf_to_melt_cb(Glib::IOCondition outcond)
 
 /* low-level callback to read commands from MELT */
 bool
-SmeltAppl::cmdbuf_from_melt_cb(Glib::IOCondition  incond)
+SmeltApplication::cmdbuf_from_melt_cb(Glib::IOCondition  incond)
 {
   SMELT_DEBUG("start incond=" << incond);
   if ((incond & Glib::IO_IN) == 0)
@@ -1542,7 +1587,7 @@ SmeltAppl::cmdbuf_from_melt_cb(Glib::IOCondition  incond)
 }
 
 void
-SmeltAppl::set_trace(bool traced)
+SmeltApplication::set_trace(bool traced)
 {
   SMELT_DEBUG(" traced=" << traced);
   if (traced) {
@@ -1563,7 +1608,7 @@ SmeltAppl::set_trace(bool traced)
 
 
 void
-SmeltAppl::on_trace_toggled(void)
+SmeltApplication::on_trace_toggled(void)
 {
   if (_app_tracewin)
     set_trace(_app_tracewin->tracing());
@@ -1572,7 +1617,7 @@ SmeltAppl::on_trace_toggled(void)
 }
 
 void
-SmeltAppl::process_command_from_melt(std::string& str)
+SmeltApplication::process_command_from_melt(std::string& str)
 {
   SMELT_DEBUG("str.siz=" << str.size() << " str:" << str);
   if (_app_traced) {
@@ -1611,20 +1656,18 @@ int main (int argc, char** argv)
 #warning not working well yet..., should handle program argument
   auto progname = (argc>0)?(argv[0]):"Simple Melt Probe";
   try {
-    SmeltOptionGroup optgroup;
-    smelt_options_context.set_main_group(optgroup);
-    SmeltAppl app;
-    optgroup.setup_appl(app);
-    SMELT_DEBUG("running pid " << (int)getpid());
-    app.run();
+     Glib::RefPtr<SmeltApplication> appl = 
+       SmeltApplication::create();
+    appl->run(argc, argv);
+    SMELT_DEBUG("after run");
   } catch (std::exception ex) {
     std::clog << progname << " got exception: " << ex.what() << std::endl;
-    exit(1);
+    exit(EXIT_FAILURE);
   } catch (Glib::Error opterr) {
     std::clog << progname << " got Glib error: " << opterr.what() << std::endl;
-    exit(1);
+    exit(EXIT_FAILURE);
   }
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 
@@ -1632,10 +1675,10 @@ int main (int argc, char** argv)
 /*****************************************************************/
 /*****************************************************************/
 /////////////// tracemsg_cmd
-SmeltCommandSymbol smeltsymb_tracemsg_cmd("TRACEMSG_PCD",&SmeltAppl::tracemsg_cmd);
+SmeltCommandSymbol smeltsymb_tracemsg_cmd("TRACEMSG_PCD",&SmeltApplication::tracemsg_cmd);
 
 void
-SmeltAppl::tracemsg_cmd(SmeltVector&v)
+SmeltApplication::tracemsg_cmd(SmeltVector&v)
 {
   auto& msg = v[1].to_string();
   SMELT_DEBUG("msg:" << msg);
@@ -1645,7 +1688,7 @@ SmeltAppl::tracemsg_cmd(SmeltVector&v)
 
 ////////////// quit_cmd
 
-SmeltCommandSymbol smeltsymb_quit_cmd("QUIT_PCD",&SmeltAppl::quit_cmd);
+SmeltCommandSymbol smeltsymb_quit_cmd("QUIT_PCD",&SmeltApplication::quit_cmd);
 
 
 static void smelt_quit(void)
@@ -1655,7 +1698,7 @@ static void smelt_quit(void)
 }
 
 void
-SmeltAppl::quit_cmd(SmeltVector&v)
+SmeltApplication::quit_cmd(SmeltVector&v)
 {
   long delay = (v.size()>0)?v.at(1).as_long():0L;
   SMELT_DEBUG("QUIT command delay:" << delay);
@@ -1669,10 +1712,10 @@ SmeltAppl::quit_cmd(SmeltVector&v)
 
 ////////////// echo_pcd command for echoing
 
-SmeltCommandSymbol smeltsymb_echo_cmd("ECHO_PCD",&SmeltAppl::echo_cmd);
+SmeltCommandSymbol smeltsymb_echo_cmd("ECHO_PCD",&SmeltApplication::echo_cmd);
 
 void
-SmeltAppl::echo_cmd(SmeltVector&v)
+SmeltApplication::echo_cmd(SmeltVector&v)
 {
   v.erase(v.begin());
   sendreq(outreq() << v);
@@ -1682,10 +1725,10 @@ SmeltAppl::echo_cmd(SmeltVector&v)
 
 //////////////// showfile_pcd <filename> <number> command to show a file
 
-SmeltCommandSymbol smeltsymb_showfile_cmd("SHOWFILE_PCD",&SmeltAppl::showfile_cmd);
+SmeltCommandSymbol smeltsymb_showfile_cmd("SHOWFILE_PCD",&SmeltApplication::showfile_cmd);
 
 void
-SmeltAppl::showfile_cmd(SmeltVector&v)
+SmeltApplication::showfile_cmd(SmeltVector&v)
 {
   auto filnam = v.at(1).to_string();
   auto num = v.at(2).to_long();
@@ -1695,10 +1738,10 @@ SmeltAppl::showfile_cmd(SmeltVector&v)
 
 //////////////// marklocation_pcd <marknum> <filenum> <lineno> <col> to mark a location
 
-SmeltCommandSymbol smeltsymb_marklocation_cmd("MARKLOCATION_PCD",&SmeltAppl::marklocation_cmd);
+SmeltCommandSymbol smeltsymb_marklocation_cmd("MARKLOCATION_PCD",&SmeltApplication::marklocation_cmd);
 
 void
-SmeltAppl::marklocation_cmd(SmeltVector&v)
+SmeltApplication::marklocation_cmd(SmeltVector&v)
 {
   auto marknum = v.at(1).to_long();
   auto filnum = v.at(2).to_long();
@@ -1712,10 +1755,10 @@ SmeltAppl::marklocation_cmd(SmeltVector&v)
 ////////////////////////////////////////////////////////////////
 //////////////// clearstatus_pcd to clear the status stack
 
-SmeltCommandSymbol smeltsymb_clearstatus_cmd("CLEARSTATUS_PCD",&SmeltAppl::clearstatus_cmd);
+SmeltCommandSymbol smeltsymb_clearstatus_cmd("CLEARSTATUS_PCD",&SmeltApplication::clearstatus_cmd);
 
 void
-SmeltAppl::clearstatus_cmd(SmeltVector&)
+SmeltApplication::clearstatus_cmd(SmeltVector&)
 {
   SMELT_DEBUG("CLEARSTATUS");
   _app_mainwinp->remove_all_status ();
@@ -1724,10 +1767,10 @@ SmeltAppl::clearstatus_cmd(SmeltVector&)
 
 //////////////// pushstatus_pcd to push a message on the status stack
 
-SmeltCommandSymbol smeltsymb_pushstatus_cmd("PUSHSTATUS_PCD",&SmeltAppl::pushstatus_cmd);
+SmeltCommandSymbol smeltsymb_pushstatus_cmd("PUSHSTATUS_PCD",&SmeltApplication::pushstatus_cmd);
 
 void
-SmeltAppl::pushstatus_cmd(SmeltVector&v)
+SmeltApplication::pushstatus_cmd(SmeltVector&v)
 {
   auto str = v.at(1).to_string();
   SMELT_DEBUG("PUSHSTATUS " << str);
@@ -1737,10 +1780,10 @@ SmeltAppl::pushstatus_cmd(SmeltVector&v)
 
 //////////////// popstatus_pcd to push a message on the status stack
 
-SmeltCommandSymbol smeltsymb_popstatus_cmd("POPSTATUS_PCD",&SmeltAppl::popstatus_cmd);
+SmeltCommandSymbol smeltsymb_popstatus_cmd("POPSTATUS_PCD",&SmeltApplication::popstatus_cmd);
 
 void
-SmeltAppl::popstatus_cmd(SmeltVector&)
+SmeltApplication::popstatus_cmd(SmeltVector&)
 {
   SMELT_DEBUG("POPSTATUS");
   _app_mainwinp->pop_status ();
@@ -1749,10 +1792,10 @@ SmeltAppl::popstatus_cmd(SmeltVector&)
 
 //////////////// setstatus_pcd to set a message, that is pop then push, on status stack
 
-SmeltCommandSymbol smeltsymb_setstatus_cmd("SETSTATUS_PCD",&SmeltAppl::setstatus_cmd);
+SmeltCommandSymbol smeltsymb_setstatus_cmd("SETSTATUS_PCD",&SmeltApplication::setstatus_cmd);
 
 void
-SmeltAppl::setstatus_cmd(SmeltVector&v)
+SmeltApplication::setstatus_cmd(SmeltVector&v)
 {
   auto str = v.at(1).to_string();
   SMELT_DEBUG("SETSTATUS " << str);
